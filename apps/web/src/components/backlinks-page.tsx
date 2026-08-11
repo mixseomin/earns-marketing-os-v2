@@ -93,7 +93,10 @@ const ACTIVITY_META: Record<'added' | 'submitted' | 'done', { label: string; col
   done: { label: 'xong', color: SITE_STATUS_META.completed?.color ?? '#22c55e' },
 };
 type TabKey = 'all' | (typeof STATUS_ORDER)[number];
-type KindFilter = '' | 'backlink' | 'email' | 'seed' | 'build' | 'followup';   // '' = mọi loại
+type KindFilter = '' | 'backlink' | 'email' | 'seed' | 'build' | 'research' | 'followup';   // '' = mọi loại
+// 📚 Nghiên cứu = TÀI LIỆU TRA CỨU, không phải việc phải làm: nó không gắn ngày (lịch xếp theo
+// ngày phải động tay) và không biến mất khi đóng sổ. Vì vậy nó cần một CHIP riêng để gọi ra,
+// chứ không thể tìm bằng cách nhớ hôm nào đã đo.
 
 const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;
 
@@ -885,7 +888,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // 'acquire' cũ = backlink (link cũ vẫn mở đúng).
   const [kind, setKind] = useState<KindFilter>(() => {
     const v = sp.get('wt') || '';
-    return v === 'acquire' ? 'backlink' : (['backlink', 'email', 'seed', 'build', 'followup'].includes(v) ? v as KindFilter : '');
+    return v === 'acquire' ? 'backlink' : (['backlink', 'email', 'seed', 'build', 'research', 'followup'].includes(v) ? v as KindFilter : '');
   });
   // Card nào thuộc một sản phẩm → loại việc = 📕 build (làm ra thứ để bán), không phải 🔗 backlink.
   // Lấy từ `products` (đã tải sẵn), không phải shownProducts: lọc theo project không được đổi LOẠI của việc.
@@ -1073,7 +1076,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       if (tab !== 'all' && t.siteState !== tab) return false;
       // follow-up không phải task của bảng này → chọn nó là ẩn hết task, chỉ còn 📌 trên lịch.
       if (kind === 'followup') return false;
-      if (kind && kindOf(t) !== kind) return false;
+      // Nghiên cứu có làn riêng: chọn 📚 → chỉ nó; chọn làn việc khác → loại nó ra cho làn sạch.
+      if (kind === 'research') { if (typeKeyOf(t) !== 'research') return false; }
+      else if (kind) { if (typeKeyOf(t) === 'research' || kindOf(t) !== kind) return false; }
       if (follow && (t.dofollow || '') !== follow) return false;
       if (traf && (t.traffic || '') !== traf) return false;
       if (draftOnly && !t.hasDraft) return false;
@@ -1163,7 +1168,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // đừng để "Không có task ở tab này" đánh đố (YDNI: text tham chiếu phải bấm được).
   const emptyNote = kind === 'followup' && view !== 'calendar'
     ? (<>📌 Follow-up chỉ hiện trên <button type="button" onClick={() => setView('calendar')} style={{ ...btn, padding: '1px 8px', color: 'var(--accent)', cursor: 'pointer' }}>📅 Lịch</button></>)
-    : 'Không có task ở tab này.';
+    : kind === 'research' && view === 'calendar'
+      ? (<>📚 Nghiên cứu là tài liệu tra cứu — KHÔNG gắn ngày, nên lịch không phải chỗ tìm nó. Xem ở <button type="button" onClick={() => setView('list')} style={{ ...btn, padding: '1px 8px', color: 'var(--accent)', cursor: 'pointer' }}>📋 Danh sách</button></>)
+      : 'Không có task ở tab này.';
 
 
   // Group the (already filtered) list by one dimension — sections ordered by size. null = flat list.
@@ -1552,7 +1559,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       {/* Row 1 — YDNI essentials: search · work-type spine (scales to ✉ email later) · ⚙ advanced popover · view */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <SearchInput value={q} onChange={setQ} placeholder="tìm task (tên/URL/method/niche)…" width={240} />
-        <Segmented options={[{ value: '', label: 'All' }, { value: 'backlink', label: '🔗 Backlink' }, { value: 'email', label: '✉ Email' }, { value: 'seed', label: '🌱 Seed' }, { value: 'build', label: '📕 Sản phẩm' }, { value: 'followup', label: '📌 Follow-up' }]}
+        <Segmented options={[{ value: '', label: 'All' }, { value: 'backlink', label: '🔗 Backlink' }, { value: 'email', label: '✉ Email' }, { value: 'seed', label: '🌱 Seed' }, { value: 'build', label: '📕 Sản phẩm' }, { value: 'research', label: '📚 Nghiên cứu' }, { value: 'followup', label: '📌 Follow-up' }]}
           value={kind} onChange={(v) => setKind(v as KindFilter)} />
         {(() => {
           const advN = [follow, traf, draftOnly, blockedOnly, tierFilter].filter(Boolean).length;

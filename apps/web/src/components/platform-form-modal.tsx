@@ -520,6 +520,29 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
               />
             </div>
           )}
+          {/* Recipes (read-only) — kịch bản login/reset dạng data đã capture. Nguồn:
+              platforms.login_recipe / password_reset_recipe (runner refresh-sessions). */}
+          {!isCreate && platform && (Boolean(platform.loginRecipe) || Boolean(platform.passwordResetRecipe)
+            || (Array.isArray(platform.checklist) && platform.checklist.length > 0)) && (
+            <div style={{ gridColumn: '1 / 3', marginTop: 8 }}>
+              <span style={{ ...lbl, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                🧾 Recipes
+                <span style={{ color: 'var(--fg-4)', textTransform: 'none', fontWeight: 400 }}>
+                  {'// login/reset flow (data, read-only) · param {{email}} {{password}} {{newPassword}}'}
+                </span>
+              </span>
+              {([['login', platform.loginRecipe], ['password reset', platform.passwordResetRecipe], ['checklist', platform.checklist]] as const).map(([name, val]) =>
+                val ? (
+                  <details key={name} style={{ marginTop: 4 }}>
+                    <summary style={{ fontSize: 11, color: 'var(--fg-2)', cursor: 'pointer', fontWeight: 600 }}>{name}</summary>
+                    <pre style={{ margin: '4px 0 0', padding: 8, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, fontSize: 10.5, color: 'var(--fg-1)', overflowX: 'auto', fontFamily: 'var(--font-mono)', whiteSpace: 'pre', maxHeight: 260 }}>
+                      {JSON.stringify(val, null, 2)}
+                    </pre>
+                  </details>
+                ) : null,
+              )}
+            </div>
+          )}
         </div>
 
         <div className="modal-foot">

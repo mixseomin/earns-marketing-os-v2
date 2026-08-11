@@ -335,6 +335,12 @@ export interface PlatformWithUsage {
   selectorCounts: Record<string, number>;
   /** Selectors KẾ THỪA từ technology pack (nếu technologyKey set), theo page_kind. */
   inheritedCounts: Record<string, number>;
+  /** Kịch bản login {steps:[…]} (xem migration 0164) · null = dùng heuristic chung. */
+  loginRecipe?: unknown;
+  /** Kịch bản reset password {steps:[…]} · null = không tự reset. */
+  passwordResetRecipe?: unknown;
+  /** Checklist signup/verify (jsonb array). */
+  checklist?: unknown;
 }
 
 export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
@@ -344,6 +350,7 @@ export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
     SELECT p.key, p.label, p.signup_url, p.post_url, p.profile_url_pattern, p.priority, p.icon_slug, p.fallback_keys,
            p.description, p.pricing, p.region, p.category, p.tags, p.user_count_estimate, p.notes, p.acquisition_method,
            p.technology_key, p.signup_fields, p.allowed_formats, p.format_mix,
+           p.login_recipe, p.password_reset_recipe, p.checklist,
            (SELECT COUNT(*)::int FROM platform_accounts WHERE platform_key = p.key) AS accounts_count
     FROM platforms p
     ORDER BY p.label
@@ -388,6 +395,9 @@ export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {
       ? (r.format_mix as Record<string, number>) : null,
     selectorCounts: ownByPlat.get(String(r.key)) ?? {},
     inheritedCounts: r.technology_key ? (byTech.get(String(r.technology_key)) ?? {}) : {},
+    loginRecipe: r.login_recipe ?? null,
+    passwordResetRecipe: r.password_reset_recipe ?? null,
+    checklist: r.checklist ?? null,
   }));
 }
 

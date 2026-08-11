@@ -69,7 +69,9 @@ const has = (re: RegExp, ...s: (string | null | undefined)[]) => re.test(s.filte
 // backlink/seed/email/build cards are never mis-routed (default stays the proven taskKind path).
 const isPublish  = (t: TaskTypeInput) => has(/\b(publish|listing|xuất bản|đăng bán|submit (to|your) (store|gumroad|udemy|directory)|go[- ]?live|indexnow|niêm yết)\b/i, t.title, t.mechanism, t.instructions);
 const isAccount  = (t: TaskTypeInput) => has(/\b(tạo (tài khoản|account)|đăng ký (tài khoản|account)|register account|warm[- ]?up|warm the account|verify (the )?account|xác minh tài khoản|2fa setup)\b/i, t.title, t.mechanism, t.instructions);
-const isResearch = (t: TaskTypeInput) => has(/\b(nghiên cứu|research|keyword research|competitor|đối thủ|market viability|phân tích thị trường|site[- ]?flip|thẩm định|feasibility)\b/i, t.title, t.mechanism, t.instructions);
+// "đo nhu cầu/demand/volume" là dạng nghiên cứu hay gặp nhất ở đây (yt-demand, keyword volume) mà
+// bản cũ không bắt → card rơi nhầm sang làn việc và mất hút khi đóng sổ (dính card #372).
+const isResearch = (t: TaskTypeInput) => has(/\b(nghiên cứu|research|keyword research|competitor|đối thủ|market viability|phân tích thị trường|site[- ]?flip|thẩm định|feasibility|đo (nhu cầu|demand|volume|thị trường)|khảo sát)\b/i, t.title, t.mechanism, t.instructions);
 const isReview   = (t: TaskTypeInput) => has(/\b(duyệt (bài|draft)|review draft|qa\b|kiểm duyệt|resolve (bug|flag)|site audit|rà soát)\b/i, t.title, t.mechanism, t.instructions);
 
 const ARCH = new Set<Archetype>(['backlink','seed','email-send','email-pitch','produce','publish','account','research','review']);

@@ -21,7 +21,8 @@ import { DEAD_STATUSES, type AccountStatus } from '@/lib/status-meta';
 import { AIFormParser } from './ai-form-parser';
 import { OwnerSelect } from './owner-select';
 import { BrowserProfileDrawer, toolMetaOf } from './browser-profile-drawer';
-import { Drawer, EntityRef, SiteFavicon } from './ui';
+import { Drawer, EntityRef, SiteFavicon, DataTable, type DataColumn, type DataGroup } from './ui';
+import { fmtCompactNum } from '@/lib/format';
 import { platformFaviconProps } from './ui/site-favicon';
 import type { TeamMemberRow } from '@/lib/actions/team';
 
@@ -606,6 +607,106 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
 // ── Accounts tab (global) ─────────────────────────────────────────
 // Mọi account cross-project trong 1 bảng. Đọc + tìm + nhảy tới chỗ sửa
 // (accounts vault của project). Không clone form vault — 1 nguồn edit duy nhất.
+// Bảng = ui.DataTable: cột chia nhóm, ⚙ bật/tắt, nhớ lựa chọn (persistKey).
+const ACCT_GROUPS: DataGroup[] = [
+  { key: 'stats', label: '📊 Chỉ số platform', color: '#5ec8e6', defaultOn: true },
+  { key: 'env',   label: '🛡 Môi trường',      color: '#9d6cff', defaultOn: true },
+  { key: 'ops',   label: '🗂 Vận hành',        color: '#a1a1aa', defaultOn: true },
+  { key: 'more',  label: '➕ Thêm',            color: '#3ecf8e', defaultOn: false },
+];
+// account_stats jsonb — key tuỳ platform, đọc mềm.
+const aStat = (a: GlobalAccountRow, ...keys: string[]): number | null => {
+  for (const k of keys) {
+    const v = a.accountStats?.[k];
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) return Number(v);
+  }
+  return null;
+};
+const aTrue = (v: unknown) => v === true || v === 'true';
+const dash = <span style={{ color: 'var(--fg-4)' }}>—</span>;
+const numCell = (n: number | null) => (n == null ? dash : fmtCompactNum(n));
+
+function acctColumns(setProject: (v: string) => void): DataColumn<GlobalAccountRow>[] {
+  return [
+    { key: 'platform', header: 'Platform', align: 'left', sortValue: (a) => a.platformKey,
+      cell: (a) => <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{a.platformKey}</span> },
+    { key: 'account', header: 'Account', align: 'left', width: 260, sortValue: (a) => a.handle || a.email || '',
+      cell: (a) => (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+          <EntityRef kind="account" id={a.id} label={a.handle || a.email || '(no handle)'} noIcon />
+          {a.email && a.handle && <span style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>· {a.email}</span>}
+        </span>
+      ),
+      total: (rs) => <b>{rs.length} account</b> },
+    { key: 'project', header: 'Project', align: 'left', sortValue: (a) => a.projectId ?? '',
+      cell: (a) => a.projectId
+        ? <EntityRef kind="project" id={a.projectId} label={a.projectId} size="sm"
+                     title={`Lọc bảng theo project ${a.projectId}`} onOpen={() => setProject(a.projectId!)} />
+        : <span style={{ fontSize: 10, color: 'var(--warn)' }}>⚠ unmapped</span> },
+    { key: 'status', header: 'Status', align: 'left', sortValue: (a) => a.status,
+      cell: (a) => <StatusBadge meta={accountStatusMeta(a.status)} /> },
+
+    // 📊 Chỉ số platform — ext Crew quét từ chính site (account_stats).
+    { key: 'karma', group: 'stats', header: 'karma', align: 'center', sortValue: (a) => aStat(a, 'karma'), cell: (a) => numCell(aStat(a, 'karma')) },
+    { key: 'followers', group: 'stats', header: 'followers', align: 'center', sortValue: (a) => aStat(a, 'followers', 'subscribers'), cell: (a) => numCell(aStat(a, 'followers', 'subscribers')) },
+    { key: 'sposts', group: 'stats', header: 'bài trên site', align: 'center', sortValue: (a) => aStat(a, 'posts', 'answers'), cell: (a) => numCell(aStat(a, 'posts', 'answers')) },
+    { key: 'age', group: 'stats', header: 'tuổi (ngày)', align: 'center', sortValue: (a) => aStat(a, 'age_days'),
+      cell: (a) => { const n = aStat(a, 'age_days'); return n == null ? dash : String(n); } },
+    { key: 'flag', group: 'stats', header: 'cờ', align: 'center', title: 'suspended / shadowbanned ext phát hiện',
+      sortValue: (a) => (aTrue(a.accountStats?.suspended) || aTrue(a.accountStats?.shadowbanned) ? 1 : 0),
+      cell: (a) => aTrue(a.accountStats?.suspended) ? <span style={{ color: 'var(--bad)' }} title="suspended">⛔</span>
+        : aTrue(a.accountStats?.shadowbanned) ? <span style={{ color: 'var(--bad)' }} title="shadowbanned">👻</span> : dash },
+    { key: 'scanAt', group: 'stats', header: 'quét', align: 'center', title: 'lần ext cập nhật chỉ số gần nhất',
+      sortValue: (a) => (typeof a.accountStats?.fetched_at === 'string' ? new Date(a.accountStats.fetched_at).getTime() : null),
+      cell: (a) => { const t = a.accountStats?.fetched_at; return typeof t === 'string'
+        ? <span style={{ color: 'var(--fg-3)' }}>{relativeTime(t)}</span> : dash; } },
+
+    // 🛡 Môi trường
+    { key: 'browser', group: 'env', header: 'Browser', align: 'left', sortValue: (a) => a.browserLabel ?? '',
+      cell: (a) => a.browserLabel ? <EntityRef kind="browser-profile" id={a.browserProfileId} label={a.browserLabel} size="sm" /> : dash },
+    { key: 'proxy', group: 'env', header: 'Proxy', align: 'left', sortValue: (a) => a.proxyLabel ?? '',
+      cell: (a) => a.proxyLabel ? <EntityRef kind="proxy" id={a.proxyId} label={a.proxyLabel} size="sm" /> : dash },
+    { key: 'creds', group: 'env', header: 'Creds', align: 'center', title: '🔑 password · 🛡 2FA · 🎫 API token',
+      sortValue: (a) => (a.hasPassword ? 4 : 0) + (a.has2fa ? 2 : 0) + (a.hasApiToken ? 1 : 0),
+      cell: (a) => (
+        <span style={{ display: 'inline-flex', gap: 3 }}>
+          {a.hasPassword && <span title="Có password lưu — mở account → Advanced để xem">🔑</span>}
+          {a.has2fa && <span title="2FA bật">🛡</span>}
+          {a.hasApiToken && <span title="Có API token">🎫</span>}
+          {!a.hasPassword && !a.has2fa && !a.hasApiToken && dash}
+        </span>
+      ) },
+    { key: 'session', group: 'env', header: 'Phiên', align: 'center', title: 'trạng thái phiên đăng nhập ext ghi nhận',
+      sortValue: (a) => a.sessionState ?? '',
+      cell: (a) => a.sessionState
+        ? <span style={{ fontSize: 10, color: a.sessionState === 'alive' ? 'var(--ok)' : a.sessionState === 'dead' ? 'var(--bad)' : 'var(--fg-3)' }}>{a.sessionState}</span>
+        : dash },
+
+    // 🗂 Vận hành
+    { key: 'owner', group: 'ops', header: 'Owner', align: 'left', sortValue: (a) => a.ownerName ?? '',
+      cell: (a) => a.ownerName ? <span style={{ fontSize: 10.5, color: 'var(--fg-2)' }}>{a.ownerName}</span> : dash },
+    { key: 'lastUsed', group: 'ops', header: 'Last used', align: 'center', sortValue: (a) => (a.lastUsedAt ? new Date(a.lastUsedAt).getTime() : null),
+      cell: (a) => <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{relativeTime(a.lastUsedAt)}</span> },
+    { key: 'type', group: 'ops', header: 'P/B/S', align: 'center', title: 'personal / brand / seeding',
+      sortValue: (a) => a.accountType,
+      cell: (a) => a.accountType ? <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{a.accountType[0]!.toUpperCase()}</span> : dash },
+
+    // ➕ Thêm (mặc định tắt)
+    { key: 'id', group: 'more', header: '#', align: 'center', sortValue: (a) => a.id,
+      cell: (a) => <span style={{ color: 'var(--fg-3)' }}>{a.id}</span> },
+    { key: 'kind', group: 'more', header: 'Kind', align: 'center', sortValue: (a) => a.accountKind,
+      cell: (a) => a.accountKind ? <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{a.accountKind}</span> : dash },
+    { key: 'cost', group: 'more', header: '$/mo', align: 'right', sortValue: (a) => a.monthlyCost,
+      cell: (a) => a.monthlyCost > 0 ? `$${a.monthlyCost}` : dash,
+      total: (rs) => { const c = rs.reduce((s, a) => s + a.monthlyCost, 0); return c > 0 ? `$${c}` : '—'; } },
+    { key: 'followUp', group: 'more', header: 'Hẹn', align: 'center', title: 'ngày hẹn check verify/duyệt',
+      sortValue: (a) => a.followUpAt ?? '', cell: (a) => a.followUpAt ? a.followUpAt.slice(5) : dash },
+    { key: 'tags', group: 'more', header: 'Tags', align: 'left', sortValue: (a) => a.tags.join(','),
+      cell: (a) => a.tags.length ? <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{a.tags.slice(0, 3).join(', ')}</span> : dash },
+  ];
+}
+
 function AccountsTab({ accounts }: { accounts: GlobalAccountRow[] }) {
   // Mọi entity chip ở đây mở drawer IN-PLACE qua <EntityDrawerHost> toàn cục
   // (lib/entity-drawer) — page này KHÔNG tự mount drawer, KHÔNG điều hướng.
@@ -661,57 +762,16 @@ function AccountsTab({ accounts }: { accounts: GlobalAccountRow[] }) {
           <p style={{ margin: 0, fontSize: 12 }}>Không có account khớp bộ lọc.</p>
         </div>
       ) : (
-        <div className="panel" style={{ padding: 0, overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={th}>#</th>
-                <th style={th}>Platform</th>
-                <th style={th}>Account</th>
-                <th style={th}>Project</th>
-                <th style={th}>Status</th>
-                <th style={th}>Browser</th>
-                <th style={th}>Proxy</th>
-                <th style={th}>Owner</th>
-                <th style={th}>Last used</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((a) => (
-                <tr key={a.id} style={{ cursor: 'pointer' }} onClick={() => openEntityDrawer('account', a.id)}>
-                  <td style={{ ...td, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{a.id}</td>
-                  <td style={{ ...td, fontFamily: 'var(--font-mono)' }}>{a.platformKey}</td>
-                  <td style={td}>
-                    <EntityRef kind="account" id={a.id} label={a.handle || a.email || '(no handle)'} noIcon />
-                    {a.email && a.handle && <span style={{ color: 'var(--fg-3)', fontSize: 10.5 }}> · {a.email}</span>}
-                    {a.hasPassword && <span title="Có password lưu (encrypted)" style={{ marginLeft: 4 }}>🔑</span>}
-                    {a.has2fa && <span title="2FA bật" style={{ marginLeft: 3 }}>🛡</span>}
-                  </td>
-                  <td style={td}>
-                    {a.projectId
-                      ? <EntityRef kind="project" id={a.projectId} label={a.projectId} size="sm"
-                          title={`Lọc bảng theo project ${a.projectId}`}
-                          onOpen={() => setProject(a.projectId!)} />
-                      : <span style={{ fontSize: 10, color: 'var(--warn)' }}>⚠ unmapped</span>}
-                  </td>
-                  <td style={td}><StatusBadge meta={accountStatusMeta(a.status)} /></td>
-                  <td style={td}>
-                    {a.browserLabel
-                      ? <EntityRef kind="browser-profile" id={a.browserProfileId} label={a.browserLabel} size="sm" />
-                      : <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>—</span>}
-                  </td>
-                  <td style={td}>
-                    {a.proxyLabel
-                      ? <EntityRef kind="proxy" id={a.proxyId} label={a.proxyLabel} size="sm" />
-                      : <span style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>—</span>}
-                  </td>
-                  <td style={{ ...td, fontSize: 10.5, color: 'var(--fg-2)' }}>{a.ownerName ?? '—'}</td>
-                  <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)' }}>{relativeTime(a.lastUsedAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable<GlobalAccountRow>
+          rows={rows}
+          columns={acctColumns(setProject)}
+          groups={ACCT_GROUPS}
+          persistKey="env-acct-cols"
+          getRowKey={(a) => String(a.id)}
+          onRowClick={(a) => openEntityDrawer('account', a.id)}
+          rowTitle={(a) => `Mở account #${a.id} @${a.handle || a.email || ''}`}
+          minWidth={1000}
+        />
       )}
 
     </>

@@ -500,10 +500,14 @@ export async function accountsInfraMatrix(): Promise<{ accounts: AccountInfraRow
 // Chỉ ĐỌC + điều hướng: sửa vẫn ở accounts vault của project (không clone form).
 export interface GlobalAccountRow {
   id: number; projectId: string | null; platformKey: string; handle: string; email: string | null;
-  status: string; has2fa: boolean; hasPassword: boolean;
+  status: string; has2fa: boolean; hasPassword: boolean; hasApiToken: boolean;
   browserProfileId: number | null; browserLabel: string | null;
   proxyId: number | null; proxyLabel: string | null;
   ownerName: string | null; lastUsedAt: string | null;
+  // Cột mở rộng cho bảng /environments (ui.DataTable bật/tắt theo nhóm).
+  accountStats: Record<string, unknown>;   // karma/followers/tuổi… ext Crew quét
+  accountType: string; accountKind: string; tags: string[];
+  monthlyCost: number; followUpAt: string | null; sessionState: string | null;
 }
 export async function listAllAccounts(): Promise<GlobalAccountRow[]> {
   const db = getDb();
@@ -513,9 +517,12 @@ export async function listAllAccounts(): Promise<GlobalAccountRow[]> {
   const rows = await db.execute(sql`
     SELECT a.id, a.project_id, a.platform_key, a.handle, a.email, a.status, a.has_2fa,
            (a.password_enc IS NOT NULL) AS has_password,
+           (a.api_token_enc IS NOT NULL) AS has_api_token,
            a.browser_profile_id, b.label AS bp_label,
            a.proxy_id, p.label AS px_label,
-           u.name AS owner_name, a.last_used_at
+           u.name AS owner_name, a.last_used_at,
+           a.account_stats, a.account_type, a.account_kind, a.tags,
+           a.monthly_cost, a.follow_up_at, a.environment->>'sessionState' AS session_state
     FROM platform_accounts a
     LEFT JOIN browser_profiles b ON b.id = a.browser_profile_id
     LEFT JOIN proxies p ON p.id = a.proxy_id
@@ -537,6 +544,14 @@ export async function listAllAccounts(): Promise<GlobalAccountRow[]> {
     proxyLabel: (r.px_label as string | null) ?? null,
     ownerName: (r.owner_name as string | null) ?? null,
     lastUsedAt: r.last_used_at instanceof Date ? r.last_used_at.toISOString() : (r.last_used_at ? String(r.last_used_at) : null),
+    hasApiToken: Boolean(r.has_api_token),
+    accountStats: (r.account_stats as Record<string, unknown> | null) ?? {},
+    accountType: String(r.account_type ?? ''),
+    accountKind: String(r.account_kind ?? ''),
+    tags: Array.isArray(r.tags) ? (r.tags as unknown[]).map(String) : [],
+    monthlyCost: Number(r.monthly_cost) || 0,
+    followUpAt: r.follow_up_at ? String(r.follow_up_at).slice(0, 10) : null,
+    sessionState: (r.session_state as string | null) ?? null,
   }));
 }
 

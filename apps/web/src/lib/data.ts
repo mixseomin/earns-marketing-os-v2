@@ -383,6 +383,7 @@ export interface AccountRow {
   tags: string[];
   warmupChecklist: Record<string, { done: boolean; value?: number | string | null; updatedAt?: string }>;
   hasApiToken: boolean;
+  hasPassword: boolean;           // password_enc có giá trị — plaintext chỉ lộ qua revealAccountPassword
   sortOrder: number;
   shareRole: string;              // 'primary' | 'shared' (project's view of this account)
   shareContentRatio: number;      // 0-100, % nội dung account này dành cho project
@@ -418,6 +419,7 @@ function mapAccountRow(r: Record<string, unknown>): AccountRow {
     tags: (r.tags as string[]) ?? [],
     warmupChecklist: (r.warmupChecklist as AccountRow['warmupChecklist']) ?? {},
     hasApiToken: Boolean(r.apiTokenEnc),
+    hasPassword: Boolean(r.passwordEnc),
     sortOrder: r.sortOrder as number,
     shareRole: (r.shareRole as string) ?? 'primary',
     shareContentRatio: (r.shareContentRatio as number) ?? 100,

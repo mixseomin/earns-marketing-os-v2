@@ -16,6 +16,7 @@ import {
   listAccountsForProjectByPlatform,
   listDirectusAccountsForPlatform, importDirectusAccount, pushAccountToDirectus,
   setAccountApiToken, revealAccountApiToken, clearAccountApiToken,
+  setAccountPassword, revealAccountPassword,
   syncAccountFromPlatform,
   listAccountGrants, addAccountGrant, removeAccountGrant, listProjectAgentsForGrant,
   accountProjectsPanel, setAccountPrimaryProject, joinAccountProjectShared, leaveAccountProject,
@@ -2457,7 +2458,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
           <Collapsible
             title="Advanced"
             defaultOpen={form.monthlyCost > 0 || form.has2fa || !!form.recoveryInfo || (!isCreate && !!account?.hasApiToken)}
-            hint="cost · 2FA · recovery · API token"
+            hint="password · cost · 2FA · recovery · API token"
           >
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
@@ -2474,6 +2475,11 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 <input style={fld} placeholder="Backup codes, recovery email…" value={form.recoveryInfo} onChange={(e) => setF('recoveryInfo', e.target.value)} />
               </div>
             </div>
+            {!isCreate && (
+              <div style={{ marginTop: 10 }}>
+                <PasswordSection accountId={account!.id} hasPassword={account!.hasPassword} />
+              </div>
+            )}
             {!isCreate && (
               <div style={{ marginTop: 10 }}>
                 <ApiTokenSection
@@ -2788,6 +2794,81 @@ function LocalAccountsPickerSection({
               </div>
             </>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── PasswordSection: xem / đặt password account ────────────────────
+// Password nằm ở platform_accounts.password_enc (ext ghi lúc đăng ký). Web trước
+// đây chỉ thấy cờ "có password" mà không có đường xem → phải mở ext mới lấy được.
+// Reveal = server action, decrypt just-in-time, gate admin/owner; KHÔNG ship
+// ciphertext hay plaintext xuống client cho tới khi bấm 👁.
+function PasswordSection({ accountId, hasPassword }: { accountId: number; hasPassword: boolean }) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [revealed, setRevealed] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [input, setInput] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const clip = useCopyToClipboard();
+  const fld = fieldStyle({ mono: true });
+
+  const reveal = () => {
+    setBusy(true); setError(null);
+    startTransition(async () => {
+      const res = await revealAccountPassword(accountId);
+      setBusy(false);
+      if (!res.ok) { setError(res.error || 'reveal failed'); return; }
+      setRevealed(res.plaintext ?? '');
+    });
+  };
+  const save = () => {
+    setBusy(true); setError(null);
+    startTransition(async () => {
+      const res = await setAccountPassword(accountId, input);
+      setBusy(false);
+      if (!res.ok) { setError(res.error || 'save failed'); return; }
+      setInput(''); setEditing(false); setRevealed(null);
+      router.refresh();
+    });
+  };
+
+  return (
+    <div style={{ padding: 10, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-2)', textTransform: 'uppercase', letterSpacing: '.06em' }}>🔑 Password</span>
+        <span style={{ fontSize: 9, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>encrypted at-rest · MOS2_SECRET_KEY</span>
+        <span style={{ flex: 1 }} />
+        <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: hasPassword ? 'var(--ok)' : 'var(--fg-4)' }}>{hasPassword ? '● đã lưu' : '○ chưa có'}</span>
+      </div>
+      {error && <div style={{ padding: '4px 8px', background: 'rgba(255,77,94,.08)', color: 'var(--bad)', fontSize: 11, borderRadius: 4, marginBottom: 6 }}>⚠ {error}</div>}
+      {editing ? (
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <input type="password" style={fld} placeholder="password mới (để rỗng = xoá)" value={input}
+                 onChange={(e) => setInput(e.target.value)}
+                 autoComplete="off" data-1p-ignore="true" data-lpignore="true" data-form-type="other" />
+          <button className="btn primary" disabled={busy} onClick={save} style={{ fontSize: 11, padding: '4px 10px' }}>Mã hoá + lưu</button>
+          <button className="btn ghost" onClick={() => { setEditing(false); setInput(''); }} style={{ fontSize: 11, padding: '4px 10px' }}>Huỷ</button>
+        </div>
+      ) : revealed !== null ? (
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <input style={fld} value={revealed || '(rỗng)'} readOnly onFocus={(e) => e.target.select()} />
+          <button className="btn" onClick={() => revealed && void clip.copy(revealed)} style={{ fontSize: 11, padding: '4px 10px' }}>{clip.copied ? '✓ copied' : '📋 Copy'}</button>
+          <button className="btn ghost" onClick={() => setRevealed(null)} style={{ fontSize: 11, padding: '4px 10px' }}>Ẩn</button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: 6 }}>
+          {hasPassword && (
+            <button className="btn" disabled={busy} onClick={reveal} style={{ fontSize: 11, padding: '4px 10px' }}>
+              {busy ? '…' : '👁 Xem password'}
+            </button>
+          )}
+          <button className="btn ghost" onClick={() => setEditing(true)} style={{ fontSize: 11, padding: '4px 10px' }}>
+            {hasPassword ? '✎ Đổi' : '+ Đặt password'}
+          </button>
         </div>
       )}
     </div>

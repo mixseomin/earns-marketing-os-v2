@@ -824,6 +824,57 @@ export async function setAccountApiToken(
   }
 }
 
+// ── Password account (password_enc) ───────────────────────────────
+// Trước 2026-08-11 web chỉ GHI được (ext /api/ext/accounts/[id]?reveal=1 mới đọc
+// nổi) → mở drawer thấy "có password" mà không có đường xem. 2 action dưới đây là
+// đường xem/đặt từ web, scope tenant + chỉ admin hoặc owner của account.
+async function assertAccountAccess(id: number): Promise<string | null> {
+  const me = await getCurrentUser();
+  if (!me) return 'chưa đăng nhập';
+  if (me.role === 'admin') return null;
+  const db = ensureDb();
+  const rows = await db.select({ owner: platformAccounts.ownerUserId })
+    .from(platformAccounts)
+    .where(and(eq(platformAccounts.tenantId, TENANT), eq(platformAccounts.id, id)))
+    .limit(1);
+  if (!rows.length) return 'account not found';
+  return rows[0]!.owner === me.id ? null : 'không có quyền với account này';
+}
+
+export async function revealAccountPassword(id: number): Promise<{ ok: boolean; plaintext?: string; error?: string }> {
+  if (!cryptoEnabled()) return { ok: false, error: 'MOS2_SECRET_KEY chưa cấu hình' };
+  const denied = await assertAccountAccess(id);
+  if (denied) return { ok: false, error: denied };
+  const db = ensureDb();
+  const rows = await db.select({ enc: platformAccounts.passwordEnc })
+    .from(platformAccounts)
+    .where(and(eq(platformAccounts.tenantId, TENANT), eq(platformAccounts.id, id)))
+    .limit(1);
+  if (!rows.length) return { ok: false, error: 'account not found' };
+  if (!rows[0]!.enc) return { ok: true, plaintext: '' };
+  try {
+    return { ok: true, plaintext: await decryptValue(rows[0]!.enc) };
+  } catch (e) {
+    return { ok: false, error: `decrypt failed: ${(e as Error).message}` };
+  }
+}
+
+export async function setAccountPassword(id: number, plaintext: string): Promise<{ ok: boolean; error?: string }> {
+  if (!cryptoEnabled()) return { ok: false, error: 'MOS2_SECRET_KEY chưa cấu hình trên server' };
+  const denied = await assertAccountAccess(id);
+  if (denied) return { ok: false, error: denied };
+  const db = ensureDb();
+  try {
+    const enc = plaintext.trim() ? await encryptValue(plaintext.trim()) : null;
+    await db.update(platformAccounts)
+      .set({ passwordEnc: enc, updatedAt: new Date() })
+      .where(and(eq(platformAccounts.tenantId, TENANT), eq(platformAccounts.id, id)));
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
 export async function revealAccountApiToken(
   projectId: string, id: number,
 ): Promise<{ ok: boolean; plaintext?: string; error?: string }> {

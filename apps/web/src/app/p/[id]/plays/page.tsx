@@ -8,6 +8,7 @@ import { listProxies, listBrowserProfiles, listProjectsWithBrowser } from '@/lib
 import { getCurrentUser } from '@/lib/auth';
 import { getBacklinkTasks } from '@/lib/actions/backlink-tasks';
 import { listFollowups } from '@/lib/actions/followups';
+import { listScheduledContentPieces } from '@/lib/data';
 import { listBuildingProducts } from '@/lib/actions/products-building';
 import { listSourceIntel } from '@/lib/actions/backlink-catalog';
 import { PREFS_COOKIE, parsePrefs } from '@/lib/prefs';
@@ -32,11 +33,12 @@ export default async function PlaysRoute({ params }: { params: Promise<{ id: str
 
   const slug = resolveSiteSlug(id) ?? id;   // any project can hold plays; fall back to project id as the site_status key
   const siteLabel = BACKLINK_SITES.find((s) => s.slug === slug)?.label ?? project.name;
-  const [mode, projects, tasks, followups, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel, browserReady, products] = await Promise.all([
+  const [mode, projects, tasks, followups, pieces, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel, browserReady, products] = await Promise.all([
     getProjectMode(id, project.mode),
     listProjects(),
     getBacklinkTasks(id),
     listFollowups(id),
+    listScheduledContentPieces(id),
     listPlatforms(),
     listAccounts(id),
     listTeamMembers(),
@@ -56,7 +58,7 @@ export default async function PlaysRoute({ params }: { params: Promise<{ id: str
       tab="plays"
       currentUser={me ? { id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty } : undefined}
     >
-      <BacklinksPage prefs={prefs} today={todayInAppTz()} products={products} projectId={id} slug={slug} siteLabel={siteLabel} tasks={tasks} followups={followups}
+      <BacklinksPage prefs={prefs} today={todayInAppTz()} products={products} projectId={id} slug={slug} siteLabel={siteLabel} tasks={tasks} followups={followups} pieces={pieces}
         project={project} platforms={platforms} accounts={accounts}
         teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" />
     </AppShell>

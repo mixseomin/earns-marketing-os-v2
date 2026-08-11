@@ -9,6 +9,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { listBuildingProducts } from '@/lib/actions/products-building';
 import { getAllBacklinkTasks } from '@/lib/actions/backlink-tasks';
 import { listFollowups } from '@/lib/actions/followups';
+import { listScheduledContentPieces } from '@/lib/data';
 import { listSourceIntel } from '@/lib/actions/backlink-catalog';
 import { PREFS_COOKIE, parsePrefs } from '@/lib/prefs';
 import { todayInAppTz } from '@/lib/local-day';
@@ -27,10 +28,11 @@ export default async function GlobalPlaysRoute() {
 
   const projects = await listProjects();
   const tracked = projects.filter((p) => resolveSiteSlug(p.id));
-  const [mode, tasks, followups, platforms, media, teamMembers, proxies, browserProfiles, sourceIntel, browserReady, products, ...acctLists] = await Promise.all([
+  const [mode, tasks, followups, pieces, platforms, media, teamMembers, proxies, browserProfiles, sourceIntel, browserReady, products, ...acctLists] = await Promise.all([
     getMode('affiliate'),
     getAllBacklinkTasks(projects),
     listFollowups(),
+    listScheduledContentPieces(),
     listPlatforms(),
     listMedia(),
     listTeamMembers(),
@@ -53,7 +55,7 @@ export default async function GlobalPlaysRoute() {
       currentUser={me ? { id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty } : undefined}
     >
       <BacklinksPage prefs={prefs} today={todayInAppTz()} allProjects products={products} projectsById={projectsById}
-        projectId="" slug={null} siteLabel="All projects" tasks={tasks} followups={followups}
+        projectId="" slug={null} siteLabel="All projects" tasks={tasks} followups={followups} pieces={pieces}
         project={(tracked[0] ?? projects[0])!} platforms={platforms} accounts={accounts}
         teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" />
     </AppShell>

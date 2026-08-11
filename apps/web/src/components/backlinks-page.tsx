@@ -18,6 +18,8 @@ import { BACKLINK_SITES } from '@/lib/backlink-sites';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
+import type { CalPiece } from '@/lib/data';
+import { CHANNELS, angleOf } from '@/lib/content-channels';
 import { StatusSegmented, Segmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
@@ -93,7 +95,7 @@ const ACTIVITY_META: Record<'added' | 'submitted' | 'done', { label: string; col
   done: { label: 'xong', color: SITE_STATUS_META.completed?.color ?? '#22c55e' },
 };
 type TabKey = 'all' | (typeof STATUS_ORDER)[number];
-type KindFilter = '' | 'backlink' | 'email' | 'seed' | 'build' | 'research' | 'followup';   // '' = mọi loại
+type KindFilter = '' | 'backlink' | 'email' | 'seed' | 'build' | 'research' | 'followup' | 'content';   // '' = mọi loại
 // 📚 Nghiên cứu = TÀI LIỆU TRA CỨU, không phải việc phải làm: nó không gắn ngày (lịch xếp theo
 // ngày phải động tay) và không biến mất khi đóng sổ. Vì vậy nó cần một CHIP riêng để gọi ra,
 // chứ không thể tìm bằng cách nhớ hôm nào đã đo.
@@ -807,8 +809,10 @@ function AcctChip({ task, onClick }: { task: BacklinkTask; onClick: (e: React.Mo
   );
 }
 
-export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [], project, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel = {}, browserReady = [], initialView, allProjects, projectsById, products = [], prefs = {}, today }: {
+export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [], pieces = [], project, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel = {}, browserReady = [], initialView, allProjects, projectsById, products = [], prefs = {}, today }: {
   projectId: string; slug: string | null; siteLabel: string; tasks: BacklinkTask[]; followups?: Followup[];
+  /** Bài đăng đã đặt ngày (content_pieces) — CÙNG lịch với việc, không tách surface. */
+  pieces?: CalPiece[];
   project: Project; platforms: PlatformRow[]; accounts: AccountRow[];
   teamMembers: TeamMemberRow[]; proxies: ProxyRow[]; browserProfiles: BrowserProfileRow[]; media: MediaRow[];
   sourceIntel?: Record<string, SourceIntel>;   // canonical_url → learned {automation, obstacles}; drives the per-card 🖐 badge (self-learning propagates to every project's task by source, read-time)
@@ -888,7 +892,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // 'acquire' cũ = backlink (link cũ vẫn mở đúng).
   const [kind, setKind] = useState<KindFilter>(() => {
     const v = sp.get('wt') || '';
-    return v === 'acquire' ? 'backlink' : (['backlink', 'email', 'seed', 'build', 'research', 'followup'].includes(v) ? v as KindFilter : '');
+    return v === 'acquire' ? 'backlink' : (['backlink', 'email', 'seed', 'build', 'research', 'followup', 'content'].includes(v) ? v as KindFilter : '');
   });
   // Card nào thuộc một sản phẩm → loại việc = 📕 build (làm ra thứ để bán), không phải 🔗 backlink.
   // Lấy từ `products` (đã tải sẵn), không phải shownProducts: lọc theo project không được đổi LOẠI của việc.
@@ -1227,8 +1231,27 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       const plbl = showProj ? `[${p?.name ?? f.projectId}] ` : '';
       out.push({ id: `f:${f.id}`, date: f.due, label: `${plbl}${f.title.replace(/\s+/g, ' ').trim()}`, icon: 'pin', done: f.status === 'done', dim: f.status === 'dropped', color: m.color, title: `${m.label} · ${p?.name ?? f.projectId}: ${f.title}` });
     }
+    // Bài đăng (content_pieces) — CÙNG lịch. Màu = nhóm angle (HÚT/TIN/CHUYỂN ĐỔI/CỘNG ĐỒNG) để
+    // nhìn tháng là thấy mix lệch chỗ nào; ✓ = đã đăng; mờ = còn nháp. Bấm mở piece ở Studio.
+    for (const p of pieces) {
+      if (kind && kind !== 'content') continue;
+      if (allProjects && projectFilter && p.projectId !== projectFilter) continue;
+      const pq = q.trim().toLowerCase();
+      if (pq && !`${p.title} ${p.subject ?? ''} ${p.tags.join(' ')}`.toLowerCase().includes(pq)) continue;
+      const a = angleOf(p.tags);
+      const ch = CHANNELS.find((c) => c.id === p.channel);
+      const pr = allProjects ? projectsById?.[p.projectId] : undefined;
+      const plbl = showProj ? `[${pr?.name ?? p.projectId}] ` : '';
+      out.push({
+        id: `c:${p.id}`, date: p.date, icon: 'docpen',
+        label: `${plbl}${ch?.icon ?? ''} ${(p.subject || p.title).replace(/\s+/g, ' ').trim()}`,
+        color: a ? a.group.color : 'var(--fg-3)',
+        done: p.status === 'published', dim: p.status === 'draft',
+        title: `Bài đăng · ${ch?.label ?? p.channel} · ${p.status}${a ? ` · ${a.group.label}/${a.angle}` : ' · chưa gắn angle'} — ${p.title}`,
+      });
+    }
     return out;
-  }, [filtered, allProjects, projectFilter, followups, projectsById, kind, kindOf, q]);
+  }, [filtered, allProjects, projectFilter, followups, projectsById, kind, kindOf, q, pieces]);
 
   const open = openId != null ? tasks.find((t) => t.id === openId) ?? null : null;
 
@@ -1559,7 +1582,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       {/* Row 1 — YDNI essentials: search · work-type spine (scales to ✉ email later) · ⚙ advanced popover · view */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <SearchInput value={q} onChange={setQ} placeholder="tìm task (tên/URL/method/niche)…" width={240} />
-        <Segmented options={[{ value: '', label: 'All' }, { value: 'backlink', label: '🔗 Backlink' }, { value: 'email', label: '✉ Email' }, { value: 'seed', label: '🌱 Seed' }, { value: 'build', label: '📕 Sản phẩm' }, { value: 'research', label: '📚 Nghiên cứu' }, { value: 'followup', label: '📌 Follow-up' }]}
+        <Segmented options={[{ value: '', label: 'All' }, { value: 'backlink', label: '🔗 Backlink' }, { value: 'email', label: '✉ Email' }, { value: 'seed', label: '🌱 Seed' }, { value: 'build', label: '📕 Sản phẩm' }, { value: 'research', label: '📚 Nghiên cứu' }, { value: 'followup', label: '📌 Follow-up' }, { value: 'content', label: '📝 Bài đăng' }]}
           value={kind} onChange={(v) => setKind(v as KindFilter)} />
         {(() => {
           const advN = [follow, traf, draftOnly, blockedOnly, tierFilter].filter(Boolean).length;
@@ -1719,7 +1742,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13, gridColumn: '1 / -1' }}>{emptyNote}</div>}
         </div>
       ) : view === 'calendar' ? (
-        <MonthCalendar legend={CAL_LEGEND} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} date={calDate} onDateChange={setCalDate} today={today}
+        <MonthCalendar legend={CAL_LEGEND} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else if (s.startsWith('c:')) { const pc = pieces.find((x) => x.id === Number(s.slice(2))); if (pc) router.push(`/p/${pc.projectId}/studio?view=list&modal=edit&id=${pc.id}`); } else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} date={calDate} onDateChange={setCalDate} today={today}
           sidebar={<ProductStrip products={shownProducts} projects={allProjects ? projectsById : undefined} onOpen={setOpenProd} narrow />} />
       ) : grouped ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

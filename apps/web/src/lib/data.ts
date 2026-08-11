@@ -1149,6 +1149,30 @@ export type ContentPieceRow = {
   metrics: Record<string, string | number>;
   updatedAt: Date;
 };
+// Bài ĐÃ ĐẶT NGÀY — cho LỊCH PLAYS (một lịch duy nhất: việc + follow-up + bài đăng).
+// Trước đây lịch đăng chỉ sống ở Content Studio, nên mở /plays ra không thấy bài nào và
+// phải nhớ có hai chỗ. Chỉ lấy cột lịch cần + chỉ dòng có scheduled_at (global /plays gom
+// mọi project → đừng kéo cả body_md về).
+export type CalPiece = { id: number; projectId: string; title: string; subject: string | null; channel: string; status: string; date: string; tags: string[] };
+export async function listScheduledContentPieces(projectId?: string): Promise<CalPiece[]> {
+  return tryDb(async () => {
+    const db = getDb(); if (!db) return [];
+    const res = await db.execute(sql`
+      SELECT id, project_id, title, subject, channel, status,
+             to_char(scheduled_at, 'YYYY-MM-DD') AS date, tags
+      FROM content_pieces
+      WHERE archived_at IS NULL AND scheduled_at IS NOT NULL
+        AND (${projectId ?? ''} = '' OR project_id = ${projectId ?? ''})
+      ORDER BY scheduled_at
+    `);
+    return (res as unknown as Array<Record<string, unknown>>).map((r) => ({
+      id: Number(r.id), projectId: String(r.project_id), title: String(r.title),
+      subject: (r.subject as string | null) ?? null, channel: String(r.channel),
+      status: String(r.status), date: String(r.date),
+      tags: Array.isArray(r.tags) ? (r.tags as string[]) : [],
+    }));
+  }, [], 'listScheduledContentPieces');
+}
 export async function listContentPieces(projectId: string): Promise<ContentPieceRow[]> {
   return tryDb(async () => {
     const rows = await listContentPiecesByProject(projectId);

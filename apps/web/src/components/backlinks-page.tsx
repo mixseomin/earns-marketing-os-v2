@@ -1202,7 +1202,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       if (t.siteDoneAt) out.push({ id: t.id, date: localDay(t.siteDoneAt), label, icon, done: CLOSED.has(t.siteState) && !isReference(t), color: smeta.color, title: `${smeta.label} · ${plbl}${ttl}${suffix}` });
       else {
         if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: localDay(t.siteSubmittedAt), label, icon, color: SITE_STATUS_META.submitted.color, title: `${SITE_STATUS_META.submitted.label} · ${plbl}${ttl}${suffix}`, brief });
-        if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, icon, color: smeta.color, title: `Hẹn kiểm tra (${smeta.label}) · ${plbl}${ttl}${suffix}`, brief });   // việc SẮP làm → full contrast, không mờ
+        // else if: một card đã submitted thì KHÔNG hiện thêm dot "hẹn" (scheduled cũ đã lỗi thời) → tránh 1 card 2 dot.
+        else if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, icon, color: smeta.color, title: `Hẹn kiểm tra (${smeta.label}) · ${plbl}${ttl}${suffix}`, brief });   // việc SẮP làm → full contrast, không mờ
       }
     }
     // Follow-ups deferred: cùng lịch — icon 📌pin (loại), màu thanh-trái theo status, ✓ khi xong.

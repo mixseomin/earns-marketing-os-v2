@@ -500,7 +500,7 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
           {!isCreate && platform && (Boolean(platform.loginRecipe) || Boolean(platform.passwordResetRecipe)
             || (Array.isArray(platform.checklist) && platform.checklist.length > 0)) && (
             <div style={{ marginTop: 12 }}>
-              <span style={{ ...lbl, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ ...lbl, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
                 🧾 Recipes
                 <span style={{ color: 'var(--fg-4)', textTransform: 'none', fontWeight: 400 }}>
                   {'// login/reset flow (data, read-only) · param {{email}} {{password}} {{newPassword}}'}

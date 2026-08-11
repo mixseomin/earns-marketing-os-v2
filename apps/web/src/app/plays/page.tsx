@@ -27,8 +27,7 @@ export default async function GlobalPlaysRoute() {
   if (me?.role !== 'admin') redirect('/');
 
   const projects = await listProjects();
-  const tracked = projects.filter((p) => resolveSiteSlug(p.id));
-  const [mode, tasks, followups, pieces, platforms, media, teamMembers, proxies, browserProfiles, sourceIntel, browserReady, products, ...acctLists] = await Promise.all([
+  const [mode, tasks, followups, pieces, platforms, media, teamMembers, proxies, browserProfiles, sourceIntel, browserReady, products, accounts] = await Promise.all([
     getMode('affiliate'),
     getAllBacklinkTasks(projects),
     listFollowups(),
@@ -41,10 +40,8 @@ export default async function GlobalPlaysRoute() {
     listSourceIntel(),
     listProjectsWithBrowser(),
     listBuildingProducts(),
-    ...tracked.map((p) => listAccounts(p.id)),
+    listAccounts(),   // MỌI account của tenant: lịch mang việc + bài của mọi project, không riêng site backlink
   ]);
-  // Backlink accounts are tenant-shared → union the per-project lists, dedupe by id.
-  const accounts = Array.from(new Map(acctLists.flat().map((a) => [a.id, a])).values());
   const projectsById = Object.fromEntries(projects.map((p) => [p.id, p]));
 
   return (
@@ -56,7 +53,7 @@ export default async function GlobalPlaysRoute() {
     >
       <BacklinksPage prefs={prefs} today={todayInAppTz()} allProjects products={products} projectsById={projectsById}
         projectId="" slug={null} siteLabel="All projects" tasks={tasks} followups={followups} pieces={pieces}
-        project={(tracked[0] ?? projects[0])!} platforms={platforms} accounts={accounts}
+        project={(projects.find((p) => resolveSiteSlug(p.id)) ?? projects[0])!} platforms={platforms} accounts={accounts}
         teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" />
     </AppShell>
   );

@@ -163,7 +163,9 @@ export async function getPlatform(key: string) {
 // ── Platform accounts ──────────────────────────────────────────
 // JOIN qua project_accounts để cover cả accounts share từ project khác.
 // Backfill 0037 đảm bảo mọi account legacy đều có pivot row.
-export async function listAccountsByProject(projectId: string) {
+// projectId bỏ trống = MỌI account của tenant (lịch /plays toàn cục mang việc + bài của mọi
+// project, không riêng site backlink → scope theo 1 project là bỏ sót account của project khác).
+export async function listAccountsByProject(projectId?: string) {
   const db = getDb();
   if (!db) return null;
   return db
@@ -209,7 +211,7 @@ export async function listAccountsByProject(projectId: string) {
     })
     .from(platformAccounts)
     .innerJoin(projectAccounts, eq(projectAccounts.accountId, platformAccounts.id))
-    .where(and(eq(platformAccounts.tenantId, TENANT), eq(projectAccounts.projectId, projectId)))
+    .where(and(eq(platformAccounts.tenantId, TENANT), projectId ? eq(projectAccounts.projectId, projectId) : undefined))
     .orderBy(asc(platformAccounts.sortOrder), asc(platformAccounts.id));
 }
 

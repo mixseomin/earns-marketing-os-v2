@@ -452,7 +452,7 @@ export async function getAccountRowAny(id: number): Promise<AccountRow | null> {
   );
 }
 
-export async function listAccounts(projectId: string): Promise<AccountRow[]> {
+export async function listAccounts(projectId?: string): Promise<AccountRow[]> {
   return tryDb(
     async () => {
       const me = await getEffectiveUser();
@@ -462,7 +462,10 @@ export async function listAccounts(projectId: string): Promise<AccountRow[]> {
       const filtered = (me && me.role !== 'admin')
         ? rows.filter((r) => (r as { ownerUserId?: number | null }).ownerUserId === me.id)
         : rows;
-      return filtered.map((r) => mapAccountRow(r as unknown as Record<string, unknown>));
+      // Không truyền projectId = lấy toàn tenant: join project_accounts nhân dòng theo số project
+      // account được chia sẻ → khử trùng theo id.
+      const unique = projectId ? filtered : [...new Map(filtered.map((r) => [(r as { id: number }).id, r])).values()];
+      return unique.map((r) => mapAccountRow(r as unknown as Record<string, unknown>));
     },
     [],
     'listAccounts',

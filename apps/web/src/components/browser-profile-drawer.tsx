@@ -13,6 +13,7 @@ import { OwnerSelect } from './owner-select';
 import { Drawer, ProjectAssign, EntityRef, SiteFavicon } from './ui';
 import { platformFaviconProps } from './ui/site-favicon';
 import { AccountDrawer } from './account-drawer';
+import { AccountStatChips } from './account-metrics';
 import type { TeamMemberRow } from '@/lib/actions/team';
 import { wrapExternalUrl } from '@/lib/external-url';
 // Ngưỡng + màu + badge phiên: dùng chung với environments-page, không chép lại.
@@ -262,6 +263,10 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
                           return <span title={h.tip} style={{ fontSize: 10, color: h.color, flexShrink: 0, fontWeight: h.bold ? 700 : 400 }}>{h.text}</span>;
                         })()}
                         <span style={{ fontSize: 10, color: 'var(--fg-4)', flexShrink: 0 }}>{a.status}</span>
+                        {/* Chỉ số ext đã quét (karma/followers…) — ghim mép phải để hàng không xô lệch. */}
+                        <span style={{ marginLeft: 'auto', flexShrink: 0 }}>
+                          <AccountStatChips stats={a.accountStats} max={2} />
+                        </span>
                       </div>
                     );
                   })}

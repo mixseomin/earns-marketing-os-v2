@@ -395,6 +395,7 @@ export interface AccountRow {
   accountType: string;              // personal | brand | seeding
   unreadMessages: number | null;   // account_stats.unread_messages — tin nhắn chưa đọc (ext quét lúc đã login)
   unreadAt: string | null;         // account_stats.fetched_at — lần ext cập nhật stats gần nhất
+  accountStats: Record<string, unknown>; // account_stats jsonb đầy đủ — karma/followers/posts/joined… (key tuỳ platform)
 }
 
 // Shared raw-row → AccountRow mapping (used by both project-scoped list + by-id fetch).
@@ -429,6 +430,7 @@ function mapAccountRow(r: Record<string, unknown>): AccountRow {
     accountType: (r.accountType as string) ?? 'brand',
     unreadMessages: ((): number | null => { const s = r.accountStats as Record<string, unknown> | undefined; const v = s?.unread_messages; return typeof v === 'number' ? v : null; })(),
     unreadAt: ((): string | null => { const s = r.accountStats as Record<string, unknown> | undefined; const v = s?.fetched_at; return typeof v === 'string' ? v : null; })(),
+    accountStats: (r.accountStats as Record<string, unknown>) ?? {},
   } as AccountRow;
 }
 

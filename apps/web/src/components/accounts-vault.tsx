@@ -68,6 +68,7 @@ import { BriefEditModal } from './brief-edit-modal';
 import { HabitatFormModal } from './habitat-form-modal';
 import { ExternalLink } from './external-link';
 import { profileUrlFor } from '@/lib/platform-profile-urls';
+import { AccountMetricsPanel, AccountStatChips } from './account-metrics';
 import { fillTemplate } from '@/lib/template';
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
@@ -892,6 +893,7 @@ export function AccountsVault({ projectId, project, platforms, accounts, teamMem
                     {acc.has2fa && <span title="2FA enabled" style={{ fontSize: 11 }}>🔐</span>}
                   </div>
                   {acc.email && <div style={{ fontSize: 11, color: 'var(--fg-3)', marginBottom: 4 }}>{acc.email}</div>}
+                  <AccountStatChips stats={acc.accountStats} max={3} />
                   {checklistTotal > 0 && (
                     <div style={{ marginTop: 8 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--fg-3)', marginBottom: 2 }}>
@@ -1928,6 +1930,15 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
             overflowY: 'auto', minHeight: 0, paddingRight: 8, paddingLeft: 12,
             borderLeft: '1px dashed var(--line)',
           }}>
+            {/* Chỉ số account (platform stats do ext quét + hoạt động trong MOS2).
+                Luôn hiện: đây là thông tin PHẢI thấy để hiểu account đang mạnh/yếu. */}
+            {!isCreate && account && (
+              <AccountMetricsPanel
+                accountId={account.id}
+                stats={account.accountStats}
+                profileUrl={profileUrlFor(account.platformKey, account.handle, platform?.profileUrlPattern)}
+              />
+            )}
             {/* Habitats engaging section LÊN ĐẦU right column — luôn hiển thị
                 khi edit existing account (parallel với Habitat modal). User
                 không phải scroll xuống cuối để xem account này engage habitat

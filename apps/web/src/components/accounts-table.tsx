@@ -23,6 +23,7 @@ import {
   SiteFavicon,
 } from './ui';
 import { platformFaviconProps } from './ui/site-favicon';
+import { AccountStatChips } from './account-metrics';
 
 // Lens lifecycle: cắt account theo giai đoạn sống. 'all' = tất cả; 'warmup' =
 // đang setup/đủ-điều-kiện (todo/creating/warming) — đây là nguồn block seeding
@@ -323,6 +324,8 @@ export function AccountsTable({
                             {a.email}{a.email && a.tags.length > 0 ? ' · ' : ''}{a.tags.slice(0, 3).join(', ')}
                           </div>
                         )}
+                        {/* Chỉ số platform ext đã quét (karma/followers…) — sẵn trong row, không query thêm. */}
+                        <AccountStatChips stats={a.accountStats} max={2} />
                       </div>
                     </td>
                     {/* Platform */}

@@ -201,6 +201,33 @@ export interface AccountGrantRow {
   grantedAt: Date;
 }
 
+// Hoạt động của account trong MOS2 (đối trọng với account_stats = chỉ số scrape
+// từ chính platform). 1 query, gọi lazy khi mở drawer — KHÔNG dùng cho list row.
+export interface AccountActivity {
+  briefs: number; posts: number; lastPostedAt: string | null;
+  tasksOpen: number; tasksDone: number; interactions: number; publications: number;
+}
+export async function accountActivity(accountId: number): Promise<AccountActivity> {
+  const db = ensureDb();
+  const rows = await db.execute(sql`
+    SELECT
+      (SELECT count(*) FROM community_briefs WHERE account_id = ${accountId}) AS briefs,
+      (SELECT count(*) FROM cards WHERE account_id = ${accountId} AND post_url IS NOT NULL) AS posts,
+      (SELECT max(posted_at) FROM cards WHERE account_id = ${accountId}) AS last_posted_at,
+      (SELECT count(*) FROM human_tasks WHERE account_id = ${accountId} AND status IN ('completed','done')) AS tasks_done,
+      (SELECT count(*) FROM human_tasks WHERE account_id = ${accountId} AND status NOT IN ('completed','done','rejected','dropped')) AS tasks_open,
+      (SELECT count(*) FROM interactions WHERE account_id = ${accountId}) AS interactions,
+      (SELECT count(*) FROM publications WHERE account_id = ${accountId}) AS publications`);
+  const r = ((rows as unknown as Array<Record<string, unknown>>)[0]) ?? {};
+  const n = (v: unknown) => Number(v ?? 0) || 0;
+  return {
+    briefs: n(r.briefs), posts: n(r.posts),
+    lastPostedAt: r.last_posted_at ? new Date(r.last_posted_at as string).toISOString() : null,
+    tasksOpen: n(r.tasks_open), tasksDone: n(r.tasks_done),
+    interactions: n(r.interactions), publications: n(r.publications),
+  };
+}
+
 export async function listAccountGrants(accountId: number): Promise<AccountGrantRow[]> {
   const db = ensureDb();
   // Join để lấy label cho cả agent + user trong 1 query

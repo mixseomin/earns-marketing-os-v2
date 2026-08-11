@@ -4,6 +4,7 @@ export { EmptyState } from './empty-state';
 export { Spinner, type SpinnerSize } from './spinner';
 export { LinkChip, type ChipTone, type ChipSize } from './link-chip';
 export { Segmented, type SegmentedOption } from './segmented';
+export { Tabs, type TabItem } from './tabs';
 export { StatusSegmented, type StatusOption } from './status-segmented';
 export { MonthCalendar, type CalItem, type CalMode, type LegendEntry, type CalBrief } from './month-calendar';
 export { ViewToggle, LIST_CALENDAR_VIEWS, type ViewOption } from './view-toggle';

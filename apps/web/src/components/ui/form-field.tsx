@@ -52,8 +52,12 @@ export function fieldStyle(opts?: {
   };
 }
 
+// display:flex sẵn — nhãn thường phải chứa thêm icon info / khoá / badge; để 'block'
+// thì mỗi chỗ lại {...lbl, display:'flex'} (đã lặp 9 nơi). Flex vẫn là block-level box.
 export const labelStyle: CSSProperties = {
-  display: 'block',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 4,
   fontSize: 10,
   fontFamily: 'var(--font-mono)',
   color: 'var(--fg-3)',
@@ -114,7 +118,7 @@ export function FormField({
   return (
     <div data-comp="ui.FormField" style={{ ...(gridColumn ? { gridColumn } : {}), ...style }}>
       {label ? (
-        <label title={labelTooltip} style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 4, cursor: labelTooltip ? 'help' : undefined }}>
+        <label title={labelTooltip} style={{ ...labelStyle, cursor: labelTooltip ? 'help' : undefined }}>
           <span>
             {label}
             {required && <span style={{ color: 'var(--bad)', marginLeft: 3 }}>*</span>}

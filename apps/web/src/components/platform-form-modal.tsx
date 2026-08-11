@@ -20,7 +20,7 @@ import { listTechnologies, detectTechnologyFromUrl, type TechnologyRow, type Sig
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 import { TagsInput } from './tags-input';
-import { IconCommunity, FormatIcon, FormModal, FormModalFooter, Collapsible } from './ui';
+import { IconCommunity, FormatIcon, FormModal, FormModalFooter, Collapsible, labelStyle } from './ui';
 import { HabitatSelectorsSection } from './habitat-selectors-section';
 import { CONTENT_FORMATS, allowedFormats, formatColors, formatMeta } from '@/lib/content-formats';
 import { getSuggestedProfileUrlPattern } from '@/lib/platform-profile-urls';
@@ -115,10 +115,7 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
     width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)',
     borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none',
   };
-  const lbl: React.CSSProperties = {
-    fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)',
-    textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block',
-  };
+  const lbl = labelStyle;   // nhãn dùng style chung (ui/form-field) — đừng chép lại
 
   const doSave = (archiveOrphans: boolean, typesToArchive: string[] = []) => {
     setError(null); setBusy(true);
@@ -500,7 +497,7 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
           {!isCreate && platform && (Boolean(platform.loginRecipe) || Boolean(platform.passwordResetRecipe)
             || (Array.isArray(platform.checklist) && platform.checklist.length > 0)) && (
             <div style={{ marginTop: 12 }}>
-              <span style={{ ...lbl, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+              <span style={{ ...lbl, flexWrap: 'wrap' }}>
                 🧾 Recipes
                 <span style={{ color: 'var(--fg-4)', textTransform: 'none', fontWeight: 400 }}>
                   {'// login/reset flow (data, read-only) · param {{email}} {{password}} {{newPassword}}'}

@@ -1846,7 +1846,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 );
               })()}
               <div>
-                <span style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={lbl}>
                   Status
                   <InfoHint size={11}>
                     Trạng thái <b>GLOBAL</b> của account trên platform — không phải phase trong từng community.
@@ -1875,7 +1875,7 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 </select>
               </div>
               <div>
-                <span style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={lbl}>
                   🗓 Follow-up
                   <InfoHint size={11}>
                     Ngày hẹn quay lại kiểm tra verify/duyệt (chờ mod/admin). Hiện trên plays calendar 🗓 +
@@ -2432,6 +2432,10 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 formatMix: null,
                 selectorCounts: {},
                 inheritedCounts: {},
+                // PlatformRow không tải login/reset recipe → null thật thà; checklist thì có sẵn.
+                loginRecipe: null,
+                passwordResetRecipe: null,
+                checklist: platform.checklist ?? null,
               }}
               onClose={() => setShowEditPlatform(false)}
             />

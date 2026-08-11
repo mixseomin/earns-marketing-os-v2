@@ -335,12 +335,15 @@ export interface PlatformWithUsage {
   selectorCounts: Record<string, number>;
   /** Selectors KẾ THỪA từ technology pack (nếu technologyKey set), theo page_kind. */
   inheritedCounts: Record<string, number>;
+  // Luôn có mặt — listPlatformsWithUsage set cả 3 (`?? null`). Required-nullable (như
+  // selectorCounts/accountsCount), KHÔNG optional: mọi caller build literal phải khai
+  // đủ thay vì lặng lẽ bỏ sót (nếu không type-hole lan ra).
   /** Kịch bản login {steps:[…]} (xem migration 0164) · null = dùng heuristic chung. */
-  loginRecipe?: unknown;
+  loginRecipe: unknown;
   /** Kịch bản reset password {steps:[…]} · null = không tự reset. */
-  passwordResetRecipe?: unknown;
+  passwordResetRecipe: unknown;
   /** Checklist signup/verify (jsonb array). */
-  checklist?: unknown;
+  checklist: unknown;
 }
 
 export async function listPlatformsWithUsage(): Promise<PlatformWithUsage[]> {

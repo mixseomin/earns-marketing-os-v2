@@ -23,6 +23,7 @@ import {
   SiteFavicon, DataTable, type DataColumn, type DataGroup,
 } from './ui';
 import { platformFaviconProps } from './ui/site-favicon';
+import { accountStatColumns, DASH } from './account-metrics';
 
 // Lens lifecycle: cắt account theo giai đoạn sống. 'all' = tất cả; 'warmup' =
 // đang setup/đủ-điều-kiện (todo/creating/warming) — đây là nguồn block seeding
@@ -52,17 +53,6 @@ const COL_GROUPS: DataGroup[] = [
   { key: 'ops',     label: '🗂 Vận hành',        color: '#a1a1aa', defaultOn: false },
 ];
 
-// account_stats là jsonb key tuỳ platform → đọc mềm, không có thì '—'.
-const statNum = (a: AccountRow, ...keys: string[]): number | null => {
-  for (const k of keys) {
-    const v = a.accountStats?.[k];
-    if (typeof v === 'number' && Number.isFinite(v)) return v;
-    if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) return Number(v);
-  }
-  return null;
-};
-const isTrue = (v: unknown) => v === true || v === 'true';
-const num = (n: number | null) => (n == null ? <span style={{ color: 'var(--fg-4)' }}>—</span> : fmtCompactNum(n));
 
 // Warmup progress: số mục done / tổng mục trong warmupChecklist.
 function warmupProgress(checklist: AccountRow['warmupChecklist']): { done: number; total: number } | null {
@@ -208,28 +198,8 @@ export function AccountsTable({
               title={a.blockReason ? `${sm.hint}\n⚠ ${a.blockReason}` : sm.hint} />
       ); } },
 
-    // ── 📊 Chỉ số platform (ext Crew quét từ chính site) ──
-    { key: 'karma', group: 'stats', header: 'karma', align: 'center', title: 'karma / điểm uy tín (account_stats)',
-      sortValue: (a) => statNum(a, 'karma'), cell: (a) => num(statNum(a, 'karma')) },
-    { key: 'followers', group: 'stats', header: 'followers', align: 'center', title: 'followers / subscribers',
-      sortValue: (a) => statNum(a, 'followers', 'subscribers'), cell: (a) => num(statNum(a, 'followers', 'subscribers')) },
-    { key: 'statPosts', group: 'stats', header: 'bài trên site', align: 'center', title: 'số bài/answer nền tảng ghi nhận (khác cột Posts của seeding)',
-      sortValue: (a) => statNum(a, 'posts', 'answers'), cell: (a) => num(statNum(a, 'posts', 'answers')) },
-    { key: 'age', group: 'stats', header: 'tuổi (ngày)', align: 'center', title: 'age_days — tuổi account trên platform',
-      sortValue: (a) => statNum(a, 'age_days'),
-      cell: (a) => { const n = statNum(a, 'age_days'); return n == null ? <span style={{ color: 'var(--fg-4)' }}>—</span> : String(n); } },
-    { key: 'safety', group: 'stats', header: 'cờ', align: 'center', title: 'suspended / shadowbanned do ext phát hiện',
-      sortValue: (a) => (isTrue(a.accountStats?.suspended) || isTrue(a.accountStats?.shadowbanned) ? 1 : 0),
-      cell: (a) => (
-        isTrue(a.accountStats?.suspended) ? <span style={{ color: 'var(--bad)' }} title="suspended">⛔</span>
-        : isTrue(a.accountStats?.shadowbanned) ? <span style={{ color: 'var(--bad)' }} title="shadowbanned">👻</span>
-        : <span style={{ color: 'var(--fg-4)' }}>—</span>
-      ) },
-    { key: 'statAt', group: 'stats', header: 'quét', align: 'center', title: 'lần ext cập nhật chỉ số gần nhất',
-      sortValue: (a) => (typeof a.accountStats?.fetched_at === 'string' ? new Date(a.accountStats.fetched_at).getTime() : null),
-      cell: (a) => { const t = a.accountStats?.fetched_at; return typeof t === 'string'
-        ? <span style={{ color: 'var(--fg-3)' }}>{fmtAgoShort(new Date(t).getTime())}</span>
-        : <span style={{ color: 'var(--fg-4)' }}>—</span>; } },
+    // 📊 Chỉ số platform — 6 cột dùng chung với /environments (account-metrics.tsx).
+    ...accountStatColumns<AccountRow>((a) => a.accountStats),
 
     // ── 🌱 Seeding (derive từ queue, không query thêm) ──
     { key: 'briefs', group: 'seeding', header: 'Briefs', align: 'center', title: 'brief đang seed (distinct)',
@@ -244,21 +214,21 @@ export function AccountsTable({
         for (const x of queue) if (ids.has(x.accountId)) h.add(x.habitatId); return h.size || '—'; } },
     { key: 'posts', group: 'seeding', header: 'Posts', align: 'center', title: 'tổng bài đã đăng (cross-brief)',
       sortValue: (a) => met(a).posts,
-      cell: (a) => { const n = met(a).posts; return n ? <span style={{ color: '#60a5fa', fontWeight: 700 }}>📨{fmtCompactNum(n)}</span> : <span style={{ color: 'var(--fg-4)' }}>—</span>; },
+      cell: (a) => { const n = met(a).posts; return n ? <span style={{ color: '#60a5fa', fontWeight: 700 }}>📨{fmtCompactNum(n)}</span> : DASH; },
       total: (rs) => { const n = rs.reduce((s, a) => s + met(a).posts, 0); return n ? `📨${fmtCompactNum(n)}` : '—'; } },
     { key: 'backlog', group: 'seeding', header: 'Nháp', align: 'center', title: 'nháp chưa đăng',
       sortValue: (a) => met(a).backlog,
-      cell: (a) => { const n = met(a).backlog; return n ? String(n) : <span style={{ color: 'var(--fg-4)' }}>—</span>; } },
+      cell: (a) => { const n = met(a).backlog; return n ? String(n) : DASH; } },
     { key: 'lastSeed', group: 'seeding', header: 'Seed', align: 'center', title: 'lần seed gần nhất',
       sortValue: (a) => met(a).lastSeededAt,
-      cell: (a) => { const t = met(a).lastSeededAt; return t ? <span style={{ color: 'var(--fg-3)' }} title={new Date(t).toLocaleString()}>⏱{fmtAgoShort(t)}</span> : <span style={{ color: 'var(--fg-4)' }}>—</span>; } },
+      cell: (a) => { const t = met(a).lastSeededAt; return t ? <span style={{ color: 'var(--fg-3)' }} title={new Date(t).toLocaleString()}>⏱{fmtAgoShort(t)}</span> : DASH; } },
 
     // ── 🔥 Warm-up + hộp thư ──
     { key: 'warmup', group: 'warmup', header: 'Warmup', align: 'center', title: 'checklist done/total — điều kiện đủ tuổi/karma global',
       sortValue: (a) => { const w = warmupProgress(a.warmupChecklist); return w ? w.done / w.total : null; },
       cell: (a) => { const w = warmupProgress(a.warmupChecklist); return w
         ? <span style={{ color: w.done === w.total ? 'var(--ok)' : 'var(--warn)' }}>{w.done}/{w.total}</span>
-        : <span style={{ color: 'var(--fg-4)' }}>—</span>; } },
+        : DASH; } },
     { key: 'unread', group: 'warmup', header: '✉', align: 'center', title: 'tin nhắn chưa đọc — ext quét khi account đang đăng nhập',
       sortValue: (a) => a.unreadMessages ?? -1,
       cell: (a) => a.unreadMessages && a.unreadMessages > 0
@@ -266,13 +236,13 @@ export function AccountsTable({
         : <span style={{ color: 'var(--fg-4)' }}>{a.unreadMessages === 0 ? '0' : '—'}</span> },
     { key: 'followUp', group: 'warmup', header: 'Hẹn', align: 'center', title: 'ngày hẹn check verify/duyệt',
       sortValue: (a) => a.followUpAt || null,
-      cell: (a) => a.followUpAt ? <span style={{ color: 'var(--fg-2)' }}>{a.followUpAt.slice(5)}</span> : <span style={{ color: 'var(--fg-4)' }}>—</span> },
+      cell: (a) => a.followUpAt ? <span style={{ color: 'var(--fg-2)' }}>{a.followUpAt.slice(5)}</span> : DASH },
 
     // ── 🛡 Môi trường + credential (mặc định tắt) ──
     { key: 'proxy', group: 'env', header: 'Proxy', align: 'center', sortValue: (a) => (a.proxyId ? 1 : 0),
-      cell: (a) => a.proxyId ? <span title={`proxy #${a.proxyId}`}>🛡</span> : <span style={{ color: 'var(--fg-4)' }}>—</span> },
+      cell: (a) => a.proxyId ? <span title={`proxy #${a.proxyId}`}>🛡</span> : DASH },
     { key: 'profile', group: 'env', header: 'Profile', align: 'center', sortValue: (a) => (a.browserProfileId ? 1 : 0),
-      cell: (a) => a.browserProfileId ? <span title={`browser profile #${a.browserProfileId}`}>🦊</span> : <span style={{ color: 'var(--fg-4)' }}>—</span> },
+      cell: (a) => a.browserProfileId ? <span title={`browser profile #${a.browserProfileId}`}>🦊</span> : DASH },
     { key: 'auth', group: 'env', header: 'Auth', align: 'left', sortValue: (a) => a.authMethod || '',
       cell: (a) => <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{a.authMethod || '—'}</span> },
     { key: 'creds', group: 'env', header: 'Creds', align: 'center', title: '🔒 2FA · 🔑 password · 🎫 API token',
@@ -282,7 +252,7 @@ export function AccountsTable({
           {a.has2fa && <span title="2FA bật">🔒</span>}
           {a.hasPassword && <span title="Có password lưu (mở drawer → Advanced để xem)">🔑</span>}
           {a.hasApiToken && <span title="Có API token">🎫</span>}
-          {!a.has2fa && !a.hasPassword && !a.hasApiToken && <span style={{ color: 'var(--fg-4)' }}>—</span>}
+          {!a.has2fa && !a.hasPassword && !a.hasApiToken && DASH}
         </span>
       ) },
 
@@ -294,13 +264,13 @@ export function AccountsTable({
       cell: (a) => <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{a.accountKind || '—'}</span> },
     { key: 'owner', group: 'ops', header: 'Owner', align: 'left', sortValue: (a) => (a.ownerUserId != null ? ownerName.get(a.ownerUserId) ?? '' : ''),
       cell: (a) => { const o = a.ownerUserId != null ? ownerName.get(a.ownerUserId) : null;
-        return o ? <span style={{ fontSize: 10 }} title={`Giao cho ${o}`}>👤{o.split(' ')[0]}</span> : <span style={{ color: 'var(--fg-4)' }}>—</span>; } },
+        return o ? <span style={{ fontSize: 10 }} title={`Giao cho ${o}`}>👤{o.split(' ')[0]}</span> : DASH; } },
     { key: 'cost', group: 'ops', header: '$/mo', align: 'right', sortValue: (a) => a.monthlyCost,
-      cell: (a) => a.monthlyCost > 0 ? `$${a.monthlyCost}` : <span style={{ color: 'var(--fg-4)' }}>—</span>,
+      cell: (a) => a.monthlyCost > 0 ? `$${a.monthlyCost}` : DASH,
       total: (rs) => { const c = rs.reduce((s, a) => s + a.monthlyCost, 0); return c > 0 ? `$${c}` : '—'; } },
     { key: 'collect', group: 'ops', header: '📊', align: 'center', title: 'thu thập stats tự động',
       sortValue: (a) => (a.collectStats ? 1 : 0),
-      cell: (a) => a.collectStats ? <span title="Thu thập stats tự động">📊</span> : <span style={{ color: 'var(--fg-4)' }}>—</span> },
+      cell: (a) => a.collectStats ? <span title="Thu thập stats tự động">📊</span> : DASH },
   ];
 
   return (

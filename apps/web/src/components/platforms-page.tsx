@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useMemo, useEffect, type CSSProperties } from 'react';
-import { Spinner, IconCommunity, SiteFavicon, ListToolbar, FilterChips, Pager, usePaged, MultiSelect } from './ui';
+import { Spinner, IconCommunity, SiteFavicon, ListToolbar, FilterChips, Pager, usePaged, MultiSelect, Tabs, type TabItem } from './ui';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import {
   syncPlatformsFromDirectus,
@@ -296,10 +296,10 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
     return { total: withSel.length, ready: withSel.filter((p) => isReady(effCounts(p))).length };
   }, [platforms]);
   const acqN = useMemo(() => classifiedAcq(platforms).length, [platforms]);
-  const TABS = [
-    { k: 'list',  label: '📋 Danh sách', badge: String(counts.total) },
-    { k: 'ready', label: '🚀 Sẵn sàng',  badge: `${readiness.ready}/${readiness.total}` },
-    { k: 'acq',   label: '⛔ Cách lấy backlink', badge: String(acqN) },
+  const TABS: TabItem<string>[] = [
+    { key: 'list',  label: '📋 Danh sách', badge: String(counts.total) },
+    { key: 'ready', label: '🚀 Sẵn sàng',  badge: `${readiness.ready}/${readiness.total}` },
+    { key: 'acq',   label: '⛔ Cách lấy backlink', badge: String(acqN) },
   ];
 
   const priorityOptions: { value: string; label: string }[] = [
@@ -329,13 +329,7 @@ export function PlatformsPage({ platforms }: { platforms: PlatformWithUsage[] })
       </div>
 
       {/* YDNI: mặc định CHỈ danh sách (việc chính). 2 báo cáo phụ nằm sau 1 click. */}
-      <div className="tabs" style={{ height: 34, marginLeft: 0, borderBottom: '1px solid var(--line)', marginBottom: 12, overflowX: 'auto' }}>
-        {TABS.map((t) => (
-          <button key={t.k} type="button" className="tab" data-active={tab === t.k} onClick={() => setTab(t.k)}>
-            {t.label}<span className="badge">{t.badge}</span>
-          </button>
-        ))}
-      </div>
+      <Tabs items={TABS} value={tab} onChange={setTab} />
 
       {tab === 'ready' && (
         <PlatformReadinessMatrix platforms={platforms}

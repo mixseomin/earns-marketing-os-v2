@@ -47,6 +47,46 @@ const FLAGS: Record<string, string> = {
   suspended: '⛔ suspended', shadowbanned: '👻 shadowbanned', banned: '⛔ banned', locked: '🔒 locked',
 };
 
+// ── Đọc account_stats: MỘT nguồn cho mọi bề mặt ────────────────────
+// (Trước có 3 bản sao: chips ở đây + statNum ở accounts-table + aStat ở
+// environments-page. Cùng jsonb, cùng quy tắc → 1 hàm.)
+export function readStat(stats: Record<string, unknown> | null | undefined, ...keys: string[]): number | null {
+  for (const k of keys) {
+    const v = stats?.[k];
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) return Number(v);
+  }
+  return null;
+}
+export const isFlag = (v: unknown) => v === true || v === 'true';
+export const DASH = <span style={{ color: 'var(--fg-4)' }}>—</span>;
+const statText = (n: number | null) => (n == null ? DASH : fmtCompactNum(n));
+
+// 6 cột chỉ số dùng CHUNG cho mọi bảng account (bảng /seeding + /environments).
+// Truyền cách lấy jsonb của row; group mặc định 'stats'.
+export function accountStatColumns<T>(getStats: (row: T) => Record<string, unknown> | null | undefined, group = 'stats') {
+  const s = (row: T) => getStats(row);
+  return [
+    { key: 'karma', group, header: 'karma', align: 'center' as const, title: 'karma / điểm uy tín (account_stats)',
+      sortValue: (r: T) => readStat(s(r), 'karma'), cell: (r: T) => statText(readStat(s(r), 'karma')) },
+    { key: 'followers', group, header: 'followers', align: 'center' as const, title: 'followers / subscribers',
+      sortValue: (r: T) => readStat(s(r), 'followers', 'subscribers'), cell: (r: T) => statText(readStat(s(r), 'followers', 'subscribers')) },
+    { key: 'statPosts', group, header: 'bài trên site', align: 'center' as const, title: 'số bài/answer nền tảng ghi nhận',
+      sortValue: (r: T) => readStat(s(r), 'posts', 'answers'), cell: (r: T) => statText(readStat(s(r), 'posts', 'answers')) },
+    { key: 'age', group, header: 'tuổi (ngày)', align: 'center' as const, title: 'age_days — tuổi account trên platform',
+      sortValue: (r: T) => readStat(s(r), 'age_days'),
+      cell: (r: T) => { const n = readStat(s(r), 'age_days'); return n == null ? DASH : String(n); } },
+    { key: 'safety', group, header: 'cờ', align: 'center' as const, title: 'suspended / shadowbanned do ext phát hiện',
+      sortValue: (r: T) => (isFlag(s(r)?.suspended) || isFlag(s(r)?.shadowbanned) ? 1 : 0),
+      cell: (r: T) => isFlag(s(r)?.suspended) ? <span style={{ color: 'var(--bad)' }} title="suspended">⛔</span>
+        : isFlag(s(r)?.shadowbanned) ? <span style={{ color: 'var(--bad)' }} title="shadowbanned">👻</span> : DASH },
+    { key: 'scanAt', group, header: 'quét', align: 'center' as const, title: 'lần ext cập nhật chỉ số gần nhất',
+      sortValue: (r: T) => { const t = s(r)?.fetched_at; return typeof t === 'string' ? new Date(t).getTime() : null; },
+      cell: (r: T) => { const t = s(r)?.fetched_at; return typeof t === 'string'
+        ? <span style={{ color: 'var(--fg-3)' }}>{fmtAgoShort(new Date(t).getTime())}</span> : DASH; } },
+  ];
+}
+
 interface Chip { key: string; text: string; title: string; bad?: boolean }
 
 export function statChips(stats: Record<string, unknown> | null | undefined): Chip[] {

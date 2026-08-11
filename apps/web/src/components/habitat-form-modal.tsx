@@ -12,7 +12,7 @@ import {
 } from '@/lib/actions/habitat-channels';
 import { StatusFlag } from './ui';
 import type { TribeRow, HabitatRow, PlatformRow } from '@/lib/data';
-import { Spinner, FormatIcon, SiteFavicon, Pill, ResourcePicker, Collapsible, FormModal, FormModalFooter, InfoHint } from './ui';
+import { Spinner, FormatIcon, SiteFavicon, Pill, ResourcePicker, Collapsible, FormModal, FormModalFooter, InfoHint, labelStyle } from './ui';
 import { platformFaviconProps } from './ui/site-favicon';
 import {
   listBriefsForHabitat,
@@ -240,7 +240,7 @@ export function HabitatFormModal({
   const [extraTribePicking, setExtraTribePicking] = useState(false);
 
   const fld: React.CSSProperties = { width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none' };
-  const lbl: React.CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block' };
+  const lbl = labelStyle;   // nhãn dùng style chung (ui/form-field) — đừng chép lại
 
   // Shared rules-extraction schema + apply logic for both fetch (URL) and
   // paste (raw text/HTML) entry points.
@@ -1729,7 +1729,7 @@ export function HabitatFormModal({
                           gap: 12, padding: 12, background: 'var(--bg-1)',
                           border: '1px solid var(--line)', borderRadius: 6 }}>
               <div>
-                <label style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <label style={lbl}>
                   Language
                   <InfoHint size={11}>Default cho mọi channel. Discord/Slack channel có thể override riêng.</InfoHint>
                 </label>

@@ -10,7 +10,7 @@ import {
 } from '@/lib/actions/library';
 import { TOOL_CATEGORIES } from '@/lib/tools-library';
 import { AIFormParser } from './ai-form-parser';
-import { Drawer, ListToolbar, FilterChips, Pager, usePaged } from './ui';
+import { Drawer, ListToolbar, FilterChips, Pager, usePaged, Tabs } from './ui';
 
 // Read+write a single URL search param. Replace navigation (no scroll, no history bloat).
 function useUrlParam(key: string, defaultValue: string): [string, (v: string) => void] {
@@ -57,24 +57,14 @@ export function LibraryPage({ tools, skills }: { tools: ToolRow[]; skills: Skill
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 4, marginBottom: 12, borderBottom: '1px solid var(--line)' }}>
-        <button
-          className="btn"
-          data-active={tab === 'tools' || undefined}
-          onClick={() => setTab('tools')}
-          style={{ background: tab === 'tools' ? 'var(--accent-soft)' : 'transparent', borderRadius: '5px 5px 0 0', borderBottom: tab === 'tools' ? '2px solid var(--accent)' : 'none' }}
-        >
-          🔧 Tools <span style={{ opacity: 0.6 }}>({tools.length})</span>
-        </button>
-        <button
-          className="btn"
-          data-active={tab === 'skills' || undefined}
-          onClick={() => setTab('skills')}
-          style={{ background: tab === 'skills' ? 'var(--accent-soft)' : 'transparent', borderRadius: '5px 5px 0 0', borderBottom: tab === 'skills' ? '2px solid var(--accent)' : 'none' }}
-        >
-          ✦ Skills <span style={{ opacity: 0.6 }}>({skills.length})</span>
-        </button>
-      </div>
+      <Tabs
+        value={tab}
+        onChange={(v) => setTab(v as typeof tab)}
+        items={[
+          { key: 'tools', label: '🔧 Tools', badge: tools.length },
+          { key: 'skills', label: '✦ Skills', badge: skills.length },
+        ]}
+      />
 
       {tab === 'tools' ? <ToolsTab tools={tools} /> : <SkillsTab skills={skills} />}
     </div>

@@ -5,11 +5,10 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import type { ContentPieceRow } from '@/lib/data';
 import { createContentPiece, updateContentPiece, archiveContentPiece, generateContent, type ContentInput } from '@/lib/actions/content';
 import { useModalParam } from '@/lib/use-modal-param';
-import { CHANNELS, STATUSES, ANGLE_GROUPS, MIX_TARGET, angleOf, type ContentStatus } from '@/lib/content-channels';
+import { CHANNELS, STATUSES, type ContentStatus } from '@/lib/content-channels';
 import type { SkillRow } from '@/lib/actions/library';
 import { EmptyState, Pill, StatsStrip, type StatCard } from './ui';
 import { FormModal } from './ui/form-modal';
-import { MonthCalendar, type CalItem } from './ui/month-calendar';
 
 const CH_ICON: Record<string, string> = Object.fromEntries(CHANNELS.map((c) => [c.id, c.icon]));
 const ymdLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -50,7 +49,6 @@ export function ContentStudioReal({ items, projectId, projectName, skills, tribe
   const [channel, setChannel] = useUrlParam('ch', 'all');
   const [status, setStatus] = useUrlParam('st', 'all');
   const [q, setQ] = useUrlParam('q', '');
-  const [view, setView] = useUrlParam('view', 'list');
 
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
@@ -91,40 +89,6 @@ export function ContentStudioReal({ items, projectId, projectName, skills, tribe
       .map((c) => ({ ch: c, items: map.get(c.id)! }));
   }, [filtered]);
 
-  // Calendar plots every piece with a scheduled date (send/publish date) — the editorial schedule.
-  // MÀU = nhóm ANGLE (HÚT/TIN/CHUYỂN ĐỔI/CỘNG ĐỒNG), không phải status: mở lịch tháng ra là thấy
-  // ngay mix có cân không — đó là câu hỏi thật khi nhìn cả tháng ("tuần này toàn bài bán hàng à?").
-  // Status vẫn đọc được: đã đăng = ✓ thanh xanh (done), chưa lên lịch/nháp = mờ (dim).
-  const calItems: CalItem[] = useMemo(() => filtered
-    .filter((p) => p.scheduledAt)
-    .map((p) => {
-      const a = angleOf(p.tags);
-      return {
-        id: p.id,
-        date: ymdLocal(new Date(p.scheduledAt as Date)),
-        label: `${CH_ICON[p.channel] ?? ''} ${p.subject || p.title}`.trim(),
-        color: a ? a.group.color : (STATUS_COLOR[p.status] ?? 'var(--fg-3)'),
-        done: p.status === 'published',
-        dim: p.status === 'draft',
-        title: `${p.title}${p.subject ? ` — "${p.subject}"` : ''} · ${p.status}${a ? ` · ${a.group.label} / ${a.angle}` : ' · chưa gắn angle'}`,
-      };
-    }), [filtered]);
-
-  // Thanh MIX: đếm bài theo nhóm angle so với tỉ lệ mục tiêu. Đây là thứ biến lịch từ
-  // "danh sách bài" thành "kế hoạch có kiểm soát" — lệch target thì thấy bằng mắt, không phải đếm tay.
-  const mix = useMemo(() => {
-    const dated = filtered.filter((p) => p.scheduledAt);
-    const by = new Map<string, number>();
-    let tagged = 0;
-    for (const p of dated) {
-      const a = angleOf(p.tags);
-      if (!a) continue;
-      tagged++;
-      by.set(a.group.id, (by.get(a.group.id) ?? 0) + 1);
-    }
-    return { total: dated.length, tagged, by };
-  }, [filtered]);
-
   return (
     <div className="page" style={{ padding: 16 }}>
       <div className="page-head">
@@ -136,10 +100,7 @@ export function ContentStudioReal({ items, projectId, projectName, skills, tribe
           <p className="page-sub">Multi-channel content drafts. AI co-pilot via gpt-4o-mini · skill từ /library hỗ trợ persona/style.</p>
         </div>
         <div className="page-actions" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <div style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
-            <button className="chip" data-active={view === 'list' || undefined} onClick={() => setView('list')} style={{ fontSize: 11, borderRadius: 0, border: 'none' }}>☰ List</button>
-            <button className="chip" data-active={view === 'calendar' || undefined} onClick={() => setView('calendar')} style={{ fontSize: 11, borderRadius: 0, border: 'none' }}>🗓 Calendar</button>
-          </div>
+          <a href={`/p/${projectId}/plays?view=calendar`} className="chip" style={{ fontSize: 11, textDecoration: 'none' }} title="Lịch đăng nằm chung với lịch việc ở /plays — một lịch duy nhất">🗓 Lịch đăng ở /plays</a>
           <button className="btn primary" onClick={() => modal.open("new")}>+ New piece</button>
         </div>
       </div>
@@ -184,34 +145,7 @@ export function ContentStudioReal({ items, projectId, projectName, skills, tribe
         })}
       </div>
 
-      {view === 'calendar' ? (
-        calItems.length === 0 ? (
-          <div className="panel"><div className="panel-body" style={{ padding: 16, textAlign: 'center', color: 'var(--fg-3)', fontSize: 12 }}>Chưa có piece nào đặt ngày. Mở 1 piece → set <b>Scheduled at</b> để nó hiện trên lịch gửi.</div></div>
-        ) : (
-          <>
-            {/* Mix theo nhóm angle — thực tế so với mục tiêu, tính trên đúng tập đang lọc. */}
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 8px', fontSize: 11, color: 'var(--fg-3)' }}>
-              <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)' }}>Mix</span>
-              {ANGLE_GROUPS.map((g) => {
-                const n = mix.by.get(g.id) ?? 0;
-                const pct = mix.tagged ? Math.round((n / mix.tagged) * 100) : 0;
-                const target = MIX_TARGET[g.id];
-                return (
-                  <span key={g.id} title={target ? `${g.label}: ${pct}% thực tế · mục tiêu ${target}%` : g.label}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <i style={{ width: 8, height: 8, borderRadius: 2, background: g.color, display: 'inline-block' }} />
-                    {g.label} <b style={{ color: 'var(--fg-1)' }}>{n}</b>
-                    {target ? <span style={{ color: pct > target + 12 || pct < target - 12 ? 'var(--neon-amber)' : 'var(--fg-4)' }}>{pct}%/{target}%</span> : null}
-                  </span>
-                );
-              })}
-              {mix.tagged < mix.total && <span style={{ color: 'var(--fg-4)' }}>· {mix.total - mix.tagged} bài chưa gắn angle</span>}
-            </div>
-            <MonthCalendar items={calItems} onItemClick={(id) => modal.open('edit', Number(id))}
-              legend={ANGLE_GROUPS.map((g) => ({ color: g.color, label: g.label }))} />
-          </>
-        )
-      ) : items.length === 0 ? (
+      {items.length === 0 ? (
         <EmptyState icon="🎬" title="No content pieces" description="Tạo piece đầu tiên — hoặc bấm AI Generate để OpenAI sinh draft từ brief." compact />
       ) : filtered.length === 0 ? (
         <div className="panel"><div className="panel-body" style={{ padding: 16, textAlign: 'center', color: 'var(--fg-3)', fontSize: 12 }}>(no match)</div></div>

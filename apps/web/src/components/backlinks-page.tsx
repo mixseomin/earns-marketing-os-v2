@@ -19,7 +19,7 @@ import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
-import { CHANNELS, angleOf } from '@/lib/content-channels';
+import { CHANNELS, ANGLE_GROUPS, MIX_TARGET, angleOf } from '@/lib/content-channels';
 import { StatusSegmented, Segmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
@@ -51,6 +51,7 @@ import { setPref, pick, type Prefs } from '@/lib/prefs';
 import { localDay, todayLocal } from '@/lib/local-day';
 import { FOLLOWUP_META, type Followup } from '@/lib/followup-status';
 import { FollowupDrawer } from '@/components/followup-drawer';
+import { PieceDrawer } from '@/components/piece-drawer';
 import { taskKind, stripKindPrefix, isEmailSend as detectEmailSend } from '@/lib/task-kind';
 import { taskTypeKey, taskArchetype, taskSectionPolicy, TYPE_META } from '@/lib/task-type';
 import { TypeGlyph, type GlyphName } from '@/components/ui/type-glyph';
@@ -866,6 +867,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const [openId, setOpenId] = useState<number | null>(Number(sp.get('task')) || null);
   const [openProd, setOpenProd] = useState<string | null>(sp.get('sp'));   // slug sản phẩm đang mở
   const [openFollowupId, setOpenFollowupId] = useState<number | null>(null);   // 📌 followup pill clicked
+  const [openPieceId, setOpenPieceId] = useState<number | null>(null);         // 📝 bài đăng pill clicked — mở TẠI CHỖ, không nhảy trang
   const [outreachPid, setOutreachPid] = useState<number | null>(Number(sp.get('outreach')) || null);   // stacked Outreach drawer, URL-driven like ?task
   const [outreachCh, setOutreachCh] = useState<string>(sp.get('ch') || '');   // selected channel tab inside the Outreach drawer (→ URL so F5 restores it)
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
@@ -1252,6 +1254,22 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     }
     return out;
   }, [filtered, allProjects, projectFilter, followups, projectsById, kind, kindOf, q, pieces]);
+
+  // Cân bằng nội dung của đúng tập bài đang hiện trên lịch. Đọc lại từ calItems (đã qua bộ lọc)
+  // thay vì lọc lần hai — một nguồn, không có chỗ cho hai bộ lọc lệch nhau.
+  const pieceMix = useMemo(() => {
+    const ids = new Set(calItems.filter((i) => String(i.id).startsWith('c:')).map((i) => Number(String(i.id).slice(2))));
+    const by = new Map<string, number>();
+    let tagged = 0;
+    for (const p of pieces) {
+      if (!ids.has(p.id)) continue;
+      const a = angleOf(p.tags);
+      if (!a) continue;
+      tagged++;
+      by.set(a.group.id, (by.get(a.group.id) ?? 0) + 1);
+    }
+    return { total: ids.size, tagged, by };
+  }, [calItems, pieces]);
 
   const open = openId != null ? tasks.find((t) => t.id === openId) ?? null : null;
 
@@ -1742,8 +1760,28 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13, gridColumn: '1 / -1' }}>{emptyNote}</div>}
         </div>
       ) : view === 'calendar' ? (
-        <MonthCalendar legend={CAL_LEGEND} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else if (s.startsWith('c:')) { const pc = pieces.find((x) => x.id === Number(s.slice(2))); if (pc) router.push(`/p/${pc.projectId}/studio?view=list&m=edit&mId=${pc.id}`); } else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} date={calDate} onDateChange={setCalDate} today={today}
+        <>
+        {pieceMix.total > 0 && (
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 8px', fontSize: 11, color: 'var(--fg-3)' }}>
+            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)' }}>📝 Mix bài đăng</span>
+            {ANGLE_GROUPS.map((g) => {
+              const n = pieceMix.by.get(g.id) ?? 0;
+              const pct = pieceMix.tagged ? Math.round((n / pieceMix.tagged) * 100) : 0;
+              const target = MIX_TARGET[g.id];
+              return (
+                <span key={g.id} title={target ? `${g.label}: ${pct}% thực tế · mục tiêu ${target}%` : g.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <i style={{ width: 8, height: 8, borderRadius: 2, background: g.color, display: 'inline-block' }} />
+                  {g.label} <b style={{ color: 'var(--fg-1)' }}>{n}</b>
+                  {target ? <span style={{ color: pct > target + 12 || pct < target - 12 ? 'var(--neon-amber)' : 'var(--fg-4)' }}>{pct}%/{target}%</span> : null}
+                </span>
+              );
+            })}
+            {pieceMix.tagged < pieceMix.total && <span style={{ color: 'var(--fg-4)' }}>· {pieceMix.total - pieceMix.tagged} bài chưa gắn angle</span>}
+          </div>
+        )}
+        <MonthCalendar legend={CAL_LEGEND} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else if (s.startsWith('c:')) setOpenPieceId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} date={calDate} onDateChange={setCalDate} today={today}
           sidebar={<ProductStrip products={shownProducts} projects={allProjects ? projectsById : undefined} onOpen={setOpenProd} narrow />} />
+        </>
       ) : grouped ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {shown.length > 0 && listHead}
@@ -1769,6 +1807,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       )}
 
       {open && <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} product={products.find((pr) => pr.cards.some((c) => c.id === open.id))} onOpenProduct={(s) => { setOpenId(null); setOpenProd(s); }} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} setResume={setResume} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} onLocate={() => locateInCalendar(open)} />}
+      {openPieceId != null && (() => { const pc = pieces.find((x) => x.id === openPieceId); return pc ? <PieceDrawer piece={pc} projectLabel={allProjects ? (projectsById?.[pc.projectId]?.name ?? pc.projectId) : siteLabel} onClose={() => setOpenPieceId(null)} /> : null; })()}
       {openFollowupId != null && (() => { const f = followups.find((x) => x.id === openFollowupId); return f ? <FollowupDrawer followup={f} projectLabel={allProjects ? (projectsById?.[f.projectId]?.name ?? f.projectId) : siteLabel} onClose={() => setOpenFollowupId(null)} /> : null; })()}
       {/* Outreach drawer — page-level + URL-driven (?outreach=<pid>), stacked ON the task drawer. Standard pattern (parent owns both open states). */}
       {open && outreachPid != null && <TaskOutreachDrawer projectId={projectForTask(open).id} prospectId={outreachPid} initialChannel={outreachCh} onChannel={setOutreachCh} onClose={() => { setOutreachPid(null); setOutreachCh(''); }} onChange={() => start(() => router.refresh())} />}

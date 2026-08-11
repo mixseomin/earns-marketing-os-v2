@@ -12,7 +12,7 @@ import {
 } from '@/lib/actions/habitat-channels';
 import { StatusFlag } from './ui';
 import type { TribeRow, HabitatRow, PlatformRow } from '@/lib/data';
-import { Spinner, FormatIcon, SiteFavicon, Pill, ResourcePicker, Collapsible, FormModal, FormModalFooter } from './ui';
+import { Spinner, FormatIcon, SiteFavicon, Pill, ResourcePicker, Collapsible, FormModal, FormModalFooter, InfoHint } from './ui';
 import { platformFaviconProps } from './ui/site-favicon';
 import {
   listBriefsForHabitat,
@@ -830,7 +830,7 @@ export function HabitatFormModal({
                         style={{ cursor: 'help' }}>Platform</span>
                   {needsExplicit && <span title='Cần chọn để "+ Add account" auto-lock platform'
                                           style={{ color: 'var(--warn)', textTransform: 'none', marginLeft: 4 }}>⚠ nên chọn</span>}
-                  {!needsExplicit && <span style={{ color: 'var(--fg-4)', textTransform: 'none' }}>// auto từ kind, có thể override</span>}
+                  {!needsExplicit && <InfoHint size={11}>auto từ kind, có thể override</InfoHint>}
                 </label>
                 <PlatformPicker platforms={platforms} value={effective ?? ''}
                                 onChange={(k) => {
@@ -995,7 +995,7 @@ export function HabitatFormModal({
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div>
-              <label style={lbl}>Tribe chính <span style={{ color: 'var(--fg-4)', textTransform: 'none' }}>// primary</span></label>
+              <label style={lbl}>Tribe chính <InfoHint size={11}>primary</InfoHint></label>
               <select value={form.tribeId ?? ''}
                       onChange={(e) => {
                         const v = e.target.value ? Number(e.target.value) : null;
@@ -1145,11 +1145,11 @@ export function HabitatFormModal({
                   <span style={{ fontWeight: 700, color: 'var(--fg-1)' }}>
                     👑 Own habitat (brand mình)
                   </span>
+                  <InfoHint size={11}>
+                    Check nếu habitat thuộc brand mình quản lý (Discord server own, FB group, subreddit user mod).
+                    Khác với external community ta engage. Hiển thị icon 👑 + filter Own/External.
+                  </InfoHint>
                 </label>
-                <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 4, lineHeight: 1.5 }}>
-                  Check nếu habitat thuộc brand mình quản lý (Discord server own, FB group, subreddit user mod).
-                  Khác với external community ta engage. Hiển thị icon 👑 + filter Own/External.
-                </div>
               </div>
 
               {/* 🚨 AI content detection flag — habitat có cơ chế detect AI
@@ -1163,11 +1163,11 @@ export function HabitatFormModal({
                   <span style={{ fontWeight: 700, color: 'var(--fg-1)' }}>
                     🚨 Habitat có cơ chế detect AI content
                   </span>
+                  <InfoHint size={11}>
+                    Check khi community có auto-mod rule / quality filter remove comment AI.
+                    AI gen sẽ enforce: né em dash, markdown bullets, AI clichés (&quot;Hope this helps!&quot;, &quot;Great question!&quot;), 3+ uniform sentences.
+                  </InfoHint>
                 </label>
-                <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 4, lineHeight: 1.5 }}>
-                  Check khi community có auto-mod rule / quality filter remove comment AI.
-                  AI gen sẽ enforce: né em dash, markdown bullets, AI clichés ("Hope this helps!", "Great question!"), 3+ uniform sentences.
-                </div>
                 {form.aiContentDetection && (
                   <textarea
                     value={form.aiDetectionNote ?? ''}
@@ -1231,7 +1231,7 @@ export function HabitatFormModal({
               ) : undefined}
             >
               <div>
-                <label style={lbl}>Best post times <span style={{ color: 'var(--fg-4)', textTransform: 'none' }}>// e.g. "8-10am UTC weekdays"</span></label>
+                <label style={lbl}>Best post times <InfoHint size={11}>e.g. "8-10am UTC weekdays"</InfoHint></label>
                 <input type="text" value={form.bestPostTimes ?? ''} onChange={(e) => setF('bestPostTimes', e.target.value)}
                        style={fld} placeholder="" />
               </div>
@@ -1542,11 +1542,11 @@ export function HabitatFormModal({
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <div>
-                <label style={lbl}>✅ Dominant topics <span style={{ color: 'var(--fg-4)', textTransform: 'none' }}>// hot topics get traction</span></label>
+                <label style={lbl}>✅ Dominant topics <InfoHint size={11}>hot topics get traction</InfoHint></label>
                 <TagsInput value={form.dominantTopics ?? []} onChange={(v) => setF('dominantTopics', v)} placeholder="natal chart, transit…" />
               </div>
               <div>
-                <label style={lbl}>🚫 Forbidden topics <span style={{ color: 'var(--fg-4)', textTransform: 'none' }}>// never write about</span></label>
+                <label style={lbl}>🚫 Forbidden topics <InfoHint size={11}>never write about</InfoHint></label>
                 <TagsInput value={form.forbiddenTopics ?? []} onChange={(v) => setF('forbiddenTopics', v)} placeholder="prediction guarantee, fake guru…" />
               </div>
             </div>
@@ -1729,12 +1729,12 @@ export function HabitatFormModal({
                           gap: 12, padding: 12, background: 'var(--bg-1)',
                           border: '1px solid var(--line)', borderRadius: 6 }}>
               <div>
-                <label style={lbl}>Language</label>
+                <label style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  Language
+                  <InfoHint size={11}>Default cho mọi channel. Discord/Slack channel có thể override riêng.</InfoHint>
+                </label>
                 <LangChip mode="select" code={form.language ?? ''} langs={LANGUAGES}
                           onChange={(v) => setF('language', v)} />
-                <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 4 }}>
-                  Default cho mọi channel. Discord/Slack channel có thể override riêng.
-                </div>
               </div>
               <div>
                 <label style={lbl}>Community type</label>

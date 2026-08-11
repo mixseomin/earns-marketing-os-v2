@@ -22,6 +22,7 @@
 
 import type { CSSProperties, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes, ReactNode } from 'react';
 import { IconLock, IconPencil } from './icons';
+import { InfoHint } from './info-hint';
 
 export type FieldSize = 'sm' | 'md' | 'lg';
 
@@ -91,28 +92,41 @@ export function FormField({
   label, required, labelTooltip, hint, error, lockReason, fillNote,
   gridColumn, style, children,
 }: FormFieldProps) {
+  // YDNI: giải thích dài KHÔNG nằm trên bề mặt. hint -> icon info cạnh label (hover
+  // 0ms mới hiện); khoá / gợi-ý-điền GIỮ icon (lock, pencil = trạng thái phải thấy)
+  // nhưng lời giải thích vào tooltip. Chỉ `error` còn in thành dòng — lỗi phải đọc
+  // được ngay. Sửa ở đây = 37 field khắp modal/drawer im cùng lúc, không vá từng chỗ.
+  const badges = (
+    <>
+      {hint && <InfoHint size={11}>{hint}</InfoHint>}
+      {lockReason && (
+        <span title={lockReason} style={{ display: 'inline-flex', alignItems: 'center', cursor: 'help', color: 'var(--fg-4)' }}>
+          <IconLock size={10} />
+        </span>
+      )}
+      {fillNote && (
+        <span title={fillNote} style={{ display: 'inline-flex', alignItems: 'center', cursor: 'help', color: 'var(--warn)' }}>
+          <IconPencil size={10} />
+        </span>
+      )}
+    </>
+  );
   return (
     <div data-comp="ui.FormField" style={{ ...(gridColumn ? { gridColumn } : {}), ...style }}>
-      {label && (
-        <label title={labelTooltip} style={{ ...labelStyle, cursor: labelTooltip ? 'help' : undefined }}>
-          {label}
-          {required && <span style={{ color: 'var(--bad)', marginLeft: 3 }}>*</span>}
+      {label ? (
+        <label title={labelTooltip} style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 4, cursor: labelTooltip ? 'help' : undefined }}>
+          <span>
+            {label}
+            {required && <span style={{ color: 'var(--bad)', marginLeft: 3 }}>*</span>}
+          </span>
+          {badges}
         </label>
-      )}
-      {children}
-      {error ? (
-        <div style={noteStyle('var(--bad)')}>⚠ {error}</div>
-      ) : lockReason ? (
-        <div style={{ ...noteStyle('var(--fg-4)'), display: 'flex', alignItems: 'center', gap: 4 }}>
-          <IconLock size={10} /> {lockReason}
-        </div>
-      ) : fillNote ? (
-        <div style={{ ...noteStyle('var(--warn)'), display: 'flex', alignItems: 'center', gap: 4 }}>
-          <IconPencil size={10} /> {fillNote}
-        </div>
-      ) : hint ? (
-        <div style={noteStyle('var(--fg-4)')}>{hint}</div>
+      ) : (hint || lockReason || fillNote) ? (
+        // Không có label -> không có chỗ neo icon: đặt ngay trên input, vẫn 1 hàng icon.
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>{badges}</div>
       ) : null}
+      {children}
+      {error && <div style={noteStyle('var(--bad)')}>⚠ {error}</div>}
     </div>
   );
 }

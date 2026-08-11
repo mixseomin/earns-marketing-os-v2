@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createTribe, updateTribe, deleteTribe, type TribeInput } from '@/lib/actions/tribes-crud';
 import type { TribeRow } from '@/lib/data';
 import { TagsInput } from './tags-input';
-import { Spinner, FormModal, fieldStyle, labelStyle, ConfirmDeleteButton } from './ui';
+import { Spinner, FormModal, fieldStyle, labelStyle, ConfirmDeleteButton, InfoHint } from './ui';
 import { AIFormParser } from './ai-form-parser';
 
 const LIFECYCLES = ['discovery', 'active', 'saturated', 'fading', 'defunct'] as const;
@@ -124,7 +124,7 @@ export function TribeFormModal({
           </div>
 
           <div>
-            <label style={lbl}>Signal <span style={{ color: 'var(--fg-4)', textTransform: 'none' }}>// vì sao tribe này matter</span></label>
+            <label style={lbl}>Signal <InfoHint size={11}>vì sao tribe này matter</InfoHint></label>
             <textarea value={form.signal} onChange={(e) => setF('signal', e.target.value)} rows={2}
                       style={{ ...fld, fontFamily: 'var(--font-sans)', resize: 'vertical' }}
                       placeholder="High-intent paying users; chart-reading questions weekly" />
@@ -154,12 +154,12 @@ export function TribeFormModal({
           </div>
 
           <div>
-            <label style={lbl}>Lexicon <span style={{ color: 'var(--fg-4)', textTransform: 'none' }}>// từ tribe dùng</span></label>
+            <label style={lbl}>Lexicon <InfoHint size={11}>từ tribe dùng</InfoHint></label>
             <TagsInput value={form.lexicon ?? []} onChange={(v) => setF('lexicon', v)} placeholder="natal chart, transit, retrograde…" />
           </div>
 
           <div>
-            <label style={lbl}>Avoid <span style={{ color: 'var(--fg-4)', textTransform: 'none' }}>// từ tribe ghét</span></label>
+            <label style={lbl}>Avoid <InfoHint size={11}>từ tribe ghét</InfoHint></label>
             <TagsInput value={form.avoid ?? []} onChange={(v) => setF('avoid', v)} placeholder="generic horoscope, fortune-telling, fake guru…" />
           </div>
 

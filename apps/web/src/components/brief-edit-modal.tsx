@@ -1729,7 +1729,7 @@ function FieldLabel({
   return (
     <label style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 6 }}>
       <span dangerouslySetInnerHTML={{ __html: label }} />
-      {hint && <span style={{ color: 'var(--fg-4)', textTransform: 'none' }}>// {hint}</span>}
+      {hint && <InfoHint size={11}>{hint}</InfoHint>}
       {hasSug && (
         <button type="button"
                 onClick={() => onApply(sug)}

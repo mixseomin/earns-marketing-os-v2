@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { suggestTribesForProject, type SuggestedTribe } from '@/lib/ai/tribe-suggest';
 import { createTribe } from '@/lib/actions/tribes-crud';
 import { TagsInput } from './tags-input';
-import { Spinner, FormModal } from './ui';
+import { Spinner, FormModal, InfoHint } from './ui';
 
 const fld: React.CSSProperties = { width: '100%', padding: '6px 8px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 13, outline: 'none' };
 const lbl: React.CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block' };
@@ -111,7 +111,7 @@ export function AITribesModal({
           {/* Re-generate bar */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
             <div style={{ flex: 1 }}>
-              <label style={lbl}>Chỉ dẫn thêm <span style={{ color: 'var(--fg-4)', textTransform: 'none' }}>// optional — vd "tập trung Gen-Z", "tách nhóm Vedic"</span></label>
+              <label style={lbl}>Chỉ dẫn thêm <InfoHint size={11}>optional — vd "tập trung Gen-Z", "tách nhóm Vedic"</InfoHint></label>
               <input type="text" value={instruction} onChange={(e) => setInstruction(e.target.value)}
                      style={fld} placeholder="để trống = suy thuần từ context dự án"
                      autoComplete="off" data-1p-ignore data-lpignore="true" name="ai-tribe-hint" />
@@ -196,7 +196,7 @@ export function AITribesModal({
                                     style={{ ...fld, fontFamily: 'var(--font-sans)', resize: 'vertical' }} />
                         </div>
                         <div>
-                          <label style={lbl}>Signal <span style={{ color: 'var(--fg-4)', textTransform: 'none' }}>// vì sao đáng theo đuổi</span></label>
+                          <label style={lbl}>Signal <InfoHint size={11}>vì sao đáng theo đuổi</InfoHint></label>
                           <textarea value={t.signal} onChange={(e) => patch(i, { signal: e.target.value })} rows={2}
                                     style={{ ...fld, fontFamily: 'var(--font-sans)', resize: 'vertical' }} />
                         </div>
@@ -212,11 +212,11 @@ export function AITribesModal({
                           </div>
                         </div>
                         <div>
-                          <label style={lbl}>Lexicon <span style={{ color: 'var(--fg-4)', textTransform: 'none' }}>// từ nhóm dùng (giữ nguyên ngữ)</span></label>
+                          <label style={lbl}>Lexicon <InfoHint size={11}>từ nhóm dùng (giữ nguyên ngữ)</InfoHint></label>
                           <TagsInput value={t.lexicon} onChange={(v) => patch(i, { lexicon: v })} placeholder="natal chart, transit…" />
                         </div>
                         <div>
-                          <label style={lbl}>Avoid <span style={{ color: 'var(--fg-4)', textTransform: 'none' }}>// từ/định kiến nhóm ghét</span></label>
+                          <label style={lbl}>Avoid <InfoHint size={11}>từ/định kiến nhóm ghét</InfoHint></label>
                           <TagsInput value={t.avoid} onChange={(v) => patch(i, { avoid: v })} placeholder="fortune-telling, fake guru…" />
                         </div>
                       </div>

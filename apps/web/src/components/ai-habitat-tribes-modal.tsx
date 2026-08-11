@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { suggestHabitatTribes, type HabitatTribeSuggestion } from '@/lib/ai/habitat-tribe-suggest';
 import { bulkAssignHabitatTribe } from '@/lib/actions/tribes-crud';
 import type { TribeRow } from '@/lib/data';
-import { Spinner, Segmented, FormModal } from './ui';
+import { Spinner, Segmented, FormModal, InfoHint } from './ui';
 
 const fld: React.CSSProperties = { padding: '4px 6px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-0)', fontSize: 12, outline: 'none' };
 const lbl: React.CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3, display: 'block' };
@@ -138,7 +138,7 @@ export function AIHabitatTribesModal({
               />
             </div>
             <div style={{ flex: 1, minWidth: 220 }}>
-              <label style={lbl}>Chỉ dẫn thêm <span style={{ color: 'var(--fg-4)', textTransform: 'none' }}>// optional</span></label>
+              <label style={lbl}>Chỉ dẫn thêm <InfoHint size={11}>optional</InfoHint></label>
               <input type="text" value={instruction} onChange={(e) => setInstruction(e.target.value)}
                      style={{ ...fld, width: '100%' }} placeholder='vd "forum học thuật ưu tiên natal-chart-students"'
                      autoComplete="off" data-1p-ignore data-lpignore="true" name="ai-hab-hint" />

@@ -29,7 +29,7 @@ import {
   updateAccountEnvironment, createProxy, createBrowserProfile,
   type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool,
 } from '@/lib/actions/environments';
-import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, Drawer, ProjectAssign, EntityRef, ListToolbar, FilterChips, Pager, usePaged } from './ui';
+import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, InfoHint, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, Drawer, ProjectAssign, EntityRef, ListToolbar, FilterChips, Pager, usePaged } from './ui';
 import { platformFaviconProps } from './ui/site-favicon';
 import {
   ACCOUNT_STATUS_META, ACCOUNT_STATUS_GROUPS, accountStatusMeta, accountStatusGroupOf,
@@ -38,25 +38,21 @@ import {
 } from '@/lib/status-meta';
 import { useCopyToClipboard } from '@/lib/use-copy-clipboard';
 
-// Dòng ghi chú dưới field: 🔒 lý do khoá, hoặc ✎ nhắc điền nốt khi trống.
+// Marker khoá/nhắc-điền dưới field. YDNI: giữ TÍN HIỆU (biểu tượng khoá / bút),
+// bỏ đoạn văn giải thích khỏi bề mặt — lý do nằm trong tooltip, hover mới đọc.
+// Trước đây in nguyên câu dài dưới 4 field liền nhau → drawer đặc chữ.
 function LockNote({ lock }: { lock: { why: string; fillNote?: string } }) {
-  if (lock.why) {
-    return (
-      <div style={{ marginTop: 3, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)',
-                    display: 'flex', alignItems: 'center', gap: 4 }}>
-        <IconLock size={10} /> {lock.why}
-      </div>
-    );
-  }
-  if (lock.fillNote) {
-    return (
-      <div style={{ marginTop: 3, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--warn)',
-                    display: 'flex', alignItems: 'center', gap: 4 }}>
-        <IconPencil size={10} /> {lock.fillNote}
-      </div>
-    );
-  }
-  return null;
+  const text = lock.why || lock.fillNote;
+  if (!text) return null;
+  const warn = !lock.why;
+  return (
+    <span title={text}
+          style={{ marginTop: 3, display: 'inline-flex', alignItems: 'center', gap: 3, cursor: 'help',
+                   fontSize: 9, fontFamily: 'var(--font-mono)', color: warn ? 'var(--warn)' : 'var(--fg-4)' }}>
+      {warn ? <IconPencil size={10} /> : <IconLock size={10} />}
+      {warn ? 'cần điền' : 'khoá'}
+    </span>
+  );
 }
 import {
   listBriefsForAccount, listAddableHabitatsForAccount, setBriefJoinStatus,
@@ -1850,8 +1846,12 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 );
               })()}
               <div>
-                <span style={lbl} title="Trạng thái GLOBAL của account trên platform (KHÔNG phải phase trong từng community)">
-                  Status <span style={{ fontSize: 9, color: 'var(--fg-4)', fontWeight: 400 }}>(global, không phải per-habitat)</span>
+                <span style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  Status
+                  <InfoHint size={11}>
+                    Trạng thái <b>GLOBAL</b> của account trên platform — không phải phase trong từng community.
+                    Phase per-community (warm-up trong sub/Discord/subreddit) sửa ở <b>Brief modal</b> của habitat đó.
+                  </InfoHint>
                 </span>
                 <select style={fld} value={form.status}
                         onChange={(e) => setF('status', e.target.value as AccountStatus)}
@@ -1873,13 +1873,6 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                       <option key={s.key} value={s.key}>{s.dot} {s.label} — {s.hint}</option>)}
                   </optgroup>
                 </select>
-                {/* Hint dưới dropdown: nhắc 2 cấp */}
-                {(form.status === 'warming' || form.status === 'active') && (
-                  <div style={{ marginTop: 4, fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic',
-                                display: 'flex', alignItems: 'center', gap: 4 }}>
-                    💡 Phase per-community (warm-up trong sub-Discord/subreddit) → sửa ở <strong>Brief modal</strong> của habitat đó.
-                  </div>
-                )}
               </div>
               <div>
                 <span style={lbl} title="Ngày hẹn quay lại kiểm tra verify/duyệt (chờ mod/admin). Hiện trên plays calendar 🗓 + ~/bin/account-followups để chat mới tự follow.">
@@ -3711,13 +3704,15 @@ function SyncBanner({ projectId, accountId, platformLabel }: {
     <div style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 10,
                   background: 'var(--bg-1)', borderBottom: '1px solid var(--line)',
                   fontSize: 12 }}>
-      <span style={{ color: 'var(--fg-3)' }}>
+      <span style={{ color: 'var(--fg-3)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         🔄 <strong>Sync</strong> từ {platformLabel} API
+        {/* YDNI: mô tả việc sync ẩn sau icon; chỗ này để dành cho KẾT QUẢ sync. */}
+        <InfoHint size={11}>Fetch profile (handle, email, 2FA, follower count, avatar…) qua API token đã lưu.</InfoHint>
       </span>
       <span style={{ flex: 1, fontSize: 11, color:
         msg?.kind === 'ok' ? 'var(--ok)' :
         msg?.kind === 'warn' ? 'var(--warn)' : 'var(--fg-4)' }}>
-        {msg?.text ?? 'Fetch profile (handle, email, 2FA, follower count, avatar...) qua API token đã lưu.'}
+        {msg?.text ?? ''}
       </span>
       <button type="button" onClick={doSync} disabled={busy}
               className="btn"

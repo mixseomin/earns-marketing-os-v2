@@ -559,20 +559,26 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
                   </span>
                   {p.externalId && <span>· {p.externalId.split('/').pop()}</span>}
                 </div>
-                {/* Favicon TRÒN của từng account trong profile — nhìn 1 phát biết có những site nào,
-                    khỏi mở drawer. Mất phiên / account bị khoá (KHÔNG active) thì để MỜ + xám. */}
-                {p.accounts.length > 0 && (
-                  <div style={{ display: 'flex', gap: 3, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {p.accounts.map((a) => {
-                      const inactive = a.sessionState === 'dead' || DEAD_STATUSES.includes(a.status as AccountStatus);
-                      return (
-                        <SiteFavicon key={a.id} {...platformFaviconProps(a.platformKey)} size={18} circle glyph="👤"
-                          title={`${a.platformKey}/${a.handle || a.id} · phiên: ${a.sessionState ?? 'chưa đo'} · ${a.status}${inactive ? ' · ⚠ KHÔNG ACTIVE' : ''}`}
-                          style={inactive ? { opacity: 0.3, filter: 'grayscale(1)' } : undefined} />
-                      );
-                    })}
-                  </div>
-                )}
+                {/* Favicon TRÒN của từng account. ĐẬM (full màu) = phiên còn login (alive / "keep" —
+                    thứ mình đang giữ). MỜ+xám = chưa đo / rụng phiên (vẫn là inventory, chưa vào được).
+                    Account bị KHOÁ (suspended/banned/closed) = ẨN HẲN, không phải làm mờ: nó chết rồi,
+                    đừng chiếm chỗ trong lưới "site nào đang dùng". */}
+                {(() => {
+                  const shown = p.accounts.filter((a) => !DEAD_STATUSES.includes(a.status as AccountStatus));
+                  if (shown.length === 0) return null;
+                  return (
+                    <div style={{ display: 'flex', gap: 3, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                      {shown.map((a) => {
+                        const alive = a.sessionState === 'alive';
+                        return (
+                          <SiteFavicon key={a.id} {...platformFaviconProps(a.platformKey)} size={18} circle glyph="👤"
+                            title={`${a.platformKey}/${a.handle || a.id} · phiên: ${a.sessionState ?? 'chưa đo'} · ${a.status}`}
+                            style={alive ? undefined : { opacity: 0.3, filter: 'grayscale(1)' }} />
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
                 {/* Đang lọc thì phải chỉ ra ACCOUNT nào khớp — nếu không, card chỉ nói "profile này có
                     thứ gì đó khớp" và vẫn phải mở drawer ra dò, tức là bộ lọc chưa tiết kiệm được gì. */}
                 {filtering && (

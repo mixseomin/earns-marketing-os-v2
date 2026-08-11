@@ -1875,8 +1875,12 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
                 </select>
               </div>
               <div>
-                <span style={lbl} title="Ngày hẹn quay lại kiểm tra verify/duyệt (chờ mod/admin). Hiện trên plays calendar 🗓 + ~/bin/account-followups để chat mới tự follow.">
-                  🗓 Follow-up <span style={{ fontSize: 9, color: 'var(--fg-4)', fontWeight: 400 }}>(hẹn check verify/duyệt)</span>
+                <span style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  🗓 Follow-up
+                  <InfoHint size={11}>
+                    Ngày hẹn quay lại kiểm tra verify/duyệt (chờ mod/admin). Hiện trên plays calendar 🗓 +
+                    <code> ~/bin/account-followups</code> để chat mới tự follow.
+                  </InfoHint>
                 </span>
                 <input type="date" style={fld} value={form.followUpAt}
                        onChange={(e) => setF('followUpAt', e.target.value)} />

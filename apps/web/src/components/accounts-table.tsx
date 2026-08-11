@@ -19,11 +19,10 @@ import { accountStatusMeta } from '@/lib/status-meta';
 import { fmtCompactNum } from '@/lib/format';
 import { fmtAgoShort } from '@/lib/time-format';
 import {
-  MultiSelect, Segmented, EmptyState, Pill, IconChevron,
-  SiteFavicon,
+  MultiSelect, Segmented, EmptyState, Pill,
+  SiteFavicon, DataTable, type DataColumn, type DataGroup,
 } from './ui';
 import { platformFaviconProps } from './ui/site-favicon';
-import { AccountStatChips } from './account-metrics';
 
 // Lens lifecycle: cắt account theo giai đoạn sống. 'all' = tất cả; 'warmup' =
 // đang setup/đủ-điều-kiện (todo/creating/warming) — đây là nguồn block seeding
@@ -43,36 +42,27 @@ interface AccountSeedMetrics {
   lastSeededAt: number | null;
 }
 
-type SortKey = 'handle' | 'platform' | 'status' | 'cost' | 'briefs' | 'posts' | 'lastSeed' | 'unread';
-type SortDir = 'asc' | 'desc';
+// Nhóm cột (ui.DataTable lo nút ⚙ bật/tắt + nhớ lựa chọn qua persistKey).
+// YDNI: mặc định chỉ bật nhóm hay dùng; nhóm còn lại 1 click là hiện, không mất.
+const COL_GROUPS: DataGroup[] = [
+  { key: 'stats',   label: '📊 Chỉ số platform', color: '#5ec8e6', defaultOn: true },
+  { key: 'seeding', label: '🌱 Seeding',         color: '#3ecf8e', defaultOn: true },
+  { key: 'warmup',  label: '🔥 Warm-up',         color: '#f59e0b', defaultOn: true },
+  { key: 'env',     label: '🛡 Môi trường',      color: '#9d6cff', defaultOn: false },
+  { key: 'ops',     label: '🗂 Vận hành',        color: '#a1a1aa', defaultOn: false },
+];
 
-const TH: React.CSSProperties = {
-  padding: '7px 8px', fontSize: 9.5, fontFamily: 'var(--font-mono)',
-  color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.05em',
-  fontWeight: 600, textAlign: 'left', whiteSpace: 'nowrap',
-  borderBottom: '1px solid var(--line)', position: 'sticky', top: 0,
-  background: 'var(--bg-1)', zIndex: 1,
+// account_stats là jsonb key tuỳ platform → đọc mềm, không có thì '—'.
+const statNum = (a: AccountRow, ...keys: string[]): number | null => {
+  for (const k of keys) {
+    const v = a.accountStats?.[k];
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) return Number(v);
+  }
+  return null;
 };
-const TD: React.CSSProperties = {
-  padding: '7px 8px', fontSize: 11.5, borderBottom: '1px solid var(--line)',
-  verticalAlign: 'middle',
-};
-
-function SortHead({ label, k, sort, dir, onSort, align = 'left', title }: {
-  label: string; k: SortKey; sort: SortKey; dir: SortDir;
-  onSort: (k: SortKey) => void; align?: 'left' | 'center' | 'right'; title?: string;
-}) {
-  const on = sort === k;
-  return (
-    <th style={{ ...TH, textAlign: align, cursor: 'pointer' }} onClick={() => onSort(k)} title={title}>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
-                     color: on ? 'var(--accent)' : undefined }}>
-        {label}
-        {on && <IconChevron dir={dir === 'asc' ? 'up' : 'down'} size={9} />}
-      </span>
-    </th>
-  );
-}
+const isTrue = (v: unknown) => v === true || v === 'true';
+const num = (n: number | null) => (n == null ? <span style={{ color: 'var(--fg-4)' }}>—</span> : fmtCompactNum(n));
 
 // Warmup progress: số mục done / tổng mục trong warmupChecklist.
 function warmupProgress(checklist: AccountRow['warmupChecklist']): { done: number; total: number } | null {
@@ -97,8 +87,6 @@ export function AccountsTable({
   const [filterPlatforms, setFilterPlatforms] = useState<string[]>([]);
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
   const [filterOwners, setFilterOwners] = useState<number[]>([]);
-  const [sort, setSort] = useState<SortKey>('handle');
-  const [dir, setDir] = useState<SortDir>('asc');
 
   // Count theo lens cho Segmented label.
   const lensCounts = useMemo(() => {
@@ -109,11 +97,6 @@ export function AccountsTable({
     }
     return { all: accounts.length, warmup, health };
   }, [accounts]);
-
-  const onSort = (k: SortKey) => {
-    if (k === sort) setDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    else { setSort(k); setDir(k === 'handle' || k === 'platform' || k === 'status' ? 'asc' : 'desc'); }
-  };
 
   const ownerName = useMemo(() => {
     const m = new Map<number, string>();
@@ -189,39 +172,136 @@ export function AccountsTable({
     if (filterPlatforms.length) { const set = new Set(filterPlatforms); list = list.filter((a) => set.has(a.platformKey)); }
     if (filterStatus.length) { const set = new Set(filterStatus); list = list.filter((a) => set.has(a.status || '—')); }
     if (filterOwners.length) { const set = new Set(filterOwners); list = list.filter((a) => a.ownerUserId != null && set.has(a.ownerUserId)); }
-
-    const mul = dir === 'asc' ? 1 : -1;
-    return [...list].sort((a, b) => {
-      const ma = metricsByAccount.get(a.id) ?? emptyMetrics;
-      const mb = metricsByAccount.get(b.id) ?? emptyMetrics;
-      switch (sort) {
-        case 'handle': return (a.handle || '').localeCompare(b.handle || '') * mul;
-        case 'platform': return (a.platformKey || '').localeCompare(b.platformKey || '') * mul;
-        case 'status': return (a.status || '').localeCompare(b.status || '') * mul;
-        case 'cost': return (a.monthlyCost - b.monthlyCost) * mul;
-        case 'briefs': return (ma.briefs - mb.briefs) * mul;
-        case 'posts': return (ma.posts - mb.posts) * mul;
-        case 'lastSeed': return ((ma.lastSeededAt ?? 0) - (mb.lastSeededAt ?? 0)) * mul;
-        case 'unread': return ((a.unreadMessages ?? -1) - (b.unreadMessages ?? -1)) * mul;
-        default: return 0;
-      }
-    });
-  }, [accounts, lens, q, filterPlatforms, filterStatus, filterOwners, sort, dir, metricsByAccount]);
-
-  const totals = useMemo(() => {
-    let cost = 0, briefs = 0, posts = 0;
-    const habitatSet = new Set<number>();
-    for (const a of rows) {
-      cost += a.monthlyCost;
-      const m = metricsByAccount.get(a.id) ?? emptyMetrics;
-      briefs += m.briefs; posts += m.posts;
-    }
-    const visibleIds = new Set(rows.map((a) => a.id));
-    for (const x of queue) if (visibleIds.has(x.accountId)) habitatSet.add(x.habitatId);
-    return { cost, briefs, posts, habitats: habitatSet.size, count: rows.length };
-  }, [rows, metricsByAccount, queue]);
+    // Sort do DataTable lo (mỗi cột khai sortValue) → ở đây chỉ lọc, mặc định theo handle.
+    return [...list].sort((a, b) => (a.handle || '').localeCompare(b.handle || ''));
+  }, [accounts, lens, q, filterPlatforms, filterStatus, filterOwners]);
 
   const activeFilters = filterPlatforms.length + filterStatus.length + filterOwners.length;
+
+  // Cột: 3 cột lõi luôn hiện, phần còn lại thuộc nhóm bật/tắt được (⚙ của DataTable).
+  const met = (a: AccountRow) => metricsByAccount.get(a.id) ?? emptyMetrics;
+  const columns: DataColumn<AccountRow>[] = [
+    {
+      key: 'account', header: 'Account', align: 'left', width: 240,
+      sortValue: (a) => a.handle || '',
+      cell: (a) => (
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, color: 'var(--fg-0)',
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {a.platformKey && <SiteFavicon {...platformFaviconProps(a.platformKey)} size={13} title={a.platformKey} style={{ opacity: 0.85 }} />}
+            @{a.handle ?? <span style={{ color: 'var(--fg-4)', fontStyle: 'italic' }}>chưa có handle</span>}
+          </div>
+          {(a.email || a.tags.length > 0) && (
+            <div style={{ fontSize: 9.5, color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220 }}>
+              {a.email}{a.email && a.tags.length > 0 ? ' · ' : ''}{a.tags.slice(0, 3).join(', ')}
+            </div>
+          )}
+        </div>
+      ),
+      total: (rs) => <b>{rs.length} account</b>,
+    },
+    { key: 'platform', header: 'Platform', align: 'left', sortValue: (a) => a.platformKey || '',
+      cell: (a) => <span style={{ color: 'var(--fg-2)', fontSize: 10.5 }}>{a.platformKey || '—'}</span> },
+    { key: 'status', header: 'Status', align: 'left', sortValue: (a) => a.status || '',
+      cell: (a) => { const sm = accountStatusMeta(a.status); return (
+        <Pill color={sm.color} label={sm.label} tone="soft" size="xs" mono uppercase
+              title={a.blockReason ? `${sm.hint}\n⚠ ${a.blockReason}` : sm.hint} />
+      ); } },
+
+    // ── 📊 Chỉ số platform (ext Crew quét từ chính site) ──
+    { key: 'karma', group: 'stats', header: 'karma', align: 'center', title: 'karma / điểm uy tín (account_stats)',
+      sortValue: (a) => statNum(a, 'karma'), cell: (a) => num(statNum(a, 'karma')) },
+    { key: 'followers', group: 'stats', header: 'followers', align: 'center', title: 'followers / subscribers',
+      sortValue: (a) => statNum(a, 'followers', 'subscribers'), cell: (a) => num(statNum(a, 'followers', 'subscribers')) },
+    { key: 'statPosts', group: 'stats', header: 'bài trên site', align: 'center', title: 'số bài/answer nền tảng ghi nhận (khác cột Posts của seeding)',
+      sortValue: (a) => statNum(a, 'posts', 'answers'), cell: (a) => num(statNum(a, 'posts', 'answers')) },
+    { key: 'age', group: 'stats', header: 'tuổi (ngày)', align: 'center', title: 'age_days — tuổi account trên platform',
+      sortValue: (a) => statNum(a, 'age_days'),
+      cell: (a) => { const n = statNum(a, 'age_days'); return n == null ? <span style={{ color: 'var(--fg-4)' }}>—</span> : String(n); } },
+    { key: 'safety', group: 'stats', header: 'cờ', align: 'center', title: 'suspended / shadowbanned do ext phát hiện',
+      sortValue: (a) => (isTrue(a.accountStats?.suspended) || isTrue(a.accountStats?.shadowbanned) ? 1 : 0),
+      cell: (a) => (
+        isTrue(a.accountStats?.suspended) ? <span style={{ color: 'var(--bad)' }} title="suspended">⛔</span>
+        : isTrue(a.accountStats?.shadowbanned) ? <span style={{ color: 'var(--bad)' }} title="shadowbanned">👻</span>
+        : <span style={{ color: 'var(--fg-4)' }}>—</span>
+      ) },
+    { key: 'statAt', group: 'stats', header: 'quét', align: 'center', title: 'lần ext cập nhật chỉ số gần nhất',
+      sortValue: (a) => (typeof a.accountStats?.fetched_at === 'string' ? new Date(a.accountStats.fetched_at).getTime() : null),
+      cell: (a) => { const t = a.accountStats?.fetched_at; return typeof t === 'string'
+        ? <span style={{ color: 'var(--fg-3)' }}>{fmtAgoShort(new Date(t).getTime())}</span>
+        : <span style={{ color: 'var(--fg-4)' }}>—</span>; } },
+
+    // ── 🌱 Seeding (derive từ queue, không query thêm) ──
+    { key: 'briefs', group: 'seeding', header: 'Briefs', align: 'center', title: 'brief đang seed (distinct)',
+      sortValue: (a) => met(a).briefs,
+      cell: (a) => { const m = met(a); return <span style={{ color: m.briefs ? 'var(--accent)' : 'var(--fg-4)', fontWeight: m.briefs ? 700 : 400 }}
+        title={m.briefs ? `${m.briefs} brief · ${m.backlog} nháp chờ` : 'Chưa gán brief'}>{m.briefs || '—'}</span>; },
+      total: (rs) => rs.reduce((s, a) => s + met(a).briefs, 0) || '—' },
+    { key: 'habitats', group: 'seeding', header: 'Habitats', align: 'center', title: 'community distinct đang seeding',
+      sortValue: (a) => met(a).habitats,
+      cell: (a) => { const n = met(a).habitats; return <span style={{ color: n ? 'var(--fg-1)' : 'var(--fg-4)' }}>{n || '—'}</span>; },
+      total: (rs) => { const ids = new Set(rs.map((a) => a.id)); const h = new Set<number>();
+        for (const x of queue) if (ids.has(x.accountId)) h.add(x.habitatId); return h.size || '—'; } },
+    { key: 'posts', group: 'seeding', header: 'Posts', align: 'center', title: 'tổng bài đã đăng (cross-brief)',
+      sortValue: (a) => met(a).posts,
+      cell: (a) => { const n = met(a).posts; return n ? <span style={{ color: '#60a5fa', fontWeight: 700 }}>📨{fmtCompactNum(n)}</span> : <span style={{ color: 'var(--fg-4)' }}>—</span>; },
+      total: (rs) => { const n = rs.reduce((s, a) => s + met(a).posts, 0); return n ? `📨${fmtCompactNum(n)}` : '—'; } },
+    { key: 'backlog', group: 'seeding', header: 'Nháp', align: 'center', title: 'nháp chưa đăng',
+      sortValue: (a) => met(a).backlog,
+      cell: (a) => { const n = met(a).backlog; return n ? String(n) : <span style={{ color: 'var(--fg-4)' }}>—</span>; } },
+    { key: 'lastSeed', group: 'seeding', header: 'Seed', align: 'center', title: 'lần seed gần nhất',
+      sortValue: (a) => met(a).lastSeededAt,
+      cell: (a) => { const t = met(a).lastSeededAt; return t ? <span style={{ color: 'var(--fg-3)' }} title={new Date(t).toLocaleString()}>⏱{fmtAgoShort(t)}</span> : <span style={{ color: 'var(--fg-4)' }}>—</span>; } },
+
+    // ── 🔥 Warm-up + hộp thư ──
+    { key: 'warmup', group: 'warmup', header: 'Warmup', align: 'center', title: 'checklist done/total — điều kiện đủ tuổi/karma global',
+      sortValue: (a) => { const w = warmupProgress(a.warmupChecklist); return w ? w.done / w.total : null; },
+      cell: (a) => { const w = warmupProgress(a.warmupChecklist); return w
+        ? <span style={{ color: w.done === w.total ? 'var(--ok)' : 'var(--warn)' }}>{w.done}/{w.total}</span>
+        : <span style={{ color: 'var(--fg-4)' }}>—</span>; } },
+    { key: 'unread', group: 'warmup', header: '✉', align: 'center', title: 'tin nhắn chưa đọc — ext quét khi account đang đăng nhập',
+      sortValue: (a) => a.unreadMessages ?? -1,
+      cell: (a) => a.unreadMessages && a.unreadMessages > 0
+        ? <span style={{ color: 'var(--warn)', fontWeight: 700 }} title={a.unreadAt ? `quét ${fmtAgoShort(new Date(a.unreadAt).getTime())} trước` : undefined}>✉ {a.unreadMessages}</span>
+        : <span style={{ color: 'var(--fg-4)' }}>{a.unreadMessages === 0 ? '0' : '—'}</span> },
+    { key: 'followUp', group: 'warmup', header: 'Hẹn', align: 'center', title: 'ngày hẹn check verify/duyệt',
+      sortValue: (a) => a.followUpAt || null,
+      cell: (a) => a.followUpAt ? <span style={{ color: 'var(--fg-2)' }}>{a.followUpAt.slice(5)}</span> : <span style={{ color: 'var(--fg-4)' }}>—</span> },
+
+    // ── 🛡 Môi trường + credential (mặc định tắt) ──
+    { key: 'proxy', group: 'env', header: 'Proxy', align: 'center', sortValue: (a) => (a.proxyId ? 1 : 0),
+      cell: (a) => a.proxyId ? <span title={`proxy #${a.proxyId}`}>🛡</span> : <span style={{ color: 'var(--fg-4)' }}>—</span> },
+    { key: 'profile', group: 'env', header: 'Profile', align: 'center', sortValue: (a) => (a.browserProfileId ? 1 : 0),
+      cell: (a) => a.browserProfileId ? <span title={`browser profile #${a.browserProfileId}`}>🦊</span> : <span style={{ color: 'var(--fg-4)' }}>—</span> },
+    { key: 'auth', group: 'env', header: 'Auth', align: 'left', sortValue: (a) => a.authMethod || '',
+      cell: (a) => <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{a.authMethod || '—'}</span> },
+    { key: 'creds', group: 'env', header: 'Creds', align: 'center', title: '🔒 2FA · 🔑 password · 🎫 API token',
+      sortValue: (a) => (a.has2fa ? 4 : 0) + (a.hasPassword ? 2 : 0) + (a.hasApiToken ? 1 : 0),
+      cell: (a) => (
+        <span style={{ display: 'inline-flex', gap: 4 }}>
+          {a.has2fa && <span title="2FA bật">🔒</span>}
+          {a.hasPassword && <span title="Có password lưu (mở drawer → Advanced để xem)">🔑</span>}
+          {a.hasApiToken && <span title="Có API token">🎫</span>}
+          {!a.has2fa && !a.hasPassword && !a.hasApiToken && <span style={{ color: 'var(--fg-4)' }}>—</span>}
+        </span>
+      ) },
+
+    // ── 🗂 Vận hành (mặc định tắt) ──
+    { key: 'type', group: 'ops', header: 'P/B/S', align: 'center', title: 'personal / brand / seeding',
+      sortValue: (a) => a.accountType || '',
+      cell: (a) => <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{a.accountType?.[0]?.toUpperCase() ?? '—'}</span> },
+    { key: 'kind', group: 'ops', header: 'Kind', align: 'center', sortValue: (a) => a.accountKind || '',
+      cell: (a) => <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{a.accountKind || '—'}</span> },
+    { key: 'owner', group: 'ops', header: 'Owner', align: 'left', sortValue: (a) => (a.ownerUserId != null ? ownerName.get(a.ownerUserId) ?? '' : ''),
+      cell: (a) => { const o = a.ownerUserId != null ? ownerName.get(a.ownerUserId) : null;
+        return o ? <span style={{ fontSize: 10 }} title={`Giao cho ${o}`}>👤{o.split(' ')[0]}</span> : <span style={{ color: 'var(--fg-4)' }}>—</span>; } },
+    { key: 'cost', group: 'ops', header: '$/mo', align: 'right', sortValue: (a) => a.monthlyCost,
+      cell: (a) => a.monthlyCost > 0 ? `$${a.monthlyCost}` : <span style={{ color: 'var(--fg-4)' }}>—</span>,
+      total: (rs) => { const c = rs.reduce((s, a) => s + a.monthlyCost, 0); return c > 0 ? `$${c}` : '—'; } },
+    { key: 'collect', group: 'ops', header: '📊', align: 'center', title: 'thu thập stats tự động',
+      sortValue: (a) => (a.collectStats ? 1 : 0),
+      cell: (a) => a.collectStats ? <span title="Thu thập stats tự động">📊</span> : <span style={{ color: 'var(--fg-4)' }}>—</span> },
+  ];
 
   return (
     <div>
@@ -271,149 +351,16 @@ export function AccountsTable({
       ) : rows.length === 0 ? (
         <EmptyState icon="🔍" title="Không khớp filter" description="Thử đổi search / platform / status / owner." />
       ) : (
-        <div style={{ overflowX: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 920 }}>
-            <thead>
-              <tr>
-                <SortHead label="Account" k="handle" sort={sort} dir={dir} onSort={onSort} />
-                <SortHead label="Platform" k="platform" sort={sort} dir={dir} onSort={onSort} />
-                <SortHead label="Status" k="status" sort={sort} dir={dir} onSort={onSort} />
-                <SortHead label="✉" k="unread" sort={sort} dir={dir} onSort={onSort} align="center"
-                          title="Tin nhắn chưa đọc — ext tự quét khi account đang đăng nhập trên site. Sort để nổi account có inbox cần xử lý lên đầu." />
-                <th style={{ ...TH, textAlign: 'center' }} title="Warm-up checklist (done/total) — điều kiện đủ tuổi/karma global">Warmup</th>
-                <SortHead label="Briefs" k="briefs" sort={sort} dir={dir} onSort={onSort} align="center"
-                          title="Số brief account này đang seed (distinct)" />
-                <th style={{ ...TH, textAlign: 'center' }} title="Số community distinct account này seeding">Habitats</th>
-                <SortHead label="Posts" k="posts" sort={sort} dir={dir} onSort={onSort} align="center"
-                          title="Tổng bài đã đăng (cross-brief)" />
-                <SortHead label="Seed" k="lastSeed" sort={sort} dir={dir} onSort={onSort} align="center"
-                          title="Lần seed gần nhất" />
-                <SortHead label="$/mo" k="cost" sort={sort} dir={dir} onSort={onSort} align="right"
-                          title="Chi phí hằng tháng (proxy/subscription)" />
-                <th style={{ ...TH, textAlign: 'center' }} title="2FA · API token · thu thập stats · owner">Flags</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((a) => {
-                const m = metricsByAccount.get(a.id) ?? emptyMetrics;
-                const sm = accountStatusMeta(a.status);
-                const wp = warmupProgress(a.warmupChecklist);
-                const owner = a.ownerUserId != null ? ownerName.get(a.ownerUserId) : null;
-                return (
-                  <tr key={a.id}
-                      onClick={() => onOpenAccount(a.id)}
-                      title={`Mở chi tiết account: @${a.handle ?? a.id}`}
-                      style={{ cursor: 'pointer' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-2)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = '')}>
-                    {/* Account: kind icon + @handle + email/tags */}
-                    <td style={{ ...TD, maxWidth: 240 }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, color: 'var(--fg-0)',
-                                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {a.platformKey && (
-                            <SiteFavicon {...platformFaviconProps(a.platformKey)} size={13} title={a.platformKey} style={{ opacity: 0.85 }} />
-                          )}
-                          <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                            @{a.handle ?? <span style={{ color: 'var(--fg-4)', fontStyle: 'italic' }}>chưa có handle</span>}
-                          </span>
-                        </div>
-                        {(a.email || a.tags.length > 0) && (
-                          <div style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)',
-                                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220 }}>
-                            {a.email}{a.email && a.tags.length > 0 ? ' · ' : ''}{a.tags.slice(0, 3).join(', ')}
-                          </div>
-                        )}
-                        {/* Chỉ số platform ext đã quét (karma/followers…) — sẵn trong row, không query thêm. */}
-                        <AccountStatChips stats={a.accountStats} max={2} />
-                      </div>
-                    </td>
-                    {/* Platform */}
-                    <td style={{ ...TD, fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-2)' }}>
-                      {a.platformKey || '—'}
-                    </td>
-                    {/* Status */}
-                    <td style={{ ...TD }}>
-                      <Pill color={sm.color} label={sm.label} tone="soft" size="xs" mono uppercase
-                            title={a.blockReason ? `${sm.hint}\n⚠ ${a.blockReason}` : sm.hint} />
-                    </td>
-                    {/* Unread messages (ext-scraped khi đã login) */}
-                    <td style={{ ...TD, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 10.5 }}>
-                      {a.unreadMessages && a.unreadMessages > 0 ? (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--warn)', fontWeight: 700 }}
-                              title={`✉ ${a.unreadMessages} tin nhắn chưa đọc${a.unreadAt ? `\nQuét lúc ${fmtAgoShort(new Date(a.unreadAt).getTime())} trước` : ''}`}>
-                          ✉ {a.unreadMessages}
-                        </span>
-                      ) : a.unreadMessages === 0 ? (
-                        <span style={{ color: 'var(--fg-4)' }} title={`Đã đọc hết${a.unreadAt ? ` · quét ${fmtAgoShort(new Date(a.unreadAt).getTime())} trước` : ''}`}>0</span>
-                      ) : <span style={{ color: 'var(--fg-4)' }} title="Chưa quét (ext chưa thấy account này đăng nhập)">—</span>}
-                    </td>
-                    {/* Warmup */}
-                    <td style={{ ...TD, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 10 }}>
-                      {wp ? (
-                        <span style={{ color: wp.done === wp.total ? 'var(--ok)' : 'var(--warn)' }}
-                              title={`Warm-up: ${wp.done}/${wp.total} mục hoàn tất`}>
-                          {wp.done}/{wp.total}
-                        </span>
-                      ) : <span style={{ color: 'var(--fg-4)' }}>—</span>}
-                    </td>
-                    {/* Briefs */}
-                    <td style={{ ...TD, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 11,
-                                 color: m.briefs > 0 ? 'var(--accent)' : 'var(--fg-4)', fontWeight: m.briefs > 0 ? 700 : 400 }}
-                        title={m.briefs > 0 ? `${m.briefs} brief đang seed · ${m.backlog} nháp chờ` : 'Chưa gán brief'}>
-                      {m.briefs || '—'}
-                    </td>
-                    {/* Habitats */}
-                    <td style={{ ...TD, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 10.5,
-                                 color: m.habitats > 0 ? 'var(--fg-1)' : 'var(--fg-4)' }}
-                        title={`${m.habitats} community distinct account này seeding`}>
-                      {m.habitats || '—'}
-                    </td>
-                    {/* Posts */}
-                    <td style={{ ...TD, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 10.5,
-                                 color: m.posts > 0 ? '#60a5fa' : 'var(--fg-4)', fontWeight: m.posts > 0 ? 700 : 400 }}
-                        title={m.posts > 0 ? `${m.posts} bài đã đăng` : 'Chưa có bài đăng'}>
-                      {m.posts > 0 ? `📨${fmtCompactNum(m.posts)}` : '—'}
-                    </td>
-                    {/* Last seed */}
-                    <td style={{ ...TD, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)' }}
-                        title={m.lastSeededAt ? new Date(m.lastSeededAt).toLocaleString() : 'Chưa seed lần nào'}>
-                      {m.lastSeededAt ? `⏱${fmtAgoShort(m.lastSeededAt)}` : '—'}
-                    </td>
-                    {/* Cost */}
-                    <td style={{ ...TD, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 10.5,
-                                 color: a.monthlyCost > 0 ? 'var(--fg-1)' : 'var(--fg-4)' }}
-                        title={a.monthlyCost > 0 ? `$${a.monthlyCost}/tháng` : 'Miễn phí'}>
-                      {a.monthlyCost > 0 ? `$${a.monthlyCost}` : '—'}
-                    </td>
-                    {/* Flags */}
-                    <td style={{ ...TD, fontSize: 11 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--fg-3)' }}>
-                        {a.has2fa && <span title="2FA bật">🔒</span>}
-                        {a.hasApiToken && <span title="Có API token">🔑</span>}
-                        {a.collectStats && <span title="Thu thập stats tự động">📊</span>}
-                        {owner && <span title={`Giao cho ${owner}`} style={{ fontSize: 9, fontFamily: 'var(--font-mono)' }}>👤{owner.split(' ')[0]}</span>}
-                        {!a.has2fa && !a.hasApiToken && !a.collectStats && !owner && <span style={{ color: 'var(--fg-4)' }}>—</span>}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr style={{ background: 'var(--bg-2)', fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-2)' }}>
-                <td style={{ padding: '7px 8px', fontWeight: 700 }}>{totals.count} account</td>
-                <td colSpan={3} style={{ padding: '7px 8px' }} />
-                <td style={{ padding: '7px 8px', textAlign: 'center' }} title="Tổng brief">{totals.briefs || '—'}</td>
-                <td style={{ padding: '7px 8px', textAlign: 'center' }} title="Community distinct (visible)">{totals.habitats || '—'}</td>
-                <td style={{ padding: '7px 8px', textAlign: 'center' }} title="Tổng posts">{totals.posts ? `📨${fmtCompactNum(totals.posts)}` : '—'}</td>
-                <td style={{ padding: '7px 8px' }} />
-                <td style={{ padding: '7px 8px', textAlign: 'right' }} title="Tổng chi phí/tháng">{totals.cost > 0 ? `$${totals.cost}` : '—'}</td>
-                <td style={{ padding: '7px 8px' }} />
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+        <DataTable<AccountRow>
+          rows={rows}
+          columns={columns}
+          groups={COL_GROUPS}
+          persistKey="acct-cols"
+          getRowKey={(a) => String(a.id)}
+          onRowClick={(a) => onOpenAccount(a.id)}
+          rowTitle={(a) => `Mở chi tiết account: @${a.handle ?? a.id}`}
+          minWidth={920}
+        />
       )}
     </div>
   );

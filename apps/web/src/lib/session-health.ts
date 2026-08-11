@@ -4,6 +4,8 @@
 // browser-profile-drawer.tsx: sửa ngưỡng một chỗ thì chỗ kia vẫn tô màu theo luật cũ, và hai nơi
 // cùng hardcode '#d9a441'. Ai thêm surface thứ ba lại chép lần nữa.
 
+import { LIVE_STATUSES, type AccountStatus } from './status-meta';
+
 /** Ngày chưa mở profile: ≥ STALE_D là phải mở lại, ≥ WARN_D là sắp tới hạn. */
 export const STALE_D = 21;
 export const WARN_D = 7;
@@ -38,6 +40,19 @@ export function idleOf(lastOpenedAt: string | null | undefined): { days: number 
 export type SessionBucket = 'alive' | 'dead' | 'unknown';
 export const bucketOf = (sessionState: string | null | undefined): SessionBucket =>
   sessionState === 'alive' ? 'alive' : sessionState === 'dead' ? 'dead' : 'unknown';
+
+/**
+ * "Chưa đo" ĐÁNG cảnh báo = đúng cái job `browsers-refresh` sẽ quét mà chưa ra kết quả:
+ * platform có `session_check_url` (cờ `measurable` server tính) + status LIVE + phiên chưa alive/dead.
+ * KHÔNG url, hoặc status ngoài LIVE (todo/creating/dead…) → job cố tình bỏ qua → KHÔNG phải "chưa đo",
+ * đừng nag. Trước đây predicate bỏ qua session_check_url nên đếm cả trăm account job không hề đo được.
+ * SSOT: banner /environments (client) lẫn pill unknownSessions (server) cùng gọi hàm này — đừng chép lại.
+ */
+export function isUnmeasuredSession(a: { sessionState?: string | null; status?: string | null; measurable?: boolean }): boolean {
+  return bucketOf(a.sessionState) === 'unknown'
+    && !!a.measurable
+    && LIVE_STATUSES.includes(a.status as AccountStatus);
+}
 
 /**
  * Nhãn cho MỘT account trong profile. Hai con số khác nhau, đừng trộn:

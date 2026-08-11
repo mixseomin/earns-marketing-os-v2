@@ -16,7 +16,7 @@ import { StatusBadge } from './ui/status-badge';
 // Filter bar = primitive nhà MultiSelect (search + count + multi), KHÔNG phải <select> thường.
 import { MultiSelect } from './ui/multi-select';
 // Ngưỡng + màu + cách đọc sessionState: MỘT nguồn, dùng chung với browser-profile-drawer.
-import { STALE_D, TONE, idleOf, bucketOf } from '@/lib/session-health';
+import { STALE_D, TONE, idleOf, bucketOf, isUnmeasuredSession } from '@/lib/session-health';
 import { DEAD_STATUSES, type AccountStatus } from '@/lib/status-meta';
 import { AIFormParser } from './ai-form-parser';
 import { OwnerSelect } from './owner-select';
@@ -455,8 +455,7 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
   // Tên account cụ thể — banner nói "1 account" mà không nói CÁI NÀO thì vẫn phải mở từng drawer ra dò.
   const nameOf = (p: BrowserProfileRow, a: BrowserProfileRow['accounts'][number]) => `${a.platformKey}/${a.handle || a.id}`;
   const deadList = ordered.flatMap((p) => p.accounts.filter((a) => a.sessionState === 'dead' && a.status !== 'pending').map((a) => nameOf(p, a)));
-  const unknownList = ordered.flatMap((p) => p.accounts.filter((a) => a.sessionState !== 'alive' && a.sessionState !== 'dead'
-    && a.status !== 'pending' && !DEAD_STATUSES.includes(a.status as AccountStatus)).map((a) => nameOf(p, a)));
+  const unknownList = ordered.flatMap((p) => p.accounts.filter(isUnmeasuredSession).map((a) => nameOf(p, a)));
   const needCare = ordered.filter((p) => idleOf(p.lastOpenedAt).tone === 'stale' || idleOf(p.lastOpenedAt).tone === 'never');
 
   return (

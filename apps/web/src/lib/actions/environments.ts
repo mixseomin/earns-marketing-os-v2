@@ -8,7 +8,7 @@ import { touchEntity } from '@/lib/touch-entity';
 import { and, eq, isNull, asc, desc, sql } from 'drizzle-orm';
 import { getDb, proxies, browserProfiles, platformAccounts } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
-import { DEAD_STATUSES, type AccountStatus } from '@/lib/status-meta';
+import { isUnmeasuredSession } from '@/lib/session-health';
 import type { TeamMemberRow } from '@/lib/actions/team';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
@@ -162,7 +162,7 @@ export interface BrowserProfileRow {
   unknownSessions: number;
   /** Account bên trong — để lọc theo account/platform/trạng thái ngay ở màn danh sách,
    *  không phải mở từng drawer ra dò. deadSessions/unknownSessions suy ra từ đây. */
-  accounts: { id: number; platformKey: string; handle: string; status: string; sessionState: string | null }[];
+  accounts: { id: number; platformKey: string; handle: string; status: string; sessionState: string | null; measurable: boolean }[];
   projects: string[];
   manager: string | null;
 }
@@ -180,9 +180,12 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
            bp.last_opened_at, bp.notes,
            (SELECT COALESCE(json_agg(json_build_object(
                      'id', pa.id, 'platformKey', pa.platform_key, 'handle', pa.handle,
-                     'status', pa.status, 'sessionState', pa.environment->>'sessionState')
+                     'status', pa.status, 'sessionState', pa.environment->>'sessionState',
+                     'measurable', (NULLIF(pl.session_check_url, '') LIKE 'http%'))
                    ORDER BY pa.platform_key), '[]'::json)
-              FROM platform_accounts pa WHERE pa.browser_profile_id = bp.id) AS accounts,
+              FROM platform_accounts pa
+              LEFT JOIN platforms pl ON pl.key = pa.platform_key
+              WHERE pa.browser_profile_id = bp.id) AS accounts,
            (SELECT array_agg(project_id ORDER BY project_id) FROM project_browser_profiles WHERE browser_profile_id = bp.id) AS projects,
            (SELECT handle FROM platform_accounts pa WHERE pa.browser_profile_id = bp.id
               AND (pa.tags @> '["profile-manager"]'::jsonb OR pa.platform_key = 'google')
@@ -200,6 +203,7 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
       handle: String(a.handle ?? ''),
       status: String(a.status ?? ''),
       sessionState: (a.sessionState as string | null) ?? null,
+      measurable: !!a.measurable,
     }));
   return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
     id: Number(r.id),
@@ -216,10 +220,10 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
     // 'pending' KHÔNG tính là rụng phiên: nó chưa từng đăng nhập được (chờ duyệt), báo "đã bị đăng
     // xuất" là sai sự thật và khiến người đọc đi login tay một account chưa được kích hoạt.
     deadSessions: accountsOf(r).filter((a) => a.sessionState === 'dead' && a.status !== 'pending').length,
-    // Account closed/banned/blocked KHÔNG tính là vùng mù: mình cố ý không giữ phiên cho chúng.
-    // Đếm vào đây là báo động rác, và cái rác đó che mất account warming thật sự chưa được kiểm.
-    unknownSessions: accountsOf(r).filter((a) => a.sessionState !== 'alive' && a.sessionState !== 'dead'
-      && a.status !== 'pending' && !DEAD_STATUSES.includes(a.status as AccountStatus)).length,
+    // "Chưa đo" = ĐÚNG cái browsers-refresh sẽ quét mà chưa ra kết quả (isUnmeasuredSession:
+    // platform có session_check_url + status LIVE). Không url / status ngoài LIVE / closed-banned-blocked
+    // → job cố tình bỏ qua → không phải vùng mù, đừng đếm (trước đây đếm cả trăm account rác).
+    unknownSessions: accountsOf(r).filter(isUnmeasuredSession).length,
     accounts: accountsOf(r),
     projects: (r.projects as string[] | null) ?? [],
     manager: (r.manager as string | null) ?? null,

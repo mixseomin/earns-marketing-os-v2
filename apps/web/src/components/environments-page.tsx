@@ -139,8 +139,10 @@ function ProxiesTab({ proxies, teamMembers = [] }: { proxies: ProxyRow[]; teamMe
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
           {proxies.map((p) => {
-            const tm = PROXY_TYPE_META[p.type];
-            const hm = HEALTH_META[p.health];
+            // Lookup CÓ fallback (như toolMetaOf) — dict thiếu 1 giá trị không được
+            // phép giết cả trang; reader đã chuẩn hoá, đây là lưới thứ hai.
+            const tm = PROXY_TYPE_META[p.type] ?? PROXY_TYPE_META.datacenter;
+            const hm = HEALTH_META[p.health] ?? HEALTH_META.unknown;
             const lastChecked = relativeTime(p.lastCheckAt);
             const stale = isStale(p.lastCheckAt);
             const recent = testResults[p.id];

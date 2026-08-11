@@ -27,6 +27,22 @@ function ensureDb() {
 export type ProxyType = 'mobile' | 'residential' | 'datacenter' | 'isp';
 export type ProxyHealth = 'ok' | 'degraded' | 'down' | 'unknown';
 
+// DB chứa giá trị NGOÀI union (proxy health='dead' do script check ghi vào) → cast
+// thẳng làm type nói dối, mọi consumer index vào meta dict là undefined và /environments
+// chết cả trang (2026-08-11). Chuẩn hoá NGAY Ở BIÊN ĐỌC: giá trị lạ về 'down'/'unknown'.
+const PROXY_HEALTHS: ProxyHealth[] = ['ok', 'degraded', 'down', 'unknown'];
+const DEADISH = new Set(['dead', 'offline', 'fail', 'failed', 'error', 'banned']);
+const normHealth = (v: unknown): ProxyHealth => {
+  const s = String(v ?? '').toLowerCase();
+  if ((PROXY_HEALTHS as string[]).includes(s)) return s as ProxyHealth;
+  return DEADISH.has(s) ? 'down' : 'unknown';
+};
+const PROXY_TYPES: ProxyType[] = ['mobile', 'residential', 'datacenter', 'isp'];
+const normType = (v: unknown): ProxyType => {
+  const s = String(v ?? '').toLowerCase();
+  return (PROXY_TYPES as string[]).includes(s) ? (s as ProxyType) : 'datacenter';
+};
+
 export interface ProxyRow {
   id: number;
   label: string;
@@ -61,10 +77,10 @@ export async function listProxies(): Promise<ProxyRow[]> {
   return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
     id: Number(r.id),
     label: String(r.label),
-    type: String(r.type) as ProxyType,
+    type: normType(r.type),
     endpoint: String(r.endpoint),
     location: (r.location as string | null) ?? null,
-    health: String(r.health) as ProxyHealth,
+    health: normHealth(r.health),
     lastCheckAt: toIso(r.last_check_at),
     costPerGbCents: Number(r.cost_per_gb_cents) || 0,
     rotatesAt: toIso(r.rotates_at),

@@ -381,8 +381,9 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
       </div>
 
     </Drawer>
-    {/* SIBLING of the profile drawer (not a child) so it isn't caught by the backgrounded
-        pointer-events:none. Opened from the "đang login" list; stacks above at zIndex 300. */}
+    {/* AccountDrawer pushed as a top layer, sibling of the profile drawer. (Drawer portals to <body>
+        since 2026-08-12, so it escapes this panel's pointer-events:none / transform regardless of
+        nesting — sibling is just the clean structure.) Opened from the "đang login" list. */}
     {openAcct != null && <AccountDrawer accountId={openAcct} onClose={() => { setOpenAcct(null); if (profile) browserProfileAccounts(profile.id).then(setInside).catch(() => {}); }} />}
     </>
   );

@@ -1466,8 +1466,9 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
 
   // A child house-<Drawer> (browser-profile detail) is stacked on top → THIS layer must
   // background per stacked_drawer rule (slide left + dim + inert), else the child covers it
-  // flat/out-of-order. Rendered as a fragment SIBLING (not a DOM child) so the transform/filter
-  // here doesn't drag the fixed-position child drawer along.
+  // flat/out-of-order. (Since 2026-08-12 Drawer portals to <body>, so the child is no longer dragged
+  // by this panel's transform/filter regardless of nesting — the sibling placement below is just the
+  // tidy way to write two independent drawers, no longer required to escape the transform.)
   const childDrawerOpen = detailProfileId != null;
   return (
     <>
@@ -2637,8 +2638,9 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
           </div>
         </div>
     </Drawer>
-    {/* Browser-profile DETAIL — house Drawer PUSHED as a top layer (sibling, not DOM child of
-        the backgrounded panel above). zIndex 520 > account drawer (300). */}
+    {/* Browser-profile DETAIL — house Drawer pushed as a top layer, sibling of the account drawer.
+        (Drawer portals to <body> since 2026-08-12, so nesting no longer matters for escaping the
+        parent transform; sibling is just the clean structure.) Stacks above via mount order. */}
     {detailProfileId != null && (() => {
       const cur = browserProfiles.find((b) => b.id === detailProfileId);
       return cur ? <BrowserProfileDrawer profile={cur} proxies={proxies} teamMembers={teamMembers} onClose={() => setDetailProfileId(null)} /> : null;

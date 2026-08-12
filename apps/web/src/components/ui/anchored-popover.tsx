@@ -9,7 +9,7 @@
 // z-index. Portal ra <body> đưa popover về đúng viewport. Đây là chỗ 7 popover tự chế cùng lặp một
 // khuôn (rect + fixed + backdrop + reposition); 3 cái quên portal nên vỡ trong Drawer/modal. Primitive
 // này là NGUỒN chuẩn — popover mới dùng nó, không tự dựng fixed nữa. Xem drawer portal cùng gốc.
-import { useEffect, useState, type ReactNode, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useState, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 
 export interface AnchoredPopoverProps {
@@ -31,7 +31,11 @@ export function AnchoredPopover({ anchorRef, open, onClose, children, align = 'l
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  useEffect(() => {
+  // useLayoutEffect (KHÔNG useEffect): đo rect + setPos phải commit TRƯỚC khi trình duyệt vẽ, nếu không
+  // popover mở trễ 1 frame (render null vì chưa có pos → vẽ trắng → effect passive chạy sau paint → mới hiện).
+  // 4 popover cũ tính vị trí ngay trong onClick nên hiện tức thì; giữ nguyên độ mượt đó. Chuẩn nhà: Popover
+  // (backlinks-page), orders-blotter đều useLayoutEffect cho đo-rồi-đặt.
+  useLayoutEffect(() => {
     if (!open) { setPos(null); return; }
     const recompute = () => {
       const r = anchorRef.current?.getBoundingClientRect();

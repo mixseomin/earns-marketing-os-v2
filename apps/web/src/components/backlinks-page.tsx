@@ -1476,8 +1476,18 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     for (const el of document.querySelectorAll('[id^="piece-"]')) io.observe(el);
     return () => io.disconnect();
   }, [view, feedDays]);
-  // Dòng đang sáng phải nằm trong tầm nhìn của rail, không thì highlight vô nghĩa.
-  useEffect(() => { if (activePiece) railRefs.current[activePiece]?.scrollIntoView({ block: 'nearest' }); }, [activePiece]);
+  // Dòng đang sáng phải nằm trong tầm nhìn của rail, không thì highlight vô nghĩa. Cuộn TAY bằng
+  // scrollTop của đúng khung rail — scrollIntoView cuộn cả trang và mỗi lệnh cuộn mới sẽ HUỶ cú
+  // smooth-scroll đang chạy, nên bấm một dòng là cú nhảy tới bài bị cắt giữa chừng.
+  const railBox = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = activePiece ? railRefs.current[activePiece] : null;
+    const box = railBox.current;
+    if (!el || !box) return;
+    const r = el.getBoundingClientRect(), b = box.getBoundingClientRect();
+    if (r.top < b.top) box.scrollTop -= b.top - r.top + 8;
+    else if (r.bottom > b.bottom) box.scrollTop += r.bottom - b.bottom + 8;
+  }, [activePiece]);
 
   // Cuộn tới đâu thì mini-cal sáng ngày đó — "đang ở đâu" phải tự trả lời, không bắt người dùng nhớ.
   useEffect(() => {
@@ -2171,7 +2181,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
             chấm màu theo nhóm góc. Bấm là nhảy tới đúng bài. Chỉ dựng khi cửa sổ đủ rộng, hẹp thì
             nó ăn mất chỗ của chính nội dung. */}
         {wideScreen && feedDays.length > 0 && (
-          <div style={{ position: 'sticky', top: barH + 8, width: 330, flexShrink: 0, maxHeight: `calc(100vh - ${barH + 120}px)`,
+          <div ref={railBox} style={{ position: 'sticky', top: barH + 8, width: 330, flexShrink: 0, maxHeight: `calc(100vh - ${barH + 120}px)`,
             overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 10, background: 'var(--bg-1)', padding: '9px 10px' }}>
             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)', marginBottom: 7 }}>
               Toàn cảnh · {piecesShown.length} bài
@@ -2190,7 +2200,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                   return (
                     <button key={p.id} type="button" title={p.subject || p.title}
                       ref={(el) => { railRefs.current[p.id] = el; }}
-                      onClick={() => document.getElementById(`piece-${p.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                      onClick={() => { setActivePiece(p.id); document.getElementById(`piece-${p.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
                       style={{ display: 'flex', gap: 6, alignItems: 'center', width: '100%', textAlign: 'left',
                         background: activePiece === p.id ? 'color-mix(in srgb, var(--accent) 20%, transparent)' : 'transparent',
                         borderLeft: `2px solid ${activePiece === p.id ? 'var(--accent)' : 'transparent'}`, border: 0,

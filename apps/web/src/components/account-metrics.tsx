@@ -35,13 +35,14 @@ const META: Record<string, { icon: string; label: string }> = {
   joined:         { icon: '📅', label: 'tham gia' },
   created:        { icon: '📅', label: 'tạo' },
   verified_email: { icon: '✓',  label: 'email verified' },
+  pages_count:    { icon: '📄', label: 'pages' },
 };
 // Thứ tự ưu tiên khi cắt bớt (compact) — chỉ số "đánh giá được sức" đứng trước.
 const ORDER = ['karma', 'followers', 'subscribers', 'posts', 'comment_karma', 'link_karma',
   'reviews', 'rating', 'likes_received', 'age_days', 'joined', 'created'];
 // Key nhận diện, không phải chỉ số.
 const SKIP = new Set(['fetched_at', 'captured', 'username', 'name', 'user_id', 'type', 'note',
-  'profile', 'handle', 'id']);
+  'profile', 'handle', 'id', 'pages_fetched_at']);
 // Cờ an toàn: chỉ kêu khi TRUE (đỏ = tín hiệu), false thì im.
 const FLAGS: Record<string, string> = {
   suspended: '⛔ suspended', shadowbanned: '👻 shadowbanned', banned: '⛔ banned', locked: '🔒 locked',
@@ -93,7 +94,8 @@ export function statChips(stats: Record<string, unknown> | null | undefined): Ch
   if (!stats || typeof stats !== 'object') return [];
   const out: Chip[] = [];
   for (const [k, v] of Object.entries(stats)) {
-    if (SKIP.has(k) || v == null || v === '') continue;
+    // Bỏ qua object/array (vd account_stats.pages) — chip chỉ dành cho primitive; String(array) ra rác.
+    if (SKIP.has(k) || v == null || v === '' || typeof v === 'object') continue;
     if (typeof v === 'boolean' || v === 'true' || v === 'false') {
       const on = v === true || v === 'true';
       if (FLAGS[k]) { if (on) out.push({ key: k, text: FLAGS[k]!, title: `${k} = true`, bad: true }); continue; }

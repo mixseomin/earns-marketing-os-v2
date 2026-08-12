@@ -579,6 +579,34 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
                     </div>
                   );
                 })()}
+                {/* Tài sản account quản lý (vd FB personal quản N Page) — account_stats.pages. Ẩn sau
+                    <details>: card không phình, nhưng "khi cần" mở ra thấy + click sang được ngay. */}
+                {p.accounts.filter((a) => a.pages.length > 0 || a.pagesDeactivated.length > 0).map((a) => (
+                  <details key={`pages-${a.id}`} style={{ marginTop: 6, fontSize: 10 }}>
+                    <summary style={{ cursor: 'pointer', color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', userSelect: 'none' }}>
+                      {a.platformKey}/{a.handle || a.id} · {a.pages.length} page{a.pages.length === 1 ? '' : 's'}
+                      {a.pagesDeactivated.length > 0 && <span style={{ color: 'var(--warn)' }}> (+{a.pagesDeactivated.length} ngừng)</span>}
+                    </summary>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 4, paddingLeft: 12 }}>
+                      {a.pages.map((pg) => (
+                        <a key={pg.url} href={pg.url} target="_blank" rel="noreferrer" title={pg.url}
+                          style={{ color: 'var(--fg-2)', textDecoration: 'none', display: 'flex', gap: 5, alignItems: 'center' }}>
+                          <SiteFavicon {...platformFaviconProps(a.platformKey)} size={12} circle />
+                          <span>{pg.name}</span>
+                          {pg.recovered && <span title="vừa khôi phục từ deactivated" style={{ color: 'var(--ok)', fontSize: 9 }}>↩</span>}
+                        </a>
+                      ))}
+                      {a.pagesDeactivated.map((pg) => (
+                        <span key={pg.name} title={pg.note || 'deactivated — cần page admin reactivate'}
+                          style={{ display: 'flex', gap: 5, alignItems: 'center', color: 'var(--fg-4)' }}>
+                          <span style={{ fontSize: 10 }}>⊘</span>
+                          <span style={{ textDecoration: 'line-through' }}>{pg.name}</span>
+                          <span style={{ fontSize: 9, color: 'var(--warn)' }}>cần admin</span>
+                        </span>
+                      ))}
+                    </div>
+                  </details>
+                ))}
                 {/* Đang lọc thì phải chỉ ra ACCOUNT nào khớp — nếu không, card chỉ nói "profile này có
                     thứ gì đó khớp" và vẫn phải mở drawer ra dò, tức là bộ lọc chưa tiết kiệm được gì. */}
                 {filtering && (

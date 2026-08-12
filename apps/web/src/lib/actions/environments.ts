@@ -162,7 +162,7 @@ export interface BrowserProfileRow {
   unknownSessions: number;
   /** Account bên trong — để lọc theo account/platform/trạng thái ngay ở màn danh sách,
    *  không phải mở từng drawer ra dò. deadSessions/unknownSessions suy ra từ đây. */
-  accounts: { id: number; platformKey: string; handle: string; status: string; sessionState: string | null; measurable: boolean }[];
+  accounts: { id: number; platformKey: string; handle: string; status: string; sessionState: string | null; measurable: boolean; pages: { name: string; url: string; recovered?: boolean }[]; pagesDeactivated: { name: string; note?: string }[] }[];
   projects: string[];
   manager: string | null;
 }
@@ -181,7 +181,9 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
            (SELECT COALESCE(json_agg(json_build_object(
                      'id', pa.id, 'platformKey', pa.platform_key, 'handle', pa.handle,
                      'status', pa.status, 'sessionState', pa.environment->>'sessionState',
-                     'measurable', (NULLIF(pl.session_check_url, '') LIKE 'http%'))
+                     'measurable', (NULLIF(pl.session_check_url, '') LIKE 'http%'),
+                     'pages', COALESCE(pa.account_stats->'pages', '[]'::jsonb),
+                     'pagesDeactivated', COALESCE(pa.account_stats->'pages_deactivated', '[]'::jsonb))
                    ORDER BY pa.platform_key), '[]'::json)
               FROM platform_accounts pa
               LEFT JOIN platforms pl ON pl.key = pa.platform_key
@@ -204,6 +206,8 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
       status: String(a.status ?? ''),
       sessionState: (a.sessionState as string | null) ?? null,
       measurable: !!a.measurable,
+      pages: (a.pages as { name: string; url: string; recovered?: boolean }[] | null) ?? [],
+      pagesDeactivated: (a.pagesDeactivated as { name: string; note?: string }[] | null) ?? [],
     }));
   return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
     id: Number(r.id),

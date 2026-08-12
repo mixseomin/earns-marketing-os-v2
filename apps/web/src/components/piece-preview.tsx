@@ -53,7 +53,7 @@ function withTags(text: string) {
 export function PiecePreview({ piece, accounts = [], media = [], body, replies = [], editableReplies = false, compact = false, onOpen }: {
   piece: CalPiece;
   accounts?: Array<{ id: number; platformKey: string; handle: string | null; accountStats?: Record<string, unknown> }>;
-  media?: Array<{ id: number; url: string; filename: string }>;
+  media?: Array<{ id: number; url: string; filename: string; width?: number | null; height?: number | null }>;
   /** Thân bài đã có sẵn (drawer) — truyền vào để khỏi gọi lại. */
   body?: string;
   /** Comment đầu (piece con gắn tag replyto:) — runner đăng ngay sau bài chính. */
@@ -70,7 +70,12 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
   const acct = accounts.find((x) => x.id === Number(tagVal(piece.tags, 'acct')));
   const place = tagVal(piece.tags, 'place');
   const time = tagVal(piece.tags, 'time');
-  const assets = tagIds(piece.tags, 'asset').map((id) => media.find((m) => m.id === id)).filter(Boolean) as Array<{ id: number; url: string; filename: string }>;
+  const assets = tagIds(piece.tags, 'asset').map((id) => media.find((m) => m.id === id)).filter(Boolean) as NonNullable<typeof media>;
+  // Chỗ ảnh phải được GIỮ SẴN trước khi ảnh tải xong. Ảnh lười + height:auto = khung cao 0px cho tới
+  // lúc tải, rồi bung ra — nội dung phía dưới bị đẩy xuống, và cú nhảy tới một bài ở xa rơi hụt vài
+  // nghìn px (đo được 4055px) vì smooth-scroll không nhắm lại. Có số đo thật thì dùng, không thì lấy
+  // khổ card 4/5 (khổ ảnh dựng sẵn của kho).
+  const ratio = (m: { width?: number | null; height?: number | null }) => (m.width && m.height ? `${m.width}/${m.height}` : '4/5');
   const placeLabel = place.startsWith('http') ? place.replace(/^https?:\/\/(www\.)?/, '') : place;
   // KIỂU BÀI quyết định thân bài dựng ra sao — cùng một caption nhưng poll ra ô bình chọn, bài chèn
   // link ra thẻ link, thread ra N mảnh. Đây là chỗ "plan trông thế nào thì đăng thế": nhìn bản dựng
@@ -190,7 +195,7 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
               <div key={m.id} style={{ position: 'relative', flex: '0 0 auto', width: compact ? 168 : 232, scrollSnapAlign: 'start' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={m.url} alt={m.filename} loading="lazy" decoding="async"
-                  style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-2)' }} />
+                  style={{ width: '100%', height: 'auto', aspectRatio: ratio(m), display: 'block', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-2)' }} />
                 <span style={{ position: 'absolute', top: 6, right: 6, fontSize: 10, padding: '1px 6px', borderRadius: 999,
                   background: 'rgba(0,0,0,.62)', color: '#fff', fontFamily: 'var(--font-mono)' }}>{i + 1}/{assets.length}</span>
               </div>
@@ -207,7 +212,7 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
             // Ảnh card là PNG 1080×1350 (~300 kB): tải hết cả tháng là ~5 MB không ai xem tới.
             // lazy = chỉ tải khi cuộn tới gần.
             <img key={m.id} src={m.url} alt={m.filename} loading="lazy" decoding="async"
-              style={{ width: '100%', height: 'auto', maxHeight: compact ? 320 : undefined, objectFit: 'contain', display: 'block', background: 'var(--bg-2)' }} />
+              style={{ width: '100%', height: 'auto', aspectRatio: ratio(m), maxHeight: compact ? 320 : undefined, objectFit: 'contain', display: 'block', background: 'var(--bg-2)' }} />
           ))}
         </div>
       )}

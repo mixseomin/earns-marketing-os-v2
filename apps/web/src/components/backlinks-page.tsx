@@ -4,7 +4,7 @@
 // sources that apply to THIS project's site (membership = site_status[slug]) and lets the
 // admin assign each to a team user (→ ext /api/ext/my-tasks) and track per-site status +
 // the live placed URL. A source is shared across sites; here we focus on this site.
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
@@ -1489,6 +1489,29 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     else if (r.bottom > b.bottom) box.scrollTop += r.bottom - b.bottom + 8;
   }, [activePiece]);
 
+  // Nhảy tới một mốc trong dòng đọc. Cuộn một phát là KHÔNG đủ: ảnh tải lười làm nội dung phía trên
+  // đích cao lên giữa lúc đang trượt, mà smooth-scroll không tự nhắm lại — cú nhảy xa rơi hụt (đo
+  // được 4055px). Ảnh đã được giữ chỗ sẵn bằng aspectRatio, đây là lớp chốt cho phần còn xê dịch:
+  // nhắm lại tới khi đúng chỗ, và buông ngay khi người dùng tự cuộn.
+  const jumpTo = useCallback((elId: string) => {
+    const el0 = document.getElementById(elId);
+    if (!el0) return;
+    el0.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const sc = el0.closest('.main') ?? document.documentElement;
+    let n = 0, stop = false;
+    const off = () => { stop = true; };
+    sc.addEventListener('wheel', off, { once: true, passive: true });
+    sc.addEventListener('touchstart', off, { once: true, passive: true });
+    const fix = () => {
+      const el = document.getElementById(elId);
+      if (stop || !el || n++ > 12) { sc.removeEventListener('wheel', off); sc.removeEventListener('touchstart', off); return; }
+      const want = sc.getBoundingClientRect().top + (parseFloat(getComputedStyle(el).scrollMarginTop) || 0);
+      if (Math.abs(el.getBoundingClientRect().top - want) > 6) el.scrollIntoView({ block: 'start' });
+      setTimeout(fix, 160);
+    };
+    setTimeout(fix, 620);
+  }, []);
+
   // Cuộn tới đâu thì mini-cal sáng ngày đó — "đang ở đâu" phải tự trả lời, không bắt người dùng nhớ.
   useEffect(() => {
     if (view !== 'feed') return;
@@ -2133,7 +2156,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
               onPick={(d) => {
                 const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 setFeedActive(ds);
-                document.getElementById(`feed-${ds}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                jumpTo(`feed-${ds}`);
               }} />
             <div style={{ marginTop: 10, fontSize: 11, color: 'var(--fg-4)', lineHeight: 1.5 }}>
               {feedDays.length} ngày · {piecesShown.length} bài
@@ -2188,7 +2211,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
             </div>
             {feedDays.map(([d, ps]) => (
               <div key={d} style={{ marginBottom: 8 }}>
-                <button type="button" onClick={() => document.getElementById(`feed-${d}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                <button type="button" onClick={() => jumpTo(`feed-${d}`)}
                   style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 0, cursor: 'pointer', padding: '3px 4px', borderRadius: 5,
                     fontSize: 11, fontWeight: 700, color: d === feedActive ? 'var(--neon-cyan)' : 'var(--fg-3)' }}>
                   {new Date(`${d}T12:00:00`).toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' })}
@@ -2200,7 +2223,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                   return (
                     <button key={p.id} type="button" title={p.subject || p.title}
                       ref={(el) => { railRefs.current[p.id] = el; }}
-                      onClick={() => { setActivePiece(p.id); document.getElementById(`piece-${p.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
+                      onClick={() => { setActivePiece(p.id); jumpTo(`piece-${p.id}`); }}
                       style={{ display: 'flex', gap: 6, alignItems: 'center', width: '100%', textAlign: 'left',
                         background: activePiece === p.id ? 'color-mix(in srgb, var(--accent) 20%, transparent)' : 'transparent',
                         borderLeft: `2px solid ${activePiece === p.id ? 'var(--accent)' : 'transparent'}`, border: 0,

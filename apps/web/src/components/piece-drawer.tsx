@@ -11,8 +11,8 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Drawer, EntityRef } from '@/components/ui';
-import { CHANNELS, STATUSES, ANGLE_GROUPS, angleOf } from '@/lib/content-channels';
-import { updateContentPiece, getPieceDetail } from '@/lib/actions/content';
+import { CHANNELS, STATUSES, ANGLE_GROUPS, angleOf, tagVal, tagIds } from '@/lib/content-channels';
+import { updateContentPiece, getPieceDetail, type ContentInput } from '@/lib/actions/content';
 import type { CalPiece } from '@/lib/data';
 
 const lbl: React.CSSProperties = { display: 'block', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--fg-4)', marginBottom: 5, fontFamily: 'var(--font-mono)' };
@@ -23,9 +23,6 @@ const STATUS_COLOR: Record<string, string> = {
   draft: 'var(--fg-3)', approved: 'var(--neon-cyan)', scheduled: 'var(--neon-amber)',
   published: 'var(--ok)', archived: 'var(--fg-4)',
 };
-
-// Nơi/giờ/account/browser/asset/chuỗi việc đều nằm trong tags dạng 'khoá:giá trị' (không migration).
-const tagVal = (tags: string[], k: string) => tags.find((t) => t.startsWith(`${k}:`))?.slice(k.length + 1) ?? '';
 
 type TabKey = 'overview' | 'prepare' | 'logs';
 const TABS: Array<{ key: TabKey; label: string }> = [
@@ -54,17 +51,15 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const time = tagVal(piece.tags, 'time');
   const acct = accounts.find((x) => x.id === Number(tagVal(piece.tags, 'acct')));
   const prof = browserProfiles.find((x) => x.id === Number(tagVal(piece.tags, 'browser')));
-  // asset:media:<id>,<id> = ảnh đã nằm trong vault (hiện thumbnail + mở media drawer).
-  const assetIds = tagVal(piece.tags, 'asset').replace(/^media:/, '').split(',').map(Number).filter(Boolean);
-  const assets = assetIds.map((id) => media.find((m) => m.id === id)).filter(Boolean) as Array<{ id: number; url: string; filename: string }>;
-  const chain = tagVal(piece.tags, 'chain').split(',').map(Number).filter(Boolean)
-    .map((id) => tasks.find((t) => t.id === id)).filter(Boolean) as NonNullable<typeof tasks>;
+  // asset:media:<id,id> = ảnh đã nằm trong vault (hiện thumbnail + mở media drawer).
+  const assets = tagIds(piece.tags, 'asset').map((id) => media.find((m) => m.id === id)).filter(Boolean) as Array<{ id: number; url: string; filename: string }>;
+  const chain = tagIds(piece.tags, 'chain').map((id) => tasks.find((t) => t.id === id)).filter(Boolean) as NonNullable<typeof tasks>;
 
   useEffect(() => { getPieceDetail(piece.id, piece.projectId).then(setDetail); }, [piece.id, piece.projectId]);
 
   const refresh = () => start(() => router.refresh());
-  const patch = async (p: Record<string, unknown>) => {
-    await updateContentPiece(piece.id, piece.projectId, { title: piece.title, ...p } as never);
+  const patch = async (p: Partial<ContentInput>) => {
+    await updateContentPiece(piece.id, piece.projectId, p);
     refresh();
   };
 

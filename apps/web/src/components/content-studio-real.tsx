@@ -11,7 +11,6 @@ import { EmptyState, Pill, StatsStrip, type StatCard } from './ui';
 import { FormModal } from './ui/form-modal';
 
 const CH_ICON: Record<string, string> = Object.fromEntries(CHANNELS.map((c) => [c.id, c.icon]));
-const ymdLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 // URL state hook (same pattern as library-page.tsx).
 function useUrlParam(key: string, defaultValue: string): [string, (v: string) => void] {

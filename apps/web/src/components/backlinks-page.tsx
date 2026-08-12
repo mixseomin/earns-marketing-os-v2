@@ -19,7 +19,7 @@ import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
-import { CHANNELS, ANGLE_GROUPS, MIX_TARGET, angleOf } from '@/lib/content-channels';
+import { CHANNELS, ANGLE_GROUPS, MIX_TARGET, angleOf } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
 import { StatusSegmented, Segmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';

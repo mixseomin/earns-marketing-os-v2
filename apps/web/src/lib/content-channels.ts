@@ -35,11 +35,18 @@ export const ANGLE_GROUPS: Array<{ id: string; label: string; color: string; ang
 
 const ANGLE_TO_GROUP = new Map(ANGLE_GROUPS.flatMap((g) => g.angles.map((a) => [a, g] as const)));
 
+// Lược đồ tag của content_pieces — MỘT chỗ định nghĩa, mọi nơi đọc qua đây (trước có 2 bộ parse
+// rời nhau nên 'asset:card.png' vs 'asset:media:61' âm thầm lệch, drawer báo "chưa có" mà không ai biết).
+//   angle:<code> · src:<S1..S8> · cta:<path> · place:<habitat> · time:<HH:MM>
+//   acct:<id> · browser:<id> · asset:media:<id,id> · chain:<taskId,taskId>
+export const tagVal = (tags: string[], k: string) => tags.find((t) => t.startsWith(`${k}:`))?.slice(k.length + 1).trim() ?? '';
+/** Danh sách id trong tag dạng 'khoá:media:1,2' hoặc 'khoá:1,2'. Giá trị không phải số → bỏ. */
+export const tagIds = (tags: string[], k: string) => tagVal(tags, k).replace(/^media:/, '').split(',').map(Number).filter(Number.isFinite).filter(Boolean);
+
 /** 'angle:ranking' trong tags → {angle, group}. Không có tag angle → null. */
 export function angleOf(tags: string[]): { angle: string; group: typeof ANGLE_GROUPS[number] } | null {
-  const t = tags.find((x) => x.startsWith('angle:'));
-  if (!t) return null;
-  const angle = t.slice(6).trim();
+  const angle = tagVal(tags, 'angle');
+  if (!angle) return null;
   const group = ANGLE_TO_GROUP.get(angle);
   return group ? { angle, group } : null;
 }

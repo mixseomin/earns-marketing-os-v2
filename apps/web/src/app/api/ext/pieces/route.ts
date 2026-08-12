@@ -71,14 +71,18 @@ export async function GET(req: Request) {
   const from = (u.searchParams.get('from') ?? '').trim();
   const to = (u.searchParams.get('to') ?? '').trim();
 
+  // Điều kiện dựng trong JS: bộ lọc vắng thì KHÔNG có mệnh đề, thay vì mẹo `${x} = '' OR …`
+  // (mẹo đó đẩy chuỗi rỗng xuống DB rồi ép kiểu null — planner không dùng index, và mỗi lần
+  // thêm bộ lọc lại phải chép lại mẹo).
+  const conds = [sql`project_id = ${projectId}`, sql`archived_at IS NULL`];
+  if (channel) conds.push(sql`channel = ${channel}`);
+  if (from) conds.push(sql`scheduled_at >= ${from}::timestamptz`);
+  if (to) conds.push(sql`scheduled_at < ${to}::timestamptz + interval '1 day'`);
   const res = await db.execute(sql`
     SELECT id, slug, title, channel, subject, status, publish_url,
            to_char(scheduled_at, 'YYYY-MM-DD') AS date, tags
     FROM content_pieces
-    WHERE project_id = ${projectId} AND archived_at IS NULL
-      AND (${channel} = '' OR channel = ${channel})
-      AND (${from} = '' OR scheduled_at >= ${from || null}::timestamptz)
-      AND (${to} = '' OR scheduled_at < (${to || null}::timestamptz + interval '1 day'))
+    WHERE ${sql.join(conds, sql` AND `)}
     ORDER BY scheduled_at NULLS LAST, id
   `);
   return okResponse({ pieces: rows(res) });

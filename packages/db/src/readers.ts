@@ -1,7 +1,7 @@
 // Read-side query helpers. Returned shape mirrors apps/web/src/lib/mock/types.ts
 // so the web app can swap mock <-> DB transparently via lib/data.ts.
 
-import { and, asc, desc, eq, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, isNotNull, or, sql } from 'drizzle-orm';
 import { getDb } from './client';
 import { alerts, cards, feedEvents, modes, projects, squads, platforms, platformAccounts, projectAccounts, useCases, roadmapItems, tribes, habitats, knowledgeItems, contacts, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, members, dailySpendCaps, strategyTests, strategyTestAssets, strategyForward, strategyTrades } from './schema';
 
@@ -210,8 +210,13 @@ export async function listAccountsByProject(projectId?: string) {
       shareContentRatio: projectAccounts.contentRatio,
     })
     .from(platformAccounts)
-    .innerJoin(projectAccounts, eq(projectAccounts.accountId, platformAccounts.id))
-    .where(and(eq(platformAccounts.tenantId, TENANT), projectId ? eq(projectAccounts.projectId, projectId) : undefined))
+    // Lọc theo project = innerJoin (chỉ account được chia cho project đó). Toàn tenant = leftJoin:
+    // innerJoin sẽ NUỐT account chưa có junction (account 'mồ côi') → drawer báo "chưa gắn account"
+    // dù account có thật. Cùng lớp lỗi với việc phải đẻ listUnmappedAccounts để đi tìm chúng.
+    .leftJoin(projectAccounts, projectId
+      ? and(eq(projectAccounts.accountId, platformAccounts.id), eq(projectAccounts.projectId, projectId))
+      : eq(projectAccounts.accountId, platformAccounts.id))
+    .where(and(eq(platformAccounts.tenantId, TENANT), projectId ? isNotNull(projectAccounts.accountId) : undefined))
     .orderBy(asc(platformAccounts.sortOrder), asc(platformAccounts.id));
 }
 

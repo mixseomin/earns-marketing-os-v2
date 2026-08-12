@@ -1157,7 +1157,10 @@ export type ContentPieceRow = {
 // phải nhớ có hai chỗ. Chỉ lấy cột lịch cần + chỉ dòng có scheduled_at (global /plays gom
 // mọi project → đừng kéo cả body_md về).
 // has_body = đã soạn caption chưa (chỉ cờ, không kéo body_md về) — cảnh báo "duyệt rồi mà rỗng".
-export type CalPiece = { id: number; projectId: string; title: string; subject: string | null; channel: string; status: string; date: string; tags: string[]; hasBody: boolean; hasLink: boolean };
+export type CalPiece = { id: number; projectId: string; title: string; subject: string | null; channel: string; status: string; date: string; tags: string[]; hasBody: boolean; hasLink: boolean;
+  /** Thân bài (cắt 2000 ký tự) đi kèm luôn: 139 bài = 22 kB, rẻ hơn hẳn 139 lần gọi server action
+   *  để lấy từng bài — đo thật trên /plays: 142 POST, networkidle 38 giây. */
+  body: string };
 export async function listScheduledContentPieces(projectId?: string): Promise<CalPiece[]> {
   return tryDb(async () => {
     const db = getDb(); if (!db) return [];
@@ -1165,6 +1168,7 @@ export async function listScheduledContentPieces(projectId?: string): Promise<Ca
       SELECT id, project_id, title, subject, channel, status,
              to_char(scheduled_at, 'YYYY-MM-DD') AS date, tags,
              (length(coalesce(body_md, '')) > 0) AS has_body,
+             left(coalesce(body_md, ''), 2000) AS body,
              -- CÓ LINK hay không là chuyện của bản thân thân bài, không phải của tag: nền tảng tự
              -- biến 'militarycalc.com' trần thành link y như https://… , nên bắt cả hai dạng.
              (coalesce(body_md, '') ~* '(https?://|\m[a-z0-9][a-z0-9-]*\.(com|org|net|io|gov|app|co)\M)') AS has_link
@@ -1180,6 +1184,7 @@ export async function listScheduledContentPieces(projectId?: string): Promise<Ca
       tags: Array.isArray(r.tags) ? (r.tags as string[]) : [],
       hasBody: r.has_body === true,
       hasLink: r.has_link === true,
+      body: String(r.body ?? ''),
     }));
   }, [], 'listScheduledContentPieces');
 }

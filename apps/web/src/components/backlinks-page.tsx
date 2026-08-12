@@ -1370,13 +1370,14 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       const risks = pieceRisks(p, { replies: repliesOf.get(p.id) });
       out.push({
         id: `c:${p.id}`, date: p.date, icon: 'docpen',
-        label: `${plbl}${gaps.length ? '⚠ ' : ''}${risks.length ? '🔗 ' : ''}${(p.subject || p.title).replace(/\s+/g, ' ').trim()}`,
+        label: `${plbl}${gaps.length ? '⚠ ' : ''}${risks.length ? '🔗 ' : ''}${(repliesOf.get(p.id)?.length ?? 0) ? '💬 ' : ''}${(p.subject || p.title).replace(/\s+/g, ' ').trim()}`,
         lead: <ChannelFavicon channel={p.channel} size={13} title={ch?.label ?? p.channel} />,
         color: a ? a.group.color : 'var(--fg-3)',
         done: p.status === 'published', dim: p.status === 'draft',
         title: `Bài đăng · ${ch?.label ?? p.channel} · ${p.status}${a ? ` · ${a.group.label}/${a.angle}` : ' · chưa gắn angle'} — ${p.title}`
           + (gaps.length ? `\n⚠ thiếu: ${gaps.join(' · ')}` : '')
-          + (risks.length ? `\n🔗 rủi ro phân phối: ${risks.join(' · ')}` : ''),
+          + (risks.length ? `\n🔗 rủi ro phân phối: ${risks.join(' · ')}` : '')
+          + ((repliesOf.get(p.id)?.length ?? 0) ? `\n💬 ${repliesOf.get(p.id)!.length} comment đầu — mở bài để đọc` : ''),
         // Ngày/Tuần = xem RUN-OF-SHOW: bài thật hiện luôn dưới pill (account · nơi đăng · caption ·
         // ảnh), không phải bấm mở từng cái mới biết hôm đó đăng gì. Tháng thì không dựng (96 bài =
         // 96 lượt tải thân bài, mà lưới tháng cũng không đủ chỗ hiển thị).
@@ -1407,6 +1408,18 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     window.addEventListener('resize', on);
     return () => window.removeEventListener('resize', on);
   }, []);
+  // Miếng vá boxShadow che khe trên của khung cuộn chỉ ĐÚNG khi thanh đã dính. Lúc chưa cuộn nó
+  // trùm 14px lên nội dung ngay phía trên → ăn mất dòng nhãn của dải KPI (TOTAL/TO DO/…). Dùng một
+  // ô mốc cao 1px: nó rời khỏi màn = thanh đang dính.
+  const stickSentinel = useRef<HTMLDivElement | null>(null);
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const el = stickSentinel.current;
+    if (!el) { setStuck(false); return; }
+    const io = new IntersectionObserver((es) => setStuck(!(es[0]?.isIntersecting ?? true)), { threshold: 1 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [view]);
   const barRef = useRef<HTMLDivElement | null>(null);
   const [barH, setBarH] = useState(46);
   useEffect(() => {
@@ -1895,10 +1908,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           DÍNH khi cuộn ở chế độ đọc: đây là thứ duy nhất còn cần trong lúc đọc (đổi view, đổi loại,
           tìm). Còn KPI/chip trạng thái/chip project thì KHÔNG dính — nhìn một lần lúc vào, giữ lại
           chỉ tổ ăn chỗ của nội dung. */}
+      <div ref={stickSentinel} style={{ height: 1 }} />
       <div ref={barRef} style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center',
         // boxShadow trải rộng = vá luôn dải padding phía trên của khung cuộn; không có nó thì thấy
         // nội dung trườn qua khe hở giữa mép trên và thanh công cụ.
-        ...(focus ? { position: 'sticky' as const, top: 0, zIndex: 30, background: 'var(--bg-0)', padding: '8px 0', boxShadow: '0 -14px 0 14px var(--bg-0)' } : {}) }}>
+        ...(focus ? { position: 'sticky' as const, top: 0, zIndex: 30, background: 'var(--bg-0)', padding: '8px 0',
+          ...(stuck ? { boxShadow: '0 -14px 0 14px var(--bg-0)' } : {}) } : {}) }}>
         <SearchInput value={q} onChange={setQ} placeholder="tìm task (tên/URL/method/niche)…" width={240} />
         <Segmented options={[{ value: '', label: 'All' }, { value: 'backlink', label: '🔗 Backlink' }, { value: 'email', label: '✉ Email' }, { value: 'seed', label: '🌱 Seed' }, { value: 'build', label: '📕 Sản phẩm' }, { value: 'research', label: '📚 Nghiên cứu' }, { value: 'followup', label: '📌 Follow-up' }, { value: 'content', label: '📝 Bài đăng' }]}
           value={kind} onChange={(v) => setKind(v as KindFilter)} />
@@ -2150,7 +2165,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                       <i style={{ width: 6, height: 6, borderRadius: 2, flexShrink: 0, background: g?.color ?? 'var(--fg-4)' }} />
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)', flexShrink: 0 }}>{tagVal(p.tags, 'time') || '--:--'}</span>
                       <ChannelFavicon channel={p.channel} size={13} />
-                      <span style={{ flexShrink: 0 }}>{f ? f.icon : ''}</span>
+                      <span style={{ flexShrink: 0 }}>{f ? f.icon : ''}{(repliesOf.get(p.id)?.length ?? 0) ? '💬' : ''}</span>
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.subject || p.title}</span>
                     </button>
                   );

@@ -21,9 +21,13 @@ const bodyCache = new Map<number, string>();
 export const forgetPieceBody = (id: number) => bodyCache.delete(id);
 
 function usePieceBody(piece: CalPiece, body?: string) {
+  // Thân bài đã đi kèm danh sách (piece.body) → KHÔNG gọi gì thêm. Chỉ khi thiếu (dữ liệu cũ hoặc
+  // caller truyền piece tự dựng) mới đi lấy. Trước đây mỗi khối xem trước tự gọi một server action:
+  // mở /plays là 142 POST nối đuôi nhau, trang quay 38 giây.
+  const inline = body ?? (piece.body || undefined);
   const [fetched, setFetched] = useState<string | null>(() => bodyCache.get(piece.id) ?? null);
   useEffect(() => {
-    if (body !== undefined) return;
+    if (inline !== undefined) return;
     const hit = bodyCache.get(piece.id);
     if (hit !== undefined) { setFetched(hit); return; }
     let live = true;
@@ -32,8 +36,8 @@ function usePieceBody(piece: CalPiece, body?: string) {
       if (live) setFetched(d?.bodyMd ?? '');
     });
     return () => { live = false; };
-  }, [body, piece.id, piece.projectId]);
-  return body ?? fetched;
+  }, [inline, piece.id, piece.projectId]);
+  return inline ?? fetched;
 }
 
 /** Hashtag hiện đúng như trên nền tảng (xanh, tách khỏi chữ thường) — nhìn bản dựng là biết bài đi
@@ -168,7 +172,9 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
             // của card → duyệt nhầm cái mình không nhìn thấy. Ở lịch (compact) hạ trần chiều cao,
             // vẫn contain nên chỉ nhỏ đi chứ không mất phần nào.
             // eslint-disable-next-line @next/next/no-img-element
-            <img key={m.id} src={m.url} alt={m.filename}
+            // Ảnh card là PNG 1080×1350 (~300 kB): tải hết cả tháng là ~5 MB không ai xem tới.
+            // lazy = chỉ tải khi cuộn tới gần.
+            <img key={m.id} src={m.url} alt={m.filename} loading="lazy" decoding="async"
               style={{ width: '100%', height: 'auto', maxHeight: compact ? 320 : undefined, objectFit: 'contain', display: 'block', background: 'var(--bg-2)' }} />
           ))}
         </div>

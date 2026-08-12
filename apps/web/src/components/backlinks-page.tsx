@@ -199,6 +199,15 @@ const axisMatch = (ax: typeof PIECE_AXES[number], p: CalPiece, pf: Record<string
   return !want || (ax.get(p) || NONE) === want;
 };
 
+// ⌘/Ctrl/Shift + click on a project chip → open that project's plays in a NEW tab (instead of filtering
+// in place). Returns true when it handled the modified click so the caller can skip its plain-click action.
+function modOpenProjectPlays(e: React.MouseEvent, slug?: string | null): boolean {
+  if (!(e.metaKey || e.ctrlKey || e.shiftKey) || !slug) return false;
+  e.preventDefault();
+  window.open(`/p/${slug}/plays`, '_blank', 'noopener');
+  return true;
+}
+
 // Collapsible section (progressive disclosure — see feedback_progressive_disclosure_tiers). Tier-2
 // sections stay closed until clicked; defaultOpen when they already hold meaningful content.
 function Disclosure({ title, badge, defaultOpen, children }: { title: React.ReactNode; badge?: React.ReactNode; defaultOpen?: boolean; children: React.ReactNode }) {
@@ -1634,7 +1643,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         {/* Metadata = trung tính (YDNI màu): project/host/DA/type/traffic/draft chỉ là ngữ cảnh, KHÔNG
             tô. Màu chỉ dành cho tín hiệu cần chú ý: blocker 🚩, chờ-duyệt quá hạn, cần account. */}
         {t.communitySeed && <SeedStrip g={t.seedGate} />}
-        {allProjects && t.projectLabel && <span onClick={(e) => { e.stopPropagation(); setProjectFilter((v) => v === t.projectSlug ? '' : (t.projectSlug ?? '')); }} title={`Lọc theo ${t.projectLabel}`} style={{ fontSize: 9.5, fontWeight: 600, padding: '0 5px', borderRadius: 5, lineHeight: 1.55, cursor: 'pointer', whiteSpace: 'nowrap', color: 'var(--fg-3)', border: '1px solid var(--line)' }}>{t.projectEmoji} {t.projectLabel}</span>}
+        {allProjects && t.projectLabel && <span onClick={(e) => { e.stopPropagation(); if (modOpenProjectPlays(e, t.projectSlug)) return; setProjectFilter((v) => v === t.projectSlug ? '' : (t.projectSlug ?? '')); }} title={`Lọc theo ${t.projectLabel} · ⌘/Ctrl+click: mở board (tab mới)`} style={{ fontSize: 9.5, fontWeight: 600, padding: '0 5px', borderRadius: 5, lineHeight: 1.55, cursor: 'pointer', whiteSpace: 'nowrap', color: 'var(--fg-3)', border: '1px solid var(--line)' }}>{t.projectEmoji} {t.projectLabel}</span>}
         {(() => { const h = showHost(t.sourceUrl, t.projectSlug); return h ? <a href={wrapExternalUrl(t.sourceUrl!)} {...EXT} onClick={(e) => e.stopPropagation()} style={{ fontSize: 11, color: 'var(--fg-2)', textDecoration: 'underline dotted' }}>↗ {h}</a> : null; })()}
         {t.da && <Tag>DA {t.da}</Tag>}
         {t.dofollow && <Tag>{t.dofollow}</Tag>}
@@ -2009,8 +2018,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
               <button type="button" onClick={() => setProjectFilter('')} style={chip(false)} title="Bỏ lọc project">✕ tất cả</button>
             )}
             {recent.map((p) => (
-              <button key={p.slug} type="button" onClick={() => setProjectFilter(projectFilter === p.slug ? '' : p.slug)}
-                style={chip(projectFilter === p.slug)} title={`${p.label} · ${p.count} plays${p.at ? ` · chạm ${localDay(p.at)}` : ''}`}>
+              <button key={p.slug} type="button" onClick={(e) => { if (modOpenProjectPlays(e, p.slug)) return; setProjectFilter(projectFilter === p.slug ? '' : p.slug); }}
+                style={chip(projectFilter === p.slug)} title={`${p.label} · ${p.count} plays${p.at ? ` · chạm ${localDay(p.at)}` : ''} · ⌘/Ctrl+click: mở board project (tab mới)`}>
                 {p.emoji} {p.label} <span style={{ color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>{p.count}</span>
               </button>
             ))}

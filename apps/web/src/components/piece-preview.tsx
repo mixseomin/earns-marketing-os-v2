@@ -12,6 +12,13 @@ import { getPieceDetail } from '@/lib/actions/content';
 import { CHANNELS, tagVal, tagIds, formatOf } from '@/lib/content-channels';
 import type { CalPiece } from '@/lib/data';
 
+// Thân bài đã tải giữ lại theo id: đổi bộ lọc là danh sách dựng lại từ đầu, không có chỗ nhớ này
+// thì mỗi lần lọc lại gọi lại getPieceDetail cho từng bài — chớp '…' rồi mới ra chữ, và cả cột nhảy
+// theo. Nội dung bài không đổi trong lúc đang lọc nên nhớ nguyên phiên là đủ.
+const bodyCache = new Map<number, string>();
+/** Sửa bài xong phải quên bản cũ đi, không thì bản dựng vẫn là chữ trước lúc sửa. */
+export const forgetPieceBody = (id: number) => bodyCache.delete(id);
+
 export function PiecePreview({ piece, accounts = [], media = [], body, compact = false, onOpen }: {
   piece: CalPiece;
   accounts?: Array<{ id: number; platformKey: string; handle: string | null; accountStats?: Record<string, unknown> }>;
@@ -22,13 +29,18 @@ export function PiecePreview({ piece, accounts = [], media = [], body, compact =
   compact?: boolean;
   onOpen?: () => void;
 }) {
-  const [fetched, setFetched] = useState<string | null>(null);
+  const [fetched, setFetched] = useState<string | null>(() => bodyCache.get(piece.id) ?? null);
   const text = body ?? fetched;
 
   useEffect(() => {
     if (body !== undefined) return;
+    const hit = bodyCache.get(piece.id);
+    if (hit !== undefined) { setFetched(hit); return; }
     let live = true;
-    getPieceDetail(piece.id, piece.projectId).then((d) => { if (live) setFetched(d?.bodyMd ?? ''); });
+    getPieceDetail(piece.id, piece.projectId).then((d) => {
+      bodyCache.set(piece.id, d?.bodyMd ?? '');
+      if (live) setFetched(d?.bodyMd ?? '');
+    });
     return () => { live = false; };
   }, [body, piece.id, piece.projectId]);
 

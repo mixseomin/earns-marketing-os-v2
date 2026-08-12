@@ -15,7 +15,7 @@ import { readManagedPages } from '@/components/account-metrics';
 import { CHANNELS, STATUSES, ANGLE_GROUPS, CHANNEL_PLATFORM, angleOf, formatOf, formatsFor, tagVal, tagIds, pieceGaps } from '@/lib/content-channels';
 import { updateContentPiece, getPieceDetail, type ContentInput } from '@/lib/actions/content';
 import { todayLocal } from '@/lib/local-day';
-import { PiecePreview } from '@/components/piece-preview';
+import { PiecePreview, forgetPieceBody } from '@/components/piece-preview';
 import type { CalPiece } from '@/lib/data';
 
 const lbl: React.CSSProperties = { display: 'block', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--fg-4)', marginBottom: 5, fontFamily: 'var(--font-mono)' };
@@ -76,6 +76,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const refresh = () => start(() => router.refresh());
   const patch = async (p: Partial<ContentInput>) => {
     await updateContentPiece(piece.id, piece.projectId, p);
+    forgetPieceBody(piece.id);   // bản dựng ở lịch/feed đang nhớ thân bài cũ
     refresh();
   };
   /** Ghi 1 khoá của lược đồ tag (angle:/acct:/browser:/asset:…) — thiếu thì CHỌN ngay tại đây,

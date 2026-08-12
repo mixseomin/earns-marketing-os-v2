@@ -918,7 +918,6 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     if (ang) { if (ang.startsWith('g:')) m.angleGroup = ang.slice(2); else m.angle = ang; }
     return m;
   });
-  const [moreAxes, setMoreAxes] = useState(false);   // các trục ít dùng (góc chi tiết, trạng thái, account, nơi đăng, nguồn)
   const setAxis = (k: string, v: string) => setPf((cur) => {
     const next = { ...cur, [k]: v };
     if (!v) delete next[k];
@@ -1280,15 +1279,16 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // Số đếm từng trục tính trên tập đã lọc bởi CÁC TRỤC KHÁC (faceted). Nếu tính trên tập đã lọc cả
   // trục của chính nó thì chọn Reddit xong mọi kênh khác về 0 — hết đường bấm sang kênh kia.
   const facets = useMemo(() => PIECE_AXES.map((ax) => {
-    const counts = new Map<string, number>();
+    const all = new Map<string, number>();      // MỌI giá trị trong tầm nhìn — danh sách này không đổi khi lọc
+    const hit = new Map<string, number>();      // số đếm theo các trục KHÁC (faceted)
     for (const p of piecesInScope) {
-      if (!PIECE_AXES.every((o) => o.key === ax.key || axisMatch(o, p, pf))) continue;
       const v = ax.get(p) || NONE;
-      counts.set(v, (counts.get(v) ?? 0) + 1);
+      all.set(v, (all.get(v) ?? 0) + 1);
+      if (PIECE_AXES.every((o) => o.key === ax.key || axisMatch(o, p, pf))) hit.set(v, (hit.get(v) ?? 0) + 1);
     }
-    const vals = [...counts.entries()]
+    const vals = [...all.entries()]
       .sort((a, b) => (ax.rank ? ax.rank(a[0]) - ax.rank(b[0]) : b[1] - a[1]))
-      .filter(([v]) => v !== NONE || counts.size > 1);
+      .map(([v]) => [v, hit.get(v) ?? 0] as [string, number]);
     return { ax, vals };
   }), [piecesInScope, pf]);
 
@@ -1429,40 +1429,43 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     return { total: piecesInScope.length, tagged, by, byAngle };
   }, [piecesInScope]);
 
-  // Thanh lọc bài: sinh thẳng từ facets, cắm ở CẢ lịch lẫn chế độ đọc (một bản dựng, không hai bản
-  // sớm muộn lệch nhau). Ba trục hay dùng hiện sẵn; các trục còn lại nằm sau một cú bấm — trừ khi
-  // đang bật, thì luôn hiện để không có bộ lọc nào đang chạy mà bị giấu (YDNI).
-  const PRIMARY_AXES = ['channel', 'format', 'angleGroup'];
+  // Thanh lọc bài — MỘT hàng, mỗi trục một pill mở panel chọn. Trước đây mỗi trục là một hàng chip
+  // riêng: 8 hàng, hàng nào dài thì tự xuống dòng, và chip mọc/biến theo bộ lọc nên nhìn cứ nhảy.
+  // Giờ hàng cố định (pill không đổi kích thước theo dữ liệu), danh sách giá trị nằm trong panel.
   const activeF = Object.keys(pf).length;
   const pieceFilterBar = facets.some((f) => f.vals.length > 1) ? (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '0 0 9px' }}>
-      {facets.filter(({ ax, vals }) => vals.length > 1 && (PRIMARY_AXES.includes(ax.key) || moreAxes || pf[ax.key])).map(({ ax, vals }) => (
-        <div key={ax.key} style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ width: 76, flexShrink: 0, fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)' }}>{ax.label}</span>
-          {vals.map(([v, n]) => {
-            const on = pf[ax.key] === v;
-            return (
-              <button key={v} type="button" onClick={() => setAxis(ax.key, on ? '' : v)}
-                title={`${ax.label}: ${v === NONE ? 'chưa gắn' : v} — ${n} bài`}
-                style={{ ...chip(ax.color?.(v) ?? 'var(--accent)', on), display: 'inline-flex', gap: 5, alignItems: 'center' }}>
-                {v === NONE ? 'chưa gắn' : ax.lab(v, { accounts })}
-                <span style={{ opacity: 0.7, fontWeight: 400 }}>{n}</span>
-              </button>
-            );
-          })}
-        </div>
-      ))}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', paddingLeft: 76, fontSize: 11 }}>
-        <button type="button" onClick={() => setMoreAxes((v) => !v)} style={{ ...btn, padding: '1px 8px', fontSize: 10.5 }}>
-          {moreAxes ? '− gọn lại' : `+ trục khác (${facets.filter((f) => f.vals.length > 1 && !PRIMARY_AXES.includes(f.ax.key)).length})`}
-        </button>
-        {activeF > 0 && (
-          <>
-            <button type="button" onClick={() => setPf({})} style={{ ...btn, padding: '1px 8px', fontSize: 10.5, color: 'var(--accent)' }}>✕ xoá lọc</button>
-            <span style={{ color: 'var(--fg-4)' }}>{piecesShown.length}/{piecesInScope.length} bài</span>
-          </>
-        )}
-      </div>
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', width: '100%', flexWrap: 'wrap' }}>
+      <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)' }}>📝 Lọc bài</span>
+      {facets.filter(({ vals }) => vals.length > 1).map(({ ax, vals }) => {
+        const cur = pf[ax.key] ?? '';
+        const curLab = cur ? (cur === NONE ? 'chưa gắn' : ax.lab(cur, { accounts })) : '';
+        return (
+          <Popover key={ax.key} label={cur ? `${ax.label}: ${curLab}` : ax.label} active={!!cur} minWidth={320}>
+            {() => (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, maxHeight: 320, overflowY: 'auto' }}>
+                <button type="button" onClick={() => setAxis(ax.key, '')} style={chip('var(--accent)', !cur)}>Tất cả</button>
+                {vals.map(([v, n]) => {
+                  const on = cur === v;
+                  // n = 0 → giá trị này không còn bài nào sau các bộ lọc khác. Vẫn để đó (mờ) chứ
+                  // không giấu: chip biến mất giữa chừng chính là cái làm danh sách nhảy.
+                  return (
+                    <button key={v} type="button" disabled={!n && !on} onClick={() => setAxis(ax.key, on ? '' : v)}
+                      style={{ ...chip(ax.color?.(v) ?? 'var(--accent)', on), opacity: n || on ? 1 : 0.35, cursor: n || on ? 'pointer' : 'default' }}>
+                      {v === NONE ? 'chưa gắn' : ax.lab(v, { accounts })} <span style={{ opacity: 0.7, fontWeight: 400 }}>{n}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </Popover>
+        );
+      })}
+      {activeF > 0 && (
+        <>
+          <button type="button" onClick={() => setPf({})} style={{ ...btn, padding: '2px 8px', fontSize: 10.5, color: 'var(--accent)' }}>✕ xoá lọc</button>
+          <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>{piecesShown.length}/{piecesInScope.length} bài</span>
+        </>
+      )}
     </div>
   ) : null;
 
@@ -1822,6 +1825,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           );
         })()}
         <ViewToggle style={{ marginLeft: 'auto' }} options={[...LIST_CALENDAR_VIEWS, { value: 'kanban', label: '▦ Kanban', title: 'Kanban theo trạng thái' }, { value: 'feed', label: '📖 Nội dung', title: 'Chỉ bài đăng — đọc lần lượt theo giờ như một thread' }]} value={view} onChange={(v) => setView(v as 'list' | 'calendar' | 'kanban' | 'feed')} />
+        {/* Lọc bài dính CÙNG thanh công cụ (một khối, một phép đo barH) — cuộn tới đâu vẫn đổi được
+            bộ lọc mà không phải cuộn ngược lên đầu. Dựng MỘT lần ở đây cho cả lịch lẫn chế độ đọc. */}
+        {(view === 'feed' || view === 'calendar') && pieceFilterBar}
         {view === 'list' && (
           <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--fg-3)' }} title="Nhóm danh sách theo tiêu chí (không đổi bộ lọc)">
             <span>nhóm</span>
@@ -1966,7 +1972,6 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
            TRÌNH TỰ trong ngày. Khối bài dùng chung PiecePreview với lịch và drawer, nên "plan trông
            thế nào thì đăng đúng thế": không có bản dựng riêng cho lúc duyệt. */
         <div>
-        {pieceFilterBar}
         <div style={{ display: 'flex', gap: 22, alignItems: 'flex-start' }}>
           {/* La bàn: MINI-MONTH y như ở lịch (cùng component) — chấm = ngày có bài, ô sáng = ngày
               đang đọc. Bấm ngày → cuộn thẳng tới ngày đó. Không có nó thì cuộn một lúc là mất dấu. */}
@@ -1990,13 +1995,19 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
               nếu header không nằm trên hẳn), nền ĐẶC để chữ không chồng lên ảnh; top=44 để nằm ngay
               dưới thanh công cụ đang dính. */}
           {feedDays.map(([d, ps]) => (
-            <div key={d} id={`feed-${d}`} ref={(el) => { feedRefs.current[d] = el; }} style={{ position: 'relative', marginBottom: 10, scrollMarginTop: barH + 8 }}>
-              <div style={{ position: 'sticky', top: barH, zIndex: 20, background: 'var(--bg-0)', padding: '9px 2px 7px',
-                borderBottom: '1px solid var(--line)', fontSize: 12.5, fontWeight: 700, display: 'flex', gap: 8, alignItems: 'baseline' }}>
-                <span style={{ color: d === today ? 'var(--neon-cyan)' : 'var(--fg-1)' }}>
-                  {new Date(`${d}T12:00:00`).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' })}
-                </span>
-                <span style={{ color: 'var(--fg-4)', fontWeight: 400, fontSize: 11.5 }}>{d} · {ps.length} bài</span>
+            <div key={d} id={`feed-${d}`} ref={(el) => { feedRefs.current[d] = el; }} style={{ position: 'relative', marginBottom: 26, scrollMarginTop: barH + 8 }}>
+              {/* Mốc ngày phải ĐẬP VÀO MẮT lúc cuộn: một thanh đặc, viền trái theo màu, không phải một
+                  dòng chữ mảnh trên nền cùng màu (cuộn nhanh là trôi qua không kịp thấy ranh giới). */}
+              <div style={{ position: 'sticky', top: barH, zIndex: 20, background: 'var(--bg-0)', padding: '10px 0 8px' }}>
+                <div style={{ display: 'flex', gap: 9, alignItems: 'center', background: 'var(--bg-2)',
+                  border: '1px solid var(--line)', borderLeft: `3px solid ${d === today ? 'var(--neon-cyan)' : 'var(--accent)'}`,
+                  borderRadius: 8, padding: '7px 12px' }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: d === today ? 'var(--neon-cyan)' : 'var(--fg-1)' }}>
+                    {new Date(`${d}T12:00:00`).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' })}
+                  </span>
+                  <span style={{ color: 'var(--fg-4)', fontSize: 11.5, fontFamily: 'var(--font-mono)' }}>{d}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--fg-3)' }}>{ps.length} bài</span>
+                </div>
               </div>
               {ps.map((p) => (
                 <div key={p.id} style={{ display: 'flex', gap: 12, padding: '12px 0' }}>
@@ -2016,7 +2027,6 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         </div>
       ) : view === 'calendar' ? (
         <>
-        {pieceFilterBar}
         {pieceMix.total > 0 && (
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 8px', fontSize: 11, color: 'var(--fg-3)' }}>
             <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)' }}>📝 Mix bài đăng</span>

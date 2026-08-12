@@ -9,6 +9,7 @@ import {
   listProjectPillarsCompact, getCardPillarContext, setCardPillar,
   type PillarPickerOption,
 } from '@/lib/actions/content-pillars';
+import { AnchoredPopover } from '@/components/ui';
 
 interface Props {
   cardId: number;
@@ -36,26 +37,8 @@ export function PillarPickerChip({
   const [currentName, setCurrentName] = useState<string | null>(initialPillarName);
   const [briefPillarId, setBriefPillarId] = useState<number | null>(preloadedBriefPillarId ?? null);
   const [targetLang, setTargetLang] = useState<string>(preloadedTargetLang ?? 'en');
-  const [dropPos, setDropPos] = useState<{ top: number; left: number } | null>(null);
   const [, startTransition] = useTransition();
   const btnRef = useRef<HTMLButtonElement | null>(null);
-
-  const recomputePos = () => {
-    const r = btnRef.current?.getBoundingClientRect();
-    if (r) setDropPos({ top: r.bottom + 4, left: r.left });
-  };
-
-  useEffect(() => {
-    if (!open) return;
-    recomputePos();
-    const handler = () => recomputePos();
-    window.addEventListener('scroll', handler, true);
-    window.addEventListener('resize', handler);
-    return () => {
-      window.removeEventListener('scroll', handler, true);
-      window.removeEventListener('resize', handler);
-    };
-  }, [open]);
 
   // Fetch riêng CHỈ KHI parent không truyền preloaded (backward compat).
   useEffect(() => {
@@ -122,7 +105,7 @@ export function PillarPickerChip({
   return (
     <div style={{ display: 'inline-block' }}>
       <button ref={btnRef} type="button"
-              onClick={() => { recomputePos(); setOpen((v) => !v); }}
+              onClick={() => setOpen((v) => !v)}
               disabled={busy}
               title={effective
                 ? `Trụ cột: ${effective.name}${effective.tagline ? `\n"${effective.tagline}"` : ''}\n${isInherited ? '⇣ Kế thừa từ brief (chưa ghi đè)' : '✎ Ghi đè cho riêng bài này'}${langMismatch ? `\n⚠ Trụ cột chỉ hỗ trợ [${effective.languages.join(', ')}], bài target ${targetLang}` : ''}\nClick để đổi trụ cột.`
@@ -147,12 +130,8 @@ export function PillarPickerChip({
         <span style={{ fontSize: 9, opacity: 0.7 }}>▾</span>
       </button>
 
-      {open && dropPos && (
-        <>
-          <div onClick={() => setOpen(false)}
-               style={{ position: 'fixed', inset: 0, zIndex: 1100 }} />
+      <AnchoredPopover anchorRef={btnRef} open={open} onClose={() => setOpen(false)} align="left" zIndex={1100}>
           <div style={{
-            position: 'fixed', top: dropPos.top, left: dropPos.left, zIndex: 1101,
             minWidth: 340, maxWidth: 480, maxHeight: 400,
             background: 'var(--bg-1)', border: '1px solid var(--accent-line)',
             borderRadius: 6, padding: 4,
@@ -212,8 +191,7 @@ export function PillarPickerChip({
               );
             })}
           </div>
-        </>
-      )}
+      </AnchoredPopover>
     </div>
   );
 }

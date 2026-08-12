@@ -10,6 +10,7 @@ import {
   type HabitatChannelsBundle,
 } from '@/lib/actions/card-channel';
 import { resolveVoiceProfile } from '@/lib/ai/voice-profile';
+import { AnchoredPopover } from '@/components/ui';
 
 interface Props {
   cardId: number;
@@ -71,25 +72,8 @@ export function ChannelPickerChip({
   const [currentName, setCurrentName] = useState<string | null>(initialChannelName);
   const [currentId, setCurrentId] = useState<number | null>(initialChannelId);
   const [isDiscordLike, setIsDiscordLike] = useState<boolean | null>(null);
-  const [dropPos, setDropPos] = useState<{ top: number; left: number } | null>(null);
   const [, startTransition] = useTransition();
   const btnRef = useRef<HTMLButtonElement | null>(null);
-  const recomputePos = () => {
-    const r = btnRef.current?.getBoundingClientRect();
-    if (r) setDropPos({ top: r.bottom + 4, left: r.left });
-  };
-  // Recompute khi scroll/resize trong lúc dropdown mở
-  useEffect(() => {
-    if (!open) return;
-    recomputePos();
-    const handler = () => recomputePos();
-    window.addEventListener('scroll', handler, true);
-    window.addEventListener('resize', handler);
-    return () => {
-      window.removeEventListener('scroll', handler, true);
-      window.removeEventListener('resize', handler);
-    };
-  }, [open]);
 
   // Resolve channels: nếu parent truyền preloadedBundle → dùng luôn (compute
   // isCurrent + isSuggested client-side). Nếu không → fallback fetch (chậm,
@@ -172,10 +156,7 @@ export function ChannelPickerChip({
   return (
     <div style={{ display: 'inline-block' }}>
       <button ref={btnRef} type="button"
-              onClick={() => {
-                recomputePos();
-                setOpen((v) => !v);
-              }}
+              onClick={() => setOpen((v) => !v)}
               disabled={busy}
               title={currentName
                 ? `Bài này đăng vào channel #${currentName}. Click để đổi channel.`
@@ -195,17 +176,8 @@ export function ChannelPickerChip({
         <span style={{ fontSize: 9, opacity: 0.7 }}>▾</span>
       </button>
 
-      {open && dropPos && (
-        <>
-          {/* Backdrop click → đóng. z-index siêu cao để chắc chắn trên tất cả
-              card row + brief modal nội dung (modal backdrop = 1000). */}
-          <div onClick={() => setOpen(false)}
-               style={{ position: 'fixed', inset: 0, zIndex: 1100 }} />
-          {/* Dropdown dùng position:fixed + toạ độ từ button rect → escape
-              stacking context của card row, không bị card khác đè. */}
+      <AnchoredPopover anchorRef={btnRef} open={open} onClose={() => setOpen(false)} align="left" zIndex={1100}>
           <div style={{
-            position: 'fixed', top: dropPos.top, left: dropPos.left,
-            zIndex: 1101,
             minWidth: 300, maxWidth: 420, maxHeight: 400,
             background: 'var(--bg-1)', border: '1px solid var(--accent-line)',
             borderRadius: 6, padding: 4,
@@ -279,8 +251,7 @@ export function ChannelPickerChip({
               </>
             )}
           </div>
-        </>
-      )}
+      </AnchoredPopover>
     </div>
   );
 }

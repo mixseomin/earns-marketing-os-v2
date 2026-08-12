@@ -14,6 +14,7 @@ import {
 } from '@/lib/actions/community-briefs';
 import { Spinner } from './ui';
 import { accountStatusMeta } from '@/lib/status-meta';
+import { AnchoredPopover } from '@/components/ui';
 
 interface SwappableAccount {
   id: number;
@@ -42,15 +43,7 @@ function SwapAccountButtonImpl({ projectId, briefId, currentAccountId, onSwapped
   const [, startTransition] = useTransition();
   const [list, setList] = useState<SwappableAccount[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // Position fixed-relative-to-button thay vì absolute, để popover escape
-  // section container có `overflow: hidden` (NeedAccountSection bị clip).
   const btnRef = useRef<HTMLButtonElement | null>(null);
-  const [dropPos, setDropPos] = useState<{ top: number; right: number } | null>(null);
-
-  const recomputePos = () => {
-    const r = btnRef.current?.getBoundingClientRect();
-    if (r) setDropPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
-  };
 
   // Lazy load khi mở
   useEffect(() => {
@@ -62,19 +55,6 @@ function SwapAccountButtonImpl({ projectId, briefId, currentAccountId, onSwapped
     });
     return () => { cancelled = true; };
   }, [open, list, projectId, briefId, currentAccountId]);
-
-  // Recompute position khi mở + theo scroll/resize.
-  useEffect(() => {
-    if (!open) return;
-    recomputePos();
-    const handler = () => recomputePos();
-    window.addEventListener('scroll', handler, true);
-    window.addEventListener('resize', handler);
-    return () => {
-      window.removeEventListener('scroll', handler, true);
-      window.removeEventListener('resize', handler);
-    };
-  }, [open]);
 
   const doSwap = (accountId: number, handle: string | null) => {
     setBusy(true); setError(null);
@@ -101,18 +81,8 @@ function SwapAccountButtonImpl({ projectId, briefId, currentAccountId, onSwapped
                        borderRadius: 3, cursor: 'pointer', whiteSpace: 'nowrap' }}>
         ↺ Đổi acc
       </button>
-      {open && dropPos && (
-        <>
-          {/* Backdrop để click ngoài đóng */}
-          <div onClick={() => setOpen(false)}
-               style={{ position: 'fixed', inset: 0, zIndex: 9000 }} />
-          {/* Popover — position fixed để escape section overflow:hidden.
-              Anchor top-right vào button (right edge align). */}
+      <AnchoredPopover anchorRef={btnRef} open={open} onClose={() => setOpen(false)} align="right" zIndex={9000}>
           <div style={{
-            position: 'fixed',
-            top: dropPos.top,
-            right: dropPos.right,
-            zIndex: 9001,
             minWidth: 280, maxWidth: 380, background: 'var(--bg-1)',
             border: '1px solid var(--line-2)', borderRadius: 6,
             boxShadow: '0 8px 24px rgba(0,0,0,.4)', overflow: 'hidden',
@@ -227,8 +197,7 @@ function SwapAccountButtonImpl({ projectId, briefId, currentAccountId, onSwapped
               </div>
             )}
           </div>
-        </>
-      )}
+      </AnchoredPopover>
     </>
   );
 }

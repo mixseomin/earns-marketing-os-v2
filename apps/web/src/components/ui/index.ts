@@ -19,6 +19,7 @@ export { EmailSendPrep } from './email-send-prep';
 // EntityPicker = pick + inline CRUD (create/rename/delete) + rich rows (avatar/badge/meta). Use over
 // ResourcePicker when the picker also owns create/rename/delete. See feedback_picker_inline_crud.
 export { EntityPicker, type EntityOption, type EntityPickerProps } from './entity-picker';
+export { AnchoredPopover, type AnchoredPopoverProps } from './anchored-popover';
 // EntityRef = THE one way to render a reference to another entity (account/proxy/profile/task/…) as a
 // clickable chip that opens its drawer. NEVER hand-roll `<span>{acc.handle}</span>` or a local EntityLink.
 // See ui-conventions §4. Lint bans re-defining a local entity chip/link.

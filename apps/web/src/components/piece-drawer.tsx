@@ -12,7 +12,7 @@ import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Drawer, EntityRef, EntityPicker, type EntityOption } from '@/components/ui';
 import { readManagedPages } from '@/components/account-metrics';
-import { CHANNELS, STATUSES, ANGLE_GROUPS, CHANNEL_PLATFORM, angleOf, tagVal, tagIds, pieceGaps } from '@/lib/content-channels';
+import { CHANNELS, STATUSES, ANGLE_GROUPS, CHANNEL_PLATFORM, angleOf, formatOf, formatsFor, tagVal, tagIds, pieceGaps } from '@/lib/content-channels';
 import { updateContentPiece, getPieceDetail, type ContentInput } from '@/lib/actions/content';
 import { todayLocal } from '@/lib/local-day';
 import { PiecePreview } from '@/components/piece-preview';
@@ -43,7 +43,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const router = useRouter();
   const [pending, start] = useTransition();
   const [tab, setTab] = useState<TabKey>('overview');
-  const [pick, setPick] = useState<null | 'acct' | 'browser' | 'asset' | 'chain' | 'place' | 'angle'>(null);
+  const [pick, setPick] = useState<null | 'acct' | 'browser' | 'asset' | 'chain' | 'place' | 'angle' | 'format'>(null);
   const [editBody, setEditBody] = useState(false);
   const [hook, setHook] = useState(piece.subject ?? '');
   const [date, setDate] = useState(piece.date);
@@ -52,6 +52,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
 
   const ch = CHANNELS.find((c) => c.id === piece.channel);
   const a = angleOf(piece.tags);
+  const fmt = formatOf(piece.tags);
   const place = tagVal(piece.tags, 'place');
   const time = tagVal(piece.tags, 'time');
   const acct = accounts.find((x) => x.id === Number(tagVal(piece.tags, 'acct')));
@@ -93,6 +94,10 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
     .map((m) => ({ key: `m:${m.id}`, label: m.filename, avatar: m.url, data: m })), [media]);
   const loadPlaces = useCallback(async (): Promise<EntityOption[]> => managed
     .map((p) => ({ key: `pg:${p.url}`, label: p.name, sub: p.url.replace(/^https?:\/\/(www\.)?/, ''), fallbackIcon: '📍', data: p })), [managed]);
+  // Kiểu bài đổi theo KÊNH: fb-post có album/poll/share, blog thì không. Đưa cả 13 kiểu ra chọn là
+  // mời người ta gắn sai (rồi runner đi tìm nút không tồn tại).
+  const loadFormats = useCallback(async (): Promise<EntityOption[]> => formatsFor(piece.channel)
+    .map((f) => ({ key: `fmt:${f.id}`, label: f.label, sub: f.icon, fallbackIcon: f.icon, data: { format: f.id } })), [piece.channel]);
   const loadAngles = useCallback(async (): Promise<EntityOption[]> => ANGLE_GROUPS
     .flatMap((g) => g.angles.map((x) => ({ key: `ang:${x}`, label: x, sub: g.label, fallbackIcon: '◆', data: { angle: x } }))), []);
   // Card chuẩn bị = việc trên chính board này (produce/review/publish), chưa xong xếp trước.
@@ -193,6 +198,13 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
               <button type="button" disabled={pending} onClick={() => setPick('angle')}
                 style={{ ...inp, textAlign: 'left', cursor: 'pointer', color: a ? a.group.color : 'var(--fg-4)' }}>
                 {a ? `${a.group.label} / ${a.angle}` : '— chọn angle —'}
+              </button>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={lbl}>Kiểu bài</label>
+              <button type="button" disabled={pending} onClick={() => setPick('format')}
+                style={{ ...inp, textAlign: 'left', cursor: 'pointer', color: fmt ? 'var(--fg-1)' : 'var(--fg-4)' }}>
+                {fmt ? `${fmt.icon} ${fmt.label}` : '— chọn kiểu —'}
               </button>
             </div>
           </div>
@@ -319,6 +331,11 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
           emptyHint={acct
             ? <>Account này chưa có Page nào trong vault. Mở facebook.com rồi bấm <b>⬇ Nhập Pages</b> trên ext Crew để quét về.</>
             : <>Chưa chọn account. Đóng bảng này, bấm <b>＋ chọn account</b> trước.</>} />
+      )}
+      {pick === 'format' && (
+        <EntityPicker title="Chọn kiểu bài" hint="Cùng kênh nhưng đăng ra khác hẳn: text trơn, ảnh đơn, album, bài chèn link, poll, share lại, comment trong thread. Bản dựng bài và runner đều đọc theo kiểu này."
+          load={loadFormats} value={fmt ? { key: `fmt:${fmt.id}` } : undefined} onClose={() => setPick(null)}
+          onPick={async (o) => { setPick(null); await setTag('format', (o.data as { format: string }).format); }} />
       )}
       {pick === 'angle' && (
         <EntityPicker title="Chọn angle" hint="Bài này LÀM GÌ cho người đọc. Dòng phụ = nhóm (HÚT/TIN/CHUYỂN ĐỔI/CỘNG ĐỒNG/TÁI DÙNG)."

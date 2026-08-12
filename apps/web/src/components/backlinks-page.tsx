@@ -19,7 +19,7 @@ import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
-import { CHANNELS, ANGLE_GROUPS, MIX_TARGET, angleOf, tagVal, pieceGaps, shouldWarnGaps } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
+import { CHANNELS, FORMATS, ANGLE_GROUPS, MIX_TARGET, angleOf, tagVal, pieceGaps, shouldWarnGaps } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
 import { StatusSegmented, Segmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
@@ -152,6 +152,44 @@ const verifyMeta = (v: BacklinkVerify | null): { c: string; t: string } | null =
 
 const btn: CSSProperties = { fontSize: 11, padding: '3px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap' };
 const chip = (c: string, on: boolean): CSSProperties => ({ fontSize: 10.5, fontWeight: 700, padding: '2px 9px', borderRadius: 999, cursor: 'pointer', whiteSpace: 'nowrap', border: `1px solid ${on ? c : 'var(--line)'}`, background: on ? `color-mix(in srgb, ${c} 16%, transparent)` : 'transparent', color: on ? c : 'var(--fg-3)' });
+
+// ── Trục lọc BÀI ĐĂNG ─────────────────────────────────────────────────────────────────────────
+// Bài có nhiều trục cùng lúc: kênh, kiểu bài, góc (nhóm + chi tiết), trạng thái, nguồn ý tưởng,
+// account đứng tên, nơi đăng. Khai báo ở ĐÂY một lần; thanh lọc, số đếm và bộ lọc thật đều sinh ra
+// từ danh sách này — thêm trục mới là thêm một dòng, không phải thêm state + param + chỗ dựng.
+// '∅' = bài chưa gắn giá trị nào cho trục đó (lọc được, vì "còn bài nào chưa gắn" là câu hay hỏi).
+const NONE = '\u2205';
+type AxisRefs = { accounts: Array<{ id: number; handle: string | null; platformKey: string }> };
+const PIECE_AXES: Array<{
+  key: string; label: string;
+  get: (p: CalPiece) => string;
+  lab: (v: string, refs: AxisRefs) => string;
+  color?: (v: string) => string | undefined;
+  rank?: (v: string) => number;
+}> = [
+  { key: 'channel', label: 'Kênh', get: (p) => p.channel,
+    lab: (v) => { const c = CHANNELS.find((x) => x.id === v); return c ? `${c.icon} ${c.label}` : v; },
+    rank: (v) => CHANNELS.findIndex((c) => c.id === v) },
+  { key: 'format', label: 'Kiểu bài', get: (p) => tagVal(p.tags, 'format'),
+    lab: (v) => { const f = FORMATS.find((x) => x.id === v); return f ? `${f.icon} ${f.label}` : v; },
+    rank: (v) => FORMATS.findIndex((f) => f.id === v) },
+  { key: 'angleGroup', label: 'Nhóm góc', get: (p) => angleOf(p.tags)?.group.id ?? '',
+    lab: (v) => ANGLE_GROUPS.find((g) => g.id === v)?.label ?? v,
+    color: (v) => ANGLE_GROUPS.find((g) => g.id === v)?.color,
+    rank: (v) => ANGLE_GROUPS.findIndex((g) => g.id === v) },
+  { key: 'angle', label: 'Góc', get: (p) => tagVal(p.tags, 'angle'), lab: (v) => v,
+    color: (v) => ANGLE_GROUPS.find((g) => g.angles.includes(v))?.color },
+  { key: 'status', label: 'Trạng thái', get: (p) => p.status, lab: (v) => v },
+  { key: 'acct', label: 'Account', get: (p) => tagVal(p.tags, 'acct'),
+    lab: (v, r) => { const a = r.accounts.find((x) => String(x.id) === v); return a ? (a.handle ?? a.platformKey) : `#${v}`; } },
+  { key: 'place', label: 'Nơi đăng', get: (p) => tagVal(p.tags, 'place'),
+    lab: (v) => v.replace(/^https?:\/\/(www\.)?/, '') },
+  { key: 'src', label: 'Nguồn', get: (p) => tagVal(p.tags, 'src'), lab: (v) => v },
+];
+const axisMatch = (ax: typeof PIECE_AXES[number], p: CalPiece, pf: Record<string, string>) => {
+  const want = pf[ax.key];
+  return !want || (ax.get(p) || NONE) === want;
+};
 
 // Collapsible section (progressive disclosure — see feedback_progressive_disclosure_tiers). Tier-2
 // sections stay closed until clicked; defaultOpen when they already hold meaningful content.
@@ -868,7 +906,27 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const [openId, setOpenId] = useState<number | null>(Number(sp.get('task')) || null);
   const [openProd, setOpenProd] = useState<string | null>(sp.get('sp'));   // slug sản phẩm đang mở
   const [openFollowupId, setOpenFollowupId] = useState<number | null>(null);   // 📌 followup pill clicked
-  const [angleF, setAngleF] = useState<string>(sp.get('ang') ?? '');   // '' | 'g:<nhóm>' | '<angle>' — lọc lịch theo góc nội dung
+  // Lọc BÀI ĐĂNG: một bản đồ trục → giá trị ('' = không lọc trục đó), giữ trong URL dạng
+  // pf=channel:reddit|format:link. Trước đây chỉ có mỗi trục góc, nằm riêng một state + một popover
+  // riêng ở lịch; thêm trục nào là đẻ thêm state + param + chỗ dựng — nên gom về một hệ, thêm trục
+  // mới giờ = thêm MỘT dòng trong PIECE_AXES.
+  const [pf, setPf] = useState<Record<string, string>>(() => {
+    const raw = sp.get('pf') ?? '';
+    const m: Record<string, string> = {};
+    for (const part of raw.split('|')) { const i = part.indexOf(':'); if (i > 0) m[part.slice(0, i)] = part.slice(i + 1); }
+    const ang = sp.get('ang');   // link cũ (?ang=g:trust hoặc ?ang=how-to) vẫn mở đúng bộ lọc
+    if (ang) { if (ang.startsWith('g:')) m.angleGroup = ang.slice(2); else m.angle = ang; }
+    return m;
+  });
+  const [moreAxes, setMoreAxes] = useState(false);   // các trục ít dùng (góc chi tiết, trạng thái, account, nơi đăng, nguồn)
+  const setAxis = (k: string, v: string) => setPf((cur) => {
+    const next = { ...cur, [k]: v };
+    if (!v) delete next[k];
+    // Chọn kênh khác thì kiểu bài của kênh cũ vô nghĩa; đổi nhóm góc thì góc chi tiết cũng vậy.
+    if (k === 'channel') delete next.format;
+    if (k === 'angleGroup') delete next.angle;
+    return next;
+  });
   // 📝 bài đăng — mở TẠI CHỖ + giữ trong URL để gửi link thẳng tới đúng drawer (như ?task=).
   const [openPieceId, setOpenPieceId] = useState<number | null>(Number(sp.get('piece')) || null);
   const [outreachPid, setOutreachPid] = useState<number | null>(Number(sp.get('outreach')) || null);   // stacked Outreach drawer, URL-driven like ?task
@@ -1011,7 +1069,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('tier', tierFilter);
     set('closed', showClosed ? '1' : '');
     set('proj', allProjects ? projectFilter : '');
-    set('ang', angleF);
+    set('ang', '');   // param cũ — đọc được lúc mở, nhưng ghi ra luôn là 'pf'
+    set('pf', Object.entries(pf).map(([k, v]) => `${k}:${v}`).join('|'));
     set('cal', calMode === 'month' ? '' : calMode);
     set('d', view === 'calendar' ? calDate : '');
     set('wt', kind);
@@ -1030,7 +1089,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('sq', seedOpen ? seedQ.trim() : '');
     set('shide', seedOpen && seedHideUsed ? '1' : '');
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, showClosed, projectFilter, angleF, calMode, calDate, kind, allProjects, view, groupBy, openId, openPieceId, openProd, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
+  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, showClosed, projectFilter, pf, calMode, calDate, kind, allProjects, view, groupBy, openId, openPieceId, openProd, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   // Init from URL so the account editor opened INSIDE a task survives F5 (the "full flow", one level
@@ -1211,6 +1270,28 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     return true;
   }), [pieces, kind, allProjects, projectFilter, q]);
 
+  // Tập bài sau lọc — MỘT tập cho MỌI bề mặt (lịch + chế độ đọc). Trước lọc góc chỉ cắm ở lịch nên
+  // bấm lọc xong sang chế độ đọc vẫn thấy nguyên đám vừa lọc bỏ.
+  const piecesShown = useMemo(
+    () => piecesInScope.filter((p) => PIECE_AXES.every((ax) => axisMatch(ax, p, pf))),
+    [piecesInScope, pf],
+  );
+
+  // Số đếm từng trục tính trên tập đã lọc bởi CÁC TRỤC KHÁC (faceted). Nếu tính trên tập đã lọc cả
+  // trục của chính nó thì chọn Reddit xong mọi kênh khác về 0 — hết đường bấm sang kênh kia.
+  const facets = useMemo(() => PIECE_AXES.map((ax) => {
+    const counts = new Map<string, number>();
+    for (const p of piecesInScope) {
+      if (!PIECE_AXES.every((o) => o.key === ax.key || axisMatch(o, p, pf))) continue;
+      const v = ax.get(p) || NONE;
+      counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    const vals = [...counts.entries()]
+      .sort((a, b) => (ax.rank ? ax.rank(a[0]) - ax.rank(b[0]) : b[1] - a[1]))
+      .filter(([v]) => v !== NONE || counts.size > 1);
+    return { ax, vals };
+  }), [piecesInScope, pf]);
+
   // Calendar items from the SAME filtered set: done → solid on done date; scheduled-not-done → dim.
   const calItems = useMemo<CalItem[]>(() => {
     const out: CalItem[] = [];
@@ -1256,12 +1337,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     }
     // Bài đăng (content_pieces) — CÙNG lịch. Màu = nhóm angle (HÚT/TIN/CHUYỂN ĐỔI/CỘNG ĐỒNG) để
     // nhìn tháng là thấy mix lệch chỗ nào; ✓ = đã đăng; mờ = còn nháp. Bấm mở piece ở Studio.
-    for (const p of piecesInScope) {
+    for (const p of piecesShown) {
       const a = angleOf(p.tags);
-      if (angleF) {
-        const okA = angleF.startsWith('g:') ? a?.group.id === angleF.slice(2) : a?.angle === angleF;
-        if (!okA) continue;
-      }
       const ch = CHANNELS.find((c) => c.id === p.channel);
       const pr = allProjects ? projectsById?.[p.projectId] : undefined;
       const plbl = showProj ? `[${pr?.name ?? p.projectId}] ` : '';
@@ -1284,7 +1361,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       });
     }
     return out;
-  }, [filtered, allProjects, projectFilter, followups, projectsById, kind, kindOf, q, piecesInScope, angleF, accounts, browserProfiles, media, tasks, calMode]);
+  }, [filtered, allProjects, projectFilter, followups, projectsById, kind, kindOf, q, piecesShown, accounts, browserProfiles, media, tasks, calMode]);
 
   // Cân bằng nội dung của đúng tập bài đang hiện trên lịch. Đọc lại từ calItems (đã qua bộ lọc)
   // thay vì lọc lần hai — một nguồn, không có chỗ cho hai bộ lọc lệch nhau.
@@ -1310,14 +1387,14 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
 
   const feedDays = useMemo(() => {
     const by = new Map<string, CalPiece[]>();
-    for (const p of piecesInScope) {
+    for (const p of piecesShown) {
       if (!p.date) continue;
       (by.get(p.date) ?? by.set(p.date, []).get(p.date)!).push(p);
     }
     return [...by.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([d, ps]) => [d, ps.sort((x, y) => (tagVal(x.tags, 'time') || '99:99').localeCompare(tagVal(y.tags, 'time') || '99:99'))] as const);
-  }, [piecesInScope]);
+  }, [piecesShown]);
 
   // Chấm trên mini-cal = ngày có bài (màu theo nhóm angle của bài đầu ngày).
   const feedByDate = useMemo(() => {
@@ -1351,6 +1428,43 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     }
     return { total: piecesInScope.length, tagged, by, byAngle };
   }, [piecesInScope]);
+
+  // Thanh lọc bài: sinh thẳng từ facets, cắm ở CẢ lịch lẫn chế độ đọc (một bản dựng, không hai bản
+  // sớm muộn lệch nhau). Ba trục hay dùng hiện sẵn; các trục còn lại nằm sau một cú bấm — trừ khi
+  // đang bật, thì luôn hiện để không có bộ lọc nào đang chạy mà bị giấu (YDNI).
+  const PRIMARY_AXES = ['channel', 'format', 'angleGroup'];
+  const activeF = Object.keys(pf).length;
+  const pieceFilterBar = facets.some((f) => f.vals.length > 1) ? (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '0 0 9px' }}>
+      {facets.filter(({ ax, vals }) => vals.length > 1 && (PRIMARY_AXES.includes(ax.key) || moreAxes || pf[ax.key])).map(({ ax, vals }) => (
+        <div key={ax.key} style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ width: 76, flexShrink: 0, fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)' }}>{ax.label}</span>
+          {vals.map(([v, n]) => {
+            const on = pf[ax.key] === v;
+            return (
+              <button key={v} type="button" onClick={() => setAxis(ax.key, on ? '' : v)}
+                title={`${ax.label}: ${v === NONE ? 'chưa gắn' : v} — ${n} bài`}
+                style={{ ...chip(ax.color?.(v) ?? 'var(--accent)', on), display: 'inline-flex', gap: 5, alignItems: 'center' }}>
+                {v === NONE ? 'chưa gắn' : ax.lab(v, { accounts })}
+                <span style={{ opacity: 0.7, fontWeight: 400 }}>{n}</span>
+              </button>
+            );
+          })}
+        </div>
+      ))}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', paddingLeft: 76, fontSize: 11 }}>
+        <button type="button" onClick={() => setMoreAxes((v) => !v)} style={{ ...btn, padding: '1px 8px', fontSize: 10.5 }}>
+          {moreAxes ? '− gọn lại' : `+ trục khác (${facets.filter((f) => f.vals.length > 1 && !PRIMARY_AXES.includes(f.ax.key)).length})`}
+        </button>
+        {activeF > 0 && (
+          <>
+            <button type="button" onClick={() => setPf({})} style={{ ...btn, padding: '1px 8px', fontSize: 10.5, color: 'var(--accent)' }}>✕ xoá lọc</button>
+            <span style={{ color: 'var(--fg-4)' }}>{piecesShown.length}/{piecesInScope.length} bài</span>
+          </>
+        )}
+      </div>
+    </div>
+  ) : null;
 
   const open = openId != null ? tasks.find((t) => t.id === openId) ?? null : null;
 
@@ -1851,6 +1965,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         /* CHẾ ĐỘ ĐỌC — chỉ nội dung. Cột hẹp như feed thật; mốc giờ + đường dọc bên trái để thấy
            TRÌNH TỰ trong ngày. Khối bài dùng chung PiecePreview với lịch và drawer, nên "plan trông
            thế nào thì đăng đúng thế": không có bản dựng riêng cho lúc duyệt. */
+        <div>
+        {pieceFilterBar}
         <div style={{ display: 'flex', gap: 22, alignItems: 'flex-start' }}>
           {/* La bàn: MINI-MONTH y như ở lịch (cùng component) — chấm = ngày có bài, ô sáng = ngày
               đang đọc. Bấm ngày → cuộn thẳng tới ngày đó. Không có nó thì cuộn một lúc là mất dấu. */}
@@ -1863,7 +1979,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                 document.getElementById(`feed-${ds}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }} />
             <div style={{ marginTop: 10, fontSize: 11, color: 'var(--fg-4)', lineHeight: 1.5 }}>
-              {feedDays.length} ngày · {piecesInScope.length} bài
+              {feedDays.length} ngày · {piecesShown.length} bài
             </div>
           </div>
 
@@ -1897,8 +2013,10 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           ))}
         </div>
         </div>
+        </div>
       ) : view === 'calendar' ? (
         <>
+        {pieceFilterBar}
         {pieceMix.total > 0 && (
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 8px', fontSize: 11, color: 'var(--fg-3)' }}>
             <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)' }}>📝 Mix bài đăng</span>
@@ -1907,9 +2025,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
               const pct = pieceMix.tagged ? Math.round((n / pieceMix.tagged) * 100) : 0;
               const target = MIX_TARGET[g.id];
               return (
-                <button key={g.id} type="button" onClick={() => setAngleF((v) => v === `g:${g.id}` ? '' : `g:${g.id}`)}
+                <button key={g.id} type="button" onClick={() => setAxis('angleGroup', pf.angleGroup === g.id ? '' : g.id)}
                   title={target ? `${g.label}: ${pct}% thực tế · mục tiêu ${target}% — bấm để lọc lịch` : `${g.label} — bấm để lọc lịch`}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 11, padding: '1px 7px', borderRadius: 6, background: 'transparent', color: 'var(--fg-3)', border: `1px solid ${angleF === `g:${g.id}` ? g.color : 'transparent'}` }}>
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 11, padding: '1px 7px', borderRadius: 6, background: 'transparent', color: 'var(--fg-3)', border: `1px solid ${pf.angleGroup === g.id ? g.color : 'transparent'}` }}>
                   <i style={{ width: 8, height: 8, borderRadius: 2, background: g.color, display: 'inline-block' }} />
                   {g.label} <b style={{ color: 'var(--fg-1)' }}>{n}</b>
                   {target ? <span style={{ color: pct > target + 12 || pct < target - 12 ? 'var(--neon-amber)' : 'var(--fg-4)' }}>{pct}%/{target}%</span> : null}
@@ -1917,34 +2035,6 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
               );
             })}
             {pieceMix.tagged < pieceMix.total && <span style={{ color: 'var(--fg-4)' }}>· {pieceMix.total - pieceMix.tagged} bài chưa gắn angle</span>}
-            <Popover label="nhóm : angle" active={!!angleF} minWidth={300} align="right">
-              {() => (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 9, maxHeight: 380, overflowY: 'auto' }}>
-                  <button type="button" onClick={() => setAngleF('')} style={{ ...btn, alignSelf: 'flex-start', color: angleF ? 'var(--accent)' : 'var(--fg-4)' }}>Tất cả góc</button>
-                  {ANGLE_GROUPS.map((g) => (
-                    <div key={g.id}>
-                      <button type="button" onClick={() => setAngleF((v) => v === `g:${g.id}` ? '' : `g:${g.id}`)}
-                        style={{ ...btn, display: 'flex', alignItems: 'center', gap: 6, color: g.color, fontWeight: 700, padding: '1px 4px' }}>
-                        <i style={{ width: 8, height: 8, borderRadius: 2, background: g.color, display: 'inline-block' }} />
-                        {g.label} <span style={{ color: 'var(--fg-4)', fontWeight: 400 }}>{pieceMix.by.get(g.id) ?? 0}</span>
-                      </button>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4, paddingLeft: 14 }}>
-                        {g.angles.map((x) => {
-                          const cnt = pieceMix.byAngle.get(x) ?? 0;
-                          const on = angleF === x;
-                          return (
-                            <button key={x} type="button" onClick={() => setAngleF((v) => v === x ? '' : x)}
-                              style={{ fontSize: 10.5, padding: '1px 6px', borderRadius: 5, cursor: 'pointer', border: `1px solid ${on ? g.color : 'var(--line)'}`, background: on ? g.color : 'transparent', color: on ? 'var(--bg-0)' : (cnt ? 'var(--fg-2)' : 'var(--fg-4)') }}>
-                              {x}{cnt ? ` ${cnt}` : ''}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Popover>
           </div>
         )}
         <MonthCalendar legend={CAL_LEGEND} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else if (s.startsWith('c:')) setOpenPieceId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} date={calDate} onDateChange={setCalDate} today={today}

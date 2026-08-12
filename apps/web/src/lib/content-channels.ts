@@ -23,6 +23,30 @@ export const CHANNEL_PLATFORM: Record<string, string> = {
   reel: 'tiktok', 'youtube-script': 'youtube',
 };
 
+// ── Kiểu bài (format) ─────────────────────────────────────────────────────────
+// CÙNG một kênh vẫn đăng ra khác hẳn nhau: text trơn, ảnh đơn, album nhiều ảnh, bài chèn link,
+// poll, share lại bài người khác, comment trong thread có sẵn. Khác nhau ở cái người ta NHÌN thấy
+// và ở cái runner phải bấm, nên nó là trục riêng — không nhét chung vào channel (đã có 11 channel,
+// nhân chéo ra là 40+ mục không ai chọn nổi). Lưu 'format:<id>' trong tags như angle.
+export const FORMATS: Array<{ id: string; label: string; icon: string; channels: string[] }> = [
+  { id: 'text',     label: 'Text trơn',   icon: '¶',  channels: ['fb-post', 'fb-group', 'reddit', 'twitter-thread', 'dm', 'email'] },
+  { id: 'photo',    label: 'Ảnh đơn',     icon: '🖼', channels: ['fb-post', 'fb-group', 'reddit', 'twitter-thread', 'ad'] },
+  { id: 'album',    label: 'Album/carousel', icon: '🎞', channels: ['fb-post', 'fb-group', 'ad', 'twitter-thread'] },
+  { id: 'link',     label: 'Bài chèn link', icon: '🔗', channels: ['fb-post', 'fb-group', 'reddit', 'twitter-thread', 'email'] },
+  { id: 'poll',     label: 'Poll',        icon: '📊', channels: ['fb-post', 'fb-group', 'reddit', 'twitter-thread'] },
+  { id: 'share',    label: 'Share/quote lại', icon: '↻', channels: ['fb-post', 'fb-group', 'twitter-thread'] },
+  { id: 'comment',  label: 'Comment trong thread', icon: '💬', channels: ['reddit', 'fb-group', 'fb-post'] },
+  { id: 'thread',   label: 'Thread nhiều mảnh', icon: '🧵', channels: ['twitter-thread', 'reddit'] },
+  { id: 'short',    label: 'Video dọc ngắn', icon: '📱', channels: ['reel', 'youtube-script'] },
+  { id: 'longform', label: 'Video dài',   icon: '🎬', channels: ['youtube-script'] },
+  { id: 'guide',    label: 'Guide',       icon: '📘', channels: ['blog'] },
+  { id: 'listicle', label: 'Listicle',    icon: '☰',  channels: ['blog'] },
+  { id: 'sequence', label: 'Chuỗi email', icon: '✉', channels: ['email', 'dm'] },
+];
+
+export const formatsFor = (channel: string) => FORMATS.filter((f) => f.channels.includes(channel));
+export const formatOf = (tags: string[]) => FORMATS.find((f) => f.id === tagVal(tags, 'format')) ?? null;
+
 export const STATUSES = ['draft', 'approved', 'scheduled', 'published', 'archived'] as const;
 export type ContentStatus = typeof STATUSES[number];
 
@@ -44,7 +68,7 @@ const ANGLE_TO_GROUP = new Map(ANGLE_GROUPS.flatMap((g) => g.angles.map((a) => [
 
 // Lược đồ tag của content_pieces — MỘT chỗ định nghĩa, mọi nơi đọc qua đây (trước có 2 bộ parse
 // rời nhau nên 'asset:card.png' vs 'asset:media:61' âm thầm lệch, drawer báo "chưa có" mà không ai biết).
-//   angle:<code> · src:<S1..S8> · cta:<path> · place:<habitat> · time:<HH:MM>
+//   angle:<code> · format:<id> · src:<S1..S8> · cta:<path> · place:<habitat> · time:<HH:MM>
 //   acct:<id> · browser:<id> · asset:media:<id,id> · chain:<taskId,taskId>
 export const tagVal = (tags: string[], k: string) => tags.find((t) => t.startsWith(`${k}:`))?.slice(k.length + 1).trim() ?? '';
 /** Danh sách id trong tag dạng 'khoá:media:1,2' hoặc 'khoá:1,2'. Giá trị không phải số → bỏ. */

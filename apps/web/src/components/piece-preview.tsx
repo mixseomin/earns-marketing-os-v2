@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { getPieceDetail } from '@/lib/actions/content';
-import { CHANNELS, tagVal, tagIds } from '@/lib/content-channels';
+import { CHANNELS, tagVal, tagIds, formatOf } from '@/lib/content-channels';
 import type { CalPiece } from '@/lib/data';
 
 export function PiecePreview({ piece, accounts = [], media = [], body, compact = false, onOpen }: {
@@ -38,9 +38,17 @@ export function PiecePreview({ piece, accounts = [], media = [], body, compact =
   const time = tagVal(piece.tags, 'time');
   const assets = tagIds(piece.tags, 'asset').map((id) => media.find((m) => m.id === id)).filter(Boolean) as Array<{ id: number; url: string; filename: string }>;
   const placeLabel = place.startsWith('http') ? place.replace(/^https?:\/\/(www\.)?/, '') : place;
-  const tweets = piece.channel === 'twitter-thread' && text?.trim()
-    ? text.trim().split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean)
-    : null;
+  // KIỂU BÀI quyết định thân bài dựng ra sao — cùng một caption nhưng poll ra ô bình chọn, bài chèn
+  // link ra thẻ link, thread ra N mảnh. Đây là chỗ "plan trông thế nào thì đăng thế": nhìn bản dựng
+  // là biết người ta sẽ thấy gì, không phải đoán từ chữ 'format:poll' trong tag.
+  const fmt = formatOf(piece.tags);
+  const kind = fmt?.id ?? (piece.channel === 'twitter-thread' ? 'thread' : '');
+  const bodyText = text?.trim() ?? '';
+  const tweets = kind === 'thread' && bodyText ? bodyText.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean) : null;
+  // Poll: các dòng 'A. …' / '1) …' liền nhau ở cuối là phương án, phần trên là câu hỏi.
+  const pollOpts = kind === 'poll' ? bodyText.split('\n').filter((l) => /^\s*([A-Da-d]|[1-9])[.)]\s+\S/.test(l)).map((l) => l.replace(/^\s*([A-Da-d]|[1-9])[.)]\s+/, '')) : [];
+  const pollAsk = pollOpts.length >= 2 ? bodyText.split('\n').filter((l) => !/^\s*([A-Da-d]|[1-9])[.)]\s+\S/.test(l)).join('\n').trim() : '';
+  const linkUrl = kind === 'link' ? (bodyText.match(/https?:\/\/\S+|\b[a-z0-9-]+\.(com|org|net|gov|io)\/\S*/i)?.[0] ?? '') : '';
 
   return (
     <div onClick={onOpen}
@@ -53,7 +61,10 @@ export function PiecePreview({ piece, accounts = [], media = [], body, compact =
             {placeLabel || 'chưa chọn nơi đăng'}{time ? ` · ${time}` : ''}
           </span>
         </span>
-        <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>#{piece.id}</span>
+        <span style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+          {fmt && <span title={`Kiểu bài: ${fmt.label}`} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--line)', color: 'var(--fg-3)' }}>{fmt.icon} {fmt.label}</span>}
+          <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>#{piece.id}</span>
+        </span>
       </div>
       {tweets ? (
         // Thread X đăng ra là N tweet RỜI, không phải một khối. Dựng đúng số mảnh + đếm ký tự vì
@@ -68,10 +79,30 @@ export function PiecePreview({ piece, accounts = [], media = [], body, compact =
             </div>
           ))}
         </div>
+      ) : pollOpts.length >= 2 ? (
+        // Poll đăng ra là ô bình chọn bấm được, không phải mấy dòng A/B/C trong caption.
+        <div style={{ padding: compact ? '9px 11px' : '12px 14px', fontSize: compact ? 12 : 13.5, lineHeight: 1.5 }}>
+          <div style={{ whiteSpace: 'pre-wrap', marginBottom: 8 }}>{pollAsk}</div>
+          {pollOpts.map((o, i) => (
+            <div key={i} style={{ border: '1px solid var(--line)', borderRadius: 999, padding: compact ? '4px 11px' : '6px 13px', marginBottom: 5, color: 'var(--fg-2)' }}>{o}</div>
+          ))}
+          <div style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>{pollOpts.length} phương án · người xem bấm chọn</div>
+        </div>
       ) : (
         <div style={{ padding: compact ? '9px 11px' : '12px 14px', fontSize: compact ? 12 : 13.5, lineHeight: 1.5, whiteSpace: 'pre-wrap',
           ...(compact ? { display: '-webkit-box', WebkitLineClamp: 8, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>
           {text === null ? '…' : (text.trim() || <em style={{ color: 'var(--neon-amber)' }}>chưa soạn nội dung</em>)}
+        </div>
+      )}
+      {linkUrl && (
+        // Bài chèn link: nền tảng tự bung thẻ xem trước, và CHÍNH nó là thứ người ta bấm. Dựng thẻ
+        // ở đây để lúc duyệt thấy luôn link nào sẽ bung, không phải dò trong caption.
+        <div style={{ margin: compact ? '0 11px 9px' : '0 14px 12px', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden', background: 'var(--bg-2)' }}>
+          <div style={{ padding: compact ? '7px 9px' : '9px 11px' }}>
+            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)' }}>{linkUrl.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]}</div>
+            <div style={{ fontSize: compact ? 11.5 : 13, fontWeight: 600, marginTop: 2 }}>{piece.title}</div>
+            <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{linkUrl}</div>
+          </div>
         </div>
       )}
       {assets.length > 0 && (

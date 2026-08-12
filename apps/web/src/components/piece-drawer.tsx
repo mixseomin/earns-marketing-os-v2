@@ -8,9 +8,9 @@
 // Mọi thực thể trong tab Prepare là chip EntityRef → bấm mở đúng drawer của nó (account /
 // browser-profile / media / task) ngay tại chỗ, không phải đi tra ở trang khác.
 
-import { useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Drawer, EntityRef } from '@/components/ui';
+import { Drawer, EntityRef, EntityPicker, type EntityOption } from '@/components/ui';
 import { CHANNELS, STATUSES, ANGLE_GROUPS, angleOf, tagVal, tagIds, pieceGaps } from '@/lib/content-channels';
 import { updateContentPiece, getPieceDetail, type ContentInput } from '@/lib/actions/content';
 import { todayLocal } from '@/lib/local-day';
@@ -18,7 +18,7 @@ import type { CalPiece } from '@/lib/data';
 
 const lbl: React.CSSProperties = { display: 'block', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--fg-4)', marginBottom: 5, fontFamily: 'var(--font-mono)' };
 const inp: React.CSSProperties = { padding: '6px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', fontSize: 13, width: '100%' };
-const missing = <em style={{ color: 'var(--neon-amber)' }}>chưa có</em>;
+const pickBtn: React.CSSProperties = { padding: '3px 9px', borderRadius: 6, border: '1px dashed var(--line)', background: 'transparent', color: 'var(--fg-3)', fontSize: 11.5, cursor: 'pointer' };
 
 const STATUS_COLOR: Record<string, string> = {
   draft: 'var(--fg-3)', approved: 'var(--neon-cyan)', scheduled: 'var(--neon-amber)',
@@ -41,6 +41,8 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const router = useRouter();
   const [pending, start] = useTransition();
   const [tab, setTab] = useState<TabKey>('overview');
+  const [pick, setPick] = useState<null | 'acct' | 'browser' | 'asset'>(null);
+  const [editBody, setEditBody] = useState(false);
   const [hook, setHook] = useState(piece.subject ?? '');
   const [date, setDate] = useState(piece.date);
   const [url, setUrl] = useState('');
@@ -51,7 +53,8 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const place = tagVal(piece.tags, 'place');
   const time = tagVal(piece.tags, 'time');
   const acct = accounts.find((x) => x.id === Number(tagVal(piece.tags, 'acct')));
-  const prof = browserProfiles.find((x) => x.id === Number(tagVal(piece.tags, 'browser')));
+  const prof = browserProfiles.find((x) => x.id === Number(tagVal(piece.tags, 'browser')) || (acct?.browserProfileId ?? 0));
+  const assetIds = tagIds(piece.tags, 'asset');
   // asset:media:<id,id> = ảnh đã nằm trong vault (hiện thumbnail + mở media drawer).
   const assets = tagIds(piece.tags, 'asset').map((id) => media.find((m) => m.id === id)).filter(Boolean) as Array<{ id: number; url: string; filename: string }>;
   const chain = tagIds(piece.tags, 'chain').map((id) => tasks.find((t) => t.id === id)).filter(Boolean) as NonNullable<typeof tasks>;
@@ -64,6 +67,20 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
     await updateContentPiece(piece.id, piece.projectId, p);
     refresh();
   };
+  /** Ghi 1 khoá của lược đồ tag (angle:/acct:/browser:/asset:…) — thiếu thì CHỌN ngay tại đây,
+   *  không phải nhớ cú pháp tag rồi đi gõ ở chỗ khác. */
+  const setTag = (k: string, v: string) => patch({ tags: [...piece.tags.filter((t) => !t.startsWith(`${k}:`)), ...(v ? [`${k}:${v}`] : [])] });
+
+  // Danh sách cho EntityPicker: lấy từ dữ liệu trang ĐÃ tải, không gọi thêm. useCallback bắt buộc —
+  // picker nạp lại mỗi khi `load` đổi định danh, truyền arrow trần vào là lặp vô hạn.
+  const loadAccounts = useCallback(async (): Promise<EntityOption[]> => accounts
+    .map((x) => ({ key: `a:${x.id}`, label: x.handle ?? x.platformKey, sub: `${x.platformKey} · ${x.status}`, fallbackIcon: '👤', match: piece.channel.startsWith(x.platformKey.slice(0, 2)), data: x }))
+    .sort((p, n) => Number(n.match) - Number(p.match)), [accounts, piece.channel]);
+  const loadProfiles = useCallback(async (): Promise<EntityOption[]> => browserProfiles
+    .map((x) => ({ key: `b:${x.id}`, label: x.label, sub: x.externalId ?? '', fallbackIcon: '🖥', data: x })), [browserProfiles]);
+  const loadMedia = useCallback(async (): Promise<EntityOption[]> => media
+    .filter((m) => m.kind === 'image')
+    .map((m) => ({ key: `m:${m.id}`, label: m.filename, avatar: m.url, data: m })), [media]);
 
   const row = (k: string, v: React.ReactNode) => (
     <><span style={{ color: 'var(--fg-4)' }}>{k}</span><span>{v}</span></>
@@ -116,9 +133,22 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
                   </span>
                 </span>
               </div>
-              <div style={{ padding: '12px 14px', fontSize: 13.5, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
-                {detail ? (detail.bodyMd.trim() || <em style={{ color: 'var(--neon-amber)' }}>chưa soạn nội dung — không có gì để duyệt</em>) : '…'}
-              </div>
+              {editBody ? (
+                // Soạn TẠI CHỖ. Trước đây nút này đẩy sang /studio — mất drawer, mất ngữ cảnh
+                // (account/ảnh/chuỗi việc đang xem), rồi phải mò đường quay lại đúng bài.
+                <textarea autoFocus defaultValue={detail?.bodyMd ?? ''} rows={12} disabled={pending}
+                  style={{ ...inp, border: 'none', borderRadius: 0, fontSize: 13, lineHeight: 1.55, resize: 'vertical' }}
+                  onBlur={async (e) => {
+                    const v = e.target.value;
+                    setEditBody(false);
+                    if (v !== (detail?.bodyMd ?? '')) { setDetail((d) => (d ? { ...d, bodyMd: v } : d)); await patch({ bodyMd: v }); }
+                  }} />
+              ) : (
+                <div onDoubleClick={() => setEditBody(true)} title="Bấm đúp để sửa"
+                  style={{ padding: '12px 14px', fontSize: 13.5, lineHeight: 1.55, whiteSpace: 'pre-wrap', cursor: 'text' }}>
+                  {detail ? (detail.bodyMd.trim() || <em style={{ color: 'var(--neon-amber)' }}>chưa soạn nội dung — bấm ✎ Soạn ở dưới</em>) : '…'}
+                </div>
+              )}
               {assets.length > 0 && (
                 <div style={{ display: 'grid', gridTemplateColumns: assets.length > 1 ? '1fr 1fr' : '1fr', gap: 2, background: 'var(--line)' }}>
                   {assets.map((m) => (
@@ -129,10 +159,10 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
                 </div>
               )}
             </div>
-            <button type="button" onClick={() => navigator.clipboard?.writeText(detail?.bodyMd ?? '')} disabled={!detail?.bodyMd}
-              style={{ marginTop: 6, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'var(--fg-3)', fontSize: 11.5, cursor: 'pointer' }}>
-              Copy caption
-            </button>
+            <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+              <button type="button" onClick={() => setEditBody(true)} disabled={pending || editBody} style={pickBtn}>✎ Soạn nội dung</button>
+              <button type="button" onClick={() => navigator.clipboard?.writeText(detail?.bodyMd ?? '')} disabled={!detail?.bodyMd} style={pickBtn}>Copy caption</button>
+            </div>
           </div>
           <div>
             <label style={lbl}>Hook (dòng người đọc thấy)</label>
@@ -176,26 +206,33 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
           <div>
             <label style={lbl}>Runner cần gì để chạy</label>
             <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 12px', fontSize: 12.5, alignItems: 'center' }}>
-              {row('Nơi đăng', place || missing)}
-              {row('Giờ', time || missing)}
-              {row('Account', acct
-                ? <EntityRef kind="account" id={acct.id} project={piece.projectId} label={`${acct.handle ?? acct.platformKey} · ${acct.status}`} />
-                : missing)}
-              {row('Browser', prof
-                ? <EntityRef kind="browser-profile" id={prof.id} label={prof.label} title={prof.externalId ?? undefined} />
-                : missing)}
-              {row('Asset', assets.length
-                ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {assets.map((m) => (
-                      <span key={m.id} style={{ display: 'inline-flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start' }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={m.url} alt={m.filename} style={{ width: 132, height: 132, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--line)', cursor: 'pointer' }}
-                          onClick={() => window.open(m.url, '_blank')} />
-                        <EntityRef kind="media" id={m.id} label={m.filename} />
-                      </span>
-                    ))}
-                  </div>
-                : missing)}
+              {row('Nơi đăng', <input style={{ ...inp, maxWidth: 320 }} defaultValue={place} placeholder="fb-page-… / r/subreddit" disabled={pending}
+                onBlur={(e) => e.target.value.trim() !== place && setTag('place', e.target.value.trim())} />)}
+              {row('Giờ', <input type="time" style={{ ...inp, maxWidth: 120 }} defaultValue={time} disabled={pending}
+                onChange={(e) => setTag('time', e.target.value)} />)}
+              {row('Account', <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {acct && <EntityRef kind="account" id={acct.id} project={piece.projectId} label={`${acct.handle ?? acct.platformKey} · ${acct.status}`} />}
+                <button type="button" style={pickBtn} disabled={pending} onClick={() => setPick('acct')}>{acct ? 'đổi' : '＋ chọn account'}</button>
+              </span>)}
+              {row('Browser', <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {prof && <EntityRef kind="browser-profile" id={prof.id} label={prof.label} title={prof.externalId ?? undefined} />}
+                <button type="button" style={pickBtn} disabled={pending} onClick={() => setPick('browser')}>{prof ? 'đổi' : '＋ chọn browser'}</button>
+              </span>)}
+              {row('Asset', <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                {assets.map((m) => (
+                  <span key={m.id} style={{ display: 'inline-flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={m.url} alt={m.filename} style={{ width: 132, height: 132, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--line)', cursor: 'pointer' }}
+                      onClick={() => window.open(m.url, '_blank')} />
+                    <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <EntityRef kind="media" id={m.id} label={m.filename} />
+                      <button type="button" style={pickBtn} disabled={pending}
+                        onClick={() => setTag('asset', `media:${assetIds.filter((x) => x !== m.id).join(',')}`)}>✕</button>
+                    </span>
+                  </span>
+                ))}
+                <button type="button" style={pickBtn} disabled={pending} onClick={() => setPick('asset')}>＋ thêm ảnh</button>
+              </div>)}
             </div>
           </div>
 
@@ -214,11 +251,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
             )}
           </div>
 
-          {/* Caption không lặp ở đây: bản THẬT nằm ở tab Overview (xem trước), Prepare chỉ lo nguyên liệu. */}
-          <button type="button" onClick={() => router.push(`/p/${piece.projectId}/studio?m=edit&mId=${piece.id}`)}
-            style={{ alignSelf: 'flex-start', padding: '5px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'var(--fg-3)', fontSize: 12, cursor: 'pointer' }}>
-            ✎ Soạn nội dung đầy đủ ở Studio
-          </button>
+          {/* Caption không lặp ở đây: bản THẬT + chỗ soạn nằm ở tab Overview. Prepare chỉ lo nguyên liệu. */}
         </>)}
 
         {tab === 'logs' && (<>
@@ -269,6 +302,26 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
           </div>
         </>)}
       </div>
+
+      {pick === 'acct' && (
+        <EntityPicker title="Chọn account đứng tên bài" hint="Account trong vault. Dấu ✓ = cùng nền tảng với kênh của bài."
+          load={loadAccounts} value={acct ? { key: `a:${acct.id}` } : undefined} onClose={() => setPick(null)}
+          onPick={async (o) => { setPick(null); await setTag('acct', String((o.data as { id: number }).id)); }} />
+      )}
+      {pick === 'browser' && (
+        <EntityPicker title="Chọn browser profile" hint="Phiên đăng nhập runner sẽ mở. Bỏ trống thì lấy theo profile gắn sẵn của account."
+          load={loadProfiles} value={prof ? { key: `b:${prof.id}` } : undefined} onClose={() => setPick(null)}
+          onPick={async (o) => { setPick(null); await setTag('browser', String((o.data as { id: number }).id)); }} />
+      )}
+      {pick === 'asset' && (
+        <EntityPicker title="Thêm ảnh vào bài" hint="Ảnh trong vault media của dự án."
+          load={loadMedia} onClose={() => setPick(null)}
+          onPick={async (o) => {
+            const id = (o.data as { id: number }).id;
+            setPick(null);
+            await setTag('asset', `media:${[...new Set([...assetIds, id])].join(',')}`);
+          }} />
+      )}
     </Drawer>
   );
 }

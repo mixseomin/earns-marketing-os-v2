@@ -15,6 +15,7 @@ export const BACKLINK_SITES: { slug: string; domain: string; label: string; emoj
   { slug: 'militarymarkdown', domain: 'militarymarkdown.com', label: 'MilitaryMarkdown', emoji: '🪖', niches: ['military', 'writing-tools', 'devtools'] },
   { slug: 'mint-almanac',     domain: 'mintalmanac.com',      label: 'Mint Almanac',     emoji: '🪙', niches: ['coins', 'collectibles'] },
   { slug: 'steamsolo',        domain: 'steamsolo.com',        label: 'steamsolo.com',    emoji: '🎮', niches: ['games', 'game-guides'] },
+  { slug: 'earns-io',         domain: 'earns.io',             label: 'earns.io',         emoji: '💸', niches: ['make-money', 'side-hustle', 'affiliate', 'finance'] },
 ];
 
 const BY_DOMAIN = new Map(BACKLINK_SITES.map((s) => [s.domain, s.slug]));

@@ -53,3 +53,53 @@ export function angleOf(tags: string[]): { angle: string; group: typeof ANGLE_GR
 
 /** Tỉ lệ mix mục tiêu (bài mới, chưa có audience → nặng HÚT). Dùng để so với thực tế. */
 export const MIX_TARGET: Record<string, number> = { reach: 40, trust: 35, convert: 15, community: 10 };
+
+/** Bài đã DUYỆT mà vẫn chạy được không — trạng thái biên tập không nói lên điều đó.
+ *  Duyệt = "chữ nghĩa ổn"; chạy được = còn cần nơi đăng + account + phiên trình duyệt sống +
+ *  asset + chuỗi chuẩn bị xong. Thiếu mà im lặng thì đến ngày mới biết, và biết bằng cách bài
+ *  không lên. Đọc từ dữ liệu ĐÃ tải sẵn trên trang, không query thêm. */
+export function pieceGaps(
+  piece: { tags: string[]; hasBody?: boolean },
+  refs: {
+    accounts?: Array<{ id: number; browserProfileId?: number | null; status: string }>;
+    browserProfiles?: Array<{ id: number; lastOpenedAt?: string | Date | null }>;
+    media?: Array<{ id: number }>;
+    tasks?: Array<{ id: number; siteState: string }>;
+  } = {},
+): string[] {
+  const gaps: string[] = [];
+  if (piece.hasBody === false) gaps.push('chưa soạn nội dung');
+  if (!tagVal(piece.tags, 'place')) gaps.push('chưa chọn nơi đăng');
+
+  const acctId = Number(tagVal(piece.tags, 'acct')) || 0;
+  const acct = acctId ? refs.accounts?.find((a) => a.id === acctId) : undefined;
+  if (!acctId) gaps.push('chưa gắn account');
+  else if (!acct) gaps.push(`account #${acctId} không có trong vault`);
+  else if (acct.status !== 'active') gaps.push(`account đang ${acct.status}`);
+
+  // Profile lấy từ tag, không có thì lấy từ chính account — account chưa gắn profile nào thì
+  // runner không biết mở phiên nào (đúng chỗ hụt của ~40 row facebook trong vault).
+  const profId = Number(tagVal(piece.tags, 'browser')) || acct?.browserProfileId || 0;
+  const prof = profId ? refs.browserProfiles?.find((b) => b.id === profId) : undefined;
+  if (!profId) gaps.push('account chưa gắn browser profile');
+  else if (!prof) gaps.push(`browser profile #${profId} không có trong vault`);
+  else if (prof.lastOpenedAt) {
+    const days = Math.round((Date.now() - new Date(prof.lastOpenedAt).getTime()) / 864e5);
+    if (days > 30) gaps.push(`phiên trình duyệt ${days} ngày chưa mở (dễ rớt đăng nhập)`);
+  }
+
+  const missingMedia = tagIds(piece.tags, 'asset').filter((id) => !refs.media?.some((m) => m.id === id));
+  if (missingMedia.length) gaps.push(`asset chưa có trong vault: #${missingMedia.join(', #')}`);
+
+  const chain = tagIds(piece.tags, 'chain');
+  const left = chain.filter((id) => {
+    const t = refs.tasks?.find((x) => x.id === id);
+    return !t || !['completed', 'verified'].includes(t.siteState);
+  });
+  if (left.length) gaps.push(`chuỗi chuẩn bị còn ${left.length}/${chain.length} việc`);
+  return gaps;
+}
+
+/** Bài còn `draft` thì thiếu là chuyện đương nhiên; đăng rồi thì thiếu cũng chẳng để làm gì.
+ *  Chỉ cảnh báo ở khoảng giữa: đã duyệt / đã lên lịch mà nguyên liệu chưa đủ. */
+export const shouldWarnGaps = (status: string) => status === 'approved' || status === 'scheduled';

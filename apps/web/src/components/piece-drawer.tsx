@@ -11,7 +11,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Drawer, EntityRef } from '@/components/ui';
-import { CHANNELS, STATUSES, ANGLE_GROUPS, angleOf, tagVal, tagIds } from '@/lib/content-channels';
+import { CHANNELS, STATUSES, ANGLE_GROUPS, angleOf, tagVal, tagIds, pieceGaps } from '@/lib/content-channels';
 import { updateContentPiece, getPieceDetail, type ContentInput } from '@/lib/actions/content';
 import type { CalPiece } from '@/lib/data';
 
@@ -31,7 +31,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
 
 export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfiles = [], media = [], tasks = [], onOpenTask, onClose }: {
   piece: CalPiece; projectLabel?: string; onClose: () => void;
-  accounts?: Array<{ id: number; platformKey: string; handle: string | null; status: string }>;
+  accounts?: Array<{ id: number; platformKey: string; handle: string | null; status: string; browserProfileId?: number | null }>;
   browserProfiles?: Array<{ id: number; label: string; externalId: string | null; lastOpenedAt: string | null }>;
   media?: Array<{ id: number; url: string; filename: string; kind: string }>;
   tasks?: Array<{ id: number; title: string; siteState: string; siteScheduledAt: string | null; publishUrl?: string | null }>;
@@ -54,6 +54,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   // asset:media:<id,id> = ảnh đã nằm trong vault (hiện thumbnail + mở media drawer).
   const assets = tagIds(piece.tags, 'asset').map((id) => media.find((m) => m.id === id)).filter(Boolean) as Array<{ id: number; url: string; filename: string }>;
   const chain = tagIds(piece.tags, 'chain').map((id) => tasks.find((t) => t.id === id)).filter(Boolean) as NonNullable<typeof tasks>;
+  const gaps = pieceGaps(piece, { accounts, browserProfiles, media, tasks });
 
   useEffect(() => { getPieceDetail(piece.id, piece.projectId).then(setDetail); }, [piece.id, piece.projectId]);
 
@@ -78,6 +79,16 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
           <h2 style={{ margin: '4px 0 0', fontSize: 17, fontWeight: 700 }}>{piece.title}</h2>
         </div>
 
+        {gaps.length > 0 && (
+          <div style={{ padding: '8px 11px', borderRadius: 7, border: '1px solid var(--neon-amber)', background: 'color-mix(in srgb, var(--neon-amber) 12%, transparent)', fontSize: 12.5 }}>
+            <b style={{ color: 'var(--neon-amber)' }}>⚠ Thiếu nguyên liệu ({gaps.length})</b>
+            {piece.status !== 'draft' && <span style={{ color: 'var(--fg-4)' }}> — bài đã {piece.status}, runner chưa chạy được</span>}
+            <ul style={{ margin: '5px 0 0', paddingLeft: 18, color: 'var(--fg-2)' }}>
+              {gaps.map((g) => <li key={g}>{g}</li>)}
+            </ul>
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--line)' }}>
           {TABS.map((t) => (
             <button key={t.key} type="button" onClick={() => setTab(t.key)}
@@ -89,6 +100,39 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
         </div>
 
         {tab === 'overview' && (<>
+          {/* BÀI THẬT, dựng đúng thứ sẽ lên: account nào đứng tên, caption nguyên văn, ảnh kèm.
+              Duyệt bằng mô tả ("card ảnh + 8 số liệu") là duyệt cái mình tưởng tượng, không phải
+              cái sẽ đăng — nên preview đứng TRƯỚC nút trạng thái, đọc rồi mới bấm approved. */}
+          <div>
+            <label style={lbl}>Bài sẽ đăng (xem trước)</label>
+            <div style={{ border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden', background: 'var(--bg-1)' }}>
+              <div style={{ display: 'flex', gap: 9, alignItems: 'center', padding: '10px 12px', borderBottom: '1px solid var(--line)' }}>
+                <span style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--bg-2)', border: '1px solid var(--line)', display: 'grid', placeItems: 'center', fontSize: 15 }}>{ch?.icon ?? '📝'}</span>
+                <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.35 }}>
+                  <b style={{ fontSize: 13 }}>{acct ? (acct.handle ?? acct.platformKey) : <span style={{ color: 'var(--neon-amber)' }}>chưa gắn account</span>}</b>
+                  <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>
+                    {place || 'chưa chọn nơi đăng'} · {piece.date}{time ? ` ${time}` : ''}
+                  </span>
+                </span>
+              </div>
+              <div style={{ padding: '12px 14px', fontSize: 13.5, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
+                {detail ? (detail.bodyMd.trim() || <em style={{ color: 'var(--neon-amber)' }}>chưa soạn nội dung — không có gì để duyệt</em>) : '…'}
+              </div>
+              {assets.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: assets.length > 1 ? '1fr 1fr' : '1fr', gap: 2, background: 'var(--line)' }}>
+                  {assets.map((m) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={m.id} src={m.url} alt={m.filename} onClick={() => window.open(m.url, '_blank')}
+                      style={{ width: '100%', maxHeight: 340, objectFit: 'cover', display: 'block', cursor: 'zoom-in', background: 'var(--bg-2)' }} />
+                  ))}
+                </div>
+              )}
+            </div>
+            <button type="button" onClick={() => navigator.clipboard?.writeText(detail?.bodyMd ?? '')} disabled={!detail?.bodyMd}
+              style={{ marginTop: 6, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'var(--fg-3)', fontSize: 11.5, cursor: 'pointer' }}>
+              Copy caption
+            </button>
+          </div>
           <div>
             <label style={lbl}>Hook (dòng người đọc thấy)</label>
             <input style={inp} value={hook} onChange={(e) => setHook(e.target.value)} disabled={pending}
@@ -169,16 +213,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
             )}
           </div>
 
-          <div>
-            <label style={lbl}>Caption sẽ đăng</label>
-            <textarea readOnly value={detail?.bodyMd || '(chưa soạn)'} rows={9}
-              style={{ ...inp, fontFamily: 'var(--font-mono)', fontSize: 11.5, lineHeight: 1.5, resize: 'vertical' }} />
-            <button type="button" onClick={() => navigator.clipboard?.writeText(detail?.bodyMd ?? '')} disabled={!detail?.bodyMd}
-              style={{ marginTop: 5, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'var(--fg-3)', fontSize: 11.5, cursor: 'pointer' }}>
-              Copy caption
-            </button>
-          </div>
-
+          {/* Caption không lặp ở đây: bản THẬT nằm ở tab Overview (xem trước), Prepare chỉ lo nguyên liệu. */}
           <button type="button" onClick={() => router.push(`/p/${piece.projectId}/studio?m=edit&mId=${piece.id}`)}
             style={{ alignSelf: 'flex-start', padding: '5px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'var(--fg-3)', fontSize: 12, cursor: 'pointer' }}>
             ✎ Soạn nội dung đầy đủ ở Studio

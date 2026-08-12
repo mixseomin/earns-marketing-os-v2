@@ -19,7 +19,7 @@ import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
-import { CHANNELS, ANGLE_GROUPS, MIX_TARGET, angleOf } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
+import { CHANNELS, ANGLE_GROUPS, MIX_TARGET, angleOf, pieceGaps, shouldWarnGaps } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
 import { StatusSegmented, Segmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
@@ -1258,16 +1258,20 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       const ch = CHANNELS.find((c) => c.id === p.channel);
       const pr = allProjects ? projectsById?.[p.projectId] : undefined;
       const plbl = showProj ? `[${pr?.name ?? p.projectId}] ` : '';
+      // Duyệt rồi nhưng thiếu nguyên liệu (account/browser/asset/chuỗi) → ⚠ ngay trên lịch,
+      // đừng để tới ngày đăng mới biết. Chi tiết thiếu gì nằm trong tooltip + drawer.
+      const gaps = shouldWarnGaps(p.status) ? pieceGaps(p, { accounts, browserProfiles, media, tasks }) : [];
       out.push({
         id: `c:${p.id}`, date: p.date, icon: 'docpen',
-        label: `${plbl}${ch?.icon ?? ''} ${(p.subject || p.title).replace(/\s+/g, ' ').trim()}`,
+        label: `${plbl}${ch?.icon ?? ''} ${gaps.length ? '⚠ ' : ''}${(p.subject || p.title).replace(/\s+/g, ' ').trim()}`,
         color: a ? a.group.color : 'var(--fg-3)',
         done: p.status === 'published', dim: p.status === 'draft',
-        title: `Bài đăng · ${ch?.label ?? p.channel} · ${p.status}${a ? ` · ${a.group.label}/${a.angle}` : ' · chưa gắn angle'} — ${p.title}`,
+        title: `Bài đăng · ${ch?.label ?? p.channel} · ${p.status}${a ? ` · ${a.group.label}/${a.angle}` : ' · chưa gắn angle'} — ${p.title}`
+          + (gaps.length ? `\n⚠ thiếu: ${gaps.join(' · ')}` : ''),
       });
     }
     return out;
-  }, [filtered, allProjects, projectFilter, followups, projectsById, kind, kindOf, q, piecesInScope, angleF]);
+  }, [filtered, allProjects, projectFilter, followups, projectsById, kind, kindOf, q, piecesInScope, angleF, accounts, browserProfiles, media, tasks]);
 
   // Cân bằng nội dung của đúng tập bài đang hiện trên lịch. Đọc lại từ calItems (đã qua bộ lọc)
   // thay vì lọc lần hai — một nguồn, không có chỗ cho hai bộ lọc lệch nhau.

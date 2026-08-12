@@ -1156,16 +1156,18 @@ export type ContentPieceRow = {
 // Trước đây lịch đăng chỉ sống ở Content Studio, nên mở /plays ra không thấy bài nào và
 // phải nhớ có hai chỗ. Chỉ lấy cột lịch cần + chỉ dòng có scheduled_at (global /plays gom
 // mọi project → đừng kéo cả body_md về).
-export type CalPiece = { id: number; projectId: string; title: string; subject: string | null; channel: string; status: string; date: string; tags: string[] };
+// has_body = đã soạn caption chưa (chỉ cờ, không kéo body_md về) — cảnh báo "duyệt rồi mà rỗng".
+export type CalPiece = { id: number; projectId: string; title: string; subject: string | null; channel: string; status: string; date: string; tags: string[]; hasBody: boolean };
 export async function listScheduledContentPieces(projectId?: string): Promise<CalPiece[]> {
   return tryDb(async () => {
     const db = getDb(); if (!db) return [];
     const res = await db.execute(sql`
       SELECT id, project_id, title, subject, channel, status,
-             to_char(scheduled_at, 'YYYY-MM-DD') AS date, tags
+             to_char(scheduled_at, 'YYYY-MM-DD') AS date, tags,
+             (length(coalesce(body_md, '')) > 0) AS has_body
       FROM content_pieces
       WHERE archived_at IS NULL AND scheduled_at IS NOT NULL
-        AND (${projectId ?? ''} = '' OR project_id = ${projectId ?? ''})
+        ${projectId ? sql`AND project_id = ${projectId}` : sql``}
       ORDER BY scheduled_at
     `);
     return (res as unknown as Array<Record<string, unknown>>).map((r) => ({
@@ -1173,6 +1175,7 @@ export async function listScheduledContentPieces(projectId?: string): Promise<Ca
       subject: (r.subject as string | null) ?? null, channel: String(r.channel),
       status: String(r.status), date: String(r.date),
       tags: Array.isArray(r.tags) ? (r.tags as string[]) : [],
+      hasBody: r.has_body === true,
     }));
   }, [], 'listScheduledContentPieces');
 }

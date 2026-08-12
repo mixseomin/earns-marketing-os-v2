@@ -8,6 +8,11 @@
 //   · orders/doanh thu/giá  ← Gumroad API v2, cộng dồn TRỌN ĐỜI, luôn tươi.
 //   · views                  ← bảng product_daily, do job trình duyệt local đẩy hằng ngày.
 //     API v2 không có trường này. Job chưa chạy thì cột views là "—", KHÔNG phải 0.
+//
+// NỐI HAI NGUỒN BẰNG `id` GỐC, không bằng permalink: sản phẩm đặt slug tuỳ chỉnh
+// (write-like-a-person) thì short_url không còn chứa unique_permalink (efvcp), và dòng đó lặng lẽ
+// mất views — trông hệt như "chưa có dữ liệu". `analytics_props.products[].id` mà job đọc chính là
+// `product.id` của API v2, nên nó là khoá duy nhất đúng cho mọi sản phẩm.
 import { Panel } from './ui/panel';
 import { getGumroadSummary } from '@/lib/gumroad/products';
 import { loadProductViews } from '@/lib/gumroad/daily';
@@ -26,7 +31,7 @@ export async function ProductsPanel() {
   }
 
   const rows = sum.products.filter((p) => p.published)
-    .map((p) => ({ ...p, v: views.byProduct[`${p.store}:${p.permalink}`] ?? null }));
+    .map((p) => ({ ...p, v: views.byProduct[`${p.store}:${p.id}`] ?? null }));
   const totalViews7 = rows.reduce((s, r) => s + (r.v?.views7d ?? 0), 0);
   const anyViews = rows.some((r) => r.v);
 
@@ -55,7 +60,7 @@ export async function ProductsPanel() {
           </thead>
           <tbody>
             {rows.map((p) => (
-              <tr key={`${p.store}:${p.permalink || p.id}`}>
+              <tr key={`${p.store}:${p.id}`}>
                 <td style={left}>
                   <a href={p.url} target="_blank" rel="noreferrer" style={{ color: 'var(--fg-1)', textDecoration: 'none' }}>{p.name}</a>
                   {/* Thiếu category/tag = tự cắt mình khỏi Gumroad Discover. Nhắc ngay tại dòng. */}

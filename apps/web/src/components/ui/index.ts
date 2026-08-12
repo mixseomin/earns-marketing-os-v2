@@ -39,7 +39,7 @@ export {
 } from './icons';
 export { ModalHeader, type ModalKind } from './modal-header';
 export { InfoHint } from './info-hint';
-export { SiteFavicon } from './site-favicon';
+export { SiteFavicon, ChannelFavicon } from './site-favicon';
 export {
   FormField, TextField, SelectField, TextAreaField, DateTimeField,
   fieldStyle, labelStyle, toDatetimeLocal,

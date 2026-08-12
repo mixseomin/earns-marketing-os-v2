@@ -17,6 +17,7 @@ export interface CalItem {
   id: number | string; date: string; label: string; title?: string;
   color?: string;          // màu TRẠNG THÁI: drives thanh-trái + nền tint + viền (green=done, amber=đang/hẹn, purple=chờ duyệt, grey=chờ, red=chặn)
   icon?: GlyphName;        // icon LOẠI/ngữ-cảnh (SVG, đồng nhất): pin=followup · link=backlink · sprout=seed · clock=chờ duyệt · calendar=hẹn lại
+  lead?: ReactNode;        // icon RIÊNG của mục (favicon nền tảng…) đứng trước nhãn — nhãn là chuỗi nên không nhét node vào được
   done?: boolean;          // đã làm → thêm ✓ + thanh xanh
   dim?: boolean;           // mờ (mục tương lai/đã bỏ)
   brief?: CalBrief;        // có bàn giao (input/done-when/depends) → glyph xám + hover popover. Chỉ set khi KHÔNG rỗng.
@@ -207,6 +208,7 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
                     background: `color-mix(in srgb, ${c} ${it.done ? 7 : it.dim ? 10 : 15}%, transparent)`, opacity: it.done ? 0.62 : it.dim ? 0.9 : 1 }}>
                   <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: big ? 4 : 3, background: c }} />
                   {it.icon && <CalGlyph name={it.icon} color={c} size={big ? 13 : 11} />}
+                  {it.lead}
                   <span style={{ flex: 1, minWidth: 0, color: it.done || it.dim ? 'var(--fg-2)' : 'var(--fg-1)',
                     ...(mode === 'month' ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>{it.label}</span>
                   {it.brief && <CalGlyph name="brief" color="var(--fg-4)" size={big ? 12 : 10} />}

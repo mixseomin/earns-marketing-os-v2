@@ -13,6 +13,7 @@
 
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
+import { CHANNELS, CHANNEL_PLATFORM } from '@/lib/content-channels';
 
 // kind → domain khi habitat không có url (discord/hashtag…)
 const KIND_DOMAIN: Record<string, string> = {
@@ -96,4 +97,15 @@ export function SiteFavicon({
       style={{ ...box, objectFit: 'contain', borderRadius: radius }}
     />
   );
+}
+
+/** Icon của KÊNH đăng (fb-post/reddit/twitter-thread/reel…) = favicon THẬT của nền tảng, không phải
+ *  emoji. Một chỗ định nghĩa cho mọi bề mặt (bản dựng bài, lịch, rail, drawer, chip lọc) — kênh nào
+ *  không phải nền tảng (email/blog/ad/landing/dm) thì rơi về glyph của chính catalog kênh. */
+export function ChannelFavicon({ channel, size = 16, circle = false, title }: {
+  channel: string; size?: number; circle?: boolean; title?: string;
+}) {
+  const platform = CHANNEL_PLATFORM[channel];
+  const ch = CHANNELS.find((c) => c.id === channel);
+  return <SiteFavicon platformKey={platform ?? null} glyph={ch?.icon ?? '📝'} size={size} circle={circle} title={title ?? ch?.label ?? channel} />;
 }

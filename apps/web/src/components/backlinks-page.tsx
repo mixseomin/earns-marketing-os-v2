@@ -4,7 +4,7 @@
 // sources that apply to THIS project's site (membership = site_status[slug]) and lets the
 // admin assign each to a team user (→ ext /api/ext/my-tasks) and track per-site status +
 // the live placed URL. A source is shared across sites; here we focus on this site.
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
@@ -20,7 +20,7 @@ import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
 import { CHANNELS, FORMATS, ANGLE_GROUPS, MIX_TARGET, angleOf, tagVal, pieceGaps, shouldWarnGaps } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
-import { StatusSegmented, Segmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
+import { StatusSegmented, Segmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, ChannelFavicon, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
 import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
@@ -164,11 +164,14 @@ const PIECE_AXES: Array<{
   key: string; label: string;
   get: (p: CalPiece) => string;
   lab: (v: string, refs: AxisRefs) => string;
+  /** Nhãn có icon để hiển thị; `lab` vẫn là chuỗi thuần cho tooltip/aria. */
+  node?: (v: string) => ReactNode;
   color?: (v: string) => string | undefined;
   rank?: (v: string) => number;
 }> = [
   { key: 'channel', label: 'Kênh', get: (p) => p.channel,
-    lab: (v) => { const c = CHANNELS.find((x) => x.id === v); return c ? `${c.icon} ${c.label}` : v; },
+    lab: (v) => CHANNELS.find((x) => x.id === v)?.label ?? v,
+    node: (v) => <><ChannelFavicon channel={v} size={13} /> {CHANNELS.find((x) => x.id === v)?.label ?? v}</>,
     rank: (v) => CHANNELS.findIndex((c) => c.id === v) },
   { key: 'format', label: 'Kiểu bài', get: (p) => tagVal(p.tags, 'format'),
     lab: (v) => { const f = FORMATS.find((x) => x.id === v); return f ? `${f.icon} ${f.label}` : v; },
@@ -1347,7 +1350,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       const gaps = shouldWarnGaps(p, todayLocal()) ? pieceGaps(p, { accounts, browserProfiles, media, tasks, today: todayLocal() }) : [];
       out.push({
         id: `c:${p.id}`, date: p.date, icon: 'docpen',
-        label: `${plbl}${ch?.icon ?? ''} ${gaps.length ? '⚠ ' : ''}${(p.subject || p.title).replace(/\s+/g, ' ').trim()}`,
+        label: `${plbl}${gaps.length ? '⚠ ' : ''}${(p.subject || p.title).replace(/\s+/g, ' ').trim()}`,
+        lead: <ChannelFavicon channel={p.channel} size={13} title={ch?.label ?? p.channel} />,
         color: a ? a.group.color : 'var(--fg-3)',
         done: p.status === 'published', dim: p.status === 'draft',
         title: `Bài đăng · ${ch?.label ?? p.channel} · ${p.status}${a ? ` · ${a.group.label}/${a.angle}` : ' · chưa gắn angle'} — ${p.title}`
@@ -1446,9 +1450,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)' }}>📝 Lọc bài</span>
       {facets.filter(({ vals }) => vals.length > 1).map(({ ax, vals }) => {
         const cur = pf[ax.key] ?? '';
-        const curLab = cur ? (cur === NONE ? 'chưa gắn' : ax.lab(cur, { accounts })) : '';
+        const curLab: ReactNode = cur ? (cur === NONE ? 'chưa gắn' : (ax.node?.(cur) ?? ax.lab(cur, { accounts }))) : '';
         return (
-          <Popover key={ax.key} label={cur ? `${ax.label}: ${curLab}` : ax.label} active={!!cur} minWidth={320}>
+          <Popover key={ax.key} label={cur ? <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>{ax.label}: {curLab}</span> : ax.label} active={!!cur} minWidth={320}>
             {() => (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, maxHeight: 320, overflowY: 'auto' }}>
                 <button type="button" onClick={() => setAxis(ax.key, '')} style={chip('var(--accent)', !cur)}>Tất cả</button>
@@ -1459,7 +1463,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                   return (
                     <button key={v} type="button" disabled={!n && !on} onClick={() => setAxis(ax.key, on ? '' : v)}
                       style={{ ...chip(ax.color?.(v) ?? 'var(--accent)', on), opacity: n || on ? 1 : 0.35, cursor: n || on ? 'pointer' : 'default' }}>
-                      {v === NONE ? 'chưa gắn' : ax.lab(v, { accounts })} <span style={{ opacity: 0.7, fontWeight: 400 }}>{n}</span>
+                      {v === NONE ? 'chưa gắn' : (ax.node?.(v) ?? ax.lab(v, { accounts }))} <span style={{ opacity: 0.7, fontWeight: 400 }}>{n}</span>
                     </button>
                   );
                 })}
@@ -2060,7 +2064,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                         border: 0, cursor: 'pointer', padding: '3px 4px', borderRadius: 5, fontSize: 11.5, color: 'var(--fg-2)' }}>
                       <i style={{ width: 6, height: 6, borderRadius: 2, flexShrink: 0, background: g?.color ?? 'var(--fg-4)' }} />
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)', flexShrink: 0 }}>{tagVal(p.tags, 'time') || '--:--'}</span>
-                      <span style={{ flexShrink: 0 }}>{CHANNELS.find((c) => c.id === p.channel)?.icon ?? '📝'}{f ? f.icon : ''}</span>
+                      <ChannelFavicon channel={p.channel} size={13} />
+                      <span style={{ flexShrink: 0 }}>{f ? f.icon : ''}</span>
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.subject || p.title}</span>
                     </button>
                   );

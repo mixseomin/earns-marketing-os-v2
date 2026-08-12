@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react';
 import { getPieceDetail } from '@/lib/actions/content';
 import { CHANNELS, tagVal, tagIds, formatOf } from '@/lib/content-channels';
+import { ChannelFavicon } from './ui/site-favicon';
 import type { CalPiece } from '@/lib/data';
 
 // Thân bài đã tải giữ lại theo id: đổi bộ lọc là danh sách dựng lại từ đầu, không có chỗ nhớ này
@@ -73,7 +74,8 @@ export function PiecePreview({ piece, accounts = [], media = [], body, compact =
     <div onClick={onOpen}
       style={{ border: '1px solid var(--line)', borderRadius: 9, overflow: 'hidden', background: 'var(--bg-1)', cursor: onOpen ? 'pointer' : 'default' }}>
       <div style={{ display: 'flex', gap: compact ? 7 : 9, alignItems: 'center', padding: compact ? '7px 9px' : '10px 12px', borderBottom: '1px solid var(--line)' }}>
-        <span style={{ width: compact ? 24 : 34, height: compact ? 24 : 34, borderRadius: '50%', background: 'var(--bg-2)', border: '1px solid var(--line)', display: 'grid', placeItems: 'center', fontSize: compact ? 11 : 15, flexShrink: 0 }}>{ch?.icon ?? '📝'}</span>
+        {/* Favicon THẬT của nền tảng (không phải emoji): nhìn cái là biết bài này lên đâu. */}
+        <ChannelFavicon channel={piece.channel} size={compact ? 24 : 34} circle title={ch?.label ?? piece.channel} />
         <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3, minWidth: 0 }}>
           <b style={{ fontSize: compact ? 11.5 : 13 }}>{acct ? (acct.handle ?? acct.platformKey) : <span style={{ color: 'var(--neon-amber)' }}>chưa gắn account</span>}</b>
           <span style={{ fontSize: compact ? 10 : 11, color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

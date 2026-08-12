@@ -100,15 +100,18 @@ export function pieceGaps(
     today?: string;
   } = {},
 ): string[] {
+  // Liệt kê theo ĐÚNG thứ tự phụ thuộc: account trước, nơi đăng sau — nơi đăng là page CỦA account,
+  // báo "chưa chọn nơi đăng" lên đầu là bảo người ta đi làm cái chưa làm được.
   const gaps: string[] = [];
   if (piece.hasBody === false) gaps.push('chưa soạn nội dung');
-  if (!tagVal(piece.tags, 'place')) gaps.push('chưa chọn nơi đăng');
 
   const acctId = Number(tagVal(piece.tags, 'acct')) || 0;
   const acct = acctId ? refs.accounts?.find((a) => a.id === acctId) : undefined;
   if (!acctId) gaps.push('chưa gắn account');
   else if (!acct) gaps.push(`account #${acctId} không có trong vault`);
   else if (acct.status !== 'active') gaps.push(`account đang ${acct.status}`);
+
+  if (!tagVal(piece.tags, 'place')) gaps.push(acctId ? 'chưa chọn nơi đăng' : 'chưa chọn nơi đăng (cần account trước)');
 
   // Profile lấy từ tag, không có thì lấy từ chính account — account chưa gắn profile nào thì
   // runner không biết mở phiên nào (đúng chỗ hụt của ~40 row facebook trong vault).

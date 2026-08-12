@@ -12,6 +12,7 @@ import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Drawer, EntityRef, EntityPicker, type EntityOption } from '@/components/ui';
 import { readManagedPages } from '@/components/account-metrics';
+import { ChannelFavicon } from '@/components/ui';
 import { CHANNELS, STATUSES, ANGLE_GROUPS, CHANNEL_PLATFORM, angleOf, formatOf, formatsFor, tagVal, tagIds, pieceGaps } from '@/lib/content-channels';
 import { updateContentPiece, getPieceDetail, type ContentInput } from '@/lib/actions/content';
 import { todayLocal } from '@/lib/local-day';
@@ -107,8 +108,17 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
     .map((t) => ({ key: `t:${t.id}`, label: t.title, sub: `#${t.id} · ${t.siteState}${t.siteScheduledAt ? ` · ${t.siteScheduledAt.slice(0, 10)}` : ''}`, fallbackIcon: '🗂', data: t }))
     .sort((p, n) => Number(String(p.sub).includes('completed')) - Number(String(n.sub).includes('completed'))), [tasks, chainIds]);
 
-  const row = (k: string, v: React.ReactNode) => (
-    <><span style={{ color: 'var(--fg-4)' }}>{k}</span><span>{v}</span></>
+  /** Một dòng "runner cần gì". `need` = ô này PHỤ THUỘC thứ chưa có → khoá lại + nói rõ thiếu gì,
+   *  thay vì để bấm vào rồi mở ra danh sách rỗng (ô "nơi đăng" chỉ có dữ liệu sau khi chọn account:
+   *  page là page CỦA account đó). Dòng phụ thuộc cũng phải nằm SAU dòng nó phụ thuộc. */
+  const row = (k: string, v: React.ReactNode, need?: string) => (
+    <>
+      <span style={{ color: need ? 'var(--fg-4)' : 'var(--fg-4)', opacity: need ? 0.6 : 1 }}>{k}</span>
+      <span style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={need ? { opacity: 0.45, pointerEvents: 'none' } : undefined}>{v}</span>
+        {need && <em style={{ fontSize: 11.5, color: 'var(--neon-amber)', fontStyle: 'normal' }}>← {need}</em>}
+      </span>
+    </>
   );
 
   return (
@@ -116,7 +126,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>
           <div style={{ fontSize: 11, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
-            📝 BÀI ĐĂNG #{piece.id} · {ch?.icon} {ch?.label ?? piece.channel} · {projectLabel ?? piece.projectId}
+            📝 BÀI ĐĂNG #{piece.id} · <ChannelFavicon channel={piece.channel} size={13} /> {ch?.label ?? piece.channel} · {projectLabel ?? piece.projectId}
             {a && <> · <span style={{ color: a.group.color }}>{a.group.label}/{a.angle}</span></>}
           </div>
           <h2 style={{ margin: '4px 0 0', fontSize: 17, fontWeight: 700 }}>{piece.title}</h2>
@@ -215,12 +225,6 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
           <div>
             <label style={lbl}>Runner cần gì để chạy</label>
             <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 12px', fontSize: 12.5, alignItems: 'center' }}>
-              {row('Nơi đăng', <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                {place && <a href={place.startsWith('http') ? place : undefined} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-blue)' }}>{placeLabel}</a>}
-                <button type="button" style={pickBtn} disabled={pending} onClick={() => setPick('place')}>{place ? 'đổi nơi đăng' : '＋ chọn nơi đăng'}</button>
-              </span>)}
-              {row('Giờ', <input type="time" style={{ ...inp, maxWidth: 120 }} defaultValue={time} disabled={pending}
-                onChange={(e) => setTag('time', e.target.value)} />)}
               {row('Account', <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 {acct && <EntityRef kind="account" id={acct.id} project={piece.projectId} label={`${acct.handle ?? acct.platformKey} · ${acct.status}`} />}
                 <button type="button" style={pickBtn} disabled={pending} onClick={() => setPick('acct')}>{acct ? 'đổi account' : '＋ chọn account'}</button>
@@ -229,6 +233,13 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
                 {prof && <EntityRef kind="browser-profile" id={prof.id} label={prof.label} title={prof.externalId ?? undefined} />}
                 <button type="button" style={pickBtn} disabled={pending} onClick={() => setPick('browser')}>{prof ? 'đổi browser' : '＋ chọn browser'}</button>
               </span>)}
+              {row('Nơi đăng', <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {place && <a href={place.startsWith('http') ? place : undefined} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-blue)' }}>{placeLabel}</a>}
+                <button type="button" style={pickBtn} disabled={pending} onClick={() => setPick('place')}>{place ? 'đổi nơi đăng' : '＋ chọn nơi đăng'}</button>
+              </span>, !acct ? 'chọn account trước (page lấy theo account)'
+                : !managed.length ? 'account này chưa có page nào trong vault' : undefined)}
+              {row('Giờ', <input type="time" style={{ ...inp, maxWidth: 120 }} defaultValue={time} disabled={pending}
+                onChange={(e) => setTag('time', e.target.value)} />)}
               {row('Asset', <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 {assets.map((m) => (
                   <span key={m.id} style={{ display: 'inline-flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start' }}>

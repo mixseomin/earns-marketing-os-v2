@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MODES } from '@/lib/mock/modes';
 import type { Project } from '@/lib/mock/types';
 import { DataTable, type DataColumn } from './ui/data-table';
@@ -15,15 +15,18 @@ type ViewKey = 'card' | 'compact';
 
 const BUCKET_LABEL = { healthy: '🟢 Healthy >80%', watch: '🟡 Watching 65-80%', critical: '🔴 Critical <65%' };
 
+// Toàn bộ status của board (trừ ô tìm) NHỚ qua F5 — localStorage. Ô tìm cố ý ephemeral (search cũ
+// còn nguyên sau F5 gây rối). Đọc 1 lần khi mount; mỗi lần đổi ghi luôn (merge, không đua ghi đè).
+type PortfolioUI = { modeFilter: string; healthFilter: 'all' | 'healthy' | 'watch' | 'critical'; kindFilter: 'all' | 'real' | 'demo'; sortBy: SortKey; sortDir: 'asc' | 'desc'; groupBy: GroupKey; view: ViewKey };
+const UI_KEY = 'portfolio-ui';
+const DEFAULT_UI: PortfolioUI = { modeFilter: 'all', healthFilter: 'all', kindFilter: 'all', sortBy: 'health', sortDir: 'desc', groupBy: 'flat', view: 'card' };
+
 export function PortfolioGrid({ projects: PROJECTS, totalBudget }: { projects: Project[]; totalBudget: number }) {
   const [q, setQ] = useState('');
-  const [modeFilter, setModeFilter] = useState<string>('all');
-  const [healthFilter, setHealthFilter] = useState<'all' | 'healthy' | 'watch' | 'critical'>('all');
-  const [kindFilter, setKindFilter] = useState<'all' | 'real' | 'demo'>('all');
-  const [sortBy, setSortBy] = useState<SortKey>('health');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  const [groupBy, setGroupBy] = useState<GroupKey>('flat');
-  const [view, setView] = useState<ViewKey>('card');
+  const [ui, setUiState] = useState<PortfolioUI>(DEFAULT_UI);
+  useEffect(() => { try { const raw = localStorage.getItem(UI_KEY); if (raw) setUiState((u) => ({ ...u, ...JSON.parse(raw) })); } catch { /* ignore */ } }, []);
+  const setUi = (patch: Partial<PortfolioUI>) => setUiState((u) => { const n = { ...u, ...patch }; try { localStorage.setItem(UI_KEY, JSON.stringify(n)); } catch { /* ignore */ } return n; });
+  const { modeFilter, healthFilter, kindFilter, sortBy, sortDir, groupBy, view } = ui;
 
   const allModes = useMemo(() => Array.from(new Set(PROJECTS.map((p) => p.mode))).sort(), [PROJECTS]);
 
@@ -106,42 +109,42 @@ export function PortfolioGrid({ projects: PROJECTS, totalBudget }: { projects: P
             {sorted.length}/{PROJECTS.length}
           </span>
           <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
-            <button onClick={() => setView('card')} style={view === 'card' ? chipActive : chipBase} title="Card view (2-col grid)">▦ card</button>
-            <button onClick={() => setView('compact')} style={view === 'compact' ? chipActive : chipBase} title="Compact dense table">≡ compact</button>
+            <button onClick={() => setUi({ view: 'card' })} style={view === 'card' ? chipActive : chipBase} title="Card view (2-col grid)">▦ card</button>
+            <button onClick={() => setUi({ view: 'compact' })} style={view === 'compact' ? chipActive : chipBase} title="Compact dense table">≡ compact</button>
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>Health</span>
           {(['all', 'healthy', 'watch', 'critical'] as const).map((k) => (
-            <button key={k} onClick={() => setHealthFilter(k)} style={healthFilter === k ? chipActive : chipBase}>
+            <button key={k} onClick={() => setUi({ healthFilter: k })} style={healthFilter === k ? chipActive : chipBase}>
               {k === 'all' ? 'all' : k === 'healthy' ? '🟢 healthy' : k === 'watch' ? '🟡 watch' : '🔴 critical'}
             </button>
           ))}
           <span style={{ width: 1, height: 16, background: 'var(--line)', margin: '0 4px' }} />
           <span style={{ fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>Kind</span>
           {(['all', 'real', 'demo'] as const).map((k) => (
-            <button key={k} onClick={() => setKindFilter(k)} style={kindFilter === k ? chipActive : chipBase}>{k}</button>
+            <button key={k} onClick={() => setUi({ kindFilter: k })} style={kindFilter === k ? chipActive : chipBase}>{k}</button>
           ))}
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>Mode</span>
-          <button onClick={() => setModeFilter('all')} style={modeFilter === 'all' ? chipActive : chipBase}>all</button>
+          <button onClick={() => setUi({ modeFilter: 'all' })} style={modeFilter === 'all' ? chipActive : chipBase}>all</button>
           {allModes.map((m) => (
-            <button key={m} onClick={() => setModeFilter(m)} style={modeFilter === m ? chipActive : chipBase}>{MODES[m]?.label ?? m}</button>
+            <button key={m} onClick={() => setUi({ modeFilter: m })} style={modeFilter === m ? chipActive : chipBase}>{MODES[m]?.label ?? m}</button>
           ))}
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>Group</span>
           {(['flat', 'mode', 'health', 'kind'] as const).map((g) => (
-            <button key={g} onClick={() => setGroupBy(g)} style={groupBy === g ? chipActive : chipBase}>{g}</button>
+            <button key={g} onClick={() => setUi({ groupBy: g })} style={groupBy === g ? chipActive : chipBase}>{g}</button>
           ))}
           <span style={{ width: 1, height: 16, background: 'var(--line)', margin: '0 4px' }} />
           <span style={{ fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>Sort</span>
           {(['health', 'name', 'budget', 'alerts'] as const).map((s) => (
-            <button key={s} onClick={() => { if (sortBy === s) setSortDir((d) => d === 'asc' ? 'desc' : 'asc'); else setSortBy(s); }} style={sortBy === s ? chipActive : chipBase}>
+            <button key={s} onClick={() => setUi(sortBy === s ? { sortDir: sortDir === 'asc' ? 'desc' : 'asc' } : { sortBy: s })} style={sortBy === s ? chipActive : chipBase}>
               {s}{sortBy === s ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
             </button>
           ))}

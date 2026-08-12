@@ -45,8 +45,10 @@ export interface DataGroup {
 export type DataView = 'table' | 'card';
 
 export interface DataCard<T> {
-  render: (row: T, index: number) => ReactNode;   // vẽ 1 thẻ (đầy đủ khung); DataTable chỉ lo lưới + click.
-  minWidth?: number;                                // bề rộng tối thiểu 1 thẻ trước khi xuống hàng (default 300)
+  // Vẽ 1 thẻ (đầy đủ khung). BỎ TRỐNG → DataTable tự dựng thẻ từ CỘT: cột đầu = tiêu đề, các cột còn
+  // lại = hàng nhãn:giá-trị. Nhờ vậy card là cơ chế CHUNG của mọi DataTable, không cần viết tay từng bảng.
+  render?: (row: T, index: number) => ReactNode;
+  minWidth?: number;                                // bề rộng tối thiểu 1 thẻ trước khi xuống hàng (default 260)
 }
 
 interface DataTableProps<T> {
@@ -74,7 +76,7 @@ interface DataTableProps<T> {
    * - Controlled: truyền `view` (+ `onViewChange` nếu muốn nút nội bộ báo ra) → caller tự làm nút
    *   chuyển; DataTable KHÔNG hiện nút riêng (tránh 2 nút khi 1 trang có nhiều bảng cùng 1 toggle).
    */
-  card?: DataCard<T>;
+  card?: DataCard<T> | boolean;           // true = bật thẻ auto (dựng từ cột); object = tuỳ biến/minWidth
   view?: DataView;
   onViewChange?: (v: DataView) => void;
   defaultView?: DataView;                 // uncontrolled default (default 'card' khi có `card`)
@@ -93,6 +95,9 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   const [q, setQ] = useState('');
 
+  // Thẻ: `card` có thể là true (auto từ cột) hoặc object (render tuỳ biến / minWidth). Chuẩn hoá 1 lần.
+  const cardOn = !!card;
+  const cardCfg: DataCard<T> = card && card !== true ? card : {};
   // Chế độ nhìn (thẻ/bảng). Controlled khi caller truyền `view`; nếu không, tự giữ + nhớ theo persistKey.
   const viewKey = persistKey ? `${persistKey}:view` : undefined;
   const [internalView, setInternalView] = useState<DataView>(defaultView ?? 'card');
@@ -100,12 +105,12 @@ export function DataTable<T>({
     if (!viewKey || view !== undefined) return;
     try { const v = localStorage.getItem(viewKey); if (v === 'card' || v === 'table') setInternalView(v); } catch { /* ignore */ }
   }, [viewKey, view]);
-  const effView: DataView = card ? (view ?? internalView) : 'table';   // không có `card` → luôn bảng (hành vi cũ)
+  const effView: DataView = cardOn ? (view ?? internalView) : 'table';   // không có `card` → luôn bảng (hành vi cũ)
   const setView = (v: DataView) => {
     setInternalView(v); onViewChange?.(v);
     if (viewKey) { try { localStorage.setItem(viewKey, v); document.cookie = `${viewKey}=${v}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`; } catch { /* ignore */ } }
   };
-  const showViewToggle = !!card && view === undefined;   // controlled → caller tự làm nút
+  const showViewToggle = cardOn && view === undefined;   // controlled → caller tự làm nút
   const colsRef = useRef<HTMLDetailsElement>(null);
   const groupMeta = new Map((groups ?? []).map((g) => [g.key, g]));
   const defaults = () => Object.fromEntries((groups ?? []).map((g) => [g.key, g.defaultOn ?? true])) as Record<string, boolean>;
@@ -242,13 +247,28 @@ export function DataTable<T>({
         </div>
       )}
 
-      {effView === 'card' && card ? (
-        <div className="dt-cards" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${card.minWidth ?? 300}px, 1fr))`, gap: 12 }}>
+      {effView === 'card' && cardOn ? (
+        <div className="dt-cards" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${cardCfg.minWidth ?? 260}px, 1fr))`, gap: 12 }}>
           {sortedRows.map((row, i) => (
             <div key={getRowKey(row, i)} title={rowTitle?.(row)}
                  onClick={onRowClick ? () => onRowClick(row, i) : undefined}
                  style={onRowClick ? { cursor: 'pointer' } : undefined}>
-              {card.render(row, i)}
+              {cardCfg.render ? cardCfg.render(row, i) : (
+                // Thẻ AUTO từ cột: cột đầu = tiêu đề (thường là nhãn/tên), phần còn lại = hàng nhãn:giá-trị.
+                <div style={{ border: '1px solid var(--line)', borderRadius: 10, background: 'var(--bg-1)', padding: '10px 12px', height: '100%', boxSizing: 'border-box' }}>
+                  {visible[0] && <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', marginBottom: visible.length > 1 ? 7 : 0, minWidth: 0 }}>{visible[0].cell(row, i)}</div>}
+                  {visible.length > 1 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {visible.slice(1).map((c) => (
+                        <div key={c.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+                          <span style={{ fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{c.header}</span>
+                          <span style={{ fontSize: 12, color: 'var(--fg-1)', fontFamily: 'var(--font-mono)', textAlign: 'right', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.cell(row, i)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ))}
           {!sortedRows.length && (

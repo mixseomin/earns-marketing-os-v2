@@ -19,7 +19,7 @@ import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
-import { CHANNELS, ANGLE_GROUPS, MIX_TARGET, angleOf, pieceGaps, shouldWarnGaps } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
+import { CHANNELS, ANGLE_GROUPS, MIX_TARGET, angleOf, tagVal, pieceGaps, shouldWarnGaps } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
 import { StatusSegmented, Segmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
@@ -908,11 +908,15 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const typeKeyOf = useMemo(() => (t: BacklinkTask) => taskTypeKey({ title: t.title, mechanism: t.mechanism, communitySeed: t.communitySeed, product: productTaskIds.has(t.id), instructions: t.instructions, archetype: t.archetype, format: t.format }), [productTaskIds]);
   // View / chế độ lịch / ẩn-đã-xong = LỰA CHỌN, không phải vị trí điều hướng → nhớ vào cookie (lib/prefs).
   // Thứ tự: URL (link chia sẻ) → lựa chọn đã nhớ → mặc định của trang.
-  const [view, setViewState] = useState<'list' | 'calendar' | 'kanban'>(() => {
+  // 'feed' = chế độ ĐỌC: chỉ bài đăng, xếp theo ngày rồi theo giờ, dựng như một dòng thread mạng xã
+  // hội. Lịch trả lời "hôm đó có gì"; feed trả lời "đọc lần lượt những gì sắp đăng" — mở lịch ra mà
+  // còn việc/backlink/thống kê xen vào thì không duyệt nội dung được.
+  const [view, setViewState] = useState<'list' | 'calendar' | 'kanban' | 'feed'>(() => {
     const v = pick(sp.get('view'), prefs['plays.view'], initialView === 'kanban' ? 'kanban' : 'calendar');
-    return v === 'list' || v === 'kanban' || v === 'calendar' ? v : 'calendar';
+    return v === 'list' || v === 'kanban' || v === 'calendar' || v === 'feed' ? v : 'calendar';
   });
-  const setView = (v: 'list' | 'calendar' | 'kanban') => { setViewState(v); setPref('plays.view', v); };
+  const setView = (v: 'list' | 'calendar' | 'kanban' | 'feed') => { setViewState(v); setPref('plays.view', v); };
+  const focus = view === 'feed';
   // Auto-refresh every 10s on the LIVE views (calendar + kanban — where cards move); skip the list view
   // (don't disrupt reading/inline edits) and backgrounded tabs. Header checkbox toggles `realtime`.
   useEffect(() => {
@@ -1284,6 +1288,19 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
 
   // Cân bằng nội dung của đúng tập bài đang hiện trên lịch. Đọc lại từ calItems (đã qua bộ lọc)
   // thay vì lọc lần hai — một nguồn, không có chỗ cho hai bộ lọc lệch nhau.
+  // Feed = bài xếp theo NGÀY rồi theo GIỜ (tag time:), gom theo ngày. Đúng trình tự sẽ đăng thật,
+  // nên đọc từ trên xuống là thấy nhịp của cả tuần: sáng meme → trưa tin → tối số liệu.
+  const feedDays = useMemo(() => {
+    const by = new Map<string, CalPiece[]>();
+    for (const p of piecesInScope) {
+      if (!p.date) continue;
+      (by.get(p.date) ?? by.set(p.date, []).get(p.date)!).push(p);
+    }
+    return [...by.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([d, ps]) => [d, ps.sort((x, y) => (tagVal(x.tags, 'time') || '99:99').localeCompare(tagVal(y.tags, 'time') || '99:99'))] as const);
+  }, [piecesInScope]);
+
   const pieceMix = useMemo(() => {
     const by = new Map<string, number>();
     const byAngle = new Map<string, number>();
@@ -1599,8 +1616,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         ))}
       </div>
 
-      {/* account-readiness rollup — per-project only (hidden in the global /plays aggregate) */}
-      {!allProjects && (<div style={{ marginBottom: 10, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)', fontSize: 11 }}>
+      {/* account-readiness rollup — per-project only (hidden in the global /plays aggregate). Chế độ đọc thì ẩn: đang duyệt nội dung, không phải chuẩn bị account. */}
+      {!allProjects && !focus && (<div style={{ marginBottom: 10, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)', fontSize: 11 }}>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.05em', fontSize: 9.5 }}>Accounts</span>
           {(['ready', 'missing', 'warming', 'setup', 'locked', 'no-account'] as ReadinessBucket[]).map((b) => prep.c[b] ? (
@@ -1647,7 +1664,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
             </Popover>
           );
         })()}
-        <ViewToggle style={{ marginLeft: 'auto' }} options={[...LIST_CALENDAR_VIEWS, { value: 'kanban', label: '▦ Kanban', title: 'Kanban theo trạng thái' }]} value={view} onChange={(v) => setView(v as 'list' | 'calendar' | 'kanban')} />
+        <ViewToggle style={{ marginLeft: 'auto' }} options={[...LIST_CALENDAR_VIEWS, { value: 'kanban', label: '▦ Kanban', title: 'Kanban theo trạng thái' }, { value: 'feed', label: '📖 Nội dung', title: 'Chỉ bài đăng — đọc lần lượt theo giờ như một thread' }]} value={view} onChange={(v) => setView(v as 'list' | 'calendar' | 'kanban' | 'feed')} />
         {view === 'list' && (
           <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--fg-3)' }} title="Nhóm danh sách theo tiêu chí (không đổi bộ lọc)">
             <span>nhóm</span>
@@ -1658,8 +1675,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         )}
       </div>
 
-      {/* Row 2 — status. Shared vault-list FilterChips: single-select chip group + counts, one YDNI accent. */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+      {/* Row 2 — status. Shared vault-list FilterChips: single-select chip group + counts, one YDNI accent.
+          Chế độ đọc ẩn cả hàng: trạng thái VIỆC (queued/submitted/verified…) không nói gì về BÀI. */}
+      {!focus && (<div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         {/* Bộ chip CỐ ĐỊNH 7 trạng thái + All, không thêm/bớt theo toggle. Bản trước giấu 4 chip khi
             ẩn xong/bỏ/lỗi cho "gọn" → bật/tắt là cả hàng dịch chỗ, chip vừa bấm nhảy đi nơi khác.
             Gọn không đáng để đổi lấy việc người dùng mất dấu thứ mình vừa bấm.
@@ -1683,7 +1701,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
             hiện việc đã xong/bỏ/lỗi ({closedTotal})
           </label>
         )}
-      </div>
+      </div>)}
 
       {/* Row 3 — project (global /plays only): searchable select, YDNI >5-items rule */}
       {allProjects && (() => {
@@ -1726,7 +1744,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
 
       {/* 🕒 Hoạt động gần đây (global) — vừa thêm / nộp / xong, mới nhất trên đầu. Bấm 1 dòng → mở
           drawer chi tiết. "Để biết" mà không phải quét cả lịch. Collapsible (native details) — YDNI. */}
-      {recentActivity.length > 0 && (
+      {recentActivity.length > 0 && !focus && (
         // YDNI: mặc định GẬP — calendar là chính, panel "vừa xong" chỉ là tham chiếu 1-cú-bấm.
         // Summary + số vẫn hiện (biết có N hoạt động); bung khi cần. Trước để `open` → chiếm ~260px đè lịch.
         <details style={{ marginBottom: 12, border: '1px solid var(--line)', borderRadius: 10, background: 'var(--bg-1)' }}>
@@ -1785,6 +1803,35 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
             );
           })}
           {!shown.length && <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13, gridColumn: '1 / -1' }}>{emptyNote}</div>}
+        </div>
+      ) : view === 'feed' ? (
+        /* CHẾ ĐỘ ĐỌC — chỉ nội dung. Cột hẹp như feed thật; mốc giờ + đường dọc bên trái để thấy
+           TRÌNH TỰ trong ngày. Khối bài dùng chung PiecePreview với lịch và drawer, nên "plan trông
+           thế nào thì đăng đúng thế": không có bản dựng riêng cho lúc duyệt. */
+        <div style={{ maxWidth: 680, margin: '0 auto', width: '100%' }}>
+          {feedDays.length === 0 && <div style={{ padding: 28, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Chưa có bài nào đặt ngày.</div>}
+          {feedDays.map(([d, ps]) => (
+            <div key={d} style={{ marginBottom: 10 }}>
+              <div style={{ position: 'sticky', top: 0, zIndex: 3, background: 'var(--bg-0, #0b0d12)', padding: '9px 0 7px',
+                borderBottom: '1px solid var(--line)', fontSize: 12.5, fontWeight: 700, display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                <span style={{ color: d === today ? 'var(--neon-cyan)' : 'var(--fg-1)' }}>
+                  {new Date(`${d}T12:00:00`).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' })}
+                </span>
+                <span style={{ color: 'var(--fg-4)', fontWeight: 400, fontSize: 11.5 }}>{d} · {ps.length} bài</span>
+              </div>
+              {ps.map((p) => (
+                <div key={p.id} style={{ display: 'flex', gap: 12, padding: '12px 0' }}>
+                  <div style={{ width: 46, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)' }}>{tagVal(p.tags, 'time') || '--:--'}</span>
+                    <span style={{ flex: 1, width: 1, background: 'var(--line)' }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <PiecePreview piece={p} accounts={accounts} media={media} onOpen={() => setOpenPieceId(p.id)} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       ) : view === 'calendar' ? (
         <>

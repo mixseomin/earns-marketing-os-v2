@@ -1295,6 +1295,18 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const [feedMonth, setFeedMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [feedActive, setFeedActive] = useState(() => today ?? todayLocal());
   const feedRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  // Chiều cao thanh công cụ ĐO THẬT: nó xuống 2 dòng khi cửa sổ hẹp, nên hằng số 44px là sai ở
+  // đúng lúc cần đúng — header ngày chui tọt vào sau thanh và biến mất.
+  const barRef = useRef<HTMLDivElement | null>(null);
+  const [barH, setBarH] = useState(46);
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setBarH(el.offsetHeight));
+    ro.observe(el);
+    setBarH(el.offsetHeight);
+    return () => ro.disconnect();
+  }, [view]);
 
   const feedDays = useMemo(() => {
     const by = new Map<string, CalPiece[]>();
@@ -1670,8 +1682,10 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           DÍNH khi cuộn ở chế độ đọc: đây là thứ duy nhất còn cần trong lúc đọc (đổi view, đổi loại,
           tìm). Còn KPI/chip trạng thái/chip project thì KHÔNG dính — nhìn một lần lúc vào, giữ lại
           chỉ tổ ăn chỗ của nội dung. */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center',
-        ...(focus ? { position: 'sticky' as const, top: 0, zIndex: 30, background: 'var(--bg-0)', padding: '6px 0' } : {}) }}>
+      <div ref={barRef} style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center',
+        // boxShadow trải rộng = vá luôn dải padding phía trên của khung cuộn; không có nó thì thấy
+        // nội dung trườn qua khe hở giữa mép trên và thanh công cụ.
+        ...(focus ? { position: 'sticky' as const, top: 0, zIndex: 30, background: 'var(--bg-0)', padding: '8px 0', boxShadow: '0 -14px 0 14px var(--bg-0)' } : {}) }}>
         <SearchInput value={q} onChange={setQ} placeholder="tìm task (tên/URL/method/niche)…" width={240} />
         <Segmented options={[{ value: '', label: 'All' }, { value: 'backlink', label: '🔗 Backlink' }, { value: 'email', label: '✉ Email' }, { value: 'seed', label: '🌱 Seed' }, { value: 'build', label: '📕 Sản phẩm' }, { value: 'research', label: '📚 Nghiên cứu' }, { value: 'followup', label: '📌 Follow-up' }, { value: 'content', label: '📝 Bài đăng' }]}
           value={kind} onChange={(v) => setKind(v as KindFilter)} />
@@ -1840,7 +1854,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         <div style={{ display: 'flex', gap: 22, alignItems: 'flex-start' }}>
           {/* La bàn: MINI-MONTH y như ở lịch (cùng component) — chấm = ngày có bài, ô sáng = ngày
               đang đọc. Bấm ngày → cuộn thẳng tới ngày đó. Không có nó thì cuộn một lúc là mất dấu. */}
-          <div style={{ position: 'sticky', top: 46, width: 232, flexShrink: 0 }}>
+          <div style={{ position: 'sticky', top: barH + 8, width: 232, flexShrink: 0 }}>
             <MiniMonth month={feedMonth} sel={new Set([feedActive])} byDate={feedByDate} today={today}
               onNavMonth={(dir) => setFeedMonth((m) => new Date(m.getFullYear(), m.getMonth() + dir, 1))}
               onPick={(d) => {
@@ -1860,8 +1874,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
               nếu header không nằm trên hẳn), nền ĐẶC để chữ không chồng lên ảnh; top=44 để nằm ngay
               dưới thanh công cụ đang dính. */}
           {feedDays.map(([d, ps]) => (
-            <div key={d} id={`feed-${d}`} ref={(el) => { feedRefs.current[d] = el; }} style={{ position: 'relative', marginBottom: 10, scrollMarginTop: 46 }}>
-              <div style={{ position: 'sticky', top: 44, zIndex: 20, background: 'var(--bg-0)', padding: '9px 2px 7px',
+            <div key={d} id={`feed-${d}`} ref={(el) => { feedRefs.current[d] = el; }} style={{ position: 'relative', marginBottom: 10, scrollMarginTop: barH + 8 }}>
+              <div style={{ position: 'sticky', top: barH, zIndex: 20, background: 'var(--bg-0)', padding: '9px 2px 7px',
                 borderBottom: '1px solid var(--line)', fontSize: 12.5, fontWeight: 700, display: 'flex', gap: 8, alignItems: 'baseline' }}>
                 <span style={{ color: d === today ? 'var(--neon-cyan)' : 'var(--fg-1)' }}>
                   {new Date(`${d}T12:00:00`).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' })}

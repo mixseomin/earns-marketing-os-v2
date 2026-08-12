@@ -1160,7 +1160,9 @@ export type ContentPieceRow = {
 export type CalPiece = { id: number; projectId: string; title: string; subject: string | null; channel: string; status: string; date: string; tags: string[]; hasBody: boolean; hasLink: boolean;
   /** Thân bài (cắt 2000 ký tự) đi kèm luôn: 139 bài = 22 kB, rẻ hơn hẳn 139 lần gọi server action
    *  để lấy từng bài — đo thật trên /plays: 142 POST, networkidle 38 giây. */
-  body: string };
+  body: string;
+  /** Đã đăng thì bản dựng phải nói được: đăng lúc nào, bài thật ở đâu. */
+  publishUrl: string | null; publishedAt: string | null };
 export async function listScheduledContentPieces(projectId?: string): Promise<CalPiece[]> {
   return tryDb(async () => {
     const db = getDb(); if (!db) return [];
@@ -1169,6 +1171,7 @@ export async function listScheduledContentPieces(projectId?: string): Promise<Ca
              to_char(scheduled_at, 'YYYY-MM-DD') AS date, tags,
              (length(coalesce(body_md, '')) > 0) AS has_body,
              left(coalesce(body_md, ''), 2000) AS body,
+             publish_url, to_char(published_at, 'YYYY-MM-DD HH24:MI') AS published_at,
              -- CÓ LINK hay không là chuyện của bản thân thân bài, không phải của tag: nền tảng tự
              -- biến 'militarycalc.com' trần thành link y như https://… , nên bắt cả hai dạng.
              (coalesce(body_md, '') ~* '(https?://|\m[a-z0-9][a-z0-9-]*\.(com|org|net|io|gov|app|co)\M)') AS has_link
@@ -1185,6 +1188,8 @@ export async function listScheduledContentPieces(projectId?: string): Promise<Ca
       hasBody: r.has_body === true,
       hasLink: r.has_link === true,
       body: String(r.body ?? ''),
+      publishUrl: (r.publish_url as string | null) ?? null,
+      publishedAt: (r.published_at as string | null) ?? null,
     }));
   }, [], 'listScheduledContentPieces');
 }

@@ -1381,7 +1381,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       const risks = pieceRisks(p, { replies: repliesOf.get(p.id) });
       out.push({
         id: `c:${p.id}`, date: p.date, icon: 'docpen',
-        label: `${plbl}${gaps.length ? '⚠ ' : ''}${risks.length ? '🔗 ' : ''}${(repliesOf.get(p.id)?.length ?? 0) ? '💬 ' : ''}${(p.subject || p.title).replace(/\s+/g, ' ').trim()}`,
+        // 🔗 = bài CÓ LINK (dấu nhận biết, không phải cảnh báo) — trước chỉ hiện khi có rủi ro nên
+        // bài đã kiểm link xong lại mất dấu, nhìn danh sách không biết bài nào mang link.
+        label: `${plbl}${gaps.length ? '⚠ ' : ''}${p.hasLink ? '🔗 ' : ''}${(repliesOf.get(p.id)?.length ?? 0) ? '💬 ' : ''}${(p.subject || p.title).replace(/\s+/g, ' ').trim()}`,
         lead: <ChannelFavicon channel={p.channel} size={13} title={ch?.label ?? p.channel} />,
         color: a ? a.group.color : 'var(--fg-3)',
         done: p.status === 'published', dim: p.status === 'draft',
@@ -2176,7 +2178,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                       <i style={{ width: 6, height: 6, borderRadius: 2, flexShrink: 0, background: g?.color ?? 'var(--fg-4)' }} />
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)', flexShrink: 0 }}>{tagVal(p.tags, 'time') || '--:--'}</span>
                       <ChannelFavicon channel={p.channel} size={13} />
-                      <span style={{ flexShrink: 0 }}>{f ? f.icon : ''}{(repliesOf.get(p.id)?.length ?? 0) ? '💬' : ''}</span>
+                      <span style={{ flexShrink: 0 }}>{f ? f.icon : ''}{p.hasLink ? '🔗' : ''}{(repliesOf.get(p.id)?.length ?? 0) ? '💬' : ''}</span>
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.subject || p.title}</span>
                     </button>
                   );
@@ -2218,7 +2220,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       )}
 
       {open && <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} product={products.find((pr) => pr.cards.some((c) => c.id === open.id))} onOpenProduct={(s) => { setOpenId(null); setOpenProd(s); }} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} setResume={setResume} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} onLocate={() => locateInCalendar(open)} />}
-      {openPieceId != null && (() => { const pc = pieces.find((x) => x.id === openPieceId); return pc ? <PieceDrawer piece={pc} projectLabel={allProjects ? (projectsById?.[pc.projectId]?.name ?? pc.projectId) : siteLabel} accounts={accounts} browserProfiles={browserProfiles} media={media} tasks={tasks} replies={repliesOf.get(pc.id) ?? []} onOpenTask={(id) => { setOpenPieceId(null); openTask(id); }} onClose={() => setOpenPieceId(null)} /> : null; })()}
+      {openPieceId != null && (() => { const pc = pieces.find((x) => x.id === openPieceId); return pc ? <PieceDrawer piece={pc} projectLabel={allProjects ? (projectsById?.[pc.projectId]?.name ?? pc.projectId) : siteLabel} accounts={accounts} browserProfiles={browserProfiles} media={media} tasks={tasks} replies={repliesOf.get(pc.id) ?? []} onOpenPiece={(id) => setOpenPieceId(id)} onOpenTask={(id) => { setOpenPieceId(null); openTask(id); }} onClose={() => setOpenPieceId(null)} /> : null; })()}
       {openFollowupId != null && (() => { const f = followups.find((x) => x.id === openFollowupId); return f ? <FollowupDrawer followup={f} projectLabel={allProjects ? (projectsById?.[f.projectId]?.name ?? f.projectId) : siteLabel} onClose={() => setOpenFollowupId(null)} /> : null; })()}
       {/* Outreach drawer — page-level + URL-driven (?outreach=<pid>), stacked ON the task drawer. Standard pattern (parent owns both open states). */}
       {open && outreachPid != null && <TaskOutreachDrawer projectId={projectForTask(open).id} prospectId={outreachPid} initialChannel={outreachCh} onChannel={setOutreachCh} onClose={() => { setOutreachPid(null); setOutreachCh(''); }} onChange={() => start(() => router.refresh())} />}

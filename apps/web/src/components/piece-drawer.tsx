@@ -33,10 +33,12 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'overview', label: 'Overview' }, { key: 'prepare', label: 'Prepare' }, { key: 'logs', label: 'Logs' },
 ];
 
-export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfiles = [], media = [], tasks = [], replies = [], onOpenTask, onClose }: {
+export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfiles = [], media = [], tasks = [], replies = [], onOpenPiece, onOpenTask, onClose }: {
   piece: CalPiece; projectLabel?: string; onClose: () => void;
   /** Comment đầu đã có của bài này (piece con, tag replyto:) */
   replies?: CalPiece[];
+  /** Mở một bài khác trong cùng drawer stack (dùng để nhảy từ comment sang bài cha). */
+  onOpenPiece?: (id: number) => void;
   accounts?: Array<{ id: number; platformKey: string; handle: string | null; status: string; browserProfileId?: number | null; accountStats?: Record<string, unknown> }>;
   browserProfiles?: Array<{ id: number; label: string; externalId: string | null; lastOpenedAt: string | null }>;
   media?: Array<{ id: number; url: string; filename: string; kind: string }>;
@@ -76,6 +78,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const chain = chainIds.map((id) => tasks.find((t) => t.id === id)).filter(Boolean) as NonNullable<typeof tasks>;
   const gaps = pieceGaps(piece, { accounts, browserProfiles, media, tasks, today: todayLocal() });
   const risks = pieceRisks(piece, { replies });
+  const parentId = Number(tagVal(piece.tags, 'replyto')) || 0;
 
   useEffect(() => { getPieceDetail(piece.id, piece.projectId).then(setDetail); }, [piece.id, piece.projectId]);
 
@@ -149,6 +152,14 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
           </div>
         )}
 
+        {parentId > 0 && (
+          // Mở đúng piece comment thì trước đây nó trông như một bài rời: không thấy nó là comment
+          // của bài nào, cũng không có đường sang bài cha.
+          <div style={{ padding: '7px 11px', borderRadius: 7, border: '1px solid var(--line)', background: 'var(--bg-2)', fontSize: 12.5, display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span style={{ color: 'var(--fg-3)' }}>↩ Đây là <b>comment đầu</b> của bài #{parentId}</span>
+            <button type="button" style={{ ...pickBtn, marginLeft: 'auto' }} onClick={() => onOpenPiece?.(parentId)}>mở bài cha</button>
+          </div>
+        )}
         {risks.length > 0 && (
           // Khác banner "thiếu nguyên liệu": cái kia là chạy KHÔNG được, cái này là chạy được nhưng
           // bài sẽ bị dìm. Hai loại vấn đề, hai chỗ, không gộp cho gọn.

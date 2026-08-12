@@ -93,6 +93,19 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
   return (
     <div onClick={onOpen}
       style={{ border: '1px solid var(--line)', borderRadius: 9, overflow: 'hidden', background: 'var(--bg-1)', cursor: onOpen ? 'pointer' : 'default' }}>
+      {piece.status === 'published' && (
+        // Bài đã lên rồi thì bản dựng phải nói ra: lên lúc nào, bài thật ở đâu. Không có link đã lưu
+        // thì đó là một lỗ hổng thật (không ai kiểm được nó có sống không), nên nói thẳng.
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: compact ? '5px 9px' : '7px 12px',
+          background: 'color-mix(in srgb, var(--ok) 14%, transparent)', borderBottom: '1px solid var(--line)', fontSize: compact ? 10.5 : 11.5 }}>
+          <b style={{ color: 'var(--ok)' }}>✓ Đã đăng</b>
+          {piece.publishedAt && <span style={{ color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{piece.publishedAt}</span>}
+          {piece.publishUrl
+            ? <a href={piece.publishUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+                style={{ marginLeft: 'auto', color: 'var(--neon-blue)' }}>mở bài thật ↗</a>
+            : <span style={{ marginLeft: 'auto', color: 'var(--neon-amber)' }}>chưa lưu link bài</span>}
+        </div>
+      )}
       <div style={{ display: 'flex', gap: compact ? 7 : 9, alignItems: 'center', padding: compact ? '7px 9px' : '10px 12px', borderBottom: '1px solid var(--line)' }}>
         {/* Favicon THẬT của nền tảng (không phải emoji): nhìn cái là biết bài này lên đâu. */}
         <ChannelFavicon channel={piece.channel} size={compact ? 24 : 34} circle title={ch?.label ?? piece.channel} />

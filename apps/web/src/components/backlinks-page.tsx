@@ -1374,6 +1374,14 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const feedRefs = useRef<Record<string, HTMLDivElement | null>>({});
   // Chiều cao thanh công cụ ĐO THẬT: nó xuống 2 dòng khi cửa sổ hẹp, nên hằng số 44px là sai ở
   // đúng lúc cần đúng — header ngày chui tọt vào sau thanh và biến mất.
+  // Rail toàn cảnh chỉ bật khi còn chỗ thật (232 mini-cal + 680 cột đọc + 330 rail + khe).
+  const [wideScreen, setWideScreen] = useState(true);
+  useEffect(() => {
+    const on = () => setWideScreen(window.innerWidth >= 1500);
+    on();
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
+  }, []);
   const barRef = useRef<HTMLDivElement | null>(null);
   const [barH, setBarH] = useState(46);
   useEffect(() => {
@@ -2010,7 +2018,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                 </div>
               </div>
               {ps.map((p) => (
-                <div key={p.id} style={{ display: 'flex', gap: 12, padding: '12px 0' }}>
+                <div key={p.id} id={`piece-${p.id}`} style={{ display: 'flex', gap: 12, padding: '12px 0', scrollMarginTop: barH + 56 }}>
                   <div style={{ width: 46, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)' }}>{tagVal(p.tags, 'time') || '--:--'}</span>
                     <span style={{ flex: 1, width: 1, background: 'var(--line)' }} />
@@ -2023,6 +2031,44 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
             </div>
           ))}
         </div>
+
+        {/* Cột phải ở chế độ đọc trước đây bỏ trống, mà cột đọc thì cố tình hẹp (680px cho dễ đọc).
+            Rail này lấp đúng chỗ đó: cả kế hoạch dạng một dòng một bài — giờ · kênh · kiểu · tiêu đề,
+            chấm màu theo nhóm góc. Bấm là nhảy tới đúng bài. Chỉ dựng khi cửa sổ đủ rộng, hẹp thì
+            nó ăn mất chỗ của chính nội dung. */}
+        {wideScreen && feedDays.length > 0 && (
+          <div style={{ position: 'sticky', top: barH + 8, width: 330, flexShrink: 0, maxHeight: `calc(100vh - ${barH + 120}px)`,
+            overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 10, background: 'var(--bg-1)', padding: '9px 10px' }}>
+            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)', marginBottom: 7 }}>
+              Toàn cảnh · {piecesShown.length} bài
+            </div>
+            {feedDays.map(([d, ps]) => (
+              <div key={d} style={{ marginBottom: 8 }}>
+                <button type="button" onClick={() => document.getElementById(`feed-${d}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 0, cursor: 'pointer', padding: '3px 4px', borderRadius: 5,
+                    fontSize: 11, fontWeight: 700, color: d === feedActive ? 'var(--neon-cyan)' : 'var(--fg-3)' }}>
+                  {new Date(`${d}T12:00:00`).toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                  <span style={{ fontWeight: 400, color: 'var(--fg-4)' }}> · {ps.length}</span>
+                </button>
+                {ps.map((p) => {
+                  const g = angleOf(p.tags)?.group;
+                  const f = FORMATS.find((x) => x.id === tagVal(p.tags, 'format'));
+                  return (
+                    <button key={p.id} type="button" title={p.subject || p.title}
+                      onClick={() => document.getElementById(`piece-${p.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                      style={{ display: 'flex', gap: 6, alignItems: 'center', width: '100%', textAlign: 'left', background: 'transparent',
+                        border: 0, cursor: 'pointer', padding: '3px 4px', borderRadius: 5, fontSize: 11.5, color: 'var(--fg-2)' }}>
+                      <i style={{ width: 6, height: 6, borderRadius: 2, flexShrink: 0, background: g?.color ?? 'var(--fg-4)' }} />
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)', flexShrink: 0 }}>{tagVal(p.tags, 'time') || '--:--'}</span>
+                      <span style={{ flexShrink: 0 }}>{CHANNELS.find((c) => c.id === p.channel)?.icon ?? '📝'}{f ? f.icon : ''}</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.subject || p.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
         </div>
         </div>
       ) : view === 'calendar' ? (

@@ -223,17 +223,17 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
             <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 12px', fontSize: 12.5, alignItems: 'center' }}>
               {row('Nơi đăng', <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 {place && <a href={place.startsWith('http') ? place : undefined} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-blue)' }}>{placeLabel}</a>}
-                <button type="button" style={pickBtn} disabled={pending} onClick={() => setPick('place')}>{place ? 'đổi' : '＋ chọn nơi đăng'}</button>
+                <button type="button" style={pickBtn} disabled={pending} onClick={() => setPick('place')}>{place ? 'đổi nơi đăng' : '＋ chọn nơi đăng'}</button>
               </span>)}
               {row('Giờ', <input type="time" style={{ ...inp, maxWidth: 120 }} defaultValue={time} disabled={pending}
                 onChange={(e) => setTag('time', e.target.value)} />)}
               {row('Account', <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 {acct && <EntityRef kind="account" id={acct.id} project={piece.projectId} label={`${acct.handle ?? acct.platformKey} · ${acct.status}`} />}
-                <button type="button" style={pickBtn} disabled={pending} onClick={() => setPick('acct')}>{acct ? 'đổi' : '＋ chọn account'}</button>
+                <button type="button" style={pickBtn} disabled={pending} onClick={() => setPick('acct')}>{acct ? 'đổi account' : '＋ chọn account'}</button>
               </span>)}
               {row('Browser', <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 {prof && <EntityRef kind="browser-profile" id={prof.id} label={prof.label} title={prof.externalId ?? undefined} />}
-                <button type="button" style={pickBtn} disabled={pending} onClick={() => setPick('browser')}>{prof ? 'đổi' : '＋ chọn browser'}</button>
+                <button type="button" style={pickBtn} disabled={pending} onClick={() => setPick('browser')}>{prof ? 'đổi browser' : '＋ chọn browser'}</button>
               </span>)}
               {row('Asset', <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 {assets.map((m) => (

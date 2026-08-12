@@ -403,6 +403,10 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
         initialShown={initialCols}
         minWidth={640}
         rowTitle={(r) => `Ô số → mở tool (GSC/GA/Bing) · ô chart → chi tiết ${r.domain}`}
+        // Ô lọc RIÊNG của bảng: ô tìm ở thanh trên cùng là tìm toàn hệ (task/agent/card), không lọc
+        // bảng này. 18 site × 9 nhóm cột thì mắt không quét được.
+        searchText={(r) => `${r.domain} ${r.project ?? ''}`}
+        searchPlaceholder="lọc site / project…"
       />
 
       {openDomain && (

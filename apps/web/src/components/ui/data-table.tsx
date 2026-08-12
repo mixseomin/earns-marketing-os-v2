@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties } from 'react';
 import { useTableSort, SortArrow } from './use-table-sort';
 
 // DataTable — the house pattern for "a LOT of columns without overflowing the layout".
@@ -51,6 +51,14 @@ interface DataTableProps<T> {
   onRowClick?: (row: T, index: number) => void;
   minWidth?: number;                    // table min width before it starts scrolling (default 640)
   rowTitle?: (row: T) => string | undefined;
+  /**
+   * Ô lọc RIÊNG của bảng. Trả về phần chữ đại diện cho một dòng; gõ gì thì lọc trên chuỗi đó.
+   * Bảng 18 dòng × 9 nhóm cột thì mắt không quét được — mà ô tìm ở thanh trên cùng là tìm TOÀN hệ
+   * (task/agent/card), không lọc bảng. Hai việc khác nhau, nên bảng phải có ô của chính nó.
+   * Bỏ trống = không hiện ô lọc.
+   */
+  searchText?: (row: T) => string;
+  searchPlaceholder?: string;
 }
 
 const baseCell: CSSProperties = { padding: '3px 5px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
@@ -62,7 +70,10 @@ const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 
 export function DataTable<T>({
   rows, columns, getRowKey, groups, persistKey, initialShown, onRowClick, minWidth = 640, rowTitle,
+  searchText, searchPlaceholder,
 }: DataTableProps<T>) {
+  const [q, setQ] = useState('');
+  const colsRef = useRef<HTMLDetailsElement>(null);
   const groupMeta = new Map((groups ?? []).map((g) => [g.key, g]));
   const defaults = () => Object.fromEntries((groups ?? []).map((g) => [g.key, g.defaultOn ?? true])) as Record<string, boolean>;
   const [shown, setShown] = useState<Record<string, boolean>>(() => {
@@ -93,13 +104,33 @@ export function DataTable<T>({
       return next;
     });
 
+  // Bấm ra NGOÀI thì đóng popover. <details> gốc chỉ đóng khi bấm lại đúng chữ "⚙ Columns" — mở
+  // xong đi làm việc khác là nó nằm đè lên bảng mãi. Esc cũng đóng, cho bàn phím.
+  useEffect(() => {
+    const el = colsRef.current;
+    if (!el) return;
+    const away = (e: MouseEvent) => { if (el.open && !el.contains(e.target as Node)) el.open = false; };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape' && el.open) el.open = false; };
+    document.addEventListener('mousedown', away);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc); };
+  }, []);
+
+  // Lọc TRƯỚC khi sắp xếp: sắp xếp trên tập đã lọc mới đúng, và hàng tổng cũng phải cộng theo tập
+  // đang nhìn — cộng cả dòng đã lọc đi thì con số tổng nói dối.
+  const shownRows = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle || !searchText) return rows;
+    return rows.filter((r) => searchText(r).toLowerCase().includes(needle));
+  }, [rows, q, searchText]);
+
   const visible = columns.filter((c) => !c.group || shown[c.group] !== false);
   const hasTotals = visible.some((c) => c.total);
   const onCount = (groups ?? []).filter((g) => shown[g.key] !== false).length;
 
   // Sort — shared multi-column engine (plain click = 1 cột ↑/↓/tắt · Shift+click = thêm cột phụ;
   // persist theo persistKey). Một implementation duy nhất cho mọi bảng — xem useTableSort / SortArrow.
-  const { sorted: sortedRows, thProps } = useTableSort(rows, columns, persistKey);
+  const { sorted: sortedRows, thProps } = useTableSort(shownRows, columns, persistKey);
 
   const cellStyle = (c: DataColumn<T>, extra?: CSSProperties): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
@@ -112,11 +143,30 @@ export function DataTable<T>({
 
   return (
     <div data-comp="ui.DataTable">
-      {groups && groups.length > 0 && (
-        // ⚙ Columns — collapsed by default (YDNI). Native <details> = zero-JS popover; closes on
-        // re-click of the summary. Right-aligned so it sits where controls conventionally live.
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
-          <details className="dt-cols" style={{ position: 'relative' }}>
+      {(searchText || (groups && groups.length > 0)) && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          {searchText && (
+            <>
+              <input
+                value={q} onChange={(e) => setQ(e.target.value)}
+                placeholder={searchPlaceholder ?? 'lọc bảng…'}
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', width: 190 }}
+              />
+              {/* Đang lọc thì phải nói rõ đang nhìn bao nhiêu trên tổng bao nhiêu — không thì bảng
+                  ngắn đi trông như mất dữ liệu. */}
+              {q.trim() && (
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)' }}>
+                  {shownRows.length}/{rows.length}
+                  <button type="button" onClick={() => setQ('')} title="bỏ lọc"
+                    style={{ marginLeft: 6, background: 'transparent', border: 0, color: 'var(--fg-3)', cursor: 'pointer', fontSize: 12 }}>✕</button>
+                </span>
+              )}
+            </>
+          )}
+          {groups && groups.length > 0 && (
+          // ⚙ Columns — collapsed by default (YDNI). <details> cho phần mở/đóng; bấm ra ngoài đóng
+          // bằng listener ở trên. Right-aligned so it sits where controls conventionally live.
+          <details ref={colsRef} className="dt-cols" style={{ position: 'relative' }}>
             <summary style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', userSelect: 'none' }}>
               ⚙ Columns <span style={{ color: 'var(--fg-3)' }}>{onCount}/{groups.length}</span>
             </summary>
@@ -139,6 +189,7 @@ export function DataTable<T>({
               })}
             </div>
           </details>
+          )}
         </div>
       )}
 
@@ -176,11 +227,16 @@ export function DataTable<T>({
                 ))}
               </tr>
             ))}
+            {!sortedRows.length && (
+              <tr><td colSpan={visible.length} style={{ ...baseCell, textAlign: 'center', color: 'var(--fg-3)', whiteSpace: 'normal', padding: '10px 5px' }}>
+                {q.trim() ? `Không dòng nào khớp "${q.trim()}".` : 'Không có dữ liệu.'}
+              </td></tr>
+            )}
             {hasTotals && (
               <tr style={{ background: 'var(--bg-2)' }}>
                 {visible.map((c) => (
                   <td key={c.key} style={cellStyle(c, { fontWeight: 700, color: c.group ? groupMeta.get(c.group)?.color : undefined })}>
-                    {c.total ? c.total(rows) : null}
+                    {c.total ? c.total(shownRows) : null}
                   </td>
                 ))}
               </tr>

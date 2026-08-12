@@ -1272,10 +1272,22 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     return true;
   }), [pieces, kind, allProjects, projectFilter, q]);
 
+  // Comment đầu (piece con, tag replyto:<id>) không phải một mục riêng trên lịch — nó là phần đuôi
+  // của bài cha, đăng ngay sau. Gom về cha rồi loại khỏi danh sách chính, nếu không thì lịch đếm
+  // gấp đôi và người duyệt thấy hai dòng cho một lần đăng.
+  const repliesOf = useMemo(() => {
+    const m = new Map<number, CalPiece[]>();
+    for (const p of pieces) {
+      const parent = Number(tagVal(p.tags, 'replyto')) || 0;
+      if (parent) (m.get(parent) ?? m.set(parent, []).get(parent)!).push(p);
+    }
+    return m;
+  }, [pieces]);
+
   // Tập bài sau lọc — MỘT tập cho MỌI bề mặt (lịch + chế độ đọc). Trước lọc góc chỉ cắm ở lịch nên
   // bấm lọc xong sang chế độ đọc vẫn thấy nguyên đám vừa lọc bỏ.
   const piecesShown = useMemo(
-    () => piecesInScope.filter((p) => PIECE_AXES.every((ax) => axisMatch(ax, p, pf))),
+    () => piecesInScope.filter((p) => !tagVal(p.tags, 'replyto') && PIECE_AXES.every((ax) => axisMatch(ax, p, pf))),
     [piecesInScope, pf],
   );
 
@@ -1360,12 +1372,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         // ảnh), không phải bấm mở từng cái mới biết hôm đó đăng gì. Tháng thì không dựng (96 bài =
         // 96 lượt tải thân bài, mà lưới tháng cũng không đủ chỗ hiển thị).
         detail: calMode === 'month' ? undefined : (
-          <PiecePreview piece={p} accounts={accounts} media={media} compact onOpen={() => setOpenPieceId(p.id)} />
+          <PiecePreview piece={p} accounts={accounts} media={media} replies={repliesOf.get(p.id) ?? []} compact onOpen={() => setOpenPieceId(p.id)} />
         ),
       });
     }
     return out;
-  }, [filtered, allProjects, projectFilter, followups, projectsById, kind, kindOf, q, piecesShown, accounts, browserProfiles, media, tasks, calMode]);
+  }, [filtered, allProjects, projectFilter, followups, projectsById, kind, kindOf, q, piecesShown, repliesOf, accounts, browserProfiles, media, tasks, calMode]);
 
   // Cân bằng nội dung của đúng tập bài đang hiện trên lịch. Đọc lại từ calItems (đã qua bộ lọc)
   // thay vì lọc lần hai — một nguồn, không có chỗ cho hai bộ lọc lệch nhau.
@@ -2028,7 +2040,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                     <span style={{ flex: 1, width: 1, background: 'var(--line)' }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <PiecePreview piece={p} accounts={accounts} media={media} onOpen={() => setOpenPieceId(p.id)} />
+                    <PiecePreview piece={p} accounts={accounts} media={media} replies={repliesOf.get(p.id) ?? []} onOpen={() => setOpenPieceId(p.id)} />
                   </div>
                 </div>
               ))}
@@ -2126,7 +2138,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       )}
 
       {open && <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} product={products.find((pr) => pr.cards.some((c) => c.id === open.id))} onOpenProduct={(s) => { setOpenId(null); setOpenProd(s); }} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} setResume={setResume} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} onLocate={() => locateInCalendar(open)} />}
-      {openPieceId != null && (() => { const pc = pieces.find((x) => x.id === openPieceId); return pc ? <PieceDrawer piece={pc} projectLabel={allProjects ? (projectsById?.[pc.projectId]?.name ?? pc.projectId) : siteLabel} accounts={accounts} browserProfiles={browserProfiles} media={media} tasks={tasks} onOpenTask={(id) => { setOpenPieceId(null); openTask(id); }} onClose={() => setOpenPieceId(null)} /> : null; })()}
+      {openPieceId != null && (() => { const pc = pieces.find((x) => x.id === openPieceId); return pc ? <PieceDrawer piece={pc} projectLabel={allProjects ? (projectsById?.[pc.projectId]?.name ?? pc.projectId) : siteLabel} accounts={accounts} browserProfiles={browserProfiles} media={media} tasks={tasks} replies={repliesOf.get(pc.id) ?? []} onOpenTask={(id) => { setOpenPieceId(null); openTask(id); }} onClose={() => setOpenPieceId(null)} /> : null; })()}
       {openFollowupId != null && (() => { const f = followups.find((x) => x.id === openFollowupId); return f ? <FollowupDrawer followup={f} projectLabel={allProjects ? (projectsById?.[f.projectId]?.name ?? f.projectId) : siteLabel} onClose={() => setOpenFollowupId(null)} /> : null; })()}
       {/* Outreach drawer — page-level + URL-driven (?outreach=<pid>), stacked ON the task drawer. Standard pattern (parent owns both open states). */}
       {open && outreachPid != null && <TaskOutreachDrawer projectId={projectForTask(open).id} prospectId={outreachPid} initialChannel={outreachCh} onChannel={setOutreachCh} onClose={() => { setOutreachPid(null); setOutreachCh(''); }} onChange={() => start(() => router.refresh())} />}

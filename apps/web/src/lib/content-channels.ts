@@ -70,6 +70,7 @@ const ANGLE_TO_GROUP = new Map(ANGLE_GROUPS.flatMap((g) => g.angles.map((a) => [
 // rời nhau nên 'asset:card.png' vs 'asset:media:61' âm thầm lệch, drawer báo "chưa có" mà không ai biết).
 //   angle:<code> · format:<id> · src:<S1..S8> · cta:<path> · place:<habitat> · time:<HH:MM>
 //   acct:<id> · browser:<id> · asset:media:<id,id> · chain:<taskId,taskId>
+//   replyto:<pieceId> (comment đầu của bài đó) · linkcheck:ok|bad
 export const tagVal = (tags: string[], k: string) => tags.find((t) => t.startsWith(`${k}:`))?.slice(k.length + 1).trim() ?? '';
 /** Danh sách id trong tag dạng 'khoá:media:1,2' hoặc 'khoá:1,2'. Giá trị không phải số → bỏ. */
 export const tagIds = (tags: string[], k: string) => tagVal(tags, k).replace(/^media:/, '').split(',').map(Number).filter(Number.isFinite).filter(Boolean);
@@ -123,6 +124,12 @@ export function pieceGaps(
     const days = Math.round((Date.now() - new Date(prof.lastOpenedAt).getTime()) / 864e5);
     if (days > 30) gaps.push(`phiên trình duyệt ${days} ngày chưa mở (dễ rớt đăng nhập)`);
   }
+
+  // Link đích: 'linkcheck:bad' = đã kiểm và có link hỏng. Bài chèn link mà chưa kiểm lần nào thì
+  // nhắc kiểm — trang đích không tồn tại là lỗi chỉ lộ ra sau khi đã đăng.
+  const lc = tagVal(piece.tags, 'linkcheck');
+  if (lc === 'bad') gaps.push('link đích hỏng (kiểm lại trang trên site)');
+  else if (!lc && tagVal(piece.tags, 'format') === 'link') gaps.push('link đích chưa kiểm');
 
   const missingMedia = tagIds(piece.tags, 'asset').filter((id) => !refs.media?.some((m) => m.id === id));
   if (missingMedia.length) gaps.push(`asset chưa có trong vault: #${missingMedia.join(', #')}`);

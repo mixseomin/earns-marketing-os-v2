@@ -14,7 +14,7 @@ import { Drawer, EntityRef, EntityPicker, type EntityOption } from '@/components
 import { readManagedPages } from '@/components/account-metrics';
 import { ChannelFavicon } from '@/components/ui';
 import { CHANNELS, STATUSES, ANGLE_GROUPS, CHANNEL_PLATFORM, angleOf, formatOf, formatsFor, tagVal, tagIds, pieceGaps } from '@/lib/content-channels';
-import { updateContentPiece, getPieceDetail, type ContentInput } from '@/lib/actions/content';
+import { updateContentPiece, createContentPiece, checkPieceLinks, getPieceDetail, type ContentInput } from '@/lib/actions/content';
 import { todayLocal } from '@/lib/local-day';
 import { PiecePreview, forgetPieceBody } from '@/components/piece-preview';
 import type { CalPiece } from '@/lib/data';
@@ -33,8 +33,10 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'overview', label: 'Overview' }, { key: 'prepare', label: 'Prepare' }, { key: 'logs', label: 'Logs' },
 ];
 
-export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfiles = [], media = [], tasks = [], onOpenTask, onClose }: {
+export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfiles = [], media = [], tasks = [], replies = [], onOpenTask, onClose }: {
   piece: CalPiece; projectLabel?: string; onClose: () => void;
+  /** Comment đầu đã có của bài này (piece con, tag replyto:) */
+  replies?: CalPiece[];
   accounts?: Array<{ id: number; platformKey: string; handle: string | null; status: string; browserProfileId?: number | null; accountStats?: Record<string, unknown> }>;
   browserProfiles?: Array<{ id: number; label: string; externalId: string | null; lastOpenedAt: string | null }>;
   media?: Array<{ id: number; url: string; filename: string; kind: string }>;
@@ -46,6 +48,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const [tab, setTab] = useState<TabKey>('overview');
   const [pick, setPick] = useState<null | 'acct' | 'browser' | 'asset' | 'chain' | 'place' | 'angle' | 'format'>(null);
   const [editBody, setEditBody] = useState(false);
+  const [linkMsg, setLinkMsg] = useState<string>('');
   const [hook, setHook] = useState(piece.subject ?? '');
   const [date, setDate] = useState(piece.date);
   const [url, setUrl] = useState('');
@@ -171,13 +174,40 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
                 }} />
             ) : (
               <div onDoubleClick={() => setEditBody(true)} title="Bấm đúp để sửa nội dung">
-                <PiecePreview piece={piece} accounts={accounts} media={media} body={detail?.bodyMd} />
+                <PiecePreview piece={piece} accounts={accounts} media={media} body={detail?.bodyMd} replies={replies} />
               </div>
             )}
             <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
               <button type="button" onClick={() => setEditBody(true)} disabled={pending || editBody} style={pickBtn}>✎ Soạn nội dung</button>
               <button type="button" onClick={() => navigator.clipboard?.writeText(detail?.bodyMd ?? '')} disabled={!detail?.bodyMd} style={pickBtn}>Copy caption</button>
+              {/* Comment đầu = một bài CON (tag replyto:) chứ không phải một ô text đính kèm: nó có
+                  account riêng, duyệt riêng, kiểm link riêng — đúng như lúc đăng thật (đăng bài xong
+                  mới comment). Kiểu "link ở comment đầu" của Facebook/group nằm ở đây. */}
+              <button type="button" disabled={pending} style={pickBtn}
+                onClick={async () => {
+                  await createContentPiece(piece.projectId, {
+                    title: `Comment đầu · ${piece.title}`.slice(0, 90),
+                    channel: piece.channel,
+                    subject: 'Comment đầu (link)',
+                    bodyMd: '',
+                    status: 'draft',
+                    scheduledAt: new Date(`${piece.date}T09:00:00`),
+                    tags: [`replyto:${piece.id}`, 'format:comment',
+                      ...piece.tags.filter((t) => /^(acct|browser|place|time|src):/.test(t))],
+                  });
+                  refresh();
+                }}>＋ comment đầu</button>
+              <button type="button" disabled={pending} style={pickBtn}
+                onClick={async () => {
+                  setLinkMsg('đang kiểm…');
+                  const r = await checkPieceLinks(piece.id, piece.projectId);
+                  setLinkMsg(r.results.length
+                    ? r.results.map((x) => `${x.status || 'lỗi mạng'} ${x.url.replace(/^https?:\/\/(www\.)?/, '')}`).join(' · ')
+                    : 'bài này không có link nào');
+                  refresh();
+                }}>Kiểm link đích</button>
             </div>
+            {linkMsg && <div style={{ marginTop: 5, fontSize: 11.5, color: /(^|\s)(200|301|302)/.test(linkMsg) || linkMsg.startsWith('đang') || linkMsg.startsWith('bài này') ? 'var(--fg-3)' : 'var(--neon-amber)' }}>{linkMsg}</div>}
           </div>
           <div>
             <label style={lbl}>Hook (dòng người đọc thấy)</label>

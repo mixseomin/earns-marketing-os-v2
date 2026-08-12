@@ -20,19 +20,8 @@ const bodyCache = new Map<number, string>();
 /** Sửa bài xong phải quên bản cũ đi, không thì bản dựng vẫn là chữ trước lúc sửa. */
 export const forgetPieceBody = (id: number) => bodyCache.delete(id);
 
-export function PiecePreview({ piece, accounts = [], media = [], body, compact = false, onOpen }: {
-  piece: CalPiece;
-  accounts?: Array<{ id: number; platformKey: string; handle: string | null; accountStats?: Record<string, unknown> }>;
-  media?: Array<{ id: number; url: string; filename: string }>;
-  /** Thân bài đã có sẵn (drawer) — truyền vào để khỏi gọi lại. */
-  body?: string;
-  /** Trong lịch: chữ nhỏ hơn, ảnh nhỏ hơn, cắt bớt phần thân. */
-  compact?: boolean;
-  onOpen?: () => void;
-}) {
+function usePieceBody(piece: CalPiece, body?: string) {
   const [fetched, setFetched] = useState<string | null>(() => bodyCache.get(piece.id) ?? null);
-  const text = body ?? fetched;
-
   useEffect(() => {
     if (body !== undefined) return;
     const hit = bodyCache.get(piece.id);
@@ -44,6 +33,32 @@ export function PiecePreview({ piece, accounts = [], media = [], body, compact =
     });
     return () => { live = false; };
   }, [body, piece.id, piece.projectId]);
+  return body ?? fetched;
+}
+
+/** Hashtag hiện đúng như trên nền tảng (xanh, tách khỏi chữ thường) — nhìn bản dựng là biết bài đi
+ *  kèm mấy tag nào, không phải soi chuỗi. Cùng một hàm cho thân bài lẫn comment. */
+function withTags(text: string) {
+  return text.split(/(#[\p{L}\p{N}_]+)/gu).map((part, i) => (
+    part.startsWith('#') && part.length > 1
+      ? <span key={i} style={{ color: 'var(--neon-blue)' }}>{part}</span>
+      : <span key={i}>{part}</span>
+  ));
+}
+
+export function PiecePreview({ piece, accounts = [], media = [], body, replies = [], compact = false, onOpen }: {
+  piece: CalPiece;
+  accounts?: Array<{ id: number; platformKey: string; handle: string | null; accountStats?: Record<string, unknown> }>;
+  media?: Array<{ id: number; url: string; filename: string }>;
+  /** Thân bài đã có sẵn (drawer) — truyền vào để khỏi gọi lại. */
+  body?: string;
+  /** Comment đầu (piece con gắn tag replyto:) — runner đăng ngay sau bài chính. */
+  replies?: CalPiece[];
+  /** Trong lịch: chữ nhỏ hơn, ảnh nhỏ hơn, cắt bớt phần thân. */
+  compact?: boolean;
+  onOpen?: () => void;
+}) {
+  const text = usePieceBody(piece, body);
 
   const ch = CHANNELS.find((c) => c.id === piece.channel);
   const acct = accounts.find((x) => x.id === Number(tagVal(piece.tags, 'acct')));
@@ -93,7 +108,7 @@ export function PiecePreview({ piece, accounts = [], media = [], body, compact =
         <div style={{ padding: compact ? '7px 9px' : '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
           {tweets.map((t, i) => (
             <div key={i} style={{ borderLeft: '2px solid var(--line)', paddingLeft: 9, fontSize: compact ? 12 : 13.5, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
-              {t}
+              {withTags(t)}
               <span style={{ marginLeft: 6, fontSize: 10, fontFamily: 'var(--font-mono)', color: t.length > 280 ? 'var(--bad)' : 'var(--fg-4)' }}>
                 {t.length}/280
               </span>
@@ -103,17 +118,17 @@ export function PiecePreview({ piece, accounts = [], media = [], body, compact =
       ) : pollOpts.length >= 2 ? (
         // Poll đăng ra là ô bình chọn bấm được, không phải mấy dòng A/B/C trong caption.
         <div style={{ padding: compact ? '9px 11px' : '12px 14px', fontSize: compact ? 12 : 13.5, lineHeight: 1.5 }}>
-          <div style={{ whiteSpace: 'pre-wrap', marginBottom: 8 }}>{pollAsk}</div>
+          <div style={{ whiteSpace: 'pre-wrap', marginBottom: 8 }}>{withTags(pollAsk)}</div>
           {pollOpts.map((o, i) => (
             <div key={i} style={{ border: '1px solid var(--line)', borderRadius: 999, padding: compact ? '4px 11px' : '6px 13px', marginBottom: 5, color: 'var(--fg-2)' }}>{o}</div>
           ))}
           <div style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>{pollOpts.length} phương án · người xem bấm chọn</div>
-          {pollTail && <div style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>{pollTail}</div>}
+          {pollTail && <div style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>{withTags(pollTail)}</div>}
         </div>
       ) : (
         <div style={{ padding: compact ? '9px 11px' : '12px 14px', fontSize: compact ? 12 : 13.5, lineHeight: 1.5, whiteSpace: 'pre-wrap',
           ...(compact ? { display: '-webkit-box', WebkitLineClamp: 8, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>
-          {text === null ? '…' : (text.trim() || <em style={{ color: 'var(--neon-amber)' }}>chưa soạn nội dung</em>)}
+          {text === null ? '…' : (text.trim() ? withTags(text) : <em style={{ color: 'var(--neon-amber)' }}>chưa soạn nội dung</em>)}
         </div>
       )}
       {linkUrl && (
@@ -125,6 +140,14 @@ export function PiecePreview({ piece, accounts = [], media = [], body, compact =
             <div style={{ fontSize: compact ? 11.5 : 13, fontWeight: 600, marginTop: 2 }}>{piece.title}</div>
             <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{linkUrl}</div>
           </div>
+        </div>
+      )}
+      {replies.length > 0 && (
+        <div style={{ borderTop: '1px solid var(--line)', background: 'var(--bg-2)', padding: compact ? '7px 9px' : '9px 12px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)' }}>
+            Comment đầu · runner đăng ngay sau bài
+          </div>
+          {replies.map((r) => <CommentBubble key={r.id} piece={r} accounts={accounts} compact={compact} />)}
         </div>
       )}
       {assets.length > 1 && (
@@ -144,6 +167,29 @@ export function PiecePreview({ piece, accounts = [], media = [], body, compact =
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Comment đầu: cùng là một content_piece (tag replyto:<id>), nên vẫn có account riêng, vẫn duyệt
+ *  được, vẫn kiểm link được — chỉ khác chỗ đứng. Dựng thụt vào như trên Facebook. */
+function CommentBubble({ piece, accounts, compact }: {
+  piece: CalPiece;
+  accounts: Array<{ id: number; platformKey: string; handle: string | null }>;
+  compact: boolean;
+}) {
+  const text = usePieceBody(piece);
+  const acct = accounts.find((x) => x.id === Number(tagVal(piece.tags, 'acct')));
+  return (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+      <ChannelFavicon channel={piece.channel} size={compact ? 18 : 22} circle />
+      <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 12, padding: compact ? '6px 10px' : '8px 12px', minWidth: 0, flex: 1 }}>
+        <b style={{ fontSize: compact ? 11 : 12 }}>{acct?.handle ?? acct?.platformKey ?? 'chưa gắn account'}</b>
+        <div style={{ fontSize: compact ? 11.5 : 13, lineHeight: 1.5, whiteSpace: 'pre-wrap', marginTop: 2 }}>
+          {text === null ? '…' : (text.trim() ? withTags(text) : <em style={{ color: 'var(--neon-amber)' }}>chưa soạn nội dung</em>)}
+        </div>
+      </div>
+      <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>#{piece.id}</span>
     </div>
   );
 }

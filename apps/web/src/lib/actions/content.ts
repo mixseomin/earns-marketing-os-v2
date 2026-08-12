@@ -146,3 +146,32 @@ export async function getPieceDetail(id: number, projectId: string): Promise<{ b
   const r = rows[0];
   return r ? { bodyMd: r.bodyMd, publishUrl: r.publishUrl, publishedAt: r.publishedAt ? r.publishedAt.toISOString() : null, metrics: (r.metrics as Record<string, string | number>) ?? {} } : null;
 }
+
+/** Bài có link thì trang đích PHẢI tồn tại — đăng link 404 là mất uy tín ở đúng chỗ vừa xin sự chú ý,
+ *  và trên Facebook/Reddit thì bài link hỏng còn bị dìm. Kiểm bằng máy, ghi kết quả vào tag để lịch
+ *  và banner "thiếu nguyên liệu" đọc được: linkcheck:ok | linkcheck:bad.
+ *  Không kiểm được cta:<path> vì đó là đường dẫn tương đối, chưa biết tên miền của project. */
+export async function checkPieceLinks(id: number, projectId: string): Promise<{ ok: boolean; results: Array<{ url: string; status: number }> }> {
+  const db = ensureDb();
+  const rows = await db.select({ bodyMd: contentPieces.bodyMd, tags: contentPieces.tags })
+    .from(contentPieces).where(eq(contentPieces.id, id)).limit(1);
+  const row = rows[0];
+  if (!row) return { ok: false, results: [] };
+
+  const urls = [...new Set((row.bodyMd ?? '').match(/https?:\/\/[^\s<>")]+/g) ?? [])].slice(0, 8);
+  const results: Array<{ url: string; status: number }> = [];
+  for (const url of urls) {
+    try {
+      const r = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(10000) });
+      results.push({ url, status: r.status });
+    } catch {
+      results.push({ url, status: 0 });   // 0 = không nối được (DNS/timeout)
+    }
+  }
+  const ok = results.every((r) => r.status >= 200 && r.status < 400);
+  const tags = ((row.tags as string[] | null) ?? []).filter((t) => !t.startsWith('linkcheck:'));
+  if (results.length) tags.push(`linkcheck:${ok ? 'ok' : 'bad'}`);
+  await db.update(contentPieces).set({ tags, updatedAt: new Date() }).where(eq(contentPieces.id, id));
+  await touchEntity('content', { projectId });
+  return { ok, results };
+}

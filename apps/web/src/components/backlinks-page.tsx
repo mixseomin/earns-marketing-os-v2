@@ -1469,8 +1469,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   useEffect(() => {
     if (view !== 'feed') return;
     const io = new IntersectionObserver((entries) => {
-      const top = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-      const id = Number(top?.target.id.replace('piece-', ''));
+      // Bài đang đọc = bài MỞ ĐẦU trong dải đọc, không phải bài trên cùng còn dính vào dải: bài
+      // trước thò đuôi vào dải là đủ để nó thắng, nên bấm bài dưới lại thấy sáng bài trên.
+      const band = window.innerHeight * 0.12;
+      const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      const pick = vis.find((e) => e.boundingClientRect.top >= band - 4) ?? vis[0];
+      const id = Number(pick?.target.id.replace('piece-', ''));
       if (id) setActivePiece(id);
     }, { rootMargin: '-12% 0px -72% 0px' });
     for (const el of document.querySelectorAll('[id^="piece-"]')) io.observe(el);
@@ -3102,7 +3106,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
         )}
 
         {!task.draftPlan && pol.draft !== 'hidden' && (needsPost || task.draft) && (
-        <Disclosure title="📋 Draft (bài đăng)" defaultOpen={pol.draft === 'primary' || !!task.draft}>
+        <Disclosure title={typeKey === 'research' ? '📋 Phân tích / findings' : '📋 Draft (bài đăng)'} defaultOpen={pol.draft === 'primary' || !!task.draft}>
         {draftFmts ? (<>
           <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span>📋 Draft (paste-ready)</span>

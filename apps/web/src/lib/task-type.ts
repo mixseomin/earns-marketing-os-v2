@@ -138,7 +138,7 @@ const BASE: Record<Archetype, SectionPolicy> = {
   produce:       { account: 'hidden',  stack: 'hidden',   pasteKit: 'advanced', draft: 'advanced', aiContent: 'advanced', media: 'advanced', linkResult: 'primary' },
   publish:       { account: 'primary', stack: 'advanced', pasteKit: 'advanced', draft: 'hidden',   aiContent: 'advanced', media: 'advanced', linkResult: 'primary' },
   account:       { account: 'primary', stack: 'hidden',   pasteKit: 'hidden',   draft: 'hidden',   aiContent: 'hidden',   media: 'hidden',   linkResult: 'hidden' },
-  research:      { account: 'hidden',  stack: 'hidden',   pasteKit: 'hidden',   draft: 'hidden',   aiContent: 'advanced', media: 'hidden',   linkResult: 'hidden' },
+  research:      { account: 'hidden',  stack: 'hidden',   pasteKit: 'hidden',   draft: 'primary',  aiContent: 'advanced', media: 'hidden',   linkResult: 'hidden' },
   review:        { account: 'hidden',  stack: 'hidden',   pasteKit: 'hidden',   draft: 'advanced', aiContent: 'hidden',   media: 'hidden',   linkResult: 'hidden' },
 };
 

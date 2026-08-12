@@ -868,7 +868,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const [openProd, setOpenProd] = useState<string | null>(sp.get('sp'));   // slug sản phẩm đang mở
   const [openFollowupId, setOpenFollowupId] = useState<number | null>(null);   // 📌 followup pill clicked
   const [angleF, setAngleF] = useState<string>(sp.get('ang') ?? '');   // '' | 'g:<nhóm>' | '<angle>' — lọc lịch theo góc nội dung
-  const [openPieceId, setOpenPieceId] = useState<number | null>(null);         // 📝 bài đăng pill clicked — mở TẠI CHỖ, không nhảy trang
+  // 📝 bài đăng — mở TẠI CHỖ + giữ trong URL để gửi link thẳng tới đúng drawer (như ?task=).
+  const [openPieceId, setOpenPieceId] = useState<number | null>(Number(sp.get('piece')) || null);
   const [outreachPid, setOutreachPid] = useState<number | null>(Number(sp.get('outreach')) || null);   // stacked Outreach drawer, URL-driven like ?task
   const [outreachCh, setOutreachCh] = useState<string>(sp.get('ch') || '');   // selected channel tab inside the Outreach drawer (→ URL so F5 restores it)
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
@@ -1012,6 +1013,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('view', view);   // always explicit — else /plays (default kanban) reverts calendar on F5
     set('group', groupBy === 'none' ? '' : groupBy);
     set('task', openId);
+    set('piece', openPieceId);
     set('sp', openProd);
     set('outreach', outreachPid);
     set('ch', outreachPid != null ? outreachCh : '');   // channel tab only meaningful while the drawer is open
@@ -1023,7 +1025,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('sq', seedOpen ? seedQ.trim() : '');
     set('shide', seedOpen && seedHideUsed ? '1' : '');
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, showClosed, projectFilter, angleF, calMode, calDate, kind, allProjects, view, groupBy, openId, openProd, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
+  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, showClosed, projectFilter, angleF, calMode, calDate, kind, allProjects, view, groupBy, openId, openPieceId, openProd, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   // Init from URL so the account editor opened INSIDE a task survives F5 (the "full flow", one level
@@ -1849,7 +1851,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       )}
 
       {open && <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} product={products.find((pr) => pr.cards.some((c) => c.id === open.id))} onOpenProduct={(s) => { setOpenId(null); setOpenProd(s); }} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} setResume={setResume} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} onLocate={() => locateInCalendar(open)} />}
-      {openPieceId != null && (() => { const pc = pieces.find((x) => x.id === openPieceId); return pc ? <PieceDrawer piece={pc} projectLabel={allProjects ? (projectsById?.[pc.projectId]?.name ?? pc.projectId) : siteLabel} accounts={accounts} browserProfiles={browserProfiles} tasks={tasks} onClose={() => setOpenPieceId(null)} /> : null; })()}
+      {openPieceId != null && (() => { const pc = pieces.find((x) => x.id === openPieceId); return pc ? <PieceDrawer piece={pc} projectLabel={allProjects ? (projectsById?.[pc.projectId]?.name ?? pc.projectId) : siteLabel} accounts={accounts} browserProfiles={browserProfiles} media={media} tasks={tasks} onOpenTask={(id) => { setOpenPieceId(null); openTask(id); }} onClose={() => setOpenPieceId(null)} /> : null; })()}
       {openFollowupId != null && (() => { const f = followups.find((x) => x.id === openFollowupId); return f ? <FollowupDrawer followup={f} projectLabel={allProjects ? (projectsById?.[f.projectId]?.name ?? f.projectId) : siteLabel} onClose={() => setOpenFollowupId(null)} /> : null; })()}
       {/* Outreach drawer — page-level + URL-driven (?outreach=<pid>), stacked ON the task drawer. Standard pattern (parent owns both open states). */}
       {open && outreachPid != null && <TaskOutreachDrawer projectId={projectForTask(open).id} prospectId={outreachPid} initialChannel={outreachCh} onChannel={setOutreachCh} onClose={() => { setOutreachPid(null); setOutreachCh(''); }} onChange={() => start(() => router.refresh())} />}

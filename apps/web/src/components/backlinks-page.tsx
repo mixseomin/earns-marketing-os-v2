@@ -1666,8 +1666,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         )}
       </div>)}
 
-      {/* Row 1 — YDNI essentials: search · work-type spine (scales to ✉ email later) · ⚙ advanced popover · view */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+      {/* Row 1 — YDNI essentials: search · work-type spine (scales to ✉ email later) · ⚙ advanced popover · view.
+          DÍNH khi cuộn ở chế độ đọc: đây là thứ duy nhất còn cần trong lúc đọc (đổi view, đổi loại,
+          tìm). Còn KPI/chip trạng thái/chip project thì KHÔNG dính — nhìn một lần lúc vào, giữ lại
+          chỉ tổ ăn chỗ của nội dung. */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center',
+        ...(focus ? { position: 'sticky' as const, top: 0, zIndex: 30, background: 'var(--bg-0)', padding: '6px 0' } : {}) }}>
         <SearchInput value={q} onChange={setQ} placeholder="tìm task (tên/URL/method/niche)…" width={240} />
         <Segmented options={[{ value: '', label: 'All' }, { value: 'backlink', label: '🔗 Backlink' }, { value: 'email', label: '✉ Email' }, { value: 'seed', label: '🌱 Seed' }, { value: 'build', label: '📕 Sản phẩm' }, { value: 'research', label: '📚 Nghiên cứu' }, { value: 'followup', label: '📌 Follow-up' }, { value: 'content', label: '📝 Bài đăng' }]}
           value={kind} onChange={(v) => setKind(v as KindFilter)} />
@@ -1836,7 +1840,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         <div style={{ display: 'flex', gap: 22, alignItems: 'flex-start' }}>
           {/* La bàn: MINI-MONTH y như ở lịch (cùng component) — chấm = ngày có bài, ô sáng = ngày
               đang đọc. Bấm ngày → cuộn thẳng tới ngày đó. Không có nó thì cuộn một lúc là mất dấu. */}
-          <div style={{ position: 'sticky', top: 8, width: 232, flexShrink: 0 }}>
+          <div style={{ position: 'sticky', top: 46, width: 232, flexShrink: 0 }}>
             <MiniMonth month={feedMonth} sel={new Set([feedActive])} byDate={feedByDate} today={today}
               onNavMonth={(dir) => setFeedMonth((m) => new Date(m.getFullYear(), m.getMonth() + dir, 1))}
               onPick={(d) => {
@@ -1851,9 +1855,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
 
         <div style={{ maxWidth: 680, flex: 1, minWidth: 0 }}>
           {feedDays.length === 0 && <div style={{ padding: 28, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Chưa có bài nào đặt ngày.</div>}
+          {/* Mỗi ngày là một khối RIÊNG (position:relative) — header dính trong phạm vi khối của nó,
+              hết ngày là nhả. z-index cao hơn ảnh bài (ảnh cao ~800px, cuộn qua sẽ trườn lên header
+              nếu header không nằm trên hẳn), nền ĐẶC để chữ không chồng lên ảnh; top=44 để nằm ngay
+              dưới thanh công cụ đang dính. */}
           {feedDays.map(([d, ps]) => (
-            <div key={d} id={`feed-${d}`} ref={(el) => { feedRefs.current[d] = el; }} style={{ marginBottom: 10, scrollMarginTop: 8 }}>
-              <div style={{ position: 'sticky', top: 0, zIndex: 3, background: 'var(--bg-0, #0b0d12)', padding: '9px 0 7px',
+            <div key={d} id={`feed-${d}`} ref={(el) => { feedRefs.current[d] = el; }} style={{ position: 'relative', marginBottom: 10, scrollMarginTop: 46 }}>
+              <div style={{ position: 'sticky', top: 44, zIndex: 20, background: 'var(--bg-0)', padding: '9px 2px 7px',
                 borderBottom: '1px solid var(--line)', fontSize: 12.5, fontWeight: 700, display: 'flex', gap: 8, alignItems: 'baseline' }}>
                 <span style={{ color: d === today ? 'var(--neon-cyan)' : 'var(--fg-1)' }}>
                   {new Date(`${d}T12:00:00`).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' })}

@@ -96,13 +96,14 @@ export function pieceGaps(
   // Card chuẩn bị CHƯA TỚI HẠN mà chưa xong thì không phải thiếu — đó là việc của tuần sau.
   // Chỉ tính là thiếu khi card biến mất, hoặc đã tới/quá hạn mà vẫn chưa xong.
   const chain = tagIds(piece.tags, 'chain');
-  const late = chain.filter((id) => {
-    const t = refs.tasks?.find((x) => x.id === id);
-    if (!t) return true;
-    if (['completed', 'verified'].includes(t.siteState)) return false;
-    return !refs.today || !t.siteScheduledAt || t.siteScheduledAt.slice(0, 10) <= refs.today;
-  });
+  const open = chain.map((id) => refs.tasks?.find((x) => x.id === id))
+    .filter((t) => !t || !['completed', 'verified'].includes(t.siteState));
+  const late = open.filter((t) => t?.siteScheduledAt && (!refs.today || t.siteScheduledAt.slice(0, 10) <= refs.today));
+  const undated = open.filter((t) => t && !t.siteScheduledAt);
+  const gone = open.filter((t) => !t);
   if (late.length) gaps.push(`chuỗi chuẩn bị trễ ${late.length}/${chain.length} việc`);
+  if (undated.length) gaps.push(`chuỗi chuẩn bị: ${undated.length} việc chưa đặt ngày`);
+  if (gone.length) gaps.push(`${gone.length} card chuẩn bị không còn trên board`);
   return gaps;
 }
 

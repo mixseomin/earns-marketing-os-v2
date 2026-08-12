@@ -1157,14 +1157,17 @@ export type ContentPieceRow = {
 // phải nhớ có hai chỗ. Chỉ lấy cột lịch cần + chỉ dòng có scheduled_at (global /plays gom
 // mọi project → đừng kéo cả body_md về).
 // has_body = đã soạn caption chưa (chỉ cờ, không kéo body_md về) — cảnh báo "duyệt rồi mà rỗng".
-export type CalPiece = { id: number; projectId: string; title: string; subject: string | null; channel: string; status: string; date: string; tags: string[]; hasBody: boolean };
+export type CalPiece = { id: number; projectId: string; title: string; subject: string | null; channel: string; status: string; date: string; tags: string[]; hasBody: boolean; hasLink: boolean };
 export async function listScheduledContentPieces(projectId?: string): Promise<CalPiece[]> {
   return tryDb(async () => {
     const db = getDb(); if (!db) return [];
     const res = await db.execute(sql`
       SELECT id, project_id, title, subject, channel, status,
              to_char(scheduled_at, 'YYYY-MM-DD') AS date, tags,
-             (length(coalesce(body_md, '')) > 0) AS has_body
+             (length(coalesce(body_md, '')) > 0) AS has_body,
+             -- CÓ LINK hay không là chuyện của bản thân thân bài, không phải của tag: nền tảng tự
+             -- biến 'militarycalc.com' trần thành link y như https://… , nên bắt cả hai dạng.
+             (coalesce(body_md, '') ~* '(https?://|\m[a-z0-9][a-z0-9-]*\.(com|org|net|io|gov|app|co)\M)') AS has_link
       FROM content_pieces
       WHERE archived_at IS NULL AND scheduled_at IS NOT NULL
         ${projectId ? sql`AND project_id = ${projectId}` : sql``}
@@ -1176,6 +1179,7 @@ export async function listScheduledContentPieces(projectId?: string): Promise<Ca
       status: String(r.status), date: String(r.date),
       tags: Array.isArray(r.tags) ? (r.tags as string[]) : [],
       hasBody: r.has_body === true,
+      hasLink: r.has_link === true,
     }));
   }, [], 'listScheduledContentPieces');
 }

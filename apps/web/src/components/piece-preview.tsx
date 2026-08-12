@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { getPieceDetail } from '@/lib/actions/content';
-import { CHANNELS, tagVal, tagIds, formatOf } from '@/lib/content-channels';
+import { CHANNELS, tagVal, tagIds, formatOf, styleOf } from '@/lib/content-channels';
 import { ChannelFavicon } from './ui/site-favicon';
 import type { CalPiece } from '@/lib/data';
 
@@ -70,6 +70,7 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
   // link ra thẻ link, thread ra N mảnh. Đây là chỗ "plan trông thế nào thì đăng thế": nhìn bản dựng
   // là biết người ta sẽ thấy gì, không phải đoán từ chữ 'format:poll' trong tag.
   const fmt = formatOf(piece.tags);
+  const sty = styleOf(piece.tags);
   const kind = fmt?.id ?? (piece.channel === 'twitter-thread' ? 'thread' : '');
   const bodyText = text?.trim() ?? '';
   const tweets = kind === 'thread' && bodyText ? bodyText.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean) : null;
@@ -98,6 +99,11 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
           </span>
         </span>
         <span style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+          {piece.hasLink && (
+            <span title="Bài có link — nền tảng hạ reach, nhất là Facebook. Xem chi tiết ở drawer."
+              style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--neon-blue)', color: 'var(--neon-blue)' }}>🔗 link</span>
+          )}
+          {sty && <span title={`Trình bày: ${sty.hint}`} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--line)', color: 'var(--fg-3)' }}>{sty.icon} {sty.label}</span>}
           {fmt && <span title={`Kiểu bài: ${fmt.label}`} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--line)', color: 'var(--fg-3)' }}>{fmt.icon} {fmt.label}</span>}
           <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>#{piece.id}</span>
         </span>

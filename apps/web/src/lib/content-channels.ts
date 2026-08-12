@@ -45,6 +45,31 @@ export const FORMATS: Array<{ id: string; label: string; icon: string; channels:
 ];
 
 export const formatsFor = (channel: string) => FORMATS.filter((f) => f.channels.includes(channel));
+
+// ── Kiểu TRÌNH BÀY (style) ────────────────────────────────────────────────────
+// Khác `format` (cơ chế đăng: runner bấm nút nào) và khác `angle` (bài làm gì cho người đọc).
+// `style` = HÌNH DẠNG của chữ. Cùng angle data-point, cùng format photo, nhưng viết thành dòng
+// hoá đơn, bản tin khẩn hay đoạn hội thoại thì lướt qua là hai bài khác hẳn nhau — feed toàn một
+// khuôn "hook / giải thích / CTA" thì tới bài thứ tư người ta đã lướt qua không đọc.
+export const STYLES: Array<{ id: string; label: string; icon: string; hint: string }> = [
+  { id: 'plain',      label: 'Kể thẳng',       icon: '¶',  hint: '2-3 câu, không trang trí' },
+  { id: 'oneliner',   label: 'Một câu',        icon: '·',  hint: 'Đúng một câu, không CTA, không giải thích' },
+  { id: 'receipt',    label: 'Dòng LES',       icon: '🧾', hint: 'Dựng như dòng trên bảng lương/hoá đơn' },
+  { id: 'ascii',      label: 'Bảng ký tự',     icon: '▤',  hint: 'Biểu đồ/bảng vẽ bằng ký tự, đọc được trên mọi máy' },
+  { id: 'dialogue',   label: 'Hội thoại',      icon: '💬', hint: 'Hai người nói chuyện, không lời dẫn' },
+  { id: 'quiz',       label: 'Câu đố',         icon: '❓', hint: 'Hỏi, đáp án ở comment' },
+  { id: 'countdown',  label: 'Đếm ngược',      icon: '⏱', hint: '3 → 2 → 1, mỗi bậc một ý' },
+  { id: 'glossary',   label: 'Mục từ điển',    icon: '📖', hint: 'Từ · loại · nghĩa · ví dụ' },
+  { id: 'newsflash',  label: 'Bản tin khẩn',   icon: '📰', hint: 'Giọng bản tin, viết hoa mở đầu' },
+  { id: 'forecast',   label: 'Dự báo',         icon: '🌡', hint: 'Kiểu dự báo thời tiết cho số liệu' },
+  { id: 'checklist',  label: 'Gạch đầu dòng',  icon: '☑',  hint: 'Danh sách ngắn, mỗi dòng một việc' },
+  { id: 'letter',     label: 'Thư gửi',        icon: '✉',  hint: 'Thư ngắn gửi một người/một nhóm' },
+  { id: 'sidebyside', label: 'Hai cột',        icon: '⇄',  hint: 'So sánh song song bằng dấu |' },
+  { id: 'errorlog',   label: 'Báo lỗi giả',    icon: '⛔', hint: 'Dựng như thông báo lỗi hệ thống' },
+  { id: 'haiku',      label: 'Thơ ngắn',       icon: '🍃', hint: '3 dòng, không giải thích' },
+  { id: 'review',     label: 'Đánh giá sao',   icon: '★',  hint: 'Kiểu review 1 sao / 5 sao' },
+];
+export const styleOf = (tags: string[]) => STYLES.find((x) => x.id === tagVal(tags, 'style')) ?? null;
 export const formatOf = (tags: string[]) => FORMATS.find((f) => f.id === tagVal(tags, 'format')) ?? null;
 
 export const STATUSES = ['draft', 'approved', 'scheduled', 'published', 'archived'] as const;
@@ -68,7 +93,7 @@ const ANGLE_TO_GROUP = new Map(ANGLE_GROUPS.flatMap((g) => g.angles.map((a) => [
 
 // Lược đồ tag của content_pieces — MỘT chỗ định nghĩa, mọi nơi đọc qua đây (trước có 2 bộ parse
 // rời nhau nên 'asset:card.png' vs 'asset:media:61' âm thầm lệch, drawer báo "chưa có" mà không ai biết).
-//   angle:<code> · format:<id> · src:<S1..S8> · cta:<path> · place:<habitat> · time:<HH:MM>
+//   angle:<code> · format:<id> · style:<id> · src:<S1..S8> · cta:<path> · place:<habitat> · time:<HH:MM>
 //   acct:<id> · browser:<id> · asset:media:<id,id> · chain:<taskId,taskId>
 //   replyto:<pieceId> (comment đầu của bài đó) · linkcheck:ok|bad
 export const tagVal = (tags: string[], k: string) => tags.find((t) => t.startsWith(`${k}:`))?.slice(k.length + 1).trim() ?? '';
@@ -146,6 +171,32 @@ export function pieceGaps(
   if (undated.length) gaps.push(`chuỗi chuẩn bị: ${undated.length} việc chưa đặt ngày`);
   if (gone.length) gaps.push(`${gone.length} card chuẩn bị không còn trên board`);
   return gaps;
+}
+
+/** Trần tỉ lệ bài CÓ LINK. Link kéo người ra khỏi nền tảng nên nền tảng trả đũa bằng reach —
+ *  Facebook nặng nhất. Feed toàn link thì cả trang bị hạ, kể cả bài không link. Mốc 25%: 3 bài
+ *  nuôi quan hệ cho 1 bài dẫn đi. */
+export const LINK_SHARE_MAX = 25;
+
+/** RỦI RO PHÂN PHỐI — khác "thiếu nguyên liệu". Thiếu nguyên liệu = chạy không được; rủi ro = chạy
+ *  được nhưng bài sẽ bị dìm hoặc gây hại. Tách riêng để không lẫn vào nhau lúc duyệt. */
+export function pieceRisks(piece: { channel: string; tags: string[]; hasLink?: boolean }, refs: { replies?: Array<{ hasLink?: boolean }> } = {}): string[] {
+  const out: string[] = [];
+  if (!piece.hasLink) return out;
+
+  const lc = tagVal(piece.tags, 'linkcheck');
+  if (lc === 'bad') out.push('link đích hỏng — đăng ra là gãy ngay ở cú bấm đầu tiên');
+  else if (!lc) out.push('link đích chưa kiểm (bấm "Kiểm link đích")');
+
+  // Facebook: link nằm TRONG bài là cách chắc chắn nhất để bài không được phân phối. Đường đi đúng
+  // là bài chính không link, link nằm ở comment đầu — nên chỉ nhắc khi chưa có comment nào mang link.
+  if (piece.channel === 'fb-post' || piece.channel === 'fb-group') {
+    const hasLinkComment = refs.replies?.some((r) => r.hasLink);
+    out.push(hasLinkComment
+      ? 'FB: bài chính vẫn còn link dù đã có comment đầu mang link — bỏ link khỏi bài chính'
+      : 'FB dìm bài có link — chuyển link xuống comment đầu, bài chính để trần');
+  }
+  return out;
 }
 
 /** Cảnh báo trên LỊCH chỉ dành cho bài SẮP tới lượt. Bài tháng sau chưa gắn account là chuyện

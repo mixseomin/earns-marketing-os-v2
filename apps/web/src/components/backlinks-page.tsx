@@ -19,7 +19,7 @@ import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
-import { CHANNELS, FORMATS, ANGLE_GROUPS, MIX_TARGET, angleOf, tagVal, pieceGaps, shouldWarnGaps } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
+import { CHANNELS, FORMATS, STYLES, ANGLE_GROUPS, MIX_TARGET, LINK_SHARE_MAX, angleOf, tagVal, pieceGaps, pieceRisks, shouldWarnGaps } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
 import { StatusSegmented, Segmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, ChannelFavicon, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
@@ -176,6 +176,11 @@ const PIECE_AXES: Array<{
   { key: 'format', label: 'Kiểu bài', get: (p) => tagVal(p.tags, 'format'),
     lab: (v) => { const f = FORMATS.find((x) => x.id === v); return f ? `${f.icon} ${f.label}` : v; },
     rank: (v) => FORMATS.findIndex((f) => f.id === v) },
+  { key: 'style', label: 'Trình bày', get: (p) => tagVal(p.tags, 'style'),
+    lab: (v) => { const x = STYLES.find((y) => y.id === v); return x ? `${x.icon} ${x.label}` : v; },
+    rank: (v) => STYLES.findIndex((x) => x.id === v) },
+  { key: 'link', label: 'Link', get: (p) => (p.hasLink ? 'yes' : 'no'),
+    lab: (v) => (v === 'yes' ? '🔗 có link' : 'không link') },
   { key: 'angleGroup', label: 'Nhóm góc', get: (p) => angleOf(p.tags)?.group.id ?? '',
     lab: (v) => ANGLE_GROUPS.find((g) => g.id === v)?.label ?? v,
     color: (v) => ANGLE_GROUPS.find((g) => g.id === v)?.color,
@@ -1360,14 +1365,18 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       // Duyệt rồi nhưng thiếu nguyên liệu (account/browser/asset/chuỗi) → ⚠ trên lịch, CHỈ với bài
       // sắp tới lượt đăng (≤3 ngày) — xa hơn thì thiếu là bình thường, bôi vàng cả tháng là nhiễu.
       const gaps = shouldWarnGaps(p, todayLocal()) ? pieceGaps(p, { accounts, browserProfiles, media, tasks, today: todayLocal() }) : [];
+      // Rủi ro phân phối (bài có link) KHÔNG chờ tới sát ngày mới báo: sửa nó là viết lại bài, phải
+      // biết sớm. Ký hiệu riêng 🔗 để không lẫn với ⚠ thiếu nguyên liệu.
+      const risks = pieceRisks(p, { replies: repliesOf.get(p.id) });
       out.push({
         id: `c:${p.id}`, date: p.date, icon: 'docpen',
-        label: `${plbl}${gaps.length ? '⚠ ' : ''}${(p.subject || p.title).replace(/\s+/g, ' ').trim()}`,
+        label: `${plbl}${gaps.length ? '⚠ ' : ''}${risks.length ? '🔗 ' : ''}${(p.subject || p.title).replace(/\s+/g, ' ').trim()}`,
         lead: <ChannelFavicon channel={p.channel} size={13} title={ch?.label ?? p.channel} />,
         color: a ? a.group.color : 'var(--fg-3)',
         done: p.status === 'published', dim: p.status === 'draft',
         title: `Bài đăng · ${ch?.label ?? p.channel} · ${p.status}${a ? ` · ${a.group.label}/${a.angle}` : ' · chưa gắn angle'} — ${p.title}`
-          + (gaps.length ? `\n⚠ thiếu: ${gaps.join(' · ')}` : ''),
+          + (gaps.length ? `\n⚠ thiếu: ${gaps.join(' · ')}` : '')
+          + (risks.length ? `\n🔗 rủi ro phân phối: ${risks.join(' · ')}` : ''),
         // Ngày/Tuần = xem RUN-OF-SHOW: bài thật hiện luôn dưới pill (account · nơi đăng · caption ·
         // ảnh), không phải bấm mở từng cái mới biết hôm đó đăng gì. Tháng thì không dựng (96 bài =
         // 96 lượt tải thân bài, mà lưới tháng cũng không đủ chỗ hiển thị).
@@ -1450,7 +1459,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       by.set(a.group.id, (by.get(a.group.id) ?? 0) + 1);
       byAngle.set(a.angle, (byAngle.get(a.angle) ?? 0) + 1);
     }
-    return { total: piecesInScope.length, tagged, by, byAngle };
+    const linked = piecesInScope.filter((p) => p.hasLink).length;
+    return { total: piecesInScope.length, tagged, by, byAngle, linked };
   }, [piecesInScope]);
 
   // Thanh lọc bài — MỘT hàng, mỗi trục một pill mở panel chọn. Trước đây mỗi trục là một hàng chip
@@ -2108,6 +2118,20 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
               );
             })}
             {pieceMix.tagged < pieceMix.total && <span style={{ color: 'var(--fg-4)' }}>· {pieceMix.total - pieceMix.tagged} bài chưa gắn angle</span>}
+            {/* Tỉ lệ bài CÓ LINK đứng riêng, không nằm trong mix angle: nó không nói bài phục vụ gì,
+                nó nói feed đang bị nền tảng hạ tay tới đâu. Quá trần → amber. */}
+            {(() => {
+              const pct = pieceMix.total ? Math.round((pieceMix.linked / pieceMix.total) * 100) : 0;
+              const over = pct > LINK_SHARE_MAX;
+              return (
+                <button type="button" onClick={() => setAxis('link', pf.link === 'yes' ? '' : 'yes')}
+                  title={`Bài có link: ${pieceMix.linked}/${pieceMix.total} = ${pct}% · trần khuyến nghị ${LINK_SHARE_MAX}% (link kéo người rời nền tảng → reach bị hạ). Bấm để lọc.`}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 11, padding: '1px 7px', borderRadius: 6,
+                    background: 'transparent', color: over ? 'var(--neon-amber)' : 'var(--fg-3)', border: `1px solid ${pf.link === 'yes' ? 'var(--neon-amber)' : 'transparent'}` }}>
+                  🔗 Có link <b style={{ color: over ? 'var(--neon-amber)' : 'var(--fg-1)' }}>{pieceMix.linked}</b> {pct}%/{LINK_SHARE_MAX}%
+                </button>
+              );
+            })()}
           </div>
         )}
         <MonthCalendar legend={CAL_LEGEND} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else if (s.startsWith('c:')) setOpenPieceId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} date={calDate} onDateChange={setCalDate} today={today}

@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation';
 import { Drawer, EntityRef, EntityPicker, type EntityOption } from '@/components/ui';
 import { readManagedPages } from '@/components/account-metrics';
 import { ChannelFavicon } from '@/components/ui';
-import { CHANNELS, STATUSES, ANGLE_GROUPS, CHANNEL_PLATFORM, angleOf, formatOf, formatsFor, tagVal, tagIds, pieceGaps } from '@/lib/content-channels';
+import { CHANNELS, STATUSES, ANGLE_GROUPS, STYLES, CHANNEL_PLATFORM, angleOf, formatOf, formatsFor, styleOf, tagVal, tagIds, pieceGaps, pieceRisks } from '@/lib/content-channels';
 import { updateContentPiece, createContentPiece, checkPieceLinks, getPieceDetail, type ContentInput } from '@/lib/actions/content';
 import { todayLocal } from '@/lib/local-day';
 import { PiecePreview, forgetPieceBody } from '@/components/piece-preview';
@@ -46,7 +46,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const router = useRouter();
   const [pending, start] = useTransition();
   const [tab, setTab] = useState<TabKey>('overview');
-  const [pick, setPick] = useState<null | 'acct' | 'browser' | 'asset' | 'chain' | 'place' | 'angle' | 'format'>(null);
+  const [pick, setPick] = useState<null | 'acct' | 'browser' | 'asset' | 'chain' | 'place' | 'angle' | 'format' | 'style'>(null);
   const [editBody, setEditBody] = useState(false);
   const [linkMsg, setLinkMsg] = useState<string>('');
   const [hook, setHook] = useState(piece.subject ?? '');
@@ -57,6 +57,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const ch = CHANNELS.find((c) => c.id === piece.channel);
   const a = angleOf(piece.tags);
   const fmt = formatOf(piece.tags);
+  const sty = styleOf(piece.tags);
   const place = tagVal(piece.tags, 'place');
   const time = tagVal(piece.tags, 'time');
   const acct = accounts.find((x) => x.id === Number(tagVal(piece.tags, 'acct')));
@@ -74,6 +75,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const chainIds = tagIds(piece.tags, 'chain');
   const chain = chainIds.map((id) => tasks.find((t) => t.id === id)).filter(Boolean) as NonNullable<typeof tasks>;
   const gaps = pieceGaps(piece, { accounts, browserProfiles, media, tasks, today: todayLocal() });
+  const risks = pieceRisks(piece, { replies });
 
   useEffect(() => { getPieceDetail(piece.id, piece.projectId).then(setDetail); }, [piece.id, piece.projectId]);
 
@@ -103,6 +105,8 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   // mời người ta gắn sai (rồi runner đi tìm nút không tồn tại).
   const loadFormats = useCallback(async (): Promise<EntityOption[]> => formatsFor(piece.channel)
     .map((f) => ({ key: `fmt:${f.id}`, label: f.label, sub: f.icon, fallbackIcon: f.icon, data: { format: f.id } })), [piece.channel]);
+  const loadStyles = useCallback(async (): Promise<EntityOption[]> => STYLES
+    .map((x) => ({ key: `sty:${x.id}`, label: x.label, sub: x.hint, fallbackIcon: x.icon, data: { style: x.id } })), []);
   const loadAngles = useCallback(async (): Promise<EntityOption[]> => ANGLE_GROUPS
     .flatMap((g) => g.angles.map((x) => ({ key: `ang:${x}`, label: x, sub: g.label, fallbackIcon: '◆', data: { angle: x } }))), []);
   // Card chuẩn bị = việc trên chính board này (produce/review/publish), chưa xong xếp trước.
@@ -141,6 +145,17 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
             {piece.status !== 'draft' && <span style={{ color: 'var(--fg-4)' }}> — bài đã {piece.status}, runner chưa chạy được</span>}
             <ul style={{ margin: '5px 0 0', paddingLeft: 18, color: 'var(--fg-2)' }}>
               {gaps.map((g) => <li key={g}>{g}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {risks.length > 0 && (
+          // Khác banner "thiếu nguyên liệu": cái kia là chạy KHÔNG được, cái này là chạy được nhưng
+          // bài sẽ bị dìm. Hai loại vấn đề, hai chỗ, không gộp cho gọn.
+          <div style={{ padding: '8px 11px', borderRadius: 7, border: '1px solid var(--neon-blue)', background: 'color-mix(in srgb, var(--neon-blue) 10%, transparent)', fontSize: 12.5 }}>
+            <b style={{ color: 'var(--neon-blue)' }}>🔗 Bài có link — rủi ro phân phối ({risks.length})</b>
+            <ul style={{ margin: '5px 0 0', paddingLeft: 18, color: 'var(--fg-2)' }}>
+              {risks.map((r) => <li key={r}>{r}</li>)}
             </ul>
           </div>
         )}
@@ -239,6 +254,13 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
               <button type="button" disabled={pending} onClick={() => setPick('angle')}
                 style={{ ...inp, textAlign: 'left', cursor: 'pointer', color: a ? a.group.color : 'var(--fg-4)' }}>
                 {a ? `${a.group.label} / ${a.angle}` : '— chọn angle —'}
+              </button>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={lbl}>Trình bày</label>
+              <button type="button" disabled={pending} onClick={() => setPick('style')}
+                style={{ ...inp, textAlign: 'left', cursor: 'pointer', color: sty ? 'var(--fg-1)' : 'var(--fg-4)' }}>
+                {sty ? `${sty.icon} ${sty.label}` : '— chọn cách trình bày —'}
               </button>
             </div>
             <div style={{ flex: 1 }}>
@@ -373,6 +395,11 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
           emptyHint={acct
             ? <>Account này chưa có Page nào trong vault. Mở facebook.com rồi bấm <b>⬇ Nhập Pages</b> trên ext Crew để quét về.</>
             : <>Chưa chọn account. Đóng bảng này, bấm <b>＋ chọn account</b> trước.</>} />
+      )}
+      {pick === 'style' && (
+        <EntityPicker title="Chọn cách trình bày" hint="Hình dạng của chữ — feed mà bài nào cũng 'hook / giải thích / CTA' thì tới bài thứ tư người ta lướt qua không đọc."
+          load={loadStyles} value={sty ? { key: `sty:${sty.id}` } : undefined} onClose={() => setPick(null)}
+          onPick={async (o) => { setPick(null); await setTag('style', (o.data as { style: string }).style); }} />
       )}
       {pick === 'format' && (
         <EntityPicker title="Chọn kiểu bài" hint="Cùng kênh nhưng đăng ra khác hẳn: text trơn, ảnh đơn, album, bài chèn link, poll, share lại, comment trong thread. Bản dựng bài và runner đều đọc theo kiểu này."

@@ -139,6 +139,59 @@ export function AccountStatChips({ stats, max = 3 }: {
   );
 }
 
+// ── Managed pages (tài sản account quản lý, vd FB personal quản N Page) ─────────────
+// account_stats.pages / pages_deactivated. MỘT nguồn đọc (readManagedPages) + MỘT cách render
+// (ManagedPages list / ManagedPagesCount badge). Dùng lại ở card /environments + cột bảng Accounts +
+// panel account drawer → sửa Ở ĐÂY là cả ba đổi theo. ĐỪNG inline lại ở chỗ gọi.
+export interface PageAsset { name: string; url: string; recovered?: boolean }
+export interface DeactivatedPage { name: string; note?: string }
+export function readManagedPages(stats: Record<string, unknown> | null | undefined): { pages: PageAsset[]; deactivated: DeactivatedPage[] } {
+  const st = (stats ?? {}) as Record<string, unknown>;
+  return {
+    pages: Array.isArray(st.pages) ? (st.pages as PageAsset[]) : [],
+    deactivated: Array.isArray(st.pages_deactivated) ? (st.pages_deactivated as DeactivatedPage[]) : [],
+  };
+}
+// Badge số — cho cell bảng. Hover = danh sách tên.
+export function ManagedPagesCount({ pages, deactivated }: { pages: PageAsset[]; deactivated: DeactivatedPage[] }) {
+  if (!pages.length && !deactivated.length) return DASH;
+  const tip = pages.map((p) => p.name).join(', ')
+    + (deactivated.length ? ` · ngừng (cần admin): ${deactivated.map((p) => p.name).join(', ')}` : '');
+  return (
+    <span title={tip} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>
+      📄 {pages.length}{deactivated.length ? <span style={{ color: 'var(--warn)' }}> (+{deactivated.length})</span> : null}
+    </span>
+  );
+}
+// List gập — cho card/panel/drawer. Click sang page; deactivated gạch + "cần admin".
+export function ManagedPages({ pages, deactivated, label }: { pages: PageAsset[]; deactivated: DeactivatedPage[]; label?: string }) {
+  if (!pages.length && !deactivated.length) return null;
+  return (
+    <details style={{ marginTop: 6, fontSize: 11 }}>
+      <summary style={{ cursor: 'pointer', color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', userSelect: 'none' }}>
+        {label ? `${label} · ` : ''}📄 {pages.length} page{pages.length === 1 ? '' : 's'}
+        {deactivated.length > 0 && <span style={{ color: 'var(--warn)' }}> (+{deactivated.length} ngừng)</span>}
+      </summary>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 4, paddingLeft: 12 }}>
+        {pages.map((p) => (
+          <ExternalLink key={p.url} href={p.url}
+            style={{ color: 'var(--fg-1)', textDecoration: 'none', display: 'flex', gap: 5, alignItems: 'center' }}>
+            <span style={{ color: 'var(--fg-3)' }}>↗</span><span>{p.name}</span>
+            {p.recovered && <span title="vừa khôi phục từ deactivated" style={{ color: 'var(--ok)', fontSize: 10 }}>↩</span>}
+          </ExternalLink>
+        ))}
+        {deactivated.map((p) => (
+          <span key={p.name} title={p.note || 'deactivated — cần page admin reactivate'}
+            style={{ color: 'var(--fg-4)', display: 'flex', gap: 5, alignItems: 'center' }}>
+            <span>⊘</span><span style={{ textDecoration: 'line-through' }}>{p.name}</span>
+            <span style={{ fontSize: 10, color: 'var(--warn)' }}>cần admin</span>
+          </span>
+        ))}
+      </div>
+    </details>
+  );
+}
+
 // Panel đầy đủ — dùng trong account drawer. Chỉ số platform + hoạt động MOS2.
 export function AccountMetricsPanel({ accountId, stats, profileUrl }: {
   accountId: number;
@@ -187,37 +240,9 @@ export function AccountMetricsPanel({ accountId, stats, profileUrl }: {
         </div>
       )}
 
-      {/* Page/tài sản account quản lý (vd FB personal quản N Page) — account_stats.pages. Click sang được;
-          deactivated thì gạch + "cần admin" (FB đòi page-admin reactivate). */}
-      {(() => {
-        const st = (stats ?? {}) as Record<string, unknown>;
-        const pages = Array.isArray(st.pages) ? st.pages as { name: string; url: string; recovered?: boolean }[] : [];
-        const deact = Array.isArray(st.pages_deactivated) ? st.pages_deactivated as { name: string; note?: string }[] : [];
-        if (!pages.length && !deact.length) return null;
-        return (
-          <>
-            <div style={{ ...lbl, marginTop: 10, marginBottom: 5 }}>
-              Page/tài sản quản lý ({pages.length}{deact.length ? ` · +${deact.length} ngừng` : ''})
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {pages.map((p) => (
-                <ExternalLink key={p.url} href={p.url}
-                  style={{ color: 'var(--fg-1)', fontSize: 12, textDecoration: 'none', display: 'flex', gap: 5, alignItems: 'center' }}>
-                  <span style={{ color: 'var(--fg-3)' }}>↗</span><span>{p.name}</span>
-                  {p.recovered && <span title="vừa khôi phục từ deactivated" style={{ color: 'var(--ok)', fontSize: 10 }}>↩</span>}
-                </ExternalLink>
-              ))}
-              {deact.map((p) => (
-                <span key={p.name} title={p.note || 'deactivated — cần page admin reactivate'}
-                  style={{ fontSize: 12, color: 'var(--fg-4)', display: 'flex', gap: 5, alignItems: 'center' }}>
-                  <span>⊘</span><span style={{ textDecoration: 'line-through' }}>{p.name}</span>
-                  <span style={{ fontSize: 10, color: 'var(--warn)' }}>cần admin</span>
-                </span>
-              ))}
-            </div>
-          </>
-        );
-      })()}
+      {/* Page/tài sản account quản lý — component chung ManagedPages (đọc account_stats.pages). Dùng lại
+          y hệt ở card /environments + cột bảng Accounts; sửa trong ManagedPages là cả ba đổi theo. */}
+      {(() => { const { pages, deactivated } = readManagedPages(stats); return <ManagedPages pages={pages} deactivated={deactivated} />; })()}
 
       <div style={{ ...lbl, marginTop: 10, marginBottom: 5 }}>Hoạt động trong MOS2</div>
       {act ? (

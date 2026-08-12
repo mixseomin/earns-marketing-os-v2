@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useRef, useEffect, type CSSProperties } from 'react';
+import { useState, useMemo, useTransition, useRef, useEffect, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   createBrowserProfile, updateBrowserProfile, archiveBrowserProfile,
@@ -10,7 +10,7 @@ import {
 } from '@/lib/actions/environments';
 import { AIFormParser } from './ai-form-parser';
 import { OwnerSelect } from './owner-select';
-import { Drawer, ProjectAssign, EntityRef, SiteFavicon } from './ui';
+import { Drawer, ProjectAssign, EntityRef, SiteFavicon, usePaged, Pager, SearchInput } from './ui';
 import { platformFaviconProps } from './ui/site-favicon';
 import { AccountDrawer } from './account-drawer';
 import { AccountStatChips } from './account-metrics';
@@ -133,6 +133,15 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
   const [openAcct, setOpenAcct] = useState<number | null>(null);   // account opened in-place (stacked drawer)
   const [copied, setCopied] = useState(false);
   const [opened, setOpened] = useState<string | null>(profile?.lastOpenedAt ?? null);
+  // DS account trong 1 profile có thể rất dài (persona doanhedu ~128). Lọc + phân trang bằng primitive
+  // CHUẨN usePaged/Pager/SearchInput (dùng chung mọi vault list) — KHÔNG render cả mảng.
+  const [acctQuery, setAcctQuery] = useState('');
+  const filteredAccts = useMemo(() => {
+    const list = inside ?? [];
+    const q = acctQuery.trim().toLowerCase();
+    return q ? list.filter((a) => [a.handle, a.email, a.platformKey].some((v) => v && v.toLowerCase().includes(q))) : list;
+  }, [inside, acctQuery]);
+  const acctPage = usePaged(filteredAccts, 30);
   useEffect(() => {
     if (!profile) return;
     let live = true;
@@ -223,12 +232,18 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
           </div>
           {/* Accounts logged in INSIDE this profile — the managing Google login (🔑) + every app account. */}
           <div>
-            <span style={lbl}>🔓 Đang login trong profile này {inside ? `(${inside.length})` : ''}</span>
+            <span style={lbl}>🔓 Đang login trong profile này {inside ? `(${filteredAccts.length}${acctQuery ? ` / ${inside.length}` : ''})` : ''}</span>
             {inside == null ? <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>…</div>
               : inside.length === 0 ? <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>— chưa có account nào gắn profile này —</div>
               : (
+                <>
+                  {inside.length > 10 && (
+                    <div style={{ marginTop: 6 }}>
+                      <SearchInput value={acctQuery} onChange={setAcctQuery} placeholder="Tìm handle / email / platform…" width={220} />
+                    </div>
+                  )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
-                  {inside.map((a) => {
+                  {acctPage.pageItems.map((a) => {
                     // Mất phiên (dead) hoặc account bị khoá (banned/suspended…) = KHÔNG active → mờ cả dòng.
                     const inactive = a.sessionState === 'dead' || DEAD_STATUSES.includes(a.status as AccountStatus);
                     const rowStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, padding: '5px 8px', borderRadius: 6, background: a.isManager ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'var(--bg-2)', border: `1px solid ${a.isManager ? 'var(--accent)' : 'var(--line)'}`, opacity: inactive ? 0.5 : 1 };
@@ -270,7 +285,10 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
                       </div>
                     );
                   })}
+                  {acctPage.pageItems.length === 0 && <div style={{ fontSize: 12, color: 'var(--fg-4)' }}>— không khớp tìm kiếm —</div>}
                 </div>
+                <Pager page={acctPage.page} pageCount={acctPage.pageCount} total={acctPage.total} pageSize={acctPage.pageSize} onPage={acctPage.setPage} />
+                </>
               )}
           </div>
           {/* Projects this profile serves — many-to-many. Shared <ProjectAssign> (same as the account

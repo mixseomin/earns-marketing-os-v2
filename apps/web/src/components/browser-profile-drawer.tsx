@@ -246,7 +246,10 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
                   {acctPage.pageItems.map((a) => {
                     // Mất phiên (dead) hoặc account bị khoá (banned/suspended…) = KHÔNG active → mờ cả dòng.
                     const inactive = a.sessionState === 'dead' || DEAD_STATUSES.includes(a.status as AccountStatus);
-                    const rowStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, padding: '5px 8px', borderRadius: 6, background: a.isManager ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'var(--bg-2)', border: `1px solid ${a.isManager ? 'var(--accent)' : 'var(--line)'}`, opacity: inactive ? 0.5 : 1 };
+                    // Account đi RIÊNG qua proxy (per-domain PAC, proxy_id) = viền đỏ để nhận ra ngay
+                    // cái nào không đi IP thật. Thắng cả viền manager (accent) vì đây là cảnh báo định tuyến.
+                    const proxied = a.proxyId != null;
+                    const rowStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, padding: '5px 8px', borderRadius: 6, background: a.isManager ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'var(--bg-2)', border: `1px solid ${proxied ? 'var(--bad)' : a.isManager ? 'var(--accent)' : 'var(--line)'}`, opacity: inactive ? 0.5 : 1 };
                     // Account = shared <EntityRef> (opens the standard account drawer IN-PLACE, stacked
                     // over this profile drawer — no page jump). Manager 🔑 + status stay as row decoration.
                     return (
@@ -255,7 +258,9 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
                             phân biệt được dòng nào là site nào, phải đọc chữ mới biết. */}
                         <SiteFavicon {...platformFaviconProps(a.platformKey)} size={16} circle
                           glyph={a.isManager ? '🔑' : '👤'} title={a.isManager ? 'Gmail quản lý (base login)' : a.platformKey} />
-                        {activeProxy && <span title={`Account này đi qua proxy ${activeProxy.label}${activeProxy.location ? ` · ${activeProxy.location}` : ''} — IP thật được che`} style={{ flexShrink: 0, fontSize: 11, lineHeight: 1 }}>🛡</span>}
+                        {proxied
+                          ? <span title={`Account này đi RIÊNG qua proxy ${a.proxyLabel ?? '#' + a.proxyId} (per-domain PAC — chỉ site này qua proxy, phần còn lại của profile đi DIRECT)`} style={{ flexShrink: 0, fontSize: 11, lineHeight: 1, color: 'var(--bad)' }}>🛡</span>
+                          : activeProxy && <span title={`Cả profile đi qua proxy ${activeProxy.label}${activeProxy.location ? ` · ${activeProxy.location}` : ''} — IP thật được che`} style={{ flexShrink: 0, fontSize: 11, lineHeight: 1 }}>🛡</span>}
                         <EntityRef kind="account" id={a.id} label={a.handle || a.email || '(no handle)'} noIcon
                           onOpen={a.projectId ? () => setOpenAcct(a.id) : undefined} />
                         <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>· {a.platformKey}</span>

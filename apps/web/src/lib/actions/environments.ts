@@ -238,12 +238,13 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
 // Manager (tag 'profile-manager' or platform_key='google') sorts first so the base login is obvious.
 // lastUsedAt = lần cuối account này thực sự được dùng. Session hết hạn theo TỪNG account (Reddit rụng
 // sớm hơn Google), nên "profile mở hôm qua" không có nghĩa mọi account bên trong còn sống.
-export interface ProfileAccountRow { id: number; platformKey: string; handle: string; email: string | null; status: string; projectId: string | null; isManager: boolean; lastUsedAt: string | null; sessionExpiresAt: string | null; sessionState: string | null; pendingSince: string | null; pendingVerdict: string | null; accountStats: Record<string, unknown> }
+export interface ProfileAccountRow { id: number; platformKey: string; handle: string; email: string | null; status: string; projectId: string | null; isManager: boolean; lastUsedAt: string | null; sessionExpiresAt: string | null; sessionState: string | null; pendingSince: string | null; pendingVerdict: string | null; accountStats: Record<string, unknown>; proxyId: number | null; proxyLabel: string | null }
 export async function browserProfileAccounts(profileId: number): Promise<ProfileAccountRow[]> {
   const db = getDb();
   if (!db) return [];
   const rows = await db.execute(sql`
-    SELECT id, platform_key, handle, email, status, project_id, last_used_at, account_stats,
+    SELECT id, platform_key, handle, email, status, project_id, last_used_at, account_stats, proxy_id,
+           (SELECT label FROM proxies WHERE id = platform_accounts.proxy_id) AS proxy_label,
            environment->>'sessionExpiresAt' AS session_expires_at,
            environment->>'sessionState' AS session_state,
            environment->>'pendingSince' AS pending_since,
@@ -262,6 +263,8 @@ export async function browserProfileAccounts(profileId: number): Promise<Profile
     pendingSince: toIso(r.pending_since),
     pendingVerdict: (r.pending_verdict as string | null) ?? null,
     accountStats: (r.account_stats as Record<string, unknown> | null) ?? {},
+    proxyId: r.proxy_id != null ? Number(r.proxy_id) : null,
+    proxyLabel: (r.proxy_label as string | null) ?? null,
   }));
 }
 

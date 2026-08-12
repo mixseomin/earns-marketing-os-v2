@@ -38,6 +38,9 @@ export function PiecePreview({ piece, accounts = [], media = [], body, compact =
   const time = tagVal(piece.tags, 'time');
   const assets = tagIds(piece.tags, 'asset').map((id) => media.find((m) => m.id === id)).filter(Boolean) as Array<{ id: number; url: string; filename: string }>;
   const placeLabel = place.startsWith('http') ? place.replace(/^https?:\/\/(www\.)?/, '') : place;
+  const tweets = piece.channel === 'twitter-thread' && text?.trim()
+    ? text.trim().split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean)
+    : null;
 
   return (
     <div onClick={onOpen}
@@ -52,10 +55,25 @@ export function PiecePreview({ piece, accounts = [], media = [], body, compact =
         </span>
         <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>#{piece.id}</span>
       </div>
-      <div style={{ padding: compact ? '9px 11px' : '12px 14px', fontSize: compact ? 12 : 13.5, lineHeight: 1.5, whiteSpace: 'pre-wrap',
-        ...(compact ? { display: '-webkit-box', WebkitLineClamp: 8, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>
-        {text === null ? '…' : (text.trim() || <em style={{ color: 'var(--neon-amber)' }}>chưa soạn nội dung</em>)}
-      </div>
+      {tweets ? (
+        // Thread X đăng ra là N tweet RỜI, không phải một khối. Dựng đúng số mảnh + đếm ký tự vì
+        // tweet quá 280 là hỏng lúc đăng, mà nhìn khối liền thì không ai thấy.
+        <div style={{ padding: compact ? '7px 9px' : '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {tweets.map((t, i) => (
+            <div key={i} style={{ borderLeft: '2px solid var(--line)', paddingLeft: 9, fontSize: compact ? 12 : 13.5, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+              {t}
+              <span style={{ marginLeft: 6, fontSize: 10, fontFamily: 'var(--font-mono)', color: t.length > 280 ? 'var(--bad)' : 'var(--fg-4)' }}>
+                {t.length}/280
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ padding: compact ? '9px 11px' : '12px 14px', fontSize: compact ? 12 : 13.5, lineHeight: 1.5, whiteSpace: 'pre-wrap',
+          ...(compact ? { display: '-webkit-box', WebkitLineClamp: 8, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>
+          {text === null ? '…' : (text.trim() || <em style={{ color: 'var(--neon-amber)' }}>chưa soạn nội dung</em>)}
+        </div>
+      )}
       {assets.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: assets.length > 1 ? '1fr 1fr' : '1fr', gap: 2, background: 'var(--line)' }}>
           {assets.map((m) => (

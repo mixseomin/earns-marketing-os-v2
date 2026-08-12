@@ -18,7 +18,7 @@
 // <table> ngay ở đây: mất nhóm cột bật/tắt, mất sắp xếp, mất ô lọc, pad lệch với bảng SEO ngay trên.
 // `columns[].cell` là HÀM nên không serialize qua ranh giới server → client được, phải tách file.
 import { Panel } from './ui/panel';
-import { getGumroadSummary } from '@/lib/gumroad/products';
+import { getGumroadSummary, lacksDiscover } from '@/lib/gumroad/products';
 import { loadProductViews } from '@/lib/gumroad/daily';
 import { ProductsTable, type ProductRow } from './products-table';
 
@@ -45,7 +45,7 @@ export async function ProductsPanel() {
       usdCents: p.salesUsdCents,
       views7d: v ? v.views7d : null,
       views30d: v ? v.views30d : null,
-      missingDiscover: !p.tags.length || !p.category,
+      missingDiscover: lacksDiscover(p),
     };
   });
   const anyViews = rows.some((r) => r.views7d !== null);

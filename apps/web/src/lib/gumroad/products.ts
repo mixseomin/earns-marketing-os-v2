@@ -139,8 +139,19 @@ export async function getGumroadSummary(): Promise<GumroadSummary> {
     livePaid: products.filter((p) => p.published && p.priceCents > 0).length,
     liveFree: products.filter((p) => p.published && p.priceCents === 0).length,
     // Bỏ trống category/tags = tự cắt kênh Gumroad Discover (traffic free). Đếm ra để nhắc.
-    missingDiscover: products.filter((p) => p.published && (!p.tags.length || !p.category || p.category === 'other')).length,
+    missingDiscover: products.filter((p) => p.published && lacksDiscover(p)).length,
   };
+}
+
+/**
+ * Chưa đủ điều kiện lên Discover: thiếu tag, hoặc còn nằm ở danh mục "Other".
+ *
+ * `=== 'other'` (phân biệt hoa thường) là SAI: Gumroad trả đúng chữ "Other", nên sản phẩm nằm y
+ * nguyên trong Other vẫn được chấm là ổn — đó là lý do Write Like a Person không hiện cảnh báo
+ * suốt thời gian nó ở Other. So sau khi hạ chữ thường.
+ */
+export function lacksDiscover(p: { tags: string[]; category: string | null }): boolean {
+  return !p.tags.length || !p.category || p.category.trim().toLowerCase() === 'other';
 }
 
 interface RawProduct {

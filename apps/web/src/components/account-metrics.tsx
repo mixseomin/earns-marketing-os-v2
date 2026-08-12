@@ -187,6 +187,38 @@ export function AccountMetricsPanel({ accountId, stats, profileUrl }: {
         </div>
       )}
 
+      {/* Page/tài sản account quản lý (vd FB personal quản N Page) — account_stats.pages. Click sang được;
+          deactivated thì gạch + "cần admin" (FB đòi page-admin reactivate). */}
+      {(() => {
+        const st = (stats ?? {}) as Record<string, unknown>;
+        const pages = Array.isArray(st.pages) ? st.pages as { name: string; url: string; recovered?: boolean }[] : [];
+        const deact = Array.isArray(st.pages_deactivated) ? st.pages_deactivated as { name: string; note?: string }[] : [];
+        if (!pages.length && !deact.length) return null;
+        return (
+          <>
+            <div style={{ ...lbl, marginTop: 10, marginBottom: 5 }}>
+              Page/tài sản quản lý ({pages.length}{deact.length ? ` · +${deact.length} ngừng` : ''})
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {pages.map((p) => (
+                <ExternalLink key={p.url} href={p.url}
+                  style={{ color: 'var(--fg-1)', fontSize: 12, textDecoration: 'none', display: 'flex', gap: 5, alignItems: 'center' }}>
+                  <span style={{ color: 'var(--fg-3)' }}>↗</span><span>{p.name}</span>
+                  {p.recovered && <span title="vừa khôi phục từ deactivated" style={{ color: 'var(--ok)', fontSize: 10 }}>↩</span>}
+                </ExternalLink>
+              ))}
+              {deact.map((p) => (
+                <span key={p.name} title={p.note || 'deactivated — cần page admin reactivate'}
+                  style={{ fontSize: 12, color: 'var(--fg-4)', display: 'flex', gap: 5, alignItems: 'center' }}>
+                  <span>⊘</span><span style={{ textDecoration: 'line-through' }}>{p.name}</span>
+                  <span style={{ fontSize: 10, color: 'var(--warn)' }}>cần admin</span>
+                </span>
+              ))}
+            </div>
+          </>
+        );
+      })()}
+
       <div style={{ ...lbl, marginTop: 10, marginBottom: 5 }}>Hoạt động trong MOS2</div>
       {act ? (
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>

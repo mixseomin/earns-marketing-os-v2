@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useRef } from 'react';
+import { useState, useEffect, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
 import { useUrlParam, useUrlState } from '@/lib/use-url-param';
@@ -668,6 +668,23 @@ function acctColumns(setProject: (v: string) => void): DataColumn<GlobalAccountR
 
     // 📊 Chỉ số platform — CÙNG 6 cột với bảng /seeding (account-metrics.tsx).
     ...accountStatColumns<GlobalAccountRow>((a) => a.accountStats),
+    // 📄 Page/tài sản account quản lý (vd FB personal quản N Page) — account_stats.pages. Hover = tên;
+    //    mở account (hoặc card profile) để bấm sang từng page.
+    { key: 'pages', group: 'ops', header: 'Pages', align: 'center' as const,
+      title: 'Số Page/tài sản account này quản lý (account_stats.pages). Hover xem tên.',
+      sortValue: (a) => { const p = (a.accountStats as Record<string, unknown>)?.pages; return Array.isArray(p) ? p.length : 0; },
+      cell: (a) => {
+        const st = (a.accountStats ?? {}) as Record<string, unknown>;
+        const pages = Array.isArray(st.pages) ? st.pages as { name: string }[] : [];
+        const deact = Array.isArray(st.pages_deactivated) ? st.pages_deactivated as { name: string }[] : [];
+        if (!pages.length && !deact.length) return DASH;
+        const tip = pages.map((p) => p.name).join(', ') + (deact.length ? ` · ngừng (cần admin): ${deact.map((p) => p.name).join(', ')}` : '');
+        return (
+          <span title={tip} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>
+            📄 {pages.length}{deact.length ? <span style={{ color: 'var(--warn)' }}> (+{deact.length})</span> : null}
+          </span>
+        );
+      } },
 
     // 🛡 Môi trường
     { key: 'browser', group: 'env', header: 'Browser', align: 'left', sortValue: (a) => a.browserLabel ?? '',
@@ -717,7 +734,17 @@ function acctColumns(setProject: (v: string) => void): DataColumn<GlobalAccountR
 function AccountsTab({ accounts }: { accounts: GlobalAccountRow[] }) {
   // Mọi entity chip ở đây mở drawer IN-PLACE qua <EntityDrawerHost> toàn cục
   // (lib/entity-drawer) — page này KHÔNG tự mount drawer, KHÔNG điều hướng.
-  const [q, setQ] = useUrlParam('q', '');
+  // Input filter gõ TỨC THÌ bằng local state; URL chỉ sync debounced. Trước đây value lấy thẳng từ
+  // useUrlParam → mỗi phím = router.replace → server re-render 324 dòng + value round-trip qua URL →
+  // lag, nhảy con trỏ, rớt ký tự. Local state cắt round-trip; URL vẫn cập nhật để share/back-forward.
+  const [qUrl, setQUrl] = useUrlParam('q', '');
+  const [q, setQ] = useState(qUrl);
+  useEffect(() => { setQ(qUrl); }, [qUrl]);
+  useEffect(() => {
+    if (q === qUrl) return;
+    const t = setTimeout(() => setQUrl(q), 300);
+    return () => clearTimeout(t);
+  }, [q, qUrl, setQUrl]);
   const [project, setProject] = useUrlParam('proj', 'all');
   const [platform, setPlatform] = useUrlParam('plat', 'all');
   const [status, setStatus] = useUrlParam('st', 'all');

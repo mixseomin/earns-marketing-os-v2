@@ -19,6 +19,13 @@ const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
 export interface GumroadProduct {
   id: string;
+  /**
+   * Permalink (efvcp, qpzez…) — KHÁC `id`, vốn là chuỗi base64 dài của API v2. Mọi nơi khác trong
+   * hệ (URL sản phẩm, cấu hình <slug>.json, bảng product_daily do job trình duyệt đẩy về) đều dùng
+   * permalink làm khoá. Thiếu trường này thì bảng views không nối được với sản phẩm nào — nhìn ra
+   * đúng như "chưa có dữ liệu", trong khi dữ liệu vẫn nằm đó.
+   */
+  permalink: string;
   /** Store bán món này (nhãn lấy từ Gumroad /user) — nhiều store thì phải phân biệt được. */
   store: string;
   name: string;
@@ -149,8 +156,10 @@ function toProduct(p: RawProduct, store: string): GumroadProduct {
   else if (typeof p.tags === 'string') {
     try { tags = JSON.parse(p.tags.replace(/'/g, '"')) as string[]; } catch { tags = []; }
   }
+  const url = p.short_url || p.landing_url || '';
   return {
     id: p.id,
+    permalink: (url.match(/\/l\/([A-Za-z0-9_-]+)/) || [])[1] || '',
     store,
     name: p.name,
     priceCents: p.price ?? 0,
@@ -158,7 +167,7 @@ function toProduct(p: RawProduct, store: string): GumroadProduct {
     published: !!p.published,
     salesCount: Number(p.sales_count) || 0,
     salesUsdCents: Number(p.sales_usd_cents) || 0,
-    url: p.short_url || p.landing_url || '',
+    url,
     category: p.category ?? null,
     tags: Array.isArray(tags) ? tags : [],
     thumbnailUrl: p.thumbnail_url ?? null,

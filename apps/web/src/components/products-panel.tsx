@@ -26,7 +26,7 @@ export async function ProductsPanel() {
   }
 
   const rows = sum.products.filter((p) => p.published)
-    .map((p) => ({ ...p, v: views.byProduct[`${p.store}:${p.id}`] ?? null }));
+    .map((p) => ({ ...p, v: views.byProduct[`${p.store}:${p.permalink}`] ?? null }));
   const totalViews7 = rows.reduce((s, r) => s + (r.v?.views7d ?? 0), 0);
   const anyViews = rows.some((r) => r.v);
 
@@ -55,7 +55,7 @@ export async function ProductsPanel() {
           </thead>
           <tbody>
             {rows.map((p) => (
-              <tr key={`${p.store}:${p.id}`}>
+              <tr key={`${p.store}:${p.permalink || p.id}`}>
                 <td style={left}>
                   <a href={p.url} target="_blank" rel="noreferrer" style={{ color: 'var(--fg-1)', textDecoration: 'none' }}>{p.name}</a>
                   {/* Thiếu category/tag = tự cắt mình khỏi Gumroad Discover. Nhắc ngay tại dòng. */}

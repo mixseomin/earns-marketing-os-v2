@@ -33,7 +33,7 @@ import {
 } from '@/lib/phase-plan';
 import { CONTENT_FORMATS, formatMeta, allowedFormats, formatColors, postCompleteness, effectiveMix, computeMixAchievement, isInteractionType } from '@/lib/content-formats';
 import { getContentRules, validateContent } from '@/lib/platform-rules';
-import { FormatIcon, IconSliders, IconChevron, FormModal, InfoHint, SiteFavicon } from './ui';
+import { FormatIcon, IconSliders, IconChevron, FormModal, InfoHint, SiteFavicon, AnchoredPopover } from './ui';
 import {
   listPostsForBriefPhase, createPostForBriefPhase, createPlaceholdersForBriefPhase,
   updatePost, deletePost,
@@ -3263,24 +3263,8 @@ function PostRow({
   // Đổi loại bài (content_type) tại chỗ
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
   const [typeBusy, setTypeBusy] = useState(false);
-  // Anchor button ref + dropdown position (position:fixed escape stacking)
+  // Anchor button cho dropdown đổi loại bài — vị trí + portal do AnchoredPopover lo.
   const typeBtnRef = useRef<HTMLButtonElement | null>(null);
-  const [typeDropPos, setTypeDropPos] = useState<{ top: number; left: number } | null>(null);
-  const recomputeTypePos = () => {
-    const r = typeBtnRef.current?.getBoundingClientRect();
-    if (r) setTypeDropPos({ top: r.bottom + 4, left: r.left });
-  };
-  useEffect(() => {
-    if (!typeMenuOpen) return;
-    recomputeTypePos();
-    const handler = () => recomputeTypePos();
-    window.addEventListener('scroll', handler, true);
-    window.addEventListener('resize', handler);
-    return () => {
-      window.removeEventListener('scroll', handler, true);
-      window.removeEventListener('resize', handler);
-    };
-  }, [typeMenuOpen]);
   const changeType = (newType: string) => {
     setTypeMenuOpen(false);
     if (newType === post.contentType) return;
@@ -3493,10 +3477,7 @@ function PostRow({
         <span style={{ display: 'inline-flex', flexShrink: 0 }}
               onClick={(e) => e.stopPropagation()}>
           <button ref={typeBtnRef} type="button"
-                  onClick={() => {
-                    recomputeTypePos();
-                    setTypeMenuOpen((v) => !v);
-                  }}
+                  onClick={() => setTypeMenuOpen((v) => !v)}
                   disabled={typeBusy}
                   title={`Loại bài: ${formatMeta(post.contentType).label}. Click để đổi loại (ảnh / video / link / carousel…). Thay đổi áp dụng ngay; preview + completeness sẽ tự cập nhật.`}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '1px 6px 1px 7px',
@@ -3511,15 +3492,8 @@ function PostRow({
             )}
             <IconChevron dir={typeMenuOpen ? 'up' : 'down'} size={9} />
           </button>
-          {typeMenuOpen && typeDropPos && (
-            <>
-              {/* z-index siêu cao để escape mọi stacking context của card row.
-                  position:fixed + toạ độ từ button rect để dropdown không bị
-                  card khác đè. */}
-              <div onClick={() => setTypeMenuOpen(false)}
-                   style={{ position: 'fixed', inset: 0, zIndex: 1100 }} />
-              <div style={{ position: 'fixed', top: typeDropPos.top, left: typeDropPos.left, zIndex: 1101,
-                            minWidth: 170, background: 'var(--bg-1)',
+          <AnchoredPopover anchorRef={typeBtnRef} open={typeMenuOpen} onClose={() => setTypeMenuOpen(false)} align="left" zIndex={1100}>
+              <div style={{ minWidth: 170, background: 'var(--bg-1)',
                             border: '1px solid var(--line-2)', borderRadius: 6,
                             boxShadow: '0 12px 32px rgba(0,0,0,.5)', padding: 4 }}>
                 <div style={{ padding: '4px 8px 6px', fontSize: 9, fontFamily: 'var(--font-mono)',
@@ -3544,8 +3518,7 @@ function PostRow({
                   );
                 })}
               </div>
-            </>
-          )}
+          </AnchoredPopover>
         </span>
         {/* Channel picker — chỉ hiện cho Discord/Slack/Telegram habitats.
             Click chip → dropdown chọn channel + AI suggest. Đổi channel

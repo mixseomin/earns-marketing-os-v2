@@ -59,9 +59,12 @@ export function PiecePreview({ piece, accounts = [], media = [], body, compact =
       {assets.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: assets.length > 1 ? '1fr 1fr' : '1fr', gap: 2, background: 'var(--line)' }}>
           {assets.map((m) => (
+            // Ảnh hiện TRỌN (contain), không cắt. `cover` + maxHeight cắt mất masthead và dòng nguồn
+            // của card → duyệt nhầm cái mình không nhìn thấy. Ở lịch (compact) hạ trần chiều cao,
+            // vẫn contain nên chỉ nhỏ đi chứ không mất phần nào.
             // eslint-disable-next-line @next/next/no-img-element
             <img key={m.id} src={m.url} alt={m.filename}
-              style={{ width: '100%', maxHeight: compact ? 150 : 340, objectFit: 'cover', display: 'block', background: 'var(--bg-2)' }} />
+              style={{ width: '100%', height: 'auto', maxHeight: compact ? 320 : undefined, objectFit: 'contain', display: 'block', background: 'var(--bg-2)' }} />
           ))}
         </div>
       )}

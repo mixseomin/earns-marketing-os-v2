@@ -20,7 +20,7 @@ import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
 import { CHANNELS, ANGLE_GROUPS, MIX_TARGET, angleOf, tagVal, pieceGaps, shouldWarnGaps } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
-import { StatusSegmented, Segmented, MonthCalendar, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
+import { StatusSegmented, Segmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
 import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
@@ -1290,6 +1290,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // thay vì lọc lần hai — một nguồn, không có chỗ cho hai bộ lọc lệch nhau.
   // Feed = bài xếp theo NGÀY rồi theo GIỜ (tag time:), gom theo ngày. Đúng trình tự sẽ đăng thật,
   // nên đọc từ trên xuống là thấy nhịp của cả tuần: sáng meme → trưa tin → tối số liệu.
+  // La bàn của chế độ đọc: tháng đang xem trên mini-cal · ngày đang đọc (tự bám theo cuộn) · ref
+  // từng ngày để bấm mini-cal là cuộn tới.
+  const [feedMonth, setFeedMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
+  const [feedActive, setFeedActive] = useState(() => today ?? todayLocal());
+  const feedRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
   const feedDays = useMemo(() => {
     const by = new Map<string, CalPiece[]>();
     for (const p of piecesInScope) {
@@ -1300,6 +1306,25 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([d, ps]) => [d, ps.sort((x, y) => (tagVal(x.tags, 'time') || '99:99').localeCompare(tagVal(y.tags, 'time') || '99:99'))] as const);
   }, [piecesInScope]);
+
+  // Chấm trên mini-cal = ngày có bài (màu theo nhóm angle của bài đầu ngày).
+  const feedByDate = useMemo(() => {
+    const m = new Map<string, CalItem[]>();
+    for (const [d, ps] of feedDays) m.set(d, ps.map((p) => ({ id: `c:${p.id}`, date: d, label: p.subject || p.title, color: angleOf(p.tags)?.group.color })));
+    return m;
+  }, [feedDays]);
+
+  // Cuộn tới đâu thì mini-cal sáng ngày đó — "đang ở đâu" phải tự trả lời, không bắt người dùng nhớ.
+  useEffect(() => {
+    if (view !== 'feed') return;
+    const io = new IntersectionObserver((entries) => {
+      const top = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      const ds = top?.target.id.replace('feed-', '');
+      if (ds) { setFeedActive(ds); const yy = Number(ds.slice(0, 4)), mm = Number(ds.slice(5, 7)); setFeedMonth((cur) => (cur.getFullYear() === yy && cur.getMonth() === mm - 1 ? cur : new Date(yy, mm - 1, 1))); }
+    }, { rootMargin: '-8% 0px -80% 0px' });
+    for (const el of Object.values(feedRefs.current)) if (el) io.observe(el);
+    return () => io.disconnect();
+  }, [view, feedDays]);
 
   const pieceMix = useMemo(() => {
     const by = new Map<string, number>();
@@ -1808,10 +1833,26 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         /* CHẾ ĐỘ ĐỌC — chỉ nội dung. Cột hẹp như feed thật; mốc giờ + đường dọc bên trái để thấy
            TRÌNH TỰ trong ngày. Khối bài dùng chung PiecePreview với lịch và drawer, nên "plan trông
            thế nào thì đăng đúng thế": không có bản dựng riêng cho lúc duyệt. */
-        <div style={{ maxWidth: 680, margin: '0 auto', width: '100%' }}>
+        <div style={{ display: 'flex', gap: 22, alignItems: 'flex-start' }}>
+          {/* La bàn: MINI-MONTH y như ở lịch (cùng component) — chấm = ngày có bài, ô sáng = ngày
+              đang đọc. Bấm ngày → cuộn thẳng tới ngày đó. Không có nó thì cuộn một lúc là mất dấu. */}
+          <div style={{ position: 'sticky', top: 8, width: 232, flexShrink: 0 }}>
+            <MiniMonth month={feedMonth} sel={new Set([feedActive])} byDate={feedByDate} today={today}
+              onNavMonth={(dir) => setFeedMonth((m) => new Date(m.getFullYear(), m.getMonth() + dir, 1))}
+              onPick={(d) => {
+                const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                setFeedActive(ds);
+                document.getElementById(`feed-${ds}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }} />
+            <div style={{ marginTop: 10, fontSize: 11, color: 'var(--fg-4)', lineHeight: 1.5 }}>
+              {feedDays.length} ngày · {piecesInScope.length} bài
+            </div>
+          </div>
+
+        <div style={{ maxWidth: 680, flex: 1, minWidth: 0 }}>
           {feedDays.length === 0 && <div style={{ padding: 28, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Chưa có bài nào đặt ngày.</div>}
           {feedDays.map(([d, ps]) => (
-            <div key={d} style={{ marginBottom: 10 }}>
+            <div key={d} id={`feed-${d}`} ref={(el) => { feedRefs.current[d] = el; }} style={{ marginBottom: 10, scrollMarginTop: 8 }}>
               <div style={{ position: 'sticky', top: 0, zIndex: 3, background: 'var(--bg-0, #0b0d12)', padding: '9px 0 7px',
                 borderBottom: '1px solid var(--line)', fontSize: 12.5, fontWeight: 700, display: 'flex', gap: 8, alignItems: 'baseline' }}>
                 <span style={{ color: d === today ? 'var(--neon-cyan)' : 'var(--fg-1)' }}>
@@ -1832,6 +1873,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
               ))}
             </div>
           ))}
+        </div>
         </div>
       ) : view === 'calendar' ? (
         <>

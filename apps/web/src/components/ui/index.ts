@@ -6,7 +6,7 @@ export { LinkChip, type ChipTone, type ChipSize } from './link-chip';
 export { Segmented, type SegmentedOption } from './segmented';
 export { Tabs, type TabItem } from './tabs';
 export { StatusSegmented, type StatusOption } from './status-segmented';
-export { MonthCalendar, type CalItem, type CalMode, type LegendEntry, type CalBrief } from './month-calendar';
+export { MonthCalendar, MiniMonth, type CalItem, type CalMode, type LegendEntry, type CalBrief } from './month-calendar';
 export { ViewToggle, LIST_CALENDAR_VIEWS, type ViewOption } from './view-toggle';
 export { CTACard, type CTATone } from './cta-card';
 export { ResourcePicker, type ResourcePickerProps, type PickerItem } from './resource-picker';

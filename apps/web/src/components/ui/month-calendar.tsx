@@ -59,7 +59,7 @@ const MODES: { key: CalMode; label: string }[] = [
 
 // MINI-MONTH: lưới tháng thu nhỏ (như sidebar Google Calendar). Ngày hôm nay khoanh, ngày đang chọn
 // tô nền accent, ngày có việc có 1 chấm nhỏ ở dưới → liếc là biết cả tháng chỗ nào có việc. Bấm ngày = nhảy.
-function MiniMonth({ month, sel, byDate, onPick, onNavMonth, today }: {
+export function MiniMonth({ month, sel, byDate, onPick, onNavMonth, today }: {
   month: Date; sel: Set<string>; byDate: Map<string, CalItem[]>; onPick: (d: Date) => void; onNavMonth: (dir: 1 | -1) => void; today?: string;
 }) {
   const m = month.getMonth();

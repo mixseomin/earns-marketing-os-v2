@@ -984,8 +984,10 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const focus = view === 'feed';
   // Auto-refresh every 10s on the LIVE views (calendar + kanban — where cards move); skip the list view
   // (don't disrupt reading/inline edits) and backgrounded tabs. Header checkbox toggles `realtime`.
+  // Chế độ ĐỌC cũng nằm ngoài như list: mỗi lần refresh là kéo lại nguyên payload trang (~2,8 MB)
+  // và dựng lại cả cột bài — đang đọc thì đó là giật, không phải "live".
   useEffect(() => {
-    if (!realtime || view === 'list') return;
+    if (!realtime || view === 'list' || view === 'feed') return;
     const id = setInterval(() => { if (!document.hidden) start(() => router.refresh()); }, 10000);
     return () => clearInterval(id);
   }, [realtime, view, router]);

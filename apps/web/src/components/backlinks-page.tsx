@@ -1448,20 +1448,46 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     return () => io.disconnect();
   }, [view, feedDays]);
 
+  // Khung thời gian ĐANG XEM. Tỉ lệ mix/link tính trên toàn bộ dữ liệu thì nó là con số của cả
+  // năm, không nói gì về tháng đang lên lịch — mà quyết định ("tuần này đủ link chưa") lại ra ở
+  // đúng khung đang nhìn. Tháng = trọn lưới đang hiện (gồm cả ngày đầu/cuối tràn sang tháng bên
+  // cạnh, vì chúng nằm trên màn hình); Tuần = T2→CN; Ngày = đúng ngày đó; chế độ đọc = tháng của
+  // mini-cal.
+  const calRange = useMemo(() => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const ymdOf = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const mondayOf = (d: Date) => { const x = new Date(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+    const anchor = view === 'feed' ? feedMonth : (calDate ? new Date(`${calDate}T12:00:00`) : new Date());
+    const fmtDay = (d: Date) => d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+    if (view !== 'feed' && calMode === 'day') return { from: ymdOf(anchor), to: ymdOf(anchor), label: `ngày ${fmtDay(anchor)}` };
+    if (view !== 'feed' && calMode === 'week') {
+      const a = mondayOf(anchor); const b = new Date(a); b.setDate(b.getDate() + 6);
+      return { from: ymdOf(a), to: ymdOf(b), label: `tuần ${fmtDay(a)}–${fmtDay(b)}` };
+    }
+    const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+    const a = mondayOf(first); const b = new Date(a); b.setDate(b.getDate() + 41);
+    return { from: ymdOf(a), to: ymdOf(b), label: `tháng ${pad(anchor.getMonth() + 1)}/${anchor.getFullYear()}` };
+  }, [view, calMode, calDate, feedMonth]);
+
+  const piecesInRange = useMemo(
+    () => piecesInScope.filter((p) => p.date >= calRange.from && p.date <= calRange.to && !tagVal(p.tags, 'replyto')),
+    [piecesInScope, calRange],
+  );
+
   const pieceMix = useMemo(() => {
     const by = new Map<string, number>();
     const byAngle = new Map<string, number>();
     let tagged = 0;
-    for (const p of piecesInScope) {
+    for (const p of piecesInRange) {
       const a = angleOf(p.tags);
       if (!a) continue;
       tagged++;
       by.set(a.group.id, (by.get(a.group.id) ?? 0) + 1);
       byAngle.set(a.angle, (byAngle.get(a.angle) ?? 0) + 1);
     }
-    const linked = piecesInScope.filter((p) => p.hasLink).length;
-    return { total: piecesInScope.length, tagged, by, byAngle, linked };
-  }, [piecesInScope]);
+    const linked = piecesInRange.filter((p) => p.hasLink).length;
+    return { total: piecesInRange.length, tagged, by, byAngle, linked };
+  }, [piecesInRange]);
 
   // Thanh lọc bài — MỘT hàng, mỗi trục một pill mở panel chọn. Trước đây mỗi trục là một hàng chip
   // riêng: 8 hàng, hàng nào dài thì tự xuống dòng, và chip mọc/biến theo bộ lọc nên nhìn cứ nhảy.
@@ -1501,6 +1527,42 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         </>
       )}
     </div>
+  ) : null;
+
+  // Dải mix: MỘT bản dựng cho cả lịch lẫn chế độ đọc, tính trên ĐÚNG khung thời gian đang xem.
+  const pieceMixBar = pieceMix.total > 0 ? (
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 8px', fontSize: 11, color: 'var(--fg-3)' }}>
+            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)' }}>📝 Mix bài đăng · {calRange.label}</span>
+            {ANGLE_GROUPS.map((g) => {
+              const n = pieceMix.by.get(g.id) ?? 0;
+              const pct = pieceMix.tagged ? Math.round((n / pieceMix.tagged) * 100) : 0;
+              const target = MIX_TARGET[g.id];
+              return (
+                <button key={g.id} type="button" onClick={() => setAxis('angleGroup', pf.angleGroup === g.id ? '' : g.id)}
+                  title={target ? `${g.label}: ${pct}% thực tế · mục tiêu ${target}% — bấm để lọc lịch` : `${g.label} — bấm để lọc lịch`}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 11, padding: '1px 7px', borderRadius: 6, background: 'transparent', color: 'var(--fg-3)', border: `1px solid ${pf.angleGroup === g.id ? g.color : 'transparent'}` }}>
+                  <i style={{ width: 8, height: 8, borderRadius: 2, background: g.color, display: 'inline-block' }} />
+                  {g.label} <b style={{ color: 'var(--fg-1)' }}>{n}</b>
+                  {target ? <span style={{ color: pct > target + 12 || pct < target - 12 ? 'var(--neon-amber)' : 'var(--fg-4)' }}>{pct}%/{target}%</span> : null}
+                </button>
+              );
+            })}
+            {pieceMix.tagged < pieceMix.total && <span style={{ color: 'var(--fg-4)' }}>· {pieceMix.total - pieceMix.tagged} bài chưa gắn angle</span>}
+            {/* Tỉ lệ bài CÓ LINK đứng riêng, không nằm trong mix angle: nó không nói bài phục vụ gì,
+                nó nói feed đang bị nền tảng hạ tay tới đâu. Quá trần → amber. */}
+            {(() => {
+              const pct = pieceMix.total ? Math.round((pieceMix.linked / pieceMix.total) * 100) : 0;
+              const over = pct > LINK_SHARE_MAX;
+              return (
+                <button type="button" onClick={() => setAxis('link', pf.link === 'yes' ? '' : 'yes')}
+                  title={`Bài có link: ${pieceMix.linked}/${pieceMix.total} = ${pct}% · trần khuyến nghị ${LINK_SHARE_MAX}% (link kéo người rời nền tảng → reach bị hạ). Bấm để lọc.`}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 11, padding: '1px 7px', borderRadius: 6,
+                    background: 'transparent', color: over ? 'var(--neon-amber)' : 'var(--fg-3)', border: `1px solid ${pf.link === 'yes' ? 'var(--neon-amber)' : 'transparent'}` }}>
+                  🔗 Có link <b style={{ color: over ? 'var(--neon-amber)' : 'var(--fg-1)' }}>{pieceMix.linked}</b> {pct}%/{LINK_SHARE_MAX}%
+                </button>
+              );
+            })()}
+          </div>
   ) : null;
 
   const open = openId != null ? tasks.find((t) => t.id === openId) ?? null : null;
@@ -2006,6 +2068,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
            TRÌNH TỰ trong ngày. Khối bài dùng chung PiecePreview với lịch và drawer, nên "plan trông
            thế nào thì đăng đúng thế": không có bản dựng riêng cho lúc duyệt. */
         <div>
+        {pieceMixBar}
         <div style={{ display: 'flex', gap: 22, alignItems: 'flex-start' }}>
           {/* La bàn: MINI-MONTH y như ở lịch (cùng component) — chấm = ngày có bài, ô sáng = ngày
               đang đọc. Bấm ngày → cuộn thẳng tới ngày đó. Không có nó thì cuộn một lúc là mất dấu. */}
@@ -2100,40 +2163,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         </div>
       ) : view === 'calendar' ? (
         <>
-        {pieceMix.total > 0 && (
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 8px', fontSize: 11, color: 'var(--fg-3)' }}>
-            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)' }}>📝 Mix bài đăng</span>
-            {ANGLE_GROUPS.map((g) => {
-              const n = pieceMix.by.get(g.id) ?? 0;
-              const pct = pieceMix.tagged ? Math.round((n / pieceMix.tagged) * 100) : 0;
-              const target = MIX_TARGET[g.id];
-              return (
-                <button key={g.id} type="button" onClick={() => setAxis('angleGroup', pf.angleGroup === g.id ? '' : g.id)}
-                  title={target ? `${g.label}: ${pct}% thực tế · mục tiêu ${target}% — bấm để lọc lịch` : `${g.label} — bấm để lọc lịch`}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 11, padding: '1px 7px', borderRadius: 6, background: 'transparent', color: 'var(--fg-3)', border: `1px solid ${pf.angleGroup === g.id ? g.color : 'transparent'}` }}>
-                  <i style={{ width: 8, height: 8, borderRadius: 2, background: g.color, display: 'inline-block' }} />
-                  {g.label} <b style={{ color: 'var(--fg-1)' }}>{n}</b>
-                  {target ? <span style={{ color: pct > target + 12 || pct < target - 12 ? 'var(--neon-amber)' : 'var(--fg-4)' }}>{pct}%/{target}%</span> : null}
-                </button>
-              );
-            })}
-            {pieceMix.tagged < pieceMix.total && <span style={{ color: 'var(--fg-4)' }}>· {pieceMix.total - pieceMix.tagged} bài chưa gắn angle</span>}
-            {/* Tỉ lệ bài CÓ LINK đứng riêng, không nằm trong mix angle: nó không nói bài phục vụ gì,
-                nó nói feed đang bị nền tảng hạ tay tới đâu. Quá trần → amber. */}
-            {(() => {
-              const pct = pieceMix.total ? Math.round((pieceMix.linked / pieceMix.total) * 100) : 0;
-              const over = pct > LINK_SHARE_MAX;
-              return (
-                <button type="button" onClick={() => setAxis('link', pf.link === 'yes' ? '' : 'yes')}
-                  title={`Bài có link: ${pieceMix.linked}/${pieceMix.total} = ${pct}% · trần khuyến nghị ${LINK_SHARE_MAX}% (link kéo người rời nền tảng → reach bị hạ). Bấm để lọc.`}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 11, padding: '1px 7px', borderRadius: 6,
-                    background: 'transparent', color: over ? 'var(--neon-amber)' : 'var(--fg-3)', border: `1px solid ${pf.link === 'yes' ? 'var(--neon-amber)' : 'transparent'}` }}>
-                  🔗 Có link <b style={{ color: over ? 'var(--neon-amber)' : 'var(--fg-1)' }}>{pieceMix.linked}</b> {pct}%/{LINK_SHARE_MAX}%
-                </button>
-              );
-            })()}
-          </div>
-        )}
+        {pieceMixBar}
         <MonthCalendar legend={CAL_LEGEND} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else if (s.startsWith('c:')) setOpenPieceId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} date={calDate} onDateChange={setCalDate} today={today}
           sidebar={<ProductStrip products={shownProducts} projects={allProjects ? projectsById : undefined} onOpen={setOpenProd} narrow />} />
         </>

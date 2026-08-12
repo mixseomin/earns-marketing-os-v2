@@ -15,6 +15,7 @@ import { readManagedPages } from '@/components/account-metrics';
 import { CHANNELS, STATUSES, ANGLE_GROUPS, CHANNEL_PLATFORM, angleOf, tagVal, tagIds, pieceGaps } from '@/lib/content-channels';
 import { updateContentPiece, getPieceDetail, type ContentInput } from '@/lib/actions/content';
 import { todayLocal } from '@/lib/local-day';
+import { PiecePreview } from '@/components/piece-preview';
 import type { CalPiece } from '@/lib/data';
 
 const lbl: React.CSSProperties = { display: 'block', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--fg-4)', marginBottom: 5, fontFamily: 'var(--font-mono)' };
@@ -141,42 +142,22 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
               cái sẽ đăng — nên preview đứng TRƯỚC nút trạng thái, đọc rồi mới bấm approved. */}
           <div>
             <label style={lbl}>Bài sẽ đăng (xem trước)</label>
-            <div style={{ border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden', background: 'var(--bg-1)' }}>
-              <div style={{ display: 'flex', gap: 9, alignItems: 'center', padding: '10px 12px', borderBottom: '1px solid var(--line)' }}>
-                <span style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--bg-2)', border: '1px solid var(--line)', display: 'grid', placeItems: 'center', fontSize: 15 }}>{ch?.icon ?? '📝'}</span>
-                <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.35 }}>
-                  <b style={{ fontSize: 13 }}>{acct ? (acct.handle ?? acct.platformKey) : <span style={{ color: 'var(--neon-amber)' }}>chưa gắn account</span>}</b>
-                  <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>
-                    {place || 'chưa chọn nơi đăng'} · {piece.date}{time ? ` ${time}` : ''}
-                  </span>
-                </span>
+            {/* Cùng MỘT khối xem trước với lịch plays (PiecePreview) — trước đây drawer vẽ riêng một
+                bản, sửa bên này thì lịch vẫn hiển thị kiểu cũ. Soạn TẠI CHỖ: bấm đúp để mở ô nhập,
+                rời chuột là lưu (nút cũ đẩy sang /studio, mất drawer + mất ngữ cảnh đang xem). */}
+            {editBody ? (
+              <textarea autoFocus defaultValue={detail?.bodyMd ?? ''} rows={12} disabled={pending}
+                style={{ ...inp, fontSize: 13, lineHeight: 1.55, resize: 'vertical' }}
+                onBlur={async (e) => {
+                  const v = e.target.value;
+                  setEditBody(false);
+                  if (v !== (detail?.bodyMd ?? '')) { setDetail((d) => (d ? { ...d, bodyMd: v } : d)); await patch({ bodyMd: v }); }
+                }} />
+            ) : (
+              <div onDoubleClick={() => setEditBody(true)} title="Bấm đúp để sửa nội dung">
+                <PiecePreview piece={piece} accounts={accounts} media={media} body={detail?.bodyMd} />
               </div>
-              {editBody ? (
-                // Soạn TẠI CHỖ. Trước đây nút này đẩy sang /studio — mất drawer, mất ngữ cảnh
-                // (account/ảnh/chuỗi việc đang xem), rồi phải mò đường quay lại đúng bài.
-                <textarea autoFocus defaultValue={detail?.bodyMd ?? ''} rows={12} disabled={pending}
-                  style={{ ...inp, border: 'none', borderRadius: 0, fontSize: 13, lineHeight: 1.55, resize: 'vertical' }}
-                  onBlur={async (e) => {
-                    const v = e.target.value;
-                    setEditBody(false);
-                    if (v !== (detail?.bodyMd ?? '')) { setDetail((d) => (d ? { ...d, bodyMd: v } : d)); await patch({ bodyMd: v }); }
-                  }} />
-              ) : (
-                <div onDoubleClick={() => setEditBody(true)} title="Bấm đúp để sửa"
-                  style={{ padding: '12px 14px', fontSize: 13.5, lineHeight: 1.55, whiteSpace: 'pre-wrap', cursor: 'text' }}>
-                  {detail ? (detail.bodyMd.trim() || <em style={{ color: 'var(--neon-amber)' }}>chưa soạn nội dung — bấm ✎ Soạn ở dưới</em>) : '…'}
-                </div>
-              )}
-              {assets.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: assets.length > 1 ? '1fr 1fr' : '1fr', gap: 2, background: 'var(--line)' }}>
-                  {assets.map((m) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img key={m.id} src={m.url} alt={m.filename} onClick={() => window.open(m.url, '_blank')}
-                      style={{ width: '100%', maxHeight: 340, objectFit: 'cover', display: 'block', cursor: 'zoom-in', background: 'var(--bg-2)' }} />
-                  ))}
-                </div>
-              )}
-            </div>
+            )}
             <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
               <button type="button" onClick={() => setEditBody(true)} disabled={pending || editBody} style={pickBtn}>✎ Soạn nội dung</button>
               <button type="button" onClick={() => navigator.clipboard?.writeText(detail?.bodyMd ?? '')} disabled={!detail?.bodyMd} style={pickBtn}>Copy caption</button>

@@ -7,7 +7,7 @@
 // chi tiết. Ở Tuần/Ngày (view hẹp) kèm 1 MINI-MONTH bên trái — y hệt Google Calendar — để vừa NHẢY
 // nhanh sang ngày khác vừa NẮM TOÀN CẢNH cả tháng (chấm dưới ngày = ngày đó có việc). Tuần/Ngày dùng
 // chung đúng một hàm dựng danh sách ngày — chỉ khác số cột và bước nhảy ◀ ▶.
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { TypeGlyph as CalGlyph, type GlyphName } from './type-glyph';   // nguồn glyph DÙNG CHUNG toàn app
 
 // BÀN GIAO (resume): đủ để 1 chat KHÁC nối tiếp card. Chỉ đính khi có nội dung → pill hiện glyph 📋 xám
@@ -20,6 +20,10 @@ export interface CalItem {
   done?: boolean;          // đã làm → thêm ✓ + thanh xanh
   dim?: boolean;           // mờ (mục tương lai/đã bỏ)
   brief?: CalBrief;        // có bàn giao (input/done-when/depends) → glyph xám + hover popover. Chỉ set khi KHÔNG rỗng.
+  /** Nội dung ĐẦY ĐỦ của mục, chỉ hiện ở chế độ Ngày/Tuần (tháng phải giữ mật độ). Caller dựng —
+   *  vd bài đăng thì truyền khối xem trước (account · nơi đăng · caption · ảnh) để mở lịch ra là
+   *  đọc được bài, không phải bấm từng pill. */
+  detail?: ReactNode;
 }
 export type CalMode = 'month' | 'week' | 'day';
 
@@ -209,6 +213,11 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
                   {big && it.done && <CalGlyph name="check" color={c} size={13} />}
                 </button>
               );
+              // Chế độ Ngày/Tuần: pill + nội dung đầy đủ ngay dưới. Tháng thì bỏ qua detail (mật độ).
+              const withDetail = it.detail && mode !== 'month'
+                ? <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>{pill}{it.detail}</div>
+                : null;
+              if (withDetail) return <div key={String(it.id) + it.date}>{withDetail}</div>;
               if (!it.brief) return <div key={String(it.id) + it.date}>{pill}</div>;
               const b = it.brief;
               // Có bàn giao → bọc wrapper `position:relative`; popover là con → hover wrapper (pill HOẶC popover)

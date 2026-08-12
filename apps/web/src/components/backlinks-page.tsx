@@ -52,6 +52,7 @@ import { localDay, todayLocal } from '@/lib/local-day';
 import { FOLLOWUP_META, type Followup } from '@/lib/followup-status';
 import { FollowupDrawer } from '@/components/followup-drawer';
 import { PieceDrawer } from '@/components/piece-drawer';
+import { PiecePreview } from '@/components/piece-preview';
 import { taskKind, stripKindPrefix, isEmailSend as detectEmailSend } from '@/lib/task-kind';
 import { taskTypeKey, taskArchetype, taskSectionPolicy, TYPE_META } from '@/lib/task-type';
 import { TypeGlyph, type GlyphName } from '@/components/ui/type-glyph';
@@ -1270,10 +1271,16 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         done: p.status === 'published', dim: p.status === 'draft',
         title: `Bài đăng · ${ch?.label ?? p.channel} · ${p.status}${a ? ` · ${a.group.label}/${a.angle}` : ' · chưa gắn angle'} — ${p.title}`
           + (gaps.length ? `\n⚠ thiếu: ${gaps.join(' · ')}` : ''),
+        // Ngày/Tuần = xem RUN-OF-SHOW: bài thật hiện luôn dưới pill (account · nơi đăng · caption ·
+        // ảnh), không phải bấm mở từng cái mới biết hôm đó đăng gì. Tháng thì không dựng (96 bài =
+        // 96 lượt tải thân bài, mà lưới tháng cũng không đủ chỗ hiển thị).
+        detail: calMode === 'month' ? undefined : (
+          <PiecePreview piece={p} accounts={accounts} media={media} compact onOpen={() => setOpenPieceId(p.id)} />
+        ),
       });
     }
     return out;
-  }, [filtered, allProjects, projectFilter, followups, projectsById, kind, kindOf, q, piecesInScope, angleF, accounts, browserProfiles, media, tasks]);
+  }, [filtered, allProjects, projectFilter, followups, projectsById, kind, kindOf, q, piecesInScope, angleF, accounts, browserProfiles, media, tasks, calMode]);
 
   // Cân bằng nội dung của đúng tập bài đang hiện trên lịch. Đọc lại từ calItems (đã qua bộ lọc)
   // thay vì lọc lần hai — một nguồn, không có chỗ cho hai bộ lọc lệch nhau.

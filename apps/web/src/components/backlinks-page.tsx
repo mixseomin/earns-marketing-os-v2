@@ -1462,6 +1462,23 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     return m;
   }, [feedDays]);
 
+  // Bài đang đọc — rail sáng đúng dòng đó. Chỉ bám theo NGÀY thì cuộn giữa một ngày 7 bài vẫn
+  // không biết mình đang ở bài nào.
+  const [activePiece, setActivePiece] = useState<number | null>(null);
+  const railRefs = useRef<Record<number, HTMLButtonElement | null>>({});
+  useEffect(() => {
+    if (view !== 'feed') return;
+    const io = new IntersectionObserver((entries) => {
+      const top = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      const id = Number(top?.target.id.replace('piece-', ''));
+      if (id) setActivePiece(id);
+    }, { rootMargin: '-12% 0px -72% 0px' });
+    for (const el of document.querySelectorAll('[id^="piece-"]')) io.observe(el);
+    return () => io.disconnect();
+  }, [view, feedDays]);
+  // Dòng đang sáng phải nằm trong tầm nhìn của rail, không thì highlight vô nghĩa.
+  useEffect(() => { if (activePiece) railRefs.current[activePiece]?.scrollIntoView({ block: 'nearest' }); }, [activePiece]);
+
   // Cuộn tới đâu thì mini-cal sáng ngày đó — "đang ở đâu" phải tự trả lời, không bắt người dùng nhớ.
   useEffect(() => {
     if (view !== 'feed') return;
@@ -2172,13 +2189,20 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                   const f = FORMATS.find((x) => x.id === tagVal(p.tags, 'format'));
                   return (
                     <button key={p.id} type="button" title={p.subject || p.title}
+                      ref={(el) => { railRefs.current[p.id] = el; }}
                       onClick={() => document.getElementById(`piece-${p.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                      style={{ display: 'flex', gap: 6, alignItems: 'center', width: '100%', textAlign: 'left', background: 'transparent',
-                        border: 0, cursor: 'pointer', padding: '3px 4px', borderRadius: 5, fontSize: 11.5, color: 'var(--fg-2)' }}>
+                      style={{ display: 'flex', gap: 6, alignItems: 'center', width: '100%', textAlign: 'left',
+                        background: activePiece === p.id ? 'color-mix(in srgb, var(--accent) 20%, transparent)' : 'transparent',
+                        borderLeft: `2px solid ${activePiece === p.id ? 'var(--accent)' : 'transparent'}`, border: 0,
+                        borderLeftWidth: 2, borderLeftStyle: 'solid', borderLeftColor: activePiece === p.id ? 'var(--accent)' : 'transparent',
+                        cursor: 'pointer', padding: '3px 4px', borderRadius: 5, fontSize: 11.5,
+                        fontWeight: activePiece === p.id ? 700 : 400,
+                        color: p.status === 'published' ? 'var(--fg-4)' : 'var(--fg-2)' }}>
                       <i style={{ width: 6, height: 6, borderRadius: 2, flexShrink: 0, background: g?.color ?? 'var(--fg-4)' }} />
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)', flexShrink: 0 }}>{tagVal(p.tags, 'time') || '--:--'}</span>
                       <ChannelFavicon channel={p.channel} size={13} />
                       <span style={{ flexShrink: 0 }}>{f ? f.icon : ''}{p.hasLink ? '🔗' : ''}{(repliesOf.get(p.id)?.length ?? 0) ? '💬' : ''}</span>
+                      {p.status === 'published' && <span title="đã đăng" style={{ color: 'var(--ok)', flexShrink: 0 }}>✓</span>}
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.subject || p.title}</span>
                     </button>
                   );

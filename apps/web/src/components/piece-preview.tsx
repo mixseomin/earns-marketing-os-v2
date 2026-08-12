@@ -8,7 +8,7 @@
 // nên ở chế độ Ngày nó tự nạp phần thân của đúng vài bài trong ngày).
 
 import { useEffect, useState } from 'react';
-import { getPieceDetail } from '@/lib/actions/content';
+import { getPieceDetail, updateContentPiece } from '@/lib/actions/content';
 import { CHANNELS, tagVal, tagIds, formatOf, styleOf } from '@/lib/content-channels';
 import { ChannelFavicon } from './ui/site-favicon';
 import type { CalPiece } from '@/lib/data';
@@ -50,7 +50,7 @@ function withTags(text: string) {
   ));
 }
 
-export function PiecePreview({ piece, accounts = [], media = [], body, replies = [], compact = false, onOpen }: {
+export function PiecePreview({ piece, accounts = [], media = [], body, replies = [], editableReplies = false, compact = false, onOpen }: {
   piece: CalPiece;
   accounts?: Array<{ id: number; platformKey: string; handle: string | null; accountStats?: Record<string, unknown> }>;
   media?: Array<{ id: number; url: string; filename: string }>;
@@ -58,6 +58,8 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
   body?: string;
   /** Comment đầu (piece con gắn tag replyto:) — runner đăng ngay sau bài chính. */
   replies?: CalPiece[];
+  /** Cho sửa comment tại chỗ (bấm đúp) — bật ở drawer, tắt ở lịch/feed cho khỏi lỡ tay. */
+  editableReplies?: boolean;
   /** Trong lịch: chữ nhỏ hơn, ảnh nhỏ hơn, cắt bớt phần thân. */
   compact?: boolean;
   onOpen?: () => void;
@@ -88,6 +90,9 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
   const pollOpts = optFrom >= 0 ? lines.slice(optFrom, optTo + 1).filter(isOpt).map((l) => l.replace(/^\s*([A-Da-d]|[1-9])[.)]\s+/, '')) : [];
   const pollAsk = pollOpts.length >= 2 ? lines.slice(0, optFrom).join('\n').trim() : '';
   const pollTail = pollOpts.length >= 2 ? lines.slice(optTo + 1).join('\n').trim() : '';
+  // Album/carousel: nhận theo kiểu bài, KHÔNG theo "có nhiều ảnh" — 2 ảnh trong bài photo thường
+  // là hai ảnh đứng cạnh nhau, không phải thẻ lướt.
+  const carousel = kind === 'album' && assets.length > 0;
   const linkUrl = kind === 'link' ? (bodyText.match(/https?:\/\/\S+|\b[a-z0-9-]+\.(com|org|net|gov|io)\/\S*/i)?.[0] ?? '') : '';
 
   return (
@@ -170,15 +175,29 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)' }}>
             Comment đầu · runner đăng ngay sau bài
           </div>
-          {replies.map((r) => <CommentBubble key={r.id} piece={r} accounts={accounts} compact={compact} />)}
+          {replies.map((r) => <CommentBubble key={r.id} piece={r} accounts={accounts} compact={compact} editable={editableReplies} />)}
         </div>
       )}
-      {assets.length > 1 && (
-        <div style={{ padding: compact ? '0 11px 6px' : '0 14px 8px', fontSize: 10.5, color: 'var(--fg-4)' }}>
-          {assets.length} ảnh · người xem lướt ngang
+      {carousel ? (
+        // Album/carousel đăng ra là một dải LƯỚT NGANG từng thẻ một, không phải lưới ảnh xếp chồng.
+        // Dựng đúng thế: scroll-snap từng thẻ, số thứ tự trên mỗi thẻ.
+        <div>
+          <div style={{ padding: compact ? '6px 11px 4px' : '8px 14px 5px', fontSize: 10.5, color: 'var(--fg-4)' }}>
+            🎞 Carousel · {assets.length} thẻ · người xem lướt ngang
+          </div>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollSnapType: 'x mandatory', padding: compact ? '0 11px 10px' : '0 14px 12px' }}>
+            {assets.map((m, i) => (
+              <div key={m.id} style={{ position: 'relative', flex: '0 0 auto', width: compact ? 168 : 232, scrollSnapAlign: 'start' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={m.url} alt={m.filename} loading="lazy" decoding="async"
+                  style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-2)' }} />
+                <span style={{ position: 'absolute', top: 6, right: 6, fontSize: 10, padding: '1px 6px', borderRadius: 999,
+                  background: 'rgba(0,0,0,.62)', color: '#fff', fontFamily: 'var(--font-mono)' }}>{i + 1}/{assets.length}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      )}
-      {assets.length > 0 && (
+      ) : assets.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: assets.length > 1 ? '1fr 1fr' : '1fr', gap: 2, background: 'var(--line)' }}>
           {assets.map((m) => (
             // Ảnh hiện TRỌN (contain), không cắt. `cover` + maxHeight cắt mất masthead và dòng nguồn
@@ -198,23 +217,63 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
 
 /** Comment đầu: cùng là một content_piece (tag replyto:<id>), nên vẫn có account riêng, vẫn duyệt
  *  được, vẫn kiểm link được — chỉ khác chỗ đứng. Dựng thụt vào như trên Facebook. */
-function CommentBubble({ piece, accounts, compact }: {
+function CommentBubble({ piece, accounts, compact, editable = false }: {
   piece: CalPiece;
   accounts: Array<{ id: number; platformKey: string; handle: string | null }>;
   compact: boolean;
+  editable?: boolean;
 }) {
-  const text = usePieceBody(piece);
-  const acct = accounts.find((x) => x.id === Number(tagVal(piece.tags, 'acct')));
+  const fetched = usePieceBody(piece);
+  // Sửa xong thì giữ bản mới tại chỗ: piece.body của trang chỉ đổi sau khi router.refresh xong.
+  const [local, setLocal] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const text = local ?? fetched;
+
+  const save = async (v: string) => {
+    setEditing(false);
+    if (v === (text ?? '')) return;
+    setSaving(true);
+    setLocal(v);
+    bodyCache.set(piece.id, v);
+    await updateContentPiece(piece.id, piece.projectId, { bodyMd: v });
+    setSaving(false);
+  };
+
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
       <ChannelFavicon channel={piece.channel} size={compact ? 18 : 22} circle />
-      <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 12, padding: compact ? '6px 10px' : '8px 12px', minWidth: 0, flex: 1 }}>
-        <b style={{ fontSize: compact ? 11 : 12 }}>{acct?.handle ?? acct?.platformKey ?? 'chưa gắn account'}</b>
-        <div style={{ fontSize: compact ? 11.5 : 13, lineHeight: 1.5, whiteSpace: 'pre-wrap', marginTop: 2 }}>
-          {text === null ? '…' : (text.trim() ? withTags(text) : <em style={{ color: 'var(--neon-amber)' }}>chưa soạn nội dung</em>)}
-        </div>
+      <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 12, padding: compact ? '6px 10px' : '8px 12px', minWidth: 0, flex: 1 }}
+        onDoubleClick={editable ? () => setEditing(true) : undefined}
+        title={editable ? 'Bấm đúp để sửa comment' : undefined}>
+        <b style={{ fontSize: compact ? 11 : 12 }}>{acctLabel(piece, accounts)}</b>
+        {editing ? (
+          <textarea autoFocus defaultValue={text ?? ''} rows={3} disabled={saving}
+            onClick={(e) => e.stopPropagation()}
+            onBlur={(e) => save(e.target.value)}
+            style={{ width: '100%', marginTop: 4, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--line)',
+              background: 'var(--bg-0)', color: 'var(--fg-1)', fontSize: compact ? 11.5 : 13, lineHeight: 1.5, resize: 'vertical' }} />
+        ) : (
+          <div style={{ fontSize: compact ? 11.5 : 13, lineHeight: 1.5, whiteSpace: 'pre-wrap', marginTop: 2, userSelect: 'text' }}>
+            {text === null ? '…' : (text.trim() ? withTags(text) : <em style={{ color: 'var(--neon-amber)' }}>chưa soạn nội dung</em>)}
+          </div>
+        )}
       </div>
-      <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>#{piece.id}</span>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-end', flexShrink: 0 }}>
+        <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>#{piece.id}</span>
+        {/* Copy riêng cho comment: nó là đoạn phải dán sang ô comment của nền tảng, không dán chung
+            với caption bài chính được. */}
+        <button type="button" title="Copy nội dung comment" disabled={!text}
+          onClick={(e) => { e.stopPropagation(); navigator.clipboard?.writeText(text ?? ''); setCopied(true); setTimeout(() => setCopied(false), 1200); }}
+          style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, cursor: 'pointer', border: '1px solid var(--line)',
+            background: 'transparent', color: copied ? 'var(--ok)' : 'var(--fg-3)' }}>{copied ? '✓ đã copy' : 'copy'}</button>
+      </span>
     </div>
   );
 }
+
+const acctLabel = (p: CalPiece, accounts: Array<{ id: number; platformKey: string; handle: string | null }>) => {
+  const a = accounts.find((x) => x.id === Number(tagVal(p.tags, 'acct')));
+  return a?.handle ?? a?.platformKey ?? 'chưa gắn account';
+};

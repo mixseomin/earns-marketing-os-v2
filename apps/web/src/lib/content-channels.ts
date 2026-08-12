@@ -115,8 +115,12 @@ export const MIX_TARGET: Record<string, number> = { reach: 40, trust: 35, conver
  *  Duyệt = "chữ nghĩa ổn"; chạy được = còn cần nơi đăng + account + phiên trình duyệt sống +
  *  asset + chuỗi chuẩn bị xong. Thiếu mà im lặng thì đến ngày mới biết, và biết bằng cách bài
  *  không lên. Đọc từ dữ liệu ĐÃ tải sẵn trên trang, không query thêm. */
+/** Kênh đăng ra ngoài cho người lạ đọc. `dm`/`email` không nằm đây: thư riêng viết tiếng gì là
+ *  tuỳ người nhận. */
+const PUBLIC_CHANNELS = new Set(['fb-post', 'fb-group', 'reddit', 'twitter-thread', 'reel', 'youtube-script', 'blog', 'ad', 'landing']);
+
 export function pieceGaps(
-  piece: { tags: string[]; hasBody?: boolean },
+  piece: { channel?: string; tags: string[]; hasBody?: boolean; body?: string },
   refs: {
     accounts?: Array<{ id: number; browserProfileId?: number | null; status: string }>;
     browserProfiles?: Array<{ id: number; lastOpenedAt?: string | Date | null }>;
@@ -130,6 +134,12 @@ export function pieceGaps(
   // báo "chưa chọn nơi đăng" lên đầu là bảo người ta đi làm cái chưa làm được.
   const gaps: string[] = [];
   if (piece.hasBody === false) gaps.push('chưa soạn nội dung');
+  // Thân bài còn tiếng Việt trên kênh ĐĂNG CÔNG KHAI = chưa phải caption, mà là ghi chú nội bộ cho
+  // người viết ("Bài của mình: số lấy từ data sản phẩm, 2-4 câu, 1 link"). Đăng nguyên si là lộ
+  // hướng dẫn ra ngoài. Nội dung công khai của mọi project ở đây là tiếng Anh, nên chỉ cần thấy dấu
+  // tiếng Việt là đủ kết luận — không phải đoán theo từ khoá.
+  if (piece.body && PUBLIC_CHANNELS.has(piece.channel ?? '') && /[ăâđêôơưàáảãạằắẳẵặầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵ]/i.test(piece.body))
+    gaps.push('thân bài còn tiếng Việt — đó là ghi chú nội bộ, chưa phải caption');
 
   const acctId = Number(tagVal(piece.tags, 'acct')) || 0;
   const acct = acctId ? refs.accounts?.find((a) => a.id === acctId) : undefined;

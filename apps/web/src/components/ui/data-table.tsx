@@ -125,6 +125,8 @@ export function DataTable<T>({
   }, [rows, q, searchText]);
 
   const visible = columns.filter((c) => !c.group || shown[c.group] !== false);
+  // Hàng tổng chỉ vẽ khi CÒN dòng: lọc ra rỗng mà vẫn hiện "TỔNG (0) · $0" cạnh dòng báo
+  // không khớp là hai câu nói cùng một chuyện, cái sau còn trông như số liệu thật.
   const hasTotals = visible.some((c) => c.total);
   const onCount = (groups ?? []).filter((g) => shown[g.key] !== false).length;
 
@@ -232,7 +234,7 @@ export function DataTable<T>({
                 {q.trim() ? `Không dòng nào khớp "${q.trim()}".` : 'Không có dữ liệu.'}
               </td></tr>
             )}
-            {hasTotals && (
+            {hasTotals && sortedRows.length > 0 && (
               <tr style={{ background: 'var(--bg-2)' }}>
                 {visible.map((c) => (
                   <td key={c.key} style={cellStyle(c, { fontWeight: 700, color: c.group ? groupMeta.get(c.group)?.color : undefined })}>

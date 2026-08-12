@@ -79,7 +79,8 @@ interface DataTableProps<T> {
   card?: DataCard<T> | boolean;           // true = bật thẻ auto (dựng từ cột); object = tuỳ biến/minWidth
   view?: DataView;
   onViewChange?: (v: DataView) => void;
-  defaultView?: DataView;                 // uncontrolled default (default 'card' khi có `card`)
+  defaultView?: DataView;                 // uncontrolled default view (default 'table' — thêm `card` KHÔNG tự lật sang thẻ)
+  hideHeader?: boolean;                    // bỏ <thead> — cho ranked-list vốn không có hàng tiêu đề
 }
 
 const baseCell: CSSProperties = { padding: '3px 5px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
@@ -91,7 +92,7 @@ const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 
 export function DataTable<T>({
   rows, columns, getRowKey, groups, persistKey, initialShown, onRowClick, minWidth = 640, rowTitle,
-  searchText, searchPlaceholder, card, view, onViewChange, defaultView,
+  searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader,
 }: DataTableProps<T>) {
   const [q, setQ] = useState('');
 
@@ -108,7 +109,7 @@ export function DataTable<T>({
   const effView: DataView = cardOn ? (view ?? internalView) : 'table';   // không có `card` → luôn bảng (hành vi cũ)
   const setView = (v: DataView) => {
     setInternalView(v); onViewChange?.(v);
-    if (viewKey) { try { localStorage.setItem(viewKey, v); document.cookie = `${viewKey}=${v}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`; } catch { /* ignore */ } }
+    if (viewKey) { try { localStorage.setItem(viewKey, v); } catch { /* ignore */ } }   // localStorage đủ khôi phục sau F5; KHÔNG ghi cookie `:view` (không server nào đọc → dead write)
   };
   const showViewToggle = cardOn && view === undefined;   // controlled → caller tự làm nút
   const colsRef = useRef<HTMLDetailsElement>(null);
@@ -280,6 +281,7 @@ export function DataTable<T>({
       ) : (
       <div className="dt-scroll" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -8px' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto', minWidth }}>
+          {!hideHeader && (
           <thead>
             <tr>
               {visible.map((c) => {
@@ -296,6 +298,7 @@ export function DataTable<T>({
               })}
             </tr>
           </thead>
+          )}
           <tbody>
             {sortedRows.map((row, i) => (
               <tr key={getRowKey(row, i)} className="dt-row"

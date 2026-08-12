@@ -26,7 +26,7 @@ export function SteamsoloDemandTable({ rows }: { rows: DemandRow[] }) {
     { key: 'hits', header: 'Requests', align: 'right', sortValue: (x) => x.hits, cell: (x) => <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{x.hits}</span> },
     { key: 'guides', header: 'Guides', align: 'right', sortValue: (x) => x.guides, cell: (x) => <span style={{ color: 'var(--fg-2)' }}>{x.guides}</span> },
   ];
-  return <DataTable rows={rows} columns={cols} getRowKey={(x) => x.lang} card defaultView="table" persistKey="steamsolo_demand" />;
+  return <DataTable rows={rows} columns={cols} getRowKey={(x) => x.lang} card defaultView="table" minWidth={280} persistKey="steamsolo_demand" />;
 }
 
 export function SteamsoloTopDemandTable({ rows }: { rows: TopDemandRow[] }) {
@@ -35,5 +35,7 @@ export function SteamsoloTopDemandTable({ rows }: { rows: TopDemandRow[] }) {
     { key: 'lang', header: 'Lang', align: 'left', width: 44, sortValue: (x) => x.lang, cell: (x) => x.lang },
     { key: 'title', header: 'Guide', align: 'left', sortValue: (x) => x.title, cell: (x) => <><a href={`https://steamsolo.com/guide/${x.slug}/`} target="_blank" rel="noopener" style={{ color: 'var(--fg-1)' }}>{x.title}</a><span style={{ color: 'var(--fg-3)' }}> · {x.game}</span></> },
   ];
-  return <DataTable rows={rows} columns={cols} getRowKey={(x, i) => x.slug + i} card defaultView="table" persistKey="steamsolo_top_demand" />;
+  // Ranked list "top guide × lang" — không có hàng tiêu đề (hideHeader) nên KHÔNG bật card
+  // (thẻ auto lấy nhãn từ header → headerless thì thẻ vô nghĩa; và cột đầu là ×-count không phải tên).
+  return <DataTable rows={rows} columns={cols} getRowKey={(x, i) => x.slug + i} hideHeader minWidth={320} persistKey="steamsolo_top_demand" />;
 }

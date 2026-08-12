@@ -103,13 +103,13 @@ export async function MailwizzListsPanel() {
 
       <div style={{ marginTop: 12 }}>
         {live.length
-          ? <MailwizzListsTable rows={live} products={products} showOther={showOther} />
+          ? <MailwizzListsTable rows={live} products={products} showOther={showOther} persistKey="mailwizz_lists_live" />
           : <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa list nào có người gửi được.</div>}
       </div>
 
       {dead.length > 0 && (
         <Section title="Chỉ còn người đã huỷ" defaultOpen={false} headerRight={<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)' }}>{dead.length}</span>}>
-          <MailwizzListsTable rows={dead} products={products} showOther={showOther} />
+          <MailwizzListsTable rows={dead} products={products} showOther={showOther} persistKey="mailwizz_lists_dead" />
         </Section>
       )}
 

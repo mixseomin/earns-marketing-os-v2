@@ -58,7 +58,7 @@ export function PortfolioGrid({ projects: PROJECTS, totalBudget }: { projects: P
   }, [filtered, sortBy, sortDir]);
 
   const groups = useMemo(() => {
-    if (groupBy === 'flat') return [{ key: 'all', label: '', items: sorted }];
+    if (groupBy === 'flat') return sorted.length ? [{ key: 'all', label: '', items: sorted }] : [];   // rỗng → [] như các mode khác, để board tự in 1 thông báo "không khớp" (không chồng 2 empty-state)
     if (groupBy === 'mode') {
       const map = new Map<string, Project[]>();
       sorted.forEach((p) => {

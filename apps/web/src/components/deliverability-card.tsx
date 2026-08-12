@@ -627,14 +627,14 @@ export function DeliverabilityCard() {
         <Tick ok={!!row.auth.dmarc} label={`DMARC${row.auth.dmarc ? ':' + row.auth.dmarc : ''}`} warn={row.auth.dmarc === 'none'} />
       </span>
     ) },
-    { key: 'inbox', header: 'Inbox (seed)', title: 'Seed-measured inbox placement (inbox / #seeds); saved, re-measure on demand', cell: (row) => <PlacementBadge p={row.placement} /> },
-    { key: 'rep', header: 'Postmaster rep', cell: (row) => {
+    { key: 'inbox', header: 'Inbox (seed)', align: 'left', title: 'Seed-measured inbox placement (inbox / #seeds); saved, re-measure on demand', cell: (row) => <PlacementBadge p={row.placement} /> },
+    { key: 'rep', header: 'Postmaster rep', align: 'left', cell: (row) => {
       const pm = lastPm(row);
       return !d.postmasterConfigured ? <span style={{ color: 'var(--fg-3)' }}>off</span>
         : pm ? <b style={{ ...mono, color: repColor[pm.reputation || ''] || 'var(--fg-2)' }}>{repShort(pm.reputation)}</b>
           : <span style={{ ...mono, color: 'var(--fg-3)' }} title="registered, awaiting volume">no data</span>;
     } },
-    { key: 'spam', header: 'Spam rate', cell: (row) => {
+    { key: 'spam', header: 'Spam rate', align: 'left', cell: (row) => {
       const pm = lastPm(row);
       return <span style={{ ...mono, color: pm && pm.spam && pm.spam > 0.003 ? '#d16b6b' : 'var(--fg-2)' }}>{pm ? pct(pm.spam) : '—'}</span>;
     } },

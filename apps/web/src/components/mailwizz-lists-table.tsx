@@ -15,11 +15,12 @@ const daysAgo = (iso: string | null) => {
 };
 
 export function MailwizzListsTable({
-  rows, products, showOther,
+  rows, products, showOther, persistKey,
 }: {
   rows: MailwizzList[];
   products: Record<string, string>;
   showOther: boolean;
+  persistKey: string;   // live/dead mount cùng component → PHẢI khác key, không thì sort/view đè lên nhau
 }) {
   const cols: DataColumn<MailwizzList>[] = [
     {
@@ -73,7 +74,7 @@ export function MailwizzListsTable({
       getRowKey={(l) => l.uid}
       card
       defaultView="table"
-      persistKey="mailwizz_lists"
+      persistKey={persistKey}
     />
   );
 }

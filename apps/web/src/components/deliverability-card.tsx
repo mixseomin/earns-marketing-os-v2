@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, type CSSProperties, type ReactNode } from 'react';
 import { MonthCalendar, type CalItem } from '@/components/ui/month-calendar';
 import { StatsStrip } from './ui/stats-strip';
-import { SimpleTable, type SimpleColumn } from './ui/simple-table';
+import { DataTable, type DataColumn } from './ui/data-table';
 
 interface Auth { spf: boolean; dkim: boolean; dmarc: string | null }
 interface PmPoint { date: string; reputation: string | null; spam: number | null; dkim: number | null; spf: number | null; dmarc: number | null }
@@ -611,8 +611,8 @@ export function DeliverabilityCard() {
     const ra = a.domain.split('.').slice(-2).join('.'), rb = b.domain.split('.').slice(-2).join('.');
     return ra.localeCompare(rb) || a.domain.length - b.domain.length || a.domain.localeCompare(b.domain);
   });
-  const domainCols: SimpleColumn<Row>[] = [
-    { key: 'domain', header: 'Domain', cell: (row) => (
+  const domainCols: DataColumn<Row>[] = [
+    { key: 'domain', header: 'Domain', align: 'left', sortValue: (row) => row.domain, cell: (row) => (
       <span style={{ whiteSpace: 'nowrap' }}>
         <span style={{ ...mono, fontWeight: 700, color: row.send ? 'var(--fg-0)' : 'var(--fg-2)' }}>{row.domain}</span>
         {row.send
@@ -620,7 +620,7 @@ export function DeliverabilityCard() {
           : <span title="Monitoring only — not set up for sending" style={{ ...mono, fontSize: 9, color: 'var(--fg-3)', fontWeight: 400, marginLeft: 6, border: '1px solid var(--line)', borderRadius: 3, padding: '0 4px' }}>monitor</span>}
       </span>
     ) },
-    { key: 'auth', header: 'Auth', cell: (row) => (
+    { key: 'auth', header: 'Auth', align: 'left', cell: (row) => (
       <span style={{ whiteSpace: 'nowrap' }}>
         <Tick ok={row.auth.spf} label="SPF" />
         <Tick ok={row.auth.dkim} label="DKIM" />
@@ -638,7 +638,7 @@ export function DeliverabilityCard() {
       const pm = lastPm(row);
       return <span style={{ ...mono, color: pm && pm.spam && pm.spam > 0.003 ? '#d16b6b' : 'var(--fg-2)' }}>{pm ? pct(pm.spam) : '—'}</span>;
     } },
-    { key: 'test', header: 'Spam-test', cell: (row) => {
+    { key: 'test', header: 'Spam-test', align: 'left', cell: (row) => {
       const st = lastSt(row);
       if (!row.send) return <span title="No send path — set up sending (DNS + DKIM + MailWizz list) to spam-test this domain" style={{ ...mono, fontSize: 10, color: '#e0a94a', border: '1px solid #e0a94a66', borderRadius: 4, padding: '1px 6px', whiteSpace: 'nowrap' }}>⚠ no send path</span>;
       if (testing === row.domain) return <span style={{ ...mono, fontSize: 10, color: 'var(--accent,#37d4c2)' }}>testing… ~90s</span>;
@@ -650,8 +650,8 @@ export function DeliverabilityCard() {
         </span>
       );
     } },
-    { key: 'trend', header: 'Trend', cell: (row) => <Spark pts={(row.spamTest || []).map((p) => p.score).filter((s): s is number => s != null).slice(-10)} /> },
-    { key: 'drags', header: 'Top drags (to fix)', width: '30%', cell: (row) => {
+    { key: 'trend', header: 'Trend', align: 'left', cell: (row) => <Spark pts={(row.spamTest || []).map((p) => p.score).filter((s): s is number => s != null).slice(-10)} /> },
+    { key: 'drags', header: 'Top drags (to fix)', align: 'left', width: '30%', cell: (row) => {
       const st = lastSt(row);
       return (
         <>
@@ -722,7 +722,7 @@ export function DeliverabilityCard() {
       ) : view === 'calendar' ? (
         <CalendarView rows={d.rows} />
       ) : (
-      <SimpleTable rows={domainRows} columns={domainCols} getRowKey={(r) => r.domain} />
+      <DataTable rows={domainRows} columns={domainCols} getRowKey={(r) => r.domain} card defaultView="table" persistKey="deliverability_domains" />
       )}
       {viewDomain && (
         <MailwizzDrawer domain={viewDomain} data={mw} err={mwErr} onClose={() => setViewDomain(null)} onPreview={openPreview} onChanged={() => { setMwNonce((n) => n + 1); load(); }} />

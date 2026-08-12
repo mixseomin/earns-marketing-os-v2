@@ -2,7 +2,8 @@ import { unstable_cache } from 'next/cache';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { mailwizzAllLists, type MailwizzList } from '@/lib/mailwizz';
-import { Panel, StatsStrip, SimpleTable, Section, type SimpleColumn } from '@/components/ui';
+import { Panel, StatsStrip, Section } from '@/components/ui';
+import { MailwizzListsTable } from './mailwizz-lists-table';
 
 // THEO DÕI EMAIL LIST — trang chủ. Mỗi sản phẩm một list, nên bảng này trả lời đúng một câu:
 // list nào thật sự gom được người, list nào là xác.
@@ -73,46 +74,6 @@ export async function MailwizzListsPanel() {
   const owners = [...new Set(snap.lists.map((l) => l.owner).filter(Boolean))];
   const showOther = snap.lists.some((l) => l.other > 0);
 
-  const cols: SimpleColumn<MailwizzList>[] = [
-    {
-      key: 'list', header: 'List',
-      cell: (l) => (
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 600 }}>{l.name}</span>
-            {products[l.uid] && (
-              <span title="list gắn với một sản phẩm" style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--accent)', border: '1px solid var(--line)', borderRadius: 4, padding: '0 5px' }}>
-                📕 {products[l.uid]}
-              </span>
-            )}
-            {l.status !== 'active' && (
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, textTransform: 'uppercase', color: 'var(--fg-3)' }}>[{l.status}]</span>
-            )}
-          </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)' }}>{l.uid}</div>
-        </div>
-      ),
-    },
-    {
-      key: 'confirmed', header: 'Gửi được', align: 'right',
-      cell: (l) => <span style={{ fontVariantNumeric: 'tabular-nums', color: l.confirmed ? undefined : 'var(--fg-3)' }}>{num(l.confirmed)}</span>,
-    },
-    {
-      key: 'unsub', header: 'Đã huỷ', align: 'right',
-      cell: (l) => <span style={{ fontVariantNumeric: 'tabular-nums', color: l.unsubscribed ? undefined : 'var(--fg-3)' }}>{num(l.unsubscribed)}</span>,
-    },
-    // Cột chỉ xuất hiện khi có số — hôm nay mọi list đều 0, in ra một cột toàn số 0 là nhiễu.
-    ...(showOther ? [{
-      key: 'other', header: 'Khác', align: 'right' as const,
-      title: 'unconfirmed / blacklisted / disabled — chưa gửi được nhưng cũng chưa huỷ',
-      cell: (l: MailwizzList) => <span style={{ fontVariantNumeric: 'tabular-nums', color: l.other ? undefined : 'var(--fg-3)' }}>{num(l.other)}</span>,
-    }] : []),
-    {
-      key: 'last', header: 'Người mới gần nhất', align: 'right',
-      cell: (l) => <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)' }}>{l.last ? `${l.last.slice(0, 10)} · ${daysAgo(l.last)}` : '—'}</span>,
-    },
-  ];
-
   return (
     <Panel
       title="✉ Email lists"
@@ -142,13 +103,13 @@ export async function MailwizzListsPanel() {
 
       <div style={{ marginTop: 12 }}>
         {live.length
-          ? <SimpleTable rows={live} columns={cols} getRowKey={(l) => l.uid} />
+          ? <MailwizzListsTable rows={live} products={products} showOther={showOther} />
           : <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Chưa list nào có người gửi được.</div>}
       </div>
 
       {dead.length > 0 && (
         <Section title="Chỉ còn người đã huỷ" defaultOpen={false} headerRight={<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)' }}>{dead.length}</span>}>
-          <SimpleTable rows={dead} columns={cols} getRowKey={(l) => l.uid} />
+          <MailwizzListsTable rows={dead} products={products} showOther={showOther} />
         </Section>
       )}
 

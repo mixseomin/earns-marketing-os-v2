@@ -100,7 +100,7 @@ export function DataTable<T>({
   const cardCfg: DataCard<T> = card && card !== true ? card : {};
   // Chế độ nhìn (thẻ/bảng). Controlled khi caller truyền `view`; nếu không, tự giữ + nhớ theo persistKey.
   const viewKey = persistKey ? `${persistKey}:view` : undefined;
-  const [internalView, setInternalView] = useState<DataView>(defaultView ?? 'card');
+  const [internalView, setInternalView] = useState<DataView>(defaultView ?? 'table');   // thêm `card` KHÔNG tự lật sang thẻ — bảng vẫn là mặc định, người dùng bấm mới sang thẻ
   useEffect(() => {
     if (!viewKey || view !== undefined) return;
     try { const v = localStorage.getItem(viewKey); if (v === 'card' || v === 'table') setInternalView(v); } catch { /* ignore */ }

@@ -5,7 +5,7 @@ import { RefreshSteamsoloBtn } from './refresh-steamsolo-btn';
 import { internalUrl } from '../lib/internal-origin';
 import { Panel } from './ui/panel';
 import { StatsStrip } from './ui/stats-strip';
-import { SimpleTable } from './ui/simple-table';
+import { SteamsoloTopGuidesTable, SteamsoloDemandTable, SteamsoloTopDemandTable } from './steamsolo-lang-table';
 
 interface LangStats {
   ok: boolean;
@@ -69,13 +69,7 @@ export async function SteamsoloLangPanel() {
       {d.top_guides.length > 0 && (
         <div style={{ marginBottom: 14 }}>
           <div style={th}>Top guides by views</div>
-          <SimpleTable rows={d.top_guides.slice(0, 8)} getRowKey={(x, i) => x.slug + i}
-            columns={[
-              { key: 'guide', header: 'Guide', cell: (x) => <><a href={`https://steamsolo.com/guide/${x.slug}/`} target="_blank" rel="noopener" style={{ color: 'var(--fg-1)' }}>{x.title}</a><span style={{ color: 'var(--fg-3)' }}> · {x.game}</span></> },
-              { key: 'views', header: 'Views', align: 'right', cell: (x) => <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{x.views}</span> },
-              { key: 'likes', header: 'Likes', align: 'right', cell: (x) => <span style={{ color: 'var(--fg-2)' }}>{x.likes}</span> },
-              { key: 'shares', header: 'Shares', align: 'right', cell: (x) => <span style={{ color: 'var(--fg-2)' }}>{x.shares}</span> },
-            ]} />
+          <SteamsoloTopGuidesTable rows={d.top_guides.slice(0, 8)} />
         </div>
       )}
 
@@ -129,12 +123,7 @@ export async function SteamsoloLangPanel() {
         <div>
           <div style={th}>Most-requested translations {demandTotal === 0 && <span style={{ textTransform: 'none', color: 'var(--fg-3)' }}>— collecting, none yet</span>}</div>
           {d.demand.length > 0 && (
-            <SimpleTable rows={d.demand.slice(0, 8)} getRowKey={(x) => x.lang}
-              columns={[
-                { key: 'lang', header: 'Lang', cell: (x) => x.lang },
-                { key: 'hits', header: 'Requests', align: 'right', cell: (x) => <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{x.hits}</span> },
-                { key: 'guides', header: 'Guides', align: 'right', cell: (x) => <span style={{ color: 'var(--fg-2)' }}>{x.guides}</span> },
-              ]} />
+            <SteamsoloDemandTable rows={d.demand.slice(0, 8)} />
           )}
         </div>
       </div>
@@ -143,12 +132,7 @@ export async function SteamsoloLangPanel() {
       {d.top_demand.length > 0 && (
         <div style={{ marginTop: 12 }}>
           <div style={th}>Top guide × language to publish first</div>
-          <SimpleTable rows={d.top_demand.slice(0, 8)} getRowKey={(x, i) => x.slug + i} hideHeader
-            columns={[
-              { key: 'hits', header: '×', align: 'right', width: 40, cell: (x) => <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{x.hits}×</span> },
-              { key: 'lang', header: 'Lang', width: 44, cell: (x) => x.lang },
-              { key: 'title', header: 'Guide', cell: (x) => <><a href={`https://steamsolo.com/guide/${x.slug}/`} target="_blank" rel="noopener" style={{ color: 'var(--fg-1)' }}>{x.title}</a><span style={{ color: 'var(--fg-3)' }}> · {x.game}</span></> },
-            ]} />
+          <SteamsoloTopDemandTable rows={d.top_demand.slice(0, 8)} />
         </div>
       )}
     </Panel>

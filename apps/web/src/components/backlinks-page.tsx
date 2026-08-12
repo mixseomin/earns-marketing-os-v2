@@ -1199,8 +1199,10 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const piecesInScope = useMemo(() => pieces.filter((p) => {
     if (kind && kind !== 'content') return false;
     if (allProjects && projectFilter && p.projectId !== projectFilter) return false;
+    // Tìm được bài theo SỐ HIỆU nữa ("#54" hoặc "54") — nói chuyện với nhau toàn nhắc số bài,
+    // mà ô tìm chỉ soi chữ thì mở lịch ra không cách nào lần ra đúng bài đó.
     const pq = q.trim().toLowerCase();
-    if (pq && !`${p.title} ${p.subject ?? ''} ${p.tags.join(' ')}`.toLowerCase().includes(pq)) return false;
+    if (pq && !`#${p.id} ${p.title} ${p.subject ?? ''} ${p.tags.join(' ')}`.toLowerCase().includes(pq.replace(/^#?(\d+)$/, '#$1'))) return false;
     return true;
   }), [pieces, kind, allProjects, projectFilter, q]);
 
@@ -1258,9 +1260,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       const ch = CHANNELS.find((c) => c.id === p.channel);
       const pr = allProjects ? projectsById?.[p.projectId] : undefined;
       const plbl = showProj ? `[${pr?.name ?? p.projectId}] ` : '';
-      // Duyệt rồi nhưng thiếu nguyên liệu (account/browser/asset/chuỗi) → ⚠ ngay trên lịch,
-      // đừng để tới ngày đăng mới biết. Chi tiết thiếu gì nằm trong tooltip + drawer.
-      const gaps = shouldWarnGaps(p.status) ? pieceGaps(p, { accounts, browserProfiles, media, tasks }) : [];
+      // Duyệt rồi nhưng thiếu nguyên liệu (account/browser/asset/chuỗi) → ⚠ trên lịch, CHỈ với bài
+      // sắp tới lượt đăng (≤3 ngày) — xa hơn thì thiếu là bình thường, bôi vàng cả tháng là nhiễu.
+      const gaps = shouldWarnGaps(p, todayLocal()) ? pieceGaps(p, { accounts, browserProfiles, media, tasks, today: todayLocal() }) : [];
       out.push({
         id: `c:${p.id}`, date: p.date, icon: 'docpen',
         label: `${plbl}${ch?.icon ?? ''} ${gaps.length ? '⚠ ' : ''}${(p.subject || p.title).replace(/\s+/g, ' ').trim()}`,

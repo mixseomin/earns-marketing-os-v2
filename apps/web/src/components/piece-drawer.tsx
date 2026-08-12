@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { Drawer, EntityRef } from '@/components/ui';
 import { CHANNELS, STATUSES, ANGLE_GROUPS, angleOf, tagVal, tagIds, pieceGaps } from '@/lib/content-channels';
 import { updateContentPiece, getPieceDetail, type ContentInput } from '@/lib/actions/content';
+import { todayLocal } from '@/lib/local-day';
 import type { CalPiece } from '@/lib/data';
 
 const lbl: React.CSSProperties = { display: 'block', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--fg-4)', marginBottom: 5, fontFamily: 'var(--font-mono)' };
@@ -54,7 +55,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   // asset:media:<id,id> = ảnh đã nằm trong vault (hiện thumbnail + mở media drawer).
   const assets = tagIds(piece.tags, 'asset').map((id) => media.find((m) => m.id === id)).filter(Boolean) as Array<{ id: number; url: string; filename: string }>;
   const chain = tagIds(piece.tags, 'chain').map((id) => tasks.find((t) => t.id === id)).filter(Boolean) as NonNullable<typeof tasks>;
-  const gaps = pieceGaps(piece, { accounts, browserProfiles, media, tasks });
+  const gaps = pieceGaps(piece, { accounts, browserProfiles, media, tasks, today: todayLocal() });
 
   useEffect(() => { getPieceDetail(piece.id, piece.projectId).then(setDetail); }, [piece.id, piece.projectId]);
 

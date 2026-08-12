@@ -64,7 +64,9 @@ export function pieceGaps(
     accounts?: Array<{ id: number; browserProfileId?: number | null; status: string }>;
     browserProfiles?: Array<{ id: number; lastOpenedAt?: string | Date | null }>;
     media?: Array<{ id: number }>;
-    tasks?: Array<{ id: number; siteState: string }>;
+    tasks?: Array<{ id: number; siteState: string; siteScheduledAt?: string | null }>;
+    /** 'YYYY-MM-DD' hôm nay — để phân biệt "chưa tới lượt làm" với "tới hạn mà chưa xong". */
+    today?: string;
   } = {},
 ): string[] {
   const gaps: string[] = [];
@@ -91,15 +93,24 @@ export function pieceGaps(
   const missingMedia = tagIds(piece.tags, 'asset').filter((id) => !refs.media?.some((m) => m.id === id));
   if (missingMedia.length) gaps.push(`asset chưa có trong vault: #${missingMedia.join(', #')}`);
 
+  // Card chuẩn bị CHƯA TỚI HẠN mà chưa xong thì không phải thiếu — đó là việc của tuần sau.
+  // Chỉ tính là thiếu khi card biến mất, hoặc đã tới/quá hạn mà vẫn chưa xong.
   const chain = tagIds(piece.tags, 'chain');
-  const left = chain.filter((id) => {
+  const late = chain.filter((id) => {
     const t = refs.tasks?.find((x) => x.id === id);
-    return !t || !['completed', 'verified'].includes(t.siteState);
+    if (!t) return true;
+    if (['completed', 'verified'].includes(t.siteState)) return false;
+    return !refs.today || !t.siteScheduledAt || t.siteScheduledAt.slice(0, 10) <= refs.today;
   });
-  if (left.length) gaps.push(`chuỗi chuẩn bị còn ${left.length}/${chain.length} việc`);
+  if (late.length) gaps.push(`chuỗi chuẩn bị trễ ${late.length}/${chain.length} việc`);
   return gaps;
 }
 
-/** Bài còn `draft` thì thiếu là chuyện đương nhiên; đăng rồi thì thiếu cũng chẳng để làm gì.
- *  Chỉ cảnh báo ở khoảng giữa: đã duyệt / đã lên lịch mà nguyên liệu chưa đủ. */
-export const shouldWarnGaps = (status: string) => status === 'approved' || status === 'scheduled';
+/** Cảnh báo trên LỊCH chỉ dành cho bài SẮP tới lượt. Bài tháng sau chưa gắn account là chuyện
+ *  đương nhiên — bôi vàng hết cả tháng thì không còn là cảnh báo, chỉ là nhiễu (mọi pill đều nổi
+ *  = không pill nào nổi). Trong drawer thì vẫn liệt kê đủ, vì lúc đó là mình chủ động hỏi. */
+export function shouldWarnGaps(piece: { status: string; date: string }, today?: string, leadDays = 3): boolean {
+  if (piece.status !== 'approved' && piece.status !== 'scheduled') return false;
+  if (!today) return false;
+  return Math.round((Date.parse(piece.date) - Date.parse(today)) / 864e5) <= leadDays;
+}

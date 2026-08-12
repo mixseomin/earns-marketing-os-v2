@@ -146,8 +146,19 @@ export async function listProjectsWithMode() {
 export async function listAllPlatforms() {
   const db = getDb();
   if (!db) return null;
+  // KHÔNG select() trần: cột icon_data cất favicon dạng base64 — 458 platform = 5,8 MB kéo khỏi
+  // Postgres mỗi lần mở /plays rồi vứt đi (UI lấy icon qua /api/platform-icon/<key>). Liệt kê cột
+  // cần dùng; thêm cột nặng sau này cũng không âm thầm chui vào mọi trang.
   return db
-    .select()
+    .select({
+      key: platforms.key, label: platforms.label, signupUrl: platforms.signupUrl, postUrl: platforms.postUrl,
+      profileUrlPattern: platforms.profileUrlPattern, priority: platforms.priority, fallbackKeys: platforms.fallbackKeys,
+      iconSlug: platforms.iconSlug, imageSpecs: platforms.imageSpecs, checklist: platforms.checklist,
+      autoCheck: platforms.autoCheck, description: platforms.description, pricing: platforms.pricing,
+      region: platforms.region, category: platforms.category, tags: platforms.tags,
+      userCountEstimate: platforms.userCountEstimate, technologyKey: platforms.technologyKey,
+      signupFields: platforms.signupFields,
+    })
     .from(platforms)
     .where(eq(platforms.tenantId, TENANT))
     .orderBy(asc(platforms.priority), asc(platforms.label));

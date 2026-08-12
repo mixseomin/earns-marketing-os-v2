@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import type { Project } from '@/lib/mock/types';
 import { SeoSitesPanel } from './seo-sites-panel';
+import { ProductsPanel } from './products-panel';
 import { SteamsoloLangPanel } from './steamsolo-lang-panel';
 import { AffiliateOffersPanel } from './affiliate-offers-panel';
 import { DeliverabilityCard } from './deliverability-card';
@@ -28,6 +29,12 @@ export function PortfolioView({ projects: PROJECTS }: { projects: Project[] }) {
 
       {/* SEO Sites Overview — GSC live data for monitored sites */}
       <SeoSitesPanel />
+
+      {/* Sản phẩm mình bán — đặt ngay dưới SEO vì hai bảng là hai nửa của một câu: có ai đi ngang
+          không, và có ai mua không. Suspense để Gumroad API chậm/chết không giữ cả trang chủ lại. */}
+      <Suspense fallback={<div style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 16 }}>📦 products — đang đọc Gumroad…</div>}>
+        <ProductsPanel />
+      </Suspense>
 
       {/* SteamSolo language coverage + on-demand translation demand meter */}
       <SteamsoloLangPanel />

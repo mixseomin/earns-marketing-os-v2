@@ -2244,3 +2244,27 @@ export const emailOffers = pgTable(
 
 // Re-export helper for convenience.
 export const schema = { modes, projects, squads, agents, cards, alerts, feedEvents, platformTechnologies, platforms, platformAccounts, projectAccounts, accountGrants, proxies, browserProfiles, useCases, roadmapItems, tribes, habitats, habitatTribes, communityBriefs, seedingSchedules, knowledgeItems, selectorOverrides, extCallLog, contacts, aiSuggestions, libraryTools, skillSnippets, mediaAssets, infraResources, budgetEntries, contentPieces, agentRuns, humanTasks, playbooks, users, members, dailySpendCaps, adsenseDaily, outreachProspects, outreachTouches, outreachCampaigns, aiUsage, emailOffers };
+
+// SỐ THEO NGÀY của sản phẩm mình bán. Gumroad API v2 trả sales_count/sales_usd_cents CỘNG DỒN trọn
+// đời và KHÔNG có lượt xem — lượt xem chỉ tồn tại trong giao diện Analytics. Nên bảng này giữ hai
+// việc: (1) lưu lượt xem do job trình duyệt đọc hằng ngày, (2) chụp mốc sales/doanh thu mỗi ngày để
+// về sau còn dựng được đường theo thời gian. Không có bảng thì "tuần này hơn tuần trước bao nhiêu"
+// vĩnh viễn không trả lời được — API chỉ biết TỔNG.
+export const productDaily = pgTable(
+  'product_daily',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    store: text('store').notNull(),            // nhãn store Gumroad (codecrate, militarycalc…)
+    productId: text('product_id').notNull(),   // permalink id (efvcp, qpzez…)
+    date: text('date').notNull(),              // YYYY-MM-DD, theo ngày của người đọc
+    views: integer('views').notNull().default(0),
+    sales: integer('sales').notNull().default(0),        // cộng dồn tại thời điểm chụp
+    usdCents: integer('usd_cents').notNull().default(0), // cộng dồn tại thời điểm chụp
+    source: text('source').notNull().default('browser'), // browser | api
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('product_daily_uniq').on(t.store, t.productId, t.date),
+    index('product_daily_date_idx').on(t.date),
+  ],
+);

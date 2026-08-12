@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Drawer, EntityRef, EntityPicker, type EntityOption } from '@/components/ui';
-import { CHANNELS, STATUSES, ANGLE_GROUPS, angleOf, tagVal, tagIds, pieceGaps } from '@/lib/content-channels';
+import { CHANNELS, STATUSES, ANGLE_GROUPS, CHANNEL_PLATFORM, angleOf, tagVal, tagIds, pieceGaps } from '@/lib/content-channels';
 import { updateContentPiece, getPieceDetail, type ContentInput } from '@/lib/actions/content';
 import { todayLocal } from '@/lib/local-day';
 import type { CalPiece } from '@/lib/data';
@@ -41,7 +41,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const router = useRouter();
   const [pending, start] = useTransition();
   const [tab, setTab] = useState<TabKey>('overview');
-  const [pick, setPick] = useState<null | 'acct' | 'browser' | 'asset'>(null);
+  const [pick, setPick] = useState<null | 'acct' | 'browser' | 'asset' | 'chain'>(null);
   const [editBody, setEditBody] = useState(false);
   const [hook, setHook] = useState(piece.subject ?? '');
   const [date, setDate] = useState(piece.date);
@@ -57,7 +57,8 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const assetIds = tagIds(piece.tags, 'asset');
   // asset:media:<id,id> = ảnh đã nằm trong vault (hiện thumbnail + mở media drawer).
   const assets = tagIds(piece.tags, 'asset').map((id) => media.find((m) => m.id === id)).filter(Boolean) as Array<{ id: number; url: string; filename: string }>;
-  const chain = tagIds(piece.tags, 'chain').map((id) => tasks.find((t) => t.id === id)).filter(Boolean) as NonNullable<typeof tasks>;
+  const chainIds = tagIds(piece.tags, 'chain');
+  const chain = chainIds.map((id) => tasks.find((t) => t.id === id)).filter(Boolean) as NonNullable<typeof tasks>;
   const gaps = pieceGaps(piece, { accounts, browserProfiles, media, tasks, today: todayLocal() });
 
   useEffect(() => { getPieceDetail(piece.id, piece.projectId).then(setDetail); }, [piece.id, piece.projectId]);
@@ -74,13 +75,18 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   // Danh sách cho EntityPicker: lấy từ dữ liệu trang ĐÃ tải, không gọi thêm. useCallback bắt buộc —
   // picker nạp lại mỗi khi `load` đổi định danh, truyền arrow trần vào là lặp vô hạn.
   const loadAccounts = useCallback(async (): Promise<EntityOption[]> => accounts
-    .map((x) => ({ key: `a:${x.id}`, label: x.handle ?? x.platformKey, sub: `${x.platformKey} · ${x.status}`, fallbackIcon: '👤', match: piece.channel.startsWith(x.platformKey.slice(0, 2)), data: x }))
+    .map((x) => ({ key: `a:${x.id}`, label: x.handle ?? x.platformKey, sub: `${x.platformKey} · ${x.status}`, fallbackIcon: '👤', match: x.platformKey === CHANNEL_PLATFORM[piece.channel], data: x }))
     .sort((p, n) => Number(n.match) - Number(p.match)), [accounts, piece.channel]);
   const loadProfiles = useCallback(async (): Promise<EntityOption[]> => browserProfiles
     .map((x) => ({ key: `b:${x.id}`, label: x.label, sub: x.externalId ?? '', fallbackIcon: '🖥', data: x })), [browserProfiles]);
   const loadMedia = useCallback(async (): Promise<EntityOption[]> => media
     .filter((m) => m.kind === 'image')
     .map((m) => ({ key: `m:${m.id}`, label: m.filename, avatar: m.url, data: m })), [media]);
+  // Card chuẩn bị = việc trên chính board này (produce/review/publish), chưa xong xếp trước.
+  const loadTasks = useCallback(async (): Promise<EntityOption[]> => tasks
+    .filter((t) => !chainIds.includes(t.id))
+    .map((t) => ({ key: `t:${t.id}`, label: t.title, sub: `#${t.id} · ${t.siteState}${t.siteScheduledAt ? ` · ${t.siteScheduledAt.slice(0, 10)}` : ''}`, fallbackIcon: '🗂', data: t }))
+    .sort((p, n) => Number(String(p.sub).includes('completed')) - Number(String(n.sub).includes('completed'))), [tasks, chainIds]);
 
   const row = (k: string, v: React.ReactNode) => (
     <><span style={{ color: 'var(--fg-4)' }}>{k}</span><span>{v}</span></>
@@ -238,17 +244,18 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
 
           <div>
             <label style={lbl}>Chuỗi chuẩn bị</label>
-            {chain.length === 0 ? <div style={{ fontSize: 12.5, color: 'var(--neon-amber)' }}>chưa gắn chuỗi việc (tag chain:&lt;id&gt;)</div> : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12.5 }}>
-                {chain.map((t) => (
-                  <div key={t.id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span style={{ color: 'var(--fg-4)', fontFamily: 'var(--font-mono)', fontSize: 11, width: 82 }}>{t.siteScheduledAt ?? '—'}</span>
-                    <EntityRef kind="task" id={t.id} project={piece.projectId} label={t.title} onOpen={onOpenTask ? () => onOpenTask(t.id) : undefined} />
-                    <span style={{ marginLeft: 'auto', color: ['completed', 'verified'].includes(t.siteState) ? 'var(--ok)' : 'var(--fg-4)' }}>{t.siteState}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12.5 }}>
+              {chain.map((t) => (
+                <div key={t.id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ color: 'var(--fg-4)', fontFamily: 'var(--font-mono)', fontSize: 11, width: 82 }}>{t.siteScheduledAt ?? '—'}</span>
+                  <EntityRef kind="task" id={t.id} project={piece.projectId} label={t.title} onOpen={onOpenTask ? () => onOpenTask(t.id) : undefined} />
+                  <span style={{ marginLeft: 'auto', color: ['completed', 'verified'].includes(t.siteState) ? 'var(--ok)' : 'var(--fg-4)' }}>{t.siteState}</span>
+                  <button type="button" style={pickBtn} disabled={pending}
+                    onClick={() => setTag('chain', chainIds.filter((x) => x !== t.id).join(','))}>✕</button>
+                </div>
+              ))}
+              <button type="button" style={{ ...pickBtn, alignSelf: 'flex-start' }} disabled={pending} onClick={() => setPick('chain')}>＋ gắn card chuẩn bị</button>
+            </div>
           </div>
 
           {/* Caption không lặp ở đây: bản THẬT + chỗ soạn nằm ở tab Overview. Prepare chỉ lo nguyên liệu. */}
@@ -312,6 +319,11 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
         <EntityPicker title="Chọn browser profile" hint="Phiên đăng nhập runner sẽ mở. Bỏ trống thì lấy theo profile gắn sẵn của account."
           load={loadProfiles} value={prof ? { key: `b:${prof.id}` } : undefined} onClose={() => setPick(null)}
           onPick={async (o) => { setPick(null); await setTag('browser', String((o.data as { id: number }).id)); }} />
+      )}
+      {pick === 'chain' && (
+        <EntityPicker title="Gắn card chuẩn bị" hint="Việc phải xong trước khi đăng (dựng ảnh, soát số, card đăng)."
+          load={loadTasks} onClose={() => setPick(null)}
+          onPick={async (o) => { const id = (o.data as { id: number }).id; setPick(null); await setTag('chain', [...new Set([...chainIds, id])].join(',')); }} />
       )}
       {pick === 'asset' && (
         <EntityPicker title="Thêm ảnh vào bài" hint="Ảnh trong vault media của dự án."

@@ -16,6 +16,13 @@ export const CHANNELS: Array<{ id: string; label: string; icon: string; hint: st
   { id: 'reddit',          label: 'Reddit',         icon: '👽', hint: 'Comment/text post trên subreddit — value-first, thường 0 link' },
 ];
 
+/** Kênh → platform_key của account đăng được kênh đó. Dùng để xếp account đúng nền tảng lên đầu
+ *  khi chọn (đoán bằng cách so vài ký tự đầu là sai: 'fb-post' không bắt đầu bằng 'facebook'). */
+export const CHANNEL_PLATFORM: Record<string, string> = {
+  'fb-post': 'facebook', 'fb-group': 'facebook', reddit: 'reddit', 'twitter-thread': 'twitter',
+  reel: 'tiktok', 'youtube-script': 'youtube',
+};
+
 export const STATUSES = ['draft', 'approved', 'scheduled', 'published', 'archived'] as const;
 export type ContentStatus = typeof STATUSES[number];
 

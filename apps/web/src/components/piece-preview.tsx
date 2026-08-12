@@ -45,9 +45,16 @@ export function PiecePreview({ piece, accounts = [], media = [], body, compact =
   const kind = fmt?.id ?? (piece.channel === 'twitter-thread' ? 'thread' : '');
   const bodyText = text?.trim() ?? '';
   const tweets = kind === 'thread' && bodyText ? bodyText.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean) : null;
-  // Poll: các dòng 'A. …' / '1) …' liền nhau ở cuối là phương án, phần trên là câu hỏi.
-  const pollOpts = kind === 'poll' ? bodyText.split('\n').filter((l) => /^\s*([A-Da-d]|[1-9])[.)]\s+\S/.test(l)).map((l) => l.replace(/^\s*([A-Da-d]|[1-9])[.)]\s+/, '')) : [];
-  const pollAsk = pollOpts.length >= 2 ? bodyText.split('\n').filter((l) => !/^\s*([A-Da-d]|[1-9])[.)]\s+\S/.test(l)).join('\n').trim() : '';
+  // Poll: khối dòng 'A. …' / '1) …' là phương án; chữ TRƯỚC khối là câu hỏi, chữ SAU khối vẫn nằm
+  // sau (đó là thứ tự người ta đọc thật). Gom hết chữ lên trên là đảo mất câu chốt của caption.
+  const isOpt = (l: string) => /^\s*([A-Da-d]|[1-9])[.)]\s+\S/.test(l);
+  const lines = kind === 'poll' ? bodyText.split('\n') : [];
+  const optFrom = lines.findIndex(isOpt);
+  let optTo = -1;
+  for (let i = lines.length - 1; i >= 0; i--) if (isOpt(lines[i] ?? '')) { optTo = i; break; }
+  const pollOpts = optFrom >= 0 ? lines.slice(optFrom, optTo + 1).filter(isOpt).map((l) => l.replace(/^\s*([A-Da-d]|[1-9])[.)]\s+/, '')) : [];
+  const pollAsk = pollOpts.length >= 2 ? lines.slice(0, optFrom).join('\n').trim() : '';
+  const pollTail = pollOpts.length >= 2 ? lines.slice(optTo + 1).join('\n').trim() : '';
   const linkUrl = kind === 'link' ? (bodyText.match(/https?:\/\/\S+|\b[a-z0-9-]+\.(com|org|net|gov|io)\/\S*/i)?.[0] ?? '') : '';
 
   return (
@@ -87,6 +94,7 @@ export function PiecePreview({ piece, accounts = [], media = [], body, compact =
             <div key={i} style={{ border: '1px solid var(--line)', borderRadius: 999, padding: compact ? '4px 11px' : '6px 13px', marginBottom: 5, color: 'var(--fg-2)' }}>{o}</div>
           ))}
           <div style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>{pollOpts.length} phương án · người xem bấm chọn</div>
+          {pollTail && <div style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>{pollTail}</div>}
         </div>
       ) : (
         <div style={{ padding: compact ? '9px 11px' : '12px 14px', fontSize: compact ? 12 : 13.5, lineHeight: 1.5, whiteSpace: 'pre-wrap',
@@ -103,6 +111,11 @@ export function PiecePreview({ piece, accounts = [], media = [], body, compact =
             <div style={{ fontSize: compact ? 11.5 : 13, fontWeight: 600, marginTop: 2 }}>{piece.title}</div>
             <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{linkUrl}</div>
           </div>
+        </div>
+      )}
+      {assets.length > 1 && (
+        <div style={{ padding: compact ? '0 11px 6px' : '0 14px 8px', fontSize: 10.5, color: 'var(--fg-4)' }}>
+          {assets.length} ảnh · người xem lướt ngang
         </div>
       )}
       {assets.length > 0 && (

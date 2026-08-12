@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Drawer, EntityRef, EntityPicker, type EntityOption } from '@/components/ui';
+import { readManagedPages } from '@/components/account-metrics';
 import { CHANNELS, STATUSES, ANGLE_GROUPS, CHANNEL_PLATFORM, angleOf, tagVal, tagIds, pieceGaps } from '@/lib/content-channels';
 import { updateContentPiece, getPieceDetail, type ContentInput } from '@/lib/actions/content';
 import { todayLocal } from '@/lib/local-day';
@@ -32,7 +33,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
 
 export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfiles = [], media = [], tasks = [], onOpenTask, onClose }: {
   piece: CalPiece; projectLabel?: string; onClose: () => void;
-  accounts?: Array<{ id: number; platformKey: string; handle: string | null; status: string; browserProfileId?: number | null }>;
+  accounts?: Array<{ id: number; platformKey: string; handle: string | null; status: string; browserProfileId?: number | null; accountStats?: Record<string, unknown> }>;
   browserProfiles?: Array<{ id: number; label: string; externalId: string | null; lastOpenedAt: string | null }>;
   media?: Array<{ id: number; url: string; filename: string; kind: string }>;
   tasks?: Array<{ id: number; title: string; siteState: string; siteScheduledAt: string | null; publishUrl?: string | null }>;
@@ -41,7 +42,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const router = useRouter();
   const [pending, start] = useTransition();
   const [tab, setTab] = useState<TabKey>('overview');
-  const [pick, setPick] = useState<null | 'acct' | 'browser' | 'asset' | 'chain'>(null);
+  const [pick, setPick] = useState<null | 'acct' | 'browser' | 'asset' | 'chain' | 'place' | 'angle'>(null);
   const [editBody, setEditBody] = useState(false);
   const [hook, setHook] = useState(piece.subject ?? '');
   const [date, setDate] = useState(piece.date);
@@ -53,8 +54,15 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const place = tagVal(piece.tags, 'place');
   const time = tagVal(piece.tags, 'time');
   const acct = accounts.find((x) => x.id === Number(tagVal(piece.tags, 'acct')));
-  const prof = browserProfiles.find((x) => x.id === Number(tagVal(piece.tags, 'browser')) || (acct?.browserProfileId ?? 0));
+  // Profile: tag thắng, không có thì lấy profile gắn sẵn của account. (Viết gộp vào 1 biểu thức
+  // find() là sai: `===` bám chặt hơn `||` nên nó luôn khớp phần tử đầu.)
+  const profId = Number(tagVal(piece.tags, 'browser')) || acct?.browserProfileId || 0;
+  const prof = browserProfiles.find((x) => x.id === profId);
   const assetIds = tagIds(piece.tags, 'asset');
+  // Nơi đăng = Page mà CHÍNH account đó quản (account_stats.pages) — đọc qua readManagedPages,
+  // nguồn dùng chung với /environments + bảng Accounts, không tự bới jsonb ở đây.
+  const managed = readManagedPages(acct?.accountStats).pages;
+  const placeLabel = managed.find((p) => p.url === place)?.name ?? place;
   // asset:media:<id,id> = ảnh đã nằm trong vault (hiện thumbnail + mở media drawer).
   const assets = tagIds(piece.tags, 'asset').map((id) => media.find((m) => m.id === id)).filter(Boolean) as Array<{ id: number; url: string; filename: string }>;
   const chainIds = tagIds(piece.tags, 'chain');
@@ -82,6 +90,10 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const loadMedia = useCallback(async (): Promise<EntityOption[]> => media
     .filter((m) => m.kind === 'image')
     .map((m) => ({ key: `m:${m.id}`, label: m.filename, avatar: m.url, data: m })), [media]);
+  const loadPlaces = useCallback(async (): Promise<EntityOption[]> => managed
+    .map((p) => ({ key: `pg:${p.url}`, label: p.name, sub: p.url.replace(/^https?:\/\/(www\.)?/, ''), fallbackIcon: '📍', data: p })), [managed]);
+  const loadAngles = useCallback(async (): Promise<EntityOption[]> => ANGLE_GROUPS
+    .flatMap((g) => g.angles.map((x) => ({ key: `ang:${x}`, label: x, sub: g.label, fallbackIcon: '◆', data: { angle: x } }))), []);
   // Card chuẩn bị = việc trên chính board này (produce/review/publish), chưa xong xếp trước.
   const loadTasks = useCallback(async (): Promise<EntityOption[]> => tasks
     .filter((t) => !chainIds.includes(t.id))
@@ -197,13 +209,10 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
             </div>
             <div style={{ flex: 1 }}>
               <label style={lbl}>Angle</label>
-              <select style={inp} disabled={pending} value={a?.angle ?? ''}
-                onChange={(e) => patch({ tags: [...piece.tags.filter((t) => !t.startsWith('angle:')), ...(e.target.value ? [`angle:${e.target.value}`] : [])] })}>
-                <option value="">— chưa gắn —</option>
-                {ANGLE_GROUPS.map((g) => (
-                  <optgroup key={g.id} label={g.label}>{g.angles.map((x) => <option key={x} value={x}>{x}</option>)}</optgroup>
-                ))}
-              </select>
+              <button type="button" disabled={pending} onClick={() => setPick('angle')}
+                style={{ ...inp, textAlign: 'left', cursor: 'pointer', color: a ? a.group.color : 'var(--fg-4)' }}>
+                {a ? `${a.group.label} / ${a.angle}` : '— chọn angle —'}
+              </button>
             </div>
           </div>
         </>)}
@@ -212,8 +221,10 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
           <div>
             <label style={lbl}>Runner cần gì để chạy</label>
             <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 12px', fontSize: 12.5, alignItems: 'center' }}>
-              {row('Nơi đăng', <input style={{ ...inp, maxWidth: 320 }} defaultValue={place} placeholder="fb-page-… / r/subreddit" disabled={pending}
-                onBlur={(e) => e.target.value.trim() !== place && setTag('place', e.target.value.trim())} />)}
+              {row('Nơi đăng', <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {place && <a href={place.startsWith('http') ? place : undefined} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-blue)' }}>{placeLabel}</a>}
+                <button type="button" style={pickBtn} disabled={pending} onClick={() => setPick('place')}>{place ? 'đổi' : '＋ chọn nơi đăng'}</button>
+              </span>)}
               {row('Giờ', <input type="time" style={{ ...inp, maxWidth: 120 }} defaultValue={time} disabled={pending}
                 onChange={(e) => setTag('time', e.target.value)} />)}
               {row('Account', <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -319,6 +330,19 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
         <EntityPicker title="Chọn browser profile" hint="Phiên đăng nhập runner sẽ mở. Bỏ trống thì lấy theo profile gắn sẵn của account."
           load={loadProfiles} value={prof ? { key: `b:${prof.id}` } : undefined} onClose={() => setPick(null)}
           onPick={async (o) => { setPick(null); await setTag('browser', String((o.data as { id: number }).id)); }} />
+      )}
+      {pick === 'place' && (
+        <EntityPicker title="Chọn nơi đăng" hint={acct ? `Page ${acct.handle ?? acct.platformKey} đang quản.` : 'Chọn account trước — nơi đăng lấy từ Page account đó quản.'}
+          load={loadPlaces} value={place ? { key: `pg:${place}` } : undefined} onClose={() => setPick(null)}
+          onPick={async (o) => { setPick(null); await setTag('place', (o.data as { url: string }).url); }}
+          emptyHint={acct
+            ? <>Account này chưa có Page nào trong vault. Mở facebook.com rồi bấm <b>⬇ Nhập Pages</b> trên ext Crew để quét về.</>
+            : <>Chưa chọn account. Đóng bảng này, bấm <b>＋ chọn account</b> trước.</>} />
+      )}
+      {pick === 'angle' && (
+        <EntityPicker title="Chọn angle" hint="Bài này LÀM GÌ cho người đọc. Dòng phụ = nhóm (HÚT/TIN/CHUYỂN ĐỔI/CỘNG ĐỒNG/TÁI DÙNG)."
+          load={loadAngles} value={a ? { key: `ang:${a.angle}` } : undefined} onClose={() => setPick(null)}
+          onPick={async (o) => { setPick(null); await setTag('angle', (o.data as { angle: string }).angle); }} />
       )}
       {pick === 'chain' && (
         <EntityPicker title="Gắn card chuẩn bị" hint="Việc phải xong trước khi đăng (dựng ảnh, soát số, card đăng)."

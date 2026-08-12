@@ -41,6 +41,14 @@ export interface DataGroup {
   defaultOn?: boolean;   // default true
 }
 
+// Cùng dữ liệu — hai cách nhìn: bảng dày (nhiều cột) hoặc lưới THẺ (glanceable, mỗi dòng 1 card).
+export type DataView = 'table' | 'card';
+
+export interface DataCard<T> {
+  render: (row: T, index: number) => ReactNode;   // vẽ 1 thẻ (đầy đủ khung); DataTable chỉ lo lưới + click.
+  minWidth?: number;                                // bề rộng tối thiểu 1 thẻ trước khi xuống hàng (default 300)
+}
+
 interface DataTableProps<T> {
   rows: T[];
   columns: DataColumn<T>[];
@@ -59,6 +67,17 @@ interface DataTableProps<T> {
    */
   searchText?: (row: T) => string;
   searchPlaceholder?: string;
+  /**
+   * Bật chế độ THẺ. Có `card` → DataTable vẽ được cả lưới thẻ lẫn bảng.
+   * - Uncontrolled: không truyền `view` → DataTable tự giữ trạng thái (nút chuyển ▪ Thẻ / ≡ Bảng
+   *   hiện sẵn, nhớ theo `persistKey`). `defaultView` chọn mặc định.
+   * - Controlled: truyền `view` (+ `onViewChange` nếu muốn nút nội bộ báo ra) → caller tự làm nút
+   *   chuyển; DataTable KHÔNG hiện nút riêng (tránh 2 nút khi 1 trang có nhiều bảng cùng 1 toggle).
+   */
+  card?: DataCard<T>;
+  view?: DataView;
+  onViewChange?: (v: DataView) => void;
+  defaultView?: DataView;                 // uncontrolled default (default 'card' khi có `card`)
 }
 
 const baseCell: CSSProperties = { padding: '3px 5px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
@@ -70,9 +89,23 @@ const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 
 export function DataTable<T>({
   rows, columns, getRowKey, groups, persistKey, initialShown, onRowClick, minWidth = 640, rowTitle,
-  searchText, searchPlaceholder,
+  searchText, searchPlaceholder, card, view, onViewChange, defaultView,
 }: DataTableProps<T>) {
   const [q, setQ] = useState('');
+
+  // Chế độ nhìn (thẻ/bảng). Controlled khi caller truyền `view`; nếu không, tự giữ + nhớ theo persistKey.
+  const viewKey = persistKey ? `${persistKey}:view` : undefined;
+  const [internalView, setInternalView] = useState<DataView>(defaultView ?? 'card');
+  useEffect(() => {
+    if (!viewKey || view !== undefined) return;
+    try { const v = localStorage.getItem(viewKey); if (v === 'card' || v === 'table') setInternalView(v); } catch { /* ignore */ }
+  }, [viewKey, view]);
+  const effView: DataView = card ? (view ?? internalView) : 'table';   // không có `card` → luôn bảng (hành vi cũ)
+  const setView = (v: DataView) => {
+    setInternalView(v); onViewChange?.(v);
+    if (viewKey) { try { localStorage.setItem(viewKey, v); document.cookie = `${viewKey}=${v}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`; } catch { /* ignore */ } }
+  };
+  const showViewToggle = !!card && view === undefined;   // controlled → caller tự làm nút
   const colsRef = useRef<HTMLDetailsElement>(null);
   const groupMeta = new Map((groups ?? []).map((g) => [g.key, g]));
   const defaults = () => Object.fromEntries((groups ?? []).map((g) => [g.key, g.defaultOn ?? true])) as Record<string, boolean>;
@@ -145,7 +178,7 @@ export function DataTable<T>({
 
   return (
     <div data-comp="ui.DataTable">
-      {(searchText || (groups && groups.length > 0)) && (
+      {(searchText || (groups && groups.length > 0) || showViewToggle) && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginBottom: 6 }}>
           {searchText && (
             <>
@@ -165,9 +198,10 @@ export function DataTable<T>({
               )}
             </>
           )}
-          {groups && groups.length > 0 && (
+          {effView === 'table' && groups && groups.length > 0 && (
           // ⚙ Columns — collapsed by default (YDNI). <details> cho phần mở/đóng; bấm ra ngoài đóng
-          // bằng listener ở trên. Right-aligned so it sits where controls conventionally live.
+          // bằng listener ở trên. Right-aligned so it sits where controls conventionally live. Chế độ THẺ
+          // không có cột nên ẩn nút này (cột là khái niệm của bảng).
           <details ref={colsRef} className="dt-cols" style={{ position: 'relative' }}>
             <summary style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', userSelect: 'none' }}>
               ⚙ Columns <span style={{ color: 'var(--fg-3)' }}>{onCount}/{groups.length}</span>
@@ -192,9 +226,38 @@ export function DataTable<T>({
             </div>
           </details>
           )}
+          {/* Chuyển ▪ Thẻ / ≡ Bảng — chỉ khi uncontrolled (controlled thì caller tự làm nút chung). */}
+          {showViewToggle && (
+            <div style={{ display: 'flex', gap: 2, border: '1px solid var(--line)', borderRadius: 6, padding: 2, background: 'var(--bg-2)' }}>
+              {(['card', 'table'] as const).map((v) => (
+                <button key={v} type="button" onClick={() => setView(v)}
+                  title={v === 'card' ? 'Xem dạng thẻ' : 'Xem dạng bảng dày'}
+                  style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '2px 9px', borderRadius: 4, cursor: 'pointer', border: 'none',
+                    background: effView === v ? 'var(--accent)' : 'transparent', color: effView === v ? 'var(--bg-0, #0b0d12)' : 'var(--fg-3)', fontWeight: effView === v ? 600 : 400 }}>
+                  {v === 'card' ? '▪ Thẻ' : '≡ Bảng'}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
+      {effView === 'card' && card ? (
+        <div className="dt-cards" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${card.minWidth ?? 300}px, 1fr))`, gap: 12 }}>
+          {sortedRows.map((row, i) => (
+            <div key={getRowKey(row, i)} title={rowTitle?.(row)}
+                 onClick={onRowClick ? () => onRowClick(row, i) : undefined}
+                 style={onRowClick ? { cursor: 'pointer' } : undefined}>
+              {card.render(row, i)}
+            </div>
+          ))}
+          {!sortedRows.length && (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: 'var(--fg-3)', fontSize: 12, padding: '20px 5px', fontFamily: 'var(--font-mono)' }}>
+              {q.trim() ? `Không dòng nào khớp "${q.trim()}".` : 'Không có dữ liệu.'}
+            </div>
+          )}
+        </div>
+      ) : (
       <div className="dt-scroll" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -8px' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto', minWidth }}>
           <thead>
@@ -246,6 +309,7 @@ export function DataTable<T>({
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }

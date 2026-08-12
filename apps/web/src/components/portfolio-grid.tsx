@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { MODES } from '@/lib/mock/modes';
 import type { Project } from '@/lib/mock/types';
+import { DataTable, type DataColumn } from './ui/data-table';
 
 const healthColor = (h: number) => (h > 80 ? 'var(--ok)' : h > 65 ? 'var(--warn)' : 'var(--bad)');
 const healthBucket = (h: number): 'healthy' | 'watch' | 'critical' => (h > 80 ? 'healthy' : h > 65 ? 'watch' : 'critical');
@@ -156,7 +157,16 @@ export function PortfolioGrid({ projects: PROJECTS, totalBudget }: { projects: P
               <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{g.items.length}</span>
             </div>
           )}
-          {view === 'card' ? <CardGrid items={g.items} totalBudget={totalBudget} /> : <CompactList items={g.items} />}
+          {/* Bảng dày lẫn lưới thẻ giờ đều từ ui.DataTable — 1 primitive, board chỉ giữ bộ lọc miền
+              (health/kind/mode/group/sort) + nút chuyển ▪/≡ ở trên, truyền `view` xuống (controlled). */}
+          <DataTable<Project>
+            rows={g.items}
+            columns={PROJECT_COLUMNS}
+            getRowKey={(p) => p.id}
+            card={{ render: (p) => renderProjectCard(p, totalBudget), minWidth: 360 }}
+            view={view === 'card' ? 'card' : 'table'}
+            minWidth={680}
+          />
         </div>
       ))}
 
@@ -169,45 +179,40 @@ export function PortfolioGrid({ projects: PROJECTS, totalBudget }: { projects: P
   );
 }
 
-function CardGrid({ items, totalBudget }: { items: Project[]; totalBudget: number }) {
+// Vẽ MỘT thẻ project (khung đầy đủ). DataTable lo lưới + xuống hàng; đây chỉ lo nội dung 1 thẻ.
+function renderProjectCard(p: Project, totalBudget: number) {
+  const mode = MODES[p.mode];
+  const hc = healthColor(p.health);
+  const utilization = Math.round((p.agents.core / Math.max(1, p.agents.core + p.agents.shared)) * 100);
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 12 }}>
-      {items.map((p) => {
-        const mode = MODES[p.mode];
-        const hc = healthColor(p.health);
-        const utilization = Math.round((p.agents.core / Math.max(1, p.agents.core + p.agents.shared)) * 100);
-        return (
-          <Link key={p.id} href={`/p/${p.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div style={{ background: 'var(--bg-1)', border: `1px solid ${p.health < 75 ? 'rgba(255,176,60,.25)' : 'var(--line)'}`, borderRadius: 10, overflow: 'hidden', cursor: 'pointer' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--bg-2)', borderBottom: '1px solid var(--line)' }}>
-                <span style={{ fontSize: 22 }}>{p.emoji}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--fg-0)' }}>{p.name}{p.isDemo && <span style={{ marginLeft: 6, fontSize: 9, padding: '1px 5px', background: 'var(--bg-3)', color: 'var(--fg-3)', borderRadius: 3, fontWeight: 400 }}>DEMO</span>}</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', marginTop: 1 }}>{mode?.label ?? p.mode} · {p.agents.core} core + {p.agents.shared} shared</div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 12, color: hc, fontWeight: 600 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: hc, boxShadow: `0 0 6px ${hc}` }} />
-                    {p.health}%
-                  </div>
-                  {p.alerts > 0 && (
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, padding: '1px 6px', borderRadius: 3, background: 'var(--bad)', color: '#fff' }}>⚠ {p.alerts}</span>
-                  )}
-                </div>
-              </div>
-              <div style={{ padding: '10px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-                <Cell label="Revenue" v={p.revenue} sub={p.kpi} subColor="var(--ok)" />
-                <Cell label="Budget" v={p.budget > 0 ? `${p.budget}tr` : '—'} bar={Math.min(100, (p.budget / Math.max(1, totalBudget)) * 100 * 5)} barColor={p.color} />
-                <Cell label="Agents" v={String(p.agents.core)} subText={`+${p.agents.shared}`} bar={utilization} barColor={p.color} />
-              </div>
-              <div style={{ height: 3, background: 'var(--bg-3)' }}>
-                <div style={{ height: '100%', width: `${p.health}%`, background: hc }} />
-              </div>
+    <Link href={`/p/${p.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+      <div style={{ background: 'var(--bg-1)', border: `1px solid ${p.health < 75 ? 'rgba(255,176,60,.25)' : 'var(--line)'}`, borderRadius: 10, overflow: 'hidden', cursor: 'pointer' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--bg-2)', borderBottom: '1px solid var(--line)' }}>
+          <span style={{ fontSize: 22 }}>{p.emoji}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--fg-0)' }}>{p.name}{p.isDemo && <span style={{ marginLeft: 6, fontSize: 9, padding: '1px 5px', background: 'var(--bg-3)', color: 'var(--fg-3)', borderRadius: 3, fontWeight: 400 }}>DEMO</span>}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)', marginTop: 1 }}>{mode?.label ?? p.mode} · {p.agents.core} core + {p.agents.shared} shared</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 12, color: hc, fontWeight: 600 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: hc, boxShadow: `0 0 6px ${hc}` }} />
+              {p.health}%
             </div>
-          </Link>
-        );
-      })}
-    </div>
+            {p.alerts > 0 && (
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, padding: '1px 6px', borderRadius: 3, background: 'var(--bad)', color: '#fff' }}>⚠ {p.alerts}</span>
+            )}
+          </div>
+        </div>
+        <div style={{ padding: '10px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+          <Cell label="Revenue" v={p.revenue} sub={p.kpi} subColor="var(--ok)" />
+          <Cell label="Budget" v={p.budget > 0 ? `${p.budget}tr` : '—'} bar={Math.min(100, (p.budget / Math.max(1, totalBudget)) * 100 * 5)} barColor={p.color} />
+          <Cell label="Agents" v={String(p.agents.core)} subText={`+${p.agents.shared}`} bar={utilization} barColor={p.color} />
+        </div>
+        <div style={{ height: 3, background: 'var(--bg-3)' }}>
+          <div style={{ height: '100%', width: `${p.health}%`, background: hc }} />
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -226,47 +231,19 @@ function Cell({ label, v, sub, subColor, subText, bar, barColor }: { label: stri
   );
 }
 
-function CompactList({ items }: { items: Project[] }) {
-  const cell: React.CSSProperties = { padding: '6px 8px', fontSize: 11.5, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)' };
-  const head: React.CSSProperties = { ...cell, color: 'var(--fg-3)', fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500, textAlign: 'right', background: 'var(--bg-2)' };
-  return (
-    <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
-      <table className="scroll-x" style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th style={{ ...head, textAlign: 'left' }}>Project</th>
-            <th style={head}>Mode</th>
-            <th style={head}>Health</th>
-            <th style={head}>Revenue</th>
-            <th style={head}>Budget</th>
-            <th style={head}>Agents</th>
-            <th style={head}>Alerts</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((p) => {
-            const hc = healthColor(p.health);
-            const mode = MODES[p.mode];
-            return (
-              <tr key={p.id}>
-                <td style={{ ...cell, textAlign: 'left' }}>
-                  <Link href={`/p/${p.id}`} style={{ color: 'var(--fg-1)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span>{p.emoji}</span>
-                    <span style={{ fontWeight: 600 }}>{p.name}</span>
-                    {p.isDemo && <span style={{ fontSize: 8.5, padding: '1px 4px', background: 'var(--bg-3)', color: 'var(--fg-3)', borderRadius: 3 }}>DEMO</span>}
-                  </Link>
-                </td>
-                <td style={{ ...cell, color: 'var(--fg-3)', textAlign: 'right' }}>{mode?.label ?? p.mode}</td>
-                <td style={{ ...cell, color: hc, fontWeight: 600, textAlign: 'right' }}>{p.health}%</td>
-                <td style={{ ...cell, color: 'var(--fg-0)', textAlign: 'right' }}>{p.revenue}</td>
-                <td style={{ ...cell, color: 'var(--fg-2)', textAlign: 'right' }}>{p.budget > 0 ? `${p.budget}tr` : '—'}</td>
-                <td style={{ ...cell, color: 'var(--fg-2)', textAlign: 'right' }}>{p.agents.core}<small style={{ color: 'var(--fg-4)' }}> +{p.agents.shared}</small></td>
-                <td style={{ ...cell, textAlign: 'right' }}>{p.alerts > 0 ? <span style={{ color: 'var(--bad)' }}>⚠ {p.alerts}</span> : <span style={{ color: 'var(--fg-4)' }}>0</span>}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+// Bảng dày (view === 'table') — cùng dữ liệu thẻ, xếp cột. DataTable lo khung/scroll/sort-header.
+const PROJECT_COLUMNS: DataColumn<Project>[] = [
+  { key: 'name', header: 'Project', align: 'left',
+    cell: (p) => (
+      <Link href={`/p/${p.id}`} style={{ color: 'var(--fg-1)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span>{p.emoji}</span><span style={{ fontWeight: 600 }}>{p.name}</span>
+        {p.isDemo && <span style={{ fontSize: 8.5, padding: '1px 4px', background: 'var(--bg-3)', color: 'var(--fg-3)', borderRadius: 3 }}>DEMO</span>}
+      </Link>
+    ) },
+  { key: 'mode', header: 'Mode', cell: (p) => <span style={{ color: 'var(--fg-3)' }}>{MODES[p.mode]?.label ?? p.mode}</span> },
+  { key: 'health', header: 'Health', cell: (p) => <span style={{ color: healthColor(p.health), fontWeight: 600 }}>{p.health}%</span> },
+  { key: 'revenue', header: 'Revenue', cell: (p) => <span style={{ color: 'var(--fg-0)' }}>{p.revenue}</span> },
+  { key: 'budget', header: 'Budget', cell: (p) => <span style={{ color: 'var(--fg-2)' }}>{p.budget > 0 ? `${p.budget}tr` : '—'}</span> },
+  { key: 'agents', header: 'Agents', cell: (p) => <span style={{ color: 'var(--fg-2)' }}>{p.agents.core}<small style={{ color: 'var(--fg-4)' }}> +{p.agents.shared}</small></span> },
+  { key: 'alerts', header: 'Alerts', cell: (p) => (p.alerts > 0 ? <span style={{ color: 'var(--bad)' }}>⚠ {p.alerts}</span> : <span style={{ color: 'var(--fg-4)' }}>0</span>) },
+];

@@ -16,7 +16,7 @@ import { StatusBadge } from './ui/status-badge';
 // Filter bar = primitive nhà MultiSelect (search + count + multi), KHÔNG phải <select> thường.
 import { MultiSelect } from './ui/multi-select';
 // Ngưỡng + màu + cách đọc sessionState: MỘT nguồn, dùng chung với browser-profile-drawer.
-import { STALE_D, TONE, idleOf, bucketOf, isUnmeasuredSession } from '@/lib/session-health';
+import { STALE_D, TONE, idleOf, bucketOf, isUnmeasuredSession, accountSession } from '@/lib/session-health';
 import { DEAD_STATUSES, type AccountStatus } from '@/lib/status-meta';
 import { AIFormParser } from './ai-form-parser';
 import { OwnerSelect } from './owner-select';
@@ -673,6 +673,12 @@ function acctColumns(setProject: (v: string) => void): DataColumn<GlobalAccountR
       cell: (a) => a.sessionState
         ? <span style={{ fontSize: 10, color: a.sessionState === 'alive' ? 'var(--ok)' : a.sessionState === 'dead' ? 'var(--bad)' : 'var(--fg-3)' }}>{a.sessionState}</span>
         : DASH },
+    // Hạn cookie phiên THẬT (sessionExpiresAt do browsers-refresh đọc từ profile) → đếm ngược. Sort ASC =
+    // cái sắp rụng lên đầu. Cùng nguồn accountSession với drawer + profile card → sửa 1 chỗ đổi hết.
+    { key: 'cookie', group: 'env', header: 'Cookie còn', align: 'center',
+      title: 'Cookie phiên còn bao lâu (đọc từ profile lúc browsers-refresh chạy). Sort để thấy cái sắp hết hạn → cần warm/login lại.',
+      sortValue: (a) => (a.sessionExpiresAt ? new Date(a.sessionExpiresAt).getTime() : Infinity),
+      cell: (a) => { const h = accountSession(a); return <span title={h.tip} style={{ fontSize: 10, color: h.color, fontWeight: h.bold ? 700 : 400 }}>{h.text}</span>; } },
 
     // 🗂 Vận hành
     { key: 'owner', group: 'ops', header: 'Owner', align: 'left', sortValue: (a) => a.ownerName ?? '',

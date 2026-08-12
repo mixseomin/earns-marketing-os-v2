@@ -515,7 +515,7 @@ export interface GlobalAccountRow {
   // Cột mở rộng cho bảng /environments (ui.DataTable bật/tắt theo nhóm).
   accountStats: Record<string, unknown>;   // karma/followers/tuổi… ext Crew quét
   accountType: string; accountKind: string; tags: string[];
-  monthlyCost: number; followUpAt: string | null; sessionState: string | null;
+  monthlyCost: number; followUpAt: string | null; sessionState: string | null; sessionExpiresAt: string | null;
 }
 export async function listAllAccounts(): Promise<GlobalAccountRow[]> {
   const db = getDb();
@@ -530,7 +530,8 @@ export async function listAllAccounts(): Promise<GlobalAccountRow[]> {
            a.proxy_id, p.label AS px_label,
            u.name AS owner_name, a.last_used_at,
            a.account_stats, a.account_type, a.account_kind, a.tags,
-           a.monthly_cost, a.follow_up_at, a.environment->>'sessionState' AS session_state
+           a.monthly_cost, a.follow_up_at, a.environment->>'sessionState' AS session_state,
+           a.environment->>'sessionExpiresAt' AS session_expires_at
     FROM platform_accounts a
     LEFT JOIN browser_profiles b ON b.id = a.browser_profile_id
     LEFT JOIN proxies p ON p.id = a.proxy_id
@@ -560,6 +561,7 @@ export async function listAllAccounts(): Promise<GlobalAccountRow[]> {
     monthlyCost: Number(r.monthly_cost) || 0,
     followUpAt: r.follow_up_at ? String(r.follow_up_at).slice(0, 10) : null,
     sessionState: (r.session_state as string | null) ?? null,
+    sessionExpiresAt: (r.session_expires_at as string | null) ?? null,
   }));
 }
 

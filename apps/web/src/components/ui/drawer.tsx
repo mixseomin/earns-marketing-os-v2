@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react';
+import { createPortal } from 'react-dom';
 
 // Escape must close only the TOPMOST drawer, not every mounted one. Each drawer registered a document
 // keydown listener that closed ITSELF → a stack (task → outreach → picker → detail) collapsed entirely on
@@ -79,6 +80,9 @@ export function Drawer({
 }) {
   const [w, setW] = useState(width);
   const [askClose, setAskClose] = useState(false);
+  // Portal chỉ chạy sau mount (SSR không có `document`; drawer luôn mở do tương tác client nên không kẹt hydrate).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   // Stack-derived layout, recomputed on every stack change (no parent wiring):
   //   shift   = total width of the drawers stacked ABOVE me → I translate left by this (left-cascade).
   //   isBottom= I'm the bottom-most drawer → I paint the dim scrim (others go transparent).
@@ -182,7 +186,7 @@ export function Drawer({
     document.addEventListener('mouseup', onUp);
   };
 
-  return (
+  const overlay = (
     <>
       <div
         onClick={closeOnOutside ? requestClose : undefined}
@@ -230,4 +234,11 @@ export function Drawer({
       </div>
     </>
   );
+  // Portal ra <body>. Drawer mở TỪ TRONG children của Drawer khác (vd EntityPicker trong PieceDrawer)
+  // nếu để tại chỗ sẽ nằm trong panel cha — mà panel cha có `transform` (cascade) → thành containing
+  // block cho position:fixed, nên backdrop `inset:0` của con CO LẠI bằng đúng panel cha thay vì cả
+  // màn hình. Hậu quả: bấm "ra ngoài" trúng backdrop toàn màn của CHA → đóng cả stack. Ở tầng <body>
+  // mọi backdrop mới thật sự phủ viewport, và z theo module stack chỉ đóng drawer trên cùng. Portal
+  // của React vẫn giữ context nên children vẫn thấy provider lang/theme.
+  return mounted ? createPortal(overlay, document.body) : null;
 }

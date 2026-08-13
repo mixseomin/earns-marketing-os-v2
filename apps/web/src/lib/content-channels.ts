@@ -86,6 +86,17 @@ export const FB_BUTTONS = [
 ] as const;
 export const fbButtonOf = (tags: string[]) => FB_BUTTONS.find((b) => b.id === tagVal(tags, 'btn') && b.id !== 'none') ?? null;
 
+// ── Series (chuỗi lặp lại) ────────────────────────────────────────────────────
+// Người ta không follow bài lẻ, họ follow MỘT LỜI HỨA LẶP LẠI: cùng khuôn, cùng thứ trong tuần.
+// Đây là 'modifier' chồng lên bất kỳ angle/format nào (catalog content-angles.md gọi đúng tên đó),
+// KHÔNG phải angle thứ 33. Lưu 'series:<id>'; sai thứ là mất luôn tác dụng lặp nên pieceGaps bắt.
+export const SERIES: Array<{ id: string; label: string; weekday: number; hint: string }> = [
+  { id: 'two-zips', label: 'Two zips',            weekday: 1, hint: 'Cùng cấp bậc, hai mã bưu chính, chênh bao nhiêu một năm' },
+  { id: 'les-line', label: 'One line on your LES', weekday: 4, hint: 'Mỗi tuần mổ đúng một dòng trên phiếu lương' },
+];
+export const seriesOf = (tags: string[]) => SERIES.find((x) => x.id === tagVal(tags, 'series')) ?? null;
+const VN_DAY = ['Chủ nhật', 'thứ Hai', 'thứ Ba', 'thứ Tư', 'thứ Năm', 'thứ Sáu', 'thứ Bảy'];
+
 export const STATUSES = ['draft', 'approved', 'scheduled', 'published', 'archived'] as const;
 export type ContentStatus = typeof STATUSES[number];
 
@@ -149,7 +160,7 @@ const ANGLE_TO_GROUP = new Map(ANGLE_GROUPS.flatMap((g) => g.angles.map((a) => [
 //   acct:<id> · browser:<id> · asset:media:<id,id> · chain:<taskId,taskId>
 //   replyto:<pieceId> (comment đầu của bài đó) · linkcheck:ok|bad
 //   platsched:<id|1> (nền tảng đã nhận lịch) · story:1 (kèm Facebook story) · btn:<id trong FB_BUTTONS>
-//   flair:<text> (flair Reddit) · rdtag:oc,nsfw,spoiler (nhãn Reddit)
+//   flair:<text> (flair Reddit) · rdtag:oc,nsfw,spoiler (nhãn Reddit) · series:<id trong SERIES>
 export const tagVal = (tags: string[], k: string) => tags.find((t) => t.startsWith(`${k}:`))?.slice(k.length + 1).trim() ?? '';
 /** Danh sách id trong tag dạng 'khoá:media:1,2' hoặc 'khoá:1,2'. Giá trị không phải số → bỏ. */
 export const tagIds = (tags: string[], k: string) => tagVal(tags, k).replace(/^media:/, '').split(',').map(Number).filter(Number.isFinite).filter(Boolean);
@@ -174,7 +185,7 @@ export const MIX_TARGET: Record<string, number> = { reach: 40, trust: 35, conver
 const PUBLIC_CHANNELS = new Set(['fb-post', 'fb-group', 'reddit', 'twitter-thread', 'reel', 'youtube-script', 'blog', 'ad', 'landing']);
 
 export function pieceGaps(
-  piece: { channel?: string; tags: string[]; hasBody?: boolean; body?: string },
+  piece: { channel?: string; tags: string[]; hasBody?: boolean; body?: string; date?: string },
   refs: {
     accounts?: Array<{ id: number; browserProfileId?: number | null; status: string }>;
     browserProfiles?: Array<{ id: number; lastOpenedAt?: string | Date | null }>;
@@ -199,6 +210,14 @@ export function pieceGaps(
   // tiếng Việt là đủ kết luận — không phải đoán theo từ khoá.
   if (piece.body && PUBLIC_CHANNELS.has(piece.channel ?? '') && /[ăâđêôơưàáảãạằắẳẵặầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵ]/i.test(piece.body))
     gaps.push('thân bài còn tiếng Việt — đó là ghi chú nội bộ, chưa phải caption');
+
+  // Series chỉ có tác dụng khi nó RƠI ĐÚNG THỨ mỗi tuần — lệch thứ thì người đọc không đợi được,
+  // và cái "lời hứa lặp lại" tan mất.
+  const ser = seriesOf(piece.tags);
+  if (ser && piece.date) {
+    const d = new Date(`${piece.date}T12:00:00`).getDay();
+    if (d !== ser.weekday) gaps.push(`series "${ser.label}" đăng ${VN_DAY[ser.weekday]}, bài này rơi vào ${VN_DAY[d]}`);
+  }
 
   // Reddit: mỗi sub một luật khác nhau, và luật đó quyết định bài có đăng NỔI không. Sub chỉ nhận
   // bài chữ thì bài ảnh/poll/link không có đường lên; sub bắt flair mà thiếu flair là bị gỡ sau vài

@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { getPieceDetail, updateContentPiece } from '@/lib/actions/content';
-import { CHANNELS, tagVal, tagIds, formatOf, styleOf, fbButtonOf } from '@/lib/content-channels';
+import { CHANNELS, tagVal, tagIds, formatOf, styleOf, fbButtonOf, seriesOf } from '@/lib/content-channels';
 import { ChannelFavicon } from './ui/site-favicon';
 import type { CalPiece } from '@/lib/data';
 
@@ -139,6 +139,13 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
           {piece.hasLink && (
             <span title="Bài có link — nền tảng hạ reach, nhất là Facebook. Xem chi tiết ở drawer."
               style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--neon-blue)', color: 'var(--neon-blue)' }}>🔗 link</span>
+          )}
+          {seriesOf(piece.tags) && (
+            // Series là lời hứa lặp lại — nhìn bản dựng phải biết bài này thuộc chuỗi nào.
+            <span title={`Series: ${seriesOf(piece.tags)?.hint}`}
+              style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--neon-amber)', color: 'var(--neon-amber)' }}>
+              ⟳ {seriesOf(piece.tags)?.label}
+            </span>
           )}
           {piece.channel === 'reddit' && tagVal(piece.tags, 'flair') && (
             // Reddit hiện flair ngay cạnh tiêu đề — bản dựng phải có, vì thiếu flair ở sub bắt buộc

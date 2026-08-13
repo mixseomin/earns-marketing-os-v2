@@ -19,7 +19,7 @@ import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
-import { CHANNELS, FORMATS, STYLES, ANGLE_GROUPS, ANGLES, MIX_TARGET, LINK_SHARE_MAX, angleOf, angleLabel, tagVal, pieceGaps, pieceRisks, shouldWarnGaps } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
+import { CHANNELS, FORMATS, STYLES, SERIES, ANGLE_GROUPS, ANGLES, MIX_TARGET, LINK_SHARE_MAX, angleOf, angleLabel, tagVal, pieceGaps, pieceRisks, shouldWarnGaps } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
 import { StatusSegmented, Segmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, ChannelFavicon, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
@@ -185,6 +185,8 @@ const PIECE_AXES: Array<{
     lab: (v) => ANGLE_GROUPS.find((g) => g.id === v)?.label ?? v,
     color: (v) => ANGLE_GROUPS.find((g) => g.id === v)?.color,
     rank: (v) => ANGLE_GROUPS.findIndex((g) => g.id === v) },
+  { key: 'series', label: 'Series', get: (p) => tagVal(p.tags, 'series'),
+    lab: (v) => SERIES.find((x) => x.id === v)?.label ?? v, color: () => 'var(--neon-amber)' },
   { key: 'angle', label: 'Góc', get: (p) => tagVal(p.tags, 'angle'), lab: (v) => angleLabel(v),
     color: (v) => ANGLE_GROUPS.find((g) => g.angles.includes(v))?.color },
   { key: 'status', label: 'Trạng thái', get: (p) => p.status, lab: (v) => v },

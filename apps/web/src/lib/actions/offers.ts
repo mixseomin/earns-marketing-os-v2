@@ -65,6 +65,8 @@ export interface AffiliateOffer {
   epc: string | null;          // earnings per click
   cvr: string | null;          // conversion / approval rate
   currency: string | null;     // VND | USD | EUR
+  payoutUsd: number | null;    // absolute money PER CONVERSION in USD — real for flat CPA/CPL/CPI ($X);
+                               // null for %-only offers (needs an order value the network doesn't expose)
   // Deal terms (editable — see saveOfferTerms).
   commission: string | null;   // commission_rate   e.g. "30%", "$1", "20–62,25%"
   model: string | null;        // commission_model  e.g. "recurring (lifetime)"
@@ -113,6 +115,21 @@ function brandOf(name: string): string {
   let b = (clean.split(/\s*[-(/|·]| CP[SLAI]\b| Network\b| Global\b/i)[0] ?? clean).trim();
   b = b.replace(/\.(com|vn|net|co|shop|world|eco|asia|io|org|bg|au|in|id|tw)\b.*$/i, '').trim();
   return b || name;
+}
+
+// Static approx FX — used ONLY to line up flat payouts in one currency for eyeball comparison; it never
+// moves real money. ponytail: refresh only if it ever feeds an actual payout (it doesn't).
+const FX_USD: Record<string, number> = { USD: 1, EUR: 1.08, GBP: 1.27, VND: 1 / 24500 };
+// Absolute money PER CONVERSION in USD. ONLY a flat amount is real money we can state (CPA/CPL/CPI $X).
+// A percentage needs the order value we don't have → null (an honest blank, not a guessed number).
+// Cases: "$ 52"→52 · "$ 3.67"→3.67 · "€10"→10.8 · "50.000đ"→2.04 (VN uses '.' as thousands) · "30%"→null.
+function payoutUsdOf(rate: string | null, currency: string | null): number | null {
+  if (!rate || rate.includes('%')) return null;
+  const cur = /€|eur/i.test(rate) ? 'EUR' : /£|gbp/i.test(rate) ? 'GBP' : /[₫đ]|vnd/i.test(rate) ? 'VND' : (currency || 'USD').toUpperCase();
+  const digits = cur === 'VND' ? rate.replace(/[^\d]/g, '') : rate.replace(/[^\d.]/g, '');  // VN '.' = thousands, drop it
+  const num = parseFloat(digits);
+  if (!isFinite(num) || num <= 0) return null;
+  return +(num * (FX_USD[cur] ?? 1)).toFixed(2);
 }
 
 // NB: `notes` deliberately excluded — see the PERF note above. Lazy-loaded via getOfferNote.
@@ -203,6 +220,7 @@ function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>, mosAcc
     epc: x.epc,
     cvr: x.conversion_rate,
     currency: x.currency,
+    payoutUsd: payoutUsdOf(x.commission_rate, x.currency),
     commission: x.commission_rate,
     model: x.commission_model,
     recurring: x.commission_time,

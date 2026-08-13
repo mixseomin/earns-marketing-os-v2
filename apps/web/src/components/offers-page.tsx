@@ -8,9 +8,10 @@ import {
 } from '@/lib/actions/offers';
 import { useModalParam } from '@/lib/use-modal-param';
 import {
-  EmptyState, Drawer, ListToolbar, FilterChips, Pager, MultiSelect, EntityRef,
+  EmptyState, Drawer, ListToolbar, FilterChips, Pager, MultiSelect,
   DataTable, TextField, TextAreaField, SelectField, type DataColumn, type DataGroup,
 } from './ui';
+import { openEntityDrawer } from '@/lib/entity-drawer';
 
 // Source label only (YDNI: no per-source colour — the name carries it; colour is reserved for status).
 const KIND: Record<OfferKind, string> = { awin: 'Awin', cj: 'CJ', direct: 'Direct', own: 'Own product' };
@@ -110,7 +111,7 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
 
   // Entity quick-view: click an account / network / brand cell → drawer with EVERY offer for that
   // entity (all networks) so you can compare who pays most for the same merchant.
-  const [entity, setEntity] = useState<{ field: 'brand' | 'network'; value: string; label: string } | null>(null);
+  const [entity, setEntity] = useState<{ field: 'brand' | 'network'; value: string; label: string; accountId?: number | null } | null>(null);
   const [entityRows, setEntityRows] = useState<AffiliateOffer[] | null>(null);
   useEffect(() => {
     setEntityRows(null);
@@ -121,6 +122,12 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
   }, [entity]);
   const openEntity = (field: 'brand' | 'network', value: string | null, label: string) =>
     (e: React.MouseEvent) => { e.stopPropagation(); if (value) setEntity({ field, value, label }); };
+  // Account cell → the account's OFFERS quick-view (account ↔ network 1:1, so fetch by network), tier 1.
+  // Tier 2 "↗ mở account đầy đủ" (in the drawer) opens the house account drawer for identity/vault.
+  const openAccountView = (o: AffiliateOffer) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (o.network && o.mosAccountId != null) setEntity({ field: 'network', value: o.network, label: o.account ? acctHandle(o.account) : o.network, accountId: o.mosAccountId });
+  };
 
   const columns: DataColumn<AffiliateOffer>[] = [
     {
@@ -138,12 +145,12 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
       cell: (o) => { const n = netLabel(o); return n ? <span style={clickable} onClick={openEntity('network', n, n)}>{n}</span> : <span style={dim}>—</span>; },
     },
     {
-      key: 'account', sortValue: (o) => o.account ?? null, align: 'left', header: 'Account', title: 'Account (login) đã được duyệt offer này — click mở chi tiết account (identity/session/vault)',
+      key: 'account', sortValue: (o) => o.account ?? null, align: 'left', header: 'Account', title: 'Account (login) đã được duyệt — click xem mọi offer dưới account; trong drawer bấm "mở account đầy đủ" để xem identity/vault',
       cellTitle: (o) => o.account ?? undefined,
-      // The SAME account entity as environments → the house account drawer (account-drawer.tsx) via the
-      // global EntityRef host. No bespoke re-fetch; id joined by network on the server (offer.mosAccountId).
+      // Tier 1: click → the account's offers quick-view. Tier 2: a button in that drawer opens the house
+      // account drawer (account-drawer.tsx, SAME entity as environments) for identity — no bespoke re-fetch.
       cell: (o) => (o.mosAccountId
-        ? <EntityRef kind="account" id={o.mosAccountId} label={o.account ? acctHandle(o.account) : (o.network ?? `#${o.mosAccountId}`)} noIcon />
+        ? <span style={{ ...clickable, ...clip(190), display: 'inline-block', verticalAlign: 'bottom' }} onClick={openAccountView(o)}>{o.account ? acctHandle(o.account) : (o.network ?? `#${o.mosAccountId}`)}</span>
         : <span style={{ color: 'var(--neon-amber)' }}>chưa gán</span>),
     },
     {
@@ -151,8 +158,13 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
       cell: (o) => <span style={{ color: statusColor(o.status) }}>● {o.status}</span>,
     },
     {
-      key: 'commission', sortValue: (o) => o.commission ?? null, group: 'terms', align: 'right', header: '%', title: 'Commission rate',
+      key: 'commission', sortValue: (o) => o.commission ?? null, group: 'terms', align: 'right', header: '%', title: 'Commission rate (nguyên văn net báo)',
       cell: (o) => o.commission ?? <span style={dim}>—</span>,
+    },
+    {
+      key: 'payout', sortValue: (o) => o.payoutUsd, group: 'terms', align: 'right', header: '$ real',
+      title: 'Tiền THẬT/lần chuyển đổi, quy USD (xấp xỉ) — chỉ offer trả CỐ ĐỊNH ($/CPA/CPL). Offer % để trống vì tiền = %×giá đơn, mà giá đơn net không cung cấp. Sort để xếp offer trả $ cao nhất.',
+      cell: (o) => o.payoutUsd != null ? <span style={{ fontWeight: 600, color: 'var(--neon-lime)' }}>${o.payoutUsd}</span> : <span style={dim}>—</span>,
     },
     {
       key: 'recurring', sortValue: (o) => recurringOf(o) ?? null, group: 'terms', align: 'left', header: 'Recurring', title: 'Does the commission repeat, and for how long',
@@ -358,6 +370,7 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
         <EntityDrawer entity={entity} rows={entityRows}
           onClose={() => setEntity(null)}
           onOpenOffer={(id) => { setEntity(null); modal.open('offer', id); }}
+          onOpenAccount={entity.accountId != null ? () => { const id = entity.accountId!; setEntity(null); openEntityDrawer('account', id); } : undefined}
           onFilterBrand={entity.field === 'brand' ? () => { setEntity(null); setQ(entity.value); } : undefined} />
       )}
     </div>
@@ -366,14 +379,16 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
 
 // Quick-view drawer for a clicked entity (brand / network / account). Its whole point is the
 // comparison table: the SAME brand across networks, so you see who pays most at a glance.
-function EntityDrawer({ entity, rows, onClose, onOpenOffer, onFilterBrand }: {
-  entity: { field: 'brand' | 'network'; value: string; label: string };
+function EntityDrawer({ entity, rows, onClose, onOpenOffer, onOpenAccount, onFilterBrand }: {
+  entity: { field: 'brand' | 'network'; value: string; label: string; accountId?: number | null };
   rows: AffiliateOffer[] | null;
   onClose: () => void;
   onOpenOffer: (id: string) => void;
+  onOpenAccount?: () => void;   // set for the account quick-view → opens the house account drawer (identity/vault)
   onFilterBrand?: () => void;
 }) {
-  const kindWord = entity.field === 'brand' ? 'Brand' : 'Network';
+  const isAccount = entity.accountId != null;
+  const kindWord = entity.field === 'brand' ? 'Brand' : isAccount ? 'Account' : 'Network';
   const nets = rows ? new Set(rows.map((r) => netLabel(r)).filter(Boolean)).size : 0;
   const home = entity.field === 'network' ? NETWORK_HOME[entity.value] : undefined;
   return (
@@ -388,6 +403,7 @@ function EntityDrawer({ entity, rows, onClose, onOpenOffer, onFilterBrand }: {
             </div>
           )}
           <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+            {onOpenAccount && <button type="button" onClick={onOpenAccount} style={{ ...miniBtn, borderColor: 'var(--neon-lime)', color: 'var(--neon-lime)' }}>↗ mở account đầy đủ</button>}
             {onFilterBrand && <button type="button" onClick={onFilterBrand} style={miniBtn}>⌕ lọc bảng theo brand này</button>}
             {home && <a href={home} target="_blank" rel="noreferrer" style={{ ...miniBtn, textDecoration: 'none' }}>↗ dashboard</a>}
           </div>
@@ -403,6 +419,7 @@ function EntityDrawer({ entity, rows, onClose, onOpenOffer, onFilterBrand }: {
                     {entity.field !== 'network' && <th style={th}>Network</th>}
                     <th style={th}>Offer</th>
                     <th style={{ ...th, textAlign: 'right' }}>%</th>
+                    <th style={{ ...th, textAlign: 'right' }}>$ real</th>
                     <th style={{ ...th, textAlign: 'right' }}>Cookie</th>
                     <th style={{ ...th, textAlign: 'right' }}>EPC</th>
                     <th style={{ ...th, textAlign: 'right' }}>CVR</th>
@@ -415,6 +432,7 @@ function EntityDrawer({ entity, rows, onClose, onOpenOffer, onFilterBrand }: {
                       {entity.field !== 'network' && <td style={td}>{netLabel(o) ?? '—'}</td>}
                       <td style={{ ...td, ...clip(200) }} title={o.name}>{o.name}</td>
                       <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>{o.commission ?? '—'}{o.currency && o.currency !== 'USD' ? <span style={{ color: 'var(--fg-3)', fontSize: 10 }}> {o.currency}</span> : ''}</td>
+                      <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: o.payoutUsd != null ? 'var(--neon-lime)' : 'var(--fg-3)' }}>{o.payoutUsd != null ? `$${o.payoutUsd}` : '—'}</td>
                       <td style={{ ...td, textAlign: 'right' }}>{o.cookie ?? '—'}</td>
                       <td style={{ ...td, textAlign: 'right' }}>{o.epc ?? '—'}</td>
                       <td style={{ ...td, textAlign: 'right' }}>{o.cvr ?? '—'}</td>

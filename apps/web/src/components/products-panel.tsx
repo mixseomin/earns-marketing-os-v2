@@ -49,6 +49,13 @@ export async function ProductsPanel() {
     };
   });
   const anyViews = rows.some((r) => r.views7d !== null);
+  // Views CŨ trông y hệt views THẤP. Bảng đứng im ở 10/08 suốt mấy ngày vì job local chết
+  // (ERR_NETWORK_CHANGED) mà dòng "views tới …" vẫn xám nhạt như bình thường — nhìn ra thành "không
+  // ai xem". Gumroad tự chốt số chậm ~2 ngày, nên chỉ kêu khi trễ hơn thế.
+  const staleDays = views.lastSync
+    ? Math.round((Date.now() - Date.parse(`${views.lastSync}T00:00:00Z`)) / 864e5)
+    : null;
+  const stale = staleDays !== null && staleDays > 3;
 
   return (
     <Panel
@@ -60,6 +67,13 @@ export async function ProductsPanel() {
       {!anyViews && (
         <p style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', margin: '10px 0 0' }}>
           Cột views trống vì job đọc Gumroad Analytics chưa chạy lần nào — chạy tay: <code>~/bin/gumroad-views</code>
+        </p>
+      )}
+      {stale && (
+        <p style={{ fontSize: 11, color: 'var(--warn, #d98324)', fontFamily: 'var(--font-mono)', margin: '10px 0 0' }}>
+          ⚠ Views cũ {staleDays} ngày (tới {views.lastSync}) — job local chưa đẩy được. Cột 7D/30D đang
+          THIẾU số, không phải bằng 0. Log: <code>~/.cache/gumroad-views.out.log</code> · chạy tay:{' '}
+          <code>~/bin/gumroad-views</code>
         </p>
       )}
     </Panel>

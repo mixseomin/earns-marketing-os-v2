@@ -104,6 +104,12 @@ export type ContentStatus = typeof STATUSES[number];
 // in ra '✓ Đã đăng · chưa lưu link bài', một câu tự mâu thuẫn (bài 153 nằm như thế từ dữ liệu diễn
 // tập). Cùng học thuyết với plays: đóng việc phải có KẾT QUẢ. Email/DM không sinh URL công khai nên
 // miễn; các kênh còn lại đều có permalink.
+// Bài đã nằm trong lịch của CHÍNH nền tảng (tag platsched): nền tảng tự đăng đúng giờ kể cả lúc máy
+// mình tắt — việc phải làm khác hẳn bài còn chờ runner, nên mọi chỗ LIỆT KÊ bài phải phân biệt được,
+// không chỉ bản dựng chi tiết. Một hàm dùng chung cho lịch + rail + danh sách.
+export const schedMark = (p: { status: string; tags: string[] }): string =>
+  p.status !== 'published' && tagVal(p.tags, 'platsched') ? '⏳' : '';
+
 const NO_PUBLIC_URL = new Set(['email', 'dm']);
 export function publishedNeedsUrl(channel: string, status?: string | null, url?: string | null): boolean {
   return status === 'published' && !NO_PUBLIC_URL.has(channel) && !(url ?? '').trim();

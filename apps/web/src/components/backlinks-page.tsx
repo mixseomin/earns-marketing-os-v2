@@ -19,7 +19,7 @@ import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
-import { CHANNELS, FORMATS, STYLES, SERIES, ANGLE_GROUPS, ANGLES, MIX_TARGET, LINK_SHARE_MAX, angleOf, angleLabel, tagVal, pieceGaps, pieceRisks, shouldWarnGaps } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
+import { CHANNELS, FORMATS, STYLES, SERIES, ANGLE_GROUPS, ANGLES, MIX_TARGET, LINK_SHARE_MAX, angleOf, angleLabel, tagVal, pieceGaps, pieceRisks, shouldWarnGaps, schedMark } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
 import { StatusSegmented, Segmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, ChannelFavicon, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
@@ -1394,7 +1394,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         id: `c:${p.id}`, date: p.date, icon: 'docpen',
         // 🔗 = bài CÓ LINK (dấu nhận biết, không phải cảnh báo) — trước chỉ hiện khi có rủi ro nên
         // bài đã kiểm link xong lại mất dấu, nhìn danh sách không biết bài nào mang link.
-        label: `${plbl}${gaps.length ? '⚠ ' : ''}${p.hasLink ? '🔗 ' : ''}${(repliesOf.get(p.id)?.length ?? 0) ? '💬 ' : ''}${(p.subject || p.title).replace(/\s+/g, ' ').trim()}`,
+        label: `${plbl}${schedMark(p) ? `${schedMark(p)} ` : ''}${gaps.length ? '⚠ ' : ''}${p.hasLink ? '🔗 ' : ''}${(repliesOf.get(p.id)?.length ?? 0) ? '💬 ' : ''}${(p.subject || p.title).replace(/\s+/g, ' ').trim()}`,
         lead: <ChannelFavicon channel={p.channel} size={13} title={ch?.label ?? p.channel} />,
         color: a ? a.group.color : 'var(--fg-3)',
         done: p.status === 'published', dim: p.status === 'draft',
@@ -2232,6 +2232,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                         {fmt && <span title={fmt.label} style={{ fontSize: 13 }}>{fmt.icon}</span>}
                         {ang && <i title={`${ang.group.label} · ${angleLabel(ang.angle)}`}
                           style={{ display: 'block', width: 7, height: 7, borderRadius: 2, background: ang.group.color }} />}
+                        {schedMark(p) && <span title="FB đã nhận lịch — nền tảng tự đăng đúng giờ" style={{ fontSize: 11, color: 'var(--neon-cyan)' }}>⏳</span>}
                         {p.status === 'published' && <span title="đã đăng" style={{ fontSize: 11, color: 'var(--ok)' }}>✓</span>}
                       </span>
                     </div>
@@ -2293,6 +2294,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)', flexShrink: 0 }}>{tagVal(p.tags, 'time') || '--:--'}</span>
                       <ChannelFavicon channel={p.channel} size={13} />
                       <span style={{ flexShrink: 0 }}>{f ? f.icon : ''}{p.hasLink ? '🔗' : ''}{(repliesOf.get(p.id)?.length ?? 0) ? '💬' : ''}</span>
+                      {schedMark(p) && <span title="FB đã nhận lịch — nền tảng tự đăng đúng giờ" style={{ color: 'var(--neon-cyan)', flexShrink: 0 }}>⏳</span>}
                       {p.status === 'published' && <span title="đã đăng" style={{ color: 'var(--ok)', flexShrink: 0 }}>✓</span>}
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.subject || p.title}</span>
                     </button>

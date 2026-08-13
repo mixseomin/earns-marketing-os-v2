@@ -105,7 +105,8 @@ type Row = {
 // networks: "Klook - CPS" / "Klook Network - CPS" / "Klook" → "Klook". Lets /offers compare who pays
 // most for the same brand.
 function brandOf(name: string): string {
-  let b = (name.split(/\s*[-(/|·]| CP[SLAI]\b| Network\b| Global\b/i)[0] ?? name).trim();
+  const clean = name.replace(/^\d+\s+/, '');   // some networks prefix a numeric campaign id
+  let b = (clean.split(/\s*[-(/|·]| CP[SLAI]\b| Network\b| Global\b/i)[0] ?? clean).trim();
   b = b.replace(/\.(com|vn|net|co|shop|world|eco|asia|io|org|bg|au|in|id|tw)\b.*$/i, '').trim();
   return b || name;
 }
@@ -145,7 +146,9 @@ async function ownProductTitles(): Promise<Set<string>> {
 export const listOfferAccounts = unstable_cache(
   async (): Promise<OfferAccount[]> => {
     if (!DIRECTUS_TOKEN) return [];
-    const r = await fetch(`${DIRECTUS_URL}/items/accounts?fields=id,platform,handle&limit=500&sort=platform`, {
+    // limit=-1 (all): there are 600+ accounts; a fixed cap silently dropped late-alphabet networks
+    // (tkglobal/travelpayouts/vcommission sort past 500 → their offers showed "chưa gán").
+    const r = await fetch(`${DIRECTUS_URL}/items/accounts?fields=id,platform,handle&limit=-1&sort=platform`, {
       headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` },
       next: { revalidate: 300, tags: ['affiliate-offers'] },
     });
@@ -348,6 +351,50 @@ export async function getEntityOffers(field: 'brand' | 'network' | 'account', va
   // Approved first, then highest commission-ish string — good enough for a glance.
   return hit.sort((a, b) => (APPROVED.has(a.status.toLowerCase()) ? 0 : 1) - (APPROVED.has(b.status.toLowerCase()) ? 0 : 1)
     || (b.commission ?? '').localeCompare(a.commission ?? ''));
+}
+
+// Account quick-view: an account is an IDENTITY (which login, on which network, its health) — not a
+// bag of offers. Clicking the Account cell opens THIS, fetched lazily like getOfferNote. Reads the
+// Directus accounts vault (earns.accounts). SECURITY: recovery_info + api_config are NEVER fetched
+// (credentials — only the owner sees those); the drawer shows registry fields + the offers under it.
+export interface AccountDetail {
+  id: string;
+  platform: string;
+  handle: string;
+  label: string;
+  email: string | null;
+  status: string | null;
+  purpose: string | null;
+  valueTier: string | null;
+  has2fa: boolean | null;
+  authMethod: string | null;
+  monthlyCost: number | null;
+  lastVerifiedAt: string | null;
+  notes: string | null;
+  tags: string[];
+  offers: { count: number; rows: { id: string; name: string; network: string | null; status: string; commission: string | null }[] };
+}
+export async function getAccountDetail(accountId: string): Promise<AccountDetail | null> {
+  if (!DIRECTUS_TOKEN) return null;
+  // Safe field list — recovery_info / api_config deliberately excluded (never leave the server).
+  const fields = 'id,platform,handle,email,status,auth_method,has_2fa,monthly_cost,value_tier,purpose,tags,notes,last_verified_at';
+  const r = await fetch(`${DIRECTUS_URL}/items/accounts/${encodeURIComponent(accountId)}?fields=${fields}`, {
+    headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }, next: { revalidate: 300, tags: ['affiliate-offers'] },
+  });
+  if (!r.ok) return null;
+  const a = ((await r.json()) as { data?: Record<string, unknown> }).data;
+  if (!a) return null;
+  const offers = await getEntityOffers('account', accountId);
+  const s = (k: string) => (a[k] == null ? null : String(a[k]));
+  return {
+    id: String(a.id), platform: String(a.platform ?? ''), handle: String(a.handle ?? ''),
+    label: `${a.platform ?? ''} · ${a.handle ?? ''}`,
+    email: s('email'), status: s('status'), purpose: s('purpose'), valueTier: s('value_tier'),
+    has2fa: typeof a.has_2fa === 'boolean' ? a.has_2fa : null, authMethod: s('auth_method'),
+    monthlyCost: typeof a.monthly_cost === 'number' ? a.monthly_cost : null,
+    lastVerifiedAt: s('last_verified_at'), notes: cleanNote(s('notes')), tags: Array.isArray(a.tags) ? (a.tags as string[]) : [],
+    offers: { count: offers.length, rows: offers.slice(0, 100).map((o) => ({ id: o.id, name: o.name, network: o.network, status: o.status, commission: o.commission })) },
+  };
 }
 
 // Awin rows store a sync blob behind `[awin-sync]` in notes — not a user note.

@@ -3,8 +3,8 @@
 import { Suspense, useEffect, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  getOfferNote, saveOfferTerms, getEntityOffers,
-  type AffiliateOffer, type OfferAccount, type OfferKind, type OfferFilters, type OffersView,
+  getOfferNote, saveOfferTerms, getEntityOffers, getAccountDetail,
+  type AffiliateOffer, type OfferAccount, type OfferKind, type OfferFilters, type OffersView, type AccountDetail,
 } from '@/lib/actions/offers';
 import { useModalParam } from '@/lib/use-modal-param';
 import {
@@ -107,7 +107,7 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
 
   // Entity quick-view: click an account / network / brand cell → drawer with EVERY offer for that
   // entity (all networks) so you can compare who pays most for the same merchant.
-  const [entity, setEntity] = useState<{ field: 'brand' | 'network' | 'account'; value: string; label: string } | null>(null);
+  const [entity, setEntity] = useState<{ field: 'brand' | 'network'; value: string; label: string } | null>(null);
   const [entityRows, setEntityRows] = useState<AffiliateOffer[] | null>(null);
   useEffect(() => {
     setEntityRows(null);
@@ -116,8 +116,21 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
     getEntityOffers(entity.field, entity.value).then((r) => { if (live) setEntityRows(r); }).catch(() => {});
     return () => { live = false; };
   }, [entity]);
-  const openEntity = (field: 'brand' | 'network' | 'account', value: string | null, label: string) =>
+  const openEntity = (field: 'brand' | 'network', value: string | null, label: string) =>
     (e: React.MouseEvent) => { e.stopPropagation(); if (value) setEntity({ field, value, label }); };
+
+  // Account is an IDENTITY, not a comparison → its OWN drawer (login / network / status / offers),
+  // fetched lazily via getAccountDetail. Separate from the brand/network compare drawer.
+  const [acctId, setAcctId] = useState<string | null>(null);
+  const [acct, setAcct] = useState<AccountDetail | null>(null);
+  useEffect(() => {
+    setAcct(null);
+    if (!acctId) return;
+    let live = true;
+    getAccountDetail(acctId).then((a) => { if (live) setAcct(a); }).catch(() => {});
+    return () => { live = false; };
+  }, [acctId]);
+  const openAccount = (id: string | null) => (e: React.MouseEvent) => { e.stopPropagation(); if (id) setAcctId(id); };
 
   const columns: DataColumn<AffiliateOffer>[] = [
     {
@@ -138,7 +151,7 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
       key: 'account', sortValue: (o) => o.account ?? null, align: 'left', header: 'Account', title: 'Account của mình đã đăng ký / được duyệt offer này — click xem nhanh',
       cellTitle: (o) => o.account ?? undefined,
       cell: (o) => (o.account
-        ? <span style={{ ...clickable, ...clip(190), display: 'inline-block', verticalAlign: 'bottom' }} onClick={openEntity('account', o.accountId, o.account)}>{o.account}</span>
+        ? <span style={{ ...clickable, ...clip(190), display: 'inline-block', verticalAlign: 'bottom' }} onClick={openAccount(o.accountId)}>{o.account}</span>
         : <span style={{ color: 'var(--neon-amber)' }}>chưa gán</span>),
     },
     {
@@ -353,22 +366,99 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
         <EntityDrawer entity={entity} rows={entityRows}
           onClose={() => setEntity(null)}
           onOpenOffer={(id) => { setEntity(null); modal.open('offer', id); }}
-          onFilterBrand={entity.field === 'brand' ? () => { setEntity(null); setQ(entity.value); } : undefined}
-          onFilterAccount={entity.field === 'account' ? () => { setEntity(null); setMulti('account')([entity.value]); } : undefined} />
+          onFilterBrand={entity.field === 'brand' ? () => { setEntity(null); setQ(entity.value); } : undefined} />
+      )}
+
+      {acctId && (
+        <AccountDrawer id={acctId} acct={acct}
+          onClose={() => setAcctId(null)}
+          onOpenOffer={(id) => { setAcctId(null); modal.open('offer', id); }}
+          onFilter={() => { setAcctId(null); setMulti('account')([acctId]); }} />
       )}
     </div>
   );
 }
 
+// The Account cell's drawer: WHO this login is, not a bag of offers. Identity + health + a dashboard
+// deep-link, then the offers under it. Reuses the house Drawer + Field/sectionLabel + NETWORK_HOME.
+function AccountDrawer({ id, acct, onClose, onOpenOffer, onFilter }: {
+  id: string;
+  acct: AccountDetail | null;
+  onClose: () => void;
+  onOpenOffer: (offerId: string) => void;
+  onFilter: () => void;
+}) {
+  const home = acct ? NETWORK_HOME[acct.platform.toLowerCase()] : undefined;
+  return (
+    <Drawer onClose={onClose} width={560}>
+      {!acct ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>Đang tải account…</div> : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>ACCOUNT · {acct.platform.toUpperCase()}</div>
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{acct.handle || acct.label}</h2>
+            {acct.status && <div style={{ marginTop: 6, fontSize: 12, fontFamily: 'var(--font-mono)', color: statusColor(acct.status) }}>● {acct.status}</div>}
+            <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+              {home && <a href={home} target="_blank" rel="noreferrer" style={{ ...miniBtn, textDecoration: 'none' }}>↗ mở dashboard net</a>}
+              <button type="button" onClick={onFilter} style={miniBtn}>⌕ lọc bảng theo account này</button>
+            </div>
+          </div>
+
+          <div>
+            <div style={sectionLabel}>Identity</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
+              <Field label="Network" value={acct.platform || '—'} />
+              <Field label="Handle" value={acct.handle || '—'} />
+              {acct.email && <Field label="Email" value={acct.email} />}
+              {acct.authMethod && <Field label="Auth" value={acct.authMethod + (acct.has2fa ? ' · 2FA' : '')} />}
+              {acct.valueTier && <Field label="Value tier" value={acct.valueTier} />}
+              {acct.purpose && <Field label="Purpose" value={acct.purpose} />}
+              {acct.monthlyCost != null && acct.monthlyCost > 0 && <Field label="Monthly cost" value={`$${acct.monthlyCost}`} />}
+              {acct.lastVerifiedAt && <Field label="Last verified" value={acct.lastVerifiedAt.slice(0, 10)} />}
+            </div>
+            {acct.tags.length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                <div style={labelStyle}>Tags</div>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                  {acct.tags.map((t) => <span key={t} style={{ fontSize: 11, padding: '2px 7px', borderRadius: 5, background: 'var(--bg-2)', color: 'var(--fg-2)' }}>{t}</span>)}
+                </div>
+              </div>
+            )}
+            {acct.notes && <div style={{ marginTop: 12 }}><Field label="Notes" value={acct.notes} /></div>}
+          </div>
+
+          <div>
+            <div style={sectionLabel}>Offers dưới account · {acct.offers.count}</div>
+            {acct.offers.count === 0 ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>Chưa có offer nào gán account này.</div> : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <tbody>
+                    {acct.offers.rows.map((o) => (
+                      <tr key={o.id} onClick={() => onOpenOffer(o.id)} style={{ cursor: 'pointer', borderTop: '1px solid var(--line)' }}>
+                        <td style={{ ...td, ...clip(240) }} title={o.name}>{o.name}</td>
+                        <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>{o.commission ?? '—'}</td>
+                        <td style={{ ...td, color: statusColor(o.status), whiteSpace: 'nowrap' }}>● {o.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {acct.offers.count > acct.offers.rows.length && <div style={{ color: 'var(--fg-3)', fontSize: 11, marginTop: 6 }}>+{acct.offers.count - acct.offers.rows.length} nữa — bấm "lọc bảng" để xem hết</div>}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </Drawer>
+  );
+}
+
 // Quick-view drawer for a clicked entity (brand / network / account). Its whole point is the
 // comparison table: the SAME brand across networks, so you see who pays most at a glance.
-function EntityDrawer({ entity, rows, onClose, onOpenOffer, onFilterBrand, onFilterAccount }: {
-  entity: { field: 'brand' | 'network' | 'account'; value: string; label: string };
+function EntityDrawer({ entity, rows, onClose, onOpenOffer, onFilterBrand }: {
+  entity: { field: 'brand' | 'network'; value: string; label: string };
   rows: AffiliateOffer[] | null;
   onClose: () => void;
   onOpenOffer: (id: string) => void;
   onFilterBrand?: () => void;
-  onFilterAccount?: () => void;
 }) {
   const kindWord = entity.field === 'brand' ? 'Brand' : entity.field === 'network' ? 'Network' : 'Account';
   const nets = rows ? new Set(rows.map((r) => netLabel(r)).filter(Boolean)).size : 0;
@@ -386,7 +476,6 @@ function EntityDrawer({ entity, rows, onClose, onOpenOffer, onFilterBrand, onFil
           )}
           <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
             {onFilterBrand && <button type="button" onClick={onFilterBrand} style={miniBtn}>⌕ lọc bảng theo brand này</button>}
-            {onFilterAccount && <button type="button" onClick={onFilterAccount} style={miniBtn}>⌕ lọc bảng theo account này</button>}
             {home && <a href={home} target="_blank" rel="noreferrer" style={{ ...miniBtn, textDecoration: 'none' }}>↗ dashboard</a>}
           </div>
         </div>

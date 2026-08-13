@@ -3,12 +3,12 @@
 import { Suspense, useEffect, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  getOfferNote, saveOfferTerms, getEntityOffers, getAccountDetail,
-  type AffiliateOffer, type OfferAccount, type OfferKind, type OfferFilters, type OffersView, type AccountDetail,
+  getOfferNote, saveOfferTerms, getEntityOffers,
+  type AffiliateOffer, type OfferAccount, type OfferKind, type OfferFilters, type OffersView,
 } from '@/lib/actions/offers';
 import { useModalParam } from '@/lib/use-modal-param';
 import {
-  EmptyState, Drawer, ListToolbar, FilterChips, Pager, MultiSelect,
+  EmptyState, Drawer, ListToolbar, FilterChips, Pager, MultiSelect, EntityRef,
   DataTable, TextField, TextAreaField, SelectField, type DataColumn, type DataGroup,
 } from './ui';
 
@@ -25,8 +25,8 @@ const NETWORK_HOME: Record<string, string> = {
 };
 const netLabel = (o: AffiliateOffer) => o.network ?? (o.kind === 'awin' ? 'awin' : o.kind === 'cj' ? 'cj' : null);
 const clickable: React.CSSProperties = { cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 2 };
-// Account label is "network · handle"; the Network column already carries the network → the Account
-// cell shows only the handle/login (YDNI: no duplicated network). Drawer header restores the full id.
+// Account label from the vault is "network · handle"; the Network column already carries the network →
+// the Account chip shows only the handle/login (YDNI: no duplicated network).
 const acctHandle = (label: string) => { const i = label.indexOf(' · '); return i >= 0 ? label.slice(i + 3) : label; };
 
 const APPROVED = new Set(['active', 'joined', 'approved']);
@@ -122,20 +122,6 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
   const openEntity = (field: 'brand' | 'network', value: string | null, label: string) =>
     (e: React.MouseEvent) => { e.stopPropagation(); if (value) setEntity({ field, value, label }); };
 
-  // Account is an IDENTITY, not a comparison → its OWN drawer (login / network / status / offers),
-  // fetched lazily via getAccountDetail. Separate from the brand/network compare drawer.
-  const [acctSel, setAcctSel] = useState<{ id: string; label: string } | null>(null);
-  const [acct, setAcct] = useState<AccountDetail | null>(null);
-  const [acctErr, setAcctErr] = useState(false);
-  useEffect(() => {
-    setAcct(null); setAcctErr(false);
-    if (!acctSel) return;
-    let live = true;
-    getAccountDetail(acctSel.id).then((a) => { if (live) { setAcct(a); if (!a) setAcctErr(true); } }).catch(() => { if (live) setAcctErr(true); });
-    return () => { live = false; };
-  }, [acctSel]);
-  const openAccount = (id: string | null, label: string) => (e: React.MouseEvent) => { e.stopPropagation(); if (id) setAcctSel({ id, label }); };
-
   const columns: DataColumn<AffiliateOffer>[] = [
     {
       key: 'name', sortValue: (o) => o.name, align: 'left', width: '100%', header: 'Offer',
@@ -152,10 +138,12 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
       cell: (o) => { const n = netLabel(o); return n ? <span style={clickable} onClick={openEntity('network', n, n)}>{n}</span> : <span style={dim}>—</span>; },
     },
     {
-      key: 'account', sortValue: (o) => o.account ?? null, align: 'left', header: 'Account', title: 'Account của mình đã đăng ký / được duyệt offer này — click xem nhanh',
+      key: 'account', sortValue: (o) => o.account ?? null, align: 'left', header: 'Account', title: 'Account (login) đã được duyệt offer này — click mở chi tiết account (identity/session/vault)',
       cellTitle: (o) => o.account ?? undefined,
-      cell: (o) => (o.account
-        ? <span style={{ ...clickable, ...clip(190), display: 'inline-block', verticalAlign: 'bottom' }} onClick={openAccount(o.accountId, o.account)}>{acctHandle(o.account)}</span>
+      // The SAME account entity as environments → the house account drawer (account-drawer.tsx) via the
+      // global EntityRef host. No bespoke re-fetch; id joined by network on the server (offer.mosAccountId).
+      cell: (o) => (o.mosAccountId
+        ? <EntityRef kind="account" id={o.mosAccountId} label={o.account ? acctHandle(o.account) : (o.network ?? `#${o.mosAccountId}`)} noIcon />
         : <span style={{ color: 'var(--neon-amber)' }}>chưa gán</span>),
     },
     {
@@ -371,13 +359,6 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
           onClose={() => setEntity(null)}
           onOpenOffer={(id) => { setEntity(null); modal.open('offer', id); }}
           onFilterBrand={entity.field === 'brand' ? () => { setEntity(null); setQ(entity.value); } : undefined} />
-      )}
-
-      {acctSel && (
-        <AccountDrawer sel={acctSel} acct={acct} err={acctErr}
-          onClose={() => setAcctSel(null)}
-          onOpenOffer={(id) => { setAcctSel(null); modal.open('offer', id); }}
-          onFilter={() => { const s = acctSel; setAcctSel(null); setMulti('account')([s.id]); }} />
       )}
     </div>
   );

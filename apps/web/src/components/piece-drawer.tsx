@@ -51,7 +51,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const router = useRouter();
   const [pending, start] = useTransition();
   const [tab, setTab] = useState<TabKey>('overview');
-  const [pick, setPick] = useState<null | 'acct' | 'browser' | 'asset' | 'chain' | 'place' | 'angle' | 'format' | 'style' | 'flair'>(null);
+  const [pick, setPick] = useState<null | 'acct' | 'browser' | 'asset' | 'chain' | 'place' | 'angle' | 'format' | 'style' | 'flair' | 'clone'>(null);
   const [editBody, setEditBody] = useState(false);
   const [linkMsg, setLinkMsg] = useState<string>('');
   const [hook, setHook] = useState(piece.subject ?? '');
@@ -247,6 +247,12 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
                   });
                   refresh();
                 }}>＋ comment đầu</button>
+              {/* MỘT video/ảnh đăng được nhiều nơi, nhưng mỗi nơi là MỘT bài: account riêng, giờ riêng,
+                  caption riêng (đăng y hệt cùng lúc bốn chỗ là dấu hiệu spam). Nhân bản giữ thứ thuộc
+                  về NỘI DUNG (góc, kiểu, trình bày, ảnh/video, nguồn số liệu) và bỏ thứ thuộc về NƠI
+                  ĐĂNG (account, browser, page/sub, giờ, flair) — đó mới là phần phải chọn lại. */}
+              <button type="button" disabled={pending} style={pickBtn} onClick={() => setPick('clone')}
+                title="Tạo bản cho kênh khác, dùng lại cùng video/ảnh">⧉ Đăng ở kênh khác</button>
               <button type="button" disabled={pending} style={pickBtn}
                 onClick={async () => {
                   setLinkMsg('đang kiểm…');
@@ -495,6 +501,29 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
         <EntityPicker title="Chọn angle" hint="Bài này LÀM GÌ cho người đọc. Dòng phụ = nhóm (HÚT/TIN/CHUYỂN ĐỔI/CỘNG ĐỒNG/TÁI DÙNG)."
           load={loadAngles} value={a ? { key: `ang:${a.angle}` } : undefined} onClose={() => setPick(null)}
           onPick={async (o) => { setPick(null); await setTag('angle', (o.data as { angle: string }).angle); }} />
+      )}
+      {pick === 'clone' && (
+        <EntityPicker title="Đăng bài này ở kênh khác"
+          hint="Giữ nguyên nội dung + video/ảnh + góc. Account, nơi đăng, giờ thì chọn lại ở bản mới."
+          load={async () => CHANNELS.filter((c) => c.id !== piece.channel)
+            .map((c) => ({ key: `ch:${c.id}`, label: c.label, sub: c.hint, fallbackIcon: c.icon, data: c }))}
+          onClose={() => setPick(null)}
+          onPick={async (o) => {
+            const c = o.data as { id: string; label: string };
+            setPick(null);
+            await createContentPiece(piece.projectId, {
+              title: `${piece.title} · ${c.label}`.slice(0, 120),
+              channel: c.id,
+              subject: piece.subject ?? '',
+              bodyMd: detail?.bodyMd ?? '',
+              status: 'draft',
+              scheduledAt: new Date(`${piece.date}T09:00:00`),
+              // Giữ: góc/kiểu/trình bày/ảnh-video/nguồn/series. Bỏ: acct, browser, place, time,
+              // platsched, flair, rdtag, replyto, linkcheck — toàn thứ chỉ đúng cho MỘT nơi đăng.
+              tags: piece.tags.filter((t) => /^(angle|format|style|asset|src|series|cta):/.test(t)),
+            });
+            refresh();
+          }} />
       )}
       {pick === 'chain' && (
         <EntityPicker title="Gắn card chuẩn bị" hint="Việc phải xong trước khi đăng (dựng ảnh, soát số, card đăng)."

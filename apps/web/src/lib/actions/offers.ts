@@ -20,6 +20,8 @@
 
 import { unstable_cache } from 'next/cache';
 import { touchEntity } from '@/lib/touch-entity';
+import { getDb } from '@mos2/db';
+import { sql } from 'drizzle-orm';
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL || 'https://as.on.tc';
 const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN || '';
@@ -45,8 +47,10 @@ export interface OfferAccount {
 export interface AffiliateOffer {
   id: string;
   kind: OfferKind;
-  accountId: string | null;    // which of OUR accounts this offer is signed up under
+  accountId: string | null;    // which of OUR accounts this offer is signed up under (Directus id — facet/filter/edit)
   account: string | null;      // OfferAccount.label, resolved
+  mosAccountId: number | null; // the SAME login as a real MOS2 account entity (platform_accounts.id) →
+                               // Account cell opens the house account drawer via <EntityRef>. Joined by network.
   name: string;
   brand: string;               // name stripped of network/model/geo qualifiers → groups the SAME offer across networks
   network: string | null;      // network key (tkglobal, clickbank, awin…) — the label for cross-network comparison
@@ -160,13 +164,32 @@ export const listOfferAccounts = unstable_cache(
   { revalidate: 300, tags: ['affiliate-offers'] },
 );
 
-function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>): AffiliateOffer {
+// Bridge each offer to the REAL MOS2 account entity (platform_accounts, numeric id) so the Account
+// cell opens the house account drawer (identity/session/vault) via <EntityRef> — instead of a bespoke
+// re-fetch. Joined by network = platform_key: every affiliate network is one login under the aff
+// browser profile, so the network label IS the account key. First profile-linked account per network
+// (each network has exactly one today). Empty map on any failure → cells fall back to "chưa gán".
+async function mosAccountByNetwork(): Promise<Map<string, { id: number; handle: string }>> {
+  const m = new Map<string, { id: number; handle: string }>();
+  try {
+    const rows = (await getDb().execute(sql`
+      SELECT id, platform_key, handle FROM platform_accounts
+      WHERE browser_profile_id IS NOT NULL ORDER BY id`)) as unknown as Array<{ id: number; platform_key: string; handle: string }>;
+    for (const r of rows) if (r.platform_key && !m.has(r.platform_key)) m.set(r.platform_key, { id: Number(r.id), handle: r.handle });
+  } catch { /* mos2 db unreachable → no bridge, cells show "chưa gán" */ }
+  return m;
+}
+
+function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>, mosAccts: Map<string, { id: number; handle: string }>): AffiliateOffer {
   const netKind = NETWORK_BY_ACCOUNT[x.account_id ?? ''];
+  const platformKey = x.network ?? netKind ?? null;
+  const mos = platformKey ? mosAccts.get(platformKey) : undefined;
   return {
     id: x.id,
     kind: own.has(x.name.trim().toLowerCase()) ? 'own' : netKind ?? 'direct',
     accountId: x.account_id,
     account: x.account_id ? accounts.get(x.account_id) ?? null : null,
+    mosAccountId: mos?.id ?? null,
     name: x.name,
     brand: brandOf(x.name),
     network: x.network ?? netKind ?? null,
@@ -199,14 +222,14 @@ function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>): Affil
 // cheap in-memory work over already-cached pages. revalidateTag('affiliate-offers') still busts it.
 export async function listAffiliateOffers(): Promise<AffiliateOffer[]> {
   if (!DIRECTUS_TOKEN) return [];
-  const [first, own, accList] = await Promise.all([fetchPage(1), ownProductTitles(), listOfferAccounts()]);
+  const [first, own, accList, mosAccts] = await Promise.all([fetchPage(1), ownProductTitles(), listOfferAccounts(), mosAccountByNetwork()]);
   const accounts = new Map(accList.map((a) => [a.id, a.label]));
   // 30-page cap = 6000 rows (runaway guard, just above the real row count).
   const pageCount = Math.min(30, Math.max(1, Math.ceil(first.total / PAGE_SIZE)));
   const rest = pageCount > 1
     ? await Promise.all(Array.from({ length: pageCount - 1 }, (_, i) => fetchPage(i + 2)))
     : [];
-  return [first, ...rest].flatMap((p) => p.rows).map((r) => toOffer(r, own, accounts));
+  return [first, ...rest].flatMap((p) => p.rows).map((r) => toOffer(r, own, accounts, mosAccts));
 }
 
 // ── Filtering + paging: SERVER-side (ui-conventions §5) ──────────────────────────────────────
@@ -340,62 +363,19 @@ export async function getOffersView(f: OfferFilters): Promise<OffersView> {
 // Quick-view drawer: pull every offer for one entity (a brand / network / account) so the drawer
 // can show the SAME offer across networks side-by-side (compare who pays most). Reuses the cached
 // full list → cheap. Brand match is case-insensitive exact on the stripped brand.
-export async function getEntityOffers(field: 'brand' | 'network' | 'account', value: string): Promise<AffiliateOffer[]> {
+export async function getEntityOffers(field: 'brand' | 'network', value: string): Promise<AffiliateOffer[]> {
   const all = await listAffiliateOffers();
   const v = value.toLowerCase();
-  const hit = all.filter((o) => {
-    if (field === 'brand') return o.brand.toLowerCase() === v;
-    if (field === 'network') return (o.network ?? '').toLowerCase() === v;
-    return o.accountId === value;
-  });
+  const hit = all.filter((o) =>
+    field === 'brand' ? o.brand.toLowerCase() === v : (o.network ?? '').toLowerCase() === v);
   // Approved first, then highest commission-ish string — good enough for a glance.
   return hit.sort((a, b) => (APPROVED.has(a.status.toLowerCase()) ? 0 : 1) - (APPROVED.has(b.status.toLowerCase()) ? 0 : 1)
     || (b.commission ?? '').localeCompare(a.commission ?? ''));
 }
 
-// Account quick-view: an account is an IDENTITY (which login, on which network, its health) — not a
-// bag of offers. Clicking the Account cell opens THIS, fetched lazily like getOfferNote. Reads the
-// Directus accounts vault (earns.accounts). SECURITY: recovery_info + api_config are NEVER fetched
-// (credentials — only the owner sees those); the drawer shows registry fields + the offers under it.
-export interface AccountDetail {
-  id: string;
-  platform: string;
-  handle: string;
-  label: string;
-  email: string | null;
-  status: string | null;
-  purpose: string | null;
-  valueTier: string | null;
-  has2fa: boolean | null;
-  authMethod: string | null;
-  monthlyCost: number | null;
-  lastVerifiedAt: string | null;
-  notes: string | null;
-  tags: string[];
-  offers: { count: number; rows: { id: string; name: string; network: string | null; status: string; commission: string | null }[] };
-}
-export async function getAccountDetail(accountId: string): Promise<AccountDetail | null> {
-  if (!DIRECTUS_TOKEN) return null;
-  // Safe field list — recovery_info / api_config deliberately excluded (never leave the server).
-  const fields = 'id,platform,handle,email,status,auth_method,has_2fa,monthly_cost,value_tier,purpose,tags,notes,last_verified_at';
-  const r = await fetch(`${DIRECTUS_URL}/items/accounts/${encodeURIComponent(accountId)}?fields=${fields}`, {
-    headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }, next: { revalidate: 300, tags: ['affiliate-offers'] },
-  });
-  if (!r.ok) return null;
-  const a = ((await r.json()) as { data?: Record<string, unknown> }).data;
-  if (!a) return null;
-  const offers = await getEntityOffers('account', accountId);
-  const s = (k: string) => (a[k] == null ? null : String(a[k]));
-  return {
-    id: String(a.id), platform: String(a.platform ?? ''), handle: String(a.handle ?? ''),
-    label: `${a.platform ?? ''} · ${a.handle ?? ''}`,
-    email: s('email'), status: s('status'), purpose: s('purpose'), valueTier: s('value_tier'),
-    has2fa: typeof a.has_2fa === 'boolean' ? a.has_2fa : null, authMethod: s('auth_method'),
-    monthlyCost: typeof a.monthly_cost === 'number' ? a.monthly_cost : null,
-    lastVerifiedAt: s('last_verified_at'), notes: cleanNote(s('notes')), tags: Array.isArray(a.tags) ? (a.tags as string[]) : [],
-    offers: { count: offers.length, rows: offers.slice(0, 100).map((o) => ({ id: o.id, name: o.name, network: o.network, status: o.status, commission: o.commission })) },
-  };
-}
+// Account identity (login/network/health/vault) is NOT re-fetched here — the Account cell opens the
+// canonical MOS2 account drawer (account-drawer.tsx via <EntityRef kind="account">), one source for
+// every account across the app. offers only supplies the numeric id (mosAccountId, joined by network).
 
 // Awin rows store a sync blob behind `[awin-sync]` in notes — not a user note.
 function cleanNote(notes: string | null): string | null {

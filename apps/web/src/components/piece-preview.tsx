@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { getPieceDetail, updateContentPiece } from '@/lib/actions/content';
-import { CHANNELS, tagVal, tagIds, formatOf, styleOf } from '@/lib/content-channels';
+import { CHANNELS, tagVal, tagIds, formatOf, styleOf, fbButtonOf } from '@/lib/content-channels';
 import { ChannelFavicon } from './ui/site-favicon';
 import type { CalPiece } from '@/lib/data';
 
@@ -103,6 +103,16 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
   return (
     <div onClick={onOpen}
       style={{ border: '1px solid var(--line)', borderRadius: 9, overflow: 'hidden', background: 'var(--bg-1)', cursor: onOpen ? 'pointer' : 'default' }}>
+      {piece.status !== 'published' && tagVal(piece.tags, 'platsched') && (
+        // Bài đã nằm trong lịch của chính nền tảng: FB tự đăng kể cả lúc máy mình tắt. Phải nói ra,
+        // vì nhìn giống hệt bài chờ runner mà việc cần làm thì khác hẳn.
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: compact ? '5px 9px' : '7px 12px',
+          background: 'color-mix(in srgb, var(--neon-cyan) 12%, transparent)', borderBottom: '1px solid var(--line)', fontSize: compact ? 10.5 : 11.5 }}>
+          <b style={{ color: 'var(--neon-cyan)' }}>⏳ FB đã nhận lịch</b>
+          <span style={{ color: 'var(--fg-3)' }}>FB tự đăng đúng giờ</span>
+          {replies.length > 0 && <span style={{ marginLeft: 'auto', color: 'var(--neon-amber)' }}>comment đầu vẫn phải đăng tay</span>}
+        </div>
+      )}
       {piece.status === 'published' && (
         // Bài đã lên rồi thì bản dựng phải nói ra: lên lúc nào, bài thật ở đâu. Không có link đã lưu
         // thì đó là một lỗ hổng thật (không ai kiểm được nó có sống không), nên nói thẳng.
@@ -129,6 +139,10 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
           {piece.hasLink && (
             <span title="Bài có link — nền tảng hạ reach, nhất là Facebook. Xem chi tiết ở drawer."
               style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--neon-blue)', color: 'var(--neon-blue)' }}>🔗 link</span>
+          )}
+          {tagVal(piece.tags, 'story') && (
+            <span title="Đăng kèm Facebook story — cùng nội dung, mặt thứ hai, không tốn thêm gì"
+              style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--neon-pink)', color: 'var(--neon-pink)' }}>◎ story</span>
           )}
           {sty && <span title={`Trình bày: ${sty.hint}`} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--line)', color: 'var(--fg-3)' }}>{sty.icon} {sty.label}</span>}
           {fmt && <span title={`Kiểu bài: ${fmt.label}`} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--line)', color: 'var(--fg-3)' }}>{fmt.icon} {fmt.label}</span>}
@@ -202,7 +216,7 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
             ))}
           </div>
         </div>
-      ) : assets.length > 0 && (
+      ) : assets.length > 0 ? (
         <div style={{ display: 'grid', gridTemplateColumns: assets.length > 1 ? '1fr 1fr' : '1fr', gap: 2, background: 'var(--line)' }}>
           {assets.map((m) => (
             // Ảnh hiện TRỌN (contain), không cắt. `cover` + maxHeight cắt mất masthead và dòng nguồn
@@ -214,6 +228,15 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
             <img key={m.id} src={m.url} alt={m.filename} loading="lazy" decoding="async"
               style={{ width: '100%', height: 'auto', aspectRatio: ratio(m), maxHeight: compact ? 320 : undefined, objectFit: 'contain', display: 'block', background: 'var(--bg-2)' }} />
           ))}
+        </div>
+      ) : null}
+      {fbButtonOf(piece.tags) && (
+        // Nút CTA của FB nằm NGAY DƯỚI bài, người đọc bấm được mà không cần link trong thân bài.
+        <div style={{ padding: compact ? '6px 9px 8px' : '9px 12px 11px', borderTop: '1px solid var(--line)' }}>
+          <div style={{ textAlign: 'center', padding: compact ? '4px 0' : '6px 0', borderRadius: 6, background: 'var(--bg-2)',
+            border: '1px solid var(--line)', fontSize: compact ? 11 : 12.5, fontWeight: 600, color: 'var(--fg-2)' }}>
+            {fbButtonOf(piece.tags)?.label}
+          </div>
         </div>
       )}
     </div>

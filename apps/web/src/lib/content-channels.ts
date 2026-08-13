@@ -72,6 +72,18 @@ export const STYLES: Array<{ id: string; label: string; icon: string; hint: stri
 export const styleOf = (tags: string[]) => STYLES.find((x) => x.id === tagVal(tags, 'style')) ?? null;
 export const formatOf = (tags: string[]) => FORMATS.find((f) => f.id === tagVal(tags, 'format')) ?? null;
 
+// ── Tuỳ chọn của chính composer Facebook (đọc từ Business Suite của Page thật, 2026-08-13) ────
+// Chép đúng những gì composer đưa ra, không suy diễn: bài Page KHÔNG kèm link chỉ có 4 nút này —
+// không có "Learn more". Nút Learn more/Shop now là chuyện của bài có link đính kèm và bài quảng
+// cáo, chưa kiểm nên chưa đưa vào đây.
+export const FB_BUTTONS = [
+  { id: 'none', label: 'Không nút' },
+  { id: 'message', label: 'Nhắn tin' },
+  { id: 'whatsapp', label: 'Nhắn WhatsApp' },
+  { id: 'call', label: 'Gọi ngay' },
+] as const;
+export const fbButtonOf = (tags: string[]) => FB_BUTTONS.find((b) => b.id === tagVal(tags, 'btn') && b.id !== 'none') ?? null;
+
 export const STATUSES = ['draft', 'approved', 'scheduled', 'published', 'archived'] as const;
 export type ContentStatus = typeof STATUSES[number];
 
@@ -134,6 +146,7 @@ const ANGLE_TO_GROUP = new Map(ANGLE_GROUPS.flatMap((g) => g.angles.map((a) => [
 //   angle:<code> · format:<id> · style:<id> · src:<S1..S8> · cta:<path> · place:<habitat> · time:<HH:MM>
 //   acct:<id> · browser:<id> · asset:media:<id,id> · chain:<taskId,taskId>
 //   replyto:<pieceId> (comment đầu của bài đó) · linkcheck:ok|bad
+//   platsched:<id|1> (nền tảng đã nhận lịch) · story:1 (kèm Facebook story) · btn:<id trong FB_BUTTONS>
 export const tagVal = (tags: string[], k: string) => tags.find((t) => t.startsWith(`${k}:`))?.slice(k.length + 1).trim() ?? '';
 /** Danh sách id trong tag dạng 'khoá:media:1,2' hoặc 'khoá:1,2'. Giá trị không phải số → bỏ. */
 export const tagIds = (tags: string[], k: string) => tagVal(tags, k).replace(/^media:/, '').split(',').map(Number).filter(Number.isFinite).filter(Boolean);
@@ -168,6 +181,11 @@ export function pieceGaps(
     today?: string;
   } = {},
 ): string[] {
+  // Đã đẩy vào LỊCH CỦA NỀN TẢNG (FB nhận rồi): chữ, ảnh, giờ nằm bên đó, FB tự đăng kể cả lúc
+  // máy mình tắt. Runner không cần account/phiên/asset nữa nên mọi "còn thiếu" ở đây là nhiễu.
+  // Phần duy nhất còn phải trực (comment đầu) nằm ở pieceRisks, không phải chỗ này.
+  if (tagVal(piece.tags, 'platsched')) return [];
+
   // Liệt kê theo ĐÚNG thứ tự phụ thuộc: account trước, nơi đăng sau — nơi đăng là page CỦA account,
   // báo "chưa chọn nơi đăng" lên đầu là bảo người ta đi làm cái chưa làm được.
   const gaps: string[] = [];
@@ -230,19 +248,27 @@ export const LINK_SHARE_MAX = 25;
  *  được nhưng bài sẽ bị dìm hoặc gây hại. Tách riêng để không lẫn vào nhau lúc duyệt. */
 export function pieceRisks(piece: { channel: string; tags: string[]; hasLink?: boolean }, refs: { replies?: Array<{ hasLink?: boolean }> } = {}): string[] {
   const out: string[] = [];
-  if (!piece.hasLink) return out;
+  const fb = piece.channel === 'fb-post' || piece.channel === 'fb-group';
 
-  const lc = tagVal(piece.tags, 'linkcheck');
-  if (lc === 'bad') out.push('link đích hỏng — đăng ra là gãy ngay ở cú bấm đầu tiên');
-  else if (!lc) out.push('link đích chưa kiểm (bấm "Kiểm link đích")');
+  // Bài đã nằm trong lịch của FB thì FB tự đăng đúng giờ — nhưng comment đầu thì KHÔNG: composer
+  // Business Suite không có ô comment đầu (kiểm 2026-08-13). Ai đó phải có mặt lúc bài tự lên.
+  if (fb && tagVal(piece.tags, 'platsched') && refs.replies?.length) {
+    out.push('FB không lên lịch được comment đầu — bài tự lên nhưng comment phải đăng tay ngay lúc đó');
+  }
 
-  // Facebook: link nằm TRONG bài là cách chắc chắn nhất để bài không được phân phối. Đường đi đúng
-  // là bài chính không link, link nằm ở comment đầu — nên chỉ nhắc khi chưa có comment nào mang link.
-  if (piece.channel === 'fb-post' || piece.channel === 'fb-group') {
-    const hasLinkComment = refs.replies?.some((r) => r.hasLink);
-    out.push(hasLinkComment
-      ? 'FB: bài chính vẫn còn link dù đã có comment đầu mang link — bỏ link khỏi bài chính'
-      : 'FB dìm bài có link — chuyển link xuống comment đầu, bài chính để trần');
+  if (piece.hasLink) {
+    const lc = tagVal(piece.tags, 'linkcheck');
+    if (lc === 'bad') out.push('link đích hỏng — đăng ra là gãy ngay ở cú bấm đầu tiên');
+    else if (!lc) out.push('link đích chưa kiểm (bấm "Kiểm link đích")');
+
+    // Facebook: link nằm TRONG bài là cách chắc chắn nhất để bài không được phân phối. Đường đi đúng
+    // là bài chính không link, link nằm ở comment đầu — nên chỉ nhắc khi chưa có comment nào mang link.
+    if (fb) {
+      const hasLinkComment = refs.replies?.some((r) => r.hasLink);
+      out.push(hasLinkComment
+        ? 'FB: bài chính vẫn còn link dù đã có comment đầu mang link — bỏ link khỏi bài chính'
+        : 'FB dìm bài có link — chuyển link xuống comment đầu, bài chính để trần');
+    }
   }
   return out;
 }

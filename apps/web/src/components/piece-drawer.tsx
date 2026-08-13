@@ -320,7 +320,8 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
               {row('Nơi đăng', <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 {place && <a href={place.startsWith('http') ? place : undefined} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-blue)' }}>{placeLabel}</a>}
                 <button type="button" style={pickBtn} disabled={pending} onClick={() => setPick('place')}>{place ? 'đổi nơi đăng' : '＋ chọn nơi đăng'}</button>
-              </span>, !acct ? 'chọn account trước (page lấy theo account)'
+              </span>, isReddit ? undefined                       // sub là nơi công khai, không thuộc account nào
+                : !acct ? 'chọn account trước (page lấy theo account)'
                 : !managed.length ? 'account này chưa có page nào trong vault' : undefined)}
               {row('Giờ', <input type="time" style={{ ...inp, maxWidth: 120 }} defaultValue={time} disabled={pending}
                 onChange={(e) => setTag('time', e.target.value)} />)}

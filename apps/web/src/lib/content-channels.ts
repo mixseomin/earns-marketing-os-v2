@@ -222,7 +222,10 @@ export function pieceGaps(
   else if (!acct) gaps.push(`account #${acctId} không có trong vault`);
   else if (acct.status !== 'active') gaps.push(`account đang ${acct.status}`);
 
-  if (!tagVal(piece.tags, 'place')) gaps.push(acctId ? 'chưa chọn nơi đăng' : 'chưa chọn nơi đăng (cần account trước)');
+  // Nơi đăng của Reddit là subreddit — nơi công khai, không phải page thuộc account, nên đừng bắt
+  // chọn account trước (Page Facebook mới lấy theo account).
+  if (!tagVal(piece.tags, 'place'))
+    gaps.push(acctId || piece.channel === 'reddit' ? 'chưa chọn nơi đăng' : 'chưa chọn nơi đăng (cần account trước)');
 
   // Profile lấy từ tag, không có thì lấy từ chính account — account chưa gắn profile nào thì
   // runner không biết mở phiên nào (đúng chỗ hụt của ~40 row facebook trong vault).

@@ -53,7 +53,7 @@ function withTags(text: string) {
 export function PiecePreview({ piece, accounts = [], media = [], body, replies = [], editableReplies = false, compact = false, onOpen }: {
   piece: CalPiece;
   accounts?: Array<{ id: number; platformKey: string; handle: string | null; accountStats?: Record<string, unknown> }>;
-  media?: Array<{ id: number; url: string; filename: string; width?: number | null; height?: number | null }>;
+  media?: Array<{ id: number; url: string; filename: string; width?: number | null; height?: number | null; mimeType?: string | null }>;
   /** Thân bài đã có sẵn (drawer) — truyền vào để khỏi gọi lại. */
   body?: string;
   /** Comment đầu (piece con gắn tag replyto:) — runner đăng ngay sau bài chính. */
@@ -244,8 +244,15 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
             // eslint-disable-next-line @next/next/no-img-element
             // Ảnh card là PNG 1080×1350 (~300 kB): tải hết cả tháng là ~5 MB không ai xem tới.
             // lazy = chỉ tải khi cuộn tới gần.
+            m.mimeType?.startsWith('video/') ? (
+              // Reel là VIDEO. Dựng bằng <img> thì ra ô vỡ — duyệt lịch mà không xem được clip thì
+              // duyệt cái gì. preload="metadata": lịch tháng chỉ tải vài KB đầu mỗi clip, bấm mới tải tiếp.
+              <video key={m.id} src={m.url} controls playsInline preload="metadata"
+                style={{ width: '100%', height: 'auto', aspectRatio: ratio(m), maxHeight: compact ? 320 : 560, objectFit: 'contain', display: 'block', background: '#000' }} />
+            ) : (
             <img key={m.id} src={m.url} alt={m.filename} loading="lazy" decoding="async"
               style={{ width: '100%', height: 'auto', aspectRatio: ratio(m), maxHeight: compact ? 320 : undefined, objectFit: 'contain', display: 'block', background: 'var(--bg-2)' }} />
+            )
           ))}
         </div>
       ) : null}

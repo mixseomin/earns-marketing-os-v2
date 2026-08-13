@@ -2,6 +2,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { checkAuth } from '../_auth';
 import { errorResponse, okResponse, firstRow, rows } from '@/lib/ext-route';
+import { publishedNeedsUrl, PUBLISHED_NEEDS_URL_MSG } from '@/lib/content-channels';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,9 @@ export async function POST(req: Request) {
   const slug = (b.slug?.trim() || slugify(title)) || `piece-${Date.now()}`;
   const channel = String(b.channel ?? 'fb-post').trim();
   const status = STATUSES.has(String(b.status)) ? String(b.status) : 'draft';
+  // Cùng luật với form: 'đã đăng' phải kèm link bài. Chặn ở ĐÂY nữa vì script ngoài (piece add
+  // --status published) không đi qua form, và đó chính là đường dữ liệu diễn tập lọt vào lịch thật.
+  if (publishedNeedsUrl(channel, status, b.publishUrl)) return errorResponse(PUBLISHED_NEEDS_URL_MSG);
   // Ngày trần 'YYYY-MM-DD' = ý NGÀY ĐỊA PHƯƠNG. Neo 09:00 để đổi sang timestamptz không
   // rơi về hôm trước ở múi giờ âm (lịch lệch 1 ô là lỗi khó thấy nhất).
   const when = String(b.scheduledAt ?? '').trim();

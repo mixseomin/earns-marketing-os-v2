@@ -96,7 +96,10 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
 
   const refresh = () => start(() => router.refresh());
   const patch = async (p: Partial<ContentInput>) => {
-    await updateContentPiece(piece.id, piece.projectId, p);
+    const r = await updateContentPiece(piece.id, piece.projectId, p);
+    // Bị từ chối mà im lặng thì ô vừa sửa tự bật về giá trị cũ và không ai hiểu vì sao — nói ra lý do.
+    if (!r.ok) { setLinkMsg(`✗ ${r.error}`); refresh(); return; }
+    setLinkMsg('');
     forgetPieceBody(piece.id);   // bản dựng ở lịch/feed đang nhớ thân bài cũ
     refresh();
   };

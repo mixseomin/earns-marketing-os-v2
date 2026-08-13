@@ -948,6 +948,10 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   });
   // 📝 bài đăng — mở TẠI CHỖ + giữ trong URL để gửi link thẳng tới đúng drawer (như ?task=).
   const [openPieceId, setOpenPieceId] = useState<number | null>(Number(sp.get('piece')) || null);
+  // Bài đang ĐỌC trong dòng đọc (khác ?piece = bài đang MỞ drawer): rail sáng đúng dòng đó, và ?at
+  // theo nó nên URL luôn chỉ đúng bài đang xem. Khai ở đây cùng các state phản chiếu URL — hiệu ứng
+  // ghi URL nằm phía trên phần dựng dòng đọc, để dưới đó là dùng biến trước khi khai báo.
+  const [activePiece, setActivePiece] = useState<number | null>(Number(sp.get('at')) || null);
   // Soạn bài: null = đóng · {} = tạo mới · {piece} = sửa. Cùng MỘT form cho cả hai (studio cũ
   // có hai đường ghi khác nhau nên sửa bên này không giống tạo bên kia).
   const [pieceForm, setPieceForm] = useState<null | { piece?: CalPiece }>(null);
@@ -1102,6 +1106,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('group', groupBy === 'none' ? '' : groupBy);
     set('task', openId);
     set('piece', openPieceId);
+    set('at', view === 'feed' ? activePiece : '');   // bài đang đọc → dán URL là chỉ đúng bài đó
     set('sp', openProd);
     set('outreach', outreachPid);
     set('ch', outreachPid != null ? outreachCh : '');   // channel tab only meaningful while the drawer is open
@@ -1113,7 +1118,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('sq', seedOpen ? seedQ.trim() : '');
     set('shide', seedOpen && seedHideUsed ? '1' : '');
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, showClosed, projectFilter, pf, calMode, calDate, kind, allProjects, view, groupBy, openId, openPieceId, openProd, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed]);
+  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, showClosed, projectFilter, pf, calMode, calDate, kind, allProjects, view, groupBy, openId, openPieceId, openProd, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed, activePiece]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   // Init from URL so the account editor opened INSIDE a task survives F5 (the "full flow", one level
@@ -1468,9 +1473,6 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     return m;
   }, [feedDays]);
 
-  // Bài đang đọc — rail sáng đúng dòng đó. Chỉ bám theo NGÀY thì cuộn giữa một ngày 7 bài vẫn
-  // không biết mình đang ở bài nào.
-  const [activePiece, setActivePiece] = useState<number | null>(null);
   const railRefs = useRef<Record<number, HTMLButtonElement | null>>({});
   useEffect(() => {
     if (view !== 'feed') return;
@@ -1521,6 +1523,18 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     };
     setTimeout(fix, 620);
   }, []);
+
+  // Mở bằng link có ?at= thì nhảy thẳng tới bài đó. URL bám theo cuộn chỉ có ích khi dán lại nó MỞ
+  // RA đúng bài đang nói; thiếu vế này thì tham số kia chỉ là chuỗi ký tự trên thanh địa chỉ.
+  const jumpedToAt = useRef(false);
+  useEffect(() => {
+    if (view !== 'feed' || jumpedToAt.current) return;
+    const at = Number(new URLSearchParams(window.location.search).get('at'));
+    if (!at) { jumpedToAt.current = true; return; }
+    if (!document.getElementById(`piece-${at}`)) return;   // feed chưa dựng tới bài đó — thử lại lượt sau
+    jumpedToAt.current = true;
+    jumpTo(`piece-${at}`);
+  }, [view, feedDays, jumpTo]);
 
   // Cuộn tới đâu thì mini-cal sáng ngày đó — "đang ở đâu" phải tự trả lời, không bắt người dùng nhớ.
   useEffect(() => {

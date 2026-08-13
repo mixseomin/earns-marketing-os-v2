@@ -100,6 +100,16 @@ const VN_DAY = ['Chủ nhật', 'thứ Hai', 'thứ Ba', 'thứ Tư', 'thứ Nă
 export const STATUSES = ['draft', 'approved', 'scheduled', 'published', 'archived'] as const;
 export type ContentStatus = typeof STATUSES[number];
 
+// 'Đã đăng' là lời KHẲNG ĐỊNH bài có thật ngoài đời — không có link thì không ai kiểm được, và lịch
+// in ra '✓ Đã đăng · chưa lưu link bài', một câu tự mâu thuẫn (bài 153 nằm như thế từ dữ liệu diễn
+// tập). Cùng học thuyết với plays: đóng việc phải có KẾT QUẢ. Email/DM không sinh URL công khai nên
+// miễn; các kênh còn lại đều có permalink.
+const NO_PUBLIC_URL = new Set(['email', 'dm']);
+export function publishedNeedsUrl(channel: string, status?: string | null, url?: string | null): boolean {
+  return status === 'published' && !NO_PUBLIC_URL.has(channel) && !(url ?? '').trim();
+}
+export const PUBLISHED_NEEDS_URL_MSG = 'Đánh dấu Đã đăng thì phải lưu link bài — dán link rồi lưu lại.';
+
 // ── Content angles ────────────────────────────────────────────────────────────
 // GÓC của bài = bài này LÀM GÌ cho người đọc. Trục thứ 5, không thay channel
 // (nơi đăng) / status (đang ở đâu) / format / pillar (định vị).

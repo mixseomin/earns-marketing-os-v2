@@ -14,6 +14,7 @@ import { Drawer, EntityRef, EntityPicker, type EntityOption } from '@/components
 import { readManagedPages } from '@/components/account-metrics';
 import { ChannelFavicon } from '@/components/ui';
 import { CHANNELS, STATUSES, ANGLE_GROUPS, ANGLES, STYLES, CHANNEL_PLATFORM, FB_BUTTONS, angleOf, angleLabel, formatOf, formatsFor, styleOf, tagVal, tagIds, pieceGaps, pieceRisks } from '@/lib/content-channels';
+import { REDDIT_SUBS, subOf, subName } from '@/lib/reddit-subs';
 import { updateContentPiece, createContentPiece, checkPieceLinks, getPieceDetail, type ContentInput } from '@/lib/actions/content';
 import { todayLocal } from '@/lib/local-day';
 import { PiecePreview, forgetPieceBody } from '@/components/piece-preview';
@@ -48,7 +49,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const router = useRouter();
   const [pending, start] = useTransition();
   const [tab, setTab] = useState<TabKey>('overview');
-  const [pick, setPick] = useState<null | 'acct' | 'browser' | 'asset' | 'chain' | 'place' | 'angle' | 'format' | 'style'>(null);
+  const [pick, setPick] = useState<null | 'acct' | 'browser' | 'asset' | 'chain' | 'place' | 'angle' | 'format' | 'style' | 'flair'>(null);
   const [editBody, setEditBody] = useState(false);
   const [linkMsg, setLinkMsg] = useState<string>('');
   const [hook, setHook] = useState(piece.subject ?? '');
@@ -82,6 +83,12 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const fbChannel = piece.channel === 'fb-post' || piece.channel === 'fb-group';
   const platsched = !!tagVal(piece.tags, 'platsched');
   const story = !!tagVal(piece.tags, 'story');
+  // Reddit: "nơi đăng" là subreddit, và LUẬT của chính sub đó quyết định đăng được kiểu bài nào,
+  // có phải gắn flair không (đồng bộ bằng scripts/sync-reddit-subs.mjs).
+  const isReddit = piece.channel === 'reddit';
+  const sub = isReddit && place ? subOf(place) : null;
+  const rdtags = tagVal(piece.tags, 'rdtag').split(',').filter(Boolean);
+  const flair = tagVal(piece.tags, 'flair');
 
   useEffect(() => { getPieceDetail(piece.id, piece.projectId).then(setDetail); }, [piece.id, piece.projectId]);
 
@@ -105,8 +112,19 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const loadMedia = useCallback(async (): Promise<EntityOption[]> => media
     .filter((m) => m.kind === 'image')
     .map((m) => ({ key: `m:${m.id}`, label: m.filename, avatar: m.url, data: m })), [media]);
-  const loadPlaces = useCallback(async (): Promise<EntityOption[]> => managed
-    .map((p) => ({ key: `pg:${p.url}`, label: p.name, sub: p.url.replace(/^https?:\/\/(www\.)?/, ''), fallbackIcon: '📍', data: p })), [managed]);
+  // Nơi đăng: FB lấy Page của chính account; Reddit lấy sub trong catalog đã đồng bộ luật (trước
+  // đây bài reddit không chọn được nơi đăng nào vì danh sách chỉ có Page của Facebook).
+  const loadPlaces = useCallback(async (): Promise<EntityOption[]> => (
+    piece.channel === 'reddit'
+      ? Object.entries(REDDIT_SUBS).map(([name, r]) => ({
+          key: `rd:${name}`, label: `r/${name}`, fallbackIcon: '👽',
+          sub: `${r.members.toLocaleString('vi-VN')} thành viên · ${r.submissionType === 'self' ? 'chỉ bài chữ' : r.submissionType === 'link' ? 'chỉ link' : 'chữ + link'}${r.flairRequired ? ' · flair BẮT BUỘC' : ''}`,
+          data: { url: `https://www.reddit.com/r/${name}/` },
+        }))
+      : managed.map((p) => ({ key: `pg:${p.url}`, label: p.name, sub: p.url.replace(/^https?:\/\/(www\.)?/, ''), fallbackIcon: '📍', data: p }))
+  ), [managed, piece.channel]);
+  const loadFlairs = useCallback(async (): Promise<EntityOption[]> =>
+    (sub?.flairs ?? []).map((f) => ({ key: `fl:${f}`, label: f, fallbackIcon: '🏷', data: { flair: f } })), [sub]);
   // Kiểu bài đổi theo KÊNH: fb-post có album/poll/share, blog thì không. Đưa cả 13 kiểu ra chọn là
   // mời người ta gắn sai (rồi runner đi tìm nút không tồn tại).
   const loadFormats = useCallback(async (): Promise<EntityOption[]> => formatsFor(piece.channel)
@@ -306,6 +324,25 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
                 : !managed.length ? 'account này chưa có page nào trong vault' : undefined)}
               {row('Giờ', <input type="time" style={{ ...inp, maxWidth: 120 }} defaultValue={time} disabled={pending}
                 onChange={(e) => setTag('time', e.target.value)} />)}
+              {isReddit && sub && <>
+                {row('Flair', <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  {flair && <span style={{ fontSize: 11.5, padding: '1px 8px', borderRadius: 999, background: 'var(--bg-2)', border: '1px solid var(--line)' }}>{flair}</span>}
+                  {sub.flairPickable
+                    ? <button type="button" style={pickBtn} disabled={pending} onClick={() => setPick('flair')}>{flair ? 'đổi flair' : '＋ chọn flair'}</button>
+                    : <span style={{ color: 'var(--fg-4)', fontSize: 11.5 }}>r/{subName(place)} không cho người đăng tự chọn flair</span>}
+                  {sub.flairRequired && !flair && <span style={{ color: 'var(--warn)', fontSize: 11.5 }}>sub này bắt buộc</span>}
+                </span>)}
+                {row('Nhãn', <div style={{ display: 'flex', gap: 5 }}>
+                  {[['oc', 'OC'], ['nsfw', 'NSFW'], ['spoiler', 'Spoiler']].map(([id, label]) => {
+                    const on = rdtags.includes(id!);
+                    return (
+                      <button key={id} type="button" disabled={pending}
+                        onClick={() => setTag('rdtag', (on ? rdtags.filter((x) => x !== id) : [...rdtags, id!]).join(','))}
+                        style={{ ...pickBtn, borderColor: on ? 'var(--accent)' : 'var(--line)', color: on ? 'var(--accent)' : 'var(--fg-3)' }}>{label}</button>
+                    );
+                  })}
+                </div>)}
+              </>}
               {/* Những gì composer Facebook có mà mình chưa dùng thì bài chạy dưới sức: lịch của FB
                   (bài tự lên kể cả lúc máy tắt), Story (mặt thứ hai, cùng nội dung, không tốn gì),
                   nút CTA. Chỉ hiện ở kênh FB — kênh khác không có mấy thứ này. */}
@@ -444,6 +481,11 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
         <EntityPicker title="Chọn kiểu bài" hint="Cùng kênh nhưng đăng ra khác hẳn: text trơn, ảnh đơn, album, bài chèn link, poll, share lại, comment trong thread. Bản dựng bài và runner đều đọc theo kiểu này."
           load={loadFormats} value={fmt ? { key: `fmt:${fmt.id}` } : undefined} onClose={() => setPick(null)}
           onPick={async (o) => { setPick(null); await setTag('format', (o.data as { format: string }).format); }} />
+      )}
+      {pick === 'flair' && (
+        <EntityPicker title="Chọn flair" hint={`Flair của r/${subName(place)}. Sub bắt buộc mà thiếu là bài bị gỡ.`}
+          load={loadFlairs} value={flair ? { key: `fl:${flair}` } : undefined} onClose={() => setPick(null)}
+          onPick={async (o) => { setPick(null); await setTag('flair', (o.data as { flair: string }).flair); }} />
       )}
       {pick === 'angle' && (
         <EntityPicker title="Chọn angle" hint="Bài này LÀM GÌ cho người đọc. Dòng phụ = nhóm (HÚT/TIN/CHUYỂN ĐỔI/CỘNG ĐỒNG/TÁI DÙNG)."

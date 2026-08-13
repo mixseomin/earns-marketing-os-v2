@@ -2,6 +2,8 @@
 // non-'use server' file để Next.js không wrap thành server action proxies
 // (gây "s.filter is not a function" client-side).
 
+import { subOf, subName } from './reddit-subs';
+
 export const CHANNELS: Array<{ id: string; label: string; icon: string; hint: string }> = [
   { id: 'fb-post',         label: 'FB post',        icon: '📘', hint: 'Facebook feed post — long-form, story-led' },
   { id: 'email',           label: 'Email',          icon: '✉️', hint: 'Newsletter / sequence email' },
@@ -147,6 +149,7 @@ const ANGLE_TO_GROUP = new Map(ANGLE_GROUPS.flatMap((g) => g.angles.map((a) => [
 //   acct:<id> · browser:<id> · asset:media:<id,id> · chain:<taskId,taskId>
 //   replyto:<pieceId> (comment đầu của bài đó) · linkcheck:ok|bad
 //   platsched:<id|1> (nền tảng đã nhận lịch) · story:1 (kèm Facebook story) · btn:<id trong FB_BUTTONS>
+//   flair:<text> (flair Reddit) · rdtag:oc,nsfw,spoiler (nhãn Reddit)
 export const tagVal = (tags: string[], k: string) => tags.find((t) => t.startsWith(`${k}:`))?.slice(k.length + 1).trim() ?? '';
 /** Danh sách id trong tag dạng 'khoá:media:1,2' hoặc 'khoá:1,2'. Giá trị không phải số → bỏ. */
 export const tagIds = (tags: string[], k: string) => tagVal(tags, k).replace(/^media:/, '').split(',').map(Number).filter(Number.isFinite).filter(Boolean);
@@ -196,6 +199,22 @@ export function pieceGaps(
   // tiếng Việt là đủ kết luận — không phải đoán theo từ khoá.
   if (piece.body && PUBLIC_CHANNELS.has(piece.channel ?? '') && /[ăâđêôơưàáảãạằắẳẵặầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵ]/i.test(piece.body))
     gaps.push('thân bài còn tiếng Việt — đó là ghi chú nội bộ, chưa phải caption');
+
+  // Reddit: mỗi sub một luật khác nhau, và luật đó quyết định bài có đăng NỔI không. Sub chỉ nhận
+  // bài chữ thì bài ảnh/poll/link không có đường lên; sub bắt flair mà thiếu flair là bị gỡ sau vài
+  // phút. Luật lấy từ chính Reddit (scripts/sync-reddit-subs.mjs), không chép tay.
+  if (piece.channel === 'reddit') {
+    const place = tagVal(piece.tags, 'place');
+    const sub = place ? subOf(place) : null;
+    if (sub) {
+      const kind = tagVal(piece.tags, 'format');
+      if (sub.submissionType === 'self' && ['link', 'photo', 'album', 'poll'].includes(kind))
+        gaps.push(`r/${subName(place)} chỉ nhận bài chữ — kiểu "${kind}" không đăng được ở đây`);
+      if (kind === 'poll' && !sub.allowPolls) gaps.push(`r/${subName(place)} tắt poll`);
+      if ((kind === 'photo' || kind === 'album') && !sub.allowImages) gaps.push(`r/${subName(place)} không cho đăng ảnh`);
+      if (sub.flairRequired && !tagVal(piece.tags, 'flair')) gaps.push(`r/${subName(place)} bắt buộc flair — chưa chọn`);
+    }
+  }
 
   const acctId = Number(tagVal(piece.tags, 'acct')) || 0;
   const acct = acctId ? refs.accounts?.find((a) => a.id === acctId) : undefined;

@@ -140,6 +140,18 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
             <span title="Bài có link — nền tảng hạ reach, nhất là Facebook. Xem chi tiết ở drawer."
               style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--neon-blue)', color: 'var(--neon-blue)' }}>🔗 link</span>
           )}
+          {piece.channel === 'reddit' && tagVal(piece.tags, 'flair') && (
+            // Reddit hiện flair ngay cạnh tiêu đề — bản dựng phải có, vì thiếu flair ở sub bắt buộc
+            // là bài bị gỡ chứ không phải chuyện thẩm mỹ.
+            <span style={{ fontSize: 10, padding: '1px 7px', borderRadius: 999, background: 'var(--bg-2)', border: '1px solid var(--line)', color: 'var(--fg-2)' }}>
+              {tagVal(piece.tags, 'flair')}
+            </span>
+          )}
+          {piece.channel === 'reddit' && tagVal(piece.tags, 'rdtag').split(',').filter(Boolean).map((t) => (
+            <span key={t} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, border: `1px solid ${t === 'nsfw' ? 'var(--bad)' : 'var(--fg-4)'}`, color: t === 'nsfw' ? 'var(--bad)' : 'var(--fg-3)' }}>
+              {t.toUpperCase()}
+            </span>
+          ))}
           {tagVal(piece.tags, 'story') && (
             <span title="Đăng kèm Facebook story — cùng nội dung, mặt thứ hai, không tốn thêm gì"
               style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--neon-pink)', color: 'var(--neon-pink)' }}>◎ story</span>

@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  getOfferNote, saveOfferTerms,
+  getOfferNote, saveOfferTerms, getEntityOffers,
   type AffiliateOffer, type OfferAccount, type OfferKind, type OfferFilters, type OffersView,
 } from '@/lib/actions/offers';
 import { useModalParam } from '@/lib/use-modal-param';
@@ -14,6 +14,17 @@ import {
 
 // Source label only (YDNI: no per-source colour — the name carries it; colour is reserved for status).
 const KIND: Record<OfferKind, string> = { awin: 'Awin', cj: 'CJ', direct: 'Direct', own: 'Own product' };
+
+// Where to log in to manage each network (drawer "↗ dashboard"). Keys = platform/network key.
+const NETWORK_HOME: Record<string, string> = {
+  tkglobal: 'https://pub.tkglobal.asia/', travelpayouts: 'https://app.travelpayouts.com/programs',
+  adpia: 'https://newpub.adpia.vn/campaigns', ecomobi: 'https://affiliate.passio.eco/list-campaign',
+  masoffer: 'https://ecom.masoffer.com/offer', accesstrade: 'https://pub2.accesstrade.vn/campaign-v2',
+  vcommission: 'https://network.vcommission.com/publisher/v2/campaigns', clickbank: 'https://accounts.clickbank.com/marketplace.htm',
+  rakuten: 'https://publisher.rakutenadvertising.com/advertisers', awin: 'https://ui.awin.com/', cj: 'https://members.cj.com/',
+};
+const netLabel = (o: AffiliateOffer) => o.network ?? (o.kind === 'awin' ? 'awin' : o.kind === 'cj' ? 'cj' : null);
+const clickable: React.CSSProperties = { cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 2 };
 
 const APPROVED = new Set(['active', 'joined', 'approved']);
 const isApproved = (s: string) => APPROVED.has(s.toLowerCase());
@@ -94,18 +105,40 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
     return () => { live = false; };
   }, [sel]);
 
+  // Entity quick-view: click an account / network / brand cell → drawer with EVERY offer for that
+  // entity (all networks) so you can compare who pays most for the same merchant.
+  const [entity, setEntity] = useState<{ field: 'brand' | 'network' | 'account'; value: string; label: string } | null>(null);
+  const [entityRows, setEntityRows] = useState<AffiliateOffer[] | null>(null);
+  useEffect(() => {
+    setEntityRows(null);
+    if (!entity) return;
+    let live = true;
+    getEntityOffers(entity.field, entity.value).then((r) => { if (live) setEntityRows(r); }).catch(() => {});
+    return () => { live = false; };
+  }, [entity]);
+  const openEntity = (field: 'brand' | 'network' | 'account', value: string | null, label: string) =>
+    (e: React.MouseEvent) => { e.stopPropagation(); if (value) setEntity({ field, value, label }); };
+
   const columns: DataColumn<AffiliateOffer>[] = [
     {
       key: 'name', sortValue: (o) => o.name, align: 'left', width: '100%', header: 'Offer',
       cellTitle: (o) => o.name,
       cell: (o) => <span style={{ fontWeight: 600, ...clip(300), display: 'inline-block', verticalAlign: 'bottom' }}>{o.name}</span>,
     },
-    { key: 'kind', sortValue: (o) => KIND[o.kind] ?? o.kind, align: 'left', header: 'Source', cell: (o) => <span style={dim}>{KIND[o.kind]}</span> },
     {
-      key: 'account', sortValue: (o) => o.account ?? null, align: 'left', header: 'Account', title: 'Account của mình đã đăng ký / được duyệt offer này',
+      key: 'brand', sortValue: (o) => o.brand, align: 'left', header: 'Brand', title: 'Merchant gọn (bỏ hậu tố CPS/Network/geo) → click để so sánh mọi net trả bao nhiêu cho cùng brand',
+      cellTitle: (o) => o.brand,
+      cell: (o) => <span style={{ ...clickable, ...clip(150), display: 'inline-block', verticalAlign: 'bottom' }} onClick={openEntity('brand', o.brand, o.brand)}>{o.brand}</span>,
+    },
+    {
+      key: 'network', sortValue: (o) => netLabel(o), align: 'left', header: 'Network', title: 'Network cung cấp offer — click xem mọi offer của net này',
+      cell: (o) => { const n = netLabel(o); return n ? <span style={clickable} onClick={openEntity('network', n, n)}>{n}</span> : <span style={dim}>—</span>; },
+    },
+    {
+      key: 'account', sortValue: (o) => o.account ?? null, align: 'left', header: 'Account', title: 'Account của mình đã đăng ký / được duyệt offer này — click xem nhanh',
       cellTitle: (o) => o.account ?? undefined,
       cell: (o) => (o.account
-        ? <span style={{ ...clip(190), display: 'inline-block', verticalAlign: 'bottom' }}>{o.account}</span>
+        ? <span style={{ ...clickable, ...clip(190), display: 'inline-block', verticalAlign: 'bottom' }} onClick={openEntity('account', o.accountId, o.account)}>{o.account}</span>
         : <span style={{ color: 'var(--neon-amber)' }}>chưa gán</span>),
     },
     {
@@ -123,6 +156,18 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
     {
       key: 'cookie', sortValue: (o) => o.cookie ?? null, group: 'terms', align: 'right', header: 'Cookie', title: 'Cookie lifetime',
       cell: (o) => o.cookie ?? <span style={dim}>—</span>,
+    },
+    {
+      key: 'epc', sortValue: (o) => (o.epc ? parseFloat(o.epc.replace(/[^\d.]/g, '')) : null), group: 'terms', align: 'right', header: 'EPC', title: 'Earnings per click (network báo)',
+      cell: (o) => o.epc ?? <span style={dim}>—</span>,
+    },
+    {
+      key: 'cvr', sortValue: (o) => (o.cvr ? parseFloat(o.cvr.replace(/[^\d.]/g, '')) : null), group: 'terms', align: 'right', header: 'CVR', title: 'Conversion / approval rate',
+      cell: (o) => o.cvr ?? <span style={dim}>—</span>,
+    },
+    {
+      key: 'currency', sortValue: (o) => o.currency ?? null, group: 'meta', align: 'left', header: 'Cur', title: 'Payout currency',
+      cell: (o) => o.currency ?? <span style={dim}>—</span>,
     },
     {
       key: 'rules', sortValue: (o) => rulesOf(o) ?? null, group: 'rules', align: 'left', header: 'Special rules', title: 'promotion_policy + reward_details',
@@ -171,9 +216,9 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
           </small>
         </h1>
         <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--fg-3)' }}>
-          Offer affiliate <b>của người khác</b> (Directus <code>affiliate_programs</code>): CJ + Awin sync tự động, Direct = tự thêm tay.
-          Chọn cho content/newsletter — copy tracking link. Deal terms (% · recurring · cookie · rule riêng) sửa được ngay trong drawer;
-          network sync không đụng mấy cột đó. Sản phẩm <b>tự bán</b> thuộc về <a href="/products" style={{ color: 'var(--neon-cyan)' }}>/products</a> — lọc <code>own</code> để thấy row nào đang lọt vào đây.
+          Offer affiliate <b>của người khác</b> (Directus <code>affiliate_programs</code>): CJ + Awin sync tự động; tkglobal · Travelpayouts · Adpia · Ecomobi · MasOffer · Accesstrade · vCommission · ClickBank kéo từ dashboard từng net.
+          Click <b>Brand</b> để so sánh net nào trả cao nhất cho cùng merchant; click <b>Network/Account</b> để xem nhanh mọi offer của nó. Copy tracking link cho content/newsletter.
+          Sản phẩm <b>tự bán</b> thuộc về <a href="/products" style={{ color: 'var(--neon-cyan)' }}>/products</a> — lọc <code>own</code>.
         </p>
       </div>
 
@@ -264,8 +309,13 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
             <div>
               <div style={sectionLabel}>Details</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
+                {netLabel(sel) && <Field label="Network" value={netLabel(sel)!} />}
+                <Field label="Brand" value={sel.brand} />
                 <Field label="Vertical" value={sel.vertical ?? '—'} />
                 <Field label="Geo" value={sel.geos.join(', ') || '—'} />
+                {sel.currency && <Field label="Currency" value={sel.currency} />}
+                {sel.epc && <Field label="EPC" value={sel.epc} />}
+                {sel.cvr && <Field label="CVR / approval" value={sel.cvr} />}
                 {sel.model && <Field label="Commission model" value={sel.model} />}
               </div>
               {sel.tags.length > 0 && (
@@ -298,9 +348,88 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
           </div>
         </Drawer>
       )}
+
+      {entity && (
+        <EntityDrawer entity={entity} rows={entityRows}
+          onClose={() => setEntity(null)}
+          onOpenOffer={(id) => { setEntity(null); modal.open('offer', id); }}
+          onFilterBrand={entity.field === 'brand' ? () => { setEntity(null); setQ(entity.value); } : undefined}
+          onFilterAccount={entity.field === 'account' ? () => { setEntity(null); setMulti('account')([entity.value]); } : undefined} />
+      )}
     </div>
   );
 }
+
+// Quick-view drawer for a clicked entity (brand / network / account). Its whole point is the
+// comparison table: the SAME brand across networks, so you see who pays most at a glance.
+function EntityDrawer({ entity, rows, onClose, onOpenOffer, onFilterBrand, onFilterAccount }: {
+  entity: { field: 'brand' | 'network' | 'account'; value: string; label: string };
+  rows: AffiliateOffer[] | null;
+  onClose: () => void;
+  onOpenOffer: (id: string) => void;
+  onFilterBrand?: () => void;
+  onFilterAccount?: () => void;
+}) {
+  const kindWord = entity.field === 'brand' ? 'Brand' : entity.field === 'network' ? 'Network' : 'Account';
+  const nets = rows ? new Set(rows.map((r) => netLabel(r)).filter(Boolean)).size : 0;
+  const home = entity.field === 'network' ? NETWORK_HOME[entity.value] : undefined;
+  return (
+    <Drawer onClose={onClose} width={620}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>{kindWord.toUpperCase()}</div>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{entity.label}</h2>
+          {rows && (
+            <div style={{ marginTop: 6, fontSize: 12, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+              {rows.length} offer{entity.field === 'brand' && nets > 1 ? ` · ${nets} networks` : ''}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+            {onFilterBrand && <button type="button" onClick={onFilterBrand} style={miniBtn}>⌕ lọc bảng theo brand này</button>}
+            {onFilterAccount && <button type="button" onClick={onFilterAccount} style={miniBtn}>⌕ lọc bảng theo account này</button>}
+            {home && <a href={home} target="_blank" rel="noreferrer" style={{ ...miniBtn, textDecoration: 'none' }}>↗ dashboard</a>}
+          </div>
+        </div>
+
+        {!rows ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>Đang tải…</div>
+          : rows.length === 0 ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>Không có offer.</div>
+          : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 10.5 }}>
+                    {entity.field !== 'network' && <th style={th}>Network</th>}
+                    <th style={th}>Offer</th>
+                    <th style={{ ...th, textAlign: 'right' }}>%</th>
+                    <th style={{ ...th, textAlign: 'right' }}>Cookie</th>
+                    <th style={{ ...th, textAlign: 'right' }}>EPC</th>
+                    <th style={{ ...th, textAlign: 'right' }}>CVR</th>
+                    <th style={th}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((o) => (
+                    <tr key={o.id} onClick={() => onOpenOffer(o.id)} style={{ cursor: 'pointer', borderTop: '1px solid var(--line)' }}>
+                      {entity.field !== 'network' && <td style={td}>{netLabel(o) ?? '—'}</td>}
+                      <td style={{ ...td, ...clip(200) }} title={o.name}>{o.name}</td>
+                      <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>{o.commission ?? '—'}{o.currency && o.currency !== 'USD' ? <span style={{ color: 'var(--fg-3)', fontSize: 10 }}> {o.currency}</span> : ''}</td>
+                      <td style={{ ...td, textAlign: 'right' }}>{o.cookie ?? '—'}</td>
+                      <td style={{ ...td, textAlign: 'right' }}>{o.epc ?? '—'}</td>
+                      <td style={{ ...td, textAlign: 'right' }}>{o.cvr ?? '—'}</td>
+                      <td style={{ ...td, color: statusColor(o.status) }}>● {o.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+      </div>
+    </Drawer>
+  );
+}
+const miniBtn: React.CSSProperties = { padding: '4px 10px', fontSize: 11, fontFamily: 'var(--font-mono)', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer' };
+const th: React.CSSProperties = { padding: '5px 8px', fontWeight: 700, whiteSpace: 'nowrap' };
+const td: React.CSSProperties = { padding: '5px 8px', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 
 // Deal terms the network never sends (Awin/CJ sync writes other columns only → safe to edit here).
 // account_id IS written by the Awin sync, but only for its own rows — editing a direct offer's

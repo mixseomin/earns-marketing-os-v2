@@ -48,6 +48,8 @@ export interface AffiliateOffer {
   accountId: string | null;    // which of OUR accounts this offer is signed up under
   account: string | null;      // OfferAccount.label, resolved
   name: string;
+  brand: string;               // name stripped of network/model/geo qualifiers → groups the SAME offer across networks
+  network: string | null;      // network key (tkglobal, clickbank, awin…) — the label for cross-network comparison
   status: string;              // active | joined | pending | paused | ...
   vertical: string | null;
   geos: string[];
@@ -55,6 +57,10 @@ export interface AffiliateOffer {
   previewUrl: string | null;
   tags: string[];
   productType: string | null;
+  // Extra performance signals a network exposes (mostly the scraped rows).
+  epc: string | null;          // earnings per click
+  cvr: string | null;          // conversion / approval rate
+  currency: string | null;     // VND | USD | EUR
   // Deal terms (editable — see saveOfferTerms).
   commission: string | null;   // commission_rate   e.g. "30%", "$1", "20–62,25%"
   model: string | null;        // commission_model  e.g. "recurring (lifetime)"
@@ -74,6 +80,7 @@ type Row = {
   id: string;
   account_id: string | null;
   name: string;
+  network: string | null;
   status: string;
   vertical: string | null;
   affiliate_url: string | null;
@@ -87,13 +94,25 @@ type Row = {
   cookie_lifetime: string | null;
   promotion_policy: string | null;
   reward_details: string | null;
+  epc: string | null;
+  conversion_rate: string | null;
+  currency: string | null;
   created_at: string;
   approved_at: string | null;
 };
 
+// Strip the qualifiers a network tacks onto the merchant name so the SAME merchant lines up across
+// networks: "Klook - CPS" / "Klook Network - CPS" / "Klook" → "Klook". Lets /offers compare who pays
+// most for the same brand.
+function brandOf(name: string): string {
+  let b = (name.split(/\s*[-(/|·]| CP[SLAI]\b| Network\b| Global\b/i)[0] ?? name).trim();
+  b = b.replace(/\.(com|vn|net|co|shop|world|eco|asia|io|org|bg|au|in|id|tw)\b.*$/i, '').trim();
+  return b || name;
+}
+
 // NB: `notes` deliberately excluded — see the PERF note above. Lazy-loaded via getOfferNote.
 // The terms columns are short text and null on ~99% of rows → negligible payload.
-const LIST_FIELDS = 'id,account_id,name,status,vertical,affiliate_url,preview_url,target_geo,tags,product_type,commission_rate,commission_model,commission_time,cookie_lifetime,promotion_policy,reward_details,created_at,approved_at';
+const LIST_FIELDS = 'id,account_id,name,network,status,vertical,affiliate_url,preview_url,target_geo,tags,product_type,commission_rate,commission_model,commission_time,cookie_lifetime,promotion_policy,reward_details,epc,conversion_rate,currency,created_at,approved_at';
 const PAGE_SIZE = 200;
 
 async function fetchPage(page: number): Promise<{ rows: Row[]; total: number }> {
@@ -139,13 +158,15 @@ export const listOfferAccounts = unstable_cache(
 );
 
 function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>): AffiliateOffer {
-  const network = NETWORK_BY_ACCOUNT[x.account_id ?? ''];
+  const netKind = NETWORK_BY_ACCOUNT[x.account_id ?? ''];
   return {
     id: x.id,
-    kind: own.has(x.name.trim().toLowerCase()) ? 'own' : network ?? 'direct',
+    kind: own.has(x.name.trim().toLowerCase()) ? 'own' : netKind ?? 'direct',
     accountId: x.account_id,
     account: x.account_id ? accounts.get(x.account_id) ?? null : null,
     name: x.name,
+    brand: brandOf(x.name),
+    network: x.network ?? netKind ?? null,
     status: x.status || 'unknown',
     vertical: x.vertical,
     geos: Array.isArray(x.target_geo) ? x.target_geo : [],
@@ -153,6 +174,9 @@ function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>): Affil
     previewUrl: x.preview_url,
     tags: Array.isArray(x.tags) ? x.tags.filter((t) => !/^awin-mid-/.test(t)) : [],
     productType: x.product_type,
+    epc: x.epc,
+    cvr: x.conversion_rate,
+    currency: x.currency,
     commission: x.commission_rate,
     model: x.commission_model,
     recurring: x.commission_time,
@@ -240,7 +264,7 @@ function matches(o: AffiliateOffer, f: OfferFilters): boolean {
   if (f.recurring === 'no' && isRecurring(o)) return false;
   if (f.q) {
     const t = f.q.toLowerCase();
-    const hay = [o.name, o.vertical, o.account, o.commission, o.policy, o.reward, ...o.tags];
+    const hay = [o.name, o.brand, o.network, o.vertical, o.account, o.commission, o.policy, o.reward, ...o.tags];
     if (!hay.some((v) => v?.toLowerCase().includes(t))) return false;
   }
   return true;
@@ -308,6 +332,22 @@ export async function getOffersView(f: OfferFilters): Promise<OffersView> {
     },
     facets: facetsOf(all),
   };
+}
+
+// Quick-view drawer: pull every offer for one entity (a brand / network / account) so the drawer
+// can show the SAME offer across networks side-by-side (compare who pays most). Reuses the cached
+// full list → cheap. Brand match is case-insensitive exact on the stripped brand.
+export async function getEntityOffers(field: 'brand' | 'network' | 'account', value: string): Promise<AffiliateOffer[]> {
+  const all = await listAffiliateOffers();
+  const v = value.toLowerCase();
+  const hit = all.filter((o) => {
+    if (field === 'brand') return o.brand.toLowerCase() === v;
+    if (field === 'network') return (o.network ?? '').toLowerCase() === v;
+    return o.accountId === value;
+  });
+  // Approved first, then highest commission-ish string — good enough for a glance.
+  return hit.sort((a, b) => (APPROVED.has(a.status.toLowerCase()) ? 0 : 1) - (APPROVED.has(b.status.toLowerCase()) ? 0 : 1)
+    || (b.commission ?? '').localeCompare(a.commission ?? ''));
 }
 
 // Awin rows store a sync blob behind `[awin-sync]` in notes — not a user note.

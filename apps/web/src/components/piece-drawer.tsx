@@ -208,6 +208,24 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
         </div>
 
         {tab === 'overview' && (<>
+          {/* Bài video là loại DUY NHẤT tiêu tiền trước khi đăng: lời đọc chạy qua ElevenLabs, tính
+              theo ký tự. Số tiền đứng ngay đầu bài, cạnh ô thiếu-nguyên-liệu — quyết định "dựng hay
+              bỏ" là quyết định lúc MỞ bài ra, không phải lúc nhận hoá đơn cuối tháng. */}
+          {isVideoPiece(piece) && (() => {
+            const c = voCost(detail?.bodyMd ?? '');
+            return (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '7px 11px', borderRadius: 8, fontSize: 12,
+                border: '1px solid var(--line)', background: 'var(--bg-2)' }}>
+                <span style={{ color: 'var(--fg-3)' }}>Tiền dựng</span>
+                {!detail ? <span style={{ color: 'var(--fg-4)' }}>đang đọc kịch bản…</span>
+                  : c ? <>
+                      <b style={{ color: 'var(--neon-amber)', fontFamily: 'var(--font-mono)' }}>≈ ${c.usd.toFixed(2)}</b>
+                      <span style={{ color: 'var(--fg-3)' }}>{c.chars.toLocaleString('vi-VN')} ký tự lời đọc · ElevenLabs</span>
+                    </>
+                  : <span style={{ color: 'var(--fg-4)' }}>chưa viết lời đọc (không có câu nào trong ngoặc kép) nên chưa tính được</span>}
+              </div>
+            );
+          })()}
           {/* BÀI THẬT, dựng đúng thứ sẽ lên: account nào đứng tên, caption nguyên văn, ảnh kèm.
               Duyệt bằng mô tả ("card ảnh + 8 số liệu") là duyệt cái mình tưởng tượng, không phải
               cái sẽ đăng — nên preview đứng TRƯỚC nút trạng thái, đọc rồi mới bấm approved. */}
@@ -356,21 +374,6 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
                   })}
                 </div>)}
               </>}
-              {/* Bài video là bài DUY NHẤT tiêu tiền trước khi đăng (lời đọc ElevenLabs tính theo ký
-                  tự). Số tiền phải đứng cạnh bài, không nằm trong đầu ai đó. */}
-              {isVideoPiece(piece) && row('Tiền dựng', (() => {
-                const c = voCost(detail?.bodyMd ?? '');
-                return (
-                  <span style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 11.5 }}>
-                    {!detail ? <span style={{ color: 'var(--fg-4)' }}>đang đọc kịch bản…</span>
-                      : c ? <>
-                          <b style={{ color: 'var(--neon-amber)', fontFamily: 'var(--font-mono)' }}>≈ ${c.usd.toFixed(2)}</b>
-                          <span style={{ color: 'var(--fg-3)' }}>{c.chars.toLocaleString('vi-VN')} ký tự lời đọc · ElevenLabs</span>
-                        </>
-                      : <span style={{ color: 'var(--fg-4)' }}>chưa viết lời đọc (chưa có câu nào trong ngoặc kép) — chưa tính được tiền</span>}
-                  </span>
-                );
-              })())}
               {/* Những gì composer Facebook có mà mình chưa dùng thì bài chạy dưới sức: lịch của FB
                   (bài tự lên kể cả lúc máy tắt), Story (mặt thứ hai, cùng nội dung, không tốn gì),
                   nút CTA. Chỉ hiện ở kênh FB — kênh khác không có mấy thứ này. */}

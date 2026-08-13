@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation';
 import { Drawer, EntityRef, EntityPicker, type EntityOption } from '@/components/ui';
 import { readManagedPages } from '@/components/account-metrics';
 import { ChannelFavicon } from '@/components/ui';
-import { CHANNELS, STATUSES, ANGLE_GROUPS, ANGLES, STYLES, CHANNEL_PLATFORM, FB_BUTTONS, angleOf, angleLabel, formatOf, formatsFor, styleOf, isVideoMedia, tagVal, tagIds, pieceGaps, pieceRisks } from '@/lib/content-channels';
+import { CHANNELS, STATUSES, ANGLE_GROUPS, ANGLES, STYLES, CHANNEL_PLATFORM, FB_BUTTONS, angleOf, angleLabel, formatOf, formatsFor, styleOf, isVideoMedia, isVideoPiece, voCost, tagVal, tagIds, pieceGaps, pieceRisks } from '@/lib/content-channels';
 import { REDDIT_SUBS, subOf, subName } from '@/lib/reddit-subs';
 import { updateContentPiece, createContentPiece, checkPieceLinks, getPieceDetail, type ContentInput } from '@/lib/actions/content';
 import { todayLocal } from '@/lib/local-day';
@@ -356,6 +356,21 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
                   })}
                 </div>)}
               </>}
+              {/* Bài video là bài DUY NHẤT tiêu tiền trước khi đăng (lời đọc ElevenLabs tính theo ký
+                  tự). Số tiền phải đứng cạnh bài, không nằm trong đầu ai đó. */}
+              {isVideoPiece(piece) && row('Tiền dựng', (() => {
+                const c = voCost(detail?.bodyMd ?? '');
+                return (
+                  <span style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 11.5 }}>
+                    {!detail ? <span style={{ color: 'var(--fg-4)' }}>đang đọc kịch bản…</span>
+                      : c ? <>
+                          <b style={{ color: 'var(--neon-amber)', fontFamily: 'var(--font-mono)' }}>≈ ${c.usd.toFixed(2)}</b>
+                          <span style={{ color: 'var(--fg-3)' }}>{c.chars.toLocaleString('vi-VN')} ký tự lời đọc · ElevenLabs</span>
+                        </>
+                      : <span style={{ color: 'var(--fg-4)' }}>chưa viết lời đọc (chưa có câu nào trong ngoặc kép) — chưa tính được tiền</span>}
+                  </span>
+                );
+              })())}
               {/* Những gì composer Facebook có mà mình chưa dùng thì bài chạy dưới sức: lịch của FB
                   (bài tự lên kể cả lúc máy tắt), Story (mặt thứ hai, cùng nội dung, không tốn gì),
                   nút CTA. Chỉ hiện ở kênh FB — kênh khác không có mấy thứ này. */}

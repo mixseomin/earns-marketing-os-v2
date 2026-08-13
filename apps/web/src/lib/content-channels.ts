@@ -104,6 +104,24 @@ export type ContentStatus = typeof STATUSES[number];
 // in ra '✓ Đã đăng · chưa lưu link bài', một câu tự mâu thuẫn (bài 153 nằm như thế từ dữ liệu diễn
 // tập). Cùng học thuyết với plays: đóng việc phải có KẾT QUẢ. Email/DM không sinh URL công khai nên
 // miễn; các kênh còn lại đều có permalink.
+// ── Tiền dựng video ──────────────────────────────────────────────────────────
+// Bài video tiêu TIỀN THẬT trước khi đăng: lời đọc chạy qua ElevenLabs, tính theo KÝ TỰ. Con số phải
+// nằm ngay trên bài, không thì tới lúc xem hoá đơn mới biết tháng này đọc bao nhiêu.
+// Giá suy từ gói Creator 22 USD / 121.000 credit, model multilingual v2 = 1 credit mỗi ký tự
+// → 0,18 USD cho 1.000 ký tự. Đổi gói thì sửa đúng một chỗ này.
+export const VO_USD_PER_1K = 0.18;
+const VIDEO_FMT = new Set(['short', 'longform']);
+export const isVideoPiece = (p: { channel: string; tags: string[] }) =>
+  p.channel === 'reel' || VIDEO_FMT.has(tagVal(p.tags, 'format'));
+/** Lời ĐỌC = phần trong ngoặc kép của kịch bản (dòng 0:04 SHOT… là chỉ dẫn quay, không ai đọc lên).
+ *  Không có ngoặc kép nào thì chưa viết lời — trả null để bài hiện "chưa có lời đọc", đừng đoán bừa. */
+export function voCost(bodyMd: string): { chars: number; usd: number } | null {
+  const spoken = [...bodyMd.matchAll(/["“]([^"”]{4,})["”]/g)].map((m) => m[1]!.trim());
+  if (!spoken.length) return null;
+  const chars = spoken.join(' ').length;
+  return { chars, usd: (chars / 1000) * VO_USD_PER_1K };
+}
+
 // Bài đã nằm trong lịch của CHÍNH nền tảng (tag platsched): nền tảng tự đăng đúng giờ kể cả lúc máy
 // mình tắt — việc phải làm khác hẳn bài còn chờ runner, nên mọi chỗ LIỆT KÊ bài phải phân biệt được,
 // không chỉ bản dựng chi tiết. Một hàm dùng chung cho lịch + rail + danh sách.
@@ -296,8 +314,7 @@ export function pieceGaps(
   // Bài VIDEO mà tệp gắn vào là ảnh thì không có gì để đăng — và trước đây nó vẫn đếm là "đủ
   // nguyên liệu" vì chỉ kiểm asset CÓ TỒN TẠI hay không, không kiểm LOẠI. Lỗi chỉ lộ ra lúc mở
   // Reels lên rồi mới thấy không tải được. Kiểm ở đây một lần cho mọi kênh video.
-  const VIDEO_FORMATS = new Set(['short', 'longform']);
-  if (piece.channel === 'reel' || VIDEO_FORMATS.has(tagVal(piece.tags, 'format'))) {
+  if (isVideoPiece(piece)) {
     const attached = tagIds(piece.tags, 'asset')
       .map((id) => refs.media?.find((m) => m.id === id)).filter(Boolean) as Array<{ kind?: string; mimeType?: string | null; filename?: string }>;
     const hasVideo = attached.some(isVideoMedia);

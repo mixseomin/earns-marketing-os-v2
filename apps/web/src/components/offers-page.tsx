@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState, useTransition } from 'react';
+import { Suspense, useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   getOfferNote, getOffer, saveOfferTerms, getEntityOffers,
@@ -9,6 +9,7 @@ import {
 import { useModalParam } from '@/lib/use-modal-param';
 import {
   EmptyState, Drawer, ListToolbar, FilterChips, Pager, MultiSelect, EntityRef, StatusBadge, Pill,
+  usePaged, SearchInput,
   DataTable, TextField, TextAreaField, SelectField, type DataColumn, type DataGroup,
 } from './ui';
 import { openEntityDrawer } from '@/lib/entity-drawer';
@@ -453,6 +454,15 @@ function EntityDrawer({ mode, value, rows, onClose, onOpenOffer, onFilterBrand }
     { key: 'cvr', header: 'CVR', align: 'right', cell: (o) => o.cvr ?? <span style={dim}>—</span> },
     { key: 'status', header: 'Status', align: 'left', sortValue: (o) => o.status, cell: (o) => <StatusBadge meta={statusMeta(o.status)} /> },
   ].filter((c) => c.key !== 'net' || field !== 'network');
+  // Search + client paging over the fetched set (house usePaged/SearchInput/Pager) — an account/network
+  // can have hundreds of offers, so the drawer needs the same filter+page controls as the main list.
+  const [q, setQ] = useState('');
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s || !rows) return rows ?? [];
+    return rows.filter((o) => [o.name, o.brand, o.network, o.commission, o.vertical].some((v) => v?.toLowerCase().includes(s)));
+  }, [rows, q]);
+  const paged = usePaged(filtered, 50);
   return (
     <Drawer onClose={onClose} width={620}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -461,7 +471,7 @@ function EntityDrawer({ mode, value, rows, onClose, onOpenOffer, onFilterBrand }
           <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{label}</h2>
           {rows && (
             <div style={{ marginTop: 6, fontSize: 12, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
-              {rows.length} offer{mode === 'brand' && nets > 1 ? ` · ${nets} networks` : ''}
+              {q.trim() ? `${filtered.length}/${rows.length}` : rows.length} offer{mode === 'brand' && nets > 1 ? ` · ${nets} networks` : ''}
             </div>
           )}
           <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
@@ -473,7 +483,15 @@ function EntityDrawer({ mode, value, rows, onClose, onOpenOffer, onFilterBrand }
 
         {!rows ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>Đang tải…</div>
           : rows.length === 0 ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>Không có offer.</div>
-          : <DataTable rows={rows} columns={quickCols} getRowKey={(o) => o.id} onRowClick={(o) => onOpenOffer(o.id)} minWidth={560} />}
+          : (
+            <>
+              <SearchInput value={q} onChange={setQ} placeholder="Tìm trong offers (tên/brand/net/%)…" width={280} />
+              {filtered.length === 0
+                ? <div style={{ color: 'var(--fg-3)', fontSize: 12, marginTop: 10 }}>Không khớp “{q}”.</div>
+                : <div style={{ marginTop: 10 }}><DataTable rows={paged.pageItems} columns={quickCols} getRowKey={(o) => o.id} onRowClick={(o) => onOpenOffer(o.id)} minWidth={560} /></div>}
+              <Pager page={paged.page} pageCount={paged.pageCount} total={paged.total} pageSize={paged.pageSize} onPage={paged.setPage} />
+            </>
+          )}
       </div>
     </Drawer>
   );

@@ -111,7 +111,7 @@ export type ContentStatus = typeof STATUSES[number];
 // → 0,18 USD cho 1.000 ký tự. Đổi gói thì sửa đúng một chỗ này.
 export const VO_USD_PER_1K = 0.18;
 const VIDEO_FMT = new Set(['short', 'longform']);
-export const isVideoPiece = (p: { channel: string; tags: string[] }) =>
+export const isVideoPiece = (p: { channel?: string; tags: string[] }) =>
   p.channel === 'reel' || VIDEO_FMT.has(tagVal(p.tags, 'format'));
 /** Lời ĐỌC = phần trong ngoặc kép của kịch bản (dòng 0:04 SHOT… là chỉ dẫn quay, không ai đọc lên).
  *  Không có ngoặc kép nào thì chưa viết lời — trả null để bài hiện "chưa có lời đọc", đừng đoán bừa. */

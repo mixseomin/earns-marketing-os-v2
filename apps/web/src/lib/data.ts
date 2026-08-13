@@ -1176,7 +1176,10 @@ export async function listScheduledContentPieces(projectId?: string): Promise<Ca
              -- biến 'militarycalc.com' trần thành link y như https://… , nên bắt cả hai dạng.
              (coalesce(body_md, '') ~* '(https?://|\m[a-z0-9][a-z0-9-]*\.(com|org|net|io|gov|app|co)\M)') AS has_link
       FROM content_pieces
-      WHERE archived_at IS NULL AND scheduled_at IS NOT NULL
+      -- HAI đường nói "bỏ bài này": cột archived_at và status='archived'. Trước đây chỉ đường thứ
+      -- nhất được nghe, nên đặt status='archived' xong bài VẪN nằm nguyên trong lịch — im lặng, và
+      -- người đặt tưởng đã bỏ. Nghe cả hai.
+      WHERE archived_at IS NULL AND status <> 'archived' AND scheduled_at IS NOT NULL
         ${projectId ? sql`AND project_id = ${projectId}` : sql``}
       ORDER BY scheduled_at
     `);

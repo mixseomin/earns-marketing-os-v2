@@ -33,6 +33,10 @@ const NETWORK_BY_ACCOUNT: Record<string, OfferKind | undefined> = {
   '45388bdb-ffdc-4a0d-993a-da66e3d28105': 'cj',
 };
 
+// Offer network key → MOS2 platform_accounts.platform_key, for the (rare) cases the two taxonomies
+// drift. Only CJ diverges: offers say 'cj', the account's platform_key is 'cj-affiliate'.
+const NET_KEY_ALIAS: Record<string, string> = { cj: 'cj-affiliate' };
+
 // awin/cj = synced from a network · direct = merchant's own program, added by hand ·
 // own = OUR product that leaked into this collection (it belongs on /products).
 export type OfferKind = 'awin' | 'cj' | 'direct' | 'own';
@@ -200,7 +204,7 @@ async function mosAccountByNetwork(): Promise<Map<string, { id: number; handle: 
 function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>, mosAccts: Map<string, { id: number; handle: string }>): AffiliateOffer {
   const netKind = NETWORK_BY_ACCOUNT[x.account_id ?? ''];
   const platformKey = x.network ?? netKind ?? null;
-  const mos = platformKey ? mosAccts.get(platformKey) : undefined;
+  const mos = platformKey ? (mosAccts.get(platformKey) ?? mosAccts.get(NET_KEY_ALIAS[platformKey] ?? '')) : undefined;
   return {
     id: x.id,
     kind: own.has(x.name.trim().toLowerCase()) ? 'own' : netKind ?? 'direct',

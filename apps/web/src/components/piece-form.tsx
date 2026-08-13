@@ -10,7 +10,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { FormModal, FormModalFooter } from '@/components/ui/form-modal';
-import { MultiSelect, Segmented } from '@/components/ui';
+import { MultiSelect, Segmented, ConfirmDeleteButton } from '@/components/ui';
 import { PiecePreview, forgetPieceBody } from '@/components/piece-preview';
 import { CHANNELS, STATUSES, ANGLE_GROUPS, ANGLES, angleLabel, tagVal, type ContentStatus } from '@/lib/content-channels';
 import { createContentPiece, updateContentPiece, archiveContentPiece, generateContent, getPieceDetail, pieceFormOptions } from '@/lib/actions/content';
@@ -123,8 +123,10 @@ export function PieceForm({ piece, projectId, projects = [], accounts = [], medi
     });
   };
 
+  // Hỏi lại bằng chính cái nút (bấm lần hai), không dùng hộp thoại của trình duyệt — hộp thoại
+  // native chặn cả trang và trông như lỗi hệ thống. ui-conventions.
   const archive = () => {
-    if (!piece || !confirm(`Lưu trữ "${piece.title}"? Bài sẽ rời khỏi lịch.`)) return;
+    if (!piece) return;
     start(async () => { await archiveContentPiece(piece.id, piece.projectId); router.refresh(); onSaved?.(); onClose(); });
   };
 
@@ -255,7 +257,9 @@ export function PieceForm({ piece, projectId, projects = [], accounts = [], medi
       </div>
 
       <FormModalFooter>
-        {!isCreate && <button type="button" className="btn danger" disabled={pending} onClick={archive}>🗑 Lưu trữ</button>}
+        {!isCreate && <ConfirmDeleteButton onDelete={archive} disabled={pending}
+          labelIdle="🗑 Lưu trữ" labelArmed="⚠ Bấm lần nữa — bài rời khỏi lịch"
+          title="Đưa bài ra khỏi lịch (không xoá hẳn) / Bấm lần nữa để chắc chắn" />}
         <button type="button" className="btn ghost" onClick={onClose}>Huỷ</button>
         <button type="button" className="btn primary" disabled={pending} onClick={save}>{isCreate ? 'Tạo bài' : 'Lưu'}</button>
       </FormModalFooter>

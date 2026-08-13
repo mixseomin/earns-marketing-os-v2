@@ -364,88 +364,6 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
   );
 }
 
-// The Account cell's drawer: WHO this login is, not a bag of offers. Identity + health + a dashboard
-// deep-link, then the offers under it. Reuses the house Drawer + Field/sectionLabel + NETWORK_HOME.
-function AccountDrawer({ sel, acct, err, onClose, onOpenOffer, onFilter }: {
-  sel: { id: string; label: string };
-  acct: AccountDetail | null;
-  err: boolean;
-  onClose: () => void;
-  onOpenOffer: (offerId: string) => void;
-  onFilter: () => void;
-}) {
-  // Header renders INSTANTLY from the clicked label ("network · handle") — no wait on the vault fetch,
-  // so it's unmistakably the ACCOUNT drawer even while detail loads (or if the vault call fails).
-  const parts = sel.label.split(' · ');
-  const net = parts[0] ?? sel.label;
-  const handle = parts.slice(1).join(' · ') || net;
-  const home = NETWORK_HOME[(acct?.platform ?? net).toLowerCase()];
-  return (
-    <Drawer onClose={onClose} width={560}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>ACCOUNT · {(acct?.platform ?? net).toUpperCase()}</div>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{acct?.handle || handle}</h2>
-          {acct?.status && <div style={{ marginTop: 6, fontSize: 12, fontFamily: 'var(--font-mono)', color: statusColor(acct.status) }}>● {acct.status}</div>}
-          <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
-            {home && <a href={home} target="_blank" rel="noreferrer" style={{ ...miniBtn, textDecoration: 'none' }}>↗ mở dashboard net</a>}
-            <button type="button" onClick={onFilter} style={miniBtn}>⌕ lọc bảng theo account này</button>
-          </div>
-        </div>
-
-        {!acct ? (
-          <div style={{ color: err ? 'var(--neon-amber)' : 'var(--fg-3)', fontSize: 12 }}>{err ? 'Không tải được chi tiết account từ vault.' : 'Đang tải chi tiết…'}</div>
-        ) : (
-         <>
-          <div>
-            <div style={sectionLabel}>Identity</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
-              <Field label="Network" value={acct.platform || '—'} />
-              <Field label="Handle" value={acct.handle || '—'} />
-              {acct.email && <Field label="Email" value={acct.email} />}
-              {acct.authMethod && <Field label="Auth" value={acct.authMethod + (acct.has2fa ? ' · 2FA' : '')} />}
-              {acct.valueTier && <Field label="Value tier" value={acct.valueTier} />}
-              {acct.purpose && <Field label="Purpose" value={acct.purpose} />}
-              {acct.monthlyCost != null && acct.monthlyCost > 0 && <Field label="Monthly cost" value={`$${acct.monthlyCost}`} />}
-              {acct.lastVerifiedAt && <Field label="Last verified" value={acct.lastVerifiedAt.slice(0, 10)} />}
-            </div>
-            {acct.tags.length > 0 && (
-              <div style={{ marginTop: 12 }}>
-                <div style={labelStyle}>Tags</div>
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
-                  {acct.tags.map((t) => <span key={t} style={{ fontSize: 11, padding: '2px 7px', borderRadius: 5, background: 'var(--bg-2)', color: 'var(--fg-2)' }}>{t}</span>)}
-                </div>
-              </div>
-            )}
-            {acct.notes && <div style={{ marginTop: 12 }}><Field label="Notes" value={acct.notes} /></div>}
-          </div>
-
-          <div>
-            <div style={sectionLabel}>Offers dưới account · {acct.offers.count}</div>
-            {acct.offers.count === 0 ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>Chưa có offer nào gán account này.</div> : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                  <tbody>
-                    {acct.offers.rows.map((o) => (
-                      <tr key={o.id} onClick={() => onOpenOffer(o.id)} style={{ cursor: 'pointer', borderTop: '1px solid var(--line)' }}>
-                        <td style={{ ...td, ...clip(240) }} title={o.name}>{o.name}</td>
-                        <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>{o.commission ?? '—'}</td>
-                        <td style={{ ...td, color: statusColor(o.status), whiteSpace: 'nowrap' }}>● {o.status}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {acct.offers.count > acct.offers.rows.length && <div style={{ color: 'var(--fg-3)', fontSize: 11, marginTop: 6 }}>+{acct.offers.count - acct.offers.rows.length} nữa — bấm "lọc bảng" để xem hết</div>}
-              </div>
-            )}
-          </div>
-         </>
-        )}
-      </div>
-    </Drawer>
-  );
-}
-
 // Quick-view drawer for a clicked entity (brand / network / account). Its whole point is the
 // comparison table: the SAME brand across networks, so you see who pays most at a glance.
 function EntityDrawer({ entity, rows, onClose, onOpenOffer, onFilterBrand }: {
@@ -455,7 +373,7 @@ function EntityDrawer({ entity, rows, onClose, onOpenOffer, onFilterBrand }: {
   onOpenOffer: (id: string) => void;
   onFilterBrand?: () => void;
 }) {
-  const kindWord = entity.field === 'brand' ? 'Brand' : entity.field === 'network' ? 'Network' : 'Account';
+  const kindWord = entity.field === 'brand' ? 'Brand' : 'Network';
   const nets = rows ? new Set(rows.map((r) => netLabel(r)).filter(Boolean)).size : 0;
   const home = entity.field === 'network' ? NETWORK_HOME[entity.value] : undefined;
   return (

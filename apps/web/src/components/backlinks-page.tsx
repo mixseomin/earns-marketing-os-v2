@@ -19,7 +19,7 @@ import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
-import { CHANNELS, FORMATS, STYLES, ANGLE_GROUPS, MIX_TARGET, LINK_SHARE_MAX, angleOf, tagVal, pieceGaps, pieceRisks, shouldWarnGaps } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
+import { CHANNELS, FORMATS, STYLES, ANGLE_GROUPS, ANGLES, MIX_TARGET, LINK_SHARE_MAX, angleOf, angleLabel, tagVal, pieceGaps, pieceRisks, shouldWarnGaps } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
 import { StatusSegmented, Segmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, ChannelFavicon, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
@@ -185,7 +185,7 @@ const PIECE_AXES: Array<{
     lab: (v) => ANGLE_GROUPS.find((g) => g.id === v)?.label ?? v,
     color: (v) => ANGLE_GROUPS.find((g) => g.id === v)?.color,
     rank: (v) => ANGLE_GROUPS.findIndex((g) => g.id === v) },
-  { key: 'angle', label: 'Góc', get: (p) => tagVal(p.tags, 'angle'), lab: (v) => v,
+  { key: 'angle', label: 'Góc', get: (p) => tagVal(p.tags, 'angle'), lab: (v) => angleLabel(v),
     color: (v) => ANGLE_GROUPS.find((g) => g.angles.includes(v))?.color },
   { key: 'status', label: 'Trạng thái', get: (p) => p.status, lab: (v) => v },
   { key: 'acct', label: 'Account', get: (p) => tagVal(p.tags, 'acct'),
@@ -2188,17 +2188,45 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                   <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--fg-3)' }}>{ps.length} bài</span>
                 </div>
               </div>
-              {ps.map((p) => (
+              {ps.map((p) => {
+                const ang = angleOf(p.tags), fmt = FORMATS.find((f) => f.id === tagVal(p.tags, 'format'));
+                return (
                 <div key={p.id} id={`piece-${p.id}`} style={{ display: 'flex', gap: 12, padding: '12px 0', scrollMarginTop: barH + 56 }}>
-                  <div style={{ width: 46, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)' }}>{tagVal(p.tags, 'time') || '--:--'}</span>
-                    <span style={{ flex: 1, width: 1, background: 'var(--line)' }} />
+                  {/* Rãnh trái đi THEO bài: bài dài cuộn nửa màn hình mà giờ/kênh nằm mãi trên đầu thì
+                      đọc giữa chừng không còn biết đang xem bài của kênh nào, giờ nào. Dính lại là
+                      biết ngay. Vạch dọc vẽ bằng nền của rãnh nên vẫn chạy hết chiều cao bài. */}
+                  <div style={{ width: 52, flexShrink: 0, backgroundImage: 'linear-gradient(var(--line), var(--line))',
+                    backgroundSize: '1px 100%', backgroundPosition: 'center 26px', backgroundRepeat: 'no-repeat' }}>
+                    <div style={{ position: 'sticky', top: barH + 52, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)', background: 'var(--bg-0)', padding: '0 2px' }}>
+                        {tagVal(p.tags, 'time') || '--:--'}
+                      </span>
+                      <span style={{ background: 'var(--bg-0)', padding: '2px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                        <ChannelFavicon channel={p.channel} size={22} circle />
+                        {fmt && <span title={fmt.label} style={{ fontSize: 13 }}>{fmt.icon}</span>}
+                        {ang && <i title={`${ang.group.label} · ${angleLabel(ang.angle)}`}
+                          style={{ display: 'block', width: 7, height: 7, borderRadius: 2, background: ang.group.color }} />}
+                        {p.status === 'published' && <span title="đã đăng" style={{ fontSize: 11, color: 'var(--ok)' }}>✓</span>}
+                      </span>
+                    </div>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* Bài này LÀM GÌ cho người đọc — đứng NGOÀI thẻ bài (thẻ bài phải y như lúc đăng). */}
+                    <div style={{ display: 'flex', gap: 7, alignItems: 'baseline', marginBottom: 5, fontSize: 11 }}>
+                      {ang ? (
+                        <>
+                          <span style={{ color: ang.group.color, fontWeight: 700, letterSpacing: '.03em' }}>{ang.group.label}</span>
+                          <span style={{ color: 'var(--fg-2)' }}>{angleLabel(ang.angle)}</span>
+                          <span style={{ color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                            title={ANGLES[ang.angle]?.purpose}>· {ANGLES[ang.angle]?.purpose}</span>
+                        </>
+                      ) : <span style={{ color: 'var(--warn)' }}>chưa gắn góc — không biết bài này phục vụ gì</span>}
+                    </div>
                     <PiecePreview piece={p} accounts={accounts} media={media} replies={repliesOf.get(p.id) ?? []} onOpen={() => setOpenPieceId(p.id)} />
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           ))}
         </div>

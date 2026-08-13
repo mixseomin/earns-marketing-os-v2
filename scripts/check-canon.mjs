@@ -68,6 +68,17 @@ for (const file of files) {
   }
 }
 
+// (4) Mọi angle trong ANGLE_GROUPS phải có tên + mục đích trong ANGLES (content-channels.ts).
+//     Thêm angle mà quên mục đích thì lịch hiện lại mã trần 'meme-curated' — đúng cái vừa bỏ đi.
+try {
+  const src = readFileSync('apps/web/src/lib/content-channels.ts', 'utf8');
+  const grouped = new Set([...src.matchAll(/angles: \[([^\]]+)\]/g)].flatMap((m) => [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1])));
+  const block = src.slice(src.indexOf('export const ANGLES'), src.indexOf('export const angleLabel'));
+  const described = new Set([...block.matchAll(/^\s*'?([a-z-]+)'?:\s*\{/gm)].map((m) => m[1]));
+  for (const a of grouped) if (!described.has(a)) violations.push(`content-channels.ts  angle '${a}' chưa có tên/mục đích trong ANGLES`);
+  for (const a of described) if (!grouped.has(a)) violations.push(`content-channels.ts  ANGLES có '${a}' nhưng không nhóm nào chứa nó`);
+} catch { /* file absent */ }
+
 if (violations.length) {
   console.error('\n✗ Behavioral-canon guard — single-source violated:\n');
   for (const v of violations) console.error('  ' + v);

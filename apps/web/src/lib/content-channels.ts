@@ -89,6 +89,44 @@ export const ANGLE_GROUPS: Array<{ id: string; label: string; color: string; ang
   { id: 'reuse',     label: 'TÁI DÙNG',    color: 'var(--fg-3)',       angles: ['evergreen-repost', 'roundup'] },
 ];
 
+// Mã angle trần ('meme-curated') không nói bài LÀM GÌ — mà đó mới là câu hỏi lúc đọc lịch. Tên gọn
+// + mục đích một dòng, chép từ cột "Là gì" của catalog (earns-strategy/resources/content-angles.md).
+export const ANGLES: Record<string, { label: string; purpose: string }> = {
+  'meme-curated':     { label: 'Meme share lại',      purpose: 'Share meme của cộng đồng, giữ credit' },
+  'meme-original':    { label: 'Meme tự dựng',        purpose: 'Meme dựng từ data của mình' },
+  'news-hook':        { label: 'Bám tin ngành',       purpose: 'Tin dưới 48h + ảnh hưởng gì tới người đọc' },
+  ranking:            { label: 'Xếp hạng',            purpose: 'Top N, đắt nhất - rẻ nhất, sinh từ bảng dữ liệu' },
+  visual:             { label: 'Ảnh / biểu đồ',       purpose: 'Một hình đứng một mình đủ hiểu' },
+  'hot-take':         { label: 'Quan điểm ngược',     purpose: 'Nói ngược số đông, có số chứng minh' },
+  seasonal:           { label: 'Bám mốc lịch',        purpose: 'Ngày lương, mùa thuế, ngày ra rate mới' },
+  alert:              { label: 'Cảnh báo gấp',        purpose: 'Có việc phải làm ngay, không chỉ để biết' },
+  prediction:         { label: 'Dự báo',              purpose: 'Cái sắp tới, có căn cứ' },
+  'trend-jack':       { label: 'Bám trend nền tảng',  purpose: 'Mượn format/audio đang viral của nền tảng' },
+  'data-point':       { label: 'Một con số',          purpose: 'Một con số và vì sao nó quan trọng' },
+  comparison:         { label: 'So sánh A/B',         purpose: 'Nơi này với nơi kia, gói này với gói kia' },
+  explainer:          { label: 'Giải thích cơ chế',   purpose: 'Thứ này hoạt động thế nào' },
+  'myth-bust':        { label: 'Đập hiểu lầm',        purpose: 'Sửa hiểu lầm phổ biến, kèm số' },
+  'how-to':           { label: 'Hướng dẫn làm',       purpose: 'Các bước làm được ngay hôm nay' },
+  checklist:          { label: 'Danh sách để lưu',    purpose: 'Danh sách ngắn người ta lưu lại dùng' },
+  answer:             { label: 'Trả lời câu hỏi thật',purpose: 'Đáp đúng câu cộng đồng đang hỏi' },
+  'case-study':       { label: 'Người thật việc thật',purpose: 'Người thật, số thật, kết quả thật' },
+  teardown:           { label: 'Mổ xẻ thứ bên ngoài', purpose: 'Soi tool đối thủ, form cơ quan, tài liệu chính sách' },
+  'tool-demo':        { label: 'Demo công cụ',        purpose: 'Thao tác ra kết quả trong 10 giây' },
+  'use-case':         { label: 'Tình huống dùng',     purpose: 'Tình huống X ra số Y ra quyết định Z' },
+  changelog:          { label: 'Nhật ký build',       purpose: 'Vừa thêm gì, sửa gì, vì sao' },
+  offer:              { label: 'Lời mời',             purpose: 'Mời đăng ký, mua, nhận cập nhật' },
+  freebie:            { label: 'Quà tải về',          purpose: 'Cheat-sheet, template đổi lấy email' },
+  poll:               { label: 'Bình chọn',           purpose: 'Hỏi một câu, 3-4 lựa chọn, lấy insight' },
+  ugc:                { label: 'Bài của người dùng',  purpose: 'Khoe kết quả, đóng góp của người dùng' },
+  testimonial:        { label: 'Lời chứng thực',      purpose: 'Người thật nói tốt, có kiểm chứng' },
+  collab:             { label: 'Bắt tay chéo',        purpose: 'Cross-promo với creator/page cùng ngách' },
+  quiz:               { label: 'Câu đố có đáp án',    purpose: 'Đố đúng/sai, đáp án ở comment' },
+  ama:                { label: 'Hỏi đáp mở',          purpose: 'Mở hỏi-đáp theo khung giờ' },
+  'evergreen-repost': { label: 'Đăng lại bài top',    purpose: 'Bài top sau 60-90 ngày, đổi hook và ảnh' },
+  roundup:            { label: 'Tổng hợp kỳ',         purpose: 'Gom nhiều mẩu nhỏ thành tổng hợp tuần/tháng' },
+};
+export const angleLabel = (code: string) => ANGLES[code]?.label ?? code;
+
 const ANGLE_TO_GROUP = new Map(ANGLE_GROUPS.flatMap((g) => g.angles.map((a) => [a, g] as const)));
 
 // Lược đồ tag của content_pieces — MỘT chỗ định nghĩa, mọi nơi đọc qua đây (trước có 2 bộ parse

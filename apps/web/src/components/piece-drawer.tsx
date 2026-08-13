@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation';
 import { Drawer, EntityRef, EntityPicker, type EntityOption } from '@/components/ui';
 import { readManagedPages } from '@/components/account-metrics';
 import { ChannelFavicon } from '@/components/ui';
-import { CHANNELS, STATUSES, ANGLE_GROUPS, STYLES, CHANNEL_PLATFORM, angleOf, formatOf, formatsFor, styleOf, tagVal, tagIds, pieceGaps, pieceRisks } from '@/lib/content-channels';
+import { CHANNELS, STATUSES, ANGLE_GROUPS, ANGLES, STYLES, CHANNEL_PLATFORM, angleOf, angleLabel, formatOf, formatsFor, styleOf, tagVal, tagIds, pieceGaps, pieceRisks } from '@/lib/content-channels';
 import { updateContentPiece, createContentPiece, checkPieceLinks, getPieceDetail, type ContentInput } from '@/lib/actions/content';
 import { todayLocal } from '@/lib/local-day';
 import { PiecePreview, forgetPieceBody } from '@/components/piece-preview';
@@ -111,7 +111,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const loadStyles = useCallback(async (): Promise<EntityOption[]> => STYLES
     .map((x) => ({ key: `sty:${x.id}`, label: x.label, sub: x.hint, fallbackIcon: x.icon, data: { style: x.id } })), []);
   const loadAngles = useCallback(async (): Promise<EntityOption[]> => ANGLE_GROUPS
-    .flatMap((g) => g.angles.map((x) => ({ key: `ang:${x}`, label: x, sub: g.label, fallbackIcon: '◆', data: { angle: x } }))), []);
+    .flatMap((g) => g.angles.map((x) => ({ key: `ang:${x}`, label: angleLabel(x), sub: `${g.label} · ${ANGLES[x]?.purpose ?? ''}`, fallbackIcon: '◆', data: { angle: x } }))), []);
   // Card chuẩn bị = việc trên chính board này (produce/review/publish), chưa xong xếp trước.
   const loadTasks = useCallback(async (): Promise<EntityOption[]> => tasks
     .filter((t) => !chainIds.includes(t.id))
@@ -137,7 +137,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
         <div>
           <div style={{ fontSize: 11, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
             📝 BÀI ĐĂNG #{piece.id} · <ChannelFavicon channel={piece.channel} size={13} /> {ch?.label ?? piece.channel} · {projectLabel ?? piece.projectId}
-            {a && <> · <span style={{ color: a.group.color }}>{a.group.label}/{a.angle}</span></>}
+            {a && <> · <span style={{ color: a.group.color }} title={ANGLES[a.angle]?.purpose}>{a.group.label}/{angleLabel(a.angle)}</span></>}
           </div>
           <h2 style={{ margin: '4px 0 0', fontSize: 17, fontWeight: 700 }}>{piece.title}</h2>
         </div>
@@ -264,7 +264,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
               <label style={lbl}>Angle</label>
               <button type="button" disabled={pending} onClick={() => setPick('angle')}
                 style={{ ...inp, textAlign: 'left', cursor: 'pointer', color: a ? a.group.color : 'var(--fg-4)' }}>
-                {a ? `${a.group.label} / ${a.angle}` : '— chọn angle —'}
+                {a ? `${a.group.label} / ${angleLabel(a.angle)}` : '— chọn angle —'}
               </button>
             </div>
             <div style={{ flex: 1 }}>

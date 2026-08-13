@@ -122,19 +122,19 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
   // above, on a nested slot ('v'): ?v=brand|net|acct & vId=<brand|networkKey>. Shareable + survives F5.
   // brand → compare a merchant across networks; net → a network's offers; acct → an account's offers
   // (account ↔ network 1:1, so keyed by the network; the real account is derived from the loaded rows).
-  const view = useModalParam('v');
+  const qv = useModalParam('v');
   const entityField: 'brand' | 'network' | null =
-    view.value === 'brand' ? 'brand' : (view.value === 'net' || view.value === 'acct') ? 'network' : null;
+    qv.value === 'brand' ? 'brand' : (qv.value === 'net' || qv.value === 'acct') ? 'network' : null;
   const [entityRows, setEntityRows] = useState<AffiliateOffer[] | null>(null);
   useEffect(() => {
     setEntityRows(null);
-    if (!entityField || !view.id) return;
+    if (!entityField || !qv.id) return;
     let live = true;
-    getEntityOffers(entityField, view.id).then((r) => { if (live) setEntityRows(r); }).catch(() => {});
+    getEntityOffers(entityField, qv.id).then((r) => { if (live) setEntityRows(r); }).catch(() => {});
     return () => { live = false; };
-  }, [entityField, view.id]);
+  }, [entityField, qv.id]);
   const openEntity = (mode: 'brand' | 'net', value: string | null) =>
-    (e: React.MouseEvent) => { e.stopPropagation(); if (value) view.open(mode, value); };
+    (e: React.MouseEvent) => { e.stopPropagation(); if (value) qv.open(mode, value); };
 
   const columns: DataColumn<AffiliateOffer>[] = [
     {
@@ -165,7 +165,7 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
       cell: (o) => (o.mosAccountId
         ? <EntityRef kind="account" id={o.mosAccountId} noIcon
             label={o.account ? acctHandle(o.account) : (o.network ?? `#${o.mosAccountId}`)}
-            onOpen={() => { if (o.network) view.open('acct', o.network); }} />
+            onOpen={() => { if (o.network) qv.open('acct', o.network); }} />
         : <span style={{ color: 'var(--neon-amber)' }}>chưa gán</span>),
     },
     {
@@ -411,11 +411,11 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
         </Drawer>
       )}
 
-      {entityField && view.id && (
-        <EntityDrawer mode={view.value as 'brand' | 'net' | 'acct'} value={view.id} rows={entityRows}
-          onClose={() => view.close()}
-          onOpenOffer={(id) => { view.close(); modal.open('offer', id); }}
-          onFilterBrand={view.value === 'brand' ? () => { const v = view.id!; view.close(); setQ(v); } : undefined} />
+      {entityField && qv.id && (
+        <EntityDrawer mode={qv.value as 'brand' | 'net' | 'acct'} value={qv.id} rows={entityRows}
+          onClose={() => qv.close()}
+          onOpenOffer={(id) => { qv.close(); modal.open('offer', id); }}
+          onFilterBrand={qv.value === 'brand' ? () => { const v = qv.id!; qv.close(); setQ(v); } : undefined} />
       )}
     </div>
   );

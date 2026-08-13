@@ -1,34 +1,40 @@
 'use client';
 
-// Communities registry vault — central list of every habitat (subreddit/forum) with
-// members · rules · link-gate thresholds · our standing. One component, two mounts:
-// global /communities (no projectId → project filter shown) and the per-project view
-// /communities?project=<id> (projectId fixed). Row → the canonical HabitatFormModal
-// (full editor, reused) so gate/rules edits live in one place; the gate (link-readiness)
-// reads the same habitats.min_* the operator tunes here.
+// Communities registry vault — mọi habitat (subreddit/FB group/forum) với thành viên · LUẬT ĐĂNG ·
+// cổng link · chỗ đứng của mình. Một component, hai chỗ gắn: /communities (toàn hệ, có lọc project)
+// và /communities?project=<id>. Bấm dòng → HabitatFormModal (editor đầy đủ) — sửa luật/gate ở một chỗ.
+//
+// Bảng dùng ui.DataTable + NHÓM CỘT: luật đăng, cổng link, độ hợp, quản trị đều là thứ phải đọc được
+// NGAY trên bảng (trước đây nằm trong DB nhưng chỉ mở editor từng dòng mới thấy), nhưng bày 20 cột
+// cùng lúc thì không ai quét nổi — nên gom thành nhóm bật/tắt, nhớ theo persistKey.
 import { useState, useMemo, useTransition, useEffect, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { HabitatFormModal } from './habitat-form-modal';
-import { ListToolbar, Pager, usePaged, MultiSelect } from './ui';
-import { useTableSort, SortArrow, type SortableCol } from './ui/use-table-sort';
+import { ListToolbar, Pager, usePaged, MultiSelect, DataTable, type DataColumn, type DataGroup } from './ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { getHabitatRowAction } from '@/lib/actions/community-briefs';
 import type { HabitatRow, TribeRow, PlatformRow } from '@/lib/data';
 import type { CommunityRow } from '@/lib/actions/communities';
 
-const cell: CSSProperties = { padding: '7px 10px', borderBottom: '1px solid var(--line)', fontSize: 12, verticalAlign: 'top' };
-const th: CSSProperties = { padding: '8px 10px', background: 'var(--bg-2)', color: 'var(--fg-3)', fontWeight: 500, textTransform: 'uppercase', fontSize: 9.5, letterSpacing: '.06em', borderBottom: '1px solid var(--line)', textAlign: 'left', whiteSpace: 'nowrap' };
 const inp: CSSProperties = { padding: '5px 9px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12 };
-// Neutral badge (YDNI): type/attribute markers carry meaning in their LABEL, not a unique colour.
 const badge: CSSProperties = { fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 5, whiteSpace: 'nowrap', color: 'var(--fg-2)', border: '1px solid var(--line)', background: 'var(--bg-2)' };
-// Coloured pill reserved for the ONE glanceable signal here: links policy severity (banned=red, caveat=amber).
 const pill = (c: string): CSSProperties => ({ fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 5, whiteSpace: 'nowrap', color: c, border: `1px solid ${c}55`, background: `${c}14` });
+const dim = { color: 'var(--fg-4)' };
+// Ô chữ dài (luật, chủ đề): cắt bằng CSS chứ không cắt chuỗi — hover vẫn đọc đủ qua title.
+const clip = (w: number): CSSProperties => ({ maxWidth: w, overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' });
 
-// Does this community BAN links outright? (mirror of link-readiness regex, for display only.)
+// Cộng đồng này CẤM link hẳn? (soi cùng regex với link-readiness, chỉ để hiển thị.)
 function linksBanned(s: string): boolean {
   const v = (s || '').trim().toLowerCase();
   return v === 'never' || v === 'no' || /banned|no self|self.?promo|no link|not allow/.test(v);
 }
+
+const GROUPS: DataGroup[] = [
+  { key: 'rules', label: 'Luật đăng', color: '#ffb03c' },
+  { key: 'gate', label: 'Cổng link', color: '#34d399' },
+  { key: 'fit', label: 'Độ hợp', color: '#38bdf8', defaultOn: false },
+  { key: 'meta', label: 'Quản trị', color: '#a78bfa', defaultOn: false },
+];
 
 export function CommunitiesVault({ projectId, rows, platforms, projects, tribes, gatedKeys }: {
   projectId?: string;
@@ -52,26 +58,12 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
   const platLabel = useMemo(() => new Map(platforms.map((p) => [p.key, p.label])), [platforms]);
   const platKeys = useMemo(() => [...new Set(rows.map((r) => r.platformKey).filter(Boolean))] as string[], [rows]);
 
-  // Sort spec — one sortValue per data column. Composite/derived columns (gate, links, standing) pick a
-  // representative signal; unknown/untracked → null so they sort last. platLabel/projName/gateOn are
-  // component-scope Maps, so COLS lives here (memoised → useTableSort's sort memo stays stable).
-  const COLS = useMemo<SortableCol<CommunityRow>[]>(() => [
-    { key: 'community', sortValue: (r) => r.name.toLowerCase() },
-    { key: 'platform', sortValue: (r) => (r.platformKey ? (platLabel.get(r.platformKey) || r.platformKey).toLowerCase() : null) },
-    { key: 'members', sortValue: (r) => r.members || null },
-    { key: 'gate', sortValue: (r) => (r.platformKey && gateOn.has(r.platformKey) ? (r.minAgeDays || 14) : null) },
-    { key: 'links', sortValue: (r) => (r.linksAllowedAfter ? (linksBanned(r.linksAllowedAfter) ? 2 : 1) : null) },
-    { key: 'standing', sortValue: (r) => (r.briefs ? r.seeds : null) },
-    { key: 'project', sortValue: (r) => (r.projectId ? (projName.get(r.projectId) || r.projectId).toLowerCase() : null) },
-  ], [platLabel, projName, gateOn]);
-
   const shown = useMemo(() => rows.filter((r) =>
     (!proj.length || (r.projectId != null && proj.includes(r.projectId)))
     && (!plat.length || (r.platformKey != null && plat.includes(r.platformKey)))
     && (!q || `${r.name} ${r.url || ''} ${r.description || ''}`.toLowerCase().includes(q.toLowerCase())),
   ), [rows, proj, plat, q]);
-  const s = useTableSort(shown, COLS, 'communities');
-  const { pageItems, ...pager } = usePaged(s.sorted);
+  const { pageItems, ...pager } = usePaged(shown, 25);
 
   const kpis = useMemo(() => ({
     total: shown.length,
@@ -132,54 +124,96 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
           options={platKeys.map((k) => ({ value: k, label: `${platLabel.get(k) || k}${gateOn.has(k) ? ' 🌱' : ''}` }))} />
       </ListToolbar>
 
-      {/* Table */}
-      <div style={{ overflowX: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)' }}>
-          <thead>
-            <tr>
-              <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('community').onClick}>Community <SortArrow spec={s.thProps('community')} /></th>
-              <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('platform').onClick}>Platform <SortArrow spec={s.thProps('platform')} /></th>
-              <th style={{ ...th, textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('members').onClick}>Members <SortArrow spec={s.thProps('members')} /></th>
-              <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('gate').onClick}>🔒 Gate (age·karma·seed) <SortArrow spec={s.thProps('gate')} /></th>
-              <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('links').onClick}>Links policy <SortArrow spec={s.thProps('links')} /></th>
-              <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('standing').onClick}>Standing <SortArrow spec={s.thProps('standing')} /></th>
-              {!projectId && <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={s.thProps('project').onClick}>Project <SortArrow spec={s.thProps('project')} /></th>}
-            </tr>
-          </thead>
-          <tbody>
-            {pageItems.map((r) => {
-              const banned = linksBanned(r.linksAllowedAfter);
-              const isGated = !!(r.platformKey && gateOn.has(r.platformKey));
-              return (
-                <tr key={r.id} onClick={() => openEdit(r)} style={{ cursor: 'pointer', opacity: busyId === r.id ? 0.5 : 1 }}
-                  title="Mở editor (rules · gate · standing)">
-                  <td style={cell}>
-                    <div style={{ fontWeight: 700, color: 'var(--fg-0)' }}>{r.name}{r.privacy === 'private' && <span style={{ marginLeft: 6, ...badge }}>private</span>}</div>
-                    {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ fontSize: 10.5, color: 'var(--fg-3)', textDecoration: 'underline dotted' }}>↗ {r.url.replace(/^https?:\/\/(www\.)?/, '')}</a>}
-                  </td>
-                  <td style={cell}>{r.platformKey ? <span style={badge}>{isGated ? '🌱 ' : ''}{platLabel.get(r.platformKey) || r.platformKey}</span> : <span style={{ color: 'var(--fg-4)' }}>—</span>}</td>
-                  <td style={{ ...cell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.members ? fmt(r.members) : '—'}</td>
-                  <td style={cell}>
-                    {isGated
-                      ? <span style={{ color: 'var(--fg-2)' }}>{r.minAgeDays || 14}d · {r.minKarma || 20}k · {r.minPosts || 2} seed{(r.minAgeDays || r.minKarma || r.minPosts) ? '' : ' (default)'}</span>
-                      : <span style={{ color: 'var(--fg-4)' }}>no gate</span>}
-                  </td>
-                  <td style={cell}>
-                    {r.linksAllowedAfter
-                      ? <span title={r.linksAllowedAfter} style={pill(banned ? '#ef4444' : '#ffb03c')}>{banned ? '⛔ no link' : `⚠ ${r.linksAllowedAfter.slice(0, 22)}${r.linksAllowedAfter.length > 22 ? '…' : ''}`}</span>
-                      : <span style={{ color: 'var(--fg-4)' }}>—</span>}
-                  </td>
-                  <td style={{ ...cell, fontVariantNumeric: 'tabular-nums', color: 'var(--fg-2)' }}>
-                    {r.briefs ? `${r.joined}/${r.briefs} joined · 🌱${r.seeds}` : <span style={{ color: 'var(--fg-4)' }}>chưa track</span>}
-                  </td>
-                  {!projectId && <td style={{ ...cell, color: 'var(--fg-3)' }}>{r.projectId ? (projName.get(r.projectId) || r.projectId) : '—'}</td>}
-                </tr>
-              );
-            })}
-            {!shown.length && <tr><td colSpan={projectId ? 6 : 7} style={{ ...cell, textAlign: 'center', color: 'var(--fg-3)', padding: 24 }}>Chưa có community nào khớp bộ lọc.</td></tr>}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        rows={pageItems}
+        getRowKey={(r) => String(r.id)}
+        groups={GROUPS}
+        persistKey="communities"
+        minWidth={980}
+        onRowClick={(r) => openEdit(r)}
+        rowTitle={() => 'Mở editor (luật · cổng · chỗ đứng)'}
+        searchText={(r) => `${r.name} ${r.url ?? ''} ${r.postingRules} ${r.dominantTopics.join(' ')}`}
+        searchPlaceholder="lọc trong bảng…"
+        columns={[
+          { key: 'community', header: 'Community', align: 'left', width: 260, sortValue: (r) => r.name.toLowerCase(),
+            cell: (r) => (
+              <div style={{ opacity: busyId === r.id ? 0.5 : 1 }}>
+                <div style={{ fontWeight: 700, color: 'var(--fg-0)', ...clip(250) }}>
+                  {r.name}{r.privacy === 'private' && <span style={{ marginLeft: 6, ...badge }}>kín</span>}
+                </div>
+                {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                  style={{ fontSize: 10.5, color: 'var(--fg-3)', textDecoration: 'underline dotted', ...clip(250) }}>↗ {r.url.replace(/^https?:\/\/(www\.)?/, '')}</a>}
+              </div>),
+            cellTitle: (r) => r.description || undefined },
+          { key: 'platform', header: 'Platform', align: 'left', width: 108, sortValue: (r) => (r.platformKey ? (platLabel.get(r.platformKey) || r.platformKey).toLowerCase() : null),
+            cell: (r) => r.platformKey
+              ? <span style={badge}>{gateOn.has(r.platformKey) ? '🌱 ' : ''}{platLabel.get(r.platformKey) || r.platformKey}</span>
+              : <span style={dim}>—</span> },
+          { key: 'members', header: 'Thành viên', width: 86, sortValue: (r) => r.members || null,
+            cell: (r) => (r.members ? fmt(r.members) : <span style={dim}>—</span>) },
+          { key: 'standing', header: 'Chỗ đứng', width: 118, align: 'left', sortValue: (r) => (r.briefs ? r.seeds : null),
+            cell: (r) => (r.briefs
+              ? <span style={{ color: 'var(--fg-2)' }}>{r.joined}/{r.briefs} vào · 🌱{r.seeds}</span>
+              : <span style={dim}>chưa track</span>),
+            cellTitle: (r) => r.briefs ? `${r.joined} account đã vào / ${r.briefs} account có brief · ${r.seeds} bài seed không link đã sống` : 'chưa account nào có brief ở đây' },
+
+          { group: 'rules', key: 'rulestext', header: 'Luật đăng', align: 'left', width: 300, sortValue: (r) => (r.postingRules ? r.postingRules.length : null),
+            cell: (r) => r.postingRules
+              ? <span style={{ color: 'var(--fg-2)', ...clip(290) }}>{r.postingRules.replace(/\s+/g, ' ')}</span>
+              : <span style={dim}>CHƯA ĐỌC LUẬT</span>,
+            cellTitle: (r) => r.postingRules || 'Chưa ghi luật — đọc trước khi đăng bài đầu tiên' },
+          { group: 'rules', key: 'rulesurl', header: 'Trang luật', width: 76, align: 'left', sortValue: (r) => (r.postingRulesUrl ? 1 : null),
+            cell: (r) => r.postingRulesUrl
+              ? <a href={r.postingRulesUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: 'var(--neon-blue)' }}>mở ↗</a>
+              : <span style={dim}>—</span> },
+          { group: 'rules', key: 'mod', header: 'Mod', width: 76, align: 'left', sortValue: (r) => ({ high: 3, medium: 2, low: 1 } as Record<string, number>)[r.modStrictness] ?? null,
+            cell: (r) => r.modStrictness
+              ? <span style={pill(r.modStrictness === 'high' ? '#ef4444' : r.modStrictness === 'medium' ? '#ffb03c' : '#22c55e')}>{r.modStrictness}</span>
+              : <span style={dim}>—</span> },
+          { group: 'rules', key: 'links', header: 'Chính sách link', align: 'left', width: 168, sortValue: (r) => (r.linksAllowedAfter ? (linksBanned(r.linksAllowedAfter) ? 2 : 1) : null),
+            cell: (r) => r.linksAllowedAfter
+              ? <span title={r.linksAllowedAfter} style={pill(linksBanned(r.linksAllowedAfter) ? '#ef4444' : '#ffb03c')}>
+                  {linksBanned(r.linksAllowedAfter) ? '⛔ cấm link' : `⚠ ${r.linksAllowedAfter}`}</span>
+              : <span style={dim}>—</span> },
+
+          { group: 'gate', key: 'age', header: 'Tuổi tk', width: 64, sortValue: (r) => r.minAgeDays || null,
+            cell: (r) => (r.minAgeDays ? `${r.minAgeDays}d` : <span style={dim}>—</span>) },
+          { group: 'gate', key: 'karma', header: 'Karma', width: 64, sortValue: (r) => r.minKarma || null,
+            cell: (r) => (r.minKarma ? String(r.minKarma) : <span style={dim}>—</span>) },
+          { group: 'gate', key: 'seedmin', header: 'Seed tối thiểu', width: 92, sortValue: (r) => r.minPosts || null,
+            cell: (r) => (r.minPosts ? String(r.minPosts) : <span style={dim}>—</span>) },
+
+          { group: 'fit', key: 'ctype', header: 'Kiểu', width: 96, align: 'left', sortValue: (r) => r.communityType || null,
+            cell: (r) => r.communityType ? <span style={badge}>{r.communityType}</span> : <span style={dim}>—</span> },
+          { group: 'fit', key: 'lang', header: 'Ngôn ngữ', width: 72, align: 'left', sortValue: (r) => r.language || null,
+            cell: (r) => r.language || <span style={dim}>—</span> },
+          { group: 'fit', key: 'act', header: 'Nhịp đăng', width: 96, align: 'left', sortValue: (r) => r.activity || null,
+            cell: (r) => r.activity || <span style={dim}>—</span> },
+          { group: 'fit', key: 'times', header: 'Giờ tốt', width: 110, align: 'left', sortValue: (r) => r.bestPostTimes || null,
+            cell: (r) => r.bestPostTimes ? <span style={clip(104)}>{r.bestPostTimes}</span> : <span style={dim}>—</span>,
+            cellTitle: (r) => r.bestPostTimes || undefined },
+          { group: 'fit', key: 'topics', header: 'Chủ đề chính', align: 'left', width: 190, sortValue: (r) => r.dominantTopics.length || null,
+            cell: (r) => r.dominantTopics.length ? <span style={clip(180)}>{r.dominantTopics.join(' · ')}</span> : <span style={dim}>—</span>,
+            cellTitle: (r) => r.dominantTopics.join(' · ') || undefined },
+          { group: 'fit', key: 'forbid', header: 'Chủ đề CẤM', align: 'left', width: 170, sortValue: (r) => r.forbiddenTopics.length || null,
+            cell: (r) => r.forbiddenTopics.length
+              ? <span style={{ color: '#ef4444', ...clip(160) }}>{r.forbiddenTopics.join(' · ')}</span>
+              : <span style={dim}>—</span>,
+            cellTitle: (r) => r.forbiddenTopics.join(' · ') || undefined },
+
+          { group: 'meta', key: 'status', header: 'Trạng thái', width: 86, align: 'left', sortValue: (r) => r.status || null,
+            cell: (r) => r.status ? <span style={badge}>{r.status}</span> : <span style={dim}>—</span> },
+          { group: 'meta', key: 'health', header: 'Sức khoẻ', width: 74, align: 'left', sortValue: (r) => r.health || null,
+            cell: (r) => r.health ? <span style={pill(r.health === 'ok' ? '#22c55e' : r.health === 'warn' ? '#ffb03c' : '#ef4444')}>{r.health}</span> : <span style={dim}>—</span> },
+          { group: 'meta', key: 'kind', header: 'Loại', width: 78, align: 'left', sortValue: (r) => r.kind || null,
+            cell: (r) => r.kind || <span style={dim}>—</span> },
+          { group: 'meta', key: 'sync', header: 'Đồng bộ', width: 86, sortValue: (r) => r.lastSyncAt,
+            cell: (r) => r.lastSyncAt || <span style={dim}>—</span> },
+          ...(projectId ? [] : [{ group: 'meta', key: 'project', header: 'Project', align: 'left' as const, width: 120,
+            sortValue: (r: CommunityRow) => (r.projectId ? (projName.get(r.projectId) || r.projectId).toLowerCase() : null),
+            cell: (r: CommunityRow) => (r.projectId ? (projName.get(r.projectId) || r.projectId) : '—') }]),
+        ] as DataColumn<CommunityRow>[]}
+      />
       <Pager {...pager} onPage={pager.setPage} />
 
       {edit && (

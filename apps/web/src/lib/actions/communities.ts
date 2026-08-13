@@ -23,7 +23,19 @@ export interface CommunityRow {
   minPosts: number;
   linksAllowedAfter: string;
   postingRules: string;
+  postingRulesUrl: string;
   description: string;
+  // Luật + độ khó của cộng đồng — thứ quyết định đăng được cái gì, trước giờ nằm trong DB mà bảng
+  // không dựng ra nên mỗi lần phải mở editor từng dòng mới đọc được.
+  modStrictness: string;
+  activity: string;
+  language: string;
+  bestPostTimes: string;
+  dominantTopics: string[];
+  forbiddenTopics: string[];
+  kind: string;
+  health: string;
+  lastSyncAt: string | null;
   // our standing here (across all briefs on this habitat)
   briefs: number;
   joined: number;
@@ -50,7 +62,13 @@ export async function listCommunities(projectId?: string): Promise<CommunityRow[
            coalesce(h.community_type,'') AS community_type, coalesce(h.status,'') AS status,
            coalesce(h.min_account_age_days,0) AS min_age, coalesce(h.min_karma,0) AS min_karma,
            coalesce(h.min_posts,0) AS min_posts, coalesce(h.links_allowed_after,'') AS links_allowed_after,
-           coalesce(h.posting_rules,'') AS posting_rules, coalesce(h.description,'') AS description
+           coalesce(h.posting_rules,'') AS posting_rules, coalesce(h.posting_rules_url,'') AS posting_rules_url,
+           coalesce(h.description,'') AS description,
+           coalesce(h.mod_strictness,'') AS mod_strictness, coalesce(h.activity,'') AS activity,
+           coalesce(h.language,'') AS language, coalesce(h.best_post_times,'') AS best_post_times,
+           coalesce(h.dominant_topics,'[]'::jsonb) AS dominant_topics,
+           coalesce(h.forbidden_topics,'[]'::jsonb) AS forbidden_topics,
+           coalesce(h.kind,'') AS kind, coalesce(h.health,'') AS health, h.last_sync_at
     FROM habitats h ${where}
     ORDER BY h.platform_key NULLS LAST, coalesce(h.members,0) DESC, h.id`);
   const habs = rows(habRaw);
@@ -77,7 +95,14 @@ export async function listCommunities(projectId?: string): Promise<CommunityRow[
       platformKey: (h.platform_key as string) || null, projectId: (h.project_id as string) || null,
       members: Number(h.members), privacy: String(h.privacy), communityType: String(h.community_type),
       status: String(h.status), minAgeDays: Number(h.min_age), minKarma: Number(h.min_karma), minPosts: Number(h.min_posts),
-      linksAllowedAfter: String(h.links_allowed_after), postingRules: String(h.posting_rules), description: String(h.description),
+      linksAllowedAfter: String(h.links_allowed_after), postingRules: String(h.posting_rules),
+      postingRulesUrl: String(h.posting_rules_url), description: String(h.description),
+      modStrictness: String(h.mod_strictness), activity: String(h.activity), language: String(h.language),
+      bestPostTimes: String(h.best_post_times),
+      dominantTopics: Array.isArray(h.dominant_topics) ? (h.dominant_topics as string[]).map(String) : [],
+      forbiddenTopics: Array.isArray(h.forbidden_topics) ? (h.forbidden_topics as string[]).map(String) : [],
+      kind: String(h.kind), health: String(h.health),
+      lastSyncAt: h.last_sync_at ? String(h.last_sync_at).slice(0, 10) : null,
       briefs: s.briefs, joined: s.joined, seeds: s.seeds,
     };
   });

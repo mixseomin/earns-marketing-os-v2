@@ -159,12 +159,19 @@ export function Drawer({
       requestCloseRef.current();                                // dirty → inline confirm; clean → close
     };
     document.addEventListener('keydown', onKey);
+    // Cờ toàn trang "đang có drawer mở". Bất kỳ thứ gì nổi lên trên cùng (nút ⚙ Tweaks
+    // z-index 2147483645) phải tránh đường: nó nằm đè góc phải-dưới, đúng chỗ hàng nút Lưu/Tạo
+    // của drawer — bấm không trúng, mà nhìn thì không thấy gì chặn. Sửa ở đây một lần cho MỌI
+    // drawer, đừng chỉnh z-index từng cái.
+    document.body.dataset.drawerOpen = String(drawerStack.length);
     return () => {
       document.removeEventListener('keydown', onKey);
       stackListeners.delete(recompute);
       const i = drawerStack.lastIndexOf(id);
       if (i >= 0) drawerStack.splice(i, 1);
       drawerW.delete(id);
+      if (drawerStack.length) document.body.dataset.drawerOpen = String(drawerStack.length);
+      else delete document.body.dataset.drawerOpen;
       notifyStack();   // I left → whoever I covered re-cascades / becomes topmost again
     };
   }, []);

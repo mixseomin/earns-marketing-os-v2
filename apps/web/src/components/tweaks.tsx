@@ -73,6 +73,10 @@ const PANEL_STYLE = `
   background:var(--bg-2);color:var(--fg-1);cursor:pointer;font:14px/1 var(--font-mono);
   display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.35)}
 .twk-toggle-fab:hover{background:var(--bg-3);color:var(--fg-0)}
+/* Có drawer/modal mở → nút này biến mất. Nó ngồi đúng góc phải-dưới, chồng lên hàng nút
+   Lưu/Tạo của form; click rơi vào nó chứ không vào nút (đo bằng Playwright: pointer
+   events bị chặn suốt 60 lần thử). Cờ do Drawer đặt ở body. */
+body[data-drawer-open] .twk-toggle-fab,body[data-drawer-open] .twk-panel{display:none}
 .twk-panel{position:fixed;right:16px;bottom:60px;z-index:2147483646;width:280px;
   max-height:calc(100vh - 80px);display:flex;flex-direction:column;
   background:var(--bg-1);color:var(--fg-1);

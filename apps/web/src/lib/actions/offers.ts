@@ -145,17 +145,27 @@ function isSelfReferral(name: string, brand: string, network: string | null): bo
 
 // Static approx FX — used ONLY to line up flat payouts in one currency for eyeball comparison; it never
 // moves real money. ponytail: refresh only if it ever feeds an actual payout (it doesn't).
-const FX_USD: Record<string, number> = { USD: 1, EUR: 1.08, GBP: 1.27, VND: 1 / 24500 };
+// ponytail: static approx rates, fine for a rough $ comparator; add a live feed only if this ever moves real money.
+const FX_USD: Record<string, number> = {
+  USD: 1, EUR: 1.08, GBP: 1.27, VND: 1 / 24500,
+  CAD: 0.73, AUD: 0.66, CZK: 0.043, PLN: 0.25, SEK: 0.095, DKK: 0.145,
+  NOK: 0.093, CHF: 1.12, JPY: 1 / 150, INR: 0.012, BRL: 0.18, SGD: 0.74, MXN: 0.05,
+};
 // Absolute money PER CONVERSION in USD. ONLY a flat amount is real money we can state (CPA/CPL/CPI $X).
 // A percentage needs the order value we don't have → null (an honest blank, not a guessed number).
-// Cases: "$ 52"→52 · "$ 3.67"→3.67 · "€10"→10.8 · "50.000đ"→2.04 (VN uses '.' as thousands) · "30%"→null.
+// Cases: "$ 52"→52 · "€10"→10.8 · "50.000đ"→2.04 (VN '.'=thousands) · "CZK 100"→4.3 · "30%"→null · unknown cur→null.
 function payoutUsdOf(rate: string | null, currency: string | null): number | null {
   if (!rate || rate.includes('%')) return null;
-  const cur = /€|eur/i.test(rate) ? 'EUR' : /£|gbp/i.test(rate) ? 'GBP' : /[₫đ]|vnd/i.test(rate) ? 'VND' : (currency || 'USD').toUpperCase();
+  // Detect currency: unambiguous symbol/word first, then an ISO code embedded in the string, then the column.
+  let cur = /€|eur/i.test(rate) ? 'EUR' : /£|gbp/i.test(rate) ? 'GBP'
+    : /[₫đ]|vnd/i.test(rate) ? 'VND' : /\$|usd/i.test(rate) ? 'USD' : '';
+  if (!cur) cur = (rate.match(/\b([A-Za-z]{3})\b/)?.[1] || currency || '').toUpperCase();
+  const mul = FX_USD[cur];
+  if (mul == null) return null;  // unknown currency → honest blank, never fake USD (the "$105000" bug class)
   const digits = cur === 'VND' ? rate.replace(/[^\d]/g, '') : rate.replace(/[^\d.]/g, '');  // VN '.' = thousands, drop it
   const num = parseFloat(digits);
   if (!isFinite(num) || num <= 0) return null;
-  return +(num * (FX_USD[cur] ?? 1)).toFixed(2);
+  return +(num * mul).toFixed(2);
 }
 
 // NB: `notes` deliberately excluded — see the PERF note above. Lazy-loaded via getOfferNote.

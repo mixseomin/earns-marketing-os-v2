@@ -85,6 +85,11 @@ export interface AffiliateOffer {
   promoteUrl: string | null;       // creative / landing page to promote
   panelUrl: string | null;         // the network's offer panel / detail page
   selfReferral: boolean;           // the network's OWN referral program (not a merchant offer) — labelled
+  // Provenance: how many middlemen sit between us and the advertiser. Every tier eats margin, so for
+  // paid traffic the same brand at a lower tier pays more per identical click. 1 = the network signs
+  // the advertiser directly · 2 = this network resells another network's inventory.
+  sourceTier: 1 | 2;
+  originNetwork: string | null;    // the upstream network when sourceTier=2 (null when direct)
   // Dates. createdAt = when OUR sync first saw the row (not when the merchant joined the
   // network). approvedAt = the run a sync observed it flip to approved — NULL for anything
   // approved before 2026-08-07 (neither Awin nor CJ exposes a joined-date, so it can't be
@@ -136,6 +141,14 @@ function brandOf(name: string): string {
 // The network's OWN referral / refer-a-friend program (e.g. "ACCESSTRADE Referral"), scraped off a
 // campaign list — not a merchant offer. Kept (it can still earn) but LABELLED so it isn't mistaken for
 // a real brand. Detect: brand contains the network's own name AND the name reads as a referral.
+// Which networks RESELL another network's inventory instead of signing advertisers themselves.
+// Verified 2026-08-14 by advertiser-overlap (639 VN offers ∩ 5.413 CJ/Awin advertisers = 2% — the VN
+// networks are NOT CJ/Awin resellers, they sign local merchants direct) plus infra fingerprints.
+// tkglobal is the one exception found: 11/37 of its programs are Travelpayouts brands and it runs on
+// Aviasales infra (sentry.avs.io) → an extra cut sits between us and the merchant.
+// ponytail: a lookup table, not a crawler. Add a row when a redirect chain proves another reseller.
+const RESOLD_FROM: Record<string, string> = { tkglobal: 'travelpayouts' };
+
 function isSelfReferral(name: string, brand: string, network: string | null): boolean {
   if (!network) return false;
   const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -271,6 +284,8 @@ function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>, mosAcc
     promoteUrl: x.promote_url,
     panelUrl: x.panel_url,
     selfReferral: isSelfReferral(x.name, brandOf(x.name), x.network ?? netKind ?? null),
+    sourceTier: platformKey && RESOLD_FROM[platformKey] ? 2 : 1,
+    originNetwork: platformKey ? RESOLD_FROM[platformKey] ?? null : null,
     createdAt: x.created_at,
     approvedAt: x.approved_at,
   };

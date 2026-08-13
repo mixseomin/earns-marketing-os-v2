@@ -20,6 +20,7 @@ import {
   syncAccountFromPlatform,
   listAccountGrants, addAccountGrant, removeAccountGrant, listProjectAgentsForGrant,
   accountProjectsPanel, setAccountPrimaryProject, joinAccountProjectShared, leaveAccountProject,
+  accountCommunities,
   type AccountStatus, type AuthMethod, type DirectusAccountSummary, type AccountGrantRow,
 } from '@/lib/actions/accounts';
 import { listBacklinkAccountOptions } from '@/lib/actions/architecture';
@@ -2259,6 +2260,11 @@ export function AccountFormModal({ account, project, projectId, platforms, onClo
               </Collapsible>
             );
           })()}
+          {/* ── Nhóm/cộng đồng account NÀY đã vào ──────────────────────────────────────────────
+              Vào được nhóm nào là TÀI SẢN của account, ngang với proxy hay browser profile: nó
+              quyết định account đó seed được ở đâu. Trước giờ dữ liệu nằm sẵn trong community_briefs
+              mà drawer không nói ra, nên mỗi phiên lại đi dò lại xem Page đang ở trong nhóm nào. */}
+          {account?.id ? <AccountCommunities accountId={account.id} /> : null}
           {/* ── Notes — collapsible. Open mặc định nếu đã có nội dung. ── */}
           <Collapsible
             title="Notes"
@@ -3734,5 +3740,36 @@ function SyncBanner({ projectId, accountId, platformLabel }: {
         {busy ? '⟳ Đang sync…' : '🔄 Sync now'}
       </button>
     </div>
+  );
+}
+
+// Nhóm/Trang account này đã tham gia. Đọc từ community_briefs (quan hệ account × habitat có sẵn).
+function AccountCommunities({ accountId }: { accountId: number }) {
+  const [rows, setRows] = useState<Awaited<ReturnType<typeof accountCommunities>> | null>(null);
+  useEffect(() => { let live = true; accountCommunities(accountId).then((r) => { if (live) setRows(r); }).catch(() => { if (live) setRows([]); }); return () => { live = false; }; }, [accountId]);
+  if (!rows?.length) return null;
+  const joined = rows.filter((r) => r.joinStatus === 'joined').length;
+  return (
+    <Collapsible title="👥 Nhóm đã tham gia" defaultOpen
+      badge={<span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{joined}/{rows.length}</span>}
+      hint="account này seed được ở đâu — vào rồi thì đăng bằng chính danh nghĩa nó">
+      <div style={{ display: 'grid', gap: 6 }}>
+        {rows.map((r) => (
+          <div key={r.briefId} style={{ display: 'grid', gap: 2, padding: '6px 8px', borderRadius: 7, background: 'var(--bg-2)', border: '1px solid var(--line)' }}>
+            <div style={{ display: 'flex', gap: 7, alignItems: 'center', flexWrap: 'wrap' }}>
+              <Pill color={r.joinStatus === 'joined' ? 'var(--ok)' : r.joinStatus === 'pending' ? 'var(--warn)' : 'var(--fg-4)'}
+                label={r.joinStatus === 'joined' ? 'đã vào' : r.joinStatus === 'pending' ? 'chờ duyệt' : r.joinStatus} />
+              {r.url
+                ? <a href={r.url} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-blue)', fontSize: 12.5 }}>{r.name}</a>
+                : <span style={{ fontSize: 12.5 }}>{r.name}</span>}
+              {r.members > 0 && <span style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>{r.members.toLocaleString('vi-VN')} thành viên</span>}
+              {r.privacy && <span style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>{r.privacy === 'private' ? 'kín' : 'công khai'}</span>}
+              {r.joinedAt && <span style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', marginLeft: 'auto' }}>{r.joinedAt}</span>}
+            </div>
+            {r.note && <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.45 }}>{r.note}</div>}
+          </div>
+        ))}
+      </div>
+    </Collapsible>
   );
 }

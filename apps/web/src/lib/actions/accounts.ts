@@ -1005,3 +1005,32 @@ export async function syncAccountFromPlatform(
   await touchEntity('account', { projectId });
   return { ok: true, updated, profile: p as unknown as Record<string, unknown> };
 }
+
+// Nhóm/Trang mà CHÍNH account này đã tham gia. Quan hệ đã có sẵn ở community_briefs
+// (account × habitat, kèm join_status/joined_at/join_url) — không đẻ bảng mới. Việc thiếu là hiển
+// thị: vào được nhóm nào là tài sản của account đó, mà drawer account trước giờ không nói ra, nên
+// mỗi phiên lại đi dò lại xem Page đang ở trong nhóm nào.
+export async function accountCommunities(accountId: number): Promise<Array<{
+  briefId: number; habitatId: number; name: string; url: string | null; members: number;
+  privacy: string; joinStatus: string; joinedAt: string | null; note: string; platformKey: string | null;
+}>> {
+  const { getDb } = await import('@mos2/db');
+  const { sql } = await import('drizzle-orm');
+  const db = getDb();
+  if (!db) return [];
+  const res = await db.execute(sql`
+    SELECT b.id AS brief_id, h.id AS habitat_id, h.name, h.url, h.members,
+           COALESCE(h.privacy, '') AS privacy, b.join_status, b.joined_at, COALESCE(b.join_note, '') AS note,
+           h.platform_key
+    FROM community_briefs b JOIN habitats h ON h.id = b.habitat_id
+    WHERE b.account_id = ${accountId}
+    ORDER BY (b.join_status = 'joined') DESC, h.members DESC NULLS LAST
+  `);
+  const rows = (res as unknown as { rows?: Record<string, unknown>[] }).rows ?? (res as unknown as Record<string, unknown>[]);
+  return (rows ?? []).map((r) => ({
+    briefId: Number(r.brief_id), habitatId: Number(r.habitat_id), name: String(r.name ?? ''),
+    url: (r.url as string) ?? null, members: Number(r.members ?? 0), privacy: String(r.privacy ?? ''),
+    joinStatus: String(r.join_status ?? ''), joinedAt: r.joined_at ? String(r.joined_at).slice(0, 10) : null,
+    note: String(r.note ?? ''), platformKey: (r.platform_key as string) ?? null,
+  }));
+}

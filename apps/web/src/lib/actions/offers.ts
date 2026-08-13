@@ -193,7 +193,9 @@ export const listOfferAccounts = unstable_cache(
 async function mosAccountByNetwork(): Promise<Map<string, { id: number; handle: string }>> {
   const m = new Map<string, { id: number; handle: string }>();
   try {
-    const rows = (await getDb().execute(sql`
+    const db = getDb();
+    if (!db) return m;               // không có DB thì trả map rỗng, đừng gọi .execute trên null
+    const rows = (await db.execute(sql`
       SELECT id, platform_key, handle FROM platform_accounts
       WHERE browser_profile_id IS NOT NULL ORDER BY id`)) as unknown as Array<{ id: number; platform_key: string; handle: string }>;
     for (const r of rows) if (r.platform_key && !m.has(r.platform_key)) m.set(r.platform_key, { id: Number(r.id), handle: r.handle });

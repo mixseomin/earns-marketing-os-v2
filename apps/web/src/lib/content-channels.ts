@@ -189,7 +189,7 @@ export function pieceGaps(
   refs: {
     accounts?: Array<{ id: number; browserProfileId?: number | null; status: string }>;
     browserProfiles?: Array<{ id: number; lastOpenedAt?: string | Date | null }>;
-    media?: Array<{ id: number }>;
+    media?: Array<{ id: number; kind?: string; mimeType?: string | null }>;
     tasks?: Array<{ id: number; siteState: string; siteScheduledAt?: string | null }>;
     /** 'YYYY-MM-DD' hôm nay — để phân biệt "chưa tới lượt làm" với "tới hạn mà chưa xong". */
     today?: string;
@@ -265,6 +265,17 @@ export function pieceGaps(
 
   const missingMedia = tagIds(piece.tags, 'asset').filter((id) => !refs.media?.some((m) => m.id === id));
   if (missingMedia.length) gaps.push(`asset chưa có trong vault: #${missingMedia.join(', #')}`);
+
+  // Bài VIDEO mà tệp gắn vào là ảnh thì không có gì để đăng — và trước đây nó vẫn đếm là "đủ
+  // nguyên liệu" vì chỉ kiểm asset CÓ TỒN TẠI hay không, không kiểm LOẠI. Lỗi chỉ lộ ra lúc mở
+  // Reels lên rồi mới thấy không tải được. Kiểm ở đây một lần cho mọi kênh video.
+  const VIDEO_FORMATS = new Set(['short', 'longform']);
+  if (piece.channel === 'reel' || VIDEO_FORMATS.has(tagVal(piece.tags, 'format'))) {
+    const attached = tagIds(piece.tags, 'asset')
+      .map((id) => refs.media?.find((m) => m.id === id)).filter(Boolean) as Array<{ kind?: string; mimeType?: string | null }>;
+    const hasVideo = attached.some((m) => m.kind === 'video' || m.mimeType?.startsWith('video/'));
+    if (!hasVideo) gaps.push(attached.length ? 'bài video nhưng tệp gắn vào là ảnh — chưa có video' : 'bài video nhưng chưa gắn video');
+  }
 
   // Card chuẩn bị CHƯA TỚI HẠN mà chưa xong thì không phải thiếu — đó là việc của tuần sau.
   // Chỉ tính là thiếu khi card biến mất, hoặc đã tới/quá hạn mà vẫn chưa xong.

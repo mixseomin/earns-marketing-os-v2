@@ -77,7 +77,6 @@ const EXEMPT = {
   'src/components/owner-select.tsx': ['rawSelect'],
   'src/components/pillars-page.tsx': ['rawSelect'],
   'src/components/plan-cockpit.tsx': ['rawSelect'],
-  'src/components/platform-form-modal.tsx': ['rawSelect'],
   'src/components/platform-picker.tsx': ['rawSelect'],
   'src/components/project-settings-form.tsx': ['rawSelect'],
   'src/components/scenes-page.tsx': ['rawSelect'],

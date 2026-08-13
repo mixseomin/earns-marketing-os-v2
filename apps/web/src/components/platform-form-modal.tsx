@@ -20,7 +20,7 @@ import { listTechnologies, detectTechnologyFromUrl, type TechnologyRow, type Sig
 import { AIFormParser } from './ai-form-parser';
 import { NoFillInput } from './no-fill-input';
 import { TagsInput } from './tags-input';
-import { IconCommunity, FormatIcon, FormModal, FormModalFooter, Collapsible, labelStyle } from './ui';
+import { IconCommunity, FormatIcon, FormModal, FormModalFooter, Collapsible, labelStyle, Segmented, MultiSelect } from './ui';
 import { HabitatSelectorsSection } from './habitat-selectors-section';
 import { CONTENT_FORMATS, allowedFormats, formatColors, formatMeta } from '@/lib/content-formats';
 import { getSuggestedProfileUrlPattern } from '@/lib/platform-profile-urls';
@@ -262,17 +262,17 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
           </div>
           <div>
             <span style={lbl}>Priority</span>
-            <select style={fld} value={form.priority} onChange={(e) => setF('priority', e.target.value as PlatformPriority)}>
-              {PRIORITY_ORDER.map((p) => <option key={p} value={p}>{PRIORITY_META[p].star} {PRIORITY_META[p].label.toLowerCase()}</option>)}
-            </select>
+            {/* 1-of-N ngắn → Segmented. <select> trần là mũi tên của hệ điều hành, nền sáng, đứng
+                giữa drawer tối trông như lọt từ trang khác vào (và không tìm được, không đếm được). */}
+            <Segmented value={form.priority} onChange={(v) => setF('priority', v as PlatformPriority)}
+              options={PRIORITY_ORDER.map((p) => ({ value: p, label: PRIORITY_META[p].star, title: PRIORITY_META[p].label.toLowerCase() }))} />
           </div>
           <div>
             <span style={lbl}>Category</span>
-            <select style={fld} value={form.category} onChange={(e) => setF('category', e.target.value)}>
-              {['community', 'social', 'video', 'blog', 'launch', 'marketplace', 'messaging', 'newsletter', 'design', 'audio', 'other'].map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            <MultiSelect label={form.category || 'chọn nhóm'} popupWidth={220}
+              selected={form.category ? [form.category] : []}
+              onChange={(v) => setF('category', v.length ? String(v[v.length - 1]) : '')}
+              options={['community', 'social', 'video', 'blog', 'launch', 'marketplace', 'messaging', 'newsletter', 'design', 'audio', 'other'].map((c) => ({ value: c, label: c }))} />
           </div>
 
           {/* ── Chi tiết (ít dùng: URL phụ, mô tả, meta) ── */}

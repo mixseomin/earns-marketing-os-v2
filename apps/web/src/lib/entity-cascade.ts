@@ -78,7 +78,7 @@ export const ENTITY_DEPS: Record<EntityKind, Dep> = {
   scheduler:    { paths: ['/scheduler'] },
   'use-case':   { paths: ['/tests'] },
   unmapped:     { sections: ['resources'], paths: ['/unmapped'] },
-  alert:        { sections: ['board', 'resources', 'squads', 'studio', 'tribes'], self: true },
+  alert:        { sections: ['board', 'resources', 'squads', 'tribes'], self: true },   // 'studio' đã xoá — bust route không tồn tại là no-op im lặng
   ai:           { sections: ['settings'], self: true, paths: ['/ai-log'] },
   content:      { sections: ['plays'], pages: ['/p/[id]/plays', '/plays'] },   // studio đã gộp vào /plays; trỏ 'studio' là bust một trang không còn ai xem trong khi lịch vẫn cũ
   'ext-token':  { paths: ['/architecture'] },

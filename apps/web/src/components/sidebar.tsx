@@ -60,7 +60,6 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser, onMobil
           { href: `/p/${pid}/team`,    label: 'Team',         icon: '👥' },
         ],
       },
-      { href: `/p/${pid}/studio`, label: t('nav.studio', 'Studio'), icon: '🎬' },
       { href: `/p/${pid}/plays`,  label: t('nav.plays', 'Plays'), icon: '🎯' },
       { href: `/p/${pid}/plans`,  label: t('nav.plans', 'Kế hoạch'), icon: '🎯' },
     ]),

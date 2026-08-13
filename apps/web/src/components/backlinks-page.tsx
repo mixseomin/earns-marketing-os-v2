@@ -2324,7 +2324,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       {openPieceId != null && (() => { const pc = pieces.find((x) => x.id === openPieceId); return pc ? <PieceDrawer piece={pc} projectLabel={allProjects ? (projectsById?.[pc.projectId]?.name ?? pc.projectId) : siteLabel} accounts={accounts} browserProfiles={browserProfiles} media={media} tasks={tasks} replies={repliesOf.get(pc.id) ?? []} onOpenPiece={(id) => setOpenPieceId(id)} onOpenTask={(id) => { setOpenPieceId(null); openTask(id); }} onEdit={() => setPieceForm({ piece: pc })} onClose={() => setOpenPieceId(null)} /> : null; })()}
       {/* Soạn bài — cùng form cho tạo mới và sửa. Đây là Content Studio, nay nằm trong /plays. */}
       {pieceForm && (
-        <PieceForm piece={pieceForm.piece} projectId={pieceForm.piece?.projectId || projectFilter || projectId}
+        <PieceForm key={pieceForm.piece?.id ?? 'new'} piece={pieceForm.piece} projectId={pieceForm.piece?.projectId || projectFilter || projectId}
           projects={allProjects ? Object.values(projectsById ?? {}).map((p) => ({ id: p.id, name: p.name })) : [{ id: projectId, name: siteLabel }]}
           accounts={accounts} media={media}
           onSaved={() => start(() => router.refresh())} onClose={() => setPieceForm(null)} />

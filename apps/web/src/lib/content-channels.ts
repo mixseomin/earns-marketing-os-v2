@@ -163,6 +163,17 @@ const ANGLE_TO_GROUP = new Map(ANGLE_GROUPS.flatMap((g) => g.angles.map((a) => [
 //   flair:<text> (flair Reddit) · rdtag:oc,nsfw,spoiler (nhãn Reddit) · series:<id trong SERIES>
 export const tagVal = (tags: string[], k: string) => tags.find((t) => t.startsWith(`${k}:`))?.slice(k.length + 1).trim() ?? '';
 /** Danh sách id trong tag dạng 'khoá:media:1,2' hoặc 'khoá:1,2'. Giá trị không phải số → bỏ. */
+/** Tệp này có phải VIDEO không — dùng CHUNG cho bản dựng, kho, picker và bảng thiếu-nguyên-liệu.
+ *  Ba chỗ từng kiểm ba kiểu (chỗ xem `kind`, chỗ xem `mimeType`): asset kind='video' mà mime rỗng
+ *  (thêm bằng URL ngoài, HEAD bị CORS chặn) thì kho phát được còn bản dựng ra ô vỡ. Một hàm, hết lệch. */
+/** Tag mà GIÁ TRỊ chứa dấu phẩy (asset:media:61,62 · chain:88,90 · rdtag:oc,spoiler). Ô nhập tag
+ *  dạng "a, b, c" cắt theo dấu phẩy nên KHÔNG được cho mấy tag này đi qua đó — chúng do drawer quản
+ *  bằng picker. Form soạn bài giữ nguyên chúng, không đụng vào. */
+export const COMMA_VALUE_TAG = /^(asset|chain|rdtag):/;
+
+export const isVideoMedia = (m: { kind?: string | null; mimeType?: string | null; filename?: string | null; url?: string } | null | undefined): boolean =>
+  !!m && (m.kind === 'video' || !!m.mimeType?.startsWith('video/') || /\.(mp4|mov|webm|m4v)(\?|$)/i.test(m.filename || m.url || ''));
+
 export const tagIds = (tags: string[], k: string) => tagVal(tags, k).replace(/^media:/, '').split(',').map(Number).filter(Number.isFinite).filter(Boolean);
 
 /** 'angle:ranking' trong tags → {angle, group}. Không có tag angle → null. */
@@ -189,7 +200,7 @@ export function pieceGaps(
   refs: {
     accounts?: Array<{ id: number; browserProfileId?: number | null; status: string }>;
     browserProfiles?: Array<{ id: number; lastOpenedAt?: string | Date | null }>;
-    media?: Array<{ id: number; kind?: string; mimeType?: string | null }>;
+    media?: Array<{ id: number; kind?: string; mimeType?: string | null; filename?: string }>;
     tasks?: Array<{ id: number; siteState: string; siteScheduledAt?: string | null }>;
     /** 'YYYY-MM-DD' hôm nay — để phân biệt "chưa tới lượt làm" với "tới hạn mà chưa xong". */
     today?: string;
@@ -272,8 +283,8 @@ export function pieceGaps(
   const VIDEO_FORMATS = new Set(['short', 'longform']);
   if (piece.channel === 'reel' || VIDEO_FORMATS.has(tagVal(piece.tags, 'format'))) {
     const attached = tagIds(piece.tags, 'asset')
-      .map((id) => refs.media?.find((m) => m.id === id)).filter(Boolean) as Array<{ kind?: string; mimeType?: string | null }>;
-    const hasVideo = attached.some((m) => m.kind === 'video' || m.mimeType?.startsWith('video/'));
+      .map((id) => refs.media?.find((m) => m.id === id)).filter(Boolean) as Array<{ kind?: string; mimeType?: string | null; filename?: string }>;
+    const hasVideo = attached.some(isVideoMedia);
     if (!hasVideo) gaps.push(attached.length ? 'bài video nhưng tệp gắn vào là ảnh — chưa có video' : 'bài video nhưng chưa gắn video');
   }
 

@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation';
 import { Drawer, EntityRef, EntityPicker, type EntityOption } from '@/components/ui';
 import { readManagedPages } from '@/components/account-metrics';
 import { ChannelFavicon } from '@/components/ui';
-import { CHANNELS, STATUSES, ANGLE_GROUPS, ANGLES, STYLES, CHANNEL_PLATFORM, FB_BUTTONS, angleOf, angleLabel, formatOf, formatsFor, styleOf, tagVal, tagIds, pieceGaps, pieceRisks } from '@/lib/content-channels';
+import { CHANNELS, STATUSES, ANGLE_GROUPS, ANGLES, STYLES, CHANNEL_PLATFORM, FB_BUTTONS, angleOf, angleLabel, formatOf, formatsFor, styleOf, isVideoMedia, tagVal, tagIds, pieceGaps, pieceRisks } from '@/lib/content-channels';
 import { REDDIT_SUBS, subOf, subName } from '@/lib/reddit-subs';
 import { updateContentPiece, createContentPiece, checkPieceLinks, getPieceDetail, type ContentInput } from '@/lib/actions/content';
 import { todayLocal } from '@/lib/local-day';
@@ -42,7 +42,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   onOpenPiece?: (id: number) => void;
   accounts?: Array<{ id: number; platformKey: string; handle: string | null; status: string; browserProfileId?: number | null; accountStats?: Record<string, unknown> }>;
   browserProfiles?: Array<{ id: number; label: string; externalId: string | null; lastOpenedAt: string | null }>;
-  media?: Array<{ id: number; url: string; filename: string; kind: string }>;
+  media?: Array<{ id: number; url: string; filename: string; kind: string; mimeType?: string | null }>;
   tasks?: Array<{ id: number; title: string; siteState: string; siteScheduledAt: string | null; publishUrl?: string | null }>;
   onOpenTask?: (id: number) => void;
   /** Mở form soạn bài đầy đủ (tiêu đề/kênh/tribe/persona/AI) — Content Studio nay nằm trong /plays. */
@@ -76,7 +76,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const managed = readManagedPages(acct?.accountStats).pages;
   const placeLabel = managed.find((p) => p.url === place)?.name ?? place;
   // asset:media:<id,id> = ảnh đã nằm trong vault (hiện thumbnail + mở media drawer).
-  const assets = tagIds(piece.tags, 'asset').map((id) => media.find((m) => m.id === id)).filter(Boolean) as Array<{ id: number; url: string; filename: string }>;
+  const assets = tagIds(piece.tags, 'asset').map((id) => media.find((m) => m.id === id)).filter(Boolean) as Array<{ id: number; url: string; filename: string; kind?: string; mimeType?: string | null }>;
   const chainIds = tagIds(piece.tags, 'chain');
   const chain = chainIds.map((id) => tasks.find((t) => t.id === id)).filter(Boolean) as NonNullable<typeof tasks>;
   const gaps = pieceGaps(piece, { accounts, browserProfiles, media, tasks, today: todayLocal() });
@@ -113,7 +113,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
     .map((x) => ({ key: `b:${x.id}`, label: x.label, sub: x.externalId ?? '', fallbackIcon: '🖥', data: x })), [browserProfiles]);
   const loadMedia = useCallback(async (): Promise<EntityOption[]> => media
     .filter((m) => m.kind === 'image' || m.kind === 'video')   // reel là video — lọc riêng ảnh thì bài reel không gắn được gì
-    .map((m) => ({ key: `m:${m.id}`, label: m.filename, avatar: m.url, data: m })), [media]);
+    .map((m) => ({ key: `m:${m.id}`, label: m.filename, avatar: m.url, avatarKind: isVideoMedia(m) ? 'video' as const : 'image' as const, data: m })), [media]);
   // Nơi đăng: FB lấy Page của chính account; Reddit lấy sub trong catalog đã đồng bộ luật (trước
   // đây bài reddit không chọn được nơi đăng nào vì danh sách chỉ có Page của Facebook).
   const loadPlaces = useCallback(async (): Promise<EntityOption[]> => (
@@ -381,9 +381,12 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
               {row('Asset', <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 {assets.map((m) => (
                   <span key={m.id} style={{ display: 'inline-flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start' }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={m.url} alt={m.filename} style={{ width: 132, height: 132, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--line)', cursor: 'pointer' }}
-                      onClick={() => window.open(m.url, '_blank')} />
+                    {isVideoMedia(m)
+                      ? <video src={m.url} controls muted playsInline preload="metadata"
+                          style={{ width: 132, height: 132, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--line)', background: '#000' }} />
+                      // eslint-disable-next-line @next/next/no-img-element
+                      : <img src={m.url} alt={m.filename} style={{ width: 132, height: 132, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--line)', cursor: 'pointer' }}
+                          onClick={() => window.open(m.url, '_blank')} />}
                     <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                       <EntityRef kind="media" id={m.id} label={m.filename} />
                       <button type="button" style={pickBtn} disabled={pending}
@@ -515,12 +518,15 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
               title: `${piece.title} · ${c.label}`.slice(0, 120),
               channel: c.id,
               subject: piece.subject ?? '',
-              bodyMd: detail?.bodyMd ?? '',
+              bodyMd: detail?.bodyMd || piece.body || '',   // detail chưa về thì dùng bản lịch, đừng tạo bài rỗng
               status: 'draft',
               scheduledAt: new Date(`${piece.date}T09:00:00`),
               // Giữ: góc/kiểu/trình bày/ảnh-video/nguồn/series. Bỏ: acct, browser, place, time,
               // platsched, flair, rdtag, replyto, linkcheck — toàn thứ chỉ đúng cho MỘT nơi đăng.
-              tags: piece.tags.filter((t) => /^(angle|format|style|asset|src|series|cta):/.test(t)),
+              // format chỉ giữ khi kênh MỚI có kiểu đó (picker vốn không cho chọn sai; clone mà bê
+              // 'album' sang reel là tạo đúng tổ hợp runner đi tìm nút không tồn tại).
+              tags: piece.tags.filter((t) => /^(angle|style|asset|src|series|cta):/.test(t)
+                || (t.startsWith('format:') && formatsFor(c.id).some((f) => f.id === t.slice(7)))),
             });
             refresh();
           }} />

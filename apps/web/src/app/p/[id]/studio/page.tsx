@@ -6,5 +6,5 @@ import { redirect } from 'next/navigation';
 // (góc, series, flair, video) chỉ có một bên được. Giữ route để link cũ không gãy.
 export default async function StudioRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  redirect(`/plays?view=feed&proj=${encodeURIComponent(id)}&wt=content`);
+  redirect(`/p/${encodeURIComponent(id)}/plays?view=feed&wt=content`);   // ở lại trong vỏ project
 }

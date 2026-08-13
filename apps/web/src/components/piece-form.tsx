@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation';
 import { FormModal, FormModalFooter } from '@/components/ui/form-modal';
 import { MultiSelect, Segmented, ConfirmDeleteButton } from '@/components/ui';
 import { PiecePreview, forgetPieceBody } from '@/components/piece-preview';
-import { CHANNELS, STATUSES, ANGLE_GROUPS, ANGLES, angleLabel, tagVal, type ContentStatus } from '@/lib/content-channels';
+import { CHANNELS, STATUSES, ANGLE_GROUPS, ANGLES, COMMA_VALUE_TAG, angleLabel, tagVal, type ContentStatus } from '@/lib/content-channels';
 import { createContentPiece, updateContentPiece, archiveContentPiece, generateContent, getPieceDetail, pieceFormOptions } from '@/lib/actions/content';
 import { todayLocal } from '@/lib/local-day';
 import type { CalPiece, MediaRow } from '@/lib/data';
@@ -62,9 +62,15 @@ export function PieceForm({ piece, projectId, projects = [], accounts = [], medi
     persona: '',
     subject: piece?.subject ?? '',
     bodyMd: piece?.body ?? '',
-    tagsStr: (piece?.tags ?? []).filter((t) => !/^(time|angle):/.test(t)).join(', '),
+    // Ô chữ CHỈ chứa tag round-trip được. Tag có dấu phẩy trong giá trị (asset/chain/rdtag) đi qua
+    // đây là bị split(',') cắt nát — sửa cái tiêu đề mà mất ảnh thứ hai của bài. Chúng nằm nguyên
+    // trong `keep`, hiện dạng chip chỉ-đọc, sửa bằng picker ở drawer.
+    tagsStr: (piece?.tags ?? []).filter((t) => !/^(time|angle):/.test(t) && !COMMA_VALUE_TAG.test(t)).join(', '),
+    keep: (piece?.tags ?? []).filter((t) => COMMA_VALUE_TAG.test(t)),
     aiNotes: [] as string[],
   }));
+  // Thân bài đầy đủ đã về chưa. Lịch chỉ mang bản cắt 2000 ký tự: lưu trước khi nạp xong = cắt cụt bài.
+  const [bodyReady, setBodyReady] = useState(!piece);
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
 
   // Thân bài ở lịch bị cắt 2000 ký tự — sửa từ bản cắt là mất phần đuôi. Nạp bản đầy đủ.
@@ -72,8 +78,9 @@ export function PieceForm({ piece, projectId, projects = [], accounts = [], medi
     if (!piece) return;
     getPieceDetail(piece.id, piece.projectId).then((d) => {
       if (!d) return;
-      setF((p) => ({ ...p, bodyMd: p.bodyMd === piece.body ? d.bodyMd : p.bodyMd, tribeSlug: p.tribeSlug || (d.tribeSlug ?? ''), persona: p.persona || (d.persona ?? '') }));
+      setF((p) => ({ ...p, bodyMd: d.bodyMd, tribeSlug: p.tribeSlug || (d.tribeSlug ?? ''), persona: p.persona || (d.persona ?? '') }));
       baseline.current = '';   // nạp xong mới chốt mốc "chưa sửa gì", không thì vừa mở đã báo dirty
+      setBodyReady(true);
     });
   }, [piece]);
 
@@ -90,10 +97,12 @@ export function PieceForm({ piece, projectId, projects = [], accounts = [], medi
   const [aiBusy, setAiBusy] = useState(false);
 
   const tags = useMemo(() => [
-    ...f.tagsStr.split(',').map((s) => s.trim()).filter(Boolean).filter((t) => !/^(time|angle):/.test(t)),
+    ...f.keep,                                                   // asset/chain/rdtag — giữ nguyên xi
+    ...f.tagsStr.split(',').map((s) => s.trim()).filter(Boolean)
+      .filter((t) => !/^(time|angle):/.test(t) && !COMMA_VALUE_TAG.test(t)),
     ...(f.time ? [`time:${f.time}`] : []),
     ...(f.angle ? [`angle:${f.angle}`] : []),
-  ], [f.tagsStr, f.time, f.angle]);
+  ], [f.keep, f.tagsStr, f.time, f.angle]);
 
   // Bản dựng = ĐÚNG khối của lịch, không phải một khung giả lập riêng.
   const preview: CalPiece = {
@@ -106,11 +115,15 @@ export function PieceForm({ piece, projectId, projects = [], accounts = [], medi
   const save = () => {
     if (!f.title.trim()) { setErr('thiếu tiêu đề'); return; }
     if (!f.date) { setErr('thiếu ngày đăng — không có ngày thì bài không lên lịch'); return; }
+    if (!f.projectId) { setErr('chưa chọn project — bài phải thuộc về một project'); return; }
+    if (!bodyReady) { setErr('đang nạp thân bài đầy đủ, đợi một nhịp rồi lưu'); return; }
     const input = {
       title: f.title, channel: f.channel, status: f.status,
       subject: f.subject || null, bodyMd: f.bodyMd, tags,
       tribeSlug: f.tribeSlug || null, persona: f.persona || null,
-      scheduledAt: new Date(`${f.date}T${f.time || '09:00'}:00`),
+      // Giờ thật nằm ở tag `time:` (mọi chỗ ghi khác trong repo cũng ghim 09:00). DB chạy UTC nên
+      // ghi giờ thật vào cột này là 06:00 giờ VN rơi về ngày hôm trước trên lịch.
+      scheduledAt: new Date(`${f.date}T09:00:00`),
       ...(f.aiNotes.length ? { aiNotes: f.aiNotes } : {}),
     };
     start(async () => {
@@ -239,14 +252,25 @@ export function PieceForm({ piece, projectId, projects = [], accounts = [], medi
           </div>
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 220 }}>
-            <label style={lbl}>Nội dung *</label>
-            <textarea style={{ ...inp, flex: 1, minHeight: 220, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 12.5, lineHeight: 1.55 }}
-              value={f.bodyMd} onChange={(e) => set('bodyMd', e.target.value)} />
+            <label style={lbl}>Nội dung * {!bodyReady && <span style={{ color: 'var(--fg-4)' }}>· đang nạp bản đầy đủ…</span>}</label>
+            <textarea style={{ ...inp, flex: 1, minHeight: 220, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 12.5, lineHeight: 1.55, opacity: bodyReady ? 1 : 0.5 }}
+              value={f.bodyMd} disabled={!bodyReady} placeholder={bodyReady ? '' : 'đang nạp bản đầy đủ…'}
+              onChange={(e) => set('bodyMd', e.target.value)} />
           </div>
 
           <div>
             <label style={lbl}>Tag khác (nơi đăng, account, asset… gắn ở drawer sau khi lưu)</label>
             <input style={inp} value={f.tagsStr} onChange={(e) => set('tagsStr', e.target.value)} placeholder="src:S1, format:short" />
+            {f.keep.length > 0 && (
+              // Ảnh/video, card chuẩn bị, nhãn Reddit: giá trị có dấu phẩy nên không đi qua ô chữ được.
+              // Hiện ra để biết bài đang mang gì, sửa bằng picker ở drawer.
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 5 }}>
+                {f.keep.map((t) => (
+                  <span key={t} title="giữ nguyên — sửa ở drawer bằng picker"
+                    style={{ fontSize: 11, padding: '1px 7px', borderRadius: 999, background: 'var(--bg-2)', border: '1px solid var(--line)', color: 'var(--fg-3)' }}>{t}</span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -261,7 +285,8 @@ export function PieceForm({ piece, projectId, projects = [], accounts = [], medi
           labelIdle="🗑 Lưu trữ" labelArmed="⚠ Bấm lần nữa — bài rời khỏi lịch"
           title="Đưa bài ra khỏi lịch (không xoá hẳn) / Bấm lần nữa để chắc chắn" />}
         <button type="button" className="btn ghost" onClick={onClose}>Huỷ</button>
-        <button type="button" className="btn primary" disabled={pending} onClick={save}>{isCreate ? 'Tạo bài' : 'Lưu'}</button>
+        <button type="button" className="btn primary" disabled={pending || !bodyReady} onClick={save}
+          title={bodyReady ? '' : 'đang nạp thân bài đầy đủ'}>{isCreate ? 'Tạo bài' : 'Lưu'}</button>
       </FormModalFooter>
     </FormModal>
   );

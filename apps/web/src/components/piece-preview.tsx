@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { getPieceDetail, updateContentPiece } from '@/lib/actions/content';
-import { CHANNELS, tagVal, tagIds, formatOf, styleOf, fbButtonOf, seriesOf } from '@/lib/content-channels';
+import { CHANNELS, tagVal, tagIds, formatOf, styleOf, fbButtonOf, seriesOf, isVideoMedia } from '@/lib/content-channels';
 import { ChannelFavicon } from './ui/site-favicon';
 import type { CalPiece } from '@/lib/data';
 
@@ -53,7 +53,7 @@ function withTags(text: string) {
 export function PiecePreview({ piece, accounts = [], media = [], body, replies = [], editableReplies = false, compact = false, onOpen }: {
   piece: CalPiece;
   accounts?: Array<{ id: number; platformKey: string; handle: string | null; accountStats?: Record<string, unknown> }>;
-  media?: Array<{ id: number; url: string; filename: string; width?: number | null; height?: number | null; mimeType?: string | null }>;
+  media?: Array<{ id: number; url: string; filename: string; width?: number | null; height?: number | null; kind?: string; mimeType?: string | null }>;
   /** Thân bài đã có sẵn (drawer) — truyền vào để khỏi gọi lại. */
   body?: string;
   /** Comment đầu (piece con gắn tag replyto:) — runner đăng ngay sau bài chính. */
@@ -244,7 +244,7 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
             // eslint-disable-next-line @next/next/no-img-element
             // Ảnh card là PNG 1080×1350 (~300 kB): tải hết cả tháng là ~5 MB không ai xem tới.
             // lazy = chỉ tải khi cuộn tới gần.
-            m.mimeType?.startsWith('video/') ? (
+            isVideoMedia(m) ? (
               // Reel là VIDEO. Dựng bằng <img> thì ra ô vỡ — duyệt lịch mà không xem được clip thì
               // duyệt cái gì. preload="metadata": lịch tháng chỉ tải vài KB đầu mỗi clip, bấm mới tải tiếp.
               <video key={m.id} src={m.url} controls playsInline preload="metadata"

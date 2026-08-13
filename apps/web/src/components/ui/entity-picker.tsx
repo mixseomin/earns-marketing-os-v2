@@ -17,6 +17,7 @@ export interface EntityOption {
   label: string;
   sub?: string;              // secondary line (mono) — followers · url · platform · whatever the caller composes
   avatar?: string;           // image URL
+  avatarKind?: 'image' | 'video';   // 'video' → dựng bằng <video>, không thì ô vỡ (asset reel)
   fallbackIcon?: string;     // shown when no avatar (default '•')
   badge?: string;            // small chip after the label (e.g. '⬇ Directus')
   badgeTitle?: string;
@@ -167,7 +168,9 @@ export function EntityPicker({
                       <div key={o.key} ref={selected ? selRef : undefined}
                         style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 7, background: selected ? 'color-mix(in srgb, var(--neon-lime) 12%, transparent)' : 'transparent', border: '1px solid ' + (selected ? 'var(--neon-lime)' : 'transparent') }}>
                         <button type="button" onClick={() => pick(o)} disabled={!!busy} className="btn ghost" style={{ flex: 1, minWidth: 0, justifyContent: 'flex-start', textAlign: 'left', padding: '2px 4px', display: 'flex', alignItems: 'center', gap: 9, border: 'none', background: 'none', opacity: busy && !picking ? 0.5 : 1 }}>
-                          {o.avatar ? <img src={o.avatar} alt="" style={avatarStyle} referrerPolicy="no-referrer" /> : <span style={{ ...avatarStyle, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--fg-3)' }}>{o.fallbackIcon || '•'}</span>}
+                          {o.avatar && o.avatarKind === 'video'
+                            ? <video src={o.avatar} muted playsInline preload="metadata" style={{ ...avatarStyle, background: '#000' }} />
+                            : o.avatar ? <img src={o.avatar} alt="" style={avatarStyle} referrerPolicy="no-referrer" /> : <span style={{ ...avatarStyle, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--fg-3)' }}>{o.fallbackIcon || '•'}</span>}
                           <span style={{ flex: 1, minWidth: 0 }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontWeight: 600, color: 'var(--fg-0)' }}>
                               <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.label}</span>

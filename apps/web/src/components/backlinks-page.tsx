@@ -53,6 +53,7 @@ import { FOLLOWUP_META, type Followup } from '@/lib/followup-status';
 import { FollowupDrawer } from '@/components/followup-drawer';
 import { PieceDrawer } from '@/components/piece-drawer';
 import { PiecePreview } from '@/components/piece-preview';
+import { PieceForm } from '@/components/piece-form';
 import { taskKind, stripKindPrefix, isEmailSend as detectEmailSend } from '@/lib/task-kind';
 import { taskTypeKey, taskArchetype, taskSectionPolicy, TYPE_META } from '@/lib/task-type';
 import { TypeGlyph, type GlyphName } from '@/components/ui/type-glyph';
@@ -947,6 +948,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   });
   // 📝 bài đăng — mở TẠI CHỖ + giữ trong URL để gửi link thẳng tới đúng drawer (như ?task=).
   const [openPieceId, setOpenPieceId] = useState<number | null>(Number(sp.get('piece')) || null);
+  // Soạn bài: null = đóng · {} = tạo mới · {piece} = sửa. Cùng MỘT form cho cả hai (studio cũ
+  // có hai đường ghi khác nhau nên sửa bên này không giống tạo bên kia).
+  const [pieceForm, setPieceForm] = useState<null | { piece?: CalPiece }>(null);
   const [outreachPid, setOutreachPid] = useState<number | null>(Number(sp.get('outreach')) || null);   // stacked Outreach drawer, URL-driven like ?task
   const [outreachCh, setOutreachCh] = useState<string>(sp.get('ch') || '');   // selected channel tab inside the Outreach drawer (→ URL so F5 restores it)
   const [readyFilter, setReadyFilter] = useState<ReadinessBucket | ''>((sp.get('ready') as ReadinessBucket) || '');
@@ -2004,7 +2008,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
             </Popover>
           );
         })()}
-        <ViewToggle style={{ marginLeft: 'auto' }} options={[...LIST_CALENDAR_VIEWS, { value: 'kanban', label: '▦ Kanban', title: 'Kanban theo trạng thái' }, { value: 'feed', label: '📖 Nội dung', title: 'Chỉ bài đăng — đọc lần lượt theo giờ như một thread' }]} value={view} onChange={(v) => setView(v as 'list' | 'calendar' | 'kanban' | 'feed')} />
+        {/* Soạn bài mới NGAY ở đây. Trước đây phải sang /p/<id>/studio — surface thứ hai cho cùng
+            một dữ liệu, và bài tạo bên đó không có ngày nên không bao giờ hiện ra ở lịch này. */}
+        <button type="button" style={{ ...btn, marginLeft: 'auto', borderColor: 'var(--accent)', color: 'var(--accent)', fontWeight: 700 }}
+          onClick={() => setPieceForm({})} title="Soạn bài đăng mới — AI viết nháp, chọn kênh/góc/ngày, xem trước đúng bài sẽ lên">
+          ＋ Bài mới
+        </button>
+        <ViewToggle options={[...LIST_CALENDAR_VIEWS, { value: 'kanban', label: '▦ Kanban', title: 'Kanban theo trạng thái' }, { value: 'feed', label: '📖 Nội dung', title: 'Chỉ bài đăng — đọc lần lượt theo giờ như một thread' }]} value={view} onChange={(v) => setView(v as 'list' | 'calendar' | 'kanban' | 'feed')} />
         {/* Lọc bài dính CÙNG thanh công cụ (một khối, một phép đo barH) — cuộn tới đâu vẫn đổi được
             bộ lọc mà không phải cuộn ngược lên đầu. Dựng MỘT lần ở đây cho cả lịch lẫn chế độ đọc. */}
         {(view === 'feed' || view === 'calendar') && pieceFilterBar}
@@ -2311,7 +2321,14 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       )}
 
       {open && <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} product={products.find((pr) => pr.cards.some((c) => c.id === open.id))} onOpenProduct={(s) => { setOpenId(null); setOpenProd(s); }} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} setResume={setResume} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} onLocate={() => locateInCalendar(open)} />}
-      {openPieceId != null && (() => { const pc = pieces.find((x) => x.id === openPieceId); return pc ? <PieceDrawer piece={pc} projectLabel={allProjects ? (projectsById?.[pc.projectId]?.name ?? pc.projectId) : siteLabel} accounts={accounts} browserProfiles={browserProfiles} media={media} tasks={tasks} replies={repliesOf.get(pc.id) ?? []} onOpenPiece={(id) => setOpenPieceId(id)} onOpenTask={(id) => { setOpenPieceId(null); openTask(id); }} onClose={() => setOpenPieceId(null)} /> : null; })()}
+      {openPieceId != null && (() => { const pc = pieces.find((x) => x.id === openPieceId); return pc ? <PieceDrawer piece={pc} projectLabel={allProjects ? (projectsById?.[pc.projectId]?.name ?? pc.projectId) : siteLabel} accounts={accounts} browserProfiles={browserProfiles} media={media} tasks={tasks} replies={repliesOf.get(pc.id) ?? []} onOpenPiece={(id) => setOpenPieceId(id)} onOpenTask={(id) => { setOpenPieceId(null); openTask(id); }} onEdit={() => setPieceForm({ piece: pc })} onClose={() => setOpenPieceId(null)} /> : null; })()}
+      {/* Soạn bài — cùng form cho tạo mới và sửa. Đây là Content Studio, nay nằm trong /plays. */}
+      {pieceForm && (
+        <PieceForm piece={pieceForm.piece} projectId={pieceForm.piece?.projectId || projectFilter || projectId}
+          projects={allProjects ? Object.values(projectsById ?? {}).map((p) => ({ id: p.id, name: p.name })) : [{ id: projectId, name: siteLabel }]}
+          accounts={accounts} media={media}
+          onSaved={() => start(() => router.refresh())} onClose={() => setPieceForm(null)} />
+      )}
       {openFollowupId != null && (() => { const f = followups.find((x) => x.id === openFollowupId); return f ? <FollowupDrawer followup={f} projectLabel={allProjects ? (projectsById?.[f.projectId]?.name ?? f.projectId) : siteLabel} onClose={() => setOpenFollowupId(null)} /> : null; })()}
       {/* Outreach drawer — page-level + URL-driven (?outreach=<pid>), stacked ON the task drawer. Standard pattern (parent owns both open states). */}
       {open && outreachPid != null && <TaskOutreachDrawer projectId={projectForTask(open).id} prospectId={outreachPid} initialChannel={outreachCh} onChannel={setOutreachCh} onClose={() => { setOutreachPid(null); setOutreachCh(''); }} onChange={() => start(() => router.refresh())} />}

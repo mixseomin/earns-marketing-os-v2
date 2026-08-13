@@ -80,7 +80,7 @@ export const ENTITY_DEPS: Record<EntityKind, Dep> = {
   unmapped:     { sections: ['resources'], paths: ['/unmapped'] },
   alert:        { sections: ['board', 'resources', 'squads', 'studio', 'tribes'], self: true },
   ai:           { sections: ['settings'], self: true, paths: ['/ai-log'] },
-  content:      { sections: ['studio'] },
+  content:      { sections: ['plays'], pages: ['/p/[id]/plays', '/plays'] },   // studio đã gộp vào /plays; trỏ 'studio' là bust một trang không còn ai xem trong khi lịch vẫn cũ
   'ext-token':  { paths: ['/architecture'] },
   session:      { paths: ['/'] },
   plan:         {},   // section is dynamic (`plans/${slug}`) → passed via ctx.sections

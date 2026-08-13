@@ -34,7 +34,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'overview', label: 'Overview' }, { key: 'prepare', label: 'Prepare' }, { key: 'logs', label: 'Logs' },
 ];
 
-export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfiles = [], media = [], tasks = [], replies = [], onOpenPiece, onOpenTask, onClose }: {
+export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfiles = [], media = [], tasks = [], replies = [], onOpenPiece, onOpenTask, onEdit, onClose }: {
   piece: CalPiece; projectLabel?: string; onClose: () => void;
   /** Comment đầu đã có của bài này (piece con, tag replyto:) */
   replies?: CalPiece[];
@@ -45,6 +45,8 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   media?: Array<{ id: number; url: string; filename: string; kind: string }>;
   tasks?: Array<{ id: number; title: string; siteState: string; siteScheduledAt: string | null; publishUrl?: string | null }>;
   onOpenTask?: (id: number) => void;
+  /** Mở form soạn bài đầy đủ (tiêu đề/kênh/tribe/persona/AI) — Content Studio nay nằm trong /plays. */
+  onEdit?: () => void;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -110,7 +112,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   const loadProfiles = useCallback(async (): Promise<EntityOption[]> => browserProfiles
     .map((x) => ({ key: `b:${x.id}`, label: x.label, sub: x.externalId ?? '', fallbackIcon: '🖥', data: x })), [browserProfiles]);
   const loadMedia = useCallback(async (): Promise<EntityOption[]> => media
-    .filter((m) => m.kind === 'image')
+    .filter((m) => m.kind === 'image' || m.kind === 'video')   // reel là video — lọc riêng ảnh thì bài reel không gắn được gì
     .map((m) => ({ key: `m:${m.id}`, label: m.filename, avatar: m.url, data: m })), [media]);
   // Nơi đăng: FB lấy Page của chính account; Reddit lấy sub trong catalog đã đồng bộ luật (trước
   // đây bài reddit không chọn được nơi đăng nào vì danh sách chỉ có Page của Facebook).
@@ -226,6 +228,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
             )}
             <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
               <button type="button" onClick={() => setEditBody(true)} disabled={pending || editBody} style={pickBtn}>✎ Soạn nội dung</button>
+              {onEdit && <button type="button" onClick={onEdit} style={pickBtn} title="Tiêu đề, kênh, góc, tribe, persona, tag + nhờ AI viết nháp">✎ Sửa cả bài</button>}
               <button type="button" onClick={() => navigator.clipboard?.writeText(detail?.bodyMd ?? '')} disabled={!detail?.bodyMd} style={pickBtn}>Copy caption</button>
               {/* Comment đầu = một bài CON (tag replyto:) chứ không phải một ô text đính kèm: nó có
                   account riêng, duyệt riêng, kiểm link riêng — đúng như lúc đăng thật (đăng bài xong

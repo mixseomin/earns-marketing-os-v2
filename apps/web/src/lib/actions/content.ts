@@ -137,14 +137,16 @@ Trả JSON object: { "title": "≤60 chars", "subject": "≤80 chars hook hoặc
 
 // Chi tiết 1 bài cho drawer trên LỊCH plays — lấy đúng phần cần để runner chạy (caption + link đã đăng).
 // Lịch chỉ mang cột nhẹ (CalPiece) để global /plays không kéo body_md của cả trăm bài; mở drawer mới nạp.
-export async function getPieceDetail(id: number, projectId: string): Promise<{ bodyMd: string; publishUrl: string | null; publishedAt: string | null; metrics: Record<string, string | number> } | null> {
+export async function getPieceDetail(id: number, projectId: string): Promise<{ bodyMd: string; publishUrl: string | null; publishedAt: string | null; metrics: Record<string, string | number>; tribeSlug: string | null; persona: string | null } | null> {
   const db = ensureDb();
-  const rows = await db.select({ bodyMd: contentPieces.bodyMd, publishUrl: contentPieces.publishUrl, publishedAt: contentPieces.publishedAt, metrics: contentPieces.metrics })
+  // tribe + persona đi kèm luôn: form sửa bài mà không đọc được hai cột này thì lúc lưu sẽ ghi đè
+  // null lên giá trị đang có — sửa cái tiêu đề, mất luôn tribe.
+  const rows = await db.select({ bodyMd: contentPieces.bodyMd, publishUrl: contentPieces.publishUrl, publishedAt: contentPieces.publishedAt, metrics: contentPieces.metrics, tribeSlug: contentPieces.tribeSlug, persona: contentPieces.persona })
     .from(contentPieces)
     .where(and(eq(contentPieces.tenantId, TENANT), eq(contentPieces.projectId, projectId), eq(contentPieces.id, id)))
     .limit(1);
   const r = rows[0];
-  return r ? { bodyMd: r.bodyMd, publishUrl: r.publishUrl, publishedAt: r.publishedAt ? r.publishedAt.toISOString() : null, metrics: (r.metrics as Record<string, string | number>) ?? {} } : null;
+  return r ? { bodyMd: r.bodyMd, publishUrl: r.publishUrl, publishedAt: r.publishedAt ? r.publishedAt.toISOString() : null, metrics: (r.metrics as Record<string, string | number>) ?? {}, tribeSlug: r.tribeSlug, persona: r.persona } : null;
 }
 
 /** Bài có link thì trang đích PHẢI tồn tại — đăng link 404 là mất uy tín ở đúng chỗ vừa xin sự chú ý,
@@ -174,4 +176,19 @@ export async function checkPieceLinks(id: number, projectId: string): Promise<{ 
   await db.update(contentPieces).set({ tags, updatedAt: new Date() }).where(eq(contentPieces.id, id));
   await touchEntity('content', { projectId });
   return { ok, results };
+}
+
+// Lựa chọn cho form soạn bài — nạp LÚC MỞ FORM, không kéo sẵn theo trang. /plays là trang toàn
+// portfolio (43 project); kéo skill + tribe của mọi project vào payload chỉ để thỉnh thoảng mở
+// một form là trả giá ở mọi lần tải trang.
+export async function pieceFormOptions(projectId: string): Promise<{
+  skills: Array<{ slug: string; title: string; body: string }>;
+  tribes: Array<{ slug: string; name: string }>;
+}> {
+  const [{ listSkills }, { listTribes }] = await Promise.all([import('@/lib/actions/library'), import('@/lib/data')]);
+  const [skills, tribes] = await Promise.all([listSkills(), listTribes(projectId)]);
+  return {
+    skills: skills.map((s) => ({ slug: s.slug, title: s.title, body: s.body })),
+    tribes: tribes.map((t) => ({ slug: t.slug, name: t.name })),
+  };
 }

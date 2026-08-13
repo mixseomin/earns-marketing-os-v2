@@ -3,15 +3,16 @@
 import { Suspense, useEffect, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  getOfferNote, saveOfferTerms, getEntityOffers,
-  type AffiliateOffer, type OfferAccount, type OfferKind, type OfferFilters, type OffersView,
+  getOfferNote, getOffer, saveOfferTerms, getEntityOffers,
+  type AffiliateOffer, type OfferAccount, type OfferKind, type OfferFilters, type OffersView, type OfferTerms,
 } from '@/lib/actions/offers';
 import { useModalParam } from '@/lib/use-modal-param';
 import {
-  EmptyState, Drawer, ListToolbar, FilterChips, Pager, MultiSelect,
+  EmptyState, Drawer, ListToolbar, FilterChips, Pager, MultiSelect, EntityRef, StatusBadge, Pill,
   DataTable, TextField, TextAreaField, SelectField, type DataColumn, type DataGroup,
 } from './ui';
 import { openEntityDrawer } from '@/lib/entity-drawer';
+import { offerStatusMeta } from '@/lib/status-meta';
 
 // Source label only (YDNI: no per-source colour — the name carries it; colour is reserved for status).
 const KIND: Record<OfferKind, string> = { awin: 'Awin', cj: 'CJ', direct: 'Direct', own: 'Own product' };
@@ -30,11 +31,9 @@ const clickable: React.CSSProperties = { cursor: 'pointer', textDecoration: 'und
 // the Account chip shows only the handle/login (YDNI: no duplicated network).
 const acctHandle = (label: string) => { const i = label.indexOf(' · '); return i >= 0 ? label.slice(i + 3) : label; };
 
-const APPROVED = new Set(['active', 'joined', 'approved']);
-const isApproved = (s: string) => APPROVED.has(s.toLowerCase());
-// Status = the ONE meaningful signal → the screen's colour: lime ok, amber pending, neutral otherwise.
-const statusColor = (s: string) =>
-  isApproved(s) ? 'var(--neon-lime)' : s.toLowerCase() === 'pending' ? 'var(--neon-amber)' : 'var(--fg-3)';
+// Status renders through the house <StatusBadge meta={offerStatusMeta(...)} /> (lib/status-meta.ts) —
+// one drift-free source for the status→label→colour mapping, same as accounts/seeding/tools.
+const statusMeta = (s: string) => offerStatusMeta(s.toLowerCase());
 
 // commission_time is the authoritative "does it keep paying" column; older rows only encoded it
 // inside commission_model text ("recurring (lifetime)") → fall back to that.
@@ -97,65 +96,81 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
 
   // Drawer = house url-state hook (?m=offer&mId=<id>) → shareable + survives F5.
   const modal = useModalParam();
-  const sel = modal.is('offer') ? rows.find((o) => o.id === modal.id) ?? null : null;
+  const inPage = modal.is('offer') ? rows.find((o) => o.id === modal.id) ?? null : null;
+  // Deep-link / F5 to an offer that isn't on THIS server page → rows.find misses it. Fetch that one
+  // offer by id (from the cached full list) so ANY ?m=offer link reopens, not just page-1 offers.
+  const [fetched, setFetched] = useState<AffiliateOffer | null>(null);
+  useEffect(() => {
+    if (!modal.is('offer') || !modal.id || inPage) { setFetched(null); return; }
+    let live = true;
+    getOffer(modal.id).then((o) => { if (live) setFetched(o); }).catch(() => {});
+    return () => { live = false; };
+  }, [modal.id, modal.is('offer'), inPage]);
+  const sel = inPage ?? fetched;
   // User note is kept out of the bulk list (Awin blob bloats every load) → fetch it lazily when
-  // a specific offer's drawer opens. See offers.ts getOfferNote.
+  // a specific offer's drawer opens. Key on sel?.id (not the object) so a parent refresh doesn't refetch.
   const [note, setNote] = useState<string | null>(null);
   useEffect(() => {
     setNote(null);
-    if (!sel) return;
+    if (!sel?.id) return;
     let live = true;
     getOfferNote(sel.id).then((n) => { if (live) setNote(n); }).catch(() => {});
     return () => { live = false; };
-  }, [sel]);
+  }, [sel?.id]);
 
-  // Entity quick-view: click an account / network / brand cell → drawer with EVERY offer for that
-  // entity (all networks) so you can compare who pays most for the same merchant.
-  const [entity, setEntity] = useState<{ field: 'brand' | 'network'; value: string; label: string; accountId?: number | null } | null>(null);
+  // Entity quick-view (brand / network / account) — SAME house url-state convention as the offer drawer
+  // above, on a nested slot ('v'): ?v=brand|net|acct & vId=<brand|networkKey>. Shareable + survives F5.
+  // brand → compare a merchant across networks; net → a network's offers; acct → an account's offers
+  // (account ↔ network 1:1, so keyed by the network; the real account is derived from the loaded rows).
+  const view = useModalParam('v');
+  const entityField: 'brand' | 'network' | null =
+    view.value === 'brand' ? 'brand' : (view.value === 'net' || view.value === 'acct') ? 'network' : null;
   const [entityRows, setEntityRows] = useState<AffiliateOffer[] | null>(null);
   useEffect(() => {
     setEntityRows(null);
-    if (!entity) return;
+    if (!entityField || !view.id) return;
     let live = true;
-    getEntityOffers(entity.field, entity.value).then((r) => { if (live) setEntityRows(r); }).catch(() => {});
+    getEntityOffers(entityField, view.id).then((r) => { if (live) setEntityRows(r); }).catch(() => {});
     return () => { live = false; };
-  }, [entity]);
-  const openEntity = (field: 'brand' | 'network', value: string | null, label: string) =>
-    (e: React.MouseEvent) => { e.stopPropagation(); if (value) setEntity({ field, value, label }); };
-  // Account cell → the account's OFFERS quick-view (account ↔ network 1:1, so fetch by network), tier 1.
-  // Tier 2 "↗ mở account đầy đủ" (in the drawer) opens the house account drawer for identity/vault.
-  const openAccountView = (o: AffiliateOffer) => (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (o.network && o.mosAccountId != null) setEntity({ field: 'network', value: o.network, label: o.account ? acctHandle(o.account) : o.network, accountId: o.mosAccountId });
-  };
+  }, [entityField, view.id]);
+  const openEntity = (mode: 'brand' | 'net', value: string | null) =>
+    (e: React.MouseEvent) => { e.stopPropagation(); if (value) view.open(mode, value); };
 
   const columns: DataColumn<AffiliateOffer>[] = [
     {
       key: 'name', sortValue: (o) => o.name, align: 'left', width: '100%', header: 'Offer',
       cellTitle: (o) => o.name,
-      cell: (o) => <span style={{ fontWeight: 600, ...clip(300), display: 'inline-block', verticalAlign: 'bottom' }}>{o.name}</span>,
+      cell: (o) => (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, ...clip(340) }}>
+          <span style={{ fontWeight: 600, ...clip(300) }}>{o.name}</span>
+          {o.selfReferral && <Pill color="var(--neon-amber)" tone="soft" size="xs" uppercase={false} mono={false} label="↻ tự giới thiệu" title="Chương trình giới thiệu của CHÍNH network — không phải offer merchant" />}
+        </span>
+      ),
     },
     {
       key: 'brand', sortValue: (o) => o.brand, align: 'left', header: 'Brand', title: 'Merchant gọn (bỏ hậu tố CPS/Network/geo) → click để so sánh mọi net trả bao nhiêu cho cùng brand',
       cellTitle: (o) => o.brand,
-      cell: (o) => <span style={{ ...clickable, ...clip(150), display: 'inline-block', verticalAlign: 'bottom' }} onClick={openEntity('brand', o.brand, o.brand)}>{o.brand}</span>,
+      cell: (o) => <span style={{ ...clickable, ...clip(150), display: 'inline-block', verticalAlign: 'bottom' }} onClick={openEntity('brand', o.brand)}>{o.brand}</span>,
     },
     {
       key: 'network', sortValue: (o) => netLabel(o), align: 'left', header: 'Network', title: 'Network cung cấp offer — click xem mọi offer của net này',
-      cell: (o) => { const n = netLabel(o); return n ? <span style={clickable} onClick={openEntity('network', n, n)}>{n}</span> : <span style={dim}>—</span>; },
+      cell: (o) => { const n = netLabel(o); return n ? <span style={clickable} onClick={openEntity('net', n)}>{n}</span> : <span style={dim}>—</span>; },
     },
     {
       key: 'account', sortValue: (o) => o.account ?? null, align: 'left', header: 'Account', title: 'Account (login) đã được duyệt — click xem mọi offer dưới account; trong drawer bấm "mở account đầy đủ" để xem identity/vault',
       cellTitle: (o) => o.account ?? undefined,
-      // Tier 1: click → the account's offers quick-view. Tier 2: a button in that drawer opens the house
-      // account drawer (account-drawer.tsx, SAME entity as environments) for identity — no bespoke re-fetch.
+      // House <EntityRef> chip (same as environments) — kind=account so it reads as the real MOS2 account
+      // entity. Tier 1: onOpen → the account's offers quick-view; Tier 2: a button in that drawer opens
+      // the canonical account drawer for identity/vault. EntityRef handles stopPropagation itself.
       cell: (o) => (o.mosAccountId
-        ? <span style={{ ...clickable, ...clip(190), display: 'inline-block', verticalAlign: 'bottom' }} onClick={openAccountView(o)}>{o.account ? acctHandle(o.account) : (o.network ?? `#${o.mosAccountId}`)}</span>
+        ? <EntityRef kind="account" id={o.mosAccountId} noIcon
+            label={o.account ? acctHandle(o.account) : (o.network ?? `#${o.mosAccountId}`)}
+            onOpen={() => { if (o.network) view.open('acct', o.network); }} />
         : <span style={{ color: 'var(--neon-amber)' }}>chưa gán</span>),
     },
     {
       key: 'status', sortValue: (o) => o.status, align: 'left', header: 'Status',
-      cell: (o) => <span style={{ color: statusColor(o.status) }}>● {o.status}</span>,
+      cell: (o) => <StatusBadge meta={statusMeta(o.status)} />,
     },
     {
       key: 'commission', sortValue: (o) => o.commission ?? null, group: 'terms', align: 'right', header: '%', title: 'Commission rate (nguyên văn net báo)',
@@ -311,7 +326,12 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>{KIND[sel.kind].toUpperCase()}</div>
                 <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{sel.name}</h2>
-                <div style={{ marginTop: 6, fontSize: 12, fontFamily: 'var(--font-mono)', color: statusColor(sel.status) }}>● {sel.status}</div>
+                <div style={{ marginTop: 6 }}><StatusBadge meta={statusMeta(sel.status)} /></div>
+                {sel.selfReferral && (
+                  <div style={{ marginTop: 6, fontSize: 11, color: 'var(--neon-amber)' }}>
+                    ↻ Đây là chương trình <b>giới thiệu của chính {netLabel(sel) ?? 'network'}</b> (refer-a-friend), không phải offer merchant. Vẫn kiếm tiền được nhưng khác bản chất offer thường.
+                  </div>
+                )}
                 {sel.kind === 'own' && (
                   <div style={{ marginTop: 6, fontSize: 11, color: 'var(--neon-amber)' }}>
                     ⚠ Trùng tên với 1 sản phẩm tự bán → chỗ của nó là <a href="/products" style={{ color: 'var(--neon-cyan)' }}>/products</a>, không phải offer affiliate.
@@ -346,7 +366,37 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
               {note && <div style={{ marginTop: 12 }}><Field label="Notes" value={note} /></div>}
             </div>
 
-            {sel.affiliateUrl ? (
+            {/* Rules the network dictates (read-only; commission/cookie/policy/reward are edited in the form
+                above). Only rendered when the sync captured them. */}
+            {(sel.payoutThreshold || sel.payoutMethods || sel.trafficSources.length > 0 || sel.policy || sel.reward) && (
+              <div>
+                <div style={sectionLabel}>Rules &amp; payout</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {sel.policy && <Field label="Promotion policy" value={sel.policy} />}
+                  {sel.reward && <Field label="Reward detail" value={sel.reward} />}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px' }}>
+                    {sel.payoutThreshold && <Field label="Payout threshold" value={sel.payoutThreshold} />}
+                    {sel.payoutMethods && <Field label="Payout methods" value={sel.payoutMethods} />}
+                    {sel.trafficSources.length > 0 && <Field label="Traffic sources" value={sel.trafficSources.join(', ')} />}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Support / media — supporting links the sync has, plus where to grab creatives (the network
+                panel). Actual banner/creative IMAGES aren't synced into the DB → we point at the panel. */}
+            <div>
+              <div style={sectionLabel}>Support / media</div>
+              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                {sel.promoteUrl && <a href={sel.promoteUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--neon-cyan)' }}>↗ Creative / landing</a>}
+                {sel.panelUrl && <a href={sel.panelUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--fg-2)' }}>↗ Offer trên network</a>}
+                {sel.previewUrl && <a href={sel.previewUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--fg-3)' }}>↗ Preview</a>}
+                {netLabel(sel) && NETWORK_HOME[netLabel(sel)!] && <a href={NETWORK_HOME[netLabel(sel)!]} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--fg-3)' }}>↗ Panel {netLabel(sel)}</a>}
+              </div>
+              <div style={{ marginTop: 6, fontSize: 10.5, color: 'var(--fg-4)' }}>Ảnh creative/banner chưa sync về đây — lấy trực tiếp ở panel network qua link trên.</div>
+            </div>
+
+            {sel.affiliateUrl && (
               <div>
                 <div style={sectionLabel}>Tracking link</div>
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -354,24 +404,18 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
                   <button style={{ padding: '5px 12px', fontSize: 12, borderRadius: 6, border: 'none', cursor: 'pointer', background: 'var(--neon-cyan)', color: '#0b0f14', fontWeight: 700 }}
                     onClick={() => navigator.clipboard?.writeText(sel.affiliateUrl ?? '')}>Copy</button>
                 </div>
-                <div style={{ display: 'flex', gap: 14, marginTop: 10 }}>
-                  <a href={sel.affiliateUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--neon-cyan)' }}>↗ Mở link</a>
-                  {sel.previewUrl && <a href={sel.previewUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--fg-3)' }}>↗ Preview</a>}
-                </div>
+                <a href={sel.affiliateUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 10, fontSize: 12, color: 'var(--neon-cyan)' }}>↗ Mở link</a>
               </div>
-            ) : sel.previewUrl && (
-              <a href={sel.previewUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--fg-3)' }}>↗ Preview</a>
             )}
           </div>
         </Drawer>
       )}
 
-      {entity && (
-        <EntityDrawer entity={entity} rows={entityRows}
-          onClose={() => setEntity(null)}
-          onOpenOffer={(id) => { setEntity(null); modal.open('offer', id); }}
-          onOpenAccount={entity.accountId != null ? () => { const id = entity.accountId!; setEntity(null); openEntityDrawer('account', id); } : undefined}
-          onFilterBrand={entity.field === 'brand' ? () => { setEntity(null); setQ(entity.value); } : undefined} />
+      {entityField && view.id && (
+        <EntityDrawer mode={view.value as 'brand' | 'net' | 'acct'} value={view.id} rows={entityRows}
+          onClose={() => view.close()}
+          onOpenOffer={(id) => { view.close(); modal.open('offer', id); }}
+          onFilterBrand={view.value === 'brand' ? () => { const v = view.id!; view.close(); setQ(v); } : undefined} />
       )}
     </div>
   );
@@ -379,27 +423,45 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
 
 // Quick-view drawer for a clicked entity (brand / network / account). Its whole point is the
 // comparison table: the SAME brand across networks, so you see who pays most at a glance.
-function EntityDrawer({ entity, rows, onClose, onOpenOffer, onOpenAccount, onFilterBrand }: {
-  entity: { field: 'brand' | 'network'; value: string; label: string; accountId?: number | null };
+function EntityDrawer({ mode, value, rows, onClose, onOpenOffer, onFilterBrand }: {
+  mode: 'brand' | 'net' | 'acct';
+  value: string;               // brand name (brand) or network key (net/acct)
   rows: AffiliateOffer[] | null;
   onClose: () => void;
   onOpenOffer: (id: string) => void;
-  onOpenAccount?: () => void;   // set for the account quick-view → opens the house account drawer (identity/vault)
   onFilterBrand?: () => void;
 }) {
-  const isAccount = entity.accountId != null;
-  const kindWord = entity.field === 'brand' ? 'Brand' : isAccount ? 'Account' : 'Network';
+  const field: 'brand' | 'network' = mode === 'brand' ? 'brand' : 'network';
+  const isAccount = mode === 'acct';
+  const kindWord = mode === 'brand' ? 'Brand' : isAccount ? 'Account' : 'Network';
+  // Account view: the real account (numeric id + handle) is derived from the loaded rows (account ↔
+  // network 1:1) — the URL only carries the network key, so identity/label reconstruct from the data.
+  const acctRow = isAccount && rows ? rows.find((r) => r.mosAccountId != null) : null;
+  const label = isAccount ? (acctRow?.account ? acctHandle(acctRow.account) : value) : value;
+  const onOpenAccount = isAccount && acctRow?.mosAccountId != null ? () => openEntityDrawer('account', acctRow.mosAccountId!) : undefined;
   const nets = rows ? new Set(rows.map((r) => netLabel(r)).filter(Boolean)).size : 0;
-  const home = entity.field === 'network' ? NETWORK_HOME[entity.value] : undefined;
+  const home = field === 'network' ? NETWORK_HOME[value] : undefined;
+  // Same house <DataTable> primitive as the main list (not a second hand-rolled <table>). Network column
+  // dropped when the whole view is one network. Status via the same <StatusBadge> → no drift.
+  const quickCols: DataColumn<AffiliateOffer>[] = [
+    { key: 'net', header: 'Network', align: 'left', sortValue: (o) => netLabel(o), cell: (o) => netLabel(o) ?? <span style={dim}>—</span> },
+    { key: 'name', header: 'Offer', align: 'left', width: '100%', cellTitle: (o) => o.name, sortValue: (o) => o.name, cell: (o) => <span style={clip(220) as React.CSSProperties}>{o.name}</span> },
+    { key: 'commission', header: '%', align: 'right', sortValue: (o) => o.commission ?? null, cell: (o) => o.commission ?? <span style={dim}>—</span> },
+    { key: 'payout', header: '$ real', align: 'right', sortValue: (o) => o.payoutUsd, cell: (o) => o.payoutUsd != null ? <span style={{ fontWeight: 600, color: 'var(--neon-lime)' }}>${o.payoutUsd}</span> : <span style={dim}>—</span> },
+    { key: 'cookie', header: 'Cookie', align: 'right', cell: (o) => o.cookie ?? <span style={dim}>—</span> },
+    { key: 'epc', header: 'EPC', align: 'right', sortValue: (o) => (o.epc ? parseFloat(o.epc) : null), cell: (o) => o.epc ?? <span style={dim}>—</span> },
+    { key: 'cvr', header: 'CVR', align: 'right', cell: (o) => o.cvr ?? <span style={dim}>—</span> },
+    { key: 'status', header: 'Status', align: 'left', sortValue: (o) => o.status, cell: (o) => <StatusBadge meta={statusMeta(o.status)} /> },
+  ].filter((c) => c.key !== 'net' || field !== 'network');
   return (
     <Drawer onClose={onClose} width={620}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>{kindWord.toUpperCase()}</div>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{entity.label}</h2>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{label}</h2>
           {rows && (
             <div style={{ marginTop: 6, fontSize: 12, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
-              {rows.length} offer{entity.field === 'brand' && nets > 1 ? ` · ${nets} networks` : ''}
+              {rows.length} offer{mode === 'brand' && nets > 1 ? ` · ${nets} networks` : ''}
             </div>
           )}
           <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
@@ -411,52 +473,19 @@ function EntityDrawer({ entity, rows, onClose, onOpenOffer, onOpenAccount, onFil
 
         {!rows ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>Đang tải…</div>
           : rows.length === 0 ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>Không có offer.</div>
-          : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                <thead>
-                  <tr style={{ textAlign: 'left', color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 10.5 }}>
-                    {entity.field !== 'network' && <th style={th}>Network</th>}
-                    <th style={th}>Offer</th>
-                    <th style={{ ...th, textAlign: 'right' }}>%</th>
-                    <th style={{ ...th, textAlign: 'right' }}>$ real</th>
-                    <th style={{ ...th, textAlign: 'right' }}>Cookie</th>
-                    <th style={{ ...th, textAlign: 'right' }}>EPC</th>
-                    <th style={{ ...th, textAlign: 'right' }}>CVR</th>
-                    <th style={th}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((o) => (
-                    <tr key={o.id} onClick={() => onOpenOffer(o.id)} style={{ cursor: 'pointer', borderTop: '1px solid var(--line)' }}>
-                      {entity.field !== 'network' && <td style={td}>{netLabel(o) ?? '—'}</td>}
-                      <td style={{ ...td, ...clip(200) }} title={o.name}>{o.name}</td>
-                      <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>{o.commission ?? '—'}{o.currency && o.currency !== 'USD' ? <span style={{ color: 'var(--fg-3)', fontSize: 10 }}> {o.currency}</span> : ''}</td>
-                      <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: o.payoutUsd != null ? 'var(--neon-lime)' : 'var(--fg-3)' }}>{o.payoutUsd != null ? `$${o.payoutUsd}` : '—'}</td>
-                      <td style={{ ...td, textAlign: 'right' }}>{o.cookie ?? '—'}</td>
-                      <td style={{ ...td, textAlign: 'right' }}>{o.epc ?? '—'}</td>
-                      <td style={{ ...td, textAlign: 'right' }}>{o.cvr ?? '—'}</td>
-                      <td style={{ ...td, color: statusColor(o.status) }}>● {o.status}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          : <DataTable rows={rows} columns={quickCols} getRowKey={(o) => o.id} onRowClick={(o) => onOpenOffer(o.id)} minWidth={560} />}
       </div>
     </Drawer>
   );
 }
 const miniBtn: React.CSSProperties = { padding: '4px 10px', fontSize: 11, fontFamily: 'var(--font-mono)', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer' };
-const th: React.CSSProperties = { padding: '5px 8px', fontWeight: 700, whiteSpace: 'nowrap' };
-const td: React.CSSProperties = { padding: '5px 8px', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 
 // Deal terms the network never sends (Awin/CJ sync writes other columns only → safe to edit here).
 // account_id IS written by the Awin sync, but only for its own rows — editing a direct offer's
 // account is safe; re-picking an Awin row's account just gets reset on the next nightly sync.
 function TermsForm({ offer, accounts }: { offer: AffiliateOffer; accounts: OfferAccount[] }) {
   const router = useRouter();
-  const [t, setT] = useState({
+  const [t, setT] = useState<OfferTerms>({
     commission: offer.commission ?? '', recurring: offer.recurring ?? '',
     cookie: offer.cookie ?? '', policy: offer.policy ?? '', reward: offer.reward ?? '',
     accountId: offer.accountId ?? '',

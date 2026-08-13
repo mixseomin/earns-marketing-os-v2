@@ -123,6 +123,21 @@ export const TOOL_STATUS_META: Record<ToolStatus, StatusInfo> = {
 
 export const toolStatusMeta = makeAccessor(TOOL_STATUS_META, 'planning');
 
+// ── Affiliate offer status (affiliate_programs.status) ───────────────
+// Free-text from the CJ/Awin syncs + manual entries. active/joined/approved = earning; pending =
+// applied & awaiting; paused/notjoined = not live; rejected = declined. Keys are lowercased on lookup.
+export const OFFER_STATUS_META: Record<string, StatusInfo> = {
+  active:    { label: 'ACTIVE',    color: '#10b981', icon: '🟢', hint: 'Đang chạy — được duyệt, kiếm tiền được' },
+  joined:    { label: 'JOINED',    color: '#10b981', icon: '🟢', hint: 'Đã join — chạy được' },
+  approved:  { label: 'APPROVED',  color: '#10b981', icon: '🟢', hint: 'Được duyệt' },
+  pending:   { label: 'PENDING',   color: '#f59e0b', icon: '⏳', hint: 'Đã apply, chờ duyệt' },
+  paused:    { label: 'PAUSED',    color: '#94a3b8', icon: '⏸', hint: 'Tạm dừng / chưa join' },
+  notjoined: { label: 'NOTJOINED', color: '#7d8899', icon: '○', hint: 'Chưa join — có thể apply' },
+  rejected:  { label: 'REJECTED',  color: '#f87171', icon: '🔴', hint: 'Bị từ chối' },
+  unknown:   { label: 'UNKNOWN',   color: '#7d8899', hint: 'Không rõ trạng thái' },
+};
+export const offerStatusMeta = makeAccessor(OFFER_STATUS_META, 'unknown');
+
 // ── Generic plan/step status (plan-cockpit.tsx) ──────────────────────
 export type PlanStatus = 'todo' | 'in_progress' | 'blocked' | 'done' | 'cancelled';
 

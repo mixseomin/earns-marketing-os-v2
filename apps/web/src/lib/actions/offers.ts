@@ -78,6 +78,13 @@ export interface AffiliateOffer {
   cookie: string | null;       // cookie_lifetime   e.g. "60 days"
   policy: string | null;       // promotion_policy  = the special rules
   reward: string | null;       // reward_details
+  // Support / promotion rules the network provides — surfaced in the drawer, not the bulk list.
+  payoutThreshold: string | null;  // minimum payout before you can withdraw
+  payoutMethods: string | null;    // how the network pays out
+  trafficSources: string[];        // allowed traffic sources (rules)
+  promoteUrl: string | null;       // creative / landing page to promote
+  panelUrl: string | null;         // the network's offer panel / detail page
+  selfReferral: boolean;           // the network's OWN referral program (not a merchant offer) — labelled
   // Dates. createdAt = when OUR sync first saw the row (not when the merchant joined the
   // network). approvedAt = the run a sync observed it flip to approved — NULL for anything
   // approved before 2026-08-07 (neither Awin nor CJ exposes a joined-date, so it can't be
@@ -104,6 +111,11 @@ type Row = {
   cookie_lifetime: string | null;
   promotion_policy: string | null;
   reward_details: string | null;
+  payout_threshold: string | null;
+  payout_methods: string | null;
+  traffic_sources: string[] | null;
+  promote_url: string | null;
+  panel_url: string | null;
   epc: string | null;
   conversion_rate: string | null;
   currency: string | null;
@@ -119,6 +131,16 @@ function brandOf(name: string): string {
   let b = (clean.split(/\s*[-(/|·]| CP[SLAI]\b| Network\b| Global\b/i)[0] ?? clean).trim();
   b = b.replace(/\.(com|vn|net|co|shop|world|eco|asia|io|org|bg|au|in|id|tw)\b.*$/i, '').trim();
   return b || name;
+}
+
+// The network's OWN referral / refer-a-friend program (e.g. "ACCESSTRADE Referral"), scraped off a
+// campaign list — not a merchant offer. Kept (it can still earn) but LABELLED so it isn't mistaken for
+// a real brand. Detect: brand contains the network's own name AND the name reads as a referral.
+function isSelfReferral(name: string, brand: string, network: string | null): boolean {
+  if (!network) return false;
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const net = norm(network);
+  return net.length >= 4 && norm(brand).includes(net) && /refer|giới thiệu|mời|invite/i.test(name);
 }
 
 // Static approx FX — used ONLY to line up flat payouts in one currency for eyeball comparison; it never
@@ -138,7 +160,7 @@ function payoutUsdOf(rate: string | null, currency: string | null): number | nul
 
 // NB: `notes` deliberately excluded — see the PERF note above. Lazy-loaded via getOfferNote.
 // The terms columns are short text and null on ~99% of rows → negligible payload.
-const LIST_FIELDS = 'id,account_id,name,network,status,vertical,affiliate_url,preview_url,target_geo,tags,product_type,commission_rate,commission_model,commission_time,cookie_lifetime,promotion_policy,reward_details,epc,conversion_rate,currency,created_at,approved_at';
+const LIST_FIELDS = 'id,account_id,name,network,status,vertical,affiliate_url,preview_url,promote_url,panel_url,target_geo,traffic_sources,tags,product_type,commission_rate,commission_model,commission_time,cookie_lifetime,promotion_policy,reward_details,payout_threshold,payout_methods,epc,conversion_rate,currency,created_at,approved_at';
 const PAGE_SIZE = 200;
 
 async function fetchPage(page: number): Promise<{ rows: Row[]; total: number }> {
@@ -233,6 +255,12 @@ function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>, mosAcc
     cookie: x.cookie_lifetime,
     policy: x.promotion_policy,
     reward: x.reward_details,
+    payoutThreshold: x.payout_threshold,
+    payoutMethods: x.payout_methods,
+    trafficSources: Array.isArray(x.traffic_sources) ? x.traffic_sources : [],
+    promoteUrl: x.promote_url,
+    panelUrl: x.panel_url,
+    selfReferral: isSelfReferral(x.name, brandOf(x.name), x.network ?? netKind ?? null),
     createdAt: x.created_at,
     approvedAt: x.approved_at,
   };
@@ -405,6 +433,13 @@ export async function getEntityOffers(field: 'brand' | 'network', value: string)
 function cleanNote(notes: string | null): string | null {
   if (!notes) return null;
   return /^\s*\[awin-sync\]/.test(notes) ? null : notes;
+}
+
+// One offer by id, for deep-link / F5 rehydrate: a shared ?m=offer&mId=<id> link may point at an offer
+// that doesn't sort onto the current server page, so rows.find() misses it → drawer stays empty. Resolve
+// from the cached full list (cheap in-memory find, no extra Directus hit) so ANY offer link reopens.
+export async function getOffer(id: string): Promise<AffiliateOffer | null> {
+  return (await listAffiliateOffers()).find((o) => o.id === id) ?? null;
 }
 
 // Lazy per-offer user note — only the drawer needs it, so it's kept out of the bulk list

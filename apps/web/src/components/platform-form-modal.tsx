@@ -63,6 +63,9 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
     // null = chưa override (dùng hardcoded fallback). [] = override = không
     // cho format nào (rare). Array các key = list custom.
     allowedFormats: platform?.allowedFormats ?? null,
+    // Kinh nghiệm THAO TÁC trên nền tảng này (cột notes). Cột có sẵn từ lâu nhưng drawer chưa bao
+    // giờ dựng ra → mọi thứ học được nằm trong DB mà không ai đọc, phiên sau lại đi dò lại từ đầu.
+    notes: platform?.notes ?? '',
   });
   // Link-gate on/off for THIS platform (isolated from the main form save).
   const [linkGate, setLinkGate] = useState(false);
@@ -132,6 +135,7 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
         technologyKey: form.technologyKey || null,
         signupFields: form.signupFields,
         allowedFormats: form.allowedFormats,
+        notes: form.notes || null,
       };
       const res = isCreate ? await createPlatform(payload) : await updatePlatform(platform!.key, payload);
       if (!res.ok) { setBusy(false); setError(res.error || 'Lưu thất bại'); return; }
@@ -423,6 +427,17 @@ export function PlatformFormModal({ platform, onClose }: { platform: PlatformWit
                 </span>
               </label>
             )}
+            </Collapsible>
+          </div>
+
+          {/* ── Kinh nghiệm thao tác: chỗ đã dính, cách vòng qua ── */}
+          <div style={{ gridColumn: '1 / 3' }}>
+            <Collapsible title="🧠 Kinh nghiệm thao tác" marginTop={2}
+              badge={form.notes ? `${form.notes.split('\n').filter((l) => l.trim()).length} dòng` : undefined}
+              hint="phiên đăng nhập · bẫy giao diện · giới hạn nền tảng">
+              <textarea style={{ ...fld, minHeight: 220, fontFamily: 'var(--font-mono)', fontSize: 11.5, lineHeight: 1.5, resize: 'vertical' }}
+                placeholder={'Mỗi dòng là MỘT lần đã dính, không phải lý thuyết.\nVD: lớp phủ nuốt click → dùng mouse.click theo toạ độ.'}
+                value={form.notes} onChange={(e) => setF('notes', e.target.value)} />
             </Collapsible>
           </div>
 

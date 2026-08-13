@@ -287,7 +287,11 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
             {linkMsg && <div style={{ marginTop: 5, fontSize: 11.5, color: /(^|\s)(200|301|302)/.test(linkMsg) || linkMsg.startsWith('đang') || linkMsg.startsWith('bài này') ? 'var(--fg-3)' : 'var(--neon-amber)' }}>{linkMsg}</div>}
           </div>
           <div>
-            <label style={lbl}>Hook (dòng người đọc thấy)</label>
+            {/* Bài COMMENT không có hook: người ta đọc thẳng nội dung, không có dòng mở nào đứng
+                riêng. Ô này khi đó mang việc khác — điều kiện chọn bài để vào comment — nên nhãn
+                phải nói đúng thế, không thì có ngày ai đó dán nguyên câu tiếng Việt lên Facebook. */}
+            <label style={lbl}>{formatOf(piece.tags)?.id === 'comment'
+              ? 'Khi nào dùng (nội bộ, KHÔNG đăng)' : 'Hook (dòng người đọc thấy)'}</label>
             <input style={inp} value={hook} onChange={(e) => setHook(e.target.value)} disabled={pending}
               onBlur={() => hook !== (piece.subject ?? '') && patch({ subject: hook })} />
           </div>

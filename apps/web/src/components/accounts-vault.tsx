@@ -30,7 +30,7 @@ import {
   updateAccountEnvironment, createProxy, createBrowserProfile,
   type ProxyRow, type BrowserProfileRow, type ProxyType, type ProfileTool,
 } from '@/lib/actions/environments';
-import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, InfoHint, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, Drawer, ProjectAssign, EntityRef, ListToolbar, FilterChips, Pager, usePaged } from './ui';
+import { Pill, EmptyState, Spinner, Segmented, CTACard, ResourcePicker, ModalHeader, IconLock, IconPencil, InfoHint, StatusBadge, SiteFavicon, fieldStyle, labelStyle, Collapsible, Drawer, ProjectAssign, EntityRef, ListToolbar, FilterChips, Pager, usePaged, DataTable, type DataColumn } from './ui';
 import { platformFaviconProps } from './ui/site-favicon';
 import {
   ACCOUNT_STATUS_META, ACCOUNT_STATUS_GROUPS, accountStatusMeta, accountStatusGroupOf,
@@ -3744,32 +3744,41 @@ function SyncBanner({ projectId, accountId, platformLabel }: {
 }
 
 // Nhóm/Trang account này đã tham gia. Đọc từ community_briefs (quan hệ account × habitat có sẵn).
+// Bảng nhà + phân trang + tìm, KHÔNG dựng grid tay: danh sách này chỉ có tăng (một account có thể
+// vào hàng nghìn nhóm), grid tay tới lúc đó là một cột dài vô tận không lọc được.
 function AccountCommunities({ accountId }: { accountId: number }) {
-  const [rows, setRows] = useState<Awaited<ReturnType<typeof accountCommunities>> | null>(null);
+  const [rows, setRows] = useState<Awaited<ReturnType<typeof accountCommunities>>>([]);
+  const [q, setQ] = useState('');
   useEffect(() => { let live = true; accountCommunities(accountId).then((r) => { if (live) setRows(r); }).catch(() => { if (live) setRows([]); }); return () => { live = false; }; }, [accountId]);
-  if (!rows?.length) return null;
+  // Lọc TRƯỚC rồi mới cắt trang — làm ngược lại thì ô tìm chỉ soi được trang đang mở.
+  const kw = q.trim().toLowerCase();
+  const shown = kw ? rows.filter((r) => `${r.name} ${r.note}`.toLowerCase().includes(kw)) : rows;
+  const pg = usePaged(shown, 8);
+  if (!rows.length) return null;
   const joined = rows.filter((r) => r.joinStatus === 'joined').length;
+  type Row = (typeof rows)[number];
+  const cols: DataColumn<Row>[] = [
+    { key: 'st', header: '', width: 78, align: 'left', sortValue: (r) => r.joinStatus,
+      cell: (r) => <Pill color={r.joinStatus === 'joined' ? 'var(--ok)' : r.joinStatus === 'pending' ? 'var(--warn)' : 'var(--fg-4)'}
+        label={r.joinStatus === 'joined' ? 'đã vào' : r.joinStatus === 'pending' ? 'chờ duyệt' : r.joinStatus} /> },
+    { key: 'name', header: 'Nhóm / Trang', align: 'left', sortValue: (r) => r.name, cellTitle: (r) => r.note || undefined,
+      cell: (r) => r.url
+        ? <a href={r.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: 'var(--neon-blue)' }}>{r.name}</a>
+        : <span>{r.name}</span> },
+    { key: 'members', header: 'Thành viên', width: 92, sortValue: (r) => r.members,
+      cell: (r) => (r.members ? r.members.toLocaleString('vi-VN') : '—') },
+    { key: 'privacy', header: 'Riêng tư', width: 78, align: 'left', sortValue: (r) => r.privacy,
+      cell: (r) => (r.privacy === 'private' ? 'kín' : r.privacy ? 'công khai' : '—') },
+    { key: 'joined', header: 'Ngày vào', width: 88, sortValue: (r) => r.joinedAt,
+      cell: (r) => r.joinedAt ?? '—' },
+  ];
   return (
     <Collapsible title="👥 Nhóm đã tham gia" defaultOpen
       badge={<span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{joined}/{rows.length}</span>}
       hint="account này seed được ở đâu — vào rồi thì đăng bằng chính danh nghĩa nó">
-      <div style={{ display: 'grid', gap: 6 }}>
-        {rows.map((r) => (
-          <div key={r.briefId} style={{ display: 'grid', gap: 2, padding: '6px 8px', borderRadius: 7, background: 'var(--bg-2)', border: '1px solid var(--line)' }}>
-            <div style={{ display: 'flex', gap: 7, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Pill color={r.joinStatus === 'joined' ? 'var(--ok)' : r.joinStatus === 'pending' ? 'var(--warn)' : 'var(--fg-4)'}
-                label={r.joinStatus === 'joined' ? 'đã vào' : r.joinStatus === 'pending' ? 'chờ duyệt' : r.joinStatus} />
-              {r.url
-                ? <a href={r.url} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-blue)', fontSize: 12.5 }}>{r.name}</a>
-                : <span style={{ fontSize: 12.5 }}>{r.name}</span>}
-              {r.members > 0 && <span style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>{r.members.toLocaleString('vi-VN')} thành viên</span>}
-              {r.privacy && <span style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>{r.privacy === 'private' ? 'kín' : 'công khai'}</span>}
-              {r.joinedAt && <span style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-4)', marginLeft: 'auto' }}>{r.joinedAt}</span>}
-            </div>
-            {r.note && <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.45 }}>{r.note}</div>}
-          </div>
-        ))}
-      </div>
+      {rows.length > 8 && <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tìm nhóm…" />}
+      <DataTable rows={pg.pageItems} columns={cols} getRowKey={(r) => String(r.briefId)} minWidth={430} />
+      <Pager page={pg.page} pageCount={pg.pageCount} total={pg.total} pageSize={pg.pageSize} onPage={pg.setPage} />
     </Collapsible>
   );
 }

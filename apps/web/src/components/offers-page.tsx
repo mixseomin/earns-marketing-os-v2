@@ -25,6 +25,9 @@ const NETWORK_HOME: Record<string, string> = {
 };
 const netLabel = (o: AffiliateOffer) => o.network ?? (o.kind === 'awin' ? 'awin' : o.kind === 'cj' ? 'cj' : null);
 const clickable: React.CSSProperties = { cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 2 };
+// Account label is "network · handle"; the Network column already carries the network → the Account
+// cell shows only the handle/login (YDNI: no duplicated network). Drawer header restores the full id.
+const acctHandle = (label: string) => { const i = label.indexOf(' · '); return i >= 0 ? label.slice(i + 3) : label; };
 
 const APPROVED = new Set(['active', 'joined', 'approved']);
 const isApproved = (s: string) => APPROVED.has(s.toLowerCase());
@@ -121,16 +124,17 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
 
   // Account is an IDENTITY, not a comparison → its OWN drawer (login / network / status / offers),
   // fetched lazily via getAccountDetail. Separate from the brand/network compare drawer.
-  const [acctId, setAcctId] = useState<string | null>(null);
+  const [acctSel, setAcctSel] = useState<{ id: string; label: string } | null>(null);
   const [acct, setAcct] = useState<AccountDetail | null>(null);
+  const [acctErr, setAcctErr] = useState(false);
   useEffect(() => {
-    setAcct(null);
-    if (!acctId) return;
+    setAcct(null); setAcctErr(false);
+    if (!acctSel) return;
     let live = true;
-    getAccountDetail(acctId).then((a) => { if (live) setAcct(a); }).catch(() => {});
+    getAccountDetail(acctSel.id).then((a) => { if (live) { setAcct(a); if (!a) setAcctErr(true); } }).catch(() => { if (live) setAcctErr(true); });
     return () => { live = false; };
-  }, [acctId]);
-  const openAccount = (id: string | null) => (e: React.MouseEvent) => { e.stopPropagation(); if (id) setAcctId(id); };
+  }, [acctSel]);
+  const openAccount = (id: string | null, label: string) => (e: React.MouseEvent) => { e.stopPropagation(); if (id) setAcctSel({ id, label }); };
 
   const columns: DataColumn<AffiliateOffer>[] = [
     {
@@ -151,7 +155,7 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
       key: 'account', sortValue: (o) => o.account ?? null, align: 'left', header: 'Account', title: 'Account của mình đã đăng ký / được duyệt offer này — click xem nhanh',
       cellTitle: (o) => o.account ?? undefined,
       cell: (o) => (o.account
-        ? <span style={{ ...clickable, ...clip(190), display: 'inline-block', verticalAlign: 'bottom' }} onClick={openAccount(o.accountId)}>{o.account}</span>
+        ? <span style={{ ...clickable, ...clip(190), display: 'inline-block', verticalAlign: 'bottom' }} onClick={openAccount(o.accountId, o.account)}>{acctHandle(o.account)}</span>
         : <span style={{ color: 'var(--neon-amber)' }}>chưa gán</span>),
     },
     {
@@ -369,11 +373,11 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
           onFilterBrand={entity.field === 'brand' ? () => { setEntity(null); setQ(entity.value); } : undefined} />
       )}
 
-      {acctId && (
-        <AccountDrawer id={acctId} acct={acct}
-          onClose={() => setAcctId(null)}
-          onOpenOffer={(id) => { setAcctId(null); modal.open('offer', id); }}
-          onFilter={() => { setAcctId(null); setMulti('account')([acctId]); }} />
+      {acctSel && (
+        <AccountDrawer sel={acctSel} acct={acct} err={acctErr}
+          onClose={() => setAcctSel(null)}
+          onOpenOffer={(id) => { setAcctSel(null); modal.open('offer', id); }}
+          onFilter={() => { const s = acctSel; setAcctSel(null); setMulti('account')([s.id]); }} />
       )}
     </div>
   );
@@ -381,28 +385,37 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
 
 // The Account cell's drawer: WHO this login is, not a bag of offers. Identity + health + a dashboard
 // deep-link, then the offers under it. Reuses the house Drawer + Field/sectionLabel + NETWORK_HOME.
-function AccountDrawer({ id, acct, onClose, onOpenOffer, onFilter }: {
-  id: string;
+function AccountDrawer({ sel, acct, err, onClose, onOpenOffer, onFilter }: {
+  sel: { id: string; label: string };
   acct: AccountDetail | null;
+  err: boolean;
   onClose: () => void;
   onOpenOffer: (offerId: string) => void;
   onFilter: () => void;
 }) {
-  const home = acct ? NETWORK_HOME[acct.platform.toLowerCase()] : undefined;
+  // Header renders INSTANTLY from the clicked label ("network · handle") — no wait on the vault fetch,
+  // so it's unmistakably the ACCOUNT drawer even while detail loads (or if the vault call fails).
+  const parts = sel.label.split(' · ');
+  const net = parts[0] ?? sel.label;
+  const handle = parts.slice(1).join(' · ') || net;
+  const home = NETWORK_HOME[(acct?.platform ?? net).toLowerCase()];
   return (
     <Drawer onClose={onClose} width={560}>
-      {!acct ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>Đang tải account…</div> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>ACCOUNT · {acct.platform.toUpperCase()}</div>
-            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{acct.handle || acct.label}</h2>
-            {acct.status && <div style={{ marginTop: 6, fontSize: 12, fontFamily: 'var(--font-mono)', color: statusColor(acct.status) }}>● {acct.status}</div>}
-            <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
-              {home && <a href={home} target="_blank" rel="noreferrer" style={{ ...miniBtn, textDecoration: 'none' }}>↗ mở dashboard net</a>}
-              <button type="button" onClick={onFilter} style={miniBtn}>⌕ lọc bảng theo account này</button>
-            </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>ACCOUNT · {(acct?.platform ?? net).toUpperCase()}</div>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{acct?.handle || handle}</h2>
+          {acct?.status && <div style={{ marginTop: 6, fontSize: 12, fontFamily: 'var(--font-mono)', color: statusColor(acct.status) }}>● {acct.status}</div>}
+          <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+            {home && <a href={home} target="_blank" rel="noreferrer" style={{ ...miniBtn, textDecoration: 'none' }}>↗ mở dashboard net</a>}
+            <button type="button" onClick={onFilter} style={miniBtn}>⌕ lọc bảng theo account này</button>
           </div>
+        </div>
 
+        {!acct ? (
+          <div style={{ color: err ? 'var(--neon-amber)' : 'var(--fg-3)', fontSize: 12 }}>{err ? 'Không tải được chi tiết account từ vault.' : 'Đang tải chi tiết…'}</div>
+        ) : (
+         <>
           <div>
             <div style={sectionLabel}>Identity</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
@@ -445,8 +458,9 @@ function AccountDrawer({ id, acct, onClose, onOpenOffer, onFilter }: {
               </div>
             )}
           </div>
-        </div>
-      )}
+         </>
+        )}
+      </div>
     </Drawer>
   );
 }

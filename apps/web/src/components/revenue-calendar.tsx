@@ -86,8 +86,8 @@ export function RevenueCalendar({ rows, errors, compact = false }: { rows: Reven
     })),
   ];
 
-  // Compact (home glance): just the all-sources totals strip — no filter toolbar, no month grid.
-  // The full calendar stays on /revenue. Cards are non-interactive here (no URL filtering on home).
+  // Compact (home glance): totals strip + the month calendar, but NO filter toolbar (kept lean).
+  // Full filtering (source/channel, URL-state) lives on /revenue. Cards non-interactive here.
   if (compact) {
     return (
       <>
@@ -95,6 +95,11 @@ export function RevenueCalendar({ rows, errors, compact = false }: { rows: Reven
           <div style={{ fontSize: 10.5, color: 'var(--warn)', marginBottom: 8 }}>⚠ {errors.join(' · ')}</div>
         )}
         <StatsStrip cards={cards.map((c) => ({ ...c, onClick: undefined, active: undefined }))} />
+        {items.length === 0 ? (
+          <EmptyState icon="🗓" compact title="Chưa có doanh thu nguồn nào trong 30 ngày" />
+        ) : (
+          <MonthCalendar items={items} />
+        )}
       </>
     );
   }

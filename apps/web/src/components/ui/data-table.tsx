@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode, type CSSPropertie
 import { useTableSort } from './use-table-sort';
 import { AnchoredPopover } from './anchored-popover';
 import { COL_FILTER_OPS, isNullaryOp, matchColFilter } from './col-filter';
+import { usePaged, Pager } from './list-view';
 import { readShallowParam, writeShallowParam } from '@/lib/url-shallow';
 
 // DataTable — the house pattern for "a LOT of columns without overflowing the layout".
@@ -84,6 +85,13 @@ interface DataTableProps<T> {
   onViewChange?: (v: DataView) => void;
   defaultView?: DataView;                 // uncontrolled default view (default 'table' — thêm `card` KHÔNG tự lật sang thẻ)
   hideHeader?: boolean;                    // bỏ <thead> — cho ranked-list vốn không có hàng tiêu đề
+  /**
+   * Cắt trang NGAY TRONG bảng, sau khi đã lọc và sắp xếp. Bắt buộc phải ở đây chứ không phải chỗ
+   * gọi: bảng còn có ô tìm + LỌC THEO CỘT của riêng nó, nên nếu bên ngoài cắt trang trước rồi mới
+   * đưa vào thì bộ lọc trong bảng chỉ ăn trên trang hiện tại — thanh trang ghi "51-75 / 159" mà
+   * thân bảng rỗng (dính /communities 14/08). Có persistKey mà tự cắt trang bên ngoài là sai.
+   */
+  pageSize?: number;
 }
 
 const baseCell: CSSProperties = { padding: '3px 5px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
@@ -95,7 +103,7 @@ const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 
 export function DataTable<T>({
   rows, columns, getRowKey, groups, persistKey, initialShown, onRowClick, minWidth = 640, rowTitle,
-  searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader,
+  searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize,
 }: DataTableProps<T>) {
   const [q, setQ] = useState('');
 
@@ -211,6 +219,12 @@ export function DataTable<T>({
   // Sort — shared multi-column engine (plain click = 1 cột ↑/↓/tắt · Shift+click = thêm cột phụ;
   // persist theo persistKey). Một implementation duy nhất cho mọi bảng — xem useTableSort / SortArrow.
   const { sorted: sortedRows, thProps } = useTableSort(shownRows, columns, persistKey);
+  // Cắt trang sau cùng: lọc → sắp xếp → cắt. Đổi bộ lọc thì về trang 1, không thì đứng ở trang 5 của
+  // tập cũ rồi thấy rỗng.
+  const paged = usePaged(sortedRows, pageSize ?? Math.max(sortedRows.length, 1));
+  const { setPage } = paged;
+  useEffect(() => { setPage(0); }, [q, activeFilters.length, rows.length, setPage]);
+  const pageRows = pageSize ? paged.pageItems : sortedRows;
 
   const cellStyle = (c: DataColumn<T>, extra?: CSSProperties): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
@@ -220,6 +234,10 @@ export function DataTable<T>({
     const g = c.group ? groupMeta.get(c.group) : undefined;
     return { ...baseHead, textAlign: c.headerAlign ?? c.align ?? 'right', width: c.width, color: g?.color ?? 'var(--fg-3)', background: band(g?.color) };
   };
+
+  const pager = pageSize ? (
+    <Pager page={paged.page} pageCount={paged.pageCount} total={paged.total} pageSize={paged.pageSize} onPage={paged.setPage} />
+  ) : null;
 
   return (
     <div data-comp="ui.DataTable">
@@ -289,7 +307,7 @@ export function DataTable<T>({
 
       {effView === 'card' && cardOn ? (
         <div className="dt-cards" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${cardCfg.minWidth ?? 260}px, 1fr))`, gap: 12 }}>
-          {sortedRows.map((row, i) => (
+          {pageRows.map((row, i) => (
             <div key={getRowKey(row, i)} title={rowTitle?.(row)}
                  onClick={onRowClick ? () => onRowClick(row, i) : undefined}
                  style={onRowClick ? { cursor: 'pointer' } : undefined}>
@@ -363,7 +381,7 @@ export function DataTable<T>({
           </thead>
           )}
           <tbody>
-            {sortedRows.map((row, i) => (
+            {pageRows.map((row, i) => (
               <tr key={getRowKey(row, i)} className="dt-row"
                   style={onRowClick ? { cursor: 'pointer' } : undefined}
                   onClick={onRowClick ? () => onRowClick(row, i) : undefined}
@@ -411,6 +429,7 @@ export function DataTable<T>({
           </AnchoredPopover>
         );
       })()}
+      {pager}
     </div>
   );
 }

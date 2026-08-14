@@ -39,13 +39,14 @@ const GROUPS: DataGroup[] = [
   { key: 'meta', label: 'Quản trị', color: '#a78bfa', defaultOn: false },
 ];
 
-export function CommunitiesVault({ projectId, rows, platforms, projects, tribes, gatedKeys }: {
+export function CommunitiesVault({ projectId, rows, platforms, projects, tribes, gatedKeys, initialShown }: {
   projectId?: string;
   rows: CommunityRow[];
   platforms: PlatformRow[];
   projects: { id: string; name: string; emoji?: string | null }[];
   tribes: TribeRow[];
   gatedKeys: string[];   // platform keys with link_gate_enabled → 🌱 community-seed class
+  initialShown?: Record<string, boolean>;   // server đọc cookie 'communities' → sơn đầu đã đúng nhóm cột
 }) {
   const router = useRouter();
   const modal = useModalParam();   // ?m=habitat-edit&mId=<id> | ?m=habitat-new&mId=<projectId> (house standard)
@@ -81,7 +82,8 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
     && (!q || `${r.name} ${r.url || ''} ${r.description || ''} ${r.postingRules} ${r.voiceNotes} ${r.dominantTopics.join(' ')}`
         .toLowerCase().includes(q.toLowerCase())),
   ), [rows, proj, plat, q]);
-  const { pageItems, ...pager } = usePaged(shown, 25);
+  // KHÔNG tự cắt trang ở đây nữa: bảng có ô tìm + lọc theo cột của riêng nó, cắt trước là bộ lọc
+  // trong bảng chỉ ăn trên trang đang mở. Đưa cả tập vào, bảng tự cắt bằng pageSize.
 
   const kpis = useMemo(() => ({
     total: shown.length,
@@ -143,10 +145,12 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
       </ListToolbar>
 
       <DataTable
-        rows={pageItems}
+        rows={shown}
+        pageSize={25}
         getRowKey={(r) => String(r.id)}
         groups={GROUPS}
         persistKey="communities"
+        initialShown={initialShown}
         minWidth={980}
         onRowClick={(r) => openEdit(r)}
         rowTitle={() => 'Mở editor (luật · cổng · chỗ đứng)'}
@@ -272,7 +276,6 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
             cell: (r: CommunityRow) => (r.projectId ? (projName.get(r.projectId) || r.projectId) : '—') }]),
         ] as DataColumn<CommunityRow>[]}
       />
-      <Pager {...pager} onPage={pager.setPage} />
 
       {edit && (
         <HabitatFormModal

@@ -216,19 +216,20 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
           // Đúng cách soi tay: mở nhóm, xem vài bài MỚI NHẤT, tương tác thế nào → sống hay chết.
           // Gộp thành một chữ đọc được ngay, giữ số ở các cột bên cạnh để kiểm lại.
           { group: 'do', key: 'song', header: 'Sức sống', width: 108,
-            sortValue: (r) => (r.newestAgeH == null ? null : -r.newestAgeH),
+            sortValue: (r) => r.trendMedRx ?? r.medReactions,
             cellTitle: (r) => r.newestAgeH == null ? 'chưa khảo'
               : `bài mới nhất cách đây ${r.newestAgeH}h · ${r.postsPerDay ?? '?'} bài/ngày · cảm xúc trung vị ${r.trendMedRx ?? r.medReactions ?? '—'}/bài (bài trend)`,
             cell: (r) => {
-              if (r.newestAgeH == null) return <span style={dim}>chưa khảo</span>;
-              // Đo hỏng thì phải NÓI LÀ ĐO HỎNG. Trước đây không đọc được số nào cũng ra "ko ai xem"
-              // → nhóm 78K bài 203 like bị ghi thành chết.
-              if (r.measuredTrend === 0) return <span style={pill('#8b8b8b')}>chưa đo được</span>;
-              const tuongTac = r.trendMedRx ?? r.medReactions ?? 0;
-              const s = r.newestAgeH > 72 ? { t: 'bỏ hoang', c: '#ef4444' }
-                : tuongTac >= 20 ? { t: 'sống khoẻ', c: '#22c55e' }
-                : tuongTac >= 5 ? { t: 'sống', c: '#22c55e' }
-                : tuongTac >= 1 ? { t: 'lay lắt', c: '#ffb03c' }
+              // Thứ tự đọc: chưa khảo → khảo rồi mà bị chặn → có số. TRƯỚC ĐÂY cột này chỉ nhìn tuổi
+              // bài, mà khảo sát FB không lấy được tuổi → nhóm đo ra 99.5 cảm xúc vẫn hiện "chưa khảo".
+              if (r.blocked) return <span style={pill('#8b8b8b')} title={r.blocked}>chưa đo được</span>;
+              const rx = r.trendMedRx ?? r.medReactions;
+              if (rx == null && r.newestAgeH == null) return <span style={dim}>chưa khảo</span>;
+              if (rx == null) return <span style={pill('#8b8b8b')}>chưa đo được</span>;
+              const s = (r.newestAgeH != null && r.newestAgeH > 72) ? { t: 'bỏ hoang', c: '#ef4444' }
+                : rx >= 20 ? { t: 'sống khoẻ', c: '#22c55e' }
+                : rx >= 5 ? { t: 'sống', c: '#22c55e' }
+                : rx >= 1 ? { t: 'lay lắt', c: '#ffb03c' }
                 : { t: 'đăng nhưng ko ai xem', c: '#ef4444' };
               return <span style={pill(s.c)}>{s.t}</span>;
             } },

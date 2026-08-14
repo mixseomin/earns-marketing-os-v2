@@ -39,6 +39,7 @@ export interface CommunityRow {
   trendMedRx: number | null;          // trung vị cảm xúc trên bài TREND
   trendMaxRx: number | null;          // bài ăn nhất trong mẫu
   measuredTrend: number | null;       // đo được mấy bài — 0 nghĩa là ĐỌC HỎNG, không phải nhóm chết
+  blocked: string | null;             // vì sao KHÔNG đo được (chưa vào nhóm kín, URL chết…) — khác hẳn "nhóm chết"
   sampleTrend: number | null;
   medReactions: number | null;        // trung vị cảm xúc/bài (= luồng TREND)
   engPerMille: number | null;         // (cảm xúc + bình luận) / 1000 thành viên — so được giữa nhóm to và nhỏ
@@ -158,6 +159,7 @@ export async function listCommunities(projectId?: string): Promise<CommunityRow[
         return { surveyedAt: m.surveyedAt ? String(m.surveyedAt).slice(0, 10) : null,
           newMedRx: num('newMedRx'), trendMedRx: num('trendMedRx'), trendMaxRx: num('trendMaxRx'),
           measuredTrend: num('measuredTrend'), sampleTrend: num('sampleTrend'),
+          blocked: m.blocked ? String(m.blocked) : null,
           medReactions: num('medReactions'),
           engPerMille: num('engPerMille'), sampleSize: num('sampleSize'),
           newestAgeH: num('newestAgeH'), postsPerDay: num('postsPerDay'),

@@ -19,7 +19,7 @@ const SRC_META: Record<RevenueSource, { label: string; color: string }> = {
 
 const usd = (n: number) => (n >= 100 ? `$${n.toFixed(0)}` : n >= 1 ? `$${n.toFixed(2)}` : `$${n.toFixed(3)}`);
 
-export function RevenueCalendar({ rows, errors }: { rows: RevenueDayRow[]; errors: string[] }) {
+export function RevenueCalendar({ rows, errors, compact = false }: { rows: RevenueDayRow[]; errors: string[]; compact?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -85,6 +85,19 @@ export function RevenueCalendar({ rows, errors }: { rows: RevenueDayRow[]; error
         : `Chỉ xem ${SRC_META[s].label}`,
     })),
   ];
+
+  // Compact (home glance): just the all-sources totals strip — no filter toolbar, no month grid.
+  // The full calendar stays on /revenue. Cards are non-interactive here (no URL filtering on home).
+  if (compact) {
+    return (
+      <>
+        {errors.length > 0 && (
+          <div style={{ fontSize: 10.5, color: 'var(--warn)', marginBottom: 8 }}>⚠ {errors.join(' · ')}</div>
+        )}
+        <StatsStrip cards={cards.map((c) => ({ ...c, onClick: undefined, active: undefined }))} />
+      </>
+    );
+  }
 
   return (
     <>

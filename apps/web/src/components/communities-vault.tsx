@@ -10,7 +10,7 @@
 import { useState, useMemo, useTransition, useEffect, useRef, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { HabitatFormModal } from './habitat-form-modal';
-import { ListToolbar, Pager, usePaged, MultiSelect, DataTable, AnchoredPopover, type DataColumn, type DataGroup } from './ui';
+import { ListToolbar, Pager, usePaged, MultiSelect, DataTable, AnchoredPopover, EntityRef, type DataColumn, type DataGroup } from './ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { getHabitatRowAction, listBriefsForHabitat } from '@/lib/actions/community-briefs';
 import type { HabitatRow, TribeRow, PlatformRow } from '@/lib/data';
@@ -229,7 +229,7 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
 // ── Chỗ đứng = account đã engage: GLANCE (số + phân bố phase) trong ô, DRILL (từng account) khi bấm ──
 // YDNI: ô chỉ hiện số account + micro-bar phase (đủ để liếc "mấy account, đang ở đâu"); bấm mới tải
 // danh sách account cụ thể (handle · phase · membership) vào popup — không nhồi hết vào bảng.
-type BriefLite = { id: number; handle: string; phase: Phase; joinStatus: JoinStatus; platform: string };
+type BriefLite = { id: number; accountId: number; handle: string; phase: Phase; joinStatus: JoinStatus; platform: string };
 
 // Micro-bar: mỗi phase 1 đoạn màu (PHASE_COLOR), rộng theo số account ở phase đó.
 function PhaseBar({ counts }: { counts: Record<string, number> }) {
@@ -254,7 +254,7 @@ function EngagedCell({ row }: { row: CommunityRow }) {
     if (!hover || briefs) return;                 // tải LƯỜI 1 lần, chỉ khi rê vào
     let live = true;
     listBriefsForHabitat(row.id)
-      .then((rs) => { if (live) setBriefs(rs.map((b) => ({ id: b.id, handle: b.accountHandle ?? '(no handle)', phase: b.currentPhase, joinStatus: b.joinStatus, platform: b.platformLabel }))); })
+      .then((rs) => { if (live) setBriefs(rs.map((b) => ({ id: b.id, accountId: b.accountId, handle: b.accountHandle ?? '(no handle)', phase: b.currentPhase, joinStatus: b.joinStatus, platform: b.platformLabel }))); })
       .catch(() => { if (live) setBriefs([]); });
     return () => { live = false; };
   }, [hover, briefs, row.id]);
@@ -289,7 +289,10 @@ function AccountsList({ name, joined, total, briefs }: { name: string; joined: n
       ) : (
         briefs.map((b) => (
           <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderBottom: '1px solid var(--line)' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, fontWeight: 600, color: 'var(--fg-0)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={b.platform}>@{b.handle}</span>
+            {/* EntityRef = chip account chuẩn, click mở account drawer qua global host (như engaging list) */}
+            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden' }} title={b.platform}>
+              <EntityRef kind="account" id={b.accountId} label={`@${b.handle}`} size="sm" />
+            </span>
             <span title={`Phase: ${PHASE_LABEL[b.phase]}`}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: PHASE_COLOR[b.phase], flexShrink: 0 }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: PHASE_COLOR[b.phase] }} />{PHASE_LABEL[b.phase]}

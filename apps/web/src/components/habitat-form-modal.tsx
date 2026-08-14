@@ -21,6 +21,7 @@ import {
   type BriefForHabitat,
 } from '@/lib/actions/community-briefs';
 import { JOIN_STATUS_LABEL, JOIN_STATUS_COLOR, JOIN_STATUS_ICON } from '@/lib/join-status';
+import { openEntityDrawer } from '@/lib/entity-drawer';
 import { PHASE_LABEL, PHASE_COLOR } from '@/lib/phase-plan';
 import { accountStatusMeta } from '@/lib/status-meta';
 import { AIFormParser } from './ai-form-parser';
@@ -2755,6 +2756,11 @@ function HabitatBriefsSection({
   onOpenBrief?: (briefId: number) => void;
 }) {
   const router = useRouter();
+  // account/brief đều là HOST_KINDS → tự mở drawer qua global host. KHÔNG phụ thuộc parent truyền
+  // onOpenAccount/onOpenBrief: trước đây parent quên truyền (vd CommunitiesVault) là chip CHẾT —
+  // đúng kiểu "chắp vá per-entity". Prop chỉ để override khi parent muốn hành vi riêng.
+  const openAccount = onOpenAccount ?? ((id: number) => openEntityDrawer('account', id));
+  const openBrief = onOpenBrief ?? ((id: number) => openEntityDrawer('brief', id));
   const [briefs, setBriefs] = useState<BriefForHabitat[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -2812,7 +2818,7 @@ function HabitatBriefsSection({
       if (r.ok && r.id) {
         setReloadTick((t) => t + 1);
         router.refresh();
-        onOpenBrief?.(r.id);
+        openBrief(r.id);
       } else {
         setFetchError(r.error || 'Không tạo được brief');
       }
@@ -2861,10 +2867,10 @@ function HabitatBriefsSection({
             const joinLabel = JOIN_STATUS_LABEL[b.joinStatus];
             const phaseColor = PHASE_COLOR[b.currentPhase];
             const phaseLabel = PHASE_LABEL[b.currentPhase];
-            const handleBriefClick = () => onOpenBrief?.(b.id);
+            const handleBriefClick = () => openBrief(b.id);
             const handleAccountClick = (e: React.MouseEvent) => {
               e.stopPropagation();
-              if (b.accountHandle) onOpenAccount?.(b.accountId);
+              if (b.accountHandle) openAccount(b.accountId);
             };
             return (
               <div key={b.id}
@@ -2873,10 +2879,10 @@ function HabitatBriefsSection({
                     (đối xứng Account modal: favicon habitat → Brief modal).
                     Body row click → Brief modal. */}
                 <button type="button" onClick={handleAccountClick}
-                        disabled={!onOpenAccount || !b.accountHandle}
-                        title={onOpenAccount ? `Mở Account modal: @${b.accountHandle ?? '?'}` : ''}
+                        disabled={!b.accountHandle}
+                        title={b.accountHandle ? `Mở Account modal: @${b.accountHandle}` : ''}
                         style={{ background: 'none', border: 'none', padding: 0,
-                                 cursor: onOpenAccount ? 'pointer' : 'default',
+                                 cursor: b.accountHandle ? 'pointer' : 'default',
                                  display: 'inline-flex', position: 'relative', flexShrink: 0 }}>
                   <span style={{ width: 28, height: 28, borderRadius: 5,
                                  background: 'var(--bg-3)', color: 'var(--fg-2)',
@@ -2891,18 +2897,18 @@ function HabitatBriefsSection({
                                   border: '1px solid var(--line)' }} />
                   )}
                 </button>
-                <div style={{ minWidth: 0, cursor: onOpenBrief ? 'pointer' : 'default' }}
-                     onClick={onOpenBrief ? handleBriefClick : undefined}
-                     title={onOpenBrief ? 'Click để mở Brief modal' : ''}>
+                <div style={{ minWidth: 0, cursor: 'pointer' }}
+                     onClick={handleBriefClick}
+                     title="Click để mở Brief modal">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 1, minWidth: 0 }}>
                     {/* @handle → click mở Account modal. Cho phép truncate
                         khi quá dài; pills bên cạnh không wrap. */}
                     <button type="button" onClick={handleAccountClick}
-                            disabled={!onOpenAccount || !b.accountHandle}
-                            title={onOpenAccount ? `Mở Account modal: @${b.accountHandle ?? '?'}` : ''}
+                            disabled={!b.accountHandle}
+                            title={b.accountHandle ? `Mở Account modal: @${b.accountHandle}` : ''}
                             style={{ background: 'none', border: 'none', padding: 0, fontSize: 12,
                                      fontWeight: 600, color: 'var(--fg-0)',
-                                     cursor: onOpenAccount ? 'pointer' : 'default',
+                                     cursor: b.accountHandle ? 'pointer' : 'default',
                                      textDecoration: 'underline', textDecorationStyle: 'dotted',
                                      textDecorationColor: 'var(--fg-4)', textUnderlineOffset: 3,
                                      fontFamily: 'var(--font-mono)',

@@ -9,7 +9,7 @@ import {
 import { useModalParam } from '@/lib/use-modal-param';
 import {
   EmptyState, Drawer, ListToolbar, FilterChips, Pager, MultiSelect, EntityRef, StatusBadge, Pill,
-  usePaged, SearchInput,
+  SearchInput,
   DataTable, TextField, TextAreaField, SelectField, type DataColumn, type DataGroup,
 } from './ui';
 import { openEntityDrawer } from '@/lib/entity-drawer';
@@ -331,7 +331,7 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
           <EmptyState icon="🔍" title="Không có offer khớp"
             description={filters.q ? `Không thấy gì cho "${filters.q}" với bộ lọc hiện tại.` : 'Đổi filter hoặc chờ sync CJ/Awin.'} />
         ) : (
-          <DataTable rows={rows} columns={columns} groups={GROUPS} persistKey="offer_cols"
+          <DataTable rows={rows} columns={columns} groups={GROUPS} persistKey="offer_cols" sliced
             getRowKey={(o) => o.id} onRowClick={(o) => modal.open('offer', o.id)} minWidth={900} />
         )}
       </div>
@@ -462,7 +462,7 @@ function EntityDrawer({ mode, value, rows, onClose, onOpenOffer, onFilterBrand }
   const home = field === 'network' ? NETWORK_HOME[value] : undefined;
   // Same house <DataTable> primitive as the main list (not a second hand-rolled <table>). Network column
   // dropped when the whole view is one network. Status via the same <StatusBadge> → no drift.
-  const quickCols: DataColumn<AffiliateOffer>[] = [
+  const quickCols: DataColumn<AffiliateOffer>[] = ([
     { key: 'net', header: 'Network', align: 'left', sortValue: (o) => netLabel(o), cell: (o) => netLabel(o) ?? <span style={dim}>—</span> },
     { key: 'name', header: 'Offer', align: 'left', width: '100%', cellTitle: (o) => o.name, sortValue: (o) => o.name, cell: (o) => <span style={clip(220) as React.CSSProperties}>{o.name}</span> },
     { key: 'commission', header: '%', align: 'right', sortValue: (o) => o.commission ?? null, cell: (o) => o.commission ?? <span style={dim}>—</span> },
@@ -471,16 +471,14 @@ function EntityDrawer({ mode, value, rows, onClose, onOpenOffer, onFilterBrand }
     { key: 'epc', header: 'EPC', align: 'right', sortValue: (o) => (o.epc ? parseFloat(o.epc) : null), cell: (o) => o.epc ?? <span style={dim}>—</span> },
     { key: 'cvr', header: 'CVR', align: 'right', cell: (o) => o.cvr ?? <span style={dim}>—</span> },
     { key: 'status', header: 'Status', align: 'left', sortValue: (o) => o.status, cell: (o) => <StatusBadge meta={statusMeta(o.status)} /> },
-  ].filter((c) => c.key !== 'net' || field !== 'network');
-  // Search + client paging over the fetched set (house usePaged/SearchInput/Pager) — an account/network
-  // can have hundreds of offers, so the drawer needs the same filter+page controls as the main list.
+  ] as DataColumn<AffiliateOffer>[]).filter((c) => c.key !== 'net' || field !== 'network');
+  // Lọc ở ngoài (ô tìm riêng của drawer) rồi đưa ĐỦ dòng đã lọc vào bảng; bảng tự cắt trang 50.
   const [q, setQ] = useState('');
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (!s || !rows) return rows ?? [];
     return rows.filter((o) => [o.name, o.brand, o.network, o.commission, o.vertical].some((v) => v?.toLowerCase().includes(s)));
   }, [rows, q]);
-  const paged = usePaged(filtered, 50);
   return (
     <Drawer onClose={onClose} width={620}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -506,8 +504,7 @@ function EntityDrawer({ mode, value, rows, onClose, onOpenOffer, onFilterBrand }
               <SearchInput value={q} onChange={setQ} placeholder="Tìm trong offers (tên/brand/net/%)…" width={280} />
               {filtered.length === 0
                 ? <div style={{ color: 'var(--fg-3)', fontSize: 12, marginTop: 10 }}>Không khớp “{q}”.</div>
-                : <div style={{ marginTop: 10 }}><DataTable rows={paged.pageItems} columns={quickCols} getRowKey={(o) => o.id} onRowClick={(o) => onOpenOffer(o.id)} minWidth={560} /></div>}
-              <Pager page={paged.page} pageCount={paged.pageCount} total={paged.total} pageSize={paged.pageSize} onPage={paged.setPage} />
+                : <div style={{ marginTop: 10 }}><DataTable rows={filtered} columns={quickCols} getRowKey={(o) => o.id} onRowClick={(o) => onOpenOffer(o.id)} minWidth={560} pageSize={50} /></div>}
             </>
           )}
       </div>

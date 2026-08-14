@@ -5,6 +5,7 @@ import { useTableSort } from './use-table-sort';
 import { AnchoredPopover } from './anchored-popover';
 import { COL_FILTER_OPS, isNullaryOp, matchColFilter } from './col-filter';
 import { usePaged, Pager } from './list-view';
+import { useTablePref, writeTablePref } from './table-prefs';
 import { readShallowParam, writeShallowParam } from '@/lib/url-shallow';
 
 // DataTable — the house pattern for "a LOT of columns without overflowing the layout".
@@ -16,9 +17,9 @@ import { readShallowParam, writeShallowParam } from '@/lib/url-shallow';
 // primitive renders the ⚙ column-toggle popover, the scroll box, header/body, optional
 // totals row. NOT a data-fetching or sorting engine — just the containment + grouping skin.
 //
-// Persistence: pass `persistKey` → toggles save to localStorage AND a same-named cookie.
-// Server components read that cookie and pass `initialShown` so the first paint already
-// matches the saved view (no FOUC / no columns flashing then collapsing).
+// Persistence: pass `persistKey` → cột/sort/lọc-cột/view lưu vào cookie `tbl.<persistKey>`, mà
+// app/layout đọc SẴN trên server (xem ui/table-prefs) → lần sơn đầu đã đúng, không nháy. Không
+// trang nào phải nối dây gì thêm.
 
 export interface DataColumn<T> {
   key: string;
@@ -60,8 +61,7 @@ interface DataTableProps<T> {
   columns: DataColumn<T>[];
   getRowKey: (row: T, index: number) => string;
   groups?: DataGroup[];
-  persistKey?: string;                  // localStorage + cookie key for which groups are shown
-  initialShown?: Partial<Record<string, boolean>>; // server-seeded (read the `persistKey` cookie) → no FOUC
+  persistKey?: string;                  // khoá lưu cột/sort/lọc/view (cookie `tbl.<key>` — server đọc sẵn)
   onRowClick?: (row: T, index: number) => void;
   minWidth?: number;                    // table min width before it starts scrolling (default 640)
   rowTitle?: (row: T) => string | undefined;
@@ -92,6 +92,12 @@ interface DataTableProps<T> {
    * thân bảng rỗng (dính /communities 14/08). Có persistKey mà tự cắt trang bên ngoài là sai.
    */
   pageSize?: number;
+  /**
+   * `rows` chỉ là MỘT TRANG do server cắt (vd /offers: 50 dòng trên 1.200, lọc chạy ở server). Khi
+   * đó lọc/sắp xếp trong bảng chỉ ăn trên trang này = nói dối, nên tắt hẳn — lọc bằng thanh trên.
+   * Dùng khi tập dữ liệu quá lớn để đẩy hết xuống trình duyệt; còn lại thì đưa ĐỦ dòng + `pageSize`.
+   */
+  sliced?: boolean;
 }
 
 const baseCell: CSSProperties = { padding: '3px 5px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
@@ -102,26 +108,29 @@ const band = (hex: string | undefined) => (hex ? `${hex}38` : undefined);
 const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 
 export function DataTable<T>({
-  rows, columns, getRowKey, groups, persistKey, initialShown, onRowClick, minWidth = 640, rowTitle,
-  searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize,
+  rows, columns, getRowKey, groups, persistKey, onRowClick, minWidth = 640, rowTitle,
+  searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced,
 }: DataTableProps<T>) {
+  const pref = useTablePref(persistKey);   // server đọc cookie sẵn → khởi tạo ĐÚNG ngay lần render đầu
   const [q, setQ] = useState('');
 
   // Lọc theo TỪNG CỘT (kiểu Adminer): mỗi cột 1 toán tử (=/</LIKE/REGEXP/IN…) + giá trị, áp trên
   // sortValue của cột. Popup lọc mở từ nút 🔍 hiện khi hover header. Nhớ theo persistKey như sort/cột.
   const filterKey = persistKey ? `${persistKey}::colfilters` : undefined;
   const urlFilterKey = persistKey ? `${persistKey}.flt` : undefined;   // lọc-cột sống qua F5 + share qua link
-  const [filters, setFilters] = useState<Record<string, { op: string; val: string }>>({});
-  // Ưu tiên URL (share/F5) → localStorage (phiên cũ). Mount-only.
+  const [filters, setFilters] = useState<Record<string, { op: string; val: string }>>(() => pref.f ?? {});
+  // Link người khác gửi (có `.flt` trên URL) mới cần đọc sau khi mount — F5 của chính mình đã có
+  // cookie lo, nên không đổi gì và không nháy.
   useEffect(() => {
     const fromUrl = urlFilterKey ? readShallowParam(urlFilterKey) : null;
     if (fromUrl) { try { const f = JSON.parse(fromUrl); if (f && typeof f === 'object') { setFilters(f); return; } } catch { /* ignore */ } }
-    if (filterKey) { try { const raw = localStorage.getItem(filterKey); if (raw) setFilters(JSON.parse(raw)); } catch { /* ignore */ } }
+    if (!pref.f && filterKey) { try { const raw = localStorage.getItem(filterKey); if (raw) { const f = JSON.parse(raw); setFilters(f); writeTablePref(persistKey, { f }); } } catch { /* ignore */ } }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterKey, urlFilterKey]);
   const setColFilter = (key: string, f: { op: string; val: string } | null) => setFilters((prev) => {
     const next = { ...prev }; if (f) next[key] = f; else delete next[key];
     if (filterKey) { try { localStorage.setItem(filterKey, JSON.stringify(next)); } catch { /* ignore */ } }
+    writeTablePref(persistKey, { f: next });
     if (urlFilterKey) writeShallowParam(urlFilterKey, Object.keys(next).length ? JSON.stringify(next) : null);
     return next;
   });
@@ -133,45 +142,40 @@ export function DataTable<T>({
   const cardCfg: DataCard<T> = card && card !== true ? card : {};
   // Chế độ nhìn (thẻ/bảng). Controlled khi caller truyền `view`; nếu không, tự giữ + nhớ theo persistKey.
   const viewKey = persistKey ? `${persistKey}:view` : undefined;
-  const [internalView, setInternalView] = useState<DataView>(defaultView ?? 'table');   // thêm `card` KHÔNG tự lật sang thẻ — bảng vẫn là mặc định, người dùng bấm mới sang thẻ
+  const [internalView, setInternalView] = useState<DataView>(() => pref.v ?? defaultView ?? 'table');   // thêm `card` KHÔNG tự lật sang thẻ — bảng vẫn là mặc định, người dùng bấm mới sang thẻ
   useEffect(() => {
-    if (!viewKey || view !== undefined) return;
-    try { const v = localStorage.getItem(viewKey); if (v === 'card' || v === 'table') setInternalView(v); } catch { /* ignore */ }
+    if (!viewKey || view !== undefined || pref.v) return;   // pref.v = cookie đã seed từ server → khỏi đọc lại
+    try { const v = localStorage.getItem(viewKey); if (v === 'card' || v === 'table') { setInternalView(v); writeTablePref(persistKey, { v }); } } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewKey, view]);
   const effView: DataView = cardOn ? (view ?? internalView) : 'table';   // không có `card` → luôn bảng (hành vi cũ)
   const setView = (v: DataView) => {
     setInternalView(v); onViewChange?.(v);
-    if (viewKey) { try { localStorage.setItem(viewKey, v); } catch { /* ignore */ } }   // localStorage đủ khôi phục sau F5; KHÔNG ghi cookie `:view` (không server nào đọc → dead write)
+    if (viewKey) { try { localStorage.setItem(viewKey, v); } catch { /* ignore */ } }
+    writeTablePref(persistKey, { v });
   };
   const showViewToggle = cardOn && view === undefined;   // controlled → caller tự làm nút
   const colsRef = useRef<HTMLDetailsElement>(null);
   const groupMeta = new Map((groups ?? []).map((g) => [g.key, g]));
   const defaults = () => Object.fromEntries((groups ?? []).map((g) => [g.key, g.defaultOn ?? true])) as Record<string, boolean>;
-  const [shown, setShown] = useState<Record<string, boolean>>(() => {
-    const base = defaults();
-    if (initialShown) for (const k in initialShown) { if (typeof initialShown[k] === 'boolean') base[k] = initialShown[k] as boolean; }
-    return base;
-  });
+  const [shown, setShown] = useState<Record<string, boolean>>(() => ({ ...defaults(), ...(pref.c ?? {}) }));
 
-  // If the cookie wasn't seeded server-side, reconcile from localStorage after paint (server +
-  // first client paint = defaults → no hydration mismatch; a hidden group may flash one frame).
+  // Chỉ còn đường DI TRÚ: máy nào từng lưu ở localStorage mà chưa có cookie mới thì đọc lại một lần
+  // rồi ghi cookie — F5 sau đó là server lo, không nháy nữa.
   useEffect(() => {
-    if (!persistKey || (initialShown && Object.keys(initialShown).length > 0)) return;
+    if (!persistKey || pref.c) return;
     try {
       const raw = localStorage.getItem(persistKey);
-      if (raw) setShown((prev) => ({ ...prev, ...JSON.parse(raw) }));
+      if (raw) { const c = JSON.parse(raw); setShown((prev) => ({ ...prev, ...c })); writeTablePref(persistKey, { c }); }
     } catch { /* ignore */ }
-  }, [persistKey, initialShown]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persistKey]);
 
   const toggle = (k: string) =>
     setShown((prev) => {
       const next = { ...prev, [k]: !prev[k] };
-      if (persistKey) {
-        try {
-          localStorage.setItem(persistKey, JSON.stringify(next));
-          document.cookie = `${persistKey}=${encodeURIComponent(JSON.stringify(next))}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
-        } catch { /* ignore */ }
-      }
+      if (persistKey) { try { localStorage.setItem(persistKey, JSON.stringify(next)); } catch { /* ignore */ } }
+      writeTablePref(persistKey, { c: next });
       return next;
     });
 
@@ -188,10 +192,12 @@ export function DataTable<T>({
   }, []);
 
   // Cột đang lọc thật sự (có sortValue + có giá trị hoặc là toán tử IS NULL/IS NOT NULL).
+  // `sliced` = chỉ cầm một trang do server cắt → lọc/sắp xếp trong bảng sẽ chỉ ăn trên trang đó, tức
+  // là nói dối. Tắt hẳn thay vì để nó chạy sai.
   const activeFilters = useMemo(() =>
-    Object.entries(filters).filter(([k, f]) =>
+    sliced ? [] : Object.entries(filters).filter(([k, f]) =>
       columns.some((c) => c.key === k && c.sortValue) && (isNullaryOp(f.op) || f.val.trim() !== '')),
-    [filters, columns]);
+    [filters, columns, sliced]);
 
   // Lọc TRƯỚC khi sắp xếp: sắp xếp trên tập đã lọc mới đúng, và hàng tổng cũng phải cộng theo tập
   // đang nhìn — cộng cả dòng đã lọc đi thì con số tổng nói dối. Ô lọc chung (searchText) + lọc từng cột
@@ -218,7 +224,7 @@ export function DataTable<T>({
 
   // Sort — shared multi-column engine (plain click = 1 cột ↑/↓/tắt · Shift+click = thêm cột phụ;
   // persist theo persistKey). Một implementation duy nhất cho mọi bảng — xem useTableSort / SortArrow.
-  const { sorted: sortedRows, thProps } = useTableSort(shownRows, columns, persistKey);
+  const { sorted: sortedRows, thProps } = useTableSort(shownRows, columns, sliced ? undefined : persistKey);
   // Cắt trang sau cùng: lọc → sắp xếp → cắt. Đổi bộ lọc thì về trang 1, không thì đứng ở trang 5 của
   // tập cũ rồi thấy rỗng.
   const paged = usePaged(sortedRows, pageSize ?? Math.max(sortedRows.length, 1));
@@ -241,9 +247,9 @@ export function DataTable<T>({
 
   return (
     <div data-comp="ui.DataTable">
-      {(searchText || (groups && groups.length > 0) || showViewToggle) && (
+      {((searchText && !sliced) || (groups && groups.length > 0) || showViewToggle) && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-          {searchText && (
+          {searchText && !sliced && (
             <>
               <input
                 value={q} onChange={(e) => setQ(e.target.value)}
@@ -342,7 +348,7 @@ export function DataTable<T>({
           <thead>
             <tr>
               {visible.map((c) => {
-                const sortable = !!c.sortValue;                 // sortValue = giá trị logic của cột → cũng là cái để LỌC
+                const sortable = !!c.sortValue && !sliced;      // sortValue = giá trị logic của cột → cũng là cái để LỌC
                 const ts = sortable ? thProps(c.key) : null;
                 const dir = ts && ts.idx >= 0 ? ts.dir : null;   // CHỈ in mũi tên khi đang asc/desc; tắt = không in gì (yêu cầu)
                 const cf = filters[c.key];

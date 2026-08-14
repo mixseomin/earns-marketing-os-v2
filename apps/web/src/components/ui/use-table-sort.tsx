@@ -5,13 +5,14 @@
 //  • plain click a column → sort by JUST it, cycling none → asc → desc → none.
 //  • Shift+click → add/cycle it as an EXTRA tie-breaker (keeps the columns already sorted).
 //  • null/undefined always sort LAST (both directions). number = numeric, string = localeCompare numeric-aware.
-//  • persistKey → order survives reload via localStorage + cookie (`${persistKey}::sort`).
+//  • persistKey → thứ tự sống qua F5 bằng cookie `tbl.<persistKey>` (server đọc sẵn → không nháy).
 // Usage in a hand-rolled table:
 //   const COLS = [{ key: 'name', sortValue: (r) => r.name }, { key: 'clicks', sortValue: (r) => r.clicks }];
 //   const s = useTableSort(rows, COLS, 'accounts');
 //   <th onClick={s.thProps('name').onClick} style={{ cursor: 'pointer', userSelect: 'none' }}>Name <SortArrow spec={s.thProps('name')} /></th>
 //   {s.sorted.map(...)}
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useTablePref, writeTablePref } from './table-prefs';
 import { readShallowParam, writeShallowParam } from '@/lib/url-shallow';
 
 export type SortDir = 'asc' | 'desc';
@@ -31,26 +32,22 @@ const decodeSort = (raw: string, valid: Set<string>): SortSpec[] =>
 export function useTableSort<T>(rows: T[], columns: SortableCol<T>[], persistKey?: string) {
   const storeKey = persistKey ? `${persistKey}::sort` : undefined;
   const urlKey = persistKey ? `${persistKey}.sort` : undefined;   // sort sống qua F5 + share qua link
-  const [sort, setSort] = useState<SortSpec[]>([]);
-  // Restore after mount → SSR + first client paint = [] (original order, no hydration mismatch); a
-  // persisted order re-applies one frame later (rows may shift once, acceptable — same as column toggle).
-  // Ưu tiên URL (share/F5) → localStorage (phiên cũ) → mặc định. Mount-only: KHÔNG phụ thuộc `columns`
-  // (literal mới mỗi render) để URL không đè sort người dùng ở mỗi lần render.
+  // Thứ tự lưu nằm trong cookie `tbl.<key>` mà app/layout đọc SẴN trên server → server và client
+  // render cùng một thứ tự ngay từ đầu, không còn cảnh bảng vẽ xong rồi mới nhảy sang thứ tự đã lưu.
+  const pref = useTablePref(persistKey);
+  const [sort, setSort] = useState<SortSpec[]>(() => pref.s ?? []);
+  // Còn lại: link người khác gửi (có `.sort` trên URL), và di trú localStorage của máy cũ.
   useEffect(() => {
     const fromUrl = urlKey ? readShallowParam(urlKey) : null;
     if (fromUrl) { const s = decodeSort(fromUrl, new Set(columns.map((c) => c.key))); if (s.length) { setSort(s); return; } }
-    if (storeKey) { try { const raw = localStorage.getItem(storeKey); if (raw) setSort(JSON.parse(raw)); } catch { /* ignore */ } }
+    if (!pref.s && storeKey) { try { const raw = localStorage.getItem(storeKey); if (raw) { const s = JSON.parse(raw); setSort(s); writeTablePref(persistKey, { s }); } } catch { /* ignore */ } }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeKey, urlKey]);
   const apply = (next: SortSpec[]) => {
     setSort(next);
     if (urlKey) writeShallowParam(urlKey, next.length ? encodeSort(next) : null);
-    if (storeKey) {
-      try {
-        localStorage.setItem(storeKey, JSON.stringify(next));
-        document.cookie = `${storeKey}=${encodeURIComponent(JSON.stringify(next))}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
-      } catch { /* ignore */ }
-    }
+    if (storeKey) { try { localStorage.setItem(storeKey, JSON.stringify(next)); } catch { /* ignore */ } }
+    writeTablePref(persistKey, { s: next });
   };
   const toggle = (key: string, additive: boolean) => {
     if (additive) {                                   // Shift+click: cycle THIS col in the chain, keep rest

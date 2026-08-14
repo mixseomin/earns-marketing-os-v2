@@ -73,7 +73,6 @@ interface Props {
   rows: RowData[];
   timeseries: Record<string, GscDailyPoint[]>;
   totals: { imps: number; clicks: number; pages: number; sitemap: number; avgPos: number };
-  initialCols?: Partial<Record<ColGroup, boolean>>;
 }
 
 // Group order = the toggle + the column render order. Colours = the SEO reference hues; the
@@ -101,7 +100,7 @@ const breakdown = (by: Record<string, number> | null | undefined, suffix = '') =
     : null;
 const sum = (rows: RowData[], pick: (r: RowData) => number | null | undefined) => rows.reduce((s, r) => s + (pick(r) ?? 0), 0);
 
-export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) {
+export function SeoSitesTable({ rows, timeseries, totals }: Props) {
   const [openDomain, setOpenDomain] = useState<string | null>(null);
   const [openSrc, setOpenSrc] = useState<'google' | 'bing'>('google');
   const [contactsDomain, setContactsDomain] = useState<string | null>(null);
@@ -400,7 +399,6 @@ export function SeoSitesTable({ rows, timeseries, totals, initialCols }: Props) 
         getRowKey={(r) => r.domain}
         groups={GROUPS}
         persistKey="seo_cols"
-        initialShown={initialCols}
         minWidth={640}
         rowTitle={(r) => `Ô số → mở tool (GSC/GA/Bing) · ô chart → chi tiết ${r.domain}`}
         // Ô lọc RIÊNG của bảng: ô tìm ở thanh trên cùng là tìm toàn hệ (task/agent/card), không lọc

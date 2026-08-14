@@ -3750,12 +3750,7 @@ function SyncBanner({ projectId, accountId, platformLabel }: {
 // vào hàng nghìn nhóm), grid tay tới lúc đó là một cột dài vô tận không lọc được.
 function AccountCommunities({ accountId }: { accountId: number }) {
   const [rows, setRows] = useState<Awaited<ReturnType<typeof accountCommunities>>>([]);
-  const [q, setQ] = useState('');
   useEffect(() => { let live = true; accountCommunities(accountId).then((r) => { if (live) setRows(r); }).catch(() => { if (live) setRows([]); }); return () => { live = false; }; }, [accountId]);
-  // Lọc TRƯỚC rồi mới cắt trang — làm ngược lại thì ô tìm chỉ soi được trang đang mở.
-  const kw = q.trim().toLowerCase();
-  const shown = kw ? rows.filter((r) => `${r.name} ${r.note}`.toLowerCase().includes(kw)) : rows;
-  const pg = usePaged(shown, 8);
   if (!rows.length) return null;
   const joined = rows.filter((r) => r.joinStatus === 'joined').length;
   type Row = (typeof rows)[number];
@@ -3778,9 +3773,9 @@ function AccountCommunities({ accountId }: { accountId: number }) {
     <Collapsible title="👥 Nhóm đã tham gia" defaultOpen
       badge={<span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>{joined}/{rows.length}</span>}
       hint="account này seed được ở đâu — vào rồi thì đăng bằng chính danh nghĩa nó">
-      {rows.length > 8 && <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tìm nhóm…" />}
-      <DataTable rows={pg.pageItems} columns={cols} getRowKey={(r) => String(r.briefId)} minWidth={430} />
-      <Pager page={pg.page} pageCount={pg.pageCount} total={pg.total} pageSize={pg.pageSize} onPage={pg.setPage} />
+      {/* Tìm + cắt trang đều nằm TRONG bảng: cắt ở ngoài thì ô tìm của bảng chỉ soi được trang đang mở. */}
+      <DataTable rows={rows} columns={cols} getRowKey={(r) => String(r.briefId)} minWidth={430} pageSize={8}
+        searchText={(r) => `${r.name} ${r.note}`} searchPlaceholder="tìm nhóm…" />
     </Collapsible>
   );
 }

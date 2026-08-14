@@ -39,14 +39,13 @@ const GROUPS: DataGroup[] = [
   { key: 'meta', label: 'Quản trị', color: '#a78bfa', defaultOn: false },
 ];
 
-export function CommunitiesVault({ projectId, rows, platforms, projects, tribes, gatedKeys, initialShown }: {
+export function CommunitiesVault({ projectId, rows, platforms, projects, tribes, gatedKeys }: {
   projectId?: string;
   rows: CommunityRow[];
   platforms: PlatformRow[];
   projects: { id: string; name: string; emoji?: string | null }[];
   tribes: TribeRow[];
   gatedKeys: string[];   // platform keys with link_gate_enabled → 🌱 community-seed class
-  initialShown?: Record<string, boolean>;   // server đọc cookie 'communities' → sơn đầu đã đúng nhóm cột
 }) {
   const router = useRouter();
   const modal = useModalParam();   // ?m=habitat-edit&mId=<id> | ?m=habitat-new&mId=<projectId> (house standard)
@@ -150,7 +149,6 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
         getRowKey={(r) => String(r.id)}
         groups={GROUPS}
         persistKey="communities"
-        initialShown={initialShown}
         minWidth={980}
         onRowClick={(r) => openEdit(r)}
         rowTitle={() => 'Mở editor (luật · cổng · chỗ đứng)'}

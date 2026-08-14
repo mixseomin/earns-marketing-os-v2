@@ -4,6 +4,8 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import './globals.css';
 import { RootProviders } from '@/components/root-providers';
+import { TablePrefsProvider } from '@/components/ui/table-prefs';
+import { readTablePrefs } from '@/lib/table-prefs';
 import { getCurrentUser } from '@/lib/auth';
 
 // Google Analytics 4 — property "MOS2" (mos2.on.tc). Public measurement ID, not a secret.
@@ -51,6 +53,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     const u = await getCurrentUser();
     if (u && u.role === 'viewer') redirect('https://user.on.tc/review');
   }
+  // Cột/sort/lọc của MỌI bảng — đọc ở đây để lần sơn đầu đã đúng (hết nháy khi F5).
+  const tablePrefs = await readTablePrefs();
   return (
     <html lang="vi" data-theme="dark" data-sidebar="shown" data-rightbar="hidden">
       <head>
@@ -71,7 +75,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </Script>
           </>
         )}
-        <RootProviders>{children}</RootProviders>
+        <TablePrefsProvider value={tablePrefs}>
+          <RootProviders>{children}</RootProviders>
+        </TablePrefsProvider>
       </body>
     </html>
   );

@@ -19,6 +19,7 @@
 //   3. the assembled list is wrapped in unstable_cache (5 min) so repeat loads skip Directus.
 
 import { unstable_cache } from 'next/cache';
+import { matchColFilter, isNullaryOp } from '@/components/ui/col-filter';   // pure matcher — CÙNG luật với lọc-cột client
 import { NETWORK_PAYOUTS } from '@/lib/affiliate-networks';
 import { touchEntity } from '@/lib/touch-entity';
 import { getDb } from '@mos2/db';
@@ -410,6 +411,7 @@ export interface OfferFilters {
   paid: string;        // all | runnable (PPC not banned) | ok (stated allowed) | ban
   cash: string;        // all | fast (<45d) | mid (45-90d) | slow (>90d) — days from conversion to cash
   sort: string;        // '' = approved-first/name | new = mới thêm | approved = mới duyệt | net = net payout | cash = fastest cash
+  flt: Record<string, { op: string; val: string }>;   // lọc-cột Adminer (key cột → toán tử+giá trị), áp qua OFFER_SORT
   page: number;        // 0-based
 }
 
@@ -476,6 +478,15 @@ function matches(o: AffiliateOffer, f: OfferFilters): boolean {
     const t = f.q.toLowerCase();
     const hay = [o.name, o.brand, o.network, o.vertical, o.account, o.commission, o.policy, o.reward, ...o.tags];
     if (!hay.some((v) => v?.toLowerCase().includes(t))) return false;
+  }
+  // Lọc-cột Adminer (server-paged) — lấy giá trị cột qua OFFER_SORT rồi chấm bằng matchColFilter Y HỆT
+  // client. Cột không map được (nút hành động) bỏ qua; op thường mà giá trị rỗng = không lọc.
+  for (const key in f.flt) {
+    const spec = f.flt[key];
+    const get = OFFER_SORT[key];
+    if (!spec || !get) continue;
+    if (!isNullaryOp(spec.op) && spec.val.trim() === '') continue;
+    if (!matchColFilter(get(o), spec.op, spec.val)) return false;
   }
   return true;
 }

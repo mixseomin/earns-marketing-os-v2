@@ -391,9 +391,10 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
         ) : (
           <DataTable rows={rows} columns={columns} groups={GROUPS} persistKey="offer_cols" sliced
             getRowKey={(o) => o.id} onRowClick={(o) => modal.open('offer', o.id)} minWidth={900}
-            /* Bảng chỉ cầm 1 trang do server cắt → sort/tìm phải chạy ở SERVER trên toàn bộ 6.3k
-               dòng, nếu không thì chỉ sắp lại 50 dòng đang nhìn. Header vẫn bấm được như mọi bảng. */
-            serverSort={{ spec: sortSpec, onChange: (s) => setOne('sort')(s.map((x) => `${x.key}.${x.dir}`).join(',')) }} />
+            /* Bảng chỉ cầm 1 trang do server cắt → sort/LỌC phải chạy ở SERVER trên toàn bộ 6.3k
+               dòng, nếu không thì chỉ sắp/lọc 50 dòng đang nhìn. Header vẫn bấm được như mọi bảng. */
+            serverSort={{ spec: sortSpec, onChange: (s) => setOne('sort')(s.map((x) => `${x.key}.${x.dir}`).join(',')) }}
+            serverFilter={{ filters: filters.flt, onChange: (f) => setOne('flt')(Object.keys(f).length ? JSON.stringify(f) : '') }} />
         )}
       </div>
       <Pager page={view.page} pageCount={view.pageCount} total={view.matched} pageSize={view.pageSize}

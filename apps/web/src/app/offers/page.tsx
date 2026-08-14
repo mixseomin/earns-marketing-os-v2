@@ -13,6 +13,11 @@ export const dynamic = 'force-dynamic';
 type SP = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined, fallback = '') => (Array.isArray(v) ? v[0] : v) ?? fallback;
 const many = (v: string | string[] | undefined) => one(v).split(',').map((s) => s.trim()).filter(Boolean);
+// ?flt = JSON lọc-cột {key:{op,val}} do ui.DataTable ghi. JSON hỏng / không phải object → bỏ (không vỡ trang).
+const parseFlt = (v: string | string[] | undefined): Record<string, { op: string; val: string }> => {
+  const raw = one(v); if (!raw) return {};
+  try { const o = JSON.parse(raw); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch { return {}; }
+};
 
 export default async function OffersRoute({ searchParams }: { searchParams: Promise<SP> }) {
   const me = await getCurrentUser();
@@ -31,6 +36,7 @@ export default async function OffersRoute({ searchParams }: { searchParams: Prom
     paid: one(sp.paid, 'all'),
     cash: one(sp.cash, 'all'),
     sort: one(sp.sort),
+    flt: parseFlt(sp.flt),
     page: Math.max(0, Number(one(sp.page, '1')) - 1) || 0,   // URL is 1-based, view is 0-based
   };
 

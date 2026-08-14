@@ -112,6 +112,13 @@ interface DataTableProps<T> {
    * Không truyền = giữ nguyên hành vi cũ (tắt hẳn), nên bảng sliced khác không đổi gì.
    */
   serverSort?: { spec: SortSpec[]; onChange: (next: SortSpec[]) => void };
+  /**
+   * Lọc-cột chạy ở SERVER — song song `serverSort`, cho bảng `sliced` (client chỉ cầm 1 trang nên lọc
+   * tại chỗ là nói dối, đã tắt). Truyền vào thì popup 🔍 mỗi cột GHI thẳng ra caller (thường là URL
+   * `?flt=`), server áp trên TOÀN tập rồi trả đúng trang — cùng `matchColFilter` với client nên hành vi
+   * toán tử (=/LIKE/REGEXP/IN…) khớp hệt. Không truyền = giữ nguyên (lọc client, hoặc tắt nếu `sliced`).
+   */
+  serverFilter?: { filters: Record<string, { op: string; val: string }>; onChange: (next: Record<string, { op: string; val: string }>) => void };
 }
 
 const baseCell: CSSProperties = { padding: '3px 5px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
@@ -128,7 +135,7 @@ export function DataTable<T>({
   rows, columns, getRowKey, groups, persistKey, onRowClick, minWidth = 640, rowTitle,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced,
   stickyFirst = true,
-  serverSort,
+  serverSort, serverFilter,
 }: DataTableProps<T>) {
   const pref = useTablePref(persistKey);   // server đọc cookie sẵn → khởi tạo ĐÚNG ngay lần render đầu
   const [q, setQ] = useState('');
@@ -146,12 +153,21 @@ export function DataTable<T>({
     if (!pref.f && filterKey) { try { const raw = localStorage.getItem(filterKey); if (raw) { const f = JSON.parse(raw); setFilters(f); writeTablePref(persistKey, { f }); } } catch { /* ignore */ } }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterKey, urlFilterKey]);
-  const setColFilter = (key: string, f: { op: string; val: string } | null) => setFilters((prev) => {
-    const next = { ...prev }; if (f) next[key] = f; else delete next[key];
-    writeTablePref(persistKey, { f: next });
-    if (urlFilterKey) writeShallowParam(urlFilterKey, Object.keys(next).length ? JSON.stringify(next) : null);
-    return next;
-  });
+  // Bản đồ lọc HIỆU LỰC: `serverFilter` (bảng server-paged) thì caller cầm state (URL), ngược lại state cục bộ.
+  const colFilters = serverFilter ? serverFilter.filters : filters;
+  const setColFilter = (key: string, f: { op: string; val: string } | null) => {
+    if (serverFilter) {   // server-paged: chỉ báo caller (nó ghi URL + re-query), KHÔNG đụng cookie/localStorage cục bộ
+      const next = { ...serverFilter.filters }; if (f) next[key] = f; else delete next[key];
+      serverFilter.onChange(next);
+      return;
+    }
+    setFilters((prev) => {
+      const next = { ...prev }; if (f) next[key] = f; else delete next[key];
+      writeTablePref(persistKey, { f: next });
+      if (urlFilterKey) writeShallowParam(urlFilterKey, Object.keys(next).length ? JSON.stringify(next) : null);
+      return next;
+    });
+  };
   const [searchCol, setSearchCol] = useState<string | null>(null);   // cột đang mở popup lọc
   const searchAnchor = useRef<HTMLButtonElement | null>(null);
 
@@ -404,7 +420,7 @@ export function DataTable<T>({
                 const sortable = !!c.sortValue && (!sliced || !!serverSort);
                 const ts = !sortable ? null : (serverSort ? srvTh(c.key) : thProps(c.key));
                 const dir = ts && ts.idx >= 0 ? ts.dir : null;   // CHỈ in mũi tên khi đang asc/desc; tắt = không in gì (yêu cầu)
-                const cf = filters[c.key];
+                const cf = colFilters[c.key];
                 const filtering = !!cf && (isNullaryOp(cf.op) || cf.val.trim() !== '');
                 const searchOpen = searchCol === c.key;
                 // Header kiểu Adminer: hover tên cột → hiện 2 nút (sắp xếp + lọc). Mũi tên sort chỉ hiện khi
@@ -478,7 +494,7 @@ export function DataTable<T>({
         const key = searchCol;
         if (key == null) return null;                 // narrow: searchCol string trong nhánh này
         const col = columns.find((c) => c.key === key);
-        const cur = filters[key] ?? { op: '=', val: '' };
+        const cur = colFilters[key] ?? { op: '=', val: '' };
         return (
           <AnchoredPopover anchorRef={searchAnchor} open onClose={() => setSearchCol(null)} align="left" zIndex={1100}>
             <ColFilterBox colLabel={col?.header ?? key} value={cur}

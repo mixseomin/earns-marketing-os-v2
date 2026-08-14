@@ -3662,7 +3662,9 @@ function CommunityPlan({ pieces, projectId, current, onPick }: {
         tong: ps.length,
         sapToi: ps.filter((p) => p.date >= today).length,
         toi,
-        moiTuan: Number((ps.length / (spanDays / 7)).toFixed(1)),
+        // Nhịp chỉ có nghĩa khi có đủ bài trên quãng đủ dài. 2 bài cách nhau 1 ngày mà in "14
+        // bài/tuần" là con số bịa ra từ phép chia, đọc xong hiểu sai là nhóm đang bị dội bom.
+        moiTuan: ps.length >= 3 && spanDays >= 7 ? Number((ps.length / (spanDays / 7)).toFixed(1)) : null,
         nhap: ps.filter((p) => p.status === 'draft').length,
       };
     }).sort((a, b) => b.tong - a.tong);
@@ -3691,7 +3693,9 @@ function CommunityPlan({ pieces, projectId, current, onPick }: {
           { key: 'tong', header: 'Bài', width: 60, sortValue: (r: Row) => r.tong, cell: (r: Row) => r.tong },
           { key: 'sap', header: 'Sắp tới', width: 72, sortValue: (r: Row) => r.sapToi, cell: (r: Row) => r.sapToi || '—' },
           { key: 'nhip', header: 'Bài/tuần', width: 80, sortValue: (r: Row) => r.moiTuan,
-            cell: (r: Row) => <span style={{ color: r.moiTuan > 7 ? 'var(--bad)' : r.moiTuan > 3.5 ? 'var(--warn)' : 'var(--fg-2)' }}>{r.moiTuan}</span> },
+            cell: (r: Row) => (r.moiTuan == null
+              ? <span style={{ color: 'var(--fg-4)' }} title="chưa đủ bài/quãng để nói được nhịp">—</span>
+              : <span style={{ color: r.moiTuan > 7 ? 'var(--bad)' : r.moiTuan > 3.5 ? 'var(--warn)' : 'var(--fg-2)' }}>{r.moiTuan}</span>) },
           { key: 'toi', header: 'Bài kế', width: 96, sortValue: (r: Row) => r.toi,
             cell: (r: Row) => r.toi ?? <span style={{ color: 'var(--fg-4)' }}>hết lịch</span> },
           { key: 'nhap', header: 'Còn nháp', width: 82, sortValue: (r: Row) => r.nhap || null,

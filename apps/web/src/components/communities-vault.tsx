@@ -182,7 +182,7 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
           { group: 'gate', key: 'seedmin', header: 'Seed tối thiểu', width: 92, sortValue: (r) => r.minPosts || null,
             cell: (r) => (r.minPosts ? String(r.minPosts) : <span style={dim}>—</span>) },
 
-          { group: 'fit', key: 'quansat', header: 'Quan sát thực địa', align: 'left', width: 330,
+          { group: 'rules', key: 'quansat', header: 'Quan sát thực địa', align: 'left', width: 330,
             sortValue: (r) => (r.voiceNotes ? r.voiceNotes.length : null),
             cell: (r) => r.voiceNotes
               ? <span style={{ color: 'var(--fg-2)', ...clip(320) }}>{r.voiceNotes.replace(/\s+/g, ' ')}</span>

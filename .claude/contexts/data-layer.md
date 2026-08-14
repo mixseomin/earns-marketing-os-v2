@@ -214,3 +214,19 @@ All raw migrations use `IF NOT EXISTS` / `IF NOT EXISTS` guards — safe to re-r
 Every table has a `tenant_id TEXT NOT NULL DEFAULT 'self'` column. For solo use, all rows have `tenant_id = 'self'`. SaaS expansion would use per-customer tenant IDs.
 
 **Rule**: every query against any table must filter `WHERE tenant_id = $TENANT`. Currently hardcoded as `'self'` in all reader functions. This is enforced at the DB query level in `readers.ts`, not left to callers.
+
+---
+
+## Directus-backed collections: thêm cột = PHẢI restart Directus TRƯỚC khi code hỏi cột đó
+
+`affiliate_programs` (và mọi collection đọc qua `as.on.tc/items/...`) nằm ở Directus trên box1, không phải Postgres của MOS2. Directus **cache schema**: `ALTER TABLE ... ADD COLUMN` xong, Directus vẫn chưa biết cột mới.
+
+Hậu quả không rõ ràng ở chỗ: chỉ cần **một** field lạ trong `?fields=` là Directus trả **403 cho cả request**, không phải bỏ qua field đó. `fetchPage()` thấy `!r.ok` → trả `{rows: [], total: 0}` → **/offers trắng trơn 6.299 dòng**, trông y như mất dữ liệu (sự cố 2026-08-14).
+
+Thứ tự đúng, mỗi lần thêm cột:
+1. `ALTER TABLE` trên box1 (`docker exec earns-assets-postgres-1 psql -U earns -d earns`)
+2. `docker restart earns-assets-directus-1`, chờ `/server/health` = 200
+3. Test đúng field list mà app dùng, bằng đúng `DIRECTUS_TOKEN` của app (`/opt/earns-marketing-os-v2/.env.production` trên box3) — token admin của mình 200 không chứng minh app cũng 200
+4. Mới push code có field mới
+
+Nếu đã lỡ: sau khi restart Directus phải **xoá `.next/cache/fetch-cache`** rồi restart `mos2-web` — response 403 đã bị Next cache 5 phút, không tự khỏi.

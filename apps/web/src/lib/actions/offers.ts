@@ -21,6 +21,7 @@
 import { unstable_cache } from 'next/cache';
 import { matchColFilter, isNullaryOp } from '@/components/ui/col-filter';   // pure matcher — CÙNG luật với lọc-cột client
 import { NETWORK_PAYOUTS } from '@/lib/affiliate-networks';
+import { normRate } from '@/lib/rate-format';
 import { touchEntity } from '@/lib/touch-entity';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
@@ -333,7 +334,7 @@ function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>, mosAcc
     epc: x.epc,
     cvr: x.conversion_rate,
     currency: x.currency,
-    commission: x.commission_rate,
+    commission: normRate(x.commission_rate),
     model: x.commission_model,
     recurring: x.commission_time,
     cookie: x.cookie_lifetime,

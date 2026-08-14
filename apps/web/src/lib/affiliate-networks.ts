@@ -16,10 +16,10 @@ export type TermSource = 'api' | 'docs' | null;
 export interface NetworkPayout {
   key: string;                    // matches affiliate_programs.network (and NETWORK_BY_ACCOUNT for cj/awin)
   label: string;
-  // FALLBACK label only. The panel prefers the live MOS2 account entity taken from that network's
-  // offers (so the cell is a real <EntityRef> chip that opens the account drawer); this string is
-  // used solely for networks that hold no offers yet, e.g. Rakuten and Impact.
-  account: string | null;
+  // NB: no `account` field. The account behind a network is resolved LIVE from the MOS2 vault
+  // (platform_accounts, joined on platform_key) so the panel renders a real <EntityRef> chip that
+  // opens the account drawer. A handle typed in here would be a second copy that drifts silently —
+  // it already had: this const said Awin was "htuan82 · 410323" while the vault said "mixseo".
   thresholdUsd: number | null;    // minimum balance before the network will pay out
   thresholdNote: string | null;   // when one number doesn't tell it (CJ pays $50 by deposit, $100 by cheque)
   schedule: string | null;        // when money actually leaves their side
@@ -37,7 +37,7 @@ export interface NetworkPayout {
 // no API credential in the vault, so their position is unknown until someone opens the dashboard.
 export const NETWORK_PAYOUTS: NetworkPayout[] = [
   {
-    key: 'awin', label: 'Awin', account: 'htuan82 · 410323',
+    key: 'awin', label: 'Awin', 
     thresholdUsd: 20, thresholdNote: null,
     schedule: '2 lần/tháng — chốt ngày 15 và ngày cuối tháng',
     methods: null,
@@ -47,7 +47,7 @@ export const NETWORK_PAYOUTS: NetworkPayout[] = [
     docUrl: 'https://www.awin.com/us/news-and-events/publisher-training/understanding-the-payment-process',
   },
   {
-    key: 'cj', label: 'CJ Affiliate', account: 'doanhoe · 3877648',
+    key: 'cj', label: 'CJ Affiliate', 
     thresholdUsd: 50, thresholdNote: '$50 direct deposit · $100 cheque',
     schedule: 'Hàng tháng, net-20 (trả ~20 ngày sau khi hết tháng phát sinh)',
     methods: 'Direct deposit · cheque',
@@ -57,7 +57,7 @@ export const NETWORK_PAYOUTS: NetworkPayout[] = [
     docUrl: 'https://junction.cj.com/article/cookie-dough-understanding-publisher-payment-cycle',
   },
   {
-    key: 'impact', label: 'impact.com', account: 'davidwrightvt · 2356556',
+    key: 'impact', label: 'impact.com', 
     thresholdUsd: null, thresholdNote: 'Auto-withdraw đang đặt ở $50 (thiết lập của mình, không phải mức tối thiểu của họ)',
     schedule: null, methods: null,
     earnedUsd: 0, pendingCount: 0,
@@ -65,7 +65,7 @@ export const NETWORK_PAYOUTS: NetworkPayout[] = [
     source: null, positionSource: 'api', checkedAt: '2026-08-14', docUrl: null,
   },
   {
-    key: 'clickbank', label: 'ClickBank', account: 'doanhoe',
+    key: 'clickbank', label: 'ClickBank', 
     thresholdUsd: 100, thresholdNote: 'Tự đặt được từ $10 trở lên; mặc định $100',
     schedule: '2 tuần/lần', methods: null,
     earnedUsd: null, pendingCount: null, positionNote: null,
@@ -73,7 +73,7 @@ export const NETWORK_PAYOUTS: NetworkPayout[] = [
     docUrl: 'https://support.clickbank.com/en/articles/10535125-when-do-i-get-paid',
   },
   {
-    key: 'rakuten', label: 'Rakuten Advertising', account: 'htuan82',
+    key: 'rakuten', label: 'Rakuten Advertising', 
     thresholdUsd: 50, thresholdNote: null,
     schedule: 'Net-60', methods: 'Direct deposit · PayPal · cheque',
     earnedUsd: null, pendingCount: null, positionNote: null,
@@ -81,7 +81,7 @@ export const NETWORK_PAYOUTS: NetworkPayout[] = [
     docUrl: 'https://pubhelp.rakutenadvertising.com/hc/en-us/articles/360059980671-Commission-Payment-Schedule',
   },
   {
-    key: 'accesstrade', label: 'AccessTrade VN', account: 'thuthoai.thoai160',
+    key: 'accesstrade', label: 'AccessTrade VN', 
     thresholdUsd: null, thresholdNote: null,
     schedule: 'Trả hoa hồng ngày 18 hằng tháng', methods: null,
     earnedUsd: null, pendingCount: null, positionNote: null,
@@ -90,12 +90,12 @@ export const NETWORK_PAYOUTS: NetworkPayout[] = [
   },
   // Không có credential API trong vault và trang công khai không nêu điều khoản rõ ràng →
   // để trống chứ không đoán. Muốn điền phải mở dashboard từng net (cần login của nhân sự).
-  { key: 'travelpayouts', label: 'Travelpayouts', account: 'htuan82', thresholdUsd: null, thresholdNote: null, schedule: null, methods: null, earnedUsd: null, pendingCount: null, positionNote: null, source: null, positionSource: null, checkedAt: null, docUrl: null },
-  { key: 'tkglobal', label: 'TKGlobal', account: 'thuthoai.thoai160', thresholdUsd: null, thresholdNote: null, schedule: null, methods: null, earnedUsd: null, pendingCount: null, positionNote: null, source: null, positionSource: null, checkedAt: null, docUrl: null },
-  { key: 'vcommission', label: 'vCommission', account: 'mikerey887', thresholdUsd: null, thresholdNote: null, schedule: null, methods: null, earnedUsd: null, pendingCount: null, positionNote: null, source: null, positionSource: null, checkedAt: null, docUrl: null },
-  { key: 'adpia', label: 'Adpia', account: 'thuthoai0106', thresholdUsd: null, thresholdNote: null, schedule: null, methods: null, earnedUsd: null, pendingCount: null, positionNote: null, source: null, positionSource: null, checkedAt: null, docUrl: null },
-  { key: 'masoffer', label: 'MasOffer', account: 'thoai0106', thresholdUsd: null, thresholdNote: null, schedule: null, methods: null, earnedUsd: null, pendingCount: null, positionNote: null, source: null, positionSource: null, checkedAt: null, docUrl: null },
-  { key: 'ecomobi', label: 'Ecomobi', account: 'thuthoai0106', thresholdUsd: null, thresholdNote: null, schedule: null, methods: null, earnedUsd: null, pendingCount: null, positionNote: null, source: null, positionSource: null, checkedAt: null, docUrl: null },
+  { key: 'travelpayouts', label: 'Travelpayouts', thresholdUsd: null, thresholdNote: null, schedule: null, methods: null, earnedUsd: null, pendingCount: null, positionNote: null, source: null, positionSource: null, checkedAt: null, docUrl: null },
+  { key: 'tkglobal', label: 'TKGlobal', thresholdUsd: null, thresholdNote: null, schedule: null, methods: null, earnedUsd: null, pendingCount: null, positionNote: null, source: null, positionSource: null, checkedAt: null, docUrl: null },
+  { key: 'vcommission', label: 'vCommission', thresholdUsd: null, thresholdNote: null, schedule: null, methods: null, earnedUsd: null, pendingCount: null, positionNote: null, source: null, positionSource: null, checkedAt: null, docUrl: null },
+  { key: 'adpia', label: 'Adpia', thresholdUsd: null, thresholdNote: null, schedule: null, methods: null, earnedUsd: null, pendingCount: null, positionNote: null, source: null, positionSource: null, checkedAt: null, docUrl: null },
+  { key: 'masoffer', label: 'MasOffer', thresholdUsd: null, thresholdNote: null, schedule: null, methods: null, earnedUsd: null, pendingCount: null, positionNote: null, source: null, positionSource: null, checkedAt: null, docUrl: null },
+  { key: 'ecomobi', label: 'Ecomobi', thresholdUsd: null, thresholdNote: null, schedule: null, methods: null, earnedUsd: null, pendingCount: null, positionNote: null, source: null, positionSource: null, checkedAt: null, docUrl: null },
 ];
 
 export const payoutByNetwork = new Map(NETWORK_PAYOUTS.map((n) => [n.key, n]));

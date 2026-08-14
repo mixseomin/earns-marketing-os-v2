@@ -20,7 +20,7 @@ import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
 import { CHANNELS, FORMATS, STYLES, SERIES, ANGLE_GROUPS, ANGLES, MIX_TARGET, LINK_SHARE_MAX, angleOf, angleLabel, tagVal, pieceGaps, pieceRisks, shouldWarnGaps, schedMark } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
-import { StatusSegmented, Segmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, ChannelFavicon, DataTable, type DataColumn, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
+import { StatusSegmented, Segmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, ChannelFavicon, FormatIcon, DataTable, type DataColumn, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
 import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
@@ -175,7 +175,7 @@ const PIECE_AXES: Array<{
     node: (v) => <><ChannelFavicon channel={v} size={13} /> {CHANNELS.find((x) => x.id === v)?.label ?? v}</>,
     rank: (v) => CHANNELS.findIndex((c) => c.id === v) },
   { key: 'format', label: 'Kiểu bài', get: (p) => tagVal(p.tags, 'format'),
-    lab: (v) => { const f = FORMATS.find((x) => x.id === v); return f ? `${f.icon} ${f.label}` : v; },
+    lab: (v) => FORMATS.find((x) => x.id === v)?.label ?? v,
     rank: (v) => FORMATS.findIndex((f) => f.id === v) },
   { key: 'style', label: 'Trình bày', get: (p) => tagVal(p.tags, 'style'),
     lab: (v) => { const x = STYLES.find((y) => y.id === v); return x ? `${x.icon} ${x.label}` : v; },
@@ -2235,7 +2235,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                       </span>
                       <span style={{ background: 'var(--bg-0)', padding: '2px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                         <ChannelFavicon channel={p.channel} size={22} circle />
-                        {fmt && <span title={fmt.label} style={{ fontSize: 13 }}>{fmt.icon}</span>}
+                        {fmt && <FormatIcon kind={fmt.id} size={12} title={fmt.label} style={{ opacity: 0.85 }} />}
                         {ang && <i title={`${ang.group.label} · ${angleLabel(ang.angle)}`}
                           style={{ display: 'block', width: 7, height: 7, borderRadius: 2, background: ang.group.color }} />}
                         {schedMark(p) && <span title="FB đã nhận lịch — nền tảng tự đăng đúng giờ" style={{ fontSize: 11, color: 'var(--neon-cyan)' }}>⏳</span>}
@@ -3629,7 +3629,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
 // Lịch đọc theo NGÀY trả lời "hôm nay đăng gì". Câu hỏi còn lại là "mỗi nhóm đang có kế hoạch ra
 // sao" — nhóm nào đang bị dồn, nhóm nào bỏ trống, bài kế tiếp vào lúc nào. Trước phải tự lọc từng
 // nơi đăng rồi đếm bằng mắt. Bấm một dòng = lọc lịch về đúng nhóm đó.
-const fmtName = (id: string) => { const f = FORMATS.find((x) => x.id === id); return f ? `${f.icon} ${f.label}` : id; };
+const fmtName = (id: string) => FORMATS.find((x) => x.id === id)?.label ?? id;
 
 function CommunityPlan({ pieces, projectId, current, onPick }: {
   pieces: CalPiece[]; projectId: string; current: string; onPick: (place: string) => void;

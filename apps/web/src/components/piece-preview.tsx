@@ -7,6 +7,7 @@
 // Nếu không truyền `body`, component tự đi lấy (lịch tháng cố tình KHÔNG kéo body_md về cho nhẹ,
 // nên ở chế độ Ngày nó tự nạp phần thân của đúng vài bài trong ngày).
 
+import { FormatIcon } from './ui';
 import { useEffect, useState } from 'react';
 import { getPieceDetail, updateContentPiece } from '@/lib/actions/content';
 import { CHANNELS, tagVal, tagIds, formatOf, styleOf, fbButtonOf, seriesOf, isVideoMedia } from '@/lib/content-channels';
@@ -164,7 +165,7 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
               style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--neon-pink)', color: 'var(--neon-pink)' }}>◎ story</span>
           )}
           {sty && <span title={`Trình bày: ${sty.hint}`} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--line)', color: 'var(--fg-3)' }}>{sty.icon} {sty.label}</span>}
-          {fmt && <span title={`Kiểu bài: ${fmt.label}`} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--line)', color: 'var(--fg-3)' }}>{fmt.icon} {fmt.label}</span>}
+          {fmt && <span title={`Kiểu bài: ${fmt.label}`} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 5, border: '1px solid var(--line)', color: 'var(--fg-3)' }}><FormatIcon kind={fmt.id} size={10} /> {fmt.label}</span>}
           <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>#{piece.id}</span>
         </span>
       </div>

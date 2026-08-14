@@ -109,7 +109,10 @@ interface DataTableProps<T> {
 }
 
 const baseCell: CSSProperties = { padding: '3px 5px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
-const baseHead: CSSProperties = { ...baseCell, color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 500 };
+// Tiêu đề: chữ HOA + giãn chữ + padding 5px → hai cột cạnh nhau đọc thành một cụm dài
+// ("BÀI/NGÀY KIỂU BÀI × HIỆU QUẢ TƯƠNG TÁC/1K TV"). Nới padding ngang, và headStyle vẽ thêm vạch
+// ngăn mảnh giữa các cột.
+const baseHead: CSSProperties = { ...baseCell, padding: '3px 10px', color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 500 };
 
 // hex + alpha (8-digit) — matches the SEO table's per-group band shades (header ~0.22, body ~0.06).
 const band = (hex: string | undefined) => (hex ? `${hex}38` : undefined);
@@ -268,9 +271,11 @@ export function DataTable<T>({
     const g = c.group ? groupMeta.get(c.group) : undefined;
     return { ...baseCell, textAlign: c.align ?? 'right', width: c.width, background: bandSoft(g?.color), ...extra };
   };
-  const headStyle = (c: DataColumn<T>): CSSProperties => {
+  const headStyle = (c: DataColumn<T>, i = 0): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
-    return { ...baseHead, textAlign: c.headerAlign ?? c.align ?? 'right', width: c.width, color: g?.color ?? 'var(--fg-3)', background: band(g?.color) };
+    return { ...baseHead, textAlign: c.headerAlign ?? c.align ?? 'right', width: c.width,
+      color: g?.color ?? 'var(--fg-3)', background: band(g?.color),
+      borderLeft: i ? '1px solid var(--line)' : undefined };
   };
 
   const pager = pageSize ? (
@@ -379,7 +384,7 @@ export function DataTable<T>({
           {!hideHeader && (
           <thead>
             <tr>
-              {visible.map((c) => {
+              {visible.map((c, ci) => {
                 // sliced + serverSort = vẫn sắp xếp được, chỉ là việc sắp chạy ở server trên TOÀN tập.
                 const sortable = !!c.sortValue && (!sliced || !!serverSort);
                 const ts = !sortable ? null : (serverSort ? srvTh(c.key) : thProps(c.key));
@@ -390,7 +395,7 @@ export function DataTable<T>({
                 // Header kiểu Adminer: hover tên cột → hiện 2 nút (sắp xếp + lọc). Mũi tên sort chỉ hiện khi
                 // đang bật; cột đang lọc có cờ ⚑. Nút nằm trong .dt-th-actions (CSS ẩn, hover mới hiện).
                 return (
-                  <th key={c.key} className="dt-th" style={{ ...headStyle(c), position: 'relative', userSelect: 'none' }} title={c.title}>
+                  <th key={c.key} className="dt-th" style={{ ...headStyle(c, ci), position: 'relative', userSelect: 'none' }} title={c.title}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, maxWidth: '100%' }}>
                       <span className="dt-th-name" onClick={ts ? ts.onClick : undefined}
                             title={sortable ? `${c.title ? c.title + ' · ' : ''}bấm để sắp xếp (↑/↓/tắt) · Shift+bấm = thêm cột phụ` : undefined}

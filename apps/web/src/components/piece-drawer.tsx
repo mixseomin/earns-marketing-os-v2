@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Drawer, EntityRef, EntityPicker, type EntityOption } from '@/components/ui';
+import { Drawer, EntityRef, EntityPicker, type EntityOption, FormatIcon } from '@/components/ui';
 import { readManagedPages } from '@/components/account-metrics';
 import { ChannelFavicon } from '@/components/ui';
 import { CHANNELS, STATUSES, ANGLE_GROUPS, ANGLES, STYLES, CHANNEL_PLATFORM, FB_BUTTONS, angleOf, angleLabel, formatOf, formatsFor, styleOf, isVideoMedia, isVideoPiece, voCost, tagVal, tagIds, pieceGaps, pieceRisks } from '@/lib/content-channels';
@@ -333,7 +333,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
               <label style={lbl}>Kiểu bài</label>
               <button type="button" disabled={pending} onClick={() => setPick('format')}
                 style={{ ...inp, textAlign: 'left', cursor: 'pointer', color: fmt ? 'var(--fg-1)' : 'var(--fg-4)' }}>
-                {fmt ? `${fmt.icon} ${fmt.label}` : '— chọn kiểu —'}
+                {fmt ? <><FormatIcon kind={fmt.id} size={11} /> {fmt.label}</> : '— chọn kiểu —'}
               </button>
             </div>
           </div>

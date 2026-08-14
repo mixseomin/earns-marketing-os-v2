@@ -10,7 +10,7 @@
 import { useState, useMemo, useTransition, useEffect, useRef, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { HabitatFormModal } from './habitat-form-modal';
-import { ListToolbar, Pager, usePaged, MultiSelect, DataTable, AnchoredPopover, EntityRef, type DataColumn, type DataGroup } from './ui';
+import { ListToolbar, Pager, usePaged, MultiSelect, DataTable, AnchoredPopover, EntityRef, FormatIcon, type DataColumn, type DataGroup } from './ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { getHabitatRowAction, listBriefsForHabitat } from '@/lib/actions/community-briefs';
 import type { HabitatRow, TribeRow, PlatformRow } from '@/lib/data';
@@ -43,7 +43,7 @@ const GROUPS: DataGroup[] = [
 // Kiểu bài của cộng đồng nói CÙNG một ngôn ngữ với tag format: của bài mình sắp đăng — có thế mới
 // đối chiếu được "nhóm này ăn kiểu gì" với "mình đang xếp kiểu gì vào đây".
 const FMT = new Map(FORMATS.map((f) => [f.id, f]));
-const fmtLabel = (id: string) => { const f = FMT.get(id); return f ? `${f.icon} ${f.label}` : id; };
+const fmtLabel = (id: string) => FMT.get(id)?.label ?? id;   // chữ thuần cho tooltip; hình vẽ bằng <FormatIcon>
 // Gộp "tỉ lệ nhóm đăng" với "cảm xúc trung vị" về CÙNG một hàng cho mỗi kiểu bài, xếp theo mức ăn.
 // Kiểu chỉ có ở một trong hai nguồn vẫn hiện (đăng nhiều mà chưa đo được = thông tin, không phải 0).
 function fmtRows(r: { formatShare: Array<{ format: string; pct: number }>; formatFit: Array<{ format: string; n: number; medEng: number | null }> }) {
@@ -247,13 +247,15 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
               const rows = fmtRows(r);
               if (!rows.length) return <span style={dim}>chưa khảo</span>;
               return (
-                <span style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {rows.slice(0, 4).map((x) => {
+                {/* Một dòng, không xuống hàng: bảng dày mà ô cao 4 dòng thì cả bảng giãn ra. Kiểu thứ 4
+                    trở đi nằm trong tooltip. */}
+                <span style={{ display: 'flex', gap: 5, flexWrap: 'nowrap' }}>
+                  {rows.slice(0, 3).map((x) => {
                     const c = x.rx == null ? 'var(--fg-4)' : x.rx >= 20 ? '#22c55e' : x.rx >= 5 ? '#a3d977' : x.rx >= 1 ? '#ffb03c' : '#ef4444';
                     return (
                       <span key={x.k} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 5px',
                         borderRadius: 4, border: `1px solid ${c}55`, background: `${c}14`, fontSize: 10.5, whiteSpace: 'nowrap' }}>
-                        <span>{FMT.get(x.k)?.icon ?? '·'}</span>
+                        <FormatIcon kind={x.k} size={11} style={{ color: c }} />
                         <span style={{ color: 'var(--fg-3)' }}>{x.pct}%</span>
                         <span style={{ color: c, fontWeight: 600 }}>{x.rx == null ? '—' : `${x.rx}rx`}</span>
                       </span>);

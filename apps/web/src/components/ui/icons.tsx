@@ -57,10 +57,30 @@ function Svg(p: IconProps, children: React.ReactNode) {
 
 export type FormatKind =
   | 'text' | 'image' | 'video' | 'link' | 'thread'
-  | 'poll' | 'carousel' | 'story' | 'doc' | 'mix';
+  | 'poll' | 'carousel' | 'story' | 'doc' | 'mix'
+  // mã của lịch nội dung (lib/content-channels FORMATS) — CÙNG khái niệm, khác tên (xem ALIAS)
+  | 'photo' | 'album' | 'short' | 'longform' | 'guide' | 'listicle' | 'sequence' | 'share'
+  | 'comment' | 'reply';
+
+// Hệ đang có hai bộ mã loại bài (seeding: image/carousel/video/doc… · lịch nội dung:
+// photo/album/short/guide…). Icon thì chỉ được có MỘT bộ hình, không thì cùng một "ảnh đơn" mà
+// hai trang vẽ hai kiểu. Ánh xạ ở đây để mọi nơi gọi FormatIcon bằng mã nào cũng ra đúng hình.
+const ALIAS: Record<string, string> = {
+  photo: 'image', album: 'carousel', short: 'story', longform: 'video', guide: 'doc',
+};
 
 export function FormatIcon({ kind, ...p }: IconProps & { kind: string }) {
-  switch (kind) {
+  switch (ALIAS[kind] ?? kind) {
+    case 'share':
+      return Svg(p, <><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7" /><path d="M16 6l-4-4-4 4" /><path d="M12 2v13" /></>);
+    case 'comment':
+      return Svg(p, <><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5a8.4 8.4 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.4-9 8.4 8.4 0 0 1 8.6 8.3z" /></>);
+    case 'reply':
+      return Svg(p, <><path d="M9 17l-5-5 5-5" /><path d="M4 12h11a5 5 0 0 1 5 5v3" /></>);
+    case 'listicle':
+      return Svg(p, <><path d="M9 6h12M9 12h12M9 18h12" /><path d="M4 6h.01M4 12h.01M4 18h.01" /></>);
+    case 'sequence':
+      return Svg(p, <><rect x="2" y="5" width="16" height="12" rx="2" /><path d="m2 7 8 5 8-5" /><path d="M21 9v9a2 2 0 0 1-2 2H8" /></>);
     case 'image':
       return Svg(p, <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-5-5L5 21" /></>);
     case 'video':

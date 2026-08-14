@@ -19,6 +19,7 @@
 //   3. the assembled list is wrapped in unstable_cache (5 min) so repeat loads skip Directus.
 
 import { unstable_cache } from 'next/cache';
+import { NETWORK_PAYOUTS } from '@/lib/affiliate-networks';
 import { touchEntity } from '@/lib/touch-entity';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
@@ -539,7 +540,10 @@ function columnSort(spec: string): ((a: AffiliateOffer, b: AffiliateOffer) => nu
 }
 
 export async function getOffersView(f: OfferFilters): Promise<OffersView> {
-  const all = await listAffiliateOffers();
+  // Vault map fetched here too (not only inside the cached list): networks we hold an account for
+  // but no offer yet — Impact, Rakuten — exist ONLY in the vault, and their account chip has to
+  // open the same drawer as everyone else's.
+  const [all, mosAccts] = await Promise.all([listAffiliateOffers(), mosAccountByNetwork()]);
   const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
   // Sort: default puts usable offers first; the date sorts answer "what's new" (the syncs
   // add ~50 Awin programmes a day, so recency is the only way to see them).
@@ -590,23 +594,37 @@ export async function getOffersView(f: OfferFilters): Promise<OffersView> {
       approved7: all.filter((o) => (o.approvedAt ?? '') >= weekAgo).length,
     },
     facets: facetsOf(all),
-    networks: networkStatsOf(all),
+    networks: networkStatsOf(all, mosAccts),
   };
 }
 
-function networkStatsOf(all: AffiliateOffer[]): NetworkStat[] {
+function networkStatsOf(all: AffiliateOffer[], mosAccts: Map<string, { id: number; handle: string }>): NetworkStat[] {
   const m = new Map<string, NetworkStat>();
+  const blank = (key: string): NetworkStat => ({ key, total: 0, approved: 0, runnable: 0, mosAccountId: null, account: null });
+  // Seed EVERY network we track terms for. Before this, a stat only existed if the network had at
+  // least one offer — so Impact and Rakuten (account in the vault, no offer synced yet) fell through
+  // to a hand-typed string in the payments panel and couldn't be clicked. 0 offers is a fact worth
+  // rendering as 0; it is not a reason to drop the account.
+  for (const n of NETWORK_PAYOUTS) m.set(n.key, blank(n.key));
   for (const o of all) {
     // Same rule the table uses: explicit network wins, else the sync that produced the row.
     const key = o.network ?? (o.kind === 'awin' ? 'awin' : o.kind === 'cj' ? 'cj' : null);
     if (!key) continue;
-    const s = m.get(key) ?? { key, total: 0, approved: 0, runnable: 0, mosAccountId: null, account: null };
+    const s = m.get(key) ?? blank(key);
     s.total++;
     if (APPROVED.has(o.status.toLowerCase())) s.approved++;
     if (o.paidTraffic !== 'ban') s.runnable++;
     s.mosAccountId ??= o.mosAccountId;
     s.account ??= o.account;
     m.set(key, s);
+  }
+  // Vault fills whatever the offers couldn't — the id is what makes the chip clickable, and the
+  // handle is a real value from platform_accounts instead of a label typed into a const.
+  for (const s of m.values()) {
+    const v = mosAccts.get(s.key) ?? mosAccts.get(NET_KEY_ALIAS[s.key] ?? '');
+    if (!v) continue;
+    s.mosAccountId ??= v.id;
+    s.account ??= v.handle;
   }
   return [...m.values()].sort((a, b) => b.total - a.total);
 }

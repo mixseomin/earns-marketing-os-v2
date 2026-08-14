@@ -495,7 +495,7 @@ export function DataTable<T>({
         const key = searchCol;
         if (key == null) return null;                 // narrow: searchCol string trong nhánh này
         const col = columns.find((c) => c.key === key);
-        const cur = colFilters[key] ?? { op: '=', val: '' };
+        const cur = colFilters[key] ?? { op: 'LIKE %%', val: '' };   // mặc định "chứa" (contains) — hợp lọc text, ý định phổ biến nhất
         return (
           <AnchoredPopover anchorRef={searchAnchor} open onClose={() => setSearchCol(null)} align="left" zIndex={1100}>
             <ColFilterBox colLabel={col?.header ?? key} value={cur}

@@ -20,7 +20,7 @@ import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
 import { CHANNELS, FORMATS, STYLES, SERIES, ANGLE_GROUPS, ANGLES, MIX_TARGET, LINK_SHARE_MAX, angleOf, angleLabel, tagVal, pieceGaps, pieceRisks, shouldWarnGaps, schedMark } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
-import { StatusSegmented, Segmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, ChannelFavicon, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
+import { StatusSegmented, Segmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, ChannelFavicon, DataTable, type DataColumn, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
 import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
@@ -2031,6 +2031,10 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         <ViewToggle options={[...LIST_CALENDAR_VIEWS, { value: 'kanban', label: '▦ Kanban', title: 'Kanban theo trạng thái' }, { value: 'feed', label: '📖 Nội dung', title: 'Chỉ bài đăng — đọc lần lượt theo giờ như một thread' }]} value={view} onChange={(v) => setView(v as 'list' | 'calendar' | 'kanban' | 'feed')} />
         {/* Lọc bài dính CÙNG thanh công cụ (một khối, một phép đo barH) — cuộn tới đâu vẫn đổi được
             bộ lọc mà không phải cuộn ngược lên đầu. Dựng MỘT lần ở đây cho cả lịch lẫn chế độ đọc. */}
+        {(view === 'feed' || view === 'calendar') && kind === 'content' && (
+          <CommunityPlan pieces={piecesInScope} projectId={projectId} current={pf.place ?? ''}
+            onPick={(place) => setPf((cur) => ({ ...cur, place }))} />
+        )}
         {(view === 'feed' || view === 'calendar') && pieceFilterBar}
         {view === 'list' && (
           <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--fg-3)' }} title="Nhóm danh sách theo tiêu chí (không đổi bộ lọc)">
@@ -3616,5 +3620,84 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
       </Drawer>
     )}
     </>
+  );
+}
+
+// ── Plan theo từng cộng đồng ────────────────────────────────────────────────────────────────────
+// Lịch đọc theo NGÀY trả lời "hôm nay đăng gì". Câu hỏi còn lại là "mỗi nhóm đang có kế hoạch ra
+// sao" — nhóm nào đang bị dồn, nhóm nào bỏ trống, bài kế tiếp vào lúc nào. Trước phải tự lọc từng
+// nơi đăng rồi đếm bằng mắt. Bấm một dòng = lọc lịch về đúng nhóm đó.
+function CommunityPlan({ pieces, projectId, current, onPick }: {
+  pieces: CalPiece[]; projectId: string; current: string; onPick: (place: string) => void;
+}) {
+  const [meta, setMeta] = useState<Record<string, { name: string; members: number; rules: boolean }>>({});
+  useEffect(() => {
+    let live = true;
+    import('@/lib/actions/communities').then((m) => m.listCommunities(projectId)).then((rows) => {
+      if (!live) return;
+      const map: Record<string, { name: string; members: number; rules: boolean }> = {};
+      for (const r of rows) if (r.url) map[r.url] = { name: r.name, members: r.members, rules: !!r.postingRules.trim() };
+      setMeta(map);
+    }).catch(() => { /* không có cũng không sao — nhãn rơi về URL */ });
+    return () => { live = false; };
+  }, [projectId]);
+
+  const rows = useMemo(() => {
+    const by = new Map<string, CalPiece[]>();
+    for (const p of pieces) {
+      const place = tagVal(p.tags, 'place');
+      if (!place) continue;
+      (by.get(place) ?? by.set(place, []).get(place)!).push(p);
+    }
+    const today = todayLocal();
+    return [...by.entries()].map(([place, ps]) => {
+      const dates = ps.map((p) => p.date).sort();
+      const toi = dates.find((d) => d >= today) ?? null;
+      const spanDays = Math.max(1, (new Date(dates[dates.length - 1]!).getTime() - new Date(dates[0]!).getTime()) / 86400000);
+      return {
+        place, ps,
+        name: meta[place]?.name ?? place.replace(/^https?:\/\/(www\.)?facebook\.com\/groups\//, 'fb/').replace(/^https?:\/\/(www\.)?/, ''),
+        members: meta[place]?.members ?? 0,
+        rules: meta[place]?.rules ?? false,
+        tong: ps.length,
+        sapToi: ps.filter((p) => p.date >= today).length,
+        toi,
+        moiTuan: Number((ps.length / (spanDays / 7)).toFixed(1)),
+        nhap: ps.filter((p) => p.status === 'draft').length,
+      };
+    }).sort((a, b) => b.tong - a.tong);
+  }, [pieces, meta]);
+
+  if (rows.length < 2) return null;
+  type Row = (typeof rows)[number];
+  return (
+    <Disclosure title="🏘 Plan theo cộng đồng" badge={`${rows.length} nơi`} defaultOpen={false}>
+      <DataTable
+        rows={rows}
+        getRowKey={(r) => r.place}
+        minWidth={620}
+        onRowClick={(r) => onPick(r.place === current ? '' : r.place)}
+        rowTitle={(r) => (r.place === current ? 'đang lọc theo nơi này — bấm để bỏ lọc' : 'bấm để lọc lịch về nhóm này')}
+        columns={[
+          { key: 'name', header: 'Nơi đăng', align: 'left', width: 250, sortValue: (r: Row) => r.name.toLowerCase(),
+            cell: (r: Row) => (
+              <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                {r.place === current && <span style={{ color: 'var(--accent)' }}>▸</span>}
+                <span style={{ fontWeight: r.place === current ? 700 : 400 }}>{r.name}</span>
+                {!r.rules && <span title="chưa ghi luật cộng đồng này" style={{ color: 'var(--warn)', fontSize: 10.5 }}>chưa có luật</span>}
+              </span>) },
+          { key: 'members', header: 'Thành viên', width: 92, sortValue: (r: Row) => r.members || null,
+            cell: (r: Row) => (r.members ? r.members.toLocaleString('vi-VN') : '—') },
+          { key: 'tong', header: 'Bài', width: 60, sortValue: (r: Row) => r.tong, cell: (r: Row) => r.tong },
+          { key: 'sap', header: 'Sắp tới', width: 72, sortValue: (r: Row) => r.sapToi, cell: (r: Row) => r.sapToi || '—' },
+          { key: 'nhip', header: 'Bài/tuần', width: 80, sortValue: (r: Row) => r.moiTuan,
+            cell: (r: Row) => <span style={{ color: r.moiTuan > 7 ? 'var(--bad)' : r.moiTuan > 3.5 ? 'var(--warn)' : 'var(--fg-2)' }}>{r.moiTuan}</span> },
+          { key: 'toi', header: 'Bài kế', width: 96, sortValue: (r: Row) => r.toi,
+            cell: (r: Row) => r.toi ?? <span style={{ color: 'var(--fg-4)' }}>hết lịch</span> },
+          { key: 'nhap', header: 'Còn nháp', width: 82, sortValue: (r: Row) => r.nhap || null,
+            cell: (r: Row) => (r.nhap ? <span style={{ color: 'var(--warn)' }}>{r.nhap}</span> : '—') },
+        ] as DataColumn<Row>[]}
+      />
+    </Disclosure>
   );
 }

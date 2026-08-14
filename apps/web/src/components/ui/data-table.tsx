@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode, type CSSPropertie
 import { useTableSort } from './use-table-sort';
 import { AnchoredPopover } from './anchored-popover';
 import { COL_FILTER_OPS, isNullaryOp, matchColFilter } from './col-filter';
+import { readShallowParam, writeShallowParam } from '@/lib/url-shallow';
 
 // DataTable — the house pattern for "a LOT of columns without overflowing the layout".
 // Lifted from the SEO Sites Overview table (the reference): dense mono cells + optional
@@ -101,14 +102,19 @@ export function DataTable<T>({
   // Lọc theo TỪNG CỘT (kiểu Adminer): mỗi cột 1 toán tử (=/</LIKE/REGEXP/IN…) + giá trị, áp trên
   // sortValue của cột. Popup lọc mở từ nút 🔍 hiện khi hover header. Nhớ theo persistKey như sort/cột.
   const filterKey = persistKey ? `${persistKey}::colfilters` : undefined;
+  const urlFilterKey = persistKey ? `${persistKey}.flt` : undefined;   // lọc-cột sống qua F5 + share qua link
   const [filters, setFilters] = useState<Record<string, { op: string; val: string }>>({});
+  // Ưu tiên URL (share/F5) → localStorage (phiên cũ). Mount-only.
   useEffect(() => {
-    if (!filterKey) return;
-    try { const raw = localStorage.getItem(filterKey); if (raw) setFilters(JSON.parse(raw)); } catch { /* ignore */ }
-  }, [filterKey]);
+    const fromUrl = urlFilterKey ? readShallowParam(urlFilterKey) : null;
+    if (fromUrl) { try { const f = JSON.parse(fromUrl); if (f && typeof f === 'object') { setFilters(f); return; } } catch { /* ignore */ } }
+    if (filterKey) { try { const raw = localStorage.getItem(filterKey); if (raw) setFilters(JSON.parse(raw)); } catch { /* ignore */ } }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey, urlFilterKey]);
   const setColFilter = (key: string, f: { op: string; val: string } | null) => setFilters((prev) => {
     const next = { ...prev }; if (f) next[key] = f; else delete next[key];
     if (filterKey) { try { localStorage.setItem(filterKey, JSON.stringify(next)); } catch { /* ignore */ } }
+    if (urlFilterKey) writeShallowParam(urlFilterKey, Object.keys(next).length ? JSON.stringify(next) : null);
     return next;
   });
   const [searchCol, setSearchCol] = useState<string | null>(null);   // cột đang mở popup lọc

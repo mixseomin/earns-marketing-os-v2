@@ -12,6 +12,7 @@
 //   <th onClick={s.thProps('name').onClick} style={{ cursor: 'pointer', userSelect: 'none' }}>Name <SortArrow spec={s.thProps('name')} /></th>
 //   {s.sorted.map(...)}
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { readShallowParam, writeShallowParam } from '@/lib/url-shallow';
 
 export type SortDir = 'asc' | 'desc';
 export type SortSpec = { key: string; dir: SortDir };
@@ -20,17 +21,30 @@ export type ThSort = { idx: number; dir: SortDir | null; count: number; onClick:
 
 const nextDir = (c: SortDir | undefined): SortDir | null => (c === undefined ? 'asc' : c === 'asc' ? 'desc' : null);
 
+// Sort ⇄ URL: dạng gọn `key.dir,key.dir` (key cột = định danh, dir ∈ asc/desc). lastIndexOf('.') để
+// dir luôn là phần sau dấu chấm cuối. Lọc bỏ cột lạ/dir sai → URL bịa tay không làm vỡ.
+const encodeSort = (s: SortSpec[]) => s.map((x) => `${x.key}.${x.dir}`).join(',');
+const decodeSort = (raw: string, valid: Set<string>): SortSpec[] =>
+  raw.split(',').map((p) => { const i = p.lastIndexOf('.'); return { key: p.slice(0, i), dir: p.slice(i + 1) as SortDir }; })
+     .filter((x) => (x.dir === 'asc' || x.dir === 'desc') && valid.has(x.key));
+
 export function useTableSort<T>(rows: T[], columns: SortableCol<T>[], persistKey?: string) {
   const storeKey = persistKey ? `${persistKey}::sort` : undefined;
+  const urlKey = persistKey ? `${persistKey}.sort` : undefined;   // sort sống qua F5 + share qua link
   const [sort, setSort] = useState<SortSpec[]>([]);
   // Restore after mount → SSR + first client paint = [] (original order, no hydration mismatch); a
   // persisted order re-applies one frame later (rows may shift once, acceptable — same as column toggle).
+  // Ưu tiên URL (share/F5) → localStorage (phiên cũ) → mặc định. Mount-only: KHÔNG phụ thuộc `columns`
+  // (literal mới mỗi render) để URL không đè sort người dùng ở mỗi lần render.
   useEffect(() => {
-    if (!storeKey) return;
-    try { const raw = localStorage.getItem(storeKey); if (raw) setSort(JSON.parse(raw)); } catch { /* ignore */ }
-  }, [storeKey]);
+    const fromUrl = urlKey ? readShallowParam(urlKey) : null;
+    if (fromUrl) { const s = decodeSort(fromUrl, new Set(columns.map((c) => c.key))); if (s.length) { setSort(s); return; } }
+    if (storeKey) { try { const raw = localStorage.getItem(storeKey); if (raw) setSort(JSON.parse(raw)); } catch { /* ignore */ } }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeKey, urlKey]);
   const apply = (next: SortSpec[]) => {
     setSort(next);
+    if (urlKey) writeShallowParam(urlKey, next.length ? encodeSort(next) : null);
     if (storeKey) {
       try {
         localStorage.setItem(storeKey, JSON.stringify(next));

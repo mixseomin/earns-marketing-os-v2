@@ -82,9 +82,13 @@ export async function GET(req: Request) {
   if (channel) conds.push(sql`channel = ${channel}`);
   if (from) conds.push(sql`scheduled_at >= ${from}::timestamptz`);
   if (to) conds.push(sql`scheduled_at < ${to}::timestamptz + interval '1 day'`);
+  // body=1 → kèm cả thân bài. Mặc định KHÔNG kèm (danh sách 80 bài × thân dài = payload vô ích),
+  // nhưng script dựng card cần chữ thật của bài, không thể đoán từ tiêu đề.
+  const withBody = u.searchParams.get('body') === '1';
   const res = await db.execute(sql`
     SELECT id, slug, title, channel, subject, status, publish_url,
            to_char(scheduled_at, 'YYYY-MM-DD') AS date, tags
+           ${withBody ? sql`, body_md AS body` : sql``}
     FROM content_pieces
     WHERE ${sql.join(conds, sql` AND `)}
     ORDER BY scheduled_at NULLS LAST, id

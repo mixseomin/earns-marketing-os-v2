@@ -3,6 +3,7 @@
 import { useState, useTransition, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
+import { openEntityDrawer } from '@/lib/entity-drawer';
 import { listAccountMedia } from '@/lib/actions/post-media';
 import { renameProfileField, listProfileFields } from '@/lib/actions/profile-fields';
 import { canonField } from '@/lib/selector-field-canon';
@@ -3524,17 +3525,18 @@ function AccountBriefsSection({
             const joinLabel = JOIN_STATUS_LABEL[b.joinStatus];
             const phaseLabel = PHASE_LABEL[b.currentPhase];
             // Mỗi part click vào đúng đối tượng:
-            //   row body / icon → Brief modal (chiến lược + bài)
+            //   row body / icon → Brief modal (inline editor — stack + refresh tại chỗ)
             //   habitat name → Habitat modal (rules/members/topics)
-            //   Edit fallback (legacy) khi parent ko pass onOpenBrief
             const handleBriefClick = () => {
               if (onOpenBrief) onOpenBrief(b.id);
-              else setEditing(b);
+              else setEditing(b);   // inline editor: stack lên account drawer + refresh list sau khi lưu
             };
+            // habitat = HOST_KIND → mở drawer habitat qua global host khi parent ko wire (TRƯỚC ĐÂY
+            // fallback mở nhầm BRIEF editor cho cú click vào tên habitat — sai đối tượng).
             const handleHabitatClick = (e: React.MouseEvent) => {
               e.stopPropagation();
               if (onOpenHabitat) onOpenHabitat(b.habitatId);
-              else setEditing(b); // fallback nếu parent ko wire — vẫn mở brief edit
+              else openEntityDrawer('habitat', b.habitatId);
             };
             return (
             <div key={b.id}

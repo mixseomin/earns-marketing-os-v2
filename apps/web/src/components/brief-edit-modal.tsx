@@ -15,6 +15,7 @@ import {
 } from '@/lib/actions/community-briefs';
 import type { HabitatRow } from '@/lib/data';
 import type { HabitatJoinContext } from './join-status-banner';
+import { openEntityDrawer } from '@/lib/entity-drawer';
 import { type JoinStatus } from '@/lib/join-status';
 import { BriefSelectorsSection } from './brief-selectors-section';
 import { useCopyToClipboard } from '@/lib/use-copy-clipboard';
@@ -379,6 +380,9 @@ export function BriefEditModal({
   existing, onClose, initialTab, focusCardId, onFocusChange, onOpenAccount, onCreateAccount, onOpenHabitat, onPostsChanged, postsReloadKey = 0,
 }: BriefEditModalProps) {
   const router = useRouter();
+  // account/habitat = HOST_KINDS → mở drawer qua global host khi parent không wire (không còn chip chết).
+  const openAccount = onOpenAccount ?? ((id: number) => openEntityDrawer('account', id));
+  const openHabitat = onOpenHabitat ?? ((id: number) => openEntityDrawer('habitat', id));
   const [, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -543,7 +547,7 @@ export function BriefEditModal({
     'membership';
   // onRequestFix: account-layer → mở Account modal; membership-layer → scroll banner.
   const onRequestFix = () => {
-    if (!accountReady && onOpenAccount) onOpenAccount(accountId);
+    if (!accountReady) openAccount(accountId);
     else focusJoinBanner();
   };
 
@@ -829,32 +833,21 @@ export function BriefEditModal({
                   ? `\n🎙 Persona: ${personaVoice.voiceSummary ?? ''}${personaVoice.narrativeStyle ? ` · ${personaVoice.narrativeStyle}` : ''}`
                   : '';
                 const tooltip = `Mở profile account — sửa persona / handle / login / status / proxy${personaHint}`;
-                if (onOpenAccount) {
-                  return (
-                    <button type="button"
-                            onClick={(e) => { e.stopPropagation(); onOpenAccount(accountId); }}
-                            title={tooltip}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
-                                     padding: '2px 8px', background: 'var(--accent-soft)',
-                                     border: '1px solid var(--accent-line)', borderRadius: 5,
-                                     cursor: 'pointer', color: 'var(--accent)', fontWeight: 700 }}>
-                      <SiteFavicon iconSlug={platformKey || undefined}
-                                   kind={platformKey || undefined}
-                                   size={14}
-                                   title={`Platform: ${platformKey || '?'}`} />
-                      {accountLabel}
-                      <span style={{ fontSize: 9, opacity: 0.65 }}>✎</span>
-                    </button>
-                  );
-                }
                 return (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} title={tooltip}>
+                  <button type="button"
+                          onClick={(e) => { e.stopPropagation(); openAccount(accountId); }}
+                          title={tooltip}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
+                                   padding: '2px 8px', background: 'var(--accent-soft)',
+                                   border: '1px solid var(--accent-line)', borderRadius: 5,
+                                   cursor: 'pointer', color: 'var(--accent)', fontWeight: 700 }}>
                     <SiteFavicon iconSlug={platformKey || undefined}
                                  kind={platformKey || undefined}
-                                 size={16}
+                                 size={14}
                                  title={`Platform: ${platformKey || '?'}`} />
-                    <span style={{ color: 'var(--accent)' }}>{accountLabel}</span>
-                  </span>
+                    {accountLabel}
+                    <span style={{ fontSize: 9, opacity: 0.65 }}>✎</span>
+                  </button>
                 );
               })()}
               {/* AccountReadinessChip — TẦNG 1 (account global). Hiện khi
@@ -864,7 +857,7 @@ export function BriefEditModal({
               <AccountReadinessChip
                 accountStatus={accountStatus ?? ''}
                 blockReason={accountBlockReason}
-                onClick={onOpenAccount ? () => onOpenAccount(accountId) : undefined}
+                onClick={() => openAccount(accountId)}
               />
               <span style={{ color: 'var(--fg-4)' }}>×</span>
               {/* Join chip — tầng 2 (per-habitat membership). CHỈ render khi
@@ -898,30 +891,20 @@ export function BriefEditModal({
               )}
               {/* Habitat chip — click mở HabitatFormModal (sửa url / kind /
                   platform / mod rules / members / posting rules / topics). */}
-              {onOpenHabitat ? (
-                <button type="button"
-                        onClick={(e) => { e.stopPropagation(); onOpenHabitat(habitatId); }}
-                        title={`Mở sửa habitat — url, kind, platform, mod rules, posting gates, dominant/forbidden topics`}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
-                                 padding: '2px 8px', background: 'var(--bg-2)',
-                                 border: '1px solid var(--line)', borderRadius: 5,
-                                 cursor: 'pointer', color: 'var(--fg-0)', fontWeight: 600 }}>
-                  <SiteFavicon url={habitatUrl}
-                               kind={habitatKind}
-                               size={14}
-                               title={habitatUrl ?? `Habitat: ${habitatLabel}`} />
-                  {habitatLabel}
-                  <span style={{ fontSize: 9, opacity: 0.55 }}>✎</span>
-                </button>
-              ) : (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <SiteFavicon url={habitatUrl}
-                               kind={habitatKind}
-                               size={16}
-                               title={habitatUrl ?? `Habitat: ${habitatLabel}`} />
-                  <span>{habitatLabel}</span>
-                </span>
-              )}
+              <button type="button"
+                      onClick={(e) => { e.stopPropagation(); openHabitat(habitatId); }}
+                      title={`Mở sửa habitat — url, kind, platform, mod rules, posting gates, dominant/forbidden topics`}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
+                               padding: '2px 8px', background: 'var(--bg-2)',
+                               border: '1px solid var(--line)', borderRadius: 5,
+                               cursor: 'pointer', color: 'var(--fg-0)', fontWeight: 600 }}>
+                <SiteFavicon url={habitatUrl}
+                             kind={habitatKind}
+                             size={14}
+                             title={habitatUrl ?? `Habitat: ${habitatLabel}`} />
+                {habitatLabel}
+                <span style={{ fontSize: 9, opacity: 0.55 }}>✎</span>
+              </button>
               {/* Link community — icon only để header gọn (label nhét tooltip) */}
               {habitatUrl && (
                 <a href={wrapExternalUrl(habitatUrl)} target="_blank" rel="noopener noreferrer"
@@ -949,9 +932,9 @@ export function BriefEditModal({
               )}
               {/* Language chip — click mở habitat modal sửa. Dùng <LangChip>
                   để mọi nơi cùng style; sửa 1 chỗ → mọi nơi cập nhật. */}
-              {habitatRow && onOpenHabitat && (
+              {habitatRow && (
                 <LangChip mode="button" code={habitatRow.language} size="sm"
-                          onClick={() => onOpenHabitat(habitatId)} />
+                          onClick={() => openHabitat(habitatId)} />
               )}
             </span>
           }
@@ -1024,7 +1007,7 @@ export function BriefEditModal({
                   blockReason: accountBlockReason ?? null,
                 };
               })()}
-              onOpenHabitat={onOpenHabitat ? () => onOpenHabitat(habitatId) : undefined}
+              onOpenHabitat={() => openHabitat(habitatId)}
               onChange={(next, payload) => {
                 setJoinStatusState(next);
                 if (payload?.joinUrl !== undefined) setJoinUrl(payload.joinUrl ?? '');
@@ -1072,13 +1055,11 @@ export function BriefEditModal({
                   Sửa habitat điền URL trước rồi quay lại đăng bài.
                 </div>
               </div>
-              {onOpenHabitat && (
-                <button type="button" className="btn primary"
-                        onClick={(e) => { e.stopPropagation(); onOpenHabitat(habitatId); }}
-                        style={{ fontSize: 11, padding: '5px 12px', fontWeight: 700 }}>
-                  ✎ Sửa habitat
-                </button>
-              )}
+              <button type="button" className="btn primary"
+                      onClick={(e) => { e.stopPropagation(); openHabitat(habitatId); }}
+                      style={{ fontSize: 11, padding: '5px 12px', fontWeight: 700 }}>
+                ✎ Sửa habitat
+              </button>
             </div>
           )}
 
@@ -1089,7 +1070,7 @@ export function BriefEditModal({
               briefId={existing.id}
               habitatId={habitatId}
               habitatUrl={habitatUrl}
-              onOpenHabitat={onOpenHabitat}
+              onOpenHabitat={openHabitat}
               platformKey={platformKey}
               platformCategory={platformCategory}
               platformAllowedFormats={platformAllowedFormats}

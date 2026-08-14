@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties } from 'react';
-import { useTableSort, SortArrow } from './use-table-sort';
+import { useTableSort } from './use-table-sort';
+import { AnchoredPopover } from './anchored-popover';
+import { COL_FILTER_OPS, isNullaryOp, matchColFilter } from './col-filter';
 
 // DataTable — the house pattern for "a LOT of columns without overflowing the layout".
 // Lifted from the SEO Sites Overview table (the reference): dense mono cells + optional
@@ -96,6 +98,22 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   const [q, setQ] = useState('');
 
+  // Lọc theo TỪNG CỘT (kiểu Adminer): mỗi cột 1 toán tử (=/</LIKE/REGEXP/IN…) + giá trị, áp trên
+  // sortValue của cột. Popup lọc mở từ nút 🔍 hiện khi hover header. Nhớ theo persistKey như sort/cột.
+  const filterKey = persistKey ? `${persistKey}::colfilters` : undefined;
+  const [filters, setFilters] = useState<Record<string, { op: string; val: string }>>({});
+  useEffect(() => {
+    if (!filterKey) return;
+    try { const raw = localStorage.getItem(filterKey); if (raw) setFilters(JSON.parse(raw)); } catch { /* ignore */ }
+  }, [filterKey]);
+  const setColFilter = (key: string, f: { op: string; val: string } | null) => setFilters((prev) => {
+    const next = { ...prev }; if (f) next[key] = f; else delete next[key];
+    if (filterKey) { try { localStorage.setItem(filterKey, JSON.stringify(next)); } catch { /* ignore */ } }
+    return next;
+  });
+  const [searchCol, setSearchCol] = useState<string | null>(null);   // cột đang mở popup lọc
+  const searchAnchor = useRef<HTMLButtonElement | null>(null);
+
   // Thẻ: `card` có thể là true (auto từ cột) hoặc object (render tuỳ biến / minWidth). Chuẩn hoá 1 lần.
   const cardOn = !!card;
   const cardCfg: DataCard<T> = card && card !== true ? card : {};
@@ -155,13 +173,28 @@ export function DataTable<T>({
     return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc); };
   }, []);
 
+  // Cột đang lọc thật sự (có sortValue + có giá trị hoặc là toán tử IS NULL/IS NOT NULL).
+  const activeFilters = useMemo(() =>
+    Object.entries(filters).filter(([k, f]) =>
+      columns.some((c) => c.key === k && c.sortValue) && (isNullaryOp(f.op) || f.val.trim() !== '')),
+    [filters, columns]);
+
   // Lọc TRƯỚC khi sắp xếp: sắp xếp trên tập đã lọc mới đúng, và hàng tổng cũng phải cộng theo tập
-  // đang nhìn — cộng cả dòng đã lọc đi thì con số tổng nói dối.
+  // đang nhìn — cộng cả dòng đã lọc đi thì con số tổng nói dối. Ô lọc chung (searchText) + lọc từng cột
+  // cùng thu hẹp.
   const shownRows = useMemo(() => {
+    let out = rows;
     const needle = q.trim().toLowerCase();
-    if (!needle || !searchText) return rows;
-    return rows.filter((r) => searchText(r).toLowerCase().includes(needle));
-  }, [rows, q, searchText]);
+    if (needle && searchText) out = out.filter((r) => searchText(r).toLowerCase().includes(needle));
+    if (activeFilters.length) {
+      const colMap = new Map(columns.map((c) => [c.key, c] as const));
+      out = out.filter((r) => activeFilters.every(([k, f]) => {
+        const sv = colMap.get(k)?.sortValue; if (!sv) return true;
+        return matchColFilter(sv(r), f.op, f.val);
+      }));
+    }
+    return out;
+  }, [rows, q, searchText, activeFilters, columns]);
 
   const visible = columns.filter((c) => !c.group || shown[c.group] !== false);
   // Hàng tổng chỉ vẽ khi CÒN dòng: lọc ra rỗng mà vẫn hiện "TỔNG (0) · $0" cạnh dòng báo
@@ -285,14 +318,38 @@ export function DataTable<T>({
           <thead>
             <tr>
               {visible.map((c) => {
-                const sortable = !!c.sortValue;
-                // Cột sortable: header bấm sắp xếp (↑/↓/tắt) · Shift+bấm = thêm cột phụ (số ưu tiên cạnh mũi tên).
+                const sortable = !!c.sortValue;                 // sortValue = giá trị logic của cột → cũng là cái để LỌC
+                const ts = sortable ? thProps(c.key) : null;
+                const dir = ts && ts.idx >= 0 ? ts.dir : null;   // CHỈ in mũi tên khi đang asc/desc; tắt = không in gì (yêu cầu)
+                const cf = filters[c.key];
+                const filtering = !!cf && (isNullaryOp(cf.op) || cf.val.trim() !== '');
+                const searchOpen = searchCol === c.key;
+                // Header kiểu Adminer: hover tên cột → hiện 2 nút (sắp xếp + lọc). Mũi tên sort chỉ hiện khi
+                // đang bật; cột đang lọc có cờ ⚑. Nút nằm trong .dt-th-actions (CSS ẩn, hover mới hiện).
                 return (
-                  <th key={c.key} style={{ ...headStyle(c), cursor: sortable ? 'pointer' : undefined, userSelect: 'none' }}
-                      title={sortable ? `${c.title ? c.title + ' · ' : ''}bấm sắp xếp (↑/↓/tắt) · Shift+bấm = thêm cột phụ` : c.title}
-                      onClick={sortable ? thProps(c.key).onClick : undefined}>
-                    {c.header}
-                    {sortable && <SortArrow spec={thProps(c.key)} />}
+                  <th key={c.key} className="dt-th" style={{ ...headStyle(c), position: 'relative', userSelect: 'none' }} title={c.title}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, maxWidth: '100%' }}>
+                      <span className="dt-th-name" onClick={ts ? ts.onClick : undefined}
+                            title={sortable ? `${c.title ? c.title + ' · ' : ''}bấm để sắp xếp (↑/↓/tắt) · Shift+bấm = thêm cột phụ` : undefined}
+                            style={{ cursor: sortable ? 'pointer' : 'default' }}>
+                        {c.header}
+                      </span>
+                      {dir && (
+                        <span aria-hidden style={{ color: 'var(--accent)', fontSize: 9, whiteSpace: 'nowrap' }}>
+                          {dir === 'asc' ? '▲' : '▼'}{ts!.count > 1 && <sup style={{ fontSize: 7, fontWeight: 700 }}>{ts!.idx + 1}</sup>}
+                        </span>
+                      )}
+                      {filtering && <span aria-hidden title="đang lọc cột này" style={{ fontSize: 9, color: 'var(--accent)' }}>⚑</span>}
+                      {sortable && (
+                        <span className="dt-th-actions" style={searchOpen ? { opacity: 1, pointerEvents: 'auto' } : undefined}>
+                          <button type="button" title="Sắp xếp (↑ / ↓ / tắt)" onClick={ts!.onClick}>↕</button>
+                          <button type="button" title="Lọc cột" aria-label="Lọc cột"
+                                  ref={searchOpen ? searchAnchor : undefined}
+                                  onClick={() => setSearchCol(searchOpen ? null : c.key)}
+                                  style={filtering ? { color: 'var(--accent)', borderColor: 'var(--accent)' } : undefined}>🔍</button>
+                        </span>
+                      )}
+                    </span>
                   </th>
                 );
               })}
@@ -333,6 +390,59 @@ export function DataTable<T>({
         </table>
       </div>
       )}
+
+      {(() => {
+        const key = searchCol;
+        if (key == null) return null;                 // narrow: searchCol string trong nhánh này
+        const col = columns.find((c) => c.key === key);
+        const cur = filters[key] ?? { op: '=', val: '' };
+        return (
+          <AnchoredPopover anchorRef={searchAnchor} open onClose={() => setSearchCol(null)} align="left" zIndex={1100}>
+            <ColFilterBox colLabel={col?.header ?? key} value={cur}
+              onApply={(f) => { setColFilter(key, f); setSearchCol(null); }}
+              onClear={() => { setColFilter(key, null); setSearchCol(null); }}
+              onCancel={() => setSearchCol(null)} />
+          </AnchoredPopover>
+        );
+      })()}
+    </div>
+  );
+}
+
+// Popup lọc 1 cột (nội dung AnchoredPopover): chọn toán tử MySQL + gõ giá trị → Lọc / Xoá lọc.
+// Enter = Lọc, Escape = đóng (stopPropagation để không đụng ESC của drawer/stack bên ngoài).
+function ColFilterBox({ colLabel, value, onApply, onClear, onCancel }: {
+  colLabel: ReactNode;
+  value: { op: string; val: string };
+  onApply: (f: { op: string; val: string }) => void;
+  onClear: () => void;
+  onCancel: () => void;
+}) {
+  const [op, setOp] = useState(value.op);
+  const [val, setVal] = useState(value.val);
+  const nullary = isNullaryOp(op);
+  const ctrl: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 11, padding: '4px 6px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', outline: 'none' };
+  return (
+    <div onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onCancel(); } }}
+         style={{ background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 8, padding: 8, boxShadow: '0 12px 32px rgba(0,0,0,.5)', minWidth: 236, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+        Lọc cột: <span style={{ color: 'var(--fg-1)' }}>{colLabel}</span>
+      </div>
+      <div style={{ display: 'flex', gap: 5 }}>
+        <select value={op} onChange={(e) => setOp(e.target.value)} style={{ ...ctrl, cursor: 'pointer', flexShrink: 0 }}>
+          {COL_FILTER_OPS.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+        {!nullary && (
+          <input autoFocus value={val} onChange={(e) => setVal(e.target.value)} placeholder="giá trị…"
+                 autoComplete="off" spellCheck={false}
+                 onKeyDown={(e) => { if (e.key === 'Enter') onApply({ op, val }); }}
+                 style={{ ...ctrl, flex: 1, minWidth: 0 }} />
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+        <button type="button" onClick={onClear} style={{ ...ctrl, cursor: 'pointer', color: 'var(--fg-3)' }}>Xoá lọc</button>
+        <button type="button" onClick={() => onApply({ op, val })} style={{ ...ctrl, cursor: 'pointer', background: 'var(--accent)', color: 'var(--bg-0, #0b0d12)', border: '1px solid var(--accent)', fontWeight: 600 }}>Lọc</button>
+      </div>
     </div>
   );
 }

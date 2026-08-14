@@ -2031,7 +2031,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         <ViewToggle options={[...LIST_CALENDAR_VIEWS, { value: 'kanban', label: '▦ Kanban', title: 'Kanban theo trạng thái' }, { value: 'feed', label: '📖 Nội dung', title: 'Chỉ bài đăng — đọc lần lượt theo giờ như một thread' }]} value={view} onChange={(v) => setView(v as 'list' | 'calendar' | 'kanban' | 'feed')} />
         {/* Lọc bài dính CÙNG thanh công cụ (một khối, một phép đo barH) — cuộn tới đâu vẫn đổi được
             bộ lọc mà không phải cuộn ngược lên đầu. Dựng MỘT lần ở đây cho cả lịch lẫn chế độ đọc. */}
-        {(view === 'feed' || view === 'calendar') && kind === 'content' && (
+        {/* Bám theo CÓ BÀI hay không, giống thanh lọc bài — khoá theo wt=content thì mở link quen
+            (không có wt) là bảng biến mất, mà feed vẫn đang liệt kê bài. */}
+        {(view === 'feed' || view === 'calendar') && piecesInScope.length > 0 && (
           <CommunityPlan pieces={piecesInScope} projectId={projectId} current={pf.place ?? ''}
             onPick={(place) => setPf((cur) => ({ ...cur, place }))} />
         )}

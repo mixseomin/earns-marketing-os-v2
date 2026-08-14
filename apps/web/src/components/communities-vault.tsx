@@ -32,6 +32,7 @@ function linksBanned(s: string): boolean {
 }
 
 const GROUPS: DataGroup[] = [
+  { key: 'do', label: 'Số đo', color: '#f472b6' },
   { key: 'rules', label: 'Luật đăng', color: '#ffb03c' },
   { key: 'gate', label: 'Cổng link', color: '#34d399' },
   { key: 'fit', label: 'Độ hợp', color: '#38bdf8', defaultOn: false },
@@ -182,6 +183,40 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
           { group: 'gate', key: 'seedmin', header: 'Seed tối thiểu', width: 92, sortValue: (r) => r.minPosts || null,
             cell: (r) => (r.minPosts ? String(r.minPosts) : <span style={dim}>—</span>) },
 
+          // Đúng cách soi tay: mở nhóm, xem vài bài MỚI NHẤT, tương tác thế nào → sống hay chết.
+          // Gộp thành một chữ đọc được ngay, giữ số ở các cột bên cạnh để kiểm lại.
+          { group: 'do', key: 'song', header: 'Sức sống', width: 108,
+            sortValue: (r) => (r.newestAgeH == null ? null : -r.newestAgeH),
+            cellTitle: (r) => r.newestAgeH == null ? 'chưa khảo'
+              : `bài mới nhất cách đây ${r.newestAgeH}h · ${r.postsPerDay ?? '?'} bài/ngày · tương tác trung vị ${(r.medReactions ?? 0) + (r.medComments ?? 0)}/bài`,
+            cell: (r) => {
+              if (r.newestAgeH == null) return <span style={dim}>chưa khảo</span>;
+              const tuongTac = (r.medReactions ?? 0) + (r.medComments ?? 0);
+              const s = r.newestAgeH > 72 ? { t: 'bỏ hoang', c: '#ef4444' }
+                : tuongTac >= 5 ? { t: 'sống', c: '#22c55e' }
+                : tuongTac >= 1 ? { t: 'lay lắt', c: '#ffb03c' }
+                : { t: 'đăng nhưng ko ai xem', c: '#ef4444' };
+              return <span style={pill(s.c)}>{s.t}</span>;
+            } },
+          { group: 'do', key: 'moi', header: 'Bài mới nhất', width: 104, sortValue: (r) => r.newestAgeH,
+            cell: (r) => (r.newestAgeH == null ? <span style={dim}>—</span>
+              : r.newestAgeH < 1 ? '<1h' : r.newestAgeH < 48 ? `${r.newestAgeH}h` : `${Math.round(r.newestAgeH / 24)}d`) },
+          { group: 'do', key: 'nhipngay', header: 'Bài/ngày', width: 86, sortValue: (r) => r.postsPerDay,
+            cell: (r) => (r.postsPerDay == null ? <span style={dim}>—</span> : r.postsPerDay) },
+          { group: 'do', key: 'eng', header: 'Tương tác/1K TV', width: 116, sortValue: (r) => r.engPerMille,
+            cellTitle: (r) => r.engPerMille == null ? 'chưa khảo' : `(cảm xúc + bình luận) trung vị trên 1.000 thành viên · mẫu ${r.sampleSize} bài, khảo ${r.surveyedAt}`,
+            cell: (r) => r.engPerMille == null ? <span style={dim}>chưa khảo</span>
+              : <span style={{ color: r.engPerMille >= 1 ? '#22c55e' : r.engPerMille >= 0.1 ? '#ffb03c' : '#ef4444' }}>{r.engPerMille.toFixed(2)}</span> },
+          { group: 'do', key: 'rct', header: 'Cảm xúc/bài', width: 96, sortValue: (r) => r.medReactions,
+            cell: (r) => (r.medReactions == null ? <span style={dim}>—</span> : r.medReactions) },
+          { group: 'do', key: 'cmt', header: 'Bình luận/bài', width: 104, sortValue: (r) => r.medComments,
+            cell: (r) => (r.medComments == null ? <span style={dim}>—</span> : r.medComments) },
+          { group: 'do', key: 'pic', header: 'Bài có ảnh', width: 94, sortValue: (r) => r.pctPhoto,
+            cell: (r) => (r.pctPhoto == null ? <span style={dim}>—</span> : `${r.pctPhoto}%`) },
+          { group: 'do', key: 'vid', header: 'Bài có video', width: 104, sortValue: (r) => r.pctVideo,
+            cell: (r) => (r.pctVideo == null ? <span style={dim}>—</span> : `${r.pctVideo}%`) },
+          { group: 'do', key: 'khao', header: 'Khảo ngày', width: 94, sortValue: (r) => r.surveyedAt,
+            cell: (r) => r.surveyedAt ?? <span style={dim}>chưa</span> },
           { group: 'rules', key: 'quansat', header: 'Quan sát thực địa', align: 'left', width: 330,
             sortValue: (r) => (r.voiceNotes ? r.voiceNotes.length : null),
             cell: (r) => r.voiceNotes

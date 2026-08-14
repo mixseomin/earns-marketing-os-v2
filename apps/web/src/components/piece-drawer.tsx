@@ -133,7 +133,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
   // Kiểu bài đổi theo KÊNH: fb-post có album/poll/share, blog thì không. Đưa cả 13 kiểu ra chọn là
   // mời người ta gắn sai (rồi runner đi tìm nút không tồn tại).
   const loadFormats = useCallback(async (): Promise<EntityOption[]> => formatsFor(piece.channel)
-    .map((f) => ({ key: `fmt:${f.id}`, label: f.label, sub: f.icon, fallbackIcon: f.icon, data: { format: f.id } })), [piece.channel]);
+    .map((f) => ({ key: `fmt:${f.id}`, label: f.label, fallbackIcon: <FormatIcon kind={f.id} size={12} />, data: { format: f.id } })), [piece.channel]);
   const loadStyles = useCallback(async (): Promise<EntityOption[]> => STYLES
     .map((x) => ({ key: `sty:${x.id}`, label: x.label, sub: x.hint, fallbackIcon: x.icon, data: { style: x.id } })), []);
   const loadAngles = useCallback(async (): Promise<EntityOption[]> => ANGLE_GROUPS

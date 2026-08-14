@@ -60,26 +60,34 @@ const MODES: { key: CalMode; label: string }[] = [
 
 // MINI-MONTH: lưới tháng thu nhỏ (như sidebar Google Calendar). Ngày hôm nay khoanh, ngày đang chọn
 // tô nền accent, ngày có việc có 1 chấm nhỏ ở dưới → liếc là biết cả tháng chỗ nào có việc. Bấm ngày = nhảy.
-export function MiniMonth({ month, sel, byDate, onPick, onNavMonth, today }: {
+export function MiniMonth({ month, sel, byDate, onPick, onNavMonth, today, showNav = true, itemNoun = 'việc' }: {
   month: Date; sel: Set<string>; byDate: Map<string, CalItem[]>; onPick: (d: Date) => void; onNavMonth: (dir: 1 | -1) => void; today?: string;
+  /** Mục trên lịch này gọi là gì — "việc" (mặc định), "doanh thu"… Dùng cho chú thích + tooltip. */
+  itemNoun?: string;
+  /** Ẩn khi thanh điều hướng CHÍNH đã là điều hướng tháng (chế độ Tháng) — nếu không thì màn hình
+   *  có hai lần "August 2026" với hai cặp ◀ ▶ làm đúng một việc. Tuần/Ngày thì phải giữ: lúc đó
+   *  ◀ ▶ ở trên nhảy tuần/ngày, không có cách nào khác để lật tháng. */
+  showNav?: boolean;
 }) {
   const m = month.getMonth();
   const todayStr = today || ymd(new Date());
   const cells = monthGrid(month);
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 700, flex: 1, textTransform: 'capitalize' }}>{month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</div>
-        <button type="button" onClick={() => onNavMonth(-1)} style={miniNav} title="Tháng trước">◀</button>
-        <button type="button" onClick={() => onNavMonth(1)} style={miniNav} title="Tháng sau">▶</button>
-      </div>
+      {showNav && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, flex: 1, textTransform: 'capitalize' }}>{month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</div>
+          <button type="button" onClick={() => onNavMonth(-1)} style={miniNav} title="Tháng trước">◀</button>
+          <button type="button" onClick={() => onNavMonth(1)} style={miniNav} title="Tháng sau">▶</button>
+        </div>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1 }}>
         {WD1.map((w, i) => <div key={i} style={{ fontSize: 9, color: 'var(--fg-4)', textAlign: 'center', paddingBottom: 2 }}>{w}</div>)}
         {cells.map((d) => {
           const ds = ymd(d); const inM = d.getMonth() === m; const isToday = ds === todayStr; const isSel = sel.has(ds);
           const its = byDate.get(ds) || []; const dot = its[0]?.color || 'var(--accent)';
           return (
-            <button key={ds} type="button" onClick={() => onPick(d)} title={its.length ? `${its.length} việc` : undefined}
+            <button key={ds} type="button" onClick={() => onPick(d)} title={its.length ? `${its.length} ${itemNoun}` : undefined}
               // Ngày/tuần đang chọn = tint NHẸ (không tô đặc chói), chỉ đủ để phân biệt; hôm nay = khoanh cyan.
               style={{ position: 'relative', height: 28, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 border: `1px solid ${isToday ? 'var(--neon-cyan)' : isSel ? 'color-mix(in srgb, var(--accent) 34%, transparent)' : 'transparent'}`, borderRadius: 7, cursor: 'pointer', fontSize: 11, fontWeight: isToday ? 800 : isSel ? 700 : 500,
@@ -92,13 +100,13 @@ export function MiniMonth({ month, sel, byDate, onPick, onNavMonth, today }: {
         })}
       </div>
       <div style={{ marginTop: 8, fontSize: 10, color: 'var(--fg-4)', display: 'flex', alignItems: 'center', gap: 5 }}>
-        <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} /> ngày có việc
+        <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} /> ngày có {itemNoun}
       </div>
     </div>
   );
 }
 
-export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp, onModeChange, legend, sidebar, date, onDateChange, today }: {
+export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp, onModeChange, legend, sidebar, date, onDateChange, today, itemNoun = 'việc' }: {
   items: CalItem[];
   onItemClick?: (id: number | string) => void;
   initialMonth?: Date;
@@ -112,6 +120,8 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
   /** 'YYYY-MM-DD' hôm nay theo múi giờ VẬN HÀNH, do server truyền xuống (lib/local-day: todayInAppTz).
    *  Có nó thì lịch vẽ được NGAY từ server — không còn khoảng rỗng chờ mount rồi nội dung nhảy vào. */
   today?: string;
+  /** Mục trên lịch gọi là gì — mặc định "việc". Lịch doanh thu truyền "doanh thu". */
+  itemNoun?: string;
   /** Ngày đang chọn 'YYYY-MM-DD'. Bỏ trống = component tự lấy hôm nay (theo giờ local, sau mount).
    *  Truyền vào + onDateChange = caller giữ ngày trong URL → F5 giữ nguyên ngày, không nhảy về hôm nay. */
   date?: string;
@@ -155,7 +165,8 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
 
   // Ngày GẦN NHẤT còn việc CHƯA xong — ưu tiên sắp tới (≥ hôm nay), không có thì quá hạn gần nhất.
   // Nút "Việc gần nhất" nhảy thẳng tới đó thay vì bấm ▶ dò từng tuần qua vùng lịch trống.
-  const pendingDays = [...byDate.entries()].filter(([, its]) => its.some((i) => !i.done)).map(([d]) => d).sort();
+  const hasTasks = items.some((i) => i.done !== undefined);
+  const pendingDays = !hasTasks ? [] : [...byDate.entries()].filter(([, its]) => its.some((i) => !i.done)).map(([d]) => d).sort();
   const jumpDay = pendingDays.find((d) => d >= todayStr) ?? pendingDays.filter((d) => d < todayStr).at(-1) ?? null;
 
   // anchor đổi → mini-month bám theo tháng của anchor (trừ khi người dùng tự page mini bằng ◀ ▶).
@@ -290,7 +301,7 @@ export function MonthCalendar({ items, onItemClick, initialMonth, mode: modeProp
           là chỗ đặt nội dung thường trực (sản phẩm đang dựng). */}
       <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <div style={{ width: 236, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <MiniMonth month={miniView} sel={selSet} byDate={byDate} today={today} onPick={(d) => setAnchor(d)}
+          <MiniMonth month={miniView} sel={selSet} byDate={byDate} today={today} onPick={(d) => setAnchor(d)} showNav={mode !== 'month'} itemNoun={itemNoun}
             onNavMonth={(dir) => setMiniView((mv) => { const d = mv ?? new Date(); return new Date(d.getFullYear(), d.getMonth() + dir, 1); })} />
           {sidebar}
         </div>

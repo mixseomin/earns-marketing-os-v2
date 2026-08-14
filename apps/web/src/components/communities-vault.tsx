@@ -15,7 +15,7 @@ import { useModalParam } from '@/lib/use-modal-param';
 import { getHabitatRowAction, listBriefsForHabitat } from '@/lib/actions/community-briefs';
 import type { HabitatRow, TribeRow, PlatformRow } from '@/lib/data';
 import type { CommunityRow } from '@/lib/actions/communities';
-import { FORMATS } from '@/lib/content-channels';
+import { FORMATS, formatLabel } from '@/lib/content-channels';
 import { PHASES, PHASE_COLOR, PHASE_LABEL, type Phase } from '@/lib/phase-plan';
 import { JOIN_STATUS_LABEL, JOIN_STATUS_COLOR, JOIN_STATUS_ICON, type JoinStatus } from '@/lib/join-status';
 
@@ -43,7 +43,7 @@ const GROUPS: DataGroup[] = [
 // Kiểu bài của cộng đồng nói CÙNG một ngôn ngữ với tag format: của bài mình sắp đăng — có thế mới
 // đối chiếu được "nhóm này ăn kiểu gì" với "mình đang xếp kiểu gì vào đây".
 const FMT = new Map(FORMATS.map((f) => [f.id, f]));
-const fmtLabel = (id: string) => FMT.get(id)?.label ?? id;   // chữ thuần cho tooltip; hình vẽ bằng <FormatIcon>
+const fmtLabel = formatLabel;   // nhãn chữ dùng chung (lib/content-channels); hình vẽ bằng <FormatIcon>
 // Gộp "tỉ lệ nhóm đăng" với "cảm xúc trung vị" về CÙNG một hàng cho mỗi kiểu bài, xếp theo mức ăn.
 // Kiểu chỉ có ở một trong hai nguồn vẫn hiện (đăng nhiều mà chưa đo được = thông tin, không phải 0).
 function fmtRows(r: { formatShare: Array<{ format: string; pct: number }>; formatFit: Array<{ format: string; n: number; medEng: number | null }> }) {
@@ -218,7 +218,7 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
           { group: 'do', key: 'song', header: 'Sức sống', width: 108,
             sortValue: (r) => (r.newestAgeH == null ? null : -r.newestAgeH),
             cellTitle: (r) => r.newestAgeH == null ? 'chưa khảo'
-              : `bài mới nhất cách đây ${r.newestAgeH}h · ${r.postsPerDay ?? '?'} bài/ngày · tương tác trung vị ${(r.medReactions ?? 0) + (r.medComments ?? 0)}/bài`,
+              : `bài mới nhất cách đây ${r.newestAgeH}h · ${r.postsPerDay ?? '?'} bài/ngày · cảm xúc trung vị ${r.trendMedRx ?? r.medReactions ?? '—'}/bài (bài trend)`,
             cell: (r) => {
               if (r.newestAgeH == null) return <span style={dim}>chưa khảo</span>;
               // Đo hỏng thì phải NÓI LÀ ĐO HỎNG. Trước đây không đọc được số nào cũng ra "ko ai xem"
@@ -276,12 +276,6 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
               : `trung vị trên bài feed đẩy lên đầu · cao nhất trong mẫu ${r.trendMaxRx} · đo được ${r.measuredTrend}/${r.sampleTrend} bài`,
             cell: (r) => (r.trendMedRx == null ? <span style={dim}>—</span>
               : <span>{r.trendMedRx}{r.trendMaxRx != null && <span style={{ color: 'var(--fg-3)' }}> · đỉnh {r.trendMaxRx}</span>}</span>) },
-          { group: 'do', key: 'cmt', header: 'Bình luận/bài', width: 104, sortValue: (r) => r.medComments,
-            cell: (r) => (r.medComments == null ? <span style={dim}>—</span> : r.medComments) },
-          { group: 'do', key: 'pic', header: 'Bài có ảnh', width: 94, sortValue: (r) => r.pctPhoto,
-            cell: (r) => (r.pctPhoto == null ? <span style={dim}>—</span> : `${r.pctPhoto}%`) },
-          { group: 'do', key: 'vid', header: 'Bài có video', width: 104, sortValue: (r) => r.pctVideo,
-            cell: (r) => (r.pctVideo == null ? <span style={dim}>—</span> : `${r.pctVideo}%`) },
           { group: 'do', key: 'khao', header: 'Khảo ngày', width: 94, sortValue: (r) => r.surveyedAt,
             cell: (r) => r.surveyedAt ?? <span style={dim}>chưa</span> },
           { group: 'rules', key: 'quansat', header: 'Quan sát thực địa', align: 'left', width: 330,

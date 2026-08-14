@@ -22,10 +22,10 @@ export default async function PortfolioPage() {
           Full per-day calendar + funnel live on /revenue (linked). */}
       <Section
         title="💵 Doanh thu · mọi nguồn"
-        subtitle="30 ngày gần nhất · AdSense · Sản phẩm/Affiliate · Gumroad"
+        subtitle="30 ngày gần nhất · AdSense · Sản phẩm · Gumroad · Affiliate network"
         headerRight={<Link href="/revenue" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none' }}>Lịch chi tiết →</Link>}
       >
-        <RevenueCalendar rows={byDay.rows} errors={byDay.errors} compact />
+        <RevenueCalendar rows={byDay.rows} errors={byDay.errors} />
       </Section>
 
       <PortfolioView projects={projects} />

@@ -18,7 +18,7 @@ export interface EntityOption {
   sub?: string;              // secondary line (mono) — followers · url · platform · whatever the caller composes
   avatar?: string;           // image URL
   avatarKind?: 'image' | 'video';   // 'video' → dựng bằng <video>, không thì ô vỡ (asset reel)
-  fallbackIcon?: string;     // shown when no avatar (default '•')
+  fallbackIcon?: ReactNode;  // hiện khi không có avatar (mặc định '•') — nhận cả <FormatIcon/>, đừng ép emoji
   badge?: string;            // small chip after the label (e.g. '⬇ Directus')
   badgeTitle?: string;
   match?: boolean;           // shows ✓ — a recommended option (leave false unless genuinely "best")

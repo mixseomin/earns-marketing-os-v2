@@ -1,8 +1,9 @@
 'use client';
 
-// Lịch doanh thu theo NGÀY, gộp mọi nguồn (AdSense · Product/affiliate · Gumroad).
+// Lịch doanh thu theo NGÀY, gộp mọi nguồn (AdSense · Sản phẩm · Gumroad · Affiliate network).
 // Filter = primitive nhà (ListToolbar + FilterChips + SearchInput), lịch = MonthCalendar.
 // State vào URL (?src=&ch=) để F5/share giữ nguyên bộ lọc — ui-conventions §1.
+// Dùng CHUNG cho trang chủ và /revenue, không có biến thể "rút gọn" nào bỏ bớt bộ lọc.
 
 import { useMemo } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -12,14 +13,17 @@ import type { StatCard } from './ui/stats-strip';
 import type { RevenueDayRow, RevenueSource } from '@/lib/revenue/by-day';
 
 const SRC_META: Record<RevenueSource, { label: string; color: string }> = {
-  product: { label: 'Sản phẩm/Affiliate', color: 'var(--neon-lime)' },
+  // 'product' = product_stats (chaturbate/mql5/udemy/stripe…) — trước ghi là "Sản phẩm/Affiliate",
+  // giờ affiliate network là nguồn RIÊNG nên tên cũ chỉ gây nhầm.
+  product: { label: 'Sản phẩm', color: 'var(--neon-lime)' },
   adsense: { label: 'AdSense', color: 'var(--neon-cyan)' },
   gumroad: { label: 'Gumroad', color: 'var(--neon-violet)' },
+  affiliate: { label: 'Affiliate network', color: 'var(--neon-amber)' },
 };
 
 const usd = (n: number) => (n >= 100 ? `$${n.toFixed(0)}` : n >= 1 ? `$${n.toFixed(2)}` : `$${n.toFixed(3)}`);
 
-export function RevenueCalendar({ rows, errors, compact = false }: { rows: RevenueDayRow[]; errors: string[]; compact?: boolean }) {
+export function RevenueCalendar({ rows, errors }: { rows: RevenueDayRow[]; errors: string[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -65,7 +69,7 @@ export function RevenueCalendar({ rows, errors, compact = false }: { rows: Reven
   const totals = useMemo(() => {
     const z = () => ({ net: 0, gross: 0 });
     const t: Record<RevenueSource | 'all', { net: number; gross: number }> =
-      { all: z(), adsense: z(), product: z(), gumroad: z() };
+      { all: z(), adsense: z(), product: z(), gumroad: z(), affiliate: z() };
     for (const r of filtered) {
       const g = r.gross ?? r.amount;
       t.all.net += r.amount; t.all.gross += g;
@@ -86,24 +90,10 @@ export function RevenueCalendar({ rows, errors, compact = false }: { rows: Reven
     })),
   ];
 
-  // Compact (home glance): totals strip + the month calendar, but NO filter toolbar (kept lean).
-  // Full filtering (source/channel, URL-state) lives on /revenue. Cards non-interactive here.
-  if (compact) {
-    return (
-      <>
-        {errors.length > 0 && (
-          <div style={{ fontSize: 10.5, color: 'var(--warn)', marginBottom: 8 }}>⚠ {errors.join(' · ')}</div>
-        )}
-        <StatsStrip cards={cards.map((c) => ({ ...c, onClick: undefined, active: undefined }))} />
-        {items.length === 0 ? (
-          <EmptyState icon="🗓" compact title="Chưa có doanh thu nguồn nào trong 30 ngày" />
-        ) : (
-          <MonthCalendar items={items} />
-        )}
-      </>
-    );
-  }
-
+  // MỘT đường render cho cả trang chủ lẫn /revenue. Trước đây trang chủ chạy nhánh `compact` giấu
+  // hết bộ lọc — nhìn thấy $151 mà không tách được $151 đó từ đâu ra. Lọc là thứ cần ngay ở chỗ
+  // liếc số, không phải thứ phải bấm sang trang khác mới có. /revenue vẫn hơn ở khung thời gian
+  // (RevenueRange) + bảng AdSense/Gumroad chi tiết.
   return (
     <>
       <ListToolbar search={channel} onSearch={(v) => setParam('ch', v)} searchPlaceholder="Lọc theo kênh/site/sản phẩm…">
@@ -130,7 +120,7 @@ export function RevenueCalendar({ rows, errors, compact = false }: { rows: Reven
         <EmptyState icon="🗓" compact title="Không có doanh thu khớp bộ lọc"
           description="Đổi nguồn hoặc xoá ô tìm kênh." />
       ) : (
-        <MonthCalendar items={items} />
+        <MonthCalendar items={items} itemNoun="doanh thu" />
       )}
     </>
   );

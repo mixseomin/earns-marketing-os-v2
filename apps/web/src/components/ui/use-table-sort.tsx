@@ -46,8 +46,7 @@ export function useTableSort<T>(rows: T[], columns: SortableCol<T>[], persistKey
   const apply = (next: SortSpec[]) => {
     setSort(next);
     if (urlKey) writeShallowParam(urlKey, next.length ? encodeSort(next) : null);
-    if (storeKey) { try { localStorage.setItem(storeKey, JSON.stringify(next)); } catch { /* ignore */ } }
-    writeTablePref(persistKey, { s: next });
+    writeTablePref(persistKey, { s: next });   // cookie = kho DUY NHẤT (server đọc được); localStorage chỉ còn để di trú
   };
   const toggle = (key: string, additive: boolean) => {
     if (additive) {                                   // Shift+click: cycle THIS col in the chain, keep rest

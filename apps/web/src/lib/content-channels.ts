@@ -47,6 +47,9 @@ export const FORMATS: Array<{ id: string; label: string; icon: string; channels:
 ];
 
 export const formatsFor = (channel: string) => FORMATS.filter((f) => f.channels.includes(channel));
+/** Nhãn CHỮ của kiểu bài (hình vẽ bằng <FormatIcon kind={id}/>). Ở đây để mỗi trang khỏi tự chép
+ *  một bản `FORMATS.find(...)?.label` — ba bản chép là ba chỗ lệch khi danh mục đổi. */
+export const formatLabel = (id: string) => FORMATS.find((f) => f.id === id)?.label ?? id;
 
 // ── Kiểu TRÌNH BÀY (style) ────────────────────────────────────────────────────
 // Khác `format` (cơ chế đăng: runner bấm nút nào) và khác `angle` (bài làm gì cho người đọc).

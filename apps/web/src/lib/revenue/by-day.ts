@@ -5,14 +5,16 @@
 //   • product  — Directus `product_stats` (doanh thu/ngày theo product: chaturbate, mql5,
 //                udemy, stripe…). Đây là nguồn LỚN NHẤT mà /revenue trước giờ bỏ sót.
 //   • gumroad  — API v2 `/sales`, quy về ngày mua (hàng CodeCrate mình bán)
+//   • affiliate — hoa hồng network (CJ + Awin) đọc thẳng API, xem `revenue/networks.ts`
 //
 // Trả về dạng phẳng {date, source, amount} để UI tự gộp/lọc, không ép sẵn cấu trúc.
 
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { gumroadTokens } from '@/lib/gumroad/products';
+import { networkRows } from './networks';
 
-export type RevenueSource = 'adsense' | 'product' | 'gumroad';
+export type RevenueSource = 'adsense' | 'product' | 'gumroad' | 'affiliate';
 
 export interface RevenueDayRow {
   date: string;            // YYYY-MM-DD
@@ -42,12 +44,13 @@ const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN || '';
 
 export async function getRevenueByDay(sinceDays = 120): Promise<RevenueByDay> {
   const since = new Date(Date.now() - sinceDays * 86400_000).toISOString().slice(0, 10);
-  const [adsense, product, gumroad] = await Promise.all([
+  const [adsense, product, gumroad, affiliate] = await Promise.all([
     adsenseRows(since).catch((e: Error) => ({ rows: [], error: `adsense: ${e.message}` })),
     productRows(since).catch((e: Error) => ({ rows: [], error: `product_stats: ${e.message}` })),
     gumroadRows(since).catch((e: Error) => ({ rows: [], error: `gumroad: ${e.message}` })),
+    networkRows(since).catch((e: Error) => ({ rows: [], error: `network: ${e.message}` })),
   ]);
-  const parts = [adsense, product, gumroad];
+  const parts = [adsense, product, gumroad, affiliate];
   return {
     rows: parts.flatMap((p) => p.rows),
     errors: parts.map((p) => ('error' in p ? p.error : undefined)).filter((x): x is string => !!x),

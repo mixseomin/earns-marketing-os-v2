@@ -141,7 +141,6 @@ export function DataTable<T>({
   }, [filterKey, urlFilterKey]);
   const setColFilter = (key: string, f: { op: string; val: string } | null) => setFilters((prev) => {
     const next = { ...prev }; if (f) next[key] = f; else delete next[key];
-    if (filterKey) { try { localStorage.setItem(filterKey, JSON.stringify(next)); } catch { /* ignore */ } }
     writeTablePref(persistKey, { f: next });
     if (urlFilterKey) writeShallowParam(urlFilterKey, Object.keys(next).length ? JSON.stringify(next) : null);
     return next;
@@ -163,7 +162,6 @@ export function DataTable<T>({
   const effView: DataView = cardOn ? (view ?? internalView) : 'table';   // không có `card` → luôn bảng (hành vi cũ)
   const setView = (v: DataView) => {
     setInternalView(v); onViewChange?.(v);
-    if (viewKey) { try { localStorage.setItem(viewKey, v); } catch { /* ignore */ } }
     writeTablePref(persistKey, { v });
   };
   const showViewToggle = cardOn && view === undefined;   // controlled → caller tự làm nút
@@ -186,7 +184,6 @@ export function DataTable<T>({
   const toggle = (k: string) =>
     setShown((prev) => {
       const next = { ...prev, [k]: !prev[k] };
-      if (persistKey) { try { localStorage.setItem(persistKey, JSON.stringify(next)); } catch { /* ignore */ } }
       writeTablePref(persistKey, { c: next });
       return next;
     });

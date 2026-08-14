@@ -19,7 +19,7 @@ import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
-import { CHANNELS, FORMATS, STYLES, SERIES, ANGLE_GROUPS, ANGLES, MIX_TARGET, LINK_SHARE_MAX, angleOf, angleLabel, tagVal, pieceGaps, pieceRisks, shouldWarnGaps, schedMark } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
+import { CHANNELS, FORMATS, STYLES, SERIES, ANGLE_GROUPS, ANGLES, MIX_TARGET, LINK_SHARE_MAX, angleOf, angleLabel, tagVal, pieceGaps, pieceRisks, shouldWarnGaps, schedMark, formatLabel } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
 import { StatusSegmented, Segmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, ChannelFavicon, FormatIcon, DataTable, type DataColumn, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
@@ -2299,7 +2299,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                       <i style={{ width: 6, height: 6, borderRadius: 2, flexShrink: 0, background: g?.color ?? 'var(--fg-4)' }} />
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-4)', flexShrink: 0 }}>{tagVal(p.tags, 'time') || '--:--'}</span>
                       <ChannelFavicon channel={p.channel} size={13} />
-                      <span style={{ flexShrink: 0 }}>{f ? f.icon : ''}{p.hasLink ? '🔗' : ''}{(repliesOf.get(p.id)?.length ?? 0) ? '💬' : ''}</span>
+                      <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 2 }}>{f && <FormatIcon kind={f.id} size={11} title={f.label} />}{p.hasLink ? '🔗' : ''}{(repliesOf.get(p.id)?.length ?? 0) ? '💬' : ''}</span>
                       {schedMark(p) && <span title="FB đã nhận lịch — nền tảng tự đăng đúng giờ" style={{ color: 'var(--neon-cyan)', flexShrink: 0 }}>⏳</span>}
                       {p.status === 'published' && <span title="đã đăng" style={{ color: 'var(--ok)', flexShrink: 0 }}>✓</span>}
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.subject || p.title}</span>
@@ -3629,7 +3629,6 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
 // Lịch đọc theo NGÀY trả lời "hôm nay đăng gì". Câu hỏi còn lại là "mỗi nhóm đang có kế hoạch ra
 // sao" — nhóm nào đang bị dồn, nhóm nào bỏ trống, bài kế tiếp vào lúc nào. Trước phải tự lọc từng
 // nơi đăng rồi đếm bằng mắt. Bấm một dòng = lọc lịch về đúng nhóm đó.
-const fmtName = (id: string) => FORMATS.find((x) => x.id === id)?.label ?? id;
 
 function CommunityPlan({ pieces, projectId, current, onPick }: {
   pieces: CalPiece[]; projectId: string; current: string; onPick: (place: string) => void;
@@ -3722,14 +3721,14 @@ function CommunityPlan({ pieces, projectId, current, onPick }: {
           { key: 'khop', header: 'Khớp kiểu ăn', align: 'left', width: 250,
             sortValue: (r: Row) => (!r.nhomAn ? null : r.cuaMinh.filter((x) => x.f !== r.nhomAn).reduce((s, x) => s + x.n, 0)),
             cellTitle: (r: Row) => !r.nhomAn ? 'nhóm này chưa đo được kiểu nào ăn'
-              : `nhóm ăn ${fmtName(r.nhomAn)} (${r.anRx ?? '—'} cảm xúc trung vị) · nhóm đăng: ${r.nhomDang.map((x) => `${fmtName(x.format)} ${x.pct}%`).join(' · ')} · mình xếp: ${r.cuaMinh.map((x) => `${fmtName(x.f)} ${x.n}`).join(' · ')}`,
+              : `nhóm ăn ${formatLabel(r.nhomAn)} (${r.anRx ?? '—'} cảm xúc trung vị) · nhóm đăng: ${r.nhomDang.map((x) => `${formatLabel(x.format)} ${x.pct}%`).join(' · ')} · mình xếp: ${r.cuaMinh.map((x) => `${formatLabel(x.f)} ${x.n}`).join(' · ')}`,
             cell: (r: Row) => {
               if (!r.nhomAn) return <span style={{ color: 'var(--fg-4)' }}>chưa đo</span>;
               const lech = r.cuaMinh.filter((x) => x.f !== r.nhomAn).reduce((s, x) => s + x.n, 0);
               return (
                 <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <span style={{ color: lech ? 'var(--warn)' : 'var(--ok)' }}>{lech ? '≠' : '✓'}</span>
-                  <span style={{ color: 'var(--fg-3)' }}>ăn {fmtName(r.nhomAn)}{r.anRx != null && ` ${r.anRx}rx`}</span>
+                  <span style={{ color: 'var(--fg-3)' }}>ăn {formatLabel(r.nhomAn)}{r.anRx != null && ` ${r.anRx}rx`}</span>
                   {lech > 0 && <span style={{ color: 'var(--warn)' }}>· {lech} bài lệch</span>}
                 </span>);
             } },

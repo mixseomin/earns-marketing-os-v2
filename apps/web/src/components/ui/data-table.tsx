@@ -93,6 +93,12 @@ interface DataTableProps<T> {
    */
   pageSize?: number;
   /**
+   * GHIM cột đầu khi bảng cuộn ngang. Bảng nhà toàn 15-25 cột: cuộn sang phải một quãng là mất cột
+   * tên, còn lại một mớ số không biết của hàng nào. Mặc định BẬT — cột đầu luôn là nhãn/định danh
+   * (quy ước của mọi bảng đang có). Truyền false nếu bảng nào không hợp.
+   */
+  stickyFirst?: boolean;
+  /**
    * `rows` chỉ là MỘT TRANG do server cắt (vd /offers: 50 dòng trên 1.200, lọc chạy ở server). Khi
    * đó lọc/sắp xếp trong bảng chỉ ăn trên trang này = nói dối, nên tắt hẳn — lọc bằng thanh trên.
    * Dùng khi tập dữ liệu quá lớn để đẩy hết xuống trình duyệt; còn lại thì đưa ĐỦ dòng + `pageSize`.
@@ -121,6 +127,7 @@ const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 export function DataTable<T>({
   rows, columns, getRowKey, groups, persistKey, onRowClick, minWidth = 640, rowTitle,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced,
+  stickyFirst = true,
   serverSort,
 }: DataTableProps<T>) {
   const pref = useTablePref(persistKey);   // server đọc cookie sẵn → khởi tạo ĐÚNG ngay lần render đầu
@@ -264,15 +271,22 @@ export function DataTable<T>({
   useEffect(() => { setPage(0); }, [q, activeFilters.length, rows.length, setPage]);
   const pageRows = pageSize ? paged.pageItems : sortedRows;
 
-  const cellStyle = (c: DataColumn<T>, extra?: CSSProperties): CSSProperties => {
+  // Ô ghim phải có nền ĐỤC, không thì cột cuộn phía dưới nhìn xuyên qua thành chữ chồng chữ.
+  const stick = (i: number, head: boolean): CSSProperties =>
+    (stickyFirst && i === 0
+      ? { position: 'sticky', left: 0, zIndex: head ? 3 : 2, background: head ? 'var(--bg-2)' : 'var(--bg-1)',
+          boxShadow: '1px 0 0 var(--line)' }
+      : {});
+  const cellStyle = (c: DataColumn<T>, extra?: CSSProperties, i = -1): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
-    return { ...baseCell, textAlign: c.align ?? 'right', width: c.width, background: bandSoft(g?.color), ...extra };
+    return { ...baseCell, textAlign: c.align ?? 'right', width: c.width, background: bandSoft(g?.color), ...stick(i, false), ...extra };
   };
   const headStyle = (c: DataColumn<T>, i = 0): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
     return { ...baseHead, textAlign: c.headerAlign ?? c.align ?? 'right', width: c.width,
       color: g?.color ?? 'var(--fg-3)', background: band(g?.color),
-      borderLeft: i ? '1px solid var(--line)' : undefined };
+      borderLeft: i ? '1px solid var(--line)' : undefined,
+      ...(stickyFirst && i === 0 ? { position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-2)', boxShadow: '1px 0 0 var(--line)' } : {}) };
   };
 
   const pager = pageSize ? (
@@ -427,9 +441,9 @@ export function DataTable<T>({
                   style={onRowClick ? { cursor: 'pointer' } : undefined}
                   onClick={onRowClick ? () => onRowClick(row, i) : undefined}
                   title={rowTitle?.(row)}>
-                {visible.map((c) => (
+                {visible.map((c, ci) => (
                   <td key={c.key}
-                      style={cellStyle(c, c.onCellClick ? { cursor: 'pointer' } : undefined)}
+                      style={cellStyle(c, c.onCellClick ? { cursor: 'pointer' } : undefined, ci)}
                       title={c.cellTitle?.(row, i)}
                       onClick={c.onCellClick ? (e) => { e.stopPropagation(); c.onCellClick!(row, i); } : undefined}>
                     {c.cell(row, i)}
@@ -444,8 +458,8 @@ export function DataTable<T>({
             )}
             {hasTotals && sortedRows.length > 0 && (
               <tr style={{ background: 'var(--bg-2)' }}>
-                {visible.map((c) => (
-                  <td key={c.key} style={cellStyle(c, { fontWeight: 700, color: c.group ? groupMeta.get(c.group)?.color : undefined })}>
+                {visible.map((c, ci) => (
+                  <td key={c.key} style={cellStyle(c, { fontWeight: 700, color: c.group ? groupMeta.get(c.group)?.color : undefined }, ci)}>
                     {c.total ? c.total(shownRows) : null}
                   </td>
                 ))}

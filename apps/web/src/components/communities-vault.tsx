@@ -245,9 +245,10 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
           // MỘT cột thay vì hai: "đăng nhiều" và "ăn nhiều" đọc rời nhau thì phải tự ghép trong đầu,
           // mà cái cần biết là ghép rồi — kiểu nào ĐANG ĂN, và nhóm có đăng kiểu đó nhiều không.
           // Xếp theo cảm xúc giảm dần → kiểu đáng đăng nhất nằm đầu. Đậm nhạt = mức ăn.
-          { group: 'do', key: 'hieuqua', header: 'Kiểu bài × hiệu quả', align: 'left', width: 320,
+          { group: 'do', key: 'hieuqua', header: 'Kiểu bài · % đăng · tương tác/bài', align: 'left', width: 330,
+            title: 'Mỗi chip: kiểu bài · % số bài nhóm đăng kiểu đó · tương tác trung vị mỗi bài (Facebook = cảm xúc, Reddit = upvote). Xếp theo tương tác giảm dần.',
             sortValue: (r) => fmtRows(r)[0]?.rx ?? null,
-            cellTitle: (r) => fmtRows(r).map((x) => `${fmtLabel(x.k)}: ${x.pct}% số bài · ${x.rx == null ? 'chưa đo được' : `${x.rx} cảm xúc`} (mẫu ${x.n})`).join('\n') || 'chưa khảo',
+            cellTitle: (r) => fmtRows(r).map((x) => `${fmtLabel(x.k)}: ${x.pct}% số bài · ${x.rx == null ? 'chưa đo được' : `${x.rx} tương tác/bài`} (mẫu ${x.n} bài)`).join('\n') || 'chưa khảo',
             cell: (r) => {
               const rows = fmtRows(r);
               if (!rows.length) return <span style={dim}>chưa khảo</span>;
@@ -262,7 +263,7 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
                         borderRadius: 4, border: `1px solid ${c}55`, background: `${c}14`, fontSize: 10.5, whiteSpace: 'nowrap' }}>
                         <FormatIcon kind={x.k} size={11} style={{ color: c }} />
                         <span style={{ color: 'var(--fg-3)' }}>{x.pct}%</span>
-                        <span style={{ color: c, fontWeight: 600 }}>{x.rx == null ? '—' : `${x.rx}rx`}</span>
+                        <span style={{ color: c, fontWeight: 600 }}>{x.rx == null ? '—' : x.rx}</span>
                       </span>);
                   })}
                 </span>);
@@ -273,12 +274,14 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
               : <span style={{ color: r.engPerMille >= 1 ? '#22c55e' : r.engPerMille >= 0.1 ? '#ffb03c' : '#ef4444' }}>{r.engPerMille.toFixed(2)}</span> },
           // Hai luồng riêng: bài MỚI đo "còn ai ngó không", bài TREND đo "trần của nhóm tới đâu".
           // Gộp một số là mất cả hai nghĩa.
-          { group: 'do', key: 'rxmoi', header: 'Cảm xúc · bài mới', width: 120, sortValue: (r) => r.newMedRx,
-            cellTitle: () => 'trung vị cảm xúc trên các bài MỚI NHẤT (feed theo thời gian)',
+          { group: 'do', key: 'rxmoi', header: 'Tương tác · bài mới', width: 126, sortValue: (r) => r.newMedRx,
+            title: 'Trung vị tương tác (Facebook = cảm xúc, Reddit = upvote) trên các bài MỚI NHẤT.',
+            cellTitle: () => 'trung vị tương tác trên các bài MỚI NHẤT (feed theo thời gian)',
             cell: (r) => (r.newMedRx == null ? <span style={dim}>—</span> : r.newMedRx) },
-          { group: 'do', key: 'rxtop', header: 'Cảm xúc · bài trend', width: 128, sortValue: (r) => r.trendMedRx,
+          { group: 'do', key: 'rxtop', header: 'Tương tác · bài trend', width: 134, sortValue: (r) => r.trendMedRx,
+            title: 'Trung vị tương tác trên các bài được feed đẩy lên đầu — trần của nhóm.',
             cellTitle: (r) => r.trendMedRx == null ? 'chưa đo được'
-              : `trung vị trên bài feed đẩy lên đầu · cao nhất trong mẫu ${r.trendMaxRx} · đo được ${r.measuredTrend}/${r.sampleTrend} bài`,
+              : `trung vị tương tác trên bài feed đẩy lên đầu · cao nhất trong mẫu ${r.trendMaxRx} · đo được ${r.measuredTrend}/${r.sampleTrend} bài`,
             cell: (r) => (r.trendMedRx == null ? <span style={dim}>—</span>
               : <span>{r.trendMedRx}{r.trendMaxRx != null && <span style={{ color: 'var(--fg-3)' }}> · đỉnh {r.trendMaxRx}</span>}</span>) },
           { group: 'do', key: 'khao', header: 'Khảo ngày', width: 94, sortValue: (r) => r.surveyedAt,

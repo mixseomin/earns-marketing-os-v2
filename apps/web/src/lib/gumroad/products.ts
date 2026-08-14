@@ -66,7 +66,7 @@ export interface GumroadSummary {
 const EMPTY: GumroadSummary = { ok: false, products: [], stores: [], totalSales: 0, totalUsd: 0, livePaid: 0, liveFree: 0, missingDiscover: 0 };
 
 /** Mọi token Gumroad đang có: vault trước (nguồn chuẩn), env sau (store cũ, chưa chuyển vào vault). */
-async function gumroadTokens(): Promise<{ token: string; source: 'vault' | 'env' }[]> {
+export async function gumroadTokens(): Promise<{ token: string; source: 'vault' | 'env' }[]> {
   const out: { token: string; source: 'vault' | 'env' }[] = [];
   const db = getDb();
   if (db && cryptoEnabled()) {

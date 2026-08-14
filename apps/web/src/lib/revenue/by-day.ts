@@ -10,6 +10,7 @@
 
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
+import { gumroadTokens } from '@/lib/gumroad/products';
 
 export type RevenueSource = 'adsense' | 'product' | 'gumroad';
 
@@ -101,21 +102,32 @@ async function productRows(since: string): Promise<Part> {
 }
 
 async function gumroadRows(since: string): Promise<Part> {
-  const token = process.env.GUMROAD_TOKEN;
-  if (!token) return { rows: [], error: 'gumroad: GUMROAD_TOKEN chưa cấu hình' };
-  const url = `https://api.gumroad.com/v2/sales?access_token=${encodeURIComponent(token)}&after=${since}`;
-  const res = await fetch(url, { next: { revalidate: 300 } });
-  if (!res.ok) return { rows: [], error: `gumroad: API ${res.status}` };
-  const j = (await res.json()) as {
-    success?: boolean;
-    sales?: Array<{ created_at?: string; product_name?: string; price?: number }>;
-  };
-  if (!j.success) return { rows: [], error: 'gumroad: API success=false' };
-  return {
-    rows: (j.sales ?? []).map((s) => ({
-      date: String(s.created_at ?? '').slice(0, 10), source: 'gumroad' as const,
-      channel: s.product_name || 'Gumroad',
-      amount: (Number(s.price) || 0) / 100,   // price = cents
-    })).filter((x) => x.date && x.amount > 0),
-  };
+  // Read tokens from the SAME source as the Gumroad products block (vault accounts + env), not env
+  // alone — the 2 real stores (militarycalc + codecrate) live in the vault, so env-only reported
+  // "GUMROAD_TOKEN chưa cấu hình" and dropped all Gumroad revenue from the calendar. One fetch per
+  // store, merged; a single store failing doesn't sink the rest.
+  const toks = await gumroadTokens();
+  if (!toks.length) return { rows: [], error: 'gumroad: chưa có token (thêm API token vào vault account platform_key=gumroad, hoặc đặt env GUMROAD_TOKEN)' };
+  const rows: RevenueDayRow[] = [];
+  const errs: string[] = [];
+  for (const { token } of toks) {
+    try {
+      const url = `https://api.gumroad.com/v2/sales?access_token=${encodeURIComponent(token)}&after=${since}`;
+      const res = await fetch(url, { next: { revalidate: 300 } });
+      if (!res.ok) { errs.push(`API ${res.status}`); continue; }
+      const j = (await res.json()) as {
+        success?: boolean;
+        sales?: Array<{ created_at?: string; product_name?: string; price?: number }>;
+      };
+      if (!j.success) { errs.push('API success=false'); continue; }
+      for (const s of j.sales ?? []) {
+        const date = String(s.created_at ?? '').slice(0, 10);
+        const amount = (Number(s.price) || 0) / 100;   // price = cents
+        if (date && amount > 0) rows.push({ date, source: 'gumroad', channel: s.product_name || 'Gumroad', amount });
+      }
+    } catch (e) {
+      errs.push((e as Error).message);
+    }
+  }
+  return { rows, error: errs.length ? `gumroad: ${errs.join('; ')}` : undefined };
 }

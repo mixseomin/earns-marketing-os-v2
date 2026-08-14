@@ -10,7 +10,7 @@
 import { useState, useMemo, useTransition, useEffect, useRef, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { HabitatFormModal } from './habitat-form-modal';
-import { ListToolbar, Pager, usePaged, MultiSelect, DataTable, AnchoredPopover, EntityRef, FormatIcon, type DataColumn, type DataGroup } from './ui';
+import { ListToolbar, Pager, usePaged, MultiSelect, DataTable, AnchoredPopover, EntityRef, FormatIcon, InfoHint, type DataColumn, type DataGroup } from './ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { getHabitatRowAction, listBriefsForHabitat } from '@/lib/actions/community-briefs';
 import type { HabitatRow, TribeRow, PlatformRow } from '@/lib/data';
@@ -44,6 +44,19 @@ const GROUPS: DataGroup[] = [
 // đối chiếu được "nhóm này ăn kiểu gì" với "mình đang xếp kiểu gì vào đây".
 const FMT = new Map(FORMATS.map((f) => [f.id, f]));
 const fmtLabel = formatLabel;   // nhãn chữ dùng chung (lib/content-channels); hình vẽ bằng <FormatIcon>
+// tt = viết tắt dùng khắp bảng. Viết tắt thì được, nhưng phải có chỗ tra ngay cạnh — nên mọi tiêu
+// đề cột dùng "tt" đều kèm dấu ⓘ giải nghĩa (InfoHint), không bắt ai đoán.
+const TT = (
+  <InfoHint label="tt là gì">
+    <b>tt = tương tác trung vị mỗi bài</b><br />
+    Facebook: số cảm xúc (like/love/care…). Reddit: upvote.<br />
+    Trung vị chứ không phải trung bình — một bài viral không kéo cả nhóm lên.
+  </InfoHint>
+);
+const ttHead = (label: string) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{label}{TT}</span>
+);
+
 // Gộp "tỉ lệ nhóm đăng" với "cảm xúc trung vị" về CÙNG một hàng cho mỗi kiểu bài, xếp theo mức ăn.
 // Kiểu chỉ có ở một trong hai nguồn vẫn hiện (đăng nhiều mà chưa đo được = thông tin, không phải 0).
 function fmtRows(r: { formatShare: Array<{ format: string; pct: number }>; formatFit: Array<{ format: string; n: number; medEng: number | null }> }) {
@@ -245,7 +258,7 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
           // MỘT cột thay vì hai: "đăng nhiều" và "ăn nhiều" đọc rời nhau thì phải tự ghép trong đầu,
           // mà cái cần biết là ghép rồi — kiểu nào ĐANG ĂN, và nhóm có đăng kiểu đó nhiều không.
           // Xếp theo cảm xúc giảm dần → kiểu đáng đăng nhất nằm đầu. Đậm nhạt = mức ăn.
-          { group: 'do', key: 'hieuqua', header: 'Kiểu bài · % đăng · tương tác/bài', align: 'left', width: 330,
+          { group: 'do', key: 'hieuqua', header: ttHead('Kiểu bài · % đăng · tt'), align: 'left', width: 330,
             title: 'Mỗi chip: kiểu bài · % số bài nhóm đăng kiểu đó · tương tác trung vị mỗi bài (Facebook = cảm xúc, Reddit = upvote). Xếp theo tương tác giảm dần.',
             sortValue: (r) => fmtRows(r)[0]?.rx ?? null,
             cellTitle: (r) => fmtRows(r).map((x) => `${fmtLabel(x.k)}: ${x.pct}% số bài · ${x.rx == null ? 'chưa đo được' : `${x.rx} tương tác/bài`} (mẫu ${x.n} bài)`).join('\n') || 'chưa khảo',
@@ -263,7 +276,7 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
                         borderRadius: 4, border: `1px solid ${c}55`, background: `${c}14`, fontSize: 10.5, whiteSpace: 'nowrap' }}>
                         <FormatIcon kind={x.k} size={11} style={{ color: c }} />
                         <span style={{ color: 'var(--fg-3)' }}>{x.pct}%</span>
-                        <span style={{ color: c, fontWeight: 600 }}>{x.rx == null ? '—' : x.rx}</span>
+                        <span style={{ color: c, fontWeight: 600 }}>{x.rx == null ? '—' : `${x.rx}tt`}</span>
                       </span>);
                   })}
                 </span>);
@@ -274,16 +287,16 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
               : <span style={{ color: r.engPerMille >= 1 ? '#22c55e' : r.engPerMille >= 0.1 ? '#ffb03c' : '#ef4444' }}>{r.engPerMille.toFixed(2)}</span> },
           // Hai luồng riêng: bài MỚI đo "còn ai ngó không", bài TREND đo "trần của nhóm tới đâu".
           // Gộp một số là mất cả hai nghĩa.
-          { group: 'do', key: 'rxmoi', header: 'Tương tác · bài mới', width: 126, sortValue: (r) => r.newMedRx,
+          { group: 'do', key: 'rxmoi', header: ttHead('tt · bài mới'), width: 118, sortValue: (r) => r.newMedRx,
             title: 'Trung vị tương tác (Facebook = cảm xúc, Reddit = upvote) trên các bài MỚI NHẤT.',
             cellTitle: () => 'trung vị tương tác trên các bài MỚI NHẤT (feed theo thời gian)',
             cell: (r) => (r.newMedRx == null ? <span style={dim}>—</span> : r.newMedRx) },
-          { group: 'do', key: 'rxtop', header: 'Tương tác · bài trend', width: 134, sortValue: (r) => r.trendMedRx,
+          { group: 'do', key: 'rxtop', header: ttHead('tt · bài trend'), width: 126, sortValue: (r) => r.trendMedRx,
             title: 'Trung vị tương tác trên các bài được feed đẩy lên đầu — trần của nhóm.',
             cellTitle: (r) => r.trendMedRx == null ? 'chưa đo được'
               : `trung vị tương tác trên bài feed đẩy lên đầu · cao nhất trong mẫu ${r.trendMaxRx} · đo được ${r.measuredTrend}/${r.sampleTrend} bài`,
             cell: (r) => (r.trendMedRx == null ? <span style={dim}>—</span>
-              : <span>{r.trendMedRx}{r.trendMaxRx != null && <span style={{ color: 'var(--fg-3)' }}> · đỉnh {r.trendMaxRx}</span>}</span>) },
+              : <span>{r.trendMedRx}{r.trendMaxRx != null && <span style={{ color: 'var(--fg-3)' }}> · đỉnh {r.trendMaxRx}tt</span>}</span>) },
           { group: 'do', key: 'khao', header: 'Khảo ngày', width: 94, sortValue: (r) => r.surveyedAt,
             cell: (r) => r.surveyedAt ?? <span style={dim}>chưa</span> },
           { group: 'rules', key: 'quansat', header: 'Quan sát thực địa', align: 'left', width: 330,

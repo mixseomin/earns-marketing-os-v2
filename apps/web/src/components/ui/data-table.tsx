@@ -284,9 +284,13 @@ export function DataTable<T>({
   const headStyle = (c: DataColumn<T>, i = 0): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
     return { ...baseHead, textAlign: c.headerAlign ?? c.align ?? 'right', width: c.width,
-      color: g?.color ?? 'var(--fg-3)', background: band(g?.color),
+      color: g?.color ?? 'var(--fg-3)',
+      // nền = lớp ĐỤC + lớp màu nhóm (trong suốt) chồng lên, để hàng cuộn qua không lộ xuyên
+      backgroundColor: 'var(--bg-2)',
+      backgroundImage: g?.color ? `linear-gradient(${band(g.color)}, ${band(g.color)})` : undefined,
       borderLeft: i ? '1px solid var(--line)' : undefined,
-      ...(stickyFirst && i === 0 ? { position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-2)', boxShadow: '1px 0 0 var(--line)' } : {}) };
+      position: 'sticky', top: 0, zIndex: stickyFirst && i === 0 ? 4 : 3,
+      ...(stickyFirst && i === 0 ? { left: 0, boxShadow: '1px 0 0 var(--line), 0 1px 0 var(--line)' } : { boxShadow: '0 1px 0 var(--line)' }) };
   };
 
   const pager = pageSize ? (

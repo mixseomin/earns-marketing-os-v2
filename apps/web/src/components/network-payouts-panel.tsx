@@ -29,11 +29,12 @@ export function NetworkPayoutsPanel({ networks, onNetwork }: { networks: Network
     },
     {
       // Cùng chip <EntityRef kind="account"> như bảng offer → click mở drawer account thật
-      // (identity + vault), không phải chữ chết. Handle lấy live từ offer, không gõ tay.
-      key: 'acct', align: 'left', header: 'Account', sortValue: (r) => r.stat?.account ?? r.account,
+      // (identity + vault), không phải chữ chết. Id + handle đều từ vault, không gõ tay: net chưa
+      // có offer nào (Impact, Rakuten) vẫn bấm được, vì account nằm ở vault chứ không nằm ở offer.
+      key: 'acct', align: 'left', header: 'Account', sortValue: (r) => r.stat?.account ?? null,
       cell: (r) => (r.stat?.mosAccountId
         ? <EntityRef kind="account" id={r.stat.mosAccountId} noIcon label={handleOf(r.stat.account) ?? r.key} />
-        : <span style={dim}>{r.account ?? '—'}</span>),
+        : <span style={dim} title="Chưa có account nào platform_key này trong vault">—</span>),
     },
     {
       key: 'offers', align: 'right', header: 'Offer', sortValue: (r) => r.stat?.total ?? null,
@@ -97,7 +98,7 @@ export function NetworkPayoutsPanel({ networks, onNetwork }: { networks: Network
       <DataTable rows={rows} columns={columns} getRowKey={(r) => r.key} persistKey="network-payouts" minWidth={900} />
       <p style={{ margin: '8px 2px 0', fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5 }}>
         <b>Đã kiếm</b> kéo từ API của chính network (Awin <code>/transactions</code> quét từng tháng,
-        CJ <code>publisherCommissions</code>, Impact report earnings) — kiểm 14/08/2026.
+        CJ <code>commission-detail v3</code>, Impact report earnings) — kiểm 14/08/2026.
         Dấu <b>?</b> = chưa xác minh vì vault không có API key, phải mở dashboard mới biết — đừng đọc thành 0.
       </p>
     </Collapsible>

@@ -246,9 +246,9 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
             cell: (r) => {
               const rows = fmtRows(r);
               if (!rows.length) return <span style={dim}>chưa khảo</span>;
+              // Một dòng, không xuống hàng: bảng dày mà ô cao 4 dòng thì cả bảng giãn ra. Kiểu thứ
+              // 4 trở đi nằm trong tooltip.
               return (
-                {/* Một dòng, không xuống hàng: bảng dày mà ô cao 4 dòng thì cả bảng giãn ra. Kiểu thứ 4
-                    trở đi nằm trong tooltip. */}
                 <span style={{ display: 'flex', gap: 5, flexWrap: 'nowrap' }}>
                   {rows.slice(0, 3).map((x) => {
                     const c = x.rx == null ? 'var(--fg-4)' : x.rx >= 20 ? '#22c55e' : x.rx >= 5 ? '#a3d977' : x.rx >= 1 ? '#ffb03c' : '#ef4444';

@@ -44,6 +44,15 @@ const GROUPS: DataGroup[] = [
 // đối chiếu được "nhóm này ăn kiểu gì" với "mình đang xếp kiểu gì vào đây".
 const FMT = new Map(FORMATS.map((f) => [f.id, f]));
 const fmtLabel = (id: string) => { const f = FMT.get(id); return f ? `${f.icon} ${f.label}` : id; };
+// Gộp "tỉ lệ nhóm đăng" với "cảm xúc trung vị" về CÙNG một hàng cho mỗi kiểu bài, xếp theo mức ăn.
+// Kiểu chỉ có ở một trong hai nguồn vẫn hiện (đăng nhiều mà chưa đo được = thông tin, không phải 0).
+function fmtRows(r: { formatShare: Array<{ format: string; pct: number }>; formatFit: Array<{ format: string; n: number; medEng: number | null }> }) {
+  const share = new Map(r.formatShare.map((f) => [f.format, f.pct]));
+  const fit = new Map(r.formatFit.map((f) => [f.format, f]));
+  return [...new Set([...share.keys(), ...fit.keys()])]
+    .map((k) => ({ k, pct: share.get(k) ?? 0, rx: fit.get(k)?.medEng ?? null, n: fit.get(k)?.n ?? 0 }))
+    .sort((a, b) => (b.rx ?? -1) - (a.rx ?? -1) || b.pct - a.pct);
+}
 
 export function CommunitiesVault({ projectId, rows, platforms, projects, tribes, gatedKeys }: {
   projectId?: string;
@@ -228,19 +237,28 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
               : r.newestAgeH < 1 ? '<1h' : r.newestAgeH < 48 ? `${r.newestAgeH}h` : `${Math.round(r.newestAgeH / 24)}d`) },
           { group: 'do', key: 'nhipngay', header: 'Bài/ngày', width: 86, sortValue: (r) => r.postsPerDay,
             cell: (r) => (r.postsPerDay == null ? <span style={dim}>—</span> : r.postsPerDay) },
-          { group: 'do', key: 'kieu', header: 'Nhóm đăng kiểu gì', align: 'left', width: 210,
-            sortValue: (r) => r.dominantFormat,
-            cellTitle: (r) => r.formatShare.map((f) => `${fmtLabel(f.format)} ${f.pct}%`).join(' · ') || 'chưa khảo',
-            cell: (r) => (!r.formatShare.length ? <span style={dim}>chưa khảo</span>
-              : <span>{r.formatShare.slice(0, 3).map((f) => `${fmtLabel(f.format)} ${f.pct}%`).join(' · ')}</span>) },
-          // Đăng NHIỀU nhất ≠ ĂN nhất. Cột này trả lời "bỏ kiểu gì vào đây thì có người xem".
-          { group: 'do', key: 'an', header: 'Kiểu ăn nhất', align: 'left', width: 200,
-            sortValue: (r) => r.bestFormat,
-            cellTitle: (r) => r.formatFit.map((f) => `${fmtLabel(f.format)}: ${f.medEng ?? '—'} cảm xúc (n=${f.n})`).join(' · ') || 'chưa đo',
+          // MỘT cột thay vì hai: "đăng nhiều" và "ăn nhiều" đọc rời nhau thì phải tự ghép trong đầu,
+          // mà cái cần biết là ghép rồi — kiểu nào ĐANG ĂN, và nhóm có đăng kiểu đó nhiều không.
+          // Xếp theo cảm xúc giảm dần → kiểu đáng đăng nhất nằm đầu. Đậm nhạt = mức ăn.
+          { group: 'do', key: 'hieuqua', header: 'Kiểu bài × hiệu quả', align: 'left', width: 320,
+            sortValue: (r) => fmtRows(r)[0]?.rx ?? null,
+            cellTitle: (r) => fmtRows(r).map((x) => `${fmtLabel(x.k)}: ${x.pct}% số bài · ${x.rx == null ? 'chưa đo được' : `${x.rx} cảm xúc`} (mẫu ${x.n})`).join('\n') || 'chưa khảo',
             cell: (r) => {
-              const best = r.formatFit.find((f) => f.format === r.bestFormat);
-              if (!best || best.medEng == null) return <span style={dim}>chưa đo</span>;
-              return <span>{fmtLabel(best.format)} <span style={{ color: 'var(--fg-3)' }}>{best.medEng} rx · n={best.n}</span></span>;
+              const rows = fmtRows(r);
+              if (!rows.length) return <span style={dim}>chưa khảo</span>;
+              return (
+                <span style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {rows.slice(0, 4).map((x) => {
+                    const c = x.rx == null ? 'var(--fg-4)' : x.rx >= 20 ? '#22c55e' : x.rx >= 5 ? '#a3d977' : x.rx >= 1 ? '#ffb03c' : '#ef4444';
+                    return (
+                      <span key={x.k} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 5px',
+                        borderRadius: 4, border: `1px solid ${c}55`, background: `${c}14`, fontSize: 10.5, whiteSpace: 'nowrap' }}>
+                        <span>{FMT.get(x.k)?.icon ?? '·'}</span>
+                        <span style={{ color: 'var(--fg-3)' }}>{x.pct}%</span>
+                        <span style={{ color: c, fontWeight: 600 }}>{x.rx == null ? '—' : `${x.rx}rx`}</span>
+                      </span>);
+                  })}
+                </span>);
             } },
           { group: 'do', key: 'eng', header: 'Tương tác/1K TV', width: 116, sortValue: (r) => r.engPerMille,
             cellTitle: (r) => r.engPerMille == null ? 'chưa khảo' : `(cảm xúc + bình luận) trung vị trên 1.000 thành viên · mẫu ${r.sampleSize} bài, khảo ${r.surveyedAt}`,

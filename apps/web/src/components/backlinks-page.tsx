@@ -3629,19 +3629,24 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
 // Lịch đọc theo NGÀY trả lời "hôm nay đăng gì". Câu hỏi còn lại là "mỗi nhóm đang có kế hoạch ra
 // sao" — nhóm nào đang bị dồn, nhóm nào bỏ trống, bài kế tiếp vào lúc nào. Trước phải tự lọc từng
 // nơi đăng rồi đếm bằng mắt. Bấm một dòng = lọc lịch về đúng nhóm đó.
+const fmtName = (id: string) => { const f = FORMATS.find((x) => x.id === id); return f ? `${f.icon} ${f.label}` : id; };
+
 function CommunityPlan({ pieces, projectId, current, onPick }: {
   pieces: CalPiece[]; projectId: string; current: string; onPick: (place: string) => void;
 }) {
   const [meta, setMeta] = useState<Record<string, { name: string; members: number; rules: boolean;
-    dominantFormat: string | null; formatShare: Array<{ format: string; pct: number }>; newestAgeH: number | null }>>({});
+    dominantFormat: string | null; bestFormat: string | null; formatShare: Array<{ format: string; pct: number }>;
+    formatFit: Array<{ format: string; n: number; medEng: number | null }>; newestAgeH: number | null }>>({});
   useEffect(() => {
     let live = true;
     import('@/lib/actions/communities').then((m) => m.listCommunities(projectId)).then((rows) => {
       if (!live) return;
       const map: Record<string, { name: string; members: number; rules: boolean;
-        dominantFormat: string | null; formatShare: Array<{ format: string; pct: number }>; newestAgeH: number | null }> = {};
+        dominantFormat: string | null; bestFormat: string | null; formatShare: Array<{ format: string; pct: number }>;
+        formatFit: Array<{ format: string; n: number; medEng: number | null }>; newestAgeH: number | null }> = {};
       for (const r of rows) if (r.url) map[r.url] = { name: r.name, members: r.members, rules: !!r.postingRules.trim(),
-        dominantFormat: r.dominantFormat, formatShare: r.formatShare, newestAgeH: r.newestAgeH };
+        dominantFormat: r.dominantFormat, bestFormat: r.bestFormat, formatShare: r.formatShare,
+        formatFit: r.formatFit, newestAgeH: r.newestAgeH };
       setMeta(map);
     }).catch(() => { /* không có cũng không sao — nhãn rơi về URL */ });
     return () => { live = false; };
@@ -3678,6 +3683,10 @@ function CommunityPlan({ pieces, projectId, current, onPick }: {
         })(),
         nhomDang: meta[place]?.formatShare ?? [],
         nhomChuYeu: meta[place]?.dominantFormat ?? null,
+        // Kiểu ĂN nhất (trung vị cảm xúc cao nhất), không phải kiểu người ta đăng nhiều nhất — đăng
+        // cho có thì kiểu nào cũng "khớp"; cái quyết định có người xem là kiểu đang ăn.
+        nhomAn: meta[place]?.bestFormat ?? null,
+        anRx: meta[place]?.formatFit?.find((f) => f.format === meta[place]?.bestFormat)?.medEng ?? null,
         nhap: ps.filter((p) => p.status === 'draft').length,
       };
     }).sort((a, b) => b.tong - a.tong);
@@ -3710,20 +3719,18 @@ function CommunityPlan({ pieces, projectId, current, onPick }: {
               ? <span style={{ color: 'var(--fg-4)' }} title="chưa đủ bài/quãng để nói được nhịp">—</span>
               : <span style={{ color: r.moiTuan > 7 ? 'var(--bad)' : r.moiTuan > 3.5 ? 'var(--warn)' : 'var(--fg-2)' }}>{r.moiTuan}</span>) },
           // Đây là chỗ số đo gặp kế hoạch: nhóm đang đăng kiểu gì vs mình định đăng kiểu gì.
-          { key: 'khop', header: 'Khớp kiểu bài', align: 'left', width: 210,
-            sortValue: (r: Row) => (!r.nhomChuYeu ? null : r.cuaMinh[0]?.f === r.nhomChuYeu ? 1 : 0),
-            cellTitle: (r: Row) => !r.nhomChuYeu ? 'nhóm này chưa khảo — chưa biết người ta đăng kiểu gì'
-              : `nhóm: ${r.nhomDang.map((x) => `${x.format} ${x.pct}%`).join(' · ')} · mình: ${r.cuaMinh.map((x) => `${x.f} ${x.n}`).join(' · ')}`,
+          { key: 'khop', header: 'Khớp kiểu ăn', align: 'left', width: 250,
+            sortValue: (r: Row) => (!r.nhomAn ? null : r.cuaMinh.filter((x) => x.f !== r.nhomAn).reduce((s, x) => s + x.n, 0)),
+            cellTitle: (r: Row) => !r.nhomAn ? 'nhóm này chưa đo được kiểu nào ăn'
+              : `nhóm ăn ${fmtName(r.nhomAn)} (${r.anRx ?? '—'} cảm xúc trung vị) · nhóm đăng: ${r.nhomDang.map((x) => `${fmtName(x.format)} ${x.pct}%`).join(' · ')} · mình xếp: ${r.cuaMinh.map((x) => `${fmtName(x.f)} ${x.n}`).join(' · ')}`,
             cell: (r: Row) => {
-              if (!r.nhomChuYeu) return <span style={{ color: 'var(--fg-4)' }}>chưa khảo</span>;
-              const cua = r.cuaMinh[0]?.f ?? '—';
-              const khop = cua === r.nhomChuYeu;
+              if (!r.nhomAn) return <span style={{ color: 'var(--fg-4)' }}>chưa đo</span>;
+              const lech = r.cuaMinh.filter((x) => x.f !== r.nhomAn).reduce((s, x) => s + x.n, 0);
               return (
                 <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <span style={{ color: khop ? 'var(--ok)' : 'var(--warn)' }}>{khop ? '✓' : '≠'}</span>
-                  <span style={{ color: 'var(--fg-3)' }}>nhóm {r.nhomChuYeu}</span>
-                  <span style={{ color: 'var(--fg-4)' }}>/</span>
-                  <span style={{ color: khop ? 'var(--fg-2)' : 'var(--warn)' }}>mình {cua}</span>
+                  <span style={{ color: lech ? 'var(--warn)' : 'var(--ok)' }}>{lech ? '≠' : '✓'}</span>
+                  <span style={{ color: 'var(--fg-3)' }}>ăn {fmtName(r.nhomAn)}{r.anRx != null && ` ${r.anRx}rx`}</span>
+                  {lech > 0 && <span style={{ color: 'var(--warn)' }}>· {lech} bài lệch</span>}
                 </span>);
             } },
           { key: 'toi', header: 'Bài kế', width: 96, sortValue: (r: Row) => r.toi,

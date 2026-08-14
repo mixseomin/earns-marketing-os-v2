@@ -15,6 +15,7 @@ import { useModalParam } from '@/lib/use-modal-param';
 import { getHabitatRowAction, listBriefsForHabitat } from '@/lib/actions/community-briefs';
 import type { HabitatRow, TribeRow, PlatformRow } from '@/lib/data';
 import type { CommunityRow } from '@/lib/actions/communities';
+import { FORMATS } from '@/lib/content-channels';
 import { PHASES, PHASE_COLOR, PHASE_LABEL, type Phase } from '@/lib/phase-plan';
 import { JOIN_STATUS_LABEL, JOIN_STATUS_COLOR, JOIN_STATUS_ICON, type JoinStatus } from '@/lib/join-status';
 
@@ -38,6 +39,11 @@ const GROUPS: DataGroup[] = [
   { key: 'fit', label: 'Độ hợp', color: '#38bdf8', defaultOn: false },
   { key: 'meta', label: 'Quản trị', color: '#a78bfa', defaultOn: false },
 ];
+
+// Kiểu bài của cộng đồng nói CÙNG một ngôn ngữ với tag format: của bài mình sắp đăng — có thế mới
+// đối chiếu được "nhóm này ăn kiểu gì" với "mình đang xếp kiểu gì vào đây".
+const FMT = new Map(FORMATS.map((f) => [f.id, f]));
+const fmtLabel = (id: string) => { const f = FMT.get(id); return f ? `${f.icon} ${f.label}` : id; };
 
 export function CommunitiesVault({ projectId, rows, platforms, projects, tribes, gatedKeys }: {
   projectId?: string;
@@ -222,11 +228,20 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
               : r.newestAgeH < 1 ? '<1h' : r.newestAgeH < 48 ? `${r.newestAgeH}h` : `${Math.round(r.newestAgeH / 24)}d`) },
           { group: 'do', key: 'nhipngay', header: 'Bài/ngày', width: 86, sortValue: (r) => r.postsPerDay,
             cell: (r) => (r.postsPerDay == null ? <span style={dim}>—</span> : r.postsPerDay) },
-          { group: 'do', key: 'kieu', header: 'Nhóm đăng kiểu gì', align: 'left', width: 190,
+          { group: 'do', key: 'kieu', header: 'Nhóm đăng kiểu gì', align: 'left', width: 210,
             sortValue: (r) => r.dominantFormat,
-            cellTitle: (r) => r.formatShare.map((f) => `${f.format} ${f.pct}%`).join(' · ') || 'chưa khảo',
+            cellTitle: (r) => r.formatShare.map((f) => `${fmtLabel(f.format)} ${f.pct}%`).join(' · ') || 'chưa khảo',
             cell: (r) => (!r.formatShare.length ? <span style={dim}>chưa khảo</span>
-              : <span>{r.formatShare.slice(0, 3).map((f) => `${f.format} ${f.pct}%`).join(' · ')}</span>) },
+              : <span>{r.formatShare.slice(0, 3).map((f) => `${fmtLabel(f.format)} ${f.pct}%`).join(' · ')}</span>) },
+          // Đăng NHIỀU nhất ≠ ĂN nhất. Cột này trả lời "bỏ kiểu gì vào đây thì có người xem".
+          { group: 'do', key: 'an', header: 'Kiểu ăn nhất', align: 'left', width: 200,
+            sortValue: (r) => r.bestFormat,
+            cellTitle: (r) => r.formatFit.map((f) => `${fmtLabel(f.format)}: ${f.medEng ?? '—'} cảm xúc (n=${f.n})`).join(' · ') || 'chưa đo',
+            cell: (r) => {
+              const best = r.formatFit.find((f) => f.format === r.bestFormat);
+              if (!best || best.medEng == null) return <span style={dim}>chưa đo</span>;
+              return <span>{fmtLabel(best.format)} <span style={{ color: 'var(--fg-3)' }}>{best.medEng} rx · n={best.n}</span></span>;
+            } },
           { group: 'do', key: 'eng', header: 'Tương tác/1K TV', width: 116, sortValue: (r) => r.engPerMille,
             cellTitle: (r) => r.engPerMille == null ? 'chưa khảo' : `(cảm xúc + bình luận) trung vị trên 1.000 thành viên · mẫu ${r.sampleSize} bài, khảo ${r.surveyedAt}`,
             cell: (r) => r.engPerMille == null ? <span style={dim}>chưa khảo</span>

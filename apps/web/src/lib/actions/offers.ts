@@ -418,7 +418,17 @@ export interface OffersView {
   facets: { accounts: OfferFacet[]; verticals: OfferFacet[]; geos: OfferFacet[] };
   // Per-network roll-up for the payments panel: how much inventory each network actually gives us,
   // next to what that network pays out (terms live in lib/affiliate-networks.ts).
-  networks: Array<{ key: string; total: number; approved: number; runnable: number }>;
+  networks: NetworkStat[];
+}
+
+export interface NetworkStat {
+  key: string;
+  total: number; approved: number; runnable: number;
+  // The MOS2 account entity behind this network, taken from its offers — so the payments panel
+  // can render the SAME <EntityRef kind="account"> chip the offers table uses instead of a
+  // hand-typed handle that drifts from the vault.
+  mosAccountId: number | null;
+  account: string | null;
 }
 
 // NB: this module is 'use server' → only async functions may be EXPORTED (types are erased,
@@ -541,16 +551,18 @@ export async function getOffersView(f: OfferFilters): Promise<OffersView> {
   };
 }
 
-function networkStatsOf(all: AffiliateOffer[]) {
-  const m = new Map<string, { key: string; total: number; approved: number; runnable: number }>();
+function networkStatsOf(all: AffiliateOffer[]): NetworkStat[] {
+  const m = new Map<string, NetworkStat>();
   for (const o of all) {
     // Same rule the table uses: explicit network wins, else the sync that produced the row.
     const key = o.network ?? (o.kind === 'awin' ? 'awin' : o.kind === 'cj' ? 'cj' : null);
     if (!key) continue;
-    const s = m.get(key) ?? { key, total: 0, approved: 0, runnable: 0 };
+    const s = m.get(key) ?? { key, total: 0, approved: 0, runnable: 0, mosAccountId: null, account: null };
     s.total++;
     if (APPROVED.has(o.status.toLowerCase())) s.approved++;
     if (o.paidTraffic !== 'ban') s.runnable++;
+    s.mosAccountId ??= o.mosAccountId;
+    s.account ??= o.account;
     m.set(key, s);
   }
   return [...m.values()].sort((a, b) => b.total - a.total);

@@ -52,6 +52,10 @@ export interface CommunityRow {
   // với tag format: của bài mình xếp vào nhóm đó.
   dominantFormat: string | null;
   formatShare: Array<{ format: string; pct: number }>;
+  // Kiểu nào ĐANG ĂN ở nhóm này (trung vị cảm xúc theo từng kiểu) — đây mới là câu trả lời cho
+  // "đăng gì vào đây thì có người xem", khác với dominantFormat (kiểu người ta đăng NHIỀU nhất).
+  formatFit: Array<{ format: string; n: number; medEng: number | null }>;
+  bestFormat: string | null;
   activity: string;
   language: string;
   bestPostTimes: string;
@@ -162,6 +166,8 @@ export async function listCommunities(projectId?: string): Promise<CommunityRow[
           engPerMille: num('engPerMille'), sampleSize: num('sampleSize'),
           newestAgeH: num('newestAgeH'), postsPerDay: num('postsPerDay'),
           dominantFormat: m.dominantFormat ? String(m.dominantFormat) : null,
+          bestFormat: m.bestFormat ? String(m.bestFormat) : null,
+          formatFit: Array.isArray(m.formatFit) ? (m.formatFit as Array<{ format: string; n: number; medEng: number | null }>) : [],
           formatShare: Array.isArray(m.formatShare) ? (m.formatShare as Array<{ format: string; pct: number }>) : [] };
       })(),
       bestPostTimes: String(h.best_post_times),

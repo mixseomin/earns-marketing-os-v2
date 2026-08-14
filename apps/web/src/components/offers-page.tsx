@@ -306,7 +306,7 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
 
       {/* Tầng network đứng TRÊN tầng offer: trả bao nhiêu, ngưỡng rút, bao lâu có tiền.
           Mặc định đóng — mở khi cần đối chiếu, không chiếm chỗ của bảng offer. */}
-      <NetworkPayoutsPanel networks={view.networks} />
+      <NetworkPayoutsPanel networks={view.networks} onNetwork={(k) => qv.open('net', k)} />
 
       <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tên / account / rule / tag…">
         <FilterChips value={filters.kind} onChange={setOne('kind')} counts={counts}

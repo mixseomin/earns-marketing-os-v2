@@ -16,7 +16,10 @@ export type TermSource = 'api' | 'docs' | null;
 export interface NetworkPayout {
   key: string;                    // matches affiliate_programs.network (and NETWORK_BY_ACCOUNT for cj/awin)
   label: string;
-  account: string | null;         // the login this position belongs to
+  // FALLBACK label only. The panel prefers the live MOS2 account entity taken from that network's
+  // offers (so the cell is a real <EntityRef> chip that opens the account drawer); this string is
+  // used solely for networks that hold no offers yet, e.g. Rakuten and Impact.
+  account: string | null;
   thresholdUsd: number | null;    // minimum balance before the network will pay out
   thresholdNote: string | null;   // when one number doesn't tell it (CJ pays $50 by deposit, $100 by cheque)
   schedule: string | null;        // when money actually leaves their side

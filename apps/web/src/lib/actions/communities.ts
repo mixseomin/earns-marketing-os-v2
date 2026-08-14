@@ -28,6 +28,8 @@ export interface CommunityRow {
   // Luật + độ khó của cộng đồng — thứ quyết định đăng được cái gì, trước giờ nằm trong DB mà bảng
   // không dựng ra nên mỗi lần phải mở editor từng dòng mới đọc được.
   modStrictness: string;
+  voiceNotes: string;                 // QUAN SÁT thật: nhóm đang đăng gì, dạng nào ăn, tương tác ra sao
+  visualStyle: string;
   activity: string;
   language: string;
   bestPostTimes: string;
@@ -67,6 +69,7 @@ export async function listCommunities(projectId?: string): Promise<CommunityRow[
            coalesce(h.posting_rules,'') AS posting_rules, coalesce(h.posting_rules_url,'') AS posting_rules_url,
            coalesce(h.description,'') AS description,
            coalesce(h.mod_strictness,'') AS mod_strictness, coalesce(h.activity,'') AS activity,
+           coalesce(h.voice_notes,'') AS voice_notes, coalesce(h.visual_style_descriptor,'') AS visual_style,
            coalesce(h.language,'') AS language, coalesce(h.best_post_times,'') AS best_post_times,
            coalesce(h.dominant_topics,'[]'::jsonb) AS dominant_topics,
            coalesce(h.forbidden_topics,'[]'::jsonb) AS forbidden_topics,
@@ -124,6 +127,7 @@ export async function listCommunities(projectId?: string): Promise<CommunityRow[
       linksAllowedAfter: String(h.links_allowed_after), postingRules: String(h.posting_rules),
       postingRulesUrl: String(h.posting_rules_url), description: String(h.description),
       modStrictness: String(h.mod_strictness), activity: String(h.activity), language: String(h.language),
+      voiceNotes: String(h.voice_notes), visualStyle: String(h.visual_style),
       bestPostTimes: String(h.best_post_times),
       dominantTopics: Array.isArray(h.dominant_topics) ? (h.dominant_topics as string[]).map(String) : [],
       forbiddenTopics: Array.isArray(h.forbidden_topics) ? (h.forbidden_topics as string[]).map(String) : [],

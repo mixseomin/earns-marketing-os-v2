@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties } from 'react';
-import { useTableSort } from './use-table-sort';
+import { useTableSort, type SortSpec, type ThSort } from './use-table-sort';
 import { AnchoredPopover } from './anchored-popover';
 import { COL_FILTER_OPS, isNullaryOp, matchColFilter } from './col-filter';
 import { usePaged, Pager } from './list-view';
@@ -98,6 +98,14 @@ interface DataTableProps<T> {
    * Dùng khi tập dữ liệu quá lớn để đẩy hết xuống trình duyệt; còn lại thì đưa ĐỦ dòng + `pageSize`.
    */
   sliced?: boolean;
+  /**
+   * `sliced` một mình = tắt sort/tìm, vì bảng chỉ cầm 1 trang. Nhưng người dùng vẫn mong bấm được
+   * tiêu đề cột như mọi bảng khác (đúng phản hồi 14/08 ở /offers). Đưa 2 cái này vào thì bảng
+   * server-paged sort/tìm ĐÚNG CHUẨN — chỉ khác là việc sắp/lọc chạy ở SERVER trên toàn tập, rồi
+   * trả về đúng một trang. Bảng vẫn vẽ mũi tên, ô tìm, nút ↕ y hệt bảng thường.
+   * Không truyền = giữ nguyên hành vi cũ (tắt hẳn), nên bảng sliced khác không đổi gì.
+   */
+  serverSort?: { spec: SortSpec[]; onChange: (next: SortSpec[]) => void };
 }
 
 const baseCell: CSSProperties = { padding: '3px 5px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
@@ -110,6 +118,7 @@ const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 export function DataTable<T>({
   rows, columns, getRowKey, groups, persistKey, onRowClick, minWidth = 640, rowTitle,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced,
+  serverSort,
 }: DataTableProps<T>) {
   const pref = useTablePref(persistKey);   // server đọc cookie sẵn → khởi tạo ĐÚNG ngay lần render đầu
   const [q, setQ] = useState('');
@@ -224,6 +233,29 @@ export function DataTable<T>({
 
   // Sort — shared multi-column engine (plain click = 1 cột ↑/↓/tắt · Shift+click = thêm cột phụ;
   // persist theo persistKey). Một implementation duy nhất cho mọi bảng — xem useTableSort / SortArrow.
+  // Server-side sort: dựng ĐÚNG hình dạng ThSort mà useTableSort trả về, nhưng đọc/ghi qua caller
+  // (thường là URL ?sort=key.dir). Nhờ vậy phần vẽ header không phải biết bảng đang sort ở đâu —
+  // cùng một mũi tên, cùng một vòng ↑ → ↓ → tắt, cùng Shift+bấm để thêm cột phụ.
+  const srvTh = (key: string): ThSort => {
+    const spec = serverSort!.spec;
+    const idx = spec.findIndex((x) => x.key === key);
+    const cur = idx >= 0 ? spec[idx]!.dir : undefined;
+    const next = cur === undefined ? 'asc' : cur === 'asc' ? 'desc' : null;
+    return {
+      idx, dir: idx >= 0 ? spec[idx]!.dir : null, count: spec.length,
+      onClick: (e) => {
+        if (e.shiftKey) {
+          const rest = spec.filter((x) => x.key !== key);
+          serverSort!.onChange(next ? [...rest, { key, dir: next }] : rest);
+        } else {
+          const solo = spec.length === 1 && spec[0]!.key === key;
+          const d = solo ? next : 'asc';
+          serverSort!.onChange(d ? [{ key, dir: d }] : []);
+        }
+      },
+    };
+  };
+
   const { sorted: sortedRows, thProps } = useTableSort(shownRows, columns, sliced ? undefined : persistKey);
   // Cắt trang sau cùng: lọc → sắp xếp → cắt. Đổi bộ lọc thì về trang 1, không thì đứng ở trang 5 của
   // tập cũ rồi thấy rỗng.
@@ -348,8 +380,9 @@ export function DataTable<T>({
           <thead>
             <tr>
               {visible.map((c) => {
-                const sortable = !!c.sortValue && !sliced;      // sortValue = giá trị logic của cột → cũng là cái để LỌC
-                const ts = sortable ? thProps(c.key) : null;
+                // sliced + serverSort = vẫn sắp xếp được, chỉ là việc sắp chạy ở server trên TOÀN tập.
+                const sortable = !!c.sortValue && (!sliced || !!serverSort);
+                const ts = !sortable ? null : (serverSort ? srvTh(c.key) : thProps(c.key));
                 const dir = ts && ts.idx >= 0 ? ts.dir : null;   // CHỈ in mũi tên khi đang asc/desc; tắt = không in gì (yêu cầu)
                 const cf = filters[c.key];
                 const filtering = !!cf && (isNullaryOp(cf.op) || cf.val.trim() !== '');

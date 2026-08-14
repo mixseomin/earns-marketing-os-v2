@@ -496,6 +496,48 @@ function facetsOf(offers: AffiliateOffer[]): OffersView['facets'] {
   };
 }
 
+// Column-header sort for a table whose rows are cut by the SERVER. The browser only holds one
+// page, so sorting there would only reorder those 50 rows — the comparison has to happen here,
+// over all ~6.3k. `sort` arrives as the same `key.dir[,key.dir]` string ui/use-table-sort writes,
+// so the header, the URL and this map all speak one language.
+const OFFER_SORT: Record<string, (o: AffiliateOffer) => string | number | null> = {
+  name: (o) => o.name, brand: (o) => o.brand, network: (o) => o.network, account: (o) => o.account,
+  status: (o) => o.status, vertical: (o) => o.vertical, type: (o) => o.productType,
+  commission: (o) => o.commission, model: (o) => o.model, recurring: (o) => o.recurring,
+  cookie: (o) => o.cookie, currency: (o) => o.currency,
+  epc: (o) => (o.epc ? parseFloat(o.epc.replace(/[^\d.]/g, '')) : null),
+  cvr: (o) => (o.cvr ? parseFloat(o.cvr.replace(/[^\d.]/g, '')) : null),
+  payout: (o) => o.payoutUsd, net: (o) => o.netPayoutUsd, approval: (o) => o.approvalPct,
+  cash: (o) => o.cashDays, aov: (o) => o.aovUsd,
+  ppc: (o) => o.paidTraffic, track: (o) => o.trackingCaps.join(','),
+  rules: (o) => [o.policy, o.reward].filter(Boolean).join(' · ') || null,
+  geo: (o) => o.geos.join(','), tier: (o) => o.sourceTier,
+  created: (o) => o.createdAt, approved: (o) => o.approvedAt,
+};
+
+function columnSort(spec: string): ((a: AffiliateOffer, b: AffiliateOffer) => number) | null {
+  const parts = spec.split(',').map((p) => {
+    const i = p.lastIndexOf('.');
+    return { key: p.slice(0, i), dir: p.slice(i + 1) };
+  }).filter((p) => (p.dir === 'asc' || p.dir === 'desc') && OFFER_SORT[p.key]);
+  if (!parts.length) return null;
+  return (a, b) => {
+    for (const { key, dir } of parts) {
+      const get = OFFER_SORT[key]!;
+      const x = get(a), y = get(b);
+      // Nulls last in BOTH directions — an offer missing the number is not the smallest one.
+      if (x == null && y == null) continue;
+      if (x == null) return 1;
+      if (y == null) return -1;
+      const c = typeof x === 'number' && typeof y === 'number'
+        ? x - y
+        : String(x).localeCompare(String(y), undefined, { numeric: true });
+      if (c) return dir === 'asc' ? c : -c;
+    }
+    return 0;
+  };
+}
+
 export async function getOffersView(f: OfferFilters): Promise<OffersView> {
   const all = await listAffiliateOffers();
   const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
@@ -512,9 +554,10 @@ export async function getOffersView(f: OfferFilters): Promise<OffersView> {
     net: (a, b) => numDesc(a.netPayoutUsd, b.netPayoutUsd) || numDesc(a.payoutUsd, b.payoutUsd),
     cash: (a, b) => numAsc(a.cashDays, b.cashDays) || numDesc(a.netPayoutUsd, b.netPayoutUsd),
   };
-  const hit = all.filter((o) => matches(o, f)).sort(bySort[f.sort]
-    ?? ((a, b) => (APPROVED.has(a.status.toLowerCase()) ? 0 : 1) - (APPROVED.has(b.status.toLowerCase()) ? 0 : 1)
-      || a.name.localeCompare(b.name)));
+  const hit = all.filter((o) => matches(o, f))
+    .sort(columnSort(f.sort) ?? bySort[f.sort]
+      ?? ((a, b) => (APPROVED.has(a.status.toLowerCase()) ? 0 : 1) - (APPROVED.has(b.status.toLowerCase()) ? 0 : 1)
+        || a.name.localeCompare(b.name)));
   const pageCount = Math.max(1, Math.ceil(hit.length / OFFERS_PAGE_SIZE));
   const page = Math.min(Math.max(0, f.page), pageCount - 1);
   return {

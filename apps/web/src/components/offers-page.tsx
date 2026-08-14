@@ -82,6 +82,13 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
   };
   const setOne = (k: string) => (v: string) => go((p) => { if (v && v !== 'all') p.set(k, v); else p.delete(k); });
   const setMulti = (k: string) => (v: string[]) => go((p) => { if (v.length) p.set(k, v.join(',')); else p.delete(k); });
+  // ?sort=key.dir,key.dir ⇄ mũi tên trên header. Cùng mã hoá với ui/use-table-sort nên link chia sẻ
+  // và bảng client đọc được của nhau; 'new'/'approved' (sort đặt tên cũ) không khớp dạng này → bỏ qua.
+  const sortSpec = filters.sort.split(',').map((p) => {
+    const i = p.lastIndexOf('.');
+    return { key: p.slice(0, i), dir: p.slice(i + 1) as 'asc' | 'desc' };
+  }).filter((x) => x.key && (x.dir === 'asc' || x.dir === 'desc'));
+
   const active = Boolean(filters.q || filters.accounts.length || filters.verticals.length || filters.geos.length
     || [filters.kind, filters.status, filters.gap, filters.recurring, filters.paid, filters.cash].some((v) => v && v !== 'all'));
 
@@ -383,7 +390,10 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
             description={filters.q ? `Không thấy gì cho "${filters.q}" với bộ lọc hiện tại.` : 'Đổi filter hoặc chờ sync CJ/Awin.'} />
         ) : (
           <DataTable rows={rows} columns={columns} groups={GROUPS} persistKey="offer_cols" sliced
-            getRowKey={(o) => o.id} onRowClick={(o) => modal.open('offer', o.id)} minWidth={900} />
+            getRowKey={(o) => o.id} onRowClick={(o) => modal.open('offer', o.id)} minWidth={900}
+            /* Bảng chỉ cầm 1 trang do server cắt → sort/tìm phải chạy ở SERVER trên toàn bộ 6.3k
+               dòng, nếu không thì chỉ sắp lại 50 dòng đang nhìn. Header vẫn bấm được như mọi bảng. */
+            serverSort={{ spec: sortSpec, onChange: (s) => setOne('sort')(s.map((x) => `${x.key}.${x.dir}`).join(',')) }} />
         )}
       </div>
       <Pager page={view.page} pageCount={view.pageCount} total={view.matched} pageSize={view.pageSize}

@@ -155,6 +155,7 @@ export function DataTable<T>({
   }, [filterKey, urlFilterKey]);
   // Bản đồ lọc HIỆU LỰC: `serverFilter` (bảng server-paged) thì caller cầm state (URL), ngược lại state cục bộ.
   const colFilters = serverFilter ? serverFilter.filters : filters;
+  const anyColFilter = Object.values(colFilters).some((f) => f && (isNullaryOp(f.op) || f.val.trim() !== ''));
   const setColFilter = (key: string, f: { op: string; val: string } | null) => {
     if (serverFilter) {   // server-paged: chỉ báo caller (nó ghi URL + re-query), KHÔNG đụng cookie/localStorage cục bộ
       const next = { ...serverFilter.filters }; if (f) next[key] = f; else delete next[key];
@@ -405,7 +406,7 @@ export function DataTable<T>({
           ))}
           {!sortedRows.length && (
             <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: 'var(--fg-3)', fontSize: 12, padding: '20px 5px', fontFamily: 'var(--font-mono)' }}>
-              {q.trim() ? `Không dòng nào khớp "${q.trim()}".` : 'Không có dữ liệu.'}
+              {q.trim() ? `Không dòng nào khớp "${q.trim()}".` : anyColFilter ? 'Không dòng nào khớp bộ lọc cột — sửa/xoá ở nút 🔍 trên tiêu đề cột.' : 'Không có dữ liệu.'}
             </div>
           )}
         </div>
@@ -473,7 +474,7 @@ export function DataTable<T>({
             ))}
             {!sortedRows.length && (
               <tr><td colSpan={visible.length} style={{ ...baseCell, textAlign: 'center', color: 'var(--fg-3)', whiteSpace: 'normal', padding: '10px 5px' }}>
-                {q.trim() ? `Không dòng nào khớp "${q.trim()}".` : 'Không có dữ liệu.'}
+                {q.trim() ? `Không dòng nào khớp "${q.trim()}".` : anyColFilter ? 'Không dòng nào khớp bộ lọc cột — sửa/xoá ở nút 🔍 trên tiêu đề cột.' : 'Không có dữ liệu.'}
               </td></tr>
             )}
             {hasTotals && sortedRows.length > 0 && (

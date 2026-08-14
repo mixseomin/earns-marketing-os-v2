@@ -8,7 +8,7 @@ import {
 } from '@/lib/actions/offers';
 import { useModalParam } from '@/lib/use-modal-param';
 import {
-  EmptyState, Drawer, ListToolbar, FilterChips, Pager, MultiSelect, EntityRef, StatusBadge, Pill,
+  Drawer, ListToolbar, FilterChips, Pager, MultiSelect, EntityRef, StatusBadge, Pill,
   SearchInput,
   DataTable, TextField, TextAreaField, SelectField, type DataColumn, type DataGroup,
 } from './ui';
@@ -385,17 +385,14 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
       </ListToolbar>
 
       <div style={{ opacity: nav ? 0.55 : 1, transition: 'opacity .12s' }}>
-        {rows.length === 0 ? (
-          <EmptyState icon="🔍" title="Không có offer khớp"
-            description={filters.q ? `Không thấy gì cho "${filters.q}" với bộ lọc hiện tại.` : 'Đổi filter hoặc chờ sync CJ/Awin.'} />
-        ) : (
-          <DataTable rows={rows} columns={columns} groups={GROUPS} persistKey="offer_cols" sliced
-            getRowKey={(o) => o.id} onRowClick={(o) => modal.open('offer', o.id)} minWidth={900}
-            /* Bảng chỉ cầm 1 trang do server cắt → sort/LỌC phải chạy ở SERVER trên toàn bộ 6.3k
-               dòng, nếu không thì chỉ sắp/lọc 50 dòng đang nhìn. Header vẫn bấm được như mọi bảng. */
-            serverSort={{ spec: sortSpec, onChange: (s) => setOne('sort')(s.map((x) => `${x.key}.${x.dir}`).join(',')) }}
-            serverFilter={{ filters: filters.flt, onChange: (f) => setOne('flt')(Object.keys(f).length ? JSON.stringify(f) : '') }} />
-        )}
+        {/* LUÔN render bảng — kể cả lọc ra 0 dòng. Trước đây rows=0 thì thay bằng EmptyState → HEADER
+            (nút 🔍 lọc-cột + mũi tên sort) biến mất → kẹt, không có chỗ nào để SỬA/XOÁ lọc-cột. DataTable
+            tự hiện dòng "không khớp" mà vẫn giữ header. Bộ lọc facet ở toolbar trên; số khớp ở Pager dưới.
+            Bảng server-paged: sort/LỌC chạy ở SERVER trên toàn 6.3k (không thì chỉ sắp/lọc 50 dòng đang xem). */}
+        <DataTable rows={rows} columns={columns} groups={GROUPS} persistKey="offer_cols" sliced
+          getRowKey={(o) => o.id} onRowClick={(o) => modal.open('offer', o.id)} minWidth={900}
+          serverSort={{ spec: sortSpec, onChange: (s) => setOne('sort')(s.map((x) => `${x.key}.${x.dir}`).join(',')) }}
+          serverFilter={{ filters: filters.flt, onChange: (f) => setOne('flt')(Object.keys(f).length ? JSON.stringify(f) : '') }} />
       </div>
       <Pager page={view.page} pageCount={view.pageCount} total={view.matched} pageSize={view.pageSize}
         onPage={(p) => go((x) => { if (p > 0) x.set('page', String(p + 1)); else x.delete('page'); }, true)} />

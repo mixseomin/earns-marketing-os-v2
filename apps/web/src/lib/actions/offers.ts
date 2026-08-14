@@ -416,6 +416,9 @@ export interface OffersView {
   page: number; pageCount: number; pageSize: number;
   counts: Record<string, number>;   // chip counts (whole set, so you can see what a filter would open up)
   facets: { accounts: OfferFacet[]; verticals: OfferFacet[]; geos: OfferFacet[] };
+  // Per-network roll-up for the payments panel: how much inventory each network actually gives us,
+  // next to what that network pays out (terms live in lib/affiliate-networks.ts).
+  networks: Array<{ key: string; total: number; approved: number; runnable: number }>;
 }
 
 // NB: this module is 'use server' → only async functions may be EXPORTED (types are erased,
@@ -534,7 +537,23 @@ export async function getOffersView(f: OfferFilters): Promise<OffersView> {
       approved7: all.filter((o) => (o.approvedAt ?? '') >= weekAgo).length,
     },
     facets: facetsOf(all),
+    networks: networkStatsOf(all),
   };
+}
+
+function networkStatsOf(all: AffiliateOffer[]) {
+  const m = new Map<string, { key: string; total: number; approved: number; runnable: number }>();
+  for (const o of all) {
+    // Same rule the table uses: explicit network wins, else the sync that produced the row.
+    const key = o.network ?? (o.kind === 'awin' ? 'awin' : o.kind === 'cj' ? 'cj' : null);
+    if (!key) continue;
+    const s = m.get(key) ?? { key, total: 0, approved: 0, runnable: 0 };
+    s.total++;
+    if (APPROVED.has(o.status.toLowerCase())) s.approved++;
+    if (o.paidTraffic !== 'ban') s.runnable++;
+    m.set(key, s);
+  }
+  return [...m.values()].sort((a, b) => b.total - a.total);
 }
 
 // Quick-view drawer: pull every offer for one entity (a brand / network / account) so the drawer

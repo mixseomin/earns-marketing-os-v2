@@ -13,6 +13,7 @@ import {
   DataTable, TextField, TextAreaField, SelectField, type DataColumn, type DataGroup,
 } from './ui';
 import { openEntityDrawer } from '@/lib/entity-drawer';
+import { NetworkPayoutsPanel } from './network-payouts-panel';
 import { offerStatusMeta } from '@/lib/status-meta';
 
 // Source label only (YDNI: no per-source colour — the name carries it; colour is reserved for status).
@@ -302,6 +303,10 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
           Sản phẩm <b>tự bán</b> thuộc về <a href="/products" style={{ color: 'var(--neon-cyan)' }}>/products</a> — lọc <code>own</code>.
         </p>
       </div>
+
+      {/* Tầng network đứng TRÊN tầng offer: trả bao nhiêu, ngưỡng rút, bao lâu có tiền.
+          Mặc định đóng — mở khi cần đối chiếu, không chiếm chỗ của bảng offer. */}
+      <NetworkPayoutsPanel networks={view.networks} />
 
       <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tên / account / rule / tag…">
         <FilterChips value={filters.kind} onChange={setOne('kind')} counts={counts}

@@ -23,9 +23,12 @@ export interface AnchoredPopoverProps {
   gap?: number;
   /** z của backdrop; panel = z+1 (mặc định 1100). */
   zIndex?: number;
+  /** Lớp phủ bắt click-ngoài để đóng (mặc định true). false = hover-card: KHÔNG chặn click, để click
+   *  xuyên xuống hàng/thẻ bên dưới; caller tự đóng (vd onMouseLeave). */
+  backdrop?: boolean;
 }
 
-export function AnchoredPopover({ anchorRef, open, onClose, children, align = 'left', gap = 4, zIndex = 1100 }: AnchoredPopoverProps) {
+export function AnchoredPopover({ anchorRef, open, onClose, children, align = 'left', gap = 4, zIndex = 1100, backdrop = true }: AnchoredPopoverProps) {
   const [pos, setPos] = useState<{ top: number; left?: number; right?: number } | null>(null);
   // Chỉ portal sau mount (SSR không có document; popover luôn mở do tương tác client).
   const [mounted, setMounted] = useState(false);
@@ -53,9 +56,12 @@ export function AnchoredPopover({ anchorRef, open, onClose, children, align = 'l
 
   if (!open || !mounted || !pos) return null;
   return createPortal(
+    // stopPropagation: click từ nội dung PORTAL vẫn nổi bọt theo CÂY REACT (không phải DOM) lên tổ tiên
+    // — popover khai báo trong 1 hàng/thẻ có onClick thì click backdrop/panel sẽ kích luôn onClick đó
+    // (vd mở drawer ngoài ý muốn). Chặn tại đây để overlay không rò click ra ngoài.
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex }} />
-      <div style={{ position: 'fixed', top: pos.top, left: pos.left, right: pos.right, zIndex: zIndex + 1 }}>
+      {backdrop && <div onClick={(e) => { e.stopPropagation(); onClose(); }} style={{ position: 'fixed', inset: 0, zIndex }} />}
+      <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', top: pos.top, left: pos.left, right: pos.right, zIndex: zIndex + 1 }}>
         {children}
       </div>
     </>,

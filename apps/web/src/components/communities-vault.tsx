@@ -244,33 +244,39 @@ function PhaseBar({ counts }: { counts: Record<string, number> }) {
 }
 
 function EngagedCell({ row }: { row: CommunityRow }) {
-  const [open, setOpen] = useState(false);
+  const [hover, setHover] = useState(false);
   const [briefs, setBriefs] = useState<BriefLite[] | null>(null);
-  const btnRef = useRef<HTMLButtonElement | null>(null);
+  const anchorRef = useRef<HTMLSpanElement | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Hover-card: rê vào ô HOẶC popup thì mở; rời ra đóng TRỄ 120ms để con trỏ băng qua khoảng hở
+  // cell→popup không bị rớt. KHÔNG backdrop → click ô nổi bọt lên hàng mở drawer như thường.
+  const openNow = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } setHover(true); };
+  const closeSoon = () => { timer.current = setTimeout(() => setHover(false), 120); };
   useEffect(() => {
-    if (!open || briefs) return;                 // tải LƯỜI 1 lần, chỉ khi mở popup
+    if (!hover || briefs) return;                 // tải LƯỜI 1 lần, chỉ khi rê vào
     let live = true;
     listBriefsForHabitat(row.id)
       .then((rs) => { if (live) setBriefs(rs.map((b) => ({ id: b.id, handle: b.accountHandle ?? '(no handle)', phase: b.currentPhase, joinStatus: b.joinStatus, platform: b.platformLabel }))); })
       .catch(() => { if (live) setBriefs([]); });
     return () => { live = false; };
-  }, [open, briefs, row.id]);
+  }, [hover, briefs, row.id]);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   if (!row.briefs) return <span style={dim}>chưa track</span>;
   return (
-    <>
-      <button ref={btnRef} type="button"
-        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}   // stop: đừng mở luôn editor của dòng
-        title={`${row.joined}/${row.briefs} account đã vào · 🌱${row.seeds} seed sống — bấm xem từng account`}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: '1px 3px', borderRadius: 5, cursor: 'pointer', color: 'var(--fg-2)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
-        <span><span style={{ color: 'var(--fg-1)', fontWeight: 600 }}>{row.briefs}</span> acc</span>
-        <PhaseBar counts={row.phaseCounts} />
-        {row.seeds > 0 && <span style={{ color: 'var(--fg-3)' }}>🌱{row.seeds}</span>}
-      </button>
-      <AnchoredPopover anchorRef={btnRef} open={open} onClose={() => setOpen(false)} align="left" zIndex={1100}>
-        <AccountsList name={row.name} joined={row.joined} total={row.briefs} briefs={briefs} />
+    <span ref={anchorRef} onMouseEnter={openNow} onMouseLeave={closeSoon}
+      onClick={() => { if (timer.current) clearTimeout(timer.current); setHover(false); }}   // KHÔNG stopPropagation: để nổi bọt lên hàng (mở drawer), chỉ đóng popup
+      title={`${row.joined}/${row.briefs} account đã vào · 🌱${row.seeds} seed sống — rê xem từng account, bấm mở community`}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: 'var(--fg-2)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+      <span><span style={{ color: 'var(--fg-1)', fontWeight: 600 }}>{row.briefs}</span> acc</span>
+      <PhaseBar counts={row.phaseCounts} />
+      {row.seeds > 0 && <span style={{ color: 'var(--fg-3)' }}>🌱{row.seeds}</span>}
+      <AnchoredPopover anchorRef={anchorRef} open={hover} onClose={() => setHover(false)} align="left" zIndex={1100} backdrop={false}>
+        <div onMouseEnter={openNow} onMouseLeave={closeSoon}>
+          <AccountsList name={row.name} joined={row.joined} total={row.briefs} briefs={briefs} />
+        </div>
       </AnchoredPopover>
-    </>
+    </span>
   );
 }
 

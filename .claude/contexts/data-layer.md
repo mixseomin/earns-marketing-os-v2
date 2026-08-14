@@ -230,3 +230,21 @@ Thứ tự đúng, mỗi lần thêm cột:
 4. Mới push code có field mới
 
 Nếu đã lỡ: sau khi restart Directus phải **xoá `.next/cache/fetch-cache`** rồi restart `mos2-web` — response 403 đã bị Next cache 5 phút, không tự khỏi.
+
+---
+
+## `unstable_cache` tuần tự hoá kết quả — ĐỪNG trả `Map`/`Set` (2026-08-15)
+
+Bọc một hàm trả `Map` vào `unstable_cache` thì lượt đầu chạy đúng (giá trị đi thẳng), lượt sau đọc từ cache ra `{}`: cache entry được tuần tự hoá kiểu JSON, mà `JSON.stringify(new Map([['a',1]]))` = `"{}"`. `Set` y hệt.
+
+Hỏng **im lặng**: không lỗi, không log — chỉ là mọi lookup trả `undefined`. Ca thật: `mosAccountByNetwork()` bọc cache để khỏi query mỗi request, hậu quả sẽ là toàn bộ chip account trên bảng Network rỗng, mà `/offers` vẫn 200.
+
+Luật: giá trị đi qua `unstable_cache` phải **JSON-safe** — object/array/primitive. Cần tra cứu nhanh thì trả `Record<string, T>` rồi index thẳng (`m[key]`), hoặc dựng `new Map(...)` ở chỗ gọi. Cùng luật này áp cho mọi thứ băng qua ranh giới server→client (RSC props) và cho `next: { revalidate }`.
+
+Kiểm 10 giây khi nghi: `node -e "console.log(JSON.stringify(new Map([['a',1]])))"` → `{}`.
+
+## Check script không cần test runner: `scripts/check-*.ts`, chạy bằng `node` (2026-08-15)
+
+Repo không có vitest/jest và không nên thêm chỉ để kiểm một hàm thuần. Node ≥22 tự bóc type: `node scripts/check-network-revenue.ts` chạy thẳng file `.ts`, import module thật (không phải bản chép).
+
+**Bẫy:** node cần đuôi `.ts` trong import specifier, còn `tsc` của `apps/web` từ chối nó (`TS5097: allowImportingTsExtensions`). Nên file check **phải nằm ngoài** `apps/web/src` — đặt ở `scripts/` (tsconfig include chỉ `src/**/*`), import ngược `../apps/web/src/...`. Để trong `src` là vỡ typecheck ngay.

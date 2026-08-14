@@ -7,7 +7,7 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect } from 'react';
-import { useEntityDrawerReq, openEntityDrawer, closeEntityDrawer, readEntityDrawerFromUrl, HOST_KINDS } from '@/lib/entity-drawer';
+import { useEntityDrawerReq, openEntityDrawer, closeEntityDrawersToDepth, readEntityDrawerFromUrl, HOST_KINDS, type EntityDrawerReq } from '@/lib/entity-drawer';
 
 const AccountDrawer = dynamic(() => import('./account-drawer').then((m) => m.AccountDrawer), { ssr: false });
 const BrowserProfileDrawerById = dynamic(() => import('./entity-self-drawers').then((m) => m.BrowserProfileDrawerById), { ssr: false });
@@ -26,11 +26,22 @@ const ContactDrawer = dynamic(() => import('./entity-more-drawers').then((m) => 
 export { HOST_KINDS };
 
 export function EntityDrawerHost() {
-  const req = useEntityDrawerReq();
-  // Deep-link restore: if the page loaded with ?ed=kind~id, open that drawer on mount.
-  useEffect(() => { const u = readEntityDrawerFromUrl(); if (u) openEntityDrawer(u.kind, u.id, u.project); }, []);
-  if (!req) return null;
-  const onClose = () => closeEntityDrawer();
+  const stack = useEntityDrawerReq();
+  // Deep-link restore: page load với ?ed=…,… → mở lại CẢ chồng drawer khi mount (đúng thứ tự).
+  useEffect(() => { readEntityDrawerFromUrl().forEach((u) => openEntityDrawer(u.kind, u.id, u.project)); }, []);
+  if (!stack.length) return null;
+  // Render CẢ ngăn xếp — mỗi frame là 1 drawer. Việc xếp chồng (z theo mount, ESC đóng cái trên cùng,
+  // cascade-trái + mờ cái dưới) do `ui/drawer.tsx` tự lo. onClose của frame i đóng nó + mọi frame TRÊN nó.
+  return (
+    <>
+      {stack.map((req, i) => (
+        <EntityDrawerFrame key={`${req.kind}~${req.id}`} req={req} onClose={() => closeEntityDrawersToDepth(i)} />
+      ))}
+    </>
+  );
+}
+
+function EntityDrawerFrame({ req, onClose }: { req: EntityDrawerReq; onClose: () => void }) {
   const id = Number(req.id);
   switch (req.kind) {
     case 'account': return <AccountDrawer accountId={id} onClose={onClose} />;

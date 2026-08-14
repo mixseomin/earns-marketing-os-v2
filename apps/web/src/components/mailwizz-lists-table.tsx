@@ -75,6 +75,7 @@ export function MailwizzListsTable({
       card
       defaultView="table"
       persistKey={persistKey}
+      pageSize={25}
     />
   );
 }

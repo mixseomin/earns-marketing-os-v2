@@ -88,6 +88,7 @@ export function ProductsTable({ rows }: { rows: ProductRow[] }) {
       columns={columns}
       groups={GROUPS}
       persistKey="mos2-products-cols"
+      pageSize={25}
       getRowKey={(r) => r.key}
       minWidth={720}
       searchText={(r) => `${r.name} ${r.store}`}

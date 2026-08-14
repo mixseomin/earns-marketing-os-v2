@@ -326,6 +326,7 @@ export function AccountsTable({
           columns={columns}
           groups={COL_GROUPS}
           persistKey="acct-cols"
+          pageSize={25}
           getRowKey={(a) => String(a.id)}
           onRowClick={(a) => onOpenAccount(a.id)}
           rowTitle={(a) => `Mở chi tiết account: @${a.handle ?? a.id}`}

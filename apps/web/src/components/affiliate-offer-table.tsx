@@ -40,5 +40,5 @@ export function OfferTable({ offers, meta }: { offers: OfferRow[]; meta: Record<
     { key: 'clicks30', group: '30d', header: 'Clicks', sortValue: (o) => o.clicks30, cell: (o) => o.clicks30.toLocaleString() },
     { key: 'ctr30', group: '30d', header: 'CTR', sortValue: (o) => o.ctr30, cell: (o) => <span style={{ color: o.ctr30 > 0 ? 'var(--ok)' : 'var(--fg-3)' }}>{o.ctr30}%</span> },
   ];
-  return <DataTable rows={offers} columns={columns} getRowKey={(o) => o.key} groups={GROUPS} persistKey="portfolio_offers" minWidth={520} />;
+  return <DataTable rows={offers} columns={columns} getRowKey={(o) => o.key} groups={GROUPS} persistKey="portfolio_offers" minWidth={520} pageSize={25} />;
 }

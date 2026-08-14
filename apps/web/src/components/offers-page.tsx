@@ -82,7 +82,7 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
   const setOne = (k: string) => (v: string) => go((p) => { if (v && v !== 'all') p.set(k, v); else p.delete(k); });
   const setMulti = (k: string) => (v: string[]) => go((p) => { if (v.length) p.set(k, v.join(',')); else p.delete(k); });
   const active = Boolean(filters.q || filters.accounts.length || filters.verticals.length || filters.geos.length
-    || [filters.kind, filters.status, filters.gap, filters.recurring].some((v) => v && v !== 'all'));
+    || [filters.kind, filters.status, filters.gap, filters.recurring, filters.paid].some((v) => v && v !== 'all'));
 
   // Search: type locally (instant), push to the URL after a pause — otherwise every keystroke
   // is a server roundtrip.
@@ -203,6 +203,16 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
       cell: (o) => o.currency ?? <span style={dim}>—</span>,
     },
     {
+      // Đứng trước "Special rules": mua traffic thì câu hỏi đầu tiên là có được chạy ads không.
+      key: 'ppc', sortValue: (o) => o.paidTraffic, group: 'rules', align: 'center', header: 'PPC',
+      title: 'Merchant có cho chạy paid search không (cào từ program rules)',
+      cell: (o) => o.paidTraffic === 'ban'
+        ? <span title="Cấm PPC/paid search" style={{ color: 'var(--danger, #e05c5c)', fontWeight: 600 }}>⛔</span>
+        : o.paidTraffic === 'ok'
+          ? <span title="Program ghi rõ cho chạy paid search" style={{ color: 'var(--neon-lime)', fontWeight: 600 }}>✅</span>
+          : <span title="Program không nêu rule PPC — không đồng nghĩa được phép" style={dim}>—</span>,
+    },
+    {
       key: 'rules', sortValue: (o) => rulesOf(o) ?? null, group: 'rules', align: 'left', header: 'Special rules', title: 'promotion_policy + reward_details',
       cellTitle: (o) => rulesOf(o) ?? undefined,
       cell: (o) => {
@@ -276,7 +286,7 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
 
       {/* Hàng 2 = filter chi tiết: chọn nhiều giá trị (account/vertical/geo) + lọc theo cái CÒN THIẾU. */}
       <ListToolbar right={active
-        ? <button type="button" onClick={() => go((p) => { for (const k of ['q', 'kind', 'status', 'account', 'vertical', 'geo', 'gap', 'recurring']) p.delete(k); })}
+        ? <button type="button" onClick={() => go((p) => { for (const k of ['q', 'kind', 'status', 'account', 'vertical', 'geo', 'gap', 'recurring', 'paid']) p.delete(k); })}
             style={{ padding: '3px 9px', fontSize: 11, fontFamily: 'var(--font-mono)', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer' }}>
             ✕ bỏ lọc
           </button>
@@ -287,6 +297,14 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
           options={facets.verticals.map((f) => ({ value: f.value, label: f.label, count: f.count }))} />
         <MultiSelect label="geo" compact selected={filters.geos} onChange={setMulti('geo')}
           options={facets.geos.map((f) => ({ value: f.value, label: f.label, count: f.count }))} />
+        {/* Media buy: cái đầu tiên phải biết là offer có CHO chạy quảng cáo trả tiền không. */}
+        <FilterChips value={filters.paid} onChange={setOne('paid')} counts={counts}
+          options={[
+            { value: 'all', label: 'mọi rule' },
+            { value: 'runnable', label: 'chạy ads được', title: 'Merchant KHÔNG cấm PPC (gồm cả offer không nêu rule)' },
+            { value: 'paid-ok', label: 'PPC ghi rõ OK', title: 'Program nói thẳng là cho chạy paid search' },
+            { value: 'paid-ban', label: '⛔ cấm PPC', title: 'Merchant cấm PPC/paid search — đừng mua traffic cho offer này' },
+          ]} />
         <FilterChips value={filters.recurring} onChange={setOne('recurring')}
           options={[
             { value: 'all', label: 'mọi payout' },

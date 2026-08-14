@@ -90,6 +90,11 @@ export interface AffiliateOffer {
   // the advertiser directly · 2 = this network resells another network's inventory.
   sourceTier: 1 | 2;
   originNetwork: string | null;    // the upstream network when sourceTier=2 (null when direct)
+  // Can we send PAID traffic at this offer at all? Scraped from each advertiser's own program
+  // rules (see the CJ scrape) — 'ban' means the merchant forbids PPC/paid search outright, so a
+  // media buyer must skip it no matter how good the payout looks. 'unknown' = the program states
+  // no rule, which is not the same as permission.
+  paidTraffic: 'ok' | 'ban' | 'unknown';
   // Dates. createdAt = when OUR sync first saw the row (not when the merchant joined the
   // network). approvedAt = the run a sync observed it flip to approved — NULL for anything
   // approved before 2026-08-07 (neither Awin nor CJ exposes a joined-date, so it can't be
@@ -148,6 +153,16 @@ function brandOf(name: string): string {
 // Aviasales infra (sentry.avs.io) → an extra cut sits between us and the merchant.
 // ponytail: a lookup table, not a crawler. Add a row when a redirect chain proves another reseller.
 const RESOLD_FROM: Record<string, string> = { tkglobal: 'travelpayouts' };
+
+// promotion_policy is written by the rule scraper as "⛔/✅ <topic> · …" + one quoted sentence per
+// topic. Only the PPC line decides whether paid traffic may run at all; brand-bidding bans are a
+// campaign-setup detail, not a reason to drop the offer.
+function paidTrafficOf(policy: string | null): 'ok' | 'ban' | 'unknown' {
+  if (!policy) return 'unknown';
+  if (/⛔ PPC/.test(policy)) return 'ban';
+  if (/✅ PPC/.test(policy)) return 'ok';
+  return 'unknown';
+}
 
 function isSelfReferral(name: string, brand: string, network: string | null): boolean {
   if (!network) return false;
@@ -286,6 +301,7 @@ function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>, mosAcc
     selfReferral: isSelfReferral(x.name, brandOf(x.name), x.network ?? netKind ?? null),
     sourceTier: platformKey && RESOLD_FROM[platformKey] ? 2 : 1,
     originNetwork: platformKey ? RESOLD_FROM[platformKey] ?? null : null,
+    paidTraffic: paidTrafficOf(x.promotion_policy),
     createdAt: x.created_at,
     approvedAt: x.approved_at,
   };
@@ -324,6 +340,7 @@ export interface OfferFilters {
   geos: string[];
   gap: string;         // all | no-terms | no-account | no-link  (what still needs filling in)
   recurring: string;   // all | yes | no
+  paid: string;        // all | runnable (PPC not banned) | ok (stated allowed) | ban
   sort: string;        // '' = approved-first/name | new = mới thêm | approved = mới duyệt
   page: number;        // 0-based
 }
@@ -365,6 +382,10 @@ function matches(o: AffiliateOffer, f: OfferFilters): boolean {
   if (f.gap === 'no-link' && o.affiliateUrl) return false;
   if (f.recurring === 'yes' && !isRecurring(o)) return false;
   if (f.recurring === 'no' && isRecurring(o)) return false;
+  // 'runnable' is the media-buy default: everything the merchant hasn't forbidden.
+  if (f.paid === 'runnable' && o.paidTraffic === 'ban') return false;
+  if (f.paid === 'paid-ok' && o.paidTraffic !== 'ok') return false;
+  if (f.paid === 'paid-ban' && o.paidTraffic !== 'ban') return false;
   if (f.q) {
     const t = f.q.toLowerCase();
     const hay = [o.name, o.brand, o.network, o.vertical, o.account, o.commission, o.policy, o.reward, ...o.tags];
@@ -430,6 +451,9 @@ export async function getOffersView(f: OfferFilters): Promise<OffersView> {
       'no-terms': all.filter((o) => !hasTerms(o)).length,
       'no-account': all.filter((o) => !o.accountId).length,
       'no-link': all.filter((o) => !o.affiliateUrl).length,
+      runnable: all.filter((o) => o.paidTraffic !== 'ban').length,
+      'paid-ok': all.filter((o) => o.paidTraffic === 'ok').length,
+      'paid-ban': all.filter((o) => o.paidTraffic === 'ban').length,
       new7: all.filter((o) => o.createdAt >= weekAgo).length,
       approved7: all.filter((o) => (o.approvedAt ?? '') >= weekAgo).length,
     },

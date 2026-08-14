@@ -27,10 +27,13 @@ const CHUNK_DAYS = 31;
 /** ~13 tháng. Xa hơn thì phải có bảng snapshot chứ không phải 120 lời gọi mỗi lần mở trang. */
 const MAX_CHUNKS = 13;
 
-export interface NetworkPart { rows: RevenueDayRow[]; error?: string }
-/** Network nào ĐÃ hỏi API thật trong lượt này — kể cả khi nó trả về 0 giao dịch. Bộ lọc cần biết:
- *  "awin $0.00" là đã kiểm và không có tiền, khác hẳn với awin biến mất khỏi màn hình. */
-export const SCANNED_NETWORKS = ['awin', 'cj'] as const;
+export interface NetworkPart {
+  rows: RevenueDayRow[];
+  error?: string;
+  /** Đã gọi được API thật (có credential) hay không. Không có credential thì KHÔNG phải "kiếm $0" —
+   *  hai chuyện khác hẳn nhau, và bộ lọc phải nói đúng chuyện nào. */
+  scanned: boolean;
+}
 
 const ymd = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
@@ -105,7 +108,7 @@ export function parseAwin(txns: AwinTxn[]): { rows: Array<RevenueDayRow & { id: 
     const cur = (t.commissionAmount?.currency ?? 'USD').toUpperCase();
     if (cur !== 'USD') { skipped.add(cur); continue; }
     rows.push({
-      id: String(t.id ?? `${date}-${amount}`), date, source: 'affiliate', group: 'awin',
+      id: String(t.id ?? `${date}-${t.advertiserName ?? ''}-${amount}`), date, source: 'affiliate', group: 'awin',
       channel: t.advertiserName || 'unknown',
       amount, gross: Number(t.saleAmount?.amount) || amount,
     });
@@ -114,7 +117,7 @@ export function parseAwin(txns: AwinTxn[]): { rows: Array<RevenueDayRow & { id: 
 }
 
 async function cjPart(wins: Array<[string, string]>): Promise<NetworkPart> {
-  if (!CJ_PAT || !CJ_CID) return { rows: [], error: 'cj: chưa có CJ_PAT/CJ_PUBLISHER_ID' };
+  if (!CJ_PAT || !CJ_CID) return { rows: [], scanned: false, error: 'cj: chưa có CJ_PAT/CJ_PUBLISHER_ID' };
   const errs: string[] = [];
   const seen = new Map<string, RevenueDayRow>();
   await Promise.all(wins.map(async ([start, end]) => {
@@ -126,11 +129,11 @@ async function cjPart(wins: Array<[string, string]>): Promise<NetworkPart> {
       for (const r of parseCj(await res.text())) seen.set(r.id, r);
     } catch (e) { errs.push(`${(e as Error).message} (${start})`); }
   }));
-  return { rows: [...seen.values()], error: errs.length ? `cj: ${errs.join('; ')}` : undefined };
+  return { rows: [...seen.values()], scanned: true, error: errs.length ? `cj: ${errs.join('; ')}` : undefined };
 }
 
 async function awinPart(wins: Array<[string, string]>): Promise<NetworkPart> {
-  if (!AWIN_TOKEN || !AWIN_PUB) return { rows: [], error: 'awin: chưa có AWIN_TOKEN/AWIN_PUBLISHER_ID' };
+  if (!AWIN_TOKEN || !AWIN_PUB) return { rows: [], scanned: false, error: 'awin: chưa có AWIN_TOKEN/AWIN_PUBLISHER_ID' };
   const errs: string[] = [];
   const skipped = new Set<string>();
   const seen = new Map<string, RevenueDayRow>();
@@ -148,17 +151,29 @@ async function awinPart(wins: Array<[string, string]>): Promise<NetworkPart> {
     } catch (e) { errs.push(`${(e as Error).message} (${start})`); }
   }));
   if (skipped.size) errs.push(`bỏ qua giao dịch ${[...skipped].join('/')} — chưa có quy đổi sang USD`);
-  return { rows: [...seen.values()], error: errs.length ? `awin: ${errs.join('; ')}` : undefined };
+  return { rows: [...seen.values()], scanned: true, error: errs.length ? `awin: ${errs.join('; ')}` : undefined };
 }
 
+// Một bảng duy nhất: thêm network = thêm một dòng ở đây, không phải sửa thêm hằng số nào khác.
+const PULLERS: Record<string, (wins: Array<[string, string]>) => Promise<NetworkPart>> = { awin: awinPart, cj: cjPart };
+
+export interface NetworkRevenue { rows: RevenueDayRow[]; error?: string; scanned: string[] }
+
 /** Hoa hồng network theo ngày trong [since, hôm nay]. Một network hỏng không kéo network kia chết theo. */
-export async function networkRows(since: string): Promise<NetworkPart> {
+export async function networkRows(since: string): Promise<NetworkRevenue> {
   const until = ymd(Date.now() + 86400_000);          // +1 ngày: API tính tới đầu ngày `end`
   const wins = windows(since, until);
-  if (!wins.length) return { rows: [] };
-  const [cj, awin] = await Promise.all([cjPart(wins), awinPart(wins)]);
-  const errs = [cj.error, awin.error].filter((x): x is string => !!x);
+  if (!wins.length) return { rows: [], scanned: [] };
+  const keys = Object.keys(PULLERS);
+  const parts = await Promise.all(keys.map((k) => PULLERS[k]!(wins)));
+  const errs = parts.map((p) => p.error).filter((x): x is string => !!x);
   // Cửa sổ bị chặn ở 13 tháng — nói ra, đừng để nhìn như "trước đó không kiếm được đồng nào".
   if (wins.length === MAX_CHUNKS) errs.push(`network: chỉ quét được ${MAX_CHUNKS * CHUNK_DAYS} ngày gần nhất (giới hạn 31 ngày/lần gọi)`);
-  return { rows: [...cj.rows, ...awin.rows], error: errs.length ? errs.join(' · ') : undefined };
+  return {
+    rows: parts.flatMap((p) => p.rows),
+    error: errs.length ? errs.join(' · ') : undefined,
+    // Chỉ net GỌI ĐƯỢC API mới vào danh sách → bộ lọc hiện "awin $0.00" đúng nghĩa "đã kiểm, không
+    // có tiền". Net thiếu credential không được đội lốt $0, nó nằm ở dòng lỗi.
+    scanned: keys.filter((_, i) => parts[i]!.scanned),
+  };
 }

@@ -12,7 +12,7 @@
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { gumroadTokens } from '@/lib/gumroad/products';
-import { networkRows, SCANNED_NETWORKS } from './networks';
+import { networkRows } from './networks';
 
 export type RevenueSource = 'adsense' | 'product' | 'gumroad' | 'affiliate';
 
@@ -53,13 +53,13 @@ export async function getRevenueByDay(sinceDays = 120): Promise<RevenueByDay> {
     adsenseRows(since).catch((e: Error) => ({ rows: [], error: `adsense: ${e.message}` })),
     productRows(since).catch((e: Error) => ({ rows: [], error: `product_stats: ${e.message}` })),
     gumroadRows(since).catch((e: Error) => ({ rows: [], error: `gumroad: ${e.message}` })),
-    networkRows(since).catch((e: Error) => ({ rows: [], error: `network: ${e.message}` })),
+    networkRows(since).catch((e: Error) => ({ rows: [], scanned: [], error: `network: ${e.message}` })),
   ]);
   const parts = [adsense, product, gumroad, affiliate];
   return {
     rows: parts.flatMap((p) => p.rows),
     errors: parts.map((p) => ('error' in p ? p.error : undefined)).filter((x): x is string => !!x),
-    scannedNetworks: [...SCANNED_NETWORKS],
+    scannedNetworks: affiliate.scanned,
   };
 }
 

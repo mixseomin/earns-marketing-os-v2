@@ -102,17 +102,19 @@ export function ListToolbar({ children, search, onSearch, searchPlaceholder, sea
 //
 // Chọn NHIỀU: truyền `values` + `onToggle` thay cho `value` + `onChange` (mảng rỗng = không lọc).
 export interface ChipOption<T extends string> { value: T; label: string; title?: string }
+type ChipMode<T> =
+  | { value: T; onChange: (v: T) => void; values?: never; onToggle?: never }
+  | { values: T[]; onToggle: (v: T[]) => void; value?: never; onChange?: never };
+
 export function FilterChips<T extends string>({ options, value, onChange, values, onToggle, counts }: {
   options: ChipOption<T>[]; counts?: Partial<Record<T, number>>;
-  value?: T; onChange?: (v: T) => void;
-  values?: T[]; onToggle?: (v: T[]) => void;
-}) {
+} & ChipMode<T>) {
+  // Chuyển tiếp nguyên chế độ xuống Segmented — union hai bên khớp nhau nên không có đường nào
+  // lọt xuống với "không cặp nào".
+  const mode = (values ? { values, onToggle: onToggle! } : { value: value!, onChange: onChange! }) as ChipMode<T>;
   return (
     <Segmented
-      value={value}
-      onChange={onChange}
-      values={values}
-      onToggle={onToggle}
+      {...mode}
       options={options.map((o) => ({
         value: o.value,
         title: o.title,   // hover explanation per chip (Segmented renders it) — don't drop tooltips on migrate

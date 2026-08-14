@@ -291,23 +291,28 @@ export const listOfferAccounts = unstable_cache(
 // re-fetch. Joined by network = platform_key: every affiliate network is one login under the aff
 // browser profile, so the network label IS the account key. First profile-linked account per network
 // (each network has exactly one today). Empty map on any failure → cells fall back to "chưa gán".
-async function mosAccountByNetwork(): Promise<Map<string, { id: number; handle: string }>> {
-  const m = new Map<string, { id: number; handle: string }>();
+type MosAccount = { id: number; handle: string };
+const mosAccountByNetwork = unstable_cache(async (): Promise<Record<string, MosAccount>> => {
+  const m: Record<string, MosAccount> = {};
   try {
     const db = getDb();
     if (!db) return m;               // không có DB thì trả map rỗng, đừng gọi .execute trên null
     const rows = (await db.execute(sql`
       SELECT id, platform_key, handle FROM platform_accounts
       WHERE browser_profile_id IS NOT NULL ORDER BY id`)) as unknown as Array<{ id: number; platform_key: string; handle: string }>;
-    for (const r of rows) if (r.platform_key && !m.has(r.platform_key)) m.set(r.platform_key, { id: Number(r.id), handle: r.handle });
+    for (const r of rows) if (r.platform_key && !m[r.platform_key]) m[r.platform_key] = { id: Number(r.id), handle: r.handle };
   } catch { /* mos2 db unreachable → no bridge, cells show "chưa gán" */ }
   return m;
-}
+// Cached: getOffersView cần bảng này để dựng chip cho net CHƯA có offer, mà nó nằm ngoài cache của
+// listAffiliateOffers → không bọc thì thành một query Postgres mỗi lần tải trang, chỉ để đọc ~12 dòng
+// gần như không đổi. Trả về OBJECT chứ không phải Map: unstable_cache tuần tự hoá kết quả, Map đi
+// qua đó về thành {} — cache "chạy" mà mọi chip account rỗng, kiểu hỏng im lặng khó lần nhất.
+}, ['mos-account-by-network'], { revalidate: 300, tags: ['affiliate-offers'] });
 
-function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>, mosAccts: Map<string, { id: number; handle: string }>): AffiliateOffer {
+function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>, mosAccts: Record<string, MosAccount>): AffiliateOffer {
   const netKind = NETWORK_BY_ACCOUNT[x.account_id ?? ''];
   const platformKey = x.network ?? netKind ?? null;
-  const mos = platformKey ? (mosAccts.get(platformKey) ?? mosAccts.get(NET_KEY_ALIAS[platformKey] ?? '')) : undefined;
+  const mos = platformKey ? (mosAccts[platformKey] ?? mosAccts[NET_KEY_ALIAS[platformKey] ?? '']) : undefined;
   return {
     id: x.id,
     kind: own.has(x.name.trim().toLowerCase()) ? 'own' : netKind ?? 'direct',
@@ -598,7 +603,7 @@ export async function getOffersView(f: OfferFilters): Promise<OffersView> {
   };
 }
 
-function networkStatsOf(all: AffiliateOffer[], mosAccts: Map<string, { id: number; handle: string }>): NetworkStat[] {
+function networkStatsOf(all: AffiliateOffer[], mosAccts: Record<string, MosAccount>): NetworkStat[] {
   const m = new Map<string, NetworkStat>();
   const blank = (key: string): NetworkStat => ({ key, total: 0, approved: 0, runnable: 0, mosAccountId: null, account: null });
   // Seed EVERY network we track terms for. Before this, a stat only existed if the network had at
@@ -621,7 +626,7 @@ function networkStatsOf(all: AffiliateOffer[], mosAccts: Map<string, { id: numbe
   // Vault fills whatever the offers couldn't — the id is what makes the chip clickable, and the
   // handle is a real value from platform_accounts instead of a label typed into a const.
   for (const s of m.values()) {
-    const v = mosAccts.get(s.key) ?? mosAccts.get(NET_KEY_ALIAS[s.key] ?? '');
+    const v = mosAccts[s.key] ?? mosAccts[NET_KEY_ALIAS[s.key] ?? ''];
     if (!v) continue;
     s.mosAccountId ??= v.id;
     s.account ??= v.handle;

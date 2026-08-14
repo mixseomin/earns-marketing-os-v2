@@ -14,32 +14,33 @@ export interface SegmentedOption<T> {
   title?: string;
 }
 
+// Union chứ KHÔNG phải 4 prop optional: optional hết thì quên cả hai cặp vẫn compile, ra một dãy
+// chip bấm không ăn. Kiểu này bắt caller chọn đúng một chế độ và đủ cặp.
+type SegmentedMode<T> =
+  | { value: T; onChange: (v: T) => void; values?: never; onToggle?: never }
+  /** Chọn nhiều: mảng rỗng = không lọc gì (caller tự hiểu là "tất cả"). */
+  | { values: T[]; onToggle: (v: T[]) => void; value?: never; onChange?: never };
+
 export function Segmented<T extends string | number>({
   options, value, onChange, values, onToggle, size = 'sm', style,
 }: {
   options: SegmentedOption<T>[];
-  value?: T;
-  onChange?: (v: T) => void;
-  /** Chế độ chọn nhiều: giá trị đang bật. Mảng rỗng = không lọc gì (caller tự hiểu là "tất cả"). */
-  values?: T[];
-  onToggle?: (v: T[]) => void;
   size?: 'xs' | 'sm';
   style?: CSSProperties;
-}) {
-  const multi = !!values && !!onToggle;
+} & SegmentedMode<T>) {
   const padding = size === 'xs' ? '1px 6px' : '2px 7px';
   const fontSize = size === 'xs' ? 9 : 10;
   return (
     <span data-comp="ui.Segmented" style={{ display: 'inline-flex', gap: 3, ...style }}>
       {options.map((opt) => {
-        const active = multi ? values!.includes(opt.value) : opt.value === value;
+        const active = values ? values.includes(opt.value) : opt.value === value;
         return (
           <button
             key={String(opt.value)}
             type="button"
             title={opt.title}
-            onClick={() => (multi
-              ? onToggle!(active ? values!.filter((v) => v !== opt.value) : [...values!, opt.value])
+            onClick={() => (values && onToggle
+              ? onToggle(active ? values.filter((v) => v !== opt.value) : [...values, opt.value])
               : onChange?.(opt.value))}
             style={{
               padding,

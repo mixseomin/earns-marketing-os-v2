@@ -33,8 +33,9 @@ export interface NetworkPayout {
   docUrl: string | null;
 }
 
-// Verified 2026-08-14. Awin/CJ/Impact positions come from their APIs on that date; the rest have
-// no API credential in the vault, so their position is unknown until someone opens the dashboard.
+// Terms verified 2026-08-14. Positions: Awin + CJ kéo lại 2026-08-15 (đường lấy số giờ nằm trong
+// lib/revenue/networks.ts, dùng chung với lịch doanh thu); Impact 2026-08-14. Các net còn lại không
+// có credential API trong vault nên vị thế là CHƯA BIẾT — ô để trống, không phải 0.
 export const NETWORK_PAYOUTS: NetworkPayout[] = [
   {
     key: 'awin', label: 'Awin',
@@ -42,8 +43,8 @@ export const NETWORK_PAYOUTS: NetworkPayout[] = [
     schedule: '2 lần/tháng — chốt ngày 15 và ngày cuối tháng',
     methods: null,
     earnedUsd: 0, pendingCount: 0,
-    positionNote: '0 transaction từ 03/2025 → 08/2026 (quét theo từng tháng qua /transactions)',
-    source: 'docs', positionSource: 'api', checkedAt: '2026-08-14',
+    positionNote: '0 transaction từ 03/2025 → 08/2026, quét lại 15/08 vẫn rỗng (theo từng cửa sổ 31 ngày qua /transactions)',
+    source: 'docs', positionSource: 'api', checkedAt: '2026-08-15',
     docUrl: 'https://www.awin.com/us/news-and-events/publisher-training/understanding-the-payment-process',
   },
   {
@@ -52,8 +53,8 @@ export const NETWORK_PAYOUTS: NetworkPayout[] = [
     schedule: 'Hàng tháng, net-20 (trả ~20 ngày sau khi hết tháng phát sinh)',
     methods: 'Direct deposit · cheque',
     earnedUsd: 19.75, pendingCount: 1,
-    positionNote: '1 commission Trip.com (Global), trạng thái "new" — chưa khoá, chưa trả',
-    source: 'docs', positionSource: 'api', checkedAt: '2026-08-14',
+    positionNote: '1 commission Trip.com (Global) 14/08: sale $790.15 → $19.75, trạng thái "new" (locking-date 9999-12-31 = chưa khoá, chưa trả). Đọc bằng commission-detail v3 — GraphQL publisherCommissions trả 0 dù cùng token.',
+    source: 'docs', positionSource: 'api', checkedAt: '2026-08-15',
     docUrl: 'https://junction.cj.com/article/cookie-dough-understanding-publisher-payment-cycle',
   },
   {

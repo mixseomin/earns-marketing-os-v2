@@ -33,7 +33,14 @@ export interface CommunityRow {
   // SỐ ĐO từ lần khảo gần nhất (habitats.scraped_meta). Chữ tả thì mỗi người đọc một kiểu và không
   // so sánh được nhóm nào hơn nhóm nào; số thì sắp xếp được và lần khảo sau đối chiếu thấy ngay.
   surveyedAt: string | null;
-  medReactions: number | null;        // trung vị cảm xúc/bài
+  // HAI luồng, thiếu luồng nào cũng kết luận sai: bài MỚI NHẤT (nhóm còn ai ngó không) và bài đang
+  // được đẩy lên đầu feed (trần tương tác của nhóm — bài hợp trend ăn tới đâu).
+  newMedRx: number | null;            // trung vị cảm xúc trên bài MỚI
+  trendMedRx: number | null;          // trung vị cảm xúc trên bài TREND
+  trendMaxRx: number | null;          // bài ăn nhất trong mẫu
+  measuredTrend: number | null;       // đo được mấy bài — 0 nghĩa là ĐỌC HỎNG, không phải nhóm chết
+  sampleTrend: number | null;
+  medReactions: number | null;        // trung vị cảm xúc/bài (= luồng TREND)
   medComments: number | null;         // trung vị bình luận/bài
   pctPhoto: number | null;            // % bài có ảnh
   pctVideo: number | null;
@@ -42,8 +49,7 @@ export interface CommunityRow {
   newestAgeH: number | null;          // bài mới nhất cách đây bao nhiêu GIỜ — dấu hiệu nhóm còn ai đăng không
   postsPerDay: number | null;         // suy từ mốc thời gian của các bài mới nhất
   // Kiểu bài nhóm ĐANG đăng, theo đúng mã FORMATS của hệ thống (photo|short|text|link…) → khớp thẳng
-  // với tag format: của bài mình xếp vào nhóm đó. Tương tác thật ~0 nên không dùng nó để xếp hạng
-  // kiểu; tỉ lệ dạng bài mới là thứ tách được.
+  // với tag format: của bài mình xếp vào nhóm đó.
   dominantFormat: string | null;
   formatShare: Array<{ format: string; pct: number }>;
   activity: string;
@@ -149,6 +155,8 @@ export async function listCommunities(projectId?: string): Promise<CommunityRow[
         const m = (h.scraped_meta ?? {}) as Record<string, unknown>;
         const num = (k: string) => (m[k] == null ? null : Number(m[k]));
         return { surveyedAt: m.surveyedAt ? String(m.surveyedAt).slice(0, 10) : null,
+          newMedRx: num('newMedRx'), trendMedRx: num('trendMedRx'), trendMaxRx: num('trendMaxRx'),
+          measuredTrend: num('measuredTrend'), sampleTrend: num('sampleTrend'),
           medReactions: num('medReactions'), medComments: num('medComments'),
           pctPhoto: num('pctPhoto'), pctVideo: num('pctVideo'),
           engPerMille: num('engPerMille'), sampleSize: num('sampleSize'),

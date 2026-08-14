@@ -206,8 +206,12 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
               : `bài mới nhất cách đây ${r.newestAgeH}h · ${r.postsPerDay ?? '?'} bài/ngày · tương tác trung vị ${(r.medReactions ?? 0) + (r.medComments ?? 0)}/bài`,
             cell: (r) => {
               if (r.newestAgeH == null) return <span style={dim}>chưa khảo</span>;
-              const tuongTac = (r.medReactions ?? 0) + (r.medComments ?? 0);
+              // Đo hỏng thì phải NÓI LÀ ĐO HỎNG. Trước đây không đọc được số nào cũng ra "ko ai xem"
+              // → nhóm 78K bài 203 like bị ghi thành chết.
+              if (r.measuredTrend === 0) return <span style={pill('#8b8b8b')}>chưa đo được</span>;
+              const tuongTac = r.trendMedRx ?? r.medReactions ?? 0;
               const s = r.newestAgeH > 72 ? { t: 'bỏ hoang', c: '#ef4444' }
+                : tuongTac >= 20 ? { t: 'sống khoẻ', c: '#22c55e' }
                 : tuongTac >= 5 ? { t: 'sống', c: '#22c55e' }
                 : tuongTac >= 1 ? { t: 'lay lắt', c: '#ffb03c' }
                 : { t: 'đăng nhưng ko ai xem', c: '#ef4444' };
@@ -227,8 +231,16 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
             cellTitle: (r) => r.engPerMille == null ? 'chưa khảo' : `(cảm xúc + bình luận) trung vị trên 1.000 thành viên · mẫu ${r.sampleSize} bài, khảo ${r.surveyedAt}`,
             cell: (r) => r.engPerMille == null ? <span style={dim}>chưa khảo</span>
               : <span style={{ color: r.engPerMille >= 1 ? '#22c55e' : r.engPerMille >= 0.1 ? '#ffb03c' : '#ef4444' }}>{r.engPerMille.toFixed(2)}</span> },
-          { group: 'do', key: 'rct', header: 'Cảm xúc/bài', width: 96, sortValue: (r) => r.medReactions,
-            cell: (r) => (r.medReactions == null ? <span style={dim}>—</span> : r.medReactions) },
+          // Hai luồng riêng: bài MỚI đo "còn ai ngó không", bài TREND đo "trần của nhóm tới đâu".
+          // Gộp một số là mất cả hai nghĩa.
+          { group: 'do', key: 'rxmoi', header: 'Cảm xúc · bài mới', width: 120, sortValue: (r) => r.newMedRx,
+            cellTitle: () => 'trung vị cảm xúc trên các bài MỚI NHẤT (feed theo thời gian)',
+            cell: (r) => (r.newMedRx == null ? <span style={dim}>—</span> : r.newMedRx) },
+          { group: 'do', key: 'rxtop', header: 'Cảm xúc · bài trend', width: 128, sortValue: (r) => r.trendMedRx,
+            cellTitle: (r) => r.trendMedRx == null ? 'chưa đo được'
+              : `trung vị trên bài feed đẩy lên đầu · cao nhất trong mẫu ${r.trendMaxRx} · đo được ${r.measuredTrend}/${r.sampleTrend} bài`,
+            cell: (r) => (r.trendMedRx == null ? <span style={dim}>—</span>
+              : <span>{r.trendMedRx}{r.trendMaxRx != null && <span style={{ color: 'var(--fg-3)' }}> · đỉnh {r.trendMaxRx}</span>}</span>) },
           { group: 'do', key: 'cmt', header: 'Bình luận/bài', width: 104, sortValue: (r) => r.medComments,
             cell: (r) => (r.medComments == null ? <span style={dim}>—</span> : r.medComments) },
           { group: 'do', key: 'pic', header: 'Bài có ảnh', width: 94, sortValue: (r) => r.pctPhoto,

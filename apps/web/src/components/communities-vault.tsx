@@ -225,7 +225,11 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
               if (r.blocked) return <span style={pill('#8b8b8b')} title={r.blocked}>chưa đo được</span>;
               const rx = r.trendMedRx ?? r.medReactions;
               if (rx == null && r.newestAgeH == null) return <span style={dim}>chưa khảo</span>;
-              if (rx == null) return <span style={pill('#8b8b8b')}>chưa đo được</span>;
+              // Đo qua RSS thì biết NHỊP ĐĂNG mà không biết tương tác. "Còn đăng" ≠ "có người xem" —
+              // nói đúng cái mình đo được, đừng nâng lên thành sống khoẻ.
+              if (rx == null) return r.newestAgeH! > 72
+                ? <span style={pill('#ef4444')} title="bài mới nhất đã quá 3 ngày">bỏ hoang</span>
+                : <span style={pill('#8b8b8b')} title="mới đo được nhịp đăng (RSS), chưa đo tương tác">còn đăng</span>;
               const s = (r.newestAgeH != null && r.newestAgeH > 72) ? { t: 'bỏ hoang', c: '#ef4444' }
                 : rx >= 20 ? { t: 'sống khoẻ', c: '#22c55e' }
                 : rx >= 5 ? { t: 'sống', c: '#22c55e' }

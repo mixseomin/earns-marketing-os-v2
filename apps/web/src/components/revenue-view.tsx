@@ -69,7 +69,7 @@ export function RevenueView({ summary, scope = 'all', projectName, gumroad, byDa
 
       {byDay && (
         <Section title="Lịch doanh thu · mọi nguồn" subtitle="AdSense · Sản phẩm/Affiliate · Gumroad">
-          <RevenueCalendar rows={byDay.rows} errors={byDay.errors} />
+          <RevenueCalendar rows={byDay.rows} errors={byDay.errors} scannedNetworks={byDay.scannedNetworks} />
         </Section>
       )}
 

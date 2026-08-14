@@ -25,7 +25,7 @@ export default async function PortfolioPage() {
         subtitle="30 ngày gần nhất · AdSense · Sản phẩm · Gumroad · Affiliate network"
         headerRight={<Link href="/revenue" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none' }}>Lịch chi tiết →</Link>}
       >
-        <RevenueCalendar rows={byDay.rows} errors={byDay.errors} />
+        <RevenueCalendar rows={byDay.rows} errors={byDay.errors} scannedNetworks={byDay.scannedNetworks} />
       </Section>
 
       <PortfolioView projects={projects} />

@@ -15,7 +15,7 @@ assert.ok(w.every(([s, e]) => (Date.parse(e) - Date.parse(s)) / 86400000 <= 31))
 const xml = `<?xml version="1.0" encoding="UTF-8"?><cj-api><commissions total-matched="1"><commission><action-status>new</action-status><action-type>sale</action-type><aid>15534820</aid><commission-id>3849384227</commission-id><country>VN</country><event-date>2026-08-14T07:27:35-0700</event-date><locking-date>9999-12-31</locking-date><order-id>1359047614952677</order-id><posting-date>2026-08-14T08:32:46-0700</posting-date><advertiser-name>Trip.com (Global)</advertiser-name><commission-amount>19.75</commission-amount><sale-amount>790.15</sale-amount></commission></commissions></cj-api>`;
 const cj = parseCj(xml);
 assert.equal(cj.length, 1);
-assert.deepEqual({ ...cj[0] }, { id: '3849384227', date: '2026-08-14', source: 'affiliate', channel: 'cj · Trip.com (Global)', amount: 19.75, gross: 790.15 });
+assert.deepEqual({ ...cj[0] }, { id: '3849384227', date: '2026-08-14', source: 'affiliate', group: 'cj', channel: 'Trip.com (Global)', amount: 19.75, gross: 790.15 });
 assert.equal(xmlTag(xml, 'action-status'), 'new');
 assert.equal(parseCj('<commissions></commissions>').length, 0);
 
@@ -26,7 +26,7 @@ const a = parseAwin([
   { id: 3, transactionDate: '2026-08-12T00:00:00', transactionStatus: 'approved', advertiserName: 'K', commissionAmount: { amount: 5, currency: 'CZK' } },
 ]);
 assert.equal(a.rows.length, 1);
-assert.deepEqual({ ...a.rows[0] }, { id: '1', date: '2026-08-10', source: 'affiliate', channel: 'awin · M', amount: 3, gross: 30 });
+assert.deepEqual({ ...a.rows[0] }, { id: '1', date: '2026-08-10', source: 'affiliate', group: 'awin', channel: 'M', amount: 3, gross: 30 });
 assert.deepEqual([...a.skipped], ['CZK']);
 assert.equal(parseAwin([]).rows.length, 0);
 

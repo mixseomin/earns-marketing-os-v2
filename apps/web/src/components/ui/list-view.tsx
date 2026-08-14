@@ -96,17 +96,23 @@ export function ListToolbar({ children, search, onSearch, searchPlaceholder, sea
 }
 
 // ── FilterChips ──────────────────────────────────────────────────────────────────────────────
-// Single-select chip group with a count on each option — the standard "all / awin / cj / …" filter.
+// Chip group with a count on each option — the standard "all / awin / cj / …" filter.
 // Wraps Segmented so the active chip is the screen's ONE accent and the rest stay neutral (YDNI).
 // `counts` is optional; when given, each chip shows `label n`.
+//
+// Chọn NHIỀU: truyền `values` + `onToggle` thay cho `value` + `onChange` (mảng rỗng = không lọc).
 export interface ChipOption<T extends string> { value: T; label: string; title?: string }
-export function FilterChips<T extends string>({ options, value, onChange, counts }: {
-  options: ChipOption<T>[]; value: T; onChange: (v: T) => void; counts?: Partial<Record<T, number>>;
+export function FilterChips<T extends string>({ options, value, onChange, values, onToggle, counts }: {
+  options: ChipOption<T>[]; counts?: Partial<Record<T, number>>;
+  value?: T; onChange?: (v: T) => void;
+  values?: T[]; onToggle?: (v: T[]) => void;
 }) {
   return (
     <Segmented
       value={value}
       onChange={onChange}
+      values={values}
+      onToggle={onToggle}
       options={options.map((o) => ({
         value: o.value,
         title: o.title,   // hover explanation per chip (Segmented renders it) — don't drop tooltips on migrate

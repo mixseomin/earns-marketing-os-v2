@@ -12,14 +12,17 @@
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { gumroadTokens } from '@/lib/gumroad/products';
-import { networkRows } from './networks';
+import { networkRows, SCANNED_NETWORKS } from './networks';
 
 export type RevenueSource = 'adsense' | 'product' | 'gumroad' | 'affiliate';
 
 export interface RevenueDayRow {
   date: string;            // YYYY-MM-DD
   source: RevenueSource;
-  channel: string;         // adsense: domain · product: platform · gumroad: tên sản phẩm
+  channel: string;         // adsense: domain · product: platform · gumroad: tên sản phẩm · affiliate: merchant
+  /** Bậc GIỮA source và channel, để bóc tách một nguồn ra: affiliate → network (awin/cj). Bỏ trống
+   *  thì chính channel là bậc đó (adsense/product/gumroad không có tầng nào ở giữa). */
+  group?: string;
   amount: number;          // USD THỰC NHẬN (hoa hồng/net) — đây mới là tiền vào túi
   /** Doanh số gốc: khách tiêu / giá bán trước khi chia. Affiliate 20% thì gross = 5× amount. */
   gross?: number;
@@ -28,6 +31,8 @@ export interface RevenueDayRow {
 export interface RevenueByDay {
   rows: RevenueDayRow[];
   errors: string[];        // nguồn nào lỗi thì nói ra, KHÔNG im lặng trả 0
+  /** Network affiliate đã quét trong lượt này — để bộ lọc hiện được cả net kiếm $0. */
+  scannedNetworks: string[];
 }
 
 /** "Toàn bộ" = 10 năm; đủ xa để không cắt mất dữ liệu nào mà vẫn là một con số. */
@@ -54,6 +59,7 @@ export async function getRevenueByDay(sinceDays = 120): Promise<RevenueByDay> {
   return {
     rows: parts.flatMap((p) => p.rows),
     errors: parts.map((p) => ('error' in p ? p.error : undefined)).filter((x): x is string => !!x),
+    scannedNetworks: [...SCANNED_NETWORKS],
   };
 }
 

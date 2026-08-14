@@ -28,6 +28,9 @@ const CHUNK_DAYS = 31;
 const MAX_CHUNKS = 13;
 
 export interface NetworkPart { rows: RevenueDayRow[]; error?: string }
+/** Network nào ĐÃ hỏi API thật trong lượt này — kể cả khi nó trả về 0 giao dịch. Bộ lọc cần biết:
+ *  "awin $0.00" là đã kiểm và không có tiền, khác hẳn với awin biến mất khỏi màn hình. */
+export const SCANNED_NETWORKS = ['awin', 'cj'] as const;
 
 const ymd = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
@@ -66,8 +69,8 @@ export function parseCj(xml: string): Array<RevenueDayRow & { id: string }> {
     const id = xmlTag(b, 'commission-id');
     if (!date || !Number.isFinite(amount) || amount === 0) continue;
     out.push({
-      id, date, source: 'affiliate',
-      channel: `cj · ${xmlTag(b, 'advertiser-name') || 'unknown'}`,
+      id, date, source: 'affiliate', group: 'cj',
+      channel: xmlTag(b, 'advertiser-name') || 'unknown',
       // v3 trả số theo đơn vị tiền của TÀI KHOẢN publisher; tài khoản này để USD (ngưỡng rút
       // $50/$100, balance CJ báo bằng $). Đổi tài khoản sang tiền khác thì phải quy đổi ở đây.
       amount,
@@ -102,8 +105,8 @@ export function parseAwin(txns: AwinTxn[]): { rows: Array<RevenueDayRow & { id: 
     const cur = (t.commissionAmount?.currency ?? 'USD').toUpperCase();
     if (cur !== 'USD') { skipped.add(cur); continue; }
     rows.push({
-      id: String(t.id ?? `${date}-${amount}`), date, source: 'affiliate',
-      channel: `awin · ${t.advertiserName || 'unknown'}`,
+      id: String(t.id ?? `${date}-${amount}`), date, source: 'affiliate', group: 'awin',
+      channel: t.advertiserName || 'unknown',
       amount, gross: Number(t.saleAmount?.amount) || amount,
     });
   }

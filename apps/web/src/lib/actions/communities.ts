@@ -41,6 +41,11 @@ export interface CommunityRow {
   sampleSize: number | null;
   newestAgeH: number | null;          // bài mới nhất cách đây bao nhiêu GIỜ — dấu hiệu nhóm còn ai đăng không
   postsPerDay: number | null;         // suy từ mốc thời gian của các bài mới nhất
+  // Kiểu bài nhóm ĐANG đăng, theo đúng mã FORMATS của hệ thống (photo|short|text|link…) → khớp thẳng
+  // với tag format: của bài mình xếp vào nhóm đó. Tương tác thật ~0 nên không dùng nó để xếp hạng
+  // kiểu; tỉ lệ dạng bài mới là thứ tách được.
+  dominantFormat: string | null;
+  formatShare: Array<{ format: string; pct: number }>;
   activity: string;
   language: string;
   bestPostTimes: string;
@@ -147,7 +152,9 @@ export async function listCommunities(projectId?: string): Promise<CommunityRow[
           medReactions: num('medReactions'), medComments: num('medComments'),
           pctPhoto: num('pctPhoto'), pctVideo: num('pctVideo'),
           engPerMille: num('engPerMille'), sampleSize: num('sampleSize'),
-          newestAgeH: num('newestAgeH'), postsPerDay: num('postsPerDay') };
+          newestAgeH: num('newestAgeH'), postsPerDay: num('postsPerDay'),
+          dominantFormat: m.dominantFormat ? String(m.dominantFormat) : null,
+          formatShare: Array.isArray(m.formatShare) ? (m.formatShare as Array<{ format: string; pct: number }>) : [] };
       })(),
       bestPostTimes: String(h.best_post_times),
       dominantTopics: Array.isArray(h.dominant_topics) ? (h.dominant_topics as string[]).map(String) : [],

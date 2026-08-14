@@ -203,6 +203,11 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
               : r.newestAgeH < 1 ? '<1h' : r.newestAgeH < 48 ? `${r.newestAgeH}h` : `${Math.round(r.newestAgeH / 24)}d`) },
           { group: 'do', key: 'nhipngay', header: 'Bài/ngày', width: 86, sortValue: (r) => r.postsPerDay,
             cell: (r) => (r.postsPerDay == null ? <span style={dim}>—</span> : r.postsPerDay) },
+          { group: 'do', key: 'kieu', header: 'Nhóm đăng kiểu gì', align: 'left', width: 190,
+            sortValue: (r) => r.dominantFormat,
+            cellTitle: (r) => r.formatShare.map((f) => `${f.format} ${f.pct}%`).join(' · ') || 'chưa khảo',
+            cell: (r) => (!r.formatShare.length ? <span style={dim}>chưa khảo</span>
+              : <span>{r.formatShare.slice(0, 3).map((f) => `${f.format} ${f.pct}%`).join(' · ')}</span>) },
           { group: 'do', key: 'eng', header: 'Tương tác/1K TV', width: 116, sortValue: (r) => r.engPerMille,
             cellTitle: (r) => r.engPerMille == null ? 'chưa khảo' : `(cảm xúc + bình luận) trung vị trên 1.000 thành viên · mẫu ${r.sampleSize} bài, khảo ${r.surveyedAt}`,
             cell: (r) => r.engPerMille == null ? <span style={dim}>chưa khảo</span>

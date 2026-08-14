@@ -3632,13 +3632,16 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
 function CommunityPlan({ pieces, projectId, current, onPick }: {
   pieces: CalPiece[]; projectId: string; current: string; onPick: (place: string) => void;
 }) {
-  const [meta, setMeta] = useState<Record<string, { name: string; members: number; rules: boolean }>>({});
+  const [meta, setMeta] = useState<Record<string, { name: string; members: number; rules: boolean;
+    dominantFormat: string | null; formatShare: Array<{ format: string; pct: number }>; newestAgeH: number | null }>>({});
   useEffect(() => {
     let live = true;
     import('@/lib/actions/communities').then((m) => m.listCommunities(projectId)).then((rows) => {
       if (!live) return;
-      const map: Record<string, { name: string; members: number; rules: boolean }> = {};
-      for (const r of rows) if (r.url) map[r.url] = { name: r.name, members: r.members, rules: !!r.postingRules.trim() };
+      const map: Record<string, { name: string; members: number; rules: boolean;
+        dominantFormat: string | null; formatShare: Array<{ format: string; pct: number }>; newestAgeH: number | null }> = {};
+      for (const r of rows) if (r.url) map[r.url] = { name: r.name, members: r.members, rules: !!r.postingRules.trim(),
+        dominantFormat: r.dominantFormat, formatShare: r.formatShare, newestAgeH: r.newestAgeH };
       setMeta(map);
     }).catch(() => { /* không có cũng không sao — nhãn rơi về URL */ });
     return () => { live = false; };
@@ -3667,6 +3670,14 @@ function CommunityPlan({ pieces, projectId, current, onPick }: {
         // Nhịp chỉ có nghĩa khi có đủ bài trên quãng đủ dài. 2 bài cách nhau 1 ngày mà in "14
         // bài/tuần" là con số bịa ra từ phép chia, đọc xong hiểu sai là nhóm đang bị dội bom.
         moiTuan: ps.length >= 3 && spanDays >= 7 ? Number((ps.length / (spanDays / 7)).toFixed(1)) : null,
+        // Kiểu bài MÌNH đang xếp vào đây, theo cùng bảng mã FORMATS mà khảo sát dùng → so trực tiếp.
+        cuaMinh: (() => {
+          const c = new Map<string, number>();
+          for (const x of ps) { const f = tagVal(x.tags, 'format') || 'text'; c.set(f, (c.get(f) ?? 0) + 1); }
+          return [...c.entries()].sort((a, b) => b[1] - a[1]).map(([f, n]) => ({ f, n }));
+        })(),
+        nhomDang: meta[place]?.formatShare ?? [],
+        nhomChuYeu: meta[place]?.dominantFormat ?? null,
         nhap: ps.filter((p) => p.status === 'draft').length,
       };
     }).sort((a, b) => b.tong - a.tong);
@@ -3698,6 +3709,23 @@ function CommunityPlan({ pieces, projectId, current, onPick }: {
             cell: (r: Row) => (r.moiTuan == null
               ? <span style={{ color: 'var(--fg-4)' }} title="chưa đủ bài/quãng để nói được nhịp">—</span>
               : <span style={{ color: r.moiTuan > 7 ? 'var(--bad)' : r.moiTuan > 3.5 ? 'var(--warn)' : 'var(--fg-2)' }}>{r.moiTuan}</span>) },
+          // Đây là chỗ số đo gặp kế hoạch: nhóm đang đăng kiểu gì vs mình định đăng kiểu gì.
+          { key: 'khop', header: 'Khớp kiểu bài', align: 'left', width: 210,
+            sortValue: (r: Row) => (!r.nhomChuYeu ? null : r.cuaMinh[0]?.f === r.nhomChuYeu ? 1 : 0),
+            cellTitle: (r: Row) => !r.nhomChuYeu ? 'nhóm này chưa khảo — chưa biết người ta đăng kiểu gì'
+              : `nhóm: ${r.nhomDang.map((x) => `${x.format} ${x.pct}%`).join(' · ')} · mình: ${r.cuaMinh.map((x) => `${x.f} ${x.n}`).join(' · ')}`,
+            cell: (r: Row) => {
+              if (!r.nhomChuYeu) return <span style={{ color: 'var(--fg-4)' }}>chưa khảo</span>;
+              const cua = r.cuaMinh[0]?.f ?? '—';
+              const khop = cua === r.nhomChuYeu;
+              return (
+                <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <span style={{ color: khop ? 'var(--ok)' : 'var(--warn)' }}>{khop ? '✓' : '≠'}</span>
+                  <span style={{ color: 'var(--fg-3)' }}>nhóm {r.nhomChuYeu}</span>
+                  <span style={{ color: 'var(--fg-4)' }}>/</span>
+                  <span style={{ color: khop ? 'var(--fg-2)' : 'var(--warn)' }}>mình {cua}</span>
+                </span>);
+            } },
           { key: 'toi', header: 'Bài kế', width: 96, sortValue: (r: Row) => r.toi,
             cell: (r: Row) => r.toi ?? <span style={{ color: 'var(--fg-4)' }}>hết lịch</span> },
           { key: 'nhap', header: 'Còn nháp', width: 82, sortValue: (r: Row) => r.nhap || null,

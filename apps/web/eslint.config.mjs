@@ -36,6 +36,14 @@ const GROUPS = {
   rawSelect: [
     { selector: "JSXOpeningElement[name.name='select']", message: 'Cấm <select> trần. Dùng <MultiSelect> (filter, có search+count), <Segmented> (1-of-N ngắn) hoặc <EntityPicker>. ui-conventions.md.' },
   ],
+  // Cắt trang NGOÀI <DataTable>. Bảng có ô tìm + LỌC THEO CỘT của riêng nó, nên đưa vào một trang đã
+  // cắt sẵn thì bộ lọc chỉ ăn trên trang đang mở: thân bảng rỗng mà thanh trang vẫn ghi "51-75 / 159"
+  // (sự cố /communities 14/08 — sửa tay 1 trang xong trang khác lại dính). Đúng: đưa ĐỦ rows +
+  // pageSize={N}; server cắt trang thật (offers) thì khai sliced.
+  pagedOutside: [
+    { selector: "JSXAttribute[name.name='rows'][value.expression.property.name='pageItems']", message: 'Cấm cắt trang ngoài <DataTable>: lọc-cột của bảng sẽ chỉ ăn trên trang đang mở. Truyền đủ rows + pageSize={N} (hoặc sliced nếu server cắt trang).' },
+    { selector: "JSXAttribute[name.name='rows'][value.expression.name='pageItems']", message: 'Cấm cắt trang ngoài <DataTable>: lọc-cột của bảng sẽ chỉ ăn trên trang đang mở. Truyền đủ rows + pageSize={N} (hoặc sliced nếu server cắt trang).' },
+  ],
   // Định nghĩa entity chip/link CỤC BỘ → buộc import <EntityRef>. (Low false-positive: chỉ 1 tập tên.)
   entityDef: [
     { selector: `FunctionDeclaration[id.name=${ENTITY_NAMES}]`, message: 'Cấm định nghĩa entity chip/link cục bộ. Import <EntityRef>. ui-conventions §4.' },

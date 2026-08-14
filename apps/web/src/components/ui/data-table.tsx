@@ -410,7 +410,7 @@ export function DataTable<T>({
                 // Header kiểu Adminer: hover tên cột → hiện 2 nút (sắp xếp + lọc). Mũi tên sort chỉ hiện khi
                 // đang bật; cột đang lọc có cờ ⚑. Nút nằm trong .dt-th-actions (CSS ẩn, hover mới hiện).
                 return (
-                  <th key={c.key} className="dt-th" style={{ ...headStyle(c, ci), position: 'relative', userSelect: 'none' }} title={c.title}>
+                  <th key={c.key} className="dt-th" style={{ ...headStyle(c, ci), userSelect: 'none' }}   /* KHÔNG đặt position ở đây: headStyle đang cho sticky (ghim tiêu đề + cột đầu), ghi relative sau spread là vứt sạch. sticky cũng làm mốc cho .dt-th-actions như relative. */ title={c.title}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, maxWidth: '100%' }}>
                       <span className="dt-th-name" onClick={ts ? ts.onClick : undefined}
                             title={sortable ? `${c.title ? c.title + ' · ' : ''}bấm để sắp xếp (↑/↓/tắt) · Shift+bấm = thêm cột phụ` : undefined}

@@ -29,6 +29,7 @@ export default async function OffersRoute({ searchParams }: { searchParams: Prom
     gap: one(sp.gap, 'all'),
     recurring: one(sp.recurring, 'all'),
     paid: one(sp.paid, 'all'),
+    cash: one(sp.cash, 'all'),
     sort: one(sp.sort),
     page: Math.max(0, Number(one(sp.page, '1')) - 1) || 0,   // URL is 1-based, view is 0-based
   };

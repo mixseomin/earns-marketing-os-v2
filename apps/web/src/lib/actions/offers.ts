@@ -101,6 +101,17 @@ export interface AffiliateOffer {
   // backfilled) and for direct offers added by hand.
   createdAt: string;
   approvedAt: string | null;
+  // ── Cash-flow: what a media buyer actually risks. Payout alone lies; these three say how much
+  // of it survives and when it turns into money. Populated where the network exposes it (Awin
+  // gives all three, and only for programmes we have JOINED).
+  approvalPct: number | null;   // % of tracked conversions the advertiser validates. 25% = 75% of revenue evaporates.
+  holdDays: number | null;      // days pending before validation
+  paymentDays: number | null;   // observed conversion → cash. 318 days exists in this data.
+  cashDays: number | null;      // the one number to sort on: paymentDays, else holdDays
+  aovUsd: number | null;        // average order value, USD — what turns "8%" into dollars
+  netPayoutUsd: number | null;  // payoutUsd × approvalPct — expected money per conversion, post-shrink
+  subidScheme: string | null;   // tracking params this network accepts (clickref, sid, subId1…)
+  trackingCaps: string[];       // 's2s' = postback available (→ CAPI loop) · 'deeplink' = deep links allowed
 }
 
 type Row = {
@@ -131,6 +142,18 @@ type Row = {
   currency: string | null;
   created_at: string;
   approved_at: string | null;
+  approval_pct: number | string | null;   // Directus returns numerics as strings
+  hold_days: number | null;
+  payment_days: number | null;
+  aov_usd: number | string | null;
+  subid_scheme: string | null;
+  tracking_caps: string | null;
+};
+
+const num = (v: number | string | null | undefined): number | null => {
+  if (v == null || v === '') return null;
+  const n = typeof v === 'number' ? v : parseFloat(v);
+  return isFinite(n) ? n : null;
 };
 
 // Strip the qualifiers a network tacks onto the merchant name so the SAME merchant lines up across
@@ -196,9 +219,26 @@ function payoutUsdOf(rate: string | null, currency: string | null): number | nul
   return +(num * mul).toFixed(2);
 }
 
+// "15-20%" → 17.5 · "5%" → 5 · "3-10% + $20" → 6.5 (the % part only). null when there's no %.
+function pctOf(rate: string | null): number | null {
+  if (!rate) return null;
+  const nums = (rate.match(/(\d+(?:[.,]\d+)?)\s*%/g) ?? []).map((s) => parseFloat(s.replace(',', '.')));
+  if (!nums.length) return null;
+  const v = (Math.min(...nums) + Math.max(...nums)) / 2;
+  return isFinite(v) && v > 0 ? v : null;
+}
+
+// A % offer becomes real money once we know the order value: payout = AOV × rate. aov_usd is
+// already in USD (the loader converted from the merchant's currency), so no second conversion here.
+function payoutFromAov(rate: string | null, aovUsd: number | null): number | null {
+  const pct = pctOf(rate);
+  if (pct == null || !aovUsd) return null;
+  return +((aovUsd * pct) / 100).toFixed(2);
+}
+
 // NB: `notes` deliberately excluded — see the PERF note above. Lazy-loaded via getOfferNote.
 // The terms columns are short text and null on ~99% of rows → negligible payload.
-const LIST_FIELDS = 'id,account_id,name,network,status,vertical,affiliate_url,preview_url,promote_url,panel_url,target_geo,traffic_sources,tags,product_type,commission_rate,commission_model,commission_time,cookie_lifetime,promotion_policy,reward_details,payout_threshold,payout_methods,epc,conversion_rate,currency,created_at,approved_at';
+const LIST_FIELDS = 'approval_pct,hold_days,payment_days,aov_usd,subid_scheme,tracking_caps,id,account_id,name,network,status,vertical,affiliate_url,preview_url,promote_url,panel_url,target_geo,traffic_sources,tags,product_type,commission_rate,commission_model,commission_time,cookie_lifetime,promotion_policy,reward_details,payout_threshold,payout_methods,epc,conversion_rate,currency,created_at,approved_at';
 const PAGE_SIZE = 200;
 
 async function fetchPage(page: number): Promise<{ rows: Row[]; total: number }> {
@@ -286,7 +326,6 @@ function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>, mosAcc
     epc: x.epc,
     cvr: x.conversion_rate,
     currency: x.currency,
-    payoutUsd: payoutUsdOf(x.commission_rate, x.currency),
     commission: x.commission_rate,
     model: x.commission_model,
     recurring: x.commission_time,
@@ -304,6 +343,28 @@ function toOffer(x: Row, own: Set<string>, accounts: Map<string, string>, mosAcc
     paidTraffic: paidTrafficOf(x.promotion_policy),
     createdAt: x.created_at,
     approvedAt: x.approved_at,
+    ...cashFlowOf(x),
+  };
+}
+
+// Cash-flow block, kept out of toOffer so the derivations stay readable and testable.
+function cashFlowOf(x: Row) {
+  const approvalPct = num(x.approval_pct);
+  const aovUsd = num(x.aov_usd);
+  const paymentDays = x.payment_days ?? null;
+  const holdDays = x.hold_days ?? null;
+  // Flat payout first (it IS the money); fall back to AOV × % for share-of-sale offers.
+  const payout = payoutUsdOf(x.commission_rate, x.currency) ?? payoutFromAov(x.commission_rate, aovUsd);
+  return {
+    payoutUsd: payout,
+    approvalPct,
+    holdDays,
+    paymentDays,
+    cashDays: paymentDays ?? holdDays,
+    aovUsd,
+    netPayoutUsd: payout != null && approvalPct != null ? +((payout * approvalPct) / 100).toFixed(2) : null,
+    subidScheme: x.subid_scheme,
+    trackingCaps: (x.tracking_caps ?? '').split(',').map((s) => s.trim()).filter(Boolean),
   };
 }
 
@@ -341,7 +402,8 @@ export interface OfferFilters {
   gap: string;         // all | no-terms | no-account | no-link  (what still needs filling in)
   recurring: string;   // all | yes | no
   paid: string;        // all | runnable (PPC not banned) | ok (stated allowed) | ban
-  sort: string;        // '' = approved-first/name | new = mới thêm | approved = mới duyệt
+  cash: string;        // all | fast (<45d) | mid (45-90d) | slow (>90d) — days from conversion to cash
+  sort: string;        // '' = approved-first/name | new = mới thêm | approved = mới duyệt | net = net payout | cash = fastest cash
   page: number;        // 0-based
 }
 
@@ -386,6 +448,11 @@ function matches(o: AffiliateOffer, f: OfferFilters): boolean {
   if (f.paid === 'runnable' && o.paidTraffic === 'ban') return false;
   if (f.paid === 'paid-ok' && o.paidTraffic !== 'ok') return false;
   if (f.paid === 'paid-ban' && o.paidTraffic !== 'ban') return false;
+  // Cash cycle. Unknown is NOT lumped with fast — paying for traffic against an unknown payment
+  // term is the same bet as a slow one until the network says otherwise.
+  if (f.cash === 'fast' && !(o.cashDays != null && o.cashDays < 45)) return false;
+  if (f.cash === 'mid' && !(o.cashDays != null && o.cashDays >= 45 && o.cashDays <= 90)) return false;
+  if (f.cash === 'slow' && !(o.cashDays != null && o.cashDays > 90)) return false;
   if (f.q) {
     const t = f.q.toLowerCase();
     const hay = [o.name, o.brand, o.network, o.vertical, o.account, o.commission, o.policy, o.reward, ...o.tags];
@@ -422,9 +489,15 @@ export async function getOffersView(f: OfferFilters): Promise<OffersView> {
   // Sort: default puts usable offers first; the date sorts answer "what's new" (the syncs
   // add ~50 Awin programmes a day, so recency is the only way to see them).
   const desc = (x: string | null, y: string | null) => (y ?? '').localeCompare(x ?? '');
+  // Nulls sort LAST on both money sorts — an offer with no data is not a zero-payout offer,
+  // and it must not sit at the top of "highest net payout".
+  const numDesc = (x: number | null, y: number | null) => (y ?? -Infinity) - (x ?? -Infinity);
+  const numAsc = (x: number | null, y: number | null) => (x ?? Infinity) - (y ?? Infinity);
   const bySort: Record<string, (a: AffiliateOffer, b: AffiliateOffer) => number> = {
     new: (a, b) => desc(a.createdAt, b.createdAt),
     approved: (a, b) => desc(a.approvedAt, b.approvedAt) || desc(a.createdAt, b.createdAt),
+    net: (a, b) => numDesc(a.netPayoutUsd, b.netPayoutUsd) || numDesc(a.payoutUsd, b.payoutUsd),
+    cash: (a, b) => numAsc(a.cashDays, b.cashDays) || numDesc(a.netPayoutUsd, b.netPayoutUsd),
   };
   const hit = all.filter((o) => matches(o, f)).sort(bySort[f.sort]
     ?? ((a, b) => (APPROVED.has(a.status.toLowerCase()) ? 0 : 1) - (APPROVED.has(b.status.toLowerCase()) ? 0 : 1)
@@ -454,6 +527,9 @@ export async function getOffersView(f: OfferFilters): Promise<OffersView> {
       runnable: all.filter((o) => o.paidTraffic !== 'ban').length,
       'paid-ok': all.filter((o) => o.paidTraffic === 'ok').length,
       'paid-ban': all.filter((o) => o.paidTraffic === 'ban').length,
+      fast: all.filter((o) => o.cashDays != null && o.cashDays < 45).length,
+      mid: all.filter((o) => o.cashDays != null && o.cashDays >= 45 && o.cashDays <= 90).length,
+      slow: all.filter((o) => o.cashDays != null && o.cashDays > 90).length,
       new7: all.filter((o) => o.createdAt >= weekAgo).length,
       approved7: all.filter((o) => (o.approvedAt ?? '') >= weekAgo).length,
     },

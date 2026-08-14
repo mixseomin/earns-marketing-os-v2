@@ -82,7 +82,7 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
   const setOne = (k: string) => (v: string) => go((p) => { if (v && v !== 'all') p.set(k, v); else p.delete(k); });
   const setMulti = (k: string) => (v: string[]) => go((p) => { if (v.length) p.set(k, v.join(',')); else p.delete(k); });
   const active = Boolean(filters.q || filters.accounts.length || filters.verticals.length || filters.geos.length
-    || [filters.kind, filters.status, filters.gap, filters.recurring, filters.paid].some((v) => v && v !== 'all'));
+    || [filters.kind, filters.status, filters.gap, filters.recurring, filters.paid, filters.cash].some((v) => v && v !== 'all'));
 
   // Search: type locally (instant), push to the URL after a pause — otherwise every keystroke
   // is a server roundtrip.
@@ -213,6 +213,44 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
           : <span title="Program không nêu rule PPC — không đồng nghĩa được phép" style={dim}>—</span>,
     },
     {
+      // Payout alone oversells an offer. Net = payout × duyệt%, i.e. the money that survives the
+      // advertiser's validation - a 25%-approval program at $100 is really a $25 program.
+      key: 'net', sortValue: (o) => o.netPayoutUsd, group: 'terms', align: 'right', header: 'Net/conv',
+      title: 'Payout × duyệt% = tiền thực nhận mỗi conversion (USD)',
+      cell: (o) => o.netPayoutUsd == null
+        ? <span style={dim}>—</span>
+        : <span title={`payout $${o.payoutUsd} × duyệt ${o.approvalPct}%`}>${o.netPayoutUsd.toLocaleString()}</span>,
+    },
+    {
+      key: 'approval', sortValue: (o) => o.approvalPct, group: 'terms', align: 'right', header: 'Duyệt%',
+      title: 'Tỉ lệ conversion được advertiser duyệt. Thấp = mất doanh thu đã trả tiền ads',
+      cell: (o) => o.approvalPct == null
+        ? <span style={dim}>—</span>
+        : <span style={{ color: o.approvalPct < 60 ? 'var(--danger, #e05c5c)' : undefined }}>{o.approvalPct}%</span>,
+    },
+    {
+      // The axis that decides how hard we can scale: money out today, money back in N days.
+      key: 'cash', sortValue: (o) => o.cashDays, group: 'terms', align: 'right', header: 'Tiền về',
+      title: 'Số ngày từ conversion tới lúc nhận tiền (Awin averagePaymentTime, fallback hold)',
+      cell: (o) => o.cashDays == null
+        ? <span style={dim}>—</span>
+        : <span style={{ color: o.cashDays > 90 ? 'var(--danger, #e05c5c)' : undefined }}>{o.cashDays}d</span>,
+    },
+    {
+      key: 'aov', sortValue: (o) => o.aovUsd, group: 'terms', align: 'right', header: 'AOV',
+      title: 'Giá trị đơn trung bình (USD) — suy từ EPC / (rate × CVR)',
+      cell: (o) => o.aovUsd == null ? <span style={dim}>—</span> : <span>${o.aovUsd.toLocaleString()}</span>,
+    },
+    {
+      key: 'track', sortValue: (o) => o.trackingCaps.join(','), group: 'rules', align: 'center', header: 'Track',
+      title: 's2s = có postback (đẩy được conversion về Google/Meta) · dl = cho deep link',
+      cell: (o) => o.trackingCaps.length
+        ? <span title={`${o.trackingCaps.join(' + ')}${o.subidScheme ? ` · sub-id: ${o.subidScheme}` : ''}`}>
+            {o.trackingCaps.includes('s2s') ? '🔁' : ''}{o.trackingCaps.includes('deeplink') ? '🔗' : ''}
+          </span>
+        : <span style={dim}>—</span>,
+    },
+    {
       key: 'rules', sortValue: (o) => rulesOf(o) ?? null, group: 'rules', align: 'left', header: 'Special rules', title: 'promotion_policy + reward_details',
       cellTitle: (o) => rulesOf(o) ?? undefined,
       cell: (o) => {
@@ -286,7 +324,7 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
 
       {/* Hàng 2 = filter chi tiết: chọn nhiều giá trị (account/vertical/geo) + lọc theo cái CÒN THIẾU. */}
       <ListToolbar right={active
-        ? <button type="button" onClick={() => go((p) => { for (const k of ['q', 'kind', 'status', 'account', 'vertical', 'geo', 'gap', 'recurring', 'paid']) p.delete(k); })}
+        ? <button type="button" onClick={() => go((p) => { for (const k of ['q', 'kind', 'status', 'account', 'vertical', 'geo', 'gap', 'recurring', 'paid', 'cash']) p.delete(k); })}
             style={{ padding: '3px 9px', fontSize: 11, fontFamily: 'var(--font-mono)', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer' }}>
             ✕ bỏ lọc
           </button>
@@ -304,6 +342,14 @@ function OffersInner({ view, filters, accounts }: { view: OffersView; filters: O
             { value: 'runnable', label: 'chạy ads được', title: 'Merchant KHÔNG cấm PPC (gồm cả offer không nêu rule)' },
             { value: 'paid-ok', label: 'PPC ghi rõ OK', title: 'Program nói thẳng là cho chạy paid search' },
             { value: 'paid-ban', label: '⛔ cấm PPC', title: 'Merchant cấm PPC/paid search — đừng mua traffic cho offer này' },
+          ]} />
+        {/* Trục dòng tiền: trả tiền ads hôm nay, tiền về sau bao lâu. Quyết định scale được tới đâu. */}
+        <FilterChips value={filters.cash} onChange={setOne('cash')} counts={counts}
+          options={[
+            { value: 'all', label: 'mọi kỳ hạn' },
+            { value: 'fast', label: 'tiền về <45d', title: 'Vòng vốn nhanh — scale được bằng tiền trả sau của Google/Meta' },
+            { value: 'mid', label: '45-90d' },
+            { value: 'slow', label: '>90d', title: 'Kẹt vốn lâu — payout đẹp mấy cũng chỉ chạy nhỏ' },
           ]} />
         <FilterChips value={filters.recurring} onChange={setOne('recurring')}
           options={[

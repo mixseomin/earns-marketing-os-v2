@@ -41,6 +41,7 @@ export interface CommunityRow {
   joined: number;
   seeds: number;      // live, link-free posts landed = the seed track-record the gate counts
   phaseCounts: Record<string, number>;   // engagement phase → # account đang ở phase đó (micro-bar cột Chỗ đứng)
+  joinCounts: Record<string, number>;    // join_status → # account (đã join / chưa join / chờ duyệt …) — badge màu cột Chỗ đứng
 }
 
 const rows = <T = Record<string, unknown>>(r: unknown): T[] => (r as { rows?: T[] })?.rows ?? (r as T[]) ?? [];
@@ -101,6 +102,18 @@ export async function listCommunities(projectId?: string): Promise<CommunityRow[
     ph.set(hid, m);
   }
 
+  // Phân bố join-status per habitat (đã join / chưa join / chờ duyệt …) — cho badge màu cột Chỗ đứng.
+  const jnRaw = await db.execute(sql`
+    SELECT habitat_id, join_status, count(*)::int AS n
+    FROM community_briefs WHERE habitat_id IN (${idList}) GROUP BY habitat_id, join_status`);
+  const jn = new Map<number, Record<string, number>>();
+  for (const r of rows(jnRaw)) {
+    const hid = Number(r.habitat_id);
+    const m = jn.get(hid) ?? {};
+    m[String(r.join_status ?? 'not_joined')] = Number(r.n);
+    jn.set(hid, m);
+  }
+
   return habs.map((h): CommunityRow => {
     const s = st.get(Number(h.id)) ?? { briefs: 0, joined: 0, seeds: 0 };
     return {
@@ -118,6 +131,7 @@ export async function listCommunities(projectId?: string): Promise<CommunityRow[
       lastSyncAt: h.last_sync_at ? String(h.last_sync_at).slice(0, 10) : null,
       briefs: s.briefs, joined: s.joined, seeds: s.seeds,
       phaseCounts: ph.get(Number(h.id)) ?? {},
+      joinCounts: jn.get(Number(h.id)) ?? {},
     };
   });
 }

@@ -153,7 +153,7 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
               : <span style={dim}>—</span> },
           { key: 'members', header: 'Thành viên', width: 86, sortValue: (r) => r.members || null,
             cell: (r) => (r.members ? fmt(r.members) : <span style={dim}>—</span>) },
-          { key: 'standing', header: 'Chỗ đứng', width: 138, align: 'left', sortValue: (r) => (r.briefs || null),
+          { key: 'standing', header: 'Chỗ đứng', width: 188, align: 'left', sortValue: (r) => (r.joined || null),
             cell: (r) => <EngagedCell row={r} /> },
 
           { group: 'rules', key: 'rulestext', header: 'Luật đăng', align: 'left', width: 300, sortValue: (r) => (r.postingRules ? r.postingRules.length : null),
@@ -243,6 +243,24 @@ function PhaseBar({ counts }: { counts: Record<string, number> }) {
   );
 }
 
+// Join-status ngay trên bảng: icon+số theo màu từng trạng thái (✓ đã join xanh, ○ chưa join xám,
+// ⏳ chờ duyệt vàng, ✗/🚫 đỏ). joined trước để "đã join vs chưa" đọc được ngay. Chỉ hiện trạng thái có account.
+const JOIN_ORDER: JoinStatus[] = ['joined', 'pending', 'not_joined', 'rejected', 'kicked', 'left'];
+function JoinBadges({ counts }: { counts: Record<string, number> }) {
+  const segs = JOIN_ORDER.filter((s) => (counts[s] ?? 0) > 0);
+  if (!segs.length) return null;
+  return (
+    <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>
+      {segs.map((s) => (
+        <span key={s} title={`${JOIN_STATUS_LABEL[s]}: ${counts[s]}`}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 1, color: JOIN_STATUS_COLOR[s], fontWeight: 700, whiteSpace: 'nowrap' }}>
+          {JOIN_STATUS_ICON[s]}{counts[s]}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function EngagedCell({ row }: { row: CommunityRow }) {
   const [hover, setHover] = useState(false);
   const [briefs, setBriefs] = useState<BriefLite[] | null>(null);
@@ -266,6 +284,7 @@ function EngagedCell({ row }: { row: CommunityRow }) {
       title={`${row.joined}/${row.briefs} account đã vào · 🌱${row.seeds} seed sống — rê xem từng account, bấm mở community`}
       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: 'var(--fg-2)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
       <span><span style={{ color: 'var(--fg-1)', fontWeight: 600 }}>{row.briefs}</span> acc</span>
+      <JoinBadges counts={row.joinCounts} />
       <PhaseBar counts={row.phaseCounts} />
       {row.seeds > 0 && <span style={{ color: 'var(--fg-3)' }}>🌱{row.seeds}</span>}
       <AnchoredPopover anchorRef={anchorRef} open={hover} onClose={() => setHover(false)} align="left" zIndex={1100} backdrop={false} closeOnPointerOutside>

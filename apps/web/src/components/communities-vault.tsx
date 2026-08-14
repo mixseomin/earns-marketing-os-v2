@@ -50,9 +50,23 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
   const router = useRouter();
   const modal = useModalParam();   // ?m=habitat-edit&mId=<id> | ?m=habitat-new&mId=<projectId> (house standard)
   const [pending, start] = useTransition();
-  const [q, setQ] = useState('');
-  const [plat, setPlat] = useState<string[]>([]);
-  const [proj, setProj] = useState<string[]>(projectId ? [projectId] : []);
+  // Bộ lọc sống trong URL: F5 hoặc dán link cho nhau phải ra ĐÚNG màn hình đang xem. Trước đây giữ
+  // trong state trơn nên mỗi lần tải lại là mất sạch, phải lọc lại từ đầu.
+  const sp0 = typeof window === 'undefined' ? new URLSearchParams() : new URLSearchParams(window.location.search);
+  const [q, setQ] = useState(sp0.get('q') ?? '');
+  const [plat, setPlat] = useState<string[]>((sp0.get('plat') || '').split(',').filter(Boolean));
+  const [proj, setProj] = useState<string[]>(() => {
+    const fromUrl = (sp0.get('proj') || '').split(',').filter(Boolean);
+    return fromUrl.length ? fromUrl : (projectId ? [projectId] : []);
+  });
+  useEffect(() => {
+    const u = new URL(window.location.href);
+    const set = (k: string, v: string) => { if (v) u.searchParams.set(k, v); else u.searchParams.delete(k); };
+    set('q', q.trim());
+    set('plat', plat.join(','));
+    set('proj', projectId ? '' : proj.join(','));   // view theo project đã có ?project=, đừng ghi trùng
+    window.history.replaceState(null, '', u);
+  }, [q, plat, proj, projectId]);
   const [edit, setEdit] = useState<{ row: HabitatRow | null; projectId: string } | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
 
@@ -64,7 +78,8 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
   const shown = useMemo(() => rows.filter((r) =>
     (!proj.length || (r.projectId != null && proj.includes(r.projectId)))
     && (!plat.length || (r.platformKey != null && plat.includes(r.platformKey)))
-    && (!q || `${r.name} ${r.url || ''} ${r.description || ''}`.toLowerCase().includes(q.toLowerCase())),
+    && (!q || `${r.name} ${r.url || ''} ${r.description || ''} ${r.postingRules} ${r.voiceNotes} ${r.dominantTopics.join(' ')}`
+        .toLowerCase().includes(q.toLowerCase())),
   ), [rows, proj, plat, q]);
   const { pageItems, ...pager } = usePaged(shown, 25);
 
@@ -113,7 +128,7 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
       </div>
 
       {/* Filters */}
-      <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tên / url / mô tả…"
+      <ListToolbar search={q} onSearch={setQ} searchPlaceholder="tên · url · luật · quan sát · chủ đề…"
         right={
           <button type="button" onClick={() => createPid && openHabitat(null, createPid)} disabled={!createPid}
             title={createPid ? 'Thêm community mới' : 'Chọn 1 project để thêm'}
@@ -135,8 +150,6 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
         minWidth={980}
         onRowClick={(r) => openEdit(r)}
         rowTitle={() => 'Mở editor (luật · cổng · chỗ đứng)'}
-        searchText={(r) => `${r.name} ${r.url ?? ''} ${r.postingRules} ${r.dominantTopics.join(' ')}`}
-        searchPlaceholder="lọc trong bảng…"
         columns={[
           { key: 'community', header: 'Community', align: 'left', width: 260, sortValue: (r) => r.name.toLowerCase(),
             cell: (r) => (

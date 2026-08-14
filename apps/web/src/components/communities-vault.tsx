@@ -247,11 +247,9 @@ function EngagedCell({ row }: { row: CommunityRow }) {
   const [hover, setHover] = useState(false);
   const [briefs, setBriefs] = useState<BriefLite[] | null>(null);
   const anchorRef = useRef<HTMLSpanElement | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Hover-card: rê vào ô HOẶC popup thì mở; rời ra đóng TRỄ 120ms để con trỏ băng qua khoảng hở
-  // cell→popup không bị rớt. KHÔNG backdrop → click ô nổi bọt lên hàng mở drawer như thường.
-  const openNow = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } setHover(true); };
-  const closeSoon = () => { timer.current = setTimeout(() => setHover(false), 120); };
+  // Hover-card: rê vào ô = mở; AnchoredPopover(closeOnPointerOutside) tự đóng khi con trỏ rời khỏi
+  // (ô ∪ panel) — KHÔNG timer tự chế nữa (timer dễ kẹt-mở, che mất hàng dưới → không hover/click được).
+  // backdrop=false → click ô nổi bọt lên hàng mở drawer như thường.
   useEffect(() => {
     if (!hover || briefs) return;                 // tải LƯỜI 1 lần, chỉ khi rê vào
     let live = true;
@@ -260,21 +258,18 @@ function EngagedCell({ row }: { row: CommunityRow }) {
       .catch(() => { if (live) setBriefs([]); });
     return () => { live = false; };
   }, [hover, briefs, row.id]);
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   if (!row.briefs) return <span style={dim}>chưa track</span>;
   return (
-    <span ref={anchorRef} onMouseEnter={openNow} onMouseLeave={closeSoon}
-      onClick={() => { if (timer.current) clearTimeout(timer.current); setHover(false); }}   // KHÔNG stopPropagation: để nổi bọt lên hàng (mở drawer), chỉ đóng popup
+    <span ref={anchorRef} onMouseEnter={() => setHover(true)}
+      onClick={() => setHover(false)}   // KHÔNG stopPropagation: click nổi bọt lên hàng (mở drawer), chỉ đóng popup
       title={`${row.joined}/${row.briefs} account đã vào · 🌱${row.seeds} seed sống — rê xem từng account, bấm mở community`}
       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: 'var(--fg-2)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
       <span><span style={{ color: 'var(--fg-1)', fontWeight: 600 }}>{row.briefs}</span> acc</span>
       <PhaseBar counts={row.phaseCounts} />
       {row.seeds > 0 && <span style={{ color: 'var(--fg-3)' }}>🌱{row.seeds}</span>}
-      <AnchoredPopover anchorRef={anchorRef} open={hover} onClose={() => setHover(false)} align="left" zIndex={1100} backdrop={false}>
-        <div onMouseEnter={openNow} onMouseLeave={closeSoon}>
-          <AccountsList name={row.name} joined={row.joined} total={row.briefs} briefs={briefs} />
-        </div>
+      <AnchoredPopover anchorRef={anchorRef} open={hover} onClose={() => setHover(false)} align="left" zIndex={1100} backdrop={false} closeOnPointerOutside>
+        <AccountsList name={row.name} joined={row.joined} total={row.briefs} briefs={briefs} />
       </AnchoredPopover>
     </span>
   );

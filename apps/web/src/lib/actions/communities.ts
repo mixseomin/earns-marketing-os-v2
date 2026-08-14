@@ -40,6 +40,7 @@ export interface CommunityRow {
   briefs: number;
   joined: number;
   seeds: number;      // live, link-free posts landed = the seed track-record the gate counts
+  phaseCounts: Record<string, number>;   // engagement phase → # account đang ở phase đó (micro-bar cột Chỗ đứng)
 }
 
 const rows = <T = Record<string, unknown>>(r: unknown): T[] => (r as { rows?: T[] })?.rows ?? (r as T[]) ?? [];
@@ -88,6 +89,18 @@ export async function listCommunities(projectId?: string): Promise<CommunityRow[
   const st = new Map<number, { briefs: number; joined: number; seeds: number }>();
   for (const r of rows(stRaw)) st.set(Number(r.habitat_id), { briefs: Number(r.briefs), joined: Number(r.joined), seeds: Number(r.seeds) });
 
+  // Phân bố phase engagement per habitat (mỗi account 1 brief đang ở phase nào) — cho micro-bar Chỗ đứng.
+  const phRaw = await db.execute(sql`
+    SELECT habitat_id, current_phase, count(*)::int AS n
+    FROM community_briefs WHERE habitat_id IN (${idList}) GROUP BY habitat_id, current_phase`);
+  const ph = new Map<number, Record<string, number>>();
+  for (const r of rows(phRaw)) {
+    const hid = Number(r.habitat_id);
+    const m = ph.get(hid) ?? {};
+    m[String(r.current_phase ?? 'warm-up')] = Number(r.n);
+    ph.set(hid, m);
+  }
+
   return habs.map((h): CommunityRow => {
     const s = st.get(Number(h.id)) ?? { briefs: 0, joined: 0, seeds: 0 };
     return {
@@ -104,6 +117,7 @@ export async function listCommunities(projectId?: string): Promise<CommunityRow[
       kind: String(h.kind), health: String(h.health),
       lastSyncAt: h.last_sync_at ? String(h.last_sync_at).slice(0, 10) : null,
       briefs: s.briefs, joined: s.joined, seeds: s.seeds,
+      phaseCounts: ph.get(Number(h.id)) ?? {},
     };
   });
 }

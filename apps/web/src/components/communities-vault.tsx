@@ -7,14 +7,16 @@
 // Bảng dùng ui.DataTable + NHÓM CỘT: luật đăng, cổng link, độ hợp, quản trị đều là thứ phải đọc được
 // NGAY trên bảng (trước đây nằm trong DB nhưng chỉ mở editor từng dòng mới thấy), nhưng bày 20 cột
 // cùng lúc thì không ai quét nổi — nên gom thành nhóm bật/tắt, nhớ theo persistKey.
-import { useState, useMemo, useTransition, useEffect, type CSSProperties } from 'react';
+import { useState, useMemo, useTransition, useEffect, useRef, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { HabitatFormModal } from './habitat-form-modal';
-import { ListToolbar, Pager, usePaged, MultiSelect, DataTable, type DataColumn, type DataGroup } from './ui';
+import { ListToolbar, Pager, usePaged, MultiSelect, DataTable, AnchoredPopover, type DataColumn, type DataGroup } from './ui';
 import { useModalParam } from '@/lib/use-modal-param';
-import { getHabitatRowAction } from '@/lib/actions/community-briefs';
+import { getHabitatRowAction, listBriefsForHabitat } from '@/lib/actions/community-briefs';
 import type { HabitatRow, TribeRow, PlatformRow } from '@/lib/data';
 import type { CommunityRow } from '@/lib/actions/communities';
+import { PHASES, PHASE_COLOR, PHASE_LABEL, type Phase } from '@/lib/phase-plan';
+import { JOIN_STATUS_LABEL, JOIN_STATUS_COLOR, JOIN_STATUS_ICON, type JoinStatus } from '@/lib/join-status';
 
 const inp: CSSProperties = { padding: '5px 9px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12 };
 const badge: CSSProperties = { fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 5, whiteSpace: 'nowrap', color: 'var(--fg-2)', border: '1px solid var(--line)', background: 'var(--bg-2)' };
@@ -151,11 +153,8 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
               : <span style={dim}>—</span> },
           { key: 'members', header: 'Thành viên', width: 86, sortValue: (r) => r.members || null,
             cell: (r) => (r.members ? fmt(r.members) : <span style={dim}>—</span>) },
-          { key: 'standing', header: 'Chỗ đứng', width: 118, align: 'left', sortValue: (r) => (r.briefs ? r.seeds : null),
-            cell: (r) => (r.briefs
-              ? <span style={{ color: 'var(--fg-2)' }}>{r.joined}/{r.briefs} vào · 🌱{r.seeds}</span>
-              : <span style={dim}>chưa track</span>),
-            cellTitle: (r) => r.briefs ? `${r.joined} account đã vào / ${r.briefs} account có brief · ${r.seeds} bài seed không link đã sống` : 'chưa account nào có brief ở đây' },
+          { key: 'standing', header: 'Chỗ đứng', width: 138, align: 'left', sortValue: (r) => (r.briefs || null),
+            cell: (r) => <EngagedCell row={r} /> },
 
           { group: 'rules', key: 'rulestext', header: 'Luật đăng', align: 'left', width: 300, sortValue: (r) => (r.postingRules ? r.postingRules.length : null),
             cell: (r) => r.postingRules
@@ -222,6 +221,84 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
           onClose={() => { closeHabitat(); start(() => router.refresh()); }}
           onCreated={() => { closeHabitat(); start(() => router.refresh()); }}
         />
+      )}
+    </div>
+  );
+}
+
+// ── Chỗ đứng = account đã engage: GLANCE (số + phân bố phase) trong ô, DRILL (từng account) khi bấm ──
+// YDNI: ô chỉ hiện số account + micro-bar phase (đủ để liếc "mấy account, đang ở đâu"); bấm mới tải
+// danh sách account cụ thể (handle · phase · membership) vào popup — không nhồi hết vào bảng.
+type BriefLite = { id: number; handle: string; phase: Phase; joinStatus: JoinStatus; platform: string };
+
+// Micro-bar: mỗi phase 1 đoạn màu (PHASE_COLOR), rộng theo số account ở phase đó.
+function PhaseBar({ counts }: { counts: Record<string, number> }) {
+  const segs = PHASES.filter((p) => (counts[p] ?? 0) > 0);
+  if (!segs.length) return null;
+  return (
+    <span title={segs.map((p) => `${PHASE_LABEL[p]}: ${counts[p]}`).join(' · ')}
+      style={{ display: 'inline-flex', width: 34, height: 7, borderRadius: 3, overflow: 'hidden', border: '1px solid var(--line)', verticalAlign: 'middle', flexShrink: 0 }}>
+      {segs.map((p) => <span key={p} style={{ flexGrow: counts[p], background: PHASE_COLOR[p] }} />)}
+    </span>
+  );
+}
+
+function EngagedCell({ row }: { row: CommunityRow }) {
+  const [open, setOpen] = useState(false);
+  const [briefs, setBriefs] = useState<BriefLite[] | null>(null);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (!open || briefs) return;                 // tải LƯỜI 1 lần, chỉ khi mở popup
+    let live = true;
+    listBriefsForHabitat(row.id)
+      .then((rs) => { if (live) setBriefs(rs.map((b) => ({ id: b.id, handle: b.accountHandle ?? '(no handle)', phase: b.currentPhase, joinStatus: b.joinStatus, platform: b.platformLabel }))); })
+      .catch(() => { if (live) setBriefs([]); });
+    return () => { live = false; };
+  }, [open, briefs, row.id]);
+
+  if (!row.briefs) return <span style={dim}>chưa track</span>;
+  return (
+    <>
+      <button ref={btnRef} type="button"
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}   // stop: đừng mở luôn editor của dòng
+        title={`${row.joined}/${row.briefs} account đã vào · 🌱${row.seeds} seed sống — bấm xem từng account`}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: '1px 3px', borderRadius: 5, cursor: 'pointer', color: 'var(--fg-2)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+        <span><span style={{ color: 'var(--fg-1)', fontWeight: 600 }}>{row.briefs}</span> acc</span>
+        <PhaseBar counts={row.phaseCounts} />
+        {row.seeds > 0 && <span style={{ color: 'var(--fg-3)' }}>🌱{row.seeds}</span>}
+      </button>
+      <AnchoredPopover anchorRef={btnRef} open={open} onClose={() => setOpen(false)} align="left" zIndex={1100}>
+        <AccountsList name={row.name} joined={row.joined} total={row.briefs} briefs={briefs} />
+      </AnchoredPopover>
+    </>
+  );
+}
+
+function AccountsList({ name, joined, total, briefs }: { name: string; joined: number; total: number; briefs: BriefLite[] | null }) {
+  return (
+    <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 8, boxShadow: '0 12px 32px rgba(0,0,0,.5)', minWidth: 272, maxWidth: 360, maxHeight: 340, overflow: 'auto' }}>
+      <div style={{ padding: '7px 10px', borderBottom: '1px solid var(--line)', background: 'var(--bg-2)', position: 'sticky', top: 0 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-0)' }}>Account đã engage</div>
+        <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{name} · {joined}/{total} đã vào</div>
+      </div>
+      {briefs == null ? (
+        <div style={{ padding: 12, fontSize: 11, color: 'var(--fg-3)' }}>Đang tải…</div>
+      ) : briefs.length === 0 ? (
+        <div style={{ padding: 12, fontSize: 11, color: 'var(--fg-3)' }}>Chưa account nào có brief ở đây.</div>
+      ) : (
+        briefs.map((b) => (
+          <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderBottom: '1px solid var(--line)' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, fontWeight: 600, color: 'var(--fg-0)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={b.platform}>@{b.handle}</span>
+            <span title={`Phase: ${PHASE_LABEL[b.phase]}`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: PHASE_COLOR[b.phase], flexShrink: 0 }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: PHASE_COLOR[b.phase] }} />{PHASE_LABEL[b.phase]}
+            </span>
+            <span title={`Membership: ${JOIN_STATUS_LABEL[b.joinStatus]}`}
+              style={{ fontSize: 10, color: JOIN_STATUS_COLOR[b.joinStatus], flexShrink: 0, whiteSpace: 'nowrap' }}>
+              {JOIN_STATUS_ICON[b.joinStatus]} {JOIN_STATUS_LABEL[b.joinStatus]}
+            </span>
+          </div>
+        ))
       )}
     </div>
   );

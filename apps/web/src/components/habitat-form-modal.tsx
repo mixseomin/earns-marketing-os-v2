@@ -42,7 +42,12 @@ import { TechnologyPicker } from './technology-picker';
 import { LangChip } from './lang-chip';
 import { wrapExternalUrl } from '@/lib/external-url';
 
-const KINDS = ['subreddit', 'fb-group', 'discord', 'forum', 'hashtag', 'slack', 'telegram', 'youtube', 'other'] as const;
+// Danh mục ĐÚNG BẰNG ràng buộc habitats_kind_check trong DB (thêm giá trị ở đây thì phải sửa cả
+// constraint, không thì lưu là vỡ). Trước đây thiếu fb-page/profile/blog/qa/feed/org nên dữ liệu
+// nhập ngoài form đẻ ra 15 kiểu viết cho cùng một khái niệm (nhóm FB nằm rải ở forum/facebook/
+// facebook-group/group).
+const KINDS = ['subreddit', 'fb-group', 'fb-page', 'discord', 'forum', 'profile', 'hashtag', 'blog',
+  'qa', 'feed', 'org', 'slack', 'telegram', 'youtube', 'other'] as const;
 const SCRAPE = ['manual', 'live', 'weekly', 'comments'] as const;
 const HEALTH = ['ok', 'warn', 'bad'] as const;
 const STATUS_OPTS = ['target', 'engaged', 'saturated', 'banned', 'dormant', 'defunct'] as const;

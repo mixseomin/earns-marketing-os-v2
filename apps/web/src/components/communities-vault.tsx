@@ -272,11 +272,17 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
                   {rows.slice(0, 3).map((x) => {
                     const c = x.rx == null ? 'var(--fg-4)' : x.rx >= 20 ? '#22c55e' : x.rx >= 5 ? '#a3d977' : x.rx >= 1 ? '#ffb03c' : '#ef4444';
                     return (
-                      <span key={x.k} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 5px',
-                        borderRadius: 4, border: `1px solid ${c}55`, background: `${c}14`, fontSize: 10.5, whiteSpace: 'nowrap' }}>
+                      <span key={x.k} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '1px 6px',
+                        borderRadius: 4, border: `1px solid ${c}55`, background: `${c}14`, fontSize: 11, whiteSpace: 'nowrap' }}>
                         <FormatIcon kind={x.k} size={11} style={{ color: c }} />
-                        <span style={{ color: 'var(--fg-3)' }}>{x.pct}%</span>
-                        <span style={{ color: c, fontWeight: 600 }}>{x.rx == null ? '—' : `${x.rx}tt`}</span>
+                        {/* % đọc được thì phải để màu chữ thường (fg-3 chìm quá), và 'tt' tách khỏi số
+                            bằng khoảng trắng + cỡ nhỏ hơn — '243tt' dính liền đọc ra '243tt' chứ không
+                            ra '243 · đơn vị tt'. */}
+                        <span style={{ color: 'var(--fg-2)' }}>{x.pct}%</span>
+                        <span style={{ color: 'var(--fg-4)' }}>·</span>
+                        {x.rx == null
+                          ? <span style={{ color: 'var(--fg-3)' }}>chưa đo</span>
+                          : <span style={{ color: c, fontWeight: 600 }}>{x.rx}<span style={{ fontSize: 9, fontWeight: 400, marginLeft: 2, opacity: 0.75 }}>tt</span></span>}
                       </span>);
                   })}
                 </span>);
@@ -296,7 +302,7 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
             cellTitle: (r) => r.trendMedRx == null ? 'chưa đo được'
               : `trung vị tương tác trên bài feed đẩy lên đầu · cao nhất trong mẫu ${r.trendMaxRx} · đo được ${r.measuredTrend}/${r.sampleTrend} bài`,
             cell: (r) => (r.trendMedRx == null ? <span style={dim}>—</span>
-              : <span>{r.trendMedRx}{r.trendMaxRx != null && <span style={{ color: 'var(--fg-3)' }}> · đỉnh {r.trendMaxRx}tt</span>}</span>) },
+              : <span>{r.trendMedRx}{r.trendMaxRx != null && <span style={{ color: 'var(--fg-3)' }}> · đỉnh {r.trendMaxRx}<span style={{ fontSize: 9, marginLeft: 2, opacity: 0.75 }}>tt</span></span>}</span>) },
           { group: 'do', key: 'khao', header: 'Khảo ngày', width: 94, sortValue: (r) => r.surveyedAt,
             cell: (r) => r.surveyedAt ?? <span style={dim}>chưa</span> },
           { group: 'rules', key: 'quansat', header: 'Quan sát thực địa', align: 'left', width: 330,

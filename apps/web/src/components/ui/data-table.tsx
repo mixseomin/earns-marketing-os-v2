@@ -155,7 +155,16 @@ export function DataTable<T>({
   }, [filterKey, urlFilterKey]);
   // Bản đồ lọc HIỆU LỰC: `serverFilter` (bảng server-paged) thì caller cầm state (URL), ngược lại state cục bộ.
   const colFilters = serverFilter ? serverFilter.filters : filters;
-  const anyColFilter = Object.values(colFilters).some((f) => f && (isNullaryOp(f.op) || f.val.trim() !== ''));
+  const activeColFilters = Object.entries(colFilters).filter(([, f]) => f && (isNullaryOp(f.op) || f.val.trim() !== ''));
+  const anyColFilter = activeColFilters.length > 0;
+  // Xoá TẤT CẢ lọc-cột 1 phát — khỏi mở từng cột bấm "Xoá lọc". Server-paged thì báo caller (xoá ?flt=),
+  // ngược lại xoá state cục bộ + cookie + url.
+  const clearColFilters = () => {
+    if (serverFilter) { serverFilter.onChange({}); return; }
+    setFilters({});
+    writeTablePref(persistKey, { f: {} });
+    if (urlFilterKey) writeShallowParam(urlFilterKey, null);
+  };
   const setColFilter = (key: string, f: { op: string; val: string } | null) => {
     if (serverFilter) {   // server-paged: chỉ báo caller (nó ghi URL + re-query), KHÔNG đụng cookie/localStorage cục bộ
       const next = { ...serverFilter.filters }; if (f) next[key] = f; else delete next[key];
@@ -316,8 +325,14 @@ export function DataTable<T>({
 
   return (
     <div data-comp="ui.DataTable">
-      {((searchText && !sliced) || (groups && groups.length > 0) || showViewToggle) && (
+      {((searchText && !sliced) || (groups && groups.length > 0) || showViewToggle || anyColFilter) && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          {anyColFilter && (
+            <button type="button" onClick={clearColFilters} title="Xoá tất cả lọc-cột đang bật"
+              style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--accent)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, marginRight: 'auto' }}>
+              ✕ Xoá lọc cột <span style={{ opacity: 0.7 }}>{activeColFilters.length}</span>
+            </button>
+          )}
           {searchText && !sliced && (
             <>
               <input

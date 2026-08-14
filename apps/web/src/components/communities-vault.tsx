@@ -153,7 +153,7 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
               : <span style={dim}>—</span> },
           { key: 'members', header: 'Thành viên', width: 86, sortValue: (r) => r.members || null,
             cell: (r) => (r.members ? fmt(r.members) : <span style={dim}>—</span>) },
-          { key: 'standing', header: 'Chỗ đứng', width: 188, align: 'left', sortValue: (r) => (r.joined || null),
+          { key: 'standing', header: 'Chỗ đứng', width: 152, align: 'left', sortValue: (r) => (r.joined || null),
             cell: (r) => <EngagedCell row={r} /> },
 
           { group: 'rules', key: 'rulestext', header: 'Luật đăng', align: 'left', width: 300, sortValue: (r) => (r.postingRules ? r.postingRules.length : null),
@@ -231,10 +231,11 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
 // danh sách account cụ thể (handle · phase · membership) vào popup — không nhồi hết vào bảng.
 type BriefLite = { id: number; accountId: number; handle: string; phase: Phase; joinStatus: JoinStatus; platform: string };
 
-// Micro-bar: mỗi phase 1 đoạn màu (PHASE_COLOR), rộng theo số account ở phase đó.
+// Micro-bar phân bố phase — CHỈ hiện khi có MIX ≥2 phase. 1 phase duy nhất (vd mọi account đều
+// warm-up) thì bar là 1 khối màu đặc GIỐNG HỆT mọi dòng → nhiễu vô nghĩa, ẩn đi. Có mix mới đáng nhìn.
 function PhaseBar({ counts }: { counts: Record<string, number> }) {
   const segs = PHASES.filter((p) => (counts[p] ?? 0) > 0);
-  if (!segs.length) return null;
+  if (segs.length < 2) return null;
   return (
     <span title={segs.map((p) => `${PHASE_LABEL[p]}: ${counts[p]}`).join(' · ')}
       style={{ display: 'inline-flex', width: 34, height: 7, borderRadius: 3, overflow: 'hidden', border: '1px solid var(--line)', verticalAlign: 'middle', flexShrink: 0 }}>

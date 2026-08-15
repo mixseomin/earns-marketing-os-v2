@@ -17,6 +17,13 @@
 
 import type { RevenueDayRow } from './by-day';
 
+/** Tag cache của MỌI lời gọi API doanh thu (CJ · Awin · Gumroad · Directus product_stats).
+ *  Nút "Kéo lại" gọi revalidateTag(REVENUE_TAG) để ép đọc lại NGAY, không ngồi chờ hết 5-10 phút.
+ *  Khai báo ở đây chứ không tách file riêng: module này không import runtime cái gì, nên
+ *  `node scripts/check-network-revenue.ts` vẫn nạp được (node cần đuôi .ts, tsc thì cấm — xem
+ *  TS5097). Thêm nguồn doanh thu mới = gắn tag này vào fetch của nó, nút tự lo phần còn lại. */
+export const REVENUE_TAG = 'revenue';
+
 const CJ_PAT = process.env.CJ_PAT || '';
 const CJ_CID = process.env.CJ_PUBLISHER_ID || '';
 const AWIN_TOKEN = process.env.AWIN_TOKEN || '';
@@ -150,7 +157,7 @@ async function cjLinkPerf(since: string, until: string): Promise<{ rows: LinkPer
     + `?startDate=${since}&endDate=${until}&allowAllDateRanges=true&trendPeriod=NoTrend`
     + `&columnSort=${encodeURIComponent('publisherCommission\tDESC')}&startRow=1&endRow=200`;
   try {
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${CJ_PAT}` }, next: { revalidate: 600 } });
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${CJ_PAT}` }, next: { revalidate: 600, tags: [REVENUE_TAG] } });
     if (!res.ok) return { rows: [], error: `cj link-perf: HTTP ${res.status}` };
     return { rows: parseLinkPerf(await res.json()) };
   } catch (e) { return { rows: [], error: `cj link-perf: ${(e as Error).message}` }; }
@@ -197,7 +204,7 @@ async function cjPart(wins: Array<[string, string]>): Promise<NetworkPart> {
     const url = `https://commission-detail.api.cj.com/v3/commissions?requestor-cid=${encodeURIComponent(CJ_CID)}`
       + `&date-type=event&start-date=${start}&end-date=${end}`;
     try {
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${CJ_PAT}` }, next: { revalidate: 600 } });
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${CJ_PAT}` }, next: { revalidate: 600, tags: [REVENUE_TAG] } });
       if (!res.ok) { errs.push(`HTTP ${res.status} (${start})`); return; }
       for (const r of parseCj(await res.text())) seen.set(r.id, r);
     } catch (e) { errs.push(`${(e as Error).message} (${start})`); }
@@ -214,7 +221,7 @@ async function awinPart(wins: Array<[string, string]>): Promise<NetworkPart> {
     const url = `https://api.awin.com/publishers/${encodeURIComponent(AWIN_PUB)}/transactions/`
       + `?startDate=${start}T00%3A00%3A00&endDate=${end}T00%3A00%3A00&timezone=UTC&dateType=transaction`;
     try {
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${AWIN_TOKEN}` }, next: { revalidate: 600 } });
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${AWIN_TOKEN}` }, next: { revalidate: 600, tags: [REVENUE_TAG] } });
       if (!res.ok) { errs.push(`HTTP ${res.status} (${start})`); return; }
       const j = await res.json();
       if (!Array.isArray(j)) { errs.push(`trả về không phải mảng (${start})`); return; }

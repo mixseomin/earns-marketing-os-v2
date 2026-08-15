@@ -12,6 +12,7 @@
 
 import { and, eq, isNotNull } from 'drizzle-orm';
 import { getDb, platformAccounts } from '@mos2/db';
+import { REVENUE_TAG } from '@/lib/revenue/networks';
 import { decryptValue, cryptoEnabled } from '../crypto';
 
 const API = 'https://api.gumroad.com/v2';
@@ -90,7 +91,7 @@ export async function gumroadTokens(): Promise<{ token: string; source: 'vault' 
 // doanh thu tiếp tục báo "không đọc được Gumroad" trong khi token đã đúng từ lâu, và không có
 // cách nào ép nó đọc lại. Hỏng thì thử lại ngay với no-store để trạng thái sai không sống dai.
 async function fetchLive(url: string): Promise<Response> {
-  const r = await fetch(url, { next: { revalidate: 300 } });
+  const r = await fetch(url, { next: { revalidate: 300, tags: [REVENUE_TAG] } });
   return r.ok ? r : fetch(url, { cache: 'no-store' });
 }
 

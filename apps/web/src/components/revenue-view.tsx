@@ -12,6 +12,7 @@ import type { RevenueByDay } from '@/lib/revenue/by-day';
 import { RevenueCalendar } from './revenue-calendar';
 import { AffiliatePerf } from './affiliate-perf';
 import { RevenueRange } from './revenue-range';
+import { RevenueRefresh } from './revenue-refresh';
 import { Section, StatsStrip, EmptyState, Pill } from './ui';
 import type { StatCard } from './ui/stats-strip';
 
@@ -65,7 +66,10 @@ export function RevenueView({ summary, scope = 'all', projectName, gumroad, byDa
             Gumroad: thẻ tổng là số trọn đời; lịch bên dưới theo đúng khung đang chọn.
           </p>
         </div>
-        <RevenueRange value={days} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <RevenueRefresh />
+          <RevenueRange value={days} />
+        </div>
       </div>
 
       {byDay && (

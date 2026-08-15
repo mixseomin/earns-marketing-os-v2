@@ -12,7 +12,7 @@
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { gumroadTokens } from '@/lib/gumroad/products';
-import { networkRows, type LinkPerfRow } from './networks';
+import { networkRows, REVENUE_TAG, type LinkPerfRow } from './networks';
 
 export type { LinkPerfRow };
 
@@ -107,7 +107,7 @@ async function productRows(since: string): Promise<Part> {
   });
   const res = await fetch(`${DIRECTUS_URL}/items/product_stats?${qs}`, {
     headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` },
-    next: { revalidate: 600 },
+    next: { revalidate: 600, tags: [REVENUE_TAG] },
   });
   if (!res.ok) return { rows: [], error: `product_stats: Directus ${res.status}` };
   const j = (await res.json()) as { data?: Array<{ date: string; platform: string | null; revenue: string | number | null; gross_revenue: string | number | null }> };
@@ -132,7 +132,7 @@ async function gumroadRows(since: string): Promise<Part> {
   for (const { token } of toks) {
     try {
       const url = `https://api.gumroad.com/v2/sales?access_token=${encodeURIComponent(token)}&after=${since}`;
-      const res = await fetch(url, { next: { revalidate: 300 } });
+      const res = await fetch(url, { next: { revalidate: 300, tags: [REVENUE_TAG] } });
       if (!res.ok) { errs.push(`API ${res.status}`); continue; }
       const j = (await res.json()) as {
         success?: boolean;

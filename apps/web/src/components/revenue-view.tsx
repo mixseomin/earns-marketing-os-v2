@@ -77,7 +77,7 @@ export function RevenueView({ summary, scope = 'all', projectName, gumroad, byDa
       {/* Lịch trên chỉ có TIỀN. Link đốt click mà không ra đơn cũng $0 y như link chưa ai bấm —
           phễu này là chỗ tách hai chuyện đó ra. */}
       {byDay && (
-        <Section title="Affiliate · phễu click → đơn" subtitle={`CJ · ${rangeLabel}`} defaultOpen={false}>
+        <Section title="Affiliate · phễu click → đơn" subtitle={`CJ · ${rangeLabel}`} defaultOpen>
           <AffiliatePerf linkPerf={byDay.linkPerf} rows={byDay.rows} />
         </Section>
       )}

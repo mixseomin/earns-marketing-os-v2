@@ -92,6 +92,9 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
   // TRỪ "comment đầu" (tag replyto:<id>): bài gốc là BÀI CỦA MÌNH, mình biết trước nó viết gì nên
   // soạn sẵn câu comment là đúng. Chỉ comment vào bài NGƯỜI KHÁC mới phải chờ tới lúc đọc bài họ.
   const ownThread = !!tagVal(piece.tags, 'replyto');
+  // Thẻ do /plan/result tự đẻ sau mỗi comment: cùng kiểu 'engage' nhưng việc khác hẳn — quay lại
+  // đúng thread mình vừa nói, không phải đi tương tác dạo trong nhóm.
+  const threadBack = !!tagVal(piece.tags, 'thread');
   const onSite = isOnSiteFormat(kind) && !ownThread;
   // Thân của thẻ tại-chỗ có ba nửa, cắt theo hai mốc do API ghi: "CHUẨN BỊ (" (/plan/prepare) và
   // "— ĐÃ COMMENT/TƯƠNG TÁC" (/plan/result). Kế hoạch → bài đã chọn → cái đã xảy ra. Trộn chung một
@@ -238,10 +241,16 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
             <span style={{ fontSize: 10, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--fg-2)',
               padding: '1px 6px', borderRadius: 4, border: '1px dashed var(--fg-3)' }}>kế hoạch</span>
-            <span style={{ color: 'var(--fg-2)' }}>{kind === 'engage' ? 'tương tác trong nhóm' : 'comment vào bài trong nhóm'}</span>
+            <span style={{ color: 'var(--fg-2)' }}>{threadBack ? 'quay lại thread đã comment' : kind === 'engage' ? 'tương tác trong nhóm' : 'comment vào bài trong nhóm'}</span>
           </div>
           <ol style={{ margin: 0, paddingLeft: 18, color: 'var(--fg-1)' }}>
-            {(kind === 'engage'
+            {(threadBack
+              ? ['Mở lại đúng thread mình đã comment.',
+                 'Ai trả lời mình thì trả lời tiếp, bám đúng câu họ hỏi.',
+                 'Ai hỏi câu thật mà chưa ai đáp thì trả lời họ.',
+                 'Thả cảm xúc cho những comment có ích.',
+                 'Ghi lại: ai trả lời, mình đã đáp gì.']
+              : kind === 'engage'
               ? ['Vào nhóm đúng giờ.',
                  'Lọc bài đăng trong 24h và đang ÍT tương tác (≤30) — bài đã đông thì tên mình chìm.',
                  'Thả cảm xúc từng bài, đọc thật.',

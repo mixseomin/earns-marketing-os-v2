@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   if (!url) return errorResponse('url required — không có link thì không tính là đã làm', 400);
 
   const row = firstRow(await db.execute(sql`
-    SELECT id, body_md FROM content_pieces WHERE id = ${pieceId} LIMIT 1
+    SELECT id, body_md, project_id, channel, tags, title FROM content_pieces WHERE id = ${pieceId} LIMIT 1
   `));
   if (!row) return errorResponse(`Không thấy card kế hoạch #${pieceId}`, 404);
 
@@ -83,5 +83,27 @@ export async function POST(req: Request) {
            updated_at = now()
      WHERE id = ${pieceId}
   `);
-  return NextResponse.json({ ok: true, pieceId, url });
+  // Comment xong là mở ra một cửa sổ ngắn: người vừa đọc thread đang bật thông báo, ai trả lời mình
+  // thì trả lời tiếp chính là thứ duy nhất tạo được phân phối thật (Facebook đẩy reply vào thông báo
+  // của họ). Cửa sổ đó đóng sau vài chục phút, nên nó phải nằm trên LỊCH chứ không nằm trong đầu ai.
+  // Chỉ đẻ thẻ cho lượt comment thật, và chỉ một lần (thẻ con tự nó không đẻ tiếp).
+  let followUpId: number | null = null;
+  const tags = Array.isArray(row.tags) ? (row.tags as string[]) : [];
+  const isThreadCard = tags.some((t) => t.startsWith('thread:'));
+  if (b.mode !== 'engage' && !isThreadCard) {
+    const acct = tags.find((t) => t.startsWith('acct:')) ?? '';
+    const when = new Date(Date.now() + 30 * 60000);
+    const hh = String(when.getHours()).padStart(2, '0');
+    const mm = String(when.getMinutes()).padStart(2, '0');
+    const newTags = ['format:engage', `place:${url}`, `time:${hh}:${mm}`, `thread:${pieceId}`, ...(acct ? [acct] : [])];
+    const ins = firstRow(await db.execute(sql`
+      INSERT INTO content_pieces (tenant_id, project_id, slug, title, channel, body_md, status, scheduled_at, tags, metrics)
+      VALUES ('self', ${row.project_id}, ${`thread-back-${pieceId}-${Date.now()}`},
+              ${`Quay lại thread đã comment (#${pieceId})`}, ${row.channel}, '', 'approved',
+              ${when.toISOString()}::timestamptz, ${JSON.stringify(newTags)}::jsonb, '{}'::jsonb)
+      RETURNING id
+    `));
+    followUpId = ins ? Number(ins.id) : null;
+  }
+  return NextResponse.json({ ok: true, pieceId, url, followUpId });
 }

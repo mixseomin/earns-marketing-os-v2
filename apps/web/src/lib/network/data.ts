@@ -26,6 +26,8 @@ export async function listUsers(): Promise<UserOption[]> {
 
 export interface Registration {
   id: number; status: string;
+  /** Giá/tỉ lệ RIÊNG cho publisher này trên chiến dịch này. null = ăn theo mức chung của offer. */
+  publisherRate: string | null;
   publisherId: number; publisherSlug: string; publisherName: string;
   offerId: number; offerSlug: string; offerName: string;
   requestedAt: string;
@@ -62,7 +64,7 @@ export async function listRegistrations(onlyPending = false): Promise<Registrati
   const db = getDb();
   if (!db) return [];
   const r = await db.execute(sql`
-    SELECT r.id, r.status, r.requested_at,
+    SELECT r.id, r.status, r.requested_at, r.publisher_rate,
            p.id AS pid, p.slug AS pslug, p.name AS pname,
            o.id AS oid, o.slug AS oslug, o.name AS oname
     FROM net_publisher_offers r
@@ -72,6 +74,7 @@ export async function listRegistrations(onlyPending = false): Promise<Registrati
     ORDER BY r.status = 'pending' DESC, r.requested_at DESC`);
   return (r as unknown as Array<Record<string, unknown>>).map((x) => ({
     id: Number(x.id), status: String(x.status),
+    publisherRate: (x.publisher_rate as string) ?? null,
     publisherId: Number(x.pid), publisherSlug: String(x.pslug), publisherName: String(x.pname),
     offerId: Number(x.oid), offerSlug: String(x.oslug), offerName: String(x.oname),
     requestedAt: String(x.requested_at).slice(0, 10),

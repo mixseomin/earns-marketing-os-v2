@@ -83,3 +83,37 @@ export function trackingUrl(origin: string, offerSlug: string, pubSlug: string, 
   for (const k of UTM_SLOTS) if (utm[k]) u.searchParams.set(k, utm[k]!);
   return u.toString();
 }
+
+// ── Kiểm dữ liệu trước khi ghi ───────────────────────────────────────────────
+// Nằm CÙNG file với SUB_PARAM chứ không tách ra: tách thì file kia phải import runtime `./link`,
+// mà node chạy trần đòi đuôi .ts còn tsc thì cấm (TS5097) → `node scripts/check-*.ts` gãy. Ở đây
+// module vẫn không import runtime cái gì nên vừa test được vừa dùng được trong 'use server'.
+/** slug nằm TRONG link publisher đã dán ra ngoài → chặn ký tự lạ ngay từ lúc tạo, để không phải
+ *  đi encode ở mọi chỗ dùng về sau, và để không ai đặt slug có dấu/khoảng trắng rồi link gãy. */
+export const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,40}$/;
+
+export function checkSlug(raw: string): string | null {
+  return SLUG_RE.test(raw.trim().toLowerCase())
+    ? null
+    : 'Slug: chỉ chữ thường, số và gạch ngang (2-41 ký tự)';
+}
+
+/** null = hợp lệ. Chuỗi = câu báo lỗi hiện thẳng cho người dùng. */
+export function checkOffer(v: { slug: string; name: string; network: string; upstreamUrl: string }): string | null {
+  const s = checkSlug(v.slug);
+  if (s) return s;
+  if (!v.name.trim()) return 'Thiếu tên chiến dịch';
+  // Network không có ô sub-id thì click đi ra là mất dấu. Chặn ở đây chứ đừng để phát hiện sau
+  // vài tuần chạy quảng cáo — lúc đó tiền đã đi và không truy lại được.
+  const param = SUB_PARAM[v.network];
+  if (param === undefined) return `Network lạ: ${v.network}`;
+  if (param === null) return `${v.network} không có ô sub-id dùng được — chưa theo dõi được đơn`;
+  try { new URL(v.upstreamUrl); } catch { return 'Link upstream không phải URL hợp lệ'; }
+  return null;
+}
+
+export function checkPublisher(v: { slug: string; name: string }): string | null {
+  const s = checkSlug(v.slug);
+  if (s) return s;
+  return v.name.trim() ? null : 'Thiếu tên publisher';
+}

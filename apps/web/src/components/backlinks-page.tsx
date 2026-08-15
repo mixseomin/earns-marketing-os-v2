@@ -1394,7 +1394,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         id: `c:${p.id}`, date: p.date, icon: 'docpen',
         // 🔗 = bài CÓ LINK (dấu nhận biết, không phải cảnh báo) — trước chỉ hiện khi có rủi ro nên
         // bài đã kiểm link xong lại mất dấu, nhìn danh sách không biết bài nào mang link.
-        label: `${plbl}${schedMark(p) ? `${schedMark(p)} ` : ''}${gaps.length ? '⚠ ' : ''}${p.hasLink ? '🔗 ' : ''}${(repliesOf.get(p.id)?.length ?? 0) ? '💬 ' : ''}${(p.subject || p.title).replace(/\s+/g, ' ').trim()}`,
+        // 🟢 = vừa đăng trong 90 phút: lượt vừa chạy phải tự nổi lên ở MỌI chỗ hiện bài (lịch, list,
+        // rail Toàn cảnh), không chỉ ở thẻ mở rộng — mở màn hình nào cũng thấy ngay việc vừa xong.
+        label: `${justPosted(p.publishedAt) ? '🟢 ' : ''}${plbl}${schedMark(p) ? `${schedMark(p)} ` : ''}${gaps.length ? '⚠ ' : ''}${p.hasLink ? '🔗 ' : ''}${(repliesOf.get(p.id)?.length ?? 0) ? '💬 ' : ''}${(p.subject || p.title).replace(/\s+/g, ' ').trim()}`,
         lead: <ChannelFavicon channel={p.channel} size={13} title={ch?.label ?? p.channel} />,
         color: a ? a.group.color : 'var(--fg-3)',
         done: p.status === 'published', dim: p.status === 'draft',

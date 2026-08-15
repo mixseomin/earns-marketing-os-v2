@@ -88,7 +88,11 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
   // Việc làm TẠI CHỖ (comment / tương tác / share lại): thẻ này không phải bài viết sẵn mà là KẾ
   // HOẠCH — nội dung chỉ có sau khi vào nhóm, đọc bài người ta hỏi gì rồi mới viết. Dựng khác hẳn
   // bài đăng để không ai tưởng đây là chữ sẽ dán nguyên vào ô comment.
-  const onSite = isOnSiteFormat(kind);
+  //
+  // TRỪ "comment đầu" (tag replyto:<id>): bài gốc là BÀI CỦA MÌNH, mình biết trước nó viết gì nên
+  // soạn sẵn câu comment là đúng. Chỉ comment vào bài NGƯỜI KHÁC mới phải chờ tới lúc đọc bài họ.
+  const ownThread = !!tagVal(piece.tags, 'replyto');
+  const onSite = isOnSiteFormat(kind) && !ownThread;
   const bodyText = text?.trim() ?? '';
   const tweets = kind === 'thread' && bodyText ? bodyText.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean) : null;
   // Poll: khối dòng 'A. …' / '1) …' là phương án; chữ TRƯỚC khối là câu hỏi, chữ SAU khối vẫn nằm

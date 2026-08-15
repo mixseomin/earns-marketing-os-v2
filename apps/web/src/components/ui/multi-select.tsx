@@ -24,6 +24,10 @@ export interface MultiSelectOption<T> {
   count?: number;     // optional — hiển thị bên phải nếu có
 }
 
+/** Số hàng tối đa vẽ ra một lúc. 200 đủ cho mọi danh sách người ta còn cuộn nổi bằng mắt;
+ *  dài hơn thì đằng nào cũng phải gõ tìm. */
+const RENDER_CAP = 200;
+
 export interface MultiSelectProps<T extends string | number> {
   label: string;                          // Default label khi không có selection
   options: Array<MultiSelectOption<T>>;
@@ -60,9 +64,15 @@ export function MultiSelect<T extends string | number>({
     setOpen((v) => !v);
   };
   const selectedSet = new Set(selected);
-  const filtered = search.trim()
+  const matched = search.trim()
     ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
     : options;
+  // Trần số hàng VẼ RA. Danh sách dài (danh mục affiliate 2.894 dòng) mà đổ hết vào DOM thì mở
+  // popup là treo trang — mà người ta cũng không cuộn tay qua ba nghìn dòng, họ gõ để tìm.
+  // Phần bị cắt PHẢI nói ra ở chân danh sách: cắt im lặng thì "không thấy mục X" trông y hệt
+  // "mục X không tồn tại", và đó là kiểu lỗi không ai đi báo.
+  const filtered = matched.slice(0, RENDER_CAP);
+  const hidden = matched.length - filtered.length;
 
   const summary = selected.length === 0
     ? label
@@ -139,6 +149,11 @@ export function MultiSelect<T extends string | number>({
           <div style={{ padding: '8px 6px', color: 'var(--fg-4)', fontSize: 11,
                         textAlign: 'center', fontStyle: 'italic' }}>
             Không tìm thấy
+          </div>
+        )}
+        {hidden > 0 && (
+          <div style={{ padding: '6px', color: 'var(--warn)', fontSize: 11, textAlign: 'center' }}>
+            còn {hidden.toLocaleString('en-US')} mục nữa — gõ để lọc
           </div>
         )}
         {filtered.map((o) => {

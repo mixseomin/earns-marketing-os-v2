@@ -7,7 +7,11 @@ import { useRouter } from 'next/navigation';
 import { refreshRevenue } from '@/lib/actions/revenue';
 import { Spinner } from './ui';
 
-export function RevenueRefresh() {
+const DEFAULT_TITLE = 'Xoá cache CJ · Awin · Gumroad · product_stats rồi đọc lại API ngay. AdSense KHÔNG kéo được ở đây — nó đến từ cron 09:00 UTC đổ vào bảng adsense_daily.';
+
+/** `title` đổi được vì mỗi màn kéo một tập nguồn khác nhau — /revenue kéo cả Gumroad, backend
+ *  network chỉ có CJ/Awin. Nút nói sai nguồn thì người bấm chờ số không bao giờ tới. */
+export function RevenueRefresh({ title = DEFAULT_TITLE }: { title?: string } = {}) {
   const router = useRouter();
   const [busy, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
@@ -16,7 +20,7 @@ export function RevenueRefresh() {
     <button
       type="button"
       disabled={busy}
-      title="Xoá cache CJ · Awin · Gumroad · product_stats rồi đọc lại API ngay. AdSense KHÔNG kéo được ở đây — nó đến từ cron 09:00 UTC đổ vào bảng adsense_daily."
+      title={title}
       onClick={() => start(async () => {
         const r = await refreshRevenue();
         if (!r.ok) { setMsg(r.error ?? 'lỗi'); return; }

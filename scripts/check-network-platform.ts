@@ -4,7 +4,7 @@
 import assert from 'node:assert';
 import { newClickId, isClickId, upstreamUrl, trackingUrl, readUtm, SUB_PARAM, CLICK_ID_LEN,
   checkOffer, checkPublisher, checkSlug, newLinkToken, LINK_TOKEN_LEN, networkFromUrl, slugify } from '../apps/web/src/lib/network/link.ts';
-import { cjSettleState } from '../apps/web/src/lib/network/status.ts';
+import { cjSettleState, awinSettleState } from '../apps/web/src/lib/network/status.ts';
 
 // ── Mã click ────────────────────────────────────────────────────────────────
 const id = newClickId();
@@ -115,4 +115,20 @@ assert.equal(checkSlug(slugify('Trip.com HK')), null);
 assert.equal(checkSlug(slugify('X'.repeat(80))), null);           // cắt 41 vẫn hợp lệ
 assert.ok(!slugify('!!!'));                                       // rỗng → nơi gọi phải tự lo
 
+
+// Awin: ba nấc trong payload, KHÔNG có mốc khoá đơn kiểu locking-date → không có nấc "tạm duyệt".
+assert.equal(awinSettleState('approved', 5), 'approved');
+assert.equal(awinSettleState('pending', 5), 'pending');
+assert.equal(awinSettleState('declined', 5), 'cancelled');
+assert.equal(awinSettleState('deleted', 5), 'cancelled');
+// Giá trị lạ (Awin thêm trạng thái mới, hoặc ô rỗng) = CHƯA chốt. Đoán thành approved là hứa tiền
+// chưa chắc có — sai về phía an toàn.
+assert.equal(awinSettleState('', 5), 'pending');
+assert.equal(awinSettleState('something-new', 5), 'pending');
+// Tiền 0/âm là đơn đã bị gỡ, bất kể ô trạng thái nói gì.
+assert.equal(awinSettleState('approved', 0), 'cancelled');
+assert.equal(awinSettleState('approved', -3), 'cancelled');
+
+
 console.log('network platform OK — link/clickId/upstream/utm + đối soát + validate');
+

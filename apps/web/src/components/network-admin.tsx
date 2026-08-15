@@ -14,6 +14,7 @@ import { SETTLE_LABEL, SETTLE_COLOR } from '@/lib/network/status';
 import { SUB_PARAM } from '@/lib/network/link';
 import { derivePubRate } from '@/lib/offer-payout';
 import { readShallowParam, writeShallowParam } from '@/lib/url-shallow';
+import { RevenueRefresh } from './revenue-refresh';
 import {
   saveOffer, toggleOffer, deleteOffer, savePublisher, deletePublisher,
   decideRegistration, setRegistrationRate, grantOffer, sendSetupLink,
@@ -89,7 +90,12 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
             sub-id của network upstream; đơn về thì nối ngược ra publisher.
           </p>
         </div>
-        <RevenueRange value={days} />
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Cùng nút với /revenue: MỘT đường kéo, một cache tag. Dựng nút riêng ở đây là đẻ ra
+              chỗ thứ hai để lệch — bấm bên này thấy số mới, bên kia vẫn số cũ. */}
+          <RevenueRefresh title="Xoá cache CJ · Awin rồi đọc lại API ngay. Đơn về trong vài phút gần đây sẽ hiện sau khi kéo." />
+          <RevenueRange value={days} />
+        </div>
       </div>
 
       <Tabs items={items} value={tab} onChange={setTab} />

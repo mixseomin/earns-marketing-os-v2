@@ -178,9 +178,58 @@ interface AwinTxn {
   id?: number | string;
   transactionDate?: string;
   transactionStatus?: string;
+  /** Trạng thái đối soát của Awin: pending | approved | declined (docs Publisher API GET
+   *  transactions). Đây mới là ô quyết định tiền có về hay không — `transactionStatus` là chuyện
+   *  khác. Giá trị lạ thì coi như chưa chốt, đừng đoán thành đã duyệt. */
+  commissionStatus?: string;
   advertiserName?: string;
   commissionAmount?: { amount?: number; currency?: string };
   saleAmount?: { amount?: number; currency?: string };
+  /** Ô sub-id của publisher. Awin cho 6 ô (clickRef…clickRef6); mình chỉ nhét mã click vào ô ĐẦU,
+   *  xem SUB_PARAM.awin = 'clickref'. */
+  clickRefs?: { clickRef?: string };
+}
+
+export interface AwinExtra { id: string; status: string; sub?: string }
+
+/** Đơn Awin dạng ĐẦY ĐỦ (kèm clickRef + trạng thái) — nền tảng network nối đơn về publisher bằng
+ *  cái này. Cùng đường lấy với lịch doanh thu, để hai màn không nói hai con số. */
+export function parseAwinFull(txns: AwinTxn[]): Array<RevenueDayRow & AwinExtra> {
+  const out: Array<RevenueDayRow & AwinExtra> = [];
+  for (const t of txns) {
+    const date = String(t.transactionDate ?? '').slice(0, 10);
+    const amount = Number(t.commissionAmount?.amount);
+    if (!date || !Number.isFinite(amount)) continue;
+    // KHÔNG bỏ dòng declined như parseAwin: ở đây đơn bị huỷ vẫn phải hiện, vì publisher cần thấy
+    // đơn của mình bị huỷ chứ không phải thấy nó biến mất không lời nào.
+    out.push({
+      id: String(t.id ?? `${date}-${t.advertiserName ?? ''}-${amount}`), date, source: 'affiliate', group: 'awin',
+      channel: t.advertiserName || 'unknown',
+      amount, gross: Number(t.saleAmount?.amount) || amount,
+      status: (t.commissionStatus ?? t.transactionStatus ?? '').toLowerCase(),
+      sub: t.clickRefs?.clickRef || undefined,
+    });
+  }
+  return out;
+}
+
+export async function awinConversions(since: string): Promise<{ rows: Array<RevenueDayRow & AwinExtra>; error?: string }> {
+  if (!AWIN_TOKEN || !AWIN_PUB) return { rows: [], error: 'awin: chưa có AWIN_TOKEN/AWIN_PUBLISHER_ID' };
+  const wins = windows(since, ymd(Date.now() + 86400_000));
+  const errs: string[] = [];
+  const seen = new Map<string, RevenueDayRow & AwinExtra>();
+  await Promise.all(wins.map(async ([start, end]) => {
+    const url = `https://api.awin.com/publishers/${encodeURIComponent(AWIN_PUB)}/transactions/`
+      + `?startDate=${start}T00%3A00%3A00&endDate=${end}T00%3A00%3A00&timezone=UTC&dateType=transaction`;
+    try {
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${AWIN_TOKEN}` }, next: { revalidate: 600, tags: [REVENUE_TAG] } });
+      if (!res.ok) { errs.push(`HTTP ${res.status} (${start})`); return; }
+      const j = await res.json();
+      if (!Array.isArray(j)) { errs.push(`trả về không phải mảng (${start})`); return; }
+      for (const r of parseAwinFull(j as AwinTxn[])) seen.set(r.id, r);
+    } catch (e) { errs.push(`${(e as Error).message} (${start})`); }
+  }));
+  return { rows: [...seen.values()], error: errs.length ? `awin: ${errs.join('; ')}` : undefined };
 }
 
 /** JSON Awin → dòng doanh thu + danh sách tiền tệ phải bỏ qua (không tự bịa tỉ giá). */

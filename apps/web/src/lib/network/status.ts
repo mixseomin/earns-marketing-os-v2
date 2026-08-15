@@ -44,3 +44,19 @@ export function cjSettleState(actionStatus: string, lockDate: string, amount: nu
   if (s === 'locked' || s === 'extended') return 'holding';
   return 'pending';
 }
+
+/**
+ * Trạng thái đối soát của Awin → cùng bốn nấc với CJ.
+ *
+ * Awin chỉ có ba nấc trong payload (pending · approved · declined) và KHÔNG có mốc khoá đơn kiểu
+ * `locking-date` của CJ, nên không có nấc "tạm duyệt" ở đây. Không bịa ra một nấc mình không đo
+ * được: giá trị lạ (deleted, chuỗi mới Awin thêm sau này) rơi về `pending` — chưa chốt là an toàn,
+ * đoán thành đã duyệt là hứa tiền chưa chắc có.
+ */
+export function awinSettleState(commissionStatus: string, amount: number): SettleState {
+  if (amount <= 0) return 'cancelled';
+  const s = (commissionStatus || '').toLowerCase();
+  if (s === 'declined' || s === 'deleted') return 'cancelled';
+  if (s === 'approved') return 'approved';
+  return 'pending';
+}

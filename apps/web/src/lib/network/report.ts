@@ -6,8 +6,8 @@
 
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
-import { cjConversions } from '@/lib/revenue/networks';
-import { cjSettleState, type SettleState } from './status';
+import { cjConversions, awinConversions } from '@/lib/revenue/networks';
+import { cjSettleState, awinSettleState, type SettleState } from './status';
 import { pubCut } from '@/lib/offer-payout';
 
 export interface NetConversion {
@@ -54,8 +54,9 @@ export async function networkReport(sinceDays = 90): Promise<NetworkReport> {
   if (!db) return { conversions: [], pubs: [], unmatched: 0, errors: ['DATABASE_URL chưa cấu hình'] };
   const since = new Date(Date.now() - sinceDays * 86400_000).toISOString().slice(0, 10);
 
-  const [cj, clickRows, pubRows] = await Promise.all([
+  const [cj, awin, clickRows, pubRows] = await Promise.all([
     cjConversions(since),
+    awinConversions(since),
     db.execute(sql`
       SELECT c.click_id, p.slug AS pub_slug, p.name AS pub_name, o.slug AS offer_slug,
              c.utm_source, c.utm_medium, c.utm_campaign, c.utm_content
@@ -75,19 +76,32 @@ export async function networkReport(sinceDays = 90): Promise<NetworkReport> {
   const byClick = new Map<string, ClickRow>();
   for (const r of clickRows as unknown as ClickRow[]) byClick.set(r.click_id, r);
 
-  const conversions: NetConversion[] = cj.rows.map((c) => {
+  // Mỗi network một cách đọc trạng thái, nhưng ra CÙNG bốn nấc — chỗ khác nhau duy nhất là hàm
+  // settle. Thêm network sau này = thêm một dòng ở mảng này, không đụng phần join bên dưới.
+  const sources: Array<{ network: string; rows: Array<{ id: string; date: string; channel: string; amount: number; gross?: number; sub?: string; state: SettleState }> }> = [
+    { network: 'cj', rows: cj.rows.map((c) => ({
+      id: c.id, date: c.date, channel: c.channel, amount: c.amount, gross: c.gross, sub: c.sub,
+      state: cjSettleState(c.status, c.lockDate, c.amount),
+    })) },
+    { network: 'awin', rows: awin.rows.map((a) => ({
+      id: a.id, date: a.date, channel: a.channel, amount: a.amount, gross: a.gross, sub: a.sub,
+      state: awinSettleState(a.status, a.amount),
+    })) },
+  ];
+
+  const conversions: NetConversion[] = sources.flatMap(({ network, rows }) => rows.map((c) => {
     const hit = c.sub ? byClick.get(c.sub) ?? null : null;
     return {
-      upstreamId: c.id, network: 'cj', date: c.date, advertiser: c.channel,
+      upstreamId: `${network}:${c.id}`, network, date: c.date, advertiser: c.channel,
       commission: c.amount, gross: c.gross ?? c.amount,
-      state: cjSettleState(c.status, c.lockDate, c.amount),
+      state: c.state,
       clickId: c.sub ?? null,
       publisher: hit?.pub_slug ?? null,
       publisherName: hit?.pub_name ?? null,
       offer: hit?.offer_slug ?? null,
       utm: hit ? [hit.utm_source, hit.utm_medium, hit.utm_campaign, hit.utm_content].filter((x): x is string => !!x) : [],
     };
-  });
+  }));
 
   const pubs: PubStat[] = (pubRows as unknown as Array<{ slug: string; name: string; clicks: number }>).map((p) => ({
     publisher: p.slug, publisherName: p.name, clicks: Number(p.clicks) || 0,
@@ -109,7 +123,7 @@ export async function networkReport(sinceDays = 90): Promise<NetworkReport> {
     conversions: conversions.sort((a, b) => b.date.localeCompare(a.date)),
     pubs: pubs.sort((a, b) => b.approved - a.approved || b.clicks - a.clicks),
     unmatched: conversions.filter((c) => !c.publisher).length,
-    errors: cj.error ? [cj.error] : [],
+    errors: [cj.error, awin.error].filter((e): e is string => !!e),
   };
 }
 

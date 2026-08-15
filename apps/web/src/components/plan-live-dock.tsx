@@ -15,7 +15,9 @@ const ago = (iso: string) => {
   return `${Math.round(s / 60)} phút trước`;
 };
 
-export function PlanLiveDock({ projectId }: { projectId?: string }) {
+/** Cùng một nguồn cho dock nổi và mục "đang chuẩn bị đăng" trên rail Toàn cảnh — hai chỗ đọc hai
+ *  đường thì sẽ có lúc lệch nhau, mà đây là thứ dùng để biết máy đang làm gì. */
+export function usePlanLive(projectId?: string): PlanLive[] {
   const [live, setLive] = useState<PlanLive[]>([]);
   const [, force] = useState(0);
 
@@ -28,7 +30,11 @@ export function PlanLiveDock({ projectId }: { projectId?: string }) {
     const tick = setInterval(() => force((n) => n + 1), 15000);
     return () => { on = false; clearInterval(poll); clearInterval(tick); };
   }, [projectId]);
+  return live;
+}
 
+export function PlanLiveDock({ projectId }: { projectId?: string }) {
+  const live = usePlanLive(projectId);
   if (!live.length) return null;
 
   return (

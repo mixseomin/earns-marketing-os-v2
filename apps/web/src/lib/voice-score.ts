@@ -44,7 +44,7 @@ export function prose(md: string): string {
 export interface VoiceScore {
   words: number; sentences: number; spread: number;
   hedgesPer200: number; banned: string[]; throat: string[]; marked: number;
-  checkablePer100: number; contractions: number; handTyped: number; capRate: number; emDashes: number;
+  checkablePer100: number; checkable: number; contractions: number; handTyped: number; capRate: number; emDashes: number;
   hard: string[]; soft: string[]; ok: boolean; human100: number;
 }
 
@@ -63,6 +63,10 @@ export function voiceScore(raw: string, mode: 'post' | 'comment' = 'post'): Voic
     banned, throat,
     marked: banned.length + throat.length,
     checkablePer100: per(hits(t, NUMBER).length + hits(t, PROPER).length, 100),
+    // Đếm TUYỆT ĐỐI, không theo mật độ: một comment 30 từ có mật độ cao nhưng vẫn có thể rỗng dữ
+    // kiện. Chiều sâu ngách đo được ở đây — số tiền, mốc ngày, tên form (DD 1561), viết tắt nghề
+    // (LES, BAH, TDY). Không có hai thứ đó thì câu nào cũng đúng cho mọi ngách, tức là chẳng của ai.
+    checkable: hits(t, NUMBER).length + hits(t, PROPER).length,
     contractions: hits(t, CONTRACTION).length,
     handTyped: hits(t, HANDTYPED).length,
     // Bỏ hoa đầu câu KHÔNG phải vệt gõ tay — nó đọc ra nham nhở. Vệt đúng nghĩa là contraction
@@ -91,6 +95,7 @@ export function voiceScore(raw: string, mode: 'post' | 'comment' = 'post'): Voic
     else if (m.words > 45) soft.push(`hơi dài (${m.words} từ, nên dưới 45)`);
     if (m.handTyped === 0) soft.push('không vệt gõ tay nào — sạch quá thành giọng máy');
     if (m.capRate < 0.6) soft.push(`${Math.round((1 - m.capRate) * 100)}% câu không viết hoa đầu — nham nhở`);
+    if (m.checkable < 2) soft.push('chưa có dữ kiện ngách (số tiền, mốc ngày, tên form/thuật ngữ) — nói chung chung thì ai cũng viết được');
   }
   let human100 = 100;
   human100 -= m.emDashes * 25 + banned.length * 15 + throat.length * 15;
@@ -98,6 +103,7 @@ export function voiceScore(raw: string, mode: 'post' | 'comment' = 'post'): Voic
     if (m.words > 70) human100 -= 25; else if (m.words > 45) human100 -= 12;
     if (m.handTyped === 0) human100 -= 15;
     if (m.capRate < 0.6) human100 -= 12;
+    if (m.checkable < 2) human100 -= 15;
   }
   if (m.words >= 60) {
     if (m.spread < 10) human100 -= 12;

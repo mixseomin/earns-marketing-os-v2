@@ -19,7 +19,7 @@ import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
-import { CHANNELS, FORMATS, STYLES, SERIES, ANGLE_GROUPS, ANGLES, MIX_TARGET, LINK_SHARE_MAX, angleOf, angleLabel, tagVal, pieceGaps, pieceRisks, shouldWarnGaps, schedMark, formatLabel, justPosted } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
+import { CHANNELS, FORMATS, STYLES, SERIES, ANGLE_GROUPS, ANGLES, MIX_TARGET, LINK_SHARE_MAX, angleOf, angleLabel, tagVal, pieceGaps, pieceRisks, shouldWarnGaps, schedMark, formatLabel, justPosted, placeName } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
 import { StatusSegmented, Segmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, ChannelFavicon, FormatIcon, DataTable, type DataColumn, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
@@ -53,6 +53,7 @@ import { FOLLOWUP_META, type Followup } from '@/lib/followup-status';
 import { FollowupDrawer } from '@/components/followup-drawer';
 import { PieceDrawer } from '@/components/piece-drawer';
 import { PiecePreview } from '@/components/piece-preview';
+import { usePlanLive } from '@/components/plan-live-dock';
 import { PieceForm } from '@/components/piece-form';
 import { taskKind, stripKindPrefix, isEmailSend as detectEmailSend } from '@/lib/task-kind';
 import { taskTypeKey, taskArchetype, taskSectionPolicy, TYPE_META } from '@/lib/task-type';
@@ -1313,6 +1314,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
 
   // Tập bài sau lọc — MỘT tập cho MỌI bề mặt (lịch + chế độ đọc). Trước lọc góc chỉ cắm ở lịch nên
   // bấm lọc xong sang chế độ đọc vẫn thấy nguyên đám vừa lọc bỏ.
+  // Lượt tại chỗ đang chạy — hiện riêng trên rail Toàn cảnh (cùng nguồn với dock nổi).
+  const planLive = usePlanLive(allProjects ? undefined : projectId);
   const piecesShown = useMemo(
     () => piecesInScope.filter((p) => !tagVal(p.tags, 'replyto') && PIECE_AXES.every((ax) => axisMatch(ax, p, pf))),
     [piecesInScope, pf],
@@ -2277,6 +2280,58 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)', marginBottom: 7 }}>
               Toàn cảnh · {piecesShown.length} bài
             </div>
+            {/* Lượt ĐANG chạy đứng riêng trên đầu: nó có thể thuộc ngày hôm trước, nằm lẫn trong
+                danh sách theo ngày thì phải cuộn đi tìm — trong khi đây đúng là thứ cần nhìn ngay. */}
+            {planLive.length > 0 && (
+              <div style={{ marginBottom: 10, border: '1px solid var(--neon-blue)', borderRadius: 8, padding: '6px 7px',
+                background: 'color-mix(in srgb, var(--neon-blue) 8%, transparent)' }}>
+                <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--neon-blue)', marginBottom: 4 }}>
+                  đang chuẩn bị đăng · {planLive.length}
+                </div>
+                {planLive.map((l) => (
+                  <button key={l.pieceId} type="button" onClick={() => setOpenPieceId(l.pieceId)}
+                    style={{ display: 'flex', gap: 6, alignItems: 'flex-start', width: '100%', textAlign: 'left',
+                      background: 'transparent', border: 0, cursor: 'pointer', padding: '3px 2px', color: 'var(--fg-1)' }}>
+                    <span style={{ width: 6, height: 6, borderRadius: 999, marginTop: 5, flexShrink: 0,
+                      background: 'var(--neon-blue)', animation: 'freshPulse 1.2s ease-in-out infinite' }} />
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 11.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {l.stage}
+                      </span>
+                      <span style={{ display: 'block', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+                        #{l.pieceId} · {placeName(l.place) || l.title} · lịch {l.date}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* Lượt ĐANG chạy đứng riêng trên đầu: nó có thể thuộc ngày hôm trước, nằm lẫn trong
+                danh sách theo ngày thì phải cuộn đi tìm — trong khi đây đúng là thứ cần nhìn ngay. */}
+            {planLive.length > 0 && (
+              <div style={{ marginBottom: 10, border: '1px solid var(--neon-blue)', borderRadius: 8, padding: '6px 7px',
+                background: 'color-mix(in srgb, var(--neon-blue) 8%, transparent)' }}>
+                <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--neon-blue)', marginBottom: 4 }}>
+                  đang chuẩn bị đăng · {planLive.length}
+                </div>
+                {planLive.map((l) => (
+                  <button key={l.pieceId} type="button" onClick={() => setOpenPieceId(l.pieceId)}
+                    style={{ display: 'flex', gap: 6, alignItems: 'flex-start', width: '100%', textAlign: 'left',
+                      background: 'transparent', border: 0, cursor: 'pointer', padding: '3px 2px', color: 'var(--fg-1)' }}>
+                    <span style={{ width: 6, height: 6, borderRadius: 999, marginTop: 5, flexShrink: 0,
+                      background: 'var(--neon-blue)', animation: 'freshPulse 1.2s ease-in-out infinite' }} />
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 11.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {l.stage}
+                      </span>
+                      <span style={{ display: 'block', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
+                        #{l.pieceId} · {placeName(l.place) || l.title} · lịch {l.date}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
             {feedDays.map(([d, ps]) => (
               <div key={d} style={{ marginBottom: 8 }}>
                 <button type="button" onClick={() => jumpTo(`feed-${d}`)}

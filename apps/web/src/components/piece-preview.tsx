@@ -225,7 +225,7 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
           </div>
           <div style={{ whiteSpace: 'pre-wrap', color: 'var(--fg-2)', borderLeft: '2px dashed var(--line)', paddingLeft: 9,
             ...(compact ? { display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>
-            {text === null ? '…' : (text.trim() ? withTags(text) : <em style={{ color: 'var(--neon-amber)' }}>chưa ghi tiêu chí chọn bài + hướng nói</em>)}
+            {text === null ? '…' : (text.trim() ? withTags(text) : <em style={{ color: 'var(--fg-4)' }}>không có gì soạn trước — chọn bài và viết lúc vào nhóm</em>)}
           </div>
           {/* Kết quả là thứ ghi NGƯỢC lại sau khi làm — chưa có thì nói thẳng là chưa làm, đừng để
               tấm thẻ trông như đã xong. */}

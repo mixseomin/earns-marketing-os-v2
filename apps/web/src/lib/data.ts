@@ -1174,7 +1174,15 @@ export async function listScheduledContentPieces(projectId?: string): Promise<Ca
              publish_url, to_char(published_at, 'YYYY-MM-DD HH24:MI') AS published_at,
              -- CÓ LINK hay không là chuyện của bản thân thân bài, không phải của tag: nền tảng tự
              -- biến 'militarycalc.com' trần thành link y như https://… , nên bắt cả hai dạng.
-             (coalesce(body_md, '') ~* '(https?://|\m[a-z0-9][a-z0-9-]*\.(com|org|net|io|gov|app|co)\M)') AS has_link
+             -- Cờ này nói "BÀI MÌNH ĐĂNG có chèn link" (nó nuôi tỉ lệ link/tổng bài + cảnh báo spam),
+             -- nên phần GHI CHÉP của thẻ tại-chỗ không được tính: link bài gốc mình comment dưới,
+             -- link nguồn mình đọc, link comment đã đăng đều là tham chiếu, không phải link mình
+             -- chèn vào nội dung. Trước khi lọc, mọi thẻ comment đều bị gắn 🔗 sai từ lúc bắt đầu
+             -- lưu bài gốc vào body. Chỉ lọc khi thẻ CÓ phần ghi chép, để bài thường không đụng tới.
+             ((CASE WHEN coalesce(body_md, '') LIKE '%CHUẨN BỊ (%' OR coalesce(body_md, '') LIKE '%— ĐÃ %'
+                    THEN regexp_replace(coalesce(body_md, ''), '^(BÀI GỐC:|NGUỒN:|\(bài lúc mình vào|· đo |https?://).*$', '', 'gn')
+                    ELSE coalesce(body_md, '') END)
+              ~* '(https?://|\m[a-z0-9][a-z0-9-]*\.(com|org|net|io|gov|app|co)\M)') AS has_link
       FROM content_pieces
       -- HAI đường nói "bỏ bài này": cột archived_at và status='archived'. Trước đây chỉ đường thứ
       -- nhất được nghe, nên đặt status='archived' xong bài VẪN nằm nguyên trong lịch — im lặng, và

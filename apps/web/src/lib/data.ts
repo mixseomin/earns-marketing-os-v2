@@ -1179,10 +1179,13 @@ export async function listScheduledContentPieces(projectId?: string): Promise<Ca
              -- link nguồn mình đọc, link comment đã đăng đều là tham chiếu, không phải link mình
              -- chèn vào nội dung. Trước khi lọc, mọi thẻ comment đều bị gắn 🔗 sai từ lúc bắt đầu
              -- lưu bài gốc vào body. Chỉ lọc khi thẻ CÓ phần ghi chép, để bài thường không đụng tới.
+             -- Backslash phải viết ĐÔI: chuỗi này là template literal của JS trước khi tới Postgres,
+             -- mà JS nuốt mọi escape lạ ('\(' → '(', '\m' → 'm'). Viết một gạch thì regex tới DB đã
+             -- hỏng cú pháp, Postgres ném lỗi, tryDb nuốt lỗi trả [] — lịch trống trơn không báo gì.
              ((CASE WHEN coalesce(body_md, '') LIKE '%CHUẨN BỊ (%' OR coalesce(body_md, '') LIKE '%— ĐÃ %'
-                    THEN regexp_replace(coalesce(body_md, ''), '^(BÀI GỐC:|NGUỒN:|\(bài lúc mình vào|· đo |https?://).*$', '', 'gn')
+                    THEN regexp_replace(coalesce(body_md, ''), '^(BÀI GỐC:|NGUỒN:|\\(bài lúc mình vào|· đo |https?://).*$', '', 'gn')
                     ELSE coalesce(body_md, '') END)
-              ~* '(https?://|\m[a-z0-9][a-z0-9-]*\.(com|org|net|io|gov|app|co)\M)') AS has_link
+              ~* '(https?://|\\m[a-z0-9][a-z0-9-]*\\.(com|org|net|io|gov|app|co)\\M)') AS has_link
       FROM content_pieces
       -- HAI đường nói "bỏ bài này": cột archived_at và status='archived'. Trước đây chỉ đường thứ
       -- nhất được nghe, nên đặt status='archived' xong bài VẪN nằm nguyên trong lịch — im lặng, và

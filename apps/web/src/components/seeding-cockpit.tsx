@@ -591,7 +591,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
       if (res.created > 0) {
         // Nói rõ vai đã đổi việc gì — nếu im, người dùng tưởng lịch tự nhiên hụt bài.
         const note: string[] = [];
-        if (res.forcedComment) note.push(`${res.forcedComment} ra việc COMMENT (nhóm đó bài mới chìm)`);
+        if (res.forcedComment) note.push(`${res.forcedComment} ra việc COMMENT/TƯƠNG TÁC tại chỗ (nhóm đó bài mới chìm)`);
         if (res.skippedObserve) note.push(`${res.skippedObserve} bỏ qua (chưa khảo / nhóm gần chết)`);
         setMsg(`Đã sinh ${res.created} nháp vào backlog${note.length ? ` — ${note.join(', ')}` : ''}. Bấm 📝 ở dòng để xem.`);
       } else if (res.dueTotal === 0) {

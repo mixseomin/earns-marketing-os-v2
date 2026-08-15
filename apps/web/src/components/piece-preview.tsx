@@ -10,7 +10,7 @@
 import { FormatIcon } from './ui';
 import { useEffect, useState } from 'react';
 import { getPieceDetail, updateContentPiece } from '@/lib/actions/content';
-import { CHANNELS, tagVal, tagIds, formatOf, styleOf, fbButtonOf, seriesOf, isVideoMedia } from '@/lib/content-channels';
+import { CHANNELS, tagVal, tagIds, formatOf, styleOf, fbButtonOf, seriesOf, isVideoMedia, placeName, isOnSiteFormat } from '@/lib/content-channels';
 import { ChannelFavicon } from './ui/site-favicon';
 import type { CalPiece } from '@/lib/data';
 
@@ -78,12 +78,17 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
   // khổ card 4/5 (khổ ảnh dựng sẵn của kho).
   const ratio = (m: { width?: number | null; height?: number | null }) => (m.width && m.height ? `${m.width}/${m.height}` : '4/5');
   const placeLabel = place.startsWith('http') ? place.replace(/^https?:\/\/(www\.)?/, '') : place;
+  const placeShort = placeName(place);
   // KIỂU BÀI quyết định thân bài dựng ra sao — cùng một caption nhưng poll ra ô bình chọn, bài chèn
   // link ra thẻ link, thread ra N mảnh. Đây là chỗ "plan trông thế nào thì đăng thế": nhìn bản dựng
   // là biết người ta sẽ thấy gì, không phải đoán từ chữ 'format:poll' trong tag.
   const fmt = formatOf(piece.tags);
   const sty = styleOf(piece.tags);
   const kind = fmt?.id ?? (piece.channel === 'twitter-thread' ? 'thread' : '');
+  // Việc làm TẠI CHỖ (comment / tương tác / share lại): thẻ này không phải bài viết sẵn mà là KẾ
+  // HOẠCH — nội dung chỉ có sau khi vào nhóm, đọc bài người ta hỏi gì rồi mới viết. Dựng khác hẳn
+  // bài đăng để không ai tưởng đây là chữ sẽ dán nguyên vào ô comment.
+  const onSite = isOnSiteFormat(kind);
   const bodyText = text?.trim() ?? '';
   const tweets = kind === 'thread' && bodyText ? bodyText.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean) : null;
   // Poll: khối dòng 'A. …' / '1) …' là phương án; chữ TRƯỚC khối là câu hỏi, chữ SAU khối vẫn nằm
@@ -103,7 +108,8 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
 
   return (
     <div onClick={onOpen}
-      style={{ border: '1px solid var(--line)', borderRadius: 9, overflow: 'hidden', background: 'var(--bg-1)', cursor: onOpen ? 'pointer' : 'default' }}>
+      style={{ border: onSite ? '1px dashed color-mix(in srgb, var(--fg-4) 70%, transparent)' : '1px solid var(--line)',
+        borderRadius: 9, overflow: 'hidden', background: 'var(--bg-1)', cursor: onOpen ? 'pointer' : 'default' }}>
       {piece.status !== 'published' && tagVal(piece.tags, 'platsched') && (
         // Bài đã nằm trong lịch của chính nền tảng: FB tự đăng kể cả lúc máy mình tắt. Phải nói ra,
         // vì nhìn giống hệt bài chờ runner mà việc cần làm thì khác hẳn.
@@ -130,10 +136,20 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
       <div style={{ display: 'flex', gap: compact ? 7 : 9, alignItems: 'center', padding: compact ? '7px 9px' : '10px 12px', borderBottom: '1px solid var(--line)' }}>
         {/* Favicon THẬT của nền tảng (không phải emoji): nhìn cái là biết bài này lên đâu. */}
         <ChannelFavicon channel={piece.channel} size={compact ? 24 : 34} circle title={ch?.label ?? piece.channel} />
+        {/* NƠI ĐĂNG đứng đầu, tài khoản xuống dòng phụ. Trước đây ngược lại: mọi thẻ trong ngày
+            đều in đậm cùng một tên account ("MilitaryCalc") nên nhìn cả cột thấy y hệt nhau, còn
+            thứ THẬT SỰ khác nhau giữa các thẻ — đăng vào nhóm nào — thì nằm mờ bên dưới. */}
         <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3, minWidth: 0 }}>
-          <b style={{ fontSize: compact ? 11.5 : 13 }}>{acct ? (acct.handle ?? acct.platformKey) : <span style={{ color: 'var(--neon-amber)' }}>chưa gắn account</span>}</b>
+          <b style={{ fontSize: compact ? 11.5 : 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+             title={place || undefined}>
+            {onSite && <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>{fmt?.id === 'engage' ? 'tương tác trong ' : 'comment trong '}</span>}
+            {placeShort || <span style={{ color: 'var(--neon-amber)' }}>chưa chọn nơi đăng</span>}
+          </b>
           <span style={{ fontSize: compact ? 10 : 11, color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {placeLabel || 'chưa chọn nơi đăng'}{time ? ` · ${time}` : ''}
+            {acct
+              ? `bằng ${acct.handle ?? acct.platformKey}`
+              : <span style={{ color: 'var(--neon-amber)' }}>chưa gắn account</span>}
+            {time ? ` · ${time}` : ''}
           </span>
         </span>
         <span style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
@@ -191,6 +207,31 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
           ))}
           <div style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>{pollOpts.length} phương án · người xem bấm chọn</div>
           {pollTail && <div style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>{withTags(pollTail)}</div>}
+        </div>
+      ) : onSite ? (
+        <div style={{ padding: compact ? '9px 11px' : '12px 14px', fontSize: compact ? 11.5 : 13, lineHeight: 1.5 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, fontSize: compact ? 10 : 10.5,
+            letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--fg-3)' }}>
+            <span style={{ padding: '1px 6px', borderRadius: 4, border: '1px dashed var(--fg-4)' }}>kế hoạch</span>
+            <span style={{ textTransform: 'none', letterSpacing: 0 }}>
+              {kind === 'engage'
+                ? 'đến giờ vào nhóm, lọc bài ÍT tương tác nhất rồi thả cảm xúc'
+                : 'đến giờ vào nhóm, tìm bài hợp rồi mới viết theo nội dung lúc đó'}
+            </span>
+          </div>
+          <div style={{ whiteSpace: 'pre-wrap', color: 'var(--fg-2)', borderLeft: '2px dashed var(--line)', paddingLeft: 9,
+            ...(compact ? { display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>
+            {text === null ? '…' : (text.trim() ? withTags(text) : <em style={{ color: 'var(--neon-amber)' }}>chưa ghi tiêu chí chọn bài + hướng nói</em>)}
+          </div>
+          {/* Kết quả là thứ ghi NGƯỢC lại sau khi làm — chưa có thì nói thẳng là chưa làm, đừng để
+              tấm thẻ trông như đã xong. */}
+          <div style={{ marginTop: 7, fontSize: compact ? 10 : 11 }}>
+            {piece.publishUrl
+              ? <a href={piece.publishUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: 'var(--neon-blue)' }}>
+                  ✓ đã làm — mở {kind === 'engage' ? 'bài đã tương tác' : 'comment đã đăng'} ↗
+                </a>
+              : <span style={{ color: 'var(--fg-4)' }}>kết quả (link + nguyên văn) ghi vào đây sau khi làm xong</span>}
+          </div>
         </div>
       ) : (
         <div style={{ padding: compact ? '9px 11px' : '12px 14px', fontSize: compact ? 12 : 13.5, lineHeight: 1.5, whiteSpace: 'pre-wrap',

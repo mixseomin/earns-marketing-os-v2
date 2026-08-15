@@ -398,8 +398,23 @@ function buildDraftPrompt(ctx: PostContext, hookChoice: string | null, customIns
     (ctx.contentType === 'comment' || ctx.contentType === 'reply') && ctx.parentSnippets.length > 0
       ? `Top comments / quotes (context discussion):\n${ctx.parentSnippets.slice(0, 3).map((s) => `  • ${s.author ? `[${s.author}] ` : ''}${s.text.slice(0, 300)}`).join('\n')}`
       : null,
-    (ctx.contentType === 'comment' || ctx.contentType === 'reply') && !ctx.parentBody
-      ? `⚠ Parent body chưa được set — gen reply chung chung dựa vào hint từ title (nếu có) + brief. KHÔNG bám sâu được vì không có nội dung gốc.`
+    // KHÔNG có bài gốc = KHÔNG viết comment. Comment ăn hay không là do nó bám đúng câu người ta
+    // vừa hỏi; viết trước từ hôm qua thì chỉ ra được một đoạn chung chung, dán vào đâu cũng được và
+    // vì thế chẳng ăn ở đâu cả. Thiếu parent → đổi hẳn việc: sinh KẾ HOẠCH đi tìm bài, còn chữ thật
+    // để runner sinh tại chỗ (lúc đó parent_url đã có, prompt này chạy lại ở nhánh trên).
+    (ctx.contentType === 'comment' || ctx.contentType === 'reply') && !ctx.parentBody && !ctx.parentUrl
+      ? `# ⛔ CHƯA CÓ BÀI GỐC → SINH KẾ HOẠCH, KHÔNG SINH COMMENT
+Chưa biết người ta đang hỏi gì thì KHÔNG được viết sẵn câu trả lời. Nhiệm vụ của bạn ở lượt này là
+viết KẾ HOẠCH cho lúc runner vào nhóm, gồm đúng 3 phần, ngắn, cụ thể, không sáo:
+  1. TÌM BÀI THẾ NÀO — 2-3 dấu hiệu nhận ra bài đáng comment (người ta đang hỏi gì, bài mới trong
+     bao lâu, mức tương tác nào là còn kịp chen vào), bám vào chủ đề của brief.
+  2. NÓI THEO HƯỚNG NÀO — 1-2 câu: mình mang thông tin/kinh nghiệm gì mà người hỏi đang thiếu.
+  3. RANH GIỚI — cái gì tuyệt đối không làm ở nhóm này (link, quảng cáo, tranh cãi…).
+KHÔNG viết câu trả lời mẫu, KHÔNG viết "ví dụ comment:". Người đọc kế hoạch này là chính mình lúc
+đứng trước bài thật.`
+      : null,
+    (ctx.contentType === 'comment' || ctx.contentType === 'reply') && !ctx.parentBody && ctx.parentUrl
+      ? `⚠ Có parent URL nhưng chưa kéo được nội dung gốc — bám vào title (nếu có) + brief, và nói rõ chỗ nào là suy đoán.`
       : null,
     (ctx.contentType === 'comment' || ctx.contentType === 'reply')
       ? `Quy tắc reply:
@@ -411,6 +426,16 @@ function buildDraftPrompt(ctx: PostContext, hookChoice: string | null, customIns
   - Nếu là reply câu hỏi: trả lời trực tiếp + 1 insight có giá trị + (optional) câu hỏi mở rộng
   - Nếu là comment trong thread discussion: đóng góp 1 góc nhìn / kinh nghiệm / nuance
   - KHÔNG link / pitch / self-promo trừ khi phase=Seed/Direct VÀ rules cho phép`
+      : null,
+    ctx.contentType === 'engage'
+      ? `# VIỆC NÀY LÀ TƯƠNG TÁC, KHÔNG PHẢI BÀI VIẾT
+Không có nội dung để soạn. Viết KẾ HOẠCH tương tác trong nhóm này, gồm:
+  1. LỌC BÀI NÀO — bài mới trong vài giờ và ĐANG ÍT tương tác (nêu ngưỡng cụ thể theo nhịp nhóm).
+     Lý do: trong danh sách 3-5 người đã thả cảm xúc thì tên mình nổi lên; bài đã 200 like thì mình
+     là hạt cát, tốn công mà không ai thấy.
+  2. LÀM GÌ — thả cảm xúc gì, có đọc/lưu bài không, khi nào thì kèm một câu ngắn.
+  3. BAO NHIÊU + DỪNG Ở ĐÂU — số bài mỗi lượt, và dấu hiệu phải dừng (spam, bị để ý).
+KHÔNG viết caption, KHÔNG viết comment mẫu.`
       : null,
     (ctx.contentType === 'comment' || ctx.contentType === 'reply') ? '' : null,
     // CONTENT PILLAR section — macro positioning. Đặt SAU bối cảnh nhưng TRƯỚC

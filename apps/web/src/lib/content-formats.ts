@@ -34,10 +34,18 @@ export const CONTENT_FORMATS: ContentFormat[] = [
   // ── Interactions (yêu cầu parent_url) ──
   { key: 'comment',  label: 'Comment',      icon: '💬', color: '#06b6d4', hint: 'Reply trong thread/forum — bám vào discussion có sẵn (yêu cầu parent URL)' },
   { key: 'reply',    label: 'Reply',        icon: '↩️', color: '#0ea5e9', hint: 'Trả lời câu hỏi cụ thể (FB Q-post, Reddit question) — yêu cầu parent URL' },
+  { key: 'engage',   label: 'Tương tác',    icon: '👍', color: '#84cc16', hint: 'Thả cảm xúc + đọc bài người khác. ƯU TIÊN BÀI ÍT LIKE: trong danh sách 3-5 người tương tác thì tên mình nổi, còn bài 200 like thì mình là hạt cát. Không có nội dung soạn trước — chọn bài tại chỗ.' },
 ];
 
 // Content type yêu cầu parent_url. UI require + AI prompt nạp context.
 export const INTERACTION_TYPES = new Set(['comment', 'reply']);
+
+// VIỆC LÀM TẠI CHỖ — không soạn nội dung trước được vì nội dung phụ thuộc bài mình gặp lúc vào
+// nhóm. Lịch chỉ nói: đến giờ đó, vào đúng nơi đó, tìm bài theo tiêu chí, rồi mới viết. Kết quả
+// (link + nguyên văn đã đăng) ghi NGƯỢC lại sau khi làm.
+// Sinh sẵn một comment "hoàn chỉnh" từ hôm trước là bịa: chưa biết người ta hỏi gì.
+export const ON_SITE_TYPES = new Set(['comment', 'reply', 'engage']);
+export const isOnSiteType = (t: string) => ON_SITE_TYPES.has(t);
 export function isInteractionType(contentType: string): boolean {
   return INTERACTION_TYPES.has(contentType);
 }
@@ -150,7 +158,7 @@ interface FormatProfile { formats: string[]; mix: Record<string, number> }
 // 'comment' + 'reply' (interactions) áp dụng MỌI category — append vào
 // formats list (không vào mix vì interactions trigger riêng, không qua mix
 // auto-generation).
-const INTERACTION_FORMATS = ['comment', 'reply'];
+const INTERACTION_FORMATS = ['comment', 'reply', 'engage'];   // engage = like/thả cảm xúc, nền tảng nào cũng có
 
 const PROFILE_BY_CATEGORY: Record<string, FormatProfile> = {
   social:      { formats: ['text', 'image', 'video', 'link', 'thread', 'poll', 'carousel', 'story', ...INTERACTION_FORMATS],

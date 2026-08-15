@@ -1062,7 +1062,10 @@ export async function generateDueDrafts(projectId: string): Promise<GenerateDueR
     if (role === 'observe') { skippedObserve++; continue; }
     let ct: string;
     if (role === 'comment') {
-      ct = 'comment';
+      // Nhóm chưa từng chạm lượt nào → bắt đầu bằng TƯƠNG TÁC, không phải comment. Tài khoản mới
+      // toanh nhảy vào comment ngay thì lạc lõng; thả cảm xúc vài bài ít like trước để tên mình
+      // xuất hiện trong danh sách người tương tác, lượt sau comment mới không phải người lạ.
+      ct = q.touches30d === 0 ? 'engage' : 'comment';
       forcedComment++;
     } else {
       // Lane type cố định → dùng luôn; lane 'mix' → theo số đo, rồi mới tới formatMix.

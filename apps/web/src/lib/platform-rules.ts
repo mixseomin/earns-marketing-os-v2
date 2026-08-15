@@ -51,7 +51,7 @@ export interface PlatformExtraField {
 // Refs: https://www.reddit.com/wiki/markdown
 const REDDIT: PlatformRules = {
   label: 'Reddit',
-  supportedTypes: ['text', 'link', 'image', 'video', 'poll', 'comment', 'reply'],
+  supportedTypes: ['text', 'link', 'image', 'video', 'poll', 'comment', 'reply', 'engage'],
   byType: {
     text:    { titleMin: 5, titleMax: 300, bodyMin: 0,   bodyMax: 40000, mediaRequired: false, hint: 'Title bắt buộc 5-300 chars. Body markdown, 0-40k. Self-post = no link auto.' },
     link:    { titleMin: 5, titleMax: 300, bodyMin: 0,   bodyMax: 0,     mediaRequired: false, hint: 'Title + URL only. Không có body (chỉ comment seeding mồi sau).' },
@@ -71,7 +71,7 @@ const REDDIT: PlatformRules = {
 // Char limits: post 63206, comment 8000.
 const FACEBOOK: PlatformRules = {
   label: 'Facebook',
-  supportedTypes: ['text', 'image', 'video', 'link', 'carousel', 'story', 'comment', 'reply'],
+  supportedTypes: ['text', 'image', 'video', 'link', 'carousel', 'story', 'comment', 'reply', 'engage'],
   byType: {
     text:     { titleMin: 0, titleMax: 0,   bodyMin: 1,   bodyMax: 63206, mediaRequired: false, hint: 'FB post text-only. Không có title. Tốt nhất < 80 chars hook + paragraph ngắn.' },
     image:    { titleMin: 0, titleMax: 0,   bodyMin: 0,   bodyMax: 63206, mediaRequired: true,  hint: 'Caption + 1 ảnh. Aspect 1:1 hoặc 4:5 ưu tiên feed.' },
@@ -93,7 +93,7 @@ const FACEBOOK: PlatformRules = {
 // Char limits: 280 (free), 25k (premium). Default 280.
 const TWITTER: PlatformRules = {
   label: 'X (Twitter)',
-  supportedTypes: ['text', 'image', 'video', 'link', 'thread', 'poll', 'comment', 'reply'],
+  supportedTypes: ['text', 'image', 'video', 'link', 'thread', 'poll', 'comment', 'reply', 'engage'],
   byType: {
     text:    { titleMin: 0, titleMax: 0,   bodyMin: 1,   bodyMax: 280,   mediaRequired: false, hint: '280 chars / tweet (free). Premium 25k. Mention + hashtag + emoji counts.' },
     image:   { titleMin: 0, titleMax: 0,   bodyMin: 0,   bodyMax: 280,   mediaRequired: true,  hint: 'Caption + 1-4 ảnh. Alt text required cho accessibility.' },
@@ -109,7 +109,7 @@ const TWITTER: PlatformRules = {
 // Discord: text message, embeds, thread reply.
 const DISCORD: PlatformRules = {
   label: 'Discord',
-  supportedTypes: ['text', 'image', 'video', 'link', 'comment', 'reply'],
+  supportedTypes: ['text', 'image', 'video', 'link', 'comment', 'reply', 'engage'],
   byType: {
     text:    { titleMin: 0, titleMax: 0,   bodyMin: 1,   bodyMax: 2000,  mediaRequired: false, hint: '2000 chars / message (free). Nitro 4000. Markdown OK.' },
     image:   { titleMin: 0, titleMax: 0,   bodyMin: 0,   bodyMax: 2000,  mediaRequired: true,  hint: 'Attach 1-10 ảnh, 25MB each (Nitro 50MB).' },
@@ -126,7 +126,7 @@ const DISCORD: PlatformRules = {
 // LinkedIn: post (text/image/video/article), comment/reply.
 const LINKEDIN: PlatformRules = {
   label: 'LinkedIn',
-  supportedTypes: ['text', 'image', 'video', 'link', 'doc', 'carousel', 'comment', 'reply'],
+  supportedTypes: ['text', 'image', 'video', 'link', 'doc', 'carousel', 'comment', 'reply', 'engage'],
   byType: {
     text:     { titleMin: 0, titleMax: 0,   bodyMin: 1,   bodyMax: 3000,  mediaRequired: false, hint: 'Post 3000 chars. Hook line đầu (truncate ~200 chars).' },
     image:    { titleMin: 0, titleMax: 0,   bodyMin: 0,   bodyMax: 3000,  mediaRequired: true,  hint: '1-9 ảnh. Aspect 1:1 / 1.91:1 mobile-friendly.' },
@@ -142,7 +142,7 @@ const LINKEDIN: PlatformRules = {
 // Forum (vBulletin / phpBB / Discourse): thread post + reply.
 const FORUM: PlatformRules = {
   label: 'Forum',
-  supportedTypes: ['text', 'link', 'image', 'doc', 'comment', 'reply'],
+  supportedTypes: ['text', 'link', 'image', 'doc', 'comment', 'reply', 'engage'],
   byType: {
     text:    { titleMin: 5, titleMax: 200, bodyMin: 50,  bodyMax: 30000, mediaRequired: false, hint: 'Thread title + body BBCode/markdown. Long-form OK.' },
     link:    { titleMin: 5, titleMax: 200, bodyMin: 30,  bodyMax: 30000, mediaRequired: false, hint: 'Title + link + reasoning. Đa số forum cấm pure link.' },
@@ -156,7 +156,7 @@ const FORUM: PlatformRules = {
 // Default fallback (other platforms).
 const GENERIC: PlatformRules = {
   label: 'Other',
-  supportedTypes: ['text', 'image', 'video', 'link', 'thread', 'poll', 'carousel', 'story', 'doc', 'comment', 'reply'],
+  supportedTypes: ['text', 'image', 'video', 'link', 'thread', 'poll', 'carousel', 'story', 'doc', 'comment', 'reply', 'engage'],
   byType: {
     text:    { titleMin: 0, titleMax: 0,   bodyMin: 1,   bodyMax: 10000, mediaRequired: false, hint: 'Generic — không biết platform limits.' },
     image:   { titleMin: 0, titleMax: 0,   bodyMin: 0,   bodyMax: 10000, mediaRequired: true,  hint: '1 ảnh + caption.' },

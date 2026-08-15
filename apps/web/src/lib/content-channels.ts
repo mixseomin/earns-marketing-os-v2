@@ -38,6 +38,7 @@ export const FORMATS: Array<{ id: string; label: string; icon: string; channels:
   { id: 'poll',     label: 'Poll',        icon: '📊', channels: ['fb-post', 'fb-group', 'reddit', 'twitter-thread'] },
   { id: 'share',    label: 'Share/quote lại', icon: '↻', channels: ['fb-post', 'fb-group', 'twitter-thread'] },
   { id: 'comment',  label: 'Comment trong thread', icon: '💬', channels: ['reddit', 'fb-group', 'fb-post'] },
+  { id: 'engage',   label: 'Tương tác (like)', icon: '👍', channels: ['reddit', 'fb-group', 'fb-post', 'twitter-thread'] },
   { id: 'thread',   label: 'Thread nhiều mảnh', icon: '🧵', channels: ['twitter-thread', 'reddit'] },
   { id: 'short',    label: 'Video dọc ngắn', icon: '📱', channels: ['reel', 'youtube-script'] },
   { id: 'longform', label: 'Video dài',   icon: '🎬', channels: ['youtube-script'] },
@@ -47,6 +48,35 @@ export const FORMATS: Array<{ id: string; label: string; icon: string; channels:
 ];
 
 export const formatsFor = (channel: string) => FORMATS.filter((f) => f.channels.includes(channel));
+
+/** Kiểu việc phải làm TẠI CHỖ: nội dung do bài mình gặp lúc đó quyết định, không soạn trước được.
+ *  Card của mấy kiểu này là KẾ HOẠCH (vào đâu, tìm bài thế nào, nói theo hướng nào) — nguyên văn
+ *  chỉ có sau khi làm xong và được ghi ngược lại. Đối xứng với ON_SITE_TYPES bên content-formats
+ *  (hai danh mục song song: FORMATS cho plays, CONTENT_FORMATS cho card seeding). */
+export const ON_SITE_FORMATS = new Set(['comment', 'share', 'engage']);
+export const isOnSiteFormat = (id: string) => ON_SITE_FORMATS.has(id);
+
+/** NƠI ĐĂNG đọc được cho người, từ tag place (thường là URL).
+ *  'https://www.reddit.com/r/army/' → 'r/army' · 'facebook.com/groups/123' → 'nhóm FB 123'
+ *  · 'facebook.com/Militarydotcom/' → 'Militarydotcom'. Không nhận ra thì trả nguyên bản đã bỏ
+ *  scheme — thà thô còn hơn để trống chỗ quan trọng nhất của tấm thẻ. */
+export function placeName(place: string): string {
+  const s = (place || '').trim();
+  if (!s) return '';
+  if (/^r\/[A-Za-z0-9_]+$/i.test(s)) return s;                      // đã là tên sub
+  if (!/^https?:\/\//i.test(s) && !s.includes('/')) return s;      // đã là tên rồi
+  const bare = s.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '');
+  const sub = bare.match(/reddit\.com\/(r\/[A-Za-z0-9_]+)/i);
+  if (sub) return sub[1]!;
+  const grp = bare.match(/facebook\.com\/groups\/([^/?#]+)/i);
+  if (grp) return `nhóm ${decodeURIComponent(grp[1]!)}`;
+  const fbId = bare.match(/facebook\.com\/profile\.php\?id=(\d+)/i);
+  if (fbId) return `trang FB ${fbId[1]}`;
+  const fbPage = bare.match(/facebook\.com\/([^/?#]+)/i);
+  if (fbPage) return decodeURIComponent(fbPage[1]!);
+  const seg = bare.split('/').filter(Boolean);
+  return seg.length > 1 ? seg.slice(1).join('/') : (seg[0] ?? bare);
+}
 /** Nhãn CHỮ của kiểu bài (hình vẽ bằng <FormatIcon kind={id}/>). Ở đây để mỗi trang khỏi tự chép
  *  một bản `FORMATS.find(...)?.label` — ba bản chép là ba chỗ lệch khi danh mục đổi. */
 export const formatLabel = (id: string) => FORMATS.find((f) => f.id === id)?.label ?? id;

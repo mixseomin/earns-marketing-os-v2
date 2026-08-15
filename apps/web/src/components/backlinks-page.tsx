@@ -2039,8 +2039,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         {/* Bám theo CÓ BÀI hay không, giống thanh lọc bài — khoá theo wt=content thì mở link quen
             (không có wt) là bảng biến mất, mà feed vẫn đang liệt kê bài. */}
         {(view === 'feed' || view === 'calendar') && piecesInScope.length > 0 && (
-          <CommunityPlan pieces={piecesInScope} projectId={projectId} current={pf.place ?? ''}
-            onPick={(place) => setPf((cur) => ({ ...cur, place }))} />
+          // Bảng này rộng bằng cả trang, để nó làm một flex item cạnh mấy nút nhỏ thì nó tràn ra
+          // ngoài mép phải. flexBasis 100% = luôn chiếm nguyên một dòng dưới thanh nút.
+          <div style={{ flexBasis: '100%', minWidth: 0 }}>
+            <CommunityPlan pieces={piecesInScope} projectId={projectId} current={pf.place ?? ''}
+              onPick={(place) => setPf((cur) => ({ ...cur, place }))} />
+          </div>
         )}
         {(view === 'feed' || view === 'calendar') && pieceFilterBar}
         {view === 'list' && (

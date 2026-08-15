@@ -3,10 +3,13 @@
 // Backend admin của network — 5 tab trong MỘT trang, không phải nhớ URL nào để đi đâu cả.
 // Thứ tự tab theo thứ tự việc: xem tổng → dựng chiến dịch → quản người → duyệt & đặt giá → soi đơn.
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Offer, Publisher, Registration, UserOption } from '@/lib/network/data';
+import type { Offer, Publisher, Registration, UserOption, CatalogOffer } from '@/lib/network/data';
 import type { NetworkReport } from '@/lib/network/report';
+import type { RevenueDayRow } from '@/lib/revenue/by-day';
+import { RevenueCalendar } from './revenue-calendar';
+import { RevenueRange } from './revenue-range';
 import { SETTLE_LABEL, SETTLE_COLOR } from '@/lib/network/status';
 import { SUB_PARAM } from '@/lib/network/link';
 import { readShallowParam, writeShallowParam } from '@/lib/url-shallow';
@@ -33,9 +36,10 @@ const TRACKABLE = Object.entries(SUB_PARAM).filter(([, v]) => v !== null).map(([
 const REG_LABEL: Record<string, string> = { approved: 'đang chạy', pending: 'chờ duyệt', rejected: 'từ chối' };
 const REG_COLOR: Record<string, string> = { approved: 'var(--ok)', pending: 'var(--warn)', rejected: 'var(--fg-3)' };
 
-export function NetworkAdmin({ offers, publishers, registrations, report, origin, users }: {
+export function NetworkAdmin({ offers, publishers, registrations, report, origin, users, catalog, days }: {
   offers: Offer[]; publishers: Publisher[]; registrations: Registration[];
   report: NetworkReport; origin: string; users: UserOption[];
+  catalog: CatalogOffer[]; days: number;
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
@@ -79,6 +83,7 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
             sub-id của network upstream; đơn về thì nối ngược ra publisher.
           </p>
         </div>
+        <RevenueRange value={days} />
       </div>
 
       <Tabs items={items} value={tab} onChange={setTab} />
@@ -90,7 +95,7 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
         </div>
       )}
 
-      {tab === 'tong-quan' && <Overview offers={offers} publishers={publishers} report={report} />}
+      {tab === 'tong-quan' && <Overview offers={offers} publishers={publishers} report={report} days={days} />}
 
       {tab === 'chien-dich' && (
         <OfferTab offers={offers} origin={origin} busy={busy}
@@ -112,10 +117,10 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
           onGrant={(p, o) => run(() => grantOffer(p, o))} />
       )}
 
-      {tab === 'don-hang' && <OrderTab report={report} />}
+      {tab === 'don-hang' && <OrderTab report={report} offers={offers} />}
 
       {editOffer && (
-        <OfferForm offer={editOffer === 'new' ? null : editOffer} busy={busy}
+        <OfferForm offer={editOffer === 'new' ? null : editOffer} busy={busy} catalog={catalog}
           onClose={() => setEditOffer(null)} onSave={(v) => run(() => saveOffer(v))} />
       )}
       {editPub && (
@@ -127,15 +132,38 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
 }
 
 // ── Tổng quan ────────────────────────────────────────────────────────────────
-function Overview({ offers, publishers, report }: { offers: Offer[]; publishers: Publisher[]; report: NetworkReport }) {
+/** Đơn của network → dòng doanh thu theo ngày, để dùng LẠI đúng cái lịch của /revenue thay vì vẽ
+ *  một cái biểu đồ thứ hai nói cùng chuyện mà trông khác. group = publisher nên bộ lọc "bóc tách"
+ *  của lịch tự thành bộ lọc theo publisher, không phải viết thêm gì. */
+function toRevenueRows(report: NetworkReport): RevenueDayRow[] {
+  return report.conversions.map((c) => ({
+    date: c.date, source: 'affiliate' as const,
+    group: c.publisher ?? 'chưa nối được',
+    channel: c.advertiser,
+    sub: c.utm.join(' · ') || undefined,
+    amount: c.commission, gross: c.gross,
+  }));
+}
+
+function Overview({ offers, publishers, report, days }: {
+  offers: Offer[]; publishers: Publisher[]; report: NetworkReport; days: number;
+}) {
+  const clicks = report.pubs.reduce((t, p) => t + p.clicks, 0);
+  const approved = report.pubs.reduce((t, p) => t + p.approved, 0);
+  const holding = report.pubs.reduce((t, p) => t + p.holding, 0);
+  const rows = useMemo(() => toRevenueRows(report), [report]);
   const cards: StatCard[] = [
     { key: 'pub', label: 'Publisher', value: String(publishers.filter((p) => p.status === 'active').length) },
     { key: 'off', label: 'Chiến dịch chạy', value: String(offers.filter((o) => o.active).length) },
-    { key: 'clk', label: 'Click', value: String(report.pubs.reduce((t, p) => t + p.clicks, 0)), color: 'var(--neon-cyan)' },
+    { key: 'clk', label: 'Click', value: String(clicks), color: 'var(--neon-cyan)' },
     { key: 'ord', label: 'Đơn', value: String(report.conversions.length) },
-    { key: 'ok', label: 'Được duyệt', value: usd(report.pubs.reduce((t, p) => t + p.approved, 0)), color: 'var(--ok)',
+    { key: 'cr', label: 'CR', value: clicks ? `${((report.conversions.length / clicks) * 100).toFixed(1)}%` : '—',
+      color: 'var(--neon-violet)', title: 'Đơn / click' },
+    { key: 'epc', label: '$/click', value: clicks ? usd((approved + holding) / clicks) : '—',
+      color: 'var(--neon-cyan)', title: 'Hoa hồng chia số click — so thẳng với giá thầu quảng cáo' },
+    { key: 'ok', label: 'Được duyệt', value: usd(approved), color: 'var(--ok)',
       title: 'Đã đối soát xong — con số duy nhất dùng để trả tiền publisher' },
-    { key: 'hold', label: 'Tạm duyệt', value: usd(report.pubs.reduce((t, p) => t + p.holding, 0)), color: 'var(--warn)',
+    { key: 'hold', label: 'Tạm duyệt', value: usd(holding), color: 'var(--warn)',
       title: 'Nhà cung cấp đã xác nhận nhưng chưa đối soát — còn đổi được' },
   ];
   const cols: SimpleColumn<NetworkReport['pubs'][number]>[] = [
@@ -143,6 +171,8 @@ function Overview({ offers, publishers, report }: { offers: Offer[]; publishers:
     { key: 'c', header: 'Click', align: 'right', cell: (r) => <span style={mono}>{r.clicks}</span> },
     { key: 'o', header: 'Đơn', align: 'right', cell: (r) => <span style={mono}>{r.orders}</span> },
     { key: 'cr', header: 'CR', align: 'right', cell: (r) => <span style={{ ...mono, ...(r.clicks ? {} : dim) }}>{r.clicks ? `${((r.orders / r.clicks) * 100).toFixed(1)}%` : '—'}</span> },
+    { key: 'epc', header: '$/click', align: 'right', title: 'Hoa hồng (đã duyệt + tạm duyệt) chia số click',
+      cell: (r) => <span style={{ ...mono, ...(r.clicks ? {} : dim) }}>{r.clicks ? usd((r.approved + r.holding) / r.clicks) : '—'}</span> },
     { key: 'a', header: 'Được duyệt', align: 'right', cell: (r) => <span style={{ ...mono, color: r.approved ? 'var(--ok)' : 'var(--fg-3)' }}>{usd(r.approved)}</span> },
     { key: 'h', header: 'Tạm duyệt', align: 'right', cell: (r) => <span style={{ ...mono, color: r.holding ? 'var(--warn)' : 'var(--fg-3)' }}>{usd(r.holding)}</span> },
     { key: 'w', header: 'Chờ duyệt', align: 'right', cell: (r) => <span style={{ ...mono, ...dim }}>{usd(r.pending)}</span> },
@@ -151,6 +181,9 @@ function Overview({ offers, publishers, report }: { offers: Offer[]; publishers:
     <>
       <StatsStrip cards={cards} />
       {report.errors.length > 0 && <div style={{ margin: '8px 0', fontSize: 11, color: 'var(--warn)' }}>{report.errors.join(' · ')}</div>}
+      <Section title="Lịch hoa hồng" subtitle={`${days > 0 ? `${days} ngày gần nhất` : 'toàn bộ'} · bóc tách theo publisher`} defaultOpen>
+        <RevenueCalendar rows={rows} errors={report.errors} scannedNetworks={['cj']} />
+      </Section>
       <Section title="Theo publisher" defaultOpen>
         {report.pubs.length === 0
           ? <EmptyState icon="👥" compact title="Chưa có publisher nào" />
@@ -207,9 +240,11 @@ function OfferTab({ offers, origin, busy, onNew, onEdit, onToggle, onDelete }: {
   );
 }
 
-function OfferForm({ offer, busy, onClose, onSave }: {
-  offer: Offer | null; busy: boolean; onClose: () => void; onSave: (v: OfferInput) => void;
+function OfferForm({ offer, busy, catalog, onClose, onSave }: {
+  offer: Offer | null; busy: boolean; catalog: CatalogOffer[];
+  onClose: () => void; onSave: (v: OfferInput) => void;
 }) {
+  const [pick, setPick] = useState<string[]>([]);
   const [v, setV] = useState<OfferInput>({
     id: offer?.id, slug: offer?.slug ?? '', name: offer?.name ?? '', network: offer?.network ?? 'cj',
     advertiser: offer?.advertiser ?? '', category: offer?.category ?? '', upstreamUrl: offer?.upstreamUrl ?? '',
@@ -217,10 +252,43 @@ function OfferForm({ offer, busy, onClose, onSave }: {
     terms: offer?.terms ?? '', active: offer?.active ?? true,
   });
   const set = <K extends keyof OfferInput>(k: K, val: OfferInput[K]) => setV((s) => ({ ...s, [k]: val }));
+  // `dirty` phải là ĐANG-SỬA-THẬT, không phải hằng số true. Đặt cứng thì mỗi lần bấm ra ngoài
+  // hoặc Esc đều bị hỏi "bỏ thay đổi?" dù chưa gõ gì — drawer thành ra không đóng nổi.
+  const [initial] = useState(() => JSON.stringify(v));
+  const dirty = JSON.stringify(v) !== initial;
+
+  // Lấy sẵn từ danh mục affiliate của MOS2 thay vì gõ lại tên/link/tỉ lệ. Danh mục chỉ chứa dòng
+  // CÓ link và thuộc network có ô sub-id (lọc ở listCatalog) nên chọn phát nào cũng chạy được.
+  const apply = (id: string) => {
+    const c = catalog.find((x) => x.id === id);
+    if (!c) return;
+    setV((s) => ({
+      ...s,
+      name: s.name || c.name,
+      // slug tự đề xuất từ tên; vẫn sửa được trước khi lưu vì nó nằm trong link phát ra ngoài.
+      slug: s.slug || c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40),
+      network: c.network,
+      advertiser: s.advertiser || c.advertiser,
+      category: s.category || c.vertical || '',
+      upstreamUrl: c.url,
+      upstreamRate: s.upstreamRate || c.rate || '',
+    }));
+  };
+
   return (
-    <FormModal kind="generic" action={offer ? 'edit' : 'create'} width="md" dirty
+    <FormModal kind="generic" action={offer ? 'edit' : 'create'} width="md" dirty={dirty}
       title={offer ? `Sửa · ${offer.name}` : 'Chiến dịch mới'} onClose={onClose}>
       <div style={{ padding: 16, display: 'grid', gap: 10, overflowY: 'auto' }}>
+        {!offer && catalog.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
+                        padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 4 }}>
+            <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>Lấy từ danh mục MOS2 ({catalog.length}):</span>
+            <MultiSelect<string> label="Chọn offer" compact selected={pick}
+              onChange={(x) => { const last = x.slice(-1); setPick(last); if (last[0]) apply(last[0]); }}
+              options={catalog.map((c) => ({ value: c.id, label: `${c.name} · ${c.network}${c.rate ? ` · ${c.rate}` : ''}` }))} />
+          </div>
+        )}
         <TextField label="Tên chiến dịch" required value={v.name} onChange={(e) => set('name', e.target.value)} />
         <TextField label="Slug" required mono value={v.slug} onChange={(e) => set('slug', e.target.value)}
           hint="Nằm trong link publisher đã dán ra ngoài — đổi sau là gãy mọi link đang chạy."
@@ -303,8 +371,10 @@ function PublisherForm({ pub, users, busy, onClose, onSave }: {
     note: pub?.note ?? '', userId: pub?.userId ?? null,
   });
   const set = <K extends keyof PublisherInput>(k: K, val: PublisherInput[K]) => setV((s) => ({ ...s, [k]: val }));
+  const [initial] = useState(() => JSON.stringify(v));
+  const dirty = JSON.stringify(v) !== initial;
   return (
-    <FormModal kind="generic" action={pub ? 'edit' : 'create'} width="md" dirty
+    <FormModal kind="generic" action={pub ? 'edit' : 'create'} width="md" dirty={dirty}
       title={pub ? `Sửa · ${pub.name}` : 'Publisher mới'} onClose={onClose}>
       <div style={{ padding: 16, display: 'grid', gap: 10, overflowY: 'auto' }}>
         <TextField label="Tên" required value={v.name} onChange={(e) => set('name', e.target.value)} />
@@ -353,6 +423,12 @@ function RegTab({ registrations, offers, publishers, busy, onDecide, onRate, onG
     { key: 'o', header: 'Chiến dịch', cell: (r) => <span>{r.offerName} <span style={{ ...mono, ...dim }}>{r.offerSlug}</span></span> },
     { key: 's', header: 'Trạng thái', cell: (r) => <Pill label={REG_LABEL[r.status] ?? r.status} color={REG_COLOR[r.status] ?? 'var(--fg-3)'} size="xs" tone="soft" /> },
     { key: 'd', header: 'Xin ngày', cell: (r) => <span style={mono}>{r.requestedAt}</span> },
+    // Ba cột cạnh nhau mới đọc được: upstream trả mình là TRẦN, mức chung là mặc định, giá riêng
+    // là cái đè lên. Thiếu hai cột đầu thì ô "giá riêng" là con số lơ lửng không so với gì.
+    { key: 'up', header: 'Upstream trả mình', title: 'Trần — mình không thể trả publisher hơn mức này mà còn lãi',
+      cell: (r) => <span style={{ ...mono, ...dim }}>{r.offerUpstreamRate ?? '—'}</span> },
+    { key: 'std', header: 'Mức chung', title: 'Mặc định của chiến dịch, áp cho mọi publisher chưa đặt riêng',
+      cell: (r) => <span style={mono}>{r.offerPublisherRate ?? '—'}</span> },
     // Giá riêng: sửa tại chỗ, lưu khi rời ô. Bỏ trống = ăn theo mức chung của chiến dịch.
     { key: 'r', header: 'Giá riêng', cell: (r) => (
       <input defaultValue={r.publisherRate ?? ''} placeholder="theo mức chung" disabled={busy}
@@ -397,7 +473,22 @@ function RegTab({ registrations, offers, publishers, busy, onDecide, onRate, onG
 }
 
 // ── Đơn hàng ─────────────────────────────────────────────────────────────────
-function OrderTab({ report }: { report: NetworkReport }) {
+function OrderTab({ report, offers }: { report: NetworkReport; offers: Offer[] }) {
+  // Phễu theo CHIẾN DỊCH — /revenue có phễu theo link, ở đây trục tương ứng là chiến dịch.
+  const byOffer = useMemo(() => offers.map((o) => {
+    const conv = report.conversions.filter((c) => c.offer === o.slug);
+    const money = conv.reduce((t, c) => t + c.commission, 0);
+    return { ...o, orders: conv.length, money };
+  }).sort((a, b) => b.money - a.money || b.clicks - a.clicks), [offers, report.conversions]);
+  const offerCols: SimpleColumn<(typeof byOffer)[number]>[] = [
+    { key: 'n', header: 'Chiến dịch', cell: (o) => <span style={{ color: 'var(--fg-0)' }}>{o.name}</span> },
+    { key: 'c', header: 'Click', align: 'right', cell: (o) => <span style={mono}>{o.clicks}</span> },
+    { key: 'o', header: 'Đơn', align: 'right', cell: (o) => <span style={mono}>{o.orders}</span> },
+    { key: 'cr', header: 'CR', align: 'right', cell: (o) => <span style={{ ...mono, ...(o.clicks ? {} : dim) }}>{o.clicks ? `${((o.orders / o.clicks) * 100).toFixed(1)}%` : '—'}</span> },
+    { key: 'epc', header: '$/click', align: 'right', title: 'Hoa hồng chia số click — so thẳng với giá thầu quảng cáo',
+      cell: (o) => <span style={{ ...mono, ...(o.clicks ? {} : dim) }}>{o.clicks ? usd(o.money / o.clicks) : '—'}</span> },
+    { key: 'm', header: 'Hoa hồng', align: 'right', cell: (o) => <span style={{ ...mono, color: o.money ? 'var(--ok)' : 'var(--fg-3)' }}>{usd(o.money)}</span> },
+  ];
   const cols: SimpleColumn<NetworkReport['conversions'][number]>[] = [
     { key: 'd', header: 'Ngày', cell: (r) => <span style={mono}>{r.date}</span> },
     { key: 'adv', header: 'Advertiser', cell: (r) => r.advertiser },
@@ -413,12 +504,19 @@ function OrderTab({ report }: { report: NetworkReport }) {
     { key: 'c', header: 'Hoa hồng', align: 'right', cell: (r) => <span style={{ ...mono, color: 'var(--ok)' }}>{usd(r.commission)}</span> },
   ];
   return (
+    <>
+    <Section title="Phễu theo chiến dịch" subtitle="click → đơn → tiền" defaultOpen>
+      {byOffer.length === 0
+        ? <EmptyState icon="📦" compact title="Chưa có chiến dịch nào" />
+        : <SimpleTable rows={byOffer} columns={offerCols} getRowKey={(o) => o.slug} />}
+    </Section>
     <Section title={`Đơn về${report.unmatched ? ` · ${report.unmatched} không nối được` : ''}`}
       subtitle="đọc thẳng API CJ, nối về publisher theo mã click" defaultOpen>
       {report.conversions.length === 0
         ? <EmptyState icon="🧾" compact title="Chưa có đơn nào trong khoảng này" />
         : <SimpleTable rows={report.conversions} columns={cols} getRowKey={(r) => r.upstreamId} />}
     </Section>
+    </>
   );
 }
 

@@ -9,8 +9,43 @@ import type { Offer } from '@/lib/network/data';
 import type { NetworkReport } from '@/lib/network/report';
 import { SETTLE_LABEL, SETTLE_COLOR } from '@/lib/network/status';
 import { trackingUrl, UTM_SLOTS, type Utm } from '@/lib/network/link';
-import { requestOffer } from '@/lib/actions/network';
-import { Section, SimpleTable, StatsStrip, EmptyState, Pill, Segmented, type SimpleColumn, type StatCard } from './ui';
+import { requestOffer, changePassword } from '@/lib/actions/network';
+import { Section, SimpleTable, StatsStrip, EmptyState, Pill, Segmented, TextField, type SimpleColumn, type StatCard } from './ui';
+
+/** Publisher tự đổi mật khẩu. Ô để TRỐNG, giá trị chỉ nằm trong trình duyệt của họ rồi đi thẳng
+ *  vào bcrypt — không qua admin, không lưu ở đâu khác, không ai khác đọc được. */
+function ChangePassword() {
+  const [cur, setCur] = useState('');
+  const [next, setNext] = useState('');
+  const [again, setAgain] = useState('');
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, start] = useTransition();
+  // Bắt gõ lại: gõ sai một ký tự ở ô mới là tự khoá mình ra ngoài, và không có đường nào biết
+  // mật khẩu đã lưu là gì để dò lại.
+  const mismatch = !!again && next !== again;
+  return (
+    <div style={{ display: 'grid', gap: 8, maxWidth: 340 }}>
+      <TextField label="Mật khẩu hiện tại" type="password" autoComplete="current-password"
+        value={cur} onChange={(e) => setCur(e.target.value)} />
+      <TextField label="Mật khẩu mới" type="password" autoComplete="new-password"
+        hint="Tối thiểu 8 ký tự." value={next} onChange={(e) => setNext(e.target.value)} />
+      <TextField label="Gõ lại mật khẩu mới" type="password" autoComplete="new-password"
+        error={mismatch ? 'Hai ô không khớp' : undefined}
+        value={again} onChange={(e) => setAgain(e.target.value)} />
+      <button type="button" disabled={busy || !next || mismatch}
+        onClick={() => start(async () => {
+          const r = await changePassword(cur, next);
+          setMsg({ ok: r.ok, text: r.ok ? 'Đã đổi mật khẩu' : r.error ?? 'lỗi' });
+          if (r.ok) { setCur(''); setNext(''); setAgain(''); }
+        })}
+        style={{ padding: '4px 10px', fontSize: 11, fontFamily: 'var(--font-mono)', background: 'transparent',
+                 color: 'var(--ok)', border: '1px solid var(--ok)', borderRadius: 4, cursor: 'pointer', justifySelf: 'start' }}>
+        {busy ? 'Đang đổi…' : 'Đổi mật khẩu'}
+      </button>
+      {msg && <span style={{ fontSize: 11, color: msg.ok ? 'var(--ok)' : 'var(--warn)' }}>{msg.text}</span>}
+    </div>
+  );
+}
 
 const usd = (n: number) => (n >= 10 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`);
 const mono = { fontFamily: 'var(--font-mono)', fontSize: 11 } as const;
@@ -119,6 +154,10 @@ export function PubPortal({ pubSlug, pubName, offers, report, origin }: {
         {offers.length === 0
           ? <EmptyState icon="📦" compact title="Chưa có chiến dịch nào" />
           : <SimpleTable rows={offers} columns={offerCols} getRowKey={(o) => o.slug} />}
+      </Section>
+
+      <Section title="Đổi mật khẩu" defaultOpen={false}>
+        <ChangePassword />
       </Section>
 
       <Section title="Báo cáo đơn hàng" defaultOpen>

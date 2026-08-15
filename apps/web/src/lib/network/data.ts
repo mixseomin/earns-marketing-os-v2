@@ -1,6 +1,8 @@
 // Đọc/ghi dữ liệu nền tảng network. Tách khỏi report.ts (report = số liệu, đây = danh mục).
 
 import { getDb } from '@mos2/db';
+import { listAffiliateOffers } from '@/lib/actions/offers';
+import { SUB_PARAM } from './link';
 import { sql } from 'drizzle-orm';
 
 export interface Offer {
@@ -28,6 +30,10 @@ export interface Registration {
   id: number; status: string;
   /** Giá/tỉ lệ RIÊNG cho publisher này trên chiến dịch này. null = ăn theo mức chung của offer. */
   publisherRate: string | null;
+  /** Hai MỐC để nhìn vào mà đặt giá riêng: upstream trả mình bao nhiêu (trần), và mức chung đang
+   *  áp cho mọi publisher. Không có hai cột này thì ô "giá riêng" là con số lơ lửng không so với gì. */
+  offerUpstreamRate: string | null;
+  offerPublisherRate: string | null;
   publisherId: number; publisherSlug: string; publisherName: string;
   offerId: number; offerSlug: string; offerName: string;
   requestedAt: string;
@@ -65,6 +71,7 @@ export async function listRegistrations(onlyPending = false): Promise<Registrati
   if (!db) return [];
   const r = await db.execute(sql`
     SELECT r.id, r.status, r.requested_at, r.publisher_rate,
+           o.upstream_rate AS o_up, o.publisher_rate AS o_pub,
            p.id AS pid, p.slug AS pslug, p.name AS pname,
            o.id AS oid, o.slug AS oslug, o.name AS oname
     FROM net_publisher_offers r
@@ -75,6 +82,8 @@ export async function listRegistrations(onlyPending = false): Promise<Registrati
   return (r as unknown as Array<Record<string, unknown>>).map((x) => ({
     id: Number(x.id), status: String(x.status),
     publisherRate: (x.publisher_rate as string) ?? null,
+    offerUpstreamRate: (x.o_up as string) ?? null,
+    offerPublisherRate: (x.o_pub as string) ?? null,
     publisherId: Number(x.pid), publisherSlug: String(x.pslug), publisherName: String(x.pname),
     offerId: Number(x.oid), offerSlug: String(x.oslug), offerName: String(x.oname),
     requestedAt: String(x.requested_at).slice(0, 10),
@@ -115,4 +124,28 @@ export async function publisherForUser(userId: number): Promise<Publisher | null
     kind: String(x.kind), status: String(x.status), note: (x.note as string) ?? null,
     userId: x.user_id === null || x.user_id === undefined ? null : Number(x.user_id),
   } : null;
+}
+
+/** Một dòng trong DANH MỤC affiliate của MOS2 (Directus `affiliate_programs`) — nguồn để dựng
+ *  chiến dịch mà không phải gõ lại tên/link/tỉ lệ. Chỉ lấy dòng CÓ link và thuộc network mình
+ *  theo dõi được; dòng thiếu link thì chọn vào cũng không redirect đi đâu. */
+export interface CatalogOffer {
+  id: string; name: string; network: string; advertiser: string;
+  url: string; rate: string | null; vertical: string | null;
+}
+
+export async function listCatalog(): Promise<CatalogOffer[]> {
+  const all = await listAffiliateOffers();
+  const out: CatalogOffer[] = [];
+  for (const o of all) {
+    const net = o.network ?? '';
+    // Bỏ dòng thiếu link (chọn vào cũng không redirect đi đâu) và dòng thuộc network không có ô
+    // sub-id (click đi ra là mất dấu) — hiện chúng ra chỉ để người ta chọn rồi vướng lỗi.
+    if (!o.affiliateUrl || !SUB_PARAM[net]) continue;
+    out.push({
+      id: o.id, name: o.name, network: net, advertiser: o.brand || o.name,
+      url: o.affiliateUrl, rate: o.commission, vertical: o.vertical,
+    });
+  }
+  return out.sort((a, b) => a.name.localeCompare(b.name));
 }

@@ -224,3 +224,22 @@ export async function needsBootstrap(): Promise<boolean> {
   const n = (r as unknown as Array<{ n: number }>)[0]?.n ?? 0;
   return n === 0;
 }
+
+// ── Tự đổi mật khẩu ─────────────────────────────────────────────────────────
+/** Người dùng tự đổi mật khẩu CỦA CHÍNH MÌNH. Bắt buộc nhập mật khẩu hiện tại: không có bước đó
+ *  thì một phiên bị bỏ quên trên máy lạ đủ để chiếm luôn tài khoản. Chưa từng đặt mật khẩu (user
+ *  admin vừa tạo) thì bỏ qua bước kiểm — đó là lần đặt đầu tiên, không phải đổi. */
+export async function changeOwnPassword(userId: number, current: string, next: string): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'DB not available' };
+  if (!next || next.length < 8) return { ok: false, error: 'Mật khẩu mới tối thiểu 8 ký tự' };
+  if (next === current) return { ok: false, error: 'Mật khẩu mới trùng mật khẩu cũ' };
+  const rows = await db.execute(sql`
+    SELECT password_hash FROM users WHERE id = ${userId} AND tenant_id = ${TENANT} LIMIT 1`);
+  const r = (rows as unknown as Array<{ password_hash: string | null }>)[0];
+  if (!r) return { ok: false, error: 'Không tìm thấy tài khoản' };
+  if (r.password_hash && !(await bcrypt.compare(current, r.password_hash))) {
+    return { ok: false, error: 'Mật khẩu hiện tại không đúng' };
+  }
+  return setUserPassword(userId, next);
+}

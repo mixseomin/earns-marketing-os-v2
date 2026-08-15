@@ -24,6 +24,10 @@ export const SUB_PARAM: Record<string, string | null> = {
  *  trùng ở mọi sản lượng mình sẽ chạm tới. Dài hơn không mua thêm gì mà lại vượt ô của ClickBank. */
 export const CLICK_ID_LEN = 12;
 
+/** Host mà link theo dõi phải mang. Admin mở backend ở host khác, nhưng link đem đi phát luôn là
+ *  host publisher — lấy `headers().host` thì admin copy ra link nội bộ mà không ai nhận ra. */
+export const PUB_ORIGIN = process.env.NEXT_PUBLIC_PUB_ORIGIN || 'https://pub.on.tc';
+
 const ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz';
 
 /** Sinh mã click. `rand` tách ra để test bơm số cố định vào được. */

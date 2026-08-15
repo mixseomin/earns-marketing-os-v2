@@ -9,7 +9,7 @@
 import { revalidatePath } from 'next/cache';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, changeOwnPassword } from '@/lib/auth';
 import { checkOffer, checkPublisher } from '@/lib/network/link';
 
 type Res = { ok: boolean; error?: string };
@@ -216,4 +216,12 @@ export async function linkPublisherUser(publisherId: number, userId: number | nu
   await db.execute(sql`UPDATE net_publishers SET user_id=${userId} WHERE id=${publisherId}`);
   bump();
   return OK;
+}
+
+/** Publisher tự đổi mật khẩu trong portal. Mật khẩu do CHÍNH họ gõ trên trình duyệt của họ —
+ *  không đi qua admin, không ai khác nhìn thấy. */
+export async function changePassword(current: string, next: string): Promise<Res> {
+  const me = await getCurrentUser();
+  if (!me) return { ok: false, error: 'Chưa đăng nhập' };
+  return changeOwnPassword(me.id, current, next);
 }

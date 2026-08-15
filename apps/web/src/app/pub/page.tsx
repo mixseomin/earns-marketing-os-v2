@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
 import { PubPortal } from '@/components/pub-portal';
 import { publisherForUser, offersForPublisher } from '@/lib/network/data';
 import { networkReport } from '@/lib/network/report';
 import { getCurrentUser } from '@/lib/auth';
+import { PUB_ORIGIN } from '@/lib/network/link';
 import { EmptyState } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
@@ -21,10 +21,9 @@ export default async function PubRoute() {
       </div>
     );
   }
-  const h = await headers();
   const [offers, report] = await Promise.all([offersForPublisher(pub.id), networkReport(365)]);
   return (
     <PubPortal pubSlug={pub.slug} pubName={pub.name} offers={offers} report={report}
-      origin={`https://${h.get('host') ?? 'pub.on.tc'}`} />
+      origin={PUB_ORIGIN} />
   );
 }

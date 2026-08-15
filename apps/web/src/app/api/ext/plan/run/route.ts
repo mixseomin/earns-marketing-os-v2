@@ -79,9 +79,24 @@ export async function POST(req: Request) {
   }
   const chosen = threads[pick.index]!;
 
+  // habitatId: ext gửi khi crew bar đã nhận diện được cộng đồng; chưa nhận ra thì tra bằng chính
+  // NƠI ĐĂNG ghi trên kế hoạch (place). Không có bước này thì chạy kế hoạch ở trang mà detector
+  // chưa kịp gắn habitat sẽ hỏng với lỗi "habitatId required" — trong khi dữ liệu vẫn đủ.
+  let habitatId = Number(body.habitatId ?? 0) || 0;
+  if (!habitatId && place) {
+    const hostPath = place.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '');
+    const hit = firstRow(await db.execute(sql`
+      SELECT id FROM habitats
+       WHERE project_id = ${projectId}
+         AND regexp_replace(regexp_replace(coalesce(url,''), '^https?://(www\.)?', ''), '/+$', '') = ${hostPath}
+       LIMIT 1`));
+    if (hit) habitatId = Number(hit.id);
+  }
+  if (!habitatId) return errorResponse(`Kế hoạch #${pieceId} chưa gắn được cộng đồng nào trong MOS2 (place: ${place || 'trống'})`, 400);
+
   // Soạn nháp bám ĐÚNG bài vừa chọn — cùng đường với nút soạn tay (composeCommentCard).
   const composed = await composeCommentCard({
-    habitatId: body.habitatId, projectId, briefId: body.briefId ?? null,
+    habitatId, projectId, briefId: body.briefId ?? null,
     contentType: 'comment',
     parentUrl: chosen.url, parentTitle: chosen.title, parentBody: chosen.snippet, parentAuthor: chosen.author,
     modelId: body.modelId, maxChars: body.maxChars,

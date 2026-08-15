@@ -12,7 +12,7 @@ import { RevenueCalendar } from './revenue-calendar';
 import { RevenueRange } from './revenue-range';
 import { SETTLE_LABEL, SETTLE_COLOR } from '@/lib/network/status';
 import { SUB_PARAM } from '@/lib/network/link';
-import { derivePubRate } from '@/lib/offer-payout';
+import { derivePubRate, PUB_SHARE } from '@/lib/offer-payout';
 import { readShallowParam, writeShallowParam } from '@/lib/url-shallow';
 import { RevenueRefresh } from './revenue-refresh';
 import {
@@ -556,8 +556,19 @@ function RegTab({ registrations, offers, publishers, busy, onDecide, onRate, onG
     // là cái đè lên. Thiếu hai cột đầu thì ô "giá riêng" là con số lơ lửng không so với gì.
     { key: 'up', header: 'Upstream trả mình', title: 'Trần — mình không thể trả publisher hơn mức này mà còn lãi',
       cell: (r) => <span style={{ ...mono, ...dim }}>{r.offerUpstreamRate ?? '—'}</span> },
+    // Cả hai ô trống = chiến dịch chưa niêm yết mức nào. Publisher vẫn chạy được, nhưng tiền của họ
+    // rơi về mức chia mặc định (PUB_SHARE) và portal đánh dấu "~ tạm tính". Phải nhìn thấy để đặt
+    // mức trước khi họ chạy đủ nhiều — không thì đối soát là một cuộc thương lượng ngược.
     { key: 'std', header: 'Mức chung', title: 'Mặc định của chiến dịch, áp cho mọi publisher chưa đặt riêng',
-      cell: (r) => <span style={mono}>{r.offerPublisherRate ?? '—'}</span> },
+      cell: (r) => (
+        r.offerPublisherRate
+          ? <span style={mono}>{r.offerPublisherRate}</span>
+          : r.publisherRate
+            ? <span style={{ ...mono, ...dim }}>—</span>
+            : <span style={{ ...mono, color: 'var(--warn)' }} title={`Chưa niêm yết mức nào cho publisher. Đơn về sẽ tạm tính ${Math.round(PUB_SHARE * 100)}% khoản upstream trả mình.`}>
+                ~ thoả thuận
+              </span>
+      ) },
     // Giá riêng: sửa tại chỗ, lưu khi rời ô. Bỏ trống = ăn theo mức chung của chiến dịch.
     { key: 'r', header: 'Giá riêng', cell: (r) => (
       <input defaultValue={r.publisherRate ?? ''} placeholder="theo mức chung" disabled={busy}

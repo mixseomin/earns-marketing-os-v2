@@ -8,7 +8,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { cjConversions, awinConversions } from '@/lib/revenue/networks';
 import { cjSettleState, awinSettleState, type SettleState } from './status';
-import { pubCut } from '@/lib/offer-payout';
+import { pubPayout } from '@/lib/offer-payout';
 
 export interface NetConversion {
   upstreamId: string;
@@ -22,6 +22,9 @@ export interface NetConversion {
   publisher: string | null;   // slug; null = đơn không nối được về ai
   publisherName: string | null;
   offer: string | null;
+  /** Mức đang niêm yết cho publisher trên chiến dịch này — KHÔNG phải mức upstream. Dùng để tính
+   *  đúng số tiền của họ; null = "thoả thuận", rơi về mức chia mặc định. */
+  pubRate: string | null;
   utm: string[];              // 4 ô sub-id của publisher, đã bỏ ô trống
 }
 
@@ -46,6 +49,8 @@ export interface NetworkReport {
 
 interface ClickRow {
   click_id: string; pub_slug: string | null; pub_name: string | null; offer_slug: string | null;
+  /** Mức của PUBLISHER trên chính chiến dịch này: riêng đè chung. null = chưa niêm yết mức nào. */
+  pub_rate: string | null;
   utm_source: string | null; utm_medium: string | null; utm_campaign: string | null; utm_content: string | null;
 }
 
@@ -59,10 +64,12 @@ export async function networkReport(sinceDays = 90): Promise<NetworkReport> {
     awinConversions(since),
     db.execute(sql`
       SELECT c.click_id, p.slug AS pub_slug, p.name AS pub_name, o.slug AS offer_slug,
+             COALESCE(r.publisher_rate, o.publisher_rate) AS pub_rate,
              c.utm_source, c.utm_medium, c.utm_campaign, c.utm_content
       FROM net_clicks c
       LEFT JOIN net_publishers p ON p.id = c.publisher_id
-      LEFT JOIN net_offers o ON o.id = c.offer_id`),
+      LEFT JOIN net_offers o ON o.id = c.offer_id
+      LEFT JOIN net_publisher_offers r ON r.offer_id = c.offer_id AND r.publisher_id = c.publisher_id`),
     // Số click đếm RIÊNG bằng SQL chứ không đếm từ bảng trên: dòng backfill phải bị loại, và
     // publisher chưa có click nào vẫn phải xuất hiện với số 0 (không có mặt ≠ chưa ai bấm).
     db.execute(sql`
@@ -99,6 +106,7 @@ export async function networkReport(sinceDays = 90): Promise<NetworkReport> {
       publisher: hit?.pub_slug ?? null,
       publisherName: hit?.pub_name ?? null,
       offer: hit?.offer_slug ?? null,
+      pubRate: hit?.pub_rate ?? null,
       utm: hit ? [hit.utm_source, hit.utm_medium, hit.utm_campaign, hit.utm_content].filter((x): x is string => !!x) : [],
     };
   }));
@@ -134,6 +142,8 @@ export interface PubConversion {
   /** Tiền của PUBLISHER, đã trừ phần mình giữ. KHÔNG phải số upstream trả mình. */
   commission: number;
   state: SettleState; utm: string[];
+  /** Đơn này ăn theo mức "thoả thuận" (chiến dịch chưa niêm yết mức nào) → số tiền là TẠM TÍNH. */
+  negotiated: boolean;
 }
 export interface PubView {
   clicks: number; orders: number;
@@ -151,17 +161,23 @@ export interface PubView {
  */
 export function pubView(report: NetworkReport, pubSlug: string): PubView {
   const me = report.pubs.find((p) => p.publisher === pubSlug);
+  const conversions: PubConversion[] = report.conversions
+    .filter((c) => c.publisher === pubSlug)
+    .map((c) => ({
+      upstreamId: c.upstreamId, date: c.date, advertiser: c.advertiser,
+      // Tiền tính từ mức của CHÍNH cặp publisher×chiến dịch đó, không phải một hằng số chung.
+      commission: pubPayout(c.gross, c.commission, c.pubRate),
+      state: c.state, utm: c.utm,
+      negotiated: c.pubRate == null,
+    }));
+  // Ba két cộng từ chính các đơn đã quy đổi. Cộng ở tầng PubStat rồi mới nhân hệ số là sai ngay khi
+  // hai chiến dịch có hai mức khác nhau.
+  const sum = (st: SettleState) =>
+    Math.round(conversions.filter((c) => c.state === st).reduce((a, c) => a + c.commission, 0) * 100) / 100;
   return {
     clicks: me?.clicks ?? 0,
-    orders: me?.orders ?? 0,
-    approved: pubCut(me?.approved ?? 0),
-    holding: pubCut(me?.holding ?? 0),
-    pending: pubCut(me?.pending ?? 0),
-    conversions: report.conversions
-      .filter((c) => c.publisher === pubSlug)
-      .map((c) => ({
-        upstreamId: c.upstreamId, date: c.date, advertiser: c.advertiser,
-        commission: pubCut(c.commission), state: c.state, utm: c.utm,
-      })),
+    orders: conversions.length,
+    approved: sum('approved'), holding: sum('holding'), pending: sum('pending'),
+    conversions,
   };
 }

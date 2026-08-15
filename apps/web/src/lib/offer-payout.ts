@@ -121,6 +121,23 @@ export function derivePubRate(upstreamRate: string | null, share = PUB_SHARE): s
   return sym ? `${sym}${body}` : `${body} ${cur}`;
 }
 
+/**
+ * Tiền publisher được nhận trên MỘT đơn cụ thể.
+ *
+ * Thứ tự: mức của họ ăn theo % → tính trên giá trị đơn · mức phẳng ($X/đơn) → đúng $X · KHÔNG có
+ * mức nào ("thoả thuận") → tạm chia PUB_SHARE của khoản nhà nhận.
+ *
+ * Trước đây mọi đơn đều chia cứng PUB_SHARE, kể cả khi admin đã đặt mức riêng — portal in một tỉ lệ
+ * còn tiền tính theo một tỉ lệ khác. Số hiện ra phải sinh từ ĐÚNG cái mức đang niêm yết cho họ.
+ */
+export function pubPayout(gross: number, upstreamCommission: number, rate: string | null): number {
+  const pct = pctOf(rate);
+  if (pct != null) return gross > 0 ? round2((gross * pct) / 100) : pubCut(upstreamCommission);
+  const flat = payoutUsdOf(rate, null);
+  if (flat != null) return flat;
+  return pubCut(upstreamCommission);
+}
+
 /** Offer ăn % thành tiền thật khi biết giá đơn hàng: payout = AOV × tỉ lệ. aov_usd đã là USD rồi. */
 export function payoutFromAov(rate: string | null, aovUsd: number | null): number | null {
   const pct = pctOf(rate);

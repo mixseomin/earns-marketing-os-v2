@@ -2,12 +2,11 @@
 
 // Portal publisher.
 //
-// YDNI: 90% thời gian publisher vào đây để LẤY LINK và LIẾC TIỀN. Chỉ hai thứ đó nằm ngoài. Danh
-// sách chiến dịch, tìm offer mới, bảng đơn, đổi mật khẩu — đều sau một click, có số đếm ở đầu khối
-// để biết bên trong có gì mà không phải mở ra xem.
+// YDNI: 90% thời gian publisher vào đây để LẤY LINK và LIẾC TIỀN. Dải số + link ở tab đầu; bốn việc
+// còn lại mỗi việc một tab, số đếm ngay trên nhãn để biết bên trong có gì mà không phải mở.
+// Tab ghi vào URL nên F5 hay gửi link cho nhau vẫn về đúng chỗ.
 //
-// Bản trước đổ cả năm khối `defaultOpen` ra một mặt phẳng: muốn copy link phải cuộn qua đúng những
-// thứ mình không cần. Mọi số ở đây đã đi qua pubView/PubOffer — không mức nhà, không link gốc.
+// Mọi số ở đây đã đi qua pubView/PubOffer — không mức nhà, không link gốc.
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
@@ -17,7 +16,8 @@ import { SETTLE_LABEL, SETTLE_COLOR } from '@/lib/network/status';
 import { trackingUrl, UTM_SLOTS, type Utm } from '@/lib/network/link';
 import { requestOffer, requestCatalogOffer } from '@/lib/actions/network';
 import { changePasswordAction, logoutAction } from '@/lib/actions/pub-auth';
-import { Section, SimpleTable, StatsStrip, EmptyState, Pill, Segmented, TextField, type SimpleColumn, type StatCard } from './ui';
+import { readShallowParam, writeShallowParam } from '@/lib/url-shallow';
+import { SimpleTable, StatsStrip, EmptyState, Pill, Segmented, Tabs, TextField, type SimpleColumn, type StatCard, type TabItem } from './ui';
 
 const usd = (n: number) => (n >= 10 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`);
 const mono = { fontFamily: 'var(--font-mono)', fontSize: 11 } as const;
@@ -31,8 +31,8 @@ const btn = {
 } as const;
 const btnSm = { ...btn, padding: '2px 8px', fontSize: 10 } as const;
 
-/** Số đếm ở đầu khối đang gập — biết bên trong có gì mà không phải mở. */
-const count = (n: number) => <span style={{ ...mono, ...dim }}>{n}</span>;
+type PubTab = 'link' | 'chien-dich' | 'tim' | 'don-hang' | 'tai-khoan';
+const TABS = ['link', 'chien-dich', 'tim', 'don-hang', 'tai-khoan'] as const;
 
 const REG_LABEL: Record<string, string> = { approved: 'đang chạy', pending: 'chờ duyệt', rejected: 'bị từ chối' };
 const REG_COLOR: Record<string, string> = { approved: 'var(--ok)', pending: 'var(--warn)', rejected: 'var(--fg-3)' };
@@ -141,9 +141,12 @@ export function PubPortal({ pubName, offers, catalog, view, origin }: {
   const approved = offers.filter((o) => o.regStatus === 'approved');
   const [sel, setSel] = useState(approved[0]?.slug ?? '');
   const [utm, setUtm] = useState<Utm>({});
-  // Chưa có link nào thì việc chính của màn không phải copy link mà là đi tìm chiến dịch → mở sẵn
-  // đúng khối đó. Đây là trạng thái DỮ LIỆU, không phải toggle vừa bấm, nên bố cục không nhảy dưới tay.
-  const [findOpen, setFindOpen] = useState(approved.length === 0);
+  // Chưa có link nào thì mở thẳng tab đi tìm chiến dịch — tab "Link" lúc đó chỉ là một ô rỗng.
+  const [tab, setTab] = useState<PubTab>(() => {
+    const q = readShallowParam('tab');
+    return (TABS as readonly string[]).includes(q ?? '') ? (q as PubTab) : approved.length ? 'link' : 'tim';
+  });
+  const go = (t: PubTab) => { setTab(t); writeShallowParam('tab', t); };
 
   const selToken = approved.find((o) => o.slug === sel)?.linkToken ?? null;
   const link = selToken ? trackingUrl(origin, selToken, utm) : '';
@@ -203,12 +206,29 @@ export function PubPortal({ pubName, offers, catalog, view, origin }: {
     } },
   ];
 
+  const tabs: TabItem<PubTab>[] = [
+    { key: 'link', label: 'Link của bạn', badge: approved.length ? String(approved.length) : undefined,
+      title: 'Link đã gắn sẵn mã theo dõi — copy nguyên văn' },
+    { key: 'chien-dich', label: 'Chiến dịch', badge: String(offers.length),
+      title: 'Chiến dịch bạn đã đăng ký và trạng thái duyệt' },
+    { key: 'tim', label: 'Tìm offer', badge: String(catalog.length),
+      title: 'Cả danh mục — chọn cái muốn chạy, admin duyệt là có link' },
+    { key: 'don-hang', label: 'Đơn hàng', badge: String(view.conversions.length) },
+    { key: 'tai-khoan', label: 'Tài khoản' },
+  ];
+
   const convCols: SimpleColumn<PubConversion>[] = [
     { key: 'd', header: 'Ngày', cell: (r) => <span style={mono}>{r.date}</span> },
     { key: 'o', header: 'Chiến dịch', cell: (r) => r.advertiser },
     { key: 'u', header: 'Sub-id của bạn', cell: (r) => <span style={{ ...mono, ...dim }}>{r.utm.join(' · ') || '—'}</span> },
     { key: 's', header: 'Trạng thái', cell: (r) => <Pill label={SETTLE_LABEL[r.state]} color={SETTLE_COLOR[r.state]} size="xs" tone="soft" /> },
-    { key: 'c', header: 'Hoa hồng', align: 'right', cell: (r) => <span style={{ ...mono, color: 'var(--ok)' }}>{usd(r.commission)}</span> },
+    { key: 'c', header: 'Hoa hồng', align: 'right', cell: (r) => (
+      // Dấu ~ = chiến dịch chưa niêm yết mức, số này còn đổi. In số trần như đơn đã chốt mức là
+      // hứa một con số mình chưa cam kết.
+      <span style={{ ...mono, color: 'var(--ok)' }} title={r.negotiated ? 'Chiến dịch chưa niêm yết mức hoa hồng — số tạm tính' : undefined}>
+        {r.negotiated && <span style={dim}>~</span>}{usd(r.commission)}
+      </span>
+    ) },
   ];
 
   return (
@@ -224,13 +244,15 @@ export function PubPortal({ pubName, offers, catalog, view, origin }: {
 
       <StatsStrip cards={cards} />
 
-      {/* ── Việc chính: lấy link ─────────────────────────────────────────────── */}
-      <Section title="Link của bạn" static>
+      <Tabs items={tabs} value={tab} onChange={go} />
+
+      {tab === 'link' && (
+        <>
         {approved.length === 0 ? (
           <EmptyState icon="🔗" compact title="Chưa có chiến dịch nào được duyệt"
             description={
               // Tối giản ≠ text chết: câu chỉ đường phải bấm được, đừng bắt người ta tự đi tìm khối.
-              <button type="button" onClick={() => setFindOpen(true)} style={{ ...btn, borderStyle: 'dashed' }}>
+              <button type="button" onClick={() => go('tim')} style={{ ...btn, borderStyle: 'dashed' }}>
                 Tìm chiến dịch để chạy →
               </button>
             } />
@@ -282,34 +304,40 @@ export function PubPortal({ pubName, offers, catalog, view, origin }: {
             </details>
           </>
         )}
-      </Section>
+        </>
+      )}
 
-      {/* ── Phần còn lại: sau 1 click. Số đếm ở đầu khối để biết bên trong có gì ── */}
-      <Section title="Chiến dịch của bạn" headerRight={count(offers.length)} defaultOpen={false}
-        subtitle="đăng ký rồi được duyệt mới ra link">
-        {offers.length === 0
-          ? <EmptyState icon="📦" compact title="Chưa có chiến dịch nào" />
-          : <SimpleTable rows={offers} columns={offerCols} getRowKey={(o) => o.slug} />}
-        {reqErr && <p style={{ fontSize: 11, color: 'var(--warn)', marginTop: 8 }}>{reqErr}</p>}
-      </Section>
+      {tab === 'chien-dich' && (
+        <>
+          {offers.length === 0
+            ? <EmptyState icon="📦" compact title="Chưa có chiến dịch nào" />
+            : <SimpleTable rows={offers} columns={offerCols} getRowKey={(o) => o.slug} />}
+          {reqErr && <p style={{ fontSize: 11, color: 'var(--warn)', marginTop: 8 }}>{reqErr}</p>}
+        </>
+      )}
 
-      <Section title="Tìm chiến dịch mới" headerRight={count(catalog.length)}
-        open={findOpen} onToggle={setFindOpen}
-        subtitle="chọn cái muốn chạy, admin duyệt là có link">
-        <CatalogPicker items={catalog} busy={busy} onAsk={askCatalog} />
-        {reqErr && <p style={{ fontSize: 11, color: 'var(--warn)', marginTop: 8 }}>{reqErr}</p>}
-      </Section>
+      {tab === 'tim' && (
+        <>
+          <CatalogPicker items={catalog} busy={busy} onAsk={askCatalog} />
+          {reqErr && <p style={{ fontSize: 11, color: 'var(--warn)', marginTop: 8 }}>{reqErr}</p>}
+        </>
+      )}
 
-      <Section title="Đơn hàng" headerRight={count(view.conversions.length)} defaultOpen={false}
-        subtitle="tạm duyệt còn đổi được — chỉ đã chốt mới là tiền chắc">
-        {view.conversions.length === 0
+      {tab === 'don-hang' && (
+        view.conversions.length === 0
           ? <EmptyState icon="🧾" compact title="Chưa có đơn nào" description="Đơn hiện ở đây sau khi nhà cung cấp ghi nhận (thường vài giờ tới vài ngày)." />
-          : <SimpleTable rows={view.conversions} columns={convCols} getRowKey={(r) => r.upstreamId} />}
-      </Section>
+          : <>
+              <SimpleTable rows={view.conversions} columns={convCols} getRowKey={(r) => r.upstreamId} />
+              {view.conversions.some((c) => c.negotiated) && (
+                <p style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 8 }}>
+                  Dòng có dấu <b>~</b> thuộc chiến dịch chưa niêm yết mức hoa hồng — số đang là TẠM TÍNH,
+                  chốt lại khi hai bên thống nhất mức.
+                </p>
+              )}
+            </>
+      )}
 
-      <Section title="Tài khoản" defaultOpen={false}>
-        <ChangePassword />
-      </Section>
+      {tab === 'tai-khoan' && <ChangePassword />}
     </div>
     </div>
   );

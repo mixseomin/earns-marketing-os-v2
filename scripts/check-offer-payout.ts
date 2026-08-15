@@ -2,7 +2,7 @@
 // Kiểm phép quy tỉ lệ hoa hồng → tiền thật. Đây là phép tính RA TIỀN và nó đã từng sai 60 lần,
 // nên mọi ca dưới đây là chuỗi THẬT lấy từ affiliate_programs.
 import assert from 'node:assert';
-import { payoutUsdOf, pctOf, payoutFromAov, amountsIn, currencyOf, derivePubRate, pubCut, PUB_SHARE } from '../apps/web/src/lib/offer-payout.ts';
+import { payoutUsdOf, pctOf, payoutFromAov, amountsIn, currencyOf, derivePubRate, pubCut, pubPayout, PUB_SHARE } from '../apps/web/src/lib/offer-payout.ts';
 
 // ── Sự cố 2026-08-15: bóc trụi ký tự phân cách làm hai số dính lại ──────────
 // "Fixed reward €5–12" từng ra $552.96 (bóc thành "512" rồi × 1.08). Đúng phải là trung điểm 8.5.
@@ -79,4 +79,21 @@ assert.equal(pubCut(19.75), 13.83);
 assert.equal(pubCut(0), 0);
 
 
+
+// ── Tiền của publisher trên MỘT đơn ─────────────────────────────────────────
+// Mức % tính trên GIÁ TRỊ ĐƠN, không phải trên khoản nhà nhận. Đơn $790 gross, nhà ăn 2.5% ($19.75),
+// publisher niêm yết 1.75% → $13.83 — trùng đúng 70% khoản nhà nhận, hai đường không được lệch nhau.
+assert.equal(pubPayout(790, 19.75, '1.75%'), 13.83);
+assert.equal(pubPayout(790, 19.75, null), pubCut(19.75));      // "thoả thuận" → tạm chia mặc định
+assert.equal(pubPayout(0, 19.75, null), pubCut(19.75));
+// Mức phẳng = đúng số đó mỗi đơn, KHÔNG nhân thêm share (mức đã là mức phát cho họ rồi).
+assert.equal(pubPayout(500, 30, '$21'), 21);
+assert.equal(pubPayout(500, 30, '€10'), 10.8);
+// % mà không biết giá trị đơn thì không suy ra được → rơi về mức chia, đừng nhân với 0.
+assert.equal(pubPayout(0, 20, '5%'), pubCut(20));
+// Không bao giờ âm, và mức riêng phải THẮNG mức mặc định.
+assert.ok(pubPayout(1000, 19.75, '1%') !== pubCut(19.75));
+
+
 console.log('offer-payout.ts OK — khoảng không còn dính số, đơn vị lạ vẫn để trống');
+

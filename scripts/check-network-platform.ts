@@ -2,7 +2,8 @@
 // Kiểm phần logic thuần của nền tảng network: dựng link + vòng đời đối soát.
 // Hai chỗ này sai thì tiền đi nhầm chỗ mà màn hình vẫn xanh, nên chúng phải có lưới.
 import assert from 'node:assert';
-import { newClickId, isClickId, upstreamUrl, trackingUrl, readUtm, SUB_PARAM, CLICK_ID_LEN } from '../apps/web/src/lib/network/link.ts';
+import { newClickId, isClickId, upstreamUrl, trackingUrl, readUtm, SUB_PARAM, CLICK_ID_LEN,
+  checkOffer, checkPublisher, checkSlug } from '../apps/web/src/lib/network/link.ts';
 import { cjSettleState } from '../apps/web/src/lib/network/status.ts';
 
 // ── Mã click ────────────────────────────────────────────────────────────────
@@ -66,4 +67,26 @@ assert.equal(cjSettleState('locked', '2026-09-30', 19.75, NOW), 'holding');
 assert.equal(cjSettleState('closed', '2026-08-01', 0, NOW), 'cancelled');
 assert.equal(cjSettleState('corrected', '2026-08-01', -19.75, NOW), 'cancelled');
 
-console.log('network platform OK — link/clickId/upstream/utm + vòng đời đối soát');
+// ── Kiểm dữ liệu trước khi ghi ──────────────────────────────────────────────
+const okOffer = { slug: 'trip-hk', name: 'Trip.com HK', network: 'cj', upstreamUrl: 'https://www.dpbolvw.net/abc' };
+assert.equal(checkOffer(okOffer), null);
+// Network KHÔNG có ô sub-id phải bị chặn ngay lúc tạo. Cho qua = vài tuần sau mới biết tiền mất dấu.
+assert.ok(checkOffer({ ...okOffer, network: 'travelpayouts' })?.includes('không có ô sub-id'));
+assert.ok(checkOffer({ ...okOffer, network: 'bia-ra' })?.includes('Network lạ'));
+assert.ok(checkOffer({ ...okOffer, upstreamUrl: 'khong-phai-url' })?.includes('URL hợp lệ'));
+assert.ok(checkOffer({ ...okOffer, name: '   ' })?.includes('Thiếu tên'));
+// Slug nằm trong link đã phát ra ngoài — khoảng trắng, gạch dưới, chấm, dấu tiếng Việt đều làm
+// link gãy hoặc phải encode ở mọi chỗ dùng. Chữ HOA thì không chặn: tự hạ xuống (xem dưới).
+for (const bad of ['trip hk', 'trip_hk', 'trip.hk', 'chien-dịch', 'a', '-abc', '', 'trip/hk', 'trip?hk']) {
+  assert.ok(checkSlug(bad), `phải chặn slug: ${JSON.stringify(bad)}`);
+}
+for (const good of ['ab', 'trip-hk', 'a1', 'x'.repeat(41)]) assert.equal(checkSlug(good), null, good);
+assert.ok(checkSlug('x'.repeat(42)));                       // quá dài
+// Chữ hoa + khoảng trắng thừa được CHUẨN HOÁ chứ không bị chặn — bắt người gõ lại chỉ vì Shift
+// là phiền vô ích, còn giá trị lưu xuống vẫn là 'trip-hk' (action .trim().toLowerCase()).
+assert.equal(checkSlug('  TRIP-HK  '), null);
+assert.equal(checkSlug('Trip-HK'), null);
+assert.equal(checkPublisher({ slug: 'thoai', name: 'Thoai' }), null);
+assert.ok(checkPublisher({ slug: 'thoai', name: '' })?.includes('Thiếu tên'));
+
+console.log('network platform OK — link/clickId/upstream/utm + đối soát + validate');

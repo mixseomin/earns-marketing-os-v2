@@ -142,7 +142,14 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
       {tab === 'cat' && (
         <CutTab offers={offers} publishers={publishers} baseCut={baseCut} busy={busy}
           onBase={(pct) => run(() => setBaseCut(pct))}
-          onCut={(kind, id, pct) => run(() => setCut(kind, id, pct))} />
+          onCut={async (kind, id, pct) => {
+            // Cố tình KHÔNG bọc `run()`: run dùng useTransition, busy của nó khoá cả trang trong
+            // lúc refresh (vài giây vì /network đọc lại Directus + CJ/Awin). Ô tự báo trạng thái.
+            const r = await setCut(kind, id, pct);
+            setErr(r.ok ? null : r.error ?? 'lỗi không rõ');
+            if (r.ok) router.refresh();
+            return r;
+          }} />
       )}
 
       {tab === 'don-hang' && <OrderTab report={report} offers={offers} />}
@@ -182,19 +189,49 @@ function toRevenueRows(report: NetworkReport): RevenueDayRow[] {
 // không ai trả lời nổi "publisher này thực tế đang ăn bao nhiêu". Ở đây nhìn một phát ra hết, và
 // đây là đường ghi DUY NHẤT (hai form kia đã gỡ ô cắt).
 
-/** Ô cắt sửa tại chỗ. Trống = theo tầng trên, KHÔNG phải 0%. Lưu khi rời ô. */
-function CutCell({ value, busy, onSave }: { value: number | null; busy: boolean; onSave: (v: number | null) => void }) {
+/**
+ * Ô cắt sửa tại chỗ. Trống = theo tầng trên, KHÔNG phải 0%.
+ *
+ * KHÔNG khoá theo `busy` chung của trang: mỗi lần lưu là một `router.refresh()`, mà /network refresh
+ * thì đọc lại danh mục Directus + gọi CJ/Awin — vài giây. Khoá theo busy nghĩa là sửa xong một ô thì
+ * cả bảng cứng đờ, gõ không ăn, trông y như "không cho sửa". Chỉ ô ĐANG lưu mới khoá.
+ *
+ * Enter cũng lưu, không bắt phải bấm ra ngoài. Và lưu xong thì nháy viền — thao tác chạy ngầm mà
+ * im lặng thì người dùng tưởng chưa ăn rồi gõ lại.
+ */
+function CutCell({ value, onSave }: {
+  value: number | null;
+  onSave: (v: number | null) => Promise<{ ok: boolean; error?: string }>;
+}) {
   const shown = value == null ? '' : String(value);
+  const [txt, setTxt] = useState(shown);
+  const [saving, setSaving] = useState(false);
+  const [flash, setFlash] = useState<'ok' | 'err' | null>(null);
+  // Server trả số mới (hoặc phiên khác đổi) → theo nó, đừng giữ chữ cũ trong ô.
+  useEffect(() => { setTxt(shown); }, [shown]);
+
+  const commit = async () => {
+    const t = txt.trim();
+    if (t === shown) return;
+    if (t !== '' && !isFinite(Number(t))) { setFlash('err'); setTimeout(() => setFlash(null), 900); return; }
+    setSaving(true);
+    const r = await onSave(t === '' ? null : Number(t));
+    setSaving(false);
+    setFlash(r.ok ? 'ok' : 'err');
+    setTimeout(() => setFlash(null), 900);
+  };
+
+  const line = flash === 'ok' ? 'var(--ok)' : flash === 'err' ? 'var(--warn)'
+    : txt.trim() !== shown ? 'var(--warn)' : 'var(--line)';
   return (
-    <input defaultValue={shown} key={shown} disabled={busy} placeholder="theo chung" inputMode="decimal"
-      onBlur={(e) => {
-        const t = e.target.value.trim();
-        if (t === shown) return;
-        onSave(t === '' ? null : Number(t));
-      }}
-      title="Phần NHÀ giữ, %. Để trống = theo tầng trên."
-      style={{ ...mono, width: 76, padding: '2px 6px', background: 'var(--bg-2)', color: 'var(--fg-0)',
-               border: '1px solid var(--line)', borderRadius: 4 }} />
+    <input value={txt} onChange={(e) => setTxt(e.target.value)} disabled={saving}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
+      placeholder="theo chung" inputMode="decimal"
+      title="Phần NHÀ giữ, %. Để trống = theo tầng trên. Enter hoặc bấm ra ngoài để lưu."
+      style={{ ...mono, width: 76, padding: '2px 6px', background: 'var(--bg-2)',
+               color: saving ? 'var(--fg-3)' : 'var(--fg-0)',
+               border: `1px solid ${line}`, borderRadius: 4, transition: 'border-color .2s' }} />
   );
 }
 
@@ -210,7 +247,8 @@ function CutView({ pct, from }: { pct: number; from: string }) {
 
 function CutTab({ offers, publishers, baseCut, busy, onBase, onCut }: {
   offers: Offer[]; publishers: Publisher[]; baseCut: number; busy: boolean;
-  onBase: (pct: number) => void; onCut: (kind: 'offer' | 'publisher', id: number, pct: number | null) => void;
+  onBase: (pct: number) => void;
+  onCut: (kind: 'offer' | 'publisher', id: number, pct: number | null) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const [v, setV] = useState(String(baseCut));
   const dirty = v.trim() !== String(baseCut);
@@ -221,7 +259,7 @@ function CutTab({ offers, publishers, baseCut, busy, onBase, onCut }: {
     ) },
     { key: 'k', header: 'Loại', cell: (p) => <span style={dim}>{p.kind}</span> },
     { key: 'c', header: 'Cắt riêng (%)', cell: (p) => (
-      <CutCell value={p.cutPct} busy={busy} onSave={(x) => onCut('publisher', p.id, x)} />
+      <CutCell value={p.cutPct} onSave={(x) => onCut('publisher', p.id, x)} />
     ) },
     { key: 'e', header: 'Đang áp', cell: (p) => (
       <CutView pct={p.cutPct ?? baseCut} from={p.cutPct == null ? 'theo chung' : 'riêng — đè mọi chiến dịch'} />
@@ -235,7 +273,7 @@ function CutTab({ offers, publishers, baseCut, busy, onBase, onCut }: {
     { key: 'up', header: 'Upstream trả mình', title: 'Trần — cắt ít quá thì phần còn lại không đủ bù chi phí',
       cell: (o) => <span style={{ ...mono, ...dim }}>{o.upstreamRate ?? '—'}</span> },
     { key: 'c', header: 'Cắt riêng (%)', cell: (o) => (
-      <CutCell value={o.cutPct} busy={busy} onSave={(x) => onCut('offer', o.id, x)} />
+      <CutCell value={o.cutPct} onSave={(x) => onCut('offer', o.id, x)} />
     ) },
     { key: 'e', header: 'Đang áp', cell: (o) => (
       <CutView pct={o.cutPct ?? baseCut} from={o.cutPct == null ? 'theo chung' : 'riêng'} />

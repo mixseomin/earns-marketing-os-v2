@@ -17,7 +17,7 @@ import { readShallowParam, writeShallowParam } from '@/lib/url-shallow';
 import { RevenueRefresh } from './revenue-refresh';
 import {
   saveOffer, toggleOffer, deleteOffer, savePublisher, deletePublisher,
-  decideRegistration, setRegistrationRate, grantOffer, sendSetupLink, setBaseCut,
+  decideRegistration, setRegistrationRate, grantOffer, sendSetupLink, setBaseCut, setCut,
   type OfferInput, type PublisherInput,
 } from '@/lib/actions/network';
 import {
@@ -30,8 +30,8 @@ const usd = (n: number) => (n >= 10 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`);
 const mono = { fontFamily: 'var(--font-mono)', fontSize: 11 } as const;
 const dim = { color: 'var(--fg-3)' };
 
-type Tab = 'tong-quan' | 'chien-dich' | 'danh-muc' | 'publisher' | 'duyet' | 'don-hang';
-const TABS: Tab[] = ['tong-quan', 'chien-dich', 'danh-muc', 'publisher', 'duyet', 'don-hang'];
+type Tab = 'tong-quan' | 'chien-dich' | 'danh-muc' | 'publisher' | 'duyet' | 'cat' | 'don-hang';
+const TABS: Tab[] = ['tong-quan', 'chien-dich', 'danh-muc', 'publisher', 'duyet', 'cat', 'don-hang'];
 
 /** Chỉ network CÓ ô sub-id mới dựng được chiến dịch — không có ô thì click đi ra là mất dấu. */
 const TRACKABLE = Object.entries(SUB_PARAM).filter(([, v]) => v !== null).map(([k]) => k);
@@ -79,6 +79,8 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
     { key: 'publisher', label: 'Publisher', badge: String(publishers.length) },
     { key: 'duyet', label: 'Duyệt & giá', badge: pending.length ? String(pending.length) : undefined,
       title: 'Duyệt đăng ký + đặt giá riêng cho từng publisher' },
+    { key: 'cat', label: 'Cắt', badge: `${baseCut}%`,
+      title: 'Tỉ lệ cắt ba tầng: chung · theo chiến dịch · theo publisher' },
     { key: 'don-hang', label: 'Đơn hàng', badge: String(report.conversions.length) },
   ];
 
@@ -109,10 +111,7 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
         </div>
       )}
 
-      {tab === 'tong-quan' && (
-        <Overview offers={offers} publishers={publishers} report={report} days={days}
-          baseCut={baseCut} busy={busy} onBaseCut={(pct) => run(() => setBaseCut(pct))} />
-      )}
+      {tab === 'tong-quan' && <Overview offers={offers} publishers={publishers} report={report} days={days} />}
 
       {tab === 'chien-dich' && (
         <OfferTab offers={offers} origin={origin} busy={busy}
@@ -138,6 +137,12 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
           onDecide={(id, ok) => run(() => decideRegistration(id, ok))}
           onRate={(id, rate) => run(() => setRegistrationRate(id, rate))}
           onGrant={(p, o) => run(() => grantOffer(p, o))} />
+      )}
+
+      {tab === 'cat' && (
+        <CutTab offers={offers} publishers={publishers} baseCut={baseCut} busy={busy}
+          onBase={(pct) => run(() => setBaseCut(pct))}
+          onCut={(kind, id, pct) => run(() => setCut(kind, id, pct))} />
       )}
 
       {tab === 'don-hang' && <OrderTab report={report} offers={offers} />}
@@ -171,31 +176,117 @@ function toRevenueRows(report: NetworkReport): RevenueDayRow[] {
   }));
 }
 
-/** Tỉ lệ cắt CHUNG — tầng đáy. Đặt ngay ở Tổng quan vì nó quyết định mọi con số trong bảng ngay
- *  bên dưới; chôn vào một trang cài đặt riêng thì đổi xong không thấy nó đổi cái gì. */
-function BaseCut({ value, busy, onSave }: { value: number; busy: boolean; onSave: (pct: number) => void }) {
-  const [v, setV] = useState(String(value));
-  const dirty = v.trim() !== String(value);
+// ── Tỉ lệ cắt ────────────────────────────────────────────────────────────────
+// MỘT màn cho cả ba tầng. Trước đây cắt-chung ở Tổng quan, cắt-chiến-dịch trong form Chiến dịch,
+// cắt-publisher trong form Publisher — ba chỗ, không chỗ nào cho biết hai chỗ kia đang đặt gì, nên
+// không ai trả lời nổi "publisher này thực tế đang ăn bao nhiêu". Ở đây nhìn một phát ra hết, và
+// đây là đường ghi DUY NHẤT (hai form kia đã gỡ ô cắt).
+
+/** Ô cắt sửa tại chỗ. Trống = theo tầng trên, KHÔNG phải 0%. Lưu khi rời ô. */
+function CutCell({ value, busy, onSave }: { value: number | null; busy: boolean; onSave: (v: number | null) => void }) {
+  const shown = value == null ? '' : String(value);
   return (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', margin: '10px 0' }}>
-      <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>Cắt chung</span>
-      <input value={v} onChange={(e) => setV(e.target.value)} inputMode="decimal"
-        style={{ ...mono, width: 64, padding: '3px 6px', background: 'var(--bg-2)', color: 'var(--fg-0)',
-                 border: `1px solid ${dirty ? 'var(--warn)' : 'var(--line)'}`, borderRadius: 4 }} />
-      <span style={{ ...mono, ...dim }}>% nhà giữ · publisher hưởng {(100 - (Number(v) || 0)).toFixed(0)}%</span>
-      {dirty && (
-        <button type="button" disabled={busy} onClick={() => onSave(Number(v))} style={btn('var(--ok)')}>Lưu</button>
-      )}
-      <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>
-        Chiến dịch và publisher đặt riêng thì đè lên số này — riêng của NGƯỜI thắng riêng của chiến dịch.
-      </span>
-    </div>
+    <input defaultValue={shown} key={shown} disabled={busy} placeholder="theo chung" inputMode="decimal"
+      onBlur={(e) => {
+        const t = e.target.value.trim();
+        if (t === shown) return;
+        onSave(t === '' ? null : Number(t));
+      }}
+      title="Phần NHÀ giữ, %. Để trống = theo tầng trên."
+      style={{ ...mono, width: 76, padding: '2px 6px', background: 'var(--bg-2)', color: 'var(--fg-0)',
+               border: '1px solid var(--line)', borderRadius: 4 }} />
   );
 }
 
-function Overview({ offers, publishers, report, days, baseCut, busy, onBaseCut }: {
+/** Cắt X% → publisher hưởng (100-X)%. In cả hai vì mình đàm phán bằng con số đầu, còn tiền trả
+ *  theo con số sau — để người đọc phải tự trừ trong đầu là chỗ sinh nhầm lẫn. */
+function CutView({ pct, from }: { pct: number; from: string }) {
+  return (
+    <span style={{ ...mono, ...dim }}>
+      {pct}% <span style={{ color: 'var(--fg-2)' }}>· pub {(100 - pct).toFixed(0)}%</span> <span style={dim}>({from})</span>
+    </span>
+  );
+}
+
+function CutTab({ offers, publishers, baseCut, busy, onBase, onCut }: {
+  offers: Offer[]; publishers: Publisher[]; baseCut: number; busy: boolean;
+  onBase: (pct: number) => void; onCut: (kind: 'offer' | 'publisher', id: number, pct: number | null) => void;
+}) {
+  const [v, setV] = useState(String(baseCut));
+  const dirty = v.trim() !== String(baseCut);
+
+  const pubCols: SimpleColumn<Publisher>[] = [
+    { key: 'n', header: 'Publisher', cell: (p) => (
+      <span style={{ color: 'var(--fg-0)' }}>{p.name} <span style={{ ...mono, ...dim }}>{p.slug}</span></span>
+    ) },
+    { key: 'k', header: 'Loại', cell: (p) => <span style={dim}>{p.kind}</span> },
+    { key: 'c', header: 'Cắt riêng (%)', cell: (p) => (
+      <CutCell value={p.cutPct} busy={busy} onSave={(x) => onCut('publisher', p.id, x)} />
+    ) },
+    { key: 'e', header: 'Đang áp', cell: (p) => (
+      <CutView pct={p.cutPct ?? baseCut} from={p.cutPct == null ? 'theo chung' : 'riêng — đè mọi chiến dịch'} />
+    ) },
+  ];
+
+  const offerCols: SimpleColumn<Offer>[] = [
+    { key: 'n', header: 'Chiến dịch', cell: (o) => (
+      <span style={{ color: o.active ? 'var(--fg-0)' : 'var(--fg-3)' }}>{o.name} <span style={{ ...mono, ...dim }}>{o.slug}</span></span>
+    ) },
+    { key: 'up', header: 'Upstream trả mình', title: 'Trần — cắt ít quá thì phần còn lại không đủ bù chi phí',
+      cell: (o) => <span style={{ ...mono, ...dim }}>{o.upstreamRate ?? '—'}</span> },
+    { key: 'c', header: 'Cắt riêng (%)', cell: (o) => (
+      <CutCell value={o.cutPct} busy={busy} onSave={(x) => onCut('offer', o.id, x)} />
+    ) },
+    { key: 'e', header: 'Đang áp', cell: (o) => (
+      <CutView pct={o.cutPct ?? baseCut} from={o.cutPct == null ? 'theo chung' : 'riêng'} />
+    ) },
+  ];
+
+  // Ai đang bị đè: publisher có cắt riêng thì cắt của chiến dịch không có tác dụng với người đó.
+  const overriders = publishers.filter((p) => p.cutPct != null && p.status === 'active');
+
+  return (
+    <>
+      <Section title="Cắt chung" subtitle="tầng đáy — áp cho mọi chiến dịch và publisher chưa đặt riêng" defaultOpen>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input value={v} onChange={(e) => setV(e.target.value)} inputMode="decimal"
+            style={{ ...mono, width: 72, padding: '4px 7px', background: 'var(--bg-2)', color: 'var(--fg-0)',
+                     border: `1px solid ${dirty ? 'var(--warn)' : 'var(--line)'}`, borderRadius: 4 }} />
+          <span style={{ ...mono, ...dim }}>% nhà giữ · publisher hưởng {(100 - (Number(v) || 0)).toFixed(0)}%</span>
+          {dirty && <button type="button" disabled={busy} onClick={() => onBase(Number(v))} style={btn('var(--ok)')}>Lưu</button>}
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 8, lineHeight: 1.6 }}>
+          Thứ tự đè, cụ thể thắng chung: <b>publisher</b> → <b>chiến dịch</b> → <b>chung</b>. Không nhân
+          chồng — đặt cắt chiến dịch 20% thì publisher hưởng 80%, không phải 56%.<br />
+          Muốn chốt hẳn một con số tiền cho một cặp publisher × chiến dịch thì dùng ô <b>Giá riêng</b> ở
+          tab Duyệt & giá — mức tuyệt đối đó thắng cả ba tầng cắt.
+        </p>
+      </Section>
+
+      <Section title="Cắt theo publisher" headerRight={<span style={{ ...mono, ...dim }}>{publishers.filter((p) => p.cutPct != null).length}/{publishers.length}</span>}
+        subtitle="đè lên MỌI chiến dịch của người đó" defaultOpen>
+        {publishers.length === 0
+          ? <EmptyState icon="👥" compact title="Chưa có publisher nào" />
+          : <SimpleTable rows={publishers} columns={pubCols} getRowKey={(p) => p.slug} />}
+      </Section>
+
+      <Section title="Cắt theo chiến dịch" headerRight={<span style={{ ...mono, ...dim }}>{offers.filter((o) => o.cutPct != null).length}/{offers.length}</span>}
+        subtitle="mặc định của chiến dịch, publisher đặt riêng thì đè lên" defaultOpen>
+        {offers.length === 0
+          ? <EmptyState icon="📦" compact title="Chưa có chiến dịch nào" />
+          : <SimpleTable rows={offers} columns={offerCols} getRowKey={(o) => o.slug} />}
+        {overriders.length > 0 && (
+          <p style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 8 }}>
+            Cắt ở bảng này KHÔNG áp cho {overriders.map((p) => p.name).join(', ')} — họ có cắt riêng đè lên.
+          </p>
+        )}
+      </Section>
+    </>
+  );
+}
+
+function Overview({ offers, publishers, report, days }: {
   offers: Offer[]; publishers: Publisher[]; report: NetworkReport; days: number;
-  baseCut: number; busy: boolean; onBaseCut: (pct: number) => void;
 }) {
   const clicks = report.pubs.reduce((t, p) => t + p.clicks, 0);
   const approved = report.pubs.reduce((t, p) => t + p.approved, 0);
@@ -229,7 +320,6 @@ function Overview({ offers, publishers, report, days, baseCut, busy, onBaseCut }
   return (
     <>
       <StatsStrip cards={cards} />
-      <BaseCut value={baseCut} busy={busy} onSave={onBaseCut} />
       {report.errors.length > 0 && <div style={{ margin: '8px 0', fontSize: 11, color: 'var(--warn)' }}>{report.errors.join(' · ')}</div>}
       <Section title="Lịch hoa hồng" subtitle={`${days > 0 ? `${days} ngày gần nhất` : 'toàn bộ'} · bóc tách theo publisher`} defaultOpen>
         <RevenueCalendar rows={rows} errors={report.errors} scannedNetworks={['cj']} />
@@ -297,12 +387,6 @@ function slugify(name: string): string {
     .replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
 }
 
-type OfferForm = Omit<OfferInput, 'cutPct'> & { cutPct: string };
-type PubForm = Omit<PublisherInput, 'cutPct'> & { cutPct: string };
-
-/** '' = theo tầng trên (null), không phải 0%. */
-const cutNum = (s: string): number | null => (s.trim() === '' ? null : Number(s));
-
 function OfferForm({ offer, seed, busy, catalog, onClose, onSave }: {
   offer: Offer | null;
   /** Dòng danh mục MOS2 bấm 'Dựng chiến dịch' — điền sẵn form ngay lúc mở, khỏi phải chọn lại. */
@@ -313,7 +397,7 @@ function OfferForm({ offer, seed, busy, catalog, onClose, onSave }: {
   const [pick, setPick] = useState<string[]>([]);
   // Ô cắt giữ dạng CHUỖI trong form: '' phải mang nghĩa "theo tầng trên", mà số thì không có giá
   // trị nào nói được điều đó (0 là cắt 0%). Đổi sang số đúng một lần, lúc lưu.
-  const [v, setV] = useState<OfferForm>({
+  const [v, setV] = useState<OfferInput>({
     id: offer?.id,
     slug: offer?.slug ?? (seed ? slugify(seed.name) : ''),
     name: offer?.name ?? seed?.name ?? '',
@@ -326,10 +410,9 @@ function OfferForm({ offer, seed, busy, catalog, onClose, onSave }: {
     // Điền sẵn mức trả publisher = mức nhà × phần chia. Để trống thì admin hay quên, mà offer
     // không có mức riêng thì publisher chỉ thấy "thoả thuận" — không có gì để họ quyết chạy hay không.
     publisherRate: offer?.publisherRate ?? derivePubRate(seed?.rate ?? null) ?? '',
-    cutPct: offer?.cutPct == null ? '' : String(offer.cutPct),
     terms: offer?.terms ?? '', active: offer?.active ?? true,
   });
-  const set = <K extends keyof OfferForm>(k: K, val: OfferForm[K]) => setV((s) => ({ ...s, [k]: val }));
+  const set = <K extends keyof OfferInput>(k: K, val: OfferInput[K]) => setV((s) => ({ ...s, [k]: val }));
   // `dirty` phải là ĐANG-SỬA-THẬT, không phải hằng số true. Đặt cứng thì mỗi lần bấm ra ngoài
   // hoặc Esc đều bị hỏi "bỏ thay đổi?" dù chưa gõ gì — drawer thành ra không đóng nổi.
   const [initial] = useState(() => JSON.stringify(v));
@@ -389,9 +472,6 @@ function OfferForm({ offer, seed, busy, catalog, onClose, onSave }: {
         <TextField label="Ngành" value={v.category} onChange={(e) => set('category', e.target.value)} />
         <TextField label="Upstream trả mình" mono value={v.upstreamRate} onChange={(e) => set('upstreamRate', e.target.value)}
           hint='Viết tự do: "8%", "$12 CPA", "20-62.25%".' />
-        <TextField label="Cắt riêng chiến dịch (%)" mono value={v.cutPct}
-          onChange={(e) => set('cutPct', e.target.value)}
-          hint="Phần NHÀ giữ trên chiến dịch này. Để trống = theo cắt chung." />
         <TextField label="Mình trả publisher" mono value={v.publisherRate} onChange={(e) => set('publisherRate', e.target.value)}
           hint="Mức chung. Đặt riêng cho từng publisher ở tab Duyệt &amp; giá." />
         <TextAreaField label="Điều kiện ghi nhận" rows={3} value={v.terms} onChange={(e) => set('terms', e.target.value)}
@@ -403,7 +483,7 @@ function OfferForm({ offer, seed, busy, catalog, onClose, onSave }: {
       </div>
       <FormModalFooter>
         <button type="button" onClick={onClose} style={btn('var(--fg-3)')}>Huỷ</button>
-        <button type="button" disabled={busy} onClick={() => onSave({ ...v, cutPct: cutNum(v.cutPct) })} style={btn('var(--ok)')}>
+        <button type="button" disabled={busy} onClick={() => onSave(v)} style={btn('var(--ok)')}>
           {busy ? 'Đang lưu…' : 'Lưu'}
         </button>
       </FormModalFooter>
@@ -532,13 +612,12 @@ function PublisherTab({ publishers, report, busy, setupLink, onNew, onEdit, onDe
 function PublisherForm({ pub, busy, onClose, onSave }: {
   pub: Publisher | null; busy: boolean; onClose: () => void; onSave: (v: PublisherInput) => void;
 }) {
-  const [v, setV] = useState<PubForm>({
+  const [v, setV] = useState<PublisherInput>({
     id: pub?.id, slug: pub?.slug ?? '', name: pub?.name ?? '',
     kind: pub?.kind ?? 'inhouse', status: pub?.status ?? 'active',
     note: pub?.note ?? '', email: pub?.email ?? '', password: '',
-    cutPct: pub?.cutPct == null ? '' : String(pub.cutPct),
   });
-  const set = <K extends keyof PubForm>(k: K, val: PubForm[K]) => setV((s) => ({ ...s, [k]: val }));
+  const set = <K extends keyof PublisherInput>(k: K, val: PublisherInput[K]) => setV((s) => ({ ...s, [k]: val }));
   const [initial] = useState(() => JSON.stringify(v));
   const dirty = JSON.stringify(v) !== initial;
   return (
@@ -568,14 +647,11 @@ function PublisherForm({ pub, busy, onClose, onSave }: {
           hint={pub?.hasPassword
             ? 'Bỏ trống = giữ nguyên mật khẩu cũ. Đổi thì mọi phiên đang mở của họ bị đá ra.'
             : 'Tối thiểu 8 ký tự. Đưa cho publisher, họ tự đổi lại trong portal.'} />
-        <TextField label="Cắt riêng publisher (%)" mono value={v.cutPct}
-          onChange={(e) => set('cutPct', e.target.value)}
-          hint="Phần NHÀ giữ trên MỌI chiến dịch của người này. Để trống = theo cắt của chiến dịch, rồi tới cắt chung." />
         <TextAreaField label="Ghi chú" rows={2} value={v.note} onChange={(e) => set('note', e.target.value)} />
       </div>
       <FormModalFooter>
         <button type="button" onClick={onClose} style={btn('var(--fg-3)')}>Huỷ</button>
-        <button type="button" disabled={busy} onClick={() => onSave({ ...v, cutPct: cutNum(v.cutPct) })} style={btn('var(--ok)')}>
+        <button type="button" disabled={busy} onClick={() => onSave(v)} style={btn('var(--ok)')}>
           {busy ? 'Đang lưu…' : 'Lưu'}
         </button>
       </FormModalFooter>

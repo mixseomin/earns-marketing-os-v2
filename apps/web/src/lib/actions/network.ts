@@ -40,9 +40,9 @@ export interface OfferInput {
   slug: string; name: string; network: string;
   advertiser?: string; category?: string; upstreamUrl: string;
   upstreamRate?: string; publisherRate?: string; cookieDays?: number | null; terms?: string;
-  /** Cắt riêng cho chiến dịch này (%, phần nhà giữ). null = theo cắt chung. */
-  cutPct?: number | null;
   active: boolean;
+  // Cắt KHÔNG nằm ở đây: sửa ở tab Cắt (setCut). Hai đường ghi cùng một con số là hai chỗ để
+  // lệch, và người sửa ở form sẽ không thấy mình vừa đè lên cái vừa đặt ở bảng.
 }
 
 export async function saveOffer(input: OfferInput): Promise<Res> {
@@ -62,7 +62,6 @@ export async function saveOffer(input: OfferInput): Promise<Res> {
     publisherRate: input.publisherRate?.trim() || null,
     cookieDays: input.cookieDays ?? null,
     terms: input.terms?.trim() || null,
-    cutPct: cleanCut(input.cutPct),
     active: input.active,
   };
 
@@ -72,13 +71,13 @@ export async function saveOffer(input: OfferInput): Promise<Res> {
         UPDATE net_offers SET slug=${v.slug}, name=${v.name}, network=${v.network},
           advertiser=${v.advertiser}, category=${v.category}, upstream_url=${v.upstreamUrl},
           upstream_rate=${v.upstreamRate}, publisher_rate=${v.publisherRate},
-          cookie_days=${v.cookieDays}, terms=${v.terms}, cut_pct=${v.cutPct}, active=${v.active}
+          cookie_days=${v.cookieDays}, terms=${v.terms}, active=${v.active}
         WHERE id=${input.id}`);
     } else {
       await db.execute(sql`
-        INSERT INTO net_offers (slug, name, network, advertiser, category, upstream_url, upstream_rate, publisher_rate, cookie_days, terms, cut_pct, active)
+        INSERT INTO net_offers (slug, name, network, advertiser, category, upstream_url, upstream_rate, publisher_rate, cookie_days, terms, active)
         VALUES (${v.slug}, ${v.name}, ${v.network}, ${v.advertiser}, ${v.category}, ${v.upstreamUrl},
-                ${v.upstreamRate}, ${v.publisherRate}, ${v.cookieDays}, ${v.terms}, ${v.cutPct}, ${v.active})`);
+                ${v.upstreamRate}, ${v.publisherRate}, ${v.cookieDays}, ${v.terms}, ${v.active})`);
     }
   } catch (e) {
     const m = (e as Error).message;
@@ -119,8 +118,7 @@ export interface PublisherInput {
   email?: string;
   /** Đặt/đổi mật khẩu cho họ. Bỏ TRỐNG = giữ nguyên mật khẩu cũ (không phải xoá nó). */
   password?: string;
-  /** Cắt riêng cho NGƯỜI này (%, phần nhà giữ). null = theo cắt của chiến dịch, rồi tới cắt chung. */
-  cutPct?: number | null;
+  // Cắt riêng: xem OfferInput — chỉ sửa ở tab Cắt.
 }
 
 export async function savePublisher(input: PublisherInput): Promise<Res> {
@@ -135,14 +133,12 @@ export async function savePublisher(input: PublisherInput): Promise<Res> {
     if (input.id) {
       await db.execute(sql`
         UPDATE net_publishers SET slug=${slug}, name=${input.name.trim()}, kind=${input.kind},
-          status=${input.status}, note=${input.note?.trim() || null}, email=${email},
-          cut_pct=${cleanCut(input.cutPct)}
+          status=${input.status}, note=${input.note?.trim() || null}, email=${email}
         WHERE id=${input.id}`);
     } else {
       await db.execute(sql`
-        INSERT INTO net_publishers (slug, name, kind, status, note, email, cut_pct)
-        VALUES (${slug}, ${input.name.trim()}, ${input.kind}, ${input.status}, ${input.note?.trim() || null}, ${email},
-                ${cleanCut(input.cutPct)})`);
+        INSERT INTO net_publishers (slug, name, kind, status, note, email)
+        VALUES (${slug}, ${input.name.trim()}, ${input.kind}, ${input.status}, ${input.note?.trim() || null}, ${email})`);
     }
   } catch (e) {
     const m = (e as Error).message;
@@ -294,6 +290,24 @@ export async function requestCatalogOffer(catalogId: string): Promise<Res> {
     ON CONFLICT (publisher_id, offer_id) DO UPDATE
       SET status='pending', requested_at=now(), decided_at=NULL
       WHERE net_publisher_offers.status='rejected'`);
+  bump();
+  return OK;
+}
+
+/**
+ * Đặt cắt riêng cho MỘT chiến dịch hoặc MỘT publisher. `pct = null` = xoá riêng, về theo tầng trên.
+ *
+ * Một hàm cho cả hai vì luật y hệt nhau — tách đôi là hai chỗ để quên đồng bộ khi luật đổi.
+ */
+export async function setCut(kind: 'offer' | 'publisher', id: number, pct: number | null): Promise<Res> {
+  if (!(await admin())) return { ok: false, error: 'Chỉ admin' };
+  const db = getDb();
+  if (!db) return { ok: false, error: 'DB chưa sẵn sàng' };
+  if (pct != null && cleanCut(pct) == null) return { ok: false, error: 'Tỉ lệ cắt phải trong khoảng 0-100' };
+  const v = pct == null ? null : cleanCut(pct);
+  await db.execute(kind === 'offer'
+    ? sql`UPDATE net_offers SET cut_pct=${v} WHERE id=${id}`
+    : sql`UPDATE net_publishers SET cut_pct=${v} WHERE id=${id}`);
   bump();
   return OK;
 }

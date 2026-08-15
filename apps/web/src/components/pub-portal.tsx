@@ -10,7 +10,7 @@ import type { NetworkReport } from '@/lib/network/report';
 import { SETTLE_LABEL, SETTLE_COLOR } from '@/lib/network/status';
 import { trackingUrl, UTM_SLOTS, type Utm } from '@/lib/network/link';
 import { requestOffer } from '@/lib/actions/network';
-import { Section, SimpleTable, StatsStrip, EmptyState, Pill, type SimpleColumn, type StatCard } from './ui';
+import { Section, SimpleTable, StatsStrip, EmptyState, Pill, Segmented, type SimpleColumn, type StatCard } from './ui';
 
 const usd = (n: number) => (n >= 10 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`);
 const mono = { fontFamily: 'var(--font-mono)', fontSize: 11 } as const;
@@ -94,10 +94,10 @@ export function PubPortal({ pubSlug, pubName, offers, report, origin }: {
         ) : (
           <>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
-              <select value={sel} onChange={(e) => setSel(e.target.value)}
-                style={{ ...mono, padding: '3px 6px', background: 'var(--bg-2)', color: 'var(--fg-0)', border: '1px solid var(--line)', borderRadius: 4 }}>
-                {approved.map((o) => <option key={o.slug} value={o.slug}>{o.name}</option>)}
-              </select>
+              <Segmented<string>
+                value={sel} onChange={setSel}
+                options={approved.map((o) => ({ value: o.slug, label: o.name, title: o.terms ?? undefined }))}
+              />
               {UTM_SLOTS.map((k) => (
                 <input key={k} value={utm[k] ?? ''} placeholder={k}
                   onChange={(e) => setUtm((u) => ({ ...u, [k]: e.target.value }))}

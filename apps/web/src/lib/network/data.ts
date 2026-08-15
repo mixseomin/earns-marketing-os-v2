@@ -12,6 +12,16 @@ export interface Offer {
 
 export interface Publisher {
   id: number; slug: string; name: string; kind: string; status: string; note: string | null;
+  userId: number | null;
+}
+
+export interface UserOption { id: number; email: string; name: string }
+
+export async function listUsers(): Promise<UserOption[]> {
+  const db = getDb();
+  if (!db) return [];
+  const r = await db.execute(sql`SELECT id, email, name FROM users ORDER BY name`);
+  return (r as unknown as Array<Record<string, unknown>>).map((x) => ({ id: Number(x.id), email: String(x.email), name: String(x.name) }));
 }
 
 export interface Registration {
@@ -44,6 +54,7 @@ export async function listPublishers(): Promise<Publisher[]> {
   return (r as unknown as Array<Record<string, unknown>>).map((x) => ({
     id: Number(x.id), slug: String(x.slug), name: String(x.name),
     kind: String(x.kind), status: String(x.status), note: (x.note as string) ?? null,
+    userId: x.user_id === null || x.user_id === undefined ? null : Number(x.user_id),
   }));
 }
 
@@ -99,5 +110,6 @@ export async function publisherForUser(userId: number): Promise<Publisher | null
   return x ? {
     id: Number(x.id), slug: String(x.slug), name: String(x.name),
     kind: String(x.kind), status: String(x.status), note: (x.note as string) ?? null,
+    userId: x.user_id === null || x.user_id === undefined ? null : Number(x.user_id),
   } : null;
 }

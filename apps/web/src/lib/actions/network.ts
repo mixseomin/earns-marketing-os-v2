@@ -41,3 +41,18 @@ export async function requestOffer(offerId: number): Promise<{ ok: boolean; erro
   revalidatePath('/pub');
   return { ok: true };
 }
+
+/** Gán user MOS2 cho publisher → user đó đăng nhập vào pub.on.tc thấy đúng số của mình.
+ *  Đặt ở đây chứ không /team: đây là quan hệ của network, không phải quyền trong MOS2. */
+export async function linkPublisherUser(publisherId: number, userId: number | null): Promise<{ ok: boolean; error?: string }> {
+  const me = await getCurrentUser();
+  if (!me || me.role !== 'admin') return { ok: false, error: 'Chỉ admin được gán' };
+  const db = getDb();
+  if (!db) return { ok: false, error: 'DB chưa sẵn sàng' };
+  // Một user chỉ thuộc MỘT publisher: gán chỗ này thì gỡ chỗ kia trước, nếu không
+  // publisherForUser() lấy phải hàng đầu tiên nó gặp và người ta thấy số của người khác.
+  if (userId) await db.execute(sql`UPDATE net_publishers SET user_id = NULL WHERE user_id = ${userId}`);
+  await db.execute(sql`UPDATE net_publishers SET user_id = ${userId} WHERE id = ${publisherId}`);
+  revalidatePath('/network');
+  return { ok: true };
+}

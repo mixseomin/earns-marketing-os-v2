@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { NetworkAdmin } from '@/components/network-admin';
-import { listOffers, listPublishers, listRegistrations } from '@/lib/network/data';
+import { listOffers, listPublishers, listRegistrations, listUsers } from '@/lib/network/data';
 import { networkReport } from '@/lib/network/report';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -12,12 +12,12 @@ export default async function NetworkAdminRoute() {
   if (!me) redirect('/login?next=/network');
   if (me.role !== 'admin') redirect('/pub');
   const h = await headers();
-  const [offers, publishers, registrations, report] = await Promise.all([
-    listOffers(), listPublishers(), listRegistrations(), networkReport(365),
+  const [offers, publishers, registrations, report, users] = await Promise.all([
+    listOffers(), listPublishers(), listRegistrations(), networkReport(365), listUsers(),
   ]);
   return (
     <NetworkAdmin
-      offers={offers} publishers={publishers} registrations={registrations} report={report}
+      offers={offers} publishers={publishers} registrations={registrations} report={report} users={users}
       origin={`https://${h.get('host') ?? 'pub.on.tc'}`}
     />
   );

@@ -5,19 +5,19 @@
 
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Offer, Publisher, Registration } from '@/lib/network/data';
+import type { Offer, Publisher, Registration, UserOption } from '@/lib/network/data';
 import type { NetworkReport } from '@/lib/network/report';
 import { SETTLE_LABEL, SETTLE_COLOR } from '@/lib/network/status';
-import { decideRegistration } from '@/lib/actions/network';
-import { Section, SimpleTable, StatsStrip, EmptyState, Pill, type SimpleColumn, type StatCard } from './ui';
+import { decideRegistration, linkPublisherUser } from '@/lib/actions/network';
+import { Section, SimpleTable, StatsStrip, EmptyState, Pill, MultiSelect, type SimpleColumn, type StatCard } from './ui';
 
 const usd = (n: number) => (n >= 10 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`);
 const mono = { fontFamily: 'var(--font-mono)', fontSize: 11 } as const;
 const dim = { color: 'var(--fg-3)' };
 
-export function NetworkAdmin({ offers, publishers, registrations, report, origin }: {
+export function NetworkAdmin({ offers, publishers, registrations, report, origin, users }: {
   offers: Offer[]; publishers: Publisher[]; registrations: Registration[];
-  report: NetworkReport; origin: string;
+  report: NetworkReport; origin: string; users: UserOption[];
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
@@ -121,6 +121,37 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
         {report.pubs.length === 0
           ? <EmptyState icon="👥" compact title="Chưa có publisher nào" />
           : <SimpleTable rows={report.pubs} columns={pubCols} getRowKey={(r) => r.publisher} />}
+      </Section>
+
+      {/* Gán user để publisher đăng nhập được vào portal. Không có chỗ này thì portal chỉ hiện
+          "chưa gắn publisher nào" và không ai làm gì được — một chỉ dẫn trỏ vào hư không. */}
+      <Section title="Tài khoản đăng nhập" subtitle="user MOS2 nào vào portal thì thấy số của publisher nào" defaultOpen={false}>
+        <SimpleTable
+          rows={publishers}
+          getRowKey={(p) => p.slug}
+          columns={[
+            { key: 'p', header: 'Publisher', cell: (p) => <span style={{ color: 'var(--fg-0)' }}>{p.name} <span style={{ ...mono, ...dim }}>{p.slug}</span></span> },
+            { key: 'k', header: 'Loại', cell: (p) => <span style={dim}>{p.kind}</span> },
+            { key: 'u', header: 'User đăng nhập', cell: (p) => (
+              <MultiSelect<number>
+                label="— chưa gán —"
+                compact
+                options={users.map((u) => ({ value: u.id, label: `${u.name} · ${u.email}` }))}
+                selected={p.userId ? [p.userId] : []}
+                // Một publisher một user: lấy cái VỪA chọn (phần tử cuối), không phải cả mảng —
+                // MultiSelect vốn là bộ lọc nhiều lựa chọn, ở đây dùng vì cần ô có tìm kiếm.
+                onChange={(v) => {
+                  const pick = v.length ? v[v.length - 1]! : null;
+                  start(async () => { await linkPublisherUser(p.id, pick); router.refresh(); });
+                }}
+              />
+            ) },
+          ]}
+        />
+        <p style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 6 }}>
+          Chưa có user cho người này thì tạo ở <a href="/team" style={{ color: 'var(--accent)' }}>/team</a> rồi quay lại chọn.
+          Mật khẩu do chính họ đặt qua luồng reset của /team.
+        </p>
       </Section>
 
       <Section title="Chiến dịch" defaultOpen>

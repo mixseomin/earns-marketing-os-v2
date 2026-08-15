@@ -410,3 +410,14 @@ export function shouldWarnGaps(piece: { status: string; date: string }, today?: 
   if (!today) return false;
   return Math.round((Date.parse(piece.date) - Date.parse(today)) / 864e5) <= leadDays;
 }
+
+/** Vừa đăng xong = trong 90 phút gần đây. Dùng để nháy một chấm trên lịch: mở /plays ra là thấy
+ *  ngay lượt vừa chạy nằm ở đâu, không phải dò cột giờ. publishedAt lưu dạng 'YYYY-MM-DD HH:MM'
+ *  theo giờ ứng dụng nên đọc như giờ máy — lệch vài phút không ảnh hưởng, đây chỉ là dấu hiệu. */
+export function justPosted(publishedAt?: string | null, mins = 90): boolean {
+  if (!publishedAt) return false;
+  const t = new Date(publishedAt.replace(' ', 'T')).getTime();
+  if (Number.isNaN(t)) return false;
+  const d = Date.now() - t;
+  return d >= 0 && d < mins * 60000;
+}

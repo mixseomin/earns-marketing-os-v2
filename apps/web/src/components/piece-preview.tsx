@@ -10,7 +10,7 @@
 import { FormatIcon } from './ui';
 import { useEffect, useState } from 'react';
 import { getPieceDetail, updateContentPiece } from '@/lib/actions/content';
-import { CHANNELS, tagVal, tagIds, formatOf, styleOf, fbButtonOf, seriesOf, isVideoMedia, placeName, isOnSiteFormat } from '@/lib/content-channels';
+import { CHANNELS, tagVal, tagIds, formatOf, styleOf, fbButtonOf, seriesOf, isVideoMedia, placeName, isOnSiteFormat, justPosted } from '@/lib/content-channels';
 import { ChannelFavicon } from './ui/site-favicon';
 import type { CalPiece } from '@/lib/data';
 
@@ -140,6 +140,14 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
           background: 'color-mix(in srgb, var(--ok) 14%, transparent)', borderBottom: '1px solid var(--line)', fontSize: compact ? 10.5 : 11.5 }}>
           <b style={{ color: 'var(--ok)' }}>✓ Đã đăng</b>
           {piece.publishedAt && <span style={{ color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{piece.publishedAt}</span>}
+          {justPosted(piece.publishedAt) && (
+            // Lượt vừa chạy xong: chấm nháy để mở lịch ra là thấy ngay, khỏi dò theo cột giờ.
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--ok)', fontSize: 10 }}>
+              <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--ok)', animation: 'freshPulse 1.2s ease-in-out infinite' }} />
+              vừa đăng
+              <style>{'@keyframes freshPulse{0%,100%{opacity:1}50%{opacity:.2}}'}</style>
+            </span>
+          )}
           {piece.publishUrl
             ? <a href={piece.publishUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
                 style={{ marginLeft: 'auto', color: 'var(--neon-blue)' }}>mở bài thật ↗</a>

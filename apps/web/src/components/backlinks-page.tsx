@@ -19,7 +19,7 @@ import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
-import { CHANNELS, FORMATS, STYLES, SERIES, ANGLE_GROUPS, ANGLES, MIX_TARGET, LINK_SHARE_MAX, angleOf, angleLabel, tagVal, pieceGaps, pieceRisks, shouldWarnGaps, schedMark, formatLabel } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
+import { CHANNELS, FORMATS, STYLES, SERIES, ANGLE_GROUPS, ANGLES, MIX_TARGET, LINK_SHARE_MAX, angleOf, angleLabel, tagVal, pieceGaps, pieceRisks, shouldWarnGaps, schedMark, formatLabel, justPosted } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
 import { StatusSegmented, Segmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, ChannelFavicon, FormatIcon, DataTable, type DataColumn, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
@@ -2200,6 +2200,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           </div>
 
         <div style={{ maxWidth: 680, flex: 1, minWidth: 0 }}>
+          <style>{'@keyframes freshPulse{0%,100%{opacity:1}50%{opacity:.2}}'}</style>
           {feedDays.length === 0 && <div style={{ padding: 28, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Chưa có bài nào đặt ngày.</div>}
           {/* Mỗi ngày là một khối RIÊNG (position:relative) — header dính trong phạm vi khối của nó,
               hết ngày là nhả. z-index cao hơn ảnh bài (ảnh cao ~800px, cuộn qua sẽ trườn lên header
@@ -2301,7 +2302,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                       <ChannelFavicon channel={p.channel} size={13} />
                       <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 2 }}>{f && <FormatIcon kind={f.id} size={11} title={f.label} />}{p.hasLink ? '🔗' : ''}{(repliesOf.get(p.id)?.length ?? 0) ? '💬' : ''}</span>
                       {schedMark(p) && <span title="FB đã nhận lịch — nền tảng tự đăng đúng giờ" style={{ color: 'var(--neon-cyan)', flexShrink: 0 }}>⏳</span>}
-                      {p.status === 'published' && <span title="đã đăng" style={{ color: 'var(--ok)', flexShrink: 0 }}>✓</span>}
+                      {p.status === 'published' && (justPosted(p.publishedAt)
+                        ? <span title={`vừa đăng lúc ${p.publishedAt}`} style={{ color: 'var(--ok)', flexShrink: 0, animation: 'freshPulse 1.2s ease-in-out infinite' }}>●</span>
+                        : <span title="đã đăng" style={{ color: 'var(--ok)', flexShrink: 0 }}>✓</span>)}
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.subject || p.title}</span>
                     </button>
                   );

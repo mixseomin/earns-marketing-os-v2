@@ -5,10 +5,11 @@
 // sao chậm hơn của API, mà lại thêm một chỗ để lệch.
 
 import { getDb } from '@mos2/db';
+import { baseCut } from './data';
 import { sql } from 'drizzle-orm';
 import { cjConversions, awinConversions } from '@/lib/revenue/networks';
 import { cjSettleState, awinSettleState, type SettleState } from './status';
-import { pubPayout } from '@/lib/offer-payout';
+import { pubPayout, shareOf } from '@/lib/offer-payout';
 
 export interface NetConversion {
   upstreamId: string;
@@ -23,8 +24,10 @@ export interface NetConversion {
   publisherName: string | null;
   offer: string | null;
   /** Mức đang niêm yết cho publisher trên chiến dịch này — KHÔNG phải mức upstream. Dùng để tính
-   *  đúng số tiền của họ; null = "thoả thuận", rơi về mức chia mặc định. */
+   *  đúng số tiền của họ; null = "thoả thuận", rơi về tỉ lệ cắt. */
   pubRate: string | null;
+  /** Phần publisher hưởng sau ba tầng cắt (publisher → chiến dịch → chung). Chỉ dùng khi pubRate null. */
+  share: number;
   utm: string[];              // 4 ô sub-id của publisher, đã bỏ ô trống
 }
 
@@ -47,10 +50,14 @@ export interface NetworkReport {
   errors: string[];
 }
 
+const nz = (v: string | null | undefined): number | null => (v == null ? null : Number(v));
+
 interface ClickRow {
   click_id: string; pub_slug: string | null; pub_name: string | null; offer_slug: string | null;
   /** Mức của PUBLISHER trên chính chiến dịch này: riêng đè chung. null = chưa niêm yết mức nào. */
   pub_rate: string | null;
+  /** Ba tầng cắt, để tính đúng phần họ hưởng khi chưa có mức niêm yết. */
+  pub_cut: string | null; offer_cut: string | null;
   utm_source: string | null; utm_medium: string | null; utm_campaign: string | null; utm_content: string | null;
 }
 
@@ -59,12 +66,14 @@ export async function networkReport(sinceDays = 90): Promise<NetworkReport> {
   if (!db) return { conversions: [], pubs: [], unmatched: 0, errors: ['DATABASE_URL chưa cấu hình'] };
   const since = new Date(Date.now() - sinceDays * 86400_000).toISOString().slice(0, 10);
 
-  const [cj, awin, clickRows, pubRows] = await Promise.all([
+  const [cj, awin, baseCutPct, clickRows, pubRows] = await Promise.all([
     cjConversions(since),
     awinConversions(since),
+    baseCut(),
     db.execute(sql`
       SELECT c.click_id, p.slug AS pub_slug, p.name AS pub_name, o.slug AS offer_slug,
              COALESCE(r.publisher_rate, o.publisher_rate) AS pub_rate,
+             p.cut_pct AS pub_cut, o.cut_pct AS offer_cut,
              c.utm_source, c.utm_medium, c.utm_campaign, c.utm_content
       FROM net_clicks c
       LEFT JOIN net_publishers p ON p.id = c.publisher_id
@@ -107,6 +116,7 @@ export async function networkReport(sinceDays = 90): Promise<NetworkReport> {
       publisherName: hit?.pub_name ?? null,
       offer: hit?.offer_slug ?? null,
       pubRate: hit?.pub_rate ?? null,
+      share: shareOf(nz(hit?.pub_cut), nz(hit?.offer_cut), baseCutPct),
       utm: hit ? [hit.utm_source, hit.utm_medium, hit.utm_campaign, hit.utm_content].filter((x): x is string => !!x) : [],
     };
   }));
@@ -166,7 +176,7 @@ export function pubView(report: NetworkReport, pubSlug: string): PubView {
     .map((c) => ({
       upstreamId: c.upstreamId, date: c.date, advertiser: c.advertiser,
       // Tiền tính từ mức của CHÍNH cặp publisher×chiến dịch đó, không phải một hằng số chung.
-      commission: pubPayout(c.gross, c.commission, c.pubRate),
+      commission: pubPayout(c.gross, c.commission, c.pubRate, c.share),
       state: c.state, utm: c.utm,
       negotiated: c.pubRate == null,
     }));

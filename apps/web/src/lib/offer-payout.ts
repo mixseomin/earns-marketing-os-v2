@@ -88,14 +88,30 @@ export function pctOf(rate: string | null): number | null {
 // KHÔNG được thấy X — biết mức nhà là biết luôn biên của mình, và lần thương lượng sau họ đòi đúng
 // bằng đó. Mọi con số đi xuống portal đều phải đi qua đây.
 
-/** Phần publisher được hưởng. Một hằng số, một chỗ — hiển thị và báo cáo phải đọc CÙNG số này, nếu
- *  không portal in một đằng còn tiền tính một nẻo. Đặt riêng từng publisher thì dùng
- *  net_publisher_offers.publisher_rate (đè lên cái derive ra đây). */
-export const PUB_SHARE = 0.7;
+/** Phần nhà giữ khi chưa ai đặt gì, tính bằng %. Chỉ là mồi cho lần cài đặt đầu — số THẬT nằm ở
+ *  net_settings 'cut_pct' và hai cột cut_pct của offer/publisher, đọc qua `shareOf`. */
+export const DEFAULT_CUT_PCT = 30;
+
+/** Phần publisher hưởng, dạng hệ số. Giữ lại vì nhiều chỗ tính tiền cần một giá trị mặc định khi
+ *  chưa nạp được cài đặt (DB chưa sẵn sàng) — đừng dùng nó thay cho cài đặt thật. */
+export const PUB_SHARE = 1 - DEFAULT_CUT_PCT / 100;
+
+/**
+ * Phần publisher hưởng, sau khi áp ba tầng cắt. CỤ THỂ THẮNG CHUNG: publisher → chiến dịch → chung.
+ *
+ * Không nhân chồng các tầng: cắt-chung 30% rồi cắt-offer 20% mà nhân vào nhau ra 44% thì không ai
+ * nhẩm nổi mình đang ăn bao nhiêu, và mỗi lần đổi một tầng là số của tầng kia cũng đổi theo.
+ * null ở một tầng nghĩa là "theo tầng trên", KHÔNG phải "cắt 0%".
+ */
+export function shareOf(publisherCut: number | null, offerCut: number | null, baseCut: number): number {
+  const cut = [publisherCut, offerCut, baseCut].find((c) => c != null && isFinite(c));
+  const pct = Math.min(100, Math.max(0, cut ?? DEFAULT_CUT_PCT));
+  return 1 - pct / 100;
+}
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-/** Tiền mình thật sự trả publisher trên một khoản upstream. */
+/** Tiền mình thật sự trả publisher trên một khoản upstream, theo phần họ hưởng. */
 export function pubCut(upstreamAmount: number, share = PUB_SHARE): number {
   return round2(upstreamAmount * share);
 }
@@ -130,12 +146,12 @@ export function derivePubRate(upstreamRate: string | null, share = PUB_SHARE): s
  * Trước đây mọi đơn đều chia cứng PUB_SHARE, kể cả khi admin đã đặt mức riêng — portal in một tỉ lệ
  * còn tiền tính theo một tỉ lệ khác. Số hiện ra phải sinh từ ĐÚNG cái mức đang niêm yết cho họ.
  */
-export function pubPayout(gross: number, upstreamCommission: number, rate: string | null): number {
+export function pubPayout(gross: number, upstreamCommission: number, rate: string | null, share = PUB_SHARE): number {
   const pct = pctOf(rate);
-  if (pct != null) return gross > 0 ? round2((gross * pct) / 100) : pubCut(upstreamCommission);
+  if (pct != null) return gross > 0 ? round2((gross * pct) / 100) : pubCut(upstreamCommission, share);
   const flat = payoutUsdOf(rate, null);
   if (flat != null) return flat;
-  return pubCut(upstreamCommission);
+  return pubCut(upstreamCommission, share);
 }
 
 /** Offer ăn % thành tiền thật khi biết giá đơn hàng: payout = AOV × tỉ lệ. aov_usd đã là USD rồi. */

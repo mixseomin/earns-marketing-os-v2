@@ -2,7 +2,7 @@
 // Kiểm phép quy tỉ lệ hoa hồng → tiền thật. Đây là phép tính RA TIỀN và nó đã từng sai 60 lần,
 // nên mọi ca dưới đây là chuỗi THẬT lấy từ affiliate_programs.
 import assert from 'node:assert';
-import { payoutUsdOf, pctOf, payoutFromAov, amountsIn, currencyOf, derivePubRate, pubCut, pubPayout, PUB_SHARE } from '../apps/web/src/lib/offer-payout.ts';
+import { payoutUsdOf, pctOf, payoutFromAov, amountsIn, currencyOf, derivePubRate, pubCut, pubPayout, shareOf, PUB_SHARE, DEFAULT_CUT_PCT } from '../apps/web/src/lib/offer-payout.ts';
 
 // ── Sự cố 2026-08-15: bóc trụi ký tự phân cách làm hai số dính lại ──────────
 // "Fixed reward €5–12" từng ra $552.96 (bóc thành "512" rồi × 1.08). Đúng phải là trung điểm 8.5.
@@ -95,5 +95,27 @@ assert.equal(pubPayout(0, 20, '5%'), pubCut(20));
 assert.ok(pubPayout(1000, 19.75, '1%') !== pubCut(19.75));
 
 
+
+// ── Ba tầng cắt ─────────────────────────────────────────────────────────────
+// CỤ THỂ THẮNG CHUNG, và KHÔNG nhân chồng: cắt-chung 30 + cắt-offer 20 phải ra 0.8, không phải
+// 0.56 (nhân hai tầng thì không ai nhẩm nổi mình đang ăn bao nhiêu).
+assert.equal(shareOf(null, null, 30), 0.7);
+assert.equal(shareOf(null, 20, 30), 0.8);
+assert.equal(shareOf(10, 20, 30), 0.9);          // riêng của NGƯỜI thắng riêng của chiến dịch
+assert.equal(shareOf(10, null, 30), 0.9);
+// null ở một tầng = "theo tầng trên", KHÔNG phải cắt 0%. Nhầm chỗ này là cho không toàn bộ hoa hồng.
+assert.notEqual(shareOf(null, null, 30), 1);
+assert.equal(shareOf(0, null, 30), 1);           // cắt 0% CÓ CHỦ Ý thì vẫn phải nghe theo
+// Số rác không được lọt thành tỉ lệ âm hay >100%.
+assert.equal(shareOf(150, null, 30), 0);
+assert.equal(shareOf(-5, null, 30), 1);
+assert.equal(shareOf(null, null, NaN), 1 - DEFAULT_CUT_PCT / 100);
+// Tiền phải đi theo tỉ lệ đang áp, không theo hằng số.
+assert.equal(pubPayout(0, 100, null, shareOf(10, null, 30)), 90);
+assert.equal(pubPayout(0, 100, null, shareOf(null, null, 30)), 70);
+assert.equal(derivePubRate('2.5%', shareOf(10, null, 30)), '2.25%');
+
+
 console.log('offer-payout.ts OK — khoảng không còn dính số, đơn vị lạ vẫn để trống');
+
 

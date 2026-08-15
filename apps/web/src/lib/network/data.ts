@@ -3,18 +3,22 @@
 import { getDb } from '@mos2/db';
 import { listAffiliateOffers } from '@/lib/actions/offers';
 import { SUB_PARAM, networkFromUrl } from './link';
-import { derivePubRate } from '@/lib/offer-payout';
+import { derivePubRate, shareOf, DEFAULT_CUT_PCT } from '@/lib/offer-payout';
 import { sql } from 'drizzle-orm';
 
 export interface Offer {
   id: number; slug: string; name: string; network: string;
   advertiser: string | null; category: string | null; upstreamUrl: string;
   upstreamRate: string | null; publisherRate: string | null; terms: string | null;
+  /** Cắt riêng cho chiến dịch này (%, phần nhà giữ). null = theo cắt chung. */
+  cutPct: number | null;
   active: boolean; clicks: number;
 }
 
 export interface Publisher {
   id: number; slug: string; name: string; kind: string; status: string; note: string | null;
+  /** Cắt riêng cho NGƯỜI này (%, phần nhà giữ). null = theo cắt của chiến dịch, rồi tới cắt chung. */
+  cutPct: number | null;
   /** Danh tính RIÊNG của publisher — không phải user MOS2. Xem lib/network/auth.ts. */
   email: string | null;
   hasPassword: boolean;
@@ -45,7 +49,8 @@ export async function listOffers(): Promise<Offer[]> {
     advertiser: (x.advertiser as string) ?? null, category: (x.category as string) ?? null,
     upstreamUrl: String(x.upstream_url),
     upstreamRate: (x.upstream_rate as string) ?? null, publisherRate: (x.publisher_rate as string) ?? null,
-    terms: (x.terms as string) ?? null, active: !!x.active, clicks: Number(x.clicks) || 0,
+    terms: (x.terms as string) ?? null, cutPct: x.cut_pct == null ? null : Number(x.cut_pct),
+    active: !!x.active, clicks: Number(x.clicks) || 0,
   }));
 }
 
@@ -56,6 +61,7 @@ export async function listPublishers(): Promise<Publisher[]> {
   return (r as unknown as Array<Record<string, unknown>>).map((x) => ({
     id: Number(x.id), slug: String(x.slug), name: String(x.name),
     kind: String(x.kind), status: String(x.status), note: (x.note as string) ?? null,
+    cutPct: x.cut_pct == null ? null : Number(x.cut_pct),
     email: (x.email as string) ?? null, hasPassword: !!x.password_hash,
   }));
 }
@@ -106,18 +112,24 @@ export interface PubOffer {
 export async function offersForPublisher(publisherId: number): Promise<PubOffer[]> {
   const db = getDb();
   if (!db) return [];
+  const base = await baseCut();
   const r = await db.execute(sql`
     SELECT o.id, o.slug, o.name, o.advertiser, o.category, o.terms, o.upstream_rate, o.publisher_rate,
+           o.cut_pct AS offer_cut, p.cut_pct AS pub_cut,
            r.publisher_rate AS reg_rate, r.status AS reg_status, r.link_token
     FROM net_offers o
-    LEFT JOIN net_publisher_offers r ON r.offer_id = o.id AND r.publisher_id = ${publisherId}
-    WHERE o.active
+    CROSS JOIN net_publishers p
+    LEFT JOIN net_publisher_offers r ON r.offer_id = o.id AND r.publisher_id = p.id
+    WHERE o.active AND p.id = ${publisherId}
     ORDER BY r.status = 'approved' DESC NULLS LAST, o.name`);
   return (r as unknown as Array<Record<string, unknown>>).map((x) => ({
     id: Number(x.id), slug: String(x.slug), name: String(x.name),
     advertiser: (x.advertiser as string) ?? null, category: (x.category as string) ?? null,
     terms: (x.terms as string) ?? null,
-    payout: (x.reg_rate as string) ?? (x.publisher_rate as string) ?? derivePubRate((x.upstream_rate as string) ?? null),
+    // Mức suy ra phải dùng ĐÚNG tỉ lệ cắt đang áp cho cặp này, không phải hằng số — nếu không
+    // portal in mức của tỉ lệ chung còn tiền lại tính theo tỉ lệ riêng.
+    payout: (x.reg_rate as string) ?? (x.publisher_rate as string)
+      ?? derivePubRate((x.upstream_rate as string) ?? null, shareOf(num(x.pub_cut), num(x.offer_cut), base)),
     regStatus: (x.reg_status as string) ?? null,
     linkToken: (x.link_token as string) ?? null,
   }));
@@ -129,13 +141,33 @@ export interface PubCatalogOffer {
   id: string; name: string; advertiser: string; vertical: string | null; payout: string | null;
 }
 
-export async function catalogForPublisher(): Promise<PubCatalogOffer[]> {
-  return (await listCatalog())
-    .filter((c) => c.trackable)
-    .map((c) => ({
-      id: c.id, name: c.name, advertiser: c.advertiser, vertical: c.vertical,
-      payout: derivePubRate(c.rate),
-    }));
+export async function catalogForPublisher(publisherId: number): Promise<PubCatalogOffer[]> {
+  const [catalog, base, pubCutPct] = await Promise.all([listCatalog(), baseCut(), publisherCut(publisherId)]);
+  // Chiến dịch chưa dựng nên chưa có cut riêng của offer — mức xem trước tính theo cắt của CHÍNH
+  // publisher này (rồi tới cắt chung). Hiện mức của người khác là mời họ so bì nhầm.
+  const share = shareOf(pubCutPct, null, base);
+  return catalog.filter((c) => c.trackable).map((c) => ({
+    id: c.id, name: c.name, advertiser: c.advertiser, vertical: c.vertical,
+    payout: derivePubRate(c.rate, share),
+  }));
+}
+
+const num = (v: unknown): number | null => (v == null ? null : Number(v));
+
+/** Tỉ lệ cắt CHUNG toàn network (phần nhà giữ, %). Hỏng/chưa cài → mức mồi, không phải 0. */
+export async function baseCut(): Promise<number> {
+  const db = getDb();
+  if (!db) return DEFAULT_CUT_PCT;
+  const r = await db.execute(sql`SELECT value FROM net_settings WHERE key = 'cut_pct' LIMIT 1`);
+  const v = Number((r as unknown as Array<{ value: string }>)[0]?.value);
+  return isFinite(v) ? v : DEFAULT_CUT_PCT;
+}
+
+async function publisherCut(publisherId: number): Promise<number | null> {
+  const db = getDb();
+  if (!db) return null;
+  const r = await db.execute(sql`SELECT cut_pct FROM net_publishers WHERE id = ${publisherId} LIMIT 1`);
+  return num((r as unknown as Array<{ cut_pct: string | null }>)[0]?.cut_pct);
 }
 
 /** Một dòng trong DANH MỤC affiliate của MOS2 (Directus `affiliate_programs`) — nguồn để dựng

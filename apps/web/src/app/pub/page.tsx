@@ -13,7 +13,7 @@ export default async function PubRoute() {
   const pub = await currentPublisher();
   if (!pub) redirect('/pub/login');
   const [offers, catalog, report] = await Promise.all([
-    offersForPublisher(pub.id), catalogForPublisher(), networkReport(365),
+    offersForPublisher(pub.id), catalogForPublisher(pub.id), networkReport(365),
   ]);
   // pubView cắt báo cáo về đúng phần của họ VÀ quy tiền về mức họ hưởng. Truyền cả `report` xuống
   // là gửi kèm đơn của publisher khác + số upstream trả mình — không hiện vẫn đọc được trong payload.

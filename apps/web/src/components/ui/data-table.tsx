@@ -126,6 +126,9 @@ const baseCell: CSSProperties = { padding: '3px 5px', fontSize: 12, fontFamily: 
 // ("BÀI/NGÀY KIỂU BÀI × HIỆU QUẢ TƯƠNG TÁC/1K TV"). Nới padding ngang, và headStyle vẽ thêm vạch
 // ngăn mảnh giữa các cột.
 const baseHead: CSSProperties = { ...baseCell, padding: '3px 10px', color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 500 };
+// Cột ghim (sticky đầu) không được rộng quá 1/3 màn — trên mobile nó tràn rồi che sạch cột bên phải.
+// vw = theo bề rộng MÀN, không theo bảng (bảng có thể rộng gấp mấy lần màn) → đúng cái user cần.
+const STICKY_MAX = '33vw';
 
 // hex + alpha (8-digit) — matches the SEO table's per-group band shades (header ~0.22, body ~0.06).
 const band = (hex: string | undefined) => (hex ? `${hex}38` : undefined);
@@ -301,7 +304,7 @@ export function DataTable<T>({
   const stick = (i: number, head: boolean): CSSProperties =>
     (stickyFirst && i === 0
       ? { position: 'sticky', left: 0, zIndex: head ? 3 : 2, background: head ? 'var(--bg-2)' : 'var(--bg-1)',
-          boxShadow: '1px 0 0 var(--line)' }
+          boxShadow: '1px 0 0 var(--line)', maxWidth: STICKY_MAX, overflow: 'hidden', textOverflow: 'ellipsis' }
       : {});
   const cellStyle = (c: DataColumn<T>, extra?: CSSProperties, i = -1): CSSProperties => {
     const g = c.group ? groupMeta.get(c.group) : undefined;
@@ -316,7 +319,7 @@ export function DataTable<T>({
       backgroundImage: g?.color ? `linear-gradient(${band(g.color)}, ${band(g.color)})` : undefined,
       borderLeft: i ? '1px solid var(--line)' : undefined,
       position: 'sticky', top: 0, zIndex: stickyFirst && i === 0 ? 4 : 3,
-      ...(stickyFirst && i === 0 ? { left: 0, boxShadow: '1px 0 0 var(--line), 0 1px 0 var(--line)' } : { boxShadow: '0 1px 0 var(--line)' }) };
+      ...(stickyFirst && i === 0 ? { left: 0, maxWidth: STICKY_MAX, overflow: 'hidden', boxShadow: '1px 0 0 var(--line), 0 1px 0 var(--line)' } : { boxShadow: '0 1px 0 var(--line)' }) };
   };
 
   const pager = pageSize ? (
@@ -446,7 +449,7 @@ export function DataTable<T>({
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, maxWidth: '100%' }}>
                       <span className="dt-th-name" onClick={ts ? ts.onClick : undefined}
                             title={sortable ? `${c.title ? c.title + ' · ' : ''}bấm để sắp xếp (↑/↓/tắt) · Shift+bấm = thêm cột phụ` : undefined}
-                            style={{ cursor: sortable ? 'pointer' : 'default' }}>
+                            style={{ cursor: sortable ? 'pointer' : 'default', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
                         {c.header}
                       </span>
                       {dir && (

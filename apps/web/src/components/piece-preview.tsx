@@ -257,16 +257,7 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
             </div>
           )}
           {prepText && (
-            // Bài đã chọn + ý chính của nó + nguồn nó dẫn: đây là chỗ duyệt được "comment có bám bài
-            // không" mà không phải mở Facebook ra đọc. Ghi ngay lúc chọn xong nên browser sập cũng
-            // không mất; sửa lại thì `plan prep` gọi lần nữa, khối này thay chứ không chồng lên.
-            <div style={{ marginTop: 8, border: '1px solid var(--line)', borderRadius: 6, padding: compact ? '6px 8px' : '8px 10px', background: 'var(--bg-2)' }}>
-              <div style={{ fontSize: 10, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--fg-2)', marginBottom: 3 }}>bài đã chọn</div>
-              <div style={{ whiteSpace: 'pre-wrap', color: 'var(--fg-1)',
-                ...(compact ? { display: '-webkit-box', WebkitLineClamp: 8, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>
-                {withTags(prepText)}
-              </div>
-            </div>
+            <PrepPanel piece={piece} full={text ?? ''} prep={prepText} endAt={doneAt} compact={compact} editable={!piece.publishUrl} />
           )}
           {doneText && (
             // Đã làm xong: nguyên văn ĐÃ đăng + bài gốc đã comment dưới + các mốc đo về sau. Ba thứ
@@ -362,6 +353,129 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Khối "bài đã chọn" là thứ dùng để DUYỆT, nên phải đọc được bằng mắt chứ không phải một cục chữ:
+ *  trích bài đứng riêng, số liệu thành hàng nhỏ, nguồn là link bấm được (không phải URL dài tràn
+ *  dòng), ý chính thành gạch đầu dòng, và câu định viết nằm cuối — sửa được ngay tại đây khi chưa
+ *  đăng. Nội dung vẫn lưu trong body_md dạng chữ (CLI `plan` đọc/ghi cùng chỗ), chỗ này chỉ bóc ra. */
+function parsePrep(s: string) {
+  const grab = (re: RegExp) => (s.match(re)?.[1] ?? '').trim();
+  const points = grab(/Ý CHÍNH BÀI GỐC:\s*([\s\S]*?)(?:\nBÁM Ý:|\nDỰ ĐỊNH VIẾT:|$)/)
+    .split('\n').map((x) => x.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
+  return {
+    parentText: grab(/BÀI GỐC:\s*([\s\S]*?)(?:\n\(bài lúc|\nhttps?:|\nNGUỒN:|\nÝ CHÍNH|\nBÁM Ý:|\nDỰ ĐỊNH VIẾT:|$)/),
+    stats: grab(/\(bài lúc mình vào:\s*([^)]*)\)/),
+    parentUrl: grab(/\n(https?:\/\/\S+)/),
+    source: grab(/NGUỒN:\s*(\S+)/),
+    points,
+    angle: grab(/BÁM Ý:\s*([\s\S]*?)(?:\nDỰ ĐỊNH VIẾT:|$)/),
+    draft: grab(/DỰ ĐỊNH VIẾT:\s*([\s\S]*)$/),
+  };
+}
+
+const shortUrl = (u: string) => u.replace(/^https?:\/\/(www\.)?/, '').replace(/\?.*$/, '').slice(0, 60);
+
+function PrepPanel({ piece, full, prep, endAt, compact, editable }: {
+  piece: CalPiece; full: string; prep: string; endAt: number; compact: boolean; editable: boolean;
+}) {
+  const p = parsePrep(prep);
+  const [draft, setDraft] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const shown = draft ?? p.draft;
+
+  // Sửa câu định viết = thay đúng đoạn sau "DỰ ĐỊNH VIẾT:" trong body_md, giữ nguyên phần bài gốc,
+  // ý chính và phần đã-làm. Sửa xong runner đọc lại bằng `plan draft <id>` rồi điền lên browser.
+  const save = async (v: string) => {
+    setEditing(false);
+    if (v.trim() === shown.trim()) return;
+    const at = full.indexOf('DỰ ĐỊNH VIẾT:');
+    if (at < 0) return;
+    const from = at + 'DỰ ĐỊNH VIẾT:'.length;
+    const to = endAt >= 0 ? endAt : full.length;
+    const body = `${full.slice(0, from)}\n${v.trim()}\n${full.slice(to)}`;
+    setSaving(true); setDraft(v.trim()); bodyCache.set(piece.id, body);
+    await updateContentPiece(piece.id, piece.projectId, { bodyMd: body });
+    setSaving(false);
+  };
+
+  const label = (t: string) => (
+    <div style={{ fontSize: 9.5, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--fg-3)', marginBottom: 2 }}>{t}</div>
+  );
+
+  return (
+    <div style={{ marginTop: 8, border: '1px solid var(--line)', borderRadius: 6, background: 'var(--bg-2)', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+        padding: compact ? '4px 8px' : '5px 10px', borderBottom: '1px solid var(--line)' }}>
+        <span style={{ fontSize: 9.5, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--fg-2)' }}>bài đã chọn</span>
+        {p.parentUrl && (
+          <a href={p.parentUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+            style={{ fontSize: 10.5, color: 'var(--neon-blue)' }}>mở bài ↗</a>
+        )}
+      </div>
+      <div style={{ padding: compact ? '6px 8px 8px' : '8px 10px 10px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+        {p.parentText && (
+          <div style={{ borderLeft: '2px solid var(--fg-4)', paddingLeft: 8, color: 'var(--fg-1)',
+            ...(compact ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>
+            {p.parentText}
+          </div>
+        )}
+        {(p.stats || p.source) && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', fontSize: 10.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+            {p.stats && <span>{p.stats}</span>}
+            {p.source && (
+              <a href={p.source} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+                style={{ color: 'var(--fg-2)', textDecoration: 'underline' }} title={p.source}>
+                nguồn: {shortUrl(p.source)} ↗
+              </a>
+            )}
+          </div>
+        )}
+        {p.points.length > 0 && (
+          <div>
+            {label('ý chính bài gốc')}
+            <ul style={{ margin: 0, paddingLeft: 16, color: 'var(--fg-1)' }}>
+              {p.points.map((s, i) => <li key={i} style={{ marginBottom: 1 }}>{s}</li>)}
+            </ul>
+          </div>
+        )}
+        {p.angle && (
+          // Câu này là cái để bắt lỗi lạc đề, nên nó phải nổi hơn phần còn lại chứ không chìm cùng màu.
+          <div style={{ borderLeft: '3px solid var(--neon-amber)', paddingLeft: 8 }}>
+            {label('bám ý')}
+            <div style={{ color: 'var(--fg-1)' }}>{p.angle}</div>
+          </div>
+        )}
+        {(shown || editable) && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {label('mình sẽ viết')}
+              {editable && !editing && (
+                <button onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+                  style={{ marginBottom: 2, fontSize: 10, color: 'var(--neon-blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  sửa
+                </button>
+              )}
+              {saving && <span style={{ marginBottom: 2, fontSize: 10, color: 'var(--fg-3)' }}>đang lưu…</span>}
+            </div>
+            {editing ? (
+              <textarea autoFocus defaultValue={shown} onClick={(e) => e.stopPropagation()}
+                onBlur={(e) => save(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Escape') setEditing(false); }}
+                style={{ width: '100%', minHeight: 110, fontSize: compact ? 11.5 : 13, lineHeight: 1.5, padding: 7,
+                  background: 'var(--bg-1)', color: 'var(--fg-1)', border: '1px solid var(--neon-blue)', borderRadius: 5, resize: 'vertical' }} />
+            ) : (
+              <div style={{ whiteSpace: 'pre-wrap', color: 'var(--fg-1)', borderLeft: '2px solid var(--line)', paddingLeft: 8,
+                ...(compact ? { display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>
+                {shown || <span style={{ color: 'var(--fg-3)' }}>chưa soạn - bấm sửa để viết</span>}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

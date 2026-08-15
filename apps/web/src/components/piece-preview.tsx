@@ -93,6 +93,12 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
   // soạn sẵn câu comment là đúng. Chỉ comment vào bài NGƯỜI KHÁC mới phải chờ tới lúc đọc bài họ.
   const ownThread = !!tagVal(piece.tags, 'replyto');
   const onSite = isOnSiteFormat(kind) && !ownThread;
+  // Thân của thẻ tại-chỗ có hai nửa, ngăn bởi dòng "— ĐÃ COMMENT/TƯƠNG TÁC" do /plan/result ghi:
+  // trước là nội dung đã soạn (nếu có), sau là những gì THỰC SỰ đã đăng + bài gốc + các mốc đo.
+  // Trộn chung một khối thì mở thẻ ra không biết đâu là dự định, đâu là đã xảy ra.
+  const doneAt = onSite && text ? text.search(/—\s*ĐÃ (COMMENT|TƯƠNG TÁC)/) : -1;
+  const draftText = onSite ? ((doneAt >= 0 ? text!.slice(0, doneAt) : text) ?? '').trim() : '';
+  const doneText = doneAt >= 0 ? text!.slice(doneAt).replace(/^—\s*/, '').trim() : '';
   const bodyText = text?.trim() ?? '';
   const tweets = kind === 'thread' && bodyText ? bodyText.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean) : null;
   // Poll: khối dòng 'A. …' / '1) …' là phương án; chữ TRƯỚC khối là câu hỏi, chữ SAU khối vẫn nằm
@@ -237,13 +243,25 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
                  'Gửi, rồi lưu link + nguyên văn vào thẻ này.']
             ).map((s, i) => <li key={i} style={{ marginBottom: 1 }}>{s}</li>)}
           </ol>
-          {text && text.trim() && (
-            // Đã soạn tại chỗ → nguyên văn hiện rõ, đây mới là thứ sẽ đăng.
+          {draftText && (
+            // Đã soạn tại chỗ nhưng chưa đăng → nguyên văn hiện rõ, đây mới là thứ sẽ đăng.
             <div style={{ marginTop: 8 }}>
               <div style={{ fontSize: 10, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--fg-2)', marginBottom: 3 }}>nội dung</div>
               <div style={{ whiteSpace: 'pre-wrap', color: 'var(--fg-1)', borderLeft: '2px solid var(--line)', paddingLeft: 9,
                 ...(compact ? { display: '-webkit-box', WebkitLineClamp: 8, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>
-                {withTags(text)}
+                {withTags(draftText)}
+              </div>
+            </div>
+          )}
+          {doneText && (
+            // Đã làm xong: nguyên văn ĐÃ đăng + bài gốc đã comment dưới + các mốc đo về sau. Ba thứ
+            // này phải nằm cùng chỗ, vì câu hỏi "cách làm này ổn chưa" chỉ trả lời được khi nhìn
+            // được mình đã nói gì, dưới bài nào, và người ta phản hồi ra sao.
+            <div style={{ marginTop: 8, borderLeft: '2px solid var(--ok)', paddingLeft: 9 }}>
+              <div style={{ fontSize: 10, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--ok)', marginBottom: 3 }}>đã làm</div>
+              <div style={{ whiteSpace: 'pre-wrap', color: 'var(--fg-1)',
+                ...(compact ? { display: '-webkit-box', WebkitLineClamp: 10, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>
+                {withTags(doneText)}
               </div>
             </div>
           )}

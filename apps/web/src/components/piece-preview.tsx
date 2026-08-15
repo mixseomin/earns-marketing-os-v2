@@ -213,28 +213,46 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
           {pollTail && <div style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>{withTags(pollTail)}</div>}
         </div>
       ) : onSite ? (
-        <div style={{ padding: compact ? '9px 11px' : '12px 14px', fontSize: compact ? 11.5 : 13, lineHeight: 1.5 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, fontSize: compact ? 10 : 10.5,
-            letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--fg-3)' }}>
-            <span style={{ padding: '1px 6px', borderRadius: 4, border: '1px dashed var(--fg-4)' }}>kế hoạch</span>
-            <span style={{ textTransform: 'none', letterSpacing: 0 }}>
-              {kind === 'engage'
-                ? 'đến giờ vào nhóm, lọc bài ÍT tương tác nhất rồi thả cảm xúc'
-                : 'đến giờ vào nhóm, tìm bài hợp rồi mới viết theo nội dung lúc đó'}
-            </span>
+        <div style={{ padding: compact ? '9px 11px' : '12px 14px', fontSize: compact ? 11.5 : 13, lineHeight: 1.55 }}>
+          {/* Thẻ kế hoạch thì phải ĐỌC ĐƯỢC và ghi rõ các bước sẽ làm. Trước đây chỗ này chỉ có một
+              dòng xám mờ — nhìn vào không biết lượt đó gồm những gì. Các bước giống nhau ở mọi thẻ
+              cùng loại là ĐÚNG: cái khác nhau giữa các thẻ là nơi đăng + tài khoản + giờ, đã nằm
+              ở đầu thẻ. Nội dung comment KHÔNG nằm ở đây vì nó sinh lúc đứng trước bài thật. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+            <span style={{ fontSize: 10, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--fg-2)',
+              padding: '1px 6px', borderRadius: 4, border: '1px dashed var(--fg-3)' }}>kế hoạch</span>
+            <span style={{ color: 'var(--fg-2)' }}>{kind === 'engage' ? 'tương tác trong nhóm' : 'comment vào bài trong nhóm'}</span>
           </div>
-          <div style={{ whiteSpace: 'pre-wrap', color: 'var(--fg-2)', borderLeft: '2px dashed var(--line)', paddingLeft: 9,
-            ...(compact ? { display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>
-            {text === null ? '…' : (text.trim() ? withTags(text) : <em style={{ color: 'var(--fg-4)' }}>không có gì soạn trước — chọn bài và viết lúc vào nhóm</em>)}
-          </div>
-          {/* Kết quả là thứ ghi NGƯỢC lại sau khi làm — chưa có thì nói thẳng là chưa làm, đừng để
-              tấm thẻ trông như đã xong. */}
-          <div style={{ marginTop: 7, fontSize: compact ? 10 : 11 }}>
+          <ol style={{ margin: 0, paddingLeft: 18, color: 'var(--fg-1)' }}>
+            {(kind === 'engage'
+              ? ['Vào nhóm đúng giờ.',
+                 'Lọc bài đăng trong 24h và đang ÍT tương tác (≤30) — bài đã đông thì tên mình chìm.',
+                 'Thả cảm xúc từng bài, đọc thật.',
+                 'Lưu danh sách link đã tương tác vào thẻ này.']
+              : ['Vào nhóm đúng giờ.',
+                 'Đọc các bài đang có — xem lúc này mọi người đang bàn gì.',
+                 'Chọn bài mình đóng góp được thật; không có thì bỏ lượt.',
+                 'Viết comment bám đúng bài đó.',
+                 'Điền sẵn lên browser, chờ duyệt.',
+                 'Gửi, rồi lưu link + nguyên văn vào thẻ này.']
+            ).map((s, i) => <li key={i} style={{ marginBottom: 1 }}>{s}</li>)}
+          </ol>
+          {text && text.trim() && (
+            // Đã soạn tại chỗ → nguyên văn hiện rõ, đây mới là thứ sẽ đăng.
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 10, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--fg-2)', marginBottom: 3 }}>nội dung</div>
+              <div style={{ whiteSpace: 'pre-wrap', color: 'var(--fg-1)', borderLeft: '2px solid var(--line)', paddingLeft: 9,
+                ...(compact ? { display: '-webkit-box', WebkitLineClamp: 8, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>
+                {withTags(text)}
+              </div>
+            </div>
+          )}
+          <div style={{ marginTop: 8, fontSize: compact ? 10.5 : 11.5, color: 'var(--fg-2)' }}>
             {piece.publishUrl
               ? <a href={piece.publishUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: 'var(--neon-blue)' }}>
                   ✓ đã làm — mở {kind === 'engage' ? 'bài đã tương tác' : 'comment đã đăng'} ↗
                 </a>
-              : <span style={{ color: 'var(--fg-4)' }}>kết quả (link + nguyên văn) ghi vào đây sau khi làm xong</span>}
+              : <>kết quả (link + nguyên văn) ghi vào đây sau khi làm xong</>}
           </div>
         </div>
       ) : (

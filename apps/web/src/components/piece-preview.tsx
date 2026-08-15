@@ -93,12 +93,15 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
   // soạn sẵn câu comment là đúng. Chỉ comment vào bài NGƯỜI KHÁC mới phải chờ tới lúc đọc bài họ.
   const ownThread = !!tagVal(piece.tags, 'replyto');
   const onSite = isOnSiteFormat(kind) && !ownThread;
-  // Thân của thẻ tại-chỗ có hai nửa, ngăn bởi dòng "— ĐÃ COMMENT/TƯƠNG TÁC" do /plan/result ghi:
-  // trước là nội dung đã soạn (nếu có), sau là những gì THỰC SỰ đã đăng + bài gốc + các mốc đo.
-  // Trộn chung một khối thì mở thẻ ra không biết đâu là dự định, đâu là đã xảy ra.
+  // Thân của thẻ tại-chỗ có ba nửa, cắt theo hai mốc do API ghi: "CHUẨN BỊ (" (/plan/prepare) và
+  // "— ĐÃ COMMENT/TƯƠNG TÁC" (/plan/result). Kế hoạch → bài đã chọn → cái đã xảy ra. Trộn chung một
+  // khối thì mở thẻ ra không phân biệt được dự định với kết quả, mà đó đúng là thứ cần duyệt.
+  const prepAt = onSite && text ? text.indexOf('CHUẨN BỊ (') : -1;
   const doneAt = onSite && text ? text.search(/—\s*ĐÃ (COMMENT|TƯƠNG TÁC)/) : -1;
-  const draftText = onSite ? ((doneAt >= 0 ? text!.slice(0, doneAt) : text) ?? '').trim() : '';
-  const doneText = doneAt >= 0 ? text!.slice(doneAt).replace(/^—\s*/, '').trim() : '';
+  const cut = (from: number, to: number) => (text ?? '').slice(from, to < 0 ? undefined : to).trim();
+  const draftText = onSite ? cut(0, prepAt >= 0 ? prepAt : doneAt) : '';
+  const prepText = prepAt >= 0 ? cut(prepAt, doneAt).replace(/^CHUẨN BỊ \([^)]*\):\s*/, '') : '';
+  const doneText = doneAt >= 0 ? cut(doneAt, -1).replace(/^—\s*/, '') : '';
   const bodyText = text?.trim() ?? '';
   const tweets = kind === 'thread' && bodyText ? bodyText.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean) : null;
   // Poll: khối dòng 'A. …' / '1) …' là phương án; chữ TRƯỚC khối là câu hỏi, chữ SAU khối vẫn nằm
@@ -250,6 +253,18 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
               <div style={{ whiteSpace: 'pre-wrap', color: 'var(--fg-1)', borderLeft: '2px solid var(--line)', paddingLeft: 9,
                 ...(compact ? { display: '-webkit-box', WebkitLineClamp: 8, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>
                 {withTags(draftText)}
+              </div>
+            </div>
+          )}
+          {prepText && (
+            // Bài đã chọn + ý chính của nó + nguồn nó dẫn: đây là chỗ duyệt được "comment có bám bài
+            // không" mà không phải mở Facebook ra đọc. Ghi ngay lúc chọn xong nên browser sập cũng
+            // không mất; sửa lại thì `plan prep` gọi lần nữa, khối này thay chứ không chồng lên.
+            <div style={{ marginTop: 8, border: '1px solid var(--line)', borderRadius: 6, padding: compact ? '6px 8px' : '8px 10px', background: 'var(--bg-2)' }}>
+              <div style={{ fontSize: 10, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--fg-2)', marginBottom: 3 }}>bài đã chọn</div>
+              <div style={{ whiteSpace: 'pre-wrap', color: 'var(--fg-1)',
+                ...(compact ? { display: '-webkit-box', WebkitLineClamp: 8, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>
+                {withTags(prepText)}
               </div>
             </div>
           )}

@@ -7,7 +7,8 @@
 // (mig 0101). Reads stay backward-compatible via normScopeKind/scopeKindMatch.
 //
 // Files liên quan:
-//   - apps/web/src/app/api/ext/learn-selectors/route.ts (ext entry)
+//   - apps/web/src/app/api/ext/selectors/resolve/route.ts (ext đọc)
+//   - apps/web/src/app/api/ext/selectors/set|save-selector (ext ghi)
 //   - apps/web/src/components/habitat-selectors-section.tsx (UI)
 
 import { getDb, selectorOverrides, habitats } from '@mos2/db';
@@ -236,69 +237,6 @@ export async function setOverride(opts: {
   }
 }
 
-// setMap: upsert multiple fields cùng scope (bulk save từ UI edit JSON).
-// PROTECT: LLM source KHÔNG ghi đè spec đã có source='manual'.
-// User-trained selector luôn thắng — LLM chỉ fill field CHƯA có hoặc
-// field đã có source='llm' (trước đó tự gen). Để override manual,
-// caller phải truyền source='manual' (qua save-selector flow).
-export async function setMap(opts: {
-  scopeKind: ScopeKind;
-  scopeKey: string;
-  pageKind: string;
-  selectors: SelectorMap;
-  source?: 'llm' | 'manual' | 'promoted';
-}): Promise<{ ok: boolean; saved: number; skipped: number; error?: string }> {
-  const db = getDb();
-  if (!db) return { ok: false, saved: 0, skipped: 0, error: 'DB unavailable' };
-  const scopeKind = normScopeKind(opts.scopeKind);
-  const source = opts.source ?? 'llm';
-  let saved = 0;
-  let skipped = 0;
-  // Within-batch css dedup: first field to claim a css wins; later fields with
-  // the same css fold onto it (prevents the LLM emitting two names for one node).
-  const cssClaimed = new Map<string, string>();
-  try {
-    for (const [rawField, spec] of Object.entries(opts.selectors)) {
-      if (!spec?.css) continue;
-      let field = canonField(rawField, opts.pageKind);
-      if (!field) { skipped++; continue; }
-      // In-batch claim, then DB-wide CSS-identity guard (adopt existing name).
-      const claimed = cssClaimed.get(spec.css);
-      if (claimed && claimed !== field) field = claimed;
-      else {
-        const adopted = await adoptExistingField(db, scopeKind, opts.scopeKey, opts.pageKind, field, spec.css);
-        if (adopted) field = adopted;
-        cssClaimed.set(spec.css, field);
-      }
-      // Skip nếu LLM cố ghi đè spec đã có source='manual'.
-      // ON CONFLICT WHERE clause: chỉ update khi current source != 'manual'
-      // OR new source IS 'manual' (manual luôn được set).
-      const res = await db.execute(sql`
-        INSERT INTO selector_overrides
-          (tenant_id, scope_kind, scope_key, page_kind, field_name, spec, source, updated_at)
-        VALUES (${TENANT}, ${scopeKind}, ${opts.scopeKey}, ${opts.pageKind},
-                ${field}, ${JSON.stringify(spec)}::jsonb,
-                ${source}, NOW())
-        ON CONFLICT (tenant_id, scope_kind, scope_key, page_kind, field_name)
-        DO UPDATE SET spec = EXCLUDED.spec, source = EXCLUDED.source, updated_at = NOW()
-        WHERE selector_overrides.source != 'manual' OR EXCLUDED.source = 'manual'
-        RETURNING field_name
-      `);
-      // RETURNING field_name → 0 rows nghĩa là ON CONFLICT WHERE chặn (đã có manual) = skipped.
-      // Driver này (db.execute) trả MẢNG rows TRỰC TIẾP (res.length), KHÔNG phải {rowCount}/{rows}.
-      // Bug cũ check res.rowCount/res.rows.length (đều undefined) → saved LUÔN = 0. Fix: ưu tiên Array length.
-      const updated = Array.isArray(res)
-        ? res.length
-        : ((res as { rowCount?: number; rows?: unknown[] }).rowCount ?? (res as { rows?: unknown[] }).rows?.length ?? 0);
-      if (updated > 0) saved++; else skipped++;
-    }
-    revalidatePath('/platforms');
-    return { ok: true, saved, skipped };
-  } catch (e) {
-    return { ok: false, saved, skipped, error: (e as Error).message };
-  }
-}
-
 // clearOverride: delete 1 row (UI revert tới inherited scope).
 export async function clearOverride(opts: {
   scopeKind: ScopeKind;
@@ -513,69 +451,4 @@ export async function mergeSelectorField(opts: {
   } catch (e) {
     return { ok: false, removed: 0, error: (e as Error).message };
   }
-}
-
-// listFieldSamples — đọc giá trị thực tế đã scrape từ habitats khác cho
-// từng field, dùng làm hover preview trong HabitatSelectorsSection để
-// admin biết selector này đang trả data gì ở các habitat thật.
-// Trả 4 unique non-empty values gần nhất per field + tên habitat nguồn.
-const FIELD_TO_HABITAT_COL: Record<string, string> = {
-  title: 'title',
-  members: 'members',
-  weekly_visitors: 'weekly_visitors',
-  weekly_contributions: 'weekly_contributions',
-  privacy: 'privacy',
-  created_at: 'created_at_source',
-  description: 'description',
-  icon_url: 'icon_url',
-  language: 'language',
-  status: 'status',
-  community_type: 'community_type',
-  url: 'url',
-  name: 'name',
-};
-
-export async function listFieldSamples(opts: {
-  pageKind: string;
-  platformKey?: string | null;
-  fields: string[];
-}): Promise<Record<string, Array<{ value: string; habitat: string }>>> {
-  const db = getDb();
-  if (!db) return {};
-  const out: Record<string, Array<{ value: string; habitat: string }>> = {};
-  for (const f of opts.fields) {
-    const col = FIELD_TO_HABITAT_COL[f];
-    if (!col) { out[f] = []; continue; }
-    try {
-      const platformFilter = opts.platformKey
-        ? sql`AND platform_key = ${opts.platformKey}`
-        : sql``;
-      const rs = await db.execute(sql`
-        SELECT ${sql.raw(col)}::text AS value, name AS habitat
-        FROM habitats
-        WHERE tenant_id = ${TENANT}
-          AND ${sql.raw(col)} IS NOT NULL
-          AND ${sql.raw(col)}::text <> ''
-          AND ${sql.raw(col)}::text <> '0'
-          ${platformFilter}
-        ORDER BY last_sync_at DESC NULLS LAST
-        LIMIT 12
-      `);
-      const rows = rs as unknown as Array<{ value: string; habitat: string }>;
-      const seen = new Set<string>();
-      const uniq: Array<{ value: string; habitat: string }> = [];
-      for (const r of rows) {
-        const v = (r.value ?? '').toString().trim();
-        if (!v || seen.has(v)) continue;
-        seen.add(v);
-        uniq.push({ value: v, habitat: r.habitat });
-        if (uniq.length >= 4) break;
-      }
-      out[f] = uniq;
-    } catch (e) {
-      console.warn('[listFieldSamples]', f, (e as Error).message);
-      out[f] = [];
-    }
-  }
-  return out;
 }

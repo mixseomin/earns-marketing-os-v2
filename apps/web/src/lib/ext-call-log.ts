@@ -5,7 +5,7 @@ import 'server-only';
 import { getDb, extCallLog } from '@mos2/db';
 
 export interface LogEntry {
-  endpoint: string;        // 'learn-selectors' | 'habitats' | ...
+  endpoint: string;        // 'habitats' | 'briefs' | 'selectors' | ...
   method: 'GET' | 'POST';
   extVersion?: string | null;
   pageUrl?: string | null;

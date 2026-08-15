@@ -10,8 +10,7 @@ import { sql } from 'drizzle-orm';
 // ponytail: per-user dùng DENY-list các route gây hại thật (reveal/delete/train/persona/admin);
 //           siết thành ALLOW-list khi flow ext bản nhân sự chốt + test được.
 const STAFF_DENY = [
-  '/admin/', 'train-selector', 'learn-selectors', 'save-selector', 'clear-selector',
-  'suggest-selector', 'adapter/', 'selectors/set', 'selectors/verify',
+  '/admin/', 'save-selector', 'clear-selector', 'selectors/set', 'selectors/verify',
   'crew-capabilities', 'vision/', 'brief/update', 'project-brand', 'profile-fields/rename', 'media/generate',
 ];
 

@@ -5,7 +5,7 @@ import { setOverride } from '@/lib/actions/habitat-selectors';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/ext/selectors/set — lưu THỦ CÔNG 1 selector từ picker on-page (khác learn-selectors = LLM).
+// POST /api/ext/selectors/set — lưu THỦ CÔNG 1 selector từ picker on-page (ext tự sinh CSS, không LLM).
 // Đi qua setOverride = WRITE-PATH DUY NHẤT (giống save-selector): canonField giữ dotted field
 // (post.author/viewer.handle… qua PRESERVE_DOTTED) + fold FIELD_ALIASES theo page_kind (signup
 // bio→about, website→profile_website) + CSS-identity adopt guard. Trước đây route này hand-roll

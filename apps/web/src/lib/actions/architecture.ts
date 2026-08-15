@@ -1260,8 +1260,7 @@ export interface ExtCall {
 }
 const EP_OBJ: Record<string, string> = {
   habitats: 'habitat', briefs: 'brief', brief: 'brief', insights: 'card',
-  'learn-selectors': 'selector', 'save-selector': 'selector', 'train-selector': 'selector',
-  'clear-selector': 'selector', 'suggest-selector': 'selector', selectors: 'selector',
+  'save-selector': 'selector', 'clear-selector': 'selector', selectors: 'selector',
   accounts: 'account', scene: 'interaction',
 };
 export interface ExtActivity {

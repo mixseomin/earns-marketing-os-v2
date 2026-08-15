@@ -6,7 +6,7 @@
 //   - selector_overrides.scope_kind='platform', scope_key=platformKey
 //   - page_kind='platform-any' (selector dùng cho bất kỳ page nào của platform)
 //
-// Reuse selector_overrides + learn-selectors / save-selector / train-selector
+// Reuse selector_overrides + selectors/resolve / save-selector
 // pipeline. Field name prefix "viewer." để phân biệt với habitat/brief fields.
 
 export interface ViewerFieldSchemaEntry {

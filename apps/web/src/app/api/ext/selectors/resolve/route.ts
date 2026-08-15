@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../../_auth';
-import { resolveSelectors } from '@/lib/actions/habitat-selectors';
+import { resolveSelectors, resolveSelectorsForHabitat } from '@/lib/actions/habitat-selectors';
 import { canonPlatformKey } from '@/lib/habitat-platform-map';
 import { errorResponse } from '@/lib/ext-route';
 
@@ -10,6 +10,11 @@ export const revalidate = 0;
 // GET /api/ext/selectors/resolve?pageKind=composer&habitatId=&platformKey=&technologyKey=
 // Trả selector resolved theo cascade habitat > platform > engine (resolveSelectors).
 // Ext widget kéo về để build adapter.sel.* động (fallback hardcode khi field thiếu).
+//
+// ĐƯỜNG ĐỌC DUY NHẤT (2026-08-15). Trước có 2 route đọc cùng resolveSelectors:
+// /learn-selectors (GET) và route này — ext gọi lẫn lộn, shape trả về lại khác nhau
+// (phẳng vs {spec,source}). learn-selectors đã xoá cùng nhánh POST (LLM đoán selector);
+// mọi call-site ext giờ đi qua MOS2.api.selectors().
 export async function GET(req: Request) {
   const err = await checkAuth(req); if (err) return err;
   const p = new URL(req.url).searchParams;
@@ -23,7 +28,11 @@ export async function GET(req: Request) {
   const platformKey = rawPlatformKey ? canonPlatformKey(rawPlatformKey) : null;
   const technologyKey = p.get('technologyKey') || null;
   try {
-    const map = await resolveSelectors({ habitatId, platformKey, technologyKey, pageKind });
+    // Chỉ có habitatId → tra platform/technology CỦA habitat rồi mới cascade; truyền thẳng
+    // habitatId vào resolveSelectors sẽ mất 2 tầng dưới (kế thừa từ learn-selectors cũ).
+    const map = (habitatId && !platformKey && !technologyKey)
+      ? (await resolveSelectorsForHabitat(habitatId, pageKind)).resolved
+      : await resolveSelectors({ habitatId, platformKey, technologyKey, pageKind });
     return NextResponse.json({ ok: true, pageKind, selectors: map });
   } catch (e) {
     return errorResponse((e as Error).message, 200);

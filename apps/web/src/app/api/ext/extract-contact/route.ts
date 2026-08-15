@@ -8,7 +8,7 @@ export const maxDuration = 20;
 
 // LLM contact-resolver: trích MỌI cách liên hệ từ bio/about, GIẢI mọi kiểu obfuscation SÁNG TẠO mà regex thua
 // (vd "hn @ <username> . com" + handle=tekacs → hn@tekacs.com; "on GitHub/Twitter as tekacs" → handle). Reuse
-// OpenAI infra (như learn-selectors). Ext gọi khi heuristic (_collectChannels) ra thiếu → "cover lần tới không
+// OpenAI infra. Ext gọi khi heuristic (_collectChannels) ra thiếu → "cover lần tới không
 // cần Claude thêm regex". Trả channels[] kiểu Orit (type/value/url) → ext merge vào scene_identities.scraped_meta.
 export async function POST(req: Request) {
   const err = await checkAuth(req);

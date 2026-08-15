@@ -11,8 +11,8 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { getCurrentUser } from '@/lib/auth';
 import { checkOffer, checkPublisher, newLinkToken, slugify, PUB_ORIGIN } from '@/lib/network/link';
-import { listCatalog } from '@/lib/network/data';
-import { derivePubRate } from '@/lib/offer-payout';
+import { listCatalog, baseCut } from '@/lib/network/data';
+import { derivePubRate, shareOf } from '@/lib/offer-payout';
 import { issueSetupToken, adminSetPassword, currentPublisher } from '@/lib/network/auth';
 
 /** Ô trống = "theo tầng trên", KHÔNG phải cắt 0%. Số ngoài 0-100 thì bỏ, đừng ghi rác vào DB rồi
@@ -262,6 +262,14 @@ export async function requestCatalogOffer(catalogId: string): Promise<Res> {
 
   const c = (await listCatalog()).find((x) => x.id === catalogId);
   if (!c) return { ok: false, error: 'Không tìm thấy offer này trong danh mục' };
+  // Mức niêm yết tính theo cắt của CHÍNH publisher đang xin (rồi tới cắt chung) — chiến dịch chưa
+  // tồn tại nên chưa có cắt riêng của nó. Dùng hằng số ở đây là bỏ qua thoả thuận riêng với họ.
+  const [base, pubRow] = await Promise.all([
+    baseCut(),
+    db.execute(sql`SELECT cut_pct FROM net_publishers WHERE id=${pub.id} LIMIT 1`),
+  ]);
+  const pubCutPct = (pubRow as unknown as Array<{ cut_pct: string | null }>)[0]?.cut_pct;
+  const share = shareOf(pubCutPct == null ? null : Number(pubCutPct), null, base);
 
   // Cùng link upstream = cùng chiến dịch. Tra theo URL trước, nếu không thì hai publisher xin cùng
   // một offer sẽ đẻ ra hai chiến dịch trùng nhau, báo cáo tách đôi mà không ai hiểu vì sao.
@@ -276,7 +284,7 @@ export async function requestCatalogOffer(catalogId: string): Promise<Res> {
       const ins = await db.execute(sql`
         INSERT INTO net_offers (slug, name, network, advertiser, category, upstream_url, upstream_rate, publisher_rate, active)
         VALUES (${slug}, ${c.name}, ${c.network}, ${c.advertiser}, ${c.vertical}, ${c.url}, ${c.rate},
-                ${derivePubRate(c.rate)}, true)
+                ${derivePubRate(c.rate, share)}, true)
         ON CONFLICT (slug) DO NOTHING RETURNING id`);
       offerId = Number((ins as unknown as Array<{ id: number }>)[0]?.id ?? 0);
       if (offerId) break;

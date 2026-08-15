@@ -64,35 +64,35 @@ assert.equal(payoutFromAov('$30', 200), null);
 // ── Mức phát cho publisher ───────────────────────────────────────────────────
 // Publisher KHÔNG được thấy mức nhà. Chuỗi mức nhà còn kèm ghi chú nội bộ, nên phải TÍNH LẠI chứ
 // không cắt chữ: "2.5% (CJ link 15534820)" mà lọt xuống portal là lộ cả biên lẫn mã link.
-assert.equal(derivePubRate('2.5% (CJ link 15534820)'), `${2.5 * PUB_SHARE}%`);
-assert.equal(derivePubRate('$30'), `$${30 * PUB_SHARE}`);
-assert.equal(derivePubRate('€5-12'), '€3.5-8.4');
-assert.equal(derivePubRate('15-20%'), `${17.5 * PUB_SHARE}%`);   // khoảng → trung điểm, cùng luật pctOf
-assert.equal(derivePubRate(null), null);
-assert.equal(derivePubRate('theo thoả thuận'), null);            // không đọc được → ô trống
+assert.equal(derivePubRate('2.5% (CJ link 15534820)', PUB_SHARE), `${2.5 * PUB_SHARE}%`);
+assert.equal(derivePubRate('$30', PUB_SHARE), `$${30 * PUB_SHARE}`);
+assert.equal(derivePubRate('€5-12', PUB_SHARE), '€3.5-8.4');
+assert.equal(derivePubRate('15-20%', PUB_SHARE), `${17.5 * PUB_SHARE}%`);   // khoảng → trung điểm, cùng luật pctOf
+assert.equal(derivePubRate(null, PUB_SHARE), null);
+assert.equal(derivePubRate('theo thoả thuận', PUB_SHARE), null);            // không đọc được → ô trống
 // Không bao giờ rơi về chuỗi gốc: đó đúng là lỗi cũ (portal fallback ?? upstreamRate).
 for (const r of ['2.5% (CJ link 15534820)', '$30', 'theo thoả thuận'])
-  assert.notEqual(derivePubRate(r), r, `derivePubRate không được trả nguyên mức nhà: ${r}`);
+  assert.notEqual(derivePubRate(r, PUB_SHARE), r, `derivePubRate không được trả nguyên mức nhà: ${r}`);
 // Mức phát ra luôn NHỎ HƠN mức nhà — sai dấu ở đây là mình trả nhiều hơn số nhận được.
-assert.ok(pubCut(19.75) < 19.75 && pubCut(19.75) > 0);
-assert.equal(pubCut(19.75), 13.83);
-assert.equal(pubCut(0), 0);
+assert.ok(pubCut(19.75, PUB_SHARE) < 19.75 && pubCut(19.75, PUB_SHARE) > 0);
+assert.equal(pubCut(19.75, PUB_SHARE), 13.83);
+assert.equal(pubCut(0, PUB_SHARE), 0);
 
 
 
 // ── Tiền của publisher trên MỘT đơn ─────────────────────────────────────────
 // Mức % tính trên GIÁ TRỊ ĐƠN, không phải trên khoản nhà nhận. Đơn $790 gross, nhà ăn 2.5% ($19.75),
 // publisher niêm yết 1.75% → $13.83 — trùng đúng 70% khoản nhà nhận, hai đường không được lệch nhau.
-assert.equal(pubPayout(790, 19.75, '1.75%'), 13.83);
-assert.equal(pubPayout(790, 19.75, null), pubCut(19.75));      // "thoả thuận" → tạm chia mặc định
-assert.equal(pubPayout(0, 19.75, null), pubCut(19.75));
+assert.equal(pubPayout(790, 19.75, '1.75%', PUB_SHARE), 13.83);
+assert.equal(pubPayout(790, 19.75, null, PUB_SHARE), pubCut(19.75, PUB_SHARE));      // "thoả thuận" → tạm chia mặc định
+assert.equal(pubPayout(0, 19.75, null, PUB_SHARE), pubCut(19.75, PUB_SHARE));
 // Mức phẳng = đúng số đó mỗi đơn, KHÔNG nhân thêm share (mức đã là mức phát cho họ rồi).
-assert.equal(pubPayout(500, 30, '$21'), 21);
-assert.equal(pubPayout(500, 30, '€10'), 10.8);
+assert.equal(pubPayout(500, 30, '$21', PUB_SHARE), 21);
+assert.equal(pubPayout(500, 30, '€10', PUB_SHARE), 10.8);
 // % mà không biết giá trị đơn thì không suy ra được → rơi về mức chia, đừng nhân với 0.
-assert.equal(pubPayout(0, 20, '5%'), pubCut(20));
+assert.equal(pubPayout(0, 20, '5%', PUB_SHARE), pubCut(20, PUB_SHARE));
 // Không bao giờ âm, và mức riêng phải THẮNG mức mặc định.
-assert.ok(pubPayout(1000, 19.75, '1%') !== pubCut(19.75));
+assert.ok(pubPayout(1000, 19.75, '1%', PUB_SHARE) !== pubCut(19.75, PUB_SHARE));
 
 
 

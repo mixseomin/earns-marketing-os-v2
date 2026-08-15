@@ -92,8 +92,8 @@ export function pctOf(rate: string | null): number | null {
  *  net_settings 'cut_pct' và hai cột cut_pct của offer/publisher, đọc qua `shareOf`. */
 export const DEFAULT_CUT_PCT = 30;
 
-/** Phần publisher hưởng, dạng hệ số. Giữ lại vì nhiều chỗ tính tiền cần một giá trị mặc định khi
- *  chưa nạp được cài đặt (DB chưa sẵn sàng) — đừng dùng nó thay cho cài đặt thật. */
+/** Phần publisher hưởng khi KHÔNG đọc được cài đặt (DB chưa sẵn sàng). Chỉ dùng làm đáy cuối
+ *  trong `shareOf` — không hàm tính tiền nào được lấy nó làm mặc định ngầm (xem chú thích dưới). */
 export const PUB_SHARE = 1 - DEFAULT_CUT_PCT / 100;
 
 /**
@@ -111,8 +111,14 @@ export function shareOf(publisherCut: number | null, offerCut: number | null, ba
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-/** Tiền mình thật sự trả publisher trên một khoản upstream, theo phần họ hưởng. */
-export function pubCut(upstreamAmount: number, share = PUB_SHARE): number {
+/**
+ * Tiền mình thật sự trả publisher trên một khoản upstream, theo phần họ hưởng.
+ *
+ * `share` BẮT BUỘC truyền, không có mặc định. Có mặc định thì chỗ nào quên truyền sẽ im lặng dùng
+ * 70% — đúng cái vừa xảy ra ở hai chỗ: dựng chiến dịch từ danh mục và form chiến dịch đều tính mức
+ * theo 70% cứng, bỏ qua cắt riêng đã đặt. Ép truyền thì trình biên dịch chỉ ra hết chỗ hỏng.
+ */
+export function pubCut(upstreamAmount: number, share: number): number {
   return round2(upstreamAmount * share);
 }
 
@@ -123,7 +129,7 @@ export function pubCut(upstreamAmount: number, share = PUB_SHARE): number {
  * link CJ lẫn mức nhà. Không đọc được dạng nào thì trả null — ô trống rồi admin đặt tay, TUYỆT ĐỐI
  * không rơi về chuỗi gốc (đó đúng là lỗi vừa xảy ra: portal fallback về upstream_rate).
  */
-export function derivePubRate(upstreamRate: string | null, share = PUB_SHARE): string | null {
+export function derivePubRate(upstreamRate: string | null, share: number): string | null {
   if (!upstreamRate) return null;
   const pct = pctOf(upstreamRate);
   if (pct != null) return `${round2(pct * share)}%`;
@@ -146,7 +152,7 @@ export function derivePubRate(upstreamRate: string | null, share = PUB_SHARE): s
  * Trước đây mọi đơn đều chia cứng PUB_SHARE, kể cả khi admin đã đặt mức riêng — portal in một tỉ lệ
  * còn tiền tính theo một tỉ lệ khác. Số hiện ra phải sinh từ ĐÚNG cái mức đang niêm yết cho họ.
  */
-export function pubPayout(gross: number, upstreamCommission: number, rate: string | null, share = PUB_SHARE): number {
+export function pubPayout(gross: number, upstreamCommission: number, rate: string | null, share: number): number {
   const pct = pctOf(rate);
   if (pct != null) return gross > 0 ? round2((gross * pct) / 100) : pubCut(upstreamCommission, share);
   const flat = payoutUsdOf(rate, null);

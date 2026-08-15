@@ -190,24 +190,30 @@ interface AwinTxn {
   clickRefs?: { clickRef?: string };
 }
 
-export interface AwinExtra { id: string; status: string; sub?: string }
+export interface AwinExtra { id: string; status: string; sub?: string; currency: string }
 
-/** Đơn Awin dạng ĐẦY ĐỦ (kèm clickRef + trạng thái) — nền tảng network nối đơn về publisher bằng
- *  cái này. Cùng đường lấy với lịch doanh thu, để hai màn không nói hai con số. */
+/**
+ * MỘT đường đọc payload Awin. Giữ NGUYÊN mọi dòng (kể cả declined, kể cả ngoại tệ) và mang theo
+ * `status` + `currency`; ai cần lọc thì lọc ở đầu ra của mình.
+ *
+ * Trước đây có hai hàm parse cùng một payload: `parseAwin` cho lịch doanh thu (bỏ declined, bỏ
+ * ngoại tệ) và bản đầy đủ cho nền tảng network. Hai chỗ đọc cùng dữ liệu là hai chỗ để lệch — và
+ * lệch thật: bản đầy đủ quên lọc tiền tệ nên một đơn EUR vào báo cáo publisher với số EUR ghi
+ * thành USD, đúng lớp lỗi "CZK 100 = $100" mà bản kia đã chặn từ lâu.
+ */
 export function parseAwinFull(txns: AwinTxn[]): Array<RevenueDayRow & AwinExtra> {
   const out: Array<RevenueDayRow & AwinExtra> = [];
   for (const t of txns) {
     const date = String(t.transactionDate ?? '').slice(0, 10);
     const amount = Number(t.commissionAmount?.amount);
     if (!date || !Number.isFinite(amount)) continue;
-    // KHÔNG bỏ dòng declined như parseAwin: ở đây đơn bị huỷ vẫn phải hiện, vì publisher cần thấy
-    // đơn của mình bị huỷ chứ không phải thấy nó biến mất không lời nào.
     out.push({
       id: String(t.id ?? `${date}-${t.advertiserName ?? ''}-${amount}`), date, source: 'affiliate', group: 'awin',
       channel: t.advertiserName || 'unknown',
       amount, gross: Number(t.saleAmount?.amount) || amount,
       status: (t.commissionStatus ?? t.transactionStatus ?? '').toLowerCase(),
       sub: t.clickRefs?.clickRef || undefined,
+      currency: (t.commissionAmount?.currency ?? 'USD').toUpperCase(),
     });
   }
   return out;
@@ -217,6 +223,7 @@ export async function awinConversions(since: string): Promise<{ rows: Array<Reve
   if (!AWIN_TOKEN || !AWIN_PUB) return { rows: [], error: 'awin: chưa có AWIN_TOKEN/AWIN_PUBLISHER_ID' };
   const wins = windows(since, ymd(Date.now() + 86400_000));
   const errs: string[] = [];
+  const skipped = new Set<string>();
   const seen = new Map<string, RevenueDayRow & AwinExtra>();
   await Promise.all(wins.map(async ([start, end]) => {
     const url = `https://api.awin.com/publishers/${encodeURIComponent(AWIN_PUB)}/transactions/`
@@ -226,32 +233,35 @@ export async function awinConversions(since: string): Promise<{ rows: Array<Reve
       if (!res.ok) { errs.push(`HTTP ${res.status} (${start})`); return; }
       const j = await res.json();
       if (!Array.isArray(j)) { errs.push(`trả về không phải mảng (${start})`); return; }
-      for (const r of parseAwinFull(j as AwinTxn[])) seen.set(r.id, r);
+      for (const r of parseAwinFull(j as AwinTxn[])) {
+        // Ngoại tệ KHÔNG được lọt vào tiền của publisher: số EUR mà tính như USD là trả sai ngay
+        // từ đầu, và sai kiểu không ai nhìn ra vì con số trông vẫn hợp lý.
+        if (r.currency !== 'USD') { skipped.add(r.currency); continue; }
+        seen.set(r.id, r);
+      }
     } catch (e) { errs.push(`${(e as Error).message} (${start})`); }
   }));
+  if (skipped.size) errs.push(`bỏ qua giao dịch ${[...skipped].join('/')} — chưa có quy đổi sang USD`);
   return { rows: [...seen.values()], error: errs.length ? `awin: ${errs.join('; ')}` : undefined };
 }
 
-/** JSON Awin → dòng doanh thu + danh sách tiền tệ phải bỏ qua (không tự bịa tỉ giá). */
+/**
+ * Dòng cho LỊCH doanh thu: bỏ đơn đã huỷ và bỏ ngoại tệ.
+ *
+ * declined = Awin đã huỷ, tiền không bao giờ về. pending vẫn tính (nó là tiền đang chờ duyệt).
+ * Ngoại tệ thì BỎ và nói ra, không nhân bừa một tỉ giá — đúng lỗi "CZK 100 = $100" đã mắc một lần
+ * ở cột AOV. Lọc trên cùng một `parseAwinFull`, không đọc lại payload lần hai.
+ */
 export function parseAwin(txns: AwinTxn[]): { rows: Array<RevenueDayRow & { id: string }>; skipped: Set<string> } {
   const rows: Array<RevenueDayRow & { id: string }> = [];
   const skipped = new Set<string>();
-  for (const t of txns) {
-    // declined = Awin đã huỷ, tiền không bao giờ về. pending vẫn tính (nó là tiền đang chờ duyệt,
-    // hiện đúng bản chất của lịch) — trạng thái đi kèm trong tooltip qua channel.
-    if ((t.transactionStatus ?? '').toLowerCase() === 'declined') continue;
-    const date = String(t.transactionDate ?? '').slice(0, 10);
-    const amount = Number(t.commissionAmount?.amount);
-    if (!date || !Number.isFinite(amount) || amount === 0) continue;
-    // ponytail: chỉ nhận USD. Tiền khác thì BỎ và nói ra, không nhân bừa một tỉ giá — đúng lỗi
-    // "CZK 100 = $100" đã mắc một lần ở cột AOV. Có giao dịch ngoại tệ thật thì mới thêm quy đổi.
-    const cur = (t.commissionAmount?.currency ?? 'USD').toUpperCase();
-    if (cur !== 'USD') { skipped.add(cur); continue; }
-    rows.push({
-      id: String(t.id ?? `${date}-${t.advertiserName ?? ''}-${amount}`), date, source: 'affiliate', group: 'awin',
-      channel: t.advertiserName || 'unknown',
-      amount, gross: Number(t.saleAmount?.amount) || amount,
-    });
+  for (const r of parseAwinFull(txns)) {
+    if (r.status === 'declined' || r.amount === 0) continue;
+    if (r.currency !== 'USD') { skipped.add(r.currency); continue; }
+    // Bóc về ĐÚNG shape của lịch. Trả nguyên dòng đầy đủ thì `status`/`sub`/`currency` trôi sang
+    // một hợp đồng không cần chúng — rẻ bây giờ, nhưng là thứ chỗ khác bắt đầu dựa vào.
+    const { status: _s, sub: _u, currency: _c, ...row } = r;
+    rows.push(row);
   }
   return { rows, skipped };
 }

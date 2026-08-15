@@ -12,7 +12,7 @@ import { RevenueCalendar } from './revenue-calendar';
 import { RevenueRange } from './revenue-range';
 import { SETTLE_LABEL, SETTLE_COLOR } from '@/lib/network/status';
 import { SUB_PARAM } from '@/lib/network/link';
-import { derivePubRate, PUB_SHARE } from '@/lib/offer-payout';
+import { derivePubRate, shareOf } from '@/lib/offer-payout';
 import { readShallowParam, writeShallowParam } from '@/lib/url-shallow';
 import { RevenueRefresh } from './revenue-refresh';
 import {
@@ -134,6 +134,7 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
 
       {tab === 'duyet' && (
         <RegTab registrations={registrations} offers={offers} publishers={publishers} busy={busy}
+          baseCut={baseCut}
           onDecide={(id, ok) => run(() => decideRegistration(id, ok))}
           onRate={(id, rate) => run(() => setRegistrationRate(id, rate))}
           onGrant={(p, o) => run(() => grantOffer(p, o))} />
@@ -158,7 +159,7 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
         <OfferForm
           offer={editOffer === 'new' || 'fromCatalog' in (editOffer as object) ? null : editOffer as Offer}
           seed={typeof editOffer === 'object' && editOffer && 'fromCatalog' in editOffer ? editOffer.fromCatalog : null}
-          busy={busy} catalog={catalog}
+          busy={busy} catalog={catalog} baseCut={baseCut}
           onClose={() => setEditOffer(null)} onSave={(v) => run(() => saveOffer(v))} />
       )}
       {editPub && (
@@ -182,6 +183,9 @@ function toRevenueRows(report: NetworkReport): RevenueDayRow[] {
     amount: c.commission, gross: c.gross,
   }));
 }
+
+/** Các network báo cáo network THẬT SỰ gọi API. Thêm nguồn ở report.ts thì thêm tên ở đây. */
+const NET_SOURCES = ['cj', 'awin'];
 
 // ── Tỉ lệ cắt ────────────────────────────────────────────────────────────────
 // MỘT màn cho cả ba tầng. Trước đây cắt-chung ở Tổng quan, cắt-chiến-dịch trong form Chiến dịch,
@@ -360,7 +364,9 @@ function Overview({ offers, publishers, report, days }: {
       <StatsStrip cards={cards} />
       {report.errors.length > 0 && <div style={{ margin: '8px 0', fontSize: 11, color: 'var(--warn)' }}>{report.errors.join(' · ')}</div>}
       <Section title="Lịch hoa hồng" subtitle={`${days > 0 ? `${days} ngày gần nhất` : 'toàn bộ'} · bóc tách theo publisher`} defaultOpen>
-        <RevenueCalendar rows={rows} errors={report.errors} scannedNetworks={['cj']} />
+        {/* Khai ĐỦ network đã quét: thiếu tên nào thì lịch không hiện dòng "$0.00" cho nó, và
+            "không có đơn" trông y hệt "chưa từng gọi API". Awin vào báo cáo từ 2026-08-15. */}
+        <RevenueCalendar rows={rows} errors={report.errors} scannedNetworks={NET_SOURCES} />
       </Section>
       <Section title="Theo publisher" defaultOpen>
         {report.pubs.length === 0
@@ -425,11 +431,13 @@ function slugify(name: string): string {
     .replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
 }
 
-function OfferForm({ offer, seed, busy, catalog, onClose, onSave }: {
+function OfferForm({ offer, seed, busy, catalog, baseCut, onClose, onSave }: {
   offer: Offer | null;
   /** Dòng danh mục MOS2 bấm 'Dựng chiến dịch' — điền sẵn form ngay lúc mở, khỏi phải chọn lại. */
   seed: CatalogOffer | null;
   busy: boolean; catalog: CatalogOffer[];
+  /** Cắt chung đang áp — mức gợi ý phải theo nó, không theo hằng số trong code. */
+  baseCut: number;
   onClose: () => void; onSave: (v: OfferInput) => void;
 }) {
   const [pick, setPick] = useState<string[]>([]);
@@ -447,7 +455,7 @@ function OfferForm({ offer, seed, busy, catalog, onClose, onSave }: {
     upstreamRate: offer?.upstreamRate ?? seed?.rate ?? '',
     // Điền sẵn mức trả publisher = mức nhà × phần chia. Để trống thì admin hay quên, mà offer
     // không có mức riêng thì publisher chỉ thấy "thoả thuận" — không có gì để họ quyết chạy hay không.
-    publisherRate: offer?.publisherRate ?? derivePubRate(seed?.rate ?? null) ?? '',
+    publisherRate: offer?.publisherRate ?? derivePubRate(seed?.rate ?? null, shareOf(null, null, baseCut)) ?? '',
     terms: offer?.terms ?? '', active: offer?.active ?? true,
   });
   const set = <K extends keyof OfferInput>(k: K, val: OfferInput[K]) => setV((s) => ({ ...s, [k]: val }));
@@ -698,8 +706,10 @@ function PublisherForm({ pub, busy, onClose, onSave }: {
 }
 
 // ── Duyệt & giá riêng ────────────────────────────────────────────────────────
-function RegTab({ registrations, offers, publishers, busy, onDecide, onRate, onGrant }: {
+function RegTab({ registrations, offers, publishers, busy, baseCut, onDecide, onRate, onGrant }: {
   registrations: Registration[]; offers: Offer[]; publishers: Publisher[]; busy: boolean;
+  /** Cắt chung đang áp — câu cảnh báo phải nói số THẬT, không phải hằng số trong code. */
+  baseCut: number;
   onDecide: (id: number, ok: boolean) => void;
   onRate: (id: number, rate: string) => void;
   onGrant: (publisherId: number, offerId: number) => void;
@@ -716,7 +726,7 @@ function RegTab({ registrations, offers, publishers, busy, onDecide, onRate, onG
     { key: 'up', header: 'Upstream trả mình', title: 'Trần — mình không thể trả publisher hơn mức này mà còn lãi',
       cell: (r) => <span style={{ ...mono, ...dim }}>{r.offerUpstreamRate ?? '—'}</span> },
     // Cả hai ô trống = chiến dịch chưa niêm yết mức nào. Publisher vẫn chạy được, nhưng tiền của họ
-    // rơi về mức chia mặc định (PUB_SHARE) và portal đánh dấu "~ tạm tính". Phải nhìn thấy để đặt
+    // rơi về tỉ lệ cắt đang áp và portal đánh dấu "~ tạm tính". Phải nhìn thấy để đặt
     // mức trước khi họ chạy đủ nhiều — không thì đối soát là một cuộc thương lượng ngược.
     { key: 'std', header: 'Mức chung', title: 'Mặc định của chiến dịch, áp cho mọi publisher chưa đặt riêng',
       cell: (r) => (
@@ -724,7 +734,7 @@ function RegTab({ registrations, offers, publishers, busy, onDecide, onRate, onG
           ? <span style={mono}>{r.offerPublisherRate}</span>
           : r.publisherRate
             ? <span style={{ ...mono, ...dim }}>—</span>
-            : <span style={{ ...mono, color: 'var(--warn)' }} title={`Chưa niêm yết mức nào cho publisher. Đơn về sẽ tạm tính ${Math.round(PUB_SHARE * 100)}% khoản upstream trả mình.`}>
+            : <span style={{ ...mono, color: 'var(--warn)' }} title={`Chưa niêm yết mức nào cho publisher. Đơn về sẽ tạm tính theo tỉ lệ cắt đang áp (${100 - baseCut}% khoản upstream trả mình).`}>
                 ~ thoả thuận
               </span>
       ) },

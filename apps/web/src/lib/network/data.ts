@@ -4,6 +4,8 @@ import { getDb } from '@mos2/db';
 import { listAffiliateOffers } from '@/lib/actions/offers';
 import { SUB_PARAM, networkFromUrl } from './link';
 import { derivePubRate, shareOf, DEFAULT_CUT_PCT } from '@/lib/offer-payout';
+
+const num = (v: unknown): number | null => (v == null ? null : Number(v));
 import { sql } from 'drizzle-orm';
 
 export interface Offer {
@@ -151,8 +153,6 @@ export async function catalogForPublisher(publisherId: number): Promise<PubCatal
     payout: derivePubRate(c.rate, share),
   }));
 }
-
-const num = (v: unknown): number | null => (v == null ? null : Number(v));
 
 /** Tỉ lệ cắt CHUNG toàn network (phần nhà giữ, %). Hỏng/chưa cài → mức mồi, không phải 0. */
 export async function baseCut(): Promise<number> {

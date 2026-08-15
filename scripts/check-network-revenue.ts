@@ -1,7 +1,7 @@
 // Chạy: node scripts/check-network-revenue.ts   (Node tự bóc type, không cần thêm dep/test runner)
 // Kiểm phần logic thuần của lib/revenue/networks.ts: cắt cửa sổ 31 ngày + parse XML CJ / JSON Awin.
 import assert from 'node:assert';
-import { windows, parseCj, parseAwin, xmlTag, parseLinkPerf } from '../apps/web/src/lib/revenue/networks.ts';
+import { windows, parseCj, parseAwin, parseAwinFull, xmlTag, parseLinkPerf } from '../apps/web/src/lib/revenue/networks.ts';
 import { bySub, UNTAGGED } from '../apps/web/src/lib/revenue/by-sub.ts';
 
 // Cửa sổ: 30 ngày → 1 lần gọi; 400 ngày → chạm trần 13.
@@ -89,4 +89,32 @@ assert.deepEqual(two.map((x) => x.network).sort(), ['awin', 'cj']);
 assert.equal(bySub([R({ group: 'cj', sub: 'a', amount: 7 })])[0].saleAmount, 7);
 assert.deepEqual(bySub([]), []);
 
+
+// ── Awin: MỘT đường parse, hai cách lọc ─────────────────────────────────────
+// Hai hàm đọc cùng payload là hai chỗ để lệch — và đã lệch thật: bản cho nền tảng network quên lọc
+// tiền tệ nên đơn EUR vào báo cáo publisher với số EUR ghi thành USD.
+const AWIN_SAMPLE = [
+  { id: 1, transactionDate: '2026-08-01T10:00:00', commissionStatus: 'approved',
+    advertiserName: 'Shop A', commissionAmount: { amount: 10, currency: 'USD' },
+    saleAmount: { amount: 100, currency: 'USD' }, clickRefs: { clickRef: 'abc123def456' } },
+  { id: 2, transactionDate: '2026-08-02T10:00:00', commissionStatus: 'declined',
+    advertiserName: 'Shop B', commissionAmount: { amount: 5, currency: 'USD' },
+    saleAmount: { amount: 50, currency: 'USD' } },
+  { id: 3, transactionDate: '2026-08-03T10:00:00', commissionStatus: 'pending',
+    advertiserName: 'Shop C', commissionAmount: { amount: 7, currency: 'EUR' },
+    saleAmount: { amount: 70, currency: 'EUR' } },
+];
+const full = parseAwinFull(AWIN_SAMPLE);
+assert.equal(full.length, 3, 'bản đầy đủ giữ NGUYÊN mọi dòng — kể cả huỷ và ngoại tệ');
+assert.equal(full[0].sub, 'abc123def456');          // ô sub-id = clickRefs.clickRef
+assert.equal(full[1].status, 'declined');           // publisher phải thấy đơn của mình bị huỷ
+assert.equal(full[2].currency, 'EUR');              // mang theo tiền tệ để nơi dùng tự quyết
+// Lịch doanh thu: bỏ huỷ, bỏ ngoại tệ, và NÓI RA đã bỏ đơn vị nào (không nhân bừa tỉ giá).
+const cal = parseAwin(AWIN_SAMPLE);
+assert.equal(cal.rows.length, 1);
+assert.equal(cal.rows[0].id, '1');
+assert.deepEqual([...cal.skipped], ['EUR']);
+
+
 console.log('networks.ts OK — windows/parseCj/parseAwin/parseLinkPerf/bySub');
+

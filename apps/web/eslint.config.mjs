@@ -19,6 +19,10 @@ const GROUPS = {
   guard: [
     { selector: "JSXAttribute[name.name='preventBackdropClose'][value=null], JSXAttribute[name.name='preventEscClose'][value=null]", message: 'Cấm close-guard vô điều kiện. Form → dirty={<đã sửa?>}; view → bỏ. ui-conventions §1.' },
     { selector: "JSXAttribute[name.name='closeOnOutside'][value.expression.value=false], JSXAttribute[name.name='closeOnEsc'][value.expression.value=false]", message: 'Cấm closeOnOutside/closeOnEsc={false} vô điều kiện. Dùng dirty. ui-conventions §1.' },
+    // `dirty` TRẦN = luôn true = close-guard vô điều kiện đi cửa sau: mọi lần bấm ra ngoài/Esc đều
+    // bị hỏi "bỏ thay đổi?" dù chưa gõ gì → drawer thành ra không đóng nổi. Cả repo đều tính bằng
+    // so-snapshot (JSON.stringify(form) !== baselineRef.current); rule này chặn ca lệch duy nhất.
+    { selector: "JSXAttribute[name.name='dirty'][value=null]", message: 'Cấm `dirty` trần (luôn true) → lần nào đóng cũng bị hỏi "bỏ thay đổi?". Truyền dirty={<so với snapshot lúc mở>}. ui-conventions §1.' },
   ],
   // Favicon hand-roll: dựng URL cdn.simpleicons.org / icons.duckduckgo.com bằng tay thì mất fallback
   // — platform ngoài simpleicons (saashub, cointalk-com, uneed…) hiện icon VỠ, và mỗi chỗ tự chọn
@@ -96,13 +100,14 @@ const EXEMPT = {
   'src/components/technology-picker.tsx': ['rawSelect'],
   'src/components/tribe-form-modal.tsx': ['rawSelect'],
   'src/components/tweaks.tsx': ['rawSelect'],
+  'src/components/ui/data-table.tsx': ['rawSelect'],      // chính là primitive: ô chọn phép lọc theo cột
   'src/components/ui/email-send-prep.tsx': ['rawSelect'],
-  'src/components/ui/entity-ref.tsx': ['rawSelect'],
   'src/components/ui/form-field.tsx': ['rawSelect'],
   'src/components/ui/project-assign.tsx': ['rawSelect'],
   'src/components/unmapped-page.tsx': ['rawSelect'],
   'src/components/schedule-edit-modal.tsx': ['guard', 'rawSelect'],
-  'src/components/ui/entity-ref.tsx': ['entityDef'],
+  // Khai MỘT lần thôi: object literal trùng key thì key sau đè key trước, miễn trừ đầu chết lặng.
+  'src/components/ui/entity-ref.tsx': ['rawSelect', 'entityDef'],
   'src/components/ui/site-favicon.tsx': ['favicon'],   // chính là primitive, nó ĐƯỢC phép dựng URL
   'src/components/seeding-cockpit.tsx': ['entityDef', 'rawSelect'],
   'src/components/content-value-page.tsx': ['entityDef', 'rawSelect'],

@@ -5,11 +5,11 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Offer } from '@/lib/network/data';
+import type { Offer, CatalogOffer } from '@/lib/network/data';
 import type { NetworkReport } from '@/lib/network/report';
 import { SETTLE_LABEL, SETTLE_COLOR } from '@/lib/network/status';
 import { trackingUrl, UTM_SLOTS, type Utm } from '@/lib/network/link';
-import { requestOffer } from '@/lib/actions/network';
+import { requestOffer, requestCatalogOffer } from '@/lib/actions/network';
 import { changePasswordAction, logoutAction } from '@/lib/actions/pub-auth';
 import { Section, SimpleTable, StatsStrip, EmptyState, Pill, Segmented, TextField, type SimpleColumn, type StatCard } from './ui';
 
@@ -48,6 +48,58 @@ function ChangePassword() {
   );
 }
 
+/**
+ * Danh mục toàn network — publisher TỰ tìm và tự dựng chiến dịch, không phải chờ admin dựng hộ.
+ *
+ * Chỉ CHỌN được, không gõ link tự do: `upstream_url` là link affiliate của tài khoản NHÀ, publisher
+ * nhập tay thì họ dán link của chính họ và hoa hồng đi chỗ khác — nhìn bằng mắt không phát hiện ra.
+ */
+function CatalogPicker({ items, busy, onAsk }: {
+  items: CatalogOffer[]; busy: boolean; onAsk: (id: string) => void;
+}) {
+  const [q, setQ] = useState('');
+  const hits = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    // Chưa gõ thì vẫn đổ 30 dòng đầu ra: bảng rỗng chờ-gõ nhìn y như "không có gì để chạy".
+    const base = s
+      ? items.filter((i) => i.name.toLowerCase().includes(s) || i.advertiser.toLowerCase().includes(s))
+      : items;
+    return { rows: base.slice(0, s ? 50 : 30), total: base.length };
+  }, [q, items]);
+
+  const cols: SimpleColumn<CatalogOffer>[] = [
+    { key: 'n', header: 'Offer', cell: (c) => (
+      <span><span style={{ color: 'var(--fg-0)' }}>{c.name}</span>
+        {c.advertiser && c.advertiser !== c.name && <span style={dim}> · {c.advertiser}</span>}</span>
+    ) },
+    { key: 'net', header: 'Network', cell: (c) => <span style={{ ...mono, ...dim }}>{c.network || '—'}</span> },
+    { key: 'r', header: 'Hoa hồng', cell: (c) => <span style={mono}>{c.rate ?? '—'}</span> },
+    { key: 'a', header: '', align: 'right', cell: (c) => (
+      <button type="button" disabled={busy} onClick={() => onAsk(c.id)}
+        style={{ padding: '2px 8px', fontSize: 10, fontFamily: 'var(--font-mono)', background: 'transparent',
+                 color: 'var(--accent)', border: '1px solid var(--accent-line)', borderRadius: 4, cursor: 'pointer' }}>
+        Xin chạy
+      </button>
+    ) },
+  ];
+
+  return (
+    <>
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Gõ tên offer hoặc nhãn hàng…"
+        style={{ ...mono, width: '100%', maxWidth: 380, padding: '5px 8px', marginBottom: 8,
+                 background: 'var(--bg-2)', color: 'var(--fg-0)', border: '1px solid var(--line)', borderRadius: 4 }} />
+      {hits.rows.length === 0
+        ? <EmptyState icon="🔍" compact title="Không có offer nào khớp" />
+        : <SimpleTable rows={hits.rows} columns={cols} getRowKey={(c) => c.id} />}
+      {hits.total > hits.rows.length && (
+        <p style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 6 }}>
+          Còn {hits.total - hits.rows.length} offer nữa — gõ thêm để lọc.
+        </p>
+      )}
+    </>
+  );
+}
+
 const usd = (n: number) => (n >= 10 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`);
 const mono = { fontFamily: 'var(--font-mono)', fontSize: 11 } as const;
 const dim = { color: 'var(--fg-3)' };
@@ -57,8 +109,9 @@ type OfferReg = Offer & { regStatus: string | null; linkToken: string | null };
 const REG_LABEL: Record<string, string> = { approved: 'đang chạy', pending: 'chờ duyệt', rejected: 'bị từ chối' };
 const REG_COLOR: Record<string, string> = { approved: 'var(--ok)', pending: 'var(--warn)', rejected: 'var(--fg-3)' };
 
-export function PubPortal({ pubSlug, pubName, offers, report, origin }: {
-  pubSlug: string; pubName: string; offers: OfferReg[]; report: NetworkReport; origin: string;
+export function PubPortal({ pubSlug, pubName, offers, catalog, report, origin }: {
+  pubSlug: string; pubName: string; offers: OfferReg[]; catalog: CatalogOffer[];
+  report: NetworkReport; origin: string;
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
@@ -76,6 +129,11 @@ export function PubPortal({ pubSlug, pubName, offers, report, origin }: {
   const [reqErr, setReqErr] = useState<string | null>(null);
   const ask = (offerId: number) => start(async () => {
     const r = await requestOffer(offerId);
+    setReqErr(r.ok ? null : r.error ?? 'Không gửi được yêu cầu');
+    if (r.ok) router.refresh();
+  });
+  const askCatalog = (catalogId: string) => start(async () => {
+    const r = await requestCatalogOffer(catalogId);
     setReqErr(r.ok ? null : r.error ?? 'Không gửi được yêu cầu');
     if (r.ok) router.refresh();
   });
@@ -208,6 +266,11 @@ export function PubPortal({ pubSlug, pubName, offers, report, origin }: {
         {offers.length === 0
           ? <EmptyState icon="📦" compact title="Chưa có chiến dịch nào" />
           : <SimpleTable rows={offers} columns={offerCols} getRowKey={(o) => o.slug} />}
+        {reqErr && <p style={{ fontSize: 11, color: 'var(--warn)', marginTop: 8 }}>{reqErr}</p>}
+      </Section>
+
+      <Section title="Tìm chiến dịch mới" subtitle={`${catalog.length} offer trong danh mục — chọn cái muốn chạy, admin duyệt là có link`} defaultOpen>
+        <CatalogPicker items={catalog} busy={busy} onAsk={askCatalog} />
         {reqErr && <p style={{ fontSize: 11, color: 'var(--warn)', marginTop: 8 }}>{reqErr}</p>}
       </Section>
 

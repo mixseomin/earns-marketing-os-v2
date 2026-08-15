@@ -3,7 +3,7 @@
 // Hai chỗ này sai thì tiền đi nhầm chỗ mà màn hình vẫn xanh, nên chúng phải có lưới.
 import assert from 'node:assert';
 import { newClickId, isClickId, upstreamUrl, trackingUrl, readUtm, SUB_PARAM, CLICK_ID_LEN,
-  checkOffer, checkPublisher, checkSlug, newLinkToken, LINK_TOKEN_LEN } from '../apps/web/src/lib/network/link.ts';
+  checkOffer, checkPublisher, checkSlug, newLinkToken, LINK_TOKEN_LEN, networkFromUrl, slugify } from '../apps/web/src/lib/network/link.ts';
 import { cjSettleState } from '../apps/web/src/lib/network/status.ts';
 
 // ── Mã click ────────────────────────────────────────────────────────────────
@@ -95,5 +95,24 @@ assert.equal(checkSlug('  TRIP-HK  '), null);
 assert.equal(checkSlug('Trip-HK'), null);
 assert.equal(checkPublisher({ slug: 'thoai', name: 'Thoai' }), null);
 assert.ok(checkPublisher({ slug: 'thoai', name: '' })?.includes('Thiếu tên'));
+
+// networkFromUrl: cột network trong danh mục bỏ trống ở 2.755/2.894 dòng, nên network phải đoán
+// được từ tên miền — sai chỗ này là cả danh mục thành không dựng được chiến dịch nào.
+assert.equal(networkFromUrl('https://www.awin1.com/cread.php?awinmid=1'), 'awin');
+assert.equal(networkFromUrl('https://www.dpbolvw.net/kj122zw41w3JLKKLSQQQTJLPPNOSMK'), 'cj');
+assert.equal(networkFromUrl('https://partner.sjv.io/c/123/456'), 'impact');
+assert.equal(networkFromUrl('https://newpub.adpia.vn/x'), 'adpia');
+assert.equal(networkFromUrl('https://example.com/aff'), '');      // không biết thì nói không biết
+assert.equal(networkFromUrl('khong-phai-url'), '');
+// Không được khớp tên miền chỉ vì nó CHỨA chuỗi đó — 'awin1.com.evil.net' là host của kẻ khác.
+assert.equal(networkFromUrl('https://awin1.com.evil.net/x'), '');
+
+// slugify: tên tự do → slug hợp lệ, bỏ dấu tiếng Việt (bỏ luôn cả chữ thì slug cụt nghĩa).
+assert.equal(slugify('Trip.com HK'), 'trip-com-hk');
+assert.equal(slugify('Đặt vé máy bay'), 'dat-ve-may-bay');
+assert.equal(slugify('  A/B — test!  '), 'a-b-test');
+assert.equal(checkSlug(slugify('Trip.com HK')), null);
+assert.equal(checkSlug(slugify('X'.repeat(80))), null);           // cắt 41 vẫn hợp lệ
+assert.ok(!slugify('!!!'));                                       // rỗng → nơi gọi phải tự lo
 
 console.log('network platform OK — link/clickId/upstream/utm + đối soát + validate');

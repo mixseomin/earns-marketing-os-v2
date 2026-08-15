@@ -2,7 +2,7 @@
 
 import { getDb } from '@mos2/db';
 import { listAffiliateOffers } from '@/lib/actions/offers';
-import { SUB_PARAM } from './link';
+import { SUB_PARAM, networkFromUrl } from './link';
 import { sql } from 'drizzle-orm';
 
 export interface Offer {
@@ -127,10 +127,14 @@ export async function listCatalog(): Promise<CatalogOffer[]> {
     // network, số còn lại thuộc adpia/tkglobal/masoffer/travelpayouts/ecomobi — không cái nào có
     // ô sub-id. Lọc theo network là quét sạch danh mục, và picker biến mất không một lời giải thích.
     if (!o.affiliateUrl) continue;
+    // Cột network trong Directus bỏ trống ở 2.755/2.894 dòng (đều là awin1.com). Đoán từ tên miền
+    // của chính cái link sẽ chạy — không có bước này thì cả danh mục là trưng bày: trackable=false
+    // toàn bảng, checkOffer chặn hết, không dựng nổi chiến dịch nào.
+    const guessed = net || networkFromUrl(o.affiliateUrl);
     out.push({
-      id: o.id, name: o.name, network: net, advertiser: o.brand || o.name,
+      id: o.id, name: o.name, network: guessed, advertiser: o.brand || o.name,
       url: o.affiliateUrl, rate: o.commission, vertical: o.vertical,
-      trackable: !!SUB_PARAM[net],
+      trackable: !!SUB_PARAM[guessed],
     });
   }
   return out.sort((a, b) => a.name.localeCompare(b.name));

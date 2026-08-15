@@ -10,7 +10,8 @@ import { revalidatePath } from 'next/cache';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { getCurrentUser } from '@/lib/auth';
-import { checkOffer, checkPublisher, newLinkToken, PUB_ORIGIN } from '@/lib/network/link';
+import { checkOffer, checkPublisher, newLinkToken, slugify, PUB_ORIGIN } from '@/lib/network/link';
+import { listCatalog } from '@/lib/network/data';
 import { issueSetupToken, adminSetPassword, currentPublisher } from '@/lib/network/auth';
 
 type Res = { ok: boolean; error?: string };
@@ -222,6 +223,55 @@ export async function requestOffer(offerId: number): Promise<Res> {
   if (!(o as unknown as unknown[]).length) return { ok: false, error: 'Chiến dịch không tồn tại hoặc đã dừng' };
   // Xin lại chiến dịch đã bị từ chối thì cho (đổi kênh, sửa cách chạy). Đã duyệt rồi thì GIỮ —
   // một cú bấm nhầm không được hạ nó về pending và cắt link đang chạy.
+  await db.execute(sql`
+    INSERT INTO net_publisher_offers (publisher_id, offer_id, status)
+    VALUES (${pub.id}, ${offerId}, 'pending')
+    ON CONFLICT (publisher_id, offer_id) DO UPDATE
+      SET status='pending', requested_at=now(), decided_at=NULL
+      WHERE net_publisher_offers.status='rejected'`);
+  bump();
+  return OK;
+}
+
+/**
+ * Publisher tự dựng chiến dịch TỪ DANH MỤC rồi xin chạy — một bước, không phải chờ admin dựng hộ.
+ *
+ * Vì sao chọn-từ-danh-mục chứ không cho gõ link tự do: `upstream_url` là link affiliate của TÀI
+ * KHOẢN MÌNH (PID CJ/Awin của mình). Cho publisher nhập tay thì họ dán link của chính họ vào, mình
+ * gánh traffic còn hoa hồng về ví người khác — và không có cách nào phát hiện bằng mắt vì link
+ * affiliate nào cũng là một chuỗi mã. Chọn từ danh mục thì URL luôn là link của mình.
+ *
+ * Chiến dịch dựng ra để `active`, nhưng đăng ký vẫn `pending`: link CHƯA ra cho tới khi admin duyệt.
+ */
+export async function requestCatalogOffer(catalogId: string): Promise<Res> {
+  const pub = await currentPublisher();
+  if (!pub) return { ok: false, error: 'Chưa đăng nhập' };
+  const db = getDb();
+  if (!db) return { ok: false, error: 'DB chưa sẵn sàng' };
+
+  const c = (await listCatalog()).find((x) => x.id === catalogId);
+  if (!c) return { ok: false, error: 'Không tìm thấy offer này trong danh mục' };
+
+  // Cùng link upstream = cùng chiến dịch. Tra theo URL trước, nếu không thì hai publisher xin cùng
+  // một offer sẽ đẻ ra hai chiến dịch trùng nhau, báo cáo tách đôi mà không ai hiểu vì sao.
+  const found = await db.execute(sql`SELECT id FROM net_offers WHERE upstream_url=${c.url} LIMIT 1`);
+  let offerId = Number((found as unknown as Array<{ id: number }>)[0]?.id ?? 0);
+
+  if (!offerId) {
+    const base = slugify(c.name) || `offer-${Date.now().toString(36)}`;
+    const bad = checkOffer({ slug: base, name: c.name, network: c.network, upstreamUrl: c.url });
+    if (bad) return { ok: false, error: bad };
+    for (const slug of [base, `${base.slice(0, 36)}-${newLinkToken().slice(0, 4)}`]) {
+      const ins = await db.execute(sql`
+        INSERT INTO net_offers (slug, name, network, advertiser, category, upstream_url, upstream_rate, active)
+        VALUES (${slug}, ${c.name}, ${c.network}, ${c.advertiser}, ${c.vertical}, ${c.url}, ${c.rate}, true)
+        ON CONFLICT (slug) DO NOTHING RETURNING id`);
+      offerId = Number((ins as unknown as Array<{ id: number }>)[0]?.id ?? 0);
+      if (offerId) break;
+    }
+    if (!offerId) return { ok: false, error: 'Không đặt được mã chiến dịch — thử lại' };
+  }
+
   await db.execute(sql`
     INSERT INTO net_publisher_offers (publisher_id, offer_id, status)
     VALUES (${pub.id}, ${offerId}, 'pending')

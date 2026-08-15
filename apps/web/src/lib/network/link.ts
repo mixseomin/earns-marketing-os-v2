@@ -108,10 +108,43 @@ export function trackingUrl(origin: string, token: string, utm: Utm = {}): strin
 // Nằm CÙNG file với SUB_PARAM chứ không tách ra: tách thì file kia phải import runtime `./link`,
 // mà node chạy trần đòi đuôi .ts còn tsc thì cấm (TS5097) → `node scripts/check-*.ts` gãy. Ở đây
 // module vẫn không import runtime cái gì nên vừa test được vừa dùng được trong 'use server'.
-/** slug nằm TRONG link publisher đã dán ra ngoài → chặn ký tự lạ ngay từ lúc tạo, để không phải
- *  đi encode ở mọi chỗ dùng về sau, và để không ai đặt slug có dấu/khoảng trắng rồi link gãy. */
+/**
+ * Đoán network từ TÊN MIỀN của link affiliate.
+ *
+ * Danh mục Directus bỏ trống cột network ở gần hết các dòng (2.755/2.894 dòng là awin1.com mà cột
+ * network rỗng). Không đoán thì `trackable=false` toàn bảng → checkOffer chặn hết, và danh mục
+ * 2.894 dòng trở thành đồ trưng bày: không dựng được chiến dịch nào từ nó. Tên miền redirect là
+ * thứ đáng tin hơn cột metadata, vì nó nằm ngay trong link sẽ chạy.
+ */
+const HOST_NETWORK: Array<[RegExp, string]> = [
+  [/(^|\.)(awin1|zenaps)\.com$/, 'awin'],
+  [/(^|\.)(dpbolvw|anrdoezrs|jdoqocy|kqzyfj|tkqlhce|qksrv|emjcd)\.(net|com)$/, 'cj'],
+  [/(^|\.)(sjv\.io|pxf\.io|ojrq\.net)$/, 'impact'],
+  [/(^|\.)linksynergy\.com$/, 'rakuten'],
+  [/(^|\.)clickbank\.net$/, 'clickbank'],
+  [/(^|\.)adpia\.vn$/, 'adpia'],
+  [/(^|\.)tkglobal\.asia$/, 'tkglobal'],
+  [/(^|\.)masoffer\.com$/, 'masoffer'],
+  [/(^|\.)(travelpayouts\.com|tp\.media)$/, 'travelpayouts'],
+];
+
+export function networkFromUrl(url: string): string {
+  let host: string;
+  try { host = new URL(url).hostname.toLowerCase(); } catch { return ''; }
+  return HOST_NETWORK.find(([re]) => re.test(host))?.[1] ?? '';
+}
+
 export const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,40}$/;
 
+/** Tên tự do → slug hợp lệ. Bỏ dấu tiếng Việt trước, nếu không "Đặt vé" thành "t-v" cụt nghĩa. */
+export function slugify(raw: string): string {
+  return raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 41)
+    .replace(/-+$/, '');
+}
+
+/** slug nằm TRONG link publisher đã dán ra ngoài → chặn ký tự lạ ngay từ lúc tạo, để không phải
+ *  đi encode ở mọi chỗ dùng về sau, và để không ai đặt slug có dấu/khoảng trắng rồi link gãy. */
 export function checkSlug(raw: string): string | null {
   return SLUG_RE.test(raw.trim().toLowerCase())
     ? null

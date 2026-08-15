@@ -268,7 +268,9 @@ function OfferForm({ offer, busy, catalog, onClose, onSave }: {
       // slug tự đề xuất từ tên; vẫn sửa được trước khi lưu vì nó nằm trong link phát ra ngoài.
       slug: s.slug || c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40),
-      network: c.network,
+      // Network của danh mục chỉ đè khi nó THEO DÕI ĐƯỢC; không thì giữ nguyên lựa chọn hiện tại
+      // để admin tự chọn — đè bằng một network không có ô sub-id là đẩy họ vào lỗi lúc bấm Lưu.
+      network: c.trackable ? c.network : s.network,
       advertiser: s.advertiser || c.advertiser,
       category: s.category || c.vertical || '',
       upstreamUrl: c.url,
@@ -283,10 +285,16 @@ function OfferForm({ offer, busy, catalog, onClose, onSave }: {
         {!offer && catalog.length > 0 && (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
                         padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 4 }}>
-            <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>Lấy từ danh mục MOS2 ({catalog.length}):</span>
+            <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>
+              Lấy từ danh mục MOS2 ({catalog.length}) — dấu ⚠ nghĩa là danh mục không có network theo dõi được, tự chọn ở ô Network bên dưới:
+            </span>
             <MultiSelect<string> label="Chọn offer" compact selected={pick}
               onChange={(x) => { const last = x.slice(-1); setPick(last); if (last[0]) apply(last[0]); }}
-              options={catalog.map((c) => ({ value: c.id, label: `${c.name} · ${c.network}${c.rate ? ` · ${c.rate}` : ''}` }))} />
+              options={catalog.map((c) => ({
+                value: c.id,
+                // ⚠ = danh mục không nói được network theo dõi được → phải tự chọn ở ô Network.
+                label: `${c.trackable ? '' : '⚠ '}${c.name}${c.network ? ` · ${c.network}` : ''}${c.rate ? ` · ${c.rate}` : ''}`,
+              }))} />
           </div>
         )}
         <TextField label="Tên chiến dịch" required value={v.name} onChange={(e) => set('name', e.target.value)} />

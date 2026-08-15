@@ -109,6 +109,10 @@ export function PubPortal({ pubSlug, pubName, offers, report, origin }: {
   ];
 
   return (
+    // Khung cuộn RIÊNG: body{overflow:hidden} nên chỗ cuộn duy nhất của app là .main trong
+    // AppShell. Portal publisher không bọc AppShell (nav MOS2 không phải việc của người ngoài)
+    // → phải tự dựng khung, nếu không trang đứng im không kéo lên xuống được.
+    <div style={{ height: '100dvh', overflowY: 'auto' }}>
     <div className="page" style={{ padding: 16 }}>
       <div className="page-head">
         <div>
@@ -165,6 +169,7 @@ export function PubPortal({ pubSlug, pubName, offers, report, origin }: {
           ? <EmptyState icon="🧾" compact title="Chưa có đơn nào" description="Đơn hiện ở đây sau khi nhà cung cấp ghi nhận (thường vài giờ tới vài ngày)." />
           : <SimpleTable rows={mine} columns={convCols} getRowKey={(r) => r.upstreamId} />}
       </Section>
+    </div>
     </div>
   );
 }

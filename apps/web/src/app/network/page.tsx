@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation';
+import { AppShell } from '@/components/app-shell';
 import { NetworkAdmin } from '@/components/network-admin';
+import { listProjects, getMode } from '@/lib/data';
 import { listOffers, listPublishers, listRegistrations, listUsers, listCatalog } from '@/lib/network/data';
 import { networkReport } from '@/lib/network/report';
 import { parseRange, ALL_DAYS } from '@/lib/revenue/by-day';
@@ -16,15 +18,17 @@ export default async function NetworkAdminRoute({ searchParams }: {
   if (me.role !== 'admin') redirect('/pub');
   // Cùng bộ chip khung thời gian với /revenue — hai trang nói về cùng số tiền thì phải cùng cách cắt.
   const days = parseRange((await searchParams).days);
-  const [offers, publishers, registrations, report, users, catalog] = await Promise.all([
+  const [offers, publishers, registrations, report, users, catalog, projects, mode] = await Promise.all([
     listOffers(), listPublishers(), listRegistrations(), networkReport(days || ALL_DAYS),
-    listUsers(), listCatalog(),
+    listUsers(), listCatalog(), listProjects(), getMode('affiliate'),
   ]);
   return (
-    <NetworkAdmin
-      offers={offers} publishers={publishers} registrations={registrations} report={report}
-      users={users} catalog={catalog} days={days}
-      origin={PUB_ORIGIN}
-    />
+    <AppShell mode={mode} projects={projects} isPortfolio>
+      <NetworkAdmin
+        offers={offers} publishers={publishers} registrations={registrations} report={report}
+        users={users} catalog={catalog} days={days}
+        origin={PUB_ORIGIN}
+      />
+    </AppShell>
   );
 }

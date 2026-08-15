@@ -132,6 +132,9 @@ export async function publisherForUser(userId: number): Promise<Publisher | null
 export interface CatalogOffer {
   id: string; name: string; network: string; advertiser: string;
   url: string; rate: string | null; vertical: string | null;
+  /** Network của dòng này có ô sub-id không. false = vẫn chọn được (để lấy tên/link/tỉ lệ) nhưng
+   *  admin phải TỰ chọn network ở form, vì cái ghi trong danh mục không theo dõi được đơn. */
+  trackable: boolean;
 }
 
 export async function listCatalog(): Promise<CatalogOffer[]> {
@@ -139,12 +142,16 @@ export async function listCatalog(): Promise<CatalogOffer[]> {
   const out: CatalogOffer[] = [];
   for (const o of all) {
     const net = o.network ?? '';
-    // Bỏ dòng thiếu link (chọn vào cũng không redirect đi đâu) và dòng thuộc network không có ô
-    // sub-id (click đi ra là mất dấu) — hiện chúng ra chỉ để người ta chọn rồi vướng lỗi.
-    if (!o.affiliateUrl || !SUB_PARAM[net]) continue;
+    // CHỈ đòi có link — không có link thì chọn vào cũng chẳng redirect đi đâu.
+    // KHÔNG lọc theo network: dữ liệu thật có 2.894 dòng mang link, trong đó 2.763 dòng BỎ TRỐNG
+    // network, số còn lại thuộc adpia/tkglobal/masoffer/travelpayouts/ecomobi — không cái nào có
+    // ô sub-id. Lọc theo network là quét sạch danh mục, và picker biến mất không một lời giải thích.
+    // Dòng không theo dõi được vẫn hữu ích: lấy sẵn tên/link/tỉ lệ, admin tự chọn network ở form.
+    if (!o.affiliateUrl) continue;
     out.push({
       id: o.id, name: o.name, network: net, advertiser: o.brand || o.name,
       url: o.affiliateUrl, rate: o.commission, vertical: o.vertical,
+      trackable: !!SUB_PARAM[net],
     });
   }
   return out.sort((a, b) => a.name.localeCompare(b.name));

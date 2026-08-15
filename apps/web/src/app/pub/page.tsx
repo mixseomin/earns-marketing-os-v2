@@ -15,7 +15,7 @@ export default async function PubRoute() {
   // Nói thẳng chưa gắn publisher, đừng trả trang rỗng — trang rỗng trông y hệt "chưa có đơn nào".
   if (!pub) {
     return (
-      <div className="page" style={{ padding: 16 }}>
+      <div className="page" style={{ padding: 16, height: '100dvh', overflowY: 'auto' }}>
         <EmptyState icon="🔌" title="Tài khoản này chưa gắn với publisher nào"
           description={`Admin vào /network gán user #${me.id} (${me.email}) cho một publisher.`} />
       </div>

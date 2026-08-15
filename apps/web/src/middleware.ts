@@ -32,9 +32,12 @@ function allowedOnNetHost(pathname: string, admin: boolean): boolean {
   // /c/* và /t/* (redirect) phải sống trên MỌI host: link publisher đã phát ra ngoài rồi, đổi host là gãy.
   if (pathname.startsWith('/c/') || pathname.startsWith('/t/')) return true;
   if (pathname.startsWith('/_next/') || pathname.startsWith('/static/')
-      || pathname === '/login' || pathname.startsWith('/api/auth')
       || pathname === '/icon.svg' || pathname === '/favicon.ico') return true;
-  return pathname.startsWith(admin ? '/network' : '/pub');
+  // Host publisher KHÔNG được chạm /login hay /api/auth của MOS2 — đó là cửa đăng nhập nội bộ, và
+  // phiên nó cấp là `mos2-session` (domain .on.tc) tức là mở luôn mos2.on.tc. Publisher có cửa
+  // riêng ở /pub/login, cấp cookie `pub-session` host-only.
+  if (!admin) return pathname.startsWith('/pub');
+  return pathname.startsWith('/network') || pathname === '/login' || pathname.startsWith('/api/auth');
 }
 
 // user.on.tc = staff review portal. Confine that host to the review queue only (need-to-know):
@@ -88,6 +91,11 @@ export function middleware(req: NextRequest) {
   // Cổng redirect: khách của publisher bấm vào, không thể bắt họ đăng nhập. Route tự lo phần
   // kiểm tra (chiến dịch còn chạy + publisher đã được duyệt) nên đây chỉ cần cho qua.
   if (pathname.startsWith('/c/') || pathname.startsWith('/t/')) return NextResponse.next();
+
+  // Portal publisher gác bằng cookie RIÊNG (`pub-session`), trang tự kiểm trong currentPublisher().
+  // Không đọc `mos2-session` ở đây: nhận nó là cho phiên nội bộ mở cửa publisher và ngược lại —
+  // đúng cái vừa phải bịt.
+  if (pathname.startsWith('/pub')) return NextResponse.next();
 
   // Allow public paths
   if (PUBLIC_PATHS.includes(pathname)) return NextResponse.next();

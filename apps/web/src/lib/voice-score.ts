@@ -42,7 +42,7 @@ export interface VoiceScore {
   words: number; sentences: number; spread: number;
   hedgesPer200: number; banned: string[]; throat: string[]; marked: number;
   checkablePer100: number; contractions: number; emDashes: number;
-  hard: string[]; soft: string[]; ok: boolean;
+  hard: string[]; soft: string[]; ok: boolean; human100: number;
 }
 
 export function voiceScore(raw: string): VoiceScore {
@@ -68,13 +68,24 @@ export function voiceScore(raw: string): VoiceScore {
   if (m.emDashes) hard.push(`${m.emDashes} em dash (thay bằng " - ")`);
   if (banned.length) hard.push(`từ máy hay dùng: ${banned.slice(0, 6).join(', ')}`);
   if (throat.length) hard.push(`cụm dạo đầu: ${throat.slice(0, 3).join(', ')}`);
-  // Ngưỡng mềm chỉ áp cho bài đủ dài — comment 40 từ thì nhịp và mật độ dữ kiện không nói lên gì.
-  if (m.words >= 120) {
+  // Ngưỡng mềm từ 60 từ: comment 60-100 từ đã đủ dài để lộ nhịp phẳng và giọng không-contraction,
+  // đúng hai thứ máy chấm-AI bắt trước nhất. Mốc cũ 120 làm mọi comment lọt sạch không lời nhắc.
+  if (m.words >= 60) {
     if (m.spread < 10) soft.push(`nhịp phẳng (câu dài nhất hơn ngắn nhất ${m.spread} từ)`);
     if (m.hedgesPer200 > 4) soft.push(`rào đón dày (${m.hedgesPer200}/200 từ)`);
     if (m.checkablePer100 < 1) soft.push(`gần như không có số/tên kiểm được (${m.checkablePer100}/100 từ)`);
+    if (m.contractions === 0) soft.push('không một contraction nào (viết đủ chữ = giọng máy)');
   }
-  return { ...m, hard, soft, ok: !hard.length };
+  let human100 = 100;
+  human100 -= m.emDashes * 25 + banned.length * 15 + throat.length * 15;
+  if (m.words >= 60) {
+    if (m.spread < 10) human100 -= 12;
+    if (m.hedgesPer200 > 4) human100 -= 10;
+    if (m.checkablePer100 < 1) human100 -= 10;
+    if (m.contractions === 0) human100 -= 12;
+  }
+  human100 = Math.max(0, Math.min(100, human100));
+  return { ...m, hard, soft, ok: !hard.length, human100 };
 }
 
 /** '' = được duyệt. Chuỗi = lý do chặn, hiện thẳng trên nút (GuardedButton), không nuốt cú bấm. */

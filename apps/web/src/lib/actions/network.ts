@@ -9,8 +9,9 @@
 import { revalidatePath } from 'next/cache';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
-import { getCurrentUser, changeOwnPassword } from '@/lib/auth';
-import { checkOffer, checkPublisher, newLinkToken } from '@/lib/network/link';
+import { getCurrentUser } from '@/lib/auth';
+import { checkOffer, checkPublisher, newLinkToken, PUB_ORIGIN } from '@/lib/network/link';
+import { issueSetupToken } from '@/lib/network/auth';
 
 type Res = { ok: boolean; error?: string };
 const OK: Res = { ok: true };
@@ -102,7 +103,8 @@ export async function deleteOffer(id: number): Promise<Res> {
 export interface PublisherInput {
   id?: number;
   slug: string; name: string; kind: string; status: string; note?: string;
-  userId?: number | null;
+  /** Email đăng nhập RIÊNG của publisher (bảng net_publishers), không phải user MOS2. */
+  email?: string;
 }
 
 export async function savePublisher(input: PublisherInput): Promise<Res> {
@@ -112,24 +114,23 @@ export async function savePublisher(input: PublisherInput): Promise<Res> {
   const bad = checkPublisher(input);
   if (bad) return { ok: false, error: bad };
   const slug = input.slug.trim().toLowerCase();
-  const uid = input.userId ?? null;
+  const email = input.email?.trim().toLowerCase() || null;
   try {
-    // Một user chỉ thuộc một publisher — gỡ chỗ cũ trước, nếu không publisherForUser() vớ phải
-    // hàng đầu tiên nó gặp và người ta thấy số của người khác.
-    if (uid) await db.execute(sql`UPDATE net_publishers SET user_id=NULL WHERE user_id=${uid} AND id IS DISTINCT FROM ${input.id ?? null}`);
     if (input.id) {
       await db.execute(sql`
         UPDATE net_publishers SET slug=${slug}, name=${input.name.trim()}, kind=${input.kind},
-          status=${input.status}, note=${input.note?.trim() || null}, user_id=${uid}
+          status=${input.status}, note=${input.note?.trim() || null}, email=${email}
         WHERE id=${input.id}`);
     } else {
       await db.execute(sql`
-        INSERT INTO net_publishers (slug, name, kind, status, note, user_id)
-        VALUES (${slug}, ${input.name.trim()}, ${input.kind}, ${input.status}, ${input.note?.trim() || null}, ${uid})`);
+        INSERT INTO net_publishers (slug, name, kind, status, note, email)
+        VALUES (${slug}, ${input.name.trim()}, ${input.kind}, ${input.status}, ${input.note?.trim() || null}, ${email})`);
     }
   } catch (e) {
     const m = (e as Error).message;
-    return { ok: false, error: m.includes('net_publishers_slug') ? `Slug "${slug}" đã có publisher khác dùng` : m };
+    if (m.includes('net_publishers_slug')) return { ok: false, error: `Slug "${slug}" đã có publisher khác dùng` };
+    if (m.includes('net_publishers_email')) return { ok: false, error: `Email "${email}" đã có publisher khác dùng` };
+    return { ok: false, error: m };
   }
   bump();
   return OK;
@@ -212,20 +213,12 @@ export async function requestOffer(offerId: number): Promise<Res> {
   return OK;
 }
 
-export async function linkPublisherUser(publisherId: number, userId: number | null): Promise<Res> {
-  if (!(await admin())) return { ok: false, error: 'Chỉ admin được gán' };
-  const db = getDb();
-  if (!db) return { ok: false, error: 'DB chưa sẵn sàng' };
-  if (userId) await db.execute(sql`UPDATE net_publishers SET user_id=NULL WHERE user_id=${userId}`);
-  await db.execute(sql`UPDATE net_publishers SET user_id=${userId} WHERE id=${publisherId}`);
+/** Phát link MỘT LẦN để publisher tự đặt mật khẩu. Admin chỉ cầm cái link, không bao giờ cầm mật
+ *  khẩu — cùng luật với mọi credential khác: chỉ chủ tài khoản tự gõ. */
+export async function sendSetupLink(publisherId: number): Promise<Res & { url?: string }> {
+  if (!(await admin())) return { ok: false, error: 'Chỉ admin' };
+  const t = await issueSetupToken(publisherId);
+  if (!t) return { ok: false, error: 'Publisher này chưa có email — điền email rồi lưu, sau đó phát link' };
   bump();
-  return OK;
-}
-
-/** Publisher tự đổi mật khẩu trong portal. Mật khẩu do CHÍNH họ gõ trên trình duyệt của họ —
- *  không đi qua admin, không ai khác nhìn thấy. */
-export async function changePassword(current: string, next: string): Promise<Res> {
-  const me = await getCurrentUser();
-  if (!me) return { ok: false, error: 'Chưa đăng nhập' };
-  return changeOwnPassword(me.id, current, next);
+  return { ok: true, url: `${PUB_ORIGIN}/pub/set-password?t=${t}` };
 }

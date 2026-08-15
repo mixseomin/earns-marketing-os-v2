@@ -14,16 +14,9 @@ export interface Offer {
 
 export interface Publisher {
   id: number; slug: string; name: string; kind: string; status: string; note: string | null;
-  userId: number | null;
-}
-
-export interface UserOption { id: number; email: string; name: string }
-
-export async function listUsers(): Promise<UserOption[]> {
-  const db = getDb();
-  if (!db) return [];
-  const r = await db.execute(sql`SELECT id, email, name FROM users ORDER BY name`);
-  return (r as unknown as Array<Record<string, unknown>>).map((x) => ({ id: Number(x.id), email: String(x.email), name: String(x.name) }));
+  /** Danh tính RIÊNG của publisher — không phải user MOS2. Xem lib/network/auth.ts. */
+  email: string | null;
+  hasPassword: boolean;
 }
 
 export interface Registration {
@@ -62,7 +55,7 @@ export async function listPublishers(): Promise<Publisher[]> {
   return (r as unknown as Array<Record<string, unknown>>).map((x) => ({
     id: Number(x.id), slug: String(x.slug), name: String(x.name),
     kind: String(x.kind), status: String(x.status), note: (x.note as string) ?? null,
-    userId: x.user_id === null || x.user_id === undefined ? null : Number(x.user_id),
+    email: (x.email as string) ?? null, hasPassword: !!x.password_hash,
   }));
 }
 
@@ -114,22 +107,8 @@ export async function offersForPublisher(publisherId: number): Promise<Array<Off
   }));
 }
 
-/** Publisher gắn với user MOS2 đang đăng nhập. Chưa gắn thì portal nói rõ chứ không im lặng rỗng. */
-export async function publisherForUser(userId: number): Promise<Publisher | null> {
-  const db = getDb();
-  if (!db) return null;
-  const r = await db.execute(sql`SELECT * FROM net_publishers WHERE user_id = ${userId} AND status = 'active' LIMIT 1`);
-  const x = (r as unknown as Array<Record<string, unknown>>)[0];
-  return x ? {
-    id: Number(x.id), slug: String(x.slug), name: String(x.name),
-    kind: String(x.kind), status: String(x.status), note: (x.note as string) ?? null,
-    userId: x.user_id === null || x.user_id === undefined ? null : Number(x.user_id),
-  } : null;
-}
-
 /** Một dòng trong DANH MỤC affiliate của MOS2 (Directus `affiliate_programs`) — nguồn để dựng
- *  chiến dịch mà không phải gõ lại tên/link/tỉ lệ. Chỉ lấy dòng CÓ link và thuộc network mình
- *  theo dõi được; dòng thiếu link thì chọn vào cũng không redirect đi đâu. */
+ *  chiến dịch mà không phải gõ lại tên/link/tỉ lệ. */
 export interface CatalogOffer {
   id: string; name: string; network: string; advertiser: string;
   url: string; rate: string | null; vertical: string | null;
@@ -147,7 +126,6 @@ export async function listCatalog(): Promise<CatalogOffer[]> {
     // KHÔNG lọc theo network: dữ liệu thật có 2.894 dòng mang link, trong đó 2.763 dòng BỎ TRỐNG
     // network, số còn lại thuộc adpia/tkglobal/masoffer/travelpayouts/ecomobi — không cái nào có
     // ô sub-id. Lọc theo network là quét sạch danh mục, và picker biến mất không một lời giải thích.
-    // Dòng không theo dõi được vẫn hữu ích: lấy sẵn tên/link/tỉ lệ, admin tự chọn network ở form.
     if (!o.affiliateUrl) continue;
     out.push({
       id: o.id, name: o.name, network: net, advertiser: o.brand || o.name,

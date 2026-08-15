@@ -9,7 +9,8 @@ import type { Offer } from '@/lib/network/data';
 import type { NetworkReport } from '@/lib/network/report';
 import { SETTLE_LABEL, SETTLE_COLOR } from '@/lib/network/status';
 import { trackingUrl, UTM_SLOTS, type Utm } from '@/lib/network/link';
-import { requestOffer, changePassword } from '@/lib/actions/network';
+import { requestOffer } from '@/lib/actions/network';
+import { changePasswordAction, logoutAction } from '@/lib/actions/pub-auth';
 import { Section, SimpleTable, StatsStrip, EmptyState, Pill, Segmented, TextField, type SimpleColumn, type StatCard } from './ui';
 
 /** Publisher tự đổi mật khẩu. Ô để TRỐNG, giá trị chỉ nằm trong trình duyệt của họ rồi đi thẳng
@@ -34,7 +35,7 @@ function ChangePassword() {
         value={again} onChange={(e) => setAgain(e.target.value)} />
       <button type="button" disabled={busy || !next || mismatch}
         onClick={() => start(async () => {
-          const r = await changePassword(cur, next);
+          const r = await changePasswordAction(cur, next);
           setMsg({ ok: r.ok, text: r.ok ? 'Đã đổi mật khẩu' : r.error ?? 'lỗi' });
           if (r.ok) { setCur(''); setNext(''); setAgain(''); }
         })}
@@ -123,6 +124,11 @@ export function PubPortal({ pubSlug, pubName, offers, report, origin }: {
             Chỉ <b>được duyệt</b> mới là tiền chốt.
           </p>
         </div>
+        <button type="button" onClick={() => logoutAction()}
+          style={{ padding: '3px 9px', fontSize: 11, fontFamily: 'var(--font-mono)', background: 'transparent',
+                   color: 'var(--fg-3)', border: '1px solid var(--line)', borderRadius: 4, cursor: 'pointer' }}>
+          Thoát
+        </button>
       </div>
 
       <StatsStrip cards={cards} />

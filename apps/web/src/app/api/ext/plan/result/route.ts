@@ -12,7 +12,12 @@ export const dynamic = 'force-dynamic';
 // chứng minh lượt đó có xảy ra là URL + nguyên văn ĐÃ ĐĂNG. Ext bắt hai thứ đó ngay sau khi bấm
 // đăng (postAndTrack đọc bài mới nhất của mình) rồi gọi vào đây.
 //
-// Body: { pieceId, url, text?, cardId?, mode? }
+// Lưu ĐỦ để tháng sau đánh giá được cách làm, không chỉ để tick xong: nguyên văn mình viết, BÀI GỐC
+// mình bình luận dưới (link + trích + số liệu bài lúc đó), và mốc số liệu đầu tiên của chính comment.
+// Thiếu bài gốc thì cái link comment trần không nói được vì sao lượt đó đáng làm; thiếu số liệu mốc 0
+// thì lần đo sau không so được với cái gì. Đo tiếp về sau: POST /api/ext/plan/track.
+//
+// Body: { pieceId, url, text?, cardId?, mode?, parent?: {url,text,reactions,comments,shares}, account? }
 export async function POST(req: Request) {
   const authErr = await checkAuth(req);
   if (authErr) return authErr;
@@ -20,7 +25,8 @@ export async function POST(req: Request) {
   if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   const b = await req.json().catch(() => ({})) as {
-    pieceId?: number; url?: string; text?: string; cardId?: number; mode?: string;
+    pieceId?: number; url?: string; text?: string; cardId?: number; mode?: string; account?: string;
+    parent?: { url?: string; text?: string; reactions?: number; comments?: number; shares?: number };
   };
   const pieceId = Number(b.pieceId ?? 0);
   const url = String(b.url ?? '').trim();
@@ -36,14 +42,33 @@ export async function POST(req: Request) {
   // cạnh nhau. Không có chỗ này thì tháng sau nhìn lại chỉ còn một cái link trần.
   const text = String(b.text ?? '').trim();
   const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
-  const block = `\n\n— ĐÃ ${b.mode === 'engage' ? 'TƯƠNG TÁC' : 'COMMENT'} (${stamp}):\n${text || '(không bắt được nguyên văn)'}`;
-  const plan = String(row.body_md ?? '');
-  const bodyOut = plan.includes('— ĐÃ COMMENT') || plan.includes('— ĐÃ TƯƠNG TÁC') ? plan + block : plan + block;
+  const p = b.parent ?? {};
+  const parentStats = [p.reactions, p.comments, p.shares].some((n) => typeof n === 'number')
+    ? `${p.reactions ?? '?'} cảm xúc · ${p.comments ?? '?'} bình luận · ${p.shares ?? '?'} chia sẻ`
+    : '';
+  const parentBlock = p.url || p.text
+    ? `\n\nDƯỚI BÀI: ${String(p.text ?? '').trim().slice(0, 400) || '(không bắt được nội dung bài)'}`
+      + (parentStats ? `\n(bài lúc mình vào: ${parentStats})` : '')
+      + (p.url ? `\n${p.url}` : '')
+    : '';
+  const block = `\n\n— ĐÃ ${b.mode === 'engage' ? 'TƯƠNG TÁC' : 'COMMENT'} (${stamp}${b.account ? `, bằng ${b.account}` : ''}):\n${text || '(không bắt được nguyên văn)'}${parentBlock}`;
+  const bodyOut = String(row.body_md ?? '') + block;
 
   const note = {
     kind: 'plan-result', at: new Date().toISOString(), url,
+    mode: b.mode === 'engage' ? 'engage' : 'comment',
+    ...(b.account ? { account: String(b.account) } : {}),
     ...(b.cardId ? { cardId: Number(b.cardId) } : {}),
-    ...(text ? { chars: text.length } : {}),
+    ...(text ? { text, chars: text.length } : {}),
+    ...(p.url || p.text ? {
+      parent: {
+        ...(p.url ? { url: String(p.url) } : {}),
+        ...(p.text ? { text: String(p.text).slice(0, 1000) } : {}),
+        ...(typeof p.reactions === 'number' ? { reactions: p.reactions } : {}),
+        ...(typeof p.comments === 'number' ? { comments: p.comments } : {}),
+        ...(typeof p.shares === 'number' ? { shares: p.shares } : {}),
+      },
+    } : {}),
   };
   await db.execute(sql`
     UPDATE content_pieces

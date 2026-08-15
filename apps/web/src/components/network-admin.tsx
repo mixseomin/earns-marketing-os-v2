@@ -5,7 +5,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Offer, Publisher, Registration, UserOption, CatalogOffer } from '@/lib/network/data';
+import type { Offer, Publisher, Registration, CatalogOffer } from '@/lib/network/data';
 import type { NetworkReport } from '@/lib/network/report';
 import type { RevenueDayRow } from '@/lib/revenue/by-day';
 import { RevenueCalendar } from './revenue-calendar';
@@ -15,7 +15,8 @@ import { SUB_PARAM } from '@/lib/network/link';
 import { readShallowParam, writeShallowParam } from '@/lib/url-shallow';
 import {
   saveOffer, toggleOffer, deleteOffer, savePublisher, deletePublisher,
-  decideRegistration, setRegistrationRate, grantOffer, type OfferInput, type PublisherInput,
+  decideRegistration, setRegistrationRate, grantOffer, sendSetupLink,
+  type OfferInput, type PublisherInput,
 } from '@/lib/actions/network';
 import {
   Tabs, Section, SimpleTable, DataTable, StatsStrip, EmptyState, Pill, MultiSelect, Segmented,
@@ -36,9 +37,9 @@ const TRACKABLE = Object.entries(SUB_PARAM).filter(([, v]) => v !== null).map(([
 const REG_LABEL: Record<string, string> = { approved: 'đang chạy', pending: 'chờ duyệt', rejected: 'từ chối' };
 const REG_COLOR: Record<string, string> = { approved: 'var(--ok)', pending: 'var(--warn)', rejected: 'var(--fg-3)' };
 
-export function NetworkAdmin({ offers, publishers, registrations, report, origin, users, catalog, days }: {
+export function NetworkAdmin({ offers, publishers, registrations, report, origin, catalog, days }: {
   offers: Offer[]; publishers: Publisher[]; registrations: Registration[];
-  report: NetworkReport; origin: string; users: UserOption[];
+  report: NetworkReport; origin: string;
   catalog: CatalogOffer[]; days: number;
 }) {
   const router = useRouter();
@@ -47,6 +48,8 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
   const [editOffer, setEditOffer] = useState<Offer | 'new' | { fromCatalog: CatalogOffer } | null>(null);
   const [editPub, setEditPub] = useState<Publisher | 'new' | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  // Link đặt mật khẩu vừa phát — hiện MỘT lần để admin copy gửi đi; không lưu, không hiện lại.
+  const [setupLink, setSetupLink] = useState<string | null>(null);
 
   // Tab nằm trong URL để F5 / gửi link cho người khác vẫn về đúng chỗ — nhưng ghi NÔNG, không
   // router.replace: replace kích server render lại cả trang (gọi lại API CJ) chỉ để đổi tab.
@@ -112,7 +115,8 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
       )}
 
       {tab === 'publisher' && (
-        <PublisherTab publishers={publishers} users={users} report={report} busy={busy}
+        <PublisherTab publishers={publishers} report={report} busy={busy} setupLink={setupLink}
+          onSetup={(p) => start(async () => { const r = await sendSetupLink(p.id); setSetupLink(r.ok ? r.url ?? null : null); setErr(r.ok ? null : r.error ?? 'lỗi'); })}
           onNew={() => setEditPub('new')} onEdit={setEditPub}
           onDelete={(p) => run(() => deletePublisher(p.id))} />
       )}
@@ -134,7 +138,7 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
           onClose={() => setEditOffer(null)} onSave={(v) => run(() => saveOffer(v))} />
       )}
       {editPub && (
-        <PublisherForm pub={editPub === 'new' ? null : editPub} users={users} busy={busy}
+        <PublisherForm pub={editPub === 'new' ? null : editPub} busy={busy}
           onClose={() => setEditPub(null)} onSave={(v) => run(() => savePublisher(v))} />
       )}
     </div>
@@ -410,9 +414,10 @@ function CatalogTab({ catalog, offers, busy, onBuild }: {
 }
 
 // ── Publisher ────────────────────────────────────────────────────────────────
-function PublisherTab({ publishers, users, report, busy, onNew, onEdit, onDelete }: {
-  publishers: Publisher[]; users: UserOption[]; report: NetworkReport; busy: boolean;
+function PublisherTab({ publishers, report, busy, setupLink, onNew, onEdit, onDelete, onSetup }: {
+  publishers: Publisher[]; report: NetworkReport; busy: boolean; setupLink: string | null;
   onNew: () => void; onEdit: (p: Publisher) => void; onDelete: (p: Publisher) => void;
+  onSetup: (p: Publisher) => void;
 }) {
   const stat = new Map(report.pubs.map((p) => [p.publisher, p]));
   const cols: SimpleColumn<Publisher>[] = [
@@ -422,10 +427,17 @@ function PublisherTab({ publishers, users, report, busy, onNew, onEdit, onDelete
       <Pill label={p.status} size="xs" tone="soft"
         color={p.status === 'active' ? 'var(--ok)' : p.status === 'banned' ? 'var(--danger)' : 'var(--warn)'} />
     ) },
-    { key: 'u', header: 'User đăng nhập', cell: (p) => (
-      <span style={{ ...mono, ...(p.userId ? {} : dim) }}>
-        {users.find((u) => u.id === p.userId)?.email ?? 'chưa gán'}
-      </span>
+    { key: 'e', header: 'Email đăng nhập', cell: (p) => (
+      <span style={{ ...mono, ...(p.email ? {} : dim) }}>{p.email ?? 'chưa có'}</span>
+    ) },
+    { key: 'pw', header: 'Mật khẩu', cell: (p) => (
+      p.hasPassword
+        ? <Pill label="đã đặt" color="var(--ok)" size="xs" tone="soft" />
+        : <button type="button" disabled={busy || !p.email} onClick={() => onSetup(p)} style={btn('var(--accent)')}
+            title={p.email ? 'Phát link một lần để publisher TỰ đặt mật khẩu — mình không bao giờ biết nó'
+                           : 'Điền email cho publisher này trước'}>
+            Phát link đặt mật khẩu
+          </button>
     ) },
     { key: 'c', header: 'Click', align: 'right', cell: (p) => <span style={mono}>{stat.get(p.slug)?.clicks ?? 0}</span> },
     { key: 'a', header: 'Được duyệt', align: 'right', cell: (p) => <span style={{ ...mono, color: 'var(--ok)' }}>{usd(stat.get(p.slug)?.approved ?? 0)}</span> },
@@ -440,8 +452,18 @@ function PublisherTab({ publishers, users, report, busy, onNew, onEdit, onDelete
   ];
   return (
     <Section title="Publisher" defaultOpen
-      subtitle="có click rồi thì chuyển paused/banned, đừng xoá — xoá là click thành vô chủ"
+      subtitle="tài khoản RIÊNG của publisher — không dùng chung user MOS2, không vào được dashboard nội bộ"
       headerRight={<button type="button" onClick={onNew} style={btn('var(--accent)')}>+ Publisher mới</button>}>
+      {setupLink && (
+        <div style={{ marginBottom: 10, padding: '8px 10px', border: '1px solid var(--accent-line)', borderRadius: 4 }}>
+          <div style={{ fontSize: 11, color: 'var(--fg-2)', marginBottom: 4 }}>
+            Gửi link này cho publisher — sống 7 ngày, dùng một lần. Mật khẩu do chính họ gõ, mình không thấy.
+          </div>
+          <input readOnly value={setupLink} onFocus={(e) => e.currentTarget.select()}
+            style={{ ...mono, width: '100%', padding: '5px 7px', background: 'var(--bg-2)', color: 'var(--accent)',
+                     border: '1px solid var(--line)', borderRadius: 4 }} />
+        </div>
+      )}
       {publishers.length === 0
         ? <EmptyState icon="👥" compact title="Chưa có publisher nào" />
         : <SimpleTable rows={publishers} columns={cols} getRowKey={(p) => p.slug} />}
@@ -449,13 +471,13 @@ function PublisherTab({ publishers, users, report, busy, onNew, onEdit, onDelete
   );
 }
 
-function PublisherForm({ pub, users, busy, onClose, onSave }: {
-  pub: Publisher | null; users: UserOption[]; busy: boolean; onClose: () => void; onSave: (v: PublisherInput) => void;
+function PublisherForm({ pub, busy, onClose, onSave }: {
+  pub: Publisher | null; busy: boolean; onClose: () => void; onSave: (v: PublisherInput) => void;
 }) {
   const [v, setV] = useState<PublisherInput>({
     id: pub?.id, slug: pub?.slug ?? '', name: pub?.name ?? '',
     kind: pub?.kind ?? 'inhouse', status: pub?.status ?? 'active',
-    note: pub?.note ?? '', userId: pub?.userId ?? null,
+    note: pub?.note ?? '', email: pub?.email ?? '',
   });
   const set = <K extends keyof PublisherInput>(k: K, val: PublisherInput[K]) => setV((s) => ({ ...s, [k]: val }));
   const [initial] = useState(() => JSON.stringify(v));
@@ -478,12 +500,9 @@ function PublisherForm({ pub, users, busy, onClose, onSave }: {
           <option value="paused">paused</option>
           <option value="banned">banned</option>
         </SelectField>
-        <SelectField label="User đăng nhập" value={v.userId ? String(v.userId) : ''}
-          onChange={(e) => set('userId', e.target.value ? Number(e.target.value) : null)}
-          hint="Chưa có user thì tạo ở /team rồi quay lại chọn. Mật khẩu do chính họ đặt.">
-          <option value="">— chưa gán —</option>
-          {users.map((u) => <option key={u.id} value={u.id}>{u.name} · {u.email}</option>)}
-        </SelectField>
+        <TextField label="Email đăng nhập" type="email" mono value={v.email}
+          onChange={(e) => set('email', e.target.value)}
+          hint="Tài khoản RIÊNG của publisher, không phải user MOS2. Lưu xong thì phát link để họ tự đặt mật khẩu." />
         <TextAreaField label="Ghi chú" rows={2} value={v.note} onChange={(e) => set('note', e.target.value)} />
       </div>
       <FormModalFooter>

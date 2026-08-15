@@ -46,7 +46,10 @@ export async function POST(req: Request) {
   const parentStats = [p.reactions, p.comments, p.shares].some((n) => typeof n === 'number')
     ? `${p.reactions ?? '?'} cảm xúc · ${p.comments ?? '?'} bình luận · ${p.shares ?? '?'} chia sẻ`
     : '';
-  const parentBlock = p.url || p.text
+  // Đã chốt bài ở khối CHUẨN BỊ rồi thì không chép lại bài gốc lần nữa — cùng một bài in hai lần
+  // trong một thẻ chỉ làm người đọc phải so xem hai bản có khác nhau chỗ nào.
+  const hasPrep = String(row.body_md ?? '').includes('CHUẨN BỊ (');
+  const parentBlock = hasPrep ? '' : p.url || p.text
     ? `\n\nDƯỚI BÀI: ${String(p.text ?? '').trim().slice(0, 400) || '(không bắt được nội dung bài)'}`
       + (parentStats ? `\n(bài lúc mình vào: ${parentStats})` : '')
       + (p.url ? `\n${p.url}` : '')

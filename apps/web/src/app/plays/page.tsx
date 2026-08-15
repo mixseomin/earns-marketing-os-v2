@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
+import { PlanLiveDock } from '@/components/plan-live-dock';
 import { BacklinksPage } from '@/components/backlinks-page';
 import { getMode, listProjects, listPlatforms, listAccounts, listMedia } from '@/lib/data';
 import { listTeamMembers } from '@/lib/actions/team';
@@ -55,6 +56,8 @@ export default async function GlobalPlaysRoute() {
         projectId="" slug={null} siteLabel="All projects" tasks={tasks} followups={followups} pieces={pieces}
         project={(projects.find((p) => resolveSiteSlug(p.id)) ?? projects[0])!} platforms={platforms} accounts={accounts}
         teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" />
+      {/* Lượt tại chỗ đang chạy — hiện ở cả màn hình gộp, vì việc có thể thuộc ngày hôm trước. */}
+      <PlanLiveDock />
     </AppShell>
   );
 }

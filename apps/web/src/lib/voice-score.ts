@@ -20,7 +20,7 @@ const THROAT = /(it's worth noting|it is worth noting|it's important to note|it 
 const CONTRACTION = /\b\w+'(s|t|re|ve|ll|d|m)\b/gi;
 // Vệt NGƯỜI GÕ: contraction rụng dấu nháy, viết tắt, chữ thường đầu câu. Comment sạch bong 100%
 // chính tả vừa bị máy chấm-AI bắt, vừa lạc giữa luồng người ta gõ vội trên điện thoại.
-const HANDTYPED = /\b(dont|isnt|cant|wont|didnt|doesnt|wasnt|arent|thats|youre|theyre|ive|im|hes|shes|whats|gonna|kinda|yeah|yep|nah|tbh|imo|fwiw|ngl|prob|def|w\/|&)\b|^[a-z]/gm;
+const HANDTYPED = /\b(dont|isnt|cant|wont|didnt|doesnt|wasnt|arent|thats|youre|theyre|ive|im|hes|shes|whats|gonna|kinda|til|tho|yeah|yep|nah|tbh|imo|fwiw|ngl|prob|def|w\/|&)\b/gi;
 const NUMBER = /(\$\s?[\d,.]+|\b\d+(\.\d+)?\s?(percent|%)|\b(19|20)\d{2}\b|\b\d[\d,.]*\b)/g;
 const PROPER = /\b([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})+|[A-Z]{2,})\b/g;
 
@@ -44,7 +44,7 @@ export function prose(md: string): string {
 export interface VoiceScore {
   words: number; sentences: number; spread: number;
   hedgesPer200: number; banned: string[]; throat: string[]; marked: number;
-  checkablePer100: number; contractions: number; handTyped: number; emDashes: number;
+  checkablePer100: number; contractions: number; handTyped: number; capRate: number; emDashes: number;
   hard: string[]; soft: string[]; ok: boolean; human100: number;
 }
 
@@ -65,6 +65,10 @@ export function voiceScore(raw: string, mode: 'post' | 'comment' = 'post'): Voic
     checkablePer100: per(hits(t, NUMBER).length + hits(t, PROPER).length, 100),
     contractions: hits(t, CONTRACTION).length,
     handTyped: hits(t, HANDTYPED).length,
+    // Bỏ hoa đầu câu KHÔNG phải vệt gõ tay — nó đọc ra nham nhở. Vệt đúng nghĩa là contraction
+    // rụng dấu nháy và viết tắt; chữ hoa vẫn phải đa phần đúng thì mới ra giọng người gõ vội.
+    capRate: (() => { const ss = sentencesOf(t); if (!ss.length) return 1;
+      return +(ss.filter((x) => /^[A-Z0-9$"'(]/.test(x)).length / ss.length).toFixed(2); })(),
     emDashes: hits(t, /—|–/g).length,
   };
   const hard: string[] = [];
@@ -86,12 +90,14 @@ export function voiceScore(raw: string, mode: 'post' | 'comment' = 'post'): Voic
     if (m.words > 70) hard.push(`dài ${m.words} từ — comment quá 70 từ đọc như thông cáo`);
     else if (m.words > 45) soft.push(`hơi dài (${m.words} từ, nên dưới 45)`);
     if (m.handTyped === 0) soft.push('không vệt gõ tay nào — sạch quá thành giọng máy');
+    if (m.capRate < 0.6) soft.push(`${Math.round((1 - m.capRate) * 100)}% câu không viết hoa đầu — nham nhở`);
   }
   let human100 = 100;
   human100 -= m.emDashes * 25 + banned.length * 15 + throat.length * 15;
   if (mode === 'comment') {
     if (m.words > 70) human100 -= 25; else if (m.words > 45) human100 -= 12;
     if (m.handTyped === 0) human100 -= 15;
+    if (m.capRate < 0.6) human100 -= 12;
   }
   if (m.words >= 60) {
     if (m.spread < 10) human100 -= 12;

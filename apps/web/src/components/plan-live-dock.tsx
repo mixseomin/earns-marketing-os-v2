@@ -15,7 +15,7 @@ const ago = (iso: string) => {
   return `${Math.round(s / 60)} phút trước`;
 };
 
-export function PlanLiveDock({ projectId }: { projectId: string }) {
+export function PlanLiveDock({ projectId }: { projectId?: string }) {
   const [live, setLive] = useState<PlanLive[]>([]);
   const [, force] = useState(0);
 
@@ -34,7 +34,8 @@ export function PlanLiveDock({ projectId }: { projectId: string }) {
   return (
     <div style={{ position: 'fixed', left: 16, bottom: 16, zIndex: 60, display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 420 }}>
       {live.map((l) => (
-        <div key={l.pieceId} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 11px', borderRadius: 8,
+        <a key={l.pieceId} href={`/p/${l.projectId}/plays?piece=${l.pieceId}`}
+          style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 11px', borderRadius: 8, textDecoration: 'none',
           background: 'var(--bg-2)', border: '1px solid var(--neon-blue)', boxShadow: '0 6px 20px rgba(0,0,0,.35)', fontSize: 12 }}>
           <span style={{ width: 7, height: 7, borderRadius: 999, background: 'var(--neon-blue)', flexShrink: 0,
             animation: 'planLivePulse 1.4s ease-in-out infinite' }} />
@@ -44,10 +45,10 @@ export function PlanLiveDock({ projectId }: { projectId: string }) {
               <span style={{ color: 'var(--fg-3)' }}> · {placeName(l.place) || l.title}</span>
             </div>
             <div style={{ color: 'var(--fg-3)', fontSize: 10.5, fontFamily: 'var(--font-mono)' }}>
-              #{l.pieceId} · {ago(l.at)}{l.note ? ` · ${l.note}` : ''}
+              #{l.pieceId} · lịch {l.date} · {ago(l.at)}{l.note ? ` · ${l.note}` : ''}
             </div>
           </div>
-        </div>
+        </a>
       ))}
       <style>{'@keyframes planLivePulse{0%,100%{opacity:1}50%{opacity:.25}}'}</style>
     </div>

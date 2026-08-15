@@ -17,15 +17,18 @@ export type PlanLive = { pieceId: number; stage: string; note: string; at: strin
 export async function getPlanLive(projectId?: string): Promise<PlanLive[]> {
   const db = getDb();
   if (!db) return [];
+  // 6 hàng trong bảng có ai_notes là OBJECT chứ không phải mảng (dữ liệu cũ). jsonb_array_elements
+  // gặp object là ném "cannot extract elements from an object" và cả truy vấn chết — tức là một
+  // hàng rác làm trắng cả danh sách. Lọc kiểu ngay tại chỗ đọc.
+  const notes = sql`jsonb_array_elements(CASE WHEN jsonb_typeof(p.ai_notes) = 'array' THEN p.ai_notes ELSE '[]'::jsonb END)`;
   const rows = await db.execute(sql`
     SELECT p.id, p.title, p.tags, p.project_id, to_char(p.scheduled_at, 'YYYY-MM-DD') AS date,
            n.note,
-           (SELECT max(x->>'at') FROM jsonb_array_elements(coalesce(p.ai_notes, '[]'::jsonb)) x
-             WHERE x->>'kind' = 'plan-prepare') AS prep_at
+           (SELECT max(x->>'at') FROM ${notes} x WHERE x->>'kind' = 'plan-prepare') AS prep_at
       FROM content_pieces p
       LEFT JOIN LATERAL (
         SELECT x AS note
-          FROM jsonb_array_elements(coalesce(p.ai_notes, '[]'::jsonb)) x
+          FROM ${notes} x
          WHERE x->>'kind' = 'plan-live'
            AND (x->>'at')::timestamptz > now() - interval '6 hours'
            AND coalesce(x->>'stage', '') NOT IN ('', 'xong')
@@ -36,10 +39,8 @@ export async function getPlanLive(projectId?: string): Promise<PlanLive[]> {
        AND p.publish_url IS NULL
        ${projectId ? sql`AND p.project_id = ${projectId}` : sql``}
        AND (n.note IS NOT NULL
-            OR EXISTS (SELECT 1 FROM jsonb_array_elements(coalesce(p.ai_notes, '[]'::jsonb)) x
-                        WHERE x->>'kind' = 'plan-prepare'))
-     ORDER BY coalesce(n.note->>'at', (SELECT max(x->>'at') FROM jsonb_array_elements(coalesce(p.ai_notes, '[]'::jsonb)) x
-                                        WHERE x->>'kind' = 'plan-prepare')) DESC
+            OR EXISTS (SELECT 1 FROM ${notes} x WHERE x->>'kind' = 'plan-prepare'))
+     ORDER BY coalesce(n.note->>'at', (SELECT max(x->>'at') FROM ${notes} x WHERE x->>'kind' = 'plan-prepare')) DESC
      LIMIT 6
   `);
   return (rows as unknown as Array<Record<string, unknown>>).map((r) => {

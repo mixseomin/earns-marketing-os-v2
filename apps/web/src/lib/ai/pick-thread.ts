@@ -89,12 +89,16 @@ Trả JSON: { "index": <số hoặc null>, "why": "<1 câu tiếng Việt: vì s
   }
 }
 
-/** Bài đáng THẢ CẢM XÚC: ít tương tác nhất + còn mới. Không cần model — luật rõ thì đừng gọi AI.
+/** Bài đáng THẢ CẢM XÚC: còn mới VÀ đang ít tương tác. Không cần model — luật rõ thì đừng gọi AI.
  *  Ít like thì tên mình nằm trong danh sách 3-5 người và người đăng nhìn thấy; bài 200 like thì
- *  mình là hạt cát. Bài quá cũ thì thả cũng không ai biết. */
-export function pickToEngage(threads: ThreadCandidate[], take = 5, maxAgeH = 24): ThreadCandidate[] {
+ *  mình là hạt cát. Bài quá cũ thì thả cũng không ai biết.
+ *
+ *  CÓ TRẦN, không chỉ xếp thứ tự: xếp rồi lấy N đầu thì hôm nào nhóm ít bài mới là lọt cả bài 200
+ *  like vào cho đủ số — đúng cái việc mà luật này sinh ra để tránh. Không bài nào dưới trần thì
+ *  trả rỗng = bỏ lượt. */
+export function pickToEngage(threads: ThreadCandidate[], take = 5, maxAgeH = 24, maxLikes = 30): ThreadCandidate[] {
   return threads
-    .filter((t) => t.url && (t.ageH == null || t.ageH <= maxAgeH))
+    .filter((t) => t.url && (t.ageH == null || t.ageH <= maxAgeH) && (t.likes == null || t.likes <= maxLikes))
     .sort((a, b) => (a.likes ?? 0) - (b.likes ?? 0) || (a.ageH ?? 99) - (b.ageH ?? 99))
     .slice(0, take);
 }

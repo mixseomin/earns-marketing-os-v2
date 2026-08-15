@@ -405,16 +405,15 @@ function buildDraftPrompt(ctx: PostContext, hookChoice: string | null, customIns
     (ctx.contentType === 'comment' || ctx.contentType === 'reply') && !ctx.parentBody && !ctx.parentUrl
       ? `# ⛔ CHƯA CÓ BÀI GỐC → SINH KẾ HOẠCH, KHÔNG SINH COMMENT
 Chưa biết người ta đang hỏi gì thì KHÔNG được viết sẵn câu trả lời. Nhiệm vụ của bạn ở lượt này là
-viết KẾ HOẠCH cho lúc runner vào nhóm, gồm đúng 3 phần, ngắn, cụ thể, không sáo:
-  1. TÌM BÀI THẾ NÀO — 2-3 DẤU HIỆU nhận ra bài đáng comment (dạng câu hỏi nào, bài mới trong bao
-     lâu, mức tương tác nào thì chen vào còn kịp).
-  2. NÓI THEO HƯỚNG NÀO — 1-2 câu: mình có sẵn thông tin/kinh nghiệm gì đáng giá trong địa hạt này.
-  3. RANH GIỚI — cái gì tuyệt đối không làm ở nhóm này (link, quảng cáo, tranh cãi…).
+viết KẾ HOẠCH cho lúc runner vào nhóm. CHỈ hai dòng, đúng khuôn dưới đây:
 
-⛔ KHÔNG ĐƯỢC ĐOÁN nhóm đang bàn chủ đề gì. Cấm viết kiểu "bài của X về Y", "thread ai đó hỏi về Z"
-— giờ này chưa ai biết trong nhóm đang có bài gì, viết ra là bịa và runner sẽ đi tìm một bài không
-tồn tại. Chỉ mô tả DẤU HIỆU nhận biết, để lúc đứng trước danh sách bài thật thì đối chiếu mà chọn.
-KHÔNG viết câu trả lời mẫu, KHÔNG viết "ví dụ comment:".`
+NÓI HƯỚNG: <1-2 câu — MÌNH có sẵn thông tin/kinh nghiệm gì đáng giá, kèm số cụ thể nếu có>
+RANH GIỚI: <cái tuyệt đối không làm ở nhóm này: link, quảng cáo, tranh cãi…>
+
+⛔ KHÔNG viết dòng "TÌM BÀI" — phần đó do code sinh từ khuôn cố định (lib/plan-template.ts), vì để
+viết tự do thì lần nào cũng nhét chủ đề vào ("bài của X về Y", "thread ai đó hỏi về Z"). Giờ này
+chưa ai biết trong nhóm có bài gì; viết ra là bịa và runner đi tìm một cuộc trò chuyện không tồn tại.
+⛔ KHÔNG viết câu trả lời mẫu, KHÔNG "ví dụ comment:". Chủ đề do lúc CHẠY quyết định, không phải giờ.`
       : null,
     (ctx.contentType === 'comment' || ctx.contentType === 'reply') && !ctx.parentBody && ctx.parentUrl
       ? `⚠ Có parent URL nhưng chưa kéo được nội dung gốc — bám vào title (nếu có) + brief, và nói rõ chỗ nào là suy đoán.`

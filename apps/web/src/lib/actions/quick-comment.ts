@@ -2,11 +2,8 @@
 
 // Soạn 1 comment/reply CÓ BỐI CẢNH: tạo card gắn parent_* → gọi AI sinh nháp → trả về cho ext.
 //
-// Dùng chung cho HAI lối vào, vì bản chất là một việc:
-//   · /api/ext/seeding/quick-comment — người mở một thread rồi bấm soạn (lối cũ)
-//   · /api/ext/plan/run              — chạy kế hoạch đã lên lịch: máy tự đọc nhóm, tự chọn thread
-// Trước đây chỉ có lối 1 và toàn bộ logic nằm trong route; lối 2 mà chép lại là hai bản trôi khác
-// nhau ngay lần sửa prompt đầu tiên.
+// Lối vào: /api/ext/seeding/quick-comment — người (hoặc Claude qua browser) đang mở một thread rồi
+// bấm soạn. Logic để ở lib chứ không nằm trong route để lối vào thứ hai (nếu có) không phải chép lại.
 
 import { eq, sql } from 'drizzle-orm';
 import { getDb, cards } from '@mos2/db';

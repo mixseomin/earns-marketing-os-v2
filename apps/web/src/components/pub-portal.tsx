@@ -71,6 +71,15 @@ export function PubPortal({ pubSlug, pubName, offers, report, origin }: {
   const selToken = approved.find((o) => o.slug === sel)?.linkToken ?? null;
   const link = selToken ? trackingUrl(origin, selToken, utm) : '';
 
+  // Nuốt lỗi ở đây là lý do lần trước hỏng mà không ai biết: bấm xong không có gì đổi, cũng không
+  // có gì báo. Có lỗi thì phải in ra.
+  const [reqErr, setReqErr] = useState<string | null>(null);
+  const ask = (offerId: number) => start(async () => {
+    const r = await requestOffer(offerId);
+    setReqErr(r.ok ? null : r.error ?? 'Không gửi được yêu cầu');
+    if (r.ok) router.refresh();
+  });
+
   const cards: StatCard[] = [
     { key: 'c', label: 'Click', value: String(me?.clicks ?? 0), color: 'var(--neon-cyan)' },
     { key: 'o', label: 'Đơn', value: String(me?.orders ?? 0), color: 'var(--fg-0)' },
@@ -89,16 +98,23 @@ export function PubPortal({ pubSlug, pubName, offers, report, origin }: {
     { key: 'cat', header: 'Ngành', cell: (o) => <span style={dim}>{o.category ?? '—'}</span> },
     { key: 'r', header: 'Hoa hồng', cell: (o) => <span style={mono}>{o.publisherRate ?? o.upstreamRate ?? '—'}</span> },
     { key: 't', header: 'Điều kiện ghi nhận', cell: (o) => <span style={{ ...dim, fontSize: 11 }}>{o.terms ?? '—'}</span> },
-    { key: 's', header: 'Trạng thái', cell: (o) => (
-      o.regStatus
-        ? <Pill label={REG_LABEL[o.regStatus] ?? o.regStatus} color={REG_COLOR[o.regStatus] ?? 'var(--fg-3)'} size="xs" tone="soft" />
-        : <button type="button" disabled={busy}
-            onClick={() => start(async () => { await requestOffer(o.id); router.refresh(); })}
-            style={{ padding: '2px 8px', fontSize: 10, fontFamily: 'var(--font-mono)', background: 'transparent',
-                     color: 'var(--accent)', border: '1px solid var(--accent-line)', borderRadius: 4, cursor: 'pointer' }}>
-            Xin chạy
-          </button>
-    ) },
+    // Chưa xin → "Xin chạy". Bị từ chối → "Xin lại": server VẪN nhận (đổi kênh, sửa cách chạy) nên
+    // UI phải mở đúng cái server cho, không thì publisher tưởng cửa đã đóng hẳn.
+    { key: 's', header: 'Trạng thái', cell: (o) => {
+      const again = o.regStatus === 'rejected';
+      return (
+        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+          {o.regStatus && <Pill label={REG_LABEL[o.regStatus] ?? o.regStatus} color={REG_COLOR[o.regStatus] ?? 'var(--fg-3)'} size="xs" tone="soft" />}
+          {(!o.regStatus || again) && (
+            <button type="button" disabled={busy} onClick={() => ask(o.id)}
+              style={{ padding: '2px 8px', fontSize: 10, fontFamily: 'var(--font-mono)', background: 'transparent',
+                       color: 'var(--accent)', border: '1px solid var(--accent-line)', borderRadius: 4, cursor: 'pointer' }}>
+              {again ? 'Xin lại' : 'Xin chạy'}
+            </button>
+          )}
+        </span>
+      );
+    } },
   ];
 
   const convCols: SimpleColumn<NetworkReport['conversions'][number]>[] = [
@@ -188,10 +204,11 @@ export function PubPortal({ pubSlug, pubName, offers, report, origin }: {
         )}
       </Section>
 
-      <Section title="Chiến dịch" subtitle="đăng ký rồi được duyệt mới tạo được link" defaultOpen>
+      <Section title="Chiến dịch" subtitle="muốn chạy thêm cái nào thì bấm Xin chạy — duyệt xong link hiện ở khối trên" defaultOpen>
         {offers.length === 0
           ? <EmptyState icon="📦" compact title="Chưa có chiến dịch nào" />
           : <SimpleTable rows={offers} columns={offerCols} getRowKey={(o) => o.slug} />}
+        {reqErr && <p style={{ fontSize: 11, color: 'var(--warn)', marginTop: 8 }}>{reqErr}</p>}
       </Section>
 
       <Section title="Đổi mật khẩu" defaultOpen={false}>

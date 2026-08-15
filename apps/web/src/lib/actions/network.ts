@@ -11,7 +11,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { getCurrentUser } from '@/lib/auth';
 import { checkOffer, checkPublisher, newLinkToken, PUB_ORIGIN } from '@/lib/network/link';
-import { issueSetupToken, adminSetPassword } from '@/lib/network/auth';
+import { issueSetupToken, adminSetPassword, currentPublisher } from '@/lib/network/auth';
 
 type Res = { ok: boolean; error?: string };
 const OK: Res = { ok: true };
@@ -208,14 +208,18 @@ export async function grantOffer(publisherId: number, offerId: number): Promise<
   return OK;
 }
 
+/** Publisher tự xin chạy thêm một chiến dịch. Đây là đường DUY NHẤT họ mở thêm offer cho mình. */
 export async function requestOffer(offerId: number): Promise<Res> {
-  const me = await getCurrentUser();
-  if (!me) return { ok: false, error: 'Chưa đăng nhập' };
+  // Danh tính publisher, KHÔNG phải user MOS2. Bản cũ tra `net_publishers.user_id` — cột đó đã bị
+  // DROP ở 0174 lúc tách hai hệ đăng nhập, nên nút "Xin chạy" ném lỗi SQL và chết lặng.
+  const pub = await currentPublisher();
+  if (!pub) return { ok: false, error: 'Chưa đăng nhập' };
   const db = getDb();
   if (!db) return { ok: false, error: 'DB chưa sẵn sàng' };
-  const r = await db.execute(sql`SELECT id FROM net_publishers WHERE user_id=${me.id} AND status='active' LIMIT 1`);
-  const pub = (r as unknown as Array<{ id: number }>)[0];
-  if (!pub) return { ok: false, error: 'Tài khoản này chưa gắn với publisher nào' };
+  // offerId đến thẳng từ client. Chiến dịch đã tắt thì không hiện trong danh sách, nhưng gọi thẳng
+  // server action thì vẫn xin được — chặn ở đây, đừng tin cái danh sách đã render.
+  const o = await db.execute(sql`SELECT id FROM net_offers WHERE id=${offerId} AND active LIMIT 1`);
+  if (!(o as unknown as unknown[]).length) return { ok: false, error: 'Chiến dịch không tồn tại hoặc đã dừng' };
   // Xin lại chiến dịch đã bị từ chối thì cho (đổi kênh, sửa cách chạy). Đã duyệt rồi thì GIỮ —
   // một cú bấm nhầm không được hạ nó về pending và cắt link đang chạy.
   await db.execute(sql`

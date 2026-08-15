@@ -25,13 +25,21 @@ export async function POST(req: Request) {
   if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   const b = await req.json().catch(() => ({})) as {
-    pieceId?: number; points?: string[]; source?: string; draft?: string; angle?: string;
+    pieceId?: number; points?: string[]; source?: string; draft?: string; angle?: string; anyway?: boolean;
     parent?: { url?: string; text?: string; reactions?: number; comments?: number; shares?: number };
   };
   const pieceId = Number(b.pieceId ?? 0);
   if (!pieceId) return errorResponse('pieceId required', 400);
   const p = b.parent ?? {};
   if (!p.url && !p.text) return errorResponse('parent.url hoặc parent.text required — chuẩn bị mà không nói chọn bài nào thì vô nghĩa', 400);
+  // Bài đã đông bình luận thì comment của mình nằm dưới đáy, không ai cuộn tới: công sức đọc và
+  // viết đổ vào một chỗ không ai đọc. Bài mới, ít bình luận thì cùng một câu đó nằm ngay trên đầu.
+  // Chặn ở đây chứ không nhắc trong tài liệu, vì bài 900 bình luận là bài trông "hot" nhất — đúng
+  // cái bẫy dễ chọn. Cần cãi thì truyền anyway:true và nói lý do.
+  const COMMENT_CEILING = 60;
+  if (!b.anyway && typeof p.comments === 'number' && p.comments > COMMENT_CEILING) {
+    return errorResponse(`Bài đã ${p.comments} bình luận (trần ${COMMENT_CEILING}) — comment của mình sẽ chìm. Chọn bài mới/ít bình luận hơn, hoặc gửi lại với anyway:true nếu có lý do.`, 400);
+  }
 
   const row = firstRow(await db.execute(sql`
     SELECT id, body_md FROM content_pieces WHERE id = ${pieceId} LIMIT 1

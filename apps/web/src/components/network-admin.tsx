@@ -18,17 +18,17 @@ import {
   decideRegistration, setRegistrationRate, grantOffer, type OfferInput, type PublisherInput,
 } from '@/lib/actions/network';
 import {
-  Tabs, Section, SimpleTable, StatsStrip, EmptyState, Pill, MultiSelect, Segmented,
+  Tabs, Section, SimpleTable, DataTable, StatsStrip, EmptyState, Pill, MultiSelect, Segmented,
   FormModal, FormModalFooter, TextField, SelectField, TextAreaField, ConfirmDeleteButton,
-  type SimpleColumn, type StatCard, type TabItem,
+  type SimpleColumn, type DataColumn, type StatCard, type TabItem,
 } from './ui';
 
 const usd = (n: number) => (n >= 10 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`);
 const mono = { fontFamily: 'var(--font-mono)', fontSize: 11 } as const;
 const dim = { color: 'var(--fg-3)' };
 
-type Tab = 'tong-quan' | 'chien-dich' | 'publisher' | 'duyet' | 'don-hang';
-const TABS: Tab[] = ['tong-quan', 'chien-dich', 'publisher', 'duyet', 'don-hang'];
+type Tab = 'tong-quan' | 'chien-dich' | 'danh-muc' | 'publisher' | 'duyet' | 'don-hang';
+const TABS: Tab[] = ['tong-quan', 'chien-dich', 'danh-muc', 'publisher', 'duyet', 'don-hang'];
 
 /** Chỉ network CÓ ô sub-id mới dựng được chiến dịch — không có ô thì click đi ra là mất dấu. */
 const TRACKABLE = Object.entries(SUB_PARAM).filter(([, v]) => v !== null).map(([k]) => k);
@@ -44,7 +44,7 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
   const router = useRouter();
   const [busy, start] = useTransition();
   const [tab, setTab] = useState<Tab>('tong-quan');
-  const [editOffer, setEditOffer] = useState<Offer | 'new' | null>(null);
+  const [editOffer, setEditOffer] = useState<Offer | 'new' | { fromCatalog: CatalogOffer } | null>(null);
   const [editPub, setEditPub] = useState<Publisher | 'new' | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -67,6 +67,8 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
   const items: TabItem<Tab>[] = [
     { key: 'tong-quan', label: 'Tổng quan' },
     { key: 'chien-dich', label: 'Chiến dịch', badge: String(offers.length) },
+    { key: 'danh-muc', label: 'Danh mục offer', badge: String(catalog.length),
+      title: 'Toàn bộ offer affiliate trong MOS2 — chọn một cái để dựng thành chiến dịch' },
     { key: 'publisher', label: 'Publisher', badge: String(publishers.length) },
     { key: 'duyet', label: 'Duyệt & giá', badge: pending.length ? String(pending.length) : undefined,
       title: 'Duyệt đăng ký + đặt giá riêng cho từng publisher' },
@@ -104,6 +106,11 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
           onDelete={(o) => run(() => deleteOffer(o.id))} />
       )}
 
+      {tab === 'danh-muc' && (
+        <CatalogTab catalog={catalog} offers={offers} busy={busy}
+          onBuild={(c) => setEditOffer({ fromCatalog: c })} />
+      )}
+
       {tab === 'publisher' && (
         <PublisherTab publishers={publishers} users={users} report={report} busy={busy}
           onNew={() => setEditPub('new')} onEdit={setEditPub}
@@ -120,7 +127,10 @@ export function NetworkAdmin({ offers, publishers, registrations, report, origin
       {tab === 'don-hang' && <OrderTab report={report} offers={offers} />}
 
       {editOffer && (
-        <OfferForm offer={editOffer === 'new' ? null : editOffer} busy={busy} catalog={catalog}
+        <OfferForm
+          offer={editOffer === 'new' || 'fromCatalog' in (editOffer as object) ? null : editOffer as Offer}
+          seed={typeof editOffer === 'object' && editOffer && 'fromCatalog' in editOffer ? editOffer.fromCatalog : null}
+          busy={busy} catalog={catalog}
           onClose={() => setEditOffer(null)} onSave={(v) => run(() => saveOffer(v))} />
       )}
       {editPub && (
@@ -240,15 +250,32 @@ function OfferTab({ offers, origin, busy, onNew, onEdit, onToggle, onDelete }: {
   );
 }
 
-function OfferForm({ offer, busy, catalog, onClose, onSave }: {
-  offer: Offer | null; busy: boolean; catalog: CatalogOffer[];
+/** slug đề xuất từ tên: bỏ dấu, đ→d, gom ký tự lạ thành gạch. Vẫn sửa được trước khi lưu vì nó
+ *  nằm trong link phát ra ngoài. */
+function slugify(name: string): string {
+  return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+}
+
+function OfferForm({ offer, seed, busy, catalog, onClose, onSave }: {
+  offer: Offer | null;
+  /** Dòng danh mục MOS2 bấm 'Dựng chiến dịch' — điền sẵn form ngay lúc mở, khỏi phải chọn lại. */
+  seed: CatalogOffer | null;
+  busy: boolean; catalog: CatalogOffer[];
   onClose: () => void; onSave: (v: OfferInput) => void;
 }) {
   const [pick, setPick] = useState<string[]>([]);
   const [v, setV] = useState<OfferInput>({
-    id: offer?.id, slug: offer?.slug ?? '', name: offer?.name ?? '', network: offer?.network ?? 'cj',
-    advertiser: offer?.advertiser ?? '', category: offer?.category ?? '', upstreamUrl: offer?.upstreamUrl ?? '',
-    upstreamRate: offer?.upstreamRate ?? '', publisherRate: offer?.publisherRate ?? '',
+    id: offer?.id,
+    slug: offer?.slug ?? (seed ? slugify(seed.name) : ''),
+    name: offer?.name ?? seed?.name ?? '',
+    // Network của danh mục chỉ dùng khi nó THEO DÕI ĐƯỢC; không thì để cj và admin tự đổi.
+    network: offer?.network ?? (seed?.trackable ? seed.network : 'cj'),
+    advertiser: offer?.advertiser ?? seed?.advertiser ?? '',
+    category: offer?.category ?? seed?.vertical ?? '',
+    upstreamUrl: offer?.upstreamUrl ?? seed?.url ?? '',
+    upstreamRate: offer?.upstreamRate ?? seed?.rate ?? '',
+    publisherRate: offer?.publisherRate ?? '',
     terms: offer?.terms ?? '', active: offer?.active ?? true,
   });
   const set = <K extends keyof OfferInput>(k: K, val: OfferInput[K]) => setV((s) => ({ ...s, [k]: val }));
@@ -266,8 +293,7 @@ function OfferForm({ offer, busy, catalog, onClose, onSave }: {
       ...s,
       name: s.name || c.name,
       // slug tự đề xuất từ tên; vẫn sửa được trước khi lưu vì nó nằm trong link phát ra ngoài.
-      slug: s.slug || c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40),
+      slug: s.slug || slugify(c.name),
       // Network của danh mục chỉ đè khi nó THEO DÕI ĐƯỢC; không thì giữ nguyên lựa chọn hiện tại
       // để admin tự chọn — đè bằng một network không có ô sub-id là đẩy họ vào lỗi lúc bấm Lưu.
       network: c.trackable ? c.network : s.network,
@@ -280,7 +306,8 @@ function OfferForm({ offer, busy, catalog, onClose, onSave }: {
 
   return (
     <FormModal kind="generic" action={offer ? 'edit' : 'create'} width="md" dirty={dirty}
-      title={offer ? `Sửa · ${offer.name}` : 'Chiến dịch mới'} onClose={onClose}>
+      title={offer ? `Sửa · ${offer.name}` : seed ? `Dựng từ danh mục · ${seed.name}` : 'Chiến dịch mới'}
+      onClose={onClose}>
       <div style={{ padding: 16, display: 'grid', gap: 10, overflowY: 'auto' }}>
         {!offer && catalog.length > 0 && (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
@@ -327,6 +354,58 @@ function OfferForm({ offer, busy, catalog, onClose, onSave }: {
         </button>
       </FormModalFooter>
     </FormModal>
+  );
+}
+
+// ── Danh mục offer (MOS2) ────────────────────────────────────────────────────
+// Toàn bộ offer affiliate đang có trong MOS2. Dùng <DataTable> chứ không SimpleTable: gần 3.000
+// dòng thì phải có ô tìm + lọc theo cột + cắt trang, mà DataTable lo sẵn cả ba.
+function CatalogTab({ catalog, offers, busy, onBuild }: {
+  catalog: CatalogOffer[]; offers: Offer[]; busy: boolean; onBuild: (c: CatalogOffer) => void;
+}) {
+  // Offer đã dựng thành chiến dịch rồi thì đánh dấu, đừng để dựng trùng — trùng slug sẽ bị chặn ở
+  // server nhưng lúc đó người ta đã điền xong cả form.
+  const built = useMemo(() => new Set(offers.map((o) => o.upstreamUrl)), [offers]);
+  const cols: DataColumn<CatalogOffer>[] = [
+    { key: 'name', header: 'Offer', align: 'left', width: 320, sortValue: (c) => c.name,
+      cell: (c) => (
+        <span>
+          <span style={{ color: 'var(--fg-0)' }}>{c.name}</span>
+          {built.has(c.url) && <Pill label="đã dựng" color="var(--ok)" size="xs" tone="soft" />}
+        </span>
+      ) },
+    { key: 'net', header: 'Network', align: 'left', sortValue: (c) => c.network || 'zz',
+      cell: (c) => c.trackable
+        ? <span style={mono}>{c.network}</span>
+        : <Pill label={c.network || 'chưa rõ'} color="var(--warn)" size="xs" tone="soft"
+            title="Network này không có ô sub-id (hoặc danh mục bỏ trống) — dựng chiến dịch thì phải tự chọn network theo dõi được" /> },
+    { key: 'cat', header: 'Ngành', align: 'left', sortValue: (c) => c.vertical ?? '',
+      cell: (c) => <span style={dim}>{c.vertical ?? '—'}</span> },
+    { key: 'rate', header: 'Hoa hồng', align: 'left', sortValue: (c) => c.rate ?? '',
+      cell: (c) => <span style={mono}>{c.rate ?? '—'}</span> },
+    { key: 'url', header: 'Link', align: 'left', width: 260,
+      cell: (c) => <a href={c.url} target="_blank" rel="noopener noreferrer"
+        style={{ ...mono, ...dim, textDecoration: 'none', display: 'block', overflow: 'hidden',
+                 textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 250 }}>{c.url}</a> },
+    { key: 'act', header: '', align: 'right',
+      cell: (c) => (
+        <button type="button" disabled={busy} onClick={() => onBuild(c)} style={btn('var(--accent)')}>
+          Dựng chiến dịch
+        </button>
+      ) },
+  ];
+  return (
+    <Section title="Danh mục offer · MOS2" defaultOpen
+      subtitle="mọi offer affiliate đang có trong MOS2 — bấm “Dựng chiến dịch” để biến một dòng thành chiến dịch của network">
+      {catalog.length === 0 ? (
+        <EmptyState icon="📚" compact title="Danh mục rỗng"
+          description="Chỉ những offer CÓ affiliate_url mới vào đây — offer thiếu link thì dựng ra cũng không redirect đi đâu." />
+      ) : (
+        <DataTable rows={catalog} columns={cols} getRowKey={(c) => c.id}
+          persistKey="net-catalog" pageSize={50} minWidth={1000}
+          searchPlaceholder="Tìm theo tên offer…" />
+      )}
+    </Section>
   );
 }
 

@@ -11,7 +11,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { getCurrentUser } from '@/lib/auth';
 import { checkOffer, checkPublisher, newLinkToken, PUB_ORIGIN } from '@/lib/network/link';
-import { issueSetupToken } from '@/lib/network/auth';
+import { issueSetupToken, adminSetPassword } from '@/lib/network/auth';
 
 type Res = { ok: boolean; error?: string };
 const OK: Res = { ok: true };
@@ -105,6 +105,8 @@ export interface PublisherInput {
   slug: string; name: string; kind: string; status: string; note?: string;
   /** Email đăng nhập RIÊNG của publisher (bảng net_publishers), không phải user MOS2. */
   email?: string;
+  /** Đặt/đổi mật khẩu cho họ. Bỏ TRỐNG = giữ nguyên mật khẩu cũ (không phải xoá nó). */
+  password?: string;
 }
 
 export async function savePublisher(input: PublisherInput): Promise<Res> {
@@ -131,6 +133,19 @@ export async function savePublisher(input: PublisherInput): Promise<Res> {
     if (m.includes('net_publishers_slug')) return { ok: false, error: `Slug "${slug}" đã có publisher khác dùng` };
     if (m.includes('net_publishers_email')) return { ok: false, error: `Email "${email}" đã có publisher khác dùng` };
     return { ok: false, error: m };
+  }
+
+  // Đặt mật khẩu SAU khi lưu xong, và chỉ khi admin thật sự gõ vào ô đó — ô trống nghĩa là "không
+  // đụng tới", không phải "xoá mật khẩu". Publisher mới thì cần id vừa tạo nên phải tra lại.
+  if (input.password?.trim()) {
+    const idRow = input.id
+      ? [{ id: input.id }]
+      : (await db.execute(sql`SELECT id FROM net_publishers WHERE slug=${slug} LIMIT 1`)) as unknown as Array<{ id: number }>;
+    const pid = Number(idRow[0]?.id);
+    if (pid) {
+      const r = await adminSetPassword(pid, input.password.trim());
+      if (!r.ok) return r;
+    }
   }
   bump();
   return OK;

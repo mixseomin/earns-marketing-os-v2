@@ -431,13 +431,21 @@ function PublisherTab({ publishers, report, busy, setupLink, onNew, onEdit, onDe
       <span style={{ ...mono, ...(p.email ? {} : dim) }}>{p.email ?? 'chưa có'}</span>
     ) },
     { key: 'pw', header: 'Mật khẩu', cell: (p) => (
-      p.hasPassword
-        ? <Pill label="đã đặt" color="var(--ok)" size="xs" tone="soft" />
-        : <button type="button" disabled={busy || !p.email} onClick={() => onSetup(p)} style={btn('var(--accent)')}
-            title={p.email ? 'Phát link một lần để publisher TỰ đặt mật khẩu — mình không bao giờ biết nó'
-                           : 'Điền email cho publisher này trước'}>
-            Phát link đặt mật khẩu
-          </button>
+      <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+        {p.hasPassword
+          ? <Pill label="đã đặt" color="var(--ok)" size="xs" tone="soft" />
+          : <Pill label="chưa có" color="var(--warn)" size="xs" tone="soft" title="Chưa đặt thì họ không đăng nhập được" />}
+        <button type="button" disabled={busy} onClick={() => onEdit(p)} style={btn('var(--accent)')}
+          title="Đặt/đổi mật khẩu ngay trong form — đổi xong mọi phiên đang mở của họ bị đá ra">
+          {p.hasPassword ? 'Đổi' : 'Đặt'}
+        </button>
+        <button type="button" disabled={busy || !p.email} onClick={() => onSetup(p)} style={btn('var(--fg-3)')}
+          title={p.email
+            ? 'Cách khác: phát link một lần để HỌ tự đặt — dùng khi không muốn mình cầm mật khẩu của publisher ngoài'
+            : 'Điền email cho publisher này trước'}>
+          ↗ link
+        </button>
+      </span>
     ) },
     { key: 'c', header: 'Click', align: 'right', cell: (p) => <span style={mono}>{stat.get(p.slug)?.clicks ?? 0}</span> },
     { key: 'a', header: 'Được duyệt', align: 'right', cell: (p) => <span style={{ ...mono, color: 'var(--ok)' }}>{usd(stat.get(p.slug)?.approved ?? 0)}</span> },
@@ -477,7 +485,7 @@ function PublisherForm({ pub, busy, onClose, onSave }: {
   const [v, setV] = useState<PublisherInput>({
     id: pub?.id, slug: pub?.slug ?? '', name: pub?.name ?? '',
     kind: pub?.kind ?? 'inhouse', status: pub?.status ?? 'active',
-    note: pub?.note ?? '', email: pub?.email ?? '',
+    note: pub?.note ?? '', email: pub?.email ?? '', password: '',
   });
   const set = <K extends keyof PublisherInput>(k: K, val: PublisherInput[K]) => setV((s) => ({ ...s, [k]: val }));
   const [initial] = useState(() => JSON.stringify(v));
@@ -502,7 +510,13 @@ function PublisherForm({ pub, busy, onClose, onSave }: {
         </SelectField>
         <TextField label="Email đăng nhập" type="email" mono value={v.email}
           onChange={(e) => set('email', e.target.value)}
-          hint="Tài khoản RIÊNG của publisher, không phải user MOS2. Lưu xong thì phát link để họ tự đặt mật khẩu." />
+          hint="Tài khoản RIÊNG của publisher, không phải user MOS2 — không vào được dashboard nội bộ." />
+        <TextField label={pub?.hasPassword ? 'Đổi mật khẩu' : 'Đặt mật khẩu'} type="password"
+          autoComplete="new-password" value={v.password}
+          onChange={(e) => set('password', e.target.value)}
+          hint={pub?.hasPassword
+            ? 'Bỏ trống = giữ nguyên mật khẩu cũ. Đổi thì mọi phiên đang mở của họ bị đá ra.'
+            : 'Tối thiểu 8 ký tự. Đưa cho publisher, họ tự đổi lại trong portal.'} />
         <TextAreaField label="Ghi chú" rows={2} value={v.note} onChange={(e) => set('note', e.target.value)} />
       </div>
       <FormModalFooter>

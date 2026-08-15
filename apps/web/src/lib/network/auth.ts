@@ -125,3 +125,21 @@ export async function pubChangePassword(publisherId: number, current: string, ne
   await createSession(publisherId);
   return { ok: true };
 }
+
+/** Admin đặt/đổi mật khẩu cho publisher. Đây là tài khoản trong hệ của MÌNH, admin quản được —
+ *  khác hẳn chuyện credential của bên thứ ba. Mật khẩu do admin gõ trên trình duyệt của họ, đi
+ *  thẳng vào bcrypt, không lưu dạng đọc được ở đâu. */
+export async function adminSetPassword(publisherId: number, password: string): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: 'DB chưa sẵn sàng' };
+  if (!password || password.length < 8) return { ok: false, error: 'Mật khẩu tối thiểu 8 ký tự' };
+  const hash = await bcrypt.hash(password, ROUNDS);
+  const r = await db.execute(sql`
+    UPDATE net_publishers
+    SET password_hash = ${hash}, password_set_at = now(), setup_token = NULL, setup_expires_at = NULL
+    WHERE id = ${publisherId} RETURNING id`);
+  if (!(r as unknown as unknown[]).length) return { ok: false, error: 'Không tìm thấy publisher' };
+  // Đá mọi phiên đang mở ra. Đổi mật khẩu vì nghi lộ mà phiên cũ vẫn sống thì đổi để làm gì.
+  await db.execute(sql`UPDATE net_sessions SET revoked_at = now() WHERE publisher_id = ${publisherId} AND revoked_at IS NULL`);
+  return { ok: true };
+}

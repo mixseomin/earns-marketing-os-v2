@@ -3,6 +3,7 @@
 import { getDb } from '@mos2/db';
 import { listAffiliateOffers } from '@/lib/actions/offers';
 import { SUB_PARAM, networkFromUrl } from './link';
+import { derivePubRate } from '@/lib/offer-payout';
 import { sql } from 'drizzle-orm';
 
 export interface Offer {
@@ -85,26 +86,56 @@ export async function listRegistrations(onlyPending = false): Promise<Registrati
 
 /** Chiến dịch của MỘT publisher, kèm trạng thái đăng ký — portal publisher dùng cái này.
  *  Trả về CẢ chiến dịch chưa đăng ký (status null) để họ thấy có gì mà xin chạy. */
-export async function offersForPublisher(publisherId: number): Promise<Array<Offer & { regStatus: string | null; linkToken: string | null }>> {
+/**
+ * Chiến dịch mà MỘT publisher nhìn thấy.
+ *
+ * Kiểu trả về CỐ TÌNH không có `upstreamRate`/`upstreamUrl`/`network`: đó là mức nhà, link gốc và
+ * nguồn hàng. Trước đây portal nhận nguyên `Offer` rồi mới chọn cái để hiện — và cột hoa hồng
+ * fallback `publisherRate ?? upstreamRate` in thẳng "2.5% (CJ link 15534820)" ra cho publisher.
+ * Không hiện thì vẫn nằm trong payload HTML, mở DevTools là đọc được. Chặn ở TẦNG DỮ LIỆU, không
+ * chặn ở tầng vẽ.
+ */
+export interface PubOffer {
+  id: number; slug: string; name: string;
+  advertiser: string | null; category: string | null; terms: string | null;
+  /** Mức publisher được hưởng. Riêng > chung > suy ra từ mức nhà. Không suy được thì null. */
+  payout: string | null;
+  regStatus: string | null; linkToken: string | null;
+}
+
+export async function offersForPublisher(publisherId: number): Promise<PubOffer[]> {
   const db = getDb();
   if (!db) return [];
   const r = await db.execute(sql`
-    SELECT o.*, r.status AS reg_status, r.link_token,
-           COUNT(c.id) FILTER (WHERE c.source = 'click' AND c.publisher_id = ${publisherId})::int AS clicks
+    SELECT o.id, o.slug, o.name, o.advertiser, o.category, o.terms, o.upstream_rate, o.publisher_rate,
+           r.publisher_rate AS reg_rate, r.status AS reg_status, r.link_token
     FROM net_offers o
     LEFT JOIN net_publisher_offers r ON r.offer_id = o.id AND r.publisher_id = ${publisherId}
-    LEFT JOIN net_clicks c ON c.offer_id = o.id
     WHERE o.active
-    GROUP BY o.id, r.status, r.link_token ORDER BY r.status = 'approved' DESC NULLS LAST, o.name`);
+    ORDER BY r.status = 'approved' DESC NULLS LAST, o.name`);
   return (r as unknown as Array<Record<string, unknown>>).map((x) => ({
-    id: Number(x.id), slug: String(x.slug), name: String(x.name), network: String(x.network),
+    id: Number(x.id), slug: String(x.slug), name: String(x.name),
     advertiser: (x.advertiser as string) ?? null, category: (x.category as string) ?? null,
-    upstreamUrl: String(x.upstream_url),
-    upstreamRate: (x.upstream_rate as string) ?? null, publisherRate: (x.publisher_rate as string) ?? null,
-    terms: (x.terms as string) ?? null, active: !!x.active, clicks: Number(x.clicks) || 0,
+    terms: (x.terms as string) ?? null,
+    payout: (x.reg_rate as string) ?? (x.publisher_rate as string) ?? derivePubRate((x.upstream_rate as string) ?? null),
     regStatus: (x.reg_status as string) ?? null,
     linkToken: (x.link_token as string) ?? null,
   }));
+}
+
+/** Danh mục THEO GÓC NHÌN PUBLISHER: bỏ link gốc, bỏ tên network, mức hoa hồng đã quy về phần họ
+ *  hưởng. Gửi `url` xuống là trao luôn link affiliate của tài khoản nhà cho người ngoài. */
+export interface PubCatalogOffer {
+  id: string; name: string; advertiser: string; vertical: string | null; payout: string | null;
+}
+
+export async function catalogForPublisher(): Promise<PubCatalogOffer[]> {
+  return (await listCatalog())
+    .filter((c) => c.trackable)
+    .map((c) => ({
+      id: c.id, name: c.name, advertiser: c.advertiser, vertical: c.vertical,
+      payout: derivePubRate(c.rate),
+    }));
 }
 
 /** Một dòng trong DANH MỤC affiliate của MOS2 (Directus `affiliate_programs`) — nguồn để dựng

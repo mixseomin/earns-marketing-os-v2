@@ -8,6 +8,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { cjConversions } from '@/lib/revenue/networks';
 import { cjSettleState, type SettleState } from './status';
+import { pubCut } from '@/lib/offer-payout';
 
 export interface NetConversion {
   upstreamId: string;
@@ -109,5 +110,44 @@ export async function networkReport(sinceDays = 90): Promise<NetworkReport> {
     pubs: pubs.sort((a, b) => b.approved - a.approved || b.clicks - a.clicks),
     unmatched: conversions.filter((c) => !c.publisher).length,
     errors: cj.error ? [cj.error] : [],
+  };
+}
+
+// ── Góc nhìn PUBLISHER ───────────────────────────────────────────────────────
+
+export interface PubConversion {
+  upstreamId: string; date: string; advertiser: string;
+  /** Tiền của PUBLISHER, đã trừ phần mình giữ. KHÔNG phải số upstream trả mình. */
+  commission: number;
+  state: SettleState; utm: string[];
+}
+export interface PubView {
+  clicks: number; orders: number;
+  approved: number; holding: number; pending: number;
+  conversions: PubConversion[];
+}
+
+/**
+ * Cắt báo cáo về đúng phần của MỘT publisher, và quy mọi khoản tiền về phần HỌ hưởng.
+ *
+ * `NetConversion.commission` là số upstream trả MÌNH. Đưa thẳng xuống portal là vừa lộ mức nhà vừa
+ * hứa sai: publisher đọc thấy $19.75 rồi đến kỳ nhận $13.83 thì đó là một cuộc cãi nhau, không phải
+ * một con số. Cũng bỏ luôn `network`/`clickId`/`gross` — nguồn hàng và giá đơn của nhà cung cấp
+ * không phải việc của họ.
+ */
+export function pubView(report: NetworkReport, pubSlug: string): PubView {
+  const me = report.pubs.find((p) => p.publisher === pubSlug);
+  return {
+    clicks: me?.clicks ?? 0,
+    orders: me?.orders ?? 0,
+    approved: pubCut(me?.approved ?? 0),
+    holding: pubCut(me?.holding ?? 0),
+    pending: pubCut(me?.pending ?? 0),
+    conversions: report.conversions
+      .filter((c) => c.publisher === pubSlug)
+      .map((c) => ({
+        upstreamId: c.upstreamId, date: c.date, advertiser: c.advertiser,
+        commission: pubCut(c.commission), state: c.state, utm: c.utm,
+      })),
   };
 }

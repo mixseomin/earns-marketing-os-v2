@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { PubPortal } from '@/components/pub-portal';
-import { offersForPublisher, listCatalog } from '@/lib/network/data';
-import { networkReport } from '@/lib/network/report';
+import { offersForPublisher, catalogForPublisher } from '@/lib/network/data';
+import { networkReport, pubView } from '@/lib/network/report';
 import { currentPublisher } from '@/lib/network/auth';
 import { PUB_ORIGIN } from '@/lib/network/link';
 
@@ -13,13 +13,12 @@ export default async function PubRoute() {
   const pub = await currentPublisher();
   if (!pub) redirect('/pub/login');
   const [offers, catalog, report] = await Promise.all([
-    offersForPublisher(pub.id), listCatalog(), networkReport(365),
+    offersForPublisher(pub.id), catalogForPublisher(), networkReport(365),
   ]);
-  // Chỉ đưa dòng THEO DÕI ĐƯỢC xuống portal. Offer không có ô sub-id thì dựng ra cũng không quy
-  // được đơn về ai — bày ra chỉ để publisher bấm rồi ăn câu từ chối.
-  const pickable = catalog.filter((c) => c.trackable);
+  // pubView cắt báo cáo về đúng phần của họ VÀ quy tiền về mức họ hưởng. Truyền cả `report` xuống
+  // là gửi kèm đơn của publisher khác + số upstream trả mình — không hiện vẫn đọc được trong payload.
   return (
-    <PubPortal pubSlug={pub.slug} pubName={pub.name} offers={offers} catalog={pickable}
-      report={report} origin={PUB_ORIGIN} />
+    <PubPortal pubName={pub.name} offers={offers} catalog={catalog}
+      view={pubView(report, pub.slug)} origin={PUB_ORIGIN} />
   );
 }

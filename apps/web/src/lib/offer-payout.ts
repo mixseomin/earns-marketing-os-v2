@@ -83,6 +83,44 @@ export function pctOf(rate: string | null): number | null {
   return isFinite(v) && v > 0 ? v : null;
 }
 
+// ── Chia hoa hồng cho publisher ──────────────────────────────────────────────
+// Network sống bằng CHÊNH LỆCH: upstream trả mình X, mình trả publisher một phần của X. Publisher
+// KHÔNG được thấy X — biết mức nhà là biết luôn biên của mình, và lần thương lượng sau họ đòi đúng
+// bằng đó. Mọi con số đi xuống portal đều phải đi qua đây.
+
+/** Phần publisher được hưởng. Một hằng số, một chỗ — hiển thị và báo cáo phải đọc CÙNG số này, nếu
+ *  không portal in một đằng còn tiền tính một nẻo. Đặt riêng từng publisher thì dùng
+ *  net_publisher_offers.publisher_rate (đè lên cái derive ra đây). */
+export const PUB_SHARE = 0.7;
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Tiền mình thật sự trả publisher trên một khoản upstream. */
+export function pubCut(upstreamAmount: number, share = PUB_SHARE): number {
+  return round2(upstreamAmount * share);
+}
+
+/**
+ * Mức upstream → mức PHÁT CHO PUBLISHER, giữ nguyên dạng viết ("2.5%" → "1.75%", "$30" → "$21").
+ *
+ * Cắt sạch ghi chú kèm theo: "2.5% (CJ link 15534820)" mà in nguyên si xuống portal là lộ cả mã
+ * link CJ lẫn mức nhà. Không đọc được dạng nào thì trả null — ô trống rồi admin đặt tay, TUYỆT ĐỐI
+ * không rơi về chuỗi gốc (đó đúng là lỗi vừa xảy ra: portal fallback về upstream_rate).
+ */
+export function derivePubRate(upstreamRate: string | null, share = PUB_SHARE): string | null {
+  if (!upstreamRate) return null;
+  const pct = pctOf(upstreamRate);
+  if (pct != null) return `${round2(pct * share)}%`;
+  const cur = currencyOf(upstreamRate, null);
+  const nums = amountsIn(upstreamRate, cur === 'VND');
+  if (!nums.length || !FX_USD[cur]) return null;
+  const sym = cur === 'USD' ? '$' : cur === 'EUR' ? '€' : cur === 'GBP' ? '£' : '';
+  const lo = round2(Math.min(...nums) * share);
+  const hi = round2(Math.max(...nums) * share);
+  const body = lo === hi ? `${lo}` : `${lo}-${hi}`;
+  return sym ? `${sym}${body}` : `${body} ${cur}`;
+}
+
 /** Offer ăn % thành tiền thật khi biết giá đơn hàng: payout = AOV × tỉ lệ. aov_usd đã là USD rồi. */
 export function payoutFromAov(rate: string | null, aovUsd: number | null): number | null {
   const pct = pctOf(rate);

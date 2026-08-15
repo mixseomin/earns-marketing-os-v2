@@ -12,6 +12,7 @@ import { sql } from 'drizzle-orm';
 import { getCurrentUser } from '@/lib/auth';
 import { checkOffer, checkPublisher, newLinkToken, slugify, PUB_ORIGIN } from '@/lib/network/link';
 import { listCatalog } from '@/lib/network/data';
+import { derivePubRate } from '@/lib/offer-payout';
 import { issueSetupToken, adminSetPassword, currentPublisher } from '@/lib/network/auth';
 
 type Res = { ok: boolean; error?: string };
@@ -263,8 +264,9 @@ export async function requestCatalogOffer(catalogId: string): Promise<Res> {
     if (bad) return { ok: false, error: bad };
     for (const slug of [base, `${base.slice(0, 36)}-${newLinkToken().slice(0, 4)}`]) {
       const ins = await db.execute(sql`
-        INSERT INTO net_offers (slug, name, network, advertiser, category, upstream_url, upstream_rate, active)
-        VALUES (${slug}, ${c.name}, ${c.network}, ${c.advertiser}, ${c.vertical}, ${c.url}, ${c.rate}, true)
+        INSERT INTO net_offers (slug, name, network, advertiser, category, upstream_url, upstream_rate, publisher_rate, active)
+        VALUES (${slug}, ${c.name}, ${c.network}, ${c.advertiser}, ${c.vertical}, ${c.url}, ${c.rate},
+                ${derivePubRate(c.rate)}, true)
         ON CONFLICT (slug) DO NOTHING RETURNING id`);
       offerId = Number((ins as unknown as Array<{ id: number }>)[0]?.id ?? 0);
       if (offerId) break;

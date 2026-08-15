@@ -5,8 +5,8 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Offer, CatalogOffer } from '@/lib/network/data';
-import type { NetworkReport } from '@/lib/network/report';
+import type { PubOffer, PubCatalogOffer } from '@/lib/network/data';
+import type { PubView, PubConversion } from '@/lib/network/report';
 import { SETTLE_LABEL, SETTLE_COLOR } from '@/lib/network/status';
 import { trackingUrl, UTM_SLOTS, type Utm } from '@/lib/network/link';
 import { requestOffer, requestCatalogOffer } from '@/lib/actions/network';
@@ -55,7 +55,7 @@ function ChangePassword() {
  * nhập tay thì họ dán link của chính họ và hoa hồng đi chỗ khác — nhìn bằng mắt không phát hiện ra.
  */
 function CatalogPicker({ items, busy, onAsk }: {
-  items: CatalogOffer[]; busy: boolean; onAsk: (id: string) => void;
+  items: PubCatalogOffer[]; busy: boolean; onAsk: (id: string) => void;
 }) {
   const [q, setQ] = useState('');
   const hits = useMemo(() => {
@@ -67,13 +67,16 @@ function CatalogPicker({ items, busy, onAsk }: {
     return { rows: base.slice(0, s ? 50 : 30), total: base.length };
   }, [q, items]);
 
-  const cols: SimpleColumn<CatalogOffer>[] = [
+  const cols: SimpleColumn<PubCatalogOffer>[] = [
     { key: 'n', header: 'Offer', cell: (c) => (
       <span><span style={{ color: 'var(--fg-0)' }}>{c.name}</span>
         {c.advertiser && c.advertiser !== c.name && <span style={dim}> · {c.advertiser}</span>}</span>
     ) },
-    { key: 'net', header: 'Network', cell: (c) => <span style={{ ...mono, ...dim }}>{c.network || '—'}</span> },
-    { key: 'r', header: 'Hoa hồng', cell: (c) => <span style={mono}>{c.rate ?? '—'}</span> },
+    { key: 'v', header: 'Ngành', cell: (c) => <span style={dim}>{c.vertical ?? '—'}</span> },
+    // Mức CỦA HỌ. Không có cột nào cho mức nhà, và cũng không có dữ liệu đó trong payload.
+    { key: 'r', header: 'Hoa hồng', cell: (c) => (
+      <span style={mono}>{c.payout ?? <span style={dim}>thoả thuận</span>}</span>
+    ) },
     { key: 'a', header: '', align: 'right', cell: (c) => (
       <button type="button" disabled={busy} onClick={() => onAsk(c.id)}
         style={{ padding: '2px 8px', fontSize: 10, fontFamily: 'var(--font-mono)', background: 'transparent',
@@ -104,22 +107,18 @@ const usd = (n: number) => (n >= 10 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`);
 const mono = { fontFamily: 'var(--font-mono)', fontSize: 11 } as const;
 const dim = { color: 'var(--fg-3)' };
 
-type OfferReg = Offer & { regStatus: string | null; linkToken: string | null };
-
 const REG_LABEL: Record<string, string> = { approved: 'đang chạy', pending: 'chờ duyệt', rejected: 'bị từ chối' };
 const REG_COLOR: Record<string, string> = { approved: 'var(--ok)', pending: 'var(--warn)', rejected: 'var(--fg-3)' };
 
-export function PubPortal({ pubSlug, pubName, offers, catalog, report, origin }: {
-  pubSlug: string; pubName: string; offers: OfferReg[]; catalog: CatalogOffer[];
-  report: NetworkReport; origin: string;
+export function PubPortal({ pubName, offers, catalog, view, origin }: {
+  pubName: string; offers: PubOffer[]; catalog: PubCatalogOffer[];
+  view: PubView; origin: string;
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
   const approved = offers.filter((o) => o.regStatus === 'approved');
   const [sel, setSel] = useState(approved[0]?.slug ?? '');
   const [utm, setUtm] = useState<Utm>({});
-  const me = report.pubs.find((p) => p.publisher === pubSlug);
-  const mine = useMemo(() => report.conversions.filter((c) => c.publisher === pubSlug), [report.conversions, pubSlug]);
 
   const selToken = approved.find((o) => o.slug === sel)?.linkToken ?? null;
   const link = selToken ? trackingUrl(origin, selToken, utm) : '';
@@ -139,22 +138,27 @@ export function PubPortal({ pubSlug, pubName, offers, catalog, report, origin }:
   });
 
   const cards: StatCard[] = [
-    { key: 'c', label: 'Click', value: String(me?.clicks ?? 0), color: 'var(--neon-cyan)' },
-    { key: 'o', label: 'Đơn', value: String(me?.orders ?? 0), color: 'var(--fg-0)' },
-    { key: 'a', label: 'Hoa hồng được duyệt', value: usd(me?.approved ?? 0), color: 'var(--ok)',
+    { key: 'c', label: 'Click', value: String(view.clicks), color: 'var(--neon-cyan)' },
+    { key: 'o', label: 'Đơn', value: String(view.orders), color: 'var(--fg-0)' },
+    { key: 'a', label: 'Hoa hồng được duyệt', value: usd(view.approved), color: 'var(--ok)',
       title: 'Đã đối soát xong — số này không đổi nữa' },
-    { key: 'h', label: 'Tạm duyệt', value: usd(me?.holding ?? 0), color: 'var(--warn)',
+    { key: 'h', label: 'Tạm duyệt', value: usd(view.holding), color: 'var(--warn)',
       title: 'Nhà cung cấp đã xác nhận nhưng chưa đối soát. Số này CÒN ĐỔI ĐƯỢC, đừng tính là tiền đã có.' },
-    { key: 'w', label: 'Chờ duyệt', value: usd(me?.pending ?? 0), color: 'var(--fg-2)',
+    { key: 'w', label: 'Chờ duyệt', value: usd(view.pending), color: 'var(--fg-2)',
       title: 'Mới ghi nhận, nhà cung cấp chưa xác nhận' },
   ];
 
-  const offerCols: SimpleColumn<OfferReg>[] = [
+  const offerCols: SimpleColumn<PubOffer>[] = [
     { key: 'n', header: 'Chiến dịch', cell: (o) => (
-      <span><span style={{ color: 'var(--fg-0)' }}>{o.name}</span>{o.advertiser && <span style={dim}> · {o.advertiser}</span>}</span>
+      <span><span style={{ color: 'var(--fg-0)' }}>{o.name}</span>
+        {o.advertiser && o.advertiser !== o.name && <span style={dim}> · {o.advertiser}</span>}</span>
     ) },
     { key: 'cat', header: 'Ngành', cell: (o) => <span style={dim}>{o.category ?? '—'}</span> },
-    { key: 'r', header: 'Hoa hồng', cell: (o) => <span style={mono}>{o.publisherRate ?? o.upstreamRate ?? '—'}</span> },
+    // Mức CỦA PUBLISHER. Bản cũ fallback `?? o.upstreamRate` nên khi chưa đặt mức riêng là in
+    // nguyên mức nhà kèm ghi chú nội bộ ("2.5% (CJ link 15534820)") ra cho người ngoài đọc.
+    { key: 'r', header: 'Hoa hồng', cell: (o) => (
+      <span style={mono}>{o.payout ?? <span style={dim}>thoả thuận</span>}</span>
+    ) },
     { key: 't', header: 'Điều kiện ghi nhận', cell: (o) => <span style={{ ...dim, fontSize: 11 }}>{o.terms ?? '—'}</span> },
     // Chưa xin → "Xin chạy". Bị từ chối → "Xin lại": server VẪN nhận (đổi kênh, sửa cách chạy) nên
     // UI phải mở đúng cái server cho, không thì publisher tưởng cửa đã đóng hẳn.
@@ -175,12 +179,11 @@ export function PubPortal({ pubSlug, pubName, offers, catalog, report, origin }:
     } },
   ];
 
-  const convCols: SimpleColumn<NetworkReport['conversions'][number]>[] = [
+  const convCols: SimpleColumn<PubConversion>[] = [
     { key: 'd', header: 'Ngày', cell: (r) => <span style={mono}>{r.date}</span> },
     { key: 'o', header: 'Chiến dịch', cell: (r) => r.advertiser },
     { key: 'u', header: 'Sub-id của bạn', cell: (r) => <span style={{ ...mono, ...dim }}>{r.utm.join(' · ') || '—'}</span> },
     { key: 's', header: 'Trạng thái', cell: (r) => <Pill label={SETTLE_LABEL[r.state]} color={SETTLE_COLOR[r.state]} size="xs" tone="soft" /> },
-    { key: 'g', header: 'Giá trị đơn', align: 'right', cell: (r) => <span style={{ ...mono, ...dim }}>{usd(r.gross)}</span> },
     { key: 'c', header: 'Hoa hồng', align: 'right', cell: (r) => <span style={{ ...mono, color: 'var(--ok)' }}>{usd(r.commission)}</span> },
   ];
 
@@ -279,9 +282,9 @@ export function PubPortal({ pubSlug, pubName, offers, catalog, report, origin }:
       </Section>
 
       <Section title="Báo cáo đơn hàng" defaultOpen>
-        {mine.length === 0
+        {view.conversions.length === 0
           ? <EmptyState icon="🧾" compact title="Chưa có đơn nào" description="Đơn hiện ở đây sau khi nhà cung cấp ghi nhận (thường vài giờ tới vài ngày)." />
-          : <SimpleTable rows={mine} columns={convCols} getRowKey={(r) => r.upstreamId} />}
+          : <SimpleTable rows={view.conversions} columns={convCols} getRowKey={(r) => r.upstreamId} />}
       </Section>
     </div>
     </div>

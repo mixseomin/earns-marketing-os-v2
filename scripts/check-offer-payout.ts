@@ -2,7 +2,7 @@
 // Kiểm phép quy tỉ lệ hoa hồng → tiền thật. Đây là phép tính RA TIỀN và nó đã từng sai 60 lần,
 // nên mọi ca dưới đây là chuỗi THẬT lấy từ affiliate_programs.
 import assert from 'node:assert';
-import { payoutUsdOf, pctOf, payoutFromAov, amountsIn, currencyOf } from '../apps/web/src/lib/offer-payout.ts';
+import { payoutUsdOf, pctOf, payoutFromAov, amountsIn, currencyOf, derivePubRate, pubCut, PUB_SHARE } from '../apps/web/src/lib/offer-payout.ts';
 
 // ── Sự cố 2026-08-15: bóc trụi ký tự phân cách làm hai số dính lại ──────────
 // "Fixed reward €5–12" từng ra $552.96 (bóc thành "512" rồi × 1.08). Đúng phải là trung điểm 8.5.
@@ -59,5 +59,24 @@ assert.equal(pctOf('$30'), null);
 assert.equal(payoutFromAov('10%', 200), 20);
 assert.equal(payoutFromAov('10%', null), null);                  // chưa biết AOV → trống
 assert.equal(payoutFromAov('$30', 200), null);
+
+
+// ── Mức phát cho publisher ───────────────────────────────────────────────────
+// Publisher KHÔNG được thấy mức nhà. Chuỗi mức nhà còn kèm ghi chú nội bộ, nên phải TÍNH LẠI chứ
+// không cắt chữ: "2.5% (CJ link 15534820)" mà lọt xuống portal là lộ cả biên lẫn mã link.
+assert.equal(derivePubRate('2.5% (CJ link 15534820)'), `${2.5 * PUB_SHARE}%`);
+assert.equal(derivePubRate('$30'), `$${30 * PUB_SHARE}`);
+assert.equal(derivePubRate('€5-12'), '€3.5-8.4');
+assert.equal(derivePubRate('15-20%'), `${17.5 * PUB_SHARE}%`);   // khoảng → trung điểm, cùng luật pctOf
+assert.equal(derivePubRate(null), null);
+assert.equal(derivePubRate('theo thoả thuận'), null);            // không đọc được → ô trống
+// Không bao giờ rơi về chuỗi gốc: đó đúng là lỗi cũ (portal fallback ?? upstreamRate).
+for (const r of ['2.5% (CJ link 15534820)', '$30', 'theo thoả thuận'])
+  assert.notEqual(derivePubRate(r), r, `derivePubRate không được trả nguyên mức nhà: ${r}`);
+// Mức phát ra luôn NHỎ HƠN mức nhà — sai dấu ở đây là mình trả nhiều hơn số nhận được.
+assert.ok(pubCut(19.75) < 19.75 && pubCut(19.75) > 0);
+assert.equal(pubCut(19.75), 13.83);
+assert.equal(pubCut(0), 0);
+
 
 console.log('offer-payout.ts OK — khoảng không còn dính số, đơn vị lạ vẫn để trống');

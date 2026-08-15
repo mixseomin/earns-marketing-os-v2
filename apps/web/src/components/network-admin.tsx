@@ -12,6 +12,7 @@ import { RevenueCalendar } from './revenue-calendar';
 import { RevenueRange } from './revenue-range';
 import { SETTLE_LABEL, SETTLE_COLOR } from '@/lib/network/status';
 import { SUB_PARAM } from '@/lib/network/link';
+import { derivePubRate } from '@/lib/offer-payout';
 import { readShallowParam, writeShallowParam } from '@/lib/url-shallow';
 import {
   saveOffer, toggleOffer, deleteOffer, savePublisher, deletePublisher,
@@ -279,7 +280,9 @@ function OfferForm({ offer, seed, busy, catalog, onClose, onSave }: {
     category: offer?.category ?? seed?.vertical ?? '',
     upstreamUrl: offer?.upstreamUrl ?? seed?.url ?? '',
     upstreamRate: offer?.upstreamRate ?? seed?.rate ?? '',
-    publisherRate: offer?.publisherRate ?? '',
+    // Điền sẵn mức trả publisher = mức nhà × phần chia. Để trống thì admin hay quên, mà offer
+    // không có mức riêng thì publisher chỉ thấy "thoả thuận" — không có gì để họ quyết chạy hay không.
+    publisherRate: offer?.publisherRate ?? derivePubRate(seed?.rate ?? null) ?? '',
     terms: offer?.terms ?? '', active: offer?.active ?? true,
   });
   const set = <K extends keyof OfferInput>(k: K, val: OfferInput[K]) => setV((s) => ({ ...s, [k]: val }));

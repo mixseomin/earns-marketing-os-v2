@@ -2285,7 +2285,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
               Toàn cảnh · {piecesShown.length} bài
             </div>
             {/* Lượt ĐANG chạy đứng riêng trên đầu: nó có thể thuộc ngày hôm trước, nằm lẫn trong
-                danh sách theo ngày thì phải cuộn đi tìm — trong khi đây đúng là thứ cần nhìn ngay. */}
+                danh sách theo ngày thì phải cuộn đi tìm — trong khi đây đúng là thứ cần nhìn ngay.
+                Bấm = CUỘN tới bài ngay trong trang này (đổi ngày đang đọc nếu nó thuộc ngày khác).
+                Không mở drawer, không mở tab mới: đang đọc dở mà bị nhảy trang là mất chỗ. */}
             {planLive.length > 0 && (
               <div style={{ marginBottom: 10, border: '1px solid var(--neon-blue)', borderRadius: 8, padding: '6px 7px',
                 background: 'color-mix(in srgb, var(--neon-blue) 8%, transparent)' }}>
@@ -2293,35 +2295,19 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                   đang chuẩn bị đăng · {planLive.length}
                 </div>
                 {planLive.map((l) => (
-                  <button key={l.pieceId} type="button" onClick={() => setOpenPieceId(l.pieceId)}
+                  <button key={l.pieceId} type="button"
+                    onClick={() => {
+                      if (l.date) {
+                        const [y, mo] = l.date.split('-').map(Number);
+                        setFeedMonth(new Date(y ?? new Date().getFullYear(), (mo ?? 1) - 1, 1));
+                        setFeedActive(l.date);
+                      }
+                      setActivePiece(l.pieceId);
+                      jumpTo(`piece-${l.pieceId}`);
+                    }}
                     style={{ display: 'flex', gap: 6, alignItems: 'flex-start', width: '100%', textAlign: 'left',
-                      background: 'transparent', border: 0, cursor: 'pointer', padding: '3px 2px', color: 'var(--fg-1)' }}>
-                    <span style={{ width: 6, height: 6, borderRadius: 999, marginTop: 5, flexShrink: 0,
-                      background: 'var(--neon-blue)', animation: 'freshPulse 1.2s ease-in-out infinite' }} />
-                    <span style={{ minWidth: 0 }}>
-                      <span style={{ display: 'block', fontSize: 11.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {l.stage}
-                      </span>
-                      <span style={{ display: 'block', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)' }}>
-                        #{l.pieceId} · {placeName(l.place) || l.title} · lịch {l.date}
-                      </span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-            {/* Lượt ĐANG chạy đứng riêng trên đầu: nó có thể thuộc ngày hôm trước, nằm lẫn trong
-                danh sách theo ngày thì phải cuộn đi tìm — trong khi đây đúng là thứ cần nhìn ngay. */}
-            {planLive.length > 0 && (
-              <div style={{ marginBottom: 10, border: '1px solid var(--neon-blue)', borderRadius: 8, padding: '6px 7px',
-                background: 'color-mix(in srgb, var(--neon-blue) 8%, transparent)' }}>
-                <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--neon-blue)', marginBottom: 4 }}>
-                  đang chuẩn bị đăng · {planLive.length}
-                </div>
-                {planLive.map((l) => (
-                  <button key={l.pieceId} type="button" onClick={() => setOpenPieceId(l.pieceId)}
-                    style={{ display: 'flex', gap: 6, alignItems: 'flex-start', width: '100%', textAlign: 'left',
-                      background: 'transparent', border: 0, cursor: 'pointer', padding: '3px 2px', color: 'var(--fg-1)' }}>
+                      background: activePiece === l.pieceId ? 'color-mix(in srgb, var(--neon-blue) 18%, transparent)' : 'transparent',
+                      border: 0, cursor: 'pointer', padding: '3px 2px', color: 'var(--fg-1)', borderRadius: 4 }}>
                     <span style={{ width: 6, height: 6, borderRadius: 999, marginTop: 5, flexShrink: 0,
                       background: 'var(--neon-blue)', animation: 'freshPulse 1.2s ease-in-out infinite' }} />
                     <span style={{ minWidth: 0 }}>

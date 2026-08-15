@@ -1,7 +1,6 @@
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
-import { PlanLiveDock } from '@/components/plan-live-dock';
 import { BacklinksPage } from '@/components/backlinks-page';
 import { getProject, getProjectMode, listProjects, listPlatforms, listAccounts, listMedia } from '@/lib/data';
 import { listTeamMembers } from '@/lib/actions/team';
@@ -62,8 +61,6 @@ export default async function PlaysRoute({ params }: { params: Promise<{ id: str
       <BacklinksPage prefs={prefs} today={todayInAppTz()} products={products} projectId={id} slug={slug} siteLabel={siteLabel} tasks={tasks} followups={followups} pieces={pieces}
         project={project} platforms={platforms} accounts={accounts}
         teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" />
-      {/* Lượt tại chỗ chạy ngoài trang này (browser thật) — dock cho biết đang ở nhóm nào, bước nào. */}
-      <PlanLiveDock projectId={id} />
     </AppShell>
   );
 }

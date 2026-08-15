@@ -1,7 +1,13 @@
 'use client';
 
-// Portal publisher — bố cục theo đúng nếp net VN (AccessTrade/Adpia): Tổng quan · Chiến dịch ·
-// Công cụ tạo link · Báo cáo. Publisher chỉ thấy số của CHÍNH MÌNH.
+// Portal publisher.
+//
+// YDNI: 90% thời gian publisher vào đây để LẤY LINK và LIẾC TIỀN. Chỉ hai thứ đó nằm ngoài. Danh
+// sách chiến dịch, tìm offer mới, bảng đơn, đổi mật khẩu — đều sau một click, có số đếm ở đầu khối
+// để biết bên trong có gì mà không phải mở ra xem.
+//
+// Bản trước đổ cả năm khối `defaultOpen` ra một mặt phẳng: muốn copy link phải cuộn qua đúng những
+// thứ mình không cần. Mọi số ở đây đã đi qua pubView/PubOffer — không mức nhà, không link gốc.
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
@@ -12,6 +18,24 @@ import { trackingUrl, UTM_SLOTS, type Utm } from '@/lib/network/link';
 import { requestOffer, requestCatalogOffer } from '@/lib/actions/network';
 import { changePasswordAction, logoutAction } from '@/lib/actions/pub-auth';
 import { Section, SimpleTable, StatsStrip, EmptyState, Pill, Segmented, TextField, type SimpleColumn, type StatCard } from './ui';
+
+const usd = (n: number) => (n >= 10 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`);
+const mono = { fontFamily: 'var(--font-mono)', fontSize: 11 } as const;
+const dim = { color: 'var(--fg-3)' };
+
+// MỘT kiểu nút cho mọi nút phụ. Màu là tài nguyên chú ý, và thứ đáng chú ý ở màn này là LINK —
+// trước đây mỗi nút một màu (accent cho "Xin chạy", ok cho "Đổi mật khẩu") nên không nút nào nổi.
+const btn = {
+  padding: '3px 9px', fontSize: 11, fontFamily: 'var(--font-mono)', background: 'transparent',
+  color: 'var(--fg-2)', border: '1px solid var(--line)', borderRadius: 4, cursor: 'pointer',
+} as const;
+const btnSm = { ...btn, padding: '2px 8px', fontSize: 10 } as const;
+
+/** Số đếm ở đầu khối đang gập — biết bên trong có gì mà không phải mở. */
+const count = (n: number) => <span style={{ ...mono, ...dim }}>{n}</span>;
+
+const REG_LABEL: Record<string, string> = { approved: 'đang chạy', pending: 'chờ duyệt', rejected: 'bị từ chối' };
+const REG_COLOR: Record<string, string> = { approved: 'var(--ok)', pending: 'var(--warn)', rejected: 'var(--fg-3)' };
 
 /** Publisher tự đổi mật khẩu. Ô để TRỐNG, giá trị chỉ nằm trong trình duyệt của họ rồi đi thẳng
  *  vào bcrypt — không qua admin, không lưu ở đâu khác, không ai khác đọc được. */
@@ -39,8 +63,7 @@ function ChangePassword() {
           setMsg({ ok: r.ok, text: r.ok ? 'Đã đổi mật khẩu' : r.error ?? 'lỗi' });
           if (r.ok) { setCur(''); setNext(''); setAgain(''); }
         })}
-        style={{ padding: '4px 10px', fontSize: 11, fontFamily: 'var(--font-mono)', background: 'transparent',
-                 color: 'var(--ok)', border: '1px solid var(--ok)', borderRadius: 4, cursor: 'pointer', justifySelf: 'start' }}>
+        style={{ ...btn, justifySelf: 'start' }}>
         {busy ? 'Đang đổi…' : 'Đổi mật khẩu'}
       </button>
       {msg && <span style={{ fontSize: 11, color: msg.ok ? 'var(--ok)' : 'var(--warn)' }}>{msg.text}</span>}
@@ -78,11 +101,7 @@ function CatalogPicker({ items, busy, onAsk }: {
       <span style={mono}>{c.payout ?? <span style={dim}>thoả thuận</span>}</span>
     ) },
     { key: 'a', header: '', align: 'right', cell: (c) => (
-      <button type="button" disabled={busy} onClick={() => onAsk(c.id)}
-        style={{ padding: '2px 8px', fontSize: 10, fontFamily: 'var(--font-mono)', background: 'transparent',
-                 color: 'var(--accent)', border: '1px solid var(--accent-line)', borderRadius: 4, cursor: 'pointer' }}>
-        Xin chạy
-      </button>
+      <button type="button" disabled={busy} onClick={() => onAsk(c.id)} style={btnSm}>Xin chạy</button>
     ) },
   ];
 
@@ -103,12 +122,15 @@ function CatalogPicker({ items, busy, onAsk }: {
   );
 }
 
-const usd = (n: number) => (n >= 10 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`);
-const mono = { fontFamily: 'var(--font-mono)', fontSize: 11 } as const;
-const dim = { color: 'var(--fg-3)' };
-
-const REG_LABEL: Record<string, string> = { approved: 'đang chạy', pending: 'chờ duyệt', rejected: 'bị từ chối' };
-const REG_COLOR: Record<string, string> = { approved: 'var(--ok)', pending: 'var(--warn)', rejected: 'var(--fg-3)' };
+/** Ô link: đọc-được-chọn-được, không phải nút "copy". Nút copy hỏng lặng lẽ khi trình duyệt chặn
+ *  clipboard, mà người dùng lại tưởng đã copy. */
+function LinkBox({ value }: { value: string }) {
+  return (
+    <input readOnly value={value} onFocus={(e) => e.currentTarget.select()}
+      style={{ ...mono, width: '100%', minWidth: 320, padding: '4px 6px', background: 'var(--bg-2)',
+               color: 'var(--accent)', border: '1px solid var(--line)', borderRadius: 4 }} />
+  );
+}
 
 export function PubPortal({ pubName, offers, catalog, view, origin }: {
   pubName: string; offers: PubOffer[]; catalog: PubCatalogOffer[];
@@ -119,6 +141,9 @@ export function PubPortal({ pubName, offers, catalog, view, origin }: {
   const approved = offers.filter((o) => o.regStatus === 'approved');
   const [sel, setSel] = useState(approved[0]?.slug ?? '');
   const [utm, setUtm] = useState<Utm>({});
+  // Chưa có link nào thì việc chính của màn không phải copy link mà là đi tìm chiến dịch → mở sẵn
+  // đúng khối đó. Đây là trạng thái DỮ LIỆU, không phải toggle vừa bấm, nên bố cục không nhảy dưới tay.
+  const [findOpen, setFindOpen] = useState(approved.length === 0);
 
   const selToken = approved.find((o) => o.slug === sel)?.linkToken ?? null;
   const link = selToken ? trackingUrl(origin, selToken, utm) : '';
@@ -137,14 +162,16 @@ export function PubPortal({ pubName, offers, catalog, view, origin }: {
     if (r.ok) router.refresh();
   });
 
+  // Kỷ luật màu: chỉ hai ô MANG NGHĨA được tô. Xanh = tiền đã chốt (số duy nhất tiêu được), amber =
+  // còn đổi được. Click/đơn/chờ duyệt là số đếm trung tính — tô hết thì không ô nào nổi.
   const cards: StatCard[] = [
-    { key: 'c', label: 'Click', value: String(view.clicks), color: 'var(--neon-cyan)' },
-    { key: 'o', label: 'Đơn', value: String(view.orders), color: 'var(--fg-0)' },
-    { key: 'a', label: 'Hoa hồng được duyệt', value: usd(view.approved), color: 'var(--ok)',
+    { key: 'c', label: 'Click', value: String(view.clicks) },
+    { key: 'o', label: 'Đơn', value: String(view.orders) },
+    { key: 'a', label: 'Đã chốt', value: usd(view.approved), color: 'var(--ok)',
       title: 'Đã đối soát xong — số này không đổi nữa' },
     { key: 'h', label: 'Tạm duyệt', value: usd(view.holding), color: 'var(--warn)',
       title: 'Nhà cung cấp đã xác nhận nhưng chưa đối soát. Số này CÒN ĐỔI ĐƯỢC, đừng tính là tiền đã có.' },
-    { key: 'w', label: 'Chờ duyệt', value: usd(view.pending), color: 'var(--fg-2)',
+    { key: 'w', label: 'Chờ duyệt', value: usd(view.pending),
       title: 'Mới ghi nhận, nhà cung cấp chưa xác nhận' },
   ];
 
@@ -153,7 +180,6 @@ export function PubPortal({ pubName, offers, catalog, view, origin }: {
       <span><span style={{ color: 'var(--fg-0)' }}>{o.name}</span>
         {o.advertiser && o.advertiser !== o.name && <span style={dim}> · {o.advertiser}</span>}</span>
     ) },
-    { key: 'cat', header: 'Ngành', cell: (o) => <span style={dim}>{o.category ?? '—'}</span> },
     // Mức CỦA PUBLISHER. Bản cũ fallback `?? o.upstreamRate` nên khi chưa đặt mức riêng là in
     // nguyên mức nhà kèm ghi chú nội bộ ("2.5% (CJ link 15534820)") ra cho người ngoài đọc.
     { key: 'r', header: 'Hoa hồng', cell: (o) => (
@@ -168,9 +194,7 @@ export function PubPortal({ pubName, offers, catalog, view, origin }: {
         <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
           {o.regStatus && <Pill label={REG_LABEL[o.regStatus] ?? o.regStatus} color={REG_COLOR[o.regStatus] ?? 'var(--fg-3)'} size="xs" tone="soft" />}
           {(!o.regStatus || again) && (
-            <button type="button" disabled={busy} onClick={() => ask(o.id)}
-              style={{ padding: '2px 8px', fontSize: 10, fontFamily: 'var(--font-mono)', background: 'transparent',
-                       color: 'var(--accent)', border: '1px solid var(--accent-line)', borderRadius: 4, cursor: 'pointer' }}>
+            <button type="button" disabled={busy} onClick={() => ask(o.id)} style={btnSm}>
               {again ? 'Xin lại' : 'Xin chạy'}
             </button>
           )}
@@ -194,26 +218,22 @@ export function PubPortal({ pubName, offers, catalog, view, origin }: {
     <div style={{ height: '100dvh', overflowY: 'auto' }}>
     <div className="page" style={{ padding: 16 }}>
       <div className="page-head">
-        <div>
-          <h1 className="page-title">📈 {pubName}<small>// publisher</small></h1>
-          <p className="page-sub">
-            Hoa hồng <b>tạm duyệt</b> là số nhà cung cấp đã xác nhận nhưng chưa đối soát — còn đổi được.
-            Chỉ <b>được duyệt</b> mới là tiền chốt.
-          </p>
-        </div>
-        <button type="button" onClick={() => logoutAction()}
-          style={{ padding: '3px 9px', fontSize: 11, fontFamily: 'var(--font-mono)', background: 'transparent',
-                   color: 'var(--fg-3)', border: '1px solid var(--line)', borderRadius: 4, cursor: 'pointer' }}>
-          Thoát
-        </button>
+        <h1 className="page-title">{pubName}<small>// publisher</small></h1>
+        <button type="button" onClick={() => logoutAction()} style={btn}>Thoát</button>
       </div>
 
       <StatsStrip cards={cards} />
 
-      <Section title="Link của bạn" subtitle="đã gắn sẵn mã theo dõi — copy nguyên văn, không sửa gì" defaultOpen>
+      {/* ── Việc chính: lấy link ─────────────────────────────────────────────── */}
+      <Section title="Link của bạn" static>
         {approved.length === 0 ? (
           <EmptyState icon="🔗" compact title="Chưa có chiến dịch nào được duyệt"
-            description="Xin chạy một chiến dịch ở khối bên dưới; được duyệt thì link hiện ngay ở đây." />
+            description={
+              // Tối giản ≠ text chết: câu chỉ đường phải bấm được, đừng bắt người ta tự đi tìm khối.
+              <button type="button" onClick={() => setFindOpen(true)} style={{ ...btn, borderStyle: 'dashed' }}>
+                Tìm chiến dịch để chạy →
+              </button>
+            } />
         ) : (
           <>
             {/* Mỗi chiến dịch một link SẴN, không phải ghép từ mấy ô. Trước đây link là
@@ -224,11 +244,12 @@ export function PubPortal({ pubName, offers, catalog, view, origin }: {
               getRowKey={(o) => o.slug}
               columns={[
                 { key: 'n', header: 'Chiến dịch', cell: (o) => <span style={{ color: 'var(--fg-0)' }}>{o.name}</span> },
+                { key: 'p', header: 'Hoa hồng', cell: (o) => (
+                  <span style={mono}>{o.payout ?? <span style={dim}>thoả thuận</span>}</span>
+                ) },
                 { key: 'l', header: 'Link dán ra ngoài', cell: (o) => (
                   o.linkToken
-                    ? <input readOnly value={trackingUrl(origin, o.linkToken)} onFocus={(e) => e.currentTarget.select()}
-                        style={{ ...mono, width: '100%', minWidth: 320, padding: '4px 6px', background: 'var(--bg-2)',
-                                 color: 'var(--accent)', border: '1px solid var(--line)', borderRadius: 4 }} />
+                    ? <LinkBox value={trackingUrl(origin, o.linkToken)} />
                     : <span style={{ ...dim, fontSize: 11 }}>chưa cấp link — báo admin</span>
                 ) },
               ]}
@@ -237,11 +258,12 @@ export function PubPortal({ pubName, offers, catalog, view, origin }: {
               Bấm vào ô là chọn hết, Ctrl/Cmd+C là xong. <b>Đừng sửa gì trong link</b> — mã theo dõi nằm sẵn trong đó.
             </p>
 
-            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
-              <div style={{ fontSize: 11, color: 'var(--fg-2)', marginBottom: 6 }}>
-                Muốn tự chia nhỏ theo chiến dịch/mẫu quảng cáo thì thêm bốn ô dưới đây (không bắt buộc):
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+            {/* Chia nhỏ theo camp/creative: cần thật, nhưng không phải mỗi lần vào → gập lại. */}
+            <details style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
+              <summary style={{ fontSize: 11, color: 'var(--fg-2)', cursor: 'pointer' }}>
+                Chia nhỏ theo chiến dịch / mẫu quảng cáo
+              </summary>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', margin: '10px 0 8px' }}>
                 <Segmented<string>
                   value={sel} onChange={setSel}
                   options={approved.map((o) => ({ value: o.slug, label: o.name, title: o.terms ?? undefined }))}
@@ -252,39 +274,41 @@ export function PubPortal({ pubName, offers, catalog, view, origin }: {
                     style={{ ...mono, width: 130, padding: '3px 6px', background: 'var(--bg-2)', color: 'var(--fg-0)', border: '1px solid var(--line)', borderRadius: 4 }} />
                 ))}
               </div>
-              {/* Ô đọc-được-chọn-được, không phải nút "copy": nút copy hỏng lặng lẽ khi trình duyệt
-                  chặn clipboard, mà người dùng lại tưởng đã copy. */}
-              <input readOnly value={link} onFocus={(e) => e.currentTarget.select()}
-                style={{ ...mono, width: '100%', padding: '6px 8px', background: 'var(--bg-2)', color: 'var(--accent)', border: '1px solid var(--line)', borderRadius: 4 }} />
+              <LinkBox value={link} />
               <p style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 6 }}>
                 Bốn ô <code>utm_*</code> là của bạn, chúng quay về nguyên văn trong báo cáo. Gõ hỏng cũng không sao —
                 cùng lắm mất nhãn phụ, hoa hồng vẫn về đúng tài khoản.
               </p>
-            </div>
+            </details>
           </>
         )}
       </Section>
 
-      <Section title="Chiến dịch" subtitle="muốn chạy thêm cái nào thì bấm Xin chạy — duyệt xong link hiện ở khối trên" defaultOpen>
+      {/* ── Phần còn lại: sau 1 click. Số đếm ở đầu khối để biết bên trong có gì ── */}
+      <Section title="Chiến dịch của bạn" headerRight={count(offers.length)} defaultOpen={false}
+        subtitle="đăng ký rồi được duyệt mới ra link">
         {offers.length === 0
           ? <EmptyState icon="📦" compact title="Chưa có chiến dịch nào" />
           : <SimpleTable rows={offers} columns={offerCols} getRowKey={(o) => o.slug} />}
         {reqErr && <p style={{ fontSize: 11, color: 'var(--warn)', marginTop: 8 }}>{reqErr}</p>}
       </Section>
 
-      <Section title="Tìm chiến dịch mới" subtitle={`${catalog.length} offer trong danh mục — chọn cái muốn chạy, admin duyệt là có link`} defaultOpen>
+      <Section title="Tìm chiến dịch mới" headerRight={count(catalog.length)}
+        open={findOpen} onToggle={setFindOpen}
+        subtitle="chọn cái muốn chạy, admin duyệt là có link">
         <CatalogPicker items={catalog} busy={busy} onAsk={askCatalog} />
         {reqErr && <p style={{ fontSize: 11, color: 'var(--warn)', marginTop: 8 }}>{reqErr}</p>}
       </Section>
 
-      <Section title="Đổi mật khẩu" defaultOpen={false}>
-        <ChangePassword />
-      </Section>
-
-      <Section title="Báo cáo đơn hàng" defaultOpen>
+      <Section title="Đơn hàng" headerRight={count(view.conversions.length)} defaultOpen={false}
+        subtitle="tạm duyệt còn đổi được — chỉ đã chốt mới là tiền chắc">
         {view.conversions.length === 0
           ? <EmptyState icon="🧾" compact title="Chưa có đơn nào" description="Đơn hiện ở đây sau khi nhà cung cấp ghi nhận (thường vài giờ tới vài ngày)." />
           : <SimpleTable rows={view.conversions} columns={convCols} getRowKey={(r) => r.upstreamId} />}
+      </Section>
+
+      <Section title="Tài khoản" defaultOpen={false}>
+        <ChangePassword />
       </Section>
     </div>
     </div>

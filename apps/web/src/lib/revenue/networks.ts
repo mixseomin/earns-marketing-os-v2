@@ -68,8 +68,17 @@ export function xmlTag(block: string, tag: string): string {
 }
 
 /** XML CJ → dòng doanh thu. Xuất ra để test được mà không cần token. */
-export function parseCj(xml: string): Array<RevenueDayRow & { id: string }> {
-  const out: Array<RevenueDayRow & { id: string }> = [];
+export interface CjExtra {
+  id: string;
+  /** action-status của CJ (new/locked/closed/extended/corrected) + locking-date — hai thứ quyết
+   *  định đơn đã chốt hay chưa. Nền tảng network dùng để hiện trạng thái đối soát cho publisher;
+   *  lịch doanh thu bỏ qua. Xem lib/network/status.ts. */
+  status: string;
+  lockDate: string;
+}
+
+export function parseCj(xml: string): Array<RevenueDayRow & CjExtra> {
+  const out: Array<RevenueDayRow & CjExtra> = [];
   for (const m of xml.matchAll(/<commission>([\s\S]*?)<\/commission>/g)) {
     const b = m[1]!;
     // event-date = ngày KHÁCH mua. posting-date là ngày CJ ghi sổ, lệch vài giờ tới vài ngày —
@@ -84,6 +93,8 @@ export function parseCj(xml: string): Array<RevenueDayRow & { id: string }> {
       // `sid` = ô sub-id duy nhất của CJ, mình tự đặt lúc dựng link. Đây là NƠI DUY NHẤT nó quay
       // về: `performanceReport/sid.json` trả 404 và dropdown Performance không có chiều nào là SID.
       sub: xmlTag(b, 'sid') || undefined,
+      status: xmlTag(b, 'action-status'),
+      lockDate: xmlTag(b, 'locking-date'),
       // v3 trả số theo đơn vị tiền của TÀI KHOẢN publisher; tài khoản này để USD (ngưỡng rút
       // $50/$100, balance CJ báo bằng $). Đổi tài khoản sang tiền khác thì phải quy đổi ở đây.
       amount,
@@ -196,10 +207,14 @@ export function parseAwin(txns: AwinTxn[]): { rows: Array<RevenueDayRow & { id: 
   return { rows, skipped };
 }
 
-async function cjPart(wins: Array<[string, string]>): Promise<NetworkPart> {
-  if (!CJ_PAT || !CJ_CID) return { rows: [], scanned: false, error: 'cj: chưa có CJ_PAT/CJ_PUBLISHER_ID' };
+/** Đơn CJ dạng ĐẦY ĐỦ (kèm sid + trạng thái đối soát) — nền tảng network dùng cái này.
+ *  `cjPart` bên dưới chỉ là cùng dữ liệu đó cắt gọn cho lịch doanh thu; MỘT đường lấy, hai cách
+ *  đọc, để hai màn hình không bao giờ nói hai con số khác nhau. */
+export async function cjConversions(since: string): Promise<{ rows: Array<RevenueDayRow & CjExtra>; error?: string }> {
+  if (!CJ_PAT || !CJ_CID) return { rows: [], error: 'cj: chưa có CJ_PAT/CJ_PUBLISHER_ID' };
+  const wins = windows(since, ymd(Date.now() + 86400_000));
   const errs: string[] = [];
-  const seen = new Map<string, RevenueDayRow>();
+  const seen = new Map<string, RevenueDayRow & CjExtra>();
   await Promise.all(wins.map(async ([start, end]) => {
     const url = `https://commission-detail.api.cj.com/v3/commissions?requestor-cid=${encodeURIComponent(CJ_CID)}`
       + `&date-type=event&start-date=${start}&end-date=${end}`;
@@ -209,7 +224,13 @@ async function cjPart(wins: Array<[string, string]>): Promise<NetworkPart> {
       for (const r of parseCj(await res.text())) seen.set(r.id, r);
     } catch (e) { errs.push(`${(e as Error).message} (${start})`); }
   }));
-  return { rows: [...seen.values()], scanned: true, error: errs.length ? `cj: ${errs.join('; ')}` : undefined };
+  return { rows: [...seen.values()], error: errs.length ? `cj: ${errs.join('; ')}` : undefined };
+}
+
+async function cjPart(wins: Array<[string, string]>): Promise<NetworkPart> {
+  if (!CJ_PAT || !CJ_CID) return { rows: [], scanned: false, error: 'cj: chưa có CJ_PAT/CJ_PUBLISHER_ID' };
+  const r = await cjConversions(wins[wins.length - 1]?.[0] ?? ymd(Date.now()));
+  return { rows: r.rows, scanned: true, error: r.error };
 }
 
 async function awinPart(wins: Array<[string, string]>): Promise<NetworkPart> {

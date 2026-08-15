@@ -18,7 +18,9 @@ const cj = parseCj(xml);
 assert.equal(cj.length, 1);
 // `sub` = ô sid. Nó là KHOÁ QUY CÔNG duy nhất của CJ (không có postback, không có báo cáo click
 // theo sid) — rớt trường này là mất luôn đường nối đơn về camp, mà bảng vẫn hiện đủ tiền nên không ai thấy.
-assert.deepEqual({ ...cj[0] }, { id: '3849384227', date: '2026-08-14', source: 'affiliate', group: 'cj', channel: 'Trip.com (Global)', sub: 'CJ_Trip_HK_13.8', amount: 19.75, gross: 790.15 });
+assert.deepEqual({ ...cj[0] }, { id: '3849384227', date: '2026-08-14', source: 'affiliate', group: 'cj', channel: 'Trip.com (Global)', sub: 'CJ_Trip_HK_13.8', status: 'new', lockDate: '9999-12-31', amount: 19.75, gross: 790.15 });
+// status + lockDate = hai thứ quyết định đơn đã chốt hay chưa (lib/network/status.ts). Rớt chúng
+// thì mọi đơn tụt về 'chờ duyệt' và không ai được trả tiền, mà bảng vẫn hiện đủ số.
 assert.equal(xmlTag(xml, 'action-status'), 'new');
 assert.equal(parseCj('<commissions></commissions>').length, 0);
 // Đơn không gắn sid vẫn phải vào sổ (tiền có thật), chỉ là không quy công được → sub bỏ trống.

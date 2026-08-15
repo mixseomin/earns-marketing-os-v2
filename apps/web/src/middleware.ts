@@ -23,6 +23,20 @@ const PUBLIC_API_PREFIXES = [
   '/api/platform-icon/',
 ];
 
+// Nền tảng network affiliate ở SUBDOMAIN RIÊNG, mỗi host một vai — đúng nếp net VN (pub.* cho
+// publisher, backend admin ở host khác). Cùng một app, khoá theo host: publisher vào nhầm cửa
+// admin thì không phải "thấy nút mà bấm không được", mà là không tới được trang đó.
+const PUB_PORTAL_HOST = 'pub.on.tc';     // portal publisher
+const NET_ADMIN_HOST = 'nadm.on.tc';     // backend admin của network
+function allowedOnNetHost(pathname: string, admin: boolean): boolean {
+  // /c/* (redirect) phải sống trên MỌI host: link publisher đã phát ra ngoài rồi, đổi host là gãy.
+  if (pathname.startsWith('/c/')) return true;
+  if (pathname.startsWith('/_next/') || pathname.startsWith('/static/')
+      || pathname === '/login' || pathname.startsWith('/api/auth')
+      || pathname === '/icon.svg' || pathname === '/favicon.ico') return true;
+  return pathname.startsWith(admin ? '/network' : '/pub');
+}
+
 // user.on.tc = staff review portal. Confine that host to the review queue only (need-to-know):
 // staff can't reach the rest of MOS2 there even though the .on.tc session is shared.
 const STAFF_PORTAL_HOST = 'user.on.tc';
@@ -60,6 +74,20 @@ export function middleware(req: NextRequest) {
     url.search = '';
     return NextResponse.redirect(url);
   }
+
+  if (host === PUB_PORTAL_HOST || host === NET_ADMIN_HOST) {
+    const admin = host === NET_ADMIN_HOST;
+    if (!allowedOnNetHost(pathname, admin)) {
+      const url = req.nextUrl.clone();
+      url.pathname = admin ? '/network' : '/pub';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // Cổng redirect: khách của publisher bấm vào, không thể bắt họ đăng nhập. Route tự lo phần
+  // kiểm tra (chiến dịch còn chạy + publisher đã được duyệt) nên đây chỉ cần cho qua.
+  if (pathname.startsWith('/c/')) return NextResponse.next();
 
   // Allow public paths
   if (PUBLIC_PATHS.includes(pathname)) return NextResponse.next();

@@ -22,6 +22,7 @@ import { unstable_cache } from 'next/cache';
 import { matchColFilter, isNullaryOp } from '@/components/ui/col-filter';   // pure matcher — CÙNG luật với lọc-cột client
 import { NETWORK_PAYOUTS } from '@/lib/affiliate-networks';
 import { normRate } from '@/lib/rate-format';
+import { payoutUsdOf, pctOf, payoutFromAov } from '@/lib/offer-payout';
 import { touchEntity } from '@/lib/touch-entity';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
@@ -197,47 +198,7 @@ function isSelfReferral(name: string, brand: string, network: string | null): bo
   return net.length >= 4 && norm(brand).includes(net) && /refer|giới thiệu|mời|invite/i.test(name);
 }
 
-// Static approx FX — used ONLY to line up flat payouts in one currency for eyeball comparison; it never
-// moves real money. ponytail: refresh only if it ever feeds an actual payout (it doesn't).
-// ponytail: static approx rates, fine for a rough $ comparator; add a live feed only if this ever moves real money.
-const FX_USD: Record<string, number> = {
-  USD: 1, EUR: 1.08, GBP: 1.27, VND: 1 / 24500,
-  CAD: 0.73, AUD: 0.66, CZK: 0.043, PLN: 0.25, SEK: 0.095, DKK: 0.145,
-  NOK: 0.093, CHF: 1.12, JPY: 1 / 150, INR: 0.012, BRL: 0.18, SGD: 0.74, MXN: 0.05,
-};
-// Absolute money PER CONVERSION in USD. ONLY a flat amount is real money we can state (CPA/CPL/CPI $X).
-// A percentage needs the order value we don't have → null (an honest blank, not a guessed number).
-// Cases: "$ 52"→52 · "€10"→10.8 · "50.000đ"→2.04 (VN '.'=thousands) · "CZK 100"→4.3 · "30%"→null · unknown cur→null.
-function payoutUsdOf(rate: string | null, currency: string | null): number | null {
-  if (!rate || rate.includes('%')) return null;
-  // Detect currency: unambiguous symbol/word first, then an ISO code embedded in the string, then the column.
-  let cur = /€|eur/i.test(rate) ? 'EUR' : /£|gbp/i.test(rate) ? 'GBP'
-    : /[₫đ]|vnd/i.test(rate) ? 'VND' : /\$|usd/i.test(rate) ? 'USD' : '';
-  if (!cur) cur = (rate.match(/\b([A-Za-z]{3})\b/)?.[1] || currency || '').toUpperCase();
-  const mul = FX_USD[cur];
-  if (mul == null) return null;  // unknown currency → honest blank, never fake USD (the "$105000" bug class)
-  const digits = cur === 'VND' ? rate.replace(/[^\d]/g, '') : rate.replace(/[^\d.]/g, '');  // VN '.' = thousands, drop it
-  const num = parseFloat(digits);
-  if (!isFinite(num) || num <= 0) return null;
-  return +(num * mul).toFixed(2);
-}
-
-// "15-20%" → 17.5 · "5%" → 5 · "3-10% + $20" → 6.5 (the % part only). null when there's no %.
-function pctOf(rate: string | null): number | null {
-  if (!rate) return null;
-  const nums = (rate.match(/(\d+(?:[.,]\d+)?)\s*%/g) ?? []).map((s) => parseFloat(s.replace(',', '.')));
-  if (!nums.length) return null;
-  const v = (Math.min(...nums) + Math.max(...nums)) / 2;
-  return isFinite(v) && v > 0 ? v : null;
-}
-
-// A % offer becomes real money once we know the order value: payout = AOV × rate. aov_usd is
-// already in USD (the loader converted from the merchant's currency), so no second conversion here.
-function payoutFromAov(rate: string | null, aovUsd: number | null): number | null {
-  const pct = pctOf(rate);
-  if (pct == null || !aovUsd) return null;
-  return +((aovUsd * pct) / 100).toFixed(2);
-}
+// FX + quy tỉ lệ ra tiền: lib/offer-payout.ts (thuần, có assert ở scripts/check-offer-payout.ts).
 
 // NB: `notes` deliberately excluded — see the PERF note above. Lazy-loaded via getOfferNote.
 // The terms columns are short text and null on ~99% of rows → negligible payload.

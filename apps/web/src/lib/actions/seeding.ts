@@ -12,7 +12,8 @@ import { getDb } from '@mos2/db';
 import type { Phase } from '@/lib/phase-plan';
 import { PHASES } from '@/lib/phase-plan';
 import { createPostForBriefPhase } from './brief-posts';
-import { effectiveMix, pickFormatByRotation, formatMeta, postCompleteness } from '@/lib/content-formats';
+import { effectiveMix, pickFormatByRotation, allowedFormats, contentTypeFromFit, formatMeta, postCompleteness } from '@/lib/content-formats';
+import { habitatRole } from '@/lib/habitat-role';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 const DAY = 86_400_000;
@@ -59,6 +60,8 @@ export interface SeedingQueueItem {
   habitatId: number;
   habitatName: string;
   habitatKind: string;
+  /** habitats.scraped_meta — số đo khảo sát; habitatRole() suy vai đăng/comment/chờ từ đây. */
+  habitatMeta: Record<string, unknown> | null;
   habitatPlatformKey: string;       // habitats.platform_key ('' nếu chưa set)
   habitatUrl: string | null;
   habitatIsOwn: boolean;            // 0077: habitat own brand mình
@@ -142,7 +145,7 @@ export async function listSeedingQueue(projectId: string): Promise<SeedingQueueI
       pa.account_kind AS account_kind,
       pa.block_reason AS account_block_reason, p.label AS platform_label,
       pa.platform_key AS platform_key, p.category AS platform_category,
-      h.name AS habitat_name, h.kind AS habitat_kind,
+      h.name AS habitat_name, h.kind AS habitat_kind, h.scraped_meta AS habitat_meta,
       h.platform_key AS habitat_platform_key, h.url AS habitat_url,
       COALESCE(h.is_own, false) AS habitat_is_own,
       t.name AS tribe_name, t.id AS tribe_id,
@@ -235,6 +238,7 @@ export async function listSeedingQueue(projectId: string): Promise<SeedingQueueI
       habitatId: Number(r.habitat_id),
       habitatName: String(r.habitat_name ?? `Habitat #${r.habitat_id}`),
       habitatKind: String(r.habitat_kind ?? 'forum'),
+      habitatMeta: (r.habitat_meta ?? null) as Record<string, unknown> | null,
       habitatPlatformKey: String(r.habitat_platform_key ?? ''),
       habitatUrl: r.habitat_url ? String(r.habitat_url) : null,
       habitatIsOwn: Boolean(r.habitat_is_own),
@@ -998,29 +1002,45 @@ export interface GenerateDueResult {
   dueTotal: number;          // lịch đến hạn/quá hạn
   skippedAutoOff: number;    // đến hạn nhưng auto_draft tắt (PLAN-only)
   skippedHasBacklog: number; // đến hạn, auto bật, nhưng đã có nháp chờ
+  skippedObserve: number;    // cộng đồng chưa khảo / gần chết → không sinh việc (habitat-role)
+  forcedComment: number;     // bài mới ở đó chìm → sinh việc COMMENT thay vì đăng bài
   error?: string;
 }
 
-// Chọn content_type kế tiếp cho 1 brief×phase: mix hiệu lực
-// (PhaseEntry.formatMix override → mặc định theo platform) + xoay vòng
-// deterministic theo số card community-seed đã có của brief.
+// Chọn content_type kế tiếp cho 1 brief×phase.
+//
+// Thứ tự: kiểu bài ĐO ĐƯỢC ở chính cộng đồng đó (habitats.scraped_meta.formatFit — kiểu nào ăn
+// nhiều tương tác nhất) → override formatMix của phase → mix mặc định theo nền tảng, xoay vòng
+// deterministic theo số card community-seed đã có.
+//
+// Trước 2026-08-15 chỉ có nhánh cuối: mix cố định theo NỀN TẢNG (reddit = text 5 · link 2 ·
+// image 2 · poll 1) nên mọi nhóm nhận cùng một khẩu phần, và số liệu khảo sát nằm chết trong
+// vault — 30 ngày sinh 206 card thì cả 206 đều 'text', trong khi nhóm ăn nhất đòi ảnh/short.
 async function pickContentType(
   projectId: string, briefId: number, phase: Phase,
   platformKey: string, category: string,
 ): Promise<string> {
   const db = ensureDb();
   const rows = await db.execute(sql`
-    SELECT b.phase_plan,
+    SELECT b.phase_plan, h.scraped_meta, h.allowed_formats AS habitat_allowed,
       (SELECT count(*)::int FROM cards c
          WHERE c.brief_id = b.id AND c.tags @> '["community-seed"]'::jsonb) AS seed_n
-    FROM community_briefs b WHERE b.id = ${briefId} AND b.project_id = ${projectId} LIMIT 1
+    FROM community_briefs b
+    JOIN habitats h ON h.id = b.habitat_id
+    WHERE b.id = ${briefId} AND b.project_id = ${projectId} LIMIT 1
   `);
   const r = (rows as unknown as Array<Record<string, unknown>>)[0];
   const plan = Array.isArray(r?.phase_plan) ? (r!.phase_plan as Array<Record<string, unknown>>) : [];
   const entry = plan.find((p) => p.phase === phase);
   const override = (entry?.formatMix && typeof entry.formatMix === 'object')
     ? (entry.formatMix as Record<string, number>) : null;
-  const mix = effectiveMix(platformKey, category, override);
+  const habitatAllowed = Array.isArray(r?.habitat_allowed) ? (r!.habitat_allowed as string[]) : null;
+  const allowed = allowedFormats(platformKey, category, null, habitatAllowed).map((f) => f.key);
+  // Số đo thắng, nhưng chỉ khi nền tảng THẬT SỰ đăng được kiểu đó (đo ra 'photo' mà nền tảng
+  // không cho ảnh thì bỏ, rơi về mix) — allowed đã lọc theo platform-rules.
+  const fit = contentTypeFromFit((r?.scraped_meta as Record<string, unknown> | null)?.formatFit, allowed);
+  if (fit) return fit.contentType;
+  const mix = effectiveMix(platformKey, category, override, undefined, null, habitatAllowed);
   return pickFormatByRotation(mix, Number(r?.seed_n ?? 0));
 }
 
@@ -1031,11 +1051,25 @@ export async function generateDueDrafts(projectId: string): Promise<GenerateDueR
   const skippedHasBacklog = due.filter((q) => q.autoDraft && q.backlogCount > 0).length;
   const targets = due.filter((q) => q.autoDraft && q.backlogCount === 0);
   let created = 0;
+  let skippedObserve = 0;
+  let forcedComment = 0;
   for (const q of targets) {
-    // Lane type cố định → dùng luôn; lane 'mix' → xoay theo formatMix.
-    const ct = q.laneType && q.laneType !== 'mix'
-      ? q.laneType
-      : await pickContentType(projectId, q.briefId, q.currentPhase, q.platformKey, q.platformCategory);
+    // VAI của cộng đồng (habitat-role.ts, suy từ số đo) quyết định SINH VIỆC GÌ:
+    //   observe = chưa khảo/phòng gần chết → không sinh gì, đừng đốt lượt đăng
+    //   comment = bài mới ở đó chìm → sinh việc comment vào bài đang trend, KHÔNG đăng bài mới
+    //   post    = bài mới còn ăn → sinh bài như cũ, kiểu bài lấy theo số đo
+    const { role } = habitatRole(q.habitatMeta);
+    if (role === 'observe') { skippedObserve++; continue; }
+    let ct: string;
+    if (role === 'comment') {
+      ct = 'comment';
+      forcedComment++;
+    } else {
+      // Lane type cố định → dùng luôn; lane 'mix' → theo số đo, rồi mới tới formatMix.
+      ct = q.laneType && q.laneType !== 'mix'
+        ? q.laneType
+        : await pickContentType(projectId, q.briefId, q.currentPhase, q.platformKey, q.platformCategory);
+    }
     const res = await createPostForBriefPhase(
       projectId, q.briefId, q.currentPhase, ct, q.laneLang || undefined);
     if (res.ok) created++;
@@ -1045,7 +1079,7 @@ export async function generateDueDrafts(projectId: string): Promise<GenerateDueR
   }
   return {
     ok: true, created,
-    dueTotal: due.length, skippedAutoOff, skippedHasBacklog,
+    dueTotal: due.length, skippedAutoOff, skippedHasBacklog, skippedObserve, forcedComment,
   };
 }
 

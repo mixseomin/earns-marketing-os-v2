@@ -18,6 +18,7 @@ import type { CommunityRow } from '@/lib/actions/communities';
 import { FORMATS, formatLabel } from '@/lib/content-channels';
 import { PHASES, PHASE_COLOR, PHASE_LABEL, type Phase } from '@/lib/phase-plan';
 import { JOIN_STATUS_LABEL, JOIN_STATUS_COLOR, JOIN_STATUS_ICON, type JoinStatus } from '@/lib/join-status';
+import { habitatRole, ROLE_META } from '@/lib/habitat-role';
 
 const inp: CSSProperties = { padding: '5px 9px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--fg-0)', fontSize: 12 };
 const badge: CSSProperties = { fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 5, whiteSpace: 'nowrap', color: 'var(--fg-2)', border: '1px solid var(--line)', background: 'var(--bg-2)' };
@@ -46,6 +47,13 @@ const FMT = new Map(FORMATS.map((f) => [f.id, f]));
 const fmtLabel = formatLabel;   // nhãn chữ dùng chung (lib/content-channels); hình vẽ bằng <FormatIcon>
 // tt = viết tắt dùng khắp bảng. Viết tắt thì được, nhưng phải có chỗ tra ngay cạnh — nên mọi tiêu
 // đề cột dùng "tt" đều kèm dấu ⓘ giải nghĩa (InfoHint), không bắt ai đoán.
+// CommunityRow là bản ĐÃ TÁCH của scraped_meta; dựng lại đúng mấy khoá habitatRole cần để
+// không phải chép ngưỡng sang đây (ngưỡng chỉ nằm ở habitat-role.ts).
+const roleMeta = (r: CommunityRow) => ({
+  formatFit: r.formatFit, trendMedRx: r.trendMedRx, newMedRx: r.newMedRx,
+  postsPerDay: r.postsPerDay, blocked: r.blocked,
+});
+
 const TT = (
   <InfoHint label="tt là gì">
     <b>tt = tương tác trung vị mỗi bài</b><br />
@@ -249,6 +257,17 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
                 : rx >= 1 ? { t: 'lay lắt', c: '#ffb03c' }
                 : { t: 'đăng nhưng ko ai xem', c: '#ef4444' };
               return <span style={pill(s.c)}>{s.t}</span>;
+            } },
+          // VAI: đăng bài hay chỉ comment — suy từ chính số đo (habitat-role.ts), CÙNG hàm mà
+          // scheduler dùng để sinh việc. Cột này để người xem hiểu vì sao lịch của nhóm đó ra
+          // việc comment chứ không ra bài đăng, khỏi tưởng lịch hỏng.
+          { group: 'do', key: 'vao', header: 'Vào bằng gì', width: 116,
+            sortValue: (r) => habitatRole(roleMeta(r)).role,
+            cellTitle: (r) => habitatRole(roleMeta(r)).why,
+            cell: (r) => {
+              const { role } = habitatRole(roleMeta(r));
+              const m = ROLE_META[role];
+              return <span style={pill(m.color)}>{m.label}</span>;
             } },
           { group: 'do', key: 'moi', header: 'Bài mới nhất', width: 104, sortValue: (r) => r.newestAgeH,
             cell: (r) => (r.newestAgeH == null ? <span style={dim}>—</span>

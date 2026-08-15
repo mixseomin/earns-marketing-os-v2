@@ -53,6 +53,7 @@ import { BriefPipelineModal } from './brief-pipeline-modal';
 import { SEEDING_STATUS_META, ACCOUNT_STATUS_META } from '@/lib/status-meta';
 import { LangChip } from './lang-chip';
 import { AccountKindIcon } from './account-kind-icon';
+import { habitatRole, ROLE_META } from '@/lib/habitat-role';
 const STATUS_META: Record<SeedingStatus, { label: string; color: string }> =
   Object.fromEntries(
     (Object.entries(SEEDING_STATUS_META) as Array<[SeedingStatus, typeof SEEDING_STATUS_META[SeedingStatus]]>)
@@ -588,13 +589,18 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
       const res = await generateDueDrafts(projectId);
       if (!res.ok) { setMsg(res.error ?? 'Lỗi'); return; }
       if (res.created > 0) {
-        setMsg(`Đã sinh ${res.created} bài nháp vào backlog (cột Ý tưởng trên Board). Bấm 📝 ở dòng để xem.`);
+        // Nói rõ vai đã đổi việc gì — nếu im, người dùng tưởng lịch tự nhiên hụt bài.
+        const note: string[] = [];
+        if (res.forcedComment) note.push(`${res.forcedComment} ra việc COMMENT (nhóm đó bài mới chìm)`);
+        if (res.skippedObserve) note.push(`${res.skippedObserve} bỏ qua (chưa khảo / nhóm gần chết)`);
+        setMsg(`Đã sinh ${res.created} nháp vào backlog${note.length ? ` — ${note.join(', ')}` : ''}. Bấm 📝 ở dòng để xem.`);
       } else if (res.dueTotal === 0) {
         setMsg('Không có lịch nào đến hạn — chưa cần sinh nháp. Dùng 📝+ ở từng dòng nếu muốn tạo trước.');
       } else {
         const parts: string[] = [];
         if (res.skippedAutoOff) parts.push(`${res.skippedAutoOff} tắt auto-draft (chỉ là PLAN)`);
         if (res.skippedHasBacklog) parts.push(`${res.skippedHasBacklog} đã có nháp chờ`);
+        if (res.skippedObserve) parts.push(`${res.skippedObserve} cộng đồng chưa khảo / gần chết`);
         setMsg(`0 sinh: ${res.dueTotal} lịch đến hạn nhưng ${parts.join(', ') || 'không đủ điều kiện'}. Dùng 📝+ ở dòng để tạo thủ công.`);
       }
       router.refresh();
@@ -783,6 +789,18 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
                 <span>{PHASE_LABEL[it.currentPhase]}</span>
                 <span style={{ color: 'var(--fg-4)' }}>·</span>
                 <span>{effLang.toUpperCase()}</span>
+                {/* VAI suy từ số đo (habitat-role.ts) — cùng hàm scheduler dùng để quyết sinh
+                    bài đăng hay việc comment. Hiện ở đây để dòng nào ra comment là thấy lý do. */}
+                {(() => {
+                  const { role, why } = habitatRole(it.habitatMeta);
+                  const m = ROLE_META[role];
+                  return (
+                    <>
+                      <span style={{ color: 'var(--fg-4)' }}>·</span>
+                      <span title={why} style={{ color: m.color }}>{m.short}</span>
+                    </>
+                  );
+                })()}
                 {!it.habitatUrl && (
                   <span title="Habitat thiếu URL — click sửa habitat"
                         onClick={() => setHabitatOverlayId(it.habitatId)}

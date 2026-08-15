@@ -283,3 +283,37 @@ export function pickFormatByRotation(mix: Record<string, number>, n: number): st
   }
   return seq[((n % seq.length) + seq.length) % seq.length]!;
 }
+
+// ── Kiểu bài ĐO ĐƯỢC ngoài đời → content_type mình sinh ra ─────────────────────
+// Khảo sát cộng đồng ghi kiểu bài theo danh mục `FORMATS` của content-channels
+// (photo/short/album/guide…), còn card lưu theo `CONTENT_FORMATS` (image/story/
+// carousel/doc…). Hai danh mục khác tên cho cùng một thứ, nên phải có ĐÚNG MỘT
+// bảng nối — trước đây chỉ có bản nối cho ICON, còn pipeline sinh bài thì không
+// đọc số đo lần nào (30 ngày sinh 206 card thì cả 206 đều 'text').
+const SURVEY_TO_CONTENT: Record<string, string> = {
+  text: 'text', photo: 'image', album: 'carousel', link: 'link', poll: 'poll',
+  comment: 'comment', thread: 'thread', short: 'story', longform: 'video',
+  guide: 'doc', listicle: 'doc', share: 'link',
+  // 'sequence' (chuỗi email) không có mặt trong seeding cộng đồng → cố tình bỏ.
+};
+
+export interface FormatFitEntry { format: string; n?: number; medEng?: number | null }
+
+/** Kiểu bài ĂN NHẤT ở cộng đồng này, giới hạn trong những kiểu nền tảng cho phép.
+ *  null = chưa đo được / không kiểu nào khớp → caller rơi về mix của nền tảng. */
+export function contentTypeFromFit(
+  formatFit: unknown,
+  allowedKeys: string[],
+): { contentType: string; surveyFormat: string; medEng: number } | null {
+  if (!Array.isArray(formatFit)) return null;
+  const allowed = new Set(allowedKeys);
+  let best: { contentType: string; surveyFormat: string; medEng: number } | null = null;
+  for (const raw of formatFit as FormatFitEntry[]) {
+    const eng = Number(raw?.medEng);
+    if (!raw?.format || !Number.isFinite(eng) || eng <= 0) continue;   // chưa đo = bỏ, không đoán
+    const ct = SURVEY_TO_CONTENT[raw.format];
+    if (!ct || !allowed.has(ct)) continue;
+    if (!best || eng > best.medEng) best = { contentType: ct, surveyFormat: raw.format, medEng: eng };
+  }
+  return best;
+}

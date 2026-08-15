@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   if (!db) return errorResponse('DATABASE_URL not configured', 503);
 
   const b = await req.json().catch(() => ({})) as {
-    pieceId?: number; points?: string[]; source?: string; draft?: string;
+    pieceId?: number; points?: string[]; source?: string; draft?: string; angle?: string;
     parent?: { url?: string; text?: string; reactions?: number; comments?: number; shares?: number };
   };
   const pieceId = Number(b.pieceId ?? 0);
@@ -51,6 +51,9 @@ export async function POST(req: Request) {
     p.url ?? '',
     b.source ? `NGUỒN: ${String(b.source).trim()}` : '',
     points.length ? `Ý CHÍNH BÀI GỐC:\n${points.map((s) => `- ${s}`).join('\n')}` : '',
+    // Một câu nói rõ mình bắt vào ý NÀO của bài. Không có dòng này thì người duyệt phải tự đoán liên
+    // hệ giữa comment và bài, và comment lạc đề vẫn trôi qua vì "nhìn cũng liên quan".
+    b.angle ? `BÁM Ý: ${String(b.angle).trim()}` : '',
     draft ? `DỰ ĐỊNH VIẾT:\n${draft}` : '',
   ].filter(Boolean).join('\n');
 
@@ -66,6 +69,7 @@ export async function POST(req: Request) {
     kind: 'plan-prepare', at: new Date().toISOString(),
     ...(p.url ? { parentUrl: String(p.url) } : {}),
     ...(b.source ? { source: String(b.source) } : {}),
+    ...(b.angle ? { angle: String(b.angle) } : {}),
     ...(points.length ? { points } : {}),
     ...(draft ? { draft } : {}),
   };

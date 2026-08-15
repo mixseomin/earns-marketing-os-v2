@@ -2,6 +2,7 @@
 // Kiểm phần logic thuần của lib/revenue/networks.ts: cắt cửa sổ 31 ngày + parse XML CJ / JSON Awin.
 import assert from 'node:assert';
 import { windows, parseCj, parseAwin, xmlTag, parseLinkPerf } from '../apps/web/src/lib/revenue/networks.ts';
+import { bySub, UNTAGGED } from '../apps/web/src/lib/revenue/by-sub.ts';
 
 // Cửa sổ: 30 ngày → 1 lần gọi; 400 ngày → chạm trần 13.
 assert.equal(windows('2026-07-16', '2026-08-15').length, 1);
@@ -60,4 +61,30 @@ assert.deepEqual({ ...a.rows[0] }, { id: '1', date: '2026-08-10', source: 'affil
 assert.deepEqual([...a.skipped], ['CZK']);
 assert.equal(parseAwin([]).rows.length, 0);
 
-console.log('networks.ts OK — windows/parseCj/parseAwin/parseLinkPerf');
+// ── bySub: quy công doanh thu về ô sub-id ────────────────────────────────────
+const R = (o) => ({ date: '2026-08-14', source: 'affiliate', channel: 'M', amount: 1, ...o });
+const s = bySub([
+  R({ group: 'cj', sub: 'ad1', amount: 10, gross: 100 }),
+  R({ group: 'cj', sub: 'ad1', amount: 5, gross: 50 }),
+  R({ group: 'cj', sub: 'ad2', amount: 20, gross: 200 }),
+  R({ group: 'cj', amount: 3, gross: 30 }),                       // đơn KHÔNG gắn sid
+  R({ source: 'adsense', channel: 'x', amount: 999 }),            // nguồn khác, không được lọt vào
+]);
+assert.equal(s.length, 3);                                         // ad1 gộp 2 đơn · ad2 · rổ chưa-gắn
+assert.equal(s[0].sub, 'ad2');                                     // sắp theo hoa hồng giảm dần
+assert.deepEqual({ ...s[1] }, { network: 'cj', sub: 'ad1', tagged: true, sales: 2, commission: 15, saleAmount: 150 });
+// Đơn không gắn sid PHẢI còn trong bảng — bỏ nó đi thì tổng lệch với lịch doanh thu mà không ai
+// hiểu vì sao, và phần tiền không truy được nguồn biến mất đúng lúc cần nhìn thấy nhất.
+const un = s.find((x) => !x.tagged);
+assert.ok(un && un.sub === UNTAGGED && un.commission === 3);
+// Tổng phải khớp tuyệt đối với tổng của các dòng affiliate đầu vào.
+assert.equal(s.reduce((t, x) => t + x.commission, 0), 38);
+// Hai network trùng tên sid thì KHÔNG được gộp — cùng nhãn "ad1" nhưng là hai chiến dịch khác nhau.
+const two = bySub([R({ group: 'cj', sub: 'ad1', amount: 4 }), R({ group: 'awin', sub: 'ad1', amount: 6 })]);
+assert.equal(two.length, 2);
+assert.deepEqual(two.map((x) => x.network).sort(), ['awin', 'cj']);
+// gross bỏ trống → lấy chính hoa hồng, không ra NaN.
+assert.equal(bySub([R({ group: 'cj', sub: 'a', amount: 7 })])[0].saleAmount, 7);
+assert.deepEqual(bySub([]), []);
+
+console.log('networks.ts OK — windows/parseCj/parseAwin/parseLinkPerf/bySub');

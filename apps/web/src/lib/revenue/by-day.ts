@@ -12,7 +12,9 @@
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { gumroadTokens } from '@/lib/gumroad/products';
-import { networkRows } from './networks';
+import { networkRows, type LinkPerfRow } from './networks';
+
+export type { LinkPerfRow };
 
 export type RevenueSource = 'adsense' | 'product' | 'gumroad' | 'affiliate';
 
@@ -23,6 +25,10 @@ export interface RevenueDayRow {
   /** Bậc GIỮA source và channel, để bóc tách một nguồn ra: affiliate → network (awin/cj). Bỏ trống
    *  thì chính channel là bậc đó (adsense/product/gumroad không có tầng nào ở giữa). */
   group?: string;
+  /** Ô sub-id của network (CJ `sid`, Awin `clickRef`) — nhãn MÌNH tự gắn lúc dựng link, để biết đơn
+   *  này về từ camp/creative nào. Chỉ có ở GIAO DỊCH: không network nào báo click theo ô này, nên
+   *  nó quy công được cho tiền mà không đo được lưu lượng. Phần click nằm ở `linkPerf` bên dưới. */
+  sub?: string;
   amount: number;          // USD THỰC NHẬN (hoa hồng/net) — đây mới là tiền vào túi
   /** Doanh số gốc: khách tiêu / giá bán trước khi chia. Affiliate 20% thì gross = 5× amount. */
   gross?: number;
@@ -33,6 +39,9 @@ export interface RevenueByDay {
   errors: string[];        // nguồn nào lỗi thì nói ra, KHÔNG im lặng trả 0
   /** Network affiliate đã quét trong lượt này — để bộ lọc hiện được cả net kiếm $0. */
   scannedNetworks: string[];
+  /** Phễu click→đơn theo link affiliate. Để RIÊNG khỏi `rows` vì khác grain: rows là tiền theo
+   *  ngày, cái này là click theo link. Nhét chung thì click bị cộng vào cột doanh thu. */
+  linkPerf: LinkPerfRow[];
 }
 
 /** "Toàn bộ" = 10 năm; đủ xa để không cắt mất dữ liệu nào mà vẫn là một con số. */
@@ -53,13 +62,14 @@ export async function getRevenueByDay(sinceDays = 120): Promise<RevenueByDay> {
     adsenseRows(since).catch((e: Error) => ({ rows: [], error: `adsense: ${e.message}` })),
     productRows(since).catch((e: Error) => ({ rows: [], error: `product_stats: ${e.message}` })),
     gumroadRows(since).catch((e: Error) => ({ rows: [], error: `gumroad: ${e.message}` })),
-    networkRows(since).catch((e: Error) => ({ rows: [], scanned: [], error: `network: ${e.message}` })),
+    networkRows(since).catch((e: Error) => ({ rows: [], scanned: [], linkPerf: [], error: `network: ${e.message}` })),
   ]);
   const parts = [adsense, product, gumroad, affiliate];
   return {
     rows: parts.flatMap((p) => p.rows),
     errors: parts.map((p) => ('error' in p ? p.error : undefined)).filter((x): x is string => !!x),
     scannedNetworks: affiliate.scanned,
+    linkPerf: affiliate.linkPerf,
   };
 }
 

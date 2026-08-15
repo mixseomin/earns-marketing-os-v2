@@ -74,6 +74,9 @@ export function parseCj(xml: string): Array<RevenueDayRow & { id: string }> {
     out.push({
       id, date, source: 'affiliate', group: 'cj',
       channel: xmlTag(b, 'advertiser-name') || 'unknown',
+      // `sid` = ô sub-id duy nhất của CJ, mình tự đặt lúc dựng link. Đây là NƠI DUY NHẤT nó quay
+      // về: `performanceReport/sid.json` trả 404 và dropdown Performance không có chiều nào là SID.
+      sub: xmlTag(b, 'sid') || undefined,
       // v3 trả số theo đơn vị tiền của TÀI KHOẢN publisher; tài khoản này để USD (ngưỡng rút
       // $50/$100, balance CJ báo bằng $). Đổi tài khoản sang tiền khác thì phải quy đổi ở đây.
       amount,
@@ -81,6 +84,76 @@ export function parseCj(xml: string): Array<RevenueDayRow & { id: string }> {
     });
   }
   return out;
+}
+
+// ── Phễu click → đơn, theo LINK ──────────────────────────────────────────────
+//
+// API commission chỉ có ĐƠN. Muốn biết một camp đốt bao nhiêu click mới ra đơn thì phải lấy chỗ
+// khác, và chỗ đó không nằm trong bộ API công khai: nó là endpoint của chính webapp
+// members.cj.com. Điểm khiến nó dùng được từ server là nó nhận đúng PAT (đã thử: 200 + JSON
+// thật, không cookie phiên nào) — nếu không thì đã phải nuôi một phiên đăng nhập, và bỏ.
+//
+// KHÔNG có chiều SID ở đây. Đã kiểm ba đường: `sid.json` → 404 · dropdown Performance chỉ có
+// Website/Link/Advertiser/Advertiser-by-Website/Advertiser-Rank/Action/Product/Widget · bộ lọc
+// Transactions không có SID. Nên muốn tách click theo camp thì phải tách LINK, mỗi camp một link.
+
+/** Tổng của một link affiliate trong khoảng đang xem. Không có trục ngày — trục đó lịch lo rồi. */
+export interface LinkPerfRow {
+  network: string;
+  advertiser: string;
+  link: string;
+  linkId: string;
+  clicks: number;
+  sales: number;
+  commission: number;
+  saleAmount: number;
+}
+
+interface CjPerfRec {
+  advertiserName?: string; linkId?: number | string; linkName?: string;
+  clicks?: number | string; sales?: number | string;
+  publisherCommission?: number | string; saleAmount?: number | string;
+}
+
+// CJ trộn kiểu trong CÙNG một trường: `19.754` (số) khi có tiền, `"0.000"` (chuỗi) khi không.
+const num = (x: unknown) => Number(x) || 0;
+
+/** JSON performanceReport → dòng theo link. Xuất ra để test được mà không cần token. */
+export function parseLinkPerf(json: unknown): LinkPerfRow[] {
+  const rec = (json as { records?: { record?: CjPerfRec | CjPerfRec[] } })?.records?.record;
+  // CJ trả OBJECT khi đúng một dòng, MẢNG khi nhiều dòng, và chuỗi rỗng khi không có gì.
+  // Không bọc lại thì `.map` nổ đúng lúc tài khoản chỉ có một link — tức là lúc mới bắt đầu.
+  const list = Array.isArray(rec) ? rec : rec && typeof rec === 'object' ? [rec] : [];
+  const m = new Map<string, LinkPerfRow>();
+  for (const r of list) {
+    const linkId = String(r.linkId ?? '');
+    if (!linkId) continue;
+    const cur = m.get(linkId) ?? {
+      network: 'cj', advertiser: r.advertiserName || 'unknown',
+      link: r.linkName || linkId, linkId, clicks: 0, sales: 0, commission: 0, saleAmount: 0,
+    };
+    // Cộng dồn phòng khi gọi với trendPeriod theo ngày; với NoTrend thì mỗi link đúng một dòng.
+    cur.clicks += num(r.clicks);
+    cur.sales += num(r.sales);
+    cur.commission += num(r.publisherCommission);
+    cur.saleAmount += num(r.saleAmount);
+    m.set(linkId, cur);
+  }
+  return [...m.values()].sort((a, b) => b.commission - a.commission || b.clicks - a.clicks);
+}
+
+async function cjLinkPerf(since: string, until: string): Promise<{ rows: LinkPerfRow[]; error?: string }> {
+  if (!CJ_PAT || !CJ_CID) return { rows: [] };
+  // `allowAllDateRanges=true` bỏ luôn trần 31 ngày của API commission → cả năm trong MỘT lời gọi.
+  // `NoTrend` = tổng theo link, không tách ngày (giá trị lấy từ chính dropdown, `NONE` bị 400).
+  const url = `https://members.cj.com/member/publisher/${encodeURIComponent(CJ_CID)}/performanceReport/link.json`
+    + `?startDate=${since}&endDate=${until}&allowAllDateRanges=true&trendPeriod=NoTrend`
+    + `&columnSort=${encodeURIComponent('publisherCommission\tDESC')}&startRow=1&endRow=200`;
+  try {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${CJ_PAT}` }, next: { revalidate: 600 } });
+    if (!res.ok) return { rows: [], error: `cj link-perf: HTTP ${res.status}` };
+    return { rows: parseLinkPerf(await res.json()) };
+  } catch (e) { return { rows: [], error: `cj link-perf: ${(e as Error).message}` }; }
 }
 
 interface AwinTxn {
@@ -157,16 +230,20 @@ async function awinPart(wins: Array<[string, string]>): Promise<NetworkPart> {
 // Một bảng duy nhất: thêm network = thêm một dòng ở đây, không phải sửa thêm hằng số nào khác.
 const PULLERS: Record<string, (wins: Array<[string, string]>) => Promise<NetworkPart>> = { awin: awinPart, cj: cjPart };
 
-export interface NetworkRevenue { rows: RevenueDayRow[]; error?: string; scanned: string[] }
+export interface NetworkRevenue { rows: RevenueDayRow[]; error?: string; scanned: string[]; linkPerf: LinkPerfRow[] }
 
 /** Hoa hồng network theo ngày trong [since, hôm nay]. Một network hỏng không kéo network kia chết theo. */
 export async function networkRows(since: string): Promise<NetworkRevenue> {
   const until = ymd(Date.now() + 86400_000);          // +1 ngày: API tính tới đầu ngày `end`
   const wins = windows(since, until);
-  if (!wins.length) return { rows: [], scanned: [] };
+  if (!wins.length) return { rows: [], scanned: [], linkPerf: [] };
   const keys = Object.keys(PULLERS);
-  const parts = await Promise.all(keys.map((k) => PULLERS[k]!(wins)));
+  const [parts, perf] = await Promise.all([
+    Promise.all(keys.map((k) => PULLERS[k]!(wins))),
+    cjLinkPerf(since, until),
+  ]);
   const errs = parts.map((p) => p.error).filter((x): x is string => !!x);
+  if (perf.error) errs.push(perf.error);
   // Cửa sổ bị chặn ở 13 tháng — nói ra, đừng để nhìn như "trước đó không kiếm được đồng nào".
   if (wins.length === MAX_CHUNKS) errs.push(`network: chỉ quét được ${MAX_CHUNKS * CHUNK_DAYS} ngày gần nhất (giới hạn 31 ngày/lần gọi)`);
   return {
@@ -175,5 +252,6 @@ export async function networkRows(since: string): Promise<NetworkRevenue> {
     // Chỉ net GỌI ĐƯỢC API mới vào danh sách → bộ lọc hiện "awin $0.00" đúng nghĩa "đã kiểm, không
     // có tiền". Net thiếu credential không được đội lốt $0, nó nằm ở dòng lỗi.
     scanned: keys.filter((_, i) => parts[i]!.scanned),
+    linkPerf: perf.rows,
   };
 }

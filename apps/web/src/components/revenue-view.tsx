@@ -10,6 +10,7 @@ import type { AdsenseSummary } from '@/lib/adsense/reports';
 import type { GumroadSummary } from '@/lib/gumroad/products';
 import type { RevenueByDay } from '@/lib/revenue/by-day';
 import { RevenueCalendar } from './revenue-calendar';
+import { AffiliatePerf } from './affiliate-perf';
 import { RevenueRange } from './revenue-range';
 import { Section, StatsStrip, EmptyState, Pill } from './ui';
 import type { StatCard } from './ui/stats-strip';
@@ -70,6 +71,14 @@ export function RevenueView({ summary, scope = 'all', projectName, gumroad, byDa
       {byDay && (
         <Section title="Lịch doanh thu · mọi nguồn" subtitle="AdSense · Sản phẩm/Affiliate · Gumroad">
           <RevenueCalendar rows={byDay.rows} errors={byDay.errors} scannedNetworks={byDay.scannedNetworks} />
+        </Section>
+      )}
+
+      {/* Lịch trên chỉ có TIỀN. Link đốt click mà không ra đơn cũng $0 y như link chưa ai bấm —
+          phễu này là chỗ tách hai chuyện đó ra. */}
+      {byDay && (
+        <Section title="Affiliate · phễu click → đơn" subtitle={`CJ · ${rangeLabel}`} defaultOpen={false}>
+          <AffiliatePerf linkPerf={byDay.linkPerf} rows={byDay.rows} />
         </Section>
       )}
 

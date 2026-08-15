@@ -259,25 +259,17 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
           {prepText && (
             <PrepPanel piece={piece} full={text ?? ''} prep={prepText} endAt={doneAt} compact={compact} editable={!piece.publishUrl} />
           )}
-          {doneText && (
-            // Đã làm xong: nguyên văn ĐÃ đăng + bài gốc đã comment dưới + các mốc đo về sau. Ba thứ
-            // này phải nằm cùng chỗ, vì câu hỏi "cách làm này ổn chưa" chỉ trả lời được khi nhìn
-            // được mình đã nói gì, dưới bài nào, và người ta phản hồi ra sao.
-            <div style={{ marginTop: 8, borderLeft: '2px solid var(--ok)', paddingLeft: 9 }}>
-              <div style={{ fontSize: 10, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--ok)', marginBottom: 3 }}>đã làm</div>
-              <div style={{ whiteSpace: 'pre-wrap', color: 'var(--fg-1)',
-                ...(compact ? { display: '-webkit-box', WebkitLineClamp: 10, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>
-                {withTags(doneText)}
+          {doneText
+            ? <DonePanel done={doneText} url={piece.publishUrl ?? ''} kind={kind} compact={compact} />
+            : (
+              <div style={{ marginTop: 8, fontSize: compact ? 10.5 : 11.5, color: 'var(--fg-2)' }}>
+                {piece.publishUrl
+                  ? <a href={piece.publishUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: 'var(--neon-blue)' }}>
+                      ✓ đã làm — mở {kind === 'engage' ? 'bài đã tương tác' : 'comment đã đăng'} ↗
+                    </a>
+                  : <>kết quả (link + nguyên văn) ghi vào đây sau khi làm xong</>}
               </div>
-            </div>
-          )}
-          <div style={{ marginTop: 8, fontSize: compact ? 10.5 : 11.5, color: 'var(--fg-2)' }}>
-            {piece.publishUrl
-              ? <a href={piece.publishUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: 'var(--neon-blue)' }}>
-                  ✓ đã làm — mở {kind === 'engage' ? 'bài đã tương tác' : 'comment đã đăng'} ↗
-                </a>
-              : <>kết quả (link + nguyên văn) ghi vào đây sau khi làm xong</>}
-          </div>
+            )}
         </div>
       ) : (
         <div style={{ padding: compact ? '9px 11px' : '12px 14px', fontSize: compact ? 12 : 13.5, lineHeight: 1.5, whiteSpace: 'pre-wrap',
@@ -475,6 +467,61 @@ function PrepPanel({ piece, full, prep, endAt, compact, editable }: {
             )}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** Khối "đã làm": nguyên văn ĐÃ đăng + đường theo dõi của nó. Cùng lý do với khối chuẩn bị — đây là
+ *  bằng chứng, đọc để đánh giá cách làm, nên tách hẳn ba phần: đăng lúc nào bằng ai, nói gì, và các
+ *  mốc đo sau đó. Mốc đo do /plan/track nối vào body dạng "· đo <giờ>: …", ở đây bóc thành hàng. */
+function DonePanel({ done, url, kind, compact }: { done: string; url: string; kind: string; compact: boolean }) {
+  const head = done.match(/^ĐÃ (COMMENT|TƯƠNG TÁC)\s*\(([^),]*)(?:,\s*bằng\s*([^)]*))?\)\s*:/);
+  const rest = head ? done.slice(head[0].length) : done;
+  const lines = rest.split('\n');
+  const metrics = lines.filter((l) => l.trim().startsWith('· đo')).map((l) => {
+    const m = l.match(/·\s*đo\s*([^:]*):\s*(.*)$/);
+    return { at: (m?.[1] ?? '').trim(), what: (m?.[2] ?? '').trim() };
+  });
+  const text = lines.filter((l) => !l.trim().startsWith('· đo')).join('\n').trim();
+
+  return (
+    <div style={{ marginTop: 8, border: '1px solid var(--ok)', borderRadius: 6, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap',
+        padding: compact ? '4px 8px' : '5px 10px', borderBottom: '1px solid var(--line)', background: 'color-mix(in srgb, var(--ok) 10%, transparent)' }}>
+        <span style={{ fontSize: 9.5, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--ok)' }}>
+          {head?.[1] === 'TƯƠNG TÁC' ? 'đã tương tác' : 'đã comment'}
+          {head?.[2] ? <span style={{ color: 'var(--fg-3)', textTransform: 'none', letterSpacing: 0 }}> · {head[2]}</span> : null}
+          {head?.[3] ? <span style={{ color: 'var(--fg-3)', textTransform: 'none', letterSpacing: 0 }}> · bằng {head[3]}</span> : null}
+        </span>
+        {url && (
+          <a href={url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ fontSize: 10.5, color: 'var(--neon-blue)' }}>
+            mở {kind === 'engage' ? 'bài đã tương tác' : 'comment'} ↗
+          </a>
+        )}
+      </div>
+      <div style={{ padding: compact ? '6px 8px 8px' : '8px 10px 10px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+        {text && (
+          <div style={{ whiteSpace: 'pre-wrap', color: 'var(--fg-1)', borderLeft: '2px solid var(--line)', paddingLeft: 8,
+            ...(compact ? { display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>
+            {withTags(text)}
+          </div>
+        )}
+        <div>
+          <div style={{ fontSize: 9.5, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--fg-3)', marginBottom: 2 }}>theo dõi</div>
+          {metrics.length === 0
+            ? <div style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>chưa đo lần nào — <code style={{ fontFamily: 'var(--font-mono)' }}>plan track</code> sau vài ngày</div>
+            : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {metrics.map((m, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, fontSize: 10.5, fontFamily: 'var(--font-mono)' }}>
+                    <span style={{ color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{m.at}</span>
+                    <span style={{ color: m.what.includes('KHÔNG CÒN') ? 'var(--bad)' : 'var(--fg-1)' }}>{m.what}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+        </div>
       </div>
     </div>
   );

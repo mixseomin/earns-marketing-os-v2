@@ -3,7 +3,7 @@
 // Hai chỗ này sai thì tiền đi nhầm chỗ mà màn hình vẫn xanh, nên chúng phải có lưới.
 import assert from 'node:assert';
 import { newClickId, isClickId, upstreamUrl, trackingUrl, readUtm, SUB_PARAM, CLICK_ID_LEN,
-  checkOffer, checkPublisher, checkSlug } from '../apps/web/src/lib/network/link.ts';
+  checkOffer, checkPublisher, checkSlug, newLinkToken, LINK_TOKEN_LEN } from '../apps/web/src/lib/network/link.ts';
 import { cjSettleState } from '../apps/web/src/lib/network/status.ts';
 
 // ── Mã click ────────────────────────────────────────────────────────────────
@@ -43,10 +43,17 @@ assert.equal(SUB_PARAM.cj, 'sid');
 assert.equal(SUB_PARAM.awin, 'clickref');
 
 // ── Link publisher dán ra ngoài ─────────────────────────────────────────────
-assert.equal(trackingUrl('https://pub.on.tc', 'trip-hk', 'thoai'), 'https://pub.on.tc/c/trip-hk?p=thoai');
+// KHÔNG còn tham số nào để publisher sửa sai: cả người lẫn chiến dịch nằm trong token.
+assert.equal(trackingUrl('https://pub.on.tc', 'a1b2c3d4e5f6'), 'https://pub.on.tc/t/a1b2c3d4e5f6');
 assert.equal(
-  trackingUrl('https://pub.on.tc', 'trip-hk', 'thoai', { utm_source: 'google', utm_campaign: 'hk aug' }),
-  'https://pub.on.tc/c/trip-hk?p=thoai&utm_source=google&utm_campaign=hk+aug');
+  trackingUrl('https://pub.on.tc', 'a1b2c3d4e5f6', { utm_source: 'google', utm_campaign: 'hk aug' }),
+  'https://pub.on.tc/t/a1b2c3d4e5f6?utm_source=google&utm_campaign=hk+aug');
+// Link KHÔNG được mang slug publisher ở đâu cả — còn `?p=` là còn cửa đổi sang người khác.
+assert.ok(!trackingUrl('https://pub.on.tc', 'a1b2c3d4e5f6').includes('p='));
+const tk = newLinkToken();
+assert.equal(tk.length, LINK_TOKEN_LEN);
+assert.match(tk, /^[0-9a-z]+$/);
+assert.equal(new Set(Array.from({ length: 2000 }, () => newLinkToken())).size, 2000);
 const u = readUtm(new URLSearchParams('utm_source=google&utm_medium=&utm_content=  banner3  &x=bo'));
 assert.deepEqual(u, { utm_source: 'google', utm_content: 'banner3' });   // ô rỗng bỏ, khoảng trắng cắt
 assert.equal(readUtm(new URLSearchParams(`utm_source=${'a'.repeat(500)}`)).utm_source.length, 200);

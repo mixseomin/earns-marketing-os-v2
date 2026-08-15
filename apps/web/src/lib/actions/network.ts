@@ -10,7 +10,7 @@ import { revalidatePath } from 'next/cache';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { getCurrentUser, changeOwnPassword } from '@/lib/auth';
-import { checkOffer, checkPublisher } from '@/lib/network/link';
+import { checkOffer, checkPublisher, newLinkToken } from '@/lib/network/link';
 
 type Res = { ok: boolean; error?: string };
 const OK: Res = { ok: true };
@@ -155,9 +155,12 @@ export async function decideRegistration(id: number, approve: boolean): Promise<
   if (!me) return { ok: false, error: 'Chỉ admin được duyệt' };
   const db = getDb();
   if (!db) return { ok: false, error: 'DB chưa sẵn sàng' };
+  // Cấp token NGAY lúc duyệt (COALESCE nên duyệt lại không xoay token → link đang chạy không gãy).
+  // Thiếu bước này thì publisher được duyệt mà portal không in ra link nào, và không ai hiểu vì sao.
   await db.execute(sql`
     UPDATE net_publisher_offers
-    SET status=${approve ? 'approved' : 'rejected'}, decided_at=now(), decided_by=${me.id}
+    SET status=${approve ? 'approved' : 'rejected'}, decided_at=now(), decided_by=${me.id},
+        link_token=COALESCE(link_token, ${newLinkToken()})
     WHERE id=${id}`);
   bump();
   return OK;
@@ -180,10 +183,11 @@ export async function grantOffer(publisherId: number, offerId: number): Promise<
   const db = getDb();
   if (!db) return { ok: false, error: 'DB chưa sẵn sàng' };
   await db.execute(sql`
-    INSERT INTO net_publisher_offers (publisher_id, offer_id, status, decided_at, decided_by)
-    VALUES (${publisherId}, ${offerId}, 'approved', now(), ${me.id})
+    INSERT INTO net_publisher_offers (publisher_id, offer_id, status, decided_at, decided_by, link_token)
+    VALUES (${publisherId}, ${offerId}, 'approved', now(), ${me.id}, ${newLinkToken()})
     ON CONFLICT (publisher_id, offer_id) DO UPDATE
-      SET status='approved', decided_at=now(), decided_by=${me.id}`);
+      SET status='approved', decided_at=now(), decided_by=${me.id},
+          link_token=COALESCE(net_publisher_offers.link_token, EXCLUDED.link_token)`);
   bump();
   return OK;
 }

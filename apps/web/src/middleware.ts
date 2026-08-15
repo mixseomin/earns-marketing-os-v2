@@ -29,8 +29,8 @@ const PUBLIC_API_PREFIXES = [
 const PUB_PORTAL_HOST = 'pub.on.tc';     // portal publisher
 const NET_ADMIN_HOST = 'nadm.on.tc';     // backend admin của network
 function allowedOnNetHost(pathname: string, admin: boolean): boolean {
-  // /c/* (redirect) phải sống trên MỌI host: link publisher đã phát ra ngoài rồi, đổi host là gãy.
-  if (pathname.startsWith('/c/')) return true;
+  // /c/* và /t/* (redirect) phải sống trên MỌI host: link publisher đã phát ra ngoài rồi, đổi host là gãy.
+  if (pathname.startsWith('/c/') || pathname.startsWith('/t/')) return true;
   if (pathname.startsWith('/_next/') || pathname.startsWith('/static/')
       || pathname === '/login' || pathname.startsWith('/api/auth')
       || pathname === '/icon.svg' || pathname === '/favicon.ico') return true;
@@ -87,7 +87,7 @@ export function middleware(req: NextRequest) {
 
   // Cổng redirect: khách của publisher bấm vào, không thể bắt họ đăng nhập. Route tự lo phần
   // kiểm tra (chiến dịch còn chạy + publisher đã được duyệt) nên đây chỉ cần cho qua.
-  if (pathname.startsWith('/c/')) return NextResponse.next();
+  if (pathname.startsWith('/c/') || pathname.startsWith('/t/')) return NextResponse.next();
 
   // Allow public paths
   if (PUBLIC_PATHS.includes(pathname)) return NextResponse.next();

@@ -51,7 +51,7 @@ const usd = (n: number) => (n >= 10 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`);
 const mono = { fontFamily: 'var(--font-mono)', fontSize: 11 } as const;
 const dim = { color: 'var(--fg-3)' };
 
-type OfferReg = Offer & { regStatus: string | null };
+type OfferReg = Offer & { regStatus: string | null; linkToken: string | null };
 
 const REG_LABEL: Record<string, string> = { approved: 'đang chạy', pending: 'chờ duyệt', rejected: 'bị từ chối' };
 const REG_COLOR: Record<string, string> = { approved: 'var(--ok)', pending: 'var(--warn)', rejected: 'var(--fg-3)' };
@@ -67,7 +67,8 @@ export function PubPortal({ pubSlug, pubName, offers, report, origin }: {
   const me = report.pubs.find((p) => p.publisher === pubSlug);
   const mine = useMemo(() => report.conversions.filter((c) => c.publisher === pubSlug), [report.conversions, pubSlug]);
 
-  const link = sel ? trackingUrl(origin, sel, pubSlug, utm) : '';
+  const selToken = approved.find((o) => o.slug === sel)?.linkToken ?? null;
+  const link = selToken ? trackingUrl(origin, selToken, utm) : '';
 
   const cards: StatCard[] = [
     { key: 'c', label: 'Click', value: String(me?.clicks ?? 0), color: 'var(--neon-cyan)' },
@@ -126,30 +127,57 @@ export function PubPortal({ pubSlug, pubName, offers, report, origin }: {
 
       <StatsStrip cards={cards} />
 
-      <Section title="Tạo link" subtitle="dán link này vào quảng cáo/bài viết" defaultOpen>
+      <Section title="Link của bạn" subtitle="đã gắn sẵn mã theo dõi — copy nguyên văn, không sửa gì" defaultOpen>
         {approved.length === 0 ? (
           <EmptyState icon="🔗" compact title="Chưa có chiến dịch nào được duyệt"
-            description="Xin chạy một chiến dịch ở khối bên dưới, được duyệt thì link hiện ra ở đây." />
+            description="Xin chạy một chiến dịch ở khối bên dưới; được duyệt thì link hiện ngay ở đây." />
         ) : (
           <>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
-              <Segmented<string>
-                value={sel} onChange={setSel}
-                options={approved.map((o) => ({ value: o.slug, label: o.name, title: o.terms ?? undefined }))}
-              />
-              {UTM_SLOTS.map((k) => (
-                <input key={k} value={utm[k] ?? ''} placeholder={k}
-                  onChange={(e) => setUtm((u) => ({ ...u, [k]: e.target.value }))}
-                  style={{ ...mono, width: 130, padding: '3px 6px', background: 'var(--bg-2)', color: 'var(--fg-0)', border: '1px solid var(--line)', borderRadius: 4 }} />
-              ))}
-            </div>
-            {/* Ô đọc-được-chọn-được, không phải nút "copy" — nút copy hỏng lặng lẽ khi trang không
-                chạy https hoặc trình duyệt chặn clipboard, mà người dùng lại tưởng đã copy. */}
-            <input readOnly value={link} onFocus={(e) => e.currentTarget.select()}
-              style={{ ...mono, width: '100%', padding: '6px 8px', background: 'var(--bg-2)', color: 'var(--accent)', border: '1px solid var(--line)', borderRadius: 4 }} />
-            <p style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 6 }}>
-              Bốn ô <code>utm_*</code> là của bạn — tự chia chiến dịch/mẫu quảng cáo tuỳ ý, chúng quay về nguyên văn trong báo cáo.
+            {/* Mỗi chiến dịch một link SẴN, không phải ghép từ mấy ô. Trước đây link là
+                /c/<offer>?p=<slug-của-bạn> — publisher sửa `p=` thành người khác là công chạy sang
+                tài khoản đó, xoá đi thì 403 và tưởng chiến dịch chết. Giờ cả hai nằm trong token. */}
+            <SimpleTable
+              rows={approved}
+              getRowKey={(o) => o.slug}
+              columns={[
+                { key: 'n', header: 'Chiến dịch', cell: (o) => <span style={{ color: 'var(--fg-0)' }}>{o.name}</span> },
+                { key: 'l', header: 'Link dán ra ngoài', cell: (o) => (
+                  o.linkToken
+                    ? <input readOnly value={trackingUrl(origin, o.linkToken)} onFocus={(e) => e.currentTarget.select()}
+                        style={{ ...mono, width: '100%', minWidth: 320, padding: '4px 6px', background: 'var(--bg-2)',
+                                 color: 'var(--accent)', border: '1px solid var(--line)', borderRadius: 4 }} />
+                    : <span style={{ ...dim, fontSize: 11 }}>chưa cấp link — báo admin</span>
+                ) },
+              ]}
+            />
+            <p style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 8 }}>
+              Bấm vào ô là chọn hết, Ctrl/Cmd+C là xong. <b>Đừng sửa gì trong link</b> — mã theo dõi nằm sẵn trong đó.
             </p>
+
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
+              <div style={{ fontSize: 11, color: 'var(--fg-2)', marginBottom: 6 }}>
+                Muốn tự chia nhỏ theo chiến dịch/mẫu quảng cáo thì thêm bốn ô dưới đây (không bắt buộc):
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+                <Segmented<string>
+                  value={sel} onChange={setSel}
+                  options={approved.map((o) => ({ value: o.slug, label: o.name, title: o.terms ?? undefined }))}
+                />
+                {UTM_SLOTS.map((k) => (
+                  <input key={k} value={utm[k] ?? ''} placeholder={k}
+                    onChange={(e) => setUtm((u) => ({ ...u, [k]: e.target.value }))}
+                    style={{ ...mono, width: 130, padding: '3px 6px', background: 'var(--bg-2)', color: 'var(--fg-0)', border: '1px solid var(--line)', borderRadius: 4 }} />
+                ))}
+              </div>
+              {/* Ô đọc-được-chọn-được, không phải nút "copy": nút copy hỏng lặng lẽ khi trình duyệt
+                  chặn clipboard, mà người dùng lại tưởng đã copy. */}
+              <input readOnly value={link} onFocus={(e) => e.currentTarget.select()}
+                style={{ ...mono, width: '100%', padding: '6px 8px', background: 'var(--bg-2)', color: 'var(--accent)', border: '1px solid var(--line)', borderRadius: 4 }} />
+              <p style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 6 }}>
+                Bốn ô <code>utm_*</code> là của bạn, chúng quay về nguyên văn trong báo cáo. Gõ hỏng cũng không sao —
+                cùng lắm mất nhãn phụ, hoa hồng vẫn về đúng tài khoản.
+              </p>
+            </div>
           </>
         )}
       </Section>

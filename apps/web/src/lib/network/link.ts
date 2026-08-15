@@ -80,10 +80,26 @@ export function readUtm(params: URLSearchParams): Utm {
   return out;
 }
 
-/** Link mà publisher dán ra ngoài. */
-export function trackingUrl(origin: string, offerSlug: string, pubSlug: string, utm: Utm = {}): string {
-  const u = new URL(`/c/${encodeURIComponent(offerSlug)}`, origin);
-  u.searchParams.set('p', pubSlug);
+/** Token của MỘT cặp (publisher × chiến dịch). 12 ký tự — đủ mờ để không đoán ra link người khác,
+ *  đủ ngắn để đọc qua điện thoại. Khác mã click ở chỗ nó BỀN: một token cho cả đời chiến dịch đó,
+ *  còn mã click sinh mới mỗi lượt bấm. */
+export const LINK_TOKEN_LEN = 12;
+
+export function newLinkToken(rand: () => number = Math.random): string {
+  let s = '';
+  for (let i = 0; i < LINK_TOKEN_LEN; i++) s += ALPHABET[Math.floor(rand() * ALPHABET.length)];
+  return s;
+}
+
+/**
+ * Link mà publisher dán ra ngoài. Không còn tham số nào để họ sửa sai: publisher và chiến dịch nằm
+ * TRONG token, không phải trong query. Đổi `?p=` sang người khác, xoá nó, gõ nhầm slug — cả ba
+ * đường hỏng cũ đều không còn cửa.
+ *
+ * Bốn ô utm là phần THÊM: gõ hỏng thì cùng lắm mất nhãn phụ, click vẫn về đúng chủ.
+ */
+export function trackingUrl(origin: string, token: string, utm: Utm = {}): string {
+  const u = new URL(`/t/${encodeURIComponent(token)}`, origin);
   for (const k of UTM_SLOTS) if (utm[k]) u.searchParams.set(k, utm[k]!);
   return u.toString();
 }

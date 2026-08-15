@@ -92,17 +92,17 @@ export async function listRegistrations(onlyPending = false): Promise<Registrati
 
 /** Chiến dịch của MỘT publisher, kèm trạng thái đăng ký — portal publisher dùng cái này.
  *  Trả về CẢ chiến dịch chưa đăng ký (status null) để họ thấy có gì mà xin chạy. */
-export async function offersForPublisher(publisherId: number): Promise<Array<Offer & { regStatus: string | null }>> {
+export async function offersForPublisher(publisherId: number): Promise<Array<Offer & { regStatus: string | null; linkToken: string | null }>> {
   const db = getDb();
   if (!db) return [];
   const r = await db.execute(sql`
-    SELECT o.*, r.status AS reg_status,
+    SELECT o.*, r.status AS reg_status, r.link_token,
            COUNT(c.id) FILTER (WHERE c.source = 'click' AND c.publisher_id = ${publisherId})::int AS clicks
     FROM net_offers o
     LEFT JOIN net_publisher_offers r ON r.offer_id = o.id AND r.publisher_id = ${publisherId}
     LEFT JOIN net_clicks c ON c.offer_id = o.id
     WHERE o.active
-    GROUP BY o.id, r.status ORDER BY r.status = 'approved' DESC NULLS LAST, o.name`);
+    GROUP BY o.id, r.status, r.link_token ORDER BY r.status = 'approved' DESC NULLS LAST, o.name`);
   return (r as unknown as Array<Record<string, unknown>>).map((x) => ({
     id: Number(x.id), slug: String(x.slug), name: String(x.name), network: String(x.network),
     advertiser: (x.advertiser as string) ?? null, category: (x.category as string) ?? null,
@@ -110,6 +110,7 @@ export async function offersForPublisher(publisherId: number): Promise<Array<Off
     upstreamRate: (x.upstream_rate as string) ?? null, publisherRate: (x.publisher_rate as string) ?? null,
     terms: (x.terms as string) ?? null, active: !!x.active, clicks: Number(x.clicks) || 0,
     regStatus: (x.reg_status as string) ?? null,
+    linkToken: (x.link_token as string) ?? null,
   }));
 }
 

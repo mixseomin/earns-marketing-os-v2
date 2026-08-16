@@ -1533,6 +1533,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   }, [feedDays]);
 
   const railRefs = useRef<Record<number, HTMLButtonElement | null>>({});
+  // Công tắc CÂM cho hai bộ theo-dõi-cuộn dưới đây, bật trong lúc jumpTo đang chạy (xem jumpTo).
+  const jumping = useRef<string | null>(null);
   useEffect(() => {
     if (view !== 'feed') return;
     const io = new IntersectionObserver((entries) => {
@@ -1542,7 +1544,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
       const pick = vis.find((e) => e.boundingClientRect.top >= band - 4) ?? vis[0];
       const id = Number(pick?.target.id.replace('piece-', ''));
-      if (id) setActivePiece(id);
+      if (id && !jumping.current) setActivePiece(id);
     }, { rootMargin: '-12% 0px -72% 0px' });
     for (const el of document.querySelectorAll('[id^="piece-"]')) io.observe(el);
     return () => io.disconnect();
@@ -1564,20 +1566,33 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // đích cao lên giữa lúc đang trượt, mà smooth-scroll không tự nhắm lại — cú nhảy xa rơi hụt (đo
   // được 4055px). Ảnh đã được giữ chỗ sẵn bằng aspectRatio, đây là lớp chốt cho phần còn xê dịch:
   // nhắm lại tới khi đúng chỗ, và buông ngay khi người dùng tự cuộn.
+  //
+  // Trong lúc nhảy, HAI bộ theo-dõi-cuộn ở dưới phải câm: đường đi từ ngày 14 xuống ngày 15 quét
+  // qua chính khối ngày 14, nên chúng thấy 14 và ghi đè lại ô vừa bấm — bấm 15 ra 14, giật qua lại
+  // suốt mấy nhịp nhắm lại rồi mới chịu đứng ở 15. `jumping` là công tắc câm đó.
   const jumpTo = useCallback((elId: string) => {
     const el0 = document.getElementById(elId);
     if (!el0) return;
+    jumping.current = elId;
     el0.scrollIntoView({ behavior: 'smooth', block: 'start' });
     const sc = el0.closest('.main') ?? document.documentElement;
-    let n = 0, stop = false;
-    const off = () => { stop = true; };
+    let n = 0, settled = 0, stop = false;
+    const done = () => {
+      stop = true;
+      jumping.current = null;
+      sc.removeEventListener('wheel', off); sc.removeEventListener('touchstart', off);
+    };
+    // Người dùng tự cuộn = huỷ cú nhảy VÀ trả quyền cho bộ theo dõi ngay, không đợi hết nhịp.
+    const off = () => done();
     sc.addEventListener('wheel', off, { once: true, passive: true });
     sc.addEventListener('touchstart', off, { once: true, passive: true });
     const fix = () => {
       const el = document.getElementById(elId);
-      if (stop || !el || n++ > 12) { sc.removeEventListener('wheel', off); sc.removeEventListener('touchstart', off); return; }
+      if (stop) return;
+      if (!el || n++ > 12) { done(); return; }
       const want = sc.getBoundingClientRect().top + (parseFloat(getComputedStyle(el).scrollMarginTop) || 0);
-      if (Math.abs(el.getBoundingClientRect().top - want) > 6) el.scrollIntoView({ block: 'start' });
+      if (Math.abs(el.getBoundingClientRect().top - want) > 6) { el.scrollIntoView({ block: 'start' }); settled = 0; }
+      else if (++settled >= 2) { done(); return; }   // đứng đúng chỗ hai nhịp liền → buông sớm
       setTimeout(fix, 160);
     };
     setTimeout(fix, 620);
@@ -1600,7 +1615,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     if (view !== 'feed') return;
     const io = new IntersectionObserver((entries) => {
       const top = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-      const ds = top?.target.id.replace('feed-', '');
+      const ds = jumping.current ? '' : top?.target.id.replace('feed-', '');
       if (ds) { setFeedActive(ds); const yy = Number(ds.slice(0, 4)), mm = Number(ds.slice(5, 7)); setFeedMonth((cur) => (cur.getFullYear() === yy && cur.getMonth() === mm - 1 ? cur : new Date(yy, mm - 1, 1))); }
     }, { rootMargin: '-8% 0px -80% 0px' });
     for (const el of Object.values(feedRefs.current)) if (el) io.observe(el);

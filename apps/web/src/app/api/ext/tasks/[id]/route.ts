@@ -97,13 +97,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 //   { slaDueAt }   → lịch/deadline (cột sla_due_at). '' / null = xoá hẹn.
 //   { blocker }    → prep_payload.blocker (text "mắc gì ở bước này"). (ảnh chụp = phase sau, cần upload infra.)
 //   { checklist }  → prep_payload.checklist merge {stepKey: done} (tick bước reg/đặt link).
+//   { items }      → prep_payload.items = { label, rows[] }: DANH SÁCH THỰC THỂ card đang nói tới.
+//        Card ghi "đẩy 450 URL" hay "338 khu vực" thì con số đó phải mở ra xem được ngay tại chỗ,
+//        chứ không phải đi lục file trên máy nào đó — nếu không thì tháng sau không ai kiểm lại được
+//        card đã động vào ĐÚNG những gì. rows = mảng object phẳng (mọi hàng dùng chung bộ khoá) hoặc
+//        mảng chuỗi; drawer tự dựng cột từ khoá của hàng đầu.
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return NextResponse.json({ ok: false }, { status: 503 });
   const { id } = await params;
   const taskId = Number(id);
   if (!Number.isFinite(taskId)) return NextResponse.json({ error: 'bad id' }, { status: 400 });
-  const body = await req.json().catch(() => ({})) as { slaDueAt?: string | null; blocker?: string; checklist?: Record<string, boolean>; resume?: { inputs?: unknown; doneWhen?: unknown; dependsOn?: unknown } };
+  const body = await req.json().catch(() => ({})) as { slaDueAt?: string | null; blocker?: string; checklist?: Record<string, boolean>; resume?: { inputs?: unknown; doneWhen?: unknown; dependsOn?: unknown }; items?: { label?: string; rows?: unknown[] } | null };
 
   if (body.slaDueAt !== undefined) {
     const iso = body.slaDueAt ? new Date(body.slaDueAt).toISOString() : null;
@@ -118,6 +123,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const clean: Record<string, boolean> = {};
     for (const [k, v] of Object.entries(body.checklist)) clean[String(k).slice(0, 60)] = !!v;
     await db.execute(sql`UPDATE human_tasks SET prep_payload = jsonb_set(COALESCE(prep_payload, '{}'::jsonb), '{checklist}', COALESCE(prep_payload->'checklist', '{}'::jsonb) || ${JSON.stringify(clean)}::jsonb, true), updated_at = now() WHERE id = ${taskId}`);
+  }
+  if (body.items !== undefined) {
+    if (body.items === null) {
+      await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) - 'items', updated_at = now() WHERE id = ${taskId}`);
+    } else {
+      // Trần 2000 hàng: đủ cho mọi danh sách thật (450 URL, 338 khu vực) mà không biến một cột jsonb
+      // thành kho chứa. Danh sách lớn hơn thì thứ cần lưu là đường tới file, không phải chính file.
+      const rows = Array.isArray(body.items.rows) ? body.items.rows.slice(0, 2000) : [];
+      const payload = { label: String(body.items.label ?? '').slice(0, 120), rows, at: new Date().toISOString() };
+      await db.execute(sql`UPDATE human_tasks SET prep_payload = jsonb_set(COALESCE(prep_payload, '{}'::jsonb), '{items}', ${JSON.stringify(payload)}::jsonb, true), updated_at = now() WHERE id = ${taskId}`);
+    }
   }
   // Bàn giao: inputs/done_when/depends_on (merge qua setTaskResume — dùng chung drawer MOS2).
   if (body.resume !== undefined) await setTaskResume(taskId, body.resume || {});

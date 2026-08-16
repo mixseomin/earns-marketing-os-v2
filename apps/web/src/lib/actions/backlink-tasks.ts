@@ -47,6 +47,10 @@ export interface BacklinkTask {
   fillFields: { at: string; items: Array<{ key: string; label: string; type: string; value: string; source: string; confidence: string }> } | null;  // ✨ Chuẩn bị điền: prepared per-field values for the source's real form
   domSampleId: number | null;   // latest dom_samples row for this task's source host (for the drawer "🔎 DOM" check link)
   // Bàn giao — để 1 chat khác nối tiếp mà không đoán (prep_payload.inputs/done_when/depends_on).
+  // Danh sách thực thể card đang nói tới (450 URL đã đẩy, 338 khu vực trong bảng…). Ở đây CHỈ có số
+  // đếm + nhãn để bảng hiện được badge; nội dung lấy bằng getTaskItems() lúc mở drawer.
+  itemsCount: number;
+  itemsLabel: string;
   inputs: { label: string; url: string }[];   // link input cụ thể (sản phẩm, asset/vault, doc)
   doneWhen: string;                            // tiêu chí "xong" — làm ĐÚNG chưa
   dependsOn: number[];                         // id card cần output TRƯỚC (chuỗi phụ thuộc)
@@ -267,13 +271,19 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
     // chỉ lấy card CÓ ít nhất 1 mảnh (?| ) cho nhẹ.
     const resumeById = new Map<number, TaskResume>();
     const typeById = new Map<number, { archetype: string | null; format: string | null }>();
+    const itemsById = new Map<number, { label: string; count: number }>();
     if (ids.length) {
       const idList = sql.join(ids.map((i) => sql`${i}`), sql`, `);
-      const rs = await db.execute(sql`SELECT id, prep_payload->'inputs' AS inputs, prep_payload->>'done_when' AS done_when, prep_payload->'depends_on' AS depends_on, prep_payload->>'archetype' AS archetype, prep_payload->>'format' AS format
-        FROM human_tasks WHERE id IN (${idList}) AND platform_key = 'backlink' AND (prep_payload ?| array['inputs','done_when','depends_on','archetype','format'])`);
-      for (const r of rs as unknown as Array<{ id: number; inputs: unknown; done_when: unknown; depends_on: unknown; archetype: string | null; format: string | null }>) {
+      // items: CHỈ lấy số đếm + nhãn ở đây. Nội dung danh sách (có card 450 hàng) không được đi kèm
+      // mọi lượt tải bảng — drawer gọi getTaskItems() khi mở. Đếm ở SQL, không kéo mảng về rồi đếm.
+      const rs = await db.execute(sql`SELECT id, prep_payload->'inputs' AS inputs, prep_payload->>'done_when' AS done_when, prep_payload->'depends_on' AS depends_on, prep_payload->>'archetype' AS archetype, prep_payload->>'format' AS format,
+               prep_payload->'items'->>'label' AS items_label,
+               CASE WHEN jsonb_typeof(prep_payload->'items'->'rows') = 'array' THEN jsonb_array_length(prep_payload->'items'->'rows') ELSE 0 END AS items_count
+        FROM human_tasks WHERE id IN (${idList}) AND platform_key = 'backlink' AND (prep_payload ?| array['inputs','done_when','depends_on','archetype','format','items'])`);
+      for (const r of rs as unknown as Array<{ id: number; inputs: unknown; done_when: unknown; depends_on: unknown; archetype: string | null; format: string | null; items_label: string | null; items_count: number | null }>) {
         resumeById.set(Number(r.id), toResume(r.inputs, r.done_when, r.depends_on));
         if (r.archetype || r.format) typeById.set(Number(r.id), { archetype: r.archetype ?? null, format: r.format ?? null });
+        if (Number(r.items_count) > 0) itemsById.set(Number(r.id), { label: r.items_label ?? '', count: Number(r.items_count) });
       }
     }
 
@@ -327,6 +337,8 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
         dependsOn: rz?.dependsOn ?? [],
         archetype: typeById.get(t.id)?.archetype ?? null,
         format: typeById.get(t.id)?.format ?? null,
+        itemsCount: itemsById.get(t.id)?.count ?? 0,
+        itemsLabel: itemsById.get(t.id)?.label ?? '',
         domSampleId: domByHost.get(hostOf(t.sourceUrl)) ?? null,
         catalogSourceId: catSrc?.id ?? null,
         catalogSourceName: catSrc?.name ?? null,
@@ -420,5 +432,20 @@ export async function setBacklinkTier(taskId: number, tier: 'A' | 'B' | 'C' | nu
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String(e).slice(0, 120) };
+  }
+}
+
+// Danh sách thực thể của một card (prep_payload.items). Tách khỏi getBacklinkTasks vì một card có
+// thể mang vài trăm hàng: bảng chỉ cần con số, drawer mới cần nội dung, nên chỉ tải khi mở ra xem.
+export async function getTaskItems(taskId: number): Promise<{ label: string; at: string; rows: Array<Record<string, unknown> | string> }> {
+  const db = getDb();
+  if (!db) return { label: '', at: '', rows: [] };
+  try {
+    const r = (await db.execute(sql`SELECT prep_payload->'items' AS items FROM human_tasks WHERE id = ${taskId} LIMIT 1`)) as unknown as Array<{ items: unknown }>;
+    const it = r[0]?.items as { label?: string; at?: string; rows?: unknown[] } | null | undefined;
+    if (!it || !Array.isArray(it.rows)) return { label: '', at: '', rows: [] };
+    return { label: String(it.label ?? ''), at: String(it.at ?? ''), rows: it.rows as Array<Record<string, unknown> | string> };
+  } catch {
+    return { label: '', at: '', rows: [] };
   }
 }

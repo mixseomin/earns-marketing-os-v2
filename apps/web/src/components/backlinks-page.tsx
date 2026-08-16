@@ -13,7 +13,7 @@ import { hasResume, type TaskInput, type TaskResume } from '@/lib/task-resume';
 import { listBacklinkSources, seedBacklinksFromCatalog, generatePlaysForProject, setBacklinkSourceStatus, type BacklinkSource, type SourceIntel } from '@/lib/actions/backlink-catalog';
 import { AUTOMATION_META, automationBadge, automationNeedsHuman } from '@/lib/backlink-gates';
 import { SourceEditor } from './source-editor';
-import { setBacklinkTier } from '@/lib/actions/backlink-tasks';
+import { setBacklinkTier, getTaskItems } from '@/lib/actions/backlink-tasks';
 import { BACKLINK_SITES } from '@/lib/backlink-sites';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
@@ -2445,6 +2445,67 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
 
 // Bàn giao card: inputs (link) + done-when (tiêu chí) + depends-on (id card trước). Điền vào đây =
 // 1 chat khác đọc `play show <id>` là nối được, không đoán. Lưu 1 phát qua setTaskResume (merge prep_payload).
+/** Danh sách thực thể một card đang nói tới (prep_payload.items): 450 URL đã đẩy, 338 khu vực đã
+ *  tính, 24 người đã liên hệ. Card ghi con số mà không mở ra xem được thì tháng sau không ai kiểm
+ *  lại được nó đã động vào ĐÚNG những gì; đi lục file trên máy nào đó cũng vậy, vì máy đó không
+ *  phải bảng này. Tải khi mở, không đi kèm mọi lượt tải bảng. */
+function TaskItems({ taskId, count }: { taskId: number; count: number }) {
+  const [rows, setRows] = useState<Array<Record<string, unknown> | string> | null>(null);
+  const [at, setAt] = useState('');
+  const [q, setQ] = useState('');
+
+  useEffect(() => { let on = true; getTaskItems(taskId).then((r) => { if (on) { setRows(r.rows); setAt(r.at); } }).catch(() => { if (on) setRows([]); }); return () => { on = false; }; }, [taskId]);
+
+  // Hàng có thể là chuỗi (danh sách URL) hoặc object phẳng (bảng số liệu) — cột lấy từ hàng đầu.
+  const cols = useMemo(() => {
+    const first = rows?.find((r) => r && typeof r === 'object');
+    return first ? Object.keys(first as Record<string, unknown>) : [];
+  }, [rows]);
+  const text = (r: Record<string, unknown> | string) => (typeof r === 'string' ? r : cols.map((c) => String((r as Record<string, unknown>)[c] ?? '')).join(' '));
+  const shown = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    return (rows ?? []).filter((r) => !s || text(r).toLowerCase().includes(s));
+  }, [rows, q, cols]);
+  const { pageItems, ...pager } = usePaged(shown, 25);
+
+  const copyAll = () => {
+    const body = cols.length
+      ? [cols.join('\t'), ...(rows ?? []).map((r) => cols.map((c) => String((r as Record<string, unknown>)[c] ?? '')).join('\t'))].join('\n')
+      : (rows ?? []).map((r) => String(r)).join('\n');
+    void navigator.clipboard.writeText(body);
+  };
+
+  if (rows === null) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>đang tải {count} mục…</div>;
+  if (!rows.length) return <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>danh sách rỗng</div>;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <SearchInput value={q} onChange={setQ} placeholder="lọc trong danh sách…" width={200} />
+        <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{shown.length}/{rows.length} mục{at ? ` · ghi ${at.slice(0, 10)}` : ''}</span>
+        <button type="button" onClick={copyAll} style={{ ...btn, padding: '2px 8px', fontSize: 11, cursor: 'pointer' }}>copy tất cả</button>
+      </div>
+      <div style={{ maxHeight: 340, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 6 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
+          {cols.length > 0 && (
+            <thead><tr>{cols.map((c) => <th key={c} style={{ textAlign: 'left', padding: '5px 8px', position: 'sticky', top: 0, background: 'var(--bg-2)', borderBottom: '1px solid var(--border)', color: 'var(--fg-3)', fontWeight: 500, whiteSpace: 'nowrap' }}>{c}</th>)}</tr></thead>
+          )}
+          <tbody>
+            {pageItems.map((r, i) => (
+              <tr key={i} style={{ borderBottom: '1px solid var(--border-soft, var(--border))' }}>
+                {cols.length
+                  ? cols.map((c) => { const v = String((r as Record<string, unknown>)[c] ?? ''); return <td key={c} style={{ padding: '4px 8px', whiteSpace: 'nowrap', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }} title={v}>{v}</td>; })
+                  : <td style={{ padding: '4px 8px' }}>{/^https?:\/\//.test(String(r)) ? <a href={String(r)} {...EXT} style={{ color: 'var(--accent)' }}>{String(r)}</a> : String(r)}</td>}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <Pager {...pager} onPage={pager.setPage} />
+    </div>
+  );
+}
+
 function ResumeEditor({ task, onSave, onOpenTask }: { task: BacklinkTask; onSave: (r: TaskResume) => Promise<void>; onOpenTask: (id: number) => void }) {
   const [inputs, setInputs] = useState<TaskInput[]>(task.inputs);
   const [doneWhen, setDoneWhen] = useState(task.doneWhen);
@@ -3452,6 +3513,12 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
         {siteErr && <div style={{ marginTop: 5, fontSize: 11.5, color: 'var(--bad,#ef4444)', lineHeight: 1.5 }}>{siteErr}</div>}
 
         {/* 7-9 · Link + verify + schedule — grouped (the primary paste spot is inline at the ✅ line above). */}
+        {task.itemsCount > 0 && (
+          <Disclosure title={`📄 ${task.itemsLabel || 'Danh sách'}`} badge={`${task.itemsCount} mục`} defaultOpen={false}>
+            <TaskItems taskId={task.id} count={task.itemsCount} />
+          </Disclosure>
+        )}
+
         <Disclosure title="📋 Bàn giao — để chat khác nối tiếp" badge={hasResume({ inputs: task.inputs, doneWhen: task.doneWhen, dependsOn: task.dependsOn }) ? '✓ đã có bàn giao' : 'trống — nên điền'} defaultOpen={hasResume({ inputs: task.inputs, doneWhen: task.doneWhen, dependsOn: task.dependsOn })}>
           <ResumeEditor task={task} onSave={(r) => setResume(task.id, r)} onOpenTask={onOpenTask} />
         </Disclosure>

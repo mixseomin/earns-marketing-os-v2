@@ -3,7 +3,7 @@ import { PubPortal } from '@/components/pub-portal';
 import { offersForPublisher, catalogForPublisher } from '@/lib/network/data';
 import { networkReport, pubView } from '@/lib/network/report';
 import { currentPublisher } from '@/lib/network/auth';
-import { PUB_ORIGIN } from '@/lib/network/link';
+import { originOf } from '@/lib/network/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +19,6 @@ export default async function PubRoute() {
   // là gửi kèm đơn của publisher khác + số upstream trả mình — không hiện vẫn đọc được trong payload.
   return (
     <PubPortal pubName={pub.name} offers={offers} catalog={catalog}
-      view={pubView(report, pub.slug)} origin={PUB_ORIGIN} />
+      view={pubView(report, pub.slug)} origin={originOf(pub.linkDomain)} />
   );
 }

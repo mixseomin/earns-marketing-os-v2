@@ -28,6 +28,26 @@ export const CLICK_ID_LEN = 12;
  *  host publisher — lấy `headers().host` thì admin copy ra link nội bộ mà không ai nhận ra. */
 export const PUB_ORIGIN = process.env.NEXT_PUBLIC_PUB_ORIGIN || 'https://pub.on.tc';
 
+/**
+ * Tên miền riêng của publisher → origin dùng để dựng link. Bỏ trống thì về host chung.
+ *
+ * Nhận cả 'go.x.com', 'https://go.x.com', 'https://go.x.com/' — người điền sẽ dán đủ kiểu, và một
+ * dấu gạch thừa là ra link `https://go.x.com//t/abc`. Chuẩn hoá MỘT chỗ, không đi sửa ở mọi nơi đọc.
+ */
+export function originOf(linkDomain: string | null | undefined): string {
+  const h = (linkDomain ?? '').trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+  return h ? `https://${h}` : PUB_ORIGIN;
+}
+
+/** Host hợp lệ để phục vụ link: chữ thường, có dấu chấm, không path/khoảng trắng. */
+export function checkLinkDomain(raw: string): string | null {
+  const h = raw.trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+  if (!h) return null;
+  return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(h)
+    ? null
+    : 'Tên miền: chỉ phần host (vd go.militarycalc.com), không kèm đường dẫn';
+}
+
 const ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz';
 
 /** Sinh mã click. `rand` tách ra để test bơm số cố định vào được. */

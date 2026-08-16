@@ -21,6 +21,8 @@ export interface Publisher {
   id: number; slug: string; name: string; kind: string; status: string; note: string | null;
   /** Cắt riêng cho NGƯỜI này (%, phần nhà giữ). null = theo cắt của chiến dịch, rồi tới cắt chung. */
   cutPct: number | null;
+  /** Host riêng phục vụ link theo dõi (go.militarycalc.com). null = dùng host chung. */
+  linkDomain: string | null;
   /** Danh tính RIÊNG của publisher — không phải user MOS2. Xem lib/network/auth.ts. */
   email: string | null;
   hasPassword: boolean;
@@ -64,6 +66,7 @@ export async function listPublishers(): Promise<Publisher[]> {
     id: Number(x.id), slug: String(x.slug), name: String(x.name),
     kind: String(x.kind), status: String(x.status), note: (x.note as string) ?? null,
     cutPct: x.cut_pct == null ? null : Number(x.cut_pct),
+    linkDomain: (x.link_domain as string) ?? null,
     email: (x.email as string) ?? null, hasPassword: !!x.password_hash,
   }));
 }

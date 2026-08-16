@@ -10,7 +10,7 @@ import { revalidatePath } from 'next/cache';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { getCurrentUser } from '@/lib/auth';
-import { checkOffer, checkPublisher, newLinkToken, slugify, PUB_ORIGIN } from '@/lib/network/link';
+import { checkOffer, checkPublisher, checkLinkDomain, newLinkToken, slugify, PUB_ORIGIN } from '@/lib/network/link';
 import { listCatalog, baseCut } from '@/lib/network/data';
 import { derivePubRate, shareOf } from '@/lib/offer-payout';
 import { issueSetupToken, adminSetPassword, currentPublisher } from '@/lib/network/auth';
@@ -118,6 +118,8 @@ export interface PublisherInput {
   email?: string;
   /** Đặt/đổi mật khẩu cho họ. Bỏ TRỐNG = giữ nguyên mật khẩu cũ (không phải xoá nó). */
   password?: string;
+  /** Host riêng phục vụ link theo dõi của họ (go.militarycalc.com). Trống = dùng host chung. */
+  linkDomain?: string;
   // Cắt riêng: xem OfferInput — chỉ sửa ở tab Cắt.
 }
 
@@ -129,16 +131,22 @@ export async function savePublisher(input: PublisherInput): Promise<Res> {
   if (bad) return { ok: false, error: bad };
   const slug = input.slug.trim().toLowerCase();
   const email = input.email?.trim().toLowerCase() || null;
+  const badDomain = input.linkDomain ? checkLinkDomain(input.linkDomain) : null;
+  if (badDomain) return { ok: false, error: badDomain };
+  // Chuẩn hoá về ĐÚNG host ngay tại tầng ghi: người điền sẽ dán 'https://go.x.com/' và mọi chỗ đọc
+  // sau đó không phải đoán xem chuỗi này có kèm giao thức hay dấu gạch cuối hay không.
+  const linkDomain = input.linkDomain?.trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '').toLowerCase() || null;
   try {
     if (input.id) {
       await db.execute(sql`
         UPDATE net_publishers SET slug=${slug}, name=${input.name.trim()}, kind=${input.kind},
-          status=${input.status}, note=${input.note?.trim() || null}, email=${email}
+          status=${input.status}, note=${input.note?.trim() || null}, email=${email},
+          link_domain=${linkDomain}
         WHERE id=${input.id}`);
     } else {
       await db.execute(sql`
-        INSERT INTO net_publishers (slug, name, kind, status, note, email)
-        VALUES (${slug}, ${input.name.trim()}, ${input.kind}, ${input.status}, ${input.note?.trim() || null}, ${email})`);
+        INSERT INTO net_publishers (slug, name, kind, status, note, email, link_domain)
+        VALUES (${slug}, ${input.name.trim()}, ${input.kind}, ${input.status}, ${input.note?.trim() || null}, ${email}, ${linkDomain})`);
     }
   } catch (e) {
     const m = (e as Error).message;

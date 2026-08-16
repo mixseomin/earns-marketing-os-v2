@@ -17,7 +17,7 @@ const ROUNDS = 10;
 /** Link đặt mật khẩu sống 7 ngày. Dài hơn thì một link rò rỉ trong hộp thư cũ vẫn mở được tài khoản. */
 const SETUP_TTL_HOURS = 24 * 7;
 
-export interface PubUser { id: number; slug: string; name: string; email: string | null }
+export interface PubUser { id: number; slug: string; name: string; email: string | null; linkDomain: string | null }
 
 const token = () => randomBytes(32).toString('hex');
 
@@ -59,14 +59,14 @@ export async function currentPublisher(): Promise<PubUser | null> {
   const t = (await cookies()).get(COOKIE)?.value;
   if (!t) return null;
   const rows = await db.execute(sql`
-    SELECT p.id, p.slug, p.name, p.email
+    SELECT p.id, p.slug, p.name, p.email, p.link_domain
     FROM net_sessions s JOIN net_publishers p ON p.id = s.publisher_id
     WHERE s.token = ${t} AND s.revoked_at IS NULL AND s.expires_at > now() AND p.status = 'active'
     LIMIT 1`);
-  const r = (rows as unknown as Array<{ id: number; slug: string; name: string; email: string | null }>)[0];
+  const r = (rows as unknown as Array<{ id: number; slug: string; name: string; email: string | null; link_domain: string | null }>)[0];
   if (!r) return null;
   db.execute(sql`UPDATE net_sessions SET last_seen_at = now() WHERE token = ${t}`).catch(() => {});
-  return { id: Number(r.id), slug: r.slug, name: r.name, email: r.email };
+  return { id: Number(r.id), slug: r.slug, name: r.name, email: r.email, linkDomain: r.link_domain };
 }
 
 export async function pubLogout(): Promise<void> {

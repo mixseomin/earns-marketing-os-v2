@@ -662,6 +662,7 @@ function PublisherForm({ pub, busy, onClose, onSave }: {
     id: pub?.id, slug: pub?.slug ?? '', name: pub?.name ?? '',
     kind: pub?.kind ?? 'inhouse', status: pub?.status ?? 'active',
     note: pub?.note ?? '', email: pub?.email ?? '', password: '',
+    linkDomain: pub?.linkDomain ?? '',
   });
   const set = <K extends keyof PublisherInput>(k: K, val: PublisherInput[K]) => setV((s) => ({ ...s, [k]: val }));
   const [initial] = useState(() => JSON.stringify(v));
@@ -693,6 +694,9 @@ function PublisherForm({ pub, busy, onClose, onSave }: {
           hint={pub?.hasPassword
             ? 'Bỏ trống = giữ nguyên mật khẩu cũ. Đổi thì mọi phiên đang mở của họ bị đá ra.'
             : 'Tối thiểu 8 ký tự. Đưa cho publisher, họ tự đổi lại trong portal.'} />
+        <TextField label="Tên miền link riêng" mono value={v.linkDomain ?? ''}
+          onChange={(e) => set('linkDomain', e.target.value)}
+          hint="vd go.militarycalc.com — trỏ DNS về server này trước, rồi mới điền. Trống = dùng pub.on.tc." />
         <TextAreaField label="Ghi chú" rows={2} value={v.note} onChange={(e) => set('note', e.target.value)} />
       </div>
       <FormModalFooter>

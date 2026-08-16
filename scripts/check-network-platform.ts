@@ -3,7 +3,7 @@
 // Hai chỗ này sai thì tiền đi nhầm chỗ mà màn hình vẫn xanh, nên chúng phải có lưới.
 import assert from 'node:assert';
 import { newClickId, isClickId, upstreamUrl, trackingUrl, readUtm, SUB_PARAM, CLICK_ID_LEN,
-  checkOffer, checkPublisher, checkSlug, newLinkToken, LINK_TOKEN_LEN, networkFromUrl, slugify } from '../apps/web/src/lib/network/link.ts';
+  checkOffer, checkPublisher, checkSlug, newLinkToken, LINK_TOKEN_LEN, networkFromUrl, slugify, originOf, checkLinkDomain, PUB_ORIGIN } from '../apps/web/src/lib/network/link.ts';
 import { cjSettleState, awinSettleState } from '../apps/web/src/lib/network/status.ts';
 
 // ── Mã click ────────────────────────────────────────────────────────────────
@@ -130,5 +130,25 @@ assert.equal(awinSettleState('approved', 0), 'cancelled');
 assert.equal(awinSettleState('approved', -3), 'cancelled');
 
 
+
+// ── Tên miền riêng của publisher ────────────────────────────────────────────
+// Người điền sẽ dán đủ kiểu. Một dấu gạch thừa là ra link `https://go.x.com//t/abc` — link hỏng mà
+// nhìn vẫn giống link đúng, và nó đã nằm trong bài đăng rồi.
+assert.equal(originOf('go.militarycalc.com'), 'https://go.militarycalc.com');
+assert.equal(originOf('https://go.militarycalc.com'), 'https://go.militarycalc.com');
+assert.equal(originOf('https://go.militarycalc.com/'), 'https://go.militarycalc.com');
+assert.equal(originOf('  go.x.com  '), 'https://go.x.com');
+assert.equal(originOf(null), PUB_ORIGIN);      // chưa đặt → host chung
+assert.equal(originOf(''), PUB_ORIGIN);
+// Link dựng ra phải đúng, không dính hai dấu gạch.
+assert.equal(trackingUrl(originOf('go.x.com/'), 'abc123'), 'https://go.x.com/t/abc123');
+// Chặn thứ không phải host: đường dẫn, khoảng trắng, tên trống chấm.
+assert.equal(checkLinkDomain('go.militarycalc.com'), null);
+assert.equal(checkLinkDomain('https://go.militarycalc.com/'), null);
+for (const bad of ['go.x.com/t', 'go x.com', 'localhost', 'x..com', '.x.com'])
+  assert.ok(checkLinkDomain(bad), `phải chặn: ${bad}`);
+
+
 console.log('network platform OK — link/clickId/upstream/utm + đối soát + validate');
+
 

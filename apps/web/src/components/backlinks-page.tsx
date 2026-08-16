@@ -1738,49 +1738,71 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           </div>
   ) : null;
 
-  // Dải ON-TRACK — "kế hoạch có đang chạy đúng không", tách khỏi dải mix ở trên ("bài phục vụ gì").
-  // Trộn chung một hàng thì hai câu hỏi khác nhau đọc thành một mớ số.
-  const pieceTrackBar = pieceMix.total > 0 ? (
-    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 8px', fontSize: 11, color: 'var(--fg-3)' }}>
-      <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)' }}>📊 Nhịp · {calRange.label}</span>
-      {[...pieceMix.byChannel.entries()].sort((a, b) => b[1] - a[1]).map(([chId, n]) => {
-        const cap = WEEKLY_CADENCE[chId] ?? 0;
-        // TỈ LỆ, không phải số đếm: kênh này chiếm bao nhiêu phần của lịch, so với phần kế hoạch
-        // dành cho nó (trần tuần của nó trên tổng trần các kênh project này chạy). Số đếm trả lời
-        // "nhiều hay ít", tỉ lệ mới trả lời "có đúng kế hoạch không" — hai câu khác nhau.
-        const pct = pieceMix.total ? Math.round((n / pieceMix.total) * 100) : 0;
-        const target = pieceMix.capSum ? Math.round((cap / pieceMix.capSum) * 100) : 0;
-        const off = !!target && Math.abs(pct - target) > 12;
-        const label = CHANNELS.find((c) => c.id === chId)?.label ?? chId;
-        const limit = cap ? Math.max(1, Math.round(cap * pieceMix.weeks)) : 0;
-        return (
-          <button key={chId} type="button" onClick={() => setAxis('channel', pf.channel === chId ? '' : chId)}
-            title={target ? `${label}: ${pct}% lịch (${n} bài) · kế hoạch ${target}% — trần ${cap}/tuần ≈ ${limit} bài cho khung ${calRange.label}. Lệch quá 12 điểm thì đổi màu. Bấm để lọc.` : `${label}: ${n} bài — chưa đặt trần tuần`}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: 11, padding: '1px 7px', borderRadius: 6,
-              background: 'transparent', color: off ? 'var(--neon-amber)' : 'var(--fg-3)', border: `1px solid ${pf.channel === chId ? 'var(--accent)' : 'transparent'}` }}>
-            {label} <b style={{ color: off ? 'var(--neon-amber)' : 'var(--fg-1)' }}>{pct}%</b>{target ? <span style={{ opacity: 0.75 }}>/{target}%</span> : null}
-            <span style={{ opacity: 0.55 }}>({n})</span>
-          </button>
-        );
-      })}
-      {/* Đã tới ngày mà chưa đăng = kế hoạch trượt, và trượt IM LẶNG là kiểu trượt tệ nhất: lịch vẫn
-          đầy, nhìn vẫn như đang chạy. Tỉ lệ tính trên bài ĐÃ TỚI HẠN, không tính bài mai mốt. */}
-      {pieceMix.due > 0 && (() => {
-        const pct = Math.round((pieceMix.done / pieceMix.due) * 100);
-        const bad = pct < 70;
-        return (
-          <span title={`Đã đăng ${pieceMix.done}/${pieceMix.due} bài đã tới ngày. Dưới 70% là kế hoạch đang trượt, không phải chậm nhẹ.`}
-            style={{ display: 'inline-flex', gap: 4, alignItems: 'center', padding: '1px 7px', borderRadius: 6, color: bad ? 'var(--neon-amber)' : 'var(--ok)' }}>
-            ✓ Đã đăng <b>{pieceMix.done}/{pieceMix.due}</b> {pct}%
-          </span>
-        );
-      })()}
-      {pieceMix.late > 0 && (
-        <span title="Bài quá ngày mà chưa đăng. Đừng dồn lên hôm nay — trả về kho rồi xếp lại tuần sau: piece unschedule <project> <id>…"
-          style={{ display: 'inline-flex', gap: 4, alignItems: 'center', padding: '1px 7px', borderRadius: 6, color: 'var(--err, var(--neon-amber))' }}>
-          ⏰ Trượt lịch <b>{pieceMix.late}</b>
-        </span>
-      )}
+  // BẢNG ON-TRACK — "kế hoạch có đang chạy đúng không", khác câu hỏi của dải mix ("bài phục vụ gì").
+  // Là BẢNG chứ không phải hàng pill: ba cột số phải thẳng hàng mới so được bằng mắt, nhét vào một
+  // dòng inline thì mỗi pill một độ dài, đọc thành mớ chữ. Đứng dưới mini-calendar trong cột trái.
+  const pieceTrackTable = pieceMix.total > 0 ? (
+    <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>
+      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)', marginBottom: 5 }}>
+        📊 Bám kế hoạch · {calRange.label}
+      </div>
+      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+        <thead>
+          <tr style={{ color: 'var(--fg-4)', fontSize: 10 }}>
+            <th style={{ textAlign: 'left', fontWeight: 400, padding: '2px 0' }}>Kênh</th>
+            <th style={{ textAlign: 'right', fontWeight: 400, width: 42 }}>Thực</th>
+            <th style={{ textAlign: 'right', fontWeight: 400, width: 42 }}>K.hoạch</th>
+            <th style={{ textAlign: 'right', fontWeight: 400, width: 30 }}>Bài</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[...pieceMix.byChannel.entries()].sort((a, b) => b[1] - a[1]).map(([chId, n]) => {
+            const cap = WEEKLY_CADENCE[chId] ?? 0;
+            // TỈ LỆ, không phải số đếm: kênh này chiếm bao nhiêu phần của lịch, so với phần kế hoạch
+            // dành cho nó (trần tuần của nó trên tổng trần các kênh project này chạy). Số đếm trả
+            // lời "nhiều hay ít", tỉ lệ mới trả lời "có đúng kế hoạch không".
+            const pct = pieceMix.total ? Math.round((n / pieceMix.total) * 100) : 0;
+            const target = pieceMix.capSum ? Math.round((cap / pieceMix.capSum) * 100) : 0;
+            const off = !!target && Math.abs(pct - target) > 12;
+            const label = CHANNELS.find((c) => c.id === chId)?.label ?? chId;
+            const limit = cap ? Math.max(1, Math.round(cap * pieceMix.weeks)) : 0;
+            const on = pf.channel === chId;
+            return (
+              <tr key={chId} onClick={() => setAxis('channel', on ? '' : chId)}
+                title={target ? `${label}: ${pct}% lịch (${n} bài) · kế hoạch ${target}% — trần ${cap}/tuần ≈ ${limit} bài cho khung ${calRange.label}. Lệch quá 12 điểm thì đổi màu. Bấm để lọc.` : `${label}: ${n} bài — chưa đặt trần tuần`}
+                style={{ cursor: 'pointer', borderTop: '1px solid var(--line)', background: on ? 'var(--bg-2)' : 'transparent' }}>
+                <td style={{ padding: '3px 0', color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</td>
+                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: off ? 'var(--neon-amber)' : 'var(--fg-1)', fontWeight: 600 }}>{pct}%</td>
+                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>{target ? `${target}%` : '—'}</td>
+                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>{n}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+        {/* Hai dòng chân bảng trả lời câu khác hẳn phần trên: trên là PHÂN BỔ có đúng không, dưới là
+            việc đã tới ngày có LÀM không. Trượt im lặng là kiểu trượt tệ nhất — lịch vẫn đầy, nhìn
+            vẫn như đang chạy. */}
+        <tfoot>
+          {pieceMix.due > 0 && (() => {
+            const pct = Math.round((pieceMix.done / pieceMix.due) * 100);
+            const bad = pct < 70;
+            return (
+              <tr style={{ borderTop: '1px solid var(--line)' }}
+                title={`Đã đăng ${pieceMix.done}/${pieceMix.due} bài đã tới ngày. Dưới 70% là kế hoạch đang trượt, không phải chậm nhẹ.`}>
+                <td style={{ padding: '4px 0', color: 'var(--fg-2)' }}>Đã đăng</td>
+                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: bad ? 'var(--neon-amber)' : 'var(--ok)', fontWeight: 600 }}>{pct}%</td>
+                <td colSpan={2} style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>{pieceMix.done}/{pieceMix.due}</td>
+              </tr>
+            );
+          })()}
+          {pieceMix.late > 0 && (
+            <tr title="Bài quá ngày mà chưa đăng. Đừng dồn lên hôm nay — trả về kho rồi xếp lại tuần sau: piece unschedule <project> <id>…">
+              <td style={{ padding: '3px 0', color: 'var(--fg-2)' }}>Trượt lịch</td>
+              <td colSpan={3} style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--neon-amber)', fontWeight: 600 }}>{pieceMix.late} bài</td>
+            </tr>
+          )}
+        </tfoot>
+      </table>
     </div>
   ) : null;
 
@@ -2335,7 +2357,6 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
            thế nào thì đăng đúng thế": không có bản dựng riêng cho lúc duyệt. */
         <div>
         {pieceMixBar}
-        {pieceTrackBar}
         <div style={{ display: 'flex', gap: 22, alignItems: 'flex-start' }}>
           {/* La bàn: MINI-MONTH y như ở lịch (cùng component) — chấm = ngày có bài, ô sáng = ngày
               đang đọc. Bấm ngày → cuộn thẳng tới ngày đó. Không có nó thì cuộn một lúc là mất dấu. */}
@@ -2350,6 +2371,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
             <div style={{ marginTop: 10, fontSize: 11, color: 'var(--fg-4)', lineHeight: 1.5 }}>
               {feedDays.length} ngày · {piecesShown.length} bài
             </div>
+            <div style={{ marginTop: 12 }}>{pieceTrackTable}</div>
           </div>
 
         <div style={{ maxWidth: 680, flex: 1, minWidth: 0 }}>
@@ -2509,7 +2531,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       ) : view === 'calendar' ? (
         <>
         {pieceMixBar}
-        {pieceTrackBar}
+        <div style={{ maxWidth: 340, margin: '0 0 10px' }}>{pieceTrackTable}</div>
         {/* Việc chưa hẹn ngày không rải vào ô ngày (xem calItems) — nhưng phải đếm được và mở được
             từ đây, vì lịch là chỗ nhìn chính. Bấm là sang danh sách, nơi xem hết được. */}
         {unscheduled.length > 0 && (

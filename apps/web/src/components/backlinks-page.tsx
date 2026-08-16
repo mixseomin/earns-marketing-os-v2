@@ -2538,7 +2538,6 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       ) : view === 'calendar' ? (
         <>
         {pieceMixBar}
-        <div style={{ maxWidth: 340, margin: '0 0 10px' }}>{pieceTrackTable}</div>
         {/* Việc chưa hẹn ngày không rải vào ô ngày (xem calItems) — nhưng phải đếm được và mở được
             từ đây, vì lịch là chỗ nhìn chính. Bấm là sang danh sách, nơi xem hết được. */}
         {unscheduled.length > 0 && (
@@ -2550,7 +2549,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           </button>
         )}
         <MonthCalendar legend={calLegend} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else if (s.startsWith('c:')) setOpenPieceId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} date={calDate} onDateChange={setCalDate} today={today}
-          sidebar={<ProductStrip products={shownProducts} projects={allProjects ? projectsById : undefined} onOpen={setOpenProd} narrow />} />
+          sidebar={<>{pieceTrackTable}<ProductStrip products={shownProducts} projects={allProjects ? projectsById : undefined} onOpen={setOpenProd} narrow /></>} />
         </>
       ) : grouped ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

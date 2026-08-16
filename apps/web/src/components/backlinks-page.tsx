@@ -2396,7 +2396,28 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
 
         <div style={{ maxWidth: 680, flex: 1, minWidth: 0 }}>
           <style>{'@keyframes freshPulse{0%,100%{opacity:1}50%{opacity:.2}}'}</style>
-          {feedDays.length === 0 && <div style={{ padding: 28, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Chưa có bài nào đặt ngày.</div>}
+          {/* Feed trống phải nói RÕ vì sao trống. "Chưa có bài nào đặt ngày" đọc như lỗi khi project
+              đang có đầy VIỆC (warm-up, đăng ký, quay video): chế độ này chỉ dựng BÀI ĐĂNG, việc nằm
+              ở Lịch/Danh sách. Không nói ra thì người mở tưởng mất dữ liệu. */}
+          {feedDays.length === 0 && (
+            <div style={{ padding: 28, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13, lineHeight: 1.7 }}>
+              {piecesInScope.length === 0 ? (
+                <>
+                  Project này chưa có <b>bài đăng</b> nào.<br />
+                  <span style={{ color: 'var(--fg-4)', fontSize: 12 }}>Chế độ Nội dung chỉ dựng bài. Việc (warm-up, đăng ký, quay video…) nằm ở Lịch và Danh sách.</span>
+                </>
+              ) : (
+                <>
+                  {piecesInScope.length} bài đang nằm trong kho, <b>chưa đặt ngày</b>.<br />
+                  <span style={{ color: 'var(--fg-4)', fontSize: 12 }}>Xếp ngày cho chúng ở Danh sách thì feed mới có gì để đọc.</span>
+                </>
+              )}
+              <div style={{ marginTop: 10, display: 'flex', gap: 8, justifyContent: 'center' }}>
+                <button type="button" onClick={() => setView('calendar')} style={{ ...btn, cursor: 'pointer', padding: '4px 12px', fontSize: 12 }}>📅 Mở Lịch</button>
+                <button type="button" onClick={() => setView('list')} style={{ ...btn, cursor: 'pointer', padding: '4px 12px', fontSize: 12 }}>☰ Mở Danh sách</button>
+              </div>
+            </div>
+          )}
           {/* Mỗi ngày là một khối RIÊNG (position:relative) — header dính trong phạm vi khối của nó,
               hết ngày là nhả. z-index cao hơn ảnh bài (ảnh cao ~800px, cuộn qua sẽ trườn lên header
               nếu header không nằm trên hẳn), nền ĐẶC để chữ không chồng lên ảnh; top=44 để nằm ngay

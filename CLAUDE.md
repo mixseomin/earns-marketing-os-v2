@@ -228,6 +228,7 @@ ssh root@5.78.65.158 '/opt/earns-marketing-os-v2/deploy.sh'
 - `useLocalStorage` naive init in Next.js client: gate writes behind `hydrated` flag to avoid SSR clobber
 - Directus batch `PATCH /items/<coll>` silently no-ops — loop individual PATCH per id instead
 - All outbound dashboard links must route via `href.li` to strip referrer
+- **Test một hàm lib**: repo không có test runner trong `package.json` nhưng `node_modules/.bin/tsx` có sẵn — viết `<name>.test.mts` cạnh file, `import assert from 'node:assert'`, chạy `node_modules/.bin/tsx apps/web/src/lib/<name>.test.mts`. Import phải **bỏ đuôi `.ts`** (`from './content-channels'`), để đuôi thì `tsc --noEmit` fail TS5097. Mẫu: `apps/web/src/lib/schedule-horizon.test.mts`.
 - **Raw-SQL aliases with an uppercase letter MUST be double-quoted**: `db.execute(sql\`… AS "fooBar"\`)`. Unquoted, Postgres folds it to `foobar`, so `row['fooBar']` reads `undefined` → silent null (bit Studio `__missingSel`). Same for `ORDER BY "fooBar"`. Enforced by `scripts/check-sql-aliases.mjs` (runs in deploy.sh before build). Prefer all-lowercase aliases when possible.
 
 ---

@@ -244,7 +244,7 @@ export function PieceDrawer({ piece, projectLabel, accounts = [], browserProfile
                 }} />
             ) : (
               <div onDoubleClick={() => setEditBody(true)} title="Bấm đúp để sửa nội dung">
-                <PiecePreview piece={piece} accounts={accounts} media={media} body={detail?.bodyMd} replies={replies} editableReplies />
+                <PiecePreview piece={piece} accounts={accounts} media={media} body={detail?.bodyMd} replies={replies} detailMode />
               </div>
             )}
             <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>

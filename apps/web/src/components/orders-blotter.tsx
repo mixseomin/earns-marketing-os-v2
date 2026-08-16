@@ -456,7 +456,7 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
                     <td className="lo-hm" style={{ padding: '5px 8px', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)' }} />
                     <td style={{ padding: '5px 8px', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)' }} />
                   </tr>
-                  {shownGroups.has(g.name) && (expanded.has(g.name) ? Array.from(new Map([...g.rows, ...g.closedRows].map((t) => [t.positionId, t])).values()).sort((a, b) => (Number(b.isOpen) - Number(a.isOpen)) || tRef(b).localeCompare(tRef(a))) : g.rows).map((t) => <Row key={t.positionId} t={t} brokerNowMs={brokerNowMs} showStrategy={false} />)}
+                  {(shownGroups.has(g.name) || expanded.has(g.name)) && (expanded.has(g.name) ? Array.from(new Map([...g.rows, ...g.closedRows].map((t) => [t.positionId, t])).values()).sort((a, b) => (Number(b.isOpen) - Number(a.isOpen)) || tRef(b).localeCompare(tRef(a))) : g.rows).map((t) => <Row key={t.positionId} t={t} brokerNowMs={brokerNowMs} showStrategy={false} />)}
                 </Fragment>
               ))
               : sortRows(visible).map((t) => <Row key={t.positionId} t={t} brokerNowMs={brokerNowMs} showStrategy />)}

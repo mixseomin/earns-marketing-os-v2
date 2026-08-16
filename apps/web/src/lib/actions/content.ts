@@ -4,7 +4,7 @@ import { touchEntity } from '@/lib/touch-entity';
 import { and, eq } from 'drizzle-orm';
 import { getDb, contentPieces } from '@mos2/db';
 import { getOpenAI, DEFAULT_MODEL, aiEnabled } from '@/lib/ai/openai';
-import { CHANNELS, publishedNeedsUrl, PUBLISHED_NEEDS_URL_MSG, type ContentStatus } from '@/lib/content-channels';
+import { CHANNELS, publishedNeedsUrl, PUBLISHED_NEEDS_URL_MSG, scheduleTooFar, SCHEDULE_TOO_FAR_MSG, type ContentStatus } from '@/lib/content-channels';
 
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
@@ -38,6 +38,7 @@ export interface ContentInput {
 export async function createContentPiece(projectId: string, input: ContentInput): Promise<{ ok: boolean; slug?: string; error?: string }> {
   if (!input.title.trim()) return { ok: false, error: 'title required' };
   if (publishedNeedsUrl(input.channel, input.status, input.publishUrl)) return { ok: false, error: PUBLISHED_NEEDS_URL_MSG };
+  if (scheduleTooFar(input.scheduledAt, input.tags)) return { ok: false, error: SCHEDULE_TOO_FAR_MSG };
   const db = ensureDb();
   let slug = input.slug?.trim() || slugify(input.title);
   // Unique per project
@@ -67,6 +68,13 @@ export async function createContentPiece(projectId: string, input: ContentInput)
 
 export async function updateContentPiece(id: number, projectId: string, patch: Partial<ContentInput>): Promise<{ ok: boolean; error?: string }> {
   const db = ensureDb();
+  // Đặt ngày cũng phải soi hàng hiện tại: patch thường chỉ mang mỗi scheduledAt, mà tag 'milestone'
+  // (thứ cho phép đặt xa) nằm trong hàng cũ.
+  if (patch.scheduledAt) {
+    const tags = patch.tags ?? (await db.select({ tags: contentPieces.tags }).from(contentPieces)
+      .where(eq(contentPieces.id, id)).limit(1))[0]?.tags as string[] | undefined;
+    if (scheduleTooFar(patch.scheduledAt, tags ?? [])) return { ok: false, error: SCHEDULE_TOO_FAR_MSG };
+  }
   // Patch lẻ nên phải soi hàng hiện tại: đổi mỗi status sang 'published' mà link nằm sẵn trong DB thì
   // vẫn hợp lệ, còn đổi status khi cột link trống thì không.
   if (patch.status === 'published' || patch.publishUrl !== undefined || patch.channel !== undefined) {

@@ -3,6 +3,7 @@
 // (gây "s.filter is not a function" client-side).
 
 import { subOf, subName } from './reddit-subs';
+import { localDay, todayInAppTz } from './local-day';
 
 export const CHANNELS: Array<{ id: string; label: string; icon: string; hint: string }> = [
   { id: 'fb-post',         label: 'FB post',        icon: '📘', hint: 'Facebook feed post — long-form, story-led' },
@@ -166,6 +167,23 @@ export function publishedNeedsUrl(channel: string, status?: string | null, url?:
   return status === 'published' && !NO_PUBLIC_URL.has(channel) && !(url ?? '').trim();
 }
 export const PUBLISHED_NEEDS_URL_MSG = 'Đánh dấu Đã đăng thì phải lưu link bài — dán link rồi lưu lại.';
+
+// ── Cửa sổ lên lịch ───────────────────────────────────────────────────────────
+// Lịch nội dung chỉ lên trước MỘT TUẦN. Lý do không phải thẩm mỹ: xếp cả tháng thì bài viết theo
+// giả định của hôm nay, tới nơi thì account, tin tức, kết quả tuần trước đã khác — và nguyên tháng
+// đó nằm trên lịch trông như đã sẵn sàng. Đã dọn tay một lần (63 bài, 16/08/2026); chặn ở đây để
+// khỏi phải dọn lần hai. Mốc cố định (payday, ngày công bố số liệu) gắn tag 'milestone' để vượt.
+export const SCHEDULE_HORIZON_DAYS = 7;
+export const SCHEDULE_TOO_FAR_MSG = `Lịch chỉ lên trước ${SCHEDULE_HORIZON_DAYS} ngày. Bài xa hơn cứ để trong kho (không đặt ngày), tới tuần thì xếp. Mốc cố định thì gắn tag 'milestone'.`;
+/** Ngày đăng có vượt cửa sổ không. So bằng chuỗi 'YYYY-MM-DD' — số sánh ngày mà đi qua Date là dính
+ *  lệch múi giờ (box3 chạy UTC, người vận hành GMT+7). */
+export function scheduleTooFar(when: Date | string | null | undefined, tags: string[] = [], today: string = todayInAppTz()): boolean {
+  if (!when || tags.includes('milestone')) return false;
+  const day = localDay(when instanceof Date ? when.toISOString() : String(when));
+  const lim = new Date(`${today}T12:00:00`);
+  lim.setDate(lim.getDate() + SCHEDULE_HORIZON_DAYS);
+  return day > localDay(lim.toISOString());
+}
 
 // ── Content angles ────────────────────────────────────────────────────────────
 // GÓC của bài = bài này LÀM GÌ cho người đọc. Trục thứ 5, không thay channel

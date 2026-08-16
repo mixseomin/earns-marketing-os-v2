@@ -51,7 +51,7 @@ function withTags(text: string) {
   ));
 }
 
-export function PiecePreview({ piece, accounts = [], media = [], body, replies = [], editableReplies = false, compact = false, onOpen }: {
+export function PiecePreview({ piece, accounts = [], media = [], body, replies = [], detailMode = false, compact = false, onOpen }: {
   piece: CalPiece;
   accounts?: Array<{ id: number; platformKey: string; handle: string | null; status?: string; accountStats?: Record<string, unknown> }>;
   media?: Array<{ id: number; url: string; filename: string; width?: number | null; height?: number | null; kind?: string; mimeType?: string | null }>;
@@ -59,8 +59,9 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
   body?: string;
   /** Comment đầu (piece con gắn tag replyto:) — runner đăng ngay sau bài chính. */
   replies?: CalPiece[];
-  /** Cho sửa comment tại chỗ (bấm đúp) — bật ở drawer, tắt ở lịch/feed cho khỏi lỡ tay. */
-  editableReplies?: boolean;
+  /** Đang MỞ RA ĐỌC KỸ (drawer), không phải lướt toàn cảnh. Bật thì: sửa comment tại chỗ được (bấm
+   *  đúp), và bài không bị làm mờ dù thiếu account — đọc để duyệt thì chữ phải rõ. Tắt ở lịch/feed. */
+  detailMode?: boolean;
   /** Trong lịch: chữ nhỏ hơn, ảnh nhỏ hơn, cắt bớt phần thân. */
   compact?: boolean;
   onOpen?: () => void;
@@ -124,9 +125,9 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
 
   // Chưa có account đăng được = bài này mới chỉ là DỰ ĐỊNH, không phải việc làm được hôm nay. Toàn
   // cảnh phải phân biệt ngay bằng mắt, không thì lịch đầy bài trông như đã sẵn sàng cả. Bài ĐÃ ĐĂNG
-  // không bao giờ mờ (chuyện account của nó xong từ lâu), và lúc mở drawer để duyệt (editableReplies)
+  // không bao giờ mờ (chuyện account của nó xong từ lâu), và lúc mở drawer để duyệt (detailMode)
   // cũng không mờ — đang đọc kỹ thì làm mờ chữ là cản.
-  const noAcct = piece.status === 'published' || editableReplies ? null : acctGap(piece, accounts);
+  const noAcct = piece.status === 'published' || detailMode ? null : acctGap(piece, accounts);
 
   return (
     <div onClick={onOpen} title={noAcct ? `Chưa chạy được: ${noAcct}` : undefined}
@@ -317,7 +318,7 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)' }}>
             Comment đầu · runner đăng ngay sau bài
           </div>
-          {replies.map((r) => <CommentBubble key={r.id} piece={r} accounts={accounts} compact={compact} editable={editableReplies} />)}
+          {replies.map((r) => <CommentBubble key={r.id} piece={r} accounts={accounts} compact={compact} editable={detailMode} />)}
         </div>
       )}
       {carousel ? (

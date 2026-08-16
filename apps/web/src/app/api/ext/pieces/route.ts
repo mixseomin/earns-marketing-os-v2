@@ -2,7 +2,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { checkAuth } from '../_auth';
 import { errorResponse, okResponse, firstRow, rows } from '@/lib/ext-route';
-import { publishedNeedsUrl, PUBLISHED_NEEDS_URL_MSG } from '@/lib/content-channels';
+import { publishedNeedsUrl, PUBLISHED_NEEDS_URL_MSG, scheduleTooFar, SCHEDULE_TOO_FAR_MSG } from '@/lib/content-channels';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +47,9 @@ export async function POST(req: Request) {
   // rơi về hôm trước ở múi giờ âm (lịch lệch 1 ô là lỗi khó thấy nhất).
   const when = String(b.scheduledAt ?? '').trim();
   const scheduledAt = when ? (/^\d{4}-\d{2}-\d{2}$/.test(when) ? `${when}T09:00:00` : when) : null;
+  // Cùng luật với form: lịch chỉ lên trước một tuần. Đường này mới là đường đẻ ra lịch cả tháng
+  // (agent/script gọi hàng loạt), nên thiếu chốt ở đây thì chốt ở form là vô nghĩa.
+  if (scheduleTooFar(scheduledAt, (b.tags ?? []) as string[])) return errorResponse(SCHEDULE_TOO_FAR_MSG);
 
   const res = await db.execute(sql`
     INSERT INTO content_pieces (tenant_id, project_id, slug, title, channel, subject, body_md, status, scheduled_at, publish_url, tags, metrics)

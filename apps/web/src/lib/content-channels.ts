@@ -277,6 +277,9 @@ export const MIX_TARGET: Record<string, number> = { reach: 40, trust: 35, conver
  *  đều là mod gỡ bài, reddit là ban. Con số lấy từ kế hoạch owned-social 2026-08-11 (FB Page 5/tuần,
  *  group 2 lượt value/tuần, 0 link). Vượt trần → dải nhịp chuyển amber, không chặn: đôi lúc có mốc
  *  thật (payday, ngày công bố số) đáng đăng dày hơn, người quyết chứ không phải máy. */
+// ponytail: một bộ trần cho MỌI project (như MIX_TARGET ngay trên). Project nào cần trần riêng thì
+// chuyển sang cột jsonb trên `projects` rồi đọc theo projectId — chưa có project thứ hai đòi, nên
+// chưa đẻ migration.
 export const WEEKLY_CADENCE: Record<string, number> = {
   'fb-post': 5, 'fb-group': 2, reel: 3, reddit: 3, 'twitter-thread': 5, blog: 1, 'youtube-script': 1,
 };

@@ -93,7 +93,14 @@ const legendFor = (items: CalItem[]): LegendEntry[] => {
 // Columns where recency (most-recent activity) beats tier for ordering — a finished/awaiting task
 // should surface at the top of its column, not sink under stale tier order.
 // Chip LOẠI VIỆC — khai một chỗ vì thanh lọc và dòng tóm tắt lúc cuộn phải nói cùng một tên.
-const KIND_OPTS = [{ value: '', label: 'All' }, { value: 'backlink', label: '🔗 Backlink' }, { value: 'email', label: '✉ Email' }, { value: 'seed', label: '🌱 Seed' }, { value: 'build', label: '📕 Sản phẩm' }, { value: 'research', label: '📚 Nghiên cứu' }, { value: 'followup', label: '📌 Follow-up' }, { value: 'content', label: '📝 Bài đăng' }];
+// CHỌN NHIỀU, không phải chọn một: "xem mọi thứ TRỪ bài đăng" là câu hỏi thường xuyên mà một bộ
+// chọn-một không diễn đạt nổi. Rỗng = mọi loại; nút ⇄ đảo lựa chọn nên loại-trừ chỉ tốn hai cú bấm.
+const KIND_OPTS: Array<{ value: KindFilter; label: string }> = [
+  { value: 'backlink', label: '🔗 Backlink' }, { value: 'email', label: '✉ Email' }, { value: 'seed', label: '🌱 Seed' },
+  { value: 'build', label: '📕 Sản phẩm' }, { value: 'research', label: '📚 Nghiên cứu' }, { value: 'followup', label: '📌 Follow-up' },
+  { value: 'content', label: '📝 Bài đăng' },
+];
+const ALL_KINDS = KIND_OPTS.map((o) => o.value);
 
 const TERMINAL_STATES = new Set<string>(['submitted', 'review', 'completed', 'verified', 'broken', 'dropped']);
 const CLOSED = new Set<string>(CLOSED_SITE_STATUSES);   // xong/bỏ/lỗi — ẩn mặc định, xem lib/site-status.ts
@@ -117,7 +124,7 @@ const ACTIVITY_META: Record<'added' | 'submitted' | 'done', { label: string; col
   done: { label: 'xong', color: SITE_STATUS_META.completed?.color ?? '#22c55e' },
 };
 type TabKey = 'all' | (typeof STATUS_ORDER)[number];
-type KindFilter = '' | 'backlink' | 'email' | 'seed' | 'build' | 'research' | 'followup' | 'content';   // '' = mọi loại
+type KindFilter = 'backlink' | 'email' | 'seed' | 'build' | 'research' | 'followup' | 'content';
 // 📚 Nghiên cứu = TÀI LIỆU TRA CỨU, không phải việc phải làm: nó không gắn ngày (lịch xếp theo
 // ngày phải động tay) và không biến mất khi đóng sổ. Vì vậy nó cần một CHIP riêng để gọi ra,
 // chứ không thể tìm bằng cách nhớ hôm nào đã đo.
@@ -1012,10 +1019,14 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // lịch: backlink · email · seed · follow-up. Trục cũ chỉ có Acquire/Seed nên task 📧 email bị gộp
   // chung vào Acquire — bảng militarycalc có 8 email nằm lẫn giữa directory mà không lọc riêng được.
   // 'acquire' cũ = backlink (link cũ vẫn mở đúng).
-  const [kind, setKind] = useState<KindFilter>(() => {
-    const v = sp.get('wt') || '';
-    return v === 'acquire' ? 'backlink' : (['backlink', 'email', 'seed', 'build', 'research', 'followup', 'content'].includes(v) ? v as KindFilter : '');
+  // wt = danh sách phân cách bằng dấu phẩy. Link cũ chỉ có một giá trị vẫn mở đúng; 'acquire' cũ = backlink.
+  const [kinds, setKinds] = useState<KindFilter[]>(() => {
+    const raw = (sp.get('wt') || '').split(',').map((s) => (s.trim() === 'acquire' ? 'backlink' : s.trim()));
+    return raw.filter((v): v is KindFilter => (ALL_KINDS as string[]).includes(v));
   });
+  const kindOn = (k: KindFilter) => kinds.length === 0 || kinds.includes(k);
+  const onlyKind = (k: KindFilter) => kinds.length === 1 && kinds[0] === k;
+  const toggleKind = (k: KindFilter) => setKinds((cur) => (cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k]));
   // Card nào thuộc một sản phẩm → loại việc = 📕 build (làm ra thứ để bán), không phải 🔗 backlink.
   // Lấy từ `products` (đã tải sẵn), không phải shownProducts: lọc theo project không được đổi LOẠI của việc.
   const productTaskIds = useMemo(() => new Set(products.flatMap((p) => p.cards.map((c) => c.id))), [products]);
@@ -1134,7 +1145,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('pf', Object.entries(pf).map(([k, v]) => `${k}:${v}`).join('|'));
     set('cal', calMode === 'month' ? '' : calMode);
     set('d', view === 'calendar' ? calDate : '');
-    set('wt', kind);
+    set('wt', kinds.join(','));
     set('view', view);   // always explicit — else /plays (default kanban) reverts calendar on F5
     set('group', groupBy === 'none' ? '' : groupBy);
     set('task', openId);
@@ -1151,7 +1162,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('sq', seedOpen ? seedQ.trim() : '');
     set('shide', seedOpen && seedHideUsed ? '1' : '');
     window.history.replaceState(null, '', u);
-  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, showClosed, projectFilter, pf, calMode, calDate, kind, allProjects, view, groupBy, openId, openPieceId, openProd, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed, activePiece]);
+  }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, showClosed, projectFilter, pf, calMode, calDate, kinds, allProjects, view, groupBy, openId, openPieceId, openProd, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed, activePiece]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
   // Init from URL so the account editor opened INSIDE a task survives F5 (the "full flow", one level
@@ -1210,11 +1221,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     const s = q.trim().toLowerCase();
     return tasks.filter((t) => {
       if (tab !== 'all' && t.siteState !== tab) return false;
-      // follow-up không phải task của bảng này → chọn nó là ẩn hết task, chỉ còn 📌 trên lịch.
-      if (kind === 'followup') return false;
-      // Nghiên cứu có làn riêng: chọn 📚 → chỉ nó; chọn làn việc khác → loại nó ra cho làn sạch.
-      if (kind === 'research') { if (typeKeyOf(t) !== 'research') return false; }
-      else if (kind) { if (typeKeyOf(t) === 'research' || kindOf(t) !== kind) return false; }
+      // Task mang ĐÚNG một loại: nghiên cứu có làn riêng, còn lại theo kindOf. Không loại nào khớp
+      // lựa chọn (vd chỉ chọn 📌 follow-up hoặc 📝 bài đăng) thì bảng task rỗng — đúng ý người chọn.
+      if (kinds.length && !kinds.includes(typeKeyOf(t) === 'research' ? 'research' : (kindOf(t) as KindFilter))) return false;
       if (follow && (t.dofollow || '') !== follow) return false;
       if (traf && (t.traffic || '') !== traf) return false;
       if (draftOnly && !t.hasDraft) return false;
@@ -1225,7 +1234,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       if (!matchesQuery(q, t.id, t.title, t.sourceUrl, t.catalogSourceName, t.mechanism, t.platformLabel, t.projectLabel, t.instructions, t.notes)) return false;
       return true;
     });
-  }, [tasks, tab, kind, kindOf, follow, traf, draftOnly, blockedOnly, q, readyFilter, tierFilter, allProjects, projectFilter]);
+  }, [tasks, tab, kinds, kindOf, follow, traf, draftOnly, blockedOnly, q, readyFilter, tierFilter, allProjects, projectFilter]);
 
   // Hai tầng để ĐẾM được số đang ẩn (nút phải nói bật lên sẽ thêm bao nhiêu), thay vì viết lại
   // predicate lần thứ hai chỉ để đếm.
@@ -1302,9 +1311,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const { pageItems, ...pager } = usePaged(shown);
   // Rỗng vì chọn 📌 follow-up ở view không vẽ follow-up → nói lý do + đưa thẳng sang Lịch,
   // đừng để "Không có task ở tab này" đánh đố (YDNI: text tham chiếu phải bấm được).
-  const emptyNote = kind === 'followup' && view !== 'calendar'
+  const emptyNote = onlyKind('followup') && view !== 'calendar'
     ? (<>📌 Follow-up chỉ hiện trên <button type="button" onClick={() => setView('calendar')} style={{ ...btn, padding: '1px 8px', color: 'var(--accent)', cursor: 'pointer' }}>📅 Lịch</button></>)
-    : kind === 'research' && view === 'calendar'
+    : onlyKind('research') && view === 'calendar'
       ? (<>📚 Nghiên cứu là tài liệu tra cứu — KHÔNG gắn ngày, nên lịch không phải chỗ tìm nó. Xem ở <button type="button" onClick={() => setView('list')} style={{ ...btn, padding: '1px 8px', color: 'var(--accent)', cursor: 'pointer' }}>📋 Danh sách</button></>)
       : 'Không có task ở tab này.';
 
@@ -1323,13 +1332,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // Bài trong tầm nhìn = lọc project + loại việc + ô tìm kiếm (KHÔNG gồm lọc góc).
   // Lịch dùng nó rồi lọc thêm theo góc; dải mix dùng nguyên bản để số không tự co lại khi lọc.
   const piecesInScope = useMemo(() => pieces.filter((p) => {
-    if (kind && kind !== 'content') return false;
+    if (!kindOn('content')) return false;
     if (allProjects && projectFilter && p.projectId !== projectFilter) return false;
     // Tìm được bài theo SỐ HIỆU nữa ("#54" hoặc "54") — nói chuyện với nhau toàn nhắc số bài,
     // mà ô tìm chỉ soi chữ thì mở lịch ra không cách nào lần ra đúng bài đó.
     if (!matchesQuery(q, p.id, p.title, p.subject, p.tags.join(' '))) return false;
     return true;
-  }), [pieces, kind, allProjects, projectFilter, q]);
+  }), [pieces, kinds, allProjects, projectFilter, q]);
 
   // Comment đầu (piece con, tag replyto:<id>) không phải một mục riêng trên lịch — nó là phần đuôi
   // của bài cha, đăng ngay sau. Gom về cha rồi loại khỏi danh sách chính, nếu không thì lịch đếm
@@ -1407,7 +1416,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       if (allProjects && projectFilter && f.projectId !== projectFilter) continue;   // lọc theo project đang chọn
       // Trước đây 📌 phớt lờ MỌI bộ lọc: gõ từ khoá xong lịch vẫn còn nguyên đám follow-up không
       // liên quan, và chọn loại 🔗 vẫn thấy 📌. Cùng bảng thì cùng bộ lọc.
-      if (kind && kind !== 'followup') continue;
+      if (!kindOn('followup')) continue;
       const fq = q.trim().toLowerCase();
       if (fq && !`${f.title} ${f.detail ?? ''}`.toLowerCase().includes(fq)) continue;
       const m = FOLLOWUP_META[f.status];
@@ -1451,7 +1460,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       });
     }
     return out;
-  }, [filtered, allProjects, projectFilter, followups, projectsById, kind, kindOf, q, piecesShown, repliesOf, accounts, browserProfiles, media, tasks, calMode]);
+  }, [filtered, allProjects, projectFilter, followups, projectsById, kinds, kindOf, q, piecesShown, repliesOf, accounts, browserProfiles, media, tasks, calMode]);
 
   // Cân bằng nội dung của đúng tập bài đang hiện trên lịch. Đọc lại từ calItems (đã qua bộ lọc)
   // thay vì lọc lần hai — một nguồn, không có chỗ cho hai bộ lọc lệch nhau.
@@ -2043,14 +2052,29 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         position: 'sticky' as const, top: 0, zIndex: 30, background: 'var(--bg-0)', padding: '8px 0',
         ...(stuck ? { boxShadow: '0 -14px 0 14px var(--bg-0)', borderBottom: '1px solid var(--line)' } : {}) }}>
         <SearchInput value={q} onChange={setQ} placeholder="tìm task (tên/URL/method/niche)…" width={240} />
-        <Segmented options={KIND_OPTS} value={kind} onChange={(v) => setKind(v as KindFilter)} />
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+          <button type="button" onClick={() => setKinds([])} title="Mọi loại việc"
+            style={{ ...btn, cursor: 'pointer', padding: '3px 9px', ...(kinds.length === 0 ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : {}) }}>All</button>
+          {KIND_OPTS.map((o) => {
+            const on = kinds.includes(o.value);
+            return (
+              <button key={o.value} type="button" onClick={() => toggleKind(o.value)} title={on ? `Bỏ ${o.label}` : `Thêm ${o.label}`}
+                style={{ ...btn, cursor: 'pointer', padding: '3px 9px', ...(on ? { borderColor: 'var(--accent)', color: 'var(--accent)', background: 'var(--accent-soft, transparent)' } : {}) }}>{o.label}</button>
+            );
+          })}
+          {/* Đảo lựa chọn: "mọi thứ trừ bài đăng" = bấm 📝 rồi bấm ⇄. Không có nút này thì phải bấm
+              đủ sáu loại còn lại, mà bấm sót một cái là lọc sai chứ không phải lọc thiếu. */}
+          <button type="button" onClick={() => setKinds((cur) => ALL_KINDS.filter((k) => !cur.includes(k)))}
+            disabled={kinds.length === 0} title={kinds.length === 0 ? 'Chọn vài loại rồi bấm để lấy phần còn lại' : 'Đảo: lấy mọi loại TRỪ những cái đang chọn'}
+            style={{ ...btn, cursor: kinds.length === 0 ? 'default' : 'pointer', padding: '3px 8px', opacity: kinds.length === 0 ? 0.4 : 1 }}>⇄</button>
+        </div>
         {(() => {
           const advN = [follow, traf, draftOnly, blockedOnly, tierFilter].filter(Boolean).length;
           return (
             <Popover label="⚙ Lọc" active={advN > 0} badge={advN || undefined} minWidth={230}>
               {() => (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                  {kind !== 'seed' && (<>
+                  {!onlyKind('seed') && (<>
                     <div><div style={flbl}>Link</div><div style={frow}>{['dofollow', 'nofollow', 'mixed'].map((f) => <button key={f} type="button" onClick={() => setFollow(follow === f ? '' : f)} style={fchip(follow === f)}>{f}</button>)}</div></div>
                     <div><div style={flbl}>Traffic</div><div style={frow}>{['high', 'medium', 'low'].map((f) => <button key={f} type="button" onClick={() => setTraf(traf === f ? '' : f)} style={fchip(traf === f)}>{f}</button>)}</div></div>
                   </>)}
@@ -2089,11 +2113,11 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>
             {(allProjects ? (projectFilter ? projectsById?.[projectFilter]?.name ?? projectFilter : 'mọi project') : project.name)}
             <span style={{ color: 'var(--fg-4)' }}>·</span>
-            {KIND_OPTS.find((o) => o.value === kind)?.label ?? 'All'}
+            {kinds.length === 0 ? 'All' : kinds.length > 3 ? `${kinds.length} loại` : kinds.map((k) => KIND_OPTS.find((o) => o.value === k)?.label ?? k).join(' + ')}
             {tab !== 'all' && (<><span style={{ color: 'var(--fg-4)' }}>·</span>{SITE_STATUS_META[tab]?.label ?? tab}</>)}
             {q.trim() && (<><span style={{ color: 'var(--fg-4)' }}>·</span><span style={{ color: 'var(--accent)' }}>“{q.trim()}”</span></>)}
             <span style={{ color: 'var(--fg-4)' }}>·</span>
-            <b style={{ color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{kind === 'content' ? piecesInScope.length : filtered.length}</b> mục
+            <b style={{ color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{filtered.length + (kindOn('content') ? piecesInScope.length : 0)}</b> mục
           </span>
         )}
         {view === 'list' && (

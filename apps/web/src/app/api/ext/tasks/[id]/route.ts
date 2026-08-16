@@ -7,6 +7,11 @@ import { toResume } from '@/lib/task-resume';
 
 export const dynamic = 'force-dynamic';
 
+// Trần số hàng của prep_payload.items — đủ cho mọi danh sách thật (450 URL, 338 khu vực) mà không
+// biến một cột jsonb thành kho chứa. Danh sách lớn hơn thì thứ đáng lưu là đường tới file, không
+// phải chính file.
+const ITEMS_MAX = 2000;
+
 // GET /api/ext/tasks/[id] — chi tiết 1 task cho Crew ext (bung inline trong console Tasks tab).
 // Trả hd (instructions) + cách đặt (mechanism) + bài đăng đã sinh (ai_content.result) để nhân sự
 // LÀM NGAY trong widget, khỏi mở drawer MOS2. Static route /assign được ưu tiên hơn [id] nên ko đụng.
@@ -124,18 +129,23 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     for (const [k, v] of Object.entries(body.checklist)) clean[String(k).slice(0, 60)] = !!v;
     await db.execute(sql`UPDATE human_tasks SET prep_payload = jsonb_set(COALESCE(prep_payload, '{}'::jsonb), '{checklist}', COALESCE(prep_payload->'checklist', '{}'::jsonb) || ${JSON.stringify(clean)}::jsonb, true), updated_at = now() WHERE id = ${taskId}`);
   }
+  let itemsSaved: { saved: number; sent: number } | null = null;
   if (body.items !== undefined) {
     if (body.items === null) {
       await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) - 'items', updated_at = now() WHERE id = ${taskId}`);
     } else {
       // Trần 2000 hàng: đủ cho mọi danh sách thật (450 URL, 338 khu vực) mà không biến một cột jsonb
       // thành kho chứa. Danh sách lớn hơn thì thứ cần lưu là đường tới file, không phải chính file.
-      const rows = Array.isArray(body.items.rows) ? body.items.rows.slice(0, 2000) : [];
-      const payload = { label: String(body.items.label ?? '').slice(0, 120), rows, at: new Date().toISOString() };
+      const all = Array.isArray(body.items.rows) ? body.items.rows : [];
+      const rows = all.slice(0, ITEMS_MAX);
+      const payload = { label: String(body.items.label ?? '').slice(0, 120), rows, at: new Date().toISOString(), ...(all.length > rows.length ? { truncatedFrom: all.length } : {}) };
       await db.execute(sql`UPDATE human_tasks SET prep_payload = jsonb_set(COALESCE(prep_payload, '{}'::jsonb), '{items}', ${JSON.stringify(payload)}::jsonb, true), updated_at = now() WHERE id = ${taskId}`);
+      // Trả về số ĐÃ LƯU, không phải số đã gửi: người gọi in ra con số này, mà cắt bớt trong im lặng
+      // thì bản in nói "nạp 3000 mục" trong khi thẻ chỉ giữ 2000 — sai ngay ở chỗ dùng để đối chiếu.
+      itemsSaved = { saved: rows.length, sent: all.length };
     }
   }
   // Bàn giao: inputs/done_when/depends_on (merge qua setTaskResume — dùng chung drawer MOS2).
   if (body.resume !== undefined) await setTaskResume(taskId, body.resume || {});
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, ...(itemsSaved ? { items: itemsSaved } : {}) });
 }

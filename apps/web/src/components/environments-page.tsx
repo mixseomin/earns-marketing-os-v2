@@ -16,7 +16,7 @@ import { StatusBadge } from './ui/status-badge';
 // Filter bar = primitive nhà MultiSelect (search + count + multi), KHÔNG phải <select> thường.
 import { MultiSelect } from './ui/multi-select';
 // Ngưỡng + màu + cách đọc sessionState: MỘT nguồn, dùng chung với browser-profile-drawer.
-import { STALE_D, TONE, idleOf, bucketOf, isUnmeasuredSession, accountSession } from '@/lib/session-health';
+import { STALE_D, TONE, idleOf, bucketOf, isUnmeasuredSession, accountSession, sessionTip } from '@/lib/session-health';
 import { DEAD_STATUSES, type AccountStatus } from '@/lib/status-meta';
 import { AIFormParser } from './ai-form-parser';
 import { OwnerSelect } from './owner-select';
@@ -572,7 +572,7 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
                         const alive = a.sessionState === 'alive';
                         return (
                           <SiteFavicon key={a.id} {...platformFaviconProps(a.platformKey)} size={18} circle glyph="👤"
-                            title={`${a.platformKey}/${a.handle || a.id} · phiên: ${a.sessionState ?? 'chưa đo'} · ${a.status}`}
+                            title={sessionTip(`${a.platformKey}/${a.handle || a.id}`, a)}
                             style={alive ? undefined : { opacity: 0.3, filter: 'grayscale(1)' }} />
                         );
                       })}
@@ -592,7 +592,7 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
                     {p.accounts.filter(matches).map((a) => {
                       const c = { alive: TONE.quiet, dead: TONE.bad, unknown: TONE.warn }[bucketOf(a.sessionState)];
                       return (
-                        <span key={a.id} title={`${a.platformKey} · phiên: ${a.sessionState ?? 'chưa đo'} · account: ${a.status}`}
+                        <span key={a.id} title={sessionTip(a.platformKey, a)}
                           style={{ fontSize: 9.5, padding: '1px 6px', borderRadius: 3, border: `1px solid ${c}`, color: c, fontFamily: 'var(--font-mono)' }}>
                           {a.platformKey}/{a.handle || a.id}
                         </span>

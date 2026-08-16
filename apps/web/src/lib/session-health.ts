@@ -25,6 +25,61 @@ const daysSince = (iso: string | null | undefined) =>
 const daysUntil = (iso: string | null | undefined) =>
   iso ? Math.floor((new Date(iso).getTime() - Date.now()) / DAY) : null;
 
+/**
+ * Lịch của `~/bin/browsers-refresh` (LaunchAgent 10:30 hằng ngày). Hai số này PHẢI khớp WARM_BUFFER_D
+ * / WARM_RECHECK_D bên script — sửa một bên mà quên bên kia thì UI hứa sai ngày kiểm lại.
+ */
+export const WARM_BUFFER_D = 3;
+export const WARM_RECHECK_D = 30;
+
+export type SessionFacts = {
+  sessionState?: string | null;
+  sessionExpiresAt?: string | null;
+  sessionCheckedAt?: string | null;
+  measurable?: boolean;
+};
+
+/**
+ * "Bao giờ kiểm lại" — dựng lại đúng predicate DUE trong browsers-refresh, để trang không phải đoán:
+ * chưa đo / không-alive / cookie sắp hết hạn (≤ WARM_BUFFER_D) / lâu chưa verify (≥ WARM_RECHECK_D)
+ * = ghé ngay lượt chạy tới. Ngoài các ca đó thì ngày ghé = mốc nào tới trước.
+ */
+export function nextCheck(a: SessionFacts): { due: boolean; at: Date | null; text: string } {
+  if (a.measurable === false) {
+    return { due: false, at: null, text: 'không nằm trong lịch — platform chưa có session_check_url (job bỏ qua)' };
+  }
+  const exp = a.sessionExpiresAt ? new Date(a.sessionExpiresAt) : null;
+  const chk = a.sessionCheckedAt ? new Date(a.sessionCheckedAt) : null;
+  const now = Date.now();
+  const cands = [exp ? exp.getTime() - WARM_BUFFER_D * DAY : null, chk ? chk.getTime() + WARM_RECHECK_D * DAY : null]
+    .filter((t): t is number => t !== null);
+  const due = !exp || !chk || a.sessionState !== 'alive' || Math.min(...cands) <= now;
+  if (due) return { due: true, at: null, text: 'lượt chạy tới (job 10:30 hằng ngày)' };
+  const at = new Date(Math.min(...cands));
+  return { due: false, at, text: `${at.toLocaleDateString()} (còn ${Math.floor((at.getTime() - now) / DAY)} ngày)` };
+}
+
+/**
+ * Tooltip ĐẦY ĐỦ cho một account: đo lúc nào, kết quả gì, cookie hết hạn khi nào, bao giờ ghé lại.
+ * Dùng chung cho icon trên card lẫn chip khi lọc — trước đây hai chỗ tự nối chuỗi và chỉ nói mỗi
+ * sessionState, tức là "alive" từ 3 tuần trước trông y hệt "alive" đo sáng nay.
+ */
+export function sessionTip(head: string, a: SessionFacts & { status?: string | null }): string {
+  const chkD = daysSince(a.sessionCheckedAt);
+  const leftD = daysUntil(a.sessionExpiresAt);
+  return [
+    `${head}${a.status ? ` · account: ${a.status}` : ''}`,
+    `phiên: ${a.sessionState ?? 'chưa đo'}`,
+    a.sessionCheckedAt
+      ? `kiểm gần nhất: ${new Date(a.sessionCheckedAt).toLocaleString()} (${chkD === 0 ? 'hôm nay' : `${chkD} ngày trước`})`
+      : 'kiểm gần nhất: chưa bao giờ',
+    a.sessionExpiresAt
+      ? `cookie hết hạn: ${new Date(a.sessionExpiresAt).toLocaleString()} → ${leftD !== null && leftD <= 0 ? 'ĐÃ HẾT HẠN' : `còn ~${leftD} ngày`}`
+      : 'cookie hết hạn: chưa đọc được',
+    `kiểm lại: ${nextCheck(a).text}`,
+  ].join('\n');
+}
+
 export type IdleTone = 'never' | 'stale' | 'warn' | 'fresh';
 
 /** Profile để lâu không mở = login hết hạn âm thầm. `never` cố tình xếp cùng mức nặng với `stale`. */
@@ -59,7 +114,7 @@ export function isUnmeasuredSession(a: { sessionState?: string | null; status?: 
  *  · lastUsedAt        = lần cuối được dùng. NULL = CHƯA ĐO, không phải phiên chết → xám, không đỏ.
  *  · sessionExpiresAt  = hạn cookie THẬT do browsers-refresh đọc từ profile. Có thì đếm ngược theo nó.
  */
-export function accountSession(a: { lastUsedAt?: string | null; sessionExpiresAt?: string | null; sessionState?: string | null }) {
+export function accountSession(a: { lastUsedAt?: string | null; sessionExpiresAt?: string | null; sessionState?: string | null; sessionCheckedAt?: string | null; measurable?: boolean }) {
   const idleDays = daysSince(a.lastUsedAt);
   const leftDays = daysUntil(a.sessionExpiresAt);
   const bucket = bucketOf(a.sessionState);
@@ -76,6 +131,8 @@ export function accountSession(a: { lastUsedAt?: string | null; sessionExpiresAt
     leftDays !== null
       ? `Cookie đăng nhập hết hạn: ${new Date(a.sessionExpiresAt!).toLocaleString()} → ${leftDays <= 0 ? 'ĐÃ HẾT HẠN' : `còn ~${leftDays} ngày`}`
       : 'Chưa biết hạn phiên — chạy `browsers-refresh --idle 0` để đọc hạn cookie thật từ profile.',
+    a.sessionCheckedAt ? `Đo phiên gần nhất: ${new Date(a.sessionCheckedAt).toLocaleString()}` : 'Chưa đo phiên lần nào.',
+    `Kiểm lại: ${nextCheck(a).text}`,
   ].join('\n');
   return { idleDays, leftDays, bucket, color, text, tip, bold: leftDays !== null && leftDays <= EXPIRY_WARN_D };
 }

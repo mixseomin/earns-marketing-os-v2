@@ -162,7 +162,7 @@ export interface BrowserProfileRow {
   unknownSessions: number;
   /** Account bên trong — để lọc theo account/platform/trạng thái ngay ở màn danh sách,
    *  không phải mở từng drawer ra dò. deadSessions/unknownSessions suy ra từ đây. */
-  accounts: { id: number; platformKey: string; handle: string; status: string; sessionState: string | null; measurable: boolean; pages: { name: string; url: string; recovered?: boolean }[]; pagesDeactivated: { name: string; note?: string }[] }[];
+  accounts: { id: number; platformKey: string; handle: string; status: string; sessionState: string | null; sessionExpiresAt: string | null; sessionCheckedAt: string | null; measurable: boolean; pages: { name: string; url: string; recovered?: boolean }[]; pagesDeactivated: { name: string; note?: string }[] }[];
   projects: string[];
   manager: string | null;
 }
@@ -181,6 +181,10 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
            (SELECT COALESCE(json_agg(json_build_object(
                      'id', pa.id, 'platformKey', pa.platform_key, 'handle', pa.handle,
                      'status', pa.status, 'sessionState', pa.environment->>'sessionState',
+                     -- Đo LÚC NÀO + cookie hết hạn KHI NÀO đi kèm ngay đây: 'alive' đo ba tuần trước
+                     -- trông y hệt 'alive' đo sáng nay nếu chỉ gửi mỗi sessionState.
+                     'sessionExpiresAt', pa.environment->>'sessionExpiresAt',
+                     'sessionCheckedAt', pa.environment->>'sessionCheckedAt',
                      'measurable', (NULLIF(pl.session_check_url, '') LIKE 'http%'),
                      'pages', COALESCE(pa.account_stats->'pages', '[]'::jsonb),
                      'pagesDeactivated', COALESCE(pa.account_stats->'pages_deactivated', '[]'::jsonb))
@@ -205,6 +209,8 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
       handle: String(a.handle ?? ''),
       status: String(a.status ?? ''),
       sessionState: (a.sessionState as string | null) ?? null,
+      sessionExpiresAt: (a.sessionExpiresAt as string | null) ?? null,
+      sessionCheckedAt: (a.sessionCheckedAt as string | null) ?? null,
       measurable: !!a.measurable,
       pages: (a.pages as { name: string; url: string; recovered?: boolean }[] | null) ?? [],
       pagesDeactivated: (a.pagesDeactivated as { name: string; note?: string }[] | null) ?? [],
@@ -238,7 +244,7 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
 // Manager (tag 'profile-manager' or platform_key='google') sorts first so the base login is obvious.
 // lastUsedAt = lần cuối account này thực sự được dùng. Session hết hạn theo TỪNG account (Reddit rụng
 // sớm hơn Google), nên "profile mở hôm qua" không có nghĩa mọi account bên trong còn sống.
-export interface ProfileAccountRow { id: number; platformKey: string; handle: string; email: string | null; status: string; projectId: string | null; isManager: boolean; lastUsedAt: string | null; sessionExpiresAt: string | null; sessionState: string | null; pendingSince: string | null; pendingVerdict: string | null; accountStats: Record<string, unknown>; proxyId: number | null; proxyLabel: string | null }
+export interface ProfileAccountRow { id: number; platformKey: string; handle: string; email: string | null; status: string; projectId: string | null; isManager: boolean; lastUsedAt: string | null; sessionExpiresAt: string | null; sessionCheckedAt: string | null; measurable: boolean; sessionState: string | null; pendingSince: string | null; pendingVerdict: string | null; accountStats: Record<string, unknown>; proxyId: number | null; proxyLabel: string | null }
 export async function browserProfileAccounts(profileId: number): Promise<ProfileAccountRow[]> {
   const db = getDb();
   if (!db) return [];
@@ -246,6 +252,8 @@ export async function browserProfileAccounts(profileId: number): Promise<Profile
     SELECT id, platform_key, handle, email, status, project_id, last_used_at, account_stats, proxy_id,
            (SELECT label FROM proxies WHERE id = platform_accounts.proxy_id) AS proxy_label,
            environment->>'sessionExpiresAt' AS session_expires_at,
+           environment->>'sessionCheckedAt' AS session_checked_at,
+           (NULLIF((SELECT session_check_url FROM platforms pl WHERE pl.key = platform_accounts.platform_key), '') LIKE 'http%') AS measurable,
            environment->>'sessionState' AS session_state,
            environment->>'pendingSince' AS pending_since,
            environment->>'pendingVerdict' AS pending_verdict,
@@ -259,6 +267,8 @@ export async function browserProfileAccounts(profileId: number): Promise<Profile
     projectId: (r.project_id as string | null) ?? null, isManager: Boolean(r.is_manager),
     lastUsedAt: toIso(r.last_used_at),
     sessionExpiresAt: toIso(r.session_expires_at),
+    sessionCheckedAt: toIso(r.session_checked_at),
+    measurable: !!r.measurable,
     sessionState: (r.session_state as string | null) ?? null,
     pendingSince: toIso(r.pending_since),
     pendingVerdict: (r.pending_verdict as string | null) ?? null,

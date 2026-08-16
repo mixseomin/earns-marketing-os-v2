@@ -19,7 +19,7 @@ import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
-import { CHANNELS, FORMATS, STYLES, SERIES, ANGLE_GROUPS, ANGLES, MIX_TARGET, LINK_SHARE_MAX, angleOf, angleLabel, tagVal, pieceGaps, pieceRisks, shouldWarnGaps, schedMark, formatLabel, justPosted, placeName } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
+import { CHANNELS, FORMATS, STYLES, SERIES, ANGLE_GROUPS, ANGLES, MIX_TARGET, LINK_SHARE_MAX, WEEKLY_CADENCE, angleOf, angleLabel, tagVal, pieceGaps, pieceRisks, shouldWarnGaps, schedMark, formatLabel, justPosted, placeName } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
 import { StatusSegmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, ChannelFavicon, FormatIcon, DataTable, type DataColumn, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
@@ -1644,8 +1644,18 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       byAngle.set(a.angle, (byAngle.get(a.angle) ?? 0) + 1);
     }
     const linked = piecesInRange.filter((p) => p.hasLink).length;
-    return { total: piecesInRange.length, tagged, by, byAngle, linked };
-  }, [piecesInRange]);
+    // ON-TRACK: ba câu hỏi khác hẳn mix góc. (1) nhịp mỗi kênh có vượt trần tuần không, (2) việc đã
+    // tới ngày có làm không, (3) bao nhiêu bài lỡ hẳn. Đếm trên ĐÚNG khung đang xem; trần nhân theo
+    // độ dài khung (xem tháng thì trần cũng phải là trần tháng, không thì lúc nào cũng đỏ).
+    const byChannel = new Map<string, number>();
+    for (const p of piecesInRange) byChannel.set(p.channel, (byChannel.get(p.channel) ?? 0) + 1);
+    const td = todayLocal();
+    const due = piecesInRange.filter((p) => p.date <= td);
+    const done = due.filter((p) => p.status === 'published').length;
+    const late = due.filter((p) => p.status !== 'published' && p.date < td).length;
+    const days = Math.max(1, Math.round((new Date(`${calRange.to}T12:00:00`).getTime() - new Date(`${calRange.from}T12:00:00`).getTime()) / 86400000) + 1);
+    return { total: piecesInRange.length, tagged, by, byAngle, linked, byChannel, due: due.length, done, late, weeks: days / 7 };
+  }, [piecesInRange, calRange]);
 
   // Thanh lọc bài — MỘT hàng, mỗi trục một pill mở panel chọn. Trước đây mỗi trục là một hàng chip
   // riêng: 8 hàng, hàng nào dài thì tự xuống dòng, và chip mọc/biến theo bộ lọc nên nhìn cứ nhảy.
@@ -1721,6 +1731,46 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
               );
             })()}
           </div>
+  ) : null;
+
+  // Dải ON-TRACK — "kế hoạch có đang chạy đúng không", tách khỏi dải mix ở trên ("bài phục vụ gì").
+  // Trộn chung một hàng thì hai câu hỏi khác nhau đọc thành một mớ số.
+  const pieceTrackBar = pieceMix.total > 0 ? (
+    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 8px', fontSize: 11, color: 'var(--fg-3)' }}>
+      <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)' }}>📊 Nhịp · {calRange.label}</span>
+      {[...pieceMix.byChannel.entries()].sort((a, b) => b[1] - a[1]).map(([chId, n]) => {
+        const cap = WEEKLY_CADENCE[chId];
+        const limit = cap ? Math.max(1, Math.round(cap * pieceMix.weeks)) : 0;
+        const over = !!limit && n > limit;
+        const label = CHANNELS.find((c) => c.id === chId)?.label ?? chId;
+        return (
+          <button key={chId} type="button" onClick={() => setAxis('channel', pf.channel === chId ? '' : chId)}
+            title={limit ? `${label}: ${n} bài trong khung này · trần ${cap}/tuần (≈${limit} cho khung ${calRange.label}). Vượt trần thì rủi ro tăng nhanh hơn kết quả — bấm để lọc.` : `${label}: ${n} bài — chưa đặt trần tuần`}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: 11, padding: '1px 7px', borderRadius: 6,
+              background: 'transparent', color: over ? 'var(--neon-amber)' : 'var(--fg-3)', border: `1px solid ${pf.channel === chId ? 'var(--accent)' : 'transparent'}` }}>
+            {label} <b style={{ color: over ? 'var(--neon-amber)' : 'var(--fg-1)' }}>{n}</b>{limit ? <span style={{ opacity: 0.75 }}>/{limit}</span> : null}
+          </button>
+        );
+      })}
+      {/* Đã tới ngày mà chưa đăng = kế hoạch trượt, và trượt IM LẶNG là kiểu trượt tệ nhất: lịch vẫn
+          đầy, nhìn vẫn như đang chạy. Tỉ lệ tính trên bài ĐÃ TỚI HẠN, không tính bài mai mốt. */}
+      {pieceMix.due > 0 && (() => {
+        const pct = Math.round((pieceMix.done / pieceMix.due) * 100);
+        const bad = pct < 70;
+        return (
+          <span title={`Đã đăng ${pieceMix.done}/${pieceMix.due} bài đã tới ngày. Dưới 70% là kế hoạch đang trượt, không phải chậm nhẹ.`}
+            style={{ display: 'inline-flex', gap: 4, alignItems: 'center', padding: '1px 7px', borderRadius: 6, color: bad ? 'var(--neon-amber)' : 'var(--ok)' }}>
+            ✓ Đã đăng <b>{pieceMix.done}/{pieceMix.due}</b> {pct}%
+          </span>
+        );
+      })()}
+      {pieceMix.late > 0 && (
+        <span title="Bài quá ngày mà chưa đăng. Đừng dồn lên hôm nay — trả về kho rồi xếp lại tuần sau: piece unschedule <project> <id>…"
+          style={{ display: 'inline-flex', gap: 4, alignItems: 'center', padding: '1px 7px', borderRadius: 6, color: 'var(--err, var(--neon-amber))' }}>
+          ⏰ Trượt lịch <b>{pieceMix.late}</b>
+        </span>
+      )}
+    </div>
   ) : null;
 
   const open = openId != null ? tasks.find((t) => t.id === openId) ?? null : null;
@@ -2274,6 +2324,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
            thế nào thì đăng đúng thế": không có bản dựng riêng cho lúc duyệt. */
         <div>
         {pieceMixBar}
+        {pieceTrackBar}
         <div style={{ display: 'flex', gap: 22, alignItems: 'flex-start' }}>
           {/* La bàn: MINI-MONTH y như ở lịch (cùng component) — chấm = ngày có bài, ô sáng = ngày
               đang đọc. Bấm ngày → cuộn thẳng tới ngày đó. Không có nó thì cuộn một lúc là mất dấu. */}
@@ -2447,6 +2498,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       ) : view === 'calendar' ? (
         <>
         {pieceMixBar}
+        {pieceTrackBar}
         {/* Việc chưa hẹn ngày không rải vào ô ngày (xem calItems) — nhưng phải đếm được và mở được
             từ đây, vì lịch là chỗ nhìn chính. Bấm là sang danh sách, nơi xem hết được. */}
         {unscheduled.length > 0 && (

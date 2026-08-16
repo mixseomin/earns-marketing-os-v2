@@ -272,6 +272,15 @@ export function angleOf(tags: string[]): { angle: string; group: typeof ANGLE_GR
 /** Tỉ lệ mix mục tiêu (bài mới, chưa có audience → nặng HÚT). Dùng để so với thực tế. */
 export const MIX_TARGET: Record<string, number> = { reach: 40, trust: 35, convert: 15, community: 10 };
 
+/** Trần bài MỖI TUẦN cho một kênh, account còn mới. Không phải chỉ tiêu phải đạt — là mức mà vượt
+ *  qua thì rủi ro tăng nhanh hơn kết quả: page mới đăng dày thì reach loãng, group vừa join mà đăng
+ *  đều là mod gỡ bài, reddit là ban. Con số lấy từ kế hoạch owned-social 2026-08-11 (FB Page 5/tuần,
+ *  group 2 lượt value/tuần, 0 link). Vượt trần → dải nhịp chuyển amber, không chặn: đôi lúc có mốc
+ *  thật (payday, ngày công bố số) đáng đăng dày hơn, người quyết chứ không phải máy. */
+export const WEEKLY_CADENCE: Record<string, number> = {
+  'fb-post': 5, 'fb-group': 2, reel: 3, reddit: 3, 'twitter-thread': 5, blog: 1, 'youtube-script': 1,
+};
+
 /** Bài đã DUYỆT mà vẫn chạy được không — trạng thái biên tập không nói lên điều đó.
  *  Duyệt = "chữ nghĩa ổn"; chạy được = còn cần nơi đăng + account + phiên trình duyệt sống +
  *  asset + chuỗi chuẩn bị xong. Thiếu mà im lặng thì đến ngày mới biết, và biết bằng cách bài

@@ -340,6 +340,13 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
     }).sort((a, b) => (Number(b.open > 0) - Number(a.open > 0)) || a.name.localeCompare(b.name));
   }, [visible, periodClosed, forward]);
 
+  // strategies fully disabled (every forward row = DISABLED) are hidden from Live Orders — killed sleeves shouldn't clutter the live view.
+  const disabledStrats = useMemo(() => {
+    const by: Record<string, { d: number; a: number }> = {};
+    forward.forEach((f) => { const b = (by[f.strategy] ??= { d: 0, a: 0 }); if (f.status === 'DISABLED') b.d++; else b.a++; });
+    return new Set(Object.entries(by).filter(([, b]) => b.d > 0 && b.a === 0).map(([n]) => n));
+  }, [forward]);
+
   // all-time realized $ per strategy — balance fallback for groups whose forward bot doesn't track equity (MT5 legs = NULL).
   const balByStrategy = useMemo(() => {
     const m: Record<string, number> = {};
@@ -424,39 +431,30 @@ export function OrdersBlotter({ trades, tests = [], forward = [], brokerNowMs, i
           <thead><tr>{HEADERS.map((h) => <th key={h} className={HIDE_M.has(h) ? 'lo-hm' : undefined} style={{ ...th, textAlign: h === 'P&L' || h === '$' || h === '%' || h === 'CAGR' ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
           <tbody>
             {grouped
-              ? sortedGroups.map((g) => (
+              ? sortedGroups.filter((g) => !disabledStrats.has(g.name)).map((g) => (
                 <Fragment key={g.name}>
                   <tr style={{ background: 'rgba(0,229,255,0.06)' }}>
-                    <td colSpan={HEADERS.length}
-                      style={{ padding: '5px 10px', borderBottom: '1px solid var(--line)', borderTop: '1px solid var(--line)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11.5, fontWeight: 700 }}>
-                        <span className="lo-ghn" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <span onClick={() => toggleCollapse(g.name)} title={shownGroups.has(g.name) ? 'collapse group' : 'expand group'} style={{ cursor: 'pointer', fontSize: 10, color: 'var(--muted)', flexShrink: 0, width: 10, textAlign: 'center' }}>{shownGroups.has(g.name) ? '▾' : '▸'}</span>
-                          <span onClick={() => toggleCollapse(g.name)} style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>{g.name}</span>
-                          <span
-                            onMouseEnter={(e) => setHover({ name: g.name, x: e.clientX, y: e.clientY })}
-                            onMouseMove={(e) => setHover((h) => (h && h.name === g.name ? { ...h, x: e.clientX, y: e.clientY } : h))}
-                            onMouseLeave={() => setHover((h) => (h && h.name === g.name ? null : h))}
-                            onClick={(e) => setHover((h) => (h && h.name === g.name ? null : { name: g.name, x: e.clientX, y: e.clientY }))}
-                            title="strategy rules & expected metrics"
-                            style={{ flexShrink: 0, fontSize: 12, color: 'var(--accent,#00e5ff)', opacity: 0.85, cursor: 'pointer', padding: '2px 5px', borderRadius: 6, background: 'rgba(0,229,255,0.10)' }}>ⓘ</span>
-                        </span>
-                        {/* aligned metric columns (fixed width, right-aligned) so every group header lines up */}
-                        <span className="lo-ghs" style={{ width: 84, textAlign: 'right', fontSize: 10, color: 'var(--muted)' }} title="capital deployed = sum of open-position notional ($) — how much money this sleeve is putting to work right now">{g.notl > 0 ? <>🏦 <b style={{ fontWeight: 700, color: 'var(--fg)' }}>{fmtUsd(g.notl)}</b></> : ''}</span>
-                        <span className="lo-ghs" style={{ width: 58, textAlign: 'right', fontSize: 10, fontWeight: 600, color: g.open > 0 ? 'var(--ok,#5ac882)' : 'var(--muted)' }} title="open positions">{g.open} open</span>
-                        <span className="lo-ghs" style={{ width: 78, textAlign: 'right', fontSize: 10, color: g.open > 0 ? (g.float >= 0 ? 'var(--ok,#5ac882)' : '#ff5470') : 'var(--muted)' }} title="floating P&L of open positions">{g.open > 0 ? <>{fmtPnlUsd(g.float)} <span style={{ color: 'var(--muted)', fontWeight: 400 }}>float</span></> : ''}</span>
-                        <span className="lo-ghm" style={{ width: 130, textAlign: 'right', fontSize: 10 }} title={`realized P&L of ${g.closed} trade(s) closed in ${range}`}>
-                          {g.open > 0 || g.closed > 0
-                            ? <><span style={{ color: 'var(--muted)', opacity: 0.6, fontWeight: 400 }}>P&L </span><span style={{ color: g.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470' }}>{fmtPnlUsd(g.net)}</span>{g.closed > 0
-                              ? <span onClick={() => setExpanded((prev) => { const n = new Set(prev); n.has(g.name) ? n.delete(g.name) : n.add(g.name); return n; })} title="show/hide these closed trades" style={{ color: 'var(--muted)', opacity: 0.85, fontWeight: 400, cursor: 'pointer' }}> ·{g.closed}cl{expanded.has(g.name) ? '▾' : '▸'}</span>
-                              : null}</>
-                            : <span style={{ color: 'var(--muted)', opacity: 0.7, fontWeight: 400 }}>warming</span>}
-                        </span>
-                        <span className="lo-ghm" style={{ width: 120, textAlign: 'right', fontSize: 10, color: 'var(--muted)' }} title={metaByStrategy[g.name]?.fwd?.equity != null ? 'all-time live equity since this sleeve started ($10k base)' : 'balance = $10k base + all-time realized $ (this suite has no equity-tracking bot)'}>
-                          {(() => { const eq = groupEquity(g.name); return <>💰 ${Math.round(eq).toLocaleString()} <span style={{ color: eq >= 10000 ? 'var(--ok,#5ac882)' : '#ff5470' }}>({((eq / 10000 - 1) * 100).toFixed(1)}%)</span></>; })()}
-                        </span>
+                    {/* name spans the descriptive columns; each metric below sits under its matching header column */}
+                    <td colSpan={7} style={{ padding: '5px 10px', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700 }}>
+                        <span onClick={() => toggleCollapse(g.name)} title={shownGroups.has(g.name) ? 'collapse group' : 'expand group'} style={{ cursor: 'pointer', fontSize: 10, color: 'var(--muted)', flexShrink: 0, width: 10, textAlign: 'center' }}>{shownGroups.has(g.name) ? '▾' : '▸'}</span>
+                        <span className="lo-ghn" onClick={() => toggleCollapse(g.name)} style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>{g.name}</span>
+                        <span
+                          onMouseEnter={(e) => setHover({ name: g.name, x: e.clientX, y: e.clientY })}
+                          onMouseMove={(e) => setHover((h) => (h && h.name === g.name ? { ...h, x: e.clientX, y: e.clientY } : h))}
+                          onMouseLeave={() => setHover((h) => (h && h.name === g.name ? null : h))}
+                          onClick={(e) => setHover((h) => (h && h.name === g.name ? null : { name: g.name, x: e.clientX, y: e.clientY }))}
+                          title="strategy rules & expected metrics"
+                          style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, fontStyle: 'italic', color: 'var(--accent,#00e5ff)', opacity: 0.9, cursor: 'pointer', width: 15, height: 15, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'rgba(0,229,255,0.12)' }}>i</span>
                       </div>
                     </td>
+                    <td className="lo-hm" style={{ padding: '5px 8px', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', textAlign: 'left', fontSize: 10, whiteSpace: 'nowrap', color: 'var(--muted)' }} title="capital deployed = sum of open-position notional ($)">{g.notl > 0 ? <>🏦 {fmtUsd(g.notl)}</> : ''}</td>
+                    <td style={{ padding: '5px 8px', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', textAlign: 'left', fontSize: 10, whiteSpace: 'nowrap', fontWeight: 600, color: g.open > 0 ? 'var(--ok,#5ac882)' : 'var(--muted)' }} title="open positions + floating P&L">{g.open} open{g.open > 0 ? <span style={{ color: g.float >= 0 ? 'var(--ok,#5ac882)' : '#ff5470', fontWeight: 400 }}> {fmtPnlUsd(g.float)}</span> : null}</td>
+                    <td className="lo-hm" style={{ padding: '5px 8px', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', textAlign: 'right', fontSize: 10, whiteSpace: 'nowrap' }} title={`realized P&L of ${g.closed} trade(s) closed in ${range}`}>{g.open > 0 || g.closed > 0 ? <><span style={{ color: g.net >= 0 ? 'var(--ok,#5ac882)' : '#ff5470', fontWeight: 600 }}>{fmtPnlUsd(g.net)}</span>{g.closed > 0 ? <span onClick={() => setExpanded((prev) => { const n = new Set(prev); n.has(g.name) ? n.delete(g.name) : n.add(g.name); return n; })} title="show/hide closed trades" style={{ color: 'var(--muted)', fontWeight: 400, cursor: 'pointer' }}> ·{g.closed}cl{expanded.has(g.name) ? '▾' : '▸'}</span> : null}</> : <span style={{ color: 'var(--muted)' }}>warming</span>}</td>
+                    <td style={{ padding: '5px 8px', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', textAlign: 'right', fontSize: 10, whiteSpace: 'nowrap', fontWeight: 600, color: 'var(--fg)' }} title="live equity since sleeve started ($10k base)">💰 ${Math.round(groupEquity(g.name)).toLocaleString()}</td>
+                    <td style={{ padding: '5px 8px', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', textAlign: 'right', fontSize: 10, whiteSpace: 'nowrap', fontWeight: 600, color: groupEquity(g.name) >= 10000 ? 'var(--ok,#5ac882)' : '#ff5470' }} title="return vs $10k base">{(() => { const p = (groupEquity(g.name) / 10000 - 1) * 100; return `${p >= 0 ? '+' : ''}${p.toFixed(1)}%`; })()}</td>
+                    <td className="lo-hm" style={{ padding: '5px 8px', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)' }} />
+                    <td style={{ padding: '5px 8px', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)' }} />
                   </tr>
                   {shownGroups.has(g.name) && (expanded.has(g.name) ? Array.from(new Map([...g.rows, ...g.closedRows].map((t) => [t.positionId, t])).values()).sort((a, b) => (Number(b.isOpen) - Number(a.isOpen)) || tRef(b).localeCompare(tRef(a))) : g.rows).map((t) => <Row key={t.positionId} t={t} brokerNowMs={brokerNowMs} showStrategy={false} />)}
                 </Fragment>

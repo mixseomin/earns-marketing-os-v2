@@ -52,6 +52,11 @@ export async function POST(req: Request) {
   // (agent/script gọi hàng loạt), nên thiếu chốt ở đây thì chốt ở form là vô nghĩa.
   if (scheduleTooFar(scheduledAt, (b.tags ?? []) as string[])) return errorResponse(SCHEDULE_TOO_FAR_MSG);
 
+  // Không gửi `tags` = KHÔNG đụng tới tags. Trước đây upsert luôn lấy EXCLUDED.tags, nên sửa mỗi
+  // cái caption bằng `piece add` là quét sạch acct/place/asset/time của bài — bài còn đó mà mất hết
+  // chỗ đăng lẫn video, mất im lặng. (Khai ngoài câu SQL: template lồng backtick làm SWC vỡ lúc
+  // build, dù tsc vẫn qua.)
+  const tagsSet = Array.isArray(b.tags) ? sql`EXCLUDED.tags` : sql`content_pieces.tags`;
   const res = await db.execute(sql`
     INSERT INTO content_pieces (tenant_id, project_id, slug, title, channel, subject, body_md, status, scheduled_at, publish_url, tags, metrics)
     VALUES ('self', ${projectId}, ${slug}, ${title}, ${channel}, ${b.subject ?? null}, ${b.bodyMd ?? ''}, ${status},
@@ -61,10 +66,7 @@ export async function POST(req: Request) {
       body_md = CASE WHEN EXCLUDED.body_md = '' THEN content_pieces.body_md ELSE EXCLUDED.body_md END,
       status = EXCLUDED.status, scheduled_at = EXCLUDED.scheduled_at,
       publish_url = COALESCE(EXCLUDED.publish_url, content_pieces.publish_url),
-      -- Không gửi `tags` = KHÔNG đụng tới tags. Trước đây upsert luôn lấy EXCLUDED.tags, nên sửa
-      -- mỗi cái caption bằng `piece add` là quét sạch acct/place/asset/time của bài — bài còn đó
-      -- mà mất hết chỗ đăng lẫn video, và mất im lặng.
-      tags = ${Array.isArray(b.tags) ? sql`EXCLUDED.tags` : sql`content_pieces.tags`}, updated_at = now()
+      tags = ${tagsSet}, updated_at = now()
     RETURNING id, slug, (xmax = 0) AS created
   `);
   const row = firstRow<{ id: number; slug: string; created: boolean }>(res);

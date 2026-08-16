@@ -1404,10 +1404,10 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: localDay(t.siteSubmittedAt), label, icon, color: SITE_STATUS_META.submitted.color, title: `${SITE_STATUS_META.submitted.label} · ${plbl}${ttl}${suffix}`, brief });
         // else if: một card đã submitted thì KHÔNG hiện thêm dot "hẹn" (scheduled cũ đã lỗi thời) → tránh 1 card 2 dot.
         else if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, icon, color: smeta.color, title: `Hẹn kiểm tra (${smeta.label}) · ${plbl}${ttl}${suffix}`, brief });   // việc SẮP làm → full contrast, không mờ
-        // Chưa có ngày nào (chưa hẹn, chưa nộp, chưa xong) thì rơi vào NGÀY TẠO. Nếu không, việc vừa
-        // tạo biến mất khỏi lịch cho tới khi ai đó nhớ ra mà xếp ngày — mà lịch là chỗ nhìn chính,
-        // nên "chưa xếp lịch" phải đọc được là một trạng thái, không phải một khoảng trắng.
-        else if (t.createdAt) out.push({ id: t.id, date: localDay(t.createdAt), label, icon, color: smeta.color, title: `Chưa xếp lịch (${smeta.label}) · ${plbl}${ttl}${suffix}`, brief });
+        // KHÔNG đổ việc chưa xếp lịch vào ô ngày-tạo: 288/436 task đang ở diện đó, rải hết ra thì
+        // lịch thành bãi rác và ngày nào cũng dày đặc việc chẳng ai hẹn vào ngày đó. Chúng được đếm
+        // riêng (unscheduled) và có một dòng bấm được ngay trên lịch.
+
       }
     }
     // Follow-ups deferred: cùng lịch — icon 📌pin (loại), màu thanh-trái theo status, ✓ khi xong.
@@ -1461,6 +1461,15 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     }
     return out;
   }, [filtered, allProjects, projectFilter, followups, projectsById, kinds, kindOf, q, piecesShown, repliesOf, accounts, browserProfiles, media, tasks, calMode]);
+
+  const calLegend = useMemo(() => legendFor(calItems), [calItems]);
+  // Việc CHƯA XẾP LỊCH (không hẹn, chưa nộp, chưa xong) không nằm trong ô ngày nào — nhưng cũng
+  // không được mất dấu, nếu không thì tạo card xong là nó rơi vào khoảng không cho tới khi ai đó
+  // tình cờ mở danh sách. Đếm ở đây, hiện thành một dòng bấm được ngay trên lịch.
+  const unscheduled = useMemo(
+    () => filtered.filter((t) => !t.siteDoneAt && !t.siteSubmittedAt && !t.siteScheduledAt),
+    [filtered],
+  );
 
   // Cân bằng nội dung của đúng tập bài đang hiện trên lịch. Đọc lại từ calItems (đã qua bộ lọc)
   // thay vì lọc lần hai — một nguồn, không có chỗ cho hai bộ lọc lệch nhau.
@@ -2438,7 +2447,17 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       ) : view === 'calendar' ? (
         <>
         {pieceMixBar}
-        <MonthCalendar legend={legendFor(calItems)} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else if (s.startsWith('c:')) setOpenPieceId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} date={calDate} onDateChange={setCalDate} today={today}
+        {/* Việc chưa hẹn ngày không rải vào ô ngày (xem calItems) — nhưng phải đếm được và mở được
+            từ đây, vì lịch là chỗ nhìn chính. Bấm là sang danh sách, nơi xem hết được. */}
+        {unscheduled.length > 0 && (
+          <button type="button" onClick={() => setView('list')}
+            title="Chưa hẹn ngày nên không nằm trong ô ngày nào — mở danh sách để xếp lịch"
+            style={{ ...btn, cursor: 'pointer', marginBottom: 8, padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+            🗓 <b style={{ fontVariantNumeric: 'tabular-nums' }}>{unscheduled.length}</b> việc chưa xếp lịch
+            <span style={{ color: 'var(--fg-4)' }}>· mở danh sách</span>
+          </button>
+        )}
+        <MonthCalendar legend={calLegend} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else if (s.startsWith('c:')) setOpenPieceId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} date={calDate} onDateChange={setCalDate} today={today}
           sidebar={<ProductStrip products={shownProducts} projects={allProjects ? projectsById : undefined} onOpen={setOpenProd} narrow />} />
         </>
       ) : grouped ? (

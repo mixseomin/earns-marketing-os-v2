@@ -68,13 +68,28 @@ const SITE_STATUS: Record<string, { label: string; color: string }> = SITE_STATU
 const STATUS_ORDER = SITE_STATUSES;
 // Chú thích lịch: LOẠI (icon SVG) + TRẠNG THÁI (nhãn/màu lấy THẲNG từ SITE_STATUS_META = nguồn drawer/kanban
 // → calendar không tự chế chữ, luôn đồng nhất). Follow-up có bộ status riêng (drawer follow-up), pin = loại.
-const CAL_LEGEND: LegendEntry[] = [
-  { icon: 'link', label: 'backlink' }, { icon: 'mail', label: 'email' }, { icon: 'sprout', label: 'seed' }, { icon: 'book', label: 'sản phẩm' }, { icon: 'pin', label: 'follow-up' },
+// Chú thích lịch: phần TRẠNG THÁI cố định, phần LOẠI VIỆC sinh từ chính những gì đang vẽ trên
+// lịch. Trước đây liệt kê tay đúng 5 icon (link/mail/sprout/book/pin) trong khi pill vẽ tới 18 glyph
+// theo TYPE_META, nên 13 loại còn lại hiện lên mà không ai tra được nó là gì — nhìn một tháng dày
+// đặc thì không phân biệt nổi bài đăng với backlink với sản phẩm.
+const CAL_LEGEND_TAIL: LegendEntry[] = [
   { sep: true },
   ...STATUS_ORDER.map((s) => ({ color: SITE_STATUS_META[s].color, label: SITE_STATUS_META[s].label })),
   { sep: true },
   { icon: 'brief', label: 'có bàn giao · rê chuột xem' },
 ];
+const legendFor = (items: CalItem[]): LegendEntry[] => {
+  const glyphs = new Set(items.map((i) => i.icon).filter(Boolean) as string[]);
+  const seen = new Set<string>();
+  const types: LegendEntry[] = [];
+  for (const m of Object.values(TYPE_META)) {
+    if (!glyphs.has(m.glyph) || seen.has(m.glyph)) continue;
+    seen.add(m.glyph);
+    types.push({ icon: m.glyph as GlyphName, label: m.label.toLowerCase() });
+  }
+  if (glyphs.has('pin')) types.push({ icon: 'pin', label: 'follow-up' });
+  return [...types, ...CAL_LEGEND_TAIL];
+};
 // Columns where recency (most-recent activity) beats tier for ordering — a finished/awaiting task
 // should surface at the top of its column, not sink under stale tier order.
 const TERMINAL_STATES = new Set<string>(['submitted', 'review', 'completed', 'verified', 'broken', 'dropped']);
@@ -2382,7 +2397,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       ) : view === 'calendar' ? (
         <>
         {pieceMixBar}
-        <MonthCalendar legend={CAL_LEGEND} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else if (s.startsWith('c:')) setOpenPieceId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} date={calDate} onDateChange={setCalDate} today={today}
+        <MonthCalendar legend={legendFor(calItems)} items={calItems} onItemClick={(id) => { const s = String(id); if (s.startsWith('f:')) setOpenFollowupId(Number(s.slice(2))); else if (s.startsWith('c:')) setOpenPieceId(Number(s.slice(2))); else openTask(Number(id)); }} mode={calMode} onModeChange={setCalMode} date={calDate} onDateChange={setCalDate} today={today}
           sidebar={<ProductStrip products={shownProducts} projects={allProjects ? projectsById : undefined} onOpen={setOpenProd} narrow />} />
         </>
       ) : grouped ? (

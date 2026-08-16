@@ -37,6 +37,11 @@ export type SessionFacts = {
   sessionExpiresAt?: string | null;
   sessionCheckedAt?: string | null;
   measurable?: boolean;
+  /** Lớp phiên NGẮN (Awin/CJ/Impact…): cookie rụng vài ngày bất kể làm gì, nên KHÔNG đi giữ ấm —
+   *  đăng nhập lại lúc cần dùng (`br prefill` điền cả mật khẩu khi environment.autoLogin=true).
+   *  Nguồn: platform_accounts.environment.sessionClass='ephemeral' (bật bằng `browsers autologin <id> on`).
+   *  Có cờ này thì phiên chết là BÌNH THƯỜNG — mọi cảnh báo đỏ/nag về nó đều là báo động giả. */
+  ephemeral?: boolean;
 };
 
 /**
@@ -45,6 +50,9 @@ export type SessionFacts = {
  * = ghé ngay lượt chạy tới. Ngoài các ca đó thì ngày ghé = mốc nào tới trước.
  */
 export function nextCheck(a: SessionFacts): { due: boolean; at: Date | null; text: string } {
+  if (a.ephemeral) {
+    return { due: false, at: null, text: 'KHÔNG duy trì — phiên ngắn, đăng nhập lại khi cần dùng (browsers-refresh bỏ qua)' };
+  }
   if (a.measurable === false) {
     return { due: false, at: null, text: 'không nằm trong lịch — platform chưa có session_check_url (job bỏ qua)' };
   }
@@ -103,8 +111,9 @@ export const bucketOf = (sessionState: string | null | undefined): SessionBucket
  * đừng nag. Trước đây predicate bỏ qua session_check_url nên đếm cả trăm account job không hề đo được.
  * SSOT: banner /environments (client) lẫn pill unknownSessions (server) cùng gọi hàm này — đừng chép lại.
  */
-export function isUnmeasuredSession(a: { sessionState?: string | null; status?: string | null; measurable?: boolean }): boolean {
+export function isUnmeasuredSession(a: { sessionState?: string | null; status?: string | null; measurable?: boolean; ephemeral?: boolean }): boolean {
   return bucketOf(a.sessionState) === 'unknown'
+    && !a.ephemeral
     && !!a.measurable
     && LIVE_STATUSES.includes(a.status as AccountStatus);
 }
@@ -114,14 +123,19 @@ export function isUnmeasuredSession(a: { sessionState?: string | null; status?: 
  *  · lastUsedAt        = lần cuối được dùng. NULL = CHƯA ĐO, không phải phiên chết → xám, không đỏ.
  *  · sessionExpiresAt  = hạn cookie THẬT do browsers-refresh đọc từ profile. Có thì đếm ngược theo nó.
  */
-export function accountSession(a: { lastUsedAt?: string | null; sessionExpiresAt?: string | null; sessionState?: string | null; sessionCheckedAt?: string | null; measurable?: boolean }) {
+export function accountSession(a: { lastUsedAt?: string | null; sessionExpiresAt?: string | null; sessionState?: string | null; sessionCheckedAt?: string | null; measurable?: boolean; ephemeral?: boolean }) {
   const idleDays = daysSince(a.lastUsedAt);
   const leftDays = daysUntil(a.sessionExpiresAt);
   const bucket = bucketOf(a.sessionState);
-  const color = leftDays !== null
+  // Lớp ephemeral: hết hạn KHÔNG phải sự cố → xám + nhãn nói rõ, đừng tô đỏ như account bị rụng phiên.
+  const color = a.ephemeral
+    ? TONE.muted
+    : leftDays !== null
     ? (leftDays <= 0 ? TONE.bad : leftDays <= EXPIRY_WARN_D ? TONE.warn : TONE.muted)
     : idleDays !== null && idleDays >= STALE_D ? TONE.warn : TONE.muted;
-  const text = leftDays !== null
+  const text = a.ephemeral
+    ? '⚡ login khi cần'
+    : leftDays !== null
     ? (leftDays <= 0 ? '⚠ hết hạn' : `còn ${leftDays}d`)
     : idleDays === null ? '· chưa đo' : `${idleDays}d`;
   const tip = [
@@ -134,11 +148,17 @@ export function accountSession(a: { lastUsedAt?: string | null; sessionExpiresAt
     a.sessionCheckedAt ? `Đo phiên gần nhất: ${new Date(a.sessionCheckedAt).toLocaleString()}` : 'Chưa đo phiên lần nào.',
     `Kiểm lại: ${nextCheck(a).text}`,
   ].join('\n');
-  return { idleDays, leftDays, bucket, color, text, tip, bold: leftDays !== null && leftDays <= EXPIRY_WARN_D };
+  return { idleDays, leftDays, bucket, color, text, tip, bold: !a.ephemeral && leftDays !== null && leftDays <= EXPIRY_WARN_D };
 }
 
 /** Badge trạng thái phiên. null = không hiện badge nào (phiên đã xác minh còn sống). */
-export function sessionBadge(sessionState: string | null | undefined): { text: string; color: string; dashed: boolean; title: string } | null {
+export function sessionBadge(sessionState: string | null | undefined, ephemeral = false): { text: string; color: string; dashed: boolean; title: string } | null {
+  // Cờ ephemeral thắng mọi trạng thái: với lớp này "rụng phiên" là hành vi bình thường của site,
+  // không phải việc phải xử. Badge nói ĐÚNG cách dùng thay vì hô báo động.
+  if (ephemeral) {
+    return { text: '⚡ KHÔNG DUY TRÌ', color: TONE.muted, dashed: true,
+      title: 'Site có cookie sống rất ngắn (Awin/CJ/Impact…) — mình CỐ Ý không giữ phiên.\nPhiên chết ở đây là bình thường, không cần xử lý.\nCần dùng thì mở profile rồi `br prefill` — mật khẩu lấy thẳng từ vault (environment.autoLogin=true).\nbrowsers-refresh bỏ qua account này. Tắt cờ: `browsers autologin <id> off`.' };
+  }
   if (sessionState === 'alive') return null;
   if (sessionState === 'dead') {
     return { text: 'RỤNG PHIÊN', color: TONE.bad, dashed: false,

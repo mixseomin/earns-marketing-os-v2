@@ -61,7 +61,10 @@ export async function POST(req: Request) {
       body_md = CASE WHEN EXCLUDED.body_md = '' THEN content_pieces.body_md ELSE EXCLUDED.body_md END,
       status = EXCLUDED.status, scheduled_at = EXCLUDED.scheduled_at,
       publish_url = COALESCE(EXCLUDED.publish_url, content_pieces.publish_url),
-      tags = EXCLUDED.tags, updated_at = now()
+      -- Không gửi `tags` = KHÔNG đụng tới tags. Trước đây upsert luôn lấy EXCLUDED.tags, nên sửa
+      -- mỗi cái caption bằng `piece add` là quét sạch acct/place/asset/time của bài — bài còn đó
+      -- mà mất hết chỗ đăng lẫn video, và mất im lặng.
+      tags = ${Array.isArray(b.tags) ? sql`EXCLUDED.tags` : sql`content_pieces.tags`}, updated_at = now()
     RETURNING id, slug, (xmax = 0) AS created
   `);
   const row = firstRow<{ id: number; slug: string; created: boolean }>(res);

@@ -267,7 +267,7 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
                           // (active/warming/banned…): phiên rụng không có nghĩa account bị khoá.
                           // Chờ duyệt thắng badge phiên: account chưa được kích hoạt thì "rụng phiên"
                           // là kết luận sai, và người đọc cần thấy việc THẬT (chờ/đòi admin).
-                          const b = pendingBadge(a) ?? sessionBadge(a.sessionState);
+                          const b = pendingBadge(a) ?? sessionBadge(a.sessionState, a.ephemeral);
                           return b && (
                             <span title={b.title} style={{ fontSize: 9.5, fontWeight: 700, color: b.color,
                               border: `1px ${'dashed' in b && b.dashed ? 'dashed' : 'solid'} ${b.color}`, borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>

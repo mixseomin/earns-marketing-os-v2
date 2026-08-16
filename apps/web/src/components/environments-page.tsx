@@ -569,7 +569,7 @@ function ProfilesTab({ profiles, proxies, teamMembers = [] }: { profiles: Browse
                   return (
                     <div style={{ display: 'flex', gap: 3, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                       {shown.map((a) => {
-                        const alive = a.sessionState === 'alive';
+                        const alive = a.sessionState === 'alive' || a.ephemeral;   // ephemeral: đừng làm mờ như account rụng phiên
                         return (
                           <SiteFavicon key={a.id} {...platformFaviconProps(a.platformKey)} size={18} circle glyph="👤"
                             title={sessionTip(`${a.platformKey}/${a.handle || a.id}`, a)}
@@ -669,8 +669,13 @@ function acctColumns(setProject: (v: string) => void): DataColumn<GlobalAccountR
         </span>
       ) },
     { key: 'session', group: 'env', header: 'Phiên', align: 'center', title: 'trạng thái phiên đăng nhập ext ghi nhận',
-      sortValue: (a) => a.sessionState ?? '',
-      cell: (a) => a.sessionState
+      sortValue: (a) => (a.ephemeral ? 'zz-ephemeral' : a.sessionState ?? ''),
+      // Account lớp ephemeral (Awin/CJ/Impact): phiên rụng là bình thường → nhãn xám nói cách dùng,
+      // KHÔNG tô đỏ 'dead' như account thật sự mất phiên. Cùng luật với sessionBadge/accountSession.
+      cell: (a) => a.ephemeral
+        ? <span title={'Cookie site này sống rất ngắn — mình cố ý KHÔNG duy trì phiên.\nCần dùng: mở profile rồi `br prefill` (mật khẩu lấy từ vault, environment.autoLogin=true).\nbrowsers-refresh bỏ qua account này. Tắt: `browsers autologin ' + a.id + ' off`.'}
+            style={{ fontSize: 10, color: 'var(--fg-3)' }}>⚡ ko duy trì</span>
+        : a.sessionState
         ? <span style={{ fontSize: 10, color: a.sessionState === 'alive' ? 'var(--ok)' : a.sessionState === 'dead' ? 'var(--bad)' : 'var(--fg-3)' }}>{a.sessionState}</span>
         : DASH },
     // Hạn cookie phiên THẬT (sessionExpiresAt do browsers-refresh đọc từ profile) → đếm ngược. Sort ASC =

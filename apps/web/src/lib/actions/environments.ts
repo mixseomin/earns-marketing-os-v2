@@ -162,7 +162,7 @@ export interface BrowserProfileRow {
   unknownSessions: number;
   /** Account bên trong — để lọc theo account/platform/trạng thái ngay ở màn danh sách,
    *  không phải mở từng drawer ra dò. deadSessions/unknownSessions suy ra từ đây. */
-  accounts: { id: number; platformKey: string; handle: string; status: string; sessionState: string | null; sessionExpiresAt: string | null; sessionCheckedAt: string | null; measurable: boolean; pages: { name: string; url: string; recovered?: boolean }[]; pagesDeactivated: { name: string; note?: string }[] }[];
+  accounts: { id: number; platformKey: string; handle: string; status: string; sessionState: string | null; sessionExpiresAt: string | null; sessionCheckedAt: string | null; measurable: boolean; ephemeral: boolean; pages: { name: string; url: string; recovered?: boolean }[]; pagesDeactivated: { name: string; note?: string }[] }[];
   projects: string[];
   manager: string | null;
 }
@@ -186,6 +186,8 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
                      'sessionExpiresAt', pa.environment->>'sessionExpiresAt',
                      'sessionCheckedAt', pa.environment->>'sessionCheckedAt',
                      'measurable', (NULLIF(pl.session_check_url, '') LIKE 'http%'),
+                     -- Lớp phiên ngắn (Awin/CJ/Impact): cố ý KHÔNG duy trì → UI phải nói thế, đừng báo đỏ.
+                     'ephemeral', (pa.environment->>'sessionClass' = 'ephemeral'),
                      'pages', COALESCE(pa.account_stats->'pages', '[]'::jsonb),
                      'pagesDeactivated', COALESCE(pa.account_stats->'pages_deactivated', '[]'::jsonb))
                    ORDER BY pa.platform_key), '[]'::json)
@@ -212,6 +214,7 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
       sessionExpiresAt: (a.sessionExpiresAt as string | null) ?? null,
       sessionCheckedAt: (a.sessionCheckedAt as string | null) ?? null,
       measurable: !!a.measurable,
+      ephemeral: !!a.ephemeral,
       pages: (a.pages as { name: string; url: string; recovered?: boolean }[] | null) ?? [],
       pagesDeactivated: (a.pagesDeactivated as { name: string; note?: string }[] | null) ?? [],
     }));
@@ -229,7 +232,7 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
     accountsCount: accountsOf(r).length,
     // 'pending' KHÔNG tính là rụng phiên: nó chưa từng đăng nhập được (chờ duyệt), báo "đã bị đăng
     // xuất" là sai sự thật và khiến người đọc đi login tay một account chưa được kích hoạt.
-    deadSessions: accountsOf(r).filter((a) => a.sessionState === 'dead' && a.status !== 'pending').length,
+    deadSessions: accountsOf(r).filter((a) => a.sessionState === 'dead' && a.status !== 'pending' && !a.ephemeral).length,
     // "Chưa đo" = ĐÚNG cái browsers-refresh sẽ quét mà chưa ra kết quả (isUnmeasuredSession:
     // platform có session_check_url + status LIVE). Không url / status ngoài LIVE / closed-banned-blocked
     // → job cố tình bỏ qua → không phải vùng mù, đừng đếm (trước đây đếm cả trăm account rác).
@@ -244,7 +247,7 @@ export async function listBrowserProfiles(): Promise<BrowserProfileRow[]> {
 // Manager (tag 'profile-manager' or platform_key='google') sorts first so the base login is obvious.
 // lastUsedAt = lần cuối account này thực sự được dùng. Session hết hạn theo TỪNG account (Reddit rụng
 // sớm hơn Google), nên "profile mở hôm qua" không có nghĩa mọi account bên trong còn sống.
-export interface ProfileAccountRow { id: number; platformKey: string; handle: string; email: string | null; status: string; projectId: string | null; isManager: boolean; lastUsedAt: string | null; sessionExpiresAt: string | null; sessionCheckedAt: string | null; measurable: boolean; sessionState: string | null; pendingSince: string | null; pendingVerdict: string | null; accountStats: Record<string, unknown>; proxyId: number | null; proxyLabel: string | null }
+export interface ProfileAccountRow { id: number; platformKey: string; handle: string; email: string | null; status: string; projectId: string | null; isManager: boolean; lastUsedAt: string | null; sessionExpiresAt: string | null; sessionCheckedAt: string | null; measurable: boolean; ephemeral: boolean; sessionState: string | null; pendingSince: string | null; pendingVerdict: string | null; accountStats: Record<string, unknown>; proxyId: number | null; proxyLabel: string | null }
 export async function browserProfileAccounts(profileId: number): Promise<ProfileAccountRow[]> {
   const db = getDb();
   if (!db) return [];
@@ -255,6 +258,7 @@ export async function browserProfileAccounts(profileId: number): Promise<Profile
            environment->>'sessionCheckedAt' AS session_checked_at,
            (NULLIF((SELECT session_check_url FROM platforms pl WHERE pl.key = platform_accounts.platform_key), '') LIKE 'http%') AS measurable,
            environment->>'sessionState' AS session_state,
+           (environment->>'sessionClass' = 'ephemeral') AS ephemeral,
            environment->>'pendingSince' AS pending_since,
            environment->>'pendingVerdict' AS pending_verdict,
            (tags @> '["profile-manager"]'::jsonb OR platform_key = 'google') AS is_manager
@@ -269,6 +273,7 @@ export async function browserProfileAccounts(profileId: number): Promise<Profile
     sessionExpiresAt: toIso(r.session_expires_at),
     sessionCheckedAt: toIso(r.session_checked_at),
     measurable: !!r.measurable,
+    ephemeral: !!r.ephemeral,
     sessionState: (r.session_state as string | null) ?? null,
     pendingSince: toIso(r.pending_since),
     pendingVerdict: (r.pending_verdict as string | null) ?? null,
@@ -529,6 +534,8 @@ export interface GlobalAccountRow {
   accountStats: Record<string, unknown>;   // karma/followers/tuổi… ext Crew quét
   accountType: string; accountKind: string; tags: string[];
   monthlyCost: number; followUpAt: string | null; sessionState: string | null; sessionExpiresAt: string | null;
+  /** environment.sessionClass='ephemeral' — site cookie ngắn, CỐ Ý không duy trì phiên. */
+  ephemeral: boolean;
 }
 export async function listAllAccounts(): Promise<GlobalAccountRow[]> {
   const db = getDb();
@@ -544,7 +551,8 @@ export async function listAllAccounts(): Promise<GlobalAccountRow[]> {
            u.name AS owner_name, a.last_used_at,
            a.account_stats, a.account_type, a.account_kind, a.tags,
            a.monthly_cost, a.follow_up_at, a.environment->>'sessionState' AS session_state,
-           a.environment->>'sessionExpiresAt' AS session_expires_at
+           a.environment->>'sessionExpiresAt' AS session_expires_at,
+           (a.environment->>'sessionClass' = 'ephemeral') AS ephemeral
     FROM platform_accounts a
     LEFT JOIN browser_profiles b ON b.id = a.browser_profile_id
     LEFT JOIN proxies p ON p.id = a.proxy_id
@@ -575,6 +583,7 @@ export async function listAllAccounts(): Promise<GlobalAccountRow[]> {
     followUpAt: r.follow_up_at ? String(r.follow_up_at).slice(0, 10) : null,
     sessionState: (r.session_state as string | null) ?? null,
     sessionExpiresAt: (r.session_expires_at as string | null) ?? null,
+    ephemeral: !!r.ephemeral,
   }));
 }
 

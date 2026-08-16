@@ -262,6 +262,22 @@ export const MIX_TARGET: Record<string, number> = { reach: 40, trust: 35, conver
  *  tuỳ người nhận. */
 const PUBLIC_CHANNELS = new Set(['fb-post', 'fb-group', 'reddit', 'twitter-thread', 'reel', 'youtube-script', 'blog', 'ad', 'landing']);
 
+/** Bài này có account đăng được chưa? null = xong, chuỗi = còn thiếu gì.
+ *  Tách riêng khỏi pieceGaps vì đây là điều kiện CẦN: chưa có account thì cả kế hoạch chỉ là ý định,
+ *  nên toàn cảnh (lịch/feed) làm mờ theo đúng một mình cái này, không mờ theo mọi thứ còn thiếu. */
+export function acctGap(
+  piece: { tags: string[] },
+  accounts?: Array<{ id: number; status?: string }>,
+): string | null {
+  const id = Number(tagVal(piece.tags, 'acct')) || 0;
+  if (!id) return 'chưa gắn account';
+  const a = accounts?.find((x) => x.id === id);
+  if (!a) return `account #${id} không có trong vault`;
+  // ponytail: nơi gọi không mang status thì im — "không biết" không phải "chưa sẵn sàng".
+  if (a.status && a.status !== 'active') return `account đang ${a.status}`;
+  return null;
+}
+
 export function pieceGaps(
   piece: { channel?: string; tags: string[]; hasBody?: boolean; body?: string; date?: string },
   refs: {
@@ -315,9 +331,8 @@ export function pieceGaps(
 
   const acctId = Number(tagVal(piece.tags, 'acct')) || 0;
   const acct = acctId ? refs.accounts?.find((a) => a.id === acctId) : undefined;
-  if (!acctId) gaps.push('chưa gắn account');
-  else if (!acct) gaps.push(`account #${acctId} không có trong vault`);
-  else if (acct.status !== 'active') gaps.push(`account đang ${acct.status}`);
+  const ag = acctGap(piece, refs.accounts);
+  if (ag) gaps.push(ag);
 
   // Nơi đăng của Reddit là subreddit — nơi công khai, không phải page thuộc account, nên đừng bắt
   // chọn account trước (Page Facebook mới lấy theo account).

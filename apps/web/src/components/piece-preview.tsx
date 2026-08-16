@@ -10,7 +10,7 @@
 import { FormatIcon } from './ui';
 import { useEffect, useState } from 'react';
 import { getPieceDetail, updateContentPiece } from '@/lib/actions/content';
-import { CHANNELS, tagVal, tagIds, formatOf, styleOf, fbButtonOf, seriesOf, isVideoMedia, placeName, isOnSiteFormat, justPosted } from '@/lib/content-channels';
+import { CHANNELS, tagVal, tagIds, formatOf, styleOf, fbButtonOf, seriesOf, isVideoMedia, placeName, isOnSiteFormat, justPosted, acctGap } from '@/lib/content-channels';
 import { ChannelFavicon } from './ui/site-favicon';
 import type { CalPiece } from '@/lib/data';
 
@@ -53,7 +53,7 @@ function withTags(text: string) {
 
 export function PiecePreview({ piece, accounts = [], media = [], body, replies = [], editableReplies = false, compact = false, onOpen }: {
   piece: CalPiece;
-  accounts?: Array<{ id: number; platformKey: string; handle: string | null; accountStats?: Record<string, unknown> }>;
+  accounts?: Array<{ id: number; platformKey: string; handle: string | null; status?: string; accountStats?: Record<string, unknown> }>;
   media?: Array<{ id: number; url: string; filename: string; width?: number | null; height?: number | null; kind?: string; mimeType?: string | null }>;
   /** Thân bài đã có sẵn (drawer) — truyền vào để khỏi gọi lại. */
   body?: string;
@@ -122,10 +122,17 @@ export function PiecePreview({ piece, accounts = [], media = [], body, replies =
   const carousel = kind === 'album' && assets.length > 0;
   const linkUrl = kind === 'link' ? (bodyText.match(/https?:\/\/\S+|\b[a-z0-9-]+\.(com|org|net|gov|io)\/\S*/i)?.[0] ?? '') : '';
 
+  // Chưa có account đăng được = bài này mới chỉ là DỰ ĐỊNH, không phải việc làm được hôm nay. Toàn
+  // cảnh phải phân biệt ngay bằng mắt, không thì lịch đầy bài trông như đã sẵn sàng cả. Bài ĐÃ ĐĂNG
+  // không bao giờ mờ (chuyện account của nó xong từ lâu), và lúc mở drawer để duyệt (editableReplies)
+  // cũng không mờ — đang đọc kỹ thì làm mờ chữ là cản.
+  const noAcct = piece.status === 'published' || editableReplies ? null : acctGap(piece, accounts);
+
   return (
-    <div onClick={onOpen}
+    <div onClick={onOpen} title={noAcct ? `Chưa chạy được: ${noAcct}` : undefined}
       style={{ border: onSite ? '1px dashed color-mix(in srgb, var(--fg-4) 70%, transparent)' : '1px solid var(--line)',
-        borderRadius: 9, overflow: 'hidden', background: 'var(--bg-1)', cursor: onOpen ? 'pointer' : 'default' }}>
+        borderRadius: 9, overflow: 'hidden', background: 'var(--bg-1)', cursor: onOpen ? 'pointer' : 'default',
+        opacity: noAcct ? 0.42 : 1, filter: noAcct ? 'saturate(.55)' : undefined }}>
       {piece.status !== 'published' && tagVal(piece.tags, 'platsched') && (
         // Bài đã nằm trong lịch của chính nền tảng: FB tự đăng kể cả lúc máy mình tắt. Phải nói ra,
         // vì nhìn giống hệt bài chờ runner mà việc cần làm thì khác hẳn.

@@ -1771,7 +1771,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
               <tr key={chId} onClick={() => setAxis('channel', on ? '' : chId)}
                 title={target ? `${label}: ${pct}% lịch (${n} bài) · kế hoạch ${target}% — trần ${cap}/tuần ≈ ${limit} bài cho khung ${calRange.label}. Lệch quá 12 điểm thì đổi màu. Bấm để lọc.` : `${label}: ${n} bài — chưa đặt trần tuần`}
                 style={{ cursor: 'pointer', borderTop: '1px solid var(--line)', background: on ? 'var(--bg-2)' : 'transparent' }}>
-                <td style={{ padding: '3px 0', color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</td>
+                {/* Cùng ChannelFavicon với thẻ bài trên lịch/feed — nhìn icon ở bảng là nhận ra ngay
+                    dòng này ứng với khối bài nào, không phải đọc chữ rồi đối chiếu. */}
+                <td style={{ padding: '3px 0', color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>
+                    <ChannelFavicon channel={chId} size={13} title={label} />{label}
+                  </span>
+                </td>
                 <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: off ? 'var(--neon-amber)' : 'var(--fg-1)', fontWeight: 600 }}>{pct}%</td>
                 <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>{target ? `${target}%` : '—'}</td>
                 <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--fg-4)' }}>{n}</td>

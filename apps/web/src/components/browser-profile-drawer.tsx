@@ -129,7 +129,9 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
   const dirty = JSON.stringify(form) !== baselineRef.current;
 
   // Edit-mode extras: accounts logged in inside + open/last-opened.
-  const [inside, setInside] = useState<ProfileAccountRow[] | null>(null);
+  // useEntityList: tự nạp lại khi có signalEntity('account') — kể cả từ drawer account lồng bên
+  // trong hay từ cửa sổ khác (Crew ext), thay cho việc parent phải nhớ gọi lại tay.
+  const inside = useEntityList<ProfileAccountRow[]>('account', () => (profile ? browserProfileAccounts(profile.id) : Promise.resolve([])), [profile?.id]);
   const [openAcct, setOpenAcct] = useState<number | null>(null);   // account opened in-place (stacked drawer)
   const [copied, setCopied] = useState(false);
   const [opened, setOpened] = useState<string | null>(profile?.lastOpenedAt ?? null);
@@ -142,12 +144,6 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
     return q ? list.filter((a) => [a.handle, a.email, a.platformKey].some((v) => v && v.toLowerCase().includes(q))) : list;
   }, [inside, acctQuery]);
   const acctPage = usePaged(filteredAccts, 30);
-  useEffect(() => {
-    if (!profile) return;
-    let live = true;
-    browserProfileAccounts(profile.id).then((r) => { if (live) setInside(r); }).catch(() => { if (live) setInside([]); });
-    return () => { live = false; };
-  }, [profile]);
 
   // Edit-mode extras: projects this profile is assigned to (many-to-many).
   type ProjRef = { id: string; name: string; emoji: string | null };
@@ -384,7 +380,7 @@ export function BrowserProfileDrawer({ profile, proxies, teamMembers = [], onClo
     {/* AccountDrawer pushed as a top layer, sibling of the profile drawer. (Drawer portals to <body>
         since 2026-08-12, so it escapes this panel's pointer-events:none / transform regardless of
         nesting — sibling is just the clean structure.) Opened from the "đang login" list. */}
-    {openAcct != null && <AccountDrawer accountId={openAcct} onClose={() => { setOpenAcct(null); if (profile) browserProfileAccounts(profile.id).then(setInside).catch(() => {}); }} />}
+    {openAcct != null && <AccountDrawer accountId={openAcct} onClose={() => { setOpenAcct(null); signalEntity('account'); }} />}
     </>
   );
 }

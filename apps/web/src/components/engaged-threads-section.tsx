@@ -18,6 +18,7 @@
 // Filter chip: tất cả / có-ghosted-or-removed / chỉ-live.
 
 import { useState, useEffect, useTransition } from 'react';
+import { useEntityList } from '@/lib/entity-signal';
 import {
   listEngagedThreadsForBrief,
   listEngagementsByParentUrl,
@@ -78,22 +79,15 @@ export function EngagedThreadsSection({ briefId, bumpKey = 0 }: {
   briefId: number;
   bumpKey?: number;
 }) {
-  const [threads, setThreads] = useState<ThreadRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState(true);
   const [filter, setFilter] = useState<'all' | 'problems' | 'live'>('all');
   const [expandedParent, setExpandedParent] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    listEngagedThreadsForBrief(briefId).then((rows) => {
-      if (cancelled) return;
-      setThreads(rows);
-      setLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [briefId, bumpKey]);
+  // useEntityList: nạp lại khi có signalEntity('brief') từ bất kỳ đâu, không chỉ khi bumpKey đổi.
+  const rows = useEntityList<ThreadRow[]>('brief', () => listEngagedThreadsForBrief(briefId), [briefId, bumpKey]);
+  const threads = rows ?? [];
+  useEffect(() => { setLoading(rows == null); }, [rows]);
 
   if (loading) {
     return (

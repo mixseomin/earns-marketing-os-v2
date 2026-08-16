@@ -5,7 +5,8 @@
 // to create). Click cell → tạo 1 bài cho (channel × phase) đó, gắn channel
 // id sẵn. Optimistic update bằng onPostsChanged để parent reload list.
 
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
+import { useEntityList } from '@/lib/entity-signal';
 import { listChannelsForHabitat, type HabitatChannelRow } from '@/lib/actions/habitat-channels';
 import { listBriefPostChannels } from '@/lib/actions/card-channel';
 import { createPostForBriefPhase } from '@/lib/actions/brief-posts';
@@ -29,19 +30,13 @@ interface Props {
 export function ChannelCoverageGrid({
   projectId, briefId, habitatId, reloadKey = 0, onPostsChanged,
 }: Props) {
-  const [channels, setChannels] = useState<HabitatChannelRow[] | null>(null);
-  const [posts, setPosts] = useState<Array<{ channelId: number | null; briefPhase: string | null }>>([]);
   const [busy, setBusy] = useState<string | null>(null);   // "channelId-phase" đang tạo
   const [, startTransition] = useTransition();
 
-  useEffect(() => {
-    listChannelsForHabitat(habitatId).then(setChannels).catch(() => setChannels([]));
-  }, [habitatId]);
-
-  // Posts re-fetch khi reloadKey bump (parent vừa tạo/sửa bài)
-  useEffect(() => {
-    listBriefPostChannels(briefId).then(setPosts).catch(() => setPosts([]));
-  }, [briefId, reloadKey]);
+  // useEntityList = fetch + tự reload khi kind bị signalEntity (sửa habitat/bài ở nơi khác,
+  // kể cả cửa sổ khác). reloadKey vẫn giữ cho optimistic bump tại chỗ của parent.
+  const channels = useEntityList<HabitatChannelRow[]>('habitat', () => listChannelsForHabitat(habitatId), [habitatId]);
+  const posts = useEntityList('brief', () => listBriefPostChannels(briefId), [briefId, reloadKey]) ?? [];
 
   if (channels == null) return null;          // đang load → chưa render (tránh nhấp nháy)
   if (channels.length === 0) return null;     // habitat ko có channel → ẩn grid hẳn

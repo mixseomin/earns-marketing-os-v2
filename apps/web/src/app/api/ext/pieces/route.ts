@@ -2,7 +2,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { checkAuth } from '../_auth';
 import { errorResponse, okResponse, firstRow, rows } from '@/lib/ext-route';
-import { bigintArray } from '@/lib/sql-array';
+import { bigintArray, textArray } from '@/lib/sql-array';
 import { publishedNeedsUrl, PUBLISHED_NEEDS_URL_MSG, scheduleTooFar, SCHEDULE_TOO_FAR_MSG } from '@/lib/content-channels';
 
 export const dynamic = 'force-dynamic';
@@ -73,31 +73,58 @@ export async function POST(req: Request) {
   return okResponse({ id: row?.id, slug: row?.slug, created: !!row?.created });
 }
 
-// PATCH /api/ext/pieces  { projectId, ids: number[], scheduledAt?: 'YYYY-MM-DD'|null }
-// Đổi MỖI ngày đăng, hàng loạt. Vì sao tách khỏi POST: POST là upsert cả bài (title, body, tags),
-// dùng nó để đổi mỗi cái ngày là phải gửi lại nguyên bài — sai một trường là mất tag/thân bài thật.
-// Việc thường gặp nhất khi dọn lịch là "trả bài về kho" (scheduledAt=null): bài còn nguyên, chỉ rời
-// khỏi lịch, tới tuần thì xếp lại.
+// PATCH /api/ext/pieces  { projectId, ids, scheduledAt?, status?, addTags? }
+// Sửa MỘT VÀI trường trên nhiều bài, không đụng phần còn lại. Vì sao tách khỏi POST: POST là upsert
+// cả bài (title, body, tags), dùng nó để đổi mỗi cái ngày là phải gửi lại nguyên bài — sai một
+// trường là mất tag/thân bài thật. Ba việc dọn dẹp hay dùng:
+//   scheduledAt: null   trả bài về kho (bài còn nguyên, chỉ rời lịch)
+//   status: 'archived'  gộp bản trùng (archive giữ được, khác hẳn xoá)
+//   addTags: [...]      gắn thêm tag (vd 'format:text') mà KHÔNG chạm tag đang có
+// Trường nào VẮNG trong body thì không được đụng tới — đó là điểm khác POST.
 export async function PATCH(req: Request) {
   const err = await checkAuth(req); if (err) return err;
   const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
-  const b = (await req.json().catch(() => ({}))) as { projectId?: string; ids?: number[]; scheduledAt?: string | null };
+  const b = (await req.json().catch(() => ({}))) as
+    { projectId?: string; ids?: number[]; scheduledAt?: string | null; status?: string; addTags?: string[] };
   const projectId = String(b.projectId ?? '').trim();
   const ids = (b.ids ?? []).map(Number).filter((n) => Number.isInteger(n) && n > 0);
   if (!projectId || ids.length === 0) return errorResponse('projectId + ids required');
-  const when = String(b.scheduledAt ?? '').trim();
-  const scheduledAt = when ? (/^\d{4}-\d{2}-\d{2}$/.test(when) ? `${when}T09:00:00` : when) : null;
-  // Ngày vượt cửa sổ 7 ngày thì KHÔNG chặn cả lệnh: bài gắn 'milestone' (payday, ngày công bố số)
-  // vốn được đặt xa. Lọc ngay trong WHERE — bài thường bị bỏ qua, bài mốc vẫn dời được, và số
-  // `skipped` nói ra đã bỏ qua mấy bài thay vì im lặng.
-  const tooFar = scheduleTooFar(scheduledAt, []);
-  // Bài ĐÃ ĐĂNG không bao giờ đổi ngày: ngày của nó là sự thật đã xảy ra, không phải kế hoạch.
-  // Chốt ở SQL chứ không dặn nhau nhớ.
+
+  const sets = [sql`updated_at = now()`];
+  const conds = [sql`project_id = ${projectId}`, sql`id = ANY(${bigintArray(ids)})`,
+    // Bài ĐÃ ĐĂNG không đổi ngày, không đổi trạng thái: chuyện đã xảy ra, không phải kế hoạch.
+    sql`status <> 'published'`, sql`archived_at IS NULL`];
+
+  let tooFar = false;
+  if ('scheduledAt' in b) {
+    const when = String(b.scheduledAt ?? '').trim();
+    const scheduledAt = when ? (/^\d{4}-\d{2}-\d{2}$/.test(when) ? `${when}T09:00:00` : when) : null;
+    // Ngày vượt cửa sổ 7 ngày thì KHÔNG chặn cả lệnh: bài gắn 'milestone' (payday, ngày công bố số)
+    // vốn được đặt xa. Lọc trong WHERE — bài thường bị bỏ qua, bài mốc vẫn dời được, và `skipped`
+    // nói ra đã bỏ qua mấy bài thay vì im lặng.
+    tooFar = scheduleTooFar(scheduledAt, []);
+    if (tooFar) conds.push(sql`tags @> '["milestone"]'::jsonb`);
+    sets.push(sql`scheduled_at = ${scheduledAt}::timestamptz`);
+  }
+  if (b.status) {
+    if (!STATUSES.has(b.status)) return errorResponse(`status không hợp lệ: ${b.status}`);
+    if (b.status === 'published') return errorResponse('đánh dấu đã đăng thì dùng POST kèm publishUrl');
+    sets.push(sql`status = ${b.status}`);
+    // 'archived' đọc từ HAI chỗ (cột archived_at và status) — đặt một chỗ thôi thì nơi kia vẫn
+    // coi là bài sống, và bài "đã bỏ" vẫn nằm nguyên trong lịch.
+    if (b.status === 'archived') sets.push(sql`archived_at = now()`);
+  }
+  const addTags = (b.addTags ?? []).map(String).filter(Boolean);
+  if (addTags.length) {
+    // Hợp nhất, không ghi đè: tag cũ giữ nguyên, tag mới chỉ thêm nếu chưa có.
+    sets.push(sql`tags = (SELECT to_jsonb(array_agg(DISTINCT v)) FROM (
+      SELECT jsonb_array_elements_text(tags) AS v UNION SELECT unnest(${textArray(addTags)}) AS v) u)`);
+  }
+  if (sets.length === 1) return errorResponse('không có gì để sửa (scheduledAt / status / addTags)');
+
   const res = await db.execute(sql`
-    UPDATE content_pieces SET scheduled_at = ${scheduledAt}::timestamptz, updated_at = now()
-    WHERE project_id = ${projectId} AND id = ANY(${bigintArray(ids)})
-      AND status <> 'published' AND archived_at IS NULL
-      ${tooFar ? sql`AND tags @> '["milestone"]'::jsonb` : sql``}
+    UPDATE content_pieces SET ${sql.join(sets, sql`, `)}
+    WHERE ${sql.join(conds, sql` AND `)}
     RETURNING id
   `);
   const updated = rows(res).length;

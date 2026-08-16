@@ -359,6 +359,10 @@ export function pieceGaps(
     }
   }
 
+  // KIỂU BÀI quyết định dựng ra sao và cần nguyên liệu gì (ảnh? video? phương án poll?). Thiếu nó
+  // thì mọi kiểm tra phía dưới đều đoán mò, và tới ngày đăng mới phát hiện không biết đăng dạng gì.
+  if (!tagVal(piece.tags, 'format')) gaps.push('chưa chọn kiểu bài');
+
   const acctId = Number(tagVal(piece.tags, 'acct')) || 0;
   const acct = acctId ? refs.accounts?.find((a) => a.id === acctId) : undefined;
   const ag = acctGap(piece, refs.accounts);

@@ -332,7 +332,11 @@ export function pieceGaps(
   // người viết ("Bài của mình: số lấy từ data sản phẩm, 2-4 câu, 1 link"). Đăng nguyên si là lộ
   // hướng dẫn ra ngoài. Nội dung công khai của mọi project ở đây là tiếng Anh, nên chỉ cần thấy dấu
   // tiếng Việt là đủ kết luận — không phải đoán theo từ khoá.
-  if (piece.body && PUBLIC_CHANNELS.has(piece.channel ?? '') && /[ăâđêôơưàáảãạằắẳẵặầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵ]/i.test(piece.body))
+  // TRỪ thẻ việc TẠI CHỖ (comment/tương tác/share lại): thân của chúng là KẾ HOẠCH cho người làm,
+  // viết tiếng Việt là đúng — không có chữ nào từ đó được dán ra ngoài. Bắt cả nhóm này thì cảnh
+  // báo kêu ở những thẻ không bao giờ sửa được, và người ta học cách ngó lơ mọi cảnh báo.
+  const onSiteCard = isOnSiteFormat(tagVal(piece.tags, 'format')) && !tagVal(piece.tags, 'replyto');
+  if (piece.body && !onSiteCard && PUBLIC_CHANNELS.has(piece.channel ?? '') && /[ăâđêôơưàáảãạằắẳẵặầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵ]/i.test(piece.body))
     gaps.push('thân bài còn tiếng Việt — đó là ghi chú nội bộ, chưa phải caption');
 
   // Series chỉ có tác dụng khi nó RƠI ĐÚNG THỨ mỗi tuần — lệch thứ thì người đọc không đợi được,

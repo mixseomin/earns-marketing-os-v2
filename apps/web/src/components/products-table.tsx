@@ -19,7 +19,14 @@ export interface ProductRow {
   usdCents: number;
   views7d: number | null; // null = job đọc lượt xem chưa chạy cho store này
   views30d: number | null;
+  refs7d: Record<string, number>; // nguồn giới thiệu 7d; {} = chưa đọc được nguồn
   missingDiscover: boolean;
+}
+
+/** Lượt xem 7d KHÔNG phải `direct`, kèm nguồn lớn nhất — "có ai giới thiệu sang không". */
+function referred(refs: Record<string, number>) {
+  const out = Object.entries(refs).filter(([k]) => k !== 'direct').sort((a, b) => b[1] - a[1]);
+  return { n: out.reduce((s, [, v]) => s + v, 0), top: out[0]?.[0] ?? null, all: out };
 }
 
 const usd = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
@@ -57,6 +64,22 @@ export function ProductsTable({ rows }: { rows: ProductRow[] }) {
       sortValue: (r) => r.views30d ?? -1,
       cell: (r) => (r.views30d === null ? <span style={dim}>—</span> : <span style={{ color: 'var(--fg-3)' }}>{r.views30d}</span>),
       total: (rs) => rs.reduce((s, r) => s + (r.views30d ?? 0), 0),
+    },
+
+    // Tổng lượt xem KHÔNG nói được người thật hay crawler. 14/08/2026 cả 9 sản phẩm cùng bị chạm
+    // 1-3 lượt trong một ngày, 100% `direct`, 0 đơn — nhìn cột 7D thì tưởng có traffic. Cột này tách
+    // ra: có nguồn giới thiệu (github/google/…) mới là có người được dẫn sang.
+    {
+      key: 'src', group: 'traffic', header: 'Nguồn',
+      title: 'Lượt xem 7d có nguồn giới thiệu. "direct" = gõ thẳng URL hoặc bot quét — không ai dẫn sang.',
+      sortValue: (r) => referred(r.refs7d).n,
+      cell: (r) => {
+        const { n, top, all } = referred(r.refs7d);
+        if (!Object.keys(r.refs7d).length) return <span style={dim}>—</span>;
+        if (!n) return <span style={dim} title={`${r.refs7d.direct ?? 0} lượt direct, không nguồn nào dẫn sang`}>direct</span>;
+        return <span style={{ color: 'var(--ok)' }} title={all.map(([k, v]) => `${k}: ${v}`).join(' · ')}>{top} {n}</span>;
+      },
+      total: (rs) => rs.reduce((s, r) => s + referred(r.refs7d).n, 0) || '—',
     },
 
     {

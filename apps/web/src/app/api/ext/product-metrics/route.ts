@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   const db = getDb();
   if (!db) return NextResponse.json({ ok: false, error: 'no db' }, { status: 500 });
 
-  let body: { store?: string; date?: string; rows?: Array<{ productId?: string; date?: string; views?: number; sales?: number; usdCents?: number }> };
+  let body: { store?: string; date?: string; rows?: Array<{ productId?: string; date?: string; views?: number; sales?: number; usdCents?: number; refs?: Record<string, unknown> }> };
   try { body = await req.json(); } catch { return NextResponse.json({ ok: false, error: 'body không phải JSON' }, { status: 400 }); }
 
   const store = String(body.store ?? '').trim();
@@ -36,13 +36,30 @@ export async function POST(req: Request) {
     const views = Math.max(0, Math.round(Number(r.views) || 0));
     const sales = Math.max(0, Math.round(Number(r.sales) || 0));
     const usd = Math.max(0, Math.round(Number(r.usdCents) || 0));
+    const refs = cleanRefs(r.refs);
     await db.execute(sql`
-      INSERT INTO product_daily (store, product_id, date, views, sales, usd_cents, source, fetched_at)
-      VALUES (${store}, ${pid}, ${date}, ${views}, ${sales}, ${usd}, 'browser', now())
+      INSERT INTO product_daily (store, product_id, date, views, sales, usd_cents, refs, source, fetched_at)
+      VALUES (${store}, ${pid}, ${date}, ${views}, ${sales}, ${usd}, ${JSON.stringify(refs)}::jsonb, 'browser', now())
       ON CONFLICT (store, product_id, date) DO UPDATE
-        SET views = EXCLUDED.views, sales = EXCLUDED.sales, usd_cents = EXCLUDED.usd_cents, fetched_at = now()`);
+        SET views = EXCLUDED.views, sales = EXCLUDED.sales, usd_cents = EXCLUDED.usd_cents,
+            -- Chỉ đè refs khi lần chạy này ĐỌC ĐƯỢC nguồn. Endpoint by_referral hỏng mà vẫn ghi {}
+            -- thì lần chạy lỗi xoá sạch dữ liệu nguồn của lần chạy tốt trước đó.
+            refs = CASE WHEN EXCLUDED.refs = '{}'::jsonb THEN product_daily.refs ELSE EXCLUDED.refs END,
+            fetched_at = now()`);
     n++;
   }
   // Báo rõ dòng bị bỏ thay vì im lặng nuốt — dòng thiếu ngày mà lặng lẽ mất thì bảng trông vẫn ổn.
   return NextResponse.json({ ok: true, store, upserted: n, skipped: bad.length, ...(bad.length ? { bad: bad.slice(0, 5) } : {}) });
+}
+
+/** Chỉ nhận map nguồn → số nguyên dương. Job gửi gì lạ thì bỏ, đừng nhét rác vào jsonb. */
+function cleanRefs(raw: unknown): Record<string, number> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    const key = String(k).trim().slice(0, 80);
+    const n = Math.round(Number(v));
+    if (key && Number.isFinite(n) && n > 0) out[key] = n;
+  }
+  return out;
 }

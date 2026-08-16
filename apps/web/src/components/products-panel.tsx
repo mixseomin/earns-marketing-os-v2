@@ -45,6 +45,7 @@ export async function ProductsPanel() {
       usdCents: p.salesUsdCents,
       views7d: v ? v.views7d : null,
       views30d: v ? v.views30d : null,
+      refs7d: v ? v.refs7d : {},
       missingDiscover: lacksDiscover(p),
     };
   });

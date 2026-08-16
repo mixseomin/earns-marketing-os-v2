@@ -1,0 +1,11 @@
+-- Nguồn giới thiệu của lượt xem, theo từng ngày: {"direct":3,"github.com":1}.
+--
+-- Trước đây chỉ lưu TỔNG lượt xem, nên không phân biệt được người thật với crawler quét cả store —
+-- và đúng chuyện đó đã xảy ra: 14/08/2026 cả 9 sản phẩm cùng bị chạm 1-3 lượt trong một ngày,
+-- nhìn như "có traffic" nhưng 100% là `direct` và 0 đơn. Không có cột này thì mỗi lần hỏi
+-- "traffic này là ai" đều phải mở tay Gumroad Analytics rồi đoán.
+--
+-- CHỈ lưu referral, KHÔNG lưu quốc gia: endpoint `by_state` trả mảng 52 ô không khớp trục ngày của
+-- `by_date`/`by_referral` (tổng thì đúng, nhưng không map được về từng ngày). Nhét nó vào dòng
+-- theo-ngày là bịa ra sự căn chỉnh không có thật. Cần số quốc gia thì chạy referrers.mjs ad-hoc.
+ALTER TABLE product_daily ADD COLUMN IF NOT EXISTS refs jsonb NOT NULL DEFAULT '{}'::jsonb;

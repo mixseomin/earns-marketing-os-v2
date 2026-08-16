@@ -2255,9 +2255,11 @@ export const productDaily = pgTable(
   {
     id: bigserial('id', { mode: 'number' }).primaryKey(),
     store: text('store').notNull(),            // nhãn store Gumroad (codecrate, militarycalc…)
-    productId: text('product_id').notNull(),   // permalink id (efvcp, qpzez…)
+    productId: text('product_id').notNull(),   // id gốc base64 của Gumroad (= product.id API v2), KHÔNG phải permalink
     date: text('date').notNull(),              // YYYY-MM-DD, theo ngày của người đọc
     views: integer('views').notNull().default(0),
+    // nguồn giới thiệu của lượt xem hôm đó: {"direct":3,"github.com":1}. Rỗng = job chưa đọc được.
+    refs: jsonb('refs').$type<Record<string, number>>().notNull().default({}),
     sales: integer('sales').notNull().default(0),        // cộng dồn tại thời điểm chụp
     usdCents: integer('usd_cents').notNull().default(0), // cộng dồn tại thời điểm chụp
     source: text('source').notNull().default('browser'), // browser | api

@@ -13,3 +13,9 @@ import { sql, type SQL } from 'drizzle-orm';
 export function textArray(values: readonly string[]): SQL {
   return sql`ARRAY[${sql.join(values.map((v) => sql`${v}`), sql`, `)}]::text[]`;
 }
+
+/** Như trên nhưng cho khoá số (`id = ANY(${bigintArray(ids)})`). Cùng lý do, cùng cách: nối chuỗi
+ *  `ARRAY[1,2,3]` bằng sql.raw thì chạy được nhưng mở đường cho lần sau nối thứ chưa lọc vào SQL. */
+export function bigintArray(values: readonly number[]): SQL {
+  return sql`ARRAY[${sql.join(values.map((v) => sql`${v}`), sql`, `)}]::bigint[]`;
+}

@@ -1577,15 +1577,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     el0.scrollIntoView({ behavior: 'smooth', block: 'start' });
     const sc = el0.closest('.main') ?? document.documentElement;
     let n = 0, settled = 0, stop = false;
-    const done = () => {
-      stop = true;
-      jumping.current = null;
-      sc.removeEventListener('wheel', off); sc.removeEventListener('touchstart', off);
-    };
     // Người dùng tự cuộn = huỷ cú nhảy VÀ trả quyền cho bộ theo dõi ngay, không đợi hết nhịp.
-    const off = () => done();
-    sc.addEventListener('wheel', off, { once: true, passive: true });
-    sc.addEventListener('touchstart', off, { once: true, passive: true });
+    // AbortController gỡ CẢ HAI listener bằng một lệnh — tự gỡ tay thì `done` phải trỏ ngược vào
+    // `off` và `off` gọi lại `done`, vòng tham chiếu đó chỉ chờ người sau sửa nhầm một nhánh.
+    const ac = new AbortController();
+    const done = () => { stop = true; jumping.current = null; ac.abort(); };
+    sc.addEventListener('wheel', done, { once: true, passive: true, signal: ac.signal });
+    sc.addEventListener('touchstart', done, { once: true, passive: true, signal: ac.signal });
     const fix = () => {
       const el = document.getElementById(elId);
       if (stop) return;

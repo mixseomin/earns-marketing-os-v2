@@ -2,6 +2,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { checkAuth } from '../_auth';
 import { errorResponse, okResponse, firstRow, rows } from '@/lib/ext-route';
+import { bigintArray } from '@/lib/sql-array';
 import { publishedNeedsUrl, PUBLISHED_NEEDS_URL_MSG, scheduleTooFar, SCHEDULE_TOO_FAR_MSG } from '@/lib/content-channels';
 
 export const dynamic = 'force-dynamic';
@@ -81,16 +82,21 @@ export async function PATCH(req: Request) {
   if (!projectId || ids.length === 0) return errorResponse('projectId + ids required');
   const when = String(b.scheduledAt ?? '').trim();
   const scheduledAt = when ? (/^\d{4}-\d{2}-\d{2}$/.test(when) ? `${when}T09:00:00` : when) : null;
-  if (scheduleTooFar(scheduledAt, [])) return errorResponse(SCHEDULE_TOO_FAR_MSG);
+  // Ngày vượt cửa sổ 7 ngày thì KHÔNG chặn cả lệnh: bài gắn 'milestone' (payday, ngày công bố số)
+  // vốn được đặt xa. Lọc ngay trong WHERE — bài thường bị bỏ qua, bài mốc vẫn dời được, và số
+  // `skipped` nói ra đã bỏ qua mấy bài thay vì im lặng.
+  const tooFar = scheduleTooFar(scheduledAt, []);
   // Bài ĐÃ ĐĂNG không bao giờ đổi ngày: ngày của nó là sự thật đã xảy ra, không phải kế hoạch.
   // Chốt ở SQL chứ không dặn nhau nhớ.
   const res = await db.execute(sql`
     UPDATE content_pieces SET scheduled_at = ${scheduledAt}::timestamptz, updated_at = now()
-    WHERE project_id = ${projectId} AND id = ANY(${sql.raw(`ARRAY[${ids.join(',')}]::bigint[]`)})
+    WHERE project_id = ${projectId} AND id = ANY(${bigintArray(ids)})
       AND status <> 'published' AND archived_at IS NULL
+      ${tooFar ? sql`AND tags @> '["milestone"]'::jsonb` : sql``}
     RETURNING id
   `);
-  return okResponse({ updated: rows(res).length });
+  const updated = rows(res).length;
+  return okResponse({ updated, skipped: ids.length - updated, ...(tooFar && updated < ids.length ? { note: SCHEDULE_TOO_FAR_MSG } : {}) });
 }
 
 // GET /api/ext/pieces?projectId=x[&channel=fb-post][&from=YYYY-MM-DD][&to=YYYY-MM-DD]

@@ -92,6 +92,9 @@ const legendFor = (items: CalItem[]): LegendEntry[] => {
 };
 // Columns where recency (most-recent activity) beats tier for ordering — a finished/awaiting task
 // should surface at the top of its column, not sink under stale tier order.
+// Chip LOẠI VIỆC — khai một chỗ vì thanh lọc và dòng tóm tắt lúc cuộn phải nói cùng một tên.
+const KIND_OPTS = [{ value: '', label: 'All' }, { value: 'backlink', label: '🔗 Backlink' }, { value: 'email', label: '✉ Email' }, { value: 'seed', label: '🌱 Seed' }, { value: 'build', label: '📕 Sản phẩm' }, { value: 'research', label: '📚 Nghiên cứu' }, { value: 'followup', label: '📌 Follow-up' }, { value: 'content', label: '📝 Bài đăng' }];
+
 const TERMINAL_STATES = new Set<string>(['submitted', 'review', 'completed', 'verified', 'broken', 'dropped']);
 const CLOSED = new Set<string>(CLOSED_SITE_STATUSES);   // xong/bỏ/lỗi — ẩn mặc định, xem lib/site-status.ts
 // Thời gian tương đối gọn (feed hoạt động gần đây). Client component nên Date.now an toàn.
@@ -2028,19 +2031,19 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         )}
       </div>)}
 
-      {/* Row 1 — YDNI essentials: search · work-type spine (scales to ✉ email later) · ⚙ advanced popover · view.
-          DÍNH khi cuộn ở chế độ đọc: đây là thứ duy nhất còn cần trong lúc đọc (đổi view, đổi loại,
-          tìm). Còn KPI/chip trạng thái/chip project thì KHÔNG dính — nhìn một lần lúc vào, giữ lại
-          chỉ tổ ăn chỗ của nội dung. */}
+      {/* Row 1 — YDNI essentials: search · work-type spine · ⚙ advanced popover · view.
+          DÍNH khi cuộn ở MỌI view. Trước đây chỉ dính ở chế độ đọc, nhưng lịch một tháng dày đặc
+          còn dài hơn feed: cuộn xuống là mất cả thanh lọc lẫn dấu vết đang lọc cái gì, rồi phải
+          cuộn ngược lên chỉ để đọc lại mình đang đứng ở đâu. Còn KPI/chip trạng thái/chip project
+          thì KHÔNG dính — chúng gộp thành một dòng tóm tắt bên phải khi thanh này dính. */}
       <div ref={stickSentinel} style={{ height: 1 }} />
       <div ref={barRef} style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center',
         // boxShadow trải rộng = vá luôn dải padding phía trên của khung cuộn; không có nó thì thấy
         // nội dung trườn qua khe hở giữa mép trên và thanh công cụ.
-        ...(focus ? { position: 'sticky' as const, top: 0, zIndex: 30, background: 'var(--bg-0)', padding: '8px 0',
-          ...(stuck ? { boxShadow: '0 -14px 0 14px var(--bg-0)' } : {}) } : {}) }}>
+        position: 'sticky' as const, top: 0, zIndex: 30, background: 'var(--bg-0)', padding: '8px 0',
+        ...(stuck ? { boxShadow: '0 -14px 0 14px var(--bg-0)', borderBottom: '1px solid var(--line)' } : {}) }}>
         <SearchInput value={q} onChange={setQ} placeholder="tìm task (tên/URL/method/niche)…" width={240} />
-        <Segmented options={[{ value: '', label: 'All' }, { value: 'backlink', label: '🔗 Backlink' }, { value: 'email', label: '✉ Email' }, { value: 'seed', label: '🌱 Seed' }, { value: 'build', label: '📕 Sản phẩm' }, { value: 'research', label: '📚 Nghiên cứu' }, { value: 'followup', label: '📌 Follow-up' }, { value: 'content', label: '📝 Bài đăng' }]}
-          value={kind} onChange={(v) => setKind(v as KindFilter)} />
+        <Segmented options={KIND_OPTS} value={kind} onChange={(v) => setKind(v as KindFilter)} />
         {(() => {
           const advN = [follow, traf, draftOnly, blockedOnly, tierFilter].filter(Boolean).length;
           return (
@@ -2079,6 +2082,20 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           </div>
         )}
         {(view === 'feed' || view === 'calendar') && pieceFilterBar}
+        {/* Dấu vết "đang đứng ở đâu" — chỉ hiện khi thanh đã dính, vì lúc đó hàng project và hàng
+            trạng thái đã cuộn khuất. Không có nó thì cuộn xuống giữa một tháng dày đặc là mất luôn
+            thông tin đang lọc project nào, loại gì, trạng thái nào, và còn lại bao nhiêu mục. */}
+        {stuck && (
+          <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>
+            {(allProjects ? (projectFilter ? projectsById?.[projectFilter]?.name ?? projectFilter : 'mọi project') : project.name)}
+            <span style={{ color: 'var(--fg-4)' }}>·</span>
+            {KIND_OPTS.find((o) => o.value === kind)?.label ?? 'All'}
+            {tab !== 'all' && (<><span style={{ color: 'var(--fg-4)' }}>·</span>{SITE_STATUS_META[tab]?.label ?? tab}</>)}
+            {q.trim() && (<><span style={{ color: 'var(--fg-4)' }}>·</span><span style={{ color: 'var(--accent)' }}>“{q.trim()}”</span></>)}
+            <span style={{ color: 'var(--fg-4)' }}>·</span>
+            <b style={{ color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{kind === 'content' ? piecesInScope.length : filtered.length}</b> mục
+          </span>
+        )}
         {view === 'list' && (
           <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--fg-3)' }} title="Nhóm danh sách theo tiêu chí (không đổi bộ lọc)">
             <span>nhóm</span>

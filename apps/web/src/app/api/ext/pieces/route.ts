@@ -67,6 +67,32 @@ export async function POST(req: Request) {
   return okResponse({ id: row?.id, slug: row?.slug, created: !!row?.created });
 }
 
+// PATCH /api/ext/pieces  { projectId, ids: number[], scheduledAt?: 'YYYY-MM-DD'|null }
+// Đổi MỖI ngày đăng, hàng loạt. Vì sao tách khỏi POST: POST là upsert cả bài (title, body, tags),
+// dùng nó để đổi mỗi cái ngày là phải gửi lại nguyên bài — sai một trường là mất tag/thân bài thật.
+// Việc thường gặp nhất khi dọn lịch là "trả bài về kho" (scheduledAt=null): bài còn nguyên, chỉ rời
+// khỏi lịch, tới tuần thì xếp lại.
+export async function PATCH(req: Request) {
+  const err = await checkAuth(req); if (err) return err;
+  const db = getDb(); if (!db) return errorResponse('DB unavailable', 503);
+  const b = (await req.json().catch(() => ({}))) as { projectId?: string; ids?: number[]; scheduledAt?: string | null };
+  const projectId = String(b.projectId ?? '').trim();
+  const ids = (b.ids ?? []).map(Number).filter((n) => Number.isInteger(n) && n > 0);
+  if (!projectId || ids.length === 0) return errorResponse('projectId + ids required');
+  const when = String(b.scheduledAt ?? '').trim();
+  const scheduledAt = when ? (/^\d{4}-\d{2}-\d{2}$/.test(when) ? `${when}T09:00:00` : when) : null;
+  if (scheduleTooFar(scheduledAt, [])) return errorResponse(SCHEDULE_TOO_FAR_MSG);
+  // Bài ĐÃ ĐĂNG không bao giờ đổi ngày: ngày của nó là sự thật đã xảy ra, không phải kế hoạch.
+  // Chốt ở SQL chứ không dặn nhau nhớ.
+  const res = await db.execute(sql`
+    UPDATE content_pieces SET scheduled_at = ${scheduledAt}::timestamptz, updated_at = now()
+    WHERE project_id = ${projectId} AND id = ANY(${sql.raw(`ARRAY[${ids.join(',')}]::bigint[]`)})
+      AND status <> 'published' AND archived_at IS NULL
+    RETURNING id
+  `);
+  return okResponse({ updated: rows(res).length });
+}
+
 // GET /api/ext/pieces?projectId=x[&channel=fb-post][&from=YYYY-MM-DD][&to=YYYY-MM-DD]
 export async function GET(req: Request) {
   const err = await checkAuth(req); if (err) return err;

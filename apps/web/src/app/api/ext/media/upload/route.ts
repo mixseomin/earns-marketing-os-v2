@@ -9,7 +9,7 @@ export const maxDuration = 60;
 const TENANT = process.env.DEFAULT_TENANT_ID || 'self';
 
 // POST /api/ext/media/upload
-// Body: { projectId, filename, dataBase64, mimeType?, tags?, width?, height?, notes?, source? }
+// Body: { projectId, filename, dataBase64, mimeType?, tags?, width?, height?, durationSec?, notes?, source? }
 // → { ok, id, url }
 //
 // Vì sao có: vault ảnh đã có đường ĐỌC (GET /api/ext/media) và đường SINH (media/generate: AI/stock),
@@ -22,7 +22,8 @@ export async function POST(req: Request) {
 
   const b = (await req.json().catch(() => ({}))) as {
     projectId?: string; filename?: string; dataBase64?: string; mimeType?: string;
-    tags?: string[]; width?: number; height?: number; notes?: string; source?: string;
+    tags?: string[]; width?: number; height?: number; durationSec?: number;
+    notes?: string; source?: string;
   };
   const projectId = String(b.projectId ?? '').trim();
   const filename = String(b.filename ?? '').trim();
@@ -31,9 +32,13 @@ export async function POST(req: Request) {
 
   const buf = Buffer.from(data, 'base64');
   if (!buf.length) return errorResponse('dataBase64 rỗng hoặc sai mã');
-  if (buf.length > 12 * 1024 * 1024) return errorResponse('ảnh > 12MB — nén trước khi nạp');
+  if (buf.length > 12 * 1024 * 1024) return errorResponse('file > 12MB — nén trước khi nạp');
 
-  const mime = String(b.mimeType ?? '').trim() || (/\.jpe?g$/i.test(filename) ? 'image/jpeg' : 'image/png');
+  const mime = String(b.mimeType ?? '').trim()
+    || (/\.jpe?g$/i.test(filename) ? 'image/jpeg' : /\.mp4$/i.test(filename) ? 'video/mp4' : 'image/png');
+  // kind suy từ mime, không đóng cứng 'image': reel dựng xong phải nạp được bằng chính đường này,
+  // không thì lại đi vòng bằng SQL tay (media 76/77 đã phải làm thế).
+  const kind = mime.startsWith('video/') ? 'video' : mime.startsWith('audio/') ? 'audio' : 'image';
   const source = String(b.source ?? 'upload').trim();
   // Cùng quy ước khoá với backlink-media: <nguồn>/<project>/<tên>-<mốc>.<đuôi>
   const stamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
@@ -45,9 +50,10 @@ export async function POST(req: Request) {
   if (!url) url = `data:${mime};base64,${buf.toString('base64')}`;
 
   const [row] = await db.insert(mediaAssets).values({
-    tenantId: TENANT, projectId, kind: 'image',
+    tenantId: TENANT, projectId, kind,
     filename: `${base}.${ext}`, url, mimeType: mime, sizeBytes: buf.length,
     width: b.width ?? null, height: b.height ?? null,
+    durationSec: b.durationSec ?? null,
     tags: Array.isArray(b.tags) ? b.tags.map(String) : [source],
     notes: b.notes ?? null, source,
   }).returning({ id: mediaAssets.id });

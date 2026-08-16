@@ -1647,15 +1647,20 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     // ON-TRACK: ba câu hỏi khác hẳn mix góc. (1) nhịp mỗi kênh có vượt trần tuần không, (2) việc đã
     // tới ngày có làm không, (3) bao nhiêu bài lỡ hẳn. Đếm trên ĐÚNG khung đang xem; trần nhân theo
     // độ dài khung (xem tháng thì trần cũng phải là trần tháng, không thì lúc nào cũng đỏ).
+    // Kênh nào được tính vào tỉ lệ: kênh project NÀY thật sự chạy (có bài ở đâu đó), không phải cả
+    // danh mục. Lấy cả kênh đang 0 bài trong khung — bỏ trống một kênh cũng là lệch kế hoạch, mà
+    // pill vắng mặt thì không ai thấy.
     const byChannel = new Map<string, number>();
+    for (const p of piecesInScope) if (WEEKLY_CADENCE[p.channel]) byChannel.set(p.channel, 0);
     for (const p of piecesInRange) byChannel.set(p.channel, (byChannel.get(p.channel) ?? 0) + 1);
+    const capSum = [...byChannel.keys()].reduce((s, c) => s + (WEEKLY_CADENCE[c] ?? 0), 0);
     const td = todayLocal();
     const due = piecesInRange.filter((p) => p.date <= td);
     const done = due.filter((p) => p.status === 'published').length;
     const late = due.filter((p) => p.status !== 'published' && p.date < td).length;
     const days = Math.max(1, Math.round((new Date(`${calRange.to}T12:00:00`).getTime() - new Date(`${calRange.from}T12:00:00`).getTime()) / 86400000) + 1);
-    return { total: piecesInRange.length, tagged, by, byAngle, linked, byChannel, due: due.length, done, late, weeks: days / 7 };
-  }, [piecesInRange, calRange]);
+    return { total: piecesInRange.length, tagged, by, byAngle, linked, byChannel, capSum, due: due.length, done, late, weeks: days / 7 };
+  }, [piecesInRange, piecesInScope, calRange]);
 
   // Thanh lọc bài — MỘT hàng, mỗi trục một pill mở panel chọn. Trước đây mỗi trục là một hàng chip
   // riêng: 8 hàng, hàng nào dài thì tự xuống dòng, và chip mọc/biến theo bộ lọc nên nhìn cứ nhảy.
@@ -1739,16 +1744,22 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 8px', fontSize: 11, color: 'var(--fg-3)' }}>
       <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-4)' }}>📊 Nhịp · {calRange.label}</span>
       {[...pieceMix.byChannel.entries()].sort((a, b) => b[1] - a[1]).map(([chId, n]) => {
-        const cap = WEEKLY_CADENCE[chId];
-        const limit = cap ? Math.max(1, Math.round(cap * pieceMix.weeks)) : 0;
-        const over = !!limit && n > limit;
+        const cap = WEEKLY_CADENCE[chId] ?? 0;
+        // TỈ LỆ, không phải số đếm: kênh này chiếm bao nhiêu phần của lịch, so với phần kế hoạch
+        // dành cho nó (trần tuần của nó trên tổng trần các kênh project này chạy). Số đếm trả lời
+        // "nhiều hay ít", tỉ lệ mới trả lời "có đúng kế hoạch không" — hai câu khác nhau.
+        const pct = pieceMix.total ? Math.round((n / pieceMix.total) * 100) : 0;
+        const target = pieceMix.capSum ? Math.round((cap / pieceMix.capSum) * 100) : 0;
+        const off = !!target && Math.abs(pct - target) > 12;
         const label = CHANNELS.find((c) => c.id === chId)?.label ?? chId;
+        const limit = cap ? Math.max(1, Math.round(cap * pieceMix.weeks)) : 0;
         return (
           <button key={chId} type="button" onClick={() => setAxis('channel', pf.channel === chId ? '' : chId)}
-            title={limit ? `${label}: ${n} bài trong khung này · trần ${cap}/tuần (≈${limit} cho khung ${calRange.label}). Vượt trần thì rủi ro tăng nhanh hơn kết quả — bấm để lọc.` : `${label}: ${n} bài — chưa đặt trần tuần`}
+            title={target ? `${label}: ${pct}% lịch (${n} bài) · kế hoạch ${target}% — trần ${cap}/tuần ≈ ${limit} bài cho khung ${calRange.label}. Lệch quá 12 điểm thì đổi màu. Bấm để lọc.` : `${label}: ${n} bài — chưa đặt trần tuần`}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: 11, padding: '1px 7px', borderRadius: 6,
-              background: 'transparent', color: over ? 'var(--neon-amber)' : 'var(--fg-3)', border: `1px solid ${pf.channel === chId ? 'var(--accent)' : 'transparent'}` }}>
-            {label} <b style={{ color: over ? 'var(--neon-amber)' : 'var(--fg-1)' }}>{n}</b>{limit ? <span style={{ opacity: 0.75 }}>/{limit}</span> : null}
+              background: 'transparent', color: off ? 'var(--neon-amber)' : 'var(--fg-3)', border: `1px solid ${pf.channel === chId ? 'var(--accent)' : 'transparent'}` }}>
+            {label} <b style={{ color: off ? 'var(--neon-amber)' : 'var(--fg-1)' }}>{pct}%</b>{target ? <span style={{ opacity: 0.75 }}>/{target}%</span> : null}
+            <span style={{ opacity: 0.55 }}>({n})</span>
           </button>
         );
       })}

@@ -106,6 +106,20 @@ type KindFilter = '' | 'backlink' | 'email' | 'seed' | 'build' | 'research' | 'f
 
 const EXT = { target: '_blank', rel: 'noopener noreferrer', referrerPolicy: 'no-referrer' } as const;
 
+/** Ô tìm của trang này phải lần ra được MỌI danh sách bằng SỐ HIỆU. Nói chuyện với nhau toàn nhắc
+ *  "#518", mà mỗi danh sách (task / feed hoạt động / bài) trước đây tự viết một bộ lọc riêng nên gõ
+ *  số vào chỉ ra được một chỗ, hai chỗ kia im — đúng lúc cần lần ra card vừa tạo thì trang trắng.
+ *  Gõ "#518" = chỉ đúng số hiệu đó. Gõ "518" = số hiệu đó HOẶC bất kỳ nội dung nào chứa "518"
+ *  (đừng nuốt kết quả của người đang tìm một năm hay một con số trong tiêu đề). */
+const matchesQuery = (q: string, id: number, ...fields: Array<string | null | undefined>) => {
+  const s = q.trim().toLowerCase();
+  if (!s) return true;
+  const hay = fields.filter(Boolean).join(' ').toLowerCase();
+  const digits = /^#?(\d+)$/.exec(s)?.[1];
+  if (digits) return String(id) === digits || (!s.startsWith('#') && hay.includes(digits));
+  return hay.includes(s);
+};
+
 const domainForSlug = (s: string | null | undefined) => (s ? BACKLINK_SITES.find((x) => x.slug === s)?.domain ?? null : null);
 const fmtWhen = (iso: string) => { try { return new Date(iso).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return iso; } };
 const daysSince = (iso: string) => { try { return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)); } catch { return 0; } };
@@ -1190,7 +1204,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       if (readyFilter && t.readiness !== readyFilter) return false;
       if (tierFilter && (tierFilter === 'any' ? !t.tier : t.tier !== tierFilter)) return false;
       if (allProjects && projectFilter && t.projectSlug !== projectFilter) return false;
-      if (s && !(`${t.title} ${t.sourceUrl || ''} ${t.catalogSourceName || ''} ${t.mechanism || ''} ${t.platformLabel || ''} ${t.projectLabel || ''} ${t.instructions || ''} ${t.notes || ''}`.toLowerCase().includes(s))) return false;
+      if (!matchesQuery(q, t.id, t.title, t.sourceUrl, t.catalogSourceName, t.mechanism, t.platformLabel, t.projectLabel, t.instructions, t.notes)) return false;
       return true;
     });
   }, [tasks, tab, kind, kindOf, follow, traf, draftOnly, blockedOnly, q, readyFilter, tierFilter, allProjects, projectFilter]);
@@ -1234,7 +1248,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       const am = ACTIVITY_META[last.k];
       const title = stripKindPrefix(t.title).replace(/\s+/g, ' ').trim();
       const project = allProjects ? (t.projectLabel ?? null) : null;
-      if (s && !`${title} ${project ?? ''}`.toLowerCase().includes(s)) continue;
+      if (!matchesQuery(q, t.id, title, project)) continue;
       rows.push({ key: `t${t.id}`, kind: 'task', id: t.id, title, project, at: last.at, label: am.label, color: am.color });
     }
     for (const f of followups) {
@@ -1243,7 +1257,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       const color = f.status === 'done' ? ACTIVITY_META.done.color : f.status === 'dropped' ? 'var(--fg-4)' : SITE_STATUS_META.submitted.color;
       const project = allProjects ? (projectsById?.[f.projectId]?.name ?? f.projectId) : null;
       const title = `📌 ${f.title.replace(/\s+/g, ' ').trim()}`;
-      if (s && !`${title} ${project ?? ''}`.toLowerCase().includes(s)) continue;
+      if (!matchesQuery(q, f.id, title, project)) continue;
       rows.push({ key: `f${f.id}`, kind: 'followup', id: f.id, title, project, at: f.updated, label, color });
     }
     return rows.sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, 30);
@@ -1295,8 +1309,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     if (allProjects && projectFilter && p.projectId !== projectFilter) return false;
     // Tìm được bài theo SỐ HIỆU nữa ("#54" hoặc "54") — nói chuyện với nhau toàn nhắc số bài,
     // mà ô tìm chỉ soi chữ thì mở lịch ra không cách nào lần ra đúng bài đó.
-    const pq = q.trim().toLowerCase();
-    if (pq && !`#${p.id} ${p.title} ${p.subject ?? ''} ${p.tags.join(' ')}`.toLowerCase().includes(pq.replace(/^#?(\d+)$/, '#$1'))) return false;
+    if (!matchesQuery(q, p.id, p.title, p.subject, p.tags.join(' '))) return false;
     return true;
   }), [pieces, kind, allProjects, projectFilter, q]);
 
@@ -1364,6 +1377,10 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         if (t.siteState === 'submitted' && t.siteSubmittedAt) out.push({ id: t.id, date: localDay(t.siteSubmittedAt), label, icon, color: SITE_STATUS_META.submitted.color, title: `${SITE_STATUS_META.submitted.label} · ${plbl}${ttl}${suffix}`, brief });
         // else if: một card đã submitted thì KHÔNG hiện thêm dot "hẹn" (scheduled cũ đã lỗi thời) → tránh 1 card 2 dot.
         else if (t.siteScheduledAt) out.push({ id: t.id, date: t.siteScheduledAt, label, icon, color: smeta.color, title: `Hẹn kiểm tra (${smeta.label}) · ${plbl}${ttl}${suffix}`, brief });   // việc SẮP làm → full contrast, không mờ
+        // Chưa có ngày nào (chưa hẹn, chưa nộp, chưa xong) thì rơi vào NGÀY TẠO. Nếu không, việc vừa
+        // tạo biến mất khỏi lịch cho tới khi ai đó nhớ ra mà xếp ngày — mà lịch là chỗ nhìn chính,
+        // nên "chưa xếp lịch" phải đọc được là một trạng thái, không phải một khoảng trắng.
+        else if (t.createdAt) out.push({ id: t.id, date: localDay(t.createdAt), label, icon, color: smeta.color, title: `Chưa xếp lịch (${smeta.label}) · ${plbl}${ttl}${suffix}`, brief });
       }
     }
     // Follow-ups deferred: cùng lịch — icon 📌pin (loại), màu thanh-trái theo status, ✓ khi xong.

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useTransition, useRef, useEffect, type CSSProperties } from 'react';
+import { useEntityList, signalEntity } from '@/lib/entity-signal';
 import { useRouter } from 'next/navigation';
 import {
   createBrowserProfile, updateBrowserProfile, archiveBrowserProfile,

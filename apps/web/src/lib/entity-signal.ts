@@ -50,8 +50,9 @@ if (typeof window !== 'undefined') {
     const data = e.data as { type?: string; kind?: EntityKind } | null;
     if (!data?.type) return;
     // broadcast:false — the sender already bumped locally, and re-broadcasting would ping-pong.
+    const legacy = LEGACY[data.type];
     if (data.type === 'mos2:entity' && data.kind) signalEntity(data.kind, { broadcast: false });
-    else if (LEGACY[data.type]) signalEntity(LEGACY[data.type], { broadcast: false });
+    else if (legacy) signalEntity(legacy, { broadcast: false });
   });
 }
 

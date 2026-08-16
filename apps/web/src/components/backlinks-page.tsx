@@ -5,6 +5,7 @@
 // admin assign each to a team user (→ ext /api/ext/my-tasks) and track per-site status +
 // the live placed URL. A source is shared across sites; here we focus on this site.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type CSSProperties, type ReactNode } from 'react';
+import { useEntityVersion } from '@/lib/entity-signal';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
@@ -2879,6 +2880,16 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
     const next = !acctPick; setAcctPick(next);
     if (next && !acctOpts && task.platformKey) setAcctOpts(await listBacklinkAccountOptions(task.platformKey));
   };
+  // Danh sách account nạp LƯỜI (chỉ khi mở picker) nên không dùng useEntityList — nhưng khi đã nạp
+  // rồi mà có account mới/đổi ở nơi khác (signalEntity('account')) thì nạp lại, khỏi chọn nhầm bản cũ.
+  const acctVersion = useEntityVersion('account');
+  useEffect(() => {
+    if (!acctVersion || !acctOpts || !task.platformKey) return;
+    let live = true;
+    listBacklinkAccountOptions(task.platformKey).then((r) => { if (live) setAcctOpts(r); }).catch(() => {});
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [acctVersion, task.platformKey]);
   const pickAcct = async (id: number | null) => { setAcctPick(false); await setBacklinkAccount(task.id, id); onChange(); };
   const acctOptsShown = useMemo(() => { const q = apq.trim().toLowerCase(); const list = acctOpts ?? []; return q ? list.filter((a) => (a.handle || '').toLowerCase().includes(q)) : list; }, [acctOpts, apq]);
   const [url, setUrl] = useState(task.siteLiveUrl || '');

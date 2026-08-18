@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useTransition, useEffect, useRef } from 'react';
+import { shallowReplaceUrl } from '@/lib/url-shallow';
 import { useRouter } from 'next/navigation';
 import {
   createHabitat, updateHabitat, deleteHabitat, setHabitatTribes,
@@ -98,7 +99,7 @@ export function HabitatFormModal({
     else sp.set('habTab', t);
     const qs = sp.toString();
     const url = `${window.location.pathname}${qs ? `?${qs}` : ''}`;
-    window.history.replaceState({}, '', url);
+    shallowReplaceUrl(url);
   };
   const switchTab = (t: ModalTab) => { setActiveTab(t); writeTabUrl(t); };
   // Pre-save confirm khi user bỏ format support mà còn cards loại đó.

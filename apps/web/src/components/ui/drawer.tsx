@@ -181,6 +181,11 @@ export function Drawer({
     drawerW.set(idRef.current, effW);
     notifyStack();
   }, [effW]);
+  // Kéo mép đổi độ rộng: drag chỉ set `w` (bề rộng YÊU CẦU), còn panel vẽ theo `renderW` do recompute
+  // tính. Không có effect này thì recompute không chạy khi w đổi → kéo mép mà panel đứng im (resize chết).
+  useEffect(() => {
+    if (idRef.current) notifyStack();
+  }, [w]);
   const bg = backgrounded ?? shift > 0;         // I'm backgrounded if something's stacked above me
   const dim = dimBackdrop ?? isBottom;          // only the bottom drawer paints the dim scrim
 

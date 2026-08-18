@@ -13,12 +13,20 @@ export function readShallowParam(key: string): string | null {
   try { return new URLSearchParams(window.location.search).get(key); } catch { return null; }
 }
 
+/** replaceState shallow CHUẨN NHÀ — mọi chỗ tự gọi window.history.replaceState phải đi qua đây.
+ *  Lý do tồn tại: Next App Router lưu state điều hướng trong history.state; ghi `{}`/`null` như
+ *  17 call-site cũ là ĐÈ MẤT nó → back/forward lệch sau khi đụng bất kỳ filter shallow nào. */
+export function shallowReplaceUrl(url: string): void {
+  if (typeof window === 'undefined') return;
+  try { window.history.replaceState(window.history.state, '', url); } catch { /* ignore */ }
+}
+
 export function writeShallowParam(key: string, value: string | null): void {
   if (typeof window === 'undefined') return;
   try {
     const sp = new URLSearchParams(window.location.search);
     if (value) sp.set(key, value); else sp.delete(key);
     const qs = sp.toString();
-    window.history.replaceState({}, '', qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+    shallowReplaceUrl(qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
   } catch { /* ignore */ }
 }

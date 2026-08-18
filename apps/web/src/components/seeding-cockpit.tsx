@@ -6,6 +6,7 @@
 // URL-synced (?m=schedule&mId=<briefId>).
 
 import { useState, useMemo, useEffect, useTransition, useRef } from 'react';
+import { shallowReplaceUrl } from '@/lib/url-shallow';
 import { platformFaviconProps } from './ui/site-favicon';
 import { useRouter } from 'next/navigation';
 import type { SeedingQueueItem, SeedingStatus } from '@/lib/actions/seeding';
@@ -147,7 +148,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
     const next = qs.toString();
     const url = next ? `${window.location.pathname}?${next}` : window.location.pathname;
     if (url !== window.location.pathname + window.location.search) {
-      window.history.replaceState({}, '', url);
+      shallowReplaceUrl(url);
     }
   }, [view]);
   // Filter theo loại blocking issue — click chip ở banner → lọc queue chỉ hiển
@@ -227,7 +228,7 @@ export function SeedingCockpit({ projectId, projectName, project, platforms, que
       if (cardId != null) next.set('bfc', String(cardId)); else next.delete('bfc');
     } else { next.delete('bfp'); next.delete('bfc'); }
     const qs = next.toString();
-    window.history.replaceState({}, '', qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+    shallowReplaceUrl(qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
   };
   const focusPost = (briefId: number, phase: string, cardId?: number) => {
     setBriefFocus({ briefId, phase, cardId });

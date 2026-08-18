@@ -7,6 +7,7 @@
 // and a duplicate-field detector with one-click merge. Route: /technologies.
 
 import { useMemo, useState, useTransition, type CSSProperties } from 'react';
+import { shallowReplaceUrl } from '@/lib/url-shallow';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { HabitatSelectorsSection } from './habitat-selectors-section';
@@ -142,7 +143,7 @@ export function TechnologiesPage({ technologies, dups }: { technologies: Technol
       const p = new URLSearchParams(window.location.search);
       if (next) p.set('e', next); else p.delete('e');
       const qs = p.toString();
-      window.history.replaceState({}, '', qs ? `${pathname}?${qs}` : pathname);
+      shallowReplaceUrl(qs ? `${pathname}?${qs}` : pathname);
     }
   };
 
@@ -171,7 +172,7 @@ export function TechnologiesPage({ technologies, dups }: { technologies: Technol
         if (typeof window !== 'undefined') {
           const p = new URLSearchParams(window.location.search);
           p.set('e', k);
-          window.history.replaceState({}, '', `${pathname}?${p.toString()}`);
+          shallowReplaceUrl(`${pathname}?${p.toString()}`);
         }
       }} />
 

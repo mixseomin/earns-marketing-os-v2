@@ -80,7 +80,8 @@ export function useModalParam(key = 'm'): ModalParam {
         else next.delete(idKey);
       }
       const qs = next.toString();
-      window.history.replaceState({}, '', qs ? `${pathname}?${qs}` : pathname);
+      // Giữ window.history.state (Next App Router lưu state điều hướng ở đó — ghi {} là phá back/forward).
+      window.history.replaceState(window.history.state, '', qs ? `${pathname}?${qs}` : pathname);
     },
     [pathname, key, idKey],
   );

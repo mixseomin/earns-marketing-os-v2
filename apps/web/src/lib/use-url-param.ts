@@ -18,9 +18,12 @@ export function useUrlState() {
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
 
-  /** Đổi nhiều key trong MỘT lần ghi URL. Giá trị rỗng = xoá key. */
+  /** Đổi nhiều key trong MỘT lần ghi URL. Giá trị rỗng = xoá key.
+   *  Dựng từ window.location.search TƯƠI, KHÔNG từ snapshot useSearchParams: snapshot không thấy
+   *  các param ghi shallow (?ed drawer, ?m modal, <pk>.sort/.flt bảng) → patch từ snapshot là XOÁ
+   *  chúng khỏi URL mỗi lần bấm facet (drawer đang mở mà F5 mất). */
   const patch = (kv: Record<string, string>) => {
-    const next = new URLSearchParams(params.toString());
+    const next = new URLSearchParams(typeof window === 'undefined' ? params.toString() : window.location.search);
     for (const [k, v] of Object.entries(kv)) { if (v) next.set(k, v); else next.delete(k); }
     write(next);
   };

@@ -6,6 +6,7 @@
 // ?tab= so F5 keeps place. 'Embedded' is auto-flipped by the GA4 embed_host cron (Phase 3).
 // All external links open with no referrer so the target site never sees the internal tool URL.
 import { Suspense, useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
+import { shallowReplaceUrl } from '@/lib/url-shallow';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { OutreachProspect } from '@/lib/actions/outreach';
 import { buildEmailForProspect } from '@/lib/outreach-template';
@@ -262,12 +263,12 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
   // Drawer is URL-driven (like the backlinks page): ?prospect=<id> + ?ch=<channel> → F5 reopens the same
   // prospect on the same channel. setPreview stays the plain setter; this effect mirrors it to the URL.
   const [outreachCh, setOutreachChState] = useState<string>(() => sp.get('ch') || '');
-  const setOutreachCh = (c: string) => { setOutreachChState(c); const u = new URL(window.location.href); if (c) u.searchParams.set('ch', c); else u.searchParams.delete('ch'); window.history.replaceState(null, '', u.toString()); };
+  const setOutreachCh = (c: string) => { setOutreachChState(c); const u = new URL(window.location.href); if (c) u.searchParams.set('ch', c); else u.searchParams.delete('ch'); shallowReplaceUrl(u.toString()); };
   useEffect(() => {
     const u = new URL(window.location.href);
     if (preview) u.searchParams.set('prospect', String(preview.id));
     else { u.searchParams.delete('prospect'); u.searchParams.delete('ch'); }
-    window.history.replaceState(null, '', u.toString());
+    shallowReplaceUrl(u.toString());
   }, [preview]);
   const [chan, setChan] = useState<'all' | 'email' | 'form'>('all');
   const [baseF, setBaseF] = useState<string[]>([]);
@@ -277,14 +278,14 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
     setCal(on);
     const u = new URL(window.location.href);
     if (on) u.searchParams.delete('view'); else u.searchParams.set('view', 'list');   // default (calendar) → clean URL
-    window.history.replaceState(null, '', u.toString());
+    shallowReplaceUrl(u.toString());
   };
 
   const setTab = (k: TabKey) => {
     setTabState(k);
     const u = new URL(window.location.href);
     if (k === 'all') u.searchParams.delete('tab'); else u.searchParams.set('tab', k);   // default (all) → clean URL
-    window.history.replaceState(null, '', u.toString());
+    shallowReplaceUrl(u.toString());
   };
 
   const act = (fn: () => Promise<unknown>) => start(async () => { await fn(); router.refresh(); });
@@ -296,7 +297,7 @@ function OutreachInner({ projectId, prospects: allProspects, campaigns, identiti
     setCampIdState(id);
     const u = new URL(window.location.href);
     if (id == null) u.searchParams.delete('c'); else u.searchParams.set('c', String(id));
-    window.history.replaceState(null, '', u.toString());
+    shallowReplaceUrl(u.toString());
   };
   const [campEdit, setCampEdit] = useState<OutreachCampaign | null>(null);
   const [importBusy, setImportBusy] = useState(false);

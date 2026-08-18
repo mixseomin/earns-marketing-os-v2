@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useMemo, useEffect, type CSSProperties } from 'react';
+import { shallowReplaceUrl } from '@/lib/url-shallow';
 import { Spinner, IconCommunity, SiteFavicon, ListToolbar, FilterChips, Pager, usePaged, MultiSelect, Tabs, type TabItem } from './ui';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import {
@@ -95,7 +96,7 @@ function useUrlParam(key: string, def: string): [string, (v: string) => void] {
     const next = new URLSearchParams(window.location.search);
     if (!v || v === def) next.delete(key); else next.set(key, v);
     const qs = next.toString();
-    window.history.replaceState({}, '', qs ? `${pathname}?${qs}` : pathname);
+    shallowReplaceUrl(qs ? `${pathname}?${qs}` : pathname);
   };
   return [value, set];
 }

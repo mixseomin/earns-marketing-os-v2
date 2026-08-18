@@ -8,6 +8,7 @@
 // NGAY trên bảng (trước đây nằm trong DB nhưng chỉ mở editor từng dòng mới thấy), nhưng bày 20 cột
 // cùng lúc thì không ai quét nổi — nên gom thành nhóm bật/tắt, nhớ theo persistKey.
 import { useState, useMemo, useTransition, useEffect, useRef, type CSSProperties } from 'react';
+import { shallowReplaceUrl } from '@/lib/url-shallow';
 import { useRouter } from 'next/navigation';
 import { HabitatFormModal } from './habitat-form-modal';
 import { ListToolbar, Pager, usePaged, MultiSelect, DataTable, AnchoredPopover, EntityRef, FormatIcon, InfoHint, type DataColumn, type DataGroup } from './ui';
@@ -101,7 +102,7 @@ export function CommunitiesVault({ projectId, rows, platforms, projects, tribes,
     set('q', q.trim());
     set('plat', plat.join(','));
     set('proj', projectId ? '' : proj.join(','));   // view theo project đã có ?project=, đừng ghi trùng
-    window.history.replaceState(null, '', u);
+    shallowReplaceUrl(u.toString());
   }, [q, plat, proj, projectId]);
   const [edit, setEdit] = useState<{ row: HabitatRow | null; projectId: string } | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);

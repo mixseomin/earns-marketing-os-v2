@@ -5,6 +5,7 @@
 // validates real data; it creates nothing. Layout persists in localStorage.
 
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, createContext, type ReactNode, type CSSProperties } from 'react';
+import { shallowReplaceUrl } from '@/lib/url-shallow';
 import { createPortal } from 'react-dom';
 import {
   ReactFlow, ReactFlowProvider, Background, Controls, MiniMap,
@@ -2685,7 +2686,7 @@ function StudioInner({ projects, defaultProjectId }: { projects: { id: string; n
       else if (sel?.kind === 'flow') { sp.set('flow', sel.flow); sp.set('step', sel.step); }
       const ds = encodeStack(stack); if (ds) sp.set('d', ds); else sp.delete('d');
       const qs = sp.toString();
-      window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : ''));
+      shallowReplaceUrl(window.location.pathname + (qs ? `?${qs}` : ''));
     } catch { /* */ }
   }, [view, sel, stack]);
   useEffect(() => { if (hydrated.current) { try { localStorage.setItem(BOUND_KEY, JSON.stringify(bound)); } catch { /* */ } } }, [bound]);

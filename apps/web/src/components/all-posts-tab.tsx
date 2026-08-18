@@ -14,6 +14,7 @@
 // để tránh xung đột với queue filter (issueFilter, q, statusFilter) cùng page.
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { shallowReplaceUrl } from '@/lib/url-shallow';
 import { createPortal } from 'react-dom';
 import { wrapExternalUrl } from '@/lib/external-url';
 import {
@@ -119,7 +120,7 @@ export function AllPostsTab({ projectId, options, initial, initialFilters, onOpe
     const next = qs.toString();
     const url = `${window.location.pathname}${next ? '?' + next : ''}`;
     if (url !== window.location.pathname + window.location.search) {
-      window.history.replaceState({}, '', url);
+      shallowReplaceUrl(url);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterKey]);

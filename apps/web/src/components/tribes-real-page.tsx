@@ -4,6 +4,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useTransition } from 'react';
+import { shallowReplaceUrl } from '@/lib/url-shallow';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { TribeRow, HabitatRow, PlatformRow } from '@/lib/data';
 import type { Project } from '@/lib/mock/types';
@@ -57,7 +58,7 @@ function useUrlParam(key: string, def: string): [string, (v: string) => void] {
     const next = new URLSearchParams(window.location.search);
     if (!v || v === def) next.delete(key); else next.set(key, v);
     const qs = next.toString();
-    window.history.replaceState({}, '', qs ? `${pathname}?${qs}` : pathname);
+    shallowReplaceUrl(qs ? `${pathname}?${qs}` : pathname);
   };
   return [value, set];
 }

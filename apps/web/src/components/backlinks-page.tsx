@@ -5,6 +5,7 @@
 // admin assign each to a team user (→ ext /api/ext/my-tasks) and track per-site status +
 // the live placed URL. A source is shared across sites; here we focus on this site.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type CSSProperties, type ReactNode } from 'react';
+import { shallowReplaceUrl } from '@/lib/url-shallow';
 import { useEntityVersion } from '@/lib/entity-signal';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -1162,7 +1163,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     set('ssort', seedOpen ? seedSort : '');
     set('sq', seedOpen ? seedQ.trim() : '');
     set('shide', seedOpen && seedHideUsed ? '1' : '');
-    window.history.replaceState(null, '', u);
+    shallowReplaceUrl(u.toString());
   }, [tab, q, follow, traf, draftOnly, blockedOnly, readyFilter, tierFilter, showClosed, projectFilter, pf, calMode, calDate, kinds, allProjects, view, groupBy, openId, openPieceId, openProd, outreachPid, outreachCh, seedOpen, seedAud, seedCat, seedSort, seedQ, seedHideUsed, activePiece]);
 
   // Create/edit a platform account in-place (no page jump). null = closed.
@@ -1187,7 +1188,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       if (!acctModal.account && acctModal.platformKey) u.searchParams.set('aplat', acctModal.platformKey);
       else u.searchParams.delete('aplat');
     } else { u.searchParams.delete('acct'); u.searchParams.delete('aplat'); }
-    window.history.replaceState(null, '', u);
+    shallowReplaceUrl(u.toString());
   }, [acctModal]);
   const [autoMedia, setAutoMedia] = useState<'busy' | string | null>(null);
   const doAutoMedia = async () => { setAutoMedia('busy'); const r = await autoPrepareProjectMedia(projectId, project.website || ''); setAutoMedia(r.ok ? `+${r.added} media` : (r.error || 'lỗi')); start(() => router.refresh()); setTimeout(() => setAutoMedia(null), 2500); };

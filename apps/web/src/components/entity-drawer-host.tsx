@@ -6,7 +6,8 @@
 // global bundle until an entity is actually opened. New kinds = one line in the switch.
 
 import dynamic from 'next/dynamic';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { useEntityDrawerReq, openEntityDrawer, closeEntityDrawersToDepth, readEntityDrawerFromUrl, HOST_KINDS, type EntityDrawerReq } from '@/lib/entity-drawer';
 
 const AccountDrawer = dynamic(() => import('./account-drawer').then((m) => m.AccountDrawer), { ssr: false });
@@ -29,6 +30,14 @@ export function EntityDrawerHost() {
   const stack = useEntityDrawerReq();
   // Deep-link restore: page load với ?ed=…,… → mở lại CẢ chồng drawer khi mount (đúng thứ tự).
   useEffect(() => { readEntityDrawerFromUrl().forEach((u) => openEntityDrawer(u.kind, u.id, u.project)); }, []);
+  // ĐIỀU HƯỚNG SANG PAGE KHÁC = đóng cả chồng. Host mount 1 lần + stack là module-level nên nếu không
+  // đóng, drawer cũ RÒ sang đè lên page mới trong khi URL mới không còn ?ed (F5 mất drawer = lệch state).
+  // Chỉ theo pathname — đổi query (facet/sort shallow) cùng page KHÔNG đóng.
+  const pathname = usePathname();
+  const prevPath = useRef(pathname);
+  useEffect(() => {
+    if (prevPath.current !== pathname) { prevPath.current = pathname; closeEntityDrawersToDepth(0); }
+  }, [pathname]);
   if (!stack.length) return null;
   // Render CẢ ngăn xếp — mỗi frame là 1 drawer. Việc xếp chồng (z theo mount, ESC đóng cái trên cùng,
   // cascade-trái + mờ cái dưới) do `ui/drawer.tsx` tự lo. onClose của frame i đóng nó + mọi frame TRÊN nó.

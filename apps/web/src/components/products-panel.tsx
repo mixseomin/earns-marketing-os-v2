@@ -6,7 +6,8 @@
 //
 // HAI NGUỒN, và phải nói rõ nguồn nào cho cột nào, không thì số 0 gây hiểu nhầm:
 //   · đơn/doanh thu/giá ← Gumroad API v2, cộng dồn TRỌN ĐỜI, luôn tươi.
-//   · views             ← bảng product_daily, do job trình duyệt local đẩy hằng ngày.
+//   · views             ← bảng product_daily, do job trình duyệt trên box1 đẩy hằng ngày
+//     (systemd timer `gumroad-views`, KHÔNG còn là LaunchAgent trên máy — đổi 14/08).
 //     API v2 không có trường này. Store nào job chưa quét thì cột views là "—", KHÔNG phải 0.
 //
 // NỐI HAI NGUỒN BẰNG `id` GỐC, không bằng permalink: sản phẩm đặt slug tuỳ chỉnh
@@ -21,6 +22,17 @@ import { Panel } from './ui/panel';
 import { getGumroadSummary, lacksDiscover } from '@/lib/gumroad/products';
 import { loadProductViews } from '@/lib/gumroad/daily';
 import { ProductsTable, type ProductRow } from './products-table';
+
+/* Chỗ CHỈ ĐƯỜNG khi views thiếu — một chuỗi, hai cảnh báo dùng chung. Tách ra vì bản đầu
+ * viết tay ở từng chỗ, rồi job dời từ LaunchAgent trên máy sang systemd timer box1: một
+ * chỗ nói "job local", chỗ kia trỏ vào ~/.cache/gumroad-views.out.log — tệp đã xoá cùng
+ * lúc dời. Chỉ sai đường là tệ hơn không chỉ gì: người ta mở log trống rồi tưởng job im. */
+const JOB_HINT = (
+  <>
+    job chạy trên box1 (<code>systemctl status gumroad-views</code> · log{' '}
+    <code>journalctl -u gumroad-views</code>) · chạy tay: <code>~/bin/gumroad-views</code>
+  </>
+);
 
 export async function ProductsPanel() {
   const [sum, views] = await Promise.all([getGumroadSummary(), loadProductViews()]);
@@ -50,7 +62,7 @@ export async function ProductsPanel() {
     };
   });
   const anyViews = rows.some((r) => r.views7d !== null);
-  // Views CŨ trông y hệt views THẤP. Bảng đứng im ở 10/08 suốt mấy ngày vì job local chết
+  // Views CŨ trông y hệt views THẤP. Bảng đứng im ở 10/08 suốt mấy ngày vì job đọc Gumroad chết
   // (ERR_NETWORK_CHANGED) mà dòng "views tới …" vẫn xám nhạt như bình thường — nhìn ra thành "không
   // ai xem". Gumroad tự chốt số chậm ~2 ngày, nên chỉ kêu khi trễ hơn thế.
   const staleDays = views.lastSync
@@ -67,14 +79,13 @@ export async function ProductsPanel() {
       <ProductsTable rows={rows} />
       {!anyViews && (
         <p style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', margin: '10px 0 0' }}>
-          Cột views trống vì job đọc Gumroad Analytics chưa chạy lần nào — chạy tay: <code>~/bin/gumroad-views</code>
+          Cột views trống vì job đọc Gumroad Analytics chưa chạy lần nào — {JOB_HINT}
         </p>
       )}
       {stale && (
-        <p style={{ fontSize: 11, color: 'var(--warn, #d98324)', fontFamily: 'var(--font-mono)', margin: '10px 0 0' }}>
-          ⚠ Views cũ {staleDays} ngày (tới {views.lastSync}) — job local chưa đẩy được. Cột 7D/30D đang
-          THIẾU số, không phải bằng 0. Log: <code>~/.cache/gumroad-views.out.log</code> · chạy tay:{' '}
-          <code>~/bin/gumroad-views</code>
+        <p style={{ fontSize: 11, color: 'var(--warn)', fontFamily: 'var(--font-mono)', margin: '10px 0 0' }}>
+          ⚠ Views cũ {staleDays} ngày (tới {views.lastSync}) — job chưa đẩy số về. Cột 7D/30D đang
+          THIẾU số, không phải bằng 0. {JOB_HINT}
         </p>
       )}
     </Panel>

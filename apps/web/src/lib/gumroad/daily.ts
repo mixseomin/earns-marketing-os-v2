@@ -1,6 +1,6 @@
 'use server';
 
-// Lượt xem theo ngày của từng sản phẩm — do job trình duyệt local đẩy vào `product_daily`
+// Lượt xem theo ngày của từng sản phẩm — do job trình duyệt trên box1 đẩy vào `product_daily`
 // (POST /api/ext/product-metrics). Gumroad API v2 KHÔNG có trường lượt xem; nó chỉ tồn tại trong
 // giao diện Analytics, nên đây là đường duy nhất đưa con số đó lên bảng.
 

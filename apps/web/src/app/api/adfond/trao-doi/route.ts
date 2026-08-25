@@ -26,6 +26,12 @@ export async function POST(req: Request) {
   if (!me) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   if (!process.env.ADFOND_EXT_KEY) return NextResponse.json({ error: 'Chưa có ADFOND_EXT_KEY trong env.' }, { status: 503 });
   const b = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  // Duyệt = chữ ký nghiệm thu — admin-only, CHẶN Ở ĐÂY vì đây là điểm thắt duy nhất cầm
+  // khoá adfond (cửa ext bên kia không biết vai trò MOS2; layout chỉ chắn trang, không
+  // chắn route handler — operator/viewer POST thẳng vẫn tới được đây).
+  if (b.xuLy === 'duyet' && me.role !== 'admin') {
+    return NextResponse.json({ error: 'Duyệt xong là quyền admin.' }, { status: 403 });
+  }
   // nguoi lấy từ PHIÊN MOS2, không tin client — reply đứng tên người đang đăng nhập.
   const body = { ...b, nguoi: me.displayName || me.name || me.email };
   const r = await fetch(`${GOC()}/api/ext/trao-doi`, {

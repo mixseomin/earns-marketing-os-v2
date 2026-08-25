@@ -28,15 +28,42 @@ export function ImageAttach({ value, onChange, folder = 'uploads', max = 6 }: {
 
   const readAsDataUrl = (f: File) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(f); });
 
+  // Server action bị Next chặn body >1MB (không cấu hình nới) — mà ảnh chụp màn PNG retina
+  // vượt trần đó THƯỜNG XUYÊN. Nén tại client (re-encode JPEG, giữ nguyên điểm ảnh) trước
+  // khi gọi action; vẫn quá trần thì NÓI ra chứ không để action ném và spinner treo vĩnh viễn
+  // (bug câm cũ: pushDataUrls không catch → busy không bao giờ giảm).
+  const TRAN_ACTION = 950_000;
+  const nenDataUrl = async (du: string): Promise<string> => {
+    if (du.length <= TRAN_ACTION || du.startsWith('data:image/gif')) return du;
+    try {
+      const img = new Image();
+      await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = du; });
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d')?.drawImage(img, 0, 0);
+      for (const q of [0.72, 0.5, 0.35]) {
+        const ra = c.toDataURL('image/jpeg', q);
+        if (ra.length <= TRAN_ACTION) return ra;
+      }
+    } catch { /* không nén được — trả bản gốc, nhánh dưới sẽ báo trần */ }
+    return du;
+  };
+
   const pushDataUrls = async (dataUrls: string[]) => {
     const room = max - value.length;
     const take = dataUrls.slice(0, Math.max(0, room));
     if (!take.length) { setStatus({ ok: false, text: `Tối đa ${max} ảnh` }); return; }
     setBusy((n) => n + take.length);
     const done: string[] = [];
-    for (const du of take) {
-      const r = await uploadImage(du, folder);
-      if (r.ok && r.url) done.push(r.url); else setStatus({ ok: false, text: r.error || 'upload lỗi' });
+    for (const duGoc of take) {
+      try {
+        const du = await nenDataUrl(duGoc);
+        if (du.length > TRAN_ACTION) { setStatus({ ok: false, text: `Ảnh quá lớn sau nén (${(du.length / 1e6).toFixed(1)}MB) — cắt nhỏ vùng chụp` }); continue; }
+        const r = await uploadImage(du, folder);
+        if (r.ok && r.url) done.push(r.url); else setStatus({ ok: false, text: r.error || 'upload lỗi' });
+      } catch (e) {
+        setStatus({ ok: false, text: e instanceof Error ? e.message : 'upload lỗi' });
+      }
     }
     setBusy((n) => Math.max(0, n - take.length));
     if (done.length) { onChange([...value, ...done].slice(0, max)); setStatus({ ok: true, text: `✓ Đã tải lên ${done.length} ảnh` }); }

@@ -56,7 +56,8 @@ export async function docTraoDoiCard(taskId: number): Promise<TinTraoDoi[]> {
   const db = getDb();
   if (!db) return [];
   const r = await db.execute(sql`
-    SELECT prep_payload->'trao_doi' AS td FROM human_tasks WHERE id = ${taskId} LIMIT 1`);
+    SELECT prep_payload->'trao_doi' AS td FROM human_tasks
+    WHERE id = ${taskId} AND project_id = 'mos2' AND prep_payload->>'source_platform' = 'feedback' LIMIT 1`);
   const td = (r as unknown as Array<{ td: unknown }>)[0]?.td;
   return Array.isArray(td) ? (td as TinTraoDoi[]) : [];
 }
@@ -84,12 +85,17 @@ export async function guiTraoDoiCard(input: {
     luc: new Date().toISOString(),
     anh: (Array.isArray(input.anhUrls) ? input.anhUrls : []).filter((u) => /^https?:\/\//.test(u)).slice(0, 6),
   };
-  await db.execute(sql`
+  // CHỈ card góp ý mos2 — action nào cũng gọi được từ client nên phạm vi phải nằm trong
+  // WHERE, không nằm ở "UI chỉ gọi đúng chỗ": thiếu nó thì mọi taskId đều bị ghi thread
+  // + rework đè site_status['mos2'] lên card của project khác.
+  const up = await db.execute(sql`
     UPDATE human_tasks
     SET prep_payload = jsonb_set(COALESCE(prep_payload, '{}'::jsonb), '{trao_doi}',
           COALESCE(prep_payload->'trao_doi', '[]'::jsonb) || ${JSON.stringify(tin)}::jsonb, true),
         updated_at = now()
-    WHERE id = ${input.taskId}`);
+    WHERE id = ${input.taskId} AND project_id = 'mos2' AND prep_payload->>'source_platform' = 'feedback'
+    RETURNING id`);
+  if (!(up as unknown as Array<{ id: number }>).length) return { ok: false, error: 'Không phải card góp ý mos2.' };
 
   if (xuLy === 'rework') await setBacklinkSite(input.taskId, 'mos2', 'pending', '');
   if (xuLy === 'duyet') {

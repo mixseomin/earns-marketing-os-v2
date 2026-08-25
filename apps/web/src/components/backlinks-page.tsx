@@ -2811,12 +2811,17 @@ function TraoDoiCard({ feedbackId, taskId, onChange }: { feedbackId?: number; ta
           if (!r.ok || !d?.id) { setErr(String(d?.error || `adfond trả ${r.status}`)); continue; }
           setAnh((c) => [...c, { id: Number(d.id), ten: f.name, xem: URL.createObjectURL(goc) }]);
         } else {
-          // card MOS2 bản địa: ảnh đi đường R2 sẵn có (uploadImage nhận dataURL — đã nén nên lọt trần action)
+          // card MOS2 bản địa: ảnh đi đường R2 sẵn có. Server action bị Next chặn body 1MB —
+          // nenAnh giữ nguyên GIF/ảnh không co được, nên PHẢI kiểm trần + catch, không thì
+          // action ném và lỗi biến mất trong im lặng (caller gọi void themAnh).
           const du = await new Promise<string>((res, rej) => { const rd = new FileReader(); rd.onload = () => res(rd.result as string); rd.onerror = rej; rd.readAsDataURL(f); });
+          if (du.length > 950_000) { setErr(`"${f.name}" còn ${(du.length / 1e6).toFixed(1)}MB sau nén — quá trần gửi. Cắt nhỏ vùng chụp.`); continue; }
           const r = await uploadImage(du, 'gop-y');
           if (!r.ok || !r.url) { setErr(r.error || 'upload lỗi'); continue; }
           setAnh((c) => [...c, { url: r.url!, ten: f.name, xem: URL.createObjectURL(goc) }]);
         }
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : 'upload lỗi');
       } finally { setTai((d) => d - 1); }
     }
   };

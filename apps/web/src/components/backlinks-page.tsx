@@ -2610,7 +2610,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       </>
       )}
 
-      {open && <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} product={products.find((pr) => pr.cards.some((c) => c.id === open.id))} onOpenProduct={(s) => { setOpenId(null); setOpenProd(s); }} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} setResume={setResume} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} onLocate={() => locateInCalendar(open)} />}
+      {open && (open.sourcePlatform === 'feedback'
+        ? <GopYDrawer task={open} onClose={closeTask} setSite={setSite} onDelete={deleteTask} onLocate={() => locateInCalendar(open)} />
+        : <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} product={products.find((pr) => pr.cards.some((c) => c.id === open.id))} onOpenProduct={(s) => { setOpenId(null); setOpenProd(s); }} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} setResume={setResume} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} onLocate={() => locateInCalendar(open)} />)}
       {openPieceId != null && (() => { const pc = pieces.find((x) => x.id === openPieceId); return pc ? <PieceDrawer piece={pc} projectLabel={allProjects ? (projectsById?.[pc.projectId]?.name ?? pc.projectId) : siteLabel} accounts={accounts} browserProfiles={browserProfiles} media={media} tasks={tasks} replies={repliesOf.get(pc.id) ?? []} onOpenPiece={(id) => setOpenPieceId(id)} onOpenTask={(id) => { setOpenPieceId(null); openTask(id); }} onEdit={() => setPieceForm({ piece: pc })} onClose={() => setOpenPieceId(null)} /> : null; })()}
       {/* Soạn bài — cùng form cho tạo mới và sửa. Đây là Content Studio, nay nằm trong /plays. */}
       {pieceForm && (
@@ -2746,6 +2748,71 @@ function ResumeEditor({ task, onSave, onOpenTask }: { task: BacklinkTask; onSave
       <button type="button" onClick={save} disabled={saving} style={{ padding: '7px 12px', borderRadius: 6, border: '1px solid var(--neon-blue)', background: 'color-mix(in srgb, var(--neon-blue) 15%, transparent)', color: 'var(--neon-blue)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start' }}>{saving ? 'Đang lưu…' : '💾 Lưu bàn giao'}</button>
 
     </div>
+  );
+}
+
+/* Drawer TỐI GIẢN cho card GÓP Ý (source_platform='feedback' — bắn từ backend adfond qua
+ * ext API). Cố ý KHÔNG đi TaskDrawer: góp ý không có account/paste-kit/DOM/catalog/outreach,
+ * khuôn theo hòm feedback Astrolas — đọc nội dung + ảnh, đổi trạng thái, hết. Sửa nội dung /
+ * trả lời nằm ở bản ghi gốc bên adfond (nút ↗ dưới nội dung). */
+function GopYDrawer({ task, onClose, setSite, onDelete, onLocate }: {
+  task: BacklinkTask; onClose: () => void;
+  setSite: (id: number, status: string, url: string) => Promise<string>;
+  onDelete: (id: number) => void; onLocate?: () => void;
+}) {
+  const [siteErr, setSiteErr] = useState('');
+  const [delConfirm, setDelConfirm] = useState(false);
+  const lbl: CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', margin: '16px 0 5px' };
+  // Đóng (review/completed) tự kèm link bản ghi làm kết quả: "kết quả" của một góp ý là câu
+  // trả lời (tra_loi) bên adfond, sống ở đúng URL đó — cổng bằng-chứng (lib/task-done) cần
+  // một link mở ra xem được, và đây chính là nó. Các trạng thái mở thì không đụng site_url.
+  const doi = (s: string) => { void setSite(task.id, s, task.siteLiveUrl || (isFinished(s) ? task.sourceUrl || '' : '')).then(setSiteErr); };
+  const trangThai = ['pending', 'claimed', 'review', 'completed', 'dropped'];
+  return (
+    <Drawer onClose={onClose} width={560}>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flexWrap: 'wrap' }}>
+            <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: 'var(--fg-3)', border: '1px solid var(--line)', borderRadius: 5, padding: '2px 7px', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '.03em' }}>🐞 Góp ý</span>
+            <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, minWidth: 0 }}>{task.title}</h2>
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+            {onLocate && <button type="button" onClick={onLocate} title="Xem card này trên lịch" style={{ ...btn, padding: '2px 9px' }}>📅 Trên lịch</button>}
+            <button type="button" onClick={onClose} style={{ ...btn, padding: '2px 9px' }}>✕</button>
+          </div>
+        </div>
+
+        {/* Nội dung + ảnh — draft markdown do adfond đẩy (chữ + ![ảnh] ký). Card cũ chưa có
+            draft thì rơi về instructions (text + link tự bắt). */}
+        {task.draft
+          ? <div className="md-body" style={{ marginTop: 12, fontSize: 13, lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: mdToHtml(task.draft) }} />
+          : task.instructions ? <div style={{ marginTop: 12, fontSize: 13, lineHeight: 1.65, whiteSpace: 'pre-wrap' }}><LinkText text={task.instructions} /></div> : null}
+
+        {task.sourceUrl && (
+          <a href={task.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 10, fontSize: 12, color: 'var(--accent)', textDecoration: 'underline dotted' }}>
+            ↗ Mở bản ghi trong adfond — sửa trạng thái gốc / viết trả lời ở đó
+          </a>
+        )}
+
+        <div style={lbl}>Trạng thái</div>
+        <StatusSegmented size="md" value={task.siteState}
+          options={trangThai.map((s) => ({ value: s, label: SITE_STATUS[s]?.label ?? s, color: SITE_STATUS[s]?.color ?? 'var(--fg-2)' }))}
+          onChange={doi} />
+        {siteErr && <div style={{ marginTop: 5, fontSize: 11.5, color: 'var(--bad,#ef4444)', lineHeight: 1.5 }}>{siteErr}</div>}
+
+        <div style={{ marginTop: 22, paddingTop: 12, borderTop: '1px solid var(--line)', display: 'flex', gap: 6, alignItems: 'center' }}>
+          {delConfirm ? (
+            <>
+              <button type="button" onClick={() => onDelete(task.id)} style={{ ...btn, padding: '2px 9px', borderColor: 'var(--bad,#ef4444)', color: '#fff', background: 'var(--bad,#ef4444)' }}>Xoá task?</button>
+              <button type="button" onClick={() => setDelConfirm(false)} style={{ ...btn, padding: '2px 9px' }}>Huỷ</button>
+            </>
+          ) : (
+            <button type="button" onClick={() => setDelConfirm(true)} title="Xoá card (có hoàn tác) — bản ghi gốc bên adfond không bị đụng" style={{ ...btn, padding: '2px 9px', color: 'var(--bad,#ef4444)' }}>🗑 Xoá</button>
+          )}
+          <span style={{ fontSize: 10, color: 'var(--fg-4)', marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>#{task.id}</span>
+        </div>
+      </div>
+    </Drawer>
   );
 }
 

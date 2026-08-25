@@ -26,6 +26,7 @@ export interface BacklinkTask {
   siteSubmittedAt: string | null; // when this site entered "submitted" (awaiting moderation)
   siteVerify: BacklinkVerify | null; // last link health-check result for this site
   sourceUrl: string | null;
+  sourcePlatform: string | null;             // prep_payload.source_platform — 'feedback' (góp ý từ adfond) mở drawer tối giản riêng
   da: string | null;
   dofollow: string | null;
   traffic: string | null;
@@ -125,7 +126,7 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
   if (!db) return [];
   try {
     const rows = await db.execute(sql`
-      SELECT id, title, status, source_url, da, dofollow, traffic, rank, mechanism, tier,
+      SELECT id, title, status, source_url, source_platform, da, dofollow, traffic, rank, mechanism, tier,
              draft, draft_short, draft_images, has_draft, instructions, notes, site_status, site_url, applies_to,
              publish_url, screenshot_url, assigned_user_id, assignee,
              (site_status->>${slug}) AS site_state,
@@ -157,6 +158,7 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
     };
     const base = (rows as unknown as Array<Record<string, unknown>>).map((r) => {
       const sourceUrl = (r.source_url as string | null) || null;
+      const sourcePlatform = (r.source_platform as string | null) || null;
       const platformKey = keyForUrl(sourceUrl);
       return {
         id: Number(r.id),
@@ -169,6 +171,7 @@ export async function getBacklinkTasks(projectId: string, catalog?: PlatformCata
         siteSubmittedAt: (r.site_submitted_at as string | null) || null,
         siteVerify: (r.site_verify as BacklinkVerify | null) || null,
         sourceUrl,
+        sourcePlatform,
         da: (r.da as string | null) || null,
         dofollow: (r.dofollow as string | null) || null,
         traffic: (r.traffic as string | null) || null,

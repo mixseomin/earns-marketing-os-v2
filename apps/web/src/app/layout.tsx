@@ -7,6 +7,7 @@ import { RootProviders } from '@/components/root-providers';
 import { TablePrefsProvider } from '@/components/ui/table-prefs';
 import { readTablePrefs } from '@/lib/table-prefs';
 import { getCurrentUser } from '@/lib/auth';
+import { GopYMos2 } from '@/components/gop-y-mos2';
 
 // Google Analytics 4 — property "MOS2" (mos2.on.tc). Public measurement ID, not a secret.
 const GA_ID = 'G-GBENC4P7CB';
@@ -49,10 +50,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // on the main dashboard host, bounce them to the portal. (course.on.tc is gated at nginx
   // via /api/auth/verify.) Only costs a getCurrentUser on mos2.on.tc renders.
   const host = (await headers()).get('host')?.split(':')[0] || '';
-  if (host === 'mos2.on.tc') {
-    const u = await getCurrentUser();
-    if (u && u.role === 'viewer') redirect('https://user.on.tc/review');
-  }
+  const u = await getCurrentUser();
+  if (host === 'mos2.on.tc' && u && u.role === 'viewer') redirect('https://user.on.tc/review');
   // Cột/sort/lọc của MỌI bảng — đọc ở đây để lần sơn đầu đã đúng (hết nháy khi F5).
   const tablePrefs = await readTablePrefs();
   return (
@@ -76,7 +75,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </>
         )}
         <TablePrefsProvider value={tablePrefs}>
-          <RootProviders>{children}</RootProviders>
+          <RootProviders>
+            {children}
+            {/* Hòm góp ý của chính MOS2 — admin mới thấy (kênh của người chủ; nhân sự có 🚩 blocker). */}
+            {u?.role === 'admin' && <GopYMos2 />}
+          </RootProviders>
         </TablePrefsProvider>
       </body>
     </html>

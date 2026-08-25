@@ -10,6 +10,8 @@ import { useEntityVersion } from '@/lib/entity-signal';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { wrapExternalUrl } from '@/lib/external-url';
+import { docTraoDoiCard, guiTraoDoiCard } from '@/lib/actions/gop-y-mos2';
+import { uploadImage, deleteImage } from '@/lib/actions/uploads';
 import { setBacklinkSite, setBacklinkSchedule, splitBacklinkTask, deleteBacklinkTask, dropBacklinkSiblings, restoreBacklinkTask, listDroppedSources, restoreDroppedSource, verifyBacklink, verifyAllBacklinks, setBacklinkAccount, listBacklinkAccountOptions, setBacklinkNote, setBacklinkBlocker, seenBacklinkResolved, submitDraftReview, setTaskResume } from '@/lib/actions/architecture';
 import { hasResume, type TaskInput, type TaskResume } from '@/lib/task-resume';
 import { listBacklinkSources, seedBacklinksFromCatalog, generatePlaysForProject, setBacklinkSourceStatus, type BacklinkSource, type SourceIntel } from '@/lib/actions/backlink-catalog';
@@ -2755,11 +2757,14 @@ function ResumeEditor({ task, onSave, onOpenTask }: { task: BacklinkTask; onSave
  * đi qua proxy /api/adfond/trao-doi để phiên MOS2 gác cửa và khoá nằm server-side).
  * Reply mặc định REWORK: bản ghi adfond về đang-làm, card này về To-do — onChange refresh
  * để pill trạng thái nói thật ngay. */
-function TraoDoiAdfond({ feedbackId, onChange }: { feedbackId: number; onChange: () => void }) {
-  type Tin = { id: number; nguoi: string; noiDung: string; xuLy: string | null; luc: string; anh: Array<{ id: number; ten: string | null; url: string }> };
+function TraoDoiCard({ feedbackId, taskId, onChange }: { feedbackId?: number; taskId: number; onChange: () => void }) {
+  // Hai nguồn một UI: card adfond (feedbackId — luồng sống bên adfond, đi proxy) và card
+  // góp ý MOS2 bản địa (prep_payload.trao_doi, server action). Khác nhau CHỈ ở chỗ
+  // đọc/ghi/tải ảnh — bong bóng + composer dùng chung, sửa một chỗ ăn cả hai.
+  type Tin = { id?: number; nguoi: string; noiDung: string; xuLy: string | null; luc: string; anh: Array<{ id?: number; ten?: string | null; url: string }> };
   const [tin, setTin] = useState<Tin[] | null>(null);
   const [noiDung, setNoiDung] = useState('');
-  const [anh, setAnh] = useState<Array<{ id: number; ten: string; xem: string }>>([]);
+  const [anh, setAnh] = useState<Array<{ id?: number; url?: string; ten: string; xem: string }>>([]);
   const [xuLy, setXuLy] = useState('rework');
   const [tai, setTai] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -2767,10 +2772,16 @@ function TraoDoiAdfond({ feedbackId, onChange }: { feedbackId: number; onChange:
   const fileRef = useRef<HTMLInputElement>(null);
 
   const nap = useCallback(() => {
-    fetch(`/api/adfond/trao-doi?feedback=${feedbackId}`)
-      .then((r) => r.json()).then((d) => setTin(Array.isArray(d.tin) ? d.tin : []))
-      .catch(() => setTin([]));
-  }, [feedbackId]);
+    if (feedbackId != null) {
+      fetch(`/api/adfond/trao-doi?feedback=${feedbackId}`)
+        .then((r) => r.json()).then((d) => setTin(Array.isArray(d.tin) ? d.tin : []))
+        .catch(() => setTin([]));
+    } else {
+      docTraoDoiCard(taskId)
+        .then((ds) => setTin(ds.map((t) => ({ ...t, anh: (t.anh || []).map((u) => ({ url: u })) }))))
+        .catch(() => setTin([]));
+    }
+  }, [feedbackId, taskId]);
   useEffect(() => { nap(); }, [nap]);
 
   // Nén như form adfond: giữ điểm ảnh, re-encode JPEG 0.72 khi ≥400KB — PNG retina qua trần 1MB.
@@ -2793,27 +2804,42 @@ function TraoDoiAdfond({ feedbackId, onChange }: { feedbackId: number; onChange:
       setTai((d) => d + 1);
       try {
         const f = await nenAnh(goc);
-        const fd = new FormData(); fd.set('file', f);
-        const r = await fetch('/api/adfond/trao-doi/anh', { method: 'POST', body: fd });
-        const d = await r.json().catch(() => null);
-        if (!r.ok || !d?.id) { setErr(String(d?.error || `adfond trả ${r.status}`)); continue; }
-        setAnh((c) => [...c, { id: Number(d.id), ten: f.name, xem: URL.createObjectURL(goc) }]);
+        if (feedbackId != null) {
+          const fd = new FormData(); fd.set('file', f);
+          const r = await fetch('/api/adfond/trao-doi/anh', { method: 'POST', body: fd });
+          const d = await r.json().catch(() => null);
+          if (!r.ok || !d?.id) { setErr(String(d?.error || `adfond trả ${r.status}`)); continue; }
+          setAnh((c) => [...c, { id: Number(d.id), ten: f.name, xem: URL.createObjectURL(goc) }]);
+        } else {
+          // card MOS2 bản địa: ảnh đi đường R2 sẵn có (uploadImage nhận dataURL — đã nén nên lọt trần action)
+          const du = await new Promise<string>((res, rej) => { const rd = new FileReader(); rd.onload = () => res(rd.result as string); rd.onerror = rej; rd.readAsDataURL(f); });
+          const r = await uploadImage(du, 'gop-y');
+          if (!r.ok || !r.url) { setErr(r.error || 'upload lỗi'); continue; }
+          setAnh((c) => [...c, { url: r.url!, ten: f.name, xem: URL.createObjectURL(goc) }]);
+        }
       } finally { setTai((d) => d - 1); }
     }
   };
 
   const gui = async () => {
     setBusy(true); setErr('');
-    const r = await fetch('/api/adfond/trao-doi', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ feedbackId, noiDung, anhIds: anh.map((a) => a.id), rework: xuLy === 'rework' }),
-    });
-    const d = await r.json().catch(() => null);
+    let ok = false; let loi = '';
+    if (feedbackId != null) {
+      const r = await fetch('/api/adfond/trao-doi', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedbackId, noiDung, anhIds: anh.map((a) => a.id), xuLy }),
+      });
+      const d = await r.json().catch(() => null);
+      ok = !!(r.ok && d?.ok); loi = String(d?.error || `adfond trả ${r.status}`);
+    } else {
+      const d = await guiTraoDoiCard({ taskId, noiDung, anhUrls: anh.map((a) => a.url!).filter(Boolean), xuLy });
+      ok = d.ok; loi = d.error || 'không gửi được';
+    }
     setBusy(false);
-    if (!r.ok || !d?.ok) { setErr(String(d?.error || `adfond trả ${r.status}`)); return; }
+    if (!ok) { setErr(loi); return; }
     anh.forEach((a) => URL.revokeObjectURL(a.xem));
     setNoiDung(''); setAnh([]); nap();
-    if (xuLy === 'rework') onChange();   // card vừa về To-do — pill phải đổi ngay
+    if (xuLy !== 'ghi_chu') onChange();   // card vừa đổi trạng thái — pill phải đổi ngay
   };
 
   return (
@@ -2826,7 +2852,7 @@ function TraoDoiAdfond({ feedbackId, onChange }: { feedbackId: number; onChange:
         : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {tin.map((t) => (
-              <div key={t.id} style={{ border: `1px solid ${t.nguoi === 'ai' ? 'color-mix(in srgb, var(--accent) 45%, transparent)' : 'var(--line)'}`, background: t.nguoi === 'ai' ? 'color-mix(in srgb, var(--accent) 7%, transparent)' : 'var(--bg-2)', borderRadius: 8, padding: '8px 10px' }}>
+              <div key={t.id ?? t.luc} style={{ border: `1px solid ${t.nguoi === 'ai' ? 'color-mix(in srgb, var(--accent) 45%, transparent)' : 'var(--line)'}`, background: t.nguoi === 'ai' ? 'color-mix(in srgb, var(--accent) 7%, transparent)' : 'var(--bg-2)', borderRadius: 8, padding: '8px 10px' }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 4 }}>
                   <b style={{ color: t.nguoi === 'ai' ? 'var(--accent)' : 'var(--fg-2)', textTransform: t.nguoi === 'ai' ? 'uppercase' : 'none' }}>{t.nguoi === 'ai' ? 'AI' : t.nguoi}</b>
                   {t.xuLy === 'rework' && <span style={{ border: '1px solid var(--warn,#ffb03c)', color: 'var(--warn,#ffb03c)', borderRadius: 4, padding: '0 5px', fontSize: 10 }}>rework</span>}
@@ -2836,7 +2862,7 @@ function TraoDoiAdfond({ feedbackId, onChange }: { feedbackId: number; onChange:
                 {t.anh.length > 0 && (
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
                     {t.anh.map((a) => (
-                      <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer">
+                      <a key={a.id ?? a.url} href={a.url} target="_blank" rel="noopener noreferrer">
                         <img src={a.url} alt={a.ten ?? ''} style={{ height: 64, borderRadius: 5, border: '1px solid var(--line)', display: 'block' }} />
                       </a>
                     ))}
@@ -2860,10 +2886,14 @@ function TraoDoiAdfond({ feedbackId, onChange }: { feedbackId: number; onChange:
         {anh.length > 0 && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {anh.map((a) => (
-              <span key={a.id} style={{ position: 'relative' }}>
+              <span key={a.id ?? a.url} style={{ position: 'relative' }}>
                 <img src={a.xem} alt={a.ten} style={{ height: 48, borderRadius: 5, border: '2px solid var(--ok,#22c55e)', display: 'block' }} />
                 <button type="button" aria-label={`Bỏ ảnh ${a.ten}`}
-                  onClick={() => { URL.revokeObjectURL(a.xem); setAnh((c) => c.filter((x) => x.id !== a.id)); }}
+                  onClick={() => {
+                    URL.revokeObjectURL(a.xem);
+                    if (a.url) void deleteImage(a.url);
+                    setAnh((c) => c.filter((x) => x !== a));
+                  }}
                   style={{ position: 'absolute', top: -6, right: -6, width: 16, height: 16, lineHeight: '13px', borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-3)', cursor: 'pointer', fontSize: 10, padding: 0 }}>✕</button>
               </span>
             ))}
@@ -2876,7 +2906,7 @@ function TraoDoiAdfond({ feedbackId, onChange }: { feedbackId: number; onChange:
           {tai > 0 && <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>đang tải ảnh…</span>}
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
             <StatusSegmented size="sm" value={xuLy}
-              options={[{ value: 'rework', label: 'Rework', color: 'var(--warn,#ffb03c)' }, { value: 'ghi_chu', label: 'Chỉ ghi chú', color: 'var(--fg-2)' }]}
+              options={[{ value: 'rework', label: 'Rework', color: 'var(--warn,#ffb03c)' }, { value: 'duyet', label: 'Duyệt xong', color: 'var(--ok,#22c55e)' }, { value: 'ghi_chu', label: 'Ghi chú', color: 'var(--fg-2)' }]}
               onChange={setXuLy} />
             <button type="button" disabled={busy || tai > 0 || !noiDung.trim()} onClick={() => void gui()}
               style={{ ...btn, padding: '3px 12px', opacity: busy || tai > 0 || !noiDung.trim() ? .5 : 1, cursor: busy ? 'default' : 'pointer', fontWeight: 700 }}>
@@ -2934,7 +2964,7 @@ function GopYDrawer({ task, onClose, setSite, onDelete, onLocate, onChange }: {
           </a>
         )}
 
-        {Number.isFinite(feedbackId) && <TraoDoiAdfond feedbackId={feedbackId} onChange={onChange} />}
+        <TraoDoiCard feedbackId={Number.isFinite(feedbackId) ? feedbackId : undefined} taskId={task.id} onChange={onChange} />
 
         <div style={lbl}>Trạng thái</div>
         <StatusSegmented size="md" value={task.siteState}

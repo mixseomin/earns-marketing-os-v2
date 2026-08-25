@@ -113,7 +113,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const taskId = Number(id);
   if (!Number.isFinite(taskId)) return NextResponse.json({ error: 'bad id' }, { status: 400 });
-  const body = await req.json().catch(() => ({})) as { slaDueAt?: string | null; blocker?: string; checklist?: Record<string, boolean>; resume?: { inputs?: unknown; doneWhen?: unknown; dependsOn?: unknown }; items?: { label?: string; rows?: unknown[] } | null };
+  const body = await req.json().catch(() => ({})) as { slaDueAt?: string | null; blocker?: string; checklist?: Record<string, boolean>; resume?: { inputs?: unknown; doneWhen?: unknown; dependsOn?: unknown }; items?: { label?: string; rows?: unknown[] } | null; draft?: string | null };
+
+  if (body.draft !== undefined) {
+    // { draft } → prep_payload.draft (markdown nguồn, drawer 📋 render cả ![ảnh]). Trước đây chỉ
+    // `play draft` ghi được — bằng SQL jsonb_set tay vì API thiếu field; giờ máy khác (adfond đẩy
+    // góp ý kèm ảnh) cũng cần ghi nên mở đúng cửa API. null/'' = xoá draft.
+    if (body.draft === null || body.draft === '') {
+      await db.execute(sql`UPDATE human_tasks SET prep_payload = COALESCE(prep_payload, '{}'::jsonb) - 'draft', updated_at = now() WHERE id = ${taskId}`);
+    } else {
+      const md = String(body.draft).slice(0, 20_000);
+      await db.execute(sql`UPDATE human_tasks SET prep_payload = jsonb_set(COALESCE(prep_payload, '{}'::jsonb), '{draft}', ${JSON.stringify(md)}::jsonb, true), updated_at = now() WHERE id = ${taskId}`);
+    }
+  }
 
   if (body.slaDueAt !== undefined) {
     const iso = body.slaDueAt ? new Date(body.slaDueAt).toISOString() : null;

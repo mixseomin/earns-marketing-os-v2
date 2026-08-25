@@ -97,7 +97,12 @@ export async function guiTraoDoiCard(input: {
     RETURNING id`);
   if (!(up as unknown as Array<{ id: number }>).length) return { ok: false, error: 'Không phải card góp ý mos2.' };
 
-  if (xuLy === 'rework') await setBacklinkSite(input.taskId, 'mos2', 'pending', '');
+  if (xuLy === 'rework') {
+    await setBacklinkSite(input.taskId, 'mos2', 'pending', '');
+    // Review/completed trước đó đã xoá follow date; về pending mà không đặt lại thì card
+    // không còn ngày nào → tàng hình khỏi calendar (bài học card #616 bên adfond, 26/08).
+    await setBacklinkSchedule(input.taskId, 'mos2', homNayVN());
+  }
   if (xuLy === 'duyet') {
     const r = await db.execute(sql`SELECT prep_payload->>'source_url' AS src FROM human_tasks WHERE id = ${input.taskId} LIMIT 1`);
     const src = String((r as unknown as Array<{ src: string | null }>)[0]?.src || '');

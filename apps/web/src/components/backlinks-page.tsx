@@ -2611,7 +2611,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       )}
 
       {open && (open.sourcePlatform === 'feedback'
-        ? <GopYDrawer task={open} onClose={closeTask} setSite={setSite} onDelete={deleteTask} onLocate={() => locateInCalendar(open)} />
+        ? <GopYDrawer task={open} onClose={closeTask} setSite={setSite} onDelete={deleteTask} onLocate={() => locateInCalendar(open)} onChange={() => start(() => router.refresh())} />
         : <TaskDrawer task={open} slug={slugForTask(open) ?? ''} project={projectForTask(open)} accounts={accounts} media={media} product={products.find((pr) => pr.cards.some((c) => c.id === open.id))} onOpenProduct={(s) => { setOpenId(null); setOpenProd(s); }} backgrounded={!!acctModal || outreachPid != null} onOpenOutreach={setOutreachPid} onClose={closeTask} setSite={setSite} setSchedule={setSchedule} setResume={setResume} onChange={() => start(() => router.refresh())} onCreateAccount={openCreateAccount} onEditAccount={openEditAccount} onOpenTask={openTask} onDelete={deleteTask} onDropSource={dropSource} onLocate={() => locateInCalendar(open)} />)}
       {openPieceId != null && (() => { const pc = pieces.find((x) => x.id === openPieceId); return pc ? <PieceDrawer piece={pc} projectLabel={allProjects ? (projectsById?.[pc.projectId]?.name ?? pc.projectId) : siteLabel} accounts={accounts} browserProfiles={browserProfiles} media={media} tasks={tasks} replies={repliesOf.get(pc.id) ?? []} onOpenPiece={(id) => setOpenPieceId(id)} onOpenTask={(id) => { setOpenPieceId(null); openTask(id); }} onEdit={() => setPieceForm({ piece: pc })} onClose={() => setOpenPieceId(null)} /> : null; })()}
       {/* Soạn bài — cùng form cho tạo mới và sửa. Đây là Content Studio, nay nằm trong /plays. */}
@@ -2751,16 +2751,156 @@ function ResumeEditor({ task, onSave, onOpenTask }: { task: BacklinkTask; onSave
   );
 }
 
+/* Luồng trao đổi của card GÓP Ý — đọc + reply NGAY TRONG DRAWER (dữ liệu sống bên adfond,
+ * đi qua proxy /api/adfond/trao-doi để phiên MOS2 gác cửa và khoá nằm server-side).
+ * Reply mặc định REWORK: bản ghi adfond về đang-làm, card này về To-do — onChange refresh
+ * để pill trạng thái nói thật ngay. */
+function TraoDoiAdfond({ feedbackId, onChange }: { feedbackId: number; onChange: () => void }) {
+  type Tin = { id: number; nguoi: string; noiDung: string; xuLy: string | null; luc: string; anh: Array<{ id: number; ten: string | null; url: string }> };
+  const [tin, setTin] = useState<Tin[] | null>(null);
+  const [noiDung, setNoiDung] = useState('');
+  const [anh, setAnh] = useState<Array<{ id: number; ten: string; xem: string }>>([]);
+  const [xuLy, setXuLy] = useState('rework');
+  const [tai, setTai] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const nap = useCallback(() => {
+    fetch(`/api/adfond/trao-doi?feedback=${feedbackId}`)
+      .then((r) => r.json()).then((d) => setTin(Array.isArray(d.tin) ? d.tin : []))
+      .catch(() => setTin([]));
+  }, [feedbackId]);
+  useEffect(() => { nap(); }, [nap]);
+
+  // Nén như form adfond: giữ điểm ảnh, re-encode JPEG 0.72 khi ≥400KB — PNG retina qua trần 1MB.
+  const nenAnh = async (f: File): Promise<File> => {
+    if (f.size < 400_000 || !f.type.startsWith('image/') || f.type === 'image/gif') return f;
+    try {
+      const bmp = await createImageBitmap(f);
+      const c = document.createElement('canvas');
+      c.width = bmp.width; c.height = bmp.height;
+      c.getContext('2d')?.drawImage(bmp, 0, 0);
+      const blob = await new Promise<Blob | null>((r) => c.toBlob(r, 'image/jpeg', 0.72));
+      if (blob && blob.size < f.size) return new File([blob], f.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
+    } catch { /* không nén được — gửi bản gốc, adfond còn trần */ }
+    return f;
+  };
+
+  const themAnh = async (files: File[]) => {
+    setErr('');
+    for (const goc of files.filter((f) => f.type.startsWith('image/'))) {
+      setTai((d) => d + 1);
+      try {
+        const f = await nenAnh(goc);
+        const fd = new FormData(); fd.set('file', f);
+        const r = await fetch('/api/adfond/trao-doi/anh', { method: 'POST', body: fd });
+        const d = await r.json().catch(() => null);
+        if (!r.ok || !d?.id) { setErr(String(d?.error || `adfond trả ${r.status}`)); continue; }
+        setAnh((c) => [...c, { id: Number(d.id), ten: f.name, xem: URL.createObjectURL(goc) }]);
+      } finally { setTai((d) => d - 1); }
+    }
+  };
+
+  const gui = async () => {
+    setBusy(true); setErr('');
+    const r = await fetch('/api/adfond/trao-doi', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feedbackId, noiDung, anhIds: anh.map((a) => a.id), rework: xuLy === 'rework' }),
+    });
+    const d = await r.json().catch(() => null);
+    setBusy(false);
+    if (!r.ok || !d?.ok) { setErr(String(d?.error || `adfond trả ${r.status}`)); return; }
+    anh.forEach((a) => URL.revokeObjectURL(a.xem));
+    setNoiDung(''); setAnh([]); nap();
+    if (xuLy === 'rework') onChange();   // card vừa về To-do — pill phải đổi ngay
+  };
+
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>
+        💬 Trao đổi{tin?.length ? ` · ${tin.length}` : ''}
+      </div>
+      {tin === null ? <div style={{ fontSize: 11.5, color: 'var(--fg-4)' }}>đang tải…</div>
+        : tin.length === 0 ? <div style={{ fontSize: 11.5, color: 'var(--fg-4)' }}>Chưa có phản hồi — AI ghi vào đây khi xử xong.</div>
+        : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {tin.map((t) => (
+              <div key={t.id} style={{ border: `1px solid ${t.nguoi === 'ai' ? 'color-mix(in srgb, var(--accent) 45%, transparent)' : 'var(--line)'}`, background: t.nguoi === 'ai' ? 'color-mix(in srgb, var(--accent) 7%, transparent)' : 'var(--bg-2)', borderRadius: 8, padding: '8px 10px' }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 10.5, color: 'var(--fg-3)', marginBottom: 4 }}>
+                  <b style={{ color: t.nguoi === 'ai' ? 'var(--accent)' : 'var(--fg-2)', textTransform: t.nguoi === 'ai' ? 'uppercase' : 'none' }}>{t.nguoi === 'ai' ? 'AI' : t.nguoi}</b>
+                  {t.xuLy === 'rework' && <span style={{ border: '1px solid var(--warn,#ffb03c)', color: 'var(--warn,#ffb03c)', borderRadius: 4, padding: '0 5px', fontSize: 10 }}>rework</span>}
+                  <span style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}>{t.luc.slice(0, 16).replace('T', ' ')}</span>
+                </div>
+                <div style={{ fontSize: 12.5, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{t.noiDung}</div>
+                {t.anh.length > 0 && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                    {t.anh.map((a) => (
+                      <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer">
+                        <img src={a.url} alt={a.ten ?? ''} style={{ height: 64, borderRadius: 5, border: '1px solid var(--line)', display: 'block' }} />
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+      <div style={{ marginTop: 8, border: '1px solid var(--line)', borderRadius: 8, padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <textarea
+          rows={2} placeholder="Reply… (Ctrl+V dán ảnh)" value={noiDung}
+          onChange={(e) => setNoiDung(e.target.value)}
+          onPaste={(e) => {
+            const fs = [...(e.clipboardData?.items ?? [])].filter((i) => i.kind === 'file' && i.type.startsWith('image/')).map((i) => i.getAsFile()).filter((f): f is File => !!f);
+            if (fs.length) { e.preventDefault(); void themAnh(fs); }
+          }}
+          style={{ width: '100%', resize: 'vertical', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 6, padding: '6px 8px', fontSize: 12.5, color: 'var(--fg-1)', fontFamily: 'inherit' }}
+        />
+        {anh.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {anh.map((a) => (
+              <span key={a.id} style={{ position: 'relative' }}>
+                <img src={a.xem} alt={a.ten} style={{ height: 48, borderRadius: 5, border: '2px solid var(--ok,#22c55e)', display: 'block' }} />
+                <button type="button" aria-label={`Bỏ ảnh ${a.ten}`}
+                  onClick={() => { URL.revokeObjectURL(a.xem); setAnh((c) => c.filter((x) => x.id !== a.id)); }}
+                  style={{ position: 'absolute', top: -6, right: -6, width: 16, height: 16, lineHeight: '13px', borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-3)', cursor: 'pointer', fontSize: 10, padding: 0 }}>✕</button>
+              </span>
+            ))}
+          </div>
+        )}
+        {err && <div style={{ fontSize: 11.5, color: 'var(--bad,#ef4444)' }}>{err}</div>}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <button type="button" onClick={() => fileRef.current?.click()} title="Đính ảnh" style={{ ...btn, padding: '2px 8px' }}>📎</button>
+          <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => { void themAnh([...(e.target.files ?? [])]); e.target.value = ''; }} />
+          {tai > 0 && <span style={{ fontSize: 11, color: 'var(--fg-4)' }}>đang tải ảnh…</span>}
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
+            <StatusSegmented size="sm" value={xuLy}
+              options={[{ value: 'rework', label: 'Rework', color: 'var(--warn,#ffb03c)' }, { value: 'ghi_chu', label: 'Chỉ ghi chú', color: 'var(--fg-2)' }]}
+              onChange={setXuLy} />
+            <button type="button" disabled={busy || tai > 0 || !noiDung.trim()} onClick={() => void gui()}
+              style={{ ...btn, padding: '3px 12px', opacity: busy || tai > 0 || !noiDung.trim() ? .5 : 1, cursor: busy ? 'default' : 'pointer', fontWeight: 700 }}>
+              {busy ? '…' : '📨 Gửi'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* Drawer TỐI GIẢN cho card GÓP Ý (source_platform='feedback' — bắn từ backend adfond qua
  * ext API). Cố ý KHÔNG đi TaskDrawer: góp ý không có account/paste-kit/DOM/catalog/outreach,
  * khuôn theo hòm feedback Astrolas — đọc nội dung + ảnh, đổi trạng thái, hết. Sửa nội dung /
  * trả lời nằm ở bản ghi gốc bên adfond (nút ↗ dưới nội dung). */
-function GopYDrawer({ task, onClose, setSite, onDelete, onLocate }: {
+function GopYDrawer({ task, onClose, setSite, onDelete, onLocate, onChange }: {
   task: BacklinkTask; onClose: () => void;
   setSite: (id: number, status: string, url: string) => Promise<string>;
-  onDelete: (id: number) => void; onLocate?: () => void;
+  onDelete: (id: number) => void; onLocate?: () => void; onChange: () => void;
 }) {
   const [siteErr, setSiteErr] = useState('');
+  // id bản ghi adfond nằm ngay trong sourceUrl (?d=feedback:N — mình đặt format đó ở cầu adfond)
+  const feedbackId = Number((task.sourceUrl ?? '').match(/feedback:(\d+)/)?.[1]);
   const [delConfirm, setDelConfirm] = useState(false);
   const lbl: CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', margin: '16px 0 5px' };
   // Đóng (review/completed) tự kèm link bản ghi làm kết quả: "kết quả" của một góp ý là câu
@@ -2793,6 +2933,8 @@ function GopYDrawer({ task, onClose, setSite, onDelete, onLocate }: {
             ↗ Mở bản ghi trong adfond — sửa trạng thái gốc / viết trả lời ở đó
           </a>
         )}
+
+        {Number.isFinite(feedbackId) && <TraoDoiAdfond feedbackId={feedbackId} onChange={onChange} />}
 
         <div style={lbl}>Trạng thái</div>
         <StatusSegmented size="md" value={task.siteState}

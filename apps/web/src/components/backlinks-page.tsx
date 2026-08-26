@@ -2757,7 +2757,10 @@ function ResumeEditor({ task, onSave, onOpenTask }: { task: BacklinkTask; onSave
  * đi qua proxy /api/adfond/trao-doi để phiên MOS2 gác cửa và khoá nằm server-side).
  * Reply mặc định REWORK: bản ghi adfond về đang-làm, card này về To-do — onChange refresh
  * để pill trạng thái nói thật ngay. */
-function TraoDoiCard({ feedbackId, taskId, onChange }: { feedbackId?: number; taskId: number; onChange: () => void }) {
+function TraoDoiCard({ feedbackId, taskId, onChange, phao }: { feedbackId?: number; taskId: number; onChange: () => void;
+  /** Nội dung dự phòng — CHỈ hiện khi luồng rỗng (proxy adfond hỏng / card cũ). Bình thường
+   *  lời góp ý đã là tin đầu của luồng, in thêm ở đây là in hai lần. */
+  phao?: string }) {
   // Hai nguồn một UI: card adfond (feedbackId — luồng sống bên adfond, đi proxy) và card
   // góp ý MOS2 bản địa (prep_payload.trao_doi, server action). Khác nhau CHỈ ở chỗ
   // đọc/ghi/tải ảnh — bong bóng + composer dùng chung, sửa một chỗ ăn cả hai.
@@ -2853,7 +2856,9 @@ function TraoDoiCard({ feedbackId, taskId, onChange }: { feedbackId?: number; ta
         💬 Trao đổi{tin?.length ? ` · ${tin.length}` : ''}
       </div>
       {tin === null ? <div style={{ fontSize: 11.5, color: 'var(--fg-4)' }}>đang tải…</div>
-        : tin.length === 0 ? <div style={{ fontSize: 11.5, color: 'var(--fg-4)' }}>Chưa có phản hồi — AI ghi vào đây khi xử xong.</div>
+        : tin.length === 0 ? (phao
+          ? <div className="md-body" style={{ fontSize: 13, lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: mdToHtml(phao) }} />
+          : <div style={{ fontSize: 11.5, color: 'var(--fg-4)' }}>Chưa có phản hồi — AI ghi vào đây khi xử xong.</div>)
         : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {tin.map((t) => (
@@ -2957,19 +2962,17 @@ function GopYDrawer({ task, onClose, setSite, onDelete, onLocate, onChange }: {
           </div>
         </div>
 
-        {/* Nội dung + ảnh — draft markdown do adfond đẩy (chữ + ![ảnh] ký). Card cũ chưa có
-            draft thì rơi về instructions (text + link tự bắt). */}
-        {task.draft
-          ? <div className="md-body" style={{ marginTop: 12, fontSize: 13, lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: mdToHtml(task.draft) }} />
-          : task.instructions ? <div style={{ marginTop: 12, fontSize: 13, lineHeight: 1.65, whiteSpace: 'pre-wrap' }}><LinkText text={task.instructions} /></div> : null}
-
+        {/* KHÔNG có khối "nội dung" riêng: lời góp ý là TIN ĐẦU của luồng trao đổi ngay dưới
+            (người gửi · lúc gửi · ảnh), reply nối tiếp vào đó. Tách ra hai chỗ thì người gửi
+            không thuộc về cuộc nói chuyện nào và phải dán thêm một dòng "Người gửi:" — vá. */}
         {task.sourceUrl && (
           <a href={task.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 10, fontSize: 12, color: 'var(--accent)', textDecoration: 'underline dotted' }}>
             ↗ Mở bản ghi trong adfond — sửa trạng thái gốc / viết trả lời ở đó
           </a>
         )}
 
-        <TraoDoiCard feedbackId={Number.isFinite(feedbackId) ? feedbackId : undefined} taskId={task.id} onChange={onChange} />
+        <TraoDoiCard feedbackId={Number.isFinite(feedbackId) ? feedbackId : undefined} taskId={task.id} onChange={onChange}
+          phao={task.draft || task.instructions || undefined} />
 
         <div style={lbl}>Trạng thái</div>
         <StatusSegmented size="md" value={task.siteState}

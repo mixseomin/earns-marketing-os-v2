@@ -34,16 +34,19 @@ export async function guiGopYMos2(input: {
   // project do bảng nói — gắn thêm "Góp ý MOS2:" chỉ làm pill trên lịch dài và lặp.
   const dongDau = (noiDung.split('\n')[0] ?? '').trim().slice(0, 60);
   const title = input.loai === 'cau_hoi' ? `Hỏi: ${dongDau}` : dongDau;
-  const draft = [`**Người gửi:** ${me.email}`, noiDung, trang ? `[Trang báo lỗi ↗](${trang})` : '', ...anh.map((u) => `![ảnh](${u})`)]
+  const draft = [noiDung, trang ? `[Trang báo lỗi ↗](${trang})` : '', ...anh.map((u) => `![ảnh](${u})`)]
     .filter(Boolean).join('\n\n').slice(0, 20_000);
+  // Tin GỐC = tin đầu của luồng (người gửi · lúc gửi · ảnh) — cùng khuôn adfond (luongGopY):
+  // góp ý là câu mở đầu cuộc trao đổi, reply nối vào sau, không phải một khối tách rời.
+  const goc: TinTraoDoi = { nguoi: me.email, noiDung: noiDung.slice(0, 4000), xuLy: null, luc: new Date().toISOString(), anh };
   const pp = {
     source_url: trang, source_platform: 'feedback', draft,
-    nguoi_gui: me.email,
+    nguoi_gui: me.email, trao_doi: [goc],
   };
 
   const r = await db.execute(sql`
     INSERT INTO human_tasks (tenant_id, project_id, title, instructions, prep_payload, platform_key, status, publish_url)
-    VALUES ('self', 'mos2', ${title}, ${`${noiDung}\n\nNgười gửi: ${me.email}\nTrang báo: ${trang}`.slice(0, 4000)}, ${JSON.stringify(pp)}::jsonb, 'backlink', 'pending', '')
+    VALUES ('self', 'mos2', ${title}, ${`${noiDung}\n\nTrang báo: ${trang}`.slice(0, 4000)}, ${JSON.stringify(pp)}::jsonb, 'backlink', 'pending', '')
     RETURNING id`);
   const id = Number((r as unknown as Array<{ id: number }>)[0]?.id);
   if (!Number.isFinite(id)) return { ok: false, error: 'insert hỏng' };

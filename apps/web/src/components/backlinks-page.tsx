@@ -1037,7 +1037,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   const kindOf = useMemo(() => (t: BacklinkTask) => taskKind({ title: t.title, mechanism: t.mechanism, communitySeed: t.communitySeed, product: productTaskIds.has(t.id) }), [productTaskIds]);
   // Ký hiệu LOẠI chi tiết: archetype (backlink/seed/email/publish/account…) hoặc produce-format
   // (article/video/image/post…) → 1 glyph riêng cho mỗi loại (TYPE_META) → liếc board biết loại ngay.
-  const typeKeyOf = useMemo(() => (t: BacklinkTask) => taskTypeKey({ title: t.title, mechanism: t.mechanism, communitySeed: t.communitySeed, product: productTaskIds.has(t.id), instructions: t.instructions, archetype: t.archetype, format: t.format }), [productTaskIds]);
+  const typeKeyOf = useMemo(() => (t: BacklinkTask) => taskTypeKey({ title: t.title, mechanism: t.mechanism, communitySeed: t.communitySeed, product: productTaskIds.has(t.id), instructions: t.instructions, archetype: t.archetype, format: t.format, sourcePlatform: t.sourcePlatform }), [productTaskIds]);
   // View / chế độ lịch / ẩn-đã-xong = LỰA CHỌN, không phải vị trí điều hướng → nhớ vào cookie (lib/prefs).
   // Thứ tự: URL (link chia sẻ) → lựa chọn đã nhớ → mặc định của trang.
   // 'feed' = chế độ ĐỌC: chỉ bài đăng, xếp theo ngày rồi theo giờ, dựng như một dòng thread mạng xã

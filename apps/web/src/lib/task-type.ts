@@ -19,7 +19,9 @@ export type ProduceFormat =
   | 'build';   // generic / multi-step product (fallback)
 
 // Leaf key used for the icon + label (an archetype, OR a produce-format when archetype==='produce').
-export type TaskTypeKey = Exclude<Archetype, 'produce'> | ProduceFormat | 'product';
+// 'feedback' = card góp ý/báo lỗi (adfond hoặc MOS2 gửi sang). Không phải archetype — drawer của nó
+// là GopYDrawer riêng; đây chỉ là leaf key để mọi mặt (lịch · danh sách · header) có glyph + nhãn.
+export type TaskTypeKey = Exclude<Archetype, 'produce'> | ProduceFormat | 'product' | 'feedback';
 
 export type TypeGroup = 'distribution' | 'produce' | 'ops';
 export interface TypeMeta { label: string; glyph: string; group: TypeGroup }
@@ -48,6 +50,7 @@ export const TYPE_META: Record<TaskTypeKey, TypeMeta> = {
   account:       { label: 'Account',     glyph: 'user',        group: 'ops' },
   research:      { label: 'Research',    glyph: 'scope',       group: 'ops' },
   review:        { label: 'Review',      glyph: 'badgecheck',  group: 'ops' },
+  feedback:      { label: 'Góp ý',       glyph: 'bug',         group: 'ops' },
   // batch container (a product = many cards)
   product:       { label: 'Sản phẩm',    glyph: 'book',        group: 'produce' },
 };
@@ -59,6 +62,7 @@ export interface TaskTypeInput {
   communitySeed?: boolean;
   product?: boolean | string | null;
   instructions?: string | null;
+  sourcePlatform?: string | null; // prep_payload.source_platform — 'feedback' = card góp ý (glyph 🐞)
   archetype?: string | null;      // prep_payload.archetype — explicit override (wins)
   format?: string | null;         // prep_payload.format — explicit produce-format (wins)
 }
@@ -113,6 +117,9 @@ export function taskFormat(t: TaskTypeInput): ProduceFormat {
 
 /** The leaf type key (for icon + label): the archetype, or the produce-format when producing. */
 export function taskTypeKey(t: TaskTypeInput): TaskTypeKey {
+  // Góp ý nhận qua DATA, không qua chữ trong tiêu đề: trước đây cầu adfond phải gắn "Góp ý adfond #N:"
+  // vào mọi tiêu đề để phân biệt được trên lịch — chữ lặp ở mọi card và ăn hết chỗ của nội dung.
+  if (t.sourcePlatform === 'feedback') return 'feedback';
   const a = taskArchetype(t);
   return a === 'produce' ? taskFormat(t) : a;
 }

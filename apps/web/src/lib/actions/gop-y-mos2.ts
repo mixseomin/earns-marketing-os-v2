@@ -30,9 +30,11 @@ export async function guiGopYMos2(input: {
 
   const trang = String(input.trang || '').slice(0, 1000);
   const anh = (Array.isArray(input.anhUrls) ? input.anhUrls : []).filter((u) => /^https?:\/\//.test(u)).slice(0, 6);
-  const dongDau = (noiDung.split('\n')[0] ?? '').trim().slice(0, 90);
-  const title = `${input.loai === 'cau_hoi' ? 'Hỏi' : 'Góp ý'} MOS2: ${dongDau}`;
-  const draft = [noiDung, '', trang ? `[Trang báo lỗi ↗](${trang})` : '', ...anh.map((u) => `![ảnh](${u})`)]
+  // Tiêu đề = chữ người gửi. Loại việc do glyph 🐞 nói (source_platform='feedback' → TYPE_META),
+  // project do bảng nói — gắn thêm "Góp ý MOS2:" chỉ làm pill trên lịch dài và lặp.
+  const dongDau = (noiDung.split('\n')[0] ?? '').trim().slice(0, 60);
+  const title = input.loai === 'cau_hoi' ? `Hỏi: ${dongDau}` : dongDau;
+  const draft = [`**Người gửi:** ${me.email}`, noiDung, trang ? `[Trang báo lỗi ↗](${trang})` : '', ...anh.map((u) => `![ảnh](${u})`)]
     .filter(Boolean).join('\n\n').slice(0, 20_000);
   const pp = {
     source_url: trang, source_platform: 'feedback', draft,
@@ -41,7 +43,7 @@ export async function guiGopYMos2(input: {
 
   const r = await db.execute(sql`
     INSERT INTO human_tasks (tenant_id, project_id, title, instructions, prep_payload, platform_key, status, publish_url)
-    VALUES ('self', 'mos2', ${title}, ${`${noiDung}\n\nTrang báo: ${trang}`.slice(0, 4000)}, ${JSON.stringify(pp)}::jsonb, 'backlink', 'pending', '')
+    VALUES ('self', 'mos2', ${title}, ${`${noiDung}\n\nNgười gửi: ${me.email}\nTrang báo: ${trang}`.slice(0, 4000)}, ${JSON.stringify(pp)}::jsonb, 'backlink', 'pending', '')
     RETURNING id`);
   const id = Number((r as unknown as Array<{ id: number }>)[0]?.id);
   if (!Number.isFinite(id)) return { ok: false, error: 'insert hỏng' };

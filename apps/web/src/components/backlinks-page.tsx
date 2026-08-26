@@ -2762,8 +2762,10 @@ function ResumeEditor({ task, onSave, onOpenTask }: { task: BacklinkTask; onSave
  * để pill trạng thái nói thật ngay. */
 function TraoDoiCard({ feedbackId, taskId, onChange, phao }: { feedbackId?: number; taskId: number; onChange: () => void;
   /** Nội dung dự phòng — CHỈ hiện khi luồng rỗng (proxy adfond hỏng / card cũ). Bình thường
-   *  lời góp ý đã là tin đầu của luồng, in thêm ở đây là in hai lần. */
-  phao?: string }) {
+   *  lời góp ý đã là tin đầu của luồng, in thêm ở đây là in hai lần. Nhận NODE dựng sẵn:
+   *  draft là markdown, instructions là chữ trần có URL — người gọi biết mình cầm cái nào,
+   *  ô trao đổi không phải đoán. */
+  phao?: ReactNode }) {
   // Hai nguồn một UI: card adfond (feedbackId — luồng sống bên adfond, đi proxy) và card
   // góp ý MOS2 bản địa (prep_payload.trao_doi, server action). Khác nhau CHỈ ở chỗ
   // đọc/ghi/tải ảnh — bong bóng + composer dùng chung, sửa một chỗ ăn cả hai.
@@ -2859,9 +2861,7 @@ function TraoDoiCard({ feedbackId, taskId, onChange, phao }: { feedbackId?: numb
         💬 Trao đổi{tin?.length ? ` · ${tin.length}` : ''}
       </div>
       {tin === null ? <div style={{ fontSize: 11.5, color: 'var(--fg-4)' }}>đang tải…</div>
-        : tin.length === 0 ? (phao
-          ? <div className="md-body" style={{ fontSize: 13, lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: mdToHtml(phao) }} />
-          : <div style={{ fontSize: 11.5, color: 'var(--fg-4)' }}>Chưa có phản hồi — AI ghi vào đây khi xử xong.</div>)
+        : tin.length === 0 ? (phao ?? <div style={{ fontSize: 11.5, color: 'var(--fg-4)' }}>Chưa có phản hồi — AI ghi vào đây khi xử xong.</div>)
         : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {tin.map((t) => (
@@ -2980,7 +2980,9 @@ function GopYDrawer({ task, onClose, setSite, onDelete, onLocate, onChange }: {
         )}
 
         <TraoDoiCard feedbackId={Number.isFinite(feedbackId) ? feedbackId : undefined} taskId={task.id} onChange={onChange}
-          phao={task.draft || task.instructions || undefined} />
+          phao={task.draft
+            ? <div className="md-body" style={{ fontSize: 13, lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: mdToHtml(task.draft) }} />
+            : task.instructions ? <div style={{ fontSize: 13, lineHeight: 1.65, whiteSpace: 'pre-wrap' }}><LinkText text={task.instructions} /></div> : undefined} />
 
         <div style={lbl}>Trạng thái</div>
         <StatusSegmented size="md" value={task.siteState}

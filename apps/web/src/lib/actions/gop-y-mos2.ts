@@ -41,7 +41,7 @@ export async function guiGopYMos2(input: {
   const goc: TinTraoDoi = { nguoi: me.email, noiDung: noiDung.slice(0, 4000), xuLy: null, luc: new Date().toISOString(), anh };
   const pp = {
     source_url: trang, source_platform: 'feedback', draft,
-    nguoi_gui: me.email, trao_doi: [goc],
+    trao_doi: [goc],
   };
 
   const r = await db.execute(sql`

@@ -36,9 +36,7 @@ import { getBacklinkSourceForTask } from '@/lib/actions/backlink-catalog';
 import { linkTaskToOutreach } from '@/lib/actions/outreach-campaigns';
 import { TaskOutreachDrawer } from '@/components/task-outreach-drawer';
 import { CampaignLinkPicker, EmailSendPrep } from '@/components/ui';
-// `Pill` trong file này là một helper cục bộ (badge trạng thái backlink), nên primitive
-// dùng chung phải mang tên khác ở đây. Vẫn là primitive nhà, không dựng bản thứ hai.
-import { Pill as PillUI } from '@/components/ui';
+import { Pill } from '@/components/ui';
 // Xem ảnh/PDF NGAY TRONG TRANG. Không dùng <a target="_blank"> cho nội dung của mình —
 // scripts/check-canon.mjs chặn ở CI.
 import { MediaOpen, useMediaViewer } from '@/components/ui';
@@ -274,7 +272,11 @@ function Disclosure({ title, badge, defaultOpen, children }: { title: React.Reac
   );
 }
 
-function Pill({ status }: { status: string }) {
+/* Thẻ trạng thái của CỘT trạng thái — viên thuốc bo tròn, ngôn ngữ riêng của cột này.
+ * KHÔNG gom vào `Pill` của bộ dùng chung: gom xong vẫn phải truyền lại bo góc, đệm và độ
+ * đậm để giữ nguyên hình, tức là gọi hàm chung để tự dựng lại bản của mình. Đổi tên cho hết
+ * trùng với primitive (trước đây cùng tên `Pill`, phải nhập primitive dưới bí danh). */
+function TheTrangThai({ status }: { status: string }) {
   const m = SITE_STATUS[status] || { label: status, color: 'var(--fg-2)' };
   return <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 8px', borderRadius: 99, background: `color-mix(in srgb, ${m.color} 18%, transparent)`, color: m.color, whiteSpace: 'nowrap' }}>{m.label}</span>;
 }
@@ -1943,7 +1945,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       </div>
       <div style={{ width: COL.acct, flexShrink: 0, display: 'flex' }}><AcctChip task={t} onClick={(e) => goAccount(e, t)} /></div>
       <div onClick={(e) => e.stopPropagation()} style={{ width: COL.asgn, flexShrink: 0 }}><AssigneeCell taskId={t.id} name={t.assignee || ''} assignedId={t.assignedUserId} onChange={() => start(() => router.refresh())} /></div>
-      <div style={{ width: COL.status, flexShrink: 0, display: 'flex' }}><Pill status={t.siteState} /></div>
+      <div style={{ width: COL.status, flexShrink: 0, display: 'flex' }}><TheTrangThai status={t.siteState} /></div>
       <div style={{ width: COL.live, flexShrink: 0, textAlign: 'center' }}>{t.siteLiveUrl && <a href={wrapExternalUrl(t.siteLiveUrl)} {...EXT} onClick={(e) => e.stopPropagation()} title="Live backlink" style={{ fontSize: 11, color: 'var(--ok)' }}>live ↗</a>}</div>
     </div>
     );
@@ -2959,7 +2961,7 @@ function GopYDrawer({ task, onClose, setSite, onDelete, onLocate, onChange }: {
             {/* MÃ CARD đứng đầu tiên. Đây là thứ người ta gõ khi nhắc tới card ở chỗ khác
                 ("xử #616", link ?task=616), nên nó phải nằm ở chỗ mắt chạm đầu tiên chứ không
                 nằm lẫn trong hàng nút cuối drawer — ở đó phải cuộn hết nội dung mới thấy. */}
-            <PillUI color="var(--fg-4)" tone="ghost" size="xs" uppercase={false}
+            <Pill color="var(--fg-4)" tone="ghost" size="xs" uppercase={false}
               label={`#${task.id}`} title="Mã card — dùng khi nhắc tới card này ở chỗ khác" />
             <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: 'var(--fg-3)', border: '1px solid var(--line)', borderRadius: 5, padding: '2px 7px', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '.03em' }}>🐞 Góp ý</span>
             <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, minWidth: 0 }}>{task.title}</h2>
@@ -3375,7 +3377,7 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
             {/* MÃ CARD đứng đầu tiên. Đây là thứ người ta gõ khi nhắc tới card ở chỗ khác
                 ("xử #616", link ?task=616), nên nó phải nằm ở chỗ mắt chạm đầu tiên chứ không
                 nằm lẫn trong hàng nút cuối drawer — ở đó phải cuộn hết nội dung mới thấy. */}
-            <PillUI color="var(--fg-4)" tone="ghost" size="xs" uppercase={false}
+            <Pill color="var(--fg-4)" tone="ghost" size="xs" uppercase={false}
               label={`#${task.id}`} title="Mã card — dùng khi nhắc tới card này ở chỗ khác" />
             {/* Badge LOẠI — glyph + nhãn (đồng nhất ký hiệu calendar). Trung tính (YDNI màu): loại là metadata, không tô. */}
             <span title={`Loại: ${tmeta.label}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: 'var(--fg-3)', border: '1px solid var(--line)', borderRadius: 5, padding: '2px 7px', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '.03em' }}>

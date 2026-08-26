@@ -36,6 +36,9 @@ import { getBacklinkSourceForTask } from '@/lib/actions/backlink-catalog';
 import { linkTaskToOutreach } from '@/lib/actions/outreach-campaigns';
 import { TaskOutreachDrawer } from '@/components/task-outreach-drawer';
 import { CampaignLinkPicker, EmailSendPrep } from '@/components/ui';
+// `Pill` trong file này là một helper cục bộ (badge trạng thái backlink), nên primitive
+// dùng chung phải mang tên khác ở đây. Vẫn là primitive nhà, không dựng bản thứ hai.
+import { Pill as PillUI } from '@/components/ui';
 // Xem ảnh/PDF NGAY TRONG TRANG. Không dùng <a target="_blank"> cho nội dung của mình —
 // scripts/check-canon.mjs chặn ở CI.
 import { MediaOpen, useMediaViewer } from '@/components/ui';
@@ -2953,6 +2956,11 @@ function GopYDrawer({ task, onClose, setSite, onDelete, onLocate, onChange }: {
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flexWrap: 'wrap' }}>
+            {/* MÃ CARD đứng đầu tiên. Đây là thứ người ta gõ khi nhắc tới card ở chỗ khác
+                ("xử #616", link ?task=616), nên nó phải nằm ở chỗ mắt chạm đầu tiên chứ không
+                nằm lẫn trong hàng nút cuối drawer — ở đó phải cuộn hết nội dung mới thấy. */}
+            <PillUI color="var(--fg-4)" tone="ghost" size="xs" uppercase={false}
+              label={`#${task.id}`} title="Mã card — dùng khi nhắc tới card này ở chỗ khác" />
             <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: 'var(--fg-3)', border: '1px solid var(--line)', borderRadius: 5, padding: '2px 7px', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '.03em' }}>🐞 Góp ý</span>
             <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, minWidth: 0 }}>{task.title}</h2>
           </div>
@@ -2989,7 +2997,6 @@ function GopYDrawer({ task, onClose, setSite, onDelete, onLocate, onChange }: {
           ) : (
             <button type="button" onClick={() => setDelConfirm(true)} title="Xoá card (có hoàn tác) — bản ghi gốc bên adfond không bị đụng" style={{ ...btn, padding: '2px 9px', color: 'var(--bad,#ef4444)' }}>🗑 Xoá</button>
           )}
-          <span style={{ fontSize: 10, color: 'var(--fg-4)', marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>#{task.id}</span>
         </div>
       </div>
     </Drawer>
@@ -3363,6 +3370,11 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
         {/* Header — title + close only. Split + delete demoted to the footer utility row. */}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
+            {/* MÃ CARD đứng đầu tiên. Đây là thứ người ta gõ khi nhắc tới card ở chỗ khác
+                ("xử #616", link ?task=616), nên nó phải nằm ở chỗ mắt chạm đầu tiên chứ không
+                nằm lẫn trong hàng nút cuối drawer — ở đó phải cuộn hết nội dung mới thấy. */}
+            <PillUI color="var(--fg-4)" tone="ghost" size="xs" uppercase={false}
+              label={`#${task.id}`} title="Mã card — dùng khi nhắc tới card này ở chỗ khác" />
             {/* Badge LOẠI — glyph + nhãn (đồng nhất ký hiệu calendar). Trung tính (YDNI màu): loại là metadata, không tô. */}
             <span title={`Loại: ${tmeta.label}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: 'var(--fg-3)', border: '1px solid var(--line)', borderRadius: 5, padding: '2px 7px', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '.03em' }}>
               <TypeGlyph name={tmeta.glyph as GlyphName} color="var(--fg-2)" size={12} /> {tmeta.label}
@@ -4080,7 +4092,6 @@ function TaskDrawer({ task, slug, project, accounts, media, product, onOpenProdu
           {!dropConfirm && (
             <button type="button" onClick={() => setDropConfirm(true)} title="Nguồn không khả thi cho mọi site (vd Wikidata notability) → xoá task này + mọi task cùng nguồn ở tất cả project. Có hoàn tác." style={{ ...btn, padding: '2px 9px', color: 'var(--bad,#ef4444)' }}>🗑 Drop nguồn (mọi site)</button>
           )}
-          <span style={{ fontSize: 10, color: 'var(--fg-4)', marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>#{task.id}</span>
         </div>
         {dropConfirm && (
           <div style={{ marginTop: 8, padding: 10, borderRadius: 8, border: '1px solid var(--bad,#ef4444)', background: 'color-mix(in srgb, var(--bad,#ef4444) 7%, transparent)', display: 'flex', flexDirection: 'column', gap: 6 }}>

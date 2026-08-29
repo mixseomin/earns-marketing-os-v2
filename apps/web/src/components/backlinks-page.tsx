@@ -2771,7 +2771,9 @@ function TraoDoiCard({ feedbackId, taskId, onChange, phao }: { feedbackId?: numb
   // Hai nguồn một UI: card adfond (feedbackId — luồng sống bên adfond, đi proxy) và card
   // góp ý MOS2 bản địa (prep_payload.trao_doi, server action). Khác nhau CHỈ ở chỗ
   // đọc/ghi/tải ảnh — bong bóng + composer dùng chung, sửa một chỗ ăn cả hai.
-  type Tin = { id?: number; nguoi: string; noiDung: string; xuLy: string | null; luc: string; anh: Array<{ id?: number; ten?: string | null; url: string }> };
+  // `trang` = trang ĐANG BỊ LỖI, chỉ tin gốc có (adfond `feedback.trang`, hoặc `goc.trang` của
+  // card góp ý MOS2 bản địa). Xem chú thích chỗ render bên dưới.
+  type Tin = { id?: number; nguoi: string; noiDung: string; xuLy: string | null; luc: string; trang?: string; anh: Array<{ id?: number; ten?: string | null; url: string }> };
   const [tin, setTin] = useState<Tin[] | null>(null);
   const [noiDung, setNoiDung] = useState('');
   const [anh, setAnh] = useState<Array<{ id?: number; url?: string; ten: string; xem: string }>>([]);
@@ -2874,6 +2876,17 @@ function TraoDoiCard({ feedbackId, taskId, onChange, phao }: { feedbackId?: numb
                   <span style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}>{t.luc.slice(0, 16).replace('T', ' ')}</span>
                 </div>
                 <div style={{ fontSize: 12.5, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{t.noiDung}</div>
+                {/* TRANG BỊ LỖI — câu trả lời cho "sửa ở đâu", tức thứ cần trước cả lời báo.
+                    Trước 29/08/2026 drawer không có đường nào tới nó: link chỉ nằm trong
+                    `draft`, mà draft chỉ hiện khi luồng RỖNG (`phao` bên dưới) — luồng thì
+                    không bao giờ rỗng vì tin gốc luôn là phần tử đầu. Nhánh ấy chết từ lúc
+                    viết, người mở card chỉ thấy lời than + ảnh rồi phải tự đoán trang nào. */}
+                {t.trang && (
+                  <a href={t.trang} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'inline-block', marginTop: 6, fontSize: 11, color: 'var(--accent)', textDecoration: 'underline dotted', wordBreak: 'break-all' }}>
+                    ↗ Trang bị lỗi: {t.trang.replace(/^https?:\/\//, '')}
+                  </a>
+                )}
                 {t.anh.length > 0 && (
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
                     {t.anh.map((a) => (
@@ -2975,9 +2988,14 @@ function GopYDrawer({ task, onClose, setSite, onDelete, onLocate, onChange }: {
         {/* KHÔNG có khối "nội dung" riêng: lời góp ý là TIN ĐẦU của luồng trao đổi ngay dưới
             (người gửi · lúc gửi · ảnh), reply nối tiếp vào đó. Tách ra hai chỗ thì người gửi
             không thuộc về cuộc nói chuyện nào và phải dán thêm một dòng "Người gửi:" — vá. */}
+        {/* NHÃN THEO NGUỒN: card adfond thì sourceUrl là BẢN GHI (?d=feedback:N); card góp ý
+            MOS2 bản địa thì sourceUrl chính là TRANG BỊ LỖI. Một nhãn cứng cho cả hai là nói
+            sai một nửa số card. */}
         {task.sourceUrl && (
           <a href={task.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 10, fontSize: 12, color: 'var(--accent)', textDecoration: 'underline dotted' }}>
-            ↗ Mở bản ghi trong adfond — sửa trạng thái gốc / viết trả lời ở đó
+            {Number.isFinite(feedbackId)
+              ? '↗ Mở bản ghi trong adfond — sửa trạng thái gốc / viết trả lời ở đó'
+              : '↗ Mở trang bị lỗi'}
           </a>
         )}
 

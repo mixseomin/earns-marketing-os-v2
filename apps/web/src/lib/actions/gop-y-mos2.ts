@@ -11,7 +11,10 @@ import { sql } from 'drizzle-orm';
 import { getCurrentUser } from '@/lib/auth';
 import { setBacklinkSite, setBacklinkSchedule } from '@/lib/actions/architecture';
 
-export type TinTraoDoi = { nguoi: string; noiDung: string; xuLy: string | null; luc: string; anh: string[] };
+export type TinTraoDoi = { nguoi: string; noiDung: string; xuLy: string | null; luc: string; anh: string[];
+  /** Trang đang bị lỗi — chỉ tin gốc có. Cùng khuôn `TraoDoi.trang` bên adfond để MỘT drawer
+   *  đọc được cả hai nguồn; thiếu nó thì card góp ý MOS2 lại là ca không biết sửa ở đâu. */
+  trang?: string };
 
 const homNayVN = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
 
@@ -38,7 +41,7 @@ export async function guiGopYMos2(input: {
     .filter(Boolean).join('\n\n').slice(0, 20_000);
   // Tin GỐC = tin đầu của luồng (người gửi · lúc gửi · ảnh) — cùng khuôn adfond (luongGopY):
   // góp ý là câu mở đầu cuộc trao đổi, reply nối vào sau, không phải một khối tách rời.
-  const goc: TinTraoDoi = { nguoi: me.email, noiDung: noiDung.slice(0, 4000), xuLy: null, luc: new Date().toISOString(), anh };
+  const goc: TinTraoDoi = { nguoi: me.email, noiDung: noiDung.slice(0, 4000), xuLy: null, luc: new Date().toISOString(), anh, trang: trang || undefined };
   const pp = {
     source_url: trang, source_platform: 'feedback', draft,
     trao_doi: [goc],

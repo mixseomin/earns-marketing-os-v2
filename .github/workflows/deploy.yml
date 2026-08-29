@@ -37,6 +37,7 @@ jobs:
       - run: npm ci --prefer-offline --no-audit --no-fund
       - run: node scripts/check-sql-aliases.mjs
       - run: node scripts/check-canon.mjs
+      - run: node scripts/check-gop-y-surface.mjs
       - run: npm run build:web
       # Tar so scp transfers one file (faster + atomic on receive). EXCLUDE .next/cache — it's build-time
       # only (next start never reads it), it's cached separately above, and shipping it bloats the artifact.

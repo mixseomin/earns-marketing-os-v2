@@ -2762,12 +2762,16 @@ function ResumeEditor({ task, onSave, onOpenTask }: { task: BacklinkTask; onSave
  * đi qua proxy /api/adfond/trao-doi để phiên MOS2 gác cửa và khoá nằm server-side).
  * Reply mặc định REWORK: bản ghi adfond về đang-làm, card này về To-do — onChange refresh
  * để pill trạng thái nói thật ngay. */
-function TraoDoiCard({ feedbackId, taskId, onChange, phao }: { feedbackId?: number; taskId: number; onChange: () => void;
-  /** Nội dung dự phòng — CHỈ hiện khi luồng rỗng (proxy adfond hỏng / card cũ). Bình thường
-   *  lời góp ý đã là tin đầu của luồng, in thêm ở đây là in hai lần. Nhận NODE dựng sẵn:
-   *  draft là markdown, instructions là chữ trần có URL — người gọi biết mình cầm cái nào,
-   *  ô trao đổi không phải đoán. */
-  phao?: ReactNode }) {
+/* MỘT đường hiện duy nhất: LUỒNG TRAO ĐỔI. Trước đây có thêm `phao` — bản dự phòng dựng từ
+ * `draft`/`instructions`, chỉ render khi luồng RỖNG. Luồng không bao giờ rỗng (tin gốc luôn là
+ * phần tử đầu), nên đường ấy chết, và thứ CHỈ có ở đó — link trang bị lỗi — biến mất khỏi mọi
+ * card suốt từ 26/08 tới 29/08/2026 mà không ai thấy: nhìn drawer vẫn đủ chữ và ảnh.
+ *
+ * Bài học nằm ở HÌNH DẠNG chứ không ở dòng code: một nội dung mà có hai đường hiện, trong đó
+ * một đường gần như không chạy, thì đường ấy ruỗng dần và không có gì báo. Nên đường thứ hai
+ * bị bỏ hẳn — thiếu dữ liệu thì phải thiếu Ở CHỖ NHÌN THẤY. `scripts/check-gop-y-surface.mjs`
+ * canh phần còn lại: mọi trường trong TinTraoDoi phải có chỗ render. */
+function TraoDoiCard({ feedbackId, taskId, onChange }: { feedbackId?: number; taskId: number; onChange: () => void }) {
   // Hai nguồn một UI: card adfond (feedbackId — luồng sống bên adfond, đi proxy) và card
   // góp ý MOS2 bản địa (prep_payload.trao_doi, server action). Khác nhau CHỈ ở chỗ
   // đọc/ghi/tải ảnh — bong bóng + composer dùng chung, sửa một chỗ ăn cả hai.
@@ -2775,6 +2779,7 @@ function TraoDoiCard({ feedbackId, taskId, onChange, phao }: { feedbackId?: numb
   // card góp ý MOS2 bản địa). Xem chú thích chỗ render bên dưới.
   type Tin = { id?: number; nguoi: string; noiDung: string; xuLy: string | null; luc: string; trang?: string; anh: Array<{ id?: number; ten?: string | null; url: string }> };
   const [tin, setTin] = useState<Tin[] | null>(null);
+  const [loiNap, setLoiNap] = useState('');
   const [noiDung, setNoiDung] = useState('');
   const [anh, setAnh] = useState<Array<{ id?: number; url?: string; ten: string; xem: string }>>([]);
   const [xuLy, setXuLy] = useState('rework');
@@ -2784,14 +2789,17 @@ function TraoDoiCard({ feedbackId, taskId, onChange, phao }: { feedbackId?: numb
   const fileRef = useRef<HTMLInputElement>(null);
 
   const nap = useCallback(() => {
+    /* NẠP HỎNG ≠ LUỒNG RỖNG. Trước đây cả hai nhánh `.catch(() => setTin([]))`, nên adfond sập
+       là drawer nói "chưa có phản hồi" — sai theo hướng tệ nhất: người đọc tin là chưa ai xử. */
+    setLoiNap('');
     if (feedbackId != null) {
       fetch(`/api/adfond/trao-doi?feedback=${feedbackId}`)
         .then((r) => r.json()).then((d) => setTin(Array.isArray(d.tin) ? d.tin : []))
-        .catch(() => setTin([]));
+        .catch(() => { setTin([]); setLoiNap('Không đọc được luồng trao đổi từ adfond — thử tải lại; nội dung góp ý nằm bên bản ghi gốc (nút ↗ ở trên).'); });
     } else {
       docTraoDoiCard(taskId)
         .then((ds) => setTin(ds.map((t) => ({ ...t, anh: (t.anh || []).map((u) => ({ url: u })) }))))
-        .catch(() => setTin([]));
+        .catch(() => { setTin([]); setLoiNap('Không đọc được luồng trao đổi của card này.'); });
     }
   }, [feedbackId, taskId]);
   useEffect(() => { nap(); }, [nap]);
@@ -2865,7 +2873,8 @@ function TraoDoiCard({ feedbackId, taskId, onChange, phao }: { feedbackId?: numb
         💬 Trao đổi{tin?.length ? ` · ${tin.length}` : ''}
       </div>
       {tin === null ? <div style={{ fontSize: 11.5, color: 'var(--fg-4)' }}>đang tải…</div>
-        : tin.length === 0 ? (phao ?? <div style={{ fontSize: 11.5, color: 'var(--fg-4)' }}>Chưa có phản hồi — AI ghi vào đây khi xử xong.</div>)
+        : loiNap ? <div style={{ fontSize: 11.5, color: 'var(--bad,#ef4444)', lineHeight: 1.5 }}>{loiNap}</div>
+        : tin.length === 0 ? <div style={{ fontSize: 11.5, color: 'var(--fg-4)' }}>Chưa có phản hồi — AI ghi vào đây khi xử xong.</div>
         : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {tin.map((t) => (
@@ -2999,10 +3008,7 @@ function GopYDrawer({ task, onClose, setSite, onDelete, onLocate, onChange }: {
           </a>
         )}
 
-        <TraoDoiCard feedbackId={Number.isFinite(feedbackId) ? feedbackId : undefined} taskId={task.id} onChange={onChange}
-          phao={task.draft
-            ? <div className="md-body" style={{ fontSize: 13, lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: mdToHtml(task.draft) }} />
-            : task.instructions ? <div style={{ fontSize: 13, lineHeight: 1.65, whiteSpace: 'pre-wrap' }}><LinkText text={task.instructions} /></div> : undefined} />
+        <TraoDoiCard feedbackId={Number.isFinite(feedbackId) ? feedbackId : undefined} taskId={task.id} onChange={onChange} />
 
         <div style={lbl}>Trạng thái</div>
         <StatusSegmented size="md" value={task.siteState}

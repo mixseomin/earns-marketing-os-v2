@@ -13,6 +13,12 @@
  *
  * Nên máy canh: mỗi khoá của `TinTraoDoi` phải xuất hiện dưới dạng `t.<khoá>` trong phần render
  * luồng ở backlinks-page.tsx. Thêm trường mới mà quên hiện → đỏ ngay ở CI, không đợi ba ngày.
+ *
+ * TẦM VỚI CỦA PHÉP KIỂM NÀY — nói trước để đừng tin quá tay. Nó đọc CHUỖI trong mã nguồn, tức
+ * một BẢN ĐẠI DIỆN của "có hiện hay không", không phải chính màn hình. Nó bắt được ca đã xảy ra
+ * (xoá chỗ render, hoặc thêm trường mà không render — đã thử ngược, đỏ đúng). Nó KHÔNG bắt được
+ * chỗ render còn nguyên nhưng bị vô hiệu hoá bằng một điều kiện luôn sai. Muốn chắc tới mức đó
+ * thì phải dựng thật rồi soi màn — đắt hơn nhiều lần thứ nó canh, nên chưa làm.
  */
 import { readFileSync } from 'node:fs';
 

@@ -1,5 +1,5 @@
 // GA4 property mapping (domain → property ID) — auto-pulled by daily cron
-// `ga4-list-oauth.mjs` on as.on.tc. Listing covers ALL GA4 properties under
+// `/opt/cgg-report/ga4-list-oauth.mjs` on as.on.tc. Listing covers ALL GA4 properties under
 // htuan82@gmail.com (35 sites as of 2026-06-04).
 
 const GA4_URL = 'https://militarymarkdown.com/wp-content/uploads/phase7/ga4-properties.json';

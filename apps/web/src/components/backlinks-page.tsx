@@ -1226,6 +1226,26 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // Shared filter predicate (search + attribute filters). Tab (status) applied separately
   // so BOTH the list and the calendar honour the same filters — "global" filtering.
   const hideClosed = !showClosed && tab === 'all';
+  /* CHIP PLAN — card thuộc một kế hoạch dài hơi đều trỏ URL nguồn về cùng một tài liệu
+   * (…/plan-10k.md#t0-domain, #t1-2…). Người theo dõi muốn NHÌN lịch của riêng plan mà không
+   * phải gõ gì — nên ≥3 card chung một tài liệu .md thì tự mọc một chip: bấm = lọc theo tên
+   * tài liệu (matchesQuery đã khớp sourceUrl nên tái dùng nguyên bộ lọc, calendar/kanban/list
+   * đều ăn theo). Data-driven, không hardcode tên plan — plan sau tự có chip của nó. */
+  const planChips = useMemo(() => {
+    const dem = new Map<string, number>();
+    for (const t of tasks) {
+      if (!t.sourceUrl) continue;
+      try {
+        const duong = new URL(t.sourceUrl).pathname;
+        const ten = duong.split('/').pop() ?? '';
+        if (!ten.endsWith('.md')) continue;
+        const goc = ten.slice(0, -3);
+        if (goc) dem.set(goc, (dem.get(goc) ?? 0) + 1);
+      } catch { /* URL hỏng thì bỏ, không phải việc của chip */ }
+    }
+    return [...dem.entries()].filter(([, n]) => n >= 3).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  }, [tasks]);
+
   const filteredAll = useMemo(() => {
     const s = q.trim().toLowerCase();
     return tasks.filter((t) => {
@@ -2172,6 +2192,11 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         position: 'sticky' as const, top: 0, zIndex: 30, background: 'var(--bg-0)', padding: '8px 0',
         ...(stuck ? { boxShadow: '0 -14px 0 14px var(--bg-0)', borderBottom: '1px solid var(--line)' } : {}) }}>
         <SearchInput value={q} onChange={setQ} placeholder="tìm task (tên/URL/method/niche)…" width={240} />
+        {planChips.map(([ten, n]) => (
+          <button key={ten} type="button" onClick={() => setQ(q === ten ? '' : ten)}
+            title={q === ten ? 'Bỏ lọc plan' : `Chỉ hiện ${n} card của ${ten} (lịch/kanban/list đều lọc theo)`}
+            style={fchip(q === ten)}>📋 {ten} ({n})</button>
+        ))}
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
           <button type="button" onClick={() => setKinds([])} title="Mọi loại việc"
             style={{ ...btn, cursor: 'pointer', padding: '3px 9px', ...(kinds.length === 0 ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : {}) }}>All</button>

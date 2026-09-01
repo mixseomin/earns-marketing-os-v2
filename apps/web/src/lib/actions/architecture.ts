@@ -774,6 +774,9 @@ async function checkLink(liveUrl: string, host: string): Promise<LinkCheck> {
 }
 async function persistVerify(taskId: number, site: string, result: LinkCheck): Promise<void> {
   const db = getDb(); if (!db) return;
+  // Lọc card góp ý ở CẢ HAI chỗ, cùng lý lẽ với cổng trong setBacklinkSite: query trên né được
+  // lượt quét hàng loạt, nhưng verifyBacklink (nút soi thủ công trong Studio) gọi thẳng vào đây.
+  // Chặn một chỗ thì đường kia vẫn lật được card.
   // Per-site status transition from a health-check (site is regex-validated by the callers):
   //   found                       → 'verified' (link confirmed present)
   //   reachable, gone, unmentioned → 'broken', but ONLY if we previously counted it live
@@ -797,7 +800,8 @@ async function persistVerify(taskId: number, site: string, result: LinkCheck): P
       || jsonb_build_object('site_verify', COALESCE(prep_payload->'site_verify','{}'::jsonb) || jsonb_build_object(${site}::text, ${JSON.stringify(result)}::jsonb))
       ${bump},
       updated_at = now()
-    WHERE id = ${taskId} AND platform_key = 'backlink'`);
+    WHERE id = ${taskId} AND platform_key = 'backlink'
+      AND COALESCE(prep_payload->>'source_platform', '') <> 'feedback'`);
   if (result.found) {
     await db.execute(sql`UPDATE human_tasks SET status='completed', completed_at=COALESCE(completed_at, now()), updated_at=now() WHERE id=${taskId} AND platform_key='backlink' AND status<>'completed' AND COALESCE(prep_payload->'site_status'->>${site}, '') <> 'review'`);
   } else if (result.reachable && !result.mentioned) {
@@ -834,9 +838,16 @@ export async function verifyAllBacklinks(site: string, targetHost: string): Prom
   const host = normHost(targetHost);
   if (!host) return { ok: false, error: 'thiếu domain đích' };
   try {
+    // Card GÓP Ý không phải backlink. Duyệt một card góp ý ghi link TRANG BÁO LỖI vào site_url
+    // (setBacklinkSite … source_url), nên nó lọt vào đây và bị đi soi như một link đã đặt: trang
+    // mở được 200 nhưng dĩ nhiên chẳng chứa link về nhà mình → persistVerify hạ 'completed'
+    // xuống 'broken' rồi mở lại dòng. Sáng 31/08/2026 một lượt cron lật 77 card góp ý adfond đã
+    // xong thành "Link lỗi · phải làm lại". Không ai thấy: cả completed lẫn broken đều nằm trong
+    // nhóm ẩn mặc định của bảng.
     const rows = await db.execute(sql`
       SELECT id, prep_payload->'site_url'->>${site} AS url FROM human_tasks
-      WHERE platform_key='backlink' AND (prep_payload->'site_url'->>${site}) ~ '^https?://'`);
+      WHERE platform_key='backlink' AND (prep_payload->'site_url'->>${site}) ~ '^https?://'
+        AND COALESCE(prep_payload->>'source_platform', '') <> 'feedback'`);
     const list = rows as unknown as Array<{ id: number; url: string }>;
     let checked = 0, broken = 0;
     for (const r of list) {

@@ -108,6 +108,10 @@ async function productRows(since: string): Promise<Part> {
   const res = await fetch(`${DIRECTUS_URL}/items/product_stats?${qs}`, {
     headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` },
     next: { revalidate: 600, tags: [REVENUE_TAG] },
+    // Timeout bắt buộc: revenue là widget PHỤ trên home, nhưng home await Promise.all cả nó.
+    // fetch không timeout + upstream khựng lúc cache lạnh = treo CẢ dashboard (spinner vô hạn).
+    // Abort → reject → .catch ở getRevenueByDay nuốt → block báo lỗi, trang vẫn lên.
+    signal: AbortSignal.timeout(8000),
   });
   if (!res.ok) return { rows: [], error: `product_stats: Directus ${res.status}` };
   const j = (await res.json()) as { data?: Array<{ date: string; platform: string | null; revenue: string | number | null; gross_revenue: string | number | null }> };
@@ -132,7 +136,7 @@ async function gumroadRows(since: string): Promise<Part> {
   for (const { token } of toks) {
     try {
       const url = `https://api.gumroad.com/v2/sales?access_token=${encodeURIComponent(token)}&after=${since}`;
-      const res = await fetch(url, { next: { revalidate: 300, tags: [REVENUE_TAG] } });
+      const res = await fetch(url, { next: { revalidate: 300, tags: [REVENUE_TAG] }, signal: AbortSignal.timeout(8000) });
       if (!res.ok) { errs.push(`API ${res.status}`); continue; }
       const j = (await res.json()) as {
         success?: boolean;

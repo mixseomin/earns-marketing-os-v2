@@ -91,8 +91,11 @@ export async function gumroadTokens(): Promise<{ token: string; source: 'vault' 
 // doanh thu tiếp tục báo "không đọc được Gumroad" trong khi token đã đúng từ lâu, và không có
 // cách nào ép nó đọc lại. Hỏng thì thử lại ngay với no-store để trạng thái sai không sống dai.
 async function fetchLive(url: string): Promise<Response> {
-  const r = await fetch(url, { next: { revalidate: 300, tags: [REVENUE_TAG] } });
-  return r.ok ? r : fetch(url, { cache: 'no-store' });
+  // Timeout bắt buộc: getGumroadSummary render trên /revenue (server component). Gumroad API
+  // hay khựng — fetch không timeout treo cả trang y như home từng chết. Abort → reject →
+  // readStore's try/catch nuốt thành store rỗng-báo-lỗi. Signal riêng mỗi lần để retry đủ 8s.
+  const r = await fetch(url, { next: { revalidate: 300, tags: [REVENUE_TAG] }, signal: AbortSignal.timeout(8000) });
+  return r.ok ? r : fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
 }
 
 async function readStore(token: string, source: 'vault' | 'env'): Promise<{ store: GumroadStore; products: GumroadProduct[] }> {

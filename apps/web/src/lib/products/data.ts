@@ -63,11 +63,15 @@ export interface ProductsView {
 
 async function get<T>(path: string, revalidate = 300): Promise<T[]> {
   if (!DIRECTUS_TOKEN) return [];
-  const r = await fetch(`${DIRECTUS_URL}${path}`, {
-    headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }, next: { revalidate },
-  });
-  if (!r.ok) return [];
-  return ((await r.json()) as { data?: T[] }).data ?? [];
+  try {
+    const r = await fetch(`${DIRECTUS_URL}${path}`, {
+      // Timeout + catch: trang products render server-side await hàm này. Directus khựng lúc
+      // cache lạnh mà fetch không timeout = treo cả trang. Hỏng/quá giờ → trả rỗng, trang vẫn lên.
+      headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }, next: { revalidate }, signal: AbortSignal.timeout(8000),
+    });
+    if (!r.ok) return [];
+    return ((await r.json()) as { data?: T[] }).data ?? [];
+  } catch { return []; }
 }
 
 const num = (v: unknown) => Number(v) || 0;

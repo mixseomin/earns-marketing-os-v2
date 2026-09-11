@@ -23,6 +23,11 @@ interface RowData {
   // Interactions (GA4 custom events, 7d)
   ga4_interactions_7d?: number | null;
   ga4_interactions_by?: Record<string, number> | null;
+  // GA4 audience (7d) — the "is anyone coming" number; Live and Interact read 0 on a quiet site
+  ga4_users_7d?: number | null;
+  ga4_sessions_7d?: number | null;
+  ga4_views_7d?: number | null;
+  ga4_users_prev_7d?: number | null;
   // GSC group
   impressions_7d: number;
   clicks_7d: number;
@@ -67,7 +72,7 @@ interface RowData {
   yandex_sqi?: number | null;
 }
 
-type ColGroup = 'live' | 'interactions' | 'gsc' | 'adsense' | 'bing' | 'bl' | 'ai' | 'subs' | 'yandex';
+type ColGroup = 'live' | 'ga4' | 'interactions' | 'gsc' | 'adsense' | 'bing' | 'bl' | 'ai' | 'subs' | 'yandex';
 
 interface Props {
   rows: RowData[];
@@ -79,6 +84,7 @@ interface Props {
 // DataTable derives the header band + column tint + chip from these. subs/yandex off by default.
 const GROUPS: DataGroup[] = [
   { key: 'live', label: 'Live', color: '#22c55e' },
+  { key: 'ga4', label: 'GA4', color: '#f97316' },
   { key: 'interactions', label: 'Interact', color: '#ec4899' },
   { key: 'bing', label: 'Bing', color: '#9d6cff' },
   { key: 'bl', label: 'BL', color: '#22d3ee' },
@@ -154,6 +160,27 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
       cell: (r) => <span style={tone((r.ga4_active_30min ?? 0) > 0)}>{num(r.ga4_active_30min)}</span>,
       onCellClick: (r) => openTool(gaUrl(r)),
       total: (rows) => sum(rows, (r) => r.ga4_active_30min).toLocaleString(),
+    },
+
+    // ── GA4 audience (7d). Users bold with a trend arrow vs the 7 days before; Views thin. ──
+    {
+      key: 'ga4_users', sortValue: (r) => r.ga4_users_7d ?? null, group: 'ga4', header: 'Users',
+      title: 'GA4 active users last 7 days (7daysAgo..today). Arrow compares with the 7 days before. Hover a cell for sessions and the previous week · click → GA4 reports',
+      cell: (r) => {
+        const u = r.ga4_users_7d, p = r.ga4_users_prev_7d;
+        const arrow = u == null || p == null || u === p ? '' : u > p ? ' ↑' : ' ↓';
+        return <span style={{ ...tone((u ?? 0) > 0), fontWeight: (u ?? 0) > 0 ? 700 : 400 }}>{num(u)}<span style={{ fontSize: 10, color: arrow === ' ↑' ? 'var(--ok)' : 'var(--fg-3)' }}>{arrow}</span></span>;
+      },
+      cellTitle: (r) => r.ga4_users_7d == null ? 'No GA4 property mapped for this domain (ga4-properties.json)' : `${r.ga4_users_7d.toLocaleString()} users · ${(r.ga4_sessions_7d ?? 0).toLocaleString()} sessions in the last 7 days · ${(r.ga4_users_prev_7d ?? 0).toLocaleString()} users the 7 days before`,
+      onCellClick: (r) => openTool(gaUrl(r)),
+      total: (rows) => sum(rows, (r) => r.ga4_users_7d).toLocaleString(),
+    },
+    {
+      key: 'ga4_views', sortValue: (r) => r.ga4_views_7d ?? null, group: 'ga4', header: 'Views',
+      title: 'GA4 page views (screenPageViews) last 7 days · click → GA4 reports',
+      cell: (r) => <span style={lightImpr((r.ga4_views_7d ?? 0) > 0)}>{num(r.ga4_views_7d)}</span>,
+      onCellClick: (r) => openTool(gaUrl(r)),
+      total: (rows) => sum(rows, (r) => r.ga4_views_7d).toLocaleString(),
     },
 
     // ── Interactions (GA4 custom events, 7d) ──

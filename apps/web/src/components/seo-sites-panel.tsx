@@ -6,6 +6,7 @@ import type { GscDailyPoint } from '@/lib/projects/gsc-timeseries';
 import { loadGa4Properties, pickGa4 } from '@/lib/projects/ga4-properties';
 import { loadGa4Realtime, pickGa4Realtime } from '@/lib/projects/ga4-realtime';
 import { loadGa4Events, pickGa4Events } from '@/lib/projects/ga4-events';
+import { loadGa4Users, pickGa4Users } from '@/lib/projects/ga4-users';
 import { loadBingStats, pickBing } from '@/lib/projects/bing-stats';
 import { loadGa4AiReferrals, pickGa4Ai } from '@/lib/projects/ga4-ai-referrals';
 import { loadSubscribers, pickSubs } from '@/lib/projects/subscribers';
@@ -108,6 +109,7 @@ export async function SeoSitesPanel() {
   const ga4Payload = await loadGa4Properties();
   const ga4Realtime = await loadGa4Realtime();
   const ga4Events = await loadGa4Events();
+  const ga4Users = await loadGa4Users();
   const bingPayload = await loadBingStats();
   const ga4AiPayload = await loadGa4AiReferrals();
   const adsenseByDomain = await loadAdsenseByDomain(7);
@@ -156,6 +158,7 @@ export async function SeoSitesPanel() {
           const ai = pickGa4Ai(ga4AiPayload, r.domain);
           const rt = pickGa4Realtime(ga4Realtime, r.domain);
           const ev = pickGa4Events(ga4Events, r.domain);
+          const au = pickGa4Users(ga4Users, r.domain);
           return {
             domain: r.domain,
             emoji: meta.emoji,
@@ -171,6 +174,10 @@ export async function SeoSitesPanel() {
             ga4_active_30min: rt?.last30min ?? null,
             ga4_interactions_7d: ev?.total ?? null,
             ga4_interactions_by: ev?.byEvent ?? null,
+            ga4_users_7d: au?.users_7d ?? null,
+            ga4_sessions_7d: au?.sessions_7d ?? null,
+            ga4_views_7d: au?.views_7d ?? null,
+            ga4_users_prev_7d: au?.users_prev_7d ?? null,
             impressions_7d: r.stats.impressions_7d,
             clicks_7d: r.stats.clicks_7d,
             avg_position_7d: r.stats.avg_position_7d,

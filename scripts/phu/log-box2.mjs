@@ -1,0 +1,85 @@
+#!/usr/bin/env node
+// PHỦ adapter: kéo nhật ký click (/px) + cửa ra (/r/) của chatwhenbored* trên box2 → /api/phu/ingest.
+//
+// Chạy trên box3 (cron */15), đọc log qua ssh root@box2 từ byte offset đã ghi ở STATE (log xoay thì
+// kích thước nhỏ hơn offset → đọc lại từ 0). Mỗi dòng thành một sự kiện, ma_don = sha1(dòng) nên chạy
+// lại không nhân đôi. Bot/curl và IP thử của box3 bị bỏ. Kèm nhịp tim lander (mtime + số phòng).
+//   env: MOS2_EXT_KEY (từ /opt/earns-marketing-os-v2/.env.production) · PHU_PROJECT (mặc định adfond)
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+
+const BOX2 = 'root@37.27.241.222';
+const MOS2 = process.env.MOS2_URL || 'http://127.0.0.1:3821';
+const KEY = process.env.MOS2_EXT_KEY;
+const PROJECT = process.env.PHU_PROJECT || 'adfond';
+const STATE_DIR = '/var/lib/mos2-phu';
+const STATE = `${STATE_DIR}/log-box2.json`;
+const LOGS = ['chatwhenbored', 'chatwhenbored-live', 'chatwhenbored-ai'];
+const BOT = /bot|crawl|spider|curl|python|wget|headless|lighthouse|facebookexternalhit|preview/i;
+const IP_THU = new Set(['2a01:4f8:1c16:9aaf::1', '127.0.0.1']);   // box3 tự test — không phải khách
+if (!KEY) { console.error('thiếu MOS2_EXT_KEY'); process.exit(1); }
+
+const ssh = (cmd) => execFileSync('ssh', ['-o', 'BatchMode=yes', BOX2, cmd], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+mkdirSync(STATE_DIR, { recursive: true });
+const state = existsSync(STATE) ? JSON.parse(readFileSync(STATE, 'utf8')) : {};
+
+// Nền tảng đích của một cú /r/: referer /go/<slug>/ → slug; host live.* → chaturbate; còn lại = mặc định site.
+const dichRa = (ref) => { const m = /\/go\/([a-z0-9-]+)\//.exec(ref || ''); if (m) return m[1]; if (/^https?:\/\/live\./.test(ref || '')) return 'chaturbate'; return 'chaturbate'; };
+const sidTuPx = (q) => { const m = /(?:^|&)s=([^&]*)/.exec(q || ''); return m ? decodeURIComponent(m[1]) : ''; };
+const px = (q, k) => { const m = new RegExp(`(?:^|&)${k}=([^&]*)`).exec(q || ''); return m ? decodeURIComponent(m[1]) : ''; };
+
+const events = [];
+let docThem = 0;
+for (const ten of LOGS) {
+  for (const k of ['clicks', 'loira']) {
+    const f = `/var/log/nginx/${ten}-${k}.log`;
+    const size = Number(ssh(`stat -c %s ${f} 2>/dev/null || echo 0`).trim());
+    const key = `${ten}-${k}`;
+    let off = Number(state[key] || 0);
+    if (size < off) off = 0;                       // log xoay
+    if (size === off) continue;
+    const chunk = ssh(`tail -c +${off + 1} ${f}`);
+    // Chỉ ăn tới hết dòng cuối cùng TRỌN VẸN; phần dở dang đọc lượt sau.
+    const cat = chunk.lastIndexOf('\n');
+    if (cat < 0) continue;
+    const lines = chunk.slice(0, cat).split('\n');
+    state[key] = off + Buffer.byteLength(chunk.slice(0, cat + 1));
+    for (const line of lines) {
+      const c = line.split('\t');
+      if (c.length < 6) continue;
+      const ts = c[0], ua = c[4], ip = c[5];
+      if (BOT.test(ua) || IP_THU.has(ip)) continue;
+      const host = (c[3].match(/^https?:\/\/([^/]+)/) || [])[1] || '';
+      if (k === 'clicks') {
+        const q = c[1];
+        events.push({ ts, loai: 'click', sid: sidTuPx(q) || undefined, platform: px(q, 'd') || undefined, mang: host || undefined,
+          ma_don: createHash('sha1').update(line).digest('hex').slice(0, 24), nguon_du_lieu: 'log-px', raw: { p: px(q, 'p'), r: px(q, 'r'), host } });
+      } else {
+        events.push({ ts, loai: 'out', sid: c[1] || undefined, platform: dichRa(c[3]), mang: host || undefined,
+          ma_don: createHash('sha1').update(line).digest('hex').slice(0, 24), nguon_du_lieu: 'log-loira', raw: { ref: c[3], d: c[2] } });
+      }
+      docThem++;
+    }
+  }
+}
+
+// Nhịp tim lander: mtime + số phòng đang hiện.
+const landers = [];
+for (const [host, path, docroot, ten, dich] of [
+  ['live.chatwhenbored.com', '/', '/var/www/chatwhenbored-live/index.html', 'Girls live (Chaturbate rooms)', 'chaturbate'],
+  ['live.chatwhenbored.com', '/couples/', '/var/www/chatwhenbored-live/couples/index.html', 'Couples live', 'chaturbate'],
+  ['live.chatwhenbored.com', '/trans/', '/var/www/chatwhenbored-live/trans/index.html', 'Trans live', 'chaturbate'],
+  ['ai.chatwhenbored.com', '/', '/var/www/chatwhenbored-ai/index.html', 'AI girlfriend (Candy.ai)', 'candy-ai'],
+]) {
+  const out = ssh(`if [ -f ${docroot} ]; then stat -c %Y ${docroot}; grep -o 'class="ph"' ${docroot} | wc -l; else echo 0; echo 0; fi`).trim().split('\n');
+  const mtime = Number(out[0] || 0), so = Number(out[1] || 0);
+  landers.push({ host, path, ten, dich, last_sinh: mtime ? new Date(mtime * 1000).toISOString() : null, so_muc: so || null, trang_thai: mtime ? 'song' : 'hong' });
+}
+
+const body = { project: PROJECT, events, landers, adapter: { key: 'log-box2', name: 'Nhật ký click + cửa ra (box2)', loai: 'cron', lich: '*/15 * * * *', ok: true, note: `${docThem} dòng mới, ${events.length} sự kiện` } };
+const res = await fetch(`${MOS2}/api/phu/ingest`, { method: 'POST', headers: { authorization: `Bearer ${KEY}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+const j = await res.json().catch(() => ({}));
+if (!res.ok) { console.error('ingest', res.status, JSON.stringify(j)); process.exit(1); }
+writeFileSync(STATE, JSON.stringify(state));
+console.log(new Date().toISOString(), 'log-box2:', JSON.stringify(j), `| ${docThem} dòng`);

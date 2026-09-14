@@ -61,6 +61,7 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser, onMobil
         ],
       },
       { href: `/p/${pid}/plays`,  label: t('nav.plays', 'Plays'), icon: '🎯' },
+      { href: `/p/${pid}/phu`,    label: t('nav.phu', 'Phủ'), icon: '🛰' },
       { href: `/p/${pid}/plans`,  label: t('nav.plans', 'Kế hoạch'), icon: '🎯' },
     ]),
     {
@@ -195,6 +196,7 @@ function ProjectNav({ projectId, role }: { projectId: string; role: 'admin' | 'o
       key: 'grow', label: 'Grow',
       items: [
         { href: `/p/${p}/plays`,        icon: '🎯', color: 'var(--neon-amber)', label: 'Plays',        sub: 'mọi kênh phân phối · 1 màn', role: 'admin' },
+        { href: `/p/${p}/phu`,          icon: '🛰', color: 'var(--neon-pink, #f472b6)', label: 'Phủ',          sub: 'affiliate · traffic mua · phễu', role: 'admin' },
         { href: `/p/${p}/backlinks`,    icon: '🔗', color: 'var(--neon-cyan)',  label: 'Backlinks',    sub: 'source pipeline · assign · verify', role: 'admin' },
         { href: `/p/${p}/outreach`,     icon: '✉', color: 'var(--neon-amber)',  label: 'Outreach',     sub: 'widget embeds · pitch', role: 'admin' },
         { href: `/p/${p}/seeding`,      icon: '⏱', color: 'var(--neon-lime)',   label: 'Seeding',      sub: 'cadence · nhận diện', role: 'admin' },

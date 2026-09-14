@@ -17,7 +17,7 @@ export type PhuCamp = {
 export type PhuPheu = {
   sidPrefix: string; click: number; out: number; signup: number; lead: number; spendCount: number; revenue: number; chi: number;
 };
-export type PhuAdapter = { key: string; name: string; loai: string; lich: string | null; lastRun: string | null; lastOk: boolean | null; lastNote: string | null };
+export type PhuAdapter = { key: string; name: string; loai: string; lich: string | null; lastRun: string | null; lastOk: boolean | null; lastNote: string | null; postbackToken: string | null };
 export type PhuLander = { host: string; path: string; ten: string; moTa: string | null; dich: string | null; lastSinh: string | null; soMuc: number | null; trangThai: string };
 
 export type PhuData = {

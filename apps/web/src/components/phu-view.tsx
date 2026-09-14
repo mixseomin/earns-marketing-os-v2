@@ -81,15 +81,14 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
       </Section>
 
       <Section title={`Nguồn traffic (${d.nguon.length}) & campaign (${d.camp.length})`}
-        subtitle="Mỗi nguồn có token postback riêng: dán URL mẫu vào mạng affiliate (CrakRevenue/AWEmpire/Stripcash) để signup/sale đổ về đúng nguồn. sid = <nguồn>_<camp>_<zone>_<clickid>."
+        subtitle="sid = <nguồn>_<camp>_<zone>_<clickid> — nguồn và campaign nằm trong sid, mạng affiliate trả về qua postback (URL ở mục Adapter)."
         headerRight={<span style={{ display: 'flex', gap: 6 }}><button style={btn} onClick={() => setSuaNg('moi')}>+ nguồn</button><button style={btn} onClick={() => setSuaCamp('moi')}>+ campaign</button></span>}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr><th style={head}>Nguồn</th><th style={head}>Loại</th><th style={head}>Trạng thái</th><th style={head}>Nạp</th><th style={head}>Macro click</th><th style={head}>Postback URL (mạng aff gọi về)</th></tr></thead>
+            <thead><tr><th style={head}>Nguồn</th><th style={head}>Loại</th><th style={head}>Trạng thái</th><th style={head}>Nạp</th><th style={head}>Macro click</th><th style={head}>Ghi chú</th></tr></thead>
             <tbody>
               {d.nguon.map((g) => {
                 const tt = PHU_NGUON_TRANG_THAI[g.trangThai] ?? { label: g.trangThai, color: 'var(--fg-3)' };
-                const pb = g.postbackToken ? `https://mos2.on.tc/api/phu/postback?k=${g.postbackToken}&mang=<mạng>&event=<signup|lead|spend>&sid=<macro sub id>&amount=<payout>&id=<txn id>` : '—';
                 return (
                   <tr key={g.id} onClick={() => setSuaNg(g)} style={{ cursor: 'pointer' }}>
                     <td style={cell}><b>{g.name}</b><div style={{ ...mono, color: 'var(--fg-3)', fontSize: 10 }}>{g.key}</div></td>
@@ -97,7 +96,7 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
                     <td style={cell}><Pill color={tt.color} label={tt.label} /></td>
                     <td style={{ ...cell, ...mono }}>{usd(g.napUsd)}</td>
                     <td style={{ ...cell, ...mono }}>{g.macroClick ?? '—'}</td>
-                    <td style={{ ...cell, ...mono, fontSize: 10, wordBreak: 'break-all', maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>{pb}</td>
+                    <td style={{ ...cell, fontSize: 11, color: 'var(--fg-2)', maxWidth: 360 }}>{g.ghiChu ?? '—'}</td>
                   </tr>
                 );
               })}
@@ -170,7 +169,7 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
           </table>
           {!d.landers.length && <EmptyState icon="🛬" title="Chưa có lander" compact />}
         </Section>
-        <Section title={`Adapter (${d.adapters.length})`} subtitle="Mọi đường số liệu đổ vào trang này. Đỏ = lâu không chạy hoặc lần cuối lỗi.">
+        <Section title={`Adapter (${d.adapters.length})`} subtitle="Mọi đường số liệu đổ vào trang này. Đỏ = lâu không chạy hoặc lần cuối lỗi. Dòng postback kèm URL để dán vào mạng affiliate.">
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr><th style={head}>Adapter</th><th style={head}>Lịch</th><th style={head}>Chạy cuối</th><th style={head}>Ghi chú</th></tr></thead>
             <tbody>
@@ -181,7 +180,7 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
                     <td style={cell}><b>{a.name}</b><div style={{ ...mono, color: 'var(--fg-3)', fontSize: 10 }}>{a.key} · {a.loai}</div></td>
                     <td style={{ ...cell, ...mono, fontSize: 11 }}>{a.lich ?? '—'}</td>
                     <td style={{ ...cell, ...mono, color: hong ? 'var(--danger)' : 'var(--ok)' }}>{khi(a.lastRun)}</td>
-                    <td style={{ ...cell, fontSize: 11, color: 'var(--fg-2)' }}>{a.lastNote ?? '—'}</td>
+                    <td style={{ ...cell, fontSize: 11, color: 'var(--fg-2)' }}>{a.lastNote ?? '—'}{a.loai === 'postback' && a.postbackToken && <div style={{ ...mono, fontSize: 10, wordBreak: 'break-all', color: 'var(--fg-3)', marginTop: 4 }}>https://mos2.on.tc/api/phu/postback?k={a.postbackToken}&amp;event=&lt;signup|lead|spend&gt;&amp;sid=&lt;macro sub id&gt;&amp;amount=&lt;payout&gt;&amp;id=&lt;txn id&gt;</div>}</td>
                   </tr>
                 );
               })}

@@ -71,7 +71,7 @@ export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
       target: (r.target && typeof r.target === 'object' ? r.target : {}) as Record<string, unknown>,
       nganSachNgay: r.ngan_sach_ngay == null ? null : n(r.ngan_sach_ngay), trangThai: String(r.trang_thai), batDau: s(r.bat_dau), ghiChu: s(r.ghi_chu),
     })),
-    adapters: (ad as unknown as R[]).map((r) => ({ key: String(r.key), name: String(r.name), loai: String(r.loai), lich: s(r.lich), lastRun: s(r.last_run), lastOk: r.last_ok == null ? null : Boolean(r.last_ok), lastNote: s(r.last_note) })),
+    adapters: (ad as unknown as R[]).map((r) => ({ key: String(r.key), name: String(r.name), loai: String(r.loai), lich: s(r.lich), lastRun: s(r.last_run), lastOk: r.last_ok == null ? null : Boolean(r.last_ok), lastNote: s(r.last_note), postbackToken: s(r.postback_token) })),
     landers: (ld as unknown as R[]).map((r) => ({ host: String(r.host), path: String(r.path), ten: String(r.ten), moTa: s(r.mo_ta), dich: s(r.dich), lastSinh: s(r.last_sinh), soMuc: r.so_muc == null ? null : n(r.so_muc), trangThai: String(r.trang_thai) })),
   };
 }

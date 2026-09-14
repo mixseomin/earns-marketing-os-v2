@@ -25,10 +25,14 @@ async function xuLy(req: Request) {
   if (!k) return new NextResponse('missing k', { status: 401 });
   const db = getDb();
   if (!db) return new NextResponse('db', { status: 503 });
-  const ng = (await db.execute(sql`SELECT project_id, key FROM phu_nguon WHERE postback_token = ${k} LIMIT 1`)) as unknown as Array<{ project_id: string; key: string }>;
-  if (!ng.length) return new NextResponse('bad k', { status: 401 });
-  const { project_id: projectId, key: nguonKey } = ng[0]!;
-  const mang = String(p.mang ?? p.net ?? 'khac').toLowerCase().replace(/[^a-z0-9-]/g, '');
+  // Token theo MẠNG (phu_adapter postback-<mạng>) là đường chính; token theo nguồn (phu_nguon) vẫn nhận
+  // để URL đã dán ở đâu đó không chết. Mạng suy từ adapter, hoặc từ tham số mang= khi token là của nguồn.
+  const ad = (await db.execute(sql`SELECT project_id, key FROM phu_adapter WHERE postback_token = ${k} LIMIT 1`)) as unknown as Array<{ project_id: string; key: string }>;
+  const ng = ad.length ? [] : (await db.execute(sql`SELECT project_id, key FROM phu_nguon WHERE postback_token = ${k} LIMIT 1`)) as unknown as Array<{ project_id: string; key: string }>;
+  if (!ad.length && !ng.length) return new NextResponse('bad k', { status: 401 });
+  const projectId = (ad[0] ?? ng[0])!.project_id;
+  const nguonKey = ng[0]?.key ?? '';
+  const mang = ad.length ? ad[0]!.key.replace(/^postback-/, '') : String(p.mang ?? p.net ?? 'khac').toLowerCase().replace(/[^a-z0-9-]/g, '');
   const loai = LOAI[String(p.event ?? p.type ?? '').toLowerCase()] ?? 'lead';
   const sid = String(p.sid ?? p.aff_sub ?? p.sub ?? '').slice(0, 200);
   const amount = Number(p.amount ?? p.payout ?? p.value ?? 0) || 0;
@@ -37,13 +41,13 @@ async function xuLy(req: Request) {
     || createHash('sha1').update([sid, loai, amount, ts.toISOString().slice(0, 16)].join('|')).digest('hex').slice(0, 24);
   await db.execute(sql`
     INSERT INTO phu_su_kien (project_id, ts, loai, sid, sid_prefix, platform_slug, mang, amount, ma_don, nguon_du_lieu, raw)
-    VALUES (${projectId}, ${ts.toISOString()}::timestamptz, ${loai}, ${sid || null}, ${sidPrefix(sid) || nguonKey}, ${p.platform ?? null}, ${mang}, ${amount},
+    VALUES (${projectId}, ${ts.toISOString()}::timestamptz, ${loai}, ${sid || null}, ${sidPrefix(sid) || nguonKey || null}, ${p.platform ?? null}, ${mang}, ${amount},
             ${maDon}, ${'postback:' + mang}, ${JSON.stringify(p)}::jsonb)
     ON CONFLICT (nguon_du_lieu, ma_don) DO NOTHING`);
   await db.execute(sql`
     INSERT INTO phu_adapter (project_id, key, name, loai, lich, last_run, last_ok, last_note)
     VALUES (${projectId}, ${'postback-' + mang}, ${'Postback ' + mang}, 'postback', 'khi mạng gọi', now(), true, ${loai + ' ' + (sid || '(no sid)')})
-    ON CONFLICT (project_id, key) DO UPDATE SET last_run = now(), last_ok = true, last_note = EXCLUDED.last_note`);
+    ON CONFLICT (project_id, key) DO UPDATE SET last_run = now(), last_ok = true, last_note = EXCLUDED.last_note, postback_token = COALESCE(phu_adapter.postback_token, encode(gen_random_bytes(12), 'hex'))`);
   return new NextResponse('ok', { status: 200, headers: { 'cache-control': 'no-store' } });
 }
 

@@ -47,17 +47,20 @@ for (const ten of LOGS) {
     state[key] = off + Buffer.byteLength(chunk.slice(0, cat + 1));
     for (const line of lines) {
       const c = line.split('\t');
-      if (c.length < 6) continue;
-      const ts = c[0], ua = c[4], ip = c[5];
+      // Hai khuôn log (conf.d/site-log.conf): clicks = ts, args, referer, UA, ip (5 cột);
+      // loira = ts, sid, d, referer, UA, ip (6 cột). Đọc sai khuôn là mất sạch một nửa số (14/09).
+      const la = k === 'clicks';
+      if (c.length < (la ? 5 : 6)) continue;
+      const ts = c[0], ua = la ? c[3] : c[4], ip = la ? c[4] : c[5], ref = la ? c[2] : c[3];
       if (BOT.test(ua) || IP_THU.has(ip)) continue;
-      const host = (c[3].match(/^https?:\/\/([^/]+)/) || [])[1] || '';
-      if (k === 'clicks') {
+      const host = (ref.match(/^https?:\/\/([^/]+)/) || [])[1] || '';
+      if (la) {
         const q = c[1];
         events.push({ ts, loai: 'click', sid: sidTuPx(q) || undefined, platform: px(q, 'd') || undefined, mang: host || undefined,
           ma_don: createHash('sha1').update(line).digest('hex').slice(0, 24), nguon_du_lieu: 'log-px', raw: { p: px(q, 'p'), r: px(q, 'r'), host } });
       } else {
-        events.push({ ts, loai: 'out', sid: c[1] || undefined, platform: dichRa(c[3]), mang: host || undefined,
-          ma_don: createHash('sha1').update(line).digest('hex').slice(0, 24), nguon_du_lieu: 'log-loira', raw: { ref: c[3], d: c[2] } });
+        events.push({ ts, loai: 'out', sid: c[1] || undefined, platform: dichRa(ref), mang: host || undefined,
+          ma_don: createHash('sha1').update(line).digest('hex').slice(0, 24), nguon_du_lieu: 'log-loira', raw: { ref, d: c[2] } });
       }
       docThem++;
     }

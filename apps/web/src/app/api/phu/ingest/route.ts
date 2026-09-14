@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
 type Ev = { ts: string; loai: string; sid?: string; platform?: string; mang?: string; amount?: number; ma_don: string; nguon_du_lieu: string; raw?: unknown };
 type Chi = { ngay: string; sid_prefix: string; chi_usd: number; clicks?: number; impressions?: number; nguon_du_lieu?: string };
 type Ld = { host: string; path?: string; ten: string; mo_ta?: string; dich?: string; last_sinh?: string; so_muc?: number; trang_thai?: string };
-type Cp = { nguon_key: string; ten: string; sid_prefix: string; lander?: string; target?: unknown; ngan_sach_ngay?: number; trang_thai: string; ghi_chu?: string };
+type Cp = { nguon_key: string; ten: string; sid_prefix: string; lander?: string; target?: unknown; ngan_sach_ngay?: number; trang_thai: string; ghi_chu?: string; ket_thuc?: string; nhip_ngay?: number; tieu_chi?: unknown; ke_hoach?: string };
 type Ng = { key: string; name?: string; loai?: string; trang_thai?: string; macro_click?: string; nap_usd?: number; ghi_chu?: string };
 
 export async function POST(req: Request) {
@@ -65,12 +65,15 @@ export async function POST(req: Request) {
     const prefix = String(c.sid_prefix ?? '').trim().replace(/[^A-Za-z0-9-]+/g, '_').replace(/^_+|_+$/g, '');
     if (!c.nguon_key || !c.ten || !c.trang_thai || prefix.split('_').length !== 2) continue;
     await db.execute(sql`
-      INSERT INTO phu_camp (project_id, nguon_key, ten, sid_prefix, lander, target, ngan_sach_ngay, trang_thai, bat_dau, ghi_chu)
+      INSERT INTO phu_camp (project_id, nguon_key, ten, sid_prefix, lander, target, ngan_sach_ngay, trang_thai, bat_dau, ghi_chu, ket_thuc, nhip_ngay, tieu_chi, ke_hoach)
       VALUES (${project}, ${c.nguon_key}, ${c.ten}, ${prefix}, ${c.lander ?? null}, ${JSON.stringify(c.target ?? {})}::jsonb,
-              ${c.ngan_sach_ngay == null ? null : Number(c.ngan_sach_ngay)}, ${c.trang_thai}, ${c.trang_thai === 'chay' ? sql`now()` : null}, ${c.ghi_chu ?? null})
+              ${c.ngan_sach_ngay == null ? null : Number(c.ngan_sach_ngay)}, ${c.trang_thai}, ${c.trang_thai === 'chay' ? sql`now()` : null}, ${c.ghi_chu ?? null},
+              ${c.ket_thuc ?? null}::date, ${Math.max(1, Number(c.nhip_ngay) || 1)}, ${JSON.stringify(c.tieu_chi ?? {})}::jsonb, ${c.ke_hoach ?? null})
       ON CONFLICT (project_id, sid_prefix) DO UPDATE SET nguon_key = EXCLUDED.nguon_key, ten = EXCLUDED.ten, lander = COALESCE(EXCLUDED.lander, phu_camp.lander),
         target = phu_camp.target || EXCLUDED.target, ngan_sach_ngay = COALESCE(EXCLUDED.ngan_sach_ngay, phu_camp.ngan_sach_ngay), trang_thai = EXCLUDED.trang_thai,
-        bat_dau = COALESCE(phu_camp.bat_dau, EXCLUDED.bat_dau), ghi_chu = COALESCE(EXCLUDED.ghi_chu, phu_camp.ghi_chu), updated_at = now()`);
+        bat_dau = COALESCE(phu_camp.bat_dau, EXCLUDED.bat_dau), ghi_chu = COALESCE(EXCLUDED.ghi_chu, phu_camp.ghi_chu),
+        ket_thuc = COALESCE(EXCLUDED.ket_thuc, phu_camp.ket_thuc), nhip_ngay = COALESCE(${c.nhip_ngay == null ? null : Math.max(1, Number(c.nhip_ngay))}, phu_camp.nhip_ngay),
+        tieu_chi = phu_camp.tieu_chi || EXCLUDED.tieu_chi, ke_hoach = COALESCE(EXCLUDED.ke_hoach, phu_camp.ke_hoach), updated_at = now()`);
     cp++;
   }
   if (b.nguon?.key) {

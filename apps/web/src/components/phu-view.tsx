@@ -7,7 +7,7 @@
 import { useState, useTransition } from 'react';
 import { Drawer, EmptyState, Pill, Section, SelectField, StatsStrip, TextAreaField, TextField } from '@/components/ui';
 import type { PhuCamp, PhuData, PhuNguon, PhuPlatform } from '@/lib/phu-shared';
-import { PHU_NGUON_TRANG_THAI, PHU_TRANG_THAI } from '@/lib/phu-shared';
+import { PHU_NGUON_TRANG_THAI, PHU_PHAN_XET, PHU_TRANG_THAI, phanXet } from '@/lib/phu-shared';
 import { luuPhuCamp, luuPhuChi, luuPhuNguon, luuPhuPlatform } from '@/lib/actions/phu';
 
 const NHOM: Record<string, string> = { cam: 'Cam 18+', ai: 'AI companion', random: 'Random chat', text: 'Text/voice', community: 'Cộng đồng', other: 'Khác' };
@@ -107,19 +107,27 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
         {d.camp.length > 0 && (
           <div style={{ overflowX: 'auto', marginTop: 10 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={head}>Campaign</th><th style={head}>sid_prefix</th><th style={head}>Nguồn</th><th style={head}>Lander</th><th style={head}>Target</th><th style={head}>$/ngày</th><th style={head}>Trạng thái</th></tr></thead>
+              <thead><tr><th style={head}>Campaign</th><th style={head}>sid_prefix</th><th style={head}>Target</th><th style={head}>$/ngày</th><th style={head}>Bắt đầu → hạn</th><th style={head}>Nhịp · xem lại</th><th style={head}>Tiêu chí</th><th style={head}>Cộng dồn</th><th style={head}>Phán xét</th><th style={head}>Trạng thái</th></tr></thead>
               <tbody>
-                {d.camp.map((c) => (
+                {d.camp.map((c) => {
+                  const px = phanXet(c);
+                  const hom = new Date().toISOString().slice(0, 10);
+                  const t = c.tieuChi;
+                  return (
                   <tr key={c.id} onClick={() => setSuaCamp(c)} style={{ cursor: 'pointer' }}>
-                    <td style={cell}><b>{c.ten}</b></td>
+                    <td style={cell}><b>{c.ten}</b><div style={{ ...mono, color: 'var(--fg-3)', fontSize: 10 }}>{c.nguonKey} · {c.lander ?? '—'}</div></td>
                     <td style={{ ...cell, ...mono }}>{c.sidPrefix}</td>
-                    <td style={{ ...cell, ...mono }}>{c.nguonKey}</td>
-                    <td style={{ ...cell, ...mono, fontSize: 10 }}>{c.lander ?? '—'}</td>
-                    <td style={{ ...cell, ...mono, fontSize: 10 }}>{Object.keys(c.target).length ? JSON.stringify(c.target) : '—'}</td>
+                    <td style={{ ...cell, ...mono, fontSize: 10, maxWidth: 220, wordBreak: 'break-all' }}>{Object.keys(c.target).length ? JSON.stringify(c.target) : '—'}</td>
                     <td style={{ ...cell, ...mono }}>{c.nganSachNgay == null ? '—' : usd(c.nganSachNgay)}</td>
+                    <td style={{ ...cell, ...mono, fontSize: 11 }}>{c.batDau ? c.batDau.slice(0, 10) : '—'} → <span style={{ color: c.ketThuc && hom > c.ketThuc.slice(0, 10) ? 'var(--danger)' : 'inherit' }}>{c.ketThuc ? c.ketThuc.slice(0, 10) : '—'}</span></td>
+                    <td style={{ ...cell, ...mono, fontSize: 11 }}>{c.nhipNgay} ngày · <span style={{ color: px.xemLai && px.xemLai <= hom ? 'var(--warn)' : 'inherit' }}>{px.xemLai ?? '—'}</span></td>
+                    <td style={{ ...cell, ...mono, fontSize: 10 }}>{Object.keys(t).length ? <>{t.chi_toi_da != null && <div>≤ ${t.chi_toi_da} thử</div>}{t.click_toi_thieu != null && <div>≥ {t.click_toi_thieu} click</div>}{t.signup_1k != null && <div>≥ {t.signup_1k} signup/1k</div>}</> : <span style={{ color: 'var(--warn)' }}>chưa đặt</span>}</td>
+                    <td style={{ ...cell, ...mono, fontSize: 11 }}>{c.tong.click} click · {c.tong.signup} signup<div style={{ color: 'var(--fg-3)' }}>{usd(c.tong.chi)} chi · {usd(c.tong.revenue)} về</div></td>
+                    <td style={cell}><Pill color={PHU_PHAN_XET[px.ma]?.color ?? 'var(--fg-3)'} label={PHU_PHAN_XET[px.ma]?.label ?? px.ma} /><div style={{ color: 'var(--fg-3)', fontSize: 10, marginTop: 3 }}>{px.lyDo}</div>{c.keHoach && <div style={{ fontSize: 10, color: 'var(--fg-2)', marginTop: 3 }}>{c.keHoach}</div>}</td>
                     <td style={cell}><Pill color={c.trangThai === 'chay' ? 'var(--ok)' : c.trangThai === 'tam_dung' ? 'var(--warn)' : 'var(--fg-3)'} label={c.trangThai} /></td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -270,7 +278,8 @@ function SuaNguon({ g, projectId, onClose }: { g: PhuNguon | null; projectId: st
 }
 
 function SuaCamp({ c, nguon, projectId, onClose }: { c: PhuCamp | null; nguon: PhuNguon[]; projectId: string; onClose: () => void }) {
-  const [f, setF] = useState({ nguonKey: c?.nguonKey ?? (nguon[0]?.key ?? ''), ten: c?.ten ?? '', sidPrefix: c?.sidPrefix ?? '', lander: c?.lander ?? '', target: c ? JSON.stringify(c.target) : '{"geo":"US,CA,UK,AU","device":"desktop","placement":"cam"}', nganSachNgay: c?.nganSachNgay == null ? '' : String(c.nganSachNgay), trangThai: c?.trangThai ?? 'nhap', ghiChu: c?.ghiChu ?? '' });
+  const [f, setF] = useState({ nguonKey: c?.nguonKey ?? (nguon[0]?.key ?? ''), ten: c?.ten ?? '', sidPrefix: c?.sidPrefix ?? '', lander: c?.lander ?? '', target: c ? JSON.stringify(c.target) : '{"geo":"US,CA,UK,AU","device":"desktop","placement":"cam"}', nganSachNgay: c?.nganSachNgay == null ? '' : String(c.nganSachNgay), trangThai: c?.trangThai ?? 'nhap', ghiChu: c?.ghiChu ?? '',
+    ketThuc: c?.ketThuc ? c.ketThuc.slice(0, 10) : '', nhipNgay: String(c?.nhipNgay ?? 1), tieuChi: c && Object.keys(c.tieuChi).length ? JSON.stringify(c.tieuChi) : '{"chi_toi_da":35,"click_toi_thieu":2000,"signup_1k":1}', keHoach: c?.keHoach ?? '' });
   const [dirty, setDirty] = useState(false);
   const [pending, start] = useTransition();
   const [loi, setLoi] = useState('');
@@ -294,6 +303,12 @@ function SuaCamp({ c, nguon, projectId, onClose }: { c: PhuCamp | null; nguon: P
           {['nhap', 'chay', 'tam_dung', 'ket_thuc'].map((x) => <option key={x} value={x}>{x}</option>)}
         </SelectField>
       </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <TextField label="Hạn thử (YYYY-MM-DD)" value={f.ketThuc} onChange={set('ketThuc')} mono hint="quá ngày này mà chưa đạt = DỪNG" />
+        <TextField label="Nhịp xem lại (ngày)" value={f.nhipNgay} onChange={set('nhipNgay')} mono />
+      </div>
+      <TextAreaField label="Tiêu chí (JSON)" value={f.tieuChi} onChange={set('tieuChi')} rows={2} mono hint="chi_toi_da = tổng $ thử · click_toi_thieu = đủ click mới kết luận · signup_1k = signup/1.000 click để MỞ RỘNG" />
+      <TextAreaField label="Kế hoạch sau phán xét" value={f.keHoach} onChange={set('keHoach')} rows={2} hint="đạt → mở gì; không đạt → đổi gì (không phải 'dừng' trơn)" />
       <TextAreaField label="Ghi chú" value={f.ghiChu} onChange={set('ghiChu')} rows={2} />
     </Khung>
   );

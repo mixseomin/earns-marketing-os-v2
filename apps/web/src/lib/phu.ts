@@ -19,7 +19,7 @@ export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
   const db = getDb();
   if (!db) return { ...rong, loi: 'DATABASE_URL chưa cấu hình' };
   const since = new Date(Date.now() - days * 86400_000).toISOString();
-  const [p, ng, c, ev, chi, ad, ld] = await Promise.all([
+  const [p, ng, c, ev, chi, ad, ld, evAll, chiAll] = await Promise.all([
     db.execute(sql`
       SELECT p.*, t.status AS card_status
         FROM phu_platforms p LEFT JOIN human_tasks t ON t.id = p.card_id
@@ -44,10 +44,18 @@ export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
        GROUP BY 1`),
     db.execute(sql`SELECT * FROM phu_adapter WHERE project_id = ${projectId} ORDER BY loai, key`),
     db.execute(sql`SELECT * FROM phu_lander WHERE project_id = ${projectId} ORDER BY host, path`),
+    // cộng dồn toàn thời gian theo prefix — phán xét camp không được phụ thuộc cửa sổ N ngày
+    db.execute(sql`
+      SELECT sid_prefix, COUNT(*) FILTER (WHERE loai = 'click') AS click, COUNT(*) FILTER (WHERE loai = 'out') AS "out",
+             COUNT(*) FILTER (WHERE loai = 'signup') AS signup, COALESCE(SUM(amount) FILTER (WHERE loai IN ('spend', 'lead')), 0)::float8 AS revenue
+        FROM phu_su_kien WHERE project_id = ${projectId} AND sid_prefix <> '' GROUP BY 1`),
+    db.execute(sql`SELECT sid_prefix, COALESCE(SUM(chi_usd), 0)::float8 AS chi FROM phu_chi WHERE project_id = ${projectId} GROUP BY 1`),
   ]);
   type R = Record<string, unknown>;
   const chiMap = new Map<string, number>();
   for (const r of chi as unknown as R[]) chiMap.set(String(r.sid_prefix), n(r.chi));
+  const tongEv = new Map<string, R>(); for (const r of evAll as unknown as R[]) tongEv.set(String(r.sid_prefix), r);
+  const tongChi = new Map<string, number>(); for (const r of chiAll as unknown as R[]) tongChi.set(String(r.sid_prefix), n(r.chi));
   const pheu: PhuPheu[] = (ev as unknown as R[]).map((r) => ({
     sidPrefix: String(r.sid_prefix ?? ''), click: n(r.click), out: n(r.out), signup: n(r.signup), lead: n(r.lead),
     spendCount: n(r.spend_count), revenue: n(r.revenue), chi: chiMap.get(String(r.sid_prefix ?? '')) ?? 0,
@@ -70,6 +78,9 @@ export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
       id: n(r.id), nguonKey: String(r.nguon_key), ten: String(r.ten), sidPrefix: String(r.sid_prefix), lander: s(r.lander),
       target: (r.target && typeof r.target === 'object' ? r.target : {}) as Record<string, unknown>,
       nganSachNgay: r.ngan_sach_ngay == null ? null : n(r.ngan_sach_ngay), trangThai: String(r.trang_thai), batDau: s(r.bat_dau), ghiChu: s(r.ghi_chu),
+      ketThuc: r.ket_thuc == null ? null : String(r.ket_thuc), nhipNgay: n(r.nhip_ngay) || 1,
+      tieuChi: (r.tieu_chi && typeof r.tieu_chi === 'object' ? r.tieu_chi : {}) as PhuCamp['tieuChi'], keHoach: s(r.ke_hoach),
+      tong: (() => { const e = tongEv.get(String(r.sid_prefix)) ?? {}; return { click: n(e.click), out: n(e.out), signup: n(e.signup), revenue: n(e.revenue), chi: tongChi.get(String(r.sid_prefix)) ?? 0 }; })(),
     })),
     adapters: (ad as unknown as R[]).map((r) => ({ key: String(r.key), name: String(r.name), loai: String(r.loai), lich: s(r.lich), lastRun: s(r.last_run), lastOk: r.last_ok == null ? null : Boolean(r.last_ok), lastNote: s(r.last_note), postbackToken: s(r.postback_token) })),
     landers: (ld as unknown as R[]).map((r) => ({ host: String(r.host), path: String(r.path), ten: String(r.ten), moTa: s(r.mo_ta), dich: s(r.dich), lastSinh: s(r.last_sinh), soMuc: r.so_muc == null ? null : n(r.so_muc), trangThai: String(r.trang_thai) })),

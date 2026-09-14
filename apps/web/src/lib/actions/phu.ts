@@ -44,19 +44,24 @@ export async function luuPhuNguon(projectId: string, d: { id?: number; key: stri
   revalidatePath(`/p/${projectId}/phu`);
 }
 
-export async function luuPhuCamp(projectId: string, d: { nguonKey: string; ten: string; sidPrefix: string; lander?: string; target?: string; nganSachNgay?: string; trangThai: string; ghiChu?: string }) {
+export async function luuPhuCamp(projectId: string, d: { nguonKey: string; ten: string; sidPrefix: string; lander?: string; target?: string; nganSachNgay?: string; trangThai: string; ghiChu?: string; ketThuc?: string; nhipNgay?: string; tieuChi?: string; keHoach?: string }) {
   const db = await guard();
   const prefix = String(d.sidPrefix).trim().replace(/[^A-Za-z0-9-]+/g, '_').replace(/^_+|_+$/g, '');
   if (!prefix || prefix.split('_').length !== 2) throw new Error('sid_prefix phải là <nguồn>_<camp>, đúng hai mẩu');
   let target: unknown = {};
   try { target = d.target ? JSON.parse(d.target) : {}; } catch { throw new Error('target phải là JSON'); }
+  let tieuChi: unknown = {};
+  try { tieuChi = d.tieuChi ? JSON.parse(d.tieuChi) : {}; } catch { throw new Error('tiêu chí phải là JSON {chi_toi_da, click_toi_thieu, signup_1k}'); }
+  const ketThuc = d.ketThuc && /^\d{4}-\d{2}-\d{2}$/.test(d.ketThuc) ? d.ketThuc : null;
   await db.execute(sql`
-    INSERT INTO phu_camp (project_id, nguon_key, ten, sid_prefix, lander, target, ngan_sach_ngay, trang_thai, bat_dau, ghi_chu)
+    INSERT INTO phu_camp (project_id, nguon_key, ten, sid_prefix, lander, target, ngan_sach_ngay, trang_thai, bat_dau, ghi_chu, ket_thuc, nhip_ngay, tieu_chi, ke_hoach)
     VALUES (${projectId}, ${d.nguonKey}, ${d.ten}, ${prefix}, ${t(d.lander)}, ${JSON.stringify(target)}::jsonb,
-            ${d.nganSachNgay ? Number(d.nganSachNgay) : null}, ${d.trangThai}, ${d.trangThai === 'chay' ? sql`now()` : null}, ${t(d.ghiChu)})
+            ${d.nganSachNgay ? Number(d.nganSachNgay) : null}, ${d.trangThai}, ${d.trangThai === 'chay' ? sql`now()` : null}, ${t(d.ghiChu)},
+            ${ketThuc}::date, ${Math.max(1, Number(d.nhipNgay) || 1)}, ${JSON.stringify(tieuChi)}::jsonb, ${t(d.keHoach)})
     ON CONFLICT (project_id, sid_prefix) DO UPDATE SET nguon_key = EXCLUDED.nguon_key, ten = EXCLUDED.ten, lander = EXCLUDED.lander,
       target = EXCLUDED.target, ngan_sach_ngay = EXCLUDED.ngan_sach_ngay, trang_thai = EXCLUDED.trang_thai,
-      bat_dau = COALESCE(phu_camp.bat_dau, EXCLUDED.bat_dau), ghi_chu = EXCLUDED.ghi_chu, updated_at = now()`);
+      bat_dau = COALESCE(phu_camp.bat_dau, EXCLUDED.bat_dau), ghi_chu = EXCLUDED.ghi_chu,
+      ket_thuc = EXCLUDED.ket_thuc, nhip_ngay = EXCLUDED.nhip_ngay, tieu_chi = EXCLUDED.tieu_chi, ke_hoach = EXCLUDED.ke_hoach, updated_at = now()`);
   revalidatePath(`/p/${projectId}/phu`);
 }
 

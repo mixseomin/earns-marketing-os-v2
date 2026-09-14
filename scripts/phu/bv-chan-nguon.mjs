@@ -47,7 +47,11 @@ try {
   const tt = [];
   for (const c of camps) {
     const moi = xau[c.NAME.slice(3)] || [];
-    const cu = String((await call(`${c.ID}/TARGETING/BLACKLIST/`))?.BDV_API?.RESULTS?.SOURCES || '').split(',').map((s) => s.trim()).filter(Boolean);
+    const g = await call(`${c.ID}/TARGETING/BLACKLIST/`);
+    if (g?.BDV_API?.ERROR) { tt.push(`${c.NAME}: GET ${g.BDV_API.ERROR.NOTE}`); continue; }   // trần 1/giờ hoặc lỗi: KHÔNG POST đè khi chưa đọc được danh sách cũ
+    const res = g?.BDV_API?.RESULTS || {};
+    if (!('SOURCES' in res)) console.log('blacklist-raw', c.ID, JSON.stringify(g).slice(0, 400));   // soi cột nếu tên khác spec
+    const cu = String(res.SOURCES ?? res.BLACKLIST?.SOURCES ?? '').split(',').map((s) => s.trim()).filter(Boolean);
     const them = moi.filter((s) => !cu.includes(s));
     if (!them.length) { tt.push(`${c.NAME}: +0 (đã chặn ${cu.length})`); continue; }
     if (!kho) {

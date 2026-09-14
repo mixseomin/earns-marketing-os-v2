@@ -33,11 +33,21 @@ async function xuLy(req: Request) {
   const projectId = (ad[0] ?? ng[0])!.project_id;
   const nguonKey = ng[0]?.key ?? '';
   const mang = ad.length ? ad[0]!.key.replace(/^postback-/, '') : String(p.mang ?? p.net ?? 'khac').toLowerCase().replace(/[^a-z0-9-]/g, '');
-  const loai = LOAI[String(p.event ?? p.type ?? '').toLowerCase()] ?? 'lead';
-  const sid = String(p.sid ?? p.aff_sub ?? p.sub ?? '').slice(0, 200);
-  const amount = Number(p.amount ?? p.payout ?? p.value ?? 0) || 0;
+  // Tên tham số theo từng mạng — CrakRevenue đặt được tên tuỳ ý ({aff_sub}, {payout}, {transaction_id}),
+  // AWEmpire chọn từ danh sách cố định (subAffiliateId, commission, transactionHash, isFirstBill, isRebill,
+  // isChargeback, isEmailVerification). Nhận cả hai, không bắt mạng phải theo tên của mình.
+  const dung = (v: unknown) => v !== undefined && v !== null && String(v) !== '' && String(v) !== '0' && String(v).toLowerCase() !== 'false';
+  const sid = String(p.sid ?? p.aff_sub ?? p.sub ?? p.subAffiliateId ?? p.subaffid ?? '').slice(0, 200);
+  let amount = Number(p.amount ?? p.payout ?? p.value ?? p.commission ?? 0) || 0;
+  let loai = LOAI[String(p.event ?? p.type ?? '').toLowerCase()] ?? '';
+  if (!loai) {
+    if (dung(p.isFirstBill) || dung(p.isRebill) || dung(p.isChargeback) || p.commission !== undefined) loai = 'spend';
+    else if (dung(p.isEmailVerification) || p.memberId !== undefined) loai = 'signup';
+    else loai = 'lead';
+  }
+  if (dung(p.isChargeback) && amount > 0) amount = -amount;   // hoàn tiền = trừ, không cộng
   const ts = p.ts && !Number.isNaN(Date.parse(p.ts)) ? new Date(p.ts) : new Date();
-  const maDon = String(p.id ?? p.txn ?? p.transaction_id ?? '').trim()
+  const maDon = String(p.id ?? p.txn ?? p.transaction_id ?? p.transactionHash ?? p.eventHash ?? '').trim()
     || createHash('sha1').update([sid, loai, amount, ts.toISOString().slice(0, 16)].join('|')).digest('hex').slice(0, 24);
   await db.execute(sql`
     INSERT INTO phu_su_kien (project_id, ts, loai, sid, sid_prefix, platform_slug, mang, amount, ma_don, nguon_du_lieu, raw)

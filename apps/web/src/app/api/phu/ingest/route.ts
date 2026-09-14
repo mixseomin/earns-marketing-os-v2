@@ -3,6 +3,9 @@
 //   { project, events?: [{ts, loai, sid?, platform?, mang?, amount?, ma_don, nguon_du_lieu, raw?}],
 //     chi?: [{ngay, sid_prefix, chi_usd, clicks?, impressions?, nguon_du_lieu?}],
 //     landers?: [{host, path, ten, mo_ta?, dich?, last_sinh?, so_muc?, trang_thai?}],
+//     camp?: [{nguon_key, ten, sid_prefix, lander?, target?, ngan_sach_ngay?, trang_thai, ghi_chu?}]  ← adapter mạng QC
+//        tự khai camp nó thấy trên tài khoản (Bidvertiser /CAMPAIGNS/), không ai phải gõ tay vào trang,
+//     nguon?: {key, name?, loai?, trang_thai?, macro_click?, nap_usd?, ghi_chu?}  ← vá lẻ một nguồn (balance, trạng thái),
 //     adapter?: {key, name, loai?, lich?, ok, note?} }
 // Mọi thứ upsert/khử trùng — adapter chạy lại cùng khoảng log không nhân đôi số.
 import { NextResponse } from 'next/server';
@@ -16,13 +19,15 @@ export const dynamic = 'force-dynamic';
 type Ev = { ts: string; loai: string; sid?: string; platform?: string; mang?: string; amount?: number; ma_don: string; nguon_du_lieu: string; raw?: unknown };
 type Chi = { ngay: string; sid_prefix: string; chi_usd: number; clicks?: number; impressions?: number; nguon_du_lieu?: string };
 type Ld = { host: string; path?: string; ten: string; mo_ta?: string; dich?: string; last_sinh?: string; so_muc?: number; trang_thai?: string };
+type Cp = { nguon_key: string; ten: string; sid_prefix: string; lander?: string; target?: unknown; ngan_sach_ngay?: number; trang_thai: string; ghi_chu?: string };
+type Ng = { key: string; name?: string; loai?: string; trang_thai?: string; macro_click?: string; nap_usd?: number; ghi_chu?: string };
 
 export async function POST(req: Request) {
   const denied = await checkAuth(req);
   if (denied) return denied;
   const db = getDb();
   if (!db) return NextResponse.json({ ok: false, error: 'db' }, { status: 503 });
-  const b = (await req.json()) as { project?: string; events?: Ev[]; chi?: Chi[]; landers?: Ld[]; adapter?: { key: string; name: string; loai?: string; lich?: string; ok: boolean; note?: string } };
+  const b = (await req.json()) as { project?: string; events?: Ev[]; chi?: Chi[]; landers?: Ld[]; camp?: Cp[]; nguon?: Ng; adapter?: { key: string; name: string; loai?: string; lich?: string; ok: boolean; note?: string } };
   const project = String(b.project ?? '').trim();
   if (!project) return NextResponse.json({ ok: false, error: 'thiếu project' }, { status: 400 });
   let ev = 0, chi = 0, ld = 0;
@@ -54,6 +59,29 @@ export async function POST(req: Request) {
         last_sinh = COALESCE(EXCLUDED.last_sinh, phu_lander.last_sinh), so_muc = COALESCE(EXCLUDED.so_muc, phu_lander.so_muc), trang_thai = EXCLUDED.trang_thai`);
     ld++;
   }
+  let cp = 0;
+  for (const c of b.camp ?? []) {
+    // cùng luật với luuPhuCamp: sid_prefix đúng hai mẩu <nguồn>_<camp>
+    const prefix = String(c.sid_prefix ?? '').trim().replace(/[^A-Za-z0-9-]+/g, '_').replace(/^_+|_+$/g, '');
+    if (!c.nguon_key || !c.ten || !c.trang_thai || prefix.split('_').length !== 2) continue;
+    await db.execute(sql`
+      INSERT INTO phu_camp (project_id, nguon_key, ten, sid_prefix, lander, target, ngan_sach_ngay, trang_thai, bat_dau, ghi_chu)
+      VALUES (${project}, ${c.nguon_key}, ${c.ten}, ${prefix}, ${c.lander ?? null}, ${JSON.stringify(c.target ?? {})}::jsonb,
+              ${c.ngan_sach_ngay == null ? null : Number(c.ngan_sach_ngay)}, ${c.trang_thai}, ${c.trang_thai === 'chay' ? sql`now()` : null}, ${c.ghi_chu ?? null})
+      ON CONFLICT (project_id, sid_prefix) DO UPDATE SET nguon_key = EXCLUDED.nguon_key, ten = EXCLUDED.ten, lander = COALESCE(EXCLUDED.lander, phu_camp.lander),
+        target = phu_camp.target || EXCLUDED.target, ngan_sach_ngay = COALESCE(EXCLUDED.ngan_sach_ngay, phu_camp.ngan_sach_ngay), trang_thai = EXCLUDED.trang_thai,
+        bat_dau = COALESCE(phu_camp.bat_dau, EXCLUDED.bat_dau), ghi_chu = COALESCE(EXCLUDED.ghi_chu, phu_camp.ghi_chu), updated_at = now()`);
+    cp++;
+  }
+  if (b.nguon?.key) {
+    const g = b.nguon;
+    await db.execute(sql`
+      INSERT INTO phu_nguon (project_id, key, name, loai, trang_thai, macro_click, nap_usd, ghi_chu, postback_token)
+      VALUES (${project}, ${g.key}, ${g.name ?? g.key}, ${g.loai ?? 'pop'}, ${g.trang_thai ?? 'du_kien'}, ${g.macro_click ?? null}, ${Number(g.nap_usd) || 0}, ${g.ghi_chu ?? null}, encode(gen_random_bytes(12), 'hex'))
+      ON CONFLICT (project_id, key) DO UPDATE SET name = COALESCE(${g.name ?? null}, phu_nguon.name), loai = COALESCE(${g.loai ?? null}, phu_nguon.loai),
+        trang_thai = COALESCE(${g.trang_thai ?? null}, phu_nguon.trang_thai), macro_click = COALESCE(${g.macro_click ?? null}, phu_nguon.macro_click),
+        nap_usd = COALESCE(${g.nap_usd == null ? null : Number(g.nap_usd)}, phu_nguon.nap_usd), ghi_chu = COALESCE(${g.ghi_chu ?? null}, phu_nguon.ghi_chu), updated_at = now()`);
+  }
   if (b.adapter?.key) {
     const a = b.adapter;
     await db.execute(sql`
@@ -62,5 +90,5 @@ export async function POST(req: Request) {
       ON CONFLICT (project_id, key) DO UPDATE SET name = EXCLUDED.name, loai = EXCLUDED.loai, lich = COALESCE(EXCLUDED.lich, phu_adapter.lich),
         last_run = now(), last_ok = EXCLUDED.last_ok, last_note = EXCLUDED.last_note`);
   }
-  return NextResponse.json({ ok: true, events_moi: ev, chi, landers: ld });
+  return NextResponse.json({ ok: true, events_moi: ev, chi, landers: ld, camp: cp });
 }

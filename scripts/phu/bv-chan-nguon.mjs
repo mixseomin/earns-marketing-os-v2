@@ -2,11 +2,13 @@
 // PHỦ: chặn nguồn (srcid) Bidvertiser theo dữ liệu LANDER, không đợi Bid Automation của họ
 // (họ chỉ chặn sau 300 click/nguồn — 372 nguồn/ngày thì gần như không nguồn nào tới ngưỡng).
 // Luật: srcid có ≥ NGUONG_VIEW view mà 0 bấm phòng, tính từ TU (lúc bỏ cổng 18+) → vào TARGETING/BLACKLIST
-// của camp tương ứng. POST BLACKLIST ĐÈ cả danh sách → GET rồi gộp. Trần targeting 1 call/giờ/camp → cron 1 lần/ngày.
+// của camp tương ứng. POST BLACKLIST ĐÈ cả danh sách, và GET cũng tính vào trần 1 targeting/giờ/camp → không GET+POST
+// cùng lượt được: danh sách đang chặn giữ ở STATE (/var/lib/mos2-phu/bv-blacklist.json); chưa có STATE thì lượt đó
+// chỉ GET mồi, hôm sau mới POST. Cron 1 lần/ngày.
 // sid trong phu_su_kien: `<bv-tên | bidvertiser_tên>[_|]<srcid 32 hex>` (cookie cũ dùng `|`).
 //   node scripts/phu/bv-chan-nguon.mjs [--kho]   (--kho: chỉ in, không POST)
 //   env: DATABASE_URL · MOS2_EXT_KEY · PHU_PROJECT · creds /etc/mos2-phu/bidvertiser.env
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import postgres from 'postgres';
 
 const MOS2 = process.env.MOS2_URL || 'http://127.0.0.1:3821';
@@ -15,6 +17,7 @@ const PROJECT = process.env.PHU_PROJECT || 'adfond';
 const API = 'https://my.bidvertiser.com/bdv/bidvertiser/api/adv/';
 const TU = '2026-09-14 20:00+00';   // bỏ cổng 18+ — trước đó 96% không qua cổng nên 0 click không nói lên gì
 const NGUONG_VIEW = 50;             // p(click)≈5% → 0/50 chỉ xảy ra ~8% do ngẫu nhiên
+const STATE = '/var/lib/mos2-phu/bv-blacklist.json';   // { [campId]: [srcid…] } — bản sao danh sách đã POST
 const kho = process.argv.includes('--kho');
 if (!KEY || !process.env.DATABASE_URL) { console.error('thiếu MOS2_EXT_KEY/DATABASE_URL'); process.exit(1); }
 
@@ -44,23 +47,32 @@ try {
   const xau = {}; for (const r of rows) (xau[r.camp] ??= []).push(r.srcid);
 
   const camps = ((await call('CAMPAIGNS/'))?.BDV_API?.RESULTS?.CAMPAIGNS ?? []).filter((c) => /^bv-/.test(c.NAME || ''));
+  let state = {}; try { state = JSON.parse(readFileSync(STATE, 'utf8')); } catch {}
   const tt = [];
   for (const c of camps) {
     const moi = xau[c.NAME.slice(3)] || [];
-    const g = await call(`${c.ID}/TARGETING/BLACKLIST/`);
-    if (g?.BDV_API?.ERROR) { tt.push(`${c.NAME}: GET ${g.BDV_API.ERROR.NOTE}`); continue; }   // trần 1/giờ hoặc lỗi: KHÔNG POST đè khi chưa đọc được danh sách cũ
-    const res = g?.BDV_API?.RESULTS || {};
-    if (!('SOURCES' in res)) console.log('blacklist-raw', c.ID, JSON.stringify(g).slice(0, 400));   // soi cột nếu tên khác spec
-    const cu = String(res.SOURCES ?? res.BLACKLIST?.SOURCES ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+    let cu = state[c.ID];
+    if (!cu) {   // chưa có bản sao: GET mồi (tốn lượt targeting của giờ này → POST để mai)
+      const g = await call(`${c.ID}/TARGETING/BLACKLIST/`);
+      if (g?.BDV_API?.ERROR) { tt.push(`${c.NAME}: GET ${g.BDV_API.ERROR.NOTE}`); continue; }
+      const res = g?.BDV_API?.RESULTS || {};
+      if (!('SOURCES' in res)) console.log('blacklist-raw', c.ID, JSON.stringify(g).slice(0, 400));   // soi cột nếu tên khác spec
+      cu = String(res.SOURCES ?? res.BLACKLIST?.SOURCES ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+      state[c.ID] = cu;
+      tt.push(`${c.NAME}: mồi ${cu.length} đang chặn, ${moi.length} chờ mai`);
+      continue;
+    }
     const them = moi.filter((s) => !cu.includes(s));
     if (!them.length) { tt.push(`${c.NAME}: +0 (đã chặn ${cu.length})`); continue; }
     if (!kho) {
       const r = await call(`${c.ID}/TARGETING/BLACKLIST/`, { SOURCES: [...cu, ...them].join(',') });
       if (r?.BDV_API?.ERROR) { tt.push(`${c.NAME}: LỖI ${r.BDV_API.ERROR.NOTE}`); continue; }
+      state[c.ID] = [...cu, ...them];
     }
     tt.push(`${c.NAME}: +${them.length}${kho ? ' (khô)' : ''} → ${cu.length + them.length}`);
     console.log(c.NAME, 'chặn', them.join(','));
   }
+  if (!kho) { mkdirSync('/var/lib/mos2-phu', { recursive: true }); writeFileSync(STATE, JSON.stringify(state)); }
   await bao(true, tt.join(' · '));
 } catch (e) {
   await bao(false, String(e.message).slice(0, 300));

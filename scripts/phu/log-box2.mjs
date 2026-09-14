@@ -31,6 +31,12 @@ const px = (q, k) => { const m = new RegExp(`(?:^|&)${k}=([^&]*)`).exec(q || '')
 
 const events = [];
 let docThem = 0;
+// Postback Bidvertiser: "conversion" của mình = bấm phòng/CTA (click có bvc={BV_CLICKID}), KHÔNG phải pageview
+// (họ cấm bắn theo pageview). Mỗi click id bắn một lần, nhớ trong STATE. Có tín hiệu này Bid Automation của
+// Bidvertiser mới tự blacklist/nâng bid theo srcid (anh chốt 15/09/2026).
+const BV_POSTBACK = 'http://secure.bidvertiser.com/performance/pc.dbm?ver=1.0&AID=15090630&CLICKID=%s&revenue=0';
+const bvcClick = new Set();
+state.bvcDaBan = Array.isArray(state.bvcDaBan) ? state.bvcDaBan : [];
 for (const ten of LOGS) {
   for (const k of ['clicks', 'loira']) {
     const f = `/var/log/nginx/${ten}-${k}.log`;
@@ -59,8 +65,10 @@ for (const ten of LOGS) {
         // d=view (tải trang, k=1 = còn khoá 18+) · d=vao (qua cổng) · còn lại = bấm ra (i = vị trí trong lưới).
         const d = px(q, 'd');
         const loai = d === 'view' ? 'view' : d === 'vao' ? 'gate' : 'click';
+        const bvc = px(q, 'bvc');
         events.push({ ts, loai, sid: sidTuPx(q) || undefined, platform: loai === 'click' ? d || undefined : undefined, mang: host || undefined,
-          ma_don: createHash('sha1').update(line).digest('hex').slice(0, 24), nguon_du_lieu: 'log-px', raw: { p: px(q, 'p'), r: px(q, 'r'), host, k: px(q, 'k') || undefined, i: px(q, 'i') || undefined, ua: ua.slice(0, 80) } });
+          ma_don: createHash('sha1').update(line).digest('hex').slice(0, 24), nguon_du_lieu: 'log-px', raw: { p: px(q, 'p'), r: px(q, 'r'), host, k: px(q, 'k') || undefined, i: px(q, 'i') || undefined, bvc: bvc || undefined, ua: ua.slice(0, 80) } });
+        if (loai === 'click' && bvc) bvcClick.add(bvc);
       } else {
         events.push({ ts, loai: 'out', sid: c[1] || undefined, platform: dichRa(ref), mang: host || undefined,
           ma_don: createHash('sha1').update(line).digest('hex').slice(0, 24), nguon_du_lieu: 'log-loira', raw: { ref, d: c[2] } });
@@ -83,7 +91,15 @@ for (const [host, path, docroot, ten, dich] of [
   landers.push({ host, path, ten, dich, last_sinh: mtime ? new Date(mtime * 1000).toISOString() : null, so_muc: so || null, trang_thai: mtime ? 'song' : 'hong' });
 }
 
-const body = { project: PROJECT, events, landers, adapter: { key: 'log-box2', name: 'Nhật ký click + cửa ra (box2)', loai: 'cron', lich: '*/15 * * * *', ok: true, note: `${docThem} dòng mới, ${events.length} sự kiện` } };
+let daBan = 0, banLoi = 0;
+const daCo = new Set(state.bvcDaBan);
+for (const id of bvcClick) {
+  if (daCo.has(id)) continue;
+  try { const r = await fetch(BV_POSTBACK.replace('%s', encodeURIComponent(id)), { signal: AbortSignal.timeout(8000) }); if (r.ok) { daBan++; state.bvcDaBan.push(id); } else banLoi++; }
+  catch { banLoi++; }
+}
+state.bvcDaBan = state.bvcDaBan.slice(-5000);
+const body = { project: PROJECT, events, landers, adapter: { key: 'log-box2', name: 'Nhật ký click + cửa ra (box2) + postback Bidvertiser', loai: 'cron', lich: '*/15 * * * *', ok: banLoi === 0, note: `${docThem} dòng mới, ${events.length} sự kiện · postback Bidvertiser ${daBan} bắn${banLoi ? `, ${banLoi} lỗi` : ''}` } };
 const res = await fetch(`${MOS2}/api/phu/ingest`, { method: 'POST', headers: { authorization: `Bearer ${KEY}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
 const j = await res.json().catch(() => null);
 if (!res.ok || !j || j.ok !== true) { console.error('ingest', res.status, j ? JSON.stringify(j) : '(không phải JSON — bị đẩy sang login? kiểm middleware /api/phu/)'); process.exit(1); }

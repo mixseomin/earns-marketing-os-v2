@@ -79,7 +79,7 @@ for (const [host, path, docroot, ten, dich] of [
 
 const body = { project: PROJECT, events, landers, adapter: { key: 'log-box2', name: 'Nhật ký click + cửa ra (box2)', loai: 'cron', lich: '*/15 * * * *', ok: true, note: `${docThem} dòng mới, ${events.length} sự kiện` } };
 const res = await fetch(`${MOS2}/api/phu/ingest`, { method: 'POST', headers: { authorization: `Bearer ${KEY}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
-const j = await res.json().catch(() => ({}));
-if (!res.ok) { console.error('ingest', res.status, JSON.stringify(j)); process.exit(1); }
+const j = await res.json().catch(() => null);
+if (!res.ok || !j || j.ok !== true) { console.error('ingest', res.status, j ? JSON.stringify(j) : '(không phải JSON — bị đẩy sang login? kiểm middleware /api/phu/)'); process.exit(1); }
 writeFileSync(STATE, JSON.stringify(state));
 console.log(new Date().toISOString(), 'log-box2:', JSON.stringify(j), `| ${docThem} dòng`);

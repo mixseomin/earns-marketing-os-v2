@@ -180,7 +180,7 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
                     <td style={cell}><b>{a.name}</b><div style={{ ...mono, color: 'var(--fg-3)', fontSize: 10 }}>{a.key} · {a.loai}</div></td>
                     <td style={{ ...cell, ...mono, fontSize: 11 }}>{a.lich ?? '—'}</td>
                     <td style={{ ...cell, ...mono, color: hong ? 'var(--danger)' : 'var(--ok)' }}>{khi(a.lastRun)}</td>
-                    <td style={{ ...cell, fontSize: 11, color: 'var(--fg-2)' }}>{a.lastNote ?? '—'}{a.loai === 'postback' && a.postbackToken && <div style={{ ...mono, fontSize: 10, wordBreak: 'break-all', color: 'var(--fg-3)', marginTop: 4 }}>https://mos2.on.tc/api/phu/postback?k={a.postbackToken}&amp;event=&lt;signup|lead|spend&gt;&amp;sid=&lt;macro sub id&gt;&amp;amount=&lt;payout&gt;&amp;id=&lt;txn id&gt;</div>}</td>
+                    <td style={{ ...cell, fontSize: 11, color: 'var(--fg-2)' }}>{a.lastNote ?? '—'}{a.loai === 'postback' && a.postbackToken && <div style={{ ...mono, fontSize: 10, wordBreak: 'break-all', color: 'var(--fg-3)', marginTop: 4 }}>https://mos2.on.tc/api/phu/postback/{a.postbackToken}?event=&lt;signup|lead|spend&gt;&amp;sid=&lt;macro sub id&gt;&amp;amount=&lt;payout&gt;&amp;id=&lt;txn id&gt; (mạng bỏ query string vẫn nhận được vì token nằm trên đường dẫn)</div>}</td>
                   </tr>
                 );
               })}

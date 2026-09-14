@@ -9,7 +9,7 @@ import { NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { sidPrefix } from '@/lib/phu';
+import { sidPrefix } from '@/lib/phu-shared';
 
 export const dynamic = 'force-dynamic';
 

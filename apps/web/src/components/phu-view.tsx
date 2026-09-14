@@ -6,8 +6,8 @@
 
 import { useState, useTransition } from 'react';
 import { Drawer, EmptyState, Pill, Section, SelectField, StatsStrip, TextAreaField, TextField } from '@/components/ui';
-import type { PhuCamp, PhuData, PhuNguon, PhuPlatform } from '@/lib/phu';
-import { PHU_NGUON_TRANG_THAI, PHU_TRANG_THAI } from '@/lib/phu';
+import type { PhuCamp, PhuData, PhuNguon, PhuPlatform } from '@/lib/phu-shared';
+import { PHU_NGUON_TRANG_THAI, PHU_TRANG_THAI } from '@/lib/phu-shared';
 import { luuPhuCamp, luuPhuChi, luuPhuNguon, luuPhuPlatform } from '@/lib/actions/phu';
 
 const NHOM: Record<string, string> = { cam: 'Cam 18+', ai: 'AI companion', random: 'Random chat', text: 'Text/voice', community: 'Cộng đồng', other: 'Khác' };

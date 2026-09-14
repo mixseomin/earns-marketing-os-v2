@@ -16,17 +16,17 @@ export type PhuCamp = {
   nganSachNgay: number | null; trangThai: string; batDau: string | null; ghiChu: string | null;
   ketThuc: string | null; nhipNgay: number; tieuChi: PhuTieuChi; keHoach: string | null;
   /** cộng dồn kể từ bat_dau (không theo cửa sổ N ngày) — phán xét dùng số này */
-  tong: { click: number; out: number; signup: number; revenue: number; chi: number };
+  tong: { view: number; gate: number; click: number; out: number; signup: number; revenue: number; chi: number };
 };
 export type PhuPheu = {
-  sidPrefix: string; click: number; out: number; signup: number; lead: number; spendCount: number; revenue: number; chi: number;
+  sidPrefix: string; view: number; gate: number; click: number; out: number; signup: number; lead: number; spendCount: number; revenue: number; chi: number;
 };
 export type PhuAdapter = { key: string; name: string; loai: string; lich: string | null; lastRun: string | null; lastOk: boolean | null; lastNote: string | null; postbackToken: string | null };
 export type PhuLander = { host: string; path: string; ten: string; moTa: string | null; dich: string | null; lastSinh: string | null; soMuc: number | null; trangThai: string };
 
 export type PhuData = {
   platforms: PhuPlatform[]; nguon: PhuNguon[]; camp: PhuCamp[]; pheu: PhuPheu[]; adapters: PhuAdapter[]; landers: PhuLander[];
-  days: number; tong: { click: number; out: number; signup: number; revenue: number; chi: number };
+  days: number; tong: { view: number; gate: number; click: number; out: number; signup: number; revenue: number; chi: number };
   loi: string | null;
 };
 

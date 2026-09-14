@@ -48,7 +48,7 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
         { key: 'cho', label: 'Chờ duyệt', value: dem('cho_duyet') + dem('da_dang_ky'), color: 'var(--neon-violet, #a78bfa)', sub: `${dem('chua')} chưa đăng ký` },
         { key: 'khong', label: 'Không có aff', value: dem('khong_co') + dem('bo'), color: 'var(--fg-3)' },
         { key: 'nguon', label: 'Nguồn hoạt động', value: d.nguon.filter((x) => x.trangThai === 'hoat_dong').length, sub: `${d.nguon.length} nguồn · ${d.camp.filter((c) => c.trangThai === 'chay').length} camp chạy` },
-        { key: 'click', label: 'Click → out', value: `${d.tong.click} → ${d.tong.out}`, sub: `${d.days} ngày` },
+        { key: 'click', label: 'View → click → out', value: `${d.tong.view} → ${d.tong.click} → ${d.tong.out}`, sub: `${d.days} ngày · cổng 18+ ${d.tong.view ? ((d.tong.gate / d.tong.view) * 100).toFixed(0) : '—'}%` },
         { key: 'signup', label: 'Signup', value: d.tong.signup, color: 'var(--neon-cyan, #67e8f9)' },
         { key: 'rev', label: 'Doanh thu', value: usd(d.tong.revenue), color: 'var(--ok)', sub: `chi ${usd(d.tong.chi)}` },
         { key: 'roi', label: 'ROI', value: roi === null ? '—' : `${roi.toFixed(0)}%`, color: roi === null ? 'var(--fg-3)' : roi >= 0 ? 'var(--ok)' : 'var(--danger)' },
@@ -122,7 +122,7 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
                     <td style={{ ...cell, ...mono, fontSize: 11 }}>{c.batDau ? c.batDau.slice(0, 10) : '—'} → <span style={{ color: c.ketThuc && hom > c.ketThuc.slice(0, 10) ? 'var(--danger)' : 'inherit' }}>{c.ketThuc ? c.ketThuc.slice(0, 10) : '—'}</span></td>
                     <td style={{ ...cell, ...mono, fontSize: 11 }}>{c.nhipNgay} ngày · <span style={{ color: px.xemLai && px.xemLai <= hom ? 'var(--warn)' : 'inherit' }}>{px.xemLai ?? '—'}</span></td>
                     <td style={{ ...cell, ...mono, fontSize: 10 }}>{Object.keys(t).length ? <>{t.chi_toi_da != null && <div>≤ ${t.chi_toi_da} thử</div>}{t.click_toi_thieu != null && <div>≥ {t.click_toi_thieu} click</div>}{t.signup_1k != null && <div>≥ {t.signup_1k} signup/1k</div>}</> : <span style={{ color: 'var(--warn)' }}>chưa đặt</span>}</td>
-                    <td style={{ ...cell, ...mono, fontSize: 11 }}>{c.tong.click} click · {c.tong.signup} signup<div style={{ color: 'var(--fg-3)' }}>{usd(c.tong.chi)} chi · {usd(c.tong.revenue)} về</div></td>
+                    <td style={{ ...cell, ...mono, fontSize: 11 }}>{c.tong.view ? `${c.tong.view} view → ` : ''}{c.tong.click} click · {c.tong.signup} signup<div style={{ color: 'var(--fg-3)' }}>{c.tong.view ? `cổng ${((c.tong.gate / c.tong.view) * 100).toFixed(0)}% · CTR ${((c.tong.click / c.tong.view) * 100).toFixed(1)}% · ` : ''}{usd(c.tong.chi)} chi · {usd(c.tong.revenue)} về</div></td>
                     <td style={cell}><Pill color={PHU_PHAN_XET[px.ma]?.color ?? 'var(--fg-3)'} label={PHU_PHAN_XET[px.ma]?.label ?? px.ma} /><div style={{ color: 'var(--fg-3)', fontSize: 10, marginTop: 3 }}>{px.lyDo}</div>{c.keHoach && <div style={{ fontSize: 10, color: 'var(--fg-2)', marginTop: 3 }}>{c.keHoach}</div>}</td>
                     <td style={cell}><Pill color={c.trangThai === 'chay' ? 'var(--ok)' : c.trangThai === 'tam_dung' ? 'var(--warn)' : 'var(--fg-3)'} label={c.trangThai} /></td>
                   </tr>
@@ -134,11 +134,11 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
         )}
       </Section>
 
-      <Section title={`Phễu theo campaign · ${d.days} ngày`} subtitle="click = beacon /px trên trang · out = cú bấm qua cửa ra hoặc link thẳng · signup/lead/spend = postback hoặc API mạng. Dòng (organic) = click không mang sid."
+      <Section title={`Phễu theo campaign · ${d.days} ngày`} subtitle="view = tải lander (beacon) · qua cổng = bấm 'I am 18+' · click = bấm phòng/CTA (CTR trên view; đỏ < 5%) · out = 302 qua cửa ra · signup/lead/spend = postback hoặc API mạng. Dòng (organic) = không mang sid."
         headerRight={<button style={btn} onClick={() => setNhapChi(true)}>+ nhập chi</button>}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr><th style={head}>sid_prefix</th><th style={head}>Click</th><th style={head}>Out</th><th style={head}>Signup</th><th style={head}>Lead</th><th style={head}>Spend (lượt)</th><th style={head}>Doanh thu</th><th style={head}>Chi</th><th style={head}>EPC</th><th style={head}>ROI</th></tr></thead>
+            <thead><tr><th style={head}>sid_prefix</th><th style={head}>View</th><th style={head}>Qua cổng</th><th style={head}>Click (CTR)</th><th style={head}>Out</th><th style={head}>Signup</th><th style={head}>Lead</th><th style={head}>Spend (lượt)</th><th style={head}>Doanh thu</th><th style={head}>Chi</th><th style={head}>EPC</th><th style={head}>ROI</th></tr></thead>
             <tbody>
               {d.pheu.map((r) => {
                 const epc = r.out ? r.revenue / r.out : 0;
@@ -146,7 +146,10 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
                 return (
                   <tr key={r.sidPrefix || '(organic)'}>
                     <td style={{ ...cell, ...mono }}>{r.sidPrefix || <span style={{ color: 'var(--fg-3)' }}>(organic / không sid)</span>}</td>
-                    <td style={{ ...cell, ...mono }}>{r.click}</td><td style={{ ...cell, ...mono }}>{r.out}</td>
+                    <td style={{ ...cell, ...mono }}>{r.view || '—'}</td>
+                    <td style={{ ...cell, ...mono }}>{r.gate || '—'}{r.view ? <span style={{ color: 'var(--fg-3)', fontSize: 10 }}> {((r.gate / r.view) * 100).toFixed(0)}%</span> : null}</td>
+                    <td style={{ ...cell, ...mono }}>{r.click}{r.view ? <span style={{ color: r.click / r.view < 0.05 ? 'var(--danger)' : 'var(--fg-3)', fontSize: 10 }}> {((r.click / r.view) * 100).toFixed(1)}%</span> : null}</td>
+                    <td style={{ ...cell, ...mono }}>{r.out}</td>
                     <td style={{ ...cell, ...mono }}>{r.signup}</td><td style={{ ...cell, ...mono }}>{r.lead}</td><td style={{ ...cell, ...mono }}>{r.spendCount}</td>
                     <td style={{ ...cell, ...mono, color: 'var(--ok)' }}>{usd(r.revenue)}</td><td style={{ ...cell, ...mono }}>{usd(r.chi)}</td>
                     <td style={{ ...cell, ...mono }}>{epc ? `$${epc.toFixed(3)}` : '—'}</td>

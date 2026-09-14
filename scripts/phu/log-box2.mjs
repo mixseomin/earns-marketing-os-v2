@@ -56,8 +56,11 @@ for (const ten of LOGS) {
       const host = (ref.match(/^https?:\/\/([^/]+)/) || [])[1] || '';
       if (la) {
         const q = c[1];
-        events.push({ ts, loai: 'click', sid: sidTuPx(q) || undefined, platform: px(q, 'd') || undefined, mang: host || undefined,
-          ma_don: createHash('sha1').update(line).digest('hex').slice(0, 24), nguon_du_lieu: 'log-px', raw: { p: px(q, 'p'), r: px(q, 'r'), host } });
+        // d=view (tải trang, k=1 = còn khoá 18+) · d=vao (qua cổng) · còn lại = bấm ra (i = vị trí trong lưới).
+        const d = px(q, 'd');
+        const loai = d === 'view' ? 'view' : d === 'vao' ? 'gate' : 'click';
+        events.push({ ts, loai, sid: sidTuPx(q) || undefined, platform: loai === 'click' ? d || undefined : undefined, mang: host || undefined,
+          ma_don: createHash('sha1').update(line).digest('hex').slice(0, 24), nguon_du_lieu: 'log-px', raw: { p: px(q, 'p'), r: px(q, 'r'), host, k: px(q, 'k') || undefined, i: px(q, 'i') || undefined, ua: ua.slice(0, 80) } });
       } else {
         events.push({ ts, loai: 'out', sid: c[1] || undefined, platform: dichRa(ref), mang: host || undefined,
           ma_don: createHash('sha1').update(line).digest('hex').slice(0, 24), nguon_du_lieu: 'log-loira', raw: { ref, d: c[2] } });

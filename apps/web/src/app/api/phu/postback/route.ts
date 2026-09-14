@@ -42,7 +42,7 @@ async function xuLy(req: Request) {
   let loai = LOAI[String(p.event ?? p.type ?? '').toLowerCase()] ?? '';
   if (!loai) {
     if (dung(p.isFirstBill) || dung(p.isRebill) || dung(p.isChargeback) || p.commission !== undefined) loai = 'spend';
-    else if (dung(p.isEmailVerification) || p.memberId !== undefined) loai = 'signup';
+    else if (dung(p.isEmailVerification) || p.memberId !== undefined || p.memberNick !== undefined || p.member !== undefined) loai = 'signup';
     else loai = 'lead';
   }
   if (dung(p.isChargeback) && amount > 0) amount = -amount;   // hoàn tiền = trừ, không cộng

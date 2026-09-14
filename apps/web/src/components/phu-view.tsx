@@ -97,7 +97,7 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
                 return (
                   <tr key={c.id} onClick={() => setSuaCamp(c)} style={{ cursor: 'pointer' }} title="Sửa campaign">
                     <td style={cell}><b>{c.ten}</b>
-                      <div style={{ ...mono, color: 'var(--fg-3)', fontSize: 10 }}>{c.sidPrefix} · {[c.target.device, c.target.geo, c.target.format].filter(Boolean).join(' · ')}</div>
+                      <div style={{ ...mono, color: 'var(--fg-3)', fontSize: 10 }}>{c.sidPrefix} · {[c.target.device, c.target.geo, c.target.format, c.target.source, c.target.bid != null ? `bid $${c.target.bid}` : null].filter(Boolean).join(' · ')}</div>
                       {c.trangThai !== 'chay' && <Pill color={c.trangThai === 'tam_dung' ? 'var(--warn)' : 'var(--fg-3)'} label={c.trangThai} />}
                     </td>
                     <td style={{ ...cell, ...mono, fontSize: 11, whiteSpace: 'nowrap' }}>{c.nganSachNgay == null ? '—' : usd(c.nganSachNgay)}<div style={{ color: quaHan ? 'var(--danger)' : 'var(--fg-3)', fontSize: 10 }}>{c.ketThuc ? `tới ${c.ketThuc.slice(5, 10)}` : 'không hạn'}{toiXem ? ' · tới nhịp' : ''}</div></td>
@@ -117,7 +117,7 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
               })}
               {khac && (
                 <tr>
-                  <td style={cell}><span style={{ color: 'var(--warn)' }}>(khác)</span><div style={{ color: 'var(--fg-3)', fontSize: 10 }}>{khac.soPrefix} sid_prefix không khớp camp nào — <button style={{ ...btn, padding: '0 6px', fontSize: 10 }} onClick={() => setSuaCamp('moi')}>đăng ký camp</button> hoặc thêm alias vào target</div></td>
+                  <td style={cell}><span style={{ color: 'var(--warn)' }}>(khác)</span><div style={{ color: 'var(--fg-3)', fontSize: 10 }}>{khac.soPrefix} sid_prefix không khớp camp nào — <button style={{ ...btn, padding: '0 6px', fontSize: 10 }} onClick={() => setSuaCamp('moi')}>đăng ký camp</button> hoặc mở camp → Nâng cao → Alias</div></td>
                   <td style={cell}>—</td>
                   <td style={{ ...cell, ...mono }}>{khac.view}</td><td style={{ ...cell, ...mono }}>{pct(khac.gate, khac.view)}</td><td style={{ ...cell, ...mono }}>{khac.click}</td><td style={{ ...cell, ...mono }}>{khac.out}</td><td style={{ ...cell, ...mono }}>{khac.signup}</td>
                   <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(khac.revenue)} / {usd(khac.chi)}</td><td style={cell}>—</td><td style={cell}>—</td>
@@ -350,38 +350,92 @@ function SuaNguon({ g, projectId, onClose }: { g: PhuNguon | null; projectId: st
 }
 
 function SuaCamp({ c, nguon, projectId, onClose }: { c: PhuCamp | null; nguon: PhuNguon[]; projectId: string; onClose: () => void }) {
-  const [f, setF] = useState({ nguonKey: c?.nguonKey ?? (nguon[0]?.key ?? ''), ten: c?.ten ?? '', sidPrefix: c?.sidPrefix ?? '', lander: c?.lander ?? '', target: c ? JSON.stringify(c.target) : '{"geo":"US,CA,UK,AU","device":"desktop","placement":"cam"}', nganSachNgay: c?.nganSachNgay == null ? '' : String(c.nganSachNgay), trangThai: c?.trangThai ?? 'nhap', ghiChu: c?.ghiChu ?? '',
-    ketThuc: c?.ketThuc ? c.ketThuc.slice(0, 10) : '', nhipNgay: String(c?.nhipNgay ?? 1), tieuChi: c && Object.keys(c.tieuChi).length ? JSON.stringify(c.tieuChi) : '{"chi_toi_da":35,"click_toi_thieu":2000,"signup_1k":1}', keHoach: c?.keHoach ?? '' });
+  // Cấu hình = ô nhập tử tế, không JSON. target/tieu_chi vẫn là jsonb dưới DB (adapter mạng đọc/ghi), form chỉ
+  // là mặt người: mọi khoá lạ trong target (bv_id, editorial…) giữ nguyên khi lưu.
+  const t = (c?.target ?? {}) as Record<string, unknown>;
+  const tc = c?.tieuChi ?? {};
+  const str = (v: unknown) => (v == null ? '' : Array.isArray(v) ? v.join(', ') : String(v));
+  const [f, setF] = useState({
+    nguonKey: c?.nguonKey ?? (nguon[0]?.key ?? ''), ten: c?.ten ?? '', sidPrefix: c?.sidPrefix ?? '', lander: c?.lander ?? 'https://live.chatwhenbored.com/',
+    geo: str(t.geo) || 'US', device: str(t.device).toLowerCase() || 'desktop', format: str(t.format).toLowerCase() || 'pop-under', source: str(t.source).toLowerCase() || 'porn',
+    bid: str(t.bid), placement: str(t.placement), alias: str(t.alias),
+    nganSachNgay: c?.nganSachNgay == null ? '5' : String(c.nganSachNgay), trangThai: c?.trangThai ?? 'nhap',
+    ketThuc: c?.ketThuc ? c.ketThuc.slice(0, 10) : new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10), nhipNgay: String(c?.nhipNgay ?? 1),
+    chiToiDa: tc.chi_toi_da == null ? '35' : String(tc.chi_toi_da), clickToiThieu: tc.click_toi_thieu == null ? '2000' : String(tc.click_toi_thieu), signup1k: tc.signup_1k == null ? '1' : String(tc.signup_1k),
+    keHoach: c?.keHoach ?? '', ghiChu: c?.ghiChu ?? '',
+  });
   const [dirty, setDirty] = useState(false);
   const [pending, start] = useTransition();
   const [loi, setLoi] = useState('');
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { setF({ ...f, [k]: e.target.value }); setDirty(true); };
+  const luu = () => start(async () => {
+    try {
+      const target = { ...t, geo: f.geo.trim(), device: f.device, format: f.format, source: f.source,
+        bid: f.bid.trim() ? Number(f.bid) : undefined, placement: f.placement.trim() || undefined,
+        alias: f.alias.split(',').map((x) => x.trim()).filter(Boolean) };
+      if (!target.alias.length) delete (target as { alias?: unknown }).alias;
+      const tieuChi = { chi_toi_da: Number(f.chiToiDa) || 0, click_toi_thieu: Number(f.clickToiThieu) || 0, signup_1k: Number(f.signup1k) || 0 };
+      await luuPhuCamp(projectId, { nguonKey: f.nguonKey, ten: f.ten, sidPrefix: f.sidPrefix, lander: f.lander, target: JSON.stringify(target), nganSachNgay: f.nganSachNgay,
+        trangThai: f.trangThai, ghiChu: f.ghiChu, ketThuc: f.ketThuc, nhipNgay: f.nhipNgay, tieuChi: JSON.stringify(tieuChi), keHoach: f.keHoach });
+      onClose();
+    } catch (e) { setLoi(String((e as Error).message)); }
+  });
+  const hai: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 };
+  const ba: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 };
+  const nhom = (x: string) => <div style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>{x}</div>;
   return (
-    <Khung tieuDe={c ? `Campaign · ${c.ten}` : 'Campaign mới'} onClose={onClose} pending={pending} dirty={dirty}
-      onSave={() => start(async () => { try { await luuPhuCamp(projectId, f); onClose(); } catch (e) { setLoi(String((e as Error).message)); } })}>
+    <Khung tieuDe={c ? `Campaign · ${c.ten}` : 'Campaign mới'} onClose={onClose} pending={pending} dirty={dirty} onSave={luu}>
       {loi && <div style={{ color: 'var(--danger)', fontSize: 12 }}>{loi}</div>}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+      <div style={hai}>
         <SelectField label="Nguồn" value={f.nguonKey} onChange={set('nguonKey')}>
           {nguon.map((g) => <option key={g.key} value={g.key}>{g.name}</option>)}
         </SelectField>
-        <TextField label="sid_prefix" value={f.sidPrefix} onChange={set('sidPrefix')} mono disabled={!!c} hint="<nguồn>_<camp>, vd exo_c1" />
+        <TextField label="sid_prefix" value={f.sidPrefix} onChange={set('sidPrefix')} mono disabled={!!c} hint="<nguồn>_<camp>, vd bidvertiser_pop-us-d" />
       </div>
       <TextField label="Tên" value={f.ten} onChange={set('ten')} />
-      <TextField label="Lander" value={f.lander} onChange={set('lander')} mono hint="https://live.chatwhenbored.com/?s=exo_c1_{zone}_{click_id}" />
-      <TextAreaField label="Target (JSON)" value={f.target} onChange={set('target')} rows={3} mono />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+      {nhom('Nhắm')}
+      <div style={ba}>
+        <TextField label="GEO" value={f.geo} onChange={set('geo')} mono hint="US · US,CA,UK" />
+        <SelectField label="Thiết bị" value={f.device} onChange={set('device')}>
+          {['desktop', 'mobile', 'cả hai'].map((x) => <option key={x} value={x}>{x}</option>)}
+        </SelectField>
+        <SelectField label="Định dạng" value={f.format} onChange={set('format')}>
+          {['pop-under', 'direct', 'native', 'push', 'search', 'social', 'khác'].map((x) => <option key={x} value={x}>{x}</option>)}
+        </SelectField>
+      </div>
+      <div style={ba}>
+        <SelectField label="Loại traffic" value={f.source} onChange={set('source')}>
+          {['porn', 'mainstream'].map((x) => <option key={x} value={x}>{x}</option>)}
+        </SelectField>
+        <TextField label="Bid (USD)" value={f.bid} onChange={set('bid')} mono hint="CPV/CPC" />
         <TextField label="Ngân sách/ngày (USD)" value={f.nganSachNgay} onChange={set('nganSachNgay')} mono />
+      </div>
+      <TextField label="Lander" value={f.lander} onChange={set('lander')} mono />
+      {nhom('Thử & phán xét')}
+      <div style={ba}>
+        <TextField label="Hạn thử" value={f.ketThuc} onChange={set('ketThuc')} mono hint="YYYY-MM-DD · quá ngày chưa đạt = DỪNG" />
+        <TextField label="Nhịp xem lại (ngày)" value={f.nhipNgay} onChange={set('nhipNgay')} mono />
         <SelectField label="Trạng thái" value={f.trangThai} onChange={set('trangThai')}>
           {['nhap', 'chay', 'tam_dung', 'ket_thuc'].map((x) => <option key={x} value={x}>{x}</option>)}
         </SelectField>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-        <TextField label="Hạn thử (YYYY-MM-DD)" value={f.ketThuc} onChange={set('ketThuc')} mono hint="quá ngày này mà chưa đạt = DỪNG" />
-        <TextField label="Nhịp xem lại (ngày)" value={f.nhipNgay} onChange={set('nhipNgay')} mono />
+      <div style={ba}>
+        <TextField label="$ thử tối đa" value={f.chiToiDa} onChange={set('chiToiDa')} mono hint="hết tiền này chưa đạt = DỪNG" />
+        <TextField label="Click tối thiểu" value={f.clickToiThieu} onChange={set('clickToiThieu')} mono hint="chưa đủ = chờ, chưa phán" />
+        <TextField label="Signup / 1k click" value={f.signup1k} onChange={set('signup1k')} mono hint="đạt = MỞ RỘNG" />
       </div>
-      <TextAreaField label="Tiêu chí (JSON)" value={f.tieuChi} onChange={set('tieuChi')} rows={2} mono hint="chi_toi_da = tổng $ thử · click_toi_thieu = đủ click mới kết luận · signup_1k = signup/1.000 click để MỞ RỘNG" />
-      <TextAreaField label="Kế hoạch sau phán xét" value={f.keHoach} onChange={set('keHoach')} rows={2} hint="đạt → mở gì; không đạt → đổi gì (không phải 'dừng' trơn)" />
-      <TextAreaField label="Ghi chú" value={f.ghiChu} onChange={set('ghiChu')} rows={2} />
+      <TextAreaField label="Kế hoạch sau phán xét" value={f.keHoach} onChange={set('keHoach')} rows={2} hint="đạt → mở gì; không đạt → đổi gì" />
+      <details>
+        <summary style={{ cursor: 'pointer', fontSize: 11, color: 'var(--fg-3)' }}>Nâng cao</summary>
+        <div style={{ display: 'grid', gap: 8, marginTop: 6 }}>
+          <TextField label="Alias sid (URL đời cũ)" value={f.alias} onChange={set('alias')} mono hint="phẩy cách; sid bắt đầu bằng alias cũng tính vào camp này" />
+          <TextField label="Placement" value={f.placement} onChange={set('placement')} />
+          <TextAreaField label="Ghi chú" value={f.ghiChu} onChange={set('ghiChu')} rows={2} />
+          {Object.keys(t).filter((k) => !['geo', 'device', 'format', 'source', 'bid', 'placement', 'alias'].includes(k)).length > 0 && (
+            <div style={{ ...mono, fontSize: 10, color: 'var(--fg-3)' }}>adapter ghi: {Object.entries(t).filter(([k]) => !['geo', 'device', 'format', 'source', 'bid', 'placement', 'alias'].includes(k)).map(([k, v]) => `${k}=${String(v)}`).join(' · ')}</div>
+          )}
+        </div>
+      </details>
     </Khung>
   );
 }

@@ -5,9 +5,9 @@
 // sid_prefix = `bidvertiser_<tên>` và camp trên Bidvertiser PHẢI đặt tên `bv-<tên>` (vd `bv-pop-us-d`
 // → prefix `bidvertiser_pop-us-d`). Không có bảng map: tên camp là khoá, đặt sai tên = không vào sổ.
 //
-// Creds: tệp /etc/mos2-phu/bidvertiser.env trên box3 (root 600): BV_EMAIL / BV_PASS / BV_API_KEY — bản gốc
-// mã hoá ở Directus earns (box1, accounts fb5974e1…, memory reference_bidvertiser_api). Chủ tự chép vào tệp
-// một lần; script không in creds. API: POST /TOKEN/ Basic email:pass → Bearer; mọi call kèm header `api_key`.
+// Creds: tệp /etc/mos2-phu/bidvertiser.env trên box3 (root 600): BV_EMAIL (username htuan82, tài khoản 297697 —
+// KHÔNG phải soccerstreamstop/1706406 trong Directus earns, đó là tài khoản cũ cities) / BV_PASS / BV_API_KEY
+// (trang API Access). Bản vault: MOS2 platform_accounts bidvertiser. Script không in creds. API: POST /TOKEN/ Basic email:pass → Bearer; mọi call kèm header `api_key`.
 // Trần: 1 call/giây, REPORTS 1 loại/giờ/camp → cron mỗi 2 giờ cho HÔM NAY, riêng 01:10 chốt HÔM QUA (--hom-qua).
 // Camp tự khai vào phu_camp từ /CAMPAIGNS/ (tên bv-* → prefix), nguồn cập nhật balance — không ai gõ tay.
 //   env: MOS2_EXT_KEY · PHU_PROJECT (adfond)
@@ -45,7 +45,8 @@ try {
   const call = async (path, body) => { await sleep(1100); const r = await fetch(API + path, { method: body ? 'POST' : 'GET', headers: H, body: body ? JSON.stringify(body) : undefined }); return r.json(); };
 
   const bal = await call('BALANCE/');
-  const balance = bal?.BDV_API?.RESULTS?.BALANCE ?? bal?.BDV_API?.RESULTS?.balance ?? JSON.stringify(bal?.BDV_API?.RESULTS ?? bal).slice(0, 60);
+  const bb = bal?.BDV_API?.RESULTS?.BALANCE;
+  const balance = bb && typeof bb === 'object' ? Number(bb.AMOUNT).toFixed(2) : String(bb ?? '?');
   const camps = (await call('CAMPAIGNS/'))?.BDV_API?.RESULTS?.CAMPAIGNS ?? [];
   const cua = camps.filter((c) => /^bv-/.test(c.NAME || ''));
   const ngay = new Date(); if (homQua) ngay.setUTCDate(ngay.getUTCDate() - 1);
@@ -61,8 +62,10 @@ try {
       trang_thai: st.NOTE === 'RUNNING' ? 'chay' : st.NOTE === 'PAUSED' ? 'tam_dung' : st.NOTE === 'DECLINED' ? 'ket_thuc' : 'nhap' });
     const rep = await call(`${c.ID}/REPORTS/`, { START_DATE: mmdd(ngay), END_DATE: mmdd(ngay) });
     const row = (rep?.BDV_API?.RESULTS?.CAMPAGINS || rep?.BDV_API?.RESULTS?.CAMPAIGNS || [])[0] || {};
+    if (rep?.BDV_API?.ERROR) { tt.push(`REPORTS ${c.ID}: ${rep.BDV_API.ERROR.NOTE}`); continue; }   // trần 1 report/giờ/camp: bỏ lượt, KHÔNG ghi $0 đè số cũ
+    console.log('row', c.ID, JSON.stringify(row).slice(0, 600));   // để soi tên cột (VISITS/CLICKS…) khi số lệch
     const num = (v) => (v && typeof v === 'object' ? Number(v.AMOUNT ?? v.VALUE ?? Object.values(v)[0]) : Number(v)) || 0;
-    chi.push({ ngay: iso(ngay), sid_prefix: prefix, chi_usd: num(row.COST), clicks: num(row.VISITS) || null, impressions: num(row['BID REQUESTS'] ?? row.BID_REQUESTS ?? row.REQUESTS) || null, nguon_du_lieu: 'api:bidvertiser' });
+    chi.push({ ngay: iso(ngay), sid_prefix: prefix, chi_usd: num(row.COST), clicks: num(row.VISITS ?? row.CLICKS ?? row.VISITORS) || null, impressions: num(row['BID REQUESTS'] ?? row.BID_REQUESTS ?? row.REQUESTS ?? row.IMPRESSIONS) || null, nguon_du_lieu: 'api:bidvertiser' });
   }
   await bao(true, `balance $${balance} · ${iso(ngay)} ${chi.map((c) => `${c.sid_prefix.slice(12)} $${c.chi_usd}/${c.clicks ?? 0}v`).join(' · ')} · ${tt.join(' · ')}`, chi, camp,
     { key: 'bidvertiser', trang_thai: 'hoat_dong', macro_click: '{BV_CLICKID}', ghi_chu: `Balance $${balance} (${new Date().toISOString().slice(0, 16)}Z). Tài khoản 297697 soccerstreamstop@gmail.com. sid = bidvertiser_<tên camp bỏ bv->_{BV_SRCID}; camp Bidvertiser đặt tên bv-<tên>. Không có postback theo click → blacklist srcid tay/API. Plan: adfond docs/plan-bidvertiser-live.md` });

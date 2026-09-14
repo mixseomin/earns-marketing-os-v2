@@ -10,6 +10,7 @@
 
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
+import { siteSlugForDomain } from '@/lib/backlink-sites';
 
 export type BacklinkSiteStats = {
   total: number;
@@ -56,15 +57,17 @@ export async function loadBacklinkStats(): Promise<Record<string, BacklinkSiteSt
   }
 }
 
-// domain → backlink site key. The key is a slug: SITE_META.project when the
-// domain has a MOS2 project, else the first domain label (paydochub.com →
-// paydochub, chatlt.com → chatlt), which matches every current site_status key.
+// domain → backlink site key. site_status keys ARE the BACKLINK_SITES slugs (that list is the single
+// source, see backlink-sites.ts), so resolve the domain there first. Fallbacks for domains not in the
+// portfolio list: SITE_META.project, then the first domain label (chatlt.com → chatlt). The project
+// fallback used to come first — wrong for sites carded under an umbrella project (adfond holds
+// hotel-arb/jobzab/chatwhenbored): 'adfond' is no site_status key, so those rows read as no campaign.
 export function pickBacklinks(
   stats: Record<string, BacklinkSiteStats> | null,
   domain: string,
   project?: string,
 ): BacklinkSiteStats | null {
   if (!stats) return null;
-  const key = project || domain.split('.')[0] || domain;
+  const key = siteSlugForDomain(domain) || project || domain.split('.')[0] || domain;
   return stats[key] ?? null;
 }

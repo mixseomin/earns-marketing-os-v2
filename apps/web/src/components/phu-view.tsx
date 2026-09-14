@@ -5,7 +5,7 @@
 // đổ vào từ /api/phu/ingest + /api/phu/postback, trang chỉ đọc bảng phu_*.
 
 import { useEffect, useState, useTransition } from 'react';
-import { Drawer, EmptyState, Pager, Pill, SearchInput, Section, SelectField, StatsStrip, TextAreaField, TextField, usePaged } from '@/components/ui';
+import { Drawer, EmptyState, Pager, Panel, Pill, SearchInput, SelectField, StatsStrip, Tabs, TextAreaField, TextField, usePaged } from '@/components/ui';
 import type { PhuCamp, PhuData, PhuNguon, PhuNguonCamp, PhuPlatform } from '@/lib/phu-shared';
 import { PHU_NGUON_TRANG_THAI, PHU_PHAN_XET, PHU_TRANG_THAI, phanXet } from '@/lib/phu-shared';
 const KHAC = '(khác)';
@@ -26,6 +26,7 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
   const [suaCamp, setSuaCamp] = useState<PhuCamp | 'moi' | null>(null);
   const [nhapChi, setNhapChi] = useState(false);
   const [soiCamp, setSoiCamp] = useState<PhuCamp | null>(null);
+  const [tab, setTab] = useState<'camp' | 'phu' | 'nguon' | 'hatang'>('camp');
   const d = data;
   const dem = (tt: string) => d.platforms.filter((p) => p.trangThai === tt).length;
   const roi = d.tong.chi > 0 ? ((d.tong.revenue - d.tong.chi) / d.tong.chi) * 100 : null;
@@ -67,11 +68,18 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
         for (const l of d.landers) if (l.trangThai !== 'song' || cu(l.lastSinh, 20)) dong.push(<span key={'l' + l.host + l.path}><span style={{ color: 'var(--warn)' }}>lander {l.host}{l.path}</span> sinh lúc {khi(l.lastSinh)}</span>);
         for (const c of d.camp) { const px = phanXet(c); if (px.ma === 'dung' || px.ma === 'mo_rong') dong.push(<span key={'c' + c.id}><span style={{ color: PHU_PHAN_XET[px.ma]?.color }}>{c.ten}: {PHU_PHAN_XET[px.ma]?.label}</span> — {c.keHoach ? c.keHoach.slice(0, 120) : px.lyDo}</span>); }
         if (khac && (khac.view || khac.click)) dong.push(<span key="khac"><span style={{ color: 'var(--warn)' }}>{khac.soPrefix} sid lạ</span> ({khac.view} view / {khac.click} click) chưa thuộc camp nào</span>);
-        return dong.length ? <div style={{ display: 'grid', gap: 4, fontSize: 12, padding: '8px 12px', border: '1px solid var(--line)', borderRadius: 8 }}>{dong.map((x, i) => <div key={i}>{x}</div>)}</div> : null;
+        return dong.length ? <Panel title="Cần chú ý" subtitle={`${dong.length} mục`} style={{ marginBottom: 0 }}><div style={{ display: 'grid', gap: 4, fontSize: 12 }}>{dong.map((x, i) => <div key={i}>{x}</div>)}</div></Panel> : null;
       })()}
 
-      <Section title={`Campaign (${d.camp.length})`} static
-        headerRight={<span style={{ display: 'flex', gap: 6 }}><button style={btn} onClick={() => setNhapChi(true)}>+ nhập chi</button><button style={btn} onClick={() => setSuaCamp('moi')}>+ campaign</button></span>}>
+      <Tabs items={[
+        { key: 'camp', label: 'Campaign', badge: d.camp.filter((c) => c.trangThai === 'chay').length || undefined },
+        { key: 'phu', label: 'Nền tảng phủ', badge: d.platforms.length || undefined },
+        { key: 'nguon', label: 'Nguồn traffic', badge: d.nguon.filter((x) => x.trangThai === 'hoat_dong').length || undefined },
+        { key: 'hatang', label: 'Lander & adapter', badge: adapterHong ? <span style={{ color: 'var(--danger)' }}>{adapterHong} đỏ</span> : undefined },
+      ]} value={tab} onChange={setTab} />
+
+      {tab === 'camp' && <Panel title={`Campaign (${d.camp.length})`} subtitle={`phễu ${d.days} ngày · phán xét theo cộng dồn`} style={{ marginBottom: 0 }}
+        actions={<span style={{ display: 'flex', gap: 6 }}><button style={btn} onClick={() => setNhapChi(true)}>+ nhập chi</button><button style={btn} onClick={() => setSuaCamp('moi')}>+ campaign</button></span>}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr>
@@ -126,9 +134,9 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
           </table>
           {!d.camp.length && <EmptyState icon="📉" title="Chưa có campaign" description="Adapter mạng QC tự khai camp (Bidvertiser: tên bv-*), hoặc + campaign." compact />}
         </div>
-      </Section>
+      </Panel>}
 
-      <Section title={`Nền tảng phủ (${d.platforms.length}) · ${dem('da_cam')} đã cắm · ${dem('cho_duyet') + dem('da_dang_ky')} chờ duyệt · ${dem('chua')} chưa đăng ký`} defaultOpen={false}>
+      {tab === 'phu' && <Panel title={`Nền tảng phủ (${d.platforms.length})`} subtitle={`${dem('da_cam')} đã cắm · ${dem('cho_duyet') + dem('da_dang_ky')} chờ duyệt · ${dem('chua')} chưa đăng ký · bấm dòng để sửa`} style={{ marginBottom: 0 }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr><th style={head}>Nền tảng</th><th style={head}>Nhóm</th><th style={head}>Chương trình</th><th style={head}>Hoa hồng</th><th style={head}>Trạng thái</th><th style={head}>Cửa ra</th><th style={head}>Bước kế</th><th style={head}>Card</th></tr></thead>
@@ -152,11 +160,10 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
           </table>
           {!d.platforms.length && <EmptyState icon="🧩" title="Chưa có nền tảng" description="Nạp bằng scripts/phu/seed hoặc /api/phu/ingest." compact />}
         </div>
-      </Section>
+      </Panel>}
 
-      <Section title={`Nguồn traffic (${d.nguon.length}) · ${d.nguon.filter((x) => x.trangThai === 'hoat_dong').length} hoạt động`} defaultOpen={false}
-        subtitle="sid = <nguồn>_<camp>_<srcid> — URL mua traffic chỉ cần utm_source/utm_campaign/utm_term; lander tự ghép."
-        headerRight={<button style={btn} onClick={(e) => { e.stopPropagation(); setSuaNg('moi'); }}>+ nguồn</button>}>
+      {tab === 'nguon' && <Panel title={`Nguồn traffic (${d.nguon.length})`} subtitle="sid = <nguồn>_<camp>_<srcid> — URL mua traffic chỉ cần utm_source/utm_campaign/utm_term, lander tự ghép" style={{ marginBottom: 0 }}
+        actions={<button style={btn} onClick={() => setSuaNg('moi')}>+ nguồn</button>}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr><th style={head}>Nguồn</th><th style={head}>Loại</th><th style={head}>Trạng thái</th><th style={head}>Macro click</th><th style={head}>Nạp</th><th style={head}>Ghi chú</th></tr></thead>
@@ -186,10 +193,10 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
             </details>
           )}
         </div>
-      </Section>
+      </Panel>}
 
-      <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
-        <Section title={`Lander (${d.landers.length})${d.landers.some((l) => l.trangThai !== 'song' || cu(l.lastSinh, 20)) ? ' · có lander cũ/hỏng' : ''}`} defaultOpen={false}>
+      {tab === 'hatang' && <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))' }}>
+        <Panel title={`Lander (${d.landers.length})`} subtitle="subdomain riêng, noindex · lander động phải mới hơn 15 phút" style={{ marginBottom: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr><th style={head}>Lander</th><th style={head}>Bán</th><th style={head}>Sinh lúc</th><th style={head}>Mục</th></tr></thead>
             <tbody>
@@ -204,8 +211,8 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
             </tbody>
           </table>
           {!d.landers.length && <EmptyState icon="🛬" title="Chưa có lander" compact />}
-        </Section>
-        <Section title={`Adapter (${d.adapters.length})${adapterHong ? ` · ${adapterHong} đỏ` : ''}`} defaultOpen={false} subtitle="Đỏ = lâu không chạy hoặc lần cuối lỗi. Dòng postback kèm URL để dán vào mạng affiliate.">
+        </Panel>
+        <Panel title={`Adapter (${d.adapters.length})`} subtitle="đỏ = lâu không chạy hoặc lần cuối lỗi · dòng postback kèm URL dán vào mạng" style={{ marginBottom: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr><th style={head}>Adapter</th><th style={head}>Lịch</th><th style={head}>Chạy cuối</th><th style={head}>Ghi chú</th></tr></thead>
             <tbody>
@@ -223,8 +230,8 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
             </tbody>
           </table>
           {!d.adapters.length && <EmptyState icon="🔌" title="Chưa adapter nào báo về" compact />}
-        </Section>
-      </div>
+        </Panel>
+      </div>}
 
       {suaPl && <SuaPlatform p={suaPl} projectId={projectId} onClose={() => setSuaPl(null)} />}
       {suaNg && <SuaNguon g={suaNg === 'moi' ? null : suaNg} projectId={projectId} onClose={() => setSuaNg(null)} />}

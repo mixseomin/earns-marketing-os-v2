@@ -4,11 +4,12 @@
 // adapter/postback đang sống không · nhập chi tay. Sửa gì cũng qua Drawer (quy ước UI nhà), số liệu
 // đổ vào từ /api/phu/ingest + /api/phu/postback, trang chỉ đọc bảng phu_*.
 
-import { useState, useTransition } from 'react';
-import { Drawer, EmptyState, Pill, Section, SelectField, StatsStrip, TextAreaField, TextField } from '@/components/ui';
-import type { PhuCamp, PhuData, PhuNguon, PhuPlatform } from '@/lib/phu-shared';
+import { useEffect, useState, useTransition } from 'react';
+import { Drawer, EmptyState, Pager, Pill, SearchInput, Section, SelectField, StatsStrip, TextAreaField, TextField, usePaged } from '@/components/ui';
+import type { PhuCamp, PhuData, PhuNguon, PhuNguonCamp, PhuPlatform } from '@/lib/phu-shared';
 import { PHU_NGUON_TRANG_THAI, PHU_PHAN_XET, PHU_TRANG_THAI, phanXet } from '@/lib/phu-shared';
-import { luuPhuCamp, luuPhuChi, luuPhuNguon, luuPhuPlatform } from '@/lib/actions/phu';
+const KHAC = '(khác)';
+import { docPhuNguonCamp, luuPhuCamp, luuPhuChi, luuPhuNguon, luuPhuPlatform } from '@/lib/actions/phu';
 
 const NHOM: Record<string, string> = { cam: 'Cam 18+', ai: 'AI companion', random: 'Random chat', text: 'Text/voice', community: 'Cộng đồng', other: 'Khác' };
 const cell: React.CSSProperties = { padding: '7px 9px', fontSize: 12, borderBottom: '1px solid var(--line)', verticalAlign: 'top' };
@@ -24,16 +25,25 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
   const [suaNg, setSuaNg] = useState<PhuNguon | 'moi' | null>(null);
   const [suaCamp, setSuaCamp] = useState<PhuCamp | 'moi' | null>(null);
   const [nhapChi, setNhapChi] = useState(false);
+  const [soiCamp, setSoiCamp] = useState<PhuCamp | null>(null);
   const d = data;
   const dem = (tt: string) => d.platforms.filter((p) => p.trangThai === tt).length;
   const roi = d.tong.chi > 0 ? ((d.tong.revenue - d.tong.chi) / d.tong.chi) * 100 : null;
+  const hom = new Date().toISOString().slice(0, 10);
+  const pheuCua = (prefix: string) => d.pheu.find((x) => x.sidPrefix === prefix);
+  const khac = d.pheu.find((x) => x.sidPrefix === KHAC);
+  const organic = d.pheu.find((x) => x.sidPrefix === '');
+  const adapterHong = d.adapters.filter((a) => a.lastOk === false || (a.loai === 'cron' && cu(a.lastRun, 24 * 60))).length;
+  const pct = (a: number, b: number, so = 0) => (b ? `${((a / b) * 100).toFixed(so)}%` : '—');
 
+  // YDNI: bề mặt = số tổng + MỘT bảng campaign (chiến lược + phễu + phán xét trên cùng một dòng).
+  // Nền tảng / nguồn / lander / adapter là tham chiếu phụ → gập, header giữ số đếm + số đỏ để biết có.
   return (
     <div style={{ padding: 16, display: 'grid', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 18 }}>Phủ affiliate & traffic mua</h1>
-          <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>Một màn: nền tảng → nguồn/campaign → phễu theo sid → lander → adapter. Cửa sổ {d.days} ngày.</div>
+          <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>Mỗi dòng = một campaign: view → cổng 18+ → click → out → signup → tiền, so với tiêu chí → phán xét. Cửa sổ {d.days} ngày; phán xét dùng cộng dồn.</div>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           {[7, 30, 90].map((n) => (
@@ -43,18 +53,82 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
       </div>
       {d.loi && <div style={{ color: 'var(--danger)', fontSize: 12 }}>{d.loi}</div>}
 
-      <StatsStrip minColWidth={130} cards={[
-        { key: 'cam', label: 'Đã cắm', value: dem('da_cam'), color: 'var(--ok)', sub: `${dem('duyet')} duyệt chưa cắm` },
-        { key: 'cho', label: 'Chờ duyệt', value: dem('cho_duyet') + dem('da_dang_ky'), color: 'var(--neon-violet, #a78bfa)', sub: `${dem('chua')} chưa đăng ký` },
-        { key: 'khong', label: 'Không có aff', value: dem('khong_co') + dem('bo'), color: 'var(--fg-3)' },
-        { key: 'nguon', label: 'Nguồn hoạt động', value: d.nguon.filter((x) => x.trangThai === 'hoat_dong').length, sub: `${d.nguon.length} nguồn · ${d.camp.filter((c) => c.trangThai === 'chay').length} camp chạy` },
-        { key: 'click', label: 'View → click → out', value: `${d.tong.view} → ${d.tong.click} → ${d.tong.out}`, sub: `${d.days} ngày · cổng 18+ ${d.tong.view ? ((d.tong.gate / d.tong.view) * 100).toFixed(0) : '—'}%` },
-        { key: 'signup', label: 'Signup', value: d.tong.signup, color: 'var(--neon-cyan, #67e8f9)' },
-        { key: 'rev', label: 'Doanh thu', value: usd(d.tong.revenue), color: 'var(--ok)', sub: `chi ${usd(d.tong.chi)}` },
-        { key: 'roi', label: 'ROI', value: roi === null ? '—' : `${roi.toFixed(0)}%`, color: roi === null ? 'var(--fg-3)' : roi >= 0 ? 'var(--ok)' : 'var(--danger)' },
+      <StatsStrip minColWidth={150} cards={[
+        { key: 'camp', label: 'Camp chạy', value: d.camp.filter((c) => c.trangThai === 'chay').length, sub: `${d.nguon.filter((x) => x.trangThai === 'hoat_dong').length} nguồn hoạt động` },
+        { key: 'click', label: 'View → click → out', value: `${d.tong.view} → ${d.tong.click} → ${d.tong.out}`, sub: `cổng 18+ ${pct(d.tong.gate, d.tong.view)} · CTR ${pct(d.tong.click, d.tong.view, 1)}` },
+        { key: 'signup', label: 'Signup', value: d.tong.signup, sub: d.tong.click ? `${((d.tong.signup / d.tong.click) * 1000).toFixed(1)} / 1k click` : undefined },
+        { key: 'rev', label: 'Doanh thu / chi', value: `${usd(d.tong.revenue)} / ${usd(d.tong.chi)}`, color: roi === null ? undefined : roi >= 0 ? 'var(--ok)' : 'var(--danger)', sub: roi === null ? 'ROI —' : `ROI ${roi.toFixed(0)}%` },
       ]} />
 
-      <Section title={`Nền tảng (${d.platforms.length})`} subtitle="Trạng thái affiliate từng nền tảng trên site, cửa ra đang cắm, bước kế và ai làm. Bấm dòng để sửa.">
+      {(() => {
+        // Cần chú ý: chỉ những thứ ĐỘNG và đòi hành động. Không có thì không hiện gì.
+        const dong: React.ReactNode[] = [];
+        for (const a of d.adapters) if (a.lastOk === false || (a.loai === 'cron' && cu(a.lastRun, 24 * 60))) dong.push(<span key={'a' + a.key}><span style={{ color: 'var(--danger)' }}>adapter {a.key}</span> {a.lastNote ? `— ${a.lastNote.slice(0, 90)}` : 'lâu không chạy'}</span>);
+        for (const l of d.landers) if (l.trangThai !== 'song' || cu(l.lastSinh, 20)) dong.push(<span key={'l' + l.host + l.path}><span style={{ color: 'var(--warn)' }}>lander {l.host}{l.path}</span> sinh lúc {khi(l.lastSinh)}</span>);
+        for (const c of d.camp) { const px = phanXet(c); if (px.ma === 'dung' || px.ma === 'mo_rong') dong.push(<span key={'c' + c.id}><span style={{ color: PHU_PHAN_XET[px.ma]?.color }}>{c.ten}: {PHU_PHAN_XET[px.ma]?.label}</span> — {c.keHoach ? c.keHoach.slice(0, 120) : px.lyDo}</span>); }
+        if (khac && (khac.view || khac.click)) dong.push(<span key="khac"><span style={{ color: 'var(--warn)' }}>{khac.soPrefix} sid lạ</span> ({khac.view} view / {khac.click} click) chưa thuộc camp nào</span>);
+        return dong.length ? <div style={{ display: 'grid', gap: 4, fontSize: 12, padding: '8px 12px', border: '1px solid var(--line)', borderRadius: 8 }}>{dong.map((x, i) => <div key={i}>{x}</div>)}</div> : null;
+      })()}
+
+      <Section title={`Campaign (${d.camp.length})`} static
+        headerRight={<span style={{ display: 'flex', gap: 6 }}><button style={btn} onClick={() => setNhapChi(true)}>+ nhập chi</button><button style={btn} onClick={() => setSuaCamp('moi')}>+ campaign</button></span>}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr>
+              <th style={head}>Campaign</th><th style={head}>$/ngày · hạn</th>
+              <th style={head}>View</th><th style={head}>Cổng</th><th style={head}>Click</th><th style={head}>Out</th><th style={head}>Signup</th><th style={head}>Về / chi</th>
+              <th style={head}>Phán xét</th><th style={head}>Nguồn</th>
+            </tr></thead>
+            <tbody>
+              {d.camp.map((c) => {
+                const px = phanXet(c);
+                const f = pheuCua(c.sidPrefix);
+                const t = c.tieuChi;
+                const quaHan = c.ketThuc && hom > c.ketThuc.slice(0, 10);
+                const toiXem = px.xemLai && px.xemLai <= hom;
+                return (
+                  <tr key={c.id} onClick={() => setSuaCamp(c)} style={{ cursor: 'pointer' }} title="Sửa campaign">
+                    <td style={cell}><b>{c.ten}</b>
+                      <div style={{ ...mono, color: 'var(--fg-3)', fontSize: 10 }}>{c.sidPrefix} · {[c.target.device, c.target.geo, c.target.format].filter(Boolean).join(' · ')}</div>
+                      {c.trangThai !== 'chay' && <Pill color={c.trangThai === 'tam_dung' ? 'var(--warn)' : 'var(--fg-3)'} label={c.trangThai} />}
+                    </td>
+                    <td style={{ ...cell, ...mono, fontSize: 11, whiteSpace: 'nowrap' }}>{c.nganSachNgay == null ? '—' : usd(c.nganSachNgay)}<div style={{ color: quaHan ? 'var(--danger)' : 'var(--fg-3)', fontSize: 10 }}>{c.ketThuc ? `tới ${c.ketThuc.slice(5, 10)}` : 'không hạn'}{toiXem ? ' · tới nhịp' : ''}</div></td>
+                    <td style={{ ...cell, ...mono }}>{f?.view || '—'}</td>
+                    <td style={{ ...cell, ...mono }}>{f?.view ? pct(f.gate, f.view) : '—'}</td>
+                    <td style={{ ...cell, ...mono }}>{f?.click ?? 0}<span style={{ color: f?.view && f.click / f.view < 0.05 ? 'var(--danger)' : 'var(--fg-3)', fontSize: 10 }}> {f?.view ? pct(f.click, f.view, 1) : ''}</span></td>
+                    <td style={{ ...cell, ...mono }}>{f?.out ?? 0}</td>
+                    <td style={{ ...cell, ...mono }}>{f?.signup ?? 0}</td>
+                    <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(f?.revenue ?? 0)} / {usd(f?.chi ?? 0)}</td>
+                    <td style={cell}><Pill color={PHU_PHAN_XET[px.ma]?.color ?? 'var(--fg-3)'} label={PHU_PHAN_XET[px.ma]?.label ?? px.ma} />
+                      <div style={{ color: 'var(--fg-3)', fontSize: 10, marginTop: 3 }}>{px.lyDo}</div>
+                      {Object.keys(t).length ? null : <div style={{ color: 'var(--warn)', fontSize: 10 }}>chưa đặt tiêu chí — bấm để đặt</div>}
+                    </td>
+                    <td style={cell}><button style={btn} onClick={(e) => { e.stopPropagation(); setSoiCamp(c); }} title="Xem theo srcid/zone để blacklist">srcid ▸</button></td>
+                  </tr>
+                );
+              })}
+              {khac && (
+                <tr>
+                  <td style={cell}><span style={{ color: 'var(--warn)' }}>(khác)</span><div style={{ color: 'var(--fg-3)', fontSize: 10 }}>{khac.soPrefix} sid_prefix không khớp camp nào — <button style={{ ...btn, padding: '0 6px', fontSize: 10 }} onClick={() => setSuaCamp('moi')}>đăng ký camp</button> hoặc thêm alias vào target</div></td>
+                  <td style={cell}>—</td>
+                  <td style={{ ...cell, ...mono }}>{khac.view}</td><td style={{ ...cell, ...mono }}>{pct(khac.gate, khac.view)}</td><td style={{ ...cell, ...mono }}>{khac.click}</td><td style={{ ...cell, ...mono }}>{khac.out}</td><td style={{ ...cell, ...mono }}>{khac.signup}</td>
+                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(khac.revenue)} / {usd(khac.chi)}</td><td style={cell}>—</td><td style={cell}>—</td>
+                </tr>
+              )}
+              {organic && (
+                <tr>
+                  <td style={cell}><span style={{ color: 'var(--fg-3)' }}>(organic / không sid)</span></td><td style={cell}>—</td>
+                  <td style={{ ...cell, ...mono }}>{organic.view || '—'}</td><td style={{ ...cell, ...mono }}>{pct(organic.gate, organic.view)}</td><td style={{ ...cell, ...mono }}>{organic.click}</td><td style={{ ...cell, ...mono }}>{organic.out}</td><td style={{ ...cell, ...mono }}>{organic.signup}</td>
+                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(organic.revenue)} / —</td><td style={cell}>—</td><td style={cell}>—</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          {!d.camp.length && <EmptyState icon="📉" title="Chưa có campaign" description="Adapter mạng QC tự khai camp (Bidvertiser: tên bv-*), hoặc + campaign." compact />}
+        </div>
+      </Section>
+
+      <Section title={`Nền tảng phủ (${d.platforms.length}) · ${dem('da_cam')} đã cắm · ${dem('cho_duyet') + dem('da_dang_ky')} chờ duyệt · ${dem('chua')} chưa đăng ký`} defaultOpen={false}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr><th style={head}>Nền tảng</th><th style={head}>Nhóm</th><th style={head}>Chương trình</th><th style={head}>Hoa hồng</th><th style={head}>Trạng thái</th><th style={head}>Cửa ra</th><th style={head}>Bước kế</th><th style={head}>Card</th></tr></thead>
@@ -80,91 +154,42 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
         </div>
       </Section>
 
-      <Section title={`Nguồn traffic (${d.nguon.length}) & campaign (${d.camp.length})`}
-        subtitle="sid = <nguồn>_<camp>_<zone>_<clickid> — nguồn và campaign nằm trong sid, mạng affiliate trả về qua postback (URL ở mục Adapter)."
-        headerRight={<span style={{ display: 'flex', gap: 6 }}><button style={btn} onClick={() => setSuaNg('moi')}>+ nguồn</button><button style={btn} onClick={() => setSuaCamp('moi')}>+ campaign</button></span>}>
+      <Section title={`Nguồn traffic (${d.nguon.length}) · ${d.nguon.filter((x) => x.trangThai === 'hoat_dong').length} hoạt động`} defaultOpen={false}
+        subtitle="sid = <nguồn>_<camp>_<srcid> — URL mua traffic chỉ cần utm_source/utm_campaign/utm_term; lander tự ghép."
+        headerRight={<button style={btn} onClick={(e) => { e.stopPropagation(); setSuaNg('moi'); }}>+ nguồn</button>}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr><th style={head}>Nguồn</th><th style={head}>Loại</th><th style={head}>Trạng thái</th><th style={head}>Nạp</th><th style={head}>Macro click</th><th style={head}>Ghi chú</th></tr></thead>
+            <thead><tr><th style={head}>Nguồn</th><th style={head}>Loại</th><th style={head}>Trạng thái</th><th style={head}>Macro click</th><th style={head}>Nạp</th><th style={head}>Ghi chú</th></tr></thead>
             <tbody>
-              {d.nguon.map((g) => {
+              {d.nguon.filter((g) => g.trangThai === 'hoat_dong' || g.trangThai === 'dang_mo' || g.trangThai === 'tam_dung').map((g) => {
                 const tt = PHU_NGUON_TRANG_THAI[g.trangThai] ?? { label: g.trangThai, color: 'var(--fg-3)' };
                 return (
-                  <tr key={g.id} onClick={() => setSuaNg(g)} style={{ cursor: 'pointer' }}>
+                  <tr key={g.id} onClick={() => setSuaNg(g)} style={{ cursor: 'pointer' }} title="Sửa">
                     <td style={cell}><b>{g.name}</b><div style={{ ...mono, color: 'var(--fg-3)', fontSize: 10 }}>{g.key}</div></td>
                     <td style={cell}>{g.loai}</td>
                     <td style={cell}><Pill color={tt.color} label={tt.label} /></td>
-                    <td style={{ ...cell, ...mono }}>{usd(g.napUsd)}</td>
                     <td style={{ ...cell, ...mono }}>{g.macroClick ?? '—'}</td>
-                    <td style={{ ...cell, fontSize: 11, color: 'var(--fg-2)', maxWidth: 360 }}>{g.ghiChu ?? '—'}</td>
+                    <td style={{ ...cell, ...mono }}>{usd(g.napUsd)}</td>
+                    <td style={{ ...cell, fontSize: 11, color: 'var(--fg-2)', maxWidth: 420 }}>{g.ghiChu ?? '—'}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          {!d.nguon.length && <EmptyState icon="📡" title="Chưa có nguồn traffic" description="Thêm nguồn khi anh chốt mạng QC — token postback sinh tự động." compact />}
-        </div>
-        {d.camp.length > 0 && (
-          <div style={{ overflowX: 'auto', marginTop: 10 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={head}>Campaign</th><th style={head}>sid_prefix</th><th style={head}>Target</th><th style={head}>$/ngày</th><th style={head}>Bắt đầu → hạn</th><th style={head}>Nhịp · xem lại</th><th style={head}>Tiêu chí</th><th style={head}>Cộng dồn</th><th style={head}>Phán xét</th><th style={head}>Trạng thái</th></tr></thead>
-              <tbody>
-                {d.camp.map((c) => {
-                  const px = phanXet(c);
-                  const hom = new Date().toISOString().slice(0, 10);
-                  const t = c.tieuChi;
-                  return (
-                  <tr key={c.id} onClick={() => setSuaCamp(c)} style={{ cursor: 'pointer' }}>
-                    <td style={cell}><b>{c.ten}</b><div style={{ ...mono, color: 'var(--fg-3)', fontSize: 10 }}>{c.nguonKey} · {c.lander ?? '—'}</div></td>
-                    <td style={{ ...cell, ...mono }}>{c.sidPrefix}</td>
-                    <td style={{ ...cell, ...mono, fontSize: 10, maxWidth: 220, wordBreak: 'break-all' }}>{Object.keys(c.target).length ? JSON.stringify(c.target) : '—'}</td>
-                    <td style={{ ...cell, ...mono }}>{c.nganSachNgay == null ? '—' : usd(c.nganSachNgay)}</td>
-                    <td style={{ ...cell, ...mono, fontSize: 11 }}>{c.batDau ? c.batDau.slice(0, 10) : '—'} → <span style={{ color: c.ketThuc && hom > c.ketThuc.slice(0, 10) ? 'var(--danger)' : 'inherit' }}>{c.ketThuc ? c.ketThuc.slice(0, 10) : '—'}</span></td>
-                    <td style={{ ...cell, ...mono, fontSize: 11 }}>{c.nhipNgay} ngày · <span style={{ color: px.xemLai && px.xemLai <= hom ? 'var(--warn)' : 'inherit' }}>{px.xemLai ?? '—'}</span></td>
-                    <td style={{ ...cell, ...mono, fontSize: 10 }}>{Object.keys(t).length ? <>{t.chi_toi_da != null && <div>≤ ${t.chi_toi_da} thử</div>}{t.click_toi_thieu != null && <div>≥ {t.click_toi_thieu} click</div>}{t.signup_1k != null && <div>≥ {t.signup_1k} signup/1k</div>}</> : <span style={{ color: 'var(--warn)' }}>chưa đặt</span>}</td>
-                    <td style={{ ...cell, ...mono, fontSize: 11 }}>{c.tong.view ? `${c.tong.view} view → ` : ''}{c.tong.click} click · {c.tong.signup} signup<div style={{ color: 'var(--fg-3)' }}>{c.tong.view ? `cổng ${((c.tong.gate / c.tong.view) * 100).toFixed(0)}% · CTR ${((c.tong.click / c.tong.view) * 100).toFixed(1)}% · ` : ''}{usd(c.tong.chi)} chi · {usd(c.tong.revenue)} về</div></td>
-                    <td style={cell}><Pill color={PHU_PHAN_XET[px.ma]?.color ?? 'var(--fg-3)'} label={PHU_PHAN_XET[px.ma]?.label ?? px.ma} /><div style={{ color: 'var(--fg-3)', fontSize: 10, marginTop: 3 }}>{px.lyDo}</div>{c.keHoach && <div style={{ fontSize: 10, color: 'var(--fg-2)', marginTop: 3 }}>{c.keHoach}</div>}</td>
-                    <td style={cell}><Pill color={c.trangThai === 'chay' ? 'var(--ok)' : c.trangThai === 'tam_dung' ? 'var(--warn)' : 'var(--fg-3)'} label={c.trangThai} /></td>
-                  </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Section>
-
-      <Section title={`Phễu theo campaign · ${d.days} ngày`} subtitle="view = tải lander (beacon) · qua cổng = bấm 'I am 18+' · click = bấm phòng/CTA (CTR trên view; đỏ < 5%) · out = 302 qua cửa ra · signup/lead/spend = postback hoặc API mạng. Dòng (organic) = không mang sid."
-        headerRight={<button style={btn} onClick={() => setNhapChi(true)}>+ nhập chi</button>}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr><th style={head}>sid_prefix</th><th style={head}>View</th><th style={head}>Qua cổng</th><th style={head}>Click (CTR)</th><th style={head}>Out</th><th style={head}>Signup</th><th style={head}>Lead</th><th style={head}>Spend (lượt)</th><th style={head}>Doanh thu</th><th style={head}>Chi</th><th style={head}>EPC</th><th style={head}>ROI</th></tr></thead>
-            <tbody>
-              {d.pheu.map((r) => {
-                const epc = r.out ? r.revenue / r.out : 0;
-                const ro = r.chi ? ((r.revenue - r.chi) / r.chi) * 100 : null;
-                return (
-                  <tr key={r.sidPrefix || '(organic)'}>
-                    <td style={{ ...cell, ...mono }}>{r.sidPrefix || <span style={{ color: 'var(--fg-3)' }}>(organic / không sid)</span>}</td>
-                    <td style={{ ...cell, ...mono }}>{r.view || '—'}</td>
-                    <td style={{ ...cell, ...mono }}>{r.gate || '—'}{r.view ? <span style={{ color: 'var(--fg-3)', fontSize: 10 }}> {((r.gate / r.view) * 100).toFixed(0)}%</span> : null}</td>
-                    <td style={{ ...cell, ...mono }}>{r.click}{r.view ? <span style={{ color: r.click / r.view < 0.05 ? 'var(--danger)' : 'var(--fg-3)', fontSize: 10 }}> {((r.click / r.view) * 100).toFixed(1)}%</span> : null}</td>
-                    <td style={{ ...cell, ...mono }}>{r.out}</td>
-                    <td style={{ ...cell, ...mono }}>{r.signup}</td><td style={{ ...cell, ...mono }}>{r.lead}</td><td style={{ ...cell, ...mono }}>{r.spendCount}</td>
-                    <td style={{ ...cell, ...mono, color: 'var(--ok)' }}>{usd(r.revenue)}</td><td style={{ ...cell, ...mono }}>{usd(r.chi)}</td>
-                    <td style={{ ...cell, ...mono }}>{epc ? `$${epc.toFixed(3)}` : '—'}</td>
-                    <td style={{ ...cell, ...mono, color: ro === null ? 'var(--fg-3)' : ro >= 0 ? 'var(--ok)' : 'var(--danger)' }}>{ro === null ? '—' : `${ro.toFixed(0)}%`}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {!d.pheu.length && <EmptyState icon="📉" title="Chưa có sự kiện nào trong cửa sổ" description="Adapter log-box2 kéo click/out mỗi 15 phút; postback mạng đổ signup/sale." compact />}
+          {!d.nguon.length && <EmptyState icon="📡" title="Chưa có nguồn traffic" compact />}
+          {d.nguon.some((g) => g.trangThai === 'du_kien' || g.trangThai === 'bo') && (
+            <details style={{ marginTop: 8, fontSize: 12, color: 'var(--fg-3)' }}>
+              <summary style={{ cursor: 'pointer' }}>{d.nguon.filter((g) => g.trangThai === 'du_kien' || g.trangThai === 'bo').length} nguồn dự kiến / bỏ</summary>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                {d.nguon.filter((g) => g.trangThai === 'du_kien' || g.trangThai === 'bo').map((g) => <button key={g.id} style={btn} onClick={() => setSuaNg(g)}>{g.name} · {PHU_NGUON_TRANG_THAI[g.trangThai]?.label ?? g.trangThai}</button>)}
+              </div>
+            </details>
+          )}
         </div>
       </Section>
 
       <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
-        <Section title={`Lander (${d.landers.length})`} subtitle="Trang cho traffic mua — subdomain riêng, noindex. Lần sinh gần nhất phải mới hơn 15 phút với lander động.">
+        <Section title={`Lander (${d.landers.length})${d.landers.some((l) => l.trangThai !== 'song' || cu(l.lastSinh, 20)) ? ' · có lander cũ/hỏng' : ''}`} defaultOpen={false}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr><th style={head}>Lander</th><th style={head}>Bán</th><th style={head}>Sinh lúc</th><th style={head}>Mục</th></tr></thead>
             <tbody>
@@ -180,7 +205,7 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
           </table>
           {!d.landers.length && <EmptyState icon="🛬" title="Chưa có lander" compact />}
         </Section>
-        <Section title={`Adapter (${d.adapters.length})`} subtitle="Mọi đường số liệu đổ vào trang này. Đỏ = lâu không chạy hoặc lần cuối lỗi. Dòng postback kèm URL để dán vào mạng affiliate.">
+        <Section title={`Adapter (${d.adapters.length})${adapterHong ? ` · ${adapterHong} đỏ` : ''}`} defaultOpen={false} subtitle="Đỏ = lâu không chạy hoặc lần cuối lỗi. Dòng postback kèm URL để dán vào mạng affiliate.">
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr><th style={head}>Adapter</th><th style={head}>Lịch</th><th style={head}>Chạy cuối</th><th style={head}>Ghi chú</th></tr></thead>
             <tbody>
@@ -190,7 +215,7 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
                   <tr key={a.key}>
                     <td style={cell}><b>{a.name}</b><div style={{ ...mono, color: 'var(--fg-3)', fontSize: 10 }}>{a.key} · {a.loai}</div></td>
                     <td style={{ ...cell, ...mono, fontSize: 11 }}>{a.lich ?? '—'}</td>
-                    <td style={{ ...cell, ...mono, color: hong ? 'var(--danger)' : 'var(--ok)' }}>{khi(a.lastRun)}</td>
+                    <td style={{ ...cell, ...mono, color: hong ? 'var(--danger)' : 'var(--fg-2)' }}>{khi(a.lastRun)}</td>
                     <td style={{ ...cell, fontSize: 11, color: 'var(--fg-2)' }}>{a.lastNote ?? '—'}{a.loai === 'postback' && a.postbackToken && <div style={{ ...mono, fontSize: 10, wordBreak: 'break-all', color: 'var(--fg-3)', marginTop: 4 }}>https://mos2.on.tc/api/phu/postback/{a.postbackToken}?event=&lt;signup|lead|spend&gt;&amp;sid=&lt;macro sub id&gt;&amp;amount=&lt;payout&gt;&amp;id=&lt;txn id&gt; (mạng bỏ query string vẫn nhận được vì token nằm trên đường dẫn)</div>}</td>
                   </tr>
                 );
@@ -205,7 +230,44 @@ export function PhuView({ data, projectId, host }: { data: PhuData; projectId: s
       {suaNg && <SuaNguon g={suaNg === 'moi' ? null : suaNg} projectId={projectId} onClose={() => setSuaNg(null)} />}
       {suaCamp && <SuaCamp c={suaCamp === 'moi' ? null : suaCamp} nguon={d.nguon} projectId={projectId} onClose={() => setSuaCamp(null)} />}
       {nhapChi && <NhapChi camp={d.camp} projectId={projectId} onClose={() => setNhapChi(false)} />}
+      {soiCamp && <SoiNguon c={soiCamp} projectId={projectId} days={d.days} onClose={() => setSoiCamp(null)} />}
     </div>
+  );
+}
+
+// Drill-down: nguồn (srcid/zone) của một camp — cái cần để blacklist. Đọc khi mở, phân trang 50.
+function SoiNguon({ c, projectId, days, onClose }: { c: PhuCamp; projectId: string; days: number; onClose: () => void }) {
+  const [rows, setRows] = useState<PhuNguonCamp[] | null>(null);
+  const [q, setQ] = useState('');
+  useEffect(() => { docPhuNguonCamp(projectId, c.sidPrefix, days).then(setRows).catch(() => setRows([])); }, [projectId, c.sidPrefix, days]);
+  const loc = (rows ?? []).filter((r) => !q || r.nguon.includes(q));
+  const pg = usePaged(loc, 50);
+  const xau = (r: PhuNguonCamp) => r.view >= 50 && r.click === 0 && r.signup === 0;
+  return (
+    <Drawer onClose={onClose} width={620}>
+      <div style={{ padding: 16, display: 'grid', gap: 10 }}>
+        <h2 style={{ margin: 0, fontSize: 15 }}>{c.ten} · nguồn theo srcid · {days} ngày</h2>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: 'var(--fg-3)' }}>
+          <SearchInput value={q} onChange={setQ} placeholder="lọc srcid…" />
+          <span>{loc.length} nguồn · <span style={{ color: 'var(--danger)' }}>{loc.filter(xau).length} đáng blacklist</span> (≥50 view, 0 click, 0 signup)</span>
+        </div>
+        {rows === null ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>Đang đọc…</div> : (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr><th style={head}>srcid</th><th style={head}>View</th><th style={head}>Cổng</th><th style={head}>Click</th><th style={head}>Out</th><th style={head}>Signup</th><th style={head}>Về</th></tr></thead>
+            <tbody>
+              {pg.pageItems.map((r) => (
+                <tr key={r.nguon} style={{ color: xau(r) ? 'var(--danger)' : undefined }}>
+                  <td style={{ ...cell, ...mono, fontSize: 11 }}>{r.nguon || '(trống)'}</td>
+                  <td style={{ ...cell, ...mono }}>{r.view}</td><td style={{ ...cell, ...mono }}>{r.gate}</td><td style={{ ...cell, ...mono }}>{r.click}</td>
+                  <td style={{ ...cell, ...mono }}>{r.out}</td><td style={{ ...cell, ...mono }}>{r.signup}</td><td style={{ ...cell, ...mono }}>{usd(r.revenue)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <Pager page={pg.page} pageCount={pg.pageCount} total={pg.total} pageSize={pg.pageSize} onPage={pg.setPage} />
+      </div>
+    </Drawer>
   );
 }
 

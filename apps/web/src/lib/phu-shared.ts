@@ -19,7 +19,7 @@ export type PhuCamp = {
   tong: { view: number; gate: number; click: number; out: number; signup: number; revenue: number; chi: number };
 };
 export type PhuPheu = {
-  sidPrefix: string; view: number; gate: number; click: number; out: number; signup: number; lead: number; spendCount: number; revenue: number; chi: number;
+  sidPrefix: string; soPrefix: number; view: number; gate: number; click: number; out: number; signup: number; lead: number; spendCount: number; revenue: number; chi: number;
 };
 export type PhuAdapter = { key: string; name: string; loai: string; lich: string | null; lastRun: string | null; lastOk: boolean | null; lastNote: string | null; postbackToken: string | null };
 export type PhuLander = { host: string; path: string; ten: string; moTa: string | null; dich: string | null; lastSinh: string | null; soMuc: number | null; trangThai: string };
@@ -89,3 +89,4 @@ export const PHU_PHAN_XET: Record<string, { label: string; color: string }> = {
   di_tiep: { label: 'đi tiếp',    color: 'var(--neon-cyan, #67e8f9)' },
   nghi:    { label: 'nghỉ',       color: 'var(--fg-3)' },
 };
+export type PhuNguonCamp = { nguon: string; view: number; gate: number; click: number; out: number; signup: number; revenue: number };

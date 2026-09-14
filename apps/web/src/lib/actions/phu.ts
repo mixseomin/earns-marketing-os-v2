@@ -1,4 +1,9 @@
 'use server';
+import { getPhuNguonCamp } from '@/lib/phu';
+export async function docPhuNguonCamp(projectId: string, sidPrefix: string, days: number) {
+  await guard();
+  return getPhuNguonCamp(projectId, sidPrefix, days);
+}
 
 // Server actions cho trang PHỦ: sửa trạng thái/bước kế của nền tảng, thêm-sửa nguồn traffic,
 // campaign, và nhập chi phí tay. Chỉ admin. Mọi thay đổi revalidate đúng trang.

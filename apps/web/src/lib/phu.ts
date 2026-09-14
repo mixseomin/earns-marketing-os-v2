@@ -12,6 +12,40 @@ export * from './phu-shared';
 import type { PhuData, PhuPlatform, PhuNguon, PhuCamp, PhuPheu, PhuAdapter, PhuLander } from './phu-shared';
 
 const n = (v: unknown) => (v === null || v === undefined ? 0 : Number(v) || 0);
+export const KHAC = '(khác)';
+
+/** Biểu thức SQL gom sid về camp đã đăng ký: CASE WHEN sid LIKE '<prefix>\_%' OR sid LIKE '<alias>%' … ELSE '(khác)'.
+ *  Dòng không sid ('') giữ nguyên = organic. Một chỗ dựng, ba truy vấn (cửa sổ, cộng dồn, chi) cùng dùng. */
+function nhomTheoCamp(camps: Record<string, unknown>[]) {
+  const nhanh = camps.map((r) => {
+    const prefix = String(r.sid_prefix);
+    const t = (r.target && typeof r.target === 'object' ? r.target : {}) as { alias?: unknown };
+    const alias = Array.isArray(t.alias) ? t.alias.map(String).filter(Boolean) : [];
+    const dk = [sql`sid LIKE ${prefix.replace(/[_%]/g, (m) => '\\' + m) + '\\_%'}`, ...alias.map((a) => sql`sid LIKE ${a.replace(/[_%]/g, (m) => '\\' + m) + '%'}`)];
+    return sql`WHEN ${sql.join(dk, sql` OR `)} THEN ${prefix}`;
+  });
+  return nhanh.length ? sql`CASE WHEN COALESCE(sid, '') = '' THEN '' ${sql.join(nhanh, sql` `)} ELSE ${KHAC} END` : sql`CASE WHEN COALESCE(sid, '') = '' THEN '' ELSE ${KHAC} END`;
+}
+const nhomChi = sql`sid_prefix`;   // phu_chi ghi thẳng theo prefix camp (adapter/tay), không cần gom lại
+
+/** Drill-down: nguồn (mẩu sau prefix, = srcid/zone) của MỘT camp trong cửa sổ, xếp theo view. Trang chính không kéo cái này. */
+export async function getPhuNguonCamp(projectId: string, sidPrefix: string, days = 7, limit = 200) {
+  const db = getDb();
+  if (!db) return [];
+  const since = new Date(Date.now() - days * 86400_000).toISOString();
+  const camp = (await db.execute(sql`SELECT target FROM phu_camp WHERE project_id = ${projectId} AND sid_prefix = ${sidPrefix}`)) as unknown as Record<string, unknown>[];
+  const t = (camp[0]?.target && typeof camp[0].target === 'object' ? camp[0].target : {}) as { alias?: unknown };
+  const alias = Array.isArray(t.alias) ? t.alias.map(String) : [];
+  const dk = [sql`sid LIKE ${sidPrefix.replace(/[_%]/g, (m) => '\\' + m) + '\\_%'}`, ...alias.map((a) => sql`sid LIKE ${a.replace(/[_%]/g, (m) => '\\' + m) + '%'}`)];
+  const rows = (await db.execute(sql`
+    SELECT regexp_replace(sid, '^[^_|]+[_|][^_|]+[_|]?', '') AS nguon,
+           COUNT(*) FILTER (WHERE loai = 'view') AS view, COUNT(*) FILTER (WHERE loai = 'gate') AS gate,
+           COUNT(*) FILTER (WHERE loai = 'click') AS click, COUNT(*) FILTER (WHERE loai = 'out') AS "out",
+           COUNT(*) FILTER (WHERE loai = 'signup') AS signup, COALESCE(SUM(amount) FILTER (WHERE loai IN ('spend', 'lead')), 0)::float8 AS revenue
+      FROM phu_su_kien WHERE project_id = ${projectId} AND ts >= ${since}::timestamptz AND (${sql.join(dk, sql` OR `)})
+     GROUP BY 1 ORDER BY signup DESC, view DESC LIMIT ${limit}`)) as unknown as Record<string, unknown>[];
+  return rows.map((r) => ({ nguon: String(r.nguon), view: n(r.view), gate: n(r.gate), click: n(r.click), out: n(r.out), signup: n(r.signup), revenue: n(r.revenue) }));
+}
 const s = (v: unknown) => (v === null || v === undefined ? null : String(v));
 
 export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
@@ -19,16 +53,21 @@ export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
   const db = getDb();
   if (!db) return { ...rong, loi: 'DATABASE_URL chưa cấu hình' };
   const since = new Date(Date.now() - days * 86400_000).toISOString();
-  const [p, ng, c, ev, chi, ad, ld, evAll, chiAll] = await Promise.all([
+  // Camp đọc TRƯỚC: phễu gom theo camp đã đăng ký ngay trong SQL. sid khớp `<prefix>_%` hoặc một alias
+  // trong target.alias (URL đời cũ, vd 'bv-pop-us-m') → dòng camp đó; còn lại dồn vào MỘT dòng '(khác)'
+  // (đếm số sid_prefix lạ). Không có đường nào để 1 triệu sid thành 1 triệu dòng trên trang.
+  const c = await db.execute(sql`SELECT * FROM phu_camp WHERE project_id = ${projectId} ORDER BY trang_thai, sid_prefix`);
+  type R = Record<string, unknown>;
+  const nhom = nhomTheoCamp(c as unknown as R[]);
+  const [p, ng, ev, chi, ad, ld, evAll, chiAll] = await Promise.all([
     db.execute(sql`
       SELECT p.*, t.status AS card_status
         FROM phu_platforms p LEFT JOIN human_tasks t ON t.id = p.card_id
        WHERE p.project_id = ${projectId}
        ORDER BY CASE p.nhom WHEN 'cam' THEN 0 WHEN 'ai' THEN 1 WHEN 'random' THEN 2 ELSE 3 END, p.name`),
     db.execute(sql`SELECT * FROM phu_nguon WHERE project_id = ${projectId} ORDER BY CASE trang_thai WHEN 'hoat_dong' THEN 0 WHEN 'dang_mo' THEN 1 WHEN 'du_kien' THEN 2 ELSE 3 END, name`),
-    db.execute(sql`SELECT * FROM phu_camp WHERE project_id = ${projectId} ORDER BY trang_thai, sid_prefix`),
     db.execute(sql`
-      SELECT COALESCE(sid_prefix, '') AS sid_prefix,
+      SELECT ${nhom} AS sid_prefix, COUNT(DISTINCT sid_prefix) AS so_prefix,
              COUNT(*) FILTER (WHERE loai = 'view')   AS view,
              COUNT(*) FILTER (WHERE loai = 'gate')   AS gate,
              COUNT(*) FILTER (WHERE loai = 'click')  AS click,
@@ -41,30 +80,29 @@ export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
        WHERE project_id = ${projectId} AND ts >= ${since}::timestamptz
        GROUP BY 1 ORDER BY revenue DESC, click DESC`),
     db.execute(sql`
-      SELECT sid_prefix, COALESCE(SUM(chi_usd), 0)::float8 AS chi
+      SELECT ${nhomChi} AS sid_prefix, COALESCE(SUM(chi_usd), 0)::float8 AS chi
         FROM phu_chi WHERE project_id = ${projectId} AND ngay >= ${since.slice(0, 10)}::date
        GROUP BY 1`),
     db.execute(sql`SELECT * FROM phu_adapter WHERE project_id = ${projectId} ORDER BY loai, key`),
     db.execute(sql`SELECT * FROM phu_lander WHERE project_id = ${projectId} ORDER BY host, path`),
     // cộng dồn toàn thời gian theo prefix — phán xét camp không được phụ thuộc cửa sổ N ngày
     db.execute(sql`
-      SELECT sid_prefix, COUNT(*) FILTER (WHERE loai = 'view') AS view, COUNT(*) FILTER (WHERE loai = 'gate') AS gate,
+      SELECT ${nhom} AS sid_prefix, COUNT(*) FILTER (WHERE loai = 'view') AS view, COUNT(*) FILTER (WHERE loai = 'gate') AS gate,
              COUNT(*) FILTER (WHERE loai = 'click') AS click, COUNT(*) FILTER (WHERE loai = 'out') AS "out",
              COUNT(*) FILTER (WHERE loai = 'signup') AS signup, COALESCE(SUM(amount) FILTER (WHERE loai IN ('spend', 'lead')), 0)::float8 AS revenue
         FROM phu_su_kien WHERE project_id = ${projectId} AND sid_prefix <> '' GROUP BY 1`),
-    db.execute(sql`SELECT sid_prefix, COALESCE(SUM(chi_usd), 0)::float8 AS chi FROM phu_chi WHERE project_id = ${projectId} GROUP BY 1`),
+    db.execute(sql`SELECT ${nhomChi} AS sid_prefix, COALESCE(SUM(chi_usd), 0)::float8 AS chi FROM phu_chi WHERE project_id = ${projectId} GROUP BY 1`),
   ]);
-  type R = Record<string, unknown>;
   const chiMap = new Map<string, number>();
   for (const r of chi as unknown as R[]) chiMap.set(String(r.sid_prefix), n(r.chi));
   const tongEv = new Map<string, R>(); for (const r of evAll as unknown as R[]) tongEv.set(String(r.sid_prefix), r);
   const tongChi = new Map<string, number>(); for (const r of chiAll as unknown as R[]) tongChi.set(String(r.sid_prefix), n(r.chi));
   const pheu: PhuPheu[] = (ev as unknown as R[]).map((r) => ({
-    sidPrefix: String(r.sid_prefix ?? ''), view: n(r.view), gate: n(r.gate), click: n(r.click), out: n(r.out), signup: n(r.signup), lead: n(r.lead),
+    sidPrefix: String(r.sid_prefix ?? ''), soPrefix: n(r.so_prefix), view: n(r.view), gate: n(r.gate), click: n(r.click), out: n(r.out), signup: n(r.signup), lead: n(r.lead),
     spendCount: n(r.spend_count), revenue: n(r.revenue), chi: chiMap.get(String(r.sid_prefix ?? '')) ?? 0,
   }));
   // Chi có mà chưa có sự kiện nào (camp vừa chạy) vẫn phải hiện — tiền đã đi.
-  for (const [k, v] of chiMap) if (!pheu.some((x) => x.sidPrefix === k)) pheu.push({ sidPrefix: k, view: 0, gate: 0, click: 0, out: 0, signup: 0, lead: 0, spendCount: 0, revenue: 0, chi: v });
+  for (const [k, v] of chiMap) if (!pheu.some((x) => x.sidPrefix === k)) pheu.push({ sidPrefix: k, soPrefix: 1, view: 0, gate: 0, click: 0, out: 0, signup: 0, lead: 0, spendCount: 0, revenue: 0, chi: v });
   const tong = pheu.reduce((a, x) => ({ view: a.view + x.view, gate: a.gate + x.gate, click: a.click + x.click, out: a.out + x.out, signup: a.signup + x.signup, revenue: a.revenue + x.revenue, chi: a.chi + x.chi }), rong.tong);
   return {
     days, tong, loi: null, pheu,

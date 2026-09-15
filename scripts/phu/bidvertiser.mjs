@@ -59,7 +59,7 @@ try {
     camp.push({ nguon_key: 'bidvertiser', ten: `${c.NAME} #${c.ID}`, sid_prefix: prefix, lander: 'https://live.chatwhenbored.com/',
       target: { bv_id: Number(c.ID), format: c.AD?.TYPE, device: c.AD?.MEDIA, source: c.AD?.SOURCE, geo: c.GEO, bid: c.BID?.AMOUNT ?? c.BID, editorial: ed },
       ngan_sach_ngay: Number(c['DAILY BUDGET']?.AMOUNT ?? c['DAILY BUDGET']) || undefined,
-      trang_thai: st.NOTE === 'RUNNING' ? 'chay' : st.NOTE === 'PAUSED' ? 'tam_dung' : st.NOTE === 'DECLINED' ? 'ket_thuc' : 'nhap' });
+      trang_thai: st.NOTE === 'RUNNING' || /CAP REACHED/.test(st.NOTE || '') ? 'chay' : st.NOTE === 'PAUSED' ? 'tam_dung' : st.NOTE === 'DECLINED' ? 'ket_thuc' : 'nhap' });   // hết cap ngày vẫn là camp đang chạy
     const rep = await call(`${c.ID}/REPORTS/`, { START_DATE: mmdd(ngay), END_DATE: mmdd(ngay) });
     const row = (rep?.BDV_API?.RESULTS?.CAMPAGINS || rep?.BDV_API?.RESULTS?.CAMPAIGNS || [])[0] || {};
     if (rep?.BDV_API?.ERROR) { tt.push(`REPORTS ${c.ID}: ${rep.BDV_API.ERROR.NOTE}`); continue; }   // trần 1 report/giờ/camp: bỏ lượt, KHÔNG ghi $0 đè số cũ

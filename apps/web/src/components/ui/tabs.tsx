@@ -8,8 +8,10 @@
 // (Segmented là control NHỎ trong card/modal — không dùng cho tab cấp trang.)
 //
 // Badge = số đếm; giữ cố định, không đổi theo tab đang chọn, để bấm không xô layout.
+// onReorder: cho kéo-thả đổi thứ tự tab (HTML5 drag, không lib). Caller giữ thứ tự + lưu (cookie/URL);
+// Tabs chỉ báo mảng key mới.
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 export interface TabItem<T extends string> {
   key: T;
@@ -18,12 +20,20 @@ export interface TabItem<T extends string> {
   title?: string;
 }
 
-export function Tabs<T extends string>({ items, value, onChange, right }: {
+export function Tabs<T extends string>({ items, value, onChange, right, onReorder }: {
   items: TabItem<T>[];
   value: T;
   onChange: (v: T) => void;
   right?: ReactNode;      // nội dung ghim mép phải cùng hàng (nút, đếm…)
+  onReorder?: (keys: T[]) => void;
 }) {
+  const [keo, setKeo] = useState<T | null>(null);
+  const tha = (dich: T) => {
+    if (!onReorder || keo == null || keo === dich) return;
+    const keys = items.map((t) => t.key).filter((k) => k !== keo);
+    keys.splice(keys.indexOf(dich), 0, keo);
+    onReorder(keys);
+  };
   return (
     <div data-comp="ui.Tabs"
          style={{ display: 'flex', alignItems: 'stretch', gap: 2, marginBottom: 12,
@@ -33,7 +43,13 @@ export function Tabs<T extends string>({ items, value, onChange, right }: {
         return (
           <button key={t.key} type="button" title={t.title}
                   onClick={() => onChange(t.key)}
+                  draggable={!!onReorder}
+                  onDragStart={onReorder ? () => setKeo(t.key) : undefined}
+                  onDragOver={onReorder ? (e) => e.preventDefault() : undefined}
+                  onDrop={onReorder ? () => { tha(t.key); setKeo(null); } : undefined}
+                  onDragEnd={onReorder ? () => setKeo(null) : undefined}
                   style={{
+                    opacity: keo === t.key ? 0.4 : 1,
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '7px 12px', background: 'transparent', border: 0,
                     borderBottom: `2px solid ${active ? 'var(--accent)' : 'transparent'}`,

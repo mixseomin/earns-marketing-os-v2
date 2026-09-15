@@ -1,10 +1,12 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { AppShell } from '@/components/app-shell';
 import { AiUsageCard } from '@/components/ai-usage-card';
 import { Section, StatsStrip } from '@/components/ui';
 import { RevenueCalendar } from '@/components/revenue-calendar';
-import { HomeTabs, HOME_TAB_MAC_DINH, type HomeTab } from '@/components/home-tabs';
+import { HomeTabs, HOME_TAB_MAC_DINH, HOME_TABS_COOKIE, type HomeTab } from '@/components/home-tabs';
+import { OrdersBlotter } from '@/components/orders-blotter';
 import { PhuCanChuY, PhuView } from '@/components/phu-view';
 import { SeoSitesPanel } from '@/components/seo-sites-panel';
 import { ProductsPanel } from '@/components/products-panel';
@@ -15,7 +17,7 @@ import { MailwizzListsPanel } from '@/components/mailwizz-lists-panel';
 import { AwarenessFunnelPanel } from '@/components/awareness-funnel-panel';
 import { AwinDailyPanel } from '@/components/awin-daily-panel';
 import { PortfolioGrid } from '@/components/portfolio-grid';
-import { getMode, listProjects, getAiUsageSummary } from '@/lib/data';
+import { getMode, listProjects, getAiUsageSummary, listStrategyTrades, listStrategyTests, listStrategyForward, getBrokerNowMs } from '@/lib/data';
 import { getRevenueByDay } from '@/lib/revenue/by-day';
 import { getPhu, listPhuProjects } from '@/lib/phu';
 import { BACKLINK_SITES } from '@/lib/backlink-sites';
@@ -26,8 +28,10 @@ export const dynamic = 'force-dynamic';
 // Trang chủ = trung tâm điều hành (anh chốt 16/09/2026): PHỦ (camp · nền tảng · nguồn · hạ tầng) dọn từ
 // /p/<id>/phu về đây, phần còn lại của trang chủ cũ (12 panel xếp dọc) chia theo CÂU HỎI: tiền về chưa (Doanh thu),
 // có ai đi ngang không (SEO & sản phẩm), gửi có tới không (Email), danh sách dự án (Dự án). Trên cùng luôn là
-// số tiền + Cần chú ý; mỗi lượt chỉ đọc dữ liệu của tab đang mở.
-const TABS: HomeTab[] = ['camp', 'phu', 'nguon', 'hatang', 'doanhthu', 'seo', 'email', 'duan'];
+// số tiền + Cần chú ý; mỗi lượt chỉ đọc dữ liệu của tab đang mở. Lệnh MT5 (strategy-lab/orders) cũng về đây (16/09).
+// Thứ tự tab: cookie `home-tabs` (kéo-thả ở HomeTabs), thiếu key nào thì key đó xếp cuối theo mặc định.
+const TABS: HomeTab[] = ['camp', 'phu', 'nguon', 'hatang', 'lenh', 'doanhthu', 'seo', 'email', 'duan'];
+const SL = 'strategy-lab';
 const usd = (v: number) => (v ? `$${v.toFixed(2)}` : '—');
 const cho = <div style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 16 }}>đang đọc…</div>;
 const pill = (active: boolean): React.CSSProperties => ({ padding: '3px 9px', fontSize: 11, borderRadius: 999, border: '1px solid var(--line)', textDecoration: 'none', background: 'var(--bg-2)', ...(active ? { borderColor: 'var(--fg-2)', color: 'var(--fg-1)' } : { color: 'var(--fg-3)' }) });
@@ -35,6 +39,8 @@ const pill = (active: boolean): React.CSSProperties => ({ padding: '3px 9px', fo
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ tab?: string; p?: string; days?: string }> }) {
   const sp = await searchParams;
   const tab: HomeTab = TABS.includes(sp.tab as HomeTab) ? (sp.tab as HomeTab) : HOME_TAB_MAC_DINH;
+  const thuTu = ((await cookies()).get(HOME_TABS_COOKIE)?.value ?? '').split(',').filter((k): k is HomeTab => TABS.includes(k as HomeTab));
+  const xep = <T extends { key: HomeTab }>(items: T[]) => [...items].sort((a, b) => (thuTu.includes(a.key) ? thuTu.indexOf(a.key) : 99 + TABS.indexOf(a.key)) - (thuTu.includes(b.key) ? thuTu.indexOf(b.key) : 99 + TABS.indexOf(b.key)));
   const days = [7, 30, 90].includes(Number(sp.days)) ? Number(sp.days) : 7;
   const [projects, mode, byDay, phuProjects] = await Promise.all([listProjects(), getMode('affiliate'), getRevenueByDay(30), listPhuProjects()]);
   const pid = phuProjects.includes(sp.p ?? '') ? String(sp.p) : phuProjects[0];
@@ -62,16 +68,17 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
         <div>
           <Suspense fallback={null}>
-            <HomeTabs items={[
+            <HomeTabs items={xep([
               { key: 'camp', label: 'Campaign', badge: campChay || undefined, title: 'Mỗi dòng = một campaign: phễu + tiêu chí → phán xét' },
               { key: 'phu', label: 'Nền tảng phủ', badge: phu?.platforms.length || undefined },
               { key: 'nguon', label: 'Nguồn traffic', badge: phu?.nguon.filter((x) => x.trangThai === 'hoat_dong').length || undefined },
               { key: 'hatang', label: 'Lander & adapter', badge: hong ? <span style={{ color: 'var(--danger)' }}>{hong} đỏ</span> : undefined },
+              { key: 'lenh', label: 'Lệnh MT5', title: 'Live Orders — forward-test mọi strategy (strategy-lab)' },
               { key: 'doanhthu', label: 'Doanh thu', title: 'Lịch tiền mọi nguồn · affiliate · Awin' },
               { key: 'seo', label: 'SEO & sản phẩm', title: 'GSC · Gumroad · SteamSolo' },
               { key: 'email', label: 'Email', title: 'MailWizz · deliverability' },
               { key: 'duan', label: 'Dự án', badge: projects.length },
-            ]} right={laPhu ? (
+            ])} right={laPhu ? (
               <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                 {phuProjects.length > 1 && phuProjects.map((p) => <Link key={p} href={qs({ p })} style={pill(p === pid)}>{p}</Link>)}
                 {phuProjects.length > 1 && <span style={{ color: 'var(--line)' }}>|</span>}
@@ -104,10 +111,26 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <DeliverabilityCard />
           </>}
 
+          {tab === 'lenh' && <Lenh />}
           {tab === 'duan' && <DuAn projects={projects} />}
         </div>
       </div>
     </AppShell>
+  );
+}
+
+// Live Orders của strategy-lab — cùng blotter với /p/strategy-lab/orders, bộ lọc giữ ở cookie slf2 như bên đó.
+async function Lenh() {
+  let initial = { range: '24h', grouped: true, hideClosed: false, sort: 'equity' };
+  try { const slf = (await cookies()).get('slf2')?.value; if (slf) initial = { ...initial, ...JSON.parse(decodeURIComponent(slf)) }; } catch { /* cookie hỏng thì dùng mặc định */ }
+  const [trades, tests, forward, brokerNowMs] = await Promise.all([listStrategyTrades(), listStrategyTests(SL), listStrategyForward(), getBrokerNowMs()]);
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <Link href={`/p/${SL}/strategy-tests`} style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none' }}>🔬 Strategy Tests →</Link>
+      </div>
+      <OrdersBlotter trades={trades} tests={tests} forward={forward} brokerNowMs={brokerNowMs} initial={initial} />
+    </div>
   );
 }
 

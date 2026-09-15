@@ -17,7 +17,7 @@ export function HomeTabs({ items: goc, right }: { items: TabItem<HomeTab>[]; rig
   const [items, setItems] = useState(goc);
   const sap = (keys: HomeTab[]) => {
     setItems(keys.map((k) => items.find((t) => t.key === k)!));
-    document.cookie = `${HOME_TABS_COOKIE}=${keys.join(',')}; path=/; max-age=${365 * 86400}; samesite=lax`;
+    document.cookie = `${HOME_TABS_COOKIE}=${keys.join('.')}; path=/; max-age=${365 * 86400}; samesite=lax`;
   };
   return <Tabs items={items} value={tab as HomeTab} onChange={setTab} right={right} onReorder={sap} />;
 }

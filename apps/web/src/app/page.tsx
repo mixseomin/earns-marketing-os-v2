@@ -29,7 +29,7 @@ export const dynamic = 'force-dynamic';
 // /p/<id>/phu về đây, phần còn lại của trang chủ cũ (12 panel xếp dọc) chia theo CÂU HỎI: tiền về chưa (Doanh thu),
 // có ai đi ngang không (SEO & sản phẩm), gửi có tới không (Email), danh sách dự án (Dự án). Trên cùng luôn là
 // số tiền + Cần chú ý; mỗi lượt chỉ đọc dữ liệu của tab đang mở. Lệnh MT5 (strategy-lab/orders) cũng về đây (16/09).
-// Thứ tự tab: cookie `home-tabs` (kéo-thả ở HomeTabs), thiếu key nào thì key đó xếp cuối theo mặc định.
+// Thứ tự tab: cookie `home-tabs` (kéo-thả ở HomeTabs; nối bằng '.', dấu phẩy không hợp lệ trong cookie-value), thiếu key nào thì key đó xếp cuối theo mặc định.
 const TABS: HomeTab[] = ['camp', 'phu', 'nguon', 'hatang', 'lenh', 'doanhthu', 'seo', 'email', 'duan'];
 const SL = 'strategy-lab';
 const usd = (v: number) => (v ? `$${v.toFixed(2)}` : '—');
@@ -39,7 +39,7 @@ const pill = (active: boolean): React.CSSProperties => ({ padding: '3px 9px', fo
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ tab?: string; p?: string; days?: string }> }) {
   const sp = await searchParams;
   const tab: HomeTab = TABS.includes(sp.tab as HomeTab) ? (sp.tab as HomeTab) : HOME_TAB_MAC_DINH;
-  const thuTu = ((await cookies()).get(HOME_TABS_COOKIE)?.value ?? '').split(',').filter((k): k is HomeTab => TABS.includes(k as HomeTab));
+  const thuTu = ((await cookies()).get(HOME_TABS_COOKIE)?.value ?? '').split('.').filter((k): k is HomeTab => TABS.includes(k as HomeTab));
   const xep = <T extends { key: HomeTab }>(items: T[]) => [...items].sort((a, b) => (thuTu.includes(a.key) ? thuTu.indexOf(a.key) : 99 + TABS.indexOf(a.key)) - (thuTu.includes(b.key) ? thuTu.indexOf(b.key) : 99 + TABS.indexOf(b.key)));
   const days = [7, 30, 90].includes(Number(sp.days)) ? Number(sp.days) : 7;
   const [projects, mode, byDay, phuProjects] = await Promise.all([listProjects(), getMode('affiliate'), getRevenueByDay(30), listPhuProjects()]);

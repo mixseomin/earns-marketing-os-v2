@@ -23,15 +23,22 @@ const cu = (iso: string | null, phut: number) => !iso || Date.now() - new Date(i
 
 export type PhuPhan = 'camp' | 'phu' | 'nguon' | 'hatang';
 
-/** Cần chú ý: chỉ những thứ ĐỘNG và đòi hành động. Không có thì không hiện gì. Trang chủ đặt ngay dưới số tổng. */
+/** Cần chú ý — MỘT dòng mỏng dưới số tổng, chỉ thứ đòi hành động: adapter chết · lander ĐỘNG cũ (lander tĩnh
+ *  không có soMuc thì không có "sinh lại" mà đo) · camp tới ngưỡng dừng/mở rộng · sid lạ đủ lớn (≥50 view / ≥5 click).
+ *  Không có thì không chiếm một pixel nào. (16/09: bản Panel trước tốn diện tích + báo lander tĩnh + 3 view lạ.) */
 export function PhuCanChuY({ data: d }: { data: PhuData }) {
   const khac = d.pheu.find((x) => x.sidPrefix === KHAC);
   const dong: React.ReactNode[] = [];
-  for (const a of d.adapters) if (a.lastOk === false || (a.loai === 'cron' && cu(a.lastRun, 24 * 60))) dong.push(<span key={'a' + a.key}><span style={{ color: 'var(--danger)' }}>adapter {a.key}</span> {a.lastNote ? `— ${a.lastNote.slice(0, 90)}` : 'lâu không chạy'}</span>);
-  for (const l of d.landers) if (l.trangThai !== 'song' || cu(l.lastSinh, 20)) dong.push(<span key={'l' + l.host + l.path}><span style={{ color: 'var(--warn)' }}>lander {l.host}{l.path}</span> sinh lúc {khi(l.lastSinh)}</span>);
-  for (const c of d.camp) { const px = phanXet(c); if (px.ma === 'dung' || px.ma === 'mo_rong') dong.push(<span key={'c' + c.id}><span style={{ color: PHU_PHAN_XET[px.ma]?.color }}>{c.ten}: {PHU_PHAN_XET[px.ma]?.label}</span> — {c.keHoach ? c.keHoach.slice(0, 120) : px.lyDo}</span>); }
-  if (khac && (khac.view || khac.click)) dong.push(<span key="khac"><span style={{ color: 'var(--warn)' }}>{khac.soPrefix} sid lạ</span> ({khac.view} view / {khac.click} click) chưa thuộc camp nào</span>);
-  return dong.length ? <Panel title="Cần chú ý" subtitle={`${dong.length} mục`} style={{ marginBottom: 0 }}><div style={{ display: 'grid', gap: 4, fontSize: 12 }}>{dong.map((x, i) => <div key={i}>{x}</div>)}</div></Panel> : null;
+  for (const a of d.adapters) if (a.lastOk === false || (a.loai === 'cron' && cu(a.lastRun, 24 * 60))) dong.push(<span key={'a' + a.key} style={{ color: 'var(--danger)' }}>adapter {a.key}{a.lastNote ? `: ${a.lastNote.slice(0, 60)}` : ' lâu không chạy'}</span>);
+  for (const l of d.landers) if (l.trangThai !== 'song' || (l.soMuc != null && cu(l.lastSinh, 20))) dong.push(<span key={'l' + l.host + l.path} style={{ color: 'var(--warn)' }}>lander {l.host}{l.path} {l.trangThai !== 'song' ? l.trangThai : `sinh lúc ${khi(l.lastSinh)}`}</span>);
+  for (const c of d.camp) { const px = phanXet(c); if (px.ma === 'dung' || px.ma === 'mo_rong') dong.push(<span key={'c' + c.id} style={{ color: PHU_PHAN_XET[px.ma]?.color }}>{c.ten}: {PHU_PHAN_XET[px.ma]?.label} — {(c.keHoach || px.lyDo).slice(0, 80)}</span>); }
+  if (khac && (khac.view >= 50 || khac.click >= 5)) dong.push(<span key="khac" style={{ color: 'var(--warn)' }}>{khac.soPrefix} sid lạ ({khac.view} view / {khac.click} click) chưa thuộc camp nào</span>);
+  if (!dong.length) return null;
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 14px', fontSize: 11.5, padding: '5px 10px', border: '1px solid var(--line)', borderLeft: '3px solid var(--warn)', borderRadius: 6, background: 'var(--bg-1)' }}>
+      <b style={{ color: 'var(--fg-2)' }}>Cần chú ý</b>{dong}
+    </div>
+  );
 }
 
 export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; projectId: string; host: string; phan: PhuPhan }) {

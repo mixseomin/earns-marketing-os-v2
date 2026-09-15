@@ -14,6 +14,7 @@ import { docPhuNguonCamp, luuPhuCamp, luuPhuChi, luuPhuNguon, luuPhuPlatform } f
 
 const NHOM: Record<string, string> = { cam: 'Cam 18+', ai: 'AI companion', random: 'Random chat', text: 'Text/voice', community: 'Cộng đồng', other: 'Khác' };
 const cell: React.CSSProperties = { padding: '7px 9px', fontSize: 12, borderBottom: '1px solid var(--line)', verticalAlign: 'top' };
+const mh = 'm-hide';   // cột phụ, ẩn trên điện thoại (globals.css ≤768px)
 const head: React.CSSProperties = { ...cell, color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'left', fontWeight: 600, whiteSpace: 'nowrap' };
 const mono: React.CSSProperties = { fontFamily: 'var(--font-mono)' };
 const btn: React.CSSProperties = { padding: '4px 10px', fontSize: 11, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer' };
@@ -66,9 +67,9 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr>
-              <th style={head}>Campaign</th><th style={head}>$/ngày · hạn</th>
-              <th style={head}>View</th><th style={head}>Cổng</th><th style={head}>Click</th><th style={head}>Out</th><th style={head}>Signup</th><th style={head}>Về / chi</th>
-              <th style={head}>Phán xét</th><th style={head}>Nguồn</th>
+              <th style={head}>Campaign</th><th style={head} className={mh}>$/ngày · hạn</th>
+              <th style={head}>View</th><th style={head} className={mh}>Cổng</th><th style={head}>Click</th><th style={head} className={mh}>Out</th><th style={head}>Signup</th><th style={head}>Về / chi</th>
+              <th style={head}>Phán xét</th><th style={head} className={mh}>Nguồn</th>
             </tr></thead>
             <tbody>
               {d.camp.map((c) => {
@@ -83,34 +84,34 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                       <div style={{ ...mono, color: 'var(--fg-3)', fontSize: 10 }}>{c.sidPrefix} · {[c.target.device, c.target.geo, c.target.format, c.target.source, c.target.bid != null ? `bid $${c.target.bid}` : null].filter(Boolean).join(' · ')}</div>
                       {c.trangThai !== 'chay' && <Pill color={c.trangThai === 'tam_dung' ? 'var(--warn)' : 'var(--fg-3)'} label={c.trangThai} />}
                     </td>
-                    <td style={{ ...cell, ...mono, fontSize: 11, whiteSpace: 'nowrap' }}>{c.nganSachNgay == null ? '—' : usd(c.nganSachNgay)}<div style={{ color: quaHan ? 'var(--danger)' : 'var(--fg-3)', fontSize: 10 }}>{c.ketThuc ? `tới ${c.ketThuc.slice(5, 10)}` : 'không hạn'}{toiXem ? ' · tới nhịp' : ''}</div></td>
+                    <td style={{ ...cell, ...mono, fontSize: 11, whiteSpace: 'nowrap' }} className={mh}>{c.nganSachNgay == null ? '—' : usd(c.nganSachNgay)}<div style={{ color: quaHan ? 'var(--danger)' : 'var(--fg-3)', fontSize: 10 }}>{c.ketThuc ? `tới ${c.ketThuc.slice(5, 10)}` : 'không hạn'}{toiXem ? ' · tới nhịp' : ''}</div></td>
                     <td style={{ ...cell, ...mono }}>{f?.view || '—'}</td>
-                    <td style={{ ...cell, ...mono }}>{f?.view ? pct(f.gate, f.view) : '—'}</td>
+                    <td style={{ ...cell, ...mono }} className={mh}>{f?.view ? pct(f.gate, f.view) : '—'}</td>
                     <td style={{ ...cell, ...mono }}>{f?.click ?? 0}<span style={{ color: f?.view && f.click / f.view < 0.05 ? 'var(--danger)' : 'var(--fg-3)', fontSize: 10 }}> {f?.view ? pct(f.click, f.view, 1) : ''}</span></td>
-                    <td style={{ ...cell, ...mono }}>{f?.out ?? 0}</td>
+                    <td style={{ ...cell, ...mono }} className={mh}>{f?.out ?? 0}</td>
                     <td style={{ ...cell, ...mono }}>{f?.signup ?? 0}</td>
                     <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(f?.revenue ?? 0)} / {usd(f?.chi ?? 0)}</td>
                     <td style={cell}><Pill color={PHU_PHAN_XET[px.ma]?.color ?? 'var(--fg-3)'} label={PHU_PHAN_XET[px.ma]?.label ?? px.ma} />
                       <div style={{ color: 'var(--fg-3)', fontSize: 10, marginTop: 3 }}>{px.lyDo}</div>
                       {Object.keys(t).length ? null : <div style={{ color: 'var(--warn)', fontSize: 10 }}>chưa đặt tiêu chí — bấm để đặt</div>}
                     </td>
-                    <td style={cell}><button style={btn} onClick={(e) => { e.stopPropagation(); setSoiCamp(c); }} title="Xem theo srcid/zone để blacklist">srcid ▸</button></td>
+                    <td style={cell} className={mh}><button style={btn} onClick={(e) => { e.stopPropagation(); setSoiCamp(c); }} title="Xem theo srcid/zone để blacklist">srcid ▸</button></td>
                   </tr>
                 );
               })}
               {khac && (
                 <tr>
                   <td style={cell}><span style={{ color: 'var(--warn)' }}>(khác)</span><div style={{ color: 'var(--fg-3)', fontSize: 10 }}>{khac.soPrefix} sid_prefix không khớp camp nào — <button style={{ ...btn, padding: '0 6px', fontSize: 10 }} onClick={() => setSuaCamp('moi')}>đăng ký camp</button> hoặc mở camp → Nâng cao → Alias</div></td>
-                  <td style={cell}>—</td>
-                  <td style={{ ...cell, ...mono }}>{khac.view}</td><td style={{ ...cell, ...mono }}>{pct(khac.gate, khac.view)}</td><td style={{ ...cell, ...mono }}>{khac.click}</td><td style={{ ...cell, ...mono }}>{khac.out}</td><td style={{ ...cell, ...mono }}>{khac.signup}</td>
-                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(khac.revenue)} / {usd(khac.chi)}</td><td style={cell}>—</td><td style={cell}>—</td>
+                  <td style={cell} className={mh}>—</td>
+                  <td style={{ ...cell, ...mono }}>{khac.view}</td><td style={{ ...cell, ...mono }} className={mh}>{pct(khac.gate, khac.view)}</td><td style={{ ...cell, ...mono }}>{khac.click}</td><td style={{ ...cell, ...mono }} className={mh}>{khac.out}</td><td style={{ ...cell, ...mono }}>{khac.signup}</td>
+                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(khac.revenue)} / {usd(khac.chi)}</td><td style={cell}>—</td><td style={cell} className={mh}>—</td>
                 </tr>
               )}
               {organic && (
                 <tr>
-                  <td style={cell}><span style={{ color: 'var(--fg-3)' }}>(organic / không sid)</span></td><td style={cell}>—</td>
-                  <td style={{ ...cell, ...mono }}>{organic.view || '—'}</td><td style={{ ...cell, ...mono }}>{pct(organic.gate, organic.view)}</td><td style={{ ...cell, ...mono }}>{organic.click}</td><td style={{ ...cell, ...mono }}>{organic.out}</td><td style={{ ...cell, ...mono }}>{organic.signup}</td>
-                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(organic.revenue)} / —</td><td style={cell}>—</td><td style={cell}>—</td>
+                  <td style={cell}><span style={{ color: 'var(--fg-3)' }}>(organic / không sid)</span></td><td style={cell} className={mh}>—</td>
+                  <td style={{ ...cell, ...mono }}>{organic.view || '—'}</td><td style={{ ...cell, ...mono }} className={mh}>{pct(organic.gate, organic.view)}</td><td style={{ ...cell, ...mono }}>{organic.click}</td><td style={{ ...cell, ...mono }} className={mh}>{organic.out}</td><td style={{ ...cell, ...mono }}>{organic.signup}</td>
+                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(organic.revenue)} / —</td><td style={cell}>—</td><td style={cell} className={mh}>—</td>
                 </tr>
               )}
             </tbody>
@@ -122,20 +123,20 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
       {tab === 'phu' && <Panel title={`Nền tảng phủ (${d.platforms.length})`} subtitle={`${dem('da_cam')} đã cắm · ${dem('cho_duyet') + dem('da_dang_ky')} chờ duyệt · ${dem('chua')} chưa đăng ký · bấm dòng để sửa`} style={{ marginBottom: 0 }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr><th style={head}>Nền tảng</th><th style={head}>Nhóm</th><th style={head}>Chương trình</th><th style={head}>Hoa hồng</th><th style={head}>Trạng thái</th><th style={head}>Cửa ra</th><th style={head}>Bước kế</th><th style={head}>Card</th></tr></thead>
+            <thead><tr><th style={head}>Nền tảng</th><th style={head} className={mh}>Nhóm</th><th style={head} className={mh}>Chương trình</th><th style={head} className={mh}>Hoa hồng</th><th style={head}>Trạng thái</th><th style={head} className={mh}>Cửa ra</th><th style={head}>Bước kế</th><th style={head} className={mh}>Card</th></tr></thead>
             <tbody>
               {d.platforms.map((p) => {
                 const tt = PHU_TRANG_THAI[p.trangThai] ?? { label: p.trangThai, color: 'var(--fg-3)' };
                 return (
                   <tr key={p.id} onClick={() => setSuaPl(p)} style={{ cursor: 'pointer' }} title="Sửa">
                     <td style={cell}><b>{p.name}</b><div style={{ ...mono, color: 'var(--fg-3)', fontSize: 10 }}>{p.slug}</div></td>
-                    <td style={cell}>{NHOM[p.nhom] ?? p.nhom}</td>
-                    <td style={{ ...cell, ...mono }}>{p.chuongTrinh ?? '—'}</td>
-                    <td style={cell}>{p.hoaHong ?? '—'}</td>
+                    <td style={cell} className={mh}>{NHOM[p.nhom] ?? p.nhom}</td>
+                    <td style={{ ...cell, ...mono }} className={mh}>{p.chuongTrinh ?? '—'}</td>
+                    <td style={cell} className={mh}>{p.hoaHong ?? '—'}</td>
                     <td style={cell}><Pill color={tt.color} label={tt.label} /></td>
-                    <td style={{ ...cell, ...mono }}>{p.cuaRa ? <a href={`https://${host}${p.cuaRa.startsWith('/') ? p.cuaRa : ''}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{p.cuaRa}</a> : '—'}</td>
+                    <td style={{ ...cell, ...mono }} className={mh}>{p.cuaRa ? <a href={`https://${host}${p.cuaRa.startsWith('/') ? p.cuaRa : ''}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{p.cuaRa}</a> : '—'}</td>
                     <td style={{ ...cell, maxWidth: 320 }}>{p.buocKe ?? <span style={{ color: 'var(--fg-3)' }}>—</span>}</td>
-                    <td style={{ ...cell, ...mono }}>{p.cardId ? <a href={`/p/${projectId}/plays?task=${p.cardId}`} onClick={(e) => e.stopPropagation()}>#{p.cardId}{p.cardStatus ? ` · ${p.cardStatus}` : ''}</a> : '—'}</td>
+                    <td style={{ ...cell, ...mono }} className={mh}>{p.cardId ? <a href={`/p/${projectId}/plays?task=${p.cardId}`} onClick={(e) => e.stopPropagation()}>#{p.cardId}{p.cardStatus ? ` · ${p.cardStatus}` : ''}</a> : '—'}</td>
                   </tr>
                 );
               })}
@@ -149,7 +150,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
         actions={<button style={btn} onClick={() => setSuaNg('moi')}>+ nguồn</button>}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr><th style={head}>Nguồn</th><th style={head}>Loại</th><th style={head}>Trạng thái</th><th style={head}>Macro click</th><th style={head}>Nạp</th><th style={head}>Ghi chú</th></tr></thead>
+            <thead><tr><th style={head}>Nguồn</th><th style={head}>Loại</th><th style={head}>Trạng thái</th><th style={head} className={mh}>Macro click</th><th style={head}>Nạp</th><th style={head} className={mh}>Ghi chú</th></tr></thead>
             <tbody>
               {d.nguon.filter((g) => g.trangThai === 'hoat_dong' || g.trangThai === 'dang_mo' || g.trangThai === 'tam_dung').map((g) => {
                 const tt = PHU_NGUON_TRANG_THAI[g.trangThai] ?? { label: g.trangThai, color: 'var(--fg-3)' };
@@ -158,9 +159,9 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                     <td style={cell}><b>{g.name}</b><div style={{ ...mono, color: 'var(--fg-3)', fontSize: 10 }}>{g.key}</div></td>
                     <td style={cell}>{g.loai}</td>
                     <td style={cell}><Pill color={tt.color} label={tt.label} /></td>
-                    <td style={{ ...cell, ...mono }}>{g.macroClick ?? '—'}</td>
+                    <td style={{ ...cell, ...mono }} className={mh}>{g.macroClick ?? '—'}</td>
                     <td style={{ ...cell, ...mono }}>{usd(g.napUsd)}</td>
-                    <td style={{ ...cell, fontSize: 11, color: 'var(--fg-2)', maxWidth: 420 }}>{g.ghiChu ?? '—'}</td>
+                    <td style={{ ...cell, fontSize: 11, color: 'var(--fg-2)', maxWidth: 420 }} className={mh}>{g.ghiChu ?? '—'}</td>
                   </tr>
                 );
               })}
@@ -178,17 +179,17 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
         </div>
       </Panel>}
 
-      {tab === 'hatang' && <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))' }}>
+      {tab === 'hatang' && <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(min(380px, 100%), 1fr))' }}>
         <Panel title={`Lander (${d.landers.length})`} subtitle="subdomain riêng, noindex · lander động phải mới hơn 15 phút" style={{ marginBottom: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr><th style={head}>Lander</th><th style={head}>Bán</th><th style={head}>Sinh lúc</th><th style={head}>Mục</th></tr></thead>
+            <thead><tr><th style={head}>Lander</th><th style={head} className={mh}>Bán</th><th style={head}>Sinh lúc</th><th style={head} className={mh}>Mục</th></tr></thead>
             <tbody>
               {d.landers.map((l) => (
                 <tr key={l.host + l.path}>
                   <td style={cell}><a href={`https://${l.host}${l.path}`} target="_blank" rel="noreferrer" style={mono}>{l.host}{l.path}</a><div style={{ color: 'var(--fg-3)', fontSize: 11 }}>{l.ten}</div></td>
-                  <td style={cell}>{l.dich ?? '—'}</td>
+                  <td style={cell} className={mh}>{l.dich ?? '—'}</td>
                   <td style={{ ...cell, ...mono, color: l.trangThai !== 'song' || cu(l.lastSinh, 20) ? 'var(--warn)' : 'var(--fg-2)' }}>{khi(l.lastSinh)}</td>
-                  <td style={{ ...cell, ...mono }}>{l.soMuc ?? '—'}</td>
+                  <td style={{ ...cell, ...mono }} className={mh}>{l.soMuc ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -197,14 +198,14 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
         </Panel>
         <Panel title={`Adapter (${d.adapters.length})`} subtitle="đỏ = lâu không chạy hoặc lần cuối lỗi · dòng postback kèm URL dán vào mạng" style={{ marginBottom: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr><th style={head}>Adapter</th><th style={head}>Lịch</th><th style={head}>Chạy cuối</th><th style={head}>Ghi chú</th></tr></thead>
+            <thead><tr><th style={head}>Adapter</th><th style={head} className={mh}>Lịch</th><th style={head}>Chạy cuối</th><th style={head}>Ghi chú</th></tr></thead>
             <tbody>
               {d.adapters.map((a) => {
                 const hong = a.lastOk === false || (a.loai === 'cron' && cu(a.lastRun, 24 * 60));
                 return (
                   <tr key={a.key}>
                     <td style={cell}><b>{a.name}</b><div style={{ ...mono, color: 'var(--fg-3)', fontSize: 10 }}>{a.key} · {a.loai}</div></td>
-                    <td style={{ ...cell, ...mono, fontSize: 11 }}>{a.lich ?? '—'}</td>
+                    <td style={{ ...cell, ...mono, fontSize: 11 }} className={mh}>{a.lich ?? '—'}</td>
                     <td style={{ ...cell, ...mono, color: hong ? 'var(--danger)' : 'var(--fg-2)' }}>{khi(a.lastRun)}</td>
                     <td style={{ ...cell, fontSize: 11, color: 'var(--fg-2)' }}>{a.lastNote ?? '—'}{a.loai === 'postback' && a.postbackToken && <div style={{ ...mono, fontSize: 10, wordBreak: 'break-all', color: 'var(--fg-3)', marginTop: 4 }}>https://mos2.on.tc/api/phu/postback/{a.postbackToken}?event=&lt;signup|lead|spend&gt;&amp;sid=&lt;macro sub id&gt;&amp;amount=&lt;payout&gt;&amp;id=&lt;txn id&gt; (mạng bỏ query string vẫn nhận được vì token nằm trên đường dẫn)</div>}</td>
                   </tr>

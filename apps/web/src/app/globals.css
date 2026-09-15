@@ -316,6 +316,15 @@ button { font-family: inherit; color: inherit; }
   .modal-cols.cols-2,
   .modal-cols.cols-2.right-wide { grid-template-columns: 1fr !important; }
 
+  /* Trang chủ + mọi trang dùng primitive nhà (16/09/2026): dãy số 2 cột, tab xuống dòng thay vì trượt ngang,
+     cột phụ của bảng ẩn (.m-hide) — bảng vẫn trượt ngang trong khung riêng, không kéo cả trang. */
+  [data-comp="ui.StatsStrip"] { grid-template-columns: repeat(2, 1fr) !important; gap: 4px !important; }
+  [data-comp="ui.StatsStrip"] > div > div:nth-child(2) { font-size: 16px !important; }
+  [data-comp="ui.Tabs"] { flex-wrap: wrap; overflow-x: visible !important; }
+  [data-comp="ui.Tabs"] > button { padding: 6px 9px !important; font-size: 12px !important; }
+  [data-comp="ui.Tabs"] > span:last-child { margin-left: 0 !important; flex-basis: 100%; padding: 4px 0 2px; }
+  .m-hide { display: none !important; }
+
   /* SEO drawer — fullscreen on phone instead of floating modal */
   .gsc-drawer-overlay { padding: 0 !important; }
   .gsc-drawer-body {

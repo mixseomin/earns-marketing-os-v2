@@ -48,6 +48,17 @@ export async function getPhuNguonCamp(projectId: string, sidPrefix: string, days
 }
 const s = (v: unknown) => (v === null || v === undefined ? null : String(v));
 
+/** Project nào có sổ PHỦ (camp hoặc nền tảng) — trang chủ chọn project theo đây, mới sửa gần nhất lên đầu. */
+export async function listPhuProjects(): Promise<string[]> {
+  const db = getDb();
+  if (!db) return [];
+  const rows = (await db.execute(sql`
+    SELECT project_id FROM (SELECT project_id, MAX(updated_at) u FROM phu_camp GROUP BY 1
+                            UNION ALL SELECT project_id, MAX(updated_at) FROM phu_platforms GROUP BY 1) t
+     GROUP BY 1 ORDER BY MAX(u) DESC`)) as unknown as Record<string, unknown>[];
+  return rows.map((r) => String(r.project_id));
+}
+
 export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
   const rong: PhuData = { platforms: [], nguon: [], camp: [], pheu: [], adapters: [], landers: [], days, tong: { view: 0, gate: 0, click: 0, out: 0, signup: 0, revenue: 0, chi: 0 }, loi: null };
   const db = getDb();

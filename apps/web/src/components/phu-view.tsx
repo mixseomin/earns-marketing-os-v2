@@ -1,11 +1,12 @@
 'use client';
 
-// PHỦ — một màn: nền tảng đã phủ tới đâu · nguồn traffic & campaign · phễu theo campaign · lander ·
-// adapter/postback đang sống không · nhập chi tay. Sửa gì cũng qua Drawer (quy ước UI nhà), số liệu
-// đổ vào từ /api/phu/ingest + /api/phu/postback, trang chỉ đọc bảng phu_*.
+// PHỦ — nền tảng đã phủ tới đâu · nguồn traffic & campaign · phễu theo campaign · lander · adapter/postback
+// đang sống không · nhập chi tay. Sống trên TRANG CHỦ (anh chốt 16/09/2026: gom về mos2.on.tc cho tập trung,
+// /p/<id>/phu chỉ còn redirect); trang chủ cầm tab + số tổng + project, đây chỉ vẽ MỘT phần (`phan`).
+// Sửa gì cũng qua Drawer (quy ước UI nhà), số liệu đổ vào từ /api/phu/ingest + /api/phu/postback, chỉ đọc bảng phu_*.
 
 import { useEffect, useState, useTransition } from 'react';
-import { Drawer, EmptyState, Pager, Panel, Pill, SearchInput, SelectField, StatsStrip, Tabs, TextAreaField, TextField, usePaged } from '@/components/ui';
+import { Drawer, EmptyState, Pager, Panel, Pill, SearchInput, SelectField, TextAreaField, TextField, usePaged } from '@/components/ui';
 import type { PhuCamp, PhuData, PhuNguon, PhuNguonCamp, PhuPlatform } from '@/lib/phu-shared';
 import { PHU_NGUON_TRANG_THAI, PHU_PHAN_XET, PHU_TRANG_THAI, phanXet } from '@/lib/phu-shared';
 const KHAC = '(khác)';
@@ -20,63 +21,38 @@ const usd = (v: number) => (v ? `$${v.toFixed(2)}` : '—');
 const khi = (iso: string | null) => (iso ? new Date(iso).toLocaleString('vi-VN', { hour12: false }).replace(/:\d\d( |$)/, ' ') : '—');
 const cu = (iso: string | null, phut: number) => !iso || Date.now() - new Date(iso).getTime() > phut * 60_000;
 
-export function PhuView({ data, projectId, host }: { data: PhuData; projectId: string; host: string }) {
+export type PhuPhan = 'camp' | 'phu' | 'nguon' | 'hatang';
+
+/** Cần chú ý: chỉ những thứ ĐỘNG và đòi hành động. Không có thì không hiện gì. Trang chủ đặt ngay dưới số tổng. */
+export function PhuCanChuY({ data: d }: { data: PhuData }) {
+  const khac = d.pheu.find((x) => x.sidPrefix === KHAC);
+  const dong: React.ReactNode[] = [];
+  for (const a of d.adapters) if (a.lastOk === false || (a.loai === 'cron' && cu(a.lastRun, 24 * 60))) dong.push(<span key={'a' + a.key}><span style={{ color: 'var(--danger)' }}>adapter {a.key}</span> {a.lastNote ? `— ${a.lastNote.slice(0, 90)}` : 'lâu không chạy'}</span>);
+  for (const l of d.landers) if (l.trangThai !== 'song' || cu(l.lastSinh, 20)) dong.push(<span key={'l' + l.host + l.path}><span style={{ color: 'var(--warn)' }}>lander {l.host}{l.path}</span> sinh lúc {khi(l.lastSinh)}</span>);
+  for (const c of d.camp) { const px = phanXet(c); if (px.ma === 'dung' || px.ma === 'mo_rong') dong.push(<span key={'c' + c.id}><span style={{ color: PHU_PHAN_XET[px.ma]?.color }}>{c.ten}: {PHU_PHAN_XET[px.ma]?.label}</span> — {c.keHoach ? c.keHoach.slice(0, 120) : px.lyDo}</span>); }
+  if (khac && (khac.view || khac.click)) dong.push(<span key="khac"><span style={{ color: 'var(--warn)' }}>{khac.soPrefix} sid lạ</span> ({khac.view} view / {khac.click} click) chưa thuộc camp nào</span>);
+  return dong.length ? <Panel title="Cần chú ý" subtitle={`${dong.length} mục`} style={{ marginBottom: 0 }}><div style={{ display: 'grid', gap: 4, fontSize: 12 }}>{dong.map((x, i) => <div key={i}>{x}</div>)}</div></Panel> : null;
+}
+
+export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; projectId: string; host: string; phan: PhuPhan }) {
   const [suaPl, setSuaPl] = useState<PhuPlatform | null>(null);
   const [suaNg, setSuaNg] = useState<PhuNguon | 'moi' | null>(null);
   const [suaCamp, setSuaCamp] = useState<PhuCamp | 'moi' | null>(null);
   const [nhapChi, setNhapChi] = useState(false);
   const [soiCamp, setSoiCamp] = useState<PhuCamp | null>(null);
-  const [tab, setTab] = useState<'camp' | 'phu' | 'nguon' | 'hatang'>('camp');
   const d = data;
   const dem = (tt: string) => d.platforms.filter((p) => p.trangThai === tt).length;
-  const roi = d.tong.chi > 0 ? ((d.tong.revenue - d.tong.chi) / d.tong.chi) * 100 : null;
   const hom = new Date().toISOString().slice(0, 10);
   const pheuCua = (prefix: string) => d.pheu.find((x) => x.sidPrefix === prefix);
   const khac = d.pheu.find((x) => x.sidPrefix === KHAC);
   const organic = d.pheu.find((x) => x.sidPrefix === '');
-  const adapterHong = d.adapters.filter((a) => a.lastOk === false || (a.loai === 'cron' && cu(a.lastRun, 24 * 60))).length;
   const pct = (a: number, b: number, so = 0) => (b ? `${((a / b) * 100).toFixed(so)}%` : '—');
 
-  // YDNI: bề mặt = số tổng + MỘT bảng campaign (chiến lược + phễu + phán xét trên cùng một dòng).
-  // Nền tảng / nguồn / lander / adapter là tham chiếu phụ → gập, header giữ số đếm + số đỏ để biết có.
+  // YDNI: một phần một lượt — bảng campaign (chiến lược + phễu + phán xét trên cùng một dòng) là mặt chính,
+  // nền tảng / nguồn / lander / adapter là tham chiếu phụ, trang chủ gắn badge số đếm + số đỏ để biết có.
   return (
-    <div style={{ padding: 16, display: 'grid', gap: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 18 }}>Phủ affiliate & traffic mua</h1>
-          <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>Mỗi dòng = một campaign: view → cổng 18+ → click → out → signup → tiền, so với tiêu chí → phán xét. Cửa sổ {d.days} ngày; phán xét dùng cộng dồn.</div>
-        </div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {[7, 30, 90].map((n) => (
-            <a key={n} href={`?days=${n}`} style={{ ...btn, textDecoration: 'none', ...(n === d.days ? { borderColor: 'var(--fg-2)', color: 'var(--fg-1)' } : { color: 'var(--fg-3)' }) }}>{n} ngày</a>
-          ))}
-        </div>
-      </div>
+    <div style={{ display: 'grid', gap: 14 }}>
       {d.loi && <div style={{ color: 'var(--danger)', fontSize: 12 }}>{d.loi}</div>}
-
-      <StatsStrip minColWidth={150} cards={[
-        { key: 'camp', label: 'Camp chạy', value: d.camp.filter((c) => c.trangThai === 'chay').length, sub: `${d.nguon.filter((x) => x.trangThai === 'hoat_dong').length} nguồn hoạt động` },
-        { key: 'click', label: 'View → click → out', value: `${d.tong.view} → ${d.tong.click} → ${d.tong.out}`, sub: `cổng 18+ ${pct(d.tong.gate, d.tong.view)} · CTR ${pct(d.tong.click, d.tong.view, 1)}` },
-        { key: 'signup', label: 'Signup', value: d.tong.signup, sub: d.tong.click ? `${((d.tong.signup / d.tong.click) * 1000).toFixed(1)} / 1k click` : undefined },
-        { key: 'rev', label: 'Doanh thu / chi', value: `${usd(d.tong.revenue)} / ${usd(d.tong.chi)}`, color: roi === null ? undefined : roi >= 0 ? 'var(--ok)' : 'var(--danger)', sub: roi === null ? 'ROI —' : `ROI ${roi.toFixed(0)}%` },
-      ]} />
-
-      {(() => {
-        // Cần chú ý: chỉ những thứ ĐỘNG và đòi hành động. Không có thì không hiện gì.
-        const dong: React.ReactNode[] = [];
-        for (const a of d.adapters) if (a.lastOk === false || (a.loai === 'cron' && cu(a.lastRun, 24 * 60))) dong.push(<span key={'a' + a.key}><span style={{ color: 'var(--danger)' }}>adapter {a.key}</span> {a.lastNote ? `— ${a.lastNote.slice(0, 90)}` : 'lâu không chạy'}</span>);
-        for (const l of d.landers) if (l.trangThai !== 'song' || cu(l.lastSinh, 20)) dong.push(<span key={'l' + l.host + l.path}><span style={{ color: 'var(--warn)' }}>lander {l.host}{l.path}</span> sinh lúc {khi(l.lastSinh)}</span>);
-        for (const c of d.camp) { const px = phanXet(c); if (px.ma === 'dung' || px.ma === 'mo_rong') dong.push(<span key={'c' + c.id}><span style={{ color: PHU_PHAN_XET[px.ma]?.color }}>{c.ten}: {PHU_PHAN_XET[px.ma]?.label}</span> — {c.keHoach ? c.keHoach.slice(0, 120) : px.lyDo}</span>); }
-        if (khac && (khac.view || khac.click)) dong.push(<span key="khac"><span style={{ color: 'var(--warn)' }}>{khac.soPrefix} sid lạ</span> ({khac.view} view / {khac.click} click) chưa thuộc camp nào</span>);
-        return dong.length ? <Panel title="Cần chú ý" subtitle={`${dong.length} mục`} style={{ marginBottom: 0 }}><div style={{ display: 'grid', gap: 4, fontSize: 12 }}>{dong.map((x, i) => <div key={i}>{x}</div>)}</div></Panel> : null;
-      })()}
-
-      <Tabs items={[
-        { key: 'camp', label: 'Campaign', badge: d.camp.filter((c) => c.trangThai === 'chay').length || undefined },
-        { key: 'phu', label: 'Nền tảng phủ', badge: d.platforms.length || undefined },
-        { key: 'nguon', label: 'Nguồn traffic', badge: d.nguon.filter((x) => x.trangThai === 'hoat_dong').length || undefined },
-        { key: 'hatang', label: 'Lander & adapter', badge: adapterHong ? <span style={{ color: 'var(--danger)' }}>{adapterHong} đỏ</span> : undefined },
-      ]} value={tab} onChange={setTab} />
 
       {tab === 'camp' && <Panel title={`Campaign (${d.camp.length})`} subtitle={`phễu ${d.days} ngày · phán xét theo cộng dồn`} style={{ marginBottom: 0 }}
         actions={<span style={{ display: 'flex', gap: 6 }}><button style={btn} onClick={() => setNhapChi(true)}>+ nhập chi</button><button style={btn} onClick={() => setSuaCamp('moi')}>+ campaign</button></span>}>

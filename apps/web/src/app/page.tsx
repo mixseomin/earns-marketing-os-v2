@@ -5,7 +5,8 @@ import { AppShell } from '@/components/app-shell';
 import { AiUsageCard } from '@/components/ai-usage-card';
 import { Section, StatsStrip } from '@/components/ui';
 import { RevenueCalendar } from '@/components/revenue-calendar';
-import { HomeTabs, HOME_TAB_MAC_DINH, HOME_TABS_COOKIE, type HomeTab } from '@/components/home-tabs';
+import { HomeTabs } from '@/components/home-tabs';
+import { HOME_TABS as TABS, HOME_TAB_MAC_DINH, HOME_TABS_COOKIE, type HomeTab } from '@/lib/home-tabs';
 import { OrdersBlotter } from '@/components/orders-blotter';
 import { PhuCanChuY, PhuView } from '@/components/phu-view';
 import { SeoSitesPanel } from '@/components/seo-sites-panel';
@@ -30,7 +31,6 @@ export const dynamic = 'force-dynamic';
 // có ai đi ngang không (SEO & sản phẩm), gửi có tới không (Email), danh sách dự án (Dự án). Trên cùng luôn là
 // số tiền + Cần chú ý; mỗi lượt chỉ đọc dữ liệu của tab đang mở. Lệnh MT5 (strategy-lab/orders) cũng về đây (16/09).
 // Thứ tự tab: cookie `home-tabs` (kéo-thả ở HomeTabs; nối bằng '.', dấu phẩy không hợp lệ trong cookie-value), thiếu key nào thì key đó xếp cuối theo mặc định.
-const TABS: HomeTab[] = ['camp', 'phu', 'nguon', 'hatang', 'lenh', 'doanhthu', 'seo', 'email', 'duan'];
 const SL = 'strategy-lab';
 const usd = (v: number) => (v ? `$${v.toFixed(2)}` : '—');
 const cho = <div style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 16 }}>đang đọc…</div>;

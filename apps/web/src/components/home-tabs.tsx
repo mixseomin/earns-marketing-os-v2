@@ -7,10 +7,7 @@
 import { useState } from 'react';
 import { Tabs, type TabItem } from '@/components/ui';
 import { useUrlParam } from '@/lib/use-url-param';
-
-export type HomeTab = 'camp' | 'phu' | 'nguon' | 'hatang' | 'lenh' | 'doanhthu' | 'seo' | 'email' | 'duan';
-export const HOME_TAB_MAC_DINH: HomeTab = 'camp';
-export const HOME_TABS_COOKIE = 'home-tabs';
+import { HOME_TAB_MAC_DINH, HOME_TABS_COOKIE, type HomeTab } from '@/lib/home-tabs';
 
 export function HomeTabs({ items: goc, right }: { items: TabItem<HomeTab>[]; right?: React.ReactNode }) {
   const [tab, setTab] = useUrlParam('tab', HOME_TAB_MAC_DINH);

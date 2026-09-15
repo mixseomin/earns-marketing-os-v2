@@ -90,3 +90,11 @@ export const PHU_PHAN_XET: Record<string, { label: string; color: string }> = {
   nghi:    { label: 'nghỉ',       color: 'var(--fg-3)' },
 };
 export type PhuNguonCamp = { nguon: string; view: number; gate: number; click: number; out: number; signup: number; revenue: number };
+
+const cuHon = (iso: string | null, phut: number) => !iso || Date.now() - new Date(iso).getTime() > phut * 60_000;
+/** Adapter/lander "đỏ": adapter lỗi hoặc cron >24h không chạy; lander chết hoặc lander ĐỘNG (có soMuc) >20 phút chưa sinh lại.
+ *  Một luật cho cả thẻ số trang chủ lẫn dòng Cần chú ý — hai chỗ từng đếm hai kiểu (16/09/2026). */
+export function phuDo(d: Pick<PhuData, 'adapters' | 'landers'>) {
+  return d.adapters.filter((a) => a.lastOk === false || (a.loai === 'cron' && cuHon(a.lastRun, 24 * 60))).length
+    + d.landers.filter((l) => l.trangThai !== 'song' || (l.soMuc != null && cuHon(l.lastSinh, 20))).length;
+}

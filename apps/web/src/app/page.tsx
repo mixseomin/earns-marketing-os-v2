@@ -3,12 +3,14 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { AppShell } from '@/components/app-shell';
 import { AiUsageCard } from '@/components/ai-usage-card';
-import { Section, StatsStrip } from '@/components/ui';
+import { Section } from '@/components/ui';
+import { HomeStats } from '@/components/home-stats';
 import { RevenueCalendar } from '@/components/revenue-calendar';
 import { HomeTabs } from '@/components/home-tabs';
 import { HOME_TABS as TABS, HOME_TAB_MAC_DINH, HOME_TABS_COOKIE, type HomeTab } from '@/lib/home-tabs';
 import { OrdersBlotter } from '@/components/orders-blotter';
 import { PhuCanChuY, PhuView } from '@/components/phu-view';
+import { phuDo } from '@/lib/phu-shared';
 import { SeoSitesPanel } from '@/components/seo-sites-panel';
 import { ProductsPanel } from '@/components/products-panel';
 import { SteamsoloLangPanel } from '@/components/steamsolo-lang-panel';
@@ -48,8 +50,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const host = phu?.landers[0]?.host.replace(/^[a-z]+\./, '') ?? BACKLINK_SITES.find((s) => s.slug === pid)?.domain ?? '';
   const thu30 = byDay.rows.reduce((a, r) => a + r.amount, 0);
   const campChay = phu?.camp.filter((c) => c.trangThai === 'chay').length ?? 0;
-  const cuHon = (iso: string | null, phut: number) => !iso || Date.now() - new Date(iso).getTime() > phut * 60_000;
-  const hong = phu ? phu.adapters.filter((a) => a.lastOk === false || (a.loai === 'cron' && cuHon(a.lastRun, 24 * 60))).length + phu.landers.filter((l) => l.trangThai !== 'song' || cuHon(l.lastSinh, 20)).length : 0;
+  const hong = phu ? phuDo(phu) : 0;
   const pct = (a: number, b: number, so = 0) => (b ? `${((a / b) * 100).toFixed(so)}%` : '—');
   const laPhu = tab === 'camp' || tab === 'phu' || tab === 'nguon' || tab === 'hatang';
   const qs = (kv: Record<string, string | number>) => '/?' + new URLSearchParams({ tab, p: pid ?? '', days: String(days), ...Object.fromEntries(Object.entries(kv).map(([k, v]) => [k, String(v)])) }).toString();
@@ -57,12 +58,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   return (
     <AppShell mode={mode} projects={projects} isPortfolio>
       <div style={{ display: 'grid', gap: 14 }}>
-        <StatsStrip minColWidth={150} cards={[
-          { key: 'thu', label: 'Doanh thu 30 ngày', value: usd(thu30), sub: byDay.errors.length ? <span style={{ color: 'var(--danger)' }}>{byDay.errors.length} nguồn lỗi</span> : `${byDay.scannedNetworks.length} mạng đã quét` },
-          { key: 'chi', label: `Chi QC ${days} ngày`, value: usd(phu?.tong.chi ?? 0), color: phu && phu.tong.chi > phu.tong.revenue ? 'var(--danger)' : undefined, sub: phu ? `về ${usd(phu.tong.revenue)} · ${pid}` : 'chưa có sổ phủ' },
-          { key: 'pheu', label: 'View → click → out', value: phu ? `${phu.tong.view} → ${phu.tong.click} → ${phu.tong.out}` : '—', sub: phu ? `CTR ${pct(phu.tong.click, phu.tong.view, 1)} · cổng ${pct(phu.tong.gate, phu.tong.view)}` : undefined },
-          { key: 'signup', label: 'Signup', value: phu?.tong.signup ?? '—', sub: phu?.tong.click ? `${((phu.tong.signup / phu.tong.click) * 1000).toFixed(1)} / 1k click` : undefined },
-          { key: 'camp', label: 'Camp chạy', value: campChay, color: hong ? 'var(--danger)' : undefined, sub: hong ? `${hong} adapter/lander đỏ` : `${projects.length} dự án` },
+        <HomeStats cards={[
+          { key: 'thu', tab: 'doanhthu', label: 'Doanh thu 30 ngày', value: usd(thu30), sub: byDay.errors.length ? <span style={{ color: 'var(--danger)' }}>{byDay.errors.length} nguồn lỗi</span> : `${byDay.scannedNetworks.length} mạng đã quét` },
+          { key: 'chi', tab: 'camp', label: `Chi QC ${days} ngày`, value: usd(phu?.tong.chi ?? 0), color: phu && phu.tong.chi > phu.tong.revenue ? 'var(--danger)' : undefined, sub: phu ? `về ${usd(phu.tong.revenue)} · ${pid}` : 'chưa có sổ phủ' },
+          { key: 'pheu', tab: 'camp', label: 'View → click → out', value: phu ? `${phu.tong.view} → ${phu.tong.click} → ${phu.tong.out}` : '—', sub: phu ? `CTR ${pct(phu.tong.click, phu.tong.view, 1)} · cổng ${pct(phu.tong.gate, phu.tong.view)}` : undefined },
+          { key: 'signup', tab: 'phu', label: 'Signup', value: phu?.tong.signup ?? '—', sub: phu?.tong.click ? `${((phu.tong.signup / phu.tong.click) * 1000).toFixed(1)} / 1k click` : undefined },
+          { key: 'camp', tab: hong ? 'hatang' : 'camp', label: 'Camp chạy', value: campChay, color: hong ? 'var(--danger)' : undefined, sub: hong ? `${hong} adapter/lander đỏ` : `${projects.length} dự án` },
         ]} />
         {phu && <PhuCanChuY data={phu} />}
 

@@ -63,8 +63,7 @@ try {
     const rep = await call(`${c.ID}/REPORTS/`, { START_DATE: mmdd(ngay), END_DATE: mmdd(ngay) });
     const row = (rep?.BDV_API?.RESULTS?.CAMPAGINS || rep?.BDV_API?.RESULTS?.CAMPAIGNS || [])[0] || {};
     if (rep?.BDV_API?.ERROR) { tt.push(`REPORTS ${c.ID}: ${rep.BDV_API.ERROR.NOTE}`); continue; }   // trần 1 report/giờ/camp: bỏ lượt, KHÔNG ghi $0 đè số cũ
-    console.log('row', c.ID, JSON.stringify(row).slice(0, 600));   // để soi tên cột (VISITS/CLICKS…) khi số lệch
-    const num = (v) => (v && typeof v === 'object' ? Number(v.AMOUNT ?? v.VALUE ?? Object.values(v)[0]) : Number(v)) || 0;
+        const num = (v) => (v && typeof v === 'object' ? Number(v.AMOUNT ?? v.VALUE ?? Object.values(v)[0]) : Number(String(v ?? '').replace(/,/g, ''))) || 0;   // VISITS/REQUESTS về dạng "1,924"
     chi.push({ ngay: iso(ngay), sid_prefix: prefix, chi_usd: num(row.COST), clicks: num(row.VISITS ?? row.CLICKS ?? row.VISITORS) || null, impressions: num(row['BID REQUESTS'] ?? row.BID_REQUESTS ?? row.REQUESTS ?? row.IMPRESSIONS) || null, nguon_du_lieu: 'api:bidvertiser' });
   }
   await bao(true, `balance $${balance} · ${iso(ngay)} ${chi.map((c) => `${c.sid_prefix.slice(12)} $${c.chi_usd}/${c.clicks ?? 0}v`).join(' · ')} · ${tt.join(' · ')}`, chi, camp,

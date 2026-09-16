@@ -345,7 +345,7 @@ function SuaCamp({ c, nguon, projectId, onClose }: { c: PhuCamp | null; nguon: P
     bid: str(t.bid), placement: str(t.placement), alias: str(t.alias),
     nganSachNgay: c?.nganSachNgay == null ? '5' : String(c.nganSachNgay), trangThai: c?.trangThai ?? 'nhap',
     ketThuc: c?.ketThuc ? c.ketThuc.slice(0, 10) : new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10), nhipNgay: String(c?.nhipNgay ?? 1),
-    chiToiDa: tc.chi_toi_da == null ? '35' : String(tc.chi_toi_da), clickToiThieu: tc.click_toi_thieu == null ? '2000' : String(tc.click_toi_thieu), signup1k: tc.signup_1k == null ? '1' : String(tc.signup_1k),
+    chiToiDa: tc.chi_toi_da == null ? '15' : String(tc.chi_toi_da), clickToiThieu: tc.click_toi_thieu == null ? '300' : String(tc.click_toi_thieu), signup1k: tc.signup_1k == null ? '10' : String(tc.signup_1k), giaClickToiDa: tc.gia_click_toi_da == null ? '0.03' : String(tc.gia_click_toi_da),
     keHoach: c?.keHoach ?? '', ghiChu: c?.ghiChu ?? '',
   });
   const [dirty, setDirty] = useState(false);
@@ -358,7 +358,7 @@ function SuaCamp({ c, nguon, projectId, onClose }: { c: PhuCamp | null; nguon: P
         bid: f.bid.trim() ? Number(f.bid) : undefined, placement: f.placement.trim() || undefined,
         alias: f.alias.split(',').map((x) => x.trim()).filter(Boolean) };
       if (!target.alias.length) delete (target as { alias?: unknown }).alias;
-      const tieuChi = { chi_toi_da: Number(f.chiToiDa) || 0, click_toi_thieu: Number(f.clickToiThieu) || 0, signup_1k: Number(f.signup1k) || 0 };
+      const tieuChi = { chi_toi_da: Number(f.chiToiDa) || 0, click_toi_thieu: Number(f.clickToiThieu) || 0, signup_1k: Number(f.signup1k) || 0, gia_click_toi_da: Number(f.giaClickToiDa) || 0 };
       await luuPhuCamp(projectId, { nguonKey: f.nguonKey, ten: f.ten, sidPrefix: f.sidPrefix, lander: f.lander, target: JSON.stringify(target), nganSachNgay: f.nganSachNgay,
         trangThai: f.trangThai, ghiChu: f.ghiChu, ketThuc: f.ketThuc, nhipNgay: f.nhipNgay, tieuChi: JSON.stringify(tieuChi), keHoach: f.keHoach });
       onClose();
@@ -408,6 +408,7 @@ function SuaCamp({ c, nguon, projectId, onClose }: { c: PhuCamp | null; nguon: P
         <TextField label="Click tối thiểu" value={f.clickToiThieu} onChange={set('clickToiThieu')} mono hint="chưa đủ = chờ, chưa phán" />
         <TextField label="Signup / 1k click" value={f.signup1k} onChange={set('signup1k')} mono hint="đạt = MỞ RỘNG" />
       </div>
+      <TextField label="Giá 1 click ra offer tối đa (USD)" value={f.giaClickToiDa} onChange={set('giaClickToiDa')} mono hint="≥100 click mà chi/click vượt = DỪNG ngay, không đợi đủ click (revshare cam ~$0,03)" />
       <TextAreaField label="Kế hoạch sau phán xét" value={f.keHoach} onChange={set('keHoach')} rows={2} hint="đạt → mở gì; không đạt → đổi gì" />
       <details>
         <summary style={{ cursor: 'pointer', fontSize: 11, color: 'var(--fg-3)' }}>Nâng cao</summary>

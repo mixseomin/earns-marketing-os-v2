@@ -25,21 +25,23 @@ try {
   const r = await fetch(`https://chaturbate.com/affiliates/apistats/?username=${user}&token=${tok}`);
   if (!r.ok) throw new Error(`apistats ${r.status}`);
   const d = await r.json();
-  const events = [];
+  const events = []; const tomTat = [];
   for (const prog of d.stats || []) {
     const cols = prog.columns || [];
     for (const row of prog.rows || []) {
       const m = Object.fromEntries(cols.map((k, i) => [k, row[i]]));
       const ngay = String(m.Date || '');
       if (!/^\d{4}-\d{2}-\d{2}$/.test(ngay)) continue;
-      const payout = parseFloat(m.Payout) || 0;
-      if (!payout) continue;
+      const payout = parseFloat(m.Payout) || 0, regs = parseInt(m['Free Registrations']) || 0, hits = parseInt(m['Raw Hits']) || 0;
       const ma = `cb:${ngay}:${String(prog.program || '').slice(0, 24).replace(/[^A-Za-z0-9]+/g, '-')}`;
-      events.push({ ts: `${ngay}T12:00:00Z`, loai: 'spend', platform: 'chaturbate', mang: 'chaturbate', amount: payout, ma_don: ma, nguon_du_lieu: 'api:chaturbate',
-        raw: { program: prog.program, spent: m['Total Money Spent'], regs: m['Free Registrations'], hits: m['Raw Hits'] } });
+      const raw = { program: prog.program, spent: m['Total Money Spent'], regs, hits, engaged: m['Engaged Hits'] };
+      if (payout) events.push({ ts: `${ngay}T12:00:00Z`, loai: 'spend', platform: 'chaturbate', mang: 'chaturbate', amount: payout, ma_don: ma, nguon_du_lieu: 'api:chaturbate', raw });
+      // đăng ký free = signup (không có sid → dòng organic trên /phu); ngày 0 payout vẫn ghi để cột signup không mù (16/09/2026)
+      for (let i = 0; i < regs; i++) events.push({ ts: `${ngay}T12:00:00Z`, loai: 'signup', platform: 'chaturbate', mang: 'chaturbate', ma_don: `${ma}:reg${i + 1}`, nguon_du_lieu: 'api:chaturbate', raw });
+      if (hits) tomTat.push(`${ngay} ${hits} hit/${regs} reg/$${payout}`);
     }
   }
-  await bao(true, `${events.length} ngày có payout, range ${d.range?.start_date}→${d.range?.end_date}`, events);
+  await bao(true, `${tomTat.join(' · ') || 'không hit'} · kỳ ${d.range?.start_date}→${d.range?.end_date}`, events);
 } catch (e) {
   await bao(false, String(e.message));
   process.exit(1);

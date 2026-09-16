@@ -1,5 +1,5 @@
 'use server';
-import { getPhuNguonCamp } from '@/lib/phu';
+import { getPhuCampNhatKy, getPhuNguonCamp } from '@/lib/phu';
 export async function docPhuNguonCamp(projectId: string, sidPrefix: string, days: number) {
   await guard();
   return getPhuNguonCamp(projectId, sidPrefix, days);
@@ -30,7 +30,7 @@ export async function luuPhuPlatform(projectId: string, id: number, d: { trangTh
            card_id = ${d.cardId && /^\d+$/.test(d.cardId) ? Number(d.cardId) : null}, account_id = ${d.accountId && /^\d+$/.test(d.accountId) ? Number(d.accountId) : null},
            updated_at = now()
      WHERE id = ${id} AND project_id = ${projectId}`);
-  revalidatePath(`/p/${projectId}/phu`);
+  revalidatePath('/');
 }
 
 export async function luuPhuNguon(projectId: string, d: { id?: number; key: string; name: string; loai: string; trangThai: string; macroClick?: string; macroChi?: string; accountId?: string; napUsd?: string; ghiChu?: string }) {
@@ -46,10 +46,10 @@ export async function luuPhuNguon(projectId: string, d: { id?: number; key: stri
     ON CONFLICT (project_id, key) DO UPDATE SET name = EXCLUDED.name, loai = EXCLUDED.loai, trang_thai = EXCLUDED.trang_thai,
       macro_click = EXCLUDED.macro_click, macro_chi = EXCLUDED.macro_chi, account_id = EXCLUDED.account_id, nap_usd = EXCLUDED.nap_usd,
       ghi_chu = EXCLUDED.ghi_chu, updated_at = now()`);
-  revalidatePath(`/p/${projectId}/phu`);
+  revalidatePath('/');
 }
 
-export async function luuPhuCamp(projectId: string, d: { nguonKey: string; ten: string; sidPrefix: string; lander?: string; target?: string; nganSachNgay?: string; trangThai: string; ghiChu?: string; ketThuc?: string; nhipNgay?: string; tieuChi?: string; keHoach?: string }) {
+export async function luuPhuCamp(projectId: string, d: { nguonKey: string; ten: string; sidPrefix: string; lander?: string; target?: string; nganSachNgay?: string; trangThai: string; ghiChu?: string; ketThuc?: string; nhipNgay?: string; tieuChi?: string; keHoach?: string; lyDo?: string }) {
   const db = await guard();
   const prefix = String(d.sidPrefix).trim().replace(/[^A-Za-z0-9-]+/g, '_').replace(/^_+|_+$/g, '');
   if (!prefix || prefix.split('_').length !== 2) throw new Error('sid_prefix phải là <nguồn>_<camp>, đúng hai mẩu');
@@ -58,7 +58,10 @@ export async function luuPhuCamp(projectId: string, d: { nguonKey: string; ten: 
   let tieuChi: unknown = {};
   try { tieuChi = d.tieuChi ? JSON.parse(d.tieuChi) : {}; } catch { throw new Error('tiêu chí phải là JSON {chi_toi_da, click_toi_thieu, signup_1k}'); }
   const ketThuc = d.ketThuc && /^\d{4}-\d{2}-\d{2}$/.test(d.ketThuc) ? d.ketThuc : null;
-  await db.execute(sql`
+  // nguồn + lý do cho trigger phu_camp_ghi_doi (cùng transaction, SET LOCAL hết hiệu lực khi commit)
+  await db.transaction(async (tx) => {
+  await tx.execute(sql`SELECT set_config('phu.nguon', 'tay', true), set_config('phu.ly_do', ${t(d.lyDo) ?? ''}, true)`);
+  await tx.execute(sql`
     INSERT INTO phu_camp (project_id, nguon_key, ten, sid_prefix, lander, target, ngan_sach_ngay, trang_thai, bat_dau, ghi_chu, ket_thuc, nhip_ngay, tieu_chi, ke_hoach)
     VALUES (${projectId}, ${d.nguonKey}, ${d.ten}, ${prefix}, ${t(d.lander)}, ${JSON.stringify(target)}::jsonb,
             ${d.nganSachNgay ? Number(d.nganSachNgay) : null}, ${d.trangThai}, ${d.trangThai === 'chay' ? sql`now()` : null}, ${t(d.ghiChu)},
@@ -67,7 +70,19 @@ export async function luuPhuCamp(projectId: string, d: { nguonKey: string; ten: 
       target = EXCLUDED.target, ngan_sach_ngay = EXCLUDED.ngan_sach_ngay, trang_thai = EXCLUDED.trang_thai,
       bat_dau = COALESCE(phu_camp.bat_dau, EXCLUDED.bat_dau), ghi_chu = EXCLUDED.ghi_chu,
       ket_thuc = EXCLUDED.ket_thuc, nhip_ngay = EXCLUDED.nhip_ngay, tieu_chi = EXCLUDED.tieu_chi, ke_hoach = EXCLUDED.ke_hoach, updated_at = now()`);
-  revalidatePath(`/p/${projectId}/phu`);
+  });
+  revalidatePath('/');
+}
+
+export async function docPhuCampNhatKy(projectId: string, sidPrefix: string, days = 30) {
+  await guard();
+  return getPhuCampNhatKy(projectId, sidPrefix, days);
+}
+
+/** Ghi lý do cho một lần đổi (adapter/API ghi không có lý do; người bổ sung sau). */
+export async function luuPhuDoiLyDo(projectId: string, id: number, lyDo: string) {
+  const db = await guard();
+  await db.execute(sql`UPDATE phu_camp_doi SET ly_do = ${t(lyDo)} WHERE id = ${id} AND project_id = ${projectId}`);
 }
 
 export async function luuPhuChi(projectId: string, d: { ngay: string; sidPrefix: string; chiUsd: string; clicks?: string; impressions?: string }) {
@@ -80,5 +95,5 @@ export async function luuPhuChi(projectId: string, d: { ngay: string; sidPrefix:
             ${d.clicks ? Number(d.clicks) : null}, ${d.impressions ? Number(d.impressions) : null}, 'tay')
     ON CONFLICT (project_id, ngay, sid_prefix) DO UPDATE SET chi_usd = EXCLUDED.chi_usd, clicks = EXCLUDED.clicks,
       impressions = EXCLUDED.impressions, nguon_du_lieu = 'tay', updated_at = now()`);
-  revalidatePath(`/p/${projectId}/phu`);
+  revalidatePath('/');
 }

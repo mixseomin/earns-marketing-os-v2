@@ -8,9 +8,10 @@
 import { useEffect, useState, useTransition } from 'react';
 import { Drawer, EmptyState, Pager, Panel, Pill, SearchInput, SelectField, TextAreaField, TextField, usePaged } from '@/components/ui';
 import type { PhuCamp, PhuData, PhuNguon, PhuNguonCamp, PhuPlatform } from '@/lib/phu-shared';
+import type { PhuCampNhatKy } from '@/lib/phu';
 import { PHU_NGUON_TRANG_THAI, PHU_PHAN_XET, PHU_TRANG_THAI, phanXet } from '@/lib/phu-shared';
 const KHAC = '(khác)';
-import { docPhuNguonCamp, luuPhuCamp, luuPhuChi, luuPhuNguon, luuPhuPlatform } from '@/lib/actions/phu';
+import { docPhuCampNhatKy, docPhuNguonCamp, luuPhuCamp, luuPhuChi, luuPhuDoiLyDo, luuPhuNguon, luuPhuPlatform } from '@/lib/actions/phu';
 
 const NHOM: Record<string, string> = { cam: 'Cam 18+', ai: 'AI companion', random: 'Random chat', text: 'Text/voice', community: 'Cộng đồng', other: 'Khác' };
 const cell: React.CSSProperties = { padding: '7px 9px', fontSize: 12, borderBottom: '1px solid var(--line)', verticalAlign: 'top' };
@@ -48,6 +49,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
   const [suaCamp, setSuaCamp] = useState<PhuCamp | 'moi' | null>(null);
   const [nhapChi, setNhapChi] = useState(false);
   const [soiCamp, setSoiCamp] = useState<PhuCamp | null>(null);
+  const [nhatKy, setNhatKy] = useState<PhuCamp | null>(null);
   const d = data;
   const dem = (tt: string) => d.platforms.filter((p) => p.trangThai === tt).length;
   const hom = new Date().toISOString().slice(0, 10);
@@ -69,7 +71,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
             <thead><tr>
               <th style={head}>Campaign</th><th style={head} className={mh}>$/ngày · hạn</th>
               <th style={head}>View</th><th style={head} className={mh}>Cổng</th><th style={head}>Click</th><th style={head} className={mh}>Out</th><th style={head}>Signup</th><th style={head}>Về / chi</th>
-              <th style={head}>Phán xét</th><th style={head} className={mh}>Nguồn</th>
+              <th style={head}>Phán xét</th><th style={head} className={mh}>Soi</th>
             </tr></thead>
             <tbody>
               {d.camp.map((c) => {
@@ -95,7 +97,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                       <div style={{ color: 'var(--fg-3)', fontSize: 10, marginTop: 3 }}>{px.lyDo}</div>
                       {Object.keys(t).length ? null : <div style={{ color: 'var(--warn)', fontSize: 10 }}>chưa đặt tiêu chí — bấm để đặt</div>}
                     </td>
-                    <td style={cell} className={mh}><button style={btn} onClick={(e) => { e.stopPropagation(); setSoiCamp(c); }} title="Xem theo srcid/zone để blacklist">srcid ▸</button></td>
+                    <td style={{ ...cell, whiteSpace: 'nowrap' }} className={mh}><button style={btn} onClick={(e) => { e.stopPropagation(); setNhatKy(c); }} title="Số theo ngày + mỗi lần đổi cài đặt (trước → sau)">nhật ký ▸</button> <button style={btn} onClick={(e) => { e.stopPropagation(); setSoiCamp(c); }} title="Xem theo srcid/zone để blacklist">srcid ▸</button></td>
                   </tr>
                 );
               })}
@@ -222,7 +224,65 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
       {suaCamp && <SuaCamp c={suaCamp === 'moi' ? null : suaCamp} nguon={d.nguon} projectId={projectId} onClose={() => setSuaCamp(null)} />}
       {nhapChi && <NhapChi camp={d.camp} projectId={projectId} onClose={() => setNhapChi(false)} />}
       {soiCamp && <SoiNguon c={soiCamp} projectId={projectId} days={d.days} onClose={() => setSoiCamp(null)} />}
+      {nhatKy && <NhatKyCamp c={nhatKy} projectId={projectId} onClose={() => setNhatKy(null)} />}
     </div>
+  );
+}
+
+// Nhật ký camp: mỗi NGÀY một dòng số (view/click/out/signup/chi), xen dòng ĐỔI cài đặt (trước → sau) đúng ngày đó —
+// đọc "đổi bid xong ngày sau ra sao" trên một bảng. Đổi do adapter/API không có lý do → ô "ghi lý do" tại chỗ.
+const TRUONG: Record<string, string> = { tao: 'tạo', trang_thai: 'trạng thái', bid: 'bid', editorial: 'duyệt', ngan_sach_ngay: '$/ngày', lander: 'lander', target: 'nhắm', tieu_chi: 'tiêu chí', ket_thuc: 'hạn', ke_hoach: 'kế hoạch' };
+function NhatKyCamp({ c, projectId, onClose }: { c: PhuCamp; projectId: string; onClose: () => void }) {
+  const [nk, setNk] = useState<PhuCampNhatKy | null>(null);
+  const [suaId, setSuaId] = useState<number | null>(null);
+  const [lyDo, setLyDo] = useState('');
+  useEffect(() => { docPhuCampNhatKy(projectId, c.sidPrefix, 30).then(setNk).catch(() => setNk({ ngay: [], doi: [] })); }, [projectId, c.sidPrefix]);
+  const ngayCua = (ts: string) => new Date(ts).toISOString().slice(0, 10);
+  const cac = new Set<string>([...(nk?.ngay.map((x) => x.ngay) ?? []), ...(nk?.doi.map((x) => ngayCua(x.ts)) ?? [])]);
+  const hang = [...cac].sort().reverse();
+  const luuLyDo = async (id: number) => { await luuPhuDoiLyDo(projectId, id, lyDo); setNk((k) => k && { ...k, doi: k.doi.map((x) => (x.id === id ? { ...x, lyDo } : x)) }); setSuaId(null); setLyDo(''); };
+  return (
+    <Drawer onClose={onClose} width={680}>
+      <div style={{ padding: 16, display: 'grid', gap: 10 }}>
+        <h2 style={{ margin: 0, fontSize: 15 }}>{c.ten} · nhật ký 30 ngày</h2>
+        <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Mỗi ngày một dòng số; dòng vàng = đổi cài đặt (trước → sau). Bấm "ghi lý do" để chú thích lần đổi chưa có lý do.</div>
+        {nk === null ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>Đang đọc…</div> : (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr><th style={head}>Ngày</th><th style={head}>Visit</th><th style={head}>View</th><th style={head}>Click</th><th style={head}>Out</th><th style={head}>Signup</th><th style={head}>Chi</th><th style={head}>$/click</th></tr></thead>
+            <tbody>
+              {hang.map((ng) => {
+                const x = nk.ngay.find((r) => r.ngay === ng);
+                const ds = nk.doi.filter((r) => ngayCua(r.ts) === ng);
+                return [
+                  x ? (
+                    <tr key={ng}>
+                      <td style={{ ...cell, ...mono }}>{ng.slice(5)}</td><td style={{ ...cell, ...mono }}>{x.visit || '—'}</td><td style={{ ...cell, ...mono }}>{x.view || '—'}</td>
+                      <td style={{ ...cell, ...mono }}>{x.click}<span style={{ color: 'var(--fg-3)', fontSize: 10 }}> {x.view ? `${((x.click / x.view) * 100).toFixed(1)}%` : ''}</span></td>
+                      <td style={{ ...cell, ...mono }}>{x.out}</td><td style={{ ...cell, ...mono }}>{x.signup}</td><td style={{ ...cell, ...mono }}>{usd(x.chi)}</td>
+                      <td style={{ ...cell, ...mono, color: x.click && x.chi / x.click > (Number(c.tieuChi.gia_click_toi_da) || 0.03) ? 'var(--danger)' : undefined }}>{x.click && x.chi ? `$${(x.chi / x.click).toFixed(3)}` : '—'}</td>
+                    </tr>
+                  ) : <tr key={ng}><td style={{ ...cell, ...mono }}>{ng.slice(5)}</td><td style={cell} colSpan={7} /></tr>,
+                  ...ds.map((r) => (
+                    <tr key={'d' + r.id} style={{ background: 'color-mix(in srgb, var(--warn) 8%, transparent)' }}>
+                      <td style={{ ...cell, ...mono, fontSize: 10, color: 'var(--fg-3)' }}>{new Date(r.ts).toISOString().slice(11, 16)}Z</td>
+                      <td style={{ ...cell, fontSize: 11 }} colSpan={7}>
+                        <b>{TRUONG[r.truong] ?? r.truong}</b>{r.cu != null && <span style={mono}> {r.cu}</span>}{r.cu != null && ' → '}<span style={{ ...mono, color: 'var(--fg-0)' }}>{r.moi}</span>
+                        <span style={{ color: 'var(--fg-3)', fontSize: 10 }}> · {r.nguon}</span>
+                        {suaId === r.id ? (
+                          <span style={{ display: 'inline-flex', gap: 4, marginLeft: 6 }}><input autoFocus value={lyDo} onChange={(e) => setLyDo(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') luuLyDo(r.id); if (e.key === 'Escape') setSuaId(null); }} style={{ fontSize: 11, padding: '2px 6px', width: 260 }} placeholder="lý do đổi…" /><button style={{ ...btn, padding: '1px 8px' }} onClick={() => luuLyDo(r.id)}>lưu</button></span>
+                        ) : r.lyDo ? <div style={{ color: 'var(--fg-2)', marginTop: 2 }}>{r.lyDo} <button style={{ ...btn, padding: '0 6px', fontSize: 10 }} onClick={() => { setSuaId(r.id); setLyDo(r.lyDo ?? ''); }}>sửa</button></div>
+                          : <button style={{ ...btn, padding: '0 6px', fontSize: 10, marginLeft: 6, color: 'var(--warn)' }} onClick={() => { setSuaId(r.id); setLyDo(''); }}>ghi lý do</button>}
+                      </td>
+                    </tr>
+                  )),
+                ];
+              })}
+            </tbody>
+          </table>
+        )}
+        {nk && !hang.length && <EmptyState icon="📓" title="Chưa có gì" compact />}
+      </div>
+    </Drawer>
   );
 }
 
@@ -346,7 +406,7 @@ function SuaCamp({ c, nguon, projectId, onClose }: { c: PhuCamp | null; nguon: P
     nganSachNgay: c?.nganSachNgay == null ? '5' : String(c.nganSachNgay), trangThai: c?.trangThai ?? 'nhap',
     ketThuc: c?.ketThuc ? c.ketThuc.slice(0, 10) : new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10), nhipNgay: String(c?.nhipNgay ?? 1),
     chiToiDa: tc.chi_toi_da == null ? '15' : String(tc.chi_toi_da), clickToiThieu: tc.click_toi_thieu == null ? '300' : String(tc.click_toi_thieu), signup1k: tc.signup_1k == null ? '10' : String(tc.signup_1k), giaClickToiDa: tc.gia_click_toi_da == null ? '0.03' : String(tc.gia_click_toi_da),
-    keHoach: c?.keHoach ?? '', ghiChu: c?.ghiChu ?? '',
+    keHoach: c?.keHoach ?? '', ghiChu: c?.ghiChu ?? '', lyDo: '',
   });
   const [dirty, setDirty] = useState(false);
   const [pending, start] = useTransition();
@@ -360,7 +420,7 @@ function SuaCamp({ c, nguon, projectId, onClose }: { c: PhuCamp | null; nguon: P
       if (!target.alias.length) delete (target as { alias?: unknown }).alias;
       const tieuChi = { chi_toi_da: Number(f.chiToiDa) || 0, click_toi_thieu: Number(f.clickToiThieu) || 0, signup_1k: Number(f.signup1k) || 0, gia_click_toi_da: Number(f.giaClickToiDa) || 0 };
       await luuPhuCamp(projectId, { nguonKey: f.nguonKey, ten: f.ten, sidPrefix: f.sidPrefix, lander: f.lander, target: JSON.stringify(target), nganSachNgay: f.nganSachNgay,
-        trangThai: f.trangThai, ghiChu: f.ghiChu, ketThuc: f.ketThuc, nhipNgay: f.nhipNgay, tieuChi: JSON.stringify(tieuChi), keHoach: f.keHoach });
+        trangThai: f.trangThai, ghiChu: f.ghiChu, ketThuc: f.ketThuc, nhipNgay: f.nhipNgay, tieuChi: JSON.stringify(tieuChi), keHoach: f.keHoach, lyDo: f.lyDo });
       onClose();
     } catch (e) { setLoi(String((e as Error).message)); }
   });
@@ -410,6 +470,7 @@ function SuaCamp({ c, nguon, projectId, onClose }: { c: PhuCamp | null; nguon: P
       </div>
       <TextField label="Giá 1 click ra offer tối đa (USD)" value={f.giaClickToiDa} onChange={set('giaClickToiDa')} mono hint="≥100 click mà chi/click vượt = DỪNG ngay, không đợi đủ click (revshare cam ~$0,03)" />
       <TextAreaField label="Kế hoạch sau phán xét" value={f.keHoach} onChange={set('keHoach')} rows={2} hint="đạt → mở gì; không đạt → đổi gì" />
+      {c && <TextField label="Lý do lần đổi này" value={f.lyDo} onChange={set('lyDo')} hint="vào nhật ký camp cùng với trước → sau của mọi ô đổi" />}
       <details>
         <summary style={{ cursor: 'pointer', fontSize: 11, color: 'var(--fg-3)' }}>Nâng cao</summary>
         <div style={{ display: 'grid', gap: 8, marginTop: 6 }}>

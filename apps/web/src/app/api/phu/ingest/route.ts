@@ -64,7 +64,10 @@ export async function POST(req: Request) {
     // cùng luật với luuPhuCamp: sid_prefix đúng hai mẩu <nguồn>_<camp>
     const prefix = String(c.sid_prefix ?? '').trim().replace(/[^A-Za-z0-9-]+/g, '_').replace(/^_+|_+$/g, '');
     if (!c.nguon_key || !c.ten || !c.trang_thai || prefix.split('_').length !== 2) continue;
-    await db.execute(sql`
+    // nguồn cho trigger phu_camp_ghi_doi (nhật ký trước→sau): adapter nào báo thì ghi tên nó
+    await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('phu.nguon', ${'adapter:' + (b.adapter?.key ?? 'ingest')}, true)`);
+    await tx.execute(sql`
       INSERT INTO phu_camp (project_id, nguon_key, ten, sid_prefix, lander, target, ngan_sach_ngay, trang_thai, bat_dau, ghi_chu, ket_thuc, nhip_ngay, tieu_chi, ke_hoach)
       VALUES (${project}, ${c.nguon_key}, ${c.ten}, ${prefix}, ${c.lander ?? null}, ${JSON.stringify(c.target ?? {})}::jsonb,
               ${c.ngan_sach_ngay == null ? null : Number(c.ngan_sach_ngay)}, ${c.trang_thai}, ${c.trang_thai === 'chay' ? sql`now()` : null}, ${c.ghi_chu ?? null},
@@ -74,6 +77,7 @@ export async function POST(req: Request) {
         bat_dau = COALESCE(phu_camp.bat_dau, EXCLUDED.bat_dau), ghi_chu = COALESCE(EXCLUDED.ghi_chu, phu_camp.ghi_chu),
         ket_thuc = COALESCE(EXCLUDED.ket_thuc, phu_camp.ket_thuc), nhip_ngay = COALESCE(${c.nhip_ngay == null ? null : Math.max(1, Number(c.nhip_ngay))}, phu_camp.nhip_ngay),
         tieu_chi = phu_camp.tieu_chi || EXCLUDED.tieu_chi, ke_hoach = COALESCE(EXCLUDED.ke_hoach, phu_camp.ke_hoach), updated_at = now()`);
+    });
     cp++;
   }
   if (b.nguon?.key) {

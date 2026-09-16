@@ -28,6 +28,34 @@ function nhomTheoCamp(camps: Record<string, unknown>[]) {
 }
 const nhomChi = sql`sid_prefix`;   // phu_chi ghi thẳng theo prefix camp (adapter/tay), không cần gom lại
 
+/** Nhật ký một camp: số theo NGÀY (view/click/out/signup/chi) + các lần ĐỔI cài đặt (phu_camp_doi, trigger ghi) — đọc
+ *  kết quả trước/sau mỗi mốc đổi trên cùng một bảng. Cửa sổ N ngày, đổi thì lấy hết (ít). */
+export async function getPhuCampNhatKy(projectId: string, sidPrefix: string, days = 30) {
+  const db = getDb();
+  if (!db) return { ngay: [], doi: [] };
+  const since = new Date(Date.now() - days * 86400_000).toISOString();
+  const camp = (await db.execute(sql`SELECT target FROM phu_camp WHERE project_id = ${projectId} AND sid_prefix = ${sidPrefix}`)) as unknown as Record<string, unknown>[];
+  const t = (camp[0]?.target && typeof camp[0].target === 'object' ? camp[0].target : {}) as { alias?: unknown };
+  const alias = Array.isArray(t.alias) ? t.alias.map(String) : [];
+  const dk = [sql`sid LIKE ${sidPrefix.replace(/[_%]/g, (m) => '\\' + m) + '\\_%'}`, ...alias.map((a) => sql`sid LIKE ${a.replace(/[_%]/g, (m) => '\\' + m) + '%'}`)];
+  const [ev, chi, doi] = await Promise.all([
+    db.execute(sql`SELECT date(ts) AS ngay, COUNT(*) FILTER (WHERE loai = 'view') AS view, COUNT(*) FILTER (WHERE loai = 'gate') AS gate,
+                          COUNT(*) FILTER (WHERE loai = 'click') AS click, COUNT(*) FILTER (WHERE loai = 'out') AS "out", COUNT(*) FILTER (WHERE loai = 'signup') AS signup
+                     FROM phu_su_kien WHERE project_id = ${projectId} AND ts >= ${since}::timestamptz AND (${sql.join(dk, sql` OR `)}) GROUP BY 1`) as unknown as Promise<Record<string, unknown>[]>,
+    db.execute(sql`SELECT ngay::text AS ngay, chi_usd, clicks FROM phu_chi WHERE project_id = ${projectId} AND sid_prefix = ${sidPrefix} AND ngay >= ${since.slice(0, 10)}::date`) as unknown as Promise<Record<string, unknown>[]>,
+    db.execute(sql`SELECT id, ts, truong, cu, moi, nguon, ly_do FROM phu_camp_doi WHERE project_id = ${projectId} AND sid_prefix = ${sidPrefix} ORDER BY ts DESC LIMIT 200`) as unknown as Promise<Record<string, unknown>[]>,
+  ]);
+  const byNgay = new Map<string, { ngay: string; view: number; gate: number; click: number; out: number; signup: number; chi: number; visit: number }>();
+  const lay = (d: string) => { let r = byNgay.get(d); if (!r) { r = { ngay: d, view: 0, gate: 0, click: 0, out: 0, signup: 0, chi: 0, visit: 0 }; byNgay.set(d, r); } return r; };
+  for (const r of ev) { const x = lay(String(r.ngay).slice(0, 10)); x.view = n(r.view); x.gate = n(r.gate); x.click = n(r.click); x.out = n(r.out); x.signup = n(r.signup); }
+  for (const r of chi) { const x = lay(String(r.ngay).slice(0, 10)); x.chi = n(r.chi_usd); x.visit = n(r.clicks); }
+  return {
+    ngay: [...byNgay.values()].sort((a, b) => (a.ngay < b.ngay ? 1 : -1)),
+    doi: doi.map((r) => ({ id: Number(r.id), ts: String(r.ts), truong: String(r.truong), cu: s(r.cu), moi: s(r.moi), nguon: String(r.nguon), lyDo: s(r.ly_do) })),
+  };
+}
+export type PhuCampNhatKy = Awaited<ReturnType<typeof getPhuCampNhatKy>>;
+
 /** Drill-down: nguồn (mẩu sau prefix, = srcid/zone) của MỘT camp trong cửa sổ, xếp theo view. Trang chính không kéo cái này. */
 export async function getPhuNguonCamp(projectId: string, sidPrefix: string, days = 7, limit = 200) {
   const db = getDb();

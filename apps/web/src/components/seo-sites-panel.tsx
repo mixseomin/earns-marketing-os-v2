@@ -48,7 +48,8 @@ const SITE_META: Record<string, { project?: string; emoji: string; review?: stri
   'mintalmanac.com': { project: 'mint-almanac', emoji: '🪙', review: '2026-10-08' },  // 09-09 review: GROWTH (impr 4839 +58%, clicks 6, 51 URLs w/ impr +4%) but avg pos 65 - everything sits past page 6, so zero striking-distance and zero CTR fixes exist yet. Rising: silver-coin-calculator 945->1339, /grading 121->387, mercury-dime, morgan-dollar. Fixed: homepage meta description stopped competing with /calculators/silver-coin-calculator (6 queries split, homepage losing each by 10-20 pos); shipped 2 stale local commits (WebApplication JSON-LD on tool pages + /coins -> semiquincentennial card). Only page near page 1 = /2026-semiquincentennial-coins pos 10.1. Lever stays authority, not on-page.
   'paydochub.com': { project: 'paydochub', emoji: '🧾', review: '2026-09-13' },  // 08-16 review: -93% impr / -72% URLs = the 07-11 noindex PRUNE landing, not a break (07-27 "seasonal demand" verdict was wrong). URL Inspection: thin pages "Crawled - currently not indexed", /staples "Excluded by noindex", all pages serve 200, sitemap 55 URLs. isRichEmployer needs ≥2 of portal/platforms/shot → only 47 of 591 indexable; 174 are one signal short. Prune shipped, ENRICH never did. Lever=fill portal/shot on the top-pv near-miss pages (play #550). recheck: rich-tier impressions after the first batch of 20
   'cities.gg': { project: 'cities-gg', emoji: '🏙️', review: '2026-10-08' },  // 09-09 review: MIXED - impr 913 (-21%), clicks 3, pos 47.0 (flat vs 47.4), 495 URLs w/ impr (+8%, still indexing). FIXED THIS PASS: apex locale roots /nl /es /fr /de /it /pt /ja /zh /ko /ru /ar all returned 404 while the page serving those queries lives at /route-planner/<locale> - /nl held 76 impr for 'routeplanner meerdere adressen' + 9 variants (pos 84-99) and had fallen from 297. next.config.ts redirects() now sends locale root -> /route-planner/<locale>, verified live (one hop, 308 -> 200). ALSO FIXED: the routeplanner.cities.gg subdomain redirect was 2 hops (/nl/ -> /route-planner/nl/ -> 308 -> /route-planner/nl) because nginx passed $request_uri with its trailing slash. It was nginx on as.on.tc, not Cloudflare - sites-available/routeplanner.cities.gg now strips the slash first (rewrite ^/(.*)/$). Verified: one hop, query strings preserved, legacy /impress + /privacy-policy untouched. READ THE TOP QUERIES WITH CARE: the pages ranking pos 1-4 ('dr. justiniano torres aparicio...', '"fossgis_osrm_foot" "route="') are scraper queries carrying -site:/-filetype: operators, not humans - that is why 67 impr at pos 4.4 yields 0 clicks. The real human demand on this domain is the Dutch route-planner cluster.
-  'chatwhenbored.com': { project: 'adfond', emoji: '💬', review: '2026-09-28' },  // lên sóng 14/09 (site tĩnh box2, cam/AI-companion affiliate; cards + trang PHỦ nằm ở project adfond cùng hotel-arb/jobzab); review đầu sau 2 tuần: chỉ xem index + impressions cụm 'omegle alternative', chưa có gì để chỉnh
+  'chatwhenbored.com': { project: 'adfond', emoji: '💬', review: '2026-09-28' },
+  'orabra.com': { project: 'adfond', emoji: '🩱' },  // shop Shopdy bán Vesnacharm (Bra Shop, chiến lược #19 be.adfond) — chạy Google Ads asfy_06 từ 16/09; KHÔNG có GSC (site của Shopdy, không verify được), chỉ GA4 554184022 → hiện nhờ nhánh GA4-only bên dưới  // lên sóng 14/09 (site tĩnh box2, cam/AI-companion affiliate; cards + trang PHỦ nằm ở project adfond cùng hotel-arb/jobzab); review đầu sau 2 tuần: chỉ xem index + impressions cụm 'omegle alternative', chưa có gì để chỉnh
   'maileyes.com': { project: 'maileyes', emoji: '📧' },
   'cee-trust.org': { emoji: '🔍' },
   'techwhiff.com': { emoji: '🤓' },
@@ -127,6 +128,16 @@ export async function SeoSitesPanel() {
   }
 
   const rows = mergeAndDedupe(payload).filter((r) => !HIDDEN_DOMAINS.has(r.domain));
+  // Site có GA4 nhưng KHÔNG có GSC (orabra.com 16/09: shop Shopdy, không verify Search Console
+  // được) vẫn phải lên bảng — bảng này là chỗ duy nhất anh nhìn "có ai vào không". Trước đây
+  // hàng chỉ sinh từ gsc-latest.json nên GA4 đã kéo về 7 ngày (24 users) mà không hiện ở đâu.
+  // Điều kiện: đã đăng ký ở SITE_META (không tự nhét mọi property GA4 — 58 property gồm cả
+  // subdomain thử) và có property trong ga4-properties.json. Cột GSC để 0, period 'no-gsc'.
+  const seen = new Set(rows.map((r) => r.domain));
+  for (const domain of Object.keys(SITE_META)) {
+    if (seen.has(domain) || HIDDEN_DOMAINS.has(domain) || !pickGa4(ga4Payload, domain)) continue;
+    rows.push({ domain, stats: { pages_with_impressions_7d: 0, clicks_7d: 0, impressions_7d: 0, avg_position_7d: 0, sitemaps_count: 0, sitemap_urls_submitted: 0, sitemap_urls_indexed: 0, period: 'no-gsc' } });
+  }
   const totalImps = rows.reduce((s, r) => s + r.stats.impressions_7d, 0);
   const totalClicks = rows.reduce((s, r) => s + r.stats.clicks_7d, 0);
   const totalPages = rows.reduce((s, r) => s + r.stats.pages_with_impressions_7d, 0);
@@ -142,7 +153,7 @@ export async function SeoSitesPanel() {
   return (
     <Panel
       title="SEO Sites Overview"
-      subtitle={`GSC live · ${rows.length} sites · last sync ${updated}`}
+      subtitle={`GSC live (+ GA4-only) · ${rows.length} sites · last sync ${updated}`}
       actions={<>
         <a href="/seo/keyword-research" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '4px 10px', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-2)', textDecoration: 'none', background: 'var(--bg-2)' }}>
           🔍 Keyword Research

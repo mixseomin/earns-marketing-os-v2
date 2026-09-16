@@ -71,8 +71,8 @@ INSERT INTO phu_camp_doi (project_id, sid_prefix, ts, truong, cu, moi, nguon, ly
   ('adfond','bidvertiser_pop-us-m','2026-09-15 08:30+00','bid','0.0012','0.0009','api','Cap $5 chạm sau vài giờ → bid cao hơn cần'),
   ('adfond','bidvertiser_direct-us','2026-09-15 09:00+00','tao',NULL,'chay · bid $0.01 · $5/ngày · DIRECT · keyword cam · US','tay','Anh duyệt mở Direct (keyword chaturbate/live cam…)'),
   ('adfond','bidvertiser_push-us','2026-09-15 09:00+00','tao',NULL,'chay · bid $0.02 · $5/ngày · PUSH · US','tay','Anh duyệt mở Push → Chaturbate'),
-  ('adfond','bidvertiser_pop-us-d','2026-09-17 02:00+00','trang_thai','chay','tam_dung','api','$0,113/click > trần $0,03 sau 135 click (anh duyệt "làm cả 4")'),
-  ('adfond','bidvertiser_pop-us-m','2026-09-17 02:00+00','trang_thai','chay','tam_dung','api','$0,111/click > trần $0,03 sau 129 click'),
-  ('adfond','bidvertiser_push-us','2026-09-17 02:00+00','bid','0.02','0.01','api','CTR 24% nhưng $0,081/click → hạ về sàn, mục tiêu ~$0,04'),
-  ('adfond','bidvertiser_direct-us','2026-09-17 02:00+00','bid','0.01','0.03','api','29 view/2 ngày = thua thầu keyword → nâng để có số'),
-  ('adfond','bidvertiser_push-dating','2026-09-17 03:30+00','tao',NULL,'chay · bid $0.02 · $5/ngày · PUSH · US → CR Dating Smartlink 9986','tay','A/B offer: lead-based vs Chaturbate revshare');
+  ('adfond','bidvertiser_pop-us-d','2026-09-16 17:40+00','trang_thai','chay','tam_dung','api','$0,113/click > trần $0,03 sau 135 click (anh duyệt "làm cả 4")'),
+  ('adfond','bidvertiser_pop-us-m','2026-09-16 17:40+00','trang_thai','chay','tam_dung','api','$0,111/click > trần $0,03 sau 129 click'),
+  ('adfond','bidvertiser_push-us','2026-09-16 17:40+00','bid','0.02','0.01','api','CTR 24% nhưng $0,081/click → hạ về sàn, mục tiêu ~$0,04'),
+  ('adfond','bidvertiser_direct-us','2026-09-16 17:40+00','bid','0.01','0.03','api','29 view/2 ngày = thua thầu keyword → nâng để có số'),
+  ('adfond','bidvertiser_push-dating','2026-09-16 18:05+00','tao',NULL,'chay · bid $0.02 · $5/ngày · PUSH · US → CR Dating Smartlink 9986','tay','A/B offer: lead-based vs Chaturbate revshare');

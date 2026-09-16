@@ -57,6 +57,8 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
   const khac = d.pheu.find((x) => x.sidPrefix === KHAC);
   const organic = d.pheu.find((x) => x.sidPrefix === '');
   const pct = (a: number, b: number, so = 0) => (b ? `${((a / b) * 100).toFixed(so)}%` : '—');
+  const so = (v: number) => <span style={{ color: v ? undefined : 'var(--fg-3)' }}>{v}</span>;   // 0 mờ: mắt chỉ dừng ở ô có số (anh 17/09)
+  const cpc = (chi: number, click: number, tran: number) => click && chi ? <span style={{ color: chi / click > tran ? 'var(--danger)' : undefined }}>${(chi / click).toFixed(3)}</span> : '—';
 
   // YDNI: một phần một lượt — bảng campaign (chiến lược + phễu + phán xét trên cùng một dòng) là mặt chính,
   // nền tảng / nguồn / lander / adapter là tham chiếu phụ, trang chủ gắn badge số đếm + số đỏ để biết có.
@@ -70,7 +72,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr>
               <th style={head}>Campaign</th><th style={head} className={mh}>$/ngày · hạn</th>
-              <th style={head}>View</th><th style={head} className={mh}>Cổng</th><th style={head}>Click</th><th style={head} className={mh}>Out</th><th style={head}>Signup</th><th style={head}>Về / chi</th>
+              <th style={head}>View</th><th style={head} className={mh}>Cổng</th><th style={head}>Click</th><th style={head} className={mh}>Out</th><th style={head}>Signup</th><th style={head}>Về / chi</th><th style={head} title="chi ÷ click ra offer; đỏ khi vượt trần tiêu chí">CPC</th>
               <th style={head}>Phán xét</th><th style={head} className={mh}>Soi</th>
             </tr></thead>
             <tbody>
@@ -81,18 +83,19 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                 const quaHan = c.ketThuc && hom > c.ketThuc.slice(0, 10);
                 const toiXem = px.xemLai && px.xemLai <= hom;
                 return (
-                  <tr key={c.id} onClick={() => setSuaCamp(c)} style={{ cursor: 'pointer' }} title="Sửa campaign">
+                  <tr key={c.id} onClick={() => setSuaCamp(c)} style={{ cursor: 'pointer', opacity: c.trangThai === 'chay' ? 1 : 0.45 }} title="Sửa campaign">
                     <td style={cell}><b>{c.ten}</b>
                       <div style={{ ...mono, color: 'var(--fg-3)', fontSize: 10 }}>{c.sidPrefix} · {[c.target.device, c.target.geo, c.target.format, c.target.source, c.target.bid != null ? `bid $${c.target.bid}` : null].filter(Boolean).join(' · ')}</div>
                       {c.trangThai !== 'chay' && <Pill color={c.trangThai === 'tam_dung' ? 'var(--warn)' : 'var(--fg-3)'} label={c.trangThai} />}
                     </td>
                     <td style={{ ...cell, ...mono, fontSize: 11, whiteSpace: 'nowrap' }} className={mh}>{c.nganSachNgay == null ? '—' : usd(c.nganSachNgay)}<div style={{ color: quaHan ? 'var(--danger)' : 'var(--fg-3)', fontSize: 10 }}>{c.ketThuc ? `tới ${c.ketThuc.slice(5, 10)}` : 'không hạn'}{toiXem ? ' · tới nhịp' : ''}</div></td>
-                    <td style={{ ...cell, ...mono }}>{f?.view || '—'}</td>
+                    <td style={{ ...cell, ...mono }}>{so(f?.view ?? 0)}</td>
                     <td style={{ ...cell, ...mono }} className={mh}>{f?.view ? pct(f.gate, f.view) : '—'}</td>
-                    <td style={{ ...cell, ...mono }}>{f?.click ?? 0}<span style={{ color: f?.view && f.click / f.view < 0.05 ? 'var(--danger)' : 'var(--fg-3)', fontSize: 10 }}> {f?.view ? pct(f.click, f.view, 1) : ''}</span></td>
-                    <td style={{ ...cell, ...mono }} className={mh}>{f?.out ?? 0}</td>
-                    <td style={{ ...cell, ...mono }}>{f?.signup ?? 0}</td>
+                    <td style={{ ...cell, ...mono }}>{so(f?.click ?? 0)}<span style={{ color: f?.view && f.click / f.view < 0.05 ? 'var(--danger)' : 'var(--fg-3)', fontSize: 10 }}> {f?.view ? pct(f.click, f.view, 1) : ''}</span></td>
+                    <td style={{ ...cell, ...mono }} className={mh}>{so(f?.out ?? 0)}</td>
+                    <td style={{ ...cell, ...mono }}>{so(f?.signup ?? 0)}</td>
                     <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(f?.revenue ?? 0)} / {usd(f?.chi ?? 0)}</td>
+                    <td style={{ ...cell, ...mono }}>{cpc(f?.chi ?? 0, f?.click ?? 0, Number(c.tieuChi.gia_click_toi_da) || 0.03)}</td>
                     <td style={cell}><Pill color={PHU_PHAN_XET[px.ma]?.color ?? 'var(--fg-3)'} label={PHU_PHAN_XET[px.ma]?.label ?? px.ma} />
                       <div style={{ color: 'var(--fg-3)', fontSize: 10, marginTop: 3 }}>{px.lyDo}</div>
                       {Object.keys(t).length ? null : <div style={{ color: 'var(--warn)', fontSize: 10 }}>chưa đặt tiêu chí — bấm để đặt</div>}
@@ -105,15 +108,15 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                 <tr>
                   <td style={cell}><span style={{ color: 'var(--warn)' }}>(khác)</span><div style={{ color: 'var(--fg-3)', fontSize: 10 }}>{khac.soPrefix} sid_prefix không khớp camp nào — <button style={{ ...btn, padding: '0 6px', fontSize: 10 }} onClick={() => setSuaCamp('moi')}>đăng ký camp</button> hoặc mở camp → Nâng cao → Alias</div></td>
                   <td style={cell} className={mh}>—</td>
-                  <td style={{ ...cell, ...mono }}>{khac.view}</td><td style={{ ...cell, ...mono }} className={mh}>{pct(khac.gate, khac.view)}</td><td style={{ ...cell, ...mono }}>{khac.click}</td><td style={{ ...cell, ...mono }} className={mh}>{khac.out}</td><td style={{ ...cell, ...mono }}>{khac.signup}</td>
-                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(khac.revenue)} / {usd(khac.chi)}</td><td style={cell}>—</td><td style={cell} className={mh}>—</td>
+                  <td style={{ ...cell, ...mono }}>{so(khac.view)}</td><td style={{ ...cell, ...mono }} className={mh}>{pct(khac.gate, khac.view)}</td><td style={{ ...cell, ...mono }}>{so(khac.click)}</td><td style={{ ...cell, ...mono }} className={mh}>{so(khac.out)}</td><td style={{ ...cell, ...mono }}>{so(khac.signup)}</td>
+                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(khac.revenue)} / {usd(khac.chi)}</td><td style={{ ...cell, ...mono }}>{cpc(khac.chi, khac.click, 0.03)}</td><td style={cell}>—</td><td style={cell} className={mh}>—</td>
                 </tr>
               )}
               {organic && (
                 <tr>
                   <td style={cell}><span style={{ color: 'var(--fg-3)' }}>(organic / không sid)</span></td><td style={cell} className={mh}>—</td>
-                  <td style={{ ...cell, ...mono }}>{organic.view || '—'}</td><td style={{ ...cell, ...mono }} className={mh}>{pct(organic.gate, organic.view)}</td><td style={{ ...cell, ...mono }}>{organic.click}</td><td style={{ ...cell, ...mono }} className={mh}>{organic.out}</td><td style={{ ...cell, ...mono }}>{organic.signup}</td>
-                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(organic.revenue)} / —</td><td style={cell}>—</td><td style={cell} className={mh}>—</td>
+                  <td style={{ ...cell, ...mono }}>{so(organic.view)}</td><td style={{ ...cell, ...mono }} className={mh}>{pct(organic.gate, organic.view)}</td><td style={{ ...cell, ...mono }}>{so(organic.click)}</td><td style={{ ...cell, ...mono }} className={mh}>{so(organic.out)}</td><td style={{ ...cell, ...mono }}>{so(organic.signup)}</td>
+                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(organic.revenue)} / —</td><td style={cell}>—</td><td style={cell}>—</td><td style={cell} className={mh}>—</td>
                 </tr>
               )}
             </tbody>

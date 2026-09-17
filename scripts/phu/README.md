@@ -9,6 +9,8 @@ Cron trên box3 (`crontab -e`, env lấy từ .env.production):
 20 5 * * *   cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && node scripts/phu/chaturbate.mjs >> /var/log/mos2-phu.log 2>&1
 10 1-23/2 * * * cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && node scripts/phu/bidvertiser.mjs >> /var/log/mos2-phu.log 2>&1
 5 0 * * *    cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && node scripts/phu/bidvertiser.mjs --hom-qua >> /var/log/mos2-phu.log 2>&1
+15 1-23/2 * * * cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && node scripts/phu/trafficfactory.mjs >> /var/log/mos2-phu.log 2>&1
+15 0 * * *   cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && node scripts/phu/trafficfactory.mjs --hom-qua >> /var/log/mos2-phu.log 2>&1
 30 6 * * *   cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && node scripts/phu/bv-chan-nguon.mjs >> /var/log/mos2-phu.log 2>&1
 ```
 - `log-box2.mjs` — click (/px, có `s=` sid) + out (/r/) từ nhật ký nginx box2, nhịp tim lander.
@@ -18,6 +20,11 @@ Cron trên box3 (`crontab -e`, env lấy từ .env.production):
   (`BV_EMAIL`/`BV_PASS`/`BV_API_KEY`, root 600; gốc mã hoá ở Directus earns accounts fb5974e1). Cron:
   `10 1,3,…,23 * * *` hôm nay; `5 0 * * *` với `--hom-qua` (cách lượt 01:10 ≥ 65 phút, tránh trần 1 report/giờ) chốt hôm qua. URL đích camp:
   `?s=bidvertiser_<tên>_{BV_SRCID}`.
+- `trafficfactory.mjs` — TrafficFactory (EXADS, inventory XVideos native) API v2 → chi/click/impression theo NGÀY × camp
+  (`phu_chi`), tự khai camp `tf-*` vào `phu_camp` (prefix `trafficfactory_<tên>`), balance vào nguồn. Creds:
+  `/etc/mos2-phu/trafficfactory.env` (`TF_API_TOKEN`, root 600; gốc mã hoá ở vault platform_accounts #467 `acct get 467 api`).
+  Cron: `15 1-23/2 * * *` hôm nay; `15 0 * * *` với `--hom-qua`. URL đích camp: `?s=trafficfactory_<tên>_{country_iso2}_{conversions_tracking}`
+  (một zone native duy nhất → srcid = nước; `{conversions_tracking}` = click id cho postback ngược). `--raw` in dòng stats đầu (chốt tên cột), `--kho` tự kiểm.
 - `bv-chan-nguon.mjs` — chặn srcid theo dữ liệu lander: ≥50 view mà 0 bấm phòng (từ lúc bỏ cổng 18+
   14/09 20:00Z) → `TARGETING/BLACKLIST` của camp (GET rồi gộp vì POST đè cả danh sách; targeting 1 call/giờ/camp).
   `--kho` = chỉ in. Cron `30 6 * * *`. Bid Automation của Bidvertiser chỉ chặn sau 300 click/nguồn — quá chậm.

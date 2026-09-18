@@ -22,10 +22,12 @@ const UA = 'mos2-phu/1.0';
 const homQua = process.argv.includes('--hom-qua');
 if (!KEY) { console.error('thiếu MOS2_EXT_KEY'); process.exit(1); }
 
-const bao = async (ok, note, chi = [], camp = [], nguon = undefined) => {
+const bao = async (ok, note, chi = [], camp = [], nguon = undefined, camp_dung_xong = []) => {
   const res = await fetch(`${MOS2}/api/phu/ingest`, { method: 'POST', headers: { authorization: `Bearer ${KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ project: PROJECT, chi, camp, nguon, adapter: { key: 'bidvertiser-api', name: 'Bidvertiser API (chi/ngày × camp, balance)', loai: 'cron', lich: '10 1,3,5,7,9,11,13,15,17,19,21,23 * * *', ok, note } }) });
-  console.log(new Date().toISOString(), 'bidvertiser:', res.status, note, await res.text().catch(() => ''));
+    body: JSON.stringify({ project: PROJECT, chi, camp, nguon, camp_dung_xong, adapter: { key: 'bidvertiser-api', name: 'Bidvertiser API (chi/ngày × camp, balance)', loai: 'cron', lich: '10 1,3,5,7,9,11,13,15,17,19,21,23 * * *', ok, note } }) });
+  const txt = await res.text().catch(() => '');
+  console.log(new Date().toISOString(), 'bidvertiser:', res.status, note, txt.slice(0, 300));
+  try { return JSON.parse(txt); } catch { return null; }
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const mmdd = (d) => `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}/${d.getUTCFullYear()}`;
@@ -66,8 +68,20 @@ try {
         const num = (v) => (v && typeof v === 'object' ? Number(v.AMOUNT ?? v.VALUE ?? Object.values(v)[0]) : Number(String(v ?? '').replace(/,/g, ''))) || 0;   // VISITS/REQUESTS về dạng "1,924"
     chi.push({ ngay: iso(ngay), sid_prefix: prefix, chi_usd: num(row.COST), clicks: num(row.VISITS ?? row.CLICKS ?? row.VISITORS) || null, impressions: num(row['BID REQUESTS'] ?? row.BID_REQUESTS ?? row.REQUESTS ?? row.IMPRESSIONS) || null, nguon_du_lieu: 'api:bidvertiser' });
   }
-  await bao(true, `balance $${balance} · ${iso(ngay)} ${chi.map((c) => `${c.sid_prefix.slice(12)} $${c.chi_usd}/${c.clicks ?? 0}v`).join(' · ')} · ${tt.join(' · ')}`, chi, camp,
+  const kq = await bao(true, `balance $${balance} · ${iso(ngay)} ${chi.map((c) => `${c.sid_prefix.slice(12)} $${c.chi_usd}/${c.clicks ?? 0}v`).join(' · ')} · ${tt.join(' · ')}`, chi, camp,
     { key: 'bidvertiser', trang_thai: 'hoat_dong', macro_click: '{BV_CLICKID}', so_du: Number(balance), ghi_chu: `Balance $${balance} (${new Date().toISOString().slice(0, 16)}Z). Tài khoản 297697@gmail.com. sid = bidvertiser_<tên camp bỏ bv->_{BV_SRCID}; camp Bidvertiser đặt tên bv-<tên>. Không có postback theo click → blacklist srcid tay/API. Plan: adfond docs/plan-bidvertiser-live.md` });
+  // Phán xét DỪNG (trần $/click, hết tiền thử, quá hạn…) → POST /{cid}/STATUS/ {STATUS:'pause'} ngay, không đợi người đọc
+  const dung = (Array.isArray(kq?.camp_dung) ? kq.camp_dung : []).filter((d) => String(d.sid_prefix).startsWith('bidvertiser_'));
+  if (dung.length) {
+    const xong = [];
+    for (const d of dung) {
+      const c = cua.find((x) => 'bidvertiser_' + x.NAME.slice(3) === d.sid_prefix);
+      const r = c ? await call(`${c.ID}/STATUS/`, { STATUS: 'pause' }) : null;
+      const st = r?.BDV_API?.RESULTS?.CAMPAIGNS?.[0]?.STATUS?.find((s) => s.TYPE === 'NEW')?.NOTE;
+      xong.push({ sid_prefix: d.sid_prefix, ok: st === 'PAUSED', ghi_chu: `máy pause: ${d.ly_do}${st === 'PAUSED' ? '' : ' · API ' + JSON.stringify(r ?? 'không thấy camp').slice(0, 120)}` });
+    }
+    await bao(true, `pause camp: ${xong.filter((x) => x.ok).length}/${xong.length} (${dung.map((d) => d.sid_prefix.slice(12)).join(',')})`, [], [], undefined, xong);
+  }
 } catch (e) {
   await bao(false, String(e.message).slice(0, 300));
   process.exit(1);

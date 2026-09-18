@@ -150,7 +150,7 @@ try {
     await bao(true, `chặn zone: ${xong.filter((x) => x.ok).length}/${xong.length} (${xong.map((x) => x.zone_id + (x.ok ? '' : '✗')).join(',')})`, [], [], undefined, [], xong);
   }
   // Phán xét DỪNG cấp camp (P2 hit/click, trần $/click, hết tiền thử…) → pause ngay qua API, không đợi người đọc
-  const dung = Array.isArray(kq?.camp_dung) ? kq.camp_dung : [];
+  const dung = (Array.isArray(kq?.camp_dung) ? kq.camp_dung : []).filter((d) => String(d.sid_prefix).startsWith(KEY_MANG + '_')); // camp mạng khác để adapter của nó lo
   if (dung.length) {
     const theoPrefix = new Map([...theoId].map(([id, p]) => [p, id]));
     const ids = dung.map((d) => theoPrefix.get(d.sid_prefix)).filter(Boolean).map(Number);

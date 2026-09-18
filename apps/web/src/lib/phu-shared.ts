@@ -10,7 +10,7 @@ export type PhuNguon = {
   id: number; key: string; name: string; loai: string; trangThai: string; macroClick: string | null;
   macroChi: string | null; postbackToken: string | null; accountId: number | null; napUsd: number; ghiChu: string | null;
 };
-export type PhuTieuChi = { chi_toi_da?: number; click_toi_thieu?: number; signup_1k?: number; gia_click_toi_da?: number };
+export type PhuTieuChi = { chi_toi_da?: number; click_toi_thieu?: number; signup_1k?: number; gia_click_toi_da?: number; thu_chi?: number };
 export type PhuCamp = {
   id: number; nguonKey: string; ten: string; sidPrefix: string; lander: string | null; target: Record<string, unknown>;
   nganSachNgay: number | null; trangThai: string; batDau: string | null; ghiChu: string | null;
@@ -56,7 +56,8 @@ export function sidPrefix(sid: string | null | undefined): string {
 
 /** Phán xét một camp từ tiêu chí + số cộng dồn. Một chỗ tính, trang và cron cùng gọi.
  *  cho      = chưa đủ click để kết luận, còn tiền + còn hạn
- *  mo_rong  = đạt signup/1k click mục tiêu → mở bậc kế
+ *  mo_rong  = đạt signup/1k click mục tiêu → mở bậc kế; HOẶC thu/chi ≥ thu_chi khi đã chi ≥ nửa $ thử
+ *             (18/09/2026: camp PPS/revshare qua postback CR chỉ về `sale` = revenue, không có signup → phán bằng tiền)
  *  dung     = hết ngân sách thử hoặc quá hạn mà chưa đạt, HOẶC giá click ra offer vượt trần sau ≥100 click
  *             (16/09/2026: 363 click/$37 trên revshare = $0,10/click, trần kinh tế ~$0,03 — signup có về cũng không cứu
  *             được giá click, nên phán ngay bằng giá, không đợi đủ click)
@@ -64,8 +65,9 @@ export function sidPrefix(sid: string | null | undefined): string {
  *  nghi     = camp không chạy */
 export function phanXet(c: PhuCamp, today = new Date()): { ma: 'cho' | 'mo_rong' | 'dung' | 'di_tiep' | 'nghi'; lyDo: string; xemLai: string | null } {
   const t = c.tieuChi || {};
-  const chiMax = Number(t.chi_toi_da) || 0, clickMin = Number(t.click_toi_thieu) || 0, muc = Number(t.signup_1k) || 0, giaMax = Number(t.gia_click_toi_da) || 0;
-  const { click, signup, chi } = c.tong;
+  const chiMax = Number(t.chi_toi_da) || 0, clickMin = Number(t.click_toi_thieu) || 0, muc = Number(t.signup_1k) || 0, giaMax = Number(t.gia_click_toi_da) || 0, thuChi = Number(t.thu_chi) || 0;
+  const { click, signup, chi, revenue } = c.tong;
+  const roi = chi ? revenue / chi : 0;
   const per1k = click ? (signup / click) * 1000 : 0;
   const giaClick = click ? chi / click : 0;
   const hom = today.toISOString().slice(0, 10);
@@ -80,9 +82,10 @@ export function phanXet(c: PhuCamp, today = new Date()): { ma: 'cho' | 'mo_rong'
     xemLai = new Date(bd.getTime() + k * n * 86400_000).toISOString().slice(0, 10);
   }
   if (c.trangThai !== 'chay') return { ma: 'nghi', lyDo: c.trangThai, xemLai };
+  if (thuChi > 0 && chi >= Math.max(5, chiMax / 2) && roi >= thuChi) return { ma: 'mo_rong', lyDo: `thu/chi ${roi.toFixed(2)} ≥ ${thuChi} ($${revenue.toFixed(2)} / $${chi.toFixed(2)})`, xemLai };
   if (muc > 0 && per1k >= muc && click >= Math.max(200, clickMin / 4)) return { ma: 'mo_rong', lyDo: `${per1k.toFixed(1)} signup/1k ≥ mục tiêu ${muc} (${signup}/${click} click)`, xemLai };
   if (giaMax > 0 && click >= 100 && giaClick > giaMax) return { ma: 'dung', lyDo: `$${giaClick.toFixed(3)}/click > trần $${giaMax} (${click} click, $${chi.toFixed(2)})`, xemLai };
-  if (hetTien || quaHan) return { ma: 'dung', lyDo: `${hetTien ? `hết $${chiMax} thử` : `quá hạn ${c.ketThuc?.slice(0, 10)}`} · ${signup} signup / ${click} click` + (muc ? ` (< ${muc}/1k)` : ''), xemLai };
+  if (hetTien || quaHan) return { ma: 'dung', lyDo: `${hetTien ? `hết $${chiMax} thử` : `quá hạn ${c.ketThuc?.slice(0, 10)}`} · ${signup} signup / ${click} click` + (muc ? ` (< ${muc}/1k)` : '') + (thuChi ? ` · thu/chi ${roi.toFixed(2)} < ${thuChi}` : ''), xemLai };
   if (clickMin > 0 && click < clickMin) return { ma: 'cho', lyDo: `${click}/${clickMin} click · $${chi.toFixed(2)}${chiMax ? `/$${chiMax}` : ''}`, xemLai };
   return { ma: 'di_tiep', lyDo: `${per1k.toFixed(1)} signup/1k · $${chi.toFixed(2)}${chiMax ? `/$${chiMax}` : ''}` + (c.ketThuc ? ` · tới ${c.ketThuc.slice(0, 10)}` : ''), xemLai };
 }

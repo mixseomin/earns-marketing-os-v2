@@ -154,7 +154,7 @@ try {
   if (dung.length) {
     const theoPrefix = new Map([...theoId].map(([id, p]) => [p, id]));
     const ids = dung.map((d) => theoPrefix.get(d.sid_prefix)).filter(Boolean).map(Number);
-    const r = ids.length ? await fetch(`${API}/campaigns/pause`, { method: 'POST', headers: H, body: JSON.stringify({ campaign_ids: ids }) }) : { ok: false, status: 0, text: async () => 'không map được id' };
+    const r = ids.length ? await fetch(`${API}/campaigns/pause`, { method: 'PUT', headers: H, body: JSON.stringify({ campaign_ids: ids }) }) : { ok: false, status: 0, text: async () => 'không map được id' };
     const t = await r.text();
     const xong = dung.map((d) => ({ sid_prefix: d.sid_prefix, ok: r.ok && theoPrefix.has(d.sid_prefix), ghi_chu: `máy pause: ${d.ly_do}${r.ok ? '' : ' · API ' + r.status + ' ' + t.slice(0, 120)}` }));
     await bao(true, `pause camp: ${xong.filter((x) => x.ok).length}/${xong.length} (${dung.map((d) => d.sid_prefix.slice(15)).join(',')})`, [], [], undefined, [], [], xong);

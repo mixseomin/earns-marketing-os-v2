@@ -9,7 +9,9 @@
 // API (docs.exads.com, đo 17/09/2026 trên api.trafficfactory.com):
 //   POST /v2/login {api_token}                         → {type:"Bearer", token, expires_in:43200}
 //   GET  /v2/user                                      → result.balance, result.status.advertiser.description
-//   GET  /v2/campaigns                                 → result[] (id, name, status…)
+//   GET  /v2/campaigns                                 → result = {"<id>": {...}} (OBJECT theo id, không phải mảng — đo 18/09);
+//        status số (1 = active), chữ nằm ở calculated_status.status ("Pending Approval" | "Rejected" | "Running"…);
+//        price/max_daily_budget/total_budget_limit tính bằng CENT ($0,002 → 0.2; $20 → 2000).
 //   GET  /v2/statistics/a/date?date_from&date_to&additional_group_by=campaign → result[] theo ngày × camp
 // Tên cột của dòng stats chưa thấy (tài khoản chưa có camp) → map có dự phòng (cost|amount|spend…) và
 // `--raw` in dòng đầu để chốt tên cột lần chạy thật đầu tiên. Token API: vault MOS2 platform_accounts #467
@@ -42,16 +44,19 @@ export const dongChi = (r, ngayMacDinh) => ({
 /** `tf-<nhãn>` → `trafficfactory_<nhãn>`; tên không theo khuôn → null (không vào sổ, đúng luật Bidvertiser). */
 export const prefixCua = (ten) => (/^tf-/i.test(String(ten ?? '')) ? 'trafficfactory_' + String(ten).slice(3) : null);
 export const trangThai = (s) => {
-  const t = String(typeof s === 'object' && s ? s.description ?? s.name ?? '' : s ?? '').toLowerCase();
+  const t = String(typeof s === 'object' && s ? s.status ?? s.description ?? s.name ?? '' : s ?? '').toLowerCase();
   return /active|running/.test(t) ? 'chay' : /pause/.test(t) ? 'tam_dung' : /reject|declin|delet|end/.test(t) ? 'ket_thuc' : 'nhap';
 };
+/** result của /campaigns: object theo id (đo 18/09) hoặc mảng — nhận cả hai. */
+export const danhSach = (r) => (Array.isArray(r) ? r : r && typeof r === 'object' ? Object.values(r) : []);
 
 if (KHO) {
   // ponytail: tự kiểm map, chạy được không cần mạng
   const d = dongChi({ date: '2026-09-17', campaign_id: 7, campaign_name: 'tf-native-cam-t1', cost: '1.2345', clicks: '12', impressions: '3,400' }, '2026-01-01');
   console.assert(d.chi_usd === 1.2345 && d.clicks === 12 && d.impressions === 3400 && d.campName === 'tf-native-cam-t1', d);
   console.assert(prefixCua('tf-native-cam-t1') === 'trafficfactory_native-cam-t1' && prefixCua('test') === null);
-  console.assert(trangThai({ description: 'Active' }) === 'chay' && trangThai('paused') === 'tam_dung');
+  console.assert(trangThai({ description: 'Active' }) === 'chay' && trangThai('paused') === 'tam_dung' && trangThai({ status: 'Rejected' }) === 'ket_thuc' && trangThai({ status: 'Pending Approval' }) === 'nhap');
+  console.assert(danhSach({ 1: { id: 1 }, 2: { id: 2 } }).length === 2 && danhSach([{ id: 3 }]).length === 1 && danhSach(null).length === 0);
   console.log('kho: map ok');
   process.exit(0);
 }
@@ -77,16 +82,17 @@ try {
   const u = (await get('/user')).result ?? {};
   const balance = Number(u.balance ?? 0).toFixed(2);
   const tt = [`tài khoản ${u.status?.advertiser?.description ?? '?'}`];
-  const camps = (await get('/campaigns?limit=200')).result ?? [];
+  const camps = danhSach((await get('/campaigns?limit=200')).result);
   const ngay = new Date(); if (homQua) ngay.setUTCDate(ngay.getUTCDate() - 1);
   const camp = []; const theoId = new Map();
   for (const c of camps) {
     const prefix = prefixCua(c.name);
     if (!prefix) { tt.push(`bỏ qua camp không theo khuôn tf-*: ${c.name}`); continue; }
     theoId.set(String(c.id), prefix);
-    camp.push({ nguon_key: 'trafficfactory', ten: `${c.name} #${c.id}`, sid_prefix: prefix, lander: c.url ?? 'https://live.chatwhenbored.com/',
-      target: { tf_id: c.id, format: c.format ?? c.ad_format, pricing: c.pricing_model, price: c.price ?? c.bid, countries: c.targeting?.countries ?? c.countries },
-      ngan_sach_ngay: Number(c.daily_budget ?? c.daily_limit) || undefined, trang_thai: trangThai(c.status) });
+    // cent → $; trạng thái chữ ở calculated_status (status số 1 chỉ là "bật", TF vẫn có thể đang giữ ở Pending/Rejected)
+    camp.push({ nguon_key: 'trafficfactory', ten: `${c.name} #${c.id} · ${c.calculated_status?.status ?? ''}`.trim(), sid_prefix: prefix, lander: c.url ?? 'https://live.chatwhenbored.com/',
+      target: { tf_id: c.id, format: c.advertiser_ad_type_label ?? c.format, pricing: c.pricing_model_name ?? c.pricing_model, price_usd: Number(c.price ?? 0) / 100, tf_status: c.calculated_status?.status, reject: c.rejecting_reason_details?.custom_rejecting_reason, variations: c.variations_counts?.number_of_variations, lang: c.variation_language },
+      ngan_sach_ngay: Number(c.max_daily_budget ?? c.daily_budget ?? 0) / 100 || undefined, trang_thai: trangThai(c.calculated_status ?? c.status) });
   }
   const st = (await get(`/statistics/a/date?date_from=${iso(ngay)}&date_to=${iso(ngay)}&additional_group_by=campaign`)).result ?? [];
   if (RAW && st[0]) console.log('raw:', JSON.stringify(st[0]).slice(0, 600));

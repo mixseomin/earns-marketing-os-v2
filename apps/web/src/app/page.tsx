@@ -10,6 +10,7 @@ import { HomeTabs } from '@/components/home-tabs';
 import { HOME_TABS as TABS, HOME_TAB_MAC_DINH, HOME_TABS_COOKIE, type HomeTab } from '@/lib/home-tabs';
 import { OrdersBlotter } from '@/components/orders-blotter';
 import { PhuCanChuY, PhuView } from '@/components/phu-view';
+import { LuatView } from '@/components/luat-view';
 import { phuDo } from '@/lib/phu-shared';
 import { SeoSitesPanel } from '@/components/seo-sites-panel';
 import { ProductsPanel } from '@/components/products-panel';
@@ -74,6 +75,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               { key: 'phu', label: 'Nền tảng phủ', badge: phu?.platforms.length || undefined },
               { key: 'nguon', label: 'Nguồn traffic', badge: phu?.nguon.filter((x) => x.trangThai === 'hoat_dong').length || undefined },
               { key: 'hatang', label: 'Lander & adapter', badge: hong ? <span style={{ color: 'var(--danger)' }}>{hong} đỏ</span> : undefined },
+              { key: 'luat', label: 'Luật camp', title: 'Bộ luật điều hành camp (be.adfond luat-camp.ts): tham số + luật theo loại camp / chiến lược / camp' },
               { key: 'lenh', label: 'Lệnh MT5', title: 'Live Orders — forward-test mọi strategy (strategy-lab)' },
               { key: 'doanhthu', label: 'Doanh thu', title: 'Lịch tiền mọi nguồn · affiliate · Awin' },
               { key: 'seo', label: 'SEO & sản phẩm', title: 'GSC · Gumroad · SteamSolo' },
@@ -112,6 +114,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <DeliverabilityCard />
           </>}
 
+          {tab === 'luat' && <LuatView />}
           {tab === 'lenh' && <Lenh />}
           {tab === 'duan' && <DuAn projects={projects} />}
         </div>

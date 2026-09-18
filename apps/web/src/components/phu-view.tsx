@@ -47,10 +47,15 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
   const [suaPl, setSuaPl] = useState<PhuPlatform | null>(null);
   const [suaNg, setSuaNg] = useState<PhuNguon | 'moi' | null>(null);
   const [suaCamp, setSuaCamp] = useState<PhuCamp | 'moi' | null>(null);
+  // Camp đã kết thúc (TF khoá tài khoản 18/09: 5 dòng chết đứng giữa bảng) gấp xuống dưới, bấm mới hiện — YDNI.
+  const [hienKetThuc, setHienKetThuc] = useState(false);
   const [nhapChi, setNhapChi] = useState(false);
   const [soiCamp, setSoiCamp] = useState<PhuCamp | null>(null);
   const [nhatKy, setNhatKy] = useState<PhuCamp | null>(null);
   const d = data;
+  const THU_TU: Record<string, number> = { chay: 0, tam_dung: 1, nhap: 2, ket_thuc: 3 };
+  const campHien = [...d.camp].sort((a, b) => (THU_TU[a.trangThai] ?? 9) - (THU_TU[b.trangThai] ?? 9)).filter((c) => hienKetThuc || c.trangThai !== 'ket_thuc');
+  const soKetThuc = d.camp.filter((c) => c.trangThai === 'ket_thuc').length;
   const dem = (tt: string) => d.platforms.filter((p) => p.trangThai === tt).length;
   const hom = new Date().toISOString().slice(0, 10);
   const pheuCua = (prefix: string) => d.pheu.find((x) => x.sidPrefix === prefix);
@@ -66,7 +71,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
     <div style={{ display: 'grid', gap: 14 }}>
       {d.loi && <div style={{ color: 'var(--danger)', fontSize: 12 }}>{d.loi}</div>}
 
-      {tab === 'camp' && <Panel title={`Campaign (${d.camp.length})`} subtitle={`phễu ${d.days} ngày · phán xét theo cộng dồn`} style={{ marginBottom: 0 }}
+      {tab === 'camp' && <Panel title={`Campaign (${d.camp.length - soKetThuc})`} subtitle={`phễu ${d.days} ngày · phán xét theo cộng dồn`} style={{ marginBottom: 0 }}
         actions={<span style={{ display: 'flex', gap: 6 }}><button style={btn} onClick={() => setNhapChi(true)}>+ nhập chi</button><button style={btn} onClick={() => setSuaCamp('moi')}>+ campaign</button></span>}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -76,7 +81,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
               <th style={head}>Phán xét</th><th style={head} className={mh}>Soi</th>
             </tr></thead>
             <tbody>
-              {d.camp.map((c) => {
+              {campHien.map((c) => {
                 const px = phanXet(c);
                 const f = pheuCua(c.sidPrefix);
                 const t = c.tieuChi;
@@ -104,6 +109,13 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                   </tr>
                 );
               })}
+              {soKetThuc > 0 && (
+                <tr>
+                  <td colSpan={12} style={{ ...cell, color: 'var(--fg-3)', fontSize: 11 }}>
+                    <button style={{ ...btn, fontSize: 11 }} onClick={() => setHienKetThuc((v) => !v)}>{hienKetThuc ? 'ẩn' : 'hiện'} {soKetThuc} camp đã kết thúc</button>
+                  </td>
+                </tr>
+              )}
               {khac && (
                 <tr>
                   <td style={cell}><span style={{ color: 'var(--warn)' }}>(khác)</span><div style={{ color: 'var(--fg-3)', fontSize: 10 }}>{khac.soPrefix} sid_prefix không khớp camp nào — <button style={{ ...btn, padding: '0 6px', fontSize: 10 }} onClick={() => setSuaCamp('moi')}>đăng ký camp</button> hoặc mở camp → Nâng cao → Alias</div></td>

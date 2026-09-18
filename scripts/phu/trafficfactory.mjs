@@ -101,7 +101,8 @@ try {
     // cent → $; trạng thái chữ ở calculated_status (status số 1 chỉ là "bật", TF vẫn có thể đang giữ ở Pending/Rejected)
     camp.push({ nguon_key: KEY_MANG, ten: `${c.name} #${c.id} · ${c.calculated_status?.status ?? ''}`.trim(), sid_prefix: prefix, lander: c.url ?? 'https://live.chatwhenbored.com/',
       target: { tf_id: c.id, format: c.advertiser_ad_type_label ?? c.format, pricing: c.pricing_model_name ?? c.pricing_model, price_usd: Number(c.price ?? 0) / 100, tf_status: c.calculated_status?.status, reject: c.rejecting_reason_details?.custom_rejecting_reason, variations: c.variations_counts?.number_of_variations, lang: c.variation_language },
-      ngan_sach_ngay: Number(c.max_daily_budget ?? c.daily_budget ?? 0) / 100 || undefined, trang_thai: trangThai(c.calculated_status ?? c.status) });
+      // status 0 = mình bấm pause (API /campaigns/pause) — calculated_status vẫn nói "No Funds"/"Pending", chữ đó không phải trạng thái của mình
+      ngan_sach_ngay: Number(c.max_daily_budget ?? c.daily_budget ?? 0) / 100 || undefined, trang_thai: Number(c.status) === 0 ? 'tam_dung' : trangThai(c.calculated_status ?? c.status) });
   }
   const st = (await get(`/statistics/a/date?date_from=${iso(ngay)}&date_to=${iso(ngay)}&additional_group_by=campaign`)).result ?? [];
   if (RAW && st[0]) console.log('raw:', JSON.stringify(st[0]).slice(0, 600));

@@ -8,7 +8,7 @@
 //   env: MOS2_EXT_KEY · DIRECTUS_URL · DIRECTUS_TOKEN · PHU_PROJECT
 const MOS2 = process.env.MOS2_URL || 'http://127.0.0.1:3821';
 const KEY = process.env.MOS2_EXT_KEY, DU = process.env.DIRECTUS_URL, DT = process.env.DIRECTUS_TOKEN;
-const PROJECT = process.env.PHU_PROJECT || 'adfond';
+const PROJECT = process.env.PHU_PROJECT || 'chatwhenbored';
 const ACC = process.env.PHU_CB_ACCOUNT || '29a54138-b029-46f9-945c-c88f94d5c6bc';
 if (!KEY || !DU || !DT) { console.error('thiếu MOS2_EXT_KEY/DIRECTUS_URL/DIRECTUS_TOKEN'); process.exit(1); }
 

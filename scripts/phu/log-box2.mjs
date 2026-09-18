@@ -12,7 +12,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 const BOX2 = 'root@37.27.241.222';
 const MOS2 = process.env.MOS2_URL || 'http://127.0.0.1:3821';
 const KEY = process.env.MOS2_EXT_KEY;
-const PROJECT = process.env.PHU_PROJECT || 'adfond';
+const PROJECT = process.env.PHU_PROJECT || 'chatwhenbored';
 const STATE_DIR = '/var/lib/mos2-phu';
 const STATE = `${STATE_DIR}/log-box2.json`;
 const LOGS = ['chatwhenbored', 'chatwhenbored-live', 'chatwhenbored-ai'];

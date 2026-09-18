@@ -13,7 +13,7 @@ import postgres from 'postgres';
 
 const MOS2 = process.env.MOS2_URL || 'http://127.0.0.1:3821';
 const KEY = process.env.MOS2_EXT_KEY;
-const PROJECT = process.env.PHU_PROJECT || 'adfond';
+const PROJECT = process.env.PHU_PROJECT || 'chatwhenbored';
 const API = 'https://my.bidvertiser.com/bdv/bidvertiser/api/adv/';
 const TU = '2026-09-14 20:00+00';   // bỏ cổng 18+ — trước đó 96% không qua cổng nên 0 click không nói lên gì
 const NGUONG_VIEW = 50;             // p(click)≈5% → 0/50 chỉ xảy ra ~8% do ngẫu nhiên

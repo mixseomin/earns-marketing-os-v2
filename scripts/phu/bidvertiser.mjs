@@ -15,7 +15,7 @@ import { readFileSync } from 'node:fs';
 
 const MOS2 = process.env.MOS2_URL || 'http://127.0.0.1:3821';
 const KEY = process.env.MOS2_EXT_KEY;
-const PROJECT = process.env.PHU_PROJECT || 'adfond';
+const PROJECT = process.env.PHU_PROJECT || 'chatwhenbored';
 const CREDS = '/etc/mos2-phu/bidvertiser.env';
 const API = 'https://my.bidvertiser.com/bdv/bidvertiser/api/adv/';
 const UA = 'mos2-phu/1.0';
@@ -67,7 +67,7 @@ try {
     chi.push({ ngay: iso(ngay), sid_prefix: prefix, chi_usd: num(row.COST), clicks: num(row.VISITS ?? row.CLICKS ?? row.VISITORS) || null, impressions: num(row['BID REQUESTS'] ?? row.BID_REQUESTS ?? row.REQUESTS ?? row.IMPRESSIONS) || null, nguon_du_lieu: 'api:bidvertiser' });
   }
   await bao(true, `balance $${balance} · ${iso(ngay)} ${chi.map((c) => `${c.sid_prefix.slice(12)} $${c.chi_usd}/${c.clicks ?? 0}v`).join(' · ')} · ${tt.join(' · ')}`, chi, camp,
-    { key: 'bidvertiser', trang_thai: 'hoat_dong', macro_click: '{BV_CLICKID}', so_du: Number(balance), ghi_chu: `Balance $${balance} (${new Date().toISOString().slice(0, 16)}Z). Tài khoản 297697 soccerstreamstop@gmail.com. sid = bidvertiser_<tên camp bỏ bv->_{BV_SRCID}; camp Bidvertiser đặt tên bv-<tên>. Không có postback theo click → blacklist srcid tay/API. Plan: adfond docs/plan-bidvertiser-live.md` });
+    { key: 'bidvertiser', trang_thai: 'hoat_dong', macro_click: '{BV_CLICKID}', so_du: Number(balance), ghi_chu: `Balance $${balance} (${new Date().toISOString().slice(0, 16)}Z). Tài khoản 297697@gmail.com. sid = bidvertiser_<tên camp bỏ bv->_{BV_SRCID}; camp Bidvertiser đặt tên bv-<tên>. Không có postback theo click → blacklist srcid tay/API. Plan: adfond docs/plan-bidvertiser-live.md` });
 } catch (e) {
   await bao(false, String(e.message).slice(0, 300));
   process.exit(1);

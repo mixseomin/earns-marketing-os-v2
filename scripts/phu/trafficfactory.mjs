@@ -24,7 +24,7 @@ import { readFileSync } from 'node:fs';
 
 const MOS2 = process.env.MOS2_URL || 'http://127.0.0.1:3821';
 const KEY = process.env.MOS2_EXT_KEY;
-const PROJECT = process.env.PHU_PROJECT || 'adfond';
+const PROJECT = process.env.PHU_PROJECT || 'chatwhenbored';
 const MANG = {
   trafficfactory: { creds: '/etc/mos2-phu/trafficfactory.env', envKey: 'TF_API_TOKEN', api: 'https://api.trafficfactory.com/v2', tienTo: 'tf-', name: 'TrafficFactory (XVideos native)', loai: 'native', vault: '#467', adapter: 'trafficfactory-api' },
   exoclick:       { creds: '/etc/mos2-phu/exoclick.env',       envKey: 'EXO_API_TOKEN', api: 'https://api.exoclick.com/v2',       tienTo: 'exo-', name: 'ExoClick (RON pop/native)', loai: 'pop', vault: '#469', adapter: 'exoclick-api' },

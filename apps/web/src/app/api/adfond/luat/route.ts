@@ -11,7 +11,7 @@ export const runtime = 'nodejs';
 const GOC = () => process.env.ADFOND_EXT_URL || 'http://127.0.0.1:3832';
 const dau = () => ({ Authorization: `Bearer ${process.env.ADFOND_EXT_KEY ?? ''}` });
 
-async function chuyen(method: 'GET' | 'PUT' | 'DELETE', qs: string, body?: unknown) {
+async function chuyen(method: 'GET' | 'PUT' | 'POST' | 'DELETE', qs: string, body?: unknown) {
   const r = await fetch(`${GOC()}/api/ext/luat${qs}`, {
     method, headers: { ...dau(), 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -28,7 +28,7 @@ export async function GET(req: Request) {
 
 // Sửa luật = đổi cách máy tiêu tiền → admin. Chặn ở đây vì đây là điểm thắt duy nhất cầm
 // khoá adfond (cửa ext bên kia không biết vai trò MOS2).
-async function ghi(req: Request, method: 'PUT' | 'DELETE') {
+async function ghi(req: Request, method: 'PUT' | 'POST' | 'DELETE') {
   const me = await getCurrentUser();
   if (!me) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   if (me.role !== 'admin') return NextResponse.json({ error: 'Sửa bộ luật là quyền admin.' }, { status: 403 });
@@ -37,4 +37,5 @@ async function ghi(req: Request, method: 'PUT' | 'DELETE') {
   return chuyen(method, '', { ...b, nguoi: me.displayName || me.name || me.email });
 }
 export async function PUT(req: Request) { return ghi(req, 'PUT'); }
+export async function POST(req: Request) { return ghi(req, 'POST'); }
 export async function DELETE(req: Request) { return ghi(req, 'DELETE'); }

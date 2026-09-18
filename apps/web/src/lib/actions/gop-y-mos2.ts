@@ -44,6 +44,7 @@ export async function guiGopYMos2(input: {
   const goc: TinTraoDoi = { nguoi: me.email, noiDung: noiDung.slice(0, 4000), xuLy: null, luc: new Date().toISOString(), anh, trang: trang || undefined };
   const pp = {
     source_url: trang, source_platform: 'feedback', draft,
+    loai: input.loai === 'cau_hoi' ? 'cau_hoi' : 'loi',   // tab "Của tôi" in nhãn loại từ đây, không đoán lại từ tiêu đề
     trao_doi: [goc],
   };
 
@@ -56,6 +57,56 @@ export async function guiGopYMos2(input: {
   await setBacklinkSite(id, 'mos2', 'pending', '');
   await setBacklinkSchedule(id, 'mos2', homNayVN());
   return { ok: true, id };
+}
+
+/** Một dòng trong tab "Của tôi" của hòm góp ý — cùng khuôn `GopYCuaToi` bên adfond, chỉ khác
+ *  là card CHÍNH LÀ bản ghi nên `id` = số card (số duy nhất người dùng gọi tên). */
+export type GopYCuaToi = {
+  id: number; loai: string; noiDung: string; trang: string;
+  /** site_status['mos2'] — pending (chờ xử) · claimed (đang làm) · review (chờ duyệt) · completed (xong) · dropped (bỏ). */
+  trangThai: string;
+  luc: string; capNhat: string;
+  /** Số tin trao đổi SAU tin gốc. */
+  soTin: number;
+  /** Tin mới nhất trong luồng (không tính tin gốc) — ai nói, nói gì, lúc nào. */
+  tinCuoi: { nguoi: string; noiDung: string; luc: string; xuLy: string | null } | null;
+};
+
+/** Góp ý CỦA TÔI: mọi card còn mở + card đã đóng trong 7 ngày (lọc HIỂN THỊ, không xoá — cùng
+ *  lằn ranh adfond). Người gửi = tin gốc của luồng (`trao_doi[0].nguoi`), vì card không có cột
+ *  người tạo. Xếp theo đúng cột màn hình in ra (cập nhật). */
+export async function dsGopYCuaToi(): Promise<GopYCuaToi[]> {
+  const me = await getCurrentUser();
+  if (!me) return [];
+  const db = getDb();
+  if (!db) return [];
+  const r = await db.execute(sql`
+    SELECT id, created_at, updated_at,
+           COALESCE(prep_payload->'site_status'->>'mos2', status) AS tt,
+           COALESCE(prep_payload->>'loai', CASE WHEN title LIKE 'Hỏi: %' THEN 'cau_hoi' ELSE 'loi' END) AS loai,
+           COALESCE(prep_payload->>'source_url', '') AS trang,
+           COALESCE(prep_payload->'trao_doi', '[]'::jsonb) AS td
+    FROM human_tasks
+    WHERE project_id = 'mos2' AND prep_payload->>'source_platform' = 'feedback'
+      AND lower(prep_payload->'trao_doi'->0->>'nguoi') = lower(${me.email})
+      AND (COALESCE(prep_payload->'site_status'->>'mos2', status) IN ('pending','claimed','submitted','review','broken')
+           OR updated_at >= now() - interval '7 days')
+    ORDER BY updated_at DESC NULLS LAST, id DESC
+    LIMIT 200`);
+  type Row = { id: number; created_at: string | Date; updated_at: string | Date | null; tt: string; loai: string; trang: string; td: unknown };
+  return (r as unknown as Row[]).map((x) => {
+    const td = (Array.isArray(x.td) ? x.td : []) as TinTraoDoi[];
+    const goc = td[0];
+    const cuoi = td.length > 1 ? td[td.length - 1]! : null;
+    return {
+      id: Number(x.id), loai: String(x.loai || 'loi'),
+      noiDung: String(goc?.noiDung ?? ''), trang: String(x.trang || goc?.trang || ''),
+      trangThai: String(x.tt || 'pending'),
+      luc: new Date(x.created_at).toISOString(), capNhat: new Date(x.updated_at ?? x.created_at).toISOString(),
+      soTin: Math.max(0, td.length - 1),
+      tinCuoi: cuoi ? { nguoi: cuoi.nguoi, noiDung: cuoi.noiDung, luc: cuoi.luc, xuLy: cuoi.xuLy } : null,
+    };
+  });
 }
 
 /** Luồng trao đổi của một card góp ý MOS2 (prep_payload.trao_doi). */

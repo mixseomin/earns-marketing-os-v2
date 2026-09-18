@@ -78,9 +78,9 @@ if (KHO) {
 }
 if (!KEY) { console.error('thiếu MOS2_EXT_KEY'); process.exit(1); }
 
-const bao = async (ok, note, chi = [], camp = [], nguon = undefined, zone = [], zone_chan_xong = []) => {
+const bao = async (ok, note, chi = [], camp = [], nguon = undefined, zone = [], zone_chan_xong = [], camp_dung_xong = []) => {
   const res = await fetch(`${MOS2}/api/phu/ingest`, { method: 'POST', headers: { authorization: `Bearer ${KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ project: PROJECT, chi, camp, nguon, zone, zone_chan_xong, adapter: { key: M.adapter, name: `${M.name.split(' ')[0]} API v2 EXADS (chi/ngày × camp, balance, zone)`, loai: 'cron', lich: '2h + chốt hôm qua 00:15', ok, note } }) });
+    body: JSON.stringify({ project: PROJECT, chi, camp, nguon, zone, zone_chan_xong, camp_dung_xong, adapter: { key: M.adapter, name: `${M.name.split(' ')[0]} API v2 EXADS (chi/ngày × camp, balance, zone)`, loai: 'cron', lich: '2h + chốt hôm qua 00:15', ok, note } }) });
   const txt = await res.text().catch(() => '');
   console.log(new Date().toISOString(), KEY_MANG + ':', res.status, note, txt.slice(0, 300));
   try { return JSON.parse(txt); } catch { return null; }
@@ -148,6 +148,16 @@ try {
       xong.push({ sid_prefix: z.sid_prefix, zone_id: z.zone_id, ok: r.ok, ghi_chu: `${z.luat}: ${z.ly_do}${r.ok ? '' : ' · API ' + r.status + ' ' + t.slice(0, 120)}` });
     }
     await bao(true, `chặn zone: ${xong.filter((x) => x.ok).length}/${xong.length} (${xong.map((x) => x.zone_id + (x.ok ? '' : '✗')).join(',')})`, [], [], undefined, [], xong);
+  }
+  // Phán xét DỪNG cấp camp (P2 hit/click, trần $/click, hết tiền thử…) → pause ngay qua API, không đợi người đọc
+  const dung = Array.isArray(kq?.camp_dung) ? kq.camp_dung : [];
+  if (dung.length) {
+    const theoPrefix = new Map([...theoId].map(([id, p]) => [p, id]));
+    const ids = dung.map((d) => theoPrefix.get(d.sid_prefix)).filter(Boolean).map(Number);
+    const r = ids.length ? await fetch(`${API}/campaigns/pause`, { method: 'POST', headers: H, body: JSON.stringify({ campaign_ids: ids }) }) : { ok: false, status: 0, text: async () => 'không map được id' };
+    const t = await r.text();
+    const xong = dung.map((d) => ({ sid_prefix: d.sid_prefix, ok: r.ok && theoPrefix.has(d.sid_prefix), ghi_chu: `máy pause: ${d.ly_do}${r.ok ? '' : ' · API ' + r.status + ' ' + t.slice(0, 120)}` }));
+    await bao(true, `pause camp: ${xong.filter((x) => x.ok).length}/${xong.length} (${dung.map((d) => d.sid_prefix.slice(15)).join(',')})`, [], [], undefined, [], [], xong);
   }
 } catch (e) {
   await bao(false, String(e.message).slice(0, 300));

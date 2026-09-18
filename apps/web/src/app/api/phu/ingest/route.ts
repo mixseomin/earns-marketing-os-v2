@@ -15,7 +15,8 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../ext/_auth';
-import { sidPrefix, chamZone } from '@/lib/phu-shared';
+import { sidPrefix, chamZone, phanXet } from '@/lib/phu-shared';
+import { getPhu } from '@/lib/phu';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
   if (denied) return denied;
   const db = getDb();
   if (!db) return NextResponse.json({ ok: false, error: 'db' }, { status: 503 });
-  const b = (await req.json()) as { project?: string; events?: Ev[]; chi?: Chi[]; landers?: Ld[]; camp?: Cp[]; nguon?: Ng; zone?: Zn[]; zone_chan_xong?: Zx[]; adapter?: { key: string; name: string; loai?: string; lich?: string; ok: boolean; note?: string } };
+  const b = (await req.json()) as { project?: string; events?: Ev[]; chi?: Chi[]; landers?: Ld[]; camp?: Cp[]; nguon?: Ng; zone?: Zn[]; zone_chan_xong?: Zx[]; camp_dung_xong?: { sid_prefix: string; ok: boolean; ghi_chu?: string }[]; adapter?: { key: string; name: string; loai?: string; lich?: string; ok: boolean; note?: string } };
   const project = String(b.project ?? '').trim();
   if (!project) return NextResponse.json({ ok: false, error: 'thiếu project' }, { status: 400 });
   let ev = 0, chi = 0, ld = 0;
@@ -142,5 +143,18 @@ export async function POST(req: Request) {
     if (x.ok) await db.execute(sql`INSERT INTO phu_camp_doi (project_id, sid_prefix, truong, cu, moi, nguon, ly_do)
       VALUES (${project}, ${x.sid_prefix}, 'zone_chan', NULL, ${String(x.zone_id)}, 'may', ${x.ghi_chu ?? 'luật zone'})`);
   }
-  return NextResponse.json({ ok: true, events_moi: ev, chi, landers: ld, camp: cp, zone: zn, zone_chan: zoneChan });
+  // Adapter báo đã pause camp theo phán xét DỪNG → sổ ghi tam_dung + nhật ký (máy làm lúc anh ngủ, sáng đọc phu_camp_doi)
+  for (const x of b.camp_dung_xong ?? []) {
+    if (!x.sid_prefix) continue;
+    if (x.ok) await db.execute(sql`UPDATE phu_camp SET trang_thai = 'tam_dung' WHERE project_id = ${project} AND sid_prefix = ${x.sid_prefix}`);
+    await db.execute(sql`INSERT INTO phu_camp_doi (project_id, sid_prefix, truong, cu, moi, nguon, ly_do)
+      VALUES (${project}, ${x.sid_prefix}, 'trang_thai', 'chay', ${x.ok ? 'tam_dung' : 'chay'}, 'may', ${x.ghi_chu ?? 'phán xét DỪNG'})`);
+  }
+  // Camp đang CHẠY mà phán xét (cùng bộ luật tab Campaign) ra DỪNG → trả cho adapter pause qua API mạng
+  const campDung: { sid_prefix: string; ly_do: string }[] = [];
+  if ((b.chi?.length || b.zone?.length || b.camp?.length) && !b.camp_dung_xong?.length) {
+    const d = await getPhu(project, 7);
+    for (const c of d.camp) { if (c.trangThai !== 'chay') continue; const px = phanXet(c); if (px.ma === 'dung') campDung.push({ sid_prefix: c.sidPrefix, ly_do: px.lyDo }); }
+  }
+  return NextResponse.json({ ok: true, events_moi: ev, chi, landers: ld, camp: cp, zone: zn, zone_chan: zoneChan, camp_dung: campDung });
 }

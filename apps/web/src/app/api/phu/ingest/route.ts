@@ -5,7 +5,7 @@
 //     landers?: [{host, path, ten, mo_ta?, dich?, last_sinh?, so_muc?, trang_thai?}],
 //     camp?: [{nguon_key, ten, sid_prefix, lander?, target?, ngan_sach_ngay?, trang_thai, ghi_chu?}]  ← adapter mạng QC
 //        tự khai camp nó thấy trên tài khoản (Bidvertiser /CAMPAIGNS/), không ai phải gõ tay vào trang,
-//     nguon?: {key, name?, loai?, trang_thai?, macro_click?, nap_usd?, ghi_chu?}  ← vá lẻ một nguồn (balance, trạng thái),
+//     nguon?: {key, name?, loai?, trang_thai?, macro_click?, nap_usd?, so_du?, ghi_chu?}  ← vá lẻ một nguồn (balance, trạng thái),
 //     adapter?: {key, name, loai?, lich?, ok, note?} }
 // Mọi thứ upsert/khử trùng — adapter chạy lại cùng khoảng log không nhân đôi số.
 import { NextResponse } from 'next/server';
@@ -20,7 +20,7 @@ type Ev = { ts: string; loai: string; sid?: string; platform?: string; mang?: st
 type Chi = { ngay: string; sid_prefix: string; chi_usd: number; clicks?: number; impressions?: number; nguon_du_lieu?: string };
 type Ld = { host: string; path?: string; ten: string; mo_ta?: string; dich?: string; last_sinh?: string; so_muc?: number; trang_thai?: string };
 type Cp = { nguon_key: string; ten: string; sid_prefix: string; lander?: string; target?: unknown; ngan_sach_ngay?: number; trang_thai: string; ghi_chu?: string; ket_thuc?: string; nhip_ngay?: number; tieu_chi?: unknown; ke_hoach?: string };
-type Ng = { key: string; name?: string; loai?: string; trang_thai?: string; macro_click?: string; nap_usd?: number; ghi_chu?: string };
+type Ng = { key: string; name?: string; loai?: string; trang_thai?: string; macro_click?: string; nap_usd?: number; so_du?: number; ghi_chu?: string };
 
 export async function POST(req: Request) {
   const denied = await checkAuth(req);
@@ -87,7 +87,7 @@ export async function POST(req: Request) {
       VALUES (${project}, ${g.key}, ${g.name ?? g.key}, ${g.loai ?? 'pop'}, ${g.trang_thai ?? 'du_kien'}, ${g.macro_click ?? null}, ${Number(g.nap_usd) || 0}, ${g.ghi_chu ?? null}, encode(gen_random_bytes(12), 'hex'))
       ON CONFLICT (project_id, key) DO UPDATE SET name = COALESCE(${g.name ?? null}, phu_nguon.name), loai = COALESCE(${g.loai ?? null}, phu_nguon.loai),
         trang_thai = COALESCE(${g.trang_thai ?? null}, phu_nguon.trang_thai), macro_click = COALESCE(${g.macro_click ?? null}, phu_nguon.macro_click),
-        nap_usd = COALESCE(${g.nap_usd == null ? null : Number(g.nap_usd)}, phu_nguon.nap_usd), ghi_chu = COALESCE(${g.ghi_chu ?? null}, phu_nguon.ghi_chu), updated_at = now()`);
+        nap_usd = COALESCE(${g.nap_usd == null ? null : Number(g.nap_usd)}, phu_nguon.nap_usd), so_du = COALESCE(${g.so_du == null ? null : Number(g.so_du)}, phu_nguon.so_du), so_du_luc = CASE WHEN ${g.so_du == null} THEN phu_nguon.so_du_luc ELSE now() END, ghi_chu = COALESCE(${g.ghi_chu ?? null}, phu_nguon.ghi_chu), updated_at = now()`);
   }
   if (b.adapter?.key) {
     const a = b.adapter;

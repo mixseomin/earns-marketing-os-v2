@@ -8,7 +8,7 @@ export type PhuPlatform = {
 };
 export type PhuNguon = {
   id: number; key: string; name: string; loai: string; trangThai: string; macroClick: string | null;
-  macroChi: string | null; postbackToken: string | null; accountId: number | null; napUsd: number; ghiChu: string | null;
+  macroChi: string | null; postbackToken: string | null; accountId: number | null; napUsd: number; soDu: number | null; soDuLuc: string | null; ghiChu: string | null;
 };
 export type PhuTieuChi = { chi_toi_da?: number; click_toi_thieu?: number; signup_1k?: number; gia_click_toi_da?: number; thu_chi?: number };
 export type PhuCamp = {

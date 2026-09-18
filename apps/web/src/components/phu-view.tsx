@@ -155,7 +155,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
         actions={<button style={btn} onClick={() => setSuaNg('moi')}>+ nguồn</button>}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr><th style={head}>Nguồn</th><th style={head}>Loại</th><th style={head}>Trạng thái</th><th style={head} className={mh}>Macro click</th><th style={head}>Nạp</th><th style={head} className={mh}>Ghi chú</th></tr></thead>
+            <thead><tr><th style={head}>Nguồn</th><th style={head}>Loại</th><th style={head}>Trạng thái</th><th style={head} className={mh}>Macro click</th><th style={head}>Nạp</th><th style={head}>Số dư</th><th style={head} className={mh}>Ghi chú</th></tr></thead>
             <tbody>
               {d.nguon.filter((g) => g.trangThai === 'hoat_dong' || g.trangThai === 'dang_mo' || g.trangThai === 'tam_dung').map((g) => {
                 const tt = PHU_NGUON_TRANG_THAI[g.trangThai] ?? { label: g.trangThai, color: 'var(--fg-3)' };
@@ -166,6 +166,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                     <td style={cell}><Pill color={tt.color} label={tt.label} /></td>
                     <td style={{ ...cell, ...mono }} className={mh}>{g.macroClick ?? '—'}</td>
                     <td style={{ ...cell, ...mono }}>{usd(g.napUsd)}</td>
+                    <td style={{ ...cell, ...mono }} title={g.soDuLuc ? `lúc ${g.soDuLuc.slice(0, 16).replace('T', ' ')}Z` : 'adapter chưa báo'}>{g.soDu == null ? '—' : usd(g.soDu)}</td>
                     <td style={{ ...cell, fontSize: 11, color: 'var(--fg-2)', maxWidth: 420 }} className={mh}>{g.ghiChu ?? '—'}</td>
                   </tr>
                 );

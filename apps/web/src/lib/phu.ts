@@ -152,7 +152,7 @@ export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
     })),
     nguon: (ng as unknown as R[]).map((r) => ({
       id: n(r.id), key: String(r.key), name: String(r.name), loai: String(r.loai), trangThai: String(r.trang_thai), macroClick: s(r.macro_click),
-      macroChi: s(r.macro_chi), postbackToken: s(r.postback_token), accountId: r.account_id == null ? null : n(r.account_id), napUsd: n(r.nap_usd), ghiChu: s(r.ghi_chu),
+      macroChi: s(r.macro_chi), postbackToken: s(r.postback_token), accountId: r.account_id == null ? null : n(r.account_id), napUsd: n(r.nap_usd), soDu: r.so_du == null ? null : n(r.so_du), soDuLuc: s(r.so_du_luc), ghiChu: s(r.ghi_chu),
     })),
     camp: (c as unknown as R[]).map((r) => ({
       id: n(r.id), nguonKey: String(r.nguon_key), ten: String(r.ten), sidPrefix: String(r.sid_prefix), lander: s(r.lander),

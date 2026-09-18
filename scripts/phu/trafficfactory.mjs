@@ -104,7 +104,7 @@ try {
     chi.push({ ngay: d.ngay, sid_prefix: prefix, chi_usd: d.chi_usd, clicks: d.clicks, impressions: d.impressions, nguon_du_lieu: 'trafficfactory-api' });
   }
   await bao(true, `balance $${balance} · ${iso(ngay)} ${chi.map((c) => `${c.sid_prefix.slice(15)} $${c.chi_usd}/${c.clicks ?? 0}c`).join(' · ') || 'chưa có chi'} · ${camp.length} camp · ${tt.join(' · ')}`, chi, camp,
-    { key: 'trafficfactory', name: 'TrafficFactory (XVideos native)', loai: 'native', trang_thai: 'hoat_dong', macro_click: '{conversions_tracking}',
+    { key: 'trafficfactory', name: 'TrafficFactory (XVideos native)', loai: 'native', trang_thai: 'hoat_dong', macro_click: '{conversions_tracking}', so_du: Number(balance),
       ghi_chu: `Balance $${balance} (${new Date().toISOString().slice(0, 16)}Z). Tài khoản mikerey887 (vault #467). Camp đặt tên tf-<nhãn>; URL ?s=trafficfactory_<nhãn>_{country_iso2}_{conversions_tracking}.` });
 } catch (e) {
   await bao(false, String(e.message).slice(0, 300));

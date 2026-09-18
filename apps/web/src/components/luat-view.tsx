@@ -6,8 +6,9 @@
 // /api/adfond/luat: mở là đọc lại, lưu là gửi sang, adfond kiểm (kiemLuat) rồi mới ghi.
 // Chữ trên màn: CHỈ nhãn có dấu (tu_vung.nhan từ adfond — một sổ nhãn, không tự đặt ở đây); mã máy chỉ nằm
 // ở tooltip. Hai góc nhìn, một cơ chế: từ THƯ VIỆN (luật này nhắm ai) và từ CAMPAIGN (campaign này chịu luật nào).
+// Mọi ô chọn là <PickField>/<MultiSelect> (select2, gõ để lọc) — không <select> thường (anh ra luật 19/09/2026).
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Collapsible, ConfirmDeleteButton, Drawer, EmptyState, GuardedButton, MultiSelect, Panel, Pill, Segmented, SelectField, SimpleTable, Spinner, Tabs, TextAreaField, TextField } from '@/components/ui';
+import { Collapsible, ConfirmDeleteButton, Drawer, EmptyState, GuardedButton, MultiSelect, Panel, PickField, Pill, Segmented, SimpleTable, Spinner, Tabs, TextAreaField, TextField } from '@/components/ui';
 
 type Tang = 'chung' | 'loai' | 'chien_luoc' | 'camp';
 type Op = '>=' | '<=' | '>' | '<';
@@ -16,7 +17,7 @@ type Nham = { loai?: string[]; chien_luoc?: number[]; tai_khoan?: number[]; thi_
 type Luat = {
   ma: string; ten: string; thu_vien: string; pham_vi: string; nham: Nham; trong_so: number; bat: boolean;
   dong_ho?: { tu?: number; den?: number }; lien_tiep?: number; sau_luat?: string;
-  khi: DieuKien[]; tru?: DieuKien[]; lam: string; muc?: number; gac: 'may' | 'nguoi'; vi_sao: string;
+  khi: DieuKien[]; tru?: DieuKien[]; hanh_dong: { lam: string; muc?: number }[]; kich_luat?: string[]; bo_luat?: string[]; gac: 'may' | 'nguoi'; vi_sao: string;
 };
 type DongLuat = Luat & { nguon: 'mac_dinh' | 'nguoi'; nguoi: string | null; cap_nhat: string; khac_mac_dinh: boolean };
 type ThamSo = Record<string, number | string | number[] | null>;
@@ -125,7 +126,9 @@ export function LuatView() {
   };
   const docDk = (d: DieuKien) => `${tenChiSo(d.chi_so)} ${N.op[d.op] ?? d.op} ${docNguong(d.nguong)}`;
   const docKhiNao = (l: Luat) => [l.dong_ho ? `ngày ${l.dong_ho.tu ?? 0}${l.dong_ho.den != null ? `–${l.dong_ho.den}` : ' trở đi'}` : '', l.lien_tiep ? `${l.lien_tiep} ngày liền` : '', l.sau_luat ? `sau khi ${l.sau_luat} chạm` : ''].filter(Boolean).join(' · ') || 'mọi ngày';
-  const docLam = (l: Luat) => `${N.hanh_dong[l.lam] ?? l.lam}${l.muc != null ? (l.lam.endsWith('bac') ? ` → bậc ${l.muc}` : ` ×${l.muc}`) : ''}`;
+  const docHd = (h: { lam: string; muc?: number }) => `${N.hanh_dong[h.lam] ?? h.lam}${h.muc != null ? (h.lam.endsWith('bac') ? ` → bậc ${h.muc}` : ` ×${h.muc}`) : ''}`;
+  const tenLuat = (ma: string) => du.thu_vien.find((x) => x.ma === ma)?.ten ?? ma;
+  const docLam = (l: Luat) => [l.hanh_dong.map(docHd).join(' + '), l.kich_luat?.length ? `kích ${l.kich_luat.map(tenLuat).join(', ')}` : '', l.bo_luat?.length ? `bỏ ${l.bo_luat.map(tenLuat).join(', ')}` : ''].filter(Boolean).join(' · ');
   const docNham = (n: Nham): string[] => {
     const ra: string[] = [];
     if (n.theo_luat) ra.push(`như luật ${n.theo_luat}`);
@@ -142,7 +145,9 @@ export function LuatView() {
   const khop = du.don_vi?.khop ?? {};
   const bang = du.thu_vien.filter((l) => l.thu_vien === ke).filter((l) => !chiKhop || khop[l.ma]?.khop);
   const demKe = (k: string) => du.thu_vien.filter((l) => l.thu_vien === k).length;
-  const mauMoi = (): Luat => ({ ma: '', ten: '', thu_vien: ke, pham_vi: 'nhom', nham: {}, trong_so: 50, bat: true, khi: [{ chi_so: 'click_ads', op: '>=', nguong: 10 }], lam: 'canh_bao', gac: 'may', vi_sao: '' });
+  const mauMoi = (): Luat => ({ ma: '', ten: '', thu_vien: ke, pham_vi: 'nhom', nham: {}, trong_so: 50, bat: true, khi: [{ chi_so: 'click_ads', op: '>=', nguong: 10 }], hanh_dong: [{ lam: 'canh_bao' }], gac: 'may', vi_sao: '' });
+  const opsCampChon = [...du.chien_luoc.flatMap((cl) => du.camp.filter((c) => c.chien_luoc_id === cl.id).map((c) => ({ value: c.id, label: `#${cl.id} ${cl.ten} · ${c.name} · ${N.loai[c.loai] ?? c.loai} · ${c.status}` }))),
+    ...du.camp.filter((c) => c.chien_luoc_id == null).map((c) => ({ value: c.id, label: `(không chiến lược) · ${c.name} · ${N.loai[c.loai] ?? c.loai} · ${c.status}` }))];
   const dongTang = du.ghi_de.find((x) => x.tang === tang && x.khoa === khoaTang);
   const datThamSo = (k: string, raw: string) => {
     const ts: Partial<ThamSo> = { ...tsNhap };
@@ -185,10 +190,7 @@ export function LuatView() {
       </Panel>
 
       <Panel title="Áp vào campaign" subtitle="// nhìn từ phía một campaign: luật nào đang chịu, vì sao; áp thêm / trừ = sửa nhắm của luật đó"
-        actions={<SelectField label="" size="sm" value={campId ?? ''} onChange={(e) => setCampId(Number(e.target.value))} style={{ minWidth: 360 }}>
-          {du.chien_luoc.map((cl) => { const cs = du.camp.filter((c) => c.chien_luoc_id === cl.id); return cs.length ? <optgroup key={cl.id} label={`#${cl.id} ${cl.ten}`}>{cs.map((c) => <option key={c.id} value={c.id}>{c.name} · {N.loai[c.loai] ?? c.loai} · {c.status}</option>)}</optgroup> : null; })}
-          <optgroup label="Không gắn chiến lược">{du.camp.filter((c) => c.chien_luoc_id == null).map((c) => <option key={c.id} value={c.id}>{c.name} · {N.loai[c.loai] ?? c.loai} · {c.status}</option>)}</optgroup>
-        </SelectField>}>
+        actions={<div style={{ minWidth: 360 }}><PickField label="" options={opsCampChon} value={campId} onChange={(v) => { if (v != null) setCampId(v); }} popupWidth={520} placeholder="— chọn campaign —" /></div>}>
         {camp && du.don_vi ? (
           <>
             <div style={{ ...nho, marginBottom: 8 }}>
@@ -284,7 +286,17 @@ function SuaLuat({ du, goc, luat, moi, dangLuu, onClose, onSave, onVeMacDinh, do
   const dirty = JSON.stringify(l) !== goc;
   const dat = <K extends keyof Luat>(k: K, v: Luat[K]) => setL({ ...l, [k]: v });
   const datNham = <K extends keyof Nham>(k: K, v: Nham[K]) => setL({ ...l, nham: { ...l.nham, [k]: v } });
-  const laNguoi = du.tu_vung.hanh_dong_nguoi.includes(l.lam);
+  const laNguoi = l.hanh_dong.some((h) => du.tu_vung.hanh_dong_nguoi.includes(h.lam));
+  const datHd = (hd: Luat['hanh_dong']) => setL({ ...l, hanh_dong: hd, gac: hd.some((h) => du.tu_vung.hanh_dong_nguoi.includes(h.lam)) ? 'nguoi' : l.gac });
+  const opsHd = du.tu_vung.hanh_dong.map((h) => ({ value: h, label: `${N.hanh_dong[h] ?? h}${du.tu_vung.hanh_dong_nguoi.includes(h) ? ' — người quyết' : ''}` }));
+  const opsChiSo = du.tu_vung.chi_so.map((c) => ({ value: c.ma, label: c.ten }));
+  const opsOp = (['>=', '<=', '>', '<'] as Op[]).map((o) => ({ value: o, label: N.op[o] ?? o }));
+  const opsNguong = [{ value: '#', label: 'số cố định…' }, ...du.tu_vung.tham_so.map((p) => ({ value: `$${p}`, label: N.tham_so[p]?.ten ?? p }))];
+  const opsKe = du.tu_vung.thu_vien.map((k) => ({ value: k, label: N.thu_vien[k] ?? k }));
+  const opsPv = du.tu_vung.pham_vi.map((k) => ({ value: k, label: N.pham_vi[k] ?? k }));
+  const opsGac = [{ value: 'may', label: N.gac.may ?? 'Máy tự làm' }, { value: 'nguoi', label: N.gac.nguoi ?? 'Người quyết' }];
+  const opsThiTruong = [...new Set([...du.camp.map((c) => c.thi_truong).filter((x): x is string => !!x), ...(l.nham.thi_truong ?? [])])].sort().map((x) => ({ value: x, label: x }));
+  const opsBac = [0, 1, 2, 3].map((b) => ({ value: b, label: `Bậc ${b}${b === 0 ? ' (mua click)' : b === 1 ? ' (nới cửa)' : b === 2 ? ' (tCPA)' : ' (tROAS)'}` }));
   const soDk = l.khi.length + (l.tru?.length ?? 0);
   const soNham = Object.values(l.nham).filter((v) => (Array.isArray(v) ? v.length : v)).length;
 
@@ -295,17 +307,12 @@ function SuaLuat({ du, goc, luat, moi, dangLuu, onClose, onSave, onVeMacDinh, do
       <div style={{ display: 'grid', gap: 6 }}>
         {rows.map((d, i) => (
           <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 64px 1fr 24px', gap: 6, alignItems: 'end' }}>
-            <SelectField label={i === 0 ? 'Chỉ số' : ''} size="sm" value={d.chi_so} onChange={(e) => set(rows.map((x, j) => (j === i ? { ...x, chi_so: e.target.value } : x)))}>
-              {du.tu_vung.chi_so.map((c) => <option key={c.ma} value={c.ma}>{c.ten}</option>)}
-            </SelectField>
-            <SelectField label={i === 0 ? 'So' : ''} size="sm" mono value={d.op} onChange={(e) => set(rows.map((x, j) => (j === i ? { ...x, op: e.target.value as Op } : x)))}>
-              {(['>=', '<=', '>', '<'] as Op[]).map((o) => <option key={o} value={o}>{N.op[o] ?? o}</option>)}
-            </SelectField>
-            <SelectField label={i === 0 ? 'Ngưỡng' : ''} size="sm" value={typeof d.nguong === 'string' ? d.nguong : '#'} onChange={(e) => { const v = e.target.value; set(rows.map((x, j) => (j === i ? { ...x, nguong: v === '#' ? (typeof x.nguong === 'number' ? x.nguong : 0) : v } : x))); }}>
-              <option value="#">số cố định…</option>
-              {du.tu_vung.tham_so.map((p) => <option key={p} value={`$${p}`}>{N.tham_so[p]?.ten ?? p}</option>)}
-              {typeof d.nguong === 'string' && /[*+/-]/.test(d.nguong) && <option value={d.nguong}>{docNguong(d.nguong)}</option>}
-            </SelectField>
+            <PickField label={i === 0 ? 'Chỉ số' : ''} options={opsChiSo} value={d.chi_so} onChange={(v) => { if (v) set(rows.map((x, j) => (j === i ? { ...x, chi_so: v } : x))); }} popupWidth={300} />
+            <PickField label={i === 0 ? 'So' : ''} options={opsOp} value={d.op} hideSearch onChange={(v) => { if (v) set(rows.map((x, j) => (j === i ? { ...x, op: v } : x))); }} />
+            <PickField label={i === 0 ? 'Ngưỡng' : ''} popupWidth={300}
+              options={typeof d.nguong === 'string' && /[*+/-]/.test(d.nguong) ? [...opsNguong, { value: d.nguong, label: docNguong(d.nguong) }] : opsNguong}
+              value={typeof d.nguong === 'string' ? d.nguong : '#'}
+              onChange={(v) => { if (v) set(rows.map((x, j) => (j === i ? { ...x, nguong: v === '#' ? (typeof x.nguong === 'number' ? x.nguong : 0) : v } : x))); }} />
             <button onClick={() => set(rows.filter((_, j) => j !== i))} style={{ ...lienKet, color: 'var(--danger)', marginBottom: 6 }} title="bỏ điều kiện">✕</button>
             {typeof d.nguong === 'number' && (
               <TextField label="" size="sm" mono type="number" step="any" value={d.nguong} gridColumn="3 / 4" onChange={(e) => set(rows.map((x, j) => (j === i ? { ...x, nguong: Number(e.target.value) } : x)))} />
@@ -323,6 +330,8 @@ function SuaLuat({ du, goc, luat, moi, dangLuu, onClose, onSave, onVeMacDinh, do
   const opsTk = du.tai_khoan.map((t) => ({ value: t.id, label: t.name }));
   const opsCamp = du.camp.map((c) => ({ value: c.id, label: `${c.name} · ${N.loai[c.loai] ?? c.loai}` }));
   const opsLuat = du.thu_vien.filter((x) => x.ma !== l.ma);
+  const opsLuatChon = opsLuat.map((m) => ({ value: m.ma, label: `${m.ten} · ${N.pham_vi[m.pham_vi] ?? m.pham_vi}` }));
+  const opsLuatCungPv = opsLuat.filter((m) => m.pham_vi === l.pham_vi).map((m) => ({ value: m.ma, label: m.ten }));
 
   return (
     <Drawer onClose={onClose} width={700} dirty={dirty}>
@@ -339,13 +348,11 @@ function SuaLuat({ du, goc, luat, moi, dangLuu, onClose, onSave, onVeMacDinh, do
         <div style={vung}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
             <TextField label="Mã" labelTooltip="chữ/số, không dấu tiếng Việt; không đổi được sau khi tạo" size="sm" mono value={l.ma} disabled={!moi} onChange={(e) => dat('ma', e.target.value.trim())} placeholder="K9" />
-            <SelectField label="Kệ" size="sm" value={l.thu_vien} onChange={(e) => dat('thu_vien', e.target.value)}>{du.tu_vung.thu_vien.map((k) => <option key={k} value={k}>{N.thu_vien[k] ?? k}</option>)}</SelectField>
-            <SelectField label="Phạm vi" labelTooltip="đơn vị bị chấm" size="sm" value={l.pham_vi} onChange={(e) => dat('pham_vi', e.target.value)}>{du.tu_vung.pham_vi.map((k) => <option key={k} value={k}>{N.pham_vi[k] ?? k}</option>)}</SelectField>
+            <PickField label="Kệ" options={opsKe} value={l.thu_vien} hideSearch onChange={(v) => { if (v) dat('thu_vien', v); }} />
+            <PickField label="Phạm vi" labelTooltip="đơn vị bị chấm" options={opsPv} value={l.pham_vi} hideSearch onChange={(v) => { if (v) dat('pham_vi', v); }} />
             <TextField label="Tên" size="sm" gridColumn="1 / 4" value={l.ten} onChange={(e) => dat('ten', e.target.value)} />
             <TextField label="Trọng số (0-100)" labelTooltip="nhiều luật cùng chạm mà đá nhau thì số cao thắng; hoà thì đi xuống thắng" size="sm" mono type="number" value={l.trong_so} onChange={(e) => dat('trong_so', Number(e.target.value))} />
-            <SelectField label="Gác" size="sm" value={laNguoi ? 'nguoi' : l.gac} disabled={laNguoi} lockReason={laNguoi ? 'hành động này bắt buộc người quyết' : undefined} onChange={(e) => dat('gac', e.target.value as 'may' | 'nguoi')}>
-              <option value="may">{N.gac.may}</option><option value="nguoi">{N.gac.nguoi}</option>
-            </SelectField>
+            <PickField label="Gác" options={opsGac} value={laNguoi ? 'nguoi' : l.gac} hideSearch disabled={laNguoi} lockReason={laNguoi ? 'có hành động bắt buộc người quyết' : undefined} onChange={(v) => { if (v) dat('gac', v as 'may' | 'nguoi'); }} />
             <label style={{ ...nho, display: 'flex', alignItems: 'center', gap: 6, marginTop: 18 }}><input type="checkbox" checked={l.bat} onChange={(e) => dat('bat', e.target.checked)} /> đang bật</label>
           </div>
           <TextAreaField label="Vì sao luật này tồn tại" size="sm" value={l.vi_sao} onChange={(e) => dat('vi_sao', e.target.value)} style={{ minHeight: 48, marginTop: 6 }} />
@@ -360,7 +367,7 @@ function SuaLuat({ du, goc, luat, moi, dangLuu, onClose, onSave, onVeMacDinh, do
               <TextField label="Từ ngày thứ" labelTooltip="ngày trọn vẹn kể từ lúc bật; trống = mọi ngày" size="sm" mono type="number" value={l.dong_ho?.tu ?? ''} onChange={(e) => dat('dong_ho', { ...l.dong_ho, tu: e.target.value === '' ? undefined : Number(e.target.value) })} />
               <TextField label="Đến ngày thứ" size="sm" mono type="number" value={l.dong_ho?.den ?? ''} onChange={(e) => dat('dong_ho', { ...l.dong_ho, den: e.target.value === '' ? undefined : Number(e.target.value) })} />
               <TextField label="Số ngày liền" labelTooltip="mỗi ngày trong chuỗi đều phải thoả; trống = chấm số tích luỹ" size="sm" mono type="number" value={l.lien_tiep ?? ''} onChange={(e) => dat('lien_tiep', e.target.value === '' ? undefined : Number(e.target.value))} />
-              <SelectField label="Chỉ sau khi luật" labelTooltip="luật này chỉ chạm nếu luật kia đã chạm cùng đơn vị trước đó" size="sm" value={l.sau_luat ?? ''} onChange={(e) => dat('sau_luat', e.target.value || undefined)}><option value="">—</option>{opsLuat.map((m) => <option key={m.ma} value={m.ma}>{m.ten}</option>)}</SelectField>
+              <PickField label="Chỉ sau khi luật" labelTooltip="luật này chỉ chạm nếu luật kia đã chạm cùng đơn vị trước đó" options={opsLuatChon} value={l.sau_luat ?? ''} clearable placeholder="—" popupWidth={320} onChange={(v) => dat('sau_luat', v || undefined)} />
             </div>
           </div>
           <div style={vung}>
@@ -375,17 +382,32 @@ function SuaLuat({ du, goc, luat, moi, dangLuu, onClose, onSave, onVeMacDinh, do
       )}
 
       {tab === 'hanh_dong' && (
-        <div style={vung}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px', gap: 8 }}>
-            <SelectField label="Hành động" size="sm" value={l.lam} onChange={(e) => { const lam = e.target.value; setL({ ...l, lam, gac: du.tu_vung.hanh_dong_nguoi.includes(lam) ? 'nguoi' : l.gac }); }}>
-              {du.tu_vung.hanh_dong.map((h) => <option key={h} value={h}>{N.hanh_dong[h] ?? h}{du.tu_vung.hanh_dong_nguoi.includes(h) ? ' — người quyết' : ''}</option>)}
-            </SelectField>
-            <TextField label={l.lam.endsWith('bac') ? 'Bậc đích' : 'Hệ số nhân'} labelTooltip="hạ bid ×0,7 · tăng ngân sách ×2 · lên bậc → 2" size="sm" mono type="number" step="any" value={l.muc ?? ''} onChange={(e) => dat('muc', e.target.value === '' ? undefined : Number(e.target.value))} />
+        <>
+          <div style={vung}>
+            <div style={tieuDeVung}>Làm gì — nhiều việc, mỗi việc một trục (hai việc cùng trục thì adfond từ chối lưu)</div>
+            <div style={{ display: 'grid', gap: 6 }}>
+              {l.hanh_dong.map((h, i) => (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 140px 24px', gap: 6, alignItems: 'end' }}>
+                  <PickField label={i === 0 ? 'Hành động' : ''} options={opsHd} value={h.lam} popupWidth={300} onChange={(v) => { if (v) datHd(l.hanh_dong.map((x, j) => (j === i ? { ...x, lam: v } : x))); }} />
+                  <TextField label={i === 0 ? 'Mức' : ''} labelTooltip="hệ số nhân (hạ bid ×0,7 · tăng ngân sách ×2) hoặc bậc đích (lên bậc → 2)" size="sm" mono type="number" step="any" placeholder={h.lam.endsWith('bac') ? 'bậc đích' : '× hệ số'} value={h.muc ?? ''} onChange={(e) => datHd(l.hanh_dong.map((x, j) => (j === i ? { ...x, muc: e.target.value === '' ? undefined : Number(e.target.value) } : x)))} />
+                  <button onClick={() => datHd(l.hanh_dong.filter((_, j) => j !== i))} disabled={l.hanh_dong.length <= 1} style={{ ...lienKet, color: l.hanh_dong.length <= 1 ? 'var(--fg-4)' : 'var(--danger)', marginBottom: 6 }} title={l.hanh_dong.length <= 1 ? 'luật phải có ít nhất một hành động' : 'bỏ hành động'}>✕</button>
+                </div>
+              ))}
+              <button onClick={() => datHd([...l.hanh_dong, { lam: du.tu_vung.hanh_dong.find((h) => !l.hanh_dong.some((x) => x.lam === h)) ?? 'canh_bao' }])} style={{ ...nutNho, justifySelf: 'start' }}>+ hành động</button>
+            </div>
+            <div style={{ ...nho, marginTop: 8 }}>
+              Trục xung đột: {[...new Set(l.hanh_dong.map((h) => du.tu_vung.truc[h.lam]).filter(Boolean))].map((t) => N.truc[t!] ?? t).join(', ') || 'không đá luật nào'}. Gác: {N.gac[laNguoi ? 'nguoi' : l.gac]}{laNguoi ? ' (bắt buộc — máy chỉ đề xuất kèm số)' : ''}.
+            </div>
           </div>
-          <div style={{ ...nho, marginTop: 8 }}>
-            Trục xung đột: {du.tu_vung.truc[l.lam] ? N.truc[du.tu_vung.truc[l.lam]!] : 'không đá luật nào'}. Gác: {N.gac[laNguoi ? 'nguoi' : l.gac]}{laNguoi ? ' (bắt buộc — máy chỉ đề xuất kèm số)' : ''}.
+          <div style={vung}>
+            <div style={tieuDeVung}>Khi chạm — kích thêm / bỏ bớt luật khác trên cùng đơn vị (cùng phạm vi {N.pham_vi[l.pham_vi] ?? l.pham_vi}; một cấp)</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <MultiSelect label="Kích thêm luật" compact options={opsLuatCungPv.filter((o) => !l.bo_luat?.includes(o.value))} selected={l.kich_luat ?? []} onChange={(v) => dat('kich_luat', v.length ? v : undefined)} popupWidth={360} />
+              <MultiSelect label="Bỏ bớt luật đang áp" compact options={opsLuatCungPv.filter((o) => !l.kich_luat?.includes(o.value))} selected={l.bo_luat ?? []} onChange={(v) => dat('bo_luat', v.length ? v : undefined)} popupWidth={360} />
+            </div>
+            <div style={{ ...nho, marginTop: 6 }}>Kích = luật kia ra hành động ngay dù điều kiện của nó chưa thoả. Bỏ = kết quả của luật kia bị gạt khỏi lượt chấm này trước khi phân xử.</div>
           </div>
-        </div>
+        </>
       )}
 
       {tab === 'nham' && (
@@ -396,8 +418,8 @@ function SuaLuat({ du, goc, luat, moi, dangLuu, onClose, onSave, onVeMacDinh, do
               <MultiSelect label="Loại campaign" compact options={du.tu_vung.loai.map((x) => ({ value: x, label: N.loai[x] ?? x }))} selected={l.nham.loai ?? []} onChange={(v) => datNham('loai', v.length ? v : undefined)} hideSearch />
               <MultiSelect label="Chiến lược" compact options={opsCl} selected={l.nham.chien_luoc ?? []} onChange={(v) => datNham('chien_luoc', v.length ? v : undefined)} />
               <MultiSelect label="Tài khoản" compact options={opsTk} selected={l.nham.tai_khoan ?? []} onChange={(v) => datNham('tai_khoan', v.length ? v : undefined)} />
-              <TextField label="Thị trường" size="sm" mono value={(l.nham.thi_truong ?? []).join(',')} placeholder="US,IT" onChange={(e) => { const v = e.target.value.split(/[ ,]+/).filter(Boolean); datNham('thi_truong', v.length ? v : undefined); }} style={{ width: 90 }} />
-              <TextField label="Bậc thầu" size="sm" mono value={(l.nham.bac ?? []).join(',')} placeholder="0,1" onChange={(e) => { const v = soList(e.target.value); datNham('bac', v.length ? v : undefined); }} style={{ width: 70 }} />
+              <MultiSelect label="Thị trường" compact options={opsThiTruong} selected={l.nham.thi_truong ?? []} onChange={(v) => datNham('thi_truong', v.length ? v : undefined)} />
+              <MultiSelect label="Bậc thầu" compact options={opsBac} selected={l.nham.bac ?? []} onChange={(v) => datNham('bac', v.length ? v : undefined)} hideSearch />
             </div>
           </div>
           <div style={vung}>
@@ -409,9 +431,7 @@ function SuaLuat({ du, goc, luat, moi, dangLuu, onClose, onSave, onVeMacDinh, do
           </div>
           <div style={vung}>
             <div style={tieuDeVung}>Hoặc nhắm y như một luật khác</div>
-            <SelectField label="" size="sm" value={l.nham.theo_luat ?? ''} onChange={(e) => datNham('theo_luat', e.target.value || undefined)} hint="dùng nguyên nhắm của luật đó (một cấp); các chiều ở trên bị bỏ qua khi chọn">
-              <option value="">— không —</option>{opsLuat.map((m) => <option key={m.ma} value={m.ma}>{m.ten}</option>)}
-            </SelectField>
+            <PickField label="" options={opsLuatChon} value={l.nham.theo_luat ?? ''} clearable placeholder="— không —" popupWidth={360} onChange={(v) => datNham('theo_luat', v || undefined)} hint="dùng nguyên nhắm của luật đó (một cấp); các chiều ở trên bị bỏ qua khi chọn" />
           </div>
         </>
       )}

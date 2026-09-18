@@ -70,6 +70,7 @@ export { SimpleTable, type SimpleColumn } from './simple-table';
 export { ConfirmDeleteButton, type ConfirmDeleteButtonProps } from './confirm-delete-button';
 export { Collapsible } from './collapsible';
 export { MultiSelect, type MultiSelectOption, type MultiSelectProps } from './multi-select';
+export { PickField, type PickFieldProps } from './pick-field';
 // list-view = shared toolbar + pagination for vault list pages (offers, communities, contacts, …).
 // usePaged (client pagination), Pager, ListToolbar (filter row shell), FilterChips (Segmented +
 // counts, YDNI single-accent), SearchInput. NEVER hand-roll `chip()`/search `<input>`/full-array

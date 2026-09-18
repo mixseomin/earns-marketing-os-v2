@@ -45,12 +45,18 @@ export interface MultiSelectProps<T extends string | number> {
   variant?: 'default' | 'chip';
   /** Render popup qua portal (position:fixed) — cho table cell overflow:hidden. */
   portal?: boolean;
+  /** Chọn MỘT (select2): bấm là chọn + đóng, không checkbox; `selected` chỉ có ≤1 phần tử. Dùng qua <PickField>. */
+  single?: boolean;
+  /** Trigger giãn hết bề ngang ô cha (dạng field trong form). */
+  fullWidth?: boolean;
+  /** Không hiện "bỏ chọn" (single bắt buộc có giá trị). */
+  noClear?: boolean;
 }
 
 export function MultiSelect<T extends string | number>({
   label, options, selected, onChange,
   searchPlaceholder, popupWidth, compact = false, hideSearch = false,
-  variant = 'default', portal = false,
+  variant = 'default', portal = false, single = false, fullWidth = false, noClear = false,
 }: MultiSelectProps<T>) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -81,6 +87,11 @@ export function MultiSelect<T extends string | number>({
     : `${label} (${selected.length})`;
 
   const showSearch = !hideSearch && options.length >= 8;
+  const chon = (o: MultiSelectOption<T>, isSelected: boolean) => {
+    if (single) { onChange([o.value]); setOpen(false); setSearch(''); return; }
+    if (isSelected) onChange(selected.filter((v) => v !== o.value));
+    else onChange([...selected, o.value]);
+  };
 
   const trigger = variant === 'chip' ? (
     <button type="button" onClick={toggle}
@@ -113,8 +124,9 @@ export function MultiSelect<T extends string | number>({
               fontWeight: selected.length > 0 ? 700 : 400,
               display: 'inline-flex', alignItems: 'center', gap: 4,
               fontFamily: 'inherit', whiteSpace: 'nowrap',
+              ...(fullWidth ? { width: '100%', justifyContent: 'space-between', overflow: 'hidden' } : null),
             }}>
-      {summary}
+      <span style={fullWidth ? { overflow: 'hidden', textOverflow: 'ellipsis' } : undefined}>{summary}</span>
       <IconChevron dir={open ? 'down' : 'right'} size={9} />
     </button>
   );
@@ -137,12 +149,12 @@ export function MultiSelect<T extends string | number>({
                           color: 'var(--fg-0)', fontSize: 11.5, marginBottom: 4,
                           outline: 'none', boxSizing: 'border-box' }} />
         )}
-        {selected.length > 0 && (
-          <button type="button" onClick={() => onChange([])}
+        {selected.length > 0 && !noClear && (
+          <button type="button" onClick={() => { onChange([]); if (single) setOpen(false); }}
                   style={{ width: '100%', padding: '4px 8px', background: 'none',
                            border: 'none', textAlign: 'left', cursor: 'pointer',
                            color: 'var(--fg-3)', fontSize: 11, fontStyle: 'italic' }}>
-            ✕ Bỏ chọn tất cả ({selected.length})
+            {single ? '✕ Bỏ chọn' : `✕ Bỏ chọn tất cả (${selected.length})`}
           </button>
         )}
         {filtered.length === 0 && (
@@ -160,18 +172,16 @@ export function MultiSelect<T extends string | number>({
           const isSelected = selectedSet.has(o.value);
           return (
             <label key={String(o.value)}
+                   onClick={single ? () => chon(o, isSelected) : undefined}
                    style={{ display: 'flex', alignItems: 'center', gap: 6,
                             padding: '5px 8px', borderRadius: 4, cursor: 'pointer',
                             background: isSelected ? 'var(--accent-soft)' : 'transparent',
                             fontSize: 11.5 }}
                    onMouseOver={(e) => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-2)'; }}
                    onMouseOut={(e) => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}>
-              <input type="checkbox" checked={isSelected}
-                     onChange={() => {
-                       if (isSelected) onChange(selected.filter((v) => v !== o.value));
-                       else onChange([...selected, o.value]);
-                     }}
-                     style={{ accentColor: 'var(--accent)', flexShrink: 0 }} />
+              {single
+                ? <span style={{ width: 12, flexShrink: 0, fontSize: 10, color: 'var(--accent)' }}>{isSelected ? '✓' : ''}</span>
+                : <input type="checkbox" checked={isSelected} onChange={() => chon(o, isSelected)} style={{ accentColor: 'var(--accent)', flexShrink: 0 }} />}
               <span style={{ flex: 1, color: isSelected ? 'var(--accent)' : 'var(--fg-1)',
                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                              fontWeight: isSelected ? 600 : 400 }}>
@@ -224,7 +234,7 @@ export function MultiSelect<T extends string | number>({
   }
 
   return (
-    <div data-comp="ui.MultiSelect" ref={triggerWrapRef} style={{ position: 'relative', display: 'inline-flex' }}>
+    <div data-comp="ui.MultiSelect" ref={triggerWrapRef} style={{ position: 'relative', display: fullWidth ? 'block' : 'inline-flex' }}>
       {trigger}
       {open && popup}
     </div>

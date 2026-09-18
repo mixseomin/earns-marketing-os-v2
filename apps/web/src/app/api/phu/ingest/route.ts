@@ -122,7 +122,7 @@ export async function POST(req: Request) {
         LEFT JOIN (SELECT sid_prefix, raw->>'zone' AS zone_id, COUNT(*) FILTER (WHERE loai = 'out') AS hits, COUNT(*) FILTER (WHERE loai = 'bot') AS bots
                      FROM phu_su_kien WHERE project_id = ${project} AND nguon_du_lieu = 'log-xmua' GROUP BY 1, 2) h ON h.sid_prefix = z.sid_prefix AND h.zone_id = z.zone_id
         LEFT JOIN phu_zone_chan c ON c.project_id = z.project_id AND c.sid_prefix = z.sid_prefix AND c.zone_id = z.zone_id
-       WHERE z.project_id = ${project} AND z.sid_prefix = ANY(${prefixes})
+       WHERE z.project_id = ${project} AND z.sid_prefix IN (${sql.join(prefixes.map((x) => sql`${x}`), sql`, `)})
        GROUP BY z.sid_prefix, z.zone_id, h.hits, h.bots, c.trang_thai`)) as unknown as Array<{ sid_prefix: string; zone_id: string; impressions: number; clicks: number; chi: number; hits: number; bots: number; chan: string | null }>;
     for (const z of zs) {
       if (z.chan === 'da_chan' || z.chan === 'bo_qua') continue;

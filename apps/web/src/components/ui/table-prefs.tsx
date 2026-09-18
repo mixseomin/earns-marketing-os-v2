@@ -16,6 +16,7 @@ export interface TablePref {
   s?: { key: string; dir: 'asc' | 'desc' }[];       // sắp xếp (nhiều cột)
   f?: Record<string, { op: string; val: string }>;  // lọc theo từng cột
   v?: 'card' | 'table';                             // chế độ nhìn
+  q?: string;                                       // ô tìm/lọc chung (searchText) — sống qua F5
 }
 
 const Ctx = createContext<Record<string, TablePref>>({});

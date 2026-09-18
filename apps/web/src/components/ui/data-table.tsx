@@ -141,7 +141,24 @@ export function DataTable<T>({
   serverSort, serverFilter,
 }: DataTableProps<T>) {
   const pref = useTablePref(persistKey);   // server đọc cookie sẵn → khởi tạo ĐÚNG ngay lần render đầu
-  const [q, setQ] = useState('');
+  // Ô tìm/lọc chung — persist như sort/lọc-cột (cookie server đọc sẵn + URL để share/F5). Trước đây
+  // useState('') nên F5 xoá sạch ô tìm dù sort/lọc-cột vẫn sống → nhìn ra như "lọc bị reset".
+  const searchUrlKey = persistKey ? `${persistKey}.q` : undefined;
+  const [q, setQ] = useState(() => pref.q ?? '');
+  useEffect(() => {
+    if (!searchUrlKey) return;
+    const fromUrl = readShallowParam(searchUrlKey);
+    if (fromUrl != null) setQ(fromUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchUrlKey]);
+  useEffect(() => {
+    if (!persistKey) return;                         // ghi có trễ: gõ liên tục không đập cookie/URL mỗi phím
+    const t = setTimeout(() => {
+      writeTablePref(persistKey, { q: q || undefined });
+      if (searchUrlKey) writeShallowParam(searchUrlKey, q || null);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [q, persistKey, searchUrlKey]);
 
   // Lọc theo TỪNG CỘT (kiểu Adminer): mỗi cột 1 toán tử (=/</LIKE/REGEXP/IN…) + giá trị, áp trên
   // sortValue của cột. Popup lọc mở từ nút 🔍 hiện khi hover header. Nhớ theo persistKey như sort/cột.

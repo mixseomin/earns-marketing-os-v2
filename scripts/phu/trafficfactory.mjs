@@ -45,7 +45,7 @@ export const dongChi = (r, ngayMacDinh) => ({
 export const prefixCua = (ten) => (/^tf-/i.test(String(ten ?? '')) ? 'trafficfactory_' + String(ten).slice(3) : null);
 export const trangThai = (s) => {
   const t = String(typeof s === 'object' && s ? s.status ?? s.description ?? s.name ?? '' : s ?? '').toLowerCase();
-  return /active|running/.test(t) ? 'chay' : /pause/.test(t) ? 'tam_dung' : /reject|declin|delet|end/.test(t) ? 'ket_thuc' : 'nhap';
+  return /active|running/.test(t) ? 'chay' : /pause/.test(t) ? 'tam_dung' : /reject|declin|delet|ended|finish|complet/.test(t) ? 'ket_thuc' : 'nhap';
 };
 /** result của /campaigns: object theo id (đo 18/09) hoặc mảng — nhận cả hai. */
 export const danhSach = (r) => (Array.isArray(r) ? r : r && typeof r === 'object' ? Object.values(r) : []);

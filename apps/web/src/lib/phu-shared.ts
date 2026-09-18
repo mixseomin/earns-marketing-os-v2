@@ -10,13 +10,13 @@ export type PhuNguon = {
   id: number; key: string; name: string; loai: string; trangThai: string; macroClick: string | null;
   macroChi: string | null; postbackToken: string | null; accountId: number | null; napUsd: number; soDu: number | null; soDuLuc: string | null; ghiChu: string | null;
 };
-export type PhuTieuChi = { chi_toi_da?: number; click_toi_thieu?: number; signup_1k?: number; gia_click_toi_da?: number; thu_chi?: number };
+export type PhuTieuChi = { chi_toi_da?: number; click_toi_thieu?: number; signup_1k?: number; gia_click_toi_da?: number; thu_chi?: number; hit_tren_click?: number };
 export type PhuCamp = {
   id: number; nguonKey: string; ten: string; sidPrefix: string; lander: string | null; target: Record<string, unknown>;
   nganSachNgay: number | null; trangThai: string; batDau: string | null; ghiChu: string | null;
   ketThuc: string | null; nhipNgay: number; tieuChi: PhuTieuChi; keHoach: string | null;
   /** cộng dồn kể từ bat_dau (không theo cửa sổ N ngày) — phán xét dùng số này */
-  tong: { view: number; gate: number; click: number; out: number; signup: number; revenue: number; chi: number };
+  tong: { view: number; gate: number; click: number; out: number; signup: number; revenue: number; chi: number; clickMang: number };
 };
 export type PhuPheu = {
   sidPrefix: string; soPrefix: number; view: number; gate: number; click: number; out: number; signup: number; lead: number; spendCount: number; revenue: number; chi: number;
@@ -58,7 +58,8 @@ export function sidPrefix(sid: string | null | undefined): string {
  *  cho      = chưa đủ click để kết luận, còn tiền + còn hạn
  *  mo_rong  = đạt signup/1k click mục tiêu → mở bậc kế; HOẶC thu/chi ≥ thu_chi khi đã chi ≥ nửa $ thử
  *             (18/09/2026: camp PPS/revshare qua postback CR chỉ về `sale` = revenue, không có signup → phán bằng tiền)
- *  dung     = hết ngân sách thử hoặc quá hạn mà chưa đạt, HOẶC giá click ra offer vượt trần sau ≥100 click
+ *  dung     = hết ngân sách thử hoặc quá hạn mà chưa đạt, HOẶC giá click ra offer vượt trần sau ≥100 click,
+ *             HOẶC (P2 cấp camp, chỉ khi khai hit_tren_click) ≥300 click mạng mà hit /x/ của mình ÷ click mạng < ngưỡng — traffic mua không tới máy mình
  *             (16/09/2026: 363 click/$37 trên revshare = $0,10/click, trần kinh tế ~$0,03 — signup có về cũng không cứu
  *             được giá click, nên phán ngay bằng giá, không đợi đủ click)
  *  di_tiep  = trong ngưỡng, chưa tới hạn
@@ -66,8 +67,9 @@ export function sidPrefix(sid: string | null | undefined): string {
 export function phanXet(c: PhuCamp, today = new Date()): { ma: 'cho' | 'mo_rong' | 'dung' | 'di_tiep' | 'nghi'; lyDo: string; xemLai: string | null } {
   const t = c.tieuChi || {};
   const chiMax = Number(t.chi_toi_da) || 0, clickMin = Number(t.click_toi_thieu) || 0, muc = Number(t.signup_1k) || 0, giaMax = Number(t.gia_click_toi_da) || 0, thuChi = Number(t.thu_chi) || 0;
-  const { click, signup, chi, revenue } = c.tong;
+  const { click, signup, chi, revenue, out, clickMang } = c.tong;
   const roi = chi ? revenue / chi : 0;
+  const htc = Number(t.hit_tren_click) || 0;
   const per1k = click ? (signup / click) * 1000 : 0;
   const giaClick = click ? chi / click : 0;
   const hom = today.toISOString().slice(0, 10);
@@ -84,6 +86,7 @@ export function phanXet(c: PhuCamp, today = new Date()): { ma: 'cho' | 'mo_rong'
   if (c.trangThai !== 'chay') return { ma: 'nghi', lyDo: c.trangThai, xemLai };
   if (thuChi > 0 && chi >= Math.max(5, chiMax / 2) && roi >= thuChi) return { ma: 'mo_rong', lyDo: `thu/chi ${roi.toFixed(2)} ≥ ${thuChi} ($${revenue.toFixed(2)} / $${chi.toFixed(2)})`, xemLai };
   if (muc > 0 && per1k >= muc && click >= Math.max(200, clickMin / 4)) return { ma: 'mo_rong', lyDo: `${per1k.toFixed(1)} signup/1k ≥ mục tiêu ${muc} (${signup}/${click} click)`, xemLai };
+  if (htc > 0 && clickMang >= 300 && out / clickMang < htc) return { ma: 'dung', lyDo: `P2: hit/click ${(out / clickMang * 100).toFixed(0)}% < ${htc * 100}% (${out}/${clickMang}) — traffic không tới máy mình`, xemLai };
   if (giaMax > 0 && click >= 100 && giaClick > giaMax) return { ma: 'dung', lyDo: `$${giaClick.toFixed(3)}/click > trần $${giaMax} (${click} click, $${chi.toFixed(2)})`, xemLai };
   if (hetTien || quaHan) return { ma: 'dung', lyDo: `${hetTien ? `hết $${chiMax} thử` : `quá hạn ${c.ketThuc?.slice(0, 10)}`} · ${signup} signup / ${click} click` + (muc ? ` (< ${muc}/1k)` : '') + (thuChi ? ` · thu/chi ${roi.toFixed(2)} < ${thuChi}` : ''), xemLai };
   if (clickMin > 0 && click < clickMin) return { ma: 'cho', lyDo: `${click}/${clickMin} click · $${chi.toFixed(2)}${chiMax ? `/$${chiMax}` : ''}`, xemLai };
@@ -104,4 +107,19 @@ const cuHon = (iso: string | null, phut: number) => !iso || Date.now() - new Dat
 export function phuDo(d: Pick<PhuData, 'adapters' | 'landers'>) {
   return d.adapters.filter((a) => a.lastOk === false || (a.loai === 'cron' && cuHon(a.lastRun, 24 * 60))).length
     + d.landers.filter((l) => l.trangThai !== 'song' || (l.soMuc != null && cuHon(l.lastSinh, 20))).length;
+}
+
+/** Số một zone gộp mọi ngày: click/imp/chi từ mạng + hit/bot ở cửa /x/ của mình. */
+export type PhuZone = { sidPrefix: string; zoneId: string; site: string | null; impressions: number; clicks: number; chi: number; hits: number; bots: number; chan: { luat: string; lyDo: string; trangThai: string } | null };
+/** Ngưỡng chấm zone — cùng tên mã với bộ luật camp (kệ pop, đơn vị nhóm = zone). Sửa số ở đây, một chỗ. */
+export const NGUONG_ZONE = { K1_chi: 1, K1_click: 20, P2_click: 300, P2_ti_le: 0.7, P3_hit: 500, P3_bot: 0.3 };
+/** Chấm một zone. Hàm thuần: trang, ingest và cron cùng gọi.
+ *  K1 = chi ≥ $1 và ≥20 click mạng mà 0 hit tới máy mình (click giả hoặc đích chết) · P2 = ≥300 click mà hit/click < 70% (skill
+ *  traffic-network-review, bộ đếm 2/1) · P3 = ≥500 hit+bot mà bot > 30% (UA/IP máy, nginx $ra_may_quet). Chưa đủ số = null. */
+export function chamZone(z: Pick<PhuZone, 'impressions' | 'clicks' | 'chi' | 'hits' | 'bots'>, ng = NGUONG_ZONE): { luat: string; lyDo: string } | null {
+  const tong = z.hits + z.bots;
+  if (z.chi >= ng.K1_chi && z.clicks >= ng.K1_click && tong === 0) return { luat: 'K1', lyDo: `$${z.chi.toFixed(2)} · ${z.clicks} click mạng · 0 hit /x/` };
+  if (z.clicks >= ng.P2_click && tong / z.clicks < ng.P2_ti_le) return { luat: 'P2', lyDo: `hit/click ${(tong / z.clicks * 100).toFixed(0)}% < ${ng.P2_ti_le * 100}% (${tong}/${z.clicks})` };
+  if (tong >= ng.P3_hit && z.bots / tong > ng.P3_bot) return { luat: 'P3', lyDo: `bot ${(z.bots / tong * 100).toFixed(0)}% > ${ng.P3_bot * 100}% (${z.bots}/${tong})` };
+  return null;
 }

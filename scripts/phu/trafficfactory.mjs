@@ -49,6 +49,11 @@ export const dongChi = (r, ngayMacDinh) => ({
   clicks: num(r.clicks) || null,
   impressions: num(r.impressions ?? r.views) || null,
 });
+/** Một dòng zone stats của EXADS → dòng phu_zone. Tên cột dự phòng (chốt bằng --raw lần chạy thật đầu). */
+export const dongZone = (r, ngayMacDinh) => ({
+  ngay: String(r.date ?? r.day ?? ngayMacDinh).slice(0, 10), zone_id: String(r.zone_id ?? r.idzone ?? r.zone?.id ?? r.id ?? ''), site: r.site_name ?? r.site?.name ?? r.site_hostname ?? r.hostname ?? undefined,
+  impressions: num(r.impressions ?? r.views), clicks: num(r.clicks), chi_usd: Number(num(r.cost ?? r.amount ?? r.spend).toFixed(4)),
+});
 /** `tf-<nhãn>` → `trafficfactory_<nhãn>`; tên không theo khuôn → null (không vào sổ, đúng luật Bidvertiser). */
 export const prefixCua = (ten, mang = KEY_MANG) => { const t = MANG[mang].tienTo; return String(ten ?? '').toLowerCase().startsWith(t) ? mang + '_' + String(ten).slice(t.length) : null; };
 export const trangThai = (s) => {
@@ -66,16 +71,21 @@ if (KHO) {
   console.assert(prefixCua('exo-pop-latam', 'exoclick') === 'exoclick_pop-latam' && prefixCua('tf-x', 'exoclick') === null);
   console.assert(trangThai({ description: 'Active' }) === 'chay' && trangThai('paused') === 'tam_dung' && trangThai({ status: 'Rejected' }) === 'ket_thuc' && trangThai({ status: 'Pending Approval' }) === 'nhap');
   console.assert(danhSach({ 1: { id: 1 }, 2: { id: 2 } }).length === 2 && danhSach([{ id: 3 }]).length === 1 && danhSach(null).length === 0);
+  const z = dongZone({ zone_id: 4453, site_name: 'xvideos.com', impressions: '12,000', clicks: 31, cost: '0.41' }, '2026-09-19');
+  console.assert(z.zone_id === '4453' && z.impressions === 12000 && z.clicks === 31 && z.chi_usd === 0.41 && z.site === 'xvideos.com', z);
   console.log('kho: map ok');
   process.exit(0);
 }
 if (!KEY) { console.error('thiếu MOS2_EXT_KEY'); process.exit(1); }
 
-const bao = async (ok, note, chi = [], camp = [], nguon = undefined) => {
+const bao = async (ok, note, chi = [], camp = [], nguon = undefined, zone = [], zone_chan_xong = []) => {
   const res = await fetch(`${MOS2}/api/phu/ingest`, { method: 'POST', headers: { authorization: `Bearer ${KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ project: PROJECT, chi, camp, nguon, adapter: { key: M.adapter, name: `${M.name.split(' ')[0]} API v2 EXADS (chi/ngày × camp, balance)`, loai: 'cron', lich: '2h + chốt hôm qua 00:15', ok, note } }) });
-  console.log(new Date().toISOString(), KEY_MANG + ':', res.status, note, await res.text().catch(() => ''));
+    body: JSON.stringify({ project: PROJECT, chi, camp, nguon, zone, zone_chan_xong, adapter: { key: M.adapter, name: `${M.name.split(' ')[0]} API v2 EXADS (chi/ngày × camp, balance, zone)`, loai: 'cron', lich: '2h + chốt hôm qua 00:15', ok, note } }) });
+  const txt = await res.text().catch(() => '');
+  console.log(new Date().toISOString(), KEY_MANG + ':', res.status, note, txt.slice(0, 300));
+  try { return JSON.parse(txt); } catch { return null; }
 };
+
 
 try {
   let token = '';
@@ -113,9 +123,32 @@ try {
     if (!prefix) continue;
     chi.push({ ngay: d.ngay, sid_prefix: prefix, chi_usd: d.chi_usd, clicks: d.clicks, impressions: d.impressions, nguon_du_lieu: M.adapter });
   }
-  await bao(true, `balance $${balance} · ${iso(ngay)} ${chi.map((c) => `${c.sid_prefix.slice(15)} $${c.chi_usd}/${c.clicks ?? 0}c`).join(' · ') || 'chưa có chi'} · ${camp.length} camp · ${tt.join(' · ')}`, chi, camp,
+  // Zone: số mạng theo zone × camp (chỉ camp đang bật hoặc đã từng chi) → MOS2 chấm K1/P2/P3 với hit /x/ → trả zone cần chặn →
+  // chặn ngay bằng API (PUT /campaigns/<id> zones:[{id,type:'blocked'}]) → báo lại. Bot chỉ có thể dò khi ba bộ đếm nằm cạnh nhau.
+  const zone = [];
+  for (const [id, prefix] of theoId) {
+    const c = camps.find((x) => String(x.id) === id);
+    if (!c || (Number(c.status) !== 1 && !chi.some((r) => r.sid_prefix === prefix))) continue;
+    const zs = (await get(`/statistics/a/zone?date_from=${iso(ngay)}&date_to=${iso(ngay)}&campaign_id=${id}&limit=1000`)).result ?? [];
+    if (RAW && zs[0]) console.log('raw zone:', JSON.stringify(zs[0]).slice(0, 600));
+    for (const r of danhSach(zs)) { const z = dongZone(r, iso(ngay)); if (z.zone_id) zone.push({ sid_prefix: prefix, ...z }); }
+  }
+  const kq = await bao(true, `balance $${balance} · ${iso(ngay)} ${chi.map((c) => `${c.sid_prefix.slice(15)} $${c.chi_usd}/${c.clicks ?? 0}c`).join(' · ') || 'chưa có chi'} · ${camp.length} camp · ${zone.length} zone · ${tt.join(' · ')}`, chi, camp,
     { key: KEY_MANG, name: M.name, loai: M.loai, trang_thai: 'hoat_dong', macro_click: '{conversions_tracking}', so_du: Number(balance),
       ghi_chu: `Balance $${balance} (${new Date().toISOString().slice(0, 16)}Z). Tài khoản mikerey887 (vault ${M.vault}). Camp đặt tên ${M.tienTo}<nhãn>; URL ?s=${KEY_MANG}_<nhãn>_{country_iso2}_{conversions_tracking}.` });
+  const chan = Array.isArray(kq?.zone_chan) ? kq.zone_chan : [];
+  if (chan.length) {
+    const theoPrefix = new Map([...theoId].map(([id, p]) => [p, id]));
+    const xong = [];
+    for (const z of chan) {
+      const id = theoPrefix.get(z.sid_prefix);
+      if (!id) continue;
+      const r = await fetch(`${API}/campaigns/${id}`, { method: 'PUT', headers: H, body: JSON.stringify({ zones: [{ id: Number(z.zone_id), type: 'blocked' }] }) });
+      const t = await r.text();
+      xong.push({ sid_prefix: z.sid_prefix, zone_id: z.zone_id, ok: r.ok, ghi_chu: `${z.luat}: ${z.ly_do}${r.ok ? '' : ' · API ' + r.status + ' ' + t.slice(0, 120)}` });
+    }
+    await bao(true, `chặn zone: ${xong.filter((x) => x.ok).length}/${xong.length} (${xong.map((x) => x.zone_id + (x.ok ? '' : '✗')).join(',')})`, [], [], undefined, [], xong);
+  }
 } catch (e) {
   await bao(false, String(e.message).slice(0, 300));
   process.exit(1);

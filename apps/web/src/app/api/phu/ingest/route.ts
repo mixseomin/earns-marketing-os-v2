@@ -6,13 +6,16 @@
 //     camp?: [{nguon_key, ten, sid_prefix, lander?, target?, ngan_sach_ngay?, trang_thai, ghi_chu?}]  ← adapter mạng QC
 //        tự khai camp nó thấy trên tài khoản (Bidvertiser /CAMPAIGNS/), không ai phải gõ tay vào trang,
 //     nguon?: {key, name?, loai?, trang_thai?, macro_click?, nap_usd?, so_du?, ghi_chu?}  ← vá lẻ một nguồn (balance, trạng thái),
+//     zone?: [{sid_prefix, zone_id, ngay, impressions?, clicks?, chi_usd?, site?}]  ← số theo zone của mạng (ExoClick); sau khi ghi,
+//            máy chấm K1/P2/P3 (chamZone) với hit/bot ở /x/ và trả `zone_chan` = zone cần chặn (adapter gọi API mạng chặn),
+//     zone_chan_xong?: [{sid_prefix, zone_id, ok, ghi_chu?}]  ← adapter báo đã chặn / lỗi,
 //     adapter?: {key, name, loai?, lich?, ok, note?} }
 // Mọi thứ upsert/khử trùng — adapter chạy lại cùng khoảng log không nhân đôi số.
 import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../ext/_auth';
-import { sidPrefix } from '@/lib/phu-shared';
+import { sidPrefix, chamZone } from '@/lib/phu-shared';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +23,8 @@ type Ev = { ts: string; loai: string; sid?: string; platform?: string; mang?: st
 type Chi = { ngay: string; sid_prefix: string; chi_usd: number; clicks?: number; impressions?: number; nguon_du_lieu?: string };
 type Ld = { host: string; path?: string; ten: string; mo_ta?: string; dich?: string; last_sinh?: string; so_muc?: number; trang_thai?: string };
 type Cp = { nguon_key: string; ten: string; sid_prefix: string; lander?: string; target?: unknown; ngan_sach_ngay?: number; trang_thai: string; ghi_chu?: string; ket_thuc?: string; nhip_ngay?: number; tieu_chi?: unknown; ke_hoach?: string };
+type Zn = { sid_prefix: string; zone_id: string | number; ngay: string; impressions?: number; clicks?: number; chi_usd?: number; site?: string };
+type Zx = { sid_prefix: string; zone_id: string | number; ok: boolean; ghi_chu?: string };
 type Ng = { key: string; name?: string; loai?: string; trang_thai?: string; macro_click?: string; nap_usd?: number; so_du?: number; ghi_chu?: string };
 
 export async function POST(req: Request) {
@@ -27,7 +32,7 @@ export async function POST(req: Request) {
   if (denied) return denied;
   const db = getDb();
   if (!db) return NextResponse.json({ ok: false, error: 'db' }, { status: 503 });
-  const b = (await req.json()) as { project?: string; events?: Ev[]; chi?: Chi[]; landers?: Ld[]; camp?: Cp[]; nguon?: Ng; adapter?: { key: string; name: string; loai?: string; lich?: string; ok: boolean; note?: string } };
+  const b = (await req.json()) as { project?: string; events?: Ev[]; chi?: Chi[]; landers?: Ld[]; camp?: Cp[]; nguon?: Ng; zone?: Zn[]; zone_chan_xong?: Zx[]; adapter?: { key: string; name: string; loai?: string; lich?: string; ok: boolean; note?: string } };
   const project = String(b.project ?? '').trim();
   if (!project) return NextResponse.json({ ok: false, error: 'thiếu project' }, { status: 400 });
   let ev = 0, chi = 0, ld = 0;
@@ -97,5 +102,45 @@ export async function POST(req: Request) {
       ON CONFLICT (project_id, key) DO UPDATE SET name = EXCLUDED.name, loai = EXCLUDED.loai, lich = COALESCE(EXCLUDED.lich, phu_adapter.lich),
         last_run = now(), last_ok = EXCLUDED.last_ok, last_note = EXCLUDED.last_note`);
   }
-  return NextResponse.json({ ok: true, events_moi: ev, chi, landers: ld, camp: cp });
+  // Zone: ghi số mạng, rồi chấm ngay tại đây (có DB, có hit /x/) — adapter chỉ cần cầm danh sách đi chặn.
+  let zn = 0; const zoneChan: Array<{ sid_prefix: string; zone_id: string; luat: string; ly_do: string }> = [];
+  for (const z of b.zone ?? []) {
+    if (!z.sid_prefix || z.zone_id == null || !z.ngay) continue;
+    await db.execute(sql`
+      INSERT INTO phu_zone (project_id, sid_prefix, zone_id, ngay, impressions, clicks, chi_usd, site)
+      VALUES (${project}, ${z.sid_prefix}, ${String(z.zone_id)}, ${z.ngay}::date, ${Number(z.impressions) || 0}, ${Number(z.clicks) || 0}, ${Number(z.chi_usd) || 0}, ${z.site ?? null})
+      ON CONFLICT (project_id, sid_prefix, zone_id, ngay) DO UPDATE SET impressions = EXCLUDED.impressions, clicks = EXCLUDED.clicks, chi_usd = EXCLUDED.chi_usd,
+        site = COALESCE(EXCLUDED.site, phu_zone.site), updated_at = now()`);
+    zn++;
+  }
+  if (zn) {
+    const prefixes = [...new Set((b.zone ?? []).map((z) => z.sid_prefix))];
+    const zs = (await db.execute(sql`
+      SELECT z.sid_prefix, z.zone_id, SUM(z.impressions)::float8 AS impressions, SUM(z.clicks)::float8 AS clicks, SUM(z.chi_usd)::float8 AS chi,
+             COALESCE(h.hits, 0)::float8 AS hits, COALESCE(h.bots, 0)::float8 AS bots, c.trang_thai AS chan
+        FROM phu_zone z
+        LEFT JOIN (SELECT sid_prefix, raw->>'zone' AS zone_id, COUNT(*) FILTER (WHERE loai = 'out') AS hits, COUNT(*) FILTER (WHERE loai = 'bot') AS bots
+                     FROM phu_su_kien WHERE project_id = ${project} AND nguon_du_lieu = 'log-xmua' GROUP BY 1, 2) h ON h.sid_prefix = z.sid_prefix AND h.zone_id = z.zone_id
+        LEFT JOIN phu_zone_chan c ON c.project_id = z.project_id AND c.sid_prefix = z.sid_prefix AND c.zone_id = z.zone_id
+       WHERE z.project_id = ${project} AND z.sid_prefix = ANY(${prefixes})
+       GROUP BY z.sid_prefix, z.zone_id, h.hits, h.bots, c.trang_thai`)) as unknown as Array<{ sid_prefix: string; zone_id: string; impressions: number; clicks: number; chi: number; hits: number; bots: number; chan: string | null }>;
+    for (const z of zs) {
+      if (z.chan === 'da_chan' || z.chan === 'bo_qua') continue;
+      const kq = chamZone({ impressions: Number(z.impressions), clicks: Number(z.clicks), chi: Number(z.chi), hits: Number(z.hits), bots: Number(z.bots) });
+      if (!kq) continue;
+      await db.execute(sql`
+        INSERT INTO phu_zone_chan (project_id, sid_prefix, zone_id, luat, ly_do, trang_thai)
+        VALUES (${project}, ${z.sid_prefix}, ${z.zone_id}, ${kq.luat}, ${kq.lyDo}, 'de_xuat')
+        ON CONFLICT (project_id, sid_prefix, zone_id) DO UPDATE SET luat = EXCLUDED.luat, ly_do = EXCLUDED.ly_do, ts = now() WHERE phu_zone_chan.trang_thai <> 'da_chan'`);
+      zoneChan.push({ sid_prefix: z.sid_prefix, zone_id: z.zone_id, luat: kq.luat, ly_do: kq.lyDo });
+    }
+  }
+  for (const x of b.zone_chan_xong ?? []) {
+    if (!x.sid_prefix || x.zone_id == null) continue;
+    await db.execute(sql`UPDATE phu_zone_chan SET trang_thai = ${x.ok ? 'da_chan' : 'loi'}, ghi_chu = ${x.ghi_chu ?? null}, ts = now()
+                          WHERE project_id = ${project} AND sid_prefix = ${x.sid_prefix} AND zone_id = ${String(x.zone_id)}`);
+    if (x.ok) await db.execute(sql`INSERT INTO phu_camp_doi (project_id, sid_prefix, truong, cu, moi, nguon, ly_do)
+      VALUES (${project}, ${x.sid_prefix}, 'zone_chan', NULL, ${String(x.zone_id)}, 'may', ${x.ghi_chu ?? 'luật zone'})`);
+  }
+  return NextResponse.json({ ok: true, events_moi: ev, chi, landers: ld, camp: cp, zone: zn, zone_chan: zoneChan });
 }

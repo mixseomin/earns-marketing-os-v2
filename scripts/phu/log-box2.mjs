@@ -37,8 +37,11 @@ let docThem = 0;
 const BV_POSTBACK = 'http://secure.bidvertiser.com/performance/pc.dbm?ver=1.0&AID=15090630&CLICKID=%s&revenue=0';
 const bvcClick = new Set();
 state.bvcDaBan = Array.isArray(state.bvcDaBan) ? state.bvcDaBan : [];
+// /x/ (conf.d/x-mua.conf trên box2): cửa 302 cho traffic MUA (ExoClick pop/native → offer). Khuôn xmua = ts, sid, d, referer,
+// UA, ip, cờ bot nginx (7 cột). BOT KHÔNG BỎ: đó là thứ cần đếm theo zone (luật P3) — ghi loai 'bot', không cộng vào phễu.
+const XMUA = [['chatwhenbored', 'xmua']];
 for (const ten of LOGS) {
-  for (const k of ['clicks', 'loira']) {
+  for (const k of ['clicks', 'loira', ...(XMUA.some(([t]) => t === ten) ? ['xmua'] : [])]) {
     const f = `/var/log/nginx/${ten}-${k}.log`;
     const size = Number(ssh(`stat -c %s ${f} 2>/dev/null || echo 0`).trim());
     const key = `${ten}-${k}`;
@@ -58,6 +61,15 @@ for (const ten of LOGS) {
       const la = k === 'clicks';
       if (c.length < (la ? 5 : 6)) continue;
       const ts = c[0], ua = la ? c[3] : c[4], ip = la ? c[4] : c[5], ref = la ? c[2] : c[3];
+      if (k === 'xmua') {
+        if (IP_THU.has(ip)) continue;
+        const bot = c[6] === '1' || BOT.test(ua);
+        const zone = (c[1] || '').split('_')[2] || '';
+        events.push({ ts, loai: bot ? 'bot' : 'out', sid: c[1] || undefined, platform: /^cb/.test(c[2]) ? 'chaturbate' : /^jm/.test(c[2]) ? 'jerkmate' : /^candy/.test(c[2]) ? 'candy-ai' : c[2],
+          mang: 'exoclick', ma_don: createHash('sha1').update(line).digest('hex').slice(0, 24), nguon_du_lieu: 'log-xmua', raw: { d: c[2], zone, ua: ua.slice(0, 120), ip } });
+        docThem++;
+        continue;
+      }
       if (BOT.test(ua) || IP_THU.has(ip)) continue;
       const host = (ref.match(/^https?:\/\/([^/]+)/) || [])[1] || '';
       if (la) {

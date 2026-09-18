@@ -1,8 +1,12 @@
 'use server';
-import { getPhuCampNhatKy, getPhuNguonCamp } from '@/lib/phu';
+import { getPhuCampNhatKy, getPhuNguonCamp, getPhuZone } from '@/lib/phu';
 export async function docPhuNguonCamp(projectId: string, sidPrefix: string, days: number) {
   await guard();
   return getPhuNguonCamp(projectId, sidPrefix, days);
+}
+export async function docPhuZone(projectId: string, sidPrefix: string) {
+  await guard();
+  return getPhuZone(projectId, sidPrefix);
 }
 
 // Server actions cho trang PHỦ: sửa trạng thái/bước kế của nền tảng, thêm-sửa nguồn traffic,

@@ -7,11 +7,11 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { Drawer, EmptyState, Pager, Panel, Pill, SearchInput, SelectField, TextAreaField, TextField, usePaged } from '@/components/ui';
-import type { PhuCamp, PhuData, PhuNguon, PhuNguonCamp, PhuPlatform } from '@/lib/phu-shared';
+import type { PhuCamp, PhuData, PhuNguon, PhuNguonCamp, PhuPlatform, PhuZone } from '@/lib/phu-shared';
 import type { PhuCampNhatKy } from '@/lib/phu';
 import { PHU_NGUON_TRANG_THAI, PHU_PHAN_XET, PHU_TRANG_THAI, phanXet } from '@/lib/phu-shared';
 const KHAC = '(khác)';
-import { docPhuCampNhatKy, docPhuNguonCamp, luuPhuCamp, luuPhuChi, luuPhuDoiLyDo, luuPhuNguon, luuPhuPlatform } from '@/lib/actions/phu';
+import { docPhuCampNhatKy, docPhuNguonCamp, docPhuZone, luuPhuCamp, luuPhuChi, luuPhuDoiLyDo, luuPhuNguon, luuPhuPlatform } from '@/lib/actions/phu';
 
 const NHOM: Record<string, string> = { cam: 'Cam 18+', ai: 'AI companion', random: 'Random chat', text: 'Text/voice', community: 'Cộng đồng', other: 'Khác' };
 const cell: React.CSSProperties = { padding: '7px 9px', fontSize: 12, borderBottom: '1px solid var(--line)', verticalAlign: 'top' };
@@ -305,8 +305,9 @@ function NhatKyCamp({ c, projectId, onClose }: { c: PhuCamp; projectId: string; 
 // Drill-down: nguồn (srcid/zone) của một camp — cái cần để blacklist. Đọc khi mở, phân trang 50.
 function SoiNguon({ c, projectId, days, onClose }: { c: PhuCamp; projectId: string; days: number; onClose: () => void }) {
   const [rows, setRows] = useState<PhuNguonCamp[] | null>(null);
+  const [zones, setZones] = useState<PhuZone[]>([]);
   const [q, setQ] = useState('');
-  useEffect(() => { docPhuNguonCamp(projectId, c.sidPrefix, days).then(setRows).catch(() => setRows([])); }, [projectId, c.sidPrefix, days]);
+  useEffect(() => { docPhuNguonCamp(projectId, c.sidPrefix, days).then(setRows).catch(() => setRows([])); docPhuZone(projectId, c.sidPrefix).then(setZones).catch(() => setZones([])); }, [projectId, c.sidPrefix, days]);
   const loc = (rows ?? []).filter((r) => !q || r.nguon.includes(q));
   const pg = usePaged(loc, 50);
   const xau = (r: PhuNguonCamp) => r.view >= 50 && r.click === 0 && r.signup === 0;
@@ -333,6 +334,23 @@ function SoiNguon({ c, projectId, days, onClose }: { c: PhuCamp; projectId: stri
           </table>
         )}
         <Pager page={pg.page} pageCount={pg.pageCount} total={pg.total} pageSize={pg.pageSize} onPage={pg.setPage} />
+        {zones.length > 0 && <>
+          <h3 style={{ margin: '10px 0 0', fontSize: 13 }}>Zone (mạng) · {zones.length} · ba bộ đếm: click mạng → hit /x/ → bot · <span style={{ color: 'var(--danger)' }}>{zones.filter((z) => z.chan).length} chạm luật</span></h3>
+          <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>K1 ≥$1 · ≥20 click · 0 hit · P2 ≥300 click mà hit/click &lt; 70% · P3 ≥500 hit mà bot &gt; 30% — máy chặn zone qua API, ghi nhật ký camp</div>
+          <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr><th style={head}>zone</th><th style={head}>Imp</th><th style={head}>Click</th><th style={head}>Chi</th><th style={head}>Hit /x/</th><th style={head}>Bot</th><th style={head}>hit/click</th><th style={head}>Luật</th></tr></thead>
+            <tbody>
+              {zones.map((z) => { const tong = z.hits + z.bots; const tl = z.clicks ? tong / z.clicks : null; return (
+                <tr key={z.zoneId} style={{ color: z.chan ? 'var(--danger)' : undefined }}>
+                  <td style={{ ...cell, ...mono, fontSize: 11 }}>{z.zoneId}{z.site ? <div style={{ color: 'var(--fg-3)', fontSize: 10 }}>{z.site}</div> : null}</td>
+                  <td style={{ ...cell, ...mono }}>{z.impressions}</td><td style={{ ...cell, ...mono }}>{z.clicks}</td><td style={{ ...cell, ...mono }}>{usd(z.chi)}</td>
+                  <td style={{ ...cell, ...mono }}>{z.hits}</td><td style={{ ...cell, ...mono }}>{z.bots}</td>
+                  <td style={{ ...cell, ...mono }}>{tl == null ? '—' : `${(tl * 100).toFixed(0)}%`}</td>
+                  <td style={{ ...cell, fontSize: 11 }} title={z.chan?.lyDo}>{z.chan ? `${z.chan.luat} · ${z.chan.trangThai === 'da_chan' ? 'ĐÃ CHẶN' : z.chan.trangThai === 'loi' ? 'lỗi chặn' : 'đề xuất'}` : ''}</td>
+                </tr>); })}
+            </tbody>
+          </table></div>
+        </>}
       </div>
     </Drawer>
   );
@@ -421,7 +439,7 @@ function SuaCamp({ c, nguon, projectId, onClose }: { c: PhuCamp | null; nguon: P
     bid: str(t.bid), placement: str(t.placement), alias: str(t.alias),
     nganSachNgay: c?.nganSachNgay == null ? '5' : String(c.nganSachNgay), trangThai: c?.trangThai ?? 'nhap',
     ketThuc: c?.ketThuc ? c.ketThuc.slice(0, 10) : new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10), nhipNgay: String(c?.nhipNgay ?? 1),
-    chiToiDa: tc.chi_toi_da == null ? '15' : String(tc.chi_toi_da), clickToiThieu: tc.click_toi_thieu == null ? '300' : String(tc.click_toi_thieu), signup1k: tc.signup_1k == null ? '10' : String(tc.signup_1k), giaClickToiDa: tc.gia_click_toi_da == null ? '0.03' : String(tc.gia_click_toi_da), thuChi: tc.thu_chi == null ? '' : String(tc.thu_chi),
+    chiToiDa: tc.chi_toi_da == null ? '15' : String(tc.chi_toi_da), clickToiThieu: tc.click_toi_thieu == null ? '300' : String(tc.click_toi_thieu), signup1k: tc.signup_1k == null ? '10' : String(tc.signup_1k), giaClickToiDa: tc.gia_click_toi_da == null ? '0.03' : String(tc.gia_click_toi_da), thuChi: tc.thu_chi == null ? '' : String(tc.thu_chi), hitTrenClick: tc.hit_tren_click == null ? '' : String(tc.hit_tren_click),
     keHoach: c?.keHoach ?? '', ghiChu: c?.ghiChu ?? '', lyDo: '',
   });
   const [dirty, setDirty] = useState(false);
@@ -434,7 +452,7 @@ function SuaCamp({ c, nguon, projectId, onClose }: { c: PhuCamp | null; nguon: P
         bid: f.bid.trim() ? Number(f.bid) : undefined, placement: f.placement.trim() || undefined,
         alias: f.alias.split(',').map((x) => x.trim()).filter(Boolean) };
       if (!target.alias.length) delete (target as { alias?: unknown }).alias;
-      const tieuChi = { chi_toi_da: Number(f.chiToiDa) || 0, click_toi_thieu: Number(f.clickToiThieu) || 0, signup_1k: Number(f.signup1k) || 0, gia_click_toi_da: Number(f.giaClickToiDa) || 0, thu_chi: Number(f.thuChi) || 0 };
+      const tieuChi = { chi_toi_da: Number(f.chiToiDa) || 0, click_toi_thieu: Number(f.clickToiThieu) || 0, signup_1k: Number(f.signup1k) || 0, gia_click_toi_da: Number(f.giaClickToiDa) || 0, thu_chi: Number(f.thuChi) || 0, hit_tren_click: Number(f.hitTrenClick) || 0 };
       await luuPhuCamp(projectId, { nguonKey: f.nguonKey, ten: f.ten, sidPrefix: f.sidPrefix, lander: f.lander, target: JSON.stringify(target), nganSachNgay: f.nganSachNgay,
         trangThai: f.trangThai, ghiChu: f.ghiChu, ketThuc: f.ketThuc, nhipNgay: f.nhipNgay, tieuChi: JSON.stringify(tieuChi), keHoach: f.keHoach, lyDo: f.lyDo });
       onClose();
@@ -488,6 +506,7 @@ function SuaCamp({ c, nguon, projectId, onClose }: { c: PhuCamp | null; nguon: P
         <TextField label="Giá 1 click ra offer tối đa (USD)" value={f.giaClickToiDa} onChange={set('giaClickToiDa')} mono hint="≥100 click mà chi/click vượt = DỪNG ngay, không đợi đủ click (revshare cam ~$0,03)" />
         <TextField label="Thu / chi tối thiểu" value={f.thuChi} onChange={set('thuChi')} mono hint="PPS/revshare về sale: đã chi ≥ nửa $ thử mà thu/chi đạt = MỞ RỘNG; trống = không xét" />
       </div>
+      <TextField label="Hit /x/ ÷ click mạng tối thiểu (P2)" value={f.hitTrenClick} onChange={set('hitTrenClick')} mono hint="traffic mua qua cửa /x/: ≥300 click mạng mà tỉ lệ tới máy mình < ngưỡng = DỪNG (bot/click giả); trống = không xét" />
       <TextAreaField label="Kế hoạch sau phán xét" value={f.keHoach} onChange={set('keHoach')} rows={2} hint="đạt → mở gì; không đạt → đổi gì" />
       {c && <TextField label="Lý do lần đổi này" value={f.lyDo} onChange={set('lyDo')} hint="vào nhật ký camp cùng với trước → sau của mọi ô đổi" />}
       <details>

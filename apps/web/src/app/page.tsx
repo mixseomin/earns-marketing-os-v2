@@ -75,7 +75,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               { key: 'phu', label: 'Nền tảng phủ', badge: phu?.platforms.length || undefined },
               { key: 'nguon', label: 'Nguồn traffic', badge: phu?.nguon.filter((x) => x.trangThai === 'hoat_dong').length || undefined },
               { key: 'hatang', label: 'Lander & adapter', badge: hong ? <span style={{ color: 'var(--danger)' }}>{hong} đỏ</span> : undefined },
-              { key: 'luat', label: 'Luật camp', title: 'Bộ luật điều hành camp (be.adfond luat-camp.ts): tham số + luật theo loại camp / chiến lược / camp' },
+              { key: 'luat', label: 'Luật campaign', title: 'Thư viện luật điều hành campaign (be.adfond): kệ theo loại · nhắm · trọng số · tham số theo tầng' },
               { key: 'lenh', label: 'Lệnh MT5', title: 'Live Orders — forward-test mọi strategy (strategy-lab)' },
               { key: 'doanhthu', label: 'Doanh thu', title: 'Lịch tiền mọi nguồn · affiliate · Awin' },
               { key: 'seo', label: 'SEO & sản phẩm', title: 'GSC · Gumroad · SteamSolo' },

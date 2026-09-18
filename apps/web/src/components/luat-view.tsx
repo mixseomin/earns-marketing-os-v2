@@ -1,13 +1,13 @@
 'use client';
-// TAB "LUẬT CAMP" — thư viện luật điều hành campaign theo kệ (chung / search / dsa / video / display /
-// pmax / pop), mỗi luật tự khai NHẮM vào đâu (loại · chiến lược · tài khoản · thị trường · bậc · camp
-// áp thêm · camp trừ · hoặc "nhắm như luật X"), TRỌNG SỐ phân xử khi nhiều luật cùng chạm một đơn vị.
-// Nguồn nằm bên be.adfond (luat-camp.ts + bảng luat / luat_cau_hinh); tab này chỉ là màn sửa qua
+// TAB "LUẬT CAMPAIGN" — thư viện luật điều hành campaign theo kệ (chung / search / dsa / video / display /
+// pmax / pop), mỗi luật tự khai NHẮM vào đâu (loại · chiến lược · tài khoản · thị trường · bậc · campaign
+// áp thêm · campaign trừ · hoặc "nhắm như luật X"), TRỌNG SỐ phân xử khi nhiều luật cùng chạm một đơn vị.
+// Nguồn nằm bên be.adfond (luat-camp.ts + bảng luat / luat_cau_hinh); tab này là màn sửa qua
 // /api/adfond/luat: mở là đọc lại, lưu là gửi sang, adfond kiểm (kiemLuat) rồi mới ghi.
-// Hai góc nhìn, một cơ chế: nhìn từ THƯ VIỆN (luật này nhắm ai) và nhìn từ CAMP (camp này chịu luật nào;
-// "áp thêm"/"trừ" ở đây chính là sửa nham.camp / nham.tru_camp của luật).
+// Chữ trên màn: CHỈ nhãn có dấu (tu_vung.nhan từ adfond — một sổ nhãn, không tự đặt ở đây); mã máy chỉ nằm
+// ở tooltip. Hai góc nhìn, một cơ chế: từ THƯ VIỆN (luật này nhắm ai) và từ CAMPAIGN (campaign này chịu luật nào).
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Collapsible, ConfirmDeleteButton, Drawer, EmptyState, GuardedButton, MultiSelect, Panel, Pill, Segmented, SelectField, SimpleTable, Spinner, TextAreaField, TextField } from '@/components/ui';
+import { Collapsible, ConfirmDeleteButton, Drawer, EmptyState, GuardedButton, MultiSelect, Panel, Pill, Segmented, SelectField, SimpleTable, Spinner, Tabs, TextAreaField, TextField } from '@/components/ui';
 
 type Tang = 'chung' | 'loai' | 'chien_luoc' | 'camp';
 type Op = '>=' | '<=' | '>' | '<';
@@ -20,50 +20,42 @@ type Luat = {
 };
 type DongLuat = Luat & { nguon: 'mac_dinh' | 'nguoi'; nguoi: string | null; cap_nhat: string; khac_mac_dinh: boolean };
 type ThamSo = Record<string, number | string | number[] | null>;
+type NhanThamSo = { ten: string; dv: 'usd' | 'so' | 'ti_le' | 'ngay' | 'chu' | 'danh_sach'; nhom: string; mo_ta: string };
 type DongGhiDe = { tang: Tang; khoa: string; ghi_de: { tham_so?: Partial<ThamSo> }; nguoi: string | null; cap_nhat: string };
 type Camp = { id: number; name: string; loai: string; chien_luoc_id: number | null; tai_khoan_id: number | null; thi_truong: string | null; status: string | null; tran: number | null; ngan_sach: number | null };
 type Du = {
-  tu_vung: { tang: Tang[]; thu_vien: string[]; loai: string[]; pham_vi: string[]; hanh_dong: string[]; hanh_dong_nguoi: string[]; truc: Record<string, string | null>; chi_so: { ma: string; ten: string; nguon: string }[]; tham_so: string[]; mac_dinh_tham_so: ThamSo };
+  tu_vung: {
+    tang: Tang[]; thu_vien: string[]; loai: string[]; pham_vi: string[]; hanh_dong: string[]; hanh_dong_nguoi: string[]; truc: Record<string, string | null>;
+    chi_so: { ma: string; ten: string; nguon: string }[]; tham_so: string[]; mac_dinh_tham_so: ThamSo;
+    nhan: { thu_vien: Record<string, string>; pham_vi: Record<string, string>; hanh_dong: Record<string, string>; gac: Record<string, string>; truc: Record<string, string>; op: Record<string, string>; tham_so: Record<string, NhanThamSo>; nhom_tham_so: Record<string, string>; tang: Record<Tang, string>; loai: Record<string, string> };
+  };
   thu_vien: DongLuat[]; mac_dinh: string[];
   ghi_de: DongGhiDe[];
   chien_luoc: { id: number; ten: string; trang_thai: string | null }[];
   tai_khoan: { id: number; name: string }[];
   camp: Camp[];
-  don_vi: { dv: { loai: string; camp_id?: number | null; chien_luoc_id?: number | null }; tham_so: ThamSo; khop: Record<string, { khop: boolean; vi_sao: string }> } | null;
+  don_vi: { dv: { loai: string; camp_id?: number | null }; tham_so: ThamSo; khop: Record<string, { khop: boolean; vi_sao: string }> } | null;
 };
 
-const TANG_NHAN: Record<Tang, string> = { chung: 'Chung', loai: 'Loại camp', chien_luoc: 'Chiến lược', camp: 'Camp' };
 const mono: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 11 };
 const nho: React.CSSProperties = { fontSize: 11, color: 'var(--fg-3)' };
 const nutNho: React.CSSProperties = { ...nho, cursor: 'pointer', background: 'none', border: '1px solid var(--line)', borderRadius: 6, padding: '2px 8px' };
 const nutChinh: React.CSSProperties = { fontSize: 12, cursor: 'pointer', border: '1px solid var(--fg-2)', background: 'var(--bg-2)', color: 'var(--fg-1)', borderRadius: 6, padding: '4px 12px' };
 const lienKet: React.CSSProperties = { ...nho, cursor: 'pointer', background: 'none', border: 0, textDecoration: 'underline', padding: 0 };
-
-const docDongHo = (l: Luat) => [l.dong_ho ? `D${l.dong_ho.tu ?? 0}${l.dong_ho.den != null ? `–${l.dong_ho.den}` : '+'}` : '', l.lien_tiep ? `${l.lien_tiep} ngày liền` : '', l.sau_luat ? `sau ${l.sau_luat}` : ''].filter(Boolean).join(' · ') || '—';
-const docLam = (l: Luat) => l.muc != null ? `${l.lam} ×${l.muc}` : l.lam;
-const soNguong = (n: number | string, t: ThamSo | null): string => {
-  if (typeof n === 'number' || !t) return String(n);
-  const m = /^\$([a-z_0-9]+)(?:\s*([*+/-])\s*([\d.]+))?$/.exec(n);
-  if (!m) return n;
-  const g = t[m[1] ?? ''];
-  if (typeof g !== 'number') return `${n} (chưa có)`;
-  const k = Number(m[3]);
-  const v = !m[2] ? g : m[2] === '*' ? g * k : m[2] === '/' ? g / k : m[2] === '+' ? g + k : g - k;
-  return `${n}=${+v.toFixed(3)}`;
-};
-const docNham = (n: Nham, du: Du): string[] => {
-  const ra: string[] = [];
-  if (n.theo_luat) ra.push(`như ${n.theo_luat}`);
-  if (n.loai?.length) ra.push(`loại ${n.loai.join('/')}`);
-  if (n.chien_luoc?.length) ra.push(`CL ${n.chien_luoc.map((x) => `#${x}`).join(',')}`);
-  if (n.tai_khoan?.length) ra.push(`TK ${n.tai_khoan.map((x) => du.tai_khoan.find((t) => t.id === x)?.name ?? x).join(',')}`);
-  if (n.thi_truong?.length) ra.push(`TT ${n.thi_truong.join(',')}`);
-  if (n.bac?.length) ra.push(`bậc ${n.bac.join(',')}`);
-  if (n.camp?.length) ra.push(`+${n.camp.length} camp`);
-  if (n.tru_camp?.length) ra.push(`−${n.tru_camp.length} camp`);
-  return ra;
-};
+const vung: React.CSSProperties = { border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px', marginTop: 10 };
+const tieuDeVung: React.CSSProperties = { ...nho, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 };
 const soList = (s: string) => s.split(/[ ,]+/).map(Number).filter((x) => Number.isFinite(x));
+
+/** Số hiện theo đơn vị: tiền "$0,30", tỉ lệ "55%", ngày "30 ngày". */
+function hienSo(v: unknown, dv: NhanThamSo['dv']): string {
+  if (v == null) return 'chưa biết';
+  if (Array.isArray(v)) return v.map((x) => ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][x] ?? x).join(' ');
+  if (typeof v !== 'number') return String(v);
+  if (dv === 'usd') return `$${v.toFixed(2)}`;
+  if (dv === 'ti_le') return `${+(v * 100).toFixed(2)}%`;
+  if (dv === 'ngay') return `${v} ngày`;
+  return String(v);
+}
 
 export function LuatView() {
   const [du, setDu] = useState<Du | null>(null);
@@ -72,16 +64,14 @@ export function LuatView() {
   const [chiKhop, setChiKhop] = useState(false);
   const [campId, setCampId] = useState<number | null>(null);
   const [sua, setSua] = useState<{ goc: string; l: Luat; moi: boolean } | null>(null);
-  /* tham số tầng đang sửa */
   const [tang, setTang] = useState<Tang>('camp');
   const [tsNhap, setTsNhap] = useState<Partial<ThamSo>>({});
   const [tsGoc, setTsGoc] = useState<Partial<ThamSo>>({});
   const [dangLuu, setDangLuu] = useState(false);
 
-  const tai = useCallback(async (c: number | null, loai?: string) => {
+  const tai = useCallback(async (c: number | null) => {
     setLoi('');
-    const qs = c != null ? `?camp=${c}` : loai ? `?loai=${loai}` : '';
-    const r = await fetch(`/api/adfond/luat${qs}`, { cache: 'no-store' });
+    const r = await fetch(`/api/adfond/luat${c != null ? `?camp=${c}` : ''}`, { cache: 'no-store' });
     const j = (await r.json().catch(() => null)) as (Du & { error?: string }) | null;
     if (!r.ok || !j) { setLoi(j?.error || `adfond trả ${r.status}`); return; }
     setDu(j);
@@ -114,22 +104,56 @@ export function LuatView() {
   if (!du && !loi) return <div style={{ padding: 20 }}><Spinner /></div>;
   if (!du) return <EmptyState icon="⚖" title="Không đọc được bộ luật từ be.adfond" description={loi} />;
 
+  const N = du.tu_vung.nhan;
+  const tenChiSo = (ma: string) => du.tu_vung.chi_so.find((c) => c.ma === ma)?.ten ?? ma;
+  const tenCl = (id: number) => { const c = du.chien_luoc.find((x) => x.id === id); return c ? `#${c.id} ${c.ten}` : `#${id}`; };
+  const tenTk = (id: number) => du.tai_khoan.find((t) => t.id === id)?.name ?? `#${id}`;
+  const tenCamp = (id: number) => du.camp.find((c) => c.id === id)?.name ?? `#${id}`;
+  const tsHieuLuc = du.don_vi?.tham_so ?? null;
+  /** Ngưỡng: số → số; `$tran*1.3` → "Trần CPC đang đặt ×1,3 (= $0,39)". */
+  const docNguong = (n: number | string): string => {
+    if (typeof n === 'number') return String(n);
+    const m = /^\$([a-z_0-9]+)(?:\s*([*+/-])\s*([\d.]+))?$/.exec(n);
+    if (!m) return n;
+    const k = m[1] ?? ''; const nhan = N.tham_so[k];
+    const g = tsHieuLuc?.[k];
+    const phep = m[2] ? ` ${m[2] === '*' ? '×' : m[2] === '/' ? '÷' : m[2]}${m[3]}` : '';
+    let so = '';
+    if (typeof g === 'number') { const kk = Number(m[3]); const v = !m[2] ? g : m[2] === '*' ? g * kk : m[2] === '/' ? g / kk : m[2] === '+' ? g + kk : g - kk; so = ` (= ${hienSo(v, nhan?.dv ?? 'so')})`; }
+    else if (tsHieuLuc) so = ' (chưa có số)';
+    return `${nhan?.ten ?? k}${phep}${so}`;
+  };
+  const docDk = (d: DieuKien) => `${tenChiSo(d.chi_so)} ${N.op[d.op] ?? d.op} ${docNguong(d.nguong)}`;
+  const docKhiNao = (l: Luat) => [l.dong_ho ? `ngày ${l.dong_ho.tu ?? 0}${l.dong_ho.den != null ? `–${l.dong_ho.den}` : ' trở đi'}` : '', l.lien_tiep ? `${l.lien_tiep} ngày liền` : '', l.sau_luat ? `sau khi ${l.sau_luat} chạm` : ''].filter(Boolean).join(' · ') || 'mọi ngày';
+  const docLam = (l: Luat) => `${N.hanh_dong[l.lam] ?? l.lam}${l.muc != null ? (l.lam.endsWith('bac') ? ` → bậc ${l.muc}` : ` ×${l.muc}`) : ''}`;
+  const docNham = (n: Nham): string[] => {
+    const ra: string[] = [];
+    if (n.theo_luat) ra.push(`như luật ${n.theo_luat}`);
+    if (n.loai?.length) ra.push(`loại ${n.loai.map((x) => N.loai[x] ?? x).join(', ')}`);
+    if (n.chien_luoc?.length) ra.push(`chiến lược ${n.chien_luoc.map((x) => `#${x}`).join(', ')}`);
+    if (n.tai_khoan?.length) ra.push(`tài khoản ${n.tai_khoan.map(tenTk).join(', ')}`);
+    if (n.thi_truong?.length) ra.push(`thị trường ${n.thi_truong.join(', ')}`);
+    if (n.bac?.length) ra.push(`bậc ${n.bac.join(', ')}`);
+    if (n.camp?.length) ra.push(`áp thêm ${n.camp.length} campaign`);
+    if (n.tru_camp?.length) ra.push(`trừ ${n.tru_camp.length} campaign`);
+    return ra;
+  };
+
   const khop = du.don_vi?.khop ?? {};
   const bang = du.thu_vien.filter((l) => l.thu_vien === ke).filter((l) => !chiKhop || khop[l.ma]?.khop);
   const demKe = (k: string) => du.thu_vien.filter((l) => l.thu_vien === k).length;
   const mauMoi = (): Luat => ({ ma: '', ten: '', thu_vien: ke, pham_vi: 'nhom', nham: {}, trong_so: 50, bat: true, khi: [{ chi_so: 'click_ads', op: '>=', nguong: 10 }], lam: 'canh_bao', gac: 'may', vi_sao: '' });
-  const tsHieuLuc = du.don_vi?.tham_so ?? null;
   const dongTang = du.ghi_de.find((x) => x.tang === tang && x.khoa === khoaTang);
-
   const datThamSo = (k: string, raw: string) => {
     const ts: Partial<ThamSo> = { ...tsNhap };
     if (raw.trim() === '') delete ts[k];
-    else if (k === 'ngay_mo_mau') ts[k] = soList(raw);
-    else if (k === 'mo_hinh') ts[k] = raw.trim();
+    else if (N.tham_so[k]?.dv === 'danh_sach') ts[k] = soList(raw);
+    else if (N.tham_so[k]?.dv === 'chu') ts[k] = raw.trim();
     else if (/^null$/i.test(raw.trim())) ts[k] = null;
     else { const n = Number(raw); if (Number.isFinite(n)) ts[k] = n; else return; }
     setTsNhap(ts);
   };
+  const nhomThamSo = Object.entries(N.nhom_tham_so).map(([k, ten]) => ({ k, ten, keys: du.tu_vung.tham_so.filter((p) => N.tham_so[p]?.nhom === k) }));
 
   return (
     <div style={{ display: 'grid', gap: 14 }}>
@@ -137,127 +161,158 @@ export function LuatView() {
 
       <Panel title="Thư viện luật" subtitle="// kệ = chỗ xếp · Nhắm = áp vào đâu · Trọng số = ai thắng khi đá nhau (hoà thì đi xuống thắng)"
         actions={<span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-          {du.don_vi?.dv.camp_id != null && <label style={{ ...nho, display: 'inline-flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={chiKhop} onChange={(e) => setChiKhop(e.target.checked)} /> chỉ luật khớp camp đang xem</label>}
-          <button onClick={() => setSua({ goc: '', l: mauMoi(), moi: true })} style={nutNho}>+ Luật mới vào kệ {ke}</button>
+          {camp && <label style={{ ...nho, display: 'inline-flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={chiKhop} onChange={(e) => setChiKhop(e.target.checked)} /> chỉ luật khớp campaign đang xem</label>}
+          <button onClick={() => setSua({ goc: '', l: mauMoi(), moi: true })} style={nutNho}>+ Luật mới vào kệ {N.thu_vien[ke] ?? ke}</button>
         </span>}>
-        <Segmented options={du.tu_vung.thu_vien.map((k) => ({ value: k, label: `${k} (${demKe(k)})` }))} value={ke} onChange={setKe} style={{ marginBottom: 10 }} />
-        {bang.length === 0 ? <EmptyState icon="⚖" title={chiKhop ? 'Không luật nào ở kệ này khớp camp đang xem' : 'Kệ trống'} compact /> : (
+        <Segmented options={du.tu_vung.thu_vien.map((k) => ({ value: k, label: `${N.thu_vien[k] ?? k} (${demKe(k)})` }))} value={ke} onChange={setKe} style={{ marginBottom: 10 }} />
+        {bang.length === 0 ? <EmptyState icon="⚖" title={chiKhop ? 'Không luật nào ở kệ này khớp campaign đang xem' : 'Kệ trống'} compact /> : (
           <SimpleTable rows={bang} getRowKey={(l) => l.ma} columns={[
             { key: 'bat', header: 'Bật', width: 36, cell: (l) => <input type="checkbox" checked={l.bat} onChange={(e) => void luuLuat({ ...l, bat: e.target.checked })} title={l.bat ? 'đang bật' : 'đang tắt — không áp vào đâu'} /> },
-            { key: 'ma', header: 'Mã', cell: (l) => <button onClick={() => setSua({ goc: JSON.stringify(l), l: structuredClone(l), moi: false })} style={{ ...lienKet, ...mono, textDecoration: l.bat ? 'underline' : 'line-through' }}>{l.ma}</button> },
-            { key: 'ten', header: 'Luật', cell: (l) => <span title={l.vi_sao} style={{ color: l.bat ? undefined : 'var(--fg-3)' }}>{l.ten}</span> },
-            { key: 'pv', header: 'Phạm vi', cell: (l) => <span style={mono}>{l.pham_vi}</span> },
-            { key: 'dh', header: 'Khi nào', cell: (l) => <span style={mono}>{docDongHo(l)}</span> },
-            { key: 'khi', header: 'Điều kiện', cell: (l) => <span style={mono}>{l.khi.map((d) => `${d.chi_so} ${d.op} ${soNguong(d.nguong, tsHieuLuc)}`).join(' & ')}{l.tru?.length ? ` · trừ ${l.tru.map((d) => `${d.chi_so} ${d.op} ${d.nguong}`).join(' | ')}` : ''}</span> },
-            { key: 'lam', header: 'Làm', cell: (l) => <span style={mono}>{docLam(l)}</span> },
-            { key: 'gac', header: 'Gác', width: 56, cell: (l) => <Pill color={l.gac === 'nguoi' ? 'var(--warn, #d9a441)' : 'var(--fg-3)'} label={l.gac === 'nguoi' ? 'người' : 'máy'} size="sm" /> },
-            { key: 'ts', header: 'Trọng số', align: 'right', width: 60, cell: (l) => <span style={mono}>{l.trong_so}</span> },
-            { key: 'nham', header: 'Nhắm', cell: (l) => { const c = docNham(l.nham, du); return <span style={{ ...mono, color: c.length ? undefined : 'var(--fg-3)' }}>{c.length ? c.join(' · ') : l.thu_vien === 'chung' ? 'mọi đơn vị' : `mọi ${l.thu_vien}`}</span>; } },
-            ...(du.don_vi ? [{ key: 'khop', header: camp ? 'Camp đang xem' : `Loại ${du.don_vi.dv.loai}`, cell: (l: DongLuat) => { const k = khop[l.ma]; return <span style={{ ...nho, color: k?.khop ? 'var(--ok, #4caf50)' : 'var(--fg-3)' }}>{k?.khop ? '✓ ' : '— '}{k?.vi_sao}</span>; } }] : []),
-            { key: 'nguon', header: 'Nguồn', cell: (l) => <span style={nho}>{l.nguon === 'nguoi' ? `người · ${l.nguoi ?? '?'}` : l.khac_mac_dinh ? `mặc định, đã sửa · ${l.nguoi ?? '?'}` : 'mặc định'}</span> },
+            { key: 'ten', header: 'Luật', cell: (l) => (
+              <button onClick={() => setSua({ goc: JSON.stringify(l), l: structuredClone(l), moi: false })} title={`mã ${l.ma} · ${l.vi_sao}`} style={{ ...lienKet, fontSize: 12, textAlign: 'left', color: l.bat ? 'var(--fg-1)' : 'var(--fg-3)', textDecoration: l.bat ? 'underline' : 'line-through' }}>{l.ten}</button>
+            ) },
+            { key: 'pv', header: 'Phạm vi', cell: (l) => <span style={{ fontSize: 12 }}>{N.pham_vi[l.pham_vi] ?? l.pham_vi}</span> },
+            { key: 'dh', header: 'Khi nào', cell: (l) => <span style={{ fontSize: 12 }}>{docKhiNao(l)}</span> },
+            { key: 'khi', header: 'Điều kiện', cell: (l) => <span style={{ fontSize: 12 }}>{l.khi.map(docDk).join(' và ')}{l.tru?.length ? <span style={nho}> · trừ khi {l.tru.map(docDk).join(' hoặc ')}</span> : null}</span> },
+            { key: 'lam', header: 'Làm', cell: (l) => <span style={{ fontSize: 12 }}>{docLam(l)}</span> },
+            { key: 'gac', header: 'Gác', width: 90, cell: (l) => <Pill color={l.gac === 'nguoi' ? 'var(--warn, #d9a441)' : 'var(--fg-3)'} label={N.gac[l.gac] ?? l.gac} size="sm" uppercase={false} mono={false} /> },
+            { key: 'ts', header: 'Trọng số', align: 'right', width: 64, cell: (l) => <span style={mono}>{l.trong_so}</span> },
+            { key: 'nham', header: 'Nhắm', cell: (l) => { const c = docNham(l.nham); return <span style={{ fontSize: 12, color: c.length ? undefined : 'var(--fg-3)' }}>{c.length ? c.join(' · ') : l.thu_vien === 'chung' ? 'mọi đơn vị' : `mọi campaign ${N.thu_vien[l.thu_vien] ?? l.thu_vien}`}</span>; } },
+            ...(camp ? [{ key: 'khop', header: 'Campaign đang xem', cell: (l: DongLuat) => { const k = khop[l.ma]; return <span style={{ ...nho, color: k?.khop ? 'var(--ok, #4caf50)' : 'var(--fg-3)' }}>{k?.khop ? '✓ ' : '— '}{k?.vi_sao}</span>; } }] : []),
+            { key: 'nguon', header: 'Nguồn', cell: (l) => <span style={nho}>{l.nguon === 'nguoi' ? `người tạo · ${l.nguoi ?? '?'}` : l.khac_mac_dinh ? `mặc định, đã sửa · ${l.nguoi ?? '?'}` : 'mặc định'}</span> },
           ]} />
         )}
       </Panel>
 
-      <Panel title="Áp vào camp" subtitle="// nhìn từ phía một camp: luật nào đang chịu, vì sao; áp thêm / trừ = sửa nhắm của luật đó"
+      <Panel title="Áp vào campaign" subtitle="// nhìn từ phía một campaign: luật nào đang chịu, vì sao; áp thêm / trừ = sửa nhắm của luật đó"
         actions={<SelectField label="" size="sm" value={campId ?? ''} onChange={(e) => setCampId(Number(e.target.value))} style={{ minWidth: 360 }}>
-          {du.chien_luoc.map((cl) => { const cs = du.camp.filter((c) => c.chien_luoc_id === cl.id); return cs.length ? <optgroup key={cl.id} label={`#${cl.id} ${cl.ten}`}>{cs.map((c) => <option key={c.id} value={c.id}>{c.name} · {c.loai} · {c.status}</option>)}</optgroup> : null; })}
-          <optgroup label="Không gắn chiến lược">{du.camp.filter((c) => c.chien_luoc_id == null).map((c) => <option key={c.id} value={c.id}>{c.name} · {c.loai} · {c.status}</option>)}</optgroup>
+          {du.chien_luoc.map((cl) => { const cs = du.camp.filter((c) => c.chien_luoc_id === cl.id); return cs.length ? <optgroup key={cl.id} label={`#${cl.id} ${cl.ten}`}>{cs.map((c) => <option key={c.id} value={c.id}>{c.name} · {N.loai[c.loai] ?? c.loai} · {c.status}</option>)}</optgroup> : null; })}
+          <optgroup label="Không gắn chiến lược">{du.camp.filter((c) => c.chien_luoc_id == null).map((c) => <option key={c.id} value={c.id}>{c.name} · {N.loai[c.loai] ?? c.loai} · {c.status}</option>)}</optgroup>
         </SelectField>}>
         {camp && du.don_vi ? (
           <>
             <div style={{ ...nho, marginBottom: 8 }}>
-              <b style={{ color: 'var(--fg-1)' }}>{camp.name}</b> · loại <b>{camp.loai}</b> · chiến lược {camp.chien_luoc_id != null ? `#${camp.chien_luoc_id}` : '—'} · tài khoản {du.tai_khoan.find((t) => t.id === camp.tai_khoan_id)?.name ?? '—'} · thị trường {camp.thi_truong ?? '—'} · trần ${camp.tran ?? '—'} · ngân sách ${camp.ngan_sach ?? '—'}
+              <b style={{ color: 'var(--fg-1)' }}>{camp.name}</b> · loại <b>{N.loai[camp.loai] ?? camp.loai}</b> · chiến lược {camp.chien_luoc_id != null ? tenCl(camp.chien_luoc_id) : '—'} · tài khoản {camp.tai_khoan_id != null ? tenTk(camp.tai_khoan_id) : '—'} · thị trường {camp.thi_truong ?? '—'} · trần CPC {camp.tran != null ? hienSo(camp.tran, 'usd') : '—'} · ngân sách ngày {camp.ngan_sach != null ? hienSo(camp.ngan_sach, 'usd') : '—'}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 4 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 4 }}>
               {du.thu_vien.map((l) => {
                 const k = khop[l.ma];
                 const apThemRoi = l.nham.camp?.includes(camp.id);
                 const truRoi = l.nham.tru_camp?.includes(camp.id);
                 return (
                   <div key={l.ma} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '3px 6px', borderRadius: 6, background: k?.khop ? 'var(--bg-2)' : 'transparent' }}>
-                    <span style={{ ...mono, width: 64, color: k?.khop ? 'var(--fg-1)' : 'var(--fg-3)' }}>{k?.khop ? '✓' : '—'} {l.ma}</span>
-                    <span style={{ fontSize: 12, flex: 1, color: k?.khop ? undefined : 'var(--fg-3)' }} title={l.vi_sao}>{l.ten} <span style={nho}>· {k?.vi_sao}</span></span>
-                    <span style={mono}>{l.trong_so}</span>
+                    <span style={{ width: 14, color: k?.khop ? 'var(--ok, #4caf50)' : 'var(--fg-3)' }}>{k?.khop ? '✓' : '—'}</span>
+                    <span style={{ fontSize: 12, flex: 1, color: k?.khop ? undefined : 'var(--fg-3)' }} title={`mã ${l.ma} · ${l.vi_sao}`}>{l.ten} <span style={nho}>· {k?.vi_sao}</span></span>
+                    <span style={mono} title="trọng số">{l.trong_so}</span>
                     {apThemRoi || truRoi
                       ? <button onClick={() => void goBo(l, camp.id)} style={lienKet}>gỡ {apThemRoi ? 'áp thêm' : 'trừ'}</button>
                       : k?.khop
-                        ? <button onClick={() => void truCamp(l, camp.id)} style={lienKet}>trừ camp này</button>
-                        : l.bat && <button onClick={() => void apThem(l, camp.id)} style={lienKet}>áp cho camp này</button>}
+                        ? <button onClick={() => void truCamp(l, camp.id)} style={lienKet}>trừ campaign này</button>
+                        : l.bat && <button onClick={() => void apThem(l, camp.id)} style={lienKet}>áp cho campaign này</button>}
                   </div>
                 );
               })}
             </div>
           </>
-        ) : <EmptyState icon="🎯" title="Chọn một camp" compact />}
+        ) : <EmptyState icon="🎯" title="Chọn một campaign" compact />}
       </Panel>
 
-      <Panel title="Tham số" subtitle="// bốn tầng đè nhau: chung ← loại ← chiến lược ← (trần + ngân sách thật của camp) ← camp · ô trống = kế thừa"
+      <Panel title="Tham số" subtitle="// bốn tầng đè nhau: chung ← loại ← chiến lược ← (trần + ngân sách thật của campaign) ← campaign · ô trống = kế thừa, số mờ bên trong là giá trị đang hiệu lực"
         actions={<span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-          <Segmented size="xs" options={du.tu_vung.tang.map((t) => ({ value: t, label: `${TANG_NHAN[t]}${t === 'chung' ? '' : ` ${khoaTang}`}` }))} value={tang} onChange={setTang} />
+          <Segmented size="xs" options={du.tu_vung.tang.map((t) => ({ value: t, label: t === 'chung' ? N.tang.chung : t === 'loai' ? `${N.tang.loai}: ${N.loai[khoaTang] ?? khoaTang}` : t === 'chien_luoc' ? `${N.tang.chien_luoc} #${khoaTang}` : `${N.tang.camp}: ${camp?.name ?? ''}` }))} value={tang} onChange={setTang} />
           {dongTang && <span style={nho}>đã đè · {dongTang.nguoi ?? '?'} · {dongTang.cap_nhat.slice(0, 16)}</span>}
           {dongTang && <ConfirmDeleteButton onDelete={() => void goi('DELETE', { tang, khoa: khoaTang })} labelIdle="Xoá tầng này" labelArmed="Về tầng trên?" />}
           <GuardedButton reason={!tsDirty ? 'Chưa sửa gì' : dangLuu ? 'Đang lưu…' : !khoaTang ? 'Chưa có khoá tầng' : null} onClick={() => void goi('PUT', { tang, khoa: khoaTang, tham_so: tsNhap })} style={nutChinh}>Lưu tham số</GuardedButton>
         </span>}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
-          {du.tu_vung.tham_so.map((k) => {
-            const v = tsNhap[k];
-            const kt = tsHieuLuc?.[k] ?? du.tu_vung.mac_dinh_tham_so[k];
-            const hien = v === undefined ? '' : v === null ? 'null' : Array.isArray(v) ? v.join(' ') : String(v);
-            return <TextField key={k} label={k} size="sm" mono value={hien} placeholder={kt == null ? 'null' : Array.isArray(kt) ? kt.join(' ') : String(kt)}
-              onChange={(e) => datThamSo(k, e.target.value)} style={v !== undefined ? { borderColor: 'var(--fg-2)' } : undefined} />;
-          })}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
+          {nhomThamSo.map((g) => (
+            <div key={g.k} style={vung}>
+              <div style={tieuDeVung}>{g.ten}</div>
+              <div style={{ display: 'grid', gap: 6 }}>
+                {g.keys.map((k) => {
+                  const nhan = N.tham_so[k]!;
+                  const v = tsNhap[k];
+                  const kt = tsHieuLuc?.[k] ?? du.tu_vung.mac_dinh_tham_so[k];
+                  const hien = v === undefined ? '' : v === null ? 'null' : Array.isArray(v) ? v.join(' ') : String(v);
+                  return <TextField key={k} label={nhan.ten} labelTooltip={`mã ${k}${nhan.mo_ta ? ` · ${nhan.mo_ta}` : ''}`} size="sm" mono value={hien}
+                    placeholder={kt == null ? 'chưa biết' : Array.isArray(kt) ? kt.join(' ') : String(kt)}
+                    hint={v === undefined ? `đang hiệu lực: ${hienSo(kt, nhan.dv)}` : 'đè tại tầng này'}
+                    onChange={(e) => datThamSo(k, e.target.value)} style={v !== undefined ? { borderColor: 'var(--fg-2)' } : undefined} />;
+                })}
+              </div>
+            </div>
+          ))}
         </div>
         {tsHieuLuc && (
-          <div style={{ ...nho, marginTop: 8 }}>
-            Hiệu lực cho camp đang xem: CPC hoà vốn = {(() => { const a = tsHieuLuc.aov, b = tsHieuLuc.bien, c = tsHieuLuc.cvr; return typeof a === 'number' && typeof b === 'number' && typeof c === 'number' ? `$${(a * b * c).toFixed(2)}` : 'chưa đủ vế'; })()}
-            {' · '}trần ${String(tsHieuLuc.tran)} · ngân sách {tsHieuLuc.ngan_sach == null ? 'chưa khai' : `$${tsHieuLuc.ngan_sach}`} · mô hình {String(tsHieuLuc.mo_hinh)}
+          <div style={{ ...nho, marginTop: 10 }}>
+            Đang hiệu lực cho campaign đang xem: CPC hoà vốn = {(() => { const a = tsHieuLuc.aov, b = tsHieuLuc.bien, c = tsHieuLuc.cvr; return typeof a === 'number' && typeof b === 'number' && typeof c === 'number' ? hienSo(a * b * c, 'usd') : 'chưa đủ vế (AOV × biên × tỉ lệ mua)'; })()}
+            {' · '}trần CPC {hienSo(tsHieuLuc.tran, 'usd')} · ngân sách ngày {tsHieuLuc.ngan_sach == null ? 'chưa khai' : hienSo(tsHieuLuc.ngan_sach, 'usd')} · mô hình {String(tsHieuLuc.mo_hinh)}
           </div>
         )}
       </Panel>
 
       <Collapsible title="Từ vựng — chỉ số, hành động, trục xung đột" hint="thứ luật được phép nhắc tới; chỉ số chưa cấp từ kho thì luật dùng nó treo, không sai">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 11 }}>
-          <div>{du.tu_vung.chi_so.map((c) => <div key={c.ma} style={mono}><b>{c.ma}</b> · {c.ten} <span style={nho}>← {c.nguon}</span></div>)}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 12 }}>
           <div>
-            <div style={nho}>Máy tự làm: {du.tu_vung.hanh_dong.filter((h) => !du.tu_vung.hanh_dong_nguoi.includes(h)).join(', ')}</div>
-            <div style={{ ...nho, marginTop: 4 }}>Người quyết (máy chỉ đề xuất): {du.tu_vung.hanh_dong_nguoi.join(', ')}</div>
-            <div style={{ ...nho, marginTop: 8 }}>Trục xung đột: {Object.entries(du.tu_vung.truc).filter(([, t]) => t).map(([h, t]) => `${h}→${t}`).join(' · ')}. Tạm dừng / đóng SP đá mọi hành động đổi bid, tiền, bậc, mẫu.</div>
-            <div style={{ ...nho, marginTop: 8 }}>Ngưỡng: số, <code>$tham_so</code>, <code>$tham_so*1.3</code>. <code>dong_ho</code> = ngày trọn vẹn từ lúc bật. <code>lien_tiep</code> = n ngày liền. <code>sau_luat</code> = chỉ chạm nếu luật kia đã chạm.</div>
+            <div style={tieuDeVung}>Chỉ số</div>
+            {du.tu_vung.chi_so.map((c) => <div key={c.ma} title={`mã ${c.ma}`}><b>{c.ten}</b> <span style={nho}>← {c.nguon}</span></div>)}
+          </div>
+          <div>
+            <div style={tieuDeVung}>Hành động</div>
+            <div>Máy tự làm: {du.tu_vung.hanh_dong.filter((h) => !du.tu_vung.hanh_dong_nguoi.includes(h)).map((h) => N.hanh_dong[h] ?? h).join(', ')}</div>
+            <div style={{ marginTop: 4 }}>Người quyết (máy chỉ đề xuất): {du.tu_vung.hanh_dong_nguoi.map((h) => N.hanh_dong[h] ?? h).join(', ')}</div>
+            <div style={{ ...tieuDeVung, marginTop: 10 }}>Trục xung đột</div>
+            <div>{Object.entries(N.truc).map(([t, ten]) => `${ten}: ${Object.entries(du.tu_vung.truc).filter(([, x]) => x === t).map(([h]) => N.hanh_dong[h] ?? h).join(' / ')}`).join(' · ')}. Tạm dừng / đóng sản phẩm đá mọi hành động đổi bid, tiền, bậc, mẩu.</div>
           </div>
         </div>
       </Collapsible>
 
       {sua && <SuaLuat du={du} goc={sua.goc} luat={sua.l} moi={sua.moi} dangLuu={dangLuu} onClose={() => setSua(null)} onSave={luuLuat}
-        onVeMacDinh={async (ma) => { if (await goi('POST', { ma, ve_mac_dinh: true })) setSua(null); }} />}
+        onVeMacDinh={async (ma) => { if (await goi('POST', { ma, ve_mac_dinh: true })) setSua(null); }} docNguong={docNguong} />}
     </div>
   );
 }
 
-/* ── Drawer sửa một luật ── */
-function SuaLuat({ du, goc, luat, moi, dangLuu, onClose, onSave, onVeMacDinh }: {
-  du: Du; goc: string; luat: Luat; moi: boolean; dangLuu: boolean; onClose: () => void; onSave: (l: Luat) => void; onVeMacDinh: (ma: string) => void;
+/* ── Drawer sửa một luật — bốn tab: Chung · Khi nào & điều kiện · Hành động · Nhắm ── */
+type TabSua = 'chung' | 'dieu_kien' | 'hanh_dong' | 'nham';
+function SuaLuat({ du, goc, luat, moi, dangLuu, onClose, onSave, onVeMacDinh, docNguong }: {
+  du: Du; goc: string; luat: Luat; moi: boolean; dangLuu: boolean; onClose: () => void; onSave: (l: Luat) => void; onVeMacDinh: (ma: string) => void; docNguong: (n: number | string) => string;
 }) {
+  const N = du.tu_vung.nhan;
   const [l, setL] = useState<Luat>(luat);
+  const [tab, setTab] = useState<TabSua>('chung');
   const dirty = JSON.stringify(l) !== goc;
   const dat = <K extends keyof Luat>(k: K, v: Luat[K]) => setL({ ...l, [k]: v });
   const datNham = <K extends keyof Nham>(k: K, v: Nham[K]) => setL({ ...l, nham: { ...l.nham, [k]: v } });
   const laNguoi = du.tu_vung.hanh_dong_nguoi.includes(l.lam);
-  const dk = (key: 'khi' | 'tru') => {
+  const soDk = l.khi.length + (l.tru?.length ?? 0);
+  const soNham = Object.values(l.nham).filter((v) => (Array.isArray(v) ? v.length : v)).length;
+
+  const bangDk = (key: 'khi' | 'tru') => {
     const rows = l[key] ?? [];
     const set = (rs: DieuKien[]) => setL({ ...l, [key]: rs });
     return (
-      <div style={{ display: 'grid', gap: 4 }}>
+      <div style={{ display: 'grid', gap: 6 }}>
         {rows.map((d, i) => (
-          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 70px 1fr 24px', gap: 4 }}>
-            <SelectField label="" size="sm" mono value={d.chi_so} onChange={(e) => set(rows.map((x, j) => (j === i ? { ...x, chi_so: e.target.value } : x)))}>
-              {du.tu_vung.chi_so.map((c) => <option key={c.ma} value={c.ma}>{c.ma} · {c.ten}</option>)}
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 64px 1fr 24px', gap: 6, alignItems: 'end' }}>
+            <SelectField label={i === 0 ? 'Chỉ số' : ''} size="sm" value={d.chi_so} onChange={(e) => set(rows.map((x, j) => (j === i ? { ...x, chi_so: e.target.value } : x)))}>
+              {du.tu_vung.chi_so.map((c) => <option key={c.ma} value={c.ma}>{c.ten}</option>)}
             </SelectField>
-            <SelectField label="" size="sm" mono value={d.op} onChange={(e) => set(rows.map((x, j) => (j === i ? { ...x, op: e.target.value as Op } : x)))}>
-              {['>=', '<=', '>', '<'].map((o) => <option key={o} value={o}>{o}</option>)}
+            <SelectField label={i === 0 ? 'So' : ''} size="sm" mono value={d.op} onChange={(e) => set(rows.map((x, j) => (j === i ? { ...x, op: e.target.value as Op } : x)))}>
+              {(['>=', '<=', '>', '<'] as Op[]).map((o) => <option key={o} value={o}>{N.op[o] ?? o}</option>)}
             </SelectField>
-            <TextField label="" size="sm" mono value={String(d.nguong)} placeholder="42 hoặc $tran*1.3" onChange={(e) => { const raw = e.target.value; const n = Number(raw); set(rows.map((x, j) => (j === i ? { ...x, nguong: raw.trim() !== '' && Number.isFinite(n) ? n : raw } : x))); }} />
-            <button onClick={() => set(rows.filter((_, j) => j !== i))} style={{ ...lienKet, color: 'var(--danger)' }} title="bỏ điều kiện">✕</button>
+            <SelectField label={i === 0 ? 'Ngưỡng' : ''} size="sm" value={typeof d.nguong === 'string' ? d.nguong : '#'} onChange={(e) => { const v = e.target.value; set(rows.map((x, j) => (j === i ? { ...x, nguong: v === '#' ? (typeof x.nguong === 'number' ? x.nguong : 0) : v } : x))); }}>
+              <option value="#">số cố định…</option>
+              {du.tu_vung.tham_so.map((p) => <option key={p} value={`$${p}`}>{N.tham_so[p]?.ten ?? p}</option>)}
+              {typeof d.nguong === 'string' && /[*+/-]/.test(d.nguong) && <option value={d.nguong}>{docNguong(d.nguong)}</option>}
+            </SelectField>
+            <button onClick={() => set(rows.filter((_, j) => j !== i))} style={{ ...lienKet, color: 'var(--danger)', marginBottom: 6 }} title="bỏ điều kiện">✕</button>
+            {typeof d.nguong === 'number' && (
+              <TextField label="" size="sm" mono type="number" step="any" value={d.nguong} gridColumn="3 / 4" onChange={(e) => set(rows.map((x, j) => (j === i ? { ...x, nguong: Number(e.target.value) } : x)))} />
+            )}
+            {typeof d.nguong === 'string' && (
+              <TextField label="" size="sm" mono value={d.nguong} gridColumn="3 / 4" hint="tham số, có thể nhân/cộng: $tran*1.3" onChange={(e) => set(rows.map((x, j) => (j === i ? { ...x, nguong: e.target.value } : x)))} />
+            )}
           </div>
         ))}
         <button onClick={() => set([...rows, { chi_so: 'click_ads', op: '>=', nguong: 0 }])} style={{ ...nutNho, justifySelf: 'start' }}>+ điều kiện</button>
@@ -266,59 +321,100 @@ function SuaLuat({ du, goc, luat, moi, dangLuu, onClose, onSave, onVeMacDinh }: 
   };
   const opsCl = du.chien_luoc.map((c) => ({ value: c.id, label: `#${c.id} ${c.ten}` }));
   const opsTk = du.tai_khoan.map((t) => ({ value: t.id, label: t.name }));
-  const opsCamp = du.camp.map((c) => ({ value: c.id, label: `${c.name} · ${c.loai}` }));
-  const opsLuat = du.thu_vien.filter((x) => x.ma !== l.ma).map((x) => x.ma);
+  const opsCamp = du.camp.map((c) => ({ value: c.id, label: `${c.name} · ${N.loai[c.loai] ?? c.loai}` }));
+  const opsLuat = du.thu_vien.filter((x) => x.ma !== l.ma);
+
   return (
-    <Drawer onClose={onClose} width={680} dirty={dirty}>
-      <h3 style={{ margin: '0 0 4px', fontSize: 15 }}>{moi ? 'Luật mới' : `Luật ${l.ma}`}</h3>
-      <div style={{ ...nho, marginBottom: 12 }}>adfond kiểm lúc lưu: chỉ số phải có trong từ vựng, hành động tăng tiền / mở mẩu / đóng SP bắt buộc gác người, theo_luat / sau_luat phải trỏ vào luật có thật.</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-        <TextField label="Mã" size="sm" mono value={l.ma} disabled={!moi} onChange={(e) => dat('ma', e.target.value.trim())} placeholder="K9 / D30-x" />
-        <SelectField label="Kệ" size="sm" value={l.thu_vien} onChange={(e) => dat('thu_vien', e.target.value)}>{du.tu_vung.thu_vien.map((k) => <option key={k} value={k}>{k}</option>)}</SelectField>
-        <SelectField label="Phạm vi" size="sm" value={l.pham_vi} onChange={(e) => dat('pham_vi', e.target.value)}>{du.tu_vung.pham_vi.map((k) => <option key={k} value={k}>{k}</option>)}</SelectField>
-        <TextField label="Tên" size="sm" gridColumn="1 / 4" value={l.ten} onChange={(e) => dat('ten', e.target.value)} />
-        <TextField label="Trọng số 0-100" size="sm" mono type="number" value={l.trong_so} onChange={(e) => dat('trong_so', Number(e.target.value))} />
-        <SelectField label="Gác" size="sm" value={laNguoi ? 'nguoi' : l.gac} disabled={laNguoi} lockReason={laNguoi ? 'hành động này bắt buộc gác người' : undefined} onChange={(e) => dat('gac', e.target.value as 'may' | 'nguoi')}>
-          <option value="may">máy tự làm</option><option value="nguoi">người quyết</option>
-        </SelectField>
-        <label style={{ ...nho, display: 'flex', alignItems: 'center', gap: 6, marginTop: 18 }}><input type="checkbox" checked={l.bat} onChange={(e) => dat('bat', e.target.checked)} /> đang bật</label>
-      </div>
+    <Drawer onClose={onClose} width={700} dirty={dirty}>
+      <h3 style={{ margin: '0 0 2px', fontSize: 15 }}>{moi ? 'Luật mới' : l.ten || l.ma}</h3>
+      <div style={{ ...nho, marginBottom: 10 }}>{moi ? `Kệ ${N.thu_vien[l.thu_vien] ?? l.thu_vien}` : `Mã ${l.ma} · kệ ${N.thu_vien[l.thu_vien] ?? l.thu_vien}`} · adfond kiểm lúc lưu: chỉ số phải có trong từ vựng, hành động tăng tiền / mở mẩu / đóng sản phẩm bắt buộc gác người.</div>
+      <Tabs items={[
+        { key: 'chung', label: 'Chung' },
+        { key: 'dieu_kien', label: 'Khi nào & điều kiện', badge: soDk || undefined },
+        { key: 'hanh_dong', label: 'Hành động' },
+        { key: 'nham', label: 'Nhắm', badge: soNham || undefined },
+      ]} value={tab} onChange={setTab} />
 
-      <div style={{ ...nho, marginTop: 14, marginBottom: 4 }}>Khi nào</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
-        <TextField label="Từ ngày (D)" size="sm" mono value={l.dong_ho?.tu ?? ''} onChange={(e) => dat('dong_ho', { ...l.dong_ho, tu: e.target.value === '' ? undefined : Number(e.target.value) })} />
-        <TextField label="Đến ngày" size="sm" mono value={l.dong_ho?.den ?? ''} onChange={(e) => dat('dong_ho', { ...l.dong_ho, den: e.target.value === '' ? undefined : Number(e.target.value) })} />
-        <TextField label="N ngày liền" size="sm" mono value={l.lien_tiep ?? ''} onChange={(e) => dat('lien_tiep', e.target.value === '' ? undefined : Number(e.target.value))} />
-        <SelectField label="Chỉ sau luật" size="sm" value={l.sau_luat ?? ''} onChange={(e) => dat('sau_luat', e.target.value || undefined)}><option value="">—</option>{opsLuat.map((m) => <option key={m} value={m}>{m}</option>)}</SelectField>
-      </div>
+      {tab === 'chung' && (
+        <div style={vung}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            <TextField label="Mã" labelTooltip="chữ/số, không dấu tiếng Việt; không đổi được sau khi tạo" size="sm" mono value={l.ma} disabled={!moi} onChange={(e) => dat('ma', e.target.value.trim())} placeholder="K9" />
+            <SelectField label="Kệ" size="sm" value={l.thu_vien} onChange={(e) => dat('thu_vien', e.target.value)}>{du.tu_vung.thu_vien.map((k) => <option key={k} value={k}>{N.thu_vien[k] ?? k}</option>)}</SelectField>
+            <SelectField label="Phạm vi" labelTooltip="đơn vị bị chấm" size="sm" value={l.pham_vi} onChange={(e) => dat('pham_vi', e.target.value)}>{du.tu_vung.pham_vi.map((k) => <option key={k} value={k}>{N.pham_vi[k] ?? k}</option>)}</SelectField>
+            <TextField label="Tên" size="sm" gridColumn="1 / 4" value={l.ten} onChange={(e) => dat('ten', e.target.value)} />
+            <TextField label="Trọng số (0-100)" labelTooltip="nhiều luật cùng chạm mà đá nhau thì số cao thắng; hoà thì đi xuống thắng" size="sm" mono type="number" value={l.trong_so} onChange={(e) => dat('trong_so', Number(e.target.value))} />
+            <SelectField label="Gác" size="sm" value={laNguoi ? 'nguoi' : l.gac} disabled={laNguoi} lockReason={laNguoi ? 'hành động này bắt buộc người quyết' : undefined} onChange={(e) => dat('gac', e.target.value as 'may' | 'nguoi')}>
+              <option value="may">{N.gac.may}</option><option value="nguoi">{N.gac.nguoi}</option>
+            </SelectField>
+            <label style={{ ...nho, display: 'flex', alignItems: 'center', gap: 6, marginTop: 18 }}><input type="checkbox" checked={l.bat} onChange={(e) => dat('bat', e.target.checked)} /> đang bật</label>
+          </div>
+          <TextAreaField label="Vì sao luật này tồn tại" size="sm" value={l.vi_sao} onChange={(e) => dat('vi_sao', e.target.value)} style={{ minHeight: 48, marginTop: 6 }} />
+        </div>
+      )}
 
-      <div style={{ ...nho, marginTop: 14, marginBottom: 4 }}>Điều kiện (tất cả phải thoả)</div>
-      {dk('khi')}
-      <div style={{ ...nho, marginTop: 10, marginBottom: 4 }}>Trừ khi (một cái thoả là bỏ qua)</div>
-      {dk('tru')}
+      {tab === 'dieu_kien' && (
+        <>
+          <div style={vung}>
+            <div style={tieuDeVung}>Khi nào chấm</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
+              <TextField label="Từ ngày thứ" labelTooltip="ngày trọn vẹn kể từ lúc bật; trống = mọi ngày" size="sm" mono type="number" value={l.dong_ho?.tu ?? ''} onChange={(e) => dat('dong_ho', { ...l.dong_ho, tu: e.target.value === '' ? undefined : Number(e.target.value) })} />
+              <TextField label="Đến ngày thứ" size="sm" mono type="number" value={l.dong_ho?.den ?? ''} onChange={(e) => dat('dong_ho', { ...l.dong_ho, den: e.target.value === '' ? undefined : Number(e.target.value) })} />
+              <TextField label="Số ngày liền" labelTooltip="mỗi ngày trong chuỗi đều phải thoả; trống = chấm số tích luỹ" size="sm" mono type="number" value={l.lien_tiep ?? ''} onChange={(e) => dat('lien_tiep', e.target.value === '' ? undefined : Number(e.target.value))} />
+              <SelectField label="Chỉ sau khi luật" labelTooltip="luật này chỉ chạm nếu luật kia đã chạm cùng đơn vị trước đó" size="sm" value={l.sau_luat ?? ''} onChange={(e) => dat('sau_luat', e.target.value || undefined)}><option value="">—</option>{opsLuat.map((m) => <option key={m.ma} value={m.ma}>{m.ten}</option>)}</SelectField>
+            </div>
+          </div>
+          <div style={vung}>
+            <div style={tieuDeVung}>Điều kiện — tất cả phải thoả</div>
+            {bangDk('khi')}
+          </div>
+          <div style={vung}>
+            <div style={tieuDeVung}>Trừ khi — một cái thoả là bỏ qua</div>
+            {bangDk('tru')}
+          </div>
+        </>
+      )}
 
-      <div style={{ ...nho, marginTop: 14, marginBottom: 4 }}>Làm gì</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 8 }}>
-        <SelectField label="Hành động" size="sm" value={l.lam} onChange={(e) => { const lam = e.target.value; setL({ ...l, lam, gac: du.tu_vung.hanh_dong_nguoi.includes(lam) ? 'nguoi' : l.gac }); }}>
-          {du.tu_vung.hanh_dong.map((h) => <option key={h} value={h}>{h}{du.tu_vung.hanh_dong_nguoi.includes(h) ? ' (người)' : ''}</option>)}
-        </SelectField>
-        <TextField label="Mức (×k / bậc)" size="sm" mono value={l.muc ?? ''} onChange={(e) => dat('muc', e.target.value === '' ? undefined : Number(e.target.value))} />
-      </div>
-      <TextAreaField label="Vì sao luật này tồn tại" size="sm" value={l.vi_sao} onChange={(e) => dat('vi_sao', e.target.value)} style={{ minHeight: 44 }} />
+      {tab === 'hanh_dong' && (
+        <div style={vung}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px', gap: 8 }}>
+            <SelectField label="Hành động" size="sm" value={l.lam} onChange={(e) => { const lam = e.target.value; setL({ ...l, lam, gac: du.tu_vung.hanh_dong_nguoi.includes(lam) ? 'nguoi' : l.gac }); }}>
+              {du.tu_vung.hanh_dong.map((h) => <option key={h} value={h}>{N.hanh_dong[h] ?? h}{du.tu_vung.hanh_dong_nguoi.includes(h) ? ' — người quyết' : ''}</option>)}
+            </SelectField>
+            <TextField label={l.lam.endsWith('bac') ? 'Bậc đích' : 'Hệ số nhân'} labelTooltip="hạ bid ×0,7 · tăng ngân sách ×2 · lên bậc → 2" size="sm" mono type="number" step="any" value={l.muc ?? ''} onChange={(e) => dat('muc', e.target.value === '' ? undefined : Number(e.target.value))} />
+          </div>
+          <div style={{ ...nho, marginTop: 8 }}>
+            Trục xung đột: {du.tu_vung.truc[l.lam] ? N.truc[du.tu_vung.truc[l.lam]!] : 'không đá luật nào'}. Gác: {N.gac[laNguoi ? 'nguoi' : l.gac]}{laNguoi ? ' (bắt buộc — máy chỉ đề xuất kèm số)' : ''}.
+          </div>
+        </div>
+      )}
 
-      <div style={{ ...nho, marginTop: 14, marginBottom: 4 }}>Nhắm — áp vào đâu (rỗng = mọi đơn vị cùng kệ)</div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-        <MultiSelect label="Loại camp" compact options={du.tu_vung.loai.map((x) => ({ value: x, label: x }))} selected={l.nham.loai ?? []} onChange={(v) => datNham('loai', v.length ? v : undefined)} hideSearch />
-        <MultiSelect label="Chiến lược" compact options={opsCl} selected={l.nham.chien_luoc ?? []} onChange={(v) => datNham('chien_luoc', v.length ? v : undefined)} />
-        <MultiSelect label="Tài khoản" compact options={opsTk} selected={l.nham.tai_khoan ?? []} onChange={(v) => datNham('tai_khoan', v.length ? v : undefined)} />
-        <TextField label="Thị trường" size="sm" mono value={(l.nham.thi_truong ?? []).join(',')} placeholder="US,IT" onChange={(e) => datNham('thi_truong', e.target.value.split(/[ ,]+/).filter(Boolean).length ? e.target.value.split(/[ ,]+/).filter(Boolean) : undefined)} style={{ width: 90 }} />
-        <TextField label="Bậc thầu" size="sm" mono value={(l.nham.bac ?? []).join(',')} placeholder="0,1" onChange={(e) => datNham('bac', soList(e.target.value).length ? soList(e.target.value) : undefined)} style={{ width: 70 }} />
-        <SelectField label="Nhắm như luật" size="sm" value={l.nham.theo_luat ?? ''} onChange={(e) => datNham('theo_luat', e.target.value || undefined)}><option value="">—</option>{opsLuat.map((m) => <option key={m} value={m}>{m}</option>)}</SelectField>
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-        <MultiSelect label="Áp thêm cho camp" compact options={opsCamp} selected={l.nham.camp ?? []} onChange={(v) => datNham('camp', v.length ? v : undefined)} popupWidth={420} />
-        <MultiSelect label="Trừ camp" compact options={opsCamp} selected={l.nham.tru_camp ?? []} onChange={(v) => datNham('tru_camp', v.length ? v : undefined)} popupWidth={420} />
-      </div>
+      {tab === 'nham' && (
+        <>
+          <div style={vung}>
+            <div style={tieuDeVung}>Theo chiều — rỗng = không giới hạn chiều đó (kệ chung = mọi đơn vị)</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-end' }}>
+              <MultiSelect label="Loại campaign" compact options={du.tu_vung.loai.map((x) => ({ value: x, label: N.loai[x] ?? x }))} selected={l.nham.loai ?? []} onChange={(v) => datNham('loai', v.length ? v : undefined)} hideSearch />
+              <MultiSelect label="Chiến lược" compact options={opsCl} selected={l.nham.chien_luoc ?? []} onChange={(v) => datNham('chien_luoc', v.length ? v : undefined)} />
+              <MultiSelect label="Tài khoản" compact options={opsTk} selected={l.nham.tai_khoan ?? []} onChange={(v) => datNham('tai_khoan', v.length ? v : undefined)} />
+              <TextField label="Thị trường" size="sm" mono value={(l.nham.thi_truong ?? []).join(',')} placeholder="US,IT" onChange={(e) => { const v = e.target.value.split(/[ ,]+/).filter(Boolean); datNham('thi_truong', v.length ? v : undefined); }} style={{ width: 90 }} />
+              <TextField label="Bậc thầu" size="sm" mono value={(l.nham.bac ?? []).join(',')} placeholder="0,1" onChange={(e) => { const v = soList(e.target.value); datNham('bac', v.length ? v : undefined); }} style={{ width: 70 }} />
+            </div>
+          </div>
+          <div style={vung}>
+            <div style={tieuDeVung}>Theo campaign cụ thể — bất kể chiều</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <MultiSelect label="Áp thêm cho campaign" compact options={opsCamp} selected={l.nham.camp ?? []} onChange={(v) => datNham('camp', v.length ? v : undefined)} popupWidth={420} />
+              <MultiSelect label="Trừ campaign" compact options={opsCamp} selected={l.nham.tru_camp ?? []} onChange={(v) => datNham('tru_camp', v.length ? v : undefined)} popupWidth={420} />
+            </div>
+          </div>
+          <div style={vung}>
+            <div style={tieuDeVung}>Hoặc nhắm y như một luật khác</div>
+            <SelectField label="" size="sm" value={l.nham.theo_luat ?? ''} onChange={(e) => datNham('theo_luat', e.target.value || undefined)} hint="dùng nguyên nhắm của luật đó (một cấp); các chiều ở trên bị bỏ qua khi chọn">
+              <option value="">— không —</option>{opsLuat.map((m) => <option key={m.ma} value={m.ma}>{m.ten}</option>)}
+            </SelectField>
+          </div>
+        </>
+      )}
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', marginTop: 16 }}>
         {!moi && (du.mac_dinh.includes(l.ma)

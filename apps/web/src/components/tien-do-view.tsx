@@ -245,7 +245,7 @@ function ChiTietDrawer({ id, y, onLoad, onClose }: { id: number; y: HangMucChiTi
             {y.goc && <div style={{ color: 'var(--fg-3)', fontSize: 12, marginTop: 2 }}>Gốc: {y.goc}</div>}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <SelectField label="Trạng thái hạng mục (Tạm dừng/Bỏ đặt tay; còn lại tự nhảy theo bước)" size="sm" value={y.trang_thai} disabled={busy}
+            <SelectField label="Trạng thái hạng mục (đặt tay — không tự nhảy theo bước)" size="sm" value={y.trang_thai} disabled={busy}
               onChange={(e) => apply(tdSuaTrangThai(y.id, e.target.value))}>
               {HANG_MUC_TRANG_THAI.map((s) => <option key={s} value={s}>{MARK[s]} {s}</option>)}
             </SelectField>

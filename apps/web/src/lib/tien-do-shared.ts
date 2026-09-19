@@ -1,5 +1,5 @@
 // Hằng + kiểu dùng chung client/server cho sổ TIẾN ĐỘ (hạng mục → bước). KHÔNG import DB — client component cũng import file này.
-// Chờ = chưa mở, đợi cổng của hạng mục khác (khuôn Bra: H05-H07 chờ cổng Vesnacharm) — đặt tay, không tự nhảy.
+// Trạng thái hạng mục đặt tay (như cột Trạng thái trên sheet). Chờ = chưa mở, đợi cổng của hạng mục khác (Bra H05-H07).
 export const HANG_MUC_TRANG_THAI = ['Ý tưởng', 'Sẵn sàng', 'Chờ', 'Đang làm', 'Kẹt', 'Tạm dừng', 'Xong', 'Bỏ'] as const;
 export const BUOC_TRANG_THAI = ['Chưa', 'Đang', 'Xong', 'Kẹt', 'Bỏ'] as const;
 export type HangMucTrangThai = (typeof HANG_MUC_TRANG_THAI)[number];

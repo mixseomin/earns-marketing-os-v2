@@ -98,7 +98,6 @@ export async function datBuoc(id: number, buoc: string[], mode: 'append' | 'repl
     }
     await ghiNhatKy(id, null, `viết lại bước: ${cu.length} → ${buoc.length}`);
   }
-  await tinhLaiTrangThai(id);
   return rows<Buoc>(await d.execute(sql`SELECT id, hang_muc_id, thu_tu, buoc, trang_thai, to_char(ngay_xong, 'YYYY-MM-DD') AS ngay_xong, ket_qua, ghi_chu, updated_at FROM tien_do_buoc WHERE hang_muc_id = ${id} ORDER BY thu_tu`));
 }
 
@@ -113,27 +112,12 @@ export async function suaBuoc(buocId: number, p: BuocPatch): Promise<{ buoc: Buo
   await d.execute(sql`UPDATE tien_do_buoc SET trang_thai = ${tt}, ngay_xong = ${ngay}, ket_qua = ${p.ket_qua ?? cu.ket_qua}, ghi_chu = ${p.ghi_chu ?? cu.ghi_chu}, buoc = ${p.buoc ?? cu.buoc}, updated_at = now() WHERE id = ${buocId}`);
   const parts = [p.trang_thai && p.trang_thai !== cu.trang_thai ? `#${cu.thu_tu} → ${tt}` : null, p.ket_qua !== undefined && p.ket_qua !== cu.ket_qua ? 'kết quả' : null, p.ghi_chu !== undefined && p.ghi_chu !== cu.ghi_chu ? 'ghi chú' : null].filter(Boolean);
   if (parts.length) await ghiNhatKy(cu.hang_muc_id, buocId, parts.join(' · '));
-  await tinhLaiTrangThai(cu.hang_muc_id);
   const yt = (await getHangMuc(cu.hang_muc_id))!;
   return { buoc: yt.buoc.find((b) => b.id === buocId)!, y_tuong: yt };
 }
 
-/** Trạng thái hạng mục theo bước (trừ Tạm dừng/Bỏ đặt tay): có Kẹt → Kẹt; tất cả Xong → Xong; có Đang/Xong → Đang làm. */
-export async function tinhLaiTrangThai(id: number): Promise<void> {
-  const d = db();
-  const yt = rows<{ trang_thai: string }>(await d.execute(sql`SELECT trang_thai FROM tien_do_hang_muc WHERE id = ${id}`))[0];
-  if (!yt || yt.trang_thai === 'Tạm dừng' || yt.trang_thai === 'Bỏ' || yt.trang_thai === 'Chờ') return;
-  const b = rows<{ trang_thai: string }>(await d.execute(sql`SELECT trang_thai FROM tien_do_buoc WHERE hang_muc_id = ${id} AND trang_thai <> 'Bỏ'`));
-  let moi = yt.trang_thai;
-  if (b.some((x) => x.trang_thai === 'Kẹt')) moi = 'Kẹt';
-  else if (b.length && b.every((x) => x.trang_thai === 'Xong')) moi = 'Xong';
-  else if (b.some((x) => x.trang_thai === 'Đang' || x.trang_thai === 'Xong')) moi = 'Đang làm';
-  else if (yt.trang_thai === 'Kẹt' || yt.trang_thai === 'Đang làm' || yt.trang_thai === 'Xong') moi = 'Sẵn sàng';
-  if (moi !== yt.trang_thai) {
-    await d.execute(sql`UPDATE tien_do_hang_muc SET trang_thai = ${moi}, updated_at = now() WHERE id = ${id}`);
-    await ghiNhatKy(id, null, `hạng mục → ${moi} (theo bước)`);
-  }
-}
+// Trạng thái hạng mục là ĐẶT TAY (anh chốt 20/09/2026 — bản đầu tự nhảy theo bước làm ExamWeight/Bra thành "Đang làm" hết,
+// đè lên trạng thái anh đặt trên sheet). Bước Kẹt vẫn lộ qua "bước hiện tại" (⛔) và `tiendo ket` / /now.
 
 export async function ghiNhatKy(id: number, buocId: number | null, noiDung: string): Promise<void> {
   await db().execute(sql`INSERT INTO tien_do_nhat_ky (hang_muc_id, buoc_id, noi_dung) VALUES (${id}, ${buocId}, ${noiDung})`);

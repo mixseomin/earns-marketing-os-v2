@@ -42,8 +42,8 @@ const num = (v) => Number(String(v ?? '').replace(/,/g, '')) || 0;
 
 /** Một dòng stats của EXADS → dòng phu_chi. Tên cột dự phòng vì chưa thấy dữ liệu thật. */
 export const dongChi = (r, ngayMacDinh) => ({
-  ngay: String(r.date ?? r.day ?? ngayMacDinh).slice(0, 10),
-  campId: String(r.campaign_id ?? r.campaign?.id ?? r.id ?? ''),
+  ngay: String(r.date ?? r.day ?? r.ddate ?? ngayMacDinh).slice(0, 10),   // ExoClick: ddate + idcampaign (đo 19/09/2026)
+  campId: String(r.campaign_id ?? r.idcampaign ?? r.campaign?.id ?? r.id ?? ''),
   campName: String(r.campaign_name ?? r.campaign?.name ?? r.name ?? ''),
   chi_usd: Number((num(r.cost ?? r.amount ?? r.spend ?? r.total_cost)).toFixed(4)),
   clicks: num(r.clicks) || null,
@@ -51,7 +51,8 @@ export const dongChi = (r, ngayMacDinh) => ({
 });
 /** Một dòng zone stats của EXADS → dòng phu_zone. Tên cột dự phòng (chốt bằng --raw lần chạy thật đầu). */
 export const dongZone = (r, ngayMacDinh) => ({
-  ngay: String(r.date ?? r.day ?? ngayMacDinh).slice(0, 10), zone_id: String(r.zone_id ?? r.idzone ?? r.zone?.id ?? r.id ?? ''), site: r.site_name ?? r.site?.name ?? r.site_hostname ?? r.hostname ?? undefined,
+  ngay: String(r.date ?? r.day ?? r.ddate ?? ngayMacDinh).slice(0, 10), zone_id: String(r.zone_id ?? r.idzone ?? r.zone?.id ?? r.id ?? ''), site: r.site_name ?? r.site?.name ?? r.site_hostname ?? r.hostname ?? undefined,
+  campId: String(r.campaign_id ?? r.idcampaign ?? ''),
   impressions: num(r.impressions ?? r.views), clicks: num(r.clicks), chi_usd: Number(num(r.cost ?? r.amount ?? r.spend).toFixed(4)),
 });
 /** `tf-<nhãn>` → `trafficfactory_<nhãn>`; tên không theo khuôn → null (không vào sổ, đúng luật Bidvertiser). */
@@ -125,17 +126,23 @@ try {
   }
   // Zone: số mạng theo zone × camp (chỉ camp đang bật hoặc đã từng chi) → MOS2 chấm K1/P2/P3 với hit /x/ → trả zone cần chặn →
   // chặn ngay bằng API (PUT /campaigns/<id> zones:[{id,type:'blocked'}]) → báo lại. Bot chỉ có thể dò khi ba bộ đếm nằm cạnh nhau.
+  // ExoClick bỏ qua campaign_id trên /statistics/a/zone (đo 19/09: mọi camp trả cùng danh sách) → kéo cả tài khoản
+  // với additional_group_by=campaign (có idcampaign từng dòng), phân trang offset tới hết. RON native ra hàng nghìn zone
+  // 1–2 impression; chỉ giữ zone có click hoặc chi ≥ $0,01 — luật K1/P2/P3 không đụng tới zone nhỏ hơn.
   const zone = [];
-  for (const [id, prefix] of theoId) {
-    const c = camps.find((x) => String(x.id) === id);
-    if (!c || (Number(c.status) !== 1 && !chi.some((r) => r.sid_prefix === prefix))) continue;
-    const zs = (await get(`/statistics/a/zone?date_from=${iso(ngay)}&date_to=${iso(ngay)}&campaign_id=${id}&limit=1000`)).result ?? [];
-    if (RAW && zs[0]) console.log('raw zone:', JSON.stringify(zs[0]).slice(0, 600));
-    for (const r of danhSach(zs)) { const z = dongZone(r, iso(ngay)); if (z.zone_id) zone.push({ sid_prefix: prefix, ...z }); }
+  for (let offset = 0; offset < 100000; offset += 1000) {
+    const zs = danhSach((await get(`/statistics/a/zone?date_from=${iso(ngay)}&date_to=${iso(ngay)}&additional_group_by=campaign&limit=1000&offset=${offset}`)).result);
+    if (RAW && offset === 0 && zs[0]) console.log('raw zone:', JSON.stringify(zs[0]).slice(0, 600));
+    for (const r of zs) {
+      const z = dongZone(r, iso(ngay)); const prefix = theoId.get(z.campId);
+      if (prefix && z.zone_id && (z.clicks > 0 || z.chi_usd >= 0.01)) zone.push({ sid_prefix: prefix, ...z });
+    }
+    if (zs.length < 1000) break;
   }
   const kq = await bao(true, `balance $${balance} · ${iso(ngay)} ${chi.map((c) => `${c.sid_prefix.slice(15)} $${c.chi_usd}/${c.clicks ?? 0}c`).join(' · ') || 'chưa có chi'} · ${camp.length} camp · ${zone.length} zone · ${tt.join(' · ')}`, chi, camp,
     { key: KEY_MANG, name: M.name, loai: M.loai, trang_thai: 'hoat_dong', macro_click: '{conversions_tracking}', so_du: Number(balance),
-      ghi_chu: `Balance $${balance} (${new Date().toISOString().slice(0, 16)}Z). Tài khoản mikerey887 (vault ${M.vault}). Camp đặt tên ${M.tienTo}<nhãn>; URL ?s=${KEY_MANG}_<nhãn>_{country_iso2}_{conversions_tracking}.` });
+      ghi_chu: `Balance $${balance} (${new Date().toISOString().slice(0, 16)}Z). Tài khoản mikerey887 (vault ${M.vault}). Camp đặt tên ${M.tienTo}<nhãn>; URL ?s=${KEY_MANG}_<nhãn>_{zone_id}_{conversions_tracking}.` },
+    zone);   // 19/09: quên truyền zone → MOS2 nhận 0 zone suốt ngày đầu
   const chan = Array.isArray(kq?.zone_chan) ? kq.zone_chan : [];
   if (chan.length) {
     const theoPrefix = new Map([...theoId].map(([id, p]) => [p, id]));

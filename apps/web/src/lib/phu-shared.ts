@@ -70,7 +70,7 @@ export function mangCuaLander(url: string | null | undefined): { mang: string; o
   let u: URL; try { u = new URL(url); } catch { return null; }
   if (u.pathname === '/x/' || u.pathname === '/x') return X_DICH[u.searchParams.get('d') ?? ''] ?? null;
   if (/(^|\.)chaturbate\.com$/.test(u.hostname)) return { mang: 'Chaturbate', offer: `Chaturbate${u.searchParams.get('tour') ? ' tour ' + u.searchParams.get('tour') : ''}` };
-  if (/^t\.[a-z0-9-]+\.com$/.test(u.hostname) && /^\/423371\//.test(u.pathname)) { const id = u.pathname.split('/')[2]; return { mang: 'CrakRevenue', offer: `${CR_OFFER[id] ?? 'offer'} #${id}` }; }
+  if (/^t\.[a-z0-9-]+\.com$/.test(u.hostname) && /^\/423371\//.test(u.pathname)) { const id = u.pathname.split('/')[2] ?? ''; return { mang: 'CrakRevenue', offer: `${CR_OFFER[id] ?? 'offer'} #${id}` }; }
   if (/whitetrafsa\.com$/.test(u.hostname)) return { mang: 'Stripcash', offer: 'Stripchat' };
   if (/chatwhenbored\.com$/.test(u.hostname)) return { mang: 'lander nhà', offer: u.hostname + u.pathname };
   return null;

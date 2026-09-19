@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { BacklinksPage } from '@/components/backlinks-page';
+import { listHangMuc } from '@/lib/tien-do';
 import { getProject, getProjectMode, listProjects, listPlatforms, listAccounts, listMedia } from '@/lib/data';
 import { listTeamMembers } from '@/lib/actions/team';
 import { listProxies, listBrowserProfiles, listProjectsWithBrowser } from '@/lib/actions/environments';
@@ -33,7 +34,7 @@ export default async function PlaysRoute({ params }: { params: Promise<{ id: str
 
   const slug = resolveSiteSlug(id) ?? id;   // any project can hold plays; fall back to project id as the site_status key
   const siteLabel = BACKLINK_SITES.find((s) => s.slug === slug)?.label ?? project.name;
-  const [mode, projects, tasks, followups, pieces, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel, browserReady, products] = await Promise.all([
+  const [mode, projects, tasks, followups, pieces, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel, browserReady, products, tienDo] = await Promise.all([
     getProjectMode(id, project.mode),
     listProjects(),
     getBacklinkTasks(id),
@@ -48,6 +49,7 @@ export default async function PlaysRoute({ params }: { params: Promise<{ id: str
     listSourceIntel(),
     listProjectsWithBrowser(),
     listBuildingProducts(id),
+    listHangMuc({ project_id: id }).catch(() => []),
   ]);
 
   return (
@@ -60,7 +62,7 @@ export default async function PlaysRoute({ params }: { params: Promise<{ id: str
     >
       <BacklinksPage prefs={prefs} today={todayInAppTz()} products={products} projectId={id} slug={slug} siteLabel={siteLabel} tasks={tasks} followups={followups} pieces={pieces}
         project={project} platforms={platforms} accounts={accounts}
-        teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" />
+        teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" tienDo={tienDo} />
     </AppShell>
   );
 }

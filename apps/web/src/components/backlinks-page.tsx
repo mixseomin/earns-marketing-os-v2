@@ -25,6 +25,8 @@ import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
 import { CHANNELS, FORMATS, STYLES, SERIES, ANGLE_GROUPS, ANGLES, MIX_TARGET, LINK_SHARE_MAX, WEEKLY_CADENCE, angleOf, angleLabel, tagVal, pieceGaps, pieceRisks, shouldWarnGaps, schedMark, formatLabel, justPosted, placeName } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
 import { StatusSegmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, ChannelFavicon, FormatIcon, DataTable, type DataColumn, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
+import { TienDoView } from '@/components/tien-do-view';
+import type { HangMuc } from '@/lib/tien-do-shared';
 import { GuardedButton } from '@/components/ui/guarded-button';
 import { voiceScore, draftBlockReason } from '@/lib/voice-score';
 import { ImageAttach, discardAttachments } from '@/components/ui/image-attach';
@@ -918,7 +920,7 @@ function AcctChip({ task, onClick }: { task: BacklinkTask; onClick: (e: React.Mo
   );
 }
 
-export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [], pieces = [], project, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel = {}, browserReady = [], initialView, allProjects, projectsById, products = [], prefs = {}, today }: {
+export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [], pieces = [], project, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel = {}, browserReady = [], initialView, allProjects, projectsById, products = [], prefs = {}, today, tienDo = [] }: {
   projectId: string; slug: string | null; siteLabel: string; tasks: BacklinkTask[]; followups?: Followup[];
   /** Bài đăng đã đặt ngày (content_pieces) — CÙNG lịch với việc, không tách surface. */
   pieces?: CalPiece[];
@@ -926,6 +928,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   teamMembers: TeamMemberRow[]; proxies: ProxyRow[]; browserProfiles: BrowserProfileRow[]; media: MediaRow[];
   sourceIntel?: Record<string, SourceIntel>;   // canonical_url → learned {automation, obstacles}; drives the per-card 🖐 badge (self-learning propagates to every project's task by source, read-time)
   browserReady?: string[];   // project ids that HAVE a browser profile — step-0 precondition to run any task; others get a "⚠ cần browser" badge
+  /** Sổ tiến độ (hạng mục → bước) của (các) project trong tầm — view 📈 Tiến độ. Xem lib/tien-do.ts. */
+  tienDo?: HangMuc[];
   initialView?: string;   // '/plays' passes 'kanban' so this same surface opens Kanban-first
   // Global /plays (all projects): tasks carry projectId/projectSlug/projectLabel; per-task project resolved
   // via projectsById for the drawer. Seed/Generate/readiness (per-project) are hidden. See getAllBacklinkTasks.
@@ -1048,12 +1052,14 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // 'feed' = chế độ ĐỌC: chỉ bài đăng, xếp theo ngày rồi theo giờ, dựng như một dòng thread mạng xã
   // hội. Lịch trả lời "hôm đó có gì"; feed trả lời "đọc lần lượt những gì sắp đăng" — mở lịch ra mà
   // còn việc/backlink/thống kê xen vào thì không duyệt nội dung được.
-  const [view, setViewState] = useState<'list' | 'calendar' | 'kanban' | 'feed'>(() => {
+  type View = 'list' | 'calendar' | 'kanban' | 'feed' | 'tiendo';
+  const [view, setViewState] = useState<View>(() => {
     const v = pick(sp.get('view'), prefs['plays.view'], initialView === 'kanban' ? 'kanban' : 'calendar');
-    return v === 'list' || v === 'kanban' || v === 'calendar' || v === 'feed' ? v : 'calendar';
+    return v === 'list' || v === 'kanban' || v === 'calendar' || v === 'feed' || v === 'tiendo' ? v : 'calendar';
   });
-  const setView = (v: 'list' | 'calendar' | 'kanban' | 'feed') => { setViewState(v); setPref('plays.view', v); };
-  const focus = view === 'feed';
+  const setView = (v: View) => { setViewState(v); setPref('plays.view', v); };
+  // feed = chế độ đọc bài; tiendo = sổ tiến độ (hạng mục → bước). Cả hai ẩn KPI/bộ lọc task vì không liên quan tới task.
+  const focus = view === 'feed' || view === 'tiendo';
   // Auto-refresh every 10s on the LIVE views (calendar + kanban — where cards move); skip the list view
   // (don't disrupt reading/inline edits) and backgrounded tabs. Header checkbox toggles `realtime`.
   // Chế độ ĐỌC cũng nằm ngoài như list: mỗi lần refresh là kéo lại nguyên payload trang (~2,8 MB)
@@ -2143,17 +2149,17 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       {/* Sản phẩm đang dựng: ở view Lịch nó nằm trong cột trái, ngay dưới mini-month (chỗ trống sẵn có,
           đứng cạnh lịch làm việc). Ở List/Kanban không có cột đó nên đưa lên đầu trang, trên cả KPI —
           thứ đang được làm ra để bán đứng trước bộ đếm backlink. */}
-      {view !== 'calendar' && <ProductStrip products={shownProducts} projects={allProjects ? projectsById : undefined} onOpen={setOpenProd} />}
+      {view !== 'calendar' && view !== 'tiendo' && <ProductStrip products={shownProducts} projects={allProjects ? projectsById : undefined} onOpen={setOpenProd} />}
 
-      {/* KPI */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+      {/* KPI — ẩn ở chế độ đọc bài và sổ tiến độ (không phải số của task) */}
+      {!focus && <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
         {([['total', 'Total', 'var(--fg-1)'], ...STATUS_ORDER.map((s) => [s, SITE_STATUS[s]!.label, SITE_STATUS[s]!.color] as const)] as const).map(([k, label, c]) => (
           <div key={k} style={{ flex: '1 1 90px', minWidth: 90, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)' }}>
             <div style={{ fontSize: 20, fontWeight: 700, color: c, fontFamily: 'var(--font-mono)' }}>{kpi[k]}</div>
             <div style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
           </div>
         ))}
-      </div>
+      </div>}
 
       {/* account-readiness rollup — per-project only (hidden in the global /plays aggregate). Chế độ đọc thì ẩn: đang duyệt nội dung, không phải chuẩn bị account. */}
       {!allProjects && !focus && (<div style={{ marginBottom: 10, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-1)', fontSize: 11 }}>
@@ -2237,7 +2243,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           onClick={() => setPieceForm({})} title="Soạn bài đăng mới — AI viết nháp, chọn kênh/góc/ngày, xem trước đúng bài sẽ lên">
           ＋ Bài mới
         </button>
-        <ViewToggle options={[...LIST_CALENDAR_VIEWS, { value: 'kanban', label: '▦ Kanban', title: 'Kanban theo trạng thái' }, { value: 'feed', label: '📖 Nội dung', title: 'Chỉ bài đăng — đọc lần lượt theo giờ như một thread' }]} value={view} onChange={(v) => setView(v as 'list' | 'calendar' | 'kanban' | 'feed')} />
+        <ViewToggle options={[...LIST_CALENDAR_VIEWS, { value: 'kanban', label: '▦ Kanban', title: 'Kanban theo trạng thái' }, { value: 'feed', label: '📖 Nội dung', title: 'Chỉ bài đăng — đọc lần lượt theo giờ như một thread' }, { value: 'tiendo', label: '📈 Tiến độ', title: 'Sổ tiến độ: hạng mục → bước → trạng thái (thay Google Sheet)' }]} value={view} onChange={(v) => setView(v as View)} />
         {/* Lọc bài dính CÙNG thanh công cụ (một khối, một phép đo barH) — cuộn tới đâu vẫn đổi được
             bộ lọc mà không phải cuộn ngược lên đầu. Dựng MỘT lần ở đây cho cả lịch lẫn chế độ đọc. */}
         {/* Bám theo CÓ BÀI hay không, giống thanh lọc bài — khoá theo wt=content thì mở link quen
@@ -2378,7 +2384,10 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         </details>
       )}
 
-      {view === 'kanban' ? (
+      {view === 'tiendo' ? (
+        <TienDoView items={tienDo} groupBy={allProjects ? 'project' : 'nhom'}
+          projectNames={Object.fromEntries(Object.entries(projectsById ?? {}).map(([k, p]) => [k, p.name]))} />
+      ) : view === 'kanban' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, alignItems: 'start' }}>
           {STATUS_ORDER.map((st) => {
             const col = shown.filter((t) => t.siteState === st);

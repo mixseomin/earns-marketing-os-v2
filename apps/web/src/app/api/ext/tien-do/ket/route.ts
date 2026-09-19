@@ -1,7 +1,7 @@
-// GET /api/ext/y-tuong/ket — mọi bước đang Kẹt (blocker) toàn portfolio, cho /now
+// GET /api/ext/tien-do/ket — mọi bước đang Kẹt (blocker) toàn portfolio, cho /now (kèm project_id)
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../../_auth';
-import { listBuocKet } from '@/lib/y-tuong';
+import { listBuocKet } from '@/lib/tien-do';
 
 export const dynamic = 'force-dynamic';
 

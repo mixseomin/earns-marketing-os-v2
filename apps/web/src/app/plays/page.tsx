@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { BacklinksPage } from '@/components/backlinks-page';
+import { listHangMuc } from '@/lib/tien-do';
 import { getMode, listProjects, listPlatforms, listAccounts, listMedia } from '@/lib/data';
 import { listTeamMembers } from '@/lib/actions/team';
 import { listProxies, listBrowserProfiles, listProjectsWithBrowser } from '@/lib/actions/environments';
@@ -27,7 +28,7 @@ export default async function GlobalPlaysRoute() {
   if (me?.role !== 'admin') redirect('/');
 
   const projects = await listProjects();
-  const [mode, tasks, followups, pieces, platforms, media, teamMembers, proxies, browserProfiles, sourceIntel, browserReady, products, accounts] = await Promise.all([
+  const [mode, tasks, followups, pieces, platforms, media, teamMembers, proxies, browserProfiles, sourceIntel, browserReady, products, accounts, tienDo] = await Promise.all([
     getMode('affiliate'),
     getAllBacklinkTasks(projects),
     listFollowups(),
@@ -41,6 +42,7 @@ export default async function GlobalPlaysRoute() {
     listProjectsWithBrowser(),
     listBuildingProducts(),
     listAccounts(),   // MỌI account của tenant: lịch mang việc + bài của mọi project, không riêng site backlink
+    listHangMuc().catch(() => []),
   ]);
   const projectsById = Object.fromEntries(projects.map((p) => [p.id, p]));
 
@@ -54,7 +56,7 @@ export default async function GlobalPlaysRoute() {
       <BacklinksPage prefs={prefs} today={todayInAppTz()} allProjects products={products} projectsById={projectsById}
         projectId="" slug={null} siteLabel="All projects" tasks={tasks} followups={followups} pieces={pieces}
         project={(projects.find((p) => resolveSiteSlug(p.id)) ?? projects[0])!} platforms={platforms} accounts={accounts}
-        teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" />
+        teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" tienDo={tienDo} />
     </AppShell>
   );
 }

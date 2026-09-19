@@ -1,7 +1,7 @@
-// PATCH /api/ext/y-tuong/buoc/<buocId>  {trang_thai?, ket_qua?, ghi_chu?, buoc?} → trả bước + ý tưởng (đã tính lại trạng thái)
+// PATCH /api/ext/tien-do/buoc/<buocId>  {trang_thai?, ket_qua?, ghi_chu?, buoc?} → trả bước + ý tưởng (đã tính lại trạng thái)
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../../../_auth';
-import { suaBuoc } from '@/lib/y-tuong';
+import { suaBuoc } from '@/lib/tien-do';
 
 export const dynamic = 'force-dynamic';
 

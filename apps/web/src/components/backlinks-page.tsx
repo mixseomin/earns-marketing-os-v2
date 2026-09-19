@@ -18,7 +18,7 @@ import { listBacklinkSources, seedBacklinksFromCatalog, generatePlaysForProject,
 import { AUTOMATION_META, automationBadge, automationNeedsHuman } from '@/lib/backlink-gates';
 import { SourceEditor } from './source-editor';
 import { setBacklinkTier, getTaskItems } from '@/lib/actions/backlink-tasks';
-import { BACKLINK_SITES } from '@/lib/backlink-sites';
+import { BACKLINK_SITES, resolveSiteSlug } from '@/lib/backlink-sites';
 import { AssigneeCell } from '@/components/assignee-chip';
 import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
@@ -1059,7 +1059,14 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   });
   const setView = (v: View) => { setViewState(v); setPref('plays.view', v); };
   // feed = chế độ đọc bài; tiendo = sổ tiến độ (hạng mục → bước). Cả hai ẩn KPI/bộ lọc task vì không liên quan tới task.
-  const focus = view === 'feed' || view === 'tiendo';
+  const tiendo = view === 'tiendo';
+  const focus = view === 'feed' || tiendo;
+  // Chip project của trang lọc theo SLUG (site backlink) hoặc id (followup); tiến độ gắn project_id → quy về id.
+  const tiendoProject = useMemo(() => {
+    if (!allProjects || !projectFilter) return undefined;
+    const hit = Object.values(projectsById ?? {}).find((p) => p.id === projectFilter || resolveSiteSlug(p.id) === projectFilter);
+    return hit?.id ?? projectFilter;
+  }, [allProjects, projectFilter, projectsById]);
   // Auto-refresh every 10s on the LIVE views (calendar + kanban — where cards move); skip the list view
   // (don't disrupt reading/inline edits) and backgrounded tabs. Header checkbox toggles `realtime`.
   // Chế độ ĐỌC cũng nằm ngoài như list: mỗi lần refresh là kéo lại nguyên payload trang (~2,8 MB)
@@ -2197,13 +2204,13 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         // nội dung trườn qua khe hở giữa mép trên và thanh công cụ.
         position: 'sticky' as const, top: 0, zIndex: 30, background: 'var(--bg-0)', padding: '8px 0',
         ...(stuck ? { boxShadow: '0 -14px 0 14px var(--bg-0)', borderBottom: '1px solid var(--line)' } : {}) }}>
-        <SearchInput value={q} onChange={setQ} placeholder="tìm task (tên/URL/method/niche)…" width={240} />
-        {planChips.map(([ten, n]) => (
+        {!tiendo && <SearchInput value={q} onChange={setQ} placeholder="tìm task (tên/URL/method/niche)…" width={240} />}
+        {!tiendo && planChips.map(([ten, n]) => (
           <button key={ten} type="button" onClick={() => setQ(q === ten ? '' : ten)}
             title={q === ten ? 'Bỏ lọc plan' : `Chỉ hiện ${n} card của ${ten} (lịch/kanban/list đều lọc theo)`}
             style={fchip(q === ten)}>📋 {ten} ({n})</button>
         ))}
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+        {!tiendo && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
           <button type="button" onClick={() => setKinds([])} title="Mọi loại việc"
             style={{ ...btn, cursor: 'pointer', padding: '3px 9px', ...(kinds.length === 0 ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : {}) }}>All</button>
           {KIND_OPTS.map((o) => {
@@ -2218,8 +2225,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
           <button type="button" onClick={() => setKinds((cur) => ALL_KINDS.filter((k) => !cur.includes(k)))}
             disabled={kinds.length === 0} title={kinds.length === 0 ? 'Chọn vài loại rồi bấm để lấy phần còn lại' : 'Đảo: lấy mọi loại TRỪ những cái đang chọn'}
             style={{ ...btn, cursor: kinds.length === 0 ? 'default' : 'pointer', padding: '3px 8px', opacity: kinds.length === 0 ? 0.4 : 1 }}>⇄</button>
-        </div>
-        {(() => {
+        </div>}
+        {!tiendo && (() => {
           const advN = [follow, traf, draftOnly, blockedOnly, tierFilter].filter(Boolean).length;
           return (
             <Popover label="⚙ Lọc" active={advN > 0} badge={advN || undefined} minWidth={230}>
@@ -2239,10 +2246,11 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         })()}
         {/* Soạn bài mới NGAY ở đây. Trước đây phải sang /p/<id>/studio — surface thứ hai cho cùng
             một dữ liệu, và bài tạo bên đó không có ngày nên không bao giờ hiện ra ở lịch này. */}
-        <button type="button" style={{ ...btn, marginLeft: 'auto', borderColor: 'var(--accent)', color: 'var(--accent)', fontWeight: 700 }}
+        {!tiendo && <button type="button" style={{ ...btn, marginLeft: 'auto', borderColor: 'var(--accent)', color: 'var(--accent)', fontWeight: 700 }}
           onClick={() => setPieceForm({})} title="Soạn bài đăng mới — AI viết nháp, chọn kênh/góc/ngày, xem trước đúng bài sẽ lên">
           ＋ Bài mới
-        </button>
+        </button>}
+        {tiendo && <span style={{ marginLeft: 'auto' }} />}
         <ViewToggle options={[...LIST_CALENDAR_VIEWS, { value: 'kanban', label: '▦ Kanban', title: 'Kanban theo trạng thái' }, { value: 'feed', label: '📖 Nội dung', title: 'Chỉ bài đăng — đọc lần lượt theo giờ như một thread' }, { value: 'tiendo', label: '📈 Tiến độ', title: 'Sổ tiến độ: hạng mục → bước → trạng thái (thay Google Sheet)' }]} value={view} onChange={(v) => setView(v as View)} />
         {/* Lọc bài dính CÙNG thanh công cụ (một khối, một phép đo barH) — cuộn tới đâu vẫn đổi được
             bộ lọc mà không phải cuộn ngược lên đầu. Dựng MỘT lần ở đây cho cả lịch lẫn chế độ đọc. */}
@@ -2309,8 +2317,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
         )}
       </div>)}
 
-      {/* Row 3 — project (global /plays only): searchable select, YDNI >5-items rule */}
-      {allProjects && (() => {
+      {/* Row 3 — project (global /plays only): searchable select, YDNI >5-items rule. Tiến độ có chip project riêng, gọn hơn → ẩn. */}
+      {allProjects && !tiendo && (() => {
         // Picker lists every project with ANY item — task OR followup. Building it from tasks alone
         // silently hid projects whose only item is a 📌 followup (e.g. platform/dev tasks on mos2):
         // the pill rendered on the calendar but the project was unselectable = buried. Union both.
@@ -2385,7 +2393,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       )}
 
       {view === 'tiendo' ? (
-        <TienDoView items={tienDo} groupBy={allProjects ? 'project' : 'nhom'}
+        <TienDoView items={tienDo} groupBy={allProjects ? 'project' : 'nhom'} projectId={tiendoProject}
           projectNames={Object.fromEntries(Object.entries(projectsById ?? {}).map(([k, p]) => [k, p.name]))} />
       ) : view === 'kanban' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, alignItems: 'start' }}>

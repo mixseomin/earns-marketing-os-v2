@@ -2,8 +2,8 @@
 // View "📈 Tiến độ" của trang Plays (per-project và /plays toàn cục) — sổ tiến độ: hạng mục → bước → trạng thái.
 // Đọc như sheet "Bra Shop 2026": mỗi nhóm một khối, dòng tô màu theo trạng thái, bấm ▸ mở bảng bước phẳng ngay dưới
 // dòng (# · bước · trạng thái · ngày · kết quả · ghi chú) và sửa tại chỗ. Drawer chỉ cho mô tả/ghi chú/Ai/Số/Cổng/nhật ký.
-import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
-import { Drawer, FilterChips, ListToolbar, Panel, SimpleTable, TextField, TextAreaField, SelectField, EmptyState } from '@/components/ui';
+import { useEffect, useMemo, useRef, useState, useTransition, type CSSProperties } from 'react';
+import { Drawer, Panel, SimpleTable, TextField, TextAreaField, SelectField, EmptyState } from '@/components/ui';
 import { tdGet, tdSuaBuoc, tdSuaTrangThai, tdSuaTruong, tdThemBuoc } from '@/lib/actions/tien-do';
 import { HANG_MUC_TRANG_THAI, BUOC_TRANG_THAI, soText, type HangMuc, type HangMucChiTiet, type Buoc } from '@/lib/tien-do-shared';
 
@@ -18,12 +18,17 @@ const mono: CSSProperties = { fontFamily: 'var(--font-mono)', color: 'var(--fg-3
 const linkBtn: CSSProperties = { background: 'none', border: 0, padding: 0, color: 'var(--fg-1)', cursor: 'pointer', font: 'inherit', textAlign: 'left' };
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n) + '…' : s);
 
-export function TienDoView({ items: initial, groupBy = 'nhom', projectNames = {} }: {
+export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, projectId }: {
   items: HangMuc[];
+  /** Lọc theo project (chip Project của trang /plays). undefined = mọi dự án. */
+  projectId?: string;
   /** 'nhom' = khối theo nhóm (per-project) · 'project' = khối theo dự án rồi nhóm (/plays toàn cục) */
   groupBy?: 'nhom' | 'project';
   projectNames?: Record<string, string>;
 }) {
+  const [proj, setProj] = useState<string | undefined>(projectId);
+  useEffect(() => setProj(projectId), [projectId]);
+  const initial = useMemo(() => (proj ? all.filter((i) => (i.project_id ?? '—') === proj) : all), [all, proj]);
   const [items, setItems] = useState(initial);
   useEffect(() => setItems(initial), [initial]);
   const [tt, setTt] = useState<string>('all');
@@ -53,18 +58,32 @@ export function TienDoView({ items: initial, groupBy = 'nhom', projectNames = {}
   const put = (y: HangMucChiTiet | null) => { if (!y) return; setItems((xs) => xs.map((i) => (i.id === y.id ? { ...i, ...y } : i))); setDetail((d) => ({ ...d, [y.id]: y })); };
   const load = (id: number) => { if (!detail[id]) tdGet(id).then(put); };
   const toggle = (id: number) => { setOpen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else { n.add(id); load(id); } return n; }); };
-  useEffect(() => { open.forEach(load); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const openOnce = useState(() => [...open])[0];
+  useEffect(() => { openOnce.forEach(load); }, [openOnce]); // nạp bước cho các dòng mở sẵn lúc vào trang
   const suaBuoc = (buocId: number, p: { trang_thai?: string; ket_qua?: string; ghi_chu?: string }) => start(async () => put(await tdSuaBuoc(buocId, p)));
   const themBuoc = (id: number, text: string) => start(async () => put(await tdThemBuoc(id, text)));
 
+  const projs = useMemo(() => [...new Set(all.map((i) => i.project_id ?? '—'))], [all]);
+  const nAll = (pid: string) => all.filter((i) => (i.project_id ?? '—') === pid).length;
+  const chipStyle = (on: boolean): CSSProperties => ({ background: on ? 'var(--accent)' : 'transparent', color: on ? 'var(--bg-0)' : 'var(--fg-3)', border: '1px solid ' + (on ? 'var(--accent)' : 'var(--line)'), borderRadius: 999, padding: '2px 9px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' });
+
   return (
     <div data-comp="tien-do.View">
-      <ListToolbar search={q} onSearch={setQ} searchPlaceholder="Tìm mã, hạng mục, mô tả, ai, số…">
-        <FilterChips value={tt} onChange={setTt}
-          counts={Object.fromEntries([['all', items.length], ...HANG_MUC_TRANG_THAI.map((s) => [s, count((i) => i.trang_thai === s)])])}
-          options={[{ value: 'all', label: 'Tất cả' }, ...HANG_MUC_TRANG_THAI.filter((s) => count((i) => i.trang_thai === s)).map((s) => ({ value: s, label: `${MARK[s] ?? ''} ${s}`.trim() }))]} />
-        <span style={{ ...mono, marginLeft: 'auto' }}>Xong phải có kết quả · Kẹt phải ghi chờ gì · Đang chỉ khi đang làm · ▸ mở bước</span>
-      </ListToolbar>
+      {/* MỘT dòng bộ lọc: project (toàn cục) · trạng thái · tìm — không chiếm chỗ của bảng */}
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}
+        title="Xong phải có kết quả · Kẹt phải ghi chờ ai/chờ gì · Đang chỉ khi đang làm · ▸ mở bước">
+        {groupBy === 'project' && projs.length > 1 && (<>
+          <button type="button" style={chipStyle(!proj)} onClick={() => setProj(undefined)}>Mọi dự án {all.length}</button>
+          {projs.map((pid) => <button key={pid} type="button" style={chipStyle(proj === pid)} onClick={() => setProj(proj === pid ? undefined : pid)}>{projectNames[pid] ?? pid} {nAll(pid)}</button>)}
+          <span style={{ color: 'var(--line)' }}>|</span>
+        </>)}
+        <button type="button" style={chipStyle(tt === 'all')} onClick={() => setTt('all')}>Tất cả {items.length}</button>
+        {HANG_MUC_TRANG_THAI.filter((s) => count((i) => i.trang_thai === s)).map((s) => (
+          <button key={s} type="button" style={chipStyle(tt === s)} onClick={() => setTt(tt === s ? 'all' : s)}>{MARK[s] ?? ''} {s} {count((i) => i.trang_thai === s)}</button>
+        ))}
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="tìm…" aria-label="Tìm hạng mục"
+          style={{ marginLeft: 'auto', width: 160, background: 'transparent', color: 'var(--fg-1)', border: '1px solid var(--line)', borderRadius: 999, padding: '3px 10px', font: 'inherit', fontSize: 11 }} />
+      </div>
 
       {items.length === 0 && <EmptyState icon="📈" title="Chưa có hạng mục" description={'Thêm bằng CLI: tiendo add "Tên hạng mục" --du-an <project> --buoc … — hoặc nhập từ sheet: tiendo import-sheet'} />}
 
@@ -122,11 +141,10 @@ function BuocTable({ y, onPatch, onAdd }: { y: HangMucChiTiet | undefined; onPat
         <SimpleTable rows={y.buoc} getRowKey={(b) => String(b.id)} rowStyle={(b) => tint(b.trang_thai)} columns={[
           { key: 'n', header: '#', width: 28, cell: (b) => <span style={mono}>{b.thu_tu}</span> },
           { key: 'b', header: 'Bước', cell: (b) => <div>{b.buoc}{err[b.id] && <div style={{ color: 'var(--neon-red, #ff6b6b)', fontSize: 11, marginTop: 2 }}>{err[b.id]}</div>}</div> },
-          { key: 'tt', header: 'Trạng thái', width: 88, cell: (b) => (
-            <select value={b.trang_thai} onChange={(e) => save(b, { trang_thai: e.target.value })} title="Chưa · Đang · Xong · Kẹt · Bỏ"
-              style={{ background: 'transparent', color: 'var(--fg-1)', border: '1px solid var(--line)', borderRadius: 4, padding: '2px 4px', font: 'inherit', fontSize: 12 }}>
+          { key: 'tt', header: 'Trạng thái', width: 96, cell: (b) => (
+            <SelectField size="sm" value={b.trang_thai} onChange={(e) => save(b, { trang_thai: e.target.value })} title="Chưa · Đang · Xong · Kẹt · Bỏ">
               {BUOC_TRANG_THAI.map((s) => <option key={s} value={s}>{MARK[s]} {s}</option>)}
-            </select>) },
+            </SelectField>) },
           { key: 'd', header: 'Ngày', width: 78, cell: (b) => <span style={mono}>{b.ngay_xong ?? ''}</span> },
           { key: 'kq', header: 'Kết quả / link', width: 260, cell: (b) => <Inline value={b.ket_qua} placeholder="link / số liệu" onSave={(v) => save(b, { ket_qua: v })} /> },
           { key: 'gc', header: 'Ghi chú (Kẹt: chờ ai / chờ gì)', width: 240, cell: (b) => <Inline value={b.ghi_chu} placeholder={b.trang_thai === 'Kẹt' ? 'chờ ai / chờ gì' : 'ghi chú'} onSave={(v) => save(b, { ghi_chu: v })} /> },
@@ -163,7 +181,8 @@ const linesToSo = (t: string): Record<string, string> => Object.fromEntries(t.sp
 
 function ChiTietDrawer({ id, y, onLoad, onClose }: { id: number; y: HangMucChiTiet | null; onLoad: (y: HangMucChiTiet | null) => void; onClose: () => void }) {
   const [busy, start] = useTransition();
-  useEffect(() => { if (!y) tdGet(id).then(onLoad); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const fetched = useRef<number | null>(null);   // mỗi id chỉ tải 1 lần dù cha render lại
+  useEffect(() => { if (!y && fetched.current !== id) { fetched.current = id; tdGet(id).then(onLoad); } }, [id, y, onLoad]);
   const apply = (p: Promise<HangMucChiTiet | null>) => start(async () => onLoad(await p));
   return (
     <Drawer onClose={onClose} width={640}>

@@ -435,7 +435,7 @@ function SuaCamp({ c, nguon, projectId, onClose }: { c: PhuCamp | null; nguon: P
   const tc = c?.tieuChi ?? {};
   const str = (v: unknown) => (v == null ? '' : Array.isArray(v) ? v.join(', ') : String(v));
   const [f, setF] = useState({
-    nguonKey: c?.nguonKey ?? (nguon[0]?.key ?? ''), ten: c?.ten ?? '', sidPrefix: c?.sidPrefix ?? '', lander: c?.lander ?? 'https://live.chatwhenbored.com/',
+    nguonKey: c?.nguonKey ?? (nguon[0]?.key ?? ''), ten: c?.ten ?? '', sidPrefix: c?.sidPrefix ?? '', lander: c?.lander ?? '',
     geo: str(t.geo) || 'US', device: str(t.device).toLowerCase() || 'desktop', format: str(t.format).toLowerCase() || 'pop-under', source: str(t.source).toLowerCase() || 'porn',
     bid: str(t.bid), placement: str(t.placement), alias: str(t.alias),
     nganSachNgay: c?.nganSachNgay == null ? '5' : String(c.nganSachNgay), trangThai: c?.trangThai ?? 'nhap',
@@ -489,7 +489,7 @@ function SuaCamp({ c, nguon, projectId, onClose }: { c: PhuCamp | null; nguon: P
         <TextField label="Bid (USD)" value={f.bid} onChange={set('bid')} mono hint="CPV/CPC" />
         <TextField label="Ngân sách/ngày (USD)" value={f.nganSachNgay} onChange={set('nganSachNgay')} mono />
       </div>
-      <TextField label="Lander" value={f.lander} onChange={set('lander')} mono />
+      <TextField label="Lander / đích" value={f.lander} onChange={set('lander')} mono hint="URL thật camp trỏ tới — adapter tự điền từ API mạng; trống = chưa biết, không đoán" />
       {nhom('Thử & phán xét')}
       <div style={ba}>
         <TextField label="Hạn thử" value={f.ketThuc} onChange={set('ketThuc')} mono hint="YYYY-MM-DD · quá ngày chưa đạt = DỪNG" />

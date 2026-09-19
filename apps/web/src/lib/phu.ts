@@ -204,7 +204,6 @@ async function chamLuatCamp(camp: PhuCamp[], theoNgay: Record<string, unknown>[]
   const donVi = chay.map((c) => {
     const t = c.tong, tc = c.tieuChi;
     const click_ads = t.clickMang || t.click;
-    const xem = c.lander ? t.view : click_ads;             // camp nảy thẳng qua /x/ không có lander: "xem" = click mạng
     const ngay = theoNgay.filter((r) => String(r.sid_prefix) === c.sidPrefix).map((r) => ({ chi_ngay: n(r.chi), click_ads: n(r.clicks), cpc: n(r.clicks) ? n(r.chi) / n(r.clicks) : null }));
     const so = (v: number | null | undefined) => (v == null || !Number.isFinite(v) ? null : v);
     const tham_so: Record<string, number> = {};
@@ -216,10 +215,12 @@ async function chamLuatCamp(camp: PhuCamp[], theoNgay: Record<string, unknown>[]
     if (c.nganSachNgay != null) tham_so.ngan_sach = c.nganSachNgay;
     return {
       id: c.sidPrefix, ngay_song: c.batDau ? Math.floor((hom.getTime() - new Date(c.batDau).setUTCHours(0, 0, 0, 0)) / 86400_000) : null,
+      // Số 0 ở view/out KHÔNG được thành lý do dừng: camp nảy thẳng /x/ và camp trỏ link affiliate ngoài không bao giờ có view
+      // (pause nhầm native-latam 19/09). Nên: không cấp phien_ga4 (K5 treo); ctr_ra = bấm ra ÷ click mạng CHỈ khi camp tự đặt
+      // ngưỡng P2 (trống = không xét, P2 treo; P0 vẫn cảnh báo khi 0 bấm ra).
       tich_luy: {
-        chi: t.chi, click_ads, xem_trang: xem, bam_ra: t.out, ctr_ra: xem ? t.out / xem : null, so_don: t.signup, hoa_hong: t.revenue,
-        roas: t.chi ? t.revenue / t.chi : null, cpc: click_ads ? t.chi / click_ads : null,
-        phien_ga4: c.lander ? t.view : null,                 // K5 "trang đích chết" chỉ có nghĩa khi có lander
+        chi: t.chi, click_ads, xem_trang: t.view, bam_ra: t.out, ctr_ra: tc.hit_tren_click && click_ads ? t.out / click_ads : null,
+        so_don: t.signup, hoa_hong: t.revenue, roas: t.chi ? t.revenue / t.chi : null, cpc: click_ads ? t.chi / click_ads : null,
         ngay_con: c.ketThuc ? so(Math.floor((new Date(c.ketThuc).setUTCHours(0, 0, 0, 0) - hom.getTime()) / 86400_000)) : null,
       },
       theo_ngay: ngay, tham_so,

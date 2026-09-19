@@ -19,6 +19,8 @@ export type PhuCamp = {
   tong: { view: number; gate: number; click: number; out: number; signup: number; revenue: number; chi: number; clickMang: number };
   /** kết quả BỘ LUẬT (be.adfond chấm, lib/phu.ts cấp số) — null = chưa chấm được (adfond không trả lời) → 'cho', không dừng gì */
   luat: PhuLuat | null;
+  /** cửa sổ 30/14 ngày cho luật bậc thầu */
+  cuaSo: { don_30: number; thu_14: number; chi_14: number };
   /** lần đổi trạng thái gần nhất có lý do (phu_camp_doi) — camp đang dừng thì đây là "vì sao dừng" */
   doiCuoi: { luc: string; nguon: string; cu: string | null; moi: string | null; lyDo: string } | null;
 };
@@ -27,7 +29,12 @@ export type PhuLuatKhop = {
   /** tiến độ trên số thật: 0..1 (1 = thoả), treo = thiếu số đo; ve = từng điều kiện "Chi tiêu $6.85 / ≥ $15" */
   ti_le: number; treo: boolean; ve: { ten: string; gia_tri: string; nguong: string; op: string; ti_le: number | null; doc: string }[];
 };
-export type PhuLuat = { ma: 'cho' | 'mo_rong' | 'dung' | 'di_tiep'; lyDo: string; khop: PhuLuatKhop[]; cham: { ma: string; ten: string; lam: string; ten_lam: string; muc?: number; gac: string; doc: string[] }[] };
+export type PhuLuat = {
+  ma: 'cho' | 'mo_rong' | 'dung' | 'di_tiep'; lyDo: string; khop: PhuLuatKhop[];
+  cham: { ma: string; ten: string; lam: string; ten_lam: string; muc?: number; gac: string; doc: string[] }[];
+  /** luật đã chạm 14 ngày qua (adfond luat_cham) — mới nhất trước */
+  lichSu: { ma: string; ngay: string; lam: string; muc: number | null; boi: string | null; doc: string }[];
+};
 export type PhuPheu = {
   sidPrefix: string; soPrefix: number; view: number; gate: number; click: number; out: number; signup: number; lead: number; spendCount: number; revenue: number; chi: number;
 };

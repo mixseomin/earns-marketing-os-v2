@@ -575,7 +575,13 @@ function LuatCampDrawer({ camp, luat, onClose }: { camp: PhuCamp; luat: PhuLuat;
     <Drawer onClose={onClose} width={720}>
       <h3 style={{ margin: '0 0 2px', fontSize: 15 }}>{camp.ten}</h3>
       <div style={{ ...nho, marginBottom: 10, display: 'flex', gap: 8, alignItems: 'center' }}><Pill color={px?.color ?? 'var(--fg-3)'} label={px?.label ?? luat.ma} /> <span>{luat.lyDo}</span></div>
-      <div style={{ ...nho, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Đã chạm ({luat.cham.length})</div>
+      {luat.lichSu.length > 0 && (
+        <div style={{ ...nho, marginBottom: 10 }}>
+          <span style={{ textTransform: 'uppercase', letterSpacing: '0.06em' }}>14 ngày qua đã chạm:</span>{' '}
+          {Object.entries(luat.lichSu.reduce<Record<string, string[]>>((a, x) => { (a[x.ma] ??= []).push(x.ngay.slice(5)); return a; }, {})).map(([ma, ngay]) => `${ma} (${ngay.join(', ')})`).join(' · ')}
+        </div>
+      )}
+      <div style={{ ...nho, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Đã chạm hôm nay ({luat.cham.length})</div>
       {luat.cham.length === 0 ? <div style={{ ...nho, marginBottom: 12 }}>chưa luật nào chạm — số hiện tại chưa vượt ngưỡng nào</div> : (
         <div style={{ display: 'grid', gap: 6, marginBottom: 12 }}>
           {luat.cham.map((k) => (

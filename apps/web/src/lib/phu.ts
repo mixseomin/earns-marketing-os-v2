@@ -116,7 +116,7 @@ export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
   const c = await db.execute(sql`SELECT * FROM phu_camp WHERE project_id = ${projectId} ORDER BY trang_thai, sid_prefix`);
   type R = Record<string, unknown>;
   const nhom = nhomTheoCamp(c as unknown as R[]);
-  const [p, ng, ev, chi, ad, ld, evAll, chiAll, theoNgay, doiRows] = await Promise.all([
+  const [p, ng, ev, chi, ad, ld, evAll, chiAll, theoNgay, cua30, chi14, doiRows] = await Promise.all([
     db.execute(sql`
       SELECT p.*, t.status AS card_status
         FROM phu_platforms p LEFT JOIN human_tasks t ON t.id = p.card_id
@@ -153,10 +153,19 @@ export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
     db.execute(sql`SELECT ${nhomChi} AS sid_prefix, ngay::text AS ngay, COALESCE(SUM(chi_usd), 0)::float8 AS chi, COALESCE(SUM(clicks), 0)::float8 AS clicks
                      FROM phu_chi WHERE project_id = ${projectId} AND ngay >= (current_date - 7) AND ngay < current_date GROUP BY 1, 2 ORDER BY 2 DESC`),
     // lần đổi trạng thái CÓ LÝ DO gần nhất mỗi camp — camp đang dừng phải nói được vì sao (máy pause theo luật nào / tay dừng)
+    // cửa sổ 30 / 14 ngày theo camp — luật bậc thầu (B1/B2/B3: đơn 30 ngày, ROAS 14 ngày) hết treo
+    db.execute(sql`SELECT ${nhom} AS sid_prefix,
+                          COUNT(*) FILTER (WHERE loai = 'signup' AND ts >= now() - interval '30 days') AS don_30,
+                          COALESCE(SUM(amount) FILTER (WHERE loai IN ('spend', 'lead') AND ts >= now() - interval '14 days'), 0)::float8 AS thu_14
+                     FROM phu_su_kien WHERE project_id = ${projectId} AND sid_prefix <> '' AND ts >= now() - interval '30 days' GROUP BY 1`),
+    db.execute(sql`SELECT ${nhomChi} AS sid_prefix, COALESCE(SUM(chi_usd), 0)::float8 AS chi_14 FROM phu_chi WHERE project_id = ${projectId} AND ngay >= current_date - 14 GROUP BY 1`),
     db.execute(sql`SELECT DISTINCT ON (sid_prefix) sid_prefix, ts::text AS ts, nguon, cu, moi, ly_do FROM phu_camp_doi
                     WHERE project_id = ${projectId} AND truong = 'trang_thai' AND coalesce(ly_do, '') <> '' ORDER BY sid_prefix, ts DESC`),
   ]);
   const doiCuoi = new Map<string, R>(); for (const r of doiRows as unknown as R[]) doiCuoi.set(String(r.sid_prefix), r);
+  const cuaSo = new Map<string, { don_30: number; thu_14: number; chi_14: number }>();
+  for (const r of cua30 as unknown as R[]) cuaSo.set(String(r.sid_prefix), { don_30: n(r.don_30), thu_14: n(r.thu_14), chi_14: 0 });
+  for (const r of chi14 as unknown as R[]) { const k = String(r.sid_prefix); cuaSo.set(k, { ...(cuaSo.get(k) ?? { don_30: 0, thu_14: 0, chi_14: 0 }), chi_14: n(r.chi_14) }); }
   const chiMap = new Map<string, number>();
   for (const r of chi as unknown as R[]) chiMap.set(String(r.sid_prefix), n(r.chi));
   const tongEv = new Map<string, R>(); for (const r of evAll as unknown as R[]) tongEv.set(String(r.sid_prefix), r);
@@ -188,6 +197,7 @@ export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
       tieuChi: (r.tieu_chi && typeof r.tieu_chi === 'object' ? r.tieu_chi : {}) as PhuCamp['tieuChi'], keHoach: s(r.ke_hoach),
       tong: (() => { const e = tongEv.get(String(r.sid_prefix)) ?? {}; return { view: n(e.view), gate: n(e.gate), click: n(e.click), out: n(e.out), signup: n(e.signup), revenue: n(e.revenue), chi: tongChi.get(String(r.sid_prefix)) ?? 0, clickMang: tongClickMang.get(String(r.sid_prefix)) ?? 0 }; })(),
       luat: null,
+      cuaSo: cuaSo.get(String(r.sid_prefix)) ?? { don_30: 0, thu_14: 0, chi_14: 0 },
       doiCuoi: (() => { const d = doiCuoi.get(String(r.sid_prefix)); return d ? { luc: String(d.ts), nguon: String(d.nguon), cu: s(d.cu), moi: s(d.moi), lyDo: s(d.ly_do) ?? '' } : null; })(),
     })), theoNgay as unknown as R[]),
     adapters: (ad as unknown as R[]).map((r) => ({ key: String(r.key), name: String(r.name), loai: String(r.loai), lich: s(r.lich), lastRun: s(r.last_run), lastOk: r.last_ok == null ? null : Boolean(r.last_ok), lastNote: s(r.last_note), postbackToken: s(r.postback_token) })),
@@ -227,6 +237,7 @@ async function chamLuatCamp(camp: PhuCamp[], theoNgay: Record<string, unknown>[]
       tich_luy: {
         chi: t.chi, click_ads, xem_trang: t.view, bam_ra: t.out, ctr_ra: tc.hit_tren_click && click_ads ? t.out / click_ads : null,
         so_don: t.signup, hoa_hong: t.revenue, roas: t.chi ? t.revenue / t.chi : null, cpc: click_ads ? t.chi / click_ads : null,
+        so_don_30: c.cuaSo.don_30, roas_14: c.cuaSo.chi_14 > 0 ? c.cuaSo.thu_14 / c.cuaSo.chi_14 : null,
         ngay_con: c.ketThuc ? so(Math.floor((new Date(c.ketThuc).setUTCHours(0, 0, 0, 0) - hom.getTime()) / 86400_000)) : null,
       },
       theo_ngay: ngay, tham_so,
@@ -238,7 +249,7 @@ async function chamLuatCamp(camp: PhuCamp[], theoNgay: Record<string, unknown>[]
       body: JSON.stringify({ loai: 'pop', don_vi: donVi }), signal: AbortSignal.timeout(8000), cache: 'no-store',
     });
     if (!r.ok) return camp;
-    const j = (await r.json()) as { ket: Record<string, { giu: PhuLuat['cham'][number][]; luat: PhuLuat['khop'] }> };
+    const j = (await r.json()) as { ket: Record<string, { giu: PhuLuat['cham'][number][]; luat: PhuLuat['khop']; lich_su: PhuLuat['lichSu'] }> };
     return camp.map((c) => {
       const k = j.ket[c.sidPrefix]; if (!k) return c;
       const giu = k.giu;
@@ -249,7 +260,7 @@ async function chamLuatCamp(camp: PhuCamp[], theoNgay: Record<string, unknown>[]
       const ma: PhuLuat['ma'] = dung ? 'dung' : mo ? 'mo_rong' : giu.length ? 'cho' : 'di_tiep';
       const lyDo = giu.map((x) => `${x.ma} ${x.ten_lam}${x.muc != null ? ` ×${x.muc}` : ''}: ${x.doc.join(', ')}`).join(' · ')
         || `$${c.tong.chi.toFixed(2)} · ${c.tong.signup} signup / ${c.tong.clickMang || c.tong.click} click — chưa luật nào chạm`;
-      return { ...c, luat: { ma, lyDo, khop: k.luat, cham: giu } };
+      return { ...c, luat: { ma, lyDo, khop: k.luat, cham: giu, lichSu: k.lich_su ?? [] } };
     });
   } catch { return camp; }
 }

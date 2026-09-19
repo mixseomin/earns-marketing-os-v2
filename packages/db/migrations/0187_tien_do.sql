@@ -28,7 +28,9 @@ ALTER TABLE tien_do_hang_muc ADD COLUMN IF NOT EXISTS ai text NOT NULL DEFAULT '
 ALTER TABLE tien_do_hang_muc ADD COLUMN IF NOT EXISTS so jsonb NOT NULL DEFAULT '{}'::jsonb;
 ALTER TABLE tien_do_hang_muc ADD COLUMN IF NOT EXISTS cong text NOT NULL DEFAULT '';
 ALTER TABLE tien_do_hang_muc ADD COLUMN IF NOT EXISTS nguon text;
-CREATE UNIQUE INDEX IF NOT EXISTS tien_do_hang_muc_nguon ON tien_do_hang_muc (nguon) WHERE nguon IS NOT NULL;
+-- unique THƯỜNG (NULL không đụng nhau) để ON CONFLICT (nguon) dùng được; bản đầu là partial index → ON CONFLICT lỗi, deploy 18:06 rớt
+DROP INDEX IF EXISTS tien_do_hang_muc_nguon;
+CREATE UNIQUE INDEX IF NOT EXISTS tien_do_hang_muc_nguon ON tien_do_hang_muc (nguon);
 CREATE INDEX IF NOT EXISTS tien_do_hang_muc_project ON tien_do_hang_muc (project_id, nhom, ma);
 -- project "App iOS" = làn app iOS nói chung (Wordfrost là hạng mục đầu; project wordfrost riêng vẫn giữ cho analytics/followup)
 INSERT INTO projects (id, name, emoji, mode_id, website, one_liner, color)

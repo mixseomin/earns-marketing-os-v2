@@ -112,7 +112,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
               })}
               {soKetThuc > 0 && (
                 <tr>
-                  <td colSpan={12} style={{ ...cell, color: 'var(--fg-3)', fontSize: 11 }}>
+                  <td colSpan={13} style={{ ...cell, color: 'var(--fg-3)', fontSize: 11 }}>
                     <button style={{ ...btn, fontSize: 11 }} onClick={() => setHienKetThuc((v) => !v)}>{hienKetThuc ? 'ẩn' : 'hiện'} {soKetThuc} camp đã kết thúc</button>
                   </td>
                 </tr>

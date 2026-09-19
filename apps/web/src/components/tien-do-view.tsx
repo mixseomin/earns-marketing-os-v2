@@ -2,7 +2,9 @@
 // View "📈 Tiến độ" của trang Plays (per-project và /plays toàn cục) — sổ tiến độ: hạng mục → bước → trạng thái.
 // Đọc như sheet "Bra Shop 2026": mỗi nhóm một khối, dòng tô màu theo trạng thái, bấm ▸ mở bảng bước phẳng ngay dưới
 // dòng (# · bước · trạng thái · ngày · kết quả · ghi chú) và sửa tại chỗ. Drawer chỉ cho mô tả/ghi chú/Ai/Số/Cổng/nhật ký.
-import { useEffect, useMemo, useRef, useState, useTransition, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type CSSProperties } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useModalParam } from '@/lib/use-modal-param';
 import { Drawer, Panel, SimpleTable, TextField, TextAreaField, SelectField, EmptyState } from '@/components/ui';
 import { tdGet, tdSuaBuoc, tdSuaTrangThai, tdSuaTruong, tdThemBuoc } from '@/lib/actions/tien-do';
 import { HANG_MUC_TRANG_THAI, BUOC_TRANG_THAI, soText, type HangMuc, type HangMucChiTiet, type Buoc } from '@/lib/tien-do-shared';
@@ -28,15 +30,26 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
   groupBy?: 'nhom' | 'project';
   projectNames?: Record<string, string>;
 }) {
-  const [proj, setProj] = useState<string | undefined>(projectId);
-  useEffect(() => setProj(projectId), [projectId]);
+  // Bộ lọc + dòng đang mở + drawer đều nằm trong URL (F5/share giữ nguyên): ?tdp= dự án · ?tdtt= trạng thái · ?tdq= tìm ·
+  // ?tdo= id các hạng mục đang mở bước · ?td=hm&tdId= drawer. Ghi shallow (replaceState) như các bộ lọc khác của trang Plays.
+  const sp = useSearchParams();
+  const [proj, setProj] = useState<string | undefined>(() => sp.get('tdp') || projectId);
+  useEffect(() => { if (projectId) setProj(projectId); }, [projectId]);
   const initial = useMemo(() => (proj ? all.filter((i) => (i.project_id ?? '—') === proj) : all), [all, proj]);
   const [items, setItems] = useState(initial);
   useEffect(() => setItems(initial), [initial]);
-  const [tt, setTt] = useState<string>('all');
-  const [q, setQ] = useState('');
-  const [open, setOpen] = useState<Set<number>>(() => new Set());   // YDNI: bảng chỉ hiện hạng mục; bước mở khi bấm ▸
-  const [drawerId, setDrawerId] = useState<number | null>(null);
+  const [tt, setTt] = useState<string>(() => sp.get('tdtt') || 'all');
+  const [q, setQ] = useState(() => sp.get('tdq') ?? '');
+  const [open, setOpen] = useState<Set<number>>(() => new Set((sp.get('tdo') ?? '').split(',').map(Number).filter(Boolean)));   // YDNI: bước chỉ mở khi bấm ▸ (nhớ trong URL)
+  const modal = useModalParam('td');
+  const drawerId = modal.is('hm') ? modal.numId : null;
+  const setDrawerId = (id: number | null) => (id == null ? modal.close() : modal.open('hm', id));
+  useEffect(() => {
+    const u = new URL(window.location.href);
+    const set = (k: string, v: string) => { if (v) u.searchParams.set(k, v); else u.searchParams.delete(k); };
+    set('tdp', proj && proj !== projectId ? proj : ''); set('tdtt', tt === 'all' ? '' : tt); set('tdq', q.trim()); set('tdo', [...open].join(','));
+    if (u.href !== window.location.href) window.history.replaceState(window.history.state, '', u.href);
+  }, [proj, projectId, tt, q, open]);
   const [detail, setDetail] = useState<Record<number, HangMucChiTiet>>({});
   const [, start] = useTransition();
 
@@ -57,9 +70,11 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
   };
   const inGroup = (i: HangMuc, k: string) => (groupBy === 'project' ? `${i.project_id ?? '—'}|${i.nhom}` === k : i.nhom === k);
 
-  const put = (y: HangMucChiTiet | null) => { if (!y) return; setItems((xs) => xs.map((i) => (i.id === y.id ? { ...i, ...y } : i))); setDetail((d) => ({ ...d, [y.id]: y })); };
-  const load = (id: number) => { if (!detail[id]) tdGet(id).then(put); };
+  const put = useCallback((y: HangMucChiTiet | null) => { if (!y) return; setItems((xs) => xs.map((i) => (i.id === y.id ? { ...i, ...y } : i))); setDetail((d) => ({ ...d, [y.id]: y })); }, []);
+  const load = useCallback((id: number) => { setDetail((d) => { if (!d[id]) tdGet(id).then(put); return d; }); }, [put]);
   const toggle = (id: number) => { setOpen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else { n.add(id); load(id); } return n; }); };
+  const mountedLoad = useRef(false);   // chỉ lúc vào trang: nạp bước cho các dòng URL bảo mở
+  useEffect(() => { if (mountedLoad.current) return; mountedLoad.current = true; open.forEach(load); }, [open, load]);
   const suaBuoc = (buocId: number, p: { trang_thai?: string; ket_qua?: string; ghi_chu?: string }) => start(async () => put(await tdSuaBuoc(buocId, p)));
   const themBuoc = (id: number, text: string) => start(async () => put(await tdThemBuoc(id, text)));
 

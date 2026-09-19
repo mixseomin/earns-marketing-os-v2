@@ -125,8 +125,12 @@ export async function POST(req: Request) {
         LEFT JOIN phu_zone_chan c ON c.project_id = z.project_id AND c.sid_prefix = z.sid_prefix AND c.zone_id = z.zone_id
        WHERE z.project_id = ${project} AND z.sid_prefix IN (${sql.join(prefixes.map((x) => sql`${x}`), sql`, `)})
        GROUP BY z.sid_prefix, z.zone_id, h.hits, h.bots, c.trang_thai`)) as unknown as Array<{ sid_prefix: string; zone_id: string; impressions: number; clicks: number; chi: number; hits: number; bots: number; chan: string | null }>;
+    // Camp không có hit ở BẤT KỲ zone nào = đường đo chết, không phải mọi zone đều bẩn → không chấm K1 cho camp đó (cùng luật P2 cấp camp).
+    const hitCamp = new Map<string, number>();
+    for (const z of zs) hitCamp.set(z.sid_prefix, (hitCamp.get(z.sid_prefix) ?? 0) + Number(z.hits) + Number(z.bots));
     for (const z of zs) {
       if (z.chan === 'da_chan' || z.chan === 'bo_qua') continue;
+      if (!(hitCamp.get(z.sid_prefix) ?? 0)) continue;
       const kq = chamZone({ impressions: Number(z.impressions), clicks: Number(z.clicks), chi: Number(z.chi), hits: Number(z.hits), bots: Number(z.bots) });
       if (!kq) continue;
       await db.execute(sql`

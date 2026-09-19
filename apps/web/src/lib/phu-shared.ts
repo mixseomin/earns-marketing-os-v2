@@ -86,6 +86,9 @@ export function phanXet(c: PhuCamp, today = new Date()): { ma: 'cho' | 'mo_rong'
   if (c.trangThai !== 'chay') return { ma: 'nghi', lyDo: c.trangThai, xemLai };
   if (thuChi > 0 && chi >= Math.max(5, chiMax / 2) && roi >= thuChi) return { ma: 'mo_rong', lyDo: `thu/chi ${roi.toFixed(2)} ≥ ${thuChi} ($${revenue.toFixed(2)} / $${chi.toFixed(2)})`, xemLai };
   if (muc > 0 && per1k >= muc && click >= Math.max(200, clickMin / 4)) return { ma: 'mo_rong', lyDo: `${per1k.toFixed(1)} signup/1k ≥ mục tiêu ${muc} (${signup}/${click} click)`, xemLai };
+  // 0 hit trên CẢ camp khi mạng đã đếm ≥300 click = đường đo chết (nginx cắt sid, log không đọc…) nhiều hơn là bot; 19/09/2026 máy
+  // pause nhầm native-latam vì đúng ca này. Số 0 = nghi pipeline trước khi nghi thực tế → CHỜ + báo, không DỪNG.
+  if (htc > 0 && clickMang >= 300 && out === 0) return { ma: 'cho', lyDo: `0 hit /x/ trên ${clickMang} click mạng — nghi đường đo (sid/log) chết, kiểm trước khi kết luận`, xemLai };
   if (htc > 0 && clickMang >= 300 && out / clickMang < htc) return { ma: 'dung', lyDo: `P2: hit/click ${(out / clickMang * 100).toFixed(0)}% < ${htc * 100}% (${out}/${clickMang}) — traffic không tới máy mình`, xemLai };
   if (giaMax > 0 && click >= 100 && giaClick > giaMax) return { ma: 'dung', lyDo: `$${giaClick.toFixed(3)}/click > trần $${giaMax} (${click} click, $${chi.toFixed(2)})`, xemLai };
   if (hetTien || quaHan) return { ma: 'dung', lyDo: `${hetTien ? `hết $${chiMax} thử` : `quá hạn ${c.ketThuc?.slice(0, 10)}`} · ${signup} signup / ${click} click` + (muc ? ` (< ${muc}/1k)` : '') + (thuChi ? ` · thu/chi ${roi.toFixed(2)} < ${thuChi}` : ''), xemLai };

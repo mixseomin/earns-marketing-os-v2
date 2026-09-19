@@ -1072,7 +1072,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // Chế độ ĐỌC cũng nằm ngoài như list: mỗi lần refresh là kéo lại nguyên payload trang (~2,8 MB)
   // và dựng lại cả cột bài — đang đọc thì đó là giật, không phải "live".
   useEffect(() => {
-    if (!realtime || view === 'list' || view === 'feed') return;
+    // Tiến độ tự poll gọn bên trong view (danh sách + bước đang mở), không kéo lại cả payload trang.
+    if (!realtime || view === 'list' || view === 'feed' || view === 'tiendo') return;
     const id = setInterval(() => { if (!document.hidden) start(() => router.refresh()); }, 10000);
     return () => clearInterval(id);
   }, [realtime, view, router]);
@@ -2393,7 +2394,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       )}
 
       {view === 'tiendo' ? (
-        <TienDoView items={tienDo} groupBy={allProjects ? 'project' : 'nhom'} projectId={tiendoProject} stickyTop={barH}
+        <TienDoView items={tienDo} groupBy={allProjects ? 'project' : 'nhom'} projectId={tiendoProject} stickyTop={barH} live={realtime} scopeProjectId={allProjects ? undefined : projectId}
           projectNames={Object.fromEntries(Object.entries(projectsById ?? {}).map(([k, p]) => [k, p.name]))} />
       ) : view === 'kanban' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, alignItems: 'start' }}>

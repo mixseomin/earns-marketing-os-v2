@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type 
 import { useSearchParams } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
 import { Drawer, Panel, SimpleTable, TextField, TextAreaField, SelectField, EmptyState, ResourcePicker, FilterChips, SearchInput, Pill, StickyBar } from '@/components/ui';
-import { tdGet, tdSuaBuoc, tdSuaTrangThai, tdSuaTruong, tdThemBuoc, tdThem } from '@/lib/actions/tien-do';
+import { tdGet, tdList, tdSuaBuoc, tdSuaTrangThai, tdSuaTruong, tdThemBuoc, tdThem } from '@/lib/actions/tien-do';
 import { HANG_MUC_TRANG_THAI, BUOC_TRANG_THAI, TRANG_THAI_MARK, soText, type HangMuc, type HangMucChiTiet, type Buoc } from '@/lib/tien-do-shared';
 
 // Nền dòng theo trạng thái — cùng bảng màu với conditional formatting trên sheet, độ đậm cho nền tối.
@@ -20,8 +20,12 @@ const mono: CSSProperties = { fontFamily: 'var(--font-mono)', color: 'var(--fg-3
 const linkBtn: CSSProperties = { background: 'none', border: 0, padding: 0, color: 'var(--fg-1)', cursor: 'pointer', font: 'inherit', textAlign: 'left' };
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n) + '…' : s);
 
-export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, projectId, stickyTop = 0 }: {
+export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, projectId, stickyTop = 0, live = true, scopeProjectId }: {
   items: HangMuc[];
+  /** Thời gian thực: mỗi 10s (tab đang nhìn) kéo lại danh sách + bước của các dòng đang mở. Không phụ thuộc F5. */
+  live?: boolean;
+  /** Trang per-project: giới hạn poll về đúng project đó (trang toàn cục để trống = mọi dự án). */
+  scopeProjectId?: string;
   /** Chiều cao thanh công cụ dính của trang (barH) — tiêu đề nhóm dính ngay dưới nó khi cuộn. */
   stickyTop?: number;
   /** Lọc theo project (chip Project của trang /plays). undefined = mọi dự án. */
@@ -33,10 +37,12 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
   // Bộ lọc + dòng đang mở + drawer đều nằm trong URL (F5/share giữ nguyên): ?tdp= dự án · ?tdtt= trạng thái · ?tdq= tìm ·
   // ?tdo= id các hạng mục đang mở bước · ?td=hm&tdId= drawer. Ghi shallow (replaceState) như các bộ lọc khác của trang Plays.
   const sp = useSearchParams();
-  const [extra, setExtra] = useState<HangMuc[]>([]);   // hạng mục vừa thêm ở trang này (server không refetch)
+  const [base, setBase] = useState<HangMuc[]>(all);      // danh sách từ server: prop lúc vào trang, poll 10s ghi đè
+  useEffect(() => setBase(all), [all]);
+  const [extra, setExtra] = useState<HangMuc[]>([]);   // hạng mục vừa thêm ở trang này, chưa kịp về qua poll
   const [proj, setProj] = useState<string | undefined>(() => sp.get('tdp') || projectId);
   useEffect(() => { if (projectId) setProj(projectId); }, [projectId]);
-  const everything = useMemo(() => [...all, ...extra.filter((e) => !all.some((a) => a.id === e.id))], [all, extra]);
+  const everything = useMemo(() => [...base, ...extra.filter((e) => !base.some((a) => a.id === e.id))], [base, extra]);
   const initial = useMemo(() => (proj ? everything.filter((i) => (i.project_id ?? '—') === proj) : everything), [everything, proj]);
   const [items, setItems] = useState(initial);
   useEffect(() => setItems(initial), [initial]);
@@ -76,6 +82,29 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
   const put = useCallback((y: HangMucChiTiet | null) => { if (!y) return; setItems((xs) => xs.map((i) => (i.id === y.id ? { ...i, ...y } : i))); setDetail((d) => ({ ...d, [y.id]: y })); }, []);
   const load = useCallback((id: number) => { setDetail((d) => { if (!d[id]) tdGet(id).then(put); return d; }); }, [put]);
   const toggle = (id: number) => { setOpen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else { n.add(id); load(id); } return n; }); };
+  // THỜI GIAN THỰC (anh chốt 20/09/2026): CLI/phiên khác ghi → bảng đổi trong ≤10s, không F5. Poll nhẹ: danh sách tóm tắt
+  // (1 query) + chi tiết CHỈ các dòng đang mở. Bỏ qua khi tab ẩn. Ô đang gõ không bị đè: Inline chỉ đồng bộ khi không edit.
+  const openRef = useRef(open); openRef.current = open;
+  useEffect(() => {
+    if (!live) return;
+    let busy = false;
+    const tick = async () => {
+      if (document.hidden || busy) return;
+      busy = true;
+      try {
+        const list = await tdList(scopeProjectId);
+        setBase(list);
+        setExtra((xs) => xs.filter((e) => !list.some((l) => l.id === e.id)));
+        const ids = [...openRef.current];
+        if (ids.length) {
+          const ds = await Promise.all(ids.map((id) => tdGet(id)));
+          setDetail((d) => { const n = { ...d }; for (const y of ds) if (y) n[y.id] = y; return n; });
+        }
+      } finally { busy = false; }
+    };
+    const t = setInterval(tick, 10000);
+    return () => clearInterval(t);
+  }, [live, scopeProjectId]);
   const mountedLoad = useRef(false);   // chỉ lúc vào trang: nạp bước cho các dòng URL bảo mở
   useEffect(() => { if (mountedLoad.current) return; mountedLoad.current = true; open.forEach(load); }, [open, load]);
   const suaBuoc = (buocId: number, p: { trang_thai?: string; ket_qua?: string; ghi_chu?: string }) => start(async () => put(await tdSuaBuoc(buocId, p)));

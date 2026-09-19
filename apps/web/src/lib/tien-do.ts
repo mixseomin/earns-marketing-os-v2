@@ -122,7 +122,7 @@ export async function suaBuoc(buocId: number, p: BuocPatch): Promise<{ buoc: Buo
 export async function tinhLaiTrangThai(id: number): Promise<void> {
   const d = db();
   const yt = rows<{ trang_thai: string }>(await d.execute(sql`SELECT trang_thai FROM tien_do_hang_muc WHERE id = ${id}`))[0];
-  if (!yt || yt.trang_thai === 'Tạm dừng' || yt.trang_thai === 'Bỏ') return;
+  if (!yt || yt.trang_thai === 'Tạm dừng' || yt.trang_thai === 'Bỏ' || yt.trang_thai === 'Chờ') return;
   const b = rows<{ trang_thai: string }>(await d.execute(sql`SELECT trang_thai FROM tien_do_buoc WHERE hang_muc_id = ${id} AND trang_thai <> 'Bỏ'`));
   let moi = yt.trang_thai;
   if (b.some((x) => x.trang_thai === 'Kẹt')) moi = 'Kẹt';

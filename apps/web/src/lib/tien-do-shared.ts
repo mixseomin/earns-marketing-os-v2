@@ -1,5 +1,6 @@
 // Hằng + kiểu dùng chung client/server cho sổ TIẾN ĐỘ (hạng mục → bước). KHÔNG import DB — client component cũng import file này.
-export const HANG_MUC_TRANG_THAI = ['Ý tưởng', 'Sẵn sàng', 'Đang làm', 'Kẹt', 'Tạm dừng', 'Xong', 'Bỏ'] as const;
+// Chờ = chưa mở, đợi cổng của hạng mục khác (khuôn Bra: H05-H07 chờ cổng Vesnacharm) — đặt tay, không tự nhảy.
+export const HANG_MUC_TRANG_THAI = ['Ý tưởng', 'Sẵn sàng', 'Chờ', 'Đang làm', 'Kẹt', 'Tạm dừng', 'Xong', 'Bỏ'] as const;
 export const BUOC_TRANG_THAI = ['Chưa', 'Đang', 'Xong', 'Kẹt', 'Bỏ'] as const;
 export type HangMucTrangThai = (typeof HANG_MUC_TRANG_THAI)[number];
 export type BuocTrangThai = (typeof BUOC_TRANG_THAI)[number];

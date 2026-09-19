@@ -13,7 +13,7 @@ const TINT: Record<string, string> = {
   'Tạm dừng': 'rgba(255,190,80,.12)', 'Chờ': 'rgba(255,190,80,.08)', 'Bỏ': 'rgba(255,255,255,.04)', 'Sẵn sàng': 'rgba(120,220,120,.05)',
 };
 const tint = (s: string): CSSProperties | undefined => (TINT[s] ? { background: TINT[s] } : undefined);
-const MARK: Record<string, string> = { 'Kẹt': '⛔', 'Xong': '✓', 'Đang làm': '▶', 'Đang': '▶', 'Tạm dừng': '⏸', 'Bỏ': '×', 'Chưa': '○', 'Ý tưởng': '○', 'Sẵn sàng': '◔' };
+const MARK: Record<string, string> = { 'Kẹt': '⛔', 'Xong': '✓', 'Đang làm': '▶', 'Đang': '▶', 'Tạm dừng': '⏸', 'Chờ': '⏳', 'Bỏ': '×', 'Chưa': '○', 'Ý tưởng': '○', 'Sẵn sàng': '◔' };
 const mono: CSSProperties = { fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', fontSize: 11 };
 const linkBtn: CSSProperties = { background: 'none', border: 0, padding: 0, color: 'var(--fg-1)', cursor: 'pointer', font: 'inherit', textAlign: 'left' };
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n) + '…' : s);

@@ -19,26 +19,26 @@ export async function GET(req: Request) {
   if (!app) {
     const apps = await db.execute(sql`
       SELECT a.key, a.ten, a.bundle_id, a.project_id, a.created_at,
-             (SELECT count(*) FROM app_cai c WHERE c.app_key = a.key) AS installs,
-             (SELECT count(DISTINCT install_id) FROM app_su_kien s WHERE s.app_key = a.key AND s.ts >= now() - interval '1 day') AS dau
+             (SELECT count(*) FROM app_cai c WHERE c.app_key = a.key)::int AS installs,
+             (SELECT count(DISTINCT install_id) FROM app_su_kien s WHERE s.app_key = a.key AND s.ts >= now() - interval '1 day')::int AS dau
       FROM app_ung_dung a ORDER BY a.created_at`);
     return NextResponse.json({ ok: true, apps });
   }
   const ngay = await db.execute(sql`
     WITH d AS (SELECT generate_series((now() - make_interval(days => ${days} - 1))::date, now()::date, '1 day')::date AS ngay)
     SELECT d.ngay,
-      (SELECT count(*) FROM app_cai c WHERE c.app_key = ${app} AND c.first_seen::date = d.ngay) AS cai,
-      (SELECT count(DISTINCT install_id) FROM app_su_kien s WHERE s.app_key = ${app} AND s.ts::date = d.ngay) AS dau,
-      (SELECT count(*) FROM app_su_kien s WHERE s.app_key = ${app} AND s.ts::date = d.ngay AND s.ten = 'session_start') AS phien,
-      (SELECT count(*) FROM app_su_kien s WHERE s.app_key = ${app} AND s.ts::date = d.ngay AND s.ten = 'game_end') AS van,
-      (SELECT count(*) FROM app_su_kien s WHERE s.app_key = ${app} AND s.ts::date = d.ngay AND s.ten = 'ad_interstitial' AND (s.props->>'shown')::boolean) AS interstitial,
-      (SELECT count(*) FROM app_su_kien s WHERE s.app_key = ${app} AND s.ts::date = d.ngay AND s.ten = 'ad_rewarded' AND (s.props->>'rewarded')::boolean) AS rewarded,
-      (SELECT count(*) FROM app_su_kien s WHERE s.app_key = ${app} AND s.ts::date = d.ngay AND s.ten = 'iap_remove_ads') AS mua
+      (SELECT count(*) FROM app_cai c WHERE c.app_key = ${app} AND c.first_seen::date = d.ngay)::int AS cai,
+      (SELECT count(DISTINCT install_id) FROM app_su_kien s WHERE s.app_key = ${app} AND s.ts::date = d.ngay)::int AS dau,
+      (SELECT count(*) FROM app_su_kien s WHERE s.app_key = ${app} AND s.ts::date = d.ngay AND s.ten = 'session_start')::int AS phien,
+      (SELECT count(*) FROM app_su_kien s WHERE s.app_key = ${app} AND s.ts::date = d.ngay AND s.ten = 'game_end')::int AS van,
+      (SELECT count(*) FROM app_su_kien s WHERE s.app_key = ${app} AND s.ts::date = d.ngay AND s.ten = 'ad_interstitial' AND (s.props->>'shown')::boolean)::int AS interstitial,
+      (SELECT count(*) FROM app_su_kien s WHERE s.app_key = ${app} AND s.ts::date = d.ngay AND s.ten = 'ad_rewarded' AND (s.props->>'rewarded')::boolean)::int AS rewarded,
+      (SELECT count(*) FROM app_su_kien s WHERE s.app_key = ${app} AND s.ts::date = d.ngay AND s.ten = 'iap_remove_ads')::int AS mua
     FROM d ORDER BY d.ngay`);
   const giu = await db.execute(sql`
     WITH c AS (SELECT install_id, first_seen::date AS d0 FROM app_cai WHERE app_key = ${app} AND first_seen >= now() - make_interval(days => ${days}))
-    SELECT n AS ngay_thu, count(*) AS cohort,
-      count(*) FILTER (WHERE EXISTS (SELECT 1 FROM app_su_kien s WHERE s.app_key = ${app} AND s.install_id = c.install_id AND s.ts::date = c.d0 + n)) AS quay_lai
+    SELECT n AS ngay_thu, count(*)::int AS cohort,
+      count(*) FILTER (WHERE EXISTS (SELECT 1 FROM app_su_kien s WHERE s.app_key = ${app} AND s.install_id = c.install_id AND s.ts::date = c.d0 + n))::int AS quay_lai
     FROM c CROSS JOIN (VALUES (1), (7), (30)) AS v(n)
     WHERE c.d0 + n <= now()::date
     GROUP BY n ORDER BY n`);

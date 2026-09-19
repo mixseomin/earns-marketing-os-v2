@@ -19,19 +19,19 @@ export async function POST(req: Request) {
   const okApp = (await db.execute(sql`SELECT 1 FROM app_ung_dung WHERE key = ${app} AND token = ${token}`)) as unknown as unknown[];
   if (!okApp.length) return NextResponse.json({ ok: false }, { status: 403 });
   const events = (b.events ?? []).slice(0, 200).filter((e) => e && e.t && e.e && !Number.isNaN(Date.parse(e.t)));
-  const sessions = events.filter((e) => e.e === 'session_start').length;
-  await db.execute(sql`
-    INSERT INTO app_cai (app_key, install_id, version, region, sessions, first_seen, last_seen)
-    VALUES (${app}, ${install}, ${b.v ?? null}, ${b.region ?? null}, ${sessions}, now(), now())
-    ON CONFLICT (app_key, install_id) DO UPDATE SET last_seen = now(), version = COALESCE(EXCLUDED.version, app_cai.version),
-      region = COALESCE(EXCLUDED.region, app_cai.region), sessions = app_cai.sessions + EXCLUDED.sessions`);
-  let n = 0;
+  // Chèn sự kiện trước (ON CONFLICT DO NOTHING) — phiên chỉ cộng theo session_start THẬT SỰ mới, gửi lại không cộng đôi.
+  let n = 0, sessions = 0;
   for (const e of events) {
     const r = await db.execute(sql`
       INSERT INTO app_su_kien (app_key, install_id, ts, ten, props)
       VALUES (${app}, ${install}, ${e.t}::timestamptz, ${String(e.e).slice(0, 40)}, ${e.p == null ? null : JSON.stringify(e.p)}::jsonb)
       ON CONFLICT DO NOTHING RETURNING id`);
-    if ((r as unknown as unknown[]).length) n++;
+    if ((r as unknown as unknown[]).length) { n++; if (e.e === 'session_start') sessions++; }
   }
+  await db.execute(sql`
+    INSERT INTO app_cai (app_key, install_id, version, region, sessions, first_seen, last_seen)
+    VALUES (${app}, ${install}, ${b.v ?? null}, ${b.region ?? null}, ${sessions}, now(), now())
+    ON CONFLICT (app_key, install_id) DO UPDATE SET last_seen = now(), version = COALESCE(EXCLUDED.version, app_cai.version),
+      region = COALESCE(EXCLUDED.region, app_cai.region), sessions = app_cai.sessions + EXCLUDED.sessions`);
   return NextResponse.json({ ok: true, n });
 }

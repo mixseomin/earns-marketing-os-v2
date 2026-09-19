@@ -18,8 +18,10 @@ const mono: CSSProperties = { fontFamily: 'var(--font-mono)', color: 'var(--fg-3
 const linkBtn: CSSProperties = { background: 'none', border: 0, padding: 0, color: 'var(--fg-1)', cursor: 'pointer', font: 'inherit', textAlign: 'left' };
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n) + '…' : s);
 
-export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, projectId }: {
+export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, projectId, stickyTop = 0 }: {
   items: HangMuc[];
+  /** Chiều cao thanh công cụ dính của trang (barH) — tiêu đề nhóm dính ngay dưới nó khi cuộn. */
+  stickyTop?: number;
   /** Lọc theo project (chip Project của trang /plays). undefined = mọi dự án. */
   projectId?: string;
   /** 'nhom' = khối theo nhóm (per-project) · 'project' = khối theo dự án rồi nhóm (/plays toàn cục) */
@@ -33,7 +35,7 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
   useEffect(() => setItems(initial), [initial]);
   const [tt, setTt] = useState<string>('all');
   const [q, setQ] = useState('');
-  const [open, setOpen] = useState<Set<number>>(() => new Set(initial.filter((i) => i.trang_thai === 'Kẹt' || i.trang_thai === 'Đang làm').map((i) => i.id)));
+  const [open, setOpen] = useState<Set<number>>(() => new Set());   // YDNI: bảng chỉ hiện hạng mục; bước mở khi bấm ▸
   const [drawerId, setDrawerId] = useState<number | null>(null);
   const [detail, setDetail] = useState<Record<number, HangMucChiTiet>>({});
   const [, start] = useTransition();
@@ -58,8 +60,6 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
   const put = (y: HangMucChiTiet | null) => { if (!y) return; setItems((xs) => xs.map((i) => (i.id === y.id ? { ...i, ...y } : i))); setDetail((d) => ({ ...d, [y.id]: y })); };
   const load = (id: number) => { if (!detail[id]) tdGet(id).then(put); };
   const toggle = (id: number) => { setOpen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else { n.add(id); load(id); } return n; }); };
-  const openOnce = useState(() => [...open])[0];
-  useEffect(() => { openOnce.forEach(load); }, [openOnce]); // nạp bước cho các dòng mở sẵn lúc vào trang
   const suaBuoc = (buocId: number, p: { trang_thai?: string; ket_qua?: string; ghi_chu?: string }) => start(async () => put(await tdSuaBuoc(buocId, p)));
   const themBuoc = (id: number, text: string) => start(async () => put(await tdThemBuoc(id, text)));
 
@@ -92,29 +92,30 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
         const rows = visible.filter((i) => inGroup(i, g));
         const sub = `${all.length} hạng mục · ⛔ ${all.filter((i) => i.trang_thai === 'Kẹt').length} · ▶ ${all.filter((i) => i.trang_thai === 'Đang làm').length} · ✓ ${all.filter((i) => i.trang_thai === 'Xong').length}`;
         return (
-          <Panel key={g} title={groupTitle(g)} subtitle={sub} style={{ marginBottom: 16 }}>
+          <section key={g} style={{ marginBottom: 18 }}>
+            {/* Tiêu đề nhóm dính ngay dưới thanh công cụ của trang: cuộn tới đâu vẫn biết đang ở dự án nào */}
+            <div style={{ position: 'sticky', top: stickyTop, zIndex: 5, background: 'var(--bg-0)', padding: '8px 0 6px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'baseline', gap: 10 }}>
+              <span style={{ fontWeight: 700, color: 'var(--fg-1)' }}>{groupTitle(g)}</span>
+              <span style={mono}>{sub}</span>
+            </div>
             {rows.length === 0 ? <EmptyState icon="📈" title="Không dòng nào khớp bộ lọc" compact /> : (
               <SimpleTable rows={rows} getRowKey={(r) => String(r.id)} rowStyle={(r) => tint(r.trang_thai)}
                 renderExpanded={(r) => (open.has(r.id) ? <BuocTable y={detail[r.id]} onPatch={suaBuoc} onAdd={(t) => themBuoc(r.id, t)} /> : null)}
                 columns={[
-                  { key: 'x', header: '', width: 22, cell: (r) => <button type="button" onClick={() => toggle(r.id)} title={open.has(r.id) ? 'Thu bước' : 'Mở bước'} style={{ ...linkBtn, color: 'var(--fg-3)' }}>{open.has(r.id) ? '▾' : '▸'}</button> },
+                  { key: 'x', header: '', width: 22, cell: (r) => <button type="button" onClick={() => toggle(r.id)} title={open.has(r.id) ? 'Thu bước' : `Mở ${r.tong} bước`} style={{ ...linkBtn, color: 'var(--fg-3)' }}>{open.has(r.id) ? '▾' : '▸'}</button> },
                   { key: 'ma', header: 'ID', width: 44, cell: (r) => <span style={mono}>{r.ma}</span> },
-                  { key: 'ten', header: 'Hạng mục', cell: (r) => (
-                    <div>
-                      <button type="button" onClick={() => setDrawerId(r.id)} style={linkBtn} title="Mở chi tiết (mô tả, ghi chú, ai, số, cổng, nhật ký)">{r.ten}</button>
-                      {r.mo_ta && <div style={{ color: 'var(--fg-3)', fontSize: 11, marginTop: 2 }}>{clip(r.mo_ta, 140)}</div>}
-                    </div>) },
+                  { key: 'ten', header: 'Hạng mục', cell: (r) => <button type="button" onClick={() => setDrawerId(r.id)} style={linkBtn} title={(r.mo_ta || 'Mở chi tiết') + '\n\n(bấm: mô tả, ghi chú, ai, số, cổng, nhật ký)'}>{r.ten}</button> },
                   { key: 'uu', header: 'Ưu', width: 28, align: 'center', title: '1 làm trước · 2 kế · 3 để dành · 4 gần như bỏ', cell: (r) => r.uu_tien },
                   { key: 'tt', header: 'Trạng thái', width: 92, cell: (r) => <span>{MARK[r.trang_thai] ?? ''} {r.trang_thai}</span> },
                   { key: 'tien', header: 'Tiến độ', width: 56, align: 'center', title: 'bước Xong / tổng', cell: (r) => (r.tong ? `${r.xong}/${r.tong}` : '–') },
-                  { key: 'buoc', header: 'Bước hiện tại', title: '⛔ bước kẹt → ▶ bước đang → ○ bước chưa đầu tiên', cell: (r) => <span style={{ color: r.buoc_hien_tai.startsWith('⛔') ? 'var(--neon-red, #ff6b6b)' : 'var(--fg-2)' }}>{r.buoc_hien_tai}</span> },
-                  { key: 'ai', header: 'Ai', width: 48, title: 'Người làm: anh / em / tên người', cell: (r) => <span style={{ color: 'var(--fg-2)', fontSize: 12 }}>{r.ai}</span> },
-                  { key: 'so', header: 'Số', width: 150, title: 'Chỉ số của hạng mục (mỗi dự án đo thứ khác)', cell: (r) => <span style={{ color: 'var(--fg-2)', fontSize: 11 }}>{clip(soText(r.so), 90)}</span> },
-                  { key: 'cong', header: 'Cổng đi/dừng', width: 150, title: 'Điều kiện để đi tiếp hay dừng', cell: (r) => <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>{clip(r.cong, 90)}</span> },
+                  { key: 'buoc', header: 'Bước hiện tại', title: '⛔ bước kẹt → ▶ bước đang → ○ bước chưa đầu tiên', cell: (r) => <span title={r.buoc_hien_tai} style={{ color: r.buoc_hien_tai.startsWith('⛔') ? 'var(--neon-red, #ff6b6b)' : 'var(--fg-2)' }}>{clip(r.buoc_hien_tai, 110)}</span> },
+                  { key: 'ai', header: 'Ai', width: 48, title: 'Người làm', cell: (r) => <span style={{ color: 'var(--fg-2)', fontSize: 12 }}>{r.ai}</span> },
+                  { key: 'so', header: 'Số', width: 150, title: 'Chỉ số của hạng mục', cell: (r) => <span title={soText(r.so)} style={{ color: 'var(--fg-2)', fontSize: 11 }}>{clip(soText(r.so), 70)}</span> },
+                  { key: 'cong', header: 'Cổng đi/dừng', width: 150, title: 'Điều kiện đi tiếp hay dừng', cell: (r) => <span title={r.cong} style={{ color: 'var(--fg-3)', fontSize: 11 }}>{clip(r.cong, 70)}</span> },
                   { key: 'cn', header: 'Cập nhật', width: 78, cell: (r) => <span style={mono}>{r.cap_nhat ?? ''}</span> },
                 ]} />
             )}
-          </Panel>
+          </section>
         );
       })}
 

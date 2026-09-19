@@ -2393,7 +2393,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
       )}
 
       {view === 'tiendo' ? (
-        <TienDoView items={tienDo} groupBy={allProjects ? 'project' : 'nhom'} projectId={tiendoProject}
+        <TienDoView items={tienDo} groupBy={allProjects ? 'project' : 'nhom'} projectId={tiendoProject} stickyTop={barH}
           projectNames={Object.fromEntries(Object.entries(projectsById ?? {}).map(([k, p]) => [k, p.name]))} />
       ) : view === 'kanban' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, alignItems: 'start' }}>

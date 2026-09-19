@@ -5,8 +5,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type CSSProperties } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
-import { Drawer, Panel, SimpleTable, TextField, TextAreaField, SelectField, EmptyState } from '@/components/ui';
-import { tdGet, tdSuaBuoc, tdSuaTrangThai, tdSuaTruong, tdThemBuoc } from '@/lib/actions/tien-do';
+import { Drawer, Panel, SimpleTable, TextField, TextAreaField, SelectField, EmptyState, ResourcePicker } from '@/components/ui';
+import { tdGet, tdSuaBuoc, tdSuaTrangThai, tdSuaTruong, tdThemBuoc, tdThem } from '@/lib/actions/tien-do';
 import { HANG_MUC_TRANG_THAI, BUOC_TRANG_THAI, soText, type HangMuc, type HangMucChiTiet, type Buoc } from '@/lib/tien-do-shared';
 
 // Nền dòng theo trạng thái — cùng bảng màu với conditional formatting trên sheet, độ đậm cho nền tối.
@@ -33,9 +33,11 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
   // Bộ lọc + dòng đang mở + drawer đều nằm trong URL (F5/share giữ nguyên): ?tdp= dự án · ?tdtt= trạng thái · ?tdq= tìm ·
   // ?tdo= id các hạng mục đang mở bước · ?td=hm&tdId= drawer. Ghi shallow (replaceState) như các bộ lọc khác của trang Plays.
   const sp = useSearchParams();
+  const [extra, setExtra] = useState<HangMuc[]>([]);   // hạng mục vừa thêm ở trang này (server không refetch)
   const [proj, setProj] = useState<string | undefined>(() => sp.get('tdp') || projectId);
   useEffect(() => { if (projectId) setProj(projectId); }, [projectId]);
-  const initial = useMemo(() => (proj ? all.filter((i) => (i.project_id ?? '—') === proj) : all), [all, proj]);
+  const everything = useMemo(() => [...all, ...extra.filter((e) => !all.some((a) => a.id === e.id))], [all, extra]);
+  const initial = useMemo(() => (proj ? everything.filter((i) => (i.project_id ?? '—') === proj) : everything), [everything, proj]);
   const [items, setItems] = useState(initial);
   useEffect(() => setItems(initial), [initial]);
   const [tt, setTt] = useState<string>(() => sp.get('tdtt') || 'all');
@@ -69,6 +71,7 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
     return nhom && nhom !== pn ? `${pn} · ${nhom}` : pn;
   };
   const inGroup = (i: HangMuc, k: string) => (groupBy === 'project' ? `${i.project_id ?? '—'}|${i.nhom}` === k : i.nhom === k);
+  const all0 = (k: string) => items.find((i) => inGroup(i, k));
 
   const put = useCallback((y: HangMucChiTiet | null) => { if (!y) return; setItems((xs) => xs.map((i) => (i.id === y.id ? { ...i, ...y } : i))); setDetail((d) => ({ ...d, [y.id]: y })); }, []);
   const load = useCallback((id: number) => { setDetail((d) => { if (!d[id]) tdGet(id).then(put); return d; }); }, [put]);
@@ -76,10 +79,14 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
   const mountedLoad = useRef(false);   // chỉ lúc vào trang: nạp bước cho các dòng URL bảo mở
   useEffect(() => { if (mountedLoad.current) return; mountedLoad.current = true; open.forEach(load); }, [open, load]);
   const suaBuoc = (buocId: number, p: { trang_thai?: string; ket_qua?: string; ghi_chu?: string }) => start(async () => put(await tdSuaBuoc(buocId, p)));
+  const them = (project_id: string, nhom: string, ten: string) => start(async () => { const y = await tdThem(project_id, nhom, ten); setExtra((xs) => [...xs, y]); setDetail((d) => ({ ...d, [y.id]: y })); });
+  const [pickOpen, setPickOpen] = useState(false);
   const themBuoc = (id: number, text: string) => start(async () => put(await tdThemBuoc(id, text)));
 
-  const projs = useMemo(() => [...new Set(all.map((i) => i.project_id ?? '—'))], [all]);
-  const nAll = (pid: string) => all.filter((i) => (i.project_id ?? '—') === pid).length;
+  const projs = useMemo(() => [...new Set(everything.map((i) => i.project_id ?? '—'))], [everything]);
+  const nAll = (pid: string) => everything.filter((i) => (i.project_id ?? '—') === pid).length;
+  // dự án CHƯA có hạng mục: không thành chip (44 chip = rác) mà nằm trong picker "＋ dự án khác…" → chọn là mở khối trống để thêm
+  const others = useMemo(() => Object.keys(projectNames).filter((pid) => !projs.includes(pid)).sort((a, b) => (projectNames[a] ?? a).localeCompare(projectNames[b] ?? b)), [projectNames, projs]);
   const chipStyle = (on: boolean): CSSProperties => ({ background: on ? 'var(--accent)' : 'transparent', color: on ? 'var(--bg-0)' : 'var(--fg-3)', border: '1px solid ' + (on ? 'var(--accent)' : 'var(--line)'), borderRadius: 999, padding: '2px 9px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' });
 
   return (
@@ -90,6 +97,8 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
         {groupBy === 'project' && projs.length > 1 && (<>
           <button type="button" style={chipStyle(!proj)} onClick={() => setProj(undefined)}>Mọi dự án {all.length}</button>
           {projs.map((pid) => <button key={pid} type="button" style={chipStyle(proj === pid)} onClick={() => setProj(proj === pid ? undefined : pid)}>{projectNames[pid] ?? pid} {nAll(pid)}</button>)}
+          {proj && !projs.includes(proj) && <button type="button" style={chipStyle(true)} onClick={() => setProj(undefined)}>{projectNames[proj] ?? proj} 0</button>}
+          {others.length > 0 && <button type="button" style={chipStyle(false)} onClick={() => setPickOpen(true)} title={`${others.length} dự án chưa có hạng mục — chọn để bắt đầu sổ tiến độ`}>＋ dự án khác…</button>}
           <span style={{ color: 'var(--line)' }}>|</span>
         </>)}
         <button type="button" style={chipStyle(tt === 'all')} onClick={() => setTt('all')}>Tất cả {items.length}</button>
@@ -100,7 +109,16 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
           style={{ marginLeft: 'auto', width: 160, background: 'transparent', color: 'var(--fg-1)', border: '1px solid var(--line)', borderRadius: 999, padding: '3px 10px', font: 'inherit', fontSize: 11 }} />
       </div>
 
-      {items.length === 0 && <EmptyState icon="📈" title="Chưa có hạng mục" description={'Thêm bằng CLI: tiendo add "Tên hạng mục" --du-an <project> --buoc … — hoặc nhập từ sheet: tiendo import-sheet'} />}
+      {items.length === 0 && (
+        <section style={{ marginBottom: 18 }}>
+          <EmptyState icon="📈" compact title={proj ? `${projectNames[proj] ?? proj}: chưa có hạng mục` : 'Chưa có hạng mục'} description="Gõ hạng mục đầu tiên bên dưới, Enter để tạo (hoặc CLI: tiendo add … --du-an <project>)" />
+          {proj && proj !== '—' && <ThemHangMuc onAdd={(t) => them(proj, projectNames[proj] ?? proj, t)} />}
+        </section>
+      )}
+      {pickOpen && (
+        <ResourcePicker title="Dự án chưa có sổ tiến độ" hint="Chọn để mở khối trống và thêm hạng mục đầu tiên" items={others} getKey={(pid) => pid}
+          renderItem={(pid) => ({ title: projectNames[pid] ?? pid, subtitle: pid })} onPick={(pid) => { setProj(pid); setPickOpen(false); }} onClose={() => setPickOpen(false)} />
+      )}
 
       {groups.map((g) => {
         const all = items.filter((i) => inGroup(i, g));
@@ -130,12 +148,23 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
                   { key: 'cn', header: 'Cập nhật', width: 78, cell: (r) => <span style={mono}>{r.cap_nhat ?? ''}</span> },
                 ]} />
             )}
+            {(() => { const first = all0(g); return first?.project_id ? <ThemHangMuc onAdd={(t) => them(first.project_id!, first.nhom, t)} /> : null; })()}
           </section>
         );
       })}
 
       {drawerId != null && <ChiTietDrawer y={detail[drawerId] ?? null} id={drawerId} onLoad={put} onClose={() => setDrawerId(null)} />}
     </div>
+  );
+}
+
+// Ô thêm hạng mục ở cuối khối: gõ tên + Enter. Mã (H01…) và tab do server đặt; bước thêm sau khi mở ▸.
+function ThemHangMuc({ onAdd }: { onAdd: (ten: string) => void }) {
+  const [v, setV] = useState('');
+  return (
+    <input value={v} onChange={(e) => setV(e.target.value)} placeholder="＋ hạng mục mới — gõ tên, Enter" aria-label="Thêm hạng mục"
+      onKeyDown={(e) => { if (e.key === 'Enter' && v.trim()) { onAdd(v.trim()); setV(''); } }}
+      style={{ width: '100%', marginTop: 6, background: 'transparent', color: 'var(--fg-1)', border: '1px dashed var(--line)', borderRadius: 4, padding: '4px 8px', font: 'inherit', fontSize: 12 }} />
   );
 }
 

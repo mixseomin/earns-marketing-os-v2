@@ -116,7 +116,7 @@ export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
   const c = await db.execute(sql`SELECT * FROM phu_camp WHERE project_id = ${projectId} ORDER BY trang_thai, sid_prefix`);
   type R = Record<string, unknown>;
   const nhom = nhomTheoCamp(c as unknown as R[]);
-  const [p, ng, ev, chi, ad, ld, evAll, chiAll, theoNgay] = await Promise.all([
+  const [p, ng, ev, chi, ad, ld, evAll, chiAll, theoNgay, doiRows] = await Promise.all([
     db.execute(sql`
       SELECT p.*, t.status AS card_status
         FROM phu_platforms p LEFT JOIN human_tasks t ON t.id = p.card_id
@@ -152,7 +152,11 @@ export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
     // 7 ngày gần nhất theo NGÀY, mới nhất trước — luật `lien_tiep` (K3 CPC vượt trần 2 ngày, K7 chi quá ngân sách)
     db.execute(sql`SELECT ${nhomChi} AS sid_prefix, ngay::text AS ngay, COALESCE(SUM(chi_usd), 0)::float8 AS chi, COALESCE(SUM(clicks), 0)::float8 AS clicks
                      FROM phu_chi WHERE project_id = ${projectId} AND ngay >= (current_date - 7) AND ngay < current_date GROUP BY 1, 2 ORDER BY 2 DESC`),
+    // lần đổi trạng thái CÓ LÝ DO gần nhất mỗi camp — camp đang dừng phải nói được vì sao (máy pause theo luật nào / tay dừng)
+    db.execute(sql`SELECT DISTINCT ON (sid_prefix) sid_prefix, ts::text AS ts, nguon, cu, moi, ly_do FROM phu_camp_doi
+                    WHERE project_id = ${projectId} AND truong = 'trang_thai' AND coalesce(ly_do, '') <> '' ORDER BY sid_prefix, ts DESC`),
   ]);
+  const doiCuoi = new Map<string, R>(); for (const r of doiRows as unknown as R[]) doiCuoi.set(String(r.sid_prefix), r);
   const chiMap = new Map<string, number>();
   for (const r of chi as unknown as R[]) chiMap.set(String(r.sid_prefix), n(r.chi));
   const tongEv = new Map<string, R>(); for (const r of evAll as unknown as R[]) tongEv.set(String(r.sid_prefix), r);
@@ -184,6 +188,7 @@ export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
       tieuChi: (r.tieu_chi && typeof r.tieu_chi === 'object' ? r.tieu_chi : {}) as PhuCamp['tieuChi'], keHoach: s(r.ke_hoach),
       tong: (() => { const e = tongEv.get(String(r.sid_prefix)) ?? {}; return { view: n(e.view), gate: n(e.gate), click: n(e.click), out: n(e.out), signup: n(e.signup), revenue: n(e.revenue), chi: tongChi.get(String(r.sid_prefix)) ?? 0, clickMang: tongClickMang.get(String(r.sid_prefix)) ?? 0 }; })(),
       luat: null,
+      doiCuoi: (() => { const d = doiCuoi.get(String(r.sid_prefix)); return d ? { luc: String(d.ts), nguon: String(d.nguon), cu: s(d.cu), moi: s(d.moi), lyDo: s(d.ly_do) ?? '' } : null; })(),
     })), theoNgay as unknown as R[]),
     adapters: (ad as unknown as R[]).map((r) => ({ key: String(r.key), name: String(r.name), loai: String(r.loai), lich: s(r.lich), lastRun: s(r.last_run), lastOk: r.last_ok == null ? null : Boolean(r.last_ok), lastNote: s(r.last_note), postbackToken: s(r.postback_token) })),
     landers: (ld as unknown as R[]).map((r) => ({ host: String(r.host), path: String(r.path), ten: String(r.ten), moTa: s(r.mo_ta), dich: s(r.dich), lastSinh: s(r.last_sinh), soMuc: r.so_muc == null ? null : n(r.so_muc), trangThai: String(r.trang_thai) })),
@@ -197,7 +202,8 @@ export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
  * Adapter (bidvertiser/trafficfactory) đọc phanXet() = kết quả này → pause qua API mạng. adfond không trả lời → luat=null → 'cho'. */
 const DI_LEN = new Set(['tang_bid', 'tang_ngan_sach', 'len_bac', 'mo_mau_moi']);
 async function chamLuatCamp(camp: PhuCamp[], theoNgay: Record<string, unknown>[]): Promise<PhuCamp[]> {
-  const chay = camp.filter((c) => c.trangThai === 'chay');
+  // chấm CẢ camp đang tạm dừng/nháp (trừ kết thúc): camp dừng vẫn phải nói được luật nào đang chạm với số hiện tại
+  const chay = camp.filter((c) => c.trangThai !== 'ket_thuc');
   const key = process.env.ADFOND_EXT_KEY;
   if (!chay.length || !key) return camp;
   const hom = new Date(); hom.setUTCHours(0, 0, 0, 0);

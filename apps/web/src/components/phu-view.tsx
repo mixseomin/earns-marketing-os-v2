@@ -113,7 +113,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                     <td style={cell} title={c.luat ? `luật đang chịu (${c.luat.khop.length}): ${c.luat.khop.map((l) => l.ten).join(' · ')}` : undefined}>
                       <Pill color={PHU_PHAN_XET[px.ma]?.color ?? 'var(--fg-3)'} label={PHU_PHAN_XET[px.ma]?.label ?? px.ma} />
                       <div style={{ color: 'var(--fg-3)', fontSize: 10, marginTop: 3 }}>{px.lyDo}</div>
-                      {c.trangThai === 'chay' && c.luat && (() => { const sap = sapCham(c.luat); return (
+                      {c.luat && (() => { const sap = sapCham(c.luat); return (
                         <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 3, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                           {sap.length > 0 && <span title="luật gần chạm nhất — giá trị hiện tại / ngưỡng">sắp: {sap.map((l) => `${l.ma} ${l.ve.slice().sort((a, b) => (a.ti_le ?? 0) - (b.ti_le ?? 0))[0]?.doc ?? ''}`).join(' · ')}</span>}
                           <button style={{ ...btn, fontSize: 10, padding: '0 6px' }} onClick={(e) => { e.stopPropagation(); setXemLuat(c); }} title="luật đã chạm · đang tới · treo — xem tại chỗ">{c.luat.khop.length} luật ▸</button>

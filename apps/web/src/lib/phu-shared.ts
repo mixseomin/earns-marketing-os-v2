@@ -19,6 +19,8 @@ export type PhuCamp = {
   tong: { view: number; gate: number; click: number; out: number; signup: number; revenue: number; chi: number; clickMang: number };
   /** kết quả BỘ LUẬT (be.adfond chấm, lib/phu.ts cấp số) — null = chưa chấm được (adfond không trả lời) → 'cho', không dừng gì */
   luat: PhuLuat | null;
+  /** lần đổi trạng thái gần nhất có lý do (phu_camp_doi) — camp đang dừng thì đây là "vì sao dừng" */
+  doiCuoi: { luc: string; nguon: string; cu: string | null; moi: string | null; lyDo: string } | null;
 };
 export type PhuLuatKhop = {
   ma: string; ten: string; pham_vi: string; trong_so: number; gac: 'may' | 'nguoi'; gac_ten: string; vi_sao: string; khi_nao: string; dieu_kien: string; lam: string;
@@ -102,7 +104,13 @@ export function phanXet(c: PhuCamp, today = new Date()): { ma: 'cho' | 'mo_rong'
     const k = Math.floor((today.getTime() - bd.getTime()) / 86400_000 / n) + 1;
     xemLai = new Date(bd.getTime() + k * n * 86400_000).toISOString().slice(0, 10);
   }
-  if (c.trangThai !== 'chay') return { ma: 'nghi', lyDo: c.trangThai, xemLai };
+  if (c.trangThai !== 'chay') {
+    // camp đang dừng: lý do = lần đổi trạng thái gần nhất (máy pause theo luật nào / tay dừng), rồi số hiện tại luật nói gì
+    const d = c.doiCuoi;
+    const vi = d ? `${d.nguon === 'may' ? 'máy' : d.nguon === 'db' ? 'sổ' : d.nguon} ${d.cu ?? '?'}→${d.moi ?? '?'} ${d.luc.slice(5, 16)}${d.lyDo ? `: ${d.lyDo}` : ''}` : '';
+    const gio = c.luat && c.luat.cham.length ? ` · luật hiện chạm: ${c.luat.cham.map((k) => k.ma).join(', ')}` : '';
+    return { ma: 'nghi', lyDo: `${c.trangThai}${vi ? ` — ${vi}` : ''}${gio}`, xemLai };
+  }
   if (!c.luat) return { ma: 'cho', lyDo: 'bộ luật chưa chấm được (be.adfond không trả lời) — không dừng gì', xemLai };
   return { ma: c.luat.ma, lyDo: c.luat.lyDo, xemLai };
 }

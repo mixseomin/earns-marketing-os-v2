@@ -9,7 +9,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { Collapsible, Drawer, EmptyState, Pager, Panel, Pill, SearchInput, SelectField, TextAreaField, TextField, usePaged } from '@/components/ui';
 import type { PhuCamp, PhuData, PhuLuat, PhuNguon, PhuNguonCamp, PhuPlatform, PhuZone } from '@/lib/phu-shared';
 import type { PhuCampNhatKy } from '@/lib/phu';
-import { PHU_NGUON_TRANG_THAI, PHU_PHAN_XET, PHU_TRANG_THAI, phanXet } from '@/lib/phu-shared';
+import { PHU_NGUON_TRANG_THAI, PHU_PHAN_XET, PHU_TRANG_THAI, mangCuaLander, phanXet } from '@/lib/phu-shared';
 const KHAC = '(khác)';
 import { docPhuCampNhatKy, docPhuNguonCamp, docPhuZone, luuPhuCamp, luuPhuChi, luuPhuDoiLyDo, luuPhuNguon, luuPhuPlatform } from '@/lib/actions/phu';
 
@@ -93,6 +93,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                   <tr key={c.id} onClick={() => setSuaCamp(c)} style={{ cursor: 'pointer', opacity: c.trangThai === 'chay' ? 1 : 0.45 }} title="Sửa campaign">
                     <td style={cell}><b>{c.ten}</b>
                       <div style={{ ...mono, color: 'var(--fg-3)', fontSize: 10 }}>{c.sidPrefix} · {[c.target.device, c.target.geo, c.target.format, c.target.source, c.target.bid != null ? `bid $${c.target.bid}` : null].filter(Boolean).join(' · ')}</div>
+                      {(() => { const m = mangCuaLander(c.lander); return m ? <div style={{ fontSize: 10, color: 'var(--fg-2)' }}>→ <b>{m.mang}</b> · {m.offer}</div> : null; })()}
                       {c.trangThai !== 'chay' && <Pill color={c.trangThai === 'tam_dung' ? 'var(--warn)' : 'var(--fg-3)'} label={c.trangThai} />}
                       <div style={{ fontSize: 10, marginTop: 2 }}>
                         <button style={lienKetNho} onClick={(e) => { e.stopPropagation(); setNhatKy(c); }} title="Số theo ngày + mỗi lần đổi cài đặt (trước → sau)">nhật ký</button>
@@ -502,7 +503,7 @@ function SuaCamp({ c, nguon, projectId, onClose }: { c: PhuCamp | null; nguon: P
         <TextField label="Bid (USD)" value={f.bid} onChange={set('bid')} mono hint="CPV/CPC" />
         <TextField label="Ngân sách/ngày (USD)" value={f.nganSachNgay} onChange={set('nganSachNgay')} mono />
       </div>
-      <TextField label="Lander / đích" value={f.lander} onChange={set('lander')} mono hint="URL thật camp trỏ tới — adapter tự điền từ API mạng; trống = chưa biết, không đoán" />
+      <TextField label="Lander / đích" value={f.lander} onChange={set('lander')} mono hint={(() => { const m = mangCuaLander(f.lander); return m ? `→ ${m.mang} · ${m.offer}` : 'URL thật camp trỏ tới — adapter tự điền từ API mạng; trống = chưa biết, không đoán'; })()} />
       {nhom('Thử & phán xét')}
       <div style={ba}>
         <TextField label="Hạn thử" value={f.ketThuc} onChange={set('ketThuc')} mono hint="YYYY-MM-DD · quá ngày chưa đạt = DỪNG" />

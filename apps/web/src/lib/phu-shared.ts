@@ -56,6 +56,26 @@ export const PHU_NGUON_TRANG_THAI: Record<string, { label: string; color: string
 };
 
 /** sid_prefix = hai mẩu đầu của sid (`exo_c1_zone77_abc` → `exo_c1`). Một chỗ tính, adapter và postback cùng gọi. */
+
+/** Mạng affiliate + offer từ URL đích của camp. Bảng `d=` của cửa /x/ chép từ nginx box2 conf.d/x-mua.conf (nguồn sự thật);
+ *  thêm khoá ở nginx thì thêm ở đây. Không đoán: URL lạ → null. */
+const X_DICH: Record<string, { mang: string; offer: string }> = {
+  cb: { mang: 'Chaturbate', offer: 'Chaturbate signup (tour grq0)' }, 'cb-home': { mang: 'Chaturbate', offer: 'Chaturbate home (tour LQps)' },
+  'jm-latina': { mang: 'CrakRevenue', offer: 'Jerkmate PPS #8780 · lander Latina' }, 'jm-sfw': { mang: 'CrakRevenue', offer: 'Jerkmate PPS #8780 · lander SFW' },
+  candy: { mang: 'CrakRevenue', offer: 'Candy.ai #9022' },
+};
+const CR_OFFER: Record<string, string> = { '8780': 'Jerkmate PPS', '6224': 'Jerkmate revshare', '8865': 'Jerkmate DOI', '9022': 'Candy.ai', '9986': 'Dating Smartlink' };
+export function mangCuaLander(url: string | null | undefined): { mang: string; offer: string } | null {
+  if (!url) return null;
+  let u: URL; try { u = new URL(url); } catch { return null; }
+  if (u.pathname === '/x/' || u.pathname === '/x') return X_DICH[u.searchParams.get('d') ?? ''] ?? null;
+  if (/(^|\.)chaturbate\.com$/.test(u.hostname)) return { mang: 'Chaturbate', offer: `Chaturbate${u.searchParams.get('tour') ? ' tour ' + u.searchParams.get('tour') : ''}` };
+  if (/^t\.[a-z0-9-]+\.com$/.test(u.hostname) && /^\/423371\//.test(u.pathname)) { const id = u.pathname.split('/')[2]; return { mang: 'CrakRevenue', offer: `${CR_OFFER[id] ?? 'offer'} #${id}` }; }
+  if (/whitetrafsa\.com$/.test(u.hostname)) return { mang: 'Stripcash', offer: 'Stripchat' };
+  if (/chatwhenbored\.com$/.test(u.hostname)) return { mang: 'lander nhà', offer: u.hostname + u.pathname };
+  return null;
+}
+
 export function sidPrefix(sid: string | null | undefined): string {
   const x = String(sid ?? '').trim();
   if (!x) return '';

@@ -1,7 +1,8 @@
 'use server';
 // Server actions cho trang /y-tuong (admin). Logic thật ở lib/y-tuong.ts (dùng chung với API ext / CLI ~/bin/ideas).
 import { getCurrentUser } from '@/lib/auth';
-import { listYTuong, getYTuong, suaYTuong, suaBuoc, datBuoc, type YTuong, type YTuongChiTiet, type BuocPatch } from '@/lib/y-tuong';
+import { listYTuong, getYTuong, suaYTuong, suaBuoc, datBuoc } from '@/lib/y-tuong';
+import type { YTuong, YTuongChiTiet, BuocPatch } from '@/lib/y-tuong-shared';
 
 async function admin() {
   const me = await getCurrentUser();

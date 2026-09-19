@@ -3,19 +3,8 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 
-export const Y_TUONG_TRANG_THAI = ['Ý tưởng', 'Sẵn sàng', 'Đang làm', 'Kẹt', 'Tạm dừng', 'Xong', 'Bỏ'] as const;
-export const BUOC_TRANG_THAI = ['Chưa', 'Đang', 'Xong', 'Kẹt', 'Bỏ'] as const;
-export type YTuongTrangThai = (typeof Y_TUONG_TRANG_THAI)[number];
-export type BuocTrangThai = (typeof BUOC_TRANG_THAI)[number];
-
-export interface Buoc { id: number; y_tuong_id: number; thu_tu: number; buoc: string; trang_thai: BuocTrangThai; ngay_xong: string | null; ket_qua: string; ghi_chu: string; updated_at: string }
-export interface YTuong {
-  id: number; nhom: string; ma: string; ten: string; uu_tien: number; trang_thai: YTuongTrangThai; lan: string; goc: string;
-  mo_ta: string; ghi_chu: string; link: string; tab: string; project_id: string | null; created_at: string; updated_at: string;
-  // tính từ bước
-  tong: number; xong: number; buoc_hien_tai: string; cap_nhat: string | null;
-}
-export interface YTuongChiTiet extends YTuong { buoc: Buoc[]; nhat_ky: Array<{ ts: string; noi_dung: string; buoc_id: number | null }> }
+export * from './y-tuong-shared';
+import { BUOC_TRANG_THAI, type Buoc, type YTuong, type YTuongChiTiet, type BuocPatch } from './y-tuong-shared';
 
 const rows = <T,>(r: unknown) => r as T[];
 function db() { const d = getDb(); if (!d) throw new Error('db'); return d; }
@@ -109,8 +98,6 @@ export async function datBuoc(id: number, buoc: string[], mode: 'append' | 'repl
   await tinhLaiTrangThai(id);
   return rows<Buoc>(await d.execute(sql`SELECT id, y_tuong_id, thu_tu, buoc, trang_thai, to_char(ngay_xong, 'YYYY-MM-DD') AS ngay_xong, ket_qua, ghi_chu, updated_at FROM y_tuong_buoc WHERE y_tuong_id = ${id} ORDER BY thu_tu`));
 }
-
-export interface BuocPatch { trang_thai?: string; ket_qua?: string; ghi_chu?: string; buoc?: string }
 
 export async function suaBuoc(buocId: number, p: BuocPatch): Promise<{ buoc: Buoc; y_tuong: YTuongChiTiet } | null> {
   const d = db();

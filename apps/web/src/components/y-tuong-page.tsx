@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { Drawer, FilterChips, ListToolbar, Panel, SimpleTable, StatusPill, SelectField, TextField, TextAreaField, EmptyState, type StatusMeta } from '@/components/ui';
 import { ytGet, ytSuaBuoc, ytSuaTrangThai, ytSuaTruong, ytThemBuoc } from '@/lib/actions/y-tuong';
-import { Y_TUONG_TRANG_THAI, BUOC_TRANG_THAI, type YTuong, type YTuongChiTiet, type Buoc } from '@/lib/y-tuong';
+import { Y_TUONG_TRANG_THAI, BUOC_TRANG_THAI, type YTuong, type YTuongChiTiet, type Buoc } from '@/lib/y-tuong-shared';
 
 const META: Record<string, StatusMeta> = {
   'Ý tưởng': { icon: '○', label: 'Ý tưởng', color: 'var(--fg-3)' },

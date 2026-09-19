@@ -17,6 +17,7 @@ interface RowData {
   emoji: string;
   project?: string;
   ga4PropertyId?: string;
+  clarityId?: string;   // Microsoft Clarity project (map in adfond page-events.js)
   // Live (GA4 realtime)
   ga4_active_5min?: number | null;
   ga4_active_30min?: number | null;
@@ -138,7 +139,7 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
           {r.project
             ? <Link href={`/p/${r.project}`} style={{ color: 'var(--fg-1)', textDecoration: 'none', fontWeight: 600 }}>{r.emoji} {r.domain}</Link>
             : <span style={{ color: 'var(--fg-1)', fontWeight: 500 }}>{r.emoji} {r.domain}</span>}
-          <SiteMenu domain={r.domain} project={r.project} ga4PropertyId={r.ga4PropertyId}
+          <SiteMenu domain={r.domain} project={r.project} ga4PropertyId={r.ga4PropertyId} clarityId={r.clarityId}
             onOpenDetail={() => openDrawer(r.domain, 'google')} />
         </>
       ),

@@ -4,6 +4,7 @@ import { Panel } from './ui/panel';
 import { loadGscTimeSeries, pickSiteSeries } from '@/lib/projects/gsc-timeseries';
 import type { GscDailyPoint } from '@/lib/projects/gsc-timeseries';
 import { loadGa4Properties, pickGa4 } from '@/lib/projects/ga4-properties';
+import { loadClarityIds } from '@/lib/projects/clarity-ids';
 import { loadGa4Realtime, pickGa4Realtime } from '@/lib/projects/ga4-realtime';
 import { loadGa4Events, pickGa4Events } from '@/lib/projects/ga4-events';
 import { loadGa4Users, pickGa4Users } from '@/lib/projects/ga4-users';
@@ -110,6 +111,7 @@ export async function SeoSitesPanel() {
   } catch { /* fall through */ }
   const tsPayload = await loadGscTimeSeries();
   const ga4Payload = await loadGa4Properties();
+  const clarityIds = await loadClarityIds();
   const ga4Realtime = await loadGa4Realtime();
   const ga4Events = await loadGa4Events();
   const ga4Users = await loadGa4Users();
@@ -178,6 +180,7 @@ export async function SeoSitesPanel() {
             project: meta.project,
             review: meta.review,
             ga4PropertyId: pickGa4(ga4Payload, r.domain),
+            clarityId: clarityIds[r.domain.replace(/^www\./, '')],
             subscribers: pickSubs(subsPayload, r.domain),
             yandex_impr_7d: pickYandex(yandexPayload, r.domain)?.impr_7d ?? null,
             yandex_clicks_7d: pickYandex(yandexPayload, r.domain)?.clicks_7d ?? null,

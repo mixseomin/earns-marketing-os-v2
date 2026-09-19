@@ -20,7 +20,11 @@ export type PhuCamp = {
   /** kết quả BỘ LUẬT (be.adfond chấm, lib/phu.ts cấp số) — null = chưa chấm được (adfond không trả lời) → 'cho', không dừng gì */
   luat: PhuLuat | null;
 };
-export type PhuLuatKhop = { ma: string; ten: string; pham_vi: string; trong_so: number; gac: 'may' | 'nguoi'; gac_ten: string; vi_sao: string; khi_nao: string; dieu_kien: string; lam: string };
+export type PhuLuatKhop = {
+  ma: string; ten: string; pham_vi: string; trong_so: number; gac: 'may' | 'nguoi'; gac_ten: string; vi_sao: string; khi_nao: string; dieu_kien: string; lam: string;
+  /** tiến độ trên số thật: 0..1 (1 = thoả), treo = thiếu số đo; ve = từng điều kiện "Chi tiêu $6.85 / ≥ $15" */
+  ti_le: number; treo: boolean; ve: { ten: string; gia_tri: string; nguong: string; op: string; ti_le: number | null; doc: string }[];
+};
 export type PhuLuat = { ma: 'cho' | 'mo_rong' | 'dung' | 'di_tiep'; lyDo: string; khop: PhuLuatKhop[]; cham: { ma: string; ten: string; lam: string; ten_lam: string; muc?: number; gac: string; doc: string[] }[] };
 export type PhuPheu = {
   sidPrefix: string; soPrefix: number; view: number; gate: number; click: number; out: number; signup: number; lead: number; spendCount: number; revenue: number; chi: number;

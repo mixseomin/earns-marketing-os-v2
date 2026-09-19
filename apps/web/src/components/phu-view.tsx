@@ -6,7 +6,7 @@
 // Sửa gì cũng qua Drawer (quy ước UI nhà), số liệu đổ vào từ /api/phu/ingest + /api/phu/postback, chỉ đọc bảng phu_*.
 
 import { useEffect, useState, useTransition } from 'react';
-import { Drawer, EmptyState, Pager, Panel, Pill, SearchInput, SelectField, TextAreaField, TextField, usePaged } from '@/components/ui';
+import { Collapsible, Drawer, EmptyState, Pager, Panel, Pill, SearchInput, SelectField, TextAreaField, TextField, usePaged } from '@/components/ui';
 import type { PhuCamp, PhuData, PhuLuat, PhuNguon, PhuNguonCamp, PhuPlatform, PhuZone } from '@/lib/phu-shared';
 import type { PhuCampNhatKy } from '@/lib/phu';
 import { PHU_NGUON_TRANG_THAI, PHU_PHAN_XET, PHU_TRANG_THAI, phanXet } from '@/lib/phu-shared';
@@ -106,7 +106,11 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                     <td style={cell} title={c.luat ? `luật đang chịu (${c.luat.khop.length}): ${c.luat.khop.map((l) => l.ten).join(' · ')}` : undefined}>
                       <Pill color={PHU_PHAN_XET[px.ma]?.color ?? 'var(--fg-3)'} label={PHU_PHAN_XET[px.ma]?.label ?? px.ma} />
                       <div style={{ color: 'var(--fg-3)', fontSize: 10, marginTop: 3 }}>{px.lyDo}</div>
-                      {c.trangThai === 'chay' && c.luat && <button style={{ ...btn, fontSize: 10, padding: '0 6px', marginTop: 2 }} onClick={(e) => { e.stopPropagation(); setXemLuat(c); }} title="luật đang chịu + luật đã chạm — xem tại chỗ">{c.luat.khop.length} luật ▸</button>}
+                      {c.trangThai === 'chay' && c.luat && (() => { const sap = sapCham(c.luat); return (
+                        <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 3, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                          {sap.length > 0 && <span title="luật gần chạm nhất — giá trị hiện tại / ngưỡng">sắp: {sap.map((l) => `${l.ma} ${l.ve.slice().sort((a, b) => (a.ti_le ?? 0) - (b.ti_le ?? 0))[0]?.doc ?? ''}`).join(' · ')}</span>}
+                          <button style={{ ...btn, fontSize: 10, padding: '0 6px' }} onClick={(e) => { e.stopPropagation(); setXemLuat(c); }} title="luật đã chạm · đang tới · treo — xem tại chỗ">{c.luat.khop.length} luật ▸</button>
+                        </div>); })()}
                       {Object.keys(t).length ? null : <div style={{ color: 'var(--warn)', fontSize: 10 }}>chưa đặt tham số camp — dùng mặc định kệ pop</div>}
                     </td>
                     <td style={{ ...cell, whiteSpace: 'nowrap' }} className={mh}><button style={btn} onClick={(e) => { e.stopPropagation(); setNhatKy(c); }} title="Số theo ngày + mỗi lần đổi cài đặt (trước → sau)">nhật ký ▸</button> <button style={btn} onClick={(e) => { e.stopPropagation(); setSoiCamp(c); }} title="Xem theo srcid/zone để blacklist">srcid ▸</button></td>
@@ -504,7 +508,7 @@ function SuaCamp({ c, nguon, projectId, onClose }: { c: PhuCamp | null; nguon: P
       </div>
       <div style={ba}>
         <TextField label="$ thử tối đa" value={f.chiToiDa} onChange={set('chiToiDa')} mono hint="= tham số Trần tiền thử (luật T0 dừng khi chạm, M1 mở rộng ở nửa); trống = mặc định kệ pop" />
-        <TextField label="Click tối thiểu" value={f.clickToiThieu} onChange={set('clickToiThieu')} mono hint="= Đủ mẫu D14; chưa đủ = CHỜ (luật dừng vẫn chạm được)" />
+        <TextField label="Click tối thiểu" value={f.clickToiThieu} onChange={set('clickToiThieu')} mono hint="= tham số Đủ mẫu D14 — luật M0 Chưa đủ mẫu: dưới mức = CHỜ (luật dừng vẫn chạm được); trống = mặc định kệ pop 500" />
         <TextField label="Signup / 1k click" value={f.signup1k} onChange={set('signup1k')} mono hint="ghi nhớ mục tiêu — CHƯA có luật nào đọc (mở rộng đi theo thu/chi, luật M1)" />
       </div>
       <div style={hai}>
@@ -553,6 +557,9 @@ function NhapChi({ camp, projectId, onClose }: { camp: PhuCamp[]; projectId: str
   );
 }
 
+/** 2 luật gần chạm nhất (chưa chạm, có số đo, ≥ 30% đường) — vế "xa nhất" của luật là thứ còn thiếu để chạm. */
+const sapCham = (l: PhuLuat) => l.khop.filter((x) => !x.treo && x.ti_le < 1 && x.ti_le >= 0.3 && !l.cham.some((k) => k.ma === x.ma)).sort((a, b) => b.ti_le - a.ti_le).slice(0, 2);
+
 /* Luật đang chịu của MỘT camp — đọc tại chỗ: luật đã chạm (số thật đối chiếu ngưỡng) rồi toàn bộ luật khớp. Chữ do adfond
  * soạn (nhãn có dấu, tham số đã thay số); sửa luật vẫn ở tab Luật — đây chỉ là cửa nhìn. */
 function LuatCampDrawer({ camp, luat, onClose }: { camp: PhuCamp; luat: PhuLuat; onClose: () => void }) {
@@ -573,28 +580,43 @@ function LuatCampDrawer({ camp, luat, onClose }: { camp: PhuCamp; luat: PhuLuat;
           ))}
         </div>
       )}
-      <div style={{ ...nho, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Đang chịu ({luat.khop.length}) — ngưỡng đã thay tham số của camp này</div>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-          <thead><tr><th style={head}>Luật</th><th style={head}>Phạm vi</th><th style={head}>Khi nào</th><th style={head}>Điều kiện</th><th style={head}>Làm</th><th style={head}>Gác</th><th style={head}>TS</th></tr></thead>
-          <tbody>
-            {luat.khop.map((l) => {
-              const cham = luat.cham.some((k) => k.ma === l.ma);
-              return (
-                <tr key={l.ma} style={{ background: cham ? 'var(--bg-2)' : undefined }} title={`${l.ma} · ${l.vi_sao}`}>
-                  <td style={cell}><b>{l.ten}</b><div style={{ ...nho, fontSize: 10 }}>{l.vi_sao}</div></td>
-                  <td style={cell}>{l.pham_vi}</td>
-                  <td style={cell}>{l.khi_nao}</td>
-                  <td style={cell}>{l.dieu_kien}</td>
-                  <td style={cell}>{l.lam}</td>
-                  <td style={cell}><Pill color={l.gac === 'nguoi' ? 'var(--warn)' : 'var(--fg-3)'} label={l.gac_ten} /></td>
-                  <td style={{ ...cell, ...mono }}>{l.trong_so}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {(() => {
+        const daCham = new Set(luat.cham.map((k) => k.ma));
+        const con = luat.khop.filter((l) => !daCham.has(l.ma));
+        const toi = con.filter((l) => !l.treo && l.ti_le >= 0.3).sort((a, b) => b.ti_le - a.ti_le);
+        const xa = con.filter((l) => l.treo || l.ti_le < 0.3);
+        const bang = (rows: typeof con) => (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead><tr><th style={head}>Luật</th><th style={head}>Tiến độ trên số thật</th><th style={head}>Làm</th><th style={head}>Gác</th></tr></thead>
+              <tbody>
+                {rows.map((l) => (
+                  <tr key={l.ma} title={`${l.ma} · ${l.khi_nao} · ${l.dieu_kien} · trọng số ${l.trong_so}`}>
+                    <td style={cell}><b>{l.ten}</b><div style={{ ...nho, fontSize: 10 }}>{l.vi_sao}</div></td>
+                    <td style={cell}>
+                      {l.ve.map((v, i) => <div key={i} style={{ color: v.ti_le == null ? 'var(--fg-4)' : v.ti_le >= 1 ? 'var(--ok, #4caf50)' : undefined }}>{v.doc}{v.ti_le == null ? ' — chưa đo' : ''}</div>)}
+                      {!l.treo && <div style={{ height: 3, background: 'var(--line)', borderRadius: 2, marginTop: 3 }}><div style={{ width: `${Math.round(l.ti_le * 100)}%`, height: 3, background: l.ti_le >= 0.8 ? 'var(--warn)' : 'var(--fg-3)', borderRadius: 2 }} /></div>}
+                    </td>
+                    <td style={cell}>{l.lam}</td>
+                    <td style={cell}><Pill color={l.gac === 'nguoi' ? 'var(--warn)' : 'var(--fg-3)'} label={l.gac_ten} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+        return (
+          <>
+            <div style={{ ...nho, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Đang tới ({toi.length}) — có số đo, đã đi ≥ 30% đường tới ngưỡng</div>
+            {toi.length ? bang(toi) : <div style={{ ...nho, marginBottom: 8 }}>không luật nào gần chạm</div>}
+            <div style={{ marginTop: 10 }}>
+              <Collapsible title={`Treo hoặc còn xa (${xa.length})`} hint="thiếu chỉ số (chưa cấp từ kho) hoặc dưới 30% đường — vẫn đang chịu, chỉ gập cho gọn">
+                {bang(xa)}
+              </Collapsible>
+            </div>
+          </>
+        );
+      })()}
       <div style={{ ...nho, marginTop: 10 }}>Sửa luật / tham số: tab Luật. Tiêu chí của camp này (bấm dòng camp) = tham số tầng camp đè lên kệ pop.</div>
     </Drawer>
   );

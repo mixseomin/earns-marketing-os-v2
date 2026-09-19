@@ -236,14 +236,13 @@ async function chamLuatCamp(camp: PhuCamp[], theoNgay: Record<string, unknown>[]
     return camp.map((c) => {
       const k = j.ket[c.sidPrefix]; if (!k) return c;
       const giu = k.giu;
+      // Nhãn = từ HÀNH ĐỘNG luật đã chạm, không có vế cứng nào ở đây (chờ-đủ-mẫu cũng là luật M0): máy dừng → DỪNG;
+      // đề xuất đi lên → MỞ RỘNG; chạm gì khác (cảnh báo, hạ bid, chưa đủ mẫu) → CHỜ; không chạm → ĐI TIẾP.
       const dung = giu.some((x) => x.gac === 'may' && (x.lam === 'tam_dung' || x.lam === 'dong_san_pham'));
       const mo = giu.some((x) => DI_LEN.has(x.lam));
-      const duMau = Number(c.tieuChi.click_toi_thieu) || 0;
-      const click = c.tong.clickMang || c.tong.click;
-      const cho = giu.length > 0 || (duMau > 0 && click < duMau);
-      const ma: PhuLuat['ma'] = dung ? 'dung' : mo ? 'mo_rong' : cho ? 'cho' : 'di_tiep';
+      const ma: PhuLuat['ma'] = dung ? 'dung' : mo ? 'mo_rong' : giu.length ? 'cho' : 'di_tiep';
       const lyDo = giu.map((x) => `${x.ma} ${x.ten_lam}${x.muc != null ? ` ×${x.muc}` : ''}: ${x.doc.join(', ')}`).join(' · ')
-        || (duMau > 0 && click < duMau ? `${click}/${duMau} click · $${c.tong.chi.toFixed(2)}` : `$${c.tong.chi.toFixed(2)} · ${c.tong.signup} signup / ${click} click — chưa luật nào chạm`);
+        || `$${c.tong.chi.toFixed(2)} · ${c.tong.signup} signup / ${c.tong.clickMang || c.tong.click} click — chưa luật nào chạm`;
       return { ...c, luat: { ma, lyDo, khop: k.luat, cham: giu } };
     });
   } catch { return camp; }

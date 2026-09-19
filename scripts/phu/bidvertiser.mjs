@@ -58,7 +58,10 @@ try {
     const st = (c.STATUS || []).find((s) => s.TYPE === 'NEW') || (c.STATUS || [])[0] || {};
     const ed = c.EDITORIAL_REVIEW?.RESULT || '';
     tt.push(`${c.NAME}#${c.ID}:${st.NOTE || '?'}${st.REASON ? '/' + st.REASON : ''}`);
-    camp.push({ nguon_key: 'bidvertiser', ten: `${c.NAME} #${c.ID}`, sid_prefix: prefix, lander: 'https://live.chatwhenbored.com/',
+    // Lander = URL thật của camp (bỏ tham số mang macro {BV_*}); không điền cứng live.* — push-dating đi thẳng CrakRevenue.
+    let lander = null;
+    if (c.URL) { try { const u = new URL(c.URL); for (const k of [...u.searchParams.keys()]) if (/\{/.test(u.searchParams.get(k) ?? '')) u.searchParams.delete(k); lander = u.toString(); } catch { lander = String(c.URL).split('?')[0]; } }
+    camp.push({ nguon_key: 'bidvertiser', ten: `${c.NAME} #${c.ID}`, sid_prefix: prefix, lander,
       target: { bv_id: Number(c.ID), format: c.AD?.TYPE, device: c.AD?.MEDIA, source: c.AD?.SOURCE, geo: c.GEO, bid: c.BID?.AMOUNT ?? c.BID, editorial: ed },
       ngan_sach_ngay: Number(c['DAILY BUDGET']?.AMOUNT ?? c['DAILY BUDGET']) || undefined,
       trang_thai: st.NOTE === 'RUNNING' || /CAP REACHED/.test(st.NOTE || '') ? 'chay' : st.NOTE === 'PAUSED' ? 'tam_dung' : st.NOTE === 'DECLINED' ? 'ket_thuc' : 'nhap' });   // hết cap ngày vẫn là camp đang chạy
@@ -69,7 +72,7 @@ try {
     chi.push({ ngay: iso(ngay), sid_prefix: prefix, chi_usd: num(row.COST), clicks: num(row.VISITS ?? row.CLICKS ?? row.VISITORS) || null, impressions: num(row['BID REQUESTS'] ?? row.BID_REQUESTS ?? row.REQUESTS ?? row.IMPRESSIONS) || null, nguon_du_lieu: 'api:bidvertiser' });
   }
   const kq = await bao(true, `balance $${balance} · ${iso(ngay)} ${chi.map((c) => `${c.sid_prefix.slice(12)} $${c.chi_usd}/${c.clicks ?? 0}v`).join(' · ')} · ${tt.join(' · ')}`, chi, camp,
-    { key: 'bidvertiser', trang_thai: 'hoat_dong', macro_click: '{BV_CLICKID}', so_du: Number(balance), ghi_chu: `Balance $${balance} (${new Date().toISOString().slice(0, 16)}Z). Tài khoản 297697@gmail.com. sid = bidvertiser_<tên camp bỏ bv->_{BV_SRCID}; camp Bidvertiser đặt tên bv-<tên>. Không có postback theo click → blacklist srcid tay/API. Plan: adfond docs/plan-bidvertiser-live.md` });
+    { key: 'bidvertiser', trang_thai: 'hoat_dong', macro_click: '{BV_CLICKID}', so_du: Number(balance), ghi_chu: `Balance $${balance} (${new Date().toISOString().slice(0, 16)}Z). Tài khoản 297697@gmail.com. sid = bidvertiser_<tên camp bỏ bv->_{BV_SRCID}; camp Bidvertiser đặt tên bv-<tên>. Không có postback theo click → blacklist srcid tay/API. Plan: chatwhenbored docs/plan-bidvertiser-live.md` });
   // Phán xét DỪNG (trần $/click, hết tiền thử, quá hạn…) → POST /{cid}/STATUS/ {STATUS:'pause'} ngay, không đợi người đọc
   const dung = (Array.isArray(kq?.camp_dung) ? kq.camp_dung : []).filter((d) => String(d.sid_prefix).startsWith('bidvertiser_'));
   if (dung.length) {

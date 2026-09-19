@@ -19,7 +19,7 @@
 // `--raw` in dòng đầu để chốt tên cột lần chạy thật đầu tiên. Token API: vault MOS2 platform_accounts #467
 // (acct get 467 api), bản chạy ở /etc/mos2-phu/trafficfactory.env (TF_API_TOKEN, root 600). Script không in creds.
 //   node scripts/phu/trafficfactory.mjs [--hom-qua] [--raw] [--kho]   (--kho = tự kiểm map, không chạm mạng)
-//   env: MOS2_EXT_KEY · PHU_PROJECT (adfond)
+//   env: MOS2_EXT_KEY · PHU_PROJECT (mặc định chatwhenbored)
 import { readFileSync } from 'node:fs';
 
 const MOS2 = process.env.MOS2_URL || 'http://127.0.0.1:3821';

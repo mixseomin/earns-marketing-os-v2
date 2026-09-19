@@ -35,6 +35,8 @@ type Du = {
   chien_luoc: { id: number; ten: string; trang_thai: string | null }[];
   tai_khoan: { id: number; name: string }[];
   camp: Camp[];
+  /** campaign đang bật → mã luật đang chịu */
+  khop_camp: Record<string, string[]>;
   don_vi: { dv: { loai: string; camp_id?: number | null }; tham_so: ThamSo; khop: Record<string, { khop: boolean; vi_sao: string }> } | null;
 };
 
@@ -187,6 +189,20 @@ export function LuatView() {
             { key: 'nguon', header: 'Nguồn', cell: (l) => <span style={nho}>{l.nguon === 'nguoi' ? `người tạo · ${l.nguoi ?? '?'}` : l.khac_mac_dinh ? `mặc định, đã sửa · ${l.nguoi ?? '?'}` : 'mặc định'}</span> },
           ]} />
         )}
+      </Panel>
+
+      <Panel title="Campaign đang chạy — luật đang chịu" subtitle="// mọi campaign đang bật, mỗi dòng là bộ luật máy sẽ chấm cho nó (khớp nhắm); bấm tên để xem vì sao / áp thêm / trừ ở panel dưới">
+        {(() => {
+          const chay = du.camp.filter((c) => c.status === 'enabled');
+          if (!chay.length) return <EmptyState icon="⏸" title="Không campaign nào đang bật" compact />;
+          return <SimpleTable rows={chay} getRowKey={(c) => String(c.id)} columns={[
+            { key: 'ten', header: 'Campaign', cell: (c) => <button onClick={() => setCampId(c.id)} style={{ ...lienKet, fontSize: 12, textAlign: 'left', color: c.id === campId ? 'var(--accent)' : 'var(--fg-1)' }}>{c.name}</button> },
+            { key: 'loai', header: 'Loại', width: 70, cell: (c) => <span style={{ fontSize: 12 }}>{N.loai[c.loai] ?? c.loai}</span> },
+            { key: 'cl', header: 'Chiến lược', cell: (c) => <span style={nho}>{c.chien_luoc_id != null ? tenCl(c.chien_luoc_id) : '—'}</span> },
+            { key: 'so', header: 'Luật', align: 'right', width: 48, cell: (c) => <span style={mono}>{(du.khop_camp[c.id] ?? []).length}</span> },
+            { key: 'luat', header: 'Đang chịu', cell: (c) => { const ds = du.khop_camp[c.id] ?? []; return ds.length ? <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{ds.map((ma) => { const l = du.thu_vien.find((x) => x.ma === ma); return <Pill key={ma} color={l?.gac === 'nguoi' ? 'var(--warn, #d9a441)' : 'var(--fg-3)'} label={l?.ten ?? ma} size="sm" uppercase={false} mono={false} />; })}</span> : <span style={nho}>không luật nào — kệ/nhắm chưa phủ tới</span>; } },
+          ]} />;
+        })()}
       </Panel>
 
       <Panel title="Áp vào campaign" subtitle="// nhìn từ phía một campaign: luật nào đang chịu, vì sao; áp thêm / trừ = sửa nhắm của luật đó"

@@ -77,7 +77,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr>
               <th style={head}>Campaign</th><th style={head} className={mh}>$/ngày · hạn</th>
-              <th style={head}>View</th><th style={head} className={mh}>Cổng</th><th style={head}>Click</th><th style={head} className={mh}>Out</th><th style={head}>Signup</th><th style={head}>Về / chi</th><th style={head} title="chi ÷ click ra offer; đỏ khi vượt trần tiêu chí">CPC</th>
+              <th style={head} title="click MẠNG đếm (ExoClick/Bidvertiser/TF) — camp nảy thẳng qua /x/ không có lander nên View/Click của mình = 0; % = hit /x/ ÷ click mạng (P2)">Click mạng</th><th style={head}>View</th><th style={head} className={mh}>Cổng</th><th style={head} title="click trên lander của mình">Click</th><th style={head} className={mh} title="hit ra offer (lander) hoặc hit qua /x/ (camp nảy thẳng)">Out</th><th style={head}>Signup</th><th style={head}>Về / chi</th><th style={head} title="chi ÷ click ra offer (click lander, hoặc out khi nảy thẳng); đỏ khi vượt trần tiêu chí">CPC</th>
               <th style={head}>Phán xét</th><th style={head} className={mh}>Soi</th>
             </tr></thead>
             <tbody>
@@ -94,13 +94,14 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                       {c.trangThai !== 'chay' && <Pill color={c.trangThai === 'tam_dung' ? 'var(--warn)' : 'var(--fg-3)'} label={c.trangThai} />}
                     </td>
                     <td style={{ ...cell, ...mono, fontSize: 11, whiteSpace: 'nowrap' }} className={mh}>{c.nganSachNgay == null ? '—' : usd(c.nganSachNgay)}<div style={{ color: quaHan ? 'var(--danger)' : 'var(--fg-3)', fontSize: 10 }}>{c.ketThuc ? `tới ${c.ketThuc.slice(5, 10)}` : 'không hạn'}{toiXem ? ' · tới nhịp' : ''}</div></td>
+                    <td style={{ ...cell, ...mono }}>{c.tong.clickMang ? so(c.tong.clickMang) : '—'}<span style={{ color: c.tong.clickMang >= 300 && (f?.out ?? 0) / c.tong.clickMang < (Number(t.hit_tren_click) || 0) ? 'var(--danger)' : 'var(--fg-3)', fontSize: 10 }}> {c.tong.clickMang && f?.out ? pct(f.out, c.tong.clickMang) : ''}</span></td>
                     <td style={{ ...cell, ...mono }}>{so(f?.view ?? 0)}</td>
                     <td style={{ ...cell, ...mono }} className={mh}>{f?.view ? pct(f.gate, f.view) : '—'}</td>
                     <td style={{ ...cell, ...mono }}>{so(f?.click ?? 0)}<span style={{ color: f?.view && f.click / f.view < 0.05 ? 'var(--danger)' : 'var(--fg-3)', fontSize: 10 }}> {f?.view ? pct(f.click, f.view, 1) : ''}</span></td>
                     <td style={{ ...cell, ...mono }} className={mh}>{so(f?.out ?? 0)}</td>
                     <td style={{ ...cell, ...mono }}>{so(f?.signup ?? 0)}</td>
                     <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(f?.revenue ?? 0)} / {usd(f?.chi ?? 0)}</td>
-                    <td style={{ ...cell, ...mono }}>{cpc(f?.chi ?? 0, f?.click ?? 0, Number(c.tieuChi.gia_click_toi_da) || 0.03)}</td>
+                    <td style={{ ...cell, ...mono }}>{cpc(f?.chi ?? 0, f?.click || f?.out || 0, Number(c.tieuChi.gia_click_toi_da) || 0.03)}</td>
                     <td style={cell}><Pill color={PHU_PHAN_XET[px.ma]?.color ?? 'var(--fg-3)'} label={PHU_PHAN_XET[px.ma]?.label ?? px.ma} />
                       <div style={{ color: 'var(--fg-3)', fontSize: 10, marginTop: 3 }}>{px.lyDo}</div>
                       {Object.keys(t).length ? null : <div style={{ color: 'var(--warn)', fontSize: 10 }}>chưa đặt tiêu chí — bấm để đặt</div>}

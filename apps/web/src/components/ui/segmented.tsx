@@ -7,6 +7,7 @@
 // ngắn luôn-nhìn-thấy thì chip đúng hơn, và không đáng đẻ ra bộ chip thứ hai lệch style.
 
 import type { CSSProperties, ReactNode } from 'react';
+import { moTabNeuModifier } from '@/lib/url-mo-tab';
 
 export interface SegmentedOption<T> {
   value: T;
@@ -22,11 +23,13 @@ type SegmentedMode<T> =
   | { values: T[]; onToggle: (v: T[]) => void; value?: never; onChange?: never };
 
 export function Segmented<T extends string | number>({
-  options, value, onChange, values, onToggle, size = 'sm', style,
+  options, value, onChange, values, onToggle, size = 'sm', style, hrefFor,
 }: {
   options: SegmentedOption<T>[];
   size?: 'xs' | 'sm';
   style?: CSSProperties;
+  /** URL tương ứng khi chọn option này — ⌘/Ctrl-click hoặc chuột giữa mở TAB MỚI với URL đó, không đổi state. */
+  hrefFor?: (value: T) => string | null | undefined;
 } & SegmentedMode<T>) {
   const padding = size === 'xs' ? '1px 6px' : '2px 7px';
   const fontSize = size === 'xs' ? 9 : 10;
@@ -39,9 +42,12 @@ export function Segmented<T extends string | number>({
             key={String(opt.value)}
             type="button"
             title={opt.title}
-            onClick={() => (values && onToggle
-              ? onToggle(active ? values.filter((v) => v !== opt.value) : [...values, opt.value])
-              : onChange?.(opt.value))}
+            onClick={(e) => {
+              if (hrefFor && moTabNeuModifier(e, hrefFor(opt.value))) return;
+              if (values && onToggle) onToggle(active ? values.filter((v) => v !== opt.value) : [...values, opt.value]);
+              else onChange?.(opt.value);
+            }}
+            onAuxClick={(e) => { if (hrefFor) moTabNeuModifier(e, hrefFor(opt.value)); }}
             style={{
               padding,
               fontSize,

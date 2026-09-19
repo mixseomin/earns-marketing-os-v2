@@ -13,6 +13,7 @@
 // active filter chip. Pagination/search/toolbar are chrome → grey. Don't paint them.
 
 import { useState, useMemo, type ReactNode, type CSSProperties } from 'react';
+import { urlVoiParam } from '@/lib/url-mo-tab';
 import { Segmented } from './segmented';
 
 // ── usePaged ─────────────────────────────────────────────────────────────────────────────────
@@ -106,15 +107,23 @@ type ChipMode<T> =
   | { value: T; onChange: (v: T) => void; values?: never; onToggle?: never }
   | { values: T[]; onToggle: (v: T[]) => void; value?: never; onChange?: never };
 
-export function FilterChips<T extends string>({ options, value, onChange, values, onToggle, counts }: {
+export function FilterChips<T extends string>({ options, value, onChange, values, onToggle, counts, urlKey, allValue = 'all', hrefFor }: {
   options: ChipOption<T>[]; counts?: Partial<Record<T, number>>;
+  /** Tên param URL của bộ lọc này → ⌘/Ctrl-click (hay chuột giữa) một chip mở TAB MỚI với URL đã áp chip đó.
+   *  Giá trị bằng `allValue` thì xoá param (URL sạch). Bộ lọc nào có key trong URL đều nên khai — luật "mọi state trong URL". */
+  urlKey?: string;
+  allValue?: string;
+  /** Tự dựng URL (khi param không phải 1-1 với value). Thắng `urlKey`. */
+  hrefFor?: (value: T) => string | null | undefined;
 } & ChipMode<T>) {
   // Chuyển tiếp nguyên chế độ xuống Segmented — union hai bên khớp nhau nên không có đường nào
   // lọt xuống với "không cặp nào".
   const mode = (values ? { values, onToggle: onToggle! } : { value: value!, onChange: onChange! }) as ChipMode<T>;
+  const href = hrefFor ?? (urlKey ? (v: T) => urlVoiParam(urlKey, v === allValue ? '' : v) : undefined);
   return (
     <Segmented
       {...mode}
+      hrefFor={href}
       options={options.map((o) => ({
         value: o.value,
         title: o.title,   // hover explanation per chip (Segmented renders it) — don't drop tooltips on migrate

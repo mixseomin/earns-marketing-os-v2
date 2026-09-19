@@ -2,11 +2,14 @@
 // Grid ↔ Table, …). One control, one look everywhere: active segment = neon-cyan (matches
 // the tab strips). Shared dashboard primitive so pages stop hand-rolling their own toggles.
 import type { CSSProperties, ReactNode } from 'react';
+import { moTabNeuModifier, urlVoiParam } from '@/lib/url-mo-tab';
 
 export interface ViewOption { value: string; label: ReactNode; title?: string; }
 
-export function ViewToggle({ options, value, onChange, style }: {
+export function ViewToggle({ options, value, onChange, style, urlKey = 'view' }: {
   options: ViewOption[];
+  /** Tên param URL của view (mặc định `view`) — ⌘/Ctrl-click mở tab mới đúng view. */
+  urlKey?: string;
   value: string;
   onChange: (v: string) => void;
   style?: CSSProperties;
@@ -16,7 +19,9 @@ export function ViewToggle({ options, value, onChange, style }: {
       {options.map((o, i) => {
         const on = o.value === value;
         return (
-          <button key={o.value} type="button" title={o.title} onClick={() => onChange(o.value)}
+          <button key={o.value} type="button" title={o.title}
+            onClick={(e) => { if (moTabNeuModifier(e, urlVoiParam(urlKey, o.value))) return; onChange(o.value); }}
+            onAuxClick={(e) => moTabNeuModifier(e, urlVoiParam(urlKey, o.value))}
             style={{
               fontSize: 12, fontWeight: on ? 700 : 500, padding: '4px 12px', cursor: 'pointer', whiteSpace: 'nowrap',
               border: 'none', borderLeft: i ? '1px solid var(--line)' : 'none',

@@ -2299,7 +2299,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
             Bấm thẳng chip "Completed" vẫn ra danh sách đúng: chọn đích danh một trạng thái thì luật
             ẩn nhường (hideClosed chỉ áp khi tab='all'). */}
         <FilterChips<TabKey>
-          value={tab} onChange={setTab}
+          value={tab} onChange={setTab} urlKey="tab"
           options={[...STATUS_ORDER.map((s) => ({ value: s, label: SITE_STATUS[s]!.label })), { value: 'all' as const, label: 'All' }]}
           counts={STATUS_ORDER.reduce<Partial<Record<TabKey, number>>>((a, s) => { a[s] = kpi[s] ?? 0; return a; },
             { all: hideClosed ? STATUS_ORDER.reduce((n, s) => n - (CLOSED.has(s) ? (kpi[s] ?? 0) : 0), kpi.total ?? 0) : kpi.total })}

@@ -123,14 +123,14 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}
         title="Xong phải có kết quả · Kẹt phải ghi chờ ai/chờ gì · Đang chỉ khi đang làm · ▸ mở bước">
         {groupBy === 'project' && projs.length > 1 && (<>
-          <FilterChips value={proj ?? 'all'} onChange={(v) => setProj(v === 'all' ? undefined : v)}
+          <FilterChips value={proj ?? 'all'} onChange={(v) => setProj(v === 'all' ? undefined : v)} urlKey="tdp"
             counts={Object.fromEntries([['all', everything.length], ...projs.map((pid) => [pid, nAll(pid)]), ...(proj && !projs.includes(proj) ? [[proj, 0]] : [])])}
             options={[{ value: 'all', label: 'Mọi dự án' }, ...projs.map((pid) => ({ value: pid, label: projectNames[pid] ?? pid })),
               ...(proj && !projs.includes(proj) ? [{ value: proj, label: projectNames[proj] ?? proj }] : [])]} />
           {others.length > 0 && <Pill label="＋ dự án khác…" size="xs" color="var(--fg-3)" onClick={() => setPickOpen(true)} />}
           <span style={{ color: 'var(--line)' }}>|</span>
         </>)}
-        <FilterChips value={tt} onChange={setTt}
+        <FilterChips value={tt} onChange={setTt} urlKey="tdtt"
           counts={Object.fromEntries([['all', items.length], ...HANG_MUC_TRANG_THAI.map((s) => [s, count((i) => i.trang_thai === s)])])}
           options={[{ value: 'all', label: 'Tất cả' }, ...HANG_MUC_TRANG_THAI.filter((s) => count((i) => i.trang_thai === s)).map((s) => ({ value: s, label: `${MARK[s] ?? ''} ${s}`.trim() }))]} />
         <div style={{ marginLeft: 'auto' }}><SearchInput value={q} onChange={setQ} placeholder="tìm…" width={160} /></div>

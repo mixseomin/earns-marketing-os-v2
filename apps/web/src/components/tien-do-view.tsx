@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type CSSProperties } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
-import { Drawer, Panel, SimpleTable, TextField, TextAreaField, SelectField, EmptyState, ResourcePicker, FilterChips, SearchInput, Pill, StickyBar } from '@/components/ui';
+import { Drawer, Panel, SimpleTable, DataTable, TextField, TextAreaField, SelectField, EmptyState, ResourcePicker, FilterChips, Pill, StickyBar, type DataColumn, type DataGroup } from '@/components/ui';
 import { tdGet, tdList, tdSuaBuoc, tdSuaTrangThai, tdSuaTruong, tdThemBuoc, tdThem } from '@/lib/actions/tien-do';
 import { HANG_MUC_TRANG_THAI, BUOC_TRANG_THAI, TRANG_THAI_MARK, soText, type HangMuc, type HangMucChiTiet, type Buoc } from '@/lib/tien-do-shared';
 
@@ -34,8 +34,8 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
   groupBy?: 'nhom' | 'project';
   projectNames?: Record<string, string>;
 }) {
-  // Bộ lọc + dòng đang mở + drawer đều nằm trong URL (F5/share giữ nguyên): ?tdp= dự án · ?tdtt= trạng thái · ?tdq= tìm ·
-  // ?tdo= id các hạng mục đang mở bước · ?td=hm&tdId= drawer. Ghi shallow (replaceState) như các bộ lọc khác của trang Plays.
+  // Bộ lọc + dòng đang mở + drawer đều nằm trong URL (F5/share giữ nguyên): ?tdp= dự án · ?tdtt= trạng thái ·
+  // ?tdo= id các hạng mục đang mở bước · ?td=hm&tdId= drawer · ô lọc bảng do DataTable lưu (tiendo.q). Ghi shallow (replaceState) như các bộ lọc khác của trang Plays.
   const sp = useSearchParams();
   const [base, setBase] = useState<HangMuc[]>(all);      // danh sách từ server: prop lúc vào trang, poll 10s ghi đè
   useEffect(() => setBase(all), [all]);
@@ -47,7 +47,6 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
   const [items, setItems] = useState(initial);
   useEffect(() => setItems(initial), [initial]);
   const [tt, setTt] = useState<string>(() => sp.get('tdtt') || 'all');
-  const [q, setQ] = useState(() => sp.get('tdq') ?? '');
   const [open, setOpen] = useState<Set<number>>(() => new Set((sp.get('tdo') ?? '').split(',').map(Number).filter(Boolean)));   // YDNI: bước chỉ mở khi bấm ▸ (nhớ trong URL)
   const modal = useModalParam('td');
   const drawerId = modal.is('hm') ? modal.numId : null;
@@ -55,14 +54,13 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
   useEffect(() => {
     const u = new URL(window.location.href);
     const set = (k: string, v: string) => { if (v) u.searchParams.set(k, v); else u.searchParams.delete(k); };
-    set('tdp', proj && proj !== projectId ? proj : ''); set('tdtt', tt === 'all' ? '' : tt); set('tdq', q.trim()); set('tdo', [...open].join(','));
+    set('tdp', proj && proj !== projectId ? proj : ''); set('tdtt', tt === 'all' ? '' : tt); set('tdo', [...open].join(','));
     if (u.href !== window.location.href) window.history.replaceState(window.history.state, '', u.href);
-  }, [proj, projectId, tt, q, open]);
+  }, [proj, projectId, tt, open]);
   const [detail, setDetail] = useState<Record<number, HangMucChiTiet>>({});
   const [, start] = useTransition();
 
-  const visible = items.filter((i) => (tt === 'all' || i.trang_thai === tt)
-    && (!q || `${i.ma} ${i.ten} ${i.mo_ta} ${i.ghi_chu} ${i.goc} ${i.ai} ${soText(i.so)}`.toLowerCase().includes(q.toLowerCase())));
+  const visible = items.filter((i) => tt === 'all' || i.trang_thai === tt);
   const count = (f: (i: HangMuc) => boolean) => items.filter(f).length;
   const groups = useMemo(() => {
     const key = (i: HangMuc) => (groupBy === 'project' ? `${i.project_id ?? '—'}|${i.nhom}` : i.nhom);
@@ -133,7 +131,6 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
         <FilterChips value={tt} onChange={setTt} urlKey="tdtt"
           counts={Object.fromEntries([['all', items.length], ...HANG_MUC_TRANG_THAI.map((s) => [s, count((i) => i.trang_thai === s)])])}
           options={[{ value: 'all', label: 'Tất cả' }, ...HANG_MUC_TRANG_THAI.filter((s) => count((i) => i.trang_thai === s)).map((s) => ({ value: s, label: `${MARK[s] ?? ''} ${s}`.trim() }))]} />
-        <div style={{ marginLeft: 'auto' }}><SearchInput value={q} onChange={setQ} placeholder="tìm…" width={160} /></div>
       </div>
 
       {items.length === 0 && (
@@ -150,13 +147,30 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
       {groups.map((g) => {
         const all = items.filter((i) => inGroup(i, g));
         const rows = visible.filter((i) => inGroup(i, g));
+        const sub = `${all.length} hạng mục · ⛔ ${all.filter((i) => i.trang_thai === 'Kẹt').length} · ▶ ${all.filter((i) => i.trang_thai === 'Đang làm').length} · ✓ ${all.filter((i) => i.trang_thai === 'Xong').length}`;
         // Cột "Số" tách theo khoá — mỗi dự án đo thứ khác (ExamWeight: Vol đầu/th · CPC · Cạnh tranh · Lớp mua · Ads đối thủ;
         // Bra: một cột Số). Khoá toàn số → hẹp, canh phải; có chữ → rộng, canh trái. Không nhét chung một ô nữa.
         const soKeys = [...new Set(all.flatMap((i) => Object.keys(i.so ?? {})))];
         const numeric = (k: string) => all.every((i) => !i.so?.[k] || /^[\d.,%$\s-]+$/.test(String(i.so[k])));
-        const soCols = soKeys.map((k) => ({ key: 'so:' + k, header: k, width: numeric(k) ? 72 : 150, align: (numeric(k) ? 'right' : 'left') as 'left' | 'right',
-          title: `Số · ${k}`, cell: (r: HangMuc) => <span title={r.so?.[k] ?? ''} style={{ color: 'var(--fg-2)', fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>{numeric(k) ? (r.so?.[k] ?? '') : clip(r.so?.[k] ?? '', 60)}</span> }));
-        const sub = `${all.length} hạng mục · ⛔ ${all.filter((i) => i.trang_thai === 'Kẹt').length} · ▶ ${all.filter((i) => i.trang_thai === 'Đang làm').length} · ✓ ${all.filter((i) => i.trang_thai === 'Xong').length}`;
+        const soCols: DataColumn<HangMuc>[] = soKeys.map((k) => ({ key: 'so:' + k, group: 'so', header: k, width: numeric(k) ? 72 : 150, align: numeric(k) ? 'right' : 'left',
+          title: `Số · ${k}`, cellTitle: (r) => r.so?.[k] ?? '', sortValue: (r) => (numeric(k) ? Number(String(r.so?.[k] ?? '').replace(/[^\d.-]/g, '')) || 0 : r.so?.[k] ?? ''),
+          cell: (r) => <span style={{ color: 'var(--fg-2)' }}>{numeric(k) ? (r.so?.[k] ?? '') : clip(r.so?.[k] ?? '', 40)}</span> }));
+        const cols: DataColumn<HangMuc>[] = [
+          { key: 'x', header: '', width: 22, align: 'center', cell: (r) => <button type="button" onClick={(e) => { e.stopPropagation(); toggle(r.id); }} title={open.has(r.id) ? 'Thu bước' : `Mở ${r.tong} bước`} style={{ ...linkBtn, color: 'var(--fg-3)' }}>{open.has(r.id) ? '▾' : '▸'}</button> },
+          { key: 'ma', header: 'ID', width: 44, align: 'left', sortValue: (r) => r.ma, cell: (r) => <span style={mono}>{r.ma}</span> },
+          { key: 'ten', header: 'Hạng mục', width: 300, align: 'left', sortValue: (r) => r.ten, cellTitle: (r) => r.mo_ta || r.ten,
+            cell: (r) => <button type="button" onClick={(e) => { e.stopPropagation(); setDrawerId(r.id); }} style={{ ...linkBtn, fontFamily: 'inherit', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{r.ten}</button> },
+          { key: 'uu', header: 'Ưu', width: 28, align: 'center', title: '1 làm trước · 2 kế · 3 để dành · 4 gần như bỏ', sortValue: (r) => r.uu_tien, cell: (r) => r.uu_tien },
+          { key: 'tt', header: 'Trạng thái', width: 92, align: 'left', sortValue: (r) => r.trang_thai, cell: (r) => <span>{MARK[r.trang_thai] ?? ''} {r.trang_thai}</span> },
+          { key: 'tien', header: 'Tiến độ', width: 56, align: 'center', title: 'bước Xong / tổng', sortValue: (r) => (r.tong ? r.xong / r.tong : -1), cell: (r) => (r.tong ? `${r.xong}/${r.tong}` : '–') },
+          { key: 'buoc', header: 'Bước hiện tại', width: 360, align: 'left', title: '⛔ bước kẹt → ▶ bước đang → ○ bước chưa đầu tiên', cellTitle: (r) => r.buoc_hien_tai,
+            cell: (r) => <span style={{ color: r.buoc_hien_tai.startsWith('⛔') ? 'var(--neon-red, #ff6b6b)' : 'var(--fg-2)', fontFamily: 'inherit' }}>{clip(r.buoc_hien_tai, 70)}</span> },
+          { key: 'ai', group: 'dh', header: 'Ai', width: 56, align: 'left', title: 'Người làm', sortValue: (r) => r.ai, cell: (r) => r.ai },
+          { key: 'cong', group: 'dh', header: 'Cổng đi/dừng', width: 200, align: 'left', title: 'Điều kiện đi tiếp hay dừng', cellTitle: (r) => r.cong, cell: (r) => <span style={{ color: 'var(--fg-3)', fontFamily: 'inherit' }}>{clip(r.cong, 48)}</span> },
+          { key: 'cn', group: 'dh', header: 'Cập nhật', width: 80, align: 'left', sortValue: (r) => r.cap_nhat ?? '', cell: (r) => <span style={mono}>{r.cap_nhat ?? ''}</span> },
+          ...soCols,
+        ];
+        const dtGroups: DataGroup[] = [{ key: 'dh', label: 'Ai · Cổng · Cập nhật', defaultOn: true }, ...(soKeys.length ? [{ key: 'so', label: `Số (${soKeys.length})`, defaultOn: false }] : [])];
         return (
           <section key={g} style={{ marginBottom: 18 }}>
             {/* Tiêu đề nhóm dính ngay dưới thanh công cụ của trang: cuộn tới đâu vẫn biết đang ở dự án nào */}
@@ -165,21 +179,10 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
               <span style={mono}>{sub}</span>
             </StickyBar>
             {rows.length === 0 ? <EmptyState icon="📈" title="Không dòng nào khớp bộ lọc" compact /> : (
-              <SimpleTable rows={rows} getRowKey={(r) => String(r.id)} rowStyle={(r) => tint(r.trang_thai)}
-                renderExpanded={(r) => (open.has(r.id) ? <BuocTable y={detail[r.id]} onPatch={suaBuoc} onAdd={(t) => themBuoc(r.id, t)} /> : null)}
-                columns={[
-                  { key: 'x', header: '', width: 22, cell: (r) => <button type="button" onClick={() => toggle(r.id)} title={open.has(r.id) ? 'Thu bước' : `Mở ${r.tong} bước`} style={{ ...linkBtn, color: 'var(--fg-3)' }}>{open.has(r.id) ? '▾' : '▸'}</button> },
-                  { key: 'ma', header: 'ID', width: 44, cell: (r) => <span style={mono}>{r.ma}</span> },
-                  { key: 'ten', header: 'Hạng mục', cell: (r) => <button type="button" onClick={() => setDrawerId(r.id)} style={linkBtn} title={(r.mo_ta || 'Mở chi tiết') + '\n\n(bấm: mô tả, ghi chú, ai, số, cổng, nhật ký)'}>{r.ten}</button> },
-                  { key: 'uu', header: 'Ưu', width: 28, align: 'center', title: '1 làm trước · 2 kế · 3 để dành · 4 gần như bỏ', cell: (r) => r.uu_tien },
-                  { key: 'tt', header: 'Trạng thái', width: 92, cell: (r) => <span>{MARK[r.trang_thai] ?? ''} {r.trang_thai}</span> },
-                  { key: 'tien', header: 'Tiến độ', width: 56, align: 'center', title: 'bước Xong / tổng', cell: (r) => (r.tong ? `${r.xong}/${r.tong}` : '–') },
-                  { key: 'buoc', header: 'Bước hiện tại', title: '⛔ bước kẹt → ▶ bước đang → ○ bước chưa đầu tiên', cell: (r) => <span title={r.buoc_hien_tai} style={{ color: r.buoc_hien_tai.startsWith('⛔') ? 'var(--neon-red, #ff6b6b)' : 'var(--fg-2)' }}>{clip(r.buoc_hien_tai, 110)}</span> },
-                  { key: 'ai', header: 'Ai', width: 48, title: 'Người làm', cell: (r) => <span style={{ color: 'var(--fg-2)', fontSize: 12 }}>{r.ai}</span> },
-                  ...soCols,
-                  { key: 'cong', header: 'Cổng đi/dừng', width: 150, title: 'Điều kiện đi tiếp hay dừng', cell: (r) => <span title={r.cong} style={{ color: 'var(--fg-3)', fontSize: 11 }}>{clip(r.cong, 70)}</span> },
-                  { key: 'cn', header: 'Cập nhật', width: 78, cell: (r) => <span style={mono}>{r.cap_nhat ?? ''}</span> },
-                ]} />
+              // DataTable: nhóm cột bật/tắt ở ⚙ (Số mặc định TẮT — mỗi dự án đo thứ khác, bật khi cần), sort, ô lọc riêng, cuộn ngang gói trong khung.
+              <DataTable rows={rows} columns={cols} groups={dtGroups} getRowKey={(r) => String(r.id)} persistKey={`tiendo.${g.replace(/[^\w-]+/g, '_')}`}
+                minWidth={900} rowStyle={(r) => tint(r.trang_thai)} searchText={(r) => `${r.ma} ${r.ten} ${r.mo_ta} ${r.ghi_chu} ${r.goc} ${r.ai} ${soText(r.so)}`} searchPlaceholder="lọc hạng mục…"
+                renderExpanded={(r) => (open.has(r.id) ? <BuocTable y={detail[r.id]} onPatch={suaBuoc} onAdd={(t) => themBuoc(r.id, t)} /> : null)} />
             )}
             {(() => { const first = all0(g); return first?.project_id ? <ThemHangMuc onAdd={(t) => them(first.project_id!, first.nhom, t)} /> : null; })()}
           </section>

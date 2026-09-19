@@ -65,6 +65,10 @@ interface DataTableProps<T> {
   onRowClick?: (row: T, index: number) => void;
   minWidth?: number;                    // table min width before it starts scrolling (default 640)
   rowTitle?: (row: T) => string | undefined;
+  /** Tô cả dòng theo tín hiệu thật (trạng thái) — như conditional formatting; không dùng để trang trí. */
+  rowStyle?: (row: T, index: number) => CSSProperties | undefined;
+  /** Trả nội dung ≠ null → thêm một dòng full-width ngay dưới dòng đó (bảng con mở tại chỗ, YDNI: mặc định đóng). */
+  renderExpanded?: (row: T, index: number) => ReactNode;
   /**
    * Ô lọc RIÊNG của bảng. Trả về phần chữ đại diện cho một dòng; gõ gì thì lọc trên chuỗi đó.
    * Bảng 18 dòng × 9 nhóm cột thì mắt không quét được — mà ô tìm ở thanh trên cùng là tìm TOÀN hệ
@@ -135,7 +139,7 @@ const band = (hex: string | undefined) => (hex ? `${hex}38` : undefined);
 const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 
 export function DataTable<T>({
-  rows, columns, getRowKey, groups, persistKey, onRowClick, minWidth = 640, rowTitle,
+  rows, columns, getRowKey, groups, persistKey, onRowClick, minWidth = 640, rowTitle, rowStyle, renderExpanded,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced,
   stickyFirst = true,
   serverSort, serverFilter,
@@ -492,21 +496,29 @@ export function DataTable<T>({
           </thead>
           )}
           <tbody>
-            {pageRows.map((row, i) => (
-              <tr key={getRowKey(row, i)} className="dt-row"
-                  style={onRowClick ? { cursor: 'pointer' } : undefined}
-                  onClick={onRowClick ? () => onRowClick(row, i) : undefined}
-                  title={rowTitle?.(row)}>
-                {visible.map((c, ci) => (
-                  <td key={c.key}
-                      style={cellStyle(c, c.onCellClick ? { cursor: 'pointer' } : undefined, ci)}
-                      title={c.cellTitle?.(row, i)}
-                      onClick={c.onCellClick ? (e) => { e.stopPropagation(); c.onCellClick!(row, i); } : undefined}>
-                    {c.cell(row, i)}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {pageRows.map((row, i) => {
+              const extra = renderExpanded?.(row, i);
+              return [
+                <tr key={getRowKey(row, i)} className="dt-row"
+                    style={{ ...(onRowClick ? { cursor: 'pointer' } : undefined), ...rowStyle?.(row, i) }}
+                    onClick={onRowClick ? () => onRowClick(row, i) : undefined}
+                    title={rowTitle?.(row)}>
+                  {visible.map((c, ci) => (
+                    <td key={c.key}
+                        style={cellStyle(c, c.onCellClick ? { cursor: 'pointer' } : undefined, ci)}
+                        title={c.cellTitle?.(row, i)}
+                        onClick={c.onCellClick ? (e) => { e.stopPropagation(); c.onCellClick!(row, i); } : undefined}>
+                      {c.cell(row, i)}
+                    </td>
+                  ))}
+                </tr>,
+                extra != null && extra !== false ? (
+                  <tr key={getRowKey(row, i) + ':x'}>
+                    <td colSpan={visible.length} style={{ ...baseCell, whiteSpace: 'normal', padding: '4px 8px 12px 28px', background: 'var(--bg-2)' }}>{extra}</td>
+                  </tr>
+                ) : null,
+              ];
+            })}
             {!sortedRows.length && (
               <tr><td colSpan={visible.length} style={{ ...baseCell, textAlign: 'center', color: 'var(--fg-3)', whiteSpace: 'normal', padding: '10px 5px' }}>
                 {q.trim() ? `Không dòng nào khớp "${q.trim()}".` : anyColFilter ? 'Không dòng nào khớp bộ lọc cột — sửa/xoá ở nút 🔍 trên tiêu đề cột.' : 'Không có dữ liệu.'}

@@ -18,11 +18,15 @@ export interface SimpleColumn<T> {
 const thBase: CSSProperties = { padding: '6px 8px', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500, borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
 const tdBase: CSSProperties = { padding: '6px 8px', fontSize: 12, borderBottom: '1px solid var(--line)', verticalAlign: 'top' };
 
-export function SimpleTable<T>({ rows, columns, getRowKey, hideHeader }: {
+export function SimpleTable<T>({ rows, columns, getRowKey, hideHeader, rowStyle, renderExpanded }: {
   rows: T[];
   columns: SimpleColumn<T>[];
   getRowKey: (row: T, index: number) => string;
   hideHeader?: boolean;               // for ranked lists that never had a header row
+  /** Tô cả dòng theo trạng thái (như conditional formatting của sheet) — chỉ dùng cho tín hiệu thật, không trang trí. */
+  rowStyle?: (row: T, index: number) => CSSProperties | undefined;
+  /** Trả nội dung ≠ null → thêm một dòng full-width ngay dưới dòng đó (bảng con, chi tiết mở tại chỗ). */
+  renderExpanded?: (row: T, index: number) => ReactNode;
 }) {
   return (
     <div data-comp="ui.SimpleTable" style={{ overflowX: 'auto' }}>
@@ -33,11 +37,18 @@ export function SimpleTable<T>({ rows, columns, getRowKey, hideHeader }: {
           </thead>
         )}
         <tbody>
-          {rows.map((row, i) => (
-            <tr key={getRowKey(row, i)}>
-              {columns.map((c) => <td key={c.key} style={{ ...tdBase, textAlign: c.align ?? 'left', width: c.width }}>{c.cell(row, i)}</td>)}
-            </tr>
-          ))}
+          {rows.map((row, i) => {
+            const extra = renderExpanded?.(row, i);
+            const rs = rowStyle?.(row, i);
+            return [
+              <tr key={getRowKey(row, i)} style={rs}>
+                {columns.map((c) => <td key={c.key} style={{ ...tdBase, textAlign: c.align ?? 'left', width: c.width }}>{c.cell(row, i)}</td>)}
+              </tr>,
+              extra != null && extra !== false ? (
+                <tr key={getRowKey(row, i) + ':x'}><td colSpan={columns.length} style={{ ...tdBase, padding: '4px 8px 12px 28px', background: 'var(--bg-2, transparent)' }}>{extra}</td></tr>
+              ) : null,
+            ];
+          })}
         </tbody>
       </table>
     </div>

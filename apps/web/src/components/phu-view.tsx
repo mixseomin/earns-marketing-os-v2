@@ -18,6 +18,7 @@ const cell: React.CSSProperties = { padding: '7px 9px', fontSize: 12, borderBott
 const mh = 'm-hide';   // cột phụ, ẩn trên điện thoại (globals.css ≤768px)
 const head: React.CSSProperties = { ...cell, color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'left', fontWeight: 600, whiteSpace: 'nowrap' };
 const mono: React.CSSProperties = { fontFamily: 'var(--font-mono)' };
+const lienKetNho: React.CSSProperties = { background: 'none', border: 0, padding: 0, cursor: 'pointer', color: 'var(--fg-3)', fontSize: 10, textDecoration: 'underline' };
 const btn: React.CSSProperties = { padding: '4px 10px', fontSize: 11, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer' };
 const usd = (v: number) => (v ? `$${v.toFixed(2)}` : '—');
 const khi = (iso: string | null) => (iso ? new Date(iso).toLocaleString('vi-VN', { hour12: false }).replace(/:\d\d( |$)/, ' ') : '—');
@@ -79,7 +80,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
             <thead><tr>
               <th style={head}>Campaign</th><th style={head} className={mh}>$/ngày · hạn</th>
               <th style={head} title="click MẠNG đếm (ExoClick/Bidvertiser/TF) — camp nảy thẳng qua /x/ không có lander nên View/Click của mình = 0; % = hit /x/ ÷ click mạng (P2)">Click mạng</th><th style={head}>View</th><th style={head} className={mh}>Cổng</th><th style={head} title="click trên lander của mình">Click</th><th style={head} className={mh} title="hit ra offer (lander) hoặc hit qua /x/ (camp nảy thẳng)">Out</th><th style={head}>Signup</th><th style={head}>Về / chi</th><th style={head} title="chi ÷ click ra offer (click lander, hoặc out khi nảy thẳng); đỏ khi vượt trần tiêu chí">CPC</th>
-              <th style={head} title="kết quả BỘ LUẬT (tab Luật) chấm trên số cộng dồn + 7 ngày; DỪNG = adapter pause qua API mạng">Phán xét</th><th style={head} className={mh}>Soi</th>
+              <th style={head} title="kết quả BỘ LUẬT (tab Luật) chấm trên số cộng dồn + 7 ngày; DỪNG = adapter pause qua API mạng">Phán xét</th>
             </tr></thead>
             <tbody>
               {campHien.map((c) => {
@@ -93,6 +94,11 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                     <td style={cell}><b>{c.ten}</b>
                       <div style={{ ...mono, color: 'var(--fg-3)', fontSize: 10 }}>{c.sidPrefix} · {[c.target.device, c.target.geo, c.target.format, c.target.source, c.target.bid != null ? `bid $${c.target.bid}` : null].filter(Boolean).join(' · ')}</div>
                       {c.trangThai !== 'chay' && <Pill color={c.trangThai === 'tam_dung' ? 'var(--warn)' : 'var(--fg-3)'} label={c.trangThai} />}
+                      <div style={{ fontSize: 10, marginTop: 2 }}>
+                        <button style={lienKetNho} onClick={(e) => { e.stopPropagation(); setNhatKy(c); }} title="Số theo ngày + mỗi lần đổi cài đặt (trước → sau)">nhật ký</button>
+                        <span style={{ color: 'var(--fg-4)' }}> · </span>
+                        <button style={lienKetNho} onClick={(e) => { e.stopPropagation(); setSoiCamp(c); }} title="Xem theo srcid/zone để blacklist">srcid</button>
+                      </div>
                     </td>
                     <td style={{ ...cell, ...mono, fontSize: 11, whiteSpace: 'nowrap' }} className={mh}>{c.nganSachNgay == null ? '—' : usd(c.nganSachNgay)}<div style={{ color: quaHan ? 'var(--danger)' : 'var(--fg-3)', fontSize: 10 }}>{c.ketThuc ? `tới ${c.ketThuc.slice(5, 10)}` : 'không hạn'}{toiXem ? ' · tới nhịp' : ''}</div></td>
                     <td style={{ ...cell, ...mono }}>{c.tong.clickMang ? so(c.tong.clickMang) : '—'}<span style={{ color: c.tong.clickMang >= 300 && (f?.out ?? 0) / c.tong.clickMang < (Number(t.hit_tren_click) || 0) ? 'var(--danger)' : 'var(--fg-3)', fontSize: 10 }}> {c.tong.clickMang && f?.out ? pct(f.out, c.tong.clickMang) : ''}</span></td>
@@ -113,13 +119,12 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                         </div>); })()}
                       {Object.keys(t).length ? null : <div style={{ color: 'var(--warn)', fontSize: 10 }}>chưa đặt tham số camp — dùng mặc định kệ pop</div>}
                     </td>
-                    <td style={{ ...cell, whiteSpace: 'nowrap' }} className={mh}><button style={btn} onClick={(e) => { e.stopPropagation(); setNhatKy(c); }} title="Số theo ngày + mỗi lần đổi cài đặt (trước → sau)">nhật ký ▸</button> <button style={btn} onClick={(e) => { e.stopPropagation(); setSoiCamp(c); }} title="Xem theo srcid/zone để blacklist">srcid ▸</button></td>
                   </tr>
                 );
               })}
               {soKetThuc > 0 && (
                 <tr>
-                  <td colSpan={13} style={{ ...cell, color: 'var(--fg-3)', fontSize: 11 }}>
+                  <td colSpan={12} style={{ ...cell, color: 'var(--fg-3)', fontSize: 11 }}>
                     <button style={{ ...btn, fontSize: 11 }} onClick={() => setHienKetThuc((v) => !v)}>{hienKetThuc ? 'ẩn' : 'hiện'} {soKetThuc} camp đã kết thúc</button>
                   </td>
                 </tr>
@@ -129,14 +134,14 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                   <td style={cell}><span style={{ color: 'var(--warn)' }}>(khác)</span><div style={{ color: 'var(--fg-3)', fontSize: 10 }}>{khac.soPrefix} sid_prefix không khớp camp nào — <button style={{ ...btn, padding: '0 6px', fontSize: 10 }} onClick={() => setSuaCamp('moi')}>đăng ký camp</button> hoặc mở camp → Nâng cao → Alias</div></td>
                   <td style={cell} className={mh}>—</td>
                   <td style={{ ...cell, ...mono }}>{so(khac.view)}</td><td style={{ ...cell, ...mono }} className={mh}>{pct(khac.gate, khac.view)}</td><td style={{ ...cell, ...mono }}>{so(khac.click)}</td><td style={{ ...cell, ...mono }} className={mh}>{so(khac.out)}</td><td style={{ ...cell, ...mono }}>{so(khac.signup)}</td>
-                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(khac.revenue)} / {usd(khac.chi)}</td><td style={{ ...cell, ...mono }}>{cpc(khac.chi, khac.click, 0.03)}</td><td style={cell}>—</td><td style={cell} className={mh}>—</td>
+                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(khac.revenue)} / {usd(khac.chi)}</td><td style={{ ...cell, ...mono }}>{cpc(khac.chi, khac.click, 0.03)}</td><td style={cell}>—</td>
                 </tr>
               )}
               {organic && (
                 <tr>
                   <td style={cell}><span style={{ color: 'var(--fg-3)' }}>(organic / không sid)</span></td><td style={cell} className={mh}>—</td>
                   <td style={{ ...cell, ...mono }}>{so(organic.view)}</td><td style={{ ...cell, ...mono }} className={mh}>{pct(organic.gate, organic.view)}</td><td style={{ ...cell, ...mono }}>{so(organic.click)}</td><td style={{ ...cell, ...mono }} className={mh}>{so(organic.out)}</td><td style={{ ...cell, ...mono }}>{so(organic.signup)}</td>
-                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(organic.revenue)} / —</td><td style={cell}>—</td><td style={cell}>—</td><td style={cell} className={mh}>—</td>
+                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(organic.revenue)} / —</td><td style={cell}>—</td><td style={cell}>—</td>
                 </tr>
               )}
             </tbody>

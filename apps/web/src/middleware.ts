@@ -13,6 +13,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/health',
   '/api/ext/',
   '/api/phu/',        // PHỦ: postback mạng affiliate (token theo nguồn) + ingest cron (Bearer MOS2_EXT_KEY) — tự xác thực trong route
+  '/api/apps/',       // đo app iOS: ingest từ máy người dùng (token theo app trong body) · register/stats Bearer MOS2_EXT_KEY — tự xác thực trong route
   '/api/auth/', // /api/auth/verify runs its own session check (204/401) for nginx auth_request SSO — must not be redirected
   '/api/review', // generic review queue — does its own auth (agent token OR session)
   // Cửa CÔNG KHAI duy nhất: trang landing gửi email + phản hồi người đọc vào đây. Chỉ NHẬN (POST),

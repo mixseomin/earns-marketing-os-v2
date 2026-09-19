@@ -123,6 +123,12 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
       {groups.map((g) => {
         const all = items.filter((i) => inGroup(i, g));
         const rows = visible.filter((i) => inGroup(i, g));
+        // Cột "Số" tách theo khoá — mỗi dự án đo thứ khác (ExamWeight: Vol đầu/th · CPC · Cạnh tranh · Lớp mua · Ads đối thủ;
+        // Bra: một cột Số). Khoá toàn số → hẹp, canh phải; có chữ → rộng, canh trái. Không nhét chung một ô nữa.
+        const soKeys = [...new Set(all.flatMap((i) => Object.keys(i.so ?? {})))];
+        const numeric = (k: string) => all.every((i) => !i.so?.[k] || /^[\d.,%$\s-]+$/.test(String(i.so[k])));
+        const soCols = soKeys.map((k) => ({ key: 'so:' + k, header: k, width: numeric(k) ? 72 : 150, align: (numeric(k) ? 'right' : 'left') as 'left' | 'right',
+          title: `Số · ${k}`, cell: (r: HangMuc) => <span title={r.so?.[k] ?? ''} style={{ color: 'var(--fg-2)', fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>{numeric(k) ? (r.so?.[k] ?? '') : clip(r.so?.[k] ?? '', 60)}</span> }));
         const sub = `${all.length} hạng mục · ⛔ ${all.filter((i) => i.trang_thai === 'Kẹt').length} · ▶ ${all.filter((i) => i.trang_thai === 'Đang làm').length} · ✓ ${all.filter((i) => i.trang_thai === 'Xong').length}`;
         return (
           <section key={g} style={{ marginBottom: 18 }}>
@@ -143,7 +149,7 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
                   { key: 'tien', header: 'Tiến độ', width: 56, align: 'center', title: 'bước Xong / tổng', cell: (r) => (r.tong ? `${r.xong}/${r.tong}` : '–') },
                   { key: 'buoc', header: 'Bước hiện tại', title: '⛔ bước kẹt → ▶ bước đang → ○ bước chưa đầu tiên', cell: (r) => <span title={r.buoc_hien_tai} style={{ color: r.buoc_hien_tai.startsWith('⛔') ? 'var(--neon-red, #ff6b6b)' : 'var(--fg-2)' }}>{clip(r.buoc_hien_tai, 110)}</span> },
                   { key: 'ai', header: 'Ai', width: 48, title: 'Người làm', cell: (r) => <span style={{ color: 'var(--fg-2)', fontSize: 12 }}>{r.ai}</span> },
-                  { key: 'so', header: 'Số', width: 150, title: 'Chỉ số của hạng mục', cell: (r) => <span title={soText(r.so)} style={{ color: 'var(--fg-2)', fontSize: 11 }}>{clip(soText(r.so), 70)}</span> },
+                  ...soCols,
                   { key: 'cong', header: 'Cổng đi/dừng', width: 150, title: 'Điều kiện đi tiếp hay dừng', cell: (r) => <span title={r.cong} style={{ color: 'var(--fg-3)', fontSize: 11 }}>{clip(r.cong, 70)}</span> },
                   { key: 'cn', header: 'Cập nhật', width: 78, cell: (r) => <span style={mono}>{r.cap_nhat ?? ''}</span> },
                 ]} />

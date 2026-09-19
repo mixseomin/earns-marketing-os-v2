@@ -17,7 +17,10 @@ export type PhuCamp = {
   ketThuc: string | null; nhipNgay: number; tieuChi: PhuTieuChi; keHoach: string | null;
   /** cộng dồn kể từ bat_dau (không theo cửa sổ N ngày) — phán xét dùng số này */
   tong: { view: number; gate: number; click: number; out: number; signup: number; revenue: number; chi: number; clickMang: number };
+  /** kết quả BỘ LUẬT (be.adfond chấm, lib/phu.ts cấp số) — null = chưa chấm được (adfond không trả lời) → 'cho', không dừng gì */
+  luat: PhuLuat | null;
 };
+export type PhuLuat = { ma: 'cho' | 'mo_rong' | 'dung' | 'di_tiep'; lyDo: string; khop: { ma: string; ten: string }[]; cham: { ma: string; ten: string; lam: string; ten_lam: string; muc?: number; gac: string; doc: string[] }[] };
 export type PhuPheu = {
   sidPrefix: string; soPrefix: number; view: number; gate: number; click: number; out: number; signup: number; lead: number; spendCount: number; revenue: number; chi: number;
 };
@@ -65,17 +68,8 @@ export function sidPrefix(sid: string | null | undefined): string {
  *  di_tiep  = trong ngưỡng, chưa tới hạn
  *  nghi     = camp không chạy */
 export function phanXet(c: PhuCamp, today = new Date()): { ma: 'cho' | 'mo_rong' | 'dung' | 'di_tiep' | 'nghi'; lyDo: string; xemLai: string | null } {
-  const t = c.tieuChi || {};
-  const chiMax = Number(t.chi_toi_da) || 0, clickMin = Number(t.click_toi_thieu) || 0, muc = Number(t.signup_1k) || 0, giaMax = Number(t.gia_click_toi_da) || 0, thuChi = Number(t.thu_chi) || 0;
-  const { click, signup, chi, revenue, out, clickMang } = c.tong;
-  const roi = chi ? revenue / chi : 0;
-  const htc = Number(t.hit_tren_click) || 0;
-  const per1k = click ? (signup / click) * 1000 : 0;
-  const giaClick = click ? chi / click : 0;
-  const hom = today.toISOString().slice(0, 10);
-  const quaHan = !!c.ketThuc && hom > c.ketThuc.slice(0, 10);
-  const hetTien = chiMax > 0 && chi >= chiMax;
-  // nhịp xem lại: mốc kế tiếp tính từ bat_dau, mỗi nhip_ngay
+  // Phán xét = kết quả BỘ LUẬT (tab Luật, be.adfond chấm) — không còn tiêu chí riêng ở đây (gộp 19/09/2026).
+  // Máy chấm ở lib/phu.ts (cấp số + tham số camp) → adfond /api/ext/luat/cham → phanXu. Ở đây chỉ đọc + nhịp xem lại.
   let xemLai: string | null = null;
   if (c.batDau) {
     const bd = new Date(c.batDau); bd.setUTCHours(0, 0, 0, 0);
@@ -84,16 +78,8 @@ export function phanXet(c: PhuCamp, today = new Date()): { ma: 'cho' | 'mo_rong'
     xemLai = new Date(bd.getTime() + k * n * 86400_000).toISOString().slice(0, 10);
   }
   if (c.trangThai !== 'chay') return { ma: 'nghi', lyDo: c.trangThai, xemLai };
-  if (thuChi > 0 && chi >= Math.max(5, chiMax / 2) && roi >= thuChi) return { ma: 'mo_rong', lyDo: `thu/chi ${roi.toFixed(2)} ≥ ${thuChi} ($${revenue.toFixed(2)} / $${chi.toFixed(2)})`, xemLai };
-  if (muc > 0 && per1k >= muc && click >= Math.max(200, clickMin / 4)) return { ma: 'mo_rong', lyDo: `${per1k.toFixed(1)} signup/1k ≥ mục tiêu ${muc} (${signup}/${click} click)`, xemLai };
-  // 0 hit trên CẢ camp khi mạng đã đếm ≥300 click = đường đo chết (nginx cắt sid, log không đọc…) nhiều hơn là bot; 19/09/2026 máy
-  // pause nhầm native-latam vì đúng ca này. Số 0 = nghi pipeline trước khi nghi thực tế → CHỜ + báo, không DỪNG.
-  if (htc > 0 && clickMang >= 300 && out === 0) return { ma: 'cho', lyDo: `0 hit /x/ trên ${clickMang} click mạng — nghi đường đo (sid/log) chết, kiểm trước khi kết luận`, xemLai };
-  if (htc > 0 && clickMang >= 300 && out / clickMang < htc) return { ma: 'dung', lyDo: `P2: hit/click ${(out / clickMang * 100).toFixed(0)}% < ${htc * 100}% (${out}/${clickMang}) — traffic không tới máy mình`, xemLai };
-  if (giaMax > 0 && click >= 100 && giaClick > giaMax) return { ma: 'dung', lyDo: `$${giaClick.toFixed(3)}/click > trần $${giaMax} (${click} click, $${chi.toFixed(2)})`, xemLai };
-  if (hetTien || quaHan) return { ma: 'dung', lyDo: `${hetTien ? `hết $${chiMax} thử` : `quá hạn ${c.ketThuc?.slice(0, 10)}`} · ${signup} signup / ${click} click` + (muc ? ` (< ${muc}/1k)` : '') + (thuChi ? ` · thu/chi ${roi.toFixed(2)} < ${thuChi}` : ''), xemLai };
-  if (clickMin > 0 && click < clickMin) return { ma: 'cho', lyDo: `${click}/${clickMin} click · $${chi.toFixed(2)}${chiMax ? `/$${chiMax}` : ''}`, xemLai };
-  return { ma: 'di_tiep', lyDo: `${per1k.toFixed(1)} signup/1k · $${chi.toFixed(2)}${chiMax ? `/$${chiMax}` : ''}` + (c.ketThuc ? ` · tới ${c.ketThuc.slice(0, 10)}` : ''), xemLai };
+  if (!c.luat) return { ma: 'cho', lyDo: 'bộ luật chưa chấm được (be.adfond không trả lời) — không dừng gì', xemLai };
+  return { ma: c.luat.ma, lyDo: c.luat.lyDo, xemLai };
 }
 export const PHU_PHAN_XET: Record<string, { label: string; color: string }> = {
   cho:     { label: 'chờ đủ số',  color: 'var(--fg-3)' },

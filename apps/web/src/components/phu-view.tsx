@@ -53,17 +53,6 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
   const [nhapChi, setNhapChi] = useState(false);
   const [soiCamp, setSoiCamp] = useState<PhuCamp | null>(null);
   const [nhatKy, setNhatKy] = useState<PhuCamp | null>(null);
-  // Luật điều hành (be.adfond, tab Luật) đang khớp camp ở đây — camp MOS2 (Bidvertiser/ExoClick/TF) đều là loại `pop`,
-  // ponytail: khớp theo LOẠI, chưa theo từng camp (id camp MOS2 ≠ id campaigns adfond; áp thêm/trừ từng camp làm khi hai sổ nối id).
-  const [luatPop, setLuatPop] = useState<{ ma: string; ten: string; gac: string }[] | null>(null);
-  useEffect(() => {
-    if (tab !== 'camp') return;
-    fetch('/api/adfond/luat?loai=pop', { cache: 'no-store' }).then((r) => r.json())
-      .then((j: { thu_vien?: { ma: string; ten: string; gac: string }[]; don_vi?: { khop: Record<string, { khop: boolean }> } }) => {
-        const k = j.don_vi?.khop ?? {};
-        setLuatPop((j.thu_vien ?? []).filter((l) => k[l.ma]?.khop).map((l) => ({ ma: l.ma, ten: l.ten, gac: l.gac })));
-      }).catch(() => setLuatPop([]));
-  }, [tab]);
   const d = data;
   const THU_TU: Record<string, number> = { chay: 0, tam_dung: 1, nhap: 2, ket_thuc: 3 };
   const campHien = [...d.camp].sort((a, b) => (THU_TU[a.trangThai] ?? 9) - (THU_TU[b.trangThai] ?? 9)).filter((c) => hienKetThuc || c.trangThai !== 'ket_thuc');
@@ -90,7 +79,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
             <thead><tr>
               <th style={head}>Campaign</th><th style={head} className={mh}>$/ngày · hạn</th>
               <th style={head} title="click MẠNG đếm (ExoClick/Bidvertiser/TF) — camp nảy thẳng qua /x/ không có lander nên View/Click của mình = 0; % = hit /x/ ÷ click mạng (P2)">Click mạng</th><th style={head}>View</th><th style={head} className={mh}>Cổng</th><th style={head} title="click trên lander của mình">Click</th><th style={head} className={mh} title="hit ra offer (lander) hoặc hit qua /x/ (camp nảy thẳng)">Out</th><th style={head}>Signup</th><th style={head}>Về / chi</th><th style={head} title="chi ÷ click ra offer (click lander, hoặc out khi nảy thẳng); đỏ khi vượt trần tiêu chí">CPC</th>
-              <th style={head}>Phán xét</th><th style={head} title="luật điều hành (tab Luật) đang khớp camp này — máy sẽ chấm theo bộ đó">Luật</th><th style={head} className={mh}>Soi</th>
+              <th style={head} title="kết quả BỘ LUẬT (tab Luật) chấm trên số cộng dồn + 7 ngày; DỪNG = adapter pause qua API mạng">Phán xét</th><th style={head} className={mh}>Soi</th>
             </tr></thead>
             <tbody>
               {campHien.map((c) => {
@@ -114,16 +103,11 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                     <td style={{ ...cell, ...mono }}>{so(f?.signup ?? 0)}</td>
                     <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(f?.revenue ?? 0)} / {usd(f?.chi ?? 0)}</td>
                     <td style={{ ...cell, ...mono }}>{cpc(f?.chi ?? 0, f?.click || f?.out || 0, Number(c.tieuChi.gia_click_toi_da) || 0.03)}</td>
-                    <td style={cell}><Pill color={PHU_PHAN_XET[px.ma]?.color ?? 'var(--fg-3)'} label={PHU_PHAN_XET[px.ma]?.label ?? px.ma} />
+                    <td style={cell} title={c.luat ? `luật đang chịu (${c.luat.khop.length}): ${c.luat.khop.map((l) => l.ten).join(' · ')}` : undefined}>
+                      <Pill color={PHU_PHAN_XET[px.ma]?.color ?? 'var(--fg-3)'} label={PHU_PHAN_XET[px.ma]?.label ?? px.ma} />
                       <div style={{ color: 'var(--fg-3)', fontSize: 10, marginTop: 3 }}>{px.lyDo}</div>
-                      {Object.keys(t).length ? null : <div style={{ color: 'var(--warn)', fontSize: 10 }}>chưa đặt tiêu chí — bấm để đặt</div>}
-                    </td>
-                    <td style={{ ...cell, whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
-                      {luatPop == null ? <span style={{ color: 'var(--fg-3)', fontSize: 10 }}>…</span>
-                        : <Link href="/?tab=luat" style={{ fontSize: 11, color: luatPop.length ? 'var(--accent)' : 'var(--fg-3)', textDecoration: 'none' }}
-                            title={luatPop.length ? luatPop.map((l) => `${l.ten}${l.gac === 'nguoi' ? ' (người quyết)' : ''}`).join('\n') : 'không luật nào nhắm loại pop'}>
-                            {luatPop.length} luật{luatPop.filter((l) => l.gac === 'nguoi').length ? <span style={{ color: 'var(--fg-3)' }}> · {luatPop.filter((l) => l.gac === 'nguoi').length} người quyết</span> : null} ▸
-                          </Link>}
+                      {c.trangThai === 'chay' && c.luat && <Link href="/?tab=luat" onClick={(e) => e.stopPropagation()} style={{ fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none' }}>{c.luat.khop.length} luật ▸</Link>}
+                      {Object.keys(t).length ? null : <div style={{ color: 'var(--warn)', fontSize: 10 }}>chưa đặt tham số camp — dùng mặc định kệ pop</div>}
                     </td>
                     <td style={{ ...cell, whiteSpace: 'nowrap' }} className={mh}><button style={btn} onClick={(e) => { e.stopPropagation(); setNhatKy(c); }} title="Số theo ngày + mỗi lần đổi cài đặt (trước → sau)">nhật ký ▸</button> <button style={btn} onClick={(e) => { e.stopPropagation(); setSoiCamp(c); }} title="Xem theo srcid/zone để blacklist">srcid ▸</button></td>
                   </tr>
@@ -131,7 +115,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
               })}
               {soKetThuc > 0 && (
                 <tr>
-                  <td colSpan={14} style={{ ...cell, color: 'var(--fg-3)', fontSize: 11 }}>
+                  <td colSpan={13} style={{ ...cell, color: 'var(--fg-3)', fontSize: 11 }}>
                     <button style={{ ...btn, fontSize: 11 }} onClick={() => setHienKetThuc((v) => !v)}>{hienKetThuc ? 'ẩn' : 'hiện'} {soKetThuc} camp đã kết thúc</button>
                   </td>
                 </tr>
@@ -141,14 +125,14 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                   <td style={cell}><span style={{ color: 'var(--warn)' }}>(khác)</span><div style={{ color: 'var(--fg-3)', fontSize: 10 }}>{khac.soPrefix} sid_prefix không khớp camp nào — <button style={{ ...btn, padding: '0 6px', fontSize: 10 }} onClick={() => setSuaCamp('moi')}>đăng ký camp</button> hoặc mở camp → Nâng cao → Alias</div></td>
                   <td style={cell} className={mh}>—</td>
                   <td style={{ ...cell, ...mono }}>{so(khac.view)}</td><td style={{ ...cell, ...mono }} className={mh}>{pct(khac.gate, khac.view)}</td><td style={{ ...cell, ...mono }}>{so(khac.click)}</td><td style={{ ...cell, ...mono }} className={mh}>{so(khac.out)}</td><td style={{ ...cell, ...mono }}>{so(khac.signup)}</td>
-                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(khac.revenue)} / {usd(khac.chi)}</td><td style={{ ...cell, ...mono }}>{cpc(khac.chi, khac.click, 0.03)}</td><td style={cell}>—</td><td style={cell}>—</td><td style={cell} className={mh}>—</td>
+                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(khac.revenue)} / {usd(khac.chi)}</td><td style={{ ...cell, ...mono }}>{cpc(khac.chi, khac.click, 0.03)}</td><td style={cell}>—</td><td style={cell} className={mh}>—</td>
                 </tr>
               )}
               {organic && (
                 <tr>
                   <td style={cell}><span style={{ color: 'var(--fg-3)' }}>(organic / không sid)</span></td><td style={cell} className={mh}>—</td>
                   <td style={{ ...cell, ...mono }}>{so(organic.view)}</td><td style={{ ...cell, ...mono }} className={mh}>{pct(organic.gate, organic.view)}</td><td style={{ ...cell, ...mono }}>{so(organic.click)}</td><td style={{ ...cell, ...mono }} className={mh}>{so(organic.out)}</td><td style={{ ...cell, ...mono }}>{so(organic.signup)}</td>
-                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(organic.revenue)} / —</td><td style={cell}>—</td><td style={cell}>—</td><td style={cell}>—</td><td style={cell} className={mh}>—</td>
+                  <td style={{ ...cell, ...mono, whiteSpace: 'nowrap' }}>{usd(organic.revenue)} / —</td><td style={cell}>—</td><td style={cell}>—</td><td style={cell} className={mh}>—</td>
                 </tr>
               )}
             </tbody>
@@ -518,15 +502,15 @@ function SuaCamp({ c, nguon, projectId, onClose }: { c: PhuCamp | null; nguon: P
         </SelectField>
       </div>
       <div style={ba}>
-        <TextField label="$ thử tối đa" value={f.chiToiDa} onChange={set('chiToiDa')} mono hint="hết tiền này chưa đạt = DỪNG" />
-        <TextField label="Click tối thiểu" value={f.clickToiThieu} onChange={set('clickToiThieu')} mono hint="chưa đủ = chờ, chưa phán" />
-        <TextField label="Signup / 1k click" value={f.signup1k} onChange={set('signup1k')} mono hint="đạt = MỞ RỘNG" />
+        <TextField label="$ thử tối đa" value={f.chiToiDa} onChange={set('chiToiDa')} mono hint="= tham số Trần tiền thử (luật T0 dừng khi chạm, M1 mở rộng ở nửa); trống = mặc định kệ pop" />
+        <TextField label="Click tối thiểu" value={f.clickToiThieu} onChange={set('clickToiThieu')} mono hint="= Đủ mẫu D14; chưa đủ = CHỜ (luật dừng vẫn chạm được)" />
+        <TextField label="Signup / 1k click" value={f.signup1k} onChange={set('signup1k')} mono hint="ghi nhớ mục tiêu — CHƯA có luật nào đọc (mở rộng đi theo thu/chi, luật M1)" />
       </div>
       <div style={hai}>
-        <TextField label="Giá 1 click ra offer tối đa (USD)" value={f.giaClickToiDa} onChange={set('giaClickToiDa')} mono hint="≥100 click mà chi/click vượt = DỪNG ngay, không đợi đủ click (revshare cam ~$0,03)" />
-        <TextField label="Thu / chi tối thiểu" value={f.thuChi} onChange={set('thuChi')} mono hint="PPS/revshare về sale: đã chi ≥ nửa $ thử mà thu/chi đạt = MỞ RỘNG; trống = không xét" />
+        <TextField label="Giá 1 click ra offer tối đa (USD)" value={f.giaClickToiDa} onChange={set('giaClickToiDa')} mono hint="= Trần CPC đang đặt (luật K3: vượt ×1,3 hai ngày liền → hạ bid; K3b → dừng); revshare cam ~$0,03" />
+        <TextField label="Thu / chi tối thiểu" value={f.thuChi} onChange={set('thuChi')} mono hint="= ROAS mục tiêu (luật M1: chi ≥ nửa $ thử mà thu/chi đạt = đề xuất MỞ RỘNG); trống = mặc định 1,5" />
       </div>
-      <TextField label="Hit /x/ ÷ click mạng tối thiểu (P2)" value={f.hitTrenClick} onChange={set('hitTrenClick')} mono hint="traffic mua qua cửa /x/: ≥300 click mạng mà tỉ lệ tới máy mình < ngưỡng = DỪNG (bot/click giả); trống = không xét" />
+      <TextField label="Hit /x/ ÷ click mạng tối thiểu (P2)" value={f.hitTrenClick} onChange={set('hitTrenClick')} mono hint="= CTR bấm ra sàn (luật P2: ≥300 click mạng mà tỉ lệ tới máy mình dưới sàn = DỪNG; 0 hit = P0 chỉ CẢNH BÁO, nghi đường đo); trống = mặc định 15%" />
       <TextAreaField label="Kế hoạch sau phán xét" value={f.keHoach} onChange={set('keHoach')} rows={2} hint="đạt → mở gì; không đạt → đổi gì" />
       {c && <TextField label="Lý do lần đổi này" value={f.lyDo} onChange={set('lyDo')} hint="vào nhật ký camp cùng với trước → sau của mọi ô đổi" />}
       <details>

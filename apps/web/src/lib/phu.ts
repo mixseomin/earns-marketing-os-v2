@@ -9,6 +9,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 
 export * from './phu-shared';
+import type { PhuLuat } from './phu-shared';
 import type { PhuData, PhuPlatform, PhuNguon, PhuCamp, PhuPheu, PhuAdapter, PhuLander, PhuZone } from './phu-shared';
 
 const n = (v: unknown) => (v === null || v === undefined ? 0 : Number(v) || 0);
@@ -115,7 +116,7 @@ export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
   const c = await db.execute(sql`SELECT * FROM phu_camp WHERE project_id = ${projectId} ORDER BY trang_thai, sid_prefix`);
   type R = Record<string, unknown>;
   const nhom = nhomTheoCamp(c as unknown as R[]);
-  const [p, ng, ev, chi, ad, ld, evAll, chiAll] = await Promise.all([
+  const [p, ng, ev, chi, ad, ld, evAll, chiAll, theoNgay] = await Promise.all([
     db.execute(sql`
       SELECT p.*, t.status AS card_status
         FROM phu_platforms p LEFT JOIN human_tasks t ON t.id = p.card_id
@@ -148,6 +149,9 @@ export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
              COUNT(*) FILTER (WHERE loai = 'signup') AS signup, COALESCE(SUM(amount) FILTER (WHERE loai IN ('spend', 'lead')), 0)::float8 AS revenue
         FROM phu_su_kien WHERE project_id = ${projectId} AND sid_prefix <> '' GROUP BY 1`),
     db.execute(sql`SELECT ${nhomChi} AS sid_prefix, COALESCE(SUM(chi_usd), 0)::float8 AS chi, COALESCE(SUM(clicks), 0)::float8 AS clicks FROM phu_chi WHERE project_id = ${projectId} GROUP BY 1`),
+    // 7 ngày gần nhất theo NGÀY, mới nhất trước — luật `lien_tiep` (K3 CPC vượt trần 2 ngày, K7 chi quá ngân sách)
+    db.execute(sql`SELECT ${nhomChi} AS sid_prefix, ngay::text AS ngay, COALESCE(SUM(chi_usd), 0)::float8 AS chi, COALESCE(SUM(clicks), 0)::float8 AS clicks
+                     FROM phu_chi WHERE project_id = ${projectId} AND ngay >= (current_date - 7) AND ngay < current_date GROUP BY 1, 2 ORDER BY 2 DESC`),
   ]);
   const chiMap = new Map<string, number>();
   for (const r of chi as unknown as R[]) chiMap.set(String(r.sid_prefix), n(r.chi));
@@ -172,16 +176,74 @@ export async function getPhu(projectId: string, days = 7): Promise<PhuData> {
       id: n(r.id), key: String(r.key), name: String(r.name), loai: String(r.loai), trangThai: String(r.trang_thai), macroClick: s(r.macro_click),
       macroChi: s(r.macro_chi), postbackToken: s(r.postback_token), accountId: r.account_id == null ? null : n(r.account_id), napUsd: n(r.nap_usd), soDu: r.so_du == null ? null : n(r.so_du), soDuLuc: s(r.so_du_luc), ghiChu: s(r.ghi_chu),
     })),
-    camp: (c as unknown as R[]).map((r) => ({
+    camp: await chamLuatCamp((c as unknown as R[]).map((r) => ({
       id: n(r.id), nguonKey: String(r.nguon_key), ten: String(r.ten), sidPrefix: String(r.sid_prefix), lander: s(r.lander),
       target: (r.target && typeof r.target === 'object' ? r.target : {}) as Record<string, unknown>,
       nganSachNgay: r.ngan_sach_ngay == null ? null : n(r.ngan_sach_ngay), trangThai: String(r.trang_thai), batDau: s(r.bat_dau), ghiChu: s(r.ghi_chu),
       ketThuc: r.ket_thuc == null ? null : String(r.ket_thuc), nhipNgay: n(r.nhip_ngay) || 1,
       tieuChi: (r.tieu_chi && typeof r.tieu_chi === 'object' ? r.tieu_chi : {}) as PhuCamp['tieuChi'], keHoach: s(r.ke_hoach),
       tong: (() => { const e = tongEv.get(String(r.sid_prefix)) ?? {}; return { view: n(e.view), gate: n(e.gate), click: n(e.click), out: n(e.out), signup: n(e.signup), revenue: n(e.revenue), chi: tongChi.get(String(r.sid_prefix)) ?? 0, clickMang: tongClickMang.get(String(r.sid_prefix)) ?? 0 }; })(),
-    })),
+      luat: null,
+    })), theoNgay as unknown as R[]),
     adapters: (ad as unknown as R[]).map((r) => ({ key: String(r.key), name: String(r.name), loai: String(r.loai), lich: s(r.lich), lastRun: s(r.last_run), lastOk: r.last_ok == null ? null : Boolean(r.last_ok), lastNote: s(r.last_note), postbackToken: s(r.postback_token) })),
     landers: (ld as unknown as R[]).map((r) => ({ host: String(r.host), path: String(r.path), ten: String(r.ten), moTa: s(r.mo_ta), dich: s(r.dich), lastSinh: s(r.last_sinh), soMuc: r.so_muc == null ? null : n(r.so_muc), trangThai: String(r.trang_thai) })),
   };
 }
 
+
+/* ── BỘ LUẬT chấm camp đang chạy ──
+ * Một máy chấm (be.adfond luat-camp.ts) cho cả camp Google bên adfond lẫn camp pop ở đây. MOS2 cấp SỐ (phễu cộng dồn
+ * + 7 ngày theo ngày) và THAM SỐ tầng camp (tiêu chí camp = trần CPC, $ thử, CTR ra sàn…); adfond cấp luật + phân xử.
+ * Adapter (bidvertiser/trafficfactory) đọc phanXet() = kết quả này → pause qua API mạng. adfond không trả lời → luat=null → 'cho'. */
+const DI_LEN = new Set(['tang_bid', 'tang_ngan_sach', 'len_bac', 'mo_mau_moi']);
+async function chamLuatCamp(camp: PhuCamp[], theoNgay: Record<string, unknown>[]): Promise<PhuCamp[]> {
+  const chay = camp.filter((c) => c.trangThai === 'chay');
+  const key = process.env.ADFOND_EXT_KEY;
+  if (!chay.length || !key) return camp;
+  const hom = new Date(); hom.setUTCHours(0, 0, 0, 0);
+  const donVi = chay.map((c) => {
+    const t = c.tong, tc = c.tieuChi;
+    const click_ads = t.clickMang || t.click;
+    const xem = c.lander ? t.view : click_ads;             // camp nảy thẳng qua /x/ không có lander: "xem" = click mạng
+    const ngay = theoNgay.filter((r) => String(r.sid_prefix) === c.sidPrefix).map((r) => ({ chi_ngay: n(r.chi), click_ads: n(r.clicks), cpc: n(r.clicks) ? n(r.chi) / n(r.clicks) : null }));
+    const so = (v: number | null | undefined) => (v == null || !Number.isFinite(v) ? null : v);
+    const tham_so: Record<string, number> = {};
+    if (tc.gia_click_toi_da) tham_so.tran = Number(tc.gia_click_toi_da);
+    if (tc.chi_toi_da) tham_so.tran_thu = Number(tc.chi_toi_da);
+    if (tc.hit_tren_click) tham_so.ra_san = Number(tc.hit_tren_click);
+    if (tc.thu_chi) tham_so.roas_bac_3 = Number(tc.thu_chi);
+    if (tc.click_toi_thieu) tham_so.du_mau_d14 = Number(tc.click_toi_thieu);
+    if (c.nganSachNgay != null) tham_so.ngan_sach = c.nganSachNgay;
+    return {
+      id: c.sidPrefix, ngay_song: c.batDau ? Math.floor((hom.getTime() - new Date(c.batDau).setUTCHours(0, 0, 0, 0)) / 86400_000) : null,
+      tich_luy: {
+        chi: t.chi, click_ads, xem_trang: xem, bam_ra: t.out, ctr_ra: xem ? t.out / xem : null, so_don: t.signup, hoa_hong: t.revenue,
+        roas: t.chi ? t.revenue / t.chi : null, cpc: click_ads ? t.chi / click_ads : null,
+        phien_ga4: c.lander ? t.view : null,                 // K5 "trang đích chết" chỉ có nghĩa khi có lander
+        ngay_con: c.ketThuc ? so(Math.floor((new Date(c.ketThuc).setUTCHours(0, 0, 0, 0) - hom.getTime()) / 86400_000)) : null,
+      },
+      theo_ngay: ngay, tham_so,
+    };
+  });
+  try {
+    const r = await fetch(`${process.env.ADFOND_EXT_URL || 'http://127.0.0.1:3832'}/api/ext/luat/cham`, {
+      method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ loai: 'pop', don_vi: donVi }), signal: AbortSignal.timeout(8000), cache: 'no-store',
+    });
+    if (!r.ok) return camp;
+    const j = (await r.json()) as { ket: Record<string, { giu: PhuLuat['cham'][number][]; luat: PhuLuat['khop'] }> };
+    return camp.map((c) => {
+      const k = j.ket[c.sidPrefix]; if (!k) return c;
+      const giu = k.giu;
+      const dung = giu.some((x) => x.gac === 'may' && (x.lam === 'tam_dung' || x.lam === 'dong_san_pham'));
+      const mo = giu.some((x) => DI_LEN.has(x.lam));
+      const duMau = Number(c.tieuChi.click_toi_thieu) || 0;
+      const click = c.tong.clickMang || c.tong.click;
+      const cho = giu.length > 0 || (duMau > 0 && click < duMau);
+      const ma: PhuLuat['ma'] = dung ? 'dung' : mo ? 'mo_rong' : cho ? 'cho' : 'di_tiep';
+      const lyDo = giu.map((x) => `${x.ma} ${x.ten_lam}${x.muc != null ? ` ×${x.muc}` : ''}: ${x.doc.join(', ')}`).join(' · ')
+        || (duMau > 0 && click < duMau ? `${click}/${duMau} click · $${c.tong.chi.toFixed(2)}` : `$${c.tong.chi.toFixed(2)} · ${c.tong.signup} signup / ${click} click — chưa luật nào chạm`);
+      return { ...c, luat: { ma, lyDo, khop: k.luat, cham: giu } };
+    });
+  } catch { return camp; }
+}

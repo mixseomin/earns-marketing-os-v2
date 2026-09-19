@@ -4,15 +4,15 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 
 export * from './tien-do-shared';
-import { BUOC_TRANG_THAI, type Buoc, type HangMuc, type HangMucChiTiet, type BuocPatch } from './tien-do-shared';
+import { BUOC_TRANG_THAI, TRANG_THAI_MARK, type Buoc, type BuocTrangThai, type HangMuc, type HangMucChiTiet, type BuocPatch } from './tien-do-shared';
 
 const rows = <T,>(r: unknown) => r as T[];
 function db() { const d = getDb(); if (!d) throw new Error('db'); return d; }
 
-/** "⛔ #3 …" (kẹt) → "▶ #n" (đang) → "○ #n" (chưa) → "✓ hết bước" / "(chưa có bước)". */
+/** "⛔ #3 …" (kẹt) → "▶ #n" (đang) → "○ #n" (chưa) → "✓ hết bước" / "(chưa có bước)". Dấu lấy từ TRANG_THAI_MARK (một nguồn với UI). */
 export function buocHienTai(b: Pick<Buoc, 'thu_tu' | 'buoc' | 'trang_thai'>[]): string {
-  const pick = (st: string, mark: string) => { const x = b.find((s) => s.trang_thai === st); return x ? `${mark} #${x.thu_tu} ${x.buoc}` : null; };
-  return pick('Kẹt', '⛔') ?? pick('Đang', '▶') ?? pick('Chưa', '○') ?? (b.length ? '✓ hết bước' : '(chưa có bước)');
+  const pick = (st: BuocTrangThai) => { const x = b.find((s) => s.trang_thai === st); return x ? `${TRANG_THAI_MARK[st]} #${x.thu_tu} ${x.buoc}` : null; };
+  return pick('Kẹt') ?? pick('Đang') ?? pick('Chưa') ?? (b.length ? `${TRANG_THAI_MARK.Xong} hết bước` : '(chưa có bước)');
 }
 
 const SUMMARY = sql`
@@ -53,17 +53,17 @@ export async function maKeTiep(nhom: string): Promise<string> {
   return `${prefix}${String((r[0]?.n ?? 0) + 1).padStart(2, '0')}`;
 }
 
-export interface HangMucInput { nhom: string; ten: string; uu_tien?: number; trang_thai?: string; lan?: string; goc?: string; mo_ta?: string; ghi_chu?: string; ai?: string; so?: Record<string, string>; cong?: string; link?: string; tab?: string; project_id?: string | null; ma?: string; nguon?: string | null }
+export interface HangMucInput { nhom: string; ten: string; uu_tien?: number; trang_thai?: string; lan?: string; goc?: string; mo_ta?: string; ghi_chu?: string; ai?: string; so?: Record<string, string>; cong?: string; link?: string; project_id?: string | null; ma?: string; nguon?: string | null }
 
 export async function themHangMuc(i: HangMucInput, buoc: string[] = []): Promise<HangMucChiTiet> {
   const ma = i.ma?.trim() || (await maKeTiep(i.nhom));
   const r = rows<{ id: number }>(await db().execute(sql`
-    INSERT INTO tien_do_hang_muc (nhom, ma, ten, uu_tien, trang_thai, lan, goc, mo_ta, ghi_chu, ai, so, cong, link, tab, project_id, nguon)
+    INSERT INTO tien_do_hang_muc (nhom, ma, ten, uu_tien, trang_thai, lan, goc, mo_ta, ghi_chu, ai, so, cong, link, project_id, nguon)
     VALUES (${i.nhom}, ${ma}, ${i.ten}, ${i.uu_tien ?? 2}, ${i.trang_thai ?? 'Ý tưởng'}, ${i.lan ?? ''}, ${i.goc ?? ''}, ${i.mo_ta ?? ''}, ${i.ghi_chu ?? ''},
-            ${i.ai ?? ''}, ${JSON.stringify(i.so ?? {})}::jsonb, ${i.cong ?? ''}, ${i.link ?? ''}, ${i.tab ?? ''}, ${i.project_id ?? null}, ${i.nguon ?? null})
+            ${i.ai ?? ''}, ${JSON.stringify(i.so ?? {})}::jsonb, ${i.cong ?? ''}, ${i.link ?? ''}, ${i.project_id ?? null}, ${i.nguon ?? null})
     RETURNING id`));
   const id = r[0]?.id;
-  if (!id) throw new Error('insert y_tuong');
+  if (!id) throw new Error('insert tien_do_hang_muc');
   if (buoc.length) await datBuoc(id, buoc, 'append');
   await ghiNhatKy(id, null, `tạo hạng mục ${ma} · ${i.ten}`);
   return (await getHangMuc(id))!;
@@ -71,7 +71,7 @@ export async function themHangMuc(i: HangMucInput, buoc: string[] = []): Promise
 
 export async function suaHangMuc(id: number, patch: Partial<HangMucInput>): Promise<HangMucChiTiet | null> {
   const cols: Record<string, unknown> = {};
-  for (const k of ['nhom', 'ma', 'ten', 'uu_tien', 'trang_thai', 'lan', 'goc', 'mo_ta', 'ghi_chu', 'ai', 'cong', 'link', 'tab', 'project_id'] as const) if (patch[k] !== undefined) cols[k] = patch[k];
+  for (const k of ['nhom', 'ma', 'ten', 'uu_tien', 'trang_thai', 'lan', 'goc', 'mo_ta', 'ghi_chu', 'ai', 'cong', 'link', 'project_id'] as const) if (patch[k] !== undefined) cols[k] = patch[k];
   if (!Object.keys(cols).length && patch.so === undefined) return getHangMuc(id);
   const sets = Object.entries(cols).map(([k, v]) => sql`${sql.identifier(k)} = ${v as string | number | null}`);
   if (patch.so !== undefined) sets.push(sql`so = ${JSON.stringify(patch.so)}::jsonb`);
@@ -101,7 +101,7 @@ export async function datBuoc(id: number, buoc: string[], mode: 'append' | 'repl
   return rows<Buoc>(await d.execute(sql`SELECT id, hang_muc_id, thu_tu, buoc, trang_thai, to_char(ngay_xong, 'YYYY-MM-DD') AS ngay_xong, ket_qua, ghi_chu, updated_at FROM tien_do_buoc WHERE hang_muc_id = ${id} ORDER BY thu_tu`));
 }
 
-export async function suaBuoc(buocId: number, p: BuocPatch): Promise<{ buoc: Buoc; y_tuong: HangMucChiTiet } | null> {
+export async function suaBuoc(buocId: number, p: BuocPatch): Promise<{ buoc: Buoc; hang_muc: HangMucChiTiet } | null> {
   const d = db();
   const cu = rows<Buoc>(await d.execute(sql`SELECT * FROM tien_do_buoc WHERE id = ${buocId}`))[0];
   if (!cu) return null;
@@ -113,7 +113,7 @@ export async function suaBuoc(buocId: number, p: BuocPatch): Promise<{ buoc: Buo
   const parts = [p.trang_thai && p.trang_thai !== cu.trang_thai ? `#${cu.thu_tu} → ${tt}` : null, p.ket_qua !== undefined && p.ket_qua !== cu.ket_qua ? 'kết quả' : null, p.ghi_chu !== undefined && p.ghi_chu !== cu.ghi_chu ? 'ghi chú' : null].filter(Boolean);
   if (parts.length) await ghiNhatKy(cu.hang_muc_id, buocId, parts.join(' · '));
   const yt = (await getHangMuc(cu.hang_muc_id))!;
-  return { buoc: yt.buoc.find((b) => b.id === buocId)!, y_tuong: yt };
+  return { buoc: yt.buoc.find((b) => b.id === buocId)!, hang_muc: yt };
 }
 
 // Trạng thái hạng mục là ĐẶT TAY (anh chốt 20/09/2026 — bản đầu tự nhảy theo bước làm ExamWeight/Bra thành "Đang làm" hết,

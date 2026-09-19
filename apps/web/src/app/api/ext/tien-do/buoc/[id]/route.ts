@@ -1,4 +1,4 @@
-// PATCH /api/ext/tien-do/buoc/<buocId>  {trang_thai?, ket_qua?, ghi_chu?, buoc?} → trả bước + ý tưởng (đã tính lại trạng thái)
+// PATCH /api/ext/tien-do/buoc/<buocId>  {trang_thai?, ket_qua?, ghi_chu?, buoc?} → trả {buoc, hang_muc}
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../../../_auth';
 import { suaBuoc } from '@/lib/tien-do';

@@ -1,5 +1,5 @@
 // GET  /api/ext/tien-do?project=ios-app|nhom=iOS[&full=1]  — danh sách (full=1 kèm bước, để `tiendo export` chiếu ra sheet)
-// POST /api/ext/tien-do  {project_id, nhom, ten, uu_tien?, trang_thai?, lan?, goc?, mo_ta?, ghi_chu?, ai?, so?, cong?, link?, tab?, ma?, buoc?: string[]}
+// POST /api/ext/tien-do  {project_id, nhom, ten, uu_tien?, trang_thai?, lan?, goc?, mo_ta?, ghi_chu?, ai?, so?, cong?, link?, ma?, buoc?: string[]}
 import { NextResponse } from 'next/server';
 import { checkAuth } from '../_auth';
 import { listHangMuc, getHangMuc, themHangMuc } from '@/lib/tien-do';

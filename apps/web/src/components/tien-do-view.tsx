@@ -5,9 +5,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type CSSProperties } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
-import { Drawer, Panel, SimpleTable, TextField, TextAreaField, SelectField, EmptyState, ResourcePicker } from '@/components/ui';
+import { Drawer, Panel, SimpleTable, TextField, TextAreaField, SelectField, EmptyState, ResourcePicker, FilterChips, SearchInput, Pill, StickyBar } from '@/components/ui';
 import { tdGet, tdSuaBuoc, tdSuaTrangThai, tdSuaTruong, tdThemBuoc, tdThem } from '@/lib/actions/tien-do';
-import { HANG_MUC_TRANG_THAI, BUOC_TRANG_THAI, soText, type HangMuc, type HangMucChiTiet, type Buoc } from '@/lib/tien-do-shared';
+import { HANG_MUC_TRANG_THAI, BUOC_TRANG_THAI, TRANG_THAI_MARK, soText, type HangMuc, type HangMucChiTiet, type Buoc } from '@/lib/tien-do-shared';
 
 // Nền dòng theo trạng thái — cùng bảng màu với conditional formatting trên sheet, độ đậm cho nền tối.
 const TINT: Record<string, string> = {
@@ -15,7 +15,7 @@ const TINT: Record<string, string> = {
   'Tạm dừng': 'rgba(255,190,80,.12)', 'Chờ': 'rgba(255,190,80,.08)', 'Bỏ': 'rgba(255,255,255,.04)', 'Sẵn sàng': 'rgba(120,220,120,.05)',
 };
 const tint = (s: string): CSSProperties | undefined => (TINT[s] ? { background: TINT[s] } : undefined);
-const MARK: Record<string, string> = { 'Kẹt': '⛔', 'Xong': '✓', 'Đang làm': '▶', 'Đang': '▶', 'Tạm dừng': '⏸', 'Chờ': '⏳', 'Bỏ': '×', 'Chưa': '○', 'Ý tưởng': '○', 'Sẵn sàng': '◔' };
+const MARK: Record<string, string> = TRANG_THAI_MARK;
 const mono: CSSProperties = { fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', fontSize: 11 };
 const linkBtn: CSSProperties = { background: 'none', border: 0, padding: 0, color: 'var(--fg-1)', cursor: 'pointer', font: 'inherit', textAlign: 'left' };
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n) + '…' : s);
@@ -87,26 +87,24 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
   const nAll = (pid: string) => everything.filter((i) => (i.project_id ?? '—') === pid).length;
   // dự án CHƯA có hạng mục: không thành chip (44 chip = rác) mà nằm trong picker "＋ dự án khác…" → chọn là mở khối trống để thêm
   const others = useMemo(() => Object.keys(projectNames).filter((pid) => !projs.includes(pid)).sort((a, b) => (projectNames[a] ?? a).localeCompare(projectNames[b] ?? b)), [projectNames, projs]);
-  const chipStyle = (on: boolean): CSSProperties => ({ background: on ? 'var(--accent)' : 'transparent', color: on ? 'var(--bg-0)' : 'var(--fg-3)', border: '1px solid ' + (on ? 'var(--accent)' : 'var(--line)'), borderRadius: 999, padding: '2px 9px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' });
 
   return (
     <div data-comp="tien-do.View">
-      {/* MỘT dòng bộ lọc: project (toàn cục) · trạng thái · tìm — không chiếm chỗ của bảng */}
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}
+      {/* MỘT dòng bộ lọc: dự án (toàn cục) · trạng thái · tìm — primitive nhà (FilterChips/SearchInput), không chip tự chế */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}
         title="Xong phải có kết quả · Kẹt phải ghi chờ ai/chờ gì · Đang chỉ khi đang làm · ▸ mở bước">
         {groupBy === 'project' && projs.length > 1 && (<>
-          <button type="button" style={chipStyle(!proj)} onClick={() => setProj(undefined)}>Mọi dự án {all.length}</button>
-          {projs.map((pid) => <button key={pid} type="button" style={chipStyle(proj === pid)} onClick={() => setProj(proj === pid ? undefined : pid)}>{projectNames[pid] ?? pid} {nAll(pid)}</button>)}
-          {proj && !projs.includes(proj) && <button type="button" style={chipStyle(true)} onClick={() => setProj(undefined)}>{projectNames[proj] ?? proj} 0</button>}
-          {others.length > 0 && <button type="button" style={chipStyle(false)} onClick={() => setPickOpen(true)} title={`${others.length} dự án chưa có hạng mục — chọn để bắt đầu sổ tiến độ`}>＋ dự án khác…</button>}
+          <FilterChips value={proj ?? 'all'} onChange={(v) => setProj(v === 'all' ? undefined : v)}
+            counts={Object.fromEntries([['all', everything.length], ...projs.map((pid) => [pid, nAll(pid)]), ...(proj && !projs.includes(proj) ? [[proj, 0]] : [])])}
+            options={[{ value: 'all', label: 'Mọi dự án' }, ...projs.map((pid) => ({ value: pid, label: projectNames[pid] ?? pid })),
+              ...(proj && !projs.includes(proj) ? [{ value: proj, label: projectNames[proj] ?? proj }] : [])]} />
+          {others.length > 0 && <Pill label="＋ dự án khác…" size="xs" color="var(--fg-3)" onClick={() => setPickOpen(true)} />}
           <span style={{ color: 'var(--line)' }}>|</span>
         </>)}
-        <button type="button" style={chipStyle(tt === 'all')} onClick={() => setTt('all')}>Tất cả {items.length}</button>
-        {HANG_MUC_TRANG_THAI.filter((s) => count((i) => i.trang_thai === s)).map((s) => (
-          <button key={s} type="button" style={chipStyle(tt === s)} onClick={() => setTt(tt === s ? 'all' : s)}>{MARK[s] ?? ''} {s} {count((i) => i.trang_thai === s)}</button>
-        ))}
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="tìm…" aria-label="Tìm hạng mục"
-          style={{ marginLeft: 'auto', width: 160, background: 'transparent', color: 'var(--fg-1)', border: '1px solid var(--line)', borderRadius: 999, padding: '3px 10px', font: 'inherit', fontSize: 11 }} />
+        <FilterChips value={tt} onChange={setTt}
+          counts={Object.fromEntries([['all', items.length], ...HANG_MUC_TRANG_THAI.map((s) => [s, count((i) => i.trang_thai === s)])])}
+          options={[{ value: 'all', label: 'Tất cả' }, ...HANG_MUC_TRANG_THAI.filter((s) => count((i) => i.trang_thai === s)).map((s) => ({ value: s, label: `${MARK[s] ?? ''} ${s}`.trim() }))]} />
+        <div style={{ marginLeft: 'auto' }}><SearchInput value={q} onChange={setQ} placeholder="tìm…" width={160} /></div>
       </div>
 
       {items.length === 0 && (
@@ -133,10 +131,10 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
         return (
           <section key={g} style={{ marginBottom: 18 }}>
             {/* Tiêu đề nhóm dính ngay dưới thanh công cụ của trang: cuộn tới đâu vẫn biết đang ở dự án nào */}
-            <div style={{ position: 'sticky', top: stickyTop, zIndex: 5, background: 'var(--bg-0)', padding: '8px 0 6px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'baseline', gap: 10 }}>
+            <StickyBar top={stickyTop} zIndex={5} style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
               <span style={{ fontWeight: 700, color: 'var(--fg-1)' }}>{groupTitle(g)}</span>
               <span style={mono}>{sub}</span>
-            </div>
+            </StickyBar>
             {rows.length === 0 ? <EmptyState icon="📈" title="Không dòng nào khớp bộ lọc" compact /> : (
               <SimpleTable rows={rows} getRowKey={(r) => String(r.id)} rowStyle={(r) => tint(r.trang_thai)}
                 renderExpanded={(r) => (open.has(r.id) ? <BuocTable y={detail[r.id]} onPatch={suaBuoc} onAdd={(t) => themBuoc(r.id, t)} /> : null)}
@@ -168,9 +166,8 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
 function ThemHangMuc({ onAdd }: { onAdd: (ten: string) => void }) {
   const [v, setV] = useState('');
   return (
-    <input value={v} onChange={(e) => setV(e.target.value)} placeholder="＋ hạng mục mới — gõ tên, Enter" aria-label="Thêm hạng mục"
-      onKeyDown={(e) => { if (e.key === 'Enter' && v.trim()) { onAdd(v.trim()); setV(''); } }}
-      style={{ width: '100%', marginTop: 6, background: 'transparent', color: 'var(--fg-1)', border: '1px dashed var(--line)', borderRadius: 4, padding: '4px 8px', font: 'inherit', fontSize: 12 }} />
+    <TextField size="sm" value={v} onChange={(e) => setV(e.target.value)} placeholder="＋ hạng mục mới — gõ tên, Enter" aria-label="Thêm hạng mục"
+      onKeyDown={(e) => { if (e.key === 'Enter' && v.trim()) { onAdd(v.trim()); setV(''); } }} style={{ marginTop: 6, borderStyle: 'dashed' }} />
   );
 }
 
@@ -203,9 +200,8 @@ function BuocTable({ y, onPatch, onAdd }: { y: HangMucChiTiet | undefined; onPat
       )}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
         <span style={mono}>#{y.buoc.length + 1}</span>
-        <input value={moi} onChange={(e) => setMoi(e.target.value)} placeholder="Thêm bước — việc cụ thể, đủ để chat khác làm tiếp; Enter để lưu"
-          onKeyDown={(e) => { if (e.key === 'Enter' && moi.trim()) { onAdd(moi.trim()); setMoi(''); } }}
-          style={{ flex: 1, background: 'transparent', color: 'var(--fg-1)', border: '1px solid var(--line)', borderRadius: 4, padding: '4px 8px', font: 'inherit', fontSize: 12 }} />
+        <div style={{ flex: 1 }}><TextField size="sm" value={moi} onChange={(e) => setMoi(e.target.value)} placeholder="Thêm bước — việc cụ thể, đủ để chat khác làm tiếp; Enter để lưu"
+          onKeyDown={(e) => { if (e.key === 'Enter' && moi.trim()) { onAdd(moi.trim()); setMoi(''); } }} /></div>
       </div>
     </div>
   );

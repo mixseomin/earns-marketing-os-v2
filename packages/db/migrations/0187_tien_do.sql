@@ -49,7 +49,6 @@ SELECT p.name, 'P' || p.id || '-' || lpad((row_number() OVER (PARTITION BY g.pla
        CASE p.slug WHEN 'creator-economy-newsletter' THEN 'creator-econ-news' WHEN 'hyperjournal-x-outreach' THEN 'hyperjournal' WHEN 'trafficfactory-native-pha-1' THEN 'adfond' ELSE NULL END,
        'plan_goal:' || g.id, g.created_at
 FROM plan_goals g JOIN plans p ON p.id = g.plan_id
-WHERE to_regclass('plan_goals') IS NOT NULL
 ON CONFLICT (nguon) DO NOTHING;
 INSERT INTO tien_do_buoc (hang_muc_id, thu_tu, buoc, trang_thai, ngay_xong, ket_qua, ghi_chu, updated_at)
 SELECT h.id, row_number() OVER (PARTITION BY s.goal_id ORDER BY s.order_index, s.id),
@@ -59,5 +58,4 @@ SELECT h.id, row_number() OVER (PARTITION BY s.goal_id ORDER BY s.order_index, s
        COALESCE(s.evidence_url, ''), trim(both ' · ' from COALESCE(s.notes, '') || CASE WHEN s.due_date IS NOT NULL THEN ' · hạn ' || s.due_date ELSE '' END),
        s.updated_at
 FROM plan_steps s JOIN tien_do_hang_muc h ON h.nguon = 'plan_goal:' || s.goal_id
-WHERE to_regclass('plan_steps') IS NOT NULL
-  AND NOT EXISTS (SELECT 1 FROM tien_do_buoc b WHERE b.hang_muc_id = h.id);
+WHERE NOT EXISTS (SELECT 1 FROM tien_do_buoc b WHERE b.hang_muc_id = h.id);

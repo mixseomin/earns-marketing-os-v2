@@ -4,11 +4,15 @@ export const HANG_MUC_TRANG_THAI = ['Ý tưởng', 'Sẵn sàng', 'Chờ', 'Đan
 export const BUOC_TRANG_THAI = ['Chưa', 'Đang', 'Xong', 'Kẹt', 'Bỏ'] as const;
 export type HangMucTrangThai = (typeof HANG_MUC_TRANG_THAI)[number];
 export type BuocTrangThai = (typeof BUOC_TRANG_THAI)[number];
+/** Dấu đứng trước trạng thái — MỘT nguồn cho server (bước hiện tại), UI và CLI phải khớp. */
+export const TRANG_THAI_MARK: Record<HangMucTrangThai | BuocTrangThai, string> = {
+  'Ý tưởng': '○', 'Sẵn sàng': '◔', 'Chờ': '⏳', 'Đang làm': '▶', 'Kẹt': '⛔', 'Tạm dừng': '⏸', 'Xong': '✓', 'Bỏ': '×', 'Chưa': '○', 'Đang': '▶',
+};
 
 export interface Buoc { id: number; hang_muc_id: number; thu_tu: number; buoc: string; trang_thai: BuocTrangThai; ngay_xong: string | null; ket_qua: string; ghi_chu: string; updated_at: string }
 export interface HangMuc {
   id: number; project_id: string | null; nhom: string; ma: string; ten: string; uu_tien: number; trang_thai: HangMucTrangThai; lan: string; goc: string;
-  mo_ta: string; ghi_chu: string; ai: string; so: Record<string, string>; cong: string; link: string; tab: string; nguon: string | null;
+  mo_ta: string; ghi_chu: string; ai: string; so: Record<string, string>; cong: string; link: string; nguon: string | null;
   created_at: string; updated_at: string;
   // tính từ bước
   tong: number; xong: number; buoc_hien_tai: string; cap_nhat: string | null;

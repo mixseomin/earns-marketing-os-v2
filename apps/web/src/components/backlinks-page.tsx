@@ -24,7 +24,7 @@ import { AccountFormModal } from '@/components/accounts-vault';
 import { getAccountForEditAny } from '@/lib/actions/accounts';
 import type { CalPiece } from '@/lib/data';
 import { CHANNELS, FORMATS, STYLES, SERIES, ANGLE_GROUPS, ANGLES, MIX_TARGET, LINK_SHARE_MAX, WEEKLY_CADENCE, angleOf, angleLabel, tagVal, pieceGaps, pieceRisks, shouldWarnGaps, schedMark, formatLabel, justPosted, placeName } from '@/lib/content-channels';   // tagVal/tagIds: xem lược đồ tag ở đó
-import { StatusSegmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, ChannelFavicon, FormatIcon, DataTable, type DataColumn, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
+import { StatusSegmented, MonthCalendar, MiniMonth, ViewToggle, LIST_CALENDAR_VIEWS, Drawer, FilterChips, SearchInput, usePaged, Pager, ChannelFavicon, FormatIcon, DataTable, StickyBar, type DataColumn, type CalItem, type CalMode, type LegendEntry } from '@/components/ui';
 import { TienDoView } from '@/components/tien-do-view';
 import type { HangMuc } from '@/lib/tien-do-shared';
 import { GuardedButton } from '@/components/ui/guarded-button';
@@ -2476,7 +2476,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
             <div key={d} id={`feed-${d}`} ref={(el) => { feedRefs.current[d] = el; }} style={{ position: 'relative', marginBottom: 26, scrollMarginTop: barH + 8 }}>
               {/* Mốc ngày phải ĐẬP VÀO MẮT lúc cuộn: một thanh đặc, viền trái theo màu, không phải một
                   dòng chữ mảnh trên nền cùng màu (cuộn nhanh là trôi qua không kịp thấy ranh giới). */}
-              <div style={{ position: 'sticky', top: barH, zIndex: 20, background: 'var(--bg-0)', padding: '10px 0 8px' }}>
+              <StickyBar top={barH} border={false} style={{ padding: '10px 0 8px' }}>
                 <div style={{ display: 'flex', gap: 9, alignItems: 'center', background: 'var(--bg-2)',
                   border: '1px solid var(--line)', borderLeft: `3px solid ${d === today ? 'var(--neon-cyan)' : 'var(--accent)'}`,
                   borderRadius: 8, padding: '7px 12px' }}>
@@ -2486,7 +2486,7 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
                   <span style={{ color: 'var(--fg-4)', fontSize: 11.5, fontFamily: 'var(--font-mono)' }}>{d}</span>
                   <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--fg-3)' }}>{ps.length} bài</span>
                 </div>
-              </div>
+              </StickyBar>
               {ps.map((p) => {
                 const ang = angleOf(p.tags), fmt = FORMATS.find((f) => f.id === tagVal(p.tags, 'format'));
                 return (

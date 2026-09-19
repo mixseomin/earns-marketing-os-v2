@@ -5,10 +5,9 @@
 // /p/<id>/phu chỉ còn redirect); trang chủ cầm tab + số tổng + project, đây chỉ vẽ MỘT phần (`phan`).
 // Sửa gì cũng qua Drawer (quy ước UI nhà), số liệu đổ vào từ /api/phu/ingest + /api/phu/postback, chỉ đọc bảng phu_*.
 
-import Link from 'next/link';
 import { useEffect, useState, useTransition } from 'react';
 import { Drawer, EmptyState, Pager, Panel, Pill, SearchInput, SelectField, TextAreaField, TextField, usePaged } from '@/components/ui';
-import type { PhuCamp, PhuData, PhuNguon, PhuNguonCamp, PhuPlatform, PhuZone } from '@/lib/phu-shared';
+import type { PhuCamp, PhuData, PhuLuat, PhuNguon, PhuNguonCamp, PhuPlatform, PhuZone } from '@/lib/phu-shared';
 import type { PhuCampNhatKy } from '@/lib/phu';
 import { PHU_NGUON_TRANG_THAI, PHU_PHAN_XET, PHU_TRANG_THAI, phanXet } from '@/lib/phu-shared';
 const KHAC = '(khác)';
@@ -53,6 +52,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
   const [nhapChi, setNhapChi] = useState(false);
   const [soiCamp, setSoiCamp] = useState<PhuCamp | null>(null);
   const [nhatKy, setNhatKy] = useState<PhuCamp | null>(null);
+  const [xemLuat, setXemLuat] = useState<PhuCamp | null>(null);   // luật đang chịu — drawer TẠI CHỖ, không sang tab Luật (anh 19/09: mất tập trung)
   const d = data;
   const THU_TU: Record<string, number> = { chay: 0, tam_dung: 1, nhap: 2, ket_thuc: 3 };
   const campHien = [...d.camp].sort((a, b) => (THU_TU[a.trangThai] ?? 9) - (THU_TU[b.trangThai] ?? 9)).filter((c) => hienKetThuc || c.trangThai !== 'ket_thuc');
@@ -106,7 +106,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                     <td style={cell} title={c.luat ? `luật đang chịu (${c.luat.khop.length}): ${c.luat.khop.map((l) => l.ten).join(' · ')}` : undefined}>
                       <Pill color={PHU_PHAN_XET[px.ma]?.color ?? 'var(--fg-3)'} label={PHU_PHAN_XET[px.ma]?.label ?? px.ma} />
                       <div style={{ color: 'var(--fg-3)', fontSize: 10, marginTop: 3 }}>{px.lyDo}</div>
-                      {c.trangThai === 'chay' && c.luat && <Link href="/?tab=luat" onClick={(e) => e.stopPropagation()} style={{ fontSize: 10, color: 'var(--fg-3)', textDecoration: 'none' }}>{c.luat.khop.length} luật ▸</Link>}
+                      {c.trangThai === 'chay' && c.luat && <button style={{ ...btn, fontSize: 10, padding: '0 6px', marginTop: 2 }} onClick={(e) => { e.stopPropagation(); setXemLuat(c); }} title="luật đang chịu + luật đã chạm — xem tại chỗ">{c.luat.khop.length} luật ▸</button>}
                       {Object.keys(t).length ? null : <div style={{ color: 'var(--warn)', fontSize: 10 }}>chưa đặt tham số camp — dùng mặc định kệ pop</div>}
                     </td>
                     <td style={{ ...cell, whiteSpace: 'nowrap' }} className={mh}><button style={btn} onClick={(e) => { e.stopPropagation(); setNhatKy(c); }} title="Số theo ngày + mỗi lần đổi cài đặt (trước → sau)">nhật ký ▸</button> <button style={btn} onClick={(e) => { e.stopPropagation(); setSoiCamp(c); }} title="Xem theo srcid/zone để blacklist">srcid ▸</button></td>
@@ -244,6 +244,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
       {suaCamp && <SuaCamp c={suaCamp === 'moi' ? null : suaCamp} nguon={d.nguon} projectId={projectId} onClose={() => setSuaCamp(null)} />}
       {nhapChi && <NhapChi camp={d.camp} projectId={projectId} onClose={() => setNhapChi(false)} />}
       {soiCamp && <SoiNguon c={soiCamp} projectId={projectId} days={d.days} onClose={() => setSoiCamp(null)} />}
+      {xemLuat && xemLuat.luat && <LuatCampDrawer camp={xemLuat} luat={xemLuat.luat} onClose={() => setXemLuat(null)} />}
       {nhatKy && <NhatKyCamp c={nhatKy} projectId={projectId} onClose={() => setNhatKy(null)} />}
     </div>
   );
@@ -549,5 +550,52 @@ function NhapChi({ camp, projectId, onClose }: { camp: PhuCamp[]; projectId: str
         <TextField label="Impressions" value={f.impressions} onChange={set('impressions')} mono />
       </div>
     </Khung>
+  );
+}
+
+/* Luật đang chịu của MỘT camp — đọc tại chỗ: luật đã chạm (số thật đối chiếu ngưỡng) rồi toàn bộ luật khớp. Chữ do adfond
+ * soạn (nhãn có dấu, tham số đã thay số); sửa luật vẫn ở tab Luật — đây chỉ là cửa nhìn. */
+function LuatCampDrawer({ camp, luat, onClose }: { camp: PhuCamp; luat: PhuLuat; onClose: () => void }) {
+  const px = PHU_PHAN_XET[luat.ma];
+  const nho: React.CSSProperties = { fontSize: 11, color: 'var(--fg-3)' };
+  return (
+    <Drawer onClose={onClose} width={720}>
+      <h3 style={{ margin: '0 0 2px', fontSize: 15 }}>{camp.ten}</h3>
+      <div style={{ ...nho, marginBottom: 10, display: 'flex', gap: 8, alignItems: 'center' }}><Pill color={px?.color ?? 'var(--fg-3)'} label={px?.label ?? luat.ma} /> <span>{luat.lyDo}</span></div>
+      <div style={{ ...nho, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Đã chạm ({luat.cham.length})</div>
+      {luat.cham.length === 0 ? <div style={{ ...nho, marginBottom: 12 }}>chưa luật nào chạm — số hiện tại chưa vượt ngưỡng nào</div> : (
+        <div style={{ display: 'grid', gap: 6, marginBottom: 12 }}>
+          {luat.cham.map((k) => (
+            <div key={k.ma} style={{ border: '1px solid var(--line)', borderRadius: 6, padding: '6px 10px' }}>
+              <div style={{ fontSize: 12 }}><b>{k.ten}</b> <span style={nho}>· {k.ma}</span> → <b>{k.ten_lam}{k.muc != null ? ` ×${k.muc}` : ''}</b> <Pill color={k.gac === 'nguoi' ? 'var(--warn)' : 'var(--fg-3)'} label={k.gac === 'nguoi' ? 'người quyết' : 'máy tự làm'} /></div>
+              <div style={{ ...nho, marginTop: 2 }}>{k.doc.join(' · ')}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ ...nho, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Đang chịu ({luat.khop.length}) — ngưỡng đã thay tham số của camp này</div>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <thead><tr><th style={head}>Luật</th><th style={head}>Phạm vi</th><th style={head}>Khi nào</th><th style={head}>Điều kiện</th><th style={head}>Làm</th><th style={head}>Gác</th><th style={head}>TS</th></tr></thead>
+          <tbody>
+            {luat.khop.map((l) => {
+              const cham = luat.cham.some((k) => k.ma === l.ma);
+              return (
+                <tr key={l.ma} style={{ background: cham ? 'var(--bg-2)' : undefined }} title={`${l.ma} · ${l.vi_sao}`}>
+                  <td style={cell}><b>{l.ten}</b><div style={{ ...nho, fontSize: 10 }}>{l.vi_sao}</div></td>
+                  <td style={cell}>{l.pham_vi}</td>
+                  <td style={cell}>{l.khi_nao}</td>
+                  <td style={cell}>{l.dieu_kien}</td>
+                  <td style={cell}>{l.lam}</td>
+                  <td style={cell}><Pill color={l.gac === 'nguoi' ? 'var(--warn)' : 'var(--fg-3)'} label={l.gac_ten} /></td>
+                  <td style={{ ...cell, ...mono }}>{l.trong_so}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ ...nho, marginTop: 10 }}>Sửa luật / tham số: tab Luật. Tiêu chí của camp này (bấm dòng camp) = tham số tầng camp đè lên kệ pop.</div>
+    </Drawer>
   );
 }

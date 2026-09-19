@@ -11,7 +11,7 @@ import { HANG_MUC_TRANG_THAI, BUOC_TRANG_THAI, TRANG_THAI_MARK, soText, type Han
 
 // Nền dòng theo trạng thái — cùng bảng màu với conditional formatting trên sheet, độ đậm cho nền tối.
 const TINT: Record<string, string> = {
-  'Kẹt': 'rgba(255,107,107,.14)', 'Xong': 'rgba(120,220,120,.11)', 'Đang làm': 'rgba(90,180,255,.12)', 'Đang': 'rgba(90,180,255,.12)',
+  'Kẹt': 'rgba(255,107,107,.14)', 'Đợi số': 'rgba(230,180,80,.13)', 'Xong': 'rgba(120,220,120,.11)', 'Đang làm': 'rgba(90,180,255,.12)', 'Đang': 'rgba(90,180,255,.12)',
   'Tạm dừng': 'rgba(255,190,80,.12)', 'Chờ': 'rgba(255,190,80,.08)', 'Bỏ': 'rgba(255,255,255,.04)', 'Sẵn sàng': 'rgba(120,220,120,.05)',
 };
 const tint = (s: string): CSSProperties | undefined => (TINT[s] ? { background: TINT[s] } : undefined);
@@ -119,7 +119,7 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
     <div data-comp="tien-do.View">
       {/* MỘT dòng bộ lọc: dự án (toàn cục) · trạng thái · tìm — primitive nhà (FilterChips/SearchInput), không chip tự chế */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}
-        title="Xong phải có kết quả · Kẹt phải ghi chờ ai/chờ gì · Đang chỉ khi đang làm · ▸ mở bước">
+        title="Xong phải có kết quả · Kẹt phải ghi chờ ai/chờ gì · Đợi số = đang chạy, chỉ chờ dữ liệu · Đang chỉ khi đang làm · ▸ mở bước">
         {groupBy === 'project' && projs.length > 1 && (<>
           <FilterChips value={proj ?? 'all'} onChange={(v) => setProj(v === 'all' ? undefined : v)} urlKey="tdp"
             counts={Object.fromEntries([['all', everything.length], ...projs.map((pid) => [pid, nAll(pid)]), ...(proj && !projs.includes(proj) ? [[proj, 0]] : [])])}
@@ -211,7 +211,8 @@ function BuocTable({ y, onPatch, onAdd }: { y: HangMucChiTiet | undefined; onPat
   const save = (b: Buoc, p: { trang_thai?: string; ket_qua?: string; ghi_chu?: string }) => {
     const next = { trang_thai: p.trang_thai ?? b.trang_thai, ket_qua: p.ket_qua ?? b.ket_qua, ghi_chu: p.ghi_chu ?? b.ghi_chu };
     const e = next.trang_thai === 'Xong' && !next.ket_qua.trim() ? 'Xong phải có kết quả — điền ô Kết quả trước'
-      : next.trang_thai === 'Kẹt' && !next.ghi_chu.trim() ? 'Kẹt phải ghi chờ ai / chờ gì — điền ô Ghi chú trước' : '';
+      : next.trang_thai === 'Kẹt' && !next.ghi_chu.trim() ? 'Kẹt phải ghi chờ ai / chờ gì — điền ô Ghi chú trước'
+      : next.trang_thai === 'Đợi số' && !next.ghi_chu.trim() ? 'Đợi số phải ghi CHỜ SỐ NÀO, bao lâu — điền ô Ghi chú trước' : '';
     setErr((x) => ({ ...x, [b.id]: e }));
     if (!e) onPatch(b.id, p);
   };
@@ -222,12 +223,12 @@ function BuocTable({ y, onPatch, onAdd }: { y: HangMucChiTiet | undefined; onPat
           { key: 'n', header: '#', width: 28, cell: (b) => <span style={mono}>{b.thu_tu}</span> },
           { key: 'b', header: 'Bước', cell: (b) => <div>{b.buoc}{err[b.id] && <div style={{ color: 'var(--neon-red, #ff6b6b)', fontSize: 11, marginTop: 2 }}>{err[b.id]}</div>}</div> },
           { key: 'tt', header: 'Trạng thái', width: 96, cell: (b) => (
-            <SelectField size="sm" value={b.trang_thai} onChange={(e) => save(b, { trang_thai: e.target.value })} title="Chưa · Đang · Xong · Kẹt · Bỏ">
+            <SelectField size="sm" value={b.trang_thai} onChange={(e) => save(b, { trang_thai: e.target.value })} title="Chưa · Đang · Đợi số · Xong · Kẹt · Bỏ">
               {BUOC_TRANG_THAI.map((s) => <option key={s} value={s}>{MARK[s]} {s}</option>)}
             </SelectField>) },
           { key: 'd', header: 'Ngày', width: 78, cell: (b) => <span style={mono}>{b.ngay_xong ?? ''}</span> },
           { key: 'kq', header: 'Kết quả / link', width: 260, cell: (b) => <Inline value={b.ket_qua} placeholder="link / số liệu" onSave={(v) => save(b, { ket_qua: v })} /> },
-          { key: 'gc', header: 'Ghi chú (Kẹt: chờ ai / chờ gì)', width: 240, cell: (b) => <Inline value={b.ghi_chu} placeholder={b.trang_thai === 'Kẹt' ? 'chờ ai / chờ gì' : 'ghi chú'} onSave={(v) => save(b, { ghi_chu: v })} /> },
+          { key: 'gc', header: 'Ghi chú (Kẹt: chờ ai/gì · Đợi số: chờ số nào)', width: 240, cell: (b) => <Inline value={b.ghi_chu} placeholder={b.trang_thai === 'Kẹt' ? 'chờ ai / chờ gì' : b.trang_thai === 'Đợi số' ? 'chờ số nào, bao lâu' : 'ghi chú'} onSave={(v) => save(b, { ghi_chu: v })} /> },
         ]} />
       )}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>

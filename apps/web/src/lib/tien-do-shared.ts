@@ -1,12 +1,16 @@
 // Hằng + kiểu dùng chung client/server cho sổ TIẾN ĐỘ (hạng mục → bước). KHÔNG import DB — client component cũng import file này.
 // Trạng thái hạng mục đặt tay (như cột Trạng thái trên sheet). Chờ = chưa mở, đợi cổng của hạng mục khác (Bra H05-H07).
 export const HANG_MUC_TRANG_THAI = ['Ý tưởng', 'Sẵn sàng', 'Chờ', 'Đang làm', 'Kẹt', 'Tạm dừng', 'Xong', 'Bỏ'] as const;
-export const BUOC_TRANG_THAI = ['Chưa', 'Đang', 'Xong', 'Kẹt', 'Bỏ'] as const;
+// 'Đợi số' = bước ĐANG CHẠY nhưng không ai gỡ được, chỉ chờ dữ liệu đủ (camp gom click, chờ
+// Google index, A/B test gom mẫu). Tách khỏi 'Kẹt' vì Kẹt nghĩa là CHỜ AI ĐÓ gỡ — gộp hai loại
+// chờ này vào một chữ thì `tiendo ket` (danh sách việc cần gỡ) đầy thứ không gỡ được.
+// Anh chốt 20/09/2026 sau khi bước "Bật camp + theo 14 ngày" ghi Kẹt mà chẳng ai kẹt cả.
+export const BUOC_TRANG_THAI = ['Chưa', 'Đang', 'Đợi số', 'Xong', 'Kẹt', 'Bỏ'] as const;
 export type HangMucTrangThai = (typeof HANG_MUC_TRANG_THAI)[number];
 export type BuocTrangThai = (typeof BUOC_TRANG_THAI)[number];
 /** Dấu đứng trước trạng thái — MỘT nguồn cho server (bước hiện tại), UI và CLI phải khớp. */
 export const TRANG_THAI_MARK: Record<HangMucTrangThai | BuocTrangThai, string> = {
-  'Ý tưởng': '○', 'Sẵn sàng': '◔', 'Chờ': '⏳', 'Đang làm': '▶', 'Kẹt': '⛔', 'Tạm dừng': '⏸', 'Xong': '✓', 'Bỏ': '×', 'Chưa': '○', 'Đang': '▶',
+  'Ý tưởng': '○', 'Sẵn sàng': '◔', 'Chờ': '⏳', 'Đang làm': '▶', 'Kẹt': '⛔', 'Tạm dừng': '⏸', 'Xong': '✓', 'Bỏ': '×', 'Chưa': '○', 'Đang': '▶', 'Đợi số': '⏱',
 };
 
 export interface Buoc { id: number; hang_muc_id: number; thu_tu: number; buoc: string; trang_thai: BuocTrangThai; ngay_xong: string | null; ket_qua: string; ghi_chu: string; updated_at: string }

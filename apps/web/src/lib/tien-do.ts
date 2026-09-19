@@ -12,7 +12,7 @@ function db() { const d = getDb(); if (!d) throw new Error('db'); return d; }
 /** "⛔ #3 …" (kẹt) → "▶ #n" (đang) → "○ #n" (chưa) → "✓ hết bước" / "(chưa có bước)". Dấu lấy từ TRANG_THAI_MARK (một nguồn với UI). */
 export function buocHienTai(b: Pick<Buoc, 'thu_tu' | 'buoc' | 'trang_thai'>[]): string {
   const pick = (st: BuocTrangThai) => { const x = b.find((s) => s.trang_thai === st); return x ? `${TRANG_THAI_MARK[st]} #${x.thu_tu} ${x.buoc}` : null; };
-  return pick('Kẹt') ?? pick('Đang') ?? pick('Chưa') ?? (b.length ? `${TRANG_THAI_MARK.Xong} hết bước` : '(chưa có bước)');
+  return pick('Kẹt') ?? pick('Đang') ?? pick('Đợi số') ?? pick('Chưa') ?? (b.length ? `${TRANG_THAI_MARK.Xong} hết bước` : '(chưa có bước)');
 }
 
 const SUMMARY = sql`

@@ -12,6 +12,7 @@
 // Tabs chỉ báo mảng key mới.
 
 import { useState, type ReactNode } from 'react';
+import { moTabNeuModifier } from '@/lib/url-mo-tab';
 
 export interface TabItem<T extends string> {
   key: T;
@@ -20,12 +21,16 @@ export interface TabItem<T extends string> {
   title?: string;
 }
 
-export function Tabs<T extends string>({ items, value, onChange, right, onReorder }: {
+export function Tabs<T extends string>({ items, value, onChange, right, onReorder, hrefFor }: {
   items: TabItem<T>[];
   value: T;
   onChange: (v: T) => void;
   right?: ReactNode;      // nội dung ghim mép phải cùng hàng (nút, đếm…)
   onReorder?: (keys: T[]) => void;
+  // Tab NÀO map ra URL (?tab=) thì khai hàm này → ⌘/Ctrl-click (hoặc chuột giữa) MỞ TAB MỚI
+  // như link bình thường, thay vì đổi tab tại chỗ. Optional: sub-tab dùng state cục bộ (không
+  // có URL) bỏ trống là giữ nguyên hành vi cũ. Cùng khuôn Segmented/ViewToggle (url-mo-tab.ts).
+  hrefFor?: (key: T) => string | null | undefined;
 }) {
   const [keo, setKeo] = useState<T | null>(null);
   const tha = (dich: T) => {
@@ -42,7 +47,8 @@ export function Tabs<T extends string>({ items, value, onChange, right, onReorde
         const active = t.key === value;
         return (
           <button key={t.key} type="button" title={t.title}
-                  onClick={() => onChange(t.key)}
+                  onClick={(e) => { if (hrefFor && moTabNeuModifier(e, hrefFor(t.key))) return; onChange(t.key); }}
+                  onAuxClick={hrefFor ? (e) => { moTabNeuModifier(e, hrefFor(t.key)); } : undefined}
                   draggable={!!onReorder}
                   onDragStart={onReorder ? () => setKeo(t.key) : undefined}
                   onDragOver={onReorder ? (e) => e.preventDefault() : undefined}

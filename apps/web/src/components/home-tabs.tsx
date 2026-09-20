@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { Tabs, type TabItem } from '@/components/ui';
 import { useUrlParam } from '@/lib/use-url-param';
+import { urlVoiParam } from '@/lib/url-mo-tab';
 import { HOME_TAB_MAC_DINH, HOME_TABS_COOKIE, type HomeTab } from '@/lib/home-tabs';
 
 export function HomeTabs({ items: goc, right }: { items: TabItem<HomeTab>[]; right?: React.ReactNode }) {
@@ -16,5 +17,6 @@ export function HomeTabs({ items: goc, right }: { items: TabItem<HomeTab>[]; rig
     setItems(keys.map((k) => items.find((t) => t.key === k)!));
     document.cookie = `${HOME_TABS_COOKIE}=${keys.join('.')}; path=/; max-age=${365 * 86400}; samesite=lax`;
   };
-  return <Tabs items={items} value={tab as HomeTab} onChange={setTab} right={right} onReorder={sap} />;
+  return <Tabs items={items} value={tab as HomeTab} onChange={setTab} right={right} onReorder={sap}
+               hrefFor={(k) => urlVoiParam('tab', k)} />;
 }

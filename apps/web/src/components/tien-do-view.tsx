@@ -10,9 +10,10 @@ import { tdGet, tdList, tdSuaBuoc, tdSuaTrangThai, tdSuaTruong, tdThemBuoc, tdTh
 import { HANG_MUC_DANG_CHAY, HANG_MUC_TRANG_THAI, BUOC_TRANG_THAI, TRANG_THAI_MARK, soText, type HangMuc, type HangMucChiTiet, type Buoc } from '@/lib/tien-do-shared';
 
 // Nền dòng theo trạng thái — cùng bảng màu với conditional formatting trên sheet, độ đậm cho nền tối.
+// Đang làm = XANH LÁ đậm để nhìn lướt là thấy việc đang chạy (anh chốt 20/09/2026); Xong nhạt/trung tính để không tranh với Đang.
 const TINT: Record<string, string> = {
-  'Kẹt': 'rgba(255,107,107,.14)', 'Đợi số': 'rgba(230,180,80,.13)', 'Xong': 'rgba(120,220,120,.11)', 'Đang làm': 'rgba(90,180,255,.12)', 'Đang': 'rgba(90,180,255,.12)',
-  'Tạm dừng': 'rgba(255,190,80,.12)', 'Chờ': 'rgba(255,190,80,.08)', 'Bỏ': 'rgba(255,255,255,.04)', 'Sẵn sàng': 'rgba(120,220,120,.05)',
+  'Kẹt': 'rgba(255,107,107,.14)', 'Đợi số': 'rgba(230,180,80,.13)', 'Xong': 'rgba(255,255,255,.05)', 'Đang làm': 'rgba(70,220,110,.24)', 'Đang': 'rgba(70,220,110,.24)',
+  'Tạm dừng': 'rgba(255,190,80,.12)', 'Chờ': 'rgba(255,190,80,.08)', 'Bỏ': 'rgba(255,255,255,.04)', 'Sẵn sàng': 'rgba(120,220,120,.06)',
 };
 const tint = (s: string): CSSProperties | undefined => (TINT[s] ? { background: TINT[s] } : undefined);
 const MARK: Record<string, string> = TRANG_THAI_MARK;

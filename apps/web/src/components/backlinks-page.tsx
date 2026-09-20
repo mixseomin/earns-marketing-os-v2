@@ -6,6 +6,7 @@
 // the live placed URL. A source is shared across sites; here we focus on this site.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type CSSProperties, type ReactNode } from 'react';
 import { shallowReplaceUrl } from '@/lib/url-shallow';
+import { urlVoiParam } from '@/lib/url-mo-tab';
 import { useEntityVersion } from '@/lib/entity-signal';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -920,7 +921,7 @@ function AcctChip({ task, onClick }: { task: BacklinkTask; onClick: (e: React.Mo
   );
 }
 
-export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [], pieces = [], project, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel = {}, browserReady = [], initialView, allProjects, projectsById, products = [], prefs = {}, today, tienDo = [] }: {
+export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [], pieces = [], project, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel = {}, browserReady = [], initialView, allProjects, projectsById, products = [], prefs = {}, today, tienDo = [], lite = false }: {
   projectId: string; slug: string | null; siteLabel: string; tasks: BacklinkTask[]; followups?: Followup[];
   /** Bài đăng đã đặt ngày (content_pieces) — CÙNG lịch với việc, không tách surface. */
   pieces?: CalPiece[];
@@ -930,6 +931,8 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   browserReady?: string[];   // project ids that HAVE a browser profile — step-0 precondition to run any task; others get a "⚠ cần browser" badge
   /** Sổ tiến độ (hạng mục → bước) của (các) project trong tầm — view 📈 Tiến độ. Xem lib/tien-do.ts. */
   tienDo?: HangMuc[];
+  /** Server chỉ nạp phần sổ tiến độ (view=tiendo), KHÔNG có task/bài/account → đổi sang view khác phải tải lại trang. */
+  lite?: boolean;
   initialView?: string;   // '/plays' passes 'kanban' so this same surface opens Kanban-first
   // Global /plays (all projects): tasks carry projectId/projectSlug/projectLabel; per-task project resolved
   // via projectsById for the drawer. Seed/Generate/readiness (per-project) are hidden. See getAllBacklinkTasks.
@@ -1057,7 +1060,12 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
     const v = pick(sp.get('view'), prefs['plays.view'], initialView === 'kanban' ? 'kanban' : 'calendar');
     return v === 'list' || v === 'kanban' || v === 'calendar' || v === 'feed' || v === 'tiendo' ? v : 'calendar';
   });
-  const setView = (v: View) => { setViewState(v); setPref('plays.view', v); };
+  const setView = (v: View) => {
+    setPref('plays.view', v);
+    // Trang nạp kiểu nhẹ (chỉ sổ tiến độ) thì view khác không có dữ liệu để vẽ → điều hướng đủ, server nạp payload plays.
+    if (lite && v !== 'tiendo') { window.location.assign(urlVoiParam('view', v)); return; }
+    setViewState(v);
+  };
   // feed = chế độ đọc bài; tiendo = sổ tiến độ (hạng mục → bước). Cả hai ẩn KPI/bộ lọc task vì không liên quan tới task.
   const tiendo = view === 'tiendo';
   const focus = view === 'feed' || tiendo;

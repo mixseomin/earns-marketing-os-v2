@@ -22,26 +22,31 @@ export const dynamic = 'force-dynamic';
 // allProjects mode (same list / Kanban / Calendar / task drawer); each row carries its own project so
 // status changes + the drawer act on the right site. Per-project actions (Seed/Generate/account-readiness)
 // are hidden here — those stay on /p/[id]/plays. See getAllBacklinkTasks.
-export default async function GlobalPlaysRoute() {
+export default async function GlobalPlaysRoute({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = await searchParams;
   const prefs = parsePrefs((await cookies()).get(PREFS_COOKIE)?.value);
   const me = await getCurrentUser();
   if (me?.role !== 'admin') redirect('/');
 
+  // View 📈 Tiến độ KHÔNG dùng payload plays (task/bài/account/media của mọi project ≈ 3,9 MB HTML) — trước
+  // đây vẫn kéo hết nên mở sổ tiến độ là ngồi nhìn skeleton (anh chửi 20/09/2026). Cùng thứ tự chọn view như
+  // client (URL → cookie prefs): là tiendo thì chỉ nạp phần sổ + khung; rời view này là tải lại trang đủ.
+  const lite = (typeof sp.view === 'string' ? sp.view : prefs['plays.view']) === 'tiendo';
   const projects = await listProjects();
   const [mode, tasks, followups, pieces, platforms, media, teamMembers, proxies, browserProfiles, sourceIntel, browserReady, products, accounts, tienDo] = await Promise.all([
     getMode('affiliate'),
-    getAllBacklinkTasks(projects),
-    listFollowups(),
-    listScheduledContentPieces(),
+    lite ? [] : getAllBacklinkTasks(projects),
+    lite ? [] : listFollowups(),
+    lite ? [] : listScheduledContentPieces(),
     listPlatforms(),
-    listMedia(),
+    lite ? [] : listMedia(),
     listTeamMembers(),
-    listProxies(),
-    listBrowserProfiles(),
-    listSourceIntel(),
-    listProjectsWithBrowser(),
-    listBuildingProducts(),
-    listAccounts(),   // MỌI account của tenant: lịch mang việc + bài của mọi project, không riêng site backlink
+    lite ? [] : listProxies(),
+    lite ? [] : listBrowserProfiles(),
+    lite ? {} : listSourceIntel(),
+    lite ? [] : listProjectsWithBrowser(),
+    lite ? [] : listBuildingProducts(),
+    lite ? [] : listAccounts(),   // MỌI account của tenant: lịch mang việc + bài của mọi project, không riêng site backlink
     listHangMuc().catch(() => []),
   ]);
   const projectsById = Object.fromEntries(projects.map((p) => [p.id, p]));
@@ -56,7 +61,7 @@ export default async function GlobalPlaysRoute() {
       <BacklinksPage prefs={prefs} today={todayInAppTz()} allProjects products={products} projectsById={projectsById}
         projectId="" slug={null} siteLabel="All projects" tasks={tasks} followups={followups} pieces={pieces}
         project={(projects.find((p) => resolveSiteSlug(p.id)) ?? projects[0])!} platforms={platforms} accounts={accounts}
-        teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" tienDo={tienDo} />
+        teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" tienDo={tienDo} lite={lite} />
     </AppShell>
   );
 }

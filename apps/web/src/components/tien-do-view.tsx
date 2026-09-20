@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
 import { Drawer, Panel, SimpleTable, DataTable, TextField, TextAreaField, SelectField, EmptyState, ResourcePicker, FilterChips, Pill, StickyBar, type DataColumn, type DataGroup } from '@/components/ui';
 import { tdGet, tdList, tdSuaBuoc, tdSuaTrangThai, tdSuaTruong, tdThemBuoc, tdThem } from '@/lib/actions/tien-do';
-import { HANG_MUC_TRANG_THAI, BUOC_TRANG_THAI, TRANG_THAI_MARK, soText, type HangMuc, type HangMucChiTiet, type Buoc } from '@/lib/tien-do-shared';
+import { HANG_MUC_DANG_CHAY, HANG_MUC_TRANG_THAI, BUOC_TRANG_THAI, TRANG_THAI_MARK, soText, type HangMuc, type HangMucChiTiet, type Buoc } from '@/lib/tien-do-shared';
 
 // Nền dòng theo trạng thái — cùng bảng màu với conditional formatting trên sheet, độ đậm cho nền tối.
 const TINT: Record<string, string> = {
@@ -112,8 +112,15 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
 
   const projs = useMemo(() => [...new Set(everything.map((i) => i.project_id ?? '—'))], [everything]);
   const nAll = (pid: string) => everything.filter((i) => (i.project_id ?? '—') === pid).length;
-  // dự án CHƯA có hạng mục: không thành chip (44 chip = rác) mà nằm trong picker "＋ dự án khác…" → chọn là mở khối trống để thêm
-  const others = useMemo(() => Object.keys(projectNames).filter((pid) => !projs.includes(pid)).sort((a, b) => (projectNames[a] ?? a).localeCompare(projectNames[b] ?? b)), [projectNames, projs]);
+  // Chip CHỈ cho dự án đang chạy (≥1 hạng mục Sẵn sàng/Chờ/Đang làm/Kẹt). Dự án ít mở — toàn Ý tưởng/Tạm dừng/Xong/Bỏ —
+  // và dự án chưa có sổ đều nằm trong picker "＋ dự án khác…" (anh chốt 20/09/2026: "dự án ít mở thì ẩn đi"). Dự án đang
+  // chọn qua URL vẫn có chip dù ngủ. Đổi trạng thái là chip tự hiện/ẩn theo poll — không cần F5.
+  const dangChay = useMemo(() => projs.filter((pid) => everything.some((i) => (i.project_id ?? '—') === pid && HANG_MUC_DANG_CHAY.has(i.trang_thai))), [projs, everything]);
+  const chips = proj && !dangChay.includes(proj) ? [...dangChay, proj] : dangChay;
+  const others = useMemo(() => [...projs.filter((pid) => !dangChay.includes(pid)), ...Object.keys(projectNames).filter((pid) => !projs.includes(pid))]
+    .sort((a, b) => (nAll(b) > 0 ? 1 : 0) - (nAll(a) > 0 ? 1 : 0) || (projectNames[a] ?? a).localeCompare(projectNames[b] ?? b)),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [projectNames, projs, dangChay]);
 
   return (
     <div data-comp="tien-do.View">
@@ -122,10 +129,9 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
         title="Xong phải có kết quả · Kẹt phải ghi chờ ai/chờ gì · Đợi số = đang chạy, chỉ chờ dữ liệu · Đang chỉ khi đang làm · ▸ mở bước">
         {groupBy === 'project' && projs.length > 1 && (<>
           <FilterChips value={proj ?? 'all'} onChange={(v) => setProj(v === 'all' ? undefined : v)} urlKey="tdp"
-            counts={Object.fromEntries([['all', everything.length], ...projs.map((pid) => [pid, nAll(pid)]), ...(proj && !projs.includes(proj) ? [[proj, 0]] : [])])}
-            options={[{ value: 'all', label: 'Mọi dự án' }, ...projs.map((pid) => ({ value: pid, label: projectNames[pid] ?? pid })),
-              ...(proj && !projs.includes(proj) ? [{ value: proj, label: projectNames[proj] ?? proj }] : [])]} />
-          {others.length > 0 && <Pill label="＋ dự án khác…" size="xs" color="var(--fg-3)" onClick={() => setPickOpen(true)} />}
+            counts={Object.fromEntries([['all', everything.length], ...chips.map((pid) => [pid, nAll(pid)])])}
+            options={[{ value: 'all', label: 'Mọi dự án' }, ...chips.map((pid) => ({ value: pid, label: projectNames[pid] ?? pid }))]} />
+          {others.length > 0 && <Pill label={`＋ ${others.length} dự án khác…`} size="xs" color="var(--fg-3)" onClick={() => setPickOpen(true)} />}
           <span style={{ color: 'var(--line)' }}>|</span>
         </>)}
         <FilterChips value={tt} onChange={setTt} urlKey="tdtt"
@@ -140,8 +146,9 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
         </section>
       )}
       {pickOpen && (
-        <ResourcePicker title="Dự án chưa có sổ tiến độ" hint="Chọn để mở khối trống và thêm hạng mục đầu tiên" items={others} getKey={(pid) => pid}
-          renderItem={(pid) => ({ title: projectNames[pid] ?? pid, subtitle: pid })} onPick={(pid) => { setProj(pid); setPickOpen(false); }} onClose={() => setPickOpen(false)} />
+        <ResourcePicker title="Dự án khác" hint="Ngủ (không hạng mục nào Sẵn sàng/Chờ/Đang làm/Kẹt) hoặc chưa có sổ — chọn để mở; có việc chạy là tự lên chip" items={others} getKey={(pid) => pid}
+          renderItem={(pid) => ({ title: projectNames[pid] ?? pid, subtitle: nAll(pid) ? `${pid} · ${nAll(pid)} hạng mục, không việc đang chạy` : `${pid} · chưa có sổ` })}
+          onPick={(pid) => { setProj(pid); setPickOpen(false); }} onClose={() => setPickOpen(false)} />
       )}
 
       {groups.map((g) => {

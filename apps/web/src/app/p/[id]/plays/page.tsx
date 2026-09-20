@@ -21,10 +21,13 @@ export const dynamic = 'force-dynamic';
 // "Plays" = the SAME surface as /backlinks (real list/calendar/filters + the real task
 // drawer with its built-in Outreach chip), just opened Kanban-first. One place to see /
 // assign / follow every distribution play. No reinvented UI — reuses BacklinksPage whole.
-export default async function PlaysRoute({ params }: { params: Promise<{ id: string }> }) {
+export default async function PlaysRoute({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { id } = await params;
+  const sp = await searchParams;
   // Lựa chọn giao diện đã nhớ — đọc SERVER-SIDE để lần paint đầu đã đúng view/lịch, không nháy.
   const prefs = parsePrefs((await cookies()).get(PREFS_COOKIE)?.value);
+  // View 📈 Tiến độ không cần payload plays (task/bài/account/media) → không nạp; rời view là tải lại trang đủ. Xem /plays.
+  const lite = (typeof sp.view === 'string' ? sp.view : prefs['plays.view']) === 'tiendo';
 
   const project = await getProject(id);
   if (!project) notFound();
@@ -37,18 +40,18 @@ export default async function PlaysRoute({ params }: { params: Promise<{ id: str
   const [mode, projects, tasks, followups, pieces, platforms, accounts, teamMembers, proxies, browserProfiles, media, sourceIntel, browserReady, products, tienDo] = await Promise.all([
     getProjectMode(id, project.mode),
     listProjects(),
-    getBacklinkTasks(id),
-    listFollowups(id),
-    listScheduledContentPieces(id),
+    lite ? [] : getBacklinkTasks(id),
+    lite ? [] : listFollowups(id),
+    lite ? [] : listScheduledContentPieces(id),
     listPlatforms(),
-    listAccounts(id),
+    lite ? [] : listAccounts(id),
     listTeamMembers(),
-    listProxies(),
-    listBrowserProfiles(),
-    listMedia(id),
-    listSourceIntel(),
-    listProjectsWithBrowser(),
-    listBuildingProducts(id),
+    lite ? [] : listProxies(),
+    lite ? [] : listBrowserProfiles(),
+    lite ? [] : listMedia(id),
+    lite ? {} : listSourceIntel(),
+    lite ? [] : listProjectsWithBrowser(),
+    lite ? [] : listBuildingProducts(id),
     listHangMuc({ project_id: id }).catch(() => []),
   ]);
 
@@ -62,7 +65,7 @@ export default async function PlaysRoute({ params }: { params: Promise<{ id: str
     >
       <BacklinksPage prefs={prefs} today={todayInAppTz()} products={products} projectId={id} slug={slug} siteLabel={siteLabel} tasks={tasks} followups={followups} pieces={pieces}
         project={project} platforms={platforms} accounts={accounts}
-        teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" tienDo={tienDo} />
+        teamMembers={teamMembers} proxies={proxies} browserProfiles={browserProfiles} media={media} sourceIntel={sourceIntel} browserReady={browserReady} initialView="kanban" tienDo={tienDo} lite={lite} />
     </AppShell>
   );
 }

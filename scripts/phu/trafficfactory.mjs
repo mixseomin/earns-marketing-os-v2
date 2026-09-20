@@ -115,9 +115,12 @@ try {
     if (!lander) { try { const v = (await get(`/campaigns/${c.id}/variation`)).variations ?? []; lander = v.find((x) => x.url)?.url; } catch { /* để trống, không bịa */ } }
     if (lander) { try { const u = new URL(lander); u.searchParams.delete('s'); lander = u.toString(); } catch { /* giữ nguyên */ } }   // bỏ macro sid, giữ ?d= (đích)
     camp.push({ nguon_key: KEY_MANG, ten: `${c.name} #${c.id} · ${c.calculated_status?.status ?? ''}`.trim(), sid_prefix: prefix, lander: lander || null,
-      target: { tf_id: c.id, format: c.advertiser_ad_type_label ?? c.format, pricing: c.pricing_model_name ?? c.pricing_model, price_usd: Number(c.price ?? 0) / 100, tf_status: c.calculated_status?.status, reject: c.rejecting_reason_details?.custom_rejecting_reason, variations: c.variations_counts?.number_of_variations, lang: c.variation_language },
+      // tong_usd/tong_chi_usd: ExoClick tự chuyển "Completed" khi total_budget_spent chạm total_budget_limit (20/09: camp tắt vì trần $20 mà không ai thấy)
+      target: { tf_id: c.id, format: c.advertiser_ad_type_label ?? c.format, pricing: c.pricing_model_name ?? c.pricing_model, price_usd: Number(c.price ?? 0) / 100, tf_status: c.calculated_status?.status, reject: c.rejecting_reason_details?.custom_rejecting_reason, variations: c.variations_counts?.number_of_variations, lang: c.variation_language,
+        tong_usd: c.total_budget_limit != null ? Number(c.total_budget_limit) / 100 : undefined, tong_chi_usd: c.total_budget_spent != null ? Math.round(Number(c.total_budget_spent)) / 100 : undefined },
       // status 0 = mình bấm pause (API /campaigns/pause) — calculated_status vẫn nói "No Funds"/"Pending", chữ đó không phải trạng thái của mình
-      ngan_sach_ngay: Number(c.max_daily_budget ?? c.daily_budget ?? 0) / 100 || undefined, trang_thai: Number(c.status) === 0 ? 'tam_dung' : trangThai(c.calculated_status ?? c.status) });
+      // max_daily_budget = CÒN LẠI hôm nay (giảm dần trong ngày); ngân sách/ngày thật là max_daily_budget_reset
+      ngan_sach_ngay: Number(c.max_daily_budget_reset ?? c.max_daily_budget ?? c.daily_budget ?? 0) / 100 || undefined, trang_thai: Number(c.status) === 0 ? 'tam_dung' : trangThai(c.calculated_status ?? c.status) });
   }
   const st = (await get(`/statistics/a/date?date_from=${iso(ngay)}&date_to=${iso(ngay)}&additional_group_by=campaign`)).result ?? [];
   if (RAW && st[0]) console.log('raw:', JSON.stringify(st[0]).slice(0, 600));

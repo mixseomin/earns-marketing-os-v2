@@ -48,10 +48,11 @@ export async function getHangMuc(id: number): Promise<HangMucChiTiet | null> {
   return { ...mapRow(first), nhat_ky };
 }
 
-/** Mã kế tiếp trong nhóm: chữ đầu của nhóm (viết hoa) + 2 số — iOS → I01, ExamWeight → E01. */
+/** Mã kế tiếp trong nhóm: chữ đầu của nhóm (viết hoa) + 2 số — iOS → I01, ExamWeight → E01.
+ *  '\\D' vì đây là template literal JS: viết '\D' thì JS nuốt dấu chéo, SQL nhận 'D' → chỉ xoá chữ D → 'I10'::int nổ (20/09/2026). */
 export async function maKeTiep(nhom: string): Promise<string> {
   const prefix = (nhom.trim()[0] ?? 'X').toUpperCase();
-  const r = rows<{ n: number }>(await db().execute(sql`SELECT COALESCE(max(NULLIF(regexp_replace(ma, '\D', '', 'g'), '')::int), 0)::int AS n FROM tien_do_hang_muc WHERE nhom = ${nhom}`));
+  const r = rows<{ n: number }>(await db().execute(sql`SELECT COALESCE(max(NULLIF(regexp_replace(ma, '\\D', '', 'g'), '')::int), 0)::int AS n FROM tien_do_hang_muc WHERE nhom = ${nhom}`));
   return `${prefix}${String((r[0]?.n ?? 0) + 1).padStart(2, '0')}`;
 }
 

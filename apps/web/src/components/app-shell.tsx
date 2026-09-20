@@ -1,6 +1,8 @@
 'use client';
 
 import { type ReactNode, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { useTieuDe } from '@/lib/tieu-de';
 import { useTweaks, TweaksPanel, TweakSection, TweakRadio, TweakSelect, TweakToggle, TweakSlider } from './tweaks';
 import { useLang } from '@/lib/lang-context';
 import { ThemeApplier } from './theme-applier';
@@ -14,6 +16,7 @@ import type { Mode, Project } from '@/lib/mock/types';
 import type { VisibilityConfig } from '@/lib/visibility';
 
 type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'scenes' | 'outreach' | 'backlinks' | 'plays' | 'pillars' | 'seeding' | 'studio' | 'resources' | 'settings' | 'plans' | 'phu';
+const TAB_TIEU_DE: Record<Tab, string> = { dashboard: 'Tổng quan', board: 'Board', squads: 'Squads', tribes: 'Tribes', scenes: 'Scenes', outreach: 'Outreach', backlinks: 'Backlinks', plays: 'Plays', pillars: 'Pillars', seeding: 'Seeding', studio: 'Studio', resources: 'Tài nguyên', settings: 'Cài đặt', plans: 'Kế hoạch', phu: 'Phủ' };
 
 export interface CurrentUserInfo {
   id: number;
@@ -48,6 +51,10 @@ export function AppShell({
   const { setLang } = useLang();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const screenLabel = isPortfolio ? 'portfolio' : project ? `${project.id}-${tab ?? 'dashboard'}` : 'shell';
+  // Tiêu đề tab = màn + dự án (tầng khung, ưu tiên 1); trang/view đặt cụ thể hơn thì đè lên. Không có tab → lấy đoạn đầu của path.
+  const pathname = usePathname();
+  const manLabel = tab ? TAB_TIEU_DE[tab] : pathname === '/' ? 'Tổng quan' : (pathname.split('/').filter(Boolean)[0] ?? '').replace(/-/g, ' ').replace(/^\w/, (c: string) => c.toUpperCase());
+  useTieuDe([manLabel, project?.name ?? (isPortfolio ? 'Mọi dự án' : undefined)], 1);
 
   // Close mobile sidebar on route change
   useEffect(() => { setMobileNavOpen(false); }, [project?.id, tab, isPortfolio]);

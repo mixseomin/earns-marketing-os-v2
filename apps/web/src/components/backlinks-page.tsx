@@ -6,6 +6,7 @@
 // the live placed URL. A source is shared across sites; here we focus on this site.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type CSSProperties, type ReactNode } from 'react';
 import { shallowReplaceUrl } from '@/lib/url-shallow';
+import { useTieuDe } from '@/lib/tieu-de';
 import { urlVoiParam } from '@/lib/url-mo-tab';
 import { useEntityVersion } from '@/lib/entity-signal';
 import { createPortal } from 'react-dom';
@@ -1069,6 +1070,9 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // feed = chế độ đọc bài; tiendo = sổ tiến độ (hạng mục → bước). Cả hai ẩn KPI/bộ lọc task vì không liên quan tới task.
   const tiendo = view === 'tiendo';
   const focus = view === 'feed' || tiendo;
+  // Tiêu đề tab theo view + dự án đang lọc (tầng trang, ưu tiên 2; view Tiến độ tự đặt cụ thể hơn bên trong).
+  useTieuDe([({ list: 'Danh sách', calendar: 'Lịch', kanban: 'Kanban', feed: 'Nội dung', tiendo: 'Tiến độ' } as Record<string, string>)[view] ?? 'Plays',
+    allProjects ? (projectFilter ? (projectsById?.[projectFilter]?.name ?? projectFilter) : 'Mọi dự án') : project.name], 2);
   // Chip project của trang lọc theo SLUG (site backlink) hoặc id (followup); tiến độ gắn project_id → quy về id.
   const tiendoProject = useMemo(() => {
     if (!allProjects || !projectFilter) return undefined;

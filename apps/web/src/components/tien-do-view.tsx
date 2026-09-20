@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type CSSProperties } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useModalParam } from '@/lib/use-modal-param';
+import { useTieuDe } from '@/lib/tieu-de';
 import { Drawer, Panel, SimpleTable, DataTable, TextField, TextAreaField, SelectField, EmptyState, ResourcePicker, FilterChips, Pill, StickyBar, type DataColumn, type DataGroup } from '@/components/ui';
 import { tdGet, tdList, tdSuaBuoc, tdSuaTrangThai, tdSuaTruong, tdThemBuoc, tdThem } from '@/lib/actions/tien-do';
 import { HANG_MUC_DANG_CHAY, HANG_MUC_TRANG_THAI, BUOC_TRANG_THAI, TRANG_THAI_MARK, soText, type HangMuc, type HangMucChiTiet, type Buoc } from '@/lib/tien-do-shared';
@@ -62,6 +63,9 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
     if (u.href !== window.location.href) window.history.replaceState(window.history.state, '', u.href);
   }, [proj, projectId, tt, open, showDone]);
   const [detail, setDetail] = useState<Record<number, HangMucChiTiet>>({});
+  // Tiêu đề tab: "Tiến độ · <dự án> [· <mã> <tên>]" — mở nhiều tab tiến độ vẫn biết tab nào là gì.
+  const drawerRow = drawerId != null ? all.find((i) => i.id === drawerId) : undefined;
+  useTieuDe([drawerRow ? `${drawerRow.ma} ${clip(drawerRow.ten, 40)}` : '', 'Tiến độ', proj ? (projectNames[proj] ?? proj) : 'Mọi dự án'], 3);
   const [, start] = useTransition();
 
   const visible = items.filter((i) => (tt === 'all' ? showDone || !DA_XONG.has(i.trang_thai) : i.trang_thai === tt));

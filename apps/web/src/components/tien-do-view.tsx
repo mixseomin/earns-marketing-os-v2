@@ -78,11 +78,10 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
   const all0 = (k: string) => items.find((i) => inGroup(i, k));
 
   const put = useCallback((y: HangMucChiTiet | null) => { if (!y) return; setItems((xs) => xs.map((i) => (i.id === y.id ? { ...i, ...y } : i))); setDetail((d) => ({ ...d, [y.id]: y })); }, []);
-  const load = useCallback((id: number) => { setDetail((d) => { if (!d[id]) tdGet(id).then(put); return d; }); }, [put]);
-  const toggle = (id: number) => { setOpen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else { n.add(id); load(id); } return n; }); };
-  // THỜI GIAN THỰC (anh chốt 20/09/2026): CLI/phiên khác ghi → bảng đổi trong ≤10s, không F5. Poll nhẹ: danh sách tóm tắt
-  // (1 query) + chi tiết CHỈ các dòng đang mở. Bỏ qua khi tab ẩn. Ô đang gõ không bị đè: Inline chỉ đồng bộ khi không edit.
-  const openRef = useRef(open); openRef.current = open;
+  // ▸ chỉ lật cờ mở: bước đã nằm sẵn trong dòng (listHangMuc kèm buoc[]) → hiện tức thì, không gọi server.
+  const toggle = (id: number) => { setOpen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; }); };
+  // THỜI GIAN THỰC (anh chốt 20/09/2026): CLI/phiên khác ghi → bảng đổi trong ≤10s, không F5. Poll = MỘT call (danh sách đã
+  // kèm bước của mọi dòng, kể cả dòng đang mở). Bỏ qua khi tab ẩn. Ô đang gõ không bị đè: Inline chỉ đồng bộ khi không edit.
   useEffect(() => {
     if (!live) return;
     let busy = false;
@@ -93,18 +92,11 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
         const list = await tdList(scopeProjectId);
         setBase(list);
         setExtra((xs) => xs.filter((e) => !list.some((l) => l.id === e.id)));
-        const ids = [...openRef.current];
-        if (ids.length) {
-          const ds = await Promise.all(ids.map((id) => tdGet(id)));
-          setDetail((d) => { const n = { ...d }; for (const y of ds) if (y) n[y.id] = y; return n; });
-        }
       } finally { busy = false; }
     };
     const t = setInterval(tick, 10000);
     return () => clearInterval(t);
   }, [live, scopeProjectId]);
-  const mountedLoad = useRef(false);   // chỉ lúc vào trang: nạp bước cho các dòng URL bảo mở
-  useEffect(() => { if (mountedLoad.current) return; mountedLoad.current = true; open.forEach(load); }, [open, load]);
   const suaBuoc = (buocId: number, p: { trang_thai?: string; ket_qua?: string; ghi_chu?: string }) => start(async () => put(await tdSuaBuoc(buocId, p)));
   const them = (project_id: string, nhom: string, ten: string) => start(async () => { const y = await tdThem(project_id, nhom, ten); setExtra((xs) => [...xs, y]); setDetail((d) => ({ ...d, [y.id]: y })); });
   const [pickOpen, setPickOpen] = useState(false);
@@ -189,7 +181,7 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
               // DataTable: nhóm cột bật/tắt ở ⚙ (Số mặc định TẮT — mỗi dự án đo thứ khác, bật khi cần), sort, ô lọc riêng, cuộn ngang gói trong khung.
               <DataTable rows={rows} columns={cols} groups={dtGroups} getRowKey={(r) => String(r.id)} persistKey={`tiendo.${g.replace(/[^\w-]+/g, '_')}`}
                 minWidth={900} rowStyle={(r) => tint(r.trang_thai)} searchText={(r) => `${r.ma} ${r.ten} ${r.mo_ta} ${r.ghi_chu} ${r.goc} ${r.ai} ${soText(r.so)}`} searchPlaceholder="lọc hạng mục…"
-                renderExpanded={(r) => (open.has(r.id) ? <BuocTable y={detail[r.id]} onPatch={suaBuoc} onAdd={(t) => themBuoc(r.id, t)} /> : null)} />
+                renderExpanded={(r) => (open.has(r.id) ? <BuocTable y={r} onPatch={suaBuoc} onAdd={(t) => themBuoc(r.id, t)} /> : null)} />
             )}
             {(() => { const first = all0(g); return first?.project_id ? <ThemHangMuc onAdd={(t) => them(first.project_id!, first.nhom, t)} /> : null; })()}
           </section>
@@ -211,10 +203,9 @@ function ThemHangMuc({ onAdd }: { onAdd: (ten: string) => void }) {
 }
 
 // ── bảng bước phẳng (mở ngay dưới dòng) — đọc trước, sửa tại chỗ ─────────────────────────────
-function BuocTable({ y, onPatch, onAdd }: { y: HangMucChiTiet | undefined; onPatch: (buocId: number, p: { trang_thai?: string; ket_qua?: string; ghi_chu?: string }) => void; onAdd: (text: string) => void }) {
+function BuocTable({ y, onPatch, onAdd }: { y: HangMuc; onPatch: (buocId: number, p: { trang_thai?: string; ket_qua?: string; ghi_chu?: string }) => void; onAdd: (text: string) => void }) {
   const [moi, setMoi] = useState('');
   const [err, setErr] = useState<Record<number, string>>({});
-  if (!y) return <span style={mono}>Đang tải bước…</span>;
   const save = (b: Buoc, p: { trang_thai?: string; ket_qua?: string; ghi_chu?: string }) => {
     const next = { trang_thai: p.trang_thai ?? b.trang_thai, ket_qua: p.ket_qua ?? b.ket_qua, ghi_chu: p.ghi_chu ?? b.ghi_chu };
     const e = next.trang_thai === 'Xong' && !next.ket_qua.trim() ? 'Xong phải có kết quả — điền ô Kết quả trước'

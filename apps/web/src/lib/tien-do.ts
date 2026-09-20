@@ -21,14 +21,17 @@ const SUMMARY = sql`
   LEFT JOIN LATERAL (
     SELECT count(*)::int AS tong, count(*) FILTER (WHERE b.trang_thai = 'Xong')::int AS xong,
            to_char(max(b.ngay_xong), 'YYYY-MM-DD') AS cap_nhat,
-           COALESCE(json_agg(json_build_object('thu_tu', b.thu_tu, 'buoc', b.buoc, 'trang_thai', b.trang_thai) ORDER BY b.thu_tu) FILTER (WHERE b.id IS NOT NULL), '[]'::json) AS buoc_json
+           COALESCE(json_agg(json_build_object('id', b.id, 'hang_muc_id', b.hang_muc_id, 'thu_tu', b.thu_tu, 'buoc', b.buoc, 'trang_thai', b.trang_thai,
+             'ngay_xong', to_char(b.ngay_xong, 'YYYY-MM-DD'), 'ket_qua', b.ket_qua, 'ghi_chu', b.ghi_chu, 'updated_at', b.updated_at) ORDER BY b.thu_tu) FILTER (WHERE b.id IS NOT NULL), '[]'::json) AS buoc_json
     FROM tien_do_buoc b WHERE b.hang_muc_id = y.id
   ) s ON true`;
 
+// Bước ĐẦY ĐỦ đi kèm từng hạng mục ngay trong danh sách (một query, ~1 KB/hạng mục): bấm ▸ là bảng bước hiện tức thì,
+// không thêm vòng gọi server — trước đây mỗi ▸ là một server action qua Cloudflare, trên mạng chậm mất 3-12s (anh chửi 20/09/2026).
 function mapRow(r: Record<string, unknown>): HangMuc {
-  const buoc = (r.buoc_json as Array<Pick<Buoc, 'thu_tu' | 'buoc' | 'trang_thai'>>) ?? [];
+  const buoc = (r.buoc_json as Buoc[]) ?? [];
   const { buoc_json: _b, ...rest } = r;
-  return { ...(rest as unknown as HangMuc), tong: Number(r.tong ?? 0), xong: Number(r.xong ?? 0), cap_nhat: (r.cap_nhat as string | null) ?? null, buoc_hien_tai: buocHienTai(buoc) };
+  return { ...(rest as unknown as HangMuc), buoc, tong: Number(r.tong ?? 0), xong: Number(r.xong ?? 0), cap_nhat: (r.cap_nhat as string | null) ?? null, buoc_hien_tai: buocHienTai(buoc) };
 }
 
 export async function listHangMuc(f: { project_id?: string; nhom?: string } = {}): Promise<HangMuc[]> {
@@ -41,9 +44,8 @@ export async function getHangMuc(id: number): Promise<HangMucChiTiet | null> {
   const r = rows<Record<string, unknown>>(await db().execute(sql`${SUMMARY} WHERE y.id = ${id}`));
   const first = r[0];
   if (!first) return null;
-  const buoc = rows<Buoc>(await db().execute(sql`SELECT id, hang_muc_id, thu_tu, buoc, trang_thai, to_char(ngay_xong, 'YYYY-MM-DD') AS ngay_xong, ket_qua, ghi_chu, updated_at FROM tien_do_buoc WHERE hang_muc_id = ${id} ORDER BY thu_tu`));
   const nhat_ky = rows<{ ts: string; noi_dung: string; buoc_id: number | null }>(await db().execute(sql`SELECT ts, noi_dung, buoc_id FROM tien_do_nhat_ky WHERE hang_muc_id = ${id} ORDER BY ts DESC LIMIT 50`));
-  return { ...mapRow(first), buoc, nhat_ky };
+  return { ...mapRow(first), nhat_ky };
 }
 
 /** Mã kế tiếp trong nhóm: chữ đầu của nhóm (viết hoa) + 2 số — iOS → I01, ExamWeight → E01. */

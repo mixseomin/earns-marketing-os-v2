@@ -21,10 +21,10 @@ export interface HangMuc {
   id: number; project_id: string | null; nhom: string; ma: string; ten: string; uu_tien: number; trang_thai: HangMucTrangThai; lan: string; goc: string;
   mo_ta: string; ghi_chu: string; ai: string; so: Record<string, string>; cong: string; link: string; nguon: string | null;
   created_at: string; updated_at: string;
-  // tính từ bước
-  tong: number; xong: number; buoc_hien_tai: string; cap_nhat: string | null;
+  // bước đi kèm sẵn (danh sách lẫn chi tiết) + tóm tắt tính từ bước
+  buoc: Buoc[]; tong: number; xong: number; buoc_hien_tai: string; cap_nhat: string | null;
 }
-export interface HangMucChiTiet extends HangMuc { buoc: Buoc[]; nhat_ky: Array<{ ts: string; noi_dung: string; buoc_id: number | null }> }
+export interface HangMucChiTiet extends HangMuc { nhat_ky: Array<{ ts: string; noi_dung: string; buoc_id: number | null }> }
 export interface BuocPatch { trang_thai?: string; ket_qua?: string; ghi_chu?: string; buoc?: string }
 
 /** 'Số' hiển thị một dòng: 'Vol đầu/th: 12k · CPC: $0.8'. */

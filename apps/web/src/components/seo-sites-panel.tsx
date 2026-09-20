@@ -104,23 +104,36 @@ function mergeAndDedupe(payload: GscPayload): Array<{ domain: string; stats: Gsc
 }
 
 export async function SeoSitesPanel() {
-  let payload: GscPayload | null = null;
-  try {
-    const r = await fetch(GSC_JSON_URL, { next: { revalidate: 600, tags: ['gsc-json'] } });
-    if (r.ok) payload = (await r.json()) as GscPayload;
-  } catch { /* fall through */ }
-  const tsPayload = await loadGscTimeSeries();
-  const ga4Payload = await loadGa4Properties();
-  const clarityIds = await loadClarityIds();
-  const ga4Realtime = await loadGa4Realtime();
-  const ga4Events = await loadGa4Events();
-  const ga4Users = await loadGa4Users();
-  const bingPayload = await loadBingStats();
-  const ga4AiPayload = await loadGa4AiReferrals();
-  const adsenseByDomain = await loadAdsenseByDomain(7);
-  const subsPayload = await loadSubscribers();
-  const yandexPayload = await loadYandexStats();
-  const backlinkPayload = await loadBacklinkStats();
+  /* 13 NGUỒN ĐỘC LẬP, chạy SONG SONG. Mỗi cái là một fetch remote riêng (JSON tĩnh, cache Next
+     revalidate 600s). Trước đây await NỐI ĐUÔI nhau nên lúc cache nguội tổng thời gian = CỘNG
+     DỒN cả 13 (đo ~20s TTFB rồi 0.4s khi ấm); và mỗi lần thêm một nguồn lại chậm thêm một nhịp.
+     Không nguồn nào cần kết quả nguồn khác → Promise.all biến TỔNG thành MAX (~1-2s).
+     GSC chính giữ try/catch riêng (hỏng thì cả bảng báo thiếu, khác các nguồn phụ); các loader
+     phụ tự trả null khi lỗi nên Promise.all không gãy vì một nguồn hỏng. Thứ tự mảng phải khớp
+     thứ tự destructure. */
+  const [payload, tsPayload, ga4Payload, clarityIds, ga4Realtime, ga4Events, ga4Users,
+    bingPayload, ga4AiPayload, adsenseByDomain, subsPayload, yandexPayload, backlinkPayload,
+  ] = await Promise.all([
+    (async (): Promise<GscPayload | null> => {
+      try {
+        const r = await fetch(GSC_JSON_URL, { next: { revalidate: 600, tags: ['gsc-json'] } });
+        if (r.ok) return (await r.json()) as GscPayload;
+      } catch { /* fall through */ }
+      return null;
+    })(),
+    loadGscTimeSeries(),
+    loadGa4Properties(),
+    loadClarityIds(),
+    loadGa4Realtime(),
+    loadGa4Events(),
+    loadGa4Users(),
+    loadBingStats(),
+    loadGa4AiReferrals(),
+    loadAdsenseByDomain(7),
+    loadSubscribers(),
+    loadYandexStats(),
+    loadBacklinkStats(),
+  ]);
 
   if (!payload) {
     return (

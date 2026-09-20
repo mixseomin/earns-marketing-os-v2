@@ -16,6 +16,7 @@ const TINT: Record<string, string> = {
   'Tạm dừng': 'rgba(255,190,80,.12)', 'Chờ': 'rgba(255,190,80,.08)', 'Bỏ': 'rgba(255,255,255,.04)', 'Sẵn sàng': 'rgba(120,220,120,.06)',
 };
 const tint = (s: string): CSSProperties | undefined => (TINT[s] ? { background: TINT[s] } : undefined);
+const DA_XONG: ReadonlySet<string> = new Set(['Xong', 'Bỏ']);   // ẩn mặc định ở cả hạng mục lẫn bước
 const MARK: Record<string, string> = TRANG_THAI_MARK;
 const mono: CSSProperties = { fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', fontSize: 11 };
 const linkBtn: CSSProperties = { background: 'none', border: 0, padding: 0, color: 'var(--fg-1)', cursor: 'pointer', font: 'inherit', textAlign: 'left' };
@@ -48,6 +49,8 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
   const [items, setItems] = useState(initial);
   useEffect(() => setItems(initial), [initial]);
   const [tt, setTt] = useState<string>(() => sp.get('tdtt') || 'all');
+  // Mặc định ẨN việc đã xong (hạng mục Xong/Bỏ + bước Xong/Bỏ) — anh chốt 20/09/2026; ?tdxong=1 hiện lại (F5/share giữ).
+  const [showDone, setShowDone] = useState<boolean>(() => sp.get('tdxong') === '1');
   const [open, setOpen] = useState<Set<number>>(() => new Set((sp.get('tdo') ?? '').split(',').map(Number).filter(Boolean)));   // YDNI: bước chỉ mở khi bấm ▸ (nhớ trong URL)
   const modal = useModalParam('td');
   const drawerId = modal.is('hm') ? modal.numId : null;
@@ -55,13 +58,14 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
   useEffect(() => {
     const u = new URL(window.location.href);
     const set = (k: string, v: string) => { if (v) u.searchParams.set(k, v); else u.searchParams.delete(k); };
-    set('tdp', proj && proj !== projectId ? proj : ''); set('tdtt', tt === 'all' ? '' : tt); set('tdo', [...open].join(','));
+    set('tdp', proj && proj !== projectId ? proj : ''); set('tdtt', tt === 'all' ? '' : tt); set('tdo', [...open].join(',')); set('tdxong', showDone ? '1' : '');
     if (u.href !== window.location.href) window.history.replaceState(window.history.state, '', u.href);
-  }, [proj, projectId, tt, open]);
+  }, [proj, projectId, tt, open, showDone]);
   const [detail, setDetail] = useState<Record<number, HangMucChiTiet>>({});
   const [, start] = useTransition();
 
-  const visible = items.filter((i) => tt === 'all' || i.trang_thai === tt);
+  const visible = items.filter((i) => (tt === 'all' ? showDone || !DA_XONG.has(i.trang_thai) : i.trang_thai === tt));
+  const nDone = items.filter((i) => DA_XONG.has(i.trang_thai)).length;
   const count = (f: (i: HangMuc) => boolean) => items.filter(f).length;
   const groups = useMemo(() => {
     const key = (i: HangMuc) => (groupBy === 'project' ? `${i.project_id ?? '—'}|${i.nhom}` : i.nhom);
@@ -130,6 +134,8 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
         <FilterChips value={tt} onChange={setTt} urlKey="tdtt"
           counts={Object.fromEntries([['all', items.length], ...HANG_MUC_TRANG_THAI.map((s) => [s, count((i) => i.trang_thai === s)])])}
           options={[{ value: 'all', label: 'Tất cả' }, ...HANG_MUC_TRANG_THAI.filter((s) => count((i) => i.trang_thai === s)).map((s) => ({ value: s, label: `${MARK[s] ?? ''} ${s}`.trim() }))]} />
+        {(nDone > 0 || showDone) && <Pill label={showDone ? '✓ ẩn đã xong' : `✓ hiện ${nDone} đã xong`} size="xs" color={showDone ? 'var(--fg-2)' : 'var(--fg-3)'} onClick={() => setShowDone((v) => !v)}
+          title="Hạng mục Xong/Bỏ và bước Xong/Bỏ mặc định ẩn; bấm để hiện (lưu vào URL ?tdxong=1)" />}
       </div>
 
       {items.length === 0 && (
@@ -182,7 +188,7 @@ export function TienDoView({ items: all, groupBy = 'nhom', projectNames = {}, pr
               // DataTable: nhóm cột bật/tắt ở ⚙ (Số mặc định TẮT — mỗi dự án đo thứ khác, bật khi cần), sort, ô lọc riêng, cuộn ngang gói trong khung.
               <DataTable rows={rows} columns={cols} groups={dtGroups} getRowKey={(r) => String(r.id)} persistKey={`tiendo.${g.replace(/[^\w-]+/g, '_')}`}
                 minWidth={900} rowStyle={(r) => tint(r.trang_thai)} searchText={(r) => `${r.ma} ${r.ten} ${r.mo_ta} ${r.ghi_chu} ${r.goc} ${r.ai} ${soText(r.so)}`} searchPlaceholder="lọc hạng mục…"
-                renderExpanded={(r) => (open.has(r.id) ? <BuocTable y={r} onPatch={suaBuoc} onAdd={(t) => themBuoc(r.id, t)} /> : null)} />
+                renderExpanded={(r) => (open.has(r.id) ? <BuocTable y={r} showDone={showDone} onToggleDone={() => setShowDone((v) => !v)} onPatch={suaBuoc} onAdd={(t) => themBuoc(r.id, t)} /> : null)} />
             )}
             {(() => { const first = all0(g); return first?.project_id ? <ThemHangMuc onAdd={(t) => them(first.project_id!, first.nhom, t)} /> : null; })()}
           </section>
@@ -204,9 +210,11 @@ function ThemHangMuc({ onAdd }: { onAdd: (ten: string) => void }) {
 }
 
 // ── bảng bước phẳng (mở ngay dưới dòng) — đọc trước, sửa tại chỗ ─────────────────────────────
-function BuocTable({ y, onPatch, onAdd }: { y: HangMuc; onPatch: (buocId: number, p: { trang_thai?: string; ket_qua?: string; ghi_chu?: string }) => void; onAdd: (text: string) => void }) {
+function BuocTable({ y, showDone, onToggleDone, onPatch, onAdd }: { y: HangMuc; showDone: boolean; onToggleDone: () => void; onPatch: (buocId: number, p: { trang_thai?: string; ket_qua?: string; ghi_chu?: string }) => void; onAdd: (text: string) => void }) {
   const [moi, setMoi] = useState('');
   const [err, setErr] = useState<Record<number, string>>({});
+  const rows = showDone ? y.buoc : y.buoc.filter((b) => !DA_XONG.has(b.trang_thai));   // bước đã xong gấp vào một dòng
+  const nAn = y.buoc.length - rows.length;
   const save = (b: Buoc, p: { trang_thai?: string; ket_qua?: string; ghi_chu?: string }) => {
     const next = { trang_thai: p.trang_thai ?? b.trang_thai, ket_qua: p.ket_qua ?? b.ket_qua, ghi_chu: p.ghi_chu ?? b.ghi_chu };
     const e = next.trang_thai === 'Xong' && !next.ket_qua.trim() ? 'Xong phải có kết quả — điền ô Kết quả trước'
@@ -217,8 +225,13 @@ function BuocTable({ y, onPatch, onAdd }: { y: HangMuc; onPatch: (buocId: number
   };
   return (
     <div>
-      {y.buoc.length === 0 ? <span style={mono}>chưa có bước</span> : (
-        <SimpleTable rows={y.buoc} getRowKey={(b) => String(b.id)} rowStyle={(b) => tint(b.trang_thai)} columns={[
+      {(nAn > 0 || (showDone && y.buoc.some((b) => DA_XONG.has(b.trang_thai)))) && (
+        <button type="button" onClick={onToggleDone} style={{ ...linkBtn, ...mono, display: 'block', margin: '2px 0 6px' }}>
+          {showDone ? '▾ ẩn bước đã xong' : `▸ ${nAn} bước đã xong · hiện`}
+        </button>
+      )}
+      {y.buoc.length === 0 ? <span style={mono}>chưa có bước</span> : rows.length === 0 ? null : (
+        <SimpleTable rows={rows} getRowKey={(b) => String(b.id)} rowStyle={(b) => tint(b.trang_thai)} columns={[
           { key: 'n', header: '#', width: 28, cell: (b) => <span style={mono}>{b.thu_tu}</span> },
           { key: 'b', header: 'Bước', cell: (b) => <div>{b.buoc}{err[b.id] && <div style={{ color: 'var(--neon-red, #ff6b6b)', fontSize: 11, marginTop: 2 }}>{err[b.id]}</div>}</div> },
           { key: 'tt', header: 'Trạng thái', width: 96, cell: (b) => (

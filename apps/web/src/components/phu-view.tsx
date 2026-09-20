@@ -112,7 +112,7 @@ export function PhuView({ data, projectId, host, phan: tab }: { data: PhuData; p
                     <td style={{ ...cell, ...mono }}>{cpc(f?.chi ?? 0, f?.click || f?.out || 0, Number(c.tieuChi.gia_click_toi_da) || 0.03)}</td>
                     <td style={cell} title={c.luat ? `luật đang chịu (${c.luat.khop.length}): ${c.luat.khop.map((l) => l.ten).join(' · ')}` : undefined}>
                       <Pill color={PHU_PHAN_XET[px.ma]?.color ?? 'var(--fg-3)'} label={PHU_PHAN_XET[px.ma]?.label ?? px.ma} />
-                      <div style={{ color: 'var(--fg-3)', fontSize: 10, marginTop: 3 }}>{px.lyDo}</div>
+                      <div style={{ color: px.ma === 'nghi' || px.ma === 'dung' ? 'var(--fg-2)' : 'var(--fg-3)', fontSize: 11, marginTop: 3, maxWidth: 360, lineHeight: 1.35 }}>{px.lyDo}</div>
                       {c.luat && (() => { const sap = sapCham(c.luat); return (
                         <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 3, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                           {sap.length > 0 && <span title="luật gần chạm nhất — giá trị hiện tại / ngưỡng">sắp: {sap.map((l) => `${l.ma} ${l.ve.slice().sort((a, b) => (a.ti_le ?? 0) - (b.ti_le ?? 0))[0]?.doc ?? ''}`).join(' · ')}</span>}

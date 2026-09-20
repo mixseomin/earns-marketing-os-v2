@@ -113,10 +113,14 @@ export function phanXet(c: PhuCamp, today = new Date()): { ma: 'cho' | 'mo_rong'
   }
   if (c.trangThai !== 'chay') {
     // camp đang dừng: lý do = lần đổi trạng thái gần nhất (máy pause theo luật nào / tay dừng), rồi số hiện tại luật nói gì
+    // Câu cho người đọc (20/09: "tam_dung — máy chay→tam_dung 09-19 23:25: máy pause: K3p Tạm dừng: CPC thực 0.00503…" anh không hiểu):
+    // ai dừng · lúc nào · vì luật nào (một câu) · luật nào đang chạm thêm (mã, để mở drawer xem).
     const d = c.doiCuoi;
-    const vi = d ? `${d.nguon === 'may' ? 'máy' : d.nguon === 'db' ? 'sổ' : d.nguon} ${d.cu ?? '?'}→${d.moi ?? '?'} ${d.luc.slice(5, 16)}${d.lyDo ? `: ${d.lyDo}` : ''}` : '';
-    const gio = c.luat && c.luat.cham.length ? ` · luật hiện chạm: ${c.luat.cham.map((k) => k.ma).join(', ')}` : '';
-    return { ma: 'nghi', lyDo: `${c.trangThai}${vi ? ` — ${vi}` : ''}${gio}`, xemLai };
+    const ai = d ? (d.nguon === 'may' ? 'Máy tự dừng' : d.nguon === 'db' ? 'Dừng theo sổ' : `${d.nguon} dừng`) : (c.trangThai === 'tam_dung' ? 'Đang tạm dừng' : c.trangThai);
+    const luc = d ? ` ${d.luc.slice(8, 10)}/${d.luc.slice(5, 7)} ${d.luc.slice(11, 16)}` : '';
+    const vi = d?.lyDo ? ` — ${d.lyDo.replace(/^máy pause: /, '').replace(/^K\w+ Tạm dừng: /, '')}` : '';
+    const gio = c.luat && c.luat.cham.length ? ` · luật đang chạm: ${c.luat.cham.map((k) => k.ma).join(', ')}` : '';
+    return { ma: 'nghi', lyDo: `${ai}${luc}${vi}${gio}`, xemLai };
   }
   if (!c.luat) return { ma: 'cho', lyDo: 'bộ luật chưa chấm được (be.adfond không trả lời) — không dừng gì', xemLai };
   return { ma: c.luat.ma, lyDo: c.luat.lyDo, xemLai };

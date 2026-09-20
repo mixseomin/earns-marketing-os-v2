@@ -54,7 +54,8 @@ export function AppShell({
   // Tiêu đề tab = màn + dự án (tầng khung, ưu tiên 1); trang/view đặt cụ thể hơn thì đè lên. Không có tab → lấy đoạn đầu của path.
   const pathname = usePathname();
   const manLabel = tab ? TAB_TIEU_DE[tab] : pathname === '/' ? 'Tổng quan' : (pathname.split('/').filter(Boolean)[0] ?? '').replace(/-/g, ' ').replace(/^\w/, (c: string) => c.toUpperCase());
-  useTieuDe([manLabel, project?.name ?? (isPortfolio ? 'Mọi dự án' : undefined)], 1);
+  // Tên dự án chỉ khi trang THUỘC dự án (có tab); trang toàn tenant (/inbox, /team…) vẫn nhận `project` làm ngữ cảnh khung nên không đưa vào tiêu đề.
+  useTieuDe([manLabel, tab && project ? project.name : isPortfolio ? 'Mọi dự án' : undefined], 1);
 
   // Close mobile sidebar on route change
   useEffect(() => { setMobileNavOpen(false); }, [project?.id, tab, isPortfolio]);

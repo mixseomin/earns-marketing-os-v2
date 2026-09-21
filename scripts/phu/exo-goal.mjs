@@ -27,7 +27,9 @@ try {
     } catch { /* box2 không trả lời → để lần sau */ }
     if (!tok) { thieu++; continue; }
     const r = await fetch(`http://s.magsrv.com/tag.php?goal=${GOAL}&tag=${encodeURIComponent(tok)}`).catch((x) => ({ ok: false, status: 0, statusText: String(x) }));
-    await sql`UPDATE phu_su_kien SET raw = raw || ${JSON.stringify({ exo_goal: `${r.status} ${new Date().toISOString().slice(0, 16)}` })}::jsonb WHERE id = ${e.id}`;
+    // jsonb_set, KHÔNG `raw || ${json}::jsonb`: postgres.js gửi chuỗi JSON thành JSON-string → object || string = mảng [obj,"…"],
+    // raw->>'exo_goal' vẫn NULL → bắn lại mỗi 15 phút (đo 21/09/2026: 15 dòng phình 14 phần tử).
+    await sql`UPDATE phu_su_kien SET raw = jsonb_set(raw, '{exo_goal}', to_jsonb(${`${r.status} ${new Date().toISOString().slice(0, 16)}`}::text)) WHERE id = ${e.id}`;
     if (r.ok) ok++;
   }
   console.log(new Date().toISOString(), `exo-goal: ${ok} bắn / ${thieu} chưa có token / ${cho.length} chờ`);

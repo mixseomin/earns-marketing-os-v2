@@ -62,10 +62,11 @@ for (const ten of LOGS) {
       if (c.length < (la ? 5 : 6)) continue;
       const ts = c[0], ua = la ? c[3] : c[4], ip = la ? c[4] : c[5], ref = la ? c[2] : c[3];
       if (k === 'xmua') {
+        // c[2] = cửa ĐÃ CHIA ($x_cua, 21/09): 25% click jm-* đi bc-rs (BongaCams) qua split_clients trên box2 — không phải $arg_d thô.
         if (IP_THU.has(ip)) continue;
         const bot = c[6] === '1' || BOT.test(ua);
         const zone = (c[1] || '').split('_')[2] || '';
-        events.push({ ts, loai: bot ? 'bot' : 'out', sid: c[1] || undefined, platform: /^cb/.test(c[2]) ? 'chaturbate' : /^jm/.test(c[2]) ? 'jerkmate' : /^candy/.test(c[2]) ? 'candy-ai' : c[2],
+        events.push({ ts, loai: bot ? 'bot' : 'out', sid: c[1] || undefined, platform: /^cb/.test(c[2]) ? 'chaturbate' : /^jm/.test(c[2]) ? 'jerkmate' : /^bc/.test(c[2]) ? 'bongacams' : /^candy/.test(c[2]) ? 'candy-ai' : c[2],
           mang: 'exoclick', ma_don: createHash('sha1').update(line).digest('hex').slice(0, 24), nguon_du_lieu: 'log-xmua', raw: { d: c[2], zone, ua: ua.slice(0, 120), ip } });
         docThem++;
         continue;

@@ -158,7 +158,8 @@ try {
     for (const z of chan) {
       const id = theoPrefix.get(z.sid_prefix);
       if (!id) continue;
-      // PUT zones THAY CẢ DANH SÁCH (20/09: chặn zone thứ 5 làm 4 zone trước hết chặn) → đọc danh sách đang có, cộng thêm rồi ghi
+      // PUT zones THAY CẢ DANH SÁCH (20/09: chặn zone thứ 5 làm 4 zone trước hết chặn) → đọc danh sách đang có, cộng thêm rồi ghi.
+      // Danh sách trả về không có type (zone_targeting.type 2 = cả list là chặn); zones:[] bị bỏ qua — muốn gỡ hết thì thay bằng 1 zone rác.
       let cu = [];
       try { cu = ((await get(`/campaigns/${id}`)).result?.zones ?? []).map((x) => ({ id: Number(x.idzone ?? x.id), type: x.type ?? 'blocked' })); } catch { /* không đọc được thì ghi mỗi zone mới */ }
       const zones = [...cu.filter((x) => x.id !== Number(z.zone_id)), { id: Number(z.zone_id), type: 'blocked' }];

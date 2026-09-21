@@ -21,8 +21,9 @@ try {
     // token đầy đủ = phần sau "<mạng>_<nhãn>_<zone>_" của $arg_s. Cột 2 log = sid ngắn y hệt sid DB (cắt 24 ký tự HOẶC tại '_' đầu
     // tiên của token) → grep đúng ô \t<sid>\t. KHÔNG thêm '_' sau sid: token có '_' (vd otdPLNHNTXHNdPHPU7_dTqK…) thì cột 2 kết thúc
     // ngay trước '_' → mẫu "<sid>_" không khớp, 4 signup 19-21/09 chưa bao giờ bắn.
-    let tok = '';
-    try {
+    // Token cất vào raw.exo_tok: log box2 xoá sau 14 ngày (logrotate), sale/rebill về sau (cùng sid) vẫn còn token để bắn goal khác.
+    let tok = (await sql`SELECT raw->>'exo_tok' AS t FROM phu_su_kien WHERE sid = ${e.sid} AND raw->>'exo_tok' IS NOT NULL LIMIT 1`)[0]?.t || '';
+    if (!tok) try {
       const line = execFileSync('ssh', ['-o', 'BatchMode=yes', BOX2, `zgrep -h -m1 -F $'\\t${e.sid}\\t' ${LOGS} 2>/dev/null | head -1`], { encoding: 'utf8' }).trim();
       const s = line.split('\t')[7] || '';
       tok = s.split('_').slice(3).join('_');
@@ -32,7 +33,7 @@ try {
     if (r.status === 0) { thieu++; continue; } // mạng lỗi → chưa ghi dấu, 15 phút sau bắn lại
     // jsonb_set, KHÔNG `raw || ${json}::jsonb`: postgres.js gửi chuỗi JSON thành JSON-string → object || string = mảng [obj,"…"],
     // raw->>'exo_goal' vẫn NULL → bắn lại mỗi 15 phút (đo 21/09/2026: 15 dòng phình 14 phần tử).
-    await sql`UPDATE phu_su_kien SET raw = jsonb_set(raw, '{exo_goal}', to_jsonb(${`${r.status} ${new Date().toISOString().slice(0, 16)}`}::text)) WHERE id = ${e.id}`;
+    await sql`UPDATE phu_su_kien SET raw = raw || jsonb_build_object('exo_goal', ${`${r.status} ${new Date().toISOString().slice(0, 16)}`}::text, 'exo_tok', ${tok}::text) WHERE id = ${e.id}`;
     if (r.ok) ok++;
   }
   console.log(new Date().toISOString(), `exo-goal: ${ok} bắn / ${thieu} chưa có token / ${cho.length} chờ`);

@@ -1083,12 +1083,26 @@ export function BacklinksPage({ projectId, slug, siteLabel, tasks, followups = [
   // (don't disrupt reading/inline edits) and backgrounded tabs. Header checkbox toggles `realtime`.
   // Chế độ ĐỌC cũng nằm ngoài như list: mỗi lần refresh là kéo lại nguyên payload trang (~2,8 MB)
   // và dựng lại cả cột bài — đang đọc thì đó là giật, không phải "live".
+  // Poll DẤU VÂN TAY (/api/plays/version ≈ 100 byte) mỗi 10s, chỉ router.refresh() khi có thay đổi — refresh mù mỗi 10s là
+  // kéo lại 3,6 MB payload và dựng lại cả board (đo 20/09/2026: điện thoại nóng ở /plays).
   useEffect(() => {
     // Tiến độ tự poll gọn bên trong view (danh sách + bước đang mở), không kéo lại cả payload trang.
     if (!realtime || view === 'list' || view === 'feed' || view === 'tiendo') return;
-    const id = setInterval(() => { if (!document.hidden) start(() => router.refresh()); }, 10000);
+    let last: string | null = null, busy = false;
+    const tick = async () => {
+      if (document.hidden || busy) return;
+      busy = true;
+      try {
+        const r = await fetch(`/api/plays/version${allProjects ? '' : `?project=${encodeURIComponent(projectId)}`}`, { cache: 'no-store' });
+        if (!r.ok) return;
+        const { v } = await r.json() as { v: string };
+        if (last !== null && v !== last) start(() => router.refresh());
+        last = v;
+      } catch { /* mạng lỗi: thử lại nhịp sau */ } finally { busy = false; }
+    };
+    const id = setInterval(tick, 10000);
     return () => clearInterval(id);
-  }, [realtime, view, router]);
+  }, [realtime, view, router, allProjects, projectId]);
   const [groupBy, setGroupBy] = useState<'none' | 'platform' | 'status' | 'readiness'>(['platform', 'status', 'readiness'].includes(sp.get('group') || '') ? (sp.get('group') as 'platform' | 'status' | 'readiness') : 'none');
 
   const openTask = (id: number) => setOpenId(id);

@@ -23,7 +23,7 @@ export const TWEAK_DEFAULTS: Tweaks = {
   columnCount: 5,
   showSidebar: true,
   showRightbar: false,
-  animation: true,
+  animation: false,   // pulse vô hạn tốn ~10% một lõi liên tục (đo 20/09/2026) — mặc định tắt, ai thích thì bật
   accent: 'auto',
   lang: 'vi',
   livePolling: true,

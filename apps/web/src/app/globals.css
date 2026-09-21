@@ -3,6 +3,16 @@
    Mission Control aesthetic — dark/light, neon accents, dense
    ============================================================ */
 
+/* NHỊP ĐẬP TRANG TRÍ (pulse vô hạn: chấm live, chữ live, nút seg nhấp nháy…) đo 20/09/2026: 5 animation
+   ăn ~10% một lõi LIÊN TỤC dù trang đứng yên (tab SEO), tắt hết → 0,1% → điện thoại nóng vì đúng thứ này.
+   Luật một chỗ cho cả app: animation vô hạn chỉ chạy khi tweak Animation BẬT, có con trỏ chuột thật (không
+   phải màn cảm ứng) và người dùng không giảm chuyển động. Cách chặn = iteration-count 1 (fade-in một lần vẫn
+   chạy; vòng lặp thì dừng sau một nhịp), !important để thắng cả animation ghi inline (statusbar, rightbar). */
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-iteration-count: 1 !important; }
+}
+.app[data-anim="off"] *, .app[data-anim="off"] *::before, .app[data-anim="off"] *::after { animation-iteration-count: 1 !important; }
+
 :root {
   /* Dark (default) — Mission Control */
   --bg-0: #07090d;

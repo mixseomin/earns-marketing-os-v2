@@ -80,8 +80,9 @@ if (KHO) {
 if (!KEY) { console.error('thiếu MOS2_EXT_KEY'); process.exit(1); }
 
 const bao = async (ok, note, chi = [], camp = [], nguon = undefined, zone = [], zone_chan_xong = [], camp_dung_xong = []) => {
+  // zone_tich_luy: /statistics/a/zone bỏ qua date_from/to, trả cộng dồn cả đời camp (đo 21/09) → MOS2 giữ lát mới nhất, không SUM theo ngày
   const res = await fetch(`${MOS2}/api/phu/ingest`, { method: 'POST', headers: { authorization: `Bearer ${KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ project: PROJECT, chi, camp, nguon, zone, zone_chan_xong, camp_dung_xong, adapter: { key: M.adapter, name: `${M.name.split(' ')[0]} API v2 EXADS (chi/ngày × camp, balance, zone)`, loai: 'cron', lich: '2h + chốt hôm qua 00:15', ok, note } }) });
+    body: JSON.stringify({ project: PROJECT, chi, camp, nguon, zone, zone_tich_luy: true, zone_chan_xong, camp_dung_xong, adapter: { key: M.adapter, name: `${M.name.split(' ')[0]} API v2 EXADS (chi/ngày × camp, balance, zone)`, loai: 'cron', lich: '2h + chốt hôm qua 00:15', ok, note } }) });
   const txt = await res.text().catch(() => '');
   console.log(new Date().toISOString(), KEY_MANG + ':', res.status, note, txt.slice(0, 300));
   try { return JSON.parse(txt); } catch { return null; }
@@ -157,7 +158,11 @@ try {
     for (const z of chan) {
       const id = theoPrefix.get(z.sid_prefix);
       if (!id) continue;
-      const r = await fetch(`${API}/campaigns/${id}`, { method: 'PUT', headers: H, body: JSON.stringify({ zones: [{ id: Number(z.zone_id), type: 'blocked' }] }) });
+      // PUT zones THAY CẢ DANH SÁCH (20/09: chặn zone thứ 5 làm 4 zone trước hết chặn) → đọc danh sách đang có, cộng thêm rồi ghi
+      let cu = [];
+      try { cu = ((await get(`/campaigns/${id}`)).result?.zones ?? []).map((x) => ({ id: Number(x.idzone ?? x.id), type: x.type ?? 'blocked' })); } catch { /* không đọc được thì ghi mỗi zone mới */ }
+      const zones = [...cu.filter((x) => x.id !== Number(z.zone_id)), { id: Number(z.zone_id), type: 'blocked' }];
+      const r = await fetch(`${API}/campaigns/${id}`, { method: 'PUT', headers: H, body: JSON.stringify({ zones }) });
       const t = await r.text();
       xong.push({ sid_prefix: z.sid_prefix, zone_id: z.zone_id, ok: r.ok, ghi_chu: `${z.luat}: ${z.ly_do}${r.ok ? '' : ' · API ' + r.status + ' ' + t.slice(0, 120)}` });
     }

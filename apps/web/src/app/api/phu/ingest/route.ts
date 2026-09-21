@@ -15,7 +15,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { checkAuth } from '../../ext/_auth';
-import { sidPrefix, chamZone, phanXet } from '@/lib/phu-shared';
+import { sidPrefix, chamZone, NGUONG_ZONE, phanXet } from '@/lib/phu-shared';
 import { getPhu } from '@/lib/phu';
 
 export const dynamic = 'force-dynamic';
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   if (denied) return denied;
   const db = getDb();
   if (!db) return NextResponse.json({ ok: false, error: 'db' }, { status: 503 });
-  const b = (await req.json()) as { project?: string; events?: Ev[]; chi?: Chi[]; landers?: Ld[]; camp?: Cp[]; nguon?: Ng; zone?: Zn[]; zone_chan_xong?: Zx[]; camp_dung_xong?: { sid_prefix: string; ok: boolean; ghi_chu?: string }[]; adapter?: { key: string; name: string; loai?: string; lich?: string; ok: boolean; note?: string } };
+  const b = (await req.json()) as { project?: string; events?: Ev[]; chi?: Chi[]; landers?: Ld[]; camp?: Cp[]; nguon?: Ng; zone?: Zn[]; zone_tich_luy?: boolean; zone_chan_xong?: Zx[]; camp_dung_xong?: { sid_prefix: string; ok: boolean; ghi_chu?: string }[]; adapter?: { key: string; name: string; loai?: string; lich?: string; ok: boolean; note?: string } };
   const project = String(b.project ?? '').trim();
   if (!project) return NextResponse.json({ ok: false, error: 'thiếu project' }, { status: 400 });
   let ev = 0, chi = 0, ld = 0;
@@ -105,6 +105,12 @@ export async function POST(req: Request) {
   }
   // Zone: ghi số mạng, rồi chấm ngay tại đây (có DB, có hit /x/) — adapter chỉ cần cầm danh sách đi chặn.
   let zn = 0; const zoneChan: Array<{ sid_prefix: string; zone_id: string; luat: string; ly_do: string }> = [];
+  // zone_tich_luy: mạng trả số CỘNG DỒN cả đời camp, không theo ngày (ExoClick /statistics/a/zone bỏ qua date_from/to — đo 21/09:
+  // 17/09, 18/09, 20/09, 21/09 đều trả cùng 6.036 click). Giữ một lát cắt mới nhất, xoá lát cũ — SUM theo ngày sẽ nhân ba số click.
+  if (b.zone_tich_luy && b.zone?.length) {
+    const ps = [...new Set(b.zone.map((z) => z.sid_prefix))]; const ng = b.zone[0]?.ngay ?? new Date().toISOString().slice(0, 10);
+    await db.execute(sql`DELETE FROM phu_zone WHERE project_id = ${project} AND ngay <> ${ng}::date AND sid_prefix IN (${sql.join(ps.map((x) => sql`${x}`), sql`, `)})`);
+  }
   for (const z of b.zone ?? []) {
     if (!z.sid_prefix || z.zone_id == null || !z.ngay) continue;
     await db.execute(sql`
@@ -118,20 +124,28 @@ export async function POST(req: Request) {
     const prefixes = [...new Set((b.zone ?? []).map((z) => z.sid_prefix))];
     const zs = (await db.execute(sql`
       SELECT z.sid_prefix, z.zone_id, SUM(z.impressions)::float8 AS impressions, SUM(z.clicks)::float8 AS clicks, SUM(z.chi_usd)::float8 AS chi,
-             COALESCE(h.hits, 0)::float8 AS hits, COALESCE(h.bots, 0)::float8 AS bots, c.trang_thai AS chan
+             COALESCE(h.hits, 0)::float8 AS hits, COALESCE(h.bots, 0)::float8 AS bots, COALESCE(s.signups, 0)::float8 AS signups, c.trang_thai AS chan,
+             (pc.tieu_chi->>'hit_tren_click')::float8 AS hit_tren_click
         FROM phu_zone z
         LEFT JOIN (SELECT sid_prefix, raw->>'zone' AS zone_id, COUNT(*) FILTER (WHERE loai = 'out') AS hits, COUNT(*) FILTER (WHERE loai = 'bot') AS bots
                      FROM phu_su_kien WHERE project_id = ${project} AND nguon_du_lieu = 'log-xmua' GROUP BY 1, 2) h ON h.sid_prefix = z.sid_prefix AND h.zone_id = z.zone_id
+        LEFT JOIN (SELECT sid_prefix, split_part(sid, '_', 3) AS zone_id, COUNT(*) AS signups
+                     FROM phu_su_kien WHERE project_id = ${project} AND loai IN ('signup', 'lead', 'sale') GROUP BY 1, 2) s ON s.sid_prefix = z.sid_prefix AND s.zone_id = z.zone_id
         LEFT JOIN phu_zone_chan c ON c.project_id = z.project_id AND c.sid_prefix = z.sid_prefix AND c.zone_id = z.zone_id
+        LEFT JOIN phu_camp pc ON pc.project_id = z.project_id AND pc.sid_prefix = z.sid_prefix
        WHERE z.project_id = ${project} AND z.sid_prefix IN (${sql.join(prefixes.map((x) => sql`${x}`), sql`, `)})
-       GROUP BY z.sid_prefix, z.zone_id, h.hits, h.bots, c.trang_thai`)) as unknown as Array<{ sid_prefix: string; zone_id: string; impressions: number; clicks: number; chi: number; hits: number; bots: number; chan: string | null }>;
+       GROUP BY z.sid_prefix, z.zone_id, h.hits, h.bots, s.signups, c.trang_thai, pc.tieu_chi`)) as unknown as Array<{ sid_prefix: string; zone_id: string; impressions: number; clicks: number; chi: number; hits: number; bots: number; signups: number; chan: string | null; hit_tren_click: number | null }>;
     // Camp không có hit ở BẤT KỲ zone nào = đường đo chết, không phải mọi zone đều bẩn → không chấm K1 cho camp đó (cùng luật P2 cấp camp).
     const hitCamp = new Map<string, number>();
     for (const z of zs) hitCamp.set(z.sid_prefix, (hitCamp.get(z.sid_prefix) ?? 0) + Number(z.hits) + Number(z.bots));
     for (const z of zs) {
       if (z.chan === 'da_chan' || z.chan === 'bo_qua') continue;
       if (!(hitCamp.get(z.sid_prefix) ?? 0)) continue;
-      const kq = chamZone({ impressions: Number(z.impressions), clicks: Number(z.clicks), chi: Number(z.chi), hits: Number(z.hits), bots: Number(z.bots) });
+      // Zone đã ra signup = người thật → K1/P2 (đo "tới máy mình") không chặn; 20/09 P2 chặn nhầm 2 zone ra 9/17 signup.
+      if (Number(z.signups) > 0) continue;
+      // P2 cấp zone cùng ngưỡng camp: khai hit_tren_click mới chấm (native mất 40–50% giữa click mạng và hit lander là thường)
+      const kq = chamZone({ impressions: Number(z.impressions), clicks: Number(z.clicks), chi: Number(z.chi), hits: Number(z.hits), bots: Number(z.bots) },
+        { ...NGUONG_ZONE, P2_ti_le: z.hit_tren_click == null ? 0 : Number(z.hit_tren_click) });
       if (!kq) continue;
       await db.execute(sql`
         INSERT INTO phu_zone_chan (project_id, sid_prefix, zone_id, luat, ly_do, trang_thai)

@@ -53,8 +53,6 @@ const SITE_META: Record<string, { project?: string; emoji: string; review?: stri
   'chatwhenbored.com': { project: 'adfond', emoji: '💬', review: '2026-09-28' },
   'orabra.com': { project: 'bra', emoji: '🩱' },  // shop Shopdy bán Vesnacharm (Bra Shop, chiến lược #19 be.adfond) — chạy Google Ads asfy_06 từ 16/09; KHÔNG có GSC (site của Shopdy, không verify được), chỉ GA4 554184022 → hiện nhờ nhánh GA4-only bên dưới  // lên sóng 14/09 (site tĩnh box2, cam/AI-companion affiliate; cards + trang PHỦ nằm ở project adfond cùng hotel-arb/jobzab); review đầu sau 2 tuần: chỉ xem index + impressions cụm 'omegle alternative', chưa có gì để chỉnh
   // Các shop Shopdy khác của dự án bra — cùng kiểu orabra: không GSC, chỉ GA4 (nhánh GA4-only bên dưới).
-  'tammycharm.com': { project: 'bra', emoji: '🩱' },
-  'hushflex.com': { project: 'bra', emoji: '🩱' },
   'junomuse.com': { project: 'bra', emoji: '👖' },  // quần stretch, Google Ads asfy_09 từ 23/09
   'vickiwear.com': { project: 'bra', emoji: '👖' },  // quần cargo, Google Ads asfy_10 từ 23/09
   'elliechic.com': { project: 'bra', emoji: '🩱' },  // bra cài trước, Google Ads asfy_09 từ 23/09

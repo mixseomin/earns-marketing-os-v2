@@ -53,6 +53,126 @@ export async function loginWithPassword(email: string, password: string): Promis
   return { ok: true, userId: Number(r.id) };
 }
 
+// ── SSO .on.tc: một lần đăng nhập Google cho cả nhà ─────────────────
+// Cổng Google đã chạy ở stm.on.tc (/_sso, nginx auth_request) đặt cookie ký HMAC trên
+// TOÀN miền .on.tc. MOS2 chỉ việc đọc cookie đó, kiểm chữ ký, rồi cấp PHIÊN MOS2 bình
+// thường — mọi guard/role/impersonate phía sau không phải biết Google là gì.
+// Vì sao không gắn thẳng nút Google vào mos2.on.tc: origin JS phải đăng ký trong GCP
+// console, mà Google không mở API cho việc đó (chỉ bấm tay trong console). Cổng chung
+// vừa né được chỗ đó vừa đúng nghĩa SSO: đăng nhập một lần dùng cho mọi host .on.tc.
+// app_settings key='sso_on_tc' = { cookie, gate, verify, map }. MOS2 KHÔNG giữ khoá ký của cổng:
+// nó gửi nguyên cookie sang cửa /_sso/whoami.php của cổng và nhận về email — khoá ở lại box1,
+// một chỗ duy nhất. map = { "google@gmail.com": "user@mos2" } khi hai email khác nhau.
+// ponytail: ánh xạ để trong config, chưa cần cột users.google_email — thêm cột khi nhiều người cần map.
+type SsoCfg = {
+  cookie: string;                                            // tên cookie cổng đặt trên .on.tc
+  gate: string;                                              // trang đăng nhập của cổng
+  verify: { host: string; ip?: string; path: string };       // cửa hỏi "cookie này của ai"
+  map: Record<string, string>;                               // email Google → email tài khoản MOS2
+};
+let ssoCache: { at: number; cfg: SsoCfg | null } = { at: 0, cfg: null };
+
+/** Cấu hình cổng nằm ở app_settings key='sso_on_tc' (cùng chỗ với config khác của MOS2). Không có
+ *  khoá ký nào ở đây: MOS2 KHÔNG tự kiểm chữ ký, nó hỏi cổng — khoá ở lại một chỗ duy nhất. */
+async function ssoCfg(): Promise<SsoCfg | null> {
+  if (Date.now() - ssoCache.at < 300_000) return ssoCache.cfg;
+  const db = getDb();
+  let cfg: SsoCfg | null = null;
+  if (db) {
+    const r = await db.execute(sql`SELECT value FROM app_settings WHERE key = 'sso_on_tc' LIMIT 1`);
+    const v = (r as unknown as Array<{ value: Partial<SsoCfg> }>)[0]?.value;
+    if (v?.cookie && v?.gate && v?.verify?.host && v?.verify?.path) {
+      cfg = { cookie: v.cookie, gate: v.gate, verify: v.verify, map: v.map ?? {} };
+    }
+  }
+  ssoCache = { at: Date.now(), cfg };
+  return cfg;
+}
+
+function ssoAlias(cfg: SsoCfg, email: string): string {
+  for (const [g, u] of Object.entries(cfg.map)) {
+    if (g.trim().toLowerCase() === email) return String(u).trim().toLowerCase();
+  }
+  return email;   // không khai báo → thử đúng email đó trong bảng users
+}
+
+/** Lấy giá trị cookie cổng trong header Cookie. Tách riêng để bài kiểm chạy được (scripts/check-sso-cookie.mjs). */
+export function docCookieCong(cookieHeader: string, ten: string): string | null {
+  const m = cookieHeader.match(new RegExp('(?:^|;\\s*)' + ten.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]+)'));
+  return m?.[1] ?? null;
+}
+
+/** URL cổng Google, kèm đường quay lại. Rỗng = chưa cấu hình → trang login chỉ có email+mật khẩu. */
+export async function ssoGateUrl(next: string): Promise<string> {
+  const cfg = await ssoCfg();
+  if (!cfg) return '';
+  const base = (process.env.NEXT_PUBLIC_BASE_URL || 'https://mos2.on.tc').replace(/\/$/, '');
+  const back = next.startsWith('http') ? next : base + (next.startsWith('/') ? next : '/' + next);
+  return `${cfg.gate}${cfg.gate.includes('?') ? '&' : '?'}next=${encodeURIComponent(back)}`;
+}
+
+/** Hỏi cổng: cookie này của ai. Đi THẲNG vào origin box1 (verify.ip) chứ không qua Cloudflare —
+ *  WAF của zone chặn request không phải trình duyệt (đo được 403). TLS vẫn kiểm theo tên host. */
+async function hoiCong(cfg: SsoCfg, cookieValue: string): Promise<string | null> {
+  const { request } = await import('node:https');
+  return new Promise((resolve) => {
+    const req = request({
+      host: cfg.verify.ip || cfg.verify.host,
+      servername: cfg.verify.host,
+      port: 443,
+      path: cfg.verify.path,
+      method: 'GET',
+      timeout: 5000,
+      headers: { Host: cfg.verify.host, Cookie: `${cfg.cookie}=${cookieValue}`, 'User-Agent': 'mos2-sso' },
+    }, (res) => {
+      let body = '';
+      res.setEncoding('utf8');
+      res.on('data', (c: string) => { body += c; if (body.length > 4096) req.destroy(); });
+      res.on('end', () => resolve(docTraLoiCong(body)));
+    });
+    req.on('error', () => resolve(null));
+    req.on('timeout', () => { req.destroy(); resolve(null); });
+    req.end();
+  });
+}
+
+/** Đọc câu trả lời của cổng ({"email": "…"} hoặc {"email": null}). Tách riêng để bài kiểm chạy được. */
+export function docTraLoiCong(body: string): string | null {
+  try {
+    const j = JSON.parse(body) as { email?: unknown };
+    const e = typeof j.email === 'string' ? j.email.trim().toLowerCase() : '';
+    return e.includes('@') ? e : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Có cookie SSO hợp lệ + email ứng với một tài khoản MOS2 đang hoạt động → cấp phiên luôn.
+ *  Gọi ở /login: mọi trang chưa đăng nhập đều rơi về đó, nên một chỗ là đủ. */
+export async function loginWithOnTcSso(): Promise<{ ok: boolean; error?: string }> {
+  const cfg = await ssoCfg();
+  if (!cfg) return { ok: false };
+  const raw = (await headers()).get('cookie') || '';
+  const val = docCookieCong(raw, cfg.cookie);
+  if (!val) return { ok: false };
+  const email = await hoiCong(cfg, val);
+  if (!email) return { ok: false };
+  const db = getDb();
+  if (!db) return { ok: false, error: 'DB not available' };
+  const rows = await db.execute(sql`
+    SELECT u.id, COALESCE(m.active, TRUE) AS active
+    FROM users u LEFT JOIN members m ON m.user_id = u.id AND m.project_id IS NULL
+    WHERE u.tenant_id = ${TENANT} AND lower(u.email) = ${ssoAlias(cfg, email)}
+    LIMIT 1
+  `);
+  const r = (rows as unknown as Array<{ id: number; active: boolean }>)[0];
+  if (!r) return { ok: false, error: `${email} chưa có tài khoản trên MOS2` };
+  if (!r.active) return { ok: false, error: 'Tài khoản đã bị khoá' };
+  await createSession(Number(r.id));
+  await db.execute(sql`UPDATE users SET last_login_at = NOW() WHERE id = ${r.id}`);
+  return { ok: true };
+}
+
 // ── Set / reset password (admin sets for member, or self) ──────────
 export async function setUserPassword(userId: number, newPassword: string): Promise<{ ok: boolean; error?: string }> {
   if (!newPassword || newPassword.length < 8) return { ok: false, error: 'Password tối thiểu 8 ký tự' };

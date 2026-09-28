@@ -102,6 +102,14 @@ export function docCookieCong(cookieHeader: string, ten: string): string | null 
   return m?.[1] ?? null;
 }
 
+/** Đích tuyệt đối cho redirect của route handler. KHÔNG dựng từ req.url: sau nginx, Next lấy
+ *  host nội bộ nên Location ra "https://localhost:3821/..." và trình duyệt đi vào hư không. */
+export function duongVe(dest: string, reqUrl: string): string {
+  if (/^https?:\/\//i.test(dest)) return dest;
+  const base = process.env.NEXT_PUBLIC_BASE_URL || new URL(reqUrl).origin;
+  return new URL(dest, base.replace(/\/$/, '') + '/').toString();
+}
+
 /** Có cookie cổng trong request không (không hỏi cổng, không chạm DB) — trang /login dùng để
  *  quyết định có đẩy sang /api/auth/on-tc hay không. */
 export async function coCookieCong(): Promise<boolean> {

@@ -3,7 +3,7 @@
 // mos2.on.tc), re-issue the cookie widened to `.on.tc` so sibling subdomains see it, then
 // bounce back to `next`. Otherwise send them to /login. This avoids the host-only-cookie
 // redirect loop for sessions created before the domain was widened.
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, duongVe } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -26,9 +26,9 @@ export async function GET(req: NextRequest) {
   const next = safeNext(req.nextUrl.searchParams.get('next'));
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.redirect(new URL('/login?next=' + encodeURIComponent(next), req.url));
+    return NextResponse.redirect(duongVe('/login?next=' + encodeURIComponent(next), req.url));
   }
-  const dest = next.startsWith('http') ? next : new URL(next, req.url).toString();
+  const dest = duongVe(next, req.url);   // cùng lỗi host nội bộ như /api/auth/on-tc
   const res = NextResponse.redirect(dest);
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   if (token) {

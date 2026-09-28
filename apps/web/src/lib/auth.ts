@@ -102,12 +102,21 @@ export function docCookieCong(cookieHeader: string, ten: string): string | null 
   return m?.[1] ?? null;
 }
 
+/** Có cookie cổng trong request không (không hỏi cổng, không chạm DB) — trang /login dùng để
+ *  quyết định có đẩy sang /api/auth/on-tc hay không. */
+export async function coCookieCong(): Promise<boolean> {
+  const cfg = await ssoCfg();
+  if (!cfg) return false;
+  return docCookieCong((await headers()).get('cookie') || '', cfg.cookie) !== null;
+}
+
 /** URL cổng Google, kèm đường quay lại. Rỗng = chưa cấu hình → trang login chỉ có email+mật khẩu. */
 export async function ssoGateUrl(next: string): Promise<string> {
   const cfg = await ssoCfg();
   if (!cfg) return '';
   const base = (process.env.NEXT_PUBLIC_BASE_URL || 'https://mos2.on.tc').replace(/\/$/, '');
-  const back = next.startsWith('http') ? next : base + (next.startsWith('/') ? next : '/' + next);
+  // Đăng nhập xong cổng trả người dùng về ĐÚNG cửa đổi phiên, không phải về /login (đỡ một nhịp).
+  const back = `${base}/api/auth/on-tc?next=${encodeURIComponent(next)}`;
   return `${cfg.gate}${cfg.gate.includes('?') ? '&' : '?'}next=${encodeURIComponent(back)}`;
 }
 

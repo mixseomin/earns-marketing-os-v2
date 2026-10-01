@@ -1,3 +1,5 @@
+-- !! 02/10/2026: sản phẩm/NCC trong file này là bản đầu (mã DEMO, không ảnh) — anh chốt "sp, ncc, đối thủ phải thật": chạy tiếp
+-- !! demo-shop-2-that.sql để chuyển sang listing CJ thật (nguồn giả bị TẮT, không xoá).
 -- SHOP — cửa hàng GIẢ thứ hai "Lumi Bra (demo)" để xem bố cục /shop khi có nhiều shop (anh yêu cầu 01/10/2026).
 -- trang_thai='demo': máy đồng bộ bỏ qua (dsCuaHang chỉ lấy 'bat') nên không gọi CJ; mặt tiền không phục vụ; domain .invalid.
 -- Mã NCC đều mang tiền tố DEMO — không phải mã thật; NCC demo không nối API nên máy không gọi CJ. Không ảnh (không bịa URL ảnh).

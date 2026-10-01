@@ -40,13 +40,19 @@ async function boiCanh(ch: Chat, hoiThoai: { nguoi: string; noi_dung: string }[]
     if (d) don = await banKhach(ch.khoa, d.so_don, { email: ch.email });
   }
   const [ph] = ch.phien_id ? await q<{ trang_hien: string | null; gio_gia: string; chang: number }>(sql`SELECT trang_hien, gio_gia::text, chang FROM shop_phien WHERE id = ${ch.phien_id}`) : [];
+  // Sản phẩm khách ĐANG XEM (trang /<slug>) — đặt riêng lên đầu, đủ mô tả + bảng size + biến thể còn hàng, để trả lời đúng món đó
+  const slugXem = ph?.trang_hien?.replace(/^\//, '').split(/[?#/]/)[0] ?? '';
+  const xem = sps.find((p) => p.slug === slugXem) ?? null;
   const fact = [
+    xem ? `PRODUCT THE CUSTOMER IS VIEWING RIGHT NOW (answer about this product unless they name another):\n${xem.ten} - $${[...new Set(xem.gia.map(Number))].sort((a, b) => a - b).join(' / $')} - https://${ch.domain}/${xem.slug}\n`
+      + `${xem.tieu_de ? `Headline: ${xem.tieu_de}\n` : ''}Options: ${(xem.tuy_chon ?? []).map((t) => `${t.ten}: ${t.gia_tri.join(', ')}`).join(' | ')}\n`
+      + `In stock now: ${xem.con.join('; ') || 'none'}\nFull description: ${sach(xem.mo_ta, 3500)}` : '',
     `STORE: ${ch.ten_shop} (https://${ch.domain}). Support email: ${m.email ?? `support@${ch.domain}`}. We reply to email within 24 hours.`,
     `SHIPPING: ${m.ship.ten ?? 'Shipping'} ${m.ship.phi ? `$${m.ship.phi}` : 'free'} to the US only. Processing ${g.xu_ly.join('-')} ${g.ngay_lam_viec ? 'business ' : ''}days, delivery ${g.van_chuyen.join('-')} ${g.ngay_lam_viec ? 'business ' : ''}days. An order placed today is estimated to arrive ${eta}.`,
     `GUARANTEE: ${camKetGiao(g)}`,
     m.bac_giam.length ? `BUNDLE: ${m.bac_giam.map((b) => `${b.sl}+ items ${b.pt}% off`).join(', ')} (applied automatically in cart).` : '',
     m.dang_ky ? `NEWSLETTER: signing up in the site footer gives code ${m.dang_ky.ma}.` : '',
-    `PRODUCTS:\n${sps.map((p) => `- ${p.ten} ($${[...new Set(p.gia.map(Number))].sort((a, b) => a - b).join(' / $')}) https://${ch.domain}/${p.slug}\n  options: ${(p.tuy_chon ?? []).map((t) => `${t.ten}: ${t.gia_tri.join(', ')}`).join(' | ')}\n  in stock variants: ${p.con.slice(0, 40).join('; ') || 'none'}\n  about: ${sach(p.mo_ta, 500)}`).join('\n')}`,
+    `${xem ? 'OTHER PRODUCTS' : 'PRODUCTS'}:\n${sps.filter((p) => p !== xem).map((p) => `- ${p.ten} ($${[...new Set(p.gia.map(Number))].sort((a, b) => a - b).join(' / $')}) https://${ch.domain}/${p.slug}\n  options: ${(p.tuy_chon ?? []).map((t) => `${t.ten}: ${t.gia_tri.join(', ')}`).join(' | ')}\n  in stock variants: ${p.con.slice(0, 40).join('; ') || 'none'}\n  about: ${sach(p.mo_ta, 500)}`).join('\n')}`,
     `SHIPPING POLICY: ${sach(m.trang['orders-shipping']?.html, 2000)}`,
     `RETURNS POLICY: ${sach(m.trang['exchanges-returns']?.html, 2000)}`,
     (m.faq ?? []).length ? `FAQ:\n${m.faq!.map((f) => `Q: ${f.hoi}\nA: ${sach(f.dap, 600)}`).join('\n')}` : '',
@@ -61,6 +67,7 @@ async function boiCanh(ch: Chat, hoiThoai: { nguoi: string; noi_dung: string }[]
 
 const HE_THONG = `You are the customer support assistant for an online store. Answer the customer's latest message in friendly, natural US English, 1-4 short sentences.
 RULES:
+- If a PRODUCT THE CUSTOMER IS VIEWING is given, answer specifically about that product (its sizes, fit, materials, price) using its description; mention it by name.
 - Use ONLY the facts provided. If the facts don't answer it, say a team member will follow up by email shortly and ask for their email if it isn't known.
 - NEVER promise refunds, replacements, discounts, credits, cancellations or exceptions. If the customer asks for any of these, acknowledge kindly and say a team member will review it shortly. Mark group "sensitive".
 - NEVER invent order status, tracking events, dates or prices. For order questions without a verified order, ask for the order number and the email used at checkout.
@@ -73,7 +80,8 @@ async function goiMay(model: string, fact: string, hoiThoai: { nguoi: string; no
   if (!khoa) throw new Error('thiếu OPENAI_API_KEY');
   const r = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST', headers: { authorization: `Bearer ${khoa}`, 'content-type': 'application/json' }, signal: AbortSignal.timeout(45_000),
-    body: JSON.stringify({ model, temperature: 0.3, response_format: { type: 'json_object' }, messages: [
+    // đời gpt-5 / o-series chỉ nhận temperature mặc định — gửi 0.3 là lỗi 400
+    body: JSON.stringify({ model, ...(/^(gpt-5|o\d)/.test(model) ? {} : { temperature: 0.3 }), response_format: { type: 'json_object' }, messages: [
       { role: 'system', content: `${HE_THONG}\n\nFACTS:\n${fact}` },
       ...hoiThoai.slice(-20).map((x) => ({ role: x.nguoi === 'khach' ? 'user' : 'assistant', content: x.noi_dung })),
     ] }),

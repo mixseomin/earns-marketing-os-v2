@@ -42,7 +42,17 @@ export function BangTuVan({ ch }: { ch: string }) {
   }, []);
   const tat = useMemo(() => (ds ?? []).filter((c) => ch === 'all' || c.cuaHang === ch), [ds, ch]);
   const duyet = tat.filter(choDuyet).sort((a, b) => ms(a.khachCuoi) - ms(b.khachCuoi));
-  const conLai = tat.filter((c) => !choDuyet(c));
+  // Tập trung (anh chốt 01/10/2026): khách đã rời site mà không còn chờ mình thì ẩn khỏi các cột — còn chờ (tin cuối là của khách) vẫn hiện
+  const [hienRoi, setHienRoi] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tvr') === '1');
+  useEffect(() => {
+    const u = new URLSearchParams(window.location.search);
+    if (hienRoi) u.set('tvr', '1'); else u.delete('tvr');
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}?${u.toString()}`);
+  }, [hienRoi]);
+  const canNhin = (c: ChatDong) => !!c.phien?.online || c.tinCuoi?.nguoi === 'khach' || !!c.nhap?.dang_soan;
+  const conLaiHet = tat.filter((c) => !choDuyet(c));
+  const conLai = conLaiHet.filter((c) => hienRoi || canNhin(c));
+  const soRoi = conLaiHet.length - conLaiHet.filter(canNhin).length;
   const theoCot = (k: string) => conLai.filter((c) => c.cot === k);
   const nayKhach = tat.filter((c) => c.nayKhach > 0).length;
   const guiNay = tat.reduce((t, c) => t + c.nayMay + c.nayMinh, 0), mayNay = tat.reduce((t, c) => t + c.nayMay, 0);
@@ -65,6 +75,8 @@ export function BangTuVan({ ch }: { ch: string }) {
       {so('Thêm giỏ sau chat', coPhien.filter((c) => c.phien!.chang >= iGio).length, undefined, 'Cuộc chat có phiên khách đã thêm giỏ (sổ phiên)')}
       {so('Đặt hàng sau chat', coPhien.filter((c) => c.phien!.soDon).length, 'var(--ok)')}
       <span style={{ flex: 1 }} />
+      {soRoi > 0 && <label style={{ fontSize: 12.5, display: 'inline-flex', gap: 6, alignItems: 'center' }} title="Khách đã rời site và không còn chờ mình trả lời — ẩn để tập trung">
+        <input type="checkbox" checked={hienRoi} onChange={(e) => setHienRoi(e.target.checked)} /> Hiện cả khách đã rời ({soRoi})</label>}
       <span style={{ fontSize: 12, ...phu }}><span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: 4, background: 'var(--ok)', marginRight: 6 }} />đang chạy · tự tải lại 5s</span>
     </div>
     {ds === null ? <div style={phu}>Đang tải…</div> : (
@@ -201,7 +213,8 @@ function DrawerChat({ id, c, onClose, onDoi }: { id: number; c: ChatDong | null;
         {loi && <div style={{ color: 'var(--bad)', fontSize: 13 }}>{loi}</div>}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="btn primary" disabled={dang || !nd.trim()} onClick={() => lam(() => shopGuiChat(id, nd))}>{dang ? 'Đang gửi…' : 'Duyệt & gửi'}</button>
-          <button className="btn ghost" disabled={dang} onClick={() => { setNhapGoc(nd); lam(() => shopSoanLai(id), false); }}>{dang ? 'Đang soạn…' : 'Soạn lại'}</button>
+          {c.tinCuoi?.nguoi === 'khach' && <button className="btn ghost" disabled={dang} title="Máy soạn lại trả lời cho tin khách mới nhất"
+            onClick={() => { setNhapGoc(nd); lam(() => shopSoanLai(id), false); }}>{dang ? 'Đang soạn…' : 'Soạn lại'}</button>}
           {c.nhap && <button className="btn ghost" disabled={dang} onClick={() => lam(() => shopBoNhap(id))}>Bỏ nháp</button>}
           <span style={{ flex: 1 }} />
           {c.trangThai !== 'xong' && <button className="btn ghost" disabled={dang} onClick={() => lam(() => shopSuaHoSo(id, { trangThai: 'xong' }), false)}>Đóng chat</button>}

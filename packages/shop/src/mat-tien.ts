@@ -1,6 +1,8 @@
 // Cấu hình MẶT TIỀN của một cửa hàng (shop_cua_hang.mat_tien). Khuôn trang là MỘT (apps/store, clone Crossian) — mỗi shop chỉ khác ở đây.
 // Luật số liệu: mọi con số khách nhìn thấy phải CÓ THẬT — giá gạch chỉ khi có giá trước giảm thật, đếm ngược chỉ khi đợt sale có ngày
 // hết thật, "N left" chỉ khi tồn kho thật dưới ngưỡng, "N people viewing" là số người đang xem thật, đánh giá là đánh giá thật.
+// LUẬT ĐIỀU KHIỂN (anh chốt 01/10/2026): mọi cơ chế của shop phải chỉnh được trong mos2 /shop › Cửa hàng (apps/web/src/components/
+// shop-cau-hinh.tsx). Thêm khoá mới ở đây = thêm ô sửa ở đó + nhánh làm sạch trong shopSuaMatTien, cùng commit. Khoá bí mật: chỉ .env + mục Kết nối.
 
 export type BacGiam = { sl: number; pt: number };          // tổng số món ≥ sl → giảm pt% cả giỏ
 export type TrangTinh = { tieu_de: string; html: string };

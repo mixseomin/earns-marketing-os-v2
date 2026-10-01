@@ -48,7 +48,7 @@ UPDATE shop_san_pham p SET ten = sp.ten, slug = sp.slug, ncc = 'cj', gia_goc = s
   FROM sp, shop_cua_hang c, shop_ncc_sp s
  WHERE c.khoa = 'demo-bra' AND p.cua_hang_id = c.id AND p.ma_ngoai = sp.ma AND s.ncc = 'cj' AND s.ma = sp.pid;
 
-UPDATE shop_bien_the b SET ten = m.mau || ' / ' || m.co, tuy_chon = jsonb_build_object('Color', m.mau, 'Size', m.co), gia_ban = sp.gia,
+UPDATE shop_bien_the b SET ten = m.mau || ' / ' || m.co, sku = upper(replace(split_part(m.bt, '-', 1) || split_part(m.bt, '-', 2), 'lb', 'LB') || '-' || left(m.mau, 3) || '-' || m.co), tuy_chon = jsonb_build_object('Color', m.mau, 'Size', m.co), gia_ban = sp.gia,
        anh = t.info->>'anh', updated_at = now()
   FROM m, sp, shop_san_pham p, shop_cua_hang c, shop_ncc_sp s, shop_ncc_bt t
  WHERE b.ma_ngoai = m.bt AND p.id = b.san_pham_id AND p.cua_hang_id = c.id AND c.khoa = 'demo-bra' AND sp.ma = split_part(m.bt, '-', 1) || '-' || split_part(m.bt, '-', 2)

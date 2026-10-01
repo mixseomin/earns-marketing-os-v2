@@ -21,6 +21,7 @@ export type MatTien = {
   cam_ket?: string[];
   faq?: { hoi: string; dap: string }[];  // khối FAQ cuối trang sản phẩm (khuôn orabra) — trả lời đúng chính sách shop
   ma_giam?: { ma: string; pt: number }[]; // mã giảm áp ở checkout (vd mã tặng khi đăng ký nhận tin)
+  thu?: { xac_nhan?: boolean; da_gui?: boolean; chang?: string[] };  // thư gửi khách: tắt loại nào thì máy không gửi loại đó (mặc định bật hết)
   giao?: { xu_ly?: [number, number]; van_chuyen?: [number, number]; ngay_lam_viec?: boolean; dam_bao_ngay?: number }; // @mos2/shop/giao — khớp chính sách ship
   dang_ky?: { tieu_de: string; chu: string; ma: string } | null; // ô đăng ký chân trang: tặng mã nào                   // 3 ô cam kết dưới nút mua (ship, đổi trả, thanh toán) — đúng chính sách shop
 };
@@ -42,6 +43,13 @@ export function matTien(raw: unknown): Required<Pick<MatTien, 'bac_giam' | 'ship
     trang: m.trang ?? {},
     do: m.do ?? {},
   };
+}
+
+/** Thư khách loại này có bật không (mặc định bật). chang = khoá chặng @mos2/shop/giao CHANG_BAO_THU. */
+export function batThu(m: MatTien, loai: 'xac_nhan' | 'da_gui' | { chang: string }): boolean {
+  const t = m.thu ?? {};
+  if (typeof loai === 'object') return t.chang ? t.chang.includes(loai.chang) : true;
+  return t[loai] !== false;
 }
 
 /** Tên biến môi trường theo cửa hàng: SHOP_<KHOA>_<DUOI> (khoá API không nằm trong DB). */

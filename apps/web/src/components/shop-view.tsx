@@ -7,18 +7,19 @@ import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'rea
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  DaiLuong, DataTable, DateTimeField, Drawer, SelectField, ThanhChang, type NutLuong, EmptyState, FilterChips, LinkChip, Panel, Pill, SimpleTable, StatsStrip, Tabs, TextAreaField, TextField, toDatetimeLocal, type DataColumn,
+  DaiLuong, DataTable, Drawer, SelectField, ThanhChang, type NutLuong, EmptyState, FilterChips, LinkChip, Panel, Pill, SimpleTable, StatsStrip, Tabs, TextAreaField, TextField, type DataColumn,
 } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { hrefTab, tabCua } from '@/lib/tab-trang';
 import { KhachTrucTiep } from './shop-truc-tiep';
+import { CauHinhCuaHang } from './shop-cau-hinh';
 import { BangHoSo } from './shop-ho-so';
 import type { HoSoDong } from '@/lib/shop/ho-so-doc';
 import { CHANG, type HanhTrinh, type KhoaChang } from '@mos2/shop/hanh-trinh';
 import { BUOC, LINK_DS_CJ, NHAN_BUOC, gio, isoCua, linkVanDon, soNgayTu, tien, type Buoc } from '@/lib/shop/buoc';
 import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, SanPhamDong, ThamKhao } from '@/lib/shop/doc';
 import { shopMoHoSo } from '@/lib/actions/shop';
-import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaBienThe, shopSuaCauHinh, shopSuaMatTien, shopSuaSanPham, shopSuaThamKhao, shopTraNcc } from '@/lib/actions/shop';
+import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaBienThe, shopSuaCauHinh, shopSuaSanPham, shopSuaThamKhao, shopTraNcc } from '@/lib/actions/shop';
 
 type Tab = 'don' | 'truc_tiep' | 'van_chuyen' | 'khach_ph' | 'ncc' | 'san_pham' | 'danh_gia' | 'cua_hang';
 // Màu bước = tín hiệu: amber chờ người, đỏ lỗi/trễ, xanh đã giao; bước đang chạy bình thường để trung tính.
@@ -588,55 +589,10 @@ function TheCuaHang({ c }: { c: CuaHangDong }) {
           <button className="btn primary" disabled={!doi || dangChay} onClick={() => batDau(async () => { await shopSuaCauHinh(c.khoa, cfg); setBao('Đã lưu cấu hình'); })}>Lưu</button>
         </div>
         {bao && <div style={{ fontSize: 12.5, color: bao.startsWith('Lỗi') ? 'var(--bad)' : 'var(--fg-2)' }}>{bao}</div>}
-        {c.nenTang === 'mos' || c.tenMien.length ? <MatTienCuaHang c={c} /> : null}
+        {c.nenTang === 'mos' || c.tenMien.length ? <CauHinhCuaHang c={c} /> : null}
       </div>
     </Panel>
   );
 }
 
 /** Cấu hình mặt tiền apps/store (@mos2/shop/mat-tien). Mọi con số khách thấy phải có thật — gợi ý ngay dưới từng ô. */
-function MatTienCuaHang({ c }: { c: CuaHangDong }) {
-  const m = c.matTien;
-  const goc = {
-    thanh_tren: m.thanh_tren ?? '', dong_sale: m.dong_sale ?? '', sale_het: toDatetimeLocal(m.sale_het ?? null),
-    bac_giam: (m.bac_giam ?? []).map((b) => `${b.sl}:${b.pt}`).join(', '), cam_ket: (m.cam_ket ?? []).join('\n'),
-    mau_nhan: m.mau_nhan ?? '', ga4: m.do?.ga4 ?? '', meta_pixel: m.do?.meta_pixel ?? '', gads: m.do?.gads ?? '',
-  };
-  const [v, setV] = useState(goc);
-  const [bao, setBao] = useState<string | null>(null);
-  const [dangChay, batDau] = useTransition();
-  const doi = JSON.stringify(v) !== JSON.stringify(goc);
-  const dat = (k: keyof typeof goc) => (e: { target: { value: string } }) => setV({ ...v, [k]: e.target.value });
-  const xemTruoc = c.tenMien.find((t) => t !== c.domain && !t.startsWith('www.')) ?? c.domain;
-  const luu = () => batDau(async () => {
-    const bac = v.bac_giam.split(',').map((x) => x.trim()).filter(Boolean).map((x) => { const [sl, pt] = x.split(':').map(Number); return { sl: sl!, pt: pt! }; });
-    if (bac.some((b) => !(b.sl >= 2 && b.pt > 0 && b.pt < 90))) { setBao('Lỗi: bậc giảm dạng "2:10, 3:15" (số món : % giảm)'); return; }
-    await shopSuaMatTien(c.khoa, { thanh_tren: v.thanh_tren.trim(), dong_sale: v.dong_sale.trim(), sale_het: v.sale_het ? new Date(v.sale_het).toISOString() : null,
-      bac_giam: bac, cam_ket: v.cam_ket.split('\n').map((x) => x.trim()).filter(Boolean), mau_nhan: v.mau_nhan.trim() || undefined,
-      do: { ...m.do, ga4: v.ga4.trim() || undefined, meta_pixel: v.meta_pixel.trim() || undefined, gads: v.gads.trim() || undefined } });
-    setBao('Đã lưu — mặt tiền đổi trong ≤30 giây');
-  });
-  return (
-    <div style={{ borderTop: '1px solid var(--line)', paddingTop: 10, display: 'grid', gap: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <b>Mặt tiền</b><Pill color={c.nenTang === 'mos' ? 'var(--ok)' : 'var(--warn)'} label={c.nenTang === 'mos' ? 'đang phục vụ' : 'xem trước'} />
-        <LinkChip href={`https://${xemTruoc}`} tone="neutral" size="xs">{xemTruoc} ↗</LinkChip>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 }}>
-        <TextField id={`mt-tren-${c.khoa}`} label="Dải đen trên cùng" value={v.thanh_tren} onChange={dat('thanh_tren')} />
-        <TextField id={`mt-bac-${c.khoa}`} label="Mua nhiều giảm nhiều" hint='"2:10, 3:15" = 2 món giảm 10%, từ 3 món giảm 15%' value={v.bac_giam} onChange={dat('bac_giam')} />
-        <TextAreaField id={`mt-sale-${c.khoa}`} label="Khối đỏ/cam giữa cột mua (2 dòng)" hint="Chỉ ưu đãi có thật" rows={2} value={v.dong_sale} onChange={dat('dong_sale')} />
-        <TextAreaField id={`mt-ck-${c.khoa}`} label="Cam kết dưới nút mua (mỗi dòng một ô)" hint="Phải đúng chính sách ship/đổi trả" rows={3} value={v.cam_ket} onChange={dat('cam_ket')} />
-        <DateTimeField id={`mt-het-${c.khoa}`} label="Đợt sale hết lúc" hint="Trống = ẩn đồng hồ đếm ngược. Chỉ đặt khi đợt giảm giá thật sự kết thúc lúc đó." value={v.sale_het} onChange={dat('sale_het')} />
-        <TextField id={`mt-mau-${c.khoa}`} label="Màu nhấn (nút chọn)" hint="#4A90E2 như Crossian" value={v.mau_nhan} onChange={dat('mau_nhan')} />
-        <TextField id={`mt-ga-${c.khoa}`} label="GA4" mono value={v.ga4} onChange={dat('ga4')} />
-        <TextField id={`mt-px-${c.khoa}`} label="Meta Pixel ID" mono value={v.meta_pixel} onChange={dat('meta_pixel')} />
-        <TextField id={`mt-gads-${c.khoa}`} label="Google Ads (AW-…)" mono value={v.gads} onChange={dat('gads')} />
-      </div>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <button className="btn primary" disabled={!doi || dangChay} onClick={luu}>{dangChay ? 'Đang lưu…' : 'Lưu mặt tiền'}</button>
-        {bao && <span style={{ fontSize: 12.5, color: bao.startsWith('Lỗi') ? 'var(--bad)' : 'var(--fg-2)' }}>{bao}</span>}
-      </div>
-    </div>
-  );
-}

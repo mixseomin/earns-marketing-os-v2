@@ -5,7 +5,7 @@ import { randomBytes } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { q, ghiSuKien, linkTheoDoi } from './su-kien';
 import { tinhGio, type TongGio } from './gia';
-import { matTien, ptMa, type MatTien } from './mat-tien';
+import { batThu, matTien, ptMa, type MatTien } from './mat-tien';
 import { stripe, type Pi } from './stripe';
 import { ghiSoPhuDon } from './so-phu';
 import { guiThu, thuXacNhan } from './thu';
@@ -132,8 +132,8 @@ export async function chotThanhToan(ch: ShopTT, ttId: string): Promise<{ don_id:
     await q(sql`UPDATE shop_thanh_toan SET trang_thai = 'da_tra', don_id = ${donId}, khach = ${JSON.stringify(khach)}::jsonb, dia_chi = ${JSON.stringify(diaChi)}::jsonb, cap_nhat = now() WHERE id = ${ttId}::uuid`);
     await ghiSoPhuDon(donId, { projectId: ch.project_id, nguon: `shop:${ch.khoa}`, maDon: d!.so_don, traLuc: new Date().toISOString(), tong, huy: false, sid, phi,
       soMon: tt.mon.reduce((t, m) => t + m.sl, 0), hoan: [] }).catch((e) => ghiSuKien(donId, 'shop', `Ghi sổ PHỦ lỗi: ${(e as Error).message}`, true));
-    if (khach.email) {
-      const m = matTien(ch.mat_tien);
+    const m = matTien(ch.mat_tien);
+    if (khach.email && batThu(m, 'xac_nhan')) {
       const shopThu = { khoa: ch.khoa, ten: ch.ten, domain: ch.domain, email: m.email ?? `support@${ch.domain}` };
       const thu = thuXacNhan(shopThu, { so_don: d!.so_don, ten: khach.ten.split(' ')[0] || 'there', mon: tt.mon.map((x) => ({ ten: x.ten, tuy_chon: x.tuy_chon, sl: x.sl, gia: x.gia })),
         tam_tinh: Number(tt.tam_tinh), giam: Number(tt.giam), ship: Number(tt.ship), tong,

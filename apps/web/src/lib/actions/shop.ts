@@ -7,7 +7,13 @@ import { ga4ThoiGianThuc } from '@/lib/shop/ga4-tt';
 import { docHoSo, docTinHoSo } from '@/lib/shop/ho-so-doc';
 import { LOAI_HO_SO, TRANG_THAI_HO_SO, type Ben } from '@mos2/shop/ho-so';
 import { moHoSo, themTin } from '@mos2/shop/ho-so-ghi';
-import { guiThu, matTien } from '@mos2/shop';
+import { guiThu, matTien, thuDaGui, thuXacNhan } from '@mos2/shop';
+import { thuChang } from '@mos2/shop/thu';
+import { CHANG_BAO_THU, cauHinhGiao, duKienGiao } from '@mos2/shop/giao';
+import { envShop, tenEnv } from '@mos2/shop/mat-tien';
+import { stripe } from '@mos2/shop/stripe';
+import { existsSync } from 'node:fs';
+import { docShop } from '@/lib/shop/doc';
 import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
@@ -116,14 +122,106 @@ export async function shopSuaSanPham(id: number, v: { tieuDe: string | null; gia
   return { ok: true };
 }
 
-/** Cấu hình mặt tiền (@mos2/shop/mat-tien MatTien) — trộn vào bản đang có, khoá không gửi thì giữ nguyên. */
+/** Cấu hình mặt tiền (@mos2/shop/mat-tien MatTien) — trộn vào bản đang có, khoá không gửi thì giữ nguyên. Mọi khoá có máy đọc đều
+ *  sửa được ở đây (anh chốt 01/10/2026: mọi cơ chế/điều khiển nằm trong mos2) — khoá lạ bị bỏ, khoá có cấu trúc thì làm sạch trước khi ghi. */
 export async function shopSuaMatTien(khoa: string, v: Record<string, unknown>) {
   await admin();
-  const cho = ['thanh_tren', 'dong_sale', 'sale_het', 'bac_giam', 'cam_ket', 'mau_nhan', 'do', 'logo', 'email', 'dia_chi', 'ship'];
-  const sach = Object.fromEntries(Object.entries(v).filter(([k]) => cho.includes(k)));
+  const cho = ['thanh_tren', 'dong_sale', 'sale_het', 'bac_giam', 'cam_ket', 'mau_nhan', 'do', 'logo', 'email', 'dia_chi', 'ship', 'giao', 'thu', 'faq', 'ma_giam', 'dang_ky', 'trang'];
+  const sach: Record<string, unknown> = {};
+  const so = (x: unknown, tu: number, den: number) => Math.max(tu, Math.min(den, Math.round(Number(x) || 0)));
+  const chu = (x: unknown, n: number) => String(x ?? '').slice(0, n);
+  for (const [k, x] of Object.entries(v)) {
+    if (!cho.includes(k)) continue;
+    if (k === 'giao') {
+      const g = (x ?? {}) as { xu_ly?: number[]; van_chuyen?: number[]; ngay_lam_viec?: boolean; dam_bao_ngay?: number };
+      const cap = (a: number[] | undefined, tu: number, den: number) => { const [p, q] = [so(a?.[0], tu, den), so(a?.[1], tu, den)]; return [Math.min(p, q), Math.max(p, q)]; };
+      sach.giao = { xu_ly: cap(g.xu_ly, 0, 15), van_chuyen: cap(g.van_chuyen, 1, 60), ngay_lam_viec: g.ngay_lam_viec !== false, dam_bao_ngay: so(g.dam_bao_ngay, 7, 120) };
+    } else if (k === 'thu') {
+      const t = (x ?? {}) as { xac_nhan?: boolean; da_gui?: boolean; chang?: string[] };
+      sach.thu = { xac_nhan: t.xac_nhan !== false, da_gui: t.da_gui !== false, chang: (t.chang ?? []).filter((c) => (CHANG_BAO_THU as string[]).includes(c)) };
+    } else if (k === 'faq') {
+      sach.faq = ((x ?? []) as { hoi?: string; dap?: string }[]).filter((f) => f.hoi?.trim() && f.dap?.trim()).slice(0, 30).map((f) => ({ hoi: chu(f.hoi, 200).trim(), dap: chu(f.dap, 3000).trim() }));
+    } else if (k === 'ma_giam') {
+      sach.ma_giam = ((x ?? []) as { ma?: string; pt?: number }[]).filter((m) => /^[A-Z0-9]{3,20}$/i.test(m.ma ?? '') && Number(m.pt) > 0 && Number(m.pt) < 90)
+        .slice(0, 20).map((m) => ({ ma: m.ma!.toUpperCase(), pt: Number(m.pt) }));
+    } else if (k === 'dang_ky') {
+      const d = x as { tieu_de?: string; chu?: string; ma?: string } | null;
+      sach.dang_ky = d && d.tieu_de?.trim() ? { tieu_de: chu(d.tieu_de, 80), chu: chu(d.chu, 300), ma: chu(d.ma, 20).toUpperCase() } : null;
+    } else if (k === 'trang') {
+      const t = (x ?? {}) as Record<string, { tieu_de?: string; html?: string }>;
+      sach.trang = Object.fromEntries(Object.entries(t).filter(([kk]) => /^[a-z0-9-]{2,40}$/.test(kk))
+        .map(([kk, p]) => [kk, { tieu_de: chu(p?.tieu_de, 120), html: chu(p?.html, 60000) }]));
+    } else if (k === 'ship') {
+      const sh = (x ?? {}) as { phi?: number; mien_phi_tu?: number | null; ten?: string };
+      sach.ship = { phi: Math.max(0, Number(sh.phi) || 0), mien_phi_tu: sh.mien_phi_tu == null || sh.mien_phi_tu === ('' as unknown) ? null : Math.max(0, Number(sh.mien_phi_tu)), ten: chu(sh.ten, 60) || 'Shipping' };
+    } else sach[k] = x;
+  }
+  if (sach.email !== undefined && sach.email !== '' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(sach.email))) return { ok: false, loi: 'email hỗ trợ không hợp lệ' };
   await db().execute(sql`UPDATE shop_cua_hang SET mat_tien = mat_tien || ${JSON.stringify(sach)}::jsonb WHERE khoa = ${khoa}`);
   revalidatePath('/shop');
   return { ok: true };
+}
+
+/** Xem trước một thư khách bằng cấu hình THẬT của shop + đơn mẫu (không gửi). loai: xac_nhan | da_gui | khoá chặng. */
+export async function shopXemThu(khoa: string, loai: string) {
+  await admin();
+  const ch = await cuaHangTheoKhoa(khoa);
+  if (!ch) return null;
+  const m = matTien(ch.mat_tien), g = cauHinhGiao(m.giao);
+  const s = { khoa: ch.khoa, ten: ch.ten, domain: ch.domain, email: m.email ?? `support@${ch.domain}` };
+  const link = `https://${ch.domain}/trackings/search?order=5003`;
+  if (loai === 'xac_nhan') return thuXacNhan(s, { so_don: '5003', ten: 'Linda', mon: [{ ten: 'Sample product', tuy_chon: 'Black / US 8', sl: 1, gia: 49.99 }],
+    tam_tinh: 49.99, giam: 0, ship: 0, tong: 49.99, dia_chi: 'Linda R., 1 Main St, Austin, TX 78701, US', link, giao: g });
+  if (loai === 'da_gui') return thuDaGui(s, '5003', 'Linda', link);
+  if ((CHANG_BAO_THU as string[]).includes(loai)) return thuChang(s, '5003', 'Linda', loai as (typeof CHANG_BAO_THU)[number], link, g, duKienGiao(g, new Date(Date.now() - 4 * 86_400_000), true));
+  return null;
+}
+
+/** Tình trạng kết nối của một shop — CHỈ báo có/không + chỗ cấu hình, không bao giờ trả giá trị khoá. */
+export async function shopKetNoi(khoa: string) {
+  await admin();
+  const ch = await cuaHangTheoKhoa(khoa);
+  if (!ch) return [];
+  const co = (duoi: string) => !!envShop(khoa, duoi);
+  const ra: { ten: string; ok: boolean | null; chi_tiet: string }[] = [
+    { ten: 'Stripe khoá (PK/SK)', ok: co('STRIPE_PK') && co('STRIPE_SK'), chi_tiet: `${tenEnv(khoa, 'STRIPE_PK')} · ${tenEnv(khoa, 'STRIPE_SK')} trong .env.production` },
+    { ten: 'Stripe webhook (bí mật ký)', ok: co('STRIPE_WH'), chi_tiet: tenEnv(khoa, 'STRIPE_WH') },
+    { ten: 'Gửi thư (SMTP)', ok: co('SMTP_HOST') && co('SMTP_USER'), chi_tiet: `${tenEnv(khoa, 'SMTP_HOST')} = ${envShop(khoa, 'SMTP_HOST') || '—'}` },
+    { ten: 'Ký DKIM', ok: co('DKIM_FILE') ? fsTonTai(envShop(khoa, 'DKIM_FILE')) : false, chi_tiet: co('DKIM_FILE') ? `selector ${envShop(khoa, 'DKIM_SELECTOR') || 'mailer'}` : 'chưa đặt' },
+    { ten: 'CJ (nhà cung cấp)', ok: !!process.env.SHOP_CJ_TOKEN, chi_tiet: 'SHOP_CJ_TOKEN' },
+    { ten: '17TRACK (mốc vận đơn)', ok: !!process.env.SHOP_17TRACK_KEY, chi_tiet: 'SHOP_17TRACK_KEY' },
+    { ten: 'GA4 thời gian thực', ok: !!ch.cau_hinh.ga4_property && fsTonTai(process.env.GA4_OAUTH || '/etc/adfond/ga4-oauth.json'), chi_tiet: ch.cau_hinh.ga4_property ? `property ${ch.cau_hinh.ga4_property}` : 'chưa gắn property' },
+    { ten: 'Xem trước trang theo dõi', ok: !!process.env.STORE_PREVIEW_KEY, chi_tiet: 'STORE_PREVIEW_KEY' },
+  ];
+  if (ch.nen_tang === 'mos' && co('STRIPE_SK')) {
+    try {
+      const w = await stripe<{ data: { url: string; status: string }[] }>(khoa, 'GET', 'webhook_endpoints?limit=50');
+      const dung = w.data.find((x) => x.url === `https://${ch.domain}/api/stripe/webhook`);
+      ra.push({ ten: 'Stripe gửi webhook về shop', ok: dung?.status === 'enabled', chi_tiet: dung ? `${dung.url} · ${dung.status}` : `chưa có endpoint https://${ch.domain}/api/stripe/webhook` });
+    } catch (e) { ra.push({ ten: 'Stripe gửi webhook về shop', ok: null, chi_tiet: `không đọc được: ${(e as Error).message.slice(0, 120)}` }); }
+  }
+  return ra;
+}
+
+/** Link xem trước: trang chủ + trang sản phẩm của shop, và trang theo dõi của vài đơn (mỗi chặng một đơn) — shop chưa có tên miền
+ *  (vd DEMO) thì mượn khung của shop mos đang chạy + khoá STORE_PREVIEW_KEY (khoá nằm trong link, chỉ admin thấy). */
+export async function shopLinkXemTruoc(khoa: string) {
+  await admin();
+  const ds = await dsCuaHang(false);
+  const ch = ds.find((c) => c.khoa === khoa);
+  if (!ch) return null;
+  const khung = ch.trang_thai === 'bat' && ch.nen_tang === 'mos' ? ch : ds.find((c) => c.trang_thai === 'bat' && c.nen_tang === 'mos');
+  if (!khung) return null;
+  const [sp] = await db().execute(sql`SELECT slug FROM shop_san_pham WHERE cua_hang_id = ${ch.id} AND hien AND slug IS NOT NULL ORDER BY thu_tu, id LIMIT 1`) as unknown as { slug: string }[];
+  const don = (await docShop()).don.filter((d) => d.cuaHang === khoa && d.ht).sort((a, b) => (b.ht!.pct - a.ht!.pct));
+  const khoaDon = new Map(((await db().execute(sql`SELECT so_don, khoa_don FROM shop_don WHERE cua_hang_id = ${ch.id} AND khoa_don IS NOT NULL`)) as unknown as { so_don: string; khoa_don: string }[]).map((r) => [r.so_don, r.khoa_don]));
+  const xem = khung.khoa !== ch.khoa ? `&xem=${encodeURIComponent(process.env.STORE_PREVIEW_KEY ?? '')}&shop=${encodeURIComponent(ch.khoa)}` : '';
+  const daCo = new Set<string>();
+  const theoDoi = don.filter((d) => khoaDon.has(d.soDon) && !daCo.has(d.ht!.chang[d.ht!.hienTai]!.key) && daCo.add(d.ht!.chang[d.ht!.hienTai]!.key))
+    .map((d) => ({ so: d.soDon, chang: d.ht!.chang[d.ht!.hienTai]!.nhan, tre: d.buoc === 'tre',
+      url: `https://${khung.domain}/trackings/search?order=${encodeURIComponent(d.soDon)}&key=${encodeURIComponent(khoaDon.get(d.soDon)!)}${xem}` }));
+  return { khung: khung.domain, muon: khung.khoa !== ch.khoa, trangChu: khung.khoa === ch.khoa ? `https://${ch.domain}/` : null,
+    sanPham: khung.khoa === ch.khoa && sp ? `https://${ch.domain}/${sp.slug}` : null, theoDoi };
 }
 
 /** Ghi lại danh sách "Tham khảo" của một sản phẩm (trang ngoài bán cùng/gần mẫu) — thay cả mảng, drawer gửi bản đầy đủ. */
@@ -155,6 +253,8 @@ export async function shopGa4TT(ch: string) {
 }
 
 /* ── Hồ sơ trao đổi (khách / NCC) ── */
+const fsTonTai = (p: string) => { try { return existsSync(p); } catch { return false; } };
+
 export async function shopHoSo() { await admin(); return docHoSo(); }
 export async function shopTinHoSo(id: number) { await admin(); return docTinHoSo(Number(id)); }
 

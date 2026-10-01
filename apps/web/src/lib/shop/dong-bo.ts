@@ -16,6 +16,7 @@ import { thuChang } from '@mos2/shop/thu';
 import { isoCua } from './buoc';
 import type { Moc } from './track17';
 import { doiSoat, ghiSoPhuDon, ghiSuKien, guiThu, linkTheoDoi, matTien, sidTuUtm, thuDaGui, type MatTien } from '@mos2/shop';
+import { batThu } from '@mos2/shop/mat-tien';
 
 export type CuaHang = { id: number; khoa: string; project_id: string; ten: string; domain: string; ncc: string; nen_tang: string; mat_tien: MatTien;
   cau_hinh: { ngay_ship_max?: number; tu_sang_ncc?: boolean; tu_tra_ncc?: boolean; quoc_gia_kho?: string; ga4_property?: string }; trang_thai: string; dong_bo_luc: string | null };
@@ -314,7 +315,7 @@ export async function theoDoiNcc(ch: CuaHang) {
       try {
         const m = matTien(ch.mat_tien), shopThu = { khoa: ch.khoa, ten: ch.ten, domain: ch.domain, email: m.email ?? `support@${ch.domain}` };
         const thu = thuDaGui(shopThu, n.so_don, (n.khach?.ten ?? '').split(' ')[0] || 'there', link);
-        if (n.khach?.email) await guiThu(shopThu, n.khach.email, thu.tieuDe, thu.html, thu.chu);
+        if (n.khach?.email && batThu(m, 'da_gui')) await guiThu(shopThu, n.khach.email, thu.tieuDe, thu.html, thu.chu);
         await q(sql`UPDATE shop_don SET trang_thai_shop = 'completed', updated_at = now() WHERE id = ${n.don_id}`);
         await q(sql`UPDATE shop_don_ncc SET bao_khach = true WHERE id = ${n.id}`);
         await ghiSuKien(n.don_id, 'shop', `Đã gửi thư "đã gửi hàng" tới ${n.khach?.email || '(không có email)'} · đơn → completed`);
@@ -352,6 +353,7 @@ async function baoChangKhach(ch: CuaHang, n: NccSong) {
   const thuTu = (k: string | null) => CHANG.findIndex((c) => c.key === k);
   if (!CHANG_BAO_THU.includes(hien) || thuTu(r.bao_chang) >= thuTu(hien)) return;
   const m = matTien(ch.mat_tien), g = cauHinhGiao(m.giao);
+  if (!batThu(m, { chang: hien })) return;   // tắt ở /shop › Cửa hàng › Thư khách
   const shopThu = { khoa: ch.khoa, ten: ch.ten, domain: ch.domain, email: m.email ?? `support@${ch.domain}` };
   const link = n.khoa_don ? linkTheoDoi(ch, n.so_don, n.khoa_don) : linkVanDon(n.ma_van_don ?? '');
   const thu = thuChang(shopThu, n.so_don, (n.khach.ten ?? '').split(' ')[0] || 'there', hien, link, g, r.gui_luc ? duKienGiao(g, new Date(isoCua(r.gui_luc)), true) : null);

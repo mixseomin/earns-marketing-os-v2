@@ -44,12 +44,12 @@ export async function dongBoSanPham(ch: CuaHang) {
   for (const p of sps) {
     const tuyChon = (p.attributes ?? []).filter((a) => a.variation || p.type !== 'variable').map((a) => ({ ten: a.name, gia_tri: a.options }));
     const sp = (await q<{ id: number }>(sql`
-      INSERT INTO shop_san_pham (cua_hang_id, ma_ngoai, ten, anh, link, trang_thai, ncc, ma_ncc, slug, mo_ta, anh_ds, tuy_chon, gia_goc, hien, thu_tu, updated_at)
-      VALUES (${ch.id}, ${String(p.id)}, ${p.name}, ${p.images?.[0]?.src ?? null}, ${p.permalink}, ${p.status}, ${ch.ncc}, ${meta(p.meta_data, '_cj_pid')},
+      INSERT INTO shop_san_pham (cua_hang_id, ma_ngoai, ten, anh, link, trang_thai, ncc, slug, mo_ta, anh_ds, tuy_chon, gia_goc, hien, thu_tu, updated_at)
+      VALUES (${ch.id}, ${String(p.id)}, ${p.name}, ${p.images?.[0]?.src ?? null}, ${p.permalink}, ${p.status}, ${ch.ncc},
               ${p.slug}, ${p.description || null}, ${JSON.stringify((p.images ?? []).map((i) => i.src))}::jsonb, ${JSON.stringify(tuyChon)}::jsonb,
               ${giaGoc(p.regular_price, p.sale_price)}, ${p.status === 'publish'}, ${p.menu_order ?? 0}, now())
       ON CONFLICT (cua_hang_id, ma_ngoai) DO UPDATE SET ten = EXCLUDED.ten, anh = EXCLUDED.anh, link = EXCLUDED.link,
-        trang_thai = EXCLUDED.trang_thai, ma_ncc = COALESCE(shop_san_pham.ma_ncc, EXCLUDED.ma_ncc), slug = EXCLUDED.slug, mo_ta = EXCLUDED.mo_ta,
+        trang_thai = EXCLUDED.trang_thai, slug = EXCLUDED.slug, mo_ta = EXCLUDED.mo_ta,
         anh_ds = EXCLUDED.anh_ds, tuy_chon = EXCLUDED.tuy_chon, gia_goc = EXCLUDED.gia_goc, hien = EXCLUDED.hien, thu_tu = EXCLUDED.thu_tu, updated_at = now()
       RETURNING id`))[0]!;
     const bts = p.type === 'variable'
@@ -60,67 +60,30 @@ export async function dongBoSanPham(ch: CuaHang) {
     for (const v of bts) {
       soBt++;
       const gv = meta(v.meta, '_cj_gia_von');
-      await q(sql`
-        INSERT INTO shop_bien_the (san_pham_id, ma_ngoai, sku, ten, gia_ban, ma_ncc, gia_von, tuy_chon, anh, gia_goc, het_hang, updated_at)
-        VALUES (${sp.id}, ${String(v.id)}, ${v.sku || null}, ${v.ten}, ${v.gia ? Number(v.gia) : null}, ${meta(v.meta, '_cj_vid')}, ${gv ? Number(gv) : null},
+      const [bt] = await q<{ id: number; co_nguon: boolean }>(sql`
+        INSERT INTO shop_bien_the (san_pham_id, ma_ngoai, sku, ten, gia_ban, gia_von, tuy_chon, anh, gia_goc, het_hang, updated_at)
+        VALUES (${sp.id}, ${String(v.id)}, ${v.sku || null}, ${v.ten}, ${v.gia ? Number(v.gia) : null}, ${gv ? Number(gv) : null},
                 ${JSON.stringify(v.tc)}::jsonb, ${v.anh}, ${v.goc}, ${v.het}, now())
         ON CONFLICT (san_pham_id, ma_ngoai) DO UPDATE SET sku = EXCLUDED.sku, ten = EXCLUDED.ten, gia_ban = EXCLUDED.gia_ban,
-          ma_ncc = COALESCE(shop_bien_the.ma_ncc, EXCLUDED.ma_ncc), gia_von = COALESCE(shop_bien_the.gia_von, EXCLUDED.gia_von),
-          tuy_chon = EXCLUDED.tuy_chon, anh = EXCLUDED.anh, gia_goc = EXCLUDED.gia_goc, het_hang = EXCLUDED.het_hang, updated_at = now()`);
+          gia_von = COALESCE(shop_bien_the.gia_von, EXCLUDED.gia_von),
+          tuy_chon = EXCLUDED.tuy_chon, anh = EXCLUDED.anh, gia_goc = EXCLUDED.gia_goc, het_hang = EXCLUDED.het_hang, updated_at = now()
+        RETURNING id, EXISTS (SELECT 1 FROM shop_nguon n WHERE n.bien_the_id = shop_bien_the.id) AS co_nguon`);
+      // meta _cj_pid/_cj_vid của Woo chỉ GIEO nguồn chính khi biến thể chưa có nguồn nào — sửa ở /shop thì sổ nguồn là gốc
+      const pid = meta(p.meta_data, '_cj_pid'), vid = meta(v.meta, '_cj_vid');
+      if (bt && !bt.co_nguon && pid && vid) await ganNguon(bt.id, ch.ncc, pid, vid, { gia: gv ? Number(gv) : null, kiemMau: true });
     }
   }
   return { sanPham: sps.length, bienThe: soBt };
 }
 
-/** MỘT lượt đọc CJ product/query mỗi sản phẩm / ngày (CJ ~1 lượt/giây → tuần tự, nghỉ 1,1 giây), lấy hai thứ:
- *  1. thông tin nguồn (ncc_info) cho tab Nhà cung cấp — mã, tên bên CJ, SKU, khoảng giá vốn, biến thể (vid) để soi biến thể mình gắn có khớp không;
- *  2. video (productVideo) — chỉ gieo khi sổ chưa có video và chưa ai sửa tay (video_luc trống). */
-export async function dongBoThongTinNcc(ch: CuaHang) {
-  if (ch.ncc !== 'cj') return { doc: 0, video: 0 };
-  const ds = await q<{ id: number; ma_ncc: string; video_luc: string | null }>(sql`SELECT id, ma_ncc, video_luc::text FROM shop_san_pham
-    WHERE cua_hang_id = ${ch.id} AND ma_ncc IS NOT NULL AND (ncc_luc IS NULL OR ncc_luc < now() - interval '1 day') ORDER BY ncc_luc NULLS FIRST LIMIT 20`);
-  let video = 0;
-  for (const p of ds) {
-    const r = await cj<{ pid?: string; productNameEn?: string; productSku?: string; productVideo?: unknown; listedNum?: number; supplierId?: string | null; status?: string | number;
-      sellPrice?: string; categoryName?: string; productWeight?: string; packingWeight?: string; materialNameEn?: unknown; packingNameEn?: unknown; entryNameEn?: string;
-      suggestSellPrice?: string | number; createrTime?: string; productImageSet?: string[]; description?: string;
-      variants?: { vid: string; variantSellPrice?: number; variantNameEn?: string; variantKey?: string; variantSku?: string; variantImage?: string;
-        variantWeight?: number; variantLength?: number; variantWidth?: number; variantHeight?: number; variantSugSellPrice?: number }[] }>(`product/query?pid=${encodeURIComponent(p.ma_ncc)}`);
-    if (!r.result || !r.data) {
-      await q(sql`UPDATE shop_san_pham SET ncc_info = COALESCE(ncc_info, '{}'::jsonb) || ${JSON.stringify({ loi: r.message ?? 'CJ không trả' })}::jsonb, ncc_luc = now() WHERE id = ${p.id}`);
-    } else {
-      const d = r.data, gia = (d.variants ?? []).map((v) => Number(v.variantSellPrice)).filter((x) => x > 0);
-      const info = { pid: d.pid ?? p.ma_ncc, ten: d.productNameEn ?? '', sku: d.productSku ?? '', gia_tu: gia.length ? Math.min(...gia) : Number(d.sellPrice) || null,
-        gia_den: gia.length ? Math.max(...gia) : null, so_bien_the: (d.variants ?? []).length, vids: (d.variants ?? []).map((v) => v.vid), listed: d.listedNum ?? null, supplier_id: d.supplierId ?? null,
-        // danh mục biến thể CJ đầy đủ — tab Nhà cung cấp › Sản phẩm NCC hiện theo tên/mã/giá BÊN CJ, Liên kết đặt cạnh biến thể của shop
-        bien_the: (d.variants ?? []).map((v) => ({ vid: v.vid, ten: v.variantKey || v.variantNameEn || v.vid, sku: v.variantSku ?? '', gia: Number(v.variantSellPrice) || null, anh: v.variantImage ?? null,
-          can: Number(v.variantWeight) || null, kich: v.variantLength ? `${v.variantLength}×${v.variantWidth}×${v.variantHeight} mm` : null, gia_goi_y: Number(v.variantSugSellPrice) || null })),
-        // mọi thông tin sản phẩm bên NCC (tab Nhà cung cấp › Sản phẩm NCC)
-        chi_tiet: { danh_muc: d.categoryName ?? null, loai: d.entryNameEn ?? null, can_nang: d.productWeight ?? null, can_dong_goi: d.packingWeight ?? null,
-          chat_lieu: chuoiDs(d.materialNameEn), dong_goi: chuoiDs(d.packingNameEn), gia_goi_y: Number(d.suggestSellPrice) || null, tao_luc: d.createrTime ?? null,
-          anh: (d.productImageSet ?? []).slice(0, 12), mo_ta: String(d.description ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 1500) } };
-      const v = dsVideo(d.productVideo);
-      if (v.length && !p.video_luc) video++;
-      await q(sql`UPDATE shop_san_pham SET ncc_info = ${JSON.stringify(info)}::jsonb, ncc_luc = now(), ncc_dang_ban = ${String(d.status) === '3'},
-        video = CASE WHEN video_luc IS NULL AND video = '[]'::jsonb THEN ${JSON.stringify(v)}::jsonb ELSE video END, video_luc = COALESCE(video_luc, now()) WHERE id = ${p.id}`);
-      // Từng biến thể: giá CJ → giá vốn (ghi biến động khi đổi), vid còn/mất trên CJ
-      const giaCj = new Map((d.variants ?? []).map((x) => [x.vid, Number(x.variantSellPrice)]));
-      const bts = await q<{ id: number; ma_ncc: string | null; gia_von: string | null; ncc_mat: boolean }>(sql`SELECT id, ma_ncc, gia_von::text, ncc_mat FROM shop_bien_the WHERE san_pham_id = ${p.id}`);
-      for (const b of bts) {
-        if (!b.ma_ncc) continue;
-        const g = giaCj.get(b.ma_ncc), mat = g === undefined;
-        if (mat !== b.ncc_mat) await ghiBienDong(ch.id, p.id, b.id, mat ? 'go' : 've_lai', mat ? 'có trên CJ' : 'không có', mat ? 'không còn trên CJ' : 'có lại trên CJ');
-        if (!mat && g && g > 0 && (b.gia_von === null || Math.abs(Number(b.gia_von) - g) > 0.009)) {
-          if (b.gia_von !== null) await ghiBienDong(ch.id, p.id, b.id, 'gia', `$${Number(b.gia_von).toFixed(2)}`, `$${g.toFixed(2)}`);
-          await q(sql`UPDATE shop_bien_the SET gia_von = ${g}, updated_at = now() WHERE id = ${b.id}`);
-        }
-        await q(sql`UPDATE shop_bien_the SET gia_ncc = ${g ?? null}, ncc_mat = ${mat} WHERE id = ${b.id}`);
-      }
-    }
-    await new Promise((ok) => setTimeout(ok, 1100));
-  }
-  return { doc: ds.length, video };
-}
+/* ── DANH MỤC NCC — DÙNG CHUNG MỌI SHOP (migration 0205) ─────────────────────
+ * Cây: kênh (shop_ncc.kenh) → NCC (shop_ncc) → sản phẩm NCC (shop_ncc_sp) → biến thể NCC (shop_ncc_bt) ⇄ biến thể shop (shop_nguon, nhiều-nhiều).
+ * Mỗi pid đọc MỘT lần / ngày dù bao nhiêu shop bán; biến động phía NCC ghi MỘT lần (không gắn shop). Chỉ NCC co_api (hiện: CJ) đọc tự động. */
+type CjSp = { pid?: string; productNameEn?: string; productSku?: string; productVideo?: unknown; listedNum?: number; supplierId?: string | null; status?: string | number;
+  sellPrice?: string; categoryName?: string; productWeight?: string; packingWeight?: string; materialNameEn?: unknown; packingNameEn?: unknown; entryNameEn?: string;
+  suggestSellPrice?: string | number; createrTime?: string; productImageSet?: string[]; description?: string;
+  variants?: { vid: string; variantSellPrice?: number; variantNameEn?: string; variantKey?: string; variantSku?: string; variantImage?: string;
+    variantWeight?: number; variantLength?: number; variantWidth?: number; variantHeight?: number; variantSugSellPrice?: number }[] };
 
 /** CJ trả mảng tên dạng chuỗi JSON '["Cloth","Others"]' hoặc mảng thật — gộp thành 'Cloth, Others'. */
 function chuoiDs(x: unknown): string | null {
@@ -129,47 +92,173 @@ function chuoiDs(x: unknown): string | null {
   return Array.isArray(a) ? a.map(String).join(', ') || null : null;
 }
 
-const ghiBienDong = (chId: number, spId: number | null, btId: number | null, loai: string, cu: string | null, moi: string | null) =>
-  q(sql`INSERT INTO shop_ncc_bien_dong (cua_hang_id, san_pham_id, bien_the_id, loai, cu, moi) VALUES (${chId}, ${spId}, ${btId}, ${loai}, ${cu}, ${moi})`);
+/** Một dòng biến động. Phía NCC (giá, gỡ/về lại, ngừng/bán lại, tồn thấp): nccSp/nccBt, không shop. Phía shop (tự ẩn, mở lại, đổi nguồn): ch + bt. */
+const ghiBienDong = (x: { ch?: number; sp?: number; bt?: number; nccSp?: number; nccBt?: number; loai: string; cu: string | null; moi: string | null }) =>
+  q(sql`INSERT INTO shop_ncc_bien_dong (cua_hang_id, san_pham_id, bien_the_id, ncc_sp_id, ncc_bt_id, loai, cu, moi)
+        VALUES (${x.ch ?? null}, ${x.sp ?? null}, ${x.bt ?? null}, ${x.nccSp ?? null}, ${x.nccBt ?? null}, ${x.loai}, ${x.cu}, ${x.moi})`);
 
-/** Tồn kho CJ từng biến thể (product/stock/queryByVid — một lượt mỗi vid, ~1/giây): mỗi nhịp đọc ≤ 50 biến thể cũ nhất, mỗi biến thể ~1 lần/ngày. */
-export async function dongBoTonNcc(ch: CuaHang) {
-  if (ch.ncc !== 'cj') return { doc: 0 };
-  const nguong = ch.cau_hinh.ton_thap ?? 50;
-  const ds = await q<{ id: number; ma_ncc: string; san_pham_id: number; ton_ncc: number | null }>(sql`SELECT b.id, b.ma_ncc, b.san_pham_id, b.ton_ncc FROM shop_bien_the b JOIN shop_san_pham p ON p.id = b.san_pham_id
-    WHERE p.cua_hang_id = ${ch.id} AND b.ma_ncc IS NOT NULL AND NOT b.ncc_mat AND (b.ton_luc IS NULL OR b.ton_luc < now() - interval '20 hours') ORDER BY b.ton_luc NULLS FIRST LIMIT 50`);
-  for (const b of ds) {
-    const r = await cj<{ totalInventoryNum?: number; areaEn?: string; countryCode?: string }[]>(`product/stock/queryByVid?vid=${encodeURIComponent(b.ma_ncc)}`);
+/** Đọc MỘT sản phẩm CJ (product/query) vào danh mục: sản phẩm + mọi biến thể (giá, tên, SKU, ảnh, cân/kích thước); ghi biến động khi đổi.
+ *  Gọi từ nhịp (sản phẩm đang có nguồn bật, cũ hơn 1 ngày) và khi người thêm nguồn mới bằng mã CJ. */
+export async function docSpCj(ma: string): Promise<{ id: number | null; loi?: string }> {
+  const [cu] = await q<{ id: number; dang_ban: boolean | null }>(sql`SELECT id, dang_ban FROM shop_ncc_sp WHERE ncc = 'cj' AND ma = ${ma}`);
+  const r = await cj<CjSp>(`product/query?pid=${encodeURIComponent(ma)}`);
+  if (!r.result || !r.data) {
+    const loi = r.message ?? 'CJ không trả';
+    if (cu) await q(sql`UPDATE shop_ncc_sp SET loi = ${loi}, luc = now() WHERE id = ${cu.id}`);
+    return { id: cu?.id ?? null, loi };
+  }
+  const d = r.data, dangBan = String(d.status) === '3';
+  const info = { sku: d.productSku ?? '', listed: d.listedNum ?? null, supplier_id: d.supplierId ?? null, video: dsVideo(d.productVideo),
+    chi_tiet: { danh_muc: d.categoryName ?? null, loai: d.entryNameEn ?? null, can_nang: d.productWeight ?? null, can_dong_goi: d.packingWeight ?? null,
+      chat_lieu: chuoiDs(d.materialNameEn), dong_goi: chuoiDs(d.packingNameEn), gia_goi_y: Number(d.suggestSellPrice) || null, tao_luc: d.createrTime ?? null,
+      anh: (d.productImageSet ?? []).slice(0, 12), mo_ta: String(d.description ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 1500) } };
+  const [sp] = await q<{ id: number }>(sql`
+    INSERT INTO shop_ncc_sp (ncc, ma, ten, info, dang_ban, luc, loi) VALUES ('cj', ${ma}, ${d.productNameEn ?? null}, ${JSON.stringify(info)}::jsonb, ${dangBan}, now(), NULL)
+    ON CONFLICT (ncc, ma) DO UPDATE SET ten = EXCLUDED.ten, info = EXCLUDED.info, dang_ban = EXCLUDED.dang_ban, luc = now(), loi = NULL RETURNING id`);
+  const spId = sp!.id;
+  if (cu && cu.dang_ban !== null && cu.dang_ban !== dangBan)
+    await ghiBienDong({ nccSp: spId, loai: dangBan ? 'ban_lai' : 'ngung', cu: cu.dang_ban ? 'NCC đang bán' : 'NCC ngừng bán', moi: dangBan ? 'NCC bán lại' : 'NCC ngừng bán' });
+  const coSan = new Map((await q<{ id: number; ma: string; gia: string | null; mat: boolean }>(sql`SELECT id, ma, gia::text, mat FROM shop_ncc_bt WHERE ncc_sp_id = ${spId}`)).map((x) => [x.ma, x]));
+  const thay = new Set<string>();
+  for (const v of d.variants ?? []) {
+    thay.add(v.vid);
+    const gia = Number(v.variantSellPrice) || null, c = coSan.get(v.vid);
+    const vi = { anh: v.variantImage ?? null, can: Number(v.variantWeight) || null, kich: v.variantLength ? `${v.variantLength}×${v.variantWidth}×${v.variantHeight} mm` : null,
+      gia_goi_y: Number(v.variantSugSellPrice) || null };
+    const [bt] = await q<{ id: number }>(sql`
+      INSERT INTO shop_ncc_bt (ncc_sp_id, ma, ten, sku, gia, info, mat) VALUES (${spId}, ${v.vid}, ${v.variantKey || v.variantNameEn || v.vid}, ${v.variantSku ?? null}, ${gia}, ${JSON.stringify(vi)}::jsonb, false)
+      ON CONFLICT (ncc_sp_id, ma) DO UPDATE SET ten = EXCLUDED.ten, sku = EXCLUDED.sku, gia = EXCLUDED.gia, info = EXCLUDED.info, mat = false RETURNING id`);
+    if (c?.mat) await ghiBienDong({ nccSp: spId, nccBt: bt!.id, loai: 've_lai', cu: 'không còn trên NCC', moi: 'có lại trên NCC' });
+    if (c && c.gia !== null && gia && Math.abs(Number(c.gia) - gia) > 0.009) await ghiBienDong({ nccSp: spId, nccBt: bt!.id, loai: 'gia', cu: `$${Number(c.gia).toFixed(2)}`, moi: `$${gia.toFixed(2)}` });
+  }
+  for (const [ma2, c] of coSan) if (!thay.has(ma2) && !c.mat) {
+    await q(sql`UPDATE shop_ncc_bt SET mat = true WHERE id = ${c.id}`);
+    await ghiBienDong({ nccSp: spId, nccBt: c.id, loai: 'go', cu: 'có trên NCC', moi: 'không còn trên NCC' });
+  }
+  return { id: spId };
+}
+
+/** Nhịp danh mục: ≤ 20 sản phẩm CJ đang có nguồn bật (hoặc chưa đọc lần nào), cũ hơn 1 ngày. CJ ~1 lượt/giây → tuần tự, nghỉ 1,1 giây. */
+export async function docDanhMucNcc(gioiHan = 20) {
+  const ds = await q<{ ma: string }>(sql`
+    SELECT s.ma FROM shop_ncc_sp s JOIN shop_ncc n ON n.khoa = s.ncc
+     WHERE n.kenh = 'cj' AND n.co_api AND s.ncc = 'cj' AND (s.luc IS NULL OR s.luc < now() - interval '1 day')
+       AND (s.luc IS NULL OR EXISTS (SELECT 1 FROM shop_ncc_bt t JOIN shop_nguon g ON g.ncc_bt_id = t.id WHERE t.ncc_sp_id = s.id AND g.bat))
+     ORDER BY s.luc NULLS FIRST LIMIT ${gioiHan}`);
+  let loi = 0;
+  for (const s of ds) { if ((await docSpCj(s.ma)).loi) loi++; await new Promise((ok) => setTimeout(ok, 1100)); }
+  return { doc: ds.length, loi };
+}
+
+/** Tồn CJ từng biến thể NCC đang làm nguồn (product/stock/queryByVid, ~1/giây): ≤ 50 / nhịp, mỗi biến thể ~1 lần/ngày.
+ *  Ngưỡng tồn thấp = ngưỡng CAO nhất trong các shop đang dùng biến thể đó (shop nào khó tính nhất thì báo theo shop đó). */
+export async function docTonNcc(gioiHan = 50) {
+  const ds = await q<{ id: number; ma: string; ncc_sp_id: number; ton: number | null; nguong: number }>(sql`
+    SELECT t.id, t.ma, t.ncc_sp_id, t.ton,
+           (SELECT MAX(COALESCE((c.cau_hinh->>'ton_thap')::int, 50)) FROM shop_nguon g JOIN shop_bien_the b ON b.id = g.bien_the_id
+              JOIN shop_san_pham p ON p.id = b.san_pham_id JOIN shop_cua_hang c ON c.id = p.cua_hang_id WHERE g.ncc_bt_id = t.id AND g.bat) AS nguong
+      FROM shop_ncc_bt t JOIN shop_ncc_sp s ON s.id = t.ncc_sp_id JOIN shop_ncc n ON n.khoa = s.ncc
+     WHERE n.kenh = 'cj' AND n.co_api AND NOT t.mat AND (t.ton_luc IS NULL OR t.ton_luc < now() - interval '20 hours')
+       AND EXISTS (SELECT 1 FROM shop_nguon g WHERE g.ncc_bt_id = t.id AND g.bat)
+     ORDER BY t.ton_luc NULLS FIRST LIMIT ${gioiHan}`);
+  for (const t of ds) {
+    const r = await cj<{ totalInventoryNum?: number; areaEn?: string; countryCode?: string }[]>(`product/stock/queryByVid?vid=${encodeURIComponent(t.ma)}`);
     if (r.result) {
       const kho = (r.data ?? []).map((x) => ({ kho: x.areaEn ?? '', nuoc: x.countryCode ?? '', so: Number(x.totalInventoryNum) || 0 }));
-      const ton = kho.reduce((t, x) => t + x.so, 0);
-      await q(sql`UPDATE shop_bien_the SET ton_ncc = ${ton}, ton_kho = ${JSON.stringify(kho)}::jsonb, ton_luc = now() WHERE id = ${b.id}`);
-      // tụt xuống dưới ngưỡng tồn thấp (lần đầu vượt ngưỡng) → ghi biến động để cảnh báo sớm, trước khi hết hẳn
-      if (ton > 0 && ton < nguong && (b.ton_ncc == null || b.ton_ncc >= nguong)) await ghiBienDong(ch.id, b.san_pham_id, b.id, 'ton_thap', b.ton_ncc == null ? '—' : String(b.ton_ncc), `${ton} (< ${nguong})`);
+      const ton = kho.reduce((s, x) => s + x.so, 0);
+      await q(sql`UPDATE shop_ncc_bt SET ton = ${ton}, ton_kho = ${JSON.stringify(kho)}::jsonb, ton_luc = now() WHERE id = ${t.id}`);
+      if (ton > 0 && ton < t.nguong && (t.ton == null || t.ton >= t.nguong))
+        await ghiBienDong({ nccSp: t.ncc_sp_id, nccBt: t.id, loai: 'ton_thap', cu: t.ton == null ? '—' : String(t.ton), moi: `${ton} (< ${t.nguong})` });
+      if (ton === 0 && t.ton !== 0) await ghiBienDong({ nccSp: t.ncc_sp_id, nccBt: t.id, loai: 'het_ncc', cu: t.ton == null ? '—' : String(t.ton), moi: '0' });
     }
     await new Promise((ok) => setTimeout(ok, 1100));
   }
   return { doc: ds.length };
 }
 
-/** Áp trạng thái NCC lên mặt tiền: biến thể mất trên CJ / tồn 0 / sản phẩm CJ ngừng bán → het_hang (cờ het_tu_dong); có lại → mở lại + thư
- *  "Back in stock" cho người đã đăng ký. Tắt được ở Cài đặt › Vận hành (cau_hinh.tu_an_het). Ẩn TAY (het_hang không cờ) không bao giờ bị mở. */
+/** Phần NCC của một nhịp — chạy MỘT lần cho mọi shop (cron gọi trước vòng từng shop). */
+export async function dongBoNccChung() {
+  const sp = await docDanhMucNcc().catch((e) => ({ loi: (e as Error).message }));
+  const ton = await docTonNcc().catch((e) => ({ loi: (e as Error).message }));
+  return { sp, ton };
+}
+
+/** Gắn một nguồn cho biến thể shop: (NCC · mã sản phẩm · mã biến thể) — tạo dòng danh mục nếu chưa có. Nguồn đầu tiên = chính (ưu tiên 1),
+ *  sau đó xếp cuối hàng dự phòng. Đã có mà đang tắt thì bật lại. */
+export async function ganNguon(btId: number, ncc: string, maSp: string, maBt: string, o: { tenSp?: string | null; tenBt?: string | null; gia?: number | null; kiemMau?: boolean } = {}) {
+  const [s] = await q<{ id: number }>(sql`INSERT INTO shop_ncc_sp (ncc, ma, ten) VALUES (${ncc}, ${maSp}, ${o.tenSp ?? null})
+    ON CONFLICT (ncc, ma) DO UPDATE SET ten = COALESCE(shop_ncc_sp.ten, EXCLUDED.ten) RETURNING id`);
+  const [t] = await q<{ id: number }>(sql`INSERT INTO shop_ncc_bt (ncc_sp_id, ma, ten, gia) VALUES (${s!.id}, ${maBt}, ${o.tenBt ?? null}, ${o.gia ?? null})
+    ON CONFLICT (ncc_sp_id, ma) DO UPDATE SET ten = COALESCE(shop_ncc_bt.ten, EXCLUDED.ten), gia = COALESCE(EXCLUDED.gia, shop_ncc_bt.gia) RETURNING id`);
+  const [n] = await q<{ id: number }>(sql`
+    INSERT INTO shop_nguon (bien_the_id, ncc_bt_id, uu_tien, kiem_mau)
+    VALUES (${btId}, ${t!.id}, (SELECT COALESCE(MAX(uu_tien), 0) + 1 FROM shop_nguon WHERE bien_the_id = ${btId} AND bat), ${o.kiemMau ?? false})
+    ON CONFLICT (bien_the_id, ncc_bt_id) DO UPDATE SET bat = true RETURNING id`);
+  return n!.id;
+}
+
+/** CHỌN NGUỒN — chỗ DUY NHẤT ghi ảnh nguồn lên biến thể shop (nguon_id, nguon_ok, ma_ncc, gia_ncc, gia_von, ton_*, ncc_mat).
+ *  Luật: trong các nguồn đang bật, lấy nguồn ưu tiên cao nhất BÁN ĐƯỢC (còn trên NCC, tồn > 0 hoặc chưa đọc, NCC đang bán sản phẩm) và ĐƯỢC PHÉP
+ *  (nguồn chính luôn được; dự phòng phải đã kiểm mẫu VÀ biên ≥ biên tối thiểu của shop). Không nguồn nào bán được → giữ nguồn chính, nguon_ok = false
+ *  (apDungNcc tự ẩn). Đổi nguồn đang dùng → ghi biến động 'doi_nguon'. Gieo video từ sản phẩm NCC của nguồn đang dùng nếu shop chưa có. */
+export async function apNguon(ch: CuaHang) {
+  const bienMin = ch.cau_hinh.bien_toi_thieu ?? 0;
+  const doi = await q<{ id: number; san_pham_id: number; cu: number | null; moi: number }>(sql`
+    WITH ds AS (
+      SELECT n.id, n.bien_the_id, n.uu_tien, n.kiem_mau, t.ma AS vid, t.gia, t.ton, t.ton_kho, t.ton_luc, t.mat, s.dang_ban, b.gia_ban,
+             n.uu_tien = MIN(n.uu_tien) OVER (PARTITION BY n.bien_the_id) AS chinh
+        FROM shop_nguon n JOIN shop_ncc_bt t ON t.id = n.ncc_bt_id JOIN shop_ncc_sp s ON s.id = t.ncc_sp_id
+        JOIN shop_bien_the b ON b.id = n.bien_the_id JOIN shop_san_pham p ON p.id = b.san_pham_id
+       WHERE p.cua_hang_id = ${ch.id} AND n.bat
+    ), x AS (
+      SELECT *, (NOT mat AND COALESCE(ton, 1) > 0 AND dang_ban IS NOT FALSE) AS con,
+             (chinh OR (kiem_mau AND (gia IS NULL OR COALESCE(gia_ban, 0) <= 0 OR (gia_ban - gia) / gia_ban * 100 >= ${bienMin}))) AS duoc
+        FROM ds
+    ), chon AS (
+      SELECT DISTINCT ON (bien_the_id) * FROM x ORDER BY bien_the_id, (con AND duoc) DESC, uu_tien, id
+    ), truoc AS (
+      SELECT b.id, b.nguon_id FROM shop_bien_the b JOIN chon c ON c.bien_the_id = b.id
+    )
+    UPDATE shop_bien_the b SET nguon_id = c.id, nguon_ok = (c.con AND c.duoc), ma_ncc = c.vid, gia_ncc = c.gia, gia_von = COALESCE(c.gia, b.gia_von),
+           ton_ncc = c.ton, ton_kho = c.ton_kho, ton_luc = c.ton_luc, ncc_mat = c.mat
+      FROM chon c, truoc t WHERE b.id = c.bien_the_id AND t.id = b.id
+    RETURNING b.id, b.san_pham_id, t.nguon_id AS cu, c.id AS moi`);
+  for (const d of doi) if (d.cu !== null && d.cu !== d.moi) {
+    const [ten] = await q<{ cu: string | null; moi: string | null }>(sql`
+      SELECT (SELECT n.uu_tien || ' · ' || s.ncc || ' ' || COALESCE(t.ten, t.ma) FROM shop_nguon n JOIN shop_ncc_bt t ON t.id = n.ncc_bt_id JOIN shop_ncc_sp s ON s.id = t.ncc_sp_id WHERE n.id = ${d.cu}) AS cu,
+             (SELECT n.uu_tien || ' · ' || s.ncc || ' ' || COALESCE(t.ten, t.ma) FROM shop_nguon n JOIN shop_ncc_bt t ON t.id = n.ncc_bt_id JOIN shop_ncc_sp s ON s.id = t.ncc_sp_id WHERE n.id = ${d.moi}) AS moi`);
+    await ghiBienDong({ ch: ch.id, sp: d.san_pham_id, bt: d.id, loai: 'doi_nguon', cu: ten?.cu ? `nguồn ${ten.cu}` : null, moi: ten?.moi ? `nguồn ${ten.moi}` : null });
+  }
+  // biến thể không còn nguồn nào bật → xoá ảnh nguồn (thành "thiếu nguồn"; đơn có món này không sang được NCC)
+  await q(sql`UPDATE shop_bien_the b SET nguon_id = NULL, nguon_ok = NULL, ma_ncc = NULL, gia_ncc = NULL, ton_ncc = NULL, ton_kho = NULL, ton_luc = NULL, ncc_mat = false
+    FROM shop_san_pham p WHERE p.id = b.san_pham_id AND p.cua_hang_id = ${ch.id} AND b.nguon_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM shop_nguon n WHERE n.bien_the_id = b.id AND n.bat)`);
+  const video = await q(sql`
+    UPDATE shop_san_pham p SET video = v.video, video_luc = now()
+      FROM (SELECT DISTINCT ON (b.san_pham_id) b.san_pham_id, s.info->'video' AS video
+              FROM shop_bien_the b JOIN shop_nguon n ON n.id = b.nguon_id JOIN shop_ncc_bt t ON t.id = n.ncc_bt_id JOIN shop_ncc_sp s ON s.id = t.ncc_sp_id
+             WHERE jsonb_array_length(COALESCE(s.info->'video', '[]'::jsonb)) > 0 ORDER BY b.san_pham_id, n.uu_tien) v
+     WHERE p.id = v.san_pham_id AND p.cua_hang_id = ${ch.id} AND p.video_luc IS NULL AND p.video = '[]'::jsonb RETURNING p.id`);
+  return { chon: doi.length, doi: doi.filter((d) => d.cu !== null && d.cu !== d.moi).length, video: video.length };
+}
+
+/** Áp nguồn lên mặt tiền: biến thể có nguồn mà KHÔNG nguồn nào bán được (nguon_ok = false) → het_hang (cờ het_tu_dong); bán được lại → mở + thư
+ *  "Back in stock" cho người đã đăng ký. Có dự phòng đã kiểm mẫu thì nguồn chính hết KHÔNG làm ẩn (apNguon đã chuyển sang dự phòng).
+ *  Tắt được ở Cài đặt › Vận hành (cau_hinh.tu_an_het). Ẩn TAY (het_hang không cờ) không bao giờ bị mở. */
 export async function apDungNcc(ch: CuaHang) {
   if (ch.cau_hinh.tu_an_het === false) return { an: 0, mo: 0, bao: 0 };
-  const an = await q<{ id: number; san_pham_id: number; ten: string }>(sql`
+  const an = await q<{ id: number; san_pham_id: number }>(sql`
     UPDATE shop_bien_the b SET het_hang = true, het_tu_dong = true, updated_at = now() FROM shop_san_pham p
-     WHERE p.id = b.san_pham_id AND p.cua_hang_id = ${ch.id} AND b.ma_ncc IS NOT NULL AND NOT b.het_hang
-       AND (b.ncc_mat OR b.ton_ncc = 0 OR p.ncc_dang_ban = false) RETURNING b.id, b.san_pham_id, b.ten`);
-  for (const b of an) await ghiBienDong(ch.id, b.san_pham_id, b.id, 'het', 'đang bán', 'tự ẩn — hết/gỡ ở NCC');
+     WHERE p.id = b.san_pham_id AND p.cua_hang_id = ${ch.id} AND b.nguon_id IS NOT NULL AND b.nguon_ok = false AND NOT b.het_hang RETURNING b.id, b.san_pham_id`);
+  for (const b of an) await ghiBienDong({ ch: ch.id, sp: b.san_pham_id, bt: b.id, loai: 'het', cu: 'đang bán', moi: 'tự ẩn — hết mọi nguồn' });
   const mo = await q<{ id: number; san_pham_id: number }>(sql`
     UPDATE shop_bien_the b SET het_hang = false, het_tu_dong = false, updated_at = now() FROM shop_san_pham p
-     WHERE p.id = b.san_pham_id AND p.cua_hang_id = ${ch.id} AND b.het_tu_dong
-       AND NOT b.ncc_mat AND COALESCE(b.ton_ncc, 1) > 0 AND p.ncc_dang_ban IS NOT FALSE RETURNING b.id, b.san_pham_id`);
-  for (const b of mo) await ghiBienDong(ch.id, b.san_pham_id, b.id, 'co_lai', 'tự ẩn', 'mở bán lại — NCC có hàng');
+     WHERE p.id = b.san_pham_id AND p.cua_hang_id = ${ch.id} AND b.het_tu_dong AND b.nguon_ok RETURNING b.id, b.san_pham_id`);
+  for (const b of mo) await ghiBienDong({ ch: ch.id, sp: b.san_pham_id, bt: b.id, loai: 'co_lai', cu: 'tự ẩn', moi: 'mở bán lại — có nguồn bán được' });
   // Thư "có hàng lại": người đăng ký theo biến thể vừa mở, hoặc theo cả sản phẩm khi sản phẩm có ít nhất một biến thể bán được
   let bao = 0;
   const m = matTien(ch.mat_tien);
-  if (batThu(m, 'co_hang')) {
+  if (batThu(m, 'co_hang') && ch.trang_thai === 'bat') {   // shop demo: không gửi thư thật
     const cho = await q<{ id: number; email: string; ten: string; slug: string | null }>(sql`
       SELECT k.id, k.email, p.ten, p.slug FROM shop_bao_co_hang k JOIN shop_san_pham p ON p.id = k.san_pham_id
        WHERE k.cua_hang_id = ${ch.id} AND k.da_bao IS NULL AND p.hien
@@ -328,10 +417,15 @@ async function sangNccLoi(ch: CuaHang, donId: number, nguoi: string, giuCho: (id
     await ghiSuKien(donId, 'ncc', `Sang ${ch.ncc.toUpperCase()} lỗi: ${loi}`, true);
     return { ok: false, loi };
   };
-  const mon = await q<{ ten: string; sl: number; ma_ncc: string | null; ma_ngoai: string }>(sql`
-    SELECT m.ten, m.sl, b.ma_ncc, m.ma_ngoai FROM shop_don_mon m LEFT JOIN shop_bien_the b ON b.id = m.bien_the_id WHERE m.don_id = ${donId} ORDER BY m.id`);
+  // mã biến thể = NGUỒN ĐANG DÙNG của biến thể shop (apNguon chọn: chính, hoặc dự phòng đã kiểm mẫu khi chính hết)
+  const mon = await q<{ id: number; ten: string; sl: number; ma_ncc: string | null; ma_ngoai: string; ncc: string | null; ncc_bt_id: number | null }>(sql`
+    SELECT m.id, m.ten, m.sl, b.ma_ncc, m.ma_ngoai, s.ncc, n.ncc_bt_id FROM shop_don_mon m LEFT JOIN shop_bien_the b ON b.id = m.bien_the_id
+      LEFT JOIN shop_nguon n ON n.id = b.nguon_id LEFT JOIN shop_ncc_bt t ON t.id = n.ncc_bt_id LEFT JOIN shop_ncc_sp s ON s.id = t.ncc_sp_id
+     WHERE m.don_id = ${donId} ORDER BY m.id`);
   const thieu = mon.filter((m) => !m.ma_ncc).map((m) => m.ten);
-  if (!mon.length || thieu.length) return hong(`thiếu mã biến thể NCC: ${thieu.join(', ') || '(đơn không có món)'} — điền ở tab Sản phẩm`);
+  if (!mon.length || thieu.length) return hong(`thiếu nguồn NCC: ${thieu.join(', ') || '(đơn không có món)'} — gắn nguồn ở tab Sản phẩm`);
+  const khac = mon.filter((m) => m.ncc && m.ncc !== 'cj');
+  if (khac.length) return hong(`nguồn đang dùng không phải CJ (${[...new Set(khac.map((m) => m.ncc))].join(', ')}: ${khac.map((m) => m.ten).join(', ')}) — NCC này chưa có kết nối đặt đơn, đặt tay rồi ghi mã đơn`);
   const sp = mon.map((m) => ({ vid: m.ma_ncc!, quantity: m.sl, storeLineItemId: m.ma_ngoai }));
   const nuoc = d.dia_chi.nuoc || 'US';
   const f = await cj<{ logisticName: string; logisticAging: string; logisticPrice: number }[]>('logistic/freightCalculate',
@@ -350,6 +444,7 @@ async function sangNccLoi(ch: CuaHang, donId: number, nguoi: string, giuCho: (id
   if (!r.data?.orderId) return hong(`CJ từ chối: ${r.message ?? 'không rõ'}`);
   await q(sql`UPDATE shop_don_ncc SET ma_ncc = ${r.data.orderId}, trang_thai = 'CREATED', tuyen = ${t.logisticName}, so_ngay = ${t.logisticAging},
                 phi_ship = ${t.logisticPrice}, tien_hang = ${r.data.productAmount ?? null}, updated_at = now() WHERE id = ${nccId}`);
+  for (const m of mon) await q(sql`UPDATE shop_don_mon SET ncc_bt_id = ${m.ncc_bt_id} WHERE id = ${m.id}`);
   await ghiSuKien(donId, nguoi === 'mos2' ? 'ncc' : 'nguoi', `Đã đặt CJ ${r.data.orderId} · ${t.logisticName} ${t.logisticAging} ngày · ship $${t.logisticPrice}${nguoi !== 'mos2' ? ` (${nguoi} bấm)` : ''}`);
   // Woo giữ dấu để cột "CJ" cũ trong admin WP vẫn đọc được.
   if (ch.nen_tang === 'woo') await woo(ch, 'PUT', `orders/${d.ma_ngoai}`, { meta_data: [{ key: '_cj_order_id', value: r.data.orderId }, { key: '_cj_trang_thai', value: 'CREATED' },
@@ -507,6 +602,11 @@ async function keoVanDon(nccId: number, donId: number, ma: string) {
 }
 
 /* ── MỘT NHỊP ─────────────────────────────────────────────────────────────── */
+/** Shop DEMO (trang_thai 'demo'): chỉ chạy phần thuần sổ — chọn nguồn + tự ẩn/mở — để màn demo phản ánh đúng luật. Không gọi NCC, không gửi thư. */
+export async function nhipDemo(ch: CuaHang) {
+  return { cua_hang: ch.khoa, nguon: await apNguon(ch), mat_tien_ncc: await apDungNcc(ch) };
+}
+
 /** Một lượt cho một cửa hàng: (sản phẩm nếu yêu cầu) → đơn đổi → tự sang NCC đơn đủ điều kiện → theo dõi NCC/vận đơn. */
 export async function nhip(ch: CuaHang, opt: { sanPham?: boolean } = {}) {
   const kq: Record<string, unknown> = { cua_hang: ch.khoa };
@@ -523,8 +623,8 @@ export async function nhip(ch: CuaHang, opt: { sanPham?: boolean } = {}) {
       kq.sang_ncc = (await Promise.all(cho.map((x) => sangNcc(ch, x.id)))).filter((x) => x.ok).length;
     }
     kq.ncc = await theoDoiNcc(ch);
-    kq.ncc_info = await dongBoThongTinNcc(ch);
-    kq.ton = await dongBoTonNcc(ch).catch((e) => ({ loi: (e as Error).message }));
+    // danh mục + tồn NCC đọc MỘT lần cho mọi shop (dongBoNccChung, cron gọi trước vòng này); ở đây chỉ chọn nguồn + áp lên mặt tiền
+    kq.nguon = await apNguon(ch).catch((e) => ({ loi: (e as Error).message }));
     kq.mat_tien_ncc = await apDungNcc(ch).catch((e) => ({ loi: (e as Error).message }));
     kq.ho_so = await dongBoHoSo(ch).catch((e) => ({ loi: (e as Error).message }));
     await q(sql`UPDATE shop_cua_hang SET dong_bo_luc = ${batDau}::timestamptz, dong_bo_loi = NULL WHERE id = ${ch.id}`);

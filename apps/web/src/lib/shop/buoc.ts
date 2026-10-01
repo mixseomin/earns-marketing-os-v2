@@ -50,3 +50,13 @@ export function gio(s: string | null | undefined) {
 export const soNgayTu = (s: string | null | undefined) => (s ? Math.floor((Date.now() - new Date(isoCua(s)).getTime()) / 86_400_000) : null);
 export const linkVanDon = (ma: string) => `https://t.17track.net/en#nums=${encodeURIComponent(ma)}`;
 export const LINK_DS_CJ = 'https://www.cjdropshipping.com/mine/dropshipping/orderList?orderType=3&childType=1';
+
+/** KÊNH NCC — tầng trên của cây nguồn hàng (shop_ncc.kenh). Một bản cho server action (kiểm khoá) + màn (nhãn). */
+export const KENH_NCC: Record<string, { ten: string; chu: string }> = {
+  cj: { ten: 'CJ Dropshipping', chu: 'CJ là một NCC: mình đặt, trả tiền, khiếu nại với CJ; CJ lấy hàng từ xưởng, kiểm, gửi.' },
+  alibaba: { ten: 'Alibaba', chu: 'Mỗi nhà bán là một NCC riêng.' },
+  '1688': { ten: '1688', chu: 'Mỗi nhà bán là một NCC riêng (thường cần agent mua hộ).' },
+  aliexpress: { ten: 'AliExpress', chu: 'Mỗi cửa hàng là một NCC riêng.' },
+  xuong: { ten: 'Xưởng riêng', chu: 'Làm việc thẳng với xưởng.' },
+  khac: { ten: 'Khác', chu: '' },
+};

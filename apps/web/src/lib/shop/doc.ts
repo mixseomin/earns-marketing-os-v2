@@ -14,7 +14,7 @@ export type DonDong = {
   id: number; cuaHang: string; nenTang: string; domain: string; maNgoai: string; soDon: string; trangThaiShop: string; buoc: Buoc;
   khach: string; email: string; nuoc: string; bang: string; tong: number; hoan: number; taoLuc: string; sid: string | null; soMon: number; tenMon: string;
   giaVon: number | null; shipNcc: number | null; phiCong: number | null; lai: number | null;
-  ncc: { maNcc: string | null; trangThai: string; daTra: boolean; tuyen: string | null; soNgay: string | null; maVanDon: string | null; hang: string | null;
+  ncc: { /** khoá NCC của đơn (shop_don_ncc.ncc) */ nha: string; maNcc: string | null; trangThai: string; daTra: boolean; tuyen: string | null; soNgay: string | null; maVanDon: string | null; hang: string | null;
     guiLuc: string | null; giaoLuc: string | null; vanDon: string | null; loi: string | null;
     /** tiền hàng CJ báo cho đơn này (createOrderV2/getOrderDetail) — số thật sẽ trừ ví, không phải ước theo giá vốn sổ */ tienHang: number | null } | null;
   /** Chặng hành trình (Nhận đơn → … → Trao tận nơi) — null với đơn chưa trả tiền / đã huỷ. */
@@ -22,14 +22,25 @@ export type DonDong = {
 };
 export type BienTheDong = { id: number; sanPhamId: number; sanPham: string; anh: string | null; link: string | null; cuaHang: string; maNgoai: string;
   ten: string; sku: string | null; giaBan: number | null; maNcc: string | null; giaVon: number | null; daBan: number;
-  /** phía NCC (dongBoThongTinNcc / dongBoTonNcc / apDungNcc) */ giaNcc: number | null; tonNcc: number | null; tonKho: { kho: string; nuoc: string; so: number }[]; nccMat: boolean; hetHang: boolean; hetTuDong: boolean; tonLuc: string | null; choCoHang: number };
+  /** ẢNH CỦA NGUỒN ĐANG DÙNG (dong-bo apNguon chọn từ `nguon`) */ giaNcc: number | null; tonNcc: number | null; tonKho: TonKho[]; nccMat: boolean; hetHang: boolean; hetTuDong: boolean; tonLuc: string | null; choCoHang: number;
+  /** mọi nguồn của biến thể (bật trước, theo ưu tiên) · nguồn máy đang dùng · nguồn đó bán được không */ nguon: NguonDong[]; nguonId: number | null; nguonOk: boolean | null };
+export type TonKho = { kho: string; nuoc: string; so: number };
+/** Một nguồn của một biến thể shop (shop_nguon) kèm ảnh biến thể NCC + sản phẩm NCC. */
+export type NguonDong = { id: number; uuTien: number; kiemMau: boolean; bat: boolean; ghiChu: string | null;
+  nccBtId: number; nccSpId: number; ncc: string; maSp: string; tenSp: string | null; dangBan: boolean | null;
+  maBt: string; tenBt: string | null; gia: number | null; ton: number | null; tonKho: TonKho[]; tonLuc: string | null; mat: boolean };
+/** Danh mục NCC dùng chung mọi shop (shop_ncc_sp → shop_ncc_bt). */
+export type NccSpDong = { id: number; ncc: string; ma: string; ten: string | null; link: string | null; dangBan: boolean | null; luc: string | null; loi: string | null;
+  info: { sku?: string; listed?: number | null; video?: string[]; chi_tiet?: { danh_muc: string | null; loai: string | null; can_nang: string | null; can_dong_goi: string | null; chat_lieu: string | null;
+    dong_goi: string | null; gia_goi_y: number | null; tao_luc: string | null; anh: string[]; mo_ta: string } };
+  bt: NccBtDong[] };
+export type NccBtDong = { id: number; ma: string; ten: string | null; sku: string | null; gia: number | null; ton: number | null; tonKho: TonKho[]; tonLuc: string | null; mat: boolean;
+  info: { anh?: string | null; can?: number | null; kich?: string | null; gia_goi_y?: number | null } };
 export type SanPhamDong = { id: number; cuaHang: string; domain: string; slug: string | null; ten: string; tieuDe: string | null; anh: string | null;
-  giaGoc: number | null; giaTu: number | null; hien: boolean; soBienThe: number; daBan: number; danhGia: number; maNcc: string | null;
-  thamKhao: ThamKhao[]; video: string[]; nccInfo: NccInfo | null; nccLuc: string | null; nccDangBan: boolean | null; choCoHang: number };
-/** Thông tin nguồn bên NCC (CJ product/query, làm mới mỗi ngày — dong-bo dongBoThongTinNcc). */
-export type NccInfo = { pid: string; ten: string; sku: string; gia_tu: number | null; gia_den: number | null; so_bien_the: number; vids: string[]; listed: number | null; supplier_id: string | null; loi?: string;
-  bien_the?: { vid: string; ten: string; sku: string; gia: number | null; anh: string | null; can?: number | null; kich?: string | null; gia_goi_y?: number | null }[];
-  chi_tiet?: { danh_muc: string | null; loai: string | null; can_nang: string | null; can_dong_goi: string | null; chat_lieu: string | null; dong_goi: string | null; gia_goi_y: number | null; tao_luc: string | null; anh: string[]; mo_ta: string } };
+  giaGoc: number | null; giaTu: number | null; hien: boolean; soBienThe: number; daBan: number; danhGia: number;
+  thamKhao: ThamKhao[]; video: string[]; choCoHang: number;
+  /** các SẢN PHẨM NCC đang làm nguồn cho biến thể của sản phẩm này (suy từ nguồn bật), sản phẩm của nguồn chính đứng trước */ nguonSp: NguonSp[] };
+export type NguonSp = { id: number; ncc: string; ma: string; ten: string | null; dangBan: boolean | null; /** số biến thể shop lấy nó làm nguồn chính */ chinh: number; /** … làm dự phòng */ duPhong: number };
 export type ThamKhao = { url: string | null; nguon: string; ghi_chu: string; khop: 'chua_xac_nhan' | 'dung_mau' | 'khac'; luc: string };
 export type DanhGiaDong = { id: number; cuaHang: string; sanPham: string; ten: string; email: string | null; sao: number; tieuDe: string | null; noiDung: string;
   daMua: boolean; trangThai: string; taoLuc: string };
@@ -38,13 +49,13 @@ export type CuaHangDong = { id: number; khoa: string; ten: string; domain: strin
   dongBoLuc: string | null; dongBoLoi: string | null; soDon: number; soSanPham: number; thieuMa: number };
 
 export async function docShop() {
-  const [don, bt, ch, sps, dgs] = await Promise.all([
+  const [don, bt, ch, sps, dgs, ng, dmSp, dmBt] = await Promise.all([
     q(sql`
       SELECT d.id, c.khoa, c.nen_tang, c.domain, d.ma_ngoai, d.so_don, d.trang_thai_shop, d.khach, d.dia_chi, d.tong, d.hoan, d.tao_luc::text AS tao_luc, d.tra_luc::text AS tra_luc, d.sid, d.phi_cong,
              (SELECT COALESCE(SUM(m.sl), 0) FROM shop_don_mon m WHERE m.don_id = d.id) AS so_mon,
              (SELECT string_agg(m.ten || CASE WHEN m.sl > 1 THEN ' ×' || m.sl ELSE '' END, ' + ' ORDER BY m.id) FROM shop_don_mon m WHERE m.don_id = d.id) AS ten_mon,
              (SELECT SUM(b.gia_von * m.sl) FROM shop_don_mon m JOIN shop_bien_the b ON b.id = m.bien_the_id WHERE m.don_id = d.id) AS gia_von,
-             n.ma_ncc, n.trang_thai AS ncc_tt, n.da_tra, n.tuyen, n.so_ngay, n.phi_ship, n.tien_hang, n.ma_van_don, n.hang_van_chuyen, n.gui_luc::text AS gui_luc,
+             n.ncc AS ncc_nha, n.ma_ncc, n.trang_thai AS ncc_tt, n.da_tra, n.tuyen, n.so_ngay, n.phi_ship, n.tien_hang, n.ma_van_don, n.hang_van_chuyen, n.gui_luc::text AS gui_luc,
              n.giao_luc::text AS giao_luc, n.van_don->>'trackingStatus' AS van_don, n.loi,
              n.created_at::text AS ncc_tao, n.tra_luc::text AS ncc_tra_luc, n.moc, n.tt_vd
         FROM shop_don d JOIN shop_cua_hang c ON c.id = d.cua_hang_id
@@ -53,7 +64,7 @@ export async function docShop() {
        ORDER BY d.tao_luc DESC`),
     q(sql`
       SELECT b.id, b.san_pham_id, p.ten AS san_pham, p.anh, p.link, c.khoa, b.ma_ngoai, b.ten, b.sku, b.gia_ban, b.ma_ncc, b.gia_von,
-             b.gia_ncc, b.ton_ncc, b.ton_kho, b.ncc_mat, b.het_hang, b.het_tu_dong, b.ton_luc::text AS ton_luc,
+             b.gia_ncc, b.ton_ncc, b.ton_kho, b.ncc_mat, b.het_hang, b.het_tu_dong, b.ton_luc::text AS ton_luc, b.nguon_id, b.nguon_ok,
              (SELECT COUNT(*) FROM shop_bao_co_hang k WHERE k.bien_the_id = b.id AND k.da_bao IS NULL) AS cho_co_hang,
              (SELECT COALESCE(SUM(m.sl), 0) FROM shop_don_mon m JOIN shop_don d ON d.id = m.don_id
                WHERE m.bien_the_id = b.id AND d.tra_luc IS NOT NULL AND d.trang_thai_shop NOT IN ('cancelled', 'refunded')) AS da_ban
@@ -66,7 +77,7 @@ export async function docShop() {
              (SELECT COUNT(*) FROM shop_bien_the b JOIN shop_san_pham p ON p.id = b.san_pham_id WHERE p.cua_hang_id = c.id AND b.ma_ncc IS NULL) AS thieu_ma
         FROM shop_cua_hang c ORDER BY c.id`),
     q(sql`
-      SELECT p.id, c.khoa, c.domain, p.slug, p.ten, p.tieu_de, p.anh, p.gia_goc, p.hien, p.ma_ncc, p.tham_khao, p.video, p.ncc_info, p.ncc_luc::text AS ncc_luc, p.ncc_dang_ban,
+      SELECT p.id, c.khoa, c.domain, p.slug, p.ten, p.tieu_de, p.anh, p.gia_goc, p.hien, p.tham_khao, p.video,
              (SELECT COUNT(*) FROM shop_bao_co_hang k WHERE k.san_pham_id = p.id AND k.da_bao IS NULL) AS cho_co_hang,
              (SELECT MIN(b.gia_ban) FROM shop_bien_the b WHERE b.san_pham_id = p.id) AS gia_tu,
              (SELECT COUNT(*) FROM shop_bien_the b WHERE b.san_pham_id = p.id) AS so_bt,
@@ -78,11 +89,34 @@ export async function docShop() {
       SELECT g.id, c.khoa, p.ten AS san_pham, g.ten, g.email, g.sao, g.tieu_de, g.noi_dung, g.don_id IS NOT NULL AS da_mua, g.trang_thai, g.tao_luc::text AS tao_luc
         FROM shop_danh_gia g JOIN shop_san_pham p ON p.id = g.san_pham_id JOIN shop_cua_hang c ON c.id = g.cua_hang_id
        ORDER BY (g.trang_thai = 'cho') DESC, g.tao_luc DESC LIMIT 500`),
+    q(sql`
+      SELECT n.id, n.bien_the_id, n.uu_tien, n.kiem_mau, n.bat, n.ghi_chu, n.ncc_bt_id, t.ncc_sp_id, s.ncc, s.ma AS ma_sp, s.ten AS ten_sp, s.dang_ban,
+             t.ma AS ma_bt, t.ten AS ten_bt, t.gia, t.ton, t.ton_kho, t.ton_luc::text AS ton_luc, t.mat
+        FROM shop_nguon n JOIN shop_ncc_bt t ON t.id = n.ncc_bt_id JOIN shop_ncc_sp s ON s.id = t.ncc_sp_id
+       ORDER BY n.bien_the_id, n.bat DESC, n.uu_tien, n.id`),
+    q(sql`SELECT id, ncc, ma, ten, link, info, dang_ban, luc::text AS luc, loi FROM shop_ncc_sp ORDER BY ncc, ten NULLS LAST, id`),
+    q(sql`SELECT id, ncc_sp_id, ma, ten, sku, gia, info, ton, ton_kho, ton_luc::text AS ton_luc, mat FROM shop_ncc_bt ORDER BY ncc_sp_id, ten NULLS LAST, id`),
   ]);
+  const nguonTheoBt = new Map<number, NguonDong[]>();
+  for (const r of ng) {
+    const x: NguonDong = { id: Number(r.id), uuTien: Number(r.uu_tien), kiemMau: !!r.kiem_mau, bat: !!r.bat, ghiChu: (r.ghi_chu as string) ?? null,
+      nccBtId: Number(r.ncc_bt_id), nccSpId: Number(r.ncc_sp_id), ncc: String(r.ncc), maSp: String(r.ma_sp), tenSp: (r.ten_sp as string) ?? null, dangBan: r.dang_ban == null ? null : !!r.dang_ban,
+      maBt: String(r.ma_bt), tenBt: (r.ten_bt as string) ?? null, gia: so(r.gia), ton: so(r.ton), tonKho: (r.ton_kho as TonKho[]) ?? [], tonLuc: (r.ton_luc as string) ?? null, mat: !!r.mat };
+    const k = Number(r.bien_the_id);
+    nguonTheoBt.set(k, [...(nguonTheoBt.get(k) ?? []), x]);
+  }
+  const btTheoSp = new Map<number, NccBtDong[]>();
+  for (const r of dmBt) {
+    const k = Number(r.ncc_sp_id);
+    btTheoSp.set(k, [...(btTheoSp.get(k) ?? []), { id: Number(r.id), ma: String(r.ma), ten: (r.ten as string) ?? null, sku: (r.sku as string) ?? null, gia: so(r.gia),
+      ton: so(r.ton), tonKho: (r.ton_kho as TonKho[]) ?? [], tonLuc: (r.ton_luc as string) ?? null, mat: !!r.mat, info: (r.info ?? {}) as NccBtDong['info'] }]);
+  }
+  const danhMuc: NccSpDong[] = dmSp.map((r) => ({ id: Number(r.id), ncc: String(r.ncc), ma: String(r.ma), ten: (r.ten as string) ?? null, link: (r.link as string) ?? null,
+    dangBan: r.dang_ban == null ? null : !!r.dang_ban, luc: (r.luc as string) ?? null, loi: (r.loi as string) ?? null, info: (r.info ?? {}) as NccSpDong['info'], bt: btTheoSp.get(Number(r.id)) ?? [] }));
   const bayGio = Date.now();
   const dons: DonDong[] = don.map((r) => {
     const k = (r.khach ?? {}) as Record<string, string>, dc = (r.dia_chi ?? {}) as Record<string, string>;
-    const ncc = r.ncc_tt ? { maNcc: (r.ma_ncc as string) ?? null, trangThai: String(r.ncc_tt), daTra: !!r.da_tra, tuyen: (r.tuyen as string) ?? null,
+    const ncc = r.ncc_tt ? { nha: String(r.ncc_nha ?? 'cj'), maNcc: (r.ma_ncc as string) ?? null, trangThai: String(r.ncc_tt), daTra: !!r.da_tra, tuyen: (r.tuyen as string) ?? null,
       soNgay: (r.so_ngay as string) ?? null, maVanDon: (r.ma_van_don as string) ?? null, hang: (r.hang_van_chuyen as string) ?? null,
       guiLuc: (r.gui_luc as string) ?? null, giaoLuc: (r.giao_luc as string) ?? null, vanDon: (r.van_don as string) ?? null, loi: (r.loi as string) ?? null,
       tienHang: so(r.tien_hang) } : null;
@@ -106,17 +140,30 @@ export async function docShop() {
   const bienThe: BienTheDong[] = bt.map((r) => ({ id: Number(r.id), sanPhamId: Number(r.san_pham_id), sanPham: String(r.san_pham), anh: (r.anh as string) ?? null,
     link: (r.link as string) ?? null, cuaHang: String(r.khoa), maNgoai: String(r.ma_ngoai), ten: String(r.ten), sku: (r.sku as string) ?? null,
     giaBan: so(r.gia_ban), maNcc: (r.ma_ncc as string) ?? null, giaVon: so(r.gia_von), daBan: Number(r.da_ban),
-    giaNcc: so(r.gia_ncc), tonNcc: so(r.ton_ncc), tonKho: (r.ton_kho as BienTheDong['tonKho']) ?? [], nccMat: !!r.ncc_mat, hetHang: !!r.het_hang, hetTuDong: !!r.het_tu_dong, tonLuc: (r.ton_luc as string) ?? null, choCoHang: Number(r.cho_co_hang) }));
+    giaNcc: so(r.gia_ncc), tonNcc: so(r.ton_ncc), tonKho: (r.ton_kho as BienTheDong['tonKho']) ?? [], nccMat: !!r.ncc_mat, hetHang: !!r.het_hang, hetTuDong: !!r.het_tu_dong, tonLuc: (r.ton_luc as string) ?? null, choCoHang: Number(r.cho_co_hang),
+    nguon: nguonTheoBt.get(Number(r.id)) ?? [], nguonId: so(r.nguon_id), nguonOk: r.nguon_ok == null ? null : !!r.nguon_ok }));
+  // sản phẩm NCC làm nguồn cho từng sản phẩm shop: đếm theo vai (chính = ưu tiên nhỏ nhất trong nguồn bật của biến thể)
+  const nguonSpTheoSp = new Map<number, Map<number, NguonSp>>();
+  for (const b of bienThe) {
+    const bat = b.nguon.filter((n) => n.bat);
+    for (const [i, n] of bat.entries()) {
+      const m = nguonSpTheoSp.get(b.sanPhamId) ?? new Map<number, NguonSp>();
+      const x = m.get(n.nccSpId) ?? { id: n.nccSpId, ncc: n.ncc, ma: n.maSp, ten: n.tenSp, dangBan: n.dangBan, chinh: 0, duPhong: 0 };
+      if (i === 0) x.chinh++; else x.duPhong++;
+      m.set(n.nccSpId, x); nguonSpTheoSp.set(b.sanPhamId, m);
+    }
+  }
   const cuaHang: CuaHangDong[] = ch.map((r) => ({ id: Number(r.id), khoa: String(r.khoa), ten: String(r.ten), domain: String(r.domain), nenTang: String(r.nen_tang),
     ncc: String(r.ncc), trangThai: String(r.trang_thai), cauHinh: (r.cau_hinh ?? {}) as CuaHangDong['cauHinh'], dongBoLuc: (r.dong_bo_luc as string) ?? null,
     dongBoLoi: (r.dong_bo_loi as string) ?? null, soDon: Number(r.so_don), soSanPham: Number(r.so_sp), thieuMa: Number(r.thieu_ma),
     tenMien: (r.ten_mien as string[]) ?? [], matTien: (r.mat_tien ?? {}) as MatTien }));
   const sanPham: SanPhamDong[] = sps.map((r) => ({ id: Number(r.id), cuaHang: String(r.khoa), domain: String(r.domain), slug: (r.slug as string) ?? null, ten: String(r.ten),
     tieuDe: (r.tieu_de as string) ?? null, anh: (r.anh as string) ?? null, giaGoc: so(r.gia_goc), giaTu: so(r.gia_tu), hien: !!r.hien, soBienThe: Number(r.so_bt),
-    daBan: Number(r.da_ban), danhGia: Number(r.so_dg), maNcc: (r.ma_ncc as string) ?? null, thamKhao: (r.tham_khao as ThamKhao[]) ?? [], video: (r.video as string[]) ?? [], nccInfo: (r.ncc_info as NccInfo) ?? null, nccLuc: (r.ncc_luc as string) ?? null, nccDangBan: r.ncc_dang_ban == null ? null : !!r.ncc_dang_ban, choCoHang: Number(r.cho_co_hang) }));
+    daBan: Number(r.da_ban), danhGia: Number(r.so_dg), thamKhao: (r.tham_khao as ThamKhao[]) ?? [], video: (r.video as string[]) ?? [], choCoHang: Number(r.cho_co_hang),
+    nguonSp: [...(nguonSpTheoSp.get(Number(r.id))?.values() ?? [])].sort((a, b) => b.chinh - a.chinh) }));
   const danhGia: DanhGiaDong[] = dgs.map((r) => ({ id: Number(r.id), cuaHang: String(r.khoa), sanPham: String(r.san_pham), ten: String(r.ten), email: (r.email as string) ?? null,
     sao: Number(r.sao), tieuDe: (r.tieu_de as string) ?? null, noiDung: String(r.noi_dung), daMua: !!r.da_mua, trangThai: String(r.trang_thai), taoLuc: String(r.tao_luc) }));
-  return { don: dons, bienThe, cuaHang, sanPham, danhGia };
+  return { don: dons, bienThe, cuaHang, sanPham, danhGia, danhMuc };
 }
 
 export type SuKien = { ts: string; nguon: string; noiDung: string; loi: boolean };

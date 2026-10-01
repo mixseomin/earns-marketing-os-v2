@@ -62,20 +62,30 @@ export async function docTuVan(): Promise<ChatDong[]> {
       online: !!x.online, thietBi: (x.thiet_bi as string) ?? null, nuoc: (x.nuoc as string) ?? null } }));
 }
 
-/* ── Sổ nhà cung cấp (shop_ncc) ── */
+/* ── Sổ nhà cung cấp (shop_ncc) — tầng KÊNH → NCC của cây nguồn hàng ── */
 export type LienHeNcc = { kenh: string; gia_tri: string; ten?: string };
-export type NccDong = { khoa: string; ten: string; website: string | null; taiKhoan: string | null; links: { nhan: string; url: string }[]; lienHe: LienHeNcc[]; ghiChu: string | null; capNhat: string };
+export type NccDong = { khoa: string; ten: string; /** cj · alibaba · 1688 · aliexpress · xuong · khac */ kenh: string; /** có bộ kết nối đặt đơn/trả/vận đơn */ coApi: boolean;
+  website: string | null; taiKhoan: string | null; links: { nhan: string; url: string }[]; lienHe: LienHeNcc[]; ghiChu: string | null; capNhat: string };
 export async function docNcc(): Promise<NccDong[]> {
-  const r = await q(sql`SELECT khoa, ten, website, tai_khoan, links, lien_he, ghi_chu, cap_nhat::text AS cap_nhat FROM shop_ncc ORDER BY khoa`);
-  return r.map((x) => ({ khoa: String(x.khoa), ten: String(x.ten), website: (x.website as string) ?? null, taiKhoan: (x.tai_khoan as string) ?? null,
+  const r = await q(sql`SELECT khoa, ten, kenh, co_api, website, tai_khoan, links, lien_he, ghi_chu, cap_nhat::text AS cap_nhat FROM shop_ncc ORDER BY co_api DESC, kenh, ten`);
+  return r.map((x) => ({ khoa: String(x.khoa), ten: String(x.ten), kenh: String(x.kenh ?? 'khac'), coApi: !!x.co_api, website: (x.website as string) ?? null, taiKhoan: (x.tai_khoan as string) ?? null,
     links: (x.links as NccDong['links']) ?? [], lienHe: (x.lien_he as LienHeNcc[]) ?? [], ghiChu: (x.ghi_chu as string) ?? null, capNhat: String(x.cap_nhat) }));
 }
 
-/* ── Biến động NCC (shop_ncc_bien_dong) ── */
-export type BienDongNcc = { id: number; cuaHang: string; sanPham: string | null; bienThe: string | null; loai: string; cu: string | null; moi: string | null; luc: string };
+/* ── Biến động (shop_ncc_bien_dong) — hai phía: NCC (giá, gỡ/về lại, ngừng/bán lại, tồn thấp/hết — một dòng cho mọi shop)
+ *    và shop (tự ẩn, mở lại, đổi nguồn — gắn biến thể shop). Dòng cũ trước 0205 chỉ có phía shop. */
+export type BienDongNcc = { id: number; luc: string; loai: string; cu: string | null; moi: string | null;
+  cuaHang: string | null; btId: number | null; sanPham: string | null; bienThe: string | null;
+  ncc: string | null; nccSpId: number | null; nccBtId: number | null; tenNccSp: string | null; tenNccBt: string | null };
 export async function docBienDongNcc(): Promise<BienDongNcc[]> {
-  const r = await q(sql`SELECT d.id, c.khoa, p.ten AS sp, b.ten AS bt, d.loai, d.cu, d.moi, d.luc::text AS luc FROM shop_ncc_bien_dong d
-    JOIN shop_cua_hang c ON c.id = d.cua_hang_id LEFT JOIN shop_san_pham p ON p.id = d.san_pham_id LEFT JOIN shop_bien_the b ON b.id = d.bien_the_id
-    WHERE d.luc > now() - interval '60 days' ORDER BY d.luc DESC, d.id DESC LIMIT 500`);
-  return r.map((x) => ({ id: Number(x.id), cuaHang: String(x.khoa), sanPham: (x.sp as string) ?? null, bienThe: (x.bt as string) ?? null, loai: String(x.loai), cu: (x.cu as string) ?? null, moi: (x.moi as string) ?? null, luc: String(x.luc) }));
+  const r = await q(sql`
+    SELECT d.id, d.luc::text AS luc, d.loai, d.cu, d.moi, c.khoa, d.bien_the_id, p.ten AS sp, b.ten AS bt, d.ncc_sp_id, d.ncc_bt_id, s.ten AS ten_ncc_sp, t.ten AS ten_ncc_bt,
+           COALESCE(s.ncc, (SELECT s2.ncc FROM shop_nguon n JOIN shop_ncc_bt t2 ON t2.id = n.ncc_bt_id JOIN shop_ncc_sp s2 ON s2.id = t2.ncc_sp_id WHERE n.id = b.nguon_id), c.ncc) AS ncc
+      FROM shop_ncc_bien_dong d LEFT JOIN shop_cua_hang c ON c.id = d.cua_hang_id LEFT JOIN shop_san_pham p ON p.id = d.san_pham_id
+      LEFT JOIN shop_bien_the b ON b.id = d.bien_the_id LEFT JOIN shop_ncc_sp s ON s.id = d.ncc_sp_id LEFT JOIN shop_ncc_bt t ON t.id = d.ncc_bt_id
+     WHERE d.luc > now() - interval '60 days' ORDER BY d.luc DESC, d.id DESC LIMIT 500`);
+  const n = (v: unknown) => (v == null ? null : Number(v));
+  return r.map((x) => ({ id: Number(x.id), luc: String(x.luc), loai: String(x.loai), cu: (x.cu as string) ?? null, moi: (x.moi as string) ?? null,
+    cuaHang: (x.khoa as string) ?? null, btId: n(x.bien_the_id), sanPham: (x.sp as string) ?? null, bienThe: (x.bt as string) ?? null,
+    ncc: (x.ncc as string) ?? null, nccSpId: n(x.ncc_sp_id), nccBtId: n(x.ncc_bt_id), tenNccSp: (x.ten_ncc_sp as string) ?? null, tenNccBt: (x.ten_ncc_bt as string) ?? null }));
 }

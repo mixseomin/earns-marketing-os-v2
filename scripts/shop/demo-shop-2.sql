@@ -1,11 +1,11 @@
 -- SHOP — cửa hàng GIẢ thứ hai "Lumi Bra (demo)" để xem bố cục /shop khi có nhiều shop (anh yêu cầu 01/10/2026).
 -- trang_thai='demo': máy đồng bộ bỏ qua (dsCuaHang chỉ lấy 'bat') nên không gọi CJ; mặt tiền không phục vụ; domain .invalid.
--- Mã CJ (pid/vid) đều mang tiền tố DEMO — không phải mã thật, link sang CJ sẽ không mở ra gì. Không ảnh (không bịa URL ảnh).
--- Ca dựng sẵn để xem đủ trạng thái:
---   SP1 nối đủ: 3 màu × 4 cỡ; Nude/36C tồn thấp; Black/38D NCC hết → tự ẩn + 2 khách chờ báo có hàng; giá CJ tăng 1 lần;
---       NCC có thêm màu Pink shop chưa bán.
---   SP2 CJ ngừng bán (ncc_dang_ban=false) → mọi biến thể tự ẩn.
---   SP3 chưa nối NCC (thiếu ma_ncc) → đơn có món này không sang được NCC.
+-- Mã NCC đều mang tiền tố DEMO — không phải mã thật; NCC demo không nối API nên máy không gọi CJ. Không ảnh (không bịa URL ảnh).
+-- Ca dựng sẵn để xem đủ trạng thái (nguồn nhiều-nhiều, migration 0205):
+--   SP1 nguồn chính CJ (demo): 3 màu × 4 cỡ; giá CJ tăng 1 lần; NCC có thêm màu Pink shop chưa bán.
+--       Black/38D: CJ hết → máy chuyển sang dự phòng Alibaba ĐÃ KIỂM MẪU (không ẩn). Nude/36C: CJ tồn thấp, dự phòng CHƯA kiểm mẫu.
+--   SP2 CJ ngừng bán → không có dự phòng → mọi biến thể tự ẩn.
+--   SP3 chưa có nguồn → đơn có món này không sang được NCC.
 -- Xem: mos2.on.tc/shop?ch=demo-bra. Chạy lại được (ON CONFLICT bỏ qua dòng đã có).
 BEGIN;
 INSERT INTO shop_cua_hang (khoa, project_id, ten, domain, nen_tang, ncc, trang_thai, cau_hinh, mat_tien)
@@ -22,81 +22,104 @@ INSERT INTO sp VALUES
  ('lb-2', 'Lumi Lace Bralette',         'lumi-lace-bralette',         'DEMO-P2', false, ARRAY['Black','Wine'],         ARRAY['S','M','L'],               29.99, 5.10, 2),
  ('lb-3', 'Lumi Everyday Push-Up',      'lumi-everyday-push-up',      NULL,      NULL,  ARRAY['Beige'],                ARRAY['34B','36C'],               34.99, NULL, 3);
 
-INSERT INTO shop_san_pham (cua_hang_id, ma_ngoai, ten, slug, trang_thai, hien, thu_tu, ncc, ma_ncc, tuy_chon, ncc_dang_ban, ncc_luc, ncc_info)
-SELECT c.id, sp.ma, sp.ten, sp.slug, 'publish', true, sp.thu_tu, CASE WHEN sp.pid IS NOT NULL THEN 'cj' END, sp.pid,
-       jsonb_build_array(jsonb_build_object('ten', 'Color', 'gia_tri', to_jsonb(sp.mau)), jsonb_build_object('ten', 'Size', 'gia_tri', to_jsonb(sp.co))),
-       sp.dang_ban, CASE WHEN sp.pid IS NOT NULL THEN now() - interval '3 hours' END, NULL
+INSERT INTO shop_san_pham (cua_hang_id, ma_ngoai, ten, slug, trang_thai, hien, thu_tu, ncc, tuy_chon)
+SELECT c.id, sp.ma, sp.ten, sp.slug, 'publish', true, sp.thu_tu, 'cj_demo',
+       jsonb_build_array(jsonb_build_object('ten', 'Color', 'gia_tri', to_jsonb(sp.mau)), jsonb_build_object('ten', 'Size', 'gia_tri', to_jsonb(sp.co)))
   FROM sp, shop_cua_hang c WHERE c.khoa = 'demo-bra'
 ON CONFLICT (cua_hang_id, ma_ngoai) DO NOTHING;
 
--- Biến thể shop. vid = <pid>-<màu>-<cỡ>; SP3 không có vid.
+-- Biến thể shop (chỉ phần mặt tiền; phần nguồn — mã/giá NCC/tồn/tự ẩn — do apNguon + apDungNcc suy ra ở nhịp, cron chạy cả shop demo).
 CREATE TEMP TABLE bt ON COMMIT DROP AS
 SELECT p.id AS san_pham_id, sp.ma, m.mau, k.co, m.i AS mi, k.j AS kj,
-       sp.ma || '-' || lower(m.mau) || '-' || lower(k.co) AS ma_ngoai,
-       CASE WHEN sp.pid IS NOT NULL THEN sp.pid || '-' || upper(m.mau) || '-' || k.co END AS vid,
-       sp.gia, sp.von, sp.dang_ban
+       sp.ma || '-' || lower(m.mau) || '-' || lower(k.co) AS ma_ngoai, sp.gia, sp.von, sp.dang_ban, sp.pid
   FROM sp JOIN shop_san_pham p ON p.ma_ngoai = sp.ma JOIN shop_cua_hang c ON c.id = p.cua_hang_id AND c.khoa = 'demo-bra',
        unnest(sp.mau) WITH ORDINALITY m(mau, i), unnest(sp.co) WITH ORDINALITY k(co, j);
 
-INSERT INTO shop_bien_the (san_pham_id, ma_ngoai, sku, ten, tuy_chon, gia_ban, ma_ncc, gia_von, gia_ncc, ton_ncc, ton_kho, ton_luc,
-                           het_hang, het_tu_dong, ncc_mat)
-SELECT b.san_pham_id, b.ma_ngoai, upper(b.ma_ngoai), b.mau || ' / ' || b.co, jsonb_build_object('Color', b.mau, 'Size', b.co), b.gia, b.vid,
-       -- SP1 Black: CJ vừa tăng 6.80 → 7.40
-       CASE WHEN b.ma = 'lb-1' AND b.mau = 'Black' THEN 7.40 ELSE b.von END,
-       CASE WHEN b.vid IS NULL THEN NULL WHEN b.ma = 'lb-1' AND b.mau = 'Black' THEN 7.40 ELSE b.von END,
-       t.ton,
-       CASE WHEN b.vid IS NOT NULL THEN jsonb_build_array(jsonb_build_object('kho', 'China Warehouse', 'nuoc', 'CN', 'so', t.ton)) END,
-       CASE WHEN b.vid IS NOT NULL THEN now() - interval '40 minutes' END,
-       t.het, t.het, false
-  FROM bt b,
-       LATERAL (SELECT CASE WHEN b.vid IS NULL THEN NULL
-                            WHEN b.dang_ban = false THEN 0
-                            WHEN b.ma = 'lb-1' AND b.mau = 'Black' AND b.co = '38D' THEN 0
-                            WHEN b.ma = 'lb-1' AND b.mau = 'Nude' AND b.co = '36C' THEN 23
-                            ELSE 800 + ((b.mi * 7 + b.kj * 13) % 9) * 140 END AS ton,
-                       COALESCE(b.dang_ban = false, false) OR (b.ma = 'lb-1' AND b.mau = 'Black' AND b.co = '38D') AS het) t
+INSERT INTO shop_bien_the (san_pham_id, ma_ngoai, sku, ten, tuy_chon, gia_ban, gia_von, het_hang)
+SELECT b.san_pham_id, b.ma_ngoai, upper(b.ma_ngoai), b.mau || ' / ' || b.co, jsonb_build_object('Color', b.mau, 'Size', b.co), b.gia, b.von, false
+  FROM bt b
 ON CONFLICT (san_pham_id, ma_ngoai) DO NOTHING;
 
--- ncc_info = ảnh chụp sản phẩm bên CJ (cùng khuôn dongBoThongTinNcc). SP1 bên CJ có thêm màu Pink.
-UPDATE shop_san_pham p SET ncc_info = x.info
-  FROM (
-    SELECT sp.ma, jsonb_build_object(
-             'pid', sp.pid, 'ten', CASE sp.ma WHEN 'lb-1' THEN 'Women Seamless Wireless Comfort Bra Push Up Underwear (DEMO)'
-                                              ELSE 'Lace Triangle Bralette Women Lingerie (DEMO)' END,
-             'sku', 'CJ' || sp.pid, 'gia_tu', min(v.gia), 'gia_den', max(v.gia), 'so_bien_the', count(*),
-             'vids', jsonb_agg(v.vid ORDER BY v.vid), 'listed', CASE sp.ma WHEN 'lb-1' THEN 412 ELSE 58 END, 'supplier_id', NULL,
-             'bien_the', jsonb_agg(jsonb_build_object('vid', v.vid, 'ten', v.ten, 'sku', 'CJ' || v.vid, 'gia', v.gia, 'can', 120,
-                                                      'kich', '250×180×40 mm', 'gia_goi_y', sp.gia) ORDER BY v.vid),
-             'chi_tiet', jsonb_build_object('loai', 'Bras', 'danh_muc', 'Women''s Clothing > Underwear > Bras', 'chat_lieu', 'Nylon, Spandex',
-                                            'can_nang', '110.00-130.00', 'can_dong_goi', '120.00-140.00', 'dong_goi', 'Plastic bags',
-                                            'gia_goi_y', sp.gia, 'mo_ta', 'Demo product for layout preview. Not a real CJ listing.',
-                                            'anh', '[]'::jsonb, 'tao_luc', '2025-03-12T10:00:00+08:00')) AS info
-      FROM sp,
-           LATERAL (SELECT sp.pid || '-' || upper(m) || '-' || k AS vid, m || '-' || k AS ten,
-                           CASE WHEN sp.ma = 'lb-1' AND m = 'Black' THEN 7.40 ELSE sp.von END AS gia
-                      FROM unnest(sp.mau || CASE WHEN sp.ma = 'lb-1' THEN ARRAY['Pink'] ELSE ARRAY[]::text[] END) m, unnest(sp.co) k) v
-     WHERE sp.pid IS NOT NULL
-     GROUP BY sp.ma, sp.pid, sp.gia
-  ) x, shop_cua_hang c
- WHERE p.cua_hang_id = c.id AND c.khoa = 'demo-bra' AND p.ma_ngoai = x.ma AND p.ncc_info IS NULL;
+-- NHÀ CUNG CẤP demo (cây kênh → NCC): "CJ (demo)" cùng kênh CJ nhưng KHÔNG nối API (máy không gọi CJ cho mã DEMO-*);
+-- một nhà bán Alibaba làm nguồn dự phòng — CJ là một NCC, còn trên Alibaba mỗi nhà bán là một NCC.
+INSERT INTO shop_ncc (khoa, ten, kenh, co_api, ghi_chu) VALUES
+  ('cj_demo', 'CJ Dropshipping (demo)', 'cj', false, 'NCC giả cho shop Lumi Bra (demo) — mã DEMO-*, máy không gọi CJ.'),
+  ('ali_lumi_demo', 'Guangzhou Lumi Lingerie Co. (demo)', 'alibaba', false, 'Nhà bán Alibaba giả — nguồn dự phòng cho shop demo. Đặt tay.')
+ON CONFLICT (khoa) DO NOTHING;
+-- DB đã chạy 0205 trước khi có NCC demo: mã DEMO-* từng bị chép sang 'cj' → chuyển về 'cj_demo'
+UPDATE shop_ncc_sp s SET ncc = 'cj_demo' WHERE s.ncc = 'cj' AND s.ma LIKE 'DEMO-%'
+   AND NOT EXISTS (SELECT 1 FROM shop_ncc_sp x WHERE x.ncc = 'cj_demo' AND x.ma = s.ma);
+UPDATE shop_san_pham p SET ncc = 'cj_demo' FROM shop_cua_hang c WHERE c.id = p.cua_hang_id AND c.khoa = 'demo-bra';
 
--- Biến động NCC (chỉ ghi khi shop chưa có dòng nào → chạy lại không nhân đôi)
-INSERT INTO shop_ncc_bien_dong (cua_hang_id, san_pham_id, bien_the_id, loai, cu, moi, luc)
-SELECT c.id, b.san_pham_id, b.id, e.loai, e.cu, e.moi, now() - e.lui
-  FROM shop_cua_hang c JOIN shop_san_pham p ON p.cua_hang_id = c.id JOIN shop_bien_the b ON b.san_pham_id = p.id
-  JOIN (VALUES ('lb-1-black-34b', 'gia', '6.80', '7.40', interval '2 days'),
-               ('lb-1-nude-36c',  'ton_thap', '61', '23', interval '9 hours'),
-               ('lb-1-black-38d', 'het', '12', '0', interval '1 day'),
-               ('lb-2-black-m',   'go', 'đang bán', 'CJ ngừng bán', interval '3 days')) e(ma, loai, cu, moi, lui) ON e.ma = b.ma_ngoai
- WHERE c.khoa = 'demo-bra' AND NOT EXISTS (SELECT 1 FROM shop_ncc_bien_dong x WHERE x.cua_hang_id = c.id);
+-- Danh mục CJ (demo): SP1 bên NCC có thêm màu Pink shop chưa bán; SP2 NCC ngừng bán.
+INSERT INTO shop_ncc_sp (ncc, ma, ten, info, dang_ban, luc)
+SELECT 'cj_demo', sp.pid, CASE sp.ma WHEN 'lb-1' THEN 'Women Seamless Wireless Comfort Bra Push Up Underwear (DEMO)' ELSE 'Lace Triangle Bralette Women Lingerie (DEMO)' END,
+       jsonb_build_object('sku', 'CJ' || sp.pid, 'listed', CASE sp.ma WHEN 'lb-1' THEN 412 ELSE 58 END,
+         'chi_tiet', jsonb_build_object('loai', 'Bras', 'danh_muc', 'Women''s Clothing > Underwear > Bras', 'chat_lieu', 'Nylon, Spandex',
+           'can_nang', '110.00-130.00', 'can_dong_goi', '120.00-140.00', 'dong_goi', 'Plastic bags', 'gia_goi_y', sp.gia,
+           'mo_ta', 'Demo product for layout preview. Not a real CJ listing.', 'anh', '[]'::jsonb, 'tao_luc', '2025-03-12T10:00:00+08:00')),
+       sp.dang_ban, now() - interval '3 hours'
+  FROM sp WHERE sp.pid IS NOT NULL
+ON CONFLICT (ncc, ma) DO NOTHING;
+UPDATE shop_ncc_sp SET dang_ban = false WHERE ncc = 'cj_demo' AND ma = 'DEMO-P2';
 
--- 2 khách chờ báo có hàng cho Black / 38D
+INSERT INTO shop_ncc_bt (ncc_sp_id, ma, ten, sku, gia, info, ton, ton_kho, ton_luc)
+SELECT s.id, sp.pid || '-' || upper(m.mau) || '-' || k.co, m.mau || '-' || k.co, 'CJ' || sp.pid || upper(left(m.mau, 3)) || k.co,
+       CASE WHEN sp.ma = 'lb-1' AND m.mau = 'Black' THEN 7.40 ELSE sp.von END,
+       jsonb_build_object('can', 120, 'kich', '250×180×40 mm', 'gia_goi_y', sp.gia), t.ton,
+       jsonb_build_array(jsonb_build_object('kho', 'China Warehouse', 'nuoc', 'CN', 'so', t.ton)), now() - interval '40 minutes'
+  FROM sp JOIN shop_ncc_sp s ON s.ncc = 'cj_demo' AND s.ma = sp.pid,
+       unnest(sp.mau || CASE WHEN sp.ma = 'lb-1' THEN ARRAY['Pink'] ELSE ARRAY[]::text[] END) WITH ORDINALITY m(mau, i), unnest(sp.co) WITH ORDINALITY k(co, j),
+       LATERAL (SELECT CASE WHEN sp.dang_ban = false THEN 0
+                            WHEN sp.ma = 'lb-1' AND m.mau = 'Black' AND k.co = '38D' THEN 0
+                            WHEN sp.ma = 'lb-1' AND m.mau = 'Nude' AND k.co = '36C' THEN 23
+                            ELSE 800 + ((m.i * 7 + k.j * 13) % 9) * 140 END AS ton) t
+ON CONFLICT (ncc_sp_id, ma) DO NOTHING;
+
+-- Nhà bán Alibaba (demo): một listing OEM cùng kiểu, 3 biến thể làm dự phòng
+INSERT INTO shop_ncc_sp (ncc, ma, ten, info, dang_ban, luc) VALUES
+  ('ali_lumi_demo', 'DEMO-ALI-1', 'Seamless Wireless Bra OEM (demo)', '{"chi_tiet": {"loai": "Bras", "danh_muc": "Apparel > Underwear > Bras", "chat_lieu": "Nylon, Spandex", "can_nang": null, "can_dong_goi": null, "dong_goi": "OPP bag", "gia_goi_y": null, "tao_luc": null, "anh": [], "mo_ta": "Demo Alibaba listing. MOQ 2 pcs."}}', true, now() - interval '1 day')
+ON CONFLICT (ncc, ma) DO NOTHING;
+INSERT INTO shop_ncc_bt (ncc_sp_id, ma, ten, gia, ton, ton_kho, ton_luc)
+SELECT s.id, v.ma, v.ten, v.gia, v.ton, jsonb_build_array(jsonb_build_object('kho', 'Guangzhou', 'nuoc', 'CN', 'so', v.ton)), now() - interval '1 day'
+  FROM shop_ncc_sp s, (VALUES ('BLK-38D', 'Black / 38D', 8.90, 300), ('NUD-36C', 'Nude / 36C', 8.60, 520), ('BLK-36C', 'Black / 36C', 8.90, 410)) v(ma, ten, gia, ton)
+ WHERE s.ncc = 'ali_lumi_demo' AND s.ma = 'DEMO-ALI-1'
+ON CONFLICT (ncc_sp_id, ma) DO NOTHING;
+
+-- NGUỒN: mọi biến thể SP1/SP2 → CJ (demo) chính. Dự phòng Alibaba: Black/38D (đã kiểm mẫu → máy chuyển sang vì CJ hết),
+-- Black/36C (đã kiểm mẫu, chưa cần), Nude/36C (CHƯA kiểm mẫu → máy không tự chuyển). SP3 không có nguồn.
+INSERT INTO shop_nguon (bien_the_id, ncc_bt_id, uu_tien, kiem_mau)
+SELECT b.id, t.id, 1, true
+  FROM bt x JOIN shop_bien_the b ON b.san_pham_id = x.san_pham_id AND b.ma_ngoai = x.ma_ngoai
+  JOIN shop_ncc_sp s ON s.ncc = 'cj_demo' AND s.ma = x.pid JOIN shop_ncc_bt t ON t.ncc_sp_id = s.id AND t.ma = x.pid || '-' || upper(x.mau) || '-' || x.co
+ON CONFLICT (bien_the_id, ncc_bt_id) DO NOTHING;
+INSERT INTO shop_nguon (bien_the_id, ncc_bt_id, uu_tien, kiem_mau)
+SELECT b.id, t.id, 2, d.kiem
+  FROM (VALUES ('lb-1-black-38d', 'BLK-38D', true), ('lb-1-black-36c', 'BLK-36C', true), ('lb-1-nude-36c', 'NUD-36C', false)) d(bt, ma, kiem)
+  JOIN bt x ON x.ma_ngoai = d.bt JOIN shop_bien_the b ON b.san_pham_id = x.san_pham_id AND b.ma_ngoai = x.ma_ngoai
+  JOIN shop_ncc_sp s ON s.ncc = 'ali_lumi_demo' AND s.ma = 'DEMO-ALI-1' JOIN shop_ncc_bt t ON t.ncc_sp_id = s.id AND t.ma = d.ma
+ON CONFLICT (bien_the_id, ncc_bt_id) DO NOTHING;
+
+-- Biến động phía NCC (một dòng cho mọi shop) — chỉ ghi khi danh mục demo chưa có dòng nào
+INSERT INTO shop_ncc_bien_dong (ncc_sp_id, ncc_bt_id, loai, cu, moi, luc)
+SELECT t.ncc_sp_id, t.id, e.loai, e.cu, e.moi, now() - e.lui
+  FROM shop_ncc_bt t JOIN shop_ncc_sp s ON s.id = t.ncc_sp_id AND s.ncc = 'cj_demo'
+  JOIN (VALUES ('DEMO-P1-BLACK-34B', 'gia', '$6.80', '$7.40', interval '2 days'),
+               ('DEMO-P1-NUDE-36C',  'ton_thap', '61', '23 (< 50)', interval '9 hours'),
+               ('DEMO-P1-BLACK-38D', 'het_ncc', '12', '0', interval '1 day')) e(ma, loai, cu, moi, lui) ON e.ma = t.ma
+ WHERE NOT EXISTS (SELECT 1 FROM shop_ncc_bien_dong x JOIN shop_ncc_sp s2 ON s2.id = x.ncc_sp_id WHERE s2.ncc = 'cj_demo');
+INSERT INTO shop_ncc_bien_dong (ncc_sp_id, loai, cu, moi, luc)
+SELECT s.id, 'ngung', 'NCC đang bán', 'NCC ngừng bán', now() - interval '3 days' FROM shop_ncc_sp s
+ WHERE s.ncc = 'cj_demo' AND s.ma = 'DEMO-P2' AND NOT EXISTS (SELECT 1 FROM shop_ncc_bien_dong x WHERE x.ncc_sp_id = s.id AND x.loai = 'ngung');
+
+-- 2 khách đăng ký báo có hàng cho Black / 38D lúc CJ hết (nay bán lại nhờ dự phòng — shop thật sẽ gửi thư; shop demo không gửi)
 INSERT INTO shop_bao_co_hang (cua_hang_id, san_pham_id, bien_the_id, email, tao_luc)
 SELECT c.id, p.id, b.id, e.email, now() - e.lui
   FROM shop_cua_hang c JOIN shop_san_pham p ON p.cua_hang_id = c.id JOIN shop_bien_the b ON b.san_pham_id = p.id AND b.ma_ngoai = 'lb-1-black-38d',
        (VALUES ('demo+wait1@example.com', interval '20 hours'), ('demo+wait2@example.com', interval '5 hours')) e(email, lui)
  WHERE c.khoa = 'demo-bra'
 ON CONFLICT DO NOTHING;
+
 -- ĐƠN — gắn đúng biến thể của shop (bien_the_id) nên cột "đã bán" + biên lãi có số. Mỗi đơn một chặng: chờ trả tiền → huỷ → mới trả
 -- → lỗi NCC (món chưa nối) → đã tạo CJ → đã trả CJ → đã gửi → bay → về Mỹ → đang giao → đã giao → trễ hạn.
 CREATE TEMP TABLE d (so text, tt text, ten text, bang text, bt text, sl int, lui interval,

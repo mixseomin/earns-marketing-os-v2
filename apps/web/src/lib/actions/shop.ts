@@ -4,7 +4,7 @@ import { dsVideo } from '@mos2/shop/video';
 import { CUA_SO, type CuaSo } from '@mos2/shop/phien';
 import { docPhien, docSuKienPhien } from '@/lib/shop/phien';
 import { ga4ThoiGianThuc } from '@/lib/shop/ga4-tt';
-import { docBienDongNcc, docHoSo, docTinHoSo, docTuVan } from '@/lib/shop/ho-so-doc';
+import { docHoSo, docTinHoSo, docTuVan } from '@/lib/shop/ho-so-doc';
 import { guiTraLoi, soanTraLoi } from '@mos2/shop/tu-van';
 import { LOAI_HO_SO, TRANG_THAI_HO_SO, type Ben } from '@mos2/shop/ho-so';
 import { moHoSo, themTin } from '@mos2/shop/ho-so-ghi';
@@ -15,11 +15,12 @@ import { envShop, tenEnv } from '@mos2/shop/mat-tien';
 import { stripe } from '@mos2/shop/stripe';
 import { existsSync } from 'node:fs';
 import { docShop } from '@/lib/shop/doc';
+import { KENH_NCC } from '@/lib/shop/buoc';
 import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
-import { apDungNcc, cuaHangTheoKhoa, dongBoThongTinNcc, dsCuaHang, ghiSuKien, nhip, sangNcc, soDuCj, tienDonCj, traNcc, type CuaHang } from '@/lib/shop/dong-bo';
+import { apDungNcc, apNguon, cuaHangTheoKhoa, docDanhMucNcc, docSpCj, dongBoNccChung, dsCuaHang, ganNguon, ghiSuKien, nhip, sangNcc, soDuCj, tienDonCj, traNcc, type CuaHang } from '@/lib/shop/dong-bo';
 import { docChiTietDon } from '@/lib/shop/doc';
 import { woo } from '@/lib/shop/nguon';
 
@@ -59,6 +60,7 @@ export async function shopTraNcc(donId: number) {
 export async function shopDongBo(khoa?: string, sanPham = false) {
   await admin();
   const ds = (await dsCuaHang(false)).filter((c) => !khoa || c.khoa === khoa);
+  await dongBoNccChung();
   const kq = [];
   for (const ch of ds) kq.push(await nhip(ch, { sanPham }));
   revalidatePath('/shop');
@@ -66,20 +68,91 @@ export async function shopDongBo(khoa?: string, sanPham = false) {
   return loi ? { ok: false, loi, kq } : { ok: true, kq };
 }
 
-/** Sửa mã NCC / giá vốn một biến thể. Sổ là gốc; ghi ngược meta _cj_vid / _cj_gia_von về Woo để admin WP cũng thấy đúng. */
-export async function shopSuaBienThe(id: number, v: { maNcc: string | null; giaVon: number | null }) {
+/** Giá vốn GÕ TAY cho biến thể — chỉ có tác dụng khi nguồn đang dùng chưa có giá (NCC đặt tay). Có giá NCC thì apNguon lấy giá NCC.
+ *  Mã NCC không sửa ở đây nữa: nguồn hàng là sổ riêng (shopThemNguon / shopSuaNguon / shopDoiUuTien). */
+export async function shopSuaBienThe(id: number, v: { giaVon: number | null }) {
   await admin();
   const r = (await db().execute(sql`
-    UPDATE shop_bien_the b SET ma_ncc = ${v.maNcc || null}, gia_von = ${v.giaVon}, updated_at = now() FROM shop_san_pham p, shop_cua_hang c
+    UPDATE shop_bien_the b SET gia_von = ${v.giaVon}, updated_at = now() FROM shop_san_pham p, shop_cua_hang c
      WHERE b.id = ${id} AND p.id = b.san_pham_id AND c.id = p.cua_hang_id
      RETURNING b.ma_ngoai, p.ma_ngoai AS sp, c.khoa, (b.ma_ngoai = p.ma_ngoai) AS don_le`)) as unknown as { ma_ngoai: string; sp: string; khoa: string; don_le: boolean }[];
   if (!r[0]) return { ok: false, loi: 'không có biến thể' };
   const ch = await cuaHangTheoKhoa(r[0].khoa);
   try {
     if (ch?.nen_tang === 'woo') await woo(ch, 'PUT', r[0].don_le ? `products/${r[0].sp}` : `products/${r[0].sp}/variations/${r[0].ma_ngoai}`,
-      { meta_data: [{ key: '_cj_vid', value: v.maNcc ?? '' }, { key: '_cj_gia_von', value: v.giaVon ?? '' }] });
+      { meta_data: [{ key: '_cj_gia_von', value: v.giaVon ?? '' }] });
   } catch (e) { revalidatePath('/shop'); return { ok: true, loi: `đã lưu sổ, ghi ngược Woo lỗi: ${(e as Error).message}` }; }
   revalidatePath('/shop');
+  return { ok: true };
+}
+
+/* ── Nguồn hàng của biến thể (nhiều-nhiều, migration 0205) ── */
+async function cuaHangCuaBt(btId: number): Promise<CuaHang | null> {
+  const r = (await db().execute(sql`SELECT c.khoa FROM shop_bien_the b JOIN shop_san_pham p ON p.id = b.san_pham_id JOIN shop_cua_hang c ON c.id = p.cua_hang_id WHERE b.id = ${btId}`)) as unknown as { khoa: string }[];
+  return r[0] ? cuaHangTheoKhoa(r[0].khoa) : null;
+}
+/** Sau mọi thay đổi nguồn: chọn lại nguồn + áp lên mặt tiền NGAY (không chờ nhịp 10 phút). */
+async function apLai(btId: number) {
+  const ch = await cuaHangCuaBt(btId);
+  if (ch) { await apNguon(ch); await apDungNcc(ch); }
+  revalidatePath('/shop');
+}
+
+/** Đọc / tạo một sản phẩm NCC trong danh mục. NCC có API (CJ): đọc thẳng từ CJ theo mã (pid) — có đủ biến thể để chọn. NCC đặt tay: tạo dòng theo mã + tên. */
+export async function shopDocSpNcc(ncc: string, ma: string, ten?: string) {
+  await admin();
+  const m = ma.trim().slice(0, 120);
+  if (!m) return { ok: false as const, loi: 'thiếu mã sản phẩm' };
+  const [n] = (await db().execute(sql`SELECT khoa, co_api FROM shop_ncc WHERE khoa = ${ncc}`)) as unknown as { khoa: string; co_api: boolean }[];
+  if (!n) return { ok: false as const, loi: 'không có NCC này' };
+  if (n.co_api && n.khoa === 'cj') {
+    const r = await docSpCj(m);
+    if (r.loi) return { ok: false as const, loi: `CJ: ${r.loi}` };
+  } else {
+    await db().execute(sql`INSERT INTO shop_ncc_sp (ncc, ma, ten) VALUES (${ncc}, ${m}, ${ten?.trim().slice(0, 300) || null})
+      ON CONFLICT (ncc, ma) DO UPDATE SET ten = COALESCE(EXCLUDED.ten, shop_ncc_sp.ten)`);
+  }
+  revalidatePath('/shop');
+  return { ok: true as const };
+}
+
+/** Thêm nguồn cho biến thể shop: NCC · mã sản phẩm · mã biến thể (đã có trong danh mục, hoặc biến thể mới của NCC đặt tay kèm tên + giá).
+ *  Nguồn đầu tiên = chính; thêm sau = dự phòng cuối hàng, CHƯA kiểm mẫu (máy không tự chuyển sang tới khi đánh dấu đã kiểm). */
+export async function shopThemNguon(btId: number, v: { ncc: string; maSp: string; maBt: string; tenBt?: string; gia?: number | null }) {
+  await admin();
+  if (!v.ncc || !v.maSp.trim() || !v.maBt.trim()) return { ok: false, loi: 'thiếu NCC / mã sản phẩm / mã biến thể' };
+  const [n] = (await db().execute(sql`SELECT co_api FROM shop_ncc WHERE khoa = ${v.ncc}`)) as unknown as { co_api: boolean }[];
+  if (!n) return { ok: false, loi: 'không có NCC này' };
+  if (n.co_api) {
+    const co = (await db().execute(sql`SELECT 1 FROM shop_ncc_bt t JOIN shop_ncc_sp s ON s.id = t.ncc_sp_id WHERE s.ncc = ${v.ncc} AND s.ma = ${v.maSp.trim()} AND t.ma = ${v.maBt.trim()}`)) as unknown as unknown[];
+    if (!co.length) return { ok: false, loi: 'mã biến thể không có trong sản phẩm NCC đã đọc — đọc sản phẩm trước rồi chọn biến thể' };
+  }
+  await ganNguon(btId, v.ncc, v.maSp.trim(), v.maBt.trim(), { tenBt: v.tenBt?.trim() || null, gia: v.gia ?? null });
+  await apLai(btId);
+  return { ok: true };
+}
+
+/** Đánh dấu đã kiểm mẫu / bật-tắt một nguồn (tắt thay cho xoá — giữ lịch sử). */
+export async function shopSuaNguon(id: number, v: { kiemMau?: boolean; bat?: boolean; ghiChu?: string | null }) {
+  await admin();
+  const r = (await db().execute(sql`UPDATE shop_nguon SET kiem_mau = COALESCE(${v.kiemMau ?? null}, kiem_mau), bat = COALESCE(${v.bat ?? null}, bat),
+    ghi_chu = CASE WHEN ${v.ghiChu === undefined} THEN ghi_chu ELSE ${v.ghiChu ?? null} END WHERE id = ${id} RETURNING bien_the_id`)) as unknown as { bien_the_id: number }[];
+  if (!r[0]) return { ok: false, loi: 'không có nguồn' };
+  await apLai(r[0].bien_the_id);
+  return { ok: true };
+}
+
+/** Đổi thứ tự ưu tiên: đổi chỗ với nguồn bật liền trên (-1) / liền dưới (+1), rồi đánh số lại 1..n (1 = chính). */
+export async function shopDoiUuTien(id: number, huong: -1 | 1) {
+  await admin();
+  const [x] = (await db().execute(sql`SELECT bien_the_id FROM shop_nguon WHERE id = ${id}`)) as unknown as { bien_the_id: number }[];
+  if (!x) return { ok: false, loi: 'không có nguồn' };
+  const ds = (await db().execute(sql`SELECT id FROM shop_nguon WHERE bien_the_id = ${x.bien_the_id} AND bat ORDER BY uu_tien, id`)) as unknown as { id: number }[];
+  const ids = ds.map((d) => d.id), i = ids.indexOf(id), j = i + huong;
+  if (i < 0 || j < 0 || j >= ids.length) return { ok: false, loi: 'không đổi được' };
+  [ids[i], ids[j]] = [ids[j]!, ids[i]!];
+  for (const [k, nid] of ids.entries()) await db().execute(sql`UPDATE shop_nguon SET uu_tien = ${k + 1} WHERE id = ${nid}`);
+  await apLai(x.bien_the_id);
   return { ok: true };
 }
 
@@ -350,36 +423,46 @@ export async function shopBoNhap(id: number) {
 }
 
 /* ── Sổ nhà cung cấp ── */
-export async function shopSuaNcc(khoa: string, v: { ten: string; website: string; taiKhoan: string; links: { nhan: string; url: string }[]; lienHe: { kenh: string; gia_tri: string; ten?: string }[]; ghiChu: string }) {
+/** Sửa NCC; khoa rỗng = thêm NCC mới (khoá sinh từ tên). Kết nối API (co_api) không sửa ở đây — chỉ có khi đã viết bộ kết nối cho NCC đó. */
+export async function shopSuaNcc(khoa: string, v: { ten: string; kenh?: string; website: string; taiKhoan: string; links: { nhan: string; url: string }[]; lienHe: { kenh: string; gia_tri: string; ten?: string }[]; ghiChu: string }) {
   await admin();
+  if (!khoa) {
+    const goc = v.ten.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 30) || 'ncc';
+    const co = (await db().execute(sql`SELECT khoa FROM shop_ncc WHERE khoa LIKE ${goc + '%'}`)) as unknown as { khoa: string }[];
+    khoa = co.some((x) => x.khoa === goc) ? `${goc}_${co.length + 1}` : goc;
+  }
+  const kenh = v.kenh && v.kenh in KENH_NCC ? v.kenh : null;   // CJ là MỘT NCC; Alibaba/1688/AliExpress: mỗi nhà bán một NCC
   const url = (x: string) => (/^https?:\/\/\S+$/.test(x.trim()) ? x.trim().slice(0, 500) : null);
   if (!v.ten.trim()) return { ok: false, loi: 'thiếu tên NCC' };
   if (/mật khẩu|password|passwd/i.test(v.taiKhoan)) return { ok: false, loi: 'không lưu mật khẩu ở đây — chỉ mã/email tài khoản' };
   const links = v.links.map((l) => ({ nhan: l.nhan.trim().slice(0, 60), url: url(l.url) })).filter((l) => l.nhan && l.url).slice(0, 20);
   const lienHe = v.lienHe.map((l) => ({ kenh: ['email', 'whatsapp', 'skype', 'telegram', 'wechat', 'chat', 'phone', 'khac'].includes(l.kenh) ? l.kenh : 'khac',
     gia_tri: l.gia_tri.trim().slice(0, 300), ten: (l.ten ?? '').trim().slice(0, 80) })).filter((l) => l.gia_tri).slice(0, 20);
-  await db().execute(sql`INSERT INTO shop_ncc (khoa, ten, website, tai_khoan, links, lien_he, ghi_chu, cap_nhat)
-    VALUES (${khoa.slice(0, 40)}, ${v.ten.trim().slice(0, 120)}, ${url(v.website ?? '')}, ${v.taiKhoan.trim().slice(0, 200) || null}, ${JSON.stringify(links)}::jsonb,
+  await db().execute(sql`INSERT INTO shop_ncc (khoa, ten, kenh, website, tai_khoan, links, lien_he, ghi_chu, cap_nhat)
+    VALUES (${khoa.slice(0, 40)}, ${v.ten.trim().slice(0, 120)}, ${kenh ?? 'khac'}, ${url(v.website ?? '')}, ${v.taiKhoan.trim().slice(0, 200) || null}, ${JSON.stringify(links)}::jsonb,
             ${JSON.stringify(lienHe)}::jsonb, ${v.ghiChu.trim().slice(0, 2000) || null}, now())
-    ON CONFLICT (khoa) DO UPDATE SET ten = EXCLUDED.ten, website = EXCLUDED.website, tai_khoan = EXCLUDED.tai_khoan, links = EXCLUDED.links,
+    ON CONFLICT (khoa) DO UPDATE SET ten = EXCLUDED.ten, kenh = COALESCE(${kenh}, shop_ncc.kenh), website = EXCLUDED.website, tai_khoan = EXCLUDED.tai_khoan, links = EXCLUDED.links,
       lien_he = EXCLUDED.lien_he, ghi_chu = EXCLUDED.ghi_chu, cap_nhat = now()`);
   revalidatePath('/shop');
-  return { ok: true };
+  return { ok: true, khoa };
 }
 
 /** Số tiền đơn NCC đọc lại ngay lúc bấm trả (CJ getOrderDetail). */
 export async function shopTienNcc(donId: number) { await admin(); return tienDonCj(Number(donId)); }
 
-export async function shopBienDongNcc() { await admin(); return docBienDongNcc(); }
-/** "Đọc lại NCC ngay": đánh dấu cũ để nhịp kế đọc lại tồn mọi biến thể, đọc lại giá/trạng thái sản phẩm ngay, rồi áp lên mặt tiền. */
+/** "Đọc lại NCC ngay": đọc lại ngay mọi sản phẩm NCC đang làm nguồn cho shop này (giá, biến thể, ngừng bán), đánh dấu tồn cũ để các nhịp kế
+ *  đọc lại tồn từng biến thể, rồi chọn lại nguồn + áp lên mặt tiền. */
 export async function shopDocLaiNcc(khoa: string) {
   await admin();
   const ch = await cuaHangTheoKhoa(khoa);
   if (!ch) return { ok: false, loi: 'không thấy cửa hàng' };
-  await db().execute(sql`UPDATE shop_san_pham SET ncc_luc = NULL WHERE cua_hang_id = ${ch.id}`);
-  await db().execute(sql`UPDATE shop_bien_the b SET ton_luc = NULL FROM shop_san_pham p WHERE p.id = b.san_pham_id AND p.cua_hang_id = ${ch.id}`);
-  const doc = await dongBoThongTinNcc(ch);
+  const dung = sql`SELECT t.ncc_sp_id FROM shop_nguon g JOIN shop_ncc_bt t ON t.id = g.ncc_bt_id JOIN shop_bien_the b ON b.id = g.bien_the_id
+    JOIN shop_san_pham p ON p.id = b.san_pham_id WHERE p.cua_hang_id = ${ch.id} AND g.bat`;
+  await db().execute(sql`UPDATE shop_ncc_sp SET luc = NULL WHERE id IN (${dung})`);
+  await db().execute(sql`UPDATE shop_ncc_bt SET ton_luc = NULL WHERE ncc_sp_id IN (${dung})`);
+  const doc = await docDanhMucNcc(50);
+  const nguon = await apNguon(ch);
   const ap = await apDungNcc(ch);
   revalidatePath('/shop');
-  return { ok: true, doc, ap };
+  return { ok: true, doc, nguon, ap };
 }

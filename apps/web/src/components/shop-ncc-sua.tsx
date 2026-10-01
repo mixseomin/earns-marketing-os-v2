@@ -1,14 +1,15 @@
 'use client';
-// Drawer sửa thông tin một NCC (sổ shop_ncc): tên, website, tài khoản của mình (mã/email — KHÔNG mật khẩu), các link, người/kênh liên hệ, ghi chú.
+// Drawer sửa / THÊM một NCC (sổ shop_ncc; khoa rỗng = thêm mới): kênh (CJ · Alibaba · 1688 …), tên, website, tài khoản của mình (mã/email — KHÔNG mật khẩu), các link, người/kênh liên hệ, ghi chú.
 import { useState, useTransition } from 'react';
 import { Drawer, SelectField, TextAreaField, TextField } from '@/components/ui';
 import type { NccDong } from '@/lib/shop/ho-so-doc';
+import { KENH_NCC } from '@/lib/shop/buoc';
 import { shopSuaNcc } from '@/lib/actions/shop';
 
 const KENH = [['email', 'Email'], ['whatsapp', 'WhatsApp'], ['skype', 'Skype'], ['telegram', 'Telegram'], ['wechat', 'WeChat'], ['chat', 'Link chat'], ['phone', 'Điện thoại'], ['khac', 'Khác']] as const;
 
 export function SuaNcc({ n, onClose }: { n: NccDong; onClose: () => void }) {
-  const goc = { ten: n.ten, website: n.website ?? '', taiKhoan: n.taiKhoan ?? '', ghiChu: n.ghiChu ?? '',
+  const goc = { ten: n.ten, kenh: n.kenh, website: n.website ?? '', taiKhoan: n.taiKhoan ?? '', ghiChu: n.ghiChu ?? '',
     links: n.links.map((l) => ({ ...l })), lienHe: n.lienHe.map((l) => ({ kenh: l.kenh, gia_tri: l.gia_tri, ten: l.ten ?? '' })) };
   const [v, setV] = useState(goc);
   const [loi, setLoi] = useState<string | null>(null);
@@ -17,9 +18,12 @@ export function SuaNcc({ n, onClose }: { n: NccDong; onClose: () => void }) {
   return (
     <Drawer onClose={onClose} width={640} dirty={doi}>
       <div style={{ display: 'grid', gap: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 17 }}>Nhà cung cấp · {n.ten}</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <TextField id="ncc-ten" label="Tên" value={v.ten} onChange={(e) => setV({ ...v, ten: e.target.value })} />
+        <h2 style={{ margin: 0, fontSize: 17 }}>{n.khoa ? `Nhà cung cấp · ${n.ten}` : 'Thêm nhà cung cấp'}</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 1fr', gap: 10 }}>
+          <SelectField id="ncc-kenh-goc" label="Kênh" value={v.kenh} disabled={n.coApi} onChange={(e) => setV({ ...v, kenh: e.target.value })}
+            hint={KENH_NCC[v.kenh]?.chu}>
+            {Object.entries(KENH_NCC).map(([k, x]) => <option key={k} value={k}>{x.ten}</option>)}</SelectField>
+          <TextField id="ncc-ten" label={v.kenh === 'cj' ? 'Tên' : 'Tên nhà bán / xưởng'} value={v.ten} onChange={(e) => setV({ ...v, ten: e.target.value })} />
           <TextField id="ncc-web" label="Website" value={v.website} onChange={(e) => setV({ ...v, website: e.target.value })} placeholder="https://…" />
         </div>
         <TextField id="ncc-tk" label="Tài khoản của mình bên NCC" hint="Mã tài khoản / email đăng nhập. KHÔNG ghi mật khẩu — mật khẩu nằm ở vault." value={v.taiKhoan} onChange={(e) => setV({ ...v, taiKhoan: e.target.value })} />

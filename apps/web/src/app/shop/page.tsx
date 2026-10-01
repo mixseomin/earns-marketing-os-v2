@@ -9,7 +9,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { listProjects, getMode, getProjectMode } from '@/lib/data';
 import { getLastProject } from '@/lib/last-project';
 import { docShop } from '@/lib/shop/doc';
-import { docHoSo, docNcc } from '@/lib/shop/ho-so-doc';
+import { docBienDongNcc, docHoSo, docNcc } from '@/lib/shop/ho-so-doc';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,14 +17,14 @@ export default async function ShopPage() {
   const me = await getCurrentUser();
   if (!me) redirect('/login?next=/shop');
   if (me.role !== 'admin') redirect('/?error=admin-only');
-  const [projects, lastProject, fallbackMode, { don, bienThe, cuaHang, sanPham, danhGia }, hoSo, ncc] = await Promise.all([
-    listProjects(), getLastProject(), getMode('affiliate'), docShop(), docHoSo(), docNcc(),
+  const [projects, lastProject, fallbackMode, { don, bienThe, cuaHang, sanPham, danhGia, danhMuc }, hoSo, ncc, bienDong] = await Promise.all([
+    listProjects(), getLastProject(), getMode('affiliate'), docShop(), docHoSo(), docNcc(), docBienDongNcc(),
   ]);
   const mode = lastProject ? await getProjectMode(lastProject.id, lastProject.mode) : fallbackMode;
   return (
     <AppShell mode={mode} project={lastProject} projects={projects} isPortfolio
       currentUser={{ id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty }}>
-      <ShopView don={don} bienThe={bienThe} cuaHang={cuaHang} sanPham={sanPham} danhGia={danhGia} hoSo={hoSo} ncc={ncc} />
+      <ShopView don={don} bienThe={bienThe} cuaHang={cuaHang} sanPham={sanPham} danhGia={danhGia} hoSo={hoSo} ncc={ncc} danhMuc={danhMuc} bienDong={bienDong} />
     </AppShell>
   );
 }

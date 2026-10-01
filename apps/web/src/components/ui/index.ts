@@ -82,6 +82,8 @@ export { StatusFlag, type StatusFlagProps, type StatusFlagTone, type StatusFlagS
 // Right-side slide-over with built-in ESC/click-outside close + stacking
 // (backgrounded = slide left + dim). See feedback_stacked_drawer.
 export { Drawer } from './drawer';
+// Cay/NutCay = THE cây cha → con (mọi chỗ có tầng: sản phẩm → màu → biến thể, kênh → NCC, sản phẩm NCC → biến thể → shop dùng). Không tự vẽ ▸/▾ riêng.
+export { Cay, NutCay, LaBang, type NutCayProps } from './cay';
 // Note: feedback_picker_inline_crud.md — every entity picker should use
 // <ResourcePicker> + filter by relevant context (platform, project, role)
 // instead of dumping the full list and forcing the user to search.

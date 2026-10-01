@@ -17,12 +17,13 @@ import { CaySanPham } from './shop-san-pham';
 import { BangNcc } from './shop-ncc';
 import { DrawerCaiDat, TheCuaHang } from './shop-cau-hinh';
 import { BangHoSo } from './shop-ho-so';
-import type { HoSoDong, NccDong } from '@/lib/shop/ho-so-doc';
+import type { BienDongNcc, HoSoDong, NccDong } from '@/lib/shop/ho-so-doc';
+import { DrawerNguon } from './shop-nguon';
 import { CHANG, type HanhTrinh, type KhoaChang } from '@mos2/shop/hanh-trinh';
 import { BUOC, LINK_DS_CJ, NHAN_BUOC, gio, isoCua, linkVanDon, soNgayTu, tien, type Buoc } from '@/lib/shop/buoc';
-import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, SanPhamDong, ThamKhao } from '@/lib/shop/doc';
+import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, NccSpDong, SanPhamDong, ThamKhao } from '@/lib/shop/doc';
 import { shopMoHoSo, shopSoDuNcc, shopTienNcc } from '@/lib/actions/shop';
-import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaBienThe, shopSuaSanPham, shopSuaThamKhao, shopTraNcc } from '@/lib/actions/shop';
+import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaSanPham, shopSuaThamKhao, shopTraNcc } from '@/lib/actions/shop';
 
 type Tab = 'don' | 'tu_van' | 'truc_tiep' | 'van_chuyen' | 'khach_ph' | 'ncc' | 'san_pham' | 'danh_gia' | 'cua_hang';
 // Màu bước = tín hiệu: amber chờ người, đỏ lỗi/trễ, xanh đã giao; bước đang chạy bình thường để trung tính.
@@ -38,7 +39,7 @@ function BuocPill({ b }: { b: Buoc }) {
 }
 const VanDon = ({ ma }: { ma: string }) => <LinkChip href={linkVanDon(ma)} tone="neutral" size="xs" onClick={(e) => e.stopPropagation()}>{ma} ↗</LinkChip>;
 
-export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc }: { don: DonDong[]; bienThe: BienTheDong[]; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; danhGia: DanhGiaDong[]; hoSo: HoSoDong[]; ncc: NccDong[] }) {
+export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, danhMuc, bienDong }: { don: DonDong[]; bienThe: BienTheDong[]; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; danhGia: DanhGiaDong[]; hoSo: HoSoDong[]; ncc: NccDong[]; danhMuc: NccSpDong[]; bienDong: BienDongNcc[] }) {
   const sp = useSearchParams();
   const [tab, setTab] = useState<Tab>((sp.get('tab') as Tab) || 'don');
   const [buoc, setBuoc] = useState<string>(sp.get('b') || 'all');
@@ -178,8 +179,10 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc }:
         {tab === 'tu_van' && <BangTuVan ch={ch} />}
         {tab === 'truc_tiep' && <KhachTrucTiep ch={ch} />}
         {tab === 'khach_ph' && <BangHoSo key={tab} ben="khach" ch={ch} ds={hoSo.filter((h) => h.loai !== 'tu_van')} cuaHang={cuaHang} />}
-        {tab === 'ncc' && <BangNcc lienKet={<BangSanPham bienThe={bt} sanPham={sps} cuaHang={cuaHang} cheDo="lien_ket" />} soNcc={ncc} ch={ch} cuaHang={cuaHang} sanPham={sanPham} bienThe={bienThe} don={don} hoSo={hoSo} />}
-        {tab === 'san_pham' && <BangSanPham bienThe={bt} sanPham={sps} cuaHang={cuaHang} />}
+        {tab === 'ncc' && <BangNcc soNcc={ncc} ch={ch} cuaHang={cuaHang} sanPham={sanPham} bienThe={bienThe} danhMuc={danhMuc} bienDong={bienDong} don={don} hoSo={hoSo}
+          lienKet={(k) => <BangSanPham bienThe={bt} danhMuc={danhMuc} soNcc={ncc} cuaHang={cuaHang} cheDo="lien_ket"
+            sanPham={sps.filter((p) => !p.nguonSp.length || p.nguonSp.some((s) => s.ncc === k))} />} />}
+        {tab === 'san_pham' && <BangSanPham bienThe={bt} sanPham={sps} danhMuc={danhMuc} soNcc={ncc} cuaHang={cuaHang} />}
         {tab === 'danh_gia' && <BangDanhGia ds={dgs} />}
         {tab === 'cua_hang' && <div style={{ display: 'grid', gap: 12 }}>{cuaHang.filter((c) => ch === 'all' || c.khoa === ch).map((c) => (
           <TheCuaHang key={c.id} c={c} moCaiDat={(muc) => { if (muc) { const u = new URLSearchParams(window.location.search); u.set('cs', muc); window.history.replaceState(window.history.state, '', `${window.location.pathname}?${u.toString()}`); } modal.open('cai-dat', c.id); }} />))}</div>}
@@ -367,46 +370,21 @@ function DrawerDon({ id, hoSo, onClose }: { id: number; hoSo: HoSoDong[]; onClos
 }
 
 /* ── Sản phẩm ↔ NCC ─────────────────────────────────────────────────────── */
-/** Sản phẩm = CÂY sản phẩm mặt tiền → màu → size (components/shop-san-pham.tsx); hai drawer sửa giữ ở đây. */
-function BangSanPham({ bienThe, sanPham, cuaHang, cheDo = 'mat_tien' }: { bienThe: BienTheDong[]; sanPham: SanPhamDong[]; cuaHang: CuaHangDong[]; cheDo?: 'mat_tien' | 'lien_ket' }) {
-  const [sua, setSua] = useState<BienTheDong | null>(null);
+/** Sản phẩm = CÂY sản phẩm mặt tiền → [nguồn] + màu → biến thể (components/shop-san-pham.tsx); bấm biến thể → drawer nguồn (shop-nguon.tsx).
+ *  Drawer giữ theo ID (?m=bt&mId=) và đọc lại biến thể từ props mới mỗi lần — thao tác nguồn xong, trang nạp lại là drawer thấy ngay số mới. */
+function BangSanPham({ bienThe, sanPham, danhMuc, soNcc, cuaHang, cheDo = 'mat_tien' }: { bienThe: BienTheDong[]; sanPham: SanPhamDong[]; danhMuc: NccSpDong[]; soNcc: NccDong[];
+  cuaHang: CuaHangDong[]; cheDo?: 'mat_tien' | 'lien_ket' }) {
+  const modal = useModalParam();
   const [suaSp, setSuaSp] = useState<SanPhamDong | null>(null);
+  const sua = modal.is('bt') && modal.numId != null ? bienThe.find((b) => b.id === modal.numId) ?? null : null;
+  const nguongTon = (k: string) => cuaHang.find((c) => c.khoa === k)?.cauHinh.ton_thap ?? 50;
   return (<>
-    <CaySanPham bienThe={bienThe} sanPham={sanPham} suaSp={setSuaSp} suaBt={setSua} cheDo={cheDo} nguongBien={(k) => cuaHang.find((c) => c.khoa === k)?.cauHinh.bien_toi_thieu ?? 60}
-      nguongTon={(k) => cuaHang.find((c) => c.khoa === k)?.cauHinh.ton_thap ?? 50} />
-    {sua && <SuaBienThe b={sua} onClose={() => setSua(null)} />}
+    <CaySanPham bienThe={bienThe} sanPham={sanPham} danhMuc={danhMuc} suaSp={setSuaSp} suaBt={(b) => modal.open('bt', b.id)} cheDo={cheDo}
+      nguongBien={(k) => cuaHang.find((c) => c.khoa === k)?.cauHinh.bien_toi_thieu ?? 60} nguongTon={nguongTon}
+      tenNcc={(k) => soNcc.find((n) => n.khoa === k)?.ten ?? k} />
+    {sua && <DrawerNguon b={sua} danhMuc={danhMuc} soNcc={soNcc} nguongTon={nguongTon(sua.cuaHang)} onClose={() => modal.close()} />}
     {suaSp && <SuaSanPham p={suaSp} onClose={() => setSuaSp(null)} />}
   </>);
-}
-
-function SuaBienThe({ b, onClose }: { b: BienTheDong; onClose: () => void }) {
-  const [ma, setMa] = useState(b.maNcc ?? '');
-  const [von, setVon] = useState(b.giaVon === null ? '' : String(b.giaVon));
-  const [loi, setLoi] = useState<string | null>(null);
-  const [dangChay, batDau] = useTransition();
-  const dirty = ma !== (b.maNcc ?? '') || von !== (b.giaVon === null ? '' : String(b.giaVon));
-  return (
-    <Drawer onClose={onClose} width={460} dirty={dirty}>
-      <div style={{ display: 'grid', gap: 12 }}>
-        <div>
-          <h2 style={{ margin: '0 0 4px', fontSize: 16 }}>{b.sanPham}</h2>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, ...phu }}>
-            {b.ten} · giá bán {tien(b.giaBan)}{b.link && <LinkChip href={b.link} tone="neutral" size="xs">trang sản phẩm ↗</LinkChip>}
-          </div>
-        </div>
-        <TextField id="shop-bt-ma" label="Mã biến thể CJ (vid)" mono value={ma} onChange={(e) => setMa(e.target.value.trim())} />
-        <TextField id="shop-bt-von" label="Giá vốn NCC (USD, chưa ship)" inputMode="decimal" value={von} onChange={(e) => setVon(e.target.value)} />
-        {loi && <div style={{ color: 'var(--bad)', fontSize: 13 }}>{loi}</div>}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn primary" disabled={!dirty || dangChay} onClick={() => batDau(async () => {
-            const r = await shopSuaBienThe(b.id, { maNcc: ma || null, giaVon: von.trim() === '' ? null : Number(von) });
-            if (r.ok && !r.loi) onClose(); else setLoi(r.loi ?? 'lỗi');
-          })}>{dangChay ? 'Đang lưu…' : 'Lưu'}</button>
-          <button className="btn ghost" onClick={onClose}>Đóng</button>
-        </div>
-      </div>
-    </Drawer>
-  );
 }
 
 function SuaSanPham({ p, onClose }: { p: SanPhamDong; onClose: () => void }) {

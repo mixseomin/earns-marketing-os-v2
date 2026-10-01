@@ -216,7 +216,16 @@ function DrawerDon({ id, onClose }: { id: number; onClose: () => void }) {
               {dong('Nguồn', d.sid ?? '—')}
               {dong('Đơn NCC', d.ncc?.maNcc ? `CJ ${d.ncc.maNcc} · ${d.ncc.trangThai} · ${d.ncc.daTra ? 'đã trả' : 'chưa trả'}${d.ncc.tuyen ? ` · ${d.ncc.tuyen} ${d.ncc.soNgay} ngày` : ''}` : '—')}
               {d.ncc?.maVanDon && dong('Vận đơn', `${d.ncc.maVanDon}${d.ncc.hang ? ` · ${d.ncc.hang}` : ''}${d.ncc.vanDon ? ` · ${d.ncc.vanDon}` : ''}`)}
+              {ct.changCuoi && dong('Chặng cuối', ct.changCuoi)}
+              {d.ncc?.maVanDon && dong('Khách xem', <LinkChip href={`https://${d.domain}/track-order/?order=${encodeURIComponent(d.soDon)}`} tone="neutral" size="xs">trang theo dõi ↗</LinkChip>)}
             </div>
+            {ct.moc.length > 0 && (
+              <SimpleTable rows={ct.moc} getRowKey={(m, i) => `${m.ts}${i}`} columns={[
+                { key: 'ts', header: 'Hành trình', width: 92, cell: (m) => <span style={phu}>{gio(m.ts)}</span> },
+                { key: 'noi', header: '', width: 140, cell: (m) => <span style={phu}>{m.noi}{m.nuoc ? ` · ${m.nuoc}` : ''}</span> },
+                { key: 'mo', header: '', cell: (m) => m.mo_ta },
+              ]} />
+            )}
             <SimpleTable rows={ct.mon} getRowKey={(_, i) => String(i)} columns={[
               { key: 'ten', header: 'Món', cell: (m) => `${m.ten}${m.sl > 1 ? ` ×${m.sl}` : ''}` },
               { key: 'gia', header: 'Giá', align: 'right', cell: (m) => tien(m.gia) },

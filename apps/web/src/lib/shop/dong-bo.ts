@@ -5,6 +5,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { cj, linkVanDon, meta, ngayToiDa, woo, wooHet, type WooBt, type WooDon, type WooSp } from './nguon';
 import { sidPrefix } from '@/lib/phu-shared';
+import { co17, dangKy17, tin17 } from './track17';
 
 export type CuaHang = { id: number; khoa: string; project_id: string; ten: string; domain: string; ncc: string;
   cau_hinh: { ngay_ship_max?: number; tu_sang_ncc?: boolean; tu_tra_ncc?: boolean; quoc_gia_kho?: string }; trang_thai: string; dong_bo_luc: string | null };
@@ -70,11 +71,11 @@ export async function ghiDon(ch: CuaHang, o: WooDon): Promise<number> {
   const phi = meta(o.meta_data, '_stripe_fee');
   const cu = (await q<{ id: number; trang_thai_shop: string }>(sql`SELECT id, trang_thai_shop FROM shop_don WHERE cua_hang_id = ${ch.id} AND ma_ngoai = ${String(o.id)}`))[0];
   const d = (await q<{ id: number }>(sql`
-    INSERT INTO shop_don (cua_hang_id, ma_ngoai, so_don, trang_thai_shop, khach, dia_chi, tong, tien_te, ship_khach, hoan, phi_cong, sid, cong_tt, tao_luc, tra_luc, raw, updated_at)
-    VALUES (${ch.id}, ${String(o.id)}, ${o.number}, ${o.status}, ${JSON.stringify(khach)}::jsonb, ${JSON.stringify(diaChi)}::jsonb, ${Number(o.total)}, ${o.currency},
+    INSERT INTO shop_don (cua_hang_id, ma_ngoai, so_don, khoa_don, trang_thai_shop, khach, dia_chi, tong, tien_te, ship_khach, hoan, phi_cong, sid, cong_tt, tao_luc, tra_luc, raw, updated_at)
+    VALUES (${ch.id}, ${String(o.id)}, ${o.number}, ${o.order_key ?? null}, ${o.status}, ${JSON.stringify(khach)}::jsonb, ${JSON.stringify(diaChi)}::jsonb, ${Number(o.total)}, ${o.currency},
             ${Number(o.shipping_total) || 0}, ${hoan}, ${phi ? Number(phi) : null}, ${sidCua(o) || null}, ${o.payment_method_title || null},
             ${gmt(o.date_created_gmt)}::timestamptz, ${gmt(o.date_paid_gmt)}::timestamptz, ${JSON.stringify({ meta: o.meta_data.filter((m) => !m.key.startsWith('_stripe_source')) })}::jsonb, now())
-    ON CONFLICT (cua_hang_id, ma_ngoai) DO UPDATE SET trang_thai_shop = EXCLUDED.trang_thai_shop, khach = EXCLUDED.khach, dia_chi = EXCLUDED.dia_chi,
+    ON CONFLICT (cua_hang_id, ma_ngoai) DO UPDATE SET trang_thai_shop = EXCLUDED.trang_thai_shop, khoa_don = COALESCE(EXCLUDED.khoa_don, shop_don.khoa_don), khach = EXCLUDED.khach, dia_chi = EXCLUDED.dia_chi,
       tong = EXCLUDED.tong, ship_khach = EXCLUDED.ship_khach, hoan = EXCLUDED.hoan, phi_cong = COALESCE(EXCLUDED.phi_cong, shop_don.phi_cong),
       sid = COALESCE(EXCLUDED.sid, shop_don.sid), tra_luc = COALESCE(EXCLUDED.tra_luc, shop_don.tra_luc), raw = EXCLUDED.raw, updated_at = now()
     RETURNING id`))[0]!;
@@ -209,12 +210,12 @@ export async function soDuCj(): Promise<number | null> {
 }
 
 type NccSong = { id: number; don_id: number; ma_ncc: string; trang_thai: string; da_tra: boolean; ma_van_don: string | null; bao_khach: boolean;
-  so_don: string; ma_ngoai: string; cua_hang_id: number };
+  so_don: string; ma_ngoai: string; cua_hang_id: number; khoa_don: string | null };
 
 /** Theo dõi mọi đơn NCC chưa xong: trạng thái CJ, mã vận đơn (→ báo khách qua ghi chú Woo + completed), hành trình vận đơn. */
 export async function theoDoiNcc(ch: CuaHang) {
   const ds = await q<NccSong>(sql`
-    SELECT n.id, n.don_id, n.ma_ncc, n.trang_thai, n.da_tra, n.ma_van_don, n.bao_khach, d.so_don, d.ma_ngoai, d.cua_hang_id
+    SELECT n.id, n.don_id, n.ma_ncc, n.trang_thai, n.da_tra, n.ma_van_don, n.bao_khach, d.so_don, d.ma_ngoai, d.cua_hang_id, d.khoa_don
       FROM shop_don_ncc n JOIN shop_don d ON d.id = n.don_id
      WHERE d.cua_hang_id = ${ch.id} AND n.ma_ncc IS NOT NULL AND n.trang_thai NOT IN ('CANCELLED', 'LOI', 'DELIVERED', 'TRASH')
        AND n.created_at > now() - interval '90 days'`);
@@ -237,7 +238,9 @@ export async function theoDoiNcc(ch: CuaHang) {
       await ghiSuKien(n.don_id, 'ncc', `Có mã vận đơn ${ma}`);
     }
     if (ma && !n.bao_khach) {
-      const note = `Good news, your order is on its way!\n\nTracking number: ${ma}\nTrack it here: ${linkVanDon(ma)}\n\nTracking can take 2-3 days to show movement. Questions? Just reply to this email.`;
+      // MỘT email duy nhất (anh chốt 01/10/2026), link về trang theo dõi của chính shop (mellowstep.com/track) — không sang 17track.net
+      const link = n.khoa_don ? linkTheoDoi(ch, n.so_don, n.khoa_don) : linkVanDon(ma);
+      const note = `Good news, your order is on its way!\n\nTrack your order: ${link}\n\nTracking can take 2-3 days to show movement. Questions? Just reply to this email.`;
       try {
         await woo(ch, 'POST', `orders/${n.ma_ngoai}/notes`, { note, customer_note: true });
         await woo(ch, 'PUT', `orders/${n.ma_ngoai}`, { status: 'completed', meta_data: [{ key: '_ms_tracking', value: ma }, { key: '_cj_trang_thai', value: tt }] });
@@ -252,18 +255,41 @@ export async function theoDoiNcc(ch: CuaHang) {
 
 /** Hành trình vận đơn từ CJ (getTrackInfo). Hãng báo đã giao → giao_luc + DELIVERED. Mỗi đơn tối đa 1 lần / 3 giờ. */
 async function keoVanDon(nccId: number, donId: number, ma: string) {
-  const [c] = await q<{ cu: boolean }>(sql`SELECT (van_don_luc IS NULL OR van_don_luc < now() - interval '3 hours') AS cu FROM shop_don_ncc WHERE id = ${nccId}`);
+  const [c] = await q<{ cu: boolean; dang_ky_17: boolean }>(sql`SELECT (van_don_luc IS NULL OR van_don_luc < now() - interval '3 hours') AS cu, dang_ky_17 FROM shop_don_ncc WHERE id = ${nccId}`);
   if (!c?.cu) return;
-  const r = await cj<{ trackingStatus?: string; deliveryTime?: string; lastMileCarrier?: string; lastTrackNumber?: string; trackingFrom?: string; trackingTo?: string; deliveryDay?: string; trackingEvents?: unknown }[]>(
+  // CJ: trạng thái tóm tắt + mã/hãng CHẶNG CUỐI ở nước khách (USPS…)
+  const r = await cj<{ trackingStatus?: string; deliveryTime?: string; lastMileCarrier?: string; lastTrackNumber?: string }[]>(
     `logistic/getTrackInfo?trackNumber=${encodeURIComponent(ma)}`);
   const v = r.data?.[0];
-  await q(sql`UPDATE shop_don_ncc SET van_don_luc = now(), van_don = ${v ? JSON.stringify(v) : null}::jsonb WHERE id = ${nccId}`);
-  if (v && /deliver/i.test(String(v.trackingStatus ?? ''))) {
-    const daGiao = await q(sql`UPDATE shop_don_ncc SET giao_luc = COALESCE(${v.deliveryTime ?? null}::timestamptz, now()), trang_thai = 'DELIVERED'
+  await q(sql`UPDATE shop_don_ncc SET van_don_luc = now(), van_don = ${v ? JSON.stringify(v) : null}::jsonb,
+                ma_chang_cuoi = COALESCE(${v?.lastTrackNumber || null}, ma_chang_cuoi), hang_chang_cuoi = COALESCE(${v?.lastMileCarrier || null}, hang_chang_cuoi)
+              WHERE id = ${nccId}`);
+  // 17TRACK: mốc chi tiết (đăng ký một lần — tốn một lượt — rồi đọc lại miễn phí)
+  let giao = !!v && /deliver/i.test(String(v.trackingStatus ?? ''));
+  let giaoLuc = v?.deliveryTime ?? null;
+  if (co17()) {
+    if (!c.dang_ky_17) {
+      const dk = await dangKy17(ma);
+      if (dk?.ok) await q(sql`UPDATE shop_don_ncc SET dang_ky_17 = true WHERE id = ${nccId}`);
+      else if (dk) await ghiSuKien(donId, 'ncc', `17TRACK không nhận mã ${ma}: ${dk.loi}`, true);
+    }
+    const t = await tin17(ma);
+    if (t) {
+      await q(sql`UPDATE shop_don_ncc SET moc = ${JSON.stringify(t.moc)}::jsonb, tt_vd = ${t.tt}, du_kien = ${t.duKien ? JSON.stringify(t.duKien) : null}::jsonb WHERE id = ${nccId}`);
+      giao = giao || t.tt === 'Delivered';
+      if (t.tt === 'Delivered' && !giaoLuc) giaoLuc = t.moc[0]?.ts ?? null;
+    }
+  }
+  if (giao) {
+    const daGiao = await q(sql`UPDATE shop_don_ncc SET giao_luc = COALESCE(${giaoLuc}::timestamptz, now()), trang_thai = 'DELIVERED'
                                  WHERE id = ${nccId} AND giao_luc IS NULL RETURNING id`);
-    if (daGiao.length) await ghiSuKien(donId, 'ncc', `Hãng báo đã giao${v.lastMileCarrier ? ` (${v.lastMileCarrier})` : ''}`);
+    if (daGiao.length) await ghiSuKien(donId, 'ncc', `Hãng báo đã giao${v?.lastMileCarrier ? ` (${v.lastMileCarrier})` : ''}`);
   }
 }
+
+/** Link theo dõi gửi khách: trang /track của chính shop, mang chìa order_key (không phải nhập gì). */
+export const linkTheoDoi = (ch: { domain: string }, soDon: string, khoaDon: string) =>
+  `https://${ch.domain}/track-order/?order=${encodeURIComponent(soDon)}&key=${encodeURIComponent(khoaDon)}`;
 
 /* ── MỘT NHỊP ─────────────────────────────────────────────────────────────── */
 /** Một lượt cho một cửa hàng: (sản phẩm nếu yêu cầu) → đơn đổi → tự sang NCC đơn đủ điều kiện → theo dõi NCC/vận đơn. */

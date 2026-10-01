@@ -10,7 +10,7 @@ export function biMatWebhook(khoa: string) { return env(tenEnv(khoa, 'WEBHOOK'))
 /* ── WooCommerce ─────────────────────────────────────────────────────────── */
 export type WooMeta = { key: string; value: unknown };
 export type WooDon = {
-  id: number; number: string; status: string; currency: string; total: string; shipping_total: string;
+  id: number; number: string; order_key?: string; status: string; currency: string; total: string; shipping_total: string;
   date_created_gmt: string; date_paid_gmt: string | null; date_modified_gmt: string; payment_method_title: string;
   billing: Record<string, string>; shipping: Record<string, string>;
   line_items: { id: number; name: string; product_id: number; variation_id: number; quantity: number; total: string; sku: string }[];

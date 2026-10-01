@@ -2,6 +2,7 @@
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { buocCua, type Buoc } from './buoc';
+import type { Moc } from './track17';
 
 type Row = Record<string, unknown>;
 const q = async <T = Row>(s: ReturnType<typeof sql>) => { const d = getDb(); if (!d) return [] as T[]; return (await d.execute(s)) as unknown as T[]; };
@@ -74,7 +75,9 @@ export async function docShop() {
 
 export type SuKien = { ts: string; nguon: string; noiDung: string; loi: boolean };
 export type ChiTietDon = { don: DonDong | null; diaChi: Record<string, string>; sdt: string; mon: { ten: string; sl: number; gia: number; maNcc: string | null; giaVon: number | null; bienTheId: number | null }[];
-  suKien: SuKien[]; nccCu: { maNcc: string | null; trangThai: string; loi: string | null; ts: string }[]; vanDonRaw: unknown };
+  suKien: SuKien[]; nccCu: { maNcc: string | null; trangThai: string; loi: string | null; ts: string }[]; vanDonRaw: unknown;
+  /** Hành trình đầy đủ (17TRACK, KHÔNG che tên chặng ngoài — bản nội bộ) + chặng cuối. */
+  moc: Moc[]; changCuoi: string | null };
 
 export async function docChiTietDon(id: number): Promise<ChiTietDon> {
   const { don } = await docShop();
@@ -84,7 +87,7 @@ export async function docChiTietDon(id: number): Promise<ChiTietDon> {
     q(sql`SELECT m.ten, m.sl, m.gia, b.ma_ncc, b.gia_von, m.bien_the_id FROM shop_don_mon m LEFT JOIN shop_bien_the b ON b.id = m.bien_the_id WHERE m.don_id = ${id} ORDER BY m.id`),
     q(sql`SELECT ts::text AS ts, nguon, noi_dung, loi FROM shop_su_kien WHERE don_id = ${id} ORDER BY ts DESC, id DESC`),
     q(sql`SELECT ma_ncc, trang_thai, loi, created_at::text AS ts FROM shop_don_ncc WHERE don_id = ${id} ORDER BY id DESC`),
-    q(sql`SELECT van_don FROM shop_don_ncc WHERE don_id = ${id} AND van_don IS NOT NULL ORDER BY id DESC LIMIT 1`),
+    q(sql`SELECT van_don, moc, ma_chang_cuoi, hang_chang_cuoi FROM shop_don_ncc WHERE don_id = ${id} AND trang_thai NOT IN ('CANCELLED', 'LOI') ORDER BY id DESC LIMIT 1`),
   ]);
   return {
     don: d, diaChi: ((goc?.dia_chi ?? {}) as Record<string, string>), sdt: String(((goc?.khach ?? {}) as Record<string, string>).sdt ?? ''),
@@ -92,5 +95,7 @@ export async function docChiTietDon(id: number): Promise<ChiTietDon> {
     suKien: sk.map((r) => ({ ts: String(r.ts), nguon: String(r.nguon), noiDung: String(r.noi_dung), loi: !!r.loi })),
     nccCu: nccCu.map((r) => ({ maNcc: (r.ma_ncc as string) ?? null, trangThai: String(r.trang_thai), loi: (r.loi as string) ?? null, ts: String(r.ts) })),
     vanDonRaw: vd[0]?.van_don ?? null,
+    moc: (vd[0]?.moc as Moc[] | null) ?? [],
+    changCuoi: vd[0]?.ma_chang_cuoi ? `${vd[0]?.hang_chang_cuoi ?? ''} ${vd[0]?.ma_chang_cuoi}`.trim() : null,
   };
 }

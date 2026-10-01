@@ -8,14 +8,11 @@ import type { BacGiam } from '@mos2/shop/mat-tien';
 import { useGio, SoLuong } from './gio';
 import { DemNguoc } from './dem-nguoc';
 import { bao } from './do';
+import { ghiPhien, idPhien } from './phien';
 
 export type DuLieuMua = { sp: SanPham; diem: number | null; soDg: number; daBan: number; saleHet: string | null; dongSale: string | null; tonDuoi: number;
   camKet: string[]; bac: BacGiam[] };
 
-function phienXem() {
-  try { let p = sessionStorage.getItem('phien'); if (!p) { p = Math.random().toString(36).slice(2); sessionStorage.setItem('phien', p); } return p; }
-  catch { return Math.random().toString(36).slice(2); }
-}
 
 export function TrangMua({ d }: { d: DuLieuMua }) {
   const { sp } = d;
@@ -55,7 +52,7 @@ export function TrangMua({ d }: { d: DuLieuMua }) {
   }, [sp]);
   useEffect(() => { bao('view_item', { value: sp.gia, items: [{ item_id: String(sp.id), item_name: sp.ten, price: sp.gia, quantity: 1 }] }); }, [sp]);
   useEffect(() => {
-    const p = phienXem();
+    const p = idPhien();
     const nhip = () => fetch('/api/xem', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sp: sp.id, p }) })
       .then((r) => r.json()).then((j) => setXem(j.so ?? 0)).catch(() => null);
     nhip();
@@ -110,7 +107,7 @@ export function TrangMua({ d }: { d: DuLieuMua }) {
         return <div className="chon" key={t.ten}>
           <label>{t.ten}: <b>{chon[t.ten] ?? <span className="chua">Select</span>}</b></label>
           <div className={`nut-ds${anhOk ? ' o-anh' : ''}`} role="group" aria-label={t.ten}>{t.gia_tri.map((g) => <button key={g} type="button" className="nut" aria-pressed={chon[t.ten] === g}
-            title={g} aria-label={anhOk ? g : undefined} disabled={!coTon(t.ten, g)} onClick={() => { setChon((c) => ({ ...c, [t.ten]: g })); setNhac(''); }}>
+            title={g} aria-label={anhOk ? g : undefined} disabled={!coTon(t.ten, g)} onClick={() => { setChon((c) => ({ ...c, [t.ten]: g })); setNhac(''); ghiPhien('chon', { tc: t.ten, gt: g }); }}>
             {anhOk ? <img src={anhCua(t.ten, g)!} alt="" loading="lazy" /> : g}</button>)}</div>
         </div>;
       })}</div>

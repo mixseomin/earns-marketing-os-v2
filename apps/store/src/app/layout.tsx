@@ -3,6 +3,7 @@ import Script from 'next/script';
 import { Poppins } from 'next/font/google';
 import { shopHienTai } from '@/lib/shop';
 import { GioProvider } from '@/components/gio';
+import { TheoDoiPhien } from '@/components/phien';
 import './store.css';
 
 export const dynamic = 'force-dynamic';
@@ -28,6 +29,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
       <GioProvider cfg={{ bac_giam: m.bac_giam, ship: m.ship, sale_het: m.sale_het && Date.parse(m.sale_het) > Date.now() ? m.sale_het : null }}>
         {children}
       </GioProvider>
+      <TheoDoiPhien />
     </body>
   </html>;
 }

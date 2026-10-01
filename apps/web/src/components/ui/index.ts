@@ -85,3 +85,4 @@ export { Drawer } from './drawer';
 // Note: feedback_picker_inline_crud.md — every entity picker should use
 // <ResourcePicker> + filter by relevant context (platform, project, role)
 // instead of dumping the full list and forcing the user to search.
+export { DaiLuong, ThanhChang, type NutLuong } from './dai-luong';

@@ -7,17 +7,17 @@ import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'rea
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  DataTable, DateTimeField, Drawer, EmptyState, FilterChips, LinkChip, Panel, Pill, SimpleTable, StatsStrip, Tabs, TextAreaField, TextField, toDatetimeLocal, type DataColumn,
+  DaiLuong, DataTable, DateTimeField, Drawer, ThanhChang, type NutLuong, EmptyState, FilterChips, LinkChip, Panel, Pill, SimpleTable, StatsStrip, Tabs, TextAreaField, TextField, toDatetimeLocal, type DataColumn,
 } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { hrefTab, tabCua } from '@/lib/tab-trang';
+import { KhachTrucTiep } from './shop-truc-tiep';
 import { CHANG, type HanhTrinh, type KhoaChang } from '@mos2/shop/hanh-trinh';
-import { moTabNeuModifier, urlVoiParam } from '@/lib/url-mo-tab';
 import { BUOC, LINK_DS_CJ, NHAN_BUOC, gio, isoCua, linkVanDon, soNgayTu, tien, type Buoc } from '@/lib/shop/buoc';
 import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, SanPhamDong, ThamKhao } from '@/lib/shop/doc';
 import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaBienThe, shopSuaCauHinh, shopSuaMatTien, shopSuaSanPham, shopSuaThamKhao, shopTraNcc } from '@/lib/actions/shop';
 
-type Tab = 'don' | 'van_chuyen' | 'san_pham' | 'danh_gia' | 'cua_hang';
+type Tab = 'don' | 'truc_tiep' | 'van_chuyen' | 'san_pham' | 'danh_gia' | 'cua_hang';
 // Màu bước = tín hiệu: amber chờ người, đỏ lỗi/trễ, xanh đã giao; bước đang chạy bình thường để trung tính.
 const MAU: Record<string, string> = { muted: 'var(--fg-3)', warn: 'var(--warn)', bad: 'var(--bad)', ok: 'var(--ok)' };
 const MAU_BUOC = Object.fromEntries(BUOC.map((b) => [b.key, MAU[b.mau]])) as Record<Buoc, string>;
@@ -154,6 +154,7 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia }: { don: Don
           ? <Panel pad={8}><DataTable rows={dsVanChuyen} columns={cotVc} getRowKey={(d) => String(d.id)} persistKey="shop-vc" minWidth={900} onRowClick={(d) => modal.open('don', d.id)} /></Panel>
           : <EmptyState icon="🚚" compact title="Chưa có đơn nào ở NCC hay trên đường" />)}
 
+        {tab === 'truc_tiep' && <KhachTrucTiep ch={ch} />}
         {tab === 'san_pham' && <BangSanPham bienThe={bt} sanPham={sps} />}
         {tab === 'danh_gia' && <BangDanhGia ds={dgs} />}
         {tab === 'cua_hang' && <div style={{ display: 'grid', gap: 12 }}>{cuaHang.map((c) => <TheCuaHang key={c.id} c={c} />)}</div>}
@@ -167,60 +168,25 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia }: { don: Don
 /* ── Hành trình đơn (@mos2/shop/hanh-trinh — cùng hàm với trang theo dõi của khách) ─────────────────── */
 const TEN_CHANG = Object.fromEntries(CHANG.map((c) => [c.key, c])) as Record<KhoaChang, (typeof CHANG)[number]>;
 
-/** Dải luồng TOÀN CẢNH: mọi chặng nối nhau, mỗi chặng đếm số đơn đang đứng ở đó + đơn kẹt (lỗi/chờ trả/trễ) ngay dưới — nhìn một lần
- *  biết đơn dồn ở đâu, rồi mới bấm chặng để lọc bảng (bấm lại = bỏ lọc). Ngoài luồng: chưa trả tiền / huỷ. */
+/** Luồng đơn toàn cảnh: mỗi chặng đếm số đơn đang đứng ở đó + đơn kẹt (lỗi/trễ đỏ, chờ mình vàng); ngoài luồng = chưa trả tiền / huỷ. */
 function LuongDon({ don, value, onChange }: { don: DonDong[]; value: string; onChange: (v: string) => void }) {
-  const dem = new Map<string, DonDong[]>();
-  for (const d of don) { const k = d.ht ? d.ht.chang[d.ht.hienTai]!.key : 'ngoai'; dem.set(k, [...(dem.get(k) ?? []), d]); }
-  const ket = (ds: DonDong[]) => ({ bad: ds.filter((d) => d.buoc === 'loi_ncc' || d.buoc === 'tre').length, warn: ds.filter((d) => d.buoc === 'cho_ncc' || d.buoc === 'cho_tra').length });
-  const nut = (k: string, nhan: string, phuDe: string, ds: DonDong[], title: string) => {
-    const on = value === k, n = ds.length, kk = ket(ds);
-    return (
-      <a key={k} href={`?tab=don&ht=${k}`} title={title}
-        onClick={(e) => { if (moTabNeuModifier(e, urlVoiParam('ht', k))) return; e.preventDefault(); onChange(k); }}
-        style={{ flex: '1 0 86px', minWidth: 86, display: 'grid', gap: 2, padding: '7px 8px', borderRadius: 6, textDecoration: 'none', color: 'inherit',
-          border: `1px solid ${on ? 'var(--accent)' : 'var(--line)'}`, background: on ? 'var(--accent-soft)' : n ? 'var(--bg-2)' : 'transparent', opacity: n || on ? 1 : 0.55 }}>
-        <span style={{ fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{nhan}</span>
-        <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-          <b style={{ fontSize: 18, fontVariantNumeric: 'tabular-nums' }}>{n}</b>
-          <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{phuDe}</span>
-        </span>
-        <span style={{ fontSize: 10.5, minHeight: 14, display: 'flex', gap: 6 }}>
-          {kk.bad > 0 && <span style={{ color: 'var(--bad)' }}>{kk.bad} lỗi/trễ</span>}
-          {kk.warn > 0 && <span style={{ color: 'var(--warn)' }}>{kk.warn} chờ mình</span>}
-        </span>
-      </a>
-    );
+  const theo = new Map<string, DonDong[]>();
+  for (const d of don) { const k = d.ht ? d.ht.chang[d.ht.hienTai]!.key : 'ngoai'; theo.set(k, [...(theo.get(k) ?? []), d]); }
+  const nut = (key: string, nhan: string, phuDe: string, title: string): NutLuong => {
+    const ds = theo.get(key) ?? [];
+    return { key, nhan, phuDe, title, so: ds.length, dau: [
+      { n: ds.filter((d) => d.buoc === 'loi_ncc' || d.buoc === 'tre').length, nhan: 'lỗi/trễ', mau: 'var(--bad)' },
+      { n: ds.filter((d) => d.buoc === 'cho_ncc' || d.buoc === 'cho_tra').length, nhan: 'chờ mình', mau: 'var(--warn)' },
+    ] };
   };
-  const ngoai = dem.get('ngoai') ?? [];
-  return (
-    <Panel pad={8} style={{ marginBottom: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'stretch', gap: 4, overflowX: 'auto' }}>
-        {CHANG.map((c, i) => (
-          <span key={c.key} style={{ display: 'contents' }}>
-            {i > 0 && <span aria-hidden style={{ alignSelf: 'center', color: 'var(--fg-4)', fontSize: 12 }}>→</span>}
-            {nut(c.key, c.nhan, `${c.pct}%`, dem.get(c.key) ?? [], c.chuThich)}
-          </span>
-        ))}
-        <span aria-hidden style={{ borderLeft: '1px dashed var(--line)', margin: '0 4px' }} />
-        {nut('ngoai', 'Chưa trả / huỷ', 'ngoài luồng', ngoai, 'Đơn chưa thanh toán xong hoặc đã huỷ/hoàn — không đi trên luồng.')}
-      </div>
-    </Panel>
-  );
+  return <DaiLuong urlKey="ht" value={value} onChange={onChange} nut={CHANG.map((c) => nut(c.key, c.nhan, `${c.pct}%`, c.chuThich))}
+    ngoai={nut('ngoai', 'Chưa trả / huỷ', 'ngoài luồng', 'Đơn chưa thanh toán xong hoặc đã huỷ/hoàn — không đi trên luồng.')} />;
 }
 
-/** Ô hành trình trong bảng: 9 vạch (đã qua = đặc) + tên chặng hiện tại + %. */
 function ThanhHanhTrinh({ ht }: { ht: HanhTrinh | null }) {
   if (!ht) return <span style={phu}>—</span>;
   const c = ht.chang[ht.hienTai]!;
-  return (
-    <span title={`${c.nhan} · ~${ht.pct}% quãng đường${c.luc ? ` · ${gio(c.luc)}` : ''}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-      <span style={{ display: 'inline-flex', gap: 2 }}>
-        {ht.chang.map((x, i) => <span key={x.key} style={{ width: 7, height: 8, borderRadius: 1.5, background: x.xong ? (i === ht.hienTai ? 'var(--accent)' : 'var(--ok)') : 'var(--bg-3)' }} />)}
-      </span>
-      <span style={{ fontSize: 12 }}>{c.nhan}</span><span style={{ ...phu, fontSize: 11 }}>{ht.pct}%</span>
-    </span>
-  );
+  return <ThanhChang so={ht.chang.length} i={ht.hienTai} nhan={c.nhan} phuDe={`${ht.pct}%`} title={`${c.nhan} · ~${ht.pct}% quãng đường${c.luc ? ` · ${gio(c.luc)}` : ''}`} />;
 }
 
 /** Bảng chặng trong drawer đơn: từng chặng · lúc (mốc thật) · nơi/chi tiết; chặng đang đứng tô đậm. */

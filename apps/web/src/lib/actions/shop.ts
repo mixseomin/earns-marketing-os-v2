@@ -1,6 +1,8 @@
 'use server';
 // SHOP — thao tác từ màn /shop. Chỉ admin. Trả {ok, loi?} để màn hiện lỗi tại chỗ, không ném.
 import { dsVideo } from '@mos2/shop/video';
+import { CUA_SO, type CuaSo } from '@mos2/shop/phien';
+import { docPhien, docSuKienPhien } from '@/lib/shop/phien';
 import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
@@ -128,3 +130,13 @@ export async function shopSuaThamKhao(id: number, ds: { url: string | null; nguo
   return { ok: true };
 }
 
+
+/** Khách trực tiếp — phiên trong cửa sổ (màn tự gọi lại mỗi 5 giây khi tab đang mở). */
+export async function shopPhien(cuaSo: CuaSo) {
+  await admin();
+  return docPhien(CUA_SO.some((c) => c.value === cuaSo) ? cuaSo : '30p');
+}
+export async function shopSuKienPhien(id: string) {
+  await admin();
+  return docSuKienPhien(String(id).slice(0, 60));
+}

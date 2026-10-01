@@ -180,11 +180,11 @@ async function sangNccLoi(ch: CuaHang, donId: number, nguoi: string, giuCho: (id
     logisticName: t.logisticName, fromCountryCode: ch.cau_hinh.quoc_gia_kho ?? 'CN', payType: 3, products: sp,
   });
   if (!r.data?.orderId) return hong(`CJ từ chối: ${r.message ?? 'không rõ'}`);
-  await q(sql`UPDATE shop_don_ncc SET ma_ncc = ${r.data.orderId}, trang_thai = 'UNPAID', tuyen = ${t.logisticName}, so_ngay = ${t.logisticAging},
+  await q(sql`UPDATE shop_don_ncc SET ma_ncc = ${r.data.orderId}, trang_thai = 'CREATED', tuyen = ${t.logisticName}, so_ngay = ${t.logisticAging},
                 phi_ship = ${t.logisticPrice}, tien_hang = ${r.data.productAmount ?? null}, updated_at = now() WHERE id = ${nccId}`);
   await ghiSuKien(donId, nguoi === 'mos2' ? 'ncc' : 'nguoi', `Đã đặt CJ ${r.data.orderId} · ${t.logisticName} ${t.logisticAging} ngày · ship $${t.logisticPrice}${nguoi !== 'mos2' ? ` (${nguoi} bấm)` : ''}`);
   // Woo giữ dấu để cột "CJ" cũ trong admin WP vẫn đọc được.
-  await woo(ch, 'PUT', `orders/${d.ma_ngoai}`, { meta_data: [{ key: '_cj_order_id', value: r.data.orderId }, { key: '_cj_trang_thai', value: 'UNPAID' },
+  await woo(ch, 'PUT', `orders/${d.ma_ngoai}`, { meta_data: [{ key: '_cj_order_id', value: r.data.orderId }, { key: '_cj_trang_thai', value: 'CREATED' },
     { key: '_cj_tuyen', value: `${t.logisticName} (${t.logisticAging} ngày)` }, { key: '_cj_ship', value: t.logisticPrice }] }).catch(() => null);
   if (ch.cau_hinh.tu_tra_ncc) await traNcc(donId, 'mos2');
   return { ok: true };

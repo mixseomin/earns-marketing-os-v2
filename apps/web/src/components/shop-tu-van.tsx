@@ -129,6 +129,7 @@ function Cot({ mau, ten, phuDe, buoc, buocNay, so, the, mo, doi, trong }: { mau:
   );
 }
 
+/** Thẻ một cuộc chat. Duyệt trên thẻ → gửi rồi tải lại bảng NGAY (thẻ chuyển cột, số trên cùng đổi), không đợi nhịp 5 giây. */
 function TheChat({ c, mo, doi }: { c: ChatDong; mo: () => void; doi: () => void }) {
   const tt = trangThai(c);
   const [dang, batDau] = useTransition();
@@ -154,7 +155,7 @@ function TheChat({ c, mo, doi }: { c: ChatDong; mo: () => void; doi: () => void 
         <span style={{ flex: 1 }} />
         <button className="btn ghost" onClick={(e) => { e.stopPropagation(); mo(); }}>Mở</button>
         {choDuyet(c) && c.nhap?.noi_dung && <button className="btn primary" disabled={dang} title="Gửi nguyên nháp này cho khách"
-          onClick={(e) => { e.stopPropagation(); batDau(async () => { setDaGui(true); await shopGuiChat(c.id, c.nhap!.noi_dung!); await doi(); });   // tải lại ngay: thẻ chuyển cột + số trên cùng đổi, không đợi nhịp 5s }}>Duyệt</button>}
+          onClick={(e) => { e.stopPropagation(); batDau(async () => { setDaGui(true); await shopGuiChat(c.id, c.nhap!.noi_dung!); await doi(); }); }}>Duyệt</button>}
       </div>
     </div>
   );

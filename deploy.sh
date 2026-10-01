@@ -117,6 +117,8 @@ else
     node scripts/check-canon.mjs || { echo "✗ Behavioral-canon guard failed — abort deploy"; exit 1; }
     # Guard: tab cấp trang phải khai ở lib/tab-trang.ts (sidebar tự sinh mục con) — anh chốt 01/10/2026.
     node scripts/check-tab-trang.mjs || { echo "✗ Tab-trang guard failed — abort deploy"; exit 1; }
+    # Guard: file 'use client' không được kéo DB/fs (next build gãy) — dính 01/10/2026 ở màn hồ sơ /shop.
+    node scripts/check-client-db.mjs || { echo "✗ Client-DB guard failed — abort deploy"; exit 1; }
     # heap-cap: box 4GB swap-tight → next build worker bị OS OOM-kill (SIGKILL). Cap để node GC sớm +
     # fail gracefully thay vì SIGKILL. ~3GB đủ (đã verify build lọt). Bỏ khi nâng RAM (CX33 8GB).
     NODE_OPTIONS="--max-old-space-size=3072" npm run build:web

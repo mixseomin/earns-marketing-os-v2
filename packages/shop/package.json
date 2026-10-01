@@ -13,6 +13,7 @@
     "./video": "./src/video.ts",
     "./phien": "./src/phien.ts",
     "./ho-so": "./src/ho-so.ts",
+    "./ho-so-ghi": "./src/ho-so-ghi.ts",
     "./gia": "./src/gia.ts",
     "./mat-tien": "./src/mat-tien.ts",
     "./thu": "./src/thu.ts",

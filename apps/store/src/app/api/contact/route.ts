@@ -2,7 +2,7 @@
 // (mos2 /shop › Khách phản hồi): khách đã có hồ sơ chưa đóng trong 30 ngày thì nối tin vào đó, không thì mở hồ sơ mới.
 import { NextResponse } from 'next/server';
 import { guiThu } from '@mos2/shop/thu';
-import { moHoSo, themTin } from '@mos2/shop/ho-so';
+import { moHoSo, themTin } from '@mos2/shop/ho-so-ghi';
 import { q } from '@mos2/shop/su-kien';
 import { sql } from 'drizzle-orm';
 import { shopHienTai } from '@/lib/shop';

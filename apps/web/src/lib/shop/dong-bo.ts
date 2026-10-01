@@ -8,7 +8,7 @@ import { sql } from 'drizzle-orm';
 import { cj, linkVanDon, meta, ngayToiDa, woo, wooHet, type WooBt, type WooDon, type WooSp } from './nguon';
 import { co17, dangKy17, tin17 } from './track17';
 import { dsVideo } from '@mos2/shop/video';
-import { moHoSo, themTin } from '@mos2/shop/ho-so';
+import { moHoSo, themTin } from '@mos2/shop/ho-so-ghi';
 import { coStripe, stripe } from '@mos2/shop/stripe';
 import { doiSoat, ghiSoPhuDon, ghiSuKien, guiThu, linkTheoDoi, matTien, sidTuUtm, thuDaGui, type MatTien } from '@mos2/shop';
 

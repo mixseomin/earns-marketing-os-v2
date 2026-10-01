@@ -70,3 +70,16 @@ export const NEN_TANG_QC: Record<string, string> = { meta: 'Meta', tiktok: 'TikT
 /** Thư viện quảng cáo Meta của một Page (mọi QC đang chạy ở Mỹ) — chỉ dựng khi đã có Page ID thật. */
 export const linkThuVienQc = (pageId: string | null) => (pageId && /^\d{5,}$/.test(pageId)
   ? `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=US&view_all_page_id=${pageId}` : null);
+
+/** Tên biến thể → (màu, size) dù NCC viết size trước hay sau: "Dark Gray-36", "M-Black", "2XL-Dark Brown Leopard Print", "Advanced Black-75AB",
+ *  "8814 Black-36", "Black / US 8". Phần nào trông như SIZE (chữ cỡ áo, số đo, cup) là size, phần còn lại là màu. Một bản cho mọi cây NCC/shop. */
+const LA_SIZE = /^(?:\d?X{0,3}[SML]|\d?XL|X{1,4}L|\d{2,3}(?:[A-H]{1,3})?|[A-H]{1,2}\d{2}|(?:US|EU|UK) ?W?\d+(?:\.\d)?(?:\s*\/.*)?|\d+(?:\.\d)?|one ?size|free ?size)$/i;
+export function tachBienThe(ten: string): { mau: string; co: string } {
+  const t = ten.trim();
+  const p = t.includes(' / ') ? t.split(' / ') : t.split('-');
+  if (p.length < 2) return LA_SIZE.test(t) ? { mau: '', co: t } : { mau: t, co: '' };
+  const dau = p[0]!.trim(), cuoi = p[p.length - 1]!.trim();
+  if (LA_SIZE.test(cuoi)) return { mau: p.slice(0, -1).join(t.includes(' / ') ? ' / ' : '-').trim(), co: cuoi };
+  if (LA_SIZE.test(dau)) return { mau: p.slice(1).join(t.includes(' / ') ? ' / ' : '-').trim(), co: dau };
+  return { mau: t, co: '' };
+}

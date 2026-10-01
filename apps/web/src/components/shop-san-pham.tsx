@@ -3,12 +3,11 @@
 // → (khi có nhiều nguồn) từng nguồn theo ưu tiên. Một biến thể có nhiều nguồn (chính + dự phòng), một sản phẩm NCC bán ở nhiều shop (migration 0205);
 // máy chọn nguồn đang dùng (dong-bo apNguon). Bấm biến thể → drawer nguồn (shop-nguon.tsx). URL: ?sp=<lọc> · ?spm=<id,id> sản phẩm đang mở.
 import { useEffect, useMemo, useState } from 'react';
-import { Cay, FilterChips, LaBang, LinkChip, NutCay, Panel, Pill, SearchInput } from '@/components/ui';
-import { tien } from '@/lib/shop/buoc';
+import { Cay, FilterChips, LaBang, LinkChip, NutCay, Panel, Pill, SearchInput, oLa } from '@/components/ui';
+import { tachBienThe, tien } from '@/lib/shop/buoc';
 import type { BienTheDong, NccSpDong, NguonDong, SanPhamDong } from '@/lib/shop/doc';
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
-const tachTen = (ten: string): [string, string] => { const i = ten.indexOf(' / '); return i < 0 ? ['', ten] : [ten.slice(0, i), ten.slice(i + 3)]; };
 /** Mã dài (vid CJ, SKU 19 số) giống nhau ở đầu — hiện ĐUÔI để phân biệt; đủ mã nằm ở title. */
 export const duoi = (x: string | null) => (x ? (x.length > 10 ? `…${x.slice(-8)}` : x) : '—');
 const bien = (b: BienTheDong) => (b.giaBan && b.giaVon !== null ? Math.round(((b.giaBan - b.giaVon) / b.giaBan) * 100) : null);
@@ -38,9 +37,10 @@ function trangThaiBt(b: BienTheDong): { chu: string; mau: string } {
 /** Vai của một nguồn trong biến thể: chính / dự phòng n. */
 export const vaiNguon = (b: BienTheDong, n: NguonDong) => { const i = nguonBat(b).findIndex((x) => x.id === n.id); return !n.bat ? 'đã tắt' : i === 0 ? 'chính' : `dự phòng ${i}`; };
 
-type Cot = { h: string; phai?: boolean; o: (b: BienTheDong) => React.ReactNode };
+/** Cột của bảng lá: `rong` cố định để mọi nhóm màu trong cây thẳng cột (ui/cay LaBang); không ghi = chia phần còn lại. */
+type Cot = { h: string; rong?: number; phai?: boolean; o: (b: BienTheDong) => React.ReactNode };
 const so = (x: React.ReactNode) => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{x}</span>;
-const oTrangThai: Cot = { h: 'Trạng thái', o: (b) => { const t = trangThaiBt(b); return <span style={{ color: t.mau, fontSize: 12 }}>{t.chu}{b.choCoHang ? ` · ${b.choCoHang} chờ` : ''}</span>; } };
+const oTrangThai: Cot = { h: 'Trạng thái', rong: 200, o: (b) => { const t = trangThaiBt(b); return <span style={{ color: t.mau, fontSize: 12 }}>{t.chu}{b.choCoHang ? ` · ${b.choCoHang} chờ` : ''}</span>; } };
 const oNguon = (tenNcc: (k: string) => string): Cot => ({ h: 'Nguồn', o: (b) => {
   const v = vanDe(b), d = dangDung(b), n = nguonBat(b).length;
   if (!d) return <span style={{ color: 'var(--bad)', fontSize: 12 }}>{v ?? 'thiếu nguồn'}</span>;
@@ -49,25 +49,25 @@ const oNguon = (tenNcc: (k: string) => string): Cot => ({ h: 'Nguồn', o: (b) =
     {n > 1 && <span style={phu}> · {n} nguồn</span>}{v && <span style={{ color: 'var(--bad)' }}> · {v}</span>}</span>; } });
 const COT: Record<'mat_tien' | 'lien_ket', (nguong: number, nguongTon: number, tenNcc: (k: string) => string) => Cot[]> = {
   mat_tien: (nguong, _t, tenNcc) => [
-    { h: 'Tuỳ chọn', o: (b) => tachTen(b.ten)[1] || b.ten },
-    { h: 'SKU', o: (b) => <span style={{ ...phu, fontFamily: 'var(--font-mono)' }} title={b.sku ?? ''}>{duoi(b.sku)}</span> },
-    { h: 'Giá bán', phai: true, o: (b) => so(tien(b.giaBan)) },
-    { h: 'Giá vốn', phai: true, o: (b) => so(tien(b.giaVon)) },
-    { h: 'Biên', phai: true, o: (b) => { const x = bien(b); return <span style={{ color: x !== null && x < nguong ? 'var(--warn)' : undefined }}>{x === null ? '—' : `${x}%`}</span>; } },
+    { h: 'Tuỳ chọn', rong: 110, o: (b) => tachBienThe(b.ten).co || b.ten },
+    { h: 'SKU', rong: 150, o: (b) => <span style={{ ...phu, fontFamily: 'var(--font-mono)' }} title={b.sku ?? ''}>{duoi(b.sku)}</span> },
+    { h: 'Giá bán', rong: 90, phai: true, o: (b) => so(tien(b.giaBan)) },
+    { h: 'Giá vốn', rong: 90, phai: true, o: (b) => so(tien(b.giaVon)) },
+    { h: 'Biên', rong: 70, phai: true, o: (b) => { const x = bien(b); return <span style={{ color: x !== null && x < nguong ? 'var(--warn)' : undefined }}>{x === null ? '—' : `${x}%`}</span>; } },
     oNguon(tenNcc), oTrangThai,
-    { h: 'Đã bán', phai: true, o: (b) => b.daBan || '—' },
+    { h: 'Đã bán', rong: 70, phai: true, o: (b) => b.daBan || '—' },
   ],
   lien_ket: (nguong, nguongTon, tenNcc) => [
-    { h: 'Biến thể shop', o: (b) => tachTen(b.ten)[1] || b.ten },
-    { h: '↔ Biến thể NCC đang dùng', o: (b) => { const d = dangDung(b); return d ? <span title={d.maBt}><b style={{ fontWeight: 500 }}>{d.tenBt ?? duoi(d.maBt)}</b></span> : <span style={phu}>—</span>; } },
+    { h: 'Biến thể shop', rong: 100, o: (b) => tachBienThe(b.ten).co || b.ten },
+    { h: '↔ Biến thể NCC đang dùng', rong: 220, o: (b) => { const d = dangDung(b); return d ? <span title={d.maBt}><b style={{ fontWeight: 500 }}>{d.tenBt ?? duoi(d.maBt)}</b></span> : <span style={phu}>—</span>; } },
     oNguon(tenNcc),
-    { h: 'Giá NCC', phai: true, o: (b) => so(tien(b.giaNcc)) },
-    { h: 'Giá vốn sổ', phai: true, o: (b) => so(tien(b.giaVon)) },
-    { h: 'Tồn NCC', phai: true, o: (b) => so(<span style={{ color: b.tonNcc === 0 ? 'var(--bad)' : b.tonNcc != null && b.tonNcc < nguongTon ? 'var(--warn)' : undefined }}
+    { h: 'Giá NCC', rong: 80, phai: true, o: (b) => so(tien(b.giaNcc)) },
+    { h: 'Giá vốn sổ', rong: 90, phai: true, o: (b) => so(tien(b.giaVon)) },
+    { h: 'Tồn NCC', rong: 100, phai: true, o: (b) => so(<span style={{ color: b.tonNcc === 0 ? 'var(--bad)' : b.tonNcc != null && b.tonNcc < nguongTon ? 'var(--warn)' : undefined }}
       title={b.tonKho.length ? b.tonKho.map((k) => `${k.kho}: ${k.so}`).join(' · ') : b.tonLuc ? `đọc lúc ${b.tonLuc}` : 'chưa đọc'}>{b.tonNcc == null ? '—' : b.tonNcc.toLocaleString('en-US')}{b.tonNcc != null && b.tonNcc > 0 && b.tonNcc < nguongTon ? ' · thấp' : ''}</span>) },
     oTrangThai,
-    { h: 'Giá bán', phai: true, o: (b) => so(tien(b.giaBan)) },
-    { h: 'Biên', phai: true, o: (b) => { const x = bien(b); return <span style={{ color: x !== null && x < nguong ? 'var(--warn)' : undefined }}>{x === null ? '—' : `${x}%`}</span>; } },
+    { h: 'Giá bán', rong: 80, phai: true, o: (b) => so(tien(b.giaBan)) },
+    { h: 'Biên', rong: 60, phai: true, o: (b) => { const x = bien(b); return <span style={{ color: x !== null && x < nguong ? 'var(--warn)' : undefined }}>{x === null ? '—' : `${x}%`}</span>; } },
   ],
 };
 
@@ -138,7 +138,7 @@ export function CaySanPham({ bienThe, sanPham, danhMuc, suaSp, suaBt, cheDo = 'm
         const nb = nguongBien(p.cuaHang), nt = nguongTon(p.cuaHang);
         const cot = COT[cheDo](nb, nt, tenNcc);
         const nhom = new Map<string, BienTheDong[]>();
-        for (const b of bts) { const [g] = tachTen(b.ten); nhom.set(g, [...(nhom.get(g) ?? []), b]); }
+        for (const b of bts) { const g = tachBienThe(b.ten).mau; nhom.set(g, [...(nhom.get(g) ?? []), b]); }
         const chinh = p.nguonSp[0];
         const ngung = p.nguonSp.filter((s) => s.chinh > 0 && s.dangBan === false);
         return (
@@ -170,8 +170,8 @@ export function CaySanPham({ bienThe, sanPham, danhMuc, suaSp, suaBt, cheDo = 'm
               const sp2 = dm.get(s.id);
               // màu NCC chưa bán: so theo MÃ biến thể đã nối (tên CJ "2014 Black" ≠ shop "Black")
               const dungMa = new Set(bts.flatMap((b) => b.nguon.filter((x) => x.nccSpId === s.id).map((x) => x.maBt)));
-              const mauNcc = [...new Set((sp2?.bt ?? []).filter((v) => !v.mat).map((v) => mauCj(v.ten ?? v.ma)))];
-              const mauThieu = mauNcc.filter((m) => !(sp2?.bt ?? []).some((v) => mauCj(v.ten ?? v.ma) === m && dungMa.has(v.ma)));
+              const mauNcc = [...new Set((sp2?.bt ?? []).filter((v) => !v.mat).map((v) => tachBienThe(v.ten ?? v.ma).mau))];
+              const mauThieu = mauNcc.filter((m) => !(sp2?.bt ?? []).some((v) => tachBienThe(v.ten ?? v.ma).mau === m && dungMa.has(v.ma)));
               return (
                 <NutCay key={`n${s.id}`}
                   ten={<><span style={{ ...phu, fontSize: 12 }}>nguồn</span><b style={{ fontWeight: 500 }}>{tenNcc(s.ncc)} › {s.ten ?? s.ma}</b>
@@ -187,18 +187,13 @@ export function CaySanPham({ bienThe, sanPham, danhMuc, suaSp, suaBt, cheDo = 'm
                 ten={<><b>{g || 'Biến thể'}</b><span style={phu}>{ds2.length} size</span>
                   {ds2.some((b) => vanDe(b)) && <span style={{ color: 'var(--bad)', fontSize: 12 }}>{ds2.filter((b) => vanDe(b)).length} lỗi</span>}
                   {ds2.some(chayDuPhong) && <span style={{ color: 'var(--accent)', fontSize: 12 }}>{ds2.filter(chayDuPhong).length} chạy dự phòng</span>}</>}>
-                <LaBang>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-                    <thead><tr style={{ ...phu, fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                      {cot.map((c, i) => <th key={i} style={{ textAlign: c.phai ? 'right' : 'left', padding: '5px 10px', fontWeight: 500 }}>{c.h}</th>)}
-                    </tr></thead>
+                <LaBang cot={cot}>
                     {ds2.map((b) => (
                       <tbody key={b.id} onClick={() => suaBt(b)} style={{ cursor: 'pointer', borderTop: '1px solid var(--line)', opacity: b.hetHang ? 0.65 : 1 }} title="Bấm để xem / sửa nguồn của biến thể">
-                        <tr>{cot.map((c, i) => <td key={i} style={{ padding: '5px 10px', textAlign: c.phai ? 'right' : 'left', fontVariantNumeric: 'tabular-nums' }}>{c.o(b)}</td>)}</tr>
+                        <tr>{cot.map((c, i) => <td key={i} style={oLa(c.phai)}>{c.o(b)}</td>)}</tr>
                         {cheDo === 'lien_ket' && b.nguon.length > 1 && b.nguon.map((x) => <DongNguon key={x.id} b={b} n={x} soCot={cot.length} tenNcc={tenNcc} nguongTon={nt} />)}
                       </tbody>
                     ))}
-                  </table>
                 </LaBang>
               </NutCay>
             ))}
@@ -209,6 +204,3 @@ export function CaySanPham({ bienThe, sanPham, danhMuc, suaSp, suaBt, cheDo = 'm
     </Panel>
   </>);
 }
-
-/** Màu bên CJ: tên biến thể dạng "Dark Gray-36" → "Dark Gray". */
-export const mauCj = (ten: string) => ten.replace(/[-_ ]\s*[\w.]+$/, '').trim();

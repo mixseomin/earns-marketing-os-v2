@@ -9,14 +9,18 @@
 // URL: ?ncc=<khoá> · ?nm=<mục> · ?nsp=<id,id> sản phẩm NCC đang mở.
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Cay, FilterChips, LaBang, LinkChip, NutCay, Panel, Pill, SimpleTable, StatsStrip } from '@/components/ui';
-import { KENH_NCC, gio, tien } from '@/lib/shop/buoc';
+import { Cay, FilterChips, LaBang, LinkChip, NutCay, Panel, Pill, SimpleTable, StatsStrip, oLa, type CotLa } from '@/components/ui';
+import { KENH_NCC, gio, tachBienThe, tien } from '@/lib/shop/buoc';
 import type { BienTheDong, CuaHangDong, DonDong, NccSpDong, SanPhamDong } from '@/lib/shop/doc';
 import type { BienDongNcc, HoSoDong, LienHeNcc, NccDong } from '@/lib/shop/ho-so-doc';
 import { shopDocLaiNcc, shopSoDuNcc } from '@/lib/actions/shop';
 import { BangHoSo } from './shop-ho-so';
 import { SuaNcc } from './shop-ncc-sua';
-import { duoi, mauCj, vaiNguon } from './shop-san-pham';
+import { duoi, vaiNguon } from './shop-san-pham';
+
+/** Cột danh mục NCC — độ rộng cố định để mọi nhóm màu thẳng cột (ui/cay LaBang). */
+const COT_DM: CotLa[] = [{ h: 'Biến thể bên NCC' }, { h: 'SKU NCC', rong: 170 }, { h: 'Mã', rong: 100 }, { h: 'Giá NCC', rong: 80, phai: true },
+  { h: 'Gợi ý bán', rong: 80, phai: true }, { h: 'Cân · kích thước', rong: 190 }, { h: 'Tồn theo kho', rong: 130 }, { h: 'Shop đang dùng' }];
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
 /** Kênh liên hệ → link bấm được (mailto / wa.me / skype / t.me); kênh khác hiện chữ. */
@@ -192,7 +196,7 @@ function DanhMucNcc({ sps, dungBt, tenNcc, nguongTon, cuaHang }: { sps: NccSpDon
           const het = ton.filter((x) => x === 0).length, thap = ton.filter((x) => x > 0 && x < nguongTon).length;
           const anh = s.info.chi_tiet?.anh?.[0] ?? s.bt.find((v) => v.info.anh)?.info.anh ?? null;
           const nhom = new Map<string, typeof s.bt>();
-          for (const v of s.bt) { const m = mauCj(v.ten ?? v.ma); nhom.set(m, [...(nhom.get(m) ?? []), v]); }
+          for (const v of s.bt) { const m = tachBienThe(v.ten ?? v.ma).mau || 'Khác'; nhom.set(m, [...(nhom.get(m) ?? []), v]); }
           const ct = s.info.chi_tiet;
           return (
             <NutCay key={s.id} mo={mo.has(s.id)} onDoi={() => setMo((x) => doi(x, s.id))} mo_nhat={!dungO.length}
@@ -226,32 +230,27 @@ function DanhMucNcc({ sps, dungBt, tenNcc, nguongTon, cuaHang }: { sps: NccSpDon
                   <NutCay key={m} mo_nhat={!soDung}
                     dau={vs.find((v) => v.info.anh)?.info.anh ? <img src={vs.find((v) => v.info.anh)!.info.anh!} alt="" width={22} height={22} style={{ objectFit: 'cover', borderRadius: 11 }} /> : undefined}
                     ten={<><b>{m}</b><span style={phu}>{vs.length} biến thể · shop dùng {soDung}</span>{!soDung && <span style={{ color: 'var(--accent)', fontSize: 12 }}>chưa shop nào bán màu này</span>}</>}>
-                    <LaBang>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-                        <thead><tr style={{ ...phu, fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                          {['Biến thể bên NCC', 'SKU NCC', 'Mã', 'Giá NCC', 'Gợi ý bán', 'Cân · kích thước', 'Tồn theo kho', 'Shop đang dùng'].map((h, i) => <th key={h} style={{ textAlign: i === 3 || i === 4 ? 'right' : 'left', padding: '5px 10px', fontWeight: 500 }}>{h}</th>)}
-                        </tr></thead>
+                    <LaBang cot={COT_DM}>
                         <tbody>{vs.map((v) => {
                           const d = dungBt.get(v.id) ?? [];
                           return (
                             <tr key={v.id} style={{ borderTop: '1px solid var(--line)', color: d.length ? undefined : 'var(--fg-3)', textDecoration: v.mat ? 'line-through' : undefined }}>
-                              <td style={{ padding: '5px 10px' }}>{v.ten ?? v.ma}</td>
-                              <td style={{ padding: '5px 10px', fontFamily: 'var(--font-mono)', fontSize: 11.5 }}>{v.sku || '—'}</td>
-                              <td style={{ padding: '5px 10px', fontFamily: 'var(--font-mono)', fontSize: 11.5 }} title={v.ma}>{duoi(v.ma)}</td>
-                              <td style={{ padding: '5px 10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{tien(v.gia)}</td>
-                              <td style={{ padding: '5px 10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', ...phu }}>{tien(v.info.gia_goi_y ?? null)}</td>
-                              <td style={{ padding: '5px 10px', ...phu, fontSize: 11.5 }}>{[v.info.can ? `${v.info.can} g` : null, v.info.kich].filter(Boolean).join(' · ') || '—'}</td>
-                              <td style={{ padding: '5px 10px', fontVariantNumeric: 'tabular-nums', color: v.ton === 0 ? 'var(--bad)' : v.ton != null && v.ton < nguongTon ? 'var(--warn)' : undefined }}
+                              <td style={oLa()} title={v.ten ?? v.ma}>{v.ten ?? v.ma}</td>
+                              <td style={{ ...oLa(), fontFamily: 'var(--font-mono)', fontSize: 11.5 }} title={v.sku ?? ''}>{v.sku || '—'}</td>
+                              <td style={{ ...oLa(), fontFamily: 'var(--font-mono)', fontSize: 11.5 }} title={v.ma}>{duoi(v.ma)}</td>
+                              <td style={oLa(true)}>{tien(v.gia)}</td>
+                              <td style={{ ...oLa(true), ...phu }}>{tien(v.info.gia_goi_y ?? null)}</td>
+                              <td style={{ ...oLa(), ...phu, fontSize: 11.5 }}>{[v.info.can ? `${v.info.can} g` : null, v.info.kich].filter(Boolean).join(' · ') || '—'}</td>
+                              <td style={{ ...oLa(), color: v.ton === 0 ? 'var(--bad)' : v.ton != null && v.ton < nguongTon ? 'var(--warn)' : undefined }}
                                 title={d.length ? undefined : 'Chỉ đọc tồn cho biến thể đang làm nguồn'}>
                                 {v.ton == null ? '—' : v.tonKho.length ? v.tonKho.map((k) => `${k.nuoc || k.kho} ${k.so.toLocaleString('en-US')}`).join(' · ') : v.ton.toLocaleString('en-US')}
                                 {v.ton != null && v.ton < nguongTon && <b>{v.ton === 0 ? ' · hết' : ' · thấp'}</b>}{v.mat && ' · không còn trên NCC'}</td>
-                              <td style={{ padding: '5px 10px' }}>{d.length ? d.map((y) => <div key={y.nguonId}>
+                              <td style={oLa()}>{d.length ? d.map((y) => <div key={y.nguonId} style={{ overflow: 'hidden', textOverflow: 'ellipsis' }} title={`${tenShop(y.b.cuaHang)} · ${y.b.sanPham} · ${y.b.ten} · ${y.vai}`}>
                                 <span style={{ color: y.dangDung ? 'var(--ok)' : undefined }}>{tenShop(y.b.cuaHang)} · {y.b.ten}</span>
                                 <span style={phu}> · {y.vai}{y.dangDung ? ' · đang dùng' : ''}</span></div>) : 'chưa dùng'}</td>
                             </tr>
                           );
                         })}</tbody>
-                      </table>
                     </LaBang>
                   </NutCay>
                 );

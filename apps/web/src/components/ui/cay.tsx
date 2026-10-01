@@ -53,7 +53,24 @@ export function Cay({ children, label }: { children: React.ReactNode; label: str
   return <div role="tree" aria-label={label} style={{ display: 'grid' }}>{children}</div>;
 }
 
-/** Bảng đặt làm LÁ của cây (các cột thẳng hàng giữa nhiều dòng cùng tầng). */
-export function LaBang({ children }: { children: React.ReactNode }) {
-  return <div style={{ padding: '2px 10px 6px 12px', overflowX: 'auto' }}>{children}</div>;
+/** Bảng đặt làm LÁ của cây. Một cây thường có NHIỀU bảng lá (mỗi màu một bảng) — để các cột THẲNG HÀNG giữa các bảng, mọi bảng lá dùng
+ *  cùng một bộ cột có độ rộng cố định (table-layout: fixed + colgroup). Cột không ghi `rong` chia phần còn lại. Ô tràn thì cắt "…", đủ chữ ở title.
+ *  children = các <tbody>/<tr> của bảng. */
+export type CotLa = { h: string; rong?: number; phai?: boolean };
+export function LaBang({ cot, children }: { cot: CotLa[]; children: React.ReactNode }) {
+  const toiThieu = cot.reduce((t, c) => t + (c.rong ?? 160), 0);
+  return (
+    <div style={{ padding: '2px 10px 6px 12px', overflowX: 'auto' }}>
+      <table style={{ width: '100%', minWidth: toiThieu, tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: 12.5 }}>
+        <colgroup>{cot.map((c, i) => <col key={i} style={c.rong ? { width: c.rong } : undefined} />)}</colgroup>
+        <thead><tr style={{ color: 'var(--fg-3)', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+          {cot.map((c, i) => <th key={i} style={{ textAlign: c.phai ? 'right' : 'left', padding: '5px 10px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.h}</th>)}
+        </tr></thead>
+        {children}
+      </table>
+    </div>
+  );
 }
+/** Ô của bảng lá — căn theo cột, một dòng, tràn thì "…". */
+export const oLa = (phai?: boolean): React.CSSProperties => ({ padding: '5px 10px', textAlign: phai ? 'right' : 'left', fontVariantNumeric: 'tabular-nums',
+  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'top' });

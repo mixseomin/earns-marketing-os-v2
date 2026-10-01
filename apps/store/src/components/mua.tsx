@@ -34,9 +34,12 @@ export function TrangMua({ d }: { d: DuLieuMua }) {
   const [dinh, setDinh] = useState(false);
   const { mo: gioMo } = useGio();
   useEffect(() => {
-    const e = khoiMua.current; if (!e) return;
-    const ob = new IntersectionObserver(([x]) => setDinh(!x!.isIntersecting && x!.boundingClientRect.top < 0));
-    ob.observe(e); return () => ob.disconnect();
+    // đọc vị trí khi cuộn (rAF gộp nhịp) — IntersectionObserver không bắn được ở một số trình duyệt nhúng khi cuộn bằng mã
+    let cho = 0;
+    const tinh = () => { cho = 0; const e = khoiMua.current; if (e) setDinh(e.getBoundingClientRect().bottom < 0); };
+    const nghe = () => { if (!cho) cho = requestAnimationFrame(tinh); };
+    tinh(); addEventListener('scroll', nghe, { passive: true }); addEventListener('resize', nghe);
+    return () => { removeEventListener('scroll', nghe); removeEventListener('resize', nghe); if (cho) cancelAnimationFrame(cho); };
   }, []);
   useEffect(() => { document.body.classList.toggle('co-dinh', dinh); return () => document.body.classList.remove('co-dinh'); }, [dinh]);
 

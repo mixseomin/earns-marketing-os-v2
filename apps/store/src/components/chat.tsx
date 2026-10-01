@@ -8,7 +8,7 @@ type Tin = { id: number; ts: string; minh: boolean; noi_dung: string };
 type Ban = { id: number; k: string; email: string | null; tin: Tin[]; cho: 'soan' | 'nguoi' | null };
 const KHOA = 'chat-tv';
 
-export function ChatTuVan({ chao, ten }: { chao: string; ten: string }) {
+export function ChatTuVan({ chao, ten, truc }: { chao: string; ten: string; truc: boolean }) {
   const [mo, setMo] = useState(false);
   const [ban, setBan] = useState<Ban | null>(null);
   const [nd, setNd] = useState('');
@@ -47,7 +47,7 @@ export function ChatTuVan({ chao, ten }: { chao: string; ten: string }) {
       {mo ? '✕' : <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 5h16v11H8l-4 4V5Z" /></svg>}
     </button>
     {mo && <div className="chat-khung" role="dialog" aria-label={`Chat with ${ten}`}>
-      <div className="chat-dau"><b>{ten}</b><span>Usually replies in a few minutes</span></div>
+      <div className="chat-dau"><b>{ten}</b><span>{truc ? '● Our team is online now' : 'Instant answers to most questions · order & return questions answered by our team within a few hours'}</span></div>
       <div className="chat-than">
         <div className="chat-tin ho">{chao}</div>
         {ban?.tin.map((t) => <div key={t.id} className={`chat-tin ${t.minh ? 'toi' : 'ho'}`}>{t.noi_dung}</div>)}

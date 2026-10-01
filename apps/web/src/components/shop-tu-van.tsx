@@ -151,11 +151,15 @@ function TheChat({ c, mo }: { c: ChatDong; mo: () => void }) {
 function DrawerChat({ id, c, onClose, onDoi }: { id: number; c: ChatDong | null; onClose: () => void; onDoi: () => void }) {
   const [tin, setTin] = useState<TinHoSo[] | null>(null);
   const [nd, setNd] = useState(c?.nhap?.noi_dung ?? '');
+  // nháp đang nạp vào ô sửa — nháp mới về (Soạn lại / khách nhắn tiếp) thì thay vào nếu anh chưa sửa; đã sửa thì hỏi trước khi đè
+  const [nhapGoc, setNhapGoc] = useState(c?.nhap?.noi_dung ?? '');
   const [loi, setLoi] = useState<string | null>(null);
   const [dang, batDau] = useTransition();
   const nap = () => shopTinHoSo(id).then(setTin).catch(() => null);
   useEffect(() => { nap(); const t = setInterval(() => document.visibilityState === 'visible' && nap(), 5000); return () => clearInterval(t); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (c?.nhap?.noi_dung && !nd) setNd(c.nhap.noi_dung); }, [c?.nhap?.noi_dung]); // eslint-disable-line react-hooks/exhaustive-deps
+  const nhapMoi = c?.nhap?.noi_dung ?? '';
+  const daSua = nd.trim() !== '' && nd !== nhapGoc;
+  useEffect(() => { if (nhapMoi && nhapMoi !== nhapGoc && !daSua) { setNd(nhapMoi); setNhapGoc(nhapMoi); } }, [nhapMoi]); // eslint-disable-line react-hooks/exhaustive-deps
   const lam = (f: () => Promise<{ ok: boolean; loi?: string }>, xoa = true) => batDau(async () => {
     setLoi(null);
     const r = await f().catch((e) => ({ ok: false, loi: (e as Error).message }));
@@ -189,12 +193,15 @@ function DrawerChat({ id, c, onClose, onDoi }: { id: number; c: ChatDong | null;
         </div>
         {c.nhap?.kiem && !c.nhap.kiem.ok && <div style={{ fontSize: 12.5, color: 'var(--warn)' }}>Kiểm giữ lại vì: {c.nhap.kiem.ly_do.join(' · ')}</div>}
         {c.nhap?.dang_soan && <div style={{ fontSize: 12.5, color: 'var(--accent)' }}>Máy đang soạn trả lời…</div>}
+        {nhapMoi && nhapMoi !== nhapGoc && daSua && <div style={{ fontSize: 12.5, color: 'var(--accent)', display: 'flex', gap: 8, alignItems: 'center' }}>
+          Máy vừa soạn nháp mới (ô dưới đang giữ chữ anh sửa).
+          <button className="btn ghost" onClick={() => { setNd(nhapMoi); setNhapGoc(nhapMoi); }}>Dùng nháp mới</button></div>}
         <TextAreaField id={`chat-nd-${id}`} label={c.nhap?.noi_dung ? 'Nháp máy soạn — sửa nếu cần rồi gửi' : 'Trả lời'} rows={5} value={nd} onChange={(e) => setNd(e.target.value)}
           hint={c.email ? `Gửi vào ô chat; khách đã rời trang thì gửi kèm thư tới ${c.email}.` : 'Gửi vào ô chat (khách chưa để email).'} />
         {loi && <div style={{ color: 'var(--bad)', fontSize: 13 }}>{loi}</div>}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="btn primary" disabled={dang || !nd.trim()} onClick={() => lam(() => shopGuiChat(id, nd))}>{dang ? 'Đang gửi…' : 'Duyệt & gửi'}</button>
-          <button className="btn ghost" disabled={dang} onClick={() => lam(() => shopSoanLai(id), false)}>Soạn lại</button>
+          <button className="btn ghost" disabled={dang} onClick={() => { setNhapGoc(nd); lam(() => shopSoanLai(id), false); }}>{dang ? 'Đang soạn…' : 'Soạn lại'}</button>
           {c.nhap && <button className="btn ghost" disabled={dang} onClick={() => lam(() => shopBoNhap(id))}>Bỏ nháp</button>}
           <span style={{ flex: 1 }} />
           {c.trangThai !== 'xong' && <button className="btn ghost" disabled={dang} onClick={() => lam(() => shopSuaHoSo(id, { trangThai: 'xong' }), false)}>Đóng chat</button>}

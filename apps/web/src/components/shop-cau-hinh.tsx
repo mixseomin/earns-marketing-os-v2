@@ -173,12 +173,14 @@ function ThuKhach({ c }: { c: CuaHangDong }) {
 /* ── Tư vấn (chat) ── */
 function TuVan({ c }: { c: CuaHangDong }) {
   const t = c.matTien.tu_van ?? {};
-  const goc = { bat: t.bat !== false, tu_gui: t.tu_gui !== false, chao: t.chao ?? '', model: t.model ?? '' };
+  const goc = { bat: t.bat !== false, tu_gui: t.tu_gui !== false, khi_truc: !!t.khi_truc, chao: t.chao ?? '', model: t.model ?? '' };
   const [v, setV] = useState(goc);
   const { luu, dang, Bao } = useLuu(c.khoa);
   return (<>
     <div style={{ fontSize: 12.5, ...phu }}>Khách nhắn ở ô chat góc dưới phải → máy soạn từ sản phẩm, chính sách, FAQ, ngày giao và hành trình đơn thật → bước Kiểm → loại an toàn gửi ngay, loại nhạy cảm (tiền, giảm giá, đổi trả, khiếu nại) và tin bị chặn chờ anh duyệt ở tab Tư vấn.</div>
     <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 13 }}><input type="checkbox" checked={v.bat} onChange={(e) => setV({ ...v, bat: e.target.checked })} /> Hiện ô chat trên site</label>
+    <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 13 }} title="Có người trực = có ai đang mở tab Tư vấn trong 2 phút gần nhất. Tắt (mặc định): ô chat luôn hiện, máy trả lời câu thường 24/7, đầu ô chat nói thật đội có online hay không.">
+      <input type="checkbox" checked={v.khi_truc} onChange={(e) => setV({ ...v, khi_truc: e.target.checked })} /> Chỉ hiện ô chat khi có người trực (đang mở tab Tư vấn)</label>
     <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 13 }}><input type="checkbox" checked={v.tu_gui} onChange={(e) => setV({ ...v, tu_gui: e.target.checked })} /> Máy tự gửi trả lời loại an toàn đã qua bước Kiểm (tắt = mọi tin chờ anh duyệt)</label>
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 }}>
       <TextAreaField id={`tv-chao-${c.khoa}`} label="Lời chào trong ô chat" rows={2} value={v.chao} onChange={(e) => setV({ ...v, chao: e.target.value })} hint="Trống = câu mặc định hỏi về size, ship, đơn" />

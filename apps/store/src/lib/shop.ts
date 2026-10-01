@@ -9,7 +9,7 @@ import { dsVideo } from '@mos2/shop/video';
 type Row = Record<string, unknown>;
 const q = async <T = Row>(s: ReturnType<typeof sql>) => { const d = getDb(); if (!d) throw new Error('chưa nối DB'); return (await d.execute(s)) as unknown as T[]; };
 
-export type Shop = ShopTT & { mt: ReturnType<typeof matTien> };
+export type Shop = ShopTT & { mt: ReturnType<typeof matTien>; truc?: boolean };
 
 const nho = new Map<string, { ts: number; shop: Shop | null }>();
 /** Host → cửa hàng (nhớ 30 giây). Máy dev/local: STORE_SHOP=<khoá> ép một shop. */
@@ -19,7 +19,7 @@ export async function shopTheoHost(host: string): Promise<Shop | null> {
   if (c && Date.now() - c.ts < 30_000) return c.shop;
   const ep = process.env.STORE_SHOP;
   const [r] = await q<Shop>(sql`
-    SELECT id, khoa, project_id, ten, domain, nen_tang, mat_tien FROM shop_cua_hang
+    SELECT id, khoa, project_id, ten, domain, nen_tang, mat_tien, truc_luc > now() - interval '2 minutes' AS truc FROM shop_cua_hang
      WHERE trang_thai = 'bat' AND (${h} = ANY(ten_mien) OR (${ep ?? ''} <> '' AND khoa = ${ep ?? ''})) LIMIT 1`);
   const shop = r ? { ...r, mt: matTien(r.mat_tien) } : null;
   nho.set(h, { ts: Date.now(), shop });

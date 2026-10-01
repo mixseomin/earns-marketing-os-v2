@@ -46,7 +46,8 @@ export function Tabs<T extends string>({ items, value, onChange, right, onReorde
     <div data-comp="ui.Tabs"
          style={{ display: 'flex', alignItems: 'stretch', gap: 2, marginBottom: 12,
                   borderBottom: '1px solid var(--line)', overflowX: 'auto',
-                  ...(dinh ? { position: 'sticky', top: 'calc(-1 * var(--main-pad-top, 0px))', zIndex: 30, background: 'var(--bg-0)' } : {}) }}>
+                  // boxShadow phủ dải lề trên của .main (var(--s-4)) để nội dung không lướt qua khe phía trên thanh khi đang dính
+                  ...(dinh ? { position: 'sticky', top: 0, zIndex: 30, background: 'var(--bg-0)', boxShadow: '0 calc(-1 * var(--s-4)) 0 var(--bg-0)' } : {}) }}>
       {items.map((t) => {
         const active = t.key === value;
         return (

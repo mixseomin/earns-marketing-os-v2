@@ -32,7 +32,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
         {children}
       </GioProvider>
       <TheoDoiPhien />
-      {m.tu_van?.bat !== false && <ChatTuVan ten={s.ten} chao={m.tu_van?.chao || `Hi! Questions about sizing, shipping or your order? Ask here and we'll help.`} />}
+      {m.tu_van?.bat !== false && (!m.tu_van?.khi_truc || s.truc) && <ChatTuVan ten={s.ten} truc={!!s.truc} chao={m.tu_van?.chao || `Hi! Questions about sizing, shipping or your order? Ask here and we'll help.`} />}
     </body>
   </html>;
 }

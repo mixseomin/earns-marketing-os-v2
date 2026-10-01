@@ -141,8 +141,8 @@ export async function shopSuaMatTien(khoa: string, v: Record<string, unknown>) {
       const t = (x ?? {}) as { xac_nhan?: boolean; da_gui?: boolean; chang?: string[] };
       sach.thu = { xac_nhan: t.xac_nhan !== false, da_gui: t.da_gui !== false, chang: (t.chang ?? []).filter((c) => (CHANG_BAO_THU as string[]).includes(c)) };
     } else if (k === 'tu_van') {
-      const t = (x ?? {}) as { bat?: boolean; tu_gui?: boolean; chao?: string; model?: string };
-      sach.tu_van = { bat: t.bat !== false, tu_gui: t.tu_gui !== false, chao: chu(t.chao, 300).trim(), model: /^[a-z0-9.\-]{3,40}$/i.test(t.model ?? '') ? t.model : '' };
+      const t = (x ?? {}) as { bat?: boolean; tu_gui?: boolean; chao?: string; model?: string; khi_truc?: boolean };
+      sach.tu_van = { bat: t.bat !== false, tu_gui: t.tu_gui !== false, khi_truc: !!t.khi_truc, chao: chu(t.chao, 300).trim(), model: /^[a-z0-9.\-]{3,40}$/i.test(t.model ?? '') ? t.model : '' };
     } else if (k === 'faq') {
       sach.faq = ((x ?? []) as { hoi?: string; dap?: string }[]).filter((f) => f.hoi?.trim() && f.dap?.trim()).slice(0, 30).map((f) => ({ hoi: chu(f.hoi, 200).trim(), dap: chu(f.dap, 3000).trim() }));
     } else if (k === 'ma_giam') {
@@ -326,7 +326,12 @@ export async function shopTraLoiKhach(id: number, noiDung: string) {
 }
 
 /* ── Tư vấn (chat mặt tiền) ── */
-export async function shopTuVan() { await admin(); return docTuVan(); }
+export async function shopTuVan() {
+  await admin();
+  // bảng đang mở = có người trực → ô chat mặt tiền báo "team online" (ghi tối đa 30 giây/lần)
+  await db().execute(sql`UPDATE shop_cua_hang SET truc_luc = now() WHERE truc_luc IS NULL OR truc_luc < now() - interval '30 seconds'`);
+  return docTuVan();
+}
 /** Anh duyệt (có thể đã sửa) → gửi vào chat (+ thư nếu khách đã rời trang và có email). */
 export async function shopGuiChat(id: number, noiDung: string) {
   await admin();

@@ -17,8 +17,11 @@ export type WooDon = {
   refunds: { id: number; total: string; reason: string }[];
   meta_data: WooMeta[];
 };
-export type WooSp = { id: number; name: string; permalink: string; status: string; type: string; price: string; sku: string; images: { src: string }[]; variations: number[]; meta_data: WooMeta[] };
-export type WooBt = { id: number; sku: string; price: string; attributes: { name: string; option: string }[]; meta_data: WooMeta[] };
+export type WooSp = { id: number; name: string; slug: string; permalink: string; status: string; type: string; price: string; regular_price: string; sale_price: string;
+  sku: string; description: string; menu_order: number; images: { src: string }[]; attributes: { name: string; options: string[]; variation: boolean }[];
+  variations: number[]; stock_status: string; meta_data: WooMeta[] };
+export type WooBt = { id: number; sku: string; price: string; regular_price: string; sale_price: string; stock_status: string; image: { src: string } | null;
+  attributes: { name: string; option: string }[]; meta_data: WooMeta[] };
 
 export const meta = (m: WooMeta[] | undefined, k: string) => {
   const v = m?.find((x) => x.key === k)?.value;

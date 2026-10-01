@@ -1,0 +1,33 @@
+{
+  "name": "@mos2/shop",
+  "version": "0.0.1",
+  "description": "SHOP dùng chung — mặt tiền apps/store + máy vận hành apps/web: giá, theo dõi đơn, thư khách, cấu hình mặt tiền",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./khach": "./src/khach.ts",
+    "./track17": "./src/track17.ts",
+    "./gia": "./src/gia.ts",
+    "./mat-tien": "./src/mat-tien.ts",
+    "./thu": "./src/thu.ts",
+    "./sid": "./src/sid.ts",
+    "./stripe": "./src/stripe.ts",
+    "./so-phu": "./src/so-phu.ts",
+    "./su-kien": "./src/su-kien.ts",
+    "./thanh-toan": "./src/thanh-toan.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mos2/db": "*",
+    "drizzle-orm": "^0.36.0",
+    "nodemailer": "^6.9.16"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/nodemailer": "^6.4.17"
+  }
+}

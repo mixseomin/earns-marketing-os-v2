@@ -61,7 +61,7 @@ export async function shopSuaBienThe(id: number, v: { maNcc: string | null; giaV
   if (!r[0]) return { ok: false, loi: 'không có biến thể' };
   const ch = await cuaHangTheoKhoa(r[0].khoa);
   try {
-    if (ch) await woo(ch, 'PUT', r[0].don_le ? `products/${r[0].sp}` : `products/${r[0].sp}/variations/${r[0].ma_ngoai}`,
+    if (ch?.nen_tang === 'woo') await woo(ch, 'PUT', r[0].don_le ? `products/${r[0].sp}` : `products/${r[0].sp}/variations/${r[0].ma_ngoai}`,
       { meta_data: [{ key: '_cj_vid', value: v.maNcc ?? '' }, { key: '_cj_gia_von', value: v.giaVon ?? '' }] });
   } catch (e) { revalidatePath('/shop'); return { ok: true, loi: `đã lưu sổ, ghi ngược Woo lỗi: ${(e as Error).message}` }; }
   revalidatePath('/shop');

@@ -124,6 +124,26 @@ else
   fi
 fi
 
+# 5b. Mặt tiền shop (apps/store, cổng 3830, mos2-store.service) — khách thật đang mua trên đó: CHỈ đổi bản dựng + khởi động lại
+#     khi phần của nó đổi (apps/store, packages/shop, packages/db, deps), không giật theo mọi lượt đẩy của MOS2.
+STORE_CHANGED=false
+if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^(apps/store/|packages/shop/|packages/db/src/|package-lock\.json)"; then
+  STORE_CHANGED=true
+fi
+if [ -f apps/store/.next.new/BUILD_ID ] && { [ "$STORE_CHANGED" = "true" ] || [ "$DEPS_CHANGED" = "true" ] || [ ! -f apps/store/.next/BUILD_ID ]; }; then
+  rm -rf apps/store/.next.old
+  [ -e apps/store/.next ] && mv apps/store/.next apps/store/.next.old
+  mv apps/store/.next.new apps/store/.next
+  rm -rf apps/store/.next.old
+  if systemctl cat mos2-store >/dev/null 2>&1; then
+    systemctl restart mos2-store; sleep 1
+    systemctl is-active mos2-store && echo "✓ mos2-store active" || { echo "✗ mos2-store failed"; systemctl status mos2-store --no-pager | tail -20; exit 1; }
+  fi
+else
+  rm -rf apps/store/.next.new
+  echo "↺ Store unchanged — keep running build"
+fi
+
 # 6. Restart systemd unit
 systemctl restart mos2-web
 sleep 1

@@ -1,0 +1,27 @@
+{
+  "name": "@mos2/store",
+  "version": "0.0.1",
+  "description": "Mặt tiền shop độc lập — MỘT bản dựng phục vụ mọi cửa hàng theo tên miền (khuôn clone Crossian), đọc sổ shop_* của MOS2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 3830",
+    "build": "next build",
+    "start": "next start -p ${PORT:-3830}",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mos2/db": "*",
+    "@mos2/shop": "*",
+    "drizzle-orm": "^0.36.0",
+    "next": "^15.0.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}

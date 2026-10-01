@@ -1,13 +1,15 @@
 // SHOP — máy chạy: kéo đơn/sản phẩm từ Woo về sổ, đặt đơn sang nhà cung cấp (CJ), kéo vận đơn, báo khách, ghi sổ PHỦ.
 // Gọi từ: webhook Woo (/api/shop/woo/<khoa>, một đơn), nhịp /api/shop/cron (mỗi 10 phút, mọi cửa hàng), nút trong /shop.
 // Thay luồng CJ của mu-plugin mellowstep-cj.php (từ 01/10/2026 plugin tắt các bước 1/3/4 bằng MS_QUA_MOS2).
+// Hai loại mặt tiền (shop_cua_hang.nen_tang): 'woo' — đơn/sản phẩm kéo từ WordPress, báo khách qua ghi chú Woo; 'mos' — mặt tiền
+// apps/store, đơn ghi thẳng vào sổ lúc trả tiền (@mos2/shop/thanh-toan), báo khách bằng thư của chính máy này.
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { cj, linkVanDon, meta, ngayToiDa, woo, wooHet, type WooBt, type WooDon, type WooSp } from './nguon';
-import { sidPrefix } from '@/lib/phu-shared';
 import { co17, dangKy17, tin17 } from './track17';
+import { doiSoat, ghiSoPhuDon, ghiSuKien, guiThu, linkTheoDoi, matTien, sidTuUtm, thuDaGui, type MatTien } from '@mos2/shop';
 
-export type CuaHang = { id: number; khoa: string; project_id: string; ten: string; domain: string; ncc: string;
+export type CuaHang = { id: number; khoa: string; project_id: string; ten: string; domain: string; ncc: string; nen_tang: string; mat_tien: MatTien;
   cau_hinh: { ngay_ship_max?: number; tu_sang_ncc?: boolean; tu_tra_ncc?: boolean; quoc_gia_kho?: string }; trang_thai: string; dong_bo_luc: string | null };
 
 type Row = Record<string, unknown>;
@@ -15,51 +17,55 @@ const db = () => { const d = getDb(); if (!d) throw new Error('chưa nối DB');
 const q = async <T = Row>(s: ReturnType<typeof sql>) => (await db().execute(s)) as unknown as T[];
 
 export async function dsCuaHang(chiBat = true): Promise<CuaHang[]> {
-  return q<CuaHang>(sql`SELECT id, khoa, project_id, ten, domain, ncc, cau_hinh, trang_thai, dong_bo_luc::text FROM shop_cua_hang
+  return q<CuaHang>(sql`SELECT id, khoa, project_id, ten, domain, ncc, nen_tang, mat_tien, cau_hinh, trang_thai, dong_bo_luc::text FROM shop_cua_hang
                         ${chiBat ? sql`WHERE trang_thai = 'bat'` : sql``} ORDER BY id`);
 }
 export async function cuaHangTheoKhoa(khoa: string) { return (await dsCuaHang(false)).find((c) => c.khoa === khoa) ?? null; }
 
-export async function ghiSuKien(donId: number, nguon: string, noiDung: string, loi = false) {
-  await q(sql`INSERT INTO shop_su_kien (don_id, nguon, noi_dung, loi) VALUES (${donId}, ${nguon}, ${noiDung}, ${loi})`);
-}
+export { ghiSuKien, linkTheoDoi };
 
 /* ── SẢN PHẨM ─────────────────────────────────────────────────────────────── */
-/** Kéo sản phẩm + biến thể. Mã NCC / giá vốn: Woo (meta _cj_*) chỉ GIEO khi sổ còn trống — sửa ở /shop thì sổ là gốc
- *  (và được ghi ngược về Woo, xem suaBienThe). */
+/** Kéo sản phẩm + biến thể (cửa hàng woo). Mã NCC / giá vốn: Woo (meta _cj_*) chỉ GIEO khi sổ còn trống — sửa ở /shop thì sổ là gốc
+ *  (và được ghi ngược về Woo, xem suaBienThe). Nội dung mặt tiền (slug, ảnh, mô tả, tuỳ chọn, giá gạch) Woo là gốc — tới lúc chuyển sang
+ *  mặt tiền mos (nen_tang='mos') thì hàm này thôi chạy và sổ thành gốc. tieu_de (H1 bán hàng) không có ở Woo nên không đụng. */
 export async function dongBoSanPham(ch: CuaHang) {
   const sps = await wooHet<WooSp>(ch, 'products?status=any');
+  const giaGoc = (thuong: string, ban: string) => (thuong && Number(thuong) > Number(ban || thuong) ? Number(thuong) : null);
   let soBt = 0;
   for (const p of sps) {
+    const tuyChon = (p.attributes ?? []).filter((a) => a.variation || p.type !== 'variable').map((a) => ({ ten: a.name, gia_tri: a.options }));
     const sp = (await q<{ id: number }>(sql`
-      INSERT INTO shop_san_pham (cua_hang_id, ma_ngoai, ten, anh, link, trang_thai, ncc, ma_ncc, updated_at)
-      VALUES (${ch.id}, ${String(p.id)}, ${p.name}, ${p.images?.[0]?.src ?? null}, ${p.permalink}, ${p.status}, ${ch.ncc}, ${meta(p.meta_data, '_cj_pid')}, now())
+      INSERT INTO shop_san_pham (cua_hang_id, ma_ngoai, ten, anh, link, trang_thai, ncc, ma_ncc, slug, mo_ta, anh_ds, tuy_chon, gia_goc, hien, thu_tu, updated_at)
+      VALUES (${ch.id}, ${String(p.id)}, ${p.name}, ${p.images?.[0]?.src ?? null}, ${p.permalink}, ${p.status}, ${ch.ncc}, ${meta(p.meta_data, '_cj_pid')},
+              ${p.slug}, ${p.description || null}, ${JSON.stringify((p.images ?? []).map((i) => i.src))}::jsonb, ${JSON.stringify(tuyChon)}::jsonb,
+              ${giaGoc(p.regular_price, p.sale_price)}, ${p.status === 'publish'}, ${p.menu_order ?? 0}, now())
       ON CONFLICT (cua_hang_id, ma_ngoai) DO UPDATE SET ten = EXCLUDED.ten, anh = EXCLUDED.anh, link = EXCLUDED.link,
-        trang_thai = EXCLUDED.trang_thai, ma_ncc = COALESCE(shop_san_pham.ma_ncc, EXCLUDED.ma_ncc), updated_at = now()
+        trang_thai = EXCLUDED.trang_thai, ma_ncc = COALESCE(shop_san_pham.ma_ncc, EXCLUDED.ma_ncc), slug = EXCLUDED.slug, mo_ta = EXCLUDED.mo_ta,
+        anh_ds = EXCLUDED.anh_ds, tuy_chon = EXCLUDED.tuy_chon, gia_goc = EXCLUDED.gia_goc, hien = EXCLUDED.hien, thu_tu = EXCLUDED.thu_tu, updated_at = now()
       RETURNING id`))[0]!;
-    const bts: { id: number; sku: string; ten: string; gia: string; meta: WooBt['meta_data'] }[] = p.type === 'variable'
-      ? (await wooHet<WooBt>(ch, `products/${p.id}/variations`)).map((v) => ({ id: v.id, sku: v.sku, ten: v.attributes.map((a) => a.option).join(' / ') || `#${v.id}`, gia: v.price, meta: v.meta_data }))
-      : [{ id: p.id, sku: p.sku, ten: p.name, gia: p.price, meta: p.meta_data }];
+    const bts = p.type === 'variable'
+      ? (await wooHet<WooBt>(ch, `products/${p.id}/variations`)).map((v) => ({ id: v.id, sku: v.sku, ten: v.attributes.map((a) => a.option).join(' / ') || `#${v.id}`,
+          gia: v.price, goc: giaGoc(v.regular_price, v.sale_price), anh: v.image?.src ?? null, het: v.stock_status === 'outofstock',
+          tc: Object.fromEntries(v.attributes.map((a) => [a.name, a.option])), meta: v.meta_data }))
+      : [{ id: p.id, sku: p.sku, ten: p.name, gia: p.price, goc: giaGoc(p.regular_price, p.sale_price), anh: null, het: p.stock_status === 'outofstock', tc: {}, meta: p.meta_data }];
     for (const v of bts) {
       soBt++;
       const gv = meta(v.meta, '_cj_gia_von');
       await q(sql`
-        INSERT INTO shop_bien_the (san_pham_id, ma_ngoai, sku, ten, gia_ban, ma_ncc, gia_von, updated_at)
-        VALUES (${sp.id}, ${String(v.id)}, ${v.sku || null}, ${v.ten}, ${v.gia ? Number(v.gia) : null}, ${meta(v.meta, '_cj_vid')}, ${gv ? Number(gv) : null}, now())
+        INSERT INTO shop_bien_the (san_pham_id, ma_ngoai, sku, ten, gia_ban, ma_ncc, gia_von, tuy_chon, anh, gia_goc, het_hang, updated_at)
+        VALUES (${sp.id}, ${String(v.id)}, ${v.sku || null}, ${v.ten}, ${v.gia ? Number(v.gia) : null}, ${meta(v.meta, '_cj_vid')}, ${gv ? Number(gv) : null},
+                ${JSON.stringify(v.tc)}::jsonb, ${v.anh}, ${v.goc}, ${v.het}, now())
         ON CONFLICT (san_pham_id, ma_ngoai) DO UPDATE SET sku = EXCLUDED.sku, ten = EXCLUDED.ten, gia_ban = EXCLUDED.gia_ban,
-          ma_ncc = COALESCE(shop_bien_the.ma_ncc, EXCLUDED.ma_ncc), gia_von = COALESCE(shop_bien_the.gia_von, EXCLUDED.gia_von), updated_at = now()`);
+          ma_ncc = COALESCE(shop_bien_the.ma_ncc, EXCLUDED.ma_ncc), gia_von = COALESCE(shop_bien_the.gia_von, EXCLUDED.gia_von),
+          tuy_chon = EXCLUDED.tuy_chon, anh = EXCLUDED.anh, gia_goc = EXCLUDED.gia_goc, het_hang = EXCLUDED.het_hang, updated_at = now()`);
     }
   }
   return { sanPham: sps.length, bienThe: soBt };
 }
 
 /* ── ĐƠN ──────────────────────────────────────────────────────────────────── */
-function sidCua(o: WooDon) {
-  const sach = (v: string | null) => (v ?? '').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
-  const src = sach(meta(o.meta_data, '_wc_order_attribution_utm_source')), camp = sach(meta(o.meta_data, '_wc_order_attribution_utm_campaign'));
-  if (src || camp) return `${src || 'utm'}_${camp || 'none'}`;
-  return sach(meta(o.meta_data, '_wc_order_attribution_source_type'));
-}
+const sidCua = (o: WooDon) => sidTuUtm(meta(o.meta_data, '_wc_order_attribution_utm_source'), meta(o.meta_data, '_wc_order_attribution_utm_campaign'),
+  meta(o.meta_data, '_wc_order_attribution_source_type'));
 const gmt = (s: string | null | undefined) => (s ? `${s}Z` : null);
 
 /** Ghi một đơn Woo vào sổ (tạo hoặc cập nhật) + nhật ký đổi trạng thái + sổ PHỦ. Trả id đơn trong sổ. */
@@ -101,25 +107,13 @@ export async function ghiDon(ch: CuaHang, o: WooDon): Promise<number> {
   return d.id;
 }
 
-/** Sổ PHỦ (report2 MOS2): đơn đã trả → phu_su_kien loai=don (cùng khoá nguon_du_lieu/ma_don với plugin cũ, upsert không nhân đôi);
- *  mỗi lần hoàn → loai=hoan. Giá vốn + ship NCC lấy từ sổ shop. */
+/** Sổ PHỦ (report2 MOS2) cho đơn Woo — cùng khoá nguon_du_lieu/ma_don với plugin cũ (upsert không nhân đôi). */
 async function ghiSoPhu(ch: CuaHang, donId: number, o: WooDon) {
   if (!o.date_paid_gmt) return;
-  const nguon = `woo:${ch.khoa}`, sid = sidCua(o) || null;
-  const x = (await q<{ gv: string | null; ship: string | null; ma: string | null; mon: string | null }>(sql`
-    SELECT (SELECT SUM(b.gia_von * m.sl) FROM shop_don_mon m JOIN shop_bien_the b ON b.id = m.bien_the_id WHERE m.don_id = ${donId})::text AS gv,
-           (SELECT phi_ship::text FROM shop_don_ncc WHERE don_id = ${donId} AND trang_thai NOT IN ('CANCELLED', 'LOI') LIMIT 1) AS ship,
-           (SELECT ma_ncc FROM shop_don_ncc WHERE don_id = ${donId} AND trang_thai NOT IN ('CANCELLED', 'LOI') LIMIT 1) AS ma,
-           (SELECT ten FROM shop_don_mon WHERE don_id = ${donId} ORDER BY id LIMIT 1) AS mon`))[0]!;
-  const phi = Number(meta(o.meta_data, '_stripe_fee')) || Math.round((Number(o.total) * 0.029 + 0.3) * 100) / 100;
-  const raw = { gia_von: Math.round(Number(x.gv ?? 0) * 100) / 100, ship: Number(x.ship ?? 0), phi, so_mon: o.line_items.reduce((t, i) => t + i.quantity, 0), cj: x.ma ?? '' };
-  const huy = ['cancelled', 'failed'].includes(o.status);   // đơn huỷ sau khi trả (không qua hoàn) → không tính doanh thu
-  const ev = [{ ts: gmt(o.date_paid_gmt)!, loai: 'don', amount: huy ? 0 : Number(o.total), ma_don: String(o.id), raw: huy ? { ...raw, huy: true } : raw }]
-    .concat(o.refunds.map((r) => ({ ts: new Date().toISOString(), loai: 'hoan', amount: Math.abs(Number(r.total)), ma_don: `hoan-${r.id}`, raw: { don: o.id, ly_do: r.reason } as never })));
-  for (const e of ev) await q(sql`
-    INSERT INTO phu_su_kien (project_id, ts, loai, sid, sid_prefix, platform_slug, amount, ma_don, nguon_du_lieu, raw)
-    VALUES (${ch.project_id}, ${e.ts}::timestamptz, ${e.loai}, ${sid}, ${sidPrefix(sid ?? undefined)}, ${x.mon}, ${e.amount}, ${e.ma_don}, ${nguon}, ${JSON.stringify(e.raw)}::jsonb)
-    ON CONFLICT (nguon_du_lieu, ma_don) DO UPDATE SET amount = EXCLUDED.amount, raw = EXCLUDED.raw`);
+  await ghiSoPhuDon(donId, { projectId: ch.project_id, nguon: `woo:${ch.khoa}`, maDon: String(o.id), traLuc: gmt(o.date_paid_gmt)!, tong: Number(o.total),
+    huy: ['cancelled', 'failed'].includes(o.status),   // đơn huỷ sau khi trả (không qua hoàn) → không tính doanh thu
+    sid: sidCua(o) || null, phi: Number(meta(o.meta_data, '_stripe_fee')) || null, soMon: o.line_items.reduce((t, i) => t + i.quantity, 0),
+    hoan: o.refunds.map((r) => ({ ma: String(r.id), tien: Math.abs(Number(r.total)), lyDo: r.reason })) });
 }
 
 /** Kéo đơn đổi từ lần trước (lùi 1 giờ cho chắc) — lần đầu lấy 60 ngày. */
@@ -185,7 +179,7 @@ async function sangNccLoi(ch: CuaHang, donId: number, nguoi: string, giuCho: (id
                 phi_ship = ${t.logisticPrice}, tien_hang = ${r.data.productAmount ?? null}, updated_at = now() WHERE id = ${nccId}`);
   await ghiSuKien(donId, nguoi === 'mos2' ? 'ncc' : 'nguoi', `Đã đặt CJ ${r.data.orderId} · ${t.logisticName} ${t.logisticAging} ngày · ship $${t.logisticPrice}${nguoi !== 'mos2' ? ` (${nguoi} bấm)` : ''}`);
   // Woo giữ dấu để cột "CJ" cũ trong admin WP vẫn đọc được.
-  await woo(ch, 'PUT', `orders/${d.ma_ngoai}`, { meta_data: [{ key: '_cj_order_id', value: r.data.orderId }, { key: '_cj_trang_thai', value: 'CREATED' },
+  if (ch.nen_tang === 'woo') await woo(ch, 'PUT', `orders/${d.ma_ngoai}`, { meta_data: [{ key: '_cj_order_id', value: r.data.orderId }, { key: '_cj_trang_thai', value: 'CREATED' },
     { key: '_cj_tuyen', value: `${t.logisticName} (${t.logisticAging} ngày)` }, { key: '_cj_ship', value: t.logisticPrice }] }).catch(() => null);
   if (ch.cau_hinh.tu_tra_ncc) await traNcc(donId, 'mos2');
   return { ok: true };
@@ -210,12 +204,12 @@ export async function soDuCj(): Promise<number | null> {
 }
 
 type NccSong = { id: number; don_id: number; ma_ncc: string; trang_thai: string; da_tra: boolean; ma_van_don: string | null; bao_khach: boolean;
-  so_don: string; ma_ngoai: string; cua_hang_id: number; khoa_don: string | null };
+  so_don: string; ma_ngoai: string; cua_hang_id: number; khoa_don: string | null; khach: { ten?: string; email?: string } | null };
 
 /** Theo dõi mọi đơn NCC chưa xong: trạng thái CJ, mã vận đơn (→ báo khách qua ghi chú Woo + completed), hành trình vận đơn. */
 export async function theoDoiNcc(ch: CuaHang) {
   const ds = await q<NccSong>(sql`
-    SELECT n.id, n.don_id, n.ma_ncc, n.trang_thai, n.da_tra, n.ma_van_don, n.bao_khach, d.so_don, d.ma_ngoai, d.cua_hang_id, d.khoa_don
+    SELECT n.id, n.don_id, n.ma_ncc, n.trang_thai, n.da_tra, n.ma_van_don, n.bao_khach, d.so_don, d.ma_ngoai, d.cua_hang_id, d.khoa_don, d.khach
       FROM shop_don_ncc n JOIN shop_don d ON d.id = n.don_id
      WHERE d.cua_hang_id = ${ch.id} AND n.ma_ncc IS NOT NULL AND n.trang_thai NOT IN ('CANCELLED', 'LOI', 'DELIVERED', 'TRASH')
        AND n.created_at > now() - interval '90 days'`);
@@ -237,7 +231,19 @@ export async function theoDoiNcc(ch: CuaHang) {
       await q(sql`UPDATE shop_don_ncc SET ma_van_don = ${ma}, hang_van_chuyen = ${d.trackingProvider ?? d.logisticName ?? null}, gui_luc = now(), updated_at = now() WHERE id = ${n.id}`);
       await ghiSuKien(n.don_id, 'ncc', `Có mã vận đơn ${ma}`);
     }
-    if (ma && !n.bao_khach) {
+    if (ma && !n.bao_khach && ch.nen_tang === 'mos') {
+      // MỘT email duy nhất (anh chốt 01/10/2026), link về trang theo dõi của chính shop — không sang 17track.net
+      const link = n.khoa_don ? linkTheoDoi(ch, n.so_don, n.khoa_don) : linkVanDon(ma);
+      try {
+        const m = matTien(ch.mat_tien), shopThu = { khoa: ch.khoa, ten: ch.ten, domain: ch.domain, email: m.email ?? `support@${ch.domain}` };
+        const thu = thuDaGui(shopThu, n.so_don, (n.khach?.ten ?? '').split(' ')[0] || 'there', link);
+        if (n.khach?.email) await guiThu(shopThu, n.khach.email, thu.tieuDe, thu.html, thu.chu);
+        await q(sql`UPDATE shop_don SET trang_thai_shop = 'completed', updated_at = now() WHERE id = ${n.don_id}`);
+        await q(sql`UPDATE shop_don_ncc SET bao_khach = true WHERE id = ${n.id}`);
+        await ghiSuKien(n.don_id, 'shop', `Đã gửi thư "đã gửi hàng" tới ${n.khach?.email || '(không có email)'} · đơn → completed`);
+      } catch (e) { await ghiSuKien(n.don_id, 'shop', `Báo khách lỗi: ${(e as Error).message}`, true); }
+    }
+    if (ma && !n.bao_khach && ch.nen_tang === 'woo') {
       // MỘT email duy nhất (anh chốt 01/10/2026), link về trang theo dõi của chính shop (mellowstep.com/track) — không sang 17track.net
       const link = n.khoa_don ? linkTheoDoi(ch, n.so_don, n.khoa_don) : linkVanDon(ma);
       const note = `Good news, your order is on its way!\n\nTrack your order: ${link}\n\nTracking can take 2-3 days to show movement. Questions? Just reply to this email.`;
@@ -287,18 +293,16 @@ async function keoVanDon(nccId: number, donId: number, ma: string) {
   }
 }
 
-/** Link theo dõi gửi khách: trang /track của chính shop, mang chìa order_key (không phải nhập gì). */
-export const linkTheoDoi = (ch: { domain: string }, soDon: string, khoaDon: string) =>
-  `https://${ch.domain}/track-order/?order=${encodeURIComponent(soDon)}&key=${encodeURIComponent(khoaDon)}`;
-
 /* ── MỘT NHỊP ─────────────────────────────────────────────────────────────── */
 /** Một lượt cho một cửa hàng: (sản phẩm nếu yêu cầu) → đơn đổi → tự sang NCC đơn đủ điều kiện → theo dõi NCC/vận đơn. */
 export async function nhip(ch: CuaHang, opt: { sanPham?: boolean } = {}) {
   const kq: Record<string, unknown> = { cua_hang: ch.khoa };
   try {
-    if (opt.sanPham) kq.san_pham = await dongBoSanPham(ch);
     const batDau = new Date().toISOString();
-    kq.don = (await dongBoDon(ch)).length;
+    if (ch.nen_tang === 'woo') {
+      if (opt.sanPham) kq.san_pham = await dongBoSanPham(ch);
+      kq.don = (await dongBoDon(ch)).length;
+    } else kq.doi_soat = await doiSoat(ch);   // mặt tiền mos: đơn đã trả mà chưa vào sổ (khách đóng tab + webhook trượt)
     if (ch.cau_hinh.tu_sang_ncc) {
       const cho = await q<{ id: number }>(sql`
         SELECT d.id FROM shop_don d WHERE d.cua_hang_id = ${ch.id} AND d.trang_thai_shop = 'processing'

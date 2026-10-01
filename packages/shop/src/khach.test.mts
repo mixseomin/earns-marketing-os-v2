@@ -1,4 +1,4 @@
-// node_modules/.bin/tsx apps/web/src/lib/shop/khach.test.mts — luật đổi tên chặng ngoài (anh chốt 01/10/2026)
+// node_modules/.bin/tsx packages/shop/src/khach.test.mts — luật đổi tên chặng ngoài (anh chốt 01/10/2026)
 import assert from 'node:assert';
 import { moCuaKhach } from './khach';
 

@@ -85,11 +85,8 @@ export function mangCuaLander(url: string | null | undefined): { mang: string; o
   return null;
 }
 
-export function sidPrefix(sid: string | null | undefined): string {
-  const x = String(sid ?? '').trim();
-  if (!x) return '';
-  return x.split('_').slice(0, 2).join('_');
-}
+/** Tiền tố sid (2 khúc đầu) — luật nằm ở @mos2/shop/sid (mặt tiền shop cũng ghi sổ PHỦ). */
+export { sidPrefix } from '@mos2/shop/sid';
 
 /** Phán xét một camp từ tiêu chí + số cộng dồn. Một chỗ tính, trang và cron cùng gọi.
  *  cho      = chưa đủ click để kết luận, còn tiền + còn hạn

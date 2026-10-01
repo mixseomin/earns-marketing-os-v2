@@ -55,7 +55,7 @@ export function TrangMua({ d }: { d: DuLieuMua }) {
   const mua = () => {
     if (thieu) { setNhac(`Please select a ${thieu.ten.toLowerCase()}`); return; }
     if (!bt || bt.het_hang) return;
-    them({ b: bt.id, sl, sp: sp.id, slug: sp.slug, ten: sp.ten, tc: sp.tuy_chon.map((t) => `${t.ten}: ${bt.tuy_chon[t.ten]}`).join(' · ') || bt.ten,
+    them({ b: bt.id, sl, sp: sp.id, slug: sp.slug, ten: sp.ten, tc: sp.tuy_chon.map((t) => `${t.ten}: ${bt.tuy_chon[t.ten]}`).join('\n') || bt.ten,
       anh: bt.anh ?? dsAnh[0] ?? null, gia: bt.gia, gia_goc: bt.gia_goc });
   };
 

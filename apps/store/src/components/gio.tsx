@@ -65,7 +65,7 @@ function NganGio() {
           {m.anh ? <img src={m.anh} alt="" /> : <div />}
           <div>
             <div className="tren"><div className="ten-m">{m.ten}</div><button className="bo" aria-label={`Remove ${m.ten}`} onClick={() => bo(m.b)}>✕</button></div>
-            <div className="tc">{m.tc.split(' · ').map((d) => { const [k, ...v] = d.split(': '); return <div key={d}>{v.length ? <>{k}: <b>{v.join(': ')}</b></> : d}</div>; })}</div>
+            <div className="tc">{m.tc.split('\n').map((d) => { const [k, ...v] = d.split(': '); return <div key={d}>{v.length ? <>{k}: <b>{v.join(': ')}</b></> : d}</div>; })}</div>
             <div className="duoi-m"><SoLuong sl={m.sl} doi={(n) => doiSl(m.b, n)} />
               <span className="gia-m">{m.gia_goc ? <s>{usd(m.gia_goc * m.sl)}</s> : null}<b>{usd(m.gia * m.sl)}</b></span></div>
           </div>

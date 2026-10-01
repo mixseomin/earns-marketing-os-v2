@@ -15,7 +15,7 @@ import { envShop, tenEnv } from '@mos2/shop/mat-tien';
 import { stripe } from '@mos2/shop/stripe';
 import { existsSync } from 'node:fs';
 import { docShop } from '@/lib/shop/doc';
-import { KENH_NCC } from '@/lib/shop/buoc';
+import { KENH_BAN, KENH_NCC, KHOP_DOI_THU, NEN_TANG_QC } from '@/lib/shop/buoc';
 import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
@@ -302,15 +302,6 @@ export async function shopLinkXemTruoc(khoa: string) {
     sanPham: khung.khoa === ch.khoa && sp ? `https://${ch.domain}/${sp.slug}` : null, theoDoi };
 }
 
-/** Ghi lại danh sách "Tham khảo" của một sản phẩm (trang ngoài bán cùng/gần mẫu) — thay cả mảng, drawer gửi bản đầy đủ. */
-export async function shopSuaThamKhao(id: number, ds: { url: string | null; nguon: string; ghi_chu: string; khop: string; luc: string }[]) {
-  await admin();
-  const sach = ds.slice(0, 50).map((x) => ({ url: x.url && /^https?:\/\//.test(x.url) ? x.url.slice(0, 500) : null, nguon: String(x.nguon ?? '').slice(0, 40),
-    ghi_chu: String(x.ghi_chu ?? '').slice(0, 500), khop: ['chua_xac_nhan', 'dung_mau', 'khac'].includes(x.khop) ? x.khop : 'chua_xac_nhan', luc: x.luc || new Date().toISOString() }));
-  await db().execute(sql`UPDATE shop_san_pham SET tham_khao = ${JSON.stringify(sach)}::jsonb WHERE id = ${id}`);
-  revalidatePath('/shop');
-  return { ok: true };
-}
 
 
 /** Khách trực tiếp — phiên trong cửa sổ (màn tự gọi lại mỗi 5 giây khi tab đang mở). */
@@ -466,3 +457,63 @@ export async function shopDocLaiNcc(khoa: string) {
   revalidatePath('/shop');
   return { ok: true, doc, nguon, ap };
 }
+
+/* ── Đối thủ (migration 0206): đối thủ → sản phẩm của họ (nối sản phẩm mình) → quảng cáo. Không xoá — thôi theo dõi / bỏ qua bằng cờ. ── */
+const urlOk = (x: string | null | undefined) => (x && /^https?:\/\/\S+$/.test(x.trim()) ? x.trim().slice(0, 800) : null);
+const soOk = (x: number | null | undefined) => (x == null || !Number.isFinite(x) ? null : Math.round(x * 100) / 100);
+
+/** Thêm (id rỗng) / sửa một đối thủ. */
+export async function shopSuaDoiThu(id: number | null, v: { ten: string; website?: string; kenhBan: string; fbPageUrl?: string; fbPageId?: string; tiktok?: string; nguonTim?: string; ghiChu?: string; theoDoi?: boolean }) {
+  await admin();
+  if (!v.ten.trim()) return { ok: false, loi: 'thiếu tên đối thủ' };
+  const kenh = v.kenhBan in KENH_BAN ? v.kenhBan : 'khac';
+  const pid = (v.fbPageId ?? '').replace(/\D/g, '') || null;
+  const r = (await db().execute(id
+    ? sql`UPDATE shop_doi_thu SET ten = ${v.ten.trim().slice(0, 120)}, website = ${urlOk(v.website)}, kenh_ban = ${kenh}, fb_page_url = ${urlOk(v.fbPageUrl)}, fb_page_id = ${pid},
+        tiktok = ${urlOk(v.tiktok)}, nguon_tim = ${v.nguonTim?.trim().slice(0, 300) || null}, ghi_chu = ${v.ghiChu?.trim().slice(0, 2000) || null},
+        theo_doi = COALESCE(${v.theoDoi ?? null}, theo_doi), cap_nhat = now() WHERE id = ${id} RETURNING id`
+    : sql`INSERT INTO shop_doi_thu (ten, website, kenh_ban, fb_page_url, fb_page_id, tiktok, nguon_tim, ghi_chu)
+        VALUES (${v.ten.trim().slice(0, 120)}, ${urlOk(v.website)}, ${kenh}, ${urlOk(v.fbPageUrl)}, ${pid}, ${urlOk(v.tiktok)}, ${v.nguonTim?.trim().slice(0, 300) || null}, ${v.ghiChu?.trim().slice(0, 2000) || null})
+        ON CONFLICT DO NOTHING RETURNING id`)) as unknown as { id: number }[];
+  if (!r[0]) return { ok: false, loi: id ? 'không có đối thủ này' : 'đã có đối thủ cùng tên + kênh' };
+  revalidatePath('/shop');
+  return { ok: true, id: r[0].id };
+}
+
+/** Thêm / sửa một sản phẩm của đối thủ (trang đích + giá + nối sản phẩm mình). */
+export async function shopSuaSpDoiThu(id: number | null, v: { doiThuId: number; sanPhamId: number | null; ten?: string; url: string; gia?: number | null; giaGoc?: number | null; khop?: string; ghiChu?: string }) {
+  await admin();
+  const url = urlOk(v.url);
+  if (!url) return { ok: false, loi: 'thiếu link trang sản phẩm (https://…)' };
+  const khop = v.khop && v.khop in KHOP_DOI_THU ? v.khop : 'chua_xac_nhan';
+  const r = (await db().execute(id
+    ? sql`UPDATE shop_doi_thu_sp SET san_pham_id = ${v.sanPhamId}, ten = ${v.ten?.trim().slice(0, 300) || null}, url = ${url}, gia = ${soOk(v.gia)}, gia_goc = ${soOk(v.giaGoc)},
+        khop = ${khop}, ghi_chu = ${v.ghiChu?.trim().slice(0, 1000) || null}, luc = now() WHERE id = ${id} RETURNING id`
+    : sql`INSERT INTO shop_doi_thu_sp (doi_thu_id, san_pham_id, ten, url, gia, gia_goc, khop, ghi_chu, luc)
+        VALUES (${v.doiThuId}, ${v.sanPhamId}, ${v.ten?.trim().slice(0, 300) || null}, ${url}, ${soOk(v.gia)}, ${soOk(v.giaGoc)}, ${khop}, ${v.ghiChu?.trim().slice(0, 1000) || null}, now())
+        ON CONFLICT (doi_thu_id, url) DO NOTHING RETURNING id`)) as unknown as { id: number }[];
+  if (!r[0]) return { ok: false, loi: id ? 'không có dòng này' : 'link này đã có trong đối thủ' };
+  await db().execute(sql`UPDATE shop_doi_thu SET cap_nhat = now() WHERE id = ${v.doiThuId}`);
+  revalidatePath('/shop');
+  return { ok: true };
+}
+
+/** Thêm / sửa một quảng cáo của đối thủ. */
+export async function shopSuaQcDoiThu(id: number | null, v: { doiThuId: number; spId: number | null; nenTang: string; link: string; hook?: string; landing?: string; batDau?: string | null; dangChay?: boolean | null; ghiChu?: string }) {
+  await admin();
+  const link = urlOk(v.link);
+  if (!link) return { ok: false, loi: 'thiếu link quảng cáo (https://…)' };
+  const nt = v.nenTang in NEN_TANG_QC ? v.nenTang : 'khac';
+  const ngay = v.batDau && /^\d{4}-\d{2}-\d{2}$/.test(v.batDau) ? v.batDau : null;
+  const r = (await db().execute(id
+    ? sql`UPDATE shop_doi_thu_qc SET doi_thu_sp_id = ${v.spId}, nen_tang = ${nt}, link = ${link}, hook = ${v.hook?.trim().slice(0, 1000) || null}, landing = ${urlOk(v.landing)},
+        bat_dau = ${ngay}::date, dang_chay = ${v.dangChay ?? null}, ghi_chu = ${v.ghiChu?.trim().slice(0, 1000) || null}, luc = now() WHERE id = ${id} RETURNING id`
+    : sql`INSERT INTO shop_doi_thu_qc (doi_thu_id, doi_thu_sp_id, nen_tang, link, hook, landing, bat_dau, dang_chay, ghi_chu, luc)
+        VALUES (${v.doiThuId}, ${v.spId}, ${nt}, ${link}, ${v.hook?.trim().slice(0, 1000) || null}, ${urlOk(v.landing)}, ${ngay}::date, ${v.dangChay ?? null}, ${v.ghiChu?.trim().slice(0, 1000) || null}, now())
+        ON CONFLICT (doi_thu_id, link) DO NOTHING RETURNING id`)) as unknown as { id: number }[];
+  if (!r[0]) return { ok: false, loi: id ? 'không có dòng này' : 'quảng cáo này đã có' };
+  await db().execute(sql`UPDATE shop_doi_thu SET cap_nhat = now() WHERE id = ${v.doiThuId}`);
+  revalidatePath('/shop');
+  return { ok: true };
+}
+

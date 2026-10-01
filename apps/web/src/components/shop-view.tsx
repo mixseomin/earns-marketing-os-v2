@@ -21,11 +21,15 @@ import type { BienDongNcc, HoSoDong, NccDong } from '@/lib/shop/ho-so-doc';
 import { DrawerNguon } from './shop-nguon';
 import { CHANG, type HanhTrinh, type KhoaChang } from '@mos2/shop/hanh-trinh';
 import { BUOC, LINK_DS_CJ, NHAN_BUOC, gio, isoCua, linkVanDon, soNgayTu, tien, type Buoc } from '@/lib/shop/buoc';
-import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, NccSpDong, SanPhamDong, ThamKhao } from '@/lib/shop/doc';
+import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, NccSpDong, SanPhamDong } from '@/lib/shop/doc';
+import type { DoiThuDong } from '@/lib/shop/doi-thu-doc';
+import { BangDoiThu } from './shop-doi-thu';
 import { shopMoHoSo, shopSoDuNcc, shopTienNcc } from '@/lib/actions/shop';
-import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaSanPham, shopSuaThamKhao, shopTraNcc } from '@/lib/actions/shop';
+import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaSanPham, shopTraNcc } from '@/lib/actions/shop';
 
-type Tab = 'don' | 'tu_van' | 'truc_tiep' | 'van_chuyen' | 'khach_ph' | 'ncc' | 'san_pham' | 'danh_gia' | 'cua_hang';
+type Tab = 'don' | 'tu_van' | 'truc_tiep' | 'khach_ph' | 'ncc' | 'san_pham' | 'doi_thu' | 'danh_gia' | 'cua_hang';
+/** Chặng vận chuyển: lọc tới đây thì bảng đơn đổi sang cột vận đơn (tab Vận chuyển cũ gộp vào Đơn hàng 02/10/2026). */
+const BUOC_VC = new Set<string>(['ncc_xu_ly', 'dang_giao', 'tre', 'da_giao']);
 // Màu bước = tín hiệu: amber chờ người, đỏ lỗi/trễ, xanh đã giao; bước đang chạy bình thường để trung tính.
 const MAU: Record<string, string> = { muted: 'var(--fg-3)', warn: 'var(--warn)', bad: 'var(--bad)', ok: 'var(--ok)' };
 const MAU_BUOC = Object.fromEntries(BUOC.map((b) => [b.key, MAU[b.mau]])) as Record<Buoc, string>;
@@ -39,10 +43,12 @@ function BuocPill({ b }: { b: Buoc }) {
 }
 const VanDon = ({ ma }: { ma: string }) => <LinkChip href={linkVanDon(ma)} tone="neutral" size="xs" onClick={(e) => e.stopPropagation()}>{ma} ↗</LinkChip>;
 
-export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, danhMuc, bienDong }: { don: DonDong[]; bienThe: BienTheDong[]; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; danhGia: DanhGiaDong[]; hoSo: HoSoDong[]; ncc: NccDong[]; danhMuc: NccSpDong[]; bienDong: BienDongNcc[] }) {
+export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, danhMuc, bienDong, doiThu }: { don: DonDong[]; bienThe: BienTheDong[]; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; danhGia: DanhGiaDong[]; hoSo: HoSoDong[]; ncc: NccDong[]; danhMuc: NccSpDong[]; bienDong: BienDongNcc[]; doiThu: DoiThuDong[] }) {
   const sp = useSearchParams();
-  const [tab, setTab] = useState<Tab>((sp.get('tab') as Tab) || 'don');
-  const [buoc, setBuoc] = useState<string>(sp.get('b') || 'all');
+  // link cũ ?tab=van_chuyen → Đơn hàng lọc "Đang giao"
+  const tabCu = sp.get('tab') === 'van_chuyen';
+  const [tab, setTab] = useState<Tab>(tabCu ? 'don' : (sp.get('tab') as Tab) || 'don');
+  const [buoc, setBuoc] = useState<string>(sp.get('b') || (tabCu ? 'dang_giao' : 'all'));
   const [ch, setCh] = useState<string>(sp.get('ch') || 'all');
   const [ht, setHt] = useState<string>(sp.get('ht') || '');
   const modal = useModalParam();
@@ -60,7 +66,6 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, d
   const theoCh = useMemo(() => don.filter((d) => ch === 'all' || d.cuaHang === ch), [don, ch]);
   const dem = useMemo(() => { const c: Partial<Record<string, number>> = { all: theoCh.length }; for (const d of theoCh) c[d.buoc] = (c[d.buoc] ?? 0) + 1; return c; }, [theoCh]);
   const dsDon = useMemo(() => theoCh.filter((d) => (buoc === 'all' || d.buoc === buoc) && (!ht || (ht === 'ngoai' ? !d.ht : d.ht?.chang[d.ht.hienTai]?.key === ht))), [theoCh, buoc, ht]);
-  const dsVanChuyen = useMemo(() => theoCh.filter((d) => d.ncc?.maVanDon || d.buoc === 'ncc_xu_ly' || d.buoc === 'cho_tra'), [theoCh]);
   const bt = useMemo(() => bienThe.filter((b) => ch === 'all' || b.cuaHang === ch), [bienThe, ch]);
   const sps = useMemo(() => sanPham.filter((p) => ch === 'all' || p.cuaHang === ch), [sanPham, ch]);
   const dgs = useMemo(() => danhGia.filter((g) => ch === 'all' || g.cuaHang === ch), [danhGia, ch]);
@@ -108,6 +113,7 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, d
     { key: 'so', header: 'Đơn', align: 'left', cell: (d) => <b>#{d.soDon}</b> },
     { key: 'buoc', header: 'Bước', align: 'left', cell: (d) => <BuocPill b={d.buoc} /> },
     { key: 'ht', header: 'Hành trình', align: 'left', cell: (d) => <ThanhHanhTrinh ht={d.ht} />, sortValue: (d) => d.ht?.pct ?? -1 },
+    { key: 'khach', header: 'Khách', align: 'left', cell: (d) => <>{d.khach || '—'} <span style={phu}>{d.bang ? `${d.bang}, ` : ''}{d.nuoc}</span></> },
     { key: 'tuyen', header: 'Tuyến', align: 'left', cell: (d) => (d.ncc?.tuyen ? `${d.ncc.tuyen} · ${d.ncc.soNgay} ngày` : '—') },
     { key: 'vd', header: 'Mã vận đơn', align: 'left', cell: (d) => (d.ncc?.maVanDon ? <VanDon ma={d.ncc.maVanDon} /> : '—') },
     { key: 'hang', header: 'Hãng', align: 'left', cell: (d) => d.ncc?.hang ?? '—' },
@@ -137,12 +143,12 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, d
 
 
       <Tabs<Tab> value={tab} onChange={setTab} hrefFor={(k) => hrefTab('/shop', k)}
-        items={tabCua<Tab>('/shop', { don: canXuLy || undefined, van_chuyen: dem.tre || undefined, san_pham: thieuMa || undefined, danh_gia: choDuyet || undefined,
+        items={tabCua<Tab>('/shop', { don: canXuLy || undefined, san_pham: thieuMa || undefined, danh_gia: choDuyet || undefined,
           tu_van: choChat || undefined, khach_ph: canLam('khach') || undefined, ncc: canLam('ncc') || undefined })} />
 
       <div style={{ marginTop: 10 }}>
-        {/* số đơn chỉ thuộc màn đơn/vận chuyển — tab khác không phải gánh nửa màn số không liên quan */}
-        {(tab === 'don' || tab === 'van_chuyen') && <div style={{ marginBottom: 10 }}>
+        {/* số đơn chỉ thuộc màn đơn — tab khác không phải gánh nửa màn số không liên quan */}
+        {tab === 'don' && <div style={{ marginBottom: 10 }}>
         <StatsStrip minColWidth={150} cards={[
           { key: 'don', label: 'Đơn 30 ngày', value: kpi.don },
           { key: 'dt', label: 'Doanh thu 30 ngày', value: tien(kpi.dt), sub: 'đã trừ hoàn' },
@@ -161,8 +167,10 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, d
               options={[{ value: 'all', label: 'Tất cả' }, ...BUOC.map((b) => ({ value: b.key, label: b.nhan, title: b.chuThich }))]} />
           </div>
           {dsDon.length ? (
-            <Panel pad={8}><DataTable rows={dsDon} columns={cotDon} getRowKey={(d) => String(d.id)} persistKey="shop-don" minWidth={980}
-              groups={[{ key: 'them', label: 'Nguồn + cửa hàng', defaultOn: false }]}
+            <Panel pad={8}>{BUOC_VC.has(buoc) && <div style={{ fontSize: 12, ...phu, margin: '0 0 6px 4px' }}>Chặng vận chuyển — bảng hiện tuyến, mã vận đơn, hãng, số ngày.</div>}
+              <DataTable key={BUOC_VC.has(buoc) ? 'vc' : 'don'} rows={dsDon} columns={BUOC_VC.has(buoc) ? cotVc : cotDon} getRowKey={(d) => String(d.id)}
+              persistKey={BUOC_VC.has(buoc) ? 'shop-vc' : 'shop-don'} minWidth={980}
+              groups={BUOC_VC.has(buoc) ? undefined : [{ key: 'them', label: 'Nguồn + cửa hàng', defaultOn: false }]}
               searchText={(d) => `${d.soDon} ${d.khach} ${d.email} ${d.tenMon} ${d.ncc?.maNcc ?? ''} ${d.ncc?.maVanDon ?? ''}`} searchPlaceholder="Tìm số đơn, khách, email, mã CJ, vận đơn…"
               onRowClick={(d) => modal.open('don', d.id)} /></Panel>
           ) : (
@@ -172,10 +180,6 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, d
           )}
         </>)}
 
-        {tab === 'van_chuyen' && (dsVanChuyen.length
-          ? <Panel pad={8}><DataTable rows={dsVanChuyen} columns={cotVc} getRowKey={(d) => String(d.id)} persistKey="shop-vc" minWidth={900} onRowClick={(d) => modal.open('don', d.id)} /></Panel>
-          : <EmptyState icon="🚚" compact title="Chưa có đơn nào ở NCC hay trên đường" />)}
-
         {tab === 'tu_van' && <BangTuVan ch={ch} />}
         {tab === 'truc_tiep' && <KhachTrucTiep ch={ch} />}
         {tab === 'khach_ph' && <BangHoSo key={tab} ben="khach" ch={ch} ds={hoSo.filter((h) => h.loai !== 'tu_van')} cuaHang={cuaHang} />}
@@ -183,6 +187,7 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, d
           lienKet={(k) => <BangSanPham bienThe={bt} danhMuc={danhMuc} soNcc={ncc} cuaHang={cuaHang} cheDo="lien_ket"
             sanPham={sps.filter((p) => !p.nguonSp.length || p.nguonSp.some((s) => s.ncc === k))} />} />}
         {tab === 'san_pham' && <BangSanPham bienThe={bt} sanPham={sps} danhMuc={danhMuc} soNcc={ncc} cuaHang={cuaHang} />}
+        {tab === 'doi_thu' && <BangDoiThu ds={doiThu} sanPham={sanPham} bienThe={bienThe} ch={ch} />}
         {tab === 'danh_gia' && <BangDanhGia ds={dgs} />}
         {tab === 'cua_hang' && <div style={{ display: 'grid', gap: 12 }}>{cuaHang.filter((c) => ch === 'all' || c.khoa === ch).map((c) => (
           <TheCuaHang key={c.id} c={c} moCaiDat={(muc) => { if (muc) { const u = new URLSearchParams(window.location.search); u.set('cs', muc); window.history.replaceState(window.history.state, '', `${window.location.pathname}?${u.toString()}`); } modal.open('cai-dat', c.id); }} />))}</div>}
@@ -404,7 +409,10 @@ function SuaSanPham({ p, onClose }: { p: SanPhamDong; onClose: () => void }) {
             giá từ {tien(p.giaTu)} · {p.soBienThe} biến thể{p.slug && <LinkChip href={`https://${p.domain}/${p.slug}`} tone="neutral" size="xs">trang shop ↗</LinkChip>}
           </div>
         </div>
-        <ThamKhaoSp p={p} />
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13 }}>
+          <span>{p.soDoiThu ? `${p.soDoiThu} đối thủ đang bán cùng/gần mẫu` : <span style={{ color: 'var(--warn)' }}>Chưa ghi đối thủ nào</span>}</span>
+          <LinkChip href="/shop?tab=doi_thu" tone="neutral" size="xs">tab Đối thủ ↗</LinkChip>
+        </div>
         <TextAreaField id="shop-sp-td" label="Tiêu đề bán (H1 trang sản phẩm)" hint="Trống = dùng tên sản phẩm. Chỉ ghi lợi ích/ưu đãi có thật." rows={3} value={td} onChange={(e) => setTd(e.target.value)} />
         <TextField id="shop-sp-goc" label="Giá gạch (USD)" hint="Giá trước giảm CÓ THẬT (đã bán ở mức đó). Trống = không gạch giá." inputMode="decimal" value={goc} onChange={(e) => setGoc(e.target.value)} />
         <TextAreaField id="shop-sp-video" label="Video trong mô tả" rows={2} value={vid} onChange={(e) => setVid(e.target.value)}
@@ -422,46 +430,6 @@ function SuaSanPham({ p, onClose }: { p: SanPhamDong; onClose: () => void }) {
         </div>
       </div>
     </Drawer>
-  );
-}
-
-const NHAN_KHOP: Record<ThamKhao['khop'], { nhan: string; mau: string }> = {
-  dung_mau: { nhan: 'đúng mẫu', mau: 'var(--ok)' }, chua_xac_nhan: { nhan: 'chưa so ảnh', mau: 'var(--warn)' }, khac: { nhan: 'mẫu khác', mau: 'var(--fg-3)' },
-};
-const nguonCua = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, '').split('.')[0]!; } catch { return 'web'; } };
-
-/** Trang ngoài bán cùng/gần mẫu: đọc review thật, so giá, lấy ý cho mô tả/FAQ/size. Đứng ĐẦU drawer để mở ra là thấy (anh chốt 01/10). */
-function ThamKhaoSp({ p }: { p: SanPhamDong }) {
-  const [ds, setDs] = useState<ThamKhao[]>(p.thamKhao);
-  const [url, setUrl] = useState('');
-  const [ghi, setGhi] = useState('');
-  const [dangChay, batDau] = useTransition();
-  const luu = (moi: ThamKhao[]) => { setDs(moi); batDau(async () => { await shopSuaThamKhao(p.id, moi); }); };
-  return (
-    <Panel title={`Tham khảo · ${ds.filter((t) => t.url).length} trang`} subtitle="Trang ngoài bán cùng/gần mẫu — đọc review thật, so giá, lấy ý mô tả/FAQ/size">
-      <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>
-        {!ds.length && <span style={phu}>Chưa có trang nào.</span>}
-        {ds.map((t, i) => (
-          <div key={i} style={{ display: 'grid', gap: 3, paddingBottom: 6, borderBottom: '1px solid var(--line)' }}>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-              {t.url ? <LinkChip href={t.url} tone="neutral" size="xs">{t.nguon || nguonCua(t.url)} ↗</LinkChip> : <b>{t.nguon}</b>}
-              <Pill color={NHAN_KHOP[t.khop].mau} label={NHAN_KHOP[t.khop].nhan} />
-              <span style={{ flex: 1 }} />
-              <SelectField size="sm" style={{ width: 'auto' }} id={`tk-khop-${i}`} value={t.khop} disabled={dangChay} aria-label="Mức khớp" onChange={(e) => luu(ds.map((x, j) => (j === i ? { ...x, khop: e.target.value as ThamKhao['khop'] } : x)))}>{Object.entries(NHAN_KHOP).map(([k, v]) => <option key={k} value={k}>{v.nhan}</option>)}</SelectField>
-              <button className="btn ghost" disabled={dangChay} onClick={() => luu(ds.filter((_, j) => j !== i))}>Bỏ</button>
-            </div>
-            {t.ghi_chu && <span style={phu}>{t.ghi_chu}</span>}
-          </div>
-        ))}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 6 }}>
-          <TextField id={`tk-url-${p.id}`} size="sm" placeholder="https://… (Amazon, Walmart, AliExpress…)" value={url} onChange={(e) => setUrl(e.target.value.trim())} />
-          <TextField id={`tk-ghi-${p.id}`} size="sm" placeholder="Ghi chú (vd 4.3★ · 494 review, form nhỏ)" value={ghi} onChange={(e) => setGhi(e.target.value)} />
-          <button className="btn" disabled={!/^https?:\/\//.test(url) || dangChay} onClick={() => {
-            luu([...ds, { url, nguon: nguonCua(url), ghi_chu: ghi.trim(), khop: 'chua_xac_nhan', luc: new Date().toISOString() }]); setUrl(''); setGhi('');
-          }}>Thêm</button>
-        </div>
-      </div>
-    </Panel>
   );
 }
 

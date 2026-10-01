@@ -162,6 +162,7 @@ export function CaySanPham({ bienThe, sanPham, danhMuc, suaSp, suaBt, cheDo = 'm
             phai={<>
               {chinh && cheDo === 'mat_tien' && <LinkChip href={`/shop?tab=ncc&ncc=${chinh.ncc}&nm=san_pham&nsp=${chinh.id}`} tone="neutral" size="xs" title={chinh.ten ?? chinh.ma}>
                 nguồn: {tenNcc(chinh.ncc)} {duoi(chinh.ma)}{p.nguonSp.length > 1 ? ` +${p.nguonSp.length - 1}` : ''} ↗</LinkChip>}
+              {cheDo === 'mat_tien' && <LinkChip href={`/shop?tab=doi_thu&ch=${p.cuaHang}`} tone="neutral" size="xs" title="Ai đang bán cùng/gần mẫu: trang đích, giá, quảng cáo">{p.soDoiThu ? `${p.soDoiThu} đối thủ` : 'chưa có đối thủ'} ↗</LinkChip>}
               {p.slug && <LinkChip href={`https://${p.domain}/${p.slug}`} tone="neutral" size="xs">xem ↗</LinkChip>}
               <button className="btn ghost" onClick={() => suaSp(p)}>Sửa mặt tiền</button>
             </>}>

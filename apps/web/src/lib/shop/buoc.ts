@@ -60,3 +60,12 @@ export const KENH_NCC: Record<string, { ten: string; chu: string }> = {
   xuong: { ten: 'Xưởng riêng', chu: 'Làm việc thẳng với xưởng.' },
   khac: { ten: 'Khác', chu: '' },
 };
+
+/** ĐỐI THỦ (migration 0206) — nhãn dùng chung server action (kiểm khoá) + màn. */
+export const KENH_BAN: Record<string, string> = { dtc: 'Web riêng (DTC)', amazon: 'Amazon', walmart: 'Walmart', aliexpress: 'AliExpress', temu: 'Temu', tiktok_shop: 'TikTok Shop', khac: 'Khác' };
+export const KHOP_DOI_THU: Record<string, [string, 'ok' | 'warn' | 'muted']> = {
+  dung_mau: ['cùng mẫu (đã so ảnh)', 'ok'], gan: ['cùng loại', 'warn'], chua_xac_nhan: ['chưa so ảnh', 'muted'], khac: ['khác mẫu', 'muted'] };
+export const NEN_TANG_QC: Record<string, string> = { meta: 'Meta', tiktok: 'TikTok', google: 'Google', khac: 'Khác' };
+/** Thư viện quảng cáo Meta của một Page (mọi QC đang chạy ở Mỹ) — chỉ dựng khi đã có Page ID thật. */
+export const linkThuVienQc = (pageId: string | null) => (pageId && /^\d{5,}$/.test(pageId)
+  ? `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=US&view_all_page_id=${pageId}` : null);

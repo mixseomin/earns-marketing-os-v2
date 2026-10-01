@@ -38,10 +38,9 @@ export type NccBtDong = { id: number; ma: string; ten: string | null; sku: strin
   info: { anh?: string | null; can?: number | null; kich?: string | null; gia_goi_y?: number | null } };
 export type SanPhamDong = { id: number; cuaHang: string; domain: string; slug: string | null; ten: string; tieuDe: string | null; anh: string | null;
   giaGoc: number | null; giaTu: number | null; hien: boolean; soBienThe: number; daBan: number; danhGia: number;
-  thamKhao: ThamKhao[]; video: string[]; choCoHang: number;
+  /** số đối thủ đang bán cùng/gần mẫu (shop_doi_thu_sp) */ soDoiThu: number; video: string[]; choCoHang: number;
   /** các SẢN PHẨM NCC đang làm nguồn cho biến thể của sản phẩm này (suy từ nguồn bật), sản phẩm của nguồn chính đứng trước */ nguonSp: NguonSp[] };
 export type NguonSp = { id: number; ncc: string; ma: string; ten: string | null; dangBan: boolean | null; /** số biến thể shop lấy nó làm nguồn chính */ chinh: number; /** … làm dự phòng */ duPhong: number };
-export type ThamKhao = { url: string | null; nguon: string; ghi_chu: string; khop: 'chua_xac_nhan' | 'dung_mau' | 'khac'; luc: string };
 export type DanhGiaDong = { id: number; cuaHang: string; sanPham: string; ten: string; email: string | null; sao: number; tieuDe: string | null; noiDung: string;
   daMua: boolean; trangThai: string; taoLuc: string };
 export type CuaHangDong = { id: number; khoa: string; ten: string; domain: string; nenTang: string; ncc: string; trangThai: string; tenMien: string[]; matTien: MatTien;
@@ -77,7 +76,7 @@ export async function docShop() {
              (SELECT COUNT(*) FROM shop_bien_the b JOIN shop_san_pham p ON p.id = b.san_pham_id WHERE p.cua_hang_id = c.id AND b.ma_ncc IS NULL) AS thieu_ma
         FROM shop_cua_hang c ORDER BY c.id`),
     q(sql`
-      SELECT p.id, c.khoa, c.domain, p.slug, p.ten, p.tieu_de, p.anh, p.gia_goc, p.hien, p.tham_khao, p.video,
+      SELECT p.id, c.khoa, c.domain, p.slug, p.ten, p.tieu_de, p.anh, p.gia_goc, p.hien, p.video, (SELECT COUNT(DISTINCT x.doi_thu_id) FROM shop_doi_thu_sp x WHERE x.san_pham_id = p.id) AS so_dt,
              (SELECT COUNT(*) FROM shop_bao_co_hang k WHERE k.san_pham_id = p.id AND k.da_bao IS NULL) AS cho_co_hang,
              (SELECT MIN(b.gia_ban) FROM shop_bien_the b WHERE b.san_pham_id = p.id) AS gia_tu,
              (SELECT COUNT(*) FROM shop_bien_the b WHERE b.san_pham_id = p.id) AS so_bt,
@@ -159,7 +158,7 @@ export async function docShop() {
     tenMien: (r.ten_mien as string[]) ?? [], matTien: (r.mat_tien ?? {}) as MatTien }));
   const sanPham: SanPhamDong[] = sps.map((r) => ({ id: Number(r.id), cuaHang: String(r.khoa), domain: String(r.domain), slug: (r.slug as string) ?? null, ten: String(r.ten),
     tieuDe: (r.tieu_de as string) ?? null, anh: (r.anh as string) ?? null, giaGoc: so(r.gia_goc), giaTu: so(r.gia_tu), hien: !!r.hien, soBienThe: Number(r.so_bt),
-    daBan: Number(r.da_ban), danhGia: Number(r.so_dg), thamKhao: (r.tham_khao as ThamKhao[]) ?? [], video: (r.video as string[]) ?? [], choCoHang: Number(r.cho_co_hang),
+    daBan: Number(r.da_ban), danhGia: Number(r.so_dg), soDoiThu: Number(r.so_dt ?? 0), video: (r.video as string[]) ?? [], choCoHang: Number(r.cho_co_hang),
     nguonSp: [...(nguonSpTheoSp.get(Number(r.id))?.values() ?? [])].sort((a, b) => b.chinh - a.chinh) }));
   const danhGia: DanhGiaDong[] = dgs.map((r) => ({ id: Number(r.id), cuaHang: String(r.khoa), sanPham: String(r.san_pham), ten: String(r.ten), email: (r.email as string) ?? null,
     sao: Number(r.sao), tieuDe: (r.tieu_de as string) ?? null, noiDung: String(r.noi_dung), daMua: !!r.da_mua, trangThai: String(r.trang_thai), taoLuc: String(r.tao_luc) }));

@@ -47,7 +47,7 @@ for (const d of j.doi_thu ?? []) {
     // QC trỏ tới trang đích nào trong sản phẩm của họ (khớp theo url / landing)
     const sp = q.sp_url || q.landing;
     const spId = sp ? `(SELECT id FROM shop_doi_thu_sp WHERE doi_thu_id = ${dt} AND url = ${url(sp)})` : 'NULL';
-    out.push(`INSERT INTO shop_doi_thu_qc (doi_thu_id, doi_thu_sp_id, nen_tang, link, hook, landing, bat_dau, dang_chay, ghi_chu, tieu_de, cta, dinh_dang, goc, uu_dai, media, so_phien_ban, luc) VALUES (${dt}, ${spId}, ${t(NT.has(q.nen_tang) ? q.nen_tang : 'khac')}, ${url(q.link)}, ${t(q.hook)}, ${url(q.landing)}, ${ngay(q.bat_dau)}, ${bool(q.dang_chay)}, ${t(q.ghi_chu)}, ${t(q.tieu_de)}, ${t(q.cta)}, ${t(DD.has(q.dinh_dang) ? q.dinh_dang : null)}, ${t(q.goc)}, ${t(q.uu_dai)}, ${url(q.media)}, ${Number.isInteger(q.so_phien_ban) ? q.so_phien_ban : 'NULL'}, now()) ON CONFLICT (doi_thu_id, link) DO NOTHING;`);
+    out.push(`INSERT INTO shop_doi_thu_qc (doi_thu_id, doi_thu_sp_id, nen_tang, link, hook, noi_dung, mo_ta, landing, bat_dau, dang_chay, ghi_chu, tieu_de, cta, dinh_dang, goc, uu_dai, media, so_phien_ban, luc) VALUES (${dt}, ${spId}, ${t(NT.has(q.nen_tang) ? q.nen_tang : 'khac')}, ${url(q.link)}, ${t(q.hook)}, ${t(q.than_bai)}, ${t(q.mo_ta)}, ${url(q.landing)}, ${ngay(q.bat_dau)}, ${bool(q.dang_chay)}, ${t(q.ghi_chu)}, ${t(q.tieu_de)}, ${t(q.cta)}, ${t(DD.has(q.dinh_dang) ? q.dinh_dang : null)}, ${t(q.goc)}, ${t(q.uu_dai)}, ${url(q.media)}, ${Number.isInteger(q.so_phien_ban) ? q.so_phien_ban : 'NULL'}, now()) ON CONFLICT (doi_thu_id, link) DO NOTHING;`);
   }
 }
 out.push('COMMIT;');

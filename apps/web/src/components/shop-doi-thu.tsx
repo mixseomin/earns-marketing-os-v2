@@ -36,7 +36,9 @@ function DongQc({ x, sua, tenDt }: { x: QcDoiThu; sua: () => void; tenDt?: strin
         {x.dangChay != null && <Pill color={x.dangChay ? 'var(--ok)' : 'var(--fg-3)'} label={x.dangChay ? 'đang chạy' : 'đã dừng'} uppercase={false} mono={false} />}
         {x.goc && <Pill color="var(--accent)" label={x.goc} uppercase={false} mono={false} />}
         {x.uuDai && <Pill color="var(--warn)" label={x.uuDai} uppercase={false} mono={false} />}</>}
-      phu={<>{x.tieuDe ? <>tiêu đề “{x.tieuDe}” · </> : ''}{x.cta ? `nút ${x.cta} · ` : ''}{x.batDau ? `chạy từ ${x.batDau}` : 'chưa rõ ngày chạy'}{x.landing ? ` · trỏ tới ${host(x.landing)}` : ''}{x.ghiChu ? ` · ${x.ghiChu}` : ''}{x.luc ? ` · xem ${gio(x.luc)}` : ''}</>}
+      phu={<>{x.noiDung && x.noiDung !== x.hook && <details onClick={(e) => e.stopPropagation()} style={{ margin: '2px 0 4px' }}><summary style={{ cursor: 'pointer' }}>toàn văn ({x.noiDung.length} ký tự)</summary>
+        <div style={{ whiteSpace: 'pre-wrap', color: 'var(--fg-2)', fontSize: 12.5, lineHeight: 1.5, padding: '4px 0', maxWidth: 760 }}>{x.noiDung.replace(/ \/ /g, '\n')}</div></details>}
+        {x.tieuDe ? <>tiêu đề “{x.tieuDe}”{x.moTa ? ` — ${x.moTa}` : ''} · </> : ''}{x.cta ? `nút ${x.cta} · ` : ''}{x.batDau ? `chạy từ ${x.batDau}` : 'chưa rõ ngày chạy'}{x.landing ? ` · trỏ tới ${host(x.landing)}` : ''}{x.ghiChu ? ` · ${x.ghiChu}` : ''}{x.luc ? ` · xem ${gio(x.luc)}` : ''}</>}
       phai={<>{x.media && !anh && <LinkChip href={x.media} tone="neutral" size="xs">media ↗</LinkChip>}{x.landing && <LinkChip href={x.landing} tone="neutral" size="xs">trang đích ↗</LinkChip>}<LinkChip href={x.link} tone="neutral" size="xs">xem QC ↗</LinkChip></>} />
   );
 }

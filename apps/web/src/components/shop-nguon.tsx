@@ -3,12 +3,12 @@
 // bật/tắt (không xoá), thêm nguồn mới — chọn NCC → sản phẩm NCC (CJ: đọc thẳng theo mã) → biến thể NCC. Máy chọn nguồn đang dùng (dong-bo apNguon):
 // nguồn chính khi bán được; hết/gỡ thì sang dự phòng ĐÃ KIỂM MẪU có biên ≥ ngưỡng; không còn nguồn nào → tự ẩn trên mặt tiền.
 import { useMemo, useState, useTransition } from 'react';
-import { Drawer, LinkChip, Pill, SelectField, TextField } from '@/components/ui';
+import { Drawer, LinkChip, PickField, Pill, TextField } from '@/components/ui';
 import { tien } from '@/lib/shop/buoc';
 import type { BienTheDong, NccSpDong } from '@/lib/shop/doc';
 import type { NccDong } from '@/lib/shop/ho-so-doc';
 import { shopDocSpNcc, shopDoiUuTien, shopSuaBienThe, shopSuaNguon, shopThemNguon } from '@/lib/actions/shop';
-import { dangDung, duoi, vaiNguon } from './shop-san-pham';
+import { dangDung, duoi, vaiNguon } from '@/lib/shop/nguon-luat';
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
 const MOI = '__moi__';
@@ -102,13 +102,10 @@ function ThemNguon({ b, danhMuc, soNcc, dang, chay }: { b: BienTheDong; danhMuc:
     <div style={{ border: '1px dashed var(--line)', borderRadius: 6, padding: 12, display: 'grid', gap: 10 }}>
       <b style={{ fontSize: 13 }}>+ Thêm nguồn{b.nguon.length ? ' dự phòng' : ''}</b>
       <div style={{ display: 'grid', gridTemplateColumns: '200px minmax(0, 1fr)', gap: 8, alignItems: 'end' }}>
-        <SelectField id="ng-ncc" label="Nhà cung cấp" value={ncc} onChange={(e) => { setNcc(e.target.value); setSpId(String(danhMuc.find((s) => s.ncc === e.target.value)?.id ?? MOI)); setBtMa(''); }}>
-          {soNcc.map((n) => <option key={n.khoa} value={n.khoa}>{n.ten}{n.coApi ? '' : ' (đặt tay)'}</option>)}
-        </SelectField>
-        <SelectField id="ng-sp" label="Sản phẩm NCC" value={spId} onChange={(e) => { setSpId(e.target.value); setBtMa(''); }}>
-          {dsSp.map((s) => <option key={s.id} value={s.id}>{s.ten ?? s.ma} · {s.ma}</option>)}
-          <option value={MOI}>— Sản phẩm khác (nhập mã) —</option>
-        </SelectField>
+        <PickField label="Nhà cung cấp" value={ncc} options={soNcc.map((n) => ({ value: n.khoa, label: `${n.ten}${n.coApi ? '' : ' (đặt tay)'}` }))}
+          onChange={(k) => { if (!k) return; setNcc(k); setSpId(String(danhMuc.find((s) => s.ncc === k)?.id ?? MOI)); setBtMa(''); }} />
+        <PickField label="Sản phẩm NCC" value={spId} options={[...dsSp.map((s) => ({ value: String(s.id), label: `${s.ten ?? s.ma} · ${s.ma}` })), { value: MOI, label: '— Sản phẩm khác (nhập mã) —' }]}
+          onChange={(k) => { if (!k) return; setSpId(k); setBtMa(''); }} />
       </div>
       {spId === MOI && (
         <div style={{ display: 'grid', gridTemplateColumns: coApi ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr) minmax(0, 1fr) auto', gap: 8, alignItems: 'end' }}>
@@ -119,10 +116,9 @@ function ThemNguon({ b, danhMuc, soNcc, dang, chay }: { b: BienTheDong; danhMuc:
       )}
       {sp && (coApi
         ? <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 8, alignItems: 'end' }}>
-            <SelectField id="ng-bt" label={`Biến thể bên NCC (${sp.bt.length})`} value={btMa} onChange={(e) => setBtMa(e.target.value)}>
-              <option value="">— chọn biến thể —</option>
-              {sp.bt.filter((v) => !v.mat).map((v) => <option key={v.id} value={v.ma} disabled={daCo.has(v.id)}>{v.ten ?? v.ma} · {tien(v.gia)} · tồn {v.ton ?? '—'}{daCo.has(v.id) ? ' (đã là nguồn)' : ''}</option>)}
-            </SelectField>
+            <PickField label={`Biến thể bên NCC (${sp.bt.filter((v) => !v.mat && !daCo.has(v.id)).length} chọn được)`} value={btMa} placeholder="— chọn biến thể —" clearable
+              options={sp.bt.filter((v) => !v.mat && !daCo.has(v.id)).map((v) => ({ value: v.ma, label: `${v.ten ?? v.ma} · ${tien(v.gia)} · tồn ${v.ton ?? '—'}` }))}
+              onChange={(k) => setBtMa(k ?? '')} />
             <span><button className="btn primary" disabled={dang || !btMa} onClick={() => chay(() => shopThemNguon(b.id, { ncc, maSp: sp.ma, maBt: btMa }))}>Thêm nguồn</button></span>
           </div>
         : <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 110px auto', gap: 8, alignItems: 'end' }}>
@@ -131,7 +127,7 @@ function ThemNguon({ b, danhMuc, soNcc, dang, chay }: { b: BienTheDong; danhMuc:
             <TextField id="ng-bt-gia" label="Giá (USD)" inputMode="decimal" value={btGia} onChange={(e) => setBtGia(e.target.value)} />
             <span><button className="btn primary" disabled={dang || !btMa} onClick={() => chay(() => shopThemNguon(b.id, { ncc, maSp: sp.ma, maBt: btMa, tenBt: btTen, gia: btGia.trim() ? Number(btGia) : null }))}>Thêm nguồn</button></span>
           </div>)}
-      {!soNcc.length && <span style={phu}>Chưa có NCC nào — thêm ở tab Nhà cung cấp.</span>}
+      {!soNcc.length && <span style={phu}>Chưa có NCC nào — <a href="/shop?tab=ncc">thêm ở tab Nhà cung cấp</a>.</span>}
     </div>
   );
 }

@@ -5,19 +5,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Cay, FilterChips, LaBang, LinkChip, NutCay, Panel, Pill, SearchInput, oLa } from '@/components/ui';
 import { tachBienThe, tien } from '@/lib/shop/buoc';
+import { chayDuPhong, dangDung, duoi, nguonBat, vaiNguon } from '@/lib/shop/nguon-luat';
+import { readShallowParam, useShallowParam, writeShallowParam } from '@/lib/url-shallow';
 import type { BienTheDong, NccSpDong, NguonDong, SanPhamDong } from '@/lib/shop/doc';
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
-/** Mã dài (vid CJ, SKU 19 số) giống nhau ở đầu — hiện ĐUÔI để phân biệt; đủ mã nằm ở title. */
-export const duoi = (x: string | null) => (x ? (x.length > 10 ? `…${x.slice(-8)}` : x) : '—');
 const bien = (b: BienTheDong) => (b.giaBan && b.giaVon !== null ? Math.round(((b.giaBan - b.giaVon) / b.giaBan) * 100) : null);
 type Loc = 'all' | 'thieu' | 'du_phong' | 'an';
 
-/** Nguồn bật theo thứ tự ưu tiên; [0] = chính. */
-export const nguonBat = (b: BienTheDong) => b.nguon.filter((n) => n.bat);
-export const dangDung = (b: BienTheDong) => b.nguon.find((n) => n.id === b.nguonId) ?? null;
-/** Biến thể đang chạy bằng nguồn dự phòng (nguồn chính hết/gỡ). */
-export const chayDuPhong = (b: BienTheDong) => { const bat = nguonBat(b); return !!b.nguonId && bat.length > 1 && bat[0]!.id !== b.nguonId; };
 
 function vanDe(b: BienTheDong): string | null {
   if (!nguonBat(b).length) return 'thiếu nguồn';
@@ -34,8 +29,6 @@ function trangThaiBt(b: BienTheDong): { chu: string; mau: string } {
   if (chayDuPhong(b)) return { chu: 'đang bán · chạy dự phòng', mau: 'var(--accent)' };
   return { chu: 'đang bán', mau: 'var(--ok)' };
 }
-/** Vai của một nguồn trong biến thể: chính / dự phòng n. */
-export const vaiNguon = (b: BienTheDong, n: NguonDong) => { const i = nguonBat(b).findIndex((x) => x.id === n.id); return !n.bat ? 'đã tắt' : i === 0 ? 'chính' : `dự phòng ${i}`; };
 
 /** Cột của bảng lá: `rong` cố định để mọi nhóm màu trong cây thẳng cột (ui/cay LaBang); không ghi = chia phần còn lại. */
 type Cot = { h: string; rong?: number; phai?: boolean; o: (b: BienTheDong) => React.ReactNode };
@@ -96,23 +89,18 @@ function DongNguon({ b, n, soCot, tenNcc, nguongTon }: { b: BienTheDong; n: Nguo
 export function CaySanPham({ bienThe, sanPham, danhMuc, suaSp, suaBt, cheDo = 'mat_tien', nguongBien = () => 60, nguongTon = () => 50, tenNcc = (k) => k }: {
   bienThe: BienTheDong[]; sanPham: SanPhamDong[]; danhMuc: NccSpDong[]; suaSp: (p: SanPhamDong) => void; suaBt: (b: BienTheDong) => void; cheDo?: 'mat_tien' | 'lien_ket';
   nguongBien?: (khoaShop: string) => number; nguongTon?: (khoaShop: string) => number; tenNcc?: (khoa: string) => string }) {
-  const q0 = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-  const [loc, setLoc] = useState<Loc>(((q0?.get('sp') as Loc) || 'all'));
+  const [locUrl, setLocUrl] = useShallowParam('sp', 'all');
+  const loc = locUrl as Loc, setLoc = (x: Loc) => setLocUrl(x);
   const [tim, setTim] = useState('');
   const theoSp = useMemo(() => { const m = new Map<number, BienTheDong[]>(); for (const b of bienThe) m.set(b.sanPhamId, [...(m.get(b.sanPhamId) ?? []), b]); return m; }, [bienThe]);
   const dm = useMemo(() => new Map(danhMuc.map((s) => [s.id, s])), [danhMuc]);
   const loi = (p: SanPhamDong) => (theoSp.get(p.id) ?? []).filter((b) => vanDe(b)).length;
   const duPhong = (p: SanPhamDong) => (theoSp.get(p.id) ?? []).filter(chayDuPhong).length;
   const [mo, setMo] = useState<Set<number>>(() => {
-    const ds = q0?.get('spm');
+    const ds = readShallowParam('spm');
     return new Set(ds ? ds.split(',').map(Number) : sanPham.filter((p) => loi(p) > 0).map((p) => p.id));
   });
-  useEffect(() => {
-    const u = new URLSearchParams(window.location.search);
-    if (loc !== 'all') u.set('sp', loc); else u.delete('sp');
-    u.set('spm', [...mo].join(','));
-    window.history.replaceState(window.history.state, '', `${window.location.pathname}?${u.toString()}`);
-  }, [loc, mo]);
+  useEffect(() => writeShallowParam('spm', [...mo].join(',')), [mo]);
   const ds = sanPham.filter((p) => (loc === 'an' ? !p.hien : loc === 'thieu' ? loi(p) > 0 : loc === 'du_phong' ? duPhong(p) > 0 : true)
     && (!tim || `${p.ten} ${p.tieuDe ?? ''} ${p.nguonSp.map((s) => `${s.ma} ${s.ten ?? ''}`).join(' ')} ${(theoSp.get(p.id) ?? []).map((b) => `${b.ten} ${b.sku ?? ''} ${b.nguon.map((n) => n.maBt).join(' ')}`).join(' ')}`.toLowerCase().includes(tim.toLowerCase())));
   const doi = (id: number) => setMo((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });

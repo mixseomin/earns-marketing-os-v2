@@ -9,6 +9,7 @@
 // URL: ?ncc=<khoá> · ?nm=<mục> · ?nsp=<id,id> sản phẩm NCC đang mở.
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { readShallowParam, useShallowParam, writeShallowParam } from '@/lib/url-shallow';
 import { Cay, FilterChips, LaBang, LinkChip, NutCay, Panel, Pill, SimpleTable, StatsStrip, oLa, type CotLa } from '@/components/ui';
 import { KENH_NCC, gio, tachBienThe, thuTuSize, tien } from '@/lib/shop/buoc';
 import type { BienTheDong, CuaHangDong, DonDong, NccSpDong, SanPhamDong } from '@/lib/shop/doc';
@@ -16,7 +17,7 @@ import type { BienDongNcc, HoSoDong, LienHeNcc, NccDong } from '@/lib/shop/ho-so
 import { shopDocLaiNcc, shopSoDuNcc } from '@/lib/actions/shop';
 import { BangHoSo } from './shop-ho-so';
 import { SuaNcc } from './shop-ncc-sua';
-import { duoi, vaiNguon } from './shop-san-pham';
+import { duoi, vaiNguon } from '@/lib/shop/nguon-luat';
 
 /** Cột danh mục NCC — độ rộng cố định để mọi nhóm màu thẳng cột (ui/cay LaBang). */
 const COT_DM: CotLa[] = [{ h: 'Size', rong: 80 }, { h: 'SKU NCC', rong: 160 }, { h: 'Mã', rong: 90 }, { h: 'Giá NCC', rong: 75, phai: true },
@@ -40,12 +41,6 @@ const LOAI_BD: Record<string, [string, string]> = {
   ban_lai: ['NCC bán lại', 'var(--ok)'], ton_thap: ['Tồn thấp', 'var(--warn)'], het_ncc: ['NCC hết hàng', 'var(--bad)'],
   het: ['Tự ẩn', 'var(--bad)'], co_lai: ['Mở bán lại', 'var(--ok)'], doi_nguon: ['Đổi nguồn', 'var(--accent)'],
 };
-const docUrl = (k: string, mac: string) => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get(k)) || mac;
-function ghiUrl(k: string, v: string, mac: string) {
-  const u = new URLSearchParams(window.location.search);
-  if (v && v !== mac) u.set(k, v); else u.delete(k);
-  window.history.replaceState(window.history.state, '', `${window.location.pathname}?${u.toString()}`);
-}
 
 /** Một biến thể shop đang lấy một biến thể NCC làm nguồn. */
 type Dung = { b: BienTheDong; vai: string; dangDung: boolean; nguonId: number };
@@ -72,10 +67,8 @@ export function BangNcc({ lienKet, soNcc, ch, cuaHang, bienThe, danhMuc, bienDon
     return { sp, spDung, chinh, duPhong, dangDung, choShop };
   };
   const macDinh = soNcc.find((n) => thongKe(n.khoa).choShop.length)?.khoa ?? soNcc[0]?.khoa ?? 'cj';
-  const [ncc, setNcc] = useState(() => docUrl('ncc', macDinh));
-  useEffect(() => ghiUrl('ncc', ncc, macDinh), [ncc]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [muc, setMuc] = useState(() => docUrl('nm', 'tong_quan'));
-  useEffect(() => ghiUrl('nm', muc, 'tong_quan'), [muc]);
+  const [ncc, setNcc] = useShallowParam('ncc', macDinh);
+  const [muc, setMuc] = useShallowParam('nm', 'tong_quan');
   const [soDu, setSoDu] = useState<number | null | undefined>(undefined);
   useEffect(() => { if (ncc === 'cj') shopSoDuNcc().then(setSoDu).catch(() => setSoDu(null)); }, [ncc]);
   const [sua, setSua] = useState<NccDong | null>(null);
@@ -131,7 +124,7 @@ export function BangNcc({ lienKet, soNcc, ch, cuaHang, bienThe, danhMuc, bienDon
           {info.lienHe.length ? info.lienHe.map((l, i) => { const h = linkLienHe(l); return <span key={i} style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
             <span style={{ ...phu, fontSize: 11.5 }}>{NHAN_KENH[l.kenh] ?? l.kenh}{l.ten ? ` · ${l.ten}` : ''}:</span>
             {h ? <LinkChip href={h} tone="neutral" size="xs">{l.gia_tri}</LinkChip> : <span>{l.gia_tri}</span>}</span>; })
-            : <span style={{ color: 'var(--warn)' }}>Chưa có người/kênh liên hệ — bấm "Sửa thông tin NCC" điền người phụ trách (tên, WhatsApp/Skype/email).</span>}
+            : <button className="btn ghost" style={{ color: 'var(--warn)' }} onClick={() => setSua(info)}>Chưa có người/kênh liên hệ — ✎ điền người phụ trách (tên, WhatsApp/Skype/email)</button>}
         </span>
         {info.ghiChu && <><span style={phu}>Ghi chú</span><span style={phu}>{info.ghiChu}</span></>}
       </div>
@@ -179,13 +172,13 @@ export function BangNcc({ lienKet, soNcc, ch, cuaHang, bienThe, danhMuc, bienDon
 /** Danh mục BÊN NCC, dạng cây: sản phẩm NCC → (thông tin) + màu → biến thể NCC (tên/SKU/mã/giá/tồn theo kho) → shop nào đang dùng (chính/dự phòng).
  *  Danh mục dùng chung mọi shop (shop_ncc_sp/shop_ncc_bt, đọc mỗi ngày); tồn chỉ đọc cho biến thể đang làm nguồn. */
 function DanhMucNcc({ sps, dungBt, tenNcc, nguongTon, cuaHang }: { sps: NccSpDong[]; dungBt: Map<number, Dung[]>; tenNcc: string; nguongTon: number; cuaHang: CuaHangDong[] }) {
-  const [mo, setMo] = useState<Set<number>>(() => new Set(docUrl('nsp', '').split(',').filter(Boolean).map(Number)));
-  useEffect(() => ghiUrl('nsp', [...mo].join(','), ''), [mo]);
+  const [mo, setMo] = useState<Set<number>>(() => new Set((readShallowParam('nsp') ?? '').split(',').filter(Boolean).map(Number)));
+  useEffect(() => writeShallowParam('nsp', [...mo].join(',') || null), [mo]);
   const [moTt, setMoTt] = useState<Set<number>>(new Set());
   const doi = (s: Set<number>, id: number) => { const x = new Set(s); if (x.has(id)) x.delete(id); else x.add(id); return x; };
   const tenShop = (k: string) => cuaHang.find((c) => c.khoa === k)?.ten ?? k;
   const ds = [...sps].sort((a, b) => Number(b.bt.some((v) => dungBt.has(v.id))) - Number(a.bt.some((v) => dungBt.has(v.id))));
-  if (!ds.length) return <div style={{ ...phu, padding: 8 }}>Chưa có sản phẩm nào của {tenNcc} trong danh mục — thêm nguồn ở drawer biến thể (tab Sản phẩm).</div>;
+  if (!ds.length) return <div style={{ ...phu, padding: 8 }}>Chưa có sản phẩm nào của {tenNcc} trong danh mục — <a href="/shop?tab=san_pham">mở tab Sản phẩm, bấm một biến thể để thêm nguồn</a>.</div>;
   return (
     <Panel pad={0}>
       <Cay label={`Danh mục ${tenNcc}`}>

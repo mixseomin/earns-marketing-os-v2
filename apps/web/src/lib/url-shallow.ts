@@ -1,4 +1,6 @@
 'use client';
+import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 // Đọc/ghi MỘT param trên URL kiểu SHALLOW (window.history.replaceState) — KHÔNG trigger RSC roundtrip
 // như router.replace, nên hợp cho trạng thái bảng đổi liên tục (bấm sort, gõ lọc-cột). Nhờ đó sort +
@@ -29,4 +31,14 @@ export function writeShallowParam(key: string, value: string | null): void {
     const qs = sp.toString();
     shallowReplaceUrl(qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
   } catch { /* ignore */ }
+}
+
+/** State React gắn MỘT param URL shallow — thay cho cặp "useState đọc location + useEffect ghi replaceState" chép tay ở từng màn.
+ *  Giá trị đầu: URL TƯƠI (thấy cả param vừa ghi shallow ngay trước đó), lúc render ở server thì useSearchParams (không lệch hydrate).
+ *  Set: đổi state + ghi URL ngay; bằng `mac` (mặc định) thì xoá param cho URL sạch. */
+export function useShallowParam(key: string, mac: string): [string, (v: string) => void] {
+  const sp = useSearchParams();
+  const [v, setV] = useState(() => readShallowParam(key) ?? sp.get(key) ?? mac);
+  const dat = (x: string) => { setV(x); writeShallowParam(key, x && x !== mac ? x : null); };
+  return [v, dat];
 }

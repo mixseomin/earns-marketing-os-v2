@@ -6,9 +6,10 @@
 // Sổ: shop_doi_thu / shop_doi_thu_sp / shop_doi_thu_qc (migration 0206). Không xoá — thôi theo dõi bằng cờ.
 // URL: ?dtv=sp|dt|goc (cây) · ?dt=<loại>&dtId=<id | moi-<cha>> (drawer).
 import { useEffect, useMemo, useState, useTransition } from 'react';
-import { Cay, Drawer, FilterChips, LinkChip, NutCay, Panel, Pill, SelectField, StatsStrip, TextAreaField, TextField } from '@/components/ui';
+import { Cay, Drawer, FilterChips, LaBang, LinkChip, NutCay, Panel, PickField, Pill, SelectField, StatsStrip, TextAreaField, TextField, oLa, type CotLa } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
-import { DINH_DANG_QC, KENH_BAN, KHOP_DOI_THU, NEN_TANG_QC, gio, linkThuVienQc, tien } from '@/lib/shop/buoc';
+import { useShallowParam } from '@/lib/url-shallow';
+import { DINH_DANG_QC, KENH_BAN, KHOP_DOI_THU, NEN_TANG_QC, gio, linkThuVienQc, soNgayChay, tien } from '@/lib/shop/buoc';
 import type { BienTheDong, SanPhamDong } from '@/lib/shop/doc';
 import type { DoiThuDong, QcDoiThu, SpDoiThu } from '@/lib/shop/doi-thu-doc';
 import { shopSuaDoiThu, shopSuaQcDoiThu, shopSuaSpDoiThu } from '@/lib/actions/shop';
@@ -25,30 +26,46 @@ function SoGia({ gia, cuaMinh }: { gia: number | null; cuaMinh: number | null })
   const lech = Math.round(((gia - cuaMinh) / cuaMinh) * 100);
   return <span><b>{tien(gia)}</b> <span style={{ color: lech < -5 ? 'var(--bad)' : lech > 5 ? 'var(--ok)' : 'var(--fg-3)', fontSize: 12 }}>{lech === 0 ? 'bằng mình' : lech < 0 ? `rẻ hơn mình ${-lech}%` : `đắt hơn mình ${lech}%`}</span></span>;
 }
-/** Một quảng cáo đối thủ — dòng tóm tắt (ảnh nhỏ · định dạng · hook · góc · ưu đãi); BẤM để mở THẺ XEM TRƯỚC ngay tại chỗ (anh cần xem creative ở đây,
- *  không phải nhảy sang Thư viện): toàn văn, ảnh lớn (đã lưu về kho — link fbcdn hết hạn), tiêu đề, mô tả, nút CTA, trang đích, ngày chạy. Sửa = nút riêng. */
-function DongQc({ x, sua, tenDt }: { x: QcDoiThu; sua: () => void; tenDt?: string }) {
-  const [mo, setMo] = useState(false);
-  const anh = x.anh ?? (x.media && /\.(jpe?g|png|webp|gif)(\?|$)|fbcdn|scontent/i.test(x.media) ? x.media : null);
-  const nho = x.anh ? `${x.anh}?w=160` : anh;
+/** Bảng quảng cáo đối thủ — cột cố định (ui/cay LaBang) nên mọi nhóm trong cây thẳng cột; xếp theo SỐ NGÀY ĐÃ CHẠY (dài nhất trước — QC sống lâu
+ *  là QC có lãi). Bấm một dòng → thẻ xem trước creative ngay bên dưới (toàn văn, ảnh lớn, tiêu đề, CTA…). Sửa = nút riêng. */
+function BangQc({ ds, sua }: { ds: { x: QcDoiThu; tenDt?: string }[]; sua: (id: number) => void }) {
+  const [mo, setMo] = useState<Set<number>>(new Set());
+  const coDt = ds.some((y) => y.tenDt);
+  const cot: CotLa[] = [{ h: '', rong: 56 }, ...(coDt ? [{ h: 'Đối thủ', rong: 130 }] : []), { h: 'Định dạng', rong: 90 }, { h: 'Hook (câu mở đầu)' },
+    { h: 'Góc bán', rong: 170 }, { h: 'Ưu đãi', rong: 150 }, { h: 'Chạy từ', rong: 92 }, { h: 'Đã chạy', rong: 80, phai: true }, { h: 'Trạng thái', rong: 84 }, { h: '', rong: 130 }];
+  const xep = [...ds].map((y) => ({ ...y, ngay: soNgayChay(y.x.batDau, y.x.dangChay, y.x.luc) })).sort((a, b) => (b.ngay ?? -1) - (a.ngay ?? -1));
   return (
-    <NutCay mo={mo} onDoi={() => setMo(!mo)}
-      dau={nho ? <img src={nho} alt="" width={56} height={56} loading="lazy" style={{ objectFit: 'cover', borderRadius: 4, flex: 'none', border: '1px solid var(--line)' }} /> : undefined}
-      ten={<>{tenDt && <b style={{ fontWeight: 500 }}>{tenDt}</b>}<span style={{ ...phu, fontSize: 12 }}>{NEN_TANG_QC[x.nenTang] ?? x.nenTang}{x.dinhDang ? ` · ${DINH_DANG_QC[x.dinhDang] ?? x.dinhDang}` : ''}{x.soPhienBan ? ` · ${x.soPhienBan} phiên bản` : ''}</span>
-        {x.hook ? <span style={{ fontStyle: 'italic' }}>“{x.hook.length > 160 ? `${x.hook.slice(0, 160)}…` : x.hook}”</span> : <span style={phu}>chưa chép nội dung</span>}
-        {x.dangChay != null && <Pill color={x.dangChay ? 'var(--ok)' : 'var(--fg-3)'} label={x.dangChay ? 'đang chạy' : 'đã dừng'} uppercase={false} mono={false} />}
-        {x.goc && <Pill color="var(--accent)" label={x.goc} uppercase={false} mono={false} />}
-        {x.uuDai && <Pill color="var(--warn)" label={x.uuDai} uppercase={false} mono={false} />}</>}
-      phu={mo ? undefined : <>{x.tieuDe ? <>tiêu đề “{x.tieuDe}” · </> : ''}{x.cta ? `nút ${x.cta} · ` : ''}{x.batDau ? `chạy từ ${x.batDau}` : 'chưa rõ ngày chạy'}{x.landing ? ` · trỏ tới ${host(x.landing)}` : ''} · bấm để xem creative</>}
-      phai={<><LinkChip href={x.link} tone="neutral" size="xs">Thư viện ↗</LinkChip><button className="btn ghost" onClick={sua}>Sửa</button></>}>
-      <TheQc x={x} anh={anh} tenDt={tenDt} />
-    </NutCay>
+    <LaBang cot={cot}>
+      {xep.map(({ x, tenDt, ngay }) => {
+        const anh = x.anh ?? (x.media && /\.(jpe?g|png|webp|gif)(\?|$)|fbcdn|scontent/i.test(x.media) ? x.media : null);
+        const dangMo = mo.has(x.id);
+        return (
+          <tbody key={x.id} style={{ borderTop: '1px solid var(--line)' }}>
+            <tr onClick={() => setMo((s) => { const n = new Set(s); if (n.has(x.id)) n.delete(x.id); else n.add(x.id); return n; })} style={{ cursor: 'pointer', background: dangMo ? 'var(--bg-2)' : undefined }} title="Bấm để xem creative">
+              <td style={oLa()}>{anh ? <img src={x.anh ? `${x.anh}?w=160` : anh} alt="" width={40} height={40} loading="lazy" style={{ objectFit: 'cover', borderRadius: 4, display: 'block', border: '1px solid var(--line)' }} /> : <span style={phu}>—</span>}</td>
+              {coDt && <td style={oLa()} title={tenDt}><b style={{ fontWeight: 500 }}>{tenDt}</b></td>}
+              <td style={{ ...oLa(), ...phu }}>{x.dinhDang ? DINH_DANG_QC[x.dinhDang] ?? x.dinhDang : '—'}{x.soPhienBan ? ` ·${x.soPhienBan}` : ''}</td>
+              <td style={{ ...oLa(), fontStyle: x.hook ? 'italic' : undefined }} title={x.hook ?? ''}>{x.hook ? `“${x.hook}”` : <span style={phu}>chưa chép</span>}</td>
+              <td style={oLa()} title={x.goc ?? ''}>{x.goc ?? '—'}</td>
+              <td style={oLa()} title={x.uuDai ?? ''}>{x.uuDai ?? '—'}</td>
+              <td style={{ ...oLa(), ...phu }}>{x.batDau ?? '—'}</td>
+              <td style={{ ...oLa(true), fontWeight: 600, color: ngay == null ? 'var(--fg-3)' : ngay >= 30 ? 'var(--ok)' : ngay < 7 ? 'var(--fg-3)' : undefined }}
+                title="Từ ngày bắt đầu tới hôm nay (đang chạy) / tới lần thấy gần nhất (đã dừng). ≥ 30 ngày: QC sống lâu — dấu hiệu có lãi">{ngay == null ? '—' : `${ngay} ngày`}</td>
+              <td style={{ ...oLa(), color: x.dangChay ? 'var(--ok)' : 'var(--fg-3)' }}>{x.dangChay == null ? '—' : x.dangChay ? 'đang chạy' : 'đã dừng'}</td>
+              <td style={{ ...oLa(true), overflow: 'visible' }} onClick={(e) => e.stopPropagation()}>
+                <span style={{ display: 'inline-flex', gap: 4 }}><LinkChip href={x.link} tone="neutral" size="xs">Thư viện ↗</LinkChip><button className="btn ghost" onClick={() => sua(x.id)}>Sửa</button></span></td>
+            </tr>
+            {dangMo && <tr><td colSpan={cot.length} style={{ padding: 0 }}><TheQc x={x} anh={anh} tenDt={tenDt} ngay={ngay} /></td></tr>}
+          </tbody>
+        );
+      })}
+    </LaBang>
   );
 }
 
 /** Thẻ xem trước quảng cáo, dựng theo bố cục quảng cáo Meta: tên page → toàn văn → media → thanh dưới (tên miền · tiêu đề · mô tả · nút CTA),
  *  bên phải là thông số để soạn QC cho mình (định dạng, góc, ưu đãi, ngày chạy, phiên bản, trang đích). */
-function TheQc({ x, anh, tenDt }: { x: QcDoiThu; anh: string | null; tenDt?: string }) {
+function TheQc({ x, anh, tenDt, ngay }: { x: QcDoiThu; anh: string | null; tenDt?: string; ngay: number | null }) {
   const lon = x.anh ? `${x.anh}?w=720` : anh;
   const video = x.dinhDang === 'video' || x.dinhDang === 'ugc_video';
   const van = (x.noiDung ?? x.hook ?? '').replace(/ \/ /g, '\n');
@@ -74,7 +91,7 @@ function TheQc({ x, anh, tenDt }: { x: QcDoiThu; anh: string | null; tenDt?: str
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '6px 12px', fontSize: 13 }}>
         {([['Nền tảng', `${NEN_TANG_QC[x.nenTang] ?? x.nenTang}${x.dinhDang ? ` · ${DINH_DANG_QC[x.dinhDang] ?? x.dinhDang}` : ''}`],
-          ['Trạng thái', x.dangChay == null ? 'chưa rõ' : x.dangChay ? 'đang chạy' : 'đã dừng'], ['Chạy từ', x.batDau],
+          ['Trạng thái', x.dangChay == null ? 'chưa rõ' : x.dangChay ? 'đang chạy' : 'đã dừng'], ['Chạy từ', x.batDau], ['Đã chạy', ngay == null ? null : `${ngay} ngày`],
           ['Phiên bản', x.soPhienBan ? `${x.soPhienBan} phiên bản cùng nội dung` : null], ['Góc bán', x.goc], ['Ưu đãi', x.uuDai], ['Nút', x.cta],
           ['Ghi chú', x.ghiChu], ['Xem lúc', x.luc ? gio(x.luc) : null]] as [string, string | null][])
           .map(([k, v]) => <span key={k} style={{ display: 'contents' }}><span style={phu}>{k}</span><span>{v ?? '—'}</span></span>)}
@@ -87,8 +104,7 @@ function TheQc({ x, anh, tenDt }: { x: QcDoiThu; anh: string | null; tenDt?: str
 
 export function BangDoiThu({ ds, sanPham, bienThe, ch }: { ds: DoiThuDong[]; sanPham: SanPhamDong[]; bienThe: BienTheDong[]; ch: string }) {
   const modal = useModalParam('dt');
-  const [cay, setCay] = useState(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('dtv')) || 'sp');
-  useEffect(() => { const u = new URLSearchParams(window.location.search); if (cay !== 'sp') u.set('dtv', cay); else u.delete('dtv'); window.history.replaceState(window.history.state, '', `${window.location.pathname}?${u.toString()}`); }, [cay]);
+  const [cay, setCay] = useShallowParam('dtv', 'sp');
   const [mo, setMo] = useState<Set<string>>(new Set());
   const doi = (k: string) => setMo((s) => { const x = new Set(s); if (x.has(k)) x.delete(k); else x.add(k); return x; });
   const sps = sanPham.filter((p) => ch === 'all' || p.cuaHang === ch);
@@ -137,7 +153,7 @@ export function BangDoiThu({ ds, sanPham, bienThe, ch }: { ds: DoiThuDong[]; san
                   ten={<><b style={{ fontWeight: 500 }}>{d.ten}</b><span style={phu}>›</span><span>{s.ten ?? host(s.url)}</span><PillKhop k={s.khop} /></>}
                   phu={<><SoGia gia={s.gia} cuaMinh={gm} />{s.giaGoc ? <span style={phu}> · gạch {tien(s.giaGoc)}</span> : null}<span style={phu}> · {KENH_BAN[d.kenhBan] ?? d.kenhBan}{qs.length ? ` · ${qs.length} QC` : ''}{s.ghiChu ? ` · ${s.ghiChu}` : ''}</span></>}
                   phai={<><LinkChip href={s.url} tone="neutral" size="xs">trang đích ↗</LinkChip><button className="btn ghost" onClick={() => modal.open('sp', s.id)}>Sửa</button></>}>
-                  {qs.length > 0 && qs.map((x) => <DongQc key={x.id} x={x} sua={() => modal.open('qc', x.id)} />)}
+                  {qs.length > 0 && <BangQc ds={qs.map((x) => ({ x }))} sua={(id) => modal.open('qc', id)} />}
                 </NutCay>
               );
             })}
@@ -176,11 +192,11 @@ export function BangDoiThu({ ds, sanPham, bienThe, ch }: { ds: DoiThuDong[]; san
                   ten={<><span>{s.ten ?? host(s.url)}</span><PillKhop k={s.khop} /></>}
                   phu={<><SoGia gia={s.gia} cuaMinh={s.sanPhamId != null ? giaMinh.get(s.sanPhamId) ?? null : null} /><span style={phu}> · {s.sanPhamId != null ? `đụng ${tenSp(s.sanPhamId)}` : 'chưa nối sản phẩm mình'}{qs.length ? ` · ${qs.length} QC` : ''}</span></>}
                   phai={<><LinkChip href={s.url} tone="neutral" size="xs">trang đích ↗</LinkChip><button className="btn ghost" onClick={() => modal.open('sp', s.id)}>Sửa</button></>}>
-                  {qs.length > 0 && qs.map((x) => <DongQc key={x.id} x={x} sua={() => modal.open('qc', x.id)} />)}
+                  {qs.length > 0 && <BangQc ds={qs.map((x) => ({ x }))} sua={(id) => modal.open('qc', id)} />}
                 </NutCay>
               );
             })}
-            {qcLe.map((x) => <DongQc key={x.id} x={x} sua={() => modal.open('qc', x.id)} />)}
+            {qcLe.length > 0 && <NutCay ten={<span style={{ ...phu, fontSize: 12.5 }}>{qcLe.length} quảng cáo chưa gắn sản phẩm cụ thể của họ</span>}><BangQc ds={qcLe.map((x) => ({ x }))} sua={(id) => modal.open('qc', id)} /></NutCay>}
             <NutCay ten={<span style={{ display: 'flex', gap: 6 }}>
               <button className="btn ghost" onClick={() => modal.open('sp', `moi-${d.id}`)}>+ Sản phẩm của họ</button>
               <button className="btn ghost" onClick={() => modal.open('qc', `moi-${d.id}`)}>+ Quảng cáo</button></span>} />
@@ -206,9 +222,10 @@ export function BangDoiThu({ ds, sanPham, bienThe, ch }: { ds: DoiThuDong[]; san
             phu={qcs.length ? <>{qcs.length} quảng cáo · {qcs.filter((x) => x.q.dangChay).length} đang chạy · {nhom.size} góc: {[...nhom.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 4).map(([g, v]) => `${g} (${v.length})`).join(', ')}</> : p.cuaHang}>
             {qcs.length > 0 && [...nhom.entries()].sort((a, b) => b[1].length - a[1].length).map(([g, v]) => (
               <NutCay key={g} mo={mo.has(`${k}:${g}`)} onDoi={() => doi(`${k}:${g}`)}
-                ten={<><b>{g}</b><span style={phu}>{v.length} QC · {new Set(v.map((x) => x.d.id)).size} đối thủ · {v.filter((x) => x.q.dangChay).length} đang chạy</span></>}
+                ten={<><b>{g}</b><span style={phu}>{v.length} QC · {new Set(v.map((x) => x.d.id)).size} đối thủ · {v.filter((x) => x.q.dangChay).length} đang chạy</span>
+                  {(() => { const n = Math.max(-1, ...v.map((x) => soNgayChay(x.q.batDau, x.q.dangChay, x.q.luc) ?? -1)); return n > 0 ? <span style={{ color: n >= 30 ? 'var(--ok)' : undefined, fontSize: 12.5 }}>QC lâu nhất {n} ngày</span> : null; })()}</>}
                 phu={[...new Set(v.map((x) => x.q.dinhDang).filter(Boolean))].map((x) => DINH_DANG_QC[x!] ?? x).join(' · ') || undefined}>
-                {v.map(({ d, q }) => <DongQc key={q.id} x={q} tenDt={d.ten} sua={() => modal.open('qc', q.id)} />)}
+                <BangQc ds={v.map(({ d, q }) => ({ x: q, tenDt: d.ten }))} sua={(id) => modal.open('qc', id)} />
               </NutCay>
             ))}
           </NutCay>
@@ -248,8 +265,7 @@ function DrawerDoiThu({ loai, id, ds, sanPham, onClose }: { loai: string; id: st
         {loai === 'doi-thu' && <>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: 10 }}>
             <TextField id="dt-ten" label="Tên (brand / cửa hàng)" value={vd.ten} onChange={(e) => setVd({ ...vd, ten: e.target.value })} />
-            <SelectField id="dt-kenh" label="Bán ở" value={vd.kenhBan} onChange={(e) => setVd({ ...vd, kenhBan: e.target.value })}>
-              {Object.entries(KENH_BAN).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</SelectField>
+            <PickField label="Bán ở" value={vd.kenhBan} options={Object.entries(KENH_BAN).map(([k, t]) => ({ value: k, label: t }))} onChange={(k) => k && setVd({ ...vd, kenhBan: k })} />
           </div>
           <TextField id="dt-web" label="Website" placeholder="https://…" value={vd.website} onChange={(e) => setVd({ ...vd, website: e.target.value })} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: 10 }}>
@@ -263,13 +279,12 @@ function DrawerDoiThu({ loai, id, ds, sanPham, onClose }: { loai: string; id: st
           <div><button className="btn primary" disabled={dang} onClick={() => luu(() => shopSuaDoiThu(nId, vd))}>{dang ? 'Đang lưu…' : 'Lưu'}</button></div>
         </>}
         {loai === 'sp' && <>
-          {!chu && <SelectField id="dts-dt" label="Đối thủ" value={String(vs.doiThuId)} onChange={(e) => setVs({ ...vs, doiThuId: Number(e.target.value) })}>
-            {ds.map((x) => <option key={x.id} value={x.id}>{x.ten}</option>)}</SelectField>}
+          {!chu && <PickField label="Đối thủ" value={vs.doiThuId} options={ds.map((x) => ({ value: x.id, label: x.ten }))} onChange={(k) => k && setVs({ ...vs, doiThuId: k })} />}
           <TextField id="dts-url" label="Trang sản phẩm / trang đích của họ" placeholder="https://…" value={vs.url} onChange={(e) => setVs({ ...vs, url: e.target.value })} />
           <TextField id="dts-ten" label="Tên sản phẩm của họ" value={vs.ten} onChange={(e) => setVs({ ...vs, ten: e.target.value })} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', gap: 10 }}>
-            <SelectField id="dts-sp" label="Đụng sản phẩm nào của mình" value={vs.sanPhamId == null ? '' : String(vs.sanPhamId)} onChange={(e) => setVs({ ...vs, sanPhamId: e.target.value ? Number(e.target.value) : null })}>
-              <option value="">— chưa nối —</option>{sanPham.map((p) => <option key={p.id} value={p.id}>{p.cuaHang} · {p.ten}</option>)}</SelectField>
+            <PickField label="Đụng sản phẩm nào của mình" value={vs.sanPhamId} placeholder="— chưa nối —" clearable
+              options={sanPham.map((p) => ({ value: p.id, label: `${p.cuaHang} · ${p.ten}` }))} onChange={(k) => setVs({ ...vs, sanPhamId: k ?? null })} />
             <TextField id="dts-gia" label="Giá (USD)" inputMode="decimal" value={vs.gia} onChange={(e) => setVs({ ...vs, gia: e.target.value })} />
             <TextField id="dts-goc" label="Giá gạch" inputMode="decimal" value={vs.giaGoc} onChange={(e) => setVs({ ...vs, giaGoc: e.target.value })} />
           </div>
@@ -288,8 +303,7 @@ function DrawerDoiThu({ loai, id, ds, sanPham, onClose }: { loai: string; id: st
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 150px', gap: 10 }}>
             <TextField id="dtq-td" label="Tiêu đề (dưới media)" value={vq.tieuDe} onChange={(e) => setVq({ ...vq, tieuDe: e.target.value })} />
             <TextField id="dtq-cta" label="Nút CTA" placeholder="Shop Now" value={vq.cta} onChange={(e) => setVq({ ...vq, cta: e.target.value })} />
-            <SelectField id="dtq-dd" label="Định dạng" value={vq.dinhDang} onChange={(e) => setVq({ ...vq, dinhDang: e.target.value })}>
-              <option value="">—</option>{Object.entries(DINH_DANG_QC).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</SelectField>
+            <PickField label="Định dạng" value={vq.dinhDang} placeholder="—" clearable options={Object.entries(DINH_DANG_QC).map(([k, t]) => ({ value: k, label: t }))} onChange={(k) => setVq({ ...vq, dinhDang: k ?? '' })} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <TextField id="dtq-goc" label="Góc bán" placeholder="giảm đau bunion · bác sĩ khuyên · khách 60+ kể…" value={vq.goc} onChange={(e) => setVq({ ...vq, goc: e.target.value })} />
@@ -298,8 +312,8 @@ function DrawerDoiThu({ loai, id, ds, sanPham, onClose }: { loai: string; id: st
           <TextField id="dtq-media" label="Media (link ảnh / video)" placeholder="https://…" value={vq.media} onChange={(e) => setVq({ ...vq, media: e.target.value })} />
           <TextField id="dtq-land" label="Trang đích quảng cáo trỏ tới" placeholder="https://…" value={vq.landing} onChange={(e) => setVq({ ...vq, landing: e.target.value })} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px 140px', gap: 10 }}>
-            <SelectField id="dtq-sp" label="Đẩy sản phẩm nào của họ" value={vq.spId == null ? '' : String(vq.spId)} onChange={(e) => setVq({ ...vq, spId: e.target.value ? Number(e.target.value) : null })}>
-              <option value="">— chưa rõ —</option>{(chu?.sp ?? []).map((x) => <option key={x.id} value={x.id}>{x.ten ?? host(x.url)}</option>)}</SelectField>
+            <PickField label="Đẩy sản phẩm nào của họ" value={vq.spId} placeholder="— chưa rõ —" clearable
+              options={(chu?.sp ?? []).map((x) => ({ value: x.id, label: x.ten ?? host(x.url) }))} onChange={(k) => setVq({ ...vq, spId: k ?? null })} />
             <TextField id="dtq-ngay" label="Chạy từ" type="date" value={vq.batDau} onChange={(e) => setVq({ ...vq, batDau: e.target.value })} />
             <SelectField id="dtq-chay" label="Trạng thái" value={vq.dangChay == null ? '' : vq.dangChay ? '1' : '0'} onChange={(e) => setVq({ ...vq, dangChay: e.target.value === '' ? null : e.target.value === '1' })}>
               <option value="1">đang chạy</option><option value="0">đã dừng</option><option value="">chưa rõ</option></SelectField>

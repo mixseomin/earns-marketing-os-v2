@@ -4,12 +4,12 @@
 // Toàn bộ dựng trên primitive nhà (DataTable · Drawer · Tabs · FilterChips · StatsStrip · Panel · SimpleTable · LinkChip · TextField ·
 // EmptyState · Pill). Định dạng tiền/giờ/link vận đơn: lib/shop/buoc.ts (một bản cho cả máy chủ + trình duyệt).
 import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
-import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   DaiLuong, DataTable, Drawer, SelectField, ThanhChang, type NutLuong, EmptyState, FilterChips, LinkChip, Panel, Pill, SimpleTable, StatsStrip, Tabs, TextAreaField, TextField, type DataColumn,
 } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
+import { useShallowParam, writeShallowParam } from '@/lib/url-shallow';
 import { hrefTab, tabCua } from '@/lib/tab-trang';
 import { KhachTrucTiep } from './shop-truc-tiep';
 import { BangTuVan } from './shop-tu-van';
@@ -45,24 +45,17 @@ function BuocPill({ b }: { b: Buoc }) {
 const VanDon = ({ ma }: { ma: string }) => <LinkChip href={linkVanDon(ma)} tone="neutral" size="xs" onClick={(e) => e.stopPropagation()}>{ma} ↗</LinkChip>;
 
 export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, danhMuc, bienDong, doiThu }: { don: DonDong[]; bienThe: BienTheDong[]; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; danhGia: DanhGiaDong[]; hoSo: HoSoDong[]; ncc: NccDong[]; danhMuc: NccSpDong[]; bienDong: BienDongNcc[]; doiThu: DoiThuDong[] }) {
-  const sp = useSearchParams();
-  // link cũ ?tab=van_chuyen → Đơn hàng lọc "Đang giao"
-  const tabCu = sp.get('tab') === 'van_chuyen';
-  const [tab, setTab] = useState<Tab>(tabCu ? 'don' : (sp.get('tab') as Tab) || 'don');
-  const [buoc, setBuoc] = useState<string>(sp.get('b') || (tabCu ? 'dang_giao' : 'all'));
-  const [ch, setCh] = useState<string>(sp.get('ch') || 'all');
-  const [ht, setHt] = useState<string>(sp.get('ht') || '');
+  const [tabUrl, datTab] = useShallowParam('tab', 'don');
+  const tab = tabUrl as Tab, setTab = (t: Tab) => datTab(t);
+  const [buoc, setBuoc] = useShallowParam('b', 'all');
+  const [ch, setCh] = useShallowParam('ch', 'all');
+  const [ht, setHt] = useShallowParam('ht', '');
+  // link cũ ?tab=van_chuyen (tab đã gộp vào Đơn hàng) → Đơn hàng lọc "Đang giao"
+  useEffect(() => { if (tabUrl === 'van_chuyen') { setTab('don'); if (buoc === 'all') setBuoc('dang_giao'); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const modal = useModalParam();
   const [dangChay, batDau] = useTransition();
   const [bao, setBao] = useState<string | null>(null);
 
-  useEffect(() => {
-    const u = new URLSearchParams(window.location.search);
-    const dat = (k: string, v: string, mac: string) => (v && v !== mac ? u.set(k, v) : u.delete(k));
-    dat('tab', tab, 'don'); dat('b', buoc, 'all'); dat('ch', ch, 'all'); dat('ht', ht, '');
-    const qs = u.toString();
-    window.history.replaceState(window.history.state, '', qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
-  }, [tab, buoc, ch, ht]);
 
   const theoCh = useMemo(() => don.filter((d) => ch === 'all' || d.cuaHang === ch), [don, ch]);
   const dem = useMemo(() => { const c: Partial<Record<string, number>> = { all: theoCh.length }; for (const d of theoCh) c[d.buoc] = (c[d.buoc] ?? 0) + 1; return c; }, [theoCh]);
@@ -192,7 +185,7 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, d
         {tab === 'danh_gia' && <BangDanhGia ds={dgs} />}
         {tab === 'ha_tang' && <BangHaTang ch={ch} />}
         {tab === 'cua_hang' && <div style={{ display: 'grid', gap: 12 }}>{cuaHang.filter((c) => ch === 'all' || c.khoa === ch).map((c) => (
-          <TheCuaHang key={c.id} c={c} moCaiDat={(muc) => { if (muc) { const u = new URLSearchParams(window.location.search); u.set('cs', muc); window.history.replaceState(window.history.state, '', `${window.location.pathname}?${u.toString()}`); } modal.open('cai-dat', c.id); }} />))}</div>}
+          <TheCuaHang key={c.id} c={c} moCaiDat={(muc) => { if (muc) writeShallowParam('cs', muc); modal.open('cai-dat', c.id); }} />))}</div>}
       </div>
 
       {modal.is('cai-dat') && modal.numId != null && cuaHang.some((c) => c.id === modal.numId) && <DrawerCaiDat c={cuaHang.find((c) => c.id === modal.numId)!} onClose={() => modal.close()} />}

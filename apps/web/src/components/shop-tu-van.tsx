@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { Drawer, LinkChip, Pill, TextAreaField, ThanhChang } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
+import { useShallowParam } from '@/lib/url-shallow';
 import { fmtAgoVi } from '@/lib/time-format';
 import { CHANG_PHIEN } from '@mos2/shop/phien';
 import { gio, isoCua } from '@/lib/shop/buoc';
@@ -43,12 +44,8 @@ export function BangTuVan({ ch }: { ch: string }) {
   const tat = useMemo(() => (ds ?? []).filter((c) => ch === 'all' || c.cuaHang === ch), [ds, ch]);
   const duyet = tat.filter(choDuyet).sort((a, b) => ms(a.khachCuoi) - ms(b.khachCuoi));
   // Tập trung (anh chốt 01/10/2026): khách đã rời site mà không còn chờ mình thì ẩn khỏi các cột — còn chờ (tin cuối là của khách) vẫn hiện
-  const [hienRoi, setHienRoi] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tvr') === '1');
-  useEffect(() => {
-    const u = new URLSearchParams(window.location.search);
-    if (hienRoi) u.set('tvr', '1'); else u.delete('tvr');
-    window.history.replaceState(window.history.state, '', `${window.location.pathname}?${u.toString()}`);
-  }, [hienRoi]);
+  const [tvr, setTvr] = useShallowParam('tvr', '');
+  const hienRoi = tvr === '1', setHienRoi = (b: boolean) => setTvr(b ? '1' : '');
   const canNhin = (c: ChatDong) => !!c.phien?.online || c.tinCuoi?.nguoi === 'khach' || !!c.nhap?.dang_soan;
   const conLaiHet = tat.filter((c) => !choDuyet(c));
   const conLai = conLaiHet.filter((c) => hienRoi || canNhin(c));

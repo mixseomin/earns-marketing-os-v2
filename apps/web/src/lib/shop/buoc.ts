@@ -94,3 +94,13 @@ export function thuTuSize(co: string): number {
   const so = /(\d+(?:\.\d+)?)/.exec(c);
   return so ? 100 + Number(so[1]) : 10_000;
 }
+
+/** Số ngày một quảng cáo đã chạy: từ ngày bắt đầu tới hôm nay (đang chạy) hoặc tới lần thấy gần nhất (đã dừng). Không rõ ngày bắt đầu → null.
+ *  QC chạy càng lâu càng là tín hiệu có lãi (không ai đốt tiền vài tháng cho QC lỗ) — màn Đối thủ xếp theo số này. */
+export function soNgayChay(batDau: string | null, dangChay: boolean | null, luc: string | null, bayGio = Date.now()): number | null {
+  if (!batDau) return null;
+  const tu = Date.parse(`${batDau.slice(0, 10)}T00:00:00Z`);
+  const den = dangChay === false && luc ? Date.parse(isoCua(luc)) : bayGio;
+  if (!Number.isFinite(tu) || !Number.isFinite(den)) return null;
+  return Math.max(1, Math.floor((den - tu) / 86_400_000) + 1);
+}

@@ -4,9 +4,9 @@
 // của shop). NCC: CJ không có API nhắn tin → chép lời NCC/mình vào luồng để có một chỗ nhìn lại. Sổ: shop_ho_so (@mos2/shop/ho-so).
 // URL: ?hs trạng thái · ?hl loại · ?m=ho-so&mId= drawer.
 import { useEffect, useMemo, useState, useTransition } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { DaiLuong, DataTable, Drawer, EmptyState, FilterChips, LinkChip, Panel, Pill, SelectField, TextAreaField, TextField, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
+import { useShallowParam } from '@/lib/url-shallow';
 import { fmtAgoVi } from '@/lib/time-format';
 import { LOAI_HO_SO, NHAN_LOAI, TRANG_THAI_HO_SO, type Ben } from '@mos2/shop/ho-so';
 import { gio, isoCua, tien } from '@/lib/shop/buoc';
@@ -24,20 +24,12 @@ const NHAN_TT = Object.fromEntries(TRANG_THAI_HO_SO.map((t) => [t.key, t.nhan]))
 const NGUOI: Record<string, string> = { khach: 'Khách', ncc: 'NCC', minh: 'Mình', may: 'Máy' };
 
 export function BangHoSo({ ben, ch, ds: dau, cuaHang }: { ben: Ben; ch: string; ds: HoSoDong[]; cuaHang: CuaHangDong[] }) {
-  const sp = useSearchParams();
   const [ds, setDs] = useState(dau);
-  const [tt, setTt] = useState(sp.get('hs') || '');
-  const [loai, setLoai] = useState(sp.get('hl') || 'all');
+  const [tt, setTt] = useShallowParam('hs', '');
+  const [loai, setLoai] = useShallowParam('hl', 'all');
   const [moi, setMoi] = useState(false);
   const modal = useModalParam();
   useEffect(() => setDs(dau), [dau]);
-  useEffect(() => {
-    const u = new URLSearchParams(window.location.search);
-    if (tt) u.set('hs', tt); else u.delete('hs');
-    if (loai !== 'all') u.set('hl', loai); else u.delete('hl');
-    const qs = u.toString();
-    window.history.replaceState(window.history.state, '', qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
-  }, [tt, loai]);
   const nap = () => shopHoSo().then(setDs).catch(() => null);
 
   const cuaBen = useMemo(() => ds.filter((h) => h.ben === ben && (ch === 'all' || h.cuaHang === ch)), [ds, ben, ch]);

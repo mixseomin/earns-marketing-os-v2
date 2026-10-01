@@ -1,7 +1,7 @@
 'use client';
 // Drawer sửa / THÊM một NCC (sổ shop_ncc; khoa rỗng = thêm mới): kênh (CJ · Alibaba · 1688 …), tên, website, tài khoản của mình (mã/email — KHÔNG mật khẩu), các link, người/kênh liên hệ, ghi chú.
 import { useState, useTransition } from 'react';
-import { Drawer, SelectField, TextAreaField, TextField } from '@/components/ui';
+import { Drawer, PickField, TextAreaField, TextField } from '@/components/ui';
 import type { NccDong } from '@/lib/shop/ho-so-doc';
 import { KENH_NCC } from '@/lib/shop/buoc';
 import { shopSuaNcc } from '@/lib/actions/shop';
@@ -20,9 +20,8 @@ export function SuaNcc({ n, onClose }: { n: NccDong; onClose: () => void }) {
       <div style={{ display: 'grid', gap: 12 }}>
         <h2 style={{ margin: 0, fontSize: 17 }}>{n.khoa ? `Nhà cung cấp · ${n.ten}` : 'Thêm nhà cung cấp'}</h2>
         <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 1fr', gap: 10 }}>
-          <SelectField id="ncc-kenh-goc" label="Kênh" value={v.kenh} disabled={n.coApi} onChange={(e) => setV({ ...v, kenh: e.target.value })}
-            hint={KENH_NCC[v.kenh]?.chu}>
-            {Object.entries(KENH_NCC).map(([k, x]) => <option key={k} value={k}>{x.ten}</option>)}</SelectField>
+          <PickField label="Kênh" value={v.kenh} disabled={n.coApi} hint={KENH_NCC[v.kenh]?.chu}
+            options={Object.entries(KENH_NCC).map(([k, x]) => ({ value: k, label: x.ten }))} onChange={(k) => k && setV({ ...v, kenh: k })} />
           <TextField id="ncc-ten" label={v.kenh === 'cj' ? 'Tên' : 'Tên nhà bán / xưởng'} value={v.ten} onChange={(e) => setV({ ...v, ten: e.target.value })} />
           <TextField id="ncc-web" label="Website" value={v.website} onChange={(e) => setV({ ...v, website: e.target.value })} placeholder="https://…" />
         </div>
@@ -30,8 +29,8 @@ export function SuaNcc({ n, onClose }: { n: NccDong; onClose: () => void }) {
         <b style={{ fontSize: 13 }}>Người / kênh liên hệ</b>
         {v.lienHe.map((l, i) => (
           <div key={i} style={{ display: 'grid', gridTemplateColumns: '130px 1fr 1fr auto', gap: 6, alignItems: 'end' }}>
-            <SelectField id={`ncc-kenh-${i}`} size="sm" value={l.kenh} onChange={(e) => setV({ ...v, lienHe: v.lienHe.map((x, j) => (j === i ? { ...x, kenh: e.target.value } : x)) })}>
-              {KENH.map(([k, t]) => <option key={k} value={k}>{t}</option>)}</SelectField>
+            <PickField value={l.kenh} options={KENH.map(([k, t]) => ({ value: k, label: t }))}
+              onChange={(k) => k && setV({ ...v, lienHe: v.lienHe.map((x, j) => (j === i ? { ...x, kenh: k } : x)) })} />
             <TextField id={`ncc-gt-${i}`} size="sm" value={l.gia_tri} placeholder="email / số / id / link" onChange={(e) => setV({ ...v, lienHe: v.lienHe.map((x, j) => (j === i ? { ...x, gia_tri: e.target.value } : x)) })} />
             <TextField id={`ncc-nguoi-${i}`} size="sm" value={l.ten} placeholder="tên người (agent)" onChange={(e) => setV({ ...v, lienHe: v.lienHe.map((x, j) => (j === i ? { ...x, ten: e.target.value } : x)) })} />
             <button className="btn ghost" onClick={() => setV({ ...v, lienHe: v.lienHe.filter((_, j) => j !== i) })}>Bỏ</button>

@@ -3,9 +3,9 @@
 // (trang xem, % cuộn, bấm gì, chọn mẫu, thêm giỏ, checkout…). Tự gọi lại mỗi 5 giây khi tab đang hiện. Sổ: shop_phien (apps/store
 // /api/phien ghi), phễu + nhãn: @mos2/shop/phien. URL: ?kc cửa sổ · ?pc chặng đang lọc · ?m=phien&mId= drawer.
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { DaiLuong, DataTable, Drawer, EmptyState, FilterChips, LinkChip, Panel, Pill, SimpleTable, StatsStrip, ThanhChang, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
+import { useShallowParam } from '@/lib/url-shallow';
 import { fmtAgoVi } from '@/lib/time-format';
 import { APP_TZ } from '@/lib/local-day';
 import { CHANG_PHIEN, CUA_SO, NHAN_SU_KIEN, type CuaSo } from '@mos2/shop/phien';
@@ -25,20 +25,13 @@ const Cham = ({ on }: { on: boolean }) => <span title={on ? 'Đang trên site' :
 const NHIP = 5_000;
 
 export function KhachTrucTiep({ ch }: { ch: string }) {
-  const sp = useSearchParams();
-  const [cuaSo, setCuaSo] = useState<CuaSo>((sp.get('kc') as CuaSo) || '30p');
-  const [pc, setPc] = useState(sp.get('pc') || '');
+  const [kc, setKc] = useShallowParam('kc', '30p');
+  const cuaSo = kc as CuaSo, setCuaSo = (x: CuaSo) => setKc(x);
+  const [pc, setPc] = useShallowParam('pc', '');
   const [rows, setRows] = useState<PhienDong[] | null>(null);
   const [luc, setLuc] = useState<number>(0);
   const modal = useModalParam();
 
-  useEffect(() => {
-    const u = new URLSearchParams(window.location.search);
-    if (cuaSo !== '30p') u.set('kc', cuaSo); else u.delete('kc');
-    if (pc) u.set('pc', pc); else u.delete('pc');
-    const qs = u.toString();
-    window.history.replaceState(window.history.state, '', qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
-  }, [cuaSo, pc]);
   useEffect(() => {
     let song = true;
     const nap = () => shopPhien(cuaSo).then((r) => { if (song) { setRows(r); setLuc(Date.now()); } }).catch(() => null);

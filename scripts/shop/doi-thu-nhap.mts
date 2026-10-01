@@ -1,34 +1,34 @@
-#!/usr/bin/env node
 // Nạp kết quả tìm đối thủ (JSON) vào sổ shop_doi_thu / _sp / _qc (migration 0206). In ra SQL — chạy lại được (ON CONFLICT DO NOTHING / chỉ điền chỗ trống).
-//   node scripts/shop/doi-thu-nhap.mjs scripts/shop/doi-thu-tim.json > /tmp/doi-thu.sql
+//   node_modules/.bin/tsx --tsconfig apps/web/tsconfig.json scripts/shop/doi-thu-nhap.mts scripts/shop/doi-thu-tim.json > /tmp/doi-thu.sql
 //   scp /tmp/doi-thu.sql box3:/tmp/ && ssh box3 'psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f /tmp/doi-thu.sql'
 // JSON: {doi_thu:[{ten, website, kenh_ban, fb_page_url, fb_page_id, tiktok, nguon_tim, ghi_chu,
 //         san_pham:[{our_product, ten, url, gia, gia_goc, khop, ghi_chu}],
 //         quang_cao:[{nen_tang, link, hook, tieu_de, cta, dinh_dang, goc, uu_dai, media, so_phien_ban, landing, bat_dau, dang_chay, ghi_chu, sp_url?}]}]}
 // our_product → sản phẩm của mình theo (cửa hàng, ma_ngoai hoặc slug) ở bảng SAN_PHAM dưới.
 import { readFileSync } from 'node:fs';
+// khoá hợp lệ lấy từ CÙNG sổ nhãn mà server action + màn dùng — không chép bản thứ hai
+import { DINH_DANG_QC, KENH_BAN, KHOP_DOI_THU, NEN_TANG_QC } from '../../apps/web/src/lib/shop/buoc';
 
-const SAN_PHAM = {
+const SAN_PHAM: Record<number, [string, string, string]> = {
   1: ['mellowstep', 'slug', 'mellowstep-wide-toe-barefoot-walker'],
   2: ['mellowstep', 'slug', 'mellowstep-cloud-wide-fit-sneaker'],
   3: ['mellowstep', 'slug', 'mellowstep-easy-slip-on-walking-shoe'],
   4: ['demo-bra', 'ma_ngoai', 'lb-1'],
 };
-const KENH = new Set(['dtc', 'amazon', 'walmart', 'aliexpress', 'temu', 'tiktok_shop', 'khac']);
-const KHOP = new Set(['dung_mau', 'gan', 'khac', 'chua_xac_nhan']);
-const NT = new Set(['meta', 'tiktok', 'google', 'khac']);
-const DD = new Set(['video', 'ugc_video', 'anh', 'carousel', 'slideshow']);
+const KENH = new Set(Object.keys(KENH_BAN)), KHOP = new Set(Object.keys(KHOP_DOI_THU)), NT = new Set(Object.keys(NEN_TANG_QC)), DD = new Set(Object.keys(DINH_DANG_QC));
 
-const t = (v) => (v === null || v === undefined || v === '' ? 'NULL' : `'${String(v).replace(/'/g, "''")}'`);
-const n = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? 'NULL' : String(Math.round(Number(v) * 100) / 100));
-const url = (v) => (typeof v === 'string' && /^https?:\/\/\S+$/.test(v.trim()) ? t(v.trim()) : 'NULL');
-const ngay = (v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? `'${v.slice(0, 10)}'::date` : 'NULL');
-const bool = (v) => (v === true ? 'true' : v === false ? 'false' : 'NULL');
-const spMinh = (k) => { const x = SAN_PHAM[k]; return x ? `(SELECT p.id FROM shop_san_pham p JOIN shop_cua_hang c ON c.id = p.cua_hang_id WHERE c.khoa = ${t(x[0])} AND p.${x[1]} = ${t(x[2])})` : 'NULL'; };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type J = any;
+const t = (v: J) => (v === null || v === undefined || v === '' ? 'NULL' : `'${String(v).replace(/'/g, "''")}'`);
+const n = (v: J) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? 'NULL' : String(Math.round(Number(v) * 100) / 100));
+const url = (v: J) => (typeof v === 'string' && /^https?:\/\/\S+$/.test(v.trim()) ? t(v.trim()) : 'NULL');
+const ngay = (v: J) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? `'${v.slice(0, 10)}'::date` : 'NULL');
+const bool = (v: J) => (v === true ? 'true' : v === false ? 'false' : 'NULL');
+const spMinh = (k: number) => { const x = SAN_PHAM[k]; return x ? `(SELECT p.id FROM shop_san_pham p JOIN shop_cua_hang c ON c.id = p.cua_hang_id WHERE c.khoa = ${t(x[0])} AND p.${x[1]} = ${t(x[2])})` : 'NULL'; };
 
 const f = process.argv[2];
 if (!f) { console.error('cần đường dẫn JSON'); process.exit(1); }
-const j = JSON.parse(readFileSync(f, 'utf8'));
+const j: J = JSON.parse(readFileSync(f, 'utf8'));
 const out = ['BEGIN;'];
 for (const d of j.doi_thu ?? []) {
   if (!d.ten) continue;

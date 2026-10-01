@@ -43,8 +43,7 @@ export function TheoDoiPhien() {
   // Mỗi trang: một sự kiện xem trang, mốc cuộn tính lại từ 0
   useEffect(() => {
     cuonMax = 0;
-    ghiPhien('xem_trang', { tieu_de: document.title.slice(0, 80) });
-    if (duong === '/checkout') ghiPhien('checkout');
+    ghiPhien('xem_trang', { tieu_de: document.title.slice(0, 80) });   // bước "Vào checkout" do bao('begin_checkout') ghi — chỉ khi giỏ có hàng
   }, [duong]);
   useEffect(() => {
     const MOC = [25, 50, 75, 100];

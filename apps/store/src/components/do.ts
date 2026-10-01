@@ -13,7 +13,7 @@ export function bao(ten: string, v: { value: number; items: MonDo[]; transaction
   const w = window as W;
   // cùng nhịp vào sổ phiên của mình (mos2 /shop › Khách trực tiếp) — một chỗ bắn, mọi bước mua tự có mặt
   const chang = BAO_SANG_CHANG[ten];
-  if (chang) ghiPhien(chang, { value: v.value, so: v.transaction_id, mon: v.items.map((i) => (i.item_variant ? `${i.item_name} · ${i.item_variant}` : i.item_name)).slice(0, 5) });
+  if (chang) ghiPhien(chang, { value: v.value, so: v.transaction_id, mon: v.items.map((i) => (i.item_variant ? `${i.item_name} · ${i.item_variant.replace(/\s*\n\s*/g, ' / ')}` : i.item_name)).slice(0, 5) });
   w.gtag?.('event', ten, { currency: 'USD', ...v });
   const fb = FB[ten];
   if (fb) w.fbq?.('track', fb, { currency: 'USD', value: v.value, content_type: 'product', content_ids: v.items.map((i) => i.item_id),

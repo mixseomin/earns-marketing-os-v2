@@ -71,5 +71,4 @@ export async function cj<T = Record<string, unknown>>(path: string, body?: unkno
 /** Số ngày giao tối đa từ chuỗi "4-7" / "5-11". */
 export const ngayToiDa = (s: unknown) => Math.max(...(String(s ?? '').match(/\d+/g) ?? ['99']).map(Number));
 
-export const LINK_DS_CJ = 'https://www.cjdropshipping.com/mine/dropshipping/orderList?orderType=3&childType=1';
-export const linkVanDon = (ma: string) => `https://t.17track.net/en#nums=${encodeURIComponent(ma)}`;
+export { LINK_DS_CJ, linkVanDon } from './buoc';

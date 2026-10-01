@@ -250,6 +250,7 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
         { href: '/roadmap',   icon: '🗺', color: 'var(--neon-cyan)',   label: 'Roadmap',  sub: 'phases · deps' },
         { href: '/opportunities', icon: '🎯', color: 'var(--neon-lime)', label: 'Opportunities', sub: 'đặt sản phẩm tiếp theo ở đâu', role: 'admin' },
         { href: '/products', icon: '📦', color: 'var(--neon-cyan)', label: 'Products', sub: 'hàng mình bán · nền tảng nào ra tiền', role: 'admin' },
+        { href: '/shop', icon: '🛒', color: 'var(--neon-lime)', label: 'Shop', sub: 'đơn · NCC · vận đơn (mellowstep…)', role: 'admin' },
       ],
     },
     {

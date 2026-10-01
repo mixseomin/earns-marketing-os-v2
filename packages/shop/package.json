@@ -12,6 +12,7 @@
     "./hanh-trinh": "./src/hanh-trinh.ts",
     "./video": "./src/video.ts",
     "./phien": "./src/phien.ts",
+    "./ho-so": "./src/ho-so.ts",
     "./gia": "./src/gia.ts",
     "./mat-tien": "./src/mat-tien.ts",
     "./thu": "./src/thu.ts",

@@ -12,12 +12,15 @@ import {
 import { useModalParam } from '@/lib/use-modal-param';
 import { hrefTab, tabCua } from '@/lib/tab-trang';
 import { KhachTrucTiep } from './shop-truc-tiep';
+import { BangHoSo } from './shop-ho-so';
+import type { HoSoDong } from '@/lib/shop/ho-so-doc';
 import { CHANG, type HanhTrinh, type KhoaChang } from '@mos2/shop/hanh-trinh';
 import { BUOC, LINK_DS_CJ, NHAN_BUOC, gio, isoCua, linkVanDon, soNgayTu, tien, type Buoc } from '@/lib/shop/buoc';
 import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, SanPhamDong, ThamKhao } from '@/lib/shop/doc';
+import { shopMoHoSo } from '@/lib/actions/shop';
 import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaBienThe, shopSuaCauHinh, shopSuaMatTien, shopSuaSanPham, shopSuaThamKhao, shopTraNcc } from '@/lib/actions/shop';
 
-type Tab = 'don' | 'truc_tiep' | 'van_chuyen' | 'san_pham' | 'danh_gia' | 'cua_hang';
+type Tab = 'don' | 'truc_tiep' | 'van_chuyen' | 'khach_ph' | 'ncc' | 'san_pham' | 'danh_gia' | 'cua_hang';
 // Màu bước = tín hiệu: amber chờ người, đỏ lỗi/trễ, xanh đã giao; bước đang chạy bình thường để trung tính.
 const MAU: Record<string, string> = { muted: 'var(--fg-3)', warn: 'var(--warn)', bad: 'var(--bad)', ok: 'var(--ok)' };
 const MAU_BUOC = Object.fromEntries(BUOC.map((b) => [b.key, MAU[b.mau]])) as Record<Buoc, string>;
@@ -31,7 +34,7 @@ function BuocPill({ b }: { b: Buoc }) {
 }
 const VanDon = ({ ma }: { ma: string }) => <LinkChip href={linkVanDon(ma)} tone="neutral" size="xs" onClick={(e) => e.stopPropagation()}>{ma} ↗</LinkChip>;
 
-export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia }: { don: DonDong[]; bienThe: BienTheDong[]; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; danhGia: DanhGiaDong[] }) {
+export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo }: { don: DonDong[]; bienThe: BienTheDong[]; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; danhGia: DanhGiaDong[]; hoSo: HoSoDong[] }) {
   const sp = useSearchParams();
   const [tab, setTab] = useState<Tab>((sp.get('tab') as Tab) || 'don');
   const [buoc, setBuoc] = useState<string>(sp.get('b') || 'all');
@@ -57,6 +60,8 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia }: { don: Don
   const sps = useMemo(() => sanPham.filter((p) => ch === 'all' || p.cuaHang === ch), [sanPham, ch]);
   const dgs = useMemo(() => danhGia.filter((g) => ch === 'all' || g.cuaHang === ch), [danhGia, ch]);
   const choDuyet = dgs.filter((g) => g.trangThai === 'cho').length;
+  // badge hồ sơ = việc mình phải đụng: Mới + Đang xử lý (Chờ bên kia không tính)
+  const canLam = (ben: 'khach' | 'ncc') => hoSo.filter((h) => h.ben === ben && (ch === 'all' || h.cuaHang === ch) && (h.trangThai === 'moi' || h.trangThai === 'dang_xu_ly')).length;
   const canXuLy = (dem.cho_ncc ?? 0) + (dem.loi_ncc ?? 0) + (dem.cho_tra ?? 0) + (dem.tre ?? 0);
 
   // KPI 30 ngày: đơn đã trả tiền (bỏ chưa trả + huỷ), doanh thu sau hoàn, lãi ước (đơn đủ giá vốn), đơn cần xử lý
@@ -129,7 +134,8 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia }: { don: Don
       ]} />
 
       <Tabs<Tab> value={tab} onChange={setTab} hrefFor={(k) => hrefTab('/shop', k)}
-        items={tabCua<Tab>('/shop', { don: canXuLy || undefined, van_chuyen: dem.tre || undefined, san_pham: thieuMa || undefined, danh_gia: choDuyet || undefined })} />
+        items={tabCua<Tab>('/shop', { don: canXuLy || undefined, van_chuyen: dem.tre || undefined, san_pham: thieuMa || undefined, danh_gia: choDuyet || undefined,
+          khach_ph: canLam('khach') || undefined, ncc: canLam('ncc') || undefined })} />
 
       <div style={{ marginTop: 10 }}>
         {tab === 'don' && (<>
@@ -155,12 +161,13 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia }: { don: Don
           : <EmptyState icon="🚚" compact title="Chưa có đơn nào ở NCC hay trên đường" />)}
 
         {tab === 'truc_tiep' && <KhachTrucTiep ch={ch} />}
+        {(tab === 'khach_ph' || tab === 'ncc') && <BangHoSo key={tab} ben={tab === 'ncc' ? 'ncc' : 'khach'} ch={ch} ds={hoSo} cuaHang={cuaHang} />}
         {tab === 'san_pham' && <BangSanPham bienThe={bt} sanPham={sps} />}
         {tab === 'danh_gia' && <BangDanhGia ds={dgs} />}
         {tab === 'cua_hang' && <div style={{ display: 'grid', gap: 12 }}>{cuaHang.map((c) => <TheCuaHang key={c.id} c={c} />)}</div>}
       </div>
 
-      {modal.is('don') && modal.numId != null && <DrawerDon id={modal.numId} onClose={() => modal.close()} />}
+      {modal.is('don') && modal.numId != null && <DrawerDon id={modal.numId} hoSo={hoSo.filter((h) => h.donId === modal.numId)} onClose={() => modal.close()} />}
     </div>
   );
 }
@@ -208,7 +215,7 @@ function BangHanhTrinh({ ht, soNgay, guiLuc }: { ht: HanhTrinh; soNgay: string |
 }
 
 /* ── Drawer một đơn: đầu ghim (số đơn · bước · hành động) + 2 tab Đơn | Nhật ký ─────────────────── */
-function DrawerDon({ id, onClose }: { id: number; onClose: () => void }) {
+function DrawerDon({ id, hoSo, onClose }: { id: number; hoSo: HoSoDong[]; onClose: () => void }) {
   const [ct, setCt] = useState<ChiTietDon | null>(null);
   const [loi, setLoi] = useState<string | null>(null);
   const [dangChay, batDau] = useTransition();
@@ -253,6 +260,18 @@ function DrawerDon({ id, onClose }: { id: number; onClose: () => void }) {
             {d.ncc?.maVanDon && <LinkChip href={linkVanDon(d.ncc.maVanDon)} tone="neutral">Vận đơn ↗</LinkChip>}
           </div>
           {(loi || d.ncc?.loi) && <div style={{ color: 'var(--bad)', fontSize: 13 }}>{loi ?? d.ncc?.loi}</div>}
+          {/* Hồ sơ trao đổi của đơn này (khách / NCC) — mở mới ngay từ đơn, bấm hồ sơ để vào luồng tin */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', fontSize: 12.5 }}>
+            <span style={phu}>Hồ sơ:</span>
+            {hoSo.map((h) => <LinkChip key={h.id} href={`/shop?tab=${h.ben === 'ncc' ? 'ncc' : 'khach_ph'}&m=ho-so&mId=${h.id}`} tone="neutral" size="xs">
+              #{h.id} {h.ben === 'ncc' ? 'NCC' : 'khách'} · {h.tieuDe.slice(0, 40)}</LinkChip>)}
+            {(['khach', 'ncc'] as const).map((ben) => (
+              <button key={ben} className="btn ghost" disabled={dangChay} onClick={() => batDau(async () => {
+                const r = await shopMoHoSo({ khoa: d.cuaHang, ben, loai: ben === 'ncc' ? 'hoi' : 'khieu_nai', tieuDe: `Đơn #${d.soDon}`, soDon: d.soDon });
+                if (r.ok && r.id) window.location.href = `/shop?tab=${ben === 'ncc' ? 'ncc' : 'khach_ph'}&m=ho-so&mId=${r.id}`; else setLoi(r.loi ?? 'lỗi');
+              })}>+ Hồ sơ {ben === 'ncc' ? 'NCC' : 'khách'}</button>
+            ))}
+          </div>
 
           <Tabs<'don' | 'nhat_ky'> value={tab} onChange={setTab} items={[
             { key: 'don', label: 'Đơn' },

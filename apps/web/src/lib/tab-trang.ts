@@ -25,6 +25,8 @@ export const TAB_TRANG = {
     { key: 'don', label: 'Đơn hàng', title: 'Luồng đơn toàn cảnh + bảng đơn' },
     { key: 'truc_tiep', label: 'Khách trực tiếp', title: 'Ai đang trên site: trang đang xem, cuộn %, bấm gì, tới bước nào của phễu mua (kiểu GA4 thời gian thực)' },
     { key: 'van_chuyen', label: 'Vận chuyển', title: 'Đơn ở NCC / trên đường' },
+    { key: 'khach_ph', label: 'Khách phản hồi', title: 'Liên hệ, khiếu nại, đổi trả, hoàn tiền, dispute — luồng tin + trả lời email' },
+    { key: 'ncc', label: 'Nhà cung cấp', title: 'Trao đổi với NCC: hỏi, khiếu nại/dispute CJ, giục giao' },
     { key: 'san_pham', label: 'Sản phẩm', title: 'Biến thể ↔ mã CJ · mặt tiền · tham khảo' },
     { key: 'danh_gia', label: 'Đánh giá', title: 'Review khách gửi — duyệt' },
     { key: 'cua_hang', label: 'Cửa hàng', title: 'Cấu hình cửa hàng + mặt tiền' },

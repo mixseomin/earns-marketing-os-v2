@@ -4,6 +4,9 @@ import { dsVideo } from '@mos2/shop/video';
 import { CUA_SO, type CuaSo } from '@mos2/shop/phien';
 import { docPhien, docSuKienPhien } from '@/lib/shop/phien';
 import { ga4ThoiGianThuc } from '@/lib/shop/ga4-tt';
+import { docHoSo, docTinHoSo } from '@/lib/shop/ho-so-doc';
+import { LOAI_HO_SO, TRANG_THAI_HO_SO, moHoSo, themTin, type Ben } from '@mos2/shop/ho-so';
+import { guiThu, matTien } from '@mos2/shop';
 import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
@@ -148,4 +151,71 @@ export async function shopGa4TT(ch: string) {
   await admin();
   const ds = (await dsCuaHang(false)).filter((c) => (ch === 'all' || c.khoa === ch) && c.cau_hinh.ga4_property);
   return Promise.all(ds.map(async (c) => ({ cuaHang: c.ten, ...(await ga4ThoiGianThuc(c.cau_hinh.ga4_property!)) })));
+}
+
+/* ── Hồ sơ trao đổi (khách / NCC) ── */
+export async function shopHoSo() { await admin(); return docHoSo(); }
+export async function shopTinHoSo(id: number) { await admin(); return docTinHoSo(Number(id)); }
+
+/** Mở hồ sơ tay (hoặc từ drawer đơn). soDon tra ra đơn của đúng cửa hàng; noiDung = tin đầu tiên (ai nói gì). */
+export async function shopMoHoSo(v: { khoa: string; ben: Ben; loai: string; tieuDe: string; soDon?: string; ten?: string; email?: string; noiDung?: string; nguoi?: string }) {
+  await admin();
+  const ch = await cuaHangTheoKhoa(v.khoa);
+  if (!ch) return { ok: false, loi: 'không thấy cửa hàng' };
+  if (!LOAI_HO_SO[v.ben]?.some((l) => l.key === v.loai)) return { ok: false, loi: 'loại không hợp lệ' };
+  if (!v.tieuDe?.trim()) return { ok: false, loi: 'thiếu tiêu đề' };
+  const so = (v.soDon ?? '').replace(/^#/, '').trim();
+  const [d] = so ? ((await db().execute(sql`SELECT id, khach->>'email' AS email, khach->>'ten' AS ten FROM shop_don WHERE cua_hang_id = ${ch.id} AND so_don = ${so} LIMIT 1`)) as unknown as { id: number; email: string; ten: string }[]) : [];
+  if (so && !d) return { ok: false, loi: `không thấy đơn #${so}` };
+  const h = await moHoSo({ cuaHangId: ch.id, ben: v.ben, loai: v.loai, tieuDe: v.tieuDe.trim(), donId: d?.id ?? null, nguon: 'tay', trangThai: 'dang_xu_ly',
+    ten: v.ten?.trim() || (v.ben === 'ncc' ? 'CJ Dropshipping' : d?.ten) || null, email: v.email?.trim() || (v.ben === 'khach' ? d?.email : null) || null });
+  if (v.noiDung?.trim()) await themTin(h.id, ['khach', 'ncc', 'minh'].includes(v.nguoi ?? '') ? v.nguoi! : 'minh', 'ghi_chu', v.noiDung.trim());
+  if (d) await ghiSuKien(d.id, 'nguoi', `Mở hồ sơ ${v.ben === 'ncc' ? 'NCC' : 'khách'} #${h.id}: ${v.tieuDe.trim()}`);
+  revalidatePath('/shop');
+  return { ok: true, id: h.id };
+}
+
+export async function shopSuaHoSo(id: number, v: { trangThai?: string; loai?: string; ketQua?: string | null }) {
+  await admin();
+  if (v.trangThai && !TRANG_THAI_HO_SO.some((t) => t.key === v.trangThai)) return { ok: false, loi: 'trạng thái không hợp lệ' };
+  await db().execute(sql`UPDATE shop_ho_so SET trang_thai = COALESCE(${v.trangThai ?? null}, trang_thai), loai = COALESCE(${v.loai ?? null}, loai),
+    ket_qua = CASE WHEN ${v.ketQua !== undefined} THEN ${v.ketQua ?? null} ELSE ket_qua END, cap_nhat = now() WHERE id = ${id}`);
+  if (v.trangThai) await themTin(id, 'may', 'ghi_chu', `Trạng thái → ${TRANG_THAI_HO_SO.find((t) => t.key === v.trangThai)!.nhan}${v.ketQua ? ` · ${v.ketQua}` : ''}`);
+  revalidatePath('/shop');
+  return { ok: true };
+}
+
+/** Ghi một tin vào luồng: ghi chú nội bộ, hoặc chép lại lời khách/NCC nói ở kênh khác (chat CJ, điện thoại…). Không gửi gì ra ngoài. */
+export async function shopGhiTin(id: number, v: { nguoi: 'minh' | 'khach' | 'ncc'; noiDung: string }) {
+  await admin();
+  if (!v.noiDung.trim()) return { ok: false, loi: 'trống' };
+  await themTin(id, ['minh', 'khach', 'ncc'].includes(v.nguoi) ? v.nguoi : 'minh', v.nguoi === 'minh' ? 'ghi_chu' : 'chep', v.noiDung.trim());
+  if (v.nguoi !== 'minh') await db().execute(sql`UPDATE shop_ho_so SET trang_thai = CASE WHEN trang_thai IN ('cho_ho', 'moi') THEN 'dang_xu_ly' ELSE trang_thai END WHERE id = ${id}`);
+  revalidatePath('/shop');
+  return { ok: true };
+}
+
+/** Gửi thư trả lời khách (từ hộp support của shop, reply-to = hộp support) → tin "mình · email" + hồ sơ sang "Chờ bên kia". */
+export async function shopTraLoiKhach(id: number, noiDung: string) {
+  await admin();
+  const nd = noiDung.trim();
+  if (nd.length < 2) return { ok: false, loi: 'trống' };
+  const [h] = (await db().execute(sql`SELECT h.email, h.ten, h.ben, d.so_don, c.khoa FROM shop_ho_so h JOIN shop_cua_hang c ON c.id = h.cua_hang_id
+    LEFT JOIN shop_don d ON d.id = h.don_id WHERE h.id = ${id}`)) as unknown as { email: string | null; ten: string | null; ben: string; so_don: string | null; khoa: string }[];
+  if (!h || h.ben !== 'khach') return { ok: false, loi: 'không phải hồ sơ khách' };
+  if (!h.email) return { ok: false, loi: 'hồ sơ chưa có email khách' };
+  const ch = (await cuaHangTheoKhoa(h.khoa))!;
+  const m = matTien(ch.mat_tien), hop = m.email ?? `support@${ch.domain}`;
+  const e = (x: string) => x.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  try {
+    await guiThu({ khoa: ch.khoa, ten: ch.ten, domain: ch.domain, email: hop }, h.email, `Re: your message to ${ch.ten}${h.so_don ? ` · order #${h.so_don}` : ''}`,
+      `<div style="white-space:pre-wrap;font-family:sans-serif;font-size:15px;line-height:1.5">${e(nd)}</div>`, nd, hop);
+  } catch (x) {
+    await themTin(id, 'minh', 'email', `GỬI LỖI (${(x as Error).message}):\n${nd}`, true);
+    return { ok: false, loi: (x as Error).message };
+  }
+  await themTin(id, 'minh', 'email', nd);
+  await db().execute(sql`UPDATE shop_ho_so SET trang_thai = 'cho_ho' WHERE id = ${id} AND trang_thai <> 'xong'`);
+  revalidatePath('/shop');
+  return { ok: true };
 }

@@ -8,6 +8,8 @@ import { sql } from 'drizzle-orm';
 import { cj, linkVanDon, meta, ngayToiDa, woo, wooHet, type WooBt, type WooDon, type WooSp } from './nguon';
 import { co17, dangKy17, tin17 } from './track17';
 import { dsVideo } from '@mos2/shop/video';
+import { moHoSo, themTin } from '@mos2/shop/ho-so';
+import { coStripe, stripe } from '@mos2/shop/stripe';
 import { doiSoat, ghiSoPhuDon, ghiSuKien, guiThu, linkTheoDoi, matTien, sidTuUtm, thuDaGui, type MatTien } from '@mos2/shop';
 
 export type CuaHang = { id: number; khoa: string; project_id: string; ten: string; domain: string; ncc: string; nen_tang: string; mat_tien: MatTien;
@@ -79,6 +81,58 @@ export async function dongBoVideoNcc(ch: CuaHang) {
     await new Promise((ok) => setTimeout(ok, 1100));
   }
   return { hoi: ds.length, co };
+}
+
+/* ── HỒ SƠ TỰ ĐỔ: dispute Stripe (phía khách) + dispute CJ (phía NCC) ──────────── */
+type DisputeStripe = { id: string; amount: number; status: string; reason: string; payment_intent: string | null; evidence_details?: { due_by?: number | null } };
+const XONG_STRIPE: Record<string, string> = { won: 'Thắng dispute', lost: 'Thua dispute — tiền đã bị trừ', warning_closed: 'Ngân hàng đóng cảnh báo', charge_refunded: 'Đã hoàn tiền' };
+
+/** Đọc (không ghi gì sang Stripe/CJ). Tài khoản Stripe dùng chung nhiều site → chỉ nhận dispute có PaymentIntent thuộc sổ của shop này. */
+export async function dongBoHoSo(ch: CuaHang) {
+  const kq = { stripe: 0, cj: 0, moi: 0 };
+  if (ch.nen_tang === 'mos' && coStripe(ch.khoa)) {
+    const tu = Math.floor(Date.now() / 1000) - 120 * 86400;
+    const r = await stripe<{ data: DisputeStripe[] }>(ch.khoa, 'GET', `disputes?limit=100&created[gte]=${tu}`);
+    for (const x of r.data) {
+      if (!x.payment_intent) continue;
+      const [tt] = await q<{ don_id: number | null; email: string | null; ten: string | null }>(sql`
+        SELECT don_id, khach->>'email' AS email, khach->>'ten' AS ten FROM shop_thanh_toan WHERE pi = ${x.payment_intent} AND cua_hang_id = ${ch.id}`);
+      if (!tt) continue;
+      kq.stripe++;
+      const han = x.evidence_details?.due_by ? new Date(x.evidence_details.due_by * 1000).toISOString() : null;
+      const h = await moHoSo({ cuaHangId: ch.id, ben: 'khach', loai: 'dispute', tieuDe: `Dispute Stripe · ${x.reason}`, donId: tt.don_id, ten: tt.ten, email: tt.email,
+        nguon: 'stripe', maNgoai: x.id, soTien: x.amount / 100, han });
+      if (h.moi) {
+        kq.moi++;
+        await themTin(h.id, 'may', 'stripe', `Stripe báo dispute ${x.id}: lý do "${x.reason}", $${(x.amount / 100).toFixed(2)}, trạng thái ${x.status}${han ? `, hạn nộp bằng chứng ${han.slice(0, 10)}` : ''}. Nộp bằng chứng trong Stripe Dashboard.`);
+        if (tt.don_id) await ghiSuKien(tt.don_id, 'shop', `Khách mở dispute qua ngân hàng (${x.reason}) — hồ sơ #${h.id}`, true);
+      }
+      const xong = XONG_STRIPE[x.status];
+      if (xong) {
+        const doi = await q(sql`UPDATE shop_ho_so SET trang_thai = 'xong', ket_qua = ${xong}, cap_nhat = now() WHERE id = ${h.id} AND trang_thai <> 'xong' RETURNING id`);
+        if (doi.length) await themTin(h.id, 'may', 'stripe', `Stripe: ${xong} (${x.status}).`);
+      } else if (x.status === 'under_review') {
+        const doi = await q(sql`UPDATE shop_ho_so SET trang_thai = 'cho_ho', cap_nhat = now() WHERE id = ${h.id} AND trang_thai IN ('moi', 'dang_xu_ly') RETURNING id`);
+        if (doi.length) await themTin(h.id, 'may', 'stripe', 'Stripe: bằng chứng đã nộp, ngân hàng đang xem xét.');
+      }
+    }
+  }
+  if (ch.ncc === 'cj') {
+    const r = await cj<{ list?: Record<string, unknown>[] }>('disputes/getDisputeList?pageNum=1&pageSize=50');
+    for (const x of r.data?.list ?? []) {
+      const ma = String(x.id ?? x.disputeId ?? ''), orderId = String(x.orderId ?? x.cjOrderId ?? '');
+      if (!ma || !orderId) continue;
+      const [n] = await q<{ don_id: number }>(sql`SELECT n.don_id FROM shop_don_ncc n JOIN shop_don d ON d.id = n.don_id WHERE n.ma_ncc = ${orderId} AND d.cua_hang_id = ${ch.id} LIMIT 1`);
+      if (!n) continue;
+      kq.cj++;
+      const lyDo = String(x.disputeReason ?? x.reason ?? x.disputeReasonName ?? 'khiếu nại');
+      const tien = Number(x.money ?? x.refundAmount ?? x.amount ?? 0) || null;
+      const h = await moHoSo({ cuaHangId: ch.id, ben: 'ncc', loai: 'khieu_nai', tieuDe: `Dispute CJ · ${lyDo}`, donId: n.don_id, ten: 'CJ Dropshipping',
+        nguon: 'cj', maNgoai: ma, soTien: tien });
+      if (h.moi) { kq.moi++; await themTin(h.id, 'may', 'cj', `CJ có dispute ${ma} cho đơn CJ ${orderId}: ${JSON.stringify(x).slice(0, 1500)}`); }
+    }
+  }
+  return kq;
 }
 
 /* ── ĐƠN ──────────────────────────────────────────────────────────────────── */
@@ -329,6 +383,7 @@ export async function nhip(ch: CuaHang, opt: { sanPham?: boolean } = {}) {
     }
     kq.ncc = await theoDoiNcc(ch);
     kq.video = await dongBoVideoNcc(ch);
+    kq.ho_so = await dongBoHoSo(ch).catch((e) => ({ loi: (e as Error).message }));
     await q(sql`UPDATE shop_cua_hang SET dong_bo_luc = ${batDau}::timestamptz, dong_bo_loi = NULL WHERE id = ${ch.id}`);
   } catch (e) {
     kq.loi = (e as Error).message;

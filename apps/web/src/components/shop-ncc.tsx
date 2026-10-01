@@ -3,14 +3,14 @@
 // phẩm nguồn, biến thể đã gắn/lỗi, đơn đã đặt/chờ trả/trễ, số dư ví, hồ sơ mở) → sản phẩm nguồn (mình bán gì ↔ món nào bên CJ, giá vốn,
 // số biến thể, bao nhiêu shop khác cũng bán — ncc_info đọc mỗi ngày) → trao đổi (hồ sơ NCC, components/shop-ho-so.tsx).
 // CJ không trả tên người bán thật phía sau (supplierName trống) nên NCC = CJ. URL: ?ncc=<khoá>.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { FilterChips, LinkChip, Panel, Pill, SimpleTable, StatsStrip } from '@/components/ui';
 import { gio, tien } from '@/lib/shop/buoc';
 import type { BienTheDong, CuaHangDong, DonDong, SanPhamDong } from '@/lib/shop/doc';
 import type { HoSoDong } from '@/lib/shop/ho-so-doc';
-import { shopSoDuNcc } from '@/lib/actions/shop';
+import { shopBienDongNcc, shopDocLaiNcc, shopSoDuNcc } from '@/lib/actions/shop';
 import { BangHoSo } from './shop-ho-so';
-import type { LienHeNcc, NccDong } from '@/lib/shop/ho-so-doc';
+import type { BienDongNcc, LienHeNcc, NccDong } from '@/lib/shop/ho-so-doc';
 import { SuaNcc } from './shop-ncc-sua';
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
@@ -27,7 +27,7 @@ function linkLienHe(l: LienHeNcc): string | null {
 }
 const NHAN_KENH: Record<string, string> = { email: 'Email', whatsapp: 'WhatsApp', skype: 'Skype', telegram: 'Telegram', wechat: 'WeChat', chat: 'Chat', phone: 'Điện thoại', khac: 'Khác' };
 
-export function BangNcc({ soNcc, ch, cuaHang, sanPham, bienThe, don, hoSo }: { soNcc: NccDong[]; ch: string; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; bienThe: BienTheDong[]; don: DonDong[]; hoSo: HoSoDong[] }) {
+export function BangNcc({ cayNcc, soNcc, ch, cuaHang, sanPham, bienThe, don, hoSo }: { cayNcc: React.ReactNode; soNcc: NccDong[]; ch: string; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; bienThe: BienTheDong[]; don: DonDong[]; hoSo: HoSoDong[] }) {
   const shops = cuaHang.filter((c) => ch === 'all' || c.khoa === ch);
   const ds = [...new Set(shops.map((c) => c.ncc))];
   const [ncc, setNcc] = useState(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('ncc')) || ds[0] || 'cj');
@@ -47,6 +47,13 @@ export function BangNcc({ soNcc, ch, cuaHang, sanPham, bienThe, don, hoSo }: { s
   const loiBt = (b: BienTheDong) => { const p = sps.find((x) => x.id === b.sanPhamId); return !b.maNcc || b.giaVon === null || (!!p?.nccInfo?.vids?.length && !p.nccInfo.vids.includes(b.maNcc)); };
   const info = soNcc.find((x) => x.khoa === ncc) ?? { khoa: ncc, ten: ncc.toUpperCase(), website: null, taiKhoan: null, links: [], lienHe: [], ghiChu: null, capNhat: '' };
   const [sua, setSua] = useState(false);
+  const [muc, setMuc] = useState(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('nm')) || 'tong_quan');
+  useEffect(() => { const u = new URLSearchParams(window.location.search); if (muc !== 'tong_quan') u.set('nm', muc); else u.delete('nm');
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}?${u.toString()}`); }, [muc]);
+  const [bd, setBd] = useState<BienDongNcc[] | null>(null);
+  useEffect(() => { shopBienDongNcc().then(setBd).catch(() => setBd([])); }, []);
+  const [docLai, batDocLai] = useTransition();
+  const [baoDoc, setBaoDoc] = useState<string | null>(null);
   const nguon = useMemo(() => sps.map((p) => ({ p, gan: bts.filter((b) => b.sanPhamId === p.id && b.maNcc).length, tong: bts.filter((b) => b.sanPhamId === p.id).length,
     loi: bts.filter((b) => b.sanPhamId === p.id && loiBt(b)).length })), [sps, bts]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -79,6 +86,25 @@ export function BangNcc({ soNcc, ch, cuaHang, sanPham, bienThe, don, hoSo }: { s
       ]} />
     </Panel>
 
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '12px 0 8px', flexWrap: 'wrap' }}>
+      <FilterChips urlKey="nm" value={muc} onChange={setMuc} allValue="tong_quan" counts={{ bien_dong: (bd ?? []).filter((x) => khoaShop.has(x.cuaHang)).length, trao_doi: hs.filter((h) => h.trangThai !== 'xong').length }}
+        options={[{ value: 'tong_quan', label: 'Tổng quan' }, { value: 'san_pham', label: 'Sản phẩm NCC', title: 'Cây sản phẩm nhìn từ phía NCC: giá CJ, tồn CJ, tự ẩn, khách chờ có hàng' },
+          { value: 'bien_dong', label: 'Biến động', title: 'Giá CJ đổi, biến thể hết/gỡ/có lại — máy ghi mỗi lần đọc' }, { value: 'trao_doi', label: 'Trao đổi' }]} />
+      <span style={{ flex: 1 }} />
+      {baoDoc && <span style={{ fontSize: 12.5, ...phu }}>{baoDoc}</span>}
+      {ncc === 'cj' && <button className="btn ghost" disabled={docLai} title="Đọc lại giá + trạng thái từ CJ ngay; tồn kho từng biến thể đọc tiếp ở các nhịp 10 phút"
+        onClick={() => batDocLai(async () => { const kq = await Promise.all([...khoaShop].map((k) => shopDocLaiNcc(k))); setBaoDoc(`Đã đọc ${kq.reduce((t, r) => t + ('doc' in r && r.doc ? r.doc.doc : 0), 0)} sản phẩm · tồn kho đọc tiếp trong các nhịp tới`); setBd(await shopBienDongNcc()); })}>
+        {docLai ? 'Đang đọc CJ…' : 'Đọc lại NCC ngay'}</button>}
+    </div>
+    {muc === 'san_pham' && cayNcc}
+    {muc === 'bien_dong' && <Panel pad={8}>{!bd ? <span style={phu}>Đang tải…</span> : <SimpleTable rows={bd.filter((x) => khoaShop.has(x.cuaHang))} getRowKey={(x) => String(x.id)} columns={[
+      { key: 'l', header: 'Lúc', width: 96, cell: (x) => <span style={phu}>{gio(x.luc)}</span> },
+      { key: 'k', header: 'Loại', width: 120, cell: (x) => <span style={{ color: ({ gia: 'var(--warn)', het: 'var(--bad)', go: 'var(--bad)', co_lai: 'var(--ok)', ve_lai: 'var(--ok)' } as Record<string, string>)[x.loai] }}>
+        {({ gia: 'Giá CJ đổi', het: 'Tự ẩn', go: 'Gỡ khỏi CJ', co_lai: 'Mở bán lại', ve_lai: 'Có lại trên CJ' } as Record<string, string>)[x.loai] ?? x.loai}</span> },
+      { key: 's', header: 'Sản phẩm · biến thể', cell: (x) => <span>{x.sanPham}<span style={phu}> · {x.bienThe}</span></span> },
+      { key: 'd', header: 'Thay đổi', cell: (x) => <span>{x.cu} → <b>{x.moi}</b></span> },
+    ]} />}{bd && !bd.some((x) => khoaShop.has(x.cuaHang)) && <div style={{ ...phu, fontSize: 12.5, padding: 6 }}>Chưa có biến động nào — máy ghi ở đây mỗi khi giá CJ đổi, biến thể hết/gỡ/có lại.</div>}</Panel>}
+    {muc === 'tong_quan' && <>
     <h3 style={{ margin: '16px 0 6px', fontSize: 14 }}>Sản phẩm nguồn <span style={{ ...phu, fontWeight: 400, fontSize: 12.5 }}>— mình bán gì ↔ món nào bên {info.ten}, đọc lại mỗi ngày</span></h3>
     <Panel pad={8}>
       <SimpleTable rows={nguon} getRowKey={(r) => String(r.p.id)} columns={[
@@ -96,8 +122,8 @@ export function BangNcc({ soNcc, ch, cuaHang, sanPham, bienThe, don, hoSo }: { s
       ]} />
     </Panel>
 
-    <h3 style={{ margin: '16px 0 6px', fontSize: 14 }}>Trao đổi với {info.ten}</h3>
-    <BangHoSo ben="ncc" ch={ch} ds={hs} cuaHang={shops.filter((c) => c.ncc === ncc)} />
+    </>}
+    {muc === 'trao_doi' && <BangHoSo ben="ncc" ch={ch} ds={hs} cuaHang={shops.filter((c) => c.ncc === ncc)} />}
     {sua && <SuaNcc n={info} onClose={() => setSua(false)} />}
   </>);
 }

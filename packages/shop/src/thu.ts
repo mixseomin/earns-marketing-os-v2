@@ -67,3 +67,9 @@ export function thuChang(s: ShopThu, soDon: string, ten: string, chang: KhoaChan
   const html = khung(s, `<h2 style="margin:0 0 8px">${e(c.nhan)}</h2><p>Hi ${e(ten)}, ${e(c.giai_thich.charAt(0).toLowerCase() + c.giai_thich.slice(1))}</p>${dk}${cuoi}${nut(link, chang === 'da_giao' ? 'View your order' : 'Track your order')}`);
   return { tieuDe, html, chu: `Hi ${ten},\n\n${c.nhan}: ${c.giai_thich}\n${dk ? `Estimated delivery: ${khoangUS(duKien!)}\n` : ''}\nTrack your order: ${link}` };
 }
+
+/** Thư "có hàng lại" cho khách đã bấm Notify me trên trang sản phẩm (dong-bo apDungNcc gửi khi NCC có hàng lại). */
+export function thuCoHang(s: ShopThu, tenSp: string, link: string) {
+  const html = khung(s, `<h2 style="margin:0 0 8px">It's back in stock!</h2><p>Good news, <b>${e(tenSp)}</b> is available again. Sizes can sell out quickly, so grab yours while it lasts.</p>${nut(link, 'Shop now')}`);
+  return { tieuDe: `Back in stock: ${tenSp} - ${s.ten}`, html, chu: `Good news, ${tenSp} is back in stock.\n\nShop now: ${link}` };
+}

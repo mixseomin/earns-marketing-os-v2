@@ -22,7 +22,42 @@ function vanDe(b: BienTheDong, p: SanPhamDong): string | null {
   return null;
 }
 
-export function CaySanPham({ bienThe, sanPham, suaSp, suaBt }: { bienThe: BienTheDong[]; sanPham: SanPhamDong[]; suaSp: (p: SanPhamDong) => void; suaBt: (b: BienTheDong) => void }) {
+/** Trạng thái bán của một biến thể trên mặt tiền: tự ẩn (vì NCC) · ẩn tay · đang bán. */
+function trangThaiBt(b: BienTheDong): { chu: string; mau: string } {
+  if (b.hetTuDong) return { chu: b.nccMat ? 'tự ẩn · không còn trên CJ' : b.tonNcc === 0 ? 'tự ẩn · NCC hết hàng' : 'tự ẩn · CJ ngừng bán', mau: 'var(--warn)' };
+  if (b.hetHang) return { chu: 'ẩn tay', mau: 'var(--fg-3)' };
+  return { chu: 'đang bán', mau: 'var(--ok)' };
+}
+type Cot = { h: string; phai?: boolean; o: (b: BienTheDong, p: SanPhamDong) => React.ReactNode };
+const so = (x: React.ReactNode) => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{x}</span>;
+const oTrangThai: Cot = { h: 'Trạng thái', o: (b) => { const t = trangThaiBt(b); return <span style={{ color: t.mau, fontSize: 12 }}>{t.chu}{b.choCoHang ? ` · ${b.choCoHang} chờ` : ''}</span>; } };
+const oMa: Cot = { h: 'Mã CJ (vid)', o: (b, p) => { const v = vanDe(b, p); return <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5 }} title={b.maNcc ?? ''}>
+  {v ? <span style={{ color: 'var(--bad)' }}>{b.maNcc ? `${duoi(b.maNcc)} · ` : ''}{v}</span> : <>{duoi(b.maNcc)} <span style={{ color: 'var(--ok)' }}>{p.nccInfo?.vids?.length ? '✓' : ''}</span></>}</span>; } };
+/** Hai chế độ nhìn CÙNG một cây: mặt tiền (bán gì, giá bán, biên) · NCC (giá CJ, tồn CJ, tự ẩn, khách chờ có hàng). */
+const COT: Record<'mat_tien' | 'ncc', (nguong: number) => Cot[]> = {
+  mat_tien: (nguong) => [
+    { h: 'Tuỳ chọn', o: (b) => tachTen(b.ten)[1] || b.ten },
+    { h: 'SKU', o: (b) => <span style={{ ...phu, fontFamily: 'var(--font-mono)' }} title={b.sku ?? ''}>{duoi(b.sku)}</span> },
+    { h: 'Giá bán', phai: true, o: (b) => so(tien(b.giaBan)) },
+    { h: 'Giá vốn', phai: true, o: (b) => so(tien(b.giaVon)) },
+    { h: 'Biên', phai: true, o: (b) => { const x = bien(b); return <span style={{ color: x !== null && x < nguong ? 'var(--warn)' : undefined }}>{x === null ? '—' : `${x}%`}</span>; } },
+    oMa, oTrangThai,
+    { h: 'Đã bán', phai: true, o: (b) => b.daBan || '—' },
+  ],
+  ncc: (nguong) => [
+    { h: 'Tuỳ chọn', o: (b) => tachTen(b.ten)[1] || b.ten },
+    oMa,
+    { h: 'Giá CJ', phai: true, o: (b) => so(<span style={{ color: b.giaNcc != null && b.giaVon != null && Math.abs(b.giaNcc - b.giaVon) > 0.009 ? 'var(--warn)' : undefined }}>{tien(b.giaNcc)}</span>) },
+    { h: 'Giá vốn sổ', phai: true, o: (b) => so(tien(b.giaVon)) },
+    { h: 'Tồn CJ', phai: true, o: (b) => so(<span style={{ color: b.tonNcc === 0 ? 'var(--bad)' : undefined }} title={b.tonLuc ? `đọc lúc ${b.tonLuc}` : 'chưa đọc'}>{b.tonNcc == null ? '—' : b.tonNcc.toLocaleString('en-US')}</span>) },
+    oTrangThai,
+    { h: 'Giá bán', phai: true, o: (b) => so(tien(b.giaBan)) },
+    { h: 'Biên', phai: true, o: (b) => { const x = bien(b); return <span style={{ color: x !== null && x < nguong ? 'var(--warn)' : undefined }}>{x === null ? '—' : `${x}%`}</span>; } },
+  ],
+};
+
+export function CaySanPham({ bienThe, sanPham, suaSp, suaBt, cheDo = 'mat_tien', nguongBien = () => 60 }: { bienThe: BienTheDong[]; sanPham: SanPhamDong[];
+  suaSp: (p: SanPhamDong) => void; suaBt: (b: BienTheDong) => void; cheDo?: 'mat_tien' | 'ncc'; nguongBien?: (khoaShop: string) => number }) {
   const q0 = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const [loc, setLoc] = useState<Loc>(((q0?.get('sp') as Loc) || 'all'));
   const [tim, setTim] = useState('');
@@ -57,6 +92,7 @@ export function CaySanPham({ bienThe, sanPham, suaSp, suaBt }: { bienThe: BienTh
         const bts = theoSp.get(p.id) ?? [], n = loi(p), dangMo = mo.has(p.id);
         const von = bts.map((b) => b.giaVon).filter((x): x is number => x !== null);
         const bi = bts.map(bien).filter((x): x is number => x !== null);
+        const cot = COT[cheDo](nguongBien(p.cuaHang));
         const nhom = new Map<string, BienTheDong[]>();
         for (const b of bts) { const [g] = tachTen(b.ten); nhom.set(g, [...(nhom.get(g) ?? []), b]); }
         return (
@@ -69,6 +105,11 @@ export function CaySanPham({ bienThe, sanPham, suaSp, suaBt }: { bienThe: BienTh
                   <b style={{ fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.ten}</b>
                   <Pill color={p.hien ? 'var(--ok)' : 'var(--fg-3)'} label={p.hien ? 'đang bán' : 'ẩn'} uppercase={false} mono={false} />
                   {n > 0 && <Pill color="var(--bad)" label={`${n} biến thể lỗi`} uppercase={false} mono={false} />}
+                  {p.nccDangBan === false && <Pill color="var(--bad)" label="CJ ngừng bán" uppercase={false} mono={false} />}
+                  {bts.some((b) => b.hetTuDong) && <Pill color="var(--warn)" label={`${bts.filter((b) => b.hetTuDong).length} tự ẩn (NCC)`} uppercase={false} mono={false} />}
+                  {p.choCoHang > 0 && <Pill color="var(--accent)" label={`${p.choCoHang} khách chờ có hàng`} uppercase={false} mono={false} />}
+                  {bi.length > 0 && Math.min(...bi) < nguongBien(p.cuaHang) && von.length > 0 && <Pill color="var(--warn)" uppercase={false} mono={false}
+                    label={`biên < ${nguongBien(p.cuaHang)}% · đề xuất giá ${tien(Math.ceil(Math.max(...von) / (1 - nguongBien(p.cuaHang) / 100)) - 0.01)}`} />}
                 </span>
                 <span style={{ fontSize: 12, ...phu, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {nhom.size} {nhom.size > 1 ? 'màu' : 'nhóm'} · {bts.length} biến thể · giá {tien(p.giaTu)}{p.giaGoc ? ` (gạch ${tien(p.giaGoc)})` : ''}
@@ -92,26 +133,13 @@ export function CaySanPham({ bienThe, sanPham, suaSp, suaBt }: { bienThe: BienTh
                   </div>}
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
                     <thead><tr style={{ ...phu, fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                      {['Tuỳ chọn', 'SKU', 'Giá bán', 'Giá vốn', 'Biên', 'Mã CJ (vid)', 'Đã bán', ''].map((h, i) => <th key={i} style={{ textAlign: i >= 2 && i <= 4 || i === 6 ? 'right' : 'left', padding: '5px 10px', fontWeight: 500 }}>{h}</th>)}
+                      {cot.map((c, i) => <th key={i} style={{ textAlign: c.phai ? 'right' : 'left', padding: '5px 10px', fontWeight: 500 }}>{c.h}</th>)}
                     </tr></thead>
-                    <tbody>{ds2.map((b) => {
-                      const v = vanDe(b, p), bb = bien(b);
-                      return (
-                        <tr key={b.id} onClick={() => suaBt(b)} style={{ cursor: 'pointer', borderTop: '1px solid var(--line)' }} title="Bấm để sửa mã CJ / giá vốn">
-                          <td style={{ padding: '5px 10px' }}>{tachTen(b.ten)[1] || b.ten}</td>
-                          <td style={{ padding: '5px 10px', ...phu, fontFamily: 'var(--font-mono)' }} title={b.sku ?? ''}>{duoi(b.sku)}</td>
-                          <td style={{ padding: '5px 10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{tien(b.giaBan)}</td>
-                          <td style={{ padding: '5px 10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{tien(b.giaVon)}</td>
-                          <td style={{ padding: '5px 10px', textAlign: 'right', color: bb !== null && bb < 50 ? 'var(--warn)' : undefined }}>{bb === null ? '—' : `${bb}%`}</td>
-                          <td style={{ padding: '5px 10px', fontFamily: 'var(--font-mono)', fontSize: 11.5 }} title={b.maNcc ?? ''}>
-                            {v ? <span style={{ color: 'var(--bad)' }}>{b.maNcc ? `${duoi(b.maNcc)} · ` : ''}{v}</span>
-                              : <span>{duoi(b.maNcc)} <span style={{ color: 'var(--ok)' }}>{p.nccInfo?.vids?.length ? '✓ có trên CJ' : ''}</span></span>}
-                          </td>
-                          <td style={{ padding: '5px 10px', textAlign: 'right' }}>{b.daBan || '—'}</td>
-                          <td style={{ padding: '5px 10px', textAlign: 'right', ...phu }}>Sửa</td>
-                        </tr>
-                      );
-                    })}</tbody>
+                    <tbody>{ds2.map((b) => (
+                      <tr key={b.id} onClick={() => suaBt(b)} style={{ cursor: 'pointer', borderTop: '1px solid var(--line)', opacity: b.hetHang ? 0.65 : 1 }} title="Bấm để sửa mã CJ / giá vốn">
+                        {cot.map((c, i) => <td key={i} style={{ padding: '5px 10px', textAlign: c.phai ? 'right' : 'left', fontVariantNumeric: 'tabular-nums' }}>{c.o(b, p)}</td>)}
+                      </tr>
+                    ))}</tbody>
                   </table>
                 </div>
               ))}

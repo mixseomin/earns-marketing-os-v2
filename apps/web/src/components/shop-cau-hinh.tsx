@@ -16,10 +16,10 @@ const phu: React.CSSProperties = { color: 'var(--fg-3)' };
 
 /** Các mục cài đặt + một dòng tóm tắt giá trị đang đặt (hiện ở thẻ tổng quan và cột trái drawer). */
 const MUC: { value: string; label: string; tom: (c: CuaHangDong) => string }[] = [
-  { value: 'van_hanh', label: 'Vận hành', tom: (c) => `${c.trangThai === 'bat' ? 'Đồng bộ bật' : 'Đồng bộ tắt'} · ${c.cauHinh.tu_sang_ncc ? 'tự sang NCC' : 'sang NCC tay'} · ship ≤ ${c.cauHinh.ngay_ship_max ?? 11} ngày` },
+  { value: 'van_hanh', label: 'Vận hành', tom: (c) => `${c.trangThai === 'bat' ? 'Đồng bộ bật' : 'Đồng bộ tắt'} · ${c.cauHinh.tu_sang_ncc ? 'tự sang NCC' : 'sang NCC tay'} · ${c.cauHinh.tu_an_het === false ? 'không tự ẩn' : 'tự ẩn hết hàng'} · biên ≥ ${c.cauHinh.bien_toi_thieu ?? 60}%` },
   { value: 'mat_tien', label: 'Mặt tiền', tom: (c) => `${(c.matTien.bac_giam ?? []).map((b) => `${b.sl}+ món −${b.pt}%`).join(', ') || 'không bậc giảm'} · ${(c.matTien.cam_ket ?? []).length} cam kết` },
   { value: 'giao', label: 'Giao hàng & cam kết', tom: (c) => { const g = cauHinhGiao(c.matTien.giao); return `${g.xu_ly[0] + g.van_chuyen[0]}–${g.xu_ly[1] + g.van_chuyen[1]} ngày${g.ngay_lam_viec ? ' làm việc' : ''} · bảo đảm ${g.dam_bao_ngay} ngày`; } },
-  { value: 'thu', label: 'Thư khách', tom: (c) => { const t = c.matTien.thu ?? {}; const n = (t.xac_nhan !== false ? 1 : 0) + (t.da_gui !== false ? 1 : 0) + (t.chang ?? [...CHANG_BAO_THU]).length; return `${n}/${2 + CHANG_BAO_THU.length} thư tự gửi`; } },
+  { value: 'thu', label: 'Thư khách', tom: (c) => { const t = c.matTien.thu ?? {}; const n = (t.xac_nhan !== false ? 1 : 0) + (t.da_gui !== false ? 1 : 0) + (t.co_hang !== false ? 1 : 0) + (t.chang ?? [...CHANG_BAO_THU]).length; return `${n}/${3 + CHANG_BAO_THU.length} thư tự gửi`; } },
   { value: 'tu_van', label: 'Tư vấn (chat)', tom: (c) => { const t = c.matTien.tu_van ?? {}; return t.bat === false ? 'Chat tắt' : `Chat bật · ${t.tu_gui === false ? 'duyệt hết' : 'máy tự gửi loại an toàn'}${t.khi_truc ? ' · chỉ khi có người trực' : ''}`; } },
   { value: 'faq', label: 'FAQ & ưu đãi', tom: (c) => `${(c.matTien.faq ?? []).length} câu FAQ · ${(c.matTien.ma_giam ?? []).length} mã giảm${c.matTien.dang_ky ? ' · có ô đăng ký' : ''}` },
   { value: 'trang', label: 'Trang chính sách', tom: (c) => `${Object.values(c.matTien.trang ?? {}).filter((t) => t?.html).length}/${TRANG_TINH.length + 1} trang có nội dung` },
@@ -128,7 +128,8 @@ export function DrawerCaiDat({ c, onClose }: { c: CuaHangDong; onClose: () => vo
 
 /* ── Vận hành (đồng bộ · NCC · ship · GA4) — shop_cua_hang.cau_hinh ── */
 function VanHanh({ c }: { c: CuaHangDong }) {
-  const goc = { ngay_ship_max: c.cauHinh.ngay_ship_max ?? 11, tu_sang_ncc: !!c.cauHinh.tu_sang_ncc, tu_tra_ncc: !!c.cauHinh.tu_tra_ncc, trang_thai: c.trangThai as 'bat' | 'tat', ga4_property: c.cauHinh.ga4_property ?? '' };
+  const goc = { ngay_ship_max: c.cauHinh.ngay_ship_max ?? 11, tu_sang_ncc: !!c.cauHinh.tu_sang_ncc, tu_tra_ncc: !!c.cauHinh.tu_tra_ncc, trang_thai: c.trangThai as 'bat' | 'tat', ga4_property: c.cauHinh.ga4_property ?? '',
+    tu_an_het: c.cauHinh.tu_an_het !== false, bien_toi_thieu: c.cauHinh.bien_toi_thieu ?? 60 };
   const [cfg, setCfg] = useState(goc);
   const [bao, setBao] = useState<string | null>(null);
   const [dang, batDau] = useTransition();
@@ -149,6 +150,14 @@ function VanHanh({ c }: { c: CuaHangDong }) {
       </label>
       {tick('tu_sang_ncc', 'Tự sang NCC', 'Đơn vừa trả tiền tự đặt sang CJ — chỉ TẠO đơn, chưa trả CJ, không tiêu tiền.')}
       {tick('tu_tra_ncc', 'Tự trả NCC (trừ ví CJ)', 'Tạo xong tự trả CJ từ ví — TIÊU TIỀN không cần bấm. Mặc định tắt.')}
+    </Nhom>
+    <Nhom ten="Theo dõi nhà cung cấp" ghi="Mỗi ngày máy đọc giá + tồn kho CJ từng biến thể; giá vốn tự cập nhật theo CJ (ghi ở Nhà cung cấp › Biến động).">
+      <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13 }}>
+        <input type="checkbox" checked={cfg.tu_an_het} onChange={(e) => setCfg({ ...cfg, tu_an_het: e.target.checked })} style={{ marginTop: 3 }} />
+        <span><b>Tự ẩn biến thể hết / bị gỡ ở NCC</b><br /><span style={phu}>Khách không đặt được món không giao được; có hàng lại thì tự mở + gửi thư cho khách đã bấm "Notify me". Ẩn tay thì máy không mở.</span></span>
+      </label>
+      <TextField id={`vh-bien-${c.khoa}`} label="Biên tối thiểu (%)" hint="Dưới mức này cây sản phẩm báo vàng + đề xuất giá bán mới (không tự đổi giá)." type="number" min={0} max={95}
+        value={String(cfg.bien_toi_thieu)} onChange={(e) => setCfg({ ...cfg, bien_toi_thieu: Number(e.target.value) })} />
     </Nhom>
     <Nhom ten="Tuyến ship & đo lường">
       <TextField id={`vh-ship-${c.khoa}`} label="Ship tối đa (ngày)" hint="Chỉ chọn tuyến giao tối đa ≤ số ngày này; trong đó lấy tuyến rẻ nhất." type="number" min={3} max={30}
@@ -259,7 +268,7 @@ function GiaoHang({ c }: { c: CuaHangDong }) {
 /* ── Thư khách ── */
 function ThuKhach({ c }: { c: CuaHangDong }) {
   const t = c.matTien.thu ?? {};
-  const goc = { xac_nhan: t.xac_nhan !== false, da_gui: t.da_gui !== false, chang: (t.chang ?? [...CHANG_BAO_THU]) as string[] };
+  const goc = { xac_nhan: t.xac_nhan !== false, da_gui: t.da_gui !== false, co_hang: t.co_hang !== false, chang: (t.chang ?? [...CHANG_BAO_THU]) as string[] };
   const [v, setV] = useState(goc);
   const [xem, setXem] = useState<{ loai: string; tieuDe: string; html: string } | null>(null);
   const { luu, dang, Bao } = useLuu(c.khoa);
@@ -268,6 +277,7 @@ function ThuKhach({ c }: { c: CuaHangDong }) {
     { loai: 'da_gui', nhan: 'Đã gửi hàng', khi: 'Khi CJ cấp mã vận đơn — kèm link theo dõi', bat: v.da_gui, doi: (b) => setV({ ...v, da_gui: b }) },
     ...CHANG_BAO_THU.map((k) => ({ loai: k, nhan: CHANG_KHACH[k].nhan, khi: `Khi đơn sang chặng "${CHANG_KHACH[k].nhan}" (mỗi đơn một lần)`, bat: v.chang.includes(k),
       doi: (b: boolean) => setV({ ...v, chang: b ? [...v.chang, k] : v.chang.filter((x) => x !== k) }) })),
+    { loai: 'co_hang', nhan: 'Có hàng lại', khi: 'Khách đã bấm "Notify me" và NCC có hàng lại (máy tự mở bán)', bat: v.co_hang, doi: (b) => setV({ ...v, co_hang: b }) },
   ];
   return (<>
     <SimpleTable rows={ds} getRowKey={(r) => r.loai} columns={[

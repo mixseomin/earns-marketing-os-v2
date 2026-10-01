@@ -178,8 +178,8 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc }:
         {tab === 'tu_van' && <BangTuVan ch={ch} />}
         {tab === 'truc_tiep' && <KhachTrucTiep ch={ch} />}
         {tab === 'khach_ph' && <BangHoSo key={tab} ben="khach" ch={ch} ds={hoSo.filter((h) => h.loai !== 'tu_van')} cuaHang={cuaHang} />}
-        {tab === 'ncc' && <BangNcc soNcc={ncc} ch={ch} cuaHang={cuaHang} sanPham={sanPham} bienThe={bienThe} don={don} hoSo={hoSo} />}
-        {tab === 'san_pham' && <BangSanPham bienThe={bt} sanPham={sps} />}
+        {tab === 'ncc' && <BangNcc cayNcc={<BangSanPham bienThe={bt} sanPham={sps} cuaHang={cuaHang} cheDo="ncc" />} soNcc={ncc} ch={ch} cuaHang={cuaHang} sanPham={sanPham} bienThe={bienThe} don={don} hoSo={hoSo} />}
+        {tab === 'san_pham' && <BangSanPham bienThe={bt} sanPham={sps} cuaHang={cuaHang} />}
         {tab === 'danh_gia' && <BangDanhGia ds={dgs} />}
         {tab === 'cua_hang' && <div style={{ display: 'grid', gap: 12 }}>{cuaHang.filter((c) => ch === 'all' || c.khoa === ch).map((c) => (
           <TheCuaHang key={c.id} c={c} moCaiDat={(muc) => { if (muc) { const u = new URLSearchParams(window.location.search); u.set('cs', muc); window.history.replaceState(window.history.state, '', `${window.location.pathname}?${u.toString()}`); } modal.open('cai-dat', c.id); }} />))}</div>}
@@ -368,11 +368,11 @@ function DrawerDon({ id, hoSo, onClose }: { id: number; hoSo: HoSoDong[]; onClos
 
 /* ── Sản phẩm ↔ NCC ─────────────────────────────────────────────────────── */
 /** Sản phẩm = CÂY sản phẩm mặt tiền → màu → size (components/shop-san-pham.tsx); hai drawer sửa giữ ở đây. */
-function BangSanPham({ bienThe, sanPham }: { bienThe: BienTheDong[]; sanPham: SanPhamDong[] }) {
+function BangSanPham({ bienThe, sanPham, cuaHang, cheDo = 'mat_tien' }: { bienThe: BienTheDong[]; sanPham: SanPhamDong[]; cuaHang: CuaHangDong[]; cheDo?: 'mat_tien' | 'ncc' }) {
   const [sua, setSua] = useState<BienTheDong | null>(null);
   const [suaSp, setSuaSp] = useState<SanPhamDong | null>(null);
   return (<>
-    <CaySanPham bienThe={bienThe} sanPham={sanPham} suaSp={setSuaSp} suaBt={setSua} />
+    <CaySanPham bienThe={bienThe} sanPham={sanPham} suaSp={setSuaSp} suaBt={setSua} cheDo={cheDo} nguongBien={(k) => cuaHang.find((c) => c.khoa === k)?.cauHinh.bien_toi_thieu ?? 60} />
     {sua && <SuaBienThe b={sua} onClose={() => setSua(null)} />}
     {suaSp && <SuaSanPham p={suaSp} onClose={() => setSuaSp(null)} />}
   </>);

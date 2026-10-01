@@ -70,3 +70,12 @@ export async function docNcc(): Promise<NccDong[]> {
   return r.map((x) => ({ khoa: String(x.khoa), ten: String(x.ten), website: (x.website as string) ?? null, taiKhoan: (x.tai_khoan as string) ?? null,
     links: (x.links as NccDong['links']) ?? [], lienHe: (x.lien_he as LienHeNcc[]) ?? [], ghiChu: (x.ghi_chu as string) ?? null, capNhat: String(x.cap_nhat) }));
 }
+
+/* ── Biến động NCC (shop_ncc_bien_dong) ── */
+export type BienDongNcc = { id: number; cuaHang: string; sanPham: string | null; bienThe: string | null; loai: string; cu: string | null; moi: string | null; luc: string };
+export async function docBienDongNcc(): Promise<BienDongNcc[]> {
+  const r = await q(sql`SELECT d.id, c.khoa, p.ten AS sp, b.ten AS bt, d.loai, d.cu, d.moi, d.luc::text AS luc FROM shop_ncc_bien_dong d
+    JOIN shop_cua_hang c ON c.id = d.cua_hang_id LEFT JOIN shop_san_pham p ON p.id = d.san_pham_id LEFT JOIN shop_bien_the b ON b.id = d.bien_the_id
+    WHERE d.luc > now() - interval '60 days' ORDER BY d.luc DESC, d.id DESC LIMIT 500`);
+  return r.map((x) => ({ id: Number(x.id), cuaHang: String(x.khoa), sanPham: (x.sp as string) ?? null, bienThe: (x.bt as string) ?? null, loai: String(x.loai), cu: (x.cu as string) ?? null, moi: (x.moi as string) ?? null, luc: String(x.luc) }));
+}

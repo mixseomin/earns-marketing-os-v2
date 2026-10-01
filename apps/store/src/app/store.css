@@ -366,3 +366,11 @@ body.co-dinh .chat-khung { bottom: 164px; height: min(500px, calc(100vh - 190px)
 .chat-go button { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--den); color: #fff; cursor: pointer; flex: none; }
 .chat-go button:disabled { opacity: .35; }
 @media (prefers-reduced-motion: reduce) { .chat-tin.dang i { animation: none; } .chat-nut { transition: none; } }
+
+/* "Notify me when back in stock" (components/bao-co-hang.tsx) */
+.bch { display: grid; gap: 8px; padding: 14px; border: 1px dashed var(--vien); border-radius: 8px; background: var(--nen-xam); font-size: 14px; }
+.bch > span { color: var(--chu-phu); }
+.bch div { display: flex; gap: 8px; }
+.bch input { flex: 1; min-width: 0; border: 1px solid var(--vien); border-radius: 6px; padding: 10px 12px; font: inherit; }
+.bch .nut-den { padding: 0 18px; font-size: 15px; }
+.bch.xong { border-style: solid; background: var(--xanh-nen); color: var(--chu); }

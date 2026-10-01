@@ -4,12 +4,12 @@ import { dsVideo } from '@mos2/shop/video';
 import { CUA_SO, type CuaSo } from '@mos2/shop/phien';
 import { docPhien, docSuKienPhien } from '@/lib/shop/phien';
 import { ga4ThoiGianThuc } from '@/lib/shop/ga4-tt';
-import { docHoSo, docTinHoSo, docTuVan } from '@/lib/shop/ho-so-doc';
+import { docBienDongNcc, docHoSo, docTinHoSo, docTuVan } from '@/lib/shop/ho-so-doc';
 import { guiTraLoi, soanTraLoi } from '@mos2/shop/tu-van';
 import { LOAI_HO_SO, TRANG_THAI_HO_SO, type Ben } from '@mos2/shop/ho-so';
 import { moHoSo, themTin } from '@mos2/shop/ho-so-ghi';
 import { guiThu, matTien, thuDaGui, thuXacNhan } from '@mos2/shop';
-import { thuChang } from '@mos2/shop/thu';
+import { thuChang, thuCoHang } from '@mos2/shop/thu';
 import { CHANG_BAO_THU, cauHinhGiao, duKienGiao } from '@mos2/shop/giao';
 import { envShop, tenEnv } from '@mos2/shop/mat-tien';
 import { stripe } from '@mos2/shop/stripe';
@@ -19,7 +19,7 @@ import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
-import { cuaHangTheoKhoa, dsCuaHang, ghiSuKien, nhip, sangNcc, soDuCj, tienDonCj, traNcc, type CuaHang } from '@/lib/shop/dong-bo';
+import { apDungNcc, cuaHangTheoKhoa, dongBoThongTinNcc, dsCuaHang, ghiSuKien, nhip, sangNcc, soDuCj, tienDonCj, traNcc, type CuaHang } from '@/lib/shop/dong-bo';
 import { docChiTietDon } from '@/lib/shop/doc';
 import { woo } from '@/lib/shop/nguon';
 
@@ -83,13 +83,13 @@ export async function shopSuaBienThe(id: number, v: { maNcc: string | null; giaV
   return { ok: true };
 }
 
-export async function shopSuaCauHinh(khoa: string, c: { ngay_ship_max: number; tu_sang_ncc: boolean; tu_tra_ncc: boolean; trang_thai: 'bat' | 'tat'; ga4_property?: string }) {
+export async function shopSuaCauHinh(khoa: string, c: { ngay_ship_max: number; tu_sang_ncc: boolean; tu_tra_ncc: boolean; trang_thai: 'bat' | 'tat'; ga4_property?: string; tu_an_het?: boolean; bien_toi_thieu?: number }) {
   await admin();
   const ngay = Math.max(3, Math.min(30, Math.round(Number(c.ngay_ship_max) || 11)));
   const ga4 = String(c.ga4_property ?? '').replace(/\D/g, '').slice(0, 15);
   await db().execute(sql`
     UPDATE shop_cua_hang SET trang_thai = ${c.trang_thai},
-      cau_hinh = cau_hinh || ${JSON.stringify({ ngay_ship_max: ngay, tu_sang_ncc: !!c.tu_sang_ncc, tu_tra_ncc: !!c.tu_tra_ncc, ga4_property: ga4 || null })}::jsonb
+      cau_hinh = cau_hinh || ${JSON.stringify({ ngay_ship_max: ngay, tu_sang_ncc: !!c.tu_sang_ncc, tu_tra_ncc: !!c.tu_tra_ncc, ga4_property: ga4 || null, tu_an_het: c.tu_an_het !== false, bien_toi_thieu: Math.max(0, Math.min(95, Math.round(Number(c.bien_toi_thieu ?? 60) || 60))) })}::jsonb
      WHERE khoa = ${khoa}`);
   revalidatePath('/shop');
   return { ok: true };
@@ -139,7 +139,7 @@ export async function shopSuaMatTien(khoa: string, v: Record<string, unknown>) {
       sach.giao = { xu_ly: cap(g.xu_ly, 0, 15), van_chuyen: cap(g.van_chuyen, 1, 60), ngay_lam_viec: g.ngay_lam_viec !== false, dam_bao_ngay: so(g.dam_bao_ngay, 7, 120) };
     } else if (k === 'thu') {
       const t = (x ?? {}) as { xac_nhan?: boolean; da_gui?: boolean; chang?: string[] };
-      sach.thu = { xac_nhan: t.xac_nhan !== false, da_gui: t.da_gui !== false, chang: (t.chang ?? []).filter((c) => (CHANG_BAO_THU as string[]).includes(c)) };
+      sach.thu = { xac_nhan: t.xac_nhan !== false, da_gui: t.da_gui !== false, co_hang: (t as { co_hang?: boolean }).co_hang !== false, chang: (t.chang ?? []).filter((c) => (CHANG_BAO_THU as string[]).includes(c)) };
     } else if (k === 'tu_van') {
       const t = (x ?? {}) as { bat?: boolean; tu_gui?: boolean; chao?: string; model?: string; khi_truc?: boolean };
       sach.tu_van = { bat: t.bat !== false, tu_gui: t.tu_gui !== false, khi_truc: !!t.khi_truc, chao: chu(t.chao, 300).trim(), model: /^[a-z0-9.\-]{3,40}$/i.test(t.model ?? '') ? t.model : '' };
@@ -177,6 +177,7 @@ export async function shopXemThu(khoa: string, loai: string) {
   if (loai === 'xac_nhan') return thuXacNhan(s, { so_don: '5003', ten: 'Linda', mon: [{ ten: 'Sample product', tuy_chon: 'Black / US 8', sl: 1, gia: 49.99 }],
     tam_tinh: 49.99, giam: 0, ship: 0, tong: 49.99, dia_chi: 'Linda R., 1 Main St, Austin, TX 78701, US', link, giao: g });
   if (loai === 'da_gui') return thuDaGui(s, '5003', 'Linda', link);
+  if (loai === 'co_hang') return thuCoHang(s, 'Sample product', `https://${ch.domain}/`);
   if ((CHANG_BAO_THU as string[]).includes(loai)) return thuChang(s, '5003', 'Linda', loai as (typeof CHANG_BAO_THU)[number], link, g, duKienGiao(g, new Date(Date.now() - 4 * 86_400_000), true));
   return null;
 }
@@ -368,3 +369,17 @@ export async function shopSuaNcc(khoa: string, v: { ten: string; website: string
 
 /** Số tiền đơn NCC đọc lại ngay lúc bấm trả (CJ getOrderDetail). */
 export async function shopTienNcc(donId: number) { await admin(); return tienDonCj(Number(donId)); }
+
+export async function shopBienDongNcc() { await admin(); return docBienDongNcc(); }
+/** "Đọc lại NCC ngay": đánh dấu cũ để nhịp kế đọc lại tồn mọi biến thể, đọc lại giá/trạng thái sản phẩm ngay, rồi áp lên mặt tiền. */
+export async function shopDocLaiNcc(khoa: string) {
+  await admin();
+  const ch = await cuaHangTheoKhoa(khoa);
+  if (!ch) return { ok: false, loi: 'không thấy cửa hàng' };
+  await db().execute(sql`UPDATE shop_san_pham SET ncc_luc = NULL WHERE cua_hang_id = ${ch.id}`);
+  await db().execute(sql`UPDATE shop_bien_the b SET ton_luc = NULL FROM shop_san_pham p WHERE p.id = b.san_pham_id AND p.cua_hang_id = ${ch.id}`);
+  const doc = await dongBoThongTinNcc(ch);
+  const ap = await apDungNcc(ch);
+  revalidatePath('/shop');
+  return { ok: true, doc, ap };
+}

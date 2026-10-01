@@ -21,17 +21,18 @@ export type DonDong = {
   ht: HanhTrinh | null;
 };
 export type BienTheDong = { id: number; sanPhamId: number; sanPham: string; anh: string | null; link: string | null; cuaHang: string; maNgoai: string;
-  ten: string; sku: string | null; giaBan: number | null; maNcc: string | null; giaVon: number | null; daBan: number };
+  ten: string; sku: string | null; giaBan: number | null; maNcc: string | null; giaVon: number | null; daBan: number;
+  /** phía NCC (dongBoThongTinNcc / dongBoTonNcc / apDungNcc) */ giaNcc: number | null; tonNcc: number | null; nccMat: boolean; hetHang: boolean; hetTuDong: boolean; tonLuc: string | null; choCoHang: number };
 export type SanPhamDong = { id: number; cuaHang: string; domain: string; slug: string | null; ten: string; tieuDe: string | null; anh: string | null;
   giaGoc: number | null; giaTu: number | null; hien: boolean; soBienThe: number; daBan: number; danhGia: number; maNcc: string | null;
-  thamKhao: ThamKhao[]; video: string[]; nccInfo: NccInfo | null; nccLuc: string | null };
+  thamKhao: ThamKhao[]; video: string[]; nccInfo: NccInfo | null; nccLuc: string | null; nccDangBan: boolean | null; choCoHang: number };
 /** Thông tin nguồn bên NCC (CJ product/query, làm mới mỗi ngày — dong-bo dongBoThongTinNcc). */
 export type NccInfo = { pid: string; ten: string; sku: string; gia_tu: number | null; gia_den: number | null; so_bien_the: number; vids: string[]; listed: number | null; supplier_id: string | null; loi?: string };
 export type ThamKhao = { url: string | null; nguon: string; ghi_chu: string; khop: 'chua_xac_nhan' | 'dung_mau' | 'khac'; luc: string };
 export type DanhGiaDong = { id: number; cuaHang: string; sanPham: string; ten: string; email: string | null; sao: number; tieuDe: string | null; noiDung: string;
   daMua: boolean; trangThai: string; taoLuc: string };
 export type CuaHangDong = { id: number; khoa: string; ten: string; domain: string; nenTang: string; ncc: string; trangThai: string; tenMien: string[]; matTien: MatTien;
-  cauHinh: { ngay_ship_max?: number; tu_sang_ncc?: boolean; tu_tra_ncc?: boolean; quoc_gia_kho?: string; ga4_property?: string };
+  cauHinh: { ngay_ship_max?: number; tu_sang_ncc?: boolean; tu_tra_ncc?: boolean; quoc_gia_kho?: string; ga4_property?: string; tu_an_het?: boolean; bien_toi_thieu?: number };
   dongBoLuc: string | null; dongBoLoi: string | null; soDon: number; soSanPham: number; thieuMa: number };
 
 export async function docShop() {
@@ -50,6 +51,8 @@ export async function docShop() {
        ORDER BY d.tao_luc DESC`),
     q(sql`
       SELECT b.id, b.san_pham_id, p.ten AS san_pham, p.anh, p.link, c.khoa, b.ma_ngoai, b.ten, b.sku, b.gia_ban, b.ma_ncc, b.gia_von,
+             b.gia_ncc, b.ton_ncc, b.ncc_mat, b.het_hang, b.het_tu_dong, b.ton_luc::text AS ton_luc,
+             (SELECT COUNT(*) FROM shop_bao_co_hang k WHERE k.bien_the_id = b.id AND k.da_bao IS NULL) AS cho_co_hang,
              (SELECT COALESCE(SUM(m.sl), 0) FROM shop_don_mon m JOIN shop_don d ON d.id = m.don_id
                WHERE m.bien_the_id = b.id AND d.tra_luc IS NOT NULL AND d.trang_thai_shop NOT IN ('cancelled', 'refunded')) AS da_ban
         FROM shop_bien_the b JOIN shop_san_pham p ON p.id = b.san_pham_id JOIN shop_cua_hang c ON c.id = p.cua_hang_id
@@ -61,7 +64,8 @@ export async function docShop() {
              (SELECT COUNT(*) FROM shop_bien_the b JOIN shop_san_pham p ON p.id = b.san_pham_id WHERE p.cua_hang_id = c.id AND b.ma_ncc IS NULL) AS thieu_ma
         FROM shop_cua_hang c ORDER BY c.id`),
     q(sql`
-      SELECT p.id, c.khoa, c.domain, p.slug, p.ten, p.tieu_de, p.anh, p.gia_goc, p.hien, p.ma_ncc, p.tham_khao, p.video, p.ncc_info, p.ncc_luc::text AS ncc_luc,
+      SELECT p.id, c.khoa, c.domain, p.slug, p.ten, p.tieu_de, p.anh, p.gia_goc, p.hien, p.ma_ncc, p.tham_khao, p.video, p.ncc_info, p.ncc_luc::text AS ncc_luc, p.ncc_dang_ban,
+             (SELECT COUNT(*) FROM shop_bao_co_hang k WHERE k.san_pham_id = p.id AND k.da_bao IS NULL) AS cho_co_hang,
              (SELECT MIN(b.gia_ban) FROM shop_bien_the b WHERE b.san_pham_id = p.id) AS gia_tu,
              (SELECT COUNT(*) FROM shop_bien_the b WHERE b.san_pham_id = p.id) AS so_bt,
              (SELECT COALESCE(SUM(m.sl), 0) FROM shop_don_mon m JOIN shop_don d ON d.id = m.don_id JOIN shop_bien_the b ON b.id = m.bien_the_id
@@ -99,14 +103,15 @@ export async function docShop() {
   });
   const bienThe: BienTheDong[] = bt.map((r) => ({ id: Number(r.id), sanPhamId: Number(r.san_pham_id), sanPham: String(r.san_pham), anh: (r.anh as string) ?? null,
     link: (r.link as string) ?? null, cuaHang: String(r.khoa), maNgoai: String(r.ma_ngoai), ten: String(r.ten), sku: (r.sku as string) ?? null,
-    giaBan: so(r.gia_ban), maNcc: (r.ma_ncc as string) ?? null, giaVon: so(r.gia_von), daBan: Number(r.da_ban) }));
+    giaBan: so(r.gia_ban), maNcc: (r.ma_ncc as string) ?? null, giaVon: so(r.gia_von), daBan: Number(r.da_ban),
+    giaNcc: so(r.gia_ncc), tonNcc: so(r.ton_ncc), nccMat: !!r.ncc_mat, hetHang: !!r.het_hang, hetTuDong: !!r.het_tu_dong, tonLuc: (r.ton_luc as string) ?? null, choCoHang: Number(r.cho_co_hang) }));
   const cuaHang: CuaHangDong[] = ch.map((r) => ({ id: Number(r.id), khoa: String(r.khoa), ten: String(r.ten), domain: String(r.domain), nenTang: String(r.nen_tang),
     ncc: String(r.ncc), trangThai: String(r.trang_thai), cauHinh: (r.cau_hinh ?? {}) as CuaHangDong['cauHinh'], dongBoLuc: (r.dong_bo_luc as string) ?? null,
     dongBoLoi: (r.dong_bo_loi as string) ?? null, soDon: Number(r.so_don), soSanPham: Number(r.so_sp), thieuMa: Number(r.thieu_ma),
     tenMien: (r.ten_mien as string[]) ?? [], matTien: (r.mat_tien ?? {}) as MatTien }));
   const sanPham: SanPhamDong[] = sps.map((r) => ({ id: Number(r.id), cuaHang: String(r.khoa), domain: String(r.domain), slug: (r.slug as string) ?? null, ten: String(r.ten),
     tieuDe: (r.tieu_de as string) ?? null, anh: (r.anh as string) ?? null, giaGoc: so(r.gia_goc), giaTu: so(r.gia_tu), hien: !!r.hien, soBienThe: Number(r.so_bt),
-    daBan: Number(r.da_ban), danhGia: Number(r.so_dg), maNcc: (r.ma_ncc as string) ?? null, thamKhao: (r.tham_khao as ThamKhao[]) ?? [], video: (r.video as string[]) ?? [], nccInfo: (r.ncc_info as NccInfo) ?? null, nccLuc: (r.ncc_luc as string) ?? null }));
+    daBan: Number(r.da_ban), danhGia: Number(r.so_dg), maNcc: (r.ma_ncc as string) ?? null, thamKhao: (r.tham_khao as ThamKhao[]) ?? [], video: (r.video as string[]) ?? [], nccInfo: (r.ncc_info as NccInfo) ?? null, nccLuc: (r.ncc_luc as string) ?? null, nccDangBan: r.ncc_dang_ban == null ? null : !!r.ncc_dang_ban, choCoHang: Number(r.cho_co_hang) }));
   const danhGia: DanhGiaDong[] = dgs.map((r) => ({ id: Number(r.id), cuaHang: String(r.khoa), sanPham: String(r.san_pham), ten: String(r.ten), email: (r.email as string) ?? null,
     sao: Number(r.sao), tieuDe: (r.tieu_de as string) ?? null, noiDung: String(r.noi_dung), daMua: !!r.da_mua, trangThai: String(r.trang_thai), taoLuc: String(r.tao_luc) }));
   return { don: dons, bienThe, cuaHang, sanPham, danhGia };

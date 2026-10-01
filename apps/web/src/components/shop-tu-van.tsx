@@ -86,25 +86,25 @@ export function BangTuVan({ ch }: { ch: string }) {
             { n: 'bị chặn', v: duyet.filter((c) => c.nhap?.nhom === 'an_toan' && c.nhap?.kiem?.ok === false).length, mau: 'var(--bad)' },
             { n: 'máy lỗi', v: duyet.filter((c) => c.nhap?.loi).length, mau: 'var(--bad)' },
             { n: 'chờ > 1 giờ', v: duyet.filter((c) => Date.now() - ms(c.khachCuoi) > 3_600_000).length, mau: 'var(--bad)' }]}
-          the={duyet} mo={(c) => modal.open('chat', c.id)} trong="Không có tin nào chờ anh." />
+          the={duyet} doi={nap} mo={(c) => modal.open('chat', c.id)} trong="Không có tin nào chờ anh." />
         <Cot mau="var(--accent)" ten="Trước khi mua" phuDe="size · ship · sản phẩm" buoc={['Khách nhắn', 'Tra', 'Soạn', 'Kiểm', 'Gửi']} buocNay={4}
           so={[{ n: 'khách', v: theoCot('truoc_mua').length }, { n: 'đang online', v: theoCot('truoc_mua').filter((c) => c.phien?.online).length, mau: 'var(--ok)' },
             { n: 'thêm giỏ', v: theoCot('truoc_mua').filter((c) => (c.phien?.chang ?? 0) >= iGio).length }, { n: 'máy tự gửi', v: theoCot('truoc_mua').filter((c) => c.tinCuoi?.nguoi === 'may').length, mau: 'var(--ok)' }]}
-          the={theoCot('truoc_mua')} mo={(c) => modal.open('chat', c.id)} trong="Chưa có khách hỏi trước khi mua." />
+          the={theoCot('truoc_mua')} doi={nap} mo={(c) => modal.open('chat', c.id)} trong="Chưa có khách hỏi trước khi mua." />
         <Cot mau="var(--neon-cyan, var(--accent))" ten="Đang có đơn" phuDe="đơn đâu · đổi địa chỉ" buoc={['Khách nhắn', 'Tra đơn', 'Soạn', 'Kiểm', 'Gửi']} buocNay={4}
           so={[{ n: 'khách', v: theoCot('co_don').length }, { n: 'khách đang chờ', v: theoCot('co_don').filter((c) => c.tinCuoi?.nguoi === 'khach').length, mau: 'var(--warn)' }]}
-          the={theoCot('co_don')} mo={(c) => modal.open('chat', c.id)} trong="Chưa có khách hỏi về đơn." />
+          the={theoCot('co_don')} doi={nap} mo={(c) => modal.open('chat', c.id)} trong="Chưa có khách hỏi về đơn." />
         <Cot mau="var(--neon-pink, var(--ok))" ten="Sau khi giao" phuDe="cảm nhận · đổi size · review" buoc={['Đã giao', 'Hỏi thăm', 'Ghi nhận', 'Chốt']} buocNay={1}
           so={[{ n: 'khách', v: theoCot('sau_giao').length }, { n: 'khách đang chờ', v: theoCot('sau_giao').filter((c) => c.tinCuoi?.nguoi === 'khach').length, mau: 'var(--warn)' }]}
-          the={theoCot('sau_giao')} mo={(c) => modal.open('chat', c.id)} trong="Chưa có khách sau giao nhắn." />
+          the={theoCot('sau_giao')} doi={nap} mo={(c) => modal.open('chat', c.id)} trong="Chưa có khách sau giao nhắn." />
       </div>
     )}
     {modal.is('chat') && modal.numId != null && <DrawerChat id={modal.numId} c={mo} onClose={() => modal.close()} onDoi={nap} />}
   </>);
 }
 
-function Cot({ mau, ten, phuDe, buoc, buocNay, so, the, mo, trong }: { mau: string; ten: string; phuDe: string; buoc: string[]; buocNay: number;
-  so: { n: string; v: number; mau?: string }[]; the: ChatDong[]; mo: (c: ChatDong) => void; trong: string }) {
+function Cot({ mau, ten, phuDe, buoc, buocNay, so, the, mo, doi, trong }: { mau: string; ten: string; phuDe: string; buoc: string[]; buocNay: number;
+  so: { n: string; v: number; mau?: string }[]; the: ChatDong[]; mo: (c: ChatDong) => void; doi: () => void; trong: string }) {
   return (
     <div style={{ border: '1px solid var(--line)', borderRadius: 10, background: 'var(--bg-1)', padding: 12, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10, minWidth: 0 }}>
       <div style={{ display: 'grid', gap: 1 }}>
@@ -124,12 +124,12 @@ function Cot({ mau, ten, phuDe, buoc, buocNay, so, the, mo, trong }: { mau: stri
           <b style={{ fontSize: 17, color: x.v ? x.mau : undefined, fontVariantNumeric: 'tabular-nums' }}>{x.v}</b>
         </div>)}
       </div>
-      {the.length ? the.map((c) => <TheChat key={c.id} c={c} mo={() => mo(c)} />) : <div style={{ fontSize: 12.5, ...phu, padding: '6px 2px' }}>{trong}</div>}
+      {the.length ? the.map((c) => <TheChat key={c.id} c={c} mo={() => mo(c)} doi={doi} />) : <div style={{ fontSize: 12.5, ...phu, padding: '6px 2px' }}>{trong}</div>}
     </div>
   );
 }
 
-function TheChat({ c, mo }: { c: ChatDong; mo: () => void }) {
+function TheChat({ c, mo, doi }: { c: ChatDong; mo: () => void; doi: () => void }) {
   const tt = trangThai(c);
   const [dang, batDau] = useTransition();
   const [daGui, setDaGui] = useState(false);
@@ -154,7 +154,7 @@ function TheChat({ c, mo }: { c: ChatDong; mo: () => void }) {
         <span style={{ flex: 1 }} />
         <button className="btn ghost" onClick={(e) => { e.stopPropagation(); mo(); }}>Mở</button>
         {choDuyet(c) && c.nhap?.noi_dung && <button className="btn primary" disabled={dang} title="Gửi nguyên nháp này cho khách"
-          onClick={(e) => { e.stopPropagation(); batDau(async () => { await shopGuiChat(c.id, c.nhap!.noi_dung!); setDaGui(true); }); }}>Duyệt</button>}
+          onClick={(e) => { e.stopPropagation(); batDau(async () => { setDaGui(true); await shopGuiChat(c.id, c.nhap!.noi_dung!); await doi(); });   // tải lại ngay: thẻ chuyển cột + số trên cùng đổi, không đợi nhịp 5s }}>Duyệt</button>}
       </div>
     </div>
   );

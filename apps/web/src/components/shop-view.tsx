@@ -11,8 +11,8 @@ import {
 } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { BUOC, LINK_DS_CJ, NHAN_BUOC, gio, isoCua, linkVanDon, soNgayTu, tien, type Buoc } from '@/lib/shop/buoc';
-import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, SanPhamDong } from '@/lib/shop/doc';
-import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaBienThe, shopSuaCauHinh, shopSuaMatTien, shopSuaSanPham, shopTraNcc } from '@/lib/actions/shop';
+import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, SanPhamDong, ThamKhao } from '@/lib/shop/doc';
+import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaBienThe, shopSuaCauHinh, shopSuaMatTien, shopSuaSanPham, shopSuaThamKhao, shopTraNcc } from '@/lib/actions/shop';
 
 type Tab = 'don' | 'van_chuyen' | 'san_pham' | 'danh_gia' | 'cua_hang';
 // Màu bước = tín hiệu: amber chờ người, đỏ lỗi/trễ, xanh đã giao; bước đang chạy bình thường để trung tính.
@@ -302,6 +302,7 @@ function BangSanPham({ bienThe, sanPham }: { bienThe: BienTheDong[]; sanPham: Sa
     { key: 'bt', header: 'Biến thể', cell: (p) => p.soBienThe },
     { key: 'ban', header: 'Đã bán', cell: (p) => p.daBan || '—', sortValue: (p) => p.daBan },
     { key: 'dg', header: 'Đánh giá', cell: (p) => p.danhGia || '—' },
+    { key: 'tk', header: 'Tham khảo', title: 'Trang ngoài bán cùng/gần mẫu — bấm dòng để xem', cell: (p) => p.thamKhao.filter((t) => t.url).length || '—' },
     { key: 'hien', header: 'Mặt tiền', align: 'left', cell: (p) => <Pill color={p.hien ? 'var(--ok)' : 'var(--fg-3)'} label={p.hien ? 'đang bán' : 'ẩn'} /> },
     { key: 'xem', header: '', align: 'left', cell: (p) => (p.slug ? <LinkChip href={`https://${p.domain}/${p.slug}`} tone="neutral" size="xs" onClick={(e) => e.stopPropagation()}>xem ↗</LinkChip> : null) },
   ];
@@ -368,6 +369,7 @@ function SuaSanPham({ p, onClose }: { p: SanPhamDong; onClose: () => void }) {
             giá từ {tien(p.giaTu)} · {p.soBienThe} biến thể{p.slug && <LinkChip href={`https://${p.domain}/${p.slug}`} tone="neutral" size="xs">trang shop ↗</LinkChip>}
           </div>
         </div>
+        <ThamKhaoSp p={p} />
         <TextAreaField id="shop-sp-td" label="Tiêu đề bán (H1 trang sản phẩm)" hint="Trống = dùng tên sản phẩm. Chỉ ghi lợi ích/ưu đãi có thật." rows={3} value={td} onChange={(e) => setTd(e.target.value)} />
         <TextField id="shop-sp-goc" label="Giá gạch (USD)" hint="Giá trước giảm CÓ THẬT (đã bán ở mức đó). Trống = không gạch giá." inputMode="decimal" value={goc} onChange={(e) => setGoc(e.target.value)} />
         <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 13 }}>
@@ -383,6 +385,47 @@ function SuaSanPham({ p, onClose }: { p: SanPhamDong; onClose: () => void }) {
         </div>
       </div>
     </Drawer>
+  );
+}
+
+const NHAN_KHOP: Record<ThamKhao['khop'], { nhan: string; mau: string }> = {
+  dung_mau: { nhan: 'đúng mẫu', mau: 'var(--ok)' }, chua_xac_nhan: { nhan: 'chưa so ảnh', mau: 'var(--warn)' }, khac: { nhan: 'mẫu khác', mau: 'var(--fg-3)' },
+};
+const nguonCua = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, '').split('.')[0]!; } catch { return 'web'; } };
+
+/** Trang ngoài bán cùng/gần mẫu: đọc review thật, so giá, lấy ý cho mô tả/FAQ/size. Đứng ĐẦU drawer để mở ra là thấy (anh chốt 01/10). */
+function ThamKhaoSp({ p }: { p: SanPhamDong }) {
+  const [ds, setDs] = useState<ThamKhao[]>(p.thamKhao);
+  const [url, setUrl] = useState('');
+  const [ghi, setGhi] = useState('');
+  const [dangChay, batDau] = useTransition();
+  const luu = (moi: ThamKhao[]) => { setDs(moi); batDau(async () => { await shopSuaThamKhao(p.id, moi); }); };
+  return (
+    <Panel title={`Tham khảo · ${ds.filter((t) => t.url).length} trang`} subtitle="Trang ngoài bán cùng/gần mẫu — đọc review thật, so giá, lấy ý mô tả/FAQ/size">
+      <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>
+        {!ds.length && <span style={phu}>Chưa có trang nào.</span>}
+        {ds.map((t, i) => (
+          <div key={i} style={{ display: 'grid', gap: 3, paddingBottom: 6, borderBottom: '1px solid var(--line)' }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+              {t.url ? <LinkChip href={t.url} tone="neutral" size="xs">{t.nguon || nguonCua(t.url)} ↗</LinkChip> : <b>{t.nguon}</b>}
+              <Pill color={NHAN_KHOP[t.khop].mau} label={NHAN_KHOP[t.khop].nhan} />
+              <span style={{ flex: 1 }} />
+              <select value={t.khop} disabled={dangChay} aria-label="Mức khớp" onChange={(e) => luu(ds.map((x, j) => (j === i ? { ...x, khop: e.target.value as ThamKhao['khop'] } : x)))}
+                style={{ fontSize: 12 }}>{Object.entries(NHAN_KHOP).map(([k, v]) => <option key={k} value={k}>{v.nhan}</option>)}</select>
+              <button className="btn ghost" disabled={dangChay} onClick={() => luu(ds.filter((_, j) => j !== i))}>Bỏ</button>
+            </div>
+            {t.ghi_chu && <span style={phu}>{t.ghi_chu}</span>}
+          </div>
+        ))}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 6 }}>
+          <TextField id={`tk-url-${p.id}`} size="sm" placeholder="https://… (Amazon, Walmart, AliExpress…)" value={url} onChange={(e) => setUrl(e.target.value.trim())} />
+          <TextField id={`tk-ghi-${p.id}`} size="sm" placeholder="Ghi chú (vd 4.3★ · 494 review, form nhỏ)" value={ghi} onChange={(e) => setGhi(e.target.value)} />
+          <button className="btn" disabled={!/^https?:\/\//.test(url) || dangChay} onClick={() => {
+            luu([...ds, { url, nguon: nguonCua(url), ghi_chu: ghi.trim(), khop: 'chua_xac_nhan', luc: new Date().toISOString() }]); setUrl(''); setGhi('');
+          }}>Thêm</button>
+        </div>
+      </div>
+    </Panel>
   );
 }
 

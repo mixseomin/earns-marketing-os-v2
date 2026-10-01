@@ -19,7 +19,9 @@ export type DonDong = {
 export type BienTheDong = { id: number; sanPhamId: number; sanPham: string; anh: string | null; link: string | null; cuaHang: string; maNgoai: string;
   ten: string; sku: string | null; giaBan: number | null; maNcc: string | null; giaVon: number | null; daBan: number };
 export type SanPhamDong = { id: number; cuaHang: string; domain: string; slug: string | null; ten: string; tieuDe: string | null; anh: string | null;
-  giaGoc: number | null; giaTu: number | null; hien: boolean; soBienThe: number; daBan: number; danhGia: number };
+  giaGoc: number | null; giaTu: number | null; hien: boolean; soBienThe: number; daBan: number; danhGia: number; maNcc: string | null;
+  thamKhao: ThamKhao[] };
+export type ThamKhao = { url: string | null; nguon: string; ghi_chu: string; khop: 'chua_xac_nhan' | 'dung_mau' | 'khac'; luc: string };
 export type DanhGiaDong = { id: number; cuaHang: string; sanPham: string; ten: string; email: string | null; sao: number; tieuDe: string | null; noiDung: string;
   daMua: boolean; trangThai: string; taoLuc: string };
 export type CuaHangDong = { id: number; khoa: string; ten: string; domain: string; nenTang: string; ncc: string; trangThai: string; tenMien: string[]; matTien: MatTien;
@@ -52,7 +54,7 @@ export async function docShop() {
              (SELECT COUNT(*) FROM shop_bien_the b JOIN shop_san_pham p ON p.id = b.san_pham_id WHERE p.cua_hang_id = c.id AND b.ma_ncc IS NULL) AS thieu_ma
         FROM shop_cua_hang c ORDER BY c.id`),
     q(sql`
-      SELECT p.id, c.khoa, c.domain, p.slug, p.ten, p.tieu_de, p.anh, p.gia_goc, p.hien,
+      SELECT p.id, c.khoa, c.domain, p.slug, p.ten, p.tieu_de, p.anh, p.gia_goc, p.hien, p.ma_ncc, p.tham_khao,
              (SELECT MIN(b.gia_ban) FROM shop_bien_the b WHERE b.san_pham_id = p.id) AS gia_tu,
              (SELECT COUNT(*) FROM shop_bien_the b WHERE b.san_pham_id = p.id) AS so_bt,
              (SELECT COALESCE(SUM(m.sl), 0) FROM shop_don_mon m JOIN shop_don d ON d.id = m.don_id JOIN shop_bien_the b ON b.id = m.bien_the_id
@@ -90,7 +92,7 @@ export async function docShop() {
     tenMien: (r.ten_mien as string[]) ?? [], matTien: (r.mat_tien ?? {}) as MatTien }));
   const sanPham: SanPhamDong[] = sps.map((r) => ({ id: Number(r.id), cuaHang: String(r.khoa), domain: String(r.domain), slug: (r.slug as string) ?? null, ten: String(r.ten),
     tieuDe: (r.tieu_de as string) ?? null, anh: (r.anh as string) ?? null, giaGoc: so(r.gia_goc), giaTu: so(r.gia_tu), hien: !!r.hien, soBienThe: Number(r.so_bt),
-    daBan: Number(r.da_ban), danhGia: Number(r.so_dg) }));
+    daBan: Number(r.da_ban), danhGia: Number(r.so_dg), maNcc: (r.ma_ncc as string) ?? null, thamKhao: (r.tham_khao as ThamKhao[]) ?? [] }));
   const danhGia: DanhGiaDong[] = dgs.map((r) => ({ id: Number(r.id), cuaHang: String(r.khoa), sanPham: String(r.san_pham), ten: String(r.ten), email: (r.email as string) ?? null,
     sao: Number(r.sao), tieuDe: (r.tieu_de as string) ?? null, noiDung: String(r.noi_dung), daMua: !!r.da_mua, trangThai: String(r.trang_thai), taoLuc: String(r.tao_luc) }));
   return { don: dons, bienThe, cuaHang, sanPham, danhGia };

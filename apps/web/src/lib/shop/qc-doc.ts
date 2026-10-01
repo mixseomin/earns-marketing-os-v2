@@ -5,6 +5,7 @@ import 'server-only';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { checklist, khoaThe, kiemHaTang, type BuocChuan, type DungChung, type HaTang, type PhatHien } from './qc-ha-tang';
+import type { LoaiNuoi, MocNuoi } from './qc-nuoi';
 
 type Row = Record<string, unknown>;
 const q = async (s: ReturnType<typeof sql>) => { const d = getDb(); if (!d) return [] as Row[]; return (await d.execute(s)) as unknown as Row[]; };
@@ -13,10 +14,11 @@ const chu = (v: unknown) => (v === null || v === undefined ? null : String(v));
 const ngay = (v: unknown) => (v === null || v === undefined ? null : String(v).slice(0, 10));
 const chung = (r: Row) => ({ id: Number(r.id), cuaHangId: Number(r.cua_hang_id), ghiChu: chu(r.ghi_chu), trangThai: String(r.trang_thai) });
 
-export type BoHaTang = { h: HaTang; kq: PhatHien[]; ck: BuocChuan[] };
+/** moc = sổ mốc NUÔI (0212) của shop — hành trình từng mảnh tính ở qc-nuoi.ts. */
+export type BoHaTang = { h: HaTang; kq: PhatHien[]; ck: BuocChuan[]; moc: MocNuoi[] };
 
 export async function docHaTang(homNay = new Date().toISOString().slice(0, 10)): Promise<BoHaTang[]> {
-  const [ch, bm, the, tk, nguoi, trang, pixel, prx] = await Promise.all([
+  const [ch, bm, the, tk, nguoi, trang, pixel, prx, nuoi] = await Promise.all([
     q(sql`SELECT id, khoa, domain, NULLIF(mat_tien->'do'->>'meta_pixel', '') AS px FROM shop_cua_hang ORDER BY id`),
     q(sql`SELECT id, cua_hang_id, ext_id, ten, nguon, noi_mua, ma_don, gia_mua, ngay_mua::text AS ngay_mua, bao_hanh_den::text AS bao_hanh_den, xac_minh,
              da_go_nguoi_ban, trang_thai, token_enc IS NOT NULL AS co_token, token_quyen, token_luc::text AS token_luc, ghi_chu FROM shop_qc_bm ORDER BY id`),
@@ -37,6 +39,7 @@ export async function docHaTang(homNay = new Date().toISOString().slice(0, 10)):
     q(sql`SELECT s.id, s.cua_hang_id, s.proxy_id, s.nha_cung_cap, s.gia_thang, s.gia_han_den::text AS gia_han_den, s.trang_thai, s.ghi_chu,
              p.label, p.type, p.location, p.health, substring(p.endpoint from '([^@/:]+)(:[0-9]+)?/?$') AS host
         FROM shop_qc_proxy s JOIN proxies p ON p.id = s.proxy_id ORDER BY s.id`),
+    q(sql`SELECT id, cua_hang_id, loai, doi_tuong_id, buoc, xong, luc, ghi_chu, nguoi_ghi FROM shop_qc_nuoi ORDER BY luc, id`),
   ]);
 
   /* Người trong kho dùng chung proxy / browser profile với tài khoản KHÁC (mọi nền tảng, mọi dự án) — chỉ hỏi cho đúng các proxy /
@@ -94,7 +97,9 @@ export async function docHaTang(homNay = new Date().toISOString().slice(0, 10)):
       ma: { ...gom(khac(bm), (r) => chu(r.ext_id)), ...gom(khac(tk), (r) => chu(r.ext_id)), ...gom(khac(trang), (r) => chu(r.ext_id)), ...gom(khac(pixel), (r) => chu(r.ext_id)) },
       proxyBo: gom(khac(prx), (r) => chu(r.proxy_id)) as unknown as Record<number, string[]>,
     };
-    return { h, kq: kiemHaTang(h, ngoai, homNay), ck: checklist(h) };
+    const moc: MocNuoi[] = nuoi.filter((r) => Number(r.cua_hang_id) === h.cuaHangId).map((r) => ({ id: Number(r.id), loai: String(r.loai) as LoaiNuoi,
+      doiTuongId: Number(r.doi_tuong_id), buoc: String(r.buoc), xong: !!r.xong, luc: new Date(String(r.luc)).toISOString(), ghiChu: chu(r.ghi_chu), nguoiGhi: chu(r.nguoi_ghi) }));
+    return { h, kq: kiemHaTang(h, ngoai, homNay), ck: checklist(h), moc };
   });
 }
 

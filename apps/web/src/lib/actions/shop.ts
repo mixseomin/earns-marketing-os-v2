@@ -27,6 +27,7 @@ import { docHaTang, docProfileKho, docProxyKho, docTaiKhoanFb } from '@/lib/shop
 import { createProxy, updateAccountEnvironment, type ProxyType } from '@/lib/actions/environments';
 import { LOAI_PROXY, LOAI_THE, NGUON_NGUOI, NGUON_TS, TRANG_THAI_QC, TRANG_THAI_THE, VAI_TRO_QC } from '@/lib/shop/qc-ha-tang';
 import { cryptoEnabled, decryptValue, encryptValue } from '@/lib/crypto';
+import { LO_NUOI, type LoaiNuoi } from '@/lib/shop/qc-nuoi';
 
 async function admin() {
   const me = await getCurrentUser();
@@ -620,6 +621,22 @@ export async function shopQcProxyMoi(cuaHangId: number, p: { label: string; loai
 export async function shopQcGanThietBi(accountId: number, proxyId: number | null, profileId: number | null) {
   await admin();
   await updateAccountEnvironment(accountId, { proxyId, browserProfileId: profileId });
+  revalidatePath('/shop');
+  return { ok: true };
+}
+
+/** Ghi một mốc NUÔI (0212): bắt đầu nuôi (ngày tuỳ chọn, mặc định hôm nay) · chặng xong / mở lại · ghi chú. Chỉ thêm dòng, không sửa xoá. */
+export async function shopQcMoc(cuaHangId: number, loai: LoaiNuoi, doiTuongId: number, buoc: string, xong = true, ghiChu?: string, ngay?: string) {
+  const me = await admin();
+  if (!(loai in LO_NUOI)) return { ok: false, loi: 'loại lạ' };
+  if (buoc !== 'bat_dau' && buoc !== 'ghi' && !LO_NUOI[loai].some((c) => c.key === buoc)) return { ok: false, loi: 'chặng lạ' };
+  if (buoc === 'ghi' && !txt(ghiChu)) return { ok: false, loi: 'ghi chú trống' };
+  const co = (await db().execute(sql`SELECT 1 FROM ${sql.raw(LOAI_QC[loai])} WHERE id = ${doiTuongId} AND cua_hang_id = ${cuaHangId}`)) as unknown as unknown[];
+  if (!co.length) return { ok: false, loi: 'không có mảnh này trong shop' };
+  /* ngày chọn tay (bắt đầu nuôi từ hôm trước) = 12:00 giờ VN của ngày đó */
+  const luc = ngayOk(ngay) ? sql`${`${ngay}T05:00:00Z`}::timestamptz` : sql`now()`;
+  await db().execute(sql`INSERT INTO shop_qc_nuoi (cua_hang_id, loai, doi_tuong_id, buoc, xong, luc, ghi_chu, nguoi_ghi)
+    VALUES (${cuaHangId}, ${loai}, ${doiTuongId}, ${buoc}, ${xong}, ${luc}, ${txt(ghiChu, 2000)}, ${me.displayName || me.email})`);
   revalidatePath('/shop');
   return { ok: true };
 }

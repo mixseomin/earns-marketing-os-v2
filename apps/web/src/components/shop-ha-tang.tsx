@@ -1,13 +1,14 @@
 'use client';
 // /shop › HẠ TẦNG QC — bộ tài nguyên chạy quảng cáo của từng shop MOS, TÁCH HẲN dự án khác (anh 02/10/2026). Mỗi shop:
 //   KIỂM CÔ LẬP (đỏ = dùng chung với nơi khác — người, proxy, browser profile, thẻ, mã BM/TK/Trang/pixel; vàng = thiếu / yếu),
-//   CHUẨN BỊ CHẠY (9 bước, máy tự tick từ sổ), SƠ ĐỒ cây BM → người · TK QC (+ thẻ) · Trang · pixel, và THẺ.
+//   CHUẨN BỊ CHẠY (9 bước, máy tự tick từ sổ), NUÔI TÀI KHOẢN (shop-nuoi.tsx), SƠ ĐỒ cây BM → người · TK QC (+ thẻ) · Trang · pixel, và THẺ.
 // Luật ở lib/shop/qc-ha-tang.ts (thuần, có test), sổ ở lib/shop/qc-doc.ts. Thẻ chỉ có nhãn + 4 số cuối — không ô nào nhận số đầy đủ.
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { Cay, Drawer, EmptyState, EntityRef, NutCay, Panel, PickField, Pill, SelectField, Spinner, TextAreaField, TextField } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { shopHaTang, shopQcGanThietBi, shopQcHienToken, shopQcLuu, shopQcProxyMoi, shopQcToken, type LoaiQc } from '@/lib/actions/shop';
 import type { BoHaTang } from '@/lib/shop/qc-doc';
+import { NuoiShop } from './shop-nuoi';
 import { LOAI_PROXY, LOAI_THE, NGUON_NGUOI, NGUON_TS, TRANG_THAI_QC, TRANG_THAI_THE, VAI_TRO_QC, type HaTang } from '@/lib/shop/qc-ha-tang';
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)', fontSize: 12 };
@@ -173,7 +174,7 @@ function TokenBm({ bo, bmId, onLuu }: { bo: BoHaTang; bmId: number; onLuu: () =>
   );
 }
 
-function BoShop({ bo, mo }: { bo: BoHaTang; mo: (loai: LoaiQc, id: string) => void }) {
+function BoShop({ bo, mo, onLuu }: { bo: BoHaTang; mo: (loai: LoaiQc, id: string) => void; onLuu: () => void }) {
   const { h, kq, ck } = bo;
   const theCua = (id: number | null) => h.the.find((t) => t.id === id);
   const sua = (loai: LoaiQc, id: number) => <button className="btn ghost" onClick={() => mo(loai, String(id))}>Sửa</button>;
@@ -222,6 +223,7 @@ function BoShop({ bo, mo }: { bo: BoHaTang; mo: (loai: LoaiQc, id: string) => vo
           </ul>
         </Panel>
       </div>
+      <NuoiShop bo={bo} onLuu={onLuu} />
       <Panel title="Sơ đồ" subtitle="BM → người quản trị · TK QC (+ thẻ) · Trang · pixel" pad={0}>
         {h.bm.length || le ? <Cay label="Sơ đồ hạ tầng quảng cáo">
           {h.bm.map((b) => <NutCay key={b.id} mo_nhat={b.trangThai === 'bo'}
@@ -267,7 +269,7 @@ export function BangHaTang({ ch }: { ch: string }) {
     : (b.h as unknown as Record<string, { id: number }[]>)[modal.value!]?.some((x) => x.id === Number(mId)))) : null;
   return (
     <div data-comp="BangHaTang" style={{ display: 'grid', gap: 24 }}>
-      {ds.length ? ds.map((b) => <BoShop key={b.h.cuaHangId} bo={b} mo={(l, id) => modal.open(l, id)} />)
+      {ds.length ? ds.map((b) => <BoShop key={b.h.cuaHangId} bo={b} mo={(l, id) => modal.open(l, id)} onLuu={tai} />)
         : <EmptyState compact icon="🧱" title="Không có shop nào" description="Chọn cửa hàng ở hàng chip trên cùng." />}
       {modal.value && boMo && modal.value in TRUONG && <DrawerQc key={`${modal.value}-${mId}`} loai={modal.value as LoaiQc} id={mId} bo={boMo} kho={data}
         onClose={() => modal.close()} onLuu={tai} />}

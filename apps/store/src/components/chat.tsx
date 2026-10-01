@@ -60,7 +60,7 @@ export function ChatTuVan({ chao, ten }: { chao: string; ten: string }) {
         <div ref={cuoi} />
       </div>
       <form className="chat-go" onSubmit={(e) => { e.preventDefault(); nhan(); }}>
-        <textarea id="chat-nd" rows={1} placeholder="Ask about sizing, shipping or your order…" value={nd} maxLength={2000}
+        <textarea id="chat-nd" rows={1} placeholder="Type your question…" value={nd} maxLength={2000}
           onChange={(e) => setNd(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); nhan(); } }} />
         <button disabled={dang || !nd.trim()} aria-label="Send">➤</button>
       </form>

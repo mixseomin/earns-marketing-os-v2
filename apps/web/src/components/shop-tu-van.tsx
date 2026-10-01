@@ -68,7 +68,7 @@ export function BangTuVan({ ch }: { ch: string }) {
       <span style={{ fontSize: 12, ...phu }}><span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: 4, background: 'var(--ok)', marginRight: 6 }} />đang chạy · tự tải lại 5s</span>
     </div>
     {ds === null ? <div style={phu}>Đang tải…</div> : (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(250px, 1fr))', gap: 12, overflowX: 'auto', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, alignItems: 'start' }}>
         <Cot mau="var(--warn)" ten="Chờ anh duyệt" phuDe="máy soạn xong, anh quyết" buoc={['Khách nhắn', 'Soạn', 'Kiểm', 'Anh duyệt', 'Gửi']} buocNay={3}
           so={[{ n: 'chờ duyệt', v: duyet.filter((c) => c.nhap?.nhom !== 'an_toan' && !c.nhap?.loi).length, mau: 'var(--warn)' },
             { n: 'bị chặn', v: duyet.filter((c) => c.nhap?.nhom === 'an_toan' && c.nhap?.kiem?.ok === false).length, mau: 'var(--bad)' },
@@ -94,21 +94,21 @@ export function BangTuVan({ ch }: { ch: string }) {
 function Cot({ mau, ten, phuDe, buoc, buocNay, so, the, mo, trong }: { mau: string; ten: string; phuDe: string; buoc: string[]; buocNay: number;
   so: { n: string; v: number; mau?: string }[]; the: ChatDong[]; mo: (c: ChatDong) => void; trong: string }) {
   return (
-    <div style={{ border: '1px solid var(--line)', borderRadius: 10, background: 'var(--bg-1)', padding: 12, display: 'grid', gap: 10, minWidth: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ width: 8, height: 8, borderRadius: 4, background: mau, flex: 'none', alignSelf: 'center' }} />
-        <b style={{ fontSize: 15 }}>{ten}</b><span style={{ fontSize: 11.5, ...phu }}>{phuDe}</span>
+    <div style={{ border: '1px solid var(--line)', borderRadius: 10, background: 'var(--bg-1)', padding: 12, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10, minWidth: 0 }}>
+      <div style={{ display: 'grid', gap: 1 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 8, height: 8, borderRadius: 4, background: mau, flex: 'none' }} /><b style={{ fontSize: 15, whiteSpace: 'nowrap' }}>{ten}</b></span>
+        <span style={{ fontSize: 11.5, ...phu, paddingLeft: 16 }}>{phuDe}</span>
       </div>
-      <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
         {buoc.map((b, i) => <span key={b} style={{ display: 'contents' }}>
-          {i > 0 && <span aria-hidden style={{ flex: '1 0 6px', height: 1, background: 'var(--line)' }} />}
-          <span style={{ fontSize: 11.5, padding: '3px 8px', borderRadius: 6, border: `1px solid ${i === buocNay ? 'var(--accent)' : 'var(--line)'}`,
+          {i > 0 && <span aria-hidden style={{ flex: '1 1 4px', minWidth: 3, height: 1, background: 'var(--line)' }} />}
+          <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 6, border: `1px solid ${i === buocNay ? 'var(--accent)' : 'var(--line)'}`,
             color: i === buocNay ? 'var(--fg-0)' : 'var(--fg-2)', background: i === buocNay ? 'var(--accent-soft)' : 'transparent', whiteSpace: 'nowrap' }}>{b}</span>
         </span>)}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${so.length}, 1fr)`, border: '1px solid var(--line)', borderRadius: 8 }}>
         {so.map((x, i) => <div key={x.n} style={{ padding: '6px 8px', borderLeft: i ? '1px solid var(--line)' : undefined, minWidth: 0 }}>
-          <div style={{ fontSize: 9.5, ...phu, textTransform: 'uppercase', letterSpacing: '.05em', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.n}</div>
+          <div style={{ fontSize: 9.5, ...phu, textTransform: 'uppercase', letterSpacing: '.04em', fontFamily: 'var(--font-mono)', lineHeight: 1.25, minHeight: 24 }}>{x.n}</div>
           <b style={{ fontSize: 17, color: x.v ? x.mau : undefined, fontVariantNumeric: 'tabular-nums' }}>{x.v}</b>
         </div>)}
       </div>
@@ -125,7 +125,7 @@ function TheChat({ c, mo }: { c: ChatDong; mo: () => void }) {
   const ten = c.ten || c.email?.split('@')[0] || `Khách #${c.id}`;
   return (
     <div onClick={mo} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') mo(); }}
-      style={{ border: `1px solid ${vien}`, borderRadius: 8, padding: 10, display: 'grid', gap: 5, cursor: 'pointer', background: 'var(--bg-2)', opacity: daGui ? 0.5 : 1 }}>
+      style={{ border: `1px solid ${vien}`, borderRadius: 8, padding: 10, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5, cursor: 'pointer', background: 'var(--bg-2)', opacity: daGui ? 0.5 : 1, minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
         {c.phien?.online && <span title="Đang trên site" style={{ width: 7, height: 7, borderRadius: 4, background: 'var(--ok)', flex: 'none' }} />}
         <b style={{ fontSize: 13.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ten}</b>
@@ -134,7 +134,7 @@ function TheChat({ c, mo }: { c: ChatDong; mo: () => void }) {
         <span style={{ flex: 1 }} />
         <span style={{ fontSize: 11, ...phu, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{truoc(c.khachCuoi ?? c.capNhat)}</span>
       </div>
-      {c.tinKhach && <div style={{ fontSize: 13.5 }}>“{c.tinKhach.slice(0, 140)}{c.tinKhach.length > 140 ? '…' : ''}”</div>}
+      {c.tinKhach && <div style={{ fontSize: 13.5, overflowWrap: 'anywhere' }}>“{c.tinKhach.slice(0, 140)}{c.tinKhach.length > 140 ? '…' : ''}”</div>}
       {c.nhap?.noi_dung && <div style={{ fontSize: 12.5, ...phu }}><span style={{ color: 'var(--fg-2)' }}>Nháp:</span> {c.nhap.noi_dung.slice(0, 160)}{c.nhap.noi_dung.length > 160 ? '…' : ''}</div>}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ fontSize: 12, color: tt.mau, display: 'inline-flex', gap: 5, alignItems: 'center', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

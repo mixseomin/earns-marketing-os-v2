@@ -7,14 +7,14 @@ import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'rea
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  DataTable, Drawer, EmptyState, FilterChips, LinkChip, Panel, Pill, SimpleTable, StatsStrip, Tabs, TextField, type DataColumn,
+  DataTable, DateTimeField, Drawer, EmptyState, FilterChips, LinkChip, Panel, Pill, SimpleTable, StatsStrip, Tabs, TextAreaField, TextField, toDatetimeLocal, type DataColumn,
 } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { BUOC, LINK_DS_CJ, NHAN_BUOC, gio, isoCua, linkVanDon, soNgayTu, tien, type Buoc } from '@/lib/shop/buoc';
-import type { BienTheDong, ChiTietDon, CuaHangDong, DonDong } from '@/lib/shop/doc';
-import { shopChiTietDon, shopDongBo, shopGhiChu, shopSangNcc, shopSuaBienThe, shopSuaCauHinh, shopTraNcc } from '@/lib/actions/shop';
+import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, SanPhamDong } from '@/lib/shop/doc';
+import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaBienThe, shopSuaCauHinh, shopSuaMatTien, shopSuaSanPham, shopTraNcc } from '@/lib/actions/shop';
 
-type Tab = 'don' | 'van_chuyen' | 'san_pham' | 'cua_hang';
+type Tab = 'don' | 'van_chuyen' | 'san_pham' | 'danh_gia' | 'cua_hang';
 // Màu bước = tín hiệu: amber chờ người, đỏ lỗi/trễ, xanh đã giao; bước đang chạy bình thường để trung tính.
 const MAU: Record<string, string> = { muted: 'var(--fg-3)', warn: 'var(--warn)', bad: 'var(--bad)', ok: 'var(--ok)' };
 const MAU_BUOC = Object.fromEntries(BUOC.map((b) => [b.key, MAU[b.mau]])) as Record<Buoc, string>;
@@ -28,7 +28,7 @@ function BuocPill({ b }: { b: Buoc }) {
 }
 const VanDon = ({ ma }: { ma: string }) => <LinkChip href={linkVanDon(ma)} tone="neutral" size="xs" onClick={(e) => e.stopPropagation()}>{ma} ↗</LinkChip>;
 
-export function ShopView({ don, bienThe, cuaHang }: { don: DonDong[]; bienThe: BienTheDong[]; cuaHang: CuaHangDong[] }) {
+export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia }: { don: DonDong[]; bienThe: BienTheDong[]; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; danhGia: DanhGiaDong[] }) {
   const sp = useSearchParams();
   const [tab, setTab] = useState<Tab>((sp.get('tab') as Tab) || 'don');
   const [buoc, setBuoc] = useState<string>(sp.get('b') || 'all');
@@ -50,6 +50,9 @@ export function ShopView({ don, bienThe, cuaHang }: { don: DonDong[]; bienThe: B
   const dsDon = useMemo(() => theoCh.filter((d) => buoc === 'all' || d.buoc === buoc), [theoCh, buoc]);
   const dsVanChuyen = useMemo(() => theoCh.filter((d) => d.ncc?.maVanDon || d.buoc === 'ncc_xu_ly' || d.buoc === 'cho_tra'), [theoCh]);
   const bt = useMemo(() => bienThe.filter((b) => ch === 'all' || b.cuaHang === ch), [bienThe, ch]);
+  const sps = useMemo(() => sanPham.filter((p) => ch === 'all' || p.cuaHang === ch), [sanPham, ch]);
+  const dgs = useMemo(() => danhGia.filter((g) => ch === 'all' || g.cuaHang === ch), [danhGia, ch]);
+  const choDuyet = dgs.filter((g) => g.trangThai === 'cho').length;
   const canXuLy = (dem.cho_ncc ?? 0) + (dem.loi_ncc ?? 0) + (dem.cho_tra ?? 0) + (dem.tre ?? 0);
 
   // KPI 30 ngày: đơn đã trả tiền (bỏ chưa trả + huỷ), doanh thu sau hoàn, lãi ước (đơn đủ giá vốn), đơn cần xử lý
@@ -100,7 +103,7 @@ export function ShopView({ don, bienThe, cuaHang }: { don: DonDong[]; bienThe: B
     <div className="page">
       <div className="page-head" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <h1 className="page-title" style={{ margin: 0 }}>Shop</h1>
-        <span className="page-sub">Sau khi khách trả tiền: đặt NCC → trả NCC → vận đơn → giao. Bán + thu tiền vẫn ở Woo.</span>
+        <span className="page-sub">Sau khi khách trả tiền: đặt NCC → trả NCC → vận đơn → giao. Mặt tiền + thu tiền: Woo hoặc mặt tiền MOS (theo cửa hàng).</span>
         <span style={{ flex: 1 }} />
         {cuaHang.length > 1 && (
           <FilterChips urlKey="ch" value={ch} onChange={setCh}
@@ -123,6 +126,7 @@ export function ShopView({ don, bienThe, cuaHang }: { don: DonDong[]; bienThe: B
         { key: 'don', label: 'Đơn hàng', badge: canXuLy || undefined },
         { key: 'van_chuyen', label: 'Vận chuyển', badge: dem.tre || undefined },
         { key: 'san_pham', label: 'Sản phẩm', badge: thieuMa || undefined },
+        { key: 'danh_gia', label: 'Đánh giá', badge: choDuyet || undefined },
         { key: 'cua_hang', label: 'Cửa hàng' },
       ]} />
 
@@ -148,7 +152,8 @@ export function ShopView({ don, bienThe, cuaHang }: { don: DonDong[]; bienThe: B
           ? <Panel pad={8}><DataTable rows={dsVanChuyen} columns={cotVc} getRowKey={(d) => String(d.id)} persistKey="shop-vc" minWidth={900} onRowClick={(d) => modal.open('don', d.id)} /></Panel>
           : <EmptyState icon="🚚" compact title="Chưa có đơn nào ở NCC hay trên đường" />)}
 
-        {tab === 'san_pham' && <BangSanPham bienThe={bt} />}
+        {tab === 'san_pham' && <BangSanPham bienThe={bt} sanPham={sps} />}
+        {tab === 'danh_gia' && <BangDanhGia ds={dgs} />}
         {tab === 'cua_hang' && <div style={{ display: 'grid', gap: 12 }}>{cuaHang.map((c) => <TheCuaHang key={c.id} c={c} />)}</div>}
       </div>
 
@@ -266,9 +271,10 @@ function DrawerDon({ id, onClose }: { id: number; onClose: () => void }) {
 }
 
 /* ── Sản phẩm ↔ NCC ─────────────────────────────────────────────────────── */
-function BangSanPham({ bienThe }: { bienThe: BienTheDong[] }) {
+function BangSanPham({ bienThe, sanPham }: { bienThe: BienTheDong[]; sanPham: SanPhamDong[] }) {
   const [sua, setSua] = useState<BienTheDong | null>(null);
-  const [loc, setLoc] = useState<'all' | 'thieu'>('all');
+  const [suaSp, setSuaSp] = useState<SanPhamDong | null>(null);
+  const [loc, setLoc] = useState<'all' | 'thieu' | 'mat_tien'>((useSearchParams().get('sp') as 'mat_tien') || 'all');
   const thieu = bienThe.filter((b) => !b.maNcc || b.giaVon === null);
   const rows = loc === 'thieu' ? thieu : bienThe;
   const cot: DataColumn<BienTheDong>[] = [
@@ -285,15 +291,34 @@ function BangSanPham({ bienThe }: { bienThe: BienTheDong[] }) {
     { key: 'ma', header: 'Mã CJ (vid)', align: 'left', cell: (b) => (b.maNcc ? <span style={{ fontFamily: 'var(--mono)' }}>{b.maNcc}</span> : <span style={{ color: 'var(--bad)' }}>thiếu</span>) },
     { key: 'ban', header: 'Đã bán', cell: (b) => b.daBan || '—', sortValue: (b) => b.daBan },
   ];
+  const cotSp: DataColumn<SanPhamDong>[] = [
+    { key: 'sp', header: 'Sản phẩm', align: 'left', cell: (p) => (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        {p.anh && <img src={p.anh} alt="" width={22} height={22} style={{ objectFit: 'cover', borderRadius: 3 }} />}{p.ten}
+      </span>), sortValue: (p) => p.ten },
+    { key: 'td', header: 'Tiêu đề bán (H1)', align: 'left', cell: (p) => p.tieuDe ?? <span style={phu}>= tên</span>, cellTitle: (p) => p.tieuDe ?? '' },
+    { key: 'gia', header: 'Giá từ', cell: (p) => tien(p.giaTu), sortValue: (p) => p.giaTu },
+    { key: 'goc', header: 'Giá gạch', title: 'Giá trước giảm CÓ THẬT. Trống = không gạch giá.', cell: (p) => tien(p.giaGoc) },
+    { key: 'bt', header: 'Biến thể', cell: (p) => p.soBienThe },
+    { key: 'ban', header: 'Đã bán', cell: (p) => p.daBan || '—', sortValue: (p) => p.daBan },
+    { key: 'dg', header: 'Đánh giá', cell: (p) => p.danhGia || '—' },
+    { key: 'hien', header: 'Mặt tiền', align: 'left', cell: (p) => <Pill color={p.hien ? 'var(--ok)' : 'var(--fg-3)'} label={p.hien ? 'đang bán' : 'ẩn'} /> },
+    { key: 'xem', header: '', align: 'left', cell: (p) => (p.slug ? <LinkChip href={`https://${p.domain}/${p.slug}`} tone="neutral" size="xs" onClick={(e) => e.stopPropagation()}>xem ↗</LinkChip> : null) },
+  ];
   return (<>
     <div style={{ marginBottom: 8 }}>
-      <FilterChips urlKey="sp" value={loc} onChange={setLoc} counts={{ all: bienThe.length, thieu: thieu.length }}
-        options={[{ value: 'all', label: 'Mọi biến thể' }, { value: 'thieu', label: 'Thiếu mã CJ / giá vốn', title: 'Đơn có món thiếu mã CJ sẽ không sang được NCC.' }]} />
+      <FilterChips urlKey="sp" value={loc} onChange={setLoc} counts={{ all: bienThe.length, thieu: thieu.length, mat_tien: sanPham.length }}
+        options={[{ value: 'all', label: 'Mọi biến thể' }, { value: 'thieu', label: 'Thiếu mã CJ / giá vốn', title: 'Đơn có món thiếu mã CJ sẽ không sang được NCC.' },
+          { value: 'mat_tien', label: 'Mặt tiền', title: 'Tiêu đề bán, giá gạch, hiện/ẩn trên trang shop.' }]} />
     </div>
-    <Panel pad={8}><DataTable rows={rows} columns={cot} getRowKey={(b) => String(b.id)} persistKey="shop-sp" minWidth={820}
-      searchText={(b) => `${b.sanPham} ${b.ten} ${b.sku ?? ''} ${b.maNcc ?? ''}`} searchPlaceholder="Tìm sản phẩm, size, mã CJ…"
-      rowTitle={() => 'Bấm để sửa mã CJ / giá vốn (ghi ngược về Woo)'} onRowClick={(b) => setSua(b)} /></Panel>
+    {loc === 'mat_tien'
+      ? <Panel pad={8}><DataTable rows={sanPham} columns={cotSp} getRowKey={(p) => String(p.id)} persistKey="shop-sp-mt" minWidth={900}
+          rowTitle={() => 'Bấm để sửa tiêu đề bán / giá gạch / hiện-ẩn'} onRowClick={(p) => setSuaSp(p)} /></Panel>
+      : <Panel pad={8}><DataTable rows={rows} columns={cot} getRowKey={(b) => String(b.id)} persistKey="shop-sp" minWidth={820}
+          searchText={(b) => `${b.sanPham} ${b.ten} ${b.sku ?? ''} ${b.maNcc ?? ''}`} searchPlaceholder="Tìm sản phẩm, size, mã CJ…"
+          rowTitle={() => 'Bấm để sửa mã CJ / giá vốn (ghi ngược về Woo)'} onRowClick={(b) => setSua(b)} /></Panel>}
     {sua && <SuaBienThe b={sua} onClose={() => setSua(null)} />}
+    {suaSp && <SuaSanPham p={suaSp} onClose={() => setSuaSp(null)} />}
   </>);
 }
 
@@ -325,6 +350,73 @@ function SuaBienThe({ b, onClose }: { b: BienTheDong; onClose: () => void }) {
       </div>
     </Drawer>
   );
+}
+
+function SuaSanPham({ p, onClose }: { p: SanPhamDong; onClose: () => void }) {
+  const [td, setTd] = useState(p.tieuDe ?? '');
+  const [goc, setGoc] = useState(p.giaGoc === null ? '' : String(p.giaGoc));
+  const [hien, setHien] = useState(p.hien);
+  const [loi, setLoi] = useState<string | null>(null);
+  const [dangChay, batDau] = useTransition();
+  const dirty = td !== (p.tieuDe ?? '') || goc !== (p.giaGoc === null ? '' : String(p.giaGoc)) || hien !== p.hien;
+  return (
+    <Drawer onClose={onClose} width={520} dirty={dirty}>
+      <div style={{ display: 'grid', gap: 12 }}>
+        <div>
+          <h2 style={{ margin: '0 0 4px', fontSize: 16 }}>{p.ten}</h2>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, ...phu }}>
+            giá từ {tien(p.giaTu)} · {p.soBienThe} biến thể{p.slug && <LinkChip href={`https://${p.domain}/${p.slug}`} tone="neutral" size="xs">trang shop ↗</LinkChip>}
+          </div>
+        </div>
+        <TextAreaField id="shop-sp-td" label="Tiêu đề bán (H1 trang sản phẩm)" hint="Trống = dùng tên sản phẩm. Chỉ ghi lợi ích/ưu đãi có thật." rows={3} value={td} onChange={(e) => setTd(e.target.value)} />
+        <TextField id="shop-sp-goc" label="Giá gạch (USD)" hint="Giá trước giảm CÓ THẬT (đã bán ở mức đó). Trống = không gạch giá." inputMode="decimal" value={goc} onChange={(e) => setGoc(e.target.value)} />
+        <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 13 }}>
+          <input type="checkbox" checked={hien} onChange={(e) => setHien(e.target.checked)} /> Đang bán trên mặt tiền
+        </label>
+        {loi && <div style={{ color: 'var(--bad)', fontSize: 13 }}>{loi}</div>}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn primary" disabled={!dirty || dangChay} onClick={() => batDau(async () => {
+            const r = await shopSuaSanPham(p.id, { tieuDe: td || null, giaGoc: goc.trim() === '' ? null : Number(goc), hien });
+            if (r.ok) onClose(); else setLoi(r.loi ?? 'lỗi');
+          })}>{dangChay ? 'Đang lưu…' : 'Lưu'}</button>
+          <button className="btn ghost" onClick={onClose}>Đóng</button>
+        </div>
+      </div>
+    </Drawer>
+  );
+}
+
+/* ── Đánh giá thật của khách (form "Write your review" trên mặt tiền) ───────────── */
+function BangDanhGia({ ds }: { ds: DanhGiaDong[] }) {
+  const [dangChay, batDau] = useTransition();
+  const [loc, setLoc] = useState<string>('cho');
+  const dem = { all: ds.length, cho: ds.filter((g) => g.trangThai === 'cho').length, hien: ds.filter((g) => g.trangThai === 'hien').length, an: ds.filter((g) => g.trangThai === 'an').length };
+  const rows = loc === 'all' ? ds : ds.filter((g) => g.trangThai === loc);
+  const doi = (id: number, tt: 'hien' | 'an') => batDau(async () => { await shopDuyetDanhGia(id, tt); });
+  const cot: DataColumn<DanhGiaDong>[] = [
+    { key: 'luc', header: 'Lúc', align: 'left', cell: (g) => gio(g.taoLuc), sortValue: (g) => g.taoLuc },
+    { key: 'sao', header: 'Sao', cell: (g) => <span style={{ color: g.sao >= 4 ? 'var(--ok)' : g.sao <= 2 ? 'var(--bad)' : undefined }}>{g.sao}★</span>, sortValue: (g) => g.sao },
+    { key: 'sp', header: 'Sản phẩm', align: 'left', cell: (g) => g.sanPham },
+    { key: 'ten', header: 'Khách', align: 'left', cell: (g) => <>{g.ten} {g.daMua ? <Pill color="var(--ok)" label="đã mua" /> : <span style={phu}>chưa khớp đơn</span>}</>, cellTitle: (g) => g.email ?? '' },
+    { key: 'nd', header: 'Nội dung', align: 'left', cell: (g) => <span style={{ display: 'inline-block', maxWidth: 420, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'bottom' }}>
+      {g.tieuDe ? <b>{g.tieuDe} · </b> : null}{g.noiDung}</span>, cellTitle: (g) => `${g.tieuDe ?? ''}\n${g.noiDung}` },
+    { key: 'tt', header: '', align: 'left', cell: (g) => (
+      <span style={{ display: 'inline-flex', gap: 6 }}>
+        {g.trangThai !== 'hien' && <button className="btn primary" disabled={dangChay} onClick={() => doi(g.id, 'hien')}>Hiện</button>}
+        {g.trangThai !== 'an' && <button className="btn ghost" disabled={dangChay} onClick={() => doi(g.id, 'an')}>Ẩn</button>}
+      </span>) },
+  ];
+  return (<>
+    <div style={{ marginBottom: 8 }}>
+      <FilterChips urlKey="dg" value={loc} onChange={setLoc} counts={dem}
+        options={[{ value: 'cho', label: 'Chờ duyệt' }, { value: 'hien', label: 'Đang hiện' }, { value: 'an', label: 'Đã ẩn' }, { value: 'all', label: 'Tất cả' }]} />
+    </div>
+    {rows.length
+      ? <Panel pad={8}><DataTable rows={rows} columns={cot} getRowKey={(g) => String(g.id)} persistKey="shop-dg" minWidth={900}
+          searchText={(g) => `${g.sanPham} ${g.ten} ${g.email ?? ''} ${g.tieuDe ?? ''} ${g.noiDung}`} searchPlaceholder="Tìm khách, nội dung…" /></Panel>
+      : <EmptyState icon="⭐" compact title={ds.length ? 'Không có đánh giá ở mục này' : 'Chưa có đánh giá nào'}
+          description="Khách viết ở nút “Write your review” trên trang sản phẩm; chỉ đánh giá đã bấm Hiện mới lên trang." />}
+  </>);
 }
 
 /* ── Cửa hàng ───────────────────────────────────────────────────────────── */
@@ -371,7 +463,55 @@ function TheCuaHang({ c }: { c: CuaHangDong }) {
           <button className="btn primary" disabled={!doi || dangChay} onClick={() => batDau(async () => { await shopSuaCauHinh(c.khoa, cfg); setBao('Đã lưu cấu hình'); })}>Lưu</button>
         </div>
         {bao && <div style={{ fontSize: 12.5, color: bao.startsWith('Lỗi') ? 'var(--bad)' : 'var(--fg-2)' }}>{bao}</div>}
+        {c.nenTang === 'mos' || c.tenMien.length ? <MatTienCuaHang c={c} /> : null}
       </div>
     </Panel>
+  );
+}
+
+/** Cấu hình mặt tiền apps/store (@mos2/shop/mat-tien). Mọi con số khách thấy phải có thật — gợi ý ngay dưới từng ô. */
+function MatTienCuaHang({ c }: { c: CuaHangDong }) {
+  const m = c.matTien;
+  const goc = {
+    thanh_tren: m.thanh_tren ?? '', dong_sale: m.dong_sale ?? '', sale_het: toDatetimeLocal(m.sale_het ?? null),
+    bac_giam: (m.bac_giam ?? []).map((b) => `${b.sl}:${b.pt}`).join(', '), cam_ket: (m.cam_ket ?? []).join('\n'),
+    mau_nhan: m.mau_nhan ?? '', ga4: m.do?.ga4 ?? '', meta_pixel: m.do?.meta_pixel ?? '', gads: m.do?.gads ?? '',
+  };
+  const [v, setV] = useState(goc);
+  const [bao, setBao] = useState<string | null>(null);
+  const [dangChay, batDau] = useTransition();
+  const doi = JSON.stringify(v) !== JSON.stringify(goc);
+  const dat = (k: keyof typeof goc) => (e: { target: { value: string } }) => setV({ ...v, [k]: e.target.value });
+  const xemTruoc = c.tenMien.find((t) => t !== c.domain && !t.startsWith('www.')) ?? c.domain;
+  const luu = () => batDau(async () => {
+    const bac = v.bac_giam.split(',').map((x) => x.trim()).filter(Boolean).map((x) => { const [sl, pt] = x.split(':').map(Number); return { sl: sl!, pt: pt! }; });
+    if (bac.some((b) => !(b.sl >= 2 && b.pt > 0 && b.pt < 90))) { setBao('Lỗi: bậc giảm dạng "2:10, 3:15" (số món : % giảm)'); return; }
+    await shopSuaMatTien(c.khoa, { thanh_tren: v.thanh_tren.trim(), dong_sale: v.dong_sale.trim(), sale_het: v.sale_het ? new Date(v.sale_het).toISOString() : null,
+      bac_giam: bac, cam_ket: v.cam_ket.split('\n').map((x) => x.trim()).filter(Boolean), mau_nhan: v.mau_nhan.trim() || undefined,
+      do: { ...m.do, ga4: v.ga4.trim() || undefined, meta_pixel: v.meta_pixel.trim() || undefined, gads: v.gads.trim() || undefined } });
+    setBao('Đã lưu — mặt tiền đổi trong ≤30 giây');
+  });
+  return (
+    <div style={{ borderTop: '1px solid var(--line)', paddingTop: 10, display: 'grid', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <b>Mặt tiền</b><Pill color={c.nenTang === 'mos' ? 'var(--ok)' : 'var(--warn)'} label={c.nenTang === 'mos' ? 'đang phục vụ' : 'xem trước'} />
+        <LinkChip href={`https://${xemTruoc}`} tone="neutral" size="xs">{xemTruoc} ↗</LinkChip>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 }}>
+        <TextField id={`mt-tren-${c.khoa}`} label="Dải đen trên cùng" value={v.thanh_tren} onChange={dat('thanh_tren')} />
+        <TextField id={`mt-bac-${c.khoa}`} label="Mua nhiều giảm nhiều" hint='"2:10, 3:15" = 2 món giảm 10%, từ 3 món giảm 15%' value={v.bac_giam} onChange={dat('bac_giam')} />
+        <TextAreaField id={`mt-sale-${c.khoa}`} label="Khối đỏ/cam giữa cột mua (2 dòng)" hint="Chỉ ưu đãi có thật" rows={2} value={v.dong_sale} onChange={dat('dong_sale')} />
+        <TextAreaField id={`mt-ck-${c.khoa}`} label="Cam kết dưới nút mua (mỗi dòng một ô)" hint="Phải đúng chính sách ship/đổi trả" rows={3} value={v.cam_ket} onChange={dat('cam_ket')} />
+        <DateTimeField id={`mt-het-${c.khoa}`} label="Đợt sale hết lúc" hint="Trống = ẩn đồng hồ đếm ngược. Chỉ đặt khi đợt giảm giá thật sự kết thúc lúc đó." value={v.sale_het} onChange={dat('sale_het')} />
+        <TextField id={`mt-mau-${c.khoa}`} label="Màu nhấn (nút chọn)" hint="#4A90E2 như Crossian" value={v.mau_nhan} onChange={dat('mau_nhan')} />
+        <TextField id={`mt-ga-${c.khoa}`} label="GA4" mono value={v.ga4} onChange={dat('ga4')} />
+        <TextField id={`mt-px-${c.khoa}`} label="Meta Pixel ID" mono value={v.meta_pixel} onChange={dat('meta_pixel')} />
+        <TextField id={`mt-gads-${c.khoa}`} label="Google Ads (AW-…)" mono value={v.gads} onChange={dat('gads')} />
+      </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button className="btn primary" disabled={!doi || dangChay} onClick={luu}>{dangChay ? 'Đang lưu…' : 'Lưu mặt tiền'}</button>
+        {bao && <span style={{ fontSize: 12.5, color: bao.startsWith('Lỗi') ? 'var(--bad)' : 'var(--fg-2)' }}>{bao}</span>}
+      </div>
+    </div>
   );
 }

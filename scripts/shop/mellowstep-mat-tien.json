@@ -1,0 +1,8 @@
+{
+  "thanh_tren": "Free Shipping on Every US Order + Buy 2, Get 10% Off",
+  "bac_giam": [{ "sl": 2, "pt": 10 }, { "sl": 3, "pt": 15 }],
+  "ship": { "phi": 0, "ten": "Free Shipping" },
+  "dong_sale": "Free Shipping - 30-Day Returns\nBuy More Save More: 2 for 10% Off, 3+ for 15% Off",
+  "cam_ket": ["🚚 Free US shipping", "↩️ 30-day returns", "🔒 Secure checkout"],
+  "do": { "ga4": "G-0B7PF9KH4W" }
+}

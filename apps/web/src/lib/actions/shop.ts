@@ -86,3 +86,32 @@ export async function shopGhiChu(donId: number, noiDung: string) {
   await ghiSuKien(donId, 'nguoi', `${me.displayName || me.email}: ${t}`);
   return { ok: true };
 }
+
+/* ── Mặt tiền (apps/store) ───────────────────────────────────────────────── */
+/** Duyệt đánh giá khách gửi: 'hien' lên trang sản phẩm, 'an' giấu (không xoá). */
+export async function shopDuyetDanhGia(id: number, trangThai: 'hien' | 'an' | 'cho') {
+  await admin();
+  await db().execute(sql`UPDATE shop_danh_gia SET trang_thai = ${trangThai} WHERE id = ${id}`);
+  revalidatePath('/shop');
+  return { ok: true };
+}
+
+/** Nội dung bán của một sản phẩm: tiêu đề H1, giá gạch (giá trước giảm CÓ THẬT), hiện/ẩn trên mặt tiền. */
+export async function shopSuaSanPham(id: number, v: { tieuDe: string | null; giaGoc: number | null; hien: boolean }) {
+  await admin();
+  if (v.giaGoc !== null && !(v.giaGoc > 0)) return { ok: false, loi: 'giá gạch phải > 0 hoặc để trống' };
+  await db().execute(sql`UPDATE shop_san_pham SET tieu_de = ${v.tieuDe?.trim() || null}, gia_goc = ${v.giaGoc}, hien = ${v.hien}, updated_at = now() WHERE id = ${id}`);
+  revalidatePath('/shop');
+  return { ok: true };
+}
+
+/** Cấu hình mặt tiền (@mos2/shop/mat-tien MatTien) — trộn vào bản đang có, khoá không gửi thì giữ nguyên. */
+export async function shopSuaMatTien(khoa: string, v: Record<string, unknown>) {
+  await admin();
+  const cho = ['thanh_tren', 'dong_sale', 'sale_het', 'bac_giam', 'cam_ket', 'mau_nhan', 'do', 'logo', 'email', 'dia_chi', 'ship'];
+  const sach = Object.fromEntries(Object.entries(v).filter(([k]) => cho.includes(k)));
+  await db().execute(sql`UPDATE shop_cua_hang SET mat_tien = mat_tien || ${JSON.stringify(sach)}::jsonb WHERE khoa = ${khoa}`);
+  revalidatePath('/shop');
+  return { ok: true };
+}
+

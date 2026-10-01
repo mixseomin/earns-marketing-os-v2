@@ -20,8 +20,8 @@ export async function monTuSo(ch: { id: number }, yeuCau: { b: number; sl: numbe
   const ids = [...new Set(yeuCau.map((x) => Math.trunc(Number(x.b))).filter((x) => x > 0))];
   if (!ids.length) return [];
   const rows = await q<{ id: number; san_pham_id: number; slug: string; ten_sp: string; ten: string; tuy_chon: Record<string, string>; anh: string | null;
-    anh_sp: string | null; gia_ban: string; gia_goc: string | null; gia_goc_sp: string | null }>(sql`
-    SELECT b.id, b.san_pham_id, p.slug, p.ten AS ten_sp, b.ten, b.tuy_chon, b.anh, p.anh AS anh_sp, b.gia_ban::text, b.gia_goc::text, p.gia_goc::text AS gia_goc_sp
+    anh_sp: string | null; gia_ban: string; gia_goc: string | null; gia_goc_sp: string | null; tc_sp: { ten: string }[] }>(sql`
+    SELECT b.id, b.san_pham_id, p.slug, p.ten AS ten_sp, b.ten, b.tuy_chon, b.anh, p.anh AS anh_sp, p.tuy_chon AS tc_sp, b.gia_ban::text, b.gia_goc::text, p.gia_goc::text AS gia_goc_sp
       FROM shop_bien_the b JOIN shop_san_pham p ON p.id = b.san_pham_id
      WHERE p.cua_hang_id = ${ch.id} AND p.hien AND NOT b.het_hang AND b.gia_ban IS NOT NULL
        AND b.id IN (${sql.join(ids.map((i) => sql`${i}`), sql`, `)})`);
@@ -32,7 +32,8 @@ export async function monTuSo(ch: { id: number }, yeuCau: { b: number; sl: numbe
     const sl = Math.min(20, Math.max(1, Math.trunc(Number(y.sl) || 1)));
     if (!r) continue;
     const goc = r.gia_goc ?? r.gia_goc_sp;
-    ra.push({ bien_the_id: r.id, san_pham_id: r.san_pham_id, slug: r.slug, ten: r.ten_sp, tuy_chon: Object.values(r.tuy_chon ?? {}).join(' / ') || r.ten,
+    ra.push({ bien_the_id: r.id, san_pham_id: r.san_pham_id, slug: r.slug, ten: r.ten_sp, // jsonb tự xếp lại khoá → đọc theo thứ tự tuỳ chọn của sản phẩm (Color rồi Size), không theo object biến thể
+      tuy_chon: (r.tc_sp ?? []).map((t) => r.tuy_chon?.[t.ten]).filter(Boolean).join(' / ') || r.ten,
       anh: r.anh ?? r.anh_sp, sl, gia: Number(r.gia_ban), gia_goc: goc ? Number(goc) : null });
   }
   return ra;

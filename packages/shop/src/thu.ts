@@ -1,5 +1,7 @@
 // Thư gửi KHÁCH của mặt tiền mos (nen_tang='mos'): xác nhận đơn, đã gửi hàng. SMTP theo cửa hàng ở .env.production:
-// SHOP_<KHOA>_SMTP_HOST / _SMTP_PORT / _SMTP_USER / _SMTP_PASS. Người gửi = mat_tien.email.
+// SHOP_<KHOA>_SMTP_HOST / _SMTP_PORT / _SMTP_USER / _SMTP_PASS, ký DKIM nếu có _DKIM_FILE (+ _DKIM_SELECTOR). Người gửi = mat_tien.email.
+// 01/10/2026: tài khoản Mailjet cũ nhận SMTP nhưng nuốt thư (0 thư đi từ 25/09) → mellowstep chuyển sang relay MailBaby.
+import { readFileSync } from 'node:fs';
 import nodemailer from 'nodemailer';
 import { envShop } from './mat-tien';
 import { usd } from './gia';
@@ -9,8 +11,10 @@ export type ShopThu = { khoa: string; ten: string; domain: string; email: string
 export async function guiThu(s: ShopThu, toi: string, tieuDe: string, html: string, chu: string, traLoi?: string) {
   const host = envShop(s.khoa, 'SMTP_HOST');
   if (!host) throw new Error(`thiếu SMTP SHOP_${s.khoa.toUpperCase()}_SMTP_HOST`);
+  const dkim = envShop(s.khoa, 'DKIM_FILE');
   const t = nodemailer.createTransport({ host, port: Number(envShop(s.khoa, 'SMTP_PORT') || 587), secure: false,
-    auth: { user: envShop(s.khoa, 'SMTP_USER'), pass: envShop(s.khoa, 'SMTP_PASS') } });
+    auth: { user: envShop(s.khoa, 'SMTP_USER'), pass: envShop(s.khoa, 'SMTP_PASS') },
+    ...(dkim ? { dkim: { domainName: s.email.split('@')[1] ?? s.domain, keySelector: envShop(s.khoa, 'DKIM_SELECTOR') || 'mailer', privateKey: readFileSync(dkim, 'utf8') } } : {}) });
   await t.sendMail({ from: `"${s.ten}" <${s.email}>`, replyTo: traLoi || s.email, to: toi, subject: tieuDe, html, text: chu });
 }
 

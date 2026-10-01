@@ -1,5 +1,5 @@
 // /shop — backend vận hành cửa hàng (anh chốt 01/10/2026: mellowstep cần quản lý đơn / cửa hàng / sản phẩm↔NCC / luồng NCC /
-// vận đơn ở MOS2, giống Shopdy). Mặt tiền + thu tiền ở WooCommerce; mọi thứ sau khi khách trả tiền ở đây.
+// vận đơn ở MOS2). Mặt tiền: WooCommerce (nen_tang woo) hoặc apps/store (nen_tang mos); mọi thứ sau khi khách trả tiền ở đây.
 // Trong AppShell (như /products) để có khung + lề chung của `.main` và lối vào ở thanh trái (Operate › Shop).
 // Dữ liệu: lib/shop/doc.ts (sổ shop_*), máy chạy: lib/shop/dong-bo.ts (webhook Woo + /api/cron/shop mỗi 10 phút).
 import { redirect } from 'next/navigation';
@@ -16,14 +16,14 @@ export default async function ShopPage() {
   const me = await getCurrentUser();
   if (!me) redirect('/login?next=/shop');
   if (me.role !== 'admin') redirect('/?error=admin-only');
-  const [projects, lastProject, fallbackMode, { don, bienThe, cuaHang }] = await Promise.all([
+  const [projects, lastProject, fallbackMode, { don, bienThe, cuaHang, sanPham, danhGia }] = await Promise.all([
     listProjects(), getLastProject(), getMode('affiliate'), docShop(),
   ]);
   const mode = lastProject ? await getProjectMode(lastProject.id, lastProject.mode) : fallbackMode;
   return (
     <AppShell mode={mode} project={lastProject} projects={projects} isPortfolio
       currentUser={{ id: me.id, displayName: me.displayName, email: me.email, role: me.role, specialty: me.specialty }}>
-      <ShopView don={don} bienThe={bienThe} cuaHang={cuaHang} />
+      <ShopView don={don} bienThe={bienThe} cuaHang={cuaHang} sanPham={sanPham} danhGia={danhGia} />
     </AppShell>
   );
 }

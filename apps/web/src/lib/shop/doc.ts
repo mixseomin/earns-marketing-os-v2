@@ -3,6 +3,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { buocCua, type Buoc } from './buoc';
 import type { Moc } from './track17';
+import type { MatTien } from '@mos2/shop/mat-tien';
 
 type Row = Record<string, unknown>;
 const q = async <T = Row>(s: ReturnType<typeof sql>) => { const d = getDb(); if (!d) return [] as T[]; return (await d.execute(s)) as unknown as T[]; };
@@ -17,12 +18,16 @@ export type DonDong = {
 };
 export type BienTheDong = { id: number; sanPhamId: number; sanPham: string; anh: string | null; link: string | null; cuaHang: string; maNgoai: string;
   ten: string; sku: string | null; giaBan: number | null; maNcc: string | null; giaVon: number | null; daBan: number };
-export type CuaHangDong = { id: number; khoa: string; ten: string; domain: string; nenTang: string; ncc: string; trangThai: string;
+export type SanPhamDong = { id: number; cuaHang: string; domain: string; slug: string | null; ten: string; tieuDe: string | null; anh: string | null;
+  giaGoc: number | null; giaTu: number | null; hien: boolean; soBienThe: number; daBan: number; danhGia: number };
+export type DanhGiaDong = { id: number; cuaHang: string; sanPham: string; ten: string; email: string | null; sao: number; tieuDe: string | null; noiDung: string;
+  daMua: boolean; trangThai: string; taoLuc: string };
+export type CuaHangDong = { id: number; khoa: string; ten: string; domain: string; nenTang: string; ncc: string; trangThai: string; tenMien: string[]; matTien: MatTien;
   cauHinh: { ngay_ship_max?: number; tu_sang_ncc?: boolean; tu_tra_ncc?: boolean; quoc_gia_kho?: string };
   dongBoLuc: string | null; dongBoLoi: string | null; soDon: number; soSanPham: number; thieuMa: number };
 
 export async function docShop() {
-  const [don, bt, ch] = await Promise.all([
+  const [don, bt, ch, sps, dgs] = await Promise.all([
     q(sql`
       SELECT d.id, c.khoa, c.domain, d.ma_ngoai, d.so_don, d.trang_thai_shop, d.khach, d.dia_chi, d.tong, d.hoan, d.tao_luc::text AS tao_luc, d.sid, d.phi_cong,
              (SELECT COALESCE(SUM(m.sl), 0) FROM shop_don_mon m WHERE m.don_id = d.id) AS so_mon,
@@ -41,11 +46,23 @@ export async function docShop() {
         FROM shop_bien_the b JOIN shop_san_pham p ON p.id = b.san_pham_id JOIN shop_cua_hang c ON c.id = p.cua_hang_id
        ORDER BY p.ten, b.id`),
     q(sql`
-      SELECT c.id, c.khoa, c.ten, c.domain, c.nen_tang, c.ncc, c.trang_thai, c.cau_hinh, c.dong_bo_luc::text AS dong_bo_luc, c.dong_bo_loi,
+      SELECT c.id, c.khoa, c.ten, c.domain, c.nen_tang, c.ncc, c.trang_thai, c.cau_hinh, c.ten_mien, c.mat_tien, c.dong_bo_luc::text AS dong_bo_luc, c.dong_bo_loi,
              (SELECT COUNT(*) FROM shop_don d WHERE d.cua_hang_id = c.id) AS so_don,
              (SELECT COUNT(*) FROM shop_san_pham p WHERE p.cua_hang_id = c.id) AS so_sp,
              (SELECT COUNT(*) FROM shop_bien_the b JOIN shop_san_pham p ON p.id = b.san_pham_id WHERE p.cua_hang_id = c.id AND b.ma_ncc IS NULL) AS thieu_ma
         FROM shop_cua_hang c ORDER BY c.id`),
+    q(sql`
+      SELECT p.id, c.khoa, c.domain, p.slug, p.ten, p.tieu_de, p.anh, p.gia_goc, p.hien,
+             (SELECT MIN(b.gia_ban) FROM shop_bien_the b WHERE b.san_pham_id = p.id) AS gia_tu,
+             (SELECT COUNT(*) FROM shop_bien_the b WHERE b.san_pham_id = p.id) AS so_bt,
+             (SELECT COALESCE(SUM(m.sl), 0) FROM shop_don_mon m JOIN shop_don d ON d.id = m.don_id JOIN shop_bien_the b ON b.id = m.bien_the_id
+               WHERE b.san_pham_id = p.id AND d.tra_luc IS NOT NULL AND d.trang_thai_shop NOT IN ('cancelled', 'refunded')) AS da_ban,
+             (SELECT COUNT(*) FROM shop_danh_gia g WHERE g.san_pham_id = p.id AND g.trang_thai = 'hien') AS so_dg
+        FROM shop_san_pham p JOIN shop_cua_hang c ON c.id = p.cua_hang_id ORDER BY c.id, p.thu_tu, p.id`),
+    q(sql`
+      SELECT g.id, c.khoa, p.ten AS san_pham, g.ten, g.email, g.sao, g.tieu_de, g.noi_dung, g.don_id IS NOT NULL AS da_mua, g.trang_thai, g.tao_luc::text AS tao_luc
+        FROM shop_danh_gia g JOIN shop_san_pham p ON p.id = g.san_pham_id JOIN shop_cua_hang c ON c.id = g.cua_hang_id
+       ORDER BY (g.trang_thai = 'cho') DESC, g.tao_luc DESC LIMIT 500`),
   ]);
   const bayGio = Date.now();
   const dons: DonDong[] = don.map((r) => {
@@ -69,8 +86,14 @@ export async function docShop() {
     giaBan: so(r.gia_ban), maNcc: (r.ma_ncc as string) ?? null, giaVon: so(r.gia_von), daBan: Number(r.da_ban) }));
   const cuaHang: CuaHangDong[] = ch.map((r) => ({ id: Number(r.id), khoa: String(r.khoa), ten: String(r.ten), domain: String(r.domain), nenTang: String(r.nen_tang),
     ncc: String(r.ncc), trangThai: String(r.trang_thai), cauHinh: (r.cau_hinh ?? {}) as CuaHangDong['cauHinh'], dongBoLuc: (r.dong_bo_luc as string) ?? null,
-    dongBoLoi: (r.dong_bo_loi as string) ?? null, soDon: Number(r.so_don), soSanPham: Number(r.so_sp), thieuMa: Number(r.thieu_ma) }));
-  return { don: dons, bienThe, cuaHang };
+    dongBoLoi: (r.dong_bo_loi as string) ?? null, soDon: Number(r.so_don), soSanPham: Number(r.so_sp), thieuMa: Number(r.thieu_ma),
+    tenMien: (r.ten_mien as string[]) ?? [], matTien: (r.mat_tien ?? {}) as MatTien }));
+  const sanPham: SanPhamDong[] = sps.map((r) => ({ id: Number(r.id), cuaHang: String(r.khoa), domain: String(r.domain), slug: (r.slug as string) ?? null, ten: String(r.ten),
+    tieuDe: (r.tieu_de as string) ?? null, anh: (r.anh as string) ?? null, giaGoc: so(r.gia_goc), giaTu: so(r.gia_tu), hien: !!r.hien, soBienThe: Number(r.so_bt),
+    daBan: Number(r.da_ban), danhGia: Number(r.so_dg) }));
+  const danhGia: DanhGiaDong[] = dgs.map((r) => ({ id: Number(r.id), cuaHang: String(r.khoa), sanPham: String(r.san_pham), ten: String(r.ten), email: (r.email as string) ?? null,
+    sao: Number(r.sao), tieuDe: (r.tieu_de as string) ?? null, noiDung: String(r.noi_dung), daMua: !!r.da_mua, trangThai: String(r.trang_thai), taoLuc: String(r.tao_luc) }));
+  return { don: dons, bienThe, cuaHang, sanPham, danhGia };
 }
 
 export type SuKien = { ts: string; nguon: string; noiDung: string; loi: boolean };

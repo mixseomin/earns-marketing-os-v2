@@ -1,6 +1,6 @@
 'use client';
 // Cột mua + ảnh của trang sản phẩm — khuôn Crossian. Mọi số hiện ra là số thật (xem @mos2/shop/mat-tien).
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { usd } from '@mos2/shop/gia';
 import type { SanPham } from '@/lib/shop';
 import { useGio, SoLuong } from './gio';
@@ -29,6 +29,16 @@ export function TrangMua({ d }: { d: DuLieuMua }) {
   const [anh, setAnh] = useState(0);
   const [xem, setXem] = useState(0);
   const [nhac, setNhac] = useState('');
+  // Thanh mua dính đáy (khuôn orabra): hiện khi khối nút mua đã cuộn khỏi màn, trượt lên từ đáy, ẩn khi giỏ đang mở.
+  const khoiMua = useRef<HTMLDivElement>(null), khoiChon = useRef<HTMLDivElement>(null);
+  const [dinh, setDinh] = useState(false);
+  const { mo: gioMo } = useGio();
+  useEffect(() => {
+    const e = khoiMua.current; if (!e) return;
+    const ob = new IntersectionObserver(([x]) => setDinh(!x!.isIntersecting && x!.boundingClientRect.top < 0));
+    ob.observe(e); return () => ob.disconnect();
+  }, []);
+  useEffect(() => { document.body.classList.toggle('co-dinh', dinh); return () => document.body.classList.remove('co-dinh'); }, [dinh]);
 
   const bt = useMemo(() => sp.bien_the.find((b) => sp.tuy_chon.every((t) => b.tuy_chon[t.ten] === chon[t.ten])) ?? null, [chon, sp]);
   const coTon = (ten: string, gt: string) => sp.bien_the.some((b) => !b.het_hang && b.tuy_chon[ten] === gt
@@ -53,7 +63,7 @@ export function TrangMua({ d }: { d: DuLieuMua }) {
   const tenTc = sp.tuy_chon.map((t) => t.ten).join(' and ');
   const tiep = tong.bac_tiep;
   const mua = () => {
-    if (thieu) { setNhac(`Please select a ${thieu.ten.toLowerCase()}`); return; }
+    if (thieu) { setNhac(`Please select a ${thieu.ten.toLowerCase()}`); khoiChon.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
     if (!bt || bt.het_hang) return;
     them({ b: bt.id, sl, sp: sp.id, slug: sp.slug, ten: sp.ten, tc: sp.tuy_chon.map((t) => `${t.ten}: ${bt.tuy_chon[t.ten]}`).join('\n') || bt.ten,
       anh: bt.anh ?? dsAnh[0] ?? null, gia: bt.gia, gia_goc: bt.gia_goc });
@@ -70,20 +80,28 @@ export function TrangMua({ d }: { d: DuLieuMua }) {
       <div className="gia">{usd(gia)}{goc ? <s>{usd(goc)}</s> : null}</div>
       {d.saleHet && <DemNguoc den={d.saleHet} />}
       {d.dongSale && <div className="bao-sale"><span className="d">{d.dongSale.split('\n')[0]}</span>{d.dongSale.includes('\n') && <><br /><span className="c">{d.dongSale.split('\n')[1]}</span></>}</div>}
-      {sp.tuy_chon.map((t) => <div className="chon" key={t.ten}>
+      <div ref={khoiChon} style={{ display: 'grid', gap: 14 }}>{sp.tuy_chon.map((t) => <div className="chon" key={t.ten}>
         <label>{t.ten}</label>
         <div className="nut-ds" role="group" aria-label={t.ten}>{t.gia_tri.map((g) => <button key={g} type="button" className="nut" aria-pressed={chon[t.ten] === g}
           disabled={!coTon(t.ten, g)} onClick={() => { setChon((c) => ({ ...c, [t.ten]: g })); setNhac(''); }}>{g}</button>)}</div>
-      </div>)}
+      </div>)}</div>
       {tiep && <div className="uu-dai"><b>{tong.so_mon === 0 ? `Add ${tiep.can} items to cart to get ${tiep.pt}% off` : `Extra ${tiep.pt}% off for next item in cart`}</b>
         {tenTc ? `Apply to any ${tenTc}` : 'Apply to any item'}</div>}
-      <div className="hang-mua"><SoLuong sl={sl} doi={(n) => setSl(Math.min(20, Math.max(1, n)))} />
+      <div className="hang-mua" ref={khoiMua}><SoLuong sl={sl} doi={(n) => setSl(Math.min(20, Math.max(1, n)))} />
         <button className="nut-mua" disabled={!thieu && (!bt || bt.het_hang)} onClick={mua}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 7h12l-1 13H7L6 7Z" /><path d="M9 7a3 3 0 0 1 6 0" /></svg>
           {thieu ? 'Add to cart' : !bt ? 'Unavailable' : bt.het_hang ? 'Sold out' : 'Add to cart'}</button></div>
       {nhac && <p className="loi" role="alert" style={{ margin: 0 }}>{nhac}</p>}
       {(xem > 1 || d.daBan > 0) && <div className="dong-nho">{xem > 1 && <><span className="d">Popular! </span><b>{xem}</b> people are viewing this{d.daBan > 0 ? ' and ' : '.'}</>}
         {d.daBan > 0 && <><b>{d.daBan}</b> purchased it.</>}</div>}
+      <div className={`mua-dinh${dinh && !gioMo ? ' hien' : ''}`} aria-hidden={!dinh}>
+        <div className="mua-dinh-trong">
+          {dsAnh[anh] && <img src={dsAnh[anh]} alt="" />}
+          <div className="mua-dinh-ten"><b>{sp.ten}</b><span>{usd(gia)}{goc ? <s>{usd(goc)}</s> : null}{bt && !thieu ? ` · ${Object.values(chon).join(' / ')}` : ''}</span></div>
+          <button className="nut-mua" tabIndex={dinh ? 0 : -1} disabled={!thieu && (!bt || bt.het_hang)} onClick={mua}>
+            {thieu ? `Select ${thieu.ten.toLowerCase()}` : bt?.het_hang ? 'Sold out' : tiep && tong.so_mon > 0 ? `Add to cart - extra ${tiep.pt}% off` : 'Add to cart'}</button>
+        </div>
+      </div>
       {d.camKet.length > 0 && <div className="cam-ket">{d.camKet.map((c) => <div key={c}>{c}</div>)}</div>}
     </div>
   </div>;

@@ -6,7 +6,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import type { Moc } from './track17';
 import { hanhTrinh, type ChangDon, type KhoaChang } from './hanh-trinh';
-import { CHANG_KHACH, camKetGiao, cauHinhGiao, duKienGiao, loiImLang } from './giao';
+import { CHANG_KHACH, LOI_TRE, camKetGiao, cauHinhGiao, duKienGiao, loiImLang } from './giao';
 
 export type BuocKhach = { nhan: string; xong: boolean; luc: string | null };
 export type MocKhach = { ts: string; mo_ta: string; noi: string };
@@ -21,6 +21,8 @@ export type BanKhach = {
   tien_do: { pct: number; nhan: string; giai_thich: string } | null;
   /** Vận đơn im lâu → một câu trấn an nói thật về chặng đang đi (null = không cần). */
   im_lang: string | null;
+  /** Đã quá ngày dự kiến (trang ghi "Originally estimated" + lời xin lỗi thay vì "bình thường"). */
+  du_kien_qua: boolean;
   cam_ket: string;
 };
 
@@ -115,6 +117,9 @@ export async function banKhach(khoa: string, soDon: string, chia: { key?: string
   const hang = (d.hang_chang_cuoi ?? '').toLowerCase();
   const kh = Object.keys(LINK_HANG).find((k) => hang.includes(k));
   const huy = ['cancelled', 'refunded'].includes(d.trang_thai_shop);
+  const changHien = ht.chang[ht.hienTai]!.key;
+  if (changHien === 'di_giao') duKien = null;                         // đang phát: "arrives today" — khoảng ngày cũ chỉ gây rối
+  const tre = !giao && !!duKien && Date.now() > Date.parse(duKien.den) + 86_400_000;
   return {
     so_don: d.so_don, ngay_dat: iso(d.tao_luc), buoc, hien_tai: buoc.reduce((i, b, j) => (b.xong ? j : i), 0),
     du_kien: duKien, moc: tatCa, mon,
@@ -122,7 +127,8 @@ export async function banKhach(khoa: string, soDon: string, chia: { key?: string
     ghi_chu: ['cancelled', 'refunded'].includes(d.trang_thai_shop) ? 'This order has been cancelled.'
       : gui && !moc.some((m) => m.noi && !m.noi.endsWith('Center')) ? 'Tracking usually updates within 2-3 days after shipping.' : null,
     tien_do: huy ? null : { pct: ht.pct, ...CHANG_KHACH[ht.chang[ht.hienTai]!.key] },
-    im_lang: huy ? null : loiImLang(ht.chang[ht.hienTai]!.key, (d.moc ?? []).map((m) => m.ts).sort().pop() ?? gui),
+    im_lang: huy || !!giao ? null : tre ? LOI_TRE(g) : loiImLang(ht.chang[ht.hienTai]!.key, (d.moc ?? []).map((m) => m.ts).sort().pop() ?? gui),
+    du_kien_qua: tre,
     cam_ket: camKetGiao(g),
   };
 }

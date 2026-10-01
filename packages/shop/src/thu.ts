@@ -60,7 +60,7 @@ export function thuChang(s: ShopThu, soDon: string, ten: string, chang: KhoaChan
     di_giao: `Your order #${soDon} is out for delivery`, da_giao: `Your order #${soDon} has been delivered`,
   };
   const tieuDe = `${tieu[chang] ?? `Update on your order #${soDon}`} - ${s.ten}`;
-  const dk = chang !== 'da_giao' && duKien ? `<p style="font-size:15px;margin:12px 0 0">📦 Estimated delivery: <b>${e(khoangUS(duKien))}</b></p>` : '';
+  const dk = (chang === 'roi_nuoc' || chang === 'den_nuoc') && duKien ? `<p style="font-size:15px;margin:12px 0 0">📦 Estimated delivery: <b>${e(khoangUS(duKien))}</b></p>` : '';
   const cuoi = chang === 'da_giao'
     ? `<p style="color:#555">If anything isn't right with your order, just reply to this email - we're happy to help.</p>`
     : baoDam(g);

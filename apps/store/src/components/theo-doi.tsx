@@ -26,8 +26,8 @@ export function TheoDoi({ order, khoa, xem }: { order: string; khoa: string; xem
       <div className="td-thanh" role="progressbar" aria-valuenow={ban.tien_do.pct} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${Math.max(4, ban.tien_do.pct)}%` }} /></div>
       <p>{ban.tien_do.giai_thich}</p>
     </div>}
-    {ban.du_kien && <p className="du-kien"><span aria-hidden="true">📦</span><span>Estimated delivery: <b>{ngay(ban.du_kien.tu)} - {ngay(ban.du_kien.den)}</b></span></p>}
-    {ban.im_lang && <p className="td-im">{ban.im_lang}</p>}
+    {ban.du_kien && <p className="du-kien"><span aria-hidden="true">📦</span><span>{ban.du_kien_qua ? 'Originally estimated' : 'Estimated delivery'}: <b>{ngay(ban.du_kien.tu)} - {ngay(ban.du_kien.den)}</b></span></p>}
+    {ban.im_lang && <p className={`td-im${ban.du_kien_qua ? ' tre' : ''}`}>{ban.im_lang}</p>}
     {ban.ghi_chu && !ban.im_lang && <p className="dong-nho">{ban.ghi_chu}</p>}
     <ul className="td-moc">{ban.moc.map((m, i) => <li key={i}><span className="t">{ngay(m.ts, true)}</span><span className="m">{m.mo_ta}{m.noi && <em>{m.noi}</em>}</span></li>)}</ul>
     {ban.chang_cuoi && <p className="dong-nho" style={{ marginTop: 12 }}>{ban.chang_cuoi.hang} tracking: <a href={ban.chang_cuoi.link ?? '#'} target="_blank" rel="noopener">{ban.chang_cuoi.ma}</a></p>}

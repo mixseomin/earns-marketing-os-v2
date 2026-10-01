@@ -51,11 +51,16 @@ export const CHANG_KHACH: Record<KhoaChang, { nhan: string; giai_thich: string }
 /** Chặng nào thì gửi thư cho khách (thư "đã gửi hàng" có sẵn ở gui_hang). Thứ tự = thứ tự trong CHANG. */
 export const CHANG_BAO_THU: KhoaChang[] = ['roi_nuoc', 'den_nuoc', 'di_giao', 'da_giao'];
 
-/** Lời trấn an khi vận đơn im lâu: chặng đang đi + đã im bao nhiêu ngày. null = không cần nói gì. */
+/** Đơn đã QUÁ ngày dự kiến: nói thật là trễ, không bảo "bình thường" — chỉ hứa thứ shop làm thật (bảo đảm giao hàng). */
+export const LOI_TRE = (g: CauHinhGiao) => `We're sorry - your package is taking longer than expected. Our team is checking on it. `
+  + `If it hasn't arrived within ${g.dam_bao_ngay} days of shipping, we'll send a replacement or refund you in full. Questions? Contact us any time.`;
+
+/** Lời trấn an khi vận đơn im lâu: chặng đang đi + đã im bao nhiêu ngày. null = không cần nói gì. Im quá 10 ngày thì không còn là
+ *  "bình thường" — trả null để nơi gọi dùng LOI_TRE nếu đã quá ngày dự kiến. */
 export function loiImLang(chang: KhoaChang, quetCuoi: string | null, bayGio = Date.now()): string | null {
   if (!quetCuoi || chang === 'da_giao' || chang === 'di_giao' || chang === 'nhan_don' || chang === 'sang_ncc' || chang === 'tra_ncc') return null;
   const ngay = Math.floor((bayGio - Date.parse(quetCuoi)) / 86_400_000);
-  if (ngay < 3) return null;
+  if (ngay < 3 || ngay > 10) return null;
   const tiep = chang === 'den_nuoc' ? 'the next scan usually appears when it reaches your local post office' : 'the next scan usually appears when it arrives in the US';
   return `No new scan for ${ngay} days. This is normal while your package is in transit - ${tiep}. We are keeping an eye on it for you.`;
 }
@@ -69,5 +74,6 @@ if (process.argv[1]?.endsWith('giao.ts')) {
   if (ngay < 14 || ngay > 16) throw new Error(`khoảng 8-18 ngày làm việc ra ${ngay} ngày lịch`);
   if (!loiImLang('roi_nuoc', '2026-10-01T00:00:00Z', Date.parse('2026-10-05T00:00:00Z'))?.includes('4 days')) throw new Error('loiImLang');
   if (loiImLang('di_giao', '2026-09-01T00:00:00Z') !== null) throw new Error('đang phát thì không trấn an');
-  console.log('giao: 4/4 ok ·', khoangUS(k));
+  if (loiImLang('roi_nuoc', '2026-09-01T00:00:00Z', Date.parse('2026-09-23T00:00:00Z')) !== null) throw new Error('im 22 ngày không được gọi là bình thường');
+  console.log('giao: 5/5 ok ·', khoangUS(k));
 }

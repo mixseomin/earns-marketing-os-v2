@@ -12,7 +12,11 @@ Cron trên box3 (`crontab -e`, env lấy từ .env.production):
 15 1-23/2 * * * cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && node scripts/phu/trafficfactory.mjs >> /var/log/mos2-phu.log 2>&1
 15 0 * * *   cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && node scripts/phu/trafficfactory.mjs --hom-qua >> /var/log/mos2-phu.log 2>&1
 30 6 * * *   cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && node scripts/phu/bv-chan-nguon.mjs >> /var/log/mos2-phu.log 2>&1
+25 * * * *   cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && node scripts/phu/ga4-ngay.mjs >> /var/log/mos2-phu.log 2>&1
 ```
+- `ga4-ngay.mjs` — GA4 (tài khoản Adult 71408749) theo ngày × nguồn × camp → `phu_ga4_ngay`, cho `/report2`. Property map trong script
+  (`mellowstep` 556926376 · `chatwhenbored` 553902232). Token đọc `/etc/adfond/ga4-oauth.json`. Đơn mellowstep vào `phu_su_kien` loai=don/hoan
+  từ mu-plugin `mellowstep-cj.php` (repo adfond `scripts/shop/`), không qua cron.
 - `log-box2.mjs` — click (/px, có `s=` sid) + out (/r/) từ nhật ký nginx box2, nhịp tim lander.
 - `chaturbate.mjs` — payout/ngày từ apistats (không có breakdown campaign → dòng organic).
 - `bidvertiser.mjs` — chi/visit/bid-request theo NGÀY × camp (`phu_chi`), tự khai camp `bv-*` vào `phu_camp`

@@ -9,6 +9,7 @@
 //     zone?: [{sid_prefix, zone_id, ngay, impressions?, clicks?, chi_usd?, site?}]  ← số theo zone của mạng (ExoClick); sau khi ghi,
 //            máy chấm K1/P2/P3 (chamZone) với hit/bot ở /x/ và trả `zone_chan` = zone cần chặn (adapter gọi API mạng chặn),
 //     zone_chan_xong?: [{sid_prefix, zone_id, ok, ghi_chu?}]  ← adapter báo đã chặn / lỗi,
+//     ga4?: [{ngay, nguon, camp, phien, phien_tt?, them_gio?, thanh_toan?, mua?, doanh_thu?}]  ← GA4 theo ngày (scripts/phu/ga4-ngay.mjs),
 //     adapter?: {key, name, loai?, lich?, ok, note?} }
 // Mọi thứ upsert/khử trùng — adapter chạy lại cùng khoảng log không nhân đôi số.
 import { NextResponse } from 'next/server';
@@ -26,6 +27,7 @@ type Ld = { host: string; path?: string; ten: string; mo_ta?: string; dich?: str
 type Cp = { nguon_key: string; ten: string; sid_prefix: string; lander?: string; target?: unknown; ngan_sach_ngay?: number; trang_thai: string; ghi_chu?: string; ket_thuc?: string; nhip_ngay?: number; tieu_chi?: unknown; ke_hoach?: string };
 type Zn = { sid_prefix: string; zone_id: string | number; ngay: string; impressions?: number; clicks?: number; chi_usd?: number; site?: string };
 type Zx = { sid_prefix: string; zone_id: string | number; ok: boolean; ghi_chu?: string };
+type G4 = { ngay: string; nguon?: string; camp?: string; phien?: number; phien_tt?: number; them_gio?: number; thanh_toan?: number; mua?: number; doanh_thu?: number };
 type Ng = { key: string; name?: string; loai?: string; trang_thai?: string; macro_click?: string; nap_usd?: number; so_du?: number; ghi_chu?: string };
 
 export async function POST(req: Request) {
@@ -33,7 +35,7 @@ export async function POST(req: Request) {
   if (denied) return denied;
   const db = getDb();
   if (!db) return NextResponse.json({ ok: false, error: 'db' }, { status: 503 });
-  const b = (await req.json()) as { project?: string; events?: Ev[]; chi?: Chi[]; landers?: Ld[]; camp?: Cp[]; nguon?: Ng; zone?: Zn[]; zone_tich_luy?: boolean; zone_chan_xong?: Zx[]; camp_dung_xong?: { sid_prefix: string; ok: boolean; ghi_chu?: string }[]; adapter?: { key: string; name: string; loai?: string; lich?: string; ok: boolean; note?: string } };
+  const b = (await req.json()) as { project?: string; events?: Ev[]; chi?: Chi[]; landers?: Ld[]; camp?: Cp[]; nguon?: Ng; zone?: Zn[]; zone_tich_luy?: boolean; zone_chan_xong?: Zx[]; ga4?: G4[]; camp_dung_xong?: { sid_prefix: string; ok: boolean; ghi_chu?: string }[]; adapter?: { key: string; name: string; loai?: string; lich?: string; ok: boolean; note?: string } };
   const project = String(b.project ?? '').trim();
   if (!project) return NextResponse.json({ ok: false, error: 'thiếu project' }, { status: 400 });
   let ev = 0, chi = 0, ld = 0;
@@ -55,6 +57,17 @@ export async function POST(req: Request) {
       ON CONFLICT (project_id, ngay, sid_prefix) DO UPDATE SET chi_usd = EXCLUDED.chi_usd, clicks = EXCLUDED.clicks, impressions = EXCLUDED.impressions,
         nguon_du_lieu = EXCLUDED.nguon_du_lieu, updated_at = now()`);
     chi++;
+  }
+  let g4 = 0;
+  for (const g of b.ga4 ?? []) {
+    if (!g.ngay) continue;
+    await db.execute(sql`
+      INSERT INTO phu_ga4_ngay (project_id, ngay, nguon, camp, phien, phien_tt, them_gio, thanh_toan, mua, doanh_thu)
+      VALUES (${project}, ${g.ngay}::date, ${g.nguon ?? ''}, ${g.camp ?? ''}, ${Number(g.phien) || 0}, ${Number(g.phien_tt) || 0},
+              ${Number(g.them_gio) || 0}, ${Number(g.thanh_toan) || 0}, ${Number(g.mua) || 0}, ${Number(g.doanh_thu) || 0})
+      ON CONFLICT (project_id, ngay, nguon, camp) DO UPDATE SET phien = EXCLUDED.phien, phien_tt = EXCLUDED.phien_tt, them_gio = EXCLUDED.them_gio,
+        thanh_toan = EXCLUDED.thanh_toan, mua = EXCLUDED.mua, doanh_thu = EXCLUDED.doanh_thu, updated_at = now()`);
+    g4++;
   }
   for (const l of b.landers ?? []) {
     if (!l.host || !l.ten) continue;
@@ -174,5 +187,5 @@ export async function POST(req: Request) {
     const d = await getPhu(project, 7);
     for (const c of d.camp) { if (c.trangThai !== 'chay') continue; const px = phanXet(c); if (px.ma === 'dung') campDung.push({ sid_prefix: c.sidPrefix, ly_do: px.lyDo }); }
   }
-  return NextResponse.json({ ok: true, events_moi: ev, chi, landers: ld, camp: cp, zone: zn, zone_chan: zoneChan, camp_dung: campDung });
+  return NextResponse.json({ ok: true, events_moi: ev, chi, ga4: g4, landers: ld, camp: cp, zone: zn, zone_chan: zoneChan, camp_dung: campDung });
 }

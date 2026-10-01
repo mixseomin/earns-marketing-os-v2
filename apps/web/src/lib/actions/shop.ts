@@ -19,7 +19,7 @@ import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
-import { cuaHangTheoKhoa, dsCuaHang, ghiSuKien, nhip, sangNcc, soDuCj, traNcc, type CuaHang } from '@/lib/shop/dong-bo';
+import { cuaHangTheoKhoa, dsCuaHang, ghiSuKien, nhip, sangNcc, soDuCj, tienDonCj, traNcc, type CuaHang } from '@/lib/shop/dong-bo';
 import { docChiTietDon } from '@/lib/shop/doc';
 import { woo } from '@/lib/shop/nguon';
 
@@ -365,3 +365,6 @@ export async function shopSuaNcc(khoa: string, v: { ten: string; website: string
   revalidatePath('/shop');
   return { ok: true };
 }
+
+/** Số tiền đơn NCC đọc lại ngay lúc bấm trả (CJ getOrderDetail). */
+export async function shopTienNcc(donId: number) { await admin(); return tienDonCj(Number(donId)); }

@@ -286,6 +286,21 @@ export async function traNcc(donId: number, nguoi: string): Promise<{ ok: boolea
   return { ok: true };
 }
 
+/** Đọc lại số tiền đơn CJ NGAY LÚC NÀY (getOrderDetail) — gọi khi anh bấm "Trả CJ", để không trả theo số đã cũ.
+ *  Cập nhật tien_hang trong sổ; trả {tong, cu, doi} — doi=true khi khác số đã lưu. Đọc không được (đơn giả, CJ lỗi) → null. */
+export async function tienDonCj(donId: number): Promise<{ tong: number; hang: number | null; ship: number | null; cu: number | null; doi: boolean } | null> {
+  const [n] = await q<{ id: number; ma_ncc: string | null; tien_hang: string | null; phi_ship: string | null }>(sql`
+    SELECT id, ma_ncc, tien_hang::text, phi_ship::text FROM shop_don_ncc WHERE don_id = ${donId} AND trang_thai NOT IN ('CANCELLED', 'LOI') ORDER BY id DESC LIMIT 1`);
+  if (!n?.ma_ncc) return null;
+  const r = await cj<{ orderAmount?: number; productAmount?: number; postageAmount?: number }>(`shopping/order/getOrderDetail?orderId=${encodeURIComponent(n.ma_ncc)}`);
+  if (!r.result || !r.data) return null;
+  const hang = r.data.productAmount ?? null, ship = r.data.postageAmount ?? (n.phi_ship != null ? Number(n.phi_ship) : null);
+  const tong = r.data.orderAmount ?? (hang ?? 0) + (ship ?? 0);
+  const cu = n.tien_hang != null ? Number(n.tien_hang) + Number(n.phi_ship ?? 0) : null;
+  if (hang != null) await q(sql`UPDATE shop_don_ncc SET tien_hang = ${hang}, updated_at = now() WHERE id = ${n.id}`);
+  return { tong, hang, ship, cu, doi: cu != null && Math.abs(cu - tong) > 0.009 };
+}
+
 export async function soDuCj(): Promise<number | null> {
   const r = await cj<{ amount: number }>('shopping/pay/getBalance');
   return r.result && r.data ? Number(r.data.amount) : null;

@@ -21,7 +21,7 @@ import type { HoSoDong, NccDong } from '@/lib/shop/ho-so-doc';
 import { CHANG, type HanhTrinh, type KhoaChang } from '@mos2/shop/hanh-trinh';
 import { BUOC, LINK_DS_CJ, NHAN_BUOC, gio, isoCua, linkVanDon, soNgayTu, tien, type Buoc } from '@/lib/shop/buoc';
 import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, SanPhamDong, ThamKhao } from '@/lib/shop/doc';
-import { shopMoHoSo, shopSoDuNcc } from '@/lib/actions/shop';
+import { shopMoHoSo, shopSoDuNcc, shopTienNcc } from '@/lib/actions/shop';
 import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaBienThe, shopSuaSanPham, shopSuaThamKhao, shopTraNcc } from '@/lib/actions/shop';
 
 type Tab = 'don' | 'tu_van' | 'truc_tiep' | 'van_chuyen' | 'khach_ph' | 'ncc' | 'san_pham' | 'danh_gia' | 'cua_hang';
@@ -253,6 +253,9 @@ function DrawerDon({ id, hoSo, onClose }: { id: number; hoSo: HoSoDong[]; onClos
   const theoCj = d?.ncc?.tienHang != null;
   const traDuKien = d ? (theoCj ? d.ncc!.tienHang! : d.giaVon ?? 0) + (d.shipNcc ?? 0) : 0;
   const [soDu, setSoDu] = useState<number | null | undefined>(undefined);
+  // số đọc lại từ CJ lúc bấm Trả (undefined = đang đọc, null = CJ không trả lời → dùng số đã lưu)
+  const [tienMoi, setTienMoi] = useState<{ tong: number; cu: number | null; doi: boolean } | null | undefined>(undefined);
+  const soTra = tienMoi ? tienMoi.tong : traDuKien;
   const NHAN_TT: Record<string, string> = { processing: 'khách đã trả', completed: 'đã gửi hàng', pending: 'chưa trả tiền', 'on-hold': 'tạm giữ', cancelled: 'đã huỷ', refunded: 'đã hoàn', failed: 'trả lỗi' };
   const dong = (nhan: string, giaTri: ReactNode) => (<><span style={phu}>{nhan}</span><span>{giaTri}</span></>);
   return (
@@ -271,14 +274,16 @@ function DrawerDon({ id, hoSo, onClose }: { id: number; hoSo: HoSoDong[]; onClos
             )}
             {d.buoc === 'cho_tra' && (xacNhanTra ? (
               <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center', fontSize: 13, flexWrap: 'wrap' }}>
-                Trừ ví CJ {theoCj ? '' : 'khoảng '}{tien(traDuKien)}{theoCj ? ' (hàng + ship theo CJ)' : ' (ước theo giá vốn sổ)'}?
-                <span style={{ color: soDu != null && soDu < traDuKien ? 'var(--bad)' : 'var(--fg-3)' }}>Ví CJ: {soDu === undefined ? '…' : soDu === null ? 'không đọc được' : tien(soDu)}</span>
-                {soDu != null && soDu < traDuKien
+                {tienMoi === undefined ? <span style={phu}>Đang đọc lại số tiền từ CJ…</span> : <>
+                Trừ ví CJ {tien(soTra)}{tienMoi ? ' (CJ báo lúc này)' : theoCj ? ' (số CJ báo lúc tạo đơn — không đọc lại được)' : ' (ước theo giá vốn sổ)'}?
+                {tienMoi?.doi && <span style={{ color: 'var(--warn)' }}>CJ đã đổi từ {tien(tienMoi.cu)}</span>}</>}
+                <span style={{ color: soDu != null && soDu < soTra ? 'var(--bad)' : 'var(--fg-3)' }}>Ví CJ: {soDu === undefined ? '…' : soDu === null ? 'không đọc được' : tien(soDu)}</span>
+                {soDu != null && soDu < soTra
                   ? <><span style={{ color: 'var(--bad)' }}>không đủ — nạp ví hoặc trả bằng thẻ trên CJ</span><LinkChip href={LINK_DS_CJ} tone="neutral" size="xs">Mở đơn trên CJ ↗</LinkChip></>
-                  : <button className="btn danger" disabled={dangChay || soDu === undefined} onClick={() => lam(() => shopTraNcc(id))}>Trả</button>}
+                  : <button className="btn danger" disabled={dangChay || soDu === undefined || tienMoi === undefined} onClick={() => lam(() => shopTraNcc(id))}>Trả</button>}
                 <button className="btn ghost" onClick={() => setXacNhanTra(false)}>Thôi</button>
               </span>
-            ) : <button className="btn primary" disabled={dangChay} onClick={() => { setXacNhanTra(true); setSoDu(undefined); shopSoDuNcc().then(setSoDu).catch(() => setSoDu(null)); }}>Trả CJ {tien(traDuKien)}</button>)}
+            ) : <button className="btn primary" disabled={dangChay} onClick={() => { setXacNhanTra(true); setSoDu(undefined); setTienMoi(undefined); shopSoDuNcc().then(setSoDu).catch(() => setSoDu(null)); shopTienNcc(id).then(setTienMoi).catch(() => setTienMoi(null)); }}>Trả CJ {tien(traDuKien)}</button>)}
             {dangChay && <span style={{ ...phu, fontSize: 12.5 }}>Đang chạy…</span>}
             <span style={{ flex: 1 }} />
             {d.nenTang === 'woo' && <LinkChip href={linkWoo(d)} tone="neutral">Woo ↗</LinkChip>}

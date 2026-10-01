@@ -28,11 +28,12 @@ function SoGia({ gia, cuaMinh }: { gia: number | null; cuaMinh: number | null })
 }
 /** Bảng quảng cáo đối thủ — cột cố định (ui/cay LaBang) nên mọi nhóm trong cây thẳng cột; xếp theo SỐ NGÀY ĐÃ CHẠY (dài nhất trước — QC sống lâu
  *  là QC có lãi). Bấm một dòng → thẻ xem trước creative ngay bên dưới (toàn văn, ảnh lớn, tiêu đề, CTA…). Sửa = nút riêng. */
-function BangQc({ ds, sua }: { ds: { x: QcDoiThu; tenDt?: string }[]; sua: (id: number) => void }) {
+function BangQc({ ds, sua, anGoc }: { ds: { x: QcDoiThu; tenDt?: string }[]; sua: (id: number) => void; /** nhóm đã là góc (cây theo góc) → bỏ cột trùng */ anGoc?: boolean }) {
   const [mo, setMo] = useState<Set<number>>(new Set());
   const coDt = ds.some((y) => y.tenDt);
-  const cot: CotLa[] = [{ h: '', rong: 56 }, ...(coDt ? [{ h: 'Đối thủ', rong: 130 }] : []), { h: 'Định dạng', rong: 90 }, { h: 'Hook (câu mở đầu)' },
-    { h: 'Góc bán', rong: 170 }, { h: 'Ưu đãi', rong: 150 }, { h: 'Chạy từ', rong: 92 }, { h: 'Đã chạy', rong: 80, phai: true }, { h: 'Trạng thái', rong: 84 }, { h: '', rong: 130 }];
+  // cột phụ hẹp, hook (thứ đọc nhiều nhất) ăn phần còn lại; ngày bắt đầu nằm trong title của 'Đã chạy'
+  const cot: CotLa[] = [{ h: '', rong: 52 }, ...(coDt ? [{ h: 'Đối thủ', rong: 120 }] : []), { h: 'Dạng', rong: 64 }, { h: 'Hook (câu mở đầu)' },
+    ...(anGoc ? [] : [{ h: 'Góc bán', rong: 140 }]), { h: 'Ưu đãi', rong: 130 }, { h: 'Đã chạy', rong: 76, phai: true }, { h: 'Trạng thái', rong: 80 }, { h: '', rong: 96 }];
   const xep = [...ds].map((y) => ({ ...y, ngay: soNgayChay(y.x.batDau, y.x.dangChay, y.x.luc) })).sort((a, b) => (b.ngay ?? -1) - (a.ngay ?? -1));
   return (
     <LaBang cot={cot}>
@@ -44,16 +45,15 @@ function BangQc({ ds, sua }: { ds: { x: QcDoiThu; tenDt?: string }[]; sua: (id: 
             <tr onClick={() => setMo((s) => { const n = new Set(s); if (n.has(x.id)) n.delete(x.id); else n.add(x.id); return n; })} style={{ cursor: 'pointer', background: dangMo ? 'var(--bg-2)' : undefined }} title="Bấm để xem creative">
               <td style={oLa()}>{anh ? <img src={x.anh ? `${x.anh}?w=160` : anh} alt="" width={40} height={40} loading="lazy" style={{ objectFit: 'cover', borderRadius: 4, display: 'block', border: '1px solid var(--line)' }} /> : <span style={phu}>—</span>}</td>
               {coDt && <td style={oLa()} title={tenDt}><b style={{ fontWeight: 500 }}>{tenDt}</b></td>}
-              <td style={{ ...oLa(), ...phu }}>{x.dinhDang ? DINH_DANG_QC[x.dinhDang] ?? x.dinhDang : '—'}{x.soPhienBan ? ` ·${x.soPhienBan}` : ''}</td>
+              <td style={{ ...oLa(), ...phu }} title={x.soPhienBan ? `${x.soPhienBan} phiên bản` : undefined}>{x.dinhDang ? DINH_DANG_QC[x.dinhDang] ?? x.dinhDang : '—'}{x.soPhienBan ? ` ·${x.soPhienBan}` : ''}</td>
               <td style={{ ...oLa(), fontStyle: x.hook ? 'italic' : undefined }} title={x.hook ?? ''}>{x.hook ? `“${x.hook}”` : <span style={phu}>chưa chép</span>}</td>
-              <td style={oLa()} title={x.goc ?? ''}>{x.goc ?? '—'}</td>
+              {!anGoc && <td style={oLa()} title={x.goc ?? ''}>{x.goc ?? '—'}</td>}
               <td style={oLa()} title={x.uuDai ?? ''}>{x.uuDai ?? '—'}</td>
-              <td style={{ ...oLa(), ...phu }}>{x.batDau ?? '—'}</td>
               <td style={{ ...oLa(true), fontWeight: 600, color: ngay == null ? 'var(--fg-3)' : ngay >= 30 ? 'var(--ok)' : ngay < 7 ? 'var(--fg-3)' : undefined }}
-                title="Từ ngày bắt đầu tới hôm nay (đang chạy) / tới lần thấy gần nhất (đã dừng). ≥ 30 ngày: QC sống lâu — dấu hiệu có lãi">{ngay == null ? '—' : `${ngay} ngày`}</td>
+                title={`${x.batDau ? `chạy từ ${x.batDau}` : 'chưa rõ ngày bắt đầu'} — tính tới hôm nay (đang chạy) / lần thấy gần nhất (đã dừng). ≥ 30 ngày: QC sống lâu, dấu hiệu có lãi`}>{ngay == null ? '—' : `${ngay} ngày`}</td>
               <td style={{ ...oLa(), color: x.dangChay ? 'var(--ok)' : 'var(--fg-3)' }}>{x.dangChay == null ? '—' : x.dangChay ? 'đang chạy' : 'đã dừng'}</td>
               <td style={{ ...oLa(true), overflow: 'visible' }} onClick={(e) => e.stopPropagation()}>
-                <span style={{ display: 'inline-flex', gap: 4 }}><LinkChip href={x.link} tone="neutral" size="xs">Thư viện ↗</LinkChip><button className="btn ghost" onClick={() => sua(x.id)}>Sửa</button></span></td>
+                <span style={{ display: 'inline-flex', gap: 4 }}><LinkChip href={x.link} tone="neutral" size="xs" title="Mở QC này trong Thư viện quảng cáo">TV ↗</LinkChip><button className="btn ghost" title="Sửa" onClick={() => sua(x.id)}>✎</button></span></td>
             </tr>
             {dangMo && <tr><td colSpan={cot.length} style={{ padding: 0 }}><TheQc x={x} anh={anh} tenDt={tenDt} ngay={ngay} /></td></tr>}
           </tbody>
@@ -225,7 +225,7 @@ export function BangDoiThu({ ds, sanPham, bienThe, ch }: { ds: DoiThuDong[]; san
                 ten={<><b>{g}</b><span style={phu}>{v.length} QC · {new Set(v.map((x) => x.d.id)).size} đối thủ · {v.filter((x) => x.q.dangChay).length} đang chạy</span>
                   {(() => { const n = Math.max(-1, ...v.map((x) => soNgayChay(x.q.batDau, x.q.dangChay, x.q.luc) ?? -1)); return n > 0 ? <span style={{ color: n >= 30 ? 'var(--ok)' : undefined, fontSize: 12.5 }}>QC lâu nhất {n} ngày</span> : null; })()}</>}
                 phu={[...new Set(v.map((x) => x.q.dinhDang).filter(Boolean))].map((x) => DINH_DANG_QC[x!] ?? x).join(' · ') || undefined}>
-                <BangQc ds={v.map(({ d, q }) => ({ x: q, tenDt: d.ten }))} sua={(id) => modal.open('qc', id)} />
+                <BangQc anGoc ds={v.map(({ d, q }) => ({ x: q, tenDt: d.ten }))} sua={(id) => modal.open('qc', id)} />
               </NutCay>
             ))}
           </NutCay>

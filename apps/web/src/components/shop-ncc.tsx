@@ -19,7 +19,7 @@ import { SuaNcc } from './shop-ncc-sua';
 import { duoi, vaiNguon } from './shop-san-pham';
 
 /** Cột danh mục NCC — độ rộng cố định để mọi nhóm màu thẳng cột (ui/cay LaBang). */
-const COT_DM: CotLa[] = [{ h: 'Biến thể bên NCC', rong: 190 }, { h: 'SKU NCC', rong: 160 }, { h: 'Mã', rong: 90 }, { h: 'Giá NCC', rong: 75, phai: true },
+const COT_DM: CotLa[] = [{ h: 'Size', rong: 80 }, { h: 'SKU NCC', rong: 160 }, { h: 'Mã', rong: 90 }, { h: 'Giá NCC', rong: 75, phai: true },
   { h: 'Gợi ý bán', rong: 80, phai: true }, { h: 'Cân · kích thước', rong: 170 }, { h: 'Tồn theo kho', rong: 110 }, { h: 'Shop đang dùng' }];
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
@@ -235,7 +235,7 @@ function DanhMucNcc({ sps, dungBt, tenNcc, nguongTon, cuaHang }: { sps: NccSpDon
                           const d = dungBt.get(v.id) ?? [];
                           return (
                             <tr key={v.id} style={{ borderTop: '1px solid var(--line)', color: d.length ? undefined : 'var(--fg-3)', textDecoration: v.mat ? 'line-through' : undefined }}>
-                              <td style={oLa()} title={v.ten ?? v.ma}>{v.ten ?? v.ma}</td>
+                              <td style={oLa()} title={v.ten ?? v.ma}>{tachBienThe(v.ten ?? v.ma).co || v.ten || v.ma}</td>
                               <td style={{ ...oLa(), fontFamily: 'var(--font-mono)', fontSize: 11.5 }} title={v.sku ?? ''}>{v.sku || '—'}</td>
                               <td style={{ ...oLa(), fontFamily: 'var(--font-mono)', fontSize: 11.5 }} title={v.ma}>{duoi(v.ma)}</td>
                               <td style={oLa(true)}>{tien(v.gia)}</td>

@@ -120,10 +120,11 @@ export function CaySanPham({ bienThe, sanPham, suaSp, suaBt, cheDo = 'mat_tien',
                   {von.length ? ` · vốn ${tien(Math.min(...von))}${Math.max(...von) !== Math.min(...von) ? `–${tien(Math.max(...von))}` : ''}` : ''}
                   {bi.length ? ` · biên ${Math.min(...bi) === Math.max(...bi) ? Math.min(...bi) : `${Math.min(...bi)}–${Math.max(...bi)}`}%` : ''}{p.daBan ? ` · đã bán ${p.daBan}` : ''}
                   {cheDo === 'lien_ket' ? (p.nccInfo ? ` · ↔ CJ: ${p.nccInfo.ten.slice(0, 60)} (${p.nccInfo.sku || p.nccInfo.pid})` : ' · chưa liên kết sản phẩm NCC')
-                    : p.nccInfo ? ` · CJ ${p.nccInfo.sku || p.nccInfo.pid}` : p.maNcc ? ' · CJ chưa đọc' : ' · chưa gắn sản phẩm CJ'}
+                    : p.nccInfo ? '' : p.maNcc ? ' · CJ chưa đọc' : ' · chưa gắn sản phẩm CJ'}
                 </span>
               </div>
               <span onClick={(e) => e.stopPropagation()} style={{ display: 'flex', gap: 6 }}>
+                {p.nccInfo && cheDo === 'mat_tien' && <LinkChip href="/shop?tab=ncc&nm=san_pham" tone="neutral" size="xs" title={p.nccInfo.ten}>nguồn: CJ {p.nccInfo.sku || p.nccInfo.pid} ↗</LinkChip>}
                 {p.slug && <LinkChip href={`https://${p.domain}/${p.slug}`} tone="neutral" size="xs">xem ↗</LinkChip>}
                 <button className="btn ghost" onClick={() => suaSp(p)}>Sửa mặt tiền</button>
               </span>

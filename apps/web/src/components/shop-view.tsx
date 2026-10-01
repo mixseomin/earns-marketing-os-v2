@@ -175,7 +175,7 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo }: { do
         {(tab === 'khach_ph' || tab === 'ncc') && <BangHoSo key={tab} ben={tab === 'ncc' ? 'ncc' : 'khach'} ch={ch} ds={hoSo} cuaHang={cuaHang} />}
         {tab === 'san_pham' && <BangSanPham bienThe={bt} sanPham={sps} />}
         {tab === 'danh_gia' && <BangDanhGia ds={dgs} />}
-        {tab === 'cua_hang' && <div style={{ display: 'grid', gap: 12 }}>{cuaHang.map((c) => <TheCuaHang key={c.id} c={c} />)}</div>}
+        {tab === 'cua_hang' && <div style={{ display: 'grid', gap: 12 }}>{cuaHang.filter((c) => ch === 'all' || c.khoa === ch).map((c) => <TheCuaHang key={c.id} c={c} />)}</div>}
       </div>
 
       {modal.is('don') && modal.numId != null && <DrawerDon id={modal.numId} hoSo={hoSo.filter((h) => h.donId === modal.numId)} onClose={() => modal.close()} />}
@@ -566,7 +566,7 @@ function TheCuaHang({ c }: { c: CuaHangDong }) {
       </>}>
       <div style={{ display: 'grid', gap: 10, fontSize: 13 }}>
         <div style={{ fontSize: 12.5, color: c.dongBoLoi ? 'var(--bad)' : 'var(--fg-3)' }}>
-          Đồng bộ gần nhất {gio(c.dongBoLuc)}{c.dongBoLoi ? ` · lỗi: ${c.dongBoLoi}` : ' · Woo đẩy đơn tức thì, máy kéo bù mỗi 10 phút'}
+          Đồng bộ gần nhất {gio(c.dongBoLuc)}{c.dongBoLoi ? ` · lỗi: ${c.dongBoLoi}` : c.nenTang === 'woo' ? ' · Woo đẩy đơn tức thì, máy kéo bù mỗi 10 phút' : ' · đơn vào ngay khi khách trả tiền (Stripe), máy đối soát + theo dõi NCC/vận đơn mỗi 10 phút'}
           {c.thieuMa > 0 && <> · <span style={{ color: 'var(--bad)' }}>{c.thieuMa} biến thể thiếu mã CJ</span></>}
         </div>
         <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center' }}>

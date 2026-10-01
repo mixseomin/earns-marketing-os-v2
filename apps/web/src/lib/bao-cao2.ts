@@ -77,6 +77,9 @@ export const LOC = ['du_an', 'nguon', 'camp', 'dich'];
 /** Bấm một ô chiều này = lọc nó VÀ chia xuống chiều kế (như report2 adfond: Campaign → Ad group). */
 export const XUONG: Record<string, string> = { du_an: 'nguon', nguon: 'camp', camp: 'dich' };
 
+/* utm_campaign trên GA4 thường là tên camp TRẦN ('direct-us'), còn chi/sự kiện khoá theo '<nguồn>_<camp>'
+   ('bidvertiser_direct-us') — thiếu dấu '_' thì ghép nguồn vào trước, để phiên nằm CÙNG dòng với chi. */
+const GA4_CAMP = "CASE WHEN a.camp <> '' AND position('_' in a.camp) = 0 THEN lower(a.nguon) || '_' || a.camp ELSE a.camp END";
 const so = (raw: string) => `coalesce(nullif(e.raw->>'${raw}', '')::numeric, 0)`;
 /* Một khuôn dòng cho cả ba bảng — cột nào bảng không có thì 0. Thứ tự cột phải khớp CỘT_S. */
 const COT_S = ['project_id', 'ngay', 'nguon', 'camp', 'dich', ...GOC] as const;
@@ -96,7 +99,7 @@ export const NGUON_S = `(
     FROM phu_su_kien e WHERE e.project_id = ANY($1) AND e.ts >= $2::date AND e.ts < $3::date + 1
       AND e.loai IN ('view', 'click', 'out', 'signup', 'lead', 'spend', 'don', 'hoan')
   UNION ALL
-  SELECT ${dong({ project_id: 'a.project_id', ngay: 'a.ngay', nguon: 'a.nguon', camp: 'a.camp', dich: "''",
+  SELECT ${dong({ project_id: 'a.project_id', ngay: 'a.ngay', nguon: 'a.nguon', camp: GA4_CAMP, dich: "''",
     phien: 'a.phien', phien_tt: 'a.phien_tt', them_gio: 'a.them_gio' })}
     FROM phu_ga4_ngay a WHERE a.project_id = ANY($1) AND a.ngay BETWEEN $2::date AND $3::date
 ) s`;
@@ -148,6 +151,7 @@ if (typeof process !== 'undefined' && process.argv?.[1]?.endsWith('/bao-cao2.ts'
   ok('giá trị lọc (nhiều giá trị) đi qua tham số', l.params.length === 4 && !l.sql.includes('or 1=1') && l.sql.includes('= ANY($4)'));
   ok('mọi chỉ số có cụm + chú thích', CHI_SO.every((c) => CUM.some((u) => u.key === c.cum) && c.chuThich.length > 3));
   ok('KPI đều có trong sổ', KPI.every((k) => CHI_SO.some((c) => c.key === k)));
+  ok('camp GA4 trần được ghép nguồn (cùng khoá với phu_chi)', NGUON_S.includes("lower(a.nguon) || '_' || a.camp"));
   ok('ô lọc giá trị có thật', truyVanChonCho({ duAn: ['a'], tu: '2026-09-01', den: '2026-09-02' }).sql.includes('SELECT DISTINCT'));
   ok('ngày sai → lỗi', 'loi' in dungTruyVan({ duAn: ['a'], tu: '2026-9-1', den: '2026-09-02', gop: [], chiSo: [] }));
   ok('không chọn dự án → lỗi', 'loi' in dungTruyVan({ duAn: [], tu: '2026-09-01', den: '2026-09-02', gop: [], chiSo: [] }));

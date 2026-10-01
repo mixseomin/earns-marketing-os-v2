@@ -12,6 +12,7 @@ import {
 import { useModalParam } from '@/lib/use-modal-param';
 import { hrefTab, tabCua } from '@/lib/tab-trang';
 import { KhachTrucTiep } from './shop-truc-tiep';
+import { BangTuVan } from './shop-tu-van';
 import { CauHinhCuaHang } from './shop-cau-hinh';
 import { BangHoSo } from './shop-ho-so';
 import type { HoSoDong } from '@/lib/shop/ho-so-doc';
@@ -21,7 +22,7 @@ import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, SanPha
 import { shopMoHoSo } from '@/lib/actions/shop';
 import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaBienThe, shopSuaCauHinh, shopSuaSanPham, shopSuaThamKhao, shopTraNcc } from '@/lib/actions/shop';
 
-type Tab = 'don' | 'truc_tiep' | 'van_chuyen' | 'khach_ph' | 'ncc' | 'san_pham' | 'danh_gia' | 'cua_hang';
+type Tab = 'don' | 'tu_van' | 'truc_tiep' | 'van_chuyen' | 'khach_ph' | 'ncc' | 'san_pham' | 'danh_gia' | 'cua_hang';
 // Màu bước = tín hiệu: amber chờ người, đỏ lỗi/trễ, xanh đã giao; bước đang chạy bình thường để trung tính.
 const MAU: Record<string, string> = { muted: 'var(--fg-3)', warn: 'var(--warn)', bad: 'var(--bad)', ok: 'var(--ok)' };
 const MAU_BUOC = Object.fromEntries(BUOC.map((b) => [b.key, MAU[b.mau]])) as Record<Buoc, string>;
@@ -62,7 +63,8 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo }: { do
   const dgs = useMemo(() => danhGia.filter((g) => ch === 'all' || g.cuaHang === ch), [danhGia, ch]);
   const choDuyet = dgs.filter((g) => g.trangThai === 'cho').length;
   // badge hồ sơ = việc mình phải đụng: Mới + Đang xử lý (Chờ bên kia không tính)
-  const canLam = (ben: 'khach' | 'ncc') => hoSo.filter((h) => h.ben === ben && (ch === 'all' || h.cuaHang === ch) && (h.trangThai === 'moi' || h.trangThai === 'dang_xu_ly')).length;
+  const canLam = (ben: 'khach' | 'ncc') => hoSo.filter((h) => h.ben === ben && h.loai !== 'tu_van' && (ch === 'all' || h.cuaHang === ch) && (h.trangThai === 'moi' || h.trangThai === 'dang_xu_ly')).length;
+  const choChat = hoSo.filter((h) => h.loai === 'tu_van' && h.trangThai === 'moi' && (ch === 'all' || h.cuaHang === ch)).length;
   const canXuLy = (dem.cho_ncc ?? 0) + (dem.loi_ncc ?? 0) + (dem.cho_tra ?? 0) + (dem.tre ?? 0);
 
   // KPI 30 ngày: đơn đã trả tiền (bỏ chưa trả + huỷ), doanh thu sau hoàn, lãi ước (đơn đủ giá vốn), đơn cần xử lý
@@ -72,7 +74,7 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo }: { do
     const coLai = tra.filter((d) => d.lai !== null);
     // Đo "khách có yên tâm không": hồ sơ khách hỏi/khiếu nại (không tính dispute) trên 100 đơn, và dispute 90 ngày — cùng sổ hồ sơ
     const hs = hoSo.filter((h) => h.ben === 'khach' && (ch === 'all' || h.cuaHang === ch));
-    const hoi = hs.filter((h) => h.loai !== 'dispute' && new Date(isoCua(h.taoLuc)).getTime() > tu).length;
+    const hoi = hs.filter((h) => h.loai !== 'dispute' && (h.loai !== 'tu_van' || h.donId != null) && new Date(isoCua(h.taoLuc)).getTime() > tu).length;   // chat trước khi mua không phải "hỏi đơn"
     const dispute = hs.filter((h) => h.loai === 'dispute' && new Date(isoCua(h.taoLuc)).getTime() > Date.now() - 90 * 86_400_000).length;
     return { don: tra.length, dt: tra.reduce((t, d) => t + d.tong - d.hoan, 0), lai: coLai.reduce((t, d) => t + (d.lai ?? 0), 0), thieuLai: tra.length - coLai.length, hoi, dispute };
   }, [theoCh, hoSo, ch]);
@@ -133,7 +135,7 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo }: { do
 
       <Tabs<Tab> value={tab} onChange={setTab} hrefFor={(k) => hrefTab('/shop', k)}
         items={tabCua<Tab>('/shop', { don: canXuLy || undefined, van_chuyen: dem.tre || undefined, san_pham: thieuMa || undefined, danh_gia: choDuyet || undefined,
-          khach_ph: canLam('khach') || undefined, ncc: canLam('ncc') || undefined })} />
+          tu_van: choChat || undefined, khach_ph: canLam('khach') || undefined, ncc: canLam('ncc') || undefined })} />
 
       <div style={{ marginTop: 10 }}>
         {/* số đơn chỉ thuộc màn đơn/vận chuyển — tab khác không phải gánh nửa màn số không liên quan */}
@@ -171,8 +173,9 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo }: { do
           ? <Panel pad={8}><DataTable rows={dsVanChuyen} columns={cotVc} getRowKey={(d) => String(d.id)} persistKey="shop-vc" minWidth={900} onRowClick={(d) => modal.open('don', d.id)} /></Panel>
           : <EmptyState icon="🚚" compact title="Chưa có đơn nào ở NCC hay trên đường" />)}
 
+        {tab === 'tu_van' && <BangTuVan ch={ch} />}
         {tab === 'truc_tiep' && <KhachTrucTiep ch={ch} />}
-        {(tab === 'khach_ph' || tab === 'ncc') && <BangHoSo key={tab} ben={tab === 'ncc' ? 'ncc' : 'khach'} ch={ch} ds={hoSo} cuaHang={cuaHang} />}
+        {(tab === 'khach_ph' || tab === 'ncc') && <BangHoSo key={tab} ben={tab === 'ncc' ? 'ncc' : 'khach'} ch={ch} ds={hoSo.filter((h) => h.loai !== 'tu_van')} cuaHang={cuaHang} />}
         {tab === 'san_pham' && <BangSanPham bienThe={bt} sanPham={sps} />}
         {tab === 'danh_gia' && <BangDanhGia ds={dgs} />}
         {tab === 'cua_hang' && <div style={{ display: 'grid', gap: 12 }}>{cuaHang.filter((c) => ch === 'all' || c.khoa === ch).map((c) => <TheCuaHang key={c.id} c={c} />)}</div>}

@@ -4,7 +4,8 @@ import { dsVideo } from '@mos2/shop/video';
 import { CUA_SO, type CuaSo } from '@mos2/shop/phien';
 import { docPhien, docSuKienPhien } from '@/lib/shop/phien';
 import { ga4ThoiGianThuc } from '@/lib/shop/ga4-tt';
-import { docHoSo, docTinHoSo } from '@/lib/shop/ho-so-doc';
+import { docHoSo, docTinHoSo, docTuVan } from '@/lib/shop/ho-so-doc';
+import { guiTraLoi, soanTraLoi } from '@mos2/shop/tu-van';
 import { LOAI_HO_SO, TRANG_THAI_HO_SO, type Ben } from '@mos2/shop/ho-so';
 import { moHoSo, themTin } from '@mos2/shop/ho-so-ghi';
 import { guiThu, matTien, thuDaGui, thuXacNhan } from '@mos2/shop';
@@ -126,7 +127,7 @@ export async function shopSuaSanPham(id: number, v: { tieuDe: string | null; gia
  *  sửa được ở đây (anh chốt 01/10/2026: mọi cơ chế/điều khiển nằm trong mos2) — khoá lạ bị bỏ, khoá có cấu trúc thì làm sạch trước khi ghi. */
 export async function shopSuaMatTien(khoa: string, v: Record<string, unknown>) {
   await admin();
-  const cho = ['thanh_tren', 'dong_sale', 'sale_het', 'bac_giam', 'cam_ket', 'mau_nhan', 'do', 'logo', 'email', 'dia_chi', 'ship', 'giao', 'thu', 'faq', 'ma_giam', 'dang_ky', 'trang'];
+  const cho = ['thanh_tren', 'dong_sale', 'sale_het', 'bac_giam', 'cam_ket', 'mau_nhan', 'do', 'logo', 'email', 'dia_chi', 'ship', 'giao', 'thu', 'faq', 'ma_giam', 'dang_ky', 'trang', 'tu_van'];
   const sach: Record<string, unknown> = {};
   const so = (x: unknown, tu: number, den: number) => Math.max(tu, Math.min(den, Math.round(Number(x) || 0)));
   const chu = (x: unknown, n: number) => String(x ?? '').slice(0, n);
@@ -139,6 +140,9 @@ export async function shopSuaMatTien(khoa: string, v: Record<string, unknown>) {
     } else if (k === 'thu') {
       const t = (x ?? {}) as { xac_nhan?: boolean; da_gui?: boolean; chang?: string[] };
       sach.thu = { xac_nhan: t.xac_nhan !== false, da_gui: t.da_gui !== false, chang: (t.chang ?? []).filter((c) => (CHANG_BAO_THU as string[]).includes(c)) };
+    } else if (k === 'tu_van') {
+      const t = (x ?? {}) as { bat?: boolean; tu_gui?: boolean; chao?: string; model?: string };
+      sach.tu_van = { bat: t.bat !== false, tu_gui: t.tu_gui !== false, chao: chu(t.chao, 300).trim(), model: /^[a-z0-9.\-]{3,40}$/i.test(t.model ?? '') ? t.model : '' };
     } else if (k === 'faq') {
       sach.faq = ((x ?? []) as { hoi?: string; dap?: string }[]).filter((f) => f.hoi?.trim() && f.dap?.trim()).slice(0, 30).map((f) => ({ hoi: chu(f.hoi, 200).trim(), dap: chu(f.dap, 3000).trim() }));
     } else if (k === 'ma_giam') {
@@ -318,5 +322,23 @@ export async function shopTraLoiKhach(id: number, noiDung: string) {
   await themTin(id, 'minh', 'email', nd);
   await db().execute(sql`UPDATE shop_ho_so SET trang_thai = 'cho_ho' WHERE id = ${id} AND trang_thai <> 'xong'`);
   revalidatePath('/shop');
+  return { ok: true };
+}
+
+/* ── Tư vấn (chat mặt tiền) ── */
+export async function shopTuVan() { await admin(); return docTuVan(); }
+/** Anh duyệt (có thể đã sửa) → gửi vào chat (+ thư nếu khách đã rời trang và có email). */
+export async function shopGuiChat(id: number, noiDung: string) {
+  await admin();
+  if (!noiDung.trim()) return { ok: false, loi: 'trống' };
+  await guiTraLoi(Number(id), noiDung, 'minh');
+  revalidatePath('/shop');
+  return { ok: true };
+}
+export async function shopSoanLai(id: number) { await admin(); await soanTraLoi(Number(id), { epSoan: true }); return { ok: true }; }
+export async function shopBoNhap(id: number) {
+  await admin();
+  await db().execute(sql`UPDATE shop_ho_so SET nhap = NULL WHERE id = ${Number(id)} AND loai = 'tu_van'`);
+  await themTin(Number(id), 'minh', 'ghi_chu', 'Bỏ nháp máy soạn — không trả lời tin này');
   return { ok: true };
 }

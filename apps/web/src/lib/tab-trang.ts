@@ -23,6 +23,7 @@ export const TAB_TRANG = {
   ] },
   '/shop': { param: 'tab', tabs: [
     { key: 'don', label: 'Đơn hàng', title: 'Luồng đơn toàn cảnh + bảng đơn' },
+    { key: 'tu_van', label: 'Tư vấn', title: 'Khách hỏi qua ô chat trên site: máy soạn → kiểm → tự gửi loại an toàn, loại nhạy cảm chờ anh duyệt' },
     { key: 'truc_tiep', label: 'Khách trực tiếp', title: 'Ai đang trên site: trang đang xem, cuộn %, bấm gì, tới bước nào của phễu mua (kiểu GA4 thời gian thực)' },
     { key: 'van_chuyen', label: 'Vận chuyển', title: 'Đơn ở NCC / trên đường' },
     { key: 'khach_ph', label: 'Khách phản hồi', title: 'Liên hệ, khiếu nại, đổi trả, hoàn tiền, dispute — luồng tin + trả lời email' },

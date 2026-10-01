@@ -4,6 +4,7 @@ import { Poppins } from 'next/font/google';
 import { shopHienTai } from '@/lib/shop';
 import { GioProvider } from '@/components/gio';
 import { TheoDoiPhien } from '@/components/phien';
+import { ChatTuVan } from '@/components/chat';
 import { cauHinhGiao } from '@mos2/shop/giao';
 import './store.css';
 
@@ -31,6 +32,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
         {children}
       </GioProvider>
       <TheoDoiPhien />
+      {m.tu_van?.bat !== false && <ChatTuVan ten={s.ten} chao={m.tu_van?.chao || `Hi! Questions about sizing, shipping or your order? Ask here and we'll help.`} />}
     </body>
   </html>;
 }

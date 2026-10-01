@@ -15,6 +15,7 @@ const MUC = [
   { value: 'mat_tien', label: 'Mặt tiền', title: 'Dải trên, ưu đãi, cam kết, màu, logo, liên hệ, ship, mã đo lường' },
   { value: 'giao', label: 'Giao hàng & cam kết', title: 'Ngày nhận dự kiến + cam kết giao hàng khách thấy ở trang sản phẩm, checkout, thư, trang theo dõi' },
   { value: 'thu', label: 'Thư khách', title: 'Bật/tắt từng thư tự động + xem trước' },
+  { value: 'tu_van', label: 'Tư vấn (chat)', title: 'Ô chat trên site: bật/tắt, máy tự gửi loại an toàn, lời chào, model' },
   { value: 'faq', label: 'FAQ & ưu đãi', title: 'FAQ trang sản phẩm, mã giảm giá, ô đăng ký nhận mã' },
   { value: 'trang', label: 'Trang chính sách', title: 'Shipping / Refund / Terms / Privacy / Contact' },
   { value: 'ket_noi', label: 'Kết nối & xem trước', title: 'Stripe, thư, CJ, 17TRACK, GA4 — có/không; link xem trước' },
@@ -47,6 +48,7 @@ export function CauHinhCuaHang({ c }: { c: CuaHangDong }) {
       {muc === 'mat_tien' && <MatTien c={c} />}
       {muc === 'giao' && <GiaoHang c={c} />}
       {muc === 'thu' && <ThuKhach c={c} />}
+      {muc === 'tu_van' && <TuVan c={c} />}
       {muc === 'faq' && <FaqUuDai c={c} />}
       {muc === 'trang' && <TrangChinhSach c={c} />}
       {muc === 'ket_noi' && <KetNoi c={c} />}
@@ -165,6 +167,26 @@ function ThuKhach({ c }: { c: CuaHangDong }) {
         <iframe title="Xem trước thư" srcDoc={xem.html} sandbox="" style={{ width: '100%', height: 760, border: '1px solid var(--line)', borderRadius: 6, background: '#fff' }} />
       </div>
     </Drawer>}
+  </>);
+}
+
+/* ── Tư vấn (chat) ── */
+function TuVan({ c }: { c: CuaHangDong }) {
+  const t = c.matTien.tu_van ?? {};
+  const goc = { bat: t.bat !== false, tu_gui: t.tu_gui !== false, chao: t.chao ?? '', model: t.model ?? '' };
+  const [v, setV] = useState(goc);
+  const { luu, dang, Bao } = useLuu(c.khoa);
+  return (<>
+    <div style={{ fontSize: 12.5, ...phu }}>Khách nhắn ở ô chat góc dưới phải → máy soạn từ sản phẩm, chính sách, FAQ, ngày giao và hành trình đơn thật → bước Kiểm → loại an toàn gửi ngay, loại nhạy cảm (tiền, giảm giá, đổi trả, khiếu nại) và tin bị chặn chờ anh duyệt ở tab Tư vấn.</div>
+    <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 13 }}><input type="checkbox" checked={v.bat} onChange={(e) => setV({ ...v, bat: e.target.checked })} /> Hiện ô chat trên site</label>
+    <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 13 }}><input type="checkbox" checked={v.tu_gui} onChange={(e) => setV({ ...v, tu_gui: e.target.checked })} /> Máy tự gửi trả lời loại an toàn đã qua bước Kiểm (tắt = mọi tin chờ anh duyệt)</label>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 }}>
+      <TextAreaField id={`tv-chao-${c.khoa}`} label="Lời chào trong ô chat" rows={2} value={v.chao} onChange={(e) => setV({ ...v, chao: e.target.value })} hint="Trống = câu mặc định hỏi về size, ship, đơn" />
+      <TextField id={`tv-model-${c.khoa}`} label="Model soạn (OpenAI)" mono value={v.model} onChange={(e) => setV({ ...v, model: e.target.value })} hint="Trống = OPENAI_MODEL của máy chủ (gpt-4o-mini)" />
+    </div>
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <button className="btn primary" disabled={JSON.stringify(v) === JSON.stringify(goc) || dang} onClick={() => luu({ tu_van: v })}>{dang ? 'Đang lưu…' : 'Lưu tư vấn'}</button><Bao />
+    </div>
   </>);
 }
 

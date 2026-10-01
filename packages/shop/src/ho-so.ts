@@ -5,6 +5,7 @@
 export type Ben = 'khach' | 'ncc';
 export const LOAI_HO_SO: Record<Ben, { key: string; nhan: string; chuThich: string }[]> = {
   khach: [
+    { key: 'tu_van', nhan: 'Chat tư vấn', chuThich: 'Khách nhắn qua ô chat trên site — quản lý ở tab Tư vấn.' },
     { key: 'lien_he', nhan: 'Liên hệ', chuThich: 'Khách gửi form Contact us / hỏi chung.' },
     { key: 'khieu_nai', nhan: 'Khiếu nại', chuThich: 'Sai size, lỗi hàng, giao trễ, không nhận được…' },
     { key: 'doi_tra', nhan: 'Đổi / trả', chuThich: 'Khách muốn đổi size hoặc trả hàng.' },

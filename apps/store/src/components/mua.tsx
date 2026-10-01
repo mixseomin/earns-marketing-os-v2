@@ -53,7 +53,6 @@ export function TrangMua({ d }: { d: DuLieuMua }) {
     for (const b of sp.bien_the) if (b.anh && !ds.includes(b.anh)) ds.push(b.anh);
     return ds;
   }, [sp]);
-  useEffect(() => { if (bt?.anh) { const i = dsAnh.indexOf(bt.anh); if (i >= 0) setAnh(i); } }, [bt, dsAnh]);
   useEffect(() => { bao('view_item', { value: sp.gia, items: [{ item_id: String(sp.id), item_name: sp.ten, price: sp.gia, quantity: 1 }] }); }, [sp]);
   useEffect(() => {
     const p = phienXem();
@@ -70,6 +69,10 @@ export function TrangMua({ d }: { d: DuLieuMua }) {
   const oAnh = (ten: string, ds: string[]) => ds.length > 1 && ds.every((g) => anhCua(ten, g)) && new Set(ds.map((g) => anhCua(ten, g))).size === ds.length;
   const doiAnh = (buoc: number) => setAnh((i) => (i + buoc + dsAnh.length) % dsAnh.length);
   const vuot = useRef<number | null>(null);
+  // ảnh lớn theo lựa chọn: đủ biến thể → ảnh biến thể; mới chọn màu → ảnh của màu đó (không phải đợi chọn size)
+  const t0 = sp.tuy_chon[0];
+  const anhChon = bt?.anh ?? (t0 && chon[t0.ten] ? anhCua(t0.ten, chon[t0.ten]!) : null);
+  useEffect(() => { if (anhChon) { const i = dsAnh.indexOf(anhChon); if (i >= 0) setAnh(i); } }, [anhChon, dsAnh]);
   const tenTc = sp.tuy_chon.map((t) => t.ten).join(' and ');
   const tiep = tong.bac_tiep;
   const mua = () => {

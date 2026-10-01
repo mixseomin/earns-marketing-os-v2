@@ -6,7 +6,7 @@ import { DangKy } from '@/components/dang-ky';
 import { LenDau } from '@/components/len-dau';
 import { TRANG_TINH } from '@mos2/shop/mat-tien';
 
-// Khung trang bán hàng — khuôn orabra: đầu trang dính (dải trên · logo giữa · giỏ phải · menu ngang ở desktop, ☰ ở mobile),
+// Khung trang bán hàng — khuôn orabra: đầu trang KHÔNG dính, cuộn đi theo trang (anh chốt 01/10: dính tốn diện tích) (dải trên · logo giữa · giỏ phải · menu ngang ở desktop, ☰ ở mobile),
 // "Scroll to top", chân trang 3 cột (Contact us · Info · đăng ký nhận mã). Checkout đứng ngoài khung này.
 export default async function KhungShop({ children }: { children: React.ReactNode }) {
   const s = await shopHienTai();
@@ -16,7 +16,7 @@ export default async function KhungShop({ children }: { children: React.ReactNod
   const chinh = [{ href: '/', ten: 'Home' }, { href: '/trackings/search', ten: 'Track your order' }];
   const lien = [...chinh, ...TRANG_TINH.map((t) => ({ href: `/static/${t.khoa}`, ten: t.ten })), { href: '/contact', ten: 'Contact us' }];
   return <>
-    <div className="dau-dinh">
+    <div className="dau-trang">
       {m.thanh_tren && <div className="thanh-tren"><span>{m.thanh_tren}</span></div>}
       <header className="dau"><div className="khung">
         <Menu lien={lien} /><Link className="logo" href="/">{logo}</Link><NutGio />

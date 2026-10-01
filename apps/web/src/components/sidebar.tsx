@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useRef, useEffect, useTransition } from 'react';
+import { Fragment, useState, useRef, useEffect, useTransition } from 'react';
 import { usePathname } from 'next/navigation';
 import { useT } from '@/lib/lang-context';
 import { ProjectSwitcher } from './project-switcher';
+import { TAB_TRANG, coTab, hrefTab, type TabTrang } from '@/lib/tab-trang';
 import { logoutAction } from '@/lib/actions/auth';
 import type { Health, Mode, Project } from '@/lib/mock/types';
 import type { CurrentUserInfo } from './app-shell';
@@ -355,8 +356,11 @@ function SystemGroupRow({ group, isOpen, onOpen, onClose }: {
   isOpen: boolean; onOpen: () => void; onClose: () => void;
 }) {
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [qs, setQs] = useState<URLSearchParams | null>(null);   // đọc lúc mở popout — tab trong trang đổi URL bằng replaceState
   const rowRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  // Mục có tab cấp trang (lib/tab-trang.ts) → mỗi tab thành một dòng con ngay dưới mục: menu đi thẳng tới tab.
+  const soCon = group.items.reduce((n, it) => n + (it.href && coTab(it.href) ? TAB_TRANG[it.href].tabs.length : 0), 0);
 
   const activeItem = group.items.find((it) => it.href && pathname === it.href);
   const isGroupActive = !!activeItem;
@@ -364,11 +368,12 @@ function SystemGroupRow({ group, isOpen, onOpen, onClose }: {
   const handleEnter = () => {
     if (rowRef.current) {
       const r = rowRef.current.getBoundingClientRect();
-      const estH = 28 + (group.count ?? group.items.length) * 36 + 8;
+      const estH = 28 + (group.count ?? group.items.length) * 36 + soCon * 26 + 8;
       const vh = window.innerHeight;
       const top = r.top + estH > vh - 8 ? Math.max(8, r.bottom - estH) : r.top;
       setPos({ top, left: r.right });
     }
+    setQs(new URLSearchParams(window.location.search));
     onOpen();
   };
   const open = isOpen;
@@ -439,9 +444,11 @@ function SystemGroupRow({ group, isOpen, onOpen, onClose }: {
                 </div>
               );
             }
+            const tabs = it.href && coTab(it.href) ? TAB_TRANG[it.href] : null;
             return (
+              <Fragment key={it.label}>
               <Link
-                key={it.label} href={it.href!}
+                href={it.href!}
                 style={{
                   ...itemRowStyle,
                   background: isActive ? 'var(--accent-soft)' : 'transparent',
@@ -452,6 +459,21 @@ function SystemGroupRow({ group, isOpen, onOpen, onClose }: {
               >
                 {inner}
               </Link>
+              {tabs && it.href && coTab(it.href) && (tabs.tabs as readonly TabTrang[]).map((t, i) => {
+                const duong = it.href as keyof typeof TAB_TRANG;
+                const on = pathname === duong && ((qs?.get(tabs.param) ?? '') === t.key || (!qs?.get(tabs.param) && i === 0));
+                return (
+                  <Link key={t.key} href={hrefTab(duong, t.key)} title={t.title}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px 3px 38px', fontSize: 11.5, textDecoration: 'none',
+                      color: on ? 'var(--accent)' : 'var(--fg-2)', fontWeight: on ? 700 : 400,
+                      background: on ? 'var(--accent-soft)' : 'transparent', borderLeft: `2px solid ${on ? 'var(--accent)' : 'transparent'}` }}
+                    onMouseEnter={(e) => { if (!on) e.currentTarget.style.background = 'var(--bg-2)'; }}
+                    onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = 'transparent'; }}>
+                    <span style={{ color: 'var(--fg-4)' }}>└</span>{t.label}
+                  </Link>
+                );
+              })}
+              </Fragment>
             );
           })}
         </div>

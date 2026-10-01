@@ -4,6 +4,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { matTien, type MatTien } from '@mos2/shop/mat-tien';
 import type { ShopTT } from '@mos2/shop/thanh-toan';
+import { dsVideo } from '@mos2/shop/video';
 
 type Row = Record<string, unknown>;
 const q = async <T = Row>(s: ReturnType<typeof sql>) => { const d = getDb(); if (!d) throw new Error('chưa nối DB'); return (await d.execute(s)) as unknown as T[]; };
@@ -32,13 +33,13 @@ export async function shopHienTai(): Promise<Shop | null> {
 
 export type BienThe = { id: number; ten: string; tuy_chon: Record<string, string>; anh: string | null; gia: number; gia_goc: number | null; het_hang: boolean };
 export type SanPham = { id: number; slug: string; ten: string; tieu_de: string; mo_ta: string; anh_ds: string[]; tuy_chon: { ten: string; gia_tri: string[] }[];
-  gia: number; gia_goc: number | null; bien_the: BienThe[] };
+  gia: number; gia_goc: number | null; bien_the: BienThe[]; video: string[] };
 
 const sp = (r: Row, bt: BienThe[]): SanPham => {
   const gia = bt.length ? Math.min(...bt.map((b) => b.gia)) : 0;
   return { id: Number(r.id), slug: String(r.slug), ten: String(r.ten), tieu_de: String(r.tieu_de || r.ten), mo_ta: String(r.mo_ta ?? ''),
     anh_ds: (r.anh_ds as string[])?.length ? (r.anh_ds as string[]) : r.anh ? [String(r.anh)] : [], tuy_chon: (r.tuy_chon as SanPham['tuy_chon']) ?? [],
-    gia, gia_goc: bt.find((b) => b.gia === gia)?.gia_goc ?? null, bien_the: bt };
+    gia, gia_goc: bt.find((b) => b.gia === gia)?.gia_goc ?? null, bien_the: bt, video: dsVideo(r.video) };
 };
 
 async function bienTheCua(ids: number[]): Promise<Map<number, BienThe[]>> {

@@ -5,6 +5,7 @@
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import type { Moc } from './track17';
+import { hanhTrinh, type ChangDon, type KhoaChang } from './hanh-trinh';
 
 export type BuocKhach = { nhan: string; xong: boolean; luc: string | null };
 export type MocKhach = { ts: string; mo_ta: string; noi: string };
@@ -72,17 +73,18 @@ export async function banKhach(khoa: string, soDon: string, chia: { key?: string
 
   const iso = (s: string) => new Date((s.includes('T') ? s : s.replace(' ', 'T')).replace(/([+-]\d\d)$/, '$1:00')).toISOString();
   const moc = moCuaKhach(d.moc ?? [], d.dia_chi?.nuoc || 'US', d.ten);
-  const coGiai = (g: string) => (d.moc ?? []).find((m) => m.giai_doan === g);
-  const daDong = !!d.da_tra || ['UNSHIPPED', 'SHIPPED', 'DELIVERED'].includes(d.ncc_tt ?? '');
-  const giao = d.giao_luc ? iso(d.giao_luc) : d.tt_vd === 'Delivered' ? (coGiai('Delivered')?.ts ?? moc[0]?.ts ?? null) : null;
-  const diGiao = coGiai('OutForDelivery')?.ts ?? (d.tt_vd === 'OutForDelivery' ? moc[0]?.ts ?? null : null);
-  const gui = d.gui_luc ? iso(d.gui_luc) : null;
+  // Năm bước của khách = tập con của hành trình nội bộ (một hàm, một luật đánh dấu chặng)
+  const ht = hanhTrinh({ nhanLuc: d.tao_luc, nccTaoLuc: null, nccTt: d.ncc_tt, daTra: !!d.da_tra, traNccLuc: null, guiLuc: d.gui_luc,
+    giaoLuc: d.giao_luc, moc: d.moc, ttVd: d.tt_vd, nuocKhach: d.dia_chi?.nuoc || 'US' });
+  const c = Object.fromEntries(ht.chang.map((x) => [x.key, x])) as Record<KhoaChang, ChangDon>;
+  const giao = c.da_giao.xong ? c.da_giao.luc ?? moc[0]?.ts ?? null : null;
+  const gui = c.gui_hang.luc;
   const buoc: BuocKhach[] = [
-    { nhan: 'Ordered', xong: true, luc: iso(d.tao_luc) },
-    { nhan: 'Packed', xong: daDong || !!gui, luc: null },
-    { nhan: 'Shipped', xong: !!gui, luc: gui },
-    { nhan: 'Out for delivery', xong: !!diGiao || !!giao, luc: diGiao },
-    { nhan: 'Delivered', xong: !!giao, luc: giao },
+    { nhan: 'Ordered', xong: true, luc: c.nhan_don.luc },
+    { nhan: 'Packed', xong: c.tra_ncc.xong, luc: null },
+    { nhan: 'Shipped', xong: c.gui_hang.xong, luc: gui },
+    { nhan: 'Out for delivery', xong: c.di_giao.xong, luc: c.di_giao.luc },
+    { nhan: 'Delivered', xong: c.da_giao.xong, luc: giao },
   ];
   // Ngày dự kiến: hãng báo thì theo hãng; không thì ngày gửi + số ngày của tuyến ("5-11")
   let duKien: BanKhach['du_kien'] = null;

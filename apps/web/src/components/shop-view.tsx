@@ -10,6 +10,9 @@ import {
   DataTable, DateTimeField, Drawer, EmptyState, FilterChips, LinkChip, Panel, Pill, SimpleTable, StatsStrip, Tabs, TextAreaField, TextField, toDatetimeLocal, type DataColumn,
 } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
+import { hrefTab, tabCua } from '@/lib/tab-trang';
+import { CHANG, type HanhTrinh, type KhoaChang } from '@mos2/shop/hanh-trinh';
+import { moTabNeuModifier, urlVoiParam } from '@/lib/url-mo-tab';
 import { BUOC, LINK_DS_CJ, NHAN_BUOC, gio, isoCua, linkVanDon, soNgayTu, tien, type Buoc } from '@/lib/shop/buoc';
 import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, SanPhamDong, ThamKhao } from '@/lib/shop/doc';
 import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaBienThe, shopSuaCauHinh, shopSuaMatTien, shopSuaSanPham, shopSuaThamKhao, shopTraNcc } from '@/lib/actions/shop';
@@ -33,6 +36,7 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia }: { don: Don
   const [tab, setTab] = useState<Tab>((sp.get('tab') as Tab) || 'don');
   const [buoc, setBuoc] = useState<string>(sp.get('b') || 'all');
   const [ch, setCh] = useState<string>(sp.get('ch') || 'all');
+  const [ht, setHt] = useState<string>(sp.get('ht') || '');
   const modal = useModalParam();
   const [dangChay, batDau] = useTransition();
   const [bao, setBao] = useState<string | null>(null);
@@ -40,14 +44,14 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia }: { don: Don
   useEffect(() => {
     const u = new URLSearchParams(window.location.search);
     const dat = (k: string, v: string, mac: string) => (v && v !== mac ? u.set(k, v) : u.delete(k));
-    dat('tab', tab, 'don'); dat('b', buoc, 'all'); dat('ch', ch, 'all');
+    dat('tab', tab, 'don'); dat('b', buoc, 'all'); dat('ch', ch, 'all'); dat('ht', ht, '');
     const qs = u.toString();
     window.history.replaceState(window.history.state, '', qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
-  }, [tab, buoc, ch]);
+  }, [tab, buoc, ch, ht]);
 
   const theoCh = useMemo(() => don.filter((d) => ch === 'all' || d.cuaHang === ch), [don, ch]);
   const dem = useMemo(() => { const c: Partial<Record<string, number>> = { all: theoCh.length }; for (const d of theoCh) c[d.buoc] = (c[d.buoc] ?? 0) + 1; return c; }, [theoCh]);
-  const dsDon = useMemo(() => theoCh.filter((d) => buoc === 'all' || d.buoc === buoc), [theoCh, buoc]);
+  const dsDon = useMemo(() => theoCh.filter((d) => (buoc === 'all' || d.buoc === buoc) && (!ht || (ht === 'ngoai' ? !d.ht : d.ht?.chang[d.ht.hienTai]?.key === ht))), [theoCh, buoc, ht]);
   const dsVanChuyen = useMemo(() => theoCh.filter((d) => d.ncc?.maVanDon || d.buoc === 'ncc_xu_ly' || d.buoc === 'cho_tra'), [theoCh]);
   const bt = useMemo(() => bienThe.filter((b) => ch === 'all' || b.cuaHang === ch), [bienThe, ch]);
   const sps = useMemo(() => sanPham.filter((p) => ch === 'all' || p.cuaHang === ch), [sanPham, ch]);
@@ -73,6 +77,7 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia }: { don: Don
     { key: 'so', header: 'Đơn', align: 'left', cell: (d) => <b>#{d.soDon}</b>, sortValue: (d) => Number(d.soDon) || 0 },
     { key: 'luc', header: 'Lúc', align: 'left', cell: (d) => gio(d.taoLuc), sortValue: (d) => d.taoLuc },
     { key: 'buoc', header: 'Bước', align: 'left', cell: (d) => <BuocPill b={d.buoc} />, sortValue: (d) => BUOC.findIndex((b) => b.key === d.buoc) },
+    { key: 'ht', header: 'Hành trình', align: 'left', cell: (d) => <ThanhHanhTrinh ht={d.ht} />, sortValue: (d) => d.ht?.pct ?? -1 },
     { key: 'khach', header: 'Khách', align: 'left', cell: (d) => <>{d.khach || '—'} <span style={phu}>{d.bang ? `${d.bang}, ` : ''}{d.nuoc}</span></> },
     { key: 'mon', header: 'Món', align: 'left', cell: (d) => <span style={{ display: 'inline-block', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'bottom' }}>{d.tenMon}</span>, cellTitle: (d) => d.tenMon },
     { key: 'tong', header: 'Tổng', cell: (d) => tien(d.tong), sortValue: (d) => d.tong, total: (r) => tien(r.reduce((t, d) => t + d.tong, 0)) },
@@ -87,6 +92,7 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia }: { don: Don
   const cotVc: DataColumn<DonDong>[] = [
     { key: 'so', header: 'Đơn', align: 'left', cell: (d) => <b>#{d.soDon}</b> },
     { key: 'buoc', header: 'Bước', align: 'left', cell: (d) => <BuocPill b={d.buoc} /> },
+    { key: 'ht', header: 'Hành trình', align: 'left', cell: (d) => <ThanhHanhTrinh ht={d.ht} />, sortValue: (d) => d.ht?.pct ?? -1 },
     { key: 'tuyen', header: 'Tuyến', align: 'left', cell: (d) => (d.ncc?.tuyen ? `${d.ncc.tuyen} · ${d.ncc.soNgay} ngày` : '—') },
     { key: 'vd', header: 'Mã vận đơn', align: 'left', cell: (d) => (d.ncc?.maVanDon ? <VanDon ma={d.ncc.maVanDon} /> : '—') },
     { key: 'hang', header: 'Hãng', align: 'left', cell: (d) => d.ncc?.hang ?? '—' },
@@ -122,16 +128,12 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia }: { don: Don
           onClick: canXuLy ? () => { setTab('don'); setBuoc(dem.loi_ncc ? 'loi_ncc' : dem.cho_tra ? 'cho_tra' : dem.tre ? 'tre' : 'cho_ncc'); } : undefined },
       ]} />
 
-      <Tabs<Tab> value={tab} onChange={setTab} hrefFor={(k) => `/shop?tab=${k}`} items={[
-        { key: 'don', label: 'Đơn hàng', badge: canXuLy || undefined },
-        { key: 'van_chuyen', label: 'Vận chuyển', badge: dem.tre || undefined },
-        { key: 'san_pham', label: 'Sản phẩm', badge: thieuMa || undefined },
-        { key: 'danh_gia', label: 'Đánh giá', badge: choDuyet || undefined },
-        { key: 'cua_hang', label: 'Cửa hàng' },
-      ]} />
+      <Tabs<Tab> value={tab} onChange={setTab} hrefFor={(k) => hrefTab('/shop', k)}
+        items={tabCua<Tab>('/shop', { don: canXuLy || undefined, van_chuyen: dem.tre || undefined, san_pham: thieuMa || undefined, danh_gia: choDuyet || undefined })} />
 
       <div style={{ marginTop: 10 }}>
         {tab === 'don' && (<>
+          <LuongDon don={theoCh} value={ht} onChange={(v) => setHt(v === ht ? '' : v)} />
           <div style={{ marginBottom: 8 }}>
             <FilterChips urlKey="b" value={buoc} onChange={setBuoc} counts={dem}
               options={[{ value: 'all', label: 'Tất cả' }, ...BUOC.map((b) => ({ value: b.key, label: b.nhan, title: b.chuThich }))]} />
@@ -159,6 +161,83 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia }: { don: Don
 
       {modal.is('don') && modal.numId != null && <DrawerDon id={modal.numId} onClose={() => modal.close()} />}
     </div>
+  );
+}
+
+/* ── Hành trình đơn (@mos2/shop/hanh-trinh — cùng hàm với trang theo dõi của khách) ─────────────────── */
+const TEN_CHANG = Object.fromEntries(CHANG.map((c) => [c.key, c])) as Record<KhoaChang, (typeof CHANG)[number]>;
+
+/** Dải luồng TOÀN CẢNH: mọi chặng nối nhau, mỗi chặng đếm số đơn đang đứng ở đó + đơn kẹt (lỗi/chờ trả/trễ) ngay dưới — nhìn một lần
+ *  biết đơn dồn ở đâu, rồi mới bấm chặng để lọc bảng (bấm lại = bỏ lọc). Ngoài luồng: chưa trả tiền / huỷ. */
+function LuongDon({ don, value, onChange }: { don: DonDong[]; value: string; onChange: (v: string) => void }) {
+  const dem = new Map<string, DonDong[]>();
+  for (const d of don) { const k = d.ht ? d.ht.chang[d.ht.hienTai]!.key : 'ngoai'; dem.set(k, [...(dem.get(k) ?? []), d]); }
+  const ket = (ds: DonDong[]) => ({ bad: ds.filter((d) => d.buoc === 'loi_ncc' || d.buoc === 'tre').length, warn: ds.filter((d) => d.buoc === 'cho_ncc' || d.buoc === 'cho_tra').length });
+  const nut = (k: string, nhan: string, phuDe: string, ds: DonDong[], title: string) => {
+    const on = value === k, n = ds.length, kk = ket(ds);
+    return (
+      <a key={k} href={`?tab=don&ht=${k}`} title={title}
+        onClick={(e) => { if (moTabNeuModifier(e, urlVoiParam('ht', k))) return; e.preventDefault(); onChange(k); }}
+        style={{ flex: '1 0 86px', minWidth: 86, display: 'grid', gap: 2, padding: '7px 8px', borderRadius: 6, textDecoration: 'none', color: 'inherit',
+          border: `1px solid ${on ? 'var(--accent)' : 'var(--line)'}`, background: on ? 'var(--accent-soft)' : n ? 'var(--bg-2)' : 'transparent', opacity: n || on ? 1 : 0.55 }}>
+        <span style={{ fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{nhan}</span>
+        <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          <b style={{ fontSize: 18, fontVariantNumeric: 'tabular-nums' }}>{n}</b>
+          <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{phuDe}</span>
+        </span>
+        <span style={{ fontSize: 10.5, minHeight: 14, display: 'flex', gap: 6 }}>
+          {kk.bad > 0 && <span style={{ color: 'var(--bad)' }}>{kk.bad} lỗi/trễ</span>}
+          {kk.warn > 0 && <span style={{ color: 'var(--warn)' }}>{kk.warn} chờ mình</span>}
+        </span>
+      </a>
+    );
+  };
+  const ngoai = dem.get('ngoai') ?? [];
+  return (
+    <Panel pad={8} style={{ marginBottom: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: 4, overflowX: 'auto' }}>
+        {CHANG.map((c, i) => (
+          <span key={c.key} style={{ display: 'contents' }}>
+            {i > 0 && <span aria-hidden style={{ alignSelf: 'center', color: 'var(--fg-4)', fontSize: 12 }}>→</span>}
+            {nut(c.key, c.nhan, `${c.pct}%`, dem.get(c.key) ?? [], c.chuThich)}
+          </span>
+        ))}
+        <span aria-hidden style={{ borderLeft: '1px dashed var(--line)', margin: '0 4px' }} />
+        {nut('ngoai', 'Chưa trả / huỷ', 'ngoài luồng', ngoai, 'Đơn chưa thanh toán xong hoặc đã huỷ/hoàn — không đi trên luồng.')}
+      </div>
+    </Panel>
+  );
+}
+
+/** Ô hành trình trong bảng: 9 vạch (đã qua = đặc) + tên chặng hiện tại + %. */
+function ThanhHanhTrinh({ ht }: { ht: HanhTrinh | null }) {
+  if (!ht) return <span style={phu}>—</span>;
+  const c = ht.chang[ht.hienTai]!;
+  return (
+    <span title={`${c.nhan} · ~${ht.pct}% quãng đường${c.luc ? ` · ${gio(c.luc)}` : ''}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+      <span style={{ display: 'inline-flex', gap: 2 }}>
+        {ht.chang.map((x, i) => <span key={x.key} style={{ width: 7, height: 8, borderRadius: 1.5, background: x.xong ? (i === ht.hienTai ? 'var(--accent)' : 'var(--ok)') : 'var(--bg-3)' }} />)}
+      </span>
+      <span style={{ fontSize: 12 }}>{c.nhan}</span><span style={{ ...phu, fontSize: 11 }}>{ht.pct}%</span>
+    </span>
+  );
+}
+
+/** Bảng chặng trong drawer đơn: từng chặng · lúc (mốc thật) · nơi/chi tiết; chặng đang đứng tô đậm. */
+function BangHanhTrinh({ ht, soNgay, guiLuc }: { ht: HanhTrinh; soNgay: string | null; guiLuc: string | null }) {
+  const n = soNgayTu(guiLuc), toiDa = soNgay ? Math.max(...(soNgay.match(/\d+/g) ?? ['0']).map(Number)) : null;
+  return (
+    <Panel pad={8} title={`Hành trình · ${TEN_CHANG[ht.chang[ht.hienTai]!.key].nhan} · ~${ht.pct}% quãng đường`}
+      subtitle={n !== null && ht.pct < 100 ? `Ngày thứ ${n}${toiDa ? ` / tuyến ${soNgay} ngày` : ''} kể từ lúc gửi` : undefined}>
+      <SimpleTable rows={ht.chang} getRowKey={(c) => c.key}
+        rowStyle={(c) => (ht.chang[ht.hienTai]!.key === c.key ? { fontWeight: 700 } : !c.xong ? { color: 'var(--fg-3)' } : undefined)} columns={[
+          { key: 'd', header: '', width: 22, cell: (c) => (ht.chang[ht.hienTai]!.key === c.key ? <span style={{ color: 'var(--accent)' }}>●</span> : c.xong ? <span style={{ color: 'var(--ok)' }}>✓</span> : '○') },
+          { key: 'n', header: 'Chặng', cell: (c) => <span title={TEN_CHANG[c.key].chuThich}>{c.nhan}</span> },
+          { key: 'p', header: '%', width: 44, align: 'right', cell: (c) => `${c.pct}%` },
+          { key: 'l', header: 'Lúc', width: 96, cell: (c) => (c.luc ? gio(c.luc) : c.xong ? <span style={phu}>đã qua</span> : '—') },
+          { key: 'c', header: 'Nơi / chi tiết', cell: (c) => <span style={phu}>{c.chiTiet ?? ''}</span> },
+        ]} />
+    </Panel>
   );
 }
 
@@ -224,9 +303,10 @@ function DrawerDon({ id, onClose }: { id: number; onClose: () => void }) {
               {ct.changCuoi && dong('Chặng cuối', ct.changCuoi)}
               {d.ncc?.maVanDon && dong('Khách xem', <LinkChip href={`https://${d.domain}/track-order/?order=${encodeURIComponent(d.soDon)}`} tone="neutral" size="xs">trang theo dõi ↗</LinkChip>)}
             </div>
+            {d.ht && <BangHanhTrinh ht={d.ht} soNgay={d.ncc?.soNgay ?? null} guiLuc={d.ncc?.guiLuc ?? null} />}
             {ct.moc.length > 0 && (
               <SimpleTable rows={ct.moc} getRowKey={(m, i) => `${m.ts}${i}`} columns={[
-                { key: 'ts', header: 'Hành trình', width: 92, cell: (m) => <span style={phu}>{gio(m.ts)}</span> },
+                { key: 'ts', header: 'Mốc hãng báo', width: 92, cell: (m) => <span style={phu}>{gio(m.ts)}</span> },
                 { key: 'noi', header: '', width: 140, cell: (m) => <span style={phu}>{m.noi}{m.nuoc ? ` · ${m.nuoc}` : ''}</span> },
                 { key: 'mo', header: '', cell: (m) => m.mo_ta },
               ]} />
@@ -357,9 +437,10 @@ function SuaSanPham({ p, onClose }: { p: SanPhamDong; onClose: () => void }) {
   const [td, setTd] = useState(p.tieuDe ?? '');
   const [goc, setGoc] = useState(p.giaGoc === null ? '' : String(p.giaGoc));
   const [hien, setHien] = useState(p.hien);
+  const [vid, setVid] = useState(p.video.join('\n'));
   const [loi, setLoi] = useState<string | null>(null);
   const [dangChay, batDau] = useTransition();
-  const dirty = td !== (p.tieuDe ?? '') || goc !== (p.giaGoc === null ? '' : String(p.giaGoc)) || hien !== p.hien;
+  const dirty = td !== (p.tieuDe ?? '') || goc !== (p.giaGoc === null ? '' : String(p.giaGoc)) || hien !== p.hien || vid !== p.video.join('\n');
   return (
     <Drawer onClose={onClose} width={520} dirty={dirty}>
       <div style={{ display: 'grid', gap: 12 }}>
@@ -372,13 +453,15 @@ function SuaSanPham({ p, onClose }: { p: SanPhamDong; onClose: () => void }) {
         <ThamKhaoSp p={p} />
         <TextAreaField id="shop-sp-td" label="Tiêu đề bán (H1 trang sản phẩm)" hint="Trống = dùng tên sản phẩm. Chỉ ghi lợi ích/ưu đãi có thật." rows={3} value={td} onChange={(e) => setTd(e.target.value)} />
         <TextField id="shop-sp-goc" label="Giá gạch (USD)" hint="Giá trước giảm CÓ THẬT (đã bán ở mức đó). Trống = không gạch giá." inputMode="decimal" value={goc} onChange={(e) => setGoc(e.target.value)} />
+        <TextAreaField id="shop-sp-video" label="Video trong mô tả" rows={2} value={vid} onChange={(e) => setVid(e.target.value)}
+          hint="Mỗi dòng một link (.mp4 hoặc YouTube). Trang NCC có video thì máy tự điền lần đầu; trống = không hiện." />
         <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 13 }}>
           <input type="checkbox" checked={hien} onChange={(e) => setHien(e.target.checked)} /> Đang bán trên mặt tiền
         </label>
         {loi && <div style={{ color: 'var(--bad)', fontSize: 13 }}>{loi}</div>}
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn primary" disabled={!dirty || dangChay} onClick={() => batDau(async () => {
-            const r = await shopSuaSanPham(p.id, { tieuDe: td || null, giaGoc: goc.trim() === '' ? null : Number(goc), hien });
+            const r = await shopSuaSanPham(p.id, { tieuDe: td || null, giaGoc: goc.trim() === '' ? null : Number(goc), hien, video: vid.split('\n') });
             if (r.ok) onClose(); else setLoi(r.loi ?? 'lỗi');
           })}>{dangChay ? 'Đang lưu…' : 'Lưu'}</button>
           <button className="btn ghost" onClick={onClose}>Đóng</button>

@@ -3,6 +3,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { buocCua, type Buoc } from './buoc';
 import type { Moc } from './track17';
+import { hanhTrinh, type HanhTrinh } from '@mos2/shop/hanh-trinh';
 import type { MatTien } from '@mos2/shop/mat-tien';
 
 type Row = Record<string, unknown>;
@@ -15,12 +16,14 @@ export type DonDong = {
   giaVon: number | null; shipNcc: number | null; phiCong: number | null; lai: number | null;
   ncc: { maNcc: string | null; trangThai: string; daTra: boolean; tuyen: string | null; soNgay: string | null; maVanDon: string | null; hang: string | null;
     guiLuc: string | null; giaoLuc: string | null; vanDon: string | null; loi: string | null } | null;
+  /** Chặng hành trình (Nhận đơn → … → Trao tận nơi) — null với đơn chưa trả tiền / đã huỷ. */
+  ht: HanhTrinh | null;
 };
 export type BienTheDong = { id: number; sanPhamId: number; sanPham: string; anh: string | null; link: string | null; cuaHang: string; maNgoai: string;
   ten: string; sku: string | null; giaBan: number | null; maNcc: string | null; giaVon: number | null; daBan: number };
 export type SanPhamDong = { id: number; cuaHang: string; domain: string; slug: string | null; ten: string; tieuDe: string | null; anh: string | null;
   giaGoc: number | null; giaTu: number | null; hien: boolean; soBienThe: number; daBan: number; danhGia: number; maNcc: string | null;
-  thamKhao: ThamKhao[] };
+  thamKhao: ThamKhao[]; video: string[] };
 export type ThamKhao = { url: string | null; nguon: string; ghi_chu: string; khop: 'chua_xac_nhan' | 'dung_mau' | 'khac'; luc: string };
 export type DanhGiaDong = { id: number; cuaHang: string; sanPham: string; ten: string; email: string | null; sao: number; tieuDe: string | null; noiDung: string;
   daMua: boolean; trangThai: string; taoLuc: string };
@@ -31,12 +34,13 @@ export type CuaHangDong = { id: number; khoa: string; ten: string; domain: strin
 export async function docShop() {
   const [don, bt, ch, sps, dgs] = await Promise.all([
     q(sql`
-      SELECT d.id, c.khoa, c.domain, d.ma_ngoai, d.so_don, d.trang_thai_shop, d.khach, d.dia_chi, d.tong, d.hoan, d.tao_luc::text AS tao_luc, d.sid, d.phi_cong,
+      SELECT d.id, c.khoa, c.domain, d.ma_ngoai, d.so_don, d.trang_thai_shop, d.khach, d.dia_chi, d.tong, d.hoan, d.tao_luc::text AS tao_luc, d.tra_luc::text AS tra_luc, d.sid, d.phi_cong,
              (SELECT COALESCE(SUM(m.sl), 0) FROM shop_don_mon m WHERE m.don_id = d.id) AS so_mon,
              (SELECT string_agg(m.ten || CASE WHEN m.sl > 1 THEN ' ×' || m.sl ELSE '' END, ' + ' ORDER BY m.id) FROM shop_don_mon m WHERE m.don_id = d.id) AS ten_mon,
              (SELECT SUM(b.gia_von * m.sl) FROM shop_don_mon m JOIN shop_bien_the b ON b.id = m.bien_the_id WHERE m.don_id = d.id) AS gia_von,
              n.ma_ncc, n.trang_thai AS ncc_tt, n.da_tra, n.tuyen, n.so_ngay, n.phi_ship, n.ma_van_don, n.hang_van_chuyen, n.gui_luc::text AS gui_luc,
-             n.giao_luc::text AS giao_luc, n.van_don->>'trackingStatus' AS van_don, n.loi
+             n.giao_luc::text AS giao_luc, n.van_don->>'trackingStatus' AS van_don, n.loi,
+             n.created_at::text AS ncc_tao, n.tra_luc::text AS ncc_tra_luc, n.moc, n.tt_vd
         FROM shop_don d JOIN shop_cua_hang c ON c.id = d.cua_hang_id
         LEFT JOIN LATERAL (SELECT * FROM shop_don_ncc x WHERE x.don_id = d.id ORDER BY (x.trang_thai IN ('CANCELLED', 'LOI')), x.id DESC LIMIT 1) n ON true
        WHERE d.tao_luc > now() - interval '120 days'
@@ -54,7 +58,7 @@ export async function docShop() {
              (SELECT COUNT(*) FROM shop_bien_the b JOIN shop_san_pham p ON p.id = b.san_pham_id WHERE p.cua_hang_id = c.id AND b.ma_ncc IS NULL) AS thieu_ma
         FROM shop_cua_hang c ORDER BY c.id`),
     q(sql`
-      SELECT p.id, c.khoa, c.domain, p.slug, p.ten, p.tieu_de, p.anh, p.gia_goc, p.hien, p.ma_ncc, p.tham_khao,
+      SELECT p.id, c.khoa, c.domain, p.slug, p.ten, p.tieu_de, p.anh, p.gia_goc, p.hien, p.ma_ncc, p.tham_khao, p.video,
              (SELECT MIN(b.gia_ban) FROM shop_bien_the b WHERE b.san_pham_id = p.id) AS gia_tu,
              (SELECT COUNT(*) FROM shop_bien_the b WHERE b.san_pham_id = p.id) AS so_bt,
              (SELECT COALESCE(SUM(m.sl), 0) FROM shop_don_mon m JOIN shop_don d ON d.id = m.don_id JOIN shop_bien_the b ON b.id = m.bien_the_id
@@ -72,15 +76,21 @@ export async function docShop() {
     const ncc = r.ncc_tt ? { maNcc: (r.ma_ncc as string) ?? null, trangThai: String(r.ncc_tt), daTra: !!r.da_tra, tuyen: (r.tuyen as string) ?? null,
       soNgay: (r.so_ngay as string) ?? null, maVanDon: (r.ma_van_don as string) ?? null, hang: (r.hang_van_chuyen as string) ?? null,
       guiLuc: (r.gui_luc as string) ?? null, giaoLuc: (r.giao_luc as string) ?? null, vanDon: (r.van_don as string) ?? null, loi: (r.loi as string) ?? null } : null;
+    const buoc = buocCua(String(r.trang_thai_shop), ncc && { trang_thai: ncc.trangThai, da_tra: ncc.daTra, ma_van_don: ncc.maVanDon, gui_luc: ncc.guiLuc, giao_luc: ncc.giaoLuc, so_ngay: ncc.soNgay }, bayGio);
+    const songNcc = ncc && !['CANCELLED', 'LOI', 'TRASH'].includes(ncc.trangThai);
+    const ht = buoc === 'cho_tt' || buoc === 'huy' ? null : hanhTrinh({ nhanLuc: String(r.tra_luc ?? r.tao_luc), nccTaoLuc: songNcc ? (r.ncc_tao as string) : null,
+      nccTt: songNcc ? ncc.trangThai : null, daTra: !!(songNcc && ncc.daTra), traNccLuc: songNcc ? (r.ncc_tra_luc as string) ?? null : null,
+      guiLuc: songNcc ? ncc.guiLuc : null, giaoLuc: songNcc ? ncc.giaoLuc : null, moc: songNcc ? (r.moc as Moc[] | null) : null,
+      ttVd: songNcc ? (r.tt_vd as string) ?? null : null, nuocKhach: dc.nuoc || 'US' });
     const tong = Number(r.tong), hoan = Number(r.hoan), gv = so(r.gia_von), ship = ncc && ncc.trangThai !== 'LOI' ? so(r.phi_ship) : null;
     const phi = so(r.phi_cong) ?? Math.round((tong * 0.029 + 0.3) * 100) / 100;
     return {
       id: Number(r.id), cuaHang: String(r.khoa), domain: String(r.domain), maNgoai: String(r.ma_ngoai), soDon: String(r.so_don), trangThaiShop: String(r.trang_thai_shop),
-      buoc: buocCua(String(r.trang_thai_shop), ncc && { trang_thai: ncc.trangThai, da_tra: ncc.daTra, ma_van_don: ncc.maVanDon, gui_luc: ncc.guiLuc, giao_luc: ncc.giaoLuc, so_ngay: ncc.soNgay }, bayGio),
+      buoc,
       khach: k.ten ?? '', email: k.email ?? '', nuoc: dc.nuoc ?? '', bang: dc.bang ?? '', tong, hoan, taoLuc: String(r.tao_luc), sid: (r.sid as string) ?? null,
       soMon: Number(r.so_mon), tenMon: String(r.ten_mon ?? ''), giaVon: gv, shipNcc: ship, phiCong: phi,
       lai: gv === null ? null : Math.round((tong - hoan - gv - (ship ?? 0) - phi) * 100) / 100,
-      ncc,
+      ncc, ht,
     };
   });
   const bienThe: BienTheDong[] = bt.map((r) => ({ id: Number(r.id), sanPhamId: Number(r.san_pham_id), sanPham: String(r.san_pham), anh: (r.anh as string) ?? null,
@@ -92,7 +102,7 @@ export async function docShop() {
     tenMien: (r.ten_mien as string[]) ?? [], matTien: (r.mat_tien ?? {}) as MatTien }));
   const sanPham: SanPhamDong[] = sps.map((r) => ({ id: Number(r.id), cuaHang: String(r.khoa), domain: String(r.domain), slug: (r.slug as string) ?? null, ten: String(r.ten),
     tieuDe: (r.tieu_de as string) ?? null, anh: (r.anh as string) ?? null, giaGoc: so(r.gia_goc), giaTu: so(r.gia_tu), hien: !!r.hien, soBienThe: Number(r.so_bt),
-    daBan: Number(r.da_ban), danhGia: Number(r.so_dg), maNcc: (r.ma_ncc as string) ?? null, thamKhao: (r.tham_khao as ThamKhao[]) ?? [] }));
+    daBan: Number(r.da_ban), danhGia: Number(r.so_dg), maNcc: (r.ma_ncc as string) ?? null, thamKhao: (r.tham_khao as ThamKhao[]) ?? [], video: (r.video as string[]) ?? [] }));
   const danhGia: DanhGiaDong[] = dgs.map((r) => ({ id: Number(r.id), cuaHang: String(r.khoa), sanPham: String(r.san_pham), ten: String(r.ten), email: (r.email as string) ?? null,
     sao: Number(r.sao), tieuDe: (r.tieu_de as string) ?? null, noiDung: String(r.noi_dung), daMua: !!r.da_mua, trangThai: String(r.trang_thai), taoLuc: String(r.tao_luc) }));
   return { don: dons, bienThe, cuaHang, sanPham, danhGia };

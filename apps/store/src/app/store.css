@@ -16,7 +16,7 @@ input, select, textarea { font: inherit; color: inherit; }
 .khung { max-width: 960px; margin: 0 auto; padding: 0 16px; }
 
 /* Dải trên + đầu trang — khuôn orabra: dính khi cuộn, nền trắng, logo giữa, giỏ phải, menu ngang ở desktop, ☰ ở mobile */
-.dau-dinh { position: sticky; top: 0; z-index: 40; background: #fff; }
+.dau-trang { background: #fff; }
 .thanh-tren { background: var(--den); color: #fff; text-align: center; font-size: 14px; font-weight: 500; line-height: 30px; padding: 0 12px; white-space: nowrap; overflow: hidden; }
 .thanh-tren span { display: inline-block; }
 .dau { background: #fff; border-bottom: 1px solid #e5e5e5; }
@@ -120,6 +120,9 @@ body.co-dinh .chan { padding-bottom: 110px; }
 .mo-ta img { margin: 0 auto 22px; max-width: 100%; height: auto; border-radius: 4px; }
 .mo-ta .ms-lead { font-size: 20px; font-weight: 600; }
 .mo-ta .ms-blk { margin-bottom: 14px; }
+.mo-ta-video { margin: 0 auto 22px; max-width: 640px; }
+.mo-ta-video video, .mo-ta-video iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 4px; background: #000; }
+.mo-ta-video video { aspect-ratio: auto; max-height: 80vh; }
 .chinh-sach a { color: var(--nhan); }
 
 /* Đánh giá */

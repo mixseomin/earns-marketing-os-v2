@@ -115,6 +115,8 @@ else
     # Guard: behavioral-canon single-source (account slug must canon, selector_overrides one write-path).
     # Stops the 3 P0 drift classes from recurring in a brand-new chat. See lib/canon + decision 2026-06-25.
     node scripts/check-canon.mjs || { echo "✗ Behavioral-canon guard failed — abort deploy"; exit 1; }
+    # Guard: tab cấp trang phải khai ở lib/tab-trang.ts (sidebar tự sinh mục con) — anh chốt 01/10/2026.
+    node scripts/check-tab-trang.mjs || { echo "✗ Tab-trang guard failed — abort deploy"; exit 1; }
     # heap-cap: box 4GB swap-tight → next build worker bị OS OOM-kill (SIGKILL). Cap để node GC sớm +
     # fail gracefully thay vì SIGKILL. ~3GB đủ (đã verify build lọt). Bỏ khi nâng RAM (CX33 8GB).
     NODE_OPTIONS="--max-old-space-size=3072" npm run build:web

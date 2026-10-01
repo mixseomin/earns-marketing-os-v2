@@ -1,13 +1,14 @@
 'use client';
 
-// Tab cấp trang của TRANG CHỦ — chọn tab = đổi ?tab= trên URL để server chỉ đọc dữ liệu của tab đang mở
+// Tab cấp trang của TRANG CHỦ — items dựng ở page.tsx bằng tabCua('/') (sổ lib/tab-trang.ts, menu cùng đọc).
+// chọn tab = đổi ?tab= trên URL để server chỉ đọc dữ liệu của tab đang mở
 // (GSC/Gumroad/MailWizz đều là mạng ngoài chậm; đọc cả 8 tab mỗi lượt là tự làm chậm trang chủ).
 // Kéo-thả đổi thứ tự pill → cookie `home-tabs` (1 năm), server đọc cookie mà xếp ngay lúc SSR nên F5 không nhấp nháy
 // (cùng kiểu cookie `slf2` của Live Orders).
 import { useState } from 'react';
 import { Tabs, type TabItem } from '@/components/ui';
 import { useUrlParam } from '@/lib/use-url-param';
-import { urlVoiParam } from '@/lib/url-mo-tab';
+import { urlVoiParam } from '@/lib/url-mo-tab';   // giữ ?p/?days khi ⌘-click; tab/nhãn từ lib/tab-trang.ts
 import { HOME_TAB_MAC_DINH, HOME_TABS_COOKIE, type HomeTab } from '@/lib/home-tabs';
 
 export function HomeTabs({ items: goc, right }: { items: TabItem<HomeTab>[]; right?: React.ReactNode }) {

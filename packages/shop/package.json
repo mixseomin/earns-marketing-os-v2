@@ -9,6 +9,8 @@
     ".": "./src/index.ts",
     "./khach": "./src/khach.ts",
     "./track17": "./src/track17.ts",
+    "./hanh-trinh": "./src/hanh-trinh.ts",
+    "./video": "./src/video.ts",
     "./gia": "./src/gia.ts",
     "./mat-tien": "./src/mat-tien.ts",
     "./thu": "./src/thu.ts",

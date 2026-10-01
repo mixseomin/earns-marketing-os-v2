@@ -1,5 +1,6 @@
 'use server';
 // SHOP — thao tác từ màn /shop. Chỉ admin. Trả {ok, loi?} để màn hiện lỗi tại chỗ, không ném.
+import { dsVideo } from '@mos2/shop/video';
 import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
@@ -97,10 +98,12 @@ export async function shopDuyetDanhGia(id: number, trangThai: 'hien' | 'an' | 'c
 }
 
 /** Nội dung bán của một sản phẩm: tiêu đề H1, giá gạch (giá trước giảm CÓ THẬT), hiện/ẩn trên mặt tiền. */
-export async function shopSuaSanPham(id: number, v: { tieuDe: string | null; giaGoc: number | null; hien: boolean }) {
+export async function shopSuaSanPham(id: number, v: { tieuDe: string | null; giaGoc: number | null; hien: boolean; video: string[] }) {
   await admin();
   if (v.giaGoc !== null && !(v.giaGoc > 0)) return { ok: false, loi: 'giá gạch phải > 0 hoặc để trống' };
-  await db().execute(sql`UPDATE shop_san_pham SET tieu_de = ${v.tieuDe?.trim() || null}, gia_goc = ${v.giaGoc}, hien = ${v.hien}, updated_at = now() WHERE id = ${id}`);
+  // video_luc = lúc sửa → nhịp đồng bộ NCC không gieo đè lên bản anh đã sửa
+  await db().execute(sql`UPDATE shop_san_pham SET tieu_de = ${v.tieuDe?.trim() || null}, gia_goc = ${v.giaGoc}, hien = ${v.hien},
+    video = ${JSON.stringify(dsVideo(v.video))}::jsonb, video_luc = now(), updated_at = now() WHERE id = ${id}`);
   revalidatePath('/shop');
   return { ok: true };
 }

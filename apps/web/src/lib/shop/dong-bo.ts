@@ -7,6 +7,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { cj, linkVanDon, meta, ngayToiDa, woo, wooHet, type WooBt, type WooDon, type WooSp } from './nguon';
 import { co17, dangKy17, tin17 } from './track17';
+import { dsVideo } from '@mos2/shop/video';
 import { doiSoat, ghiSoPhuDon, ghiSuKien, guiThu, linkTheoDoi, matTien, sidTuUtm, thuDaGui, type MatTien } from '@mos2/shop';
 
 export type CuaHang = { id: number; khoa: string; project_id: string; ten: string; domain: string; ncc: string; nen_tang: string; mat_tien: MatTien;
@@ -61,6 +62,23 @@ export async function dongBoSanPham(ch: CuaHang) {
     }
   }
   return { sanPham: sps.length, bienThe: soBt };
+}
+
+/** Video sản phẩm từ NCC (CJ productVideo) — hỏi MỘT lần mỗi sản phẩm (video_luc trống), chỉ ghi khi sổ chưa có video; sửa tay ở /shop
+ *  đặt video_luc nên không bị đè. CJ giới hạn ~1 lượt/giây → đi tuần tự, nghỉ 1,1 giây. */
+export async function dongBoVideoNcc(ch: CuaHang) {
+  if (ch.ncc !== 'cj') return { hoi: 0, co: 0 };
+  const ds = await q<{ id: number; ma_ncc: string }>(sql`SELECT id, ma_ncc FROM shop_san_pham WHERE cua_hang_id = ${ch.id} AND ma_ncc IS NOT NULL AND video_luc IS NULL LIMIT 20`);
+  let co = 0;
+  for (const p of ds) {
+    const r = await cj<{ productVideo?: unknown }>(`product/query?pid=${encodeURIComponent(p.ma_ncc)}`);
+    if (!r.result) continue;   // lỗi mạng / quá lượt: để video_luc trống, nhịp sau hỏi lại
+    const v = dsVideo(r.data?.productVideo);
+    if (v.length) co++;
+    await q(sql`UPDATE shop_san_pham SET video = CASE WHEN video = '[]'::jsonb THEN ${JSON.stringify(v)}::jsonb ELSE video END, video_luc = now() WHERE id = ${p.id}`);
+    await new Promise((ok) => setTimeout(ok, 1100));
+  }
+  return { hoi: ds.length, co };
 }
 
 /* ── ĐƠN ──────────────────────────────────────────────────────────────────── */
@@ -310,6 +328,7 @@ export async function nhip(ch: CuaHang, opt: { sanPham?: boolean } = {}) {
       kq.sang_ncc = (await Promise.all(cho.map((x) => sangNcc(ch, x.id)))).filter((x) => x.ok).length;
     }
     kq.ncc = await theoDoiNcc(ch);
+    kq.video = await dongBoVideoNcc(ch);
     await q(sql`UPDATE shop_cua_hang SET dong_bo_luc = ${batDau}::timestamptz, dong_bo_loi = NULL WHERE id = ${ch.id}`);
   } catch (e) {
     kq.loi = (e as Error).message;

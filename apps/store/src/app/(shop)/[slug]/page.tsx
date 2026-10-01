@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { shopHienTai, sanPhamTheoSlug, danhGiaVaBan } from '@/lib/shop';
 import { TrangMua } from '@/components/mua';
 import { KhoiDanhGia } from '@/components/danh-gia';
+import { nhungVideo } from '@mos2/shop/video';
 
 type P = { params: Promise<{ slug: string }> };
 
@@ -29,9 +30,12 @@ export default async function TrangSanPham({ params }: P) {
       <TrangMua d={{ sp, diem: dg.tb, soDg: dg.so, daBan: dg.daBan, saleHet: m.sale_het && Date.parse(m.sale_het) > Date.now() ? m.sale_het : null,
         dongSale: m.dong_sale ?? null, tonDuoi: m.ton_hien_duoi, camKet: m.cam_ket ?? [], bac: m.bac_giam }} />
     </div>
-    {sp.mo_ta && <section className="khoi"><div className="khung hai">
+    {(sp.mo_ta || sp.video.length > 0) && <section className="khoi"><div className="khung hai">
       <h2 className="nhan-an">Description</h2>
-      <div className="mo-ta" dangerouslySetInnerHTML={{ __html: sp.mo_ta }} />
+      {sp.video.map((v) => { const n = nhungVideo(v); return <div key={v} className="mo-ta-video">{n.loai === 'youtube'
+        ? <iframe src={n.src} title={sp.ten} loading="lazy" allow="encrypted-media; picture-in-picture" allowFullScreen />
+        : <video src={n.src} controls playsInline muted preload="metadata" />}</div>; })}
+      {sp.mo_ta && <div className="mo-ta" dangerouslySetInnerHTML={{ __html: sp.mo_ta }} />}
     </div></section>}
     <section className="khoi" id="reviews"><div className="khung"><KhoiDanhGia spId={sp.id} ds={dg.ds} tb={dg.tb} so={dg.so} /></div></section>
     <section className="khoi xam"><div className="khung hai">

@@ -7,6 +7,7 @@ import { Section } from '@/components/ui';
 import { HomeStats } from '@/components/home-stats';
 import { RevenueCalendar } from '@/components/revenue-calendar';
 import { HomeTabs } from '@/components/home-tabs';
+import { tabCua } from '@/lib/tab-trang';
 import { HOME_TABS as TABS, HOME_TAB_MAC_DINH, HOME_TABS_COOKIE, type HomeTab } from '@/lib/home-tabs';
 import { OrdersBlotter } from '@/components/orders-blotter';
 import { PhuCanChuY, PhuView } from '@/components/phu-view';
@@ -70,18 +71,13 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
         <div>
           <Suspense fallback={null}>
-            <HomeTabs items={xep([
-              { key: 'camp', label: 'Campaign', badge: campChay || undefined, title: 'Mỗi dòng = một campaign: phễu + tiêu chí → phán xét' },
-              { key: 'phu', label: 'Nền tảng phủ', badge: phu?.platforms.length || undefined },
-              { key: 'nguon', label: 'Nguồn traffic', badge: phu?.nguon.filter((x) => x.trangThai === 'hoat_dong').length || undefined },
-              { key: 'hatang', label: 'Lander & adapter', badge: hong ? <span style={{ color: 'var(--danger)' }}>{hong} đỏ</span> : undefined },
-              { key: 'luat', label: 'Luật campaign', title: 'Thư viện luật điều hành campaign (be.adfond): kệ theo loại · nhắm · trọng số · tham số theo tầng' },
-              { key: 'lenh', label: 'Lệnh MT5', title: 'Live Orders — forward-test mọi strategy (strategy-lab)' },
-              { key: 'doanhthu', label: 'Doanh thu', title: 'Lịch tiền mọi nguồn · affiliate · Awin' },
-              { key: 'seo', label: 'SEO & sản phẩm', title: 'GSC · Gumroad · SteamSolo' },
-              { key: 'email', label: 'Email', title: 'MailWizz · deliverability' },
-              { key: 'duan', label: 'Dự án', badge: projects.length },
-            ])} right={laPhu ? (
+            <HomeTabs items={xep(tabCua<HomeTab>('/', {
+              camp: campChay || undefined,
+              phu: phu?.platforms.length || undefined,
+              nguon: phu?.nguon.filter((x) => x.trangThai === 'hoat_dong').length || undefined,
+              hatang: hong ? <span style={{ color: 'var(--danger)' }}>{hong} đỏ</span> : undefined,
+              duan: projects.length,
+            }))} right={laPhu ? (
               <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                 {phuProjects.length > 1 && phuProjects.map((p) => <Link key={p} href={qs({ p })} style={pill(p === pid)}>{p}</Link>)}
                 {phuProjects.length > 1 && <span style={{ color: 'var(--line)' }}>|</span>}

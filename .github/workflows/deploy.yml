@@ -38,6 +38,7 @@ jobs:
       - run: node scripts/check-sql-aliases.mjs
       - run: node scripts/check-canon.mjs
       - run: node scripts/check-gop-y-surface.mjs
+      - run: node scripts/check-tab-trang.mjs --tu-kiem && node scripts/check-tab-trang.mjs
       - run: npm run build:web
       # Mặt tiền shop (apps/store, một bản dựng cho mọi tên miền shop) — dựng cùng lượt, máy chủ chỉ đổi khi phần của nó đổi.
       - run: npm run build --workspace=apps/store

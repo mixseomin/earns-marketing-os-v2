@@ -23,6 +23,9 @@ import { getCurrentUser } from '@/lib/auth';
 import { apDungNcc, apNguon, cuaHangTheoKhoa, docDanhMucNcc, docSpCj, dongBoNccChung, dsCuaHang, ganNguon, ghiSuKien, nhip, sangNcc, soDuCj, tienDonCj, traNcc, type CuaHang } from '@/lib/shop/dong-bo';
 import { docChiTietDon } from '@/lib/shop/doc';
 import { woo } from '@/lib/shop/nguon';
+import { docHaTang, docTaiKhoanFb } from '@/lib/shop/qc-doc';
+import { LOAI_THE, NGUON_NGUOI, NGUON_TS, TRANG_THAI_QC, TRANG_THAI_THE, VAI_TRO_QC } from '@/lib/shop/qc-ha-tang';
+import { cryptoEnabled, decryptValue, encryptValue } from '@/lib/crypto';
 
 async function admin() {
   const me = await getCurrentUser();
@@ -521,3 +524,78 @@ export async function shopSuaQcDoiThu(id: number | null, v: { doiThuId: number; 
   return { ok: true };
 }
 
+
+/* ── Hạ tầng quảng cáo (migration 0210): bộ người · BM · TK QC · thẻ · Trang · pixel của từng shop + kiểm cô lập. Không xoá — 'bo'. ── */
+export async function shopHaTang() {
+  await admin();
+  const [ds, taiKhoan] = await Promise.all([docHaTang(), docTaiKhoanFb()]);
+  return { ds, taiKhoan };
+}
+
+const txt = (x: unknown, n = 300) => (typeof x === 'string' && x.trim() ? x.trim().slice(0, n) : null);
+const so2 = (x: unknown) => { const v = typeof x === 'number' ? x : typeof x === 'string' && x.trim() ? Number(x.replace(/,/g, '')) : NaN; return Number.isFinite(v) ? Math.round(v * 100) / 100 : null; };
+const ngayOk = (x: unknown) => (typeof x === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x) ? x : null);
+const idOk = (x: unknown) => (x == null || x === '' ? null : Number.isInteger(Number(x)) ? Number(x) : null);
+const trongSo = <T extends Record<string, string>>(so: T, x: unknown, mac: keyof T & string) => (typeof x === 'string' && x in so ? x : mac);
+const LOAI_QC = { bm: 'shop_qc_bm', tk: 'shop_qc_tk', the: 'shop_qc_the', nguoi: 'shop_qc_nguoi', trang: 'shop_qc_trang', pixel: 'shop_qc_pixel' } as const;
+export type LoaiQc = keyof typeof LOAI_QC;
+
+/** Thêm (id null) / sửa một mảnh hạ tầng. Trường lọc theo loại — không có đường nào ghi số thẻ đầy đủ (DB cũng CHECK 4 số cuối). */
+export async function shopQcLuu(loai: LoaiQc, id: number | null, cuaHangId: number, v: Record<string, unknown>) {
+  await admin();
+  if (!(loai in LOAI_QC)) return { ok: false, loi: 'loại lạ' };
+  const ten = txt(v.ten, 160) ?? txt(v.nhan, 160);
+  if (!ten) return { ok: false, loi: loai === 'the' ? 'thiếu nhãn thẻ' : 'thiếu tên' };
+  let cot: Record<string, unknown>;
+  if (loai === 'bm') cot = { ext_id: txt(v.extId, 40), ten, nguon: trongSo(NGUON_TS, v.nguon, 'tu_tao'), noi_mua: txt(v.noiMua), ma_don: txt(v.maDon, 80),
+    gia_mua: so2(v.giaMua), ngay_mua: ngayOk(v.ngayMua), bao_hanh_den: ngayOk(v.baoHanhDen), xac_minh: !!v.xacMinh, da_go_nguoi_ban: !!v.daGoNguoiBan,
+    trang_thai: trongSo(TRANG_THAI_QC, v.trangThai, 'song'), ghi_chu: txt(v.ghiChu, 2000) };
+  else if (loai === 'tk') cot = { bm_id: idOk(v.bmId), ext_id: txt(v.extId, 40), ten, tien_te: (txt(v.tienTe, 3) ?? 'USD').toUpperCase(), mui_gio: txt(v.muiGio, 60),
+    han_muc: so2(v.hanMuc), the_id: idOk(v.theId), nguon: trongSo(NGUON_TS, v.nguon, 'tu_tao'), noi_mua: txt(v.noiMua), ma_don: txt(v.maDon, 80), gia_mua: so2(v.giaMua),
+    bao_hanh_den: ngayOk(v.baoHanhDen), trang_thai: trongSo(TRANG_THAI_QC, v.trangThai, 'song'), ghi_chu: txt(v.ghiChu, 2000) };
+  else if (loai === 'the') {
+    const cuoi = String(v.soCuoi ?? '').replace(/\D/g, '');
+    if (cuoi.length !== 4) return { ok: false, loi: 'chỉ ghi đúng 4 số cuối của thẻ — không bao giờ ghi số đầy đủ' };
+    const hh = txt(v.hetHan, 5);
+    if (hh && !/^(0[1-9]|1[0-2])\/\d{2}$/.test(hh)) return { ok: false, loi: 'hạn thẻ dạng MM/YY' };
+    cot = { nhan: ten, so_cuoi: cuoi, nha_phat_hanh: txt(v.nhaPhatHanh, 80), loai: trongSo(LOAI_THE, v.loai, 'ao'), chu_the: txt(v.chuThe, 120), het_han: hh,
+      trang_thai: trongSo(TRANG_THAI_THE, v.trangThai, 'song'), ghi_chu: txt(v.ghiChu, 2000) };
+  } else if (loai === 'nguoi') cot = { account_id: idOk(v.accountId), ten, bm_id: idOk(v.bmId), vai_tro: trongSo(VAI_TRO_QC, v.vaiTro, 'cam_chinh'),
+    nguon: trongSo(NGUON_NGUOI, v.nguon, 'cua_minh'), trang_thai: trongSo(TRANG_THAI_QC, v.trangThai, 'song'), ghi_chu: txt(v.ghiChu, 2000) };
+  else if (loai === 'trang') cot = { account_id: idOk(v.accountId), bm_id: idOk(v.bmId), ext_id: txt(v.extId, 40), ten, nguon: trongSo(NGUON_TS, v.nguon, 'tu_tao'),
+    trang_thai: trongSo(TRANG_THAI_QC, v.trangThai, 'song'), ghi_chu: txt(v.ghiChu, 2000) };
+  else cot = { bm_id: idOk(v.bmId), ext_id: txt(v.extId, 40), ten, ten_mien: txt(v.tenMien, 120), xac_minh_mien: !!v.xacMinhMien, capi: !!v.capi,
+    trang_thai: trongSo(TRANG_THAI_QC, v.trangThai, 'song'), ghi_chu: txt(v.ghiChu, 2000) };
+  const bang = sql.raw(LOAI_QC[loai]);
+  const ks = Object.keys(cot);
+  try {
+    const r = (await db().execute(id
+      ? sql`UPDATE ${bang} SET ${sql.join(ks.map((k) => sql`${sql.raw(k)} = ${cot[k]}`), sql`, `)}, sua_luc = now() WHERE id = ${id} AND cua_hang_id = ${cuaHangId} RETURNING id`
+      : sql`INSERT INTO ${bang} (cua_hang_id, ${sql.raw(ks.join(', '))}) VALUES (${cuaHangId}, ${sql.join(ks.map((k) => sql`${cot[k]}`), sql`, `)}) RETURNING id`)) as unknown as { id: number }[];
+    if (!r[0]) return { ok: false, loi: 'không có dòng này' };
+    revalidatePath('/shop');
+    return { ok: true, id: r[0].id };
+  } catch (e) {
+    const m = e instanceof Error ? e.message : String(e);
+    return { ok: false, loi: /unique|duplicate/i.test(m) ? 'mã này đã có trong shop' : m.slice(0, 200) };
+  }
+}
+
+/** Token người dùng hệ thống của một BM — mã hoá pgcrypto (MOS2_SECRET_KEY), không bao giờ trả về trong danh sách. Rỗng = gỡ. */
+export async function shopQcToken(bmId: number, token: string, quyen?: string) {
+  await admin();
+  if (!cryptoEnabled()) return { ok: false, loi: 'máy chủ chưa có MOS2_SECRET_KEY — không lưu được bí mật' };
+  const t = token.trim();
+  if (t && !/^[A-Za-z0-9_\-|.]{30,}$/.test(t)) return { ok: false, loi: 'token không đúng dạng (chuỗi dài, không dấu cách)' };
+  const enc = t ? await encryptValue(t) : null;
+  await db().execute(sql`UPDATE shop_qc_bm SET token_enc = ${enc}, token_quyen = ${txt(quyen, 200)}, token_luc = ${enc ? sql`now()` : null}, sua_luc = now() WHERE id = ${bmId}`);
+  revalidatePath('/shop');
+  return { ok: true };
+}
+
+/** Hiện token (admin) — để chép sang máy báo cáo. */
+export async function shopQcHienToken(bmId: number) {
+  await admin();
+  const r = (await db().execute(sql`SELECT token_enc FROM shop_qc_bm WHERE id = ${bmId}`)) as unknown as { token_enc: string | null }[];
+  return { ok: true, token: await decryptValue(r[0]?.token_enc) };
+}

@@ -31,6 +31,7 @@ export const TAB_TRANG = {
     { key: 'doi_thu', label: 'Đối thủ', title: 'Ai đang bán cùng mẫu: trang đích, giá, quảng cáo đang chạy — theo từng sản phẩm của mình' },
     { key: 'danh_gia', label: 'Đánh giá', title: 'Review khách gửi — duyệt' },
     { key: 'cua_hang', label: 'Cửa hàng', title: 'Cấu hình cửa hàng + mặt tiền' },
+    { key: 'ha_tang', label: 'Hạ tầng QC', title: 'Bộ chạy quảng cáo của shop: người · BM · TK QC · thẻ · Trang · pixel — kiểm cô lập với dự án khác + checklist chuẩn bị chạy' },
   ] },
 } as const satisfies Record<string, Trang>;
 

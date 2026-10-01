@@ -24,10 +24,11 @@ import { BUOC, LINK_DS_CJ, NHAN_BUOC, gio, isoCua, linkVanDon, soNgayTu, tien, t
 import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, NccSpDong, SanPhamDong } from '@/lib/shop/doc';
 import type { DoiThuDong } from '@/lib/shop/doi-thu-doc';
 import { BangDoiThu } from './shop-doi-thu';
+import { BangHaTang } from './shop-ha-tang';
 import { shopMoHoSo, shopSoDuNcc, shopTienNcc } from '@/lib/actions/shop';
 import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaSanPham, shopTraNcc } from '@/lib/actions/shop';
 
-type Tab = 'don' | 'tu_van' | 'truc_tiep' | 'khach_ph' | 'ncc' | 'san_pham' | 'doi_thu' | 'danh_gia' | 'cua_hang';
+type Tab = 'don' | 'tu_van' | 'truc_tiep' | 'khach_ph' | 'ncc' | 'san_pham' | 'doi_thu' | 'danh_gia' | 'cua_hang' | 'ha_tang';
 /** Chặng vận chuyển: lọc tới đây thì bảng đơn đổi sang cột vận đơn (tab Vận chuyển cũ gộp vào Đơn hàng 02/10/2026). */
 const BUOC_VC = new Set<string>(['ncc_xu_ly', 'dang_giao', 'tre', 'da_giao']);
 // Màu bước = tín hiệu: amber chờ người, đỏ lỗi/trễ, xanh đã giao; bước đang chạy bình thường để trung tính.
@@ -189,6 +190,7 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, d
         {tab === 'san_pham' && <BangSanPham bienThe={bt} sanPham={sps} danhMuc={danhMuc} soNcc={ncc} cuaHang={cuaHang} />}
         {tab === 'doi_thu' && <BangDoiThu ds={doiThu} sanPham={sanPham} bienThe={bienThe} ch={ch} />}
         {tab === 'danh_gia' && <BangDanhGia ds={dgs} />}
+        {tab === 'ha_tang' && <BangHaTang ch={ch} />}
         {tab === 'cua_hang' && <div style={{ display: 'grid', gap: 12 }}>{cuaHang.filter((c) => ch === 'all' || c.khoa === ch).map((c) => (
           <TheCuaHang key={c.id} c={c} moCaiDat={(muc) => { if (muc) { const u = new URLSearchParams(window.location.search); u.set('cs', muc); window.history.replaceState(window.history.state, '', `${window.location.pathname}?${u.toString()}`); } modal.open('cai-dat', c.id); }} />))}</div>}
       </div>

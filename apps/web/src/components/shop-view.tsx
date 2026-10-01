@@ -21,7 +21,7 @@ import type { HoSoDong, NccDong } from '@/lib/shop/ho-so-doc';
 import { CHANG, type HanhTrinh, type KhoaChang } from '@mos2/shop/hanh-trinh';
 import { BUOC, LINK_DS_CJ, NHAN_BUOC, gio, isoCua, linkVanDon, soNgayTu, tien, type Buoc } from '@/lib/shop/buoc';
 import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, SanPhamDong, ThamKhao } from '@/lib/shop/doc';
-import { shopMoHoSo } from '@/lib/actions/shop';
+import { shopMoHoSo, shopSoDuNcc } from '@/lib/actions/shop';
 import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaBienThe, shopSuaSanPham, shopSuaThamKhao, shopTraNcc } from '@/lib/actions/shop';
 
 type Tab = 'don' | 'tu_van' | 'truc_tiep' | 'van_chuyen' | 'khach_ph' | 'ncc' | 'san_pham' | 'danh_gia' | 'cua_hang';
@@ -249,7 +249,11 @@ function DrawerDon({ id, hoSo, onClose }: { id: number; hoSo: HoSoDong[]; onClos
     setCt(await shopChiTietDon(id));
   });
   const d = ct?.don;
-  const traDuKien = d ? (d.giaVon ?? 0) + (d.shipNcc ?? 0) : 0;
+  // Số sẽ trừ ví: tiền hàng CJ báo cho đúng đơn này + ship; chưa có (đơn cũ) mới rơi về ước theo giá vốn sổ
+  const theoCj = d?.ncc?.tienHang != null;
+  const traDuKien = d ? (theoCj ? d.ncc!.tienHang! : d.giaVon ?? 0) + (d.shipNcc ?? 0) : 0;
+  const [soDu, setSoDu] = useState<number | null | undefined>(undefined);
+  const NHAN_TT: Record<string, string> = { processing: 'khách đã trả', completed: 'đã gửi hàng', pending: 'chưa trả tiền', 'on-hold': 'tạm giữ', cancelled: 'đã huỷ', refunded: 'đã hoàn', failed: 'trả lỗi' };
   const dong = (nhan: string, giaTri: ReactNode) => (<><span style={phu}>{nhan}</span><span>{giaTri}</span></>);
   return (
     <Drawer onClose={onClose} width={640}>
@@ -258,7 +262,7 @@ function DrawerDon({ id, hoSo, onClose }: { id: number; hoSo: HoSoDong[]; onClos
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <h2 style={{ margin: 0, fontSize: 18 }}>Đơn #{d.soDon}</h2>
             <BuocPill b={d.buoc} />
-            <span style={{ ...phu, fontSize: 12.5 }}>{gio(d.taoLuc)} · Woo {d.trangThaiShop} · {tien(d.tong)}</span>
+            <span style={{ ...phu, fontSize: 12.5 }}>{gio(d.taoLuc)} · {d.nenTang === 'woo' ? `Woo ${d.trangThaiShop}` : NHAN_TT[d.trangThaiShop] ?? d.trangThaiShop} · {tien(d.tong)}</span>
           </div>
           {/* Hành động theo bước — chỉ nút hợp lệ với bước hiện tại; link ngoài là chip trung tính */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -266,15 +270,18 @@ function DrawerDon({ id, hoSo, onClose }: { id: number; hoSo: HoSoDong[]; onClos
               <button className="btn primary" disabled={dangChay} onClick={() => lam(() => shopSangNcc(id))}>{d.buoc === 'loi_ncc' ? 'Đặt lại sang CJ' : 'Sang CJ'}</button>
             )}
             {d.buoc === 'cho_tra' && (xacNhanTra ? (
-              <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center', fontSize: 13 }}>
-                Trừ ví CJ khoảng {tien(traDuKien)}?
-                <button className="btn danger" disabled={dangChay} onClick={() => lam(() => shopTraNcc(id))}>Trả</button>
+              <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center', fontSize: 13, flexWrap: 'wrap' }}>
+                Trừ ví CJ {theoCj ? '' : 'khoảng '}{tien(traDuKien)}{theoCj ? ' (hàng + ship theo CJ)' : ' (ước theo giá vốn sổ)'}?
+                <span style={{ color: soDu != null && soDu < traDuKien ? 'var(--bad)' : 'var(--fg-3)' }}>Ví CJ: {soDu === undefined ? '…' : soDu === null ? 'không đọc được' : tien(soDu)}</span>
+                {soDu != null && soDu < traDuKien
+                  ? <><span style={{ color: 'var(--bad)' }}>không đủ — nạp ví hoặc trả bằng thẻ trên CJ</span><LinkChip href={LINK_DS_CJ} tone="neutral" size="xs">Mở đơn trên CJ ↗</LinkChip></>
+                  : <button className="btn danger" disabled={dangChay || soDu === undefined} onClick={() => lam(() => shopTraNcc(id))}>Trả</button>}
                 <button className="btn ghost" onClick={() => setXacNhanTra(false)}>Thôi</button>
               </span>
-            ) : <button className="btn primary" disabled={dangChay} onClick={() => setXacNhanTra(true)}>Trả CJ {tien(traDuKien)}</button>)}
+            ) : <button className="btn primary" disabled={dangChay} onClick={() => { setXacNhanTra(true); setSoDu(undefined); shopSoDuNcc().then(setSoDu).catch(() => setSoDu(null)); }}>Trả CJ {tien(traDuKien)}</button>)}
             {dangChay && <span style={{ ...phu, fontSize: 12.5 }}>Đang chạy…</span>}
             <span style={{ flex: 1 }} />
-            <LinkChip href={linkWoo(d)} tone="neutral">Woo ↗</LinkChip>
+            {d.nenTang === 'woo' && <LinkChip href={linkWoo(d)} tone="neutral">Woo ↗</LinkChip>}
             {d.ncc?.maNcc && <LinkChip href={LINK_DS_CJ} tone="neutral">CJ ↗</LinkChip>}
             {d.ncc?.maVanDon && <LinkChip href={linkVanDon(d.ncc.maVanDon)} tone="neutral">Vận đơn ↗</LinkChip>}
           </div>

@@ -11,11 +11,12 @@ const q = async <T = Row>(s: ReturnType<typeof sql>) => { const d = getDb(); if 
 const so = (v: unknown) => (v === null || v === undefined ? null : Number(v));
 
 export type DonDong = {
-  id: number; cuaHang: string; domain: string; maNgoai: string; soDon: string; trangThaiShop: string; buoc: Buoc;
+  id: number; cuaHang: string; nenTang: string; domain: string; maNgoai: string; soDon: string; trangThaiShop: string; buoc: Buoc;
   khach: string; email: string; nuoc: string; bang: string; tong: number; hoan: number; taoLuc: string; sid: string | null; soMon: number; tenMon: string;
   giaVon: number | null; shipNcc: number | null; phiCong: number | null; lai: number | null;
   ncc: { maNcc: string | null; trangThai: string; daTra: boolean; tuyen: string | null; soNgay: string | null; maVanDon: string | null; hang: string | null;
-    guiLuc: string | null; giaoLuc: string | null; vanDon: string | null; loi: string | null } | null;
+    guiLuc: string | null; giaoLuc: string | null; vanDon: string | null; loi: string | null;
+    /** tiền hàng CJ báo cho đơn này (createOrderV2/getOrderDetail) — số thật sẽ trừ ví, không phải ước theo giá vốn sổ */ tienHang: number | null } | null;
   /** Chặng hành trình (Nhận đơn → … → Trao tận nơi) — null với đơn chưa trả tiền / đã huỷ. */
   ht: HanhTrinh | null;
 };
@@ -36,11 +37,11 @@ export type CuaHangDong = { id: number; khoa: string; ten: string; domain: strin
 export async function docShop() {
   const [don, bt, ch, sps, dgs] = await Promise.all([
     q(sql`
-      SELECT d.id, c.khoa, c.domain, d.ma_ngoai, d.so_don, d.trang_thai_shop, d.khach, d.dia_chi, d.tong, d.hoan, d.tao_luc::text AS tao_luc, d.tra_luc::text AS tra_luc, d.sid, d.phi_cong,
+      SELECT d.id, c.khoa, c.nen_tang, c.domain, d.ma_ngoai, d.so_don, d.trang_thai_shop, d.khach, d.dia_chi, d.tong, d.hoan, d.tao_luc::text AS tao_luc, d.tra_luc::text AS tra_luc, d.sid, d.phi_cong,
              (SELECT COALESCE(SUM(m.sl), 0) FROM shop_don_mon m WHERE m.don_id = d.id) AS so_mon,
              (SELECT string_agg(m.ten || CASE WHEN m.sl > 1 THEN ' ×' || m.sl ELSE '' END, ' + ' ORDER BY m.id) FROM shop_don_mon m WHERE m.don_id = d.id) AS ten_mon,
              (SELECT SUM(b.gia_von * m.sl) FROM shop_don_mon m JOIN shop_bien_the b ON b.id = m.bien_the_id WHERE m.don_id = d.id) AS gia_von,
-             n.ma_ncc, n.trang_thai AS ncc_tt, n.da_tra, n.tuyen, n.so_ngay, n.phi_ship, n.ma_van_don, n.hang_van_chuyen, n.gui_luc::text AS gui_luc,
+             n.ma_ncc, n.trang_thai AS ncc_tt, n.da_tra, n.tuyen, n.so_ngay, n.phi_ship, n.tien_hang, n.ma_van_don, n.hang_van_chuyen, n.gui_luc::text AS gui_luc,
              n.giao_luc::text AS giao_luc, n.van_don->>'trackingStatus' AS van_don, n.loi,
              n.created_at::text AS ncc_tao, n.tra_luc::text AS ncc_tra_luc, n.moc, n.tt_vd
         FROM shop_don d JOIN shop_cua_hang c ON c.id = d.cua_hang_id
@@ -77,7 +78,8 @@ export async function docShop() {
     const k = (r.khach ?? {}) as Record<string, string>, dc = (r.dia_chi ?? {}) as Record<string, string>;
     const ncc = r.ncc_tt ? { maNcc: (r.ma_ncc as string) ?? null, trangThai: String(r.ncc_tt), daTra: !!r.da_tra, tuyen: (r.tuyen as string) ?? null,
       soNgay: (r.so_ngay as string) ?? null, maVanDon: (r.ma_van_don as string) ?? null, hang: (r.hang_van_chuyen as string) ?? null,
-      guiLuc: (r.gui_luc as string) ?? null, giaoLuc: (r.giao_luc as string) ?? null, vanDon: (r.van_don as string) ?? null, loi: (r.loi as string) ?? null } : null;
+      guiLuc: (r.gui_luc as string) ?? null, giaoLuc: (r.giao_luc as string) ?? null, vanDon: (r.van_don as string) ?? null, loi: (r.loi as string) ?? null,
+      tienHang: so(r.tien_hang) } : null;
     const buoc = buocCua(String(r.trang_thai_shop), ncc && { trang_thai: ncc.trangThai, da_tra: ncc.daTra, ma_van_don: ncc.maVanDon, gui_luc: ncc.guiLuc, giao_luc: ncc.giaoLuc, so_ngay: ncc.soNgay }, bayGio);
     const songNcc = ncc && !['CANCELLED', 'LOI', 'TRASH'].includes(ncc.trangThai);
     const ht = buoc === 'cho_tt' || buoc === 'huy' ? null : hanhTrinh({ nhanLuc: String(r.tra_luc ?? r.tao_luc), nccTaoLuc: songNcc ? (r.ncc_tao as string) : null,
@@ -87,7 +89,7 @@ export async function docShop() {
     const tong = Number(r.tong), hoan = Number(r.hoan), gv = so(r.gia_von), ship = ncc && ncc.trangThai !== 'LOI' ? so(r.phi_ship) : null;
     const phi = so(r.phi_cong) ?? Math.round((tong * 0.029 + 0.3) * 100) / 100;
     return {
-      id: Number(r.id), cuaHang: String(r.khoa), domain: String(r.domain), maNgoai: String(r.ma_ngoai), soDon: String(r.so_don), trangThaiShop: String(r.trang_thai_shop),
+      id: Number(r.id), cuaHang: String(r.khoa), nenTang: String(r.nen_tang), domain: String(r.domain), maNgoai: String(r.ma_ngoai), soDon: String(r.so_don), trangThaiShop: String(r.trang_thai_shop),
       buoc,
       khach: k.ten ?? '', email: k.email ?? '', nuoc: dc.nuoc ?? '', bang: dc.bang ?? '', tong, hoan, taoLuc: String(r.tao_luc), sid: (r.sid as string) ?? null,
       soMon: Number(r.so_mon), tenMon: String(r.ten_mon ?? ''), giaVon: gv, shipNcc: ship, phiCong: phi,

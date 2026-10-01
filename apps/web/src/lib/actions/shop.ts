@@ -23,8 +23,9 @@ import { getCurrentUser } from '@/lib/auth';
 import { apDungNcc, apNguon, cuaHangTheoKhoa, docDanhMucNcc, docSpCj, dongBoNccChung, dsCuaHang, ganNguon, ghiSuKien, nhip, sangNcc, soDuCj, tienDonCj, traNcc, type CuaHang } from '@/lib/shop/dong-bo';
 import { docChiTietDon } from '@/lib/shop/doc';
 import { woo } from '@/lib/shop/nguon';
-import { docHaTang, docTaiKhoanFb } from '@/lib/shop/qc-doc';
-import { LOAI_THE, NGUON_NGUOI, NGUON_TS, TRANG_THAI_QC, TRANG_THAI_THE, VAI_TRO_QC } from '@/lib/shop/qc-ha-tang';
+import { docHaTang, docProfileKho, docProxyKho, docTaiKhoanFb } from '@/lib/shop/qc-doc';
+import { createProxy, updateAccountEnvironment, type ProxyType } from '@/lib/actions/environments';
+import { LOAI_PROXY, LOAI_THE, NGUON_NGUOI, NGUON_TS, TRANG_THAI_QC, TRANG_THAI_THE, VAI_TRO_QC } from '@/lib/shop/qc-ha-tang';
 import { cryptoEnabled, decryptValue, encryptValue } from '@/lib/crypto';
 
 async function admin() {
@@ -528,8 +529,8 @@ export async function shopSuaQcDoiThu(id: number | null, v: { doiThuId: number; 
 /* ── Hạ tầng quảng cáo (migration 0210): bộ người · BM · TK QC · thẻ · Trang · pixel của từng shop + kiểm cô lập. Không xoá — 'bo'. ── */
 export async function shopHaTang() {
   await admin();
-  const [ds, taiKhoan] = await Promise.all([docHaTang(), docTaiKhoanFb()]);
-  return { ds, taiKhoan };
+  const [ds, taiKhoan, proxyKho, profileKho] = await Promise.all([docHaTang(), docTaiKhoanFb(), docProxyKho(), docProfileKho()]);
+  return { ds, taiKhoan, proxyKho, profileKho };
 }
 
 const txt = (x: unknown, n = 300) => (typeof x === 'string' && x.trim() ? x.trim().slice(0, n) : null);
@@ -537,7 +538,7 @@ const so2 = (x: unknown) => { const v = typeof x === 'number' ? x : typeof x ===
 const ngayOk = (x: unknown) => (typeof x === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x) ? x : null);
 const idOk = (x: unknown) => (x == null || x === '' ? null : Number.isInteger(Number(x)) ? Number(x) : null);
 const trongSo = <T extends Record<string, string>>(so: T, x: unknown, mac: keyof T & string) => (typeof x === 'string' && x in so ? x : mac);
-const LOAI_QC = { bm: 'shop_qc_bm', tk: 'shop_qc_tk', the: 'shop_qc_the', nguoi: 'shop_qc_nguoi', trang: 'shop_qc_trang', pixel: 'shop_qc_pixel' } as const;
+const LOAI_QC = { bm: 'shop_qc_bm', tk: 'shop_qc_tk', the: 'shop_qc_the', nguoi: 'shop_qc_nguoi', trang: 'shop_qc_trang', pixel: 'shop_qc_pixel', proxy: 'shop_qc_proxy' } as const;
 export type LoaiQc = keyof typeof LOAI_QC;
 
 /** Thêm (id null) / sửa một mảnh hạ tầng. Trường lọc theo loại — không có đường nào ghi số thẻ đầy đủ (DB cũng CHECK 4 số cuối). */
@@ -545,7 +546,7 @@ export async function shopQcLuu(loai: LoaiQc, id: number | null, cuaHangId: numb
   await admin();
   if (!(loai in LOAI_QC)) return { ok: false, loi: 'loại lạ' };
   const ten = txt(v.ten, 160) ?? txt(v.nhan, 160);
-  if (!ten) return { ok: false, loi: loai === 'the' ? 'thiếu nhãn thẻ' : 'thiếu tên' };
+  if (!ten && loai !== 'proxy') return { ok: false, loi: loai === 'the' ? 'thiếu nhãn thẻ' : 'thiếu tên' };
   let cot: Record<string, unknown>;
   if (loai === 'bm') cot = { ext_id: txt(v.extId, 40), ten, nguon: trongSo(NGUON_TS, v.nguon, 'tu_tao'), noi_mua: txt(v.noiMua), ma_don: txt(v.maDon, 80),
     gia_mua: so2(v.giaMua), ngay_mua: ngayOk(v.ngayMua), bao_hanh_den: ngayOk(v.baoHanhDen), xac_minh: !!v.xacMinh, da_go_nguoi_ban: !!v.daGoNguoiBan,
@@ -559,7 +560,13 @@ export async function shopQcLuu(loai: LoaiQc, id: number | null, cuaHangId: numb
     const hh = txt(v.hetHan, 5);
     if (hh && !/^(0[1-9]|1[0-2])\/\d{2}$/.test(hh)) return { ok: false, loi: 'hạn thẻ dạng MM/YY' };
     cot = { nhan: ten, so_cuoi: cuoi, nha_phat_hanh: txt(v.nhaPhatHanh, 80), loai: trongSo(LOAI_THE, v.loai, 'ao'), chu_the: txt(v.chuThe, 120), het_han: hh,
+      dich_vu: txt(v.dichVu, 120), phi_thang: so2(v.phiThang), han_muc: so2(v.hanMuc), ngay_cap: ngayOk(v.ngayCap),
       trang_thai: trongSo(TRANG_THAI_THE, v.trangThai, 'song'), ghi_chu: txt(v.ghiChu, 2000) };
+  } else if (loai === 'proxy') {
+    const pid = idOk(v.proxyId);
+    if (!pid) return { ok: false, loi: 'chọn proxy trong kho (hoặc tạo mới)' };
+    cot = { proxy_id: pid, nha_cung_cap: txt(v.nhaCungCap, 120), gia_thang: so2(v.giaThang), gia_han_den: ngayOk(v.giaHanDen),
+      trang_thai: trongSo(TRANG_THAI_QC, v.trangThai, 'song'), ghi_chu: txt(v.ghiChu, 2000) };
   } else if (loai === 'nguoi') cot = { account_id: idOk(v.accountId), ten, bm_id: idOk(v.bmId), vai_tro: trongSo(VAI_TRO_QC, v.vaiTro, 'cam_chinh'),
     nguon: trongSo(NGUON_NGUOI, v.nguon, 'cua_minh'), trang_thai: trongSo(TRANG_THAI_QC, v.trangThai, 'song'), ghi_chu: txt(v.ghiChu, 2000) };
   else if (loai === 'trang') cot = { account_id: idOk(v.accountId), bm_id: idOk(v.bmId), ext_id: txt(v.extId, 40), ten, nguon: trongSo(NGUON_TS, v.nguon, 'tu_tao'),
@@ -598,4 +605,21 @@ export async function shopQcHienToken(bmId: number) {
   await admin();
   const r = (await db().execute(sql`SELECT token_enc FROM shop_qc_bm WHERE id = ${bmId}`)) as unknown as { token_enc: string | null }[];
   return { ok: true, token: await decryptValue(r[0]?.token_enc) };
+}
+
+/** Tạo proxy MỚI vào kho (màn Môi trường cùng thấy) rồi ghi nó vào bộ của shop — một bước từ tab Hạ tầng QC. */
+export async function shopQcProxyMoi(cuaHangId: number, p: { label: string; loai: string; endpoint: string; noi?: string }, v: Record<string, unknown>) {
+  await admin();
+  const loai = (p.loai in LOAI_PROXY ? p.loai : 'residential') as ProxyType;
+  const r = await createProxy({ label: p.label, type: loai, endpoint: p.endpoint, location: txt(p.noi, 60) });
+  if (!r.ok || !r.id) return { ok: false, loi: r.error ?? 'không tạo được proxy' };
+  return shopQcLuu('proxy', null, cuaHangId, { ...v, proxyId: r.id });
+}
+
+/** Gắn proxy + browser profile cho người (ghi thẳng vào tài khoản trong kho — một nguồn, màn Môi trường cùng thấy). */
+export async function shopQcGanThietBi(accountId: number, proxyId: number | null, profileId: number | null) {
+  await admin();
+  await updateAccountEnvironment(accountId, { proxyId, browserProfileId: profileId });
+  revalidatePath('/shop');
+  return { ok: true };
 }

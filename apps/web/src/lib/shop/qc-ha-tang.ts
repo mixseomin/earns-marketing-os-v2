@@ -14,7 +14,12 @@ export const TRANG_THAI_THE = { song: 'Đang dùng', khoa: 'Bị khoá', het_han
 type Chung = { id: number; cuaHangId: number; ghiChu: string | null; trangThai: string };
 export type QcBm = Chung & { extId: string | null; ten: string; nguon: string; noiMua: string | null; maDon: string | null; giaMua: number | null;
   ngayMua: string | null; baoHanhDen: string | null; xacMinh: boolean; daGoNguoiBan: boolean; coToken: boolean; tokenQuyen: string | null; tokenLuc: string | null };
-export type QcThe = Chung & { nhan: string; soCuoi: string; nhaPhatHanh: string | null; loai: string; chuThe: string | null; hetHan: string | null };
+export type QcThe = Chung & { nhan: string; soCuoi: string; nhaPhatHanh: string | null; loai: string; chuThe: string | null; hetHan: string | null;
+  dichVu: string | null; phiThang: number | null; hanMuc: number | null; ngayCap: string | null };
+/** Proxy của bộ: hàng kho `proxies` + phần mua bán của shop (0211). Endpoint (có mật khẩu) không đi xuống màn — chỉ host. */
+export type QcProxy = Chung & { proxyId: number; label: string; loai: string; noi: string | null; host: string | null; suckhoe: string | null;
+  nhaCungCap: string | null; giaThang: number | null; giaHanDen: string | null };
+export const LOAI_PROXY = { residential: 'Residential', isp: 'ISP (tĩnh)', mobile: 'Mobile 4G/5G', datacenter: 'Datacenter' } as const;
 export type QcTk = Chung & { bmId: number | null; extId: string | null; ten: string; tienTe: string; muiGio: string | null; hanMuc: number | null;
   theId: number | null; nguon: string; noiMua: string | null; maDon: string | null; giaMua: number | null; baoHanhDen: string | null };
 /** Người: tài khoản cá nhân trong kho (platform_accounts) — thiết bị (proxy + browser profile) đọc từ kho, không nhập lại. */
@@ -25,7 +30,7 @@ export type QcTrang = Chung & { accountId: number | null; bmId: number | null; e
 export type QcPixel = Chung & { bmId: number | null; extId: string | null; ten: string; tenMien: string | null; xacMinhMien: boolean; capi: boolean };
 
 export type HaTang = { cuaHangId: number; khoa: string; domain: string; pixelSite: string | null;
-  bm: QcBm[]; the: QcThe[]; tk: QcTk[]; nguoi: QcNguoi[]; trang: QcTrang[]; pixel: QcPixel[] };
+  bm: QcBm[]; the: QcThe[]; tk: QcTk[]; nguoi: QcNguoi[]; trang: QcTrang[]; pixel: QcPixel[]; proxy: QcProxy[] };
 
 /** Đường nối RA NGOÀI shop, do máy chủ đếm trên toàn kho (qc-doc.ts) — mỗi khoá → các nơi khác đang dùng cùng thứ đó. */
 export type DungChung = {
@@ -34,6 +39,7 @@ export type DungChung = {
   /** browser_profile_id → tài khoản kho khác trong cùng profile */ profile: Record<number, string[]>;
   /** "nhaPhatHanh|soCuoi" thẻ → shop khác */ the: Record<string, string[]>;
   /** mã BM / TK / Trang / pixel → shop khác */ ma: Record<string, string[]>;
+  /** proxy_id → shop khác có proxy này trong bộ */ proxyBo: Record<number, string[]>;
 };
 
 export type Muc = 'do' | 'vang';
@@ -98,6 +104,27 @@ export function kiemHaTang(h: HaTang, ngoai: DungChung, homNay: string): PhatHie
   for (const p of pixel) {
     if (!p.xacMinhMien) bao('vang', `px-mien-${p.id}`, `Pixel "${p.ten}" chưa xác minh tên miền ${p.tenMien ?? h.domain}`);
     if (!p.capi) bao('vang', `px-capi-${p.id}`, `Pixel "${p.ten}" chưa gửi sự kiện từ máy chủ (CAPI)`);
+  }
+  /* PROXY: thuộc 2 bộ = chung dấu vết (đỏ); người dùng proxy ngoài bộ = không theo dõi được hạn/giá; sắp hết hạn gia hạn */
+  const proxy = dang(h.proxy);
+  for (const x of proxy) {
+    if (ngoai.proxyBo[x.proxyId]?.length) bao('do', `proxy-bo-${x.id}`, `Proxy "${x.label}" cũng nằm trong bộ của shop ${ngoai.proxyBo[x.proxyId]!.join(', ')}`);
+    const c = ngayCon(x.giaHanDen, homNay);
+    if (c != null && c < 0) bao('do', `proxy-het-${x.id}`, `Proxy "${x.label}" đã hết hạn từ ${x.giaHanDen} — profile dùng nó đang chạy IP nào?`);
+    else if (c != null && c <= 3) bao('vang', `proxy-han-${x.id}`, `Proxy "${x.label}" còn ${c} ngày (gia hạn trước ${x.giaHanDen})`);
+    if (!nguoi.some((n) => n.acc?.proxyId === x.proxyId)) bao('vang', `proxy-le-${x.id}`, `Proxy "${x.label}" chưa gắn cho người nào`);
+  }
+  for (const n of nguoi) {
+    if (n.acc?.proxyId != null && !proxy.some((x) => x.proxyId === n.acc!.proxyId))
+      bao('vang', `nguoi-proxy-ngoai-${n.id}`, `Proxy của "${n.ten}" (${n.acc.proxy}) chưa ghi vào bộ — không theo dõi được nơi mua / hạn`);
+  }
+  for (const t of the) {
+    if (!t.hetHan) continue;
+    const [mm, yy] = t.hetHan.split('/').map(Number);
+    const cuoiThang = new Date(Date.UTC(2000 + yy!, mm!, 0)).toISOString().slice(0, 10);
+    const c = ngayCon(cuoiThang, homNay)!;
+    if (c < 0) bao('do', `the-het-${t.id}`, `Thẻ "${t.nhan}" (…${t.soCuoi}) đã hết hạn ${t.hetHan}`);
+    else if (c <= 30) bao('vang', `the-han-${t.id}`, `Thẻ "${t.nhan}" (…${t.soCuoi}) hết hạn ${t.hetHan} — còn ${c} ngày`);
   }
   /* pixel gắn trên site (cửa hàng › Cấu hình › đo) phải là pixel của bộ này — khác là site đang bắn vào pixel của nơi khác */
   if (h.pixelSite && !pixel.some((p) => p.extId === h.pixelSite))

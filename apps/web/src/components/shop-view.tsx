@@ -13,14 +13,14 @@ import { useModalParam } from '@/lib/use-modal-param';
 import { hrefTab, tabCua } from '@/lib/tab-trang';
 import { KhachTrucTiep } from './shop-truc-tiep';
 import { BangTuVan } from './shop-tu-van';
-import { CauHinhCuaHang } from './shop-cau-hinh';
+import { DrawerCaiDat, TheCuaHang } from './shop-cau-hinh';
 import { BangHoSo } from './shop-ho-so';
 import type { HoSoDong } from '@/lib/shop/ho-so-doc';
 import { CHANG, type HanhTrinh, type KhoaChang } from '@mos2/shop/hanh-trinh';
 import { BUOC, LINK_DS_CJ, NHAN_BUOC, gio, isoCua, linkVanDon, soNgayTu, tien, type Buoc } from '@/lib/shop/buoc';
 import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, SanPhamDong, ThamKhao } from '@/lib/shop/doc';
 import { shopMoHoSo } from '@/lib/actions/shop';
-import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaBienThe, shopSuaCauHinh, shopSuaSanPham, shopSuaThamKhao, shopTraNcc } from '@/lib/actions/shop';
+import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaBienThe, shopSuaSanPham, shopSuaThamKhao, shopTraNcc } from '@/lib/actions/shop';
 
 type Tab = 'don' | 'tu_van' | 'truc_tiep' | 'van_chuyen' | 'khach_ph' | 'ncc' | 'san_pham' | 'danh_gia' | 'cua_hang';
 // Màu bước = tín hiệu: amber chờ người, đỏ lỗi/trễ, xanh đã giao; bước đang chạy bình thường để trung tính.
@@ -178,9 +178,11 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo }: { do
         {(tab === 'khach_ph' || tab === 'ncc') && <BangHoSo key={tab} ben={tab === 'ncc' ? 'ncc' : 'khach'} ch={ch} ds={hoSo.filter((h) => h.loai !== 'tu_van')} cuaHang={cuaHang} />}
         {tab === 'san_pham' && <BangSanPham bienThe={bt} sanPham={sps} />}
         {tab === 'danh_gia' && <BangDanhGia ds={dgs} />}
-        {tab === 'cua_hang' && <div style={{ display: 'grid', gap: 12 }}>{cuaHang.filter((c) => ch === 'all' || c.khoa === ch).map((c) => <TheCuaHang key={c.id} c={c} />)}</div>}
+        {tab === 'cua_hang' && <div style={{ display: 'grid', gap: 12 }}>{cuaHang.filter((c) => ch === 'all' || c.khoa === ch).map((c) => (
+          <TheCuaHang key={c.id} c={c} moCaiDat={(muc) => { if (muc) { const u = new URLSearchParams(window.location.search); u.set('cs', muc); window.history.replaceState(window.history.state, '', `${window.location.pathname}?${u.toString()}`); } modal.open('cai-dat', c.id); }} />))}</div>}
       </div>
 
+      {modal.is('cai-dat') && modal.numId != null && cuaHang.some((c) => c.id === modal.numId) && <DrawerCaiDat c={cuaHang.find((c) => c.id === modal.numId)!} onClose={() => modal.close()} />}
       {modal.is('don') && modal.numId != null && <DrawerDon id={modal.numId} hoSo={hoSo.filter((h) => h.donId === modal.numId)} onClose={() => modal.close()} />}
     </div>
   );
@@ -544,58 +546,5 @@ function BangDanhGia({ ds }: { ds: DanhGiaDong[] }) {
 }
 
 /* ── Cửa hàng ───────────────────────────────────────────────────────────── */
-function TheCuaHang({ c }: { c: CuaHangDong }) {
-  const goc = { ngay_ship_max: c.cauHinh.ngay_ship_max ?? 11, tu_sang_ncc: !!c.cauHinh.tu_sang_ncc, tu_tra_ncc: !!c.cauHinh.tu_tra_ncc, trang_thai: c.trangThai as 'bat' | 'tat', ga4_property: c.cauHinh.ga4_property ?? '' };
-  const [cfg, setCfg] = useState(goc);
-  const [bao, setBao] = useState<string | null>(null);
-  const [dangChay, batDau] = useTransition();
-  const doi = JSON.stringify(cfg) !== JSON.stringify(goc);
-  const tick = (k: 'tu_sang_ncc' | 'tu_tra_ncc', nhan: string, chu: string) => (
-    <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }} title={chu}>
-      <input type="checkbox" checked={cfg[k]} onChange={(e) => setCfg({ ...cfg, [k]: e.target.checked })} /> {nhan}
-    </label>
-  );
-  return (
-    <Panel
-      title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{c.ten}
-        <Pill color={c.trangThai === 'bat' ? 'var(--ok)' : 'var(--fg-3)'} label={c.trangThai === 'bat' ? 'đang chạy' : 'tắt'} /></span>}
-      subtitle={`${c.nenTang} · NCC ${c.ncc.toUpperCase()} · ${c.soDon} đơn · ${c.soSanPham} sản phẩm`}
-      actions={<>
-        <LinkChip href={`https://${c.domain}`} tone="neutral">{c.domain} ↗</LinkChip>
-        <button className="btn ghost" disabled={dangChay} onClick={() => batDau(async () => {
-          const r = await shopDongBo(c.khoa, true).catch((e) => ({ ok: false, loi: (e as Error).message }));
-          setBao(r.ok ? 'Đã kéo lại đơn + sản phẩm' : `Lỗi: ${r.loi}`);
-        })}>{dangChay ? 'Đang chạy…' : 'Kéo lại cả sản phẩm'}</button>
-      </>}>
-      <div style={{ display: 'grid', gap: 10, fontSize: 13 }}>
-        <div style={{ fontSize: 12.5, color: c.dongBoLoi ? 'var(--bad)' : 'var(--fg-3)' }}>
-          Đồng bộ gần nhất {gio(c.dongBoLuc)}{c.dongBoLoi ? ` · lỗi: ${c.dongBoLoi}` : c.nenTang === 'woo' ? ' · Woo đẩy đơn tức thì, máy kéo bù mỗi 10 phút' : ' · đơn vào ngay khi khách trả tiền (Stripe), máy đối soát + theo dõi NCC/vận đơn mỗi 10 phút'}
-          {c.thieuMa > 0 && <> · <span style={{ color: 'var(--bad)' }}>{c.thieuMa} biến thể thiếu mã CJ</span></>}
-        </div>
-        <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center' }}>
-          <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-            <input type="checkbox" checked={cfg.trang_thai === 'bat'} onChange={(e) => setCfg({ ...cfg, trang_thai: e.target.checked ? 'bat' : 'tat' })} /> Bật đồng bộ
-          </label>
-          {tick('tu_sang_ncc', 'Tự sang NCC', 'Đơn vừa trả tiền tự đặt sang CJ (chỉ TẠO đơn, chưa trả CJ — không tiêu tiền).')}
-          {tick('tu_tra_ncc', 'Tự trả NCC (trừ ví)', 'Tạo xong tự trả CJ từ ví — TIÊU TIỀN không cần bấm. Mặc định tắt.')}
-          <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }} title="Chỉ chọn tuyến ship giao tối đa ≤ số ngày này; trong đó lấy tuyến rẻ nhất.">
-            Ship tối đa
-            <TextField id={`shop-ngay-${c.khoa}`} size="sm" type="number" min={3} max={30} value={String(cfg.ngay_ship_max)}
-              onChange={(e) => setCfg({ ...cfg, ngay_ship_max: Number(e.target.value) })} style={{ width: 64 }} />
-            ngày
-          </span>
-          <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }} title="Số property GA4 (Admin › Property details) — tab Khách trực tiếp kéo số GA4 thời gian thực của property này.">
-            GA4 property
-            <TextField id={`shop-ga4-${c.khoa}`} size="sm" inputMode="numeric" value={cfg.ga4_property} placeholder="vd 556926376"
-              onChange={(e) => setCfg({ ...cfg, ga4_property: e.target.value })} style={{ width: 110 }} />
-          </span>
-          <button className="btn primary" disabled={!doi || dangChay} onClick={() => batDau(async () => { await shopSuaCauHinh(c.khoa, cfg); setBao('Đã lưu cấu hình'); })}>Lưu</button>
-        </div>
-        {bao && <div style={{ fontSize: 12.5, color: bao.startsWith('Lỗi') ? 'var(--bad)' : 'var(--fg-2)' }}>{bao}</div>}
-        {c.nenTang === 'mos' || c.tenMien.length ? <CauHinhCuaHang c={c} /> : null}
-      </div>
-    </Panel>
-  );
-}
 
 /** Cấu hình mặt tiền apps/store (@mos2/shop/mat-tien). Mọi con số khách thấy phải có thật — gợi ý ngay dưới từng ô. */

@@ -1,27 +1,31 @@
 'use client';
-// /shop › Cửa hàng — MỌI cơ chế điều khiển mặt tiền của một shop nằm ở đây (anh chốt 01/10/2026: tập trung trong mos2, không sửa DB/
-// mã/script để đổi hành vi). Mỗi mục đọc/ghi đúng một khoá của shop_cua_hang.mat_tien (@mos2/shop/mat-tien) qua shopSuaMatTien, có xem
-// trước ngay tại chỗ. Khoá bí mật (Stripe/SMTP/CJ…) KHÔNG sửa ở đây — mục Kết nối chỉ báo có/không + tên biến cần đặt.
-// URL: ?cs=<mục>.
-import { useEffect, useMemo, useState, useTransition } from 'react';
+// /shop › Cửa hàng — tổng quan gọn + cài đặt trong drawer (anh chốt 01/10/2026: mọi điều khiển nằm trong mos2, nhưng bản cũ mở hết mọi ô
+// của mọi shop cùng lúc nên "khó nhìn, khó hiểu"). Màn = mỗi shop MỘT thẻ: trạng thái + tóm tắt cấu hình đọc một lượt; bấm Cài đặt → drawer:
+// cột trái là các mục, mỗi mục kèm một dòng tóm tắt giá trị đang đặt (chưa mở đã biết), cột phải là form của đúng mục đó, chia nhóm.
+// Mỗi mục đọc/ghi một khoá của shop_cua_hang.mat_tien (@mos2/shop/mat-tien) qua shopSuaMatTien (Vận hành: cau_hinh qua shopSuaCauHinh).
+// Khoá bí mật (Stripe/SMTP/CJ…) KHÔNG sửa ở đây — mục Kết nối chỉ báo có/không + tên biến. URL: ?m=cai-dat&mId=<id>&cs=<mục>.
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { DateTimeField, Drawer, FilterChips, LinkChip, Pill, SelectField, SimpleTable, TextAreaField, TextField, toDatetimeLocal } from '@/components/ui';
+import { DateTimeField, Drawer, LinkChip, Panel, Pill, SelectField, SimpleTable, TextAreaField, TextField, toDatetimeLocal } from '@/components/ui';
 import { CHANG_BAO_THU, CHANG_KHACH, camKetGiao, cauHinhGiao, duKienGiao, khoangUS } from '@mos2/shop/giao';
 import { TRANG_TINH } from '@mos2/shop/mat-tien';
+import { gio } from '@/lib/shop/buoc';
 import type { CuaHangDong } from '@/lib/shop/doc';
-import { shopKetNoi, shopLinkXemTruoc, shopSuaMatTien, shopXemThu } from '@/lib/actions/shop';
+import { shopDongBo, shopKetNoi, shopLinkXemTruoc, shopSuaCauHinh, shopSuaMatTien, shopXemThu } from '@/lib/actions/shop';
 
-const MUC = [
-  { value: 'mat_tien', label: 'Mặt tiền', title: 'Dải trên, ưu đãi, cam kết, màu, logo, liên hệ, ship, mã đo lường' },
-  { value: 'giao', label: 'Giao hàng & cam kết', title: 'Ngày nhận dự kiến + cam kết giao hàng khách thấy ở trang sản phẩm, checkout, thư, trang theo dõi' },
-  { value: 'thu', label: 'Thư khách', title: 'Bật/tắt từng thư tự động + xem trước' },
-  { value: 'tu_van', label: 'Tư vấn (chat)', title: 'Ô chat trên site: bật/tắt, máy tự gửi loại an toàn, lời chào, model' },
-  { value: 'faq', label: 'FAQ & ưu đãi', title: 'FAQ trang sản phẩm, mã giảm giá, ô đăng ký nhận mã' },
-  { value: 'trang', label: 'Trang chính sách', title: 'Shipping / Refund / Terms / Privacy / Contact' },
-  { value: 'ket_noi', label: 'Kết nối & xem trước', title: 'Stripe, thư, CJ, 17TRACK, GA4 — có/không; link xem trước' },
-] as const;
-type Muc = (typeof MUC)[number]['value'];
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
+
+/** Các mục cài đặt + một dòng tóm tắt giá trị đang đặt (hiện ở thẻ tổng quan và cột trái drawer). */
+const MUC: { value: string; label: string; tom: (c: CuaHangDong) => string }[] = [
+  { value: 'van_hanh', label: 'Vận hành', tom: (c) => `${c.trangThai === 'bat' ? 'Đồng bộ bật' : 'Đồng bộ tắt'} · ${c.cauHinh.tu_sang_ncc ? 'tự sang NCC' : 'sang NCC tay'} · ship ≤ ${c.cauHinh.ngay_ship_max ?? 11} ngày` },
+  { value: 'mat_tien', label: 'Mặt tiền', tom: (c) => `${(c.matTien.bac_giam ?? []).map((b) => `${b.sl}+ món −${b.pt}%`).join(', ') || 'không bậc giảm'} · ${(c.matTien.cam_ket ?? []).length} cam kết` },
+  { value: 'giao', label: 'Giao hàng & cam kết', tom: (c) => { const g = cauHinhGiao(c.matTien.giao); return `${g.xu_ly[0] + g.van_chuyen[0]}–${g.xu_ly[1] + g.van_chuyen[1]} ngày${g.ngay_lam_viec ? ' làm việc' : ''} · bảo đảm ${g.dam_bao_ngay} ngày`; } },
+  { value: 'thu', label: 'Thư khách', tom: (c) => { const t = c.matTien.thu ?? {}; const n = (t.xac_nhan !== false ? 1 : 0) + (t.da_gui !== false ? 1 : 0) + (t.chang ?? [...CHANG_BAO_THU]).length; return `${n}/${2 + CHANG_BAO_THU.length} thư tự gửi`; } },
+  { value: 'tu_van', label: 'Tư vấn (chat)', tom: (c) => { const t = c.matTien.tu_van ?? {}; return t.bat === false ? 'Chat tắt' : `Chat bật · ${t.tu_gui === false ? 'duyệt hết' : 'máy tự gửi loại an toàn'}${t.khi_truc ? ' · chỉ khi có người trực' : ''}`; } },
+  { value: 'faq', label: 'FAQ & ưu đãi', tom: (c) => `${(c.matTien.faq ?? []).length} câu FAQ · ${(c.matTien.ma_giam ?? []).length} mã giảm${c.matTien.dang_ky ? ' · có ô đăng ký' : ''}` },
+  { value: 'trang', label: 'Trang chính sách', tom: (c) => `${Object.values(c.matTien.trang ?? {}).filter((t) => t?.html).length}/${TRANG_TINH.length + 1} trang có nội dung` },
+  { value: 'ket_noi', label: 'Kết nối & xem trước', tom: () => 'Stripe · thư · CJ · 17TRACK · GA4 · link xem như khách' },
+];
 
 function useLuu(khoa: string) {
   const [bao, setBao] = useState<string | null>(null);
@@ -34,29 +38,136 @@ function useLuu(khoa: string) {
   return { luu, dang, Bao, setBao };
 }
 
-export function CauHinhCuaHang({ c }: { c: CuaHangDong }) {
-  const [muc, setMuc] = useState<Muc>((useSearchParams().get('cs') as Muc) || 'mat_tien');
-  useEffect(() => {
-    const u = new URLSearchParams(window.location.search);
-    if (muc !== 'mat_tien') u.set('cs', muc); else u.delete('cs');
-    const qs = u.toString();
-    window.history.replaceState(window.history.state, '', qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
-  }, [muc]);
+/** Nhóm trong một mục: tiêu đề + một dòng giải thích + lưới ô. */
+function Nhom({ ten, ghi, children, cot = 2 }: { ten: string; ghi?: string; children: ReactNode; cot?: number }) {
   return (
-    <div style={{ borderTop: '1px solid var(--line)', paddingTop: 10, display: 'grid', gap: 10 }}>
-      <FilterChips urlKey="cs" value={muc} onChange={(v) => setMuc(v as Muc)} allValue="mat_tien" options={MUC.map((m) => ({ value: m.value, label: m.label, title: m.title }))} />
-      {muc === 'mat_tien' && <MatTien c={c} />}
-      {muc === 'giao' && <GiaoHang c={c} />}
-      {muc === 'thu' && <ThuKhach c={c} />}
-      {muc === 'tu_van' && <TuVan c={c} />}
-      {muc === 'faq' && <FaqUuDai c={c} />}
-      {muc === 'trang' && <TrangChinhSach c={c} />}
-      {muc === 'ket_noi' && <KetNoi c={c} />}
-    </div>
+    <section style={{ display: 'grid', gap: 8, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
+      <div><b style={{ fontSize: 13 }}>{ten}</b>{ghi && <div style={{ fontSize: 12, ...phu, marginTop: 2 }}>{ghi}</div>}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cot}, minmax(0, 1fr))`, gap: 10 }}>{children}</div>
+    </section>
   );
 }
 
-/* ── Mặt tiền ── */
+/* ── Thẻ tổng quan một cửa hàng (màn chính của tab) ── */
+export function TheCuaHang({ c, moCaiDat }: { c: CuaHangDong; moCaiDat: (muc?: string) => void }) {
+  const mo = c.trangThai === 'bat';
+  return (
+    <Panel
+      title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{c.ten}
+        <Pill color={mo ? 'var(--ok)' : 'var(--fg-3)'} label={mo ? 'đang chạy' : 'tắt'} /></span>}
+      subtitle={`${c.nenTang === 'mos' ? 'mặt tiền MOS' : 'WooCommerce'} · NCC ${c.ncc.toUpperCase()} · ${c.soDon} đơn · ${c.soSanPham} sản phẩm`}
+      actions={<>
+        {c.domain && !c.domain.endsWith('.invalid') && <LinkChip href={`https://${c.domain}`} tone="neutral">{c.domain} ↗</LinkChip>}
+        <button className="btn primary" onClick={() => moCaiDat()}>Cài đặt</button>
+      </>}>
+      <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>
+        <div style={{ fontSize: 12.5, color: c.dongBoLoi ? 'var(--bad)' : 'var(--fg-3)' }}>
+          Đồng bộ gần nhất {gio(c.dongBoLuc)}{c.dongBoLoi ? ` · lỗi: ${c.dongBoLoi}` : ''}
+          {c.thieuMa > 0 && <> · <span style={{ color: 'var(--bad)' }}>{c.thieuMa} biến thể thiếu mã CJ</span></>}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 6 }}>
+          {MUC.filter((m) => m.value !== 'ket_noi').map((m) => (
+            <button key={m.value} type="button" onClick={() => moCaiDat(m.value)} title={`Mở cài đặt: ${m.label}`}
+              style={{ textAlign: 'left', display: 'grid', gap: 1, padding: '6px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'inherit', cursor: 'pointer' }}>
+              <span style={{ fontSize: 10.5, ...phu, textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.label}</span>
+              <span style={{ fontSize: 12.5 }}>{m.tom(c)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+/* ── Drawer cài đặt một cửa hàng: cột trái mục + tóm tắt, cột phải form ── */
+export function DrawerCaiDat({ c, onClose }: { c: CuaHangDong; onClose: () => void }) {
+  const [muc, setMuc] = useState<string>(useSearchParams().get('cs') || 'van_hanh');
+  useEffect(() => {
+    const u = new URLSearchParams(window.location.search);
+    if (muc !== 'van_hanh') u.set('cs', muc); else u.delete('cs');
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}?${u.toString()}`);
+    return () => { const v = new URLSearchParams(window.location.search); v.delete('cs'); window.history.replaceState(window.history.state, '', `${window.location.pathname}?${v.toString()}`); };
+  }, [muc]);
+  return (
+    <Drawer onClose={onClose} width={1040}>
+      <div style={{ display: 'grid', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <h2 style={{ margin: 0, fontSize: 17 }}>Cài đặt · {c.ten}</h2>
+          <Pill color={c.trangThai === 'bat' ? 'var(--ok)' : 'var(--fg-3)'} label={c.trangThai === 'bat' ? 'đang chạy' : 'tắt'} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '230px minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
+          <nav aria-label="Mục cài đặt" style={{ display: 'grid', gap: 2, position: 'sticky', top: 0 }}>
+            {MUC.map((m) => {
+              const on = m.value === muc;
+              return (
+                <button key={m.value} type="button" onClick={() => setMuc(m.value)} aria-current={on ? 'page' : undefined}
+                  style={{ textAlign: 'left', display: 'grid', gap: 2, padding: '8px 10px', borderRadius: 6, border: 0, cursor: 'pointer', color: 'inherit',
+                    background: on ? 'var(--accent-soft)' : 'transparent', borderLeft: `2px solid ${on ? 'var(--accent)' : 'transparent'}` }}>
+                  <span style={{ fontSize: 13, fontWeight: on ? 700 : 500 }}>{m.label}</span>
+                  <span style={{ fontSize: 11.5, ...phu, lineHeight: 1.35 }}>{m.tom(c)}</span>
+                </button>
+              );
+            })}
+          </nav>
+          <div style={{ display: 'grid', gap: 12, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>{MUC.find((m) => m.value === muc)?.label}</div>
+            {muc === 'van_hanh' && <VanHanh c={c} />}
+            {muc === 'mat_tien' && <MatTien c={c} />}
+            {muc === 'giao' && <GiaoHang c={c} />}
+            {muc === 'thu' && <ThuKhach c={c} />}
+            {muc === 'tu_van' && <TuVan c={c} />}
+            {muc === 'faq' && <FaqUuDai c={c} />}
+            {muc === 'trang' && <TrangChinhSach c={c} />}
+            {muc === 'ket_noi' && <KetNoi c={c} />}
+          </div>
+        </div>
+      </div>
+    </Drawer>
+  );
+}
+
+/* ── Vận hành (đồng bộ · NCC · ship · GA4) — shop_cua_hang.cau_hinh ── */
+function VanHanh({ c }: { c: CuaHangDong }) {
+  const goc = { ngay_ship_max: c.cauHinh.ngay_ship_max ?? 11, tu_sang_ncc: !!c.cauHinh.tu_sang_ncc, tu_tra_ncc: !!c.cauHinh.tu_tra_ncc, trang_thai: c.trangThai as 'bat' | 'tat', ga4_property: c.cauHinh.ga4_property ?? '' };
+  const [cfg, setCfg] = useState(goc);
+  const [bao, setBao] = useState<string | null>(null);
+  const [dang, batDau] = useTransition();
+  const tick = (k: 'tu_sang_ncc' | 'tu_tra_ncc', nhan: string, chu: string) => (
+    <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13 }}>
+      <input type="checkbox" checked={cfg[k]} onChange={(e) => setCfg({ ...cfg, [k]: e.target.checked })} style={{ marginTop: 3 }} />
+      <span><b>{nhan}</b><br /><span style={phu}>{chu}</span></span>
+    </label>
+  );
+  return (<>
+    <div style={{ fontSize: 12.5, color: c.dongBoLoi ? 'var(--bad)' : 'var(--fg-3)' }}>
+      Đồng bộ gần nhất {gio(c.dongBoLuc)}{c.dongBoLoi ? ` · lỗi: ${c.dongBoLoi}` : c.nenTang === 'woo' ? ' · Woo đẩy đơn tức thì, máy kéo bù mỗi 10 phút' : ' · đơn vào ngay khi khách trả tiền (Stripe), máy đối soát + theo dõi NCC/vận đơn mỗi 10 phút'}
+    </div>
+    <Nhom ten="Đồng bộ & nhà cung cấp" cot={1}>
+      <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13 }}>
+        <input type="checkbox" checked={cfg.trang_thai === 'bat'} onChange={(e) => setCfg({ ...cfg, trang_thai: e.target.checked ? 'bat' : 'tat' })} style={{ marginTop: 3 }} />
+        <span><b>Bật đồng bộ</b><br /><span style={phu}>Tắt = máy không đụng tới shop này (không kéo đơn, không sang NCC, không gửi thư).</span></span>
+      </label>
+      {tick('tu_sang_ncc', 'Tự sang NCC', 'Đơn vừa trả tiền tự đặt sang CJ — chỉ TẠO đơn, chưa trả CJ, không tiêu tiền.')}
+      {tick('tu_tra_ncc', 'Tự trả NCC (trừ ví CJ)', 'Tạo xong tự trả CJ từ ví — TIÊU TIỀN không cần bấm. Mặc định tắt.')}
+    </Nhom>
+    <Nhom ten="Tuyến ship & đo lường">
+      <TextField id={`vh-ship-${c.khoa}`} label="Ship tối đa (ngày)" hint="Chỉ chọn tuyến giao tối đa ≤ số ngày này; trong đó lấy tuyến rẻ nhất." type="number" min={3} max={30}
+        value={String(cfg.ngay_ship_max)} onChange={(e) => setCfg({ ...cfg, ngay_ship_max: Number(e.target.value) })} />
+      <TextField id={`vh-ga4-${c.khoa}`} label="GA4 property" hint="Số property (Admin › Property details) — tab Khách trực tiếp kéo GA4 thời gian thực." inputMode="numeric"
+        value={cfg.ga4_property} placeholder="vd 556926376" onChange={(e) => setCfg({ ...cfg, ga4_property: e.target.value })} />
+    </Nhom>
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+      <button className="btn primary" disabled={JSON.stringify(cfg) === JSON.stringify(goc) || dang} onClick={() => batDau(async () => { await shopSuaCauHinh(c.khoa, cfg); setBao('Đã lưu vận hành'); })}>Lưu vận hành</button>
+      <button className="btn ghost" disabled={dang} title="Kéo lại toàn bộ đơn + sản phẩm từ nguồn (Woo) / đối soát (MOS) ngay bây giờ" onClick={() => batDau(async () => {
+        const r = await shopDongBo(c.khoa, true).catch((e) => ({ ok: false, loi: (e as Error).message }));
+        setBao(r.ok ? 'Đã kéo lại đơn + sản phẩm' : `Lỗi: ${r.loi}`);
+      })}>{dang ? 'Đang chạy…' : 'Kéo lại cả sản phẩm'}</button>
+      {bao && <span style={{ fontSize: 12.5, color: bao.startsWith('Lỗi') ? 'var(--bad)' : 'var(--fg-2)' }}>{bao}</span>}
+    </div>
+  </>);
+}
+
+/* ── Mặt tiền — chia nhóm: ưu đãi · cam kết · thương hiệu & liên hệ · ship · đo lường (gập) ── */
 function MatTien({ c }: { c: CuaHangDong }) {
   const m = c.matTien;
   const goc = {
@@ -81,27 +192,35 @@ function MatTien({ c }: { c: CuaHangDong }) {
       ship: { ten: v.ship_ten.trim(), phi: Number(v.ship_phi) || 0, mien_phi_tu: v.ship_mien.trim() === '' ? null : Number(v.ship_mien) } });
   };
   return (<>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <Pill color={c.nenTang === 'mos' ? 'var(--ok)' : 'var(--warn)'} label={c.nenTang === 'mos' ? 'đang phục vụ' : 'xem trước'} />
-      <LinkChip href={`https://${xemTruoc}`} tone="neutral" size="xs">{xemTruoc} ↗</LinkChip>
-    </div>
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 }}>
+    {xemTruoc && !xemTruoc.endsWith('.invalid') && <div><LinkChip href={`https://${xemTruoc}`} tone="neutral" size="xs">Xem mặt tiền: {xemTruoc} ↗</LinkChip></div>}
+    <Nhom ten="Ưu đãi" ghi="Chỉ ghi ưu đãi CÓ THẬT — khách thấy ở dải trên cùng và cột mua.">
       <TextField id={`mt-tren-${c.khoa}`} label="Dải đen trên cùng" value={v.thanh_tren} onChange={dat('thanh_tren')} />
-      <TextField id={`mt-bac-${c.khoa}`} label="Mua nhiều giảm nhiều" hint='"2:10, 3:15" = 2 món giảm 10%, từ 3 món giảm 15%' value={v.bac_giam} onChange={dat('bac_giam')} />
-      <TextAreaField id={`mt-sale-${c.khoa}`} label="Khối đỏ/cam giữa cột mua (2 dòng)" hint="Chỉ ưu đãi có thật" rows={2} value={v.dong_sale} onChange={dat('dong_sale')} />
-      <TextAreaField id={`mt-ck-${c.khoa}`} label="Cam kết dưới nút mua (mỗi dòng một ô)" hint="Phải đúng chính sách ship/đổi trả" rows={3} value={v.cam_ket} onChange={dat('cam_ket')} />
-      <DateTimeField id={`mt-het-${c.khoa}`} label="Đợt sale hết lúc" hint="Trống = ẩn đồng hồ đếm ngược. Chỉ đặt khi đợt giảm giá thật sự kết thúc lúc đó." value={v.sale_het} onChange={dat('sale_het')} />
-      <TextField id={`mt-mau-${c.khoa}`} label="Màu nhấn (nút chọn)" hint="#4A90E2 như Crossian" value={v.mau_nhan} onChange={dat('mau_nhan')} />
+      <TextField id={`mt-bac-${c.khoa}`} label="Mua nhiều giảm nhiều" hint='"2:10, 3:15" = 2 món −10%, từ 3 món −15%' value={v.bac_giam} onChange={dat('bac_giam')} />
+      <TextAreaField id={`mt-sale-${c.khoa}`} label="Khối đỏ/cam giữa cột mua (2 dòng)" rows={2} value={v.dong_sale} onChange={dat('dong_sale')} />
+      <DateTimeField id={`mt-het-${c.khoa}`} label="Đợt sale hết lúc" hint="Trống = ẩn đồng hồ đếm ngược." value={v.sale_het} onChange={dat('sale_het')} />
+    </Nhom>
+    <Nhom ten="Cam kết dưới nút mua" ghi="Mỗi dòng một ô — phải đúng chính sách ship/đổi trả." cot={1}>
+      <TextAreaField id={`mt-ck-${c.khoa}`} rows={3} value={v.cam_ket} onChange={dat('cam_ket')} />
+    </Nhom>
+    <Nhom ten="Thương hiệu & liên hệ">
       <TextField id={`mt-logo-${c.khoa}`} label="Logo (URL ảnh)" hint="Trống = dựng chữ tên shop" value={v.logo} onChange={dat('logo')} />
+      <TextField id={`mt-mau-${c.khoa}`} label="Màu nhấn (nút chọn)" hint="#4A90E2 như Crossian" value={v.mau_nhan} onChange={dat('mau_nhan')} />
       <TextField id={`mt-email-${c.khoa}`} label="Email hỗ trợ" hint="Người gửi mọi thư khách + hộp nhận form liên hệ" value={v.email} onChange={dat('email')} />
       <TextField id={`mt-dc-${c.khoa}`} label="Địa chỉ chân trang" value={v.dia_chi} onChange={dat('dia_chi')} />
-      <TextField id={`mt-ship-ten-${c.khoa}`} label="Tên dòng ship ở checkout" value={v.ship_ten} onChange={dat('ship_ten')} />
-      <TextField id={`mt-ship-phi-${c.khoa}`} label="Phí ship (USD)" inputMode="decimal" value={v.ship_phi} onChange={dat('ship_phi')} />
-      <TextField id={`mt-ship-mien-${c.khoa}`} label="Miễn ship từ (USD)" hint="Trống = không có ngưỡng" inputMode="decimal" value={v.ship_mien} onChange={dat('ship_mien')} />
-      <TextField id={`mt-ga-${c.khoa}`} label="GA4" mono value={v.ga4} onChange={dat('ga4')} />
-      <TextField id={`mt-px-${c.khoa}`} label="Meta Pixel ID" mono value={v.meta_pixel} onChange={dat('meta_pixel')} />
-      <TextField id={`mt-gads-${c.khoa}`} label="Google Ads (AW-…)" mono value={v.gads} onChange={dat('gads')} />
-    </div>
+    </Nhom>
+    <Nhom ten="Phí ship ở checkout" cot={3}>
+      <TextField id={`mt-ship-ten-${c.khoa}`} label="Tên dòng ship" value={v.ship_ten} onChange={dat('ship_ten')} />
+      <TextField id={`mt-ship-phi-${c.khoa}`} label="Phí (USD)" inputMode="decimal" value={v.ship_phi} onChange={dat('ship_phi')} />
+      <TextField id={`mt-ship-mien-${c.khoa}`} label="Miễn ship từ (USD)" hint="Trống = không ngưỡng" inputMode="decimal" value={v.ship_mien} onChange={dat('ship_mien')} />
+    </Nhom>
+    <details style={{ borderTop: '1px solid var(--line)', paddingTop: 10 }}>
+      <summary style={{ cursor: 'pointer', fontSize: 13 }}><b>Mã đo lường</b> <span style={phu}>· GA4 {v.ga4 || '—'} · Pixel {v.meta_pixel || '—'} · Ads {v.gads || '—'}</span></summary>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginTop: 10 }}>
+        <TextField id={`mt-ga-${c.khoa}`} label="GA4 (G-…)" mono value={v.ga4} onChange={dat('ga4')} />
+        <TextField id={`mt-px-${c.khoa}`} label="Meta Pixel ID" mono value={v.meta_pixel} onChange={dat('meta_pixel')} />
+        <TextField id={`mt-gads-${c.khoa}`} label="Google Ads (AW-…)" mono value={v.gads} onChange={dat('gads')} />
+      </div>
+    </details>
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
       <button className="btn primary" disabled={!doi || dang} onClick={nop}>{dang ? 'Đang lưu…' : 'Lưu mặt tiền'}</button><Bao />
     </div>

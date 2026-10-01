@@ -50,7 +50,7 @@ const oNguon = (tenNcc: (k: string) => string): Cot => ({ h: 'Nguồn', o: (b) =
 const COT: Record<'mat_tien' | 'lien_ket', (nguong: number, nguongTon: number, tenNcc: (k: string) => string) => Cot[]> = {
   mat_tien: (nguong, _t, tenNcc) => [
     { h: 'Tuỳ chọn', rong: 110, o: (b) => tachBienThe(b.ten).co || b.ten },
-    { h: 'SKU', rong: 150, o: (b) => <span style={{ ...phu, fontFamily: 'var(--font-mono)' }} title={b.sku ?? ''}>{duoi(b.sku)}</span> },
+    { h: 'SKU', rong: 150, o: (b) => <span style={{ ...phu, fontFamily: 'var(--font-mono)' }} title={b.sku ?? ''}>{b.sku ?? '—'}</span> },
     { h: 'Giá bán', rong: 90, phai: true, o: (b) => so(tien(b.giaBan)) },
     { h: 'Giá vốn', rong: 90, phai: true, o: (b) => so(tien(b.giaVon)) },
     { h: 'Biên', rong: 70, phai: true, o: (b) => { const x = bien(b); return <span style={{ color: x !== null && x < nguong ? 'var(--warn)' : undefined }}>{x === null ? '—' : `${x}%`}</span>; } },

@@ -83,3 +83,14 @@ export function tachBienThe(ten: string): { mau: string; co: string } {
   if (LA_SIZE.test(dau)) return { mau: p.slice(1).join(t.includes(' / ') ? ' / ' : '-').trim(), co: dau };
   return { mau: t, co: '' };
 }
+
+/** Thứ tự size để xếp biến thể từ nhỏ tới lớn: XS < S < M < L < XL < 2XL … ; số (36, 75AB, US 8) theo giá trị số; không nhận ra thì cuối. */
+export function thuTuSize(co: string): number {
+  const c = co.trim().toUpperCase();
+  const chu = ['XXS', 'XS', 'S', 'M', 'L', 'XL'];
+  if (chu.includes(c)) return chu.indexOf(c);
+  const x = /^(\d)XL$/.exec(c) ?? (/^(X{2,5})L$/.test(c) ? [c, String(c.length - 1)] : null);
+  if (x) return 5 + Number(x[1]);
+  const so = /(\d+(?:\.\d+)?)/.exec(c);
+  return so ? 100 + Number(so[1]) : 10_000;
+}

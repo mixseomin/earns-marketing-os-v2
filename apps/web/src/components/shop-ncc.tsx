@@ -10,7 +10,7 @@
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Cay, FilterChips, LaBang, LinkChip, NutCay, Panel, Pill, SimpleTable, StatsStrip, oLa, type CotLa } from '@/components/ui';
-import { KENH_NCC, gio, tachBienThe, tien } from '@/lib/shop/buoc';
+import { KENH_NCC, gio, tachBienThe, thuTuSize, tien } from '@/lib/shop/buoc';
 import type { BienTheDong, CuaHangDong, DonDong, NccSpDong, SanPhamDong } from '@/lib/shop/doc';
 import type { BienDongNcc, HoSoDong, LienHeNcc, NccDong } from '@/lib/shop/ho-so-doc';
 import { shopDocLaiNcc, shopSoDuNcc } from '@/lib/actions/shop';
@@ -19,8 +19,8 @@ import { SuaNcc } from './shop-ncc-sua';
 import { duoi, vaiNguon } from './shop-san-pham';
 
 /** Cột danh mục NCC — độ rộng cố định để mọi nhóm màu thẳng cột (ui/cay LaBang). */
-const COT_DM: CotLa[] = [{ h: 'Biến thể bên NCC' }, { h: 'SKU NCC', rong: 170 }, { h: 'Mã', rong: 100 }, { h: 'Giá NCC', rong: 80, phai: true },
-  { h: 'Gợi ý bán', rong: 80, phai: true }, { h: 'Cân · kích thước', rong: 190 }, { h: 'Tồn theo kho', rong: 130 }, { h: 'Shop đang dùng' }];
+const COT_DM: CotLa[] = [{ h: 'Biến thể bên NCC', rong: 190 }, { h: 'SKU NCC', rong: 160 }, { h: 'Mã', rong: 90 }, { h: 'Giá NCC', rong: 75, phai: true },
+  { h: 'Gợi ý bán', rong: 80, phai: true }, { h: 'Cân · kích thước', rong: 170 }, { h: 'Tồn theo kho', rong: 110 }, { h: 'Shop đang dùng' }];
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
 /** Kênh liên hệ → link bấm được (mailto / wa.me / skype / t.me); kênh khác hiện chữ. */
@@ -231,7 +231,7 @@ function DanhMucNcc({ sps, dungBt, tenNcc, nguongTon, cuaHang }: { sps: NccSpDon
                     dau={vs.find((v) => v.info.anh)?.info.anh ? <img src={vs.find((v) => v.info.anh)!.info.anh!} alt="" width={22} height={22} style={{ objectFit: 'cover', borderRadius: 11 }} /> : undefined}
                     ten={<><b>{m}</b><span style={phu}>{vs.length} biến thể · shop dùng {soDung}</span>{!soDung && <span style={{ color: 'var(--accent)', fontSize: 12 }}>chưa shop nào bán màu này</span>}</>}>
                     <LaBang cot={COT_DM}>
-                        <tbody>{vs.map((v) => {
+                        <tbody>{[...vs].sort((a, b) => thuTuSize(tachBienThe(a.ten ?? a.ma).co) - thuTuSize(tachBienThe(b.ten ?? b.ma).co)).map((v) => {
                           const d = dungBt.get(v.id) ?? [];
                           return (
                             <tr key={v.id} style={{ borderTop: '1px solid var(--line)', color: d.length ? undefined : 'var(--fg-3)', textDecoration: v.mat ? 'line-through' : undefined }}>

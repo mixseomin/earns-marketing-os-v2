@@ -21,7 +21,7 @@ export interface TabItem<T extends string> {
   title?: string;
 }
 
-export function Tabs<T extends string>({ items, value, onChange, right, onReorder, hrefFor }: {
+export function Tabs<T extends string>({ items, value, onChange, right, onReorder, hrefFor, dinh = !!hrefFor }: {
   items: TabItem<T>[];
   value: T;
   onChange: (v: T) => void;
@@ -31,6 +31,9 @@ export function Tabs<T extends string>({ items, value, onChange, right, onReorde
   // như link bình thường, thay vì đổi tab tại chỗ. Optional: sub-tab dùng state cục bộ (không
   // có URL) bỏ trống là giữ nguyên hành vi cũ. Cùng khuôn Segmented/ViewToggle (url-mo-tab.ts).
   hrefFor?: (key: T) => string | null | undefined;
+  // DÍNH mép trên khung cuộn (.main) khi cuộn xuống, để luôn biết đang ở tab nào (anh chốt 01/10/2026 ở /shop). Mặc định bật cho tab
+  // cấp trang (có hrefFor = tab ghi URL, khai ở lib/tab-trang.ts); tab con trong drawer/card không dính. Tắt riêng: dinh={false}.
+  dinh?: boolean;
 }) {
   const [keo, setKeo] = useState<T | null>(null);
   const tha = (dich: T) => {
@@ -42,7 +45,8 @@ export function Tabs<T extends string>({ items, value, onChange, right, onReorde
   return (
     <div data-comp="ui.Tabs"
          style={{ display: 'flex', alignItems: 'stretch', gap: 2, marginBottom: 12,
-                  borderBottom: '1px solid var(--line)', overflowX: 'auto' }}>
+                  borderBottom: '1px solid var(--line)', overflowX: 'auto',
+                  ...(dinh ? { position: 'sticky', top: 'calc(-1 * var(--main-pad-top, 0px))', zIndex: 30, background: 'var(--bg-0)' } : {}) }}>
       {items.map((t) => {
         const active = t.key === value;
         return (

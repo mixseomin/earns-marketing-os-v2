@@ -12,6 +12,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/cron/',
   '/api/health',
   '/api/ext/',
+  '/api/shop/',       // SHOP: webhook WooCommerce (chữ ký HMAC theo cửa hàng) — tự xác thực trong route
   '/api/phu/',        // PHỦ: postback mạng affiliate (token theo nguồn) + ingest cron (Bearer MOS2_EXT_KEY) — tự xác thực trong route
   '/api/apps/',       // đo app iOS: ingest từ máy người dùng (token theo app trong body) · register/stats Bearer MOS2_EXT_KEY — tự xác thực trong route
   '/api/auth/', // /api/auth/verify runs its own session check (204/401) for nginx auth_request SSO — must not be redirected

@@ -1,0 +1,96 @@
+// SHOP — đọc sổ cho màn /shop. Sổ nhỏ, cùng box (vài trăm đơn) → một lượt đọc hết 120 ngày, lọc/tìm ở trình duyệt.
+import { getDb } from '@mos2/db';
+import { sql } from 'drizzle-orm';
+import { buocCua, type Buoc } from './buoc';
+
+type Row = Record<string, unknown>;
+const q = async <T = Row>(s: ReturnType<typeof sql>) => { const d = getDb(); if (!d) return [] as T[]; return (await d.execute(s)) as unknown as T[]; };
+const so = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+
+export type DonDong = {
+  id: number; cuaHang: string; domain: string; maNgoai: string; soDon: string; trangThaiShop: string; buoc: Buoc;
+  khach: string; email: string; nuoc: string; bang: string; tong: number; hoan: number; taoLuc: string; sid: string | null; soMon: number; tenMon: string;
+  giaVon: number | null; shipNcc: number | null; phiCong: number | null; lai: number | null;
+  ncc: { maNcc: string | null; trangThai: string; daTra: boolean; tuyen: string | null; soNgay: string | null; maVanDon: string | null; hang: string | null;
+    guiLuc: string | null; giaoLuc: string | null; vanDon: string | null; loi: string | null } | null;
+};
+export type BienTheDong = { id: number; sanPhamId: number; sanPham: string; anh: string | null; link: string | null; cuaHang: string; maNgoai: string;
+  ten: string; sku: string | null; giaBan: number | null; maNcc: string | null; giaVon: number | null; daBan: number };
+export type CuaHangDong = { id: number; khoa: string; ten: string; domain: string; nenTang: string; ncc: string; trangThai: string;
+  cauHinh: { ngay_ship_max?: number; tu_sang_ncc?: boolean; tu_tra_ncc?: boolean; quoc_gia_kho?: string };
+  dongBoLuc: string | null; dongBoLoi: string | null; soDon: number; soSanPham: number; thieuMa: number };
+
+export async function docShop() {
+  const [don, bt, ch] = await Promise.all([
+    q(sql`
+      SELECT d.id, c.khoa, c.domain, d.ma_ngoai, d.so_don, d.trang_thai_shop, d.khach, d.dia_chi, d.tong, d.hoan, d.tao_luc::text AS tao_luc, d.sid, d.phi_cong,
+             (SELECT COALESCE(SUM(m.sl), 0) FROM shop_don_mon m WHERE m.don_id = d.id) AS so_mon,
+             (SELECT string_agg(m.ten || CASE WHEN m.sl > 1 THEN ' ×' || m.sl ELSE '' END, ' + ' ORDER BY m.id) FROM shop_don_mon m WHERE m.don_id = d.id) AS ten_mon,
+             (SELECT SUM(b.gia_von * m.sl) FROM shop_don_mon m JOIN shop_bien_the b ON b.id = m.bien_the_id WHERE m.don_id = d.id) AS gia_von,
+             n.ma_ncc, n.trang_thai AS ncc_tt, n.da_tra, n.tuyen, n.so_ngay, n.phi_ship, n.ma_van_don, n.hang_van_chuyen, n.gui_luc::text AS gui_luc,
+             n.giao_luc::text AS giao_luc, n.van_don->>'trackingStatus' AS van_don, n.loi
+        FROM shop_don d JOIN shop_cua_hang c ON c.id = d.cua_hang_id
+        LEFT JOIN LATERAL (SELECT * FROM shop_don_ncc x WHERE x.don_id = d.id ORDER BY (x.trang_thai IN ('CANCELLED', 'LOI')), x.id DESC LIMIT 1) n ON true
+       WHERE d.tao_luc > now() - interval '120 days'
+       ORDER BY d.tao_luc DESC`),
+    q(sql`
+      SELECT b.id, b.san_pham_id, p.ten AS san_pham, p.anh, p.link, c.khoa, b.ma_ngoai, b.ten, b.sku, b.gia_ban, b.ma_ncc, b.gia_von,
+             (SELECT COALESCE(SUM(m.sl), 0) FROM shop_don_mon m JOIN shop_don d ON d.id = m.don_id
+               WHERE m.bien_the_id = b.id AND d.tra_luc IS NOT NULL AND d.trang_thai_shop NOT IN ('cancelled', 'refunded')) AS da_ban
+        FROM shop_bien_the b JOIN shop_san_pham p ON p.id = b.san_pham_id JOIN shop_cua_hang c ON c.id = p.cua_hang_id
+       ORDER BY p.ten, b.id`),
+    q(sql`
+      SELECT c.id, c.khoa, c.ten, c.domain, c.nen_tang, c.ncc, c.trang_thai, c.cau_hinh, c.dong_bo_luc::text AS dong_bo_luc, c.dong_bo_loi,
+             (SELECT COUNT(*) FROM shop_don d WHERE d.cua_hang_id = c.id) AS so_don,
+             (SELECT COUNT(*) FROM shop_san_pham p WHERE p.cua_hang_id = c.id) AS so_sp,
+             (SELECT COUNT(*) FROM shop_bien_the b JOIN shop_san_pham p ON p.id = b.san_pham_id WHERE p.cua_hang_id = c.id AND b.ma_ncc IS NULL) AS thieu_ma
+        FROM shop_cua_hang c ORDER BY c.id`),
+  ]);
+  const bayGio = Date.now();
+  const dons: DonDong[] = don.map((r) => {
+    const k = (r.khach ?? {}) as Record<string, string>, dc = (r.dia_chi ?? {}) as Record<string, string>;
+    const ncc = r.ncc_tt ? { maNcc: (r.ma_ncc as string) ?? null, trangThai: String(r.ncc_tt), daTra: !!r.da_tra, tuyen: (r.tuyen as string) ?? null,
+      soNgay: (r.so_ngay as string) ?? null, maVanDon: (r.ma_van_don as string) ?? null, hang: (r.hang_van_chuyen as string) ?? null,
+      guiLuc: (r.gui_luc as string) ?? null, giaoLuc: (r.giao_luc as string) ?? null, vanDon: (r.van_don as string) ?? null, loi: (r.loi as string) ?? null } : null;
+    const tong = Number(r.tong), hoan = Number(r.hoan), gv = so(r.gia_von), ship = ncc && ncc.trangThai !== 'LOI' ? so(r.phi_ship) : null;
+    const phi = so(r.phi_cong) ?? Math.round((tong * 0.029 + 0.3) * 100) / 100;
+    return {
+      id: Number(r.id), cuaHang: String(r.khoa), domain: String(r.domain), maNgoai: String(r.ma_ngoai), soDon: String(r.so_don), trangThaiShop: String(r.trang_thai_shop),
+      buoc: buocCua(String(r.trang_thai_shop), ncc && { trang_thai: ncc.trangThai, da_tra: ncc.daTra, ma_van_don: ncc.maVanDon, gui_luc: ncc.guiLuc, giao_luc: ncc.giaoLuc, so_ngay: ncc.soNgay }, bayGio),
+      khach: k.ten ?? '', email: k.email ?? '', nuoc: dc.nuoc ?? '', bang: dc.bang ?? '', tong, hoan, taoLuc: String(r.tao_luc), sid: (r.sid as string) ?? null,
+      soMon: Number(r.so_mon), tenMon: String(r.ten_mon ?? ''), giaVon: gv, shipNcc: ship, phiCong: phi,
+      lai: gv === null ? null : Math.round((tong - hoan - gv - (ship ?? 0) - phi) * 100) / 100,
+      ncc,
+    };
+  });
+  const bienThe: BienTheDong[] = bt.map((r) => ({ id: Number(r.id), sanPhamId: Number(r.san_pham_id), sanPham: String(r.san_pham), anh: (r.anh as string) ?? null,
+    link: (r.link as string) ?? null, cuaHang: String(r.khoa), maNgoai: String(r.ma_ngoai), ten: String(r.ten), sku: (r.sku as string) ?? null,
+    giaBan: so(r.gia_ban), maNcc: (r.ma_ncc as string) ?? null, giaVon: so(r.gia_von), daBan: Number(r.da_ban) }));
+  const cuaHang: CuaHangDong[] = ch.map((r) => ({ id: Number(r.id), khoa: String(r.khoa), ten: String(r.ten), domain: String(r.domain), nenTang: String(r.nen_tang),
+    ncc: String(r.ncc), trangThai: String(r.trang_thai), cauHinh: (r.cau_hinh ?? {}) as CuaHangDong['cauHinh'], dongBoLuc: (r.dong_bo_luc as string) ?? null,
+    dongBoLoi: (r.dong_bo_loi as string) ?? null, soDon: Number(r.so_don), soSanPham: Number(r.so_sp), thieuMa: Number(r.thieu_ma) }));
+  return { don: dons, bienThe, cuaHang };
+}
+
+export type SuKien = { ts: string; nguon: string; noiDung: string; loi: boolean };
+export type ChiTietDon = { don: DonDong | null; diaChi: Record<string, string>; sdt: string; mon: { ten: string; sl: number; gia: number; maNcc: string | null; giaVon: number | null; bienTheId: number | null }[];
+  suKien: SuKien[]; nccCu: { maNcc: string | null; trangThai: string; loi: string | null; ts: string }[]; vanDonRaw: unknown };
+
+export async function docChiTietDon(id: number): Promise<ChiTietDon> {
+  const { don } = await docShop();
+  const d = don.find((x) => x.id === id) ?? null;
+  const [goc] = await q(sql`SELECT dia_chi, khach FROM shop_don WHERE id = ${id}`);
+  const [mon, sk, nccCu, vd] = await Promise.all([
+    q(sql`SELECT m.ten, m.sl, m.gia, b.ma_ncc, b.gia_von, m.bien_the_id FROM shop_don_mon m LEFT JOIN shop_bien_the b ON b.id = m.bien_the_id WHERE m.don_id = ${id} ORDER BY m.id`),
+    q(sql`SELECT ts::text AS ts, nguon, noi_dung, loi FROM shop_su_kien WHERE don_id = ${id} ORDER BY ts DESC, id DESC`),
+    q(sql`SELECT ma_ncc, trang_thai, loi, created_at::text AS ts FROM shop_don_ncc WHERE don_id = ${id} ORDER BY id DESC`),
+    q(sql`SELECT van_don FROM shop_don_ncc WHERE don_id = ${id} AND van_don IS NOT NULL ORDER BY id DESC LIMIT 1`),
+  ]);
+  return {
+    don: d, diaChi: ((goc?.dia_chi ?? {}) as Record<string, string>), sdt: String(((goc?.khach ?? {}) as Record<string, string>).sdt ?? ''),
+    mon: mon.map((r) => ({ ten: String(r.ten), sl: Number(r.sl), gia: Number(r.gia), maNcc: (r.ma_ncc as string) ?? null, giaVon: so(r.gia_von), bienTheId: so(r.bien_the_id) })),
+    suKien: sk.map((r) => ({ ts: String(r.ts), nguon: String(r.nguon), noiDung: String(r.noi_dung), loi: !!r.loi })),
+    nccCu: nccCu.map((r) => ({ maNcc: (r.ma_ncc as string) ?? null, trangThai: String(r.trang_thai), loi: (r.loi as string) ?? null, ts: String(r.ts) })),
+    vanDonRaw: vd[0]?.van_don ?? null,
+  };
+}

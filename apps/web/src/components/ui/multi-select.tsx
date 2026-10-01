@@ -200,7 +200,8 @@ export function MultiSelect<T extends string | number>({
   );
 
   const overlay = <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />;
-  const popup = portal ? createPortal(
+  // Popup chỉ dựng khi MỞ: createPortal(document.body) chạy lúc render ở server (SSR) là sập trang (`document is not defined`).
+  const popup = !open ? null : portal ? createPortal(
     <>
       {overlay}
       <div style={{ position: 'fixed', left: coords?.left ?? 0, top: coords?.top ?? 0, zIndex: 41,

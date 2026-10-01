@@ -347,3 +347,21 @@ export async function shopBoNhap(id: number) {
   await themTin(Number(id), 'minh', 'ghi_chu', 'Bỏ nháp máy soạn — không trả lời tin này');
   return { ok: true };
 }
+
+/* ── Sổ nhà cung cấp ── */
+export async function shopSuaNcc(khoa: string, v: { ten: string; website: string; taiKhoan: string; links: { nhan: string; url: string }[]; lienHe: { kenh: string; gia_tri: string; ten?: string }[]; ghiChu: string }) {
+  await admin();
+  const url = (x: string) => (/^https?:\/\/\S+$/.test(x.trim()) ? x.trim().slice(0, 500) : null);
+  if (!v.ten.trim()) return { ok: false, loi: 'thiếu tên NCC' };
+  if (/mật khẩu|password|passwd/i.test(v.taiKhoan)) return { ok: false, loi: 'không lưu mật khẩu ở đây — chỉ mã/email tài khoản' };
+  const links = v.links.map((l) => ({ nhan: l.nhan.trim().slice(0, 60), url: url(l.url) })).filter((l) => l.nhan && l.url).slice(0, 20);
+  const lienHe = v.lienHe.map((l) => ({ kenh: ['email', 'whatsapp', 'skype', 'telegram', 'wechat', 'chat', 'phone', 'khac'].includes(l.kenh) ? l.kenh : 'khac',
+    gia_tri: l.gia_tri.trim().slice(0, 300), ten: (l.ten ?? '').trim().slice(0, 80) })).filter((l) => l.gia_tri).slice(0, 20);
+  await db().execute(sql`INSERT INTO shop_ncc (khoa, ten, website, tai_khoan, links, lien_he, ghi_chu, cap_nhat)
+    VALUES (${khoa.slice(0, 40)}, ${v.ten.trim().slice(0, 120)}, ${url(v.website ?? '')}, ${v.taiKhoan.trim().slice(0, 200) || null}, ${JSON.stringify(links)}::jsonb,
+            ${JSON.stringify(lienHe)}::jsonb, ${v.ghiChu.trim().slice(0, 2000) || null}, now())
+    ON CONFLICT (khoa) DO UPDATE SET ten = EXCLUDED.ten, website = EXCLUDED.website, tai_khoan = EXCLUDED.tai_khoan, links = EXCLUDED.links,
+      lien_he = EXCLUDED.lien_he, ghi_chu = EXCLUDED.ghi_chu, cap_nhat = now()`);
+  revalidatePath('/shop');
+  return { ok: true };
+}

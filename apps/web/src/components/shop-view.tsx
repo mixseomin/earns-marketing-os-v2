@@ -17,7 +17,7 @@ import { CaySanPham } from './shop-san-pham';
 import { BangNcc } from './shop-ncc';
 import { DrawerCaiDat, TheCuaHang } from './shop-cau-hinh';
 import { BangHoSo } from './shop-ho-so';
-import type { HoSoDong } from '@/lib/shop/ho-so-doc';
+import type { HoSoDong, NccDong } from '@/lib/shop/ho-so-doc';
 import { CHANG, type HanhTrinh, type KhoaChang } from '@mos2/shop/hanh-trinh';
 import { BUOC, LINK_DS_CJ, NHAN_BUOC, gio, isoCua, linkVanDon, soNgayTu, tien, type Buoc } from '@/lib/shop/buoc';
 import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, SanPhamDong, ThamKhao } from '@/lib/shop/doc';
@@ -38,7 +38,7 @@ function BuocPill({ b }: { b: Buoc }) {
 }
 const VanDon = ({ ma }: { ma: string }) => <LinkChip href={linkVanDon(ma)} tone="neutral" size="xs" onClick={(e) => e.stopPropagation()}>{ma} ↗</LinkChip>;
 
-export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo }: { don: DonDong[]; bienThe: BienTheDong[]; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; danhGia: DanhGiaDong[]; hoSo: HoSoDong[] }) {
+export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc }: { don: DonDong[]; bienThe: BienTheDong[]; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; danhGia: DanhGiaDong[]; hoSo: HoSoDong[]; ncc: NccDong[] }) {
   const sp = useSearchParams();
   const [tab, setTab] = useState<Tab>((sp.get('tab') as Tab) || 'don');
   const [buoc, setBuoc] = useState<string>(sp.get('b') || 'all');
@@ -178,7 +178,7 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo }: { do
         {tab === 'tu_van' && <BangTuVan ch={ch} />}
         {tab === 'truc_tiep' && <KhachTrucTiep ch={ch} />}
         {tab === 'khach_ph' && <BangHoSo key={tab} ben="khach" ch={ch} ds={hoSo.filter((h) => h.loai !== 'tu_van')} cuaHang={cuaHang} />}
-        {tab === 'ncc' && <BangNcc ch={ch} cuaHang={cuaHang} sanPham={sanPham} bienThe={bienThe} don={don} hoSo={hoSo} />}
+        {tab === 'ncc' && <BangNcc soNcc={ncc} ch={ch} cuaHang={cuaHang} sanPham={sanPham} bienThe={bienThe} don={don} hoSo={hoSo} />}
         {tab === 'san_pham' && <BangSanPham bienThe={bt} sanPham={sps} />}
         {tab === 'danh_gia' && <BangDanhGia ds={dgs} />}
         {tab === 'cua_hang' && <div style={{ display: 'grid', gap: 12 }}>{cuaHang.filter((c) => ch === 'all' || c.khoa === ch).map((c) => (

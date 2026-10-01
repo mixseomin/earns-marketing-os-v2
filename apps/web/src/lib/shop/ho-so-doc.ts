@@ -61,3 +61,12 @@ export async function docTuVan(): Promise<ChatDong[]> {
     phien: x.chang == null ? null : { trang: (x.trang_hien as string) ?? null, chang: Number(x.chang), gio: Number(x.gio_gia), soDon: (x.p_so_don as string) ?? null,
       online: !!x.online, thietBi: (x.thiet_bi as string) ?? null, nuoc: (x.nuoc as string) ?? null } }));
 }
+
+/* ── Sổ nhà cung cấp (shop_ncc) ── */
+export type LienHeNcc = { kenh: string; gia_tri: string; ten?: string };
+export type NccDong = { khoa: string; ten: string; website: string | null; taiKhoan: string | null; links: { nhan: string; url: string }[]; lienHe: LienHeNcc[]; ghiChu: string | null; capNhat: string };
+export async function docNcc(): Promise<NccDong[]> {
+  const r = await q(sql`SELECT khoa, ten, website, tai_khoan, links, lien_he, ghi_chu, cap_nhat::text AS cap_nhat FROM shop_ncc ORDER BY khoa`);
+  return r.map((x) => ({ khoa: String(x.khoa), ten: String(x.ten), website: (x.website as string) ?? null, taiKhoan: (x.tai_khoan as string) ?? null,
+    links: (x.links as NccDong['links']) ?? [], lienHe: (x.lien_he as LienHeNcc[]) ?? [], ghiChu: (x.ghi_chu as string) ?? null, capNhat: String(x.cap_nhat) }));
+}

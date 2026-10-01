@@ -5,19 +5,29 @@
 // CJ không trả tên người bán thật phía sau (supplierName trống) nên NCC = CJ. URL: ?ncc=<khoá>.
 import { useEffect, useMemo, useState } from 'react';
 import { FilterChips, LinkChip, Panel, Pill, SimpleTable, StatsStrip } from '@/components/ui';
-import { LINK_DS_CJ, gio, tien } from '@/lib/shop/buoc';
+import { gio, tien } from '@/lib/shop/buoc';
 import type { BienTheDong, CuaHangDong, DonDong, SanPhamDong } from '@/lib/shop/doc';
 import type { HoSoDong } from '@/lib/shop/ho-so-doc';
 import { shopSoDuNcc } from '@/lib/actions/shop';
 import { BangHoSo } from './shop-ho-so';
+import type { LienHeNcc, NccDong } from '@/lib/shop/ho-so-doc';
+import { SuaNcc } from './shop-ncc-sua';
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
-/** Sổ NCC đã nối — thêm NCC mới (vd AliExpress, nhà máy riêng) = thêm một dòng ở đây + nhánh đặt đơn trong lib/shop/dong-bo.ts. */
-const NCC: Record<string, { ten: string; mo_ta: string; link?: { nhan: string; url: string } }> = {
-  cj: { ten: 'CJ Dropshipping', mo_ta: 'Đặt đơn, trả tiền, lấy vận đơn qua API CJ; khiếu nại (dispute) đọc mỗi 10 phút.', link: { nhan: 'Đơn trên CJ', url: LINK_DS_CJ } },
-};
+/** Kênh liên hệ → link bấm được (mailto / wa.me / skype / t.me); kênh khác hiện chữ. */
+function linkLienHe(l: LienHeNcc): string | null {
+  const v = l.gia_tri.trim();
+  if (/^https?:\/\//.test(v)) return v;
+  if (l.kenh === 'email' && v.includes('@')) return `mailto:${v}`;
+  if (l.kenh === 'whatsapp') { const so = v.replace(/[^\d]/g, ''); return so ? `https://wa.me/${so}` : null; }
+  if (l.kenh === 'telegram') return `https://t.me/${v.replace(/^@/, '')}`;
+  if (l.kenh === 'skype') return `skype:${v}?chat`;
+  if (l.kenh === 'phone') return `tel:${v.replace(/\s/g, '')}`;
+  return null;
+}
+const NHAN_KENH: Record<string, string> = { email: 'Email', whatsapp: 'WhatsApp', skype: 'Skype', telegram: 'Telegram', wechat: 'WeChat', chat: 'Chat', phone: 'Điện thoại', khac: 'Khác' };
 
-export function BangNcc({ ch, cuaHang, sanPham, bienThe, don, hoSo }: { ch: string; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; bienThe: BienTheDong[]; don: DonDong[]; hoSo: HoSoDong[] }) {
+export function BangNcc({ soNcc, ch, cuaHang, sanPham, bienThe, don, hoSo }: { soNcc: NccDong[]; ch: string; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; bienThe: BienTheDong[]; don: DonDong[]; hoSo: HoSoDong[] }) {
   const shops = cuaHang.filter((c) => ch === 'all' || c.khoa === ch);
   const ds = [...new Set(shops.map((c) => c.ncc))];
   const [ncc, setNcc] = useState(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('ncc')) || ds[0] || 'cj');
@@ -35,15 +45,29 @@ export function BangNcc({ ch, cuaHang, sanPham, bienThe, don, hoSo }: { ch: stri
   const dons = don.filter((d) => khoaShop.has(d.cuaHang) && d.ncc);
   const hs = hoSo.filter((h) => h.ben === 'ncc' && khoaShop.has(h.cuaHang));
   const loiBt = (b: BienTheDong) => { const p = sps.find((x) => x.id === b.sanPhamId); return !b.maNcc || b.giaVon === null || (!!p?.nccInfo?.vids?.length && !p.nccInfo.vids.includes(b.maNcc)); };
-  const info = NCC[ncc] ?? { ten: ncc.toUpperCase(), mo_ta: '' };
+  const info = soNcc.find((x) => x.khoa === ncc) ?? { khoa: ncc, ten: ncc.toUpperCase(), website: null, taiKhoan: null, links: [], lienHe: [], ghiChu: null, capNhat: '' };
+  const [sua, setSua] = useState(false);
   const nguon = useMemo(() => sps.map((p) => ({ p, gan: bts.filter((b) => b.sanPhamId === p.id && b.maNcc).length, tong: bts.filter((b) => b.sanPhamId === p.id).length,
     loi: bts.filter((b) => b.sanPhamId === p.id && loiBt(b)).length })), [sps, bts]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (<>
-    {ds.length > 1 && <div style={{ marginBottom: 8 }}><FilterChips urlKey="ncc" value={ncc} onChange={setNcc} options={ds.map((k) => ({ value: k, label: NCC[k]?.ten ?? k }))} /></div>}
-    <Panel pad={12} title={<span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>{info.ten}<Pill color="var(--ok)" label="đã nối API" uppercase={false} mono={false} /></span>}
-      subtitle={`${info.mo_ta} Cấp hàng cho: ${[...khoaShop].map((k) => cuaHang.find((c) => c.khoa === k)?.ten ?? k).join(', ')}`}
-      actions={info.link ? <LinkChip href={info.link.url} tone="neutral">{info.link.nhan} ↗</LinkChip> : undefined}>
+    {ds.length > 1 && <div style={{ marginBottom: 8 }}><FilterChips urlKey="ncc" value={ncc} onChange={setNcc} options={ds.map((k) => ({ value: k, label: soNcc.find((x) => x.khoa === k)?.ten ?? k }))} /></div>}
+    <Panel pad={12} title={<span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>{info.ten}{ncc === 'cj' && <Pill color="var(--ok)" label="đã nối API" uppercase={false} mono={false} />}</span>}
+      subtitle={`Cấp hàng cho: ${[...khoaShop].map((k) => cuaHang.find((c) => c.khoa === k)?.ten ?? k).join(', ')}`}
+      actions={<button className="btn ghost" onClick={() => setSua(true)}>Sửa thông tin NCC</button>}>
+      <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '5px 12px', fontSize: 13, marginBottom: 12 }}>
+        <span style={phu}>Website</span><span>{info.website ? <LinkChip href={info.website} tone="neutral" size="xs">{info.website.replace(/^https?:\/\//, '')} ↗</LinkChip> : <span style={phu}>chưa có</span>}
+          {info.links.map((l) => <span key={l.url} style={{ marginLeft: 6 }}><LinkChip href={l.url} tone="neutral" size="xs">{l.nhan} ↗</LinkChip></span>)}</span>
+        <span style={phu}>Tài khoản mình</span><span>{info.taiKhoan ?? <span style={phu}>chưa ghi</span>}</span>
+        <span style={phu}>Liên hệ</span>
+        <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          {info.lienHe.length ? info.lienHe.map((l, i) => { const h = linkLienHe(l); return <span key={i} style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+            <span style={{ ...phu, fontSize: 11.5 }}>{NHAN_KENH[l.kenh] ?? l.kenh}{l.ten ? ` · ${l.ten}` : ''}:</span>
+            {h ? <LinkChip href={h} tone="neutral" size="xs">{l.gia_tri}</LinkChip> : <span>{l.gia_tri}</span>}</span>; })
+            : <span style={{ color: 'var(--warn)' }}>Chưa có người/kênh liên hệ — bấm "Sửa thông tin NCC" điền agent phụ trách (tên, WhatsApp/Skype/email).</span>}
+        </span>
+        {info.ghiChu && <><span style={phu}>Ghi chú</span><span style={phu}>{info.ghiChu}</span></>}
+      </div>
       <StatsStrip minColWidth={130} cards={[
         { key: 'sp', label: 'Sản phẩm nguồn', value: sps.filter((p) => p.maNcc).length, sub: `${sps.filter((p) => !p.maNcc).length} chưa gắn` },
         { key: 'bt', label: 'Biến thể đã gắn mã', value: `${bts.filter((b) => b.maNcc).length}/${bts.length}`, color: bts.some(loiBt) ? 'var(--warn)' : 'var(--ok)', sub: bts.some(loiBt) ? `${bts.filter(loiBt).length} lỗi` : 'đủ' },
@@ -74,5 +98,6 @@ export function BangNcc({ ch, cuaHang, sanPham, bienThe, don, hoSo }: { ch: stri
 
     <h3 style={{ margin: '16px 0 6px', fontSize: 14 }}>Trao đổi với {info.ten}</h3>
     <BangHoSo ben="ncc" ch={ch} ds={hs} cuaHang={shops.filter((c) => c.ncc === ncc)} />
+    {sua && <SuaNcc n={info} onClose={() => setSua(false)} />}
   </>);
 }

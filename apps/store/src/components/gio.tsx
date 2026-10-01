@@ -45,34 +45,39 @@ export function SoLuong({ sl, doi }: { sl: number; doi: (n: number) => void }) {
     <button type="button" aria-label="Increase quantity" onClick={() => doi(sl + 1)}>+</button></div>;
 }
 
+// Khuôn ngăn kéo của orabra (đo 01/10/2026): desktop 475px; mobile = màn trừ 31px — dải tối bên trái để chạm là đóng, khách quay
+// lại trang đặt thêm. Món: ảnh 90 · tên đậm · mỗi tuỳ chọn một dòng "Tên: **giá trị**" · nút ⊗ góc · bộ đếm nhỏ · giá gạch trên giá bán.
+// Chân: Subtotal + giá gạch · nút PROCEED TO CHECKOUT · hàng biểu tượng cách trả.
 function NganGio() {
   const { mon, tong, mo, setMo, doiSl, bo, cfg } = useGio();
   useEffect(() => { const k = (e: KeyboardEvent) => e.key === 'Escape' && setMo(false); addEventListener('keydown', k); return () => removeEventListener('keydown', k); }, [setMo]);
   if (!mo) return null;
   const cuoi = mon[mon.length - 1];
+  const sau = tong.tam_tinh - tong.giam;
   return <>
-    <div className="ngan-nen" onClick={() => setMo(false)} />
+    <div className="ngan-nen" onClick={() => setMo(false)} aria-hidden="true" />
     <aside className="ngan" role="dialog" aria-label="Shopping cart">
-      <div className="dau-n">{cfg.sale_het ? <DemNguoc den={cfg.sale_het} /> : <b>Your Cart ({tong.so_mon})</b>}
-        <button className="dong-n" aria-label="Close cart" onClick={() => setMo(false)}>✕</button></div>
+      <div className="dau-n"><b>Your Cart</b><button className="dong-n" aria-label="Close cart" onClick={() => setMo(false)}>✕</button></div>
       <div className="than-n">
+        {cfg.sale_het && <DemNguoc den={cfg.sale_het} />}
         {!mon.length && <p className="dong-nho">Your cart is empty.</p>}
         {mon.map((m) => <div className="mon" key={m.b}>
           {m.anh ? <img src={m.anh} alt="" /> : <div />}
           <div>
-            <div className="tren"><div className="ten-m">{m.ten}</div><button className="bo" onClick={() => bo(m.b)}>Remove</button></div>
-            <div className="tc">{m.tc}</div>
+            <div className="tren"><div className="ten-m">{m.ten}</div><button className="bo" aria-label={`Remove ${m.ten}`} onClick={() => bo(m.b)}>✕</button></div>
+            <div className="tc">{m.tc.split(' · ').map((d) => { const [k, ...v] = d.split(': '); return <div key={d}>{v.length ? <>{k}: <b>{v.join(': ')}</b></> : d}</div>; })}</div>
             <div className="duoi-m"><SoLuong sl={m.sl} doi={(n) => doiSl(m.b, n)} />
-              <span className="gia-m">{m.gia_goc ? <s>{usd(m.gia_goc * m.sl)}</s> : null}{usd(m.gia * m.sl)}</span></div>
+              <span className="gia-m">{m.gia_goc ? <s>{usd(m.gia_goc * m.sl)}</s> : null}<b>{usd(m.gia * m.sl)}</b></span></div>
           </div>
         </div>)}
         {tong.bac_tiep && cuoi && <div className="tiep"><span><b>EXTRA {tong.bac_tiep.pt}% OFF</b> {tong.bac_tiep.can > 1 ? `when you add ${tong.bac_tiep.can} more items` : 'for next item'}</span>
           <Link href={`/${cuoi.slug}`} onClick={() => setMo(false)}>Select now</Link></div>}
       </div>
       {mon.length > 0 && <div className="chan-n">
-        {tong.giam > 0 && <div className="tam" style={{ fontSize: 15, color: 'var(--xanh)' }}>Bundle discount {tong.pt}% <span>- {usd(tong.giam)}</span></div>}
-        <div className="tam">Subtotal {tong.goc > tong.tam_tinh - tong.giam ? <s>{usd(tong.goc)}</s> : null}<b>{usd(tong.tam_tinh - tong.giam)}</b></div>
-        <Link className="nut-tt" href="/checkout" onClick={() => setMo(false)}>Proceed to secure checkout</Link>
+        {tong.giam > 0 && <div className="tam phu"><span>Bundle discount ({tong.pt}% OFF)</span><span>- {usd(tong.giam)}</span></div>}
+        <div className="tam"><b>Subtotal</b><span><b>{usd(sau)}</b>{tong.goc > sau ? <s>{usd(tong.goc)}</s> : null}</span></div>
+        <Link className="nut-tt" href="/checkout" onClick={() => setMo(false)}>Proceed to checkout</Link>
+        <div className="the-tt" aria-label="Accepted payments">{['VISA', 'Mastercard', 'AMEX', 'Discover', 'Apple Pay', 'G Pay'].map((t) => <span key={t}>{t}</span>)}</div>
       </div>}
     </aside>
   </>;

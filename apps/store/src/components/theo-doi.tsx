@@ -33,7 +33,7 @@ export function TheoDoi({ order, khoa, xem }: { order: string; khoa: string; xem
     {ban.chang_cuoi && <p className="dong-nho" style={{ marginTop: 12 }}>{ban.chang_cuoi.hang} tracking: <a href={ban.chang_cuoi.link ?? '#'} target="_blank" rel="noopener">{ban.chang_cuoi.ma}</a></p>}
     <div style={{ display: 'grid', gap: 8, marginTop: 18 }}>{ban.mon.map((x, i) => <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
       {x.anh && <img src={x.anh} alt="" width={48} height={48} style={{ objectFit: 'cover', borderRadius: 4 }} />}<span>{x.ten}{x.sl > 1 ? ` × ${x.sl}` : ''}</span></div>)}</div>
-    <div className="dam-bao" style={{ marginTop: 18 }}><span aria-hidden="true">🛡️</span><span>{ban.cam_ket}</span></div>
+    {!ban.du_kien_qua && <div className="dam-bao" style={{ marginTop: 18 }}><span aria-hidden="true">🛡️</span><span>{ban.cam_ket}</span></div>}
     <div className="td-hoi"><span>Questions about your order? We reply within 24 hours.</span><a className="nut-den" href={`/contact?order=${encodeURIComponent(ban.so_don)}`}>Contact us</a></div>
   </div>;
   return <form className="tt-form" style={{ maxWidth: 440 }} onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); tim({ order: String(f.get('order')), email: String(f.get('email')) }); }}>

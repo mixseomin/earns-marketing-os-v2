@@ -126,7 +126,8 @@ export async function banKhach(khoa: string, soDon: string, chia: { key?: string
     chang_cuoi: d.ma_chang_cuoi && kh ? { ma: d.ma_chang_cuoi, hang: kh.toUpperCase(), link: LINK_HANG[kh]!(d.ma_chang_cuoi) } : null,
     ghi_chu: ['cancelled', 'refunded'].includes(d.trang_thai_shop) ? 'This order has been cancelled.'
       : gui && !moc.some((m) => m.noi && !m.noi.endsWith('Center')) ? 'Tracking usually updates within 2-3 days after shipping.' : null,
-    tien_do: huy ? null : { pct: ht.pct, ...CHANG_KHACH[ht.chang[ht.hienTai]!.key] },
+    // trễ thì chỉ giữ câu đầu (bỏ câu kiểu "im lặng là bình thường") — lời xin lỗi nằm ở im_lang
+    tien_do: huy ? null : { pct: ht.pct, nhan: CHANG_KHACH[changHien].nhan, giai_thich: tre ? CHANG_KHACH[changHien].giai_thich.split('. ')[0]!.replace(/\.?$/, '.') : CHANG_KHACH[changHien].giai_thich },
     im_lang: huy || !!giao ? null : tre ? LOI_TRE(g) : loiImLang(ht.chang[ht.hienTai]!.key, (d.moc ?? []).map((m) => m.ts).sort().pop() ?? gui),
     du_kien_qua: tre,
     cam_ket: camKetGiao(g),

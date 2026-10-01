@@ -157,7 +157,7 @@ function Ga4ThoiGianThuc({ ch }: { ch: string }) {
     return () => { song = false; clearInterval(t); };
   }, [ch]);
   if (ds === null) return <div style={phu}>Đang tải GA4…</div>;
-  if (!ds.length) return <EmptyState icon="📈" compact title="Chưa cửa hàng nào gắn GA4" description="Tab Cửa hàng › ô GA4 property — điền số property là số GA4 thời gian thực hiện ở đây." />;
+  if (!ds.length) return <div style={{ ...phu, fontSize: 12.5 }}>GA4 thời gian thực: cửa hàng này chưa gắn property — tab Cửa hàng › ô "GA4 property".</div>;
   return <>{ds.map((g) => {
     const dinh = Math.max(1, ...g.theoPhut);
     const ds5 = (ten: string, rows: { k: string; n: number }[]) => (
@@ -183,7 +183,7 @@ function Ga4ThoiGianThuc({ ch }: { ch: string }) {
             </div>
             <span style={{ fontSize: 10.5, ...phu, display: 'flex', justifyContent: 'space-between' }}><span>-30 phút</span><span>bây giờ</span></span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
             {ds5('Quốc gia', g.nuoc)}{ds5('Thành phố', g.thanhPho)}{ds5('Thiết bị', g.thietBi)}{ds5('Trang', g.trang)}{ds5('Sự kiện', g.suKien)}
           </div>
         </div>

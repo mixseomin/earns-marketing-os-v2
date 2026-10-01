@@ -5,7 +5,7 @@
 // URL: ?hs trạng thái · ?hl loại · ?m=ho-so&mId= drawer.
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { DaiLuong, DataTable, Drawer, EmptyState, FilterChips, LinkChip, Panel, Pill, TextAreaField, TextField, type DataColumn } from '@/components/ui';
+import { DaiLuong, DataTable, Drawer, EmptyState, FilterChips, LinkChip, Panel, Pill, SelectField, TextAreaField, TextField, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { fmtAgoVi } from '@/lib/time-format';
 import { LOAI_HO_SO, NHAN_LOAI, TRANG_THAI_HO_SO, type Ben } from '@mos2/shop/ho-so';
@@ -99,8 +99,8 @@ function MoHoSo({ ben, cuaHang, ch, onClose, onXong }: { ben: Ben; cuaHang: CuaH
       <div style={{ display: 'grid', gap: 10 }}>
         <h2 style={{ margin: 0, fontSize: 16 }}>Hồ sơ {ben === 'khach' ? 'khách' : 'nhà cung cấp'} mới</h2>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 13 }}>
-          {cuaHang.length > 1 && <select id="hs-moi-ch" aria-label="Cửa hàng" value={v.khoa} onChange={dat('khoa')}>{cuaHang.map((c) => <option key={c.khoa} value={c.khoa}>{c.ten}</option>)}</select>}
-          <select id="hs-moi-loai" aria-label="Loại" value={v.loai} onChange={dat('loai')}>{LOAI_HO_SO[ben].map((l) => <option key={l.key} value={l.key}>{l.nhan}</option>)}</select>
+          {cuaHang.length > 1 && <SelectField size="sm" style={{ width: 'auto' }} id="hs-moi-ch" aria-label="Cửa hàng" value={v.khoa} onChange={dat('khoa')}>{cuaHang.map((c) => <option key={c.khoa} value={c.khoa}>{c.ten}</option>)}</SelectField>}
+          <SelectField size="sm" style={{ width: 'auto' }} id="hs-moi-loai" aria-label="Loại" value={v.loai} onChange={dat('loai')}>{LOAI_HO_SO[ben].map((l) => <option key={l.key} value={l.key}>{l.nhan}</option>)}</SelectField>
         </div>
         <TextField id="hs-moi-td" label="Việc gì" value={v.tieuDe} onChange={dat('tieuDe')} placeholder={ben === 'khach' ? 'vd Khách nhận sai size, muốn đổi' : 'vd Hỏi CJ đơn 5003 sao chưa có vận đơn'} />
         <TextField id="hs-moi-don" label="Số đơn (nếu có)" value={v.soDon} onChange={dat('soDon')} placeholder="5003" />
@@ -110,8 +110,8 @@ function MoHoSo({ ben, cuaHang, ch, onClose, onXong }: { ben: Ben; cuaHang: CuaH
         </div>}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13 }}>
           Tin đầu tiên là lời của
-          <select id="hs-moi-nguoi" aria-label="Ai nói" value={v.nguoi} onChange={dat('nguoi')}>
-            <option value={ben}>{ben === 'khach' ? 'khách' : 'NCC'}</option><option value="minh">mình (ghi chú)</option></select>
+          <SelectField size="sm" style={{ width: 'auto' }} id="hs-moi-nguoi" aria-label="Ai nói" value={v.nguoi} onChange={dat('nguoi')}>
+            <option value={ben}>{ben === 'khach' ? 'khách' : 'NCC'}</option><option value="minh">mình (ghi chú)</option></SelectField>
         </div>
         <TextAreaField id="hs-moi-nd" label="Nội dung" rows={5} value={v.noiDung} onChange={dat('noiDung')} hint="Chép lời trao đổi (email, chat CJ…) hoặc ghi chú. Không gửi gì ra ngoài." />
         {loi && <div style={{ color: 'var(--bad)', fontSize: 13 }}>{loi}</div>}
@@ -152,8 +152,8 @@ function DrawerHoSo({ id, h, onClose, onDoi }: { id: number; h: HoSoDong | null;
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '4px 10px', fontSize: 13 }}>
           <span style={phu}>Loại</span>
-          <span><select id={`hs-loai-${id}`} aria-label="Loại" value={h.loai} disabled={dang} onChange={(e) => lam(() => shopSuaHoSo(id, { loai: e.target.value }))}>
-            {LOAI_HO_SO[ben].map((l) => <option key={l.key} value={l.key}>{l.nhan}</option>)}</select></span>
+          <span><SelectField size="sm" style={{ width: 'auto' }} id={`hs-loai-${id}`} aria-label="Loại" value={h.loai} disabled={dang} onChange={(e) => lam(() => shopSuaHoSo(id, { loai: e.target.value }))}>
+            {LOAI_HO_SO[ben].map((l) => <option key={l.key} value={l.key}>{l.nhan}</option>)}</SelectField></span>
           <span style={phu}>{ben === 'khach' ? 'Khách' : 'NCC'}</span><span>{h.ten ?? '—'}{h.email ? ` · ${h.email}` : ''}</span>
           <span style={phu}>Đơn</span><span>{h.soDon ? <LinkChip href={`/shop?m=don&mId=${h.donId}`} tone="neutral" size="xs">#{h.soDon} ↗</LinkChip> : '—'}</span>
           {h.soTien != null && <><span style={phu}>Số tiền</span><span>{tien(h.soTien)}</span></>}

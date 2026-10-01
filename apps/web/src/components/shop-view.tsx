@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'rea
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  DaiLuong, DataTable, DateTimeField, Drawer, ThanhChang, type NutLuong, EmptyState, FilterChips, LinkChip, Panel, Pill, SimpleTable, StatsStrip, Tabs, TextAreaField, TextField, toDatetimeLocal, type DataColumn,
+  DaiLuong, DataTable, DateTimeField, Drawer, SelectField, ThanhChang, type NutLuong, EmptyState, FilterChips, LinkChip, Panel, Pill, SimpleTable, StatsStrip, Tabs, TextAreaField, TextField, toDatetimeLocal, type DataColumn,
 } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { hrefTab, tabCua } from '@/lib/tab-trang';
@@ -125,19 +125,22 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo }: { do
       </div>
       {bao && <div style={{ marginBottom: 8, fontSize: 12.5, color: bao.startsWith('Lỗi') ? 'var(--bad)' : 'var(--fg-2)' }}>{bao}</div>}
 
-      <StatsStrip minColWidth={150} cards={[
-        { key: 'don', label: 'Đơn 30 ngày', value: kpi.don },
-        { key: 'dt', label: 'Doanh thu 30 ngày', value: tien(kpi.dt), sub: 'đã trừ hoàn' },
-        { key: 'lai', label: 'Lãi ước 30 ngày', value: tien(kpi.lai), color: kpi.don ? mauTien(kpi.lai) : undefined, sub: kpi.thieuLai ? `${kpi.thieuLai} đơn thiếu giá vốn` : undefined },
-        { key: 'xl', label: 'Cần xử lý', value: canXuLy, color: canXuLy ? 'var(--warn)' : undefined, sub: 'chờ/lỗi NCC · chờ trả · trễ',
-          onClick: canXuLy ? () => { setTab('don'); setBuoc(dem.loi_ncc ? 'loi_ncc' : dem.cho_tra ? 'cho_tra' : dem.tre ? 'tre' : 'cho_ncc'); } : undefined },
-      ]} />
 
       <Tabs<Tab> value={tab} onChange={setTab} hrefFor={(k) => hrefTab('/shop', k)}
         items={tabCua<Tab>('/shop', { don: canXuLy || undefined, van_chuyen: dem.tre || undefined, san_pham: thieuMa || undefined, danh_gia: choDuyet || undefined,
           khach_ph: canLam('khach') || undefined, ncc: canLam('ncc') || undefined })} />
 
       <div style={{ marginTop: 10 }}>
+        {/* số đơn chỉ thuộc màn đơn/vận chuyển — tab khác không phải gánh nửa màn số không liên quan */}
+        {(tab === 'don' || tab === 'van_chuyen') && <div style={{ marginBottom: 10 }}>
+        <StatsStrip minColWidth={150} cards={[
+          { key: 'don', label: 'Đơn 30 ngày', value: kpi.don },
+          { key: 'dt', label: 'Doanh thu 30 ngày', value: tien(kpi.dt), sub: 'đã trừ hoàn' },
+          { key: 'lai', label: 'Lãi ước 30 ngày', value: tien(kpi.lai), color: kpi.don ? mauTien(kpi.lai) : undefined, sub: kpi.thieuLai ? `${kpi.thieuLai} đơn thiếu giá vốn` : undefined },
+          { key: 'xl', label: 'Cần xử lý', value: canXuLy, color: canXuLy ? 'var(--warn)' : undefined, sub: 'chờ/lỗi NCC · chờ trả · trễ',
+            onClick: canXuLy ? () => { setTab('don'); setBuoc(dem.loi_ncc ? 'loi_ncc' : dem.cho_tra ? 'cho_tra' : dem.tre ? 'tre' : 'cho_ncc'); } : undefined },
+        ]} />
+        </div>}
         {tab === 'don' && (<>
           <LuongDon don={theoCh} value={ht} onChange={(v) => setHt(v === ht ? '' : v)} />
           <div style={{ marginBottom: 8 }}>
@@ -187,7 +190,7 @@ function LuongDon({ don, value, onChange }: { don: DonDong[]; value: string; onC
     ] };
   };
   return <DaiLuong urlKey="ht" value={value} onChange={onChange} nut={CHANG.map((c) => nut(c.key, c.nhan, `${c.pct}%`, c.chuThich))}
-    ngoai={nut('ngoai', 'Chưa trả / huỷ', 'ngoài luồng', 'Đơn chưa thanh toán xong hoặc đã huỷ/hoàn — không đi trên luồng.')} />;
+    ngoai={nut('ngoai', 'Chưa trả / huỷ', '', 'Đơn chưa thanh toán xong hoặc đã huỷ/hoàn — không đi trên luồng.')} />;
 }
 
 function ThanhHanhTrinh({ ht }: { ht: HanhTrinh | null }) {
@@ -478,8 +481,7 @@ function ThamKhaoSp({ p }: { p: SanPhamDong }) {
               {t.url ? <LinkChip href={t.url} tone="neutral" size="xs">{t.nguon || nguonCua(t.url)} ↗</LinkChip> : <b>{t.nguon}</b>}
               <Pill color={NHAN_KHOP[t.khop].mau} label={NHAN_KHOP[t.khop].nhan} />
               <span style={{ flex: 1 }} />
-              <select value={t.khop} disabled={dangChay} aria-label="Mức khớp" onChange={(e) => luu(ds.map((x, j) => (j === i ? { ...x, khop: e.target.value as ThamKhao['khop'] } : x)))}
-                style={{ fontSize: 12 }}>{Object.entries(NHAN_KHOP).map(([k, v]) => <option key={k} value={k}>{v.nhan}</option>)}</select>
+              <SelectField size="sm" style={{ width: 'auto' }} id={`tk-khop-${i}`} value={t.khop} disabled={dangChay} aria-label="Mức khớp" onChange={(e) => luu(ds.map((x, j) => (j === i ? { ...x, khop: e.target.value as ThamKhao['khop'] } : x)))}>{Object.entries(NHAN_KHOP).map(([k, v]) => <option key={k} value={k}>{v.nhan}</option>)}</SelectField>
               <button className="btn ghost" disabled={dangChay} onClick={() => luu(ds.filter((_, j) => j !== i))}>Bỏ</button>
             </div>
             {t.ghi_chu && <span style={phu}>{t.ghi_chu}</span>}

@@ -15,7 +15,7 @@ import { envShop, tenEnv } from '@mos2/shop/mat-tien';
 import { stripe } from '@mos2/shop/stripe';
 import { existsSync } from 'node:fs';
 import { docShop } from '@/lib/shop/doc';
-import { KENH_BAN, KENH_NCC, KHOP_DOI_THU, NEN_TANG_QC } from '@/lib/shop/buoc';
+import { DINH_DANG_QC, KENH_BAN, KENH_NCC, KHOP_DOI_THU, NEN_TANG_QC } from '@/lib/shop/buoc';
 import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
@@ -499,17 +499,21 @@ export async function shopSuaSpDoiThu(id: number | null, v: { doiThuId: number; 
 }
 
 /** Thêm / sửa một quảng cáo của đối thủ. */
-export async function shopSuaQcDoiThu(id: number | null, v: { doiThuId: number; spId: number | null; nenTang: string; link: string; hook?: string; landing?: string; batDau?: string | null; dangChay?: boolean | null; ghiChu?: string }) {
+export async function shopSuaQcDoiThu(id: number | null, v: { doiThuId: number; spId: number | null; nenTang: string; link: string; hook?: string; landing?: string; batDau?: string | null; dangChay?: boolean | null; ghiChu?: string;
+  tieuDe?: string; cta?: string; dinhDang?: string; goc?: string; uuDai?: string; media?: string }) {
   await admin();
   const link = urlOk(v.link);
   if (!link) return { ok: false, loi: 'thiếu link quảng cáo (https://…)' };
   const nt = v.nenTang in NEN_TANG_QC ? v.nenTang : 'khac';
   const ngay = v.batDau && /^\d{4}-\d{2}-\d{2}$/.test(v.batDau) ? v.batDau : null;
+  const dd = v.dinhDang && v.dinhDang in DINH_DANG_QC ? v.dinhDang : null;
   const r = (await db().execute(id
     ? sql`UPDATE shop_doi_thu_qc SET doi_thu_sp_id = ${v.spId}, nen_tang = ${nt}, link = ${link}, hook = ${v.hook?.trim().slice(0, 1000) || null}, landing = ${urlOk(v.landing)},
-        bat_dau = ${ngay}::date, dang_chay = ${v.dangChay ?? null}, ghi_chu = ${v.ghiChu?.trim().slice(0, 1000) || null}, luc = now() WHERE id = ${id} RETURNING id`
-    : sql`INSERT INTO shop_doi_thu_qc (doi_thu_id, doi_thu_sp_id, nen_tang, link, hook, landing, bat_dau, dang_chay, ghi_chu, luc)
-        VALUES (${v.doiThuId}, ${v.spId}, ${nt}, ${link}, ${v.hook?.trim().slice(0, 1000) || null}, ${urlOk(v.landing)}, ${ngay}::date, ${v.dangChay ?? null}, ${v.ghiChu?.trim().slice(0, 1000) || null}, now())
+        bat_dau = ${ngay}::date, dang_chay = ${v.dangChay ?? null}, ghi_chu = ${v.ghiChu?.trim().slice(0, 1000) || null}, tieu_de = ${v.tieuDe?.trim().slice(0, 300) || null},
+        cta = ${v.cta?.trim().slice(0, 60) || null}, dinh_dang = ${dd}, goc = ${v.goc?.trim().slice(0, 200) || null}, uu_dai = ${v.uuDai?.trim().slice(0, 200) || null}, media = ${urlOk(v.media)}, luc = now() WHERE id = ${id} RETURNING id`
+    : sql`INSERT INTO shop_doi_thu_qc (doi_thu_id, doi_thu_sp_id, nen_tang, link, hook, landing, bat_dau, dang_chay, ghi_chu, tieu_de, cta, dinh_dang, goc, uu_dai, media, luc)
+        VALUES (${v.doiThuId}, ${v.spId}, ${nt}, ${link}, ${v.hook?.trim().slice(0, 1000) || null}, ${urlOk(v.landing)}, ${ngay}::date, ${v.dangChay ?? null}, ${v.ghiChu?.trim().slice(0, 1000) || null},
+                ${v.tieuDe?.trim().slice(0, 300) || null}, ${v.cta?.trim().slice(0, 60) || null}, ${dd}, ${v.goc?.trim().slice(0, 200) || null}, ${v.uuDai?.trim().slice(0, 200) || null}, ${urlOk(v.media)}, now())
         ON CONFLICT (doi_thu_id, link) DO NOTHING RETURNING id`)) as unknown as { id: number }[];
   if (!r[0]) return { ok: false, loi: id ? 'không có dòng này' : 'quảng cáo này đã có' };
   await db().execute(sql`UPDATE shop_doi_thu SET cap_nhat = now() WHERE id = ${v.doiThuId}`);

@@ -65,6 +65,7 @@ export const KENH_NCC: Record<string, { ten: string; chu: string }> = {
 export const KENH_BAN: Record<string, string> = { dtc: 'Web riêng (DTC)', amazon: 'Amazon', walmart: 'Walmart', aliexpress: 'AliExpress', temu: 'Temu', tiktok_shop: 'TikTok Shop', khac: 'Khác' };
 export const KHOP_DOI_THU: Record<string, [string, 'ok' | 'warn' | 'muted']> = {
   dung_mau: ['cùng mẫu (đã so ảnh)', 'ok'], gan: ['cùng loại', 'warn'], chua_xac_nhan: ['chưa so ảnh', 'muted'], khac: ['khác mẫu', 'muted'] };
+export const DINH_DANG_QC: Record<string, string> = { video: 'Video', ugc_video: 'Video UGC', anh: 'Ảnh', carousel: 'Carousel', slideshow: 'Slideshow' };
 export const NEN_TANG_QC: Record<string, string> = { meta: 'Meta', tiktok: 'TikTok', google: 'Google', khac: 'Khác' };
 /** Thư viện quảng cáo Meta của một Page (mọi QC đang chạy ở Mỹ) — chỉ dựng khi đã có Page ID thật. */
 export const linkThuVienQc = (pageId: string | null) => (pageId && /^\d{5,}$/.test(pageId)

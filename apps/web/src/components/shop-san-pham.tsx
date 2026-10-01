@@ -10,6 +10,8 @@ import type { BienTheDong, SanPhamDong } from '@/lib/shop/doc';
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
 const tachTen = (ten: string): [string, string] => { const i = ten.indexOf(' / '); return i < 0 ? ['', ten] : [ten.slice(0, i), ten.slice(i + 3)]; };
+/** Mã dài (vid CJ, SKU 19 số) giống nhau ở đầu — hiện ĐUÔI để phân biệt; đủ mã nằm ở title. */
+const duoi = (x: string | null) => (x ? (x.length > 10 ? `…${x.slice(-8)}` : x) : '—');
 const bien = (b: BienTheDong) => (b.giaBan && b.giaVon !== null ? Math.round(((b.giaBan - b.giaVon) / b.giaBan) * 100) : null);
 type Loc = 'all' | 'thieu' | 'an';
 
@@ -71,7 +73,7 @@ export function CaySanPham({ bienThe, sanPham, suaSp, suaBt }: { bienThe: BienTh
                 <span style={{ fontSize: 12, ...phu, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {nhom.size} {nhom.size > 1 ? 'màu' : 'nhóm'} · {bts.length} biến thể · giá {tien(p.giaTu)}{p.giaGoc ? ` (gạch ${tien(p.giaGoc)})` : ''}
                   {von.length ? ` · vốn ${tien(Math.min(...von))}${Math.max(...von) !== Math.min(...von) ? `–${tien(Math.max(...von))}` : ''}` : ''}
-                  {bi.length ? ` · biên ${Math.min(...bi)}–${Math.max(...bi)}%` : ''}{p.daBan ? ` · đã bán ${p.daBan}` : ''}
+                  {bi.length ? ` · biên ${Math.min(...bi) === Math.max(...bi) ? Math.min(...bi) : `${Math.min(...bi)}–${Math.max(...bi)}`}%` : ''}{p.daBan ? ` · đã bán ${p.daBan}` : ''}
                   {p.nccInfo ? ` · CJ ${p.nccInfo.sku || p.nccInfo.pid}` : p.maNcc ? ' · CJ chưa đọc' : ' · chưa gắn sản phẩm CJ'}
                 </span>
               </div>
@@ -97,13 +99,13 @@ export function CaySanPham({ bienThe, sanPham, suaSp, suaBt }: { bienThe: BienTh
                       return (
                         <tr key={b.id} onClick={() => suaBt(b)} style={{ cursor: 'pointer', borderTop: '1px solid var(--line)' }} title="Bấm để sửa mã CJ / giá vốn">
                           <td style={{ padding: '5px 10px' }}>{tachTen(b.ten)[1] || b.ten}</td>
-                          <td style={{ padding: '5px 10px', ...phu, fontFamily: 'var(--font-mono)' }}>{b.sku ?? '—'}</td>
+                          <td style={{ padding: '5px 10px', ...phu, fontFamily: 'var(--font-mono)' }} title={b.sku ?? ''}>{duoi(b.sku)}</td>
                           <td style={{ padding: '5px 10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{tien(b.giaBan)}</td>
                           <td style={{ padding: '5px 10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{tien(b.giaVon)}</td>
                           <td style={{ padding: '5px 10px', textAlign: 'right', color: bb !== null && bb < 50 ? 'var(--warn)' : undefined }}>{bb === null ? '—' : `${bb}%`}</td>
-                          <td style={{ padding: '5px 10px', fontFamily: 'var(--font-mono)', fontSize: 11.5 }}>
-                            {v ? <span style={{ color: 'var(--bad)' }}>{b.maNcc ? `${b.maNcc.slice(0, 10)}… · ` : ''}{v}</span>
-                              : <span>{b.maNcc!.slice(0, 12)}… <span style={{ color: 'var(--ok)' }}>{p.nccInfo?.vids?.length ? '✓ có trên CJ' : ''}</span></span>}
+                          <td style={{ padding: '5px 10px', fontFamily: 'var(--font-mono)', fontSize: 11.5 }} title={b.maNcc ?? ''}>
+                            {v ? <span style={{ color: 'var(--bad)' }}>{b.maNcc ? `${duoi(b.maNcc)} · ` : ''}{v}</span>
+                              : <span>{duoi(b.maNcc)} <span style={{ color: 'var(--ok)' }}>{p.nccInfo?.vids?.length ? '✓ có trên CJ' : ''}</span></span>}
                           </td>
                           <td style={{ padding: '5px 10px', textAlign: 'right' }}>{b.daBan || '—'}</td>
                           <td style={{ padding: '5px 10px', textAlign: 'right', ...phu }}>Sửa</td>

@@ -11,8 +11,8 @@ BEGIN;
 INSERT INTO shop_cua_hang (khoa, project_id, ten, domain, nen_tang, ncc, trang_thai, cau_hinh, mat_tien)
 VALUES ('demo-bra', 'bra', 'Lumi Bra (demo)', 'demo-bra.invalid', 'mos', 'cj', 'demo',
   '{"ngay_ship_max": 12, "tu_sang_ncc": true, "tu_an_het": true, "bien_toi_thieu": 60, "ton_thap": 50}',
-  '{"thanh_tren": "Free US shipping over $49", "email": "help@demo-bra.invalid", "cam_ket": "30-day fit guarantee",
-    "bac_giam": [{"sl": 2, "giam": 10}, {"sl": 3, "giam": 15}]}')
+  '{"thanh_tren": "Free US shipping over $49", "email": "help@demo-bra.invalid", "cam_ket": ["30-day fit guarantee", "Free exchange on first size swap"],
+    "bac_giam": [{"sl": 2, "pt": 10}, {"sl": 3, "pt": 15}]}')
 ON CONFLICT (khoa) DO NOTHING;
 
 -- Sản phẩm

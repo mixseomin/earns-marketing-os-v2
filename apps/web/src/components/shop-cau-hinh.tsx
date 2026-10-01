@@ -129,7 +129,7 @@ export function DrawerCaiDat({ c, onClose }: { c: CuaHangDong; onClose: () => vo
 /* ── Vận hành (đồng bộ · NCC · ship · GA4) — shop_cua_hang.cau_hinh ── */
 function VanHanh({ c }: { c: CuaHangDong }) {
   const goc = { ngay_ship_max: c.cauHinh.ngay_ship_max ?? 11, tu_sang_ncc: !!c.cauHinh.tu_sang_ncc, tu_tra_ncc: !!c.cauHinh.tu_tra_ncc, trang_thai: c.trangThai as 'bat' | 'tat', ga4_property: c.cauHinh.ga4_property ?? '',
-    tu_an_het: c.cauHinh.tu_an_het !== false, bien_toi_thieu: c.cauHinh.bien_toi_thieu ?? 60 };
+    tu_an_het: c.cauHinh.tu_an_het !== false, bien_toi_thieu: c.cauHinh.bien_toi_thieu ?? 60, ton_thap: c.cauHinh.ton_thap ?? 50 };
   const [cfg, setCfg] = useState(goc);
   const [bao, setBao] = useState<string | null>(null);
   const [dang, batDau] = useTransition();
@@ -158,6 +158,8 @@ function VanHanh({ c }: { c: CuaHangDong }) {
       </label>
       <TextField id={`vh-bien-${c.khoa}`} label="Biên tối thiểu (%)" hint="Dưới mức này cây sản phẩm báo vàng + đề xuất giá bán mới (không tự đổi giá)." type="number" min={0} max={95}
         value={String(cfg.bien_toi_thieu)} onChange={(e) => setCfg({ ...cfg, bien_toi_thieu: Number(e.target.value) })} />
+      <TextField id={`vh-ton-${c.khoa}`} label="Ngưỡng tồn thấp (đôi)" hint="Tồn NCC của một biến thể dưới mức này → cảnh báo vàng + ghi Biến động (trước khi hết hẳn)." type="number" min={0}
+        value={String(cfg.ton_thap)} onChange={(e) => setCfg({ ...cfg, ton_thap: Number(e.target.value) })} />
     </Nhom>
     <Nhom ten="Tuyến ship & đo lường">
       <TextField id={`vh-ship-${c.khoa}`} label="Ship tối đa (ngày)" hint="Chỉ chọn tuyến giao tối đa ≤ số ngày này; trong đó lấy tuyến rẻ nhất." type="number" min={3} max={30}

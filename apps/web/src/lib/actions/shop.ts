@@ -83,13 +83,13 @@ export async function shopSuaBienThe(id: number, v: { maNcc: string | null; giaV
   return { ok: true };
 }
 
-export async function shopSuaCauHinh(khoa: string, c: { ngay_ship_max: number; tu_sang_ncc: boolean; tu_tra_ncc: boolean; trang_thai: 'bat' | 'tat'; ga4_property?: string; tu_an_het?: boolean; bien_toi_thieu?: number }) {
+export async function shopSuaCauHinh(khoa: string, c: { ngay_ship_max: number; tu_sang_ncc: boolean; tu_tra_ncc: boolean; trang_thai: 'bat' | 'tat'; ga4_property?: string; tu_an_het?: boolean; bien_toi_thieu?: number; ton_thap?: number }) {
   await admin();
   const ngay = Math.max(3, Math.min(30, Math.round(Number(c.ngay_ship_max) || 11)));
   const ga4 = String(c.ga4_property ?? '').replace(/\D/g, '').slice(0, 15);
   await db().execute(sql`
     UPDATE shop_cua_hang SET trang_thai = ${c.trang_thai},
-      cau_hinh = cau_hinh || ${JSON.stringify({ ngay_ship_max: ngay, tu_sang_ncc: !!c.tu_sang_ncc, tu_tra_ncc: !!c.tu_tra_ncc, ga4_property: ga4 || null, tu_an_het: c.tu_an_het !== false, bien_toi_thieu: Math.max(0, Math.min(95, Math.round(Number(c.bien_toi_thieu ?? 60) || 60))) })}::jsonb
+      cau_hinh = cau_hinh || ${JSON.stringify({ ngay_ship_max: ngay, tu_sang_ncc: !!c.tu_sang_ncc, tu_tra_ncc: !!c.tu_tra_ncc, ga4_property: ga4 || null, tu_an_het: c.tu_an_het !== false, bien_toi_thieu: Math.max(0, Math.min(95, Math.round(Number(c.bien_toi_thieu ?? 60) || 60))), ton_thap: Math.max(0, Math.round(Number(c.ton_thap ?? 50) || 0)) })}::jsonb
      WHERE khoa = ${khoa}`);
   revalidatePath('/shop');
   return { ok: true };

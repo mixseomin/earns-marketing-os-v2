@@ -19,7 +19,7 @@ import { doiSoat, ghiSoPhuDon, ghiSuKien, guiThu, linkTheoDoi, matTien, sidTuUtm
 import { batThu } from '@mos2/shop/mat-tien';
 
 export type CuaHang = { id: number; khoa: string; project_id: string; ten: string; domain: string; ncc: string; nen_tang: string; mat_tien: MatTien;
-  cau_hinh: { ngay_ship_max?: number; tu_sang_ncc?: boolean; tu_tra_ncc?: boolean; quoc_gia_kho?: string; ga4_property?: string; tu_an_het?: boolean; bien_toi_thieu?: number }; trang_thai: string; dong_bo_luc: string | null };
+  cau_hinh: { ngay_ship_max?: number; tu_sang_ncc?: boolean; tu_tra_ncc?: boolean; quoc_gia_kho?: string; ga4_property?: string; tu_an_het?: boolean; bien_toi_thieu?: number; ton_thap?: number }; trang_thai: string; dong_bo_luc: string | null };
 
 type Row = Record<string, unknown>;
 const db = () => { const d = getDb(); if (!d) throw new Error('chưa nối DB'); return d; };
@@ -82,13 +82,23 @@ export async function dongBoThongTinNcc(ch: CuaHang) {
   let video = 0;
   for (const p of ds) {
     const r = await cj<{ pid?: string; productNameEn?: string; productSku?: string; productVideo?: unknown; listedNum?: number; supplierId?: string | null; status?: string | number;
-      sellPrice?: string; variants?: { vid: string; variantSellPrice?: number; variantNameEn?: string }[] }>(`product/query?pid=${encodeURIComponent(p.ma_ncc)}`);
+      sellPrice?: string; categoryName?: string; productWeight?: string; packingWeight?: string; materialNameEn?: unknown; packingNameEn?: unknown; entryNameEn?: string;
+      suggestSellPrice?: string | number; createrTime?: string; productImageSet?: string[]; description?: string;
+      variants?: { vid: string; variantSellPrice?: number; variantNameEn?: string; variantKey?: string; variantSku?: string; variantImage?: string;
+        variantWeight?: number; variantLength?: number; variantWidth?: number; variantHeight?: number; variantSugSellPrice?: number }[] }>(`product/query?pid=${encodeURIComponent(p.ma_ncc)}`);
     if (!r.result || !r.data) {
       await q(sql`UPDATE shop_san_pham SET ncc_info = COALESCE(ncc_info, '{}'::jsonb) || ${JSON.stringify({ loi: r.message ?? 'CJ không trả' })}::jsonb, ncc_luc = now() WHERE id = ${p.id}`);
     } else {
       const d = r.data, gia = (d.variants ?? []).map((v) => Number(v.variantSellPrice)).filter((x) => x > 0);
       const info = { pid: d.pid ?? p.ma_ncc, ten: d.productNameEn ?? '', sku: d.productSku ?? '', gia_tu: gia.length ? Math.min(...gia) : Number(d.sellPrice) || null,
-        gia_den: gia.length ? Math.max(...gia) : null, so_bien_the: (d.variants ?? []).length, vids: (d.variants ?? []).map((v) => v.vid), listed: d.listedNum ?? null, supplier_id: d.supplierId ?? null };
+        gia_den: gia.length ? Math.max(...gia) : null, so_bien_the: (d.variants ?? []).length, vids: (d.variants ?? []).map((v) => v.vid), listed: d.listedNum ?? null, supplier_id: d.supplierId ?? null,
+        // danh mục biến thể CJ đầy đủ — tab Nhà cung cấp › Sản phẩm NCC hiện theo tên/mã/giá BÊN CJ, Liên kết đặt cạnh biến thể của shop
+        bien_the: (d.variants ?? []).map((v) => ({ vid: v.vid, ten: v.variantKey || v.variantNameEn || v.vid, sku: v.variantSku ?? '', gia: Number(v.variantSellPrice) || null, anh: v.variantImage ?? null,
+          can: Number(v.variantWeight) || null, kich: v.variantLength ? `${v.variantLength}×${v.variantWidth}×${v.variantHeight} mm` : null, gia_goi_y: Number(v.variantSugSellPrice) || null })),
+        // mọi thông tin sản phẩm bên NCC (tab Nhà cung cấp › Sản phẩm NCC)
+        chi_tiet: { danh_muc: d.categoryName ?? null, loai: d.entryNameEn ?? null, can_nang: d.productWeight ?? null, can_dong_goi: d.packingWeight ?? null,
+          chat_lieu: chuoiDs(d.materialNameEn), dong_goi: chuoiDs(d.packingNameEn), gia_goi_y: Number(d.suggestSellPrice) || null, tao_luc: d.createrTime ?? null,
+          anh: (d.productImageSet ?? []).slice(0, 12), mo_ta: String(d.description ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 1500) } };
       const v = dsVideo(d.productVideo);
       if (v.length && !p.video_luc) video++;
       await q(sql`UPDATE shop_san_pham SET ncc_info = ${JSON.stringify(info)}::jsonb, ncc_luc = now(), ncc_dang_ban = ${String(d.status) === '3'},
@@ -112,17 +122,31 @@ export async function dongBoThongTinNcc(ch: CuaHang) {
   return { doc: ds.length, video };
 }
 
+/** CJ trả mảng tên dạng chuỗi JSON '["Cloth","Others"]' hoặc mảng thật — gộp thành 'Cloth, Others'. */
+function chuoiDs(x: unknown): string | null {
+  let a: unknown = x;
+  if (typeof x === 'string') { try { a = JSON.parse(x); } catch { return x || null; } }
+  return Array.isArray(a) ? a.map(String).join(', ') || null : null;
+}
+
 const ghiBienDong = (chId: number, spId: number | null, btId: number | null, loai: string, cu: string | null, moi: string | null) =>
   q(sql`INSERT INTO shop_ncc_bien_dong (cua_hang_id, san_pham_id, bien_the_id, loai, cu, moi) VALUES (${chId}, ${spId}, ${btId}, ${loai}, ${cu}, ${moi})`);
 
 /** Tồn kho CJ từng biến thể (product/stock/queryByVid — một lượt mỗi vid, ~1/giây): mỗi nhịp đọc ≤ 50 biến thể cũ nhất, mỗi biến thể ~1 lần/ngày. */
 export async function dongBoTonNcc(ch: CuaHang) {
   if (ch.ncc !== 'cj') return { doc: 0 };
-  const ds = await q<{ id: number; ma_ncc: string }>(sql`SELECT b.id, b.ma_ncc FROM shop_bien_the b JOIN shop_san_pham p ON p.id = b.san_pham_id
+  const nguong = ch.cau_hinh.ton_thap ?? 50;
+  const ds = await q<{ id: number; ma_ncc: string; san_pham_id: number; ton_ncc: number | null }>(sql`SELECT b.id, b.ma_ncc, b.san_pham_id, b.ton_ncc FROM shop_bien_the b JOIN shop_san_pham p ON p.id = b.san_pham_id
     WHERE p.cua_hang_id = ${ch.id} AND b.ma_ncc IS NOT NULL AND NOT b.ncc_mat AND (b.ton_luc IS NULL OR b.ton_luc < now() - interval '20 hours') ORDER BY b.ton_luc NULLS FIRST LIMIT 50`);
   for (const b of ds) {
-    const r = await cj<{ totalInventoryNum?: number }[]>(`product/stock/queryByVid?vid=${encodeURIComponent(b.ma_ncc)}`);
-    if (r.result) await q(sql`UPDATE shop_bien_the SET ton_ncc = ${(r.data ?? []).reduce((t, x) => t + (Number(x.totalInventoryNum) || 0), 0)}, ton_luc = now() WHERE id = ${b.id}`);
+    const r = await cj<{ totalInventoryNum?: number; areaEn?: string; countryCode?: string }[]>(`product/stock/queryByVid?vid=${encodeURIComponent(b.ma_ncc)}`);
+    if (r.result) {
+      const kho = (r.data ?? []).map((x) => ({ kho: x.areaEn ?? '', nuoc: x.countryCode ?? '', so: Number(x.totalInventoryNum) || 0 }));
+      const ton = kho.reduce((t, x) => t + x.so, 0);
+      await q(sql`UPDATE shop_bien_the SET ton_ncc = ${ton}, ton_kho = ${JSON.stringify(kho)}::jsonb, ton_luc = now() WHERE id = ${b.id}`);
+      // tụt xuống dưới ngưỡng tồn thấp (lần đầu vượt ngưỡng) → ghi biến động để cảnh báo sớm, trước khi hết hẳn
+      if (ton > 0 && ton < nguong && (b.ton_ncc == null || b.ton_ncc >= nguong)) await ghiBienDong(ch.id, b.san_pham_id, b.id, 'ton_thap', b.ton_ncc == null ? '—' : String(b.ton_ncc), `${ton} (< ${nguong})`);
+    }
     await new Promise((ok) => setTimeout(ok, 1100));
   }
   return { doc: ds.length };

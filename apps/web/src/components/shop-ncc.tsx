@@ -27,7 +27,7 @@ function linkLienHe(l: LienHeNcc): string | null {
 }
 const NHAN_KENH: Record<string, string> = { email: 'Email', whatsapp: 'WhatsApp', skype: 'Skype', telegram: 'Telegram', wechat: 'WeChat', chat: 'Chat', phone: 'Điện thoại', khac: 'Khác' };
 
-export function BangNcc({ cayNcc, soNcc, ch, cuaHang, sanPham, bienThe, don, hoSo }: { cayNcc: React.ReactNode; soNcc: NccDong[]; ch: string; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; bienThe: BienTheDong[]; don: DonDong[]; hoSo: HoSoDong[] }) {
+export function BangNcc({ lienKet, soNcc, ch, cuaHang, sanPham, bienThe, don, hoSo }: { lienKet: React.ReactNode; soNcc: NccDong[]; ch: string; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; bienThe: BienTheDong[]; don: DonDong[]; hoSo: HoSoDong[] }) {
   const shops = cuaHang.filter((c) => ch === 'all' || c.khoa === ch);
   const ds = [...new Set(shops.map((c) => c.ncc))];
   const [ncc, setNcc] = useState(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('ncc')) || ds[0] || 'cj');
@@ -47,6 +47,8 @@ export function BangNcc({ cayNcc, soNcc, ch, cuaHang, sanPham, bienThe, don, hoS
   const loiBt = (b: BienTheDong) => { const p = sps.find((x) => x.id === b.sanPhamId); return !b.maNcc || b.giaVon === null || (!!p?.nccInfo?.vids?.length && !p.nccInfo.vids.includes(b.maNcc)); };
   const info = soNcc.find((x) => x.khoa === ncc) ?? { khoa: ncc, ten: ncc.toUpperCase(), website: null, taiKhoan: null, links: [], lienHe: [], ghiChu: null, capNhat: '' };
   const [sua, setSua] = useState(false);
+  const nguongTon = shops.find((c) => c.ncc === ncc)?.cauHinh.ton_thap ?? 50;
+  const tonThap = bts.filter((b) => b.tonNcc != null && b.tonNcc > 0 && b.tonNcc < nguongTon).length, hetNcc = bts.filter((b) => b.tonNcc === 0 || b.nccMat).length;
   const [muc, setMuc] = useState(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('nm')) || 'tong_quan');
   useEffect(() => { const u = new URLSearchParams(window.location.search); if (muc !== 'tong_quan') u.set('nm', muc); else u.delete('nm');
     window.history.replaceState(window.history.state, '', `${window.location.pathname}?${u.toString()}`); }, [muc]);
@@ -80,6 +82,7 @@ export function BangNcc({ cayNcc, soNcc, ch, cuaHang, sanPham, bienThe, don, hoS
         { key: 'bt', label: 'Biến thể đã gắn mã', value: `${bts.filter((b) => b.maNcc).length}/${bts.length}`, color: bts.some(loiBt) ? 'var(--warn)' : 'var(--ok)', sub: bts.some(loiBt) ? `${bts.filter(loiBt).length} lỗi` : 'đủ' },
         { key: 'don', label: 'Đơn đã đặt', value: dons.filter((d) => d.ncc?.maNcc).length },
         { key: 'tra', label: 'Chờ trả NCC', value: dons.filter((d) => d.buoc === 'cho_tra').length, color: dons.some((d) => d.buoc === 'cho_tra') ? 'var(--warn)' : undefined },
+        { key: 'ton', label: 'Tồn thấp ở NCC', value: tonThap, color: tonThap ? 'var(--warn)' : undefined, sub: `< ${nguongTon} · ${hetNcc} hết/gỡ · đọc ${bts.filter((b) => b.tonNcc != null).length}/${bts.filter((b) => b.maNcc).length}` },
         { key: 'tre', label: 'Giao trễ', value: dons.filter((d) => d.buoc === 'tre').length, color: dons.some((d) => d.buoc === 'tre') ? 'var(--bad)' : undefined },
         ...(ncc === 'cj' ? [{ key: 'vi', label: 'Số dư ví CJ', value: soDu === undefined ? '…' : soDu === null ? '—' : tien(soDu) }] : []),
         { key: 'hs', label: 'Trao đổi đang mở', value: hs.filter((h) => h.trangThai !== 'xong').length, color: hs.some((h) => h.trangThai === 'moi') ? 'var(--warn)' : undefined },
@@ -88,7 +91,8 @@ export function BangNcc({ cayNcc, soNcc, ch, cuaHang, sanPham, bienThe, don, hoS
 
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '12px 0 8px', flexWrap: 'wrap' }}>
       <FilterChips urlKey="nm" value={muc} onChange={setMuc} allValue="tong_quan" counts={{ bien_dong: (bd ?? []).filter((x) => khoaShop.has(x.cuaHang)).length, trao_doi: hs.filter((h) => h.trangThai !== 'xong').length }}
-        options={[{ value: 'tong_quan', label: 'Tổng quan' }, { value: 'san_pham', label: 'Sản phẩm NCC', title: 'Cây sản phẩm nhìn từ phía NCC: giá CJ, tồn CJ, tự ẩn, khách chờ có hàng' },
+        options={[{ value: 'tong_quan', label: 'Tổng quan' }, { value: 'san_pham', label: 'Sản phẩm NCC', title: 'Danh mục BÊN NCC: sản phẩm + biến thể theo tên/mã/giá/tồn của CJ' },
+          { value: 'lien_ket', label: 'Liên kết', title: 'Sản phẩm/biến thể của shop ↔ sản phẩm/biến thể NCC — soát đúng màu/size, giá, tồn' },
           { value: 'bien_dong', label: 'Biến động', title: 'Giá CJ đổi, biến thể hết/gỡ/có lại — máy ghi mỗi lần đọc' }, { value: 'trao_doi', label: 'Trao đổi' }]} />
       <span style={{ flex: 1 }} />
       {baoDoc && <span style={{ fontSize: 12.5, ...phu }}>{baoDoc}</span>}
@@ -96,34 +100,97 @@ export function BangNcc({ cayNcc, soNcc, ch, cuaHang, sanPham, bienThe, don, hoS
         onClick={() => batDocLai(async () => { const kq = await Promise.all([...khoaShop].map((k) => shopDocLaiNcc(k))); setBaoDoc(`Đã đọc ${kq.reduce((t, r) => t + ('doc' in r && r.doc ? r.doc.doc : 0), 0)} sản phẩm · tồn kho đọc tiếp trong các nhịp tới`); setBd(await shopBienDongNcc()); })}>
         {docLai ? 'Đang đọc CJ…' : 'Đọc lại NCC ngay'}</button>}
     </div>
-    {muc === 'san_pham' && cayNcc}
+    {muc === 'san_pham' && <DanhMucNcc sps={sps} bts={bts} tenNcc={info.ten} nguongTon={nguongTon} />}
+    {muc === 'lien_ket' && lienKet}
     {muc === 'bien_dong' && <Panel pad={8}>{!bd ? <span style={phu}>Đang tải…</span> : <SimpleTable rows={bd.filter((x) => khoaShop.has(x.cuaHang))} getRowKey={(x) => String(x.id)} columns={[
       { key: 'l', header: 'Lúc', width: 96, cell: (x) => <span style={phu}>{gio(x.luc)}</span> },
-      { key: 'k', header: 'Loại', width: 120, cell: (x) => <span style={{ color: ({ gia: 'var(--warn)', het: 'var(--bad)', go: 'var(--bad)', co_lai: 'var(--ok)', ve_lai: 'var(--ok)' } as Record<string, string>)[x.loai] }}>
-        {({ gia: 'Giá CJ đổi', het: 'Tự ẩn', go: 'Gỡ khỏi CJ', co_lai: 'Mở bán lại', ve_lai: 'Có lại trên CJ' } as Record<string, string>)[x.loai] ?? x.loai}</span> },
+      { key: 'k', header: 'Loại', width: 120, cell: (x) => <span style={{ color: ({ gia: 'var(--warn)', het: 'var(--bad)', go: 'var(--bad)', co_lai: 'var(--ok)', ve_lai: 'var(--ok)', ton_thap: 'var(--warn)' } as Record<string, string>)[x.loai] }}>
+        {({ gia: 'Giá CJ đổi', het: 'Tự ẩn', go: 'Gỡ khỏi CJ', co_lai: 'Mở bán lại', ve_lai: 'Có lại trên CJ', ton_thap: 'Tồn thấp' } as Record<string, string>)[x.loai] ?? x.loai}</span> },
       { key: 's', header: 'Sản phẩm · biến thể', cell: (x) => <span>{x.sanPham}<span style={phu}> · {x.bienThe}</span></span> },
       { key: 'd', header: 'Thay đổi', cell: (x) => <span>{x.cu} → <b>{x.moi}</b></span> },
     ]} />}{bd && !bd.some((x) => khoaShop.has(x.cuaHang)) && <div style={{ ...phu, fontSize: 12.5, padding: 6 }}>Chưa có biến động nào — máy ghi ở đây mỗi khi giá CJ đổi, biến thể hết/gỡ/có lại.</div>}</Panel>}
-    {muc === 'tong_quan' && <>
-    <h3 style={{ margin: '16px 0 6px', fontSize: 14 }}>Sản phẩm nguồn <span style={{ ...phu, fontWeight: 400, fontSize: 12.5 }}>— mình bán gì ↔ món nào bên {info.ten}, đọc lại mỗi ngày</span></h3>
-    <Panel pad={8}>
-      <SimpleTable rows={nguon} getRowKey={(r) => String(r.p.id)} columns={[
-        { key: 'sp', header: 'Sản phẩm của mình', cell: (r) => <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-          {r.p.anh && <img src={r.p.anh} alt="" width={28} height={28} style={{ objectFit: 'cover', borderRadius: 3 }} />}
-          <span><b>{r.p.ten}</b><br /><span style={{ ...phu, fontSize: 11.5 }}>{r.p.cuaHang} · giá bán từ {tien(r.p.giaTu)}</span></span></span> },
-        { key: 'cj', header: `Bên ${info.ten}`, cell: (r) => (r.p.nccInfo && !r.p.nccInfo.loi ? <span><span style={{ fontSize: 12.5 }}>{r.p.nccInfo.ten.slice(0, 70)}</span><br />
-          <span style={{ ...phu, fontSize: 11.5, fontFamily: 'var(--font-mono)' }}>SKU {r.p.nccInfo.sku} · pid {r.p.nccInfo.pid}</span></span>
-          : r.p.maNcc ? <span style={phu}>{r.p.nccInfo?.loi ? `lỗi đọc: ${r.p.nccInfo.loi}` : 'chưa đọc — nhịp đồng bộ đọc trong 10 phút'}</span> : <span style={{ color: 'var(--bad)' }}>chưa gắn sản phẩm NCC</span>) },
-        { key: 'von', header: 'Giá vốn NCC', align: 'right', cell: (r) => (r.p.nccInfo?.gia_tu != null ? `${tien(r.p.nccInfo.gia_tu)}${r.p.nccInfo.gia_den && r.p.nccInfo.gia_den !== r.p.nccInfo.gia_tu ? `–${tien(r.p.nccInfo.gia_den)}` : ''}` : '—') },
-        { key: 'bt', header: 'Biến thể (gắn / NCC có)', align: 'right', cell: (r) => <span style={{ color: r.loi ? 'var(--bad)' : undefined }}>{r.gan}/{r.tong}{r.p.nccInfo ? ` · NCC ${r.p.nccInfo.so_bien_the}` : ''}{r.loi ? ` · ${r.loi} lỗi` : ''}</span> },
-        { key: 'shop', header: 'Shop khác bán', align: 'right', cell: (r) => r.p.nccInfo?.listed ?? '—' },
-        { key: 'luc', header: 'Đọc lúc', cell: (r) => <span style={phu}>{gio(r.p.nccLuc)}</span> },
-        { key: 'mo', header: '', cell: (r) => <LinkChip href={`/shop?tab=san_pham&spm=${r.p.id}`} tone="neutral" size="xs">biến thể ↗</LinkChip> },
-      ]} />
-    </Panel>
-
-    </>}
     {muc === 'trao_doi' && <BangHoSo ben="ncc" ch={ch} ds={hs} cuaHang={shops.filter((c) => c.ncc === ncc)} />}
     {sua && <SuaNcc n={info} onClose={() => setSua(false)} />}
   </>);
+}
+
+/** Danh mục BÊN NCC (anh chốt 01/10/2026): sản phẩm theo tên/SKU/mã CJ → biến thể CJ (tên, SKU, mã, giá, tồn) + biến thể nào của shop đang dùng nó.
+ *  Nguồn: shop_san_pham.ncc_info (dongBoThongTinNcc, mỗi ngày); tồn chỉ có cho biến thể đang dùng (đọc theo vid). */
+function DanhMucNcc({ sps, bts, tenNcc, nguongTon }: { sps: SanPhamDong[]; bts: BienTheDong[]; tenNcc: string; nguongTon: number }) {
+  const [mo, setMo] = useState<Set<string>>(new Set());
+  const ds = sps.filter((p) => p.nccInfo && !p.nccInfo.loi);
+  const dung = new Map<string, BienTheDong[]>();
+  for (const b of bts) if (b.maNcc) dung.set(b.maNcc, [...(dung.get(b.maNcc) ?? []), b]);
+  if (!ds.length) return <div style={{ ...phu, padding: 8 }}>Chưa đọc được sản phẩm nào từ {tenNcc} — bấm "Đọc lại NCC ngay".</div>;
+  return (
+    <Panel pad={0}>
+      {ds.map((p) => {
+        const n = p.nccInfo!, k = n.pid, dangMo = mo.has(k);
+        const bt = n.bien_the ?? [];
+        const daDung = bt.filter((v) => dung.has(v.vid)).length;
+        return (
+          <div key={k} style={{ borderBottom: '1px solid var(--line)' }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 12px', cursor: 'pointer', background: dangMo ? 'var(--bg-2)' : undefined }}
+              onClick={() => setMo((s) => { const x = new Set(s); if (x.has(k)) x.delete(k); else x.add(k); return x; })}>
+              <span aria-hidden style={{ width: 14, ...phu }}>{dangMo ? '▾' : '▸'}</span>
+              {bt.find((v) => v.anh)?.anh ? <img src={bt.find((v) => v.anh)!.anh!} alt="" width={40} height={40} style={{ objectFit: 'cover', borderRadius: 4 }} /> : <span style={{ width: 40 }} />}
+              <div style={{ display: 'grid', gap: 2, minWidth: 0, flex: 1 }}>
+                <span style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0 }}>
+                  <b style={{ fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.ten}</b>
+                  <Pill color={p.nccDangBan === false ? 'var(--bad)' : 'var(--ok)'} label={p.nccDangBan === false ? 'NCC ngừng bán' : 'NCC đang bán'} uppercase={false} mono={false} />
+                </span>
+                <span style={{ fontSize: 12, ...phu, fontFamily: 'var(--font-mono)' }}>
+                  SKU {n.sku} · pid {n.pid} · {n.so_bien_the} biến thể · giá {tien(n.gia_tu)}{n.gia_den && n.gia_den !== n.gia_tu ? `–${tien(n.gia_den)}` : ''} · {n.listed ?? '—'} shop khác bán · đọc {gio(p.nccLuc)}
+                </span>
+              </div>
+              <span style={{ display: 'flex', gap: 6, alignItems: 'center', whiteSpace: 'nowrap' }}>
+                {(() => { const ton = bt.map((v) => dung.get(v.vid)?.find((x) => x.tonNcc != null)?.tonNcc).filter((x): x is number => x != null);
+                  const thap = ton.filter((x) => x > 0 && x < nguongTon).length, het = ton.filter((x) => x === 0).length;
+                  return <>{het > 0 && <Pill color="var(--bad)" label={`${het} hết`} uppercase={false} mono={false} />}{thap > 0 && <Pill color="var(--warn)" label={`${thap} tồn thấp`} uppercase={false} mono={false} />}</>; })()}
+                <span style={{ fontSize: 12, ...phu }}>shop dùng {daDung}/{bt.length} biến thể</span>
+              </span>
+            </div>
+            {dangMo && <div style={{ padding: '0 12px 12px 36px', display: 'grid', gap: 10 }}>
+              {n.chi_tiet && <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '4px 10px', fontSize: 12.5 }}>
+                  {([['Danh mục', n.chi_tiet.danh_muc], ['Loại', n.chi_tiet.loai], ['Chất liệu', n.chi_tiet.chat_lieu], ['Đóng gói', n.chi_tiet.dong_goi],
+                    ['Cân nặng', n.chi_tiet.can_nang ? `${n.chi_tiet.can_nang} g` : null], ['Cân đóng gói', n.chi_tiet.can_dong_goi ? `${n.chi_tiet.can_dong_goi} g` : null],
+                    ['Giá NCC gợi ý bán', n.chi_tiet.gia_goi_y ? tien(n.chi_tiet.gia_goi_y) : null], ['Lên NCC từ', n.chi_tiet.tao_luc?.slice(0, 10) ?? null]] as [string, string | null][])
+                    .map(([k, v]) => <span key={k} style={{ display: 'contents' }}><span style={phu}>{k}</span><span>{v ?? '—'}</span></span>)}
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignContent: 'flex-start' }}>
+                  {n.chi_tiet.anh.map((a) => <a key={a} href={a} target="_blank" rel="noreferrer"><img src={a} alt="" width={64} height={64} style={{ objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} /></a>)}
+                </div>
+                {n.chi_tiet.mo_ta && <details style={{ gridColumn: '1 / -1', fontSize: 12.5 }}><summary style={{ cursor: 'pointer', ...phu }}>Mô tả bên NCC</summary><p style={{ margin: '6px 0 0', lineHeight: 1.5 }}>{n.chi_tiet.mo_ta}</p></details>}
+              </div>}
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+                <thead><tr style={{ ...phu, fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                  {['Biến thể bên NCC', 'SKU NCC', 'Mã (vid)', 'Giá NCC', 'Gợi ý bán', 'Cân · kích thước', 'Tồn theo kho', 'Shop đang dùng cho'].map((h, i) => <th key={h} style={{ textAlign: i === 3 || i === 4 ? 'right' : 'left', padding: '5px 10px', fontWeight: 500 }}>{h}</th>)}
+                </tr></thead>
+                <tbody>{bt.map((v) => {
+                  const ds2 = dung.get(v.vid) ?? [], dau = ds2.find((x) => x.tonNcc != null), ton = dau?.tonNcc;
+                  return (
+                    <tr key={v.vid} style={{ borderTop: '1px solid var(--line)', color: ds2.length ? undefined : 'var(--fg-3)' }}>
+                      <td style={{ padding: '5px 10px' }}>{v.ten}</td>
+                      <td style={{ padding: '5px 10px', fontFamily: 'var(--font-mono)', fontSize: 11.5 }}>{v.sku || '—'}</td>
+                      <td style={{ padding: '5px 10px', fontFamily: 'var(--font-mono)', fontSize: 11.5 }} title={v.vid}>…{v.vid.slice(-8)}</td>
+                      <td style={{ padding: '5px 10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{tien(v.gia)}</td>
+                      <td style={{ padding: '5px 10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', ...phu }}>{tien(v.gia_goi_y ?? null)}</td>
+                      <td style={{ padding: '5px 10px', ...phu, fontSize: 11.5 }}>{[v.can ? `${v.can} g` : null, v.kich].filter(Boolean).join(' · ') || '—'}</td>
+                      <td style={{ padding: '5px 10px', fontVariantNumeric: 'tabular-nums', color: ton === 0 ? 'var(--bad)' : ton != null && ton < nguongTon ? 'var(--warn)' : undefined }}
+                        title={ds2.length ? undefined : 'Chỉ đọc tồn cho biến thể shop đang dùng'}>
+                        {ton == null ? '—' : (dau?.tonKho ?? []).length ? dau!.tonKho.map((k) => `${k.nuoc || k.kho} ${k.so.toLocaleString('en-US')}`).join(' · ') : ton.toLocaleString('en-US')}
+                        {ton != null && ton < nguongTon && <b>{ton === 0 ? ' · hết' : ' · thấp'}</b>}</td>
+                      <td style={{ padding: '5px 10px' }}>{ds2.length ? ds2.map((x) => x.ten).join(' · ') : 'chưa dùng'}</td>
+                    </tr>
+                  );
+                })}</tbody>
+              </table>
+              {!bt.length && <div style={{ ...phu, padding: 6 }}>Chưa có danh mục biến thể — lần đọc CJ kế sẽ lấy.</div>}
+            </div>}
+          </div>
+        );
+      })}
+    </Panel>
+  );
 }

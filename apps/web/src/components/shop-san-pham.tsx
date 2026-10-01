@@ -33,8 +33,10 @@ const so = (x: React.ReactNode) => <span style={{ fontVariantNumeric: 'tabular-n
 const oTrangThai: Cot = { h: 'Trạng thái', o: (b) => { const t = trangThaiBt(b); return <span style={{ color: t.mau, fontSize: 12 }}>{t.chu}{b.choCoHang ? ` · ${b.choCoHang} chờ` : ''}</span>; } };
 const oMa: Cot = { h: 'Mã CJ (vid)', o: (b, p) => { const v = vanDe(b, p); return <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5 }} title={b.maNcc ?? ''}>
   {v ? <span style={{ color: 'var(--bad)' }}>{b.maNcc ? `${duoi(b.maNcc)} · ` : ''}{v}</span> : <>{duoi(b.maNcc)} <span style={{ color: 'var(--ok)' }}>{p.nccInfo?.vids?.length ? '✓' : ''}</span></>}</span>; } };
-/** Hai chế độ nhìn CÙNG một cây: mặt tiền (bán gì, giá bán, biên) · NCC (giá CJ, tồn CJ, tự ẩn, khách chờ có hàng). */
-const COT: Record<'mat_tien' | 'ncc', (nguong: number) => Cot[]> = {
+/** Hai chế độ nhìn CÙNG một cây của shop: mặt tiền (bán gì, giá bán, biên) · liên kết (mỗi biến thể shop ↔ biến thể NCC đặt cạnh nhau để soát đúng màu/size,
+ *  giá CJ, tồn CJ, tự ẩn). Danh mục BÊN NCC (theo tên/mã CJ) là màn khác: shop-ncc.tsx DanhMucNcc. */
+const tenCj = (b: BienTheDong, p: SanPhamDong) => p.nccInfo?.bien_the?.find((x) => x.vid === b.maNcc)?.ten ?? null;
+const COT: Record<'mat_tien' | 'lien_ket', (nguong: number, nguongTon: number) => Cot[]> = {
   mat_tien: (nguong) => [
     { h: 'Tuỳ chọn', o: (b) => tachTen(b.ten)[1] || b.ten },
     { h: 'SKU', o: (b) => <span style={{ ...phu, fontFamily: 'var(--font-mono)' }} title={b.sku ?? ''}>{duoi(b.sku)}</span> },
@@ -44,20 +46,22 @@ const COT: Record<'mat_tien' | 'ncc', (nguong: number) => Cot[]> = {
     oMa, oTrangThai,
     { h: 'Đã bán', phai: true, o: (b) => b.daBan || '—' },
   ],
-  ncc: (nguong) => [
-    { h: 'Tuỳ chọn', o: (b) => tachTen(b.ten)[1] || b.ten },
+  lien_ket: (nguong, nguongTonHt) => [
+    { h: 'Biến thể shop', o: (b) => tachTen(b.ten)[1] || b.ten },
+    { h: '↔ Biến thể NCC', o: (b, p) => { const t = tenCj(b, p); return t ? <b style={{ fontWeight: 500 }}>{t}</b> : <span style={phu}>{b.maNcc ? 'chưa đọc tên' : '—'}</span>; } },
     oMa,
     { h: 'Giá CJ', phai: true, o: (b) => so(<span style={{ color: b.giaNcc != null && b.giaVon != null && Math.abs(b.giaNcc - b.giaVon) > 0.009 ? 'var(--warn)' : undefined }}>{tien(b.giaNcc)}</span>) },
     { h: 'Giá vốn sổ', phai: true, o: (b) => so(tien(b.giaVon)) },
-    { h: 'Tồn CJ', phai: true, o: (b) => so(<span style={{ color: b.tonNcc === 0 ? 'var(--bad)' : undefined }} title={b.tonLuc ? `đọc lúc ${b.tonLuc}` : 'chưa đọc'}>{b.tonNcc == null ? '—' : b.tonNcc.toLocaleString('en-US')}</span>) },
+    { h: 'Tồn NCC', phai: true, o: (b) => so(<span style={{ color: b.tonNcc === 0 ? 'var(--bad)' : b.tonNcc != null && b.tonNcc < nguongTonHt ? 'var(--warn)' : undefined }}
+      title={b.tonKho.length ? b.tonKho.map((k) => `${k.kho}: ${k.so}`).join(' · ') : b.tonLuc ? `đọc lúc ${b.tonLuc}` : 'chưa đọc'}>{b.tonNcc == null ? '—' : b.tonNcc.toLocaleString('en-US')}{b.tonNcc != null && b.tonNcc > 0 && b.tonNcc < nguongTonHt ? ' · thấp' : ''}</span>) },
     oTrangThai,
     { h: 'Giá bán', phai: true, o: (b) => so(tien(b.giaBan)) },
     { h: 'Biên', phai: true, o: (b) => { const x = bien(b); return <span style={{ color: x !== null && x < nguong ? 'var(--warn)' : undefined }}>{x === null ? '—' : `${x}%`}</span>; } },
   ],
 };
 
-export function CaySanPham({ bienThe, sanPham, suaSp, suaBt, cheDo = 'mat_tien', nguongBien = () => 60 }: { bienThe: BienTheDong[]; sanPham: SanPhamDong[];
-  suaSp: (p: SanPhamDong) => void; suaBt: (b: BienTheDong) => void; cheDo?: 'mat_tien' | 'ncc'; nguongBien?: (khoaShop: string) => number }) {
+export function CaySanPham({ bienThe, sanPham, suaSp, suaBt, cheDo = 'mat_tien', nguongBien = () => 60, nguongTon = () => 50 }: { bienThe: BienTheDong[]; sanPham: SanPhamDong[];
+  suaSp: (p: SanPhamDong) => void; suaBt: (b: BienTheDong) => void; cheDo?: 'mat_tien' | 'lien_ket'; nguongBien?: (khoaShop: string) => number; nguongTon?: (khoaShop: string) => number }) {
   const q0 = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const [loc, setLoc] = useState<Loc>(((q0?.get('sp') as Loc) || 'all'));
   const [tim, setTim] = useState('');
@@ -92,7 +96,7 @@ export function CaySanPham({ bienThe, sanPham, suaSp, suaBt, cheDo = 'mat_tien',
         const bts = theoSp.get(p.id) ?? [], n = loi(p), dangMo = mo.has(p.id);
         const von = bts.map((b) => b.giaVon).filter((x): x is number => x !== null);
         const bi = bts.map(bien).filter((x): x is number => x !== null);
-        const cot = COT[cheDo](nguongBien(p.cuaHang));
+        const cot = COT[cheDo](nguongBien(p.cuaHang), nguongTon(p.cuaHang));
         const nhom = new Map<string, BienTheDong[]>();
         for (const b of bts) { const [g] = tachTen(b.ten); nhom.set(g, [...(nhom.get(g) ?? []), b]); }
         return (
@@ -115,7 +119,8 @@ export function CaySanPham({ bienThe, sanPham, suaSp, suaBt, cheDo = 'mat_tien',
                   {nhom.size} {nhom.size > 1 ? 'màu' : 'nhóm'} · {bts.length} biến thể · giá {tien(p.giaTu)}{p.giaGoc ? ` (gạch ${tien(p.giaGoc)})` : ''}
                   {von.length ? ` · vốn ${tien(Math.min(...von))}${Math.max(...von) !== Math.min(...von) ? `–${tien(Math.max(...von))}` : ''}` : ''}
                   {bi.length ? ` · biên ${Math.min(...bi) === Math.max(...bi) ? Math.min(...bi) : `${Math.min(...bi)}–${Math.max(...bi)}`}%` : ''}{p.daBan ? ` · đã bán ${p.daBan}` : ''}
-                  {p.nccInfo ? ` · CJ ${p.nccInfo.sku || p.nccInfo.pid}` : p.maNcc ? ' · CJ chưa đọc' : ' · chưa gắn sản phẩm CJ'}
+                  {cheDo === 'lien_ket' ? (p.nccInfo ? ` · ↔ CJ: ${p.nccInfo.ten.slice(0, 60)} (${p.nccInfo.sku || p.nccInfo.pid})` : ' · chưa liên kết sản phẩm NCC')
+                    : p.nccInfo ? ` · CJ ${p.nccInfo.sku || p.nccInfo.pid}` : p.maNcc ? ' · CJ chưa đọc' : ' · chưa gắn sản phẩm CJ'}
                 </span>
               </div>
               <span onClick={(e) => e.stopPropagation()} style={{ display: 'flex', gap: 6 }}>

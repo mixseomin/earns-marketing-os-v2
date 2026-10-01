@@ -5,6 +5,8 @@ import { chotThanhToan, type MonTT } from '@mos2/shop/thanh-toan';
 import { usd } from '@mos2/shop/gia';
 import { shopHienTai } from '@/lib/shop';
 import { BaoMua } from '@/components/bao-mua';
+import { CamKet, DuKien } from '@/components/giao-khach';
+import { cauHinhGiao } from '@mos2/shop/giao';
 
 export const metadata = { title: 'Thank you', robots: { index: false } };
 type P = { searchParams: Promise<{ tt?: string }> };
@@ -15,6 +17,7 @@ export default async function CamOn({ searchParams }: P) {
   const tt = (await searchParams).tt ?? '';
   if (!s || !db || !/^[0-9a-f-]{36}$/.test(tt)) return <div className="khung trang"><h1>Order not found</h1><p><Link href="/">Continue shopping</Link></p></div>;
   const d = await chotThanhToan(s, tt).catch(() => null);
+  const g = cauHinhGiao(s.mt.giao);
   const [p] = (await db.execute(sql`SELECT mon, tong::text, khach->>'email' AS email FROM shop_thanh_toan WHERE id = ${tt}::uuid AND cua_hang_id = ${s.id}`)) as unknown as
     { mon: MonTT[]; tong: string; email: string | null }[];
   if (!d) return <div className="khung trang"><h1>Your payment is processing</h1>
@@ -29,7 +32,9 @@ export default async function CamOn({ searchParams }: P) {
         <div><div className="ten-m">{m.ten}</div><div className="tc">{m.tuy_chon}</div><div className="dg-m"><span>Qty {m.sl}</span><span>{usd(m.gia * m.sl)}</span></div></div></div>)}
       <div className="tt-tong"><div className="cuoi"><span>Total paid</span><span>{usd(Number(p?.tong ?? 0))}</span></div></div>
     </div>
-    <p>We will email you a tracking link as soon as your order ships. You can also check it any time:</p>
+    <DuKien g={g} nhan="Estimated delivery:" />
+    <CamKet g={g} />
+    <p style={{ marginTop: 18 }}>We will email you at each step: when your order ships, when it reaches the US, and when it is out for delivery. You can also check it any time:</p>
     <p><Link className="nut-tt" style={{ maxWidth: 360 }} href={`/trackings/search?order=${d.so_don}&key=${d.khoa_don}`}>Track your order</Link></p>
   </div>;
 }

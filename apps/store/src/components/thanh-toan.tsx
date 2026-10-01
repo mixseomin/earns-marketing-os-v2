@@ -2,6 +2,7 @@
 // Checkout 2 cột trên tên miền shop — khuôn Crossian: trái = tóm tắt đơn (nền xám), phải = ví nhanh (Apple Pay / Google Pay) →
 // "continue to pay with debit or credit card" → liên hệ, địa chỉ, ô thẻ Stripe tách (số / hạn / CVC) → "Pay $X now".
 // Số tiền: máy chủ tính (POST /api/checkout) và giữ trong PaymentIntent; trang này chỉ hiện lại.
+import { CamKet, DuKien } from './giao-khach';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -26,7 +27,7 @@ function napStripe(): Promise<void> {
 }
 
 export function ThanhToan({ ten, logo, pk, shipTen, saleHet }: { ten: string; logo: string | null; pk: string; shipTen: string; saleHet: string | null }) {
-  const { mon: gio, xoaHet } = useGio();
+  const { mon: gio, xoaHet, cfg } = useGio();
   const router = useRouter();
   const [phien, setPhien] = useState<Phien | null>(null);
   const [loi, setLoi] = useState('');
@@ -147,6 +148,7 @@ export function ThanhToan({ ten, logo, pk, shipTen, saleHet }: { ten: string; lo
         {t.ma_giam > 0 && <div className="giam"><span>Discount ({phien?.ma})</span><span>- {usd(t.ma_giam)}</span></div>}
         <div className="cuoi"><span>Total</span><span>{t.goc + t.ship > t.tong ? <s>{usd(t.goc + t.ship)}</s> : null}{usd(t.tong)}</span></div>
       </div>}
+      <DuKien g={cfg.giao} nhan="Estimated delivery" />
     </div>
     <div className="tt-phai">
       <div ref={viMount} className="vi-nhanh" style={{ display: coVi ? undefined : 'none' }} />
@@ -170,6 +172,7 @@ export function ThanhToan({ ten, logo, pk, shipTen, saleHet }: { ten: string; lo
         {loi && <p className="loi" role="alert">{loi}</p>}
         <button className="nut-tra" disabled={!phien || dang}>{dang ? 'Processing…' : t ? `Pay ${usd(t.tong)} now` : 'Loading…'}</button>
         <div className="an-toan">🔒 All transactions are secure and encrypted.</div>
+        <CamKet g={cfg.giao} />
       </form>
     </div>
   </div>;

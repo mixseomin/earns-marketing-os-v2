@@ -10,6 +10,11 @@ import { co17, dangKy17, tin17 } from './track17';
 import { dsVideo } from '@mos2/shop/video';
 import { moHoSo, themTin } from '@mos2/shop/ho-so-ghi';
 import { coStripe, stripe } from '@mos2/shop/stripe';
+import { CHANG, hanhTrinh } from '@mos2/shop/hanh-trinh';
+import { CHANG_BAO_THU, CHANG_KHACH, cauHinhGiao, duKienGiao } from '@mos2/shop/giao';
+import { thuChang } from '@mos2/shop/thu';
+import { isoCua } from './buoc';
+import type { Moc } from './track17';
 import { doiSoat, ghiSoPhuDon, ghiSuKien, guiThu, linkTheoDoi, matTien, sidTuUtm, thuDaGui, type MatTien } from '@mos2/shop';
 
 export type CuaHang = { id: number; khoa: string; project_id: string; ten: string; domain: string; ncc: string; nen_tang: string; mat_tien: MatTien;
@@ -327,8 +332,32 @@ export async function theoDoiNcc(ch: CuaHang) {
       } catch (e) { await ghiSuKien(n.don_id, 'woo', `Báo khách lỗi: ${(e as Error).message}`, true); }
     }
     if (ma) await keoVanDon(n.id, n.don_id, ma);
+    if (ma && ch.nen_tang === 'mos') await baoChangKhach(ch, n).catch((e) => ghiSuKien(n.don_id, 'shop', `Thư theo chặng lỗi: ${(e as Error).message}`, true));
   }
   return { theoDoi: ds.length, doi };
+}
+
+/** Thư theo chặng cho khách (mặt tiền mos): đơn vừa sang roi_nuoc / den_nuoc / di_giao / da_giao mà chưa báo chặng đó → một thư,
+ *  ghi bao_chang. Chặng tính bằng cùng hàm với /shop và trang theo dõi (@mos2/shop/hanh-trinh) — không ai tự đoán chặng kiểu khác. */
+async function baoChangKhach(ch: CuaHang, n: NccSong) {
+  const [r] = await q<{ tao_luc: string; tra_luc: string | null; dia_chi: { nuoc?: string }; ncc_tao: string; trang_thai: string; da_tra: boolean; tra_ncc: string | null;
+    gui_luc: string | null; giao_luc: string | null; moc: Moc[] | null; tt_vd: string | null; bao_chang: string | null }>(sql`
+    SELECT d.tao_luc::text AS tao_luc, d.tra_luc::text AS tra_luc, d.dia_chi, x.created_at::text AS ncc_tao, x.trang_thai, x.da_tra, x.tra_luc::text AS tra_ncc,
+           x.gui_luc::text AS gui_luc, x.giao_luc::text AS giao_luc, x.moc, x.tt_vd, x.bao_chang
+      FROM shop_don_ncc x JOIN shop_don d ON d.id = x.don_id WHERE x.id = ${n.id}`);
+  if (!r || !n.khach?.email) return;
+  const ht = hanhTrinh({ nhanLuc: r.tra_luc ?? r.tao_luc, nccTaoLuc: r.ncc_tao, nccTt: r.trang_thai, daTra: r.da_tra, traNccLuc: r.tra_ncc, guiLuc: r.gui_luc,
+    giaoLuc: r.giao_luc, moc: r.moc, ttVd: r.tt_vd, nuocKhach: r.dia_chi?.nuoc || 'US' });
+  const hien = ht.chang[ht.hienTai]!.key;
+  const thuTu = (k: string | null) => CHANG.findIndex((c) => c.key === k);
+  if (!CHANG_BAO_THU.includes(hien) || thuTu(r.bao_chang) >= thuTu(hien)) return;
+  const m = matTien(ch.mat_tien), g = cauHinhGiao(m.giao);
+  const shopThu = { khoa: ch.khoa, ten: ch.ten, domain: ch.domain, email: m.email ?? `support@${ch.domain}` };
+  const link = n.khoa_don ? linkTheoDoi(ch, n.so_don, n.khoa_don) : linkVanDon(n.ma_van_don ?? '');
+  const thu = thuChang(shopThu, n.so_don, (n.khach.ten ?? '').split(' ')[0] || 'there', hien, link, g, r.gui_luc ? duKienGiao(g, new Date(isoCua(r.gui_luc)), true) : null);
+  await guiThu(shopThu, n.khach.email, thu.tieuDe, thu.html, thu.chu);
+  await q(sql`UPDATE shop_don_ncc SET bao_chang = ${hien} WHERE id = ${n.id}`);
+  await ghiSuKien(n.don_id, 'shop', `Đã gửi thư chặng "${CHANG_KHACH[hien].nhan}" tới ${n.khach.email}`);
 }
 
 /** Hành trình vận đơn từ CJ (getTrackInfo). Hãng báo đã giao → giao_luc + DELIVERED. Mỗi đơn tối đa 1 lần / 3 giờ. */

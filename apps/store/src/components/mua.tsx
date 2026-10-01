@@ -9,6 +9,7 @@ import { useGio, SoLuong } from './gio';
 import { DemNguoc } from './dem-nguoc';
 import { bao } from './do';
 import { ghiPhien, idPhien } from './phien';
+import { CamKet, DuKien } from './giao-khach';
 
 export type DuLieuMua = { sp: SanPham; diem: number | null; soDg: number; daBan: number; saleHet: string | null; dongSale: string | null; tonDuoi: number;
   camKet: string[]; bac: BacGiam[] };
@@ -31,7 +32,7 @@ export function TrangMua({ d }: { d: DuLieuMua }) {
   // Thanh mua dính đáy (khuôn orabra): hiện khi khối nút mua đã cuộn khỏi màn, trượt lên từ đáy, ẩn khi giỏ đang mở.
   const khoiMua = useRef<HTMLDivElement>(null), khoiChon = useRef<HTMLDivElement>(null);
   const [dinh, setDinh] = useState(false);
-  const { mo: gioMo } = useGio();
+  const { mo: gioMo, cfg } = useGio();
   useEffect(() => {
     // đọc vị trí khi cuộn (rAF gộp nhịp) — IntersectionObserver không bắn được ở một số trình duyệt nhúng khi cuộn bằng mã
     let cho = 0;
@@ -118,6 +119,7 @@ export function TrangMua({ d }: { d: DuLieuMua }) {
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 7h12l-1 13H7L6 7Z" /><path d="M9 7a3 3 0 0 1 6 0" /></svg>
           {thieu ? 'Add to cart' : !bt ? 'Unavailable' : bt.het_hang ? 'Sold out' : 'Add to cart'}</button></div>
       {nhac && <p className="loi" role="alert" style={{ margin: 0 }}>{nhac}</p>}
+      <DuKien g={cfg.giao} />
       {(xem > 1 || d.daBan > 0) && <div className="dong-nho">{xem > 1 && <><span className="d">Popular! </span><b>{xem}</b> people are viewing this{d.daBan > 0 ? ' and ' : '.'}</>}
         {d.daBan > 0 && <><b>{d.daBan}</b> purchased it.</>}</div>}
       <div className={`mua-dinh${dinh && !gioMo ? ' hien' : ''}`} aria-hidden={!dinh}>
@@ -129,6 +131,7 @@ export function TrangMua({ d }: { d: DuLieuMua }) {
         </div>
       </div>
       {d.camKet.length > 0 && <div className="cam-ket">{d.camKet.map((c) => <div key={c}>{c}</div>)}</div>}
+      <CamKet g={cfg.giao} />
     </div>
   </div>;
 }

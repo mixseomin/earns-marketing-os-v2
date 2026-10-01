@@ -21,6 +21,7 @@ export type MatTien = {
   cam_ket?: string[];
   faq?: { hoi: string; dap: string }[];  // khối FAQ cuối trang sản phẩm (khuôn orabra) — trả lời đúng chính sách shop
   ma_giam?: { ma: string; pt: number }[]; // mã giảm áp ở checkout (vd mã tặng khi đăng ký nhận tin)
+  giao?: { xu_ly?: [number, number]; van_chuyen?: [number, number]; ngay_lam_viec?: boolean; dam_bao_ngay?: number }; // @mos2/shop/giao — khớp chính sách ship
   dang_ky?: { tieu_de: string; chu: string; ma: string } | null; // ô đăng ký chân trang: tặng mã nào                   // 3 ô cam kết dưới nút mua (ship, đổi trả, thanh toán) — đúng chính sách shop
 };
 

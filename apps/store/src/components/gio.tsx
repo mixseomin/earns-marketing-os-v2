@@ -1,6 +1,7 @@
 'use client';
 // Giỏ hàng (trình duyệt giữ trong localStorage) + ngăn kéo bên phải đúng khuôn Crossian. Số tiền hiện ở đây chỉ để xem —
 // máy chủ tính lại từ sổ khi mở thanh toán (@mos2/shop/thanh-toan).
+import type { CauHinhGiao } from '@mos2/shop/giao';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { tinhGio, usd, type TongGio } from '@mos2/shop/gia';
@@ -9,7 +10,7 @@ import { DemNguoc } from './dem-nguoc';
 import { bao } from './do';
 
 export type MonGio = { b: number; sl: number; sp: number; slug: string; ten: string; tc: string; anh: string | null; gia: number; gia_goc: number | null };
-export type CauHinhGio = { bac_giam: BacGiam[]; ship: { phi: number; mien_phi_tu?: number | null }; sale_het: string | null };
+export type CauHinhGio = { bac_giam: BacGiam[]; ship: { phi: number; mien_phi_tu?: number | null }; sale_het: string | null; giao: CauHinhGiao };
 
 type Ctx = { mon: MonGio[]; tong: TongGio; mo: boolean; setMo: (v: boolean) => void; them: (m: MonGio) => void; doiSl: (b: number, sl: number) => void;
   bo: (b: number) => void; xoaHet: () => void; cfg: CauHinhGio };

@@ -9,6 +9,7 @@ import { matTien, ptMa, type MatTien } from './mat-tien';
 import { stripe, type Pi } from './stripe';
 import { ghiSoPhuDon } from './so-phu';
 import { guiThu, thuXacNhan } from './thu';
+import { cauHinhGiao } from './giao';
 
 export type ShopTT = { id: number; khoa: string; project_id: string; ten: string; domain: string; nen_tang: string; mat_tien: MatTien };
 export type MonTT = { bien_the_id: number; san_pham_id: number; slug: string; ten: string; tuy_chon: string; anh: string | null; sl: number; gia: number; gia_goc: number | null };
@@ -137,7 +138,7 @@ export async function chotThanhToan(ch: ShopTT, ttId: string): Promise<{ don_id:
       const thu = thuXacNhan(shopThu, { so_don: d!.so_don, ten: khach.ten.split(' ')[0] || 'there', mon: tt.mon.map((x) => ({ ten: x.ten, tuy_chon: x.tuy_chon, sl: x.sl, gia: x.gia })),
         tam_tinh: Number(tt.tam_tinh), giam: Number(tt.giam), ship: Number(tt.ship), tong,
         dia_chi: [diaChi.ten, diaChi.dong1, diaChi.dong2, `${diaChi.thanh_pho}, ${diaChi.bang} ${diaChi.zip}`, diaChi.nuoc].filter(Boolean).join(', '),
-        link: linkTheoDoi(ch, d!.so_don, d!.khoa_don) });
+        link: linkTheoDoi(ch, d!.so_don, d!.khoa_don), giao: cauHinhGiao(m.giao) });
       await guiThu(shopThu, khach.email, thu.tieuDe, thu.html, thu.chu)
         .then(() => ghiSuKien(donId, 'shop', `Đã gửi thư xác nhận tới ${khach.email}`))
         .catch((e) => ghiSuKien(donId, 'shop', `Gửi thư xác nhận lỗi: ${(e as Error).message}`, true));

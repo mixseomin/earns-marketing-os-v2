@@ -69,8 +69,12 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo }: { do
     const tu = Date.now() - 30 * 86_400_000;
     const tra = theoCh.filter((d) => d.buoc !== 'cho_tt' && d.buoc !== 'huy' && new Date(isoCua(d.taoLuc)).getTime() > tu);
     const coLai = tra.filter((d) => d.lai !== null);
-    return { don: tra.length, dt: tra.reduce((t, d) => t + d.tong - d.hoan, 0), lai: coLai.reduce((t, d) => t + (d.lai ?? 0), 0), thieuLai: tra.length - coLai.length };
-  }, [theoCh]);
+    // Đo "khách có yên tâm không": hồ sơ khách hỏi/khiếu nại (không tính dispute) trên 100 đơn, và dispute 90 ngày — cùng sổ hồ sơ
+    const hs = hoSo.filter((h) => h.ben === 'khach' && (ch === 'all' || h.cuaHang === ch));
+    const hoi = hs.filter((h) => h.loai !== 'dispute' && new Date(isoCua(h.taoLuc)).getTime() > tu).length;
+    const dispute = hs.filter((h) => h.loai === 'dispute' && new Date(isoCua(h.taoLuc)).getTime() > Date.now() - 90 * 86_400_000).length;
+    return { don: tra.length, dt: tra.reduce((t, d) => t + d.tong - d.hoan, 0), lai: coLai.reduce((t, d) => t + (d.lai ?? 0), 0), thieuLai: tra.length - coLai.length, hoi, dispute };
+  }, [theoCh, hoSo, ch]);
 
   const dongBo = () => batDau(async () => {
     setBao(null);
@@ -137,7 +141,10 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo }: { do
           { key: 'don', label: 'Đơn 30 ngày', value: kpi.don },
           { key: 'dt', label: 'Doanh thu 30 ngày', value: tien(kpi.dt), sub: 'đã trừ hoàn' },
           { key: 'lai', label: 'Lãi ước 30 ngày', value: tien(kpi.lai), color: kpi.don ? mauTien(kpi.lai) : undefined, sub: kpi.thieuLai ? `${kpi.thieuLai} đơn thiếu giá vốn` : undefined },
-          { key: 'xl', label: 'Cần xử lý', value: canXuLy, color: canXuLy ? 'var(--warn)' : undefined, sub: 'chờ/lỗi NCC · chờ trả · trễ',
+          { key: 'hoi', label: 'Khách hỏi / 100 đơn', value: kpi.don ? Math.round((kpi.hoi / kpi.don) * 100) : '—', sub: `${kpi.hoi} hồ sơ hỏi/khiếu nại · 30 ngày`,
+          title: 'Hồ sơ khách (liên hệ, khiếu nại, đổi trả, hoàn tiền) trên 100 đơn đã trả trong 30 ngày — càng thấp càng tốt: khách thấy đơn chạy thì không phải hỏi.' },
+        { key: 'dp', label: 'Dispute 90 ngày', value: kpi.dispute, color: kpi.dispute ? 'var(--bad)' : undefined, sub: 'khách khiếu nại qua ngân hàng' },
+        { key: 'xl', label: 'Cần xử lý', value: canXuLy, color: canXuLy ? 'var(--warn)' : undefined, sub: 'chờ/lỗi NCC · chờ trả · trễ',
             onClick: canXuLy ? () => { setTab('don'); setBuoc(dem.loi_ncc ? 'loi_ncc' : dem.cho_tra ? 'cho_tra' : dem.tre ? 'tre' : 'cho_ncc'); } : undefined },
         ]} />
         </div>}

@@ -112,7 +112,8 @@ async function ghiSoPhu(ch: CuaHang, donId: number, o: WooDon) {
            (SELECT ten FROM shop_don_mon WHERE don_id = ${donId} ORDER BY id LIMIT 1) AS mon`))[0]!;
   const phi = Number(meta(o.meta_data, '_stripe_fee')) || Math.round((Number(o.total) * 0.029 + 0.3) * 100) / 100;
   const raw = { gia_von: Math.round(Number(x.gv ?? 0) * 100) / 100, ship: Number(x.ship ?? 0), phi, so_mon: o.line_items.reduce((t, i) => t + i.quantity, 0), cj: x.ma ?? '' };
-  const ev = [{ ts: gmt(o.date_paid_gmt)!, loai: 'don', amount: Number(o.total), ma_don: String(o.id), raw }]
+  const huy = ['cancelled', 'failed'].includes(o.status);   // đơn huỷ sau khi trả (không qua hoàn) → không tính doanh thu
+  const ev = [{ ts: gmt(o.date_paid_gmt)!, loai: 'don', amount: huy ? 0 : Number(o.total), ma_don: String(o.id), raw: huy ? { ...raw, huy: true } : raw }]
     .concat(o.refunds.map((r) => ({ ts: new Date().toISOString(), loai: 'hoan', amount: Math.abs(Number(r.total)), ma_don: `hoan-${r.id}`, raw: { don: o.id, ly_do: r.reason } as never })));
   for (const e of ev) await q(sql`
     INSERT INTO phu_su_kien (project_id, ts, loai, sid, sid_prefix, platform_slug, amount, ma_don, nguon_du_lieu, raw)
@@ -136,12 +137,24 @@ type DonDu = { id: number; ma_ngoai: string; so_don: string; trang_thai_shop: st
 /** Đặt đơn sang CJ (payType 3 = CHỈ TẠO, CHƯA TRẢ). Tuyến = rẻ nhất trong các tuyến giao ≤ ngay_ship_max ngày.
  *  Khoá chống trùng: chèn dòng DANG_TAO trước (index một dòng sống mỗi đơn) — lượt thứ hai cùng lúc chèn hụt thì thôi. */
 export async function sangNcc(ch: CuaHang, donId: number, nguoi = 'mos2'): Promise<{ ok: boolean; loi?: string }> {
+  let nccId: number | null = null;
+  try { return await sangNccLoi(ch, donId, nguoi, (id) => { nccId = id; }); }
+  catch (e) {
+    const loi = (e as Error).message;
+    if (nccId) await q(sql`UPDATE shop_don_ncc SET trang_thai = 'LOI', loi = ${loi}, updated_at = now() WHERE id = ${nccId} AND trang_thai = 'DANG_TAO'`);
+    await ghiSuKien(donId, 'ncc', `Sang NCC lỗi: ${loi}`, true);
+    return { ok: false, loi };
+  }
+}
+
+async function sangNccLoi(ch: CuaHang, donId: number, nguoi: string, giuCho: (id: number) => void): Promise<{ ok: boolean; loi?: string }> {
   const [d] = await q<DonDu>(sql`SELECT id, ma_ngoai, so_don, trang_thai_shop, khach, dia_chi FROM shop_don WHERE id = ${donId}`);
   if (!d) return { ok: false, loi: 'không có đơn' };
   if (d.trang_thai_shop !== 'processing') return { ok: false, loi: `đơn đang ${d.trang_thai_shop}, chỉ đặt NCC khi processing (đã trả tiền)` };
   const giu = await q<{ id: number }>(sql`INSERT INTO shop_don_ncc (don_id, ncc, trang_thai) VALUES (${donId}, ${ch.ncc}, 'DANG_TAO') ON CONFLICT DO NOTHING RETURNING id`);
   if (!giu.length) return { ok: false, loi: 'đơn đã có đơn NCC đang sống' };
   const nccId = giu[0]!.id;
+  giuCho(nccId);
   const hong = async (loi: string) => {
     await q(sql`UPDATE shop_don_ncc SET trang_thai = 'LOI', loi = ${loi}, updated_at = now() WHERE id = ${nccId}`);
     await ghiSuKien(donId, 'ncc', `Sang ${ch.ncc.toUpperCase()} lỗi: ${loi}`, true);
@@ -161,7 +174,7 @@ export async function sangNcc(ch: CuaHang, donId: number, nguoi = 'mos2'): Promi
   const t = tuyen[0]!;
   const r = await cj<{ orderId: string; productAmount?: number }>('shopping/order/createOrderV2', {
     orderNumber: `${ch.khoa.slice(0, 2).toUpperCase()}${d.so_don}`,
-    shippingCountryCode: nuoc, shippingProvince: d.dia_chi.bang, shippingCity: d.dia_chi.thanh_pho,
+    shippingCountryCode: nuoc, shippingCountry: new Intl.DisplayNames(['en'], { type: 'region' }).of(nuoc) ?? nuoc, shippingProvince: d.dia_chi.bang, shippingCity: d.dia_chi.thanh_pho,
     shippingAddress: `${d.dia_chi.dong1} ${d.dia_chi.dong2}`.trim(), shippingZip: d.dia_chi.zip,
     shippingCustomerName: d.dia_chi.ten || d.khach.ten, shippingPhone: d.khach.sdt, email: d.khach.email,
     logisticName: t.logisticName, fromCountryCode: ch.cau_hinh.quoc_gia_kho ?? 'CN', payType: 3, products: sp,

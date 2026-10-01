@@ -18,10 +18,11 @@ export const CHIEU: Chieu[] = [
   { key: 'nguon', nhan: 'Nguồn', bieuThuc: "coalesce(nullif(s.nguon, ''), '(không rõ)')" },
   { key: 'camp', nhan: 'Camp', bieuThuc: "coalesce(nullif(s.camp, ''), '(không camp)')" },
   { key: 'dich', nhan: 'Offer / SP', bieuThuc: "coalesce(nullif(s.dich, ''), '—')" },
+  { key: 'zone', nhan: 'Zone', bieuThuc: "coalesce(nullif(s.zone, ''), '(không zone)')" },
 ];
 
 /* Cột gốc cộng dồn được (sum) — tỷ lệ tính SAU khi cộng, không bao giờ cộng tỷ lệ. */
-const GOC = ['chi', 'hien_thi', 'click', 'phien', 'phien_tt', 'vao', 'ra', 'signup', 'aff', 'don', 'doanh_thu', 'gia_von', 'ship', 'phi', 'hoan', 'them_gio'] as const;
+const GOC = ['chi', 'hien_thi', 'click', 'phien', 'phien_tt', 'view', 'cong', 'click_lp', 'ra', 'bot', 'signup', 'aff', 'don', 'doanh_thu', 'gia_von', 'ship', 'phi', 'hoan', 'them_gio', 'chi_zone', 'click_zone'] as const;
 type Goc = (typeof GOC)[number];
 
 export type Kieu = 'tien' | 'so' | 'pt' | 'x';
@@ -44,10 +45,20 @@ export const CHI_SO: ChiSo[] = [
   { key: 'ctr', nhan: 'CTR', kieu: 'pt', sql: chia(g('click'), g('hien_thi')), tong: 'tinh', cum: 'qc', chuThich: 'Click / hiển thị' },
   { key: 'cpc', nhan: 'CPC', kieu: 'tien', sql: chia(g('chi'), g('click')), tong: 'tinh', cum: 'qc', chuThich: 'Chi / click' },
   { key: 'phien', nhan: 'Phiên GA4', kieu: 'so', sql: g('phien'), tong: 'cong', cum: 'traffic', chuThich: 'Phiên GA4 (sessions)' },
-  { key: 'vao', nhan: 'Vào lander', kieu: 'so', sql: g('vao'), tong: 'cong', cum: 'traffic', chuThich: 'Lượt vào lander (view + click /px)' },
+  { key: 'view', nhan: 'View lander', kieu: 'so', sql: g('view'), tong: 'cong', cum: 'traffic', chuThich: 'Lượt xem lander (sự kiện view)' },
+  { key: 'cong', nhan: 'Qua cổng', kieu: 'so', sql: g('cong'), tong: 'cong', cum: 'traffic', chuThich: 'Lượt qua cổng 18+ / cổng xác nhận (gate)' },
+  { key: 'cong_pt', nhan: 'Cổng %', kieu: 'pt', sql: chia(g('cong'), g('view')), tong: 'tinh', cum: 'traffic', chuThich: 'Qua cổng / view' },
+  { key: 'click_lp', nhan: 'Click lander', kieu: 'so', sql: g('click_lp'), tong: 'cong', cum: 'traffic', chuThich: 'Bấm trên lander (/px click)' },
+  { key: 'ctr_lp', nhan: 'CTR lander', kieu: 'pt', sql: chia(g('click_lp'), g('view')), tong: 'tinh', cum: 'traffic', chuThich: 'Click lander / view' },
   { key: 'ra', nhan: 'Bấm ra', kieu: 'so', sql: g('ra'), tong: 'cong', cum: 'traffic', chuThich: 'Lượt bấm ra offer (/r/)' },
+  { key: 'bot', nhan: 'Bot', kieu: 'so', sql: g('bot'), tong: 'cong', cum: 'traffic', chuThich: 'Hit bị chấm là bot ở /x/' },
+  { key: 'bot_pt', nhan: 'Bot %', kieu: 'pt', sql: chia(g('bot'), `(${g('bot')} + ${g('ra')})`), tong: 'tinh', cum: 'traffic', chuThich: 'Bot / (bot + bấm ra)' },
+  { key: 'chi_zone', nhan: 'Chi (zone)', kieu: 'tien', sql: g('chi_zone'), tong: 'cong', cum: 'qc', chuThich: 'Chi theo zone mạng báo (phu_zone, ExoClick) — tách khỏi cột Chi để tổng không đổi khi chia theo zone' },
+  { key: 'click_zone', nhan: 'Click mạng (zone)', kieu: 'so', sql: g('click_zone'), tong: 'cong', cum: 'qc', chuThich: 'Click theo zone mạng báo (phu_zone)' },
+  { key: 'hit_zone', nhan: 'Hit ÷ click mạng', kieu: 'pt', sql: chia(g('ra'), g('click_zone')), tong: 'tinh', cum: 'qc', chuThich: 'Hit /x/ của mình ÷ click mạng theo zone — thấp = traffic mua không tới máy mình (luật P2)' },
   { key: 'them_gio', nhan: 'Thêm giỏ', kieu: 'so', sql: g('them_gio'), tong: 'cong', cum: 'traffic', chuThich: 'Thêm giỏ (GA4 addToCarts)' },
   { key: 'signup', nhan: 'Signup', kieu: 'so', sql: g('signup'), tong: 'cong', cum: 'chuyen', chuThich: 'Đăng ký affiliate báo về' },
+  { key: 'signup_1k', nhan: 'Signup / 1k click', kieu: 'so', sql: `(${g('signup')})::numeric * 1000 / nullif(${g('click_lp')}, 0)`, tong: 'tinh', cum: 'chuyen', chuThich: 'Signup trên 1.000 click lander (thước đo của bộ luật camp)' },
   { key: 'don', nhan: 'Đơn', kieu: 'so', sql: g('don'), tong: 'cong', cum: 'chuyen', chuThich: 'Đơn shop đã thu tiền' },
   { key: 'cr', nhan: 'CR đơn/phiên', kieu: 'pt', sql: chia(g('don'), g('phien')), tong: 'tinh', cum: 'chuyen', chuThich: 'Đơn / phiên GA4' },
   { key: 'thu', nhan: 'Tiền về', kieu: 'tien', sql: THU, tong: 'cong', cum: 'tien', chuThich: 'Doanh thu đơn + tiền affiliate − hoàn' },
@@ -57,7 +68,7 @@ export const CHI_SO: ChiSo[] = [
   { key: 'lai', nhan: 'Lãi', kieu: 'tien', sql: LAI, tong: 'cong', cum: 'tien', chuThich: 'Tiền về − chi − giá vốn − ship − phí' },
   { key: 'roas', nhan: 'ROAS', kieu: 'x', sql: chia(THU, g('chi')), tong: 'tinh', cum: 'tien', chuThich: 'Tiền về / chi' },
   { key: 'cpa', nhan: 'CPA (đơn+signup)', kieu: 'tien', sql: chia(g('chi'), `(${g('don')} + ${g('signup')})`), tong: 'tinh', cum: 'chuyen', chuThich: 'Chi / (đơn + signup)' },
-  { key: 'epc', nhan: 'EPC', kieu: 'tien', sql: chia(THU, `greatest(${g('click')}, ${g('vao')})`), tong: 'tinh', cum: 'tien', chuThich: 'Tiền về / click (lấy số lớn hơn giữa click mạng và lượt vào)' },
+  { key: 'epc', nhan: 'EPC', kieu: 'tien', sql: chia(THU, `greatest(${g('click')}, ${g('click_lp')})`), tong: 'tinh', cum: 'tien', chuThich: 'Tiền về / click (lấy số lớn hơn giữa click mạng và lượt vào)' },
 ];
 export const CHI_SO_MAC_DINH = ['chi', 'click', 'cpc', 'phien', 'ra', 'signup', 'don', 'thu', 'lai', 'roas'];
 /** Dải KPI — tổng của khoảng, tỷ lệ chia lại từ tổng (cùng dòng Tổng của bảng). */
@@ -73,7 +84,7 @@ export const DUONG_BIEU_DO = [
   { key: 'signup', nhan: 'Signup', mau: '#db2777', kieu: 'cot', truc: 'phai' },
 ] as const;
 /** Chiều có ô lọc (giá trị lấy từ chính dữ liệu trong khoảng). */
-export const LOC = ['du_an', 'nguon', 'camp', 'dich'];
+export const LOC = ['du_an', 'nguon', 'camp', 'dich', 'zone'];
 /** Bấm một ô chiều này = lọc nó VÀ chia xuống chiều kế (như report2 adfond: Campaign → Ad group). */
 export const XUONG: Record<string, string> = { du_an: 'nguon', nguon: 'camp', camp: 'dich' };
 
@@ -82,8 +93,9 @@ export const XUONG: Record<string, string> = { du_an: 'nguon', nguon: 'camp', ca
 const GA4_CAMP = "CASE WHEN a.camp <> '' AND position('_' in a.camp) = 0 THEN lower(a.nguon) || '_' || a.camp ELSE a.camp END";
 const so = (raw: string) => `coalesce(nullif(e.raw->>'${raw}', '')::numeric, 0)`;
 /* Một khuôn dòng cho cả ba bảng — cột nào bảng không có thì 0. Thứ tự cột phải khớp CỘT_S. */
-const COT_S = ['project_id', 'ngay', 'nguon', 'camp', 'dich', ...GOC] as const;
-const dong = (v: Partial<Record<(typeof COT_S)[number], string>>) => COT_S.map((c) => `${v[c] ?? '0'} AS ${c}`).join(', ');
+const COT_CHU = ['project_id', 'ngay', 'nguon', 'camp', 'dich', 'zone'] as const;
+const COT_S = [...COT_CHU, ...GOC] as const;
+const dong = (v: Partial<Record<(typeof COT_S)[number], string>>) => COT_S.map((c) => `${v[c] ?? ((COT_CHU as readonly string[]).includes(c) ? "''" : '0')} AS ${c}`).join(', ');
 export const NGUON_S = `(
   SELECT ${dong({ project_id: 'c.project_id', ngay: 'c.ngay', nguon: 'c.nguon_key', camp: 'c.sid_prefix', dich: "''",
     chi: 'c.chi_usd', hien_thi: 'coalesce(c.impressions, 0)', click: 'coalesce(c.clicks, 0)' })}
@@ -91,17 +103,22 @@ export const NGUON_S = `(
   UNION ALL
   SELECT ${dong({ project_id: 'e.project_id', ngay: "(e.ts AT TIME ZONE 'UTC')::date", nguon: "split_part(coalesce(e.sid_prefix, ''), '_', 1)",
     camp: "coalesce(e.sid_prefix, '')", dich: "coalesce(e.platform_slug, '')",
-    vao: "(e.loai IN ('view', 'click'))::int", ra: "(e.loai = 'out')::int", signup: "(e.loai = 'signup')::int",
+    zone: "coalesce(e.raw->>'zone', '')", view: "(e.loai = 'view')::int", cong: "(e.loai = 'gate')::int", click_lp: "(e.loai = 'click')::int",
+    ra: "(e.loai = 'out')::int", bot: "(e.loai = 'bot')::int", signup: "(e.loai = 'signup')::int",
     aff: "CASE WHEN e.loai IN ('spend', 'lead') THEN e.amount ELSE 0 END",
     don: "(e.loai = 'don')::int", doanh_thu: "CASE WHEN e.loai = 'don' THEN e.amount ELSE 0 END",
     gia_von: `CASE WHEN e.loai = 'don' THEN ${so('gia_von')} ELSE 0 END`, ship: `CASE WHEN e.loai = 'don' THEN ${so('ship')} ELSE 0 END`,
     phi: `CASE WHEN e.loai IN ('don', 'hoan') THEN ${so('phi')} ELSE 0 END`, hoan: "CASE WHEN e.loai = 'hoan' THEN e.amount ELSE 0 END" })}
     FROM phu_su_kien e WHERE e.project_id = ANY($1) AND e.ts >= $2::date AND e.ts < $3::date + 1
-      AND e.loai IN ('view', 'click', 'out', 'signup', 'lead', 'spend', 'don', 'hoan')
+      AND e.loai IN ('view', 'gate', 'click', 'out', 'bot', 'signup', 'lead', 'spend', 'don', 'hoan')
   UNION ALL
   SELECT ${dong({ project_id: 'a.project_id', ngay: 'a.ngay', nguon: 'a.nguon', camp: GA4_CAMP, dich: "''",
     phien: 'a.phien', phien_tt: 'a.phien_tt', them_gio: 'a.them_gio' })}
     FROM phu_ga4_ngay a WHERE a.project_id = ANY($1) AND a.ngay BETWEEN $2::date AND $3::date
+  UNION ALL
+  SELECT ${dong({ project_id: 'z.project_id', ngay: 'z.ngay', nguon: "split_part(z.sid_prefix, '_', 1)", camp: 'z.sid_prefix', zone: 'z.zone_id',
+    chi_zone: 'z.chi_usd', click_zone: 'z.clicks' })}
+    FROM phu_zone z WHERE z.project_id = ANY($1) AND z.ngay BETWEEN $2::date AND $3::date
 ) s`;
 
 export type YeuCau = { duAn: string[]; tu: string; den: string; gop: string[]; chiSo: string[]; loc?: Record<string, string[]> };
@@ -143,8 +160,9 @@ if (typeof process !== 'undefined' && process.argv?.[1]?.endsWith('/bao-cao2.ts'
   ok('dựng được SQL', 'sql' in q);
   ok('gộp theo ngày + camp', q.sql.includes('GROUP BY 1, 2') && q.cot.join() === 'ngay,camp,chi,lai,roas');
   ok('tỷ lệ chia sau khi cộng, mẫu 0 → null', q.sql.includes('nullif(sum(s.chi), 0)'));
-  ok('ba nguồn đều vào', ['phu_chi', 'phu_su_kien', 'phu_ga4_ngay'].every((t) => q.sql.includes(t)));
-  ok('mỗi nhánh UNION cùng số cột', (NGUON_S.match(/ AS hoan/g) ?? []).length === 3 && (NGUON_S.match(/ AS project_id/g) ?? []).length === 3);
+  ok('bốn nguồn đều vào', ['phu_chi', 'phu_su_kien', 'phu_ga4_ngay', 'phu_zone'].every((t) => q.sql.includes(t)));
+  ok('mỗi nhánh UNION cùng số cột', (NGUON_S.match(/ AS hoan/g) ?? []).length === 4 && (NGUON_S.match(/ AS zone/g) ?? []).length === 4);
+  ok('cột chữ trống là chuỗi rỗng, không phải 0', NGUON_S.includes("'' AS zone"));
   const x = dungTruyVan({ duAn: ['a'], tu: '2026-09-01', den: '2026-09-02', gop: ["ngay; DROP TABLE x"], chiSo: ['khong_co'] }) as TruyVan;
   ok('chiều/chỉ số lạ bị bỏ (whitelist), chỉ số rỗng → mặc định', !x.sql.includes('DROP') && x.cot.join() === CHI_SO_MAC_DINH.join());
   const l = dungTruyVan({ duAn: ['a'], tu: '2026-09-01', den: '2026-09-02', gop: ['camp'], chiSo: [], loc: { nguon: ["x' or 1=1", 'exo'] } }) as TruyVan;

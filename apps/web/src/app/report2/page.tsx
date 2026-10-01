@@ -6,6 +6,8 @@
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { BaoCao2View } from '@/components/bao-cao2-view';
+import { getPhu, listPhuProjects } from '@/lib/phu';
+import { PHU_PHAN_XET, phanXet } from '@/lib/phu-shared';
 import { CHIEU, CHI_SO, CHI_SO_MAC_DINH, CUM, DUONG_BIEU_DO, KPI, LOC, dungTruyVan, truyVanChonCho, type TruyVan } from '@/lib/bao-cao2';
 
 export const dynamic = 'force-dynamic';
@@ -53,8 +55,20 @@ export default async function Report2Page({ searchParams }: { searchParams: Prom
       chonCho = Object.fromEntries(LOC.map((k) => [k, [...new Set(d.map((r) => String(r[k] ?? '')).filter(Boolean))].sort()]));
     } catch (e) { loi = (e as Error).message; }
   }
+  /* Chia theo Camp → cột Phán xét · Trạng thái · Ngân sách: đọc ĐÚNG getPhu + phanXet của trang chủ (bộ luật be.adfond chấm),
+     không tính lại kiểu thứ hai. Khoá theo sid_prefix. */
+  let campInfo: Record<string, { ma: string; nhan: string; mau: string; lyDo: string; trangThai: string; nganSach: number | null }> = {};
+  if (y.gop.includes('camp') && !loi) {
+    const coPhu = await listPhuProjects();
+    const ngay = Math.min(90, Math.max(1, Math.round((Date.parse(y.den) - Date.parse(y.tu)) / 86_400_000) + 1));
+    const phu = await Promise.all(y.duAn.filter((p) => coPhu.includes(p)).map((p) => getPhu(p, ngay).catch(() => null)));
+    campInfo = Object.fromEntries(phu.flatMap((d) => d?.camp ?? []).map((c) => {
+      const px = phanXet(c);
+      return [c.sidPrefix, { ma: px.ma, nhan: PHU_PHAN_XET[px.ma]?.label ?? px.ma, mau: PHU_PHAN_XET[px.ma]?.color ?? 'var(--fg-3)', lyDo: px.lyDo, trangThai: c.trangThai, nganSach: c.nganSachNgay }];
+    }));
+  }
   return (
-    <BaoCao2View
+    <BaoCao2View campInfo={campInfo}
       y={y} rows={rows} ngayRows={ngayRows} dongTong={dongTong} chonCho={chonCho} loi={loi}
       chieu={CHIEU.map(({ key, nhan }) => ({ key, nhan }))}
       chiSo={CHI_SO.map(({ key, nhan, kieu, cum, chuThich }) => ({ key, nhan, kieu, cum, chuThich }))}

@@ -12,6 +12,8 @@ type Kieu = 'tien' | 'so' | 'pt' | 'x';
 type Y = { duAn: string[]; tu: string; den: string; gop: string[]; chiSo: string[]; loc: Record<string, string[]> };
 type Dong = Record<string, unknown>;
 type ChiSoMan = { key: string; nhan: string; kieu: Kieu; cum: string; chuThich: string };
+type CampInfo = { ma: string; nhan: string; mau: string; lyDo: string; trangThai: string; nganSach: number | null };
+const TRANG_THAI_CAMP: Record<string, string> = { chay: 'đang chạy', tam_dung: 'tạm dừng', nhap: 'nháp', ket_thuc: 'kết thúc' };
 
 const so = (v: unknown) => (v == null || v === '' ? null : Number(v));
 function hien(v: unknown, k: Kieu): string {
@@ -28,7 +30,8 @@ const MAU_TIEN = (k: string) => (['chi', 'gia_von', 'phi', 'hoan', 'cpc', 'cpa']
 const chip: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '2px 8px', borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer' };
 const nhanNho: React.CSSProperties = { fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--fg-3)' };
 
-export function BaoCao2View({ y, rows, ngayRows, dongTong, chonCho, loi, chieu, chiSo, cum }: {
+export function BaoCao2View({ y, rows, ngayRows, dongTong, chonCho, loi, chieu, chiSo, cum, campInfo }: {
+  campInfo: Record<string, CampInfo>;
   y: Y; rows: Dong[]; ngayRows: Dong[]; dongTong: Dong | null; chonCho: Record<string, string[]>; loi: string | null;
   chieu: { key: string; nhan: string }[]; chiSo: ChiSoMan[]; cum: { key: string; nhan: string; mau: string }[];
 }) {
@@ -84,6 +87,18 @@ export function BaoCao2View({ y, rows, ngayRows, dongTong, chonCho, loi, chieu, 
         total: i === 0 ? () => <b>Tổng</b> : undefined,
       };
     }).filter((c): c is DataColumn<Dong> => !!c),
+    /* Chia theo Camp: phán xét của BỘ LUẬT (cùng trang chủ) + trạng thái + ngân sách/ngày, cạnh tên camp. */
+    ...(y.gop.includes('camp') ? [
+      { key: '_px', header: 'Phán xét', align: 'left' as const, title: 'Kết quả bộ luật camp (be.adfond chấm) — cùng cột Phán xét ở tab Campaign trang chủ',
+        cell: (r: Dong) => { const c = campInfo[String(r.camp)]; return c ? <span title={c.lyDo} style={{ color: c.mau, fontWeight: 600, fontSize: 11 }}>{c.nhan}</span> : <span style={{ color: 'var(--fg-4, #b8b8b8)' }}>—</span>; },
+        sortValue: (r: Dong) => campInfo[String(r.camp)]?.ma ?? '' },
+      { key: '_tt', header: 'Trạng thái', align: 'left' as const,
+        cell: (r: Dong) => <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{TRANG_THAI_CAMP[campInfo[String(r.camp)]?.trangThai ?? ''] ?? campInfo[String(r.camp)]?.trangThai ?? '—'}</span>,
+        sortValue: (r: Dong) => campInfo[String(r.camp)]?.trangThai ?? '' },
+      { key: '_ns', header: 'Ngân sách/ngày',
+        cell: (r: Dong) => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{hien(campInfo[String(r.camp)]?.nganSach, 'tien')}</span>,
+        sortValue: (r: Dong) => campInfo[String(r.camp)]?.nganSach ?? null },
+    ] as DataColumn<Dong>[] : []),
     ...y.chiSo.filter((k) => csTheoKhoa[k]).sort((a, b) => thuTuCum(csTheoKhoa[a]!.cum) - thuTuCum(csTheoKhoa[b]!.cum)).map((k): DataColumn<Dong> => {
       const m = csTheoKhoa[k]!;
       const o = (v: unknown, dam = false) => {

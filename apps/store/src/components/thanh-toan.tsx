@@ -15,7 +15,7 @@ import { bao } from './do';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 declare global { interface Window { Stripe?: (pk: string) => any } }
 
-type Phien = { id: string; client_secret: string; mon: MonTT[]; tong: TongGio };
+type Phien = { id: string; client_secret: string; mon: MonTT[]; tong: TongGio; ma: string | null };
 const KHOA_TT = 'tt-id';
 
 function napStripe(): Promise<void> {
@@ -32,6 +32,11 @@ export function ThanhToan({ ten, logo, pk, shipTen, saleHet }: { ten: string; lo
   const [loi, setLoi] = useState('');
   const [dang, setDang] = useState(false);
   const [coVi, setCoVi] = useState(true);
+  // Mã giảm: khách gõ, hoặc mã tặng lúc đăng ký nhận tin (lưu ở trình duyệt) tự điền sẵn
+  const [ma, setMa] = useState('');
+  const [oMa, setOMa] = useState('');
+  const [loiMa, setLoiMa] = useState('');
+  useEffect(() => { try { const m = localStorage.getItem('ma-giam'); if (m) { setMa(m); setOMa(m); } } catch { /* */ } }, []);
   const stripeRef = useRef<any>(null), theRef = useRef<any>(null), viRef = useRef<any>(null), phienRef = useRef<Phien | null>(null);
   const viMount = useRef<HTMLDivElement>(null), soMount = useRef<HTMLDivElement>(null), hanMount = useRef<HTMLDivElement>(null), cvcMount = useRef<HTMLDivElement>(null);
   phienRef.current = phien;
@@ -42,17 +47,18 @@ export function ThanhToan({ ten, logo, pk, shipTen, saleHet }: { ten: string; lo
     if (!gio.length) return;
     let huy = false;
     let id: string | null = null; try { id = sessionStorage.getItem(KHOA_TT); } catch { /* bộ nhớ bị chặn */ }
-    fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, mon: gio.map((m) => ({ b: m.b, sl: m.sl })) }) })
+    fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ma: ma || null, mon: gio.map((m) => ({ b: m.b, sl: m.sl })) }) })
       .then(async (r) => { const j = await r.json(); if (!r.ok) throw new Error(j.loi || 'checkout'); return j as Phien; })
       .then((p) => {
         if (huy) return;
         try { sessionStorage.setItem(KHOA_TT, p.id); } catch { /* như trên */ }
+        setLoiMa(ma && !p.ma ? 'This discount code is not valid.' : '');
         setPhien(p);
         bao('begin_checkout', { value: p.tong.tong, items: p.mon.map((m) => ({ item_id: String(m.san_pham_id), item_name: m.ten, item_variant: m.tuy_chon, price: m.gia, quantity: m.sl })) });
       })
       .catch(() => !huy && setLoi('We could not load your cart. Please refresh the page.'));
     return () => { huy = true; };
-  }, [khoaGio]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [khoaGio, ma]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const xong = useCallback((id: string) => { try { sessionStorage.removeItem(KHOA_TT); } catch { /* */ } xoaHet(); router.push(`/thank-you?tt=${id}`); }, [router, xoaHet]);
 
@@ -129,10 +135,16 @@ export function ThanhToan({ ten, logo, pk, shipTen, saleHet }: { ten: string; lo
       {(phien?.mon ?? []).map((m) => <div className="tt-mon" key={m.bien_the_id}>{m.anh ? <img src={m.anh} alt="" /> : <div />}
         <div><div className="ten-m">{m.ten}</div><div className="tc">{m.tuy_chon}</div>
           <div className="dg-m"><span><b>Quantity</b>: {m.sl}</span><span>{m.gia_goc ? <s>{usd(m.gia_goc * m.sl)}</s> : null}{usd(m.gia * m.sl)}</span></div></div></div>)}
+      <form className="o-ma" onSubmit={(e) => { e.preventDefault(); setMa(oMa.trim().toUpperCase()); }}>
+        <input className="o" id="tt-ma" placeholder="Discount code" value={oMa} onChange={(e) => setOMa(e.target.value)} autoComplete="off" />
+        <button className="nut-den" type="submit" disabled={!oMa.trim()}>Apply</button>
+      </form>
+      {loiMa && <p className="loi" style={{ marginTop: -8 }}>{loiMa}</p>}
       {t && <div className="tt-tong">
         <div><span>Subtotal</span><b>{usd(t.tam_tinh)}</b></div>
         <div><span>{shipTen}</span><b>{t.ship ? usd(t.ship) : 'FREE'}</b></div>
         {t.giam > 0 && <div className="giam"><span>Bundle discount ({t.pt}% OFF)</span><span>- {usd(t.giam)}</span></div>}
+        {t.ma_giam > 0 && <div className="giam"><span>Discount ({phien?.ma})</span><span>- {usd(t.ma_giam)}</span></div>}
         <div className="cuoi"><span>Total</span><span>{t.goc + t.ship > t.tong ? <s>{usd(t.goc + t.ship)}</s> : null}{usd(t.tong)}</span></div>
       </div>}
     </div>

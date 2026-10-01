@@ -11,4 +11,6 @@ const ba = tinhGio([{ gia: 10, gia_goc: 20, sl: 3 }], bac, { phi: 6.99, mien_phi
 assert.equal(ba.pt, 15); assert.equal(ba.giam, 4.5); assert.equal(ba.ship, 6.99); assert.equal(ba.tong, 32.49); assert.equal(ba.tiet_kiem, 34.5); assert.equal(ba.bac_tiep, null);
 const rong = tinhGio([], bac, { phi: 6.99 });
 assert.equal(rong.ship, 0); assert.equal(rong.tong, 0);
+const ma = tinhGio([{ gia: 50, sl: 2 }], bac, { phi: 0 }, 10);
+assert.equal(ma.giam, 10); assert.equal(ma.ma_giam, 9); assert.equal(ma.tong, 81); assert.equal(ma.tiet_kiem, 19);
 console.log('gia: ok');

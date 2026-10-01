@@ -18,7 +18,10 @@ export type MatTien = {
   do?: { ga4?: string; meta_pixel?: string; gads?: string; gads_nhan?: string };
   trang?: Record<string, TrangTinh>;    // /static/<khoá>: exchanges-returns · orders-shipping · privacy · terms-of-service
   dong_sale?: string;                   // khối đỏ/cam giữa cột mua, 2 dòng cách nhau \n — chỉ ghi ưu đãi CÓ THẬT
-  cam_ket?: string[];                   // 3 ô cam kết dưới nút mua (ship, đổi trả, thanh toán) — đúng chính sách shop
+  cam_ket?: string[];
+  faq?: { hoi: string; dap: string }[];  // khối FAQ cuối trang sản phẩm (khuôn orabra) — trả lời đúng chính sách shop
+  ma_giam?: { ma: string; pt: number }[]; // mã giảm áp ở checkout (vd mã tặng khi đăng ký nhận tin)
+  dang_ky?: { tieu_de: string; chu: string; ma: string } | null; // ô đăng ký chân trang: tặng mã nào                   // 3 ô cam kết dưới nút mua (ship, đổi trả, thanh toán) — đúng chính sách shop
 };
 
 export const TRANG_TINH = [
@@ -41,5 +44,8 @@ export function matTien(raw: unknown): Required<Pick<MatTien, 'bac_giam' | 'ship
 }
 
 /** Tên biến môi trường theo cửa hàng: SHOP_<KHOA>_<DUOI> (khoá API không nằm trong DB). */
+/** % giảm của một mã (không phân biệt hoa thường); mã lạ → 0. */
+export const ptMa = (m: MatTien, ma: string | null | undefined) => (ma ? m.ma_giam?.find((x) => x.ma.toUpperCase() === ma.trim().toUpperCase())?.pt ?? 0 : 0);
+
 export const tenEnv = (khoa: string, duoi: string) => `SHOP_${khoa.toUpperCase().replace(/[^A-Z0-9]/g, '_')}_${duoi}`;
 export const envShop = (khoa: string, duoi: string) => process.env[tenEnv(khoa, duoi)] ?? '';

@@ -2,7 +2,17 @@
   "thanh_tren": "Free Shipping on Every US Order + Buy 2, Get 10% Off",
   "bac_giam": [{ "sl": 2, "pt": 10 }, { "sl": 3, "pt": 15 }],
   "ship": { "phi": 0, "ten": "Free Shipping" },
-  "dong_sale": "Free Shipping - 30-Day Returns\nBuy More Save More: 2 for 10% Off, 3+ for 15% Off",
+  "dong_sale": "Free Shipping - 30-Day Returns",
   "cam_ket": ["🚚 Free US shipping", "↩️ 30-day returns", "🔒 Secure checkout"],
-  "do": { "ga4": "G-0B7PF9KH4W" }
+  "do": { "ga4": "G-0B7PF9KH4W" },
+  "ma_giam": [{ "ma": "WELCOME10", "pt": 10 }],
+  "dang_ky": { "tieu_de": "Join us & get 10% off", "chu": "Sign up for first access to sales and offers. Your code applies at checkout.", "ma": "WELCOME10" },
+  "faq": [
+    { "hoi": "How long does shipping take?", "dap": "<p>Orders are packed and handed to the carrier within 1-3 business days. Delivery to most US addresses then takes 7-15 business days. Shipping is free on every order.</p>" },
+    { "hoi": "How can I track my order?", "dap": "<p>As soon as your order ships we email you a tracking link. You can also look it up any time on our <a href=\"/trackings/search\">Track your order</a> page with your order number and email. Tracking can take 2-3 days to show movement.</p>" },
+    { "hoi": "Can I change or cancel my order?", "dap": "<p>You can cancel for a full refund any time before your order ships. If you spot a mistake in your address, email us within 12 hours of ordering and we'll fix it before it ships.</p>" },
+    { "hoi": "What is your return and refund policy?", "dap": "<p>You have 30 days from delivery. Wrong size: we send the new size or refund you. Change of mind: email us within 30 days for a partial refund to keep the shoes, or a full refund once the unworn pair is returned. Full details on our <a href=\"/static/exchanges-returns\">Refund Policy</a>.</p>" },
+    { "hoi": "My item arrived damaged or isn't what I ordered. What now?", "dap": "<p>Email us your order number and a photo of the problem. We'll send a replacement or refund you in full, and you don't need to send anything back.</p>" },
+    { "hoi": "How can I reach customer support?", "dap": "<p>Email <a href=\"mailto:support@mellowstep.com\">support@mellowstep.com</a> or use our <a href=\"/contact\">contact form</a>. We usually reply within 24 hours.</p>" }
+  ]
 }

@@ -5,7 +5,7 @@ import { randomBytes } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { q, ghiSuKien, linkTheoDoi } from './su-kien';
 import { tinhGio, type TongGio } from './gia';
-import { matTien, type MatTien } from './mat-tien';
+import { matTien, ptMa, type MatTien } from './mat-tien';
 import { stripe, type Pi } from './stripe';
 import { ghiSoPhuDon } from './so-phu';
 import { guiThu, thuXacNhan } from './thu';
@@ -39,34 +39,37 @@ export async function monTuSo(ch: { id: number }, yeuCau: { b: number; sl: numbe
   return ra;
 }
 
-export const tongCua = (ch: ShopTT, mon: MonTT[]): TongGio => {
+export const tongCua = (ch: ShopTT, mon: MonTT[], ma?: string | null): TongGio => {
   const m = matTien(ch.mat_tien);
-  return tinhGio(mon, m.bac_giam, m.ship);
+  return tinhGio(mon, m.bac_giam, m.ship, ptMa(m, ma));
 };
 
 /** Tạo/cập nhật phiên + PaymentIntent cho giỏ hiện tại. Trả client_secret để trình duyệt xác nhận thẻ / Apple Pay. */
-export async function moThanhToan(ch: ShopTT, ttId: string | null, yeuCau: { b: number; sl: number }[], utm: Record<string, string>) {
+export async function moThanhToan(ch: ShopTT, ttId: string | null, yeuCau: { b: number; sl: number }[], utm: Record<string, string>, ma?: string | null) {
   const mon = await monTuSo(ch, yeuCau);
   if (!mon.length) throw new Error('giỏ trống');
-  const t = tongCua(ch, mon);
+  const t = tongCua(ch, mon, ma);
+  const maDung = t.ma_pt ? ma!.trim().toUpperCase() : null;
+  const giamHet = Math.round((t.giam + t.ma_giam) * 100) / 100;   // cột giam = mọi khoản giảm (bậc + mã) — chia đều xuống từng dòng khi chốt
   const cents = Math.round(t.tong * 100);
   const cu = ttId ? (await q<{ id: string; pi: string | null; trang_thai: string }>(sql`
     SELECT id, pi, trang_thai FROM shop_thanh_toan WHERE id = ${ttId}::uuid AND cua_hang_id = ${ch.id}`).catch(() => []))[0] : undefined;
   if (cu && cu.trang_thai === 'cho' && cu.pi) {
     const pi = await stripe<Pi>(ch.khoa, 'POST', `payment_intents/${cu.pi}`, { amount: cents });
-    await q(sql`UPDATE shop_thanh_toan SET mon = ${JSON.stringify(mon)}::jsonb, tam_tinh = ${t.tam_tinh}, giam = ${t.giam}, ship = ${t.ship}, tong = ${t.tong}, cap_nhat = now() WHERE id = ${cu.id}::uuid`);
-    return { id: cu.id, client_secret: pi.client_secret, mon, tong: t };
+    await q(sql`UPDATE shop_thanh_toan SET mon = ${JSON.stringify(mon)}::jsonb, tam_tinh = ${t.tam_tinh}, giam = ${giamHet}, ship = ${t.ship}, tong = ${t.tong},
+                  ma_giam = ${maDung}, cap_nhat = now() WHERE id = ${cu.id}::uuid`);
+    return { id: cu.id, client_secret: pi.client_secret, mon, tong: t, ma: maDung };
   }
   const [r] = await q<{ id: string }>(sql`
-    INSERT INTO shop_thanh_toan (cua_hang_id, mon, tam_tinh, giam, ship, tong, utm)
-    VALUES (${ch.id}, ${JSON.stringify(mon)}::jsonb, ${t.tam_tinh}, ${t.giam}, ${t.ship}, ${t.tong}, ${JSON.stringify(utm)}::jsonb) RETURNING id`);
+    INSERT INTO shop_thanh_toan (cua_hang_id, mon, tam_tinh, giam, ship, tong, utm, ma_giam)
+    VALUES (${ch.id}, ${JSON.stringify(mon)}::jsonb, ${t.tam_tinh}, ${giamHet}, ${t.ship}, ${t.tong}, ${JSON.stringify(utm)}::jsonb, ${maDung}) RETURNING id`);
   const pi = await stripe<Pi>(ch.khoa, 'POST', 'payment_intents', {
     amount: cents, currency: 'usd', payment_method_types: ['card'], description: `${ch.ten} order`,
     statement_descriptor_suffix: ch.ten.toUpperCase().replace(/[^A-Z0-9 ]/g, '').slice(0, 22),
     metadata: { tt: r!.id, shop: ch.khoa },
   }, `tt-${r!.id}`);
   await q(sql`UPDATE shop_thanh_toan SET pi = ${pi.id} WHERE id = ${r!.id}::uuid`);
-  return { id: r!.id, client_secret: pi.client_secret, mon, tong: t };
+  return { id: r!.id, client_secret: pi.client_secret, mon, tong: t, ma: maDung };
 }
 
 /** Ghi thông tin khách ngay trước khi xác nhận thanh toán (form hoặc ví Apple Pay). */

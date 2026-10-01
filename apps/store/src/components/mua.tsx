@@ -1,14 +1,16 @@
 'use client';
-// Cột mua + ảnh của trang sản phẩm — khuôn Crossian. Mọi số hiện ra là số thật (xem @mos2/shop/mat-tien).
+// Cột mua + ảnh của trang sản phẩm — khuôn Crossian + các khối của orabra (nhãn tuỳ chọn ở trên, ô màu bằng ảnh tròn, dòng bậc
+// giảm, sao + số review dẫn xuống khối Reviews, ảnh có mũi tên/vuốt). Mọi số hiện ra là số thật (xem @mos2/shop/mat-tien).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usd } from '@mos2/shop/gia';
 import type { SanPham } from '@/lib/shop';
+import type { BacGiam } from '@mos2/shop/mat-tien';
 import { useGio, SoLuong } from './gio';
 import { DemNguoc } from './dem-nguoc';
 import { bao } from './do';
 
 export type DuLieuMua = { sp: SanPham; diem: number | null; soDg: number; daBan: number; saleHet: string | null; dongSale: string | null; tonDuoi: number;
-  camKet: string[] };
+  camKet: string[]; bac: BacGiam[] };
 
 function phienXem() {
   try { let p = sessionStorage.getItem('phien'); if (!p) { p = Math.random().toString(36).slice(2); sessionStorage.setItem('phien', p); } return p; }
@@ -63,6 +65,11 @@ export function TrangMua({ d }: { d: DuLieuMua }) {
   }, [sp.id]);
 
   const gia = bt?.gia ?? sp.gia, goc = bt ? bt.gia_goc : sp.gia_goc;
+  // ảnh đại diện cho một giá trị tuỳ chọn (màu) — chỉ dùng ô ảnh khi MỌI giá trị của tuỳ chọn đó đều có ảnh riêng
+  const anhCua = (ten: string, gt: string) => sp.bien_the.find((b) => b.tuy_chon[ten] === gt && b.anh)?.anh ?? null;
+  const oAnh = (ten: string, ds: string[]) => ds.length > 1 && ds.every((g) => anhCua(ten, g)) && new Set(ds.map((g) => anhCua(ten, g))).size === ds.length;
+  const doiAnh = (buoc: number) => setAnh((i) => (i + buoc + dsAnh.length) % dsAnh.length);
+  const vuot = useRef<number | null>(null);
   const tenTc = sp.tuy_chon.map((t) => t.ten).join(' and ');
   const tiep = tong.bac_tiep;
   const mua = () => {
@@ -74,20 +81,36 @@ export function TrangMua({ d }: { d: DuLieuMua }) {
 
   return <div className="sp">
     <div className="sp-anh">
-      <div className="chinh">{dsAnh[anh] && <img src={dsAnh[anh]} alt={sp.ten} fetchPriority="high" />}</div>
-      {dsAnh.length > 1 && <div className="dai">{dsAnh.map((a, i) => <button key={a} aria-current={i === anh} aria-label={`Image ${i + 1}`} onClick={() => setAnh(i)}><img src={a} alt="" loading="lazy" /></button>)}</div>}
+      <div className="chinh" onTouchStart={(e) => { vuot.current = e.touches[0]!.clientX; }}
+        onTouchEnd={(e) => { if (vuot.current === null) return; const dx = e.changedTouches[0]!.clientX - vuot.current; vuot.current = null; if (Math.abs(dx) > 40) doiAnh(dx < 0 ? 1 : -1); }}>
+        {dsAnh[anh] && <img src={dsAnh[anh]} alt={sp.ten} fetchPriority="high" />}
+        {dsAnh.length > 1 && <span className="so-anh">{anh + 1} / {dsAnh.length}</span>}
+      </div>
+      {dsAnh.length > 1 && <div className="dai-khung">
+        <button className="mui" aria-label="Previous image" onClick={() => doiAnh(-1)}>‹</button>
+        <div className="dai">{dsAnh.map((a, i) => <button key={a} aria-current={i === anh} aria-label={`Image ${i + 1}`}
+          ref={(e) => { if (e && i === anh) e.parentElement!.scrollTo({ left: e.offsetLeft - e.parentElement!.clientWidth / 2 + e.clientWidth / 2, behavior: 'smooth' }); }}
+          onClick={() => setAnh(i)}><img src={a} alt="" loading="lazy" /></button>)}</div>
+        <button className="mui" aria-label="Next image" onClick={() => doiAnh(1)}>›</button>
+      </div>}
     </div>
     <div className="mua">
-      {d.diem !== null && d.soDg > 0 && <div className="rated">Rated <span className="sao" aria-label={`${d.diem} out of 5`}>{'★'.repeat(Math.round(d.diem))}</span><span className="dong-nho">({d.soDg})</span></div>}
       <h1>{sp.tieu_de}</h1>
+      {d.diem !== null && d.soDg > 0 && <a className="rated" href="#reviews"><span className="sao" aria-label={`${d.diem} out of 5`}>{'★'.repeat(Math.round(d.diem))}</span><u>{d.soDg} {d.soDg === 1 ? 'Review' : 'Reviews'}</u></a>}
       <div className="gia">{usd(gia)}{goc ? <s>{usd(goc)}</s> : null}</div>
       {d.saleHet && <DemNguoc den={d.saleHet} />}
+      {d.bac.length > 0 && <div className="bac">{d.bac.map((b, i) => `BUY ${b.sl}${i === d.bac.length - 1 && d.bac.length > 1 ? '+' : ''}, SAVE ${b.pt}%`).join(' · ')}
+        <small>Mix any {sp.tuy_chon.map((t) => t.ten.toLowerCase()).join(' and ') || 'item'}</small></div>}
       {d.dongSale && <div className="bao-sale"><span className="d">{d.dongSale.split('\n')[0]}</span>{d.dongSale.includes('\n') && <><br /><span className="c">{d.dongSale.split('\n')[1]}</span></>}</div>}
-      <div ref={khoiChon} style={{ display: 'grid', gap: 14 }}>{sp.tuy_chon.map((t) => <div className="chon" key={t.ten}>
-        <label>{t.ten}</label>
-        <div className="nut-ds" role="group" aria-label={t.ten}>{t.gia_tri.map((g) => <button key={g} type="button" className="nut" aria-pressed={chon[t.ten] === g}
-          disabled={!coTon(t.ten, g)} onClick={() => { setChon((c) => ({ ...c, [t.ten]: g })); setNhac(''); }}>{g}</button>)}</div>
-      </div>)}</div>
+      <div ref={khoiChon} style={{ display: 'grid', gap: 16 }}>{sp.tuy_chon.map((t) => {
+        const anhOk = oAnh(t.ten, t.gia_tri);
+        return <div className="chon" key={t.ten}>
+          <label>{t.ten}: <b>{chon[t.ten] ?? <span className="chua">Select</span>}</b></label>
+          <div className={`nut-ds${anhOk ? ' o-anh' : ''}`} role="group" aria-label={t.ten}>{t.gia_tri.map((g) => <button key={g} type="button" className="nut" aria-pressed={chon[t.ten] === g}
+            title={g} aria-label={anhOk ? g : undefined} disabled={!coTon(t.ten, g)} onClick={() => { setChon((c) => ({ ...c, [t.ten]: g })); setNhac(''); }}>
+            {anhOk ? <img src={anhCua(t.ten, g)!} alt="" loading="lazy" /> : g}</button>)}</div>
+        </div>;
+      })}</div>
       {tiep && <div className="uu-dai"><b>{tong.so_mon === 0 ? `Add ${tiep.can} items to cart to get ${tiep.pt}% off` : `Extra ${tiep.pt}% off for next item in cart`}</b>
         {tenTc ? `Apply to any ${tenTc}` : 'Apply to any item'}</div>}
       <div className="hang-mua" ref={khoiMua}><SoLuong sl={sl} doi={(n) => setSl(Math.min(20, Math.max(1, n)))} />

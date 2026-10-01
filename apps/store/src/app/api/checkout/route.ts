@@ -7,11 +7,11 @@ import { shopHienTai } from '@/lib/shop';
 export async function POST(req: Request) {
   const s = await shopHienTai();
   if (!s) return NextResponse.json({ loi: 'shop' }, { status: 404 });
-  const b = (await req.json().catch(() => ({}))) as { id?: string | null; mon?: { b: number; sl: number }[] };
+  const b = (await req.json().catch(() => ({}))) as { id?: string | null; mon?: { b: number; sl: number }[]; ma?: string | null };
   let utm: Record<string, string> = {};
   try { utm = JSON.parse((await cookies()).get('nguon')?.value ?? '{}'); } catch { /* cookie hỏng: đơn không có nguồn */ }
   try {
-    const p = await moThanhToan(s, b.id && /^[0-9a-f-]{36}$/.test(b.id) ? b.id : null, (b.mon ?? []).slice(0, 30), utm);
+    const p = await moThanhToan(s, b.id && /^[0-9a-f-]{36}$/.test(b.id) ? b.id : null, (b.mon ?? []).slice(0, 30), utm, typeof b.ma === 'string' ? b.ma.slice(0, 40) : null);
     return NextResponse.json(p);
   } catch (e) {
     console.error('checkout', (e as Error).message);

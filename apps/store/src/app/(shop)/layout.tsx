@@ -2,31 +2,43 @@ import Link from 'next/link';
 import { shopHienTai } from '@/lib/shop';
 import { NutGio } from '@/components/gio';
 import { Menu } from '@/components/menu';
+import { DangKy } from '@/components/dang-ky';
+import { LenDau } from '@/components/len-dau';
 import { TRANG_TINH } from '@mos2/shop/mat-tien';
 
-// Khung trang bán hàng: dải trên + đầu trang (menu · logo giữa · giỏ) + chân trang. Checkout đứng ngoài khung này (2 cột riêng).
+// Khung trang bán hàng — khuôn orabra: đầu trang dính (dải trên · logo giữa · giỏ phải · menu ngang ở desktop, ☰ ở mobile),
+// "Scroll to top", chân trang 3 cột (Contact us · Info · đăng ký nhận mã). Checkout đứng ngoài khung này.
 export default async function KhungShop({ children }: { children: React.ReactNode }) {
   const s = await shopHienTai();
   if (!s) return null;
   const m = s.mt;
   const logo = m.logo ? <img src={m.logo} alt={s.ten} /> : s.ten;
-  const lien = [{ href: '/', ten: 'Shop all' }, { href: '/trackings/search', ten: 'Order Tracking' },
-    ...TRANG_TINH.map((t) => ({ href: `/static/${t.khoa}`, ten: t.ten })), { href: '/contact', ten: 'Contact Us' }];
+  const chinh = [{ href: '/', ten: 'Home' }, { href: '/trackings/search', ten: 'Track your order' }];
+  const lien = [...chinh, ...TRANG_TINH.map((t) => ({ href: `/static/${t.khoa}`, ten: t.ten })), { href: '/contact', ten: 'Contact us' }];
   return <>
-        {m.thanh_tren && <div className="thanh-tren">{m.thanh_tren}</div>}
-        <header className="dau"><div className="khung"><Menu lien={lien} /><Link className="logo" href="/">{logo}</Link><NutGio /></div></header>
-        <main>{children}</main>
-        <footer className="chan"><div className="khung">
-          <div className="cot">
-            <div><h3 className="lon">How can we help you?</h3><Link className="lien-he" href="/contact">Contact Us</Link>
-              {m.dia_chi && <div className="dc"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z" /><circle cx="12" cy="9.5" r="2.5" /></svg>{m.dia_chi}</div>}
-              {m.email && <div className="dc"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg><a href={`mailto:${m.email}`} style={{ color: '#fff' }}>{m.email}</a></div>}
-            </div>
-            <div><h3>Order</h3><Link className="lien" href="/trackings/search">Order Tracking</Link>
-              <Link className="lien" href="/static/exchanges-returns">Exchanges &amp; Returns</Link><Link className="lien" href="/static/orders-shipping">Order &amp; Shipping</Link></div>
-            <div><h3>Resources</h3><Link className="lien" href="/static/terms-of-service">Terms of Service</Link><Link className="lien" href="/static/privacy">Privacy Policy</Link></div>
-          </div>
-          <div className="duoi"><span>Secure checkout by Stripe</span><span>© {new Date().getFullYear()} {s.ten}. All rights reserved.</span><a href="#">Go to top ↑</a></div>
-        </div></footer>
+    <div className="dau-dinh">
+      {m.thanh_tren && <div className="thanh-tren"><span>{m.thanh_tren}</span></div>}
+      <header className="dau"><div className="khung">
+        <Menu lien={lien} /><Link className="logo" href="/">{logo}</Link><NutGio />
+      </div>
+        <nav className="dau-nav" aria-label="Main">{chinh.map((l) => <Link key={l.href} href={l.href}>{l.ten}</Link>)}</nav>
+      </header>
+    </div>
+    <main>{children}</main>
+    <LenDau />
+    <footer className="chan"><div className="khung">
+      <div className="cot">
+        <div><h3>Need help?</h3><Link className="lien-he" href="/contact">Contact us</Link>
+          {m.email && <div className="dc">Email: <a href={`mailto:${m.email}`}>{m.email}</a></div>}
+          {m.dia_chi && <div className="dc">Address: {m.dia_chi}</div>}
+        </div>
+        <div><h3>{s.domain} info</h3>
+          <Link className="lien" href="/static/privacy">Privacy Policy</Link><Link className="lien" href="/static/exchanges-returns">Refund Policy</Link>
+          <Link className="lien" href="/static/terms-of-service">Terms of Service</Link><Link className="lien" href="/static/orders-shipping">Shipping Policy</Link>
+          <Link className="lien" href="/trackings/search">Track your order</Link></div>
+        {m.dang_ky ? <DangKy tieuDe={m.dang_ky.tieu_de} chu={m.dang_ky.chu} /> : <div />}
+      </div>
+      <div className="duoi"><span>© {new Date().getFullYear()} {s.ten}. All rights reserved.</span><span>Secure checkout by Stripe</span></div>
+    </div></footer>
   </>;
 }

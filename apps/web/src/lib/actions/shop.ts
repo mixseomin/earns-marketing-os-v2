@@ -3,6 +3,7 @@
 import { dsVideo } from '@mos2/shop/video';
 import { CUA_SO, type CuaSo } from '@mos2/shop/phien';
 import { docPhien, docSuKienPhien } from '@/lib/shop/phien';
+import { ga4ThoiGianThuc } from '@/lib/shop/ga4-tt';
 import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
@@ -71,12 +72,13 @@ export async function shopSuaBienThe(id: number, v: { maNcc: string | null; giaV
   return { ok: true };
 }
 
-export async function shopSuaCauHinh(khoa: string, c: { ngay_ship_max: number; tu_sang_ncc: boolean; tu_tra_ncc: boolean; trang_thai: 'bat' | 'tat' }) {
+export async function shopSuaCauHinh(khoa: string, c: { ngay_ship_max: number; tu_sang_ncc: boolean; tu_tra_ncc: boolean; trang_thai: 'bat' | 'tat'; ga4_property?: string }) {
   await admin();
   const ngay = Math.max(3, Math.min(30, Math.round(Number(c.ngay_ship_max) || 11)));
+  const ga4 = String(c.ga4_property ?? '').replace(/\D/g, '').slice(0, 15);
   await db().execute(sql`
     UPDATE shop_cua_hang SET trang_thai = ${c.trang_thai},
-      cau_hinh = cau_hinh || ${JSON.stringify({ ngay_ship_max: ngay, tu_sang_ncc: !!c.tu_sang_ncc, tu_tra_ncc: !!c.tu_tra_ncc })}::jsonb
+      cau_hinh = cau_hinh || ${JSON.stringify({ ngay_ship_max: ngay, tu_sang_ncc: !!c.tu_sang_ncc, tu_tra_ncc: !!c.tu_tra_ncc, ga4_property: ga4 || null })}::jsonb
      WHERE khoa = ${khoa}`);
   revalidatePath('/shop');
   return { ok: true };
@@ -139,4 +141,11 @@ export async function shopPhien(cuaSo: CuaSo) {
 export async function shopSuKienPhien(id: string) {
   await admin();
   return docSuKienPhien(String(id).slice(0, 60));
+}
+
+/** GA4 thời gian thực của các cửa hàng có cau_hinh.ga4_property (màn gọi lại 20 giây/lần; máy chủ nhớ 20 giây). */
+export async function shopGa4TT(ch: string) {
+  await admin();
+  const ds = (await dsCuaHang(false)).filter((c) => (ch === 'all' || c.khoa === ch) && c.cau_hinh.ga4_property);
+  return Promise.all(ds.map(async (c) => ({ cuaHang: c.ten, ...(await ga4ThoiGianThuc(c.cau_hinh.ga4_property!)) })));
 }

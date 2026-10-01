@@ -11,7 +11,7 @@ import { dsVideo } from '@mos2/shop/video';
 import { doiSoat, ghiSoPhuDon, ghiSuKien, guiThu, linkTheoDoi, matTien, sidTuUtm, thuDaGui, type MatTien } from '@mos2/shop';
 
 export type CuaHang = { id: number; khoa: string; project_id: string; ten: string; domain: string; ncc: string; nen_tang: string; mat_tien: MatTien;
-  cau_hinh: { ngay_ship_max?: number; tu_sang_ncc?: boolean; tu_tra_ncc?: boolean; quoc_gia_kho?: string }; trang_thai: string; dong_bo_luc: string | null };
+  cau_hinh: { ngay_ship_max?: number; tu_sang_ncc?: boolean; tu_tra_ncc?: boolean; quoc_gia_kho?: string; ga4_property?: string }; trang_thai: string; dong_bo_luc: string | null };
 
 type Row = Record<string, unknown>;
 const db = () => { const d = getDb(); if (!d) throw new Error('chưa nối DB'); return d; };

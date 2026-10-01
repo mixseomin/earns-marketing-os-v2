@@ -28,7 +28,7 @@ export type ThamKhao = { url: string | null; nguon: string; ghi_chu: string; kho
 export type DanhGiaDong = { id: number; cuaHang: string; sanPham: string; ten: string; email: string | null; sao: number; tieuDe: string | null; noiDung: string;
   daMua: boolean; trangThai: string; taoLuc: string };
 export type CuaHangDong = { id: number; khoa: string; ten: string; domain: string; nenTang: string; ncc: string; trangThai: string; tenMien: string[]; matTien: MatTien;
-  cauHinh: { ngay_ship_max?: number; tu_sang_ncc?: boolean; tu_tra_ncc?: boolean; quoc_gia_kho?: string };
+  cauHinh: { ngay_ship_max?: number; tu_sang_ncc?: boolean; tu_tra_ncc?: boolean; quoc_gia_kho?: string; ga4_property?: string };
   dongBoLuc: string | null; dongBoLoi: string | null; soDon: number; soSanPham: number; thieuMa: number };
 
 export async function docShop() {

@@ -11,7 +11,8 @@ import { APP_TZ } from '@/lib/local-day';
 import { CHANG_PHIEN, CUA_SO, NHAN_SU_KIEN, type CuaSo } from '@mos2/shop/phien';
 import { isoCua, tien } from '@/lib/shop/buoc';
 import type { PhienDong, SuKienPhien } from '@/lib/shop/phien';
-import { shopPhien, shopSuKienPhien } from '@/lib/actions/shop';
+import { shopGa4TT, shopPhien, shopSuKienPhien } from '@/lib/actions/shop';
+import type { Ga4TT } from '@/lib/shop/ga4-tt';
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
 const giay = (s: string) => new Intl.DateTimeFormat('en-GB', { timeZone: APP_TZ, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date(isoCua(s)));
@@ -72,6 +73,8 @@ export function KhachTrucTiep({ ch }: { ch: string }) {
   const mo = ds.find((p) => p.id === modal.id) ?? null;
 
   return (<>
+    <Ga4ThoiGianThuc ch={ch} />
+    <h3 style={{ margin: '14px 0 6px', fontSize: 13, color: 'var(--fg-2)' }}>Sổ phiên của mình <span style={{ ...phu, fontWeight: 400 }}>— từng khách: trang, cuộn, bấm, bước phễu</span></h3>
     <StatsStrip minColWidth={130} cards={[
       { key: 'on', label: 'Đang online', value: online, color: online ? 'var(--ok)' : undefined, sub: `nhịp ${NHIP / 1000}s · ${luc ? giay(new Date(luc).toISOString()) : '…'}` },
       { key: 'ph', label: 'Phiên', value: ds.length, sub: CUA_SO.find((c) => c.value === cuaSo)?.label },
@@ -140,4 +143,51 @@ function DrawerPhien({ id, p, onClose }: { id: string; p: PhienDong | null; onCl
       </div>
     </Drawer>
   );
+}
+
+/* ── GA4 thời gian thực (Data API runRealtimeReport, lib/shop/ga4-tt.ts) — GA4 không cho nhúng khung trang của họ nên vẽ lại ở đây ── */
+const NHIP_GA4 = 20_000;
+function Ga4ThoiGianThuc({ ch }: { ch: string }) {
+  const [ds, setDs] = useState<(Ga4TT & { cuaHang: string })[] | null>(null);
+  useEffect(() => {
+    let song = true;
+    const nap = () => shopGa4TT(ch).then((r) => song && setDs(r)).catch(() => null);
+    nap();
+    const t = setInterval(() => document.visibilityState === 'visible' && nap(), NHIP_GA4);
+    return () => { song = false; clearInterval(t); };
+  }, [ch]);
+  if (ds === null) return <div style={phu}>Đang tải GA4…</div>;
+  if (!ds.length) return <EmptyState icon="📈" compact title="Chưa cửa hàng nào gắn GA4" description="Tab Cửa hàng › ô GA4 property — điền số property là số GA4 thời gian thực hiện ở đây." />;
+  return <>{ds.map((g) => {
+    const dinh = Math.max(1, ...g.theoPhut);
+    const ds5 = (ten: string, rows: { k: string; n: number }[]) => (
+      <div style={{ minWidth: 0 }}>
+        <SimpleTable rows={rows.length ? rows : [{ k: '—', n: 0 }]} getRowKey={(r) => r.k} columns={[
+          { key: 'k', header: ten, cell: (r) => <span style={{ display: 'inline-block', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'bottom' }} title={r.k}>{r.k}</span> },
+          { key: 'n', header: '', align: 'right', width: 40, cell: (r) => r.n || '' },
+        ]} />
+      </div>
+    );
+    return (
+      <Panel key={g.property} pad={10} title={`GA4 thời gian thực · ${g.cuaHang}`}
+        subtitle={`property ${g.property} · cập nhật ${giay(g.luc)} · tự tải lại ${NHIP_GA4 / 1000}s · GA4 không cho xem nguồn truy cập ở chế độ thời gian thực`}>
+        {g.loi && <div style={{ color: 'var(--bad)', fontSize: 12.5, marginBottom: 8 }}>GA4 báo lỗi: {g.loi}</div>}
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 300px) 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gap: 6, alignContent: 'start' }}>
+            <span style={{ fontSize: 11, ...phu, textTransform: 'uppercase', letterSpacing: '.06em' }}>Người dùng · 30 phút qua</span>
+            <b style={{ fontSize: 34, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{g.tong30}</b>
+            <span style={{ fontSize: 12, ...phu }}>{g.tong5} trong 5 phút qua</span>
+            <div title="Người dùng theo từng phút (trái = 30 phút trước, phải = bây giờ)" style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 48, marginTop: 6 }}>
+              {g.theoPhut.map((n, i) => <span key={i} title={`${29 - i} phút trước: ${n}`} style={{ flex: 1, height: `${Math.max(4, (n / dinh) * 100)}%`, borderRadius: 1.5,
+                background: n ? (i >= 25 ? 'var(--accent)' : 'var(--ok)') : 'var(--bg-3)' }} />)}
+            </div>
+            <span style={{ fontSize: 10.5, ...phu, display: 'flex', justifyContent: 'space-between' }}><span>-30 phút</span><span>bây giờ</span></span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10 }}>
+            {ds5('Quốc gia', g.nuoc)}{ds5('Thành phố', g.thanhPho)}{ds5('Thiết bị', g.thietBi)}{ds5('Trang', g.trang)}{ds5('Sự kiện', g.suKien)}
+          </div>
+        </div>
+      </Panel>
+    );
+  })}</>;
 }

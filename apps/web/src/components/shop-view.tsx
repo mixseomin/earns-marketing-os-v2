@@ -513,7 +513,7 @@ function BangDanhGia({ ds }: { ds: DanhGiaDong[] }) {
 
 /* ── Cửa hàng ───────────────────────────────────────────────────────────── */
 function TheCuaHang({ c }: { c: CuaHangDong }) {
-  const goc = { ngay_ship_max: c.cauHinh.ngay_ship_max ?? 11, tu_sang_ncc: !!c.cauHinh.tu_sang_ncc, tu_tra_ncc: !!c.cauHinh.tu_tra_ncc, trang_thai: c.trangThai as 'bat' | 'tat' };
+  const goc = { ngay_ship_max: c.cauHinh.ngay_ship_max ?? 11, tu_sang_ncc: !!c.cauHinh.tu_sang_ncc, tu_tra_ncc: !!c.cauHinh.tu_tra_ncc, trang_thai: c.trangThai as 'bat' | 'tat', ga4_property: c.cauHinh.ga4_property ?? '' };
   const [cfg, setCfg] = useState(goc);
   const [bao, setBao] = useState<string | null>(null);
   const [dangChay, batDau] = useTransition();
@@ -551,6 +551,11 @@ function TheCuaHang({ c }: { c: CuaHangDong }) {
             <TextField id={`shop-ngay-${c.khoa}`} size="sm" type="number" min={3} max={30} value={String(cfg.ngay_ship_max)}
               onChange={(e) => setCfg({ ...cfg, ngay_ship_max: Number(e.target.value) })} style={{ width: 64 }} />
             ngày
+          </span>
+          <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }} title="Số property GA4 (Admin › Property details) — tab Khách trực tiếp kéo số GA4 thời gian thực của property này.">
+            GA4 property
+            <TextField id={`shop-ga4-${c.khoa}`} size="sm" inputMode="numeric" value={cfg.ga4_property} placeholder="vd 556926376"
+              onChange={(e) => setCfg({ ...cfg, ga4_property: e.target.value })} style={{ width: 110 }} />
           </span>
           <button className="btn primary" disabled={!doi || dangChay} onClick={() => batDau(async () => { await shopSuaCauHinh(c.khoa, cfg); setBao('Đã lưu cấu hình'); })}>Lưu</button>
         </div>

@@ -47,7 +47,7 @@ export function moCuaKhach(moc: Moc[], nuocKhach: string, tenShop: string): MocK
   return ra.reverse();
 }
 
-type Dong = { id: number; so_don: string; tao_luc: string; dia_chi: { nuoc?: string }; khach: { email?: string }; ten: string;
+type Dong = { id: number; so_don: string; trang_thai_shop: string; tao_luc: string; dia_chi: { nuoc?: string }; khach: { email?: string }; ten: string;
   ncc_tt: string | null; da_tra: boolean | null; ma_van_don: string | null; gui_luc: string | null; giao_luc: string | null; so_ngay: string | null;
   moc: Moc[] | null; tt_vd: string | null; du_kien: { tu: string | null; den: string | null } | null; ma_chang_cuoi: string | null; hang_chang_cuoi: string | null };
 
@@ -56,7 +56,7 @@ export async function banKhach(khoa: string, soDon: string, chia: { key?: string
   const db = getDb();
   if (!db || !soDon || (!chia.key && !chia.email)) return null;
   const r = (await db.execute(sql`
-    SELECT d.id, d.so_don, d.tao_luc::text AS tao_luc, d.dia_chi, d.khach, c.ten,
+    SELECT d.id, d.so_don, d.trang_thai_shop, d.tao_luc::text AS tao_luc, d.dia_chi, d.khach, c.ten,
            n.trang_thai AS ncc_tt, n.da_tra, n.ma_van_don, n.gui_luc::text AS gui_luc, n.giao_luc::text AS giao_luc, n.so_ngay,
            n.moc, n.tt_vd, n.du_kien, n.ma_chang_cuoi, n.hang_chang_cuoi
       FROM shop_don d JOIN shop_cua_hang c ON c.id = d.cua_hang_id
@@ -107,6 +107,7 @@ export async function banKhach(khoa: string, soDon: string, chia: { key?: string
     so_don: d.so_don, ngay_dat: iso(d.tao_luc), buoc, hien_tai: buoc.reduce((i, b, j) => (b.xong ? j : i), 0),
     du_kien: duKien, moc: tatCa, mon,
     chang_cuoi: d.ma_chang_cuoi && kh ? { ma: d.ma_chang_cuoi, hang: kh.toUpperCase(), link: LINK_HANG[kh]!(d.ma_chang_cuoi) } : null,
-    ghi_chu: gui && !moc.some((m) => m.noi && !m.noi.endsWith('Center')) ? 'Tracking usually updates within 2-3 days after shipping.' : null,
+    ghi_chu: ['cancelled', 'refunded'].includes(d.trang_thai_shop) ? 'This order has been cancelled.'
+      : gui && !moc.some((m) => m.noi && !m.noi.endsWith('Center')) ? 'Tracking usually updates within 2-3 days after shipping.' : null,
   };
 }

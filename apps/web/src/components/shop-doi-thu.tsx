@@ -25,21 +25,63 @@ function SoGia({ gia, cuaMinh }: { gia: number | null; cuaMinh: number | null })
   const lech = Math.round(((gia - cuaMinh) / cuaMinh) * 100);
   return <span><b>{tien(gia)}</b> <span style={{ color: lech < -5 ? 'var(--bad)' : lech > 5 ? 'var(--ok)' : 'var(--fg-3)', fontSize: 12 }}>{lech === 0 ? 'bằng mình' : lech < 0 ? `rẻ hơn mình ${-lech}%` : `đắt hơn mình ${lech}%`}</span></span>;
 }
-/** Một quảng cáo đối thủ: media (ảnh/thumbnail thật) · định dạng · hook nguyên văn · headline · CTA · góc · ưu đãi · ngày chạy · trang đích. */
+/** Một quảng cáo đối thủ — dòng tóm tắt (ảnh nhỏ · định dạng · hook · góc · ưu đãi); BẤM để mở THẺ XEM TRƯỚC ngay tại chỗ (anh cần xem creative ở đây,
+ *  không phải nhảy sang Thư viện): toàn văn, ảnh lớn (đã lưu về kho — link fbcdn hết hạn), tiêu đề, mô tả, nút CTA, trang đích, ngày chạy. Sửa = nút riêng. */
 function DongQc({ x, sua, tenDt }: { x: QcDoiThu; sua: () => void; tenDt?: string }) {
-  const anh = x.media && /\.(jpe?g|png|webp|gif)(\?|$)|fbcdn|scontent/i.test(x.media) ? x.media : null;
+  const [mo, setMo] = useState(false);
+  const anh = x.anh ?? (x.media && /\.(jpe?g|png|webp|gif)(\?|$)|fbcdn|scontent/i.test(x.media) ? x.media : null);
+  const nho = x.anh ? `${x.anh}?w=160` : anh;
   return (
-    <NutCay onChon={sua}
-      dau={anh ? <img src={anh} alt="" width={56} height={56} loading="lazy" style={{ objectFit: 'cover', borderRadius: 4, flex: 'none', border: '1px solid var(--line)' }} /> : undefined}
+    <NutCay mo={mo} onDoi={() => setMo(!mo)}
+      dau={nho ? <img src={nho} alt="" width={56} height={56} loading="lazy" style={{ objectFit: 'cover', borderRadius: 4, flex: 'none', border: '1px solid var(--line)' }} /> : undefined}
       ten={<>{tenDt && <b style={{ fontWeight: 500 }}>{tenDt}</b>}<span style={{ ...phu, fontSize: 12 }}>{NEN_TANG_QC[x.nenTang] ?? x.nenTang}{x.dinhDang ? ` · ${DINH_DANG_QC[x.dinhDang] ?? x.dinhDang}` : ''}{x.soPhienBan ? ` · ${x.soPhienBan} phiên bản` : ''}</span>
         {x.hook ? <span style={{ fontStyle: 'italic' }}>“{x.hook.length > 160 ? `${x.hook.slice(0, 160)}…` : x.hook}”</span> : <span style={phu}>chưa chép nội dung</span>}
         {x.dangChay != null && <Pill color={x.dangChay ? 'var(--ok)' : 'var(--fg-3)'} label={x.dangChay ? 'đang chạy' : 'đã dừng'} uppercase={false} mono={false} />}
         {x.goc && <Pill color="var(--accent)" label={x.goc} uppercase={false} mono={false} />}
         {x.uuDai && <Pill color="var(--warn)" label={x.uuDai} uppercase={false} mono={false} />}</>}
-      phu={<>{x.noiDung && x.noiDung !== x.hook && <details onClick={(e) => e.stopPropagation()} style={{ margin: '2px 0 4px' }}><summary style={{ cursor: 'pointer' }}>toàn văn ({x.noiDung.length} ký tự)</summary>
-        <div style={{ whiteSpace: 'pre-wrap', color: 'var(--fg-2)', fontSize: 12.5, lineHeight: 1.5, padding: '4px 0', maxWidth: 760 }}>{x.noiDung.replace(/ \/ /g, '\n')}</div></details>}
-        {x.tieuDe ? <>tiêu đề “{x.tieuDe}”{x.moTa ? ` — ${x.moTa}` : ''} · </> : ''}{x.cta ? `nút ${x.cta} · ` : ''}{x.batDau ? `chạy từ ${x.batDau}` : 'chưa rõ ngày chạy'}{x.landing ? ` · trỏ tới ${host(x.landing)}` : ''}{x.ghiChu ? ` · ${x.ghiChu}` : ''}{x.luc ? ` · xem ${gio(x.luc)}` : ''}</>}
-      phai={<>{x.media && !anh && <LinkChip href={x.media} tone="neutral" size="xs">media ↗</LinkChip>}{x.landing && <LinkChip href={x.landing} tone="neutral" size="xs">trang đích ↗</LinkChip>}<LinkChip href={x.link} tone="neutral" size="xs">xem QC ↗</LinkChip></>} />
+      phu={mo ? undefined : <>{x.tieuDe ? <>tiêu đề “{x.tieuDe}” · </> : ''}{x.cta ? `nút ${x.cta} · ` : ''}{x.batDau ? `chạy từ ${x.batDau}` : 'chưa rõ ngày chạy'}{x.landing ? ` · trỏ tới ${host(x.landing)}` : ''} · bấm để xem creative</>}
+      phai={<><LinkChip href={x.link} tone="neutral" size="xs">Thư viện ↗</LinkChip><button className="btn ghost" onClick={sua}>Sửa</button></>}>
+      <TheQc x={x} anh={anh} tenDt={tenDt} />
+    </NutCay>
+  );
+}
+
+/** Thẻ xem trước quảng cáo, dựng theo bố cục quảng cáo Meta: tên page → toàn văn → media → thanh dưới (tên miền · tiêu đề · mô tả · nút CTA),
+ *  bên phải là thông số để soạn QC cho mình (định dạng, góc, ưu đãi, ngày chạy, phiên bản, trang đích). */
+function TheQc({ x, anh, tenDt }: { x: QcDoiThu; anh: string | null; tenDt?: string }) {
+  const lon = x.anh ? `${x.anh}?w=720` : anh;
+  const video = x.dinhDang === 'video' || x.dinhDang === 'ugc_video';
+  const van = (x.noiDung ?? x.hook ?? '').replace(/ \/ /g, '\n');
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 420px) minmax(0, 1fr)', gap: 16, padding: '8px 12px 14px 14px', alignItems: 'start' }}>
+      <div style={{ border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden', background: 'var(--bg-2)' }}>
+        <div style={{ padding: '10px 12px 6px', fontSize: 13 }}><b>{tenDt ?? 'Đối thủ'}</b><div style={{ ...phu, fontSize: 11.5 }}>Được tài trợ</div></div>
+        {van && <div style={{ padding: '0 12px 10px', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{van}</div>}
+        {lon ? <div style={{ position: 'relative' }}>
+          <img src={lon} alt="" style={{ width: '100%', display: 'block', background: 'var(--bg)' }} />
+          {video && <a href={x.link} target="_blank" rel="noreferrer" title="Video — mở Thư viện quảng cáo để xem"
+            style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', textDecoration: 'none' }}>
+            <span style={{ width: 56, height: 56, borderRadius: 28, background: 'rgba(0,0,0,.55)', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 22 }}>▶</span></a>}
+        </div> : <div style={{ padding: 24, textAlign: 'center', ...phu, fontSize: 12.5, borderTop: '1px solid var(--line)' }}>{x.media ? 'Ảnh chưa lưu được — mở Thư viện để xem' : 'Chưa có ảnh'}</div>}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 12px', borderTop: '1px solid var(--line)' }}>
+          <div style={{ minWidth: 0, flex: 1, display: 'grid', gap: 2 }}>
+            {x.landing && <span style={{ ...phu, fontSize: 11, textTransform: 'uppercase' }}>{host(x.landing)}</span>}
+            {x.tieuDe && <b style={{ fontSize: 13.5 }}>{x.tieuDe}</b>}
+            {x.moTa && <span style={{ ...phu, fontSize: 12 }}>{x.moTa}</span>}
+          </div>
+          {x.cta && <span style={{ padding: '6px 12px', borderRadius: 6, background: 'var(--bg)', border: '1px solid var(--line)', fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap' }}>{x.cta}</span>}
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '6px 12px', fontSize: 13 }}>
+        {([['Nền tảng', `${NEN_TANG_QC[x.nenTang] ?? x.nenTang}${x.dinhDang ? ` · ${DINH_DANG_QC[x.dinhDang] ?? x.dinhDang}` : ''}`],
+          ['Trạng thái', x.dangChay == null ? 'chưa rõ' : x.dangChay ? 'đang chạy' : 'đã dừng'], ['Chạy từ', x.batDau],
+          ['Phiên bản', x.soPhienBan ? `${x.soPhienBan} phiên bản cùng nội dung` : null], ['Góc bán', x.goc], ['Ưu đãi', x.uuDai], ['Nút', x.cta],
+          ['Ghi chú', x.ghiChu], ['Xem lúc', x.luc ? gio(x.luc) : null]] as [string, string | null][])
+          .map(([k, v]) => <span key={k} style={{ display: 'contents' }}><span style={phu}>{k}</span><span>{v ?? '—'}</span></span>)}
+        <span style={phu}>Trang đích</span><span>{x.landing ? <LinkChip href={x.landing} tone="neutral" size="xs">{host(x.landing)} ↗</LinkChip> : '—'}</span>
+        <span style={phu}>Thư viện QC</span><span><LinkChip href={x.link} tone="neutral" size="xs">mở quảng cáo này ↗</LinkChip></span>
+      </div>
+    </div>
   );
 }
 

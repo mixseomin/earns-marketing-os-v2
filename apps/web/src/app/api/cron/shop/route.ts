@@ -4,6 +4,7 @@
 //   curl -X POST http://127.0.0.1:3821/api/cron/shop -H "x-cron-secret: $SECRET"
 import { NextResponse } from 'next/server';
 import { dongBoNccChung, dsCuaHang, nhip, nhipDemo } from '@/lib/shop/dong-bo';
+import { luuMediaDoiThu } from '@/lib/shop/doi-thu-media';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -19,5 +20,6 @@ export async function POST(req: Request) {
   const kq = [];
   for (const ch of await dsCuaHang()) kq.push(await nhip(ch, { sanPham }));
   for (const ch of (await dsCuaHang(false)).filter((c) => c.trang_thai === 'demo')) kq.push(await nhipDemo(ch).catch((e) => ({ cua_hang: ch.khoa, loi: (e as Error).message })));
-  return NextResponse.json({ ok: true, ncc, kq });
+  const media = await luuMediaDoiThu().catch((e) => ({ loi: (e as Error).message }));   // ảnh QC đối thủ: link fbcdn hết hạn → lưu về kho ảnh
+  return NextResponse.json({ ok: true, ncc, kq, media });
 }

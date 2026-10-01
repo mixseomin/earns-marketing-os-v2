@@ -225,8 +225,10 @@ function CapLienKet({ sps, bts, tenNcc, nguongTon, chon }: { sps: SanPhamDong[];
         const bien = mine.map((b) => (b.giaBan && b.giaVon != null ? Math.round(((b.giaBan - b.giaVon) / b.giaBan) * 100) : null)).filter((x): x is number => x != null);
         const ton = mine.map((b) => b.tonNcc).filter((x): x is number => x != null);
         const tonMin = ton.length ? Math.min(...ton) : null;
+        // so theo MÃ biến thể đã nối, không theo tên (CJ "2014 Black" ≠ shop "Black"): màu NCC "chưa bán" = không vid nào của màu đó được shop dùng
+        const dungVid = new Set(mine.map((b) => b.maNcc).filter(Boolean) as string[]);
         const mauNcc = [...new Set((n?.bien_the ?? []).map((v) => mauCj(v.ten)))], mauBan = new Set(mine.map((b) => mauShop(b.ten).toLowerCase()));
-        const mauThieu = mauNcc.filter((m) => !mauBan.has(m.toLowerCase()));
+        const mauThieu = mauNcc.filter((m) => !(n?.bien_the ?? []).some((v) => mauCj(v.ten) === m && dungVid.has(v.vid)));
         const anhNcc = n?.chi_tiet?.anh?.[0] ?? n?.bien_the?.find((v) => v.anh)?.anh ?? null;
         const mau = !n ? 'var(--bad)' : loi ? 'var(--bad)' : (tonMin != null && tonMin < nguongTon) || p.nccDangBan === false ? 'var(--warn)' : 'var(--ok)';
         return (

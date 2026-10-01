@@ -32,8 +32,8 @@ function BangQc({ ds, sua, anGoc }: { ds: { x: QcDoiThu; tenDt?: string }[]; sua
   const [mo, setMo] = useState<Set<number>>(new Set());
   const coDt = ds.some((y) => y.tenDt);
   // cột phụ hẹp, hook (thứ đọc nhiều nhất) ăn phần còn lại; ngày bắt đầu nằm trong title của 'Đã chạy'
-  const cot: CotLa[] = [{ h: '', rong: 52 }, ...(coDt ? [{ h: 'Đối thủ', rong: 120 }] : []), { h: 'Dạng', rong: 64 }, { h: 'Hook (câu mở đầu)' },
-    ...(anGoc ? [] : [{ h: 'Góc bán', rong: 140 }]), { h: 'Ưu đãi', rong: 130 }, { h: 'Đã chạy', rong: 76, phai: true }, { h: 'Trạng thái', rong: 80 }, { h: '', rong: 96 }];
+  const cot: CotLa[] = [{ h: '', rong: 52 }, ...(coDt ? [{ h: 'Đối thủ', rong: 120 }] : []), { h: 'Dạng', rong: 72 }, { h: 'Hook (câu mở đầu)' },
+    ...(anGoc ? [] : [{ h: 'Góc bán', rong: 140 }]), { h: 'Ưu đãi', rong: 130 }, { h: 'Đã chạy', rong: 92, phai: true }, { h: 'Trạng thái', rong: 96 }, { h: '', rong: 96 }];
   const xep = [...ds].map((y) => ({ ...y, ngay: soNgayChay(y.x.batDau, y.x.dangChay, y.x.luc) })).sort((a, b) => (b.ngay ?? -1) - (a.ngay ?? -1));
   return (
     <LaBang cot={cot}>

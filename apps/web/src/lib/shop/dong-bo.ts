@@ -72,21 +72,31 @@ export async function dongBoSanPham(ch: CuaHang) {
   return { sanPham: sps.length, bienThe: soBt };
 }
 
-/** Video sản phẩm từ NCC (CJ productVideo) — hỏi MỘT lần mỗi sản phẩm (video_luc trống), chỉ ghi khi sổ chưa có video; sửa tay ở /shop
- *  đặt video_luc nên không bị đè. CJ giới hạn ~1 lượt/giây → đi tuần tự, nghỉ 1,1 giây. */
-export async function dongBoVideoNcc(ch: CuaHang) {
-  if (ch.ncc !== 'cj') return { hoi: 0, co: 0 };
-  const ds = await q<{ id: number; ma_ncc: string }>(sql`SELECT id, ma_ncc FROM shop_san_pham WHERE cua_hang_id = ${ch.id} AND ma_ncc IS NOT NULL AND video_luc IS NULL LIMIT 20`);
-  let co = 0;
+/** MỘT lượt đọc CJ product/query mỗi sản phẩm / ngày (CJ ~1 lượt/giây → tuần tự, nghỉ 1,1 giây), lấy hai thứ:
+ *  1. thông tin nguồn (ncc_info) cho tab Nhà cung cấp — mã, tên bên CJ, SKU, khoảng giá vốn, biến thể (vid) để soi biến thể mình gắn có khớp không;
+ *  2. video (productVideo) — chỉ gieo khi sổ chưa có video và chưa ai sửa tay (video_luc trống). */
+export async function dongBoThongTinNcc(ch: CuaHang) {
+  if (ch.ncc !== 'cj') return { doc: 0, video: 0 };
+  const ds = await q<{ id: number; ma_ncc: string; video_luc: string | null }>(sql`SELECT id, ma_ncc, video_luc::text FROM shop_san_pham
+    WHERE cua_hang_id = ${ch.id} AND ma_ncc IS NOT NULL AND (ncc_luc IS NULL OR ncc_luc < now() - interval '1 day') ORDER BY ncc_luc NULLS FIRST LIMIT 20`);
+  let video = 0;
   for (const p of ds) {
-    const r = await cj<{ productVideo?: unknown }>(`product/query?pid=${encodeURIComponent(p.ma_ncc)}`);
-    if (!r.result) continue;   // lỗi mạng / quá lượt: để video_luc trống, nhịp sau hỏi lại
-    const v = dsVideo(r.data?.productVideo);
-    if (v.length) co++;
-    await q(sql`UPDATE shop_san_pham SET video = CASE WHEN video = '[]'::jsonb THEN ${JSON.stringify(v)}::jsonb ELSE video END, video_luc = now() WHERE id = ${p.id}`);
+    const r = await cj<{ pid?: string; productNameEn?: string; productSku?: string; productVideo?: unknown; listedNum?: number; supplierId?: string | null;
+      sellPrice?: string; variants?: { vid: string; variantSellPrice?: number; variantNameEn?: string }[] }>(`product/query?pid=${encodeURIComponent(p.ma_ncc)}`);
+    if (!r.result || !r.data) {
+      await q(sql`UPDATE shop_san_pham SET ncc_info = COALESCE(ncc_info, '{}'::jsonb) || ${JSON.stringify({ loi: r.message ?? 'CJ không trả' })}::jsonb, ncc_luc = now() WHERE id = ${p.id}`);
+    } else {
+      const d = r.data, gia = (d.variants ?? []).map((v) => Number(v.variantSellPrice)).filter((x) => x > 0);
+      const info = { pid: d.pid ?? p.ma_ncc, ten: d.productNameEn ?? '', sku: d.productSku ?? '', gia_tu: gia.length ? Math.min(...gia) : Number(d.sellPrice) || null,
+        gia_den: gia.length ? Math.max(...gia) : null, so_bien_the: (d.variants ?? []).length, vids: (d.variants ?? []).map((v) => v.vid), listed: d.listedNum ?? null, supplier_id: d.supplierId ?? null };
+      const v = dsVideo(d.productVideo);
+      if (v.length && !p.video_luc) video++;
+      await q(sql`UPDATE shop_san_pham SET ncc_info = ${JSON.stringify(info)}::jsonb, ncc_luc = now(),
+        video = CASE WHEN video_luc IS NULL AND video = '[]'::jsonb THEN ${JSON.stringify(v)}::jsonb ELSE video END, video_luc = COALESCE(video_luc, now()) WHERE id = ${p.id}`);
+    }
     await new Promise((ok) => setTimeout(ok, 1100));
   }
-  return { hoi: ds.length, co };
+  return { doc: ds.length, video };
 }
 
 /* ── HỒ SƠ TỰ ĐỔ: dispute Stripe (phía khách) + dispute CJ (phía NCC) ──────────── */
@@ -413,7 +423,7 @@ export async function nhip(ch: CuaHang, opt: { sanPham?: boolean } = {}) {
       kq.sang_ncc = (await Promise.all(cho.map((x) => sangNcc(ch, x.id)))).filter((x) => x.ok).length;
     }
     kq.ncc = await theoDoiNcc(ch);
-    kq.video = await dongBoVideoNcc(ch);
+    kq.ncc_info = await dongBoThongTinNcc(ch);
     kq.ho_so = await dongBoHoSo(ch).catch((e) => ({ loi: (e as Error).message }));
     await q(sql`UPDATE shop_cua_hang SET dong_bo_luc = ${batDau}::timestamptz, dong_bo_loi = NULL WHERE id = ${ch.id}`);
   } catch (e) {

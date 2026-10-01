@@ -5,7 +5,6 @@
 // Mỗi mục đọc/ghi một khoá của shop_cua_hang.mat_tien (@mos2/shop/mat-tien) qua shopSuaMatTien (Vận hành: cau_hinh qua shopSuaCauHinh).
 // Khoá bí mật (Stripe/SMTP/CJ…) KHÔNG sửa ở đây — mục Kết nối chỉ báo có/không + tên biến. URL: ?m=cai-dat&mId=<id>&cs=<mục>.
 import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { DateTimeField, Drawer, LinkChip, Panel, Pill, SelectField, SimpleTable, TextAreaField, TextField, toDatetimeLocal } from '@/components/ui';
 import { CHANG_BAO_THU, CHANG_KHACH, camKetGiao, cauHinhGiao, duKienGiao, khoangUS } from '@mos2/shop/giao';
 import { TRANG_TINH } from '@mos2/shop/mat-tien';
@@ -81,7 +80,8 @@ export function TheCuaHang({ c, moCaiDat }: { c: CuaHangDong; moCaiDat: (muc?: s
 
 /* ── Drawer cài đặt một cửa hàng: cột trái mục + tóm tắt, cột phải form ── */
 export function DrawerCaiDat({ c, onClose }: { c: CuaHangDong; onClose: () => void }) {
-  const [muc, setMuc] = useState<string>(useSearchParams().get('cs') || 'van_hanh');
+  // đọc thẳng location (không qua useSearchParams): thẻ tổng quan vừa ghi ?cs=<mục> bằng replaceState ngay trước khi mở drawer
+  const [muc, setMuc] = useState<string>(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('cs')) || 'van_hanh');
   useEffect(() => {
     const u = new URLSearchParams(window.location.search);
     if (muc !== 'van_hanh') u.set('cs', muc); else u.delete('cs');

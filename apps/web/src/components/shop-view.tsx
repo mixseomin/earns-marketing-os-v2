@@ -13,6 +13,8 @@ import { useModalParam } from '@/lib/use-modal-param';
 import { hrefTab, tabCua } from '@/lib/tab-trang';
 import { KhachTrucTiep } from './shop-truc-tiep';
 import { BangTuVan } from './shop-tu-van';
+import { CaySanPham } from './shop-san-pham';
+import { BangNcc } from './shop-ncc';
 import { DrawerCaiDat, TheCuaHang } from './shop-cau-hinh';
 import { BangHoSo } from './shop-ho-so';
 import type { HoSoDong } from '@/lib/shop/ho-so-doc';
@@ -175,7 +177,8 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo }: { do
 
         {tab === 'tu_van' && <BangTuVan ch={ch} />}
         {tab === 'truc_tiep' && <KhachTrucTiep ch={ch} />}
-        {(tab === 'khach_ph' || tab === 'ncc') && <BangHoSo key={tab} ben={tab === 'ncc' ? 'ncc' : 'khach'} ch={ch} ds={hoSo.filter((h) => h.loai !== 'tu_van')} cuaHang={cuaHang} />}
+        {tab === 'khach_ph' && <BangHoSo key={tab} ben="khach" ch={ch} ds={hoSo.filter((h) => h.loai !== 'tu_van')} cuaHang={cuaHang} />}
+        {tab === 'ncc' && <BangNcc ch={ch} cuaHang={cuaHang} sanPham={sanPham} bienThe={bienThe} don={don} hoSo={hoSo} />}
         {tab === 'san_pham' && <BangSanPham bienThe={bt} sanPham={sps} />}
         {tab === 'danh_gia' && <BangDanhGia ds={dgs} />}
         {tab === 'cua_hang' && <div style={{ display: 'grid', gap: 12 }}>{cuaHang.filter((c) => ch === 'all' || c.khoa === ch).map((c) => (
@@ -352,53 +355,12 @@ function DrawerDon({ id, hoSo, onClose }: { id: number; hoSo: HoSoDong[]; onClos
 }
 
 /* ── Sản phẩm ↔ NCC ─────────────────────────────────────────────────────── */
+/** Sản phẩm = CÂY sản phẩm mặt tiền → màu → size (components/shop-san-pham.tsx); hai drawer sửa giữ ở đây. */
 function BangSanPham({ bienThe, sanPham }: { bienThe: BienTheDong[]; sanPham: SanPhamDong[] }) {
   const [sua, setSua] = useState<BienTheDong | null>(null);
   const [suaSp, setSuaSp] = useState<SanPhamDong | null>(null);
-  const [loc, setLoc] = useState<'all' | 'thieu' | 'mat_tien'>((useSearchParams().get('sp') as 'mat_tien') || 'all');
-  const thieu = bienThe.filter((b) => !b.maNcc || b.giaVon === null);
-  const rows = loc === 'thieu' ? thieu : bienThe;
-  const cot: DataColumn<BienTheDong>[] = [
-    { key: 'sp', header: 'Sản phẩm', align: 'left', cell: (b) => (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-        {b.anh && <img src={b.anh} alt="" width={22} height={22} style={{ objectFit: 'cover', borderRadius: 3 }} />}{b.sanPham}
-      </span>), sortValue: (b) => b.sanPham },
-    { key: 'bt', header: 'Biến thể', align: 'left', cell: (b) => b.ten },
-    { key: 'gia', header: 'Giá bán', cell: (b) => tien(b.giaBan), sortValue: (b) => b.giaBan },
-    { key: 'von', header: 'Giá vốn', cell: (b) => tien(b.giaVon), sortValue: (b) => b.giaVon },
-    { key: 'bien', header: 'Biên', title: '(Giá bán − giá vốn) / giá bán — chưa trừ ship NCC + phí cổng.',
-      cell: (b) => (b.giaBan && b.giaVon !== null ? `${Math.round(((b.giaBan - b.giaVon) / b.giaBan) * 100)}%` : '—'),
-      sortValue: (b) => (b.giaBan && b.giaVon !== null ? (b.giaBan - b.giaVon) / b.giaBan : null) },
-    { key: 'ma', header: 'Mã CJ (vid)', align: 'left', cell: (b) => (b.maNcc ? <span style={{ fontFamily: 'var(--mono)' }}>{b.maNcc}</span> : <span style={{ color: 'var(--bad)' }}>thiếu</span>) },
-    { key: 'ban', header: 'Đã bán', cell: (b) => b.daBan || '—', sortValue: (b) => b.daBan },
-  ];
-  const cotSp: DataColumn<SanPhamDong>[] = [
-    { key: 'sp', header: 'Sản phẩm', align: 'left', cell: (p) => (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-        {p.anh && <img src={p.anh} alt="" width={22} height={22} style={{ objectFit: 'cover', borderRadius: 3 }} />}{p.ten}
-      </span>), sortValue: (p) => p.ten },
-    { key: 'td', header: 'Tiêu đề bán (H1)', align: 'left', cell: (p) => p.tieuDe ?? <span style={phu}>= tên</span>, cellTitle: (p) => p.tieuDe ?? '' },
-    { key: 'gia', header: 'Giá từ', cell: (p) => tien(p.giaTu), sortValue: (p) => p.giaTu },
-    { key: 'goc', header: 'Giá gạch', title: 'Giá trước giảm CÓ THẬT. Trống = không gạch giá.', cell: (p) => tien(p.giaGoc) },
-    { key: 'bt', header: 'Biến thể', cell: (p) => p.soBienThe },
-    { key: 'ban', header: 'Đã bán', cell: (p) => p.daBan || '—', sortValue: (p) => p.daBan },
-    { key: 'dg', header: 'Đánh giá', cell: (p) => p.danhGia || '—' },
-    { key: 'tk', header: 'Tham khảo', title: 'Trang ngoài bán cùng/gần mẫu — bấm dòng để xem', cell: (p) => p.thamKhao.filter((t) => t.url).length || '—' },
-    { key: 'hien', header: 'Mặt tiền', align: 'left', cell: (p) => <Pill color={p.hien ? 'var(--ok)' : 'var(--fg-3)'} label={p.hien ? 'đang bán' : 'ẩn'} /> },
-    { key: 'xem', header: '', align: 'left', cell: (p) => (p.slug ? <LinkChip href={`https://${p.domain}/${p.slug}`} tone="neutral" size="xs" onClick={(e) => e.stopPropagation()}>xem ↗</LinkChip> : null) },
-  ];
   return (<>
-    <div style={{ marginBottom: 8 }}>
-      <FilterChips urlKey="sp" value={loc} onChange={setLoc} counts={{ all: bienThe.length, thieu: thieu.length, mat_tien: sanPham.length }}
-        options={[{ value: 'all', label: 'Mọi biến thể' }, { value: 'thieu', label: 'Thiếu mã CJ / giá vốn', title: 'Đơn có món thiếu mã CJ sẽ không sang được NCC.' },
-          { value: 'mat_tien', label: 'Mặt tiền', title: 'Tiêu đề bán, giá gạch, hiện/ẩn trên trang shop.' }]} />
-    </div>
-    {loc === 'mat_tien'
-      ? <Panel pad={8}><DataTable rows={sanPham} columns={cotSp} getRowKey={(p) => String(p.id)} persistKey="shop-sp-mt" minWidth={900}
-          rowTitle={() => 'Bấm để sửa tiêu đề bán / giá gạch / hiện-ẩn'} onRowClick={(p) => setSuaSp(p)} /></Panel>
-      : <Panel pad={8}><DataTable rows={rows} columns={cot} getRowKey={(b) => String(b.id)} persistKey="shop-sp" minWidth={820}
-          searchText={(b) => `${b.sanPham} ${b.ten} ${b.sku ?? ''} ${b.maNcc ?? ''}`} searchPlaceholder="Tìm sản phẩm, size, mã CJ…"
-          rowTitle={() => 'Bấm để sửa mã CJ / giá vốn (ghi ngược về Woo)'} onRowClick={(b) => setSua(b)} /></Panel>}
+    <CaySanPham bienThe={bienThe} sanPham={sanPham} suaSp={setSuaSp} suaBt={setSua} />
     {sua && <SuaBienThe b={sua} onClose={() => setSua(null)} />}
     {suaSp && <SuaSanPham p={suaSp} onClose={() => setSuaSp(null)} />}
   </>);

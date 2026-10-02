@@ -144,23 +144,23 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, d
   const thieuMa = bt.filter((b) => !b.maNcc || b.giaVon === null).length;
   return (
     <div className="page">
-      <div className="page-head" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      <div className="page-head" style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
         <h1 className="page-title" style={{ margin: 0 }}>Shop</h1>
         <span className="page-sub">Sau khi khách trả tiền: đặt NCC → trả NCC → vận đơn → giao. Mặt tiền + thu tiền: Woo hoặc mặt tiền MOS (theo cửa hàng).</span>
-        <span style={{ flex: 1 }} />
+      </div>
+      {/* Hàng điều khiển cố định: công tắc chế độ luôn đứng đầu, nút luôn ở mép phải, chữ báo nằm trong hàng — đổi chế độ / bấm đồng bộ không làm gì nhảy chỗ */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '6px 0 10px', minHeight: 34 }}>
         <FilterChips<CheDo> value={cheDo} onChange={(v) => { const h = hrefCheDo(v); if (h) router.push(h); }} hrefFor={hrefCheDo}
           options={[{ value: 'that', label: 'Dữ liệu thật', title: 'Chỉ cửa hàng + NCC thật' }, { value: 'demo', label: 'Demo', title: 'Chỉ cửa hàng + NCC giả để xem thử khi vận hành' }]} />
-        {cuaHang.length > 1 && (
-          <FilterChips urlKey="ch" value={ch} onChange={setCh}
-            options={[{ value: 'all', label: 'Mọi cửa hàng' }, ...cuaHang.map((c) => ({ value: c.khoa, label: c.ten }))]} />
-        )}
+        <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--line)' }} />
+        <FilterChips urlKey="ch" value={ch} onChange={setCh}
+          options={[{ value: 'all', label: 'Mọi cửa hàng' }, ...cuaHang.map((c) => ({ value: c.khoa, label: c.ten }))]} />
+        {cheDo === 'demo' && <span style={{ fontSize: 12.5, color: 'var(--warn)', whiteSpace: 'nowrap' }} title="Đơn, sản phẩm, NCC ở chế độ này là giả, không dính số thật">● dữ liệu giả</span>}
+        <span style={{ flex: 1 }} />
+        {bao && <span style={{ fontSize: 12.5, color: bao.startsWith('Lỗi') ? 'var(--bad)' : 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={bao}>{bao}</span>}
         <Link className="btn ghost" href={`/report2?f.du_an=${encodeURIComponent(ch === 'all' ? cuaHang[0]?.khoa ?? '' : ch)}`}>Báo cáo</Link>
-        <button className="btn" disabled={dangChay} onClick={dongBo}>{dangChay ? 'Đang chạy…' : 'Đồng bộ ngay'}</button>
+        <button className="btn" disabled={dangChay} onClick={dongBo} style={{ minWidth: 118 }}>{dangChay ? 'Đang chạy…' : 'Đồng bộ ngay'}</button>
       </div>
-      {cheDo === 'demo' && <div style={{ marginBottom: 8, padding: '6px 10px', borderRadius: 6, fontSize: 12.5, background: 'color-mix(in srgb, var(--warn) 14%, transparent)', color: 'var(--warn)' }}>
-        Đang xem DỮ LIỆU DEMO ({cuaHang.map((c) => c.ten).join(', ') || 'chưa có cửa hàng demo'}) — đơn, sản phẩm, NCC ở đây là giả, không dính số thật.</div>}
-      {bao && <div style={{ marginBottom: 8, fontSize: 12.5, color: bao.startsWith('Lỗi') ? 'var(--bad)' : 'var(--fg-2)' }}>{bao}</div>}
-
 
       <Tabs<Tab> value={tab} onChange={setTab} hrefFor={(k) => hrefTab('/shop', k)}
         items={tabCua<Tab>('/shop', { don: canXuLy || undefined, thanh_toan: soCongCanXem(cong.filter((g) => ch === 'all' || g.shops.includes(ch))) || undefined, san_pham: thieuMa || undefined, danh_gia: choDuyet || undefined,

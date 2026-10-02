@@ -70,7 +70,7 @@ export async function docCong(o: { ep?: boolean; tuoiGio?: number } = {}) {
       const a = await stripe<{ id: string; settings?: { dashboard?: { display_name?: string } } }>(ch.khoa, 'GET', 'account');
       const [c] = await q<{ id: number }>(sql`INSERT INTO shop_cong (loai, ma, ten) VALUES ('stripe', ${a.id}, ${a.settings?.dashboard?.display_name ?? null})
         ON CONFLICT (loai, ma) DO UPDATE SET ten = COALESCE(shop_cong.ten, EXCLUDED.ten) RETURNING id`);
-      await q(sql`UPDATE shop_cua_hang SET cong_id = ${c!.id} WHERE id = ${ch.id}`);
+      await q(sql`INSERT INTO shop_cong_shop (cong_id, cua_hang_id) VALUES (${c!.id}, ${ch.id}) ON CONFLICT DO NOTHING`);
       if (!theoCong.has(c!.id)) theoCong.set(c!.id, ch.khoa);
     } catch (e) { kq.push({ shop: ch.khoa, loi: (e as Error).message.slice(0, 200) }); }
   }
@@ -95,11 +95,15 @@ export async function docDsCong(): Promise<CongDong[]> {
   const d = getDb();
   if (!d) return [];
   const [cg, ls] = await Promise.all([
-    q(sql`SELECT g.id, g.loai, g.ma, g.ten, g.ghi_chu, g.nguong, g.suc_khoe, g.doc_luc::text AS doc_luc, g.loi,
-            COALESCE((SELECT array_agg(c.khoa ORDER BY c.id) FROM shop_cua_hang c WHERE c.cong_id = g.id), '{}') AS shops FROM shop_cong g ORDER BY g.id`),
+    q(sql`SELECT g.id, g.loai, g.vai, g.ma, g.ten, g.ghi_chu, g.tai_khoan, g.link, g.ve_cong_id, g.trang_thai_tay, g.kiem_luc::text AS kiem_luc,
+            g.nguong, g.suc_khoe, g.doc_luc::text AS doc_luc, g.loi,
+            COALESCE((SELECT array_agg(c.khoa ORDER BY c.id) FROM shop_cong_shop x JOIN shop_cua_hang c ON c.id = x.cua_hang_id WHERE x.cong_id = g.id), '{}') AS shops
+       FROM shop_cong g ORDER BY (g.vai = 'nhan'), g.id`),
     q(sql`SELECT cong_id, ngay::text AS ngay, so FROM shop_cong_lich_su WHERE ngay > current_date - 30 ORDER BY ngay`),
   ]);
-  return cg.map((r) => ({ id: Number(r.id), loai: String(r.loai), ma: String(r.ma), ten: (r.ten as string) ?? null, ghiChu: (r.ghi_chu as string) ?? null,
+  return cg.map((r) => ({ id: Number(r.id), loai: String(r.loai), vai: (r.vai === 'nhan' ? 'nhan' : 'thu') as 'thu' | 'nhan', ma: String(r.ma), ten: (r.ten as string) ?? null,
+    ghiChu: (r.ghi_chu as string) ?? null, taiKhoan: (r.tai_khoan as string) ?? null, link: (r.link as string) ?? null, veCongId: r.ve_cong_id == null ? null : Number(r.ve_cong_id),
+    trangThaiTay: (r.trang_thai_tay as string) ?? null, kiemLuc: (r.kiem_luc as string) ?? null,
     nguong: (r.nguong ?? {}) as Record<string, number>, sucKhoe: (r.suc_khoe as SucKhoeCong) ?? null, docLuc: (r.doc_luc as string) ?? null, loi: (r.loi as string) ?? null,
     shops: (r.shops as string[]) ?? [], lichSu: ls.filter((x) => Number(x.cong_id) === Number(r.id)).map((x) => ({ ngay: String(x.ngay), so: x.so as CongDong['lichSu'][number]['so'] })) }));
 }

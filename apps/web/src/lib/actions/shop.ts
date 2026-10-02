@@ -16,7 +16,7 @@ import { stripe } from '@mos2/shop/stripe';
 import { existsSync } from 'node:fs';
 import { docShop } from '@/lib/shop/doc';
 import { docCong } from '@/lib/shop/cong';
-import { NGUONG_MAC_DINH, type NguongCong } from '@/lib/shop/cong-luat';
+import { KIEU_CONG, NGUONG_MAC_DINH, TRANG_THAI_TAY, loiTaiKhoanCong, type NguongCong } from '@/lib/shop/cong-luat';
 import { DINH_DANG_QC, KENH_BAN, KENH_NCC, KHOP_DOI_THU, NEN_TANG_QC } from '@/lib/shop/buoc';
 import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
@@ -651,11 +651,45 @@ export async function shopDocCong() {
   revalidatePath('/shop');
   return { ok: !kq.some((x) => 'loi' in x), kq };
 }
-/** Sửa tên gọi / ghi chú / ngưỡng cảnh báo của một cổng (không đụng gì phía Stripe). */
-export async function shopSuaCong(id: number, v: { ten: string; ghiChu: string; nguong: Partial<NguongCong> }) {
+/** Thêm (id null) / sửa một cổng phía mos2: loại, tên, tài khoản (CHỈ email/mã — không mật khẩu, không số thẻ/ngân hàng), link quản trị,
+ *  tiền về cổng nào, shop dùng, trạng thái ghi tay, ghi chú, ngưỡng. Không đụng gì phía cổng. Cổng Stripe: mã acct do máy nhận, không sửa. */
+export async function shopSuaCong(id: number | null, v: { loai?: string; ten: string; taiKhoan?: string; link?: string; veCongId?: number | null; shops?: string[];
+  trangThaiTay?: string | null; ghiChu: string; nguong: Partial<NguongCong> }) {
   await admin();
+  const tk = (v.taiKhoan ?? '').trim().slice(0, 200);
+  const loiTk = loiTaiKhoanCong(tk);
+  if (loiTk) return { ok: false, loi: loiTk };
   const ng = Object.fromEntries(Object.entries(v.nguong).filter(([k, x]) => k in NGUONG_MAC_DINH && Number.isFinite(x) && (x as number) >= 0 && (x as number) <= 100));
-  await db().execute(sql`UPDATE shop_cong SET ten = ${v.ten.trim().slice(0, 120) || null}, ghi_chu = ${v.ghiChu.trim().slice(0, 2000) || null}, nguong = ${JSON.stringify(ng)}::jsonb WHERE id = ${id}`);
+  const loai = v.loai && v.loai in KIEU_CONG ? v.loai : 'khac';
+  const tt = v.trangThaiTay && v.trangThaiTay in TRANG_THAI_TAY ? v.trangThaiTay : null;
+  const link = /^https?:\/\/\S+$/.test((v.link ?? '').trim()) ? v.link!.trim().slice(0, 500) : null;
+  const ten = v.ten.trim().slice(0, 120) || null;
+  let cid = id;
+  if (cid == null) {
+    if (!ten) return { ok: false, loi: 'thiếu tên cổng' };
+    const ma = `${loai}-${Date.now().toString(36)}`;
+    const r = (await db().execute(sql`INSERT INTO shop_cong (loai, vai, ma, ten) VALUES (${loai}, ${KIEU_CONG[loai]!.vai}, ${ma}, ${ten}) RETURNING id`)) as unknown as { id: number }[];
+    cid = r[0]!.id;
+  }
+  await db().execute(sql`UPDATE shop_cong SET ten = ${ten}, ghi_chu = ${v.ghiChu.trim().slice(0, 2000) || null}, nguong = ${JSON.stringify(ng)}::jsonb,
+    tai_khoan = ${tk || null}, link = ${link}, ve_cong_id = ${v.veCongId && v.veCongId !== cid ? v.veCongId : null}, trang_thai_tay = ${tt} WHERE id = ${cid}`);
+  if (v.shops) {
+    const ds = (await db().execute(sql`SELECT id, khoa FROM shop_cua_hang`)) as unknown as { id: number; khoa: string }[];
+    const muon = new Set(ds.filter((c) => v.shops!.includes(c.khoa)).map((c) => c.id));
+    // bảng nối là sổ GÁN (không phải dữ liệu nghiệp vụ): bỏ gán = xoá dòng nối, shop và cổng vẫn nguyên
+    for (const c of ds) {
+      if (muon.has(c.id)) await db().execute(sql`INSERT INTO shop_cong_shop (cong_id, cua_hang_id) VALUES (${cid}, ${c.id}) ON CONFLICT DO NOTHING`);
+      else await db().execute(sql`DELETE FROM shop_cong_shop WHERE cong_id = ${cid} AND cua_hang_id = ${c.id}`);
+    }
+  }
+  revalidatePath('/shop');
+  return { ok: true, id: cid };
+}
+/** "Đã kiểm" cho cổng chưa có API: ghi ngày kiểm tay + trạng thái thấy được. */
+export async function shopKiemCong(id: number, trangThai: string) {
+  await admin();
+  if (!(trangThai in TRANG_THAI_TAY)) return { ok: false, loi: 'trạng thái không hợp lệ' };
+  await db().execute(sql`UPDATE shop_cong SET trang_thai_tay = ${trangThai}, kiem_luc = now() WHERE id = ${id}`);
   revalidatePath('/shop');
   return { ok: true };
 }

@@ -4,11 +4,11 @@
 // đỏ/vàng: lib/shop/cong-luat.ts danhGiaCong theo ngưỡng sửa được ở đây. Cảnh báo đứng đầu thẻ (liếc là thấy), chi tiết trong cây.
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Cay, Drawer, LaBang, LinkChip, NutCay, Panel, Pill, StatsStrip, TextAreaField, TextField, oLa, type CotLa } from '@/components/ui';
+import { Cay, Drawer, LaBang, LinkChip, NutCay, Panel, PickField, Pill, StatsStrip, TextAreaField, TextField, oLa, type CotLa } from '@/components/ui';
 import { gio, tien } from '@/lib/shop/buoc';
-import { NGUONG_MAC_DINH, NHAN_NGUONG, danhGiaCong, tyLeCong, type CongDong, type NguongCong } from '@/lib/shop/cong-luat';
+import { KIEU_CONG, NGUONG_MAC_DINH, NHAN_NGUONG, TRANG_THAI_TAY, VAI_CONG, danhGiaMotCong, tyLeCong, type CongDong, type NguongCong } from '@/lib/shop/cong-luat';
 import type { CuaHangDong } from '@/lib/shop/doc';
-import { shopDocCong, shopSuaCong } from '@/lib/actions/shop';
+import { shopDocCong, shopKiemCong, shopSuaCong } from '@/lib/actions/shop';
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
 const MUC: Record<'tot' | 'vang' | 'do', [string, string]> = { tot: ['Khoẻ', 'var(--ok)'], vang: ['Cần để ý', 'var(--warn)'], do: ['Nguy hiểm', 'var(--bad)'] };
@@ -17,7 +17,8 @@ const ptChu = (x: number | null) => (x == null ? '—' : `${x}%`);
 const COT_LS: CotLa[] = [{ h: 'Ngày', rong: 110 }, { h: 'GD thành công 90 ngày', phai: true }, { h: 'Dispute 90 ngày', phai: true }, { h: 'Hoàn 90 ngày', phai: true }, { h: 'Thất bại 30 ngày', phai: true }, { h: 'Số dư khả dụng', phai: true }];
 
 /** Số cổng đang đỏ/vàng — badge của tab. */
-export const soCongCanXem = (ds: CongDong[]) => ds.filter((g) => g.loi || (g.sucKhoe && danhGiaCong(g.sucKhoe, g.nguong).muc !== 'tot')).length;
+export const soCongCanXem = (ds: CongDong[]) => ds.filter((g) => danhGiaMotCong(g).muc !== 'tot').length;
+const tenKieu = (g: CongDong) => KIEU_CONG[g.loai]?.ten ?? g.loai;
 
 export function BangCong({ ds, cuaHang, ch }: { ds: CongDong[]; cuaHang: CuaHangDong[]; ch: string }) {
   const router = useRouter();
@@ -25,7 +26,10 @@ export function BangCong({ ds, cuaHang, ch }: { ds: CongDong[]; cuaHang: CuaHang
   const [bao, setBao] = useState<string | null>(null);
   const [sua, setSua] = useState<CongDong | null>(null);
   const shops = cuaHang.filter((c) => ch === 'all' || c.khoa === ch);
-  const hien = ds.filter((g) => ch === 'all' || g.shops.includes(ch));
+  // lọc theo shop: cổng thu của shop đó + cổng nhận mà các cổng thu ấy rút về
+  const thuCh = ds.filter((g) => ch === 'all' || g.shops.includes(ch));
+  const hien = ch === 'all' ? ds : [...thuCh, ...ds.filter((g) => !thuCh.includes(g) && thuCh.some((x) => x.veCongId === g.id))];
+  const tenCong = (id: number | null) => { const x = ds.find((g) => g.id === id); return x ? `${tenKieu(x)} · ${x.ten ?? x.ma}` : null; };
   const chuaCo = shops.filter((c) => !ds.some((g) => g.shops.includes(c.khoa)));
   const tenShop = (k: string) => cuaHang.find((c) => c.khoa === k)?.ten ?? k;
   const docLai = () => batDau(async () => { setBao(null); const r = await shopDocCong().catch((e) => ({ ok: false, kq: [{ loi: (e as Error).message }] }));
@@ -37,26 +41,46 @@ export function BangCong({ ds, cuaHang, ch }: { ds: CongDong[]; cuaHang: CuaHang
       <span style={{ flex: 1 }} />
       {bao && <span style={{ fontSize: 12.5, color: bao.startsWith('Lỗi') ? 'var(--bad)' : 'var(--fg-2)' }}>{bao}</span>}
       <button className="btn" disabled={dang} onClick={docLai}>{dang ? 'Đang đọc Stripe…' : 'Đọc lại ngay'}</button>
+      <button className="btn" onClick={() => setSua({ id: 0, loai: 'payoneer', vai: 'nhan', ma: '', ten: '', ghiChu: null, taiKhoan: null, link: null, veCongId: null, trangThaiTay: null, kiemLuc: null,
+        nguong: {}, sucKhoe: null, docLuc: null, loi: null, shops: [], lichSu: [] })}>+ Thêm cổng</button>
     </div>
-    {!hien.length && <Panel pad={12}><span style={phu}>Chưa có cổng nào{ch !== 'all' ? ' cho cửa hàng này' : ''} — máy tự nhận cổng khi shop có khoá Stripe (SHOP_&lt;KHOÁ&gt;_STRIPE_SK). Bấm "Đọc lại ngay" sau khi thêm khoá.</span></Panel>}
+    {/* dòng tiền: cổng thu → tiền về cổng nhận; shop nào dùng cổng thu nào */}
+    {hien.length > 0 && <div style={{ marginBottom: 12 }}><Panel pad={0} title="Dòng tiền" subtitle="thu tiền khách → tiền về đâu">
+      <Cay label="Dòng tiền">
+        {(['thu', 'nhan'] as const).map((vai) => (
+          <NutCay key={vai} ten={<b>{VAI_CONG[vai]}</b>} phu={vai === 'thu' ? 'cổng khách trả tiền trên mặt tiền' : 'tài khoản nhận tiền rút từ cổng thu (rồi về ngân hàng)'}>
+            {hien.filter((g) => g.vai === vai).map((g) => { const d = danhGiaMotCong(g);
+              return <NutCay key={g.id} ten={<><b style={{ fontWeight: 500 }}>{tenKieu(g)} · {g.ten ?? g.ma}</b><Pill color={MUC[d.muc][1]} label={MUC[d.muc][0]} uppercase={false} mono={false} /></>}
+                phu={vai === 'thu' ? <>dùng cho {g.shops.map(tenShop).join(', ') || '— chưa gán shop'} · tiền về: {tenCong(g.veCongId) ?? <span style={{ color: 'var(--warn)' }}>chưa ghi</span>}</>
+                  : <>nhận từ: {ds.filter((x) => x.veCongId === g.id).map((x) => `${tenKieu(x)} · ${x.ten ?? x.ma}`).join(', ') || '— chưa cổng thu nào trỏ về đây'}</>} />; })}
+            {!hien.some((g) => g.vai === vai) && <NutCay ten={<span style={phu}>chưa có — bấm "+ Thêm cổng"</span>} />}
+          </NutCay>
+        ))}
+      </Cay>
+    </Panel></div>}
+    {!hien.length && <Panel pad={12}><span style={phu}>Chưa có cổng nào{ch !== 'all' ? ' cho cửa hàng này' : ''} — Stripe: máy tự nhận khi shop có khoá (SHOP_&lt;KHOÁ&gt;_STRIPE_SK); PayPal/Payoneer/PingPong: bấm "+ Thêm cổng".</span></Panel>}
     <div style={{ display: 'grid', gap: 12 }}>
       {hien.map((g) => {
-        const s = g.sucKhoe, dg = s ? danhGiaCong(s, g.nguong) : null, ty = s ? tyLeCong(s) : null;
-        const muc = g.loi ? 'do' : dg?.muc ?? 'vang';
+        const s = g.sucKhoe, dg = danhGiaMotCong(g), ty = s ? tyLeCong(s) : null;
+        const muc = dg.muc, api = !!KIEU_CONG[g.loai]?.api;
         const ngoai = s?.webhook.filter((w) => !w.cua_minh) ?? [];
         return (
           <Panel key={g.id} pad={12}
-            title={<span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>{g.loai === 'stripe' ? 'Stripe' : g.loai} · {g.ten ?? s?.tai_khoan.ten ?? g.ma}
+            title={<span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>{tenKieu(g)} · {g.ten ?? s?.tai_khoan.ten ?? g.ma}
               <Pill color={MUC[muc][1]} label={MUC[muc][0]} uppercase={false} mono={false} /></span>}
-            subtitle={`${g.ma}${s?.tai_khoan.nuoc ? ` · ${s.tai_khoan.nuoc}` : ''}${s?.tai_khoan.tien_te ? ` · ${s.tai_khoan.tien_te.toUpperCase()}` : ''} · đọc ${g.docLuc ? gio(g.docLuc) : 'chưa'} · dùng cho ${g.shops.map(tenShop).join(', ') || '—'}${ngoai.length ? ` + ${ngoai.length} site khác` : ''}`}
+            subtitle={api ? `${VAI_CONG[g.vai]} · ${g.ma}${s?.tai_khoan.nuoc ? ` · ${s.tai_khoan.nuoc}` : ''}${s?.tai_khoan.tien_te ? ` · ${s.tai_khoan.tien_te.toUpperCase()}` : ''} · đọc ${g.docLuc ? gio(g.docLuc) : 'chưa'} · dùng cho ${g.shops.map(tenShop).join(', ') || '—'}${ngoai.length ? ` + ${ngoai.length} site khác` : ''}${g.veCongId ? ` · tiền về ${tenCong(g.veCongId)}` : ''}`
+              : `${VAI_CONG[g.vai]} · ghi tay (chưa nối API)${g.taiKhoan ? ` · ${g.taiKhoan}` : ''} · kiểm ${g.kiemLuc ? gio(g.kiemLuc) : 'chưa'}${g.vai === 'thu' ? ` · dùng cho ${g.shops.map(tenShop).join(', ') || '—'}` : ''}${g.veCongId ? ` · tiền về ${tenCong(g.veCongId)}` : ''}`}
             actions={<span style={{ display: 'flex', gap: 6 }}>
-              {g.loai === 'stripe' && <LinkChip href="https://dashboard.stripe.com/" tone="neutral" size="xs">Stripe Dashboard ↗</LinkChip>}
-              <button className="btn ghost" onClick={() => setSua(g)}>Ngưỡng · ghi chú</button></span>}>
+              {(g.link ?? KIEU_CONG[g.loai]?.link) && <LinkChip href={(g.link ?? KIEU_CONG[g.loai]?.link)!} tone="neutral" size="xs">Trang {tenKieu(g)} ↗</LinkChip>}
+              <button className="btn ghost" onClick={() => setSua(g)}>Sửa</button></span>}>
             {/* cảnh báo đứng đầu — liếc là thấy, không nằm trong cây */}
-            {g.loi && <div style={{ color: 'var(--bad)', fontSize: 13, marginBottom: 8 }}>Không đọc được cổng: {g.loi}</div>}
-            {dg && (dg.van_de.length
+            {(dg.van_de.length
               ? <div style={{ display: 'grid', gap: 4, marginBottom: 10 }}>{dg.van_de.map((v, i) => <div key={i} style={{ fontSize: 13, color: v.muc === 'do' ? 'var(--bad)' : 'var(--warn)' }}>{v.muc === 'do' ? '●' : '○'} {v.chu}</div>)}</div>
-              : <div style={{ fontSize: 13, color: 'var(--ok)', marginBottom: 10 }}>Không có vấn đề — tài khoản nhận và rút tiền bình thường, các tỷ lệ dưới ngưỡng.</div>)}
+              : <div style={{ fontSize: 13, color: 'var(--ok)', marginBottom: 10 }}>{api ? 'Không có vấn đề — tài khoản nhận và rút tiền bình thường, các tỷ lệ dưới ngưỡng.' : `Bình thường theo lần kiểm tay ${g.kiemLuc ? gio(g.kiemLuc) : ''}.`}</div>)}
+            {!api && <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6, fontSize: 13 }}>
+              <span style={phu}>Vừa mở trang {tenKieu(g)} kiểm xong — ghi lại:</span>
+              {Object.entries(TRANG_THAI_TAY).map(([k, [nhan]]) => <button key={k} className="btn ghost" disabled={dang} onClick={() => batDau(async () => { await shopKiemCong(g.id, k); router.refresh(); })}>Đã kiểm · {nhan}</button>)}
+            </div>}
             {g.ghiChu && <div style={{ fontSize: 12.5, ...phu, marginBottom: 10 }}>{g.ghiChu}</div>}
             {s && ty && <StatsStrip minColWidth={140} cards={[
               { key: 'nhan', label: 'Nhận tiền', value: s.tai_khoan.nhan_tien ? 'bật' : 'TẮT', color: s.tai_khoan.nhan_tien ? undefined : 'var(--bad)', sub: s.tai_khoan.rut_tien ? 'rút tiền: bật' : 'rút tiền: TẮT' },
@@ -108,34 +132,61 @@ export function BangCong({ ds, cuaHang, ch }: { ds: CongDong[]; cuaHang: CuaHang
       {chuaCo.length > 0 && <Panel pad={12}><span style={{ fontSize: 13 }}><b>Chưa có cổng:</b> {chuaCo.map((c) => c.ten).join(', ')} — chưa có khoá Stripe (SHOP_&lt;KHOÁ&gt;_STRIPE_PK/SK).{' '}
         <a href="/shop?tab=cua_hang">Xem mục Kết nối của cửa hàng</a>.</span></Panel>}
     </div>
-    {sua && <SuaCong g={sua} onClose={() => setSua(null)} />}
+    {sua && <SuaCong g={sua} ds={ds} cuaHang={cuaHang} onClose={() => setSua(null)} />}
   </>);
 }
 
-/** Sửa phía mos2 của một cổng: tên gọi, ghi chú, ngưỡng cảnh báo (%). Không đụng gì phía Stripe. */
-function SuaCong({ g, onClose }: { g: CongDong; onClose: () => void }) {
+/** Thêm (id 0) / sửa phía mos2 của một cổng: loại, tên, tài khoản (CHỈ email/mã), trang quản trị, tiền về cổng nào, shop dùng, ghi chú, ngưỡng.
+ *  Không đụng gì phía cổng. Cổng Stripe: loại + mã acct do máy nhận, không sửa ở đây. */
+function SuaCong({ g, ds, cuaHang, onClose }: { g: CongDong; ds: CongDong[]; cuaHang: CuaHangDong[]; onClose: () => void }) {
+  const moi = g.id === 0;
+  const [loai, setLoai] = useState(g.loai);
   const [ten, setTen] = useState(g.ten ?? '');
+  const [tk, setTk] = useState(g.taiKhoan ?? '');
+  const [link, setLink] = useState(g.link ?? '');
+  const [ve, setVe] = useState<number | null>(g.veCongId);
+  const [shops, setShops] = useState<string[]>(g.shops);
   const [gc, setGc] = useState(g.ghiChu ?? '');
   const [ng, setNg] = useState<Record<string, string>>(Object.fromEntries(Object.keys(NGUONG_MAC_DINH).map((k) => [k, g.nguong[k] != null ? String(g.nguong[k]) : ''])));
   const [loi, setLoi] = useState<string | null>(null);
   const [dang, batDau] = useTransition();
+  const kieu = KIEU_CONG[loai] ?? KIEU_CONG.khac!;
+  const nhan = ds.filter((x) => x.vai === 'nhan' && x.id !== g.id);
   return (
-    <Drawer onClose={onClose} width={560}>
+    <Drawer onClose={onClose} width={620}>
       <div style={{ display: 'grid', gap: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 17 }}>Cổng · {g.ten ?? g.ma}</h2>
-        <TextField id="cong-ten" label="Tên gọi" value={ten} onChange={(e) => setTen(e.target.value)} />
-        <TextAreaField id="cong-gc" label="Ghi chú (dùng cho site nào, ai giữ tài khoản, lưu ý)" rows={3} value={gc} onChange={(e) => setGc(e.target.value)} />
-        <b style={{ fontSize: 13 }}>Ngưỡng cảnh báo — trống = mặc định</b>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          {(Object.keys(NGUONG_MAC_DINH) as (keyof NguongCong)[]).map((k) => (
-            <TextField key={k} id={`cong-ng-${k}`} label={NHAN_NGUONG[k]} inputMode="decimal" placeholder={String(NGUONG_MAC_DINH[k])} value={ng[k] ?? ''} onChange={(e) => setNg({ ...ng, [k]: e.target.value })} />
-          ))}
+        <h2 style={{ margin: 0, fontSize: 17 }}>{moi ? 'Thêm cổng thanh toán' : `Cổng · ${KIEU_CONG[g.loai]?.ten ?? g.loai} · ${g.ten ?? g.ma}`}</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 10 }}>
+          <PickField label="Loại" value={loai} disabled={!moi} hint={`${VAI_CONG[kieu.vai]}${kieu.api ? ' · máy tự đọc sức khoẻ' : ' · ghi tay (chưa nối API)'}`}
+            options={Object.entries(KIEU_CONG).map(([k, x]) => ({ value: k, label: `${x.ten} — ${VAI_CONG[x.vai].toLowerCase()}` }))} onChange={(k) => k && setLoai(k)} />
+          <TextField id="cong-ten" label="Tên gọi" placeholder={`${kieu.ten} chính`} value={ten} onChange={(e) => setTen(e.target.value)} />
         </div>
+        {loai !== 'stripe' && <TextField id="cong-tk" label="Tài khoản" hint="CHỈ email đăng nhập / mã tài khoản (vd Payoneer ID). Không mật khẩu, không số thẻ / số tài khoản ngân hàng." value={tk} onChange={(e) => setTk(e.target.value)} />}
+        <TextField id="cong-link" label="Trang quản trị" placeholder={kieu.link ?? 'https://…'} value={link} onChange={(e) => setLink(e.target.value)} />
+        {kieu.vai === 'thu' && <>
+          <PickField label="Tiền rút về" value={ve} placeholder="— chưa ghi —" clearable hint={nhan.length ? undefined : 'chưa có cổng nhận (Payoneer/PingPong) — thêm trước rồi chọn ở đây'}
+            options={nhan.map((x) => ({ value: x.id, label: `${KIEU_CONG[x.loai]?.ten ?? x.loai} · ${x.ten ?? x.ma}` }))} onChange={(k) => setVe(k ?? null)} />
+          <div style={{ display: 'grid', gap: 4 }}><b style={{ fontSize: 13 }}>Shop dùng cổng này</b>
+            {loai === 'stripe' ? <span style={{ fontSize: 12.5, ...phu }}>Stripe: máy tự gán theo khoá của từng shop.</span>
+              : <span style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>{cuaHang.map((c) => <label key={c.khoa} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 13 }}>
+                <input type="checkbox" checked={shops.includes(c.khoa)} onChange={(e) => setShops(e.target.checked ? [...shops, c.khoa] : shops.filter((x) => x !== c.khoa))} />{c.ten}</label>)}</span>}
+          </div>
+        </>}
+        <TextAreaField id="cong-gc" label="Ghi chú (ai giữ tài khoản, phí, lưu ý)" rows={3} value={gc} onChange={(e) => setGc(e.target.value)} />
+        {kieu.api && <>
+          <b style={{ fontSize: 13 }}>Ngưỡng cảnh báo — trống = mặc định</b>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {(Object.keys(NGUONG_MAC_DINH) as (keyof NguongCong)[]).map((k) => (
+              <TextField key={k} id={`cong-ng-${k}`} label={NHAN_NGUONG[k]} inputMode="decimal" placeholder={String(NGUONG_MAC_DINH[k])} value={ng[k] ?? ''} onChange={(e) => setNg({ ...ng, [k]: e.target.value })} />
+            ))}
+          </div>
+        </>}
         {loi && <div style={{ color: 'var(--bad)', fontSize: 13 }}>{loi}</div>}
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn primary" disabled={dang} onClick={() => batDau(async () => {
             const nguong = Object.fromEntries(Object.entries(ng).filter(([, v]) => v.trim() !== '').map(([k, v]) => [k, Number(v)]));
-            const r = await shopSuaCong(g.id, { ten, ghiChu: gc, nguong }).catch((e) => ({ ok: false, loi: (e as Error).message }));
+            const r = await shopSuaCong(moi ? null : g.id, { loai, ten, taiKhoan: tk, link, veCongId: ve, shops: loai === 'stripe' ? undefined : shops, ghiChu: gc, nguong })
+              .catch((e) => ({ ok: false, loi: (e as Error).message }));
             if (r.ok) onClose(); else setLoi(('loi' in r && r.loi) || 'lỗi');
           })}>{dang ? 'Đang lưu…' : 'Lưu'}</button>
           <button className="btn ghost" onClick={onClose}>Đóng</button>

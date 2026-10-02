@@ -15,6 +15,8 @@ import { envShop, tenEnv } from '@mos2/shop/mat-tien';
 import { stripe } from '@mos2/shop/stripe';
 import { existsSync } from 'node:fs';
 import { docShop } from '@/lib/shop/doc';
+import { docCong } from '@/lib/shop/cong';
+import { NGUONG_MAC_DINH, type NguongCong } from '@/lib/shop/cong-luat';
 import { DINH_DANG_QC, KENH_BAN, KENH_NCC, KHOP_DOI_THU, NEN_TANG_QC } from '@/lib/shop/buoc';
 import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
@@ -640,3 +642,21 @@ export async function shopQcMoc(cuaHangId: number, loai: LoaiNuoi, doiTuongId: n
   revalidatePath('/shop');
   return { ok: true };
 }
+
+/* ── Cổng thanh toán (migration 0213) — CHỈ ĐỌC cổng; sửa trong mos2: tên gọi, ghi chú, ngưỡng cảnh báo. ── */
+/** Đọc lại sức khoẻ mọi cổng ngay (bỏ qua hạn 6 giờ). */
+export async function shopDocCong() {
+  await admin();
+  const kq = await docCong({ ep: true });
+  revalidatePath('/shop');
+  return { ok: !kq.some((x) => 'loi' in x), kq };
+}
+/** Sửa tên gọi / ghi chú / ngưỡng cảnh báo của một cổng (không đụng gì phía Stripe). */
+export async function shopSuaCong(id: number, v: { ten: string; ghiChu: string; nguong: Partial<NguongCong> }) {
+  await admin();
+  const ng = Object.fromEntries(Object.entries(v.nguong).filter(([k, x]) => k in NGUONG_MAC_DINH && Number.isFinite(x) && (x as number) >= 0 && (x as number) <= 100));
+  await db().execute(sql`UPDATE shop_cong SET ten = ${v.ten.trim().slice(0, 120) || null}, ghi_chu = ${v.ghiChu.trim().slice(0, 2000) || null}, nguong = ${JSON.stringify(ng)}::jsonb WHERE id = ${id}`);
+  revalidatePath('/shop');
+  return { ok: true };
+}
+

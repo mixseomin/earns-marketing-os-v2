@@ -5,7 +5,7 @@ import { Fragment, useState, useRef, useEffect, useTransition } from 'react';
 import { usePathname } from 'next/navigation';
 import { useT } from '@/lib/lang-context';
 import { ProjectSwitcher } from './project-switcher';
-import { TAB_TRANG, coTab, hrefTab, type TabTrang } from '@/lib/tab-trang';
+import { TAB_TRANG, coTab, hrefTab, tabMacDinh, type TabTrang } from '@/lib/tab-trang';
 import { logoutAction } from '@/lib/actions/auth';
 import type { Health, Mode, Project } from '@/lib/mock/types';
 import type { CurrentUserInfo } from './app-shell';
@@ -360,7 +360,12 @@ function SystemGroupRow({ group, isOpen, onOpen, onClose }: {
   const rowRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   // Mục có tab cấp trang (lib/tab-trang.ts) → mỗi tab thành một dòng con ngay dưới mục: menu đi thẳng tới tab.
-  const soCon = group.items.reduce((n, it) => n + (it.href && coTab(it.href) ? TAB_TRANG[it.href].tabs.length : 0), 0);
+  // mục con = tab + nhãn nhóm tab (mỗi lần đổi nhóm một dòng nhãn)
+  const soCon = group.items.reduce((n, it) => {
+    if (!it.href || !coTab(it.href)) return n;
+    const ts = TAB_TRANG[it.href].tabs as readonly TabTrang[];
+    return n + ts.length + ts.filter((t, i) => t.nhom && t.nhom !== ts[i - 1]?.nhom).length;
+  }, 0);
 
   const activeItem = group.items.find((it) => it.href && pathname === it.href);
   const isGroupActive = !!activeItem;
@@ -461,9 +466,12 @@ function SystemGroupRow({ group, isOpen, onOpen, onClose }: {
               </Link>
               {tabs && it.href && coTab(it.href) && (tabs.tabs as readonly TabTrang[]).map((t, i) => {
                 const duong = it.href as keyof typeof TAB_TRANG;
-                const on = pathname === duong && ((qs?.get(tabs.param) ?? '') === t.key || (!qs?.get(tabs.param) && i === 0));
+                const on = pathname === duong && ((qs?.get(tabs.param) ?? '') === t.key || (!qs?.get(tabs.param) && t.key === tabMacDinh(duong)));
+                const dauNhom = t.nhom && t.nhom !== (tabs.tabs as readonly TabTrang[])[i - 1]?.nhom;
                 return (
-                  <Link key={t.key} href={hrefTab(duong, t.key)} title={t.title}
+                  <Fragment key={t.key}>
+                  {dauNhom && <div style={{ padding: '5px 10px 1px 38px', fontSize: 9.5, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--fg-4)' }}>{t.nhom}</div>}
+                  <Link href={hrefTab(duong, t.key)} title={t.title}
                     style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px 3px 38px', fontSize: 11.5, textDecoration: 'none',
                       color: on ? 'var(--accent)' : 'var(--fg-2)', fontWeight: on ? 700 : 400,
                       background: on ? 'var(--accent-soft)' : 'transparent', borderLeft: `2px solid ${on ? 'var(--accent)' : 'transparent'}` }}
@@ -471,6 +479,7 @@ function SystemGroupRow({ group, isOpen, onOpen, onClose }: {
                     onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = 'transparent'; }}>
                     <span style={{ color: 'var(--fg-4)' }}>└</span>{t.label}
                   </Link>
+                  </Fragment>
                 );
               })}
               </Fragment>

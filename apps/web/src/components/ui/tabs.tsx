@@ -19,6 +19,17 @@ export interface TabItem<T extends string> {
   label: ReactNode;
   badge?: ReactNode;      // số đếm / cảnh báo nhỏ bên phải nhãn
   title?: string;
+  nhom?: string;          // tab liền nhau cùng nhóm → một cụm có nhãn nhỏ phía trên, vạch ngăn giữa các cụm (sổ lib/tab-trang.ts)
+}
+
+/** Gom tab liền nhau cùng `nhom` thành cụm; không tab nào có nhóm = một cụm trần (vẽ như cũ). */
+function cum<T extends string>(items: TabItem<T>[]): { nhom?: string; items: TabItem<T>[] }[] {
+  const ra: { nhom?: string; items: TabItem<T>[] }[] = [];
+  for (const t of items) {
+    const cuoi = ra[ra.length - 1];
+    if (cuoi && cuoi.nhom === t.nhom) cuoi.items.push(t); else ra.push({ nhom: t.nhom, items: [t] });
+  }
+  return ra;
 }
 
 export function Tabs<T extends string>({ items, value, onChange, right, onReorder, hrefFor, dinh = !!hrefFor }: {
@@ -48,7 +59,12 @@ export function Tabs<T extends string>({ items, value, onChange, right, onReorde
                   borderBottom: '1px solid var(--line)', overflowX: 'auto',
                   // boxShadow phủ dải lề trên của .main (var(--s-4)) để nội dung không lướt qua khe phía trên thanh khi đang dính
                   ...(dinh ? { position: 'sticky', top: 0, zIndex: 30, background: 'var(--bg-0)', boxShadow: '0 calc(-1 * var(--s-4)) 0 var(--bg-0)' } : {}) }}>
-      {items.map((t) => {
+      {cum(items).map((c, ci) => (
+        <div key={c.nhom ?? ci} style={{ display: 'flex', flexDirection: 'column', flexShrink: 0,
+          ...(ci ? { borderLeft: c.nhom ? '1px solid var(--line)' : undefined, paddingLeft: c.nhom ? 4 : 0, marginLeft: c.nhom ? 4 : 0 } : {}) }}>
+          {c.nhom && <span style={{ padding: '2px 12px 0', fontSize: 9.5, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{c.nhom}</span>}
+          <div style={{ display: 'flex', alignItems: 'stretch', gap: 2 }}>
+      {c.items.map((t) => {
         const active = t.key === value;
         return (
           <button key={t.key} type="button" title={t.title}
@@ -80,6 +96,9 @@ export function Tabs<T extends string>({ items, value, onChange, right, onReorde
           </button>
         );
       })}
+          </div>
+        </div>
+      ))}
       {right && <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center' }}>{right}</span>}
     </div>
   );

@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { BAO_SANG_CHANG, LA_BOT, SO_CHANG } from '@mos2/shop/phien';
+import { BAO_SANG_CHANG, LA_BOT, SO_CHANG, docUa } from '@mos2/shop/phien';
 import { shopHienTai } from '@/lib/shop';
 import { ipCua, quaGioiHan } from '@/lib/chan';
 
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   if (quaGioiHan(`phien:${ipCua(req)}`, 1200, 3600_000)) return ok;
   const s = await shopHienTai(), db = getDb();
   if (!s || !db) return ok;
-  const b = (await req.json().catch(() => null)) as { p?: string; meta?: { k?: string; dau?: string; ref?: string | null; tb?: string }; cuon?: number; ev?: Ev[] } | null;
+  const b = (await req.json().catch(() => null)) as { p?: string; meta?: { k?: string; dau?: string; ref?: string | null; tb?: string; ng?: string; mg?: string | null; mh?: string }; cuon?: number; ev?: Ev[] } | null;
   const id = cat(b?.p, 60);
   if (!b || !id) return ok;
   const ev = (b.ev ?? []).filter((e) => e.l && LOAI.has(e.l)).slice(0, 50);
@@ -39,11 +39,15 @@ export async function POST(req: Request) {
   else if (ref) { try { const h = new URL(ref).hostname.replace(/^www\./, ''); if (!s.domain.endsWith(h) && !h.endsWith(s.domain)) nguon = h; } catch { /* ref hỏng */ } }
   const hd = req.headers;
   const tp = hd.get('cf-ipcity'), nuoc = hd.get('cf-ipcountry');
+  const ua = docUa(hd.get('user-agent') ?? '');
+  const mh = cat(b.meta?.mh, 20), mhOk = mh && /^\d{2,5}×\d{2,5}$/.test(mh) ? mh : null;
 
   await db.execute(sql`
-    INSERT INTO shop_phien (id, cua_hang_id, khach_id, trang_dau, trang_hien, cuon, nguon, utm, ref, thiet_bi, nuoc, thanh_pho, chang, so_trang, so_click, gio_gia, so_don)
+    INSERT INTO shop_phien (id, cua_hang_id, khach_id, trang_dau, trang_hien, cuon, nguon, utm, ref, thiet_bi, nuoc, thanh_pho, chang, so_trang, so_click, gio_gia, so_don,
+                            trinh_duyet, he_dieu_hanh, ngon_ngu, mui_gio, man_hinh)
     VALUES (${id}, ${s.id}, ${cat(b.meta?.k, 60)}, ${cat(b.meta?.dau, 300) ?? trang}, ${trang}, ${cuon}, ${nguon}, ${utm ? JSON.stringify(utm) : null}::jsonb, ${ref},
-            ${cat(b.meta?.tb, 10)}, ${nuoc && nuoc !== 'XX' ? nuoc : null}, ${tp ? decodeURIComponent(tp).slice(0, 60) : null}, ${chang}, ${soTrang}, ${soClick}, ${gio}, ${don})
+            ${cat(b.meta?.tb, 10)}, ${nuoc && nuoc !== 'XX' ? nuoc : null}, ${tp ? decodeURIComponent(tp).slice(0, 60) : null}, ${chang}, ${soTrang}, ${soClick}, ${gio}, ${don},
+            ${ua.trinh_duyet}, ${ua.he_dieu_hanh}, ${cat(b.meta?.ng, 20)}, ${cat(b.meta?.mg, 60)}, ${mhOk})
     ON CONFLICT (id) DO UPDATE SET cuoi = now(), trang_hien = COALESCE(EXCLUDED.trang_hien, shop_phien.trang_hien),
       cuon = CASE WHEN EXCLUDED.trang_hien IS DISTINCT FROM shop_phien.trang_hien AND ${soTrang} > 0 THEN EXCLUDED.cuon ELSE GREATEST(shop_phien.cuon, EXCLUDED.cuon) END,
       chang = GREATEST(shop_phien.chang, EXCLUDED.chang), so_trang = shop_phien.so_trang + EXCLUDED.so_trang, so_click = shop_phien.so_click + EXCLUDED.so_click,

@@ -26,6 +26,7 @@ import type { DoiThuDong } from '@/lib/shop/doi-thu-doc';
 import { BangDoiThu } from './shop-doi-thu';
 import { BangCong, soCongCanXem } from './shop-cong';
 import { LOAI_XIN_HOAN, MAU_MUC, tomTtDon } from '@/lib/shop/tt-don-luat';
+import { KhachDon, MonDon, TienDon } from './shop-don-chi-tiet';
 import type { CongDong, PhapNhanDong } from '@/lib/shop/cong-luat';
 import { BangHaTang } from './shop-ha-tang';
 import { shopMoHoSo, shopSoDuNcc, shopTienNcc } from '@/lib/actions/shop';
@@ -271,7 +272,7 @@ function DrawerDon({ id, hoSo, onClose }: { id: number; hoSo: HoSoDong[]; onClos
   const NHAN_TT: Record<string, string> = { processing: 'khách đã trả', completed: 'đã gửi hàng', pending: 'chưa trả tiền', 'on-hold': 'tạm giữ', cancelled: 'đã huỷ', refunded: 'đã hoàn', failed: 'trả lỗi' };
   const dong = (nhan: string, giaTri: ReactNode) => (<><span style={phu}>{nhan}</span><span>{giaTri}</span></>);
   return (
-    <Drawer onClose={onClose} width={640}>
+    <Drawer onClose={onClose} width={1000}>
       {!ct ? <div style={phu}>{loi ?? 'Đang tải…'}</div> : !d ? <div>Không thấy đơn.</div> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -322,10 +323,12 @@ function DrawerDon({ id, hoSo, onClose }: { id: number; hoSo: HoSoDong[]; onClos
           ]} />
 
           {tab === 'don' && (<>
+            {/* hai cột như trang đơn Shopdy: trái = đơn (món · tiền · thanh toán · NCC/vận chuyển), phải = khách (liên hệ · hành trình mua · thiết bị · nguồn · rủi ro) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: 16, alignItems: 'start' }}>
+            <div style={{ display: 'grid', gap: 12, minWidth: 0 }}>
+            <MonDon mon={ct.mon} />
+            <TienDon ct={ct} d={d} />
             <div style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: '4px 10px', fontSize: 13 }}>
-              {dong('Khách', `${d.khach} · ${d.email}${ct.sdt ? ` · ${ct.sdt}` : ''}`)}
-              {dong('Giao tới', [ct.diaChi.ten, ct.diaChi.dong1, ct.diaChi.dong2, ct.diaChi.thanh_pho, ct.diaChi.bang, ct.diaChi.zip, ct.diaChi.nuoc].filter(Boolean).join(', '))}
-              {dong('Nguồn', d.sid ?? '—')}
               {dong('Đơn NCC', d.ncc?.maNcc ? `CJ ${d.ncc.maNcc} · ${d.ncc.trangThai} · ${d.ncc.daTra ? 'đã trả' : 'chưa trả'}${d.ncc.tuyen ? ` · ${d.ncc.tuyen} ${d.ncc.soNgay} ngày` : ''}` : '—')}
               {(() => { const t = tomTtDon(d.tt, d.congTt, hoSo.some((h) => h.ben === 'khach' && LOAI_XIN_HOAN.includes(h.loai) && h.trangThai !== 'xong'));
                 return dong('Thanh toán', <span style={{ display: 'grid', gap: 2 }}>
@@ -348,23 +351,9 @@ function DrawerDon({ id, hoSo, onClose }: { id: number; hoSo: HoSoDong[]; onClos
                 { key: 'mo', header: '', cell: (m) => m.mo_ta },
               ]} />
             )}
-            <SimpleTable rows={ct.mon} getRowKey={(_, i) => String(i)} columns={[
-              { key: 'ten', header: 'Món', cell: (m) => `${m.ten}${m.sl > 1 ? ` ×${m.sl}` : ''}` },
-              { key: 'gia', header: 'Giá', align: 'right', cell: (m) => tien(m.gia) },
-              { key: 'von', header: 'Vốn', align: 'right', cell: (m) => tien(m.giaVon === null ? null : m.giaVon * m.sl) },
-              { key: 'ma', header: 'Mã CJ', align: 'right', cell: (m) => (m.maNcc ? 'có' : <span style={{ color: 'var(--bad)' }}>thiếu</span>) },
-            ]} />
-            <SimpleTable hideHeader rows={[
-              { k: 'Khách trả', v: tien(d.tong) },
-              ...(d.hoan > 0 ? [{ k: 'Hoàn', v: `−${tien(d.hoan)}` }] : []),
-              { k: 'Giá vốn NCC', v: `−${tien(d.giaVon)}` },
-              { k: 'Ship NCC', v: `−${tien(d.shipNcc)}` },
-              { k: 'Phí cổng', v: `−${tien(d.phiCong)}` },
-              { k: 'Lãi ước', v: <b style={{ color: mauTien(d.lai) }}>{tien(d.lai)}</b> },
-            ]} getRowKey={(r) => r.k} columns={[
-              { key: 'k', header: '', cell: (r) => r.k },
-              { key: 'v', header: '', align: 'right', cell: (r) => r.v },
-            ]} />
+            </div>
+            <KhachDon ct={ct} d={d} />
+            </div>
           </>)}
 
           {tab === 'nhat_ky' && (<>

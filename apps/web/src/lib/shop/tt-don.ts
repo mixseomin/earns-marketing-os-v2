@@ -12,6 +12,7 @@ const iso = (s: number | null | undefined) => (s ? new Date(s * 1000).toISOStrin
 
 type Bt = { id: string; status: string; available_on: number; fee: number; net: number };
 type Charge = { id: string; amount: number; currency: string; disputed: boolean; balance_transaction: Bt | string | null;
+  outcome?: { risk_level?: string | null; risk_score?: number | null; seller_message?: string | null } | null;
   refunds?: { data: { id: string; amount: number; status: string; reason: string | null; created: number }[] } };
 type Pi = { id: string; amount: number; currency: string; latest_charge: Charge | string | null };
 type Rut = { id: string; status: string; created: number; arrival_date: number; automatic: boolean };
@@ -46,7 +47,8 @@ export async function docTtDon(gioiHan = 30) {
       }
       const hoan = (ch?.refunds?.data ?? []).map((h) => ({ id: h.id, so: h.amount / 100, trang_thai: h.status, ly_do: h.reason, luc: iso(h.created)! }));
       const tt: TtDon = { cong: d.cong_tt ?? 'Stripe', pi: pi.id, charge: ch?.id ?? null, tien: pi.amount / 100, phi: bt ? bt.fee / 100 : null, thuc_nhan: bt ? bt.net / 100 : null,
-        tien_te: pi.currency.toUpperCase(), tien_ve: { trang_thai: bt?.status ?? null, kha_dung_tu: bt ? iso(bt.available_on)!.slice(0, 10) : null }, rut, hoan, dispute, efw, luc: new Date().toISOString() };
+        tien_te: pi.currency.toUpperCase(), tien_ve: { trang_thai: bt?.status ?? null, kha_dung_tu: bt ? iso(bt.available_on)!.slice(0, 10) : null }, rut, hoan, dispute, efw,
+        rui_ro: ch?.outcome ? { muc: ch.outcome.risk_level ?? null, diem: ch.outcome.risk_score ?? null, ghi: ch.outcome.seller_message ?? null } : undefined, luc: new Date().toISOString() };
       const daHoan = hoan.filter((h) => h.trang_thai === 'succeeded').reduce((s, h) => s + h.so, 0);
       await q(sql`UPDATE shop_don SET tt = ${JSON.stringify(tt)}::jsonb, tt_luc = now(), hoan = GREATEST(hoan, ${daHoan}), phi_cong = COALESCE(${tt.phi}, phi_cong) WHERE id = ${d.id}`);
       doc++;

@@ -16,3 +16,12 @@ assert.strictEqual(tomTtDon({ ...goc, dispute: { id: 'dp_1', so: 49.99, trang_th
 assert.strictEqual(tomTtDon(null, 'Stripe').nhan, 'Stripe · chưa đọc');
 assert.strictEqual(tomTtDon(null, null).nhan, '—');
 console.log('tomTtDon: đúng');
+{
+  const { ruiRoDon } = await import('./tt-don-luat');
+  assert.strictEqual(ruiRoDon(null, null, 'US').muc, null);                                                       // chưa có gì để chấm
+  assert.strictEqual(ruiRoDon({ ...goc, rui_ro: { muc: 'normal', diem: 12, ghi: null } }, 'US', 'US').muc, 'thap');
+  assert.strictEqual(ruiRoDon({ ...goc, rui_ro: { muc: 'normal', diem: 12, ghi: null } }, 'VN', 'US').muc, 'vua'); // IP khác nước giao
+  assert.strictEqual(ruiRoDon({ ...goc, rui_ro: { muc: 'highest', diem: 88, ghi: null } }, 'US', 'US').muc, 'cao');
+  assert.strictEqual(ruiRoDon({ ...goc, efw: true }, 'US', 'US').muc, 'cao');
+  console.log('ruiRoDon: đúng');
+}

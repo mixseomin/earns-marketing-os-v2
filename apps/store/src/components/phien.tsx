@@ -28,6 +28,8 @@ function gui(roi = false) {
   const meta = daGuiMeta ? undefined : {
     k: lay(localStorage, 'khach-id'), dau: location.pathname + location.search, ref: document.referrer || null,
     tb: matchMedia('(max-width: 640px)').matches ? 'mobile' : matchMedia('(max-width: 1024px)').matches ? 'tablet' : 'desktop',
+    // ngôn ngữ · múi giờ · màn hình — cùng loại thông tin trang đơn Shopdy hiện; trình duyệt/OS máy chủ tự đọc từ user-agent
+    ng: navigator.language, mg: (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return null; } })(), mh: `${screen.width}×${screen.height}`,
   };
   const than = JSON.stringify({ p: idPhien(), meta, cuon: cuonMax, ev: cho.splice(0, 50) });
   daGuiMeta = true;

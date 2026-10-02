@@ -12,8 +12,22 @@ export type TtDon = {
   hoan: { id: string; so: number; trang_thai: string; ly_do: string | null; luc: string }[];
   dispute: { id: string; so: number; trang_thai: string; ly_do: string; han: string | null } | null;
   efw: boolean;                         // ngân hàng báo cảnh báo gian lận sớm cho giao dịch này
+  /** đánh giá rủi ro của cổng lúc thanh toán (Stripe Radar: normal · elevated · highest, điểm 0–100) */
+  rui_ro?: { muc: string | null; diem: number | null; ghi: string | null };
   luc: string;
 };
+/** Rủi ro đơn kiểu Thấp / Vừa / Cao (như trang đơn Shopdy) — từ đánh giá của cổng + cảnh báo gian lận + dispute + nước IP ≠ nước giao. */
+export function ruiRoDon(tt: TtDon | null, nuocIp: string | null, nuocGiao: string | null): { muc: 'thap' | 'vua' | 'cao' | null; ly_do: string[] } {
+  const ly: string[] = [];
+  let m: 0 | 1 | 2 = 0, co = false;
+  if (tt?.rui_ro?.muc) { co = true; if (tt.rui_ro.muc === 'highest') { m = 2; ly.push(`cổng đánh giá rủi ro CAO${tt.rui_ro.diem != null ? ` (${tt.rui_ro.diem}/100)` : ''}`); }
+    else if (tt.rui_ro.muc === 'elevated') { m = Math.max(m, 1) as 0 | 1 | 2; ly.push(`cổng đánh giá rủi ro vừa${tt.rui_ro.diem != null ? ` (${tt.rui_ro.diem}/100)` : ''}`); }
+    else ly.push(`cổng đánh giá bình thường${tt.rui_ro.diem != null ? ` (${tt.rui_ro.diem}/100)` : ''}`); }
+  if (tt?.efw) { co = true; m = 2; ly.push('ngân hàng báo cảnh báo gian lận sớm'); }
+  if (tt?.dispute) { co = true; m = 2; ly.push(`đã có dispute (${tt.dispute.ly_do})`); }
+  if (nuocIp && nuocGiao && nuocIp.toUpperCase() !== nuocGiao.toUpperCase()) { co = true; m = Math.max(m, 1) as 0 | 1 | 2; ly.push(`đặt từ IP ở ${nuocIp}, giao tới ${nuocGiao}`); }
+  return { muc: co ? (['thap', 'vua', 'cao'] as const)[m] : null, ly_do: ly };
+}
 export type Muc = 'tot' | 'vang' | 'do' | 'nhat';
 /** Hồ sơ khách (shop_ho_so.loai) nghĩa là "đòi lại tiền giữa chừng" — tính khi còn mở. */
 export const LOAI_XIN_HOAN = ['hoan_tien', 'doi_tra'];

@@ -1,7 +1,7 @@
 // SHOP — đọc sổ cho màn /shop. Sổ nhỏ, cùng box (vài trăm đơn) → một lượt đọc hết 120 ngày, lọc/tìm ở trình duyệt.
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
-import { buocCua, type Buoc } from './buoc';
+import { buocCua, isoCua, type Buoc } from './buoc';
 import type { Moc } from './track17';
 import { hanhTrinh, type HanhTrinh } from '@mos2/shop/hanh-trinh';
 import type { TtDon } from './tt-don-luat';
@@ -172,7 +172,18 @@ export async function docShop() {
 }
 
 export type SuKien = { ts: string; nguon: string; noiDung: string; loi: boolean };
-export type ChiTietDon = { don: DonDong | null; diaChi: Record<string, string>; sdt: string; mon: { ten: string; sl: number; gia: number; maNcc: string | null; giaVon: number | null; bienTheId: number | null }[];
+export type ChiTietDon = { don: DonDong | null; diaChi: Record<string, string>; sdt: string;
+  /** món: gia = thành tiền dòng (đã chia giảm giá) · giaGoc = giá gạch / 1 cái · tuyChon = tên biến thể */
+  mon: { ten: string; sl: number; gia: number; maNcc: string | null; giaVon: number | null; bienTheId: number | null; anh: string | null; sku: string | null; tuyChon: string | null; giaGoc: number | null }[];
+  /** tách tiền như khách thấy ở checkout (shop_thanh_toan) — đơn Woo cũ không có thì null */
+  tien: { tamTinh: number; giam: number; ship: number; tong: number } | null;
+  /** khách này: đơn thứ mấy ở shop, tổng số đơn, đơn đầu tiên lúc nào (theo email) */
+  khachSo: { thuTu: number; tong: number; dauLuc: string | null };
+  /** hành trình mua (sổ phiên mặt tiền): phiên đặt đơn + mọi phiên trước của cùng trình duyệt */
+  phien: { soPhien: number; tuLuc: string | null; dau: { nguon: string | null; trang: string | null; luc: string } | null;
+    dat: { nguon: string | null; utm: Record<string, string> | null; trangDau: string | null; batDau: string; thietBi: string | null; trinhDuyet: string | null; heDieuHanh: string | null;
+      ngonNgu: string | null; muiGio: string | null; manHinh: string | null; nuoc: string | null; thanhPho: string | null; soTrang: number } | null;
+    /** giây từ lúc vào phiên đặt đơn tới lúc đặt, và từ phiên đầu tiên */ truocKhiMua: number | null; tuPhienDau: number | null } | null;
   suKien: SuKien[]; nccCu: { maNcc: string | null; trangThai: string; loi: string | null; ts: string }[]; vanDonRaw: unknown;
   /** Hành trình đầy đủ (17TRACK, KHÔNG che tên chặng ngoài — bản nội bộ) + chặng cuối. */
   moc: Moc[]; changCuoi: string | null };
@@ -180,16 +191,44 @@ export type ChiTietDon = { don: DonDong | null; diaChi: Record<string, string>; 
 export async function docChiTietDon(id: number): Promise<ChiTietDon> {
   const { don } = await docShop();
   const d = don.find((x) => x.id === id) ?? null;
-  const [goc] = await q(sql`SELECT dia_chi, khach FROM shop_don WHERE id = ${id}`);
-  const [mon, sk, nccCu, vd] = await Promise.all([
-    q(sql`SELECT m.ten, m.sl, m.gia, b.ma_ncc, b.gia_von, m.bien_the_id FROM shop_don_mon m LEFT JOIN shop_bien_the b ON b.id = m.bien_the_id WHERE m.don_id = ${id} ORDER BY m.id`),
+  const [goc] = await q(sql`SELECT dia_chi, khach, cua_hang_id, so_don, tao_luc::text AS tao_luc FROM shop_don WHERE id = ${id}`);
+  const email = String(((goc?.khach ?? {}) as Record<string, string>).email ?? '').toLowerCase();
+  const [mon, sk, nccCu, vd, ttRow, ks, ph] = await Promise.all([
+    q(sql`SELECT m.ten, m.sl, m.gia, b.ma_ncc, b.gia_von, m.bien_the_id, COALESCE(b.anh, p.anh) AS anh, b.sku, b.ten AS tuy_chon, COALESCE(b.gia_goc, p.gia_goc) AS gia_goc
+            FROM shop_don_mon m LEFT JOIN shop_bien_the b ON b.id = m.bien_the_id LEFT JOIN shop_san_pham p ON p.id = b.san_pham_id WHERE m.don_id = ${id} ORDER BY m.id`),
     q(sql`SELECT ts::text AS ts, nguon, noi_dung, loi FROM shop_su_kien WHERE don_id = ${id} ORDER BY ts DESC, id DESC`),
     q(sql`SELECT ma_ncc, trang_thai, loi, created_at::text AS ts FROM shop_don_ncc WHERE don_id = ${id} ORDER BY id DESC`),
     q(sql`SELECT van_don, moc, ma_chang_cuoi, hang_chang_cuoi FROM shop_don_ncc WHERE don_id = ${id} AND trang_thai NOT IN ('CANCELLED', 'LOI') ORDER BY id DESC LIMIT 1`),
+    q(sql`SELECT tam_tinh, giam, ship, tong FROM shop_thanh_toan WHERE don_id = ${id} ORDER BY tao_luc DESC LIMIT 1`),
+    // đơn thứ mấy của khách ở shop này (theo email, chỉ đơn đã trả)
+    email ? q(sql`SELECT COUNT(*) FILTER (WHERE x.tao_luc <= ${String(goc?.tao_luc)}::timestamptz) AS thu_tu, COUNT(*) AS tong, MIN(x.tao_luc)::text AS dau
+      FROM shop_don x WHERE x.cua_hang_id = ${Number(goc?.cua_hang_id)} AND lower(x.khach->>'email') = ${email} AND x.tra_luc IS NOT NULL`) : Promise.resolve([] as Row[]),
+    // phiên đặt đơn + mọi phiên trước đó của cùng trình duyệt (khach_id)
+    q(sql`WITH dat AS (SELECT * FROM shop_phien WHERE cua_hang_id = ${Number(goc?.cua_hang_id)} AND so_don = ${String(goc?.so_don)} ORDER BY bat_dau LIMIT 1)
+      SELECT 'dat' AS vai, d2.nguon, d2.utm, d2.trang_dau, d2.bat_dau::text AS bat_dau, d2.thiet_bi, d2.trinh_duyet, d2.he_dieu_hanh, d2.ngon_ngu, d2.mui_gio, d2.man_hinh,
+             d2.nuoc, d2.thanh_pho, d2.so_trang FROM dat d2
+      UNION ALL
+      SELECT 'truoc', p.nguon, p.utm, p.trang_dau, p.bat_dau::text, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, p.so_trang
+        FROM shop_phien p, dat WHERE p.khach_id = dat.khach_id AND p.id <> dat.id AND p.bat_dau <= dat.bat_dau ORDER BY bat_dau`),
   ]);
+  const t0 = ttRow[0], k0 = ks[0];
+  const pDat = ph.find((r) => r.vai === 'dat'), pTruoc = ph.filter((r) => r.vai === 'truoc');
+  const dauP = pTruoc[0] ?? pDat;
+  const giay = (a: unknown, b: unknown) => (a && b ? Math.max(0, Math.round((Date.parse(isoCua(String(b))) - Date.parse(isoCua(String(a)))) / 1000)) : null);
   return {
     don: d, diaChi: ((goc?.dia_chi ?? {}) as Record<string, string>), sdt: String(((goc?.khach ?? {}) as Record<string, string>).sdt ?? ''),
-    mon: mon.map((r) => ({ ten: String(r.ten), sl: Number(r.sl), gia: Number(r.gia), maNcc: (r.ma_ncc as string) ?? null, giaVon: so(r.gia_von), bienTheId: so(r.bien_the_id) })),
+    mon: mon.map((r) => ({ ten: String(r.ten), sl: Number(r.sl), gia: Number(r.gia), maNcc: (r.ma_ncc as string) ?? null, giaVon: so(r.gia_von), bienTheId: so(r.bien_the_id),
+      anh: (r.anh as string) ?? null, sku: (r.sku as string) ?? null, tuyChon: (r.tuy_chon as string) ?? null, giaGoc: so(r.gia_goc) })),
+    tien: t0 ? { tamTinh: Number(t0.tam_tinh), giam: Number(t0.giam), ship: Number(t0.ship), tong: Number(t0.tong) } : null,
+    khachSo: { thuTu: Number(k0?.thu_tu ?? 0), tong: Number(k0?.tong ?? 0), dauLuc: (k0?.dau as string) ?? null },
+    phien: pDat ? {
+      soPhien: pTruoc.length + 1, tuLuc: (dauP?.bat_dau as string) ?? null,
+      dau: dauP ? { nguon: (dauP.nguon as string) ?? null, trang: (dauP.trang_dau as string) ?? null, luc: String(dauP.bat_dau) } : null,
+      dat: { nguon: (pDat.nguon as string) ?? null, utm: (pDat.utm as Record<string, string>) ?? null, trangDau: (pDat.trang_dau as string) ?? null, batDau: String(pDat.bat_dau),
+        thietBi: (pDat.thiet_bi as string) ?? null, trinhDuyet: (pDat.trinh_duyet as string) ?? null, heDieuHanh: (pDat.he_dieu_hanh as string) ?? null, ngonNgu: (pDat.ngon_ngu as string) ?? null,
+        muiGio: (pDat.mui_gio as string) ?? null, manHinh: (pDat.man_hinh as string) ?? null, nuoc: (pDat.nuoc as string) ?? null, thanhPho: (pDat.thanh_pho as string) ?? null, soTrang: Number(pDat.so_trang) },
+      truocKhiMua: giay(pDat.bat_dau, goc?.tao_luc), tuPhienDau: giay(dauP?.bat_dau, goc?.tao_luc),
+    } : null,
     suKien: sk.map((r) => ({ ts: String(r.ts), nguon: String(r.nguon), noiDung: String(r.noi_dung), loi: !!r.loi })),
     nccCu: nccCu.map((r) => ({ maNcc: (r.ma_ncc as string) ?? null, trangThai: String(r.trang_thai), loi: (r.loi as string) ?? null, ts: String(r.ts) })),
     vanDonRaw: vd[0]?.van_don ?? null,

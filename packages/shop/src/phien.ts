@@ -37,3 +37,21 @@ export const CUA_SO = [
   { value: '7n', label: '7 ngày' },
 ] as const;
 export type CuaSo = (typeof CUA_SO)[number]['value'];
+
+/** User-agent → trình duyệt (kèm số bản chính) + hệ điều hành — đọc ở máy chủ khi ghi phiên (khỏi tin client). Không nhận ra = null. */
+export function docUa(ua: string): { trinh_duyet: string | null; he_dieu_hanh: string | null } {
+  const b = /Edg\/(\d+)/.exec(ua) ? `Edge ${/Edg\/(\d+)/.exec(ua)![1]}`
+    : /SamsungBrowser\/(\d+)/.exec(ua) ? `Samsung Internet ${/SamsungBrowser\/(\d+)/.exec(ua)![1]}`
+    : /FBAN|FBAV|FB_IAB/.test(ua) ? 'Facebook (trình duyệt trong app)'
+    : /Instagram/.test(ua) ? 'Instagram (trình duyệt trong app)'
+    : /CriOS\/(\d+)/.exec(ua) ? `Chrome ${/CriOS\/(\d+)/.exec(ua)![1]}`
+    : /Chrome\/(\d+)/.exec(ua) ? `Chrome ${/Chrome\/(\d+)/.exec(ua)![1]}`
+    : /Firefox\/(\d+)/.exec(ua) ? `Firefox ${/Firefox\/(\d+)/.exec(ua)![1]}`
+    : /Version\/(\d+)[\d.]* .*Safari/.exec(ua) ? `Safari ${/Version\/(\d+)/.exec(ua)![1]}` : null;
+  const o = /iPhone OS (\d+)/.exec(ua) ? `iOS ${/iPhone OS (\d+)/.exec(ua)![1]}`
+    : /iPad.*OS (\d+)/.exec(ua) ? `iPadOS ${/OS (\d+)/.exec(ua)![1]}`
+    : /Android (\d+)/.exec(ua) ? `Android ${/Android (\d+)/.exec(ua)![1]}`
+    : /Windows NT 10/.test(ua) ? 'Windows 10/11' : /Windows/.test(ua) ? 'Windows'
+    : /Mac OS X/.test(ua) ? 'macOS' : /CrOS/.test(ua) ? 'ChromeOS' : /Linux/.test(ua) ? 'Linux' : null;
+  return { trinh_duyet: b, he_dieu_hanh: o };
+}

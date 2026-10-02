@@ -25,6 +25,7 @@ import type { BienTheDong, ChiTietDon, CuaHangDong, DanhGiaDong, DonDong, NccSpD
 import type { DoiThuDong } from '@/lib/shop/doi-thu-doc';
 import { BangDoiThu } from './shop-doi-thu';
 import { BangCong, soCongCanXem } from './shop-cong';
+import { LOAI_XIN_HOAN, MAU_MUC, tomTtDon } from '@/lib/shop/tt-don-luat';
 import type { CongDong, PhapNhanDong } from '@/lib/shop/cong-luat';
 import { BangHaTang } from './shop-ha-tang';
 import { shopMoHoSo, shopSoDuNcc, shopTienNcc } from '@/lib/actions/shop';
@@ -89,6 +90,8 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, d
     setBao(r.ok ? 'Đã đồng bộ' : `Lỗi: ${r.loi}`);
   });
 
+  // đơn có hồ sơ khách đang mở loại hoàn tiền / đổi trả = khách đòi lại tiền giữa chừng
+  const xinHoan = (donId: number) => hoSo.some((h) => h.ben === 'khach' && h.donId === donId && LOAI_XIN_HOAN.includes(h.loai) && h.trangThai !== 'xong');
   const cotDon: DataColumn<DonDong>[] = [
     { key: 'so', header: 'Đơn', align: 'left', cell: (d) => <b>#{d.soDon}</b>, sortValue: (d) => Number(d.soDon) || 0 },
     { key: 'luc', header: 'Lúc', align: 'left', cell: (d) => gio(d.taoLuc), sortValue: (d) => d.taoLuc },
@@ -97,6 +100,9 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, d
     { key: 'khach', header: 'Khách', align: 'left', cell: (d) => <>{d.khach || '—'} <span style={phu}>{d.bang ? `${d.bang}, ` : ''}{d.nuoc}</span></> },
     { key: 'mon', header: 'Món', align: 'left', cell: (d) => <span style={{ display: 'inline-block', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'bottom' }}>{d.tenMon}</span>, cellTitle: (d) => d.tenMon },
     { key: 'tong', header: 'Tổng', cell: (d) => tien(d.tong), sortValue: (d) => d.tong, total: (r) => tien(r.reduce((t, d) => t + d.tong, 0)) },
+    { key: 'tt', header: 'Thanh toán', align: 'left', title: 'Khách trả qua cổng nào · tiền về tới đâu (giữ / khả dụng / đã rút) · có hoàn, dispute, cảnh báo gian lận, khách xin hoàn không',
+      cell: (d) => { const t = tomTtDon(d.tt, d.congTt, xinHoan(d.id)); return <span style={{ color: MAU_MUC[t.muc], whiteSpace: 'nowrap' }} title={t.chi_tiet.join('\n')}>{t.nhan}</span>; },
+      sortValue: (d) => ({ do: 0, vang: 1, nhat: 2, tot: 3 } as const)[tomTtDon(d.tt, d.congTt, xinHoan(d.id)).muc] },
     { key: 'lai', header: 'Lãi ước', title: 'Tổng − hoàn − giá vốn NCC − ship NCC − phí cổng (Stripe thật, chưa có thì 2.9% + 30¢). — = thiếu giá vốn.',
       cell: (d) => <span style={{ color: mauTien(d.lai) }}>{tien(d.lai)}</span>, sortValue: (d) => d.lai, total: (r) => tien(r.reduce((t, d) => t + (d.lai ?? 0), 0)) },
     { key: 'ncc', header: 'NCC', align: 'left', cell: (d) => d.ncc?.maNcc ? <span title={d.ncc.tuyen ?? ''}>{d.ncc.trangThai}{d.ncc.daTra ? '' : ' · chưa trả'}</span> : '—' },
@@ -321,6 +327,15 @@ function DrawerDon({ id, hoSo, onClose }: { id: number; hoSo: HoSoDong[]; onClos
               {dong('Giao tới', [ct.diaChi.ten, ct.diaChi.dong1, ct.diaChi.dong2, ct.diaChi.thanh_pho, ct.diaChi.bang, ct.diaChi.zip, ct.diaChi.nuoc].filter(Boolean).join(', '))}
               {dong('Nguồn', d.sid ?? '—')}
               {dong('Đơn NCC', d.ncc?.maNcc ? `CJ ${d.ncc.maNcc} · ${d.ncc.trangThai} · ${d.ncc.daTra ? 'đã trả' : 'chưa trả'}${d.ncc.tuyen ? ` · ${d.ncc.tuyen} ${d.ncc.soNgay} ngày` : ''}` : '—')}
+              {(() => { const t = tomTtDon(d.tt, d.congTt, hoSo.some((h) => h.ben === 'khach' && LOAI_XIN_HOAN.includes(h.loai) && h.trangThai !== 'xong'));
+                return dong('Thanh toán', <span style={{ display: 'grid', gap: 2 }}>
+                  <span style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}><b style={{ color: MAU_MUC[t.muc], fontWeight: 600 }}>{t.nhan}</b>
+                    {d.tt?.pi && d.tt.cong === 'Stripe' && <LinkChip href={`https://dashboard.stripe.com/payments/${d.tt.pi}`} tone="neutral" size="xs">xem trên Stripe ↗</LinkChip>}
+                    {d.tt?.luc && <span style={{ ...phu, fontSize: 12 }}>đọc {gio(d.tt.luc)}</span>}</span>
+                  {t.chi_tiet.map((x, i) => <span key={i} style={{ fontSize: 12.5, color: /GIAN LẬN|Dispute|xin hoàn/.test(x) ? 'var(--warn)' : 'var(--fg-2)' }}>{x}</span>)}
+                  {d.ttLoi && <span style={{ fontSize: 12.5, color: 'var(--bad)' }}>Lần đọc cổng gần nhất lỗi: {d.ttLoi}</span>}
+                  {!d.tt && !d.congTt && <span style={{ ...phu, fontSize: 12.5 }}>Đơn không có mã giao dịch của cổng (đơn Woo cũ / đơn demo)</span>}
+                </span>); })()}
               {d.ncc?.maVanDon && dong('Vận đơn', `${d.ncc.maVanDon}${d.ncc.hang ? ` · ${d.ncc.hang}` : ''}${d.ncc.vanDon ? ` · ${d.ncc.vanDon}` : ''}`)}
               {ct.changCuoi && dong('Chặng cuối', ct.changCuoi)}
               {d.ncc?.maVanDon && dong('Khách xem', <LinkChip href={`https://${d.domain}/track-order/?order=${encodeURIComponent(d.soDon)}`} tone="neutral" size="xs">trang theo dõi ↗</LinkChip>)}

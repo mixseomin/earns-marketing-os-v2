@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server';
 import { dongBoNccChung, dsCuaHang, nhip, nhipDemo } from '@/lib/shop/dong-bo';
 import { luuMediaDoiThu } from '@/lib/shop/doi-thu-media';
 import { docCong } from '@/lib/shop/cong';
+import { docTtDon } from '@/lib/shop/tt-don';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -23,5 +24,6 @@ export async function POST(req: Request) {
   for (const ch of (await dsCuaHang(false)).filter((c) => c.trang_thai === 'demo')) kq.push(await nhipDemo(ch).catch((e) => ({ cua_hang: ch.khoa, loi: (e as Error).message })));
   const media = await luuMediaDoiThu().catch((e) => ({ loi: (e as Error).message }));   // ảnh QC đối thủ: link fbcdn hết hạn → lưu về kho ảnh
   const cong = await docCong().catch((e) => [{ loi: (e as Error).message }]);   // sức khoẻ cổng thanh toán — mỗi cổng ~6 giờ đọc một lần
-  return NextResponse.json({ ok: true, ncc, kq, media, cong });
+  const ttDon = await docTtDon().catch((e) => ({ loi: (e as Error).message }));   // tiền từng đơn: về tới đâu, có hoàn/dispute/gian lận không
+  return NextResponse.json({ ok: true, ncc, kq, media, cong, ttDon });
 }

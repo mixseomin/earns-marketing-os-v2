@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm';
 import { buocCua, type Buoc } from './buoc';
 import type { Moc } from './track17';
 import { hanhTrinh, type HanhTrinh } from '@mos2/shop/hanh-trinh';
+import type { TtDon } from './tt-don-luat';
 import type { MatTien } from '@mos2/shop/mat-tien';
 
 type Row = Record<string, unknown>;
@@ -19,6 +20,8 @@ export type DonDong = {
     /** tiền hàng CJ báo cho đơn này (createOrderV2/getOrderDetail) — số thật sẽ trừ ví, không phải ước theo giá vốn sổ */ tienHang: number | null } | null;
   /** Chặng hành trình (Nhận đơn → … → Trao tận nơi) — null với đơn chưa trả tiền / đã huỷ. */
   ht: HanhTrinh | null;
+  /** cổng khách trả (shop_don.cong_tt) + ảnh chụp trạng thái tiền đọc từ cổng (lib/shop/tt-don.ts) — null khi chưa đọc / không có mã giao dịch */
+  congTt: string | null; tt: TtDon | null; ttLoi: string | null;
 };
 export type BienTheDong = { id: number; sanPhamId: number; sanPham: string; anh: string | null; link: string | null; cuaHang: string; maNgoai: string;
   ten: string; sku: string | null; giaBan: number | null; maNcc: string | null; giaVon: number | null; daBan: number;
@@ -50,7 +53,7 @@ export type CuaHangDong = { id: number; khoa: string; ten: string; domain: strin
 export async function docShop() {
   const [don, bt, ch, sps, dgs, ng, dmSp, dmBt] = await Promise.all([
     q(sql`
-      SELECT d.id, c.khoa, c.nen_tang, c.domain, d.ma_ngoai, d.so_don, d.trang_thai_shop, d.khach, d.dia_chi, d.tong, d.hoan, d.tao_luc::text AS tao_luc, d.tra_luc::text AS tra_luc, d.sid, d.phi_cong,
+      SELECT d.id, c.khoa, c.nen_tang, c.domain, d.ma_ngoai, d.so_don, d.trang_thai_shop, d.khach, d.dia_chi, d.tong, d.hoan, d.tao_luc::text AS tao_luc, d.tra_luc::text AS tra_luc, d.sid, d.phi_cong, d.cong_tt, d.tt,
              (SELECT COALESCE(SUM(m.sl), 0) FROM shop_don_mon m WHERE m.don_id = d.id) AS so_mon,
              (SELECT string_agg(m.ten || CASE WHEN m.sl > 1 THEN ' ×' || m.sl ELSE '' END, ' + ' ORDER BY m.id) FROM shop_don_mon m WHERE m.don_id = d.id) AS ten_mon,
              (SELECT SUM(b.gia_von * m.sl) FROM shop_don_mon m JOIN shop_bien_the b ON b.id = m.bien_the_id WHERE m.don_id = d.id) AS gia_von,
@@ -134,6 +137,9 @@ export async function docShop() {
       soMon: Number(r.so_mon), tenMon: String(r.ten_mon ?? ''), giaVon: gv, shipNcc: ship, phiCong: phi,
       lai: gv === null ? null : Math.round((tong - hoan - gv - (ship ?? 0) - phi) * 100) / 100,
       ncc, ht,
+      congTt: (r.cong_tt as string) ?? null,
+      // đọc hỏng thì tt chỉ có {loi} — không coi là ảnh chụp
+      tt: (r.tt as TtDon | null)?.cong ? (r.tt as TtDon) : null, ttLoi: ((r.tt as { loi?: string } | null)?.loi) ?? null,
     };
   });
   const bienThe: BienTheDong[] = bt.map((r) => ({ id: Number(r.id), sanPhamId: Number(r.san_pham_id), sanPham: String(r.san_pham), anh: (r.anh as string) ?? null,

@@ -38,6 +38,7 @@ Trước khi làm bất kỳ module nào, đọc context file tương ứng tron
 | `lib/agent-runtime.ts`, `lib/toolkits/`, `lib/ai-providers.ts`, `lib/circuit-breaker.ts` | `.claude/contexts/ai-runtime.md` |
 | **Bất kỳ UI/component mới hay sửa: select/dropdown, modal, drawer, picker, form detail, list→detail** (`components/*.tsx`) | `.claude/contexts/ui-conventions.md` |
 | Deploy, systemd, nginx, rsync, `deploy.sh` | `.claude/contexts/deploy.md` |
+| `/shop › Hạ tầng QC`: `components/shop-ha-tang.tsx`, `shop-nuoi.tsx`, `lib/shop/qc-*.ts`, chạy Meta độc lập cho shop MOS (mellowstep) | `.claude/contexts/shop-ha-tang-qc.md` |
 
 ---
 

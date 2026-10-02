@@ -22,6 +22,9 @@ assert.deepEqual({ ...cj[0] }, { id: '3849384227', date: '2026-08-14', source: '
 // status + lockDate = hai thứ quyết định đơn đã chốt hay chưa (lib/network/status.ts). Rớt chúng
 // thì mọi đơn tụt về 'chờ duyệt' và không ai được trả tiền, mà bảng vẫn hiện đủ số.
 assert.equal(xmlTag(xml, 'action-status'), 'new');
+// website-id = site NHÀ sinh ra đơn (đơn Trip $23.38 ngày 01/10/2026 về từ 101871504). Id lạ phải hiện số, không rỗng.
+assert.equal(parseCj(xml.replace('<sid>', '<website-id>101871504</website-id><sid>'))[0].site, 'ratesbyroom.com');
+assert.equal(parseCj(xml.replace('<sid>', '<website-id>999</website-id><sid>'))[0].site, 'cj site 999');
 assert.equal(parseCj('<commissions></commissions>').length, 0);
 // Đơn không gắn sid vẫn phải vào sổ (tiền có thật), chỉ là không quy công được → sub bỏ trống.
 assert.equal(parseCj(xml.replace('<sid>CJ_Trip_HK_13.8</sid>', ''))[0].sub, undefined);

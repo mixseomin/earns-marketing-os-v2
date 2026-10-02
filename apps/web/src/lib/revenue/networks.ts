@@ -77,6 +77,12 @@ export interface CjExtra {
   lockDate: string;
 }
 
+/** CJ `website-id` → site nhà sinh ra đơn. CJ chỉ trả số; nguồn thật là adfond `asset_websites.cj_property_id`.
+ *  ponytail: chép tay 4 site CJ; id chưa có ở đây hiện thành `cj site <id>` — thấy ngay chỗ thiếu, không lặng lẽ mất. */
+export const CJ_SITE: Record<string, string> = {
+  '101871504': 'ratesbyroom.com', '101871976': 'ratesbycar.com', '101875963': 'venuefares.com', '101862967': 'hotelrateguide.com',
+};
+
 export function parseCj(xml: string): Array<RevenueDayRow & CjExtra> {
   const out: Array<RevenueDayRow & CjExtra> = [];
   for (const m of xml.matchAll(/<commission>([\s\S]*?)<\/commission>/g)) {
@@ -87,7 +93,9 @@ export function parseCj(xml: string): Array<RevenueDayRow & CjExtra> {
     const amount = Number(xmlTag(b, 'commission-amount'));
     const id = xmlTag(b, 'commission-id');
     if (!date || !Number.isFinite(amount) || amount === 0) continue;
+    const wid = xmlTag(b, 'website-id');
     out.push({
+      ...(wid ? { site: CJ_SITE[wid] ?? `cj site ${wid}` } : {}),
       id, date, source: 'affiliate', group: 'cj',
       channel: xmlTag(b, 'advertiser-name') || 'unknown',
       // `sid` = ô sub-id duy nhất của CJ, mình tự đặt lúc dựng link. Đây là NƠI DUY NHẤT nó quay

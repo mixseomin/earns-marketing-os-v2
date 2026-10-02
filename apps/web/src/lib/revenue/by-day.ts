@@ -29,6 +29,8 @@ export interface RevenueDayRow {
    *  này về từ camp/creative nào. Chỉ có ở GIAO DỊCH: không network nào báo click theo ô này, nên
    *  nó quy công được cho tiền mà không đo được lưu lượng. Phần click nằm ở `linkPerf` bên dưới. */
   sub?: string;
+  /** Site NHÀ sinh ra đơn (affiliate: CJ website-id → tên miền). Khác `channel` = merchant trả tiền. */
+  site?: string;
   amount: number;          // USD THỰC NHẬN (hoa hồng/net) — đây mới là tiền vào túi
   /** Doanh số gốc: khách tiêu / giá bán trước khi chia. Affiliate 20% thì gross = 5× amount. */
   gross?: number;

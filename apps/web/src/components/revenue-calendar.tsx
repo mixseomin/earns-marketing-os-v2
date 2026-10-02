@@ -65,7 +65,7 @@ export function RevenueCalendar({ rows, errors, scannedNetworks = [], foldCalend
     return rows.filter((r) =>
       (!srcs.length || srcs.includes(r.source))
       && (!grps.length || grps.includes(groupOf(r)))
-      && (!needle || `${r.channel} ${groupOf(r)}`.toLowerCase().includes(needle)));
+      && (!needle || `${r.channel} ${groupOf(r)} ${r.site ?? ''}`.toLowerCase().includes(needle)));
   }, [rows, srcs, grps, solo, channel]);
 
   // Lựa chọn bậc dưới + số tiền của từng bậc — nhãn chip CHÍNH LÀ bảng bóc tách ("cj $19.75").
@@ -79,7 +79,7 @@ export function RevenueCalendar({ rows, errors, scannedNetworks = [], foldCalend
     for (const r of rows) {
       if (srcs.length && !srcs.includes(r.source)) continue;
       const g = groupOf(r);
-      if (needle && !`${r.channel} ${g}`.toLowerCase().includes(needle)) continue;
+      if (needle && !`${r.channel} ${g} ${r.site ?? ''}`.toLowerCase().includes(needle)) continue;
       m.set(g, (m.get(g) ?? 0) + r.amount);
     }
     return [...m.entries()].sort((a, b) => b[1] - a[1])
@@ -103,12 +103,12 @@ export function RevenueCalendar({ rows, errors, scannedNetworks = [], foldCalend
   // Một pill mỗi (ngày × nguồn) — nhiều kênh cùng nguồn trong một ngày thì cộng lại, ô lịch chỉ cao
   // ~78px nên đừng nhồi từng kênh một. Đang mở một nguồn thì tách thêm theo bậc dưới (awin / cj).
   const items: CalItem[] = useMemo(() => {
-    const agg = new Map<string, { date: string; source: RevenueSource; group: string | null; amount: number; gross: number; channels: Set<string> }>();
+    const agg = new Map<string, { date: string; source: RevenueSource; group: string | null; amount: number; gross: number; channels: Set<string>; sites: Set<string> }>();
     for (const r of filtered) {
       const g = solo ? groupOf(r) : null;
       const k = `${r.date}|${r.source}|${g ?? ''}`;
-      const cur = agg.get(k) ?? { date: r.date, source: r.source, group: g, amount: 0, gross: 0, channels: new Set<string>() };
-      cur.amount += r.amount; cur.gross += r.gross ?? r.amount; cur.channels.add(r.channel);
+      const cur = agg.get(k) ?? { date: r.date, source: r.source, group: g, amount: 0, gross: 0, channels: new Set<string>(), sites: new Set<string>() };
+      cur.amount += r.amount; cur.gross += r.gross ?? r.amount; cur.channels.add(r.channel); if (r.site) cur.sites.add(r.site);
       agg.set(k, cur);
     }
     return [...agg.entries()]
@@ -120,7 +120,7 @@ export function RevenueCalendar({ rows, errors, scannedNetworks = [], foldCalend
         label: v.group ? `${v.group} ${usd(v.amount)}` : usd(v.amount),
         title: `${v.date} · ${SRC_META[v.source].label}${v.group ? ` · ${v.group}` : ''} · thực nhận ${usd(v.amount)}`
           + (v.gross > v.amount ? `\ndoanh số gốc ${usd(v.gross)} → ${Math.round((v.amount / v.gross) * 100)}%` : '')
-          + `\n${[...v.channels].join(', ')}`,
+          + `\n${[...v.channels].join(', ')}${v.sites.size ? ` · từ ${[...v.sites].join(', ')}` : ''}`,
       }));
   }, [filtered, solo]);
 

@@ -32,7 +32,7 @@ function trangThai(c: ChatDong): { mau: string; chu: string } {
   return { mau: 'var(--fg-3)', chu: '' };
 }
 
-export function BangTuVan({ ch }: { ch: string }) {
+export function BangTuVan({ ch, dsCh }: { ch: string; dsCh: string[] }) {
   const [ds, setDs] = useState<ChatDong[] | null>(null);
   const modal = useModalParam();
   const nap = () => shopTuVan().then(setDs).catch(() => null);
@@ -41,7 +41,7 @@ export function BangTuVan({ ch }: { ch: string }) {
     const t = setInterval(() => document.visibilityState === 'visible' && nap(), 5000);
     return () => clearInterval(t);
   }, []);
-  const tat = useMemo(() => (ds ?? []).filter((c) => ch === 'all' || c.cuaHang === ch), [ds, ch]);
+  const tat = useMemo(() => (ds ?? []).filter((c) => (ch === 'all' ? dsCh.includes(c.cuaHang) : c.cuaHang === ch)), [ds, ch, dsCh]);
   const duyet = tat.filter(choDuyet).sort((a, b) => ms(a.khachCuoi) - ms(b.khachCuoi));
   // Tập trung (anh chốt 01/10/2026): khách đã rời site mà không còn chờ mình thì ẩn khỏi các cột — còn chờ (tin cuối là của khách) vẫn hiện
   const [tvr, setTvr] = useShallowParam('tvr', '');

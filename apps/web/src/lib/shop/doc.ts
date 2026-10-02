@@ -46,7 +46,7 @@ export type SanPhamDong = { id: number; cuaHang: string; domain: string; slug: s
 export type NguonSp = { id: number; ncc: string; ma: string; ten: string | null; dangBan: boolean | null; /** số biến thể shop lấy nó làm nguồn chính */ chinh: number; /** … làm dự phòng */ duPhong: number };
 export type DanhGiaDong = { id: number; cuaHang: string; sanPham: string; ten: string; email: string | null; sao: number; tieuDe: string | null; noiDung: string;
   daMua: boolean; trangThai: string; taoLuc: string };
-export type CuaHangDong = { id: number; khoa: string; ten: string; domain: string; nenTang: string; ncc: string; trangThai: string; tenMien: string[]; matTien: MatTien;
+export type CuaHangDong = { id: number; khoa: string; ten: string; /** cửa hàng giả để xem thử (0218) — lọc ở che-do.ts */ demo: boolean; domain: string; nenTang: string; ncc: string; trangThai: string; tenMien: string[]; matTien: MatTien;
   cauHinh: { ngay_ship_max?: number; tu_sang_ncc?: boolean; tu_tra_ncc?: boolean; quoc_gia_kho?: string; ga4_property?: string; tu_an_het?: boolean; bien_toi_thieu?: number; ton_thap?: number };
   dongBoLuc: string | null; dongBoLoi: string | null; soDon: number; soSanPham: number; thieuMa: number };
 
@@ -73,7 +73,7 @@ export async function docShop() {
         FROM shop_bien_the b JOIN shop_san_pham p ON p.id = b.san_pham_id JOIN shop_cua_hang c ON c.id = p.cua_hang_id
        ORDER BY p.ten, b.id`),
     q(sql`
-      SELECT c.id, c.khoa, c.ten, c.domain, c.nen_tang, c.ncc, c.trang_thai, c.cau_hinh, c.ten_mien, c.mat_tien, c.dong_bo_luc::text AS dong_bo_luc, c.dong_bo_loi,
+      SELECT c.id, c.khoa, c.ten, c.demo, c.domain, c.nen_tang, c.ncc, c.trang_thai, c.cau_hinh, c.ten_mien, c.mat_tien, c.dong_bo_luc::text AS dong_bo_luc, c.dong_bo_loi,
              (SELECT COUNT(*) FROM shop_don d WHERE d.cua_hang_id = c.id) AS so_don,
              (SELECT COUNT(*) FROM shop_san_pham p WHERE p.cua_hang_id = c.id) AS so_sp,
              (SELECT COUNT(*) FROM shop_bien_the b JOIN shop_san_pham p ON p.id = b.san_pham_id WHERE p.cua_hang_id = c.id AND b.ma_ncc IS NULL) AS thieu_ma
@@ -158,7 +158,7 @@ export async function docShop() {
       m.set(n.nccSpId, x); nguonSpTheoSp.set(b.sanPhamId, m);
     }
   }
-  const cuaHang: CuaHangDong[] = ch.map((r) => ({ id: Number(r.id), khoa: String(r.khoa), ten: String(r.ten), domain: String(r.domain), nenTang: String(r.nen_tang),
+  const cuaHang: CuaHangDong[] = ch.map((r) => ({ id: Number(r.id), khoa: String(r.khoa), ten: String(r.ten), demo: !!r.demo, domain: String(r.domain), nenTang: String(r.nen_tang),
     ncc: String(r.ncc), trangThai: String(r.trang_thai), cauHinh: (r.cau_hinh ?? {}) as CuaHangDong['cauHinh'], dongBoLuc: (r.dong_bo_luc as string) ?? null,
     dongBoLoi: (r.dong_bo_loi as string) ?? null, soDon: Number(r.so_don), soSanPham: Number(r.so_sp), thieuMa: Number(r.thieu_ma),
     tenMien: (r.ten_mien as string[]) ?? [], matTien: (r.mat_tien ?? {}) as MatTien }));

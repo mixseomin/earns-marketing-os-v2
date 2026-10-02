@@ -5,6 +5,7 @@
 // EmptyState · Pill). Định dạng tiền/giờ/link vận đơn: lib/shop/buoc.ts (một bản cho cả máy chủ + trình duyệt).
 import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   DaiLuong, DataTable, Drawer, SelectField, ThanhChang, type NutLuong, EmptyState, FilterChips, LinkChip, Panel, Pill, SimpleTable, StatsStrip, Tabs, TextAreaField, TextField, type DataColumn,
 } from '@/components/ui';
@@ -29,6 +30,7 @@ import { LOAI_XIN_HOAN, MAU_MUC, tomTtDon } from '@/lib/shop/tt-don-luat';
 import { KhachDon, MonDon, TienDon } from './shop-don-chi-tiet';
 import type { CongDong, PhapNhanDong } from '@/lib/shop/cong-luat';
 import { BangHaTang } from './shop-ha-tang';
+import type { CheDo } from '@/lib/shop/che-do';
 import { shopMoHoSo, shopSoDuNcc, shopTienNcc } from '@/lib/actions/shop';
 import { shopChiTietDon, shopDongBo, shopDuyetDanhGia, shopGhiChu, shopSangNcc, shopSuaSanPham, shopTraNcc } from '@/lib/actions/shop';
 
@@ -48,11 +50,22 @@ function BuocPill({ b }: { b: Buoc }) {
 }
 const VanDon = ({ ma }: { ma: string }) => <LinkChip href={linkVanDon(ma)} tone="neutral" size="xs" onClick={(e) => e.stopPropagation()}>{ma} ↗</LinkChip>;
 
-export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, danhMuc, bienDong, doiThu, cong, phapNhan }: { don: DonDong[]; bienThe: BienTheDong[]; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; danhGia: DanhGiaDong[]; hoSo: HoSoDong[]; ncc: NccDong[]; danhMuc: NccSpDong[]; bienDong: BienDongNcc[]; doiThu: DoiThuDong[]; cong: CongDong[]; phapNhan: PhapNhanDong[] }) {
+export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, danhMuc, bienDong, doiThu, cong, phapNhan, cheDo, dsCh }: { cheDo: CheDo; /** khoá các cửa hàng thuộc chế độ đang xem — tab tự tải dữ liệu lọc theo đây */ dsCh: string[]; don: DonDong[]; bienThe: BienTheDong[]; cuaHang: CuaHangDong[]; sanPham: SanPhamDong[]; danhGia: DanhGiaDong[]; hoSo: HoSoDong[]; ncc: NccDong[]; danhMuc: NccSpDong[]; bienDong: BienDongNcc[]; doiThu: DoiThuDong[]; cong: CongDong[]; phapNhan: PhapNhanDong[] }) {
   const [tabUrl, datTab] = useShallowParam('tab', 'don');
   const tab = tabUrl as Tab, setTab = (t: Tab) => datTab(t);
   const [buoc, setBuoc] = useShallowParam('b', 'all');
-  const [ch, setCh] = useShallowParam('ch', 'all');
+  const [chUrl, setCh] = useShallowParam('ch', 'all');
+  // ?ch trỏ sang cửa hàng của chế độ kia (link cũ) = coi như mọi cửa hàng
+  const ch = chUrl === 'all' || dsCh.includes(chUrl) ? chUrl : 'all';
+  const router = useRouter();
+  // đổi chế độ = tải lại dữ liệu ở máy chủ (page.tsx lọc); bỏ ?ch + drawer đang mở vì thuộc chế độ cũ
+  const hrefCheDo = (v: CheDo) => {
+    if (typeof window === 'undefined') return null;
+    const u = new URL(window.location.href);
+    for (const k of ['ch', 'm', 'mId']) u.searchParams.delete(k);
+    if (v === 'demo') u.searchParams.set('du_lieu', 'demo'); else u.searchParams.delete('du_lieu');
+    return `${u.pathname}${u.search}`;
+  };
   const [ht, setHt] = useShallowParam('ht', '');
   // link cũ ?tab=van_chuyen (tab đã gộp vào Đơn hàng) → Đơn hàng lọc "Đang giao"
   useEffect(() => { if (tabUrl === 'van_chuyen') { setTab('don'); if (buoc === 'all') setBuoc('dang_giao'); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -135,6 +148,8 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, d
         <h1 className="page-title" style={{ margin: 0 }}>Shop</h1>
         <span className="page-sub">Sau khi khách trả tiền: đặt NCC → trả NCC → vận đơn → giao. Mặt tiền + thu tiền: Woo hoặc mặt tiền MOS (theo cửa hàng).</span>
         <span style={{ flex: 1 }} />
+        <FilterChips<CheDo> value={cheDo} onChange={(v) => { const h = hrefCheDo(v); if (h) router.push(h); }} hrefFor={hrefCheDo}
+          options={[{ value: 'that', label: 'Dữ liệu thật', title: 'Chỉ cửa hàng + NCC thật' }, { value: 'demo', label: 'Demo', title: 'Chỉ cửa hàng + NCC giả để xem thử khi vận hành' }]} />
         {cuaHang.length > 1 && (
           <FilterChips urlKey="ch" value={ch} onChange={setCh}
             options={[{ value: 'all', label: 'Mọi cửa hàng' }, ...cuaHang.map((c) => ({ value: c.khoa, label: c.ten }))]} />
@@ -142,6 +157,8 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, d
         <Link className="btn ghost" href={`/report2?f.du_an=${encodeURIComponent(ch === 'all' ? cuaHang[0]?.khoa ?? '' : ch)}`}>Báo cáo</Link>
         <button className="btn" disabled={dangChay} onClick={dongBo}>{dangChay ? 'Đang chạy…' : 'Đồng bộ ngay'}</button>
       </div>
+      {cheDo === 'demo' && <div style={{ marginBottom: 8, padding: '6px 10px', borderRadius: 6, fontSize: 12.5, background: 'color-mix(in srgb, var(--warn) 14%, transparent)', color: 'var(--warn)' }}>
+        Đang xem DỮ LIỆU DEMO ({cuaHang.map((c) => c.ten).join(', ') || 'chưa có cửa hàng demo'}) — đơn, sản phẩm, NCC ở đây là giả, không dính số thật.</div>}
       {bao && <div style={{ marginBottom: 8, fontSize: 12.5, color: bao.startsWith('Lỗi') ? 'var(--bad)' : 'var(--fg-2)' }}>{bao}</div>}
 
 
@@ -183,8 +200,8 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, d
           )}
         </>)}
 
-        {tab === 'tu_van' && <BangTuVan ch={ch} />}
-        {tab === 'truc_tiep' && <KhachTrucTiep ch={ch} />}
+        {tab === 'tu_van' && <BangTuVan ch={ch} dsCh={dsCh} />}
+        {tab === 'truc_tiep' && <KhachTrucTiep ch={ch} dsCh={dsCh} />}
         {tab === 'khach_ph' && <BangHoSo key={tab} ben="khach" ch={ch} ds={hoSo.filter((h) => h.loai !== 'tu_van')} cuaHang={cuaHang} />}
         {tab === 'ncc' && <BangNcc soNcc={ncc} ch={ch} cuaHang={cuaHang} sanPham={sanPham} bienThe={bienThe} danhMuc={danhMuc} bienDong={bienDong} don={don} hoSo={hoSo}
           lienKet={(k) => <BangSanPham bienThe={bt} danhMuc={danhMuc} soNcc={ncc} cuaHang={cuaHang} cheDo="lien_ket"
@@ -193,7 +210,7 @@ export function ShopView({ don, bienThe, cuaHang, sanPham, danhGia, hoSo, ncc, d
         {tab === 'doi_thu' && <BangDoiThu ds={doiThu} sanPham={sanPham} bienThe={bienThe} ch={ch} />}
         {tab === 'danh_gia' && <BangDanhGia ds={dgs} />}
         {tab === 'thanh_toan' && <BangCong ds={cong} phapNhan={phapNhan} cuaHang={cuaHang} ch={ch} />}
-        {tab === 'ha_tang' && <BangHaTang ch={ch} />}
+        {tab === 'ha_tang' && <BangHaTang ch={ch} dsCh={dsCh} />}
         {tab === 'cua_hang' && <div style={{ display: 'grid', gap: 12 }}>{cuaHang.filter((c) => ch === 'all' || c.khoa === ch).map((c) => (
           <TheCuaHang key={c.id} c={c} moCaiDat={(muc) => { if (muc) writeShallowParam('cs', muc); modal.open('cai-dat', c.id); }} />))}</div>}
       </div>

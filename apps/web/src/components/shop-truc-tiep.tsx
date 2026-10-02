@@ -24,7 +24,7 @@ const thoiLuong = (p: PhienDong) => {
 const Cham = ({ on }: { on: boolean }) => <span title={on ? 'Đang trên site' : 'Đã rời'} style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 4, background: on ? 'var(--ok)' : 'var(--bg-3)' }} />;
 const NHIP = 5_000;
 
-export function KhachTrucTiep({ ch }: { ch: string }) {
+export function KhachTrucTiep({ ch, dsCh }: { ch: string; dsCh: string[] }) {
   const [kc, setKc] = useShallowParam('kc', '30p');
   const cuaSo = kc as CuaSo, setCuaSo = (x: CuaSo) => setKc(x);
   const [pc, setPc] = useShallowParam('pc', '');
@@ -40,7 +40,7 @@ export function KhachTrucTiep({ ch }: { ch: string }) {
     return () => { song = false; clearInterval(id); };
   }, [cuaSo]);
 
-  const ds = useMemo(() => (rows ?? []).filter((p) => ch === 'all' || p.cuaHang === ch), [rows, ch]);
+  const ds = useMemo(() => (rows ?? []).filter((p) => (ch === 'all' ? dsCh.includes(p.cuaHang) : p.cuaHang === ch)), [rows, ch, dsCh]);
   const loc = useMemo(() => ds.filter((p) => !pc || CHANG_PHIEN[p.chang]?.key === pc), [ds, pc]);
   const online = ds.filter((p) => p.online).length;
   const toi = (i: number) => ds.filter((p) => p.chang >= i).length;
@@ -66,7 +66,7 @@ export function KhachTrucTiep({ ch }: { ch: string }) {
   const mo = ds.find((p) => p.id === modal.id) ?? null;
 
   return (<>
-    <Ga4ThoiGianThuc ch={ch} />
+    <Ga4ThoiGianThuc chs={ch === 'all' ? dsCh : [ch]} />
     <h3 style={{ margin: '14px 0 6px', fontSize: 13, color: 'var(--fg-2)' }}>Sổ phiên của mình <span style={{ ...phu, fontWeight: 400 }}>— từng khách: trang, cuộn, bấm, bước phễu</span></h3>
     <StatsStrip minColWidth={130} cards={[
       { key: 'on', label: 'Đang online', value: online, color: online ? 'var(--ok)' : undefined, sub: `nhịp ${NHIP / 1000}s · ${luc ? giay(new Date(luc).toISOString()) : '…'}` },
@@ -140,15 +140,15 @@ function DrawerPhien({ id, p, onClose }: { id: string; p: PhienDong | null; onCl
 
 /* ── GA4 thời gian thực (Data API runRealtimeReport, lib/shop/ga4-tt.ts) — GA4 không cho nhúng khung trang của họ nên vẽ lại ở đây ── */
 const NHIP_GA4 = 20_000;
-function Ga4ThoiGianThuc({ ch }: { ch: string }) {
+function Ga4ThoiGianThuc({ chs }: { chs: string[] }) {
   const [ds, setDs] = useState<(Ga4TT & { cuaHang: string })[] | null>(null);
   useEffect(() => {
     let song = true;
-    const nap = () => shopGa4TT(ch).then((r) => song && setDs(r)).catch(() => null);
+    const nap = () => shopGa4TT(chs).then((r) => song && setDs(r)).catch(() => null);
     nap();
     const t = setInterval(() => document.visibilityState === 'visible' && nap(), NHIP_GA4);
     return () => { song = false; clearInterval(t); };
-  }, [ch]);
+  }, [chs.join()]); // eslint-disable-line react-hooks/exhaustive-deps
   if (ds === null) return <div style={phu}>Đang tải GA4…</div>;
   if (!ds.length) return <div style={{ ...phu, fontSize: 12.5 }}>GA4 thời gian thực: cửa hàng này chưa gắn property — tab Cửa hàng › ô "GA4 property".</div>;
   return <>{ds.map((g) => {

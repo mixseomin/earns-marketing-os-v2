@@ -75,7 +75,7 @@ export function BangNcc({ lienKet, soNcc, ch, cuaHang, bienThe, danhMuc, bienDon
   const [docLai, batDocLai] = useTransition();
   const [baoDoc, setBaoDoc] = useState<string | null>(null);
 
-  const info = soNcc.find((x) => x.khoa === ncc) ?? { khoa: ncc, ten: ncc.toUpperCase(), kenh: 'khac', coApi: false, website: null, taiKhoan: null, links: [], lienHe: [], ghiChu: null, capNhat: '' };
+  const info = soNcc.find((x) => x.khoa === ncc) ?? { khoa: ncc, ten: ncc.toUpperCase(), kenh: 'khac', demo: false, coApi: false, website: null, taiKhoan: null, links: [], lienHe: [], ghiChu: null, capNhat: '' };
   const tk = thongKe(ncc);
   const nguongTon = Math.max(50, ...shops.map((c) => c.cauHinh.ton_thap ?? 50));
   const btDung = tk.sp.flatMap((s) => s.bt).filter((v) => dungBt.has(v.id));
@@ -88,7 +88,7 @@ export function BangNcc({ lienKet, soNcc, ch, cuaHang, bienThe, danhMuc, bienDon
   return (<>
     {/* 1. Cây NCC: kênh → NCC */}
     <Panel pad={0} title="Nhà cung cấp" subtitle="kênh → nhà cung cấp · bấm để xem"
-      actions={<button className="btn ghost" onClick={() => setSua({ khoa: '', ten: '', kenh: 'alibaba', coApi: false, website: null, taiKhoan: null, links: [], lienHe: [], ghiChu: null, capNhat: '' })}>+ Thêm NCC</button>}>
+      actions={<button className="btn ghost" onClick={() => setSua({ khoa: '', ten: '', kenh: 'alibaba', demo: false, coApi: false, website: null, taiKhoan: null, links: [], lienHe: [], ghiChu: null, capNhat: '' })}>+ Thêm NCC</button>}>
       <Cay label="Nhà cung cấp theo kênh">
         {kenhCo.map((k) => {
           const ds = soNcc.filter((n) => n.kenh === k);

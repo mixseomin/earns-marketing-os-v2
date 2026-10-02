@@ -254,7 +254,7 @@ function BoShop({ bo, mo, onLuu }: { bo: BoHaTang; mo: (loai: LoaiQc, id: string
   );
 }
 
-export function BangHaTang({ ch }: { ch: string }) {
+export function BangHaTang({ ch, dsCh }: { ch: string; dsCh: string[] }) {
   const [data, setData] = useState<({ ds: BoHaTang[] } & Kho) | null>(null);
   const [loi, setLoi] = useState<string | null>(null);
   const modal = useModalParam('qc');
@@ -262,7 +262,7 @@ export function BangHaTang({ ch }: { ch: string }) {
   useEffect(() => { tai(); }, [tai]);
   if (loi) return <div style={{ color: 'var(--bad)' }}>{loi}</div>;
   if (!data) return <Spinner />;
-  const ds = data.ds.filter((b) => ch === 'all' ? !/^demo/.test(b.h.khoa) : b.h.khoa === ch);
+  const ds = data.ds.filter((b) => (ch === 'all' ? dsCh.includes(b.h.khoa) : b.h.khoa === ch));
   /* drawer: ?qc=<loai>&qcId=<id | moi-<cuaHangId>> */
   const mId = modal.id ?? '';
   const boMo = modal.value ? data.ds.find((b) => (mId.startsWith('moi-') ? b.h.cuaHangId === Number(mId.slice(4))

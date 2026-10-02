@@ -64,11 +64,11 @@ export async function docTuVan(): Promise<ChatDong[]> {
 
 /* ── Sổ nhà cung cấp (shop_ncc) — tầng KÊNH → NCC của cây nguồn hàng ── */
 export type LienHeNcc = { kenh: string; gia_tri: string; ten?: string };
-export type NccDong = { khoa: string; ten: string; /** cj · alibaba · 1688 · aliexpress · xuong · khac */ kenh: string; /** có bộ kết nối đặt đơn/trả/vận đơn */ coApi: boolean;
+export type NccDong = { khoa: string; ten: string; /** NCC giả (0218) */ demo: boolean; /** cj · alibaba · 1688 · aliexpress · xuong · khac */ kenh: string; /** có bộ kết nối đặt đơn/trả/vận đơn */ coApi: boolean;
   website: string | null; taiKhoan: string | null; links: { nhan: string; url: string }[]; lienHe: LienHeNcc[]; ghiChu: string | null; capNhat: string };
 export async function docNcc(): Promise<NccDong[]> {
-  const r = await q(sql`SELECT khoa, ten, kenh, co_api, website, tai_khoan, links, lien_he, ghi_chu, cap_nhat::text AS cap_nhat FROM shop_ncc ORDER BY co_api DESC, kenh, ten`);
-  return r.map((x) => ({ khoa: String(x.khoa), ten: String(x.ten), kenh: String(x.kenh ?? 'khac'), coApi: !!x.co_api, website: (x.website as string) ?? null, taiKhoan: (x.tai_khoan as string) ?? null,
+  const r = await q(sql`SELECT khoa, ten, demo, kenh, co_api, website, tai_khoan, links, lien_he, ghi_chu, cap_nhat::text AS cap_nhat FROM shop_ncc ORDER BY co_api DESC, kenh, ten`);
+  return r.map((x) => ({ khoa: String(x.khoa), ten: String(x.ten), demo: !!x.demo, kenh: String(x.kenh ?? 'khac'), coApi: !!x.co_api, website: (x.website as string) ?? null, taiKhoan: (x.tai_khoan as string) ?? null,
     links: (x.links as NccDong['links']) ?? [], lienHe: (x.lien_he as LienHeNcc[]) ?? [], ghiChu: (x.ghi_chu as string) ?? null, capNhat: String(x.cap_nhat) }));
 }
 

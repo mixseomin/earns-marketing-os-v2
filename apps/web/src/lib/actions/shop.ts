@@ -322,9 +322,9 @@ export async function shopSuKienPhien(id: string) {
 }
 
 /** GA4 thời gian thực của các cửa hàng có cau_hinh.ga4_property (màn gọi lại 20 giây/lần; máy chủ nhớ 20 giây). */
-export async function shopGa4TT(ch: string) {
+export async function shopGa4TT(chs: string[]) {
   await admin();
-  const ds = (await dsCuaHang(false)).filter((c) => (ch === 'all' || c.khoa === ch) && c.cau_hinh.ga4_property);
+  const ds = (await dsCuaHang(false)).filter((c) => chs.includes(c.khoa) && c.cau_hinh.ga4_property);
   return Promise.all(ds.map(async (c) => ({ cuaHang: c.ten, ...(await ga4ThoiGianThuc(c.cau_hinh.ga4_property!)) })));
 }
 

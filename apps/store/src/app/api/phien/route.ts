@@ -51,7 +51,10 @@ export async function POST(req: Request) {
     ON CONFLICT (id) DO UPDATE SET cuoi = now(), trang_hien = COALESCE(EXCLUDED.trang_hien, shop_phien.trang_hien),
       cuon = CASE WHEN EXCLUDED.trang_hien IS DISTINCT FROM shop_phien.trang_hien AND ${soTrang} > 0 THEN EXCLUDED.cuon ELSE GREATEST(shop_phien.cuon, EXCLUDED.cuon) END,
       chang = GREATEST(shop_phien.chang, EXCLUDED.chang), so_trang = shop_phien.so_trang + EXCLUDED.so_trang, so_click = shop_phien.so_click + EXCLUDED.so_click,
-      gio_gia = shop_phien.gio_gia + EXCLUDED.gio_gia, so_don = COALESCE(EXCLUDED.so_don, shop_phien.so_don)
+      gio_gia = shop_phien.gio_gia + EXCLUDED.gio_gia, so_don = COALESCE(EXCLUDED.so_don, shop_phien.so_don),
+      -- thiết bị: điền khi còn trống (phiên mở trước bản 0217, hoặc lần gửi đầu thiếu) — không ghi đè
+      trinh_duyet = COALESCE(shop_phien.trinh_duyet, EXCLUDED.trinh_duyet), he_dieu_hanh = COALESCE(shop_phien.he_dieu_hanh, EXCLUDED.he_dieu_hanh),
+      ngon_ngu = COALESCE(shop_phien.ngon_ngu, EXCLUDED.ngon_ngu), mui_gio = COALESCE(shop_phien.mui_gio, EXCLUDED.mui_gio), man_hinh = COALESCE(shop_phien.man_hinh, EXCLUDED.man_hinh)
     WHERE shop_phien.cua_hang_id = ${s.id}`);
   const ghi = ev.filter((e) => e.l !== 'nhip');
   if (ghi.length) await db.execute(sql`

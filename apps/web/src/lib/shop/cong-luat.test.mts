@@ -11,7 +11,7 @@ assert.strictEqual(danhGiaCong({ ...goc, tai_khoan: { ...goc.tai_khoan, nhan_tie
 assert.strictEqual(danhGiaCong({ ...goc, su_kien_treo: 4 }).muc, 'vang');
 assert.strictEqual(danhGiaCong({ ...goc, ky90: { ...goc.ky90, thanh_cong: 0, dispute: 0, hoan: 0 }, ky30: { thanh_cong: 0, that_bai: 0 } }).ty_le.dispute, null);   // chưa có giao dịch: không chia cho 0
 console.log('danhGiaCong: đúng');
-const tay: CongDong = { id: 9, loai: 'payoneer', vai: 'nhan', ma: 'p', ten: 'Payoneer', ghiChu: null, taiKhoan: 'a@b.com', link: null, veCongId: null, trangThaiTay: 'on',
+const tay: CongDong = { id: 9, loai: 'payoneer', vai: 'nhan', ma: 'p', ten: 'Payoneer', ghiChu: null, taiKhoan: 'a@b.com', link: null, veCongId: null, phapNhanId: 1, trangThaiTay: 'on',
   kiemLuc: '2026-09-25T00:00:00Z', nguong: {}, sucKhoe: null, docLuc: null, loi: null, shops: [], lichSu: [] };
 const bay = Date.parse('2026-10-02T00:00:00Z');
 assert.strictEqual(danhGiaMotCong(tay, bay).muc, 'tot');                                         // kiểm 7 ngày trước, bình thường
@@ -24,3 +24,18 @@ assert.notStrictEqual(loiTaiKhoanCong('4111 1111 1111 1111'), null);            
 assert.notStrictEqual(loiTaiKhoanCong('STK 0123456789012'), null);                              // số tài khoản ngân hàng: chặn
 assert.notStrictEqual(loiTaiKhoanCong('password: abc'), null);
 console.log('danhGiaMotCong + loiTaiKhoanCong: đúng');
+{
+  const { danhGiaPhapNhan } = await import('./cong-luat');
+  const pn = { id: 1, ten: 'Mellowstep LLC', loai: 'llc_us', nuoc: 'US', bang: 'Wyoming', maSoCuoi: '1234', nguoiDaiDien: null, daiLy: null, ngayLap: null,
+    hanBaoCao: '2026-12-01', trangThai: 'hoat_dong', link: null, ghiChu: null, shops: ['mellowstep'] };
+  const b = Date.parse('2026-10-02T00:00:00Z');
+  const cg = { ...tay, id: 2, loai: 'stripe', phapNhanId: 1, sucKhoe: { ...goc, tai_khoan: { ...goc.tai_khoan, phap_ly: { loai: 'company', ten: 'Mellowstep, LLC' } } } };
+  assert.strictEqual(danhGiaPhapNhan(pn, [cg], b).muc, 'tot');                                             // tên Stripe 'Mellowstep, LLC' = sổ 'Mellowstep LLC'
+  assert.strictEqual(danhGiaPhapNhan({ ...pn, hanBaoCao: '2026-10-20' }, [cg], b).muc, 'vang');            // còn 18 ngày
+  assert.strictEqual(danhGiaPhapNhan({ ...pn, hanBaoCao: '2026-09-01' }, [cg], b).muc, 'do');              // quá hạn
+  assert.strictEqual(danhGiaPhapNhan({ ...pn, trangThai: 'ngung' }, [cg], b).muc, 'do');                   // ngừng mà còn cổng đứng tên
+  const lech = { ...cg, sucKhoe: { ...cg.sucKhoe, tai_khoan: { ...cg.sucKhoe.tai_khoan, phap_ly: { loai: 'individual', ten: 'Nguyen Van A' } } } };
+  assert.strictEqual(danhGiaPhapNhan(pn, [lech], b).muc, 'vang');                                          // Stripe đứng tên người khác
+  assert.strictEqual(danhGiaMotCong({ ...tay, phapNhanId: null }, bay).muc, 'vang');                       // cổng chưa gán pháp nhân
+  console.log('danhGiaPhapNhan: đúng');
+}

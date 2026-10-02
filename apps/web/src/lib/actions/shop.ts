@@ -16,7 +16,7 @@ import { stripe } from '@mos2/shop/stripe';
 import { existsSync } from 'node:fs';
 import { docShop } from '@/lib/shop/doc';
 import { docCong } from '@/lib/shop/cong';
-import { KIEU_CONG, NGUONG_MAC_DINH, TRANG_THAI_TAY, loiTaiKhoanCong, type NguongCong } from '@/lib/shop/cong-luat';
+import { KIEU_CONG, LOAI_PHAP_NHAN, NGUONG_MAC_DINH, TRANG_THAI_PN, TRANG_THAI_TAY, loiTaiKhoanCong, type NguongCong } from '@/lib/shop/cong-luat';
 import { DINH_DANG_QC, KENH_BAN, KENH_NCC, KHOP_DOI_THU, NEN_TANG_QC } from '@/lib/shop/buoc';
 import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
@@ -653,7 +653,7 @@ export async function shopDocCong() {
 }
 /** Thêm (id null) / sửa một cổng phía mos2: loại, tên, tài khoản (CHỈ email/mã — không mật khẩu, không số thẻ/ngân hàng), link quản trị,
  *  tiền về cổng nào, shop dùng, trạng thái ghi tay, ghi chú, ngưỡng. Không đụng gì phía cổng. Cổng Stripe: mã acct do máy nhận, không sửa. */
-export async function shopSuaCong(id: number | null, v: { loai?: string; ten: string; taiKhoan?: string; link?: string; veCongId?: number | null; shops?: string[];
+export async function shopSuaCong(id: number | null, v: { loai?: string; ten: string; taiKhoan?: string; link?: string; veCongId?: number | null; phapNhanId?: number | null; shops?: string[];
   trangThaiTay?: string | null; ghiChu: string; nguong: Partial<NguongCong> }) {
   await admin();
   const tk = (v.taiKhoan ?? '').trim().slice(0, 200);
@@ -672,7 +672,8 @@ export async function shopSuaCong(id: number | null, v: { loai?: string; ten: st
     cid = r[0]!.id;
   }
   await db().execute(sql`UPDATE shop_cong SET ten = ${ten}, ghi_chu = ${v.ghiChu.trim().slice(0, 2000) || null}, nguong = ${JSON.stringify(ng)}::jsonb,
-    tai_khoan = ${tk || null}, link = ${link}, ve_cong_id = ${v.veCongId && v.veCongId !== cid ? v.veCongId : null}, trang_thai_tay = ${tt} WHERE id = ${cid}`);
+    tai_khoan = ${tk || null}, link = ${link}, ve_cong_id = ${v.veCongId && v.veCongId !== cid ? v.veCongId : null}, trang_thai_tay = ${tt},
+    phap_nhan_id = ${v.phapNhanId ?? null} WHERE id = ${cid}`);
   if (v.shops) {
     const ds = (await db().execute(sql`SELECT id, khoa FROM shop_cua_hang`)) as unknown as { id: number; khoa: string }[];
     const muon = new Set(ds.filter((c) => v.shops!.includes(c.khoa)).map((c) => c.id));
@@ -692,5 +693,32 @@ export async function shopKiemCong(id: number, trangThai: string) {
   await db().execute(sql`UPDATE shop_cong SET trang_thai_tay = ${trangThai}, kiem_luc = now() WHERE id = ${id}`);
   revalidatePath('/shop');
   return { ok: true };
+}
+
+/** Thêm (id null) / sửa một PHÁP NHÂN (migration 0215) + shop bán dưới tên nó. Mã số thuế chỉ nhận 4 số cuối. */
+export async function shopSuaPhapNhan(id: number | null, v: { ten: string; loai: string; nuoc?: string; bang?: string; maSoCuoi?: string; nguoiDaiDien?: string; daiLy?: string;
+  ngayLap?: string; hanBaoCao?: string; trangThai: string; link?: string; ghiChu?: string; shops: string[] }) {
+  await admin();
+  if (!v.ten.trim()) return { ok: false, loi: 'thiếu tên pháp lý' };
+  const ms = (v.maSoCuoi ?? '').replace(/\D/g, '');
+  if (ms.length > 4) return { ok: false, loi: 'mã số thuế: chỉ ghi 4 số cuối' };
+  const d = (x?: string) => (x && /^\d{4}-\d{2}-\d{2}$/.test(x) ? x : null);
+  const t = (x: string | undefined, n: number) => x?.trim().slice(0, n) || null;
+  const loai = v.loai in LOAI_PHAP_NHAN ? v.loai : 'khac', tt = v.trangThai in TRANG_THAI_PN ? v.trangThai : 'hoat_dong';
+  const link = /^https?:\/\/\S+$/.test((v.link ?? '').trim()) ? v.link!.trim().slice(0, 500) : null;
+  const r = (await db().execute(id
+    ? sql`UPDATE phap_nhan SET ten = ${v.ten.trim().slice(0, 200)}, loai = ${loai}, nuoc = ${t(v.nuoc, 40)}, bang = ${t(v.bang, 80)}, ma_so_cuoi = ${ms || null},
+        nguoi_dai_dien = ${t(v.nguoiDaiDien, 120)}, dai_ly = ${t(v.daiLy, 200)}, ngay_lap = ${d(v.ngayLap)}::date, han_bao_cao = ${d(v.hanBaoCao)}::date, trang_thai = ${tt},
+        link = ${link}, ghi_chu = ${t(v.ghiChu, 2000)} WHERE id = ${id} RETURNING id`
+    : sql`INSERT INTO phap_nhan (ten, loai, nuoc, bang, ma_so_cuoi, nguoi_dai_dien, dai_ly, ngay_lap, han_bao_cao, trang_thai, link, ghi_chu)
+        VALUES (${v.ten.trim().slice(0, 200)}, ${loai}, ${t(v.nuoc, 40)}, ${t(v.bang, 80)}, ${ms || null}, ${t(v.nguoiDaiDien, 120)}, ${t(v.daiLy, 200)}, ${d(v.ngayLap)}::date,
+                ${d(v.hanBaoCao)}::date, ${tt}, ${link}, ${t(v.ghiChu, 2000)}) RETURNING id`)) as unknown as { id: number }[];
+  const pid = r[0]?.id;
+  if (!pid) return { ok: false, loi: 'không có pháp nhân này' };
+  // shop bán dưới tên pháp nhân này: tick = gán, bỏ tick = bỏ gán (chỉ shop đang gán cho chính nó)
+  await db().execute(sql`UPDATE shop_cua_hang SET phap_nhan_id = NULL WHERE phap_nhan_id = ${pid} AND NOT (khoa = ANY(${v.shops}::text[]))`);
+  if (v.shops.length) await db().execute(sql`UPDATE shop_cua_hang SET phap_nhan_id = ${pid} WHERE khoa = ANY(${v.shops}::text[])`);
+  revalidatePath('/shop');
+  return { ok: true, id: pid };
 }
 

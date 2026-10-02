@@ -4,7 +4,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { coStripe, stripe } from '@mos2/shop/stripe';
 import { dsCuaHang } from './dong-bo';
-import type { CongDong, SucKhoeCong } from './cong-luat';
+import type { CongDong, PhapNhanDong, SucKhoeCong } from './cong-luat';
 
 type Row = Record<string, unknown>;
 const q = async <T = Row>(s: ReturnType<typeof sql>) => { const d = getDb(); if (!d) throw new Error('chưa nối DB'); return (await d.execute(s)) as unknown as T[]; };
@@ -26,7 +26,7 @@ async function het<T extends { id: string }>(khoa: string, duong: string, trang 
 /** Chụp số thô một tài khoản Stripe bằng khoá của một shop dùng nó. Ném lỗi nếu Stripe từ chối. */
 export async function chupStripe(khoa: string, domainMinh: string[]): Promise<SucKhoeCong> {
   const bayGio = Math.floor(Date.now() / 1000), t90 = bayGio - 90 * 86400, t30 = bayGio - 30 * 86400;
-  type Acct = { id: string; country?: string; default_currency?: string; charges_enabled?: boolean; payouts_enabled?: boolean; business_profile?: { name?: string | null };
+  type Acct = { id: string; business_type?: string | null; company?: { name?: string | null } | null; individual?: { first_name?: string; last_name?: string } | null; country?: string; default_currency?: string; charges_enabled?: boolean; payouts_enabled?: boolean; business_profile?: { name?: string | null };
     settings?: { dashboard?: { display_name?: string }; payouts?: { schedule?: { interval?: string; delay_days?: number } } };
     requirements?: { currently_due?: string[]; past_due?: string[]; disabled_reason?: string | null; current_deadline?: number | null } };
   const a = await stripe<Acct>(khoa, 'GET', 'account');
@@ -46,6 +46,7 @@ export async function chupStripe(khoa: string, domainMinh: string[]): Promise<Su
     luc: new Date().toISOString(),
     tai_khoan: { id: a.id, ten: a.settings?.dashboard?.display_name ?? a.business_profile?.name ?? null, nuoc: a.country ?? null, tien_te: tt, nhan_tien: !!a.charges_enabled, rut_tien: !!a.payouts_enabled,
       thieu: a.requirements?.currently_due ?? [], qua_han: a.requirements?.past_due ?? [], ly_do_khoa: a.requirements?.disabled_reason ?? null, han: a.requirements?.current_deadline ?? null,
+      phap_ly: { loai: a.business_type ?? null, ten: a.company?.name ?? (a.individual ? `${a.individual.first_name ?? ''} ${a.individual.last_name ?? ''}`.trim() || null : null) },
       lich_rut: a.settings?.payouts?.schedule ? `${a.settings.payouts.schedule.interval ?? ''}${a.settings.payouts.schedule.delay_days != null ? ` · trễ ${a.settings.payouts.schedule.delay_days} ngày` : ''}` : null },
     so_du: { kha_dung: tong(b.available), cho: tong(b.pending), tien_te: tt },
     ky90: { thanh_cong: thanh.length, tien: thanh.reduce((s, c) => s + c.amount, 0) / 100, that_bai: hong.length, chan_rui_ro: ch.ds.filter((c) => c.outcome?.type === 'blocked').length,
@@ -95,7 +96,7 @@ export async function docDsCong(): Promise<CongDong[]> {
   const d = getDb();
   if (!d) return [];
   const [cg, ls] = await Promise.all([
-    q(sql`SELECT g.id, g.loai, g.vai, g.ma, g.ten, g.ghi_chu, g.tai_khoan, g.link, g.ve_cong_id, g.trang_thai_tay, g.kiem_luc::text AS kiem_luc,
+    q(sql`SELECT g.id, g.loai, g.vai, g.ma, g.ten, g.ghi_chu, g.tai_khoan, g.link, g.ve_cong_id, g.phap_nhan_id, g.trang_thai_tay, g.kiem_luc::text AS kiem_luc,
             g.nguong, g.suc_khoe, g.doc_luc::text AS doc_luc, g.loi,
             COALESCE((SELECT array_agg(c.khoa ORDER BY c.id) FROM shop_cong_shop x JOIN shop_cua_hang c ON c.id = x.cua_hang_id WHERE x.cong_id = g.id), '{}') AS shops
        FROM shop_cong g ORDER BY (g.vai = 'nhan'), g.id`),
@@ -103,7 +104,18 @@ export async function docDsCong(): Promise<CongDong[]> {
   ]);
   return cg.map((r) => ({ id: Number(r.id), loai: String(r.loai), vai: (r.vai === 'nhan' ? 'nhan' : 'thu') as 'thu' | 'nhan', ma: String(r.ma), ten: (r.ten as string) ?? null,
     ghiChu: (r.ghi_chu as string) ?? null, taiKhoan: (r.tai_khoan as string) ?? null, link: (r.link as string) ?? null, veCongId: r.ve_cong_id == null ? null : Number(r.ve_cong_id),
-    trangThaiTay: (r.trang_thai_tay as string) ?? null, kiemLuc: (r.kiem_luc as string) ?? null,
+    phapNhanId: r.phap_nhan_id == null ? null : Number(r.phap_nhan_id), trangThaiTay: (r.trang_thai_tay as string) ?? null, kiemLuc: (r.kiem_luc as string) ?? null,
     nguong: (r.nguong ?? {}) as Record<string, number>, sucKhoe: (r.suc_khoe as SucKhoeCong) ?? null, docLuc: (r.doc_luc as string) ?? null, loi: (r.loi as string) ?? null,
     shops: (r.shops as string[]) ?? [], lichSu: ls.filter((x) => Number(x.cong_id) === Number(r.id)).map((x) => ({ ngay: String(x.ngay), so: x.so as CongDong['lichSu'][number]['so'] })) }));
+}
+
+/** Sổ pháp nhân (migration 0215) + shop bán dưới tên từng pháp nhân. */
+export async function docDsPhapNhan(): Promise<PhapNhanDong[]> {
+  if (!getDb()) return [];
+  const r = await q(sql`SELECT p.id, p.ten, p.loai, p.nuoc, p.bang, p.ma_so_cuoi, p.nguoi_dai_dien, p.dai_ly, p.ngay_lap::text AS ngay_lap, p.han_bao_cao::text AS han_bao_cao,
+      p.trang_thai, p.link, p.ghi_chu, COALESCE((SELECT array_agg(c.khoa ORDER BY c.id) FROM shop_cua_hang c WHERE c.phap_nhan_id = p.id), '{}') AS shops
+    FROM phap_nhan p ORDER BY (p.trang_thai = 'ngung'), p.ten`);
+  const c = (v: unknown) => (v == null ? null : String(v));
+  return r.map((x) => ({ id: Number(x.id), ten: String(x.ten), loai: String(x.loai), nuoc: c(x.nuoc), bang: c(x.bang), maSoCuoi: c(x.ma_so_cuoi), nguoiDaiDien: c(x.nguoi_dai_dien),
+    daiLy: c(x.dai_ly), ngayLap: c(x.ngay_lap), hanBaoCao: c(x.han_bao_cao), trangThai: String(x.trang_thai), link: c(x.link), ghiChu: c(x.ghi_chu), shops: (x.shops as string[]) ?? [] }));
 }

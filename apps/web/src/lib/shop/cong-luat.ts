@@ -6,7 +6,8 @@
 export type SucKhoeCong = {
   luc: string;
   tai_khoan: { id: string; ten: string | null; nuoc: string | null; tien_te: string | null; nhan_tien: boolean; rut_tien: boolean;
-    thieu: string[]; qua_han: string[]; ly_do_khoa: string | null; han: number | null; lich_rut: string | null };
+    thieu: string[]; qua_han: string[]; ly_do_khoa: string | null; han: number | null; lich_rut: string | null;
+    /** chủ thể pháp lý Stripe đang giữ (business_type + tên công ty) — đối chiếu với sổ pháp nhân */ phap_ly?: { loai: string | null; ten: string | null } };
   so_du: { kha_dung: number; cho: number; tien_te: string };
   /** 90 ngày (cách Stripe chấm tỷ lệ dispute) — doc_het = false khi quá nhiều giao dịch, chỉ đọc 1000 gần nhất */
   ky90: { thanh_cong: number; tien: number; that_bai: number; chan_rui_ro: number; hoan: number; tien_hoan: number; dispute: number; dispute_mo: number; efw: number; doc_het: boolean };
@@ -69,14 +70,18 @@ export const KIEM_TAY_NGAY = 30;
 
 /** Một cổng như màn đọc (lib/shop/cong.ts docDsCong). */
 export type CongDong = { id: number; loai: string; vai: 'thu' | 'nhan'; ma: string; ten: string | null; ghiChu: string | null; taiKhoan: string | null; link: string | null;
-  veCongId: number | null; trangThaiTay: string | null; kiemLuc: string | null; nguong: Record<string, number>; sucKhoe: SucKhoeCong | null;
+  veCongId: number | null; phapNhanId: number | null; trangThaiTay: string | null; kiemLuc: string | null; nguong: Record<string, number>; sucKhoe: SucKhoeCong | null;
   docLuc: string | null; loi: string | null; shops: string[]; lichSu: { ngay: string; so: Pick<SucKhoeCong, 'ky90' | 'ky30' | 'so_du'> }[] };
 
 /** Đánh giá MỘT cổng bất kể loại: có số đọc từ API → danhGiaCong; chưa có API → trạng thái anh ghi + hạn kiểm tay. */
 export function danhGiaMotCong(g: CongDong, bayGio = Date.now()): { muc: 'tot' | 'vang' | 'do'; van_de: VanDe[]; ty_le: TyLe | null } {
   if (g.loi) return { muc: 'do', van_de: [{ muc: 'do', chu: `Không đọc được cổng: ${g.loi}` }], ty_le: null };
-  if (g.sucKhoe) return danhGiaCong(g.sucKhoe, g.nguong);
-  const v: VanDe[] = [];
+  const chuaPn: VanDe[] = g.phapNhanId ? [] : [{ muc: 'vang', chu: 'Chưa ghi đứng tên pháp nhân nào — bấm Sửa, chọn pháp nhân' }];
+  if (g.sucKhoe) {
+    const d = danhGiaCong(g.sucKhoe, g.nguong), v = [...d.van_de, ...chuaPn];
+    return { ...d, van_de: v, muc: v.some((x) => x.muc === 'do') ? 'do' : v.length ? 'vang' : 'tot' };
+  }
+  const v: VanDe[] = [...chuaPn];
   const tt = TRANG_THAI_TAY[g.trangThaiTay ?? ''];
   if (tt?.[1] === 'do') v.push({ muc: 'do', chu: `Ghi tay: ${tt[0]}` });
   else if (tt?.[1] === 'vang') v.push({ muc: 'vang', chu: `Ghi tay: ${tt[0]}` });
@@ -92,5 +97,35 @@ export function loiTaiKhoanCong(tk: string): string | null {
   if (/mật khẩu|password|passwd|\bpin\b/i.test(tk)) return 'không lưu mật khẩu ở đây — chỉ email / mã tài khoản';
   if (/\d(?:[\s-]?\d){11,}/.test(tk)) return 'không lưu số thẻ / số tài khoản ngân hàng — chỉ email hoặc mã tài khoản (vd ID Payoneer)';
   return null;
+}
+
+/* ── PHÁP NHÂN (migration 0215) — chủ thể pháp lý đứng tên cổng / bán hàng ── */
+export const LOAI_PHAP_NHAN: Record<string, string> = { llc_us: 'LLC (Mỹ)', corp_us: 'Corporation (Mỹ)', ltd_uk: 'Ltd (Anh)', cong_ty_vn: 'Công ty (VN)',
+  ho_kinh_doanh: 'Hộ kinh doanh (VN)', ca_nhan: 'Cá nhân', khac: 'Khác' };
+export const TRANG_THAI_PN: Record<string, [string, 'tot' | 'vang' | 'do']> = { hoat_dong: ['đang hoạt động', 'tot'], can_xem: ['cần xem', 'vang'], ngung: ['đã ngừng / giải thể', 'do'] };
+/** Hạn báo cáo năm còn ≤ chừng này ngày → vàng. */
+export const HAN_BAO_CAO_NGAY = 30;
+export type PhapNhanDong = { id: number; ten: string; loai: string; nuoc: string | null; bang: string | null; maSoCuoi: string | null; nguoiDaiDien: string | null;
+  daiLy: string | null; ngayLap: string | null; hanBaoCao: string | null; trangThai: string; link: string | null; ghiChu: string | null; shops: string[] };
+
+const chuanTen = (x: string) => x.toLowerCase().replace(/[.,]/g, '').replace(/\b(llc|inc|ltd|corp|co|company|corporation|limited)\b/g, '').replace(/\s+/g, ' ').trim();
+/** Sức khoẻ một pháp nhân: trạng thái, hạn báo cáo năm, còn cổng/shop đứng tên khi đã ngừng, tên Stripe đang giữ lệch tên sổ. */
+export function danhGiaPhapNhan(p: PhapNhanDong, cong: CongDong[], bayGio = Date.now()): { muc: 'tot' | 'vang' | 'do'; van_de: VanDe[] } {
+  const v: VanDe[] = [];
+  const tt = TRANG_THAI_PN[p.trangThai];
+  const congCuaPn = cong.filter((g) => g.phapNhanId === p.id);
+  if (tt?.[1] === 'do' && (congCuaPn.length || p.shops.length)) v.push({ muc: 'do', chu: `Pháp nhân đã ngừng mà còn ${congCuaPn.length} cổng / ${p.shops.length} shop đứng tên — chuyển sang pháp nhân khác` });
+  else if (tt?.[1] === 'vang') v.push({ muc: 'vang', chu: 'Ghi tay: cần xem' });
+  if (p.hanBaoCao) {
+    const con = Math.floor((Date.parse(`${p.hanBaoCao}T00:00:00Z`) - bayGio) / 86_400_000);
+    if (con < 0) v.push({ muc: 'do', chu: `Quá hạn báo cáo năm ${-con} ngày (${p.hanBaoCao}) — bang có thể chuyển pháp nhân sang không còn hiệu lực` });
+    else if (con <= HAN_BAO_CAO_NGAY) v.push({ muc: 'vang', chu: `Còn ${con} ngày tới hạn báo cáo năm (${p.hanBaoCao})` });
+  } else if (p.loai !== 'ca_nhan') v.push({ muc: 'vang', chu: 'Chưa ghi hạn báo cáo năm' });
+  for (const g of congCuaPn) {
+    const ten = g.sucKhoe?.tai_khoan.phap_ly?.ten;
+    if (ten && chuanTen(ten) !== chuanTen(p.ten)) v.push({ muc: 'vang', chu: `${KIEU_CONG[g.loai]?.ten ?? g.loai} "${g.ten ?? g.ma}" đang đứng tên "${ten}" — sổ ghi "${p.ten}"` });
+  }
+  v.sort((a, b) => (a.muc === b.muc ? 0 : a.muc === 'do' ? -1 : 1));
+  return { muc: v.some((x) => x.muc === 'do') ? 'do' : v.length ? 'vang' : 'tot', van_de: v };
 }
 

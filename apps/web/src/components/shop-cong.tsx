@@ -6,9 +6,10 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Cay, Drawer, LaBang, LinkChip, NutCay, Panel, PickField, Pill, StatsStrip, TextAreaField, TextField, oLa, type CotLa } from '@/components/ui';
 import { gio, tien } from '@/lib/shop/buoc';
-import { KIEU_CONG, NGUONG_MAC_DINH, NHAN_NGUONG, TRANG_THAI_TAY, VAI_CONG, danhGiaMotCong, tyLeCong, type CongDong, type NguongCong } from '@/lib/shop/cong-luat';
+import { KIEU_CONG, LOAI_PHAP_NHAN, NGUONG_MAC_DINH, NHAN_NGUONG, TRANG_THAI_PN, TRANG_THAI_TAY, VAI_CONG, danhGiaMotCong, danhGiaPhapNhan, tyLeCong,
+  type CongDong, type NguongCong, type PhapNhanDong } from '@/lib/shop/cong-luat';
 import type { CuaHangDong } from '@/lib/shop/doc';
-import { shopDocCong, shopKiemCong, shopSuaCong } from '@/lib/actions/shop';
+import { shopDocCong, shopKiemCong, shopSuaCong, shopSuaPhapNhan } from '@/lib/actions/shop';
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
 const MUC: Record<'tot' | 'vang' | 'do', [string, string]> = { tot: ['Khoẻ', 'var(--ok)'], vang: ['Cần để ý', 'var(--warn)'], do: ['Nguy hiểm', 'var(--bad)'] };
@@ -19,12 +20,15 @@ const COT_LS: CotLa[] = [{ h: 'Ngày', rong: 110 }, { h: 'GD thành công 90 ng�
 /** Số cổng đang đỏ/vàng — badge của tab. */
 export const soCongCanXem = (ds: CongDong[]) => ds.filter((g) => danhGiaMotCong(g).muc !== 'tot').length;
 const tenKieu = (g: CongDong) => KIEU_CONG[g.loai]?.ten ?? g.loai;
+const PN_MOI: PhapNhanDong = { id: 0, ten: '', loai: 'llc_us', nuoc: 'US', bang: null, maSoCuoi: null, nguoiDaiDien: null, daiLy: null, ngayLap: null, hanBaoCao: null,
+  trangThai: 'hoat_dong', link: null, ghiChu: null, shops: [] };
 
-export function BangCong({ ds, cuaHang, ch }: { ds: CongDong[]; cuaHang: CuaHangDong[]; ch: string }) {
+export function BangCong({ ds, phapNhan, cuaHang, ch }: { ds: CongDong[]; phapNhan: PhapNhanDong[]; cuaHang: CuaHangDong[]; ch: string }) {
   const router = useRouter();
   const [dang, batDau] = useTransition();
   const [bao, setBao] = useState<string | null>(null);
   const [sua, setSua] = useState<CongDong | null>(null);
+  const [suaPn, setSuaPn] = useState<PhapNhanDong | null>(null);
   const shops = cuaHang.filter((c) => ch === 'all' || c.khoa === ch);
   // lọc theo shop: cổng thu của shop đó + cổng nhận mà các cổng thu ấy rút về
   const thuCh = ds.filter((g) => ch === 'all' || g.shops.includes(ch));
@@ -41,9 +45,28 @@ export function BangCong({ ds, cuaHang, ch }: { ds: CongDong[]; cuaHang: CuaHang
       <span style={{ flex: 1 }} />
       {bao && <span style={{ fontSize: 12.5, color: bao.startsWith('Lỗi') ? 'var(--bad)' : 'var(--fg-2)' }}>{bao}</span>}
       <button className="btn" disabled={dang} onClick={docLai}>{dang ? 'Đang đọc Stripe…' : 'Đọc lại ngay'}</button>
-      <button className="btn" onClick={() => setSua({ id: 0, loai: 'payoneer', vai: 'nhan', ma: '', ten: '', ghiChu: null, taiKhoan: null, link: null, veCongId: null, trangThaiTay: null, kiemLuc: null,
-        nguong: {}, sucKhoe: null, docLuc: null, loi: null, shops: [], lichSu: [] })}>+ Thêm cổng</button>
+      <button className="btn" onClick={() => setSua({ id: 0, loai: 'payoneer', vai: 'nhan', ma: '', ten: '', ghiChu: null, taiKhoan: null, link: null, veCongId: null, phapNhanId: null,
+        trangThaiTay: null, kiemLuc: null, nguong: {}, sucKhoe: null, docLuc: null, loi: null, shops: [], lichSu: [] })}>+ Thêm cổng</button>
+      <button className="btn" onClick={() => setSuaPn(PN_MOI)}>+ Pháp nhân</button>
     </div>
+    {/* pháp nhân → cổng đứng tên + shop bán dưới tên — ai chịu trách nhiệm pháp lý cho dòng tiền nào */}
+    <div style={{ marginBottom: 12 }}><Panel pad={0} title="Pháp nhân" subtitle="chủ thể pháp lý đứng tên cổng / bán hàng · bấm để sửa">
+      <Cay label="Pháp nhân">
+        {phapNhan.map((p) => { const d = danhGiaPhapNhan(p, ds), congPn = ds.filter((g) => g.phapNhanId === p.id);
+          return <NutCay key={p.id} onChon={() => setSuaPn(p)}
+            ten={<><b style={{ fontWeight: 500 }}>{p.ten}</b><span style={phu}>{LOAI_PHAP_NHAN[p.loai] ?? p.loai}{p.bang ? ` · ${p.bang}` : ''}{p.nuoc ? ` · ${p.nuoc}` : ''}</span>
+              <Pill color={MUC[d.muc][1]} label={MUC[d.muc][0]} uppercase={false} mono={false} /></>}
+            phu={<>{TRANG_THAI_PN[p.trangThai]?.[0] ?? p.trangThai}{p.maSoCuoi ? ` · MST/EIN …${p.maSoCuoi}` : ''}{p.hanBaoCao ? ` · báo cáo năm ${p.hanBaoCao}` : ''}
+              {d.van_de.map((v, i) => <span key={i} style={{ color: v.muc === 'do' ? 'var(--bad)' : 'var(--warn)' }}> · {v.chu}</span>)}</>}>
+            {congPn.map((g) => <NutCay key={`c${g.id}`} ten={<span>cổng {tenKieu(g)} · {g.ten ?? g.ma}</span>} phu={VAI_CONG[g.vai]} />)}
+            {p.shops.map((k) => <NutCay key={`s${k}`} ten={<span>shop {tenShop(k)}</span>} phu="bán dưới tên pháp nhân này" />)}
+            {!congPn.length && !p.shops.length && <NutCay ten={<span style={phu}>chưa cổng / shop nào đứng tên</span>} />}
+          </NutCay>; })}
+        {!phapNhan.length && <NutCay ten={<span style={phu}>chưa có pháp nhân — bấm "+ Pháp nhân" (LLC, công ty, cá nhân…)</span>} />}
+        {ds.some((g) => !g.phapNhanId) && <NutCay ten={<span style={{ color: 'var(--warn)' }}>Chưa gán pháp nhân: {ds.filter((g) => !g.phapNhanId).map((g) => `${tenKieu(g)} · ${g.ten ?? g.ma}`).join(', ')}</span>}
+          phu="bấm Sửa ở thẻ cổng để chọn pháp nhân đứng tên" />}
+      </Cay>
+    </Panel></div>
     {/* dòng tiền: cổng thu → tiền về cổng nhận; shop nào dùng cổng thu nào */}
     {hien.length > 0 && <div style={{ marginBottom: 12 }}><Panel pad={0} title="Dòng tiền" subtitle="thu tiền khách → tiền về đâu">
       <Cay label="Dòng tiền">
@@ -132,13 +155,15 @@ export function BangCong({ ds, cuaHang, ch }: { ds: CongDong[]; cuaHang: CuaHang
       {chuaCo.length > 0 && <Panel pad={12}><span style={{ fontSize: 13 }}><b>Chưa có cổng:</b> {chuaCo.map((c) => c.ten).join(', ')} — chưa có khoá Stripe (SHOP_&lt;KHOÁ&gt;_STRIPE_PK/SK).{' '}
         <a href="/shop?tab=cua_hang">Xem mục Kết nối của cửa hàng</a>.</span></Panel>}
     </div>
-    {sua && <SuaCong g={sua} ds={ds} cuaHang={cuaHang} onClose={() => setSua(null)} />}
+    {sua && <SuaCong g={sua} ds={ds} phapNhan={phapNhan} cuaHang={cuaHang} onClose={() => setSua(null)} />}
+    {suaPn && <SuaPhapNhan p={suaPn} cuaHang={cuaHang} onClose={() => setSuaPn(null)} />}
   </>);
 }
 
 /** Thêm (id 0) / sửa phía mos2 của một cổng: loại, tên, tài khoản (CHỈ email/mã), trang quản trị, tiền về cổng nào, shop dùng, ghi chú, ngưỡng.
  *  Không đụng gì phía cổng. Cổng Stripe: loại + mã acct do máy nhận, không sửa ở đây. */
-function SuaCong({ g, ds, cuaHang, onClose }: { g: CongDong; ds: CongDong[]; cuaHang: CuaHangDong[]; onClose: () => void }) {
+function SuaCong({ g, ds, phapNhan, cuaHang, onClose }: { g: CongDong; ds: CongDong[]; phapNhan: PhapNhanDong[]; cuaHang: CuaHangDong[]; onClose: () => void }) {
+  const [pn, setPn] = useState<number | null>(g.phapNhanId);
   const moi = g.id === 0;
   const [loai, setLoai] = useState(g.loai);
   const [ten, setTen] = useState(g.ten ?? '');
@@ -163,6 +188,8 @@ function SuaCong({ g, ds, cuaHang, onClose }: { g: CongDong; ds: CongDong[]; cua
         </div>
         {loai !== 'stripe' && <TextField id="cong-tk" label="Tài khoản" hint="CHỈ email đăng nhập / mã tài khoản (vd Payoneer ID). Không mật khẩu, không số thẻ / số tài khoản ngân hàng." value={tk} onChange={(e) => setTk(e.target.value)} />}
         <TextField id="cong-link" label="Trang quản trị" placeholder={kieu.link ?? 'https://…'} value={link} onChange={(e) => setLink(e.target.value)} />
+        <PickField label="Đứng tên pháp nhân" value={pn} placeholder="— chưa ghi —" clearable hint={phapNhan.length ? undefined : 'chưa có pháp nhân — thêm bằng nút "+ Pháp nhân"'}
+          options={phapNhan.map((p) => ({ value: p.id, label: `${p.ten} · ${LOAI_PHAP_NHAN[p.loai] ?? p.loai}` }))} onChange={(k) => setPn(k ?? null)} />
         {kieu.vai === 'thu' && <>
           <PickField label="Tiền rút về" value={ve} placeholder="— chưa ghi —" clearable hint={nhan.length ? undefined : 'chưa có cổng nhận (Payoneer/PingPong) — thêm trước rồi chọn ở đây'}
             options={nhan.map((x) => ({ value: x.id, label: `${KIEU_CONG[x.loai]?.ten ?? x.loai} · ${x.ten ?? x.ma}` }))} onChange={(k) => setVe(k ?? null)} />
@@ -185,8 +212,58 @@ function SuaCong({ g, ds, cuaHang, onClose }: { g: CongDong; ds: CongDong[]; cua
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn primary" disabled={dang} onClick={() => batDau(async () => {
             const nguong = Object.fromEntries(Object.entries(ng).filter(([, v]) => v.trim() !== '').map(([k, v]) => [k, Number(v)]));
-            const r = await shopSuaCong(moi ? null : g.id, { loai, ten, taiKhoan: tk, link, veCongId: ve, shops: loai === 'stripe' ? undefined : shops, ghiChu: gc, nguong })
+            const r = await shopSuaCong(moi ? null : g.id, { loai, ten, taiKhoan: tk, link, veCongId: ve, phapNhanId: pn, shops: loai === 'stripe' ? undefined : shops, ghiChu: gc, nguong })
               .catch((e) => ({ ok: false, loi: (e as Error).message }));
+            if (r.ok) onClose(); else setLoi(('loi' in r && r.loi) || 'lỗi');
+          })}>{dang ? 'Đang lưu…' : 'Lưu'}</button>
+          <button className="btn ghost" onClick={onClose}>Đóng</button>
+        </div>
+      </div>
+    </Drawer>
+  );
+}
+
+/** Thêm (id 0) / sửa một PHÁP NHÂN: tên pháp lý, loại, nơi đăng ký, 4 số cuối mã số thuế, người đại diện, đại lý đăng ký, ngày lập, hạn báo cáo năm,
+ *  trạng thái, shop bán dưới tên nó. Không lưu số ngân hàng / thẻ; mã số thuế chỉ 4 số cuối. */
+function SuaPhapNhan({ p, cuaHang, onClose }: { p: PhapNhanDong; cuaHang: CuaHangDong[]; onClose: () => void }) {
+  const moi = p.id === 0;
+  const [v, setV] = useState({ ten: p.ten, loai: p.loai, nuoc: p.nuoc ?? '', bang: p.bang ?? '', maSoCuoi: p.maSoCuoi ?? '', nguoiDaiDien: p.nguoiDaiDien ?? '', daiLy: p.daiLy ?? '',
+    ngayLap: p.ngayLap ?? '', hanBaoCao: p.hanBaoCao ?? '', trangThai: p.trangThai, link: p.link ?? '', ghiChu: p.ghiChu ?? '', shops: p.shops });
+  const [loi, setLoi] = useState<string | null>(null);
+  const [dang, batDau] = useTransition();
+  const dat = (k: keyof typeof v) => (e: { target: { value: string } }) => setV({ ...v, [k]: e.target.value });
+  return (
+    <Drawer onClose={onClose} width={620}>
+      <div style={{ display: 'grid', gap: 12 }}>
+        <h2 style={{ margin: 0, fontSize: 17 }}>{moi ? 'Thêm pháp nhân' : `Pháp nhân · ${p.ten}`}</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: 10 }}>
+          <TextField id="pn-ten" label="Tên pháp lý đầy đủ" placeholder="Mellowstep LLC" value={v.ten} onChange={dat('ten')} />
+          <PickField label="Loại" value={v.loai} options={Object.entries(LOAI_PHAP_NHAN).map(([k, t]) => ({ value: k, label: t }))} onChange={(k) => k && setV({ ...v, loai: k })} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 140px', gap: 10 }}>
+          <TextField id="pn-nuoc" label="Nước" value={v.nuoc} onChange={dat('nuoc')} />
+          <TextField id="pn-bang" label="Bang / tỉnh đăng ký" placeholder="Wyoming" value={v.bang} onChange={dat('bang')} />
+          <TextField id="pn-ms" label="EIN / MST — 4 số cuối" mono inputMode="numeric" value={v.maSoCuoi} onChange={dat('maSoCuoi')} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <TextField id="pn-dd" label="Người đại diện" value={v.nguoiDaiDien} onChange={dat('nguoiDaiDien')} />
+          <TextField id="pn-dl" label="Đại lý đăng ký (registered agent)" value={v.daiLy} onChange={dat('daiLy')} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+          <TextField id="pn-ngay" label="Ngày lập" type="date" value={v.ngayLap} onChange={dat('ngayLap')} />
+          <TextField id="pn-han" label="Hạn báo cáo năm kế" type="date" value={v.hanBaoCao} onChange={dat('hanBaoCao')} />
+          <PickField label="Trạng thái" value={v.trangThai} options={Object.entries(TRANG_THAI_PN).map(([k, [t]]) => ({ value: k, label: t }))} onChange={(k) => k && setV({ ...v, trangThai: k })} />
+        </div>
+        <TextField id="pn-link" label="Trang tra cứu / cổng của bang" placeholder="https://…" value={v.link} onChange={dat('link')} />
+        <div style={{ display: 'grid', gap: 4 }}><b style={{ fontSize: 13 }}>Shop bán dưới tên pháp nhân này</b>
+          <span style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>{cuaHang.map((c) => <label key={c.khoa} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 13 }}>
+            <input type="checkbox" checked={v.shops.includes(c.khoa)} onChange={(e) => setV({ ...v, shops: e.target.checked ? [...v.shops, c.khoa] : v.shops.filter((x) => x !== c.khoa) })} />{c.ten}</label>)}</span>
+        </div>
+        <TextAreaField id="pn-gc" label="Ghi chú (ngân hàng dùng — chỉ tên, thuế, giấy phép…)" rows={3} value={v.ghiChu} onChange={dat('ghiChu')} />
+        {loi && <div style={{ color: 'var(--bad)', fontSize: 13 }}>{loi}</div>}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn primary" disabled={dang} onClick={() => batDau(async () => {
+            const r = await shopSuaPhapNhan(moi ? null : p.id, v).catch((e) => ({ ok: false, loi: (e as Error).message }));
             if (r.ok) onClose(); else setLoi(('loi' in r && r.loi) || 'lỗi');
           })}>{dang ? 'Đang lưu…' : 'Lưu'}</button>
           <button className="btn ghost" onClick={onClose}>Đóng</button>

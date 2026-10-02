@@ -108,7 +108,7 @@ export const HAN_BAO_CAO_NGAY = 30;
 export type PhapNhanDong = { id: number; ten: string; loai: string; nuoc: string | null; bang: string | null; maSoCuoi: string | null; nguoiDaiDien: string | null;
   daiLy: string | null; ngayLap: string | null; hanBaoCao: string | null; trangThai: string; link: string | null; ghiChu: string | null; shops: string[] };
 
-const chuanTen = (x: string) => x.toLowerCase().replace(/[.,]/g, '').replace(/\b(llc|inc|ltd|corp|co|company|corporation|limited)\b/g, '').replace(/\s+/g, ' ').trim();
+const chuanTen = (x: string) => x.replace(/[​-‍⁠﻿]/g, '').toLowerCase().replace(/[.,]/g, '').replace(/\b(llc|inc|ltd|corp|co|company|corporation|limited)\b/g, '').replace(/\s+/g, ' ').trim();
 /** Sức khoẻ một pháp nhân: trạng thái, hạn báo cáo năm, còn cổng/shop đứng tên khi đã ngừng, tên Stripe đang giữ lệch tên sổ. */
 export function danhGiaPhapNhan(p: PhapNhanDong, cong: CongDong[], bayGio = Date.now()): { muc: 'tot' | 'vang' | 'do'; van_de: VanDe[] } {
   const v: VanDe[] = [];

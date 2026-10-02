@@ -46,7 +46,9 @@ export async function chupStripe(khoa: string, domainMinh: string[]): Promise<Su
     luc: new Date().toISOString(),
     tai_khoan: { id: a.id, ten: a.settings?.dashboard?.display_name ?? a.business_profile?.name ?? null, nuoc: a.country ?? null, tien_te: tt, nhan_tien: !!a.charges_enabled, rut_tien: !!a.payouts_enabled,
       thieu: a.requirements?.currently_due ?? [], qua_han: a.requirements?.past_due ?? [], ly_do_khoa: a.requirements?.disabled_reason ?? null, han: a.requirements?.current_deadline ?? null,
-      phap_ly: { loai: a.business_type ?? null, ten: a.company?.name ?? (a.individual ? `${a.individual.first_name ?? ''} ${a.individual.last_name ?? ''}`.trim() || null : null) },
+      // tên pháp lý trên Stripe có thể lẫn ký tự ẩn (U+FEFF… — gặp thật 02/10/2026) → bỏ trước khi lưu / so với sổ pháp nhân
+      phap_ly: { loai: a.business_type ?? null, ten: (a.company?.name ?? (a.individual ? `${a.individual.first_name ?? ''} ${a.individual.last_name ?? ''}` : ''))
+        .replace(/[​-‍⁠﻿]/g, '').replace(/\s+/g, ' ').trim() || null },
       lich_rut: a.settings?.payouts?.schedule ? `${a.settings.payouts.schedule.interval ?? ''}${a.settings.payouts.schedule.delay_days != null ? ` · trễ ${a.settings.payouts.schedule.delay_days} ngày` : ''}` : null },
     so_du: { kha_dung: tong(b.available), cho: tong(b.pending), tien_te: tt },
     ky90: { thanh_cong: thanh.length, tien: thanh.reduce((s, c) => s + c.amount, 0) / 100, that_bai: hong.length, chan_rui_ro: ch.ds.filter((c) => c.outcome?.type === 'blocked').length,

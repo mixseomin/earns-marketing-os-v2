@@ -81,7 +81,7 @@ export function BangCong({ ds, phapNhan, cuaHang, ch }: { ds: CongDong[]; phapNh
   const mo = modal.value === 'xem' ? ds.find((g) => g.id === Number(modal.id)) : undefined;
   const chuaGan = ds.filter((g) => !g.phapNhanId).length;
 
-  return (<div data-comp="BangCong" style={{ display: 'grid', gap: 12 }}>
+  return (<div data-comp="BangCong" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
       <span style={{ fontSize: 12.5, ...phu }}>Chỉ ĐỌC từ cổng — không ghi gì sang Stripe. Máy đọc lại ~6 giờ một lần.</span>
       <span style={{ flex: 1 }} />

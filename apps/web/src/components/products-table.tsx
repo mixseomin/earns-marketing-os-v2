@@ -21,6 +21,8 @@ export interface ProductRow {
   views30d: number | null;
   refs7d: Record<string, number>; // nguồn giới thiệu 7d; {} = chưa đọc được nguồn
   missingDiscover: boolean;
+  /** Chưa Publish — vẫn hiện để sản phẩm vừa up thấy ngay, không đợi tới lúc đăng bán. */
+  draft: boolean;
 }
 
 /** Lượt xem 7d KHÔNG phải `direct`, kèm nguồn lớn nhất — "có ai giới thiệu sang không". */
@@ -45,6 +47,7 @@ export function ProductsTable({ rows }: { rows: ProductRow[] }) {
       cell: (r) => (
         <span style={{ whiteSpace: 'normal' }}>
           <a href={r.url} target="_blank" rel="noreferrer" style={{ color: 'var(--fg-1)', textDecoration: 'none' }}>{r.name}</a>
+          {r.draft && <span title="Chưa Publish trên Gumroad" style={{ marginLeft: 6, fontSize: 10, padding: '1px 5px', borderRadius: 4, border: '1px solid var(--line)', color: 'var(--fg-3)' }}>nháp</span>}
           {/* Thiếu category/tag = tự cắt mình khỏi Gumroad Discover. Nhắc ngay tại dòng. */}
           {r.missingDiscover && <span title="Thiếu category/tag → không lên Discover được" style={{ color: 'var(--warn,#f59e0b)', marginLeft: 6 }}>⚠</span>}
         </span>

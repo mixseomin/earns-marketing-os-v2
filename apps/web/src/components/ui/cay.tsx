@@ -71,6 +71,3 @@ export function LaBang({ cot, children }: { cot: CotLa[]; children: React.ReactN
     </div>
   );
 }
-/** Ô của bảng lá — căn theo cột, một dòng, tràn thì "…". */
-export const oLa = (phai?: boolean): React.CSSProperties => ({ padding: '5px 10px', textAlign: phai ? 'right' : 'left', fontVariantNumeric: 'tabular-nums',
-  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'top' });

@@ -83,7 +83,8 @@ export { StatusFlag, type StatusFlagProps, type StatusFlagTone, type StatusFlagS
 // (backgrounded = slide left + dim). See feedback_stacked_drawer.
 export { Drawer } from './drawer';
 // Cay/NutCay = THE cây cha → con (mọi chỗ có tầng: sản phẩm → màu → biến thể, kênh → NCC, sản phẩm NCC → biến thể → shop dùng). Không tự vẽ ▸/▾ riêng.
-export { Cay, NutCay, LaBang, oLa, type CotLa, type NutCayProps } from './cay';
+export { Cay, NutCay, LaBang, type CotLa, type NutCayProps } from './cay';
+export { oLa } from './o-la';   // thuần, KHÔNG từ cay.tsx ('use client') — server component gọi được
 // Note: feedback_picker_inline_crud.md — every entity picker should use
 // <ResourcePicker> + filter by relevant context (platform, project, role)
 // instead of dumping the full list and forcing the user to search.

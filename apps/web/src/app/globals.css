@@ -304,7 +304,9 @@ button { font-family: inherit; color: inherit; }
   .topbar .tabs { display: none !important; }
 
   .main {
-    overflow-x: hidden;
+    /* clip, KHÔNG hidden: hidden vẫn cho mã cuộn ngang (scrollIntoView tab đang chọn) → cả trang trượt sang phải, nội dung bên trái
+       biến mất, chỉ còn khoảng đen (anh bắt 05/10/2026 trên iPhone, tab Tài sản). clip cắt và không ai cuộn được. */
+    overflow-x: clip;
     padding: 4px !important;
   }
   .page { padding: 8px !important; max-width: 100% !important; }

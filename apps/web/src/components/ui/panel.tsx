@@ -41,7 +41,8 @@ export function Panel({
               )}
             </h2>
           )}
-          {actions != null && <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>{actions}</div>}
+          {/* flexWrap: cụm nút dài (chip lọc + segmented) xuống dòng trên điện thoại thay vì đẩy panel rộng hơn màn */}
+          {actions != null && <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', minWidth: 0 }}>{actions}</div>}
         </div>
       )}
       {children}

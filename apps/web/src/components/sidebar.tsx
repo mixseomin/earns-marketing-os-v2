@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Fragment, useState, useRef, useEffect, useTransition } from 'react';
-import { usePathname } from 'next/navigation';
+import { Fragment, Suspense, useState, useRef, useEffect, useTransition } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useT } from '@/lib/lang-context';
 import { ProjectSwitcher } from './project-switcher';
 import { TAB_TRANG, coTab, hrefTab, tabMacDinh, type TabTrang } from '@/lib/tab-trang';
@@ -123,7 +123,7 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser, onMobil
         {currentProjectId && (
           <ProjectNav projectId={currentProjectId} role={currentUser?.role ?? 'admin'} />
         )}
-        {(currentUser?.role ?? 'admin') === 'admin' && <SystemNav role="admin" />}
+        {(currentUser?.role ?? 'admin') === 'admin' && <Suspense fallback={null}><SystemNav role="admin" /></Suspense>}
       </div>
 
       {currentUser && <UserPanel user={currentUser} />}
@@ -310,18 +310,13 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
 const NAV_MO = 'mos2-nav-mo';
 function CayNav({ groups }: { groups: NavGroup[] }) {
   const pathname = usePathname();
-  const [qs, setQs] = useState('');
+  // Tab đang mở = useSearchParams: tab trang chủ đổi bằng router.replace, tab shop bằng history.replaceState — Next 15 đồng bộ cả hai
+  // vào hook này. Bản đầu đọc window.location.search sau một click (setTimeout 0) nên đọc TRƯỚC khi router kịp đổi URL → tô sai tab
+  // (anh bắt 05/10: URL ?tab=taisan mà menu tô SEO). Hook này cần <Suspense> ở chỗ gọi (trang tĩnh).
+  const sp = useSearchParams();
   const [mo, setMo] = useState<Record<string, boolean> | null>(null);   // null = chưa đọc localStorage (lượt SSR)
   useEffect(() => { try { setMo(JSON.parse(localStorage.getItem(NAV_MO) ?? '{}')); } catch { setMo({}); } }, []);
-  // tab trong trang đổi URL bằng replaceState (không qua router) → đọc lại khi đổi đường + popstate + click bất kỳ
-  useEffect(() => {
-    const doc = () => setQs(window.location.search);
-    const sauClick = () => setTimeout(doc, 0);
-    doc(); window.addEventListener('popstate', doc); document.addEventListener('click', sauClick);
-    return () => { window.removeEventListener('popstate', doc); document.removeEventListener('click', sauClick); };
-  }, [pathname]);
   const dat = (k: string, v: boolean) => { const n = { ...(mo ?? {}), [k]: v }; setMo(n); try { localStorage.setItem(NAV_MO, JSON.stringify(n)); } catch { /* private mode */ } };
-  const sp = new URLSearchParams(qs);
   return (
     <div style={{ borderTop: '1px solid var(--line)', marginTop: 4, paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 1 }}>
       {groups.map((g) => {
@@ -344,7 +339,7 @@ function CayNav({ groups }: { groups: NavGroup[] }) {
   );
 }
 
-function MucNav({ it, pathname, sp, mo, dat }: { it: NavItem; pathname: string; sp: URLSearchParams; mo: Record<string, boolean> | null; dat: (k: string, v: boolean) => void }) {
+function MucNav({ it, pathname, sp, mo, dat }: { it: NavItem; pathname: string; sp: { get: (k: string) => string | null }; mo: Record<string, boolean> | null; dat: (k: string, v: boolean) => void }) {
   const isActive = !!it.href && pathname === it.href;
   const tabs = it.href && coTab(it.href) ? TAB_TRANG[it.href] : null;
   const khoa = `tab:${it.href ?? it.label}`;

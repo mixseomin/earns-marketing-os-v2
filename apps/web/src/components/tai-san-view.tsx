@@ -5,7 +5,7 @@
 import { useMemo } from 'react';
 import { Cay, FilterChips, LaBang, LinkChip, NutCay, Panel, Pill, oLa, type CotLa } from '@/components/ui';
 import { useShallowParam } from '@/lib/url-shallow';
-import { TT_SP, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from '@/lib/tai-san/doc';
+import { TT_SP, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from '@/lib/tai-san/kieu';
 
 const usd = (n: number) => (n >= 1000 ? `$${Math.round(n).toLocaleString('en-US')}` : n >= 1 ? `$${n.toFixed(0)}` : n > 0 ? `$${n.toFixed(2)}` : '$0');
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };

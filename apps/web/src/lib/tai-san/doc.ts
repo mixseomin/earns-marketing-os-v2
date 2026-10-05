@@ -5,26 +5,15 @@
 //   · mellowstep…  ← sổ shop_* (shop_cua_hang / shop_san_pham / shop_don)
 //   · mọi thứ khác ← Directus `products` = SỔ CÁI (platform + store + status), tiền 30n từ product_stats; ghi bằng ~/bin/sanpham
 // Trạng thái gom về 4 bậc: đang làm → chờ duyệt → đang bán → ngừng. "Chưa đo" (null) ≠ 0 — giữ luật của lib/products/data.ts.
+// Kiểu + bảng trạng thái ở kieu.ts (thuần, client import được); file này kéo DB nên chỉ server component gọi.
 import { getGumroadSummary, lacksDiscover } from '@/lib/gumroad/products';
 import { loadProductViews, type ViewsPayload } from '@/lib/gumroad/daily';
 import { getProductsView } from '@/lib/products/data';
 import { docShop } from '@/lib/shop/doc';
 import { isoCua } from '@/lib/shop/buoc';
 
-export type TrangThaiSp = 'dang_lam' | 'cho_duyet' | 'dang_ban' | 'ngung';
-export const TT_SP: { key: TrangThaiSp; chu: string; mau: string }[] = [
-  { key: 'dang_ban', chu: 'đang bán', mau: 'var(--ok)' },
-  { key: 'cho_duyet', chu: 'chờ duyệt', mau: 'var(--warn)' },
-  { key: 'dang_lam', chu: 'đang làm', mau: 'var(--fg-2)' },
-  { key: 'ngung', chu: 'ngừng', mau: 'var(--fg-4)' },
-];
-/** Cửa sổ của số đơn/tiền: Gumroad API cộng dồn trọn đời; Directus product_stats và shop_don tính 30 ngày. */
-export type Ky = 'tron_doi' | '30n';
-export type SpNut = { khoa: string; ten: string; /** định dạng / sku (bìa mềm, bìa cứng, ebook…) */ phu: string | null; url: string | null;
-  trangThai: TrangThaiSp; gia: number | null; views7d: number | null; don: number | null; tien: number | null; ky: Ky; canhBao: string | null; ghiChu: string | null };
-export type ShopNut = { khoa: string; ten: string; loai: 'gumroad' | 'kdp' | 'etsy' | 'mos' | 'san'; url: string | null; sp: SpNut[];
-  tien: number | null; ky: Ky; loi: string | null; ghiChu: string | null };
-export type TaiSanBan = { shops: ShopNut[]; loi: string[]; viewsToi: string | null };
+import type { Ky, ShopNut, SpNut, TaiSanBan, TrangThaiSp } from './kieu';
+export { TT_SP, type Ky, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from './kieu';
 
 const NHAN_NEN: Record<string, string> = { gumroad: 'Gumroad', kdp: 'KDP', etsy: 'Etsy', udemy: 'Udemy', 'mql5-market': 'MQL5 Market', rapidapi: 'RapidAPI',
   stripe: 'Stripe', chaturbate: 'Chaturbate', stripcash: 'Stripcash', course: 'Khoá học', 'wordpress.org': 'WordPress.org' };

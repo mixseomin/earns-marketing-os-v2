@@ -4,7 +4,8 @@
 import { StatsStrip, type StatCard } from '@/components/ui';
 import { SeoSitesPanel, docSeoSites } from './seo-sites-panel';
 import { TaiSanView } from './tai-san-view';
-import { docTaiSanBan, type TrangThaiSp } from '@/lib/tai-san/doc';
+import { docTaiSanBan } from '@/lib/tai-san/doc';
+import type { TrangThaiSp } from '@/lib/tai-san/kieu';
 
 export async function TaiSanTab() {
   const [sites, ban] = await Promise.all([docSeoSites(), docTaiSanBan()]);

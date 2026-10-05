@@ -31,3 +31,15 @@ export function shopChet(nen: string, store: string | null, tk: { nen: string; h
   return khop.length && khop.every((t) => CHET.has(t.status)) ? khop[0]!.status : null;
 }
 
+
+// Kênh kéo khách (bảng kenh_sp) — phần thuần cho panel client; đọc DB ở kenh.ts.
+/** Các khâu của từng kênh, theo thứ tự; kenh_sp.muc là chỉ số trong mảng. Kênh mới = thêm một dòng ở đây. */
+export const KHAU: Record<string, { nhan: string; khau: string[] }> = {
+  pinterest: { nhan: 'Pinterest', khau: ['chưa làm', 'dựng ảnh ghim', 'đã hẹn lịch', 'đang lên', 'lên hết'] },
+  shorts: { nhan: 'Video ngắn', khau: ['chưa làm', 'dựng video', 'đăng một phần', 'đăng hết'] },
+  printables: { nhan: 'Trang tặng miễn phí', khau: ['chưa làm', 'dựng trang', 'đang live', 'đã nộp sitemap'] },
+};
+
+export type KenhO = { kenh: string; muc: number; xong: number | null; tong: number | null; dich: string | null; canhBao: string | null;
+  the: { id: number; project: string | null; ten: string; trangThai: string } | null; capNhat: string };
+export type KenhSp = { sanPham: string; ten: string; khop: string | null; o: Record<string, KenhO> };

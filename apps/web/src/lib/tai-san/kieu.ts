@@ -18,7 +18,13 @@ export type SpNut = { khoa: string; ten: string; /** ảnh sản phẩm (thumbna
   /** mã trên nền tảng (permalink Gumroad, listing id Etsy, sku/ISBN KDP…) */ ma: string | null; /** định dạng / sku (bìa mềm, bìa cứng, ebook…) */ phu: string | null; url: string | null;
   trangThai: TrangThaiSp; /** tiến độ quy trình sản xuất ('1/5'), máy ghi ở dòng đầu ghi chú: '▶ quy trình 1/5 · xong: … · kế: …' */ tienDo?: string; ke?: string; /** bản xem để anh duyệt NGAY TRONG MOS2 (listing_config.xem, scripts/xem.mjs ghi) */ xem?: XemDuyet | null; /** ngày anh duyệt (listing_config.duyet) */ duyet?: string | null; /** id dòng Directus products (để bấm Duyệt) */ idSo?: string; gia: number | null; /** mã tiền của giá (USD mặc định; Etsy FrontPorchZ niêm yết VND) — hiện đúng tiền, không tự quy đổi */ tienTe?: string; views7d: number | null; don: number | null; tien: number | null; ky: Ky; canhBao: string | null; ghiChu: string | null };
 /** Tài khoản vault đứng sau shop — để biết đăng nhập bằng gì, mở drawer tài khoản. */
-export type TaiKhoan = { id: number; handle: string; email: string | null; status: string };
+/** nguon: kho nào giữ tài khoản — 'mos2' (platform_accounts, mở drawer EntityRef) hay 'directus' (earns.accounts trên as.on.tc,
+ *  id là uuid). Tab Tài sản đọc CẢ HAI: tài khoản chỉ nằm ở Directus trước đây hiện "—" (#1113, 05/10/2026). */
+export type TaiKhoan = { id: number | string; nguon: 'mos2' | 'directus'; handle: string; email: string | null; status: string };
+
+/** Một nền tảng nhiều tên khoá giữa các kho (MOS2 'mql5', Directus 'mql5-com', sổ sản phẩm 'mql5-market') → một khoá chuẩn. */
+const NEN_GOP: Record<string, string> = { mql5: 'mql5-market', 'mql5-com': 'mql5-market' };
+export const nenChuan = (k: string) => { const x = k.toLowerCase(); return NEN_GOP[x] ?? x; };
 export type ShopNut = { khoa: string; ten: string; loai: 'gumroad' | 'kdp' | 'etsy' | 'mos' | 'san'; url: string | null; sp: SpNut[]; tk?: TaiKhoan | null;
   tien: number | null; ky: Ky; loi: string | null; ghiChu: string | null };
 export type TaiSanBan = { shops: ShopNut[]; loi: string[]; viewsToi: string | null };

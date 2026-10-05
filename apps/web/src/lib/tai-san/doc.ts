@@ -15,7 +15,8 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 
 import { docEtsy } from '@/lib/etsy/listings';
-import { khopTk, shopChet, type Ky, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from './kieu';
+import { fetchDirectusAccountsForPlatforms } from '@/lib/bridge/directus';
+import { khopTk, nenChuan, shopChet, type Ky, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from './kieu';
 export { TT_SP, type Ky, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from './kieu';
 
 const NHAN_NEN: Record<string, string> = { gumroad: 'Gumroad', kdp: 'KDP', etsy: 'Etsy', udemy: 'Udemy', 'mql5-market': 'MQL5 Market', rapidapi: 'RapidAPI',
@@ -26,12 +27,24 @@ const TT_DIRECTUS: Record<string, TrangThaiSp> = { planned: 'du_kien', draft: 'd
 // Tài sản sống chết theo TÀI KHOẢN bán: khoá tài khoản là mọi sản phẩm của nó ngừng (Udemy #158, anh báo 05/10/2026).
 // Đọc trạng thái từ vault (platform_accounts) lúc dựng cây, KHÔNG sửa tay từng sản phẩm — kháng nghị được thì tự trở lại.
 // Cùng lượt đọc này gắn tài khoản vào từng shop (anh cần biết shop nào đứng tên tài khoản nào).
-type TkDong = { id: number; nen: string; handle: string; ten: string; email: string | null; status: string };
-async function docTaiKhoan(): Promise<TkDong[]> {
-  const d = getDb(); if (!d) return [];
-  return (await d.execute(sql`SELECT id, platform_key AS nen, lower(coalesce(handle, '')) AS handle, coalesce(handle, '') AS ten, email, status FROM platform_accounts
+type TkDong = { id: number | string; nguon: 'mos2' | 'directus'; nen: string; handle: string; ten: string; email: string | null; status: string };
+const NEN_TK = ['udemy', 'kdp', 'etsy', 'gumroad', 'mql5', 'mql5-com', 'mql5-market', 'rapidapi', 'stripe', 'chaturbate', 'stripcash', 'mellowstep'];
+/** Tài khoản bán từ HAI kho: MOS2 platform_accounts (ưu tiên — mở được drawer) + Directus earns.accounts (kho gốc, 651 tài khoản,
+ *  nhiều cái chưa nhập sang MOS2: Chaturbate zoomxxx, Stripe, Gumroad codecrate… — #1113). Trùng (nền + handle) thì giữ bản MOS2.
+ *  Directus hỏng thì vẫn trả phần MOS2 và ghi lỗi, không làm sập cây. */
+async function docTaiKhoan(loi: string[]): Promise<TkDong[]> {
+  const d = getDb();
+  const mos = d ? ((await d.execute(sql`SELECT id, platform_key AS nen, lower(coalesce(handle, '')) AS handle, coalesce(handle, '') AS ten, email, status FROM platform_accounts
     WHERE platform_key IN ('udemy','kdp','etsy','gumroad','mql5','mql5-market','rapidapi','stripe','chaturbate','stripcash','mellowstep')
-    ORDER BY (status IN ('banned','blocked','closed')), id`)) as unknown as TkDong[];
+    ORDER BY (status IN ('banned','blocked','closed')), id`)) as unknown as Omit<TkDong, 'nguon'>[]).map((r) => ({ ...r, nen: nenChuan(r.nen), nguon: 'mos2' as const })) : [];
+  const co = new Set(mos.map((r) => `${r.nen}:${r.handle}`));
+  let dir: TkDong[] = [];
+  try {
+    dir = (await fetchDirectusAccountsForPlatforms(NEN_TK)).filter((a) => a.platform)
+      .map((a) => ({ id: a.id, nguon: 'directus' as const, nen: nenChuan(a.platform!), handle: (a.handle ?? '').toLowerCase(), ten: a.handle ?? '', email: a.email ?? null, status: (a.status ?? 'active').toLowerCase() }))
+      .filter((a) => !co.has(`${a.nen}:${a.handle}`) && (co.add(`${a.nen}:${a.handle}`), true));
+  } catch (e) { loi.push(`tài khoản Directus: ${(e as Error).message}`); }
+  return [...mos, ...dir];
 }
 
 const DIRECTUS = process.env.DIRECTUS_URL || 'https://as.on.tc';
@@ -46,7 +59,7 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
     boc('gumroad views', loadProductViews, { byProduct: {}, lastSync: null } as ViewsPayload),
     boc('directus', () => getProductsView(30), null),
     boc('shop', docShop, null),
-    boc('vault', docTaiKhoan, [] as TkDong[]),
+    boc('vault', () => docTaiKhoan(loi), [] as TkDong[]),
     boc('etsy', docEtsy, []),
   ]);
   const shops: ShopNut[] = [];
@@ -142,9 +155,10 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
     }
   }
   for (const s of shops) {
-    const [nen, store] = s.khoa.split(':');
+    const [nenGoc, store] = s.khoa.split(':');
+    const nen = nenChuan(nenGoc ?? '');
     const t = s.loai === 'mos' ? khopTk('mellowstep', null, tk)[0] : khopTk(nen ?? '', store || null, tk)[0];
-    s.tk = t ? { id: t.id, handle: t.ten, email: t.email, status: t.status } : null;
+    s.tk = t ? { id: t.id, nguon: t.nguon, handle: t.ten, email: t.email, status: t.status } : null;
     const chet = s.loai === 'mos' ? null : shopChet(nen ?? '', store || null, tk);
     if (!chet) continue;
     s.loi = `tài khoản ${chet === 'banned' ? 'bị khoá' : chet}`;

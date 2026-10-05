@@ -194,6 +194,16 @@ export async function fetchDirectusCommunitiesByIds(ids: string[]): Promise<Arra
 }
 
 // Fetch single account by Directus uuid.
+/** Tài khoản của MỘT danh sách nền tảng (khớp không phân biệt hoa thường — Directus có cả 'Stripe' lẫn 'stripe'). Chỉ trường
+ *  nhận diện, KHÔNG notes/recovery (có mật khẩu chữ trần trong notes cũ). Dùng cho cây Tài sản. */
+export async function fetchDirectusAccountsForPlatforms(keys: string[]): Promise<Pick<DirectusAccount, 'id' | 'platform' | 'handle' | 'email' | 'status'>[]> {
+  if (!directusEnabled() || !keys.length) return [];
+  const bien = [...new Set(keys.flatMap((k) => [k, k.toLowerCase(), k.charAt(0).toUpperCase() + k.slice(1)]))];
+  const json = await getJson<DirectusResponse<Pick<DirectusAccount, 'id' | 'platform' | 'handle' | 'email' | 'status'>[]>>(
+    `/items/accounts?fields=id,platform,handle,email,status&limit=-1&filter=${encodeURIComponent(JSON.stringify({ platform: { _in: bien } }))}`);
+  return json.data || [];
+}
+
 export async function fetchDirectusAccount(id: string): Promise<DirectusAccount | null> {
   if (!directusEnabled()) return null;
   const url = `/items/accounts/${encodeURIComponent(id)}?fields=${ACCOUNT_FIELDS}`;

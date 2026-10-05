@@ -3,7 +3,9 @@
 // Anh DUYỆT bản xem một sản phẩm ngay trong MOS2 (drawer sản phẩm, tab Tài sản) — ghi listing_config.duyet = hôm nay
 // cho MỌI dòng sổ cùng tên (một cuốn = nhiều dòng: Etsy · Gumroad · KDP). Máy sản xuất (puzzle-books quy-trinh.mjs) đọc
 // ngày này để qua bước 6 và mở khoá bật bán; dựng lại sau ngày duyệt thì phải duyệt lại.
+import { revalidateTag } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth';
+import { THE_SO_SP } from '@/lib/products/data';
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL || 'https://as.on.tc';
 const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN || '';
@@ -25,5 +27,6 @@ export async function duyetSanPham(id: string): Promise<{ ok: boolean; soDong?: 
       body: JSON.stringify({ listing_config: { ...(r.listing_config ?? {}), duyet: ngay, duyetBoi: me.email ?? me.id } }) });
     if (!res.ok) return { ok: false, error: `Ghi duyệt thất bại ở dòng ${r.id} (${res.status}).` };
   }
+  revalidateTag(THE_SO_SP);   // trang đọc lại sổ ngay, không đợi bộ đệm 15s
   return { ok: true, soDong: rows.length };
 }

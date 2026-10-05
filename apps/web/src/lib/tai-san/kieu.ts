@@ -59,3 +59,6 @@ export type KenhSp = { sanPham: string; ten: string; khop: string | null; o: Rec
 /** Bản xem một sản phẩm đang làm — ảnh nằm trên Directus của MOS2 (assets/<id>), không link ra ngoài. */
 export type XemDuyet = { ngay: string; anh: { id: string; chu: string }[]; trang?: number;
   mau?: { t: string; story: string; ask: string[]; w: string[] }[]; chuDe?: string[]; moTa?: string };
+
+/** Đã duyệt BẢN HIỆN TẠI chưa: có ngày duyệt và không cũ hơn ngày dựng bản xem (dựng lại sau khi duyệt → phải duyệt lại). */
+export const daDuyetBanNay = (duyet: string | null | undefined, xemNgay: string | null | undefined) => !!duyet && (!xemNgay || duyet >= xemNgay);

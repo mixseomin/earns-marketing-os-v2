@@ -73,13 +73,16 @@ export interface ProductsView {
   errors: string[];
 }
 
+/** Thẻ bộ đệm của mọi lượt đọc sổ sản phẩm Directus — action GHI vào sổ gọi revalidateTag(THE_SO_SP) để trang đọc lại ngay,
+ *  không phải chờ hết hạn (#1115, 05/10/2026: bấm Duyệt xong trang vẫn hiện bản cũ trong 15s bộ đệm). */
+export const THE_SO_SP = 'directus-products';
 async function get<T>(path: string, revalidate = 300): Promise<T[]> {
   if (!DIRECTUS_TOKEN) return [];
   try {
     const r = await fetch(`${DIRECTUS_URL}${path}`, {
       // Timeout + catch: trang products render server-side await hàm này. Directus khựng lúc
       // cache lạnh mà fetch không timeout = treo cả trang. Hỏng/quá giờ → trả rỗng, trang vẫn lên.
-      headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }, next: { revalidate }, signal: AbortSignal.timeout(8000),
+      headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }, next: { revalidate, tags: [THE_SO_SP] }, signal: AbortSignal.timeout(8000),
     });
     if (!r.ok) return [];
     return ((await r.json()) as { data?: T[] }).data ?? [];

@@ -58,6 +58,7 @@ const SITE_META: Record<string, { project?: string; emoji: string; review?: stri
   'junomuse.com': { project: 'bra', emoji: '👖' },  // quần stretch, Google Ads asfy_09 từ 23/09
   'vickiwear.com': { project: 'bra', emoji: '👖' },  // quần cargo, Google Ads asfy_10 từ 23/09
   'elliechic.com': { project: 'bra', emoji: '🩱' },  // bra cài trước, Google Ads asfy_09 từ 23/09
+  'mellowstep.com': { project: 'mellowstep', emoji: '🛍️' },  // shop MOS độc lập (apps/store, clone Crossian), KHÔNG GSC — chỉ GA4 556926376 (nhánh GA4-only). Thêm 05/10/2026 để theo dõi "có ai vào không"
   'maileyes.com': { project: 'maileyes', emoji: '📧' },
   'cee-trust.org': { emoji: '🔍' },
   'techwhiff.com': { emoji: '🤓' },

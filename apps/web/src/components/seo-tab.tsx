@@ -6,8 +6,9 @@ import { SteamsoloLangPanel } from './steamsolo-lang-panel';
 
 export async function SeoTab() {
   const d = await docSeoSites();
+  // minmax(0,1fr): ô grid mặc định min-width:auto → bảng rộng (cột Site width 100%) NỞ theo nội dung, đẩy mọi cột số ra ngoài
+  // khung thay vì cuộn ngang (anh bắt 05/10/2026).
   return (
-    {/* minmax(0,1fr): ô grid mặc định min-width:auto → bảng rộng (cột Site width 100%) NỞ theo nội dung, đẩy mọi cột số ra ngoài khung thay vì cuộn ngang (anh bắt 05/10/2026) */}
     <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'minmax(0, 1fr)' }}>
       <SeoView loi={d.ok ? null : d.loi} timeseries={d.ok ? d.timeseries : {}}
         sites={d.ok ? d.rows.map((r) => ({ domain: r.domain, emoji: r.emoji, bing: r.bing_ts_30d ?? [], interactions: r.ga4_interactions_by ?? null })) : []} />

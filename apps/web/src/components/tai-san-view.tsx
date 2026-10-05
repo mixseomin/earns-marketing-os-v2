@@ -58,6 +58,21 @@ const COT: DataColumn<SpNut>[] = [
       {x.canhBao ? <span style={{ color: 'var(--warn)' }}>⚠ {x.canhBao}</span> : <span style={phu}>{x.ghiChu ?? ''}</span>}</span> },
 ];
 
+/** Thẻ shop (mục lục, điện thoại): tên + tài khoản một dòng, số theo trạng thái gọn một dòng. */
+const TheShop = (d: DongShop) => (
+  <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px', background: 'var(--bg-1)', display: 'grid', gap: 4 }}>
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', minWidth: 0 }}>
+      <b style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.s.ten}</b>
+      {d.s.loi && <Pill label={d.s.loi} color="var(--bad)" size="xs" tone="soft" uppercase={false} mono={false} />}
+      <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 12 }}>{d.s.tien == null ? null : thu(d.s.tien, d.s.ky)}</span>
+    </div>
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11.5, ...phu }}>
+      <span>{d.s.sp.length} sp</span>
+      {TT_SP.filter((t) => d.dem[t.key]).map((t) => <span key={t.key} style={{ color: t.mau }}>{d.dem[t.key]} {t.chu}</span>)}
+      {d.s.tk && <span style={{ marginLeft: 'auto' }}>#{d.s.tk.id} {d.s.tk.handle}</span>}
+    </div>
+  </div>);
+
 // MỤC LỤC shop (anh hỏi 05/10/2026: nhóm dài quá, cần duyệt gọn): mỗi shop một dòng — bấm dòng thì chỉ mở shop đó (?sh=<khoa>).
 type DongShop = { s: ShopNut; dem: Record<TrangThaiSp, number> };
 const so = (n: number, mau?: string) => (n ? <span style={{ color: mau }}>{n}</span> : <span style={{ color: 'var(--fg-4)' }}>·</span>);
@@ -108,7 +123,7 @@ export function TaiSanView({ ban }: { ban: TaiSanBan }) {
         </ul>
       )}
       {!sh
-        ? <DataTable rows={mucLuc} columns={COT_SHOP} getRowKey={(d) => d.s.khoa} persistKey="tai-san-shop" minWidth={760} card
+        ? <DataTable rows={mucLuc} columns={COT_SHOP} getRowKey={(d) => d.s.khoa} persistKey="tai-san-shop" minWidth={760} card={{ render: TheShop, minWidth: 280 }}
             onRowClick={(d) => datSh(d.s.khoa)} rowTitle={(d) => `bấm để xem ${d.s.sp.length} sản phẩm của ${d.s.ten}`} />
         : <Cay label="Shop và sản phẩm">
             {shops.map(({ s, sp }) => <ShopNutCay key={s.khoa} s={s} sp={sp} mo={sh !== 'all' || dangMo.has(s.khoa)} onDoi={() => doi(s.khoa)} onMo={(k) => modal.open('sp', k)} />)}

@@ -18,7 +18,8 @@ export function BanXem({ x }: { x: SpNut }) {
   const [kq, datKq] = useState<{ ok: boolean; chu: string } | null>(null);
   // dựng lại SAU lần duyệt → phải duyệt lại. So thời điểm (ISO); duyệt cũ chỉ có ngày → coi là cuối ngày đó.
   const lucDuyet = x.duyet ? new Date(x.duyet.length > 10 ? x.duyet : `${x.duyet}T23:59:59`).getTime() : 0;
-  const cuHon = !!x.duyet && lucDuyet < new Date(v.ngay).getTime();
+  // Có dấu vân tay → so NỘI DUNG (dựng lại mà ảnh y hệt vẫn là bản đã duyệt); duyệt đời cũ → so thời điểm.
+  const cuHon = !!x.duyet && (x.duyetBam && v.bam ? x.duyetBam !== v.bam : lucDuyet < new Date(v.ngay).getTime());
   const ngan = (s: string) => s.slice(0, 16).replace('T', ' ');
   const duyet = () => batDau(async () => {
     const r = await duyetSanPham(x.idSo!);

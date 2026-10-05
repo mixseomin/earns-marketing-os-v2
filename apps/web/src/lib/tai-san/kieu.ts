@@ -16,7 +16,7 @@ export const TT_SP: { key: TrangThaiSp; chu: string; mau: string }[] = [
 export type Ky = 'tron_doi' | '30n';
 export type SpNut = { khoa: string; ten: string; /** ảnh sản phẩm (thumbnail nền tảng / cover Directus / ảnh mặt tiền) */ anh: string | null;
   /** mã trên nền tảng (permalink Gumroad, listing id Etsy, sku/ISBN KDP…) */ ma: string | null; /** định dạng / sku (bìa mềm, bìa cứng, ebook…) */ phu: string | null; url: string | null;
-  trangThai: TrangThaiSp; /** tiến độ quy trình sản xuất ('1/5'), máy ghi ở dòng đầu ghi chú: '▶ quy trình 1/5 · xong: … · kế: …' */ tienDo?: string; ke?: string; /** bản xem để anh duyệt NGAY TRONG MOS2 (listing_config.xem, scripts/xem.mjs ghi) */ xem?: XemDuyet | null; /** ngày anh duyệt (listing_config.duyet) */ duyet?: string | null; /** id dòng Directus products (để bấm Duyệt) */ idSo?: string; gia: number | null; /** mã tiền của giá (USD mặc định; Etsy FrontPorchZ niêm yết VND) — hiện đúng tiền, không tự quy đổi */ tienTe?: string; views7d: number | null; don: number | null; tien: number | null; ky: Ky; canhBao: string | null; ghiChu: string | null };
+  trangThai: TrangThaiSp; /** tiến độ quy trình sản xuất ('1/5'), máy ghi ở dòng đầu ghi chú: '▶ quy trình 1/5 · xong: … · kế: …' */ tienDo?: string; ke?: string; /** bản xem để anh duyệt NGAY TRONG MOS2 (listing_config.xem, scripts/xem.mjs ghi) */ xem?: XemDuyet | null; /** ngày anh duyệt (listing_config.duyet) */ duyet?: string | null; /** dấu vân tay bản xem lúc anh duyệt */ duyetBam?: string | null; /** id dòng Directus products (để bấm Duyệt) */ idSo?: string; gia: number | null; /** mã tiền của giá (USD mặc định; Etsy FrontPorchZ niêm yết VND) — hiện đúng tiền, không tự quy đổi */ tienTe?: string; views7d: number | null; don: number | null; tien: number | null; ky: Ky; canhBao: string | null; ghiChu: string | null };
 /** Tài khoản vault đứng sau shop — để biết đăng nhập bằng gì, mở drawer tài khoản. */
 /** nguon: kho nào giữ tài khoản — 'mos2' (platform_accounts, mở drawer EntityRef) hay 'directus' (earns.accounts trên as.on.tc,
  *  id là uuid). Tab Tài sản đọc CẢ HAI: tài khoản chỉ nằm ở Directus trước đây hiện "—" (#1113, 05/10/2026). */
@@ -62,7 +62,7 @@ export type KenhO = { kenh: string; muc: number; xong: number | null; tong: numb
 export type KenhSp = { sanPham: string; ten: string; khop: string | null; o: Record<string, KenhO> };
 
 /** Bản xem một sản phẩm đang làm — ảnh nằm trên Directus của MOS2 (assets/<id>), không link ra ngoài. */
-export type XemDuyet = { ngay: string; anh: { id: string; chu: string }[]; trang?: number;
+export type XemDuyet = { /** dấu vân tay nội dung (puzzle-books bam-xem.mjs) */ bam?: string; ngay: string; anh: { id: string; chu: string }[]; trang?: number;
   mau?: { t: string; story: string; ask: string[]; w: string[] }[]; chuDe?: string[]; moTa?: string };
 
 /** Đã duyệt BẢN HIỆN TẠI chưa: lúc duyệt không trước lúc dựng bản xem (dựng lại sau khi duyệt → phải duyệt lại). So THỜI ĐIỂM,

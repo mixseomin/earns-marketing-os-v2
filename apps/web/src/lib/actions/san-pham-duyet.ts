@@ -24,7 +24,7 @@ export async function duyetSanPham(id: string): Promise<{ ok: boolean; soDong?: 
   const ngay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
   for (const r of rows) {
     const res = await fetch(`${DIRECTUS_URL}/items/products/${r.id}`, { method: 'PATCH', headers: h,
-      body: JSON.stringify({ listing_config: { ...(r.listing_config ?? {}), duyet: ngay, duyetBoi: me.email ?? me.id } }) });
+      body: JSON.stringify({ listing_config: { ...(r.listing_config ?? {}), duyet: ngay, duyetLuc: new Date().toISOString(), duyetBoi: me.email ?? me.id } }) });
     if (!res.ok) return { ok: false, error: `Ghi duyệt thất bại ở dòng ${r.id} (${res.status}).` };
   }
   revalidateTag(THE_SO_SP);   // trang đọc lại sổ ngay, không đợi bộ đệm 15s

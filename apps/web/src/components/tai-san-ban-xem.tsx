@@ -16,7 +16,10 @@ export function BanXem({ x }: { x: SpNut }) {
   const router = useRouter();
   const [dang, batDau] = useTransition();
   const [kq, datKq] = useState<{ ok: boolean; chu: string } | null>(null);
-  const cuHon = x.duyet && x.duyet < v.ngay; // dựng lại sau lần duyệt → phải duyệt lại
+  // dựng lại SAU lần duyệt → phải duyệt lại. So thời điểm (ISO); duyệt cũ chỉ có ngày → coi là cuối ngày đó.
+  const lucDuyet = x.duyet ? new Date(x.duyet.length > 10 ? x.duyet : `${x.duyet}T23:59:59`).getTime() : 0;
+  const cuHon = !!x.duyet && lucDuyet < new Date(v.ngay).getTime();
+  const ngan = (s: string) => s.slice(0, 16).replace('T', ' ');
   const duyet = () => batDau(async () => {
     const r = await duyetSanPham(x.idSo!);
     datKq(r.ok ? { ok: true, chu: `Đã duyệt (${r.soDong} dòng sổ cùng tên). Máy sản xuất sẽ mở khoá bật bán ở lần chạy kế.` } : { ok: false, chu: r.error ?? 'Lỗi không rõ.' });
@@ -26,9 +29,9 @@ export function BanXem({ x }: { x: SpNut }) {
     <section style={{ display: 'grid', gap: 14, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <b style={{ fontSize: 14 }}>Bản xem để duyệt</b>
-        <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>dựng {v.ngay}{v.trang ? ` · ${v.trang} trang` : ''}</span>
+        <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>dựng {ngan(v.ngay)}{v.trang ? ` · ${v.trang} trang` : ''}</span>
         <span style={{ fontSize: 12, color: x.duyet && !cuHon ? 'var(--ok)' : 'var(--warn)' }}>
-          {x.duyet ? (cuHon ? `duyệt ${x.duyet} nhưng đã dựng lại → duyệt lại` : `anh đã duyệt ${x.duyet}`) : 'chưa duyệt'}</span>
+          {x.duyet ? (cuHon ? `duyệt ${ngan(x.duyet)} nhưng đã dựng lại → duyệt lại` : `anh đã duyệt ${ngan(x.duyet)}`) : 'chưa duyệt'}</span>
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <GuardedButton reason={!x.idSo ? 'sản phẩm không nằm trong sổ' : x.duyet && !cuHon ? 'đã duyệt bản này' : undefined} disabled={dang} onClick={duyet}

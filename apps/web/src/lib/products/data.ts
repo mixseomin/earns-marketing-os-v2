@@ -145,7 +145,7 @@ export async function getProductsView(windowDays = 30): Promise<ProductsView> {
       status: (p.status as string) ?? null,
       price: p.price == null ? null : num(p.price),
       url: (p.url as string) || null,
-      store: (p.store as string) || null, category: (p.category as string) || null, currency: (p.currency as string) || null, cover: (p.cover as string) || null, notes: (p.notes as string) || null, xem: (p.listing_config as { xem?: unknown } | null)?.xem && typeof (p.listing_config as { xem?: unknown }).xem === 'object' ? (p.listing_config as { xem: import('@/lib/tai-san/kieu').XemDuyet }).xem : null, duyet: (p.listing_config as { duyet?: string } | null)?.duyet || null,
+      store: (p.store as string) || null, category: (p.category as string) || null, currency: (p.currency as string) || null, cover: (p.cover as string) || null, notes: (p.notes as string) || null, xem: (p.listing_config as { xem?: unknown } | null)?.xem && typeof (p.listing_config as { xem?: unknown }).xem === 'object' ? (p.listing_config as { xem: import('@/lib/tai-san/kieu').XemDuyet }).xem : null, duyet: (p.listing_config as { duyetLuc?: string; duyet?: string } | null)?.duyetLuc || (p.listing_config as { duyet?: string } | null)?.duyet || null, // thời điểm duyệt (ISO); bản cũ chỉ có ngày
       net: a?.hasRevenue ? a.net : null,
       gross: a?.hasRevenue ? a.gross : null,
       rating: a?.rating ?? null, reviews: a?.reviews ?? null, students: a?.students ?? null,

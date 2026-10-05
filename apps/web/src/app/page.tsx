@@ -59,7 +59,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
   return (
     <AppShell mode={mode} projects={projects} isPortfolio>
-      <div style={{ display: 'grid', gap: 14 }}>
+      <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'minmax(0, 1fr)' }}>
         <HomeStats cards={[
           { key: 'thu', tab: 'doanhthu', label: 'Doanh thu 30 ngày', value: usd(thu30), sub: byDay.errors.length ? <span style={{ color: 'var(--danger)' }}>{byDay.errors.length} nguồn lỗi</span> : `${byDay.scannedNetworks.length} mạng đã quét` },
           { key: 'chi', tab: 'camp', label: `Chi QC ${days} ngày`, value: usd(phu?.tong.chi ?? 0), color: phu && phu.tong.chi > phu.tong.revenue ? 'var(--danger)' : undefined, sub: phu ? `về ${usd(phu.tong.revenue)} · ${pid}` : 'chưa có sổ phủ' },

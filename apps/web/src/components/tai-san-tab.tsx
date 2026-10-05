@@ -22,7 +22,8 @@ export async function TaiSanTab() {
     { key: 'lam', label: 'Đang làm', value: dem('dang_lam') },
   ];
   return (
-    <div style={{ display: 'grid', gap: 14 }}>
+    {/* minmax(0,1fr): ô grid mặc định min-width:auto → bảng rộng (cột Site width 100%) NỞ theo nội dung, đẩy mọi cột số ra ngoài khung thay vì cuộn ngang (anh bắt 05/10/2026) */}
+    <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'minmax(0, 1fr)' }}>
       <StatsStrip cards={cards} />
       <SeoSitesPanel d={sites} />
       <TaiSanView ban={ban} />

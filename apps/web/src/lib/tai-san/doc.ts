@@ -34,6 +34,7 @@ async function docTaiKhoan(): Promise<TkDong[]> {
     ORDER BY (status IN ('banned','blocked','closed')), id`)) as unknown as TkDong[];
 }
 
+const DIRECTUS = process.env.DIRECTUS_URL || 'https://as.on.tc';
 const chuanUrl = (u: string | null | undefined) => (u ?? '').toLowerCase().replace(/[?#].*$/, '').replace(/\/$/, '');
 const gumroadHandle = (u: string | null) => { try { const h = new URL(u ?? '').hostname; return h.endsWith('.gumroad.com') ? (h.split('.')[0] ?? null) : null; } catch { return null; } };
 
@@ -58,7 +59,7 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
       const sp = sum.products.filter((p) => p.store === s.handle).map((p): SpNut => {
         urlApi.add(chuanUrl(p.url));
         const v = views.byProduct[`${s.handle}:${p.id}`];
-        return { khoa: `gumroad:${p.id}`, ten: p.name, phu: null, url: p.url, trangThai: p.published ? 'dang_ban' : 'dang_lam', gia: p.priceCents / 100,
+        return { khoa: `gumroad:${p.id}`, ten: p.name, anh: p.thumbnailUrl, ma: p.permalink, phu: null, url: p.url, trangThai: p.published ? 'dang_ban' : 'dang_lam', gia: p.priceCents / 100,
           views7d: v ? v.views7d : null, don: p.salesCount, tien: p.salesUsdCents / 100, ky: 'tron_doi',
           canhBao: p.published && lacksDiscover(p) ? 'thiếu category/tag → không lên Gumroad Discover' : null, ghiChu: null };
       });
@@ -82,7 +83,7 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
       const khoa = `${r.platform}:${store ?? ''}`;
       const nen = NHAN_NEN[r.platform] ?? r.platform;
       const g = nhom.get(khoa) ?? { khoa, ten: store ? `${nen} · ${store}` : nen, loai: LOAI_NEN[r.platform] ?? 'san', url: null, sp: [], tien: null, ky: '30n' as Ky, loi: null, ghiChu: null };
-      g.sp.push({ khoa: `d:${r.id}`, ten: r.title, phu: r.category ?? r.sku, url: r.url, trangThai: TT_DIRECTUS[r.status ?? ''] ?? 'dang_lam', gia: r.price, tienTe: r.currency ?? undefined,
+      g.sp.push({ khoa: `d:${r.id}`, ten: r.title, anh: r.cover ? `${DIRECTUS}/assets/${r.cover}?width=600` : null, ma: r.sku, phu: r.category ?? r.sku, url: r.url, trangThai: TT_DIRECTUS[r.status ?? ''] ?? 'dang_lam', gia: r.price, tienTe: r.currency ?? undefined,
         views7d: null, don: null, tien: r.net, ky: '30n', canhBao: null, ghiChu: r.notes });
       if (r.net != null) g.tien = (g.tien ?? 0) + r.net;
       nhom.set(khoa, g);
@@ -101,7 +102,7 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
     const tu = Date.now() - 30 * 86_400_000;
     for (const c of shop.cuaHang.filter((x) => !x.demo)) {
       const don = shop.don.filter((d) => d.cuaHang === c.khoa && d.buoc !== 'cho_tt' && d.buoc !== 'huy' && new Date(isoCua(d.taoLuc)).getTime() > tu);
-      const sp = shop.sanPham.filter((p) => p.cuaHang === c.khoa).map((p): SpNut => ({ khoa: `mos:${p.id}`, ten: p.ten, phu: p.soBienThe ? `${p.soBienThe} biến thể` : null,
+      const sp = shop.sanPham.filter((p) => p.cuaHang === c.khoa).map((p): SpNut => ({ khoa: `mos:${p.id}`, ten: p.ten, anh: p.anh, ma: p.slug, phu: p.soBienThe ? `${p.soBienThe} biến thể` : null,
         url: p.slug ? `https://${c.domain}/${p.slug}` : null,   // apps/store: trang sản phẩm ở /<slug> (/product/<slug> 301 về đó)
         trangThai: p.hien ? 'dang_ban' : 'ngung', gia: p.giaTu, views7d: null, don: p.daBan, tien: null, ky: 'tron_doi', canhBao: p.choCoHang ? `${p.choCoHang} chờ có hàng` : null, ghiChu: null }));
       shops.push({ khoa: `mos:${c.khoa}`, ten: `${c.ten} · ${c.domain}`, loai: 'mos', url: `https://${c.domain}`, sp,
@@ -112,7 +113,7 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
   // 4. Etsy theo API (lib/etsy/listings.ts) — shop nào chưa có listing vẫn hiện, vì tài khoản đã có.
   const TT_ETSY: Record<string, TrangThaiSp> = { active: 'dang_ban', draft: 'dang_lam', inactive: 'ngung', expired: 'ngung', sold_out: 'ngung' };
   for (const e of etsy) {
-    const sp = e.listings.map((l): SpNut => ({ khoa: `etsy:${l.id}`, ten: l.title, phu: l.type === 'physical' ? 'vật lý' : 'pdf', url: l.url, trangThai: TT_ETSY[l.state] ?? 'dang_lam',
+    const sp = e.listings.map((l): SpNut => ({ khoa: `etsy:${l.id}`, ten: l.title, anh: l.image, ma: String(l.id), phu: l.type === 'physical' ? 'vật lý' : 'pdf', url: l.url, trangThai: TT_ETSY[l.state] ?? 'dang_lam',
       gia: l.price, tienTe: l.currency,
       views7d: null, don: null, tien: null, ky: '30n', canhBao: null, ghiChu: l.views != null ? `${l.views} lượt xem · ${l.favorites ?? 0} yêu thích (trọn đời)` : null }));
     const khoa = `etsy:${e.handle}`;
@@ -124,6 +125,19 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
       shops.splice(cu, 1);
     }
     shops.push({ khoa, ten: `Etsy · ${e.handle}`, loai: 'etsy', url: e.url, sp, tien: null, ky: '30n', loi: e.error, ghiChu: sp.length ? null : 'chưa có listing' });
+  }
+  // GỘP shop trùng khoá: nguồn API (Gumroad/Etsy) và sổ cái tay cùng một store thì là MỘT shop (05/10/2026: Gumroad · frontporchpuzzles hiện
+  // hai lần — 3 sách đã bán theo API ở một nút, 4 sách đang làm theo sổ cái ở nút kia, nhìn như sách đã đăng mà ghi "đang làm").
+  // Nút đứng trước (API) giữ thông tin shop; sản phẩm sổ cái trùng url/tên với sản phẩm API thì bỏ.
+  for (let i = 0; i < shops.length; i++) {
+    for (let j = shops.length - 1; j > i; j--) {
+      if (shops[j]!.khoa !== shops[i]!.khoa) continue;
+      const a = shops[i]!, b = shops.splice(j, 1)[0]!;
+      const co = new Set(a.sp.flatMap((x) => [x.url ? chuanUrl(x.url) : '', x.ten.toLowerCase()]).filter(Boolean));
+      a.sp.push(...b.sp.filter((x) => !(x.url && co.has(chuanUrl(x.url))) && !co.has(x.ten.toLowerCase())));
+      a.url ??= b.url; a.loi ??= b.loi;
+      if (b.tien != null) a.tien = (a.tien ?? 0) + b.tien;
+    }
   }
   for (const s of shops) {
     const [nen, store] = s.khoa.split(':');

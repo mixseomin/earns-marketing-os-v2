@@ -4,7 +4,8 @@
 // Mọi bảng lá dùng CÙNG bộ cột + bề rộng cố định → cột thẳng hàng giữa các shop. Dữ liệu: lib/tai-san/doc.ts.
 // Mở/gập shop ghi ở URL ?shop=a,b ('-' = gập hết; trống = mặc định mở shop có việc đang chờ); lọc trạng thái ?tt=.
 import { useMemo } from 'react';
-import { Cay, DataTable, EntityRef, FilterChips, LinkChip, NutCay, Panel, Pill, type DataColumn } from '@/components/ui';
+import { Cay, DataTable, Drawer, EntityRef, FilterChips, LinkChip, NutCay, Panel, Pill, type DataColumn } from '@/components/ui';
+import { useModalParam } from '@/lib/use-modal-param';
 import { extLinkProps, wrapExternalUrl } from '@/lib/external-url';
 import { useShallowParam } from '@/lib/url-shallow';
 import { TT_SP, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from '@/lib/tai-san/kieu';
@@ -18,9 +19,15 @@ const thu = (n: number | null, ky: 'tron_doi' | '30n') => (n == null ? chuaDo
   : <span style={{ color: n > 0 ? 'var(--ok)' : 'var(--fg-3)' }} title={ky === 'tron_doi' ? 'thu trọn đời (Gumroad API)' : 'thu 30 ngày gần nhất'}>{tienTe(n)}</span>);
 const tt = (k: TrangThaiSp) => TT_SP.find((x) => x.key === k)!;
 
+const Anh = ({ x, co }: { x: SpNut; co: number }) => (x.anh
+  ? <img src={x.anh} alt="" loading="lazy" style={{ width: co, height: co, objectFit: 'cover', borderRadius: 4, display: 'block', background: 'var(--bg-2)' }} />
+  : <div style={{ width: co, height: co, borderRadius: 4, background: 'var(--bg-2)' }} />);
+
 const COT: DataColumn<SpNut>[] = [
+  { key: 'anh', header: '', width: 40, align: 'center', cell: (x) => <Anh x={x} co={28} /> },
   { key: 'ten', header: 'Sản phẩm', align: 'left', sortValue: (x) => x.ten, cellTitle: (x) => (x.url ? `${x.ten}\n${x.url}` : x.ten),
-    cell: (x) => (x.url ? <a {...extLinkProps(x.url)} style={{ color: 'var(--fg-1)', textDecoration: 'none' }}>{x.ten} <span style={phu}>↗</span></a> : x.ten) },
+    cell: (x) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.url
+      ? <a {...extLinkProps(x.url)} onClick={(e) => e.stopPropagation()} style={{ color: 'var(--fg-1)', textDecoration: 'none' }}>{x.ten} <span style={phu}>↗</span></a> : x.ten}</span> },
   { key: 'dinh_dang', header: 'Định dạng', align: 'left', width: 100, sortValue: (x) => x.phu, cell: (x) => <span style={phu}>{x.phu ?? '—'}</span> },
   { key: 'tt', header: 'Trạng thái', align: 'left', width: 96, sortValue: (x) => TT_SP.findIndex((t) => t.key === x.trangThai),
     cell: (x) => { const t = tt(x.trangThai); return <Pill label={t.chu} color={t.mau} size="xs" tone="soft" uppercase={false} mono={false} />; } },
@@ -29,8 +36,10 @@ const COT: DataColumn<SpNut>[] = [
   { key: 'views', header: 'Views 7d', width: 72, sortValue: (x) => x.views7d, cell: (x) => (x.views7d == null ? chuaDo : <span style={x.views7d ? undefined : phu}>{x.views7d}</span>) },
   { key: 'don', header: 'Đơn', width: 56, sortValue: (x) => x.don, cell: (x) => (x.don == null ? chuaDo : <span style={x.don ? { color: 'var(--ok)' } : phu}>{x.don}</span>) },
   { key: 'thu', header: 'Thu', title: 'Tiền thu về — Gumroad cộng trọn đời, nền tảng khác 30 ngày (rê chuột vào số)', width: 84, sortValue: (x) => x.tien, cell: (x) => thu(x.tien, x.ky) },
-  { key: 'ghi_chu', header: 'Ghi chú', align: 'left', width: 260, cellTitle: (x) => [x.canhBao, x.ghiChu].filter(Boolean).join(' · '),
-    cell: (x) => <span style={{ fontSize: 11.5 }}>{x.canhBao && <span style={{ color: 'var(--warn)' }}>⚠ {x.canhBao}</span>}{x.canhBao && x.ghiChu ? ' · ' : ''}{x.ghiChu && <span style={phu}>{x.ghiChu}</span>}</span> },
+  // Ghi chú chỉ MỘT dòng ngắn (anh chốt 05/10/2026: cột dài quá); đủ chữ ở tooltip + drawer chi tiết (bấm dòng).
+  { key: 'ghi_chu', header: 'Ghi chú', align: 'left', width: 180, cellTitle: (x) => [x.canhBao, x.ghiChu].filter(Boolean).join(' · '),
+    cell: (x) => <span style={{ fontSize: 11.5, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      {x.canhBao ? <span style={{ color: 'var(--warn)' }}>⚠ {x.canhBao}</span> : <span style={phu}>{x.ghiChu ?? ''}</span>}</span> },
 ];
 
 function demTt(sp: SpNut[]): Record<TrangThaiSp, number> {
@@ -40,6 +49,8 @@ function demTt(sp: SpNut[]): Record<TrangThaiSp, number> {
 export function TaiSanView({ ban }: { ban: TaiSanBan }) {
   const [moUrl, datMo] = useShallowParam('shop', '');
   const [loc, datLoc] = useShallowParam('tt', 'all');
+  const modal = useModalParam('sp');   // ?sp=sp&spId=<khoa> — F5/share mở lại đúng sản phẩm
+  const chon = modal.is('sp') ? ban.shops.flatMap((s) => s.sp.map((x) => ({ s, x }))).find((v) => v.x.khoa === modal.id) ?? null : null;
   // Mặc định mở shop có việc đang chờ (chờ duyệt / đang làm) hoặc ít sản phẩm; Udemy 20 khoá thì gập.
   const macMo = useMemo(() => new Set(ban.shops.filter((s) => s.sp.some((x) => x.trangThai === 'cho_duyet' || x.trangThai === 'dang_lam') || s.sp.length <= 6).map((s) => s.khoa)), [ban.shops]);
   const dangMo = moUrl === '-' ? new Set<string>() : moUrl ? new Set(moUrl.split(',')) : macMo;
@@ -59,13 +70,14 @@ export function TaiSanView({ ban }: { ban: TaiSanBan }) {
         </ul>
       )}
       <Cay label="Shop và sản phẩm">
-        {shops.map(({ s, sp }) => <ShopNutCay key={s.khoa} s={s} sp={sp} mo={dangMo.has(s.khoa)} onDoi={() => doi(s.khoa)} />)}
+        {shops.map(({ s, sp }) => <ShopNutCay key={s.khoa} s={s} sp={sp} mo={dangMo.has(s.khoa)} onDoi={() => doi(s.khoa)} onMo={(k) => modal.open('sp', k)} />)}
       </Cay>
+      {chon && <ChiTietSp s={chon.s} x={chon.x} onClose={modal.close} />}
     </Panel>
   );
 }
 
-function ShopNutCay({ s, sp, mo, onDoi }: { s: ShopNut; sp: SpNut[]; mo: boolean; onDoi: () => void }) {
+function ShopNutCay({ s, sp, mo, onDoi, onMo }: { s: ShopNut; sp: SpNut[]; mo: boolean; onDoi: () => void; onMo: (khoa: string) => void }) {
   const d = demTt(s.sp);
   const dong = TT_SP.filter((t) => d[t.key]).map((t) => `${d[t.key]} ${t.chu}`).join(' · ');
   return (
@@ -82,9 +94,44 @@ function ShopNutCay({ s, sp, mo, onDoi }: { s: ShopNut; sp: SpNut[]; mo: boolean
       phai={s.tien == null ? undefined : <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{thu(s.tien, s.ky)}</span>}>
       {sp.length
         ? <div style={{ padding: '2px 10px 8px 12px' }}>
-            <DataTable rows={sp} columns={COT} getRowKey={(x) => x.khoa} persistKey="tai-san-sp" minWidth={900} pageSize={50} />
+            <DataTable rows={sp} columns={COT} getRowKey={(x) => x.khoa} persistKey="tai-san-sp" minWidth={900} pageSize={50} fixedLayout
+              onRowClick={(x) => onMo(x.khoa)} rowTitle={() => 'bấm để xem chi tiết'} />
           </div>
         : <div style={{ padding: '6px 12px', fontSize: 12, ...phu }}>chưa có sản phẩm nào trong sổ — ghi bằng <code>sanpham add</code></div>}
     </NutCay>
+  );
+}
+
+/** Drawer chi tiết một sản phẩm: ảnh lớn, link (href.li), shop + tài khoản, mọi số và ghi chú đầy đủ. */
+function ChiTietSp({ s, x, onClose }: { s: ShopNut; x: SpNut; onClose: () => void }) {
+  const t = tt(x.trangThai);
+  const dong: [string, React.ReactNode][] = [
+    ['Shop', <>{s.ten}{s.url && <> · <a {...extLinkProps(s.url)} style={{ color: 'var(--accent)' }}>mở shop ↗</a></>}</>],
+    ['Tài khoản', s.tk ? <><EntityRef kind="account" id={s.tk.id} label={`#${s.tk.id} ${s.tk.handle}`} />{s.tk.email && <span style={phu}> · {s.tk.email}</span>}</> : <span style={{ color: 'var(--warn)' }}>chưa có trong vault</span>],
+    ['Trạng thái', <Pill label={t.chu} color={t.mau} size="xs" tone="soft" uppercase={false} mono={false} />],
+    ['Định dạng', x.phu ?? '—'],
+    ['Mã trên nền tảng', x.ma ? <code>{x.ma}</code> : '—'],
+    ['Giá', x.gia == null ? '—' : x.gia > 0 ? tienTe(x.gia, x.tienTe) : 'free'],
+    ['Views 7 ngày', x.views7d ?? '—'],
+    ['Đơn', x.don ?? '—'],
+    ['Thu', x.tien == null ? '— (chưa có nguồn đo)' : <>{tienTe(x.tien)} <span style={phu}>{x.ky === 'tron_doi' ? 'trọn đời' : '30 ngày'}</span></>],
+  ];
+  return (
+    <Drawer onClose={onClose} width={560}>
+      <div style={{ display: 'grid', gap: 14 }}>
+        {x.anh && <Anh x={x} co={520} />}
+        <div>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, lineHeight: 1.3 }}>{x.ten}</h2>
+          {x.url && <a {...extLinkProps(x.url)} style={{ fontSize: 12, color: 'var(--accent)', wordBreak: 'break-all' }}>{x.url} ↗</a>}
+        </div>
+        {x.canhBao && <div style={{ fontSize: 12.5, color: 'var(--warn)', border: '1px solid var(--warn)', borderRadius: 6, padding: '6px 10px' }}>⚠ {x.canhBao}</div>}
+        <table style={{ borderCollapse: 'collapse', fontSize: 12.5 }}><tbody>
+          {dong.map(([k, v]) => <tr key={k} style={{ borderTop: '1px solid var(--line)' }}>
+            <td style={{ padding: '6px 10px 6px 0', ...phu, whiteSpace: 'nowrap', verticalAlign: 'top', width: 140 }}>{k}</td><td style={{ padding: '6px 0' }}>{v}</td></tr>)}
+        </tbody></table>
+        {x.ghiChu && <div><div style={{ fontSize: 11, ...phu, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Ghi chú</div>
+          <div style={{ fontSize: 12.5, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{x.ghiChu}</div></div>}
+      </div>
+    </Drawer>
   );
 }

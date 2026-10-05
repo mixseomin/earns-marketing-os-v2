@@ -6,7 +6,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { decryptValue } from '@/lib/crypto';
 
-export type EtsyListing = { id: number; title: string; url: string; state: string; /** download | physical | both */ type: string; price: number; currency: string; views: number | null; favorites: number | null };
+export type EtsyListing = { id: number; image: string | null; title: string; url: string; state: string; /** download | physical | both */ type: string; price: number; currency: string; views: number | null; favorites: number | null };
 export type EtsyShop = { accountId: number; handle: string; shopId: number | null; url: string | null; listings: EtsyListing[]; error: string | null };
 
 export async function docEtsy(): Promise<EtsyShop[]> {
@@ -28,9 +28,9 @@ export async function docEtsy(): Promise<EtsyShop[]> {
       if (!shop) return { ...base, error: `Etsy không thấy shop ${r.handle}` };
       // Chỉ listing ĐANG BÁN: /listings/active là endpoint công khai (chỉ cần x-api-key). Nháp / hết hạn nằm ở /shops/{id}/listings?state=…
       // — endpoint đó đòi OAuth (listings_r), bản đầu gọi nó bằng api-key trơn nên trả rỗng mà không lỗi, cây ghi "chưa có listing" (05/10/2026).
-      const lists = [await get(`/shops/${shop.shop_id}/listings/active?limit=100`)];
-      const listings = lists.flatMap((l) => (l.results ?? []) as { listing_id: number; title: string; url: string; state: string; type?: string; price: { amount: number; divisor: number; currency_code: string }; views?: number; num_favorers?: number }[])
-        .map((l) => ({ id: l.listing_id, title: l.title, url: l.url, state: l.state, type: l.type ?? 'download', price: l.price.amount / l.price.divisor, currency: l.price.currency_code,
+      const lists = [await get(`/shops/${shop.shop_id}/listings/active?limit=100&includes=Images`)];
+      const listings = lists.flatMap((l) => (l.results ?? []) as { listing_id: number; title: string; url: string; state: string; type?: string; images?: { url_570xN?: string }[]; price: { amount: number; divisor: number; currency_code: string }; views?: number; num_favorers?: number }[])
+        .map((l) => ({ id: l.listing_id, image: l.images?.[0]?.url_570xN ?? null, title: l.title, url: l.url, state: l.state, type: l.type ?? 'download', price: l.price.amount / l.price.divisor, currency: l.price.currency_code,
           views: l.views ?? null, favorites: l.num_favorers ?? null }));
       return { ...base, shopId: shop.shop_id, url: shop.url, listings };
     } catch (e) { return { ...base, error: (e as Error).message }; }

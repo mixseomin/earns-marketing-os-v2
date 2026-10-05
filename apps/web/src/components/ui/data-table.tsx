@@ -103,6 +103,11 @@ interface DataTableProps<T> {
    */
   stickyFirst?: boolean;
   /**
+   * table-layout: fixed — bề rộng cột lấy THEO `width` khai báo, không theo nội dung. Dùng khi NHIỀU bảng cùng bộ cột xếp chồng
+   * (cây Tài sản: mỗi shop một bảng) mà cột phải thẳng hàng giữa các bảng. Cột không có `width` chia phần còn lại; ô tràn tự cắt.
+   */
+  fixedLayout?: boolean;
+  /**
    * `rows` chỉ là MỘT TRANG do server cắt (vd /offers: 50 dòng trên 1.200, lọc chạy ở server). Khi
    * đó lọc/sắp xếp trong bảng chỉ ăn trên trang này = nói dối, nên tắt hẳn — lọc bằng thanh trên.
    * Dùng khi tập dữ liệu quá lớn để đẩy hết xuống trình duyệt; còn lại thì đưa ĐỦ dòng + `pageSize`.
@@ -141,7 +146,7 @@ const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 export function DataTable<T>({
   rows, columns, getRowKey, groups, persistKey, onRowClick, minWidth = 640, rowTitle, rowStyle, renderExpanded,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced,
-  stickyFirst = true,
+  stickyFirst = true, fixedLayout = false,
   serverSort, serverFilter,
 }: DataTableProps<T>) {
   const pref = useTablePref(persistKey);   // server đọc cookie sẵn → khởi tạo ĐÚNG ngay lần render đầu
@@ -451,7 +456,7 @@ export function DataTable<T>({
         </div>
       ) : (
       <div className="dt-scroll" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -8px' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto', minWidth }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: fixedLayout ? 'fixed' : 'auto', minWidth }}>
           {!hideHeader && (
           <thead>
             <tr>

@@ -14,3 +14,12 @@ export type SpNut = { khoa: string; ten: string; /** định dạng / sku (bìa 
 export type ShopNut = { khoa: string; ten: string; loai: 'gumroad' | 'kdp' | 'etsy' | 'mos' | 'san'; url: string | null; sp: SpNut[];
   tien: number | null; ky: Ky; loi: string | null; ghiChu: string | null };
 export type TaiSanBan = { shops: ShopNut[]; loi: string[]; viewsToi: string | null };
+
+// Trạng thái vault coi là CHẾT (tài khoản không bán được nữa). Tự kiểm: node_modules/.bin/tsx apps/web/src/lib/tai-san/kieu.test.mts
+const CHET = new Set(['banned', 'blocked', 'closed', 'suspended']);
+/** Shop có tài khoản trong vault mà MỌI tài khoản khớp đều chết → trạng thái chết đó; còn một cái sống hoặc không có hồ sơ → null. */
+export function shopChet(nen: string, store: string | null, tk: { nen: string; handle: string; status: string }[]): string | null {
+  const khop = tk.filter((t) => (t.nen === nen || t.nen.startsWith(`${nen}-`)) && (!store || t.handle === store.toLowerCase()));
+  return khop.length && khop.every((t) => CHET.has(t.status)) ? khop[0]!.status : null;
+}
+

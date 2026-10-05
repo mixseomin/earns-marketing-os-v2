@@ -11,8 +11,10 @@ import { loadProductViews, type ViewsPayload } from '@/lib/gumroad/daily';
 import { getProductsView } from '@/lib/products/data';
 import { docShop } from '@/lib/shop/doc';
 import { isoCua } from '@/lib/shop/buoc';
+import { getDb } from '@mos2/db';
+import { sql } from 'drizzle-orm';
 
-import type { Ky, ShopNut, SpNut, TaiSanBan, TrangThaiSp } from './kieu';
+import { shopChet, type Ky, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from './kieu';
 export { TT_SP, type Ky, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from './kieu';
 
 const NHAN_NEN: Record<string, string> = { gumroad: 'Gumroad', kdp: 'KDP', etsy: 'Etsy', udemy: 'Udemy', 'mql5-market': 'MQL5 Market', rapidapi: 'RapidAPI',
@@ -26,17 +28,25 @@ const SHOP_TRONG: ShopNut[] = [
   { khoa: 'etsy:FrontPorchZ', ten: 'Etsy · FrontPorchZ', loai: 'etsy', url: null, sp: [], tien: null, ky: '30n', loi: null, ghiChu: 'tài khoản vault #514 · chưa có listing' },
 ];
 
+// Tài sản sống chết theo TÀI KHOẢN bán: khoá tài khoản là mọi sản phẩm của nó ngừng (Udemy #158, anh báo 05/10/2026).
+// Đọc trạng thái từ vault (platform_accounts) lúc dựng cây, KHÔNG sửa tay từng sản phẩm — kháng nghị được thì tự trở lại.
+async function docTaiKhoan(): Promise<{ nen: string; handle: string; status: string }[]> {
+  const d = getDb(); if (!d) return [];
+  return (await d.execute(sql`SELECT platform_key AS nen, lower(coalesce(handle, '')) AS handle, status FROM platform_accounts
+    WHERE platform_key IN ('udemy','kdp','etsy','gumroad','mql5','mql5-market','rapidapi','stripe','chaturbate','stripcash')`)) as unknown as { nen: string; handle: string; status: string }[];
+}
 const chuanUrl = (u: string | null | undefined) => (u ?? '').toLowerCase().replace(/[?#].*$/, '').replace(/\/$/, '');
 const gumroadHandle = (u: string | null) => { try { const h = new URL(u ?? '').hostname; return h.endsWith('.gumroad.com') ? (h.split('.')[0] ?? null) : null; } catch { return null; } };
 
 export async function docTaiSanBan(): Promise<TaiSanBan> {
   const loi: string[] = [];
   const boc = async <T>(ten: string, f: () => Promise<T>, mac: T): Promise<T> => { try { return await f(); } catch (e) { loi.push(`${ten}: ${(e as Error).message}`); return mac; } };
-  const [sum, views, dir, shop] = await Promise.all([
+  const [sum, views, dir, shop, tk] = await Promise.all([
     boc('gumroad', getGumroadSummary, null),
     boc('gumroad views', loadProductViews, { byProduct: {}, lastSync: null } as ViewsPayload),
     boc('directus', () => getProductsView(30), null),
     boc('shop', docShop, null),
+    boc('vault', docTaiKhoan, [] as { nen: string; handle: string; status: string }[]),
   ]);
   const shops: ShopNut[] = [];
 
@@ -99,6 +109,13 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
   }
 
   for (const s of SHOP_TRONG) if (!shops.some((x) => x.khoa === s.khoa)) shops.push(s);
+  for (const s of shops) {
+    const [nen, store] = s.khoa.split(':');
+    const chet = s.loai === 'mos' ? null : shopChet(nen ?? '', store || null, tk);
+    if (!chet) continue;
+    s.loi = `tài khoản ${chet === 'banned' ? 'bị khoá' : chet}`;
+    for (const x of s.sp) if (x.trangThai !== 'ngung') { x.trangThai = 'ngung'; x.ghiChu = [`tài khoản ${chet}`, x.ghiChu].filter(Boolean).join(' · '); }
+  }
   // Thứ tự: shop có việc đang chờ (chờ duyệt / đang làm) lên trước, rồi theo tiền.
   const can = (s: ShopNut) => s.sp.filter((x) => x.trangThai === 'cho_duyet' || x.trangThai === 'dang_lam').length;
   shops.sort((a, b) => can(b) - can(a) || (b.tien ?? -1) - (a.tien ?? -1) || a.ten.localeCompare(b.ten));

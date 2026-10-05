@@ -82,7 +82,7 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
       const khoa = `${r.platform}:${store ?? ''}`;
       const nen = NHAN_NEN[r.platform] ?? r.platform;
       const g = nhom.get(khoa) ?? { khoa, ten: store ? `${nen} · ${store}` : nen, loai: LOAI_NEN[r.platform] ?? 'san', url: null, sp: [], tien: null, ky: '30n' as Ky, loi: null, ghiChu: null };
-      g.sp.push({ khoa: `d:${r.id}`, ten: r.title, phu: r.category ?? r.sku, url: r.url, trangThai: TT_DIRECTUS[r.status ?? ''] ?? 'dang_lam', gia: r.price,
+      g.sp.push({ khoa: `d:${r.id}`, ten: r.title, phu: r.category ?? r.sku, url: r.url, trangThai: TT_DIRECTUS[r.status ?? ''] ?? 'dang_lam', gia: r.price, tienTe: r.currency ?? undefined,
         views7d: null, don: null, tien: r.net, ky: '30n', canhBao: null, ghiChu: r.notes });
       if (r.net != null) g.tien = (g.tien ?? 0) + r.net;
       nhom.set(khoa, g);
@@ -112,8 +112,8 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
   // 4. Etsy theo API (lib/etsy/listings.ts) — shop nào chưa có listing vẫn hiện, vì tài khoản đã có.
   const TT_ETSY: Record<string, TrangThaiSp> = { active: 'dang_ban', draft: 'dang_lam', inactive: 'ngung', expired: 'ngung', sold_out: 'ngung' };
   for (const e of etsy) {
-    const sp = e.listings.map((l): SpNut => ({ khoa: `etsy:${l.id}`, ten: l.title, phu: null, url: l.url, trangThai: TT_ETSY[l.state] ?? 'dang_lam',
-      gia: l.currency === 'USD' ? l.price : null, giaChu: l.currency === 'USD' ? undefined : `${l.price.toLocaleString('en-US')} ${l.currency}`,
+    const sp = e.listings.map((l): SpNut => ({ khoa: `etsy:${l.id}`, ten: l.title, phu: l.type === 'physical' ? 'vật lý' : 'pdf', url: l.url, trangThai: TT_ETSY[l.state] ?? 'dang_lam',
+      gia: l.price, tienTe: l.currency,
       views7d: null, don: null, tien: null, ky: '30n', canhBao: null, ghiChu: l.views != null ? `${l.views} lượt xem · ${l.favorites ?? 0} yêu thích (trọn đời)` : null }));
     const khoa = `etsy:${e.handle}`;
     // Sổ cái tay giữ lại phần API không thấy (sản phẩm planned/draft chưa lên sàn); dòng trùng link/tên với listing API thì nhường API.

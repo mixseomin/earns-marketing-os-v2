@@ -10,7 +10,7 @@ export const TT_SP: { key: TrangThaiSp; chu: string; mau: string }[] = [
 /** Cửa sổ của số đơn/tiền: Gumroad API cộng dồn trọn đời; Directus product_stats và shop_don tính 30 ngày. */
 export type Ky = 'tron_doi' | '30n';
 export type SpNut = { khoa: string; ten: string; /** định dạng / sku (bìa mềm, bìa cứng, ebook…) */ phu: string | null; url: string | null;
-  trangThai: TrangThaiSp; gia: number | null; /** giá đã định dạng khi không phải USD (Etsy theo tiền của shop) */ giaChu?: string; views7d: number | null; don: number | null; tien: number | null; ky: Ky; canhBao: string | null; ghiChu: string | null };
+  trangThai: TrangThaiSp; gia: number | null; /** mã tiền của giá (USD mặc định; Etsy FrontPorchZ niêm yết VND) — hiện đúng tiền, không tự quy đổi */ tienTe?: string; views7d: number | null; don: number | null; tien: number | null; ky: Ky; canhBao: string | null; ghiChu: string | null };
 /** Tài khoản vault đứng sau shop — để biết đăng nhập bằng gì, mở drawer tài khoản. */
 export type TaiKhoan = { id: number; handle: string; email: string | null; status: string };
 export type ShopNut = { khoa: string; ten: string; loai: 'gumroad' | 'kdp' | 'etsy' | 'mos' | 'san'; url: string | null; sp: SpNut[]; tk?: TaiKhoan | null;

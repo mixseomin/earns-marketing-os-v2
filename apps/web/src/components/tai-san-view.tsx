@@ -20,8 +20,24 @@ const thu = (n: number | null, ky: 'tron_doi' | '30n') => (n == null ? chuaDo
 const tt = (k: TrangThaiSp) => TT_SP.find((x) => x.key === k)!;
 
 const Anh = ({ x, co }: { x: SpNut; co: number }) => (x.anh
-  ? <img src={x.anh} alt="" loading="lazy" style={{ width: co, height: co, objectFit: 'cover', borderRadius: 4, display: 'block', background: 'var(--bg-2)' }} />
-  : <div style={{ width: co, height: co, borderRadius: 4, background: 'var(--bg-2)' }} />);
+  ? <img src={x.anh} alt="" loading="lazy" style={{ width: co, maxWidth: '100%', height: 'auto', aspectRatio: '1', objectFit: 'cover', borderRadius: 4, display: 'block', background: 'var(--bg-2)' }} />
+  : <div style={{ width: co, maxWidth: '100%', aspectRatio: '1', borderRadius: 4, background: 'var(--bg-2)' }} />);
+
+/** Thẻ sản phẩm (chế độ thẻ của DataTable — mặc định trên điện thoại): ảnh + tên + trạng thái/định dạng + giá/thu. */
+const TheSp = (x: SpNut) => { const t = tt(x.trangThai); return (
+  <div style={{ display: 'flex', gap: 10, alignItems: 'center', border: '1px solid var(--line)', borderRadius: 8, padding: 8, background: 'var(--bg-1)' }}>
+    <div style={{ flex: '0 0 48px' }}><Anh x={x} co={48} /></div>
+    <div style={{ minWidth: 0, flex: 1, display: 'grid', gap: 4 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.ten}</div>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', fontSize: 11.5 }}>
+        <Pill label={t.chu} color={t.mau} size="xs" tone="soft" uppercase={false} mono={false} />
+        {x.phu && <span style={phu}>{x.phu}</span>}
+        <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>{x.gia == null ? '' : x.gia > 0 ? tienTe(x.gia, x.tienTe) : 'free'}</span>
+        {x.tien != null && x.tien > 0 && thu(x.tien, x.ky)}
+      </div>
+      {x.canhBao && <div style={{ fontSize: 11, color: 'var(--warn)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>⚠ {x.canhBao}</div>}
+    </div>
+  </div>); };
 
 const COT: DataColumn<SpNut>[] = [
   { key: 'anh', header: '', width: 40, align: 'center', cell: (x) => <Anh x={x} co={28} /> },
@@ -92,7 +108,7 @@ export function TaiSanView({ ban }: { ban: TaiSanBan }) {
         </ul>
       )}
       {!sh
-        ? <DataTable rows={mucLuc} columns={COT_SHOP} getRowKey={(d) => d.s.khoa} persistKey="tai-san-shop" minWidth={760}
+        ? <DataTable rows={mucLuc} columns={COT_SHOP} getRowKey={(d) => d.s.khoa} persistKey="tai-san-shop" minWidth={760} card
             onRowClick={(d) => datSh(d.s.khoa)} rowTitle={(d) => `bấm để xem ${d.s.sp.length} sản phẩm của ${d.s.ten}`} />
         : <Cay label="Shop và sản phẩm">
             {shops.map(({ s, sp }) => <ShopNutCay key={s.khoa} s={s} sp={sp} mo={sh !== 'all' || dangMo.has(s.khoa)} onDoi={() => doi(s.khoa)} onMo={(k) => modal.open('sp', k)} />)}
@@ -119,7 +135,7 @@ function ShopNutCay({ s, sp, mo, onDoi, onMo }: { s: ShopNut; sp: SpNut[]; mo: b
       phai={s.tien == null ? undefined : <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{thu(s.tien, s.ky)}</span>}>
       {sp.length
         ? <div style={{ padding: '2px 10px 8px 12px' }}>
-            <DataTable rows={sp} columns={COT} getRowKey={(x) => x.khoa} persistKey="tai-san-sp" minWidth={900} pageSize={50} fixedLayout
+            <DataTable rows={sp} columns={COT} getRowKey={(x) => x.khoa} persistKey="tai-san-sp" minWidth={900} pageSize={50} fixedLayout card={{ render: TheSp, minWidth: 280 }}
               onRowClick={(x) => onMo(x.khoa)} rowTitle={() => 'bấm để xem chi tiết'} />
           </div>
         : <div style={{ padding: '6px 12px', fontSize: 12, ...phu }}>chưa có sản phẩm nào trong sổ — ghi bằng <code>sanpham add</code></div>}

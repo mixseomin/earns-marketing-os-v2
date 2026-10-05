@@ -217,8 +217,11 @@ export function DataTable<T>({
   const viewKey = persistKey ? `${persistKey}:view` : undefined;
   const [internalView, setInternalView] = useState<DataView>(() => pref.v ?? defaultView ?? 'table');   // thêm `card` KHÔNG tự lật sang thẻ — bảng vẫn là mặc định, người dùng bấm mới sang thẻ
   useEffect(() => {
-    if (!viewKey || view !== undefined || pref.v) return;   // pref.v = cookie đã seed từ server → khỏi đọc lại
-    try { const v = localStorage.getItem(viewKey); if (v === 'card' || v === 'table') { setInternalView(v); writeTablePref(persistKey, { v }); } } catch { /* ignore */ }
+    if (view !== undefined || pref.v) return;   // pref.v = cookie đã seed từ server → khỏi đọc lại
+    try { const v = viewKey && localStorage.getItem(viewKey); if (v === 'card' || v === 'table') { setInternalView(v); writeTablePref(persistKey, { v }); return; } } catch { /* ignore */ }
+    // Điện thoại chưa chọn chế độ → THẺ: bảng 8-10 cột trên 375px là cuộn ngang mù (anh bắt 05/10/2026, tab Tài sản).
+    // Chỉ khi bảng có `card`; bấm ≡ Bảng thì lựa chọn được nhớ như thường.
+    if (cardOn && window.matchMedia('(max-width: 768px)').matches) setInternalView('card');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewKey, view]);
   const effView: DataView = cardOn ? (view ?? internalView) : 'table';   // không có `card` → luôn bảng (hành vi cũ)

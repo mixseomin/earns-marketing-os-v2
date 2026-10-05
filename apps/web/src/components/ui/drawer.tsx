@@ -228,6 +228,9 @@ export function Drawer({
           <div onMouseDown={startResize} title="Kéo để đổi độ rộng"
             style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 8, cursor: 'ew-resize', zIndex: 5 }} />
         )}
+        {/* Nút đóng của CHÍNH drawer, chỉ hiện trên điện thoại (globals.css .drawer-x): drawer phủ gần hết màn, dải nền
+            bấm-ra-ngoài còn vài px, không có Esc — mở ra là kẹt (anh bắt 05/10/2026). Máy tính đã có nền + Esc + nút riêng. */}
+        <button type="button" className="drawer-x" aria-label="Đóng" onClick={requestClose}>✕</button>
         {children}
         {askClose && (
           // Inline discard-confirm (no native dialog). Only reachable when dirty.

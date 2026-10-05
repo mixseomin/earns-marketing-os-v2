@@ -32,14 +32,20 @@ async function thuNho(bl: Blob): Promise<{ du: string; goc: KichCo; sau: KichCo 
   const duGoc = () => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(bl); });
   if (bl.type === 'image/gif' || (tiLe === 1 && bl.size <= 400_000)) { bmp.close(); return { du: await duGoc(), goc, sau: goc }; }
   const c = document.createElement('canvas');
-  c.width = Math.round(bmp.width * tiLe); c.height = Math.round(bmp.height * tiLe);
-  c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height); bmp.close();
   let du = '';
-  for (const q of [0.85, 0.7, 0.5, 0.35]) {
-    du = c.toDataURL('image/webp', q);
-    if (!du.startsWith('data:image/webp')) du = c.toDataURL('image/jpeg', q);
-    if (du.length <= TRAN_ACTION) break;
+  // Hạ chất lượng trước; ảnh dày chi tiết mà q 0.35 vẫn quá trần (đo: 2000px nhiều chữ màu ra 1,6MB WebP) thì co tiếp
+  // kích thước ×0.75 — tới khi lọt trần, không bao giờ đẩy lên server một ảnh chắc chắn bị chặn.
+  for (let co = tiLe; ; co *= 0.75) {
+    c.width = Math.max(1, Math.round(bmp.width * co)); c.height = Math.max(1, Math.round(bmp.height * co));
+    c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
+    for (const q of [0.85, 0.7, 0.5, 0.35]) {
+      du = c.toDataURL('image/webp', q);
+      if (!du.startsWith('data:image/webp')) du = c.toDataURL('image/jpeg', q);
+      if (du.length <= TRAN_ACTION) break;
+    }
+    if (du.length <= TRAN_ACTION || c.width < 400) break;
   }
+  bmp.close();
   return { du, goc, sau: { w: c.width, h: c.height, kb: kb(Math.round(du.length * 0.75)) } };
 }
 

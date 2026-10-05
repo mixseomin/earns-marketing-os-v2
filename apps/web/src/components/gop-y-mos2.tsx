@@ -199,7 +199,9 @@ export function GopYMos2() {
     <>
       <button type="button" aria-label="Góp ý / báo lỗi MOS2" title="Góp ý / báo lỗi về màn đang xem"
         onClick={() => setMo((v) => !v)}
-        style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 60, width: 36, height: 36, borderRadius: 999,
+        // right 60, KHÔNG 16: góc phải-dưới là chỗ nút ⚙ Tweaks (.twk-toggle-fab, z 2147483645) — đặt trùng thì ⚙ che kín 💬,
+        // anh không thấy hòm góp ý đâu cả (05/10/2026). Đứng ngay bên trái ⚙.
+        style={{ position: 'fixed', right: 60, bottom: 16, zIndex: 60, width: 36, height: 36, borderRadius: 999,
           border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer',
           boxShadow: '0 4px 14px rgba(0,0,0,.35)', fontSize: 15, lineHeight: '34px' }}>💬</button>
       {mo && (

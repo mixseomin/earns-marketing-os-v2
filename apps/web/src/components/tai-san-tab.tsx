@@ -5,10 +5,14 @@ import { StatsStrip, type StatCard } from '@/components/ui';
 import { SeoSitesPanel, docSeoSites } from './seo-sites-panel';
 import { TaiSanView } from './tai-san-view';
 import { docTaiSanBan } from '@/lib/tai-san/doc';
+import { docKenh } from '@/lib/tai-san/kenh';
+import { TaiSanKenh } from './tai-san-kenh';
 import type { TrangThaiSp } from '@/lib/tai-san/kieu';
 
 export async function TaiSanTab() {
-  const [sites, ban] = await Promise.all([docSeoSites(), docTaiSanBan()]);
+  const [sites, ban, kenhDoc] = await Promise.all([docSeoSites(), docTaiSanBan(), docKenh().catch((e: Error) => e)]);
+  if (kenhDoc instanceof Error) ban.loi.push(`kênh kéo khách (kenh_sp): ${kenhDoc.message}`);
+  const kenh = kenhDoc instanceof Error ? [] : kenhDoc;
   const web = sites.ok ? sites.rows : [];
   const nha = web.filter((r) => r.nhom !== 'shopdy');
   const sp = ban.shops.flatMap((s) => s.sp);
@@ -29,6 +33,7 @@ export async function TaiSanTab() {
       <StatsStrip cards={cards} />
       <SeoSitesPanel d={sites} />
       <TaiSanView ban={ban} />
+      <TaiSanKenh kenh={kenh} shops={ban.shops} />
     </div>
   );
 }

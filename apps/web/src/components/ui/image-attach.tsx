@@ -71,6 +71,13 @@ export function ImageAttach({ value, onChange, folder = 'uploads', max = 6 }: {
   const [cho, setCho] = useState<Cho[]>([]);
   const [meta, setMeta] = useState<Record<string, AnhMeta>>({});
   useEffect(() => { setMeta(docMeta()); }, []);
+  // Dòng "✓ Đã tải lên N ảnh" là tin của MỘT lượt tải — số ảnh giảm (✕ một ảnh, Huỷ nháp, form gửi xong) thì nó thành sai
+  // (anh báo 05/10/2026: xoá ảnh rồi vẫn ghi "có 1 ảnh đã tải lên"). Bắt ở đây cho mọi đường làm giảm, kể cả đường từ form cha.
+  const soTruoc = useRef(value.length);
+  useEffect(() => {
+    if (value.length < soTruoc.current) setStatus(null);
+    soTruoc.current = value.length;
+  }, [value.length]);
   const full = value.length + cho.filter((c) => c.buoc !== 'loi').length >= max;
   const addUrls = (urls: string[]) => onChange([...value, ...urls].slice(0, max));
 

@@ -67,7 +67,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           { key: 'signup', tab: 'phu', label: 'Signup', value: phu?.tong.signup ?? '—', sub: phu?.tong.click ? `${((phu.tong.signup / phu.tong.click) * 1000).toFixed(1)} / 1k click` : undefined },
           { key: 'camp', tab: hong ? 'hatang' : 'camp', label: 'Camp chạy', value: campChay, color: hong ? 'var(--danger)' : undefined, sub: hong ? `${hong} adapter/lander đỏ` : `${projects.length} dự án` },
         ]} />
-        {phu && <PhuCanChuY data={phu} />}
+        {/* Cần chú ý = việc của campaign (adapter, lander, camp tới ngưỡng, sid lạ) → chỉ hiện ở 4 tab campaign (#1110, 05/10/2026:
+            hiện ở mọi tab là đè lên việc đang làm). Tab khác vẫn thấy dấu đỏ trên tab "Lander & adapter". */}
+        {phu && laPhu && <PhuCanChuY data={phu} />}
 
         <div>
           <Suspense fallback={null}>

@@ -3,7 +3,8 @@
 // Dữ liệu: lib/tai-san/doc.ts. Mở/gập shop ghi ở URL ?shop=a,b ('-' = gập hết; trống = mặc định mở shop có việc đang chờ);
 // lọc trạng thái ?tt=. Bảng lá dùng CÙNG bộ cột cho mọi shop để cột thẳng hàng (LaBang).
 import { useMemo } from 'react';
-import { Cay, FilterChips, LaBang, LinkChip, NutCay, Panel, Pill, oLa, type CotLa } from '@/components/ui';
+import { Cay, EntityRef, FilterChips, LaBang, LinkChip, NutCay, Panel, Pill, oLa, type CotLa } from '@/components/ui';
+import { extLinkProps, wrapExternalUrl } from '@/lib/external-url';
 import { useShallowParam } from '@/lib/url-shallow';
 import { TT_SP, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from '@/lib/tai-san/kieu';
 
@@ -21,10 +22,10 @@ function Dong({ x }: { x: SpNut }) {
   const t = tt(x.trangThai);
   return (
     <tr style={{ borderTop: '1px solid var(--line)' }}>
-      <td style={oLa()} title={x.ten}>{x.url ? <a href={x.url} target="_blank" rel="noreferrer" style={{ color: 'var(--fg-1)', textDecoration: 'none' }}>{x.ten}</a> : x.ten}</td>
+      <td style={oLa()} title={x.url ? `${x.ten}\n${x.url}` : x.ten}>{x.url ? <a {...extLinkProps(x.url)} style={{ color: 'var(--fg-1)', textDecoration: 'none' }}>{x.ten} <span style={phu}>↗</span></a> : x.ten}</td>
       <td style={{ ...oLa(), ...phu }} title={x.phu ?? ''}>{x.phu ?? '—'}</td>
       <td style={oLa()}><Pill label={t.chu} color={t.mau} size="xs" tone="soft" uppercase={false} mono={false} /></td>
-      <td style={oLa(true)}>{x.gia == null ? chuaDo : x.gia > 0 ? `$${x.gia}` : <span style={phu}>free</span>}</td>
+      <td style={oLa(true)} title={x.giaChu}>{x.giaChu ?? (x.gia == null ? chuaDo : x.gia > 0 ? `$${x.gia}` : <span style={phu}>free</span>)}</td>
       <td style={oLa(true)}>{x.views7d == null ? chuaDo : <span style={x.views7d ? undefined : phu}>{x.views7d}</span>}</td>
       <td style={oLa(true)}>{x.don == null ? chuaDo : <span style={x.don ? { color: 'var(--ok)' } : phu}>{x.don}</span>}</td>
       <td style={oLa(true)}>{tien(x.tien, x.ky)}</td>
@@ -74,7 +75,10 @@ function ShopNutCay({ s, sp, mo, onDoi }: { s: ShopNut; sp: SpNut[]; mo: boolean
     <NutCay mo={mo} onDoi={onDoi}
       ten={<>
         <b style={{ fontWeight: 600 }}>{s.ten}</b>
-        {s.url && <LinkChip href={s.url} tone="neutral" size="xs" onClick={(e) => e.stopPropagation()}>↗</LinkChip>}
+        {s.url && <LinkChip href={wrapExternalUrl(s.url)} tone="neutral" size="xs" onClick={(e) => e.stopPropagation()}>↗</LinkChip>}
+        {s.tk && <span onClick={(e) => e.stopPropagation()} style={{ fontSize: 11.5, ...phu, display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+          tài khoản <EntityRef kind="account" id={s.tk.id} label={`#${s.tk.id} ${s.tk.handle}`} />{s.tk.email && <span>· {s.tk.email}</span>}</span>}
+        {!s.tk && s.loai !== 'san' && <span style={{ fontSize: 11.5, color: 'var(--warn)' }}>chưa có tài khoản trong vault</span>}
         {s.loi && <Pill label={s.loi} color="var(--bad)" size="xs" tone="soft" uppercase={false} mono={false} />}
       </>}
       phu={`${s.sp.length} sản phẩm${dong ? ` · ${dong}` : ''}${s.ghiChu ? ` · ${s.ghiChu}` : ''}`}

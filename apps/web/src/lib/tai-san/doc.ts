@@ -14,7 +14,8 @@ import { isoCua } from '@/lib/shop/buoc';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 
-import { shopChet, type Ky, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from './kieu';
+import { docEtsy } from '@/lib/etsy/listings';
+import { khopTk, shopChet, type Ky, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from './kieu';
 export { TT_SP, type Ky, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from './kieu';
 
 const NHAN_NEN: Record<string, string> = { gumroad: 'Gumroad', kdp: 'KDP', etsy: 'Etsy', udemy: 'Udemy', 'mql5-market': 'MQL5 Market', rapidapi: 'RapidAPI',
@@ -22,31 +23,30 @@ const NHAN_NEN: Record<string, string> = { gumroad: 'Gumroad', kdp: 'KDP', etsy:
 const LOAI_NEN: Record<string, ShopNut['loai']> = { gumroad: 'gumroad', kdp: 'kdp', etsy: 'etsy' };
 const TT_DIRECTUS: Record<string, TrangThaiSp> = { planned: 'dang_lam', draft: 'dang_lam', pending: 'cho_duyet', in_review: 'cho_duyet', published: 'dang_ban', unlisted: 'ngung', archived: 'ngung' };
 
-// Shop ĐÃ có tài khoản nhưng chưa có sản phẩm nào trong sổ cái → không suy ra được từ dữ liệu, khai ở đây để vẫn thấy.
-// ponytail: có sản phẩm rồi (sanpham add …) thì shop tự hiện từ dữ liệu, xoá dòng ở đây.
-const SHOP_TRONG: ShopNut[] = [
-  { khoa: 'etsy:FrontPorchZ', ten: 'Etsy · FrontPorchZ', loai: 'etsy', url: null, sp: [], tien: null, ky: '30n', loi: null, ghiChu: 'tài khoản vault #514 · chưa có listing' },
-];
-
 // Tài sản sống chết theo TÀI KHOẢN bán: khoá tài khoản là mọi sản phẩm của nó ngừng (Udemy #158, anh báo 05/10/2026).
 // Đọc trạng thái từ vault (platform_accounts) lúc dựng cây, KHÔNG sửa tay từng sản phẩm — kháng nghị được thì tự trở lại.
-async function docTaiKhoan(): Promise<{ nen: string; handle: string; status: string }[]> {
+// Cùng lượt đọc này gắn tài khoản vào từng shop (anh cần biết shop nào đứng tên tài khoản nào).
+type TkDong = { id: number; nen: string; handle: string; ten: string; email: string | null; status: string };
+async function docTaiKhoan(): Promise<TkDong[]> {
   const d = getDb(); if (!d) return [];
-  return (await d.execute(sql`SELECT platform_key AS nen, lower(coalesce(handle, '')) AS handle, status FROM platform_accounts
-    WHERE platform_key IN ('udemy','kdp','etsy','gumroad','mql5','mql5-market','rapidapi','stripe','chaturbate','stripcash')`)) as unknown as { nen: string; handle: string; status: string }[];
+  return (await d.execute(sql`SELECT id, platform_key AS nen, lower(coalesce(handle, '')) AS handle, coalesce(handle, '') AS ten, email, status FROM platform_accounts
+    WHERE platform_key IN ('udemy','kdp','etsy','gumroad','mql5','mql5-market','rapidapi','stripe','chaturbate','stripcash','mellowstep')
+    ORDER BY (status IN ('banned','blocked','closed')), id`)) as unknown as TkDong[];
 }
+
 const chuanUrl = (u: string | null | undefined) => (u ?? '').toLowerCase().replace(/[?#].*$/, '').replace(/\/$/, '');
 const gumroadHandle = (u: string | null) => { try { const h = new URL(u ?? '').hostname; return h.endsWith('.gumroad.com') ? (h.split('.')[0] ?? null) : null; } catch { return null; } };
 
 export async function docTaiSanBan(): Promise<TaiSanBan> {
   const loi: string[] = [];
   const boc = async <T>(ten: string, f: () => Promise<T>, mac: T): Promise<T> => { try { return await f(); } catch (e) { loi.push(`${ten}: ${(e as Error).message}`); return mac; } };
-  const [sum, views, dir, shop, tk] = await Promise.all([
+  const [sum, views, dir, shop, tk, etsy] = await Promise.all([
     boc('gumroad', getGumroadSummary, null),
     boc('gumroad views', loadProductViews, { byProduct: {}, lastSync: null } as ViewsPayload),
     boc('directus', () => getProductsView(30), null),
     boc('shop', docShop, null),
-    boc('vault', docTaiKhoan, [] as { nen: string; handle: string; status: string }[]),
+    boc('vault', docTaiKhoan, [] as TkDong[]),
+    boc('etsy', docEtsy, []),
   ]);
   const shops: ShopNut[] = [];
 
@@ -101,16 +101,29 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
     const tu = Date.now() - 30 * 86_400_000;
     for (const c of shop.cuaHang.filter((x) => !x.demo)) {
       const don = shop.don.filter((d) => d.cuaHang === c.khoa && d.buoc !== 'cho_tt' && d.buoc !== 'huy' && new Date(isoCua(d.taoLuc)).getTime() > tu);
-      const sp = shop.sanPham.filter((p) => p.cuaHang === c.khoa).map((p): SpNut => ({ khoa: `mos:${p.id}`, ten: p.ten, phu: p.soBienThe ? `${p.soBienThe} biến thể` : null, url: null,
+      const sp = shop.sanPham.filter((p) => p.cuaHang === c.khoa).map((p): SpNut => ({ khoa: `mos:${p.id}`, ten: p.ten, phu: p.soBienThe ? `${p.soBienThe} biến thể` : null,
+        url: p.slug ? `https://${c.domain}/${p.slug}` : null,   // apps/store: trang sản phẩm ở /<slug> (/product/<slug> 301 về đó)
         trangThai: p.hien ? 'dang_ban' : 'ngung', gia: p.giaTu, views7d: null, don: p.daBan, tien: null, ky: 'tron_doi', canhBao: p.choCoHang ? `${p.choCoHang} chờ có hàng` : null, ghiChu: null }));
       shops.push({ khoa: `mos:${c.khoa}`, ten: `${c.ten} · ${c.domain}`, loai: 'mos', url: `https://${c.domain}`, sp,
         tien: don.reduce((t, d) => t + d.tong - d.hoan, 0), ky: '30n', loi: c.dongBoLoi, ghiChu: `${don.length} đơn đã trả 30 ngày` });
     }
   }
 
-  for (const s of SHOP_TRONG) if (!shops.some((x) => x.khoa === s.khoa)) shops.push(s);
+  // 4. Etsy theo API (lib/etsy/listings.ts) — shop nào chưa có listing vẫn hiện, vì tài khoản đã có.
+  const TT_ETSY: Record<string, TrangThaiSp> = { active: 'dang_ban', draft: 'dang_lam', inactive: 'ngung', expired: 'ngung', sold_out: 'ngung' };
+  for (const e of etsy) {
+    const sp = e.listings.map((l): SpNut => ({ khoa: `etsy:${l.id}`, ten: l.title, phu: null, url: l.url, trangThai: TT_ETSY[l.state] ?? 'dang_lam',
+      gia: l.currency === 'USD' ? l.price : null, giaChu: l.currency === 'USD' ? undefined : `${l.price.toLocaleString('en-US')} ${l.currency}`,
+      views7d: null, don: null, tien: null, ky: '30n', canhBao: null, ghiChu: l.views != null ? `${l.views} lượt xem · ${l.favorites ?? 0} yêu thích (trọn đời)` : null }));
+    const khoa = `etsy:${e.handle}`;
+    const cu = shops.findIndex((x) => x.khoa === khoa);   // dòng sổ cái tay (nếu có) nhường cho API
+    if (cu >= 0) shops.splice(cu, 1);
+    shops.push({ khoa, ten: `Etsy · ${e.handle}`, loai: 'etsy', url: e.url, sp, tien: null, ky: '30n', loi: e.error, ghiChu: sp.length ? null : 'chưa có listing' });
+  }
   for (const s of shops) {
     const [nen, store] = s.khoa.split(':');
+    const t = s.loai === 'mos' ? khopTk('mellowstep', null, tk)[0] : khopTk(nen ?? '', store || null, tk)[0];
+    s.tk = t ? { id: t.id, handle: t.ten, email: t.email, status: t.status } : null;
     const chet = s.loai === 'mos' ? null : shopChet(nen ?? '', store || null, tk);
     if (!chet) continue;
     s.loi = `tài khoản ${chet === 'banned' ? 'bị khoá' : chet}`;

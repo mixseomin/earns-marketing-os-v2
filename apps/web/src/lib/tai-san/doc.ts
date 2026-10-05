@@ -1,0 +1,117 @@
+// CÂY TÀI SẢN BÁN HÀNG — shop (nơi bán có cổng thanh toán riêng) → sản phẩm, mọi nguồn về MỘT hình (anh chốt 05/10/2026).
+// Trước đây sản phẩm nằm 3 chỗ không nối nhau: bảng Gumroad ở tab SEO (API), /products (Directus), /shop (mellowstep) — và
+// sách KDP / listing Etsy không có chỗ nào (chỉ nằm trong kdp.json của repo). Giờ:
+//   · Gumroad      ← API v2 theo token vault (store = handle) + lượt xem từ product_daily
+//   · mellowstep…  ← sổ shop_* (shop_cua_hang / shop_san_pham / shop_don)
+//   · mọi thứ khác ← Directus `products` = SỔ CÁI (platform + store + status), tiền 30n từ product_stats; ghi bằng ~/bin/sanpham
+// Trạng thái gom về 4 bậc: đang làm → chờ duyệt → đang bán → ngừng. "Chưa đo" (null) ≠ 0 — giữ luật của lib/products/data.ts.
+import { getGumroadSummary, lacksDiscover } from '@/lib/gumroad/products';
+import { loadProductViews, type ViewsPayload } from '@/lib/gumroad/daily';
+import { getProductsView } from '@/lib/products/data';
+import { docShop } from '@/lib/shop/doc';
+import { isoCua } from '@/lib/shop/buoc';
+
+export type TrangThaiSp = 'dang_lam' | 'cho_duyet' | 'dang_ban' | 'ngung';
+export const TT_SP: { key: TrangThaiSp; chu: string; mau: string }[] = [
+  { key: 'dang_ban', chu: 'đang bán', mau: 'var(--ok)' },
+  { key: 'cho_duyet', chu: 'chờ duyệt', mau: 'var(--warn)' },
+  { key: 'dang_lam', chu: 'đang làm', mau: 'var(--fg-2)' },
+  { key: 'ngung', chu: 'ngừng', mau: 'var(--fg-4)' },
+];
+/** Cửa sổ của số đơn/tiền: Gumroad API cộng dồn trọn đời; Directus product_stats và shop_don tính 30 ngày. */
+export type Ky = 'tron_doi' | '30n';
+export type SpNut = { khoa: string; ten: string; /** định dạng / sku (bìa mềm, bìa cứng, ebook…) */ phu: string | null; url: string | null;
+  trangThai: TrangThaiSp; gia: number | null; views7d: number | null; don: number | null; tien: number | null; ky: Ky; canhBao: string | null; ghiChu: string | null };
+export type ShopNut = { khoa: string; ten: string; loai: 'gumroad' | 'kdp' | 'etsy' | 'mos' | 'san'; url: string | null; sp: SpNut[];
+  tien: number | null; ky: Ky; loi: string | null; ghiChu: string | null };
+export type TaiSanBan = { shops: ShopNut[]; loi: string[]; viewsToi: string | null };
+
+const NHAN_NEN: Record<string, string> = { gumroad: 'Gumroad', kdp: 'KDP', etsy: 'Etsy', udemy: 'Udemy', 'mql5-market': 'MQL5 Market', rapidapi: 'RapidAPI',
+  stripe: 'Stripe', chaturbate: 'Chaturbate', stripcash: 'Stripcash', course: 'Khoá học', 'wordpress.org': 'WordPress.org' };
+const LOAI_NEN: Record<string, ShopNut['loai']> = { gumroad: 'gumroad', kdp: 'kdp', etsy: 'etsy' };
+const TT_DIRECTUS: Record<string, TrangThaiSp> = { planned: 'dang_lam', draft: 'dang_lam', pending: 'cho_duyet', in_review: 'cho_duyet', published: 'dang_ban', unlisted: 'ngung', archived: 'ngung' };
+
+// Shop ĐÃ có tài khoản nhưng chưa có sản phẩm nào trong sổ cái → không suy ra được từ dữ liệu, khai ở đây để vẫn thấy.
+// ponytail: có sản phẩm rồi (sanpham add …) thì shop tự hiện từ dữ liệu, xoá dòng ở đây.
+const SHOP_TRONG: ShopNut[] = [
+  { khoa: 'etsy:FrontPorchZ', ten: 'Etsy · FrontPorchZ', loai: 'etsy', url: null, sp: [], tien: null, ky: '30n', loi: null, ghiChu: 'tài khoản vault #514 · chưa có listing' },
+];
+
+const chuanUrl = (u: string | null | undefined) => (u ?? '').toLowerCase().replace(/[?#].*$/, '').replace(/\/$/, '');
+const gumroadHandle = (u: string | null) => { try { const h = new URL(u ?? '').hostname; return h.endsWith('.gumroad.com') ? (h.split('.')[0] ?? null) : null; } catch { return null; } };
+
+export async function docTaiSanBan(): Promise<TaiSanBan> {
+  const loi: string[] = [];
+  const boc = async <T>(ten: string, f: () => Promise<T>, mac: T): Promise<T> => { try { return await f(); } catch (e) { loi.push(`${ten}: ${(e as Error).message}`); return mac; } };
+  const [sum, views, dir, shop] = await Promise.all([
+    boc('gumroad', getGumroadSummary, null),
+    boc('gumroad views', loadProductViews, { byProduct: {}, lastSync: null } as ViewsPayload),
+    boc('directus', () => getProductsView(30), null),
+    boc('shop', docShop, null),
+  ]);
+  const shops: ShopNut[] = [];
+
+  // 1. Gumroad theo API — mỗi token vault một store; nối views bằng `${store}:${id}` (id gốc, không phải permalink).
+  const urlApi = new Set<string>();
+  if (sum) {
+    if (!sum.ok && sum.error) loi.push(`gumroad: ${sum.error}`);
+    for (const s of sum.stores) {
+      const sp = sum.products.filter((p) => p.store === s.handle).map((p): SpNut => {
+        urlApi.add(chuanUrl(p.url));
+        const v = views.byProduct[`${s.handle}:${p.id}`];
+        return { khoa: `gumroad:${p.id}`, ten: p.name, phu: null, url: p.url, trangThai: p.published ? 'dang_ban' : 'dang_lam', gia: p.priceCents / 100,
+          views7d: v ? v.views7d : null, don: p.salesCount, tien: p.salesUsdCents / 100, ky: 'tron_doi',
+          canhBao: p.published && lacksDiscover(p) ? 'thiếu category/tag → không lên Gumroad Discover' : null, ghiChu: null };
+      });
+      shops.push({ khoa: `gumroad:${s.handle}`, ten: `Gumroad · ${s.handle}`, loai: 'gumroad', url: s.url || null, sp,
+        tien: sp.reduce((t, x) => t + (x.tien ?? 0), 0), ky: 'tron_doi', loi: s.error ?? null, ghiChu: null });
+    }
+    // Store job views đọc được mà vault chưa có token API → sản phẩm của nó không hiện (04/10: Front Porch Puzzles + ExamWeight).
+    const coToken = new Set(sum.stores.map((s) => s.handle));
+    for (const h of new Set(Object.keys(views.byProduct).map((k) => k.split(':')[0] ?? ''))) {
+      if (h && !coToken.has(h)) loi.push(`gumroad: store ${h} có lượt xem nhưng vault chưa có token API → sản phẩm của nó không hiện (node resources/auto-publish/scripts/gumroad-api-token.mjs "<tên store>", repo earns-strategy)`);
+    }
+  }
+
+  // 2. Directus — sổ cái. Dòng Gumroad đã có qua API thì bỏ (API tươi hơn); dòng Gumroad của store không còn token (oldcc7391) vẫn hiện.
+  if (dir) {
+    loi.push(...dir.errors);
+    const nhom = new Map<string, ShopNut>();
+    for (const r of dir.rows) {
+      if (r.platform === 'gumroad' && urlApi.has(chuanUrl(r.url))) continue;
+      const store = r.store ?? (r.platform === 'gumroad' ? gumroadHandle(r.url) : null);
+      const khoa = `${r.platform}:${store ?? ''}`;
+      const nen = NHAN_NEN[r.platform] ?? r.platform;
+      const g = nhom.get(khoa) ?? { khoa, ten: store ? `${nen} · ${store}` : nen, loai: LOAI_NEN[r.platform] ?? 'san', url: null, sp: [], tien: null, ky: '30n' as Ky, loi: null, ghiChu: null };
+      g.sp.push({ khoa: `d:${r.id}`, ten: r.title, phu: r.category ?? r.sku, url: r.url, trangThai: TT_DIRECTUS[r.status ?? ''] ?? 'dang_lam', gia: r.price,
+        views7d: null, don: null, tien: r.net, ky: '30n', canhBao: null, ghiChu: r.notes });
+      if (r.net != null) g.tien = (g.tien ?? 0) + r.net;
+      nhom.set(khoa, g);
+    }
+    // Tiền đo ở mức TÀI KHOẢN (Udemy) không gắn sản phẩm nào → đặt lên shop, nói rõ.
+    for (const g of nhom.values()) {
+      const [nen, store] = g.khoa.split(':');
+      const p = dir.platforms.find((x) => x.platform === nen);
+      if (p?.platformOnly && p.net != null && !store) { g.tien = p.net; g.ghiChu = 'tiền đo ở mức tài khoản, không tách theo sản phẩm'; }
+    }
+    shops.push(...nhom.values());
+  }
+
+  // 3. Shop MOS (mellowstep…) — sổ shop_*: sản phẩm mặt tiền + đơn đã trả 30 ngày.
+  if (shop) {
+    const tu = Date.now() - 30 * 86_400_000;
+    for (const c of shop.cuaHang.filter((x) => !x.demo)) {
+      const don = shop.don.filter((d) => d.cuaHang === c.khoa && d.buoc !== 'cho_tt' && d.buoc !== 'huy' && new Date(isoCua(d.taoLuc)).getTime() > tu);
+      const sp = shop.sanPham.filter((p) => p.cuaHang === c.khoa).map((p): SpNut => ({ khoa: `mos:${p.id}`, ten: p.ten, phu: p.soBienThe ? `${p.soBienThe} biến thể` : null, url: null,
+        trangThai: p.hien ? 'dang_ban' : 'ngung', gia: p.giaTu, views7d: null, don: p.daBan, tien: null, ky: 'tron_doi', canhBao: p.choCoHang ? `${p.choCoHang} chờ có hàng` : null, ghiChu: null }));
+      shops.push({ khoa: `mos:${c.khoa}`, ten: `${c.ten} · ${c.domain}`, loai: 'mos', url: `https://${c.domain}`, sp,
+        tien: don.reduce((t, d) => t + d.tong - d.hoan, 0), ky: '30n', loi: c.dongBoLoi, ghiChu: `${don.length} đơn đã trả 30 ngày` });
+    }
+  }
+
+  for (const s of SHOP_TRONG) if (!shops.some((x) => x.khoa === s.khoa)) shops.push(s);
+  // Thứ tự: shop có việc đang chờ (chờ duyệt / đang làm) lên trước, rồi theo tiền.
+  const can = (s: ShopNut) => s.sp.filter((x) => x.trangThai === 'cho_duyet' || x.trangThai === 'dang_lam').length;
+  shops.sort((a, b) => can(b) - can(a) || (b.tien ?? -1) - (a.tien ?? -1) || a.ten.localeCompare(b.ten));
+  return { shops, loi, viewsToi: views.lastSync };
+}

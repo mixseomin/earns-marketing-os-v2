@@ -23,6 +23,11 @@ export interface ProductRow {
   status: string | null;
   price: number | null;
   url: string | null;
+  /** Shop / tài khoản chứa sản phẩm (handle: htuan82 cho KDP, FrontPorchZ cho Etsy…) — cây Tài sản gom theo đây. */
+  store: string | null;
+  /** Định dạng khi một tựa có nhiều bản (paperback / hardcover / ebook) — cột `category` của Directus. */
+  category: string | null;
+  notes: string | null;
   /** Thực nhận trong cửa sổ đang xem. null = chưa có nguồn đo, KHÔNG phải 0. */
   net: number | null;
   /** Doanh số gốc khách tiêu, khi nền tảng có chia hoa hồng. null = chưa đo. */
@@ -81,7 +86,7 @@ export async function getProductsView(windowDays = 30): Promise<ProductsView> {
   const errors: string[] = [];
 
   const [products, stats] = await Promise.all([
-    get<Record<string, unknown>>('/items/products?limit=-1&fields=id,title,sku,status,price,platform,url'),
+    get<Record<string, unknown>>('/items/products?limit=-1&fields=id,title,sku,status,price,platform,url,store,category,notes'),
     get<Record<string, unknown>>(
       `/items/product_stats?limit=-1&fields=product_id,date,platform,revenue,gross_revenue,rating,reviews,subscribers&filter[date][_gte]=${since}`),
   ]);
@@ -129,6 +134,7 @@ export async function getProductsView(windowDays = 30): Promise<ProductsView> {
       status: (p.status as string) ?? null,
       price: p.price == null ? null : num(p.price),
       url: (p.url as string) || null,
+      store: (p.store as string) || null, category: (p.category as string) || null, notes: (p.notes as string) || null,
       net: a?.hasRevenue ? a.net : null,
       gross: a?.hasRevenue ? a.gross : null,
       rating: a?.rating ?? null, reviews: a?.reviews ?? null, students: a?.students ?? null,

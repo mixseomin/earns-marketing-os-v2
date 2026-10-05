@@ -123,9 +123,8 @@ export function Sidebar({ mode, currentProjectId, projects, currentUser, onMobil
         {currentProjectId && (
           <ProjectNav projectId={currentProjectId} role={currentUser?.role ?? 'admin'} />
         )}
+        {(currentUser?.role ?? 'admin') === 'admin' && <SystemNav role="admin" />}
       </div>
-
-      {(currentUser?.role ?? 'admin') === 'admin' && <SystemNav role="admin" />}
 
       {currentUser && <UserPanel user={currentUser} />}
 
@@ -250,7 +249,6 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
         { href: '/plays?view=tiendo', icon: '📈', color: 'var(--neon-cyan)', label: 'Tiến độ', sub: 'hạng mục · bước · kẹt (mọi dự án)', role: 'admin' },
         { href: '/roadmap',   icon: '🗺', color: 'var(--neon-cyan)',   label: 'Roadmap',  sub: 'phases · deps' },
         { href: '/opportunities', icon: '🎯', color: 'var(--neon-lime)', label: 'Opportunities', sub: 'đặt sản phẩm tiếp theo ở đâu', role: 'admin' },
-        { href: '/products', icon: '📦', color: 'var(--neon-cyan)', label: 'Products', sub: 'hàng mình bán · nền tảng nào ra tiền', role: 'admin' },
         { href: '/shop', icon: '🛒', color: 'var(--neon-lime)', label: 'Shop', sub: 'đơn · NCC · vận đơn (mellowstep…)', role: 'admin' },
       ],
     },
@@ -303,23 +301,88 @@ function SystemNav({ role = 'admin' }: { role?: 'admin' | 'operator' | 'viewer' 
   const filteredGroups = groups
     .map((g) => ({ ...g, items: g.items.filter((it) => !it.role || role === 'admin') }))
     .filter((g) => g.items.length > 0);
+  return <CayNav groups={[{ key: 'trangchu', label: 'Trang chủ', items: [{ href: '/', icon: '⊞', color: 'var(--neon-violet)', label: 'Trang chủ', sub: 'campaign · doanh thu · tài sản · SEO…' }] }, ...filteredGroups]} />;
+}
 
+// CÂY ĐIỀU HƯỚNG mở sẵn (anh chốt 05/10/2026: sidebar 70% trống trong khi 33 mục + 21 tab trong trang chỉ hiện khi hover
+// popout hai tầng). Nhóm gập/mở nhớ localStorage; nhóm chứa trang đang đứng tự mở; mục có tab cấp trang (lib/tab-trang.ts)
+// xoè tab khi đang ở trang đó (hoặc bấm ▸). Squads + PROJECT vẫn popout (ít dùng, giữ chỗ cho cây).
+const NAV_MO = 'mos2-nav-mo';
+function CayNav({ groups }: { groups: NavGroup[] }) {
+  const pathname = usePathname();
+  const [qs, setQs] = useState('');
+  const [mo, setMo] = useState<Record<string, boolean> | null>(null);   // null = chưa đọc localStorage (lượt SSR)
+  useEffect(() => { try { setMo(JSON.parse(localStorage.getItem(NAV_MO) ?? '{}')); } catch { setMo({}); } }, []);
+  // tab trong trang đổi URL bằng replaceState (không qua router) → đọc lại khi đổi đường + popstate + click bất kỳ
+  useEffect(() => {
+    const doc = () => setQs(window.location.search);
+    const sauClick = () => setTimeout(doc, 0);
+    doc(); window.addEventListener('popstate', doc); document.addEventListener('click', sauClick);
+    return () => { window.removeEventListener('popstate', doc); document.removeEventListener('click', sauClick); };
+  }, [pathname]);
+  const dat = (k: string, v: boolean) => { const n = { ...(mo ?? {}), [k]: v }; setMo(n); try { localStorage.setItem(NAV_MO, JSON.stringify(n)); } catch { /* private mode */ } };
+  const sp = new URLSearchParams(qs);
   return (
-    <div
-      className="side-section"
-      style={{
-        display: 'flex', flexDirection: 'column', gap: 1,
-        flex: '0 0 auto',
-        borderTop: '1px solid var(--line)',
-        paddingTop: 4, paddingBottom: 4,
-      }}
-    >
-      <div className="side-title" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 10px 4px' }}>
-        <span>SYSTEM</span>
-        <span style={{ fontSize: 8.5, opacity: 0.5, fontFamily: 'var(--font-mono)' }}>· hover</span>
-      </div>
-      <SystemGroups groups={filteredGroups} />
+    <div style={{ borderTop: '1px solid var(--line)', marginTop: 4, paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 1 }}>
+      {groups.map((g) => {
+        const active = g.items.some((it) => it.href && pathname === it.href);
+        const open = mo?.[g.key] ?? active;
+        return (
+          <div key={g.key}>
+            <div onClick={() => dat(g.key, !open)} className="side-title"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px 3px', cursor: 'pointer', userSelect: 'none', color: active ? 'var(--fg-1)' : undefined }}>
+              <span style={{ fontSize: 8, opacity: 0.6, width: 8 }}>{open ? '▾' : '▸'}</span>
+              <span>{g.label}</span>
+              <span style={{ flex: 1 }} />
+              <span className="count mono" style={{ fontSize: 9, opacity: 0.5 }}>{g.items.length}</span>
+            </div>
+            {open && g.items.map((it) => <MucNav key={it.label} it={it} pathname={pathname} sp={sp} mo={mo} dat={dat} />)}
+          </div>
+        );
+      })}
     </div>
+  );
+}
+
+function MucNav({ it, pathname, sp, mo, dat }: { it: NavItem; pathname: string; sp: URLSearchParams; mo: Record<string, boolean> | null; dat: (k: string, v: boolean) => void }) {
+  const isActive = !!it.href && pathname === it.href;
+  const tabs = it.href && coTab(it.href) ? TAB_TRANG[it.href] : null;
+  const khoa = `tab:${it.href ?? it.label}`;
+  const xoe = !!tabs && (mo?.[khoa] ?? isActive);
+  const row: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px 4px 14px', textDecoration: 'none', color: 'inherit',
+    background: isActive ? 'var(--accent-soft)' : 'transparent', borderLeft: `2px solid ${isActive ? 'var(--accent)' : 'transparent'}` };
+  const inner = (
+    <>
+      <span style={{ fontSize: 13, color: it.color, width: 16, textAlign: 'center', flexShrink: 0 }}>{it.icon}</span>
+      <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--accent)' : 'var(--fg-1)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.label}</span>
+      {tabs && <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); dat(khoa, !xoe); }} title={xoe ? 'gập tab' : 'xoè tab'}
+        style={{ fontSize: 9, color: 'var(--fg-3)', padding: '0 4px', cursor: 'pointer' }}>{xoe ? '▾' : '▸'}</span>}
+    </>
+  );
+  if (it.soon) return <div style={{ ...row, opacity: 0.45, cursor: 'not-allowed' }} title="Sắp ra">{inner}</div>;
+  const duong = it.href as keyof typeof TAB_TRANG;
+  return (
+    <>
+      <Link href={it.href!} title={it.sub} style={row}
+        onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--bg-2)'; }}
+        onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}>{inner}</Link>
+      {xoe && tabs && (tabs.tabs as readonly TabTrang[]).map((t, i) => {
+        const on = isActive && ((sp.get(tabs.param) ?? '') === t.key || (!sp.get(tabs.param) && t.key === tabMacDinh(duong)));
+        const dauNhom = t.nhom && t.nhom !== (tabs.tabs as readonly TabTrang[])[i - 1]?.nhom;
+        return (
+          <Fragment key={t.key}>
+            {dauNhom && <div style={{ padding: '4px 10px 1px 36px', fontSize: 9, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--fg-4)' }}>{t.nhom}</div>}
+            <Link href={hrefTab(duong, t.key)} title={t.title}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 10px 2px 36px', fontSize: 11.5, textDecoration: 'none',
+                color: on ? 'var(--accent)' : 'var(--fg-2)', fontWeight: on ? 700 : 400, background: on ? 'var(--accent-soft)' : 'transparent',
+                borderLeft: `2px solid ${on ? 'var(--accent)' : 'transparent'}` }}
+              onMouseEnter={(e) => { if (!on) e.currentTarget.style.background = 'var(--bg-2)'; }}
+              onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = 'transparent'; }}>
+              <span style={{ color: 'var(--fg-4)' }}>└</span>{t.label}</Link>
+          </Fragment>
+        );
+      })}
+    </>
   );
 }
 

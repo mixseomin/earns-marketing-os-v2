@@ -1,5 +1,5 @@
 import { RefreshGscBtn } from './refresh-gsc-btn';
-import { SeoSitesTable } from './seo-sites-table';
+import { SeoSitesTable, type RowData } from './seo-sites-table';
 import { Panel } from './ui/panel';
 import { loadGscTimeSeries, pickSiteSeries } from '@/lib/projects/gsc-timeseries';
 import type { GscDailyPoint } from '@/lib/projects/gsc-timeseries';
@@ -41,7 +41,8 @@ const HIDDEN_DOMAINS = new Set<string>(['techwhiff.com', 'loginwiz.com', 'astrol
 // Map domain → MOS2 project id + visual label.
 // GA4 property ID không hardcode ở đây — auto-pulled từ ga4-properties.json
 // (35 sites, daily cron). Xem lib/projects/ga4-properties.ts.
-const SITE_META: Record<string, { project?: string; emoji: string; review?: string }> = {
+// nhom 'shopdy' = site bán hàng trên Shopdy (project bra): cùng cột đo, nhưng là nhóm tài sản riêng (tab Tài sản tách bảng).
+const SITE_META: Record<string, { project?: string; emoji: string; review?: string; nhom?: 'shopdy' }> = {
   'militarymarkdown.com': { project: 'militarymarkdown', emoji: '🪖', review: '2026-10-25' },  // dormant husk (pivoted to militarycalc): 31 impr/0 clk 07-27 → quarterly, not 2-wk
   'militarycalc.com': { project: 'militarycalc', emoji: '🪖', review: '2026-09-20' },  // 08-30 review: 668 impr / 0 click / pos TB 61.3, GROWTH theo script (impr +11%, URL +33%) nhưng click = 0 ở CẢ HAI cửa sổ. Head terms nằm pos 62-93 (bah calculator 86.8, gi bill calculator 83.2, mha calculator 84.8) → KHÔNG có cần gạt snippet: CTR-opportunity 0, striking-distance 0, question 0. Cùng chẩn đoán với visagps 08-16: thiếu AUTHORITY, không thiếu content. Trang chủ ăn 344/668 impr (51%) ở pos 80.9. GEO gate SẠCH (GPTBot/OAI-SearchBot/ClaudeBot/PerplexityBot/Google-Extended đều 200, llms.txt 200, robots mở). Sửa được + đã ship: trang chủ trước đó KHÔNG phát JSON-LD nào (chỉ Organization của layout) trong khi /bah/2026-changes phát đủ Article+WebApplication+ItemList+Offer → thêm WebSite+WebApplication+ItemList (commit 1e654f4). Và bắt được lỗi deploy toàn site: Next gửi s-maxage=31536000 nên CF giữ HTML MỘT NĂM — trang chủ đang ở tuổi 2,8 ngày trong khi origin đã có bản mới; purge CF nay là bước [5/5] của deploy.sh (a51db39). recheck: pos của trang chủ + head terms có nhúc nhích sau khi có backlink chưa; nếu vẫn pos 80+ thì cần gạt duy nhất là link, đừng sửa content nữa
   'visagps.com': { project: 'visagps', emoji: '🛂', review: '2026-10-11' },  // 09-09 review: MIXED - impr 122 (+30%), clicks 0 (-100%), pos 63.6 -> 77.7, 26 URLs w/ impr. Site is effectively invisible: 0 CTR-opportunity, 0 striking-distance, 0 cannibalization, so NO on-page fix exists to make. Tell: only the legal pages reach page 1 (/privacy pos 2.6, /terms 5.0, /about 8.3 - brand queries); every money page sits pos 67-96 (/case-status 67.8 falling 22->5, /visa-bulletin 79.9). Head terms unchanged since 08-16 (green card tracker 90.8, priority date tracker 88.3). Diagnosis identical to 08-16 and it has not moved in 3 weeks: the blocker is AUTHORITY, not markup. Next lever = the 3-pillar backlink push already carded, nothing else on-page.
@@ -53,11 +54,11 @@ const SITE_META: Record<string, { project?: string; emoji: string; review?: stri
   'paydochub.com': { project: 'paydochub', emoji: '🧾', review: '2026-09-13' },  // 08-16 review: -93% impr / -72% URLs = the 07-11 noindex PRUNE landing, not a break (07-27 "seasonal demand" verdict was wrong). URL Inspection: thin pages "Crawled - currently not indexed", /staples "Excluded by noindex", all pages serve 200, sitemap 55 URLs. isRichEmployer needs ≥2 of portal/platforms/shot → only 47 of 591 indexable; 174 are one signal short. Prune shipped, ENRICH never did. Lever=fill portal/shot on the top-pv near-miss pages (play #550). recheck: rich-tier impressions after the first batch of 20
   'cities.gg': { project: 'cities-gg', emoji: '🏙️', review: '2026-10-08' },  // 09-09 review: MIXED - impr 913 (-21%), clicks 3, pos 47.0 (flat vs 47.4), 495 URLs w/ impr (+8%, still indexing). FIXED THIS PASS: apex locale roots /nl /es /fr /de /it /pt /ja /zh /ko /ru /ar all returned 404 while the page serving those queries lives at /route-planner/<locale> - /nl held 76 impr for 'routeplanner meerdere adressen' + 9 variants (pos 84-99) and had fallen from 297. next.config.ts redirects() now sends locale root -> /route-planner/<locale>, verified live (one hop, 308 -> 200). ALSO FIXED: the routeplanner.cities.gg subdomain redirect was 2 hops (/nl/ -> /route-planner/nl/ -> 308 -> /route-planner/nl) because nginx passed $request_uri with its trailing slash. It was nginx on as.on.tc, not Cloudflare - sites-available/routeplanner.cities.gg now strips the slash first (rewrite ^/(.*)/$). Verified: one hop, query strings preserved, legacy /impress + /privacy-policy untouched. READ THE TOP QUERIES WITH CARE: the pages ranking pos 1-4 ('dr. justiniano torres aparicio...', '"fossgis_osrm_foot" "route="') are scraper queries carrying -site:/-filetype: operators, not humans - that is why 67 impr at pos 4.4 yields 0 clicks. The real human demand on this domain is the Dutch route-planner cluster.
   'chatwhenbored.com': { project: 'adfond', emoji: '💬', review: '2026-09-28' },
-  'orabra.com': { project: 'bra', emoji: '🩱' },  // shop Shopdy bán Vesnacharm (Bra Shop, chiến lược #19 be.adfond) — chạy Google Ads asfy_06 từ 16/09; KHÔNG có GSC (site của Shopdy, không verify được), chỉ GA4 554184022 → hiện nhờ nhánh GA4-only bên dưới  // lên sóng 14/09 (site tĩnh box2, cam/AI-companion affiliate; cards + trang PHỦ nằm ở project adfond cùng hotel-arb/jobzab); review đầu sau 2 tuần: chỉ xem index + impressions cụm 'omegle alternative', chưa có gì để chỉnh
+  'orabra.com': { project: 'bra', emoji: '🩱', nhom: 'shopdy' },  // shop Shopdy bán Vesnacharm (Bra Shop, chiến lược #19 be.adfond) — chạy Google Ads asfy_06 từ 16/09; KHÔNG có GSC (site của Shopdy, không verify được), chỉ GA4 554184022 → hiện nhờ nhánh GA4-only bên dưới  // lên sóng 14/09 (site tĩnh box2, cam/AI-companion affiliate; cards + trang PHỦ nằm ở project adfond cùng hotel-arb/jobzab); review đầu sau 2 tuần: chỉ xem index + impressions cụm 'omegle alternative', chưa có gì để chỉnh
   // Các shop Shopdy khác của dự án bra — cùng kiểu orabra: không GSC, chỉ GA4 (nhánh GA4-only bên dưới).
-  'junomuse.com': { project: 'bra', emoji: '👖' },  // quần stretch, Google Ads asfy_09 từ 23/09
-  'vickiwear.com': { project: 'bra', emoji: '👖' },  // quần cargo, Google Ads asfy_10 từ 23/09
-  'elliechic.com': { project: 'bra', emoji: '🩱' },  // bra cài trước, Google Ads asfy_09 từ 23/09
+  'junomuse.com': { project: 'bra', emoji: '👖', nhom: 'shopdy' },  // quần stretch, Google Ads asfy_09 từ 23/09
+  'vickiwear.com': { project: 'bra', emoji: '👖', nhom: 'shopdy' },  // quần cargo, Google Ads asfy_10 từ 23/09
+  'elliechic.com': { project: 'bra', emoji: '🩱', nhom: 'shopdy' },  // bra cài trước, Google Ads asfy_09 từ 23/09
   'mellowstep.com': { project: 'mellowstep', emoji: '🛍️' },  // shop MOS độc lập (apps/store, clone Crossian), KHÔNG GSC — chỉ GA4 556926376 (nhánh GA4-only). Thêm 05/10/2026 để theo dõi "có ai vào không"
   'maileyes.com': { project: 'maileyes', emoji: '📧' },
   'cee-trust.org': { emoji: '🔍' },
@@ -110,7 +111,12 @@ function mergeAndDedupe(payload: GscPayload): Array<{ domain: string; stats: Gsc
     });
 }
 
-export async function SeoSitesPanel() {
+export type DocSites =
+  | { ok: true; rows: RowData[]; timeseries: Record<string, GscDailyPoint[]>; updated: string }
+  | { ok: false; loi: string };
+
+/** Mọi site + 13 nguồn số, ĐỌC MỘT LẦN cho cả tab Tài sản (hai bảng) lẫn tab SEO (chi tiết một site). */
+export async function docSeoSites(): Promise<DocSites> {
   /* 13 NGUỒN ĐỘC LẬP, chạy SONG SONG. Mỗi cái là một fetch remote riêng (JSON tĩnh, cache Next
      revalidate 600s). Trước đây await NỐI ĐUÔI nhau nên lúc cache nguội tổng thời gian = CỘNG
      DỒN cả 13 (đo ~20s TTFB rồi 0.4s khi ấm); và mỗi lần thêm một nguồn lại chậm thêm một nhịp.
@@ -142,13 +148,7 @@ export async function SeoSitesPanel() {
     loadBacklinkStats(),
   ]);
 
-  if (!payload) {
-    return (
-      <Panel title="SEO Sites Overview">
-        <p style={{ color: 'var(--fg-3)', fontSize: 12, margin: 0 }}>GSC data unavailable — daily cron at 02:30 UTC.</p>
-      </Panel>
-    );
-  }
+  if (!payload) return { ok: false, loi: 'GSC data unavailable — daily cron at 02:30 UTC.' };
 
   const rows = mergeAndDedupe(payload).filter((r) => !HIDDEN_DOMAINS.has(r.domain));
   // Site có GA4 nhưng KHÔNG có GSC (orabra.com 16/09: shop Shopdy, không verify Search Console
@@ -161,98 +161,111 @@ export async function SeoSitesPanel() {
     if (seen.has(domain) || HIDDEN_DOMAINS.has(domain) || !pickGa4(ga4Payload, domain)) continue;
     rows.push({ domain, stats: { pages_with_impressions_7d: 0, clicks_7d: 0, impressions_7d: 0, avg_position_7d: 0, sitemaps_count: 0, sitemap_urls_submitted: 0, sitemap_urls_indexed: 0, period: 'no-gsc' } });
   }
-  const totalImps = rows.reduce((s, r) => s + r.stats.impressions_7d, 0);
-  const totalClicks = rows.reduce((s, r) => s + r.stats.clicks_7d, 0);
-  const totalPages = rows.reduce((s, r) => s + r.stats.pages_with_impressions_7d, 0);
-  const totalSitemap = rows.reduce((s, r) => s + r.stats.sitemap_urls_submitted, 0);
-  const weightedPos = rows.reduce((acc, r) => acc + (r.stats.avg_position_7d * r.stats.impressions_7d), 0);
-  const avgPos = totalImps > 0 ? weightedPos / totalImps : 0;
   const updated = new Date(payload.updated_at).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' });
 
-  const cell: React.CSSProperties = { padding: '8px 10px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)' };
-  const head: React.CSSProperties = { ...cell, color: 'var(--fg-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'right', fontWeight: 500 };
-  const tone = (cond: boolean) => ({ color: cond ? 'var(--ok)' : 'var(--fg-2)' });
+  const out: RowData[] = rows.map((r) => {
+    const meta = SITE_META[r.domain] || { emoji: '🌐' };
+    const bing = pickBing(bingPayload, r.domain);
+    const bl = pickBacklinks(backlinkPayload, r.domain, meta.project);
+    const ai = pickGa4Ai(ga4AiPayload, r.domain);
+    const rt = pickGa4Realtime(ga4Realtime, r.domain);
+    const ev = pickGa4Events(ga4Events, r.domain);
+    const au = pickGa4Users(ga4Users, r.domain);
+    return {
+      domain: r.domain,
+      emoji: meta.emoji,
+      project: meta.project,
+      nhom: meta.nhom,
+      review: meta.review,
+      ga4PropertyId: pickGa4(ga4Payload, r.domain),
+      clarityId: clarityIds[r.domain.replace(/^www\./, '')],
+      subscribers: pickSubs(subsPayload, r.domain),
+      yandex_impr_7d: pickYandex(yandexPayload, r.domain)?.impr_7d ?? null,
+      yandex_clicks_7d: pickYandex(yandexPayload, r.domain)?.clicks_7d ?? null,
+      yandex_in_search: pickYandex(yandexPayload, r.domain)?.in_search ?? null,
+      yandex_sqi: pickYandex(yandexPayload, r.domain)?.sqi ?? null,
+      ga4_active_5min: rt?.last5min ?? null,
+      ga4_active_30min: rt?.last30min ?? null,
+      ga4_interactions_7d: ev?.total ?? null,
+      ga4_interactions_by: ev?.byEvent ?? null,
+      ga4_users_7d: au?.users_7d ?? null,
+      ga4_sessions_7d: au?.sessions_7d ?? null,
+      ga4_views_7d: au?.views_7d ?? null,
+      ga4_users_prev_7d: au?.users_prev_7d ?? null,
+      impressions_7d: r.stats.impressions_7d,
+      clicks_7d: r.stats.clicks_7d,
+      avg_position_7d: r.stats.avg_position_7d,
+      pages_with_impressions_7d: r.stats.pages_with_impressions_7d,
+      sitemap_urls_submitted: r.stats.sitemap_urls_submitted,
+      bing_impressions_7d: bing?.impressions_7d ?? null,
+      bing_clicks_7d: bing?.clicks_7d ?? null,
+      bing_ts_30d: bing?.ts_30d ?? null,
+      bing_feeds_indexed: bing?.feeds_urls_indexed ?? null,
+      bing_in_index: bing?.in_index ?? null,
+      bing_in_links: bing?.in_links ?? null,
+      bing_errors_4xx_30d: bing?.errors_4xx_30d ?? null,
+      bing_crawled_30d: bing?.crawled_pages_30d ?? null,
+      bl_total: bl?.total ?? null,
+      bl_done: bl?.done ?? null,
+      bl_inflight: bl?.inflight ?? null,
+      bl_pending: bl?.pending ?? null,
+      bl_broken: bl?.broken ?? null,
+      bl_by_status: bl?.byStatus ?? null,
+      ai_sessions_7d: ai?.sessions_7d ?? null,
+      ai_sessions_28d: ai?.sessions_28d ?? null,
+      ai_by_engine: ai?.byEngine_28d ?? null,
+      adsense_earnings_today: adsenseByDomain[r.domain]?.earnings_today_usd ?? null,
+      adsense_impressions_today: adsenseByDomain[r.domain]?.impressions_today ?? null,
+      adsense_clicks_today: adsenseByDomain[r.domain]?.clicks_today ?? null,
+      adsense_earnings_7d: adsenseByDomain[r.domain]?.earnings_usd ?? null,
+      adsense_impressions_7d: adsenseByDomain[r.domain]?.impressions ?? null,
+      adsense_rpm_7d: adsenseByDomain[r.domain]?.rpm_usd ?? null,
+      adsense_page_views_7d: adsenseByDomain[r.domain]?.page_views ?? null,
+    };
+  });
+  const timeseries = Object.fromEntries(rows.map((r) => {
+    const series = tsPayload ? pickSiteSeries(tsPayload, r.domain) : null;
+    return [r.domain, series?.points || []] as [string, GscDailyPoint[]];
+  }));
+  return { ok: true, rows: out, timeseries, updated };
+}
 
+/** Tổng GSC của MỘT bảng (mỗi nhóm tài sản tính riêng, không cộng site Shopdy vào site nhà). */
+export function tongGsc(rows: RowData[]) {
+  const imps = rows.reduce((s, r) => s + r.impressions_7d, 0);
+  const clicks = rows.reduce((s, r) => s + r.clicks_7d, 0);
+  const pages = rows.reduce((s, r) => s + r.pages_with_impressions_7d, 0);
+  const sitemap = rows.reduce((s, r) => s + r.sitemap_urls_submitted, 0);
+  const weighted = rows.reduce((acc, r) => acc + r.avg_position_7d * r.impressions_7d, 0);
+  return { imps, clicks, pages, sitemap, avgPos: imps > 0 ? weighted / imps : 0 };
+}
+
+/** Hai bảng tài sản website: site nhà + site Shopdy (cùng cột, nhóm riêng). `d` truyền từ tab để không đọc 13 nguồn hai lần. */
+export async function SeoSitesPanel({ d }: { d?: DocSites } = {}) {
+  const doc = d ?? (await docSeoSites());
+  if (!doc.ok) {
+    return (
+      <Panel title="🌐 Website">
+        <p style={{ color: 'var(--fg-3)', fontSize: 12, margin: 0 }}>{doc.loi}</p>
+      </Panel>
+    );
+  }
+  const nha = doc.rows.filter((r) => r.nhom !== 'shopdy');
+  const shopdy = doc.rows.filter((r) => r.nhom === 'shopdy');
+  const bang = (rows: RowData[]) => (
+    <SeoSitesTable rows={rows} totals={tongGsc(rows)}
+      timeseries={Object.fromEntries(rows.map((r) => [r.domain, doc.timeseries[r.domain] ?? []]))} />
+  );
   return (
-    <Panel
-      title="SEO Sites Overview"
-      subtitle={`GSC live (+ GA4-only) · ${rows.length} sites · last sync ${updated}`}
-      actions={<>
-        <a href="/seo/keyword-research" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '4px 10px', border: '1px solid var(--line)', borderRadius: 5, color: 'var(--fg-2)', textDecoration: 'none', background: 'var(--bg-2)' }}>
-          🔍 Keyword Research
-        </a>
-        <RefreshGscBtn />
-      </>}
-    >
-
-      <SeoSitesTable
-        rows={rows.map((r) => {
-          const meta = SITE_META[r.domain] || { emoji: '🌐' };
-          const bing = pickBing(bingPayload, r.domain);
-          const bl = pickBacklinks(backlinkPayload, r.domain, meta.project);
-          const ai = pickGa4Ai(ga4AiPayload, r.domain);
-          const rt = pickGa4Realtime(ga4Realtime, r.domain);
-          const ev = pickGa4Events(ga4Events, r.domain);
-          const au = pickGa4Users(ga4Users, r.domain);
-          return {
-            domain: r.domain,
-            emoji: meta.emoji,
-            project: meta.project,
-            review: meta.review,
-            ga4PropertyId: pickGa4(ga4Payload, r.domain),
-            clarityId: clarityIds[r.domain.replace(/^www\./, '')],
-            subscribers: pickSubs(subsPayload, r.domain),
-            yandex_impr_7d: pickYandex(yandexPayload, r.domain)?.impr_7d ?? null,
-            yandex_clicks_7d: pickYandex(yandexPayload, r.domain)?.clicks_7d ?? null,
-            yandex_in_search: pickYandex(yandexPayload, r.domain)?.in_search ?? null,
-            yandex_sqi: pickYandex(yandexPayload, r.domain)?.sqi ?? null,
-            ga4_active_5min: rt?.last5min ?? null,
-            ga4_active_30min: rt?.last30min ?? null,
-            ga4_interactions_7d: ev?.total ?? null,
-            ga4_interactions_by: ev?.byEvent ?? null,
-            ga4_users_7d: au?.users_7d ?? null,
-            ga4_sessions_7d: au?.sessions_7d ?? null,
-            ga4_views_7d: au?.views_7d ?? null,
-            ga4_users_prev_7d: au?.users_prev_7d ?? null,
-            impressions_7d: r.stats.impressions_7d,
-            clicks_7d: r.stats.clicks_7d,
-            avg_position_7d: r.stats.avg_position_7d,
-            pages_with_impressions_7d: r.stats.pages_with_impressions_7d,
-            sitemap_urls_submitted: r.stats.sitemap_urls_submitted,
-            bing_impressions_7d: bing?.impressions_7d ?? null,
-            bing_clicks_7d: bing?.clicks_7d ?? null,
-            bing_ts_30d: bing?.ts_30d ?? null,
-            bing_feeds_indexed: bing?.feeds_urls_indexed ?? null,
-            bing_in_index: bing?.in_index ?? null,
-            bing_in_links: bing?.in_links ?? null,
-            bing_errors_4xx_30d: bing?.errors_4xx_30d ?? null,
-            bing_crawled_30d: bing?.crawled_pages_30d ?? null,
-            bl_total: bl?.total ?? null,
-            bl_done: bl?.done ?? null,
-            bl_inflight: bl?.inflight ?? null,
-            bl_pending: bl?.pending ?? null,
-            bl_broken: bl?.broken ?? null,
-            bl_by_status: bl?.byStatus ?? null,
-            ai_sessions_7d: ai?.sessions_7d ?? null,
-            ai_sessions_28d: ai?.sessions_28d ?? null,
-            ai_by_engine: ai?.byEngine_28d ?? null,
-            adsense_earnings_today: adsenseByDomain[r.domain]?.earnings_today_usd ?? null,
-            adsense_impressions_today: adsenseByDomain[r.domain]?.impressions_today ?? null,
-            adsense_clicks_today: adsenseByDomain[r.domain]?.clicks_today ?? null,
-            adsense_earnings_7d: adsenseByDomain[r.domain]?.earnings_usd ?? null,
-            adsense_impressions_7d: adsenseByDomain[r.domain]?.impressions ?? null,
-            adsense_rpm_7d: adsenseByDomain[r.domain]?.rpm_usd ?? null,
-            adsense_page_views_7d: adsenseByDomain[r.domain]?.page_views ?? null,
-          };
-        })}
-        timeseries={Object.fromEntries(
-          rows.map((r) => {
-            const series = tsPayload ? pickSiteSeries(tsPayload, r.domain) : null;
-            return [r.domain, series?.points || []] as [string, GscDailyPoint[]];
-          })
-        )}
-        totals={{ imps: totalImps, clicks: totalClicks, pages: totalPages, sitemap: totalSitemap, avgPos }}
-      />
-    </Panel>
+    <>
+      <Panel title="🌐 Website" subtitle={`GSC live (+ GA4-only) · ${nha.length} site · last sync ${doc.updated}`} actions={<RefreshGscBtn />}>
+        {bang(nha)}
+      </Panel>
+      {shopdy.length > 0 && (
+        <Panel title="🛍 Site Shopdy" subtitle={`project bra · ${shopdy.length} site · GA4-only (Shopdy không cấp Search Console) · cùng cột với Website`}>
+          {bang(shopdy)}
+        </Panel>
+      )}
+    </>
   );
 }

@@ -105,8 +105,14 @@ Operator/viewer vs admin differences (xem `topbar.tsx`):
 Links admin-only: **Tribes**, **Publications** (📡 cyan), **Flow** (🗺 violet).
 Links cho mọi role: **Resources** (🗂).
 
-### SystemNav (bottom, chỉ admin)
-3 groups hover → float popout sang phải:
+### SystemNav = CÂY mở sẵn (giữa sidebar, chỉ admin) — từ 05/10/2026
+Trước là 4 nhóm hover → popout; anh chửi vì sidebar 70% trống trong khi 33 mục + 21 tab trong trang giấu sau hai tầng hover.
+Nay `CayNav` (sidebar.tsx): nhóm **Trang chủ · Operate · Monitor · Library · Setup** hiện sẵn, gập/mở nhớ `localStorage['mos2-nav-mo']`,
+nhóm chứa trang đang đứng tự mở; mục có tab cấp trang (`lib/tab-trang.ts`: `/` 11 tab, `/shop` 11 tab) xoè tab khi đang ở trang đó
+hoặc bấm ▸. Tab đang mở đọc từ `window.location.search` (tab đổi bằng replaceState, không qua router). Squads + PROJECT vẫn popout hover
+(`SystemGroups`). Mục Products đã bỏ — trùng tab Tài sản của trang chủ (`/products` redirect `/?tab=taisan`).
+
+Danh sách mục (nhóm cũ, vẫn đúng):
 
 | Group | Items |
 |---|---|

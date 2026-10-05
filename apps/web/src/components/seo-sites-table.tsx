@@ -12,10 +12,12 @@ import { DataTable, type DataColumn, type DataGroup } from './ui/data-table';
 // Domains whose Subs number is backed by a browsable Mailjet contact list (mirrors contacts/route.ts).
 const CONTACT_DOMAINS = new Set(['militarycalc.com', 'govcalcs.com', 'visagps.com', 'mintalmanac.com', 'steamsolo.com']);
 
-interface RowData {
+export interface RowData {
   domain: string;
   emoji: string;
   project?: string;
+  /** Nhóm tài sản: site Shopdy (project bra, GA4-only) tách bảng riêng khỏi site nhà. */
+  nhom?: 'shopdy';
   ga4PropertyId?: string;
   clarityId?: string;   // Microsoft Clarity project (map in adfond page-events.js)
   // Live (GA4 realtime)

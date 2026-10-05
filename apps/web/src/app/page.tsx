@@ -13,9 +13,8 @@ import { OrdersBlotter } from '@/components/orders-blotter';
 import { PhuCanChuY, PhuView } from '@/components/phu-view';
 import { LuatView } from '@/components/luat-view';
 import { phuDo } from '@/lib/phu-shared';
-import { SeoSitesPanel } from '@/components/seo-sites-panel';
-import { ProductsPanel } from '@/components/products-panel';
-import { SteamsoloLangPanel } from '@/components/steamsolo-lang-panel';
+import { TaiSanTab } from '@/components/tai-san-tab';
+import { SeoTab } from '@/components/seo-tab';
 import { AffiliateOffersPanel } from '@/components/affiliate-offers-panel';
 import { DeliverabilityCard } from '@/components/deliverability-card';
 import { MailwizzListsPanel } from '@/components/mailwizz-lists-panel';
@@ -32,7 +31,8 @@ export const dynamic = 'force-dynamic';
 
 // Trang chủ = trung tâm điều hành (anh chốt 16/09/2026): PHỦ (camp · nền tảng · nguồn · hạ tầng) dọn từ
 // /p/<id>/phu về đây, phần còn lại của trang chủ cũ (12 panel xếp dọc) chia theo CÂU HỎI: tiền về chưa (Doanh thu),
-// có ai đi ngang không (SEO & sản phẩm), gửi có tới không (Email), danh sách dự án (Dự án). Trên cùng luôn là
+// mình đang có gì sinh tiền (Tài sản: website · site Shopdy · shop → sản phẩm, 05/10), chỉ số nội bộ một site (SEO),
+// gửi có tới không (Email), danh sách dự án (Dự án). Trên cùng luôn là
 // số tiền + Cần chú ý; mỗi lượt chỉ đọc dữ liệu của tab đang mở. Lệnh MT5 (strategy-lab/orders) cũng về đây (16/09).
 // Thứ tự tab: cookie `home-tabs` (kéo-thả ở HomeTabs; nối bằng '.', dấu phẩy không hợp lệ trong cookie-value), thiếu key nào thì key đó xếp cuối theo mặc định.
 const SL = 'strategy-lab';
@@ -99,11 +99,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <AwarenessFunnelPanel />
           </>}
 
-          {tab === 'seo' && <>
-            <SeoSitesPanel />
-            <Suspense fallback={cho}><ProductsPanel /></Suspense>
-            <SteamsoloLangPanel />
-          </>}
+          {tab === 'taisan' && <Suspense fallback={cho}><TaiSanTab /></Suspense>}
+          {tab === 'seo' && <Suspense fallback={cho}><SeoTab /></Suspense>}
 
           {tab === 'email' && <>
             <Suspense fallback={cho}><MailwizzListsPanel /></Suspense>

@@ -116,8 +116,13 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
       gia: l.currency === 'USD' ? l.price : null, giaChu: l.currency === 'USD' ? undefined : `${l.price.toLocaleString('en-US')} ${l.currency}`,
       views7d: null, don: null, tien: null, ky: '30n', canhBao: null, ghiChu: l.views != null ? `${l.views} lượt xem · ${l.favorites ?? 0} yêu thích (trọn đời)` : null }));
     const khoa = `etsy:${e.handle}`;
-    const cu = shops.findIndex((x) => x.khoa === khoa);   // dòng sổ cái tay (nếu có) nhường cho API
-    if (cu >= 0) shops.splice(cu, 1);
+    // Sổ cái tay giữ lại phần API không thấy (sản phẩm planned/draft chưa lên sàn); dòng trùng link/tên với listing API thì nhường API.
+    const cu = shops.findIndex((x) => x.khoa === khoa);
+    if (cu >= 0) {
+      const co = new Set(sp.flatMap((x) => [x.url && chuanUrl(x.url), x.ten.toLowerCase()]).filter(Boolean));
+      sp.push(...shops[cu].sp.filter((x) => !(x.url && co.has(chuanUrl(x.url))) && !co.has(x.ten.toLowerCase())));
+      shops.splice(cu, 1);
+    }
     shops.push({ khoa, ten: `Etsy · ${e.handle}`, loai: 'etsy', url: e.url, sp, tien: null, ky: '30n', loi: e.error, ghiChu: sp.length ? null : 'chưa có listing' });
   }
   for (const s of shops) {

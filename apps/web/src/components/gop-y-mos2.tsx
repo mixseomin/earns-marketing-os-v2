@@ -63,7 +63,8 @@ function docNguCanh(): string {
   const chu = (e: Element | null | undefined) => (e?.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 90);
   const tab = chu(document.querySelector('[data-comp="ui.Tabs"] [aria-selected="true"]'));
   const drawer = [...document.querySelectorAll('[data-comp="ui.Drawer"]')].filter((d) => !d.querySelector('[data-gop-y]'))
-    .map((d) => chu(d.querySelector('h1, h2, h3, b'))).filter(Boolean);
+    // drawer tự khai ngữ cảnh (data-ngu-canh, vd sản phẩm + id sổ) thì dùng nó; không thì lấy tiêu đề drawer
+    .map((d) => d.querySelector('[data-ngu-canh]')?.getAttribute('data-ngu-canh') || chu(d.querySelector('h1, h2, h3, b'))).filter(Boolean);
   const ua = navigator.userAgent;
   const may = /iPhone|iPad/.test(ua) ? (ua.match(/(iPhone|iPad)[^;)]*/)?.[0] ?? 'iOS') : /Android/.test(ua) ? 'Android' : /Mac OS X/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : 'khác';
   const tdt = /Edg\//.test(ua) ? 'Edge' : /CriOS|Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : '?';
@@ -211,6 +212,8 @@ function CuaToi({ ds, onSangTabGui, onMo }: { ds: GopYCuaToi[] | null; onSangTab
 export function GopYMos2() {
   const router = useRouter();
   const [mo, setMo] = useState(false);
+  // Nơi khác mở hòm góp ý tại chỗ (vd nút "Góp ý về sản phẩm này" trong drawer Tài sản): window.dispatchEvent(new CustomEvent('gop-y:mo'))
+  useEffect(() => { const h = () => setMo(true); window.addEventListener('gop-y:mo', h); return () => window.removeEventListener('gop-y:mo', h); }, []);
   const [tab, setTab] = useState<TabKey>('gui');
   const [ds, setDs] = useState<GopYCuaToi[] | null>(null);
   // Danh sách nạp Ở ĐÂY (không trong tab): con số trên nhãn "Của tôi" phải nói được "còn mấy việc"

@@ -26,7 +26,8 @@ export async function TaiSanTab() {
     { key: 'shopdy', label: 'Site Shopdy', value: web.length - nha.length, sub: 'GA4-only' },
     { key: 'shop', label: 'Shop', value: ban.shops.length, sub: `${sp.length} sản phẩm` },
     { key: 'ban', label: 'Đang bán', value: dem('dang_ban'), color: 'var(--ok)' },
-    { key: 'duyet', label: 'Chờ duyệt', value: dem('cho_duyet'), color: dem('cho_duyet') ? 'var(--warn)' : undefined },
+    { key: 'anh', label: 'Chờ anh duyệt', value: dem('cho_anh'), color: dem('cho_anh') ? 'var(--accent)' : undefined },
+    { key: 'duyet', label: 'Sàn đang duyệt', value: dem('cho_duyet'), color: dem('cho_duyet') ? 'var(--warn)' : undefined },
     { key: 'san', label: 'Sẵn sàng', value: dem('san_sang'), sub: 'xong, chưa đăng' },
     { key: 'lam', label: 'Đang làm', value: dem('dang_lam'), sub: `${dem('du_kien')} dự kiến` },
   ];

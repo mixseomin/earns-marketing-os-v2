@@ -8,6 +8,7 @@ import { SiteFavicon } from '@/components/ui/site-favicon';
 import { TienDo } from '@/components/ui/tien-do';
 import { Cay, DataTable, Drawer, EntityRef, FilterChips, LinkChip, NutCay, Panel, Pill, Segmented, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
+import { BanXem } from './tai-san-ban-xem';
 import { extLinkProps, wrapExternalUrl } from '@/lib/external-url';
 import { useShallowParam } from '@/lib/url-shallow';
 import { TT_SP, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from '@/lib/tai-san/kieu';
@@ -54,7 +55,7 @@ const COT: DataColumn<SpNut>[] = [
   { key: 'ten', header: 'Sản phẩm', align: 'left', sortValue: (x) => x.ten, cellTitle: (x) => (x.url ? `${x.ten}\n${x.url}` : x.ten),
     cell: (x) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.url
       ? <a {...extLinkProps(x.url)} onClick={(e) => e.stopPropagation()} style={{ color: 'var(--fg-1)', textDecoration: 'none' }}>{x.ten} <span style={phu}>↗</span></a> : x.ten}
-      {x.xem && <> <LinkChip href={x.xem} tone="neutral" size="xs" onClick={(e) => e.stopPropagation()}>Xem bản duyệt ↗</LinkChip></>}</span> },
+      {x.trangThai === 'cho_anh' && <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--accent)' }}>· bấm để xem + duyệt</span>}</span> },
   { key: 'dinh_dang', header: 'Định dạng', align: 'left', width: 100, sortValue: (x) => x.phu, cell: (x) => <span style={phu}>{x.phu ?? '—'}</span> },
   { key: 'tt', header: 'Trạng thái', align: 'left', width: 150, sortValue: (x) => TT_SP.findIndex((t) => t.key === x.trangThai),
     cell: (x) => <NhanTt x={x} /> },
@@ -114,7 +115,7 @@ export function TaiSanView({ ban }: { ban: TaiSanBan }) {
   const modal = useModalParam('sp');   // ?sp=sp&spId=<khoa> — F5/share mở lại đúng sản phẩm
   const chon = modal.is('sp') ? ban.shops.flatMap((s) => s.sp.map((x) => ({ s, x }))).find((v) => v.x.khoa === modal.id) ?? null : null;
   // Mặc định mở shop có việc đang chờ (chờ duyệt / đang làm) hoặc ít sản phẩm; Udemy 20 khoá thì gập.
-  const macMo = useMemo(() => new Set(ban.shops.filter((s) => s.sp.some((x) => x.trangThai === 'cho_duyet' || x.trangThai === 'dang_lam') || s.sp.length <= 6).map((s) => s.khoa)), [ban.shops]);
+  const macMo = useMemo(() => new Set(ban.shops.filter((s) => s.sp.some((x) => x.trangThai === 'cho_anh' || x.trangThai === 'cho_duyet' || x.trangThai === 'dang_lam') || s.sp.length <= 6).map((s) => s.khoa)), [ban.shops]);
   const dangMo = moUrl === '-' ? new Set<string>() : moUrl ? new Set(moUrl.split(',')) : macMo;
   const doi = (k: string) => { const n = new Set(dangMo); if (n.has(k)) n.delete(k); else n.add(k); datMo(n.size ? [...n].join(',') : '-'); };
 
@@ -189,7 +190,6 @@ function ChiTietSp({ s, x, onClose }: { s: ShopNut; x: SpNut; onClose: () => voi
     ['Shop', <><span style={{ display: 'inline-flex', verticalAlign: 'middle', marginRight: 6 }}><Logo s={s} /></span>{s.ten}{s.url && <> · <a {...extLinkProps(s.url)} style={{ color: 'var(--accent)' }}>mở shop ↗</a></>}</>],
     ['Tài khoản', s.tk ? <><EntityRef kind="account" id={s.tk.id} label={`#${s.tk.id} ${s.tk.handle}`} />{s.tk.email && <span style={phu}> · {s.tk.email}</span>}</> : <span style={{ color: 'var(--warn)' }}>chưa có trong vault</span>],
     ['Trạng thái', <NhanTt x={x} />],
-    ...(x.xem ? [['Bản xem để duyệt', <a {...extLinkProps(x.xem)} style={{ color: 'var(--accent)' }}>mở trang xem ↗</a>] as [string, React.ReactNode]] : []),
     ['Định dạng', x.phu ?? '—'],
     ['Mã trên nền tảng', x.ma ? <code>{x.ma}</code> : '—'],
     ['Giá', x.gia == null ? '—' : x.gia > 0 ? tienTe(x.gia, x.tienTe) : 'free'],
@@ -198,8 +198,9 @@ function ChiTietSp({ s, x, onClose }: { s: ShopNut; x: SpNut; onClose: () => voi
     ['Thu', x.tien == null ? '— (chưa có nguồn đo)' : <>{tienTe(x.tien)} <span style={phu}>{x.ky === 'tron_doi' ? 'trọn đời' : '30 ngày'}</span></>],
   ];
   return (
-    <Drawer onClose={onClose} width={560}>
-      <div style={{ display: 'grid', gap: 14 }}>
+    <Drawer onClose={onClose} width={x.xem ? 760 : 560}>
+      {/* data-ngu-canh: hòm góp ý MOS2 đọc chuỗi này làm ngữ cảnh → góp ý gửi từ đây tự gắn đúng sản phẩm */}
+      <div style={{ display: 'grid', gap: 14 }} data-ngu-canh={`sản phẩm: ${x.ten} · ${s.ten}${x.idSo ? ` · sổ ${x.idSo}` : ''}`}>
         {x.anh && <Anh x={x} co={520} />}
         <div>
           <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, lineHeight: 1.3 }}>{x.ten}</h2>
@@ -212,6 +213,7 @@ function ChiTietSp({ s, x, onClose }: { s: ShopNut; x: SpNut; onClose: () => voi
         </tbody></table>
         {x.ghiChu && <div><div style={{ fontSize: 11, ...phu, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Ghi chú</div>
           <div style={{ fontSize: 12.5, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{x.ghiChu}</div></div>}
+        {x.xem && <BanXem x={x} />}
       </div>
     </Drawer>
   );

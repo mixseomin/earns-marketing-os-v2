@@ -21,7 +21,7 @@ export { TT_SP, type Ky, type ShopNut, type SpNut, type TaiSanBan, type TrangTha
 const NHAN_NEN: Record<string, string> = { gumroad: 'Gumroad', kdp: 'KDP', etsy: 'Etsy', udemy: 'Udemy', 'mql5-market': 'MQL5 Market', rapidapi: 'RapidAPI',
   stripe: 'Stripe', chaturbate: 'Chaturbate', stripcash: 'Stripcash', course: 'Khoá học', 'wordpress.org': 'WordPress.org' };
 const LOAI_NEN: Record<string, ShopNut['loai']> = { gumroad: 'gumroad', kdp: 'kdp', etsy: 'etsy' };
-const TT_DIRECTUS: Record<string, TrangThaiSp> = { planned: 'du_kien', draft: 'dang_lam', ready: 'san_sang', pending: 'cho_duyet', in_review: 'cho_duyet', published: 'dang_ban', unlisted: 'ngung', archived: 'ngung' };
+const TT_DIRECTUS: Record<string, TrangThaiSp> = { planned: 'du_kien', draft: 'dang_lam', ready: 'san_sang', owner_review: 'cho_anh', pending: 'cho_duyet', in_review: 'cho_duyet', published: 'dang_ban', unlisted: 'ngung', archived: 'ngung' };
 
 // Tài sản sống chết theo TÀI KHOẢN bán: khoá tài khoản là mọi sản phẩm của nó ngừng (Udemy #158, anh báo 05/10/2026).
 // Đọc trạng thái từ vault (platform_accounts) lúc dựng cây, KHÔNG sửa tay từng sản phẩm — kháng nghị được thì tự trở lại.
@@ -85,7 +85,7 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
       const g = nhom.get(khoa) ?? { khoa, ten: store ? `${nen} · ${store}` : nen, loai: LOAI_NEN[r.platform] ?? 'san', url: null, sp: [], tien: null, ky: '30n' as Ky, loi: null, ghiChu: null };
       // Dòng đầu ghi chú do quy-trinh.mjs ghi → tách thành tiến độ (hiện trong nhãn trạng thái), phần còn lại vẫn là ghi chú.
       const qt = (r.notes ?? '').match(/^▶ quy trình (\d+\/\d+)(?: · xong: [^·\n]*)?(?: · (?:kế: )?([^\n]*))?\n?/);
-      g.sp.push({ khoa: `d:${r.id}`, tienDo: qt?.[1], ke: qt?.[2], xem: r.xem,  ten: r.title, anh: r.cover ? `${DIRECTUS}/assets/${r.cover}?width=600` : null, ma: r.sku, phu: r.category ?? r.sku, url: r.url, trangThai: TT_DIRECTUS[r.status ?? ''] ?? 'dang_lam', gia: r.price, tienTe: r.currency ?? undefined,
+      g.sp.push({ khoa: `d:${r.id}`, tienDo: qt?.[1], ke: qt?.[2], xem: r.xem, duyet: r.duyet, idSo: String(r.id),  ten: r.title, anh: r.cover ? `${DIRECTUS}/assets/${r.cover}?width=600` : null, ma: r.sku, phu: r.category ?? r.sku, url: r.url, trangThai: TT_DIRECTUS[r.status ?? ''] ?? 'dang_lam', gia: r.price, tienTe: r.currency ?? undefined,
         views7d: null, don: null, tien: r.net, ky: '30n', canhBao: null, ghiChu: qt ? (r.notes ?? '').slice(qt[0].length) || null : r.notes });
       if (r.net != null) g.tien = (g.tien ?? 0) + r.net;
       nhom.set(khoa, g);
@@ -151,7 +151,7 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
     for (const x of s.sp) if (x.trangThai !== 'ngung') { x.trangThai = 'ngung'; x.ghiChu = [`tài khoản ${chet}`, x.ghiChu].filter(Boolean).join(' · '); }
   }
   // Thứ tự: shop có việc đang chờ (chờ duyệt / đang làm) lên trước, rồi theo tiền.
-  const can = (s: ShopNut) => s.sp.filter((x) => x.trangThai === 'cho_duyet' || x.trangThai === 'san_sang' || x.trangThai === 'dang_lam').length;
+  const can = (s: ShopNut) => s.sp.filter((x) => x.trangThai === 'cho_anh' || x.trangThai === 'cho_duyet' || x.trangThai === 'san_sang' || x.trangThai === 'dang_lam').length;
   shops.sort((a, b) => can(b) - can(a) || (b.tien ?? -1) - (a.tien ?? -1) || a.ten.localeCompare(b.ten));
   return { shops, loi, viewsToi: views.lastSync };
 }

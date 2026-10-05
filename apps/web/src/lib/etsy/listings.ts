@@ -26,9 +26,9 @@ export async function docEtsy(): Promise<EtsyShop[]> {
       };
       const shop = (await get(`/shops?shop_name=${encodeURIComponent(r.handle)}`)).results?.[0] as { shop_id: number; url: string } | undefined;
       if (!shop) return { ...base, error: `Etsy không thấy shop ${r.handle}` };
-      // Lấy mọi trạng thái: active + draft (đang làm) + inactive/expired (ngừng). Endpoint theo state; gọi song song.
-      const states = ['active', 'draft', 'inactive', 'expired'];
-      const lists = await Promise.all(states.map((st) => get(`/shops/${shop.shop_id}/listings?state=${st}&limit=100`).catch(() => ({ results: [] }))));
+      // Chỉ listing ĐANG BÁN: /listings/active là endpoint công khai (chỉ cần x-api-key). Nháp / hết hạn nằm ở /shops/{id}/listings?state=…
+      // — endpoint đó đòi OAuth (listings_r), bản đầu gọi nó bằng api-key trơn nên trả rỗng mà không lỗi, cây ghi "chưa có listing" (05/10/2026).
+      const lists = [await get(`/shops/${shop.shop_id}/listings/active?limit=100`)];
       const listings = lists.flatMap((l) => (l.results ?? []) as { listing_id: number; title: string; url: string; state: string; price: { amount: number; divisor: number; currency_code: string }; views?: number; num_favorers?: number }[])
         .map((l) => ({ id: l.listing_id, title: l.title, url: l.url, state: l.state, price: l.price.amount / l.price.divisor, currency: l.price.currency_code,
           views: l.views ?? null, favorites: l.num_favorers ?? null }));

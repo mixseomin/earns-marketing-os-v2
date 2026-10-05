@@ -120,7 +120,7 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
     const cu = shops.findIndex((x) => x.khoa === khoa);
     if (cu >= 0) {
       const co = new Set(sp.flatMap((x) => [x.url && chuanUrl(x.url), x.ten.toLowerCase()]).filter(Boolean));
-      sp.push(...shops[cu].sp.filter((x) => !(x.url && co.has(chuanUrl(x.url))) && !co.has(x.ten.toLowerCase())));
+      sp.push(...shops[cu]!.sp.filter((x) => !(x.url && co.has(chuanUrl(x.url))) && !co.has(x.ten.toLowerCase())));
       shops.splice(cu, 1);
     }
     shops.push({ khoa, ten: `Etsy · ${e.handle}`, loai: 'etsy', url: e.url, sp, tien: null, ky: '30n', loi: e.error, ghiChu: sp.length ? null : 'chưa có listing' });

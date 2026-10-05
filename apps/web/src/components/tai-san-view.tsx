@@ -4,7 +4,7 @@
 // Mọi bảng lá dùng CÙNG bộ cột + bề rộng cố định → cột thẳng hàng giữa các shop. Dữ liệu: lib/tai-san/doc.ts.
 // Mở/gập shop ghi ở URL ?shop=a,b ('-' = gập hết; trống = mặc định mở shop có việc đang chờ); lọc trạng thái ?tt=.
 import { useMemo } from 'react';
-import { Cay, DataTable, Drawer, EntityRef, FilterChips, LinkChip, NutCay, Panel, Pill, type DataColumn } from '@/components/ui';
+import { Cay, DataTable, Drawer, EntityRef, FilterChips, LinkChip, NutCay, Panel, Pill, Segmented, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { extLinkProps, wrapExternalUrl } from '@/lib/external-url';
 import { useShallowParam } from '@/lib/url-shallow';
@@ -42,6 +42,20 @@ const COT: DataColumn<SpNut>[] = [
       {x.canhBao ? <span style={{ color: 'var(--warn)' }}>⚠ {x.canhBao}</span> : <span style={phu}>{x.ghiChu ?? ''}</span>}</span> },
 ];
 
+// MỤC LỤC shop (anh hỏi 05/10/2026: nhóm dài quá, cần duyệt gọn): mỗi shop một dòng — bấm dòng thì chỉ mở shop đó (?sh=<khoa>).
+type DongShop = { s: ShopNut; dem: Record<TrangThaiSp, number> };
+const so = (n: number, mau?: string) => (n ? <span style={{ color: mau }}>{n}</span> : <span style={{ color: 'var(--fg-4)' }}>·</span>);
+const COT_SHOP: DataColumn<DongShop>[] = [
+  { key: 'shop', header: 'Shop', align: 'left', sortValue: (d) => d.s.ten,
+    cell: (d) => <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><b style={{ fontWeight: 600, color: 'var(--fg-1)' }}>{d.s.ten}</b>
+      {d.s.loi && <Pill label={d.s.loi} color="var(--bad)" size="xs" tone="soft" uppercase={false} mono={false} />}</span> },
+  { key: 'tk', header: 'Tài khoản', align: 'left', width: 200, sortValue: (d) => d.s.tk?.handle ?? '',
+    cell: (d) => (d.s.tk ? <span style={{ color: 'var(--fg-2)' }}>#{d.s.tk.id} {d.s.tk.handle}</span> : <span style={{ color: 'var(--fg-4)' }}>—</span>) },
+  { key: 'n', header: 'Sản phẩm', width: 80, sortValue: (d) => d.s.sp.length, cell: (d) => d.s.sp.length },
+  ...TT_SP.map((t): DataColumn<DongShop> => ({ key: t.key, header: t.chu, width: 80, sortValue: (d) => d.dem[t.key], cell: (d) => so(d.dem[t.key], t.mau) })),
+  { key: 'thu', header: 'Thu', width: 96, sortValue: (d) => d.s.tien, cell: (d) => thu(d.s.tien, d.s.ky) },
+];
+
 function demTt(sp: SpNut[]): Record<TrangThaiSp, number> {
   return Object.fromEntries(TT_SP.map((t) => [t.key, sp.filter((x) => x.trangThai === t.key).length])) as Record<TrangThaiSp, number>;
 }
@@ -49,6 +63,7 @@ function demTt(sp: SpNut[]): Record<TrangThaiSp, number> {
 export function TaiSanView({ ban }: { ban: TaiSanBan }) {
   const [moUrl, datMo] = useShallowParam('shop', '');
   const [loc, datLoc] = useShallowParam('tt', 'all');
+  const [sh, datSh] = useShallowParam('sh', '');   // '' = mục lục · 'all' = cây đầy đủ · <khoa> = một shop
   const modal = useModalParam('sp');   // ?sp=sp&spId=<khoa> — F5/share mở lại đúng sản phẩm
   const chon = modal.is('sp') ? ban.shops.flatMap((s) => s.sp.map((x) => ({ s, x }))).find((v) => v.x.khoa === modal.id) ?? null : null;
   // Mặc định mở shop có việc đang chờ (chờ duyệt / đang làm) hoặc ít sản phẩm; Udemy 20 khoá thì gập.
@@ -58,20 +73,30 @@ export function TaiSanView({ ban }: { ban: TaiSanBan }) {
 
   const tatCa = ban.shops.flatMap((s) => s.sp);
   const dem = demTt(tatCa);
-  const shops = ban.shops.map((s) => ({ s, sp: s.sp.filter((x) => loc === 'all' || x.trangThai === loc) })).filter(({ s, sp }) => loc === 'all' || sp.length || !s.sp.length);
+  const shops = ban.shops.filter((s) => !sh || sh === 'all' || s.khoa === sh)
+    .map((s) => ({ s, sp: s.sp.filter((x) => loc === 'all' || x.trangThai === loc) })).filter(({ s, sp }) => loc === 'all' || sp.length || !s.sp.length);
+  const mucLuc: DongShop[] = ban.shops.map((s) => ({ s, dem: demTt(s.sp) })).filter((d) => loc === 'all' || d.dem[loc as TrangThaiSp]);
+  const motShop = sh && sh !== 'all' ? ban.shops.find((s) => s.khoa === sh) : null;
 
   return (
     <Panel title="🛒 Shop → sản phẩm" subtitle={`${ban.shops.length} shop · ${tatCa.length} sản phẩm${ban.viewsToi ? ` · views Gumroad tới ${ban.viewsToi}` : ''}`}
-      actions={<FilterChips value={loc} onChange={(v) => datLoc(v)} urlKey="tt"
-        options={[{ value: 'all', label: 'Tất cả' }, ...TT_SP.map((t) => ({ value: t.key, label: t.chu }))]} counts={{ all: tatCa.length, ...dem }} />}>
+      actions={<>
+        <Segmented value={sh && sh !== 'all' ? 'one' : sh || 'muc_luc'} onChange={(v) => datSh(v === 'muc_luc' ? '' : v === 'all' ? 'all' : sh)}
+          options={[{ value: 'muc_luc', label: '☰ Mục lục' }, ...(motShop ? [{ value: 'one', label: motShop.ten }] : []), { value: 'all', label: 'Xem tất cả' }]} />
+        <FilterChips value={loc} onChange={(v) => datLoc(v)} urlKey="tt"
+          options={[{ value: 'all', label: 'Tất cả' }, ...TT_SP.map((t) => ({ value: t.key, label: t.chu }))]} counts={{ all: tatCa.length, ...dem }} />
+      </>}>
       {ban.loi.length > 0 && (
         <ul style={{ margin: '0 0 10px', paddingLeft: 18, fontSize: 11, color: 'var(--warn)', fontFamily: 'var(--font-mono)', lineHeight: 1.5 }}>
           {ban.loi.map((l) => <li key={l}>{l}</li>)}
         </ul>
       )}
-      <Cay label="Shop và sản phẩm">
-        {shops.map(({ s, sp }) => <ShopNutCay key={s.khoa} s={s} sp={sp} mo={dangMo.has(s.khoa)} onDoi={() => doi(s.khoa)} onMo={(k) => modal.open('sp', k)} />)}
-      </Cay>
+      {!sh
+        ? <DataTable rows={mucLuc} columns={COT_SHOP} getRowKey={(d) => d.s.khoa} persistKey="tai-san-shop" minWidth={760}
+            onRowClick={(d) => datSh(d.s.khoa)} rowTitle={(d) => `bấm để xem ${d.s.sp.length} sản phẩm của ${d.s.ten}`} />
+        : <Cay label="Shop và sản phẩm">
+            {shops.map(({ s, sp }) => <ShopNutCay key={s.khoa} s={s} sp={sp} mo={sh !== 'all' || dangMo.has(s.khoa)} onDoi={() => doi(s.khoa)} onMo={(k) => modal.open('sp', k)} />)}
+          </Cay>}
       {chon && <ChiTietSp s={chon.s} x={chon.x} onClose={modal.close} />}
     </Panel>
   );

@@ -79,7 +79,11 @@ export function ImageAttach({ value, onChange, folder = 'uploads', max = 6 }: {
     soTruoc.current = value.length;
   }, [value.length]);
   const full = value.length + cho.filter((c) => c.buoc !== 'loi').length >= max;
-  const addUrls = (urls: string[]) => onChange([...value, ...urls].slice(0, max));
+  // Danh sách ảnh HIỆN TẠI qua ref: lượt tải chạy vài giây, `value` bắt lúc bắt đầu đã cũ khi nó xong — ghi `[...value cũ, mới]`
+  // là đè mất ảnh của lượt tải song song / ảnh vừa ✕ (anh báo 05/10/2026: dán ảnh rồi gõ thì mất cả chữ lẫn ảnh).
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const addUrls = (urls: string[]) => onChange([...valueRef.current, ...urls].slice(0, max));
 
   // MỖI ẢNH MỘT DÒNG TRẠNG THÁI (anh chốt 05/10/2026): trước đây chỉ có "Đang tải N ảnh…" chung, không biết ảnh nào đang ở bước
   // nào, đã thu nhỏ chưa, lên tới bao nhiêu KB. Giờ: ô xem trước + bước (nén → tải → xong/lỗi) + kích thước sau khi lên.
@@ -109,7 +113,7 @@ export function ImageAttach({ value, onChange, folder = 'uploads', max = 6 }: {
         loi++; datCho(c.id, { buoc: 'loi', loi: e instanceof Error ? e.message : 'upload lỗi' });
       }
     }
-    if (done.length) onChange([...value, ...done].slice(0, max));
+    if (done.length) onChange([...valueRef.current, ...done].slice(0, max));
     setStatus(loi ? { ok: false, text: `${loi} ảnh lỗi — xem ô đỏ bên dưới` } : { ok: true, text: `✓ Đã tải lên ${done.length} ảnh` });
   };
   const pushDataUrls = async (dataUrls: string[]) => pushBlobs(await Promise.all(dataUrls.map((d) => fetch(d).then((r) => r.blob()))));

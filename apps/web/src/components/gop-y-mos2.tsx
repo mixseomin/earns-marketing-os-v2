@@ -88,12 +88,15 @@ function FormGopY({ onGui }: { onGui: (id: number) => void }) {
     const t = setInterval(() => setTrang(window.location.href), 1000);
     return () => clearInterval(t);
   }, []);
-  const ghi = (n: Nhap) => {
-    setNhap(n);
+  // Sửa nháp theo HÀM trên bản MỚI NHẤT, không theo `nhap` của lần render cũ: ảnh tải xong gọi onChange từ một closure
+  // bắt từ lúc bấm dán — ghi `{ ...nhap cũ, anh }` là đè mất chữ gõ trong lúc tải (anh báo 05/10/2026).
+  const ghi = (doi: (n: Nhap) => Nhap) => setNhap((cu) => {
+    const n = doi(cu);
     try { localStorage.setItem(KHOA, JSON.stringify(n)); } catch { /* đầy thì thôi */ }
-  };
+    return n;
+  });
   const xoaNhap = () => {
-    discardAttachments(nhap.anh); ghi(TRANG_MOI);
+    discardAttachments(nhap.anh); ghi(() => TRANG_MOI);
     try { localStorage.removeItem(KHOA); } catch { /* thôi */ }
   };
   const gui = async () => {
@@ -115,7 +118,7 @@ function FormGopY({ onGui }: { onGui: (id: number) => void }) {
     <div data-gop-y style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div>
         <div style={lbl}>Loại</div>
-        <select value={nhap.loai} onChange={(e) => ghi({ ...nhap, loai: e.target.value })} style={{ ...oNhap, cursor: 'pointer' }}>
+        <select value={nhap.loai} onChange={(e) => { const v = e.target.value; ghi((n) => ({ ...n, loai: v })); }} style={{ ...oNhap, cursor: 'pointer' }}>
           <option value="loi">Báo lỗi / góp ý</option>
           <option value="cau_hoi">Câu hỏi</option>
         </select>
@@ -123,12 +126,12 @@ function FormGopY({ onGui }: { onGui: (id: number) => void }) {
       <div>
         <div style={lbl}>Mô tả</div>
         <textarea rows={5} autoFocus placeholder="Sai ở đâu, mong đợi thấy gì…"
-          value={nhap.noiDung} onChange={(e) => ghi({ ...nhap, noiDung: e.target.value })}
+          value={nhap.noiDung} onChange={(e) => { const v = e.target.value; ghi((n) => ({ ...n, noiDung: v })); }}
           style={{ ...oNhap, resize: 'vertical', outline: 'none' }} />
         <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 3 }}>Nháp và ảnh tự giữ — F5 không mất.</div>
       </div>
       <div style={{ fontSize: 11, color: 'var(--fg-4)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={trang}>🔗 {trang}</div>
-      <ImageAttach value={nhap.anh} onChange={(urls) => ghi({ ...nhap, anh: urls })} folder="gop-y" max={6} />
+      <ImageAttach value={nhap.anh} onChange={(urls) => ghi((n) => ({ ...n, anh: urls }))} folder="gop-y" max={6} />
       {ket && <div style={{ fontSize: 11.5, color: ket.startsWith('✓') ? 'var(--ok,#22c55e)' : 'var(--bad,#ef4444)' }}>{ket}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button type="button" onClick={xoaNhap} disabled={trong && !nhap.anh.length} style={{ ...nutPhu, opacity: trong && !nhap.anh.length ? .5 : 1 }}>Huỷ</button>

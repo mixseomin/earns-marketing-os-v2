@@ -74,7 +74,7 @@ const COT: DataColumn<SpNut>[] = [
  *  kho Directus (earns.accounts) → link sang bản ghi ở as.on.tc, ghi rõ kho để không nhầm id. */
 const TkRef = ({ tk }: { tk: TaiKhoan }) => (tk.nguon === 'mos2'
   ? <EntityRef kind="account" id={Number(tk.id)} label={`#${tk.id} ${tk.handle}`} />
-  : <a {...extLinkProps(`https://as.on.tc/admin/content/accounts/${tk.id}`)} onClick={(e) => e.stopPropagation()} title="tài khoản trong kho Directus (as.on.tc)"
+  : <a {...extLinkProps(tk.url ?? '#')} onClick={(e) => e.stopPropagation()} title="tài khoản trong kho Directus (as.on.tc)"
       style={{ color: 'var(--fg-2)' }}>{tk.handle} <span style={{ fontSize: 10, color: 'var(--fg-4)' }}>Directus ↗</span></a>);
 
 /** Logo nền tảng của shop (Etsy, Gumroad, KDP…) — /api/platform-icon theo khoá nền tảng; shop MOS (mellowstep) lấy favicon tên miền. */

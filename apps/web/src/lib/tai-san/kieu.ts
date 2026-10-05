@@ -20,10 +20,10 @@ export type SpNut = { khoa: string; ten: string; /** ảnh sản phẩm (thumbna
 /** Tài khoản vault đứng sau shop — để biết đăng nhập bằng gì, mở drawer tài khoản. */
 /** nguon: kho nào giữ tài khoản — 'mos2' (platform_accounts, mở drawer EntityRef) hay 'directus' (earns.accounts trên as.on.tc,
  *  id là uuid). Tab Tài sản đọc CẢ HAI: tài khoản chỉ nằm ở Directus trước đây hiện "—" (#1113, 05/10/2026). */
-export type TaiKhoan = { id: number | string; nguon: 'mos2' | 'directus'; handle: string; email: string | null; status: string };
+export type TaiKhoan = { id: number | string; nguon: 'mos2' | 'directus'; /** link bản ghi ở kho Directus (máy chủ dựng từ DIRECTUS_URL) */ url?: string; handle: string; email: string | null; status: string };
 
 /** Một nền tảng nhiều tên khoá giữa các kho (MOS2 'mql5', Directus 'mql5-com', sổ sản phẩm 'mql5-market') → một khoá chuẩn. */
-const NEN_GOP: Record<string, string> = { mql5: 'mql5-market', 'mql5-com': 'mql5-market' };
+export const NEN_GOP: Record<string, string> = { mql5: 'mql5-market', 'mql5-com': 'mql5-market' };
 export const nenChuan = (k: string) => { const x = k.toLowerCase(); return NEN_GOP[x] ?? x; };
 export type ShopNut = { khoa: string; ten: string; loai: 'gumroad' | 'kdp' | 'etsy' | 'mos' | 'san'; url: string | null; sp: SpNut[]; tk?: TaiKhoan | null;
   tien: number | null; ky: Ky; loi: string | null; ghiChu: string | null };
@@ -60,5 +60,9 @@ export type KenhSp = { sanPham: string; ten: string; khop: string | null; o: Rec
 export type XemDuyet = { ngay: string; anh: { id: string; chu: string }[]; trang?: number;
   mau?: { t: string; story: string; ask: string[]; w: string[] }[]; chuDe?: string[]; moTa?: string };
 
-/** Đã duyệt BẢN HIỆN TẠI chưa: có ngày duyệt và không cũ hơn ngày dựng bản xem (dựng lại sau khi duyệt → phải duyệt lại). */
-export const daDuyetBanNay = (duyet: string | null | undefined, xemNgay: string | null | undefined) => !!duyet && (!xemNgay || duyet >= xemNgay);
+/** Đã duyệt BẢN HIỆN TẠI chưa: lúc duyệt không trước lúc dựng bản xem (dựng lại sau khi duyệt → phải duyệt lại). So THỜI ĐIỂM,
+ *  không so chuỗi: duyệt cũ chỉ ghi ngày ('2026-10-06') → coi là cuối ngày đó; bản xem có thể ghi ngày hoặc ISO. Cùng luật với
+ *  drawer bản xem (tai-san-ban-xem.tsx `cuHon`) — hai nơi phải gọi CHUNG hàm này, đừng tự tính lại. */
+const lucCuaNgay = (s: string, cuoiNgay: boolean) => new Date(s.length > 10 ? s : `${s}T${cuoiNgay ? '23:59:59' : '00:00:00'}`).getTime();
+export const daDuyetBanNay = (duyet: string | null | undefined, xemNgay: string | null | undefined) =>
+  !!duyet && (!xemNgay || lucCuaNgay(duyet, true) >= lucCuaNgay(xemNgay, false));

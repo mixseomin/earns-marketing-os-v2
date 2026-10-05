@@ -25,4 +25,6 @@ a.equal(daDuyetBanNay('2026-10-06', '2026-10-05'), true);
 a.equal(daDuyetBanNay('2026-10-05', '2026-10-05'), true);
 a.equal(daDuyetBanNay('2026-10-04', '2026-10-05'), false);    // dựng lại sau khi duyệt → phải duyệt lại
 a.equal(daDuyetBanNay(null, '2026-10-05'), false);
-console.log('daDuyetBanNay: 4/4 ok');
+a.equal(daDuyetBanNay('2026-10-06T10:00:00Z', '2026-10-06T11:00:00Z'), false); // ISO: dựng lại 1 giờ sau khi duyệt
+a.equal(daDuyetBanNay('2026-10-06', '2026-10-06T11:00:00Z'), true);               // duyệt chỉ ngày = cuối ngày
+console.log('daDuyetBanNay: 6/6 ok');

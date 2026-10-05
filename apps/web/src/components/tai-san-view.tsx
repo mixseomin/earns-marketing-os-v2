@@ -24,21 +24,25 @@ const Anh = ({ x, co }: { x: SpNut; co: number }) => (x.anh
   ? <img src={x.anh} alt="" loading="lazy" style={{ width: co, maxWidth: '100%', height: 'auto', aspectRatio: '1', objectFit: 'cover', borderRadius: 4, display: 'block', background: 'var(--bg-2)' }} />
   : <div style={{ width: co, maxWidth: '100%', aspectRatio: '1', borderRadius: 4, background: 'var(--bg-2)' }} />);
 
+/** Nhãn trạng thái — MỘT chỗ cho bảng, thẻ, drawer: kèm tiến độ quy trình sản xuất ('đang làm 1/5'), rê chuột thấy bước kế. */
+const NhanTt = ({ x }: { x: SpNut }) => { const t = tt(x.trangThai); return (
+  <span title={x.ke ? `bước kế: ${x.ke}` : undefined}><Pill label={x.tienDo ? `${t.chu} ${x.tienDo}` : t.chu} color={t.mau} size="xs" tone="soft" uppercase={false} mono={false} /></span>); };
+
 /** Thẻ sản phẩm (chế độ thẻ của DataTable — mặc định trên điện thoại): ảnh + tên + trạng thái/định dạng + giá/thu. */
-const TheSp = (x: SpNut) => { const t = tt(x.trangThai); return (
+const TheSp = (x: SpNut) => (
   <div style={{ display: 'flex', gap: 10, alignItems: 'center', border: '1px solid var(--line)', borderRadius: 8, padding: 8, background: 'var(--bg-1)' }}>
     <div style={{ flex: '0 0 48px' }}><Anh x={x} co={48} /></div>
     <div style={{ minWidth: 0, flex: 1, display: 'grid', gap: 4 }}>
       <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.ten}</div>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', fontSize: 11.5 }}>
-        <Pill label={t.chu} color={t.mau} size="xs" tone="soft" uppercase={false} mono={false} />
+        <NhanTt x={x} />
         {x.phu && <span style={phu}>{x.phu}</span>}
         <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>{x.gia == null ? '' : x.gia > 0 ? tienTe(x.gia, x.tienTe) : 'free'}</span>
         {x.tien != null && x.tien > 0 && thu(x.tien, x.ky)}
       </div>
       {x.canhBao && <div style={{ fontSize: 11, color: 'var(--warn)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>⚠ {x.canhBao}</div>}
     </div>
-  </div>); };
+  </div>);
 
 const COT: DataColumn<SpNut>[] = [
   { key: 'anh', header: '', width: 40, align: 'center', cell: (x) => <Anh x={x} co={28} /> },
@@ -47,7 +51,7 @@ const COT: DataColumn<SpNut>[] = [
       ? <a {...extLinkProps(x.url)} onClick={(e) => e.stopPropagation()} style={{ color: 'var(--fg-1)', textDecoration: 'none' }}>{x.ten} <span style={phu}>↗</span></a> : x.ten}</span> },
   { key: 'dinh_dang', header: 'Định dạng', align: 'left', width: 100, sortValue: (x) => x.phu, cell: (x) => <span style={phu}>{x.phu ?? '—'}</span> },
   { key: 'tt', header: 'Trạng thái', align: 'left', width: 96, sortValue: (x) => TT_SP.findIndex((t) => t.key === x.trangThai),
-    cell: (x) => { const t = tt(x.trangThai); return <Pill label={t.chu} color={t.mau} size="xs" tone="soft" uppercase={false} mono={false} />; } },
+    cell: (x) => <NhanTt x={x} /> },
   { key: 'gia', header: 'Giá', width: 96, sortValue: (x) => x.gia,
     cell: (x) => (x.gia == null ? chuaDo : x.gia > 0 ? tienTe(x.gia, x.tienTe) : <span style={phu}>free</span>) },
   { key: 'views', header: 'Views 7d', width: 72, sortValue: (x) => x.views7d, cell: (x) => (x.views7d == null ? chuaDo : <span style={x.views7d ? undefined : phu}>{x.views7d}</span>) },
@@ -167,11 +171,10 @@ function ShopNutCay({ s, sp, mo, onDoi, onMo }: { s: ShopNut; sp: SpNut[]; mo: b
 
 /** Drawer chi tiết một sản phẩm: ảnh lớn, link (href.li), shop + tài khoản, mọi số và ghi chú đầy đủ. */
 function ChiTietSp({ s, x, onClose }: { s: ShopNut; x: SpNut; onClose: () => void }) {
-  const t = tt(x.trangThai);
   const dong: [string, React.ReactNode][] = [
     ['Shop', <><span style={{ display: 'inline-flex', verticalAlign: 'middle', marginRight: 6 }}><Logo s={s} /></span>{s.ten}{s.url && <> · <a {...extLinkProps(s.url)} style={{ color: 'var(--accent)' }}>mở shop ↗</a></>}</>],
     ['Tài khoản', s.tk ? <><EntityRef kind="account" id={s.tk.id} label={`#${s.tk.id} ${s.tk.handle}`} />{s.tk.email && <span style={phu}> · {s.tk.email}</span>}</> : <span style={{ color: 'var(--warn)' }}>chưa có trong vault</span>],
-    ['Trạng thái', <Pill label={t.chu} color={t.mau} size="xs" tone="soft" uppercase={false} mono={false} />],
+    ['Trạng thái', <NhanTt x={x} />],
     ['Định dạng', x.phu ?? '—'],
     ['Mã trên nền tảng', x.ma ? <code>{x.ma}</code> : '—'],
     ['Giá', x.gia == null ? '—' : x.gia > 0 ? tienTe(x.gia, x.tienTe) : 'free'],

@@ -83,8 +83,10 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
       const khoa = `${r.platform}:${store ?? ''}`;
       const nen = NHAN_NEN[r.platform] ?? r.platform;
       const g = nhom.get(khoa) ?? { khoa, ten: store ? `${nen} · ${store}` : nen, loai: LOAI_NEN[r.platform] ?? 'san', url: null, sp: [], tien: null, ky: '30n' as Ky, loi: null, ghiChu: null };
-      g.sp.push({ khoa: `d:${r.id}`, ten: r.title, anh: r.cover ? `${DIRECTUS}/assets/${r.cover}?width=600` : null, ma: r.sku, phu: r.category ?? r.sku, url: r.url, trangThai: TT_DIRECTUS[r.status ?? ''] ?? 'dang_lam', gia: r.price, tienTe: r.currency ?? undefined,
-        views7d: null, don: null, tien: r.net, ky: '30n', canhBao: null, ghiChu: r.notes });
+      // Dòng đầu ghi chú do quy-trinh.mjs ghi → tách thành tiến độ (hiện trong nhãn trạng thái), phần còn lại vẫn là ghi chú.
+      const qt = (r.notes ?? '').match(/^▶ quy trình (\d+\/\d+)(?: · xong: [^·\n]*)?(?: · (?:kế: )?([^\n]*))?\n?/);
+      g.sp.push({ khoa: `d:${r.id}`, tienDo: qt?.[1], ke: qt?.[2],  ten: r.title, anh: r.cover ? `${DIRECTUS}/assets/${r.cover}?width=600` : null, ma: r.sku, phu: r.category ?? r.sku, url: r.url, trangThai: TT_DIRECTUS[r.status ?? ''] ?? 'dang_lam', gia: r.price, tienTe: r.currency ?? undefined,
+        views7d: null, don: null, tien: r.net, ky: '30n', canhBao: null, ghiChu: qt ? (r.notes ?? '').slice(qt[0].length) || null : r.notes });
       if (r.net != null) g.tien = (g.tien ?? 0) + r.net;
       nhom.set(khoa, g);
     }

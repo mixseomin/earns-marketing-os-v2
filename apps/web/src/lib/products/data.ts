@@ -90,7 +90,8 @@ export async function getProductsView(windowDays = 30): Promise<ProductsView> {
   const errors: string[] = [];
 
   const [products, stats] = await Promise.all([
-    get<Record<string, unknown>>('/items/products?limit=-1&fields=id,title,sku,status,price,platform,url,store,category,currency,cover,notes'),
+    // Sổ cái do máy ghi liên tục (~/bin/sanpham, puzzle-books quy-trinh.mjs) → cache 15s, không 5 phút: trạng thái mới phải hiện gần như ngay.
+    get<Record<string, unknown>>('/items/products?limit=-1&fields=id,title,sku,status,price,platform,url,store,category,currency,cover,notes', 15),
     get<Record<string, unknown>>(
       `/items/product_stats?limit=-1&fields=product_id,date,platform,revenue,gross_revenue,rating,reviews,subscribers&filter[date][_gte]=${since}`),
   ]);

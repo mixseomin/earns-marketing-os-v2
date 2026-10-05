@@ -54,7 +54,7 @@ export function Tabs<T extends string>({ items, value, onChange, right, onReorde
     onReorder(keys);
   };
   return (
-    <div data-comp="ui.Tabs"
+    <div data-comp="ui.Tabs" role="tablist"
          style={{ display: 'flex', alignItems: 'stretch', gap: 2, marginBottom: 12,
                   borderBottom: '1px solid var(--line)', overflowX: 'auto',
                   // boxShadow phủ dải lề trên của .main (var(--s-4)) để nội dung không lướt qua khe phía trên thanh khi đang dính
@@ -67,7 +67,7 @@ export function Tabs<T extends string>({ items, value, onChange, right, onReorde
       {c.items.map((t) => {
         const active = t.key === value;
         return (
-          <button key={t.key} type="button" title={t.title}
+          <button key={t.key} type="button" title={t.title} role="tab" aria-selected={active}
                   onClick={(e) => { if (hrefFor && moTabNeuModifier(e, hrefFor(t.key))) return; onChange(t.key); }}
                   onAuxClick={hrefFor ? (e) => { moTabNeuModifier(e, hrefFor(t.key)); } : undefined}
                   draggable={!!onReorder}

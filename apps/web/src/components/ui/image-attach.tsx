@@ -179,7 +179,7 @@ export function ImageAttach({ value, onChange, folder = 'uploads', max = 6 }: {
       onDrop={(e) => { e.preventDefault(); setDrag(false); void addFiles(e.dataTransfer?.files); }}
       style={{ border: `1px dashed ${drag ? 'var(--accent)' : 'var(--line)'}`, borderRadius: 8, padding: 10, background: drag ? 'color-mix(in srgb, var(--accent) 8%, transparent)' : 'var(--bg-1)', display: 'flex', flexDirection: 'column', gap: 8 }}
     >
-      <div style={{ fontSize: 10.5, color: 'var(--fg-4)', textAlign: 'center' }}>Kéo thả · Ctrl+V ở bất kỳ ô nào (kể cả khi đang gõ) · bấm Paste</div>
+      <div style={{ fontSize: 10.5, color: 'var(--fg-4)', textAlign: 'center' }}>Kéo thả · Ctrl+V (cả khi đang gõ trong form này) · bấm Paste</div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
         <button type="button" onClick={capture} disabled={full} style={btn}>📷 Chụp trang</button>
         <button type="button" onClick={pasteClipboard} disabled={full} style={btn}>📋 Paste</button>

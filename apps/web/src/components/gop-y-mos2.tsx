@@ -61,7 +61,7 @@ const oNhap = { width: '100%', background: 'var(--bg-2)', border: '1px solid var
 /** Ngữ cảnh màn lúc gửi: tiêu đề tab trình duyệt · tab trang đang chọn · drawer đang mở (trừ chính hòm góp ý) · thiết bị + khổ. */
 function docNguCanh(): string {
   const chu = (e: Element | null | undefined) => (e?.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 90);
-  const tab = chu(document.querySelector('[data-comp="ui.Tabs"] button[style*="font-weight: 700"]'));
+  const tab = chu(document.querySelector('[data-comp="ui.Tabs"] [aria-selected="true"]'));
   const drawer = [...document.querySelectorAll('[data-comp="ui.Drawer"]')].filter((d) => !d.querySelector('[data-gop-y]'))
     .map((d) => chu(d.querySelector('h1, h2, h3, b'))).filter(Boolean);
   const ua = navigator.userAgent;

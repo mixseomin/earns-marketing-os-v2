@@ -112,6 +112,28 @@ export function ImageAttach({ value, onChange, folder = 'uploads', max = 6 }: {
     if (imgs.length) await pushBlobs(imgs);
   };
 
+  // Ctrl+V Ở BẤT KỲ Ô NÀO cùng drawer/form (anh báo 05/10/2026: đang gõ mô tả mà dán ảnh không ăn — onPaste chỉ gắn trên khung
+  // ảnh, con trỏ nằm ở textarea anh em thì sự kiện không bao giờ tới). Nghe ở document, nhận khi chỗ dán chung vùng với khung
+  // này (cùng ui.Drawer / form gần nhất, hoặc chưa focus gì). Chỉ chặn mặc định khi clipboard CÓ ẢNH — dán chữ vẫn vào ô như thường.
+  const hopRef = useRef<HTMLDivElement>(null);
+  const addFilesRef = useRef(addFiles);
+  addFilesRef.current = addFiles;
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const hop = hopRef.current;
+      if (!hop || e.defaultPrevented) return;
+      const imgs = [...(e.clipboardData?.items || [])].filter((i) => i.type.startsWith('image/')).map((i) => i.getAsFile()).filter(Boolean) as File[];
+      if (!imgs.length) return;
+      const t = e.target instanceof Element ? e.target : null;
+      const vung = hop.closest('[data-comp="ui.Drawer"], form') ?? hop.parentElement;
+      if (t && t !== document.body && !(vung?.contains(t) || hop.contains(t))) return;
+      e.preventDefault();
+      void addFilesRef.current(imgs);
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, []);
+
   // "Paste" button — read the clipboard directly (mobile / when the textarea isn't focused).
   const pasteClipboard = async () => {
     try {
@@ -144,13 +166,13 @@ export function ImageAttach({ value, onChange, folder = 'uploads', max = 6 }: {
     <div
       data-comp="ui.ImageAttach"
       tabIndex={0}
-      onPaste={(e) => { const imgs = [...(e.clipboardData?.items || [])].filter((i) => i.type.startsWith('image/')).map((i) => i.getAsFile()).filter(Boolean) as File[]; if (imgs.length) { e.preventDefault(); void addFiles(imgs); } }}
+      ref={hopRef}
       onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
       onDragLeave={() => setDrag(false)}
       onDrop={(e) => { e.preventDefault(); setDrag(false); void addFiles(e.dataTransfer?.files); }}
       style={{ border: `1px dashed ${drag ? 'var(--accent)' : 'var(--line)'}`, borderRadius: 8, padding: 10, background: drag ? 'color-mix(in srgb, var(--accent) 8%, transparent)' : 'var(--bg-1)', display: 'flex', flexDirection: 'column', gap: 8 }}
     >
-      <div style={{ fontSize: 10.5, color: 'var(--fg-4)', textAlign: 'center' }}>Kéo thả · Ctrl+V · bấm Paste</div>
+      <div style={{ fontSize: 10.5, color: 'var(--fg-4)', textAlign: 'center' }}>Kéo thả · Ctrl+V ở bất kỳ ô nào (kể cả khi đang gõ) · bấm Paste</div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
         <button type="button" onClick={capture} disabled={full} style={btn}>📷 Chụp trang</button>
         <button type="button" onClick={pasteClipboard} disabled={full} style={btn}>📋 Paste</button>

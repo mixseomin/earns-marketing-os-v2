@@ -123,16 +123,17 @@ export function TaiSanView({ ban }: { ban: TaiSanBan }) {
     <Panel title="🛒 Shop → sản phẩm" subtitle={`${ban.shops.length} shop · ${tatCa.length} sản phẩm${ban.viewsToi ? ` · views Gumroad tới ${ban.viewsToi}` : ''}`}
       actions={<>
         {/* Hàng nút CỐ ĐỊNH (#1109, 05/10/2026): bản trước chèn tên shop đang xem làm ô thứ hai của Segmented → chọn shop là
-            "Xem tất cả" + 7 chip lọc dạt phải 97-127px, về Mục lục lại bật về — nhảy qua nhảy lại. Tên shop đứng CUỐI hàng. */}
+            "Xem tất cả" + 7 chip lọc dạt phải 97-127px, về Mục lục lại bật về — nhảy qua nhảy lại. Tên shop đứng CUỐI hàng,
+            cao đúng 18px như chip/Segmented — cao hơn là cả hàng tụt xuống (đo được 4px với bản 25px). */}
         <Segmented value={motShop ? 'one' : sh || 'muc_luc'} onChange={(v) => datSh(v === 'muc_luc' ? '' : 'all')}
           options={[{ value: 'muc_luc', label: '☰ Mục lục' }, { value: 'all', label: 'Xem tất cả' }]} />
         <FilterChips value={loc} onChange={(v) => datLoc(v)} urlKey="tt"
           options={[{ value: 'all', label: 'Tất cả' }, ...TT_SP.map((t) => ({ value: t.key, label: t.chu }))]} counts={{ all: tatCa.length, ...dem }} />
-        {motShop && <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 12, padding: '3px 4px 3px 10px', borderRadius: 999,
+        {motShop && <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 11.5, height: 18, boxSizing: 'border-box', lineHeight: 1, padding: '0 2px 0 8px', borderRadius: 999,
           border: '1px solid var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
-          <Logo s={motShop} co={14} />{motShop.ten}
+          <Logo s={motShop} co={12} />{motShop.ten}
           <button type="button" onClick={() => datSh('')} title="Về mục lục" aria-label="Về mục lục"
-            style={{ border: 0, background: 'none', color: 'var(--fg-2)', cursor: 'pointer', fontSize: 13, padding: '0 4px' }}>✕</button></span>}
+            style={{ border: 0, background: 'none', color: 'var(--fg-2)', cursor: 'pointer', fontSize: 11, lineHeight: 1, padding: '0 4px' }}>✕</button></span>}
       </>}>
       {ban.loi.length > 0 && (
         <ul style={{ margin: '0 0 10px', paddingLeft: 18, fontSize: 11, color: 'var(--warn)', fontFamily: 'var(--font-mono)', lineHeight: 1.5 }}>

@@ -3,13 +3,13 @@
 // bao nhiêu kênh, bao nhiêu việc cần làm), mở ra mỗi KÊNH MỘT HÀNG. Kênh là hàng chứ không phải cột, nên thêm kênh nào
 // bảng cũng chỉ dài ra, không nở ngang (anh chê bản cột 05/10/2026). Cảnh báo một dòng, đủ chữ ở tooltip.
 // Mở/gập ghi ở URL ?kenh=a,b (giống ?shop=).
-import { Cay, EntityRef, LaBang, NutCay, Panel, Pill, oLa, type CotLa } from '@/components/ui';
+import { Cay, EntityRef, LaBang, NutCay, Panel, Pill, TienDo, oLa, type CotLa } from '@/components/ui';
 import { extLinkProps } from '@/lib/external-url';
 import { useShallowParam } from '@/lib/url-shallow';
 import { KHAU, TT_SP, type KenhSp, type TrangThaiSp } from '@/lib/tai-san/kieu';
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
-const COT: CotLa[] = [{ h: 'Kênh', rong: 150 }, { h: 'Khâu', rong: 170 }, { h: 'Tiến độ', rong: 80, phai: true }, { h: 'Trỏ về', rong: 200 },
+const COT: CotLa[] = [{ h: 'Kênh', rong: 240 }, { h: 'Khâu', rong: 190 }, { h: 'Tiến độ', rong: 110, phai: true }, { h: 'Trỏ về', rong: 200 },
   { h: 'Cần làm', rong: 300 }, { h: 'Card', rong: 120 }];
 export type BanO = { noi: string; trangThai: TrangThaiSp }[];
 
@@ -33,16 +33,17 @@ export function TaiSanKenh({ kenh, ban }: { kenh: KenhSp[]; ban: Record<string, 
               <LaBang cot={COT}>
                 <tbody>
                   {ks.map((o) => {
-                    const k = KHAU[o.kenh] ?? { nhan: o.kenh, khau: [] };
+                    const k = KHAU[o.kenh] ?? { nhan: o.kenh, moTa: '', khau: [] };
                     const ds = o.canhBao ? o.canhBao.split(' · ') : [];
                     return (
                       <tr key={o.kenh} style={{ borderTop: '1px solid var(--line)' }}>
-                        <td style={oLa()}>{k.nhan}</td>
-                        <td style={oLa()} title={k.khau.map((x, i) => `${i <= o.muc ? '●' : '○'} ${x}`).join('\n')}>
-                          <span style={{ color: o.muc >= k.khau.length - 1 ? 'var(--ok)' : 'var(--accent)', marginRight: 6 }}>
-                            {k.khau.slice(1).map((_, i) => (i < o.muc ? '●' : '○')).join('')}</span>{k.khau[o.muc] ?? o.muc}
+                        <td style={{ ...oLa(), whiteSpace: 'normal' }} title={k.moTa}>{k.nhan}
+                          {k.moTa && <div style={{ fontSize: 10.5, lineHeight: 1.35, color: 'var(--fg-3)', marginTop: 1 }}>{k.moTa}</div>}</td>
+                        <td style={oLa()}>
+                          <TienDo xong={o.muc} tong={k.khau.length - 1} buoc={k.khau.slice(1)} so={false} rong={44} />
+                          <span style={{ marginLeft: 6 }}>{k.khau[o.muc] ?? o.muc}</span>
                         </td>
-                        <td style={oLa(true)}>{o.tong != null ? `${o.xong ?? 0}/${o.tong}` : '—'}</td>
+                        <td style={oLa(true)}>{o.tong != null ? <TienDo xong={o.xong ?? 0} tong={o.tong} rong={40} /> : '—'}</td>
                         <td style={{ ...oLa(), ...phu }} title={o.dich ?? ''}>{o.dich
                           ? <a {...extLinkProps(o.dich)} style={{ color: 'inherit' }}>{o.dich.replace(/^https?:\/\//, '').replace(/[?#].*$/, '')}</a> : '—'}</td>
                         <td style={oLa()} title={ds.join('\n')}>{ds.length

@@ -5,6 +5,7 @@
 // Mở/gập shop ghi ở URL ?shop=a,b ('-' = gập hết; trống = mặc định mở shop có việc đang chờ); lọc trạng thái ?tt=.
 import { useMemo } from 'react';
 import { SiteFavicon } from '@/components/ui/site-favicon';
+import { TienDo } from '@/components/ui/tien-do';
 import { Cay, DataTable, Drawer, EntityRef, FilterChips, LinkChip, NutCay, Panel, Pill, Segmented, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { extLinkProps, wrapExternalUrl } from '@/lib/external-url';
@@ -26,7 +27,11 @@ const Anh = ({ x, co }: { x: SpNut; co: number }) => (x.anh
 
 /** Nhãn trạng thái — MỘT chỗ cho bảng, thẻ, drawer: kèm tiến độ quy trình sản xuất ('đang làm 1/5'), rê chuột thấy bước kế. */
 const NhanTt = ({ x }: { x: SpNut }) => { const t = tt(x.trangThai); return (
-  <span title={x.ke ? `bước kế: ${x.ke}` : undefined}><Pill label={x.tienDo ? `${t.chu} ${x.tienDo}` : t.chu} color={t.mau} size="xs" tone="soft" uppercase={false} mono={false} /></span>); };
+  // Tiến độ quy trình VẼ thành thanh ô cạnh nhãn, không nhét "2/5" vào chữ (#1112: đọc chữ không hiểu, phải nhìn là thấy).
+  <span title={x.ke ? `bước kế: ${x.ke}` : undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+    <Pill label={t.chu} color={t.mau} size="xs" tone="soft" uppercase={false} mono={false} />
+    {phanSo(x.tienDo) && <TienDo xong={phanSo(x.tienDo)![0]} tong={phanSo(x.tienDo)![1]} mau={t.mau} rong={36} />}</span>); };
+const phanSo = (s?: string): [number, number] | null => { const m = s?.match(/^(\d+)\/(\d+)$/); return m ? [Number(m[1]), Number(m[2])] : null; };
 
 /** Thẻ sản phẩm (chế độ thẻ của DataTable — mặc định trên điện thoại): ảnh + tên + trạng thái/định dạng + giá/thu. */
 const TheSp = (x: SpNut) => (
@@ -50,7 +55,7 @@ const COT: DataColumn<SpNut>[] = [
     cell: (x) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.url
       ? <a {...extLinkProps(x.url)} onClick={(e) => e.stopPropagation()} style={{ color: 'var(--fg-1)', textDecoration: 'none' }}>{x.ten} <span style={phu}>↗</span></a> : x.ten}</span> },
   { key: 'dinh_dang', header: 'Định dạng', align: 'left', width: 100, sortValue: (x) => x.phu, cell: (x) => <span style={phu}>{x.phu ?? '—'}</span> },
-  { key: 'tt', header: 'Trạng thái', align: 'left', width: 96, sortValue: (x) => TT_SP.findIndex((t) => t.key === x.trangThai),
+  { key: 'tt', header: 'Trạng thái', align: 'left', width: 150, sortValue: (x) => TT_SP.findIndex((t) => t.key === x.trangThai),
     cell: (x) => <NhanTt x={x} /> },
   { key: 'gia', header: 'Giá', width: 96, sortValue: (x) => x.gia,
     cell: (x) => (x.gia == null ? chuaDo : x.gia > 0 ? tienTe(x.gia, x.tienTe) : <span style={phu}>free</span>) },

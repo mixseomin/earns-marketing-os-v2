@@ -21,7 +21,7 @@ export { TT_SP, type Ky, type ShopNut, type SpNut, type TaiSanBan, type TrangTha
 const NHAN_NEN: Record<string, string> = { gumroad: 'Gumroad', kdp: 'KDP', etsy: 'Etsy', udemy: 'Udemy', 'mql5-market': 'MQL5 Market', rapidapi: 'RapidAPI',
   stripe: 'Stripe', chaturbate: 'Chaturbate', stripcash: 'Stripcash', course: 'Khoá học', 'wordpress.org': 'WordPress.org' };
 const LOAI_NEN: Record<string, ShopNut['loai']> = { gumroad: 'gumroad', kdp: 'kdp', etsy: 'etsy' };
-const TT_DIRECTUS: Record<string, TrangThaiSp> = { planned: 'dang_lam', draft: 'dang_lam', pending: 'cho_duyet', in_review: 'cho_duyet', published: 'dang_ban', unlisted: 'ngung', archived: 'ngung' };
+const TT_DIRECTUS: Record<string, TrangThaiSp> = { planned: 'du_kien', draft: 'dang_lam', ready: 'san_sang', pending: 'cho_duyet', in_review: 'cho_duyet', published: 'dang_ban', unlisted: 'ngung', archived: 'ngung' };
 
 // Tài sản sống chết theo TÀI KHOẢN bán: khoá tài khoản là mọi sản phẩm của nó ngừng (Udemy #158, anh báo 05/10/2026).
 // Đọc trạng thái từ vault (platform_accounts) lúc dựng cây, KHÔNG sửa tay từng sản phẩm — kháng nghị được thì tự trở lại.
@@ -149,7 +149,7 @@ export async function docTaiSanBan(): Promise<TaiSanBan> {
     for (const x of s.sp) if (x.trangThai !== 'ngung') { x.trangThai = 'ngung'; x.ghiChu = [`tài khoản ${chet}`, x.ghiChu].filter(Boolean).join(' · '); }
   }
   // Thứ tự: shop có việc đang chờ (chờ duyệt / đang làm) lên trước, rồi theo tiền.
-  const can = (s: ShopNut) => s.sp.filter((x) => x.trangThai === 'cho_duyet' || x.trangThai === 'dang_lam').length;
+  const can = (s: ShopNut) => s.sp.filter((x) => x.trangThai === 'cho_duyet' || x.trangThai === 'san_sang' || x.trangThai === 'dang_lam').length;
   shops.sort((a, b) => can(b) - can(a) || (b.tien ?? -1) - (a.tien ?? -1) || a.ten.localeCompare(b.ten));
   return { shops, loi, viewsToi: views.lastSync };
 }

@@ -19,7 +19,8 @@ export async function TaiSanTab() {
     { key: 'shop', label: 'Shop', value: ban.shops.length, sub: `${sp.length} sản phẩm` },
     { key: 'ban', label: 'Đang bán', value: dem('dang_ban'), color: 'var(--ok)' },
     { key: 'duyet', label: 'Chờ duyệt', value: dem('cho_duyet'), color: dem('cho_duyet') ? 'var(--warn)' : undefined },
-    { key: 'lam', label: 'Đang làm', value: dem('dang_lam') },
+    { key: 'san', label: 'Sẵn sàng', value: dem('san_sang'), sub: 'xong, chưa đăng' },
+    { key: 'lam', label: 'Đang làm', value: dem('dang_lam'), sub: `${dem('du_kien')} dự kiến` },
   ];
   // minmax(0,1fr): ô grid mặc định min-width:auto → bảng rộng (cột Site width 100%) NỞ theo nội dung, đẩy mọi cột số ra ngoài
   // khung thay vì cuộn ngang (anh bắt 05/10/2026).

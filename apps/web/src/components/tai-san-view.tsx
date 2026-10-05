@@ -160,7 +160,9 @@ export function TaiSanView({ ban }: { ban: TaiSanBan }) {
         : <Cay label="Shop và sản phẩm">
             {shops.map(({ s, sp }) => <ShopNutCay key={s.khoa} s={s} sp={sp} mo={sh !== 'all' || dangMo.has(s.khoa)} onDoi={() => doi(s.khoa)} onMo={(k) => modal.open('sp', k)} />)}
           </Cay>}
-      {chon && <ChiTietSp s={chon.s} x={chon.x} onClose={modal.close} />}
+      {/* key = sản phẩm: chuyển sang sản phẩm khác khi drawer đang mở thì DỰNG LẠI, không mang trạng thái của cái trước
+          (#1123: dòng "Đã duyệt…" của sản phẩm vừa duyệt dính sang sản phẩm kế; F5 mới hết). */}
+      {chon && <ChiTietSp key={chon.x.khoa} s={chon.s} x={chon.x} onClose={modal.close} />}
     </Panel>
   );
 }

@@ -42,13 +42,18 @@ export function shopChet(nen: string, store: string | null, tk: { nen: string; h
 
 // Kênh kéo khách (bảng kenh_sp) — phần thuần cho panel client; đọc DB ở kenh.ts.
 /** Các khâu của từng kênh, theo thứ tự; kenh_sp.muc là chỉ số trong mảng. Kênh mới = thêm một dòng ở đây. */
-/** moTa: kênh này LÀ gì — hiện dưới tên kênh (anh hỏi #1111: "cần xem mô tả của từng kênh"). */
-export const KHAU: Record<string, { nhan: string; moTa: string; khau: string[] }> = {
+/** moTa: kênh này LÀ gì (#1111). */
+/** noi: kênh ĐĂNG Ở ĐÂU (#1116) — tài khoản vault (id platform_accounts) và/hoặc trang; chưa có thì để trống, không bịa.
+ *  moTa hiện khi rê chuột vào tên kênh (#1116: hiện cả đoạn là chật). */
+export const KHAU: Record<string, { nhan: string; moTa: string; noi: { tk: { id: number; nhan: string }[]; url?: string }; khau: string[] }> = {
   pinterest: { nhan: 'Pinterest', moTa: 'Ghim ảnh sản phẩm lên Pinterest, hẹn lịch đăng dần; mỗi ghim có link về trang bán.',
+    noi: { tk: [{ id: 503, nhan: 'Pinterest' }] },
     khau: ['chưa làm', 'dựng ảnh ghim', 'đã hẹn lịch', 'đang lên', 'lên hết'] },
-  shorts: { nhan: 'Video ngắn', moTa: 'Video ngắn giới thiệu sách đăng YouTube Shorts / Facebook / Instagram, có link về trang bán.',
+  shorts: { nhan: 'Video ngắn', moTa: 'Video ngắn giới thiệu sách đăng YouTube Shorts / Instagram / TikTok, có link về trang bán.',
+    noi: { tk: [{ id: 506, nhan: 'YouTube' }, { id: 508, nhan: 'Instagram' }, { id: 509, nhan: 'TikTok' }] },
     khau: ['chưa làm', 'dựng video', 'đăng một phần', 'đăng hết'] },
   printables: { nhan: 'Trang tặng miễn phí', moTa: 'Trang tải miễn phí vài trang mẫu trên site nhà — khách tìm thấy qua Google, từ đó dẫn sang trang bán.',
+    noi: { tk: [], url: 'https://pickjot.com/printables/' },
     khau: ['chưa làm', 'dựng trang', 'đang live', 'đã nộp sitemap'] },
 };
 
@@ -66,3 +71,8 @@ export type XemDuyet = { ngay: string; anh: { id: string; chu: string }[]; trang
 const lucCuaNgay = (s: string, cuoiNgay: boolean) => new Date(s.length > 10 ? s : `${s}T${cuoiNgay ? '23:59:59' : '00:00:00'}`).getTime();
 export const daDuyetBanNay = (duyet: string | null | undefined, xemNgay: string | null | undefined) =>
   !!duyet && (!xemNgay || lucCuaNgay(duyet, true) >= lucCuaNgay(xemNgay, false));
+
+/** Ảnh đại diện lấy từ BẢN XEM khi sổ chưa có cover (#1119: sản phẩm chưa đăng vẫn phải thấy bìa dự định): ảnh bán đầu tiên
+ *  (bìa trước) — không lấy bìa giấy trải phẳng (mặt sau · gáy · mặt trước). Không có thì ảnh đầu. */
+export const anhBiaXem = (xem: XemDuyet | null | undefined): string | null =>
+  xem?.anh.find((a) => /^Ảnh bán 1/i.test(a.chu))?.id ?? xem?.anh[0]?.id ?? null;

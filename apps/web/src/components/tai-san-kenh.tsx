@@ -9,7 +9,7 @@ import { useShallowParam } from '@/lib/url-shallow';
 import { KHAU, TT_SP, type KenhSp, type TrangThaiSp } from '@/lib/tai-san/kieu';
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
-const COT: CotLa[] = [{ h: 'Kênh', rong: 240 }, { h: 'Khâu', rong: 190 }, { h: 'Tiến độ', rong: 110, phai: true }, { h: 'Trỏ về', rong: 200 },
+const COT: CotLa[] = [{ h: 'Kênh', rong: 150 }, { h: 'Đăng ở', rong: 230 }, { h: 'Khâu', rong: 190 }, { h: 'Tiến độ', rong: 110, phai: true }, { h: 'Trỏ về', rong: 200 },
   { h: 'Cần làm', rong: 300 }, { h: 'Card', rong: 120 }];
 export type BanO = { noi: string; trangThai: TrangThaiSp }[];
 
@@ -33,12 +33,16 @@ export function TaiSanKenh({ kenh, ban }: { kenh: KenhSp[]; ban: Record<string, 
               <LaBang cot={COT}>
                 <tbody>
                   {ks.map((o) => {
-                    const k = KHAU[o.kenh] ?? { nhan: o.kenh, moTa: '', khau: [] };
+                    const k = KHAU[o.kenh] ?? { nhan: o.kenh, moTa: '', noi: { tk: [] }, khau: [] };
                     const ds = o.canhBao ? o.canhBao.split(' · ') : [];
                     return (
                       <tr key={o.kenh} style={{ borderTop: '1px solid var(--line)' }}>
-                        <td style={{ ...oLa(), whiteSpace: 'normal' }} title={k.moTa}>{k.nhan}
-                          {k.moTa && <div style={{ fontSize: 10.5, lineHeight: 1.35, color: 'var(--fg-3)', marginTop: 1 }}>{k.moTa}</div>}</td>
+                        <td style={oLa()} title={k.moTa}><span style={{ borderBottom: '1px dotted var(--fg-4)', cursor: 'help' }}>{k.nhan}</span></td>
+                        <td style={oLa()}>{k.noi.tk.length || k.noi.url
+                          ? <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                              {k.noi.tk.map((t) => <EntityRef key={t.id} kind="account" id={t.id} label={t.nhan} size="sm" />)}
+                              {k.noi.url && <a {...extLinkProps(k.noi.url)} style={{ color: 'var(--fg-2)' }}>{k.noi.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗</a>}</span>
+                          : <span style={{ color: 'var(--fg-4)' }}>—</span>}</td>
                         <td style={oLa()}>
                           <TienDo xong={o.muc} tong={k.khau.length - 1} buoc={k.khau.slice(1)} so={false} rong={44} />
                           <span style={{ marginLeft: 6 }}>{k.khau[o.muc] ?? o.muc}</span>

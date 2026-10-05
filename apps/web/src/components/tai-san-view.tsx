@@ -4,6 +4,7 @@
 // Mọi bảng lá dùng CÙNG bộ cột + bề rộng cố định → cột thẳng hàng giữa các shop. Dữ liệu: lib/tai-san/doc.ts.
 // Mở/gập shop ghi ở URL ?shop=a,b ('-' = gập hết; trống = mặc định mở shop có việc đang chờ); lọc trạng thái ?tt=.
 import { useMemo } from 'react';
+import { SiteFavicon } from '@/components/ui/site-favicon';
 import { Cay, DataTable, Drawer, EntityRef, FilterChips, LinkChip, NutCay, Panel, Pill, Segmented, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { extLinkProps, wrapExternalUrl } from '@/lib/external-url';
@@ -58,10 +59,15 @@ const COT: DataColumn<SpNut>[] = [
       {x.canhBao ? <span style={{ color: 'var(--warn)' }}>⚠ {x.canhBao}</span> : <span style={phu}>{x.ghiChu ?? ''}</span>}</span> },
 ];
 
+/** Logo nền tảng của shop (Etsy, Gumroad, KDP…) — /api/platform-icon theo khoá nền tảng; shop MOS (mellowstep) lấy favicon tên miền. */
+const Logo = ({ s, co = 16 }: { s: ShopNut; co?: number }) => (s.loai === 'mos' || s.loai === 'san'
+  ? <SiteFavicon url={s.url} size={co} /> : <SiteFavicon platformKey={s.khoa.split(':')[0]} url={s.url} size={co} />);
+
 /** Thẻ shop (mục lục, điện thoại): tên + tài khoản một dòng, số theo trạng thái gọn một dòng. */
 const TheShop = (d: DongShop) => (
   <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px', background: 'var(--bg-1)', display: 'grid', gap: 4 }}>
     <div style={{ display: 'flex', gap: 6, alignItems: 'center', minWidth: 0 }}>
+      <Logo s={d.s} />
       <b style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.s.ten}</b>
       {d.s.loi && <Pill label={d.s.loi} color="var(--bad)" size="xs" tone="soft" uppercase={false} mono={false} />}
       <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 12 }}>{d.s.tien == null ? null : thu(d.s.tien, d.s.ky)}</span>
@@ -78,7 +84,7 @@ type DongShop = { s: ShopNut; dem: Record<TrangThaiSp, number> };
 const so = (n: number, mau?: string) => (n ? <span style={{ color: mau }}>{n}</span> : <span style={{ color: 'var(--fg-4)' }}>·</span>);
 const COT_SHOP: DataColumn<DongShop>[] = [
   { key: 'shop', header: 'Shop', align: 'left', sortValue: (d) => d.s.ten,
-    cell: (d) => <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><b style={{ fontWeight: 600, color: 'var(--fg-1)' }}>{d.s.ten}</b>
+    cell: (d) => <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><Logo s={d.s} /><b style={{ fontWeight: 600, color: 'var(--fg-1)' }}>{d.s.ten}</b>
       {d.s.loi && <Pill label={d.s.loi} color="var(--bad)" size="xs" tone="soft" uppercase={false} mono={false} />}</span> },
   { key: 'tk', header: 'Tài khoản', align: 'left', width: 200, sortValue: (d) => d.s.tk?.handle ?? '',
     cell: (d) => (d.s.tk ? <span style={{ color: 'var(--fg-2)' }}>#{d.s.tk.id} {d.s.tk.handle}</span> : <span style={{ color: 'var(--fg-4)' }}>—</span>) },
@@ -139,6 +145,7 @@ function ShopNutCay({ s, sp, mo, onDoi, onMo }: { s: ShopNut; sp: SpNut[]; mo: b
   return (
     <NutCay mo={mo} onDoi={onDoi}
       ten={<>
+        <Logo s={s} />
         <b style={{ fontWeight: 600 }}>{s.ten}</b>
         {s.url && <LinkChip href={wrapExternalUrl(s.url)} tone="neutral" size="xs" onClick={(e) => e.stopPropagation()}>↗</LinkChip>}
         {s.loi && <Pill label={s.loi} color="var(--bad)" size="xs" tone="soft" uppercase={false} mono={false} />}
@@ -162,7 +169,7 @@ function ShopNutCay({ s, sp, mo, onDoi, onMo }: { s: ShopNut; sp: SpNut[]; mo: b
 function ChiTietSp({ s, x, onClose }: { s: ShopNut; x: SpNut; onClose: () => void }) {
   const t = tt(x.trangThai);
   const dong: [string, React.ReactNode][] = [
-    ['Shop', <>{s.ten}{s.url && <> · <a {...extLinkProps(s.url)} style={{ color: 'var(--accent)' }}>mở shop ↗</a></>}</>],
+    ['Shop', <><span style={{ display: 'inline-flex', verticalAlign: 'middle', marginRight: 6 }}><Logo s={s} /></span>{s.ten}{s.url && <> · <a {...extLinkProps(s.url)} style={{ color: 'var(--accent)' }}>mở shop ↗</a></>}</>],
     ['Tài khoản', s.tk ? <><EntityRef kind="account" id={s.tk.id} label={`#${s.tk.id} ${s.tk.handle}`} />{s.tk.email && <span style={phu}> · {s.tk.email}</span>}</> : <span style={{ color: 'var(--warn)' }}>chưa có trong vault</span>],
     ['Trạng thái', <Pill label={t.chu} color={t.mau} size="xs" tone="soft" uppercase={false} mono={false} />],
     ['Định dạng', x.phu ?? '—'],

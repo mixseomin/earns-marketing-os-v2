@@ -14,7 +14,10 @@ import { setBacklinkSite, setBacklinkSchedule } from '@/lib/actions/architecture
 export type TinTraoDoi = { nguoi: string; noiDung: string; xuLy: string | null; luc: string; anh: string[];
   /** Trang đang bị lỗi — chỉ tin gốc có. Cùng khuôn `TraoDoi.trang` bên adfond để MỘT drawer
    *  đọc được cả hai nguồn; thiếu nó thì card góp ý MOS2 lại là ca không biết sửa ở đâu. */
-  trang?: string };
+  trang?: string;
+  /** NGỮ CẢNH lúc bấm Gửi — tiêu đề màn · drawer đang mở (vd chi tiết sản phẩm nào) · thiết bị + khổ màn. Link trang chỉ nói
+   *  "màn nào"; thiếu cái này thì card không nói được anh đang nhìn THỨ GÌ trên màn đó (#1108, 05/10/2026). Chỉ tin gốc có. */
+  nguCanh?: string };
 
 const homNayVN = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
 
@@ -22,7 +25,7 @@ const homNayVN = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi
  *  calendar), draft = nội dung + link trang + ảnh. Admin-only — cùng khẩu vị cờ htuan82
  *  bên adfond: hòm này là kênh của người chủ, không phải kênh nhân sự (họ có blocker 🚩). */
 export async function guiGopYMos2(input: {
-  loai: string; noiDung: string; trang: string; anhUrls: string[];
+  loai: string; noiDung: string; trang: string; anhUrls: string[]; nguCanh?: string;
 }): Promise<{ ok: boolean; id?: number; error?: string }> {
   const me = await getCurrentUser();
   if (!me || me.role !== 'admin') return { ok: false, error: 'not found' };
@@ -32,16 +35,17 @@ export async function guiGopYMos2(input: {
   if (!noiDung) return { ok: false, error: 'Chưa gõ mô tả.' };
 
   const trang = String(input.trang || '').slice(0, 1000);
+  const nguCanh = String(input.nguCanh || '').slice(0, 1000);
   const anh = (Array.isArray(input.anhUrls) ? input.anhUrls : []).filter((u) => /^https?:\/\//.test(u)).slice(0, 6);
   // Tiêu đề = chữ người gửi. Loại việc do glyph 🐞 nói (source_platform='feedback' → TYPE_META),
   // project do bảng nói — gắn thêm "Góp ý MOS2:" chỉ làm pill trên lịch dài và lặp.
   const dongDau = (noiDung.split('\n')[0] ?? '').trim().slice(0, 60);
   const title = input.loai === 'cau_hoi' ? `Hỏi: ${dongDau}` : dongDau;
-  const draft = [noiDung, trang ? `[Trang báo lỗi ↗](${trang})` : '', ...anh.map((u) => `![ảnh](${u})`)]
+  const draft = [noiDung, trang ? `[Trang báo lỗi ↗](${trang})` : '', nguCanh ? `Ngữ cảnh: ${nguCanh}` : '', ...anh.map((u) => `![ảnh](${u})`)]
     .filter(Boolean).join('\n\n').slice(0, 20_000);
   // Tin GỐC = tin đầu của luồng (người gửi · lúc gửi · ảnh) — cùng khuôn adfond (luongGopY):
   // góp ý là câu mở đầu cuộc trao đổi, reply nối vào sau, không phải một khối tách rời.
-  const goc: TinTraoDoi = { nguoi: me.email, noiDung: noiDung.slice(0, 4000), xuLy: null, luc: new Date().toISOString(), anh, trang: trang || undefined };
+  const goc: TinTraoDoi = { nguoi: me.email, noiDung: noiDung.slice(0, 4000), xuLy: null, luc: new Date().toISOString(), anh, trang: trang || undefined, nguCanh: nguCanh || undefined };
   const pp = {
     source_url: trang, source_platform: 'feedback', draft,
     loai: input.loai === 'cau_hoi' ? 'cau_hoi' : 'loi',   // tab "Của tôi" in nhãn loại từ đây, không đoán lại từ tiêu đề
@@ -50,7 +54,7 @@ export async function guiGopYMos2(input: {
 
   const r = await db.execute(sql`
     INSERT INTO human_tasks (tenant_id, project_id, title, instructions, prep_payload, platform_key, status, publish_url)
-    VALUES ('self', 'mos2', ${title}, ${`${noiDung}\n\nTrang báo: ${trang}`.slice(0, 4000)}, ${JSON.stringify(pp)}::jsonb, 'backlink', 'pending', '')
+    VALUES ('self', 'mos2', ${title}, ${`${noiDung}\n\nTrang báo: ${trang}${nguCanh ? `\nNgữ cảnh: ${nguCanh}` : ''}`.slice(0, 4000)}, ${JSON.stringify(pp)}::jsonb, 'backlink', 'pending', '')
     RETURNING id`);
   const id = Number((r as unknown as Array<{ id: number }>)[0]?.id);
   if (!Number.isFinite(id)) return { ok: false, error: 'insert hỏng' };

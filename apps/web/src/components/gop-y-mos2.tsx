@@ -58,6 +58,23 @@ const lbl = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)'
 const nutPhu = { fontSize: 11.5, padding: '5px 12px', borderRadius: 6, border: '1px solid var(--line)', background: 'none', color: 'var(--fg-3)', cursor: 'pointer' } as const;
 const oNhap = { width: '100%', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: '7px 9px', fontSize: 12.5, color: 'var(--fg-1)', fontFamily: 'inherit' } as const;
 
+/** Ngữ cảnh màn lúc gửi: tiêu đề tab trình duyệt · tab trang đang chọn · drawer đang mở (trừ chính hòm góp ý) · thiết bị + khổ. */
+function docNguCanh(): string {
+  const chu = (e: Element | null | undefined) => (e?.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 90);
+  const tab = chu(document.querySelector('[data-comp="ui.Tabs"] button[style*="font-weight: 700"]'));
+  const drawer = [...document.querySelectorAll('[data-comp="ui.Drawer"]')].filter((d) => !d.querySelector('[data-gop-y]'))
+    .map((d) => chu(d.querySelector('h1, h2, h3, b'))).filter(Boolean);
+  const ua = navigator.userAgent;
+  const may = /iPhone|iPad/.test(ua) ? (ua.match(/(iPhone|iPad)[^;)]*/)?.[0] ?? 'iOS') : /Android/.test(ua) ? 'Android' : /Mac OS X/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : 'khác';
+  const tdt = /Edg\//.test(ua) ? 'Edge' : /CriOS|Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : '?';
+  return [
+    `màn: ${document.title}`,
+    tab && `tab: ${tab}`,
+    drawer.length ? `đang mở: ${drawer.join(' › ')}` : '',
+    `${may} · ${tdt} · ${window.innerWidth}×${window.innerHeight}`,
+  ].filter(Boolean).join(' · ');
+}
+
 function FormGopY({ onGui }: { onGui: (id: number) => void }) {
   const [nhap, setNhap] = useState<Nhap>(TRANG_MOI);
   const [trang, setTrang] = useState('');
@@ -65,7 +82,12 @@ function FormGopY({ onGui }: { onGui: (id: number) => void }) {
   const [ket, setKet] = useState('');
   // Đọc nháp trong effect chứ không trong useState(() => …): SSR không có localStorage, đọc lúc render
   // là server/client vẽ khác nhau.
-  useEffect(() => { setNhap(docNhap()); setTrang(window.location.href); }, []);
+  useEffect(() => {
+    setNhap(docNhap()); setTrang(window.location.href);
+    // Dòng 🔗 đi theo URL thật (tham số nông đổi mà không có sự kiện) — người gửi thấy đúng link sẽ được gửi.
+    const t = setInterval(() => setTrang(window.location.href), 1000);
+    return () => clearInterval(t);
+  }, []);
   const ghi = (n: Nhap) => {
     setNhap(n);
     try { localStorage.setItem(KHOA, JSON.stringify(n)); } catch { /* đầy thì thôi */ }
@@ -76,7 +98,11 @@ function FormGopY({ onGui }: { onGui: (id: number) => void }) {
   };
   const gui = async () => {
     setBusy(true); setKet('');
-    const r = await guiGopYMos2({ loai: nhap.loai, noiDung: nhap.noiDung, trang, anhUrls: nhap.anh });
+    // Link đọc LẠI lúc bấm Gửi, không dùng bản chụp lúc mở form: trang dùng tham số nông (?sh=, ?sp=… ghi bằng
+    // history.replaceState) nên URL đổi mà form không remount — card #1108 lưu `?tab=taisan` trong khi anh đang ở shop Etsy.
+    const hienTai = window.location.href;
+    setTrang(hienTai);
+    const r = await guiGopYMos2({ loai: nhap.loai, noiDung: nhap.noiDung, trang: hienTai, anhUrls: nhap.anh, nguCanh: docNguCanh() });
     setBusy(false);
     if (!r.ok || !r.id) { setKet(`⚠ ${r.error}`); return; }
     try { localStorage.removeItem(KHOA); } catch { /* thôi */ }
@@ -86,7 +112,7 @@ function FormGopY({ onGui }: { onGui: (id: number) => void }) {
   };
   const trong = !nhap.noiDung.trim();
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div data-gop-y style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div>
         <div style={lbl}>Loại</div>
         <select value={nhap.loai} onChange={(e) => ghi({ ...nhap, loai: e.target.value })} style={{ ...oNhap, cursor: 'pointer' }}>

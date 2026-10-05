@@ -2846,7 +2846,7 @@ function TraoDoiCard({ feedbackId, taskId, onChange }: { feedbackId?: number; ta
   // đọc/ghi/tải ảnh — bong bóng + composer dùng chung, sửa một chỗ ăn cả hai.
   // `trang` = trang ĐANG BỊ LỖI, chỉ tin gốc có (adfond `feedback.trang`, hoặc `goc.trang` của
   // card góp ý MOS2 bản địa). Xem chú thích chỗ render bên dưới.
-  type Tin = { id?: number; nguoi: string; noiDung: string; xuLy: string | null; luc: string; trang?: string; anh: Array<{ id?: number; ten?: string | null; url: string }> };
+  type Tin = { id?: number; nguoi: string; noiDung: string; xuLy: string | null; luc: string; trang?: string; nguCanh?: string; anh: Array<{ id?: number; ten?: string | null; url: string }> };
   const [tin, setTin] = useState<Tin[] | null>(null);
   const [loiNap, setLoiNap] = useState('');
   const [noiDung, setNoiDung] = useState('');
@@ -2965,6 +2965,7 @@ function TraoDoiCard({ feedbackId, taskId, onChange }: { feedbackId?: number; ta
                     ↗ Trang bị lỗi: {t.trang.replace(/^https?:\/\//, '')}
                   </a>
                 )}
+                {t.nguCanh && <div style={{ marginTop: 4, fontSize: 11, color: 'var(--fg-3)', wordBreak: 'break-word' }}>🧭 {t.nguCanh}</div>}
                 {t.anh.length > 0 && (
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
                     {t.anh.map((a) => (

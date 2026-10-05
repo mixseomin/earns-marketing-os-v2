@@ -4,75 +4,106 @@
 // where Ctrl+V is awkward), file picker, and add-by-URL. Uploads immediately to R2 and shows a
 // coloured success/error status. `value` is the list of attached URLs. Use anywhere attachments
 // are needed (blocker report, feedback form, …).
-import { useState, useRef, type CSSProperties } from 'react';
+import { useState, useRef, useEffect, type CSSProperties } from 'react';
 import { uploadImage, deleteImage } from '@/lib/actions/uploads';
 
 // Delete uploaded (unsent) attachments from R2. Call from a form's Cancel/close so nothing is
 // orphaned. No-op for external "Thêm URL" links.
 export function discardAttachments(urls: string[]) { for (const u of urls) void deleteImage(u); }
 
+
+// Server action bị Next chặn body >1MB (không nới) — ảnh chụp màn retina vượt trần đó thường xuyên.
+const TRAN_ACTION = 950_000;
+/** Cạnh dài tối đa sau thu nhỏ: đủ đọc chữ trên ảnh chụp màn 1440p, nhẹ hơn nhiều lần bản retina 2880px. */
+const CANH_MAX = 2000;
+type KichCo = { w: number; h: number; kb: number };
+type AnhMeta = KichCo & { goc?: KichCo | null };
+type Cho = { id: number; xem: string; buoc: 'nen' | 'tai' | 'loi'; goc: KichCo | null; sau?: KichCo; loi: string | null };
+let seq = 0;
+const kb = (n: number) => Math.max(1, Math.round(n / 1024));
+const tenKc = (k: KichCo) => `${k.w}×${k.h} · ${k.kb >= 1024 ? `${(k.kb / 1024).toFixed(1)}MB` : `${k.kb}KB`}`;
+
+/** Thu nhỏ + nén một ảnh: cạnh dài > CANH_MAX thì co lại; ảnh nặng thì mã hoá lại WebP (Safari không mã hoá WebP → JPEG).
+ *  Ảnh nhỏ sẵn (≤ CANH_MAX, ≤ 400KB) và GIF giữ nguyên. Trả data URL + kích thước gốc/sau để hiện cho người gửi. */
+async function thuNho(bl: Blob): Promise<{ du: string; goc: KichCo; sau: KichCo }> {
+  const bmp = await createImageBitmap(bl);
+  const goc = { w: bmp.width, h: bmp.height, kb: kb(bl.size) };
+  const tiLe = Math.min(1, CANH_MAX / Math.max(bmp.width, bmp.height));
+  const duGoc = () => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(bl); });
+  if (bl.type === 'image/gif' || (tiLe === 1 && bl.size <= 400_000)) { bmp.close(); return { du: await duGoc(), goc, sau: goc }; }
+  const c = document.createElement('canvas');
+  c.width = Math.round(bmp.width * tiLe); c.height = Math.round(bmp.height * tiLe);
+  c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height); bmp.close();
+  let du = '';
+  for (const q of [0.85, 0.7, 0.5, 0.35]) {
+    du = c.toDataURL('image/webp', q);
+    if (!du.startsWith('data:image/webp')) du = c.toDataURL('image/jpeg', q);
+    if (du.length <= TRAN_ACTION) break;
+  }
+  return { du, goc, sau: { w: c.width, h: c.height, kb: kb(Math.round(du.length * 0.75)) } };
+}
+
+// Kích thước ảnh đã lên giữ ở localStorage theo URL: ảnh trên img.on.tc không có CORS nên sau F5 trình duyệt không đọc lại được
+// dung lượng. Mất kho (riêng tư / xoá dữ liệu) thì ô chỉ hiện W×H đo từ <img>.
+const KHO_META = 'image-attach.meta';
+const docMeta = (): Record<string, AnhMeta> => { try { return JSON.parse(localStorage.getItem(KHO_META) ?? '{}') ?? {}; } catch { return {}; } };
+const ghiMeta = (url: string, m: AnhMeta) => {
+  try { const all = docMeta(); all[url] = m; const keys = Object.keys(all); for (const k of keys.slice(0, Math.max(0, keys.length - 200))) delete all[k]; localStorage.setItem(KHO_META, JSON.stringify(all)); } catch { /* đầy/chặn */ }
+};
+
 const btn: CSSProperties = { fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 };
 
 export function ImageAttach({ value, onChange, folder = 'uploads', max = 6 }: {
   value: string[]; onChange: (urls: string[]) => void; folder?: string; max?: number;
 }) {
-  const [busy, setBusy] = useState(0);
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
   const [drag, setDrag] = useState(false);
   const [urlOpen, setUrlOpen] = useState(false);
   const [urlText, setUrlText] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const full = value.length >= max;
+  const [cho, setCho] = useState<Cho[]>([]);
+  const [meta, setMeta] = useState<Record<string, AnhMeta>>({});
+  useEffect(() => { setMeta(docMeta()); }, []);
+  const full = value.length + cho.filter((c) => c.buoc !== 'loi').length >= max;
   const addUrls = (urls: string[]) => onChange([...value, ...urls].slice(0, max));
 
-  const readAsDataUrl = (f: File) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(f); });
+  // MỖI ẢNH MỘT DÒNG TRẠNG THÁI (anh chốt 05/10/2026): trước đây chỉ có "Đang tải N ảnh…" chung, không biết ảnh nào đang ở bước
+  // nào, đã thu nhỏ chưa, lên tới bao nhiêu KB. Giờ: ô xem trước + bước (nén → tải → xong/lỗi) + kích thước sau khi lên.
+  const datCho = (id: number, p: Partial<Cho>) => setCho((ds) => ds.map((x) => (x.id === id ? { ...x, ...p } : x)));
 
-  // Server action bị Next chặn body >1MB (không cấu hình nới) — mà ảnh chụp màn PNG retina
-  // vượt trần đó THƯỜNG XUYÊN. Nén tại client (re-encode JPEG, giữ nguyên điểm ảnh) trước
-  // khi gọi action; vẫn quá trần thì NÓI ra chứ không để action ném và spinner treo vĩnh viễn
-  // (bug câm cũ: pushDataUrls không catch → busy không bao giờ giảm).
-  const TRAN_ACTION = 950_000;
-  const nenDataUrl = async (du: string): Promise<string> => {
-    if (du.length <= TRAN_ACTION || du.startsWith('data:image/gif')) return du;
-    try {
-      const img = new Image();
-      await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = du; });
-      const c = document.createElement('canvas');
-      c.width = img.naturalWidth; c.height = img.naturalHeight;
-      c.getContext('2d')?.drawImage(img, 0, 0);
-      for (const q of [0.72, 0.5, 0.35]) {
-        const ra = c.toDataURL('image/jpeg', q);
-        if (ra.length <= TRAN_ACTION) return ra;
-      }
-    } catch { /* không nén được — trả bản gốc, nhánh dưới sẽ báo trần */ }
-    return du;
-  };
-
-  const pushDataUrls = async (dataUrls: string[]) => {
+  const pushBlobs = async (blobs: Blob[]) => {
     const room = max - value.length;
-    const take = dataUrls.slice(0, Math.max(0, room));
+    const take = blobs.slice(0, Math.max(0, room));
     if (!take.length) { setStatus({ ok: false, text: `Tối đa ${max} ảnh` }); return; }
-    setBusy((n) => n + take.length);
+    setStatus(null);
+    const viec = take.map((bl) => ({ bl, c: { id: ++seq, xem: URL.createObjectURL(bl), buoc: 'nen' as const, goc: null, loi: null } }));
+    setCho((ds) => [...ds, ...viec.map((v) => v.c)]);
     const done: string[] = [];
-    for (const duGoc of take) {
+    let loi = 0;
+    for (const { bl, c } of viec) {
       try {
-        const du = await nenDataUrl(duGoc);
-        if (du.length > TRAN_ACTION) { setStatus({ ok: false, text: `Ảnh quá lớn sau nén (${(du.length / 1e6).toFixed(1)}MB) — cắt nhỏ vùng chụp` }); continue; }
-        const r = await uploadImage(du, folder);
-        if (r.ok && r.url) done.push(r.url); else setStatus({ ok: false, text: r.error || 'upload lỗi' });
+        const n = await thuNho(bl);
+        datCho(c.id, { goc: n.goc, buoc: 'tai', sau: n.sau });
+        if (n.du.length > TRAN_ACTION) throw new Error(`ảnh vẫn ${(n.du.length * 0.75 / 1e6).toFixed(1)}MB sau nén — cắt nhỏ vùng chụp`);
+        const r = await uploadImage(n.du, folder);
+        if (!r.ok || !r.url) throw new Error(r.error || 'upload lỗi');
+        done.push(r.url);
+        ghiMeta(r.url, { ...n.sau, goc: n.goc });
+        setMeta(docMeta());
+        setCho((ds) => ds.filter((x) => x.id !== c.id)); URL.revokeObjectURL(c.xem);
       } catch (e) {
-        setStatus({ ok: false, text: e instanceof Error ? e.message : 'upload lỗi' });
+        loi++; datCho(c.id, { buoc: 'loi', loi: e instanceof Error ? e.message : 'upload lỗi' });
       }
     }
-    setBusy((n) => Math.max(0, n - take.length));
-    if (done.length) { onChange([...value, ...done].slice(0, max)); setStatus({ ok: true, text: `✓ Đã tải lên ${done.length} ảnh` }); }
+    if (done.length) onChange([...value, ...done].slice(0, max));
+    setStatus(loi ? { ok: false, text: `${loi} ảnh lỗi — xem ô đỏ bên dưới` } : { ok: true, text: `✓ Đã tải lên ${done.length} ảnh` });
   };
+  const pushDataUrls = async (dataUrls: string[]) => pushBlobs(await Promise.all(dataUrls.map((d) => fetch(d).then((r) => r.blob()))));
 
   const addFiles = async (files: FileList | File[] | null | undefined) => {
     const imgs = files ? [...files].filter((f) => f.type.startsWith('image/')) : [];
-    if (!imgs.length) return;
-    await pushDataUrls(await Promise.all(imgs.map(readAsDataUrl)));
+    if (imgs.length) await pushBlobs(imgs);
   };
 
   // "Paste" button — read the clipboard directly (mobile / when the textarea isn't focused).
@@ -130,15 +161,36 @@ export function ImageAttach({ value, onChange, folder = 'uploads', max = 6 }: {
         </div>
       )}
 
-      {busy > 0 && <div style={{ fontSize: 11, color: 'var(--fg-3)', textAlign: 'center' }}>Đang tải {busy} ảnh…</div>}
       {status && <div style={{ fontSize: 11.5, fontWeight: 700, textAlign: 'center', padding: '4px 8px', borderRadius: 6, color: status.ok ? 'var(--ok,#22c55e)' : 'var(--bad,#ef4444)', background: `color-mix(in srgb, ${status.ok ? 'var(--ok,#22c55e)' : 'var(--bad,#ef4444)'} 12%, transparent)` }}>{status.text}</div>}
 
-      {value.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {value.map((u, i) => (
-            <div key={i} style={{ position: 'relative' }}>
-              <a href={u} target="_blank" rel="noopener noreferrer"><img src={u} alt={`ảnh ${i + 1}`} style={{ width: 74, height: 56, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} /></a>
-              <button type="button" onClick={() => { void deleteImage(u); onChange(value.filter((_, j) => j !== i)); }} title="Bỏ (xoá luôn khỏi storage)" style={{ position: 'absolute', top: -7, right: -7, width: 18, height: 18, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', cursor: 'pointer', fontSize: 11, lineHeight: '16px', padding: 0 }}>✕</button>
+      {(value.length > 0 || cho.length > 0) && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {value.map((u, i) => {
+            const m = meta[u];
+            return (
+              <div key={u} style={{ position: 'relative', width: 96 }}>
+                <a href={u} target="_blank" rel="noopener noreferrer"><img src={u} alt={`ảnh ${i + 1}`}
+                  onLoad={(e) => { if (!m) { const im = e.currentTarget; setMeta((x) => ({ ...x, [u]: { w: im.naturalWidth, h: im.naturalHeight, kb: 0 } })); } }}
+                  style={{ width: 96, height: 64, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--ok,#22c55e)', display: 'block' }} /></a>
+                <div title={m?.goc && (m.goc.w !== m.w || m.goc.kb !== m.kb) ? `gốc ${tenKc(m.goc)} → đã thu nhỏ/nén` : 'giữ nguyên ảnh gốc'}
+                  style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', marginTop: 2, lineHeight: 1.3 }}>
+                  <span style={{ color: 'var(--ok,#22c55e)' }}>✓</span> {m ? (m.kb ? tenKc(m) : `${m.w}×${m.h}`) : '…'}
+                  {m?.goc && m.goc.kb !== m.kb && <div style={{ color: 'var(--fg-4)' }}>gốc {tenKc(m.goc)}</div>}
+                </div>
+                <button type="button" onClick={() => { void deleteImage(u); onChange(value.filter((_, j) => j !== i)); }} title="Bỏ (xoá luôn khỏi storage)" style={{ position: 'absolute', top: -7, right: -7, width: 18, height: 18, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', cursor: 'pointer', fontSize: 11, lineHeight: '16px', padding: 0 }}>✕</button>
+              </div>
+            );
+          })}
+          {cho.map((c) => (
+            <div key={c.id} style={{ position: 'relative', width: 96 }}>
+              <img src={c.xem} alt="" style={{ width: 96, height: 64, objectFit: 'cover', borderRadius: 6, display: 'block', opacity: c.buoc === 'loi' ? 1 : 0.45,
+                border: `1px solid ${c.buoc === 'loi' ? 'var(--bad,#ef4444)' : 'var(--accent)'}` }} />
+              <div style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', marginTop: 2, lineHeight: 1.3, color: c.buoc === 'loi' ? 'var(--bad,#ef4444)' : 'var(--accent)' }}>
+                {c.buoc === 'nen' ? '⏳ đang thu nhỏ…' : c.buoc === 'tai' ? `⬆ đang tải${c.sau ? ` ${tenKc(c.sau)}` : '…'}` : `⚠ ${c.loi}`}
+                {c.goc && c.buoc !== 'loi' && <div style={{ color: 'var(--fg-4)' }}>gốc {tenKc(c.goc)}</div>}
+              </div>
+              {c.buoc === 'loi' && <button type="button" onClick={() => { URL.revokeObjectURL(c.xem); setCho((ds) => ds.filter((x) => x.id !== c.id)); }} title="Bỏ ảnh lỗi"
+                style={{ position: 'absolute', top: -7, right: -7, width: 18, height: 18, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', cursor: 'pointer', fontSize: 11, lineHeight: '16px', padding: 0 }}>✕</button>}
             </div>
           ))}
         </div>

@@ -28,7 +28,10 @@ export async function docEtsy(): Promise<EtsyShop[]> {
       if (!shop) return { ...base, error: `Etsy không thấy shop ${r.handle}` };
       // Chỉ listing ĐANG BÁN: /listings/active là endpoint công khai (chỉ cần x-api-key). Nháp / hết hạn nằm ở /shops/{id}/listings?state=…
       // — endpoint đó đòi OAuth (listings_r), bản đầu gọi nó bằng api-key trơn nên trả rỗng mà không lỗi, cây ghi "chưa có listing" (05/10/2026).
-      const lists = [await get(`/shops/${shop.shop_id}/listings/active?limit=100&includes=Images`)];
+      // includes=Images bị /listings/active LẶNG LẼ BỎ QUA (trả listing không có `images`, không lỗi) → cây Tài sản trống ảnh
+      // (anh báo #1108, 05/10/2026). /listings/batch thì tôn trọng includes: đọc id ở active rồi kéo ảnh một lượt ≤100 id.
+      const act = (await get(`/shops/${shop.shop_id}/listings/active?limit=100`)).results as { listing_id: number }[] | undefined;
+      const lists = act?.length ? [await get(`/listings/batch?listing_ids=${act.map((l) => l.listing_id).join(',')}&includes=Images`)] : [];
       const listings = lists.flatMap((l) => (l.results ?? []) as { listing_id: number; title: string; url: string; state: string; type?: string; images?: { url_570xN?: string }[]; price: { amount: number; divisor: number; currency_code: string }; views?: number; num_favorers?: number }[])
         .map((l) => ({ id: l.listing_id, image: l.images?.[0]?.url_570xN ?? null, title: l.title, url: l.url, state: l.state, type: l.type ?? 'download', price: l.price.amount / l.price.divisor, currency: l.price.currency_code,
           views: l.views ?? null, favorites: l.num_favorers ?? null }));

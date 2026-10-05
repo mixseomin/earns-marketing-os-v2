@@ -32,6 +32,8 @@ export interface ProductRow {
   /** Ảnh bìa: id file Directus (as.on.tc/assets/<id>). */
   cover: string | null;
   notes: string | null;
+  /** Link trang xem bản dựng để anh duyệt (listing_config.xem, máy quy-trinh ghi) — sản phẩm chưa lên sàn chưa có url bán. */
+  xem: string | null;
   /** Thực nhận trong cửa sổ đang xem. null = chưa có nguồn đo, KHÔNG phải 0. */
   net: number | null;
   /** Doanh số gốc khách tiêu, khi nền tảng có chia hoa hồng. null = chưa đo. */
@@ -91,7 +93,7 @@ export async function getProductsView(windowDays = 30): Promise<ProductsView> {
 
   const [products, stats] = await Promise.all([
     // Sổ cái do máy ghi liên tục (~/bin/sanpham, puzzle-books quy-trinh.mjs) → cache 15s, không 5 phút: trạng thái mới phải hiện gần như ngay.
-    get<Record<string, unknown>>('/items/products?limit=-1&fields=id,title,sku,status,price,platform,url,store,category,currency,cover,notes', 15),
+    get<Record<string, unknown>>('/items/products?limit=-1&fields=id,title,sku,status,price,platform,url,store,category,currency,cover,notes,listing_config', 15),
     get<Record<string, unknown>>(
       `/items/product_stats?limit=-1&fields=product_id,date,platform,revenue,gross_revenue,rating,reviews,subscribers&filter[date][_gte]=${since}`),
   ]);
@@ -139,7 +141,7 @@ export async function getProductsView(windowDays = 30): Promise<ProductsView> {
       status: (p.status as string) ?? null,
       price: p.price == null ? null : num(p.price),
       url: (p.url as string) || null,
-      store: (p.store as string) || null, category: (p.category as string) || null, currency: (p.currency as string) || null, cover: (p.cover as string) || null, notes: (p.notes as string) || null,
+      store: (p.store as string) || null, category: (p.category as string) || null, currency: (p.currency as string) || null, cover: (p.cover as string) || null, notes: (p.notes as string) || null, xem: ((p.listing_config as { xem?: string } | null)?.xem) || null,
       net: a?.hasRevenue ? a.net : null,
       gross: a?.hasRevenue ? a.gross : null,
       rating: a?.rating ?? null, reviews: a?.reviews ?? null, students: a?.students ?? null,

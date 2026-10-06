@@ -49,13 +49,36 @@ function tipO(o: KenhO, k: PhuongPhap, may: boolean) {
   return d.join('\n');
 }
 
+const soThat = (t: Tua) => Object.values(t.o).filter((o) => !o.ao).length;
+
+/** Thẻ trên điện thoại: tựa chưa bắt đầu = một dòng; có việc = mỗi phương pháp một dòng chip, bấm dòng → drawer. */
+function TheTua({ t, bat, onSua }: { t: Tua; bat: PhuongPhap[]; onSua: (o: KenhO) => void }) {
+  const os = bat.filter((k) => t.o[k.key] && !t.o[k.key]!.ao);
+  return (
+    <div style={{ display: 'grid', gap: 6, padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, opacity: os.length ? 1 : 0.65 }}>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', minWidth: 0 }}>
+        <b style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.ten}</b>
+        <span style={{ ...phu, fontSize: 11, flex: 'none' }}>{t.ban.map((x) => x.noi).join(' · ') || 'chưa lên sàn'}</span>
+      </div>
+      {os.length ? os.map((k) => { const o = t.o[k.key]!; const may = !!t.may;
+        return (
+          <div key={k.key} onClick={may ? undefined : () => onSua(o)} title={tipO(o, k, may)}
+            style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, cursor: may ? 'default' : 'pointer' }}>
+            <span style={{ ...phu, fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.04em', width: 92, flex: 'none' }}>{k.nhan}</span>
+            <ChipO o={o} k={k} />
+          </div>);
+      }) : <div onClick={() => { const k = bat.find((p) => t.o[p.key]); if (k) onSua(t.o[k.key]!); }} style={{ ...mo, fontSize: 12, cursor: 'pointer' }}>
+            chưa bắt đầu · {Object.keys(t.o).length} phương pháp — bấm để bắt đầu</div>}
+    </div>
+  );
+}
+
 export function TaiSanKenh({ ap, lib, shops }: { ap: ApDung; lib: PhuongPhap[]; shops: Shop[] }) {
   const [thuVien, datThuVien] = useState(false);
   const [sua, datSua] = useState<{ t: Tua; o: KenhO } | null>(null);
   const ppCua = Object.fromEntries(lib.map((p) => [p.key, p]));
   const dem = demO(ap);
   const bat = lib.filter((p) => p.bat);
-  const soThat = (t: Tua) => Object.values(t.o).filter((o) => !o.ao).length;
   // Tựa có việc thật lên đầu, rồi tựa bán ở nhiều shop, rồi tên — người mở panel xem cái đang chạy trước.
   const rows = [...ap.tua].sort((a, b) => soThat(b) - soThat(a) || b.ban.length - a.ban.length || a.ten.localeCompare(b.ten));
   const cot: DataColumn<Tua>[] = [
@@ -82,7 +105,8 @@ export function TaiSanKenh({ ap, lib, shops }: { ap: ApDung; lib: PhuongPhap[]; 
       subtitle={`${ap.tua.length} tựa · ${dem.that} ô có việc · ${dem.ao} ô chưa làm${dem.sp ? ` · ${dem.sp} sản phẩm chưa có phương pháp nào` : ''}`}
       actions={<button type="button" onClick={() => datThuVien(true)} style={nutNho}>📚 Thư viện ({bat.length})</button>}>
       {rows.length > 0 && (
-        <DataTable rows={rows} columns={cot} getRowKey={(t) => t.khoa} persistKey="tai-san-kenh" pageSize={25} fixedLayout card
+        <DataTable rows={rows} columns={cot} getRowKey={(t) => t.khoa} persistKey="tai-san-kenh" pageSize={25} fixedLayout
+          card={{ render: (t) => <TheTua t={t} bat={bat} onSua={(o) => datSua({ t, o })} />, minWidth: 300 }}
           minWidth={260 + 200 * bat.length + 220} searchText={(t) => `${t.ten} ${t.ban.map((x) => x.noi).join(' ')}`} searchPlaceholder="tìm tựa / nơi bán…"
           rowStyle={(t) => (soThat(t) ? undefined : { opacity: 0.65 })} />
       )}

@@ -9,7 +9,7 @@
 // (2) sản phẩm ở các shop khác nhau mà TÊN GIỐNG HỆT (sổ Directus ghi cùng tên cho bản KDP / Etsy / Gumroad) → một tựa khoá
 // 'ten:<tên thường>'; (3) còn lại chính nó là một tựa. Tên khác nhau giữa các sàn (listing Etsy viết dài) thì KHÔNG gom — đoán là bịa.
 // Tự kiểm: node_modules/.bin/tsx apps/web/src/lib/tai-san/ap-dung.test.mts
-import type { KenhO, KenhSp, PhuongPhap, ShopNut, TrangThaiSp } from './kieu';
+import type { KenhO, KenhSo, KenhSp, PhuongPhap, ShopNut, TrangThaiSp } from './kieu';
 
 export type BanO = { noi: string; shop: string; /** khoá sản phẩm trên cây ('gumroad:<id>', 'd:<uuid>'…) */ khoa: string; trangThai: TrangThaiSp };
 export type Tua = { khoa: string; ten: string; /** project của máy repo ghi tựa này (kenh.mjs); null = tựa sửa tay */ may: string | null;
@@ -66,6 +66,11 @@ export const demO = (ap: ApDung) => {
 export const NGUON_DO: Record<string, { khop: RegExp; moTa: string }> = {
   pinterest: { khop: /pinterest/i, moTa: 'lượt xem trang Gumroad có nguồn giới thiệu pinterest.* (7 ngày)' },
 };
+/** so: 'kenh|san_pham' → dòng mới nhất kenh_so_ngay. Chỉ tựa có khoá sổ (puzzle-books:…) mới khớp; tựa 'ten:…' chưa có máy đọc. */
+export function ganSo(ap: ApDung, so: Record<string, KenhSo>): ApDung {
+  for (const t of ap.tua) for (const [k, o] of Object.entries(t.o)) { const s = so[`${k}|${t.khoa}`]; if (s) o.so = s; }
+  return ap;
+}
 /** luot: khoá sản phẩm → { nguồn → lượt 7 ngày }. Sản phẩm có dòng số mà không có nguồn khớp → 0 thật; không dòng số nào → null. */
 export function ganLuot(ap: ApDung, luot: Record<string, Record<string, number>>): ApDung {
   for (const t of ap.tua) for (const [k, o] of Object.entries(t.o)) {

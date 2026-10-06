@@ -51,3 +51,10 @@ a.equal(sudoku.o.pinterest!.luot7, null);
 ganLuot(ap, { 'etsy:2': { direct: 3 } });
 a.equal(sudoku.o.pinterest!.luot7, 0);
 console.log('ap-dung: 20/20 ok');
+
+// số tại nguồn: gắn đúng ô theo 'kenh|san_pham'; tựa không có dòng → không có `so`
+import { ganSo } from './ap-dung';
+ganSo(ap, { 'pinterest|puzzle-books:bible': { ngay: '2026-10-06', hien: 12, tuongTac: 1, click: 2, soMuc: 4 } });
+a.equal(bible.o.pinterest!.so?.click, 2);
+a.equal(sudoku.o.pinterest!.so, undefined);
+console.log('ganSo: 2/2 ok');

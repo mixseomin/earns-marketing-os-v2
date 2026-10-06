@@ -4,7 +4,7 @@
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 
-import type { KenhSp, PhuongPhap } from './kieu';
+import type { KenhSo, KenhSp, PhuongPhap } from './kieu';
 export type { KenhO, KenhSp, PhuongPhap } from './kieu';
 
 export async function docKenh(): Promise<KenhSp[]> {
@@ -36,6 +36,16 @@ export async function docPhuongPhap(): Promise<PhuongPhap[]> {
   const d = getDb(); if (!d) return [];
   const rows = (await d.execute(sql`SELECT key, nhan, mo_ta, nham, buoc, noi, may, nguong, thu_tu, bat FROM phuong_phap ORDER BY thu_tu, key`)) as unknown as DongPp[];
   return rows.map(dichPp);
+}
+
+/** Số đo tại nguồn — dòng MỚI NHẤT của từng (kenh, san_pham) trong kenh_so_ngay (migration 0221). Khoá 'kenh|san_pham'. */
+export async function docKenhSo(): Promise<Record<string, KenhSo>> {
+  const d = getDb(); if (!d) return {};
+  const rows = (await d.execute(sql`SELECT DISTINCT ON (kenh, san_pham) kenh, san_pham, ngay::text AS ngay, hien, tuong_tac, click, so_muc
+    FROM kenh_so_ngay ORDER BY kenh, san_pham, ngay DESC`)) as unknown as { kenh: string; san_pham: string; ngay: string; hien: number; tuong_tac: number; click: number; so_muc: number }[];
+  const ra: Record<string, KenhSo> = {};
+  for (const r of rows) ra[`${r.kenh}|${r.san_pham}`] = { ngay: r.ngay.slice(0, 10), hien: r.hien, tuongTac: r.tuong_tac, click: r.click, soMuc: r.so_muc };
+  return ra;
 }
 
 /** Lượt xem 7 ngày theo NGUỒN giới thiệu của từng sản phẩm Gumroad (product_daily.refs) — khoá 'gumroad:<product_id>' như cây Tài sản. */

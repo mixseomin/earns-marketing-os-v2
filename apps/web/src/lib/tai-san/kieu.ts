@@ -54,7 +54,9 @@ export type PhuongPhap = { key: string; nhan: string; moTa: string; nham: string
 /** Một ô sản phẩm × phương pháp. `ao` = chưa có dòng sổ (mọi số null — chưa đo, không phải 0). */
 export type KenhO = { kenh: string; muc: number; xong: number | null; tong: number | null; dich: string | null; canhBao: string | null;
   the: { id: number; project: string | null; ten: string; trangThai: string } | null; capNhat: string | null; ngayDang: string | null; ao?: true;
-  /** lượt 7 ngày từ nguồn đo của phương pháp (ap-dung NGUON_DO); undefined = phương pháp chưa có nguồn đo, null = có nguồn mà chưa có số */ luot7?: number | null };
+  /** lượt 7 ngày từ nguồn đo của phương pháp (ap-dung NGUON_DO); undefined = phương pháp chưa có nguồn đo, null = có nguồn mà chưa có số */ luot7?: number | null;
+  /** số đo tại nguồn, dòng mới nhất của kenh_so_ngay (tổng cửa sổ nguồn — Pinterest 30 ngày — tới `ngay`); thiếu = chưa đọc lần nào */ so?: KenhSo };
+export type KenhSo = { ngay: string; hien: number; tuongTac: number; click: number; soMuc: number };
 export type KenhSp = { sanPham: string; ten: string; khop: string | null; /** project của máy ghi (kenh.mjs); null = dòng sửa tay */ project?: string | null; o: Record<string, KenhO> };
 
 /** Bản xem một sản phẩm đang làm — ảnh nằm trên Directus của MOS2 (assets/<id>), không link ra ngoài. */

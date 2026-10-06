@@ -29,7 +29,8 @@ function ChipO({ o, k }: { o: KenhO; k: PhuongPhap }) {
       <TienDo xong={o.muc} tong={k.buoc.length - 1} buoc={k.buoc.slice(1)} so={false} rong={32} />
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', fontSize: 12 }}>{k.buoc[o.muc] ?? o.muc}</span>
       {o.tong != null && <span style={{ ...phu, fontSize: 11 }}>{o.xong ?? 0}/{o.tong}</span>}
-      {o.luot7 != null && <span style={{ fontSize: 11, color: o.luot7 ? 'var(--fg-1)' : 'var(--fg-3)' }}>👁{o.luot7}</span>}
+      {o.so && <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: o.so.click ? 'var(--fg-1)' : 'var(--fg-3)', whiteSpace: 'nowrap' }}>👁{o.so.hien} ↗{o.so.click}</span>}
+      {o.luot7 != null && <span style={{ fontSize: 11, color: o.luot7 ? 'var(--fg-1)' : 'var(--fg-3)' }} title="lượt về Gumroad 7 ngày">🛒{o.luot7}</span>}
       {o.canhBao && <span style={{ color: 'var(--warn)' }}>⚠</span>}
     </span>
   );
@@ -39,8 +40,9 @@ function tipO(o: KenhO, k: PhuongPhap, may: boolean) {
   if (o.ao) return `${k.nhan}: chưa làm — bấm để bắt đầu`;
   const d = [`${k.nhan} — bước ${o.muc}/${k.buoc.length - 1}: ${k.buoc[o.muc] ?? o.muc}`];
   if (o.tong != null) d.push(`Tiến độ ${o.xong ?? 0}/${o.tong}`);
+  d.push(o.so ? `Tại nguồn (30n tới ${o.so.ngay}, ${o.so.soMuc} mục): hiện ${o.so.hien} · tương tác ${o.so.tuongTac} · click ra ngoài ${o.so.click}` : 'Tại nguồn: máy chưa đọc số (kenh_so_ngay trống)');
   const nd = NGUON_DO[o.kenh];
-  d.push(nd ? (o.luot7 == null ? `Lượt 7n: chưa có số (${nd.moTa})` : `Lượt 7n: ${o.luot7} (${nd.moTa})`) : 'Lượt 7n: chưa có nguồn đo cho phương pháp này');
+  d.push(nd ? (o.luot7 == null ? `Về Gumroad 7n: chưa có số (${nd.moTa})` : `Về Gumroad 7n: ${o.luot7} (${nd.moTa})`) : 'Về shop: chưa có nguồn đo cho phương pháp này');
   if (o.ngayDang) d.push(`Đăng từ ${o.ngayDang}`);
   if (o.dich) d.push(`Trỏ về ${gonUrl(o.dich)}`);
   if (o.canhBao) d.push(`Cần làm: ${o.canhBao}`);

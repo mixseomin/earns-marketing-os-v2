@@ -93,6 +93,10 @@ for (const app of apps) {
       else if (/redownload|restore/i.test(t)) cong(x.Date, 'redownloads', n);
       else if (/update/i.test(t)) cong(x.Date, 'updates', n);
     }
+    // Tên cột/sự kiện lấy theo tài liệu Apple, chưa soát trên tệp thật (06/10) → lệch thì NÓI, đừng ra số 0 im lặng.
+    const ev = new Set((eng ?? []).map((x) => x.Event)), ty = new Set((dl ?? []).map((x) => x['Download Type']));
+    if (eng?.length && !ev.has('Impression') && !ev.has('Page view')) log(`${ten}: CỘT LẠ engagement — cột ${Object.keys(eng[0]).join('|')} · Event ${[...ev].join('|')}`);
+    if (dl?.length && ![...ty].some((t) => /first/i.test(t ?? ''))) log(`${ten}: CỘT LẠ downloads — cột ${Object.keys(dl[0]).join('|')} · Download Type ${[...ty].join('|')}`);
     if (eng?.length || dl?.length) coSo = true;
   }
   if (!coSo) { log(`${ten}: Apple chưa có báo cáo nào (chưa đo — không ghi 0)`); continue; }

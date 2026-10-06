@@ -5,8 +5,10 @@
 // không phải 0). Sổ `kenh_sp` chỉ giữ dòng có việc thật (máy repo ghi hoặc sửa tay ở drawer).
 //
 // TỰA = đơn vị kéo khách. Một cuốn bán ở 3 shop (KDP · Gumroad · Etsy) là MỘT tựa, ghim Pinterest làm cho cuốn chứ không cho
-// từng listing. Tựa khai bởi repo sản phẩm qua kenh_sp (san_pham + khop = chuỗi con của tên listing); sản phẩm không khớp tựa nào
-// thì chính nó là một tựa. Tự kiểm: node_modules/.bin/tsx apps/web/src/lib/tai-san/ap-dung.test.mts
+// từng listing. Ba cách nhận tựa, theo thứ tự: (1) repo sản phẩm khai qua kenh_sp (san_pham + khop = chuỗi con của tên listing);
+// (2) sản phẩm ở các shop khác nhau mà TÊN GIỐNG HỆT (sổ Directus ghi cùng tên cho bản KDP / Etsy / Gumroad) → một tựa khoá
+// 'ten:<tên thường>'; (3) còn lại chính nó là một tựa. Tên khác nhau giữa các sàn (listing Etsy viết dài) thì KHÔNG gom — đoán là bịa.
+// Tự kiểm: node_modules/.bin/tsx apps/web/src/lib/tai-san/ap-dung.test.mts
 import type { KenhO, KenhSp, PhuongPhap, ShopNut, TrangThaiSp } from './kieu';
 
 export type BanO = { noi: string; shop: string; trangThai: TrangThaiSp };
@@ -33,7 +35,7 @@ export function apDung(shops: ShopNut[], lib: PhuongPhap[], rows: KenhSp[]): ApD
     for (const x of s.sp) {
       const ten = x.ten.toLowerCase();
       const goc = rows.find((r) => r.khop && ten.includes(r.khop.toLowerCase()));
-      const k = goc?.sanPham ?? x.khoa;
+      const k = goc?.sanPham ?? `ten:${ten.replace(/\s+/g, ' ').trim()}`;
       const t = tua.get(k) ?? { khoa: k, ten: x.ten, may: null, ban: [], o: {} };
       // Nhãn ngắn "KDP paperback" / "Etsy" (tên nền + định dạng khi khác pdf) — như dòng tóm tắt cũ của panel.
       t.ban.push({ noi: `${s.ten.split(' · ')[0]}${x.phu && x.phu !== 'pdf' ? ` ${x.phu}` : ''}`, shop: s.khoa, trangThai: x.trangThai });

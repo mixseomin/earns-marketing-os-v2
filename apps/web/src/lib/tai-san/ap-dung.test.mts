@@ -12,7 +12,7 @@ const rows: KenhSp[] = [{ sanPham: 'puzzle-books:bible', ten: 'Bible Word Search
   o: { pinterest: { kenh: 'pinterest', muc: 2, xong: 1, tong: 100, dich: 'https://x', canhBao: null, the: null, capNhat: 'x', ngayDang: '2026-10-01' } } }];
 const shops = [
   shop('etsy:FrontPorchZ', 'Etsy · FrontPorchZ', 'etsy', [sp('etsy:1', 'Bible Word Search for Seniors, Large Print'), sp('etsy:2', 'Large Print Sudoku for Seniors')]),
-  shop('kdp:htuan82', 'KDP · htuan82', 'kdp', [sp('d:1', 'Bible Word Search & Reflection Book')]),
+  shop('kdp:htuan82', 'KDP · htuan82', 'kdp', [sp('d:1', 'Bible Word Search & Reflection Book'), sp('d:2', 'Large Print  Sudoku for Seniors')]),
   shop('udemy:', 'Udemy', 'san', [sp('u:1', 'Khoá A'), sp('u:2', 'Khoá B')]),
 ];
 const ap = apDung(shops, lib, rows);
@@ -32,12 +32,14 @@ a.equal(bible.o.pinterest!.xong, 1);
 a.equal(bible.o.shorts!.ao, true);
 a.equal(bible.o.shorts!.xong, null);                           // chưa đo = null, không phải 0
 
-// sản phẩm không khớp tựa nào → tự là một tựa, đủ ô ảo theo shop
-const sudoku = ap.tua.find((t) => t.khoa === 'etsy:2')!;
+// sản phẩm không khớp khop nào nhưng CÙNG TÊN ở hai shop → MỘT tựa 'ten:…' (khoảng trắng thừa không tách tựa), đủ ô ảo theo cả hai shop
+const sudoku = ap.tua.find((t) => t.khoa === 'ten:large print sudoku for seniors')!;
+a.deepEqual(sudoku.ban.map((b) => b.noi), ['Etsy', 'KDP']);
 a.deepEqual(Object.keys(sudoku.o).sort(), ['pinterest', 'shorts']);
+a.equal(ap.tua.length, 2);
 
 // shop không phương pháp nào nhắm → vào danh sách thiếu, KHÔNG đẻ tựa rỗng; phương pháp tắt không tính
 a.equal(ap.tua.find((t) => t.khoa === 'u:1'), undefined);
 a.deepEqual(ap.thieu, [{ shop: 'udemy:', ten: 'Udemy', soSp: 2 }]);
-a.deepEqual(demO(ap), { ao: 3, that: 1, sp: 2 });
-console.log('ap-dung: 14/14 ok');
+a.deepEqual(demO(ap), { ao: 3, that: 1, sp: 2 });   // sudoku: pinterest + shorts · bible: shorts
+console.log('ap-dung: 16/16 ok');

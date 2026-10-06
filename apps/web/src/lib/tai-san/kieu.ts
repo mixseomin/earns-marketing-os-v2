@@ -34,9 +34,13 @@ const CHET = new Set(['banned', 'blocked', 'closed', 'suspended']);
 /** Shop có tài khoản trong vault mà MỌI tài khoản khớp đều chết → trạng thái chết đó; còn một cái sống hoặc không có hồ sơ → null. */
 export const khopTk = <T extends { nen: string; handle: string }>(nen: string, store: string | null, tk: T[]): T[] =>
   tk.filter((t) => (t.nen === nen || t.nen.startsWith(`${nen}-`)) && (!store || t.handle === store.toLowerCase()));
-export function shopChet(nen: string, store: string | null, tk: { nen: string; handle: string; status: string }[]): string | null {
+export function shopChet(nen: string, store: string | null, tk: { nen: string; handle: string; status: string; nguon?: 'mos2' | 'directus' }[]): string | null {
   const khop = khopTk(nen, store, tk);
-  return khop.length && khop.every((t) => CHET.has(t.status)) ? khop[0]!.status : null;
+  // Vault MOS2 là nơi anh ghi trạng thái; sổ Directus accounts mặc định 'active' và không ai cập nhật (Udemy #158 banned 08/2026 mà
+  // Directus vẫn 'active' ×2 + một handle khác 'active' → phủ quyết, card #1130). Có hồ sơ vault thì CHỈ vault quyết; Directus chỉ khi vault trống.
+  const vault = khop.filter((t) => t.nguon !== 'directus');
+  const xet = vault.length ? vault : khop;
+  return xet.length && xet.every((t) => CHET.has(t.status)) ? xet[0]!.status : null;
 }
 
 

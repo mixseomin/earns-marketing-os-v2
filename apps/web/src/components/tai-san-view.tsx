@@ -6,7 +6,7 @@
 import { useMemo } from 'react';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { TienDo } from '@/components/ui/tien-do';
-import { Cay, DataTable, Drawer, EntityRef, FilterChips, LinkChip, NutCay, Panel, Pill, Segmented, type DataColumn } from '@/components/ui';
+import { Cay, DataTable, Drawer, EntityRef, FilterChips, LinkChip, NgayLich, NutCay, Panel, Pill, Segmented, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { BanXem } from './tai-san-ban-xem';
 import { extLinkProps, wrapExternalUrl } from '@/lib/external-url';
@@ -35,7 +35,9 @@ const NhanTt = ({ x }: { x: SpNut }) => { const t = tt(x.trangThai); return (
 /** Ngày đăng dự kiến — MỘT cách hiện cho bảng, thẻ, drawer. Quá ngày mà chưa bán → màu cảnh báo. */
 const NgayDang = ({ x }: { x: SpNut }) => { if (!x.dangDuKien) return <span style={phu}>—</span>;
   const [y, m, d] = x.dangDuKien.split('-'); const tre = x.trangThai !== 'dang_ban' && x.dangDuKien < new Date().toISOString().slice(0, 10);
-  return <span title={tre ? 'đã quá ngày đăng dự kiến' : `đăng dự kiến ${x.dangDuKien}`} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: tre ? 'var(--warn)' : x.trangThai === 'dang_ban' ? 'var(--fg-3)' : undefined }}>{d}/{m}{y && y !== String(new Date().getFullYear()) ? `/${y.slice(2)}` : ''}</span>; };
+  // Rê chuột → lịch tháng nhỏ tô khoảng hôm nay ↔ ngày đăng (card #1133); title chỉ còn cho điện thoại / bàn phím.
+  return <NgayLich ngay={x.dangDuKien} nhan="đăng dự kiến" mau={tre ? 'var(--warn)' : 'var(--accent)'}>
+    <span title={tre ? 'đã quá ngày đăng dự kiến' : `đăng dự kiến ${x.dangDuKien}`} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: tre ? 'var(--warn)' : x.trangThai === 'dang_ban' ? 'var(--fg-3)' : undefined }}>{d}/{m}{y && y !== String(new Date().getFullYear()) ? `/${y.slice(2)}` : ''}</span></NgayLich>; };
 const phanSo = (s?: string): [number, number] | null => { const m = s?.match(/^(\d+)\/(\d+)$/); return m ? [Number(m[1]), Number(m[2])] : null; };
 
 /** Thẻ sản phẩm (chế độ thẻ của DataTable — mặc định trên điện thoại): ảnh + tên + trạng thái/định dạng + giá/thu. */

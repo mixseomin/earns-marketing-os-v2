@@ -9,7 +9,12 @@ a.equal(shopChet('gumroad', 'frontporchpuzzles', tk), null);
 a.equal(shopChet('gumroad', null, tk), null);                  // còn một tk sống → không chết
 a.equal(shopChet('kdp', 'htuan82', tk), null);
 a.equal(shopChet('etsy', 'FrontPorchZ', tk), null);            // không có hồ sơ vault → không kết luận chết
-console.log('shopChet: 6/6 ok');
+// Directus accounts mặc định 'active' không phủ quyết vault (card #1130: Udemy #158 banned, Directus có 'aidesign mastery' active)
+const tk3 = [...tk.map((t) => ({ ...t, nguon: 'mos2' as const })), { nen: 'udemy', handle: 'aidesign mastery', status: 'active', nguon: 'directus' as const },
+  { nen: 'stripe', handle: 'x', status: 'closed', nguon: 'directus' as const }];
+a.equal(shopChet('udemy', null, tk3), 'banned');
+a.equal(shopChet('stripe', null, tk3), 'closed');               // vault trống → Directus quyết
+console.log('shopChet: 8/8 ok');
 
 // #1113: một nền tảng nhiều tên khoá giữa các kho → ghép được tài khoản với shop
 a.equal(nenChuan('mql5-com'), 'mql5-market');

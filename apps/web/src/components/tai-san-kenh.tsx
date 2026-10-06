@@ -1,92 +1,90 @@
 'use client';
-// Panel "Kênh kéo khách" của tab Tài sản — CÂY theo TỰA (một cuốn bán ở nhiều shop = một tựa), mở ra mỗi PHƯƠNG PHÁP một hàng.
+// Panel "Kênh kéo khách" của tab Tài sản — MA TRẬN tựa × phương pháp trong một DataTable (trang 25 dòng, ô tìm, sort, thẻ trên mobile).
+// Bản đầu là cây mỗi tựa một nút 2 dòng + bảng lá 9 cột: 114 tựa thành một trang cuộn dài, anh chê 06/10/2026 → một dòng một tựa,
+// mỗi phương pháp một CỘT, ô = chip (bước · tiến độ · lượt 7n · ⚠), chi tiết ở tooltip + drawer khi bấm ô.
 // Phương pháp đọc từ THƯ VIỆN (bảng phuong_phap, sửa ở drawer 📚), áp lên mọi sản phẩm theo `nham` (lib/tai-san/ap-dung.ts):
-// ô chưa có dòng sổ = "chưa làm", số để TRỐNG (chưa đo ≠ 0). Shop không phương pháp nào nhắm tới hiện thành một dòng "thiếu" —
-// đó là chỗ cần thêm, không phải chỗ để im. Ô do máy repo ghi không sửa tay (kenh.mjs đè lại); ô ảo / ô tay sửa ở drawer.
-// Mở/gập ghi ở URL ?kenh=a,b (giống ?shop=).
+// ô chưa có dòng sổ = "·" (chưa làm), số để TRỐNG (chưa đo ≠ 0). Shop không phương pháp nào nhắm tới hiện thành một dòng "thiếu".
+// Ô do máy repo ghi không sửa tay (kenh.mjs đè lại); ô ảo / ô tay sửa ở drawer.
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Cay, Drawer, EntityRef, GuardedButton, LaBang, NutCay, Panel, Pill, SelectField, TextAreaField, TextField, TienDo, oLa, type CotLa } from '@/components/ui';
+import { DataTable, Drawer, EntityRef, GuardedButton, LaBang, Panel, SelectField, TextAreaField, TextField, TienDo, oLa, type DataColumn } from '@/components/ui';
 import { extLinkProps } from '@/lib/external-url';
-import { useShallowParam } from '@/lib/url-shallow';
 import { TT_SP, type KenhO, type PhuongPhap } from '@/lib/tai-san/kieu';
 import { NGUON_DO, demO, type ApDung, type Tua } from '@/lib/tai-san/ap-dung';
 import { datApDung, luuPhuongPhap } from '@/lib/actions/phuong-phap';
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
 const mo: React.CSSProperties = { color: 'var(--fg-4)' };
-const COT: CotLa[] = [{ h: 'Phương pháp', rong: 150 }, { h: 'Đăng ở', rong: 210 }, { h: 'Bước', rong: 190 }, { h: 'Tiến độ', rong: 100, phai: true },
-  { h: 'Lượt 7n', rong: 70, phai: true }, { h: 'Đăng từ', rong: 90 }, { h: 'Trỏ về', rong: 190 }, { h: 'Cần làm', rong: 260 }, { h: 'Card', rong: 110 }];
 const nutNho: React.CSSProperties = { fontSize: 11.5, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer' };
 const nutChinh: React.CSSProperties = { fontSize: 12.5, padding: '6px 14px', borderRadius: 6, border: 'none', background: 'var(--accent)', color: 'var(--bg-0, #fff)', cursor: 'pointer' };
 type Shop = { khoa: string; ten: string };
+const gonUrl = (u: string) => u.replace(/^https?:\/\//, '').replace(/[?#].*$/, '').replace(/\/$/, '');
+const PP_TRONG = (key: string): PhuongPhap => ({ key, nhan: key, moTa: '', nham: [], buoc: ['chưa làm'], noi: { tk: [] }, may: null, nguong: null, thuTu: 0, bat: true });
+
+/** Một ô tựa × phương pháp, gọn một dòng: thanh bước · tên bước · a/b · lượt 7n · ⚠. Ô ảo = một chấm mờ. */
+function ChipO({ o, k }: { o: KenhO; k: PhuongPhap }) {
+  if (o.ao) return <span style={mo}>·</span>;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0, maxWidth: '100%' }}>
+      <TienDo xong={o.muc} tong={k.buoc.length - 1} buoc={k.buoc.slice(1)} so={false} rong={32} />
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', fontSize: 12 }}>{k.buoc[o.muc] ?? o.muc}</span>
+      {o.tong != null && <span style={{ ...phu, fontSize: 11 }}>{o.xong ?? 0}/{o.tong}</span>}
+      {o.luot7 != null && <span style={{ fontSize: 11, color: o.luot7 ? 'var(--fg-1)' : 'var(--fg-3)' }}>👁{o.luot7}</span>}
+      {o.canhBao && <span style={{ color: 'var(--warn)' }}>⚠</span>}
+    </span>
+  );
+}
+/** Tooltip của ô: mọi thứ bảng cũ bày thành 9 cột, nay rê chuột là thấy. */
+function tipO(o: KenhO, k: PhuongPhap, may: boolean) {
+  if (o.ao) return `${k.nhan}: chưa làm — bấm để bắt đầu`;
+  const d = [`${k.nhan} — bước ${o.muc}/${k.buoc.length - 1}: ${k.buoc[o.muc] ?? o.muc}`];
+  if (o.tong != null) d.push(`Tiến độ ${o.xong ?? 0}/${o.tong}`);
+  const nd = NGUON_DO[o.kenh];
+  d.push(nd ? (o.luot7 == null ? `Lượt 7n: chưa có số (${nd.moTa})` : `Lượt 7n: ${o.luot7} (${nd.moTa})`) : 'Lượt 7n: chưa có nguồn đo cho phương pháp này');
+  if (o.ngayDang) d.push(`Đăng từ ${o.ngayDang}`);
+  if (o.dich) d.push(`Trỏ về ${gonUrl(o.dich)}`);
+  if (o.canhBao) d.push(`Cần làm: ${o.canhBao}`);
+  if (o.the) d.push(`Card #${o.the.id} · ${o.the.trangThai}`);
+  d.push(may ? 'máy repo ghi ô này (kenh.mjs) — sửa ở repo đó' : 'bấm để sửa bước / link / ngày đăng');
+  return d.join('\n');
+}
 
 export function TaiSanKenh({ ap, lib, shops }: { ap: ApDung; lib: PhuongPhap[]; shops: Shop[] }) {
-  const [moUrl, datMo] = useShallowParam('kenh', '');
   const [thuVien, datThuVien] = useState(false);
   const [sua, datSua] = useState<{ t: Tua; o: KenhO } | null>(null);
-  const dangMo = new Set(moUrl.split(',').filter(Boolean));
-  const doi = (k: string) => { const n = new Set(dangMo); if (n.has(k)) n.delete(k); else n.add(k); datMo([...n].join(',')); };
   const ppCua = Object.fromEntries(lib.map((p) => [p.key, p]));
   const dem = demO(ap);
-  const thuTu = lib.map((p) => p.key);
+  const bat = lib.filter((p) => p.bat);
+  const soThat = (t: Tua) => Object.values(t.o).filter((o) => !o.ao).length;
+  // Tựa có việc thật lên đầu, rồi tựa bán ở nhiều shop, rồi tên — người mở panel xem cái đang chạy trước.
+  const rows = [...ap.tua].sort((a, b) => soThat(b) - soThat(a) || b.ban.length - a.ban.length || a.ten.localeCompare(b.ten));
+  const cot: DataColumn<Tua>[] = [
+    { key: 'ten', header: 'Tựa', align: 'left', width: 260, sortValue: (t) => t.ten,
+      cellTitle: (t) => t.ban.map((x) => `${x.noi} · ${TT_SP.find((k) => k.key === x.trangThai)!.chu}`).join('\n') || 'chưa lên sàn',
+      cell: (t) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)' }}>
+        <span style={{ fontWeight: 600 }}>{t.ten}</span>
+        <span style={{ ...phu, fontSize: 11, marginLeft: 6 }}>{t.ban.length ? t.ban.map((x) => x.noi).join(' · ') : 'chưa lên sàn'}</span></span> },
+    ...bat.map((k): DataColumn<Tua> => ({
+      key: `pp:${k.key}`, header: k.nhan, align: 'left', width: 200,
+      title: [k.moTa, k.noi.tk.length ? `Đăng ở: ${k.noi.tk.map((x) => x.nhan).join(', ')}` : '', k.noi.url ? gonUrl(k.noi.url) : ''].filter(Boolean).join('\n'),
+      sortValue: (t) => (t.o[k.key]?.ao === undefined && t.o[k.key] ? t.o[k.key]!.muc : null),
+      cellTitle: (t) => (t.o[k.key] ? tipO(t.o[k.key]!, k, !!t.may && !t.o[k.key]!.ao) : undefined),
+      onCellClick: (t) => { const o = t.o[k.key]; if (o && !(t.may && !o.ao)) datSua({ t, o }); },
+      cell: (t) => (t.o[k.key] ? <ChipO o={t.o[k.key]!} k={k} /> : <span style={mo}>—</span>),
+    })),
+    { key: 'can_lam', header: 'Cần làm', align: 'left', width: 220, sortValue: (t) => -Object.values(t.o).filter((o) => o.canhBao).length || null,
+      cellTitle: (t) => Object.values(t.o).flatMap((o) => (o.canhBao ? [`${ppCua[o.kenh]?.nhan ?? o.kenh}: ${o.canhBao}`] : [])).join('\n') || undefined,
+      cell: (t) => { const ds = Object.values(t.o).flatMap((o) => (o.canhBao ? o.canhBao.split(' · ') : []));
+        return ds.length ? <span style={{ color: 'var(--warn)', fontFamily: 'var(--font-sans)', fontSize: 12 }}>{ds[0]}{ds.length > 1 && <span style={phu}> +{ds.length - 1}</span>}</span> : <span style={mo}>—</span>; } },
+  ];
   return (
     <Panel title="📣 Kênh kéo khách theo sản phẩm"
       subtitle={`${ap.tua.length} tựa · ${dem.that} ô có việc · ${dem.ao} ô chưa làm${dem.sp ? ` · ${dem.sp} sản phẩm chưa có phương pháp nào` : ''}`}
-      actions={<button type="button" onClick={() => datThuVien(true)} style={nutNho}>📚 Thư viện ({lib.filter((p) => p.bat).length})</button>}>
-      {ap.tua.length > 0 && (
-        <Cay label="Tựa và phương pháp">
-          {ap.tua.map((t) => {
-            const os = Object.values(t.o).sort((a, b) => thuTu.indexOf(a.kenh) - thuTu.indexOf(b.kenh));
-            const viec = os.flatMap((o) => (o.canhBao ? o.canhBao.split(' · ') : []));
-            const soThat = os.filter((o) => !o.ao).length;
-            return (
-              <NutCay key={t.khoa} mo={dangMo.has(t.khoa)} onDoi={() => doi(t.khoa)}
-                ten={<b style={{ fontWeight: 600 }}>{t.ten}</b>}
-                phu={`${t.ban.length ? t.ban.map((x) => `${x.noi} ${TT_SP.find((k) => k.key === x.trangThai)!.chu}`).join(' · ') : 'chưa lên sàn'}  —  ${soThat}/${os.length} phương pháp có việc`}
-                phai={viec.length ? <Pill label={`⚠ ${viec.length} cần làm`} color="var(--warn)" size="xs" tone="soft" uppercase={false} mono={false} title={viec.join('\n')} />
-                  : !soThat ? <Pill label="chưa bắt đầu" color="var(--fg-4)" size="xs" tone="soft" uppercase={false} mono={false} /> : null}>
-                <LaBang cot={COT}>
-                  <tbody>
-                    {os.map((o) => {
-                      const k = ppCua[o.kenh] ?? { key: o.kenh, nhan: o.kenh, moTa: '', nham: [], buoc: ['chưa làm'], noi: { tk: [] }, may: null, nguong: null, thuTu: 0, bat: true };
-                      const ds = o.canhBao ? o.canhBao.split(' · ') : [];
-                      const may = !!t.may && !o.ao;   // ô máy repo ghi → không sửa tay
-                      return (
-                        <tr key={o.kenh} onClick={may ? undefined : () => datSua({ t, o })}
-                          title={may ? `máy của repo ${t.may} ghi ô này (kenh.mjs) — sửa ở repo đó` : 'bấm để sửa bước / link / ngày đăng'}
-                          style={{ borderTop: '1px solid var(--line)', cursor: may ? 'default' : 'pointer', opacity: o.ao ? 0.6 : 1 }}>
-                          <td style={oLa()} title={k.moTa}><span style={{ borderBottom: '1px dotted var(--fg-4)', cursor: 'help' }}>{k.nhan}</span></td>
-                          <td style={oLa()}>{k.noi.tk.length || k.noi.url
-                            ? <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
-                                {k.noi.tk.map((x) => <EntityRef key={x.id} kind="account" id={x.id} label={x.nhan} size="sm" />)}
-                                {k.noi.url && <a {...extLinkProps(k.noi.url)} style={{ color: 'var(--fg-2)' }}>{k.noi.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗</a>}</span>
-                            : <span style={mo}>—</span>}</td>
-                          <td style={oLa()}>{o.ao ? <span style={mo}>chưa làm</span> : <>
-                            <TienDo xong={o.muc} tong={k.buoc.length - 1} buoc={k.buoc.slice(1)} so={false} rong={44} />
-                            <span style={{ marginLeft: 6 }}>{k.buoc[o.muc] ?? o.muc}</span></>}</td>
-                          <td style={oLa(true)}>{o.tong != null ? <TienDo xong={o.xong ?? 0} tong={o.tong} rong={40} /> : <span style={mo}>—</span>}</td>
-                          <td style={{ ...oLa(true), fontFamily: 'var(--font-mono)' }}
-                            title={NGUON_DO[o.kenh] ? (o.luot7 == null ? `${NGUON_DO[o.kenh]!.moTa} — chưa có số 7 ngày` : NGUON_DO[o.kenh]!.moTa) : 'chưa có nguồn đo cho phương pháp này'}>
-                            {o.luot7 == null ? <span style={mo}>—</span> : <span style={{ color: o.luot7 ? 'var(--fg-1)' : 'var(--fg-3)' }}>{o.luot7}</span>}</td>
-                          <td style={{ ...oLa(), fontFamily: 'var(--font-mono)', fontSize: 11.5 }}>{o.ngayDang ?? <span style={mo}>—</span>}</td>
-                          <td style={{ ...oLa(), ...phu }} title={o.dich ?? ''}>{o.dich
-                            ? <a {...extLinkProps(o.dich)} onClick={(e) => e.stopPropagation()} style={{ color: 'inherit' }}>{o.dich.replace(/^https?:\/\//, '').replace(/[?#].*$/, '')}</a> : <span style={mo}>—</span>}</td>
-                          <td style={oLa()} title={ds.join('\n')}>{ds.length
-                            ? <span style={{ color: 'var(--warn)' }}>{ds[0]}{ds.length > 1 && <span style={phu}> +{ds.length - 1}</span>}</span> : <span style={mo}>—</span>}</td>
-                          <td style={oLa()} onClick={(e) => e.stopPropagation()}>{o.the
-                            ? <><EntityRef kind="task" id={o.the.id} project={o.the.project ?? undefined} label={`#${o.the.id}`} title={o.the.ten} size="sm" />{' '}
-                              <span style={{ fontSize: 11, color: o.the.trangThai === 'completed' ? 'var(--ok)' : 'var(--fg-3)' }}>{o.the.trangThai}</span></>
-                            : <span style={mo}>—</span>}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </LaBang>
-              </NutCay>
-            );
-          })}
-        </Cay>
+      actions={<button type="button" onClick={() => datThuVien(true)} style={nutNho}>📚 Thư viện ({bat.length})</button>}>
+      {rows.length > 0 && (
+        <DataTable rows={rows} columns={cot} getRowKey={(t) => t.khoa} persistKey="tai-san-kenh" pageSize={25} fixedLayout card
+          minWidth={260 + 200 * bat.length + 220} searchText={(t) => `${t.ten} ${t.ban.map((x) => x.noi).join(' ')}`} searchPlaceholder="tìm tựa / nơi bán…"
+          rowStyle={(t) => (soThat(t) ? undefined : { opacity: 0.65 })} />
       )}
       {ap.thieu.length > 0 && (
         <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.6, ...phu }}>
@@ -96,7 +94,7 @@ export function TaiSanKenh({ ap, lib, shops }: { ap: ApDung; lib: PhuongPhap[]; 
         </div>
       )}
       {thuVien && <ThuVien lib={lib} shops={shops} onClose={() => datThuVien(false)} />}
-      {sua && <SuaO t={sua.t} o={sua.o} pp={ppCua[sua.o.kenh]!} onClose={() => datSua(null)} />}
+      {sua && <SuaO t={sua.t} o={sua.o} pp={ppCua[sua.o.kenh] ?? PP_TRONG(sua.o.kenh)} onClose={() => datSua(null)} />}
     </Panel>
   );
 }
@@ -115,7 +113,16 @@ function SuaO({ t, o, pp, onClose }: { t: Tua; o: KenhO; pp: PhuongPhap; onClose
   return (
     <Drawer onClose={onClose} width={480} dirty={v.muc !== o.muc || v.dich !== (o.dich ?? '') || v.ngayDang !== (o.ngayDang ?? '') || v.canhBao !== (o.canhBao ?? '')}>
       <div style={{ display: 'grid', gap: 12 }}>
-        <div><b style={{ fontSize: 14 }}>{pp.nhan}</b><div style={{ fontSize: 12, ...phu }}>{t.ten}</div></div>
+        <div><b style={{ fontSize: 14 }}>{pp.nhan}</b><div style={{ fontSize: 12, ...phu }}>{t.ten}</div>
+          {(pp.noi.tk.length > 0 || pp.noi.url || o.the) && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 6, fontSize: 12 }}>
+              {pp.noi.tk.length > 0 && <span style={phu}>Đăng ở</span>}
+              {pp.noi.tk.map((x) => <EntityRef key={x.id} kind="account" id={x.id} label={x.nhan} size="sm" />)}
+              {pp.noi.url && <a {...extLinkProps(pp.noi.url)} style={{ color: 'var(--fg-2)' }}>{gonUrl(pp.noi.url)} ↗</a>}
+              {o.the && <><span style={phu}>· Card</span><EntityRef kind="task" id={o.the.id} project={o.the.project ?? undefined} label={`#${o.the.id}`} title={o.the.ten} size="sm" />
+                <span style={{ fontSize: 11, color: o.the.trangThai === 'completed' ? 'var(--ok)' : 'var(--fg-3)' }}>{o.the.trangThai}</span></>}
+            </div>)}
+        </div>
         <SelectField label="Bước" value={v.muc} onChange={(e) => datV({ ...v, muc: Number(e.target.value) })}>
           {pp.buoc.map((b, i) => <option key={i} value={i}>{i}. {b}</option>)}
         </SelectField>

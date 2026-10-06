@@ -42,5 +42,14 @@ export async function GET(req: Request) {
     FROM c CROSS JOIN (VALUES (1), (7), (30)) AS v(n)
     WHERE c.d0 + n <= now()::date
     GROUP BY n ORDER BY n`);
-  return NextResponse.json({ ok: true, app, days, ngay, giu });
+  // Sức khoẻ kết nối từng network (app có Diag — Yieldboard): số máy nối được / gặp lỗi trong kỳ + lỗi gần nhất.
+  const ketNoi = await db.execute(sql`
+    SELECT props->>'n' AS network,
+      count(DISTINCT install_id) FILTER (WHERE ten = 'diag_ok')::int AS may_ok,
+      count(DISTINCT install_id) FILTER (WHERE ten = 'diag_error')::int AS may_loi,
+      count(*) FILTER (WHERE ten = 'diag_ok' AND (props->>'nz')::int = 0)::int AS ok_ma_trong,
+      (array_agg(props->>'m' ORDER BY ts DESC) FILTER (WHERE ten = 'diag_error'))[1] AS loi_moi_nhat
+    FROM app_su_kien WHERE app_key = ${app} AND ten IN ('diag_ok', 'diag_error') AND ts >= now() - make_interval(days => ${days})
+    GROUP BY 1 ORDER BY 1`);
+  return NextResponse.json({ ok: true, app, days, ngay, giu, ketNoi });
 }

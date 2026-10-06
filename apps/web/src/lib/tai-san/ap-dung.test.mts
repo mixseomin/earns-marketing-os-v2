@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/web/src/lib/tai-san/ap-dung.test.mts
 import { strict as a } from 'node:assert';
-import { apDung, demO, nhamTrung } from './ap-dung';
+import { apDung, demO, ganLuot, nhamTrung } from './ap-dung';
 import type { KenhSp, PhuongPhap, ShopNut, SpNut } from './kieu';
 
 const sp = (khoa: string, ten: string): SpNut => ({ khoa, ten, anh: null, ma: null, phu: null, url: null, trangThai: 'dang_ban', gia: null, views7d: null, don: null, tien: null, ky: '30n', canhBao: null, ghiChu: null });
@@ -42,4 +42,12 @@ a.equal(ap.tua.length, 2);
 a.equal(ap.tua.find((t) => t.khoa === 'u:1'), undefined);
 a.deepEqual(ap.thieu, [{ shop: 'udemy:', ten: 'Udemy', soSp: 2 }]);
 a.deepEqual(demO(ap), { ao: 3, that: 1, sp: 2 });   // sudoku: pinterest + shorts · bible: shorts
-console.log('ap-dung: 16/16 ok');
+
+// lượt theo nguồn: pinterest đọc từ refs Gumroad; sản phẩm có số mà không có pinterest → 0 thật; tựa không dòng số → null; shorts không nguồn → undefined
+ganLuot(ap, { 'etsy:1': { 'pinterest.com': 5, direct: 9 }, 'd:1': { direct: 2 } });
+a.equal(bible.o.pinterest!.luot7, 5);
+a.equal(bible.o.shorts!.luot7, undefined);
+a.equal(sudoku.o.pinterest!.luot7, null);
+ganLuot(ap, { 'etsy:2': { direct: 3 } });
+a.equal(sudoku.o.pinterest!.luot7, 0);
+console.log('ap-dung: 20/20 ok');

@@ -37,3 +37,13 @@ export async function docPhuongPhap(): Promise<PhuongPhap[]> {
   const rows = (await d.execute(sql`SELECT key, nhan, mo_ta, nham, buoc, noi, may, nguong, thu_tu, bat FROM phuong_phap ORDER BY thu_tu, key`)) as unknown as DongPp[];
   return rows.map(dichPp);
 }
+
+/** Lượt xem 7 ngày theo NGUỒN giới thiệu của từng sản phẩm Gumroad (product_daily.refs) — khoá 'gumroad:<product_id>' như cây Tài sản. */
+export async function docLuotNguon(): Promise<Record<string, Record<string, number>>> {
+  const d = getDb(); if (!d) return {};
+  const rows = (await d.execute(sql`SELECT product_id, e.k, sum((e.v)::int)::int AS n FROM product_daily, jsonb_each_text(refs) AS e(k, v)
+    WHERE date >= to_char(current_date - 7, 'YYYY-MM-DD') GROUP BY 1, 2`)) as unknown as { product_id: string; k: string; n: number }[];
+  const ra: Record<string, Record<string, number>> = {};
+  for (const r of rows) (ra[`gumroad:${r.product_id}`] ??= {})[r.k] = r.n;
+  return ra;
+}

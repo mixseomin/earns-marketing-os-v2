@@ -11,7 +11,7 @@
 // Tự kiểm: node_modules/.bin/tsx apps/web/src/lib/tai-san/ap-dung.test.mts
 import type { KenhO, KenhSp, PhuongPhap, ShopNut, TrangThaiSp } from './kieu';
 
-export type BanO = { noi: string; shop: string; trangThai: TrangThaiSp };
+export type BanO = { noi: string; shop: string; /** khoá sản phẩm trên cây ('gumroad:<id>', 'd:<uuid>'…) */ khoa: string; trangThai: TrangThaiSp };
 export type Tua = { khoa: string; ten: string; /** project của máy repo ghi tựa này (kenh.mjs); null = tựa sửa tay */ may: string | null;
   /** sản phẩm trên cây thuộc tựa này (shop nào, trạng thái gì) */ ban: BanO[];
   /** một ô cho MỖI phương pháp nhắm trúng shop của tựa; thiếu dòng sổ thì ô ảo (ao: true) */ o: Record<string, KenhO> };
@@ -38,7 +38,7 @@ export function apDung(shops: ShopNut[], lib: PhuongPhap[], rows: KenhSp[]): ApD
       const k = goc?.sanPham ?? `ten:${ten.replace(/\s+/g, ' ').trim()}`;
       const t = tua.get(k) ?? { khoa: k, ten: x.ten, may: null, ban: [], o: {} };
       // Nhãn ngắn "KDP paperback" / "Etsy" (tên nền + định dạng khi khác pdf) — như dòng tóm tắt cũ của panel.
-      t.ban.push({ noi: `${s.ten.split(' · ')[0]}${x.phu && x.phu !== 'pdf' ? ` ${x.phu}` : ''}`, shop: s.khoa, trangThai: x.trangThai });
+      t.ban.push({ noi: `${s.ten.split(' · ')[0]}${x.phu && x.phu !== 'pdf' ? ` ${x.phu}` : ''}`, shop: s.khoa, khoa: x.khoa, trangThai: x.trangThai });
       for (const p of pps) t.o[p.key] ??= oAo(p.key);
       tua.set(k, t);
       if (!pps.length) {
@@ -59,3 +59,23 @@ export const demO = (ap: ApDung) => {
   for (const t of ap.tua) for (const o of Object.values(t.o)) (o.ao ? ao++ : that++);
   return { ao, that, sp: ap.thieu.reduce((n, x) => n + x.soSp, 0) };
 };
+
+/** NGUỒN ĐO của từng phương pháp — số đọc từ đâu. Hiện chỉ Pinterest có nguồn thật: Gumroad ghi lượt xem theo trang giới thiệu
+ *  (product_daily.refs, máy gumroad-views đọc 3 lần/ngày) — ghim trỏ về Gumroad thì lượt từ pinterest.* là của ghim. Trang tặng /
+ *  video ngắn: thẻ GA4 + GSC pickjot mới gắn 06/10/2026, có số thì thêm nguồn ở đây; chưa có thì ô hiện "—", không bịa 0. */
+export const NGUON_DO: Record<string, { khop: RegExp; moTa: string }> = {
+  pinterest: { khop: /pinterest/i, moTa: 'lượt xem trang Gumroad có nguồn giới thiệu pinterest.* (7 ngày)' },
+};
+/** luot: khoá sản phẩm → { nguồn → lượt 7 ngày }. Sản phẩm có dòng số mà không có nguồn khớp → 0 thật; không dòng số nào → null. */
+export function ganLuot(ap: ApDung, luot: Record<string, Record<string, number>>): ApDung {
+  for (const t of ap.tua) for (const [k, o] of Object.entries(t.o)) {
+    const nd = NGUON_DO[k]; if (!nd) continue;
+    let n: number | null = null;
+    for (const b of t.ban) {
+      const r = luot[b.khoa]; if (!r) continue;
+      n = (n ?? 0) + Object.entries(r).reduce((s, [ten, v]) => s + (nd.khop.test(ten) ? v : 0), 0);
+    }
+    o.luot7 = n;
+  }
+  return ap;
+}

@@ -5,18 +5,18 @@ import { StatsStrip, type StatCard } from '@/components/ui';
 import { SeoSitesPanel, docSeoSites } from './seo-sites-panel';
 import { TaiSanView } from './tai-san-view';
 import { docTaiSanBan } from '@/lib/tai-san/doc';
-import { docKenh, docPhuongPhap } from '@/lib/tai-san/kenh';
-import { apDung } from '@/lib/tai-san/ap-dung';
+import { docKenh, docLuotNguon, docPhuongPhap } from '@/lib/tai-san/kenh';
+import { apDung, ganLuot } from '@/lib/tai-san/ap-dung';
 import { TaiSanKenh } from './tai-san-kenh';
 import type { TrangThaiSp } from '@/lib/tai-san/kieu';
 
 export async function TaiSanTab() {
-  const [sites, ban, kenhDoc, libDoc] = await Promise.all([docSeoSites(), docTaiSanBan(), docKenh().catch((e: Error) => e), docPhuongPhap().catch((e: Error) => e)]);
+  const [sites, ban, kenhDoc, libDoc, luot] = await Promise.all([docSeoSites(), docTaiSanBan(), docKenh().catch((e: Error) => e), docPhuongPhap().catch((e: Error) => e), docLuotNguon().catch(() => ({}))]);
   if (kenhDoc instanceof Error) ban.loi.push(`kênh kéo khách (kenh_sp): ${kenhDoc.message}`);
   if (libDoc instanceof Error) ban.loi.push(`thư viện phương pháp (phuong_phap): ${libDoc.message}`);
   const lib = libDoc instanceof Error ? [] : libDoc;
   // Áp thư viện lên MỌI sản phẩm trên cây (ap-dung.ts): tựa + ô theo nhắm, ô thiếu dòng sổ = chưa làm, shop không ai nhắm = thiếu.
-  const ap = apDung(ban.shops, lib, kenhDoc instanceof Error ? [] : kenhDoc);
+  const ap = ganLuot(apDung(ban.shops, lib, kenhDoc instanceof Error ? [] : kenhDoc), luot);
   const web = sites.ok ? sites.rows : [];
   const nha = web.filter((r) => r.nhom !== 'shopdy');
   const sp = ban.shops.flatMap((s) => s.sp);

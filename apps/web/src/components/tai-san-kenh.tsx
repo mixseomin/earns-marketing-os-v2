@@ -10,13 +10,13 @@ import { Cay, Drawer, EntityRef, GuardedButton, LaBang, NutCay, Panel, Pill, Sel
 import { extLinkProps } from '@/lib/external-url';
 import { useShallowParam } from '@/lib/url-shallow';
 import { TT_SP, type KenhO, type PhuongPhap } from '@/lib/tai-san/kieu';
-import { demO, type ApDung, type Tua } from '@/lib/tai-san/ap-dung';
+import { NGUON_DO, demO, type ApDung, type Tua } from '@/lib/tai-san/ap-dung';
 import { datApDung, luuPhuongPhap } from '@/lib/actions/phuong-phap';
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
 const mo: React.CSSProperties = { color: 'var(--fg-4)' };
 const COT: CotLa[] = [{ h: 'Phương pháp', rong: 150 }, { h: 'Đăng ở', rong: 210 }, { h: 'Bước', rong: 190 }, { h: 'Tiến độ', rong: 100, phai: true },
-  { h: 'Đăng từ', rong: 90 }, { h: 'Trỏ về', rong: 190 }, { h: 'Cần làm', rong: 260 }, { h: 'Card', rong: 110 }];
+  { h: 'Lượt 7n', rong: 70, phai: true }, { h: 'Đăng từ', rong: 90 }, { h: 'Trỏ về', rong: 190 }, { h: 'Cần làm', rong: 260 }, { h: 'Card', rong: 110 }];
 const nutNho: React.CSSProperties = { fontSize: 11.5, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer' };
 const nutChinh: React.CSSProperties = { fontSize: 12.5, padding: '6px 14px', borderRadius: 6, border: 'none', background: 'var(--accent)', color: 'var(--bg-0, #fff)', cursor: 'pointer' };
 type Shop = { khoa: string; ten: string };
@@ -66,6 +66,9 @@ export function TaiSanKenh({ ap, lib, shops }: { ap: ApDung; lib: PhuongPhap[]; 
                             <TienDo xong={o.muc} tong={k.buoc.length - 1} buoc={k.buoc.slice(1)} so={false} rong={44} />
                             <span style={{ marginLeft: 6 }}>{k.buoc[o.muc] ?? o.muc}</span></>}</td>
                           <td style={oLa(true)}>{o.tong != null ? <TienDo xong={o.xong ?? 0} tong={o.tong} rong={40} /> : <span style={mo}>—</span>}</td>
+                          <td style={{ ...oLa(true), fontFamily: 'var(--font-mono)' }}
+                            title={NGUON_DO[o.kenh] ? (o.luot7 == null ? `${NGUON_DO[o.kenh]!.moTa} — chưa có số 7 ngày` : NGUON_DO[o.kenh]!.moTa) : 'chưa có nguồn đo cho phương pháp này'}>
+                            {o.luot7 == null ? <span style={mo}>—</span> : <span style={{ color: o.luot7 ? 'var(--fg-1)' : 'var(--fg-3)' }}>{o.luot7}</span>}</td>
                           <td style={{ ...oLa(), fontFamily: 'var(--font-mono)', fontSize: 11.5 }}>{o.ngayDang ?? <span style={mo}>—</span>}</td>
                           <td style={{ ...oLa(), ...phu }} title={o.dich ?? ''}>{o.dich
                             ? <a {...extLinkProps(o.dich)} onClick={(e) => e.stopPropagation()} style={{ color: 'inherit' }}>{o.dich.replace(/^https?:\/\//, '').replace(/[?#].*$/, '')}</a> : <span style={mo}>—</span>}</td>

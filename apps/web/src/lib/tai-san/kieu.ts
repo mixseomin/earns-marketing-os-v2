@@ -40,26 +40,16 @@ export function shopChet(nen: string, store: string | null, tk: { nen: string; h
 }
 
 
-// Kênh kéo khách (bảng kenh_sp) — phần thuần cho panel client; đọc DB ở kenh.ts.
-/** Các khâu của từng kênh, theo thứ tự; kenh_sp.muc là chỉ số trong mảng. Kênh mới = thêm một dòng ở đây. */
-/** moTa: kênh này LÀ gì (#1111). */
-/** noi: kênh ĐĂNG Ở ĐÂU (#1116) — tài khoản vault (id platform_accounts) và/hoặc trang; chưa có thì để trống, không bịa.
- *  moTa hiện khi rê chuột vào tên kênh (#1116: hiện cả đoạn là chật). */
-export const KHAU: Record<string, { nhan: string; moTa: string; noi: { tk: { id: number; nhan: string }[]; url?: string }; khau: string[] }> = {
-  pinterest: { nhan: 'Pinterest', moTa: 'Ghim ảnh sản phẩm lên Pinterest, hẹn lịch đăng dần; mỗi ghim có link về trang bán.',
-    noi: { tk: [{ id: 503, nhan: 'Pinterest' }] },
-    khau: ['chưa làm', 'dựng ảnh ghim', 'đã hẹn lịch', 'đang lên', 'lên hết'] },
-  shorts: { nhan: 'Video ngắn', moTa: 'Video ngắn giới thiệu sách đăng YouTube Shorts / Instagram / TikTok, có link về trang bán.',
-    noi: { tk: [{ id: 506, nhan: 'YouTube' }, { id: 508, nhan: 'Instagram' }, { id: 509, nhan: 'TikTok' }] },
-    khau: ['chưa làm', 'dựng video', 'đăng một phần', 'đăng hết'] },
-  printables: { nhan: 'Trang tặng miễn phí', moTa: 'Trang tải miễn phí vài trang mẫu trên site nhà — khách tìm thấy qua Google, từ đó dẫn sang trang bán.',
-    noi: { tk: [], url: 'https://pickjot.com/printables/' },
-    khau: ['chưa làm', 'dựng trang', 'đang live', 'đã nộp sitemap'] },
-};
+// Kênh kéo khách (bảng kenh_sp) + thư viện phương pháp (bảng phuong_phap, migration 0220) — phần thuần cho panel client; đọc DB ở kenh.ts.
+/** Một phương pháp kéo khách trong THƯ VIỆN (sửa được trên MOS2, không phải hằng trong mã). nham: khoá shop / nền / '*'.
+ *  buoc[0] = "chưa làm"; kenh_sp.muc là chỉ số trong mảng. nguong để trống tới khi có số thật. */
+export type PhuongPhap = { key: string; nhan: string; moTa: string; nham: string[]; buoc: string[];
+  noi: { tk: { id: number; nhan: string }[]; url?: string }; may: string | null; nguong: Record<string, unknown> | null; thuTu: number; bat: boolean };
 
+/** Một ô sản phẩm × phương pháp. `ao` = chưa có dòng sổ (mọi số null — chưa đo, không phải 0). */
 export type KenhO = { kenh: string; muc: number; xong: number | null; tong: number | null; dich: string | null; canhBao: string | null;
-  the: { id: number; project: string | null; ten: string; trangThai: string } | null; capNhat: string };
-export type KenhSp = { sanPham: string; ten: string; khop: string | null; o: Record<string, KenhO> };
+  the: { id: number; project: string | null; ten: string; trangThai: string } | null; capNhat: string | null; ngayDang: string | null; ao?: true };
+export type KenhSp = { sanPham: string; ten: string; khop: string | null; /** project của máy ghi (kenh.mjs); null = dòng sửa tay */ project?: string | null; o: Record<string, KenhO> };
 
 /** Bản xem một sản phẩm đang làm — ảnh nằm trên Directus của MOS2 (assets/<id>), không link ra ngoài. */
 export type XemDuyet = { /** dấu vân tay nội dung (puzzle-books bam-xem.mjs) */ bam?: string; ngay: string; anh: { id: string; chu: string }[]; trang?: number;

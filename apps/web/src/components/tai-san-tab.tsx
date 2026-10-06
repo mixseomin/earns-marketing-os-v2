@@ -5,18 +5,18 @@ import { StatsStrip, type StatCard } from '@/components/ui';
 import { SeoSitesPanel, docSeoSites } from './seo-sites-panel';
 import { TaiSanView } from './tai-san-view';
 import { docTaiSanBan } from '@/lib/tai-san/doc';
-import { docKenh } from '@/lib/tai-san/kenh';
-import { TaiSanKenh, type BanO } from './tai-san-kenh';
+import { docKenh, docPhuongPhap } from '@/lib/tai-san/kenh';
+import { apDung } from '@/lib/tai-san/ap-dung';
+import { TaiSanKenh } from './tai-san-kenh';
 import type { TrangThaiSp } from '@/lib/tai-san/kieu';
 
 export async function TaiSanTab() {
-  const [sites, ban, kenhDoc] = await Promise.all([docSeoSites(), docTaiSanBan(), docKenh().catch((e: Error) => e)]);
+  const [sites, ban, kenhDoc, libDoc] = await Promise.all([docSeoSites(), docTaiSanBan(), docKenh().catch((e: Error) => e), docPhuongPhap().catch((e: Error) => e)]);
   if (kenhDoc instanceof Error) ban.loi.push(`kênh kéo khách (kenh_sp): ${kenhDoc.message}`);
-  const kenh = kenhDoc instanceof Error ? [] : kenhDoc;
-  // Sản phẩm bán ở đâu: nối kenh_sp.khop (chuỗi con của tên listing) với cây shop — tính ở server, client chỉ nhận chữ ngắn.
-  const banKenh: Record<string, BanO> = Object.fromEntries(kenh.map((k) => [k.sanPham, !k.khop ? [] : ban.shops.flatMap((sh) => sh.sp
-    .filter((x) => x.ten.toLowerCase().includes(k.khop!.toLowerCase()))
-    .map((x) => ({ noi: `${sh.ten.split(' · ')[0]}${x.phu && x.phu !== 'pdf' ? ` ${x.phu}` : ''}`, trangThai: x.trangThai })))]));
+  if (libDoc instanceof Error) ban.loi.push(`thư viện phương pháp (phuong_phap): ${libDoc.message}`);
+  const lib = libDoc instanceof Error ? [] : libDoc;
+  // Áp thư viện lên MỌI sản phẩm trên cây (ap-dung.ts): tựa + ô theo nhắm, ô thiếu dòng sổ = chưa làm, shop không ai nhắm = thiếu.
+  const ap = apDung(ban.shops, lib, kenhDoc instanceof Error ? [] : kenhDoc);
   const web = sites.ok ? sites.rows : [];
   const nha = web.filter((r) => r.nhom !== 'shopdy');
   const sp = ban.shops.flatMap((s) => s.sp);
@@ -38,7 +38,7 @@ export async function TaiSanTab() {
       <StatsStrip cards={cards} />
       <SeoSitesPanel d={sites} />
       <TaiSanView ban={ban} />
-      <TaiSanKenh kenh={kenh} ban={banKenh} />
+      <TaiSanKenh ap={ap} lib={lib} shops={ban.shops.map((x) => ({ khoa: x.khoa, ten: x.ten }))} />
     </div>
   );
 }

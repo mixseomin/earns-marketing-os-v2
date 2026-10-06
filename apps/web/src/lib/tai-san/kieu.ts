@@ -24,7 +24,8 @@ export type TaiKhoan = { id: number | string; nguon: 'mos2' | 'directus'; /** li
 
 /** Một nền tảng nhiều tên khoá giữa các kho (MOS2 'mql5', Directus 'mql5-com', sổ sản phẩm 'mql5-market') → một khoá chuẩn. */
 // apple-developer = khoá vault của tài khoản nhà phát triển (#470) → gộp về nền app-store để shop App Store tra ra tài khoản
-export const NEN_GOP: Record<string, string> = { mql5: 'mql5-market', 'mql5-com': 'mql5-market', 'apple-developer': 'app-store' };
+// paddle = cổng thu (Merchant of Record) của astrolas.com — shop Astrolas tra ra tài khoản Paddle; site khác dùng Paddle thì tách khoá theo handle.
+export const NEN_GOP: Record<string, string> = { mql5: 'mql5-market', 'mql5-com': 'mql5-market', 'apple-developer': 'app-store', paddle: 'astrolas' };
 export const nenChuan = (k: string) => { const x = k.toLowerCase(); return NEN_GOP[x] ?? x; };
 export type ShopNut = { khoa: string; ten: string; loai: 'gumroad' | 'kdp' | 'etsy' | 'mos' | 'san'; url: string | null; sp: SpNut[]; tk?: TaiKhoan | null;
   tien: number | null; ky: Ky; loi: string | null; ghiChu: string | null };

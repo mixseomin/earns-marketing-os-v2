@@ -32,6 +32,10 @@ const NhanTt = ({ x }: { x: SpNut }) => { const t = tt(x.trangThai); return (
   <span title={x.ke ? `bước kế: ${x.ke}` : undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
     <Pill label={t.chu} color={t.mau} size="xs" tone="soft" uppercase={false} mono={false} />
     {phanSo(x.tienDo) && <TienDo xong={phanSo(x.tienDo)![0]} tong={phanSo(x.tienDo)![1]} mau={t.mau} rong={36} />}</span>); };
+/** Ngày đăng dự kiến — MỘT cách hiện cho bảng, thẻ, drawer. Quá ngày mà chưa bán → màu cảnh báo. */
+const NgayDang = ({ x }: { x: SpNut }) => { if (!x.dangDuKien) return <span style={phu}>—</span>;
+  const [y, m, d] = x.dangDuKien.split('-'); const tre = x.trangThai !== 'dang_ban' && x.dangDuKien < new Date().toISOString().slice(0, 10);
+  return <span title={tre ? 'đã quá ngày đăng dự kiến' : `đăng dự kiến ${x.dangDuKien}`} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: tre ? 'var(--warn)' : x.trangThai === 'dang_ban' ? 'var(--fg-3)' : undefined }}>{d}/{m}{y && y !== String(new Date().getFullYear()) ? `/${y.slice(2)}` : ''}</span>; };
 const phanSo = (s?: string): [number, number] | null => { const m = s?.match(/^(\d+)\/(\d+)$/); return m ? [Number(m[1]), Number(m[2])] : null; };
 
 /** Thẻ sản phẩm (chế độ thẻ của DataTable — mặc định trên điện thoại): ảnh + tên + trạng thái/định dạng + giá/thu. */
@@ -43,6 +47,7 @@ const TheSp = (x: SpNut) => (
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', fontSize: 11.5 }}>
         <NhanTt x={x} />
         {x.phu && <span style={phu}>{x.phu}</span>}
+        {x.dangDuKien && <span style={phu}>đăng <NgayDang x={x} /></span>}
         <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>{x.gia == null ? '' : x.gia > 0 ? tienTe(x.gia, x.tienTe) : 'free'}</span>
         {x.tien != null && x.tien > 0 && thu(x.tien, x.ky)}
       </div>
@@ -59,6 +64,7 @@ const COT: DataColumn<SpNut>[] = [
   { key: 'dinh_dang', header: 'Định dạng', align: 'left', width: 100, sortValue: (x) => x.phu, cell: (x) => <span style={phu}>{x.phu ?? '—'}</span> },
   { key: 'tt', header: 'Trạng thái', align: 'left', width: 150, sortValue: (x) => TT_SP.findIndex((t) => t.key === x.trangThai),
     cell: (x) => <NhanTt x={x} /> },
+  { key: 'dang', header: 'Đăng dự kiến', align: 'left', width: 96, sortValue: (x) => x.dangDuKien ?? '9', cell: (x) => <NgayDang x={x} /> },
   { key: 'gia', header: 'Giá', width: 96, sortValue: (x) => x.gia,
     cell: (x) => (x.gia == null ? chuaDo : x.gia > 0 ? tienTe(x.gia, x.tienTe) : <span style={phu}>free</span>) },
   { key: 'views', header: 'Views 7d', width: 72, sortValue: (x) => x.views7d, cell: (x) => (x.views7d == null ? chuaDo : <span style={x.views7d ? undefined : phu}>{x.views7d}</span>) },
@@ -199,6 +205,7 @@ function ChiTietSp({ s, x, onClose }: { s: ShopNut; x: SpNut; onClose: () => voi
     ['Shop', <><span style={{ display: 'inline-flex', verticalAlign: 'middle', marginRight: 6 }}><Logo s={s} /></span>{s.ten}{s.url && <> · <a {...extLinkProps(s.url)} style={{ color: 'var(--accent)' }}>mở shop ↗</a></>}</>],
     ['Tài khoản', s.tk ? <><TkRef tk={s.tk} />{s.tk.email && <span style={phu}> · {s.tk.email}</span>}</> : <span style={{ color: 'var(--warn)' }}>chưa có trong vault</span>],
     ['Trạng thái', <NhanTt x={x} />],
+    ['Đăng dự kiến', <NgayDang x={x} />],
     ['Định dạng', x.phu ?? '—'],
     ['Mã trên nền tảng', x.ma ? <code>{x.ma}</code> : '—'],
     ['Giá', x.gia == null ? '—' : x.gia > 0 ? tienTe(x.gia, x.tienTe) : 'free'],

@@ -23,7 +23,8 @@ export type SpNut = { khoa: string; ten: string; /** ảnh sản phẩm (thumbna
 export type TaiKhoan = { id: number | string; nguon: 'mos2' | 'directus'; /** link bản ghi ở kho Directus (máy chủ dựng từ DIRECTUS_URL) */ url?: string; handle: string; email: string | null; status: string };
 
 /** Một nền tảng nhiều tên khoá giữa các kho (MOS2 'mql5', Directus 'mql5-com', sổ sản phẩm 'mql5-market') → một khoá chuẩn. */
-export const NEN_GOP: Record<string, string> = { mql5: 'mql5-market', 'mql5-com': 'mql5-market' };
+// apple-developer = khoá vault của tài khoản nhà phát triển (#470) → gộp về nền app-store để shop App Store tra ra tài khoản
+export const NEN_GOP: Record<string, string> = { mql5: 'mql5-market', 'mql5-com': 'mql5-market', 'apple-developer': 'app-store' };
 export const nenChuan = (k: string) => { const x = k.toLowerCase(); return NEN_GOP[x] ?? x; };
 export type ShopNut = { khoa: string; ten: string; loai: 'gumroad' | 'kdp' | 'etsy' | 'mos' | 'san'; url: string | null; sp: SpNut[]; tk?: TaiKhoan | null;
   tien: number | null; ky: Ky; loi: string | null; ghiChu: string | null };

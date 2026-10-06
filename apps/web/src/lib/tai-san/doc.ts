@@ -20,7 +20,7 @@ import { NEN_GOP, anhBiaXem, daDuyetBanNay, khopTk, nenChuan, shopChet, type Ky,
 export { TT_SP, type Ky, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from './kieu';
 
 const NHAN_NEN: Record<string, string> = { gumroad: 'Gumroad', kdp: 'KDP', etsy: 'Etsy', udemy: 'Udemy', 'mql5-market': 'MQL5 Market', rapidapi: 'RapidAPI',
-  stripe: 'Stripe', chaturbate: 'Chaturbate', stripcash: 'Stripcash', course: 'Khoá học', 'wordpress.org': 'WordPress.org' };
+  stripe: 'Stripe', chaturbate: 'Chaturbate', stripcash: 'Stripcash', course: 'Khoá học', 'wordpress.org': 'WordPress.org', 'app-store': 'App Store' };
 const LOAI_NEN: Record<string, ShopNut['loai']> = { gumroad: 'gumroad', kdp: 'kdp', etsy: 'etsy' };
 const TT_DIRECTUS: Record<string, TrangThaiSp> = { planned: 'du_kien', draft: 'dang_lam', ready: 'san_sang', owner_review: 'cho_anh', pending: 'cho_duyet', in_review: 'cho_duyet', published: 'dang_ban', unlisted: 'ngung', archived: 'ngung' };
 

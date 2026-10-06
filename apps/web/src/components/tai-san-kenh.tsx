@@ -50,15 +50,17 @@ function tipO(o: KenhO, k: PhuongPhap, may: boolean) {
 }
 
 const soThat = (t: Tua) => Object.values(t.o).filter((o) => !o.ao).length;
+/** 'KDP paperback · Etsy · Gumroad' — hai listing cùng nền cùng định dạng chỉ ghi một lần. */
+const noiBan = (t: Tua) => [...new Set(t.ban.map((x) => x.noi))].join(' · ') || 'chưa lên sàn';
 
 /** Thẻ trên điện thoại: tựa chưa bắt đầu = một dòng; có việc = mỗi phương pháp một dòng chip, bấm dòng → drawer. */
 function TheTua({ t, bat, onSua }: { t: Tua; bat: PhuongPhap[]; onSua: (o: KenhO) => void }) {
   const os = bat.filter((k) => t.o[k.key] && !t.o[k.key]!.ao);
   return (
     <div style={{ display: 'grid', gap: 6, padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, opacity: os.length ? 1 : 0.65 }}>
-      <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', minWidth: 0 }}>
+      <div style={{ display: 'grid', gap: 2, minWidth: 0 }}>
         <b style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.ten}</b>
-        <span style={{ ...phu, fontSize: 11, flex: 'none' }}>{t.ban.map((x) => x.noi).join(' · ') || 'chưa lên sàn'}</span>
+        <span style={{ ...phu, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{noiBan(t)}</span>
       </div>
       {os.length ? os.map((k) => { const o = t.o[k.key]!; const may = !!t.may;
         return (
@@ -86,7 +88,7 @@ export function TaiSanKenh({ ap, lib, shops }: { ap: ApDung; lib: PhuongPhap[]; 
       cellTitle: (t) => t.ban.map((x) => `${x.noi} · ${TT_SP.find((k) => k.key === x.trangThai)!.chu}`).join('\n') || 'chưa lên sàn',
       cell: (t) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)' }}>
         <span style={{ fontWeight: 600 }}>{t.ten}</span>
-        <span style={{ ...phu, fontSize: 11, marginLeft: 6 }}>{t.ban.length ? t.ban.map((x) => x.noi).join(' · ') : 'chưa lên sàn'}</span></span> },
+        <span style={{ ...phu, fontSize: 11, marginLeft: 6 }}>{noiBan(t)}</span></span> },
     ...bat.map((k): DataColumn<Tua> => ({
       key: `pp:${k.key}`, header: k.nhan, align: 'left', width: 200,
       title: [k.moTa, k.noi.tk.length ? `Đăng ở: ${k.noi.tk.map((x) => x.nhan).join(', ')}` : '', k.noi.url ? gonUrl(k.noi.url) : ''].filter(Boolean).join('\n'),

@@ -1,0 +1,10 @@
+# Số App Store (lượt hiển thị/xem trang/tải) → Directus product_stats → tab Tài sản. Xem scripts/app-store-so.mjs.
+[Unit]
+Description=App Store analytics -> product_stats
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/earns-marketing-os-v2
+EnvironmentFile=/opt/earns-marketing-os-v2/.env.production
+ExecStart=/usr/bin/node scripts/app-store-so.mjs --days 35

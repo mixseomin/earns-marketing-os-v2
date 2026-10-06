@@ -1,0 +1,10 @@
+# Apple dựng báo cáo ngày trước vào khoảng sáng giờ Mỹ → chạy 2 lần/ngày (14:00 + 02:00 UTC = 21:00 + 09:00 giờ VN).
+[Unit]
+Description=App Store analytics daily
+
+[Timer]
+OnCalendar=*-*-* 02,14:00:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

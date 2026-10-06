@@ -46,6 +46,9 @@ export interface ProductRow {
   reviews: number | null;
   /** Học viên/người theo dõi của riêng sản phẩm đó (Udemy: num_subscribers). */
   students: number | null;
+  /** Lượt xem trang 7 ngày gần nhất / lượt tải (lần đầu) trong cửa sổ — product_stats.views / downloads. null = nền chưa đo. */
+  views7d: number | null;
+  downloads: number | null;
   lastSeen: string | null;
 }
 
@@ -97,18 +100,19 @@ const num = (v: unknown) => Number(v) || 0;
 export async function getProductsView(windowDays = 30): Promise<ProductsView> {
   const since = new Date(Date.now() - (windowDays - 1) * 86400_000).toISOString().slice(0, 10);
   const errors: string[] = [];
+  const since7 = new Date(Date.now() - 6 * 86400_000).toISOString().slice(0, 10);
 
   const [products, stats] = await Promise.all([
     // Sổ cái do máy ghi liên tục (~/bin/sanpham, puzzle-books quy-trinh.mjs) → cache 15s, không 5 phút: trạng thái mới phải hiện gần như ngay.
     get<Record<string, unknown>>('/items/products?limit=-1&fields=id,title,sku,status,price,platform,url,store,category,currency,cover,notes,listing_config', 15),
     get<Record<string, unknown>>(
-      `/items/product_stats?limit=-1&fields=product_id,date,platform,revenue,gross_revenue,rating,reviews,subscribers&filter[date][_gte]=${since}`),
+      `/items/product_stats?limit=-1&fields=product_id,date,platform,revenue,gross_revenue,rating,reviews,subscribers,views,downloads&filter[date][_gte]=${since}`),
   ]);
   if (!products.length) errors.push('products: Directus không trả dữ liệu');
 
   // Gộp theo product. Tiền chỉ cộng từ dòng CÓ SỐ (revenue != null); rating/review/học
   // viên lấy bản mới nhất vì đó là ảnh chụp trạng thái, cộng dồn lại thành số vô nghĩa.
-  interface Agg { net: number; gross: number; hasRevenue: boolean; rating: number | null; reviews: number | null; students: number | null; last: string }
+  interface Agg { net: number; gross: number; hasRevenue: boolean; rating: number | null; reviews: number | null; students: number | null; views7d: number | null; downloads: number | null; last: string }
   const agg = new Map<string, Agg>();
   // Dòng KHÔNG có product_id = tiền đo ở mức tài khoản (xem PlatformRoll.platformOnly).
   const platformNet = new Map<string, { net: number; last: string }>();
@@ -125,7 +129,10 @@ export async function getProductsView(windowDays = 30): Promise<ProductsView> {
       platformNet.set(key, cur);
       continue;
     }
-    const cur = agg.get(pid) ?? { net: 0, gross: 0, hasRevenue: false, rating: null, reviews: null, students: null, last: '' };
+    const cur = agg.get(pid) ?? { net: 0, gross: 0, hasRevenue: false, rating: null, reviews: null, students: null, views7d: null, downloads: null, last: '' };
+    // Lượt xem / tải: cộng như tiền (chỉ dòng có số). Views gói 7 ngày cuối để khớp cột "Views 7d" của Gumroad.
+    if (s.views != null) cur.views7d = (cur.views7d ?? 0) + (d >= since7 ? num(s.views) : 0);   // có đo mà 7 ngày không ai xem = 0, không phải chưa đo
+    if (s.downloads != null) cur.downloads = (cur.downloads ?? 0) + num(s.downloads);
     if (s.revenue != null) {
       cur.hasRevenue = true;
       cur.net += num(s.revenue);
@@ -154,6 +161,7 @@ export async function getProductsView(windowDays = 30): Promise<ProductsView> {
       net: a?.hasRevenue ? a.net : null,
       gross: a?.hasRevenue ? a.gross : null,
       rating: a?.rating ?? null, reviews: a?.reviews ?? null, students: a?.students ?? null,
+      views7d: a?.views7d ?? null, downloads: a?.downloads ?? null,
       lastSeen: a?.last || null,
     };
   }).sort((x, y) => (y.net ?? -1) - (x.net ?? -1)

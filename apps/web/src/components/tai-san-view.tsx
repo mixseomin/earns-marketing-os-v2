@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { datTrangThaiSp } from '@/lib/actions/san-pham-duyet';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { TienDo } from '@/components/ui/tien-do';
-import { Cay, DataTable, Drawer, EntityRef, FilterChips, LinkChip, NgayLich, NutCay, Panel, Pill, Segmented, type DataColumn } from '@/components/ui';
+import { Cay, DataTable, Drawer, EntityRef, FilterChips, LinkChip, NgayLich, NutCay, Panel, Pill, Segmented, SelectField, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { BanXem } from './tai-san-ban-xem';
 import { extLinkProps, wrapExternalUrl } from '@/lib/external-url';
@@ -224,10 +224,9 @@ function SuaTrangThai({ x }: { x: SpNut }) {
     <span style={{ display: 'inline-grid', gap: 4 }}>
       <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
         <NhanTt x={x} />
-        <select aria-label="Đổi trạng thái" disabled={dang} value={TT_VE_SO[x.trangThai] ?? ''} onChange={(e) => doi(e.target.value)}
-          style={{ fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)' }}>
+        <SelectField aria-label="Đổi trạng thái" size="sm" disabled={dang} value={TT_VE_SO[x.trangThai] ?? ''} onChange={(e) => doi(e.target.value)}>
           {TT_SO_NHAN.map(([k, c]) => <option key={k} value={k}>{c}</option>)}
-        </select>
+        </SelectField>
         {dang && <span style={phu}>đang ghi…</span>}
       </span>
       {loi && <span style={{ fontSize: 12, color: 'var(--bad)', border: '1px solid var(--bad)', borderRadius: 6, padding: '4px 8px' }}>{loi}</span>}

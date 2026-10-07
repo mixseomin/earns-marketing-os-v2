@@ -16,8 +16,33 @@ export const TT_SP: { key: TrangThaiSp; chu: string; mau: string }[] = [
 export type Ky = 'tron_doi' | '30n';
 /** Một tập trong bộ sách: tên bộ + số tập (null = chưa đánh số). */
 export type BoSach = { ten: string; so: number | null };
-/** Khoá sắp xếp theo bộ: các tập của cùng một bộ đứng liền nhau, đúng thứ tự tập; sách lẻ xếp theo tên. */
-export const khoaBo = (x: { ten: string; series?: BoSach | null }) => (x.series ? `${x.series.ten}\u0000${String(x.series.so ?? 999).padStart(3, '0')}` : x.ten);
+/** Gộp các tập cùng bộ thành MỘT dòng bảng (khoa 'bo:<tên>') — bảng sản phẩm của shop hiện bộ như một mục, bấm bung ra các tập;
+ *  sách lẻ giữ nguyên. Dòng bộ mang số gộp (đơn/thu/views cộng; ngày đăng = ngày sớm nhất chưa bán; trạng thái = việc cần làm gấp nhất). */
+const GAP: TrangThaiSp[] = ['cho_anh', 'san_sang', 'dang_lam', 'cho_duyet', 'du_kien', 'dang_ban', 'ngung'];
+const cong = (xs: (number | null)[]) => (xs.some((x) => x != null) ? xs.reduce<number>((t, x) => t + (x ?? 0), 0) : null);
+export const tenTrongBo = (x: { ten: string; series?: BoSach | null }) =>
+  (x.series ? x.ten.replace(new RegExp(`^${x.series.ten.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*[:\\-–]\\s*`, 'i'), '') || x.ten : x.ten);
+export function gopBo(sp: SpNut[]): { dong: SpNut[]; con: Map<string, SpNut[]> } {
+  const con = new Map<string, SpNut[]>(), dong: SpNut[] = [];
+  for (const x of sp) {
+    if (!x.series) { dong.push(x); continue; }
+    const k = `bo:${x.series.ten}`;
+    if (!con.has(k)) { con.set(k, []); dong.push({ khoa: k } as SpNut); }   // giữ chỗ đúng vị trí tập đầu tiên gặp
+    con.get(k)!.push(x);
+  }
+  for (const [k, ds] of con) {
+    ds.sort((a, b) => (a.series!.so ?? 999) - (b.series!.so ?? 999) || (a.phu ?? '').localeCompare(b.phu ?? ''));
+    const tap = new Set(ds.map((x) => x.series!.so)).size, dem = new Map<TrangThaiSp, number>();
+    for (const x of ds) dem.set(x.trangThai, (dem.get(x.trangThai) ?? 0) + 1);
+    const cho = ds.filter((x) => x.trangThai !== 'dang_ban' && x.dangDuKien).map((x) => x.dangDuKien!).sort()[0] ?? null;
+    const i = dong.findIndex((x) => x.khoa === k);
+    dong[i] = { khoa: k, ten: k.slice(3), anh: ds.find((x) => x.anh)?.anh ?? null, ma: null, phu: `${tap} tập · ${ds.length} bản`, url: null,
+      trangThai: GAP.find((t) => dem.has(t))!, dangDuKien: cho, gia: null, views7d: cong(ds.map((x) => x.views7d)), don: cong(ds.map((x) => x.don)),
+      tien: cong(ds.map((x) => x.tien)), ky: ds[0]!.ky, canhBao: ds.find((x) => x.canhBao)?.canhBao ?? null,
+      ghiChu: TT_SP.filter((t) => dem.has(t.key)).map((t) => `${dem.get(t.key)} ${t.chu}`).join(' · ') };
+  }
+  return { dong, con };
+}
 export type SpNut = { khoa: string; ten: string; /** ảnh sản phẩm (thumbnail nền tảng / cover Directus / ảnh mặt tiền) */ anh: string | null;
   /** mã trên nền tảng (permalink Gumroad, listing id Etsy, sku/ISBN KDP…) */ ma: string | null; /** định dạng / sku (bìa mềm, bìa cứng, ebook…) */ phu: string | null; url: string | null;
   trangThai: TrangThaiSp; /** tiến độ quy trình sản xuất ('1/5'), máy ghi ở dòng đầu ghi chú: '▶ quy trình 1/5 · xong: … · kế: …' */ tienDo?: string; ke?: string; /** bản xem để anh duyệt NGAY TRONG MOS2 (listing_config.xem, scripts/xem.mjs ghi) */ xem?: XemDuyet | null; /** ngày anh duyệt (listing_config.duyet) */ duyet?: string | null; /** dấu vân tay bản xem lúc anh duyệt */ duyetBam?: string | null; /** ngày đăng dự kiến (YYYY-MM-DD) theo lịch đăng */ dangDuKien?: string | null; /** bộ sách (listing_config.series) */ series?: BoSach | null; /** id dòng Directus products (để bấm Duyệt) */ idSo?: string; gia: number | null; /** mã tiền của giá (USD mặc định; Etsy FrontPorchZ niêm yết VND) — hiện đúng tiền, không tự quy đổi */ tienTe?: string; views7d: number | null; don: number | null; tien: number | null; ky: Ky; canhBao: string | null; ghiChu: string | null };

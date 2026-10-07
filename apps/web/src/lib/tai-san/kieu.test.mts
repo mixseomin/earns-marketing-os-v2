@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/web/src/lib/tai-san/kieu.test.mts
 import { strict as a } from 'node:assert';
-import { anhBiaXem, daDuyetBanNay, khopTk, nenChuan, shopChet, khoaBo } from './kieu';
+import { anhBiaXem, daDuyetBanNay, khopTk, nenChuan, shopChet, gopBo, tenTrongBo } from './kieu';
 const tk = [{ nen: 'udemy', handle: 'evergreen programming', status: 'banned' }, { nen: 'gumroad', handle: 'oldcc7391', status: 'closed' },
   { nen: 'gumroad', handle: 'frontporchpuzzles', status: 'active' }, { nen: 'kdp', handle: 'htuan82', status: 'active' }];
 a.equal(shopChet('udemy', null, tk), 'banned');                // Udemy không ghi store → mọi tk udemy chết (05/10/2026)
@@ -41,9 +41,13 @@ a.equal(anhBiaXem({ ngay: 'x', anh: [{ id: 'dau', chu: 'khác' }] }), 'dau');
 a.equal(anhBiaXem(null), null);
 console.log('anhBiaXem: 3/3 ok');
 
-// khoaBo: các tập cùng bộ xếp liền nhau theo số tập (tập 10 sau tập 2), sách lẻ xếp theo tên
+// gopBo: các tập cùng bộ thành một dòng đúng chỗ tập đầu; con xếp theo số tập; tên trong bộ bỏ tiền tố tên bộ
 {
-  const ds = [{ ten: 'Z lẻ' }, { ten: 'b', series: { ten: 'Bộ A', so: 10 } }, { ten: 'a', series: { ten: 'Bộ A', so: 2 } }, { ten: 'A lẻ' }];
-  const xep = [...ds].sort((x, y) => khoaBo(x).localeCompare(khoaBo(y))).map((x) => x.ten);
-  a.deepEqual(xep, ['A lẻ', 'a', 'b', 'Z lẻ']);
+  const sp = (ten: string, so: number | null, tt: string, phu = 'bìa mềm') => ({ khoa: ten + phu, ten, anh: null, ma: null, phu, url: null, trangThai: tt, gia: null, views7d: null, don: so, tien: null, ky: '30n', canhBao: null, ghiChu: null, series: so == null ? null : { ten: 'Bộ A', so } }) as never;
+  const { dong, con } = gopBo([sp('lẻ 1', null, 'dang_ban'), sp('Bộ A: tập ba', 3, 'cho_anh'), sp('Bộ A: tập một', 1, 'dang_ban'), sp('lẻ 2', null, 'du_kien')]);
+  a.deepEqual(dong.map((x) => x.khoa), ['lẻ 1bìa mềm', 'bo:Bộ A', 'lẻ 2bìa mềm']);
+  a.deepEqual(con.get('bo:Bộ A')!.map((x) => x.series!.so), [1, 3]);
+  a.equal(dong[1]!.trangThai, 'cho_anh'); a.equal(dong[1]!.phu, '2 tập · 2 bản'); a.equal(dong[1]!.don, 4);
+  a.equal(tenTrongBo(con.get('bo:Bộ A')![0]!), 'tập một');
+  console.log('gopBo: 6/6 ok');
 }

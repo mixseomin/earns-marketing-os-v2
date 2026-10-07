@@ -449,6 +449,8 @@ export function DataTable<T>({
                   )}
                 </div>
               )}
+              {/* Nội dung bung ra (renderExpanded) hiện cả ở chế độ thẻ — trước đây chỉ bảng có, sang điện thoại là mất */}
+              {((x) => (x != null && x !== false ? <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 6, padding: '6px 8px', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-2)' }}>{x}</div> : null))(renderExpanded?.(row, i))}
             </div>
           ))}
           {!sortedRows.length && (

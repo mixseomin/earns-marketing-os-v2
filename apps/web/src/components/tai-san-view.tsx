@@ -13,7 +13,7 @@ import { useModalParam } from '@/lib/use-modal-param';
 import { BanXem } from './tai-san-ban-xem';
 import { extLinkProps, wrapExternalUrl } from '@/lib/external-url';
 import { useShallowParam } from '@/lib/url-shallow';
-import { TT_SP, khoaBo, type TaiKhoan, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from '@/lib/tai-san/kieu';
+import { TT_SP, gopBo, tenTrongBo, type TaiKhoan, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from '@/lib/tai-san/kieu';
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
 const chuaDo = <span style={{ color: 'var(--fg-4)' }} title="chưa có nguồn đo — không phải 0">—</span>;
@@ -40,9 +40,6 @@ const NgayDang = ({ x }: { x: SpNut }) => { if (!x.dangDuKien) return <span styl
   // Rê chuột → lịch tháng nhỏ tô khoảng hôm nay ↔ ngày đăng (card #1133); title chỉ còn cho điện thoại / bàn phím.
   return <NgayLich ngay={x.dangDuKien} nhan="đăng dự kiến" mau={tre ? 'var(--warn)' : 'var(--accent)'}>
     <span title={tre ? 'đã quá ngày đăng dự kiến' : `đăng dự kiến ${x.dangDuKien}`} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: tre ? 'var(--warn)' : x.trangThai === 'dang_ban' ? 'var(--fg-3)' : undefined }}>{d}/{m}{y && y !== String(new Date().getFullYear()) ? `/${y.slice(2)}` : ''}</span></NgayLich>; };
-/** Nhãn bộ sách — MỘT cách hiện cho bảng và thẻ: 'Tập 2 · <tên bộ>'. Sách lẻ không hiện gì. */
-const NhanBo = ({ x }: { x: SpNut }) => (x.series ? <span title={`bộ ${x.series.ten}${x.series.so ? `, tập ${x.series.so}` : ''}`}>
-  <Pill label={`${x.series.so ? `Tập ${x.series.so} · ` : 'Bộ · '}${x.series.ten}`} color="var(--accent)" size="xs" tone="soft" uppercase={false} mono={false} /></span> : null);
 const phanSo = (s?: string): [number, number] | null => { const m = s?.match(/^(\d+)\/(\d+)$/); return m ? [Number(m[1]), Number(m[2])] : null; };
 
 /** Thẻ sản phẩm (chế độ thẻ của DataTable — mặc định trên điện thoại): ảnh + tên + trạng thái/định dạng + giá/thu. */
@@ -52,7 +49,6 @@ const TheSp = (x: SpNut) => (
     <div style={{ minWidth: 0, flex: 1, display: 'grid', gap: 4 }}>
       <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.ten}</div>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', fontSize: 11.5 }}>
-        <NhanBo x={x} />
         <NhanTt x={x} />
         {x.phu && <span style={phu}>{x.phu}</span>}
         {x.dangDuKien && <span style={phu}>đăng <NgayDang x={x} /></span>}
@@ -65,8 +61,8 @@ const TheSp = (x: SpNut) => (
 
 const COT: DataColumn<SpNut>[] = [
   { key: 'anh', header: '', width: 40, align: 'center', cell: (x) => <Anh x={x} co={28} /> },
-  { key: 'ten', header: 'Sản phẩm', align: 'left', sortValue: khoaBo, cellTitle: (x) => (x.url ? `${x.ten}\n${x.url}` : x.ten),
-    cell: (x) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.series && <span style={{ marginRight: 6 }}><NhanBo x={x} /></span>}{x.url
+  { key: 'ten', header: 'Sản phẩm', align: 'left', sortValue: (x) => x.ten, cellTitle: (x) => (x.url ? `${x.ten}\n${x.url}` : x.ten),
+    cell: (x) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.khoa.startsWith('bo:') && <span style={{ marginRight: 6 }}><Pill label="bộ sách" color="var(--accent)" size="xs" tone="soft" uppercase={false} mono={false} /></span>}{x.url
       ? <a {...extLinkProps(x.url)} onClick={(e) => e.stopPropagation()} style={{ color: 'var(--fg-1)', textDecoration: 'none' }}>{x.ten} <span style={phu}>↗</span></a> : x.ten}
       {x.trangThai === 'cho_anh' && <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--accent)' }}>· bấm để xem + duyệt</span>}</span> },
   { key: 'dinh_dang', header: 'Định dạng', align: 'left', width: 100, sortValue: (x) => x.phu, cell: (x) => <span style={phu}>{x.phu ?? '—'}</span> },
@@ -181,29 +177,31 @@ export function TaiSanView({ ban }: { ban: TaiSanBan }) {
   );
 }
 
-/** Dải BỘ SÁCH đầu bảng sản phẩm của shop: mỗi bộ một dòng — các tập theo thứ tự, mỗi tập liệt kê định dạng + trạng thái;
- *  bấm một ô → mở drawer sản phẩm đó. Bảng bên dưới vẫn đủ mọi dòng; dải này để nhìn MỘT phát ra bộ nào đủ tập, tập nào còn thiếu. */
-function DaiBoSach({ sp, onMo }: { sp: SpNut[]; onMo: (khoa: string) => void }) {
-  const bo = new Map<string, Map<number | null, SpNut[]>>();
-  for (const x of sp) if (x.series) { const t = bo.get(x.series.ten) ?? new Map(); t.set(x.series.so, [...(t.get(x.series.so) ?? []), x]); bo.set(x.series.ten, t); }
-  if (!bo.size) return null;
+/** Các tập của một bộ — dòng bung ra dưới dòng bộ trong bảng sản phẩm: mỗi tập một hàng (số tập · tên tập), mỗi bản
+ *  (ebook / bìa mềm / bìa cứng) một ô trạng thái; bấm ô → drawer của bản đó. */
+function CacTap({ ds, onMo }: { ds: SpNut[]; onMo: (khoa: string) => void }) {
+  const tap = new Map<number | null, SpNut[]>();
+  for (const x of ds) tap.set(x.series!.so, [...(tap.get(x.series!.so) ?? []), x]);
   return (
-    <div style={{ display: 'grid', gap: 6, padding: '4px 10px 8px 12px' }}>
-      {[...bo].map(([ten, tap]) => (
-        <div key={ten} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', fontSize: 12, border: '1px solid var(--line)', borderRadius: 8, padding: '6px 10px', background: 'var(--bg-1)' }}>
-          <span><span style={phu}>Bộ sách</span> <b style={{ fontWeight: 600 }}>{ten}</b> <span style={phu}>· {tap.size} tập</span></span>
-          {[...tap].sort(([a], [b]) => (a ?? 999) - (b ?? 999)).map(([so, ds]) => (
-            <span key={String(so)} style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
-              <b style={{ fontWeight: 600 }}>{so ? `Tập ${so}` : 'Chưa số'}</b>
-              {ds.map((x) => <span key={x.khoa} onClick={() => onMo(x.khoa)} style={{ cursor: 'pointer' }} title={`${x.ten}${x.dangDuKien ? ` · đăng dự kiến ${x.dangDuKien}` : ''} — bấm để mở`}>
-                <Pill label={`${x.phu ?? '?'} · ${tt(x.trangThai).chu}`} color={tt(x.trangThai).mau} size="xs" tone="soft" uppercase={false} mono={false} /></span>)}
-            </span>))}
-        </div>))}
+    <div style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto', gap: '6px 12px', alignItems: 'center', fontSize: 12.5 }}>
+      {[...tap].map(([so, bs]) => [
+        <b key={`${so}a`} style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{so ? `Tập ${so}` : 'Chưa số'}</b>,
+        <span key={`${so}b`} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={bs[0]!.ten}>{tenTrongBo(bs[0]!)}</span>,
+        <span key={`${so}c`} style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {bs.map((x) => <span key={x.khoa} onClick={(e) => { e.stopPropagation(); onMo(x.khoa); }} style={{ cursor: 'pointer', display: 'inline-flex', gap: 4, alignItems: 'center' }}
+            title={`${x.ten} · ${x.phu ?? ''} — bấm để mở`}>
+            <Pill label={`${x.phu ?? '?'} · ${tt(x.trangThai).chu}`} color={tt(x.trangThai).mau} size="xs" tone="soft" uppercase={false} mono={false} />
+            {x.trangThai !== 'dang_ban' && x.dangDuKien && <NgayDang x={x} />}</span>)}
+        </span>])}
     </div>);
 }
 
 function ShopNutCay({ s, sp, mo, onDoi, onMo }: { s: ShopNut; sp: SpNut[]; mo: boolean; onDoi: () => void; onMo: (khoa: string) => void }) {
   const d = demTt(s.sp);
+  // Bộ sách = MỘT dòng trong bảng, mặc định bung sẵn các tập (bấm dòng bộ để gập/mở)
+  const bo = useMemo(() => gopBo(sp), [sp]);
+  const [dongBo, datMoBo] = useState<Set<string> | null>(null);
+  const moBo = dongBo ?? new Set(bo.con.keys());
   const dong = TT_SP.filter((t) => d[t.key]).map((t) => `${d[t.key]} ${t.chu}`).join(' · ');
   return (
     <NutCay mo={mo} onDoi={onDoi}
@@ -220,9 +218,10 @@ function ShopNutCay({ s, sp, mo, onDoi, onMo }: { s: ShopNut; sp: SpNut[]; mo: b
       phai={s.tien == null ? undefined : <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{thu(s.tien, s.ky)}</span>}>
       {sp.length
         ? <div style={{ padding: '2px 10px 8px 12px' }}>
-            <DaiBoSach sp={sp} onMo={onMo} />
-            <DataTable rows={sp} columns={COT} getRowKey={(x) => x.khoa} persistKey="tai-san-sp" minWidth={900} pageSize={50} fixedLayout card={{ render: TheSp, minWidth: 280 }}
-              onRowClick={(x) => onMo(x.khoa)} rowTitle={() => 'bấm để xem chi tiết'} />
+            <DataTable rows={bo.dong} columns={COT} getRowKey={(x) => x.khoa} persistKey="tai-san-sp" minWidth={900} pageSize={50} fixedLayout card={{ render: TheSp, minWidth: 280 }}
+              onRowClick={(x) => (bo.con.has(x.khoa) ? datMoBo((m) => { const n = new Set(m ?? bo.con.keys()); if (n.has(x.khoa)) n.delete(x.khoa); else n.add(x.khoa); return n; }) : onMo(x.khoa))}
+              rowTitle={(x) => (bo.con.has(x.khoa) ? (moBo.has(x.khoa) ? 'bấm để gập các tập' : 'bấm để xem các tập') : 'bấm để xem chi tiết')}
+              renderExpanded={(x) => (bo.con.has(x.khoa) && moBo.has(x.khoa) ? <CacTap ds={bo.con.get(x.khoa)!} onMo={onMo} /> : null)} />
           </div>
         : <div style={{ padding: '6px 12px', fontSize: 12, ...phu }}>chưa có sản phẩm nào trong sổ — ghi bằng <code>sanpham add</code></div>}
     </NutCay>

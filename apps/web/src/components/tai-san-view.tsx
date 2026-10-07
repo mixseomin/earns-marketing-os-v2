@@ -11,7 +11,7 @@ import { useModalParam } from '@/lib/use-modal-param';
 import { BanXem } from './tai-san-ban-xem';
 import { extLinkProps, wrapExternalUrl } from '@/lib/external-url';
 import { useShallowParam } from '@/lib/url-shallow';
-import { TT_SP, type TaiKhoan, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from '@/lib/tai-san/kieu';
+import { TT_SP, khoaBo, type TaiKhoan, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from '@/lib/tai-san/kieu';
 
 const phu: React.CSSProperties = { color: 'var(--fg-3)' };
 const chuaDo = <span style={{ color: 'var(--fg-4)' }} title="chưa có nguồn đo — không phải 0">—</span>;
@@ -38,6 +38,9 @@ const NgayDang = ({ x }: { x: SpNut }) => { if (!x.dangDuKien) return <span styl
   // Rê chuột → lịch tháng nhỏ tô khoảng hôm nay ↔ ngày đăng (card #1133); title chỉ còn cho điện thoại / bàn phím.
   return <NgayLich ngay={x.dangDuKien} nhan="đăng dự kiến" mau={tre ? 'var(--warn)' : 'var(--accent)'}>
     <span title={tre ? 'đã quá ngày đăng dự kiến' : `đăng dự kiến ${x.dangDuKien}`} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: tre ? 'var(--warn)' : x.trangThai === 'dang_ban' ? 'var(--fg-3)' : undefined }}>{d}/{m}{y && y !== String(new Date().getFullYear()) ? `/${y.slice(2)}` : ''}</span></NgayLich>; };
+/** Nhãn bộ sách — MỘT cách hiện cho bảng và thẻ: 'Tập 2 · <tên bộ>'. Sách lẻ không hiện gì. */
+const NhanBo = ({ x }: { x: SpNut }) => (x.series ? <span title={`bộ ${x.series.ten}${x.series.so ? `, tập ${x.series.so}` : ''}`}>
+  <Pill label={`${x.series.so ? `Tập ${x.series.so} · ` : 'Bộ · '}${x.series.ten}`} color="var(--accent)" size="xs" tone="soft" uppercase={false} mono={false} /></span> : null);
 const phanSo = (s?: string): [number, number] | null => { const m = s?.match(/^(\d+)\/(\d+)$/); return m ? [Number(m[1]), Number(m[2])] : null; };
 
 /** Thẻ sản phẩm (chế độ thẻ của DataTable — mặc định trên điện thoại): ảnh + tên + trạng thái/định dạng + giá/thu. */
@@ -47,6 +50,7 @@ const TheSp = (x: SpNut) => (
     <div style={{ minWidth: 0, flex: 1, display: 'grid', gap: 4 }}>
       <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.ten}</div>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', fontSize: 11.5 }}>
+        <NhanBo x={x} />
         <NhanTt x={x} />
         {x.phu && <span style={phu}>{x.phu}</span>}
         {x.dangDuKien && <span style={phu}>đăng <NgayDang x={x} /></span>}
@@ -59,8 +63,8 @@ const TheSp = (x: SpNut) => (
 
 const COT: DataColumn<SpNut>[] = [
   { key: 'anh', header: '', width: 40, align: 'center', cell: (x) => <Anh x={x} co={28} /> },
-  { key: 'ten', header: 'Sản phẩm', align: 'left', sortValue: (x) => x.ten, cellTitle: (x) => (x.url ? `${x.ten}\n${x.url}` : x.ten),
-    cell: (x) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.url
+  { key: 'ten', header: 'Sản phẩm', align: 'left', sortValue: khoaBo, cellTitle: (x) => (x.url ? `${x.ten}\n${x.url}` : x.ten),
+    cell: (x) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.series && <span style={{ marginRight: 6 }}><NhanBo x={x} /></span>}{x.url
       ? <a {...extLinkProps(x.url)} onClick={(e) => e.stopPropagation()} style={{ color: 'var(--fg-1)', textDecoration: 'none' }}>{x.ten} <span style={phu}>↗</span></a> : x.ten}
       {x.trangThai === 'cho_anh' && <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--accent)' }}>· bấm để xem + duyệt</span>}</span> },
   { key: 'dinh_dang', header: 'Định dạng', align: 'left', width: 100, sortValue: (x) => x.phu, cell: (x) => <span style={phu}>{x.phu ?? '—'}</span> },

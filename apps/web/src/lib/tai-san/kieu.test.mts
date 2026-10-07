@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/web/src/lib/tai-san/kieu.test.mts
 import { strict as a } from 'node:assert';
-import { anhBiaXem, daDuyetBanNay, khopTk, nenChuan, shopChet } from './kieu';
+import { anhBiaXem, daDuyetBanNay, khopTk, nenChuan, shopChet, khoaBo } from './kieu';
 const tk = [{ nen: 'udemy', handle: 'evergreen programming', status: 'banned' }, { nen: 'gumroad', handle: 'oldcc7391', status: 'closed' },
   { nen: 'gumroad', handle: 'frontporchpuzzles', status: 'active' }, { nen: 'kdp', handle: 'htuan82', status: 'active' }];
 a.equal(shopChet('udemy', null, tk), 'banned');                // Udemy không ghi store → mọi tk udemy chết (05/10/2026)
@@ -40,3 +40,10 @@ a.equal(anhBiaXem(xem), 'bia');
 a.equal(anhBiaXem({ ngay: 'x', anh: [{ id: 'dau', chu: 'khác' }] }), 'dau');
 a.equal(anhBiaXem(null), null);
 console.log('anhBiaXem: 3/3 ok');
+
+// khoaBo: các tập cùng bộ xếp liền nhau theo số tập (tập 10 sau tập 2), sách lẻ xếp theo tên
+{
+  const ds = [{ ten: 'Z lẻ' }, { ten: 'b', series: { ten: 'Bộ A', so: 10 } }, { ten: 'a', series: { ten: 'Bộ A', so: 2 } }, { ten: 'A lẻ' }];
+  const xep = [...ds].sort((x, y) => khoaBo(x).localeCompare(khoaBo(y))).map((x) => x.ten);
+  a.deepEqual(xep, ['A lẻ', 'a', 'b', 'Z lẻ']);
+}

@@ -181,6 +181,27 @@ export function TaiSanView({ ban }: { ban: TaiSanBan }) {
   );
 }
 
+/** Dải BỘ SÁCH đầu bảng sản phẩm của shop: mỗi bộ một dòng — các tập theo thứ tự, mỗi tập liệt kê định dạng + trạng thái;
+ *  bấm một ô → mở drawer sản phẩm đó. Bảng bên dưới vẫn đủ mọi dòng; dải này để nhìn MỘT phát ra bộ nào đủ tập, tập nào còn thiếu. */
+function DaiBoSach({ sp, onMo }: { sp: SpNut[]; onMo: (khoa: string) => void }) {
+  const bo = new Map<string, Map<number | null, SpNut[]>>();
+  for (const x of sp) if (x.series) { const t = bo.get(x.series.ten) ?? new Map(); t.set(x.series.so, [...(t.get(x.series.so) ?? []), x]); bo.set(x.series.ten, t); }
+  if (!bo.size) return null;
+  return (
+    <div style={{ display: 'grid', gap: 6, padding: '4px 10px 8px 12px' }}>
+      {[...bo].map(([ten, tap]) => (
+        <div key={ten} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', fontSize: 12, border: '1px solid var(--line)', borderRadius: 8, padding: '6px 10px', background: 'var(--bg-1)' }}>
+          <span><span style={phu}>Bộ sách</span> <b style={{ fontWeight: 600 }}>{ten}</b> <span style={phu}>· {tap.size} tập</span></span>
+          {[...tap].sort(([a], [b]) => (a ?? 999) - (b ?? 999)).map(([so, ds]) => (
+            <span key={String(so)} style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+              <b style={{ fontWeight: 600 }}>{so ? `Tập ${so}` : 'Chưa số'}</b>
+              {ds.map((x) => <span key={x.khoa} onClick={() => onMo(x.khoa)} style={{ cursor: 'pointer' }} title={`${x.ten}${x.dangDuKien ? ` · đăng dự kiến ${x.dangDuKien}` : ''} — bấm để mở`}>
+                <Pill label={`${x.phu ?? '?'} · ${tt(x.trangThai).chu}`} color={tt(x.trangThai).mau} size="xs" tone="soft" uppercase={false} mono={false} /></span>)}
+            </span>))}
+        </div>))}
+    </div>);
+}
+
 function ShopNutCay({ s, sp, mo, onDoi, onMo }: { s: ShopNut; sp: SpNut[]; mo: boolean; onDoi: () => void; onMo: (khoa: string) => void }) {
   const d = demTt(s.sp);
   const dong = TT_SP.filter((t) => d[t.key]).map((t) => `${d[t.key]} ${t.chu}`).join(' · ');
@@ -199,6 +220,7 @@ function ShopNutCay({ s, sp, mo, onDoi, onMo }: { s: ShopNut; sp: SpNut[]; mo: b
       phai={s.tien == null ? undefined : <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{thu(s.tien, s.ky)}</span>}>
       {sp.length
         ? <div style={{ padding: '2px 10px 8px 12px' }}>
+            <DaiBoSach sp={sp} onMo={onMo} />
             <DataTable rows={sp} columns={COT} getRowKey={(x) => x.khoa} persistKey="tai-san-sp" minWidth={900} pageSize={50} fixedLayout card={{ render: TheSp, minWidth: 280 }}
               onRowClick={(x) => onMo(x.khoa)} rowTitle={() => 'bấm để xem chi tiết'} />
           </div>

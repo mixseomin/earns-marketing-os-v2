@@ -30,3 +30,17 @@ export async function duyetSanPham(id: string): Promise<{ ok: boolean; soDong?: 
   revalidateTag(THE_SO_SP);   // trang đọc lại sổ ngay, không đợi bộ đệm 15s
   return { ok: true, soDong: rows.length };
 }
+
+/** Trạng thái sổ cái Directus (`products.status`) — cùng bộ khoá với ~/bin/sanpham. Card #1160: anh cần đổi tay ngay trong MOS2. */
+const TT_SO = ['planned', 'draft', 'owner_review', 'ready', 'in_review', 'published', 'unlisted', 'archived'] as const;
+export async function datTrangThaiSp(id: string, status: string): Promise<{ ok: boolean; error?: string }> {
+  const me = await getCurrentUser();
+  if (!me || me.role !== 'admin') return { ok: false, error: 'Chỉ admin đổi được trạng thái.' };
+  if (!DIRECTUS_TOKEN) return { ok: false, error: 'Máy chủ thiếu DIRECTUS_TOKEN.' };
+  if (!(TT_SO as readonly string[]).includes(status)) return { ok: false, error: `Trạng thái lạ: ${status}` };
+  const res = await fetch(`${DIRECTUS_URL}/items/products/${encodeURIComponent(id)}`, { method: 'PATCH',
+    headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+  if (!res.ok) return { ok: false, error: `Sổ cái từ chối (${res.status}): ${(await res.text()).slice(0, 160)}` };
+  revalidateTag(THE_SO_SP);
+  return { ok: true };
+}

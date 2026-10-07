@@ -3,7 +3,9 @@
 // (anh chốt 05/10/2026: bảng nhiều cột phải là DataTable — sort, ô lọc, cột ẩn/hiện; bản đầu tự dựng LaBang thì giá bị cắt "181,0…").
 // Mọi bảng lá dùng CÙNG bộ cột + bề rộng cố định → cột thẳng hàng giữa các shop. Dữ liệu: lib/tai-san/doc.ts.
 // Mở/gập shop ghi ở URL ?shop=a,b ('-' = gập hết; trống = mặc định mở shop có việc đang chờ); lọc trạng thái ?tt=.
-import { useMemo } from 'react';
+import { useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { datTrangThaiSp } from '@/lib/actions/san-pham-duyet';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { TienDo } from '@/components/ui/tien-do';
 import { Cay, DataTable, Drawer, EntityRef, FilterChips, LinkChip, NgayLich, NutCay, Panel, Pill, Segmented, type DataColumn } from '@/components/ui';
@@ -205,12 +207,40 @@ function ShopNutCay({ s, sp, mo, onDoi, onMo }: { s: ShopNut; sp: SpNut[]; mo: b
   );
 }
 
+// Trạng thái sổ cái → nhãn MOS2 (bộ chữ TT_SP). Đổi ở đây là PATCH thẳng sổ cái Directus (card #1160), máy sản xuất đọc cùng sổ.
+const TT_SO_NHAN: [string, string][] = [['planned', 'dự kiến'], ['draft', 'đang làm'], ['owner_review', 'chờ anh duyệt'], ['ready', 'sẵn sàng'],
+  ['in_review', 'sàn đang duyệt'], ['published', 'đang bán'], ['unlisted', 'ngừng (ẩn)'], ['archived', 'ngừng (lưu trữ)']];
+const TT_VE_SO: Record<string, string> = { du_kien: 'planned', dang_lam: 'draft', cho_anh: 'owner_review', san_sang: 'ready', cho_duyet: 'in_review', dang_ban: 'published', ngung: 'unlisted' };
+function SuaTrangThai({ x }: { x: SpNut }) {
+  const router = useRouter();
+  const [dang, batDau] = useTransition();
+  const [loi, datLoi] = useState('');
+  const doi = (st: string) => batDau(async () => {
+    datLoi(''); const r = await datTrangThaiSp(x.idSo!, st);
+    if (!r.ok) { datLoi(r.error ?? 'Lỗi không rõ.'); return; }
+    router.refresh();
+  });
+  return (
+    <span style={{ display: 'inline-grid', gap: 4 }}>
+      <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+        <NhanTt x={x} />
+        <select aria-label="Đổi trạng thái" disabled={dang} value={TT_VE_SO[x.trangThai] ?? ''} onChange={(e) => doi(e.target.value)}
+          style={{ fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)' }}>
+          {TT_SO_NHAN.map(([k, c]) => <option key={k} value={k}>{c}</option>)}
+        </select>
+        {dang && <span style={phu}>đang ghi…</span>}
+      </span>
+      {loi && <span style={{ fontSize: 12, color: 'var(--bad)', border: '1px solid var(--bad)', borderRadius: 6, padding: '4px 8px' }}>{loi}</span>}
+    </span>
+  );
+}
+
 /** Drawer chi tiết một sản phẩm: ảnh lớn, link (href.li), shop + tài khoản, mọi số và ghi chú đầy đủ. */
 function ChiTietSp({ s, x, onClose }: { s: ShopNut; x: SpNut; onClose: () => void }) {
   const dong: [string, React.ReactNode][] = [
     ['Shop', <><span style={{ display: 'inline-flex', verticalAlign: 'middle', marginRight: 6 }}><Logo s={s} /></span>{s.ten}{s.url && <> · <a {...extLinkProps(s.url)} style={{ color: 'var(--accent)' }}>mở shop ↗</a></>}</>],
     ['Tài khoản', s.tk ? <><TkRef tk={s.tk} />{s.tk.email && <span style={phu}> · {s.tk.email}</span>}</> : <span style={{ color: 'var(--warn)' }}>chưa có trong vault</span>],
-    ['Trạng thái', <NhanTt x={x} />],
+    ['Trạng thái', x.idSo ? <SuaTrangThai x={x} /> : <><NhanTt x={x} /> <span style={phu}>· đọc từ API nền tảng, không sửa tay</span></>],
     ['Đăng dự kiến', <NgayDang x={x} />],
     ['Định dạng', x.phu ?? '—'],
     ['Mã trên nền tảng', x.ma ? <code>{x.ma}</code> : '—'],

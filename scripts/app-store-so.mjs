@@ -110,7 +110,9 @@ if (DRY || !stats.length) { log(DRY ? `--dry: ${stats.length} dòng, không ghi`
 // ---- ghi Directus: upsert theo (product_id, date, platform) ----
 const U = process.env.DIRECTUS_URL || 'https://as.on.tc';
 const H = { Authorization: `Bearer ${process.env.DIRECTUS_TOKEN}`, 'Content-Type': 'application/json' };
-const prods = (await (await fetch(`${U}/items/products?limit=-1&fields=id,sku&filter[platform][_eq]=app-store`, { headers: H })).json()).data;
+const pr = await fetch(`${U}/items/products?limit=-1&fields=id,sku&filter[platform][_eq]=app-store`, { headers: H });
+if (!pr.ok) throw new Error(`Directus products → ${pr.status} ${(await pr.text()).slice(0, 200)}`);   // đừng để .data undefined nổ chỗ khác
+const prods = (await pr.json()).data;
 const bySku = Object.fromEntries(prods.filter((p) => p.sku).map((p) => [String(p.sku), p.id]));
 let moi = 0, sua = 0, bo = 0;
 for (const r of stats) {

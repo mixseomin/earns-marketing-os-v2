@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { uploadToR2 } from '@/lib/r2';
+import { dayViecAnh, giaAnhSv } from '@/lib/xuong-video/hoan-tat';
 import { sinhAnh, batDauVeo, docVeo, taiVeo, taiAnhBase64, type AnhVao } from '@/lib/xuong-video/google';
 import { docFal, batDauNangCap, danhMucFal, dauVaoTheoSchema, guiFal, type ModelFal } from '@/lib/xuong-video/fal';
 import { type DungChu } from '@/lib/xuong-video/claude';
@@ -29,10 +30,6 @@ async function giaVideoSv(model: string, dpg: '720p' | '1080p', giay: number): P
   if (model.startsWith('fal:')) { const m = (await danhMucFal()).find((x) => x.id === model.slice(4)); if (m?.giaCents != null) return m.giaCents * giay; }
   return giaVideoCents(model, dpg, giay);
 }
-async function giaAnhSv(model: string): Promise<number> {
-  if (model.startsWith('fal:')) { const m = (await danhMucFal()).find((x) => x.id === model.slice(4)); if (m?.giaCents != null) return m.giaCents; return 4; }
-  return giaAnhCents(model);
-}
 
 /** Danh mục model cho ô chọn: Google/OpenAI (cố định) + fal (động, ~100 model) kèm giá. */
 export type MoHinhChon = { key: string; label: string; nhom: string; giaCents: number | null; donVi: 'giay' | 'anh' | 'khac'; giaText?: string };
@@ -50,24 +47,6 @@ export async function dsMoHinh(): Promise<{ anh: MoHinhChon[]; video: MoHinhChon
       ...fal.filter((m) => m.loai === 'video').map((m) => ({ key: `fal:${m.id}`, label: m.ten, nhom: `fal · ${nhomFal(m.id)}`, giaCents: m.giaCents, donVi: m.donVi, giaText: m.giaText })),
     ],
   };
-}
-
-// ── Hàng đợi nền cho việc sinh ảnh ──────────────────────────────────────────────────────────────────────────────
-// Server action của Next chạy TUẦN TỰ theo từng trình duyệt: nút chờ ảnh xong mới trả lời thì bấm nút thứ hai phải đợi nút thứ nhất
-// (anh báo 08/10/2026 "không thể bấm Sinh ảnh gốc liên tục"). Giờ action chỉ tạo job + đẩy vào hàng đợi rồi trả ngay; tiến trình
-// mos2-studio chạy nền tối đa TOI_DA việc song song. Trạng thái nằm ở xv_job (trang hỏi lại mỗi 4s), nên F5 không mất gì.
-const TOI_DA_NEN = 4;
-const hangNen: { dang: number; cho: Array<() => Promise<void>> } = { dang: 0, cho: [] };
-function chayNen(viec: () => Promise<void>): void {
-  hangNen.cho.push(viec);
-  bomNen();
-}
-function bomNen(): void {
-  while (hangNen.dang < TOI_DA_NEN && hangNen.cho.length) {
-    const f = hangNen.cho.shift()!;
-    hangNen.dang++;
-    f().catch((e) => console.error('[xuong-video nền]', e)).finally(() => { hangNen.dang--; bomNen(); });
-  }
 }
 
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
@@ -302,15 +281,7 @@ export async function sinhAnhMau(nhanVatId: number): Promise<Kq<number>> {
   if (!nv.mo_ta.trim()) return loi('anchor chưa có mô tả — tả ngoại hình/đặc tính trước rồi mới sinh ảnh mẫu');
   const kt = docKinhThanh(r[0].kt as KinhThanh);
   const job = await taoJob({ nhan: `Ảnh gốc · ${nv.ten}`, nhan_vat_id: nhanVatId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { prompt: promptAnhMau(nv, kt) } });
-  chayNen(async () => {
-    const thamChieu = (await Promise.all(nv.anh_ref.slice(0, 3).map(taiAnhBase64))).filter((x): x is AnhVao => !!x);
-    const kq = await sinhAnh({ model: kt.mo_hinh_anh, prompt: promptAnhMau(nv, kt), thamChieu, thamChieuUrl: nv.anh_ref.slice(0, 3), tiLe: nv.loai === 'boi_canh' ? kt.ti_le : '1:1', kichCo: '1K' });
-    if (!kq.ok) { await xongJob(job, { loi: kq.loi }); return; }
-    const url = await uploadToR2(`xuong-video/anchor/${nhanVatId}-${randomUUID()}.${duoi(kq.mimeType)}`, kq.data, kq.mimeType);
-    if (!url) { await xongJob(job, { loi: 'R2 không nhận ảnh' }); return; }
-    await xongJob(job, { output_url: url, model: kq.model, chi_phi_cents: await giaAnhSv(kq.model) });
-    await db.execute(sql`UPDATE xv_nhan_vat SET anh_ref = (${JSON.stringify([url])}::jsonb || anh_ref), updated_at = now() WHERE id = ${nhanVatId}`);
-  });
+  await dayViecAnh({ job, model: kt.mo_hinh_anh, prompt: promptAnhMau(nv, kt), thamChieuUrl: nv.anh_ref.slice(0, 3), tiLe: nv.loai === 'boi_canh' ? kt.ti_le : '1:1', thuMuc: `anchor/${nhanVatId}` });
   return { ok: true, data: job };
 }
 
@@ -378,15 +349,7 @@ export async function sinhAnhBienThe(bienTheId: number): Promise<Kq<number>> {
   const a = { loai: s(r[0].v_loai) as LoaiNhanVat, ten: s(r[0].v_ten), mo_ta: s(r[0].v_mo_ta) };
   const prompt = promptBienThe(a, b, kt);
   const job = await taoJob({ nhan: `Biến thể · ${a.ten} · ${b.ten}`, nhan_vat_id: b.nhan_vat_id, bien_the_id: bienTheId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { prompt } });
-  chayNen(async () => {
-    const thamChieu = (await Promise.all(anhGoc.slice(0, 2).map(taiAnhBase64))).filter((x): x is AnhVao => !!x);
-    const kq = await sinhAnh({ model: kt.mo_hinh_anh, prompt, thamChieu, thamChieuUrl: anhGoc.slice(0, 2), tiLe: a.loai === 'boi_canh' ? kt.ti_le : '1:1', kichCo: '1K' });
-    if (!kq.ok) { await xongJob(job, { loi: kq.loi }); return; }
-    const url = await uploadToR2(`xuong-video/bien-the/${bienTheId}-${randomUUID()}.${duoi(kq.mimeType)}`, kq.data, kq.mimeType);
-    if (!url) { await xongJob(job, { loi: 'R2 không nhận ảnh' }); return; }
-    await xongJob(job, { output_url: url, model: kq.model, chi_phi_cents: await giaAnhSv(kq.model) });
-    await db.execute(sql`UPDATE xv_bien_the SET anh_url = ${url}, updated_at = now() WHERE id = ${bienTheId}`);
-  });
+  await dayViecAnh({ job, model: kt.mo_hinh_anh, prompt, thamChieuUrl: anhGoc.slice(0, 2), tiLe: a.loai === 'boi_canh' ? kt.ti_le : '1:1', thuMuc: `bien-the/${bienTheId}` });
   return { ok: true, data: job };
 }
 
@@ -535,26 +498,13 @@ export async function sinhKeyframe(canhId: number, so = 1, moHinh?: string): Pro
   // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.
   const btCanh = (v: NhanVat) => (v.bien_the ?? []).find((b) => bc.canh.bien_the.includes(b.id));
   const urlRef = bc.nhanVat.flatMap((v) => { const b = btCanh(v); return [...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, b?.anh_url ? 1 : 2)]; }).slice(0, 10);
-  // Tải ảnh tham chiếu trong nền (không await ở đây) → server action trả ngay, bấm nhiều cảnh liền tay không phải chờ nhau.
-  const thamChieuP = Promise.all(urlRef.map(taiAnhBase64)).then((xs) => xs.filter((x): x is AnhVao => !!x));
   const ghiChuBt = bc.nhanVat.map((v) => { const b = btCanh(v); return b ? `${v.ten} in this shot: ${b.mo_ta || b.ten}.` : ''; }).filter(Boolean).join(' ');
   const prompt = [ghepPromptAnh(bc.canh.prompt_anh, bc.kt.phong_cach, bc.nhanVat), ghiChuBt].filter(Boolean).join(' ');
   const jobs: number[] = [];
   for (let i = 0; i < Math.max(1, Math.min(3, so)); i++) {
     const job = await taoJob({ nhan: `Keyframe · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt, thamChieu: urlRef.length } });
     jobs.push(job);
-    chayNen(async () => {
-      const thamChieu = await thamChieuP;
-      const kq = await sinhAnh({ model: bc.kt.mo_hinh_anh, prompt, thamChieu, thamChieuUrl: urlRef, tiLe: bc.kt.ti_le, kichCo: '1K' });
-      if (!kq.ok) { await xongJob(job, { loi: kq.loi }); await db.execute(sql`UPDATE xv_canh SET loi = ${kq.loi}, updated_at = now() WHERE id = ${canhId}`); return; }
-      const url = await uploadToR2(`xuong-video/keyframe/${canhId}-${randomUUID()}.${duoi(kq.mimeType)}`, kq.data, kq.mimeType);
-      if (!url) { await xongJob(job, { loi: 'R2 không nhận ảnh' }); await db.execute(sql`UPDATE xv_canh SET loi = 'R2 không nhận ảnh' WHERE id = ${canhId}`); return; }
-      const gia = await giaAnhSv(kq.model);
-      await xongJob(job, { output_url: url, model: kq.model, chi_phi_cents: gia });
-      await db.execute(sql`UPDATE xv_canh SET keyframe_uv = (keyframe_uv || ${JSON.stringify([url])}::jsonb),
-        keyframe_url = coalesce(keyframe_url, ${url}), trang_thai = CASE WHEN trang_thai = 'nhap' THEN 'co_keyframe' ELSE trang_thai END,
-        chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canhId}`);
-    });
+    await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt, thamChieuUrl: urlRef, tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}` });
   }
   return { ok: true, data: jobs };
 }

@@ -148,6 +148,13 @@ else
   echo "↺ Store unchanged — keep running build"
 fi
 
+# 5d. xv-worker (Cloudflare Worker Astrolas, consumer hàng đợi xv-jobs) — deploy TRƯỚC khi thay build studio: studio mới đẩy việc
+#     vào hàng đợi, Worker phải có sẵn để nhận. Chỉ chạy khi mã Worker / lib sinh ảnh đổi hoặc Worker chưa từng lên (dấu ở .xv-worker-sha).
+XVW_SHA=$(git log -1 --format=%H -- apps/xuong-video/worker apps/xuong-video/src/lib/xuong-video apps/xuong-video/src/lib/r2.ts)
+if [ "$XVW_SHA" != "$(cat .xv-worker-sha 2>/dev/null)" ]; then
+  if bash apps/xuong-video/worker/deploy.sh; then echo "$XVW_SHA" > .xv-worker-sha; else echo "✗ xv-worker deploy lỗi — studio vẫn chạy, việc ảnh tự chạy nội bộ khi hàng đợi không nhận"; fi
+fi
+
 # 5c. Xưởng video (apps/xuong-video, cổng 3840, mos2-studio.service, studio.on.tc) — app riêng trên subdomain on.tc (anh chốt 08/10/2026).
 #     Unit + vhost nginx cài từ repo (deploy/mos2-studio.service, deploy/nginx-studio.conf) để không ai phải ssh gõ tay; idempotent.
 if ! cmp -s deploy/mos2-studio.service /etc/systemd/system/mos2-studio.service; then

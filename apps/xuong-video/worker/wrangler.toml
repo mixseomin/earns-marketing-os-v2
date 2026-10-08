@@ -1,0 +1,23 @@
+# Worker xv-worker: consumer hàng đợi xv-jobs (tài khoản Cloudflare Astrolas, gói Workers Paid, 08/10/2026).
+# Deploy tự động từ deploy.sh (khối 5d) bằng worker/deploy.sh khi thư mục worker/ hoặc lib xuong-video đổi.
+name = "xv-worker"
+main = "index.ts"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+
+[vars]
+STUDIO_URL = "https://studio.on.tc"
+
+[alias]
+"server-only" = "./rong.ts"
+
+[[queues.consumers]]
+queue = "xv-jobs"
+max_batch_size = 1
+max_batch_timeout = 1
+max_retries = 0
+max_concurrency = 8
+
+[observability]
+enabled = true

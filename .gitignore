@@ -29,3 +29,4 @@ npm-debug.log*
 /data/
 /backup/
 *.sql.gz
+.xv-worker-sha

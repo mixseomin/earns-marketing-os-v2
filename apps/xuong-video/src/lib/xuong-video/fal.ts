@@ -2,6 +2,7 @@
 // response_url}; GET status_url tới COMPLETED; GET response_url → {video:{url}}. Header "Authorization: Key <FAL_KEY>" (đã kiểm 08/10/2026).
 // Trường đầu vào theo trang API của từng model trên fal.ai (đọc 08/10/2026).
 import 'server-only';
+import { tomGia, type GiaTom } from './gia-fal';
 
 const QUEUE = 'https://queue.fal.run';
 export const khoaFal = (): string | null => process.env.FAL_KEY || null;
@@ -70,7 +71,7 @@ export async function batDauNangCap(model: string, videoUrl: string, heSo = 2): 
 // Anh muốn chọn được nhiều model (08/10/2026). fal có API danh mục công khai (id, tên, mô tả giá) và OpenAPI theo endpoint →
 // không phải viết tay từng model: tên trường ảnh đầu/cuối, thời lượng, độ phân giải đọc từ schema.
 
-export type ModelFal = { id: string; ten: string; loai: 'video' | 'anh'; giaText: string; giaCents: number | null; donVi: 'giay' | 'anh' | 'khac' };
+export type ModelFal = { id: string; ten: string; loai: 'video' | 'anh'; giaText: string; giaCents: number | null; donVi: 'giay' | 'anh' | 'khac'; gia: GiaTom };
 let khoDanhMuc: { luc: number; ds: ModelFal[] } | null = null;
 
 /** Giá đầu tiên trong mô tả giá của fal → cents theo đơn vị (giây / ảnh). Không đoán được thì null (UI ghi "xem fal"). */
@@ -99,15 +100,16 @@ export async function danhMucFal(): Promise<ModelFal[]> {
     const id = String(m.id ?? '');
     if (!/image-to-video|first-last-frame/.test(id) || /avatar|lip-sync|omnihuman|heygen|fabric/.test(id)) continue;
     const gt = String(m.pricingInfoOverride ?? '');
-    const g = docGia(gt);
-    ds.push({ id, ten: String(m.title ?? id), loai: 'video', giaText: gt.replace(/\*\*/g, '').slice(0, 220), giaCents: g.donVi === 'giay' ? g.cents : null, donVi: g.donVi });
+    const gia = tomGia(gt);
+    ds.push({ id, ten: String(m.title ?? id), loai: 'video', giaText: gia.moTa, giaCents: gia.chinh['720p'], donVi: gia.chinh['720p'] != null ? 'giay' : 'khac', gia });
   }
   for (const m of anh) {
     const id = String(m.id ?? '');
     if (!/\/edit\b|kontext|edit-image/.test(id) || /remove|upscale|eraser|fill|expand|vectorize|depth|sam-/.test(id)) continue;
     const gt = String(m.pricingInfoOverride ?? '');
     const g = docGia(gt);
-    ds.push({ id, ten: String(m.title ?? id), loai: 'anh', giaText: gt.replace(/\*\*/g, '').slice(0, 220), giaCents: g.donVi === 'khac' ? g.cents : g.cents, donVi: g.donVi });
+    const gia = tomGia(gt);
+    ds.push({ id, ten: String(m.title ?? id), loai: 'anh', giaText: gia.moTa, giaCents: gia.anh?.[0] ?? g.cents, donVi: 'anh', gia });
   }
   if (ds.length) khoDanhMuc = { luc: Date.now(), ds };
   return ds.length ? ds : khoDanhMuc?.ds ?? [];

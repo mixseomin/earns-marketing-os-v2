@@ -28,12 +28,16 @@ type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
 const mangInt = (xs: number[]) => `{${xs.map((x) => Math.trunc(Number(x))).filter(Number.isFinite).join(',')}}`;
 /** Giá theo danh mục fal (động) nếu là model fal:, không thì bảng tĩnh. */
 async function giaVideoSv(model: string, dpg: '720p' | '1080p', giay: number): Promise<number> {
-  if (model.startsWith('fal:')) { const m = (await danhMucFal()).find((x) => x.id === model.slice(4)); if (m?.giaCents != null) return m.giaCents * giay; }
+  if (model.startsWith('fal:')) {
+    const m = (await danhMucFal()).find((x) => x.id === model.slice(4));
+    const g = m?.gia.chinh[dpg]; if (g != null) return g * giay;
+    const clip = m?.gia.clip[dpg]; if (clip) return clip[1];
+  }
   return giaVideoCents(model, dpg, giay);
 }
 
 /** Danh mục model cho ô chọn: Google/OpenAI (cố định) + fal (động, ~100 model) kèm giá. */
-export type MoHinhChon = { key: string; label: string; nhom: string; giaCents: number | null; donVi: 'giay' | 'anh' | 'khac'; giaText?: string };
+export type MoHinhChon = { key: string; label: string; nhom: string; giaCents: number | null; donVi: 'giay' | 'anh' | 'khac'; giaText?: string; gia?: import('@/lib/xuong-video/gia-fal').GiaTom };
 export async function dsMoHinh(): Promise<{ anh: MoHinhChon[]; video: MoHinhChon[] }> {
   if (!(await admin())) return { anh: [], video: [] };
   const fal: ModelFal[] = await danhMucFal().catch(() => []);
@@ -41,11 +45,11 @@ export async function dsMoHinh(): Promise<{ anh: MoHinhChon[]; video: MoHinhChon
   return {
     anh: [
       ...MO_HINH_ANH.map((m) => ({ key: m.key, label: m.label.split(' (')[0]!, nhom: m.key.startsWith('gpt') ? 'OpenAI' : 'Google', giaCents: m.gia1k, donVi: 'anh' as const })),
-      ...fal.filter((m) => m.loai === 'anh').map((m) => ({ key: `fal:${m.id}`, label: m.ten, nhom: `fal · ${nhomFal(m.id)}`, giaCents: m.giaCents, donVi: m.donVi, giaText: m.giaText })),
+      ...fal.filter((m) => m.loai === 'anh').map((m) => ({ key: `fal:${m.id}`, label: m.ten, nhom: `fal · ${nhomFal(m.id)}`, giaCents: m.giaCents, donVi: m.donVi, giaText: m.giaText, gia: m.gia })),
     ],
     video: [
       ...MO_HINH_VIDEO.filter((m) => !m.key.startsWith('fal:')).map((m) => ({ key: m.key, label: m.label.split(' (')[0]!, nhom: 'Google', giaCents: m.giaGiay['720p'], donVi: 'giay' as const })),
-      ...fal.filter((m) => m.loai === 'video').map((m) => ({ key: `fal:${m.id}`, label: m.ten, nhom: `fal · ${nhomFal(m.id)}`, giaCents: m.giaCents, donVi: m.donVi, giaText: m.giaText })),
+      ...fal.filter((m) => m.loai === 'video').map((m) => ({ key: `fal:${m.id}`, label: m.ten, nhom: `fal · ${nhomFal(m.id)}`, giaCents: m.giaCents, donVi: m.donVi, giaText: m.giaText, gia: m.gia })),
     ],
   };
 }

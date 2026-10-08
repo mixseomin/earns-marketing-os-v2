@@ -177,18 +177,31 @@ function MucMenu({ onClick, children, ly, nguy }: { onClick: () => void; childre
 
 /** Danh mục model (Google/OpenAI + ~100 model fal) nạp một lần cho cả trang. */
 const MoHinhCtx = createContext<{ anh: MoHinhChon[]; video: MoHinhChon[] }>({ anh: [], video: [] });
+// Giá video: fal đọc từ bảng giá (khoảng theo độ phân giải phim, có tiếng); Google theo bảng tĩnh. Chi tiết tiếng Việt ở ô rê chuột (#1193).
 const giaVideoUi = (ds: MoHinhChon[], key: string, giay: number, dpg: '720p' | '1080p') => {
   const m = ds.find((x) => x.key === key);
+  if (m?.gia) { const g = m.gia.chinh[dpg]; if (g != null) return g * giay; const c = m.gia.clip[dpg]; if (c) return c[1]; }
   return m?.giaCents != null && m.donVi === 'giay' ? m.giaCents * giay : giaVideoCents(key, dpg, giay);
 };
 const giaAnhUi = (ds: MoHinhChon[], key: string) => ds.find((x) => x.key === key)?.giaCents ?? giaAnhCents(key);
+const khoangTien = (k: [number, number], nhan = 1) => (Math.abs(k[0] - k[1]) < 0.05 ? tien(k[0] * nhan) : `${tien(k[0] * nhan)}–${tien(k[1] * nhan)}`);
 function luaChonAnh(ds: MoHinhChon[]): LuaChon[] {
-  return ds.map((m) => ({ value: m.key, label: m.label, nhom: m.nhom, phu: m.giaCents != null ? `${tien(m.giaCents)}${m.donVi === 'anh' ? '/ảnh' : ''}` : 'xem giá', title: m.giaText }));
+  return ds.map((m) => {
+    const k = m.gia?.anh;
+    const phu = k ? `${khoangTien(k)}/ảnh` : m.giaCents != null ? `${tien(m.giaCents)}/ảnh` : 'chưa có giá';
+    return { value: m.key, label: m.label, nhom: m.nhom, phu, title: m.gia?.moTa ?? (m.giaCents != null ? `${tien(m.giaCents)} mỗi ảnh` : '') };
+  });
 }
 function luaChonVideo(ds: MoHinhChon[], giay: number, dpg: '720p' | '1080p'): LuaChon[] {
   return ds.map((m) => {
-    const g = m.donVi === 'giay' && m.giaCents != null ? m.giaCents : m.key.startsWith('fal:') ? null : giaVideoCents(m.key, dpg, 1);
-    return { value: m.key, label: m.label, nhom: m.nhom, phu: g != null ? `${tien(g * giay)} · ${giay}s` : 'xem giá', title: m.giaText ?? (g != null ? `${tien(g)}/giây` : '') };
+    if (m.gia) {
+      const kg = m.gia.giay[dpg]; const kc = m.gia.clip[dpg];
+      const phu = kg ? `${khoangTien(kg, giay)} · ${giay}s` : kc ? `${khoangTien(kc)}/clip` : 'chưa có giá';
+      const uoc = kg ? `\nƯớc tính clip ${giay} giây ở ${dpg}: ${khoangTien(kg, giay)} (thấp = không tiếng, cao = có tiếng; studio bật tiếng nên tính mức cao).` : '';
+      return { value: m.key, label: m.label, nhom: m.nhom, phu, title: m.gia.moTa + uoc };
+    }
+    const g = m.donVi === 'giay' && m.giaCents != null ? m.giaCents : giaVideoCents(m.key, dpg, 1);
+    return { value: m.key, label: m.label, nhom: m.nhom, phu: `${tien(g * giay)} · ${giay}s`, title: `${tien(g)} mỗi giây ở ${dpg} (bảng giá Google)` };
   });
 }
 
@@ -543,7 +556,7 @@ function BienTheDrawer({ a, khoa, kt, dangSinh, loiBt, onClose, onChanged }: { a
   const [loi, setLoi] = useState('');
   const chay = async (k: string, fn: () => Promise<{ ok: boolean; loi?: string } | void>) => {
     setBan(k); setLoi('');
-    try { const r = await fn(); if (r && !r.ok) setLoi(r.loi ?? 'lỗi'); } finally { setBan(null); }
+    try { const r = await fn(); if (r && !r.ok) setLoi(r.loi ?? 'lỗi'); } catch (e) { setLoi(`Không gọi được máy chủ (${e instanceof Error ? e.message.slice(0, 80) : 'lỗi mạng'}) — studio vừa cập nhật thì bấm ↻ Tải lại.`); } finally { setBan(null); }
     await onChanged();
   };
   const ds = a.bien_the ?? [];
@@ -715,7 +728,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
 
   const chay = async (ten: string, fn: () => Promise<KqChay>) => {
     setBanSet((s) => new Set(s).add(ten)); setLoi('');
-    try { const r = await fn(); if (r && !r.ok) setLoi(r.loi ?? 'lỗi'); } finally { setBanSet((s) => { const n = new Set(s); n.delete(ten); return n; }); }
+    try { const r = await fn(); if (r && !r.ok) setLoi(r.loi ?? 'lỗi'); } catch (e) { setLoi(`Không gọi được máy chủ (${e instanceof Error ? e.message.slice(0, 80) : 'lỗi mạng'}) — studio vừa cập nhật thì bấm ↻ Tải lại.`); } finally { setBanSet((s) => { const n = new Set(s); n.delete(ten); return n; }); }
     await taiCanh(); await onChanged();
   };
   const kbDirty = kichBan !== tap.kich_ban || tenTap !== tap.ten || brief !== tap.brief;

@@ -75,7 +75,9 @@ function FormGopY({ onGui }: { onGui: () => void }) {
   const xoaNhap = () => { discardAttachments(nhap.anh); ghi(() => TRANG_MOI); try { localStorage.removeItem(KHOA); } catch { /* thôi */ } };
   const gui = async () => {
     setBusy(true); setKet('');
-    const r = await guiGopY({ loai: nhap.loai, noiDung: nhap.noiDung, trang: window.location.href, anhUrls: nhap.anh, nguCanh: docNguCanh() });
+    let r: Awaited<ReturnType<typeof guiGopY>>;
+    try { r = await guiGopY({ loai: nhap.loai, noiDung: nhap.noiDung, trang: window.location.href, anhUrls: nhap.anh, nguCanh: docNguCanh() }); }
+    catch (e) { setBusy(false); setKet(`⚠ Chưa gửi được (${e instanceof Error ? e.message.slice(0, 80) : 'lỗi mạng'}) — nếu studio vừa cập nhật, bấm ↻ Tải lại rồi gửi lại; nháp vẫn giữ.`); return; }
     setBusy(false);
     if (!r.ok || !r.id) { setKet(`⚠ ${r.error}`); return; }
     try { localStorage.removeItem(KHOA); } catch { /* thôi */ }
@@ -124,7 +126,9 @@ function Luong({ id, onXong }: { id: number; onXong: () => void }) {
   useEffect(nap, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   const gui = async (xuLy: string) => {
     setBusy(true); setLoi('');
-    const r = await guiTraoDoi({ taskId: id, noiDung: chu, anhUrls: anh, xuLy });
+    let r: Awaited<ReturnType<typeof guiTraoDoi>>;
+    try { r = await guiTraoDoi({ taskId: id, noiDung: chu, anhUrls: anh, xuLy }); }
+    catch { setBusy(false); setLoi('Chưa gửi được — nếu studio vừa cập nhật, bấm ↻ Tải lại rồi gửi lại.'); return; }
     setBusy(false);
     if (!r.ok) { setLoi(r.error ?? 'lỗi'); return; }
     setChu(''); setAnh([]); nap(); onXong();

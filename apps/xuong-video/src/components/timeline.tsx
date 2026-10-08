@@ -10,6 +10,8 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerE
 import type { Canh, NhanVat, Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat } from '@/lib/xuong-video/dien-anh';
 import { nguoiNoi } from '@/lib/xuong-video/am-thanh';
+import { BangSinh, type YeuCauBang } from './bang-sinh';
+import type { TuyGiong, TuyAm } from '@/lib/actions';
 
 const MAU_NV = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#4ade80', '#fb923c', '#60a5fa'];
 const NHAN_W = 74;
@@ -18,8 +20,8 @@ const dongHo = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${
 
 /** Sinh ngay trên timeline (#1199): khối nét đứt có nút ＋ — bấm là sinh đúng thứ đó, giá + gợi ý thời điểm ở chú thích. */
 export type SinhTaiCho = {
-  giong: (canhId: number) => void; sfx: (canhId: number) => void; nhac: (phanDoan?: string) => void;
-  giaGiong: (cc: Canh) => number; giaSfx: (cc: Canh) => number; giaNhac: (giay: number) => number; tien: (c: number) => string; ban: (k: string) => boolean;
+  giong: (canhId: number, tuy: TuyGiong) => void; sfx: (canhId: number, tuy: TuyAm) => void; nhac: (phanDoan: string | undefined, model: string, moTa: string) => void;
+  mhNhac: string; ban: (k: string) => boolean;
 };
 export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh }: {
   canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null;
@@ -169,15 +171,21 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
       <div style={{ position: 'relative', width: W, flexShrink: 0 }}>{noiDung}</div>
     </div>
   );
-  const khoiAm = (x: number, w: number, co: boolean, mau: string, chu: string, title: string, key: number | string, onClick?: () => void, nutSinh?: { onSinh: () => void; title: string; dang?: boolean }) => (
+  const [yc, setYc] = useState<YeuCauBang | null>(null);
+  type NutSinh = { loai: YeuCauBang['loai']; cc?: Canh; phanDoan?: string; giay: number; title: string; dang?: boolean };
+  const khoiAm = (x: number, w: number, co: boolean, mau: string, chu: string, title: string, key: number | string, onClick?: () => void, nutSinh?: NutSinh) => (
     <div key={key} title={title} onClick={onClick}
       style={{ position: 'absolute', left: x + 1, width: Math.max(4, w - 2), top: 2, bottom: 2, borderRadius: 4, overflow: 'hidden', cursor: onClick ? 'pointer' : 'default',
         background: co ? `${mau}33` : 'transparent', border: `1px ${co ? 'solid' : 'dashed'} ${mau}${co ? '' : '99'}`,
-        color: co ? mau : 'var(--fg-3)', fontSize: 10, lineHeight: '20px', padding: nutSinh ? '0 22px 0 5px' : '0 5px', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+        color: co ? mau : 'var(--fg-3)', fontSize: 10, lineHeight: '20px', padding: nutSinh ? `0 ${w > 110 ? 50 : 26}px 0 5px` : '0 5px', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
       {co && mau !== '#38d9f5' ? '♪ ' : ''}{chu}
       {nutSinh && (
-        <button type="button" title={nutSinh.title} disabled={nutSinh.dang} onClick={(e) => { e.stopPropagation(); if (window.confirm(`${nutSinh.title}\n\nSinh ngay?`)) nutSinh.onSinh(); }}
-          style={{ position: 'absolute', right: 2, top: 2, bottom: 2, width: 18, borderRadius: 3, border: 0, background: mau, color: '#111', fontWeight: 800, fontSize: 12, lineHeight: '16px', cursor: 'pointer', padding: 0, opacity: nutSinh.dang ? 0.4 : 1 }}>{co ? '↻' : '＋'}</button>
+        // Nút ＋ to, sáng: mở bảng tuỳ chọn (model, giọng, nguồn, mô tả, giá) — không sinh ngay (#1202).
+        <button type="button" title={nutSinh.title} disabled={nutSinh.dang}
+          onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setYc({ loai: nutSinh.loai, cc: nutSinh.cc, phanDoan: nutSinh.phanDoan, giay: nutSinh.giay, x: r.right, y: r.bottom }); }}
+          style={{ position: 'absolute', right: 1, top: 1, bottom: 1, minWidth: 22, padding: '0 6px', borderRadius: 4, border: '1px solid #fff', background: mau, color: '#0b0b0b', fontWeight: 800, fontSize: 11, lineHeight: '18px', cursor: 'pointer', opacity: nutSinh.dang ? 0.45 : 1, boxShadow: `0 0 0 2px ${mau}55, 0 2px 6px rgba(0,0,0,.5)`, whiteSpace: 'nowrap' }}>
+          {nutSinh.dang ? '⏳' : co ? '↻' : '＋'}{w > 110 && !nutSinh.dang ? (co ? ' Lại' : ' Sinh') : ''}
+        </button>
       )}
     </div>
   );
@@ -307,18 +315,18 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               const co = cc.thoai.filter((d) => d.url).length;
               const tt = cc.thoai.map((d) => `${(d.nhan_vat || 'Lời dẫn').toUpperCase()}${d.dien_xuat ? ` (${d.dien_xuat})` : ''}: ${d.loi}${d.url ? ' ✓' : ''}`).join('\n');
               return khoiAm(batDau[i]! * pps, dur(cc) * pps, co === cc.thoai.length, mauNv(v), `${cc.dang_sinh_am ? '⏳ ' : ''}${cc.thoai.map((d) => d.nhan_vat || 'dẫn').join(' · ')}${co && co < cc.thoai.length ? ` (${co}/${cc.thoai.length})` : ''}`, `${tt}\n${co}/${cc.thoai.length} dòng có giọng`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
-                sinh && { onSinh: () => sinh.giong(cc.id), dang: cc.dang_sinh_am || sinh.ban(`c${cc.id}`), title: `${co ? 'Sinh lại' : 'Sinh'} giọng ${cc.thoai.length} dòng thoại shot #${cc.thu_tu} · ≈${sinh.tien(sinh.giaGiong(cc))}\nNên sinh khi đã chốt lời thoại + chọn giọng nhân vật (khung 🗣 Giọng nhân vật). Giọng sinh sớm giúp biết độ dài thoại để chỉnh số giây shot.` });
+                sinh && { loai: 'giong', cc, giay: dur(cc), dang: cc.dang_sinh_am || sinh.ban(`c${cc.id}`), title: `Bấm để chọn giọng / cảm xúc / phạm vi rồi sinh` });
             }
             return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!cc.thoai_url, mauNv(v), `${cc.dang_sinh_am ? '⏳ ' : ''}${v ? `${v.ten}: ` : ''}${cc.loi_thoai.replace(/^[^:"“]*:\s*/, '')}`,
               `${v?.ten ?? 'Lời dẫn'}${v?.giong ? ` (giọng: ${v.giong})` : ''}\n${cc.loi_thoai}\n${cc.thoai_url ? 'đã có file giọng' : 'chưa sinh giọng'}`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
-              sinh && { onSinh: () => sinh.giong(cc.id), dang: cc.dang_sinh_am || sinh.ban(`c${cc.id}`), title: `${cc.thoai_url ? 'Sinh lại' : 'Sinh'} giọng shot #${cc.thu_tu} · ≈${sinh.tien(sinh.giaGiong(cc))}\nNên sinh khi đã chốt lời thoại + chọn giọng nhân vật.` });
+              sinh && { loai: 'giong', cc, giay: dur(cc), dang: cc.dang_sinh_am || sinh.ban(`c${cc.id}`), title: `Bấm để chọn giọng / cảm xúc / phạm vi rồi sinh` });
           }))}
 
           {track('🔊 Âm thanh', 'Hiệu ứng / âm nền từng cảnh', canh.map((cc, i) => {
             if (!cc.am_thanh.trim()) return null;
             const clip = !!(cc.video_cuoi_url || cc.video_url);
             return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!cc.am_thanh_url, '#fb923c', cc.am_thanh, `${cc.am_thanh}\n${cc.am_thanh_url ? 'đã có file' : 'chưa sinh'}`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
-              sinh && { onSinh: () => sinh.sfx(cc.id), dang: cc.dang_sinh_am || sinh.ban(`c${cc.id}`), title: `${cc.am_thanh_url ? 'Sinh lại' : 'Sinh'} hiệu ứng shot #${cc.thu_tu} ${clip ? 'TỪ CLIP (khớp hành động)' : 'từ mô tả'} · ≈${sinh.tien(sinh.giaSfx(cc))}${clip ? '' : '\nShot chưa có clip: nên ĐỢI có video nháp rồi sinh từ clip để tiếng khớp đúng hành động. Sinh từ mô tả bây giờ chỉ để nghe thử không khí.'}` });
+              sinh && { loai: 'sfx', cc, giay: dur(cc), dang: cc.dang_sinh_am || sinh.ban(`c${cc.id}`), title: `Bấm để chọn nguồn (clip / mô tả), model, mô tả, số giây rồi sinh` });
           }))}
 
           {track('🎵 Nhạc', 'Nhạc nền: theo từng phân cảnh (ưu tiên) hoặc một bài cả tập', khoiPc.some((kh) => kh.ten)
@@ -327,11 +335,12 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                 const url = tap.nhac_phan_canh?.[kh.ten];
                 const giay = canh.slice(kh.tu, kh.den + 1).reduce((a, x) => a + dur(x), 0);
                 return khoiAm(x, w, !!url, '#a78bfa', url ? `${kh.ten}` : `${kh.ten}: chưa có nhạc`, url ? `Nhạc phân cảnh “${kh.ten}”` : `Phân cảnh “${kh.ten}” chưa có nhạc`, `n${j}`, undefined,
-                  sinh && kh.ten ? { onSinh: () => sinh.nhac(kh.ten), dang: sinh.ban('nhac'), title: `${url ? 'Sinh lại' : 'Sinh'} nhạc phân cảnh “${kh.ten}” (${giay}s) · ≈${sinh.tien(sinh.giaNhac(giay))}\nNên sinh SAU CÙNG, khi đã chốt thứ tự + số giây các shot trong phân cảnh (nhạc dài đúng bằng phân cảnh).` } : undefined);
+                  sinh && kh.ten ? { loai: 'nhac', phanDoan: kh.ten, giay, dang: sinh.ban('nhac'), title: `Bấm để chọn model nhạc, mô tả rồi sinh nhạc cho phân cảnh này` } : undefined);
               })
             : khoiAm(0, W, !!tap.nhac_url, '#a78bfa', tap.nhac_mo_ta || 'Nhạc nền cả tập: chưa có', tap.nhac_mo_ta || 'chưa có nhạc nền', 'nhac', undefined,
-                sinh && { onSinh: () => sinh.nhac(), dang: sinh.ban('nhac1'), title: `${tap.nhac_url ? 'Sinh lại' : 'Sinh'} một bài nhạc nền cả tập (${tong}s) · ≈${sinh.tien(sinh.giaNhac(tong))}\nNên sinh sau cùng khi đã chốt độ dài tập. Muốn nhạc đổi theo từng phân cảnh: tách lại cảnh để có phân cảnh.` }))}
+                sinh && { loai: 'nhac', giay: tong, dang: sinh.ban('nhac1'), title: `Bấm để chọn model nhạc, mô tả rồi sinh một bài cả tập` }))}
 
+          {yc && sinh && <BangSinh yc={yc} nhanVat={nhanVat} tap={tap} mhNhac={sinh.mhNhac} onClose={() => setYc(null)} onGiong={sinh.giong} onSfx={sinh.sfx} onNhac={sinh.nhac} />}
           {/* Đầu phát */}
           <div style={{ position: 'absolute', left: NHAN_W + t * pps - 1, top: 0, bottom: 0, width: 2, background: '#ef4444', pointerEvents: 'none', zIndex: 4 }}>
             <div title="Kéo để tua" onPointerDown={(e) => keoDauPhat(e, (vungRef.current?.getBoundingClientRect().left ?? 0) + NHAN_W - (vungRef.current?.scrollLeft ?? 0))}

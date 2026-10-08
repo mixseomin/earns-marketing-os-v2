@@ -943,7 +943,9 @@ async function giongMacDinh(model: string): Promise<string> {
 }
 
 /** Sinh giọng đọc lời thoại cho các shot (một shot hoặc mọi shot có thoại của tập). */
-export async function sinhGiong(tapId: number, canhIds?: number[]): Promise<Kq<number>> {
+/** tuy: chọn từ bảng ＋ trên timeline (#1202) — model/giọng cho lượt này (không đổi giọng cố định của nhân vật), cảm xúc, chỉ dòng chưa có giọng. */
+export type TuyGiong = { model?: string; voice?: string; camXuc?: number; chiThieu?: boolean };
+export async function sinhGiong(tapId: number, canhIds?: number[], tuy: TuyGiong = {}): Promise<Kq<number>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
@@ -957,25 +959,26 @@ export async function sinhGiong(tapId: number, canhIds?: number[]): Promise<Kq<n
     // Thoại theo dòng (kịch bản phim): mỗi dòng một file, giọng của đúng người nói dòng đó.
     if (c.thoai.length) {
       for (const [i, d] of c.thoai.entries()) {
-        if (!d.loi.trim()) continue;
+        if (!d.loi.trim() || (tuy.chiThieu && d.url)) continue;
         const v = bc.nhanVat.find((x) => x.ten.toLowerCase() === d.nhan_vat.trim().toLowerCase()) ?? null;
-        const model = v?.giong_model || MODEL_GIONG_MAC_DINH();
-        const voice = (v?.giong_model ? v.giong_id : '') || await giongMacDinh(model);
+        const model = tuy.model || v?.giong_model || MODEL_GIONG_MAC_DINH();
+        const voice = (tuy.model ? tuy.voice : '') || (v?.giong_model === model ? v.giong_id : '') || await giongMacDinh(model);
         const text = d.loi.trim();
         const gia = giaGiong(dm.find((m) => m.key === model), text.length);
         const job = await taoJob({ nhan: `Giọng · shot #${c.thu_tu} dòng ${i + 1} · ${v?.ten ?? 'lời dẫn'} (${voice})`, canh_id: c.id, nhan_vat_id: v?.id, loai: 'am', provider: model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: model.startsWith('elevenlabs:') ? model : `fal:${model}`, request: { dich: 'thoai', dong: i, gia, text, voice } });
-        await dayViecAm({ kieu: 'am', job, model, input: await dauVaoGiongTheoModel(model, { text: d.dien_xuat && /eleven/.test(model) && /v3/.test(model) ? `[${d.dien_xuat}] ${text}` : text, voice, ngonNgu: bc.kt.ngon_ngu ?? 'vi', camXuc: c.cam_xuc, theLoai: bc.kt.the_loai ?? '' }), thuMuc: `thoai/${c.id}-${i}` });
+        await dayViecAm({ kieu: 'am', job, model, input: await dauVaoGiongTheoModel(model, { text: d.dien_xuat && /eleven/.test(model) && /v3/.test(model) ? `[${d.dien_xuat}] ${text}` : text, voice, ngonNgu: bc.kt.ngon_ngu ?? 'vi', camXuc: tuy.camXuc ?? c.cam_xuc, theLoai: bc.kt.the_loai ?? '' }), thuMuc: `thoai/${c.id}-${i}` });
         so++;
       }
       continue;
     }
+    if (tuy.chiThieu && c.thoai_url) continue;
     const v = nguoiNoi(c, bc.nhanVat);
-    const model = v?.giong_model || MODEL_GIONG_MAC_DINH();
-    const voice = (v?.giong_model ? v.giong_id : '') || await giongMacDinh(model);
+    const model = tuy.model || v?.giong_model || MODEL_GIONG_MAC_DINH();
+    const voice = (tuy.model ? tuy.voice : '') || (v?.giong_model === model ? v.giong_id : '') || await giongMacDinh(model);
     const text = loiCanDoc(c.loi_thoai);
     const gia = giaGiong(dm.find((m) => m.key === model), text.length);
     const job = await taoJob({ nhan: `Giọng · shot #${c.thu_tu} · ${v?.ten ?? 'lời dẫn'} (${voice})`, canh_id: c.id, nhan_vat_id: v?.id, loai: 'am', provider: model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: model.startsWith('elevenlabs:') ? model : `fal:${model}`, request: { dich: 'thoai', gia, text, voice } });
-    await dayViecAm({ kieu: 'am', job, model, input: await dauVaoGiongTheoModel(model, { text, voice, ngonNgu: bc.kt.ngon_ngu ?? "vi", camXuc: c.cam_xuc, theLoai: bc.kt.the_loai ?? "" }), thuMuc: `thoai/${c.id}` });
+    await dayViecAm({ kieu: 'am', job, model, input: await dauVaoGiongTheoModel(model, { text, voice, ngonNgu: bc.kt.ngon_ngu ?? "vi", camXuc: tuy.camXuc ?? c.cam_xuc, theLoai: bc.kt.the_loai ?? "" }), thuMuc: `thoai/${c.id}` });
     so++;
   }
   return { ok: true, data: so };
@@ -998,18 +1001,20 @@ export async function ngheThuGiong(nhanVatId: number): Promise<Kq<number>> {
 }
 
 /** Sinh hiệu ứng âm thanh cho shot: có clip → từ clip (khớp hành động); chưa có → từ mô tả âm thanh + kỹ thuật âm thanh của shot. */
-export async function sinhAmThanh(tapId: number, canhIds?: number[], moHinhChu = 'sonilo/v1.1/text-to-sound-effects'): Promise<Kq<number>> {
+/** tuy (#1202): nguồn (từ clip / từ mô tả), model, mô tả sửa tay, số giây. */
+export type TuyAm = { nguon?: 'clip' | 'mo_ta'; model?: string; moTa?: string; giay?: number };
+export async function sinhAmThanh(tapId: number, canhIds?: number[], moHinhChu = 'sonilo/v1.1/text-to-sound-effects', tuy: TuyAm = {}): Promise<Kq<number>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   const ds = (await dsCanh(tapId)).filter((c) => !canhIds || canhIds.includes(c.id));
   let so = 0;
   for (const c of ds) {
-    const clip = c.video_cuoi_url || c.video_url;
-    const moTa = [c.am_thanh, promptKyThuatVideo({ am_thanh: c.ky_thuat.am_thanh }).replace(/^Sound:\s*/, '')].filter(Boolean).join('. ');
+    const clip = tuy.nguon === 'mo_ta' ? null : c.video_cuoi_url || c.video_url;
+    const moTa = tuy.moTa?.trim() || [c.am_thanh, promptKyThuatVideo({ am_thanh: c.ky_thuat.am_thanh }).replace(/^Sound:\s*/, '')].filter(Boolean).join('. ');
     if (!clip && !moTa.trim()) continue;
-    const giay = c.thoi_luong_s || 5;
-    const model = clip ? 'mirelo-ai/sfx-v1/video-to-audio' : moHinhChu;
+    const giay = tuy.giay || c.thoi_luong_s || 5;
+    const model = clip ? (tuy.model && moHinhAm(tuy.model)?.loai === 'sfx_video' ? tuy.model : 'mirelo-ai/sfx-v1/video-to-audio') : (tuy.model && moHinhAm(tuy.model)?.loai === 'sfx_chu' ? tuy.model : moHinhChu);
     const gia = giaAm(model, giay);
     const input: Record<string, unknown> = clip ? { video_url: clip, duration: giay, num_samples: 1, text_prompt: moTa }
       : model.includes('elevenlabs') ? { text: moTa, duration_seconds: giay } : { prompt: moTa, duration: giay };
@@ -1051,7 +1056,7 @@ export async function sinhNhac(tapId: number, model = 'cassetteai/music-generato
     const pc = bc.tap.phan_canh.find((x) => x.ten === ten);
     const giay = Math.max(5, shots.reduce((a, c) => a + (c.thoi_luong_s || 5), 0));
     const nhip = pc?.nhip === 'nhanh' ? 'fast tempo' : pc?.nhip === 'cham' ? 'slow tempo' : 'medium tempo';
-    const prompt = [tl, nhacCua(shots).length ? `Style: ${nhacCua(shots).join('; ')}` : '', pc ? `Scene mood moves from ${pc.cam_xuc_dau} to ${pc.cam_xuc_cuoi} on a -5..5 scale (${pc.cam_xuc_cuoi > pc.cam_xuc_dau ? 'building hope/energy' : pc.cam_xuc_cuoi < pc.cam_xuc_dau ? 'darkening, tension or sadness' : 'steady'})` : '', nhip, 'instrumental cue, no vocals, clean start and ending'].filter(Boolean).join('. ');
+    const prompt = [moTaThem, tl, nhacCua(shots).length ? `Style: ${nhacCua(shots).join('; ')}` : '', pc ? `Scene mood moves from ${pc.cam_xuc_dau} to ${pc.cam_xuc_cuoi} on a -5..5 scale (${pc.cam_xuc_cuoi > pc.cam_xuc_dau ? 'building hope/energy' : pc.cam_xuc_cuoi < pc.cam_xuc_dau ? 'darkening, tension or sadness' : 'steady'})` : '', nhip, 'instrumental cue, no vocals, clean start and ending'].filter(Boolean).join('. ');
     const gia = giaAm(model, giay);
     const job = await taoJob({ phim_id: bc.tap.phim_id, nhan: `Nhạc phân cảnh · ${ten} (${giay}s)`, loai: 'am', provider: 'fal', model: `fal:${model}`, request: { dich: 'nhac', gia, tap_id: tapId, phan_doan: ten, prompt } });
     await dayViecAm({ kieu: 'am', job, model, input: dauVao(prompt, giay), thuMuc: `nhac/${tapId}` });

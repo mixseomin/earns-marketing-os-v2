@@ -334,8 +334,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             if (dsT.length) {
               const co = dsT.filter((d) => d.url).length;
               const tt = dsT.map((d) => `${(d.nhan_vat || 'Lời dẫn').toUpperCase()}${d.dien_xuat ? ` (${d.dien_xuat})` : ''}: ${d.loi}${d.url ? ' ✓' : ''}`).join('\n');
-              return khoiAm(batDau[i]! * pps, dur(cc) * pps, co === dsT.length, mauNv(v), `${cc.dang_sinh_am ? '⏳ ' : ''}${dsT.map((d) => `${d.nhan_vat || 'Dẫn'}: ${d.loi}`).join(' · ')}${co && co < dsT.length ? ` (${co}/${dsT.length})` : ''}`, `${tt}\n${co}/${dsT.length} dòng có giọng`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
-                sinh && { loai: 'giong', cc, giay: dur(cc), dang: cc.dang_sinh_am || sinh.ban(`c${cc.id}`), nghe: dsT.map((d) => d.url).filter((u): u is string => !!u), title: `Bấm để chọn model, giọng từng người nói, cảm xúc, phạm vi rồi sinh` });
+              return khoiAm(batDau[i]! * pps, dur(cc) * pps, co === dsT.length, mauNv(v), `${cc.dang_sinh_giong ? '⏳ ' : ''}${dsT.map((d) => `${d.nhan_vat || 'Dẫn'}: ${d.loi}`).join(' · ')}${co && co < dsT.length ? ` (${co}/${dsT.length})` : ''}`, `${tt}\n${co}/${dsT.length} dòng có giọng`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
+                sinh && { loai: 'giong', cc, giay: dur(cc), dang: cc.dang_sinh_giong || sinh.ban(`g${cc.id}`), nghe: dsT.map((d) => d.url).filter((u): u is string => !!u), title: `Bấm để chọn model, giọng từng người nói, cảm xúc, phạm vi rồi sinh` });
             }
             return null;
           }))}
@@ -344,7 +344,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             if (!cc.am_thanh.trim()) return null;
             const clip = !!(cc.video_cuoi_url || cc.video_url);
             return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!cc.am_thanh_url, '#fb923c', cc.am_thanh, `${cc.am_thanh}\n${cc.am_thanh_url ? 'đã có file' : 'chưa sinh'}`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
-              sinh && { loai: 'sfx', cc, giay: dur(cc), dang: cc.dang_sinh_am || sinh.ban(`c${cc.id}`), nghe: cc.am_thanh_url ? [cc.am_thanh_url] : [], title: `Bấm để chọn nguồn (clip / mô tả), model, mô tả, số giây rồi sinh` });
+              sinh && { loai: 'sfx', cc, giay: dur(cc), dang: cc.dang_sinh_sfx || sinh.ban(`s${cc.id}`), nghe: cc.am_thanh_url ? [cc.am_thanh_url] : [], title: `Bấm để chọn nguồn (clip / mô tả), model, mô tả, số giây rồi sinh` });
           }))}
 
           {track('🎵 Nhạc', 'Nhạc nền: theo từng phân cảnh (ưu tiên) hoặc một bài cả tập', khoiPc.some((kh) => kh.ten)

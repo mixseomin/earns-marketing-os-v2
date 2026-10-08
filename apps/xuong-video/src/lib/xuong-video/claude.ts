@@ -3,7 +3,7 @@
 import 'server-only';
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
-import { z } from 'zod';
+import { z } from 'zod/v4';   // helper zodOutputFormat của SDK cần zod v4 (zod 3.25 kèm sẵn ở 'zod/v4'); import 'zod' gốc → TypeError 'def'
 import type { KinhThanh, LoaiPhim, NhanVat } from './kieu';
 import { docKinhThanh, LOAI_PHIM } from './kieu';
 
@@ -59,10 +59,11 @@ export async function tachCanh(opts: {
       max_tokens: 16000,
       system: heThong(opts.loai, kt),
       messages: [{ role: 'user', content: user }],
-      output_config: { format: zodOutputFormat(StoryboardSchema) },
+      // Kiểu của helper khai theo zod v3 nhưng runtime cần v4 (đã thử: v3 → TypeError 'def', v4 chạy) → ép kiểu ở ranh này.
+      output_config: { format: zodOutputFormat(StoryboardSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
     });
     if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
-    const p = r.parsed_output;
+    const p = r.parsed_output as z.infer<typeof StoryboardSchema> | null;
     if (!p) return { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
     const canh = p.canh.map((x) => ({ ...x, thoi_luong_s: x.thoi_luong_s <= 4 ? 4 : x.thoi_luong_s <= 6 ? 6 : 8 }));
     return { ok: true, tomTat: p.tom_tat, canh, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };

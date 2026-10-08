@@ -27,34 +27,43 @@ export async function taiAnhBase64(url: string): Promise<AnhVao | null> {
 
 type KqAnh = { ok: true; model: string; mimeType: string; data: Buffer } | { ok: false; loi: string };
 
-/** Sinh MỘT ảnh. `thamChieu` = ảnh anchor (nhân vật/sản phẩm) model phải giữ đúng; Gemini nhận tới 4 ảnh nhân vật + 10 vật. */
-export async function sinhAnh(opts: { model: string; prompt: string; thamChieu?: AnhVao[]; tiLe: TiLe | '1:1'; kichCo?: '1K' | '2K' }): Promise<KqAnh> {
+/** Gọi đúng MỘT model, không fallback (probe + sinhAnh dùng chung). Model không nhận imageSize thì thử lại không có. */
+export async function sinhAnhMot(opts: { model: string; prompt: string; thamChieu?: AnhVao[]; tiLe: TiLe | '1:1'; kichCo?: '1K' | '2K' }): Promise<KqAnh> {
   const key = khoaGoogle();
   if (!key) return { ok: false, loi: 'Thiếu GOOGLE_API_KEY trên máy chủ' };
   const parts: Array<Record<string, unknown>> = [{ text: opts.prompt }];
   for (const a of (opts.thamChieu ?? []).slice(0, 14)) parts.push({ inlineData: { mimeType: a.mimeType, data: a.data } });
+  let loiCuoi = '';
+  for (const coKichCo of [true, false]) {
+    const imageConfig: Record<string, string> = { aspectRatio: opts.tiLe };
+    if (coKichCo && opts.kichCo) imageConfig.imageSize = opts.kichCo;
+    const body = { contents: [{ role: 'user', parts }], generationConfig: { responseModalities: ['IMAGE'], imageConfig } };
+    const r = await fetch(`${GOC}/models/${opts.model}:generateContent`, {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body),
+    });
+    const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!r.ok) {
+      loiCuoi = docLoi(j, r.status);
+      if (coKichCo && opts.kichCo && r.status === 400 && /imageSize|image_size|Unknown name/i.test(loiCuoi)) continue;
+      return { ok: false, loi: loiCuoi };
+    }
+    const cands = (j.candidates as Array<{ content?: { parts?: Array<{ inlineData?: { mimeType: string; data: string } }> }; finishReason?: string }> | undefined) ?? [];
+    const inl = cands.flatMap((c) => c.content?.parts ?? []).find((p) => p.inlineData)?.inlineData;
+    if (!inl) return { ok: false, loi: `model không trả ảnh (${cands[0]?.finishReason ?? 'không rõ'})` };
+    return { ok: true, model: opts.model, mimeType: inl.mimeType || 'image/png', data: Buffer.from(inl.data, 'base64') };
+  }
+  return { ok: false, loi: loiCuoi };
+}
+
+/** Sinh MỘT ảnh với fallback: model được chọn không tồn tại (404) hoặc không có trong hạng free (quota 0) → thử model kế trong MO_HINH_ANH. */
+export async function sinhAnh(opts: { model: string; prompt: string; thamChieu?: AnhVao[]; tiLe: TiLe | '1:1'; kichCo?: '1K' | '2K' }): Promise<KqAnh> {
   const thuTu = [opts.model, ...MO_HINH_ANH.map((m) => m.key).filter((k) => k !== opts.model)];
   let loiCuoi = '';
   for (const model of thuTu) {
-    for (const coKichCo of [true, false]) {
-      const imageConfig: Record<string, string> = { aspectRatio: opts.tiLe };
-      if (coKichCo && opts.kichCo) imageConfig.imageSize = opts.kichCo;
-      const body = { contents: [{ role: 'user', parts }], generationConfig: { responseModalities: ['IMAGE'], imageConfig } };
-      const r = await fetch(`${GOC}/models/${model}:generateContent`, {
-        method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body),
-      });
-      const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
-      if (r.status === 404) { loiCuoi = `model ${model} không tồn tại`; break; }           // thử model kế
-      if (!r.ok) {
-        loiCuoi = docLoi(j, r.status);
-        if (coKichCo && opts.kichCo && /imageSize|image_size|Unknown name/i.test(loiCuoi)) continue;   // model không nhận imageSize → thử không có
-        return { ok: false, loi: loiCuoi };
-      }
-      const cands = (j.candidates as Array<{ content?: { parts?: Array<{ inlineData?: { mimeType: string; data: string } }> }; finishReason?: string }> | undefined) ?? [];
-      const inl = cands.flatMap((c) => c.content?.parts ?? []).find((p) => p.inlineData)?.inlineData;
-      if (!inl) return { ok: false, loi: `model không trả ảnh (${cands[0]?.finishReason ?? 'không rõ'})` };
-      return { ok: true, model, mimeType: inl.mimeType || 'image/png', data: Buffer.from(inl.data, 'base64') };
-    }
+    const kq = await sinhAnhMot({ ...opts, model });
+    if (kq.ok) return kq;
+    loiCuoi = `${model}: ${kq.loi}`;
+    if (!/NOT_FOUND|404|RESOURCE_EXHAUSTED|limit: 0/i.test(kq.loi)) return { ok: false, loi: loiCuoi };
   }
   return { ok: false, loi: loiCuoi || 'không model ảnh nào chạy được' };
 }

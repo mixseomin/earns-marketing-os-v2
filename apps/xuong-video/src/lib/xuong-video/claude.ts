@@ -101,7 +101,21 @@ export async function vietKichBan(opts: {
 }
 
 /** Mô tả anchor → prompt tiếng Anh sinh "ảnh mẫu" (character sheet) để các cảnh sau tham chiếu. Không gọi LLM: ghép chuỗi là đủ. */
-export function promptAnhMau(nv: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, kt: KinhThanh): string {
+// "Sinh thêm" mà vẫn đưa ảnh cũ làm tham chiếu + đúng prompt cũ → model chép y lại ảnh cũ (08/10/2026: hai ảnh Đường mòn Rêu Phong
+// giống hệt). Mỗi lần sinh thêm đổi sang một góc/khuôn hình khác theo lượt; ảnh cũ chỉ để giữ danh tính, không để sao chép.
+const GOC_THEM: Record<string, string[]> = {
+  nhan_vat: ['Full-body action pose sheet: walking, running, sitting, pointing, waving', 'Close-up expression sheet: laughing, angry, scared, thinking, crying, determined', 'Character shown in a natural three-quarter view standing in soft daylight, medium shot', 'Back and side detail sheet: outfit, accessories, hands and feet close-ups'],
+  boi_canh: ['Same location seen from the OPPOSITE direction, reverse angle', 'Low ground-level angle looking up, close foreground details', 'High aerial bird-eye view of the whole place', 'Medium shot focusing on one landmark detail of the place', 'Wide shot from the far side, the place seen at a distance'],
+  san_pham: ['Product from a 45-degree side angle', 'Macro close-up of material texture and stitching details', 'Flat lay top-down shot', 'Back view of the product'],
+  dao_cu: ['Prop from a different angle, side view', 'Macro close-up detail of the prop', 'Prop held in a hand for scale'],
+};
+export function promptAnhMau(nv: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, kt: KinhThanh, daCo = 0): string {
+  if (daCo > 0) {
+    const ds = GOC_THEM[nv.loai] ?? GOC_THEM.boi_canh!;
+    const goc = ds[(daCo - 1) % ds.length]!;
+    return `${goc}. Subject: ${nv.mo_ta}. Visual style: ${docKinhThanh(kt).phong_cach || 'consistent cinematic look'}. `
+      + 'The reference images only define the identity/design of the subject — create a NEW image with a clearly DIFFERENT camera angle and composition; do NOT reproduce the reference image.';
+  }
   const k = docKinhThanh(kt);
   const loai = nv.loai === 'nhan_vat' ? 'Character design reference sheet on a plain light background: full-body turnaround (front, three-quarter, side, back) in a neutral pose, plus a row of head close-ups showing neutral, happy, sad and surprised expressions; identical design in every view'
     : nv.loai === 'san_pham' ? 'Product reference shot, centered, soft studio lighting, plain background, exact product details'

@@ -280,9 +280,19 @@ export async function sinhAnhMau(nhanVatId: number): Promise<Kq<number>> {
   const nv = mapNhanVat(r[0]);
   if (!nv.mo_ta.trim()) return loi('anchor chưa có mô tả — tả ngoại hình/đặc tính trước rồi mới sinh ảnh mẫu');
   const kt = docKinhThanh(r[0].kt as KinhThanh);
-  const job = await taoJob({ nhan: `Ảnh gốc · ${nv.ten}`, nhan_vat_id: nhanVatId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { prompt: promptAnhMau(nv, kt) } });
-  await dayViecAnh({ job, model: kt.mo_hinh_anh, prompt: promptAnhMau(nv, kt), thamChieuUrl: nv.anh_ref.slice(0, 3), tiLe: nv.loai === 'boi_canh' ? kt.ti_le : '1:1', thuMuc: `anchor/${nhanVatId}` });
+  const job = await taoJob({ nhan: `Ảnh gốc · ${nv.ten}`, nhan_vat_id: nhanVatId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { prompt: promptAnhMau(nv, kt, nv.anh_ref.length) } });
+  await dayViecAnh({ job, model: kt.mo_hinh_anh, prompt: promptAnhMau(nv, kt, nv.anh_ref.length), thamChieuUrl: nv.anh_ref.slice(0, 3), tiLe: nv.loai === 'boi_canh' ? kt.ti_le : '1:1', thuMuc: `anchor/${nhanVatId}` });
   return { ok: true, data: job };
+}
+
+/** Chọn một ảnh gốc làm ảnh chính (đưa lên đầu anh_ref) — ảnh đầu là ảnh thẻ hiện + tham chiếu ưu tiên khi sinh cảnh. */
+export async function datAnhChinh(nhanVatId: number, url: string): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  await db.execute(sql`UPDATE xv_nhan_vat SET anh_ref = (${JSON.stringify([url])}::jsonb || (anh_ref - ${url})), updated_at = now()
+    WHERE id = ${nhanVatId} AND anh_ref ? ${url}`);
+  return { ok: true, data: undefined };
 }
 
 // ── Biến thể anchor (biểu cảm · trang phục · tư thế · góc máy · thời điểm…) ───────────────────────────────────────

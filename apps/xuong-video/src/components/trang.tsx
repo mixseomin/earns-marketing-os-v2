@@ -8,7 +8,7 @@ import { Timeline } from './timeline';
 import {
   dsPhim, docPhim, dsCanh, taoPhim, taoPhimMau, suaPhim, xoaPhim, luuNhanVat, xoaNhanVat, sinhAnhMau, taoTap, suaTap,
   vietKichBanTap, tachCanhTap, suaCanh, themCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, uocTien, sinhVideoCanh, kiemVideo, taiAnhLen,
-  dsMoHinh, xepCanh, type MoHinhChon,
+  dsMoHinh, xepCanh, datAnhChinh, type MoHinhChon,
   goiYAIKinhThanh, goiYAIAnchor, goiYAIBoAnchor, goiYAIBrief, goiYAICanh, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, nangCapCanh, chonPhienBan,
   type PhimDayDu,
 } from '@/lib/actions';
@@ -407,12 +407,7 @@ function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loiAnh, on
             <div style={{ width: 72, flexShrink: 0 }}>
               {v.anh_ref[0] ? <a href={v.anh_ref[0]} target="_blank" rel="noreferrer"><img src={v.anh_ref[0]} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 6 }} /></a>
                 : <div style={{ width: 72, height: 72, borderRadius: 6, background: 'var(--bg-2)', display: 'grid', placeItems: 'center', color: 'var(--fg-4)' }}>?</div>}
-              {v.anh_ref.length > 1 && (
-                <div style={{ display: 'flex', gap: 2, marginTop: 3, flexWrap: 'wrap', width: 72 }}>
-                  {v.anh_ref.slice(1, 5).map((u) => <img key={u} src={u} alt="" style={{ width: 16, height: 16, objectFit: 'cover', borderRadius: 3 }} />)}
-                  {v.anh_ref.length > 5 && <span style={{ ...mono, fontSize: 9 }}>+{v.anh_ref.length - 5}</span>}
-                </div>
-              )}
+
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}><strong style={{ fontSize: 12 }}>{v.ten}</strong><Pill color="var(--fg-3)">{LOAI_NHAN_VAT.find((l) => l.key === v.loai)?.label ?? v.loai}</Pill></div>
@@ -423,6 +418,18 @@ function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loiAnh, on
                 <button type="button" className="xv-btn" onClick={() => setBtMo(v.id)} title="Biểu cảm, trang phục, tư thế / góc máy, thời điểm… — mỗi biến thể sinh từ ảnh gốc nên giữ đúng danh tính">🎭 Biến thể ({v.bien_the?.length ?? 0})</button>
                 <Xoa nhan="anchor" onXoa={async () => { await xoaNhanVat(v.id); await onChanged(); }} />
               </div>
+              {v.anh_ref.length > 1 && (
+                <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={mono}>{v.anh_ref.length} ảnh gốc · bấm để đặt làm ảnh chính:</span>
+                  {v.anh_ref.map((u, i) => (
+                    <button key={u} type="button" title={i === 0 ? 'ảnh chính (thẻ + tham chiếu ưu tiên khi sinh cảnh)' : 'đặt làm ảnh chính'} onClick={async () => { if (i) { await datAnhChinh(v.id, u); await onChanged(); } }}
+                      style={{ padding: 0, border: `2px solid ${i === 0 ? 'var(--cyan)' : 'transparent'}`, borderRadius: 6, background: 'none', cursor: i ? 'pointer' : 'default', position: 'relative' }}>
+                      <img src={u} alt="" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 4, display: 'block' }} />
+                      {i === 0 && <span style={{ position: 'absolute', left: 2, bottom: 1, fontSize: 9, color: '#fff', textShadow: '0 1px 2px #000' }}>chính</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
               {(() => {
                 const soDang = dangSinh.nhanVat.filter((x) => x === v.id).length + (gui[v.id]?.cho ?? 0);
                 const g0 = gui[v.id]; const them = g0 ? v.anh_ref.length - g0.goc : 0;
@@ -430,7 +437,7 @@ function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loiAnh, on
                 return (
                   <div style={{ ...mono, marginTop: 4, display: 'flex', gap: 8 }}>
                     {soDang > 0 && <span style={{ color: 'var(--violet)' }}>⏳ đang sinh {soDang} ảnh (~20 giây/ảnh)…</span>}
-                    {them > 0 && <span style={{ color: 'var(--lime)' }}>✓ đã thêm {them} ảnh gốc mới (ảnh lớn bên trái) · tổng {v.anh_ref.length}</span>}
+                    {them > 0 && <span style={{ color: 'var(--lime)' }}>✓ đã thêm {them} ảnh gốc mới (đang là ảnh chính) · tổng {v.anh_ref.length}</span>}
                   </div>
                 );
               })()}

@@ -91,9 +91,15 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   }, [idx, chay, docThu]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tuaToi = (giay: number) => { setT(Math.max(0, Math.min(tong, giay))); tuaRef.current++; setTua(tuaRef.current); };
-  const tuaTheoChuot = (e: PE<HTMLDivElement>) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    tuaToi((e.clientX - r.left + e.currentTarget.scrollLeft) / pps);
+  // Giữ chuột trên thước giây hoặc vạch đỏ rồi kéo = tua liên tục (scrub) như CapCut; đang chạy thì tạm dừng trong lúc kéo.
+  const keoDauPhat = (e: PE<HTMLDivElement>, goc: number) => {
+    e.preventDefault(); e.stopPropagation();
+    const dangChay = chay; setChay(false);
+    tuaToi((e.clientX - goc) / pps);
+    const move = (ev: PointerEvent) => tuaToi((ev.clientX - goc) / pps);
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); document.body.style.cursor = ''; if (dangChay) setChay(true); };
+    document.body.style.cursor = 'ew-resize';
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
   };
 
   // Phím tắt: Space chạy/dừng, ←/→ lùi/tới 1 cảnh — bỏ qua khi đang gõ trong ô nhập.
@@ -193,7 +199,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           <div style={{ display: 'flex', height: 18 }}>
             <div style={{ width: NHAN_W, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-1)' }} />
             <div style={{ position: 'relative', width: W, cursor: 'pointer' }}
-              onPointerDown={(e) => { const r = e.currentTarget.getBoundingClientRect(); tuaToi((e.clientX - r.left) / pps); }}>
+              onPointerDown={(e) => keoDauPhat(e, e.currentTarget.getBoundingClientRect().left)}>
               {Array.from({ length: Math.floor(tong) + 1 }, (_, s) => {
                 const nhan = pps >= 40 || s % (pps >= 20 ? 2 : 5) === 0;
                 return <div key={s} style={{ position: 'absolute', left: s * pps, bottom: 0, height: nhan ? 10 : 5, borderLeft: '1px solid var(--line)' }}>{nhan && <span style={{ ...mono, fontSize: 9, position: 'absolute', left: 2, top: -9 }}>{s}s</span>}</div>;
@@ -233,8 +239,9 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           {track('🎵 Nhạc', 'Nhạc nền cả tập', khoiAm(0, W, !!tap.nhac_url, '#a78bfa', tap.nhac_mo_ta || 'Nhạc nền cả tập: chưa có', tap.nhac_mo_ta || 'chưa có nhạc nền', 'nhac'))}
 
           {/* Đầu phát */}
-          <div style={{ position: 'absolute', left: NHAN_W + t * pps, top: 0, bottom: 0, width: 2, background: '#ef4444', pointerEvents: 'none', zIndex: 4 }}>
-            <div style={{ position: 'absolute', top: 0, left: -4, width: 10, height: 10, background: '#ef4444', borderRadius: '0 0 5px 5px' }} />
+          <div style={{ position: 'absolute', left: NHAN_W + t * pps - 1, top: 0, bottom: 0, width: 2, background: '#ef4444', pointerEvents: 'none', zIndex: 4 }}>
+            <div title="Kéo để tua" onPointerDown={(e) => keoDauPhat(e, (vungRef.current?.getBoundingClientRect().left ?? 0) + NHAN_W - (vungRef.current?.scrollLeft ?? 0))}
+              style={{ position: 'absolute', top: 0, left: -7, width: 16, height: 16, background: '#ef4444', borderRadius: '3px 3px 8px 8px', cursor: 'ew-resize', pointerEvents: 'auto', boxShadow: '0 1px 4px #0008' }} />
           </div>
         </div>
       </div>

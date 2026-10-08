@@ -18,7 +18,7 @@ adfond, không đụng `ai_tasks` của Astrolas. Mỗi kho một cửa.
 Mọi động tác đi qua một cửa duy nhất — script chạy **trên server** (nơi có `.env.production`):
 
 ```bash
-S="ssh root@5.78.65.158 /opt/earns-marketing-os-v2/scripts/gop-y.sh"
+S="ssh root@167.233.241.16 /opt/earns-marketing-os-v2/scripts/gop-y.sh"   # MOS2 = box3 từ 05/08/2026; box1 không có gop-y.sh
 $S list                       # việc còn phải làm
 $S show <id>                  # toàn luồng + link ảnh
 $S claim <id>                 # → In progress

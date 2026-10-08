@@ -226,11 +226,11 @@ export async function taoPhim(ten: string, loai: LoaiPhim): Promise<Kq<number>> 
 }
 
 /** Tạo phim từ mẫu dựng sẵn (mỗi định dạng một mẫu): kinh thánh + anchor + kịch bản tập 1 đã điền. */
-export async function taoPhimMau(loai: LoaiPhim): Promise<Kq<number>> {
+export async function taoPhimMau(key: string): Promise<Kq<number>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  const m = MAU_PHIM.find((x) => x.loai === loai);
+  const m = MAU_PHIM.find((x) => x.key === key) ?? MAU_PHIM.find((x) => x.loai === key);
   if (!m) return loi('không có mẫu cho loại này');
   const r = (await db.execute(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh) VALUES (${KHO}, ${m.ten}, ${m.loai}, ${m.mo_ta}, ${JSON.stringify(m.kinh_thanh)}::jsonb) RETURNING id`)) as unknown as Row[];
   const id = n(r[0]?.id);

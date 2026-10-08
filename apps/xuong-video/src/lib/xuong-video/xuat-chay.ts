@@ -59,3 +59,23 @@ export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; canh: Canh[]; 
     await rm(thuMuc, { recursive: true, force: true }).catch(() => {});
   }
 }
+
+/** Nối nhiều file giọng (các dòng thoại của một shot) thành MỘT mp3, cách nhau 0,15s — lipsync chỉ nhận một file tiếng. */
+export async function gopAm(urls: string[]): Promise<Buffer | null> {
+  if (!urls.length) return null;
+  const thuMuc = `${tmpdir()}/xv-gop-${randomUUID().slice(0, 8)}`;
+  await mkdir(thuMuc, { recursive: true });
+  try {
+    const tep: string[] = [];
+    for (const [i, url] of urls.entries()) {
+      const r = await fetch(url, { signal: AbortSignal.timeout(60_000) });
+      if (!r.ok) return null;
+      const duong = `${thuMuc}/${i}.bin`; await writeFile(duong, Buffer.from(await r.arrayBuffer())); tep.push(duong);
+    }
+    const ra = `${thuMuc}/ra.mp3`;
+    const loc = `${tep.map((_, i) => `[${i}:a]aformat=sample_rates=44100:channel_layouts=mono,apad=pad_dur=0.15[a${i}]`).join(';')};${tep.map((_, i) => `[a${i}]`).join('')}concat=n=${tep.length}:v=0:a=1[aout]`;
+    await run('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', ...tep.flatMap((t) => ['-i', t]), '-filter_complex', loc, '-map', '[aout]', '-c:a', 'libmp3lame', '-q:a', '2', ra], { timeout: 120_000 });
+    return await readFile(ra);
+  } catch (e) { console.error('[gộp giọng]', e); return null; }
+  finally { await rm(thuMuc, { recursive: true, force: true }).catch(() => {}); }
+}

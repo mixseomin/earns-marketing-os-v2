@@ -14,11 +14,11 @@ import {
   dsPhim, docPhim, dsCanh, taoPhim, taoPhimMau, suaPhim, xoaPhim, luuNhanVat, xoaNhanVat, sinhAnhMau, taoTap, suaTap,
   vietKichBanTap, tachCanhTap, suaCanh, themCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, uocTien, sinhVideoCanh, kiemVideo, taiAnhLen,
   dsMoHinh, xepCanh, datAnhChinh, lamLaiTuKeyframe, layTuLinkSanPham, sinhGiong, sinhAmThanh, sinhNhac, uocAm, dsGiongModel, dsGiongCua, chonGiong, ngheThuGiong, xoaAnhGoc, xoaAnhBienThe, xoaKeyframe, dsThungRac, khoiPhuc, type MoHinhChon,
-  goiYAIKinhThanh, goiYAIAnchor, goiYAIBoAnchor, goiYAIBrief, goiYAICanh, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, nangCapCanh, chonPhienBan, doiChieuAnchor, xuatTap, trangThaiXuat,
+  goiYAIKinhThanh, goiYAIAnchor, goiYAIBoAnchor, goiYAIBrief, goiYAICanh, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, nangCapCanh, chonPhienBan, doiChieuAnchor, xuatTap, trangThaiXuat, khopMiengCanh,
   type PhimDayDu,
 } from '@/lib/actions';
 import {
-  LOAI_PHIM, LOAI_NHAN_VAT, TRANG_THAI_CANH, NHOM_BIEN_THE, nhanNhom, thanhPhanCanh, NANG_CAP, MO_HINH_ANH, MO_HINH_VIDEO, MO_HINH_CHU, docKinhThanh, giaAnhCents, giaVideoCents, tien,
+  LOAI_PHIM, LOAI_NHAN_VAT, TRANG_THAI_CANH, NHOM_BIEN_THE, nhanNhom, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, MO_HINH_CHU, docKinhThanh, giaAnhCents, giaVideoCents, tien,
   QC_TRONG, type ThongTinQc, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, lamTronClip,
   gioVN, type Phim, type NhanVat, type BienThe, type Tap, type Canh, type Job, type KinhThanh, type LoaiPhim, type LoaiNhanVat,
 } from '@/lib/xuong-video/kieu';
@@ -1213,6 +1213,7 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
               <MucMenu onClick={() => setMo(true)}>✎ Sửa cảnh (góc máy, lời thoại, prompt, nhân vật)</MucMenu>
               {c.loi_thoai.trim() && <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} onClick={() => void chay(`g${c.id}`, () => sinhGiong(c.tap_id, [c.id]))}>🗣 {c.thoai_url ? 'Sinh lại' : 'Sinh'} giọng shot này</MucMenu>}
               <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} onClick={() => void chay(`s${c.id}`, () => sinhAmThanh(c.tap_id, [c.id]))}>🔊 {c.am_thanh_url ? 'Sinh lại' : 'Sinh'} hiệu ứng âm thanh{c.video_url ? ' (từ clip)' : ''}</MucMenu>
+              {(buoc === 'nhap' || buoc === 'cuoi') && dongThoai(c, nhanVat).some((d) => d.url) && <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} gia={KHOP_MIENG.giaGiayCents * (c.thoi_luong_s || 8)} onClick={() => void chay(k, () => khopMiengCanh(c.id))}>👄 Khớp miệng với giọng đã sinh ({KHOP_MIENG.label}) · {tien(KHOP_MIENG.giaGiayCents * (c.thoi_luong_s || 8))}</MucMenu>}
               {(buoc === 'nhap' || buoc === 'cuoi') && <MucMenu onClick={() => void chay(k, () => lamLaiTuKeyframe(c.id))}>↩ Làm lại từ keyframe (đổi ảnh / duyệt lại — các bản video vẫn giữ trong phiên bản)</MucMenu>}
               {c.trang_thai === 'duyet' && <MucMenu onClick={() => void chay(k, () => duyetCanh(c.id, false))}>↩ Bỏ duyệt keyframe</MucMenu>}
               {c.trang_thai === 'loi' && buoc !== 'nhap' && buoc !== 'cuoi' && c.keyframe_url && <MucMenu ly={lyVideo} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))} gia={giaVid}>↻ Sinh lại nháp · {giay}s · {tien(giaVid)}</MucMenu>}

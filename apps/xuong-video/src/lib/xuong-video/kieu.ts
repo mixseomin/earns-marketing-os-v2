@@ -180,5 +180,8 @@ export function thanhPhanCanh(c: Pick<Canh, 'nhan_vat' | 'bien_the'>, nhanVat: N
   return { ds, thieu: ds.flatMap((x) => x.thieu) };
 }
 
+/** Khớp miệng (fal sync-lipsync v2): thay chuyển động môi của clip theo file giọng đã sinh — Veo tự đọc thoại giọng lơ lớ, giọng TTS riêng thì
+ *  miệng không khớp (review 09/10/2026). Giá công khai 10/2026: $3/phút video. */
+export const KHOP_MIENG = { model: 'fal-ai/sync-lipsync/v2', label: 'Sync Lipsync v2', giaGiayCents: 5 } as const;
 /** Nâng cấp video (fal Topaz Precision) — giữ nguyên chuyển động của clip nháp. Giá công khai 10/2026: $0,10/10s ra 720p, $0,20/10s ra 1080p. */
 export const NANG_CAP = { model: 'topaz/upscale/video/precision', label: 'Topaz Precision ×2', giaGiayCents: 2 } as const;

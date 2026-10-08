@@ -11,6 +11,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { uploadToR2 } from '@/lib/r2';
 import { sinhAnh, batDauVeo, docVeo, taiVeo, taiAnhBase64, type AnhVao } from '@/lib/xuong-video/google';
 import { tachCanh, vietKichBan, promptAnhMau } from '@/lib/xuong-video/claude';
+import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import {
   docKinhThanh, giaAnhCents, giaVideoCents,
   type Phim, type NhanVat, type Tap, type Canh, type Job, type KinhThanh, type LoaiPhim, type LoaiNhanVat, type TrangThaiCanh,
@@ -123,6 +124,21 @@ export async function taoPhim(ten: string, loai: LoaiPhim): Promise<Kq<number>> 
   // Short / quảng cáo: một tập sẵn, khỏi bắt người bấm "thêm tập".
   const id = n(r[0]?.id);
   if (loai !== 'phim') await db.execute(sql`INSERT INTO xv_tap (phim_id, so, ten) VALUES (${id}, 1, ${ten.trim()})`);
+  return { ok: true, data: id };
+}
+
+/** Tạo phim từ mẫu dựng sẵn (mỗi định dạng một mẫu): kinh thánh + anchor + kịch bản tập 1 đã điền. */
+export async function taoPhimMau(loai: LoaiPhim): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const m = MAU_PHIM.find((x) => x.loai === loai);
+  if (!m) return loi('không có mẫu cho loại này');
+  const r = (await db.execute(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh) VALUES (${KHO}, ${m.ten}, ${m.loai}, ${m.mo_ta}, ${JSON.stringify(m.kinh_thanh)}::jsonb) RETURNING id`)) as unknown as Row[];
+  const id = n(r[0]?.id);
+  for (const v of m.nhan_vat) await db.execute(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, giong) VALUES (${id}, ${v.loai}, ${v.ten}, ${v.mo_ta}, ${v.giong ?? ''})`);
+  let so = 0;
+  for (const t of m.tap) { so += 1; await db.execute(sql`INSERT INTO xv_tap (phim_id, so, ten, kich_ban) VALUES (${id}, ${so}, ${t.ten}, ${t.kich_ban})`); }
   return { ok: true, data: id };
 }
 

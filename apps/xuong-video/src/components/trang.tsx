@@ -5,7 +5,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useModalParam } from '@/lib/use-modal-param';
 import {
-  dsPhim, docPhim, dsCanh, taoPhim, suaPhim, xoaPhim, luuNhanVat, xoaNhanVat, sinhAnhMau, taoTap, suaTap,
+  dsPhim, docPhim, dsCanh, taoPhim, taoPhimMau, suaPhim, xoaPhim, luuNhanVat, xoaNhanVat, sinhAnhMau, taoTap, suaTap,
   vietKichBanTap, tachCanhTap, suaCanh, themCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, uocTien, sinhVideoCanh, kiemVideo, taiAnhLen,
   type PhimDayDu,
 } from '@/lib/actions';
@@ -126,6 +126,12 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
           <div className="xv-field"><Nut ly={!ten.trim() && 'nhập tên trước'} ban={ban} chinh onClick={() => void tao()}>+ Tạo</Nut></div>
         </div>
         <Loi>{loiTao}</Loi>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--line)' }}>
+          <span style={mono}>Hoặc tạo từ mẫu có sẵn (kinh thánh + nhân vật + kịch bản tập 1 đã điền, chỉ việc Tách cảnh):</span>
+          {LOAI_PHIM.map((l) => (
+            <Nut key={l.key} ban={ban} onClick={async () => { setBan(true); setLoiTao(''); const r = await taoPhimMau(l.key); setBan(false); if (!r.ok) { setLoiTao(r.loi); return; } await taiLai(); modal.open('phim', r.data); }}>📄 Mẫu {l.label}</Nut>
+          ))}
+        </div>
       </div>
 
       {phim.length === 0 ? (

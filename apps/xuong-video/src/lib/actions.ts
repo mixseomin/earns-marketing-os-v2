@@ -709,11 +709,19 @@ export async function goiYAICanh(canhId: number, nhap: { canh: string; goc_may: 
 
 async function taoJob(d: { phim_id?: number; nhan?: string; canh_id?: number; nhan_vat_id?: number; bien_the_id?: number; loai: string; provider: string; model: string; request: unknown; xong?: boolean }): Promise<number> {
   const db = getDb()!;
+  // phim_id tính trước bằng truy vấn riêng: nhét cùng một tham số số vào subquery của INSERT làm postgres-js đoán kiểu
+  // text cho nó rồi ném ERR_INVALID_ARG_TYPE (sinh keyframe hỏng hẳn 08/10/2026).
+  let phimId: number | null = d.phim_id ?? null;
+  if (phimId == null && d.canh_id != null) {
+    const q = (await db.execute(sql`SELECT t.phim_id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${d.canh_id}`)) as unknown as Row[];
+    phimId = q[0] ? n(q[0].phim_id) : null;
+  }
+  if (phimId == null && d.nhan_vat_id != null) {
+    const q = (await db.execute(sql`SELECT phim_id FROM xv_nhan_vat WHERE id = ${d.nhan_vat_id}`)) as unknown as Row[];
+    phimId = q[0] ? n(q[0].phim_id) : null;
+  }
   const r = (await db.execute(sql`INSERT INTO xv_job (phim_id, nhan, canh_id, nhan_vat_id, bien_the_id, loai, provider, model, request, trang_thai)
-    VALUES (coalesce(${d.phim_id ?? null}::int,
-        (SELECT t.phim_id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${d.canh_id ?? null}::int),
-        (SELECT v.phim_id FROM xv_nhan_vat v WHERE v.id = ${d.nhan_vat_id ?? null}::int)),
-      ${d.nhan ?? ''}, ${d.canh_id ?? null}, ${d.nhan_vat_id ?? null}, ${d.bien_the_id ?? null}, ${d.loai}, ${d.provider}, ${d.model}, ${JSON.stringify(d.request ?? {})}::jsonb, ${d.xong ? 'xong' : 'cho'}) RETURNING id`)) as unknown as Row[];
+    VALUES (${phimId}, ${d.nhan ?? ''}, ${d.canh_id ?? null}, ${d.nhan_vat_id ?? null}, ${d.bien_the_id ?? null}, ${d.loai}, ${d.provider}, ${d.model}, ${JSON.stringify(d.request ?? {})}::jsonb, ${d.xong ? 'xong' : 'cho'}) RETURNING id`)) as unknown as Row[];
   return n(r[0]?.id);
 }
 async function xongJob(id: number, d: { output_url?: string; model?: string; chi_phi_cents?: number; loi?: string }) {

@@ -1,0 +1,254 @@
+{
+ "v": 1,
+ "savedAt": 1791454865181,
+ "doc": {
+  "version": 1,
+  "viewport": {
+   "x": 34,
+   "y": 48.27272727272728,
+   "zoom": 0.5227272727272727
+  },
+  "inputs": [],
+  "nodes": [
+   {
+    "id": "n_src",
+    "type": "source.image",
+    "position": {
+     "x": 0,
+     "y": 200
+    },
+    "data": {
+     "label": "Source photo",
+     "imageUrl": "$inputs.sourceImage",
+     "runtime": {
+      "status": "idle",
+      "outputUrl": null,
+      "startedAt": null,
+      "completedAt": null,
+      "errorMessage": null,
+      "taskId": null
+     }
+    },
+    "measured": {
+     "width": 240,
+     "height": 324
+    }
+   },
+   {
+    "id": "n_studio",
+    "type": "gen.image",
+    "position": {
+     "x": 360,
+     "y": 0
+    },
+    "data": {
+     "label": "Studio white",
+     "model": "nano_banana_pro",
+     "aspectRatio": "1:1",
+     "extraRefs": [],
+     "prompt": "Clean studio product photo on seamless white. Soft even lighting, crisp contact shadow, centered, ~60% of frame. Commercial 8K finish. STRICT PRODUCT FIDELITY: Replicate the product EXACTLY as shown in the reference image — same shape, proportions, colors, label text, logos, graphics, materials, and surface details. Do NOT redesign, recolor, restyle, or re-imagine the product itself; only the background, lighting, and composition are new.",
+     "runtime": {
+      "status": "idle",
+      "outputUrl": null,
+      "startedAt": null,
+      "completedAt": null,
+      "errorMessage": null,
+      "taskId": null
+     }
+    },
+    "measured": {
+     "width": 240,
+     "height": 324
+    }
+   },
+   {
+    "id": "n_lifestyle",
+    "type": "gen.image",
+    "position": {
+     "x": 360,
+     "y": 200
+    },
+    "data": {
+     "label": "Lifestyle warm",
+     "model": "nano_banana_pro",
+     "aspectRatio": "1:1",
+     "extraRefs": [],
+     "prompt": "Product placed naturally on a warm wooden surface, soft morning window light, gentle bokeh of a stylish home interior. Editorial lifestyle commercial, 50mm equivalent. STRICT PRODUCT FIDELITY: Replicate the product EXACTLY as shown in the reference image — same shape, proportions, colors, label text, logos, graphics, materials, and surface details. Do NOT redesign, recolor, restyle, or re-imagine the product itself; only the background, lighting, and composition are new.",
+     "runtime": {
+      "status": "idle",
+      "outputUrl": null,
+      "startedAt": null,
+      "completedAt": null,
+      "errorMessage": null,
+      "taskId": null
+     }
+    },
+    "measured": {
+     "width": 240,
+     "height": 324
+    }
+   },
+   {
+    "id": "n_luxe",
+    "type": "gen.image",
+    "position": {
+     "x": 360,
+     "y": 400
+    },
+    "data": {
+     "label": "Luxe dark",
+     "model": "nano_banana_pro",
+     "aspectRatio": "1:1",
+     "extraRefs": [],
+     "prompt": "Cinematic luxury product on polished black marble, dramatic single key light from upper left creating rim highlights, deep shadows opposite. Black void background. Premium 8K. STRICT PRODUCT FIDELITY: Replicate the product EXACTLY as shown in the reference image — same shape, proportions, colors, label text, logos, graphics, materials, and surface details. Do NOT redesign, recolor, restyle, or re-imagine the product itself; only the background, lighting, and composition are new.",
+     "runtime": {
+      "status": "idle",
+      "outputUrl": null,
+      "startedAt": null,
+      "completedAt": null,
+      "errorMessage": null,
+      "taskId": null
+     }
+    },
+    "measured": {
+     "width": 240,
+     "height": 324
+    }
+   },
+   {
+    "id": "n_vid",
+    "type": "gen.video",
+    "position": {
+     "x": 720,
+     "y": 0
+    },
+    "data": {
+     "label": "VEO motion (studio)",
+     "model": "veo_31_fast_relaxed",
+     "mode": "start_image",
+     "aspectRatio": "16:9",
+     "resolution": "1080p",
+     "prompt": "Medium close-up, fixed camera, slow gentle push-in over 6 seconds. Product rotates very slowly. Subtle mechanical whirr and airy room tone. Commercial 4K photoreal.",
+     "runtime": {
+      "status": "idle",
+      "outputUrl": null,
+      "startedAt": null,
+      "completedAt": null,
+      "errorMessage": null,
+      "taskId": null
+     }
+    },
+    "measured": {
+     "width": 240,
+     "height": 324
+    },
+    "selected": true
+   },
+   {
+    "id": "n_out_vid",
+    "type": "output",
+    "position": {
+     "x": 1080,
+     "y": 0
+    },
+    "data": {
+     "label": "Final video",
+     "saveTo": "library",
+     "lastUpstreamUrl": null,
+     "lastUpstreamKind": null
+    },
+    "measured": {
+     "width": 240,
+     "height": 324
+    }
+   },
+   {
+    "id": "n_out_life",
+    "type": "output",
+    "position": {
+     "x": 720,
+     "y": 200
+    },
+    "data": {
+     "label": "Lifestyle image",
+     "saveTo": "library",
+     "lastUpstreamUrl": null,
+     "lastUpstreamKind": null
+    },
+    "measured": {
+     "width": 240,
+     "height": 324
+    }
+   },
+   {
+    "id": "n_out_luxe",
+    "type": "output",
+    "position": {
+     "x": 720,
+     "y": 400
+    },
+    "data": {
+     "label": "Luxe image",
+     "saveTo": "library",
+     "lastUpstreamUrl": null,
+     "lastUpstreamKind": null
+    },
+    "measured": {
+     "width": 240,
+     "height": 324
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e1",
+    "source": "n_src",
+    "sourceHandle": "image",
+    "target": "n_studio",
+    "targetHandle": "ref"
+   },
+   {
+    "id": "e2",
+    "source": "n_src",
+    "sourceHandle": "image",
+    "target": "n_lifestyle",
+    "targetHandle": "ref"
+   },
+   {
+    "id": "e3",
+    "source": "n_src",
+    "sourceHandle": "image",
+    "target": "n_luxe",
+    "targetHandle": "ref"
+   },
+   {
+    "id": "e4",
+    "source": "n_studio",
+    "sourceHandle": "image",
+    "target": "n_vid",
+    "targetHandle": "startImage"
+   },
+   {
+    "id": "e5",
+    "source": "n_vid",
+    "sourceHandle": "video",
+    "target": "n_out_vid",
+    "targetHandle": "in"
+   },
+   {
+    "id": "e6",
+    "source": "n_lifestyle",
+    "sourceHandle": "image",
+    "target": "n_out_life",
+    "targetHandle": "in"
+   },
+   {
+    "id": "e7",
+    "source": "n_luxe",
+    "sourceHandle": "image",
+    "target": "n_out_luxe",
+    "targetHandle": "in"
+   }
+  ]
+ }
+}

@@ -44,8 +44,7 @@ export function ngatDong(chu: string, toiDa: number): string[] {
   if (hien) dong.push(hien);
   return dong;
 }
-/** Chữ trong textfile của drawtext: '%' mở chuỗi lệnh %{…} (end card "giảm 70%" ra đen thui) → thoát thành '%%'. */
-const chuFf = (t: string) => t.replace(/%/g, '%%');
+// drawtext expansion=none: '%' trong chữ ("giảm 70%") không bị hiểu là lệnh %{…} — thử '%%' trên ffmpeg 8 vẫn báo "Stray %" và end card ra đen.
 const so = (x: number) => (Math.round(x * 1000) / 1000).toString();
 /** Đường dẫn trong filter ffmpeg: thoát ':' '\' và dấu nháy. */
 const duongFf = (p: string) => p.replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'");
@@ -73,7 +72,7 @@ export function keHoachXuat(o: {
   const font = duongFf(o.font);
   // Khối chữ nhiều dòng = nhiều drawtext, dòng i ở y = gốc + i·(cỡ chữ × 1,25); gốc tính theo tỉ lệ chiều cao (vùng an toàn 9:16) hoặc giữa màn.
   const khoiChu = (ten: string, dong: string[], fs: number, goc: (n: number) => string, them: string, chiBo: string) =>
-    dong.map((d, i) => `drawtext=fontfile='${font}':textfile='${duongFf(tepChu(`${ten}_${i}`, chuFf(d)))}':fontsize=${fs}:fontcolor=white:${them}:x=(w-text_w)/2:y=${goc(dong.length)}+${Math.round(i * fs * 1.25)}${chiBo}`).join(',');
+    dong.map((d, i) => `drawtext=fontfile='${font}':textfile='${duongFf(tepChu(`${ten}_${i}`, d))}':expansion=none:fontsize=${fs}:fontcolor=white:${them}:x=(w-text_w)/2:y=${goc(dong.length)}+${Math.round(i * fs * 1.25)}${chiBo}`).join(',');
   const drawMan = (ten: string, dong: string[], giua = false) => khoiChu(ten, dong, fsMan, (n) => (giua ? `(h-${Math.round(n * fsMan * 1.25)})/2` : 'h*0.15'), `borderw=${Math.round(fsMan / 14)}:bordercolor=black@0.85`, '');
   const drawPd = (ten: string, dong: string[], tu: number, den: number) => khoiChu(ten, dong, fsPd, () => 'h*0.74', `box=1:boxcolor=black@0.55:boxborderw=${Math.round(fsPd / 3)}`, `:enable='between(t,${so(tu)},${so(den)})'`);
   const khung = `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=30,format=yuv420p`;

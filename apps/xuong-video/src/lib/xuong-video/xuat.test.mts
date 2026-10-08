@@ -35,7 +35,7 @@ assert.ok(loc.includes("enable='between(t,0,3)'"));                  // không g
 assert.ok(loc.includes('concat=n=4:v=1:a=0[vout]') && loc.includes('amix=inputs=') && loc.includes('loudnorm=I=-14'));
 assert.ok(loc.includes('color=c=0x101014:s=1080x1920:d=2'));          // end card
 assert.ok(kh.tep.find((x) => x.duong.endsWith('/man_0_0.txt'))!.noiDung === 'Vai hằn đỏ mỗi tối?');
-assert.ok(kh.tep.find((x) => x.duong.endsWith('/man_2_0.txt'))!.noiDung === 'Giảm 70%% · Mua ngay');   // '%' thoát cho drawtext
+assert.ok(kh.tep.find((x) => x.duong.endsWith('/man_2_0.txt'))!.noiDung === 'Giảm 70% · Mua ngay' && loc.includes('expansion=none'));   // '%' giữ nguyên, drawtext không mở rộng
 assert.ok(loc.includes('y=h*0.15+0') && loc.includes("y=(h-"));                      // dòng đầu ở 15% chiều cao; end card giữa màn
 assert.ok(kh.args.includes('-/filter_complex') && kh.args[kh.args.length - 1] === '/tmp/t/ra.mp4');
 // Thiếu nguyên liệu → shot bị ghi thiếu, không chết.

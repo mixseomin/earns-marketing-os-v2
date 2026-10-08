@@ -18,6 +18,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
           <a href="/" className="xv-brand">🎬 Xưởng video</a>
           <span className="xv-mono">kịch bản → storyboard → keyframe → clip → ghép</span>
           <span style={{ flex: 1 }} />
+          <a href="/thu-vien" className="xv-mono">🎬 thư viện điện ảnh</a>
           <a href="/log" className="xv-mono">💰 sổ chi phí</a>
           <a href="https://mos2.on.tc" className="xv-mono">mos2</a>
         </header>

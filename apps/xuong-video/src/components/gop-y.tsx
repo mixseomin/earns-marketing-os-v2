@@ -158,13 +158,34 @@ function Luong({ id, onXong }: { id: number; onXong: () => void }) {
   );
 }
 
+const THU_TU = ['review', 'pending', 'claimed', 'broken', 'completed', 'dropped'];
 function CuaToi({ ds, onNap }: { ds: GopYCuaToi[] | null; onNap: () => void }) {
   const [mo, setMo] = useState<number | null>(null);
+  // Bộ lọc như hòm mos2: chip trạng thái (bấm lại để bỏ lọc) + ô tìm theo nội dung / số card / trang. Nhớ chip theo trình duyệt.
+  const [loc, setLoc] = useState('');
+  const [q, setQ] = useState('');
+  useEffect(() => { try { setLoc(localStorage.getItem('studio.gop-y.loc') ?? ''); } catch { /* thôi */ } }, []);
+  const datLoc = (k: string) => { setLoc(k); try { localStorage.setItem('studio.gop-y.loc', k); } catch { /* thôi */ } };
   if (ds === null) return <div style={{ fontSize: 12, color: 'var(--fg-3)', padding: 8 }}>đang đọc…</div>;
   if (!ds.length) return <div style={{ fontSize: 12.5, color: 'var(--fg-3)', padding: '18px 8px', textAlign: 'center' }}>Chưa có góp ý nào.</div>;
+  const dem = new Map<string, number>();
+  for (const b of ds) { const k = nhomTT(b.trangThai); dem.set(k, (dem.get(k) ?? 0) + 1); }
+  const nd = q.trim().toLowerCase();
+  const hien = ds.filter((b) => (!loc || nhomTT(b.trangThai) === loc) && (!nd || b.noiDung.toLowerCase().includes(nd) || String(b.id).includes(nd) || b.trang.toLowerCase().includes(nd)));
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {ds.map((b) => {
+      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center', marginBottom: 2 }}>
+        <button type="button" onClick={() => datLoc('')} style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 999, cursor: 'pointer', border: `1px solid ${!loc ? 'var(--cyan)' : 'var(--line)'}`, color: !loc ? 'var(--fg-1)' : 'var(--fg-3)', background: 'var(--bg-2)' }}>Tất cả <b>{ds.length}</b></button>
+        {THU_TU.filter((k) => dem.get(k)).map((k) => (
+          <button key={k} type="button" onClick={() => datLoc(loc === k ? '' : k)}
+            style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 999, cursor: 'pointer', border: `1px solid ${loc === k ? TT[k]!.mau : 'var(--line)'}`, color: loc === k ? 'var(--fg-1)' : 'var(--fg-3)', background: 'var(--bg-2)' }}>
+            {TT[k]!.nhan} <b>{dem.get(k)}</b>
+          </button>
+        ))}
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="tìm…" style={{ ...oNhap, width: 130, padding: '3px 8px', fontSize: 11.5, marginLeft: 'auto' }} />
+      </div>
+      {!hien.length && <div style={{ fontSize: 12, color: 'var(--fg-3)', padding: 8 }}>Không mục nào khớp.</div>}
+      {hien.map((b) => {
         const tt = TT[nhomTT(b.trangThai)] ?? TT.pending!;
         return (
           <div key={b.id} style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px', background: 'var(--bg-2)', opacity: DA_DONG.has(nhomTT(b.trangThai)) && mo !== b.id ? 0.7 : 1 }}>

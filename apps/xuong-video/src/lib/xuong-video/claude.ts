@@ -4,6 +4,7 @@ import 'server-only';
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';   // helper zodOutputFormat của SDK cần zod v4 (zod 3.25 kèm sẵn ở 'zod/v4'); import 'zod' gốc → TypeError 'def'
+import { THU_VIEN, THE_LOAI, CAU_TRUC, hopTheLoai, NHOM_KY_THUAT, type NhomKyThuat } from './dien-anh';
 import type { BienThe, KinhThanh, LoaiNhanVat, LoaiPhim, NhanVat } from './kieu';
 import { docKinhThanh, LOAI_PHIM } from './kieu';
 
@@ -19,11 +20,33 @@ const CanhSchema = z.object({
   prompt_anh: z.string().describe('Prompt tiếng Anh cho model sinh ảnh keyframe: tả khung hình tĩnh đầu cảnh — bố cục, ánh sáng, cỡ cảnh, nhân vật tả theo đặc tính cố định (KHÔNG dùng tên riêng), bối cảnh, phong cách. Không nhắc chuyển động.'),
   prompt_video: z.string().describe('Prompt tiếng Anh cho model sinh video từ keyframe: chuyển động nhân vật, chuyển động máy, nhịp, âm thanh/lời thoại (ghi dialogue trong ngoặc kép kèm ngôn ngữ). Giữ nhân vật đúng như khung đầu.'),
 });
+// Kỹ thuật điện ảnh: enum theo đúng key thư viện (dien-anh.ts) → Claude không bịa được kỹ thuật lạ.
+const enumNhom = (n: NhomKyThuat) => z.enum(THU_VIEN.filter((x) => x.nhom === n).map((x) => x.key) as [string, ...string[]]);
+const KyThuatSchema = z.object({
+  co_canh: enumNhom('co_canh'), goc: enumNhom('goc'), chuyen_dong: enumNhom('chuyen_dong'), ong_kinh: enumNhom('ong_kinh'),
+  anh_sang: enumNhom('anh_sang'), mau: enumNhom('mau'), chuyen_canh: enumNhom('chuyen_canh'),
+  am_thanh: z.array(enumNhom('am_thanh')).describe('1-2 lớp âm thanh hiện trường của shot'), nhac: enumNhom('nhac'),
+});
+const ShotSchema = CanhSchema.extend({
+  cam_xuc: z.number().int().describe('Giá trị cảm xúc của khán giả ở CUỐI shot, từ -5 (đau/sợ/tuyệt vọng) tới +5 (vui/hy vọng/chiến thắng)'),
+  ky_thuat: KyThuatSchema.describe('Ngôn ngữ điện ảnh của shot, chọn từ thư viện cho hợp thể loại + cảm xúc'),
+});
 const StoryboardSchema = z.object({
   tom_tat: z.string().describe('Tóm tắt nội dung tập này trong 2-3 câu, tiếng Việt, để tập sau nối mạch'),
-  canh: z.array(CanhSchema),
+  beats: z.array(z.object({ ten: z.string(), mo_ta: z.string().describe('Beat này xảy ra gì trong tập, 1 câu tiếng Việt'), cam_xuc: z.number().int().describe('-5..5') })).describe('Cấu trúc beat của tập theo khung đã cho'),
+  phan_canh: z.array(z.object({
+    ten: z.string().describe('Tên phân cảnh ngắn, tiếng Việt, duy nhất trong tập'),
+    beat: z.string().describe('Thuộc beat nào (đúng tên beat)'),
+    muc_tieu: z.string().describe('Nhân vật muốn đạt gì trong phân cảnh này'),
+    xung_dot: z.string().describe('Cái gì cản trở / đối lập'),
+    an_y: z.string().describe('Ẩn ý dưới lời thoại (điều nhân vật cảm mà không nói), rỗng nếu không có'),
+    nhip: z.enum(['cham', 'vua', 'nhanh']),
+    cam_xuc_dau: z.number().int().describe('-5..5'), cam_xuc_cuoi: z.number().int().describe('-5..5, phải KHÁC đầu: phân cảnh nào cũng đổi giá trị'),
+    shots: z.array(ShotSchema).describe('Các shot của phân cảnh, theo thứ tự'),
+  })),
 });
-export type CanhSinh = z.infer<typeof CanhSchema>;
+export type CanhSinh = z.infer<typeof ShotSchema> & { phan_doan: string };
+export type PhanCanhSinh = Omit<z.infer<typeof StoryboardSchema>['phan_canh'][number], 'shots'>;
 
 function client(): Anthropic | null {
   if (!process.env.ANTHROPIC_API_KEY) return null;
@@ -39,12 +62,29 @@ const heThong = (loai: LoaiPhim, kt: Required<KinhThanh>) => `Bạn là đạo d
 Phong cách hình ảnh cố định của bộ phim: ${kt.phong_cach || '(chưa đặt, tự chọn một phong cách và giữ nhất quán)'}.
 Khung hình ${kt.ti_le}, mỗi cảnh là MỘT clip video AI dài 4/6/8 giây sinh từ một ảnh keyframe, nên mỗi cảnh chỉ có một hành động chính, một góc máy.
 Ngôn ngữ lời thoại/lời dẫn: ${kt.ngon_ngu === 'vi' ? 'tiếng Việt' : kt.ngon_ngu}.
+${kt.the_loai ? `Thể loại: ${THE_LOAI.find((t) => t.key === kt.the_loai)?.ten} (${THE_LOAI.find((t) => t.key === kt.the_loai)?.mo_ta}).` : ''}${kt.logline ? `\nLogline: ${kt.logline}` : ''}${kt.chu_de ? `\nChủ đề: ${kt.chu_de}` : ''}
 QUY TẮC ĐỒNG NHẤT: nhân vật, sản phẩm, bối cảnh phải tả bằng đúng đặc tính cố định trong danh sách anchor ở mọi cảnh (cùng màu lông, cùng trang phục, cùng tỉ lệ cơ thể, cùng chất liệu). prompt_anh và prompt_video viết tiếng Anh, tả người/vật theo đặc tính chứ không dùng tên riêng (model ảnh không biết tên). Mỗi prompt tự đứng được một mình, không tham chiếu cảnh khác.`;
+
+/** Thư viện điện ảnh rút gọn cho prompt: kỹ thuật hợp thể loại trước, mỗi dòng "key — tên: dùng khi nào". */
+function taThuVien(tl: string): string {
+  return NHOM_KY_THUAT.map((n) => {
+    const ds = THU_VIEN.filter((x) => x.nhom === n.key);
+    const hop = ds.filter((x) => hopTheLoai(x, (tl || undefined) as never));
+    const khac = ds.filter((x) => !hop.includes(x));
+    return `[${n.key}] ${n.ten}:\n${hop.map((x) => `  ${x.key} — ${x.ten}: ${x.mo_ta}`).join('\n')}${khac.length ? `\n  (ít hợp thể loại: ${khac.map((x) => x.key).join(', ')})` : ''}`;
+  }).join('\n');
+}
+const HUONG_DAN_DAO_DIEN = `CÁCH DỰNG NHƯ PHIM ĐIỆN ẢNH (bắt buộc):
+- Tầng truyện: chia tập theo khung beat đã cho; mỗi beat có giá trị cảm xúc (-5..5) để thành một đường cong lên xuống, không phẳng.
+- Tầng phân cảnh (scene): mỗi phân cảnh có mục tiêu của nhân vật, xung đột cản trở, và cảm xúc ĐỔI giá trị từ đầu tới cuối (vd +2 → -3). Thoại có ẩn ý khi được — nhân vật hiếm khi nói thẳng điều mình cảm.
+- Tầng shot: mỗi phân cảnh 2-5 shot. Mở bằng shot thiết lập (toàn cảnh) khi tới nơi mới; hội thoại dùng qua vai / cận trung luân phiên, giữ trục 180°; khoảnh khắc cảm xúc dùng cận mặt hoặc đặc tả phản ứng; chèn insert cho vật quan trọng. Nhịp nhanh = shot 4 giây, cắt nhiều; nhịp chậm = shot 6-8 giây, máy đẩy chậm.
+- Ngôn ngữ điện ảnh: mỗi shot chọn cỡ cảnh, góc, chuyển động máy, ống kính, ánh sáng, màu, chuyển cảnh sang shot sau, 1-2 lớp âm thanh, nhạc — CHỈ dùng key trong THƯ VIỆN bên dưới, ưu tiên kỹ thuật hợp thể loại; ánh sáng/màu đổi theo cảm xúc (ấm khi hy vọng, lạnh/tối khi sợ hãi/mất mát) nhưng vẫn trong phong cách chung.
+- prompt_anh phải tả đúng cỡ cảnh + góc + ánh sáng đã chọn; prompt_video tả đúng chuyển động máy + âm thanh đã chọn.`;
 
 /** Tách kịch bản thành cảnh. `soCanh` = số cảnh mong muốn (0 = để Claude tự chia). */
 export async function tachCanh(opts: {
   loai: LoaiPhim; kinhThanh: KinhThanh; nhanVat: NhanVat[]; kichBan: string; soCanh?: number; tapTruoc?: string[];
-}): Promise<{ ok: true; tomTat: string; canh: CanhSinh[]; model: string; tokens: { in: number; out: number } } | { ok: false; loi: string }> {
+}): Promise<{ ok: true; tomTat: string; canh: CanhSinh[]; beats: { ten: string; mo_ta: string; cam_xuc: number }[]; phanCanh: PhanCanhSinh[]; model: string; tokens: { in: number; out: number } } | { ok: false; loi: string }> {
   const c = client();
   if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
   const kt = docKinhThanh(opts.kinhThanh);
@@ -52,13 +92,15 @@ export async function tachCanh(opts: {
     `DANH SÁCH ANCHOR (dùng đúng tên trong trường nhan_vat):\n${taAnchor(opts.nhanVat)}`,
     opts.tapTruoc?.length ? `TÓM TẮT CÁC TẬP TRƯỚC (nối mạch, không kể lại):\n${opts.tapTruoc.map((t, i) => `Tập ${i + 1}: ${t}`).join('\n')}` : '',
     `KỊCH BẢN:\n${opts.kichBan.trim()}`,
-    opts.soCanh ? `Chia thành khoảng ${opts.soCanh} cảnh.` : 'Chia số cảnh vừa đủ kể hết kịch bản, mỗi cảnh 4-8 giây.',
+    `KHUNG BEAT (${CAU_TRUC[opts.loai]?.ten ?? CAU_TRUC.phim!.ten}):\n${(CAU_TRUC[opts.loai] ?? CAU_TRUC.phim!).beats.map((b) => `- ${b.ten}: ${b.mo_ta}`).join('\n')}`,
+    `THƯ VIỆN ĐIỆN ẢNH (chọn key cho từng shot):\n${taThuVien(kt.the_loai)}`,
+    opts.soCanh ? `Tổng khoảng ${opts.soCanh} shot.` : 'Số shot vừa đủ kể hết kịch bản, mỗi shot 4-8 giây.',
   ].filter(Boolean).join('\n\n');
   try {
     const r = await c.messages.parse({
       model: kt.mo_hinh_chu,
       max_tokens: 16000,
-      system: heThong(opts.loai, kt),
+      system: `${heThong(opts.loai, kt)}\n\n${HUONG_DAN_DAO_DIEN}`,
       messages: [{ role: 'user', content: user }],
       // Kiểu của helper khai theo zod v3 nhưng runtime cần v4 (đã thử: v3 → TypeError 'def', v4 chạy) → ép kiểu ở ranh này.
       output_config: { format: zodOutputFormat(StoryboardSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
@@ -66,8 +108,11 @@ export async function tachCanh(opts: {
     if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
     const p = r.parsed_output as z.infer<typeof StoryboardSchema> | null;
     if (!p) return { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
-    const canh = p.canh.map((x) => ({ ...x, thoi_luong_s: x.thoi_luong_s <= 4 ? 4 : x.thoi_luong_s <= 6 ? 6 : 8 }));
-    return { ok: true, tomTat: p.tom_tat, canh, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
+    const kep = (v: number) => Math.max(-5, Math.min(5, Math.round(v)));
+    const canh: CanhSinh[] = p.phan_canh.flatMap((pc) => pc.shots.map((x) => ({ ...x, phan_doan: pc.ten, cam_xuc: kep(x.cam_xuc), thoi_luong_s: x.thoi_luong_s <= 4 ? 4 : x.thoi_luong_s <= 6 ? 6 : 8 })));
+    const phanCanh: PhanCanhSinh[] = p.phan_canh.map(({ shots: _s, ...pc }) => ({ ...pc, cam_xuc_dau: kep(pc.cam_xuc_dau), cam_xuc_cuoi: kep(pc.cam_xuc_cuoi) }));
+    const beats = p.beats.map((b) => ({ ...b, cam_xuc: kep(b.cam_xuc) }));
+    return { ok: true, tomTat: p.tom_tat, canh, beats, phanCanh, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
   } catch (e) {
     return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
   }
@@ -86,7 +131,8 @@ export async function vietKichBan(opts: {
     opts.tapSo ? `Viết kịch bản TẬP ${opts.tapSo}.` : '',
     `Tổng thời lượng mục tiêu: ${opts.thoiLuongS ?? 30} giây.`,
     `BRIEF:\n${opts.brief.trim()}`,
-    'Viết kịch bản dạng văn xuôi có đánh số cảnh (Cảnh 1, Cảnh 2…), mỗi cảnh ghi: bối cảnh, hành động, lời thoại/lời dẫn. Không giải thích thêm, chỉ trả kịch bản.',
+    `KHUNG BEAT (${CAU_TRUC[opts.loai]?.ten ?? CAU_TRUC.phim!.ten}):\n${(CAU_TRUC[opts.loai] ?? CAU_TRUC.phim!).beats.map((b) => `- ${b.ten}: ${b.mo_ta}`).join('\n')}`,
+    'Viết kịch bản dạng văn xuôi có đánh số cảnh (Cảnh 1, Cảnh 2…), đi đúng khung beat trên. Mỗi cảnh ghi: bối cảnh, mục tiêu + xung đột của nhân vật, hành động, lời thoại (có ẩn ý, đúng giọng từng nhân vật), cảm xúc chuyển từ đâu tới đâu, không khí (ánh sáng, âm thanh). Cảm xúc của tập phải có lên có xuống. Không giải thích thêm, chỉ trả kịch bản.',
   ].filter(Boolean).join('\n\n');
   try {
     const r = await c.messages.create({
@@ -135,6 +181,9 @@ export type NguCanhPhim = {
 const KinhThanhSchema = z.object({
   phong_cach: z.string().describe('Phong cách hình ảnh cố định cho CẢ bộ phim: chất liệu/kỹ thuật (3D Pixar, UGC quay thật, 2D anime…), bảng màu, ánh sáng, lens, không khí. 1-2 câu, dùng được làm tiền tố prompt tiếng Anh lẫn Việt.'),
   mo_ta: z.string().describe('Tiền đề / mô tả bộ phim 2-3 câu: kể về gì, cho ai xem, cảm xúc chủ đạo.'),
+  the_loai: z.enum(THE_LOAI.map((t) => t.key) as [string, ...string[]]).describe('Thể loại hợp nhất'),
+  logline: z.string().describe('Một câu tiếng Việt: nhân vật chính · muốn gì · cái gì cản trở'),
+  chu_de: z.string().describe('Chủ đề — điều bộ phim muốn nói, một câu ngắn tiếng Việt'),
 });
 const AnchorSchema = z.object({
   mo_ta: z.string().describe('Đặc tính CỐ ĐỊNH để model ảnh tái tạo giống nhau ở mọi cảnh: loài/tuổi/giới, hình dáng, màu sắc cụ thể, trang phục/phụ kiện, chất liệu, tỉ lệ, tính cách thể hiện qua dáng. 3-5 câu.'),
@@ -149,7 +198,7 @@ const BoAnchorSchema = z.object({
   })).describe('Tuyến nhân vật, sản phẩm, bối cảnh, đạo cụ cần đồng nhất xuyên suốt — chỉ những thứ xuất hiện ≥2 cảnh hoặc ≥2 tập'),
 });
 const BriefSchema = z.object({ brief: z.string().describe('Brief 4-8 dòng cho tập này: mục tiêu, hook, diễn biến chính, xung đột, kết/CTA; nối mạch các tập trước') });
-const CanhLaiSchema = CanhSchema;
+const CanhLaiSchema = ShotSchema;   // viết lại một shot: kèm cảm xúc + kỹ thuật điện ảnh từ thư viện
 
 export type DungChu = { model: string; tokens: { in: number; out: number } };
 type GoiYKq<T> = ({ ok: true; data: T } & DungChu) | { ok: false; loi: string };
@@ -185,7 +234,7 @@ async function hoi<T>(schema: z.ZodType<T>, kt: Required<KinhThanh>, system: str
 const HE_THONG_GOI_Y = 'Bạn là biên kịch kiêm đạo diễn hình ảnh của xưởng video AI. Mọi gợi ý phải KHỚP với ngữ cảnh đã cho (phong cách, tuyến nhân vật, các tập) — không đổi đặc tính đã có, chỉ bổ sung và làm rõ. Trả lời bằng tiếng Việt trừ khi trường yêu cầu tiếng Anh.';
 
 export const goiYKinhThanh = (nc: NguCanhPhim) =>
-  hoi(KinhThanhSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nViết PHONG CÁCH HÌNH ẢNH cố định và TIỀN ĐỀ cho bộ phim này. Nếu đã có thì giữ ý, viết rõ và cụ thể hơn (chất liệu, màu, ánh sáng, lens).`);
+  hoi(KinhThanhSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nViết PHONG CÁCH HÌNH ẢNH cố định, TIỀN ĐỀ, THỂ LOẠI, LOGLINE và CHỦ ĐỀ cho bộ phim này. Nếu đã có thì giữ ý, viết rõ và cụ thể hơn (chất liệu, màu, ánh sáng, lens).`);
 
 export const goiYAnchor = (nc: NguCanhPhim, a: { loai: LoaiNhanVat; ten: string; mo_ta: string }) =>
   hoi(AnchorSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nViết đặc tính CỐ ĐỊNH cho anchor mới: loại=${a.loai}, tên="${a.ten}"${a.mo_ta ? `, ý đã có: ${a.mo_ta}` : ''}. Phải hợp phong cách và không trùng/đụng với các anchor đã có.`);
@@ -198,7 +247,7 @@ export const goiYBrief = (nc: NguCanhPhim, tapSo: number, thoiLuongS: number) =>
 
 export const goiYCanh = (nc: NguCanhPhim, c: { thu_tu: number; canh: string; goc_may: string; hanh_dong: string; loi_thoai: string; nhan_vat: string[] }, truoc?: string, sau?: string) =>
   hoi(CanhLaiSchema, docKinhThanh(nc.kinhThanh), heThong(nc.loai, docKinhThanh(nc.kinhThanh)) + '\n' + HE_THONG_GOI_Y,
-    `${taNguCanh(nc)}\n\n${truoc ? `CẢNH TRƯỚC: ${truoc}\n` : ''}${sau ? `CẢNH SAU: ${sau}\n` : ''}\nViết lại đầy đủ CẢNH #${c.thu_tu}: nhãn "${c.canh}", góc máy "${c.goc_may}", hành động "${c.hanh_dong}", lời thoại "${c.loi_thoai}", anchor trong cảnh: ${c.nhan_vat.join(', ') || '(tự chọn từ tuyến)'}. Giữ ý người đã viết, bổ sung chỗ trống, sinh prompt_anh + prompt_video tiếng Anh khớp cảnh trước/sau và đúng đặc tính anchor.`);
+    `${taNguCanh(nc)}\n\n${truoc ? `CẢNH TRƯỚC: ${truoc}\n` : ''}${sau ? `CẢNH SAU: ${sau}\n` : ''}\nViết lại đầy đủ CẢNH #${c.thu_tu}: nhãn "${c.canh}", góc máy "${c.goc_may}", hành động "${c.hanh_dong}", lời thoại "${c.loi_thoai}", anchor trong cảnh: ${c.nhan_vat.join(', ') || '(tự chọn từ tuyến)'}. Giữ ý người đã viết, bổ sung chỗ trống, sinh prompt_anh + prompt_video tiếng Anh khớp cảnh trước/sau và đúng đặc tính anchor; chọn cảm xúc cuối shot và ngôn ngữ điện ảnh (key trong thư viện) hợp thể loại.\n\nTHƯ VIỆN ĐIỆN ẢNH:\n${taThuVien(docKinhThanh(nc.kinhThanh).the_loai)}`);
 
 // ── Biến thể anchor ────────────────────────────────────────────────────────────────────────────────────────────────
 

@@ -8,6 +8,7 @@
 // Nét đứt = mới có mô tả trong kịch bản, chưa sinh file. Toàn bộ chạy ở trình duyệt, không tốn tiền.
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as PE, type ReactNode } from 'react';
 import type { Canh, NhanVat, Tap } from '@/lib/xuong-video/kieu';
+import { kyThuat } from '@/lib/xuong-video/dien-anh';
 
 const MAU_NV = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#4ade80', '#fb923c', '#60a5fa'];
 const NHAN_W = 74;
@@ -154,7 +155,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
       style={{ position: 'absolute', left: x + 1, width: Math.max(4, w - 2), top: 2, bottom: 2, borderRadius: 4, overflow: 'hidden', cursor: onClick ? 'pointer' : 'default',
         background: co ? `${mau}33` : 'transparent', border: `1px ${co ? 'solid' : 'dashed'} ${mau}${co ? '' : '99'}`,
         color: co ? mau : 'var(--fg-3)', fontSize: 10, lineHeight: '20px', padding: '0 5px', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-      {co ? '♪ ' : ''}{chu}
+      {co && mau !== '#38d9f5' ? '♪ ' : ''}{chu}
     </div>
   );
 
@@ -207,6 +208,24 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             </div>
           </div>
 
+          {/* Phân cảnh (scene): shot liền nhau cùng phan_doan gộp một khối; rê thấy beat · mục tiêu · xung đột · ẩn ý · cảm xúc đầu→cuối. */}
+          {canh.some((x) => x.phan_doan) && track('🎞 Phân cảnh', 'Shot cùng phân cảnh gộp một khối — mỗi phân cảnh có mục tiêu, xung đột, cảm xúc đổi từ đầu tới cuối', (() => {
+            const khoi: { ten: string; tu: number; den: number }[] = [];
+            canh.forEach((cc, i) => { const l = khoi[khoi.length - 1]; if (l && l.ten === cc.phan_doan) l.den = i; else khoi.push({ ten: cc.phan_doan, tu: i, den: i }); });
+            const beatMau = (b: string) => MAU_NV[Math.max(0, tap.beats.findIndex((x) => x.ten === b)) % MAU_NV.length]!;
+            return khoi.map((kh, j) => {
+              const pc = tap.phan_canh.find((x) => x.ten === kh.ten);
+              const x = batDau[kh.tu]! * pps; const w = (batDau[kh.den]! + dur(canh[kh.den]!)) * pps - x;
+              const mau = pc ? beatMau(pc.beat) : '#64748b';
+              const tt = pc ? `${pc.ten}\nBeat: ${pc.beat} · nhịp ${pc.nhip}\nMục tiêu: ${pc.muc_tieu}\nXung đột: ${pc.xung_dot}${pc.an_y ? `\nẨn ý: ${pc.an_y}` : ''}\nCảm xúc: ${pc.cam_xuc_dau} → ${pc.cam_xuc_cuoi}` : kh.ten || '(chưa đặt phân cảnh)';
+              return (
+                <div key={j} title={tt} style={{ position: 'absolute', left: x + 1, width: Math.max(4, w - 2), top: 2, bottom: 2, borderRadius: 4, background: `${mau}26`, borderLeft: `3px solid ${mau}`, color: 'var(--fg-2)', fontSize: 10, lineHeight: '20px', padding: '0 5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {pc?.beat ? <b style={{ color: mau }}>{pc.beat} · </b> : null}{kh.ten || '—'}{pc ? ` (${pc.cam_xuc_dau > 0 ? '+' : ''}${pc.cam_xuc_dau}→${pc.cam_xuc_cuoi > 0 ? '+' : ''}${pc.cam_xuc_cuoi})` : ''}
+                </div>
+              );
+            });
+          })())}
+
           {track('🎬 Hình', 'Mỗi cảnh một clip, dài đúng số giây', canh.map((cc, i) => {
             const x = batDau[i]! * pps; const w = dur(cc) * pps; const anh = cc.keyframe_url;
             const dangChon = chon === cc.id; const coVid = !!(cc.video_cuoi_url || cc.video_url);
@@ -224,6 +243,30 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               </div>
             );
           }), 48)}
+
+          {/* Đường cong cảm xúc: điểm ở cuối mỗi shot, -5..+5, vạch giữa = 0. */}
+          {canh.some((x) => x.cam_xuc) && track('❤ Cảm xúc', 'Cảm xúc khán giả cuối mỗi shot (-5 đau/sợ … +5 vui/hy vọng) — phim hay có lên có xuống', (() => {
+            const H = 40; const y = (v: number) => H / 2 - (v / 5) * (H / 2 - 4);
+            const diem = canh.map((cc, i) => ({ x: (batDau[i]! + dur(cc)) * pps, y: y(cc.cam_xuc), v: cc.cam_xuc, cc }));
+            const duong = [`0,${y(0)}`, ...diem.map((d) => `${d.x},${d.y}`)].join(' ');
+            return (
+              <svg width={W} height={H} style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible' }}>
+                <line x1={0} x2={W} y1={y(0)} y2={y(0)} stroke="var(--line)" strokeDasharray="3 3" />
+                <polygon points={`0,${y(0)} ${duong.split(' ').slice(1).join(' ')} ${diem.length ? `${diem[diem.length - 1]!.x},${y(0)}` : ''}`} fill="rgba(244,114,182,.12)" />
+                <polyline points={duong} fill="none" stroke="#f472b6" strokeWidth={2} />
+                {diem.map((d) => <circle key={d.cc.id} cx={d.x} cy={d.y} r={3.5} fill={d.v >= 0 ? '#4ade80' : '#f87171'}><title>{`#${d.cc.thu_tu} ${d.cc.canh}: ${d.v > 0 ? '+' : ''}${d.v}`}</title></circle>)}
+              </svg>
+            );
+          })(), 40)}
+
+          {/* Máy + ánh sáng của từng shot (từ thư viện điện ảnh). */}
+          {canh.some((x) => Object.keys(x.ky_thuat ?? {}).length) && track('🎥 Máy · 💡', 'Cỡ cảnh · chuyển động máy · ánh sáng của từng shot', canh.map((cc, i) => {
+            const kt = cc.ky_thuat ?? {};
+            const chu = [kyThuat(kt.co_canh, 'co_canh')?.ten, kyThuat(kt.chuyen_dong, 'chuyen_dong')?.ten, kyThuat(kt.anh_sang, 'anh_sang')?.ten].filter(Boolean).join(' · ');
+            if (!chu) return null;
+            const day = ['co_canh', 'goc', 'chuyen_dong', 'ong_kinh', 'anh_sang', 'mau', 'chuyen_canh', 'nhac'].map((n) => kyThuat((kt as Record<string, string>)[n])?.ten).filter(Boolean).join('\n');
+            return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, '#38d9f5', chu, day, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); });
+          }))}
 
           {track('🗣 Thoại', 'Lời thoại từng cảnh — màu theo nhân vật nói', canh.map((cc, i) => {
             if (!cc.loi_thoai.trim()) return null;

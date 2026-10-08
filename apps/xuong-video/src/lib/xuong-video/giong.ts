@@ -93,7 +93,7 @@ async function moTaFal(id: string): Promise<MoTaGiong> {
     const mt: MoTaGiong = { truongChu, truongGiong, giong: [...new Set(giong)].slice(0, 200), truongNgonNgu, ngonNgu: truongNgonNgu ? giaTri(p[truongNgonNgu]) : [] };
     khoMoTa.set(id, mt);
     return mt;
-  } catch { return rong; }
+  } catch (e) { console.error('[giong] đọc OpenAPI', id, e); return rong; }
 }
 
 /** Danh sách giọng của một model (cho ô chọn). ElevenLabs trực tiếp: giọng trong tài khoản (tên + id). */
@@ -128,15 +128,6 @@ export async function dauVaoGiongTheoModel(model: string, v: { text: string; voi
   }
   if (/minimax/.test(model)) o.output_format = 'url';
   return o;
-}
-
-/** Giá ước (cents) cho một câu theo model fal (theo ký tự hoặc ~2.5 ký tự/… ước số giây). ElevenLabs trực tiếp = 0 (trong gói). */
-export function giaGiong(m: MoHinhGiong | undefined, soKyTu: number): number {
-  if (!m || m.giaCents == null) return 0;
-  if (m.donVi === '1k_ky_tu') return (Math.max(1, soKyTu) / 1000) * m.giaCents;
-  if (m.donVi === 'giay') return Math.max(1, soKyTu / 15) * m.giaCents;   // ~15 ký tự mỗi giây đọc
-  if (m.donVi === 'luot') return m.giaCents;
-  return 0;
 }
 
 /** Gọi ElevenLabs trực tiếp (chạy được cả trong Worker): trả bytes mp3. */

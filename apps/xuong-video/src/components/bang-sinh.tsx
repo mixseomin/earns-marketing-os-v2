@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Chon } from './chon';
 import { dsGiongModel, dsGiongCua, chonGiong, type TuyGiong, type TuyAm } from '@/lib/actions';
-import { MO_HINH_AM, GIONG, giaAm, dongThoai } from '@/lib/xuong-video/am-thanh';
+import { MO_HINH_AM, GIONG, giaAm, dongThoai, giaGiong, GIONG_MAC_DINH } from '@/lib/xuong-video/am-thanh';
 import { nhanKyThuat } from '@/lib/xuong-video/dien-anh';
 import { tien, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 
@@ -44,7 +44,7 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
 
   const dong = cc ? dongThoai(cc, nhanVat) : [];
   const nguoi = [...new Set(dong.map((d) => d.nhan_vat.trim()))];
-  const MAC_DINH = { model: 'fal-ai/elevenlabs/tts/eleven-v3', voice: 'George' };
+  const MAC_DINH = GIONG_MAC_DINH;
   useEffect(() => {
     if (yc.loai !== 'giong') return;
     const o: Record<string, { model: string; voice: string; luu: boolean }> = {};
@@ -56,9 +56,11 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
     setChonG(o);
   }, [yc.loai, cc?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const soKyTu = dong.filter((d) => phamVi === 'tat_ca' || !d.url).reduce((a, d) => a + d.loi.length, 0);
+  // Cùng luật giá với máy chủ (am-thanh.giaGiong); có dòng dùng model chưa công bố giá → báo "chưa rõ" thay vì đoán.
   const giaG = useMemo(() => {
-    const k = (m: MoHinhG | undefined) => (m?.giaCents == null ? 10 : m.donVi === '1k_ky_tu' ? m.giaCents : m.donVi === 'giay' ? m.giaCents * 15 : 0);
-    return dong.filter((d) => phamVi === 'tat_ca' || !d.url).reduce((a, d) => a + (d.loi.length / 1000) * k(dsM.find((m) => m.key === chonG[d.nhan_vat.trim()]?.model)), 0);
+    let tong = 0, chuaRo = false;
+    for (const d of dong.filter((x) => phamVi === 'tat_ca' || !x.url)) { const g = giaGiong(dsM.find((m) => m.key === chonG[d.nhan_vat.trim()]?.model), d.loi.length); if (g == null) chuaRo = true; else tong += g; }
+    return { tong, chuaRo };
   }, [dsM, dong, phamVi, chonG]);
   const camXucSo = camXuc === 'shot' ? undefined : Number(camXuc);
 
@@ -109,7 +111,7 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
             <button type="button" className="xv-btn chinh" disabled={!soKyTu || nguoi.some((t) => !chonG[t]?.model)} onClick={async () => {
               for (const ten of nguoi) { const v = nhanVat.find((x) => x.ten.toLowerCase() === ten.toLowerCase()); const cg = chonG[ten]; if (v && cg?.luu && cg.model) await chonGiong(v.id, cg.model, cg.voice); }
               onGiong(cc.id, { theoNguoi: Object.fromEntries(nguoi.map((t) => [t, { model: chonG[t]!.model, voice: chonG[t]!.voice }])), camXuc: camXucSo, chiThieu: phamVi === 'thieu' }); onClose();
-            }}>🗣 Sinh giọng · ≈{tien(giaG)}</button>
+            }}>🗣 Sinh giọng · {giaG.chuaRo ? (giaG.tong ? `≈${tien(giaG.tong)} + model chưa rõ giá` : 'model chưa công bố giá') : `≈${tien(giaG.tong)}`}</button>
           </>
         )}
 

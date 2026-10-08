@@ -127,7 +127,7 @@ async function schemaVao(id: string): Promise<Record<string, SchemaTruong>> {
     const props = (k && sc[k]?.properties) || {};
     khoSchema.set(id, props);
     return props;
-  } catch { return {}; }
+  } catch (e) { console.error('[fal] đọc OpenAPI', id, e); return {}; }
 }
 const enumCua = (f?: SchemaTruong) => (f?.enum ?? f?.anyOf?.flatMap((a) => a.enum ?? []) ?? []) as unknown[];
 

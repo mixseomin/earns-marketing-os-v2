@@ -131,6 +131,12 @@ export const giaVideoCents = (model: string, doPhanGiai: DoPhanGiai, giay: numbe
   const m = MO_HINH_VIDEO.find((x) => x.key === model);
   return Math.round((m?.giaGiay[doPhanGiai] ?? 10) * giay);
 };
+/** Giờ Việt Nam (GMT+7) — MỘT hàm cho mọi màn (luật: chữ nói với anh luôn là giờ VN). giay: kèm giây · chiGio: bỏ ngày. */
+export function gioVN(iso: string | Date = new Date(), o: { giay?: boolean; chiGio?: boolean } = {}): string {
+  const d = iso instanceof Date ? iso : new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', ...(o.giay ? { second: '2-digit' } : {}), ...(o.chiGio ? {} : { day: '2-digit', month: '2-digit' }) });
+}
 export const tien = (cents: number): string => { const d = cents / 100; return `$${d >= 1 ? d.toFixed(2) : d >= 0.1 ? d.toFixed(2) : d.toFixed(3)}`; };
 
 /** Thành phần một cảnh dùng: anchor + biến thể chọn + thiếu gì. Dùng CHUNG cho UI (khoá nút, hiện chip) và máy chủ (chặn sinh). */

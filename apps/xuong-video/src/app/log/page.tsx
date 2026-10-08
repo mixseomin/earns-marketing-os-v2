@@ -2,12 +2,11 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser, loginUrl } from '@/lib/auth';
 import { soChiPhi, dsPhim } from '@/lib/actions';
-import { tien } from '@/lib/xuong-video/kieu';
+import { tien, gioVN } from '@/lib/xuong-video/kieu';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Sổ chi phí' };
 
-const gio = (iso: string) => new Date(iso).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit' });
 const LOAI: Record<string, string> = { chu: 'Chữ (Claude)', anh: 'Ảnh', video: 'Video (Veo)' };
 
 export default async function Log({ searchParams }: { searchParams: Promise<{ phim?: string; ngay?: string }> }) {
@@ -47,7 +46,7 @@ export default async function Log({ searchParams }: { searchParams: Promise<{ ph
           <thead><tr><th>Giờ</th><th>Phim</th><th>Loại</th><th>Việc</th><th>Model</th><th className="n">Token in/out</th><th>Kết quả</th><th className="n">Chi phí</th></tr></thead>
           <tbody>{so.jobs.map((j) => (
             <tr key={j.id}>
-              <td className="xv-mono" style={{ whiteSpace: 'nowrap' }}>{gio(j.created_at)}</td>
+              <td className="xv-mono" style={{ whiteSpace: 'nowrap' }}>{gioVN(j.created_at, { giay: true })}</td>
               <td>{j.phim_id ? <a href={`/?m=phim&mId=${j.phim_id}`}>{j.phim_ten || `#${j.phim_id}`}</a> : '—'}</td>
               <td>{LOAI[j.loai] ?? j.loai}</td>
               <td>{j.nhan || '—'}</td>

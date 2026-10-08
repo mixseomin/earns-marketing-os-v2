@@ -10,8 +10,8 @@ import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { uploadToR2 } from '@/lib/r2';
 import { dayViecAnh, dayViecAm, giaAnhSv } from '@/lib/xuong-video/hoan-tat';
-import { MO_HINH_AM, giaAm, moHinhAm, nguoiNoi, loiCanDoc, dongThoai } from '@/lib/xuong-video/am-thanh';
-import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, giaGiong, coElevenTrucTiep, type MoHinhGiong } from '@/lib/xuong-video/giong';
+import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiong, GIONG_MAC_DINH } from '@/lib/xuong-video/am-thanh';
+import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, coElevenTrucTiep, type MoHinhGiong } from '@/lib/xuong-video/giong';
 import { boVaoThungRac, boAnhVaoThungRac, dsRac, khoiPhucRac, type MucRac } from '@/lib/xuong-video/thung-rac';
 import { sinhAnh, batDauVeo, docVeo, taiVeo, taiAnhBase64, type AnhVao } from '@/lib/xuong-video/google';
 import { docFal, batDauNangCap, danhMucFal, dauVaoTheoSchema, guiFal, type ModelFal } from '@/lib/xuong-video/fal';
@@ -936,10 +936,10 @@ export async function chonGiong(nhanVatId: number, model: string, voice: string)
   return { ok: true, data: undefined };
 }
 
-const MODEL_GIONG_MAC_DINH = () => (coElevenTrucTiep() ? 'elevenlabs:eleven_v3' : 'fal-ai/elevenlabs/tts/eleven-v3');
+const MODEL_GIONG_MAC_DINH = () => (coElevenTrucTiep() ? 'elevenlabs:eleven_v3' : GIONG_MAC_DINH.model);
 async function giongMacDinh(model: string): Promise<string> {
   const ds = await giongCua(model);
-  return ds.find((g) => /George|Wise_Woman/.test(g.id))?.id ?? ds[0]?.id ?? '';
+  return ds.find((g) => g.id === GIONG_MAC_DINH.voice)?.id ?? ds[0]?.id ?? '';
 }
 
 /** Sinh giọng đọc lời thoại cho các shot (một shot hoặc mọi shot có thoại của tập). */
@@ -953,7 +953,7 @@ export async function sinhGiong(tapId: number, canhIds?: number[], tuy: TuyGiong
   if (!(await admin())) return loi('không có quyền');
   const bc = await boiCanhTap(db, tapId);
   if (!bc) return loi('không thấy tập');
-  const ds = (await dsCanh(tapId)).filter((c) => (!canhIds || canhIds.includes(c.id)) && (c.thoai.length || loiCanDoc(c.loi_thoai)));
+  const ds = (await dsCanh(tapId)).filter((c) => (!canhIds || canhIds.includes(c.id)) && dongThoai(c, bc.nhanVat).length > 0);
   if (!ds.length) return loi('không có shot nào có lời thoại');
   const dm = await dsMoHinhGiong();
   let so = 0;
@@ -972,22 +972,13 @@ export async function sinhGiong(tapId: number, canhIds?: number[], tuy: TuyGiong
         const model = chon?.model || tuy.model || v?.giong_model || MODEL_GIONG_MAC_DINH();
         const voice = chon?.voice || (tuy.model ? tuy.voice : '') || (v?.giong_model === model ? v.giong_id : '') || await giongMacDinh(model);
         const text = d.loi.trim();
-        const gia = giaGiong(dm.find((m) => m.key === model), text.length);
-        const job = await taoJob({ nhan: `Giọng · shot #${c.thu_tu} dòng ${i + 1} · ${v?.ten ?? 'lời dẫn'} (${voice})`, canh_id: c.id, nhan_vat_id: v?.id, loai: 'am', provider: model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: model.startsWith('elevenlabs:') ? model : `fal:${model}`, request: { dich: 'thoai', dong: i, gia, text, voice } });
+        const g = giaGiong(dm.find((m) => m.key === model), text.length);
+        const gia = g ?? 0;   // model không công bố giá → sổ ghi 0 và nhãn job ghi "giá chưa rõ" để sổ chi phí không hiểu nhầm là miễn phí
+        const job = await taoJob({ nhan: `Giọng · shot #${c.thu_tu} dòng ${i + 1} · ${v?.ten ?? 'lời dẫn'} (${voice})${g == null ? ' · giá chưa rõ' : ''}`, canh_id: c.id, nhan_vat_id: v?.id, loai: 'am', provider: model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: model.startsWith('elevenlabs:') ? model : `fal:${model}`, request: { dich: 'thoai', dong: i, gia, text, voice } });
         await dayViecAm({ kieu: 'am', job, model, input: await dauVaoGiongTheoModel(model, { text: d.dien_xuat && /eleven/.test(model) && /v3/.test(model) ? `[${d.dien_xuat}] ${text}` : text, voice, ngonNgu: bc.kt.ngon_ngu ?? 'vi', camXuc: tuy.camXuc ?? c.cam_xuc, theLoai: bc.kt.the_loai ?? '' }), thuMuc: `thoai/${c.id}-${i}` });
         so++;
       }
-      continue;
     }
-    if (tuy.chiThieu && c.thoai_url) continue;
-    const v = nguoiNoi(c, bc.nhanVat);
-    const model = tuy.model || v?.giong_model || MODEL_GIONG_MAC_DINH();
-    const voice = (tuy.model ? tuy.voice : '') || (v?.giong_model === model ? v.giong_id : '') || await giongMacDinh(model);
-    const text = loiCanDoc(c.loi_thoai);
-    const gia = giaGiong(dm.find((m) => m.key === model), text.length);
-    const job = await taoJob({ nhan: `Giọng · shot #${c.thu_tu} · ${v?.ten ?? 'lời dẫn'} (${voice})`, canh_id: c.id, nhan_vat_id: v?.id, loai: 'am', provider: model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: model.startsWith('elevenlabs:') ? model : `fal:${model}`, request: { dich: 'thoai', gia, text, voice } });
-    await dayViecAm({ kieu: 'am', job, model, input: await dauVaoGiongTheoModel(model, { text, voice, ngonNgu: bc.kt.ngon_ngu ?? "vi", camXuc: tuy.camXuc ?? c.cam_xuc, theLoai: bc.kt.the_loai ?? "" }), thuMuc: `thoai/${c.id}` });
-    so++;
   }
   return { ok: true, data: so };
 }
@@ -1002,8 +993,9 @@ export async function ngheThuGiong(nhanVatId: number): Promise<Kq<number>> {
   const v = mapNhanVat(r[0]); const kt = docKinhThanh(r[0].kt as KinhThanh);
   if (!v.giong_model) return loi('chọn giọng trước');
   const text = kt.ngon_ngu === 'vi' ? `Xin chào, mình là ${v.ten}. Đây là giọng của mình trong cả bộ phim.` : `Hi, I'm ${v.ten}. This is how I sound in the whole series.`;
-  const gia = giaGiong((await dsMoHinhGiong()).find((m) => m.key === v.giong_model), text.length);
-  const job = await taoJob({ nhan: `Nghe thử giọng · ${v.ten} (${v.giong_id})`, nhan_vat_id: v.id, loai: 'am', provider: v.giong_model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: v.giong_model.startsWith('elevenlabs:') ? v.giong_model : `fal:${v.giong_model}`, request: { dich: 'giong_mau', gia, text } });
+  const g = giaGiong((await dsMoHinhGiong()).find((m) => m.key === v.giong_model), text.length);
+  const gia = g ?? 0;
+  const job = await taoJob({ nhan: `Nghe thử giọng · ${v.ten} (${v.giong_id})${g == null ? ' · giá chưa rõ' : ''}`, nhan_vat_id: v.id, loai: 'am', provider: v.giong_model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: v.giong_model.startsWith('elevenlabs:') ? v.giong_model : `fal:${v.giong_model}`, request: { dich: 'giong_mau', gia, text } });
   await dayViecAm({ kieu: 'am', job, model: v.giong_model, input: await dauVaoGiongTheoModel(v.giong_model, { text, voice: v.giong_id, ngonNgu: kt.ngon_ngu, camXuc: 0, theLoai: kt.the_loai }), thuMuc: `giong/${v.id}` });
   return { ok: true, data: job };
 }
@@ -1080,12 +1072,10 @@ export async function uocAm(tapId: number): Promise<{ giong: number; soThoai: nu
   const dm = await dsMoHinhGiong();
   let giong = 0, soThoai = 0, sfx = 0, soSfx = 0;
   for (const c of ds) {
-    if (c.thoai.length) {
-      for (const d of c.thoai) { if (!d.loi.trim()) continue; const v = bc?.nhanVat.find((x) => x.ten.toLowerCase() === d.nhan_vat.trim().toLowerCase()); giong += giaGiong(dm.find((m) => m.key === (v?.giong_model || MODEL_GIONG_MAC_DINH())), d.loi.length); }
+    const dsT = bc ? dongThoai(c, bc.nhanVat) : c.thoai;
+    if (dsT.length) {
+      for (const d of dsT) { const v = bc?.nhanVat.find((x) => x.ten.toLowerCase() === d.nhan_vat.trim().toLowerCase()); giong += giaGiong(dm.find((m) => m.key === (v?.giong_model || MODEL_GIONG_MAC_DINH())), d.loi.length) ?? 0; }
       soThoai++;
-    } else {
-      const t = loiCanDoc(c.loi_thoai);
-      if (t) { const v = bc ? nguoiNoi(c, bc.nhanVat) : null; giong += giaGiong(dm.find((m) => m.key === (v?.giong_model || MODEL_GIONG_MAC_DINH())), t.length); soThoai++; }
     }
     const clip = c.video_cuoi_url || c.video_url;
     if (clip || c.am_thanh.trim() || c.ky_thuat.am_thanh?.length) { sfx += giaAm(clip ? 'mirelo-ai/sfx-v1/video-to-audio' : 'sonilo/v1.1/text-to-sound-effects', c.thoi_luong_s || 5); soSfx++; }

@@ -19,7 +19,7 @@ import {
 import {
   LOAI_PHIM, LOAI_NHAN_VAT, TRANG_THAI_CANH, NHOM_BIEN_THE, nhanNhom, thanhPhanCanh, NANG_CAP, MO_HINH_ANH, MO_HINH_VIDEO, MO_HINH_CHU, docKinhThanh, giaAnhCents, giaVideoCents, tien,
   QC_TRONG, type ThongTinQc,
-  type Phim, type NhanVat, type BienThe, type Tap, type Canh, type Job, type KinhThanh, type LoaiPhim, type LoaiNhanVat,
+  gioVN, type Phim, type NhanVat, type BienThe, type Tap, type Canh, type Job, type KinhThanh, type LoaiPhim, type LoaiNhanVat,
 } from '@/lib/xuong-video/kieu';
 
 type Khoa = { google: boolean; anthropic: boolean; r2: boolean; openai: boolean; fal: boolean };
@@ -251,10 +251,6 @@ function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onCl
 
 // ── Chi phí: mỗi lần sinh một dòng (đầy đủ ở /log) ────────────────────────────────────────────────────────────
 
-export const gioVN = (iso: string) => {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
-};
 const MAU_LOAI: Record<string, string> = { chu: 'var(--cyan)', anh: 'var(--amber)', video: 'var(--violet)' };
 const NHAN_LOAI: Record<string, string> = { chu: 'Chữ', anh: 'Ảnh', video: 'Video' };
 
@@ -301,7 +297,7 @@ function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa; onSave
   const [luuLuc, setLuuLuc] = useState('');
   const luuNgay = useCallback(async (k: Required<KinhThanh>, m: string) => {
     setLuu(true); await suaPhim(phim.id, { kinh_thanh: k, mo_ta: m }); setLuu(false);
-    setLuuLuc(new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    setLuuLuc(gioVN(new Date(), { giay: true, chiGio: true }));
     await onSaved();
   }, [phim.id, onSaved]);
   useEffect(() => { if (!dirty) return; const t = setTimeout(() => void luuNgay(kt, moTa), 1500); return () => clearTimeout(t); }, [kt, moTa, dirty, luuNgay]);
@@ -733,6 +729,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
   const [uoc, setUoc] = useState<{ anh1: number; videoTong: number; soCanhDuyet: number; giayDuyet: number } | null>(null);
   const [uocA, setUocA] = useState<Awaited<ReturnType<typeof uocAm>> | null>(null);
   const [mhNhac, setMhNhac] = useState('cassetteai/music-generator');
+  const [loiUoc, setLoiUoc] = useState('');
   const kt = docKinhThanh(phim.kinh_thanh);
   const thieuQc = phim.loai === 'quang_cao' && !(kt.qc?.ten.trim() || kt.qc?.link.trim() || kt.qc?.diem_noi_bat.trim()) && 'khai sản phẩm/dịch vụ ở kinh thánh (mục 0) trước';
   // Dấu vân của danh sách cảnh: đổi (sinh xong keyframe/video, duyệt, thêm/bớt cảnh) → báo phim tải lại để chip thống kê
@@ -742,7 +739,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
     const ds = await dsCanh(tap.id);
     setCanh(ds); setUoc(await uocTien(tap.id));
     // Giá âm thanh nạp riêng (lần đầu phải đọc danh mục giọng fal, chậm) — không bắt danh sách cảnh hay dòng nút âm thanh chờ nó.
-    void uocAm(tap.id).then(setUocA).catch(() => {});
+    void uocAm(tap.id).then((u) => { setUocA(u); setLoiUoc(''); }).catch((e) => setLoiUoc(`Không tính được giá âm thanh: ${e instanceof Error ? e.message : String(e)}`));
     const dau = ds.map((c) => `${c.id}:${c.trang_thai}:${c.keyframe_uv.length}:${c.video_url ? 1 : 0}:${c.video_cuoi_url ? 1 : 0}:${c.thoi_luong_s}:${c.chi_phi_cents}`).join('|');
     if (dauCanh.current && dau !== dauCanh.current) void onChanged();
     dauCanh.current = dau;
@@ -857,6 +854,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
           <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!u.soPhanCanh && 'chưa có phân cảnh — tách lại cảnh')} ban={ban('nhac')} title="Mỗi phân cảnh một đoạn nhạc riêng: dài bằng phân cảnh, theo cảm xúc đầu→cuối + nhịp + kỹ thuật nhạc của các shot" onClick={() => void chay('nhac', () => sinhNhac(tap.id, mhNhac, '*'))}>🎵 Nhạc theo {u.soPhanCanh} phân cảnh · {gia(u.nhac[mhNhac] ?? 0)}</Nut>
           <Nut ly={!khoa.fal && 'thiếu FAL_KEY'} ban={ban('nhac1')} title="Một bài nền chạy suốt cả tập" onClick={() => void chay('nhac1', () => sinhNhac(tap.id, mhNhac))}>🎵 Một bài cả tập ({u.giay}s)</Nut>
           {u.dangNhac > 0 && <span style={{ ...mono, color: 'var(--violet)' }}>⏳ đang sinh {u.dangNhac} đoạn âm…</span>}
+          {loiUoc && <span className="xv-loi">{loiUoc}</span>}
         </div>
         </div>
         );

@@ -7,6 +7,7 @@
 // Card rơi vào mos2.on.tc/p/xuong-video/plays; Claude nhặt bằng /tasks-studio.
 import { useEffect, useState, type CSSProperties } from 'react';
 import { ImageAttach, discardAttachments } from './image-attach';
+import { gioVN } from '@/lib/xuong-video/kieu';
 import { dsGopYCuaToi, docTraoDoi, guiGopY, guiTraoDoi, type GopYCuaToi, type TinTraoDoi } from '@/lib/gop-y';
 
 const KHOA = 'studio.gop-y.nhap';
@@ -33,13 +34,12 @@ const cach = (iso: string) => {
   const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
   return m < 60 ? `${m} phút trước` : m < 2880 ? `${Math.round(m / 60)} giờ trước` : `${Math.round(m / 1440)} ngày trước`;
 };
-const gioVN = (iso: string) => new Date(iso).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
 const lbl: CSSProperties = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 };
 const oNhap: CSSProperties = { width: '100%', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 6, padding: '7px 9px', fontSize: 12.5, color: 'var(--fg-1)', fontFamily: 'inherit' };
 
 // Lỗi JavaScript gần nhất của trang (tối đa 5) — gom từ lúc mở trang để góp ý mang theo, khỏi phải mở console.
 const loiJs: string[] = [];
-function ghiLoiJs(s: string) { loiJs.push(`${new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} ${s.slice(0, 200)}`); if (loiJs.length > 5) loiJs.shift(); }
+function ghiLoiJs(s: string) { loiJs.push(`${gioVN(new Date(), { giay: true, chiGio: true })} ${s.slice(0, 200)}`); if (loiJs.length > 5) loiJs.shift(); }
 
 /** Ngữ cảnh lúc gửi: màn · phim/tập/cảnh/timeline đang mở · lỗi đang hiện · lỗi JS · thiết bị. */
 function docNguCanh(): string {

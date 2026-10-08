@@ -85,7 +85,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     if (!el) return;
     if (!coDuoc || vt < 0 || (el.duration && vt > el.duration)) { el.pause(); return; }
     if (Math.abs(el.currentTime - vt) > 0.3) el.currentTime = vt;
-    if (chay) void el.play().catch(() => {}); else el.pause();
+    if (chay) void el.play().catch(() => { /* trình duyệt chặn tự phát khi chưa có tương tác — người dùng bấm ▶ là chạy */ }); else el.pause();
   };
   useEffect(() => {
     dongBo(vidRef.current, tTrong, true);
@@ -337,9 +337,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               return khoiAm(batDau[i]! * pps, dur(cc) * pps, co === dsT.length, mauNv(v), `${cc.dang_sinh_am ? '⏳ ' : ''}${dsT.map((d) => `${d.nhan_vat || 'Dẫn'}: ${d.loi}`).join(' · ')}${co && co < dsT.length ? ` (${co}/${dsT.length})` : ''}`, `${tt}\n${co}/${dsT.length} dòng có giọng`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
                 sinh && { loai: 'giong', cc, giay: dur(cc), dang: cc.dang_sinh_am || sinh.ban(`c${cc.id}`), nghe: dsT.map((d) => d.url).filter((u): u is string => !!u), title: `Bấm để chọn model, giọng từng người nói, cảm xúc, phạm vi rồi sinh` });
             }
-            return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!cc.thoai_url, mauNv(v), `${cc.dang_sinh_am ? '⏳ ' : ''}${v ? `${v.ten}: ` : ''}${cc.loi_thoai.replace(/^[^:"“]*:\s*/, '')}`,
-              `${v?.ten ?? 'Lời dẫn'}${v?.giong ? ` (giọng: ${v.giong})` : ''}\n${cc.loi_thoai}\n${cc.thoai_url ? 'đã có file giọng' : 'chưa sinh giọng'}`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
-              sinh && { loai: 'giong', cc, giay: dur(cc), dang: cc.dang_sinh_am || sinh.ban(`c${cc.id}`), title: `Bấm để chọn giọng / cảm xúc / phạm vi rồi sinh` });
+            return null;
           }))}
 
           {track('🔊 Âm thanh', 'Hiệu ứng / âm nền từng cảnh', canh.map((cc, i) => {

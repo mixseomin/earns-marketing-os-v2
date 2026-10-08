@@ -48,23 +48,35 @@ export const GIONG: Record<string, { id: string; ta: string }[]> = {
   ],
 };
 
-/** Ai nói câu thoại: "Lio: ..." → Lio; không ghi thì nhân vật đầu tiên của shot. Dùng chung timeline + máy chủ. */
-export function nguoiNoi(c: Pick<Canh, 'loi_thoai' | 'nhan_vat'>, nv: NhanVat[]): NhanVat | null {
-  const m = c.loi_thoai.match(/^\s*([^:"“]{1,40}?)\s*:/);
-  if (m) { const ten = m[1]!.toLowerCase(); const v = nv.find((x) => x.ten.toLowerCase() === ten) ?? nv.find((x) => ten.includes(x.ten.toLowerCase())); if (v) return v; }
-  return nv.find((x) => x.loai === 'nhan_vat' && c.nhan_vat.includes(x.id)) ?? null;
+/** Ai nói (dòng đầu) — đọc qua dongThoai, cùng MỘT bộ tách "Tên (diễn xuất): lời" với mọi chỗ khác (trước đây có bộ tách thứ hai lệch regex). */
+export function nguoiNoi(c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url'>, nv: NhanVat[]): NhanVat | null {
+  const ten = dongThoai(c, nv)[0]?.nhan_vat.trim().toLowerCase();
+  return (ten ? nv.find((x) => x.ten.toLowerCase() === ten) : undefined) ?? nhanVatDauCua(c, nv) ?? null;
 }
-/** Lời thật cần đọc: bỏ "Tên:" đầu câu, bỏ ngoặc kép, bỏ chú thích "Chữ:"/"Text on screen:" (chữ trên màn không đọc). */
-export function loiCanDoc(loi: string): string {
-  return loi.replace(/^\s*[^:"“]{1,40}:\s*/, '').split(/\b(Chữ( kết)?|Text on screen)\s*:/i)[0]!.replace(/["“”]/g, '').trim();
+/** Giọng mặc định khi nhân vật chưa chọn giọng cố định (model fal; máy chủ có khoá ElevenLabs riêng thì đổi sang ElevenLabs trực tiếp). */
+export const GIONG_MAC_DINH = { model: 'fal-ai/elevenlabs/tts/eleven-v3', voice: 'George' };
+/** Giá (cents) một câu đọc theo model giọng — MỘT luật cho nút, bảng ＋ và sổ chi phí. null = model không công bố giá
+ *  (hiện "chưa rõ giá", không đoán số). ~15 ký tự mỗi giây đọc cho model tính theo giây. */
+export type GiaGiongModel = { giaCents: number | null; donVi: '1k_ky_tu' | 'giay' | 'luot' | 'khac' };
+export function giaGiong(m: GiaGiongModel | undefined, soKyTu: number): number | null {
+  if (!m || m.giaCents == null) return null;
+  if (m.donVi === '1k_ky_tu') return (Math.max(1, soKyTu) / 1000) * m.giaCents;
+  if (m.donVi === 'giay') return Math.max(1, soKyTu / 15) * m.giaCents;
+  if (m.donVi === 'luot') return m.giaCents;
+  return null;
 }
 
+/** Nhân vật (loại nhan_vat) xuất hiện ĐẦU TIÊN theo thứ tự của shot — không theo thứ tự danh sách nhân vật của phim. */
+function nhanVatDauCua(c: Pick<Canh, 'nhan_vat'>, nv: NhanVat[]): NhanVat | undefined {
+  for (const id of c.nhan_vat) { const v = nv.find((x) => x.id === id && x.loai === 'nhan_vat'); if (v) return v; }
+  return undefined;
+}
 /** Thoại của shot theo DÒNG — một nguồn cho mọi chỗ (thẻ shot, form, bảng ＋, timeline, máy chủ sinh giọng).
  *  Shot mới: c.thoai. Shot cũ chỉ có chuỗi loi_thoai: tách từng dòng "Tên (diễn xuất): lời"; dòng không ghi tên → nhân vật đầu tiên của shot
  *  (#1204: thẻ shot cũ không hiện thoại, bảng giọng ghi nhầm "Lời dẫn"). Bỏ chú thích chữ trên màn ("Chữ:", "Text on screen:"). */
 export function dongThoai(c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url'>, nv: NhanVat[]): DongThoai[] {
   if (c.thoai?.length) return c.thoai.filter((d) => d.loi.trim());
-  const mac = nv.find((x) => x.loai === 'nhan_vat' && c.nhan_vat.includes(x.id))?.ten ?? '';
+  const mac = nhanVatDauCua(c, nv)?.ten ?? '';
   const ds: DongThoai[] = c.loi_thoai.split('\n').map((l) => l.split(/\b(Chữ( kết)?|Text on screen)\s*:/i)[0]!.trim()).filter(Boolean).map((l) => {
     const m = l.match(/^\s*([^:"“(]{1,40}?)\s*(?:\(([^)]*)\))?\s*:\s*(.*)$/);
     const ten = m ? m[1]!.trim() : '';

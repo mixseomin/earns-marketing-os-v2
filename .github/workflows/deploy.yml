@@ -38,6 +38,7 @@ jobs:
       - run: node scripts/check-sql-aliases.mjs
       - run: node scripts/check-canon.mjs
       - run: node scripts/check-gop-y-surface.mjs
+      - run: node scripts/check-mos2-host.mjs --tu-kiem && node scripts/check-mos2-host.mjs
       - run: node scripts/check-tab-trang.mjs --tu-kiem && node scripts/check-tab-trang.mjs
       - run: node scripts/check-client-db.mjs --tu-kiem && node scripts/check-client-db.mjs
       - run: npm run build:web

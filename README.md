@@ -3,7 +3,7 @@
 A fresh start. Knowledge + organization will be rebuilt from scratch — not a port of v1.
 
 - Live: https://mos2.on.tc
-- Server: Hetzner 5.78.65.158 (`/opt/earns-marketing-os-v2/`)
+- Server: box3 167.233.241.16 (`/opt/earns-marketing-os-v2/`) — từ 05/08/2026; box1 5.78.65.158 không còn chạy MOS2
 - DB: Postgres `mos2_prod` (separate from v1)
 - Port: 3821 (v1 occupies 3811 + 3812 for its zero-downtime pair)
 

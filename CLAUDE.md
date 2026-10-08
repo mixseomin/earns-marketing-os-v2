@@ -56,7 +56,7 @@ Trước khi làm bất kỳ module nào, đọc context file tương ứng tron
 | | |
 |---|---|
 | Repo | `https://github.com/mixseomin/earns-marketing-os-v2` |
-| Live | `https://mos2.on.tc` (Hetzner 5.78.65.158, port 3821) |
+| Live | `https://mos2.on.tc` (box3 `167.233.241.16`, port 3821 — box1 `5.78.65.158` KHÔNG còn chạy MOS2, chỉ còn bản cũ) |
 | DB | Postgres `mos2_prod` (user `mos2`) |
 | Server dir | `/opt/earns-marketing-os-v2/` |
 | systemd | `mos2-web.service` |
@@ -188,11 +188,10 @@ const isOperator = currentUser?.role !== 'admin';
 
 ## Database migrations (critical)
 
-Migrations 0000-0024 are in Drizzle journal → `npm run db:migrate` applies them.
-**Migrations 0025-0036 are raw SQL files, NOT in Drizzle journal** → must apply manually:
+`deploy.sh` áp mọi `packages/db/migrations/NNNN_*.sql` chưa có trong `_file_migrations` — thêm tệp + push là đủ. Kiểm:
 
 ```bash
-ssh root@5.78.65.158 'psql "$DATABASE_URL" -f /opt/earns-marketing-os-v2/packages/db/migrations/0036_visibility_config.sql'
+ssh root@167.233.241.16 'cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; psql "$DATABASE_URL" -tAc "SELECT * FROM _file_migrations ORDER BY 1 DESC LIMIT 5"'
 ```
 
 Key tables by migration:
@@ -209,15 +208,11 @@ Key tables by migration:
 ## Deploy workflow
 
 ```bash
-# 1. Sync source (local → server)
-rsync -av apps/web/src/ root@5.78.65.158:/opt/earns-marketing-os-v2/apps/web/src/
-
-# 2. Build + restart on server
-ssh root@5.78.65.158 'cd /opt/earns-marketing-os-v2/apps/web && npm run build && systemctl restart mos2-web'
-
-# OR full deploy (includes migrate + seed)
-ssh root@5.78.65.158 '/opt/earns-marketing-os-v2/deploy.sh'
+git add <tệp của mình> && git commit -m "…" && git push origin main
+~/bin/gh-watch deploy.yml          # GHA build → box3 167.233.241.16 → deploy.sh
+# GHA sập (chỉ khi đó): ssh root@167.233.241.16 '/opt/earns-marketing-os-v2/deploy.sh'
 ```
+KHÔNG rsync/scp mã lên máy chủ (deploy.sh `git reset --hard` xoá ở lượt sau).
 
 ---
 

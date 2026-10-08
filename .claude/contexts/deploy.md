@@ -11,7 +11,7 @@ push concurrently — happened 2026-05-24 with GSC sparkline work being erased.
 
 ```bash
 # ❌ NEVER do this:
-rsync ... root@5.78.65.158:/opt/earns-marketing-os-v2/...
+rsync ... root@167.233.241.16:/opt/earns-marketing-os-v2/...
 ssh ... 'npm run build && systemctl restart mos2-web'
 
 # ✅ ALWAYS do this:
@@ -32,7 +32,8 @@ alone — only commit YOUR changes by explicit `git add <files>` (never `git add
 
 ## Server
 
-- **Host**: Hetzner 5.78.65.158 (`as.on.tc`)
+- **Host**: box3 `167.233.241.16` (Hetzner Nuremberg, 7 GB) — từ 05/08/2026. **box1 `5.78.65.158` (as.on.tc) KHÔNG còn chạy MOS2**: chỉ còn bản cũ ở `/opt/earns-marketing-os-v2` (không có `scripts/gop-y.sh`, `mos2-web` inactive) + đường hầm `box3-tunnel` (`:3821`, `:5434` → box3). Lệnh nhắm box1 sẽ báo lỗi hoặc đọc dữ liệu cũ, trông như MOS2 chết.
+- **DB**: Postgres native trên box3 (không docker), `mos2_prod`; luôn đi `psql "$DATABASE_URL"` sau khi nạp `.env.production`
 - **App port**: 3821
 - **App dir**: `/opt/earns-marketing-os-v2`
 - **Systemd unit**: `mos2-web`
@@ -81,31 +82,19 @@ Loaded by systemd `EnvironmentFile=` directive. Contains at minimum:
 - `DATABASE_URL` — Postgres connection string for `mos2_prod`
 - Any `OPENAI_API_KEY`, `MOS2_TENANT`, etc.
 
-Never commit this file. To edit: `ssh root@5.78.65.158 'nano /opt/earns-marketing-os-v2/.env.production'` then `systemctl restart mos2-web`.
+Never commit this file. To edit: `ssh root@167.233.241.16 'nano /opt/earns-marketing-os-v2/.env.production'` then `systemctl restart mos2-web`.
 
 ---
 
 ## Deploy commands
 
-### Quick deploy — sync source only, no git pull
+Chỉ một đường: `git push origin main` → GHA → `~/bin/gh-watch deploy.yml`. Không có "quick deploy" bằng rsync (bị `git reset --hard` xoá ở lượt sau, xem đầu file).
 
-Use when you've made local changes and want to push them fast without waiting for GitHub Actions:
-
-```bash
-# Sync source files
-rsync -av apps/web/src/ root@5.78.65.158:/opt/earns-marketing-os-v2/apps/web/src/
-
-# Build and restart on server
-ssh root@5.78.65.158 'cd /opt/earns-marketing-os-v2/apps/web && npm run build && systemctl restart mos2-web'
-```
-
-### Full deploy — runs deploy.sh (same as GitHub Actions)
+GHA sập (chỉ khi đó) → chạy chính script mà GHA chạy, trên box3:
 
 ```bash
-ssh root@5.78.65.158 '/opt/earns-marketing-os-v2/deploy.sh'
+ssh root@167.233.241.16 '/opt/earns-marketing-os-v2/deploy.sh'
 ```
-
-This is the same script triggered by GitHub Actions on push to `main`.
 
 ---
 
@@ -146,28 +135,19 @@ Triggers on:
 - Push to `main` branch (excluding `*.md`, `wiki/**`, `decisions/**`, `.gitignore` changes)
 - Manual `workflow_dispatch`
 
-Pipeline:
-1. `test` job: `npm ci` → `npm run lint` → `npm run typecheck`
-2. `deploy` job (needs `test`): SSH into server via `appleboy/ssh-action`, runs `/opt/earns-marketing-os-v2/deploy.sh`
+Pipeline (chạy trên `ubuntu-latest`, KHÔNG phải runner tự host): build ở GHA → `scp` gói `.next` sang máy chủ → `ssh` chạy `SKIP_BUILD=1 deploy.sh`.
 
-Secrets required in GitHub repo settings:
-- `MOS_SERVER_HOST` = `5.78.65.158`
-- `MOS_SERVER_USER` = `root`
-- `MOS_SSH_KEY` = private key for server access
+Secrets: `DEPLOY_HOST` (= box3 `167.233.241.16`), `DEPLOY_SSH_KEY`. Runner tự host `actions.runner.…mos2-as-on-tc` trên box1 là đồ sót lại, workflow không dùng.
 
 ---
 
-## Raw migrations — NOT handled by deploy.sh
+## Raw migrations — deploy.sh tự chạy
 
-`deploy.sh` runs `npm run db:migrate` which only applies migrations 0000-0024 (Drizzle journal). Migrations 0025-0036 are raw SQL files that must be applied manually.
-
-See `data-layer.md` for the full list. To apply manually:
+`deploy.sh` có bộ chạy migration theo tệp: mọi `packages/db/migrations/NNNN_*.sql` chưa có trong bảng `_file_migrations` được áp khi deploy. Thêm migration = thêm tệp + push, không áp tay. Kiểm đã áp chưa:
 
 ```bash
-ssh root@5.78.65.158 "psql -U mos2 mos2_prod < /opt/earns-marketing-os-v2/packages/db/migrations/0036_visibility_config.sql"
+ssh root@167.233.241.16 'cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; psql "$DATABASE_URL" -tAc "SELECT * FROM _file_migrations ORDER BY 1 DESC LIMIT 5"'
 ```
-
-All raw migrations are idempotent (`IF NOT EXISTS` guards) — safe to re-run.
 
 ---
 
@@ -175,10 +155,10 @@ All raw migrations are idempotent (`IF NOT EXISTS` guards) — safe to re-run.
 
 ```bash
 # Check systemd unit status
-ssh root@5.78.65.158 'systemctl status mos2-web'
+ssh root@167.233.241.16 'systemctl status mos2-web'
 
 # Tail logs
-ssh root@5.78.65.158 'journalctl -u mos2-web -n 50 --no-pager'
+ssh root@167.233.241.16 'journalctl -u mos2-web -n 50 --no-pager'
 
 # Quick HTTP check
 curl -I https://mos2.on.tc
@@ -192,10 +172,10 @@ Pre-deploy backups land at `/backup/mos2-pre-deploy-YYYYMMDD-HHMMSS.sql.gz` on t
 
 Manual backup:
 ```bash
-ssh root@5.78.65.158 "pg_dump -U mos2 mos2_prod | gzip > /backup/mos2-manual-$(date +%Y%m%d-%H%M%S).sql.gz"
+ssh root@167.233.241.16 'cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; pg_dump "$DATABASE_URL" | gzip > /backup/mos2-manual-$(date +%Y%m%d-%H%M%S).sql.gz'
 ```
 
 Restore from backup:
 ```bash
-ssh root@5.78.65.158 "gunzip -c /backup/mos2-pre-deploy-20260504-120000.sql.gz | psql -U mos2 mos2_prod"
+ssh root@167.233.241.16 'cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; gunzip -c /backup/mos2-pre-deploy-<TIMESTAMP>.sql.gz | psql "$DATABASE_URL"'
 ```

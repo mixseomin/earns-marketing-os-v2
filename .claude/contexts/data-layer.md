@@ -160,12 +160,13 @@ export * as schema from './schema';
 ### How to apply a raw migration manually
 
 ```bash
-ssh root@5.78.65.158 "psql -U mos2 mos2_prod < /opt/earns-marketing-os-v2/packages/db/migrations/0035_member_scoping.sql"
+# deploy.sh tự áp mọi migration chưa có trong _file_migrations — chỉ chạy tay khi cần kiểm/áp lại một tệp:
+ssh root@167.233.241.16 'cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; psql "$DATABASE_URL" -f packages/db/migrations/0035_member_scoping.sql'
 ```
 
 Or apply a range:
 ```bash
-ssh root@5.78.65.158 "for f in /opt/earns-marketing-os-v2/packages/db/migrations/0025_publications.sql /opt/earns-marketing-os-v2/packages/db/migrations/0026_scheduler.sql; do psql -U mos2 mos2_prod < \$f; done"
+ssh root@167.233.241.16 'cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; for f in packages/db/migrations/0025_publications.sql packages/db/migrations/0026_scheduler.sql; do psql "$DATABASE_URL" -f $f; done'
 ```
 
 All raw migrations use `IF NOT EXISTS` / `IF NOT EXISTS` guards — safe to re-run.

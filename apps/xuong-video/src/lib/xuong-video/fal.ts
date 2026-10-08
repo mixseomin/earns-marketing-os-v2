@@ -54,3 +54,14 @@ export async function docFal(taskId: string): Promise<{ done: false } | { done: 
   if (!rr.ok) return { done: true, ok: false, loi: docLoiFal(rj, rr.status) };
   return rj.video?.url ? { done: true, ok: true, uri: rj.video.url } : { done: true, ok: false, loi: 'fal xong nhưng không có video' };
 }
+
+/** Nâng cấp một clip có sẵn (giữ nguyên chuyển động) — Topaz Precision trên fal, video_url + upscale_factor. */
+export async function batDauNangCap(model: string, videoUrl: string, heSo = 2): Promise<{ ok: true; taskId: string } | { ok: false; loi: string }> {
+  const key = khoaFal();
+  if (!key) return { ok: false, loi: 'Thiếu FAL_KEY trên máy chủ' };
+  const r = await fetch(`${QUEUE}/${model}`, { method: 'POST', headers: { Authorization: `Key ${key}`, 'content-type': 'application/json' }, body: JSON.stringify({ video_url: videoUrl, upscale_factor: heSo }) });
+  const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!r.ok) return { ok: false, loi: docLoiFal(j, r.status) };
+  if (typeof j.status_url !== 'string' || typeof j.response_url !== 'string') return { ok: false, loi: 'fal không trả status_url/response_url' };
+  return { ok: true, taskId: JSON.stringify({ s: j.status_url, r: j.response_url }) };
+}

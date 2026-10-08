@@ -94,11 +94,11 @@ export const NHOM_BIEN_THE: Record<LoaiNhanVat, { key: string; label: string }[]
   phong_cach: [{ key: 'trang_thai', label: 'Biến tấu' }],
 };
 export const nhanNhom = (loai: LoaiNhanVat, nhom: string) => NHOM_BIEN_THE[loai]?.find((x) => x.key === nhom)?.label ?? nhom;
-export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number };
+export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number };
 export type Canh = {
   id: number; tap_id: number; thu_tu: number; canh: string; goc_may: string; hanh_dong: string; loi_thoai: string; am_thanh: string;
   thoi_luong_s: number; nhan_vat: number[]; bien_the: number[]; prompt_anh: string; prompt_video: string; dang_sinh_anh?: boolean;
-  keyframe_url: string | null; keyframe_uv: string[]; video_url: string | null; trang_thai: TrangThaiCanh; loi: string; chi_phi_cents: number;
+  keyframe_url: string | null; keyframe_uv: string[]; video_url: string | null; video_cuoi_url: string | null; nguon_video: Record<string, unknown>; trang_thai: TrangThaiCanh; loi: string; chi_phi_cents: number;
 };
 export type Job = {
   id: number; canh_id: number | null; nhan_vat_id: number | null; loai: string; provider: string; model: string;
@@ -132,3 +132,6 @@ export function thanhPhanCanh(c: Pick<Canh, 'nhan_vat' | 'bien_the'>, nhanVat: N
   });
   return { ds, thieu: ds.flatMap((x) => x.thieu) };
 }
+
+/** Nâng cấp video (fal Topaz Precision) — giữ nguyên chuyển động của clip nháp. Giá công khai 10/2026: $0,10/10s ra 720p, $0,20/10s ra 1080p. */
+export const NANG_CAP = { model: 'topaz/upscale/video/precision', label: 'Topaz Precision ×2', giaGiayCents: 2 } as const;

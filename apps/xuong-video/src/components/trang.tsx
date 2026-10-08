@@ -7,11 +7,11 @@ import { useModalParam } from '@/lib/use-modal-param';
 import {
   dsPhim, docPhim, dsCanh, taoPhim, taoPhimMau, suaPhim, xoaPhim, luuNhanVat, xoaNhanVat, sinhAnhMau, taoTap, suaTap,
   vietKichBanTap, tachCanhTap, suaCanh, themCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, uocTien, sinhVideoCanh, kiemVideo, taiAnhLen,
-  goiYAIKinhThanh, goiYAIAnchor, goiYAIBoAnchor, goiYAIBrief, goiYAICanh, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe,
+  goiYAIKinhThanh, goiYAIAnchor, goiYAIBoAnchor, goiYAIBrief, goiYAICanh, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, nangCapCanh,
   type PhimDayDu,
 } from '@/lib/actions';
 import {
-  LOAI_PHIM, LOAI_NHAN_VAT, TRANG_THAI_CANH, NHOM_BIEN_THE, nhanNhom, thanhPhanCanh, MO_HINH_ANH, MO_HINH_VIDEO, MO_HINH_CHU, docKinhThanh, giaAnhCents, giaVideoCents, tien,
+  LOAI_PHIM, LOAI_NHAN_VAT, TRANG_THAI_CANH, NHOM_BIEN_THE, nhanNhom, thanhPhanCanh, NANG_CAP, MO_HINH_ANH, MO_HINH_VIDEO, MO_HINH_CHU, docKinhThanh, giaAnhCents, giaVideoCents, tien,
   type Phim, type NhanVat, type BienThe, type Tap, type Canh, type Job, type KinhThanh, type LoaiPhim, type LoaiNhanVat,
 } from '@/lib/xuong-video/kieu';
 
@@ -475,6 +475,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
   const [canh, setCanh] = useState<Canh[] | null>(null);
   const [ban, setBan] = useState<string | null>(null);
   const [loi, setLoi] = useState('');
+  const [animatic, setAnimatic] = useState(false);
   const [uoc, setUoc] = useState<{ anh1: number; videoTong: number; soCanhDuyet: number; giayDuyet: number } | null>(null);
   const kt = docKinhThanh(phim.kinh_thanh);
   const taiCanh = useCallback(async () => { setCanh(await dsCanh(tap.id)); setUoc(await uocTien(tap.id)); }, [tap.id]);
@@ -546,6 +547,10 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
 
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 12, flexWrap: 'wrap' }}>
         <strong style={{ fontSize: 12 }}>3c · Storyboard · {canh?.length ?? '…'} cảnh</strong>
+        <Nut ly={!(canh ?? []).some((c) => c.keyframe_url) && 'chưa có keyframe nào'} title="Xem cả tập từ keyframe (và clip đã có): đúng thứ tự, đúng số giây, có zoom nhẹ + lời thoại. Không tốn tiền." onClick={() => setAnimatic(true)}>▶ Xem animatic (0đ)</Nut>
+        <label style={{ ...mono, display: 'inline-flex', gap: 4, alignItems: 'center', cursor: 'pointer' }} title="Khung cuối của mỗi clip = keyframe cảnh kế → các clip nối liền mạch; bản cuối sinh lại cũng giữ đúng hai đầu">
+          <input type="checkbox" checked={tap.noi_khung} onChange={(e) => void chay('noi', async () => { await suaTap(tap.id, { noi_khung: e.target.checked }); })} /> Nối khung (khung cuối = keyframe cảnh sau)
+        </label>
         <span style={{ flex: 1 }} />
         <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || ((canh?.length ?? 0) === 0 && 'chưa có cảnh — bấm ✂ Tách cảnh trước') || (chuaKeyframe === 0 && 'mọi cảnh đã có keyframe') || (sanSang.length === 0 && `${kemThieu} cảnh còn thiếu thành phần (ảnh gốc/biến thể) — chuẩn bị ở mục 2`)} ban={!!ban}
           title={`Sinh 1 keyframe cho mỗi cảnh đủ thành phần (${sanSang.length} cảnh ≈ ${tien(sanSang.length * giaAnhCents(kt.mo_hinh_anh))})`}
@@ -573,6 +578,76 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
       ) : (
         <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>{canh.map((c) => <CanhRow key={c.id} c={c} nhanVat={nhanVat} kt={kt} khoa={khoa} ban={ban} chay={chay} />)}</div>
       )}
+      {animatic && canh && <Animatic canh={canh} tiLe={kt.ti_le} ngonNgu={kt.ngon_ngu} onClose={() => setAnimatic(false)} />}
+    </div>
+  );
+}
+
+// ── Animatic: xem cả tập từ keyframe (0 đồng) ──────────────────────────────────────────────────────────────────
+// Mỗi cảnh: ưu tiên bản cuối → nháp → keyframe (zoom/lia nhẹ kiểu Ken Burns) trong đúng số giây; lời thoại hiện phụ đề và đọc bằng
+// giọng trình duyệt (miễn phí). Mục đích: duyệt nhịp, thứ tự, độ dài TRƯỚC khi tốn tiền video.
+
+function Animatic({ canh, tiLe, ngonNgu, onClose }: { canh: Canh[]; tiLe: string; ngonNgu: string; onClose: () => void }) {
+  const ds = canh.filter((c) => c.keyframe_url || c.video_url);
+  const [i, setI] = useState(0);
+  const [chay, setChay] = useState(true);
+  const [doc, setDoc] = useState(true);
+  const [t, setT] = useState(0);
+  const tong = ds.reduce((a, c) => a + (c.thoi_luong_s || 4), 0);
+  const c = ds[i];
+  const dai = (c?.thoi_luong_s || 4) * 1000;
+  useEffect(() => { setT(0); }, [i]);
+  useEffect(() => {
+    if (!chay || !c) return;
+    const bd = Date.now() - t;
+    const id = setInterval(() => {
+      const da = Date.now() - bd;
+      if (da >= dai) { clearInterval(id); if (i < ds.length - 1) setI(i + 1); else setChay(false); } else setT(da);
+    }, 100);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chay, i]);
+  useEffect(() => {
+    if (!doc || !chay || !c?.loi_thoai || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    const u = new SpeechSynthesisUtterance(c.loi_thoai.replace(/^[^:"“]*[:]\s*/, '').replace(/["“”]/g, ''));
+    u.lang = ngonNgu === 'vi' ? 'vi-VN' : 'en-US'; u.rate = 1.05;
+    window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+    return () => window.speechSynthesis.cancel();
+  }, [i, chay, doc, c?.loi_thoai, ngonNgu]);
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); if (e.key === ' ') { e.preventDefault(); setChay((x) => !x); } if (e.key === 'ArrowRight') setI((x) => Math.min(ds.length - 1, x + 1)); if (e.key === 'ArrowLeft') setI((x) => Math.max(0, x - 1)); };
+    window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h);
+  }, [ds.length, onClose]);
+  if (!c) return null;
+  const daQua = ds.slice(0, i).reduce((a, x) => a + (x.thoi_luong_s || 4), 0) + t / 1000;
+  const vid = c.video_cuoi_url || c.video_url;
+  const doc916 = tiLe === '9:16';
+  const p = Math.min(1, t / dai);
+  const kb = i % 2 === 0 ? `scale(${1 + 0.08 * p}) translate(${-1.5 * p}%, ${-1 * p}%)` : `scale(${1.08 - 0.08 * p}) translate(${1.5 * p}%, 0)`;
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 900, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+      <div style={{ position: 'relative', height: doc916 ? '78vh' : 'auto', width: doc916 ? 'calc(78vh * 9 / 16)' : 'min(92vw, 1200px)', aspectRatio: doc916 ? '9 / 16' : '16 / 9', overflow: 'hidden', borderRadius: 10, background: '#000' }}>
+        {vid ? <video key={vid} src={vid} autoPlay muted={false} playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : <img src={c.keyframe_url!} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb, transition: 'transform .1s linear' }} />}
+        <div style={{ position: 'absolute', left: 0, right: 0, top: 0, padding: '8px 12px', background: 'linear-gradient(rgba(0,0,0,.6), transparent)', color: '#fff', fontSize: 12 }}>
+          #{c.thu_tu} {c.canh} · {c.thoi_luong_s}s · {vid ? (c.video_cuoi_url ? 'bản cuối' : 'nháp') : 'keyframe'}
+        </div>
+        {c.loi_thoai && <div style={{ position: 'absolute', left: '6%', right: '6%', bottom: '7%', textAlign: 'center', color: '#fff', fontSize: doc916 ? 15 : 18, fontWeight: 600, textShadow: '0 2px 6px #000, 0 0 2px #000' }}>{c.loi_thoai}</div>}
+      </div>
+      <div style={{ width: doc916 ? 'calc(78vh * 9 / 16)' : 'min(92vw, 1200px)', display: 'flex', gap: 2 }}>
+        {ds.map((x, k) => (
+          <div key={x.id} onClick={() => setI(k)} title={`#${x.thu_tu} ${x.canh}`} style={{ flex: x.thoi_luong_s || 4, height: 6, borderRadius: 3, cursor: 'pointer', background: k < i ? 'var(--cyan)' : k === i ? `linear-gradient(90deg, var(--cyan) ${p * 100}%, #444 ${p * 100}%)` : '#444' }} />
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', color: '#ddd', fontSize: 12 }}>
+        <button type="button" className="xv-btn" onClick={() => setI(Math.max(0, i - 1))}>⏮</button>
+        <button type="button" className="xv-btn chinh" onClick={() => { if (!chay && i === ds.length - 1 && p >= 1) { setI(0); } setChay(!chay); }}>{chay ? '⏸ Dừng' : '▶ Chạy'}</button>
+        <button type="button" className="xv-btn" onClick={() => setI(Math.min(ds.length - 1, i + 1))}>⏭</button>
+        <span style={{ fontFamily: 'var(--font-mono)' }}>{daQua.toFixed(1)}s / {tong}s · cảnh {i + 1}/{ds.length}</span>
+        <label style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={doc} onChange={(e) => setDoc(e.target.checked)} /> đọc lời thoại</label>
+        <button type="button" className="xv-btn" onClick={onClose}>Đóng (Esc)</button>
+      </div>
+      {canh.length > ds.length && <div style={{ ...mono, color: 'var(--amber)' }}>{canh.length - ds.length} cảnh chưa có keyframe nên bị bỏ qua trong animatic.</div>}
     </div>
   );
 }
@@ -615,7 +690,8 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
     <div className="xv-canh">
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
         <div style={{ flexShrink: 0 }}>
-          {c.video_url ? <video src={c.video_url} controls preload="metadata" style={anhKhung} />
+          {c.video_cuoi_url ? <div><video src={c.video_cuoi_url} controls preload="metadata" style={anhKhung} /><div style={{ ...mono, color: 'var(--lime)', textAlign: 'center' }}>BẢN CUỐI</div></div>
+            : c.video_url ? <div><video src={c.video_url} controls preload="metadata" style={anhKhung} /><div style={{ ...mono, textAlign: 'center' }}>nháp</div></div>
             : c.keyframe_url ? <a href={c.keyframe_url} target="_blank" rel="noreferrer"><img src={c.keyframe_url} alt="" style={anhKhung} /></a>
             : <div style={{ ...anhKhung, display: 'grid', placeItems: 'center', color: 'var(--fg-4)', fontSize: 10 }}>chưa có</div>}
         </div>
@@ -667,13 +743,20 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
             {c.trang_thai === 'duyet' && (
               <>
                 {chonVideo}
-                <Nut chinh ly={mhVideo.startsWith('fal:') ? !khoa.fal && 'thiếu FAL_KEY' : !khoa.google && 'thiếu GOOGLE_API_KEY'} ban={!!ban} title={`${tenNgan(MO_HINH_VIDEO.find((m) => m.key === mhVideo)?.label ?? mhVideo)} · ${giayVid}s ≈ ${tien(giaVid)}`} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))}>🎬 Sinh video · {giayVid}s ≈ {tien(giaVid)}</Nut>
+                <Nut chinh ly={mhVideo.startsWith('fal:') ? !khoa.fal && 'thiếu FAL_KEY' : !khoa.google && 'thiếu GOOGLE_API_KEY'} ban={!!ban} title={`${tenNgan(MO_HINH_VIDEO.find((m) => m.key === mhVideo)?.label ?? mhVideo)} · ${giayVid}s ≈ ${tien(giaVid)}`} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))}>🎬 Sinh nháp · {giayVid}s ≈ {tien(giaVid)}</Nut>
                 <Nut ban={!!ban} onClick={() => void chay(k, () => duyetCanh(c.id, false))}>bỏ duyệt</Nut>
               </>
             )}
-            {c.trang_thai === 'dang_sinh' && <span style={{ ...mono, color: 'var(--violet)' }}>Veo đang chạy, tự kiểm mỗi 10s…</span>}
-            {(c.trang_thai === 'xong' || c.trang_thai === 'loi') && c.keyframe_url && <>{chonVideo}<Nut ly={mhVideo.startsWith('fal:') ? !khoa.fal && 'thiếu FAL_KEY' : !khoa.google && 'thiếu GOOGLE_API_KEY'} ban={!!ban} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))}>↻ Sinh lại video · {giayVid}s ≈ {tien(giaVid)}</Nut></>}
-            {c.video_url && <a href={c.video_url} target="_blank" rel="noreferrer" className="xv-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>⬇ mp4</a>}
+            {c.trang_thai === 'dang_sinh' && <span style={{ ...mono, color: 'var(--violet)' }}>đang sinh video, tự kiểm mỗi 10s…</span>}
+            {(c.trang_thai === 'xong' || c.trang_thai === 'loi') && c.keyframe_url && <>{chonVideo}<Nut ly={mhVideo.startsWith('fal:') ? !khoa.fal && 'thiếu FAL_KEY' : !khoa.google && 'thiếu GOOGLE_API_KEY'} ban={!!ban} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))}>↻ Sinh lại nháp · {giayVid}s ≈ {tien(giaVid)}</Nut></>}
+            {c.video_url && c.trang_thai === 'xong' && !c.video_cuoi_url && (
+              <>
+                <Nut chinh ly={!khoa.fal && 'thiếu FAL_KEY'} ban={!!ban} title="Nâng cấp CHÍNH clip nháp (Topaz ×2): chuyển động, bố cục, nhân vật giữ y hệt bản nháp" onClick={() => void chay(k, () => nangCapCanh(c.id))}>⬆ Bản cuối = nâng cấp nháp (khớp 100%) ≈ {tien(NANG_CAP.giaGiayCents * (c.thoi_luong_s || 8))}</Nut>
+                <Nut ly={mhVideo.startsWith('fal:') ? !khoa.fal && 'thiếu FAL_KEY' : !khoa.google && 'thiếu GOOGLE_API_KEY'} ban={!!ban} title="Sinh lại bằng model đang chọn, cùng khung đầu (và khung cuối nếu bật Nối khung). Bố cục khớp, chuyển động giữa có thể khác bản nháp." onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo, 'cuoi'))}>🎬 Bản cuối = sinh lại model đang chọn ≈ {tien(giaVid)}</Nut>
+              </>
+            )}
+            {c.video_cuoi_url && <a href={c.video_cuoi_url} target="_blank" rel="noreferrer" className="xv-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', color: 'var(--lime)' }}>⬇ bản cuối</a>}
+            {c.video_url && <a href={c.video_url} target="_blank" rel="noreferrer" className="xv-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>⬇ nháp</a>}
             <Xoa nhan="cảnh" ban={!!ban} onXoa={() => chay(k, async () => { await xoaCanh(c.id); })} />
           </div>
         </div>

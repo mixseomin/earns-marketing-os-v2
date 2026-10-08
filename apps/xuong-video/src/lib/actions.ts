@@ -15,7 +15,7 @@ import { type DungChu } from '@/lib/xuong-video/claude';
 import { tachCanh, vietKichBan, promptAnhMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import {
-  docKinhThanh, giaAnhCents, giaVideoCents, giaChuCents, thanhPhanCanh, NHOM_BIEN_THE, type BienThe,
+  docKinhThanh, giaAnhCents, giaVideoCents, giaChuCents, thanhPhanCanh, MO_HINH_ANH, MO_HINH_VIDEO, NHOM_BIEN_THE, type BienThe,
   type Phim, type NhanVat, type Tap, type Canh, type Job, type KinhThanh, type LoaiPhim, type LoaiNhanVat, type TrangThaiCanh,
 } from '@/lib/xuong-video/kieu';
 
@@ -462,13 +462,15 @@ function ghepPromptAnh(prompt: string, phongCach: string, nv: NhanVat[]): string
 }
 
 /** Sinh keyframe: `so` ứng viên (1-3), nối vào keyframe_uv; cảnh chưa có ảnh chọn thì tự chọn ảnh đầu. */
-export async function sinhKeyframe(canhId: number, so = 1): Promise<Kq<string[]>> {
+export async function sinhKeyframe(canhId: number, so = 1, moHinh?: string): Promise<Kq<string[]>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   const bc = await boiCanhCanh(db, canhId);
   if (!bc) return loi('không thấy cảnh');
   if (!bc.canh.prompt_anh.trim()) return loi('cảnh chưa có prompt ảnh');
+  if (moHinh && MO_HINH_ANH.some((m) => m.key === moHinh)) bc.kt.mo_hinh_anh = moHinh as typeof bc.kt.mo_hinh_anh;
+  await db.execute(sql`UPDATE xv_canh SET loi = '' WHERE id = ${canhId}`);
   const tp = thanhPhanCanh(bc.canh, bc.nhanVat);
   if (tp.thieu.length) return loi(`Chưa chuẩn bị đủ thành phần: ${tp.thieu.join('; ')}. Làm ở mục 2 (Tuyến nhân vật) rồi sinh lại.`);
   // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.
@@ -514,7 +516,7 @@ export async function duyetCanh(canhId: number, duyet: boolean): Promise<Kq> {
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   if (duyet) {
-    const r = (await db.execute(sql`UPDATE xv_canh SET trang_thai = 'duyet', updated_at = now() WHERE id = ${canhId} AND keyframe_url IS NOT NULL RETURNING id`)) as unknown as Row[];
+    const r = (await db.execute(sql`UPDATE xv_canh SET trang_thai = 'duyet', loi = '', updated_at = now() WHERE id = ${canhId} AND keyframe_url IS NOT NULL RETURNING id`)) as unknown as Row[];
     if (!r[0]) return loi('cảnh chưa có keyframe để duyệt');
   } else {
     await db.execute(sql`UPDATE xv_canh SET trang_thai = 'co_keyframe', updated_at = now() WHERE id = ${canhId} AND trang_thai = 'duyet'`);
@@ -536,7 +538,7 @@ export async function uocTien(tapId: number): Promise<{ anh1: number; videoTong:
 }
 
 /** Bắt đầu sinh video Veo cho một cảnh ĐÃ DUYỆT (keyframe làm khung đầu). Async: trả job id, UI gọi kiemVideo để poll. */
-export async function sinhVideoCanh(canhId: number): Promise<Kq<number>> {
+export async function sinhVideoCanh(canhId: number, moHinh?: string): Promise<Kq<number>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
@@ -544,6 +546,7 @@ export async function sinhVideoCanh(canhId: number): Promise<Kq<number>> {
   if (!bc) return loi('không thấy cảnh');
   if (bc.canh.trang_thai !== 'duyet' && bc.canh.trang_thai !== 'loi' && bc.canh.trang_thai !== 'xong') return loi('cảnh chưa duyệt keyframe');
   if (!bc.canh.keyframe_url) return loi('cảnh chưa có keyframe');
+  if (moHinh && MO_HINH_VIDEO.some((m) => m.key === moHinh)) bc.kt.mo_hinh_video = moHinh as typeof bc.kt.mo_hinh_video;
   const prompt = [bc.kt.phong_cach ? `Visual style: ${bc.kt.phong_cach}.` : '', bc.canh.prompt_video.trim() || bc.canh.hanh_dong].filter(Boolean).join(' ');
   const giay = (bc.canh.thoi_luong_s <= 4 ? 4 : bc.canh.thoi_luong_s <= 6 ? 6 : 8) as 4 | 6 | 8;
   const laFal = bc.kt.mo_hinh_video.startsWith('fal:');

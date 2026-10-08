@@ -596,6 +596,20 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
   const anhKhung: CSSProperties = { width: doc ? 68 : 120, height: doc ? 120 : 68, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)' };
   const k = `c${c.id}`;
   const tp = thanhPhanCanh(c, nhanVat);
+  // Chọn model ngay tại cảnh (mặc định theo kinh thánh) — giá hiện cạnh nút trước khi bấm.
+  const [mhAnh, setMhAnh] = useState<string>(kt.mo_hinh_anh);
+  const [mhVideo, setMhVideo] = useState<string>(kt.mo_hinh_video);
+  useEffect(() => { setMhAnh(kt.mo_hinh_anh); setMhVideo(kt.mo_hinh_video); }, [kt.mo_hinh_anh, kt.mo_hinh_video]);
+  const giayCho = (m: string) => (m.startsWith('fal:') ? (c.thoi_luong_s || 5) : (c.thoi_luong_s <= 4 ? 4 : c.thoi_luong_s <= 6 ? 6 : 8));
+  const giayVid = giayCho(mhVideo);
+  const giaVid = giaVideoCents(mhVideo, kt.do_phan_giai, giayVid);
+  const tenNgan = (lbl: string) => lbl.split(' (')[0]!.replace(' · fal', '');
+  const chonMh = (v: string, set: (x: string) => void, ds: readonly { key: string; label: string }[], gia: (k: string) => string) => (
+    <select className="xv-sel" value={v} onChange={(e) => set(e.target.value)} style={{ width: 'auto', padding: '3px 6px', fontSize: 11 }} title="Chọn model cho lần sinh này (mặc định lấy từ Kinh thánh)">
+      {ds.map((m) => <option key={m.key} value={m.key}>{tenNgan(m.label)} · {gia(m.key)}</option>)}
+    </select>
+  );
+  const chonVideo = chonMh(mhVideo, setMhVideo, MO_HINH_VIDEO, (m) => tien(giaVideoCents(m, kt.do_phan_giai, giayCho(m))));
 
   return (
     <div className="xv-canh">
@@ -645,18 +659,20 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
             </div>
           )}
           <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
-            <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || (!c.prompt_anh.trim() && 'chưa có prompt ảnh (Sửa → prompt ảnh)') || (tp.thieu.length > 0 && `thiếu: ${tp.thieu.join('; ')}`)} ban={!!ban} title={`1 ảnh ≈ ${tien(giaAnhCents(kt.mo_hinh_anh))}`} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1))}>
+            {chonMh(mhAnh, setMhAnh, MO_HINH_ANH, (m) => `${tien(giaAnhCents(m))}/ảnh`)}
+            <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || (!c.prompt_anh.trim() && 'chưa có prompt ảnh (Sửa → prompt ảnh)') || (tp.thieu.length > 0 && `thiếu: ${tp.thieu.join('; ')}`)} ban={!!ban} title={`1 ảnh ≈ ${tien(giaAnhCents(mhAnh))}`} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))}>
               {ban === k || c.dang_sinh_anh ? '… đang sinh' : c.keyframe_url ? '🖼 Thêm ứng viên' : '🖼 Sinh keyframe'}
             </Nut>
             {c.keyframe_url && !['duyet', 'dang_sinh', 'xong'].includes(c.trang_thai) && <Nut chinh ban={!!ban} onClick={() => void chay(k, () => duyetCanh(c.id, true))}>✓ Duyệt keyframe</Nut>}
             {c.trang_thai === 'duyet' && (
               <>
-                <Nut chinh ly={!khoa.google && !khoa.fal && 'thiếu khoá video (GOOGLE_API_KEY/FAL_KEY)'} ban={!!ban} title={`Veo ${c.thoi_luong_s}s ≈ ${tien(giaVideoCents(kt.mo_hinh_video, kt.do_phan_giai, c.thoi_luong_s))}`} onClick={() => void chay(k, () => sinhVideoCanh(c.id))}>🎬 Sinh video</Nut>
+                {chonVideo}
+                <Nut chinh ly={mhVideo.startsWith('fal:') ? !khoa.fal && 'thiếu FAL_KEY' : !khoa.google && 'thiếu GOOGLE_API_KEY'} ban={!!ban} title={`${tenNgan(MO_HINH_VIDEO.find((m) => m.key === mhVideo)?.label ?? mhVideo)} · ${giayVid}s ≈ ${tien(giaVid)}`} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))}>🎬 Sinh video · {giayVid}s ≈ {tien(giaVid)}</Nut>
                 <Nut ban={!!ban} onClick={() => void chay(k, () => duyetCanh(c.id, false))}>bỏ duyệt</Nut>
               </>
             )}
             {c.trang_thai === 'dang_sinh' && <span style={{ ...mono, color: 'var(--violet)' }}>Veo đang chạy, tự kiểm mỗi 10s…</span>}
-            {(c.trang_thai === 'xong' || c.trang_thai === 'loi') && c.keyframe_url && <Nut ly={!khoa.google && !khoa.fal && 'thiếu khoá video (GOOGLE_API_KEY/FAL_KEY)'} ban={!!ban} onClick={() => void chay(k, () => sinhVideoCanh(c.id))}>↻ Sinh lại video</Nut>}
+            {(c.trang_thai === 'xong' || c.trang_thai === 'loi') && c.keyframe_url && <>{chonVideo}<Nut ly={mhVideo.startsWith('fal:') ? !khoa.fal && 'thiếu FAL_KEY' : !khoa.google && 'thiếu GOOGLE_API_KEY'} ban={!!ban} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))}>↻ Sinh lại video · {giayVid}s ≈ {tien(giaVid)}</Nut></>}
             {c.video_url && <a href={c.video_url} target="_blank" rel="noreferrer" className="xv-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>⬇ mp4</a>}
             <Xoa nhan="cảnh" ban={!!ban} onXoa={() => chay(k, async () => { await xoaCanh(c.id); })} />
           </div>

@@ -3,6 +3,7 @@
 // Tên model Google đổi nhanh → `sinhAnh` thử lần lượt danh sách MO_HINH_ANH khi model được chọn trả 404.
 import 'server-only';
 import { MO_HINH_ANH, type DoPhanGiai, type TiLe } from './kieu';
+import { sinhAnhOpenAI, khoaOpenAI } from './openai';
 
 const GOC = 'https://generativelanguage.googleapis.com/v1beta';
 
@@ -57,13 +58,20 @@ export async function sinhAnhMot(opts: { model: string; prompt: string; thamChie
 
 /** Sinh MỘT ảnh với fallback: model được chọn không tồn tại (404) hoặc không có trong hạng free (quota 0) → thử model kế trong MO_HINH_ANH. */
 export async function sinhAnh(opts: { model: string; prompt: string; thamChieu?: AnhVao[]; tiLe: TiLe | '1:1'; kichCo?: '1K' | '2K' }): Promise<KqAnh> {
-  const thuTu = [opts.model, ...MO_HINH_ANH.map((m) => m.key).filter((k) => k !== opts.model)];
+  if (opts.model.startsWith('gpt-image')) return sinhAnhOpenAI({ prompt: opts.prompt, thamChieu: opts.thamChieu, tiLe: opts.tiLe, model: opts.model });
+  const thuTu = [opts.model, ...MO_HINH_ANH.map((m) => m.key).filter((k) => k !== opts.model && !k.startsWith('gpt-image'))];
   let loiCuoi = '';
   for (const model of thuTu) {
     const kq = await sinhAnhMot({ ...opts, model });
     if (kq.ok) return kq;
     loiCuoi = `${model}: ${kq.loi}`;
     if (!/NOT_FOUND|404|RESOURCE_EXHAUSTED|limit: 0/i.test(kq.loi)) return { ok: false, loi: loiCuoi };
+  }
+  // Google hết đường (chưa billing → quota 0, hoặc đổi tên model) → OpenAI gpt-image nếu có khoá. Keyframe vẫn ra, Veo vẫn chờ billing Google.
+  if (khoaOpenAI()) {
+    const kq = await sinhAnhOpenAI({ prompt: opts.prompt, thamChieu: opts.thamChieu, tiLe: opts.tiLe });
+    if (kq.ok) return kq;
+    loiCuoi = `${loiCuoi} → ${kq.loi}`;
   }
   return { ok: false, loi: loiCuoi || 'không model ảnh nào chạy được' };
 }
@@ -125,5 +133,9 @@ export async function taiVeo(uri: string): Promise<Buffer | null> {
 
 function docLoi(j: Record<string, unknown>, status: number): string {
   const e = j.error as { message?: string; status?: string } | undefined;
-  return e?.message ? `${e.status ?? status}: ${e.message}`.slice(0, 400) : `HTTP ${status}`;
+  const m = e?.message ?? '';
+  // Lỗi hay gặp nhất: project của khoá chưa gắn Cloud Billing → ảnh/Veo bị quota free tier = 0. Nói thẳng nguyên nhân + cách sửa, không đổ nguyên đoạn tiếng Anh dài.
+  if (status === 429 && /limit: 0|free_tier/i.test(m)) return 'Google chặn: project của GOOGLE_API_KEY chưa gắn Cloud Billing (ảnh/Veo không có trong free tier). Gắn billing ở aistudio.google.com/billing → Import projects.';
+  if (status === 429) return 'Google báo vượt hạn mức gọi (rate limit) — đợi 1 phút rồi bấm lại.';
+  return m ? `${e?.status ?? status}: ${m}`.slice(0, 300) : `HTTP ${status}`;
 }

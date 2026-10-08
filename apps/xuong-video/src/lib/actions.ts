@@ -103,9 +103,10 @@ export async function dsJobPhim(phimId: number): Promise<Job[]> {
 }
 
 /** Trạng thái khoá: trang báo thiếu gì thay vì để nút Sinh lỗi âm thầm. Chỉ trả có/không, không trả giá trị. */
-export async function trangThaiKhoa(): Promise<{ google: boolean; anthropic: boolean; r2: boolean }> {
-  if (!(await admin())) return { google: false, anthropic: false, r2: false };
+export async function trangThaiKhoa(): Promise<{ google: boolean; anthropic: boolean; r2: boolean; openai: boolean }> {
+  if (!(await admin())) return { google: false, anthropic: false, r2: false, openai: false };
   return {
+    openai: !!process.env.OPENAI_API_KEY,
     google: !!(process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY),
     anthropic: !!process.env.ANTHROPIC_API_KEY,
     r2: !!(process.env.R2_ACCOUNT_ID && process.env.R2_BUCKET),

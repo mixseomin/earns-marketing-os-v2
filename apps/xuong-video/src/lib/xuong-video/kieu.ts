@@ -37,6 +37,8 @@ export const MO_HINH_ANH = [
   { key: 'gemini-3.1-flash-lite-image', label: 'Gemini 3.1 Flash Lite Image (rẻ nhất, 1K)', gia1k: 3.36 },
   { key: 'gemini-3.1-flash-image', label: 'Gemini 3.1 Flash Image', gia1k: 6.7 },
   { key: 'gemini-3-pro-image', label: 'Gemini 3 Pro Image (đẹp nhất, đắt)', gia1k: 13 },
+  { key: 'gpt-image-1.5', label: 'OpenAI gpt-image-1.5 (không cần billing Google; có tham chiếu)', gia1k: 3.4 },
+  { key: 'gpt-image-1', label: 'OpenAI gpt-image-1', gia1k: 4 },
 ] as const;
 export type MoHinhAnh = (typeof MO_HINH_ANH)[number]['key'];
 

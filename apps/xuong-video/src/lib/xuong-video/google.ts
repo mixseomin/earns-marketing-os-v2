@@ -65,7 +65,9 @@ export async function sinhAnh(opts: { model: string; prompt: string; thamChieu?:
     const kq = await sinhAnhMot({ ...opts, model });
     if (kq.ok) return kq;
     loiCuoi = `${model}: ${kq.loi}`;
-    if (!/NOT_FOUND|404|RESOURCE_EXHAUSTED|limit: 0/i.test(kq.loi)) return { ok: false, loi: loiCuoi };
+    // Chưa billing = cả project bị chặn, thử model Google khác cũng vô ích → nhảy thẳng sang OpenAI.
+    if (/chưa gắn Cloud Billing/.test(kq.loi)) break;
+    if (!/NOT_FOUND|404|không tồn tại|rate limit/i.test(kq.loi)) return { ok: false, loi: loiCuoi };
   }
   // Google hết đường (chưa billing → quota 0, hoặc đổi tên model) → OpenAI gpt-image nếu có khoá. Keyframe vẫn ra, Veo vẫn chờ billing Google.
   if (khoaOpenAI()) {

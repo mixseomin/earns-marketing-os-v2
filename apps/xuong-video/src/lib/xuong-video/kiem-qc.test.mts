@@ -1,0 +1,64 @@
+// Tự kiểm bộ kiểm quảng cáo. Chạy: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/kiem-qc.test.mts
+import assert from 'node:assert';
+import { kiemQc } from './kiem-qc';
+import { giayBeat } from './dien-anh';
+import { locNhanh, cacNhanh, giayPhat, lamTronClip } from './kieu';
+
+const nv = [{ id: 1, loai: 'nhan_vat' }, { id: 2, loai: 'san_pham' }] as const;
+type S = Parameters<typeof kiemQc>[0]['canh'][number];
+const shot = (p: Partial<S> & { thu_tu: number }): S => ({ nhan_vat: [1, 2], phan_doan: '', chu_man: '', nhanh: '', phat_s: null, thoi_luong_s: 4, loi_thoai: '', thoai: [], trang_thai: 'nhap', keyframe_url: null, ...p });
+const qc = { ten: 'Bra', link: '', diem_noi_bat: '1676 đánh giá 5 sao, đổi trả 45 ngày', doi_tuong: '', uu_dai: '$24.99 giảm 70%', thi_truong: 'Mỹ', anh: [] };
+const ok = (ds: ReturnType<typeof kiemQc>, k: string) => ds.find((x) => x.key === k)!.ok;
+
+// Bản đạt: hook 2s có chữ, sản phẩm sớm, bằng chứng số thật, trấn an, CTA chữ.
+const dat = [
+  shot({ thu_tu: 1, phat_s: 2, chu_man: 'Vai hằn đỏ mỗi tối?', thoai: [{ nhan_vat: 'A', dien_xuat: '', loi: 'Đeo bra gọng cả ngày' }] }),
+  shot({ thu_tu: 2, phat_s: 3, chu_man: 'Không gọng, vẫn nâng' }),
+  shot({ thu_tu: 3, phat_s: 3, chu_man: '1676 đánh giá 5 sao', phan_doan: 'Bằng chứng' }),
+  shot({ thu_tu: 4, phat_s: 3, chu_man: 'Đổi trả 45 ngày' }),
+  shot({ thu_tu: 5, phat_s: 3, chu_man: 'Giảm 70% · Mua ngay' }),
+];
+let r = kiemQc({ loai: 'quang_cao', canh: dat, nhanVat: nv as never, qc, mucTieuS: 14 });
+assert.ok(r.every((x) => x.ok), JSON.stringify(r.filter((x) => !x.ok)));
+
+// Bản như phim bra cũ: hook 6s không chữ, 64s cho 24s, số bịa, không trấn an, CTA không chữ.
+const hong = [
+  shot({ thu_tu: 1, thoi_luong_s: 6, thoai: [{ nhan_vat: 'A', dien_xuat: '', loi: 'Đeo bra gọng 10 tiếng mỗi ngày tối về vai hằn đỏ hết luôn nè mấy bà ơi thiệt là khổ' }] }),
+  shot({ thu_tu: 2, thoi_luong_s: 6, nhan_vat: [1], chu_man: 'Khoá 3 nấc dây 2cm' }),
+  shot({ thu_tu: 3, thoi_luong_s: 6, nhan_vat: [1] }),
+  shot({ thu_tu: 4, thoi_luong_s: 6, nhan_vat: [1] }),
+];
+r = kiemQc({ loai: 'quang_cao', canh: hong, nhanVat: nv as never, qc, mucTieuS: 24 });
+assert.strictEqual(ok(r, 'dai'), true);          // 24s đúng mục tiêu
+assert.strictEqual(ok(r, 'hook'), false);        // 6s, không chữ
+assert.strictEqual(ok(r, 'sp_som'), true);       // shot 1 có sản phẩm ở 0s
+assert.strictEqual(ok(r, 'sp_23'), false);       // 1/4
+assert.strictEqual(ok(r, 'bang_chung'), false);  // "3", "2" không có trong mục 0 → nhưng chỉ số ≥2 ký tự mới tính; "10" trong thoại thì bịa
+assert.ok(r.find((x) => x.key === 'bang_chung')!.chu.includes('10'));
+assert.strictEqual(ok(r, 'cta'), false);
+assert.strictEqual(ok(r, 'tran_an'), false);
+assert.strictEqual(ok(r, 'toc_do'), false);      // 20 từ / 6s > 2,8
+// Phim thường: chỉ kiểm độ dài.
+r = kiemQc({ loai: 'phim', canh: hong, nhanVat: nv as never, mucTieuS: 60 });
+assert.deepStrictEqual(r.map((x) => x.key), ['dai']);
+assert.strictEqual(r[0]!.ok, false);
+// Không mục tiêu → không có mục 'dai'.
+assert.ok(!kiemQc({ loai: 'quang_cao', canh: dat, nhanVat: nv as never, qc }).some((x) => x.key === 'dai'));
+
+// Nhánh hook: thân '' + A/B; locNhanh lấy thân + một nhánh; không chọn → nhánh đầu.
+const nhanh = [shot({ thu_tu: 1, nhanh: 'A', chu_man: 'A' }), shot({ thu_tu: 2, nhanh: 'B', chu_man: 'B' }), shot({ thu_tu: 3 })];
+assert.deepStrictEqual(cacNhanh(nhanh), ['A', 'B']);
+assert.deepStrictEqual(locNhanh(nhanh, 'B').map((c) => c.thu_tu), [2, 3]);
+assert.deepStrictEqual(locNhanh(nhanh).map((c) => c.thu_tu), [1, 3]);
+assert.deepStrictEqual(locNhanh(nhanh, 'Z').map((c) => c.thu_tu), [1, 3]);
+// giayPhat / lamTronClip.
+assert.strictEqual(giayPhat({ phat_s: 2.5, thoi_luong_s: 4 }), 2.5);
+assert.strictEqual(giayPhat({ phat_s: null, thoi_luong_s: 6 }), 6);
+assert.strictEqual(giayPhat({ phat_s: 0, thoi_luong_s: 0 }), 4);
+assert.deepStrictEqual([lamTronClip(1.5), lamTronClip(4), lamTronClip(5), lamTronClip(9)], [4, 4, 6, 8]);
+// giayBeat: quảng cáo 30s → 7 beat, cộng = 30, hook 0–3.
+const gb = giayBeat('quang_cao', 30);
+assert.strictEqual(gb.length, 7); assert.deepStrictEqual([gb[0]!.tu, gb[0]!.den], [0, 3]); assert.strictEqual(gb[gb.length - 1]!.den, 30);
+// Phim không có phan → chia đều.
+const gp = giayBeat('phim', 80); assert.strictEqual(gp[0]!.den, 10); assert.strictEqual(gp[gp.length - 1]!.den, 80);
+console.log('kiem-qc.test: ok');

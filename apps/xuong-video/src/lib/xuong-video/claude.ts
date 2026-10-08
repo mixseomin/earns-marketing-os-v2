@@ -4,9 +4,9 @@ import 'server-only';
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';   // helper zodOutputFormat của SDK cần zod v4 (zod 3.25 kèm sẵn ở 'zod/v4'); import 'zod' gốc → TypeError 'def'
-import { THU_VIEN, THE_LOAI, CAU_TRUC, hopTheLoai, NHOM_KY_THUAT, type NhomKyThuat } from './dien-anh';
-import type { BienThe, KinhThanh, LoaiNhanVat, LoaiPhim, NhanVat } from './kieu';
-import { docKinhThanh, LOAI_PHIM } from './kieu';
+import { THU_VIEN, THE_LOAI, CAU_TRUC, giayBeat, hopTheLoai, NHOM_KY_THUAT, type NhomKyThuat } from './dien-anh';
+import type { BienThe, DoiChieu, KinhThanh, LoaiNhanVat, LoaiPhim, NhanVat } from './kieu';
+import { docKinhThanh, lamTronClip, LOAI_PHIM } from './kieu';
 
 const CanhSchema = z.object({
   canh: z.string().describe('Nhãn ngắn của cảnh, tiếng Việt, ví dụ "Cảnh 1 · Khu rừng buổi sáng"'),
@@ -38,6 +38,8 @@ const ShotSchema = CanhSchema.extend({
   thoai: z.array(DongThoaiSchema).describe('Thoại của shot theo dòng kiểu kịch bản phim chuyên nghiệp (mỗi lượt nói một dòng); rỗng nếu shot không có thoại. Trường loi_thoai để rỗng.'),
   cam_xuc: z.number().int().describe('Giá trị cảm xúc của khán giả ở CUỐI shot, từ -5 (đau/sợ/tuyệt vọng) tới +5 (vui/hy vọng/chiến thắng)'),
   ky_thuat: KyThuatSchema.describe('Ngôn ngữ điện ảnh của shot, chọn từ thư viện cho hợp thể loại + cảm xúc'),
+  phat_s: z.number().describe('Số giây shot THỰC PHÁT trong bản dựng (1.5–8, bước 0.5). Clip sinh 4/6/8s rồi cắt lấy phat_s giây đầu. Quảng cáo: hook, insert, demo 1.5–3s; thoại dài hơn thì 4–6s. Tổng phat_s của cả tập phải bằng thời lượng mục tiêu ±10%.'),
+  chu_man: z.string().describe('Chữ hiện trên màn trong shot (đúng ngôn ngữ phim, ≤ 8 từ): câu hook, số liệu, tên tính năng, ưu đãi, CTA. Quảng cáo: BẮT BUỘC ở shot hook và shot CTA, nên có ở bằng chứng/ưu đãi; phim/short: rỗng trừ khi cần.'),
 });
 const StoryboardSchema = z.object({
   tom_tat: z.string().describe('Tóm tắt nội dung tập này trong 2-3 câu, tiếng Việt, để tập sau nối mạch'),
@@ -52,8 +54,12 @@ const StoryboardSchema = z.object({
     cam_xuc_dau: z.number().int().describe('-5..5'), cam_xuc_cuoi: z.number().int().describe('-5..5, phải KHÁC đầu: phân cảnh nào cũng đổi giá trị'),
     shots: z.array(ShotSchema).describe('Các shot của phân cảnh, theo thứ tự'),
   })),
+  hook_bien_the: z.array(z.object({
+    ten: z.string().describe('Tên ngắn góc tiếp cận, vd "tò mò", "so sánh trước/sau", "bằng chứng"'),
+    shots: z.array(ShotSchema).describe('1–2 shot THAY THẾ cho các shot của beat đầu (Hook); tổng phat_s bằng hook chính ±1s; vẫn dùng đúng anchor'),
+  })).describe('Quảng cáo / short: 2 phương án hook KHÁC góc tiếp cận với hook chính (vd hook chính = nỗi đau → phương án: câu hỏi tò mò, so sánh trước/sau, số liệu sốc). Để A/B trên Meta/TikTok với cùng một thân. Phim nhiều tập: mảng rỗng.'),
 });
-export type CanhSinh = z.infer<typeof ShotSchema> & { phan_doan: string };
+export type CanhSinh = z.infer<typeof ShotSchema> & { phan_doan: string; nhanh: string };
 export type PhanCanhSinh = Omit<z.infer<typeof StoryboardSchema>['phan_canh'][number], 'shots'>;
 
 function client(): Anthropic | null {
@@ -91,26 +97,42 @@ const HUONG_DAN_DAO_DIEN = `CÁCH DỰNG NHƯ PHIM ĐIỆN ẢNH (bắt buộc):
 - prompt_anh phải tả đúng cỡ cảnh + góc + ánh sáng đã chọn; prompt_video tả đúng chuyển động máy + âm thanh đã chọn.
 - QUẢNG CÁO: sản phẩm là nhân vật chính thứ hai — mọi shot có người mặc/cầm/dùng/nhắc tới sản phẩm PHẢI có tên anchor sản phẩm trong trường nhan_vat (để keyframe tham chiếu đúng ảnh sản phẩm thật), và prompt_anh tả sản phẩm hiện rõ trong khung; ít nhất 2/3 số shot thấy sản phẩm.`;
 
+/** Luật riêng quảng cáo — thứ ads thật đo được, bộ kiểm kiem-qc.ts chấm lại đúng các mục này sau khi tách. */
+const HUONG_DAN_QC = `LUẬT QUẢNG CÁO (bắt buộc, máy sẽ chấm lại):
+- 85% người xem TẮT TIẾNG: mọi ý chính phải THẤY bằng hình + chu_man, không chỉ bằng lời. Hook và CTA bắt buộc có chu_man (≤ 8 từ).
+- Hook (shot đầu, phat_s ≤ 3): giây đầu tiên phải có HÌNH gây dừng tay — chuyển động mạnh, cận bất thường, so sánh, kết quả, mặt biểu cảm — không mở bằng người ngồi nói. Câu hook gọi đúng người xem (nỗi đau / mong muốn / câu hỏi).
+- Sản phẩm xuất hiện trong khung TRƯỚC giây thứ 5. Demo = cận chi tiết thật + trước/sau + dùng thử trong đời thường, mỗi shot một ý.
+- Bằng chứng: CHỈ dùng số liệu, đánh giá, chính sách CÓ TRONG mục SẢN PHẨM (số đánh giá, số khách, giá, ngày đổi trả). Không có số thì dùng lời người dùng thật, KHÔNG bịa con số hay tính năng.
+- Trước CTA: một câu/chữ trấn an (đổi trả, size, bảo hành, ship) nếu mục sản phẩm có. Shot CTA: chu_man = ưu đãi + hành động cụ thể (giá, giảm bao nhiêu, bấm đâu).
+- Thoại ngắn: ≤ 2,5 từ cho mỗi giây phát của shot. Shot không thoại cũng được — hình + chữ.
+- Cắt nhanh: phần lớn shot phat_s 1,5–3s; chỉ shot có thoại dài mới 4–6s. Tổng phat_s = thời lượng mục tiêu ±10%.
+- hook_bien_the: 2 phương án hook khác góc (tò mò · trước/sau · số liệu/bằng chứng · nỗi đau khác), mỗi phương án 1–2 shot, thay thế đúng các shot của beat Hook.`;
+
 /** Tách kịch bản thành cảnh. `soCanh` = số cảnh mong muốn (0 = để Claude tự chia). */
 export async function tachCanh(opts: {
-  loai: LoaiPhim; kinhThanh: KinhThanh; nhanVat: NhanVat[]; kichBan: string; soCanh?: number; tapTruoc?: string[];
+  loai: LoaiPhim; kinhThanh: KinhThanh; nhanVat: NhanVat[]; kichBan: string; soCanh?: number; tapTruoc?: string[]; thoiLuongS?: number;
 }): Promise<{ ok: true; tomTat: string; canh: CanhSinh[]; beats: { ten: string; mo_ta: string; cam_xuc: number }[]; phanCanh: PhanCanhSinh[]; model: string; tokens: { in: number; out: number } } | { ok: false; loi: string }> {
   const c = client();
   if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
   const kt = docKinhThanh(opts.kinhThanh);
+  const laQc = opts.loai === 'quang_cao';
+  const khung = CAU_TRUC[opts.loai] ?? CAU_TRUC.phim!;
+  // Thời lượng mục tiêu chia cho từng beat (quảng cáo có tỉ lệ sẵn) → Claude biết hook được mấy giây, không tự kéo 24s thành 64s.
+  const giayTheoBeat = opts.thoiLuongS ? giayBeat(opts.loai, opts.thoiLuongS) : null;
   const user = [
     `DANH SÁCH ANCHOR (dùng đúng tên trong trường nhan_vat):\n${taAnchor(opts.nhanVat)}`,
     opts.tapTruoc?.length ? `TÓM TẮT CÁC TẬP TRƯỚC (nối mạch, không kể lại):\n${opts.tapTruoc.map((t, i) => `Tập ${i + 1}: ${t}`).join('\n')}` : '',
     `KỊCH BẢN:\n${opts.kichBan.trim()}`,
-    `KHUNG BEAT (${CAU_TRUC[opts.loai]?.ten ?? CAU_TRUC.phim!.ten}):\n${(CAU_TRUC[opts.loai] ?? CAU_TRUC.phim!).beats.map((b) => `- ${b.ten}: ${b.mo_ta}`).join('\n')}`,
+    `KHUNG BEAT (${khung.ten}):\n${khung.beats.map((b, i) => `- ${b.ten}: ${b.mo_ta}${giayTheoBeat ? ` → giây ${giayTheoBeat[i]!.tu}–${giayTheoBeat[i]!.den}` : ''}`).join('\n')}`,
     `THƯ VIỆN ĐIỆN ẢNH (chọn key cho từng shot):\n${taThuVien(kt.the_loai)}`,
-    opts.soCanh ? `Tổng khoảng ${opts.soCanh} shot.` : 'Số shot vừa đủ kể hết kịch bản, mỗi shot 4-8 giây.',
+    opts.thoiLuongS ? `THỜI LƯỢNG MỤC TIÊU: ${opts.thoiLuongS} giây — tổng phat_s của mọi shot (trừ hook_bien_the) phải trong khoảng ${Math.round(opts.thoiLuongS * 0.9)}–${Math.round(opts.thoiLuongS * 1.1)} giây.` : '',
+    opts.soCanh ? `Tổng khoảng ${opts.soCanh} shot.` : laQc ? 'Số shot theo nhịp quảng cáo: phần lớn shot phát 1,5–3 giây.' : 'Số shot vừa đủ kể hết kịch bản, mỗi shot 4-8 giây.',
   ].filter(Boolean).join('\n\n');
   try {
     const r = await c.messages.parse({
       model: kt.mo_hinh_chu,
       max_tokens: 16000,
-      system: `${heThong(opts.loai, kt)}\n\n${HUONG_DAN_DAO_DIEN}`,
+      system: `${heThong(opts.loai, kt)}\n\n${HUONG_DAN_DAO_DIEN}${laQc ? `\n\n${HUONG_DAN_QC}` : ''}`,
       messages: [{ role: 'user', content: user }],
       // Kiểu của helper khai theo zod v3 nhưng runtime cần v4 (đã thử: v3 → TypeError 'def', v4 chạy) → ép kiểu ở ranh này.
       output_config: { format: zodOutputFormat(StoryboardSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
@@ -119,7 +141,16 @@ export async function tachCanh(opts: {
     const p = r.parsed_output as z.infer<typeof StoryboardSchema> | null;
     if (!p) return { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
     const kep = (v: number) => Math.max(-5, Math.min(5, Math.round(v)));
-    const canh: CanhSinh[] = p.phan_canh.flatMap((pc) => pc.shots.map((x) => ({ ...x, phan_doan: pc.ten, cam_xuc: kep(x.cam_xuc), thoi_luong_s: x.thoi_luong_s <= 4 ? 4 : x.thoi_luong_s <= 6 ? 6 : 8 })));
+    // phat_s = giây thực phát (1–8, bước 0,5); clip sinh = làm tròn lên 4/6/8. Claude quên phat_s thì lấy thoi_luong_s.
+    const phat = (x: z.infer<typeof ShotSchema>) => { const g = Number.isFinite(x.phat_s) && x.phat_s > 0 ? x.phat_s : x.thoi_luong_s; return Math.max(1, Math.min(8, Math.round(g * 2) / 2)); };
+    const chuan = (x: z.infer<typeof ShotSchema>, phan_doan: string, nhanh: string): CanhSinh => ({ ...x, phan_doan, nhanh, cam_xuc: kep(x.cam_xuc), phat_s: phat(x), thoi_luong_s: lamTronClip(phat(x)), chu_man: (x.chu_man ?? '').trim() });
+    // Hook chính = shot của phân cảnh thuộc beat đầu; có phương án thay thế thì hook chính mang nhánh 'A', phương án 'B', 'C'…
+    const beatDau = khung.beats[0]?.ten ?? '';
+    const bienThe = (p.hook_bien_the ?? []).filter((h) => h.shots.length);
+    const laHook = (pc: { beat: string }) => bienThe.length > 0 && pc.beat.trim().toLowerCase() === beatDau.toLowerCase();
+    const canh: CanhSinh[] = p.phan_canh.flatMap((pc) => pc.shots.map((x) => chuan(x, pc.ten, laHook(pc) ? 'A' : '')));
+    const pcHook = p.phan_canh.find(laHook);
+    if (pcHook) bienThe.forEach((h, i) => { const nhanh = String.fromCharCode(66 + i); canh.push(...h.shots.map((x) => chuan(x, `${pcHook.ten} · ${h.ten}`, nhanh))); });
     const phanCanh: PhanCanhSinh[] = p.phan_canh.map(({ shots: _s, ...pc }) => ({ ...pc, cam_xuc_dau: kep(pc.cam_xuc_dau), cam_xuc_cuoi: kep(pc.cam_xuc_cuoi) }));
     const beats = p.beats.map((b) => ({ ...b, cam_xuc: kep(b.cam_xuc) }));
     return { ok: true, tomTat: p.tom_tat, canh, beats, phanCanh, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
@@ -287,6 +318,37 @@ export function promptBienThe(a: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, b: Pic
   const k = docKinhThanh(kt);
   const khung = a.loai === 'boi_canh' ? 'Establishing shot of the SAME location as the reference image' : a.loai === 'san_pham' ? 'Product shot of the EXACT same product as the reference image' : 'The SAME character as the reference image, single character, plain light background';
   return `${khung}. Identity (must not change): ${a.mo_ta}. Change only this (${b.nhom}): ${b.mo_ta || b.ten}. Visual style: ${k.phong_cach || 'consistent with reference'}. Keep proportions, colors, markings and outfit details identical unless the change says otherwise.`;
+}
+
+// ── Đối chiếu ảnh gốc của anchor với mô tả (review 09/10/2026) ───────────────────────────────────────────────────
+// Ảnh sản phẩm có ren, chữ thương hiệu, màu hồng — mô tả ghi "be nude, không ren, khoá 3 nấc" → mọi keyframe/kịch bản khoe một chiếc
+// áo không tồn tại. Claude NHÌN ảnh rồi liệt kê chỗ lệch + viết lại mô tả theo ảnh; người bấm "dùng mô tả đề xuất" là xong.
+const DoiChieuSchema = z.object({
+  khop: z.boolean().describe('true nếu mô tả tả đúng thứ trong ảnh (màu, chất liệu, chi tiết, chữ/logo, dáng) — lệch nhỏ về tính cách/giọng không tính'),
+  lech: z.array(z.string()).describe('Từng chỗ lệch, tiếng Việt, mỗi dòng "mô tả nói X — ảnh cho thấy Y"; rỗng nếu khớp'),
+  mo_ta_de_xuat: z.string().describe('Mô tả cố định viết lại THEO ẢNH (3-5 câu, cùng ngôn ngữ mô tả cũ), giữ các ý đúng của mô tả cũ, bỏ thứ ảnh không có; sản phẩm: ghi rõ màu, chất liệu, chi tiết nhìn thấy, chữ/logo in trên sản phẩm (nếu có)'),
+});
+export async function doiChieuAnchor(a: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta' | 'anh_ref'>, kt: Required<KinhThanh>): Promise<GoiYKq<Omit<DoiChieu, 'luc'>>> {
+  const c = client();
+  if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
+  const anh = a.anh_ref.filter((u) => /^https?:\/\//.test(u)).slice(0, 4);
+  if (!anh.length) return { ok: false, loi: 'anchor chưa có ảnh gốc' };
+  try {
+    const r = await c.messages.parse({
+      model: kt.mo_hinh_chu, max_tokens: 2000,
+      system: 'Bạn kiểm tra ảnh tham chiếu của xưởng video AI: mô tả cố định của một anchor có tả ĐÚNG thứ trong ảnh không. Chỉ nói điều nhìn thấy trong ảnh, không suy đoán. Trả lời tiếng Việt.',
+      messages: [{ role: 'user', content: [
+        ...anh.map((url) => ({ type: 'image' as const, source: { type: 'url' as const, url } })),
+        { type: 'text', text: `Anchor [${a.loai}] "${a.ten}".\nMÔ TẢ HIỆN TẠI:\n${a.mo_ta || '(trống)'}\n\nSo mô tả với ${anh.length} ảnh trên (ảnh đầu là ảnh chính). Liệt kê chỗ lệch và viết lại mô tả theo ảnh.` },
+      ] }],
+      output_config: { format: zodOutputFormat(DoiChieuSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
+    });
+    if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
+    const p = r.parsed_output as z.infer<typeof DoiChieuSchema> | null;
+    return p ? { ok: true, data: p, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
+  } catch (e) {
+    return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
+  }
 }
 
 // ── Đọc trang sản phẩm → thông tin quảng cáo (#1201) ──────────────────────────────────────────────────────────

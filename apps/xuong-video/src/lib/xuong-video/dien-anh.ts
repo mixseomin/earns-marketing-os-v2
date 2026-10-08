@@ -176,7 +176,7 @@ export function lamSachKyThuat(kt: Record<string, unknown> | undefined): KyThuat
 
 // ── Cấu trúc beat theo loại phim ──────────────────────────────────────────────────────────────────────────────
 export type Beat = { ten: string; mo_ta: string; cam_xuc: number };
-export const CAU_TRUC: Record<string, { ten: string; beats: { ten: string; mo_ta: string }[] }> = {
+export const CAU_TRUC: Record<string, { ten: string; beats: { ten: string; mo_ta: string; phan?: number }[] }> = {
   phim: { ten: 'Ba hồi (rút gọn Save the Cat)', beats: [
     { ten: 'Mở đầu', mo_ta: 'Thế giới bình thường, nhân vật và điều họ thiếu' }, { ten: 'Biến cố', mo_ta: 'Sự kiện phá vỡ bình thường, đẩy nhân vật vào hành trình' },
     { ten: 'Bước qua ngưỡng', mo_ta: 'Nhân vật chọn dấn thân' }, { ten: 'Thử thách', mo_ta: 'Vui chơi & thử thách, quan hệ hình thành' },
@@ -187,10 +187,20 @@ export const CAU_TRUC: Record<string, { ten: string; beats: { ten: string; mo_ta
     { ten: 'Hook 3 giây', mo_ta: 'Câu/khung hình giữ ngón tay lại' }, { ten: 'Dồn nén', mo_ta: 'Tăng tò mò, tăng tốc' },
     { ten: 'Twist', mo_ta: 'Lật kỳ vọng' }, { ten: 'Chốt', mo_ta: 'Kết đọng lại + lời kêu gọi theo dõi' },
   ] },
+  // Quảng cáo: `phan` = tỉ lệ thời lượng của beat (cộng = 1) → tách cảnh biết beat nào được mấy giây với thời lượng mục tiêu bất kỳ.
   quang_cao: { ten: 'Quảng cáo (hook → nỗi đau → giải pháp → bằng chứng → ưu đãi)', beats: [
-    { ten: 'Hook', mo_ta: '3 giây đầu: câu nói chạm đúng người xem' }, { ten: 'Nỗi đau', mo_ta: 'Vấn đề họ gặp mỗi ngày' },
-    { ten: 'Khuấy', mo_ta: 'Làm nỗi đau rõ hơn, đồng cảm' }, { ten: 'Giải pháp', mo_ta: 'Sản phẩm xuất hiện' },
-    { ten: 'Demo', mo_ta: 'Cho thấy nó hoạt động' }, { ten: 'Bằng chứng', mo_ta: 'Người thật, số liệu, đánh giá' },
-    { ten: 'Ưu đãi + CTA', mo_ta: 'Giảm giá, lời kêu gọi mua' },
+    { ten: 'Hook', mo_ta: '1–3 giây đầu: HÌNH gây dừng tay + chữ trên màn + câu chạm đúng người xem', phan: 0.1 }, { ten: 'Nỗi đau', mo_ta: 'Vấn đề họ gặp mỗi ngày, thấy bằng mắt', phan: 0.15 },
+    { ten: 'Khuấy', mo_ta: 'Làm nỗi đau rõ hơn, đồng cảm', phan: 0.1 }, { ten: 'Giải pháp', mo_ta: 'Sản phẩm xuất hiện (trước giây thứ 5 nếu được)', phan: 0.15 },
+    { ten: 'Demo', mo_ta: 'Cho thấy nó hoạt động: cận chi tiết, trước/sau, mặc thử', phan: 0.2 }, { ten: 'Bằng chứng', mo_ta: 'Người thật, số liệu, đánh giá — CHỈ số có trong mục sản phẩm', phan: 0.15 },
+    { ten: 'Ưu đãi + CTA', mo_ta: 'Trấn an (size / đổi trả / bảo hành) → ưu đãi → hành động cụ thể, có chữ trên màn', phan: 0.15 },
   ] },
 };
+/** Chia thời lượng mục tiêu cho các beat theo `phan` → "Hook 0–3s · Nỗi đau 3–7s …" (beat không có phan → chia đều phần còn lại). */
+export function giayBeat(loai: string, tong: number): { ten: string; tu: number; den: number }[] {
+  const beats = (CAU_TRUC[loai] ?? CAU_TRUC.phim!).beats;
+  const coPhan = beats.reduce((a, b) => a + (b.phan ?? 0), 0);
+  const chuaPhan = beats.filter((b) => !b.phan).length;
+  const conLai = Math.max(0, 1 - coPhan);
+  let t = 0;
+  return beats.map((b) => { const g = tong * (b.phan ?? (chuaPhan ? conLai / chuaPhan : 0)); const tu = t; t += g; return { ten: b.ten, tu: Math.round(tu * 10) / 10, den: Math.round(t * 10) / 10 }; });
+}

@@ -97,7 +97,30 @@ export type Phim = {
   so_tap: number; so_nhan_vat: number; so_canh: number; chi_phi_cents: number; updated_at: string;
 };
 export type BienThe = { id: number; nhan_vat_id: number; nhom: string; ten: string; mo_ta: string; anh_url: string | null };
-export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref: string[]; giong: string; giong_model: string; giong_id: string; giong_mau_url: string | null; bien_the?: BienThe[] };
+/** Claude nhìn ảnh gốc của anchor so với mô tả: lệch chỗ nào (màu, ren, khoá, chữ thương hiệu…) + mô tả viết lại theo ảnh. */
+export type DoiChieu = { khop: boolean; lech: string[]; mo_ta_de_xuat: string; luc: string };
+export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref: string[]; giong: string; giong_model: string; giong_id: string; giong_mau_url: string | null; doi_chieu?: DoiChieu | null; bien_the?: BienThe[] };
+
+/** Phim quảng cáo mà chưa khai sản phẩm (mục 0) → lý do chặn; MỘT luật cho nút ở trình duyệt lẫn gác ở máy chủ. */
+export function thieuQc(loai: LoaiPhim, kt: KinhThanh | null | undefined): string | false {
+  if (loai !== 'quang_cao') return false;
+  const q = kt?.qc;
+  return !(q?.ten?.trim() || q?.link?.trim() || q?.diem_noi_bat?.trim()) && 'khai sản phẩm/dịch vụ ở mục 0 trước (hoặc dán link rồi bấm Lấy từ link)';
+}
+/** Độ dài clip model sinh được: 4 / 6 / 8 giây (Veo). Shot phát ngắn hơn thì cắt (phat_s). */
+export const lamTronClip = (giay: number): 4 | 6 | 8 => (giay <= 4 ? 4 : giay <= 6 ? 6 : 8);
+/** Số giây shot THỰC PHÁT trên timeline / bản dựng: phat_s nếu đã cắt, không thì cả clip. */
+export const giayPhat = (c: Pick<Canh, 'phat_s' | 'thoi_luong_s'>): number => (c.phat_s && c.phat_s > 0 ? c.phat_s : c.thoi_luong_s || 4);
+/** Thời lượng mục tiêu mặc định theo loại phim (giây). */
+export const thoiLuongMacDinh = (loai: LoaiPhim): number => (loai === 'quang_cao' ? 30 : loai === 'short' ? 40 : 60);
+/** Các nhánh hook của tập ('' = thân chung không tính). */
+export const cacNhanh = (canh: Pick<Canh, 'nhanh'>[]): string[] => [...new Set(canh.map((c) => c.nhanh).filter(Boolean))].sort();
+/** Shot của MỘT bản dựng: thân chung + hook của nhánh đã chọn (không chọn → nhánh đầu). */
+export function locNhanh<T extends Pick<Canh, 'nhanh'>>(canh: T[], nhanh?: string | null): T[] {
+  const ds = cacNhanh(canh);
+  const chon = nhanh && ds.includes(nhanh) ? nhanh : ds[0] ?? '';
+  return canh.filter((c) => !c.nhanh || c.nhanh === chon);
+}
 
 /** Nhóm biến thể gợi ý theo loại anchor (nhãn hiển thị). */
 export const NHOM_BIEN_THE: Record<LoaiNhanVat, { key: string; label: string }[]> = {
@@ -108,9 +131,11 @@ export const NHOM_BIEN_THE: Record<LoaiNhanVat, { key: string; label: string }[]
   phong_cach: [{ key: 'trang_thai', label: 'Biến tấu' }],
 };
 export const nhanNhom = (loai: LoaiNhanVat, nhom: string) => NHOM_BIEN_THE[loai]?.find((x) => x.key === nhom)?.label ?? nhom;
-export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number };
+export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null };
 export type Canh = {
   id: number; tap_id: number; thu_tu: number; canh: string; goc_may: string; hanh_dong: string; loi_thoai: string; am_thanh: string; thoai_url: string | null; am_thanh_url: string | null; phan_doan: string; cam_xuc: number; ky_thuat: KyThuatShot; thoai: DongThoai[]; trang_phuc: string;
+  /** Giây thực phát (cắt từ đầu clip); null = phát cả clip. chu_man = chữ trên màn. nhanh = '' thân chung | 'A'/'B'/'C' biến thể hook. */
+  phat_s: number | null; chu_man: string; nhanh: string;
   thoi_luong_s: number; nhan_vat: number[]; bien_the: number[]; prompt_anh: string; prompt_video: string; dang_sinh_anh?: boolean; dang_sinh_am?: boolean; dang_sinh_giong?: boolean; dang_sinh_sfx?: boolean;
   keyframe_url: string | null; keyframe_uv: string[]; video_url: string | null; video_cuoi_url: string | null; nguon_video: Record<string, unknown>; video_phien_ban: { url: string; ban: 'nhap' | 'cuoi'; model?: string; job?: number; luc?: string }[]; trang_thai: TrangThaiCanh; loi: string; chi_phi_cents: number;
 };

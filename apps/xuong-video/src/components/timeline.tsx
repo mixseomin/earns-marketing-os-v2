@@ -1,13 +1,14 @@
 'use client';
 
 // Timeline kiểu CapCut cho một tập: màn xem trước ở trên, các track ở dưới chạy chung một thước giây.
-//   Hình   — mỗi cảnh một clip, dài đúng số giây; dải ảnh keyframe/clip; kéo mép phải đổi số giây, kéo thả clip đổi thứ tự.
+//   Hình   — mỗi cảnh một clip, dài bằng số giây THỰC PHÁT (phat_s: cắt từ đầu clip 4/6/8s); kéo mép phải = cắt, kéo thả clip đổi thứ tự.
+//   Chữ    — chữ trên màn của từng shot (hook, số liệu, CTA) — bản xuất vẽ đúng chữ này.
 //   Thoại  — lời thoại từng cảnh, màu theo nhân vật nói; có file giọng (thoai_url) thì phát file, chưa có thì đọc thử bằng giọng máy.
 //   Âm thanh — hiệu ứng/âm nền từng cảnh (am_thanh / am_thanh_url).
 //   Nhạc   — nhạc nền cả tập (nhac_url / nhac_mo_ta).
 // Nét đứt = mới có mô tả trong kịch bản, chưa sinh file. Toàn bộ chạy ở trình duyệt, không tốn tiền.
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as PE, type ReactNode } from 'react';
-import type { Canh, NhanVat, Tap } from '@/lib/xuong-video/kieu';
+import { giayPhat, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat } from '@/lib/xuong-video/dien-anh';
 import { nguoiNoi, dongThoai } from '@/lib/xuong-video/am-thanh';
 import { BangSinh, type YeuCauBang } from './bang-sinh';
@@ -29,7 +30,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
 }) {
   // Số giây tạm khi đang kéo mép clip (chưa ghi) — timeline co giãn theo tay ngay.
   const [giayTam, setGiayTam] = useState<Record<number, number>>({});
-  const dur = (c: Canh) => giayTam[c.id] ?? (c.thoi_luong_s || 4);
+  const dur = (c: Canh) => giayTam[c.id] ?? giayPhat(c);
   const batDau = useMemo(() => { let a = 0; return canh.map((c) => { const s = a; a += dur(c); return s; }); }, [canh, giayTam]); // eslint-disable-line react-hooks/exhaustive-deps
   const tong = canh.reduce((a, c) => a + dur(c), 0);
 
@@ -89,6 +90,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   };
   useEffect(() => {
     dongBo(vidRef.current, tTrong, true);
+    if (c && vidRef.current && tTrong >= dur(c)) vidRef.current.pause();   // hết phần phát (phat_s) thì dừng dù clip còn
     if (c && dongThoai(c, nhanVat).length > 1) { setDong(0); if (thoaiRef.current) { thoaiRef.current.currentTime = 0; if (chay) void thoaiRef.current.play().catch(() => {}); else thoaiRef.current.pause(); } }
     else dongBo(thoaiRef.current, tTrong, true);
     dongBo(sfxRef.current, tTrong, true);
@@ -139,11 +141,11 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h);
   }); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Kéo mép phải clip hình → đổi số giây (bước 1s, 1–15s); thả tay mới ghi.
+  // Kéo mép phải clip hình → đổi số giây THỰC PHÁT (bước 0,5s, 1–15s); thả tay mới ghi. Ngắn hơn clip = cắt; dài hơn clip = sinh lại clip dài hơn.
   const keoMep = (cc: Canh) => (e: PE<HTMLDivElement>) => {
     e.stopPropagation(); e.preventDefault();
-    const x0 = e.clientX; const g0 = cc.thoi_luong_s || 4; let g = g0;
-    const move = (ev: PointerEvent) => { g = Math.max(1, Math.min(15, Math.round(g0 + (ev.clientX - x0) / pps))); setGiayTam((m) => ({ ...m, [cc.id]: g })); };
+    const x0 = e.clientX; const g0 = giayPhat(cc); let g = g0;
+    const move = (ev: PointerEvent) => { g = Math.max(1, Math.min(15, Math.round((g0 + (ev.clientX - x0) / pps) * 2) / 2)); setGiayTam((m) => ({ ...m, [cc.id]: g })); };
     const up = () => {
       window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
       if (g !== g0) onDoiGiay(cc.id, g);
@@ -221,6 +223,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           {c && (vid ? <video ref={vidRef} key={vid} src={vid} playsInline preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : c.keyframe_url ? <img src={c.keyframe_url} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb }} />
             : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} chưa có hình</div>)}
+          {c?.chu_man && <div style={{ position: 'absolute', left: '6%', right: '6%', top: '14%', textAlign: 'center', color: '#fff', fontSize: doc916 ? 13 : 18, fontWeight: 800, lineHeight: 1.15, textShadow: '0 2px 8px #000, 0 0 3px #000', textTransform: 'none' }}>{c.chu_man}</div>}
           {c?.loi_thoai && <div style={{ position: 'absolute', left: '5%', right: '5%', bottom: '6%', textAlign: 'center', color: '#fff', fontSize: doc916 ? 11 : 14, fontWeight: 600, textShadow: '0 2px 6px #000, 0 0 2px #000' }}>{c.loi_thoai}</div>}
           {c && (() => {
             const ds = dongThoai(c, nhanVat).map((d) => d.url).filter((u): u is string => !!u);
@@ -239,7 +242,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             <span style={{ ...mono, fontSize: 12, color: 'var(--fg-1)' }}>{dongHo(t)} / {dongHo(tong)}</span>
             <button type="button" className="xv-btn" onClick={onToanManHinh} title="Xem cả tập toàn màn hình">⛶</button>
           </div>
-          {c && <div style={{ fontSize: 12 }}><b>#{c.thu_tu} {c.canh}</b> <span style={mono}>· {dur(c)}s · {vid ? (c.video_cuoi_url ? 'bản cuối' : 'nháp') : c.keyframe_url ? 'keyframe' : 'chưa có hình'}</span></div>}
+          {c && <div style={{ fontSize: 12 }}><b>#{c.thu_tu} {c.canh}</b> <span style={mono}>· phát {dur(c)}s{dur(c) !== (c.thoi_luong_s || 4) ? ` / clip ${c.thoi_luong_s || 4}s` : ''} · {vid ? (c.video_cuoi_url ? 'bản cuối' : 'nháp') : c.keyframe_url ? 'keyframe' : 'chưa có hình'}{c.nhanh ? ` · hook ${c.nhanh}` : ''}</span></div>}
+          {c?.chu_man && <div style={{ fontSize: 11.5 }}>✎ <b>{c.chu_man}</b></div>}
           {c?.hanh_dong && <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{c.hanh_dong}</div>}
           {c?.loi_thoai && <div style={{ fontSize: 11.5 }}><span style={{ color: mauNv(nv) }}>🗣 {nv?.ten ?? 'Lời dẫn'}</span>{nv?.giong ? <span style={mono}> · giọng: {nv.giong}</span> : null}{!c.thoai_url && <span style={{ ...mono, color: 'var(--amber)' }}> · chưa sinh giọng{docThu ? ', đang đọc thử bằng giọng máy' : ''}</span>}</div>}
           {c?.am_thanh && <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>🔊 {c.am_thanh}{!c.am_thanh_url && <span style={{ ...mono, color: 'var(--amber)' }}> · chưa sinh</span>}</div>}
@@ -253,7 +257,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                 title={k === 'clip' ? 'Bấm để đổi: tự (tắt khi shot có giọng/hiệu ứng riêng) → bật hết → tắt hết' : tat[k] ? 'đang tắt — bấm để bật' : 'đang bật — bấm để tắt'}
                 style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, border: '1px solid var(--line)', background: tat[k] ? 'none' : 'var(--bg-2)', color: tat[k] ? 'var(--fg-4)' : 'var(--fg-2)', textDecoration: tat[k] ? 'line-through' : 'none', cursor: 'pointer' }}>{chu}</button>
             ))}</span>
-            <span>Space chạy/dừng · ←/→ đổi cảnh · kéo mép clip đổi giây · kéo clip đổi thứ tự · nét đứt = chưa sinh</span>
+            <span>Space chạy/dừng · ←/→ đổi cảnh · kéo mép clip = cắt giây phát · kéo clip đổi thứ tự · nét đứt = chưa sinh</span>
           </div>
         </div>
       </div>
@@ -298,13 +302,13 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               <div key={cc.id} draggable onDragStart={() => setKeo(cc.id)} onDragEnd={() => { setKeo(null); setTha(null); }}
                 onDragOver={(e) => { e.preventDefault(); setTha(cc.id); }} onDrop={() => { thaVao(cc.id); setKeo(null); setTha(null); }}
                 onClick={() => { onChon(cc.id); tuaToi(batDau[i]!); }}
-                title={`#${cc.thu_tu} ${cc.canh} · ${dur(cc)}s`}
+                title={`#${cc.thu_tu} ${cc.canh} · phát ${dur(cc)}s${dur(cc) !== (cc.thoi_luong_s || 4) ? ` (clip ${cc.thoi_luong_s || 4}s)` : ''}`}
                 style={{ position: 'absolute', left: x + 1, width: Math.max(6, w - 2), top: 0, bottom: 0, borderRadius: 5, overflow: 'hidden', cursor: 'grab',
                   border: `2px solid ${dangChon ? 'var(--cyan)' : tha === cc.id && keo !== cc.id ? 'var(--amber)' : coVid ? '#4ade8088' : 'var(--line)'}`,
                   background: anh ? `url(${anh}) left center / auto 100% repeat-x, #111` : 'var(--bg-2)', opacity: keo === cc.id ? 0.4 : 1 }}>
                 {(cc.dang_sinh_anh || cc.trang_thai === 'dang_sinh') && <div className="xv-dang"><span>⏳ {cc.dang_sinh_anh ? 'ảnh' : 'video'}</span></div>}
                 <span style={{ position: 'absolute', left: 3, top: 2, fontSize: 10, color: '#fff', textShadow: '0 1px 3px #000', whiteSpace: 'nowrap', zIndex: 2 }}>{coVid ? '▶ ' : ''}#{cc.thu_tu} · {dur(cc)}s</span>
-                <div onPointerDown={keoMep(cc)} title="Kéo để đổi số giây" style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 7, cursor: 'ew-resize', background: 'rgba(255,255,255,.25)' }} />
+                <div onPointerDown={keoMep(cc)} title="Kéo để cắt / kéo dài giây phát" style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 7, cursor: 'ew-resize', background: 'rgba(255,255,255,.25)' }} />
               </div>
             );
           }), 48)}
@@ -331,6 +335,11 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             if (!chu) return null;
             const day = ['co_canh', 'goc', 'chuyen_dong', 'ong_kinh', 'anh_sang', 'mau', 'chuyen_canh', 'nhac'].map((n) => kyThuat((kt as Record<string, string>)[n])?.ten).filter(Boolean).join('\n');
             return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, '#38d9f5', chu, day, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); });
+          }))}
+
+          {canh.some((x) => x.chu_man.trim()) && track('✎ Chữ màn', 'Chữ hiện trên màn của từng shot (hook, số liệu, ưu đãi, CTA) — sửa ở form cảnh; bản xuất vẽ đúng chữ này', canh.map((cc, i) => {
+            if (!cc.chu_man.trim()) return null;
+            return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, '#facc15', cc.chu_man, cc.chu_man, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); });
           }))}
 
           {track('🗣 Thoại', 'Lời thoại từng cảnh — màu theo nhân vật nói', canh.map((cc, i) => {

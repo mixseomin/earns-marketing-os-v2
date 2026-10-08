@@ -6,7 +6,7 @@
 import 'server-only';
 
 type Truong = { type?: string; enum?: unknown[]; examples?: unknown[]; anyOf?: Array<{ enum?: unknown[]; $ref?: string }>; allOf?: Array<{ $ref?: string }>; $ref?: string; properties?: Record<string, Truong>; description?: string };
-export type MoHinhGiong = { key: string; ten: string; nhom: string; giaCents: number | null; donVi: '1k_ky_tu' | 'giay' | 'khac'; giaText: string };
+export type MoHinhGiong = { key: string; ten: string; nhom: string; giaCents: number | null; donVi: '1k_ky_tu' | 'giay' | 'luot' | 'khac'; giaText: string };
 export type MoTaGiong = { truongChu: string; truongGiong: string[] | null; giong: string[]; truongNgonNgu: string | null; ngonNgu: string[] };
 
 const ELEVEN = 'https://api.elevenlabs.io/v1';
@@ -17,8 +17,14 @@ function giaTts(t: string): { cents: number | null; donVi: MoHinhGiong['donVi'] 
   const s = t.replace(/\*\*/g, '');
   const k = s.match(/\$?\s*([0-9]*\.?[0-9]+)\s*\$?\s*per\s*1[,.]?000\s*char/i);
   if (k) return { cents: parseFloat(k[1]!) * 100, donVi: '1k_ky_tu' };
-  const g = s.match(/\$?\s*([0-9]*\.?[0-9]+)\s*\$?\s*per\s*(generated\s*)?(audio\s*)?second/i);
+  const k2 = s.match(/per\s*1[,.]?000\s*char[^$]{0,20}\$\s?([0-9]*\.?[0-9]+)/i);   // "Cost per 1,000 Characters | $0.05"
+  if (k2) return { cents: parseFloat(k2[1]!) * 100, donVi: '1k_ky_tu' };
+  const g = s.match(/\$?\s*([0-9]*\.?[0-9]+)\s*\$?\s*per\s*(generated\s*)?(audio\s*)?(compute\s*)?second/i);
   if (g) return { cents: parseFloat(g[1]!) * 100, donVi: 'giay' };
+  const p = s.match(/\$\s?([0-9]*\.?[0-9]+)\s*per\s*(generated\s*)?minute/i);
+  if (p) return { cents: (parseFloat(p[1]!) * 100) / 60, donVi: 'giay' };
+  const l = s.match(/\$\s?([0-9]*\.?[0-9]+)\s*per\s*(generation|request|call)/i);
+  if (l) return { cents: parseFloat(l[1]!) * 100, donVi: 'luot' };
   return { cents: null, donVi: 'khac' };
 }
 
@@ -36,10 +42,20 @@ export async function dsMoHinhGiong(): Promise<MoHinhGiong[]> {
       const j = (await r.json()) as { items?: Array<Record<string, unknown>> };
       const fal = (j.items ?? []).map((m) => String(m.id ?? '')).filter((id) => id && !/voice-clone|voice-design|clone-voice|stream|batch|realtime/.test(id));
       const items = new Map((j.items ?? []).map((m) => [String(m.id), m]));
+      // Danh mục fal để trống giá ở nhiều model TTS; giá vẫn ghi trên trang riêng của model → đọc trang đó cho model thiếu.
+      const giaTrang = new Map<string, string>();
+      await Promise.all(fal.filter((id) => !String(items.get(id)?.pricingInfoOverride ?? '').trim()).map(async (id) => {
+        try {
+          const h = await (await fetch(`https://fal.ai/models/${id}`, { signal: AbortSignal.timeout(8000) })).text();
+          const t = h.replace(/<[^>]+>/g, ' ').replace(/&#x27;|&quot;|\\"/g, ' ').replace(/\s+/g, ' ');
+          const m = t.match(/(?:cost|charged)[^.$]{0,40}\$\s?[0-9.]+[^.]{0,60}/i);
+          if (m) giaTrang.set(id, m[0]);
+        } catch { /* thôi */ }
+      }));
       khoDm = { luc: Date.now(), ds: fal.map((id) => {
-        const m = items.get(id)!; const g = giaTts(String(m.pricingInfoOverride ?? ''));
+        const m = items.get(id)!; const goc = String(m.pricingInfoOverride ?? '').trim() || giaTrang.get(id) || ''; const g = giaTts(goc);
         const hang = id.split('/')[0] === 'fal-ai' ? id.split('/')[1] : id.split('/')[0];
-        return { key: id, ten: String(m.title ?? id), nhom: `fal · ${hang}`, giaCents: g.cents, donVi: g.donVi, giaText: String(m.pricingInfoOverride ?? '').replace(/\*\*/g, '') || 'fal chưa công bố giá' };
+        return { key: id, ten: String(m.title ?? id), nhom: `fal · ${hang}`, giaCents: g.cents, donVi: g.donVi, giaText: goc.replace(/\*\*/g, '') || 'fal chưa công bố giá' };
       }) };
     } catch { /* giữ kho cũ */ }
   }
@@ -113,6 +129,7 @@ export function giaGiong(m: MoHinhGiong | undefined, soKyTu: number): number {
   if (!m || m.giaCents == null) return 0;
   if (m.donVi === '1k_ky_tu') return (Math.max(1, soKyTu) / 1000) * m.giaCents;
   if (m.donVi === 'giay') return Math.max(1, soKyTu / 15) * m.giaCents;   // ~15 ký tự mỗi giây đọc
+  if (m.donVi === 'luot') return m.giaCents;
   return 0;
 }
 

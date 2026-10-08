@@ -419,7 +419,7 @@ function GiongNhanVat({ v, onChanged }: { v: NhanVat; onChanged: () => Promise<v
   const [ban, setBan] = useState(''); const [loi, setLoi] = useState('');
   useEffect(() => { if (mo && !dsM.length) void dsGiongModel().then((d) => { setDsM(d); if (!model && d[0]) setModel(d[0].key); }); }, [mo]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!mo || !model) return; setDsG(null); void dsGiongCua(model).then(setDsG); }, [mo, model]);
-  const giaM = (m: (typeof dsM)[number]) => (m.giaCents == null ? (m.key.startsWith('elevenlabs:') ? 'trong gói' : 'chưa có giá') : `${tien(m.giaCents)}${m.donVi === '1k_ky_tu' ? '/1k ký tự' : m.donVi === 'giay' ? '/giây' : ''}`);
+  const giaM = (m: (typeof dsM)[number]) => (m.giaCents == null ? (m.key.startsWith('elevenlabs:') ? 'trong gói' : 'chưa có giá') : `${tien(m.giaCents)}${m.donVi === '1k_ky_tu' ? '/1k ký tự' : m.donVi === 'giay' ? '/giây' : m.donVi === 'luot' ? '/lượt' : ''}`);
   const moTa = (id: string) => Object.values(GIONG).flat().find((g) => g.id === id)?.ta;
   const tenModel = dsM.find((m) => m.key === v.giong_model)?.ten ?? v.giong_model.split('/').slice(-2).join('/');
   return (

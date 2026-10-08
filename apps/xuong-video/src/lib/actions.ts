@@ -535,14 +535,16 @@ export async function sinhKeyframe(canhId: number, so = 1, moHinh?: string): Pro
   // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.
   const btCanh = (v: NhanVat) => (v.bien_the ?? []).find((b) => bc.canh.bien_the.includes(b.id));
   const urlRef = bc.nhanVat.flatMap((v) => { const b = btCanh(v); return [...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, b?.anh_url ? 1 : 2)]; }).slice(0, 10);
-  const thamChieu = (await Promise.all(urlRef.map(taiAnhBase64))).filter((x): x is AnhVao => !!x);
+  // Tải ảnh tham chiếu trong nền (không await ở đây) → server action trả ngay, bấm nhiều cảnh liền tay không phải chờ nhau.
+  const thamChieuP = Promise.all(urlRef.map(taiAnhBase64)).then((xs) => xs.filter((x): x is AnhVao => !!x));
   const ghiChuBt = bc.nhanVat.map((v) => { const b = btCanh(v); return b ? `${v.ten} in this shot: ${b.mo_ta || b.ten}.` : ''; }).filter(Boolean).join(' ');
   const prompt = [ghepPromptAnh(bc.canh.prompt_anh, bc.kt.phong_cach, bc.nhanVat), ghiChuBt].filter(Boolean).join(' ');
   const jobs: number[] = [];
   for (let i = 0; i < Math.max(1, Math.min(3, so)); i++) {
-    const job = await taoJob({ nhan: `Keyframe · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt, thamChieu: thamChieu.length } });
+    const job = await taoJob({ nhan: `Keyframe · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt, thamChieu: urlRef.length } });
     jobs.push(job);
     chayNen(async () => {
+      const thamChieu = await thamChieuP;
       const kq = await sinhAnh({ model: bc.kt.mo_hinh_anh, prompt, thamChieu, thamChieuUrl: urlRef, tiLe: bc.kt.ti_le, kichCo: '1K' });
       if (!kq.ok) { await xongJob(job, { loi: kq.loi }); await db.execute(sql`UPDATE xv_canh SET loi = ${kq.loi}, updated_at = now() WHERE id = ${canhId}`); return; }
       const url = await uploadToR2(`xuong-video/keyframe/${canhId}-${randomUUID()}.${duoi(kq.mimeType)}`, kq.data, kq.mimeType);

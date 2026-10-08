@@ -4,10 +4,11 @@
 // là hai cách nhìn khác của cùng bảng này, không có dữ liệu riêng.
 import { createContext, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useModalParam } from '@/lib/use-modal-param';
+import { Timeline } from './timeline';
 import {
   dsPhim, docPhim, dsCanh, taoPhim, taoPhimMau, suaPhim, xoaPhim, luuNhanVat, xoaNhanVat, sinhAnhMau, taoTap, suaTap,
   vietKichBanTap, tachCanhTap, suaCanh, themCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, uocTien, sinhVideoCanh, kiemVideo, taiAnhLen,
-  dsMoHinh, type MoHinhChon,
+  dsMoHinh, xepCanh, type MoHinhChon,
   goiYAIKinhThanh, goiYAIAnchor, goiYAIBoAnchor, goiYAIBrief, goiYAICanh, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, nangCapCanh, chonPhienBan,
   type PhimDayDu,
 } from '@/lib/actions';
@@ -598,6 +599,10 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
   const banTach = banSet.has('tach');
   const [loi, setLoi] = useState('');
   const [animatic, setAnimatic] = useState(false);
+  // 3c xem dạng timeline (mặc định, kiểu CapCut) hoặc danh sách; nhớ theo trình duyệt.
+  const [xem, setXem] = useState<'timeline' | 'ds'>(() => { try { return (localStorage.getItem('xv-xem-3c') as 'timeline' | 'ds') || 'timeline'; } catch { return 'timeline'; } });
+  useEffect(() => { try { localStorage.setItem('xv-xem-3c', xem); } catch { /* bỏ qua */ } }, [xem]);
+  const [chonCanh, setChonCanh] = useState<number | null>(null);
   const [uoc, setUoc] = useState<{ anh1: number; videoTong: number; soCanhDuyet: number; giayDuyet: number } | null>(null);
   const kt = docKinhThanh(phim.kinh_thanh);
   const taiCanh = useCallback(async () => { setCanh(await dsCanh(tap.id)); setUoc(await uocTien(tap.id)); }, [tap.id]);
@@ -698,7 +703,25 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
           <span style={{ ...mono, marginLeft: 10 }}>hoặc <button type="button" className="xv-btn" disabled={banTach || ban('them')} onClick={() => void chay('them', async () => { await themCanh(tap.id); })}>+ Cảnh</button> tự viết</span>
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>{canh.map((c) => <CanhRow key={c.id} c={c} nhanVat={nhanVat} kt={kt} khoa={khoa} ban={(k) => banTach || ban(k)} chay={chay} />)}</div>
+        <>
+          <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
+            <button type="button" className={`xv-btn${xem === 'timeline' ? ' chinh' : ''}`} onClick={() => setXem('timeline')}>🎞 Timeline</button>
+            <button type="button" className={`xv-btn${xem === 'ds' ? ' chinh' : ''}`} onClick={() => setXem('ds')}>☰ Danh sách cảnh</button>
+          </div>
+          {xem === 'timeline' ? (() => {
+            const cc = canh.find((x) => x.id === chonCanh) ?? canh[0]!;
+            return (
+              <>
+                <Timeline canh={canh} nhanVat={nhanVat} tap={tap} tiLe={kt.ti_le} ngonNgu={kt.ngon_ngu} chon={cc.id} onChon={setChonCanh} onToanManHinh={() => setAnimatic(true)}
+                  onDoiGiay={(id, g) => void chay(`c${id}`, () => suaCanh(id, { thoi_luong_s: g }))}
+                  onXep={(ids) => { setCanh((ds) => ds && ids.map((id, i) => ({ ...ds.find((x) => x.id === id)!, thu_tu: i + 1 }))); void chay('xep', () => xepCanh(tap.id, ids)); }} />
+                <CanhRow key={cc.id} c={cc} nhanVat={nhanVat} kt={kt} khoa={khoa} ban={(k) => banTach || ban(k)} chay={chay} />
+              </>
+            );
+          })() : (
+            <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>{canh.map((c) => <CanhRow key={c.id} c={c} nhanVat={nhanVat} kt={kt} khoa={khoa} ban={(k) => banTach || ban(k)} chay={chay} />)}</div>
+          )}
+        </>
       )}
       {animatic && canh && <Animatic canh={canh} tiLe={kt.ti_le} ngonNgu={kt.ngon_ngu} onClose={() => setAnimatic(false)} />}
     </div>
@@ -747,7 +770,7 @@ function Animatic({ canh, tiLe, ngonNgu, onClose }: { canh: Canh[]; tiLe: string
   const p = Math.min(1, t / dai);
   const kb = i % 2 === 0 ? `scale(${1 + 0.08 * p}) translate(${-1.5 * p}%, ${-1 * p}%)` : `scale(${1.08 - 0.08 * p}) translate(${1.5 * p}%, 0)`;
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 900, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+    <div data-animatic="" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 900, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
       <div style={{ position: 'relative', height: doc916 ? '78vh' : 'auto', width: doc916 ? 'calc(78vh * 9 / 16)' : 'min(92vw, 1200px)', aspectRatio: doc916 ? '9 / 16' : '16 / 9', overflow: 'hidden', borderRadius: 10, background: '#000' }}>
         {vid ? <video key={vid} src={vid} autoPlay muted={false} playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : <img src={c.keyframe_url!} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb, transition: 'transform .1s linear' }} />}

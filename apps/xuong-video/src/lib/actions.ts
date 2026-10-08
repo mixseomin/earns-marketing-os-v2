@@ -124,9 +124,9 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
 }
 const mapBienThe = (r: Row): BienThe => ({ id: n(r.id), nhan_vat_id: n(r.nhan_vat_id), nhom: s(r.nhom), ten: s(r.ten), mo_ta: s(r.mo_ta), anh_url: r.anh_url == null ? null : s(r.anh_url) });
 const mapNhanVat = (r: Row): NhanVat => ({ id: n(r.id), phim_id: n(r.phim_id), loai: s(r.loai) as LoaiNhanVat, ten: s(r.ten), mo_ta: s(r.mo_ta), anh_ref: arr<string>(r.anh_ref), giong: s(r.giong) });
-const mapTap = (r: Row): Tap => ({ id: n(r.id), phim_id: n(r.phim_id), so: n(r.so), ten: s(r.ten), brief: s(r.brief), noi_khung: r.noi_khung === true, kich_ban: s(r.kich_ban), tom_tat: s(r.tom_tat), trang_thai: s(r.trang_thai), video_url: r.video_url == null ? null : s(r.video_url), so_canh: n(r.so_canh) });
+const mapTap = (r: Row): Tap => ({ id: n(r.id), phim_id: n(r.phim_id), so: n(r.so), ten: s(r.ten), brief: s(r.brief), noi_khung: r.noi_khung === true, nhac_url: r.nhac_url == null ? null : s(r.nhac_url), nhac_mo_ta: s(r.nhac_mo_ta), kich_ban: s(r.kich_ban), tom_tat: s(r.tom_tat), trang_thai: s(r.trang_thai), video_url: r.video_url == null ? null : s(r.video_url), so_canh: n(r.so_canh) });
 const mapCanh = (r: Row): Canh => ({
-  id: n(r.id), tap_id: n(r.tap_id), thu_tu: n(r.thu_tu), canh: s(r.canh), goc_may: s(r.goc_may), hanh_dong: s(r.hanh_dong), loi_thoai: s(r.loi_thoai), am_thanh: s(r.am_thanh),
+  id: n(r.id), tap_id: n(r.tap_id), thu_tu: n(r.thu_tu), canh: s(r.canh), goc_may: s(r.goc_may), hanh_dong: s(r.hanh_dong), loi_thoai: s(r.loi_thoai), am_thanh: s(r.am_thanh), thoai_url: r.thoai_url == null ? null : s(r.thoai_url), am_thanh_url: r.am_thanh_url == null ? null : s(r.am_thanh_url),
   thoi_luong_s: n(r.thoi_luong_s), nhan_vat: arr<number>(r.nhan_vat).map(Number), bien_the: arr<number>(r.bien_the).map(Number), dang_sinh_anh: r.dang_sinh_anh === true, prompt_anh: s(r.prompt_anh), prompt_video: s(r.prompt_video),
   keyframe_url: r.keyframe_url == null ? null : s(r.keyframe_url), keyframe_uv: arr<string>(r.keyframe_uv), video_url: r.video_url == null ? null : s(r.video_url), video_cuoi_url: r.video_cuoi_url == null ? null : s(r.video_cuoi_url), nguon_video: (r.nguon_video && typeof r.nguon_video === 'object' ? r.nguon_video : {}) as Record<string, unknown>, video_phien_ban: arr<Canh['video_phien_ban'][number]>(r.video_phien_ban),
   trang_thai: s(r.trang_thai) as TrangThaiCanh, loi: s(r.loi), chi_phi_cents: n(r.chi_phi_cents),
@@ -364,12 +364,12 @@ export async function taoTap(phimId: number, ten: string): Promise<Kq<number>> {
   return { ok: true, data: n(r[0]?.id) };
 }
 
-export async function suaTap(id: number, d: { ten?: string; brief?: string; kich_ban?: string; tom_tat?: string; so?: number; noi_khung?: boolean }): Promise<Kq> {
+export async function suaTap(id: number, d: { ten?: string; brief?: string; kich_ban?: string; tom_tat?: string; so?: number; noi_khung?: boolean; nhac_mo_ta?: string }): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   await db.execute(sql`UPDATE xv_tap SET ten = coalesce(${d.ten ?? null}, ten), brief = coalesce(${d.brief ?? null}, brief), kich_ban = coalesce(${d.kich_ban ?? null}, kich_ban),
-    tom_tat = coalesce(${d.tom_tat ?? null}, tom_tat), so = coalesce(${d.so ?? null}, so), noi_khung = coalesce(${d.noi_khung ?? null}, noi_khung), updated_at = now() WHERE id = ${id}`);
+    tom_tat = coalesce(${d.tom_tat ?? null}, tom_tat), so = coalesce(${d.so ?? null}, so), noi_khung = coalesce(${d.noi_khung ?? null}, noi_khung), nhac_mo_ta = coalesce(${d.nhac_mo_ta ?? null}, nhac_mo_ta), updated_at = now() WHERE id = ${id}`);
   return { ok: true, data: undefined };
 }
 
@@ -434,6 +434,16 @@ export async function tachCanhTap(tapId: number, soCanh: number): Promise<Kq<num
 }
 
 // ── Cảnh ─────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+/** Sắp lại thứ tự cảnh của một tập theo danh sách id (kéo thả trên timeline). Một câu UPDATE, cảnh ngoài tập không bị đụng. */
+export async function xepCanh(tapId: number, ids: number[]): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  await db.execute(sql`UPDATE xv_canh c SET thu_tu = x.i, updated_at = now()
+    FROM unnest(${mangInt(ids)}::int[]) WITH ORDINALITY AS x(id, i) WHERE c.id = x.id AND c.tap_id = ${tapId}`);
+  return { ok: true, data: undefined };
+}
 
 export async function suaCanh(id: number, d: Partial<Pick<Canh, 'canh' | 'goc_may' | 'hanh_dong' | 'loi_thoai' | 'am_thanh' | 'thoi_luong_s' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'prompt_video' | 'thu_tu'>>): Promise<Kq> {
   const db = getDb();

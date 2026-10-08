@@ -217,6 +217,7 @@ function ProjectNav({ projectId, role }: { projectId: string; role: 'admin' | 'o
       items: [
         { href: `/p/${p}/resources`, icon: '🗂', color: 'var(--fg-2)',        label: 'Resources', sub: 'kho hậu cần' },
         { href: `/p/${p}/flow`,      icon: '🗺', color: 'var(--neon-violet)', label: 'Flow',      sub: 'diagram · architecture', role: 'admin' },
+        { href: `/p/${p}/xuong-video`, icon: '🎬', color: 'var(--neon-cyan)', label: 'Xưởng video', sub: 'kịch bản · storyboard · clip AI', role: 'admin' },
       ],
     },
   ];

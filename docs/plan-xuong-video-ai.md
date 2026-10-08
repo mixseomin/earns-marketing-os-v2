@@ -1,6 +1,6 @@
 # Xưởng video AI — kịch bản → storyboard → node → timeline (PLAN, 08/10/2026)
 
-Trạng thái: **bản kế hoạch, chưa làm gì**. Chờ anh chốt 3 câu hỏi ở mục 7.
+Trạng thái: **anh đã chốt 08/10/2026** (mục 7 ghi quyết định). G1 đã lên mos2 cùng ngày: `/p/<project>/xuong-video`.
 
 ## 1. Vì sao cần
 
@@ -73,11 +73,24 @@ Canvas luôn mở song song để người quen tự chế: thêm biến thể, 
 - **MCP cho Claude**: `tach_canh`, `sinh_keyframe`, `sinh_video`, `xep_timeline`, `render` → Claude làm cả mạch từ chat, anh duyệt keyframe trên UI.
 - **Tiền**: mỗi job ghi `cost`; `estimateCost` hiện trên nút Run; hạn mức ngày mỗi project; không có nút nào tự chạy khi chưa bấm.
 
-## 7. Ba câu cần anh chốt trước khi làm
+## 7. Quyết định của anh (08/10/2026)
 
-1. **Dùng cho việc gì trước**: (a) video quảng cáo sản phẩm shop 15-30s từ ảnh sản phẩm (nối thẳng với QC Meta), hay (b) phim ngắn nhiều cảnh kiểu truyện thỏ-rùa trong ảnh TTM? Khác nhau ở anchor (sản phẩm vs nhân vật) và độ dài timeline.
-2. **Model**: anh đang có khoá nào (Google Gemini/Veo, fal.ai, Kling)? Em không đọc được tệp khoá trên box trong phiên này (bộ lọc chặn đọc env production), nên chưa biết chạy được Veo từ đâu.
-3. **Đặt trong MOS2** (đề xuất) hay app riêng?
+1. **Phạm vi**: cả ba — short video, phim ngắn nhiều tập (thị trường đang nóng), creative quảng cáo. Mỗi "phim" có `loai` = short | phim | quang_cao; khác nhau ở anchor mặc định và độ dài, chung một mạch.
+2. **Model**: khoá có sẵn = Google (Gemini/Veo), Claude, OpenAI. **Sora 2 API của OpenAI đã đóng 24/09/2026** nên video chỉ còn Google.
+   Bản test rẻ nhất (giá Gemini API 08/10/2026): ảnh **Nano Banana 2.1** 1K = $0,0336/ảnh (nhận tới 4 ảnh nhân vật + 10 ảnh vật làm tham chiếu — đúng thứ series cần) ·
+   video **Veo 3.1 Lite** 720p = $0,05/giây → $0,40 một clip 8s (Fast $0,80, Quality $3,20) · chữ **Claude** (Opus 5.5 mặc định; Haiku 4.5 để thử rẻ, tách cảnh chỉ vài nghìn token).
+   Một short 6 cảnh ≈ 6 ảnh + 48s video ≈ $2,60 ở mức Lite. Khoá đọc từ `GOOGLE_API_KEY` (hoặc `GEMINI_API_KEY`) và `ANTHROPIC_API_KEY` trong `.env.production`; trang tự báo thiếu khoá nào.
+3. **Nơi đặt**: trong MOS2 (mos2.on.tc) dùng nội bộ trước.
+4. **Series nhiều tập**: anchor (nhân vật · sản phẩm · bối cảnh · đạo cụ · phong cách) nằm ở tầng PHIM, mọi tập dùng chung; mỗi anchor có đặc tính cố định + ảnh mẫu (tải lên hoặc máy sinh "character sheet");
+   prompt mọi cảnh tự nối phong cách bộ phim + đặc tính anchor + ảnh mẫu làm tham chiếu; tập sau đọc tóm tắt các tập trước để nối mạch.
+
+## 7b. Đã làm — G1 (08/10/2026)
+
+- Migration `0222_xuong_video.sql`: `xv_phim` · `xv_nhan_vat` (anchor) · `xv_tap` · `xv_canh` (shot = xương sống) · `xv_job` (sổ chi phí từng lần gọi model).
+- `lib/xuong-video/`: `kieu.ts` (kiểu + bảng model/giá), `google.ts` (Gemini ảnh qua generateContent, Veo qua predictLongRunning + poll + tải), `claude.ts` (viết kịch bản, tách cảnh JSON có cấu trúc, prompt ảnh mẫu anchor).
+- `lib/actions/xuong-video.ts`: CRUD + `vietKichBanTap` → `tachCanhTap` → `sinhKeyframe` (ứng viên) → `chonKeyframe` → `duyetCanh` (gate) → `sinhVideoCanh` (async) → `kiemVideo` (poll 10s) · `uocTien` trước khi bấm.
+- Trang `/p/[id]/xuong-video` (`components/xuong-video/trang.tsx`): danh sách phim → drawer phim: kinh thánh · anchor (ảnh mẫu) · tập · storyboard từng cảnh với keyframe/duyệt/video; menu + tab đã khai.
+- Còn lại theo lộ trình mục 8: G2 canvas node, G3 timeline + render ffmpeg, G4 extend/first-last + MCP, G5 nối shop.
 
 ## 8. Lộ trình (sau khi chốt)
 

@@ -20,8 +20,9 @@ const CanhSchema = z.object({
   prompt_anh: z.string().describe('Prompt tiếng Anh cho model sinh ảnh keyframe: tả khung hình tĩnh đầu cảnh — bố cục, ánh sáng, cỡ cảnh, nhân vật tả theo đặc tính cố định (KHÔNG dùng tên riêng), bối cảnh, phong cách. Không nhắc chuyển động.'),
   prompt_video: z.string().describe('Prompt tiếng Anh cho model sinh video từ keyframe: chuyển động nhân vật, chuyển động máy, nhịp, âm thanh/lời thoại (ghi dialogue trong ngoặc kép kèm ngôn ngữ). Giữ nhân vật đúng như khung đầu.'),
 });
-// Kỹ thuật điện ảnh: enum theo đúng key thư viện (dien-anh.ts) → Claude không bịa được kỹ thuật lạ.
-const enumNhom = (n: NhomKyThuat) => z.enum(THU_VIEN.filter((x) => x.nhom === n).map((x) => x.key) as [string, ...string[]]);
+// Kỹ thuật điện ảnh: chuỗi kèm danh sách key hợp lệ trong mô tả. KHÔNG dùng z.enum: helper SDK chuyển enum thành mô tả rồi parse lại
+// bằng zod — Claude lỡ một key lạ là cả lượt tách cảnh hỏng. Key lạ do máy chủ lọc bỏ (lamSachKyThuat), shot vẫn giữ.
+const enumNhom = (n: NhomKyThuat) => z.string().describe(`Một key trong: ${THU_VIEN.filter((x) => x.nhom === n).map((x) => x.key).join(', ')}`);
 const KyThuatSchema = z.object({
   co_canh: enumNhom('co_canh'), goc: enumNhom('goc'), chuyen_dong: enumNhom('chuyen_dong'), ong_kinh: enumNhom('ong_kinh'),
   anh_sang: enumNhom('anh_sang'), mau: enumNhom('mau'), chuyen_canh: enumNhom('chuyen_canh'),
@@ -40,7 +41,7 @@ const StoryboardSchema = z.object({
     muc_tieu: z.string().describe('Nhân vật muốn đạt gì trong phân cảnh này'),
     xung_dot: z.string().describe('Cái gì cản trở / đối lập'),
     an_y: z.string().describe('Ẩn ý dưới lời thoại (điều nhân vật cảm mà không nói), rỗng nếu không có'),
-    nhip: z.enum(['cham', 'vua', 'nhanh']),
+    nhip: z.string().describe('cham | vua | nhanh'),
     cam_xuc_dau: z.number().int().describe('-5..5'), cam_xuc_cuoi: z.number().int().describe('-5..5, phải KHÁC đầu: phân cảnh nào cũng đổi giá trị'),
     shots: z.array(ShotSchema).describe('Các shot của phân cảnh, theo thứ tự'),
   })),
@@ -181,7 +182,7 @@ export type NguCanhPhim = {
 const KinhThanhSchema = z.object({
   phong_cach: z.string().describe('Phong cách hình ảnh cố định cho CẢ bộ phim: chất liệu/kỹ thuật (3D Pixar, UGC quay thật, 2D anime…), bảng màu, ánh sáng, lens, không khí. 1-2 câu, dùng được làm tiền tố prompt tiếng Anh lẫn Việt.'),
   mo_ta: z.string().describe('Tiền đề / mô tả bộ phim 2-3 câu: kể về gì, cho ai xem, cảm xúc chủ đạo.'),
-  the_loai: z.enum(THE_LOAI.map((t) => t.key) as [string, ...string[]]).describe('Thể loại hợp nhất'),
+  the_loai: z.string().describe(`Thể loại hợp nhất — một key trong: ${THE_LOAI.map((t) => t.key).join(', ')}`),
   logline: z.string().describe('Một câu tiếng Việt: nhân vật chính · muốn gì · cái gì cản trở'),
   chu_de: z.string().describe('Chủ đề — điều bộ phim muốn nói, một câu ngắn tiếng Việt'),
 });

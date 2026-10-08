@@ -86,7 +86,7 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
 }
 const mapBienThe = (r: Row): BienThe => ({ id: n(r.id), nhan_vat_id: n(r.nhan_vat_id), nhom: s(r.nhom), ten: s(r.ten), mo_ta: s(r.mo_ta), anh_url: r.anh_url == null ? null : s(r.anh_url) });
 const mapNhanVat = (r: Row): NhanVat => ({ id: n(r.id), phim_id: n(r.phim_id), loai: s(r.loai) as LoaiNhanVat, ten: s(r.ten), mo_ta: s(r.mo_ta), anh_ref: arr<string>(r.anh_ref), giong: s(r.giong) });
-const mapTap = (r: Row): Tap => ({ id: n(r.id), phim_id: n(r.phim_id), so: n(r.so), ten: s(r.ten), kich_ban: s(r.kich_ban), tom_tat: s(r.tom_tat), trang_thai: s(r.trang_thai), video_url: r.video_url == null ? null : s(r.video_url), so_canh: n(r.so_canh) });
+const mapTap = (r: Row): Tap => ({ id: n(r.id), phim_id: n(r.phim_id), so: n(r.so), ten: s(r.ten), brief: s(r.brief), kich_ban: s(r.kich_ban), tom_tat: s(r.tom_tat), trang_thai: s(r.trang_thai), video_url: r.video_url == null ? null : s(r.video_url), so_canh: n(r.so_canh) });
 const mapCanh = (r: Row): Canh => ({
   id: n(r.id), tap_id: n(r.tap_id), thu_tu: n(r.thu_tu), canh: s(r.canh), goc_may: s(r.goc_may), hanh_dong: s(r.hanh_dong), loi_thoai: s(r.loi_thoai), am_thanh: s(r.am_thanh),
   thoi_luong_s: n(r.thoi_luong_s), nhan_vat: arr<number>(r.nhan_vat).map(Number), bien_the: arr<number>(r.bien_the).map(Number), dang_sinh_anh: r.dang_sinh_anh === true, prompt_anh: s(r.prompt_anh), prompt_video: s(r.prompt_video),
@@ -337,11 +337,11 @@ export async function taoTap(phimId: number, ten: string): Promise<Kq<number>> {
   return { ok: true, data: n(r[0]?.id) };
 }
 
-export async function suaTap(id: number, d: { ten?: string; kich_ban?: string; tom_tat?: string; so?: number }): Promise<Kq> {
+export async function suaTap(id: number, d: { ten?: string; brief?: string; kich_ban?: string; tom_tat?: string; so?: number }): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  await db.execute(sql`UPDATE xv_tap SET ten = coalesce(${d.ten ?? null}, ten), kich_ban = coalesce(${d.kich_ban ?? null}, kich_ban),
+  await db.execute(sql`UPDATE xv_tap SET ten = coalesce(${d.ten ?? null}, ten), brief = coalesce(${d.brief ?? null}, brief), kich_ban = coalesce(${d.kich_ban ?? null}, kich_ban),
     tom_tat = coalesce(${d.tom_tat ?? null}, tom_tat), so = coalesce(${d.so ?? null}, so), updated_at = now() WHERE id = ${id}`);
   return { ok: true, data: undefined };
 }
@@ -375,7 +375,7 @@ export async function vietKichBanTap(tapId: number, brief: string, thoiLuongS: n
   const kq = await vietKichBan({ loai: bc.loai, kinhThanh: bc.kt, nhanVat: bc.nhanVat, brief, tapSo: bc.loai === 'phim' ? bc.tap.so : undefined, tapTruoc: bc.tapTruoc, thoiLuongS });
   if (!kq.ok) return loi(kq.loi);
   await ghiChu(bc.tap.phim_id, `Viết kịch bản · tập ${bc.tap.so}`, kq);
-  await db.execute(sql`UPDATE xv_tap SET kich_ban = ${kq.kichBan}, updated_at = now() WHERE id = ${tapId}`);
+  await db.execute(sql`UPDATE xv_tap SET brief = ${brief}, kich_ban = ${kq.kichBan}, updated_at = now() WHERE id = ${tapId}`);
   return { ok: true, data: kq.kichBan };
 }
 
@@ -680,6 +680,7 @@ export async function goiYAIBrief(tapId: number, thoiLuongS: number): Promise<Kq
   if (!nc) return loi('không thấy phim');
   const r = await goiYBrief(nc, n(t[0].so), thoiLuongS);
   await ghiChu(n(t[0].phim_id), `AI gợi ý brief · tập ${n(t[0].so)}`, r);
+  if (r.ok) await db.execute(sql`UPDATE xv_tap SET brief = ${r.data.brief}, updated_at = now() WHERE id = ${tapId}`);
   return r.ok ? { ok: true, data: r.data.brief } : loi(r.loi);
 }
 

@@ -469,7 +469,7 @@ function NhanVatForm({ phimId, goc, onClose, onSaved }: { phimId: number; goc: P
 function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim; nhanVat: NhanVat[]; khoa: Khoa; onChanged: () => Promise<void> }) {
   const [kichBan, setKichBan] = useState(tap.kich_ban);
   const [tenTap, setTenTap] = useState(tap.ten);
-  const [brief, setBrief] = useState('');
+  const [brief, setBrief] = useState(tap.brief);
   const [thoiLuong, setThoiLuong] = useState(phim.loai === 'quang_cao' ? 24 : phim.loai === 'short' ? 40 : 60);
   const [soCanh, setSoCanh] = useState(0);
   const [canh, setCanh] = useState<Canh[] | null>(null);
@@ -479,7 +479,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
   const kt = docKinhThanh(phim.kinh_thanh);
   const taiCanh = useCallback(async () => { setCanh(await dsCanh(tap.id)); setUoc(await uocTien(tap.id)); }, [tap.id]);
   useEffect(() => { void taiCanh(); }, [taiCanh]);
-  useEffect(() => { setKichBan(tap.kich_ban); setTenTap(tap.ten); }, [tap.kich_ban, tap.ten]);
+  useEffect(() => { setKichBan(tap.kich_ban); setTenTap(tap.ten); setBrief(tap.brief); }, [tap.kich_ban, tap.ten, tap.brief]);
 
   // Poll Veo khi có cảnh đang sinh (Veo chạy 1-3 phút). Dừng ngay khi không còn job chạy.
   const dangSinh = (canh ?? []).some((c) => c.trang_thai === 'dang_sinh');
@@ -497,7 +497,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
     try { const r = await fn(); if (r && !r.ok) setLoi(r.loi ?? 'lỗi'); } finally { setBan(null); }
     await taiCanh(); await onChanged();
   };
-  const kbDirty = kichBan !== tap.kich_ban || tenTap !== tap.ten;
+  const kbDirty = kichBan !== tap.kich_ban || tenTap !== tap.ten || brief !== tap.brief;
   const soDuyet = (canh ?? []).filter((c) => c.trang_thai === 'duyet').length;
   const chuaKeyframe = (canh ?? []).filter((c) => !c.keyframe_url).length;
   const sanSang = (canh ?? []).filter((c) => !c.keyframe_url && thanhPhanCanh(c, nhanVat).thieu.length === 0);
@@ -511,7 +511,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
         <div>
           <O label={<span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>3a · Brief (ý tưởng tập này) <Nut ly={!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY'} ban={!!ban} title="Claude đọc tiền đề + tuyến nhân vật + tóm tắt các tập trước → gợi ý brief cho tập này" onClick={() => void chay('brief', async () => { const r = await goiYAIBrief(tap.id, thoiLuong); if (r.ok) setBrief(r.data); return r; })}>{ban === 'brief' ? '… AI' : '✨ AI gợi ý brief'}</Nut></span>}
             hint="Bỏ qua nếu đã có kịch bản sẵn — dán thẳng vào ô 3b bên phải.">
-            <textarea className="xv-ta" rows={12} value={brief} onChange={(e) => setBrief(e.target.value)}
+            <textarea className="xv-ta" rows={12} value={brief} onChange={(e) => setBrief(e.target.value)} onBlur={() => { if (brief !== tap.brief) void suaTap(tap.id, { brief }).then(onChanged); }}
               placeholder={phim.loai === 'quang_cao' ? 'Sản phẩm, điểm bán chính, khách mục tiêu, hook mở đầu, CTA…' : phim.loai === 'phim' ? 'Tập này kể gì, xung đột, kết tập mở ra tập sau…' : 'Ý tưởng, hook 3 giây đầu, twist, CTA…'} />
           </O>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -527,12 +527,12 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
           <O label="3b · Kịch bản"><textarea className="xv-ta" rows={12} value={kichBan} onChange={(e) => setKichBan(e.target.value)} placeholder={'Dán kịch bản, hoặc viết brief ở 3a rồi bấm "Claude viết kịch bản".\nCảnh 1: … \nCảnh 2: …'} /></O>
           {tap.tom_tat && <div style={{ ...mono, marginTop: -4, marginBottom: 6 }}>Tóm tắt (tập sau đọc): {tap.tom_tat}</div>}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Nut ly={!kbDirty && 'chưa sửa'} ban={!!ban} onClick={() => void chay('luu', async () => { await suaTap(tap.id, { kich_ban: kichBan, ten: tenTap }); })}>Lưu kịch bản</Nut>
+            <Nut ly={!kbDirty && 'chưa sửa'} ban={!!ban} onClick={() => void chay('luu', async () => { await suaTap(tap.id, { kich_ban: kichBan, ten: tenTap, brief }); })}>Lưu brief + kịch bản</Nut>
             <span style={{ flex: 1 }} />
             <input className="xv-in" type="number" min={0} max={40} value={soCanh || ''} onChange={(e) => setSoCanh(Number(e.target.value) || 0)} placeholder="số cảnh (tự)" style={{ width: 110 }} />
             <Nut chinh ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || (!kichBan.trim() && 'chưa có kịch bản')} ban={!!ban}
               title="Claude đọc kịch bản + anchor + biến thể → bảng cảnh 3c bên dưới. Cảnh đã có keyframe giữ nguyên."
-              onClick={() => void chay('tach', async () => { if (kbDirty) await suaTap(tap.id, { kich_ban: kichBan, ten: tenTap }); return tachCanhTap(tap.id, soCanh); })}>
+              onClick={() => void chay('tach', async () => { if (kbDirty) await suaTap(tap.id, { kich_ban: kichBan, ten: tenTap, brief }); return tachCanhTap(tap.id, soCanh); })}>
               {ban === 'tach' ? '… Claude đang tách' : '✂ Tách cảnh ↓'}
             </Nut>
           </div>
@@ -565,7 +565,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Chưa có cảnh nào</div>
           <div style={{ ...mono, marginBottom: 12 }}>Bước 1 của mạch: Claude đọc kịch bản + tuyến nhân vật → chia thành cảnh (góc máy, hành động, lời thoại, prompt ảnh/video). Sau đó mới sinh keyframe → duyệt → video.</div>
           <Nut chinh ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || (!kichBan.trim() && 'ô Kịch bản bên trái đang trống — dán kịch bản hoặc bấm Claude viết kịch bản')} ban={!!ban}
-            onClick={() => void chay('tach', async () => { if (kbDirty) await suaTap(tap.id, { kich_ban: kichBan, ten: tenTap }); return tachCanhTap(tap.id, soCanh); })}>
+            onClick={() => void chay('tach', async () => { if (kbDirty) await suaTap(tap.id, { kich_ban: kichBan, ten: tenTap, brief }); return tachCanhTap(tap.id, soCanh); })}>
             {ban === 'tach' ? '… Claude đang tách cảnh (≈20s)' : '✂ Tách cảnh bằng Claude'}
           </Nut>
           <span style={{ ...mono, marginLeft: 10 }}>hoặc <button type="button" className="xv-btn" disabled={!!ban} onClick={() => void chay('them', async () => { await themCanh(tap.id); })}>+ Cảnh</button> tự viết</span>

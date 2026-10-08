@@ -20,6 +20,9 @@ import {
 
 type Row = Record<string, unknown>;
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
+/** Mảng số → literal mảng Postgres dạng chuỗi ('{1,2}'). Truyền mảng JS thẳng vào sql`` thì postgres-js gửi phần tử số thô
+ *  và ném ERR_INVALID_ARG_TYPE ("Received type number (4)") — sinh keyframe hỏng 08/10/2026. */
+const mangInt = (xs: number[]) => `{${xs.map((x) => Math.trunc(Number(x))).filter(Number.isFinite).join(',')}}`;
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
 
 async function admin() {
@@ -442,7 +445,7 @@ async function boiCanhCanh(db: NonNullable<ReturnType<typeof getDb>>, canhId: nu
   const canh = mapCanh(r[0]);
   const kt = docKinhThanh(r[0].kt as KinhThanh);
   const nv = canh.nhan_vat.length
-    ? await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE id = ANY(${canh.nhan_vat}::int[])`)) as unknown as Row[]).map(mapNhanVat))
+    ? await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE id = ANY(${mangInt(canh.nhan_vat)}::int[])`)) as unknown as Row[]).map(mapNhanVat))
     : [];
   return { canh, kt, nhanVat: nv };
 }
@@ -599,7 +602,7 @@ export async function taiAnhLen(dataUrl: string): Promise<Kq<string>> {
 
 async function kemBienThe(db: NonNullable<ReturnType<typeof getDb>>, nvs: NhanVat[]): Promise<NhanVat[]> {
   if (!nvs.length) return nvs;
-  const bt = ((await db.execute(sql`SELECT * FROM xv_bien_the WHERE nhan_vat_id = ANY(${nvs.map((v) => v.id)}::int[]) ORDER BY nhom, id`)) as unknown as Row[]).map(mapBienThe);
+  const bt = ((await db.execute(sql`SELECT * FROM xv_bien_the WHERE nhan_vat_id = ANY(${mangInt(nvs.map((v) => v.id))}::int[]) ORDER BY nhom, id`)) as unknown as Row[]).map(mapBienThe);
   for (const v of nvs) v.bien_the = bt.filter((b) => b.nhan_vat_id === v.id);
   return nvs;
 }

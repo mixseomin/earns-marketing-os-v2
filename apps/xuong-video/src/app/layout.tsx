@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './xv.css';
+import { PhongToKhiRe } from '@/components/phong-to';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: { default: 'Xưởng video', template: '%s · Xưởng video' }, robots: { index: false, follow: false } };
@@ -16,6 +17,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <a href="https://mos2.on.tc" className="xv-mono">mos2</a>
         </header>
         <main className="xv-main">{children}</main>
+        <PhongToKhiRe />
       </body>
     </html>
   );

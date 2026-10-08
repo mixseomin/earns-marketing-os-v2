@@ -14,7 +14,7 @@ import { type DungChu } from '@/lib/xuong-video/claude';
 import { tachCanh, vietKichBan, promptAnhMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import {
-  docKinhThanh, giaAnhCents, giaVideoCents, giaChuCents, NHOM_BIEN_THE, type BienThe,
+  docKinhThanh, giaAnhCents, giaVideoCents, giaChuCents, thanhPhanCanh, NHOM_BIEN_THE, type BienThe,
   type Phim, type NhanVat, type Tap, type Canh, type Job, type KinhThanh, type LoaiPhim, type LoaiNhanVat, type TrangThaiCanh,
 } from '@/lib/xuong-video/kieu';
 
@@ -464,6 +464,8 @@ export async function sinhKeyframe(canhId: number, so = 1): Promise<Kq<string[]>
   const bc = await boiCanhCanh(db, canhId);
   if (!bc) return loi('không thấy cảnh');
   if (!bc.canh.prompt_anh.trim()) return loi('cảnh chưa có prompt ảnh');
+  const tp = thanhPhanCanh(bc.canh, bc.nhanVat);
+  if (tp.thieu.length) return loi(`Chưa chuẩn bị đủ thành phần: ${tp.thieu.join('; ')}. Làm ở mục 2 (Tuyến nhân vật) rồi sinh lại.`);
   // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.
   const btCanh = (v: NhanVat) => (v.bien_the ?? []).find((b) => bc.canh.bien_the.includes(b.id));
   const urlRef = bc.nhanVat.flatMap((v) => { const b = btCanh(v); return [...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, b?.anh_url ? 1 : 2)]; }).slice(0, 10);

@@ -11,7 +11,7 @@ import {
   type PhimDayDu,
 } from '@/lib/actions';
 import {
-  LOAI_PHIM, LOAI_NHAN_VAT, TRANG_THAI_CANH, NHOM_BIEN_THE, nhanNhom, MO_HINH_ANH, MO_HINH_VIDEO, MO_HINH_CHU, docKinhThanh, giaAnhCents, giaVideoCents, tien,
+  LOAI_PHIM, LOAI_NHAN_VAT, TRANG_THAI_CANH, NHOM_BIEN_THE, nhanNhom, thanhPhanCanh, MO_HINH_ANH, MO_HINH_VIDEO, MO_HINH_CHU, docKinhThanh, giaAnhCents, giaVideoCents, tien,
   type Phim, type NhanVat, type BienThe, type Tap, type Canh, type Job, type KinhThanh, type LoaiPhim, type LoaiNhanVat,
 } from '@/lib/xuong-video/kieu';
 
@@ -500,6 +500,8 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
   const kbDirty = kichBan !== tap.kich_ban || tenTap !== tap.ten;
   const soDuyet = (canh ?? []).filter((c) => c.trang_thai === 'duyet').length;
   const chuaKeyframe = (canh ?? []).filter((c) => !c.keyframe_url).length;
+  const sanSang = (canh ?? []).filter((c) => !c.keyframe_url && thanhPhanCanh(c, nhanVat).thieu.length === 0);
+  const kemThieu = chuaKeyframe - sanSang.length;
 
   return (
     <div>
@@ -545,10 +547,10 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 12, flexWrap: 'wrap' }}>
         <strong style={{ fontSize: 12 }}>3c · Storyboard · {canh?.length ?? '…'} cảnh</strong>
         <span style={{ flex: 1 }} />
-        <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || ((canh?.length ?? 0) === 0 && 'chưa có cảnh — bấm ✂ Tách cảnh trước') || (chuaKeyframe === 0 && 'mọi cảnh đã có keyframe')} ban={!!ban}
-          title={`Sinh 1 keyframe cho mỗi cảnh chưa có (${chuaKeyframe} cảnh ≈ ${tien(chuaKeyframe * giaAnhCents(kt.mo_hinh_anh))})`}
-          onClick={() => void chay('kf-all', async () => { for (const c of (canh ?? []).filter((x) => !x.keyframe_url)) { const r = await sinhKeyframe(c.id, 1); if (!r.ok) return r; } })}>
-          {ban === 'kf-all' ? '… đang sinh ảnh' : `🖼 Sinh keyframe cho ${chuaKeyframe} cảnh thiếu`}
+        <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || ((canh?.length ?? 0) === 0 && 'chưa có cảnh — bấm ✂ Tách cảnh trước') || (chuaKeyframe === 0 && 'mọi cảnh đã có keyframe') || (sanSang.length === 0 && `${kemThieu} cảnh còn thiếu thành phần (ảnh gốc/biến thể) — chuẩn bị ở mục 2`)} ban={!!ban}
+          title={`Sinh 1 keyframe cho mỗi cảnh đủ thành phần (${sanSang.length} cảnh ≈ ${tien(sanSang.length * giaAnhCents(kt.mo_hinh_anh))})`}
+          onClick={() => void chay('kf-all', async () => { for (const c of sanSang) { const r = await sinhKeyframe(c.id, 1); if (!r.ok) return r; } })}>
+          {ban === 'kf-all' ? '… đang sinh ảnh' : `🖼 Sinh keyframe ${sanSang.length} cảnh sẵn sàng${kemThieu ? ` (${kemThieu} cảnh còn thiếu thành phần)` : ''}`}
         </Nut>
         <Nut chinh ly={(!khoa.google && 'thiếu GOOGLE_API_KEY') || ((canh?.length ?? 0) === 0 && 'chưa có cảnh — bấm ✂ Tách cảnh trước') || (soDuyet === 0 && 'chưa có cảnh nào được duyệt keyframe')} ban={!!ban}
           title={uoc ? `Veo: ${uoc.soCanhDuyet} cảnh · ${uoc.giayDuyet}s ≈ ${tien(uoc.videoTong)} — trừ vào khoá Google` : ''}
@@ -593,6 +595,7 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
   const doc = kt.ti_le === '9:16';
   const anhKhung: CSSProperties = { width: doc ? 68 : 120, height: doc ? 120 : 68, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)' };
   const k = `c${c.id}`;
+  const tp = thanhPhanCanh(c, nhanVat);
 
   return (
     <div className="xv-canh">
@@ -614,6 +617,20 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
             <span style={{ flex: 1 }} />
             <button type="button" className="xv-btn" onClick={() => setMo((v) => !v)}>{mo ? 'Thu' : 'Sửa'}</button>
           </div>
+          {tp.ds.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
+              {tp.ds.map(({ nv, bt, anh, thieu }) => (
+                <span key={nv.id} title={thieu.length ? thieu.join('\n') : `${nv.ten}${bt ? ` · ${bt.ten}` : ''} — sẵn sàng`}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 7px 2px 2px', borderRadius: 999, border: `1px solid ${thieu.length ? 'var(--red)' : 'var(--line)'}`, background: 'var(--bg-1)', fontSize: 10.5 }}>
+                  {anh ? <img src={anh} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }} /> : <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg-2)', display: 'grid', placeItems: 'center', color: 'var(--red)' }}>!</span>}
+                  <span>{nv.ten}{bt && <span style={{ color: 'var(--violet)' }}> · {bt.ten}</span>}</span>
+                  <span style={{ color: 'var(--fg-4)', fontFamily: 'var(--font-mono)', fontSize: 9 }}>{LOAI_NHAN_VAT.find((l) => l.key === nv.loai)?.label}</span>
+                  {thieu.length > 0 && <span style={{ color: 'var(--red)' }}>thiếu</span>}
+                </span>
+              ))}
+            </div>
+          )}
+          {tp.thieu.length > 0 && <div style={{ fontSize: 10.5, color: 'var(--red)', marginTop: 3 }}>Chưa sinh được: {tp.thieu.join(' · ')} — chuẩn bị ở mục 2.</div>}
           <div style={{ fontSize: 11.5, marginTop: 3 }}>{c.hanh_dong}</div>
           {c.loi_thoai && <div style={{ fontSize: 11, color: 'var(--fg-2)', fontStyle: 'italic' }}>“{c.loi_thoai}”</div>}
           <Loi>{c.loi}</Loi>
@@ -628,7 +645,7 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
             </div>
           )}
           <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
-            <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || (!c.prompt_anh.trim() && 'chưa có prompt ảnh (Sửa → prompt ảnh)')} ban={!!ban} title={`1 ảnh ≈ ${tien(giaAnhCents(kt.mo_hinh_anh))}`} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1))}>
+            <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || (!c.prompt_anh.trim() && 'chưa có prompt ảnh (Sửa → prompt ảnh)') || (tp.thieu.length > 0 && `thiếu: ${tp.thieu.join('; ')}`)} ban={!!ban} title={`1 ảnh ≈ ${tien(giaAnhCents(kt.mo_hinh_anh))}`} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1))}>
               {ban === k || c.dang_sinh_anh ? '… đang sinh' : c.keyframe_url ? '🖼 Thêm ứng viên' : '🖼 Sinh keyframe'}
             </Nut>
             {c.keyframe_url && !['duyet', 'dang_sinh', 'xong'].includes(c.trang_thai) && <Nut chinh ban={!!ban} onClick={() => void chay(k, () => duyetCanh(c.id, true))}>✓ Duyệt keyframe</Nut>}

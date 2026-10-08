@@ -113,3 +113,17 @@ export const giaVideoCents = (model: string, doPhanGiai: DoPhanGiai, giay: numbe
   return Math.round((m?.giaGiay[doPhanGiai] ?? 10) * giay);
 };
 export const tien = (cents: number): string => (cents >= 100 ? `$${(cents / 100).toFixed(2)}` : cents > 0 && cents < 0.1 ? `${cents.toFixed(2)}¢` : `${cents.toFixed(cents < 10 ? 1 : 0)}¢`);
+
+/** Thành phần một cảnh dùng: anchor + biến thể chọn + thiếu gì. Dùng CHUNG cho UI (khoá nút, hiện chip) và máy chủ (chặn sinh). */
+export type ThanhPhanCanh = { nv: NhanVat; bt: BienThe | null; anh: string | null; thieu: string[] };
+export function thanhPhanCanh(c: Pick<Canh, 'nhan_vat' | 'bien_the'>, nhanVat: NhanVat[]): { ds: ThanhPhanCanh[]; thieu: string[] } {
+  const ds = c.nhan_vat.map((id) => nhanVat.find((v) => v.id === id)).filter((v): v is NhanVat => !!v).map((nv) => {
+    const bt = (nv.bien_the ?? []).find((b) => c.bien_the.includes(b.id)) ?? null;
+    const thieu: string[] = [];
+    if (!nv.mo_ta.trim()) thieu.push(`${nv.ten}: chưa tả đặc tính`);
+    if (!nv.anh_ref.length) thieu.push(`${nv.ten}: chưa có ảnh gốc`);
+    if (bt && !bt.anh_url) thieu.push(`${nv.ten} · ${bt.ten}: biến thể chưa có ảnh`);
+    return { nv, bt, anh: bt?.anh_url ?? nv.anh_ref[0] ?? null, thieu };
+  });
+  return { ds, thieu: ds.flatMap((x) => x.thieu) };
+}

@@ -88,7 +88,13 @@ export async function hoanTatAm(kq: KqViecAm): Promise<boolean> {
     return true;
   }
   const gia = Number(rq.gia ?? 0);
-  if (dich === 'thoai' && j.canh_id != null) await db.execute(sql`UPDATE xv_canh SET thoai_url = ${kq.url}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${Number(j.canh_id)}`);
+  if (dich === 'thoai' && j.canh_id != null) {
+    if (rq.dong != null) {
+      const i = Number(rq.dong);
+      await db.execute(sql`UPDATE xv_canh SET thoai = CASE WHEN jsonb_array_length(thoai) > ${i} THEN jsonb_set(thoai, ${`{${i},url}`}::text[], to_jsonb(${kq.url}::text)) ELSE thoai END,
+        thoai_url = CASE WHEN ${i} = 0 THEN ${kq.url} ELSE thoai_url END, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${Number(j.canh_id)}`);
+    } else await db.execute(sql`UPDATE xv_canh SET thoai_url = ${kq.url}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${Number(j.canh_id)}`);
+  }
   if (dich === 'sfx' && j.canh_id != null) await db.execute(sql`UPDATE xv_canh SET am_thanh_url = ${kq.url}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${Number(j.canh_id)}`);
   if (dich === 'nhac' && rq.tap_id != null) {
     if (rq.phan_doan) await db.execute(sql`UPDATE xv_tap SET nhac_phan_canh = nhac_phan_canh || jsonb_build_object(${String(rq.phan_doan)}::text, ${kq.url}::text), updated_at = now() WHERE id = ${Number(rq.tap_id)}`);

@@ -19,6 +19,7 @@ import { type DungChu } from '@/lib/xuong-video/claude';
 import { tachCanh, vietKichBan, promptAnhMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, promptKyThuatAnh, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
+import { ghepThoai } from '@/lib/xuong-video/kieu';
 import {
   docKinhThanh, giaAnhCents, giaVideoCents, giaChuCents, thanhPhanCanh, MO_HINH_ANH, MO_HINH_VIDEO, NANG_CAP, NHOM_BIEN_THE, type BienThe,
   type Phim, type NhanVat, type Tap, type Canh, type Job, type KinhThanh, type LoaiPhim, type LoaiNhanVat, type TrangThaiCanh,
@@ -149,7 +150,7 @@ const mapBienThe = (r: Row): BienThe => ({ id: n(r.id), nhan_vat_id: n(r.nhan_va
 const mapNhanVat = (r: Row): NhanVat => ({ id: n(r.id), phim_id: n(r.phim_id), loai: s(r.loai) as LoaiNhanVat, ten: s(r.ten), mo_ta: s(r.mo_ta), anh_ref: arr<string>(r.anh_ref), giong: s(r.giong), giong_model: s(r.giong_model), giong_id: s(r.giong_id), giong_mau_url: r.giong_mau_url == null ? null : s(r.giong_mau_url) });
 const mapTap = (r: Row): Tap => ({ id: n(r.id), phim_id: n(r.phim_id), so: n(r.so), ten: s(r.ten), brief: s(r.brief), noi_khung: r.noi_khung === true, nhac_url: r.nhac_url == null ? null : s(r.nhac_url), nhac_mo_ta: s(r.nhac_mo_ta), nhac_phan_canh: (r.nhac_phan_canh && typeof r.nhac_phan_canh === 'object' ? r.nhac_phan_canh : {}) as Record<string, string>, beats: arr<Tap['beats'][number]>(r.beats), phan_canh: arr<Tap['phan_canh'][number]>(r.phan_canh), kich_ban: s(r.kich_ban), tom_tat: s(r.tom_tat), trang_thai: s(r.trang_thai), video_url: r.video_url == null ? null : s(r.video_url), so_canh: n(r.so_canh) });
 const mapCanh = (r: Row): Canh => ({
-  id: n(r.id), tap_id: n(r.tap_id), thu_tu: n(r.thu_tu), canh: s(r.canh), goc_may: s(r.goc_may), hanh_dong: s(r.hanh_dong), loi_thoai: s(r.loi_thoai), am_thanh: s(r.am_thanh), thoai_url: r.thoai_url == null ? null : s(r.thoai_url), am_thanh_url: r.am_thanh_url == null ? null : s(r.am_thanh_url), phan_doan: s(r.phan_doan), cam_xuc: n(r.cam_xuc),
+  id: n(r.id), tap_id: n(r.tap_id), thu_tu: n(r.thu_tu), canh: s(r.canh), goc_may: s(r.goc_may), hanh_dong: s(r.hanh_dong), loi_thoai: s(r.loi_thoai), am_thanh: s(r.am_thanh), thoai_url: r.thoai_url == null ? null : s(r.thoai_url), am_thanh_url: r.am_thanh_url == null ? null : s(r.am_thanh_url), phan_doan: s(r.phan_doan), cam_xuc: n(r.cam_xuc), thoai: arr<Canh['thoai'][number]>(r.thoai),
   ky_thuat: (r.ky_thuat && typeof r.ky_thuat === 'object' ? r.ky_thuat : {}) as Canh['ky_thuat'],
   thoi_luong_s: n(r.thoi_luong_s), nhan_vat: arr<number>(r.nhan_vat).map(Number), bien_the: arr<number>(r.bien_the).map(Number), dang_sinh_anh: r.dang_sinh_anh === true, dang_sinh_am: r.dang_sinh_am === true, prompt_anh: s(r.prompt_anh), prompt_video: s(r.prompt_video),
   keyframe_url: r.keyframe_url == null ? null : s(r.keyframe_url), keyframe_uv: arr<string>(r.keyframe_uv), video_url: r.video_url == null ? null : s(r.video_url), video_cuoi_url: r.video_cuoi_url == null ? null : s(r.video_cuoi_url), nguon_video: (r.nguon_video && typeof r.nguon_video === 'object' ? r.nguon_video : {}) as Record<string, unknown>, video_phien_ban: arr<Canh['video_phien_ban'][number]>(r.video_phien_ban),
@@ -279,7 +280,7 @@ export async function luuNhanVat(d: { id?: number; phim_id: number; loai: LoaiNh
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   if (!d.ten.trim()) return loi('thiếu tên');
-  const anh = JSON.stringify(d.anh_ref.filter(Boolean).slice(0, 6));
+  const anh = JSON.stringify(d.anh_ref.filter(Boolean).slice(0, 10));
   if (d.id) {
     await db.execute(sql`UPDATE xv_nhan_vat SET loai = ${d.loai}, ten = ${d.ten.trim()}, mo_ta = ${d.mo_ta}, anh_ref = ${anh}::jsonb, giong = ${d.giong}, updated_at = now() WHERE id = ${d.id}`);
     return { ok: true, data: d.id };
@@ -504,8 +505,9 @@ export async function tachCanhTap(tapId: number, soCanh: number): Promise<Kq<num
     thuTu += 1;
     const ids = c.nhan_vat.map((t) => tenToId.get(t.trim().toLowerCase())).filter((x): x is number => typeof x === 'number');
     const bts = (c.bien_the ?? []).map((t) => btToId.get(t.replace(/\s*[·\-–|]\s*/, ' · ').trim().toLowerCase())).filter((x): x is number => typeof x === 'number');
-    await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, loi_thoai, am_thanh, thoi_luong_s, nhan_vat, bien_the, prompt_anh, prompt_video, phan_doan, cam_xuc, ky_thuat)
-      VALUES (${tapId}, ${thuTu}, ${c.canh}, ${c.goc_may}, ${c.hanh_dong}, ${c.loi_thoai}, ${c.am_thanh}, ${c.thoi_luong_s}, ${JSON.stringify(ids)}::jsonb, ${JSON.stringify(bts)}::jsonb, ${c.prompt_anh}, ${c.prompt_video},
+    const thoai = (c.thoai ?? []).filter((d) => d.loi.trim());
+    await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, loi_thoai, thoai, am_thanh, thoi_luong_s, nhan_vat, bien_the, prompt_anh, prompt_video, phan_doan, cam_xuc, ky_thuat)
+      VALUES (${tapId}, ${thuTu}, ${c.canh}, ${c.goc_may}, ${c.hanh_dong}, ${thoai.length ? ghepThoai(thoai) : c.loi_thoai}, ${JSON.stringify(thoai)}::jsonb, ${c.am_thanh}, ${c.thoi_luong_s}, ${JSON.stringify(ids)}::jsonb, ${JSON.stringify(bts)}::jsonb, ${c.prompt_anh}, ${c.prompt_video},
         ${c.phan_doan}, ${c.cam_xuc}, ${JSON.stringify(lamSachKyThuat(c.ky_thuat as unknown as Record<string, unknown>))}::jsonb)`);
   }
   // Beat + phân cảnh của tập (đường cong cảm xúc, mục tiêu/xung đột từng phân cảnh) — tách lại thì thay bản mới.
@@ -527,10 +529,18 @@ export async function xepCanh(tapId: number, ids: number[]): Promise<Kq> {
   return { ok: true, data: undefined };
 }
 
-export async function suaCanh(id: number, d: Partial<Pick<Canh, 'canh' | 'goc_may' | 'hanh_dong' | 'loi_thoai' | 'am_thanh' | 'thoi_luong_s' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'prompt_video' | 'thu_tu' | 'phan_doan' | 'cam_xuc' | 'ky_thuat'>>): Promise<Kq> {
+export async function suaCanh(id: number, d: Partial<Pick<Canh, 'canh' | 'goc_may' | 'hanh_dong' | 'loi_thoai' | 'am_thanh' | 'thoi_luong_s' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'prompt_video' | 'thu_tu' | 'phan_doan' | 'cam_xuc' | 'ky_thuat' | 'thoai'>>): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
+  // Thoại theo dòng: lưu dòng + ghép lại loi_thoai; dòng nào đổi lời thì bỏ file giọng cũ của dòng đó (đọc sai lời).
+  if (d.thoai) {
+    const cu = ((await db.execute(sql`SELECT thoai FROM xv_canh WHERE id = ${id}`)) as unknown as Row[])[0];
+    const cuDs = arr<Canh['thoai'][number]>(cu?.thoai);
+    const moi = d.thoai.filter((x) => x.loi.trim() || x.nhan_vat.trim()).map((x) => { const c0 = cuDs.find((y) => y.loi === x.loi && y.nhan_vat === x.nhan_vat); return { nhan_vat: x.nhan_vat, dien_xuat: x.dien_xuat, loi: x.loi, url: c0?.url ?? null }; });
+    d = { ...d, loi_thoai: ghepThoai(moi) };
+    await db.execute(sql`UPDATE xv_canh SET thoai = ${JSON.stringify(moi)}::jsonb, thoai_url = ${moi[0]?.url ?? null} WHERE id = ${id}`);
+  }
   await db.execute(sql`UPDATE xv_canh SET
     canh = coalesce(${d.canh ?? null}, canh), goc_may = coalesce(${d.goc_may ?? null}, goc_may), hanh_dong = coalesce(${d.hanh_dong ?? null}, hanh_dong),
     loi_thoai = coalesce(${d.loi_thoai ?? null}, loi_thoai), am_thanh = coalesce(${d.am_thanh ?? null}, am_thanh), thoi_luong_s = coalesce(${d.thoi_luong_s ?? null}, thoi_luong_s),
@@ -860,7 +870,7 @@ export async function goiYAICanh(canhId: number, nhap: { canh: string; goc_may: 
   if (!r.ok) return loi(r.loi);
   const tenToId = new Map(nc.nhanVat.map((v) => [v.ten.trim().toLowerCase(), v.id]));
   const ids = r.data.nhan_vat.map((t) => tenToId.get(t.trim().toLowerCase())).filter((x): x is number => typeof x === 'number');
-  return { ok: true, data: { canh: r.data.canh, goc_may: r.data.goc_may, hanh_dong: r.data.hanh_dong, loi_thoai: r.data.loi_thoai, am_thanh: r.data.am_thanh, thoi_luong_s: r.data.thoi_luong_s, nhan_vat: ids.length ? ids : nhap.nhan_vat, prompt_anh: r.data.prompt_anh, prompt_video: r.data.prompt_video, cam_xuc: Math.max(-5, Math.min(5, Math.round(r.data.cam_xuc))), ky_thuat: lamSachKyThuat(r.data.ky_thuat as unknown as Record<string, unknown>) } };
+  return { ok: true, data: { canh: r.data.canh, goc_may: r.data.goc_may, hanh_dong: r.data.hanh_dong, loi_thoai: r.data.loi_thoai, am_thanh: r.data.am_thanh, thoi_luong_s: r.data.thoi_luong_s, nhan_vat: ids.length ? ids : nhap.nhan_vat, prompt_anh: r.data.prompt_anh, prompt_video: r.data.prompt_video, cam_xuc: Math.max(-5, Math.min(5, Math.round(r.data.cam_xuc))), ky_thuat: lamSachKyThuat(r.data.ky_thuat as unknown as Record<string, unknown>), thoai: (r.data.thoai ?? []).filter((d) => d.loi.trim()) } };
 }
 
 // ── Job ──────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -930,11 +940,26 @@ export async function sinhGiong(tapId: number, canhIds?: number[]): Promise<Kq<n
   if (!(await admin())) return loi('không có quyền');
   const bc = await boiCanhTap(db, tapId);
   if (!bc) return loi('không thấy tập');
-  const ds = (await dsCanh(tapId)).filter((c) => (!canhIds || canhIds.includes(c.id)) && loiCanDoc(c.loi_thoai));
+  const ds = (await dsCanh(tapId)).filter((c) => (!canhIds || canhIds.includes(c.id)) && (c.thoai.length || loiCanDoc(c.loi_thoai)));
   if (!ds.length) return loi('không có shot nào có lời thoại');
   const dm = await dsMoHinhGiong();
   let so = 0;
   for (const c of ds) {
+    // Thoại theo dòng (kịch bản phim): mỗi dòng một file, giọng của đúng người nói dòng đó.
+    if (c.thoai.length) {
+      for (const [i, d] of c.thoai.entries()) {
+        if (!d.loi.trim()) continue;
+        const v = bc.nhanVat.find((x) => x.ten.toLowerCase() === d.nhan_vat.trim().toLowerCase()) ?? null;
+        const model = v?.giong_model || MODEL_GIONG_MAC_DINH();
+        const voice = (v?.giong_model ? v.giong_id : '') || await giongMacDinh(model);
+        const text = d.loi.trim();
+        const gia = giaGiong(dm.find((m) => m.key === model), text.length);
+        const job = await taoJob({ nhan: `Giọng · shot #${c.thu_tu} dòng ${i + 1} · ${v?.ten ?? 'lời dẫn'} (${voice})`, canh_id: c.id, nhan_vat_id: v?.id, loai: 'am', provider: model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: model.startsWith('elevenlabs:') ? model : `fal:${model}`, request: { dich: 'thoai', dong: i, gia, text, voice } });
+        await dayViecAm({ kieu: 'am', job, model, input: await dauVaoGiongTheoModel(model, { text: d.dien_xuat && /eleven/.test(model) && /v3/.test(model) ? `[${d.dien_xuat}] ${text}` : text, voice, ngonNgu: bc.kt.ngon_ngu ?? 'vi', camXuc: c.cam_xuc, theLoai: bc.kt.the_loai ?? '' }), thuMuc: `thoai/${c.id}-${i}` });
+        so++;
+      }
+      continue;
+    }
     const v = nguoiNoi(c, bc.nhanVat);
     const model = v?.giong_model || MODEL_GIONG_MAC_DINH();
     const voice = (v?.giong_model ? v.giong_id : '') || await giongMacDinh(model);
@@ -1033,8 +1058,13 @@ export async function uocAm(tapId: number): Promise<{ giong: number; soThoai: nu
   const dm = await dsMoHinhGiong();
   let giong = 0, soThoai = 0, sfx = 0, soSfx = 0;
   for (const c of ds) {
-    const t = loiCanDoc(c.loi_thoai);
-    if (t) { const v = bc ? nguoiNoi(c, bc.nhanVat) : null; giong += giaGiong(dm.find((m) => m.key === (v?.giong_model || MODEL_GIONG_MAC_DINH())), t.length); soThoai++; }
+    if (c.thoai.length) {
+      for (const d of c.thoai) { if (!d.loi.trim()) continue; const v = bc?.nhanVat.find((x) => x.ten.toLowerCase() === d.nhan_vat.trim().toLowerCase()); giong += giaGiong(dm.find((m) => m.key === (v?.giong_model || MODEL_GIONG_MAC_DINH())), d.loi.length); }
+      soThoai++;
+    } else {
+      const t = loiCanDoc(c.loi_thoai);
+      if (t) { const v = bc ? nguoiNoi(c, bc.nhanVat) : null; giong += giaGiong(dm.find((m) => m.key === (v?.giong_model || MODEL_GIONG_MAC_DINH())), t.length); soThoai++; }
+    }
     const clip = c.video_cuoi_url || c.video_url;
     if (clip || c.am_thanh.trim() || c.ky_thuat.am_thanh?.length) { sfx += giaAm(clip ? 'mirelo-ai/sfx-v1/video-to-audio' : 'sonilo/v1.1/text-to-sound-effects', c.thoi_luong_s || 5); soSfx++; }
   }

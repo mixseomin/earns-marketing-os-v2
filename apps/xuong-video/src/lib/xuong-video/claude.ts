@@ -28,7 +28,13 @@ const KyThuatSchema = z.object({
   anh_sang: enumNhom('anh_sang'), mau: enumNhom('mau'), chuyen_canh: enumNhom('chuyen_canh'),
   am_thanh: z.array(enumNhom('am_thanh')).describe('1-2 lớp âm thanh hiện trường của shot'), nhac: enumNhom('nhac'),
 });
+const DongThoaiSchema = z.object({
+  nhan_vat: z.string().describe('Tên CHÍNH XÁC nhân vật nói (từ danh sách anchor); rỗng nếu là lời dẫn'),
+  dien_xuat: z.string().describe('Diễn xuất trong ngoặc như kịch bản phim: hành động/biểu cảm khi nói, vd "nhìn lên, giơ tay", "thì thầm", "cười khẩy"; rỗng nếu không cần'),
+  loi: z.string().describe('Lời nói, đúng giọng nhân vật, có ẩn ý khi hợp'),
+});
 const ShotSchema = CanhSchema.extend({
+  thoai: z.array(DongThoaiSchema).describe('Thoại của shot theo dòng kiểu kịch bản phim chuyên nghiệp (mỗi lượt nói một dòng); rỗng nếu shot không có thoại. Trường loi_thoai để rỗng.'),
   cam_xuc: z.number().int().describe('Giá trị cảm xúc của khán giả ở CUỐI shot, từ -5 (đau/sợ/tuyệt vọng) tới +5 (vui/hy vọng/chiến thắng)'),
   ky_thuat: KyThuatSchema.describe('Ngôn ngữ điện ảnh của shot, chọn từ thư viện cho hợp thể loại + cảm xúc'),
 });
@@ -133,7 +139,7 @@ export async function vietKichBan(opts: {
     `Tổng thời lượng mục tiêu: ${opts.thoiLuongS ?? 30} giây.`,
     `BRIEF:\n${opts.brief.trim()}`,
     `KHUNG BEAT (${CAU_TRUC[opts.loai]?.ten ?? CAU_TRUC.phim!.ten}):\n${(CAU_TRUC[opts.loai] ?? CAU_TRUC.phim!).beats.map((b) => `- ${b.ten}: ${b.mo_ta}`).join('\n')}`,
-    'Viết kịch bản dạng văn xuôi có đánh số cảnh (Cảnh 1, Cảnh 2…), đi đúng khung beat trên. Mỗi cảnh ghi: bối cảnh, mục tiêu + xung đột của nhân vật, hành động, lời thoại (có ẩn ý, đúng giọng từng nhân vật), cảm xúc chuyển từ đâu tới đâu, không khí (ánh sáng, âm thanh). Cảm xúc của tập phải có lên có xuống. Không giải thích thêm, chỉ trả kịch bản.',
+    'Viết kịch bản đúng định dạng kịch bản phim chuyên nghiệp, đánh số cảnh (Cảnh 1, Cảnh 2…). Mỗi cảnh: dòng tiêu đề (NỘI/NGOẠI. ĐỊA ĐIỂM – THỜI ĐIỂM), đoạn hành động, rồi thoại theo khuôn:\nTÊN NHÂN VẬT\n  (diễn xuất: nhìn lên, giơ tay…)\n  Lời nói.\nĐi đúng khung beat trên. Mỗi cảnh ghi: bối cảnh, mục tiêu + xung đột của nhân vật, hành động, lời thoại (có ẩn ý, đúng giọng từng nhân vật), cảm xúc chuyển từ đâu tới đâu, không khí (ánh sáng, âm thanh). Cảm xúc của tập phải có lên có xuống. Không giải thích thêm, chỉ trả kịch bản.',
   ].filter(Boolean).join('\n\n');
   try {
     const r = await c.messages.create({

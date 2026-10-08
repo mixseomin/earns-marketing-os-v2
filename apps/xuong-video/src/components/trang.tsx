@@ -5,8 +5,9 @@
 import { createContext, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useModalParam } from '@/lib/use-modal-param';
 import { Timeline } from './timeline';
+import { ImageAttach } from './image-attach';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
-import { MO_HINH_AM, GIONG } from '@/lib/xuong-video/am-thanh';
+import { MO_HINH_AM, GIONG, giaAm } from '@/lib/xuong-video/am-thanh';
 import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, nhanKyThuat, type NhomKyThuat, type TheLoai } from '@/lib/xuong-video/dien-anh';
 import {
   dsPhim, docPhim, dsCanh, taoPhim, taoPhimMau, suaPhim, xoaPhim, luuNhanVat, xoaNhanVat, sinhAnhMau, taoTap, suaTap,
@@ -64,44 +65,6 @@ function DangSinh({ chu = 'đang sinh' }: { chu?: string }) {
 }
 const mono: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)' };
 
-/** Tải ảnh tham chiếu: chọn file → thu nhỏ ≤1600px → data URL → server đẩy R2. */
-function TaiAnh({ value, onChange, max = 4 }: { value: string[]; onChange: (urls: string[]) => void; max?: number }) {
-  const [ban, setBan] = useState(false);
-  const [loi, setLoi] = useState('');
-  const chon = async (files: FileList | null) => {
-    if (!files?.length) return;
-    setBan(true); setLoi('');
-    const them: string[] = [];
-    for (const f of Array.from(files).slice(0, max - value.length)) {
-      try {
-        const bmp = await createImageBitmap(f);
-        const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
-        const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
-        c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
-        const du = c.toDataURL('image/jpeg', 0.88);
-        const r = await taiAnhLen(du);
-        if (r.ok) them.push(r.data); else setLoi(r.loi);
-      } catch (e) { setLoi(String(e)); }
-    }
-    setBan(false);
-    if (them.length) onChange([...value, ...them]);
-  };
-  return (
-    <div>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
-        {value.map((u) => (
-          <span key={u} style={{ position: 'relative' }}>
-            <a href={u} target="_blank" rel="noreferrer"><img src={u} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)' }} /></a>
-            <button type="button" className="xv-btn nguy" style={{ position: 'absolute', top: -6, right: -6, padding: '0 5px', fontSize: 10 }} onClick={() => onChange(value.filter((x) => x !== u))}>×</button>
-          </span>
-        ))}
-      </div>
-      {value.length < max && <input type="file" accept="image/*" multiple disabled={ban} onChange={(e) => void chon(e.target.files)} style={{ fontSize: 11 }} />}
-      {ban && <span style={mono}> đang tải…</span>}
-      <Loi>{loi}</Loi>
-    </div>
-  );
-}
 
 // ── Ô chọn kiểu select2: có ô tìm, nhóm, dòng phụ (giá) — dùng cho MỌI ô chọn của app ────────────────────────────
 export type LuaChon = { value: string; label: string; nhom?: string; phu?: string; title?: string };
@@ -557,6 +520,7 @@ function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loiAnh, on
                 <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
                   <button type="button" className="xv-btn" onClick={() => setSua(v)}>Sửa</button>
                   <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || (!v.mo_ta.trim() && 'tả đặc tính trước')} title={`Sinh ảnh gốc (${v.loai === 'nhan_vat' ? 'character sheet: nhiều góc + biểu cảm' : 'ảnh tham chiếu'}) từ mô tả (~${tien(giaAnhCents(kt.mo_hinh_anh))}/ảnh, ~20 giây). Bấm nhiều lần = sinh song song nhiều ảnh; mỗi lần thêm đổi góc khác.`} onClick={() => void sinh(v.id, v.anh_ref.length)}>{v.anh_ref.length ? '✨ Sinh thêm ảnh gốc' : '✨ Sinh ảnh gốc'} · {tien(giaAnhCents(kt.mo_hinh_anh))}</Nut>
+                  <button type="button" className="xv-btn" onClick={() => setSua(v)} title="Thêm ảnh thật: dán Ctrl+V, nút Dán (điện thoại), kéo thả, chọn file, URL">📷 Ảnh thật</button>
                   {v.loai === 'nhan_vat' && <GiongNhanVat v={v} onChanged={onChanged} />}
                   <button type="button" className="xv-btn" onClick={() => setBtMo(v.id)} title="Biểu cảm, trang phục, tư thế / góc máy, thời điểm… — mỗi biến thể sinh từ ảnh gốc nên giữ đúng danh tính">🎭 Biến thể ({v.bien_the?.length ?? 0})</button>
                   <Xoa nhan="anchor" onXoa={async () => { await xoaNhanVat(v.id); await onChanged(); }} />
@@ -567,6 +531,7 @@ function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loiAnh, on
                     {them > 0 && <span style={{ color: 'var(--lime)' }}>✓ đã thêm {them} ảnh gốc mới (đang là ảnh chính)</span>}
                   </div>
                 )}
+                {v.loai === 'san_pham' && !v.anh_ref.length && <div style={{ fontSize: 10.5, color: 'var(--amber)', marginTop: 4 }}>⚠ Quảng cáo cần ảnh sản phẩm thật — bấm 📷 Ảnh thật để dán/tải ảnh, AI sẽ giữ đúng màu, dáng, chi tiết.</div>}
                 <Loi>{loi[v.id] || (!dangSinh.nhanVat.includes(v.id) ? loiAnh.nhanVat[v.id] : '')}</Loi>
               </div>
             </div>
@@ -713,7 +678,10 @@ function NhanVatForm({ phimId, goc, onClose, onSaved }: { phimId: number; goc: P
         <div style={{ marginTop: 4 }}><Nut ly={!f.ten.trim() && 'đặt tên trước'} ban={ai} title="Claude đọc phong cách + các anchor khác của phim → tả đặc tính khớp, không đụng nhân vật đã có" onClick={() => void goiY()}>{ai ? '… AI đang tả' : '✨ AI tả đặc tính (theo phong cách + tuyến đã có)'}</Nut></div>
       </O>
       {f.loai === 'nhan_vat' && <O label="Giọng (cho lồng tiếng sau này)"><input className="xv-in" value={f.giong} onChange={(e) => setF({ ...f, giong: e.target.value })} placeholder="giọng trẻ con ấm, chậm rãi" /></O>}
-      <O label="Ảnh mẫu (tham chiếu) — tải lên, hoặc lưu rồi bấm “Sinh ảnh mẫu”"><TaiAnh value={f.anh_ref} onChange={(urls) => setF({ ...f, anh_ref: urls })} /></O>
+      <O label={f.loai === 'san_pham' ? 'Ảnh sản phẩm THẬT (quảng cáo phải đúng hàng) — dán Ctrl+V, nút Dán (điện thoại), kéo thả, chọn file, hoặc URL' : 'Ảnh tham chiếu — dán / kéo thả / file / URL, hoặc lưu rồi bấm “Sinh ảnh gốc”'}>
+        <ImageAttach value={f.anh_ref} onChange={(urls) => setF({ ...f, anh_ref: urls })} max={10} nhanBo="Bỏ ảnh khỏi anchor"
+          upload={async (du) => { const r = await taiAnhLen(du); return r.ok ? { ok: true, url: r.data } : { ok: false, error: r.loi }; }} />
+      </O>
       <Loi>{loi}</Loi>
       <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
         <Nut ly={!f.ten.trim() && 'thiếu tên'} ban={luu} chinh onClick={async () => {
@@ -862,6 +830,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
             {!nvNoi.length && <span style={mono}>chưa có nhân vật nào ở mục 2</span>}
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ ...mono, gridColumn: '1 / -1', width: '100%', color: 'var(--fg-2)' }}>Thứ tự nên làm: <b>1.</b> chọn giọng nhân vật → sinh giọng (rẻ, làm sớm để biết độ dài thoại) · <b>2.</b> có video nháp rồi mới sinh hiệu ứng (sinh từ clip, khớp hành động) · <b>3.</b> chốt thứ tự + số giây rồi sinh nhạc theo phân cảnh. Hoặc bấm <b>＋</b> trên từng khối nét đứt ở timeline.</div>
           <b style={{ fontSize: 12 }}>🔊 Âm thanh</b>
 
           <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!u.soThoai && 'chưa shot nào có lời thoại')} ban={ban('giong')} title="Đọc lời thoại mọi shot bằng giọng cố định của từng nhân vật (chọn ở mục 2), cảm xúc theo shot" onClick={() => void chay('giong', () => sinhGiong(tap.id))}>🗣 Sinh giọng {u.soThoai} shot · {gia(u.giong)}</Nut>
@@ -897,6 +866,15 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
               <>
                 <Timeline canh={canh} nhanVat={nhanVat} tap={tap} tiLe={kt.ti_le} ngonNgu={kt.ngon_ngu} chon={cc.id} onChon={setChonCanh} onToanManHinh={() => setAnimatic(true)}
                   onDoiGiay={(id, g) => void chay(`c${id}`, () => suaCanh(id, { thoi_luong_s: g }))}
+                  sinh={{
+                    giong: (id) => void chay(`c${id}`, () => sinhGiong(tap.id, [id])),
+                    sfx: (id) => void chay(`c${id}`, () => sinhAmThanh(tap.id, [id])),
+                    nhac: (pd) => void chay(pd ? 'nhac' : 'nhac1', () => sinhNhac(tap.id, mhNhac, pd)),
+                    // Giọng ước ~$0.10 / 1.000 ký tự (mức phổ biến của model giọng); giá đúng theo model ở nút 🗣 Sinh giọng.
+                    giaGiong: (cc) => ((cc.thoai.length ? cc.thoai.reduce((a, d) => a + d.loi.length, 0) : cc.loi_thoai.length) / 1000) * 10,
+                    giaSfx: (cc) => giaAm(cc.video_cuoi_url || cc.video_url ? 'mirelo-ai/sfx-v1/video-to-audio' : 'sonilo/v1.1/text-to-sound-effects', cc.thoi_luong_s || 5),
+                    giaNhac: (giay) => giaAm(mhNhac, giay), tien, ban: (k) => banTach || ban(k),
+                  }}
                   onXep={(ids) => { setCanh((ds) => ds && ids.map((id, i) => ({ ...ds.find((x) => x.id === id)!, thu_tu: i + 1 }))); void chay('xep', () => xepCanh(tap.id, ids)); }} />
                 <div data-ngu-canh={`tập #${tap.id} ${tap.ten} · cảnh đang mở #${cc.thu_tu} (id ${cc.id}) ${cc.canh} · ${cc.trang_thai}`}>
                   <CanhRow key={cc.id} c={cc} nhanVat={nhanVat} kt={kt} khoa={khoa} ban={(k) => banTach || ban(k)} chay={chay} />
@@ -986,11 +964,13 @@ function Animatic({ canh, tiLe, ngonNgu, onClose }: { canh: Canh[]; tiLe: string
 
 function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVat[]; kt: Required<KinhThanh>; khoa: Khoa; ban: (k: string) => boolean; chay: (ten: string, fn: () => Promise<KqChay>) => Promise<void> }) {
   const [mo, setMo] = useState(false);
-  const [f, setF] = useState(c);
+  const [f, setF] = useState<Canh>(c);
   const [ai, setAi] = useState(false);
   const [loiAi, setLoiAi] = useState('');
   const moHinh = useContext(MoHinhCtx);
-  useEffect(() => { setF(c); }, [c]);
+  // Shot cũ chỉ có chuỗi loi_thoai → mở form thì tách sẵn thành dòng ("Tên: lời") để sửa kiểu kịch bản.
+  const tuChuoi = (x: Canh): Canh => (x.thoai.length || !x.loi_thoai.trim() ? x : { ...x, thoai: x.loi_thoai.split('\n').filter(Boolean).map((l) => { const m = l.match(/^\s*([^:"“(]{1,40}?)\s*(?:\(([^)]*)\))?\s*:\s*(.*)$/); return m ? { nhan_vat: m[1]!.trim(), dien_xuat: (m[2] ?? '').trim(), loi: m[3]!.replace(/["“”]/g, '').trim() } : { nhan_vat: '', dien_xuat: '', loi: l.replace(/["“”]/g, '').trim() }; }) });
+  useEffect(() => { setF(tuChuoi(c)); }, [c]); // eslint-disable-line react-hooks/exhaustive-deps
   // AI điền form tại chỗ, KHÔNG qua chay() — chay tải lại cảnh và useEffect trên sẽ ghi đè mất phần AI vừa điền.
   const aiVietLai = async () => { setAi(true); setLoiAi(''); const r = await goiYAICanh(c.id, { canh: f.canh, goc_may: f.goc_may, hanh_dong: f.hanh_dong, loi_thoai: f.loi_thoai, nhan_vat: f.nhan_vat }); setAi(false); if (!r.ok) { setLoiAi(r.loi); return; } setF((x) => ({ ...x, ...r.data })); };
   const tt = TRANG_THAI_CANH[c.trang_thai] ?? TRANG_THAI_CANH.nhap;
@@ -1046,6 +1026,18 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
             </div>
           )}
           <div style={{ fontSize: 11.5, marginTop: 3, color: 'var(--fg-2)' }} title={c.loi_thoai ? `“${c.loi_thoai}”` : undefined}>{c.hanh_dong}</div>
+          {c.thoai.length > 0 && (
+            <div style={{ marginTop: 4, padding: '4px 8px', borderLeft: '2px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+              {c.thoai.map((d, i) => (
+                <div key={i} style={{ marginBottom: 2, display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                  <b style={{ color: 'var(--cyan)', textTransform: 'uppercase' }}>{d.nhan_vat || 'Lời dẫn'}</b>
+                  {d.dien_xuat && <i style={{ color: 'var(--fg-3)' }}>({d.dien_xuat})</i>}
+                  <span style={{ color: 'var(--fg-1)' }}>{d.loi}</span>
+                  {d.url && <audio src={d.url} controls preload="none" style={{ height: 20, width: 120 }} />}
+                </div>
+              ))}
+            </div>
+          )}
           {(() => { const ds = nhanKyThuat(c.ky_thuat); return ds.length ? <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 4 }}>{c.phan_doan && <span style={{ ...mono, fontSize: 9.5, color: 'var(--violet)' }}>🎬 {c.phan_doan} ·</span>}{ds.map((x) => <span key={x} style={{ fontSize: 9.5, lineHeight: '15px', padding: '0 5px', borderRadius: 4, border: '1px solid var(--line)', color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{x}</span>)}</div> : null; })()}
           {(c.thoai_url || c.am_thanh_url || c.dang_sinh_am) && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
@@ -1112,7 +1104,19 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
           <O label="Nhân vật · sản phẩm · bối cảnh trong cảnh"><Chon multi values={f.nhan_vat.map(String)} onValues={(v) => setF({ ...f, nhan_vat: v.map(Number) })} options={nhanVat.map((v) => ({ value: String(v.id), label: v.ten, nhom: LOAI_NHAN_VAT.find((l) => l.key === v.loai)?.label }))} placeholder="chọn…" /></O>
           <O label="Biến thể trong cảnh" hint="mỗi anchor tối đa 1 (biểu cảm / trang phục / góc…)"><Chon multi values={f.bien_the.map(String)} onValues={(v) => setF({ ...f, bien_the: v.map(Number) })} options={tatCaBt.filter((b) => f.nhan_vat.includes(b.nhan_vat_id)).map((b) => ({ value: String(b.id), label: b.ten, nhom: b.nv }))} placeholder="không dùng biến thể" /></O>
           <O span label="Hành động"><textarea className="xv-ta" rows={2} value={f.hanh_dong} onChange={(e) => setF({ ...f, hanh_dong: e.target.value })} /></O>
-          <O label="Lời thoại"><input className="xv-in" value={f.loi_thoai} onChange={(e) => setF({ ...f, loi_thoai: e.target.value })} /></O>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <div className="xv-lbl" style={{ marginBottom: 4 }}>Thoại (kiểu kịch bản phim) <span style={{ ...mono, textTransform: 'none' }}>— mỗi lượt nói một dòng: nhân vật · diễn xuất (nhìn lên, giơ tay…) · lời. Mỗi dòng sinh giọng riêng theo giọng nhân vật.</span></div>
+            {f.thoai.map((d, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '160px 200px 1fr auto', gap: 6, marginBottom: 4 }}>
+                <Chon nho value={d.nhan_vat} onChange={(v) => setF({ ...f, thoai: f.thoai.map((x, j) => (j === i ? { ...x, nhan_vat: v } : x)) })} minWidth={150}
+                  options={[{ value: '', label: 'Lời dẫn' }, ...nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => ({ value: v.ten, label: v.ten }))]} />
+                <input className="xv-in" placeholder="diễn xuất: nhìn lên, giơ tay" value={d.dien_xuat} onChange={(e) => setF({ ...f, thoai: f.thoai.map((x, j) => (j === i ? { ...x, dien_xuat: e.target.value } : x)) })} />
+                <input className="xv-in" placeholder="lời nói" value={d.loi} onChange={(e) => setF({ ...f, thoai: f.thoai.map((x, j) => (j === i ? { ...x, loi: e.target.value } : x)) })} />
+                <button type="button" className="xv-btn" title="Bỏ dòng" onClick={() => setF({ ...f, thoai: f.thoai.filter((_, j) => j !== i) })}>✕</button>
+              </div>
+            ))}
+            <button type="button" className="xv-btn" onClick={() => setF({ ...f, thoai: [...f.thoai, { nhan_vat: f.thoai[f.thoai.length - 1]?.nhan_vat ?? '', dien_xuat: '', loi: '' }] })}>+ Dòng thoại</button>
+          </div>
           <O label="Âm thanh"><input className="xv-in" value={f.am_thanh} onChange={(e) => setF({ ...f, am_thanh: e.target.value })} /></O>
           <O label="Phân cảnh (scene)" hint="shot cùng tên phân cảnh hợp thành một cảnh trên timeline"><input className="xv-in" value={f.phan_doan} onChange={(e) => setF({ ...f, phan_doan: e.target.value })} /></O>
           <O label={`Cảm xúc cuối shot: ${f.cam_xuc > 0 ? '+' : ''}${f.cam_xuc}`} hint="-5 đau/sợ … +5 vui/hy vọng — vẽ đường cong cảm xúc của tập"><input type="range" min={-5} max={5} step={1} value={f.cam_xuc} onChange={(e) => setF({ ...f, cam_xuc: Number(e.target.value) })} /></O>
@@ -1139,7 +1143,7 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
             <Nut ly={!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY'} ban={ai || ban(k)} title="Claude đọc cảnh trước/sau + tuyến nhân vật + phong cách → điền đủ góc máy, hành động, lời thoại, prompt ảnh, prompt video khớp mạch. Chỉ điền vào form, anh xem rồi Lưu cảnh." onClick={() => void aiVietLai()}>{ai ? '… AI đang viết' : '✨ AI viết lại cảnh (khớp cảnh trước/sau)'}</Nut>
             <Loi>{loiAi}</Loi>
             <Nut ly={!dirty && 'chưa sửa'} ban={ban(k)} chinh onClick={() => void chay(k, async () => {
-              await suaCanh(c.id, { canh: f.canh, goc_may: f.goc_may, thoi_luong_s: f.thoi_luong_s, nhan_vat: f.nhan_vat, bien_the: f.bien_the, hanh_dong: f.hanh_dong, loi_thoai: f.loi_thoai, am_thanh: f.am_thanh, prompt_anh: f.prompt_anh, prompt_video: f.prompt_video, phan_doan: f.phan_doan, cam_xuc: f.cam_xuc, ky_thuat: f.ky_thuat });
+              await suaCanh(c.id, { canh: f.canh, goc_may: f.goc_may, thoi_luong_s: f.thoi_luong_s, nhan_vat: f.nhan_vat, bien_the: f.bien_the, hanh_dong: f.hanh_dong, loi_thoai: f.loi_thoai, am_thanh: f.am_thanh, prompt_anh: f.prompt_anh, prompt_video: f.prompt_video, phan_doan: f.phan_doan, cam_xuc: f.cam_xuc, ky_thuat: f.ky_thuat, thoai: f.thoai });
               setMo(false);
             })}>Lưu cảnh</Nut>
             <button type="button" className="xv-btn" onClick={() => { setF(c); setMo(false); }}>Huỷ</button>

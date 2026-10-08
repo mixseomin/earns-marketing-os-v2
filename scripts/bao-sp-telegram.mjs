@@ -68,11 +68,12 @@ async function doc(st) {
   if (!r.ok) throw new Error(`Directus ${r.status}: ${(await r.text()).slice(0, 200)}`);
   return (await r.json()).data;
 }
+// Link duyệt MOS2 (trang cần đăng nhập) không có gì để xem trước → tắt preview cho gọn; link sàn (Etsy…) giữ ảnh nhỏ.
 async function gui(text, topic) {
   if (DRY) { console.log(`[dry] ${text.replace(/\n/g, ' | ')}`); return true; }
   const g = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: TG_CHAT, message_thread_id: topic ? Number(topic) : undefined, text, parse_mode: 'HTML',
-      link_preview_options: { prefer_small_media: true } }) });
+      link_preview_options: text.includes(MOS2) ? { is_disabled: true } : { prefer_small_media: true } }) });
   const j = await g.json();
   if (!j.ok) { console.error(`✗ gửi hỏng: ${j.description}`); process.exitCode = 1; }
   return j.ok;

@@ -96,7 +96,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     dongBo(nhacPcRef.current, tNhacPc, true);
   }, [idx, chay, tua, nhacPc]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (vidRef.current) vidRef.current.muted = !!tat.clip;
+    // Clip Veo/Kling có tiếng sẵn (nhân vật tự nói) — shot đã có giọng / hiệu ứng sinh riêng thì TỰ tắt tiếng clip, không chồng hai giọng (#1219).
+    // Nút "tiếng clip" bật lại tiếng clip cho mọi shot (vd muốn dùng giọng của chính clip cho khớp khẩu hình).
+    const coTiengRieng = !!c && (dongThoai(c, nhanVat).some((d) => d.url) || !!c.am_thanh_url);
+    if (vidRef.current) vidRef.current.muted = tat.clip === undefined ? coTiengRieng : !!tat.clip;
     if (thoaiRef.current) thoaiRef.current.muted = !!tat.thoai;
     if (sfxRef.current) sfxRef.current.muted = !!tat.sfx;
     if (nhacRef.current) nhacRef.current.muted = !!tat.nhac || !!nhacPc;
@@ -243,8 +246,11 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', ...mono }}>
             <label style={{ display: 'inline-flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={docThu} onChange={(e) => setDocThu(e.target.checked)} /> đọc thử thoại chưa có giọng</label>
             <label style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>zoom <input type="range" min={1} max={6} step={0.25} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} style={{ width: 90 }} /></label>
-            <span style={{ display: 'inline-flex', gap: 3 }}>{([['clip', '🎬 tiếng clip'], ['thoai', '🗣 thoại'], ['sfx', '🔊 hiệu ứng'], ['nhac', '🎵 nhạc']] as const).map(([k, chu]) => (
-              <button key={k} type="button" onClick={() => setTat((x) => ({ ...x, [k]: !x[k] }))} title={tat[k] ? 'đang tắt — bấm để bật' : 'đang bật — bấm để tắt'}
+            <span style={{ display: 'inline-flex', gap: 3 }}>{([['clip', tat.clip === undefined ? '🎬 tiếng clip: tự (tắt khi có giọng riêng)' : tat.clip ? '🎬 tiếng clip: tắt hết' : '🎬 tiếng clip: bật hết'], ['thoai', '🗣 thoại'], ['sfx', '🔊 hiệu ứng'], ['nhac', '🎵 nhạc']] as const).map(([k, chu]) => (
+              <button key={k} type="button"
+                // Tiếng clip ba nấc: tự → bật hết → tắt hết → tự. Lớp khác: bật / tắt.
+                onClick={() => setTat((x) => (k === 'clip' ? (() => { const n = { ...x }; if (x.clip === undefined) n.clip = false; else if (x.clip === false) n.clip = true; else delete n.clip; return n; })() : { ...x, [k]: !x[k] }))}
+                title={k === 'clip' ? 'Bấm để đổi: tự (tắt khi shot có giọng/hiệu ứng riêng) → bật hết → tắt hết' : tat[k] ? 'đang tắt — bấm để bật' : 'đang bật — bấm để tắt'}
                 style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, border: '1px solid var(--line)', background: tat[k] ? 'none' : 'var(--bg-2)', color: tat[k] ? 'var(--fg-4)' : 'var(--fg-2)', textDecoration: tat[k] ? 'line-through' : 'none', cursor: 'pointer' }}>{chu}</button>
             ))}</span>
             <span>Space chạy/dừng · ←/→ đổi cảnh · kéo mép clip đổi giây · kéo clip đổi thứ tự · nét đứt = chưa sinh</span>

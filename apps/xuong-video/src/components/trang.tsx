@@ -14,7 +14,7 @@ import {
   dsPhim, docPhim, dsCanh, taoPhim, taoPhimMau, suaPhim, xoaPhim, luuNhanVat, xoaNhanVat, sinhAnhMau, taoTap, suaTap,
   vietKichBanTap, tachCanhTap, suaCanh, themCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, uocTien, sinhVideoCanh, kiemVideo, taiAnhLen,
   dsMoHinh, xepCanh, datAnhChinh, lamLaiTuKeyframe, layTuLinkSanPham, sinhGiong, sinhAmThanh, sinhNhac, uocAm, dsGiongModel, dsGiongCua, chonGiong, ngheThuGiong, xoaAnhGoc, xoaAnhBienThe, xoaKeyframe, dsThungRac, khoiPhuc, type MoHinhChon,
-  goiYAIKinhThanh, goiYAIAnchor, goiYAIBoAnchor, goiYAIBrief, goiYAICanh, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, nangCapCanh, chonPhienBan, doiChieuAnchor,
+  goiYAIKinhThanh, goiYAIAnchor, goiYAIBoAnchor, goiYAIBrief, goiYAICanh, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, nangCapCanh, chonPhienBan, doiChieuAnchor, xuatTap, trangThaiXuat,
   type PhimDayDu,
 } from '@/lib/actions';
 import {
@@ -745,6 +745,14 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
   const [thoiLuong, setThoiLuong] = useState(tap.thoi_luong_s ?? thoiLuongMacDinh(phim.loai));
   // Nhánh hook đang xem (A/B/C) — thân chung + hook của nhánh; bản xuất cũng theo nhánh.
   const [nhanh, setNhanh] = useState<string | null>(null);
+  // Bản xuất đang dựng (job id) — hỏi máy chủ 5s/lần tới khi xong rồi tải lại tập để danh sách bản xuất hiện tệp mới.
+  const [jobXuat, setJobXuat] = useState<number | null>(null);
+  const [loiXuat, setLoiXuat] = useState('');
+  useEffect(() => {
+    if (jobXuat == null) return;
+    const t = setInterval(async () => { const r = await trangThaiXuat(jobXuat); if (r.trang_thai === 'cho') return; setJobXuat(null); if (r.trang_thai === 'loi') setLoiXuat(r.loi || 'xuất lỗi'); else { setLoiXuat(r.loi ? `Đã xuất, ${r.loi}` : ''); await onChanged(); } }, 5000);
+    return () => clearInterval(t);
+  }, [jobXuat]); // eslint-disable-line react-hooks/exhaustive-deps
   const [soCanh, setSoCanh] = useState(0);
   const [canh, setCanh] = useState<Canh[] | null>(null);
   // Bận theo TỪNG nút (không một khoá chung): bấm keyframe cảnh 2 không khoá nút cảnh 3, 4… — chỉ Tách cảnh mới khoá cả tập.
@@ -869,7 +877,21 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
           {ban('vid-all') ? '… đang gửi Veo' : `🎬 Sinh video ${soDuyet} cảnh đã duyệt${uoc ? ` (≈ ${tien(uoc.videoTong)})` : ''}`}
         </Nut>
         <button type="button" className="xv-btn" disabled={banTach || ban('them')} onClick={() => void chay('them', async () => { await themCanh(tap.id); })}>+ Cảnh</button>
+        <Nut chinh ly={!(canh ?? []).some((c) => c.video_url || c.video_cuoi_url || c.keyframe_url) && 'chưa có clip/keyframe nào'} ban={jobXuat != null}
+          title="Dựng MP4 hoàn chỉnh trên máy chủ (0đ): nối clip theo giây phát, giọng + hiệu ứng + nhạc, chữ màn, phụ đề, end card ưu đãi, chuẩn âm -14 LUFS, 1080p. Shot chưa có clip dùng keyframe tĩnh."
+          onClick={async () => { setLoiXuat(''); const r = await xuatTap(tap.id, nhanh ?? cacNhanh(canh ?? [])[0] ?? null); if (!r.ok) setLoiXuat(r.loi); else setJobXuat(r.data); }}>
+          {jobXuat != null ? '… đang dựng bản xuất (30–90s)' : `⬇ Xuất MP4${cacNhanh(canh ?? []).length ? ` · hook ${nhanh ?? cacNhanh(canh ?? [])[0]}` : ''}`}
+        </Nut>
       </div>
+      <Loi>{loiXuat}</Loi>
+      {tap.xuat.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
+          <span style={mono}>Bản xuất:</span>
+          {tap.xuat.slice().reverse().slice(0, 6).map((b) => (
+            <a key={b.url} href={b.url} target="_blank" rel="noreferrer" className="xv-btn" style={{ textDecoration: 'none' }} title={`${b.giay}s · ${gioVN(b.luc)}`}>🎬 {b.nhanh ? `hook ${b.nhanh}` : 'bản'} · {b.giay}s · {gioVN(b.luc, { chiGio: true })}</a>
+          ))}
+        </div>
+      )}
       {/* Bộ kiểm "đạt chưa" (0đ, tức thì): quảng cáo chấm hook/sản phẩm/bằng chứng/CTA/tốc độ nói; mọi loại chấm độ dài so với mục tiêu. */}
       {!!canh?.length && (() => {
         const ds = kiemQc({ loai: phim.loai, canh, nhanVat, qc: kt.qc, mucTieuS: tap.thoi_luong_s ?? thoiLuong, nhanh });

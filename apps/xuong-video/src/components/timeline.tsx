@@ -10,7 +10,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as PE, type ReactNode } from 'react';
 import { giayPhat, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat } from '@/lib/xuong-video/dien-anh';
-import { nguoiNoi, dongThoai } from '@/lib/xuong-video/am-thanh';
+import { nguoiNoi, dongThoai, coTiengRieng } from '@/lib/xuong-video/am-thanh';
 import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 
@@ -100,8 +100,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   useEffect(() => {
     // Clip Veo/Kling có tiếng sẵn (nhân vật tự nói) — shot đã có giọng / hiệu ứng sinh riêng thì TỰ tắt tiếng clip, không chồng hai giọng (#1219).
     // Nút "tiếng clip" bật lại tiếng clip cho mọi shot (vd muốn dùng giọng của chính clip cho khớp khẩu hình).
-    const coTiengRieng = !!c && (dongThoai(c, nhanVat).some((d) => d.url) || !!c.am_thanh_url);
-    if (vidRef.current) vidRef.current.muted = tat.clip === undefined ? coTiengRieng : !!tat.clip;
+    const tiengRieng = !!c && coTiengRieng(c, nhanVat);
+    if (vidRef.current) vidRef.current.muted = tat.clip === undefined ? tiengRieng : !!tat.clip;
     if (thoaiRef.current) thoaiRef.current.muted = !!tat.thoai;
     if (sfxRef.current) sfxRef.current.muted = !!tat.sfx;
     if (nhacRef.current) nhacRef.current.muted = !!tat.nhac || !!nhacPc;

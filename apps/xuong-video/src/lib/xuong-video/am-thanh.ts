@@ -53,6 +53,9 @@ export function nguoiNoi(c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'tho
   const ten = dongThoai(c, nv)[0]?.nhan_vat.trim().toLowerCase();
   return (ten ? nv.find((x) => x.ten.toLowerCase() === ten) : undefined) ?? nhanVatDauCua(c, nv) ?? null;
 }
+/** Shot có tiếng sinh RIÊNG (file giọng của dòng thoại nào đó, hoặc hiệu ứng) → tiếng sẵn của clip (Veo/Kling tự nói) phải tắt, không chồng
+ *  hai giọng (#1219). MỘT luật cho timeline (xem thử) và bản xuất (ffmpeg). */
+export const coTiengRieng = (c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url' | 'am_thanh_url'>, nv: NhanVat[]): boolean => dongThoai(c, nv).some((d) => d.url) || !!c.am_thanh_url;
 /** Giọng mặc định khi nhân vật chưa chọn giọng cố định (model fal; máy chủ có khoá ElevenLabs riêng thì đổi sang ElevenLabs trực tiếp). */
 export const GIONG_MAC_DINH = { model: 'fal-ai/elevenlabs/tts/eleven-v3', voice: 'George' };
 /** Giá (cents) một câu đọc theo model giọng — MỘT luật cho nút, bảng ＋ và sổ chi phí. null = model không công bố giá

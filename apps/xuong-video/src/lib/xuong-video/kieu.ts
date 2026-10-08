@@ -131,7 +131,9 @@ export const NHOM_BIEN_THE: Record<LoaiNhanVat, { key: string; label: string }[]
   phong_cach: [{ key: 'trang_thai', label: 'Biến tấu' }],
 };
 export const nhanNhom = (loai: LoaiNhanVat, nhom: string) => NHOM_BIEN_THE[loai]?.find((x) => x.key === nhom)?.label ?? nhom;
-export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null };
+export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null; xuat: BanXuat[] };
+/** Một bản xuất MP4 của tập (mỗi nhánh hook một tệp). */
+export type BanXuat = { url: string; nhanh: string; giay: number; luc: string; job?: number };
 export type Canh = {
   id: number; tap_id: number; thu_tu: number; canh: string; goc_may: string; hanh_dong: string; loi_thoai: string; am_thanh: string; thoai_url: string | null; am_thanh_url: string | null; phan_doan: string; cam_xuc: number; ky_thuat: KyThuatShot; thoai: DongThoai[]; trang_phuc: string;
   /** Giây thực phát (cắt từ đầu clip); null = phát cả clip. chu_man = chữ trên màn. nhanh = '' thân chung | 'A'/'B'/'C' biến thể hook. */

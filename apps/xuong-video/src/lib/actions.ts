@@ -10,6 +10,7 @@ import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { uploadToR2 } from '@/lib/r2';
 import { sinhAnh, batDauVeo, docVeo, taiVeo, taiAnhBase64, type AnhVao } from '@/lib/xuong-video/google';
+import { batDauFal, docFal } from '@/lib/xuong-video/fal';
 import { type DungChu } from '@/lib/xuong-video/claude';
 import { tachCanh, vietKichBan, promptAnhMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
@@ -144,9 +145,10 @@ export async function soChiPhi(opts: { phimId?: number; ngay?: number }): Promis
 }
 
 /** Trạng thái khoá: trang báo thiếu gì thay vì để nút Sinh lỗi âm thầm. Chỉ trả có/không, không trả giá trị. */
-export async function trangThaiKhoa(): Promise<{ google: boolean; anthropic: boolean; r2: boolean; openai: boolean }> {
-  if (!(await admin())) return { google: false, anthropic: false, r2: false, openai: false };
+export async function trangThaiKhoa(): Promise<{ google: boolean; anthropic: boolean; r2: boolean; openai: boolean; fal: boolean }> {
+  if (!(await admin())) return { google: false, anthropic: false, r2: false, openai: false, fal: false };
   return {
+    fal: !!process.env.FAL_KEY,
     openai: !!process.env.OPENAI_API_KEY,
     google: !!(process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY),
     anthropic: !!process.env.ANTHROPIC_API_KEY,
@@ -542,12 +544,18 @@ export async function sinhVideoCanh(canhId: number): Promise<Kq<number>> {
   if (!bc) return loi('không thấy cảnh');
   if (bc.canh.trang_thai !== 'duyet' && bc.canh.trang_thai !== 'loi' && bc.canh.trang_thai !== 'xong') return loi('cảnh chưa duyệt keyframe');
   if (!bc.canh.keyframe_url) return loi('cảnh chưa có keyframe');
-  const anhDau = await taiAnhBase64(bc.canh.keyframe_url);
-  if (!anhDau) return loi('không tải được keyframe');
   const prompt = [bc.kt.phong_cach ? `Visual style: ${bc.kt.phong_cach}.` : '', bc.canh.prompt_video.trim() || bc.canh.hanh_dong].filter(Boolean).join(' ');
   const giay = (bc.canh.thoi_luong_s <= 4 ? 4 : bc.canh.thoi_luong_s <= 6 ? 6 : 8) as 4 | 6 | 8;
-  const job = await taoJob({ nhan: `Video · cảnh #${bc.canh.thu_tu} ${bc.canh.canh} · ${giay}s`, canh_id: canhId, loai: 'video', provider: 'google', model: bc.kt.mo_hinh_video, request: { prompt, giay, doPhanGiai: bc.kt.do_phan_giai, tiLe: bc.kt.ti_le } });
-  const kq = await batDauVeo({ model: bc.kt.mo_hinh_video, prompt, anhDau, tiLe: bc.kt.ti_le, doPhanGiai: bc.kt.do_phan_giai, giay });
+  const laFal = bc.kt.mo_hinh_video.startsWith('fal:');
+  const job = await taoJob({ nhan: `Video · cảnh #${bc.canh.thu_tu} ${bc.canh.canh} · ${giay}s`, canh_id: canhId, loai: 'video', provider: laFal ? 'fal' : 'google', model: bc.kt.mo_hinh_video, request: { prompt, giay, doPhanGiai: bc.kt.do_phan_giai, tiLe: bc.kt.ti_le } });
+  let kq: { ok: true; taskId: string } | { ok: false; loi: string };
+  if (laFal) {
+    kq = await batDauFal(bc.kt.mo_hinh_video.slice(4), { prompt, anhDau: bc.canh.keyframe_url, giay: bc.canh.thoi_luong_s || giay, tiLe: bc.kt.ti_le });
+  } else {
+    const anhDau = await taiAnhBase64(bc.canh.keyframe_url);
+    if (!anhDau) { await xongJob(job, { loi: 'không tải được keyframe' }); return loi('không tải được keyframe'); }
+    kq = await batDauVeo({ model: bc.kt.mo_hinh_video, prompt, anhDau, tiLe: bc.kt.ti_le, doPhanGiai: bc.kt.do_phan_giai, giay });
+  }
   if (!kq.ok) {
     await xongJob(job, { loi: kq.loi });
     await db.execute(sql`UPDATE xv_canh SET trang_thai = 'loi', loi = ${kq.loi}, updated_at = now() WHERE id = ${canhId}`);
@@ -565,14 +573,14 @@ export async function kiemVideo(tapId: number): Promise<{ conChay: number; vuaXo
   const jobs = (await db.execute(sql`SELECT j.* FROM xv_job j JOIN xv_canh c ON c.id = j.canh_id WHERE c.tap_id = ${tapId} AND j.loai = 'video' AND j.trang_thai = 'chay' AND j.task_id IS NOT NULL`)) as unknown as Row[];
   let conChay = 0, vuaXong = 0;
   for (const r of jobs.map(mapJob)) {
-    const kq = await docVeo(r.task_id!);
+    const kq = r.provider === 'fal' ? await docFal(r.task_id!) : await docVeo(r.task_id!);
     if (!kq.done) { conChay++; continue; }
     if (!kq.ok) {
       await xongJob(r.id, { loi: kq.loi });
       await db.execute(sql`UPDATE xv_canh SET trang_thai = 'loi', loi = ${kq.loi}, updated_at = now() WHERE id = ${r.canh_id}`);
       continue;
     }
-    const buf = await taiVeo(kq.uri);
+    const buf = r.provider === 'fal' ? await fetch(kq.uri).then((x) => (x.ok ? x.arrayBuffer().then((a) => Buffer.from(a)) : null)).catch(() => null) : await taiVeo(kq.uri);
     const url = buf ? await uploadToR2(`xuong-video/clip/${r.canh_id}-${randomUUID()}.mp4`, buf, 'video/mp4') : null;
     if (!url) {
       await xongJob(r.id, { loi: 'tải/lưu video thất bại' });

@@ -15,7 +15,7 @@ import {
   type Phim, type NhanVat, type BienThe, type Tap, type Canh, type Job, type KinhThanh, type LoaiPhim, type LoaiNhanVat,
 } from '@/lib/xuong-video/kieu';
 
-type Khoa = { google: boolean; anthropic: boolean; r2: boolean; openai: boolean };
+type Khoa = { google: boolean; anthropic: boolean; r2: boolean; openai: boolean; fal: boolean };
 type KqChay = { ok: boolean; loi?: string } | void;
 
 // ── Khối giao diện nhỏ của app (không mượn primitive của mos2 — app riêng) ─────────────────────────────────────────
@@ -552,7 +552,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
           onClick={() => void chay('kf-all', async () => { for (const c of sanSang) { const r = await sinhKeyframe(c.id, 1); if (!r.ok) return r; } })}>
           {ban === 'kf-all' ? '… đang sinh ảnh' : `🖼 Sinh keyframe ${sanSang.length} cảnh sẵn sàng${kemThieu ? ` (${kemThieu} cảnh còn thiếu thành phần)` : ''}`}
         </Nut>
-        <Nut chinh ly={(!khoa.google && 'thiếu GOOGLE_API_KEY') || ((canh?.length ?? 0) === 0 && 'chưa có cảnh — bấm ✂ Tách cảnh trước') || (soDuyet === 0 && 'chưa có cảnh nào được duyệt keyframe')} ban={!!ban}
+        <Nut chinh ly={(!khoa.google && !khoa.fal && 'thiếu khoá video (GOOGLE_API_KEY/FAL_KEY)') || ((canh?.length ?? 0) === 0 && 'chưa có cảnh — bấm ✂ Tách cảnh trước') || (soDuyet === 0 && 'chưa có cảnh nào được duyệt keyframe')} ban={!!ban}
           title={uoc ? `Veo: ${uoc.soCanhDuyet} cảnh · ${uoc.giayDuyet}s ≈ ${tien(uoc.videoTong)} — trừ vào khoá Google` : ''}
           onClick={() => void chay('vid-all', async () => { for (const c of (canh ?? []).filter((x) => x.trang_thai === 'duyet')) { const r = await sinhVideoCanh(c.id); if (!r.ok) return r; } })}>
           {ban === 'vid-all' ? '… đang gửi Veo' : `🎬 Sinh video ${soDuyet} cảnh đã duyệt${uoc ? ` (≈ ${tien(uoc.videoTong)})` : ''}`}
@@ -651,12 +651,12 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
             {c.keyframe_url && !['duyet', 'dang_sinh', 'xong'].includes(c.trang_thai) && <Nut chinh ban={!!ban} onClick={() => void chay(k, () => duyetCanh(c.id, true))}>✓ Duyệt keyframe</Nut>}
             {c.trang_thai === 'duyet' && (
               <>
-                <Nut chinh ly={!khoa.google && 'thiếu GOOGLE_API_KEY'} ban={!!ban} title={`Veo ${c.thoi_luong_s}s ≈ ${tien(giaVideoCents(kt.mo_hinh_video, kt.do_phan_giai, c.thoi_luong_s))}`} onClick={() => void chay(k, () => sinhVideoCanh(c.id))}>🎬 Sinh video</Nut>
+                <Nut chinh ly={!khoa.google && !khoa.fal && 'thiếu khoá video (GOOGLE_API_KEY/FAL_KEY)'} ban={!!ban} title={`Veo ${c.thoi_luong_s}s ≈ ${tien(giaVideoCents(kt.mo_hinh_video, kt.do_phan_giai, c.thoi_luong_s))}`} onClick={() => void chay(k, () => sinhVideoCanh(c.id))}>🎬 Sinh video</Nut>
                 <Nut ban={!!ban} onClick={() => void chay(k, () => duyetCanh(c.id, false))}>bỏ duyệt</Nut>
               </>
             )}
             {c.trang_thai === 'dang_sinh' && <span style={{ ...mono, color: 'var(--violet)' }}>Veo đang chạy, tự kiểm mỗi 10s…</span>}
-            {(c.trang_thai === 'xong' || c.trang_thai === 'loi') && c.keyframe_url && <Nut ly={!khoa.google && 'thiếu GOOGLE_API_KEY'} ban={!!ban} onClick={() => void chay(k, () => sinhVideoCanh(c.id))}>↻ Sinh lại video</Nut>}
+            {(c.trang_thai === 'xong' || c.trang_thai === 'loi') && c.keyframe_url && <Nut ly={!khoa.google && !khoa.fal && 'thiếu khoá video (GOOGLE_API_KEY/FAL_KEY)'} ban={!!ban} onClick={() => void chay(k, () => sinhVideoCanh(c.id))}>↻ Sinh lại video</Nut>}
             {c.video_url && <a href={c.video_url} target="_blank" rel="noreferrer" className="xv-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>⬇ mp4</a>}
             <Xoa nhan="cảnh" ban={!!ban} onXoa={() => chay(k, async () => { await xoaCanh(c.id); })} />
           </div>

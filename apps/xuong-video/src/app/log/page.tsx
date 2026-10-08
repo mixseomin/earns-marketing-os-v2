@@ -19,7 +19,7 @@ export default async function Log({ searchParams }: { searchParams: Promise<{ ph
   const ngay = sp.ngay ? Number(sp.ngay) : 30;
   const [so, phim] = await Promise.all([soChiPhi({ phimId, ngay }), dsPhim()]);
   const tong = so.jobs.reduce((a, j) => a + j.chi_phi_cents, 0);
-  const qs = (p: Record<string, string | number | undefined>) => '?' + Object.entries({ phim: phimId, ngay, ...p }).filter(([, v]) => v != null && v !== '').map(([k, v]) => `${k}=${v}`).join('&');
+  const qs = (p: Record<string, string | number | undefined>) => '?' + Object.entries({ phim: phimId, ngay, ...p } as Record<string, string | number | undefined>).filter(([, v]) => v != null && String(v) !== '').map(([k, v]) => `${k}=${v}`).join('&');
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>

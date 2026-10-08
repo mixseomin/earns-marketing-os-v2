@@ -186,12 +186,11 @@ function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onCl
         <button type="button" className="xv-btn" onClick={onClose}>Đóng</button>
       </div>
 
-      <ChiPhiGanDay jobs={d.ganDay} tong={d.tongTien} phimId={phim.id} />
       <KinhThanhForm phim={phim} onSaved={tai} />
       <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} onChanged={tai} />
 
       <div className="xv-panel">
-        <h3>Tập & storyboard<small>{phim.loai === 'phim' ? 'mỗi tập một kịch bản; tập sau đọc tóm tắt tập trước' : 'một tập'}</small></h3>
+        <h3>3 · Tập: brief → kịch bản → storyboard<small>{phim.loai === 'phim' ? 'mỗi tập một kịch bản; tập sau đọc tóm tắt tập trước' : 'một tập'}</small></h3>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
           {tap.length > 0 && (
             <Seg options={tap.map((t) => ({ value: t.id, label: `${phim.loai === 'phim' ? `Tập ${t.so}` : 'Tập'}${t.ten && t.ten !== phim.ten ? ` · ${t.ten}` : ''} (${t.so_canh})` }))} value={tapId ?? 0} onChange={(v) => tapParam.open('tap', v)} />
@@ -202,6 +201,7 @@ function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onCl
         </div>
         {tapId != null && <TapView key={tapId} tap={tap.find((t) => t.id === tapId)!} phim={phim} nhanVat={nhanVat} khoa={khoa} onChanged={tai} />}
       </div>
+      <ChiPhiGanDay jobs={d.ganDay} tong={d.tongTien} phimId={phim.id} />
     </Ngan>
   );
 }
@@ -252,7 +252,7 @@ function KinhThanhForm({ phim, onSaved }: { phim: Phim; onSaved: () => Promise<v
   const goiY = async () => { setAi(true); setLoiAi(''); const r = await goiYAIKinhThanh(phim.id); setAi(false); if (!r.ok) { setLoiAi(r.loi); return; } set('phong_cach', r.data.phong_cach); setMoTa(r.data.mo_ta); };
   return (
     <details className="xv-det xv-panel" open={!kt.phong_cach}>
-      <summary>Kinh thánh của bộ phim <small>{kt.phong_cach ? `${kt.ti_le} · ${kt.do_phan_giai} · nối vào đầu MỌI prompt ảnh/video` : 'chưa đặt phong cách'}</small></summary>
+      <summary>1 · Kinh thánh của bộ phim <small>{kt.phong_cach ? `${kt.ti_le} · ${kt.do_phan_giai} · nối vào đầu MỌI prompt ảnh/video` : 'chưa đặt phong cách'}</small></summary>
       <div className="xv-grid" style={{ marginTop: 10 }}>
         <O span label="Phong cách hình ảnh" hint="Viết như tả cho hoạ sĩ: chất liệu, bảng màu, ánh sáng, lens. Tiếng Việt hay Anh đều được. Nối vào đầu mọi prompt để các tập giống nhau.">
           <textarea className="xv-ta" rows={2} value={kt.phong_cach} onChange={(e) => set('phong_cach', e.target.value)} placeholder="3D hoạt hình kiểu Pixar, màu ấm, ánh sáng mềm buổi sáng, khu rừng cổ tích…" />
@@ -292,7 +292,7 @@ function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, onChanged 
   return (
     <div className="xv-panel">
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <h3 style={{ flex: 1 }}>Tuyến nhân vật · sản phẩm · bối cảnh<small>anchor: đặc tính cố định + ảnh mẫu → mọi cảnh, mọi tập tham chiếu cùng một bản</small></h3>
+        <h3 style={{ flex: 1 }}>2 · Tuyến nhân vật · sản phẩm · bối cảnh<small>anchor: đặc tính cố định + ảnh mẫu → mọi cảnh, mọi tập tham chiếu cùng một bản</small></h3>
         <Nut ban={ban === -1} title="Claude đọc tiền đề + kịch bản các tập + anchor đã có → tạo các anchor còn thiếu (nhân vật, sản phẩm, bối cảnh, đạo cụ). Tạo xong anh sửa/xoá tuỳ ý." onClick={async () => { setBan(-1); setLoi((x) => ({ ...x, [-1]: '' })); const r = await goiYAIBoAnchor(phimId); setBan(null); if (!r.ok) setLoi((x) => ({ ...x, [-1]: r.loi })); await onChanged(); }}>{ban === -1 ? '… AI đang đề xuất' : '✨ AI đề xuất tuyến còn thiếu'}</Nut>
         <button type="button" className="xv-btn" onClick={() => setSua({ loai: 'nhan_vat', ten: '', mo_ta: '', anh_ref: [], giong: '' })}>+ Thêm</button>
       </div>
@@ -503,44 +503,47 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) minmax(280px, 1fr)', gap: 10 }}>
+      {/* Thứ tự theo mạch, trái → phải rồi xuống: 3a brief → 3b kịch bản → 3c storyboard. */}
+      {phim.loai === 'phim' && <O label="Tên tập"><input className="xv-in" value={tenTap} onChange={(e) => setTenTap(e.target.value)} placeholder="Cuộc đua bắt đầu" style={{ maxWidth: 420 }} /></O>}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 2fr) minmax(320px, 3fr)', gap: 12, alignItems: 'start' }}>
         <div>
-          {phim.loai === 'phim' && <O label="Tên tập"><input className="xv-in" value={tenTap} onChange={(e) => setTenTap(e.target.value)} placeholder="Cuộc đua bắt đầu" /></O>}
-          <O label="Kịch bản"><textarea className="xv-ta" rows={12} value={kichBan} onChange={(e) => setKichBan(e.target.value)} placeholder={'Dán kịch bản, hoặc dùng ô bên phải cho Claude viết.\nCảnh 1: … \nCảnh 2: …'} /></O>
+          <O label={<span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>3a · Brief (ý tưởng tập này) <Nut ly={!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY'} ban={!!ban} title="Claude đọc tiền đề + tuyến nhân vật + tóm tắt các tập trước → gợi ý brief cho tập này" onClick={() => void chay('brief', async () => { const r = await goiYAIBrief(tap.id, thoiLuong); if (r.ok) setBrief(r.data); return r; })}>{ban === 'brief' ? '… AI' : '✨ AI gợi ý brief'}</Nut></span>}
+            hint="Bỏ qua nếu đã có kịch bản sẵn — dán thẳng vào ô 3b bên phải.">
+            <textarea className="xv-ta" rows={12} value={brief} onChange={(e) => setBrief(e.target.value)}
+              placeholder={phim.loai === 'quang_cao' ? 'Sản phẩm, điểm bán chính, khách mục tiêu, hook mở đầu, CTA…' : phim.loai === 'phim' ? 'Tập này kể gì, xung đột, kết tập mở ra tập sau…' : 'Ý tưởng, hook 3 giây đầu, twist, CTA…'} />
+          </O>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input className="xv-in" type="number" min={8} max={300} value={thoiLuong} onChange={(e) => setThoiLuong(Number(e.target.value) || 30)} style={{ width: 70 }} title="tổng giây" />
+            <span style={mono}>giây</span>
+            <Nut ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || (!brief.trim() && 'viết brief trước')} ban={!!ban} title="Viết kịch bản từ brief → điền sang ô 3b"
+              onClick={() => void chay('viet', async () => { const r = await vietKichBanTap(tap.id, brief, thoiLuong); if (r.ok) setKichBan(r.data); return r; })}>
+              {ban === 'viet' ? '… đang viết' : '✍ Claude viết kịch bản →'}
+            </Nut>
+          </div>
+        </div>
+        <div>
+          <O label="3b · Kịch bản"><textarea className="xv-ta" rows={12} value={kichBan} onChange={(e) => setKichBan(e.target.value)} placeholder={'Dán kịch bản, hoặc viết brief ở 3a rồi bấm "Claude viết kịch bản".\nCảnh 1: … \nCảnh 2: …'} /></O>
           {tap.tom_tat && <div style={{ ...mono, marginTop: -4, marginBottom: 6 }}>Tóm tắt (tập sau đọc): {tap.tom_tat}</div>}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             <Nut ly={!kbDirty && 'chưa sửa'} ban={!!ban} onClick={() => void chay('luu', async () => { await suaTap(tap.id, { kich_ban: kichBan, ten: tenTap }); })}>Lưu kịch bản</Nut>
+            <span style={{ flex: 1 }} />
             <input className="xv-in" type="number" min={0} max={40} value={soCanh || ''} onChange={(e) => setSoCanh(Number(e.target.value) || 0)} placeholder="số cảnh (tự)" style={{ width: 110 }} />
             <Nut chinh ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || (!kichBan.trim() && 'chưa có kịch bản')} ban={!!ban}
-              title="Claude đọc kịch bản + anchor → bảng cảnh (góc máy, hành động, lời thoại, prompt ảnh, prompt video). Cảnh đã có keyframe giữ nguyên."
+              title="Claude đọc kịch bản + anchor + biến thể → bảng cảnh 3c bên dưới. Cảnh đã có keyframe giữ nguyên."
               onClick={() => void chay('tach', async () => { if (kbDirty) await suaTap(tap.id, { kich_ban: kichBan, ten: tenTap }); return tachCanhTap(tap.id, soCanh); })}>
-              {ban === 'tach' ? '… Claude đang tách' : '✂ Tách cảnh'}
+              {ban === 'tach' ? '… Claude đang tách' : '✂ Tách cảnh ↓'}
             </Nut>
           </div>
         </div>
-        <div>
-          <O label={<span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>Brief cho Claude viết kịch bản <Nut ly={!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY'} ban={!!ban} title="Claude đọc tiền đề + tuyến nhân vật + tóm tắt các tập trước → gợi ý brief cho tập này" onClick={() => void chay('brief', async () => { const r = await goiYAIBrief(tap.id, thoiLuong); if (r.ok) setBrief(r.data); return r; })}>{ban === 'brief' ? '… AI' : '✨ AI gợi ý brief'}</Nut></span>}>
-            <textarea className="xv-ta" rows={6} value={brief} onChange={(e) => setBrief(e.target.value)}
-              placeholder={phim.loai === 'quang_cao' ? 'Sản phẩm, điểm bán chính, khách mục tiêu, hook mở đầu, CTA…' : phim.loai === 'phim' ? 'Tập này kể gì, xung đột, kết tập mở ra tập sau…' : 'Ý tưởng, hook 3 giây đầu, twist, CTA…'} />
-          </O>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <input className="xv-in" type="number" min={8} max={300} value={thoiLuong} onChange={(e) => setThoiLuong(Number(e.target.value) || 30)} style={{ width: 80 }} title="tổng giây" />
-            <span style={mono}>giây</span>
-            <Nut ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || (!brief.trim() && 'viết brief trước')} ban={!!ban}
-              onClick={() => void chay('viet', async () => { const r = await vietKichBanTap(tap.id, brief, thoiLuong); if (r.ok) setKichBan(r.data); return r; })}>
-              {ban === 'viet' ? '… đang viết' : '✍ Claude viết kịch bản'}
-            </Nut>
-          </div>
-          <div style={{ ...mono, marginTop: 10, lineHeight: 1.6 }}>
-            Mạch: kịch bản → <b>Tách cảnh</b> → <b>Sinh keyframe</b> (ảnh, {tien(giaAnhCents(kt.mo_hinh_anh))}/ảnh) → chọn + <b>Duyệt</b> → <b>Sinh video</b> ({tien(giaVideoCents(kt.mo_hinh_video, kt.do_phan_giai, 8))}/8s).
-            {uoc && uoc.soCanhDuyet > 0 && <div style={{ color: 'var(--amber)' }}>Đang chờ sinh video: {uoc.soCanhDuyet} cảnh · {uoc.giayDuyet}s ≈ {tien(uoc.videoTong)}</div>}
-          </div>
-        </div>
+      </div>
+      <div style={{ ...mono, marginTop: 8, lineHeight: 1.6 }}>
+        Mạch: 3a brief → 3b kịch bản → <b>Tách cảnh</b> → 3c storyboard: <b>Sinh keyframe</b> ({tien(giaAnhCents(kt.mo_hinh_anh))}/ảnh) → chọn + <b>Duyệt</b> → <b>Sinh video</b> ({tien(giaVideoCents(kt.mo_hinh_video, kt.do_phan_giai, 8))}/8s).
+        {uoc && uoc.soCanhDuyet > 0 && <span style={{ color: 'var(--amber)' }}> · Đang chờ sinh video: {uoc.soCanhDuyet} cảnh · {uoc.giayDuyet}s ≈ {tien(uoc.videoTong)}</span>}
       </div>
       <Loi>{loi}</Loi>
 
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 12, flexWrap: 'wrap' }}>
-        <strong style={{ fontSize: 12 }}>Storyboard · {canh?.length ?? '…'} cảnh</strong>
+        <strong style={{ fontSize: 12 }}>3c · Storyboard · {canh?.length ?? '…'} cảnh</strong>
         <span style={{ flex: 1 }} />
         <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || ((canh?.length ?? 0) === 0 && 'chưa có cảnh — bấm ✂ Tách cảnh trước') || (chuaKeyframe === 0 && 'mọi cảnh đã có keyframe')} ban={!!ban}
           title={`Sinh 1 keyframe cho mỗi cảnh chưa có (${chuaKeyframe} cảnh ≈ ${tien(chuaKeyframe * giaAnhCents(kt.mo_hinh_anh))})`}

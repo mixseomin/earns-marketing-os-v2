@@ -8,6 +8,12 @@
 // (TG_BOT_TOKEN, TG_CHAT, TG_TOPIC, TG_TOPIC_SX — vault MOS2 #476); Directus từ .env.production qua EnvironmentFile.
 //   node scripts/bao-sp-telegram.mjs [--dry]      node scripts/bao-sp-telegram.mjs --tu-kiem
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+// CÙNG luật "đã duyệt bản này" với tab Tài sản (doc.ts: cho_anh + daDuyetBanNay → sẵn sàng). Sổ chỉ đổi status khi quy-trinh chạy lại,
+// nên đọc status trơn thì sách anh đã duyệt vẫn bị nhắc (Bible/Christmas 09/10/2026). Node ≥22.18 chạy thẳng .ts (bỏ kiểu).
+import { daDuyetBanNay } from '../apps/web/src/lib/tai-san/kieu.ts';
+const lc = (r) => r.listing_config ?? {};
+/** Còn đúng là việc của anh: status chưa qua 'chờ duyệt' và chưa có lần duyệt nào mới hơn bản xem hiện tại. */
+export const choAnh = (r) => !(r.status === 'owner_review' && daDuyetBanNay(lc(r).duyetLuc || lc(r).duyet, lc(r).xem?.ngay));
 
 const MOS2 = process.env.MOS2_URL || 'https://mos2.on.tc';
 // Link mở thẳng drawer sản phẩm trong tab Tài sản (tai-san-view.tsx: useModalParam('sp') → ?sp=sp&spId=<khoa>, khoa = 'd:<id sổ>').
@@ -53,7 +59,10 @@ if (process.argv.includes('--tu-kiem')) {
   a.ok(tinTre('S', ds, '2026-10-22').includes('đăng 20/10 (trễ 2 ngày)') && tinTre('S', ds, '2026-10-22').includes('vào duyệt'));
   const nhap = ds.map((r) => ({ ...r, status: 'draft' }));
   a.ok(tinTre('S', nhap, '2026-10-20').includes('(hôm nay)') && tinTre('S', nhap, '2026-10-20').includes('Chưa sản xuất xong'));
-  console.log('bao-sp-telegram: 5/5 ok'); process.exit(0);
+  a.equal(choAnh({ status: 'owner_review', listing_config: { duyetLuc: '2026-10-08T11:24:30Z', xem: { ngay: '2026-10-06T17:44:59Z' } } }), false);   // đã duyệt bản này
+  a.equal(choAnh({ status: 'owner_review', listing_config: { duyetLuc: '2026-10-05T11:00:00Z', xem: { ngay: '2026-10-06T17:44:59Z' } } }), true);    // dựng lại sau lần duyệt
+  a.equal(choAnh({ status: 'draft', listing_config: {} }), true);
+  console.log('bao-sp-telegram: 8/8 ok'); process.exit(0);
 }
 
 const { DIRECTUS_URL = 'https://as.on.tc', DIRECTUS_TOKEN, TG_BOT_TOKEN, TG_CHAT, TG_TOPIC, TG_TOPIC_SX } = process.env;
@@ -94,8 +103,8 @@ const ghi = (p, v) => { if (!DRY) writeFileSync(p, JSON.stringify(v)); };
 
 // Kênh theo TRẠNG THÁI. Tệp = { da: [id dòng đã báo], tin: { message_id: [id dòng] } }; tệp cũ dạng mảng = chỉ có 'da'.
 // donKhiXong: tin mà MỌI dòng của nó đã rời trạng thái này (anh duyệt xong → ready) thì xoá — kênh "việc cần làm" tự dọn.
-async function kenh(st, topic, tep, nhom, donKhiXong = false) {
-  const TT = `${THU}/${tep}`, ds = await doc(st);
+async function kenh(st, topic, tep, nhom, donKhiXong = false, loc = () => true) {
+  const TT = `${THU}/${tep}`, ds = (await doc(st)).filter(loc);
   if (!existsSync(TT)) { mkdirSync(THU, { recursive: true }); writeFileSync(TT, JSON.stringify({ da: ds.map((x) => x.id), tin: {} })); console.log(`${st}: lần đầu, ghi nhận ${ds.length} dòng, không báo`); return; }
   const cu = docTep(TT), S = Array.isArray(cu) ? { da: cu, tin: {} } : cu;
   // Chỉ giữ dòng CÒN ở trạng thái này: rời đi rồi quay lại (dựng lại sau góp ý → chờ duyệt lần nữa) thì báo lại
@@ -111,13 +120,13 @@ async function kenh(st, topic, tep, nhom, donKhiXong = false) {
   if (!moi.length) console.log(`${st}: không có gì mới`);
 }
 await kenh('published', TG_TOPIC, 'da-bao.json', (ds) => ds.map((x) => [`${x.platform} · ${x.title}`, tin(x), [x.id]]));
-if (TG_TOPIC_SX) await kenh('owner_review', TG_TOPIC_SX, 'da-bao-sx.json', (ds) => gom(ds).map(([ten, xs]) => [ten, tinSx(ten, xs), xs.map((x) => x.id)]), true);
+if (TG_TOPIC_SX) await kenh('owner_review', TG_TOPIC_SX, 'da-bao-sx.json', (ds) => gom(ds).map(([ten, xs]) => [ten, tinSx(ten, xs), xs.map((x) => x.id)]), true, choAnh);
 
 // Kênh TỚI NGÀY CHƯA DUYỆT: tệp = { tên sách: { ngay, tin: [message_id] } } (tệp cũ: { tên: ngày }).
 // Mỗi sách một tin mỗi ngày; tin hôm nay thay tin hôm trước (xoá cũ); anh duyệt xong / sách lên sàn → xoá hết tin nhắc của sách đó.
 {
   const TT = `${THU}/da-nhac-tre.json`, nhac = Object.fromEntries(Object.entries(existsSync(TT) ? docTep(TT) : {}).map(([k, v]) => [k, typeof v === 'string' ? { ngay: v, tin: [] } : v]));
-  const tre = gom((await doc('planned,draft,owner_review')).filter((x) => x.listing_config?.dangDuKien && x.listing_config.dangDuKien <= HOM_NAY));
+  const tre = gom((await doc('planned,draft,owner_review')).filter(choAnh).filter((x) => x.listing_config?.dangDuKien && x.listing_config.dangDuKien <= HOM_NAY));
   const conTre = new Set(tre.map(([ten]) => ten));
   for (const ten of Object.keys(nhac)) if (!conTre.has(ten)) { await xoa(nhac[ten].tin); delete nhac[ten]; console.log(`🗑 tới ngày chưa duyệt · ${ten}: đã xong, xoá tin nhắc`); }
   let n = 0;

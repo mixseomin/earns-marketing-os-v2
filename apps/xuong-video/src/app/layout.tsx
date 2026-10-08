@@ -1,11 +1,14 @@
 import type { Metadata } from 'next';
 import './xv.css';
 import { PhongToKhiRe } from '@/components/phong-to';
+import { GopY } from '@/components/gop-y';
+import { getCurrentUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: { default: 'Xưởng video', template: '%s · Xưởng video' }, robots: { index: false, follow: false } };
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default async function Layout({ children }: { children: React.ReactNode }) {
+  const me = await getCurrentUser();
   return (
     <html lang="vi">
       <body>
@@ -18,6 +21,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </header>
         <main className="xv-main">{children}</main>
         <PhongToKhiRe />
+        {me?.role === 'admin' && <GopY />}
       </body>
     </html>
   );

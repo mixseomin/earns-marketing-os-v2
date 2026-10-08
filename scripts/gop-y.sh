@@ -23,7 +23,10 @@ set -euo pipefail
 set -a; . /opt/earns-marketing-os-v2/.env.production 2>/dev/null; set +a
 : "${DATABASE_URL:?DATABASE_URL chưa có — chạy tệp này trên server, cạnh .env.production}"
 
-SCOPE="project_id = 'mos2' AND prep_payload->>'source_platform' = 'feedback'"
+# Cùng một hòm cho nhiều app: GOPY_PROJECT=xuong-video → góp ý của studio.on.tc (xuong-video/src/lib/gop-y.ts). Mặc định mos2.
+P="${GOPY_PROJECT:-mos2}"
+[[ "$P" =~ ^[a-z0-9_-]+$ ]] || { echo "GOPY_PROJECT sai: $P" >&2; exit 1; }
+SCOPE="project_id = '$P' AND prep_payload->>'source_platform' = 'feedback'"
 NGUOI="${GOPY_NGUOI:-claude}"
 cmd="${1:-list}"
 
@@ -32,7 +35,7 @@ cmd="${1:-list}"
 # tin lên màn nham nhở chứ không ai báo.
 bat_buoc_trung() {  # đọc stdout của psql; rỗng = WHERE không khớp card nào
   local ra; ra=$(cat)
-  [ -n "$ra" ] || { echo "#$1: không phải card góp ý mos2 (hoặc id không tồn tại) — bỏ qua." >&2; return 1; }
+  [ -n "$ra" ] || { echo "#$1: không phải card góp ý $P (hoặc id không tồn tại) — bỏ qua." >&2; return 1; }
   echo "$ra"
 }
 
@@ -60,9 +63,9 @@ dat_trang_thai() {  # $1=id  $2=status  $3=url ('' = giữ nguyên)
   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -At -v id="$1" -v st="$2" -v url="$3" <<SQL
 UPDATE human_tasks SET
   prep_payload = COALESCE(prep_payload, '{}'::jsonb)
-    || jsonb_build_object('site_status', COALESCE(prep_payload->'site_status', '{}'::jsonb) || jsonb_build_object('mos2', to_jsonb(:'st'::text)))
+    || jsonb_build_object('site_status', COALESCE(prep_payload->'site_status', '{}'::jsonb) || jsonb_build_object('$P', to_jsonb(:'st'::text)))
     || jsonb_build_object('site_url',    COALESCE(prep_payload->'site_url', '{}'::jsonb) ||
-         CASE WHEN :'url' = '' THEN '{}'::jsonb ELSE jsonb_build_object('mos2', to_jsonb(:'url'::text)) END),
+         CASE WHEN :'url' = '' THEN '{}'::jsonb ELSE jsonb_build_object('$P', to_jsonb(:'url'::text)) END),
   updated_at = now()
 WHERE id = :id AND $SCOPE
 RETURNING id;
@@ -73,16 +76,16 @@ case "$cmd" in
 list)
   # Mặc định giấu nhóm đã đóng sổ (CLOSED_SITE_STATUSES trong lib/site-status.ts) — nhìn vào là
   # thấy phần CÒN PHẢI LÀM. 'review' cố ý vẫn hiện: xong việc nhưng chưa xong quy trình.
-  loc="AND COALESCE(prep_payload->'site_status'->>'mos2', 'pending') NOT IN ('completed','verified','dropped','broken')"
+  loc="AND COALESCE(prep_payload->'site_status'->>'$P', 'pending') NOT IN ('completed','verified','dropped','broken')"
   [ "${2:-}" = "all" ] && loc=""
   psql "$DATABASE_URL" -P pager=off <<SQL
 \echo '=== GÓP Ý MOS2 — còn phải xử (dùng: gop-y.sh show <id>) ==='
 SELECT id,
-       COALESCE(prep_payload->'site_status'->>'mos2', 'pending') AS trang_thai,
+       COALESCE(prep_payload->'site_status'->>'$P', 'pending') AS trang_thai,
        left(title, 60) AS tieu_de,
        COALESCE(NULLIF(prep_payload->>'source_url', ''), '—') AS trang_loi,
        jsonb_array_length(COALESCE(prep_payload->'trao_doi', '[]'::jsonb)) AS tin,
-       prep_payload->'site_scheduled_at'->>'mos2' AS hen,
+       prep_payload->'site_scheduled_at'->>'$P' AS hen,
        created_at::date AS gui_ngay
 FROM human_tasks
 WHERE $SCOPE $loc
@@ -93,7 +96,7 @@ show)
   id="${2:?thiếu id}"
   psql "$DATABASE_URL" -P pager=off -x <<SQL
 SELECT id, title,
-       COALESCE(prep_payload->'site_status'->>'mos2', 'pending') AS trang_thai,
+       COALESCE(prep_payload->'site_status'->>'$P', 'pending') AS trang_thai,
        prep_payload->>'source_url' AS trang_loi,
        created_at
 FROM human_tasks WHERE id = $id AND $SCOPE;

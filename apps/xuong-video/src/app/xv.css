@@ -52,3 +52,15 @@ details.xv-det > summary { cursor: pointer; font-weight: 600; font-size: 12px; l
 details.xv-det > summary::before { content: '▸'; color: var(--fg-3); }
 details.xv-det[open] > summary::before { content: '▾'; }
 details.xv-det > summary small { font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-3); font-weight: 400; }
+
+/* Đang sinh: lớp phủ sọc chạy trên ảnh/clip — dùng chung thẻ anchor, biến thể, cảnh, timeline (08/10/2026). */
+.xv-dang { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; pointer-events: none;
+  background: repeating-linear-gradient(45deg, rgba(167,139,250,.38) 0 8px, rgba(15,15,25,.55) 8px 16px); background-size: 22.6px 22.6px;
+  animation: xv-soc 0.8s linear infinite; }
+.xv-dang span { font-family: var(--font-mono); font-size: 10px; color: #fff; text-shadow: 0 1px 3px #000; }
+.xv-dang span:empty { display: none; }
+@keyframes xv-soc { to { background-position: 22.6px 0; } }
+/* Ảnh nhỏ có nút xoá hiện khi rê. */
+.xv-anh-nho .xv-x { display: none; position: absolute; top: -5px; right: -5px; width: 16px; height: 16px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--bg-1); color: var(--red); font-size: 9px; line-height: 14px; padding: 0; cursor: pointer; z-index: 3; }
+.xv-anh-nho:hover .xv-x { display: block; }

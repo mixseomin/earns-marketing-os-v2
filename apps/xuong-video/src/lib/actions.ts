@@ -84,7 +84,9 @@ const mapPhim = (r: Row): Phim => ({
 });
 
 /** dangSinh: job ảnh còn chạy (≤10 phút) — F5 vẫn thấy "đang sinh" vì trạng thái ở sổ job máy chủ, không ở trình duyệt. */
-export type PhimDayDu = { phim: Phim; nhanVat: NhanVat[]; tap: Tap[]; dangSinh: { nhanVat: number[]; bienThe: number[] }; loiAnh: { nhanVat: Record<number, string>; bienThe: Record<number, string> }; ganDay: Job[]; tongTien: number };
+/** Thống kê gọn cả phim cho đầu ngăn phim (anh yêu cầu 08/10/2026). */
+export type ThongKePhim = { soCanh: number; giay: number; coKf: number; duyet: number; nhap: number; cuoi: number; anhGoc: number; bienThe: number; btCoAnh: number; soLanSinh: number; tienAnh: number; tienVideo: number; tienChu: number };
+export type PhimDayDu = { thongKe: ThongKePhim; phim: Phim; nhanVat: NhanVat[]; tap: Tap[]; dangSinh: { nhanVat: number[]; bienThe: number[] }; loiAnh: { nhanVat: Record<number, string>; bienThe: Record<number, string> }; ganDay: Job[]; tongTien: number };
 export async function docPhim(id: number): Promise<PhimDayDu | null> {
   const db = getDb();
   if (!db || !(await admin())) return null;
@@ -96,7 +98,7 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
       db.execute(sql`SELECT t.*, (SELECT count(*) FROM xv_canh c WHERE c.tap_id = t.id) AS so_canh FROM xv_tap t WHERE t.phim_id = ${id} ORDER BY so`),
     ]);
     const nvs = (nv as unknown as Row[]).map(mapNhanVat);
-    const [bt, ds, gd, tg, la] = await Promise.all([
+    const [bt, ds, gd, tg, la, tkc, tkj] = await Promise.all([
       db.execute(sql`SELECT b.* FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE v.phim_id = ${id} ORDER BY b.nhom, b.id`),
       db.execute(sql`SELECT j.nhan_vat_id, j.bien_the_id FROM xv_job j JOIN xv_nhan_vat v ON v.id = j.nhan_vat_id
         WHERE v.phim_id = ${id} AND j.loai = 'anh' AND j.trang_thai = 'cho' AND j.created_at > now() - interval '10 minutes'`),
@@ -106,6 +108,13 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
       db.execute(sql`SELECT DISTINCT ON (j.nhan_vat_id, coalesce(j.bien_the_id, 0)) j.nhan_vat_id, j.bien_the_id, j.trang_thai, j.loi
         FROM xv_job j JOIN xv_nhan_vat v ON v.id = j.nhan_vat_id WHERE v.phim_id = ${id} AND j.loai = 'anh'
         ORDER BY j.nhan_vat_id, coalesce(j.bien_the_id, 0), j.id DESC`),
+      db.execute(sql`SELECT count(*) AS so, coalesce(sum(c.thoi_luong_s), 0) AS giay, count(c.keyframe_url) AS kf,
+          count(*) FILTER (WHERE c.trang_thai = 'duyet') AS duyet, count(c.video_url) AS nhap, count(c.video_cuoi_url) AS cuoi
+        FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = ${id}`),
+      db.execute(sql`SELECT count(*) AS so, coalesce(sum(chi_phi_cents) FILTER (WHERE loai = 'anh'), 0) AS anh,
+          coalesce(sum(chi_phi_cents) FILTER (WHERE loai IN ('video', 'nang_cap')), 0) AS video,
+          coalesce(sum(chi_phi_cents) FILTER (WHERE loai NOT IN ('anh', 'video', 'nang_cap')), 0) AS chu
+        FROM xv_job WHERE phim_id = ${id} AND trang_thai = 'xong'`),
     ]);
     const loiAnh = { nhanVat: {} as Record<number, string>, bienThe: {} as Record<number, string> };
     for (const r of la as unknown as Row[]) {
@@ -115,8 +124,14 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
     const bts = (bt as unknown as Row[]).map(mapBienThe);
     for (const v of nvs) v.bien_the = bts.filter((b) => b.nhan_vat_id === v.id);
     const dsr = ds as unknown as Row[];
+    const c0 = (tkc as unknown as Row[])[0] ?? {}; const j0 = (tkj as unknown as Row[])[0] ?? {};
+    const thongKe: ThongKePhim = {
+      soCanh: n(c0.so), giay: n(c0.giay), coKf: n(c0.kf), duyet: n(c0.duyet), nhap: n(c0.nhap), cuoi: n(c0.cuoi),
+      anhGoc: nvs.reduce((a, v) => a + v.anh_ref.length, 0), bienThe: bts.length, btCoAnh: bts.filter((b) => b.anh_url).length,
+      soLanSinh: n(j0.so), tienAnh: n(j0.anh), tienVideo: n(j0.video), tienChu: n(j0.chu),
+    };
     return {
-      phim: mapPhim(p[0]), nhanVat: nvs, tap: (tap as unknown as Row[]).map(mapTap),
+      thongKe, phim: mapPhim(p[0]), nhanVat: nvs, tap: (tap as unknown as Row[]).map(mapTap),
       ganDay: (gd as unknown as Row[]).map(mapJob), tongTien: n((tg as unknown as Row[])[0]?.t), loiAnh,
       dangSinh: { nhanVat: dsr.filter((r) => r.bien_the_id == null).map((r) => n(r.nhan_vat_id)), bienThe: dsr.filter((r) => r.bien_the_id != null).map((r) => n(r.bien_the_id)) },
     };
@@ -283,6 +298,35 @@ export async function sinhAnhMau(nhanVatId: number): Promise<Kq<number>> {
   const job = await taoJob({ nhan: `Ảnh gốc · ${nv.ten}`, nhan_vat_id: nhanVatId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { prompt: promptAnhMau(nv, kt, nv.anh_ref.length) } });
   await dayViecAnh({ job, model: kt.mo_hinh_anh, prompt: promptAnhMau(nv, kt, nv.anh_ref.length), thamChieuUrl: nv.anh_ref.slice(0, 3), tiLe: nv.loai === 'boi_canh' ? kt.ti_le : '1:1', thuMuc: `anchor/${nhanVatId}` });
   return { ok: true, data: job };
+}
+
+/** Xoá một ảnh gốc khỏi anchor (anh yêu cầu 08/10/2026: ảnh không cần / không hợp thì bỏ). Bỏ khỏi danh sách; file R2 giữ lại
+ *  vì keyframe/clip cũ có thể đã dùng nó làm tham chiếu. */
+export async function xoaAnhGoc(nhanVatId: number, url: string): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  await db.execute(sql`UPDATE xv_nhan_vat SET anh_ref = anh_ref - ${url}, updated_at = now() WHERE id = ${nhanVatId}`);
+  return { ok: true, data: undefined };
+}
+/** Xoá ảnh của một biến thể (biến thể giữ nguyên, sinh lại được). */
+export async function xoaAnhBienThe(bienTheId: number): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  await db.execute(sql`UPDATE xv_bien_the SET anh_url = NULL, updated_at = now() WHERE id = ${bienTheId}`);
+  return { ok: true, data: undefined };
+}
+/** Xoá một ứng viên keyframe của cảnh. Đang là keyframe chính thì chuyển sang ứng viên còn lại; hết ứng viên thì cảnh về nháp. */
+export async function xoaKeyframe(canhId: number, url: string): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  await db.execute(sql`UPDATE xv_canh SET keyframe_uv = keyframe_uv - ${url},
+      keyframe_url = CASE WHEN keyframe_url = ${url} THEN (keyframe_uv - ${url})->>0 ELSE keyframe_url END,
+      trang_thai = CASE WHEN jsonb_array_length(keyframe_uv - ${url}) = 0 AND trang_thai IN ('co_keyframe', 'duyet') THEN 'nhap' ELSE trang_thai END,
+      updated_at = now() WHERE id = ${canhId}`);
+  return { ok: true, data: undefined };
 }
 
 /** Chọn một ảnh gốc làm ảnh chính (đưa lên đầu anh_ref) — ảnh đầu là ảnh thẻ hiện + tham chiếu ưu tiên khi sinh cảnh. */

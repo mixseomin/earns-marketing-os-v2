@@ -1,5 +1,4 @@
 // Thử bản xuất với DỮ LIỆU THẬT của một tập, không qua server action, không lên R2 — dùng khi sửa xuat.ts để xem khung hình thật (ffmpeg -ss … tile).
-// Thử bản xuất với DỮ LIỆU THẬT của một tập trên box3 (không qua server action, không lên R2): tải nguyên liệu → đo → dựng lệnh → ffmpeg → /tmp.
 // Chạy trên box3 (nơi có DB + ffmpeg): cd /opt/earns-marketing-os-v2 && TAP=5 NHANH= node_modules/.bin/tsx apps/xuong-video/scripts/thu-xuat.mts
 import { keHoachXuat, urlCanXuat } from '../src/lib/xuong-video/xuat';
 import { execFileSync } from 'node:child_process';

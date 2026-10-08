@@ -312,6 +312,7 @@ function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onCl
         <span style={mono}>#{phim.id}</span>
         <span style={{ flex: 1 }} />
         <ThongKe tk={d.thongKe} tongTien={d.tongTien} soAnchor={nhanVat.length} soTap={tap.length} />
+        <a href="/thu-vien" target="_blank" rel="noreferrer" className="xv-btn" style={{ textDecoration: 'none' }} title="Cỡ cảnh, góc, chuyển động máy, ống kính, ánh sáng, màu, chuyển cảnh, âm thanh, nhạc — theo thể loại">🎬 Thư viện điện ảnh</a>
         <ThungRac phimId={phim.id} onKhoiPhuc={tai} />
         <Xoa nhan="cả phim (tập + cảnh)" onXoa={onXoa} />
         <button type="button" className="xv-btn" onClick={onClose}>Đóng</button>
@@ -383,8 +384,8 @@ function KinhThanhForm({ phim, onSaved }: { phim: Phim; onSaved: () => Promise<v
   const set = <K extends keyof KinhThanh>(k: K, v: Required<KinhThanh>[K]) => setKt((x) => ({ ...x, [k]: v }));
   const goiY = async () => { setAi(true); setLoiAi(''); const r = await goiYAIKinhThanh(phim.id); setAi(false); if (!r.ok) { setLoiAi(r.loi); return; } set('phong_cach', r.data.phong_cach); setMoTa(r.data.mo_ta); if (r.data.the_loai && THE_LOAI.some((t) => t.key === r.data.the_loai)) set('the_loai', r.data.the_loai as TheLoai); if (r.data.logline) set('logline', r.data.logline); if (r.data.chu_de) set('chu_de', r.data.chu_de); };
   return (
-    <details className="xv-det xv-panel" open={!kt.phong_cach}>
-      <summary>1 · Kinh thánh của bộ phim <small>{kt.phong_cach ? `${kt.ti_le} · ${kt.do_phan_giai} · nối vào đầu MỌI prompt ảnh/video` : 'chưa đặt phong cách'}</small></summary>
+    <details className="xv-det xv-panel" open={!kt.phong_cach || !kt.the_loai}>
+      <summary>1 · Kinh thánh của bộ phim <small>{kt.phong_cach ? `${kt.ti_le} · ${kt.do_phan_giai}` : 'chưa đặt phong cách'} · {kt.the_loai ? `🎭 ${THE_LOAI.find((t) => t.key === kt.the_loai)?.ten}` : <b style={{ color: 'var(--amber)' }}>⚠ chưa chọn thể loại (thư viện điện ảnh dựa vào đây)</b>}{kt.logline ? ` · “${kt.logline.slice(0, 70)}”` : ''}</small></summary>
       <div className="xv-grid" style={{ marginTop: 10 }}>
         <O span label="Phong cách hình ảnh" hint="Viết như tả cho hoạ sĩ: chất liệu, bảng màu, ánh sáng, lens. Tiếng Việt hay Anh đều được. Nối vào đầu mọi prompt để các tập giống nhau.">
           <textarea className="xv-ta" rows={2} value={kt.phong_cach} onChange={(e) => set('phong_cach', e.target.value)} placeholder="3D hoạt hình kiểu Pixar, màu ấm, ánh sáng mềm buổi sáng, khu rừng cổ tích…" />
@@ -756,7 +757,9 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
   const dauCanh = useRef('');
   const taiCanh = useCallback(async () => {
     const ds = await dsCanh(tap.id);
-    setCanh(ds); setUoc(await uocTien(tap.id)); setUocA(await uocAm(tap.id));
+    setCanh(ds); setUoc(await uocTien(tap.id));
+    // Giá âm thanh nạp riêng (lần đầu phải đọc danh mục giọng fal, chậm) — không bắt danh sách cảnh hay dòng nút âm thanh chờ nó.
+    void uocAm(tap.id).then(setUocA).catch(() => {});
     const dau = ds.map((c) => `${c.id}:${c.trang_thai}:${c.keyframe_uv.length}:${c.video_url ? 1 : 0}:${c.video_cuoi_url ? 1 : 0}:${c.thoi_luong_s}:${c.chi_phi_cents}`).join('|');
     if (dauCanh.current && dau !== dauCanh.current) void onChanged();
     dauCanh.current = dau;
@@ -847,17 +850,30 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
         </Nut>
         <button type="button" className="xv-btn" disabled={banTach || ban('them')} onClick={() => void chay('them', async () => { await themCanh(tap.id); })}>+ Cảnh</button>
       </div>
-      {!!canh?.length && uocA && (
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6, flexWrap: 'wrap' }}>
-          <span style={{ ...mono, color: 'var(--fg-2)' }}>Âm thanh:</span>
-          <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!uocA.soThoai && 'chưa shot nào có lời thoại')} ban={ban('giong')} title="Đọc lời thoại mọi shot bằng giọng cố định của từng nhân vật (chọn ở mục 2), cảm xúc theo shot" onClick={() => void chay('giong', () => sinhGiong(tap.id))}>🗣 Sinh giọng {uocA.soThoai} shot · {tien(uocA.giong)}</Nut>
-          <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!uocA.soSfx && 'chưa shot nào có clip hay mô tả âm thanh')} ban={ban('sfx')} title="Shot có clip → sinh tiếng từ chính clip (khớp hành động); chưa có clip → từ mô tả âm thanh + kỹ thuật âm thanh của shot" onClick={() => void chay('sfx', () => sinhAmThanh(tap.id))}>🔊 Sinh hiệu ứng {uocA.soSfx} shot · {tien(uocA.sfx)}</Nut>
+      {!!canh?.length && (() => {
+        const u = uocA ?? { giong: 0, soThoai: canh.filter((c) => c.loi_thoai.trim()).length, sfx: 0, soSfx: canh.length, nhac: {} as Record<string, number>, giay: canh.reduce((a, c) => a + (c.thoi_luong_s || 5), 0), soPhanCanh: new Set(canh.map((c) => c.phan_doan).filter(Boolean)).size, dangNhac: 0 };
+        const gia = (c: number) => (uocA ? tien(c) : '…');
+        const nvNoi = nhanVat.filter((v) => v.loai === 'nhan_vat');
+        return (
+        <div className="xv-panel" style={{ marginTop: 8, padding: 10, display: 'grid', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <b style={{ fontSize: 12 }}>🗣 Giọng nhân vật</b><span style={mono}>(một giọng cố định cả bộ phim — bấm để chọn / nghe thử)</span>
+            {nvNoi.map((v) => <span key={v.id} style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><span style={{ fontSize: 11.5 }}>{v.ten}:</span><GiongNhanVat v={v} onChanged={onChanged} /></span>)}
+            {!nvNoi.length && <span style={mono}>chưa có nhân vật nào ở mục 2</span>}
+          </div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <b style={{ fontSize: 12 }}>🔊 Âm thanh</b>
+
+          <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!u.soThoai && 'chưa shot nào có lời thoại')} ban={ban('giong')} title="Đọc lời thoại mọi shot bằng giọng cố định của từng nhân vật (chọn ở mục 2), cảm xúc theo shot" onClick={() => void chay('giong', () => sinhGiong(tap.id))}>🗣 Sinh giọng {u.soThoai} shot · {gia(u.giong)}</Nut>
+          <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!u.soSfx && 'chưa shot nào có clip hay mô tả âm thanh')} ban={ban('sfx')} title="Shot có clip → sinh tiếng từ chính clip (khớp hành động); chưa có clip → từ mô tả âm thanh + kỹ thuật âm thanh của shot" onClick={() => void chay('sfx', () => sinhAmThanh(tap.id))}>🔊 Sinh hiệu ứng {u.soSfx} shot · {gia(u.sfx)}</Nut>
           <Chon nho value={mhNhac} onChange={setMhNhac} minWidth={200} title="Model nhạc" options={MO_HINH_AM.filter((m) => m.loai === 'nhac').map((m) => ({ value: m.key, label: m.ten, phu: `${tien(m.gia)}/phút`, title: m.ghiChu }))} />
-          <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!uocA.soPhanCanh && 'chưa có phân cảnh — tách lại cảnh')} ban={ban('nhac')} title="Mỗi phân cảnh một đoạn nhạc riêng: dài bằng phân cảnh, theo cảm xúc đầu→cuối + nhịp + kỹ thuật nhạc của các shot" onClick={() => void chay('nhac', () => sinhNhac(tap.id, mhNhac, '*'))}>🎵 Nhạc theo {uocA.soPhanCanh} phân cảnh · {tien(uocA.nhac[mhNhac] ?? 0)}</Nut>
-          <Nut ly={!khoa.fal && 'thiếu FAL_KEY'} ban={ban('nhac1')} title="Một bài nền chạy suốt cả tập" onClick={() => void chay('nhac1', () => sinhNhac(tap.id, mhNhac))}>🎵 Một bài cả tập ({uocA.giay}s)</Nut>
-          {uocA.dangNhac > 0 && <span style={{ ...mono, color: 'var(--violet)' }}>⏳ đang sinh {uocA.dangNhac} đoạn âm…</span>}
+          <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!u.soPhanCanh && 'chưa có phân cảnh — tách lại cảnh')} ban={ban('nhac')} title="Mỗi phân cảnh một đoạn nhạc riêng: dài bằng phân cảnh, theo cảm xúc đầu→cuối + nhịp + kỹ thuật nhạc của các shot" onClick={() => void chay('nhac', () => sinhNhac(tap.id, mhNhac, '*'))}>🎵 Nhạc theo {u.soPhanCanh} phân cảnh · {gia(u.nhac[mhNhac] ?? 0)}</Nut>
+          <Nut ly={!khoa.fal && 'thiếu FAL_KEY'} ban={ban('nhac1')} title="Một bài nền chạy suốt cả tập" onClick={() => void chay('nhac1', () => sinhNhac(tap.id, mhNhac))}>🎵 Một bài cả tập ({u.giay}s)</Nut>
+          {u.dangNhac > 0 && <span style={{ ...mono, color: 'var(--violet)' }}>⏳ đang sinh {u.dangNhac} đoạn âm…</span>}
         </div>
-      )}
+        </div>
+        );
+      })()}
 
       {canh === null ? <span style={mono}>…</span> : canh.length === 0 ? (
         <div className="xv-panel" style={{ marginTop: 8, textAlign: 'center', padding: 24 }}>

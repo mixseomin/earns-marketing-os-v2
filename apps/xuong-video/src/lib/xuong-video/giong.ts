@@ -42,21 +42,27 @@ export async function dsMoHinhGiong(): Promise<MoHinhGiong[]> {
       const j = (await r.json()) as { items?: Array<Record<string, unknown>> };
       const fal = (j.items ?? []).map((m) => String(m.id ?? '')).filter((id) => id && !/voice-clone|voice-design|clone-voice|stream|batch|realtime/.test(id));
       const items = new Map((j.items ?? []).map((m) => [String(m.id), m]));
-      // Danh mục fal để trống giá ở nhiều model TTS; giá vẫn ghi trên trang riêng của model → đọc trang đó cho model thiếu.
-      const giaTrang = new Map<string, string>();
-      await Promise.all(fal.filter((id) => !String(items.get(id)?.pricingInfoOverride ?? '').trim()).map(async (id) => {
-        try {
-          const h = await (await fetch(`https://fal.ai/models/${id}`, { signal: AbortSignal.timeout(8000) })).text();
-          const t = h.replace(/<[^>]+>/g, ' ').replace(/&#x27;|&quot;|\\"/g, ' ').replace(/\s+/g, ' ');
-          const m = t.match(/(?:cost|charged)[^.$]{0,40}\$\s?[0-9.]+[^.]{0,60}/i);
-          if (m) giaTrang.set(id, m[0]);
-        } catch { /* thôi */ }
-      }));
-      khoDm = { luc: Date.now(), ds: fal.map((id) => {
+      const tao = (giaTrang: Map<string, string>) => fal.map((id) => {
         const m = items.get(id)!; const goc = String(m.pricingInfoOverride ?? '').trim() || giaTrang.get(id) || ''; const g = giaTts(goc);
         const hang = id.split('/')[0] === 'fal-ai' ? id.split('/')[1] : id.split('/')[0];
-        return { key: id, ten: String(m.title ?? id), nhom: `fal · ${hang}`, giaCents: g.cents, donVi: g.donVi, giaText: goc.replace(/\*\*/g, '') || 'fal chưa công bố giá' };
-      }) };
+        return { key: id, ten: String(m.title ?? id), nhom: `fal · ${hang}`, giaCents: g.cents, donVi: g.donVi, giaText: goc.replace(/\*\*/g, '') || 'fal chưa công bố giá' } as MoHinhGiong;
+      });
+      khoDm = { luc: Date.now(), ds: tao(new Map()) };
+      // Danh mục fal để trống giá ở nhiều model TTS; giá vẫn ghi trên trang riêng của model → đọc NỀN (không bắt người bấm chờ ~10 giây),
+      // đọc xong thì thay danh mục có giá.
+      const thieu = fal.filter((id) => !String(items.get(id)?.pricingInfoOverride ?? '').trim());
+      void (async () => {
+        const giaTrang = new Map<string, string>();
+        await Promise.all(thieu.map(async (id) => {
+          try {
+            const h = await (await fetch(`https://fal.ai/models/${id}`, { signal: AbortSignal.timeout(8000) })).text();
+            const t = h.replace(/<[^>]+>/g, ' ').replace(/&#x27;|&quot;|\\"/g, ' ').replace(/\s+/g, ' ');
+            const m = t.match(/(?:cost|charged)[^.$]{0,40}\$\s?[0-9.]+[^.]{0,60}/i);
+            if (m) giaTrang.set(id, m[0]);
+          } catch { /* thôi */ }
+        }));
+        khoDm = { luc: Date.now(), ds: tao(giaTrang) };
+      })();
     } catch { /* giữ kho cũ */ }
   }
   return [...ds, ...(khoDm?.ds ?? [])];

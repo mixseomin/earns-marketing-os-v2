@@ -12,7 +12,7 @@ import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, nhanKyThuat, type Nhom
 import {
   dsPhim, docPhim, dsCanh, taoPhim, taoPhimMau, suaPhim, xoaPhim, luuNhanVat, xoaNhanVat, sinhAnhMau, taoTap, suaTap,
   vietKichBanTap, tachCanhTap, suaCanh, themCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, uocTien, sinhVideoCanh, kiemVideo, taiAnhLen,
-  dsMoHinh, xepCanh, datAnhChinh, layTuLinkSanPham, sinhGiong, sinhAmThanh, sinhNhac, uocAm, dsGiongModel, dsGiongCua, chonGiong, ngheThuGiong, xoaAnhGoc, xoaAnhBienThe, xoaKeyframe, dsThungRac, khoiPhuc, type MoHinhChon,
+  dsMoHinh, xepCanh, datAnhChinh, lamLaiTuKeyframe, layTuLinkSanPham, sinhGiong, sinhAmThanh, sinhNhac, uocAm, dsGiongModel, dsGiongCua, chonGiong, ngheThuGiong, xoaAnhGoc, xoaAnhBienThe, xoaKeyframe, dsThungRac, khoiPhuc, type MoHinhChon,
   goiYAIKinhThanh, goiYAIAnchor, goiYAIBoAnchor, goiYAIBrief, goiYAICanh, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, nangCapCanh, chonPhienBan,
   type PhimDayDu,
 } from '@/lib/actions';
@@ -993,6 +993,16 @@ function Animatic({ canh, tiLe, ngonNgu, onClose }: { canh: Canh[]; tiLe: string
 
 // ── Một cảnh ────────────────────────────────────────────────────────────────────────────────────────────────────
 
+/** Keyframe nhỏ dưới video (#1218): có video rồi vẫn xem lại được ảnh gốc của clip (rê để phóng to, kèm ảnh so sánh). */
+function KfNho({ url, soSanh }: { url: string; soSanh: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }} title="Keyframe của clip — rê để phóng to">
+      <img src={url} alt="" data-so-sanh={soSanh} style={{ width: 34, height: 34, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} />
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)' }}>keyframe</span>
+    </div>
+  );
+}
+
 /** Trang phục của người trong shot — sửa ngay trên thẻ (Enter/blur là lưu). Trống = mặc như mô tả nhân vật. */
 function TrangPhucShot({ c, onLuu }: { c: Canh; onLuu: (t: string) => void }) {
   const [v, setV] = useState(c.trang_phuc);
@@ -1027,8 +1037,9 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
   const anhKhung: CSSProperties = { width: doc ? 68 : 120, height: doc ? 120 : 68, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)' };
   const k = `c${c.id}`;
   const tp = thanhPhanCanh(c, nhanVat);
-  // Ảnh tham chiếu của các đối tượng trong shot (biến thể đang chọn nếu có) — đi kèm khi phóng to keyframe để so (#1215).
-  const soSanh = JSON.stringify(tp.ds.filter((x) => x.anh).map((x) => ({ ten: `${x.nv.ten}${x.bt ? ` · ${x.bt.ten}` : ''}`, url: x.anh })));
+  // Ảnh tham chiếu của các đối tượng cần khớp danh tính trong shot — nhân vật, sản phẩm, đạo cụ (bỏ bối cảnh), biến thể đang chọn nếu có —
+  // đi kèm khi phóng to keyframe để so (#1215).
+  const soSanh = JSON.stringify(tp.ds.filter((x) => x.anh && x.nv.loai !== 'boi_canh').map((x) => ({ ten: `${x.nv.ten}${x.bt ? ` · ${x.bt.ten}` : ''}`, url: x.anh })));
   // Model chọn tại cảnh (mặc định theo kinh thánh) — giá $ hiện trên ô chọn và nút.
   const [mhAnh, setMhAnh] = useState<string>(kt.mo_hinh_anh);
   const [mhVideo, setMhVideo] = useState<string>(kt.mo_hinh_video);
@@ -1050,8 +1061,8 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
     <div className="xv-canh">
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
         <div style={{ flexShrink: 0 }}>
-          {c.video_cuoi_url ? <div><video src={c.video_cuoi_url} controls preload="metadata" style={anhKhung} /><div style={{ ...mono, color: 'var(--lime)', textAlign: 'center' }}>bản cuối</div></div>
-            : c.video_url ? <div><video src={c.video_url} controls preload="metadata" style={anhKhung} /><div style={{ ...mono, textAlign: 'center' }}>nháp</div></div>
+          {c.video_cuoi_url ? <div><video src={c.video_cuoi_url} controls preload="metadata" style={anhKhung} /><div style={{ ...mono, color: 'var(--lime)', textAlign: 'center' }}>bản cuối</div>{c.keyframe_url && <KfNho url={c.keyframe_url} soSanh={soSanh} />}</div>
+            : c.video_url ? <div><video src={c.video_url} controls preload="metadata" style={anhKhung} /><div style={{ ...mono, textAlign: 'center' }}>nháp</div>{c.keyframe_url && <KfNho url={c.keyframe_url} soSanh={soSanh} />}</div>
             : c.keyframe_url ? <div style={{ position: 'relative' }}><img src={c.keyframe_url} alt="" data-so-sanh={soSanh} style={anhKhung} />{buoc === 'dang' && <DangSinh chu="" />}</div>
             : <div style={{ ...anhKhung, position: 'relative', display: 'grid', placeItems: 'center', color: 'var(--fg-4)', fontSize: 10, overflow: 'hidden' }}>chưa có{buoc === 'dang' && <DangSinh chu={c.dang_sinh_anh ? 'ảnh' : 'video'} />}</div>}
         </div>
@@ -1105,7 +1116,7 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
           )}
           {tp.thieu.length > 0 && <div style={{ fontSize: 10.5, color: 'var(--red)', marginTop: 3 }}>Chưa sinh được: {tp.thieu.join(' · ')} — chuẩn bị ở mục 2.</div>}
           <Loi>{c.loi}</Loi>
-          {c.keyframe_uv.length > 0 && !c.video_url && (
+          {c.keyframe_uv.length > 0 && (
             <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
               {c.keyframe_uv.map((u) => (
                 <AnhNho key={u} url={u} soSanh={soSanh} vien={u === c.keyframe_url ? 'var(--cyan)' : undefined} title={u === c.keyframe_url ? 'đang chọn' : 'chọn ảnh này làm keyframe'}
@@ -1133,7 +1144,7 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
             {buoc === 'trong' && <>{chonAnh}<Nut chinh ly={lyAnh} ban={ban(k)} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))} gia={giaAnh}>🖼 Sinh keyframe · {tien(giaAnh)}</Nut></>}
             {buoc === 'kf' && <Nut chinh ban={ban(k)} onClick={() => void chay(k, () => duyetCanh(c.id, true))}>✓ Duyệt keyframe</Nut>}
             {/* Sinh lại ảnh hiện ngay cạnh nút chính (không giấu trong ⋯): sửa trang phục / prompt / đối tượng xong là bấm lại được. Ảnh cũ vẫn giữ làm ứng viên. */}
-            {(buoc === 'kf' || buoc === 'duyet') && <>{chonAnh}<Nut ly={lyAnh} ban={ban(k)} title="Sinh thêm một ảnh keyframe mới theo prompt / trang phục / đối tượng hiện tại; ảnh cũ vẫn giữ trong dải ứng viên để chọn lại" onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))} gia={giaAnh}>↻ Sinh lại ảnh · {tien(giaAnh)}</Nut></>}
+            {(buoc === 'kf' || buoc === 'duyet' || buoc === 'nhap' || buoc === 'cuoi') && <>{chonAnh}<Nut ly={lyAnh} ban={ban(k)} title="Sinh thêm một ảnh keyframe mới theo prompt / trang phục / đối tượng hiện tại; ảnh cũ vẫn giữ trong dải ứng viên để chọn lại" onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))} gia={giaAnh}>↻ Sinh lại ảnh · {tien(giaAnh)}</Nut></>}
             {buoc === 'duyet' && <>{chonVideo}<Nut chinh ly={lyVideo} ban={ban(k)} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))} gia={giaVid}>🎬 Sinh nháp · {giay}s · {tien(giaVid)}</Nut></>}
             {buoc === 'dang' && <span style={{ ...mono, color: 'var(--violet)' }}>{c.dang_sinh_anh ? 'đang sinh ảnh…' : 'đang sinh video, tự kiểm mỗi 10s…'}</span>}
             {(buoc === 'nhap' || buoc === 'cuoi') && <>{chonVideo}<Nut ly={lyVideo} ban={ban(k)} title="Sinh một bản nháp video mới từ keyframe đang chọn; bản cũ vẫn giữ trong danh sách phiên bản" onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))} gia={giaVid}>↻ Sinh lại nháp · {giay}s · {tien(giaVid)}</Nut></>}
@@ -1145,7 +1156,7 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
               <MucMenu onClick={() => setMo(true)}>✎ Sửa cảnh (góc máy, lời thoại, prompt, nhân vật)</MucMenu>
               {c.loi_thoai.trim() && <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} onClick={() => void chay(`g${c.id}`, () => sinhGiong(c.tap_id, [c.id]))}>🗣 {c.thoai_url ? 'Sinh lại' : 'Sinh'} giọng shot này</MucMenu>}
               <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} onClick={() => void chay(`s${c.id}`, () => sinhAmThanh(c.tap_id, [c.id]))}>🔊 {c.am_thanh_url ? 'Sinh lại' : 'Sinh'} hiệu ứng âm thanh{c.video_url ? ' (từ clip)' : ''}</MucMenu>
-              {c.keyframe_url && buoc !== 'kf' && buoc !== 'duyet' && <MucMenu ly={lyAnh} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))} gia={giaAnh}>🖼 Thêm ứng viên keyframe · {tien(giaAnh)}</MucMenu>}
+              {(buoc === 'nhap' || buoc === 'cuoi') && <MucMenu onClick={() => void chay(k, () => lamLaiTuKeyframe(c.id))}>↩ Làm lại từ keyframe (đổi ảnh / duyệt lại — các bản video vẫn giữ trong phiên bản)</MucMenu>}
               {c.trang_thai === 'duyet' && <MucMenu onClick={() => void chay(k, () => duyetCanh(c.id, false))}>↩ Bỏ duyệt keyframe</MucMenu>}
               {c.trang_thai === 'loi' && buoc !== 'nhap' && buoc !== 'cuoi' && c.keyframe_url && <MucMenu ly={lyVideo} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))} gia={giaVid}>↻ Sinh lại nháp · {giay}s · {tien(giaVid)}</MucMenu>}
               {(buoc === 'nhap' || buoc === 'cuoi') && <MucMenu ly={lyVideo} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo, 'cuoi'))} gia={giaVid}>🎬 Bản cuối = sinh lại bằng model đã chọn · {tien(giaVid)} (chuyển động có thể khác nháp)</MucMenu>}

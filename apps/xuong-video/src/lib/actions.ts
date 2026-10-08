@@ -643,6 +643,16 @@ export async function chonKeyframe(canhId: number, url: string): Promise<Kq> {
 }
 
 /** Duyệt keyframe (gate trước khi tốn tiền video). `duyet=false` trả về co_keyframe. */
+/** Làm lại shot từ bước keyframe (#1218): bỏ chọn video nháp/bản cuối đang dùng, shot về "có keyframe". Mọi bản video vẫn nằm trong
+ *  video_phien_ban — chọn lại được, không mất gì. */
+export async function lamLaiTuKeyframe(canhId: number): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  await db.execute(sql`UPDATE xv_canh SET video_url = NULL, video_cuoi_url = NULL, trang_thai = CASE WHEN keyframe_url IS NULL THEN 'nhap' ELSE 'co_keyframe' END, loi = '', updated_at = now() WHERE id = ${canhId}`);
+  return { ok: true, data: undefined };
+}
+
 export async function duyetCanh(canhId: number, duyet: boolean): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');

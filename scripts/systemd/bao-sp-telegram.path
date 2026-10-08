@@ -1,0 +1,11 @@
+# Đánh thức bot báo tin NGAY khi MOS2 ghi sổ (nút Duyệt / đổi trạng thái chạm /var/lib/mine-tg/kich — lib/actions/san-pham-duyet.ts).
+# Timer 1 phút (bao-sp-telegram.timer) vẫn chạy làm lưới đỡ cho mọi đường ghi sổ khác (script, sanpham, Directus tay).
+[Unit]
+Description=Bao tin Telegram MINE ngay khi MOS2 ghi so
+
+[Path]
+PathChanged=/var/lib/mine-tg/kich
+Unit=bao-sp-telegram.service
+
+[Install]
+WantedBy=paths.target

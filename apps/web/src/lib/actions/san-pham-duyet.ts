@@ -6,6 +6,12 @@
 import { revalidateTag } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth';
 import { THE_SO_SP } from '@/lib/products/data';
+import { writeFile } from 'node:fs/promises';
+
+// Đánh thức bot Telegram MINE (scripts/bao-sp-telegram.mjs) NGAY sau khi sổ đổi: systemd bao-sp-telegram.path canh tệp này
+// → chạy bot liền (xoá tin "Sản xuất xong" của sách vừa duyệt). Không có tệp/thư mục (máy dev) thì thôi: timer 1 phút trên box3 vẫn đỡ.
+const KICH = process.env.BAO_SP_KICH || '/var/lib/mine-tg/kich';
+const danhThucBot = () => writeFile(KICH, new Date().toISOString()).catch(() => undefined);
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL || 'https://as.on.tc';
 const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN || '';
@@ -28,6 +34,7 @@ export async function duyetSanPham(id: string): Promise<{ ok: boolean; soDong?: 
     if (!res.ok) return { ok: false, error: `Ghi duyệt thất bại ở dòng ${r.id} (${res.status}).` };
   }
   revalidateTag(THE_SO_SP);   // trang đọc lại sổ ngay, không đợi bộ đệm 15s
+  await danhThucBot();
   return { ok: true, soDong: rows.length };
 }
 
@@ -42,5 +49,6 @@ export async function datTrangThaiSp(id: string, status: string): Promise<{ ok: 
     headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
   if (!res.ok) return { ok: false, error: `Sổ cái từ chối (${res.status}): ${(await res.text()).slice(0, 160)}` };
   revalidateTag(THE_SO_SP);
+  await danhThucBot();   // đổi tay sang published / khỏi chờ duyệt → báo hoặc xoá tin Telegram ngay
   return { ok: true };
 }

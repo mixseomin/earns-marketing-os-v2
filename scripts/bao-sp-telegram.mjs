@@ -4,6 +4,7 @@
 //                     Anh duyệt xong → bot thả ❤ vào tin NGAY (nút Duyệt đánh thức bot qua bao-sp-telegram.path), 1 phút sau mới xoá.
 //   tới ngày chưa duyệt → topic "🛍️ Sản phẩm mới": ngày đăng dự kiến (giờ VN) đã tới mà sách còn planned/draft/owner_review —
 //                       mỗi sách tối đa MỘT tin mỗi ngày, kèm link mở thẳng drawer duyệt trên MOS2.
+//   tới ngày cần đăng → topic "🛍️ Sản phẩm mới": đã duyệt + tới ngày + nền KDP/Gumroad (Publish là chữ ký của anh) → nhắc đăng.
 // Bất kể đăng/dựng bằng script nào hay sửa tay trên MOS2. Lần đầu mỗi kênh (chưa có tệp trạng thái) chỉ ghi nhận, không báo hàng cũ.
 // Chạy trên box3 bằng systemd timer bao-sp-telegram.timer (1 phút: anh duyệt xong là tin biến gần như ngay). Cấu hình bot: /root/.secrets/mine-tg.env
 // (TG_BOT_TOKEN, TG_CHAT, TG_TOPIC, TG_TOPIC_SX — vault MOS2 #476); Directus từ .env.production qua EnvironmentFile.
@@ -50,6 +51,15 @@ export const tinTre = (ten, ds, homNay) => {
   ].join('\n');
 };
 
+export const tinCanDang = (ten, ds, homNay) => {
+  const d = ngayDang(ds), tre = Math.round((Date.parse(homNay) - Date.parse(d)) / 86_400_000);
+  return [
+    `📤 <b>${esc(ten)}</b>`,
+    esc(dong(`đăng ${ngayVn(d)}${tre > 0 ? ` (trễ ${tre} ngày)` : ' (hôm nay)'}`, ds.map(nen).join(', '))),
+    '<i>Đã duyệt, cần bấm Publish trên sàn</i>',
+  ].join('\n');
+};
+
 if (process.argv.includes('--tu-kiem')) {
   const a = await import('node:assert');
   const t = tin({ platform: 'etsy', title: 'A <b> & C', price: '181000.00', currency: 'VND', url: 'https://x.y/1' });
@@ -63,7 +73,8 @@ if (process.argv.includes('--tu-kiem')) {
   a.equal(choAnh({ status: 'owner_review', listing_config: { duyetLuc: '2026-10-08T11:24:30Z', xem: { ngay: '2026-10-06T17:44:59Z' } } }), false);   // đã duyệt bản này
   a.equal(choAnh({ status: 'owner_review', listing_config: { duyetLuc: '2026-10-05T11:00:00Z', xem: { ngay: '2026-10-06T17:44:59Z' } } }), true);    // dựng lại sau lần duyệt
   a.equal(choAnh({ status: 'draft', listing_config: {} }), true);
-  console.log('bao-sp-telegram: 8/8 ok'); process.exit(0);
+  a.ok(tinCanDang('S', [{ platform: 'gumroad', listing_config: { dangDuKien: '2026-10-10' } }], '2026-10-12').includes('đăng 10/10 (trễ 2 ngày) · Gumroad'));
+  console.log('bao-sp-telegram: 9/9 ok'); process.exit(0);
 }
 
 const { DIRECTUS_URL = 'https://as.on.tc', DIRECTUS_TOKEN, TG_BOT_TOKEN, TG_CHAT, TG_TOPIC, TG_TOPIC_SX } = process.env;
@@ -138,25 +149,30 @@ async function kenh(st, topic, tep, nhom, donKhiXong = false, loc = () => true) 
 await kenh('published', TG_TOPIC, 'da-bao.json', (ds) => ds.map((x) => [`${x.platform} · ${x.title}`, tin(x), [x.id]]));
 if (TG_TOPIC_SX) await kenh('owner_review', TG_TOPIC_SX, 'da-bao-sx.json', (ds) => gom(ds).map(([ten, xs]) => [ten, tinSx(ten, xs), xs.map((x) => x.id)]), true, choAnh);
 
-// Kênh TỚI NGÀY CHƯA DUYỆT: tệp = { tên sách: { ngay, tin: [message_id] } } (tệp cũ: { tên: ngày }).
-// Mỗi sách một tin mỗi ngày; tin hôm nay thay tin hôm trước (xoá cũ); anh duyệt xong / sách lên sàn → xoá hết tin nhắc của sách đó.
-{
-  const TT = `${THU}/da-nhac-tre.json`, nhac = Object.fromEntries(Object.entries(existsSync(TT) ? docTep(TT) : {}).map(([k, v]) => [k, typeof v === 'string' ? { ngay: v, tin: [] } : v]));
-  const tre = gom((await doc('planned,draft,owner_review')).filter(choAnh).filter((x) => x.listing_config?.dangDuKien && x.listing_config.dangDuKien <= HOM_NAY));
-  const conTre = new Set(tre.map(([ten]) => ten));
+// Kênh NHẮC THEO NGÀY: tệp = { tên sách: { ngay, tin: [message_id], xong? } }. Mỗi sách một tin mỗi ngày (tin mới thay tin cũ);
+// sách ra khỏi danh sách (anh duyệt / đã đăng) → thả ❤ ngay, 1 phút sau xoá.
+async function nhacTheoNgay(tep, nhan, ds, viet) {
+  const TT = `${THU}/${tep}`, nhac = Object.fromEntries(Object.entries(existsSync(TT) ? docTep(TT) : {}).map(([k, v]) => [k, typeof v === 'string' ? { ngay: v, tin: [] } : v]));
+  const nhom = gom(ds), con = new Set(nhom.map(([ten]) => ten));
   for (const ten of Object.keys(nhac)) {
-    if (conTre.has(ten)) { delete nhac[ten].xong; continue; }
-    if (!nhac[ten].xong) { for (const m of nhac[ten].tin) await tha(m); nhac[ten].xong = new Date().toISOString(); console.log(`❤ tới ngày chưa duyệt · ${ten}`); }
-    else if (quaHan(nhac[ten].xong)) { await xoa(nhac[ten].tin); delete nhac[ten]; console.log(`🗑 tới ngày chưa duyệt · ${ten}: đã xong, xoá tin nhắc`); }
+    if (con.has(ten)) { delete nhac[ten].xong; continue; }
+    if (!nhac[ten].xong) { for (const m of nhac[ten].tin) await tha(m); nhac[ten].xong = new Date().toISOString(); console.log(`❤ ${nhan} · ${ten}`); }
+    else if (quaHan(nhac[ten].xong)) { await xoa(nhac[ten].tin); delete nhac[ten]; console.log(`🗑 ${nhan} · ${ten}: đã xong, xoá tin nhắc`); }
   }
   let n = 0;
-  for (const [ten, xs] of tre) {
+  for (const [ten, xs] of nhom) {
     if (nhac[ten]?.ngay === HOM_NAY || n >= 10) continue;
-    const m = await gui(tinTre(ten, xs, HOM_NAY), TG_TOPIC); if (m == null) continue;
+    const m = await gui(viet(ten, xs), TG_TOPIC); if (m == null) continue;
     await xoa(nhac[ten]?.tin ?? []);
     nhac[ten] = { ngay: HOM_NAY, tin: [m] }; n++;
-    console.log(`✓ tới ngày chưa duyệt · ${ten}`);
+    console.log(`✓ ${nhan} · ${ten}`);
   }
   ghi(TT, nhac);
-  if (!n) console.log('tới ngày chưa duyệt: không có gì mới');
+  if (!n) console.log(`${nhan}: không có gì mới`);
 }
+const toiNgay = (x) => x.listing_config?.dangDuKien && x.listing_config.dangDuKien <= HOM_NAY;
+// Tới ngày mà CHƯA DUYỆT (hoặc chưa dựng xong)
+await nhacTheoNgay('da-nhac-tre.json', 'tới ngày chưa duyệt', (await doc('planned,draft,owner_review')).filter(choAnh).filter(toiNgay), (ten, xs) => tinTre(ten, xs, HOM_NAY));
+// Tới ngày, ĐÃ DUYỆT, nền máy không tự đăng được (KDP, Gumroad: nút Publish là của anh) → nhắc đăng. Etsy máy tự bật (may-chay dang) nên không nhắc.
+const daDuyet = [...(await doc('ready')), ...(await doc('owner_review')).filter((x) => !choAnh(x))];
+await nhacTheoNgay('da-nhac-dang.json', 'tới ngày cần đăng', daDuyet.filter((x) => ['kdp', 'gumroad'].includes(x.platform)).filter(toiNgay), (ten, xs) => tinCanDang(ten, xs, HOM_NAY));

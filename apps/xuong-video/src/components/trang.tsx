@@ -1115,8 +1115,11 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
           <div style={{ display: 'flex', gap: 6, marginTop: 7, flexWrap: 'wrap', alignItems: 'center' }}>
             {buoc === 'trong' && <>{chonAnh}<Nut chinh ly={lyAnh} ban={ban(k)} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))}>🖼 Sinh keyframe · {tien(giaAnh)}</Nut></>}
             {buoc === 'kf' && <Nut chinh ban={ban(k)} onClick={() => void chay(k, () => duyetCanh(c.id, true))}>✓ Duyệt keyframe</Nut>}
+            {/* Sinh lại ảnh hiện ngay cạnh nút chính (không giấu trong ⋯): sửa trang phục / prompt / đối tượng xong là bấm lại được. Ảnh cũ vẫn giữ làm ứng viên. */}
+            {(buoc === 'kf' || buoc === 'duyet') && <>{chonAnh}<Nut ly={lyAnh} ban={ban(k)} title="Sinh thêm một ảnh keyframe mới theo prompt / trang phục / đối tượng hiện tại; ảnh cũ vẫn giữ trong dải ứng viên để chọn lại" onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))}>↻ Sinh lại ảnh · {tien(giaAnh)}</Nut></>}
             {buoc === 'duyet' && <>{chonVideo}<Nut chinh ly={lyVideo} ban={ban(k)} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))}>🎬 Sinh nháp · {giay}s · {tien(giaVid)}</Nut></>}
             {buoc === 'dang' && <span style={{ ...mono, color: 'var(--violet)' }}>{c.dang_sinh_anh ? 'đang sinh ảnh…' : 'đang sinh video, tự kiểm mỗi 10s…'}</span>}
+            {(buoc === 'nhap' || buoc === 'cuoi') && <>{chonVideo}<Nut ly={lyVideo} ban={ban(k)} title="Sinh một bản nháp video mới từ keyframe đang chọn; bản cũ vẫn giữ trong danh sách phiên bản" onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))}>↻ Sinh lại nháp · {giay}s · {tien(giaVid)}</Nut></>}
             {buoc === 'nhap' && <Nut chinh ly={!khoa.fal && 'thiếu FAL_KEY'} ban={ban(k)} title="Nâng cấp CHÍNH clip nháp (Topaz ×2): chuyển động, bố cục, nhân vật y hệt bản nháp" onClick={() => void chay(k, () => nangCapCanh(c.id))}>⬆ Làm bản cuối (nâng cấp nháp, khớp 100%) · {tien(giaNangCap)}</Nut>}
             {buoc === 'cuoi' && <a href={c.video_cuoi_url!} target="_blank" rel="noreferrer" className="xv-btn chinh" style={{ textDecoration: 'none' }}>⬇ Tải bản cuối</a>}
             <Menu>
@@ -1125,9 +1128,9 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
               <MucMenu onClick={() => setMo(true)}>✎ Sửa cảnh (góc máy, lời thoại, prompt, nhân vật)</MucMenu>
               {c.loi_thoai.trim() && <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} onClick={() => void chay(k, () => sinhGiong(c.tap_id, [c.id]))}>🗣 {c.thoai_url ? 'Sinh lại' : 'Sinh'} giọng shot này</MucMenu>}
               <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} onClick={() => void chay(k, () => sinhAmThanh(c.tap_id, [c.id]))}>🔊 {c.am_thanh_url ? 'Sinh lại' : 'Sinh'} hiệu ứng âm thanh{c.video_url ? ' (từ clip)' : ''}</MucMenu>
-              {c.keyframe_url && <MucMenu ly={lyAnh} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))}>🖼 Thêm ứng viên keyframe · {tien(giaAnh)}</MucMenu>}
+              {c.keyframe_url && buoc !== 'kf' && buoc !== 'duyet' && <MucMenu ly={lyAnh} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))}>🖼 Thêm ứng viên keyframe · {tien(giaAnh)}</MucMenu>}
               {c.trang_thai === 'duyet' && <MucMenu onClick={() => void chay(k, () => duyetCanh(c.id, false))}>↩ Bỏ duyệt keyframe</MucMenu>}
-              {(buoc === 'nhap' || buoc === 'cuoi' || c.trang_thai === 'loi') && c.keyframe_url && <MucMenu ly={lyVideo} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))}>↻ Sinh lại nháp · {giay}s · {tien(giaVid)}</MucMenu>}
+              {c.trang_thai === 'loi' && buoc !== 'nhap' && buoc !== 'cuoi' && c.keyframe_url && <MucMenu ly={lyVideo} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))}>↻ Sinh lại nháp · {giay}s · {tien(giaVid)}</MucMenu>}
               {(buoc === 'nhap' || buoc === 'cuoi') && <MucMenu ly={lyVideo} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo, 'cuoi'))}>🎬 Bản cuối = sinh lại bằng model đã chọn · {tien(giaVid)} (chuyển động có thể khác nháp)</MucMenu>}
               {buoc === 'cuoi' && <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} onClick={() => void chay(k, () => nangCapCanh(c.id))}>⬆ Nâng cấp lại từ nháp · {tien(giaNangCap)}</MucMenu>}
               {c.video_url && <a data-dong="" href={c.video_url} target="_blank" rel="noreferrer" className="xv-btn" style={{ textDecoration: 'none' }}>⬇ Tải nháp</a>}

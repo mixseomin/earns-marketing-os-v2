@@ -4,7 +4,7 @@
 //   tới ngày chưa duyệt → topic "🛍️ Sản phẩm mới": ngày đăng dự kiến (giờ VN) đã tới mà sách còn planned/draft/owner_review —
 //                       mỗi sách tối đa MỘT tin mỗi ngày, kèm link mở thẳng drawer duyệt trên MOS2.
 // Bất kể đăng/dựng bằng script nào hay sửa tay trên MOS2. Lần đầu mỗi kênh (chưa có tệp trạng thái) chỉ ghi nhận, không báo hàng cũ.
-// Chạy trên box3 bằng systemd timer bao-sp-telegram.timer (10 phút). Cấu hình bot: /root/.secrets/mine-tg.env
+// Chạy trên box3 bằng systemd timer bao-sp-telegram.timer (1 phút: anh duyệt xong là tin biến gần như ngay). Cấu hình bot: /root/.secrets/mine-tg.env
 // (TG_BOT_TOKEN, TG_CHAT, TG_TOPIC, TG_TOPIC_SX — vault MOS2 #476); Directus từ .env.production qua EnvironmentFile.
 //   node scripts/bao-sp-telegram.mjs [--dry]      node scripts/bao-sp-telegram.mjs --tu-kiem
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';

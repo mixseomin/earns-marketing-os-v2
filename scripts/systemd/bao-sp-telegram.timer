@@ -1,9 +1,9 @@
 [Unit]
-Description=Bao san pham moi vao Telegram MINE moi 10 phut
+Description=Bao san pham moi vao Telegram MINE moi phut
 
 [Timer]
 OnBootSec=2min
-OnUnitActiveSec=10min
+OnUnitActiveSec=1min
 Persistent=true
 
 [Install]

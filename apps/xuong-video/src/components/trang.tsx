@@ -24,6 +24,14 @@ import {
 } from '@/lib/xuong-video/kieu';
 
 type Khoa = { google: boolean; anthropic: boolean; r2: boolean; openai: boolean; fal: boolean };
+/** Drawer phim chia tab (audit 09/10/2026: một cuộn dài 0→1→2→3→timeline không vừa một màn): kịch bản · storyboard & timeline · âm thanh · xuất. */
+type TabPhim = 'kich_ban' | 'storyboard' | 'am_thanh' | 'xuat';
+const TAB_PHIM: { key: TabPhim; label: string; mo: string }[] = [
+  { key: 'kich_ban', label: '📝 Kịch bản', mo: 'Mục 0 sản phẩm · 1 kinh thánh · 2 tuyến nhân vật · 3a brief · 3b kịch bản → tách cảnh' },
+  { key: 'storyboard', label: '🎞 Storyboard & Timeline', mo: 'Keyframe → duyệt → video, kéo thả, cắt giây phát, chữ màn, bộ kiểm' },
+  { key: 'am_thanh', label: '🔊 Âm thanh', mo: 'Giọng nhân vật, hiệu ứng, nhạc theo phân cảnh' },
+  { key: 'xuat', label: '⬇ Xuất', mo: 'Bộ kiểm đạt chưa · dựng MP4 theo nhánh hook · chi phí' },
+];
 type KqChay = { ok: boolean; loi?: string } | void;
 
 // ── Khối giao diện nhỏ của app (không mượn primitive của mos2 — app riêng) ─────────────────────────────────────────
@@ -214,6 +222,9 @@ function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onCl
   const tapParam = useModalParam('tap');
   const tai = useCallback(async () => setD(await docPhim(id)), [id]);
   useEffect(() => { void tai(); }, [tai]);
+  // Tab đang mở, nhớ theo phim (đọc ngay từ đầu, chỉ ghi khi bấm — cùng cách với khung thu gọn #1212).
+  const [tab, setTabS] = useState<TabPhim>(() => { try { const v = localStorage.getItem(`xv-tab-${id}`) as TabPhim | null; return v && TAB_PHIM.some((t) => t.key === v) ? v : 'kich_ban'; } catch { return 'kich_ban'; } });
+  const setTab = (t: TabPhim) => { setTabS(t); try { localStorage.setItem(`xv-tab-${id}`, t); } catch { /* chế độ riêng tư */ } };
   // Job ảnh còn chạy trên máy chủ (kể cả sau F5) → hỏi lại mỗi 4s tới khi xong.
   const conChay = !!d && (d.dangSinh.nhanVat.length > 0 || d.dangSinh.bienThe.length > 0);
   useEffect(() => { const t = setInterval(() => { if (document.visibilityState === 'visible') void tai(); }, conChay ? 4000 : 15000); return () => clearInterval(t); }, [conChay, tai]);
@@ -237,11 +248,16 @@ function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onCl
         <button type="button" className="xv-btn" onClick={onClose}>Đóng</button>
       </div>
 
-      <KinhThanhForm phim={phim} khoa={khoa} onSaved={tai} />
-      <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} />
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid var(--line)' }}>
+        {TAB_PHIM.map((t) => <button key={t.key} type="button" className={`xv-btn${tab === t.key ? ' chinh' : ''}`} title={t.mo} onClick={() => setTab(t.key)}>{t.label}</button>)}
+      </div>
+      {tab === 'kich_ban' && <>
+        <KinhThanhForm phim={phim} khoa={khoa} onSaved={tai} />
+        <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} />
+      </>}
 
       <div className="xv-panel">
-        <h3>3 · Tập: brief → kịch bản → storyboard<small>{phim.loai === 'phim' ? 'mỗi tập một kịch bản; tập sau đọc tóm tắt tập trước' : 'một tập'}</small></h3>
+        <h3>{tab === 'kich_ban' ? '3 · Tập: brief → kịch bản → tách cảnh' : TAB_PHIM.find((t) => t.key === tab)!.label.replace(/^\S+\s/, '')}<small>{tab === 'kich_ban' ? (phim.loai === 'phim' ? 'mỗi tập một kịch bản; tập sau đọc tóm tắt tập trước' : 'một tập') : TAB_PHIM.find((t) => t.key === tab)!.mo}</small></h3>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
           {tap.length > 0 && (
             <Seg options={tap.map((t) => ({ value: t.id, label: `${phim.loai === 'phim' ? `Tập ${t.so}` : 'Tập'}${t.ten && t.ten !== phim.ten ? ` · ${t.ten}` : ''} (${t.so_canh})` }))} value={tapId ?? 0} onChange={(v) => tapParam.open('tap', v)} />
@@ -250,9 +266,9 @@ function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onCl
             <button type="button" className="xv-btn" onClick={async () => { const r = await taoTap(phim.id, ''); if (r.ok) { await tai(); tapParam.open('tap', r.data); } }}>+ Thêm tập</button>
           )}
         </div>
-        {tapId != null && <TapView key={tapId} tap={tap.find((t) => t.id === tapId)!} phim={phim} nhanVat={nhanVat} khoa={khoa} onChanged={tai} />}
+        {tapId != null && <TapView key={tapId} tap={tap.find((t) => t.id === tapId)!} phim={phim} nhanVat={nhanVat} khoa={khoa} onChanged={tai} tab={tab} />}
       </div>
-      <ChiPhiGanDay jobs={d.ganDay} tong={d.tongTien} phimId={phim.id} />
+      {tab === 'xuat' && <ChiPhiGanDay jobs={d.ganDay} tong={d.tongTien} phimId={phim.id} />}
     </Ngan>
   );
 }
@@ -738,7 +754,7 @@ function NhanVatForm({ phimId, goc, onClose, onSaved }: { phimId: number; goc: P
 
 // ── Tập: kịch bản + storyboard ───────────────────────────────────────────────────────────────────────────────────
 
-function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim; nhanVat: NhanVat[]; khoa: Khoa; onChanged: () => Promise<void> }) {
+function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap; phim: Phim; nhanVat: NhanVat[]; khoa: Khoa; onChanged: () => Promise<void>; tab: TabPhim }) {
   const [kichBan, setKichBan] = useState(tap.kich_ban);
   const [tenTap, setTenTap] = useState(tap.ten);
   const [brief, setBrief] = useState(tap.brief);
@@ -812,9 +828,18 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
   const sanSang = (canh ?? []).filter((c) => !c.keyframe_url && thanhPhanCanh(c, nhanVat).thieu.length === 0);
   const kemThieu = chuaKeyframe - sanSang.length;
 
+  // Chọn nhánh hook (A/B/C) — dùng ở tab Storyboard lẫn tab Xuất.
+  const chonNhanh = !!canh?.length && cacNhanh(canh).length > 0 && (
+    <span style={{ display: 'inline-flex', gap: 2, alignItems: 'center' }} title="Cùng một thân, nhiều hook để A/B trên Meta/TikTok — chọn nhánh để xem / xuất">
+      <span style={mono}>hook:</span>
+      {cacNhanh(canh).map((h) => <button key={h} type="button" className={`xv-btn${(nhanh ?? cacNhanh(canh)[0]) === h ? ' chinh' : ''}`} style={{ padding: '1px 7px' }} onClick={() => setNhanh(h)}>{h}</button>)}
+    </span>
+  );
+  const giayPhatTong = canh?.length ? Math.round(locNhanh(canh, nhanh).reduce((a, c) => a + giayPhat(c), 0) * 10) / 10 : 0;
   return (
     <div>
       {/* Thứ tự theo mạch, trái → phải rồi xuống: 3a brief → 3b kịch bản → 3c storyboard. */}
+      {tab === 'kich_ban' && (<>
       {phim.loai === 'phim' && <O label="Tên tập"><input className="xv-in" value={tenTap} onChange={(e) => setTenTap(e.target.value)} placeholder="Cuộc đua bắt đầu" style={{ maxWidth: 420 }} /></O>}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 2fr) minmax(320px, 3fr)', gap: 12, alignItems: 'start' }}>
         <div>
@@ -851,16 +876,13 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
         Mạch: 3a brief → 3b kịch bản → <b>Tách cảnh</b> → 3c storyboard: <b>Sinh keyframe</b> ({tien(giaAnhCents(kt.mo_hinh_anh))}/ảnh) → chọn + <b>Duyệt</b> → <b>Sinh video</b> ({tien(giaVideoCents(kt.mo_hinh_video, kt.do_phan_giai, 8))}/8s).
         {uoc && uoc.soCanhDuyet > 0 && <span style={{ color: 'var(--amber)' }}> · Đang chờ sinh video: {uoc.soCanhDuyet} cảnh · {uoc.giayDuyet}s ≈ {tien(uoc.videoTong)}</span>}
       </div>
+      </>)}
       <Loi>{loi}</Loi>
 
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 12, flexWrap: 'wrap' }}>
-        <strong style={{ fontSize: 12 }}>3c · Storyboard · {canh?.length ?? '…'} cảnh{canh?.length ? ` · phát ${Math.round(locNhanh(canh, nhanh).reduce((a, c) => a + giayPhat(c), 0) * 10) / 10}s` : ''}</strong>
-        {!!canh?.length && cacNhanh(canh).length > 0 && (
-          <span style={{ display: 'inline-flex', gap: 2, alignItems: 'center' }} title="Cùng một thân, nhiều hook để A/B trên Meta/TikTok — chọn nhánh để xem / xuất">
-            <span style={mono}>hook:</span>
-            {cacNhanh(canh).map((h) => <button key={h} type="button" className={`xv-btn${(nhanh ?? cacNhanh(canh)[0]) === h ? ' chinh' : ''}`} style={{ padding: '1px 7px' }} onClick={() => setNhanh(h)}>{h}</button>)}
-          </span>
-        )}
+      {tab === 'storyboard' && (
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
+        <strong style={{ fontSize: 12 }}>Storyboard · {canh?.length ?? '…'} cảnh{canh?.length ? ` · phát ${giayPhatTong}s` : ''}</strong>
+        {chonNhanh}
         <Nut ly={!(canh ?? []).some((c) => c.keyframe_url) && 'chưa có keyframe nào'} title="Xem cả tập từ keyframe (và clip đã có): đúng thứ tự, đúng số giây, có zoom nhẹ + lời thoại. Không tốn tiền." onClick={() => setAnimatic(true)}>▶ Xem animatic (0đ)</Nut>
         <label style={{ ...mono, display: 'inline-flex', gap: 4, alignItems: 'center', cursor: 'pointer' }} title="Khung cuối của mỗi clip = keyframe cảnh kế → các clip nối liền mạch; bản cuối sinh lại cũng giữ đúng hai đầu">
           <input type="checkbox" checked={tap.noi_khung} onChange={(e) => void chay('noi', async () => { await suaTap(tap.id, { noi_khung: e.target.checked }); })} /> Nối khung (khung cuối = keyframe cảnh sau)
@@ -877,23 +899,34 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
           {ban('vid-all') ? '… đang gửi Veo' : `🎬 Sinh video ${soDuyet} cảnh đã duyệt${uoc ? ` (≈ ${tien(uoc.videoTong)})` : ''}`}
         </Nut>
         <button type="button" className="xv-btn" disabled={banTach || ban('them')} onClick={() => void chay('them', async () => { await themCanh(tap.id); })}>+ Cảnh</button>
-        <Nut chinh ly={!(canh ?? []).some((c) => c.video_url || c.video_cuoi_url || c.keyframe_url) && 'chưa có clip/keyframe nào'} ban={jobXuat != null}
-          title="Dựng MP4 hoàn chỉnh trên máy chủ (0đ): nối clip theo giây phát, giọng + hiệu ứng + nhạc, chữ màn, phụ đề, end card ưu đãi, chuẩn âm -14 LUFS, 1080p. Shot chưa có clip dùng keyframe tĩnh."
-          onClick={async () => { setLoiXuat(''); const r = await xuatTap(tap.id, nhanh ?? cacNhanh(canh ?? [])[0] ?? null); if (!r.ok) setLoiXuat(r.loi); else setJobXuat(r.data); }}>
-          {jobXuat != null ? '… đang dựng bản xuất (30–90s)' : `⬇ Xuất MP4${cacNhanh(canh ?? []).length ? ` · hook ${nhanh ?? cacNhanh(canh ?? [])[0]}` : ''}`}
-        </Nut>
       </div>
-      <Loi>{loiXuat}</Loi>
-      {tap.xuat.length > 0 && (
+      )}
+      {tab === 'xuat' && (
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
+          <strong style={{ fontSize: 12 }}>Bản xuất · {canh?.length ?? '…'} cảnh · phát {giayPhatTong}s{tap.thoi_luong_s ? ` / mục tiêu ${tap.thoi_luong_s}s` : ''}</strong>
+          {chonNhanh}
+          <span style={{ flex: 1 }} />
+          <Nut chinh ly={!(canh ?? []).some((c) => c.video_url || c.video_cuoi_url || c.keyframe_url) && 'chưa có clip/keyframe nào'} ban={jobXuat != null}
+            title="Dựng MP4 hoàn chỉnh trên máy chủ (0đ): nối clip theo giây phát, giọng + hiệu ứng + nhạc, chữ màn, phụ đề, end card ưu đãi, chuẩn âm -14 LUFS, 1080p. Shot chưa có clip dùng keyframe tĩnh."
+            onClick={async () => { setLoiXuat(''); const r = await xuatTap(tap.id, nhanh ?? cacNhanh(canh ?? [])[0] ?? null); if (!r.ok) setLoiXuat(r.loi); else setJobXuat(r.data); }}>
+            {jobXuat != null ? '… đang dựng bản xuất (30–90s)' : `⬇ Xuất MP4${cacNhanh(canh ?? []).length ? ` · hook ${nhanh ?? cacNhanh(canh ?? [])[0]}` : ''}`}
+          </Nut>
+        </div>
+      )}
+      {tab === 'xuat' && <Loi>{loiXuat}</Loi>}
+      {tab === 'xuat' && tap.xuat.length > 0 && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
-          <span style={mono}>Bản xuất:</span>
+          <span style={mono}>Đã xuất:</span>
           {tap.xuat.slice().reverse().slice(0, 6).map((b) => (
             <a key={b.url} href={b.url} target="_blank" rel="noreferrer" className="xv-btn" style={{ textDecoration: 'none' }} title={`${b.giay}s · ${gioVN(b.luc)}`}>🎬 {b.nhanh ? `hook ${b.nhanh}` : 'bản'} · {b.giay}s · {gioVN(b.luc, { chiGio: true })}</a>
           ))}
         </div>
       )}
+      {tab === 'xuat' && tap.xuat.length > 0 && (
+        <video key={tap.xuat[tap.xuat.length - 1]!.url} src={tap.xuat[tap.xuat.length - 1]!.url} controls preload="metadata" style={{ marginTop: 8, maxHeight: 420, borderRadius: 8, background: '#000', aspectRatio: kt.ti_le === '9:16' ? '9 / 16' : '16 / 9' }} />
+      )}
       {/* Bộ kiểm "đạt chưa" (0đ, tức thì): quảng cáo chấm hook/sản phẩm/bằng chứng/CTA/tốc độ nói; mọi loại chấm độ dài so với mục tiêu. */}
-      {!!canh?.length && (() => {
+      {(tab === 'storyboard' || tab === 'xuat') && !!canh?.length && (() => {
         const ds = kiemQc({ loai: phim.loai, canh, nhanVat, qc: kt.qc, mucTieuS: tap.thoi_luong_s ?? thoiLuong, nhanh });
         if (!ds.length) return null;
         const hong = ds.filter((x) => !x.ok).length;
@@ -904,7 +937,8 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
           </div>
         );
       })()}
-      {!!canh?.length && (() => {
+      {tab === 'am_thanh' && (canh === null ? <span style={mono}>…</span> : !canh.length ? <div style={mono}>Chưa có cảnh — tách cảnh ở tab Kịch bản trước.</div> : null)}
+      {tab === 'am_thanh' && !!canh?.length && (() => {
         const u = uocA ?? { dangPhanDoan: [] as string[], dangCaTap: false, giong: 0, soThoai: canh.filter((c) => c.loi_thoai.trim()).length, sfx: 0, soSfx: canh.length, nhac: {} as Record<string, number>, giay: canh.reduce((a, c) => a + (c.thoi_luong_s || 5), 0), soPhanCanh: new Set(canh.map((c) => c.phan_doan).filter(Boolean)).size, dangNhac: 0 };
         const gia = (c: number) => (uocA ? tien(c) : '…');
         const nvNoi = nhanVat.filter((v) => v.loai === 'nhan_vat');
@@ -931,7 +965,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
         );
       })()}
 
-      {canh === null ? <span style={mono}>…</span> : canh.length === 0 ? (
+      {tab === 'storyboard' && (canh === null ? <span style={mono}>…</span> : canh.length === 0 ? (
         <div className="xv-panel" style={{ marginTop: 8, textAlign: 'center', padding: 24 }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Chưa có cảnh nào</div>
           <div style={{ ...mono, marginBottom: 12 }}>Bước 1 của mạch: Claude đọc kịch bản + tuyến nhân vật → chia thành cảnh (góc máy, hành động, lời thoại, prompt ảnh/video). Sau đó mới sinh keyframe → duyệt → video.</div>
@@ -971,7 +1005,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
             <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>{canh.map((c) => <CanhRow key={c.id} c={c} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} />)}</div>
           )}
         </>
-      )}
+      ))}
       {animatic && canh && <Animatic canh={canh} tiLe={kt.ti_le} ngonNgu={kt.ngon_ngu} onClose={() => setAnimatic(false)} />}
     </div>
   );

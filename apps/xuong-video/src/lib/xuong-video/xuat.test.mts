@@ -34,8 +34,10 @@ assert.ok(loc.includes("enable='between(t,0,1.4)'"));                // phụ đ
 assert.ok(loc.includes("enable='between(t,0,3)'"));                  // không giọng → chia đều giây phát
 assert.ok(loc.includes('concat=n=4:v=1:a=0[vout]') && loc.includes('amix=inputs=') && loc.includes('loudnorm=I=-14'));
 assert.ok(loc.includes('color=c=0x101014:s=1080x1920:d=2'));          // end card
-assert.ok(kh.tep.find((x) => x.duong.endsWith('/man_0.txt'))!.noiDung === 'Vai hằn đỏ mỗi tối?');
-assert.ok(kh.args.includes('-filter_complex_script') && kh.args[kh.args.length - 1] === '/tmp/t/ra.mp4');
+assert.ok(kh.tep.find((x) => x.duong.endsWith('/man_0_0.txt'))!.noiDung === 'Vai hằn đỏ mỗi tối?');
+assert.ok(kh.tep.find((x) => x.duong.endsWith('/man_2_0.txt'))!.noiDung === 'Giảm 70%% · Mua ngay');   // '%' thoát cho drawtext
+assert.ok(loc.includes('y=h*0.15+0') && loc.includes("y=(h-"));                      // dòng đầu ở 15% chiều cao; end card giữa màn
+assert.ok(kh.args.includes('-/filter_complex') && kh.args[kh.args.length - 1] === '/tmp/t/ra.mp4');
 // Thiếu nguyên liệu → shot bị ghi thiếu, không chết.
 const kh2 = keHoachXuat({ loai: 'phim', tiLe: '16:9', canh, nhanVat: nv, tap, nhanh: 'B', nguyenLieu: [nl('https://x/c4f.mp4', 4, false)], font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
 assert.deepStrictEqual(kh2.canhThieu, ['#2 C2', '#3 C3']);
@@ -44,6 +46,6 @@ assert.ok(kh2.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung.includes('a
 // Không shot nào có hình → args rỗng.
 assert.deepStrictEqual(keHoachXuat({ loai: 'phim', tiLe: '9:16', canh, nhanVat: nv, tap, nguyenLieu: [], font: '/f', thuMuc: '/t', ra: '/t/r.mp4' }).args, []);
 // ngatDong.
-assert.strictEqual(ngatDong('Giảm 70% cho 100 đơn đầu tiên hôm nay', 12), 'Giảm 70% cho\n100 đơn đầu\ntiên hôm nay');
-assert.strictEqual(ngatDong('  a  ', 5), 'a');
+assert.deepStrictEqual(ngatDong('Giảm 70% cho 100 đơn đầu tiên hôm nay', 12), ['Giảm 70% cho', '100 đơn đầu', 'tiên hôm nay']);
+assert.deepStrictEqual(ngatDong('  a  ', 5), ['a']);
 console.log('xuat.test: ok');

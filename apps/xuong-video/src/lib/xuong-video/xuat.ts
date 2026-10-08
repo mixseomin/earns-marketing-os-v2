@@ -32,8 +32,9 @@ export function urlCanXuat(canh: Canh[], nhanVat: NhanVat[], tap: Pick<Tap, 'nha
   return [...out];
 }
 
-/** Ngắt dòng cho drawtext (không tự xuống dòng): tham lam theo từ, tối đa `toiDa` ký tự một dòng. */
-export function ngatDong(chu: string, toiDa: number): string {
+/** Ngắt dòng cho drawtext: tham lam theo từ, tối đa `toiDa` ký tự một dòng. Mỗi dòng vẽ bằng MỘT drawtext riêng — ffmpeg 8 vẽ
+ *  ký tự xuống dòng trong textfile thành ô vuông (thử trên box3 09/10/2026), nên không gộp nhiều dòng vào một textfile. */
+export function ngatDong(chu: string, toiDa: number): string[] {
   const dong: string[] = []; let hien = '';
   for (const tu of chu.trim().split(/\s+/)) {
     if (!hien) hien = tu;
@@ -41,8 +42,10 @@ export function ngatDong(chu: string, toiDa: number): string {
     else { dong.push(hien); hien = tu; }
   }
   if (hien) dong.push(hien);
-  return dong.join('\n');
+  return dong;
 }
+/** Chữ trong textfile của drawtext: '%' mở chuỗi lệnh %{…} (end card "giảm 70%" ra đen thui) → thoát thành '%%'. */
+const chuFf = (t: string) => t.replace(/%/g, '%%');
 const so = (x: number) => (Math.round(x * 1000) / 1000).toString();
 /** Đường dẫn trong filter ffmpeg: thoát ':' '\' và dấu nháy. */
 const duongFf = (p: string) => p.replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'");
@@ -68,8 +71,11 @@ export function keHoachXuat(o: {
   const fsMan = Math.round(W * (doc ? 0.062 : 0.04)), fsPd = Math.round(W * (doc ? 0.042 : 0.028));
   const wrapMan = doc ? 20 : 36, wrapPd = doc ? 32 : 50;
   const font = duongFf(o.font);
-  const drawMan = (tenTep: string) => `drawtext=fontfile='${font}':textfile='${duongFf(tenTep)}':fontsize=${fsMan}:fontcolor=white:borderw=${Math.round(fsMan / 14)}:bordercolor=black@0.85:line_spacing=${Math.round(fsMan * 0.18)}:x=(w-text_w)/2:y=h*0.15`;
-  const drawPd = (tenTep: string, tu: number, den: number) => `drawtext=fontfile='${font}':textfile='${duongFf(tenTep)}':fontsize=${fsPd}:fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=${Math.round(fsPd / 3)}:line_spacing=${Math.round(fsPd * 0.2)}:x=(w-text_w)/2:y=h*0.74:enable='between(t,${so(tu)},${so(den)})'`;
+  // Khối chữ nhiều dòng = nhiều drawtext, dòng i ở y = gốc + i·(cỡ chữ × 1,25); gốc tính theo tỉ lệ chiều cao (vùng an toàn 9:16) hoặc giữa màn.
+  const khoiChu = (ten: string, dong: string[], fs: number, goc: (n: number) => string, them: string, chiBo: string) =>
+    dong.map((d, i) => `drawtext=fontfile='${font}':textfile='${duongFf(tepChu(`${ten}_${i}`, chuFf(d)))}':fontsize=${fs}:fontcolor=white:${them}:x=(w-text_w)/2:y=${goc(dong.length)}+${Math.round(i * fs * 1.25)}${chiBo}`).join(',');
+  const drawMan = (ten: string, dong: string[], giua = false) => khoiChu(ten, dong, fsMan, (n) => (giua ? `(h-${Math.round(n * fsMan * 1.25)})/2` : 'h*0.15'), `borderw=${Math.round(fsMan / 14)}:bordercolor=black@0.85`, '');
+  const drawPd = (ten: string, dong: string[], tu: number, den: number) => khoiChu(ten, dong, fsPd, () => 'h*0.74', `box=1:boxcolor=black@0.55:boxborderw=${Math.round(fsPd / 3)}`, `:enable='between(t,${so(tu)},${so(den)})'`);
   const khung = `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=30,format=yuv420p`;
 
   const loc: string[] = [];
@@ -87,7 +93,7 @@ export function keHoachXuat(o: {
     const laVideo = nguon === vUrl;
     const k = laVideo ? them(nguon) : them(nguon, ['-loop', '1', '-framerate', '30', '-t', so(phat)]);
     const ve: string[] = [laVideo ? `[${k}:v]trim=0:${so(phat)},setpts=PTS-STARTPTS,${khung}` : `[${k}:v]${khung},trim=0:${so(phat)},setpts=PTS-STARTPTS`];
-    if (c.chu_man.trim()) ve.push(drawMan(tepChu(`man_${i}`, ngatDong(c.chu_man, wrapMan))));
+    if (c.chu_man.trim()) ve.push(drawMan(`man_${i}`, ngatDong(c.chu_man, wrapMan)));
     // Phụ đề: theo độ dài file giọng từng dòng (nối tiếp), chưa có giọng thì chia đều giây phát.
     const dong = dongThoai(c, o.nhanVat);
     let tDong = 0;
@@ -95,7 +101,7 @@ export function keHoachXuat(o: {
     dong.forEach((d, j) => {
       const daiGiong = d.url && nl.get(d.url)?.dai ? nl.get(d.url)!.dai! : phat / dong.length;
       const tu = tDong, den = Math.min(phat, tDong + daiGiong);
-      if (den > tu) ve.push(drawPd(tepChu(`pd_${i}_${j}`, ngatDong(d.loi, wrapPd)), tu, den));
+      if (den > tu) ve.push(drawPd(`pd_${i}_${j}`, ngatDong(d.loi, wrapPd), tu, den));
       if (d.url && nl.has(d.url)) { const ka = them(d.url); themAm(`[${ka}:a]atrim=0:${so(Math.max(0.2, phat - tDong + 0.3))},asetpts=PTS-STARTPTS,adelay=${Math.round((t + tDong) * 1000)}:all=1`); }
       tDong += daiGiong + 0.15;
     });
@@ -114,8 +120,8 @@ export function keHoachXuat(o: {
   // End card quảng cáo: 2 giây, tên + ưu đãi (từ mục 0) — người xem tới cuối có một màn đọc được để bấm.
   let giay = t;
   if (o.loai === 'quang_cao' && o.qc?.uu_dai?.trim() && nhanhVideo.length) {
-    const chu = tepChu('end', [o.qc.ten ? ngatDong(o.qc.ten, wrapMan) : '', ngatDong(o.qc.uu_dai, wrapMan)].filter(Boolean).join('\n\n'));
-    loc.push(`color=c=0x101014:s=${W}x${H}:d=2:r=30,format=yuv420p,${drawMan(chu).replace('y=h*0.15', 'y=(h-text_h)/2')}[vend]`);
+    const dong = [...(o.qc.ten ? ngatDong(o.qc.ten, wrapMan) : []), ' ', ...ngatDong(o.qc.uu_dai, wrapMan)];
+    loc.push(`color=c=0x101014:s=${W}x${H}:d=2:r=30,format=yuv420p,${drawMan('end', dong, true)}[vend]`);
     nhanhVideo.push('[vend]'); giay += 2;
   }
   if (!nhanhVideo.length) return { args: [], tep, giay: 0, canhThieu };
@@ -123,7 +129,7 @@ export function keHoachXuat(o: {
   if (nhanhAm.length) loc.push(`${nhanhAm.join('')}amix=inputs=${nhanhAm.length}:normalize=0:dropout_transition=0,atrim=0:${so(giay)},loudnorm=I=-14:TP=-1.5:LRA=11[aout]`);
   else loc.push(`anullsrc=r=48000:cl=stereo,atrim=0:${so(giay)}[aout]`);
   const kichBan = tepChu('loc', loc.join(';\n'));
-  const args = ['-y', '-hide_banner', '-loglevel', 'error', ...dauVao, '-filter_complex_script', kichBan, '-map', '[vout]', '-map', '[aout]',
+  const args = ['-y', '-hide_banner', '-loglevel', 'error', ...dauVao, '-/filter_complex', kichBan, '-map', '[vout]', '-map', '[aout]',
     '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-r', '30', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', '-t', so(giay), o.ra];
   return { args, tep, giay, canhThieu };
 }

@@ -127,9 +127,9 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
         </div>
         <Loi>{loiTao}</Loi>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--line)' }}>
-          <span style={mono}>Hoặc tạo từ mẫu có sẵn (kinh thánh + nhân vật + kịch bản tập 1 đã điền, chỉ việc Tách cảnh):</span>
+          <span style={mono}>Hoặc tạo từ mẫu có sẵn (kinh thánh + nhân vật + kịch bản tập 1 + storyboard tách sẵn bằng Claude, mất ~30s):</span>
           {LOAI_PHIM.map((l) => (
-            <Nut key={l.key} ban={ban} onClick={async () => { setBan(true); setLoiTao(''); const r = await taoPhimMau(l.key); setBan(false); if (!r.ok) { setLoiTao(r.loi); return; } await taiLai(); modal.open('phim', r.data); }}>📄 Mẫu {l.label}</Nut>
+            <Nut key={l.key} ban={ban} onClick={async () => { setBan(true); setLoiTao(''); const r = await taoPhimMau(l.key); setBan(false); if (!r.ok) { setLoiTao(r.loi); return; } await taiLai(); modal.open('phim', r.data); }}>{ban ? '… đang tạo + tách cảnh' : `📄 Mẫu ${l.label}`}</Nut>
           ))}
         </div>
       </div>

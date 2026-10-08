@@ -138,7 +138,14 @@ export async function taoPhimMau(loai: LoaiPhim): Promise<Kq<number>> {
   const id = n(r[0]?.id);
   for (const v of m.nhan_vat) await db.execute(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, giong) VALUES (${id}, ${v.loai}, ${v.ten}, ${v.mo_ta}, ${v.giong ?? ''})`);
   let so = 0;
-  for (const t of m.tap) { so += 1; await db.execute(sql`INSERT INTO xv_tap (phim_id, so, ten, kich_ban) VALUES (${id}, ${so}, ${t.ten}, ${t.kich_ban})`); }
+  const tapIds: number[] = [];
+  for (const t of m.tap) {
+    so += 1;
+    const tr = (await db.execute(sql`INSERT INTO xv_tap (phim_id, so, ten, kich_ban) VALUES (${id}, ${so}, ${t.ten}, ${t.kich_ban}) RETURNING id`)) as unknown as Row[];
+    tapIds.push(n(tr[0]?.id));
+  }
+  // Mẫu phải mở ra là có storyboard ngay (anh hỏi "storyboard chưa có à?" 08/10/2026): tách cảnh bằng Claude luôn; lỗi (thiếu khoá) thì phim vẫn tạo, bảng cảnh trống + báo lỗi ở drawer.
+  for (const tapId of tapIds) await tachCanhTap(tapId, 0).catch(() => undefined);
   return { ok: true, data: id };
 }
 

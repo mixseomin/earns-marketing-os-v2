@@ -7,6 +7,7 @@
 // Giá cập nhật theo lựa chọn; chỉ bấm "Sinh" mới tốn tiền.
 import { useEffect, useMemo, useState } from 'react';
 import { Chon } from './chon';
+import { useXacNhanTien } from './xac-nhan-tien';
 import { dsGiongModel, dsGiongCua, chonGiong, type TuyGiong, type TuyAm } from '@/lib/actions';
 import { MO_HINH_AM, GIONG, giaAm, dongThoai, giaGiong, GIONG_MAC_DINH } from '@/lib/xuong-video/am-thanh';
 import { nhanKyThuat } from '@/lib/xuong-video/dien-anh';
@@ -63,6 +64,10 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
     return { tong, chuaRo };
   }, [dsM, dong, phamVi, chonG]);
   const camXucSo = camXuc === 'shot' ? undefined : Number(camXuc);
+  // Lượt đắt (> $0.5) bấm hai lần ngay tại nút (#1214).
+  const giaNut = yc.loai === 'giong' ? giaG.tong : yc.loai === 'sfx' ? giaAm(mSfx, giay) : giaAm(mN, yc.giay);
+  const xn = useXacNhanTien(giaNut);
+  const chuNut = (chu: string) => (xn.dangHoi ? `⚠ ${tien(giaNut)} — bấm lại để xác nhận` : chu);
 
   // Vị trí: ngay dưới nút ＋, không tràn mép phải/dưới màn.
   const W = 420;
@@ -108,10 +113,10 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
               <Chon value={phamVi} onChange={(v) => setPhamVi(v as 'thieu' | 'tat_ca')} minWidth={380} options={[{ value: 'tat_ca', label: `Tất cả ${dong.length} dòng (sinh lại cả dòng đã có)` }, { value: 'thieu', label: `Chỉ dòng chưa có giọng (${dong.filter((d) => !d.url).length})` }]} />
             </label>
             <div style={mono}>Nên sinh khi đã chốt lời thoại; giọng sinh sớm giúp biết độ dài thoại để chỉnh số giây shot.</div>
-            <button type="button" className="xv-btn chinh" disabled={!soKyTu || nguoi.some((t) => !chonG[t]?.model)} onClick={async () => {
+            <button type="button" className="xv-btn chinh" disabled={!soKyTu || nguoi.some((t) => !chonG[t]?.model)} onClick={() => xn.bam(async () => {
               for (const ten of nguoi) { const v = nhanVat.find((x) => x.ten.toLowerCase() === ten.toLowerCase()); const cg = chonG[ten]; if (v && cg?.luu && cg.model) await chonGiong(v.id, cg.model, cg.voice); }
               onGiong(cc.id, { theoNguoi: Object.fromEntries(nguoi.map((t) => [t, { model: chonG[t]!.model, voice: chonG[t]!.voice }])), camXuc: camXucSo, chiThieu: phamVi === 'thieu' }); onClose();
-            }}>🗣 Sinh giọng · {giaG.chuaRo ? (giaG.tong ? `≈${tien(giaG.tong)} + model chưa rõ giá` : 'model chưa công bố giá') : `≈${tien(giaG.tong)}`}</button>
+            })}>{chuNut(`🗣 Sinh giọng · ${giaG.chuaRo ? (giaG.tong ? `≈${tien(giaG.tong)} + model chưa rõ giá` : 'model chưa công bố giá') : `≈${tien(giaG.tong)}`}`)}</button>
           </>
         )}
 
@@ -131,7 +136,7 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
               <Chon value={String(giay)} onChange={(v) => setGiay(Number(v))} minWidth={160} options={[2, 3, 4, 5, 6, 8, 10, 12, 15].map((x) => ({ value: String(x), label: `${x} giây`, phu: x === yc.giay ? 'bằng shot' : undefined }))} />
             </label>
             {!coClip && <div style={{ ...mono, color: 'var(--amber)' }}>Shot chưa có clip: nên đợi có video nháp rồi sinh từ clip để tiếng khớp đúng hành động. Sinh từ mô tả bây giờ chỉ để nghe không khí.</div>}
-            <button type="button" className="xv-btn chinh" disabled={nguon === 'mo_ta' && !moTa.trim()} onClick={() => { onSfx(cc.id, { nguon, model: mSfx, moTa, giay }); onClose(); }}>🔊 Sinh hiệu ứng · {tien(giaAm(mSfx, giay))}</button>
+            <button type="button" className="xv-btn chinh" disabled={nguon === 'mo_ta' && !moTa.trim()} onClick={() => xn.bam(() => { onSfx(cc.id, { nguon, model: mSfx, moTa, giay }); onClose(); })}>{chuNut(`🔊 Sinh hiệu ứng · ${tien(giaAm(mSfx, giay))}`)}</button>
           </>
         )}
 
@@ -145,7 +150,7 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
               <textarea className="xv-ta" rows={3} value={moTaNhac} onChange={(e) => setMoTaNhac(e.target.value)} placeholder="Piano + dây nhẹ, ấm dần, kết mở…" />
             </label>
             <div style={mono}>Dài {yc.giay} giây (đúng bằng {yc.phanDoan ? 'phân cảnh' : 'cả tập'}). Nên sinh sau cùng, khi đã chốt thứ tự + số giây.</div>
-            <button type="button" className="xv-btn chinh" onClick={() => { onNhac(yc.phanDoan, mN, moTaNhac); onClose(); }}>🎵 Sinh nhạc · {tien(giaAm(mN, yc.giay))}</button>
+            <button type="button" className="xv-btn chinh" onClick={() => xn.bam(() => { onNhac(yc.phanDoan, mN, moTaNhac); onClose(); })}>{chuNut(`🎵 Sinh nhạc · ${tien(giaAm(mN, yc.giay))}`)}</button>
           </>
         )}
       </div>

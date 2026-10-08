@@ -2,6 +2,7 @@
 
 // Ô chọn kiểu select2 dùng chung cho mọi màn của studio (tách khỏi trang.tsx để timeline / bảng sinh dùng được, #1202).
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useViTriNoi } from './vi-tri-noi';
 
 const mono: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)' };
 
@@ -13,6 +14,7 @@ export function Chon({ value, onChange, options, multi, values, onValues, placeh
   const [mo, setMo] = useState(false);
   const [q, setQ] = useState('');
   const ref = useRef<HTMLSpanElement>(null);
+  const viTri = useViTriNoi(ref, mo, { rong: Math.min(460, Math.max(minWidth, 300)) });
   useEffect(() => {
     if (!mo) return;
     const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setMo(false); };
@@ -30,7 +32,7 @@ export function Chon({ value, onChange, options, multi, values, onValues, placeh
         <span style={{ color: 'var(--fg-3)' }}>▾</span>
       </button>
       {mo && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 70, marginTop: 2, minWidth: Math.max(minWidth, 300), maxWidth: 460, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.5)' }}>
+        <div style={{ ...viTri, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.5)' }}>
           <input autoFocus className="xv-in" placeholder={`Tìm trong ${options.length}…`} value={q} onChange={(e) => setQ(e.target.value)} style={{ border: 0, borderBottom: '1px solid var(--line)', borderRadius: '8px 8px 0 0' }}
             onKeyDown={(e) => { if (e.key === 'Escape') setMo(false); if (e.key === 'Enter' && loc[0] && !multi) { onChange?.(loc[0].value); setMo(false); } }} />
           <div style={{ maxHeight: 320, overflowY: 'auto', padding: 4 }}>

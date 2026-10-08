@@ -51,7 +51,9 @@ export async function sinhAnhMot(opts: { model: string; prompt: string; thamChie
     }
     const cands = (j.candidates as Array<{ content?: { parts?: Array<{ inlineData?: { mimeType: string; data: string } }> }; finishReason?: string }> | undefined) ?? [];
     const inl = cands.flatMap((c) => c.content?.parts ?? []).find((p) => p.inlineData)?.inlineData;
-    if (!inl) return { ok: false, loi: `model không trả ảnh (${cands[0]?.finishReason ?? 'không rõ'})` };
+    const ly = cands[0]?.finishReason ?? 'không rõ';
+    // IMAGE_SAFETY: Google chặn theo nội dung (vd người chỉ mặc đồ lót) — mọi model Google đều chặn như nhau, nên chỉ đường sang model khác.
+    if (!inl) return { ok: false, loi: /SAFETY|PROHIBITED|BLOCK/i.test(ly) ? `Google chặn ảnh này vì nội dung (${ly}) — đổi model ảnh sang fal (Seedream, FLUX Kontext…) ở ô chọn model cạnh nút rồi sinh lại` : `model không trả ảnh (${ly})` };
     return { ok: true, model: opts.model, mimeType: inl.mimeType || 'image/png', data: Buffer.from(inl.data, 'base64') };
   }
   return { ok: false, loi: loiCuoi };

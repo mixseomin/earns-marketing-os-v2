@@ -64,3 +64,7 @@ details.xv-det > summary small { font-family: var(--font-mono); font-size: 10.5p
 .xv-anh-nho .xv-x { display: none; position: absolute; top: -5px; right: -5px; width: 16px; height: 16px; border-radius: 999px; border: 1px solid var(--line);
   background: var(--bg-1); color: var(--red); font-size: 9px; line-height: 14px; padding: 0; cursor: pointer; z-index: 3; }
 .xv-anh-nho:hover .xv-x { display: block; }
+
+/* Nút sinh trên khối timeline (#1211): chỉ icon, nhỏ, mờ; rõ khi rê vào khối hoặc vào nút. */
+.xv-nut-sinh { opacity: .45; transition: opacity .15s; }
+div:hover > .xv-nut-sinh, .xv-nut-sinh:hover, .xv-nut-sinh:focus-visible { opacity: 1; }

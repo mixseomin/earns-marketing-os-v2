@@ -35,9 +35,11 @@ function Seg<T extends string | number>({ options, value, onChange }: { options:
   return <span className="xv-seg">{options.map((o) => <button key={String(o.value)} type="button" title={o.title} className={o.value === value ? 'on' : ''} onClick={() => onChange(o.value)}>{o.label}</button>)}</span>;
 }
 /** Nút bị gate: `ly` có chữ = khoá + hiện lý do khi rê chuột (không im lặng vô hiệu). */
-function Nut({ ly, ban, chinh, nguy, title, onClick, children }: { ly?: string | false | null; ban?: boolean; chinh?: boolean; nguy?: boolean; title?: string; onClick: () => void; children: ReactNode }) {
+/** gia (cents): lượt sinh trên ngưỡng ($0.5) phải bấm lại lần hai ngay tại nút (#1214). */
+function Nut({ ly, ban, chinh, nguy, title, onClick, children, gia }: { ly?: string | false | null; ban?: boolean; chinh?: boolean; nguy?: boolean; title?: string; onClick: () => void; children: ReactNode; gia?: number }) {
   const why = ly ? String(ly) : '';
-  return <button type="button" className={`xv-btn${chinh ? ' chinh' : ''}${nguy ? ' nguy' : ''}`} disabled={!!why || ban} title={why || title} onClick={onClick}>{children}</button>;
+  const xn = useXacNhanTien(gia);
+  return <button type="button" className={`xv-btn${chinh ? ' chinh' : ''}${nguy || xn.dangHoi ? ' nguy' : ''}`} disabled={!!why || ban} title={why || title} onClick={() => xn.bam(onClick)}>{xn.dangHoi ? `⚠ ${tien(gia ?? 0)} — bấm lại để xác nhận` : children}</button>;
 }
 /** Bỏ vào thùng rác hai nhịp: bấm lần một = cảnh báo, bấm lần hai trong 4s = chuyển vào thùng rác (khôi phục được, #1192). */
 function Xoa({ nhan, onXoa, ban }: { nhan: string; onXoa: () => Promise<void>; ban?: boolean }) {
@@ -68,11 +70,14 @@ const mono: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 10.5, co
 
 
 import { Chon, type LuaChon } from './chon';
+import { useViTriNoi } from './vi-tri-noi';
+import { useXacNhanTien } from './xac-nhan-tien';
 
 /** Menu "⋯" gom thao tác phụ (YDNI: mặt ngoài chỉ giữ việc kế tiếp). */
 function Menu({ children, nhan = '⋯' }: { children: ReactNode; nhan?: string }) {
   const [mo, setMo] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
+  const viTri = useViTriNoi(ref, mo, { rong: 340, canPhai: true, caoToiDa: 520 });
   useEffect(() => {
     if (!mo) return;
     const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setMo(false); };
@@ -81,12 +86,14 @@ function Menu({ children, nhan = '⋯' }: { children: ReactNode; nhan?: string }
   return (
     <span ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
       <button type="button" className="xv-btn" onClick={() => setMo(!mo)} title="Thêm thao tác">{nhan}</button>
-      {mo && <div onClick={(e) => { if ((e.target as HTMLElement).closest('[data-dong]')) setMo(false); }} style={{ position: 'absolute', right: 0, top: '100%', zIndex: 70, marginTop: 2, minWidth: 300, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.5)', padding: 6, display: 'grid', gap: 4 }}>{children}</div>}
+      {mo && <div onClick={(e) => { if ((e.target as HTMLElement).closest('[data-dong]')) setMo(false); }} style={{ ...viTri, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.5)', padding: 6, display: 'grid', gap: 4, alignContent: 'start' }}>{children}</div>}
     </span>
   );
 }
-function MucMenu({ onClick, children, ly, nguy }: { onClick: () => void; children: ReactNode; ly?: string | false | null; nguy?: boolean }) {
-  return <button type="button" data-dong="" disabled={!!ly} title={ly || undefined} onClick={onClick} className="xv-btn" style={{ textAlign: 'left', color: nguy ? 'var(--red)' : undefined, opacity: ly ? 0.5 : 1 }}>{children}</button>;
+function MucMenu({ onClick, children, ly, nguy, gia }: { onClick: () => void; children: ReactNode; ly?: string | false | null; nguy?: boolean; gia?: number }) {
+  const xn = useXacNhanTien(gia);
+  // Đang hỏi xác nhận thì KHÔNG mang data-dong — menu không đóng ở lần bấm đầu.
+  return <button type="button" {...(xn.canHoi && !xn.dangHoi ? {} : { 'data-dong': '' })} disabled={!!ly} title={ly || undefined} onClick={() => xn.bam(onClick)} className="xv-btn" style={{ textAlign: 'left', color: nguy || xn.dangHoi ? 'var(--red)' : undefined, opacity: ly ? 0.5 : 1 }}>{xn.dangHoi ? `⚠ ${tien(gia ?? 0)} — bấm lại để xác nhận` : children}</button>;
 }
 
 /** Danh mục model (Google/OpenAI + ~100 model fal) nạp một lần cho cả trang. */
@@ -302,7 +309,13 @@ function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa; onSave
   }, [phim.id, onSaved]);
   useEffect(() => { if (!dirty) return; const t = setTimeout(() => void luuNgay(kt, moTa), 1500); return () => clearTimeout(t); }, [kt, moTa, dirty, luuNgay]);
   // Mở/đóng khung do anh bấm; chỉ quyết định MỘT lần lúc mở (open điều khiển theo state làm khung tự gập khi vừa chọn thể loại).
-  const [moKhung, setMoKhung] = useState(() => !goc.phong_cach || !goc.the_loai);
+  // Anh đã thu gọn/mở thì GIỮ như vậy (nhớ theo phim, qua F5 và lượt tự làm mới) — #1212. Chưa từng bấm: mở khi còn thiếu.
+  const khoaMo = (ten: string) => `xv-mo-${ten}-${phim.id}`;
+  const docMo = (ten: string, macDinh: boolean) => { try { const v = localStorage.getItem(khoaMo(ten)); return v == null ? macDinh : v === '1'; } catch { return macDinh; } };
+  const ghiMo = (ten: string, v: boolean) => { try { localStorage.setItem(khoaMo(ten), v ? '1' : '0'); } catch { /* chế độ riêng tư */ } };
+  const [moKhung, setMoKhungS] = useState(() => !goc.phong_cach || !goc.the_loai);
+  const setMoKhung = (v: boolean) => { setMoKhungS(v); ghiMo('kt', v); };
+  useEffect(() => { setMoKhungS(docMo('kt', !goc.phong_cach || !goc.the_loai)); setMoQcS(docMo('qc', !(goc.qc?.ten || goc.qc?.link))); }, [phim.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const set = <K extends keyof KinhThanh>(k: K, v: Required<KinhThanh>[K]) => setKt((x) => ({ ...x, [k]: v }));
   // Phim quảng cáo: khai sản phẩm/dịch vụ TRƯỚC — mọi nút AI đọc nó (#1201).
   const laQc = phim.loai === 'quang_cao';
@@ -310,7 +323,8 @@ function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa; onSave
   const setQc = (p: Partial<ThongTinQc>) => setKt((x) => ({ ...x, qc: { ...QC_TRONG, ...(x.qc ?? {}), ...p } }));
   const thieuQc = laQc && !qc.ten.trim() && !qc.link.trim() && !qc.diem_noi_bat.trim();
   const [docLink, setDocLink] = useState(false);
-  const [moQc, setMoQc] = useState(() => !(goc.qc?.ten || goc.qc?.link));
+  const [moQc, setMoQcS] = useState(() => !(goc.qc?.ten || goc.qc?.link));
+  const setMoQc = (v: boolean) => { setMoQcS(v); ghiMo('qc', v); };
   const layLink = async () => {
     setDocLink(true); setLoiAi('');
     const r = await layTuLinkSanPham(phim.id, qc.link);
@@ -532,7 +546,7 @@ function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loiAnh, on
                 <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 2, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={v.mo_ta}>{v.mo_ta || <em style={{ color: 'var(--fg-4)' }}>chưa mô tả</em>}</div>
                 <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
                   <button type="button" className="xv-btn" onClick={() => setSua(v)}>Sửa</button>
-                  <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || (!v.mo_ta.trim() && 'tả đặc tính trước')} title={`Sinh ảnh gốc (${v.loai === 'nhan_vat' ? 'character sheet: nhiều góc + biểu cảm' : 'ảnh tham chiếu'}) từ mô tả (~${tien(giaAnhCents(kt.mo_hinh_anh))}/ảnh, ~20 giây). Bấm nhiều lần = sinh song song nhiều ảnh; mỗi lần thêm đổi góc khác.`} onClick={() => void sinh(v.id, v.anh_ref.length)}>{v.anh_ref.length ? '✨ Sinh thêm ảnh gốc' : '✨ Sinh ảnh gốc'} · {tien(giaAnhCents(kt.mo_hinh_anh))}</Nut>
+                  <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || (!v.mo_ta.trim() && 'tả đặc tính trước')} title={`Sinh ảnh gốc (${v.loai === 'nhan_vat' ? 'character sheet: nhiều góc + biểu cảm' : 'ảnh tham chiếu'}) từ mô tả (~${tien(giaAnhCents(kt.mo_hinh_anh))}/ảnh, ~20 giây). Bấm nhiều lần = sinh song song nhiều ảnh; mỗi lần thêm đổi góc khác.`} onClick={() => void sinh(v.id, v.anh_ref.length)} gia={giaAnhCents(kt.mo_hinh_anh)}>{v.anh_ref.length ? '✨ Sinh thêm ảnh gốc' : '✨ Sinh ảnh gốc'} · {tien(giaAnhCents(kt.mo_hinh_anh))}</Nut>
                   <button type="button" className="xv-btn" onClick={() => setSua(v)} title="Thêm ảnh thật: dán Ctrl+V, nút Dán (điện thoại), kéo thả, chọn file, URL">📷 Ảnh thật</button>
                   {v.loai === 'nhan_vat' && <GiongNhanVat v={v} onChanged={onChanged} />}
                   <button type="button" className="xv-btn" onClick={() => setBtMo(v.id)} title="Biểu cảm, trang phục, tư thế / góc máy, thời điểm… — mỗi biến thể sinh từ ảnh gốc nên giữ đúng danh tính">🎭 Biến thể ({v.bien_the?.length ?? 0})</button>
@@ -826,12 +840,12 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
         <span style={{ flex: 1 }} />
         <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || ((canh?.length ?? 0) === 0 && 'chưa có cảnh — bấm ✂ Tách cảnh trước') || (chuaKeyframe === 0 && 'mọi cảnh đã có keyframe') || (sanSang.length === 0 && `${kemThieu} cảnh còn thiếu thành phần (ảnh gốc/biến thể) — chuẩn bị ở mục 2`)} ban={banTach || ban('kf-all')}
           title={`Sinh 1 keyframe cho mỗi cảnh đủ thành phần (${sanSang.length} cảnh ≈ ${tien(sanSang.length * giaAnhCents(kt.mo_hinh_anh))})`}
-          onClick={() => void chay('kf-all', async () => { for (const c of sanSang) { const r = await sinhKeyframe(c.id, 1); if (!r.ok) return r; } })}>
+          gia={sanSang.length * giaAnhCents(kt.mo_hinh_anh)} onClick={() => void chay('kf-all', async () => { for (const c of sanSang) { const r = await sinhKeyframe(c.id, 1); if (!r.ok) return r; } })}>
           {ban('kf-all') ? '… đang sinh ảnh' : `🖼 Sinh keyframe ${sanSang.length} cảnh sẵn sàng${kemThieu ? ` (${kemThieu} cảnh còn thiếu thành phần)` : ''}`}
         </Nut>
         <Nut chinh ly={(!khoa.google && !khoa.fal && 'thiếu khoá video (GOOGLE_API_KEY/FAL_KEY)') || ((canh?.length ?? 0) === 0 && 'chưa có cảnh — bấm ✂ Tách cảnh trước') || (soDuyet === 0 && 'chưa có cảnh nào được duyệt keyframe')} ban={banTach || ban('vid-all')}
           title={uoc ? `Veo: ${uoc.soCanhDuyet} cảnh · ${uoc.giayDuyet}s ≈ ${tien(uoc.videoTong)} — trừ vào khoá Google` : ''}
-          onClick={() => void chay('vid-all', async () => { for (const c of (canh ?? []).filter((x) => x.trang_thai === 'duyet')) { const r = await sinhVideoCanh(c.id); if (!r.ok) return r; } })}>
+          gia={uoc?.videoTong} onClick={() => void chay('vid-all', async () => { for (const c of (canh ?? []).filter((x) => x.trang_thai === 'duyet')) { const r = await sinhVideoCanh(c.id); if (!r.ok) return r; } })}>
           {ban('vid-all') ? '… đang gửi Veo' : `🎬 Sinh video ${soDuyet} cảnh đã duyệt${uoc ? ` (≈ ${tien(uoc.videoTong)})` : ''}`}
         </Nut>
         <button type="button" className="xv-btn" disabled={banTach || ban('them')} onClick={() => void chay('them', async () => { await themCanh(tap.id); })}>+ Cảnh</button>
@@ -851,11 +865,11 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
           <div style={{ ...mono, gridColumn: '1 / -1', width: '100%', color: 'var(--fg-2)' }}>Thứ tự nên làm: <b>1.</b> chọn giọng nhân vật → sinh giọng (rẻ, làm sớm để biết độ dài thoại) · <b>2.</b> có video nháp rồi mới sinh hiệu ứng (sinh từ clip, khớp hành động) · <b>3.</b> chốt thứ tự + số giây rồi sinh nhạc theo phân cảnh. Hoặc bấm <b>＋</b> trên từng khối nét đứt ở timeline.</div>
           <b style={{ fontSize: 12 }}>🔊 Âm thanh</b>
 
-          <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!u.soThoai && 'chưa shot nào có lời thoại')} ban={ban('giong')} title="Đọc lời thoại mọi shot bằng giọng cố định của từng nhân vật (chọn ở mục 2), cảm xúc theo shot" onClick={() => void chay('giong', () => sinhGiong(tap.id))}>🗣 Sinh giọng {u.soThoai} shot · {gia(u.giong)}</Nut>
-          <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!u.soSfx && 'chưa shot nào có clip hay mô tả âm thanh')} ban={ban('sfx')} title="Shot có clip → sinh tiếng từ chính clip (khớp hành động); chưa có clip → từ mô tả âm thanh + kỹ thuật âm thanh của shot" onClick={() => void chay('sfx', () => sinhAmThanh(tap.id))}>🔊 Sinh hiệu ứng {u.soSfx} shot · {gia(u.sfx)}</Nut>
+          <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!u.soThoai && 'chưa shot nào có lời thoại')} ban={ban('giong')} gia={uocA ? u.giong : undefined} title="Đọc lời thoại mọi shot bằng giọng cố định của từng nhân vật (chọn ở mục 2), cảm xúc theo shot" onClick={() => void chay('giong', () => sinhGiong(tap.id))}>🗣 Sinh giọng {u.soThoai} shot · {gia(u.giong)}</Nut>
+          <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!u.soSfx && 'chưa shot nào có clip hay mô tả âm thanh')} ban={ban('sfx')} gia={uocA ? u.sfx : undefined} title="Shot có clip → sinh tiếng từ chính clip (khớp hành động); chưa có clip → từ mô tả âm thanh + kỹ thuật âm thanh của shot" onClick={() => void chay('sfx', () => sinhAmThanh(tap.id))}>🔊 Sinh hiệu ứng {u.soSfx} shot · {gia(u.sfx)}</Nut>
           <Chon nho value={mhNhac} onChange={setMhNhac} minWidth={200} title="Model nhạc" options={MO_HINH_AM.filter((m) => m.loai === 'nhac').map((m) => ({ value: m.key, label: m.ten, phu: `${tien(m.gia)}/phút`, title: m.ghiChu }))} />
-          <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!u.soPhanCanh && 'chưa có phân cảnh — tách lại cảnh')} ban={ban('nhac')} title="Mỗi phân cảnh một đoạn nhạc riêng: dài bằng phân cảnh, theo cảm xúc đầu→cuối + nhịp + kỹ thuật nhạc của các shot" onClick={() => void chay('nhac', () => sinhNhac(tap.id, mhNhac, '*'))}>🎵 Nhạc theo {u.soPhanCanh} phân cảnh · {gia(u.nhac[mhNhac] ?? 0)}</Nut>
-          <Nut ly={!khoa.fal && 'thiếu FAL_KEY'} ban={ban('nhac1')} title="Một bài nền chạy suốt cả tập" onClick={() => void chay('nhac1', () => sinhNhac(tap.id, mhNhac))}>🎵 Một bài cả tập ({u.giay}s)</Nut>
+          <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!u.soPhanCanh && 'chưa có phân cảnh — tách lại cảnh')} ban={ban('nhac')} gia={uocA ? u.nhac[mhNhac] : undefined} title="Mỗi phân cảnh một đoạn nhạc riêng: dài bằng phân cảnh, theo cảm xúc đầu→cuối + nhịp + kỹ thuật nhạc của các shot" onClick={() => void chay('nhac', () => sinhNhac(tap.id, mhNhac, '*'))}>🎵 Nhạc theo {u.soPhanCanh} phân cảnh · {gia(u.nhac[mhNhac] ?? 0)}</Nut>
+          <Nut ly={!khoa.fal && 'thiếu FAL_KEY'} ban={ban('nhac1')} gia={uocA ? u.nhac[mhNhac] : undefined} title="Một bài nền chạy suốt cả tập" onClick={() => void chay('nhac1', () => sinhNhac(tap.id, mhNhac))}>🎵 Một bài cả tập ({u.giay}s)</Nut>
           {u.dangNhac > 0 && <span style={{ ...mono, color: 'var(--violet)' }}>⏳ đang sinh {u.dangNhac} đoạn âm…</span>}
           {loiUoc && <span className="xv-loi">{loiUoc}</span>}
         </div>
@@ -1113,14 +1127,14 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
             </div>
           )}
           <div style={{ display: 'flex', gap: 6, marginTop: 7, flexWrap: 'wrap', alignItems: 'center' }}>
-            {buoc === 'trong' && <>{chonAnh}<Nut chinh ly={lyAnh} ban={ban(k)} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))}>🖼 Sinh keyframe · {tien(giaAnh)}</Nut></>}
+            {buoc === 'trong' && <>{chonAnh}<Nut chinh ly={lyAnh} ban={ban(k)} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))} gia={giaAnh}>🖼 Sinh keyframe · {tien(giaAnh)}</Nut></>}
             {buoc === 'kf' && <Nut chinh ban={ban(k)} onClick={() => void chay(k, () => duyetCanh(c.id, true))}>✓ Duyệt keyframe</Nut>}
             {/* Sinh lại ảnh hiện ngay cạnh nút chính (không giấu trong ⋯): sửa trang phục / prompt / đối tượng xong là bấm lại được. Ảnh cũ vẫn giữ làm ứng viên. */}
-            {(buoc === 'kf' || buoc === 'duyet') && <>{chonAnh}<Nut ly={lyAnh} ban={ban(k)} title="Sinh thêm một ảnh keyframe mới theo prompt / trang phục / đối tượng hiện tại; ảnh cũ vẫn giữ trong dải ứng viên để chọn lại" onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))}>↻ Sinh lại ảnh · {tien(giaAnh)}</Nut></>}
-            {buoc === 'duyet' && <>{chonVideo}<Nut chinh ly={lyVideo} ban={ban(k)} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))}>🎬 Sinh nháp · {giay}s · {tien(giaVid)}</Nut></>}
+            {(buoc === 'kf' || buoc === 'duyet') && <>{chonAnh}<Nut ly={lyAnh} ban={ban(k)} title="Sinh thêm một ảnh keyframe mới theo prompt / trang phục / đối tượng hiện tại; ảnh cũ vẫn giữ trong dải ứng viên để chọn lại" onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))} gia={giaAnh}>↻ Sinh lại ảnh · {tien(giaAnh)}</Nut></>}
+            {buoc === 'duyet' && <>{chonVideo}<Nut chinh ly={lyVideo} ban={ban(k)} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))} gia={giaVid}>🎬 Sinh nháp · {giay}s · {tien(giaVid)}</Nut></>}
             {buoc === 'dang' && <span style={{ ...mono, color: 'var(--violet)' }}>{c.dang_sinh_anh ? 'đang sinh ảnh…' : 'đang sinh video, tự kiểm mỗi 10s…'}</span>}
-            {(buoc === 'nhap' || buoc === 'cuoi') && <>{chonVideo}<Nut ly={lyVideo} ban={ban(k)} title="Sinh một bản nháp video mới từ keyframe đang chọn; bản cũ vẫn giữ trong danh sách phiên bản" onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))}>↻ Sinh lại nháp · {giay}s · {tien(giaVid)}</Nut></>}
-            {buoc === 'nhap' && <Nut chinh ly={!khoa.fal && 'thiếu FAL_KEY'} ban={ban(k)} title="Nâng cấp CHÍNH clip nháp (Topaz ×2): chuyển động, bố cục, nhân vật y hệt bản nháp" onClick={() => void chay(k, () => nangCapCanh(c.id))}>⬆ Làm bản cuối (nâng cấp nháp, khớp 100%) · {tien(giaNangCap)}</Nut>}
+            {(buoc === 'nhap' || buoc === 'cuoi') && <>{chonVideo}<Nut ly={lyVideo} ban={ban(k)} title="Sinh một bản nháp video mới từ keyframe đang chọn; bản cũ vẫn giữ trong danh sách phiên bản" onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))} gia={giaVid}>↻ Sinh lại nháp · {giay}s · {tien(giaVid)}</Nut></>}
+            {buoc === 'nhap' && <Nut chinh ly={!khoa.fal && 'thiếu FAL_KEY'} ban={ban(k)} title="Nâng cấp CHÍNH clip nháp (Topaz ×2): chuyển động, bố cục, nhân vật y hệt bản nháp" onClick={() => void chay(k, () => nangCapCanh(c.id))} gia={giaNangCap}>⬆ Làm bản cuối (nâng cấp nháp, khớp 100%) · {tien(giaNangCap)}</Nut>}
             {buoc === 'cuoi' && <a href={c.video_cuoi_url!} target="_blank" rel="noreferrer" className="xv-btn chinh" style={{ textDecoration: 'none' }}>⬇ Tải bản cuối</a>}
             <Menu>
               <div style={{ ...mono, padding: '2px 4px' }}>Model cho các lệnh bên dưới</div>
@@ -1128,11 +1142,11 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
               <MucMenu onClick={() => setMo(true)}>✎ Sửa cảnh (góc máy, lời thoại, prompt, nhân vật)</MucMenu>
               {c.loi_thoai.trim() && <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} onClick={() => void chay(k, () => sinhGiong(c.tap_id, [c.id]))}>🗣 {c.thoai_url ? 'Sinh lại' : 'Sinh'} giọng shot này</MucMenu>}
               <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} onClick={() => void chay(k, () => sinhAmThanh(c.tap_id, [c.id]))}>🔊 {c.am_thanh_url ? 'Sinh lại' : 'Sinh'} hiệu ứng âm thanh{c.video_url ? ' (từ clip)' : ''}</MucMenu>
-              {c.keyframe_url && buoc !== 'kf' && buoc !== 'duyet' && <MucMenu ly={lyAnh} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))}>🖼 Thêm ứng viên keyframe · {tien(giaAnh)}</MucMenu>}
+              {c.keyframe_url && buoc !== 'kf' && buoc !== 'duyet' && <MucMenu ly={lyAnh} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))} gia={giaAnh}>🖼 Thêm ứng viên keyframe · {tien(giaAnh)}</MucMenu>}
               {c.trang_thai === 'duyet' && <MucMenu onClick={() => void chay(k, () => duyetCanh(c.id, false))}>↩ Bỏ duyệt keyframe</MucMenu>}
-              {c.trang_thai === 'loi' && buoc !== 'nhap' && buoc !== 'cuoi' && c.keyframe_url && <MucMenu ly={lyVideo} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))}>↻ Sinh lại nháp · {giay}s · {tien(giaVid)}</MucMenu>}
-              {(buoc === 'nhap' || buoc === 'cuoi') && <MucMenu ly={lyVideo} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo, 'cuoi'))}>🎬 Bản cuối = sinh lại bằng model đã chọn · {tien(giaVid)} (chuyển động có thể khác nháp)</MucMenu>}
-              {buoc === 'cuoi' && <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} onClick={() => void chay(k, () => nangCapCanh(c.id))}>⬆ Nâng cấp lại từ nháp · {tien(giaNangCap)}</MucMenu>}
+              {c.trang_thai === 'loi' && buoc !== 'nhap' && buoc !== 'cuoi' && c.keyframe_url && <MucMenu ly={lyVideo} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))} gia={giaVid}>↻ Sinh lại nháp · {giay}s · {tien(giaVid)}</MucMenu>}
+              {(buoc === 'nhap' || buoc === 'cuoi') && <MucMenu ly={lyVideo} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo, 'cuoi'))} gia={giaVid}>🎬 Bản cuối = sinh lại bằng model đã chọn · {tien(giaVid)} (chuyển động có thể khác nháp)</MucMenu>}
+              {buoc === 'cuoi' && <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} onClick={() => void chay(k, () => nangCapCanh(c.id))} gia={giaNangCap}>⬆ Nâng cấp lại từ nháp · {tien(giaNangCap)}</MucMenu>}
               {c.video_url && <a data-dong="" href={c.video_url} target="_blank" rel="noreferrer" className="xv-btn" style={{ textDecoration: 'none' }}>⬇ Tải nháp</a>}
               <MucMenu nguy onClick={() => void chay(k, async () => { await xoaCanh(c.id); })}>🗑 Xoá cảnh</MucMenu>
             </Menu>

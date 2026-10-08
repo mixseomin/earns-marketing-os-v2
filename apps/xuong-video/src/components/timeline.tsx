@@ -189,7 +189,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     <div key={key} title={title} onClick={onClick}
       style={{ position: 'absolute', left: x + 1, width: Math.max(4, w - 2), top: 2, bottom: 2, borderRadius: 4, overflow: 'hidden', cursor: onClick ? 'pointer' : 'default',
         background: co ? `${mau}33` : 'transparent', border: `1px ${co ? 'solid' : 'dashed'} ${mau}${co ? '' : '99'}`,
-        color: co ? mau : 'var(--fg-3)', fontSize: 10, lineHeight: '20px', padding: nutSinh ? `0 ${w > 110 ? 50 : 26}px 0 5px` : '0 5px', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+        color: co ? mau : 'var(--fg-3)', fontSize: 10, lineHeight: '20px', padding: nutSinh ? '0 22px 0 5px' : '0 5px', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
       {nutSinh?.dang && <div className="xv-dang" style={{ borderRadius: 4 }}><span>⏳ đang sinh</span></div>}
       {nutSinh?.nghe?.length ? (
         // Nghe riêng đúng khối này (#1206) — không cần chạy cả timeline.
@@ -200,10 +200,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
       ) : co && mau !== '#38d9f5' ? '♪ ' : ''}{chu}
       {nutSinh && (
         // Nút ＋ to, sáng: mở bảng tuỳ chọn (model, giọng, nguồn, mô tả, giá) — không sinh ngay (#1202).
-        <button type="button" title={nutSinh.title} disabled={nutSinh.dang}
+        <button type="button" className="xv-nut-sinh" title={nutSinh.title} disabled={nutSinh.dang}
           onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setYc({ loai: nutSinh.loai, cc: nutSinh.cc, phanDoan: nutSinh.phanDoan, giay: nutSinh.giay, x: r.right, y: r.bottom }); }}
-          style={{ position: 'absolute', right: 1, top: 1, bottom: 1, minWidth: 22, padding: '0 6px', borderRadius: 4, border: '1px solid #fff', background: mau, color: '#0b0b0b', fontWeight: 800, fontSize: 11, lineHeight: '18px', cursor: 'pointer', opacity: nutSinh.dang ? 0.45 : 1, boxShadow: `0 0 0 2px ${mau}55, 0 2px 6px rgba(0,0,0,.5)`, whiteSpace: 'nowrap' }}>
-          {nutSinh.dang ? '⏳' : co ? '↻' : '＋'}{w > 110 && !nutSinh.dang ? (co ? ' Lại' : ' Sinh') : ''}
+          style={{ position: 'absolute', right: 2, top: 3, bottom: 3, width: 16, padding: 0, borderRadius: 3, border: 0, background: mau, color: '#0b0b0b', fontWeight: 800, fontSize: 11, lineHeight: '14px', cursor: 'pointer' }}>
+          {nutSinh.dang ? '⏳' : co ? '↻' : '+'}
         </button>
       )}
     </div>

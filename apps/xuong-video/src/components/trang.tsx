@@ -53,10 +53,10 @@ function Ngan({ onClose, nho, children }: { onClose: () => void; nho?: boolean; 
 }
 function Loi({ children }: { children: ReactNode }) { return children ? <div className="xv-loi">{children}</div> : null; }
 /** Ảnh nhỏ có nút ✕ xoá (hiện khi rê chuột, hỏi lại trước khi xoá). Dùng cho ảnh gốc, ảnh biến thể, ứng viên keyframe. */
-function AnhNho({ url, kich = 40, vien, nhan, title, onClick, onXoa }: { url: string; kich?: number; vien?: string; nhan?: string; title?: string; onClick?: () => void; onXoa?: () => void | Promise<void> }) {
+function AnhNho({ url, kich = 40, vien, nhan, title, onClick, onXoa, soSanh }: { url: string; kich?: number; vien?: string; nhan?: string; title?: string; onClick?: () => void; onXoa?: () => void | Promise<void>; soSanh?: string }) {
   return (
     <span className="xv-anh-nho" title={title} style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
-      <img src={url} alt="" onClick={onClick} style={{ width: kich, height: kich, objectFit: 'cover', borderRadius: 5, display: 'block', cursor: onClick ? 'pointer' : 'default', border: `2px solid ${vien ?? 'transparent'}` }} />
+      <img src={url} alt="" onClick={onClick} data-so-sanh={soSanh} style={{ width: kich, height: kich, objectFit: 'cover', borderRadius: 5, display: 'block', cursor: onClick ? 'pointer' : 'default', border: `2px solid ${vien ?? 'transparent'}` }} />
       {nhan && <span style={{ position: 'absolute', left: 3, bottom: 2, fontSize: 8.5, color: '#fff', textShadow: '0 1px 2px #000', pointerEvents: 'none' }}>{nhan}</span>}
       {onXoa && <button type="button" className="xv-x" title="Bỏ ảnh vào thùng rác (khôi phục được)" onClick={(e) => { e.stopPropagation(); if (window.confirm('Bỏ ảnh này vào thùng rác? Khôi phục được ở nút 🗑 Thùng rác.')) void onXoa(); }}>✕</button>}
     </span>
@@ -1027,6 +1027,8 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
   const anhKhung: CSSProperties = { width: doc ? 68 : 120, height: doc ? 120 : 68, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)' };
   const k = `c${c.id}`;
   const tp = thanhPhanCanh(c, nhanVat);
+  // Ảnh tham chiếu của các đối tượng trong shot (biến thể đang chọn nếu có) — đi kèm khi phóng to keyframe để so (#1215).
+  const soSanh = JSON.stringify(tp.ds.filter((x) => x.anh).map((x) => ({ ten: `${x.nv.ten}${x.bt ? ` · ${x.bt.ten}` : ''}`, url: x.anh })));
   // Model chọn tại cảnh (mặc định theo kinh thánh) — giá $ hiện trên ô chọn và nút.
   const [mhAnh, setMhAnh] = useState<string>(kt.mo_hinh_anh);
   const [mhVideo, setMhVideo] = useState<string>(kt.mo_hinh_video);
@@ -1050,7 +1052,7 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
         <div style={{ flexShrink: 0 }}>
           {c.video_cuoi_url ? <div><video src={c.video_cuoi_url} controls preload="metadata" style={anhKhung} /><div style={{ ...mono, color: 'var(--lime)', textAlign: 'center' }}>bản cuối</div></div>
             : c.video_url ? <div><video src={c.video_url} controls preload="metadata" style={anhKhung} /><div style={{ ...mono, textAlign: 'center' }}>nháp</div></div>
-            : c.keyframe_url ? <div style={{ position: 'relative' }}><img src={c.keyframe_url} alt="" style={anhKhung} />{buoc === 'dang' && <DangSinh chu="" />}</div>
+            : c.keyframe_url ? <div style={{ position: 'relative' }}><img src={c.keyframe_url} alt="" data-so-sanh={soSanh} style={anhKhung} />{buoc === 'dang' && <DangSinh chu="" />}</div>
             : <div style={{ ...anhKhung, position: 'relative', display: 'grid', placeItems: 'center', color: 'var(--fg-4)', fontSize: 10, overflow: 'hidden' }}>chưa có{buoc === 'dang' && <DangSinh chu={c.dang_sinh_anh ? 'ảnh' : 'video'} />}</div>}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1106,7 +1108,7 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
           {c.keyframe_uv.length > 0 && !c.video_url && (
             <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
               {c.keyframe_uv.map((u) => (
-                <AnhNho key={u} url={u} vien={u === c.keyframe_url ? 'var(--cyan)' : undefined} title={u === c.keyframe_url ? 'đang chọn' : 'chọn ảnh này làm keyframe'}
+                <AnhNho key={u} url={u} soSanh={soSanh} vien={u === c.keyframe_url ? 'var(--cyan)' : undefined} title={u === c.keyframe_url ? 'đang chọn' : 'chọn ảnh này làm keyframe'}
                   onClick={() => void chay(k, async () => { await chonKeyframe(c.id, u); })} onXoa={() => chay(k, () => xoaKeyframe(c.id, u))} />
               ))}
             </div>

@@ -25,7 +25,9 @@ function dauVao(model: string, v: Vao): Record<string, unknown> {
 
 function docLoiFal(j: Record<string, unknown>, status: number): string {
   const d = j.detail;
-  const m = typeof d === 'string' ? d : Array.isArray(d) ? JSON.stringify(d).slice(0, 240) : '';
+  // 422 kiểu pydantic: [{type:'missing', loc:['body','image_urls'], msg}] → nói bằng tiếng Việt thiếu trường gì, không dán JSON.
+  const ds = Array.isArray(d) ? (d as Array<{ type?: string; loc?: unknown[]; msg?: string }>) : [];
+  const m = typeof d === 'string' ? d : ds.length ? ds.map((x) => `${x.type === 'missing' ? 'thiếu trường' : 'trường sai'} ${(x.loc ?? []).filter((y) => y !== 'body').join('.')}${x.type === 'missing' ? '' : ` (${x.msg ?? ''})`}`).join('; ') : '';
   if (/Exhausted balance|locked/i.test(m)) return 'fal.ai hết tiền: tài khoản số dư $0 — nạp ở fal.ai/dashboard/billing rồi bấm lại.';
   return `fal ${status}: ${m || 'lỗi không rõ'}`.slice(0, 300);
 }
@@ -117,17 +119,25 @@ export async function danhMucFal(): Promise<ModelFal[]> {
 
 type SchemaTruong = { type?: string; enum?: unknown[]; default?: unknown; anyOf?: Array<{ type?: string; enum?: unknown[] }>; items?: unknown };
 const khoSchema = new Map<string, Record<string, SchemaTruong>>();
+const khoBatBuoc = new Map<string, string[]>();
 async function schemaVao(id: string): Promise<Record<string, SchemaTruong>> {
   if (khoSchema.has(id)) return khoSchema.get(id)!;
   try {
     const r = await fetch(`https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=${encodeURIComponent(id)}`);
-    const j = (await r.json()) as { components?: { schemas?: Record<string, { properties?: Record<string, SchemaTruong> }> } };
+    const j = (await r.json()) as { components?: { schemas?: Record<string, { properties?: Record<string, SchemaTruong>; required?: string[] }> } };
     const sc = j.components?.schemas ?? {};
     const k = Object.keys(sc).find((x) => /Input$/.test(x)) ?? Object.keys(sc)[0];
     const props = (k && sc[k]?.properties) || {};
     khoSchema.set(id, props);
+    khoBatBuoc.set(id, (k && sc[k]?.required) || []);
     return props;
   } catch (e) { console.error('[fal] đọc OpenAPI', id, e); return {}; }
+}
+/** Endpoint có tồn tại và có BẮT BUỘC ảnh đầu vào không (model sửa ảnh). Không tồn tại → null. */
+async function canAnh(id: string): Promise<boolean | null> {
+  const p = await schemaVao(id);
+  if (!Object.keys(p).length) return null;
+  return (khoBatBuoc.get(id) ?? []).some((f) => /image/.test(f));
 }
 const enumCua = (f?: SchemaTruong) => (f?.enum ?? f?.anyOf?.flatMap((a) => a.enum ?? []) ?? []) as unknown[];
 
@@ -176,7 +186,17 @@ export async function guiFal(id: string, input: Record<string, unknown>): Promis
 }
 
 /** Ảnh qua fal (model edit, có ảnh tham chiếu) — chờ tới xong (chạy trong hàng đợi nền nên chờ được). */
-export async function sinhAnhFal(id: string, v: { prompt: string; thamChieu: string[]; tiLe: string }): Promise<{ ok: true; model: string; mimeType: string; data: Buffer } | { ok: false; loi: string }> {
+export async function sinhAnhFal(id0: string, v: { prompt: string; thamChieu: string[]; tiLe: string }): Promise<{ ok: true; model: string; mimeType: string; data: Buffer } | { ok: false; loi: string }> {
+  // Model SỬA ảnh (bắt buộc ảnh đầu vào) mà chưa có ảnh tham chiếu (vd ảnh gốc đầu tiên) → dùng bản sinh-từ-chữ cùng dòng
+  // (…/edit → …/text-to-image). Không có bản đó thì báo rõ, không gửi để nhận 422 (#1216).
+  let id = id0;
+  if (!v.thamChieu.length && (await canAnh(id0))) {
+    const goc = id0.replace(/\/(edit|image-to-image|edit-image)$/, '');
+    let thay: string | null = null;
+    for (const c of [`${goc}/text-to-image`, goc]) { if (c !== id0 && (await canAnh(c)) === false) { thay = c; break; } }
+    if (!thay) return { ok: false, loi: `Model ${id0} chỉ SỬA ảnh (cần ảnh đầu vào) mà chưa có ảnh tham chiếu nào. Ảnh gốc đầu tiên: chọn model sinh từ chữ (Nano Banana, GPT Image, Seedream text-to-image…); có ảnh rồi mới dùng model sửa ảnh.` };
+    id = thay;
+  }
   const input = await dauVaoTheoSchema(id, { prompt: v.prompt, anhThamChieu: v.thamChieu, tiLe: v.tiLe });
   const g = await guiFal(id, input);
   if (!g.ok) return g;

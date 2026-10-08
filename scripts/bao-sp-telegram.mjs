@@ -1,48 +1,69 @@
-// BÁO vào nhóm Telegram MINE (anh yêu cầu 08/10/2026), hai kênh đọc cùng sổ products:
-//   'published'    → topic "🛍️ Sản phẩm mới" (TG_TOPIC): mỗi dòng vừa lên sàn (Etsy, KDP, Gumroad, App Store…) một tin.
-//   'owner_review' → topic "🏭 Sản xuất xong" (TG_TOPIC_SX): sản phẩm dựng xong, chờ anh duyệt — gộp các dòng cùng tên thành MỘT tin.
-// Bất kể đăng/dựng bằng script nào hay sửa tay trên MOS2 → @aiDavid_bot gửi tin.
-// Đọc SỔ chứ không cắm vào từng script đăng: một chỗ bắt được mọi đường lên sàn.
-// Lần chạy đầu (chưa có tệp trạng thái) chỉ ghi nhận các dòng đã published sẵn, KHÔNG báo lại hàng cũ.
+// BÁO vào nhóm Telegram MINE (anh yêu cầu 08/10/2026), ba kênh đọc cùng sổ products (Directus):
+//   'published'      → topic "🛍️ Sản phẩm mới" (TG_TOPIC): mỗi dòng vừa lên sàn (Etsy, KDP, Gumroad, App Store…) một tin.
+//   'owner_review'   → topic "🏭 Sản xuất xong" (TG_TOPIC_SX): sách dựng xong chờ anh duyệt — gộp các dòng cùng tên, kèm link duyệt.
+//   tới ngày chưa duyệt → topic "🛍️ Sản phẩm mới": ngày đăng dự kiến (giờ VN) đã tới mà sách còn planned/draft/owner_review —
+//                       mỗi sách tối đa MỘT tin mỗi ngày, kèm link mở thẳng drawer duyệt trên MOS2.
+// Bất kể đăng/dựng bằng script nào hay sửa tay trên MOS2. Lần đầu mỗi kênh (chưa có tệp trạng thái) chỉ ghi nhận, không báo hàng cũ.
 // Chạy trên box3 bằng systemd timer bao-sp-telegram.timer (10 phút). Cấu hình bot: /root/.secrets/mine-tg.env
-// (TG_BOT_TOKEN, TG_CHAT, TG_TOPIC — vault MOS2 #476); Directus từ .env.production qua EnvironmentFile.
+// (TG_BOT_TOKEN, TG_CHAT, TG_TOPIC, TG_TOPIC_SX — vault MOS2 #476); Directus từ .env.production qua EnvironmentFile.
 //   node scripts/bao-sp-telegram.mjs [--dry]      node scripts/bao-sp-telegram.mjs --tu-kiem
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
-const NEN = { etsy: 'Etsy', kdp: 'Amazon KDP', gumroad: 'Gumroad', 'app-store': 'App Store', udemy: 'Udemy', 'mql5-market': 'MQL5 Market' };
+const MOS2 = process.env.MOS2_URL || 'https://mos2.on.tc';
+// Link mở thẳng drawer sản phẩm trong tab Tài sản (tai-san-view.tsx: useModalParam('sp') → ?sp=sp&spId=<khoa>, khoa = 'd:<id sổ>').
+// Nút Duyệt trong drawer duyệt MỌI dòng cùng tên sách (lib/actions/san-pham-duyet.ts) → link tới một dòng là đủ.
+export const linkDuyet = (id) => `${MOS2}/?tab=taisan&sp=sp&spId=${encodeURIComponent(`d:${id}`)}`;
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const gia = (p, c) => (p == null ? null : `${Number(p).toLocaleString('vi-VN')} ${c || 'USD'}`);
+const DD = { paperback: 'bìa mềm', hardcover: 'bìa cứng', ebook: 'ebook' };
+export const nen = (r) => ({ etsy: 'Etsy', gumroad: 'Gumroad', 'app-store': 'App Store', udemy: 'Udemy', 'mql5-market': 'MQL5' }[r.platform]
+  ?? (r.platform === 'kdp' ? `KDP ${DD[r.category] ?? r.category ?? ''}`.trim() : r.platform));
+export const gia = (p, c) => (p == null || Number(p) === 0 ? null : (c || 'USD') === 'USD' ? `$${Number(p).toFixed(2)}` : c === 'VND' ? `${Math.round(Number(p)).toLocaleString('vi-VN')} ₫` : `${Number(p)} ${c}`);
+export const ngayVn = (d) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : '');
+const dong = (...xs) => xs.filter(Boolean).join(' · ');
+const dau = (ds) => ds.find((r) => r.platform === 'etsy') ?? ds[0];   // dòng đại diện cho link duyệt
+const ngayDang = (ds) => ds.map((r) => r.listing_config?.dangDuKien).filter(Boolean).sort()[0] ?? null;
+
 export const tin = (r) => [
-  `🛍️ <b>Vừa lên sàn</b> · ${esc(NEN[r.platform] ?? r.platform)}${r.store ? ` · ${esc(r.store)}` : ''}`,
-  `<b>${esc(r.title)}</b>`,
-  [gia(r.price, r.currency), r.category].filter(Boolean).map(esc).join(' · ') || null,
-  r.url ? esc(r.url) : '(sổ chưa có link)',
-].filter(Boolean).join('\n');
+  `🛍️ <b>${esc(r.title)}</b>`,
+  esc(dong(nen(r), gia(r.price, r.currency))),
+  r.url ? `<a href="${esc(r.url)}">Xem trên ${esc(nen(r).split(' ')[0])} →</a>` : '<i>sổ chưa có link sàn</i>',
+].join('\n');
 export const tinSx = (ten, ds) => [
-  `🏭 <b>Sản xuất xong · chờ anh duyệt</b>`,
-  `<b>${esc(ten)}</b>`,
-  ds.map((r) => `${esc(NEN[r.platform] ?? r.platform)}${r.category ? ` (${esc(r.category)})` : ''}`).join(' · '),
-  ((d) => (d ? `Đăng dự kiến: ${esc(d)}` : null))(ds.map((r) => r.listing_config?.dangDuKien).filter(Boolean).sort()[0]),
-  'Duyệt bản xem trong MOS2 › Tài sản',
-].filter(Boolean).join('\n');
+  `🏭 <b>${esc(ten)}</b>`,
+  esc(dong(ds.map(nen).join(', '), ngayDang(ds) && `đăng ${ngayVn(ngayDang(ds))}`)),
+  `<a href="${esc(linkDuyet(dau(ds).id))}">Xem + duyệt trong MOS2 →</a>`,
+].join('\n');
+export const tinTre = (ten, ds, homNay) => {
+  const d = ngayDang(ds), tre = Math.round((Date.parse(homNay) - Date.parse(d)) / 86_400_000);
+  const chuaDung = ds.every((r) => r.status !== 'owner_review');
+  return [
+    `⏰ <b>${esc(ten)}</b>`,
+    esc(dong(`đăng ${ngayVn(d)}${tre > 0 ? ` (trễ ${tre} ngày)` : ' (hôm nay)'}`, ds.map(nen).join(', '))),
+    chuaDung ? '<i>Chưa sản xuất xong</i>' : `<a href="${esc(linkDuyet(dau(ds).id))}">Chưa duyệt, vào duyệt →</a>`,
+  ].join('\n');
+};
 
 if (process.argv.includes('--tu-kiem')) {
   const a = await import('node:assert');
-  const t = tin({ platform: 'etsy', store: 'FrontPorchZ', title: 'A <b> & C', price: '181000.00', currency: 'VND', category: 'pdf', url: 'https://x.y/1' });
-  a.ok(t.includes('Etsy · FrontPorchZ') && t.includes('A &lt;b&gt; &amp; C') && t.includes('181.000 VND · pdf') && t.endsWith('https://x.y/1'));
-  a.ok(tin({ platform: 'kdp', title: 'B' }).endsWith('(sổ chưa có link)'));
-  const sx = tinSx('Sách A', [{ platform: 'etsy', category: 'pdf', listing_config: { dangDuKien: '2026-11-02' } }, { platform: 'kdp', category: 'paperback', listing_config: { dangDuKien: '2026-10-20' } }]);
-  a.ok(sx.includes('Etsy (pdf) · Amazon KDP (paperback)') && sx.includes('Đăng dự kiến: 2026-10-20'));
-  console.log('bao-sp-telegram: 3/3 ok'); process.exit(0);
+  const t = tin({ platform: 'etsy', title: 'A <b> & C', price: '181000.00', currency: 'VND', url: 'https://x.y/1' });
+  a.equal(t, '🛍️ <b>A &lt;b&gt; &amp; C</b>\nEtsy · 181.000 ₫\n<a href="https://x.y/1">Xem trên Etsy →</a>');
+  a.ok(tin({ platform: 'kdp', category: 'paperback', title: 'B', price: '9.99', currency: 'USD' }).includes('KDP bìa mềm · $9.99\n<i>'));
+  const ds = [{ id: 'e1', platform: 'etsy', status: 'owner_review', listing_config: { dangDuKien: '2026-11-02' } }, { id: 'k1', platform: 'kdp', category: 'paperback', status: 'owner_review', listing_config: { dangDuKien: '2026-10-20' } }];
+  a.ok(tinSx('S', ds).includes('Etsy, KDP bìa mềm · đăng 20/10') && tinSx('S', ds).includes('spId=d%3Ae1'));
+  a.ok(tinTre('S', ds, '2026-10-22').includes('đăng 20/10 (trễ 2 ngày)') && tinTre('S', ds, '2026-10-22').includes('vào duyệt'));
+  const nhap = ds.map((r) => ({ ...r, status: 'draft' }));
+  a.ok(tinTre('S', nhap, '2026-10-20').includes('(hôm nay)') && tinTre('S', nhap, '2026-10-20').includes('Chưa sản xuất xong'));
+  console.log('bao-sp-telegram: 5/5 ok'); process.exit(0);
 }
 
 const { DIRECTUS_URL = 'https://as.on.tc', DIRECTUS_TOKEN, TG_BOT_TOKEN, TG_CHAT, TG_TOPIC, TG_TOPIC_SX } = process.env;
 if (!DIRECTUS_TOKEN || !TG_BOT_TOKEN || !TG_CHAT) throw new Error('thiếu DIRECTUS_TOKEN / TG_BOT_TOKEN / TG_CHAT');
 const DRY = process.argv.includes('--dry');
 const THU = process.env.BAO_SP_DIR || '/var/lib/mine-tg';
+const HOM_NAY = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });   // lịch đăng tính theo ngày của anh
 
 async function doc(st) {
-  const r = await fetch(`${DIRECTUS_URL}/items/products?limit=-1&fields=id,title,platform,store,price,currency,category,url,listing_config&filter[status][_eq]=${st}`,
+  const r = await fetch(`${DIRECTUS_URL}/items/products?limit=-1&fields=id,title,status,platform,store,price,currency,category,url,listing_config&filter[status][_in]=${st}`,
     { headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` } });
   if (!r.ok) throw new Error(`Directus ${r.status}: ${(await r.text()).slice(0, 200)}`);
   return (await r.json()).data;
@@ -50,27 +71,43 @@ async function doc(st) {
 async function gui(text, topic) {
   if (DRY) { console.log(`[dry] ${text.replace(/\n/g, ' | ')}`); return true; }
   const g = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: TG_CHAT, message_thread_id: topic ? Number(topic) : undefined, text, parse_mode: 'HTML' }) });
+    body: JSON.stringify({ chat_id: TG_CHAT, message_thread_id: topic ? Number(topic) : undefined, text, parse_mode: 'HTML',
+      link_preview_options: { prefer_small_media: true } }) });
   const j = await g.json();
   if (!j.ok) { console.error(`✗ gửi hỏng: ${j.description}`); process.exitCode = 1; }
   return j.ok;
 }
-// Một kênh = một trạng thái sổ + một topic + một tệp "đã báo". nhom(ds) → [[khoá, text, ids]]. Lần đầu: ghi nhận, không báo.
+const gom = (ds) => { const g = new Map(); for (const x of ds) g.set(x.title, [...(g.get(x.title) ?? []), x]); return [...g]; };
+const docTep = (p) => JSON.parse(readFileSync(p, 'utf8'));
+const ghi = (p, v) => { if (!DRY) writeFileSync(p, JSON.stringify(v)); };
+
+// Kênh theo TRẠNG THÁI: tệp "đã báo" = danh sách id. nhom(ds) → [[khoá, text, ids]].
 async function kenh(st, topic, tep, nhom) {
   const TT = `${THU}/${tep}`, ds = await doc(st);
   if (!existsSync(TT)) { mkdirSync(THU, { recursive: true }); writeFileSync(TT, JSON.stringify(ds.map((x) => x.id))); console.log(`${st}: lần đầu, ghi nhận ${ds.length} dòng, không báo`); return; }
   // Chỉ giữ dòng CÒN ở trạng thái này: rời đi rồi quay lại (dựng lại sau góp ý → chờ duyệt lần nữa) thì báo lại
-  const con = new Set(ds.map((x) => x.id)), da = new Set(JSON.parse(readFileSync(TT, 'utf8')).filter((i) => con.has(i)));
+  const con = new Set(ds.map((x) => x.id)), da = new Set(docTep(TT).filter((i) => con.has(i)));
   const moi = nhom(ds.filter((x) => !da.has(x.id))).slice(0, 10);   // ponytail: tối đa 10 tin/lượt/kênh, phần còn lại lượt sau (giới hạn gửi của Telegram)
   for (const [k, text, ids] of moi) {
     if (!(await gui(text, topic))) continue;   // không ghi "đã báo" khi gửi hỏng → lượt sau thử lại
-    ids.forEach((i) => da.add(i)); if (!DRY) writeFileSync(TT, JSON.stringify([...da]));
+    ids.forEach((i) => da.add(i)); ghi(TT, [...da]);
     console.log(`✓ ${st} · ${k}`);
   }
   if (!moi.length) console.log(`${st}: không có gì mới`);
 }
 await kenh('published', TG_TOPIC, 'da-bao.json', (ds) => ds.map((x) => [`${x.platform} · ${x.title}`, tin(x), [x.id]]));
-if (TG_TOPIC_SX) await kenh('owner_review', TG_TOPIC_SX, 'da-bao-sx.json', (ds) => {
-  const g = new Map(); for (const x of ds) g.set(x.title, [...(g.get(x.title) ?? []), x]);
-  return [...g].map(([ten, xs]) => [ten, tinSx(ten, xs), xs.map((x) => x.id)]);
-});
+if (TG_TOPIC_SX) await kenh('owner_review', TG_TOPIC_SX, 'da-bao-sx.json', (ds) => gom(ds).map(([ten, xs]) => [ten, tinSx(ten, xs), xs.map((x) => x.id)]));
+
+// Kênh TỚI NGÀY CHƯA DUYỆT: tệp = { tên sách: ngày đã nhắc } → mỗi sách một tin mỗi ngày tới khi anh duyệt.
+{
+  const TT = `${THU}/da-nhac-tre.json`, nhac = existsSync(TT) ? docTep(TT) : {};
+  const tre = gom((await doc('planned,draft,owner_review')).filter((x) => x.listing_config?.dangDuKien && x.listing_config.dangDuKien <= HOM_NAY));
+  let n = 0;
+  for (const [ten, xs] of tre) {
+    if (nhac[ten] === HOM_NAY || n >= 10) continue;
+    if (!(await gui(tinTre(ten, xs, HOM_NAY), TG_TOPIC))) continue;
+    nhac[ten] = HOM_NAY; ghi(TT, nhac); n++;
+    console.log(`✓ tới ngày chưa duyệt · ${ten}`);
+  }
+  if (!n) console.log('tới ngày chưa duyệt: không có gì mới');
+}

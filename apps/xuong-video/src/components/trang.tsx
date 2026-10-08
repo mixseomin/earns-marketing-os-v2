@@ -334,10 +334,9 @@ function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa; onSave
   );
   const goiY = async () => { setAi(true); setLoiAi(''); const r = await goiYAIKinhThanh(phim.id); setAi(false); if (!r.ok) { setLoiAi(r.loi); return; } set('phong_cach', r.data.phong_cach); setMoTa(r.data.mo_ta); if (r.data.the_loai && THE_LOAI.some((t) => t.key === r.data.the_loai)) set('the_loai', r.data.the_loai as TheLoai); if (r.data.logline) set('logline', r.data.logline); if (r.data.chu_de) set('chu_de', r.data.chu_de); };
   return (
-    <details className="xv-det xv-panel" open={moKhung} onToggle={(e) => setMoKhung((e.target as HTMLDetailsElement).open)}>
-      <summary>1 · Kinh thánh của bộ phim <small>{kt.phong_cach ? `${kt.ti_le} · ${kt.do_phan_giai}` : 'chưa đặt phong cách'} · {kt.the_loai ? `🎭 ${THE_LOAI.find((t) => t.key === kt.the_loai)?.ten}` : <b style={{ color: 'var(--amber)' }}>⚠ chưa chọn thể loại (thư viện điện ảnh dựa vào đây)</b>}{kt.logline ? ` · “${kt.logline.slice(0, 70)}”` : ''}</small></summary>
+    <>
       {laQc && (
-        <details className="xv-det xv-panel" open={moQc} onToggle={(e) => setMoQc((e.target as HTMLDetailsElement).open)} style={{ marginTop: 10, borderColor: thieuQc ? 'var(--amber)' : 'var(--line)' }}>
+        <details className="xv-det xv-panel" open={moQc} onToggle={(e) => setMoQc((e.target as HTMLDetailsElement).open)} style={{ borderColor: thieuQc ? 'var(--amber)' : 'var(--line)' }}>
           <summary>0 · Sản phẩm / dịch vụ được quảng cáo <small>{thieuQc ? '⚠ khai trước — AI gợi ý, viết kịch bản, tách cảnh đều dựa vào đây' : `${qc.ten}${qc.anh.length ? ` · ${qc.anh.length} ảnh` : ''}${qc.uu_dai ? ` · ${qc.uu_dai}` : ''}`}</small></summary>
           <div className="xv-grid">
             <O span label="Link trang sản phẩm" hint="dán link → bấm Lấy từ link: AI đọc trang, điền sẵn tên, điểm nổi bật, đối tượng, ưu đãi + kéo ảnh sản phẩm về (~$0.01)">
@@ -358,6 +357,9 @@ function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa; onSave
           </div>
         </details>
       )}
+    <details className="xv-det xv-panel" open={moKhung} onToggle={(e) => setMoKhung((e.target as HTMLDetailsElement).open)}>
+      <summary>1 · Kinh thánh của bộ phim <small>{kt.phong_cach ? `${kt.ti_le} · ${kt.do_phan_giai}` : 'chưa đặt phong cách'} · {kt.the_loai ? `🎭 ${THE_LOAI.find((t) => t.key === kt.the_loai)?.ten}` : <b style={{ color: 'var(--amber)' }}>⚠ chưa chọn thể loại (thư viện điện ảnh dựa vào đây)</b>}{kt.logline ? ` · “${kt.logline.slice(0, 70)}”` : ''}</small></summary>
+
       <div className="xv-grid" style={{ marginTop: 10 }}>
         <O span label="Phong cách hình ảnh" hint="Viết như tả cho hoạ sĩ: chất liệu, bảng màu, ánh sáng, lens. Tiếng Việt hay Anh đều được. Nối vào đầu mọi prompt để các tập giống nhau.">
           <textarea className="xv-ta" rows={2} value={kt.phong_cach} onChange={(e) => set('phong_cach', e.target.value)} placeholder={laQc ? "Quay thật kiểu UGC, ánh sáng cửa sổ, cầm tay, chân thực…" : "3D hoạt hình kiểu Pixar, màu ấm, ánh sáng mềm buổi sáng, khu rừng cổ tích…"} />
@@ -380,6 +382,7 @@ function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa; onSave
       </div>
       <Loi>{loiAi}</Loi>
     </details>
+    </>
   );
 }
 
@@ -890,12 +893,12 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
                   }}
                   onXep={(ids) => { setCanh((ds) => ds && ids.map((id, i) => ({ ...ds.find((x) => x.id === id)!, thu_tu: i + 1 }))); void chay('xep', () => xepCanh(tap.id, ids)); }} />
                 <div data-ngu-canh={`tập #${tap.id} ${tap.ten} · cảnh đang mở #${cc.thu_tu} (id ${cc.id}) ${cc.canh} · ${cc.trang_thai}`}>
-                  <CanhRow key={cc.id} c={cc} nhanVat={nhanVat} kt={kt} khoa={khoa} ban={(k) => banTach || ban(k)} chay={chay} />
+                  <CanhRow key={cc.id} c={cc} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} />
                 </div>
               </>
             );
           })() : (
-            <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>{canh.map((c) => <CanhRow key={c.id} c={c} nhanVat={nhanVat} kt={kt} khoa={khoa} ban={(k) => banTach || ban(k)} chay={chay} />)}</div>
+            <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>{canh.map((c) => <CanhRow key={c.id} c={c} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} />)}</div>
           )}
         </>
       )}
@@ -975,7 +978,7 @@ function Animatic({ canh, tiLe, ngonNgu, onClose }: { canh: Canh[]; tiLe: string
 
 // ── Một cảnh ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVat[]; kt: Required<KinhThanh>; khoa: Khoa; ban: (k: string) => boolean; chay: (ten: string, fn: () => Promise<KqChay>) => Promise<void> }) {
+function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanVat: NhanVat[]; kt: Required<KinhThanh>; khoa: Khoa; phimLoai: LoaiPhim; ban: (k: string) => boolean; chay: (ten: string, fn: () => Promise<KqChay>) => Promise<void> }) {
   const [mo, setMo] = useState(false);
   const [f, setF] = useState<Canh>(c);
   const [ai, setAi] = useState(false);
@@ -1028,8 +1031,8 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
             <Pill color={tt.color}>{tt.label}</Pill>
             <span style={mono}>{c.thoi_luong_s}s{c.chi_phi_cents > 0 ? ` · đã tốn ${tien(c.chi_phi_cents)}` : ''}</span>
           </div>
-          {tp.ds.length > 0 && (
-            <div style={{ display: 'flex', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
+          {(
+            <div style={{ display: 'flex', gap: 6, marginTop: 5, flexWrap: 'wrap', alignItems: 'center' }}>
               {tp.ds.map(({ nv, bt, anh, thieu }) => (
                 <span key={nv.id} title={thieu.length ? thieu.join('\n') : `${nv.ten}${bt ? ` · ${bt.ten}` : ''} — sẵn sàng`}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 7px 2px 2px', borderRadius: 999, border: `1px solid ${thieu.length ? 'var(--red)' : 'var(--line)'}`, background: 'var(--bg-1)', fontSize: 10.5 }}>
@@ -1038,6 +1041,11 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
                   {thieu.length > 0 && <span style={{ color: 'var(--red)' }}>thiếu</span>}
                 </span>
               ))}
+              {/* Thêm/bớt đối tượng ngay trên thẻ (#1210): nhân vật · sản phẩm · bối cảnh · đạo cụ — lưu luôn, keyframe sau tham chiếu đúng. */}
+              <Chon nho multi values={c.nhan_vat.map(String)} onValues={(v) => void chay(k, () => suaCanh(c.id, { nhan_vat: v.map(Number) }))} minWidth={120} placeholder="＋ đối tượng"
+                title="Thêm / bớt nhân vật, sản phẩm, bối cảnh, đạo cụ có trong shot (ảnh của chúng làm tham chiếu khi sinh keyframe)"
+                options={nhanVat.map((v) => ({ value: String(v.id), label: v.ten, nhom: LOAI_NHAN_VAT.find((l) => l.key === v.loai)?.label, phu: v.anh_ref.length ? undefined : 'chưa ảnh' }))} />
+              {phimLoai === 'quang_cao' && !nhanVat.some((v) => v.loai === 'san_pham' && c.nhan_vat.includes(v.id)) && nhanVat.some((v) => v.loai === 'san_pham') && <span style={{ fontSize: 10.5, color: 'var(--amber)' }}>⚠ shot chưa có sản phẩm</span>}
             </div>
           )}
           <div style={{ fontSize: 11.5, marginTop: 3, color: 'var(--fg-2)' }} title={c.loi_thoai ? `“${c.loi_thoai}”` : undefined}>{c.hanh_dong}</div>

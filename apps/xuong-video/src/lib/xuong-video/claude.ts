@@ -87,7 +87,8 @@ const HUONG_DAN_DAO_DIEN = `CÁCH DỰNG NHƯ PHIM ĐIỆN ẢNH (bắt buộc):
 - Tầng phân cảnh (scene): mỗi phân cảnh có mục tiêu của nhân vật, xung đột cản trở, và cảm xúc ĐỔI giá trị từ đầu tới cuối (vd +2 → -3). Thoại có ẩn ý khi được — nhân vật hiếm khi nói thẳng điều mình cảm.
 - Tầng shot: mỗi phân cảnh 2-5 shot. Mở bằng shot thiết lập (toàn cảnh) khi tới nơi mới; hội thoại dùng qua vai / cận trung luân phiên, giữ trục 180°; khoảnh khắc cảm xúc dùng cận mặt hoặc đặc tả phản ứng; chèn insert cho vật quan trọng. Nhịp nhanh = shot 4 giây, cắt nhiều; nhịp chậm = shot 6-8 giây, máy đẩy chậm.
 - Ngôn ngữ điện ảnh: mỗi shot chọn cỡ cảnh, góc, chuyển động máy, ống kính, ánh sáng, màu, chuyển cảnh sang shot sau, 1-2 lớp âm thanh, nhạc — CHỈ dùng key trong THƯ VIỆN bên dưới, ưu tiên kỹ thuật hợp thể loại; ánh sáng/màu đổi theo cảm xúc (ấm khi hy vọng, lạnh/tối khi sợ hãi/mất mát) nhưng vẫn trong phong cách chung.
-- prompt_anh phải tả đúng cỡ cảnh + góc + ánh sáng đã chọn; prompt_video tả đúng chuyển động máy + âm thanh đã chọn.`;
+- prompt_anh phải tả đúng cỡ cảnh + góc + ánh sáng đã chọn; prompt_video tả đúng chuyển động máy + âm thanh đã chọn.
+- QUẢNG CÁO: sản phẩm là nhân vật chính thứ hai — mọi shot có người mặc/cầm/dùng/nhắc tới sản phẩm PHẢI có tên anchor sản phẩm trong trường nhan_vat (để keyframe tham chiếu đúng ảnh sản phẩm thật), và prompt_anh tả sản phẩm hiện rõ trong khung; ít nhất 2/3 số shot thấy sản phẩm.`;
 
 /** Tách kịch bản thành cảnh. `soCanh` = số cảnh mong muốn (0 = để Claude tự chia). */
 export async function tachCanh(opts: {

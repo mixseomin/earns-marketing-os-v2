@@ -7,7 +7,7 @@ import { useModalParam } from '@/lib/use-modal-param';
 import { Timeline } from './timeline';
 import { ImageAttach } from './image-attach';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
-import { MO_HINH_AM, GIONG, giaAm } from '@/lib/xuong-video/am-thanh';
+import { MO_HINH_AM, GIONG, giaAm, dongThoai } from '@/lib/xuong-video/am-thanh';
 import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, nhanKyThuat, type NhomKyThuat, type TheLoai } from '@/lib/xuong-video/dien-anh';
 import {
   dsPhim, docPhim, dsCanh, taoPhim, taoPhimMau, suaPhim, xoaPhim, luuNhanVat, xoaNhanVat, sinhAnhMau, taoTap, suaTap,
@@ -283,15 +283,30 @@ function ChiPhiGanDay({ jobs, tong, phimId }: { jobs: Job[]; tong: number; phimI
 // ── Kinh thánh (bible) ──────────────────────────────────────────────────────────────────────────────────────────
 
 function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa; onSaved: () => Promise<void> }) {
-  const goc = useMemo(() => docKinhThanh(phim.kinh_thanh), [phim.kinh_thanh]);
+  // Ngăn phim tự làm mới 4-15 giây/lần → phim.kinh_thanh là object MỚI mỗi lần dù nội dung y nguyên. Đồng bộ theo NỘI DUNG (chuỗi JSON)
+  // và chỉ khi anh không đang sửa dở — trước đây mỗi lần làm mới ghi đè chỗ đang sửa: chọn thể loại bị nhảy về, "Lấy từ link" điền xong
+  // rồi mất (#1207, #1208).
+  const gocJson = JSON.stringify(phim.kinh_thanh ?? {});
+  const goc = useMemo(() => docKinhThanh(JSON.parse(gocJson) as KinhThanh), [gocJson]);
   const moHinh = useContext(MoHinhCtx);
   const [kt, setKt] = useState<Required<KinhThanh>>(goc);
   const [moTa, setMoTa] = useState(phim.mo_ta);
   const [luu, setLuu] = useState(false);
   const [ai, setAi] = useState(false);
   const [loiAi, setLoiAi] = useState('');
-  useEffect(() => { setKt(goc); setMoTa(phim.mo_ta); }, [goc, phim.mo_ta]);
   const dirty = JSON.stringify(kt) !== JSON.stringify(goc) || moTa !== phim.mo_ta;
+  const dirtyRef = useRef(dirty); dirtyRef.current = dirty;
+  useEffect(() => { if (!dirtyRef.current) { setKt(goc); setMoTa(phim.mo_ta); } }, [goc, phim.mo_ta]);
+  // Tự lưu 1,5 giây sau lần sửa cuối — không còn mất vì quên bấm Lưu.
+  const [luuLuc, setLuuLuc] = useState('');
+  const luuNgay = useCallback(async (k: Required<KinhThanh>, m: string) => {
+    setLuu(true); await suaPhim(phim.id, { kinh_thanh: k, mo_ta: m }); setLuu(false);
+    setLuuLuc(new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    await onSaved();
+  }, [phim.id, onSaved]);
+  useEffect(() => { if (!dirty) return; const t = setTimeout(() => void luuNgay(kt, moTa), 1500); return () => clearTimeout(t); }, [kt, moTa, dirty, luuNgay]);
+  // Mở/đóng khung do anh bấm; chỉ quyết định MỘT lần lúc mở (open điều khiển theo state làm khung tự gập khi vừa chọn thể loại).
+  const [moKhung, setMoKhung] = useState(() => !goc.phong_cach || !goc.the_loai);
   const set = <K extends keyof KinhThanh>(k: K, v: Required<KinhThanh>[K]) => setKt((x) => ({ ...x, [k]: v }));
   // Phim quảng cáo: khai sản phẩm/dịch vụ TRƯỚC — mọi nút AI đọc nó (#1201).
   const laQc = phim.loai === 'quang_cao';
@@ -299,6 +314,7 @@ function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa; onSave
   const setQc = (p: Partial<ThongTinQc>) => setKt((x) => ({ ...x, qc: { ...QC_TRONG, ...(x.qc ?? {}), ...p } }));
   const thieuQc = laQc && !qc.ten.trim() && !qc.link.trim() && !qc.diem_noi_bat.trim();
   const [docLink, setDocLink] = useState(false);
+  const [moQc, setMoQc] = useState(() => !(goc.qc?.ten || goc.qc?.link));
   const layLink = async () => {
     setDocLink(true); setLoiAi('');
     const r = await layTuLinkSanPham(phim.id, qc.link);
@@ -306,13 +322,27 @@ function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa; onSave
     if (!r.ok) { setLoiAi(r.loi); return; }
     setQc({ ...r.data, ten: qc.ten || r.data.ten, anh: [...new Set([...qc.anh, ...r.data.anh])].slice(0, 10) });
   };
+  // ✨ riêng từng ô (thể loại / logline / chủ đề): cùng một lượt Claude đọc sản phẩm + tiền đề + nhân vật, chỉ điền đúng ô được bấm.
+  const [aiO, setAiO] = useState('');
+  const goiYMot = async (k: 'the_loai' | 'logline' | 'chu_de') => {
+    setAiO(k); setLoiAi('');
+    const r = await goiYAIKinhThanh(phim.id);
+    setAiO('');
+    if (!r.ok) { setLoiAi(r.loi); return; }
+    const v = r.data[k];
+    if (k === 'the_loai') { if (v && THE_LOAI.some((t) => t.key === v)) set('the_loai', v as TheLoai); } else if (v) set(k, v);
+  };
+  const nutAi = (k: 'the_loai' | 'logline' | 'chu_de') => (
+    <button type="button" className="xv-btn" disabled={!!aiO || !!thieuQc} title={thieuQc ? 'khai sản phẩm/dịch vụ ở mục 0 trước' : 'AI gợi ý riêng ô này (đọc sản phẩm, tiền đề, nhân vật)'} onClick={() => void goiYMot(k)}
+      style={{ padding: '0 6px', fontSize: 10.5, lineHeight: '16px', marginLeft: 6, textTransform: 'none' }}>{aiO === k ? '… AI' : '✨ AI'}</button>
+  );
   const goiY = async () => { setAi(true); setLoiAi(''); const r = await goiYAIKinhThanh(phim.id); setAi(false); if (!r.ok) { setLoiAi(r.loi); return; } set('phong_cach', r.data.phong_cach); setMoTa(r.data.mo_ta); if (r.data.the_loai && THE_LOAI.some((t) => t.key === r.data.the_loai)) set('the_loai', r.data.the_loai as TheLoai); if (r.data.logline) set('logline', r.data.logline); if (r.data.chu_de) set('chu_de', r.data.chu_de); };
   return (
-    <details className="xv-det xv-panel" open={!kt.phong_cach || !kt.the_loai}>
+    <details className="xv-det xv-panel" open={moKhung} onToggle={(e) => setMoKhung((e.target as HTMLDetailsElement).open)}>
       <summary>1 · Kinh thánh của bộ phim <small>{kt.phong_cach ? `${kt.ti_le} · ${kt.do_phan_giai}` : 'chưa đặt phong cách'} · {kt.the_loai ? `🎭 ${THE_LOAI.find((t) => t.key === kt.the_loai)?.ten}` : <b style={{ color: 'var(--amber)' }}>⚠ chưa chọn thể loại (thư viện điện ảnh dựa vào đây)</b>}{kt.logline ? ` · “${kt.logline.slice(0, 70)}”` : ''}</small></summary>
       {laQc && (
-        <div className="xv-panel" style={{ marginTop: 10, borderColor: thieuQc ? 'var(--amber)' : 'var(--line)' }}>
-          <h3 style={{ margin: '0 0 6px' }}>0 · Sản phẩm / dịch vụ được quảng cáo <small>{thieuQc ? '⚠ khai trước — AI gợi ý, viết kịch bản, tách cảnh đều dựa vào đây' : 'AI mọi bước bám theo thông tin này'}</small></h3>
+        <details className="xv-det xv-panel" open={moQc} onToggle={(e) => setMoQc((e.target as HTMLDetailsElement).open)} style={{ marginTop: 10, borderColor: thieuQc ? 'var(--amber)' : 'var(--line)' }}>
+          <summary>0 · Sản phẩm / dịch vụ được quảng cáo <small>{thieuQc ? '⚠ khai trước — AI gợi ý, viết kịch bản, tách cảnh đều dựa vào đây' : `${qc.ten}${qc.anh.length ? ` · ${qc.anh.length} ảnh` : ''}${qc.uu_dai ? ` · ${qc.uu_dai}` : ''}`}</small></summary>
           <div className="xv-grid">
             <O span label="Link trang sản phẩm" hint="dán link → bấm Lấy từ link: AI đọc trang, điền sẵn tên, điểm nổi bật, đối tượng, ưu đãi + kéo ảnh sản phẩm về (~$0.01)">
               <div style={{ display: 'flex', gap: 6 }}>
@@ -330,16 +360,16 @@ function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa; onSave
                 upload={async (du) => { const r = await taiAnhLen(du); return r.ok ? { ok: true, url: r.data } : { ok: false, error: r.loi }; }} />
             </O>
           </div>
-        </div>
+        </details>
       )}
       <div className="xv-grid" style={{ marginTop: 10 }}>
         <O span label="Phong cách hình ảnh" hint="Viết như tả cho hoạ sĩ: chất liệu, bảng màu, ánh sáng, lens. Tiếng Việt hay Anh đều được. Nối vào đầu mọi prompt để các tập giống nhau.">
           <textarea className="xv-ta" rows={2} value={kt.phong_cach} onChange={(e) => set('phong_cach', e.target.value)} placeholder={laQc ? "Quay thật kiểu UGC, ánh sáng cửa sổ, cầm tay, chân thực…" : "3D hoạt hình kiểu Pixar, màu ấm, ánh sáng mềm buổi sáng, khu rừng cổ tích…"} />
         </O>
         <O span label="Mô tả / tiền đề"><textarea className="xv-ta" rows={2} value={moTa} onChange={(e) => setMoTa(e.target.value)} placeholder="Bộ phim kể về… / Sản phẩm là… bán cho…" /></O>
-        <O label="Thể loại" hint="quyết định thư viện cỡ cảnh / ánh sáng / âm thanh / nhạc Claude chọn cho từng shot"><Chon value={kt.the_loai} onChange={(v) => set('the_loai', v as TheLoai)} options={THE_LOAI.map((t) => ({ value: t.key, label: t.ten, title: t.mo_ta, phu: t.mo_ta.split(',')[0] }))} placeholder="chọn thể loại…" minWidth={220} /></O>
-        <O label="Logline" hint="một câu: ai · muốn gì · cái gì cản"><input className="xv-in" value={kt.logline} onChange={(e) => set('logline', e.target.value)} placeholder={laQc ? "Phụ nữ 50+ mỏi vai vì bra gọng tìm được chiếc bra nâng mặc cả ngày quên" : "Rùa con chậm chạp phải băng qua rừng úa để cứu cây mẹ trước khi mùa đông tới"} /></O>
-        <O label="Chủ đề" hint="điều bộ phim muốn nói"><input className="xv-in" value={kt.chu_de} onChange={(e) => set('chu_de', e.target.value)} placeholder={laQc ? "Thoải mái mà vẫn đẹp" : "Chậm mà bền, đi cùng nhau thì tới"} /></O>
+        <O label={<>Thể loại{nutAi('the_loai')}</>} hint="quyết định thư viện cỡ cảnh / ánh sáng / âm thanh / nhạc Claude chọn cho từng shot"><Chon value={kt.the_loai} onChange={(v) => set('the_loai', v as TheLoai)} options={THE_LOAI.map((t) => ({ value: t.key, label: t.ten, title: t.mo_ta, phu: t.mo_ta.split(',')[0] }))} placeholder="chọn thể loại…" minWidth={220} /></O>
+        <O label={<>Logline{nutAi('logline')}</>} hint="một câu: ai · muốn gì · cái gì cản"><input className="xv-in" value={kt.logline} onChange={(e) => set('logline', e.target.value)} placeholder={laQc ? "Phụ nữ 50+ mỏi vai vì bra gọng tìm được chiếc bra nâng mặc cả ngày quên" : "Rùa con chậm chạp phải băng qua rừng úa để cứu cây mẹ trước khi mùa đông tới"} /></O>
+        <O label={<>Chủ đề{nutAi('chu_de')}</>} hint="điều bộ phim muốn nói"><input className="xv-in" value={kt.chu_de} onChange={(e) => set('chu_de', e.target.value)} placeholder={laQc ? "Thoải mái mà vẫn đẹp" : "Chậm mà bền, đi cùng nhau thì tới"} /></O>
         <O label="Khung hình"><Seg options={[{ value: '9:16', label: '9:16 dọc' }, { value: '16:9', label: '16:9 ngang' }]} value={kt.ti_le} onChange={(v) => set('ti_le', v)} /></O>
         <O label="Độ phân giải video"><Seg options={[{ value: '720p', label: '720p (rẻ)' }, { value: '1080p', label: '1080p' }]} value={kt.do_phan_giai} onChange={(v) => set('do_phan_giai', v)} /></O>
         <O label="Model ảnh (mặc định)"><Chon value={kt.mo_hinh_anh} onChange={(v) => set('mo_hinh_anh', v as Required<KinhThanh>['mo_hinh_anh'])} options={luaChonAnh(moHinh.anh.length ? moHinh.anh : MO_HINH_ANH.map((m) => ({ key: m.key, label: m.label, nhom: '', giaCents: m.gia1k, donVi: 'anh' as const })))} /></O>
@@ -348,7 +378,8 @@ function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa; onSave
         <O label="Ngôn ngữ lời thoại"><Chon value={kt.ngon_ngu} onChange={(v) => set('ngon_ngu', v)} options={[{ value: 'vi', label: 'Tiếng Việt' }, { value: 'en', label: 'English' }]} /></O>
       </div>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-        <Nut ly={!dirty && 'chưa sửa gì'} ban={luu} chinh onClick={async () => { setLuu(true); await suaPhim(phim.id, { kinh_thanh: kt, mo_ta: moTa }); setLuu(false); await onSaved(); }}>Lưu kinh thánh</Nut>
+        <Nut ly={!dirty && 'đã lưu'} ban={luu} chinh onClick={() => void luuNgay(kt, moTa)}>Lưu kinh thánh</Nut>
+        <span style={{ ...mono, color: dirty ? 'var(--amber)' : 'var(--lime)' }}>{luu ? '… đang lưu' : dirty ? '● chưa lưu — tự lưu sau 1,5 giây' : luuLuc ? `✓ đã lưu ${luuLuc}` : '✓ đã lưu'}</span>
         <Nut ly={thieuQc && 'khai sản phẩm/dịch vụ ở mục 0 trước (hoặc dán link rồi bấm Lấy từ link)'} ban={ai} title="Claude đọc tên phim, loại, sản phẩm (quảng cáo), tuyến nhân vật, các tập đã có → viết phong cách + tiền đề + thể loại + logline. Chỉ điền vào ô, anh xem rồi Lưu." onClick={() => void goiY()}>{ai ? '… AI đang viết' : '✨ AI gợi ý phong cách + tiền đề'}</Nut>
       </div>
       <Loi>{loiAi}</Loi>
@@ -722,6 +753,9 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
   // Poll Veo khi có cảnh đang sinh (Veo chạy 1-3 phút). Dừng ngay khi không còn job chạy.
   const dangSinh = (canh ?? []).some((c) => c.trang_thai === 'dang_sinh');
   const dangSinhAnh = (canh ?? []).some((c) => c.dang_sinh_anh || c.dang_sinh_am) || (uocA?.dangNhac ?? 0) > 0;
+  // Nhạc sinh xong không đổi danh sách cảnh → phải tự báo phim tải lại thì khối nhạc mới hiện file (không bắt F5).
+  const dangNhacTruoc = useRef(0);
+  useEffect(() => { const n = uocA?.dangNhac ?? 0; if (dangNhacTruoc.current > 0 && n < dangNhacTruoc.current) void onChanged(); dangNhacTruoc.current = n; }, [uocA?.dangNhac]); // eslint-disable-line react-hooks/exhaustive-deps
   // Thời gian thực: có việc ảnh đang chạy → hỏi lại 4s/lần; không có → 15s/lần (bấm ở tab khác / Worker xong muộn vẫn tự hiện). Tab ẩn thì thôi.
   useEffect(() => { if (banTach) return; const t = setInterval(() => { if (document.visibilityState === 'visible') void taiCanh(); }, dangSinhAnh ? 4000 : 15000); return () => clearInterval(t); }, [dangSinhAnh, banTach, taiCanh]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -803,7 +837,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
         <button type="button" className="xv-btn" disabled={banTach || ban('them')} onClick={() => void chay('them', async () => { await themCanh(tap.id); })}>+ Cảnh</button>
       </div>
       {!!canh?.length && (() => {
-        const u = uocA ?? { giong: 0, soThoai: canh.filter((c) => c.loi_thoai.trim()).length, sfx: 0, soSfx: canh.length, nhac: {} as Record<string, number>, giay: canh.reduce((a, c) => a + (c.thoi_luong_s || 5), 0), soPhanCanh: new Set(canh.map((c) => c.phan_doan).filter(Boolean)).size, dangNhac: 0 };
+        const u = uocA ?? { dangPhanDoan: [] as string[], dangCaTap: false, giong: 0, soThoai: canh.filter((c) => c.loi_thoai.trim()).length, sfx: 0, soSfx: canh.length, nhac: {} as Record<string, number>, giay: canh.reduce((a, c) => a + (c.thoi_luong_s || 5), 0), soPhanCanh: new Set(canh.map((c) => c.phan_doan).filter(Boolean)).size, dangNhac: 0 };
         const gia = (c: number) => (uocA ? tien(c) : '…');
         const nvNoi = nhanVat.filter((v) => v.loai === 'nhan_vat');
         return (
@@ -854,7 +888,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
                     giong: (id, tuy) => void chay(`c${id}`, () => sinhGiong(tap.id, [id], tuy)),
                     sfx: (id, tuy) => void chay(`c${id}`, () => sinhAmThanh(tap.id, [id], undefined, tuy)),
                     nhac: (pd, model, moTa) => void chay(pd ? 'nhac' : 'nhac1', () => sinhNhac(tap.id, model, pd, moTa)),
-                    mhNhac, ban: (k) => banTach || ban(k),
+                    mhNhac, ban: (k) => banTach || ban(k), dangPhanDoan: uocA?.dangPhanDoan ?? [], dangCaTap: uocA?.dangCaTap ?? false,
                   }}
                   onXep={(ids) => { setCanh((ds) => ds && ids.map((id, i) => ({ ...ds.find((x) => x.id === id)!, thu_tu: i + 1 }))); void chay('xep', () => xepCanh(tap.id, ids)); }} />
                 <div data-ngu-canh={`tập #${tap.id} ${tap.ten} · cảnh đang mở #${cc.thu_tu} (id ${cc.id}) ${cc.canh} · ${cc.trang_thai}`}>
@@ -950,8 +984,10 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
   const [loiAi, setLoiAi] = useState('');
   const moHinh = useContext(MoHinhCtx);
   // Shot cũ chỉ có chuỗi loi_thoai → mở form thì tách sẵn thành dòng ("Tên: lời") để sửa kiểu kịch bản.
-  const tuChuoi = (x: Canh): Canh => (x.thoai.length || !x.loi_thoai.trim() ? x : { ...x, thoai: x.loi_thoai.split('\n').filter(Boolean).map((l) => { const m = l.match(/^\s*([^:"“(]{1,40}?)\s*(?:\(([^)]*)\))?\s*:\s*(.*)$/); return m ? { nhan_vat: m[1]!.trim(), dien_xuat: (m[2] ?? '').trim(), loi: m[3]!.replace(/["“”]/g, '').trim() } : { nhan_vat: '', dien_xuat: '', loi: l.replace(/["“”]/g, '').trim() }; }) });
-  useEffect(() => { setF(tuChuoi(c)); }, [c]); // eslint-disable-line react-hooks/exhaustive-deps
+  const tuChuoi = (x: Canh): Canh => (x.thoai.length || !x.loi_thoai.trim() ? x : { ...x, thoai: dongThoai(x, nhanVat) });
+  // Danh sách cảnh tự làm mới 4-15 giây/lần (object mới): chỉ đồng bộ khi NỘI DUNG đổi và form sửa đang đóng — không ghi đè chỗ đang sửa.
+  const cJson = JSON.stringify(c);
+  useEffect(() => { if (!mo) setF(tuChuoi(JSON.parse(cJson) as Canh)); }, [cJson, mo]); // eslint-disable-line react-hooks/exhaustive-deps
   // AI điền form tại chỗ, KHÔNG qua chay() — chay tải lại cảnh và useEffect trên sẽ ghi đè mất phần AI vừa điền.
   const aiVietLai = async () => { setAi(true); setLoiAi(''); const r = await goiYAICanh(c.id, { canh: f.canh, goc_may: f.goc_may, hanh_dong: f.hanh_dong, loi_thoai: f.loi_thoai, nhan_vat: f.nhan_vat }); setAi(false); if (!r.ok) { setLoiAi(r.loi); return; } setF((x) => ({ ...x, ...r.data })); };
   const tt = TRANG_THAI_CANH[c.trang_thai] ?? TRANG_THAI_CANH.nhap;
@@ -1007,9 +1043,9 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
             </div>
           )}
           <div style={{ fontSize: 11.5, marginTop: 3, color: 'var(--fg-2)' }} title={c.loi_thoai ? `“${c.loi_thoai}”` : undefined}>{c.hanh_dong}</div>
-          {c.thoai.length > 0 && (
+          {dongThoai(c, nhanVat).length > 0 && (
             <div style={{ marginTop: 4, padding: '4px 8px', borderLeft: '2px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-              {c.thoai.map((d, i) => (
+              {dongThoai(c, nhanVat).map((d, i) => (
                 <div key={i} style={{ marginBottom: 2, display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap' }}>
                   <b style={{ color: 'var(--cyan)', textTransform: 'uppercase' }}>{d.nhan_vat || 'Lời dẫn'}</b>
                   {d.dien_xuat && <i style={{ color: 'var(--fg-3)' }}>({d.dien_xuat})</i>}

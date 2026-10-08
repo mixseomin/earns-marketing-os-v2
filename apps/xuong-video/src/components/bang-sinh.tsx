@@ -7,8 +7,8 @@
 // Giá cập nhật theo lựa chọn; chỉ bấm "Sinh" mới tốn tiền.
 import { useEffect, useMemo, useState } from 'react';
 import { Chon } from './chon';
-import { dsGiongModel, dsGiongCua, type TuyGiong, type TuyAm } from '@/lib/actions';
-import { MO_HINH_AM, GIONG, giaAm } from '@/lib/xuong-video/am-thanh';
+import { dsGiongModel, dsGiongCua, chonGiong, type TuyGiong, type TuyAm } from '@/lib/actions';
+import { MO_HINH_AM, GIONG, giaAm, dongThoai } from '@/lib/xuong-video/am-thanh';
 import { nhanKyThuat } from '@/lib/xuong-video/dien-anh';
 import { tien, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 
@@ -23,15 +23,14 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
 }) {
   const cc = yc.cc;
   // ── giọng
-  const [cachGiong, setCachGiong] = useState<'co_dinh' | 'khac'>('co_dinh');
   const [dsM, setDsM] = useState<MoHinhG[]>([]);
-  const [model, setModel] = useState('');
-  const [voice, setVoice] = useState('');
-  const [dsG, setDsG] = useState<{ id: string; ten: string }[] | null>(null);
+  // Mỗi người nói trong shot một cặp model + giọng (điền sẵn giọng cố định của nhân vật) — luôn thấy model nào đang dùng (#1203).
+  const [chonG, setChonG] = useState<Record<string, { model: string; voice: string; luu: boolean }>>({});
+  const [dsGTheoModel, setDsGTheoModel] = useState<Record<string, { id: string; ten: string }[]>>({});
+  const napGiong = (m: string) => { if (m && !dsGTheoModel[m]) void dsGiongCua(m).then((g) => setDsGTheoModel((x) => ({ ...x, [m]: g }))); };
   const [camXuc, setCamXuc] = useState('shot');
   const [phamVi, setPhamVi] = useState<'thieu' | 'tat_ca'>('tat_ca');
-  useEffect(() => { if (yc.loai === 'giong') void dsGiongModel().then((d) => { setDsM(d); setModel((m) => m || d[0]?.key || ''); }); }, [yc.loai]);
-  useEffect(() => { if (cachGiong !== 'khac' || !model) return; setDsG(null); void dsGiongCua(model).then(setDsG); }, [cachGiong, model]);
+  useEffect(() => { if (yc.loai === 'giong') void dsGiongModel().then(setDsM); }, [yc.loai]);
   // ── hiệu ứng
   const coClip = !!(cc?.video_cuoi_url || cc?.video_url);
   const [nguon, setNguon] = useState<'clip' | 'mo_ta'>(coClip ? 'clip' : 'mo_ta');
@@ -43,13 +42,24 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
   const pc = yc.phanDoan ? tap.phan_canh.find((x) => x.ten === yc.phanDoan) : undefined;
   const [moTaNhac, setMoTaNhac] = useState('');
 
-  const dong = cc ? (cc.thoai.length ? cc.thoai.filter((d) => d.loi.trim()) : cc.loi_thoai.trim() ? [{ nhan_vat: '', dien_xuat: '', loi: cc.loi_thoai, url: cc.thoai_url }] : []) : [];
+  const dong = cc ? dongThoai(cc, nhanVat) : [];
+  const nguoi = [...new Set(dong.map((d) => d.nhan_vat.trim()))];
+  const MAC_DINH = { model: 'fal-ai/elevenlabs/tts/eleven-v3', voice: 'George' };
+  useEffect(() => {
+    if (yc.loai !== 'giong') return;
+    const o: Record<string, { model: string; voice: string; luu: boolean }> = {};
+    for (const ten of nguoi) {
+      const v = nhanVat.find((x) => x.ten.toLowerCase() === ten.toLowerCase());
+      o[ten] = v?.giong_model ? { model: v.giong_model, voice: v.giong_id, luu: false } : { ...MAC_DINH, luu: !!v };
+      napGiong(o[ten]!.model);
+    }
+    setChonG(o);
+  }, [yc.loai, cc?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const soKyTu = dong.filter((d) => phamVi === 'tat_ca' || !d.url).reduce((a, d) => a + d.loi.length, 0);
   const giaG = useMemo(() => {
     const k = (m: MoHinhG | undefined) => (m?.giaCents == null ? 10 : m.donVi === '1k_ky_tu' ? m.giaCents : m.donVi === 'giay' ? m.giaCents * 15 : 0);
-    if (cachGiong === 'khac') return (soKyTu / 1000) * k(dsM.find((m) => m.key === model));
-    return dong.filter((d) => phamVi === 'tat_ca' || !d.url).reduce((a, d) => { const v = nhanVat.find((x) => x.ten.toLowerCase() === d.nhan_vat.toLowerCase()); return a + (d.loi.length / 1000) * k(dsM.find((m) => m.key === v?.giong_model)); }, 0);
-  }, [cachGiong, dsM, model, dong, phamVi, soKyTu, nhanVat]);
+    return dong.filter((d) => phamVi === 'tat_ca' || !d.url).reduce((a, d) => a + (d.loi.length / 1000) * k(dsM.find((m) => m.key === chonG[d.nhan_vat.trim()]?.model)), 0);
+  }, [dsM, dong, phamVi, chonG]);
   const camXucSo = camXuc === 'shot' ? undefined : Number(camXuc);
 
   // Vị trí: ngay dưới nút ＋, không tràn mép phải/dưới màn.
@@ -73,19 +83,22 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
                 return <div key={i}><b style={{ color: 'var(--cyan)' }}>{(d.nhan_vat || 'Lời dẫn').toUpperCase()}</b>{d.dien_xuat ? <i style={{ color: 'var(--fg-3)' }}> ({d.dien_xuat})</i> : null}: {d.loi} <span style={mono}>· {v?.giong_id ? `giọng ${v.giong_id}` : 'giọng mặc định'}{d.url ? ' · ✓ đã có' : ''}</span></div>;
               })}
             </div>
-            <label style={{ display: 'grid', gap: 3 }}><span style={mono}>Giọng dùng cho lượt này</span>
-              <Chon value={cachGiong} onChange={(v) => setCachGiong(v as 'co_dinh' | 'khac')} options={[{ value: 'co_dinh', label: 'Giọng cố định của từng nhân vật', phu: 'khuyên dùng' }, { value: 'khac', label: 'Chọn giọng khác (chỉ lượt này)' }]} minWidth={380} />
-            </label>
-            {cachGiong === 'khac' && (
-              <>
-                <label style={{ display: 'grid', gap: 3 }}><span style={mono}>Model giọng</span>
-                  <Chon value={model} onChange={(v) => { setModel(v); setVoice(''); }} minWidth={380} options={dsM.map((m) => ({ value: m.key, label: m.ten, nhom: m.nhom, phu: m.giaCents == null ? (m.key.startsWith('elevenlabs:') ? 'trong gói' : 'chưa có giá') : `${tien(m.giaCents)}${m.donVi === '1k_ky_tu' ? '/1k ký tự' : m.donVi === 'giay' ? '/giây' : m.donVi === 'luot' ? '/lượt' : ''}`, title: m.giaText }))} placeholder={dsM.length ? 'chọn…' : 'đang tải…'} />
-                </label>
-                <label style={{ display: 'grid', gap: 3 }}><span style={mono}>Giọng</span>
-                  <Chon value={voice} onChange={setVoice} minWidth={380} options={(dsG ?? []).map((g) => ({ value: g.id, label: g.ten, phu: Object.values(GIONG).flat().find((x) => x.id === g.id)?.ta }))} placeholder={dsG ? (dsG.length ? 'chọn giọng…' : 'model không công bố danh sách — để trống = mặc định') : 'đang tải giọng…'} />
-                </label>
-              </>
-            )}
+            {nguoi.map((ten) => {
+              const v = nhanVat.find((x) => x.ten.toLowerCase() === ten.toLowerCase());
+              const cg = chonG[ten] ?? { ...MAC_DINH, luu: false };
+              const dsG = dsGTheoModel[cg.model];
+              const doi = (p: Partial<typeof cg>) => setChonG((x) => ({ ...x, [ten]: { ...cg, ...p } }));
+              return (
+                <div key={ten || '_dan'} style={{ border: '1px solid var(--line)', borderRadius: 8, padding: 8, display: 'grid', gap: 5 }}>
+                  <b style={{ fontSize: 12 }}>{ten ? `🗣 ${ten}` : '🎙 Lời dẫn'} <span style={mono}>{v?.giong_model ? '· đang có giọng cố định' : v ? '· chưa có giọng cố định' : ''}</span></b>
+                  <Chon value={cg.model} onChange={(m) => { doi({ model: m, voice: '' }); napGiong(m); }} minWidth={360} placeholder={dsM.length ? 'chọn model giọng…' : 'đang tải model…'}
+                    options={dsM.map((m) => ({ value: m.key, label: m.ten, nhom: m.nhom, phu: m.giaCents == null ? (m.key.startsWith('elevenlabs:') ? 'trong gói' : 'chưa có giá') : `${tien(m.giaCents)}${m.donVi === '1k_ky_tu' ? '/1k ký tự' : m.donVi === 'giay' ? '/giây' : m.donVi === 'luot' ? '/lượt' : ''}`, title: m.giaText }))} />
+                  <Chon value={cg.voice} onChange={(g) => doi({ voice: g })} minWidth={360} placeholder={dsG ? (dsG.length ? 'chọn giọng…' : 'model không công bố danh sách — để trống = mặc định') : 'đang tải giọng…'}
+                    options={(dsG ?? []).map((g) => ({ value: g.id, label: g.ten, phu: Object.values(GIONG).flat().find((x) => x.id === g.id)?.ta }))} />
+                  {v && <label style={{ ...mono, display: 'inline-flex', gap: 5, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={cg.luu} onChange={(e) => doi({ luu: e.target.checked })} /> Lưu làm giọng cố định của {v.ten} (mọi shot sau dùng giọng này)</label>}
+                </div>
+              );
+            })}
             <label style={{ display: 'grid', gap: 3 }}><span style={mono}>Cảm xúc khi đọc</span>
               <Chon value={camXuc} onChange={setCamXuc} minWidth={380} options={[{ value: 'shot', label: `Theo cảm xúc của shot (${cc.cam_xuc > 0 ? '+' : ''}${cc.cam_xuc})` }, { value: '4', label: 'Vui · hào hứng' }, { value: '0', label: 'Bình thường' }, { value: '-4', label: 'Buồn · trầm' }]} />
             </label>
@@ -93,7 +106,10 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
               <Chon value={phamVi} onChange={(v) => setPhamVi(v as 'thieu' | 'tat_ca')} minWidth={380} options={[{ value: 'tat_ca', label: `Tất cả ${dong.length} dòng (sinh lại cả dòng đã có)` }, { value: 'thieu', label: `Chỉ dòng chưa có giọng (${dong.filter((d) => !d.url).length})` }]} />
             </label>
             <div style={mono}>Nên sinh khi đã chốt lời thoại; giọng sinh sớm giúp biết độ dài thoại để chỉnh số giây shot.</div>
-            <button type="button" className="xv-btn chinh" disabled={!soKyTu || (cachGiong === 'khac' && !model)} onClick={() => { onGiong(cc.id, { ...(cachGiong === 'khac' ? { model, voice } : {}), camXuc: camXucSo, chiThieu: phamVi === 'thieu' }); onClose(); }}>🗣 Sinh giọng · ≈{tien(giaG)}</button>
+            <button type="button" className="xv-btn chinh" disabled={!soKyTu || nguoi.some((t) => !chonG[t]?.model)} onClick={async () => {
+              for (const ten of nguoi) { const v = nhanVat.find((x) => x.ten.toLowerCase() === ten.toLowerCase()); const cg = chonG[ten]; if (v && cg?.luu && cg.model) await chonGiong(v.id, cg.model, cg.voice); }
+              onGiong(cc.id, { theoNguoi: Object.fromEntries(nguoi.map((t) => [t, { model: chonG[t]!.model, voice: chonG[t]!.voice }])), camXuc: camXucSo, chiThieu: phamVi === 'thieu' }); onClose();
+            }}>🗣 Sinh giọng · ≈{tien(giaG)}</button>
           </>
         )}
 

@@ -10,7 +10,7 @@ import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { uploadToR2 } from '@/lib/r2';
 import { dayViecAnh, dayViecAm, giaAnhSv } from '@/lib/xuong-video/hoan-tat';
-import { MO_HINH_AM, giaAm, moHinhAm, nguoiNoi, loiCanDoc } from '@/lib/xuong-video/am-thanh';
+import { MO_HINH_AM, giaAm, moHinhAm, nguoiNoi, loiCanDoc, dongThoai } from '@/lib/xuong-video/am-thanh';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, giaGiong, coElevenTrucTiep, type MoHinhGiong } from '@/lib/xuong-video/giong';
 import { boVaoThungRac, boAnhVaoThungRac, dsRac, khoiPhucRac, type MucRac } from '@/lib/xuong-video/thung-rac';
 import { sinhAnh, batDauVeo, docVeo, taiVeo, taiAnhBase64, type AnhVao } from '@/lib/xuong-video/google';
@@ -944,7 +944,9 @@ async function giongMacDinh(model: string): Promise<string> {
 
 /** Sinh giọng đọc lời thoại cho các shot (một shot hoặc mọi shot có thoại của tập). */
 /** tuy: chọn từ bảng ＋ trên timeline (#1202) — model/giọng cho lượt này (không đổi giọng cố định của nhân vật), cảm xúc, chỉ dòng chưa có giọng. */
-export type TuyGiong = { model?: string; voice?: string; camXuc?: number; chiThieu?: boolean };
+export type TuyGiong = { model?: string; voice?: string; camXuc?: number; chiThieu?: boolean;
+  /** giọng cho từng người nói của lượt này (khoá = tên nhân vật, '' = lời dẫn) — chọn trong bảng ＋ (#1203) */
+  theoNguoi?: Record<string, { model: string; voice: string }> };
 export async function sinhGiong(tapId: number, canhIds?: number[], tuy: TuyGiong = {}): Promise<Kq<number>> {
   const db = getDb();
   if (!db) return loi('no db');
@@ -956,13 +958,19 @@ export async function sinhGiong(tapId: number, canhIds?: number[], tuy: TuyGiong
   const dm = await dsMoHinhGiong();
   let so = 0;
   for (const c of ds) {
-    // Thoại theo dòng (kịch bản phim): mỗi dòng một file, giọng của đúng người nói dòng đó.
+    // Thoại theo dòng (kịch bản phim): mỗi dòng một file, giọng của đúng người nói dòng đó. Shot cũ chỉ có chuỗi → tách dòng và LƯU
+    // vào c.thoai trước, để file giọng gắn đúng dòng (cùng một cách đọc với thẻ shot/timeline: dongThoai).
+    if (!c.thoai.length && c.loi_thoai.trim()) {
+      c.thoai = dongThoai(c, bc.nhanVat);
+      await db.execute(sql`UPDATE xv_canh SET thoai = ${JSON.stringify(c.thoai)}::jsonb WHERE id = ${c.id}`);
+    }
     if (c.thoai.length) {
       for (const [i, d] of c.thoai.entries()) {
         if (!d.loi.trim() || (tuy.chiThieu && d.url)) continue;
         const v = bc.nhanVat.find((x) => x.ten.toLowerCase() === d.nhan_vat.trim().toLowerCase()) ?? null;
-        const model = tuy.model || v?.giong_model || MODEL_GIONG_MAC_DINH();
-        const voice = (tuy.model ? tuy.voice : '') || (v?.giong_model === model ? v.giong_id : '') || await giongMacDinh(model);
+        const chon = tuy.theoNguoi?.[d.nhan_vat.trim()] ?? tuy.theoNguoi?.[(v?.ten ?? '')];
+        const model = chon?.model || tuy.model || v?.giong_model || MODEL_GIONG_MAC_DINH();
+        const voice = chon?.voice || (tuy.model ? tuy.voice : '') || (v?.giong_model === model ? v.giong_id : '') || await giongMacDinh(model);
         const text = d.loi.trim();
         const gia = giaGiong(dm.find((m) => m.key === model), text.length);
         const job = await taoJob({ nhan: `Giọng · shot #${c.thu_tu} dòng ${i + 1} · ${v?.ten ?? 'lời dẫn'} (${voice})`, canh_id: c.id, nhan_vat_id: v?.id, loai: 'am', provider: model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: model.startsWith('elevenlabs:') ? model : `fal:${model}`, request: { dich: 'thoai', dong: i, gia, text, voice } });
@@ -1065,7 +1073,7 @@ export async function sinhNhac(tapId: number, model = 'cassetteai/music-generato
 }
 
 /** Ước giá trước khi bấm (hiện trên nút). */
-export async function uocAm(tapId: number): Promise<{ giong: number; soThoai: number; sfx: number; soSfx: number; nhac: Record<string, number>; giay: number; soPhanCanh: number; dangNhac: number }> {
+export async function uocAm(tapId: number): Promise<{ giong: number; soThoai: number; sfx: number; soSfx: number; nhac: Record<string, number>; giay: number; soPhanCanh: number; dangNhac: number; dangPhanDoan: string[]; dangCaTap: boolean }> {
   const db = getDb();
   const bc = db ? await boiCanhTap(db, tapId) : null;
   const ds = await dsCanh(tapId);
@@ -1084,8 +1092,10 @@ export async function uocAm(tapId: number): Promise<{ giong: number; soThoai: nu
   }
   const giay = Math.max(10, ds.reduce((a, c) => a + (c.thoi_luong_s || 5), 0));
   const nhac = Object.fromEntries(MO_HINH_AM.filter((m) => m.loai === 'nhac').map((m) => [m.key, giaAm(m.key, giay)]));
-  const dn = db ? ((await db.execute(sql`SELECT count(*) AS n FROM xv_job WHERE loai = 'am' AND trang_thai = 'cho' AND request->>'tap_id' = ${String(tapId)} AND created_at > now() - interval '10 minutes'`)) as unknown as Row[]) : [];
-  return { giong, soThoai, sfx, soSfx, nhac, giay, soPhanCanh: new Set(ds.map((c) => c.phan_doan).filter(Boolean)).size, dangNhac: n(dn[0]?.n) };
+  // Nhạc đang sinh: theo phân cảnh nào / cả tập — timeline phủ sọc đúng khối đó (#1205).
+  const dn = db ? ((await db.execute(sql`SELECT request->>'phan_doan' AS pd FROM xv_job WHERE loai = 'am' AND trang_thai = 'cho' AND request->>'dich' = 'nhac' AND request->>'tap_id' = ${String(tapId)} AND created_at > now() - interval '10 minutes'`)) as unknown as Row[]) : [];
+  return { giong, soThoai, sfx, soSfx, nhac, giay, soPhanCanh: new Set(ds.map((c) => c.phan_doan).filter(Boolean)).size, dangNhac: dn.length,
+    dangPhanDoan: dn.map((r) => s(r.pd)).filter(Boolean), dangCaTap: dn.some((r) => !r.pd) };
 }
 
 /** Đọc trang sản phẩm (link anh dán) → điền sẵn thông tin quảng cáo + ảnh sản phẩm thật (#1201). Claude chỉ đọc chữ của trang, ~$0.01. */

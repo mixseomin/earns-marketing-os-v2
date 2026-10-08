@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as PE, type ReactNode } from 'react';
 import type { Canh, NhanVat, Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat } from '@/lib/xuong-video/dien-anh';
-import { nguoiNoi } from '@/lib/xuong-video/am-thanh';
+import { nguoiNoi, dongThoai } from '@/lib/xuong-video/am-thanh';
 import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 
@@ -21,7 +21,7 @@ const dongHo = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${
 /** Sinh ngay trên timeline (#1199): khối nét đứt có nút ＋ — bấm là sinh đúng thứ đó, giá + gợi ý thời điểm ở chú thích. */
 export type SinhTaiCho = {
   giong: (canhId: number, tuy: TuyGiong) => void; sfx: (canhId: number, tuy: TuyAm) => void; nhac: (phanDoan: string | undefined, model: string, moTa: string) => void;
-  mhNhac: string; ban: (k: string) => boolean;
+  mhNhac: string; ban: (k: string) => boolean; dangPhanDoan: string[]; dangCaTap: boolean;
 };
 export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh }: {
   canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null;
@@ -89,7 +89,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   };
   useEffect(() => {
     dongBo(vidRef.current, tTrong, true);
-    if (c?.thoai.length) { setDong(0); if (thoaiRef.current) { thoaiRef.current.currentTime = 0; if (chay) void thoaiRef.current.play().catch(() => {}); else thoaiRef.current.pause(); } }
+    if (c && dongThoai(c, nhanVat).length > 1) { setDong(0); if (thoaiRef.current) { thoaiRef.current.currentTime = 0; if (chay) void thoaiRef.current.play().catch(() => {}); else thoaiRef.current.pause(); } }
     else dongBo(thoaiRef.current, tTrong, true);
     dongBo(sfxRef.current, tTrong, true);
     dongBo(nhacRef.current, nhacPc ? tNhacPc : t, true);
@@ -172,13 +172,32 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     </div>
   );
   const [yc, setYc] = useState<YeuCauBang | null>(null);
-  type NutSinh = { loai: YeuCauBang['loai']; cc?: Canh; phanDoan?: string; giay: number; title: string; dang?: boolean };
+  const ngheRef = useRef<HTMLAudioElement | null>(null);
+  const [dangNghe, setDangNghe] = useState('');
+  const ngheRieng = (urls: string[]) => {
+    const khoa = urls.join('|');
+    ngheRef.current?.pause();
+    if (dangNghe === khoa) { setDangNghe(''); return; }
+    setChay(false);
+    let i = 0;
+    const phat = () => { const a = new Audio(urls[i]!); ngheRef.current = a; a.onended = () => { i++; if (i < urls.length) phat(); else setDangNghe(''); }; void a.play().catch(() => setDangNghe('')); };
+    setDangNghe(khoa); phat();
+  };
+  useEffect(() => () => ngheRef.current?.pause(), []);
+  type NutSinh = { loai: YeuCauBang['loai']; cc?: Canh; phanDoan?: string; giay: number; title: string; dang?: boolean; nghe?: string[] };
   const khoiAm = (x: number, w: number, co: boolean, mau: string, chu: string, title: string, key: number | string, onClick?: () => void, nutSinh?: NutSinh) => (
     <div key={key} title={title} onClick={onClick}
       style={{ position: 'absolute', left: x + 1, width: Math.max(4, w - 2), top: 2, bottom: 2, borderRadius: 4, overflow: 'hidden', cursor: onClick ? 'pointer' : 'default',
         background: co ? `${mau}33` : 'transparent', border: `1px ${co ? 'solid' : 'dashed'} ${mau}${co ? '' : '99'}`,
         color: co ? mau : 'var(--fg-3)', fontSize: 10, lineHeight: '20px', padding: nutSinh ? `0 ${w > 110 ? 50 : 26}px 0 5px` : '0 5px', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-      {co && mau !== '#38d9f5' ? '♪ ' : ''}{chu}
+      {nutSinh?.dang && <div className="xv-dang" style={{ borderRadius: 4 }}><span>⏳ đang sinh</span></div>}
+      {nutSinh?.nghe?.length ? (
+        // Nghe riêng đúng khối này (#1206) — không cần chạy cả timeline.
+        <button type="button" title={dangNghe === nutSinh.nghe.join('|') ? 'Dừng' : 'Nghe riêng'} onClick={(e) => { e.stopPropagation(); ngheRieng(nutSinh.nghe!); }}
+          style={{ marginRight: 4, padding: '0 5px', borderRadius: 3, border: `1px solid ${mau}`, background: dangNghe === nutSinh.nghe.join('|') ? mau : 'transparent', color: dangNghe === nutSinh.nghe.join('|') ? '#0b0b0b' : mau, fontSize: 9.5, lineHeight: '14px', cursor: 'pointer', position: 'relative', zIndex: 2 }}>
+          {dangNghe === nutSinh.nghe.join('|') ? '■' : '▶'}
+        </button>
+      ) : co && mau !== '#38d9f5' ? '♪ ' : ''}{chu}
       {nutSinh && (
         // Nút ＋ to, sáng: mở bảng tuỳ chọn (model, giọng, nguồn, mô tả, giá) — không sinh ngay (#1202).
         <button type="button" title={nutSinh.title} disabled={nutSinh.dang}
@@ -201,7 +220,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} chưa có hình</div>)}
           {c?.loi_thoai && <div style={{ position: 'absolute', left: '5%', right: '5%', bottom: '6%', textAlign: 'center', color: '#fff', fontSize: doc916 ? 11 : 14, fontWeight: 600, textShadow: '0 2px 6px #000, 0 0 2px #000' }}>{c.loi_thoai}</div>}
           {c && (() => {
-            const ds = c.thoai.length ? c.thoai.map((d) => d.url).filter((u): u is string => !!u) : c.thoai_url ? [c.thoai_url] : [];
+            const ds = dongThoai(c, nhanVat).map((d) => d.url).filter((u): u is string => !!u);
             const u = ds[dong];
             return u ? <audio ref={thoaiRef} key={`${c.id}-${dong}`} src={u} preload="auto" autoPlay={chay && dong > 0} onEnded={() => setDong((x) => x + 1)} /> : null;
           })()}
@@ -311,11 +330,12 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           {track('🗣 Thoại', 'Lời thoại từng cảnh — màu theo nhân vật nói', canh.map((cc, i) => {
             if (!cc.loi_thoai.trim()) return null;
             const v = nguoiNoi(cc, nhanVat);
-            if (cc.thoai.length) {
-              const co = cc.thoai.filter((d) => d.url).length;
-              const tt = cc.thoai.map((d) => `${(d.nhan_vat || 'Lời dẫn').toUpperCase()}${d.dien_xuat ? ` (${d.dien_xuat})` : ''}: ${d.loi}${d.url ? ' ✓' : ''}`).join('\n');
-              return khoiAm(batDau[i]! * pps, dur(cc) * pps, co === cc.thoai.length, mauNv(v), `${cc.dang_sinh_am ? '⏳ ' : ''}${cc.thoai.map((d) => d.nhan_vat || 'dẫn').join(' · ')}${co && co < cc.thoai.length ? ` (${co}/${cc.thoai.length})` : ''}`, `${tt}\n${co}/${cc.thoai.length} dòng có giọng`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
-                sinh && { loai: 'giong', cc, giay: dur(cc), dang: cc.dang_sinh_am || sinh.ban(`c${cc.id}`), title: `Bấm để chọn giọng / cảm xúc / phạm vi rồi sinh` });
+            const dsT = dongThoai(cc, nhanVat);
+            if (dsT.length) {
+              const co = dsT.filter((d) => d.url).length;
+              const tt = dsT.map((d) => `${(d.nhan_vat || 'Lời dẫn').toUpperCase()}${d.dien_xuat ? ` (${d.dien_xuat})` : ''}: ${d.loi}${d.url ? ' ✓' : ''}`).join('\n');
+              return khoiAm(batDau[i]! * pps, dur(cc) * pps, co === dsT.length, mauNv(v), `${cc.dang_sinh_am ? '⏳ ' : ''}${dsT.map((d) => `${d.nhan_vat || 'Dẫn'}: ${d.loi}`).join(' · ')}${co && co < dsT.length ? ` (${co}/${dsT.length})` : ''}`, `${tt}\n${co}/${dsT.length} dòng có giọng`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
+                sinh && { loai: 'giong', cc, giay: dur(cc), dang: cc.dang_sinh_am || sinh.ban(`c${cc.id}`), nghe: dsT.map((d) => d.url).filter((u): u is string => !!u), title: `Bấm để chọn model, giọng từng người nói, cảm xúc, phạm vi rồi sinh` });
             }
             return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!cc.thoai_url, mauNv(v), `${cc.dang_sinh_am ? '⏳ ' : ''}${v ? `${v.ten}: ` : ''}${cc.loi_thoai.replace(/^[^:"“]*:\s*/, '')}`,
               `${v?.ten ?? 'Lời dẫn'}${v?.giong ? ` (giọng: ${v.giong})` : ''}\n${cc.loi_thoai}\n${cc.thoai_url ? 'đã có file giọng' : 'chưa sinh giọng'}`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
@@ -326,7 +346,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             if (!cc.am_thanh.trim()) return null;
             const clip = !!(cc.video_cuoi_url || cc.video_url);
             return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!cc.am_thanh_url, '#fb923c', cc.am_thanh, `${cc.am_thanh}\n${cc.am_thanh_url ? 'đã có file' : 'chưa sinh'}`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
-              sinh && { loai: 'sfx', cc, giay: dur(cc), dang: cc.dang_sinh_am || sinh.ban(`c${cc.id}`), title: `Bấm để chọn nguồn (clip / mô tả), model, mô tả, số giây rồi sinh` });
+              sinh && { loai: 'sfx', cc, giay: dur(cc), dang: cc.dang_sinh_am || sinh.ban(`c${cc.id}`), nghe: cc.am_thanh_url ? [cc.am_thanh_url] : [], title: `Bấm để chọn nguồn (clip / mô tả), model, mô tả, số giây rồi sinh` });
           }))}
 
           {track('🎵 Nhạc', 'Nhạc nền: theo từng phân cảnh (ưu tiên) hoặc một bài cả tập', khoiPc.some((kh) => kh.ten)
@@ -335,10 +355,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                 const url = tap.nhac_phan_canh?.[kh.ten];
                 const giay = canh.slice(kh.tu, kh.den + 1).reduce((a, x) => a + dur(x), 0);
                 return khoiAm(x, w, !!url, '#a78bfa', url ? `${kh.ten}` : `${kh.ten}: chưa có nhạc`, url ? `Nhạc phân cảnh “${kh.ten}”` : `Phân cảnh “${kh.ten}” chưa có nhạc`, `n${j}`, undefined,
-                  sinh && kh.ten ? { loai: 'nhac', phanDoan: kh.ten, giay, dang: sinh.ban('nhac'), title: `Bấm để chọn model nhạc, mô tả rồi sinh nhạc cho phân cảnh này` } : undefined);
+                  sinh && kh.ten ? { loai: 'nhac', phanDoan: kh.ten, giay, dang: sinh.ban('nhac') || sinh.dangPhanDoan.includes(kh.ten), nghe: url ? [url] : [], title: `Bấm để chọn model nhạc, mô tả rồi sinh nhạc cho phân cảnh này` } : undefined);
               })
             : khoiAm(0, W, !!tap.nhac_url, '#a78bfa', tap.nhac_mo_ta || 'Nhạc nền cả tập: chưa có', tap.nhac_mo_ta || 'chưa có nhạc nền', 'nhac', undefined,
-                sinh && { loai: 'nhac', giay: tong, dang: sinh.ban('nhac1'), title: `Bấm để chọn model nhạc, mô tả rồi sinh một bài cả tập` }))}
+                sinh && { loai: 'nhac', giay: tong, dang: sinh.ban('nhac1') || sinh.dangCaTap, nghe: tap.nhac_url ? [tap.nhac_url] : [], title: `Bấm để chọn model nhạc, mô tả rồi sinh một bài cả tập` }))}
 
           {yc && sinh && <BangSinh yc={yc} nhanVat={nhanVat} tap={tap} mhNhac={sinh.mhNhac} onClose={() => setYc(null)} onGiong={sinh.giong} onSfx={sinh.sfx} onNhac={sinh.nhac} />}
           {/* Đầu phát */}

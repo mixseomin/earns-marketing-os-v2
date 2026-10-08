@@ -3,7 +3,7 @@
 //   Giọng: mỗi nhân vật chọn MỘT giọng (model + voice) giữ cố định cả bộ phim → series không đổi giọng giữa các tập.
 //   Hiệu ứng: shot đã có clip → sinh từ chính clip (khớp hành động); chưa có clip → sinh từ mô tả âm thanh + kỹ thuật âm thanh của shot.
 //   Nhạc: một bài nền cho cả tập, dài bằng tập, lời nhắc ghép từ thể loại + kỹ thuật nhạc của các shot + đường cong cảm xúc.
-import type { Canh, NhanVat } from './kieu';
+import type { Canh, NhanVat, DongThoai } from './kieu';
 
 export type LoaiAm = 'giong' | 'sfx_video' | 'sfx_chu' | 'nhac';
 export type MoHinhAm = { key: string; ten: string; loai: LoaiAm; /** cents mỗi đơn vị */ gia: number; donVi: '1k_ky_tu' | 'giay' | 'phut'; ghiChu: string };
@@ -58,3 +58,20 @@ export function nguoiNoi(c: Pick<Canh, 'loi_thoai' | 'nhan_vat'>, nv: NhanVat[])
 export function loiCanDoc(loi: string): string {
   return loi.replace(/^\s*[^:"“]{1,40}:\s*/, '').split(/\b(Chữ( kết)?|Text on screen)\s*:/i)[0]!.replace(/["“”]/g, '').trim();
 }
+
+/** Thoại của shot theo DÒNG — một nguồn cho mọi chỗ (thẻ shot, form, bảng ＋, timeline, máy chủ sinh giọng).
+ *  Shot mới: c.thoai. Shot cũ chỉ có chuỗi loi_thoai: tách từng dòng "Tên (diễn xuất): lời"; dòng không ghi tên → nhân vật đầu tiên của shot
+ *  (#1204: thẻ shot cũ không hiện thoại, bảng giọng ghi nhầm "Lời dẫn"). Bỏ chú thích chữ trên màn ("Chữ:", "Text on screen:"). */
+export function dongThoai(c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url'>, nv: NhanVat[]): DongThoai[] {
+  if (c.thoai?.length) return c.thoai.filter((d) => d.loi.trim());
+  const mac = nv.find((x) => x.loai === 'nhan_vat' && c.nhan_vat.includes(x.id))?.ten ?? '';
+  const ds: DongThoai[] = c.loi_thoai.split('\n').map((l) => l.split(/\b(Chữ( kết)?|Text on screen)\s*:/i)[0]!.trim()).filter(Boolean).map((l) => {
+    const m = l.match(/^\s*([^:"“(]{1,40}?)\s*(?:\(([^)]*)\))?\s*:\s*(.*)$/);
+    const ten = m ? m[1]!.trim() : '';
+    const laNv = ten && nv.some((x) => x.ten.toLowerCase() === ten.toLowerCase());
+    return m && laNv ? { nhan_vat: ten, dien_xuat: (m[2] ?? '').trim(), loi: m[3]!.replace(/["“”]/g, '').trim() } : { nhan_vat: mac, dien_xuat: '', loi: l.replace(/["“”]/g, '').trim() };
+  }).filter((d) => d.loi);
+  if (ds.length === 1 && c.thoai_url) ds[0] = { ...ds[0]!, url: c.thoai_url };
+  return ds;
+}
+

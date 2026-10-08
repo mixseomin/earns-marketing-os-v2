@@ -7,6 +7,7 @@ import { useModalParam } from '@/lib/use-modal-param';
 import {
   dsPhim, docPhim, dsCanh, taoPhim, taoPhimMau, suaPhim, xoaPhim, luuNhanVat, xoaNhanVat, sinhAnhMau, taoTap, suaTap,
   vietKichBanTap, tachCanhTap, suaCanh, themCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, uocTien, sinhVideoCanh, kiemVideo, taiAnhLen,
+  goiYAIKinhThanh, goiYAIAnchor, goiYAIBoAnchor, goiYAIBrief, goiYAICanh,
   type PhimDayDu,
 } from '@/lib/actions';
 import {
@@ -208,9 +209,12 @@ function KinhThanhForm({ phim, onSaved }: { phim: Phim; onSaved: () => Promise<v
   const [kt, setKt] = useState<Required<KinhThanh>>(goc);
   const [moTa, setMoTa] = useState(phim.mo_ta);
   const [luu, setLuu] = useState(false);
+  const [ai, setAi] = useState(false);
+  const [loiAi, setLoiAi] = useState('');
   useEffect(() => { setKt(goc); setMoTa(phim.mo_ta); }, [goc, phim.mo_ta]);
   const dirty = JSON.stringify(kt) !== JSON.stringify(goc) || moTa !== phim.mo_ta;
   const set = <K extends keyof KinhThanh>(k: K, v: Required<KinhThanh>[K]) => setKt((x) => ({ ...x, [k]: v }));
+  const goiY = async () => { setAi(true); setLoiAi(''); const r = await goiYAIKinhThanh(phim.id); setAi(false); if (!r.ok) { setLoiAi(r.loi); return; } set('phong_cach', r.data.phong_cach); setMoTa(r.data.mo_ta); };
   return (
     <details className="xv-det xv-panel" open={!kt.phong_cach}>
       <summary>Kinh thánh của bộ phim <small>{kt.phong_cach ? `${kt.ti_le} · ${kt.do_phan_giai} · nối vào đầu MỌI prompt ảnh/video` : 'chưa đặt phong cách'}</small></summary>
@@ -226,7 +230,11 @@ function KinhThanhForm({ phim, onSaved }: { phim: Phim; onSaved: () => Promise<v
         <O label="Model chữ (kịch bản, tách cảnh)"><select className="xv-sel" value={kt.mo_hinh_chu} onChange={(e) => set('mo_hinh_chu', e.target.value as Required<KinhThanh>['mo_hinh_chu'])}>{MO_HINH_CHU.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}</select></O>
         <O label="Ngôn ngữ lời thoại"><select className="xv-sel" value={kt.ngon_ngu} onChange={(e) => set('ngon_ngu', e.target.value)}><option value="vi">Tiếng Việt</option><option value="en">English</option></select></O>
       </div>
-      <Nut ly={!dirty && 'chưa sửa gì'} ban={luu} chinh onClick={async () => { setLuu(true); await suaPhim(phim.id, { kinh_thanh: kt, mo_ta: moTa }); setLuu(false); await onSaved(); }}>Lưu kinh thánh</Nut>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <Nut ly={!dirty && 'chưa sửa gì'} ban={luu} chinh onClick={async () => { setLuu(true); await suaPhim(phim.id, { kinh_thanh: kt, mo_ta: moTa }); setLuu(false); await onSaved(); }}>Lưu kinh thánh</Nut>
+        <Nut ban={ai} title="Claude đọc tên phim, loại, tuyến nhân vật, các tập đã có → viết phong cách + tiền đề khớp. Chỉ điền vào ô, anh xem rồi Lưu." onClick={() => void goiY()}>{ai ? '… AI đang viết' : '✨ AI gợi ý phong cách + tiền đề'}</Nut>
+      </div>
+      <Loi>{loiAi}</Loi>
     </details>
   );
 }
@@ -249,8 +257,10 @@ function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, onChanged }: { phimI
     <div className="xv-panel">
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
         <h3 style={{ flex: 1 }}>Tuyến nhân vật · sản phẩm · bối cảnh<small>anchor: đặc tính cố định + ảnh mẫu → mọi cảnh, mọi tập tham chiếu cùng một bản</small></h3>
+        <Nut ban={ban === -1} title="Claude đọc tiền đề + kịch bản các tập + anchor đã có → tạo các anchor còn thiếu (nhân vật, sản phẩm, bối cảnh, đạo cụ). Tạo xong anh sửa/xoá tuỳ ý." onClick={async () => { setBan(-1); setLoi((x) => ({ ...x, [-1]: '' })); const r = await goiYAIBoAnchor(phimId); setBan(null); if (!r.ok) setLoi((x) => ({ ...x, [-1]: r.loi })); await onChanged(); }}>{ban === -1 ? '… AI đang đề xuất' : '✨ AI đề xuất tuyến còn thiếu'}</Nut>
         <button type="button" className="xv-btn" onClick={() => setSua({ loai: 'nhan_vat', ten: '', mo_ta: '', anh_ref: [], giong: '' })}>+ Thêm</button>
       </div>
+      <Loi>{loi[-1]}</Loi>
       {nhanVat.length === 0 && <div style={mono}>Chưa có anchor. Phim nhiều tập BẮT BUỘC khai nhân vật ở đây trước khi tách cảnh, nếu không mỗi tập Claude sẽ tả một kiểu.</div>}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
         {nhanVat.map((v) => (
@@ -282,6 +292,8 @@ function NhanVatForm({ phimId, goc, onClose, onSaved }: { phimId: number; goc: P
   const [f, setF] = useState({ loai: (goc.loai ?? 'nhan_vat') as LoaiNhanVat, ten: goc.ten ?? '', mo_ta: goc.mo_ta ?? '', anh_ref: goc.anh_ref ?? [], giong: goc.giong ?? '' });
   const [loi, setLoi] = useState('');
   const [luu, setLuu] = useState(false);
+  const [ai, setAi] = useState(false);
+  const goiY = async () => { setAi(true); setLoi(''); const r = await goiYAIAnchor(phimId, { loai: f.loai, ten: f.ten, mo_ta: f.mo_ta }); setAi(false); if (!r.ok) { setLoi(r.loi); return; } setF((x) => ({ ...x, mo_ta: r.data.mo_ta, giong: r.data.giong || x.giong })); };
   return (
     <Ngan onClose={onClose} nho>
       <h3 style={{ marginTop: 0 }}>{goc.id ? `Sửa: ${goc.ten}` : 'Thêm anchor'}</h3>
@@ -289,6 +301,7 @@ function NhanVatForm({ phimId, goc, onClose, onSaved }: { phimId: number; goc: P
       <O label="Tên *" hint="Claude dùng đúng tên này khi ghi nhân vật của từng cảnh"><input className="xv-in" value={f.ten} onChange={(e) => setF({ ...f, ten: e.target.value })} placeholder="Timo (rùa) · Áo bra X · Khu rừng Thì Thầm" /></O>
       <O label="Đặc tính cố định" hint="Mọi thứ phải GIỐNG NHAU ở mọi cảnh: ngoại hình, màu, trang phục, tỉ lệ, chất liệu, tính cách. Càng cụ thể model càng ít bịa.">
         <textarea className="xv-ta" rows={5} value={f.mo_ta} onChange={(e) => setF({ ...f, mo_ta: e.target.value })} placeholder="Rùa con 8 tuổi, mai xanh rêu có vân lục giác, mắt to nâu, đeo khăn quàng đỏ, tính điềm tĩnh, đi chậm nhưng chắc…" />
+        <div style={{ marginTop: 4 }}><Nut ly={!f.ten.trim() && 'đặt tên trước'} ban={ai} title="Claude đọc phong cách + các anchor khác của phim → tả đặc tính khớp, không đụng nhân vật đã có" onClick={() => void goiY()}>{ai ? '… AI đang tả' : '✨ AI tả đặc tính (theo phong cách + tuyến đã có)'}</Nut></div>
       </O>
       {f.loai === 'nhan_vat' && <O label="Giọng (cho lồng tiếng sau này)"><input className="xv-in" value={f.giong} onChange={(e) => setF({ ...f, giong: e.target.value })} placeholder="giọng trẻ con ấm, chậm rãi" /></O>}
       <O label="Ảnh mẫu (tham chiếu) — tải lên, hoặc lưu rồi bấm “Sinh ảnh mẫu”"><TaiAnh value={f.anh_ref} onChange={(urls) => setF({ ...f, anh_ref: urls })} /></O>
@@ -360,7 +373,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
           </div>
         </div>
         <div>
-          <O label="Brief cho Claude viết kịch bản">
+          <O label={<span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>Brief cho Claude viết kịch bản <Nut ly={!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY'} ban={!!ban} title="Claude đọc tiền đề + tuyến nhân vật + tóm tắt các tập trước → gợi ý brief cho tập này" onClick={() => void chay('brief', async () => { const r = await goiYAIBrief(tap.id, thoiLuong); if (r.ok) setBrief(r.data); return r; })}>{ban === 'brief' ? '… AI' : '✨ AI gợi ý brief'}</Nut></span>}>
             <textarea className="xv-ta" rows={6} value={brief} onChange={(e) => setBrief(e.target.value)}
               placeholder={phim.loai === 'quang_cao' ? 'Sản phẩm, điểm bán chính, khách mục tiêu, hook mở đầu, CTA…' : phim.loai === 'phim' ? 'Tập này kể gì, xung đột, kết tập mở ra tập sau…' : 'Ý tưởng, hook 3 giây đầu, twist, CTA…'} />
           </O>
@@ -410,7 +423,11 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
 function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVat[]; kt: Required<KinhThanh>; khoa: Khoa; ban: string | null; chay: (ten: string, fn: () => Promise<KqChay>) => Promise<void> }) {
   const [mo, setMo] = useState(false);
   const [f, setF] = useState(c);
+  const [ai, setAi] = useState(false);
+  const [loiAi, setLoiAi] = useState('');
   useEffect(() => { setF(c); }, [c]);
+  // AI điền form tại chỗ, KHÔNG qua chay() — chay tải lại cảnh và useEffect trên sẽ ghi đè mất phần AI vừa điền.
+  const aiVietLai = async () => { setAi(true); setLoiAi(''); const r = await goiYAICanh(c.id, { canh: f.canh, goc_may: f.goc_may, hanh_dong: f.hanh_dong, loi_thoai: f.loi_thoai, nhan_vat: f.nhan_vat }); setAi(false); if (!r.ok) { setLoiAi(r.loi); return; } setF((x) => ({ ...x, ...r.data })); };
   const tt = TRANG_THAI_CANH[c.trang_thai] ?? TRANG_THAI_CANH.nhap;
   const dirty = JSON.stringify(f) !== JSON.stringify(c);
   const tenNv = (ids: number[]) => ids.map((i) => nhanVat.find((v) => v.id === i)?.ten).filter(Boolean).join(', ');
@@ -479,7 +496,9 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
           <O label="Âm thanh"><input className="xv-in" value={f.am_thanh} onChange={(e) => setF({ ...f, am_thanh: e.target.value })} /></O>
           <O span label="Prompt ảnh (keyframe, tiếng Anh)"><textarea className="xv-ta" rows={3} value={f.prompt_anh} onChange={(e) => setF({ ...f, prompt_anh: e.target.value })} style={{ fontFamily: 'var(--font-mono)' }} /></O>
           <O span label="Prompt video (chuyển động, tiếng Anh)"><textarea className="xv-ta" rows={3} value={f.prompt_video} onChange={(e) => setF({ ...f, prompt_video: e.target.value })} style={{ fontFamily: 'var(--font-mono)' }} /></O>
-          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 6 }}>
+          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <Nut ly={!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY'} ban={ai || !!ban} title="Claude đọc cảnh trước/sau + tuyến nhân vật + phong cách → điền đủ góc máy, hành động, lời thoại, prompt ảnh, prompt video khớp mạch. Chỉ điền vào form, anh xem rồi Lưu cảnh." onClick={() => void aiVietLai()}>{ai ? '… AI đang viết' : '✨ AI viết lại cảnh (khớp cảnh trước/sau)'}</Nut>
+            <Loi>{loiAi}</Loi>
             <Nut ly={!dirty && 'chưa sửa'} ban={!!ban} chinh onClick={() => void chay(k, async () => {
               await suaCanh(c.id, { canh: f.canh, goc_may: f.goc_may, thoi_luong_s: f.thoi_luong_s, nhan_vat: f.nhan_vat, hanh_dong: f.hanh_dong, loi_thoai: f.loi_thoai, am_thanh: f.am_thanh, prompt_anh: f.prompt_anh, prompt_video: f.prompt_video });
               setMo(false);

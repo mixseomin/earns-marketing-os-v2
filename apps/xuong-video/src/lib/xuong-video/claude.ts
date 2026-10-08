@@ -4,7 +4,7 @@ import 'server-only';
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';   // helper zodOutputFormat của SDK cần zod v4 (zod 3.25 kèm sẵn ở 'zod/v4'); import 'zod' gốc → TypeError 'def'
-import type { KinhThanh, LoaiPhim, NhanVat } from './kieu';
+import type { KinhThanh, LoaiNhanVat, LoaiPhim, NhanVat } from './kieu';
 import { docKinhThanh, LOAI_PHIM } from './kieu';
 
 const CanhSchema = z.object({
@@ -108,3 +108,78 @@ export function promptAnhMau(nv: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, kt: Ki
     : nv.loai === 'dao_cu' ? 'Prop reference shot, centered, plain background' : 'Style reference frame';
   return `${loai}. ${nv.mo_ta}. Visual style: ${k.phong_cach || 'consistent cinematic look'}.`;
 }
+
+// ── Gợi ý AI cho MỌI form (anh yêu cầu 08/10/2026): mỗi lần sinh đều đọc ngữ cảnh của cả phim — kinh thánh, tuyến nhân vật,
+// tóm tắt các tập, cảnh lân cận — để phần mới khớp với phần đã có, không tả nhân vật một kiểu khác. ──────────────────────
+
+export type NguCanhPhim = {
+  loai: LoaiPhim; ten: string; mo_ta: string; kinhThanh: KinhThanh; nhanVat: NhanVat[];
+  tap: { so: number; ten: string; tom_tat: string; kich_ban: string }[];
+};
+
+const KinhThanhSchema = z.object({
+  phong_cach: z.string().describe('Phong cách hình ảnh cố định cho CẢ bộ phim: chất liệu/kỹ thuật (3D Pixar, UGC quay thật, 2D anime…), bảng màu, ánh sáng, lens, không khí. 1-2 câu, dùng được làm tiền tố prompt tiếng Anh lẫn Việt.'),
+  mo_ta: z.string().describe('Tiền đề / mô tả bộ phim 2-3 câu: kể về gì, cho ai xem, cảm xúc chủ đạo.'),
+});
+const AnchorSchema = z.object({
+  mo_ta: z.string().describe('Đặc tính CỐ ĐỊNH để model ảnh tái tạo giống nhau ở mọi cảnh: loài/tuổi/giới, hình dáng, màu sắc cụ thể, trang phục/phụ kiện, chất liệu, tỉ lệ, tính cách thể hiện qua dáng. 3-5 câu.'),
+  giong: z.string().describe('Mô tả giọng (nếu là nhân vật), rỗng nếu không phải nhân vật'),
+});
+const BoAnchorSchema = z.object({
+  anchors: z.array(z.object({
+    loai: z.enum(['nhan_vat', 'san_pham', 'boi_canh', 'dao_cu', 'phong_cach']),
+    ten: z.string().describe('Tên ngắn, duy nhất'),
+    mo_ta: z.string().describe('Đặc tính cố định 3-5 câu như trên'),
+    giong: z.string(),
+  })).describe('Tuyến nhân vật, sản phẩm, bối cảnh, đạo cụ cần đồng nhất xuyên suốt — chỉ những thứ xuất hiện ≥2 cảnh hoặc ≥2 tập'),
+});
+const BriefSchema = z.object({ brief: z.string().describe('Brief 4-8 dòng cho tập này: mục tiêu, hook, diễn biến chính, xung đột, kết/CTA; nối mạch các tập trước') });
+const CanhLaiSchema = CanhSchema;
+
+type GoiYKq<T> = { ok: true; data: T } | { ok: false; loi: string };
+
+function taNguCanh(nc: NguCanhPhim): string {
+  const kt = docKinhThanh(nc.kinhThanh);
+  return [
+    `BỘ PHIM: ${nc.ten} (${LOAI_PHIM.find((l) => l.key === nc.loai)?.label ?? nc.loai})`,
+    nc.mo_ta ? `TIỀN ĐỀ: ${nc.mo_ta}` : '',
+    kt.phong_cach ? `PHONG CÁCH CỐ ĐỊNH: ${kt.phong_cach}` : '',
+    `KHUNG HÌNH ${kt.ti_le} · ngôn ngữ ${kt.ngon_ngu}`,
+    `TUYẾN NHÂN VẬT / SẢN PHẨM / BỐI CẢNH (phải giữ đúng):\n${taAnchor(nc.nhanVat)}`,
+    nc.tap.length ? `CÁC TẬP:\n${nc.tap.map((t) => `- Tập ${t.so}${t.ten ? ` · ${t.ten}` : ''}: ${t.tom_tat || (t.kich_ban ? t.kich_ban.slice(0, 300) + '…' : '(chưa có kịch bản)')}`).join('\n')}` : '',
+  ].filter(Boolean).join('\n\n');
+}
+
+async function hoi<T>(schema: z.ZodType<T>, kt: Required<KinhThanh>, system: string, user: string): Promise<GoiYKq<T>> {
+  const c = client();
+  if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
+  try {
+    const r = await c.messages.parse({
+      model: kt.mo_hinh_chu, max_tokens: 16000, system, messages: [{ role: 'user', content: user }],
+      output_config: { format: zodOutputFormat(schema as unknown as Parameters<typeof zodOutputFormat>[0]) },
+    });
+    if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
+    const p = r.parsed_output as T | null;
+    return p ? { ok: true, data: p } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
+  } catch (e) {
+    return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
+  }
+}
+
+const HE_THONG_GOI_Y = 'Bạn là biên kịch kiêm đạo diễn hình ảnh của xưởng video AI. Mọi gợi ý phải KHỚP với ngữ cảnh đã cho (phong cách, tuyến nhân vật, các tập) — không đổi đặc tính đã có, chỉ bổ sung và làm rõ. Trả lời bằng tiếng Việt trừ khi trường yêu cầu tiếng Anh.';
+
+export const goiYKinhThanh = (nc: NguCanhPhim) =>
+  hoi(KinhThanhSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nViết PHONG CÁCH HÌNH ẢNH cố định và TIỀN ĐỀ cho bộ phim này. Nếu đã có thì giữ ý, viết rõ và cụ thể hơn (chất liệu, màu, ánh sáng, lens).`);
+
+export const goiYAnchor = (nc: NguCanhPhim, a: { loai: LoaiNhanVat; ten: string; mo_ta: string }) =>
+  hoi(AnchorSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nViết đặc tính CỐ ĐỊNH cho anchor mới: loại=${a.loai}, tên="${a.ten}"${a.mo_ta ? `, ý đã có: ${a.mo_ta}` : ''}. Phải hợp phong cách và không trùng/đụng với các anchor đã có.`);
+
+export const goiYBoAnchor = (nc: NguCanhPhim) =>
+  hoi(BoAnchorSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nĐề xuất tuyến nhân vật / sản phẩm / bối cảnh / đạo cụ còn THIẾU (không lặp lại anchor đã có) dựa trên tiền đề và kịch bản các tập. Phim ngắn nhiều tập: 2-4 nhân vật chính, 1-2 bối cảnh, đạo cụ then chốt. Quảng cáo: sản phẩm + 1 người dùng + 1 bối cảnh.`);
+
+export const goiYBrief = (nc: NguCanhPhim, tapSo: number, thoiLuongS: number) =>
+  hoi(BriefSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nViết BRIEF cho tập ${tapSo} (tổng ${thoiLuongS} giây) để sau đó viết kịch bản: nối mạch tập trước, có xung đột và kết mở (hoặc CTA nếu là quảng cáo/short).`);
+
+export const goiYCanh = (nc: NguCanhPhim, c: { thu_tu: number; canh: string; goc_may: string; hanh_dong: string; loi_thoai: string; nhan_vat: string[] }, truoc?: string, sau?: string) =>
+  hoi(CanhLaiSchema, docKinhThanh(nc.kinhThanh), heThong(nc.loai, docKinhThanh(nc.kinhThanh)) + '\n' + HE_THONG_GOI_Y,
+    `${taNguCanh(nc)}\n\n${truoc ? `CẢNH TRƯỚC: ${truoc}\n` : ''}${sau ? `CẢNH SAU: ${sau}\n` : ''}\nViết lại đầy đủ CẢNH #${c.thu_tu}: nhãn "${c.canh}", góc máy "${c.goc_may}", hành động "${c.hanh_dong}", lời thoại "${c.loi_thoai}", anchor trong cảnh: ${c.nhan_vat.join(', ') || '(tự chọn từ tuyến)'}. Giữ ý người đã viết, bổ sung chỗ trống, sinh prompt_anh + prompt_video tiếng Anh khớp cảnh trước/sau và đúng đặc tính anchor.`);

@@ -10,7 +10,7 @@ import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { uploadToR2 } from '@/lib/r2';
 import { sinhAnh, batDauVeo, docVeo, taiVeo, taiAnhBase64, type AnhVao } from '@/lib/xuong-video/google';
-import { tachCanh, vietKichBan, promptAnhMau } from '@/lib/xuong-video/claude';
+import { tachCanh, vietKichBan, promptAnhMau, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import {
   docKinhThanh, giaAnhCents, giaVideoCents,
@@ -472,6 +472,92 @@ export async function taiAnhLen(dataUrl: string): Promise<Kq<string>> {
   if (buf.length > 8_000_000) return loi('ảnh quá lớn (>8MB)');
   const url = await uploadToR2(`xuong-video/ref/${randomUUID()}.${duoi(m[1]!)}`, buf, m[1]!);
   return url ? { ok: true, data: url } : loi('R2 không nhận ảnh (thiếu cấu hình storage?)');
+}
+
+// ── Gợi ý AI cho mọi form (đọc ngữ cảnh cả phim) ──────────────────────────────────────────────────────────────
+
+async function nguCanhPhim(db: NonNullable<ReturnType<typeof getDb>>, phimId: number): Promise<NguCanhPhim | null> {
+  const p = (await db.execute(sql`SELECT * FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[];
+  if (!p[0]) return null;
+  const nv = (await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY loai, id`)) as unknown as Row[];
+  const tap = (await db.execute(sql`SELECT so, ten, tom_tat, kich_ban FROM xv_tap WHERE phim_id = ${phimId} ORDER BY so`)) as unknown as Row[];
+  return {
+    loai: s(p[0].loai) as LoaiPhim, ten: s(p[0].ten), mo_ta: s(p[0].mo_ta), kinhThanh: (p[0].kinh_thanh ?? {}) as KinhThanh, nhanVat: nv.map(mapNhanVat),
+    tap: tap.map((t) => ({ so: n(t.so), ten: s(t.ten), tom_tat: s(t.tom_tat), kich_ban: s(t.kich_ban) })),
+  };
+}
+
+export async function goiYAIKinhThanh(phimId: number): Promise<Kq<{ phong_cach: string; mo_ta: string }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const nc = await nguCanhPhim(db, phimId);
+  if (!nc) return loi('không thấy phim');
+  const r = await goiYKinhThanh(nc);
+  return r.ok ? { ok: true, data: r.data } : loi(r.loi);
+}
+
+export async function goiYAIAnchor(phimId: number, a: { loai: LoaiNhanVat; ten: string; mo_ta: string }): Promise<Kq<{ mo_ta: string; giong: string }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  if (!a.ten.trim()) return loi('đặt tên anchor trước');
+  const nc = await nguCanhPhim(db, phimId);
+  if (!nc) return loi('không thấy phim');
+  const r = await goiYAnchor(nc, a);
+  return r.ok ? { ok: true, data: r.data } : loi(r.loi);
+}
+
+/** AI đề xuất tuyến nhân vật còn thiếu từ tiền đề + kịch bản → TẠO luôn các anchor (người sửa lại sau). */
+export async function goiYAIBoAnchor(phimId: number): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const nc = await nguCanhPhim(db, phimId);
+  if (!nc) return loi('không thấy phim');
+  if (!nc.mo_ta.trim() && !nc.tap.some((t) => t.kich_ban.trim())) return loi('viết tiền đề (kinh thánh) hoặc kịch bản trước để AI có gì mà đề xuất');
+  const r = await goiYBoAnchor(nc);
+  if (!r.ok) return loi(r.loi);
+  const daCo = new Set(nc.nhanVat.map((v) => v.ten.trim().toLowerCase()));
+  let them = 0;
+  for (const a of r.data.anchors) {
+    if (daCo.has(a.ten.trim().toLowerCase())) continue;
+    await db.execute(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, giong) VALUES (${phimId}, ${a.loai}, ${a.ten.trim()}, ${a.mo_ta}, ${a.giong})`);
+    them++;
+  }
+  return { ok: true, data: them };
+}
+
+export async function goiYAIBrief(tapId: number, thoiLuongS: number): Promise<Kq<string>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const t = (await db.execute(sql`SELECT phim_id, so FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[];
+  if (!t[0]) return loi('không thấy tập');
+  const nc = await nguCanhPhim(db, n(t[0].phim_id));
+  if (!nc) return loi('không thấy phim');
+  const r = await goiYBrief(nc, n(t[0].so), thoiLuongS);
+  return r.ok ? { ok: true, data: r.data.brief } : loi(r.loi);
+}
+
+/** AI viết lại một cảnh (điền form, chưa lưu) — đọc cảnh trước/sau + anchor để khớp mạch. */
+export async function goiYAICanh(canhId: number, nhap: { canh: string; goc_may: string; hanh_dong: string; loi_thoai: string; nhan_vat: number[] }): Promise<Kq<Partial<Canh>>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const c = (await db.execute(sql`SELECT c.thu_tu, c.tap_id, t.phim_id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${canhId}`)) as unknown as Row[];
+  if (!c[0]) return loi('không thấy cảnh');
+  const nc = await nguCanhPhim(db, n(c[0].phim_id));
+  if (!nc) return loi('không thấy phim');
+  const thuTu = n(c[0].thu_tu);
+  const lanCan = (await db.execute(sql`SELECT thu_tu, canh, hanh_dong FROM xv_canh WHERE tap_id = ${n(c[0].tap_id)} AND thu_tu IN (${thuTu - 1}, ${thuTu + 1})`)) as unknown as Row[];
+  const ta = (r?: Row) => (r ? `${s(r.canh)} — ${s(r.hanh_dong)}` : undefined);
+  const tenNv = nhap.nhan_vat.map((id) => nc.nhanVat.find((v) => v.id === id)?.ten).filter((x): x is string => !!x);
+  const r = await goiYCanh(nc, { thu_tu: thuTu, ...nhap, nhan_vat: tenNv }, ta(lanCan.find((x) => n(x.thu_tu) === thuTu - 1)), ta(lanCan.find((x) => n(x.thu_tu) === thuTu + 1)));
+  if (!r.ok) return loi(r.loi);
+  const tenToId = new Map(nc.nhanVat.map((v) => [v.ten.trim().toLowerCase(), v.id]));
+  const ids = r.data.nhan_vat.map((t) => tenToId.get(t.trim().toLowerCase())).filter((x): x is number => typeof x === 'number');
+  return { ok: true, data: { canh: r.data.canh, goc_may: r.data.goc_may, hanh_dong: r.data.hanh_dong, loi_thoai: r.data.loi_thoai, am_thanh: r.data.am_thanh, thoi_luong_s: r.data.thoi_luong_s, nhan_vat: ids.length ? ids : nhap.nhan_vat, prompt_anh: r.data.prompt_anh, prompt_video: r.data.prompt_video } };
 }
 
 // ── Job ──────────────────────────────────────────────────────────────────────────────────────────────────────────

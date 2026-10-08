@@ -117,7 +117,7 @@ export const giaVideoCents = (model: string, doPhanGiai: DoPhanGiai, giay: numbe
   const m = MO_HINH_VIDEO.find((x) => x.key === model);
   return Math.round((m?.giaGiay[doPhanGiai] ?? 10) * giay);
 };
-export const tien = (cents: number): string => (cents >= 100 ? `$${(cents / 100).toFixed(2)}` : cents > 0 && cents < 0.1 ? `${cents.toFixed(2)}¢` : `${cents.toFixed(cents < 10 ? 1 : 0)}¢`);
+export const tien = (cents: number): string => { const d = cents / 100; return `$${d >= 1 ? d.toFixed(2) : d >= 0.1 ? d.toFixed(2) : d.toFixed(3)}`; };
 
 /** Thành phần một cảnh dùng: anchor + biến thể chọn + thiếu gì. Dùng CHUNG cho UI (khoá nút, hiện chip) và máy chủ (chặn sinh). */
 export type ThanhPhanCanh = { nv: NhanVat; bt: BienThe | null; anh: string | null; thieu: string[] };

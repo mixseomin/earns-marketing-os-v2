@@ -4,6 +4,7 @@
 import 'server-only';
 import { MO_HINH_ANH, type DoPhanGiai, type TiLe } from './kieu';
 import { sinhAnhOpenAI, khoaOpenAI } from './openai';
+import { sinhAnhFal } from './fal';
 
 const GOC = 'https://generativelanguage.googleapis.com/v1beta';
 
@@ -57,7 +58,11 @@ export async function sinhAnhMot(opts: { model: string; prompt: string; thamChie
 }
 
 /** Sinh MỘT ảnh với fallback: model được chọn không tồn tại (404) hoặc không có trong hạng free (quota 0) → thử model kế trong MO_HINH_ANH. */
-export async function sinhAnh(opts: { model: string; prompt: string; thamChieu?: AnhVao[]; tiLe: TiLe | '1:1'; kichCo?: '1K' | '2K' }): Promise<KqAnh> {
+export async function sinhAnh(opts: { model: string; prompt: string; thamChieu?: AnhVao[]; thamChieuUrl?: string[]; tiLe: TiLe | '1:1'; kichCo?: '1K' | '2K' }): Promise<KqAnh> {
+  if (opts.model.startsWith('fal:')) {
+    // fal cần URL ảnh: tham chiếu đã là URL R2 công khai → truyền qua thamChieuUrl (base64 chỉ dùng cho Google/OpenAI).
+    return sinhAnhFal(opts.model.slice(4), { prompt: opts.prompt, thamChieu: opts.thamChieuUrl ?? [], tiLe: opts.tiLe });
+  }
   if (opts.model.startsWith('gpt-image')) return sinhAnhOpenAI({ prompt: opts.prompt, thamChieu: opts.thamChieu, tiLe: opts.tiLe, model: opts.model });
   const thuTu = [opts.model, ...MO_HINH_ANH.map((m) => m.key).filter((k) => k !== opts.model && !k.startsWith('gpt-image'))];
   let loiCuoi = '';

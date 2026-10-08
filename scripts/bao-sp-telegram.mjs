@@ -1,6 +1,7 @@
 // BÁO vào nhóm Telegram MINE (anh yêu cầu 08/10/2026), ba kênh đọc cùng sổ products (Directus):
 //   'published'      → topic "🛍️ Sản phẩm mới" (TG_TOPIC): mỗi dòng vừa lên sàn (Etsy, KDP, Gumroad, App Store…) một tin.
 //   'owner_review'   → topic "🏭 Sản xuất xong" (TG_TOPIC_SX): sách dựng xong chờ anh duyệt — gộp các dòng cùng tên, kèm link duyệt.
+//                     Anh duyệt xong → bot thả ❤ vào tin NGAY (nút Duyệt đánh thức bot qua bao-sp-telegram.path), 1 phút sau mới xoá.
 //   tới ngày chưa duyệt → topic "🛍️ Sản phẩm mới": ngày đăng dự kiến (giờ VN) đã tới mà sách còn planned/draft/owner_review —
 //                       mỗi sách tối đa MỘT tin mỗi ngày, kèm link mở thẳng drawer duyệt trên MOS2.
 // Bất kể đăng/dựng bằng script nào hay sửa tay trên MOS2. Lần đầu mỗi kênh (chưa có tệp trạng thái) chỉ ghi nhận, không báo hàng cũ.
@@ -97,6 +98,15 @@ async function xoa(ids) {
     if (!j.ok && !/not found|can't be deleted/i.test(j.description)) console.error(`✗ xoá tin ${id}: ${j.description}`);
   }
 }
+// Thả ❤ vào tin (Bot API setMessageReaction) — dấu "anh duyệt rồi" hiện NGAY, tin còn nằm đó 1 phút rồi mới xoá.
+async function tha(id) {
+  if (DRY || id < 0) { console.log(`[dry] ❤ tin ${id}`); return; }
+  const j = await (await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/setMessageReaction`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: TG_CHAT, message_id: id, reaction: [{ type: 'emoji', emoji: '❤' }] }) })).json();
+  if (!j.ok) console.error(`✗ thả tim tin ${id}: ${j.description}`);
+}
+const XOA_SAU = 60_000;   // ms: thả tim xong bao lâu thì xoá
+const quaHan = (luc) => Date.now() - Date.parse(luc) >= XOA_SAU;
 const gom = (ds) => { const g = new Map(); for (const x of ds) g.set(x.title, [...(g.get(x.title) ?? []), x]); return [...g]; };
 const docTep = (p) => JSON.parse(readFileSync(p, 'utf8'));
 const ghi = (p, v) => { if (!DRY) writeFileSync(p, JSON.stringify(v)); };
@@ -109,7 +119,13 @@ async function kenh(st, topic, tep, nhom, donKhiXong = false, loc = () => true) 
   const cu = docTep(TT), S = Array.isArray(cu) ? { da: cu, tin: {} } : cu;
   // Chỉ giữ dòng CÒN ở trạng thái này: rời đi rồi quay lại (dựng lại sau góp ý → chờ duyệt lần nữa) thì báo lại
   const con = new Set(ds.map((x) => x.id)), da = new Set(S.da.filter((i) => con.has(i)));
-  if (donKhiXong) for (const [m, ids] of Object.entries(S.tin)) if (!ids.some((i) => con.has(i))) { await xoa([Number(m)]); delete S.tin[m]; console.log(`🗑 ${st} · xoá tin ${m}`); }
+  // Việc xong (mọi dòng của tin đã rời trạng thái): lượt đầu thả ❤ + ghi giờ; đủ 1 phút sau mới xoá. Quay lại chờ duyệt trước khi xoá → bỏ dấu giờ.
+  S.xong ??= {};
+  if (donKhiXong) for (const [m, ids] of Object.entries(S.tin)) {
+    if (ids.some((i) => con.has(i))) { delete S.xong[m]; continue; }
+    if (!S.xong[m]) { await tha(Number(m)); S.xong[m] = new Date().toISOString(); console.log(`❤ ${st} · tin ${m}`); }
+    else if (quaHan(S.xong[m])) { await xoa([Number(m)]); delete S.tin[m]; delete S.xong[m]; console.log(`🗑 ${st} · xoá tin ${m}`); }
+  }
   const moi = nhom(ds.filter((x) => !da.has(x.id))).slice(0, 10);   // ponytail: tối đa 10 tin/lượt/kênh, phần còn lại lượt sau (giới hạn gửi của Telegram)
   for (const [k, text, ids] of moi) {
     const m = await gui(text, topic); if (m == null) continue;   // không ghi "đã báo" khi gửi hỏng → lượt sau thử lại
@@ -128,7 +144,11 @@ if (TG_TOPIC_SX) await kenh('owner_review', TG_TOPIC_SX, 'da-bao-sx.json', (ds) 
   const TT = `${THU}/da-nhac-tre.json`, nhac = Object.fromEntries(Object.entries(existsSync(TT) ? docTep(TT) : {}).map(([k, v]) => [k, typeof v === 'string' ? { ngay: v, tin: [] } : v]));
   const tre = gom((await doc('planned,draft,owner_review')).filter(choAnh).filter((x) => x.listing_config?.dangDuKien && x.listing_config.dangDuKien <= HOM_NAY));
   const conTre = new Set(tre.map(([ten]) => ten));
-  for (const ten of Object.keys(nhac)) if (!conTre.has(ten)) { await xoa(nhac[ten].tin); delete nhac[ten]; console.log(`🗑 tới ngày chưa duyệt · ${ten}: đã xong, xoá tin nhắc`); }
+  for (const ten of Object.keys(nhac)) {
+    if (conTre.has(ten)) { delete nhac[ten].xong; continue; }
+    if (!nhac[ten].xong) { for (const m of nhac[ten].tin) await tha(m); nhac[ten].xong = new Date().toISOString(); console.log(`❤ tới ngày chưa duyệt · ${ten}`); }
+    else if (quaHan(nhac[ten].xong)) { await xoa(nhac[ten].tin); delete nhac[ten]; console.log(`🗑 tới ngày chưa duyệt · ${ten}: đã xong, xoá tin nhắc`); }
+  }
   let n = 0;
   for (const [ten, xs] of tre) {
     if (nhac[ten]?.ngay === HOM_NAY || n >= 10) continue;

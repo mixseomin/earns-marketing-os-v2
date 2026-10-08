@@ -9,18 +9,12 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as PE, type ReactNode } from 'react';
 import type { Canh, NhanVat, Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat } from '@/lib/xuong-video/dien-anh';
+import { nguoiNoi } from '@/lib/xuong-video/am-thanh';
 
 const MAU_NV = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#4ade80', '#fb923c', '#60a5fa'];
 const NHAN_W = 74;
 const mono: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)' };
 const dongHo = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${(s % 60).toFixed(1).padStart(4, '0')}`;
-
-/** Ai nói câu thoại: "Lio: ..." → Lio; không ghi thì lấy nhân vật đầu tiên của cảnh. */
-function nguoiNoi(c: Canh, nv: NhanVat[]): NhanVat | null {
-  const m = c.loi_thoai.match(/^\s*([^:"“]{1,40}?)\s*:/);
-  if (m) { const ten = m[1]!.toLowerCase(); const v = nv.find((x) => x.ten.toLowerCase() === ten) ?? nv.find((x) => ten.includes(x.ten.toLowerCase())); if (v) return v; }
-  return nv.find((x) => x.loai === 'nhan_vat' && c.nhan_vat.includes(x.id)) ?? null;
-}
 
 export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh }: {
   canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null;
@@ -48,6 +42,14 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const idx = Math.max(0, batDau.reduce((k, s, i) => (s <= t + 1e-6 ? i : k), 0));
   const c = canh[idx];
   const tTrong = c ? t - batDau[idx]! : 0;
+  // Khối phân cảnh: shot liền nhau cùng phan_doan. Dùng cho track Phân cảnh, track Nhạc (nhạc theo phân cảnh) và phát nhạc đúng đoạn.
+  const khoiPc: { ten: string; tu: number; den: number }[] = [];
+  canh.forEach((cc, i) => { const l = khoiPc[khoiPc.length - 1]; if (l && l.ten === cc.phan_doan) l.den = i; else khoiPc.push({ ten: cc.phan_doan, tu: i, den: i }); });
+  const pcHienTai = khoiPc.find((kh) => idx >= kh.tu && idx <= kh.den);
+  const nhacPc = pcHienTai ? tap.nhac_phan_canh?.[pcHienTai.ten] : undefined;
+  const tNhacPc = pcHienTai ? t - batDau[pcHienTai.tu]! : 0;
+  // Bật/tắt từng lớp tiếng khi xem (clip có tiếng sẵn thì tắt bớt để khỏi chồng).
+  const [tat, setTat] = useState<Record<string, boolean>>({});
 
   // Đồng hồ phát: requestAnimationFrame đẩy t, hết tập thì dừng.
   useEffect(() => {
@@ -67,6 +69,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const thoaiRef = useRef<HTMLAudioElement>(null);
   const sfxRef = useRef<HTMLAudioElement>(null);
   const nhacRef = useRef<HTMLAudioElement>(null);
+  const nhacPcRef = useRef<HTMLAudioElement>(null);
   const tuaRef = useRef(0);   // tăng mỗi lần người dùng tua → ép đồng bộ lại
   const [tua, setTua] = useState(0);
   const dongBo = (el: HTMLMediaElement | null, vt: number, coDuoc: boolean) => {
@@ -79,8 +82,16 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     dongBo(vidRef.current, tTrong, true);
     dongBo(thoaiRef.current, tTrong, true);
     dongBo(sfxRef.current, tTrong, true);
-    dongBo(nhacRef.current, t, true);
-  }, [idx, chay, tua]); // eslint-disable-line react-hooks/exhaustive-deps
+    dongBo(nhacRef.current, nhacPc ? tNhacPc : t, true);
+    dongBo(nhacPcRef.current, tNhacPc, true);
+  }, [idx, chay, tua, nhacPc]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (vidRef.current) vidRef.current.muted = !!tat.clip;
+    if (thoaiRef.current) thoaiRef.current.muted = !!tat.thoai;
+    if (sfxRef.current) sfxRef.current.muted = !!tat.sfx;
+    if (nhacRef.current) nhacRef.current.muted = !!tat.nhac || !!nhacPc;
+    if (nhacPcRef.current) nhacPcRef.current.muted = !!tat.nhac;
+  });
 
   // Chưa có file giọng → đọc thử bằng giọng máy của trình duyệt khi vào cảnh (chỉ để nghe nhịp, không phải giọng thật).
   useEffect(() => {
@@ -172,6 +183,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           {c?.thoai_url && <audio ref={thoaiRef} key={c.thoai_url} src={c.thoai_url} preload="auto" />}
           {c?.am_thanh_url && <audio ref={sfxRef} key={c.am_thanh_url} src={c.am_thanh_url} preload="auto" />}
           {tap.nhac_url && <audio ref={nhacRef} src={tap.nhac_url} preload="auto" />}
+          {nhacPc && <audio ref={nhacPcRef} key={nhacPc} src={nhacPc} preload="auto" />}
         </div>
         <div style={{ flex: 1, minWidth: 220, display: 'grid', gap: 6, alignContent: 'start' }}>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -188,6 +200,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', ...mono }}>
             <label style={{ display: 'inline-flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={docThu} onChange={(e) => setDocThu(e.target.checked)} /> đọc thử thoại chưa có giọng</label>
             <label style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>zoom <input type="range" min={1} max={6} step={0.25} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} style={{ width: 90 }} /></label>
+            <span style={{ display: 'inline-flex', gap: 3 }}>{([['clip', '🎬 tiếng clip'], ['thoai', '🗣 thoại'], ['sfx', '🔊 hiệu ứng'], ['nhac', '🎵 nhạc']] as const).map(([k, chu]) => (
+              <button key={k} type="button" onClick={() => setTat((x) => ({ ...x, [k]: !x[k] }))} title={tat[k] ? 'đang tắt — bấm để bật' : 'đang bật — bấm để tắt'}
+                style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, border: '1px solid var(--line)', background: tat[k] ? 'none' : 'var(--bg-2)', color: tat[k] ? 'var(--fg-4)' : 'var(--fg-2)', textDecoration: tat[k] ? 'line-through' : 'none', cursor: 'pointer' }}>{chu}</button>
+            ))}</span>
             <span>Space chạy/dừng · ←/→ đổi cảnh · kéo mép clip đổi giây · kéo clip đổi thứ tự · nét đứt = chưa sinh</span>
           </div>
         </div>
@@ -271,7 +287,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           {track('🗣 Thoại', 'Lời thoại từng cảnh — màu theo nhân vật nói', canh.map((cc, i) => {
             if (!cc.loi_thoai.trim()) return null;
             const v = nguoiNoi(cc, nhanVat);
-            return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!cc.thoai_url, mauNv(v), `${v ? `${v.ten}: ` : ''}${cc.loi_thoai.replace(/^[^:"“]*:\s*/, '')}`,
+            return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!cc.thoai_url, mauNv(v), `${cc.dang_sinh_am ? '⏳ ' : ''}${v ? `${v.ten}: ` : ''}${cc.loi_thoai.replace(/^[^:"“]*:\s*/, '')}`,
               `${v?.ten ?? 'Lời dẫn'}${v?.giong ? ` (giọng: ${v.giong})` : ''}\n${cc.loi_thoai}\n${cc.thoai_url ? 'đã có file giọng' : 'chưa sinh giọng'}`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); });
           }))}
 
@@ -280,7 +296,13 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!cc.am_thanh_url, '#fb923c', cc.am_thanh, `${cc.am_thanh}\n${cc.am_thanh_url ? 'đã có file' : 'chưa sinh'}`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); });
           }))}
 
-          {track('🎵 Nhạc', 'Nhạc nền cả tập', khoiAm(0, W, !!tap.nhac_url, '#a78bfa', tap.nhac_mo_ta || 'Nhạc nền cả tập: chưa có', tap.nhac_mo_ta || 'chưa có nhạc nền', 'nhac'))}
+          {track('🎵 Nhạc', 'Nhạc nền: theo từng phân cảnh (ưu tiên) hoặc một bài cả tập', khoiPc.some((kh) => kh.ten)
+            ? khoiPc.map((kh, j) => {
+                const x = batDau[kh.tu]! * pps; const w = (batDau[kh.den]! + dur(canh[kh.den]!)) * pps - x;
+                const url = tap.nhac_phan_canh?.[kh.ten];
+                return khoiAm(x, w, !!url, '#a78bfa', url ? `${kh.ten}` : `${kh.ten}: chưa có nhạc`, url ? `Nhạc phân cảnh “${kh.ten}”` : `Phân cảnh “${kh.ten}” chưa có nhạc — bấm 🎵 Nhạc theo phân cảnh`, `n${j}`);
+              })
+            : khoiAm(0, W, !!tap.nhac_url, '#a78bfa', tap.nhac_mo_ta || 'Nhạc nền cả tập: chưa có', tap.nhac_mo_ta || 'chưa có nhạc nền', 'nhac'))}
 
           {/* Đầu phát */}
           <div style={{ position: 'absolute', left: NHAN_W + t * pps - 1, top: 0, bottom: 0, width: 2, background: '#ef4444', pointerEvents: 'none', zIndex: 4 }}>

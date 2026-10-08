@@ -89,7 +89,7 @@ export type Phim = {
   so_tap: number; so_nhan_vat: number; so_canh: number; chi_phi_cents: number; updated_at: string;
 };
 export type BienThe = { id: number; nhan_vat_id: number; nhom: string; ten: string; mo_ta: string; anh_url: string | null };
-export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref: string[]; giong: string; bien_the?: BienThe[] };
+export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref: string[]; giong: string; giong_model: string; giong_id: string; giong_mau_url: string | null; bien_the?: BienThe[] };
 
 /** Nhóm biến thể gợi ý theo loại anchor (nhãn hiển thị). */
 export const NHOM_BIEN_THE: Record<LoaiNhanVat, { key: string; label: string }[]> = {
@@ -100,10 +100,10 @@ export const NHOM_BIEN_THE: Record<LoaiNhanVat, { key: string; label: string }[]
   phong_cach: [{ key: 'trang_thai', label: 'Biến tấu' }],
 };
 export const nhanNhom = (loai: LoaiNhanVat, nhom: string) => NHOM_BIEN_THE[loai]?.find((x) => x.key === nhom)?.label ?? nhom;
-export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number };
+export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number };
 export type Canh = {
   id: number; tap_id: number; thu_tu: number; canh: string; goc_may: string; hanh_dong: string; loi_thoai: string; am_thanh: string; thoai_url: string | null; am_thanh_url: string | null; phan_doan: string; cam_xuc: number; ky_thuat: KyThuatShot;
-  thoi_luong_s: number; nhan_vat: number[]; bien_the: number[]; prompt_anh: string; prompt_video: string; dang_sinh_anh?: boolean;
+  thoi_luong_s: number; nhan_vat: number[]; bien_the: number[]; prompt_anh: string; prompt_video: string; dang_sinh_anh?: boolean; dang_sinh_am?: boolean;
   keyframe_url: string | null; keyframe_uv: string[]; video_url: string | null; video_cuoi_url: string | null; nguon_video: Record<string, unknown>; video_phien_ban: { url: string; ban: 'nhap' | 'cuoi'; model?: string; job?: number; luc?: string }[]; trang_thai: TrangThaiCanh; loi: string; chi_phi_cents: number;
 };
 export type Job = {

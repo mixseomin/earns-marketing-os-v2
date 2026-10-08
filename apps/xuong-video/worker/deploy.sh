@@ -10,7 +10,7 @@ W="npx --yes wrangler@4"; C=(-c "$PWD/wrangler.toml")
 $W deploy "${C[@]}" >/tmp/xv-worker-deploy.log 2>&1 || { tail -30 /tmp/xv-worker-deploy.log; exit 1; }
 python3 - <<'PY' | $W secret bulk "${C[@]}" >/dev/null
 import json, os
-ks = ['GOOGLE_API_KEY','OPENAI_API_KEY','FAL_KEY','R2_ACCOUNT_ID','R2_ACCESS_KEY_ID','R2_SECRET_ACCESS_KEY','R2_BUCKET','R2_PUBLIC_BASE','XV_WORKER_SECRET']
+ks = ['GOOGLE_API_KEY','OPENAI_API_KEY','FAL_KEY','R2_ACCOUNT_ID','R2_ACCESS_KEY_ID','R2_SECRET_ACCESS_KEY','R2_BUCKET','R2_PUBLIC_BASE','XV_WORKER_SECRET','ELEVENLABS_API_KEY']
 print(json.dumps({k: os.environ[k] for k in ks if os.environ.get(k)}))
 PY
 echo "✓ xv-worker deploy + khoá"

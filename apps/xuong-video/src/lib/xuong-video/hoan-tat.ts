@@ -10,6 +10,7 @@ import { getDb } from '@mos2/db';
 import { danhMucFal } from './fal';
 import { giaAnhCents } from './kieu';
 import { chayViecAnh, type ViecAnh, type KqViec } from './viec-anh';
+import { chayViecAm, type ViecAm, type KqViecAm } from './viec-am';
 
 type Row = Record<string, unknown>;
 
@@ -38,7 +39,7 @@ function bomNen(): void {
 // Tài khoản Cloudflare của Astrolas (gói Workers Paid — gói Free chỉ cho 10ms CPU/lần, không đủ cho ảnh), hàng đợi xv-jobs.
 export const CF_ACCOUNT_XV = process.env.XV_CF_ACCOUNT || 'f1fefdd1431b68732ec5eab5cd5d7e23';
 const QUEUE_ID = process.env.XV_QUEUE_ID || 'ba020585788a4b5297905b925e4af820';
-async function guiHangDoi(v: ViecAnh): Promise<boolean> {
+async function guiHangDoi(v: ViecAnh | ViecAm): Promise<boolean> {
   const email = process.env.CF_EMAIL, key = process.env.CF_API_KEY;
   if (!email || !key || !process.env.XV_WORKER_SECRET || process.env.XV_HANG_DOI === 'tat') return false;
   try {
@@ -57,6 +58,44 @@ export async function dayViecAnh(v: ViecAnh): Promise<'cf' | 'noi_bo'> {
   if (await guiHangDoi(v)) return 'cf';
   chayNen(async () => { await hoanTatAnh(await chayViecAnh(v)); });
   return 'noi_bo';
+}
+/** Việc âm (giọng / hiệu ứng / nhạc): cùng hàng đợi Cloudflare, dự phòng hàng nền. */
+export async function dayViecAm(v: ViecAm): Promise<'cf' | 'noi_bo'> {
+  if (await guiHangDoi(v)) return 'cf';
+  chayNen(async () => { await hoanTatAm(await chayViecAm(v)); });
+  return 'noi_bo';
+}
+/** Route callback gọi hàm này: job âm hay job ảnh do sổ job nói (loai). */
+export async function hoanTatViec(kq: KqViec | KqViecAm): Promise<boolean> {
+  const db = getDb();
+  if (!db || !kq.job) return false;
+  const r = (await db.execute(sql`SELECT loai FROM xv_job WHERE id = ${kq.job}`)) as unknown as Row[];
+  return String(r[0]?.loai) === 'am' ? hoanTatAm(kq as KqViecAm) : hoanTatAnh(kq as KqViec);
+}
+/** Ghi kết quả việc âm: sổ job (tiền đã tính lúc đẩy, nằm ở request.gia) + gắn file vào đích (request.dich). */
+export async function hoanTatAm(kq: KqViecAm): Promise<boolean> {
+  const db = getDb();
+  if (!db || !kq.job) return false;
+  const r = (await db.execute(sql`UPDATE xv_job SET trang_thai = ${kq.ok ? 'xong' : 'loi'}, output_url = ${kq.ok ? kq.url : null},
+      chi_phi_cents = CASE WHEN ${kq.ok} THEN coalesce((request->>'gia')::numeric, 0) ELSE 0 END, loi = ${kq.ok ? '' : kq.loi}, updated_at = now()
+    WHERE id = ${kq.job} AND trang_thai = 'cho' RETURNING canh_id, nhan_vat_id, request`)) as unknown as Row[];
+  const j = r[0];
+  if (!j) return false;
+  const rq = (j.request ?? {}) as Record<string, unknown>;
+  const dich = String(rq.dich ?? '');
+  if (!kq.ok) {
+    if (j.canh_id != null) await db.execute(sql`UPDATE xv_canh SET loi = ${`${dich === 'thoai' ? 'Giọng' : 'Âm thanh'}: ${kq.loi}`}, updated_at = now() WHERE id = ${Number(j.canh_id)}`);
+    return true;
+  }
+  const gia = Number(rq.gia ?? 0);
+  if (dich === 'thoai' && j.canh_id != null) await db.execute(sql`UPDATE xv_canh SET thoai_url = ${kq.url}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${Number(j.canh_id)}`);
+  if (dich === 'sfx' && j.canh_id != null) await db.execute(sql`UPDATE xv_canh SET am_thanh_url = ${kq.url}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${Number(j.canh_id)}`);
+  if (dich === 'nhac' && rq.tap_id != null) {
+    if (rq.phan_doan) await db.execute(sql`UPDATE xv_tap SET nhac_phan_canh = nhac_phan_canh || jsonb_build_object(${String(rq.phan_doan)}::text, ${kq.url}::text), updated_at = now() WHERE id = ${Number(rq.tap_id)}`);
+    else await db.execute(sql`UPDATE xv_tap SET nhac_url = ${kq.url}, updated_at = now() WHERE id = ${Number(rq.tap_id)}`);
+  }
+  if (dich === 'giong_mau' && j.nhan_vat_id != null) await db.execute(sql`UPDATE xv_nhan_vat SET giong_mau_url = ${kq.url}, updated_at = now() WHERE id = ${Number(j.nhan_vat_id)}`);
+  return true;
 }
 export const thuHangDoi = (job = 0) => guiHangDoi({ job, model: '', prompt: '', thamChieuUrl: [], tiLe: '1:1', thuMuc: 'thu', thu: true });
 

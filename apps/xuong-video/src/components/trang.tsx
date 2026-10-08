@@ -6,11 +6,12 @@ import { createContext, Suspense, useCallback, useContext, useEffect, useMemo, u
 import { useModalParam } from '@/lib/use-modal-param';
 import { Timeline } from './timeline';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
+import { MO_HINH_AM, GIONG } from '@/lib/xuong-video/am-thanh';
 import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, nhanKyThuat, type NhomKyThuat, type TheLoai } from '@/lib/xuong-video/dien-anh';
 import {
   dsPhim, docPhim, dsCanh, taoPhim, taoPhimMau, suaPhim, xoaPhim, luuNhanVat, xoaNhanVat, sinhAnhMau, taoTap, suaTap,
   vietKichBanTap, tachCanhTap, suaCanh, themCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, uocTien, sinhVideoCanh, kiemVideo, taiAnhLen,
-  dsMoHinh, xepCanh, datAnhChinh, xoaAnhGoc, xoaAnhBienThe, xoaKeyframe, dsThungRac, khoiPhuc, type MoHinhChon,
+  dsMoHinh, xepCanh, datAnhChinh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, dsGiongModel, dsGiongCua, chonGiong, ngheThuGiong, xoaAnhGoc, xoaAnhBienThe, xoaKeyframe, dsThungRac, khoiPhuc, type MoHinhChon,
   goiYAIKinhThanh, goiYAIAnchor, goiYAIBoAnchor, goiYAIBrief, goiYAICanh, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, nangCapCanh, chonPhienBan,
   type PhimDayDu,
 } from '@/lib/actions';
@@ -408,6 +409,47 @@ function KinhThanhForm({ phim, onSaved }: { phim: Phim; onSaved: () => Promise<v
   );
 }
 
+/** Giọng cố định của một nhân vật (cả bộ phim): chọn model (ElevenLabs tài khoản anh / mọi TTS fal) + giọng, nghe thử. */
+function GiongNhanVat({ v, onChanged }: { v: NhanVat; onChanged: () => Promise<void> }) {
+  const [mo, setMo] = useState(false);
+  const [dsM, setDsM] = useState<Awaited<ReturnType<typeof dsGiongModel>>>([]);
+  const [model, setModel] = useState(v.giong_model);
+  const [voice, setVoice] = useState(v.giong_id);
+  const [dsG, setDsG] = useState<{ id: string; ten: string }[] | null>(null);
+  const [ban, setBan] = useState(''); const [loi, setLoi] = useState('');
+  useEffect(() => { if (mo && !dsM.length) void dsGiongModel().then((d) => { setDsM(d); if (!model && d[0]) setModel(d[0].key); }); }, [mo]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!mo || !model) return; setDsG(null); void dsGiongCua(model).then(setDsG); }, [mo, model]);
+  const giaM = (m: (typeof dsM)[number]) => (m.giaCents == null ? (m.key.startsWith('elevenlabs:') ? 'trong gói' : 'chưa có giá') : `${tien(m.giaCents)}${m.donVi === '1k_ky_tu' ? '/1k ký tự' : m.donVi === 'giay' ? '/giây' : ''}`);
+  const moTa = (id: string) => Object.values(GIONG).flat().find((g) => g.id === id)?.ta;
+  const tenModel = dsM.find((m) => m.key === v.giong_model)?.ten ?? v.giong_model.split('/').slice(-2).join('/');
+  return (
+    <>
+      <button type="button" className="xv-btn" onClick={() => setMo(true)} title={v.giong ? `Mô tả giọng: ${v.giong}` : 'Chọn giọng cố định cho nhân vật'}>🗣 {v.giong_id ? `${v.giong_id}` : 'Chọn giọng'}</button>
+      {mo && (
+        <Ngan nho onClose={() => setMo(false)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <h2 style={{ margin: 0, fontSize: 16, flex: 1 }}>🗣 Giọng của {v.ten}</h2>
+            <button type="button" className="xv-btn" onClick={() => setMo(false)}>Đóng</button>
+          </div>
+          <div style={{ ...mono, marginBottom: 10 }}>Một giọng cố định cho cả bộ phim: mọi shot {v.ten} nói đều đọc bằng giọng này, cảm xúc đổi theo từng shot.{v.giong ? ` Mô tả giọng đã ghi: “${v.giong}”.` : ''}{v.giong_model ? ` Đang dùng: ${tenModel} · ${v.giong_id}.` : ''}</div>
+          <O label="Model giọng"><Chon value={model} onChange={(x) => { setModel(x); setVoice(''); }} minWidth={300} options={dsM.map((m) => ({ value: m.key, label: m.ten, nhom: m.nhom, phu: giaM(m), title: m.giaText }))} placeholder={dsM.length ? 'chọn…' : 'đang tải danh mục…'} /></O>
+          <O label="Giọng" hint={dsG && !dsG.length ? 'model này không công bố danh sách giọng — gõ tên/id giọng nếu biết, để trống = giọng mặc định của model' : undefined}>
+            {dsG && !dsG.length
+              ? <input className="xv-in" value={voice} onChange={(e) => setVoice(e.target.value)} placeholder="tên / id giọng" />
+              : <Chon value={voice} onChange={setVoice} minWidth={300} options={(dsG ?? []).map((g) => ({ value: g.id, label: g.ten, phu: moTa(g.id) }))} placeholder={dsG ? 'chọn giọng…' : 'đang tải giọng…'} />}
+          </O>
+          <Loi>{loi}</Loi>
+          <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Nut chinh ly={!model && 'chọn model'} ban={ban === 'luu'} onClick={async () => { setBan('luu'); setLoi(''); const r = await chonGiong(v.id, model, voice); setBan(''); if (!r.ok) { setLoi(r.loi); return; } await onChanged(); }}>Lưu giọng</Nut>
+            <Nut ly={(!v.giong_model && 'lưu giọng trước') || ((v.giong_model !== model || v.giong_id !== voice) && 'lưu giọng vừa chọn trước')} ban={ban === 'nghe'} title="Sinh một câu chào ngắn bằng giọng này (~$0.01)" onClick={async () => { setBan('nghe'); setLoi(''); const r = await ngheThuGiong(v.id); setBan(''); if (!r.ok) { setLoi(r.loi); return; } await onChanged(); }}>🎧 Nghe thử</Nut>
+            {v.giong_mau_url && <audio src={v.giong_mau_url} controls preload="none" style={{ height: 28 }} />}
+          </div>
+        </Ngan>
+      )}
+    </>
+  );
+}
+
 const NHAN_RAC: Record<string, string> = { phim: 'phim', tap: 'tập', canh: 'cảnh', nhan_vat: 'anchor', bien_the: 'biến thể', anh_goc: 'ảnh gốc', keyframe: 'keyframe', anh_bien_the: 'ảnh biến thể' };
 /** Nút 🗑 Thùng rác + ngăn liệt kê thứ đã bỏ (phimId null = phim đã xoá) với nút Khôi phục. Không có xoá vĩnh viễn (#1192). */
 function ThungRac({ phimId, onKhoiPhuc }: { phimId: number | null; onKhoiPhuc: () => Promise<void> }) {
@@ -514,6 +556,7 @@ function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loiAnh, on
                 <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
                   <button type="button" className="xv-btn" onClick={() => setSua(v)}>Sửa</button>
                   <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || (!v.mo_ta.trim() && 'tả đặc tính trước')} title={`Sinh ảnh gốc (${v.loai === 'nhan_vat' ? 'character sheet: nhiều góc + biểu cảm' : 'ảnh tham chiếu'}) từ mô tả (~${tien(giaAnhCents(kt.mo_hinh_anh))}/ảnh, ~20 giây). Bấm nhiều lần = sinh song song nhiều ảnh; mỗi lần thêm đổi góc khác.`} onClick={() => void sinh(v.id, v.anh_ref.length)}>{v.anh_ref.length ? '✨ Sinh thêm ảnh gốc' : '✨ Sinh ảnh gốc'} · {tien(giaAnhCents(kt.mo_hinh_anh))}</Nut>
+                  {v.loai === 'nhan_vat' && <GiongNhanVat v={v} onChanged={onChanged} />}
                   <button type="button" className="xv-btn" onClick={() => setBtMo(v.id)} title="Biểu cảm, trang phục, tư thế / góc máy, thời điểm… — mỗi biến thể sinh từ ảnh gốc nên giữ đúng danh tính">🎭 Biến thể ({v.bien_the?.length ?? 0})</button>
                   <Xoa nhan="anchor" onXoa={async () => { await xoaNhanVat(v.id); await onChanged(); }} />
                 </div>
@@ -705,13 +748,15 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
   useEffect(() => { try { localStorage.setItem('xv-xem-3c', xem); } catch { /* bỏ qua */ } }, [xem]);
   const [chonCanh, setChonCanh] = useState<number | null>(null);
   const [uoc, setUoc] = useState<{ anh1: number; videoTong: number; soCanhDuyet: number; giayDuyet: number } | null>(null);
+  const [uocA, setUocA] = useState<Awaited<ReturnType<typeof uocAm>> | null>(null);
+  const [mhNhac, setMhNhac] = useState('cassetteai/music-generator');
   const kt = docKinhThanh(phim.kinh_thanh);
   // Dấu vân của danh sách cảnh: đổi (sinh xong keyframe/video, duyệt, thêm/bớt cảnh) → báo phim tải lại để chip thống kê
   // đầu phim chạy theo thời gian thực (card #1191). So dấu chứ không báo mỗi lần hỏi, để không tải phim vô ích mỗi 4 giây.
   const dauCanh = useRef('');
   const taiCanh = useCallback(async () => {
     const ds = await dsCanh(tap.id);
-    setCanh(ds); setUoc(await uocTien(tap.id));
+    setCanh(ds); setUoc(await uocTien(tap.id)); setUocA(await uocAm(tap.id));
     const dau = ds.map((c) => `${c.id}:${c.trang_thai}:${c.keyframe_uv.length}:${c.video_url ? 1 : 0}:${c.video_cuoi_url ? 1 : 0}:${c.thoi_luong_s}:${c.chi_phi_cents}`).join('|');
     if (dauCanh.current && dau !== dauCanh.current) void onChanged();
     dauCanh.current = dau;
@@ -721,7 +766,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
 
   // Poll Veo khi có cảnh đang sinh (Veo chạy 1-3 phút). Dừng ngay khi không còn job chạy.
   const dangSinh = (canh ?? []).some((c) => c.trang_thai === 'dang_sinh');
-  const dangSinhAnh = (canh ?? []).some((c) => c.dang_sinh_anh);
+  const dangSinhAnh = (canh ?? []).some((c) => c.dang_sinh_anh || c.dang_sinh_am) || (uocA?.dangNhac ?? 0) > 0;
   // Thời gian thực: có việc ảnh đang chạy → hỏi lại 4s/lần; không có → 15s/lần (bấm ở tab khác / Worker xong muộn vẫn tự hiện). Tab ẩn thì thôi.
   useEffect(() => { if (banTach) return; const t = setInterval(() => { if (document.visibilityState === 'visible') void taiCanh(); }, dangSinhAnh ? 4000 : 15000); return () => clearInterval(t); }, [dangSinhAnh, banTach, taiCanh]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -802,6 +847,17 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
         </Nut>
         <button type="button" className="xv-btn" disabled={banTach || ban('them')} onClick={() => void chay('them', async () => { await themCanh(tap.id); })}>+ Cảnh</button>
       </div>
+      {!!canh?.length && uocA && (
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6, flexWrap: 'wrap' }}>
+          <span style={{ ...mono, color: 'var(--fg-2)' }}>Âm thanh:</span>
+          <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!uocA.soThoai && 'chưa shot nào có lời thoại')} ban={ban('giong')} title="Đọc lời thoại mọi shot bằng giọng cố định của từng nhân vật (chọn ở mục 2), cảm xúc theo shot" onClick={() => void chay('giong', () => sinhGiong(tap.id))}>🗣 Sinh giọng {uocA.soThoai} shot · {tien(uocA.giong)}</Nut>
+          <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!uocA.soSfx && 'chưa shot nào có clip hay mô tả âm thanh')} ban={ban('sfx')} title="Shot có clip → sinh tiếng từ chính clip (khớp hành động); chưa có clip → từ mô tả âm thanh + kỹ thuật âm thanh của shot" onClick={() => void chay('sfx', () => sinhAmThanh(tap.id))}>🔊 Sinh hiệu ứng {uocA.soSfx} shot · {tien(uocA.sfx)}</Nut>
+          <Chon nho value={mhNhac} onChange={setMhNhac} minWidth={200} title="Model nhạc" options={MO_HINH_AM.filter((m) => m.loai === 'nhac').map((m) => ({ value: m.key, label: m.ten, phu: `${tien(m.gia)}/phút`, title: m.ghiChu }))} />
+          <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!uocA.soPhanCanh && 'chưa có phân cảnh — tách lại cảnh')} ban={ban('nhac')} title="Mỗi phân cảnh một đoạn nhạc riêng: dài bằng phân cảnh, theo cảm xúc đầu→cuối + nhịp + kỹ thuật nhạc của các shot" onClick={() => void chay('nhac', () => sinhNhac(tap.id, mhNhac, '*'))}>🎵 Nhạc theo {uocA.soPhanCanh} phân cảnh · {tien(uocA.nhac[mhNhac] ?? 0)}</Nut>
+          <Nut ly={!khoa.fal && 'thiếu FAL_KEY'} ban={ban('nhac1')} title="Một bài nền chạy suốt cả tập" onClick={() => void chay('nhac1', () => sinhNhac(tap.id, mhNhac))}>🎵 Một bài cả tập ({uocA.giay}s)</Nut>
+          {uocA.dangNhac > 0 && <span style={{ ...mono, color: 'var(--violet)' }}>⏳ đang sinh {uocA.dangNhac} đoạn âm…</span>}
+        </div>
+      )}
 
       {canh === null ? <span style={mono}>…</span> : canh.length === 0 ? (
         <div className="xv-panel" style={{ marginTop: 8, textAlign: 'center', padding: 24 }}>
@@ -975,6 +1031,13 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
           )}
           <div style={{ fontSize: 11.5, marginTop: 3, color: 'var(--fg-2)' }} title={c.loi_thoai ? `“${c.loi_thoai}”` : undefined}>{c.hanh_dong}</div>
           {(() => { const ds = nhanKyThuat(c.ky_thuat); return ds.length ? <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 4 }}>{c.phan_doan && <span style={{ ...mono, fontSize: 9.5, color: 'var(--violet)' }}>🎬 {c.phan_doan} ·</span>}{ds.map((x) => <span key={x} style={{ fontSize: 9.5, lineHeight: '15px', padding: '0 5px', borderRadius: 4, border: '1px solid var(--line)', color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{x}</span>)}</div> : null; })()}
+          {(c.thoai_url || c.am_thanh_url || c.dang_sinh_am) && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
+              {c.thoai_url && <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center', ...mono }}>🗣<audio src={c.thoai_url} controls preload="none" style={{ height: 24, width: 170 }} /></span>}
+              {c.am_thanh_url && <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center', ...mono }}>🔊<audio src={c.am_thanh_url} controls preload="none" style={{ height: 24, width: 170 }} /></span>}
+              {c.dang_sinh_am && <span style={{ ...mono, color: 'var(--violet)' }}>⏳ đang sinh âm thanh…</span>}
+            </div>
+          )}
           {tp.thieu.length > 0 && <div style={{ fontSize: 10.5, color: 'var(--red)', marginTop: 3 }}>Chưa sinh được: {tp.thieu.join(' · ')} — chuẩn bị ở mục 2.</div>}
           <Loi>{c.loi}</Loi>
           {c.keyframe_uv.length > 0 && !c.video_url && (
@@ -1012,6 +1075,8 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
               <div style={{ ...mono, padding: '2px 4px' }}>Model cho các lệnh bên dưới</div>
               <div style={{ display: 'grid', gap: 4 }}>{chonAnh}{chonVideo}</div>
               <MucMenu onClick={() => setMo(true)}>✎ Sửa cảnh (góc máy, lời thoại, prompt, nhân vật)</MucMenu>
+              {c.loi_thoai.trim() && <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} onClick={() => void chay(k, () => sinhGiong(c.tap_id, [c.id]))}>🗣 {c.thoai_url ? 'Sinh lại' : 'Sinh'} giọng shot này</MucMenu>}
+              <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} onClick={() => void chay(k, () => sinhAmThanh(c.tap_id, [c.id]))}>🔊 {c.am_thanh_url ? 'Sinh lại' : 'Sinh'} hiệu ứng âm thanh{c.video_url ? ' (từ clip)' : ''}</MucMenu>
               {c.keyframe_url && <MucMenu ly={lyAnh} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))}>🖼 Thêm ứng viên keyframe · {tien(giaAnh)}</MucMenu>}
               {c.trang_thai === 'duyet' && <MucMenu onClick={() => void chay(k, () => duyetCanh(c.id, false))}>↩ Bỏ duyệt keyframe</MucMenu>}
               {(buoc === 'nhap' || buoc === 'cuoi' || c.trang_thai === 'loi') && c.keyframe_url && <MucMenu ly={lyVideo} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))}>↻ Sinh lại nháp · {giay}s · {tien(giaVid)}</MucMenu>}

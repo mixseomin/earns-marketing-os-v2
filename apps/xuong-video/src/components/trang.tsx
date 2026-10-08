@@ -187,7 +187,7 @@ function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onCl
       </div>
 
       <KinhThanhForm phim={phim} onSaved={tai} />
-      <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} onChanged={tai} />
+      <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} />
 
       <div className="xv-panel">
         <h3>3 · Tập: brief → kịch bản → storyboard<small>{phim.loai === 'phim' ? 'mỗi tập một kịch bản; tập sau đọc tóm tắt tập trước' : 'một tập'}</small></h3>
@@ -276,16 +276,16 @@ function KinhThanhForm({ phim, onSaved }: { phim: Phim; onSaved: () => Promise<v
 
 // ── Anchor: nhân vật / sản phẩm / bối cảnh ───────────────────────────────────────────────────────────────────────
 
-function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, onChanged }: { phimId: number; nhanVat: NhanVat[]; kinhThanh: KinhThanh; khoa: Khoa; dangSinh: { nhanVat: number[]; bienThe: number[] }; onChanged: () => Promise<void> }) {
+function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loiAnh, onChanged }: { phimId: number; nhanVat: NhanVat[]; kinhThanh: KinhThanh; khoa: Khoa; dangSinh: { nhanVat: number[]; bienThe: number[] }; loiAnh: { nhanVat: Record<number, string>; bienThe: Record<number, string> }; onChanged: () => Promise<void> }) {
   const [sua, setSua] = useState<Partial<NhanVat> | null>(null);
   const [btMo, setBtMo] = useState<number | null>(null);
   const [ban, setBan] = useState<number | null>(null);
   const [loi, setLoi] = useState<Record<number, string>>({});
   const kt = docKinhThanh(kinhThanh);
+  // Bấm là đẩy vào hàng đợi nền rồi trả ngay → bấm liên tục nhiều anchor được; trạng thái "đang sinh" đọc từ máy chủ.
   const sinh = async (id: number) => {
-    setBan(id); setLoi((x) => ({ ...x, [id]: '' }));
+    setLoi((x) => ({ ...x, [id]: '' }));
     const r = await sinhAnhMau(id);
-    setBan(null);
     if (!r.ok) setLoi((x) => ({ ...x, [id]: r.loi }));
     await onChanged();
   };
@@ -311,11 +311,11 @@ function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, onChanged 
               <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 2, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={v.mo_ta}>{v.mo_ta || <em style={{ color: 'var(--fg-4)' }}>chưa mô tả</em>}</div>
               <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
                 <button type="button" className="xv-btn" onClick={() => setSua(v)}>Sửa</button>
-                <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || (!v.mo_ta.trim() && 'tả đặc tính trước')} ban={ban === v.id || dangSinh.nhanVat.includes(v.id)} title={`Sinh ảnh gốc (${v.loai === 'nhan_vat' ? 'character sheet: nhiều góc + biểu cảm' : 'ảnh tham chiếu'}) từ mô tả (~${tien(giaAnhCents(kt.mo_hinh_anh))})`} onClick={() => void sinh(v.id)}>{ban === v.id || dangSinh.nhanVat.includes(v.id) ? '… đang sinh' : v.anh_ref.length ? '✨ Sinh thêm ảnh gốc' : '✨ Sinh ảnh gốc'}</Nut>
+                <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || (!v.mo_ta.trim() && 'tả đặc tính trước')} ban={dangSinh.nhanVat.includes(v.id)} title={`Sinh ảnh gốc (${v.loai === 'nhan_vat' ? 'character sheet: nhiều góc + biểu cảm' : 'ảnh tham chiếu'}) từ mô tả (~${tien(giaAnhCents(kt.mo_hinh_anh))})`} onClick={() => void sinh(v.id)}>{dangSinh.nhanVat.includes(v.id) ? '… đang sinh' : v.anh_ref.length ? '✨ Sinh thêm ảnh gốc' : '✨ Sinh ảnh gốc'}</Nut>
                 <button type="button" className="xv-btn" onClick={() => setBtMo(v.id)} title="Biểu cảm, trang phục, tư thế / góc máy, thời điểm… — mỗi biến thể sinh từ ảnh gốc nên giữ đúng danh tính">🎭 Biến thể ({v.bien_the?.length ?? 0})</button>
                 <Xoa nhan="anchor" onXoa={async () => { await xoaNhanVat(v.id); await onChanged(); }} />
               </div>
-              <Loi>{loi[v.id]}</Loi>
+              <Loi>{loi[v.id] || (!dangSinh.nhanVat.includes(v.id) ? loiAnh.nhanVat[v.id] : '')}</Loi>
               {!!v.bien_the?.length && (
                 <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
                   {v.bien_the.slice(0, 8).map((b) => (
@@ -331,13 +331,13 @@ function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, onChanged 
           </div>
         ))}
       </div>
-      {btMo != null && nhanVat.find((v) => v.id === btMo) && <BienTheDrawer a={nhanVat.find((v) => v.id === btMo)!} khoa={khoa} kt={kt} dangSinh={dangSinh.bienThe} onClose={() => setBtMo(null)} onChanged={onChanged} />}
+      {btMo != null && nhanVat.find((v) => v.id === btMo) && <BienTheDrawer a={nhanVat.find((v) => v.id === btMo)!} khoa={khoa} kt={kt} dangSinh={dangSinh.bienThe} loiBt={loiAnh.bienThe} onClose={() => setBtMo(null)} onChanged={onChanged} />}
       {sua && <NhanVatForm phimId={phimId} goc={sua} onClose={() => setSua(null)} onSaved={async () => { setSua(null); await onChanged(); }} />}
     </div>
   );
 }
 
-function BienTheDrawer({ a, khoa, kt, dangSinh, onClose, onChanged }: { a: NhanVat; khoa: Khoa; kt: Required<KinhThanh>; dangSinh: number[]; onClose: () => void; onChanged: () => Promise<void> }) {
+function BienTheDrawer({ a, khoa, kt, dangSinh, loiBt, onClose, onChanged }: { a: NhanVat; khoa: Khoa; kt: Required<KinhThanh>; dangSinh: number[]; loiBt: Record<number, string>; onClose: () => void; onChanged: () => Promise<void> }) {
   const nhom = NHOM_BIEN_THE[a.loai] ?? NHOM_BIEN_THE.nhan_vat;
   const [f, setF] = useState({ nhom: nhom[0]!.key, ten: '', mo_ta: '' });
   const [ban, setBan] = useState<string | null>(null);
@@ -369,8 +369,8 @@ function BienTheDrawer({ a, khoa, kt, dangSinh, onClose, onChanged }: { a: NhanV
         <span style={{ flex: 1 }} />
         <Nut ly={!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY'} ban={!!ban} title="Claude đọc kịch bản các tập → đề xuất các biến thể cảnh nào cũng cần (vd cảnh khóc → biểu cảm buồn; cảnh đêm → bối cảnh ban đêm)" onClick={() => void chay('ai', () => goiYAIBienThe(a.id))}>{ban === 'ai' ? '… AI đang đề xuất' : '✨ AI đề xuất biến thể theo kịch bản'}</Nut>
         <Nut chinh ly={lyAnh || (chuaAnh.length === 0 && 'mọi biến thể đã có ảnh')} ban={!!ban} title={`${chuaAnh.length} ảnh ≈ ${tien(chuaAnh.length * giaAnhCents(kt.mo_hinh_anh))}`}
-          onClick={() => void chay('all', async () => { for (const b of chuaAnh) { const r = await sinhAnhBienThe(b.id); if (!r.ok) return r; await onChanged(); } })}>
-          {ban === 'all' ? '… đang sinh lần lượt' : `🖼 Sinh ảnh ${chuaAnh.length} biến thể chưa có`}
+          onClick={() => void chay('all', async () => { for (const b of chuaAnh) { const r = await sinhAnhBienThe(b.id); if (!r.ok) return r; } })}>
+          {ban === 'all' ? '… đang xếp hàng' : `🖼 Sinh ảnh ${chuaAnh.length} biến thể chưa có (chạy nền, 4 ảnh song song)`}
         </Nut>
       </div>
       <Loi>{loi}</Loi>
@@ -381,7 +381,7 @@ function BienTheDrawer({ a, khoa, kt, dangSinh, onClose, onChanged }: { a: NhanV
             <h3 style={{ marginBottom: 6 }}>{g.label}<small>{nh.length}</small></h3>
             {nh.length === 0 && <div style={mono}>chưa có</div>}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
-              {nh.map((b) => <BienTheThe key={b.id} b={b} ly={lyAnh} dang={ban === `b${b.id}` || dangSinh.includes(b.id)} ban={!!ban} chay={chay} />)}
+              {nh.map((b) => <BienTheThe key={b.id} b={b} ly={lyAnh} dang={dangSinh.includes(b.id)} loiAnh={dangSinh.includes(b.id) ? '' : loiBt[b.id]} ban={ban === `x${b.id}`} chay={chay} />)}
             </div>
           </div>
         );
@@ -399,7 +399,7 @@ function BienTheDrawer({ a, khoa, kt, dangSinh, onClose, onChanged }: { a: NhanV
   );
 }
 
-function BienTheThe({ b, ly, dang, ban, chay }: { b: BienThe; ly: string | false; dang: boolean; ban: boolean; chay: (k: string, fn: () => Promise<{ ok: boolean; loi?: string } | void>) => Promise<void> }) {
+function BienTheThe({ b, ly, dang, loiAnh, ban, chay }: { b: BienThe; ly: string | false; dang: boolean; loiAnh?: string; ban: boolean; chay: (k: string, fn: () => Promise<{ ok: boolean; loi?: string } | void>) => Promise<void> }) {
   const [sua, setSua] = useState(false);
   const [f, setF] = useState({ ten: b.ten, mo_ta: b.mo_ta });
   return (
@@ -421,10 +421,11 @@ function BienTheThe({ b, ly, dang, ban, chay }: { b: BienThe; ly: string | false
             <strong style={{ fontSize: 12 }}>{b.ten}</strong>
             <div style={{ fontSize: 10.5, color: 'var(--fg-3)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={b.mo_ta}>{b.mo_ta}</div>
             <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
-              <Nut ly={ly} ban={ban || dang} onClick={() => void chay(`b${b.id}`, () => sinhAnhBienThe(b.id))}>{dang ? '… đang sinh' : b.anh_url ? '↻' : '🖼 Sinh'}</Nut>
+              <Nut ly={ly} ban={dang} onClick={() => void chay(`b${b.id}`, () => sinhAnhBienThe(b.id))}>{dang ? '… đang sinh' : b.anh_url ? '↻' : '🖼 Sinh'}</Nut>
               <button type="button" className="xv-btn" onClick={() => setSua(true)}>Sửa</button>
               <Xoa nhan="biến thể" ban={ban} onXoa={() => chay(`x${b.id}`, () => xoaBienThe(b.id))} />
             </div>
+            {loiAnh && <div className="xv-loi" title={loiAnh}>{loiAnh.slice(0, 140)}</div>}
           </>
         )}
       </div>

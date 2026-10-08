@@ -24,6 +24,24 @@ type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
 /** Mảng số → literal mảng Postgres dạng chuỗi ('{1,2}'). Truyền mảng JS thẳng vào sql`` thì postgres-js gửi phần tử số thô
  *  và ném ERR_INVALID_ARG_TYPE ("Received type number (4)") — sinh keyframe hỏng 08/10/2026. */
 const mangInt = (xs: number[]) => `{${xs.map((x) => Math.trunc(Number(x))).filter(Number.isFinite).join(',')}}`;
+// ── Hàng đợi nền cho việc sinh ảnh ──────────────────────────────────────────────────────────────────────────────
+// Server action của Next chạy TUẦN TỰ theo từng trình duyệt: nút chờ ảnh xong mới trả lời thì bấm nút thứ hai phải đợi nút thứ nhất
+// (anh báo 08/10/2026 "không thể bấm Sinh ảnh gốc liên tục"). Giờ action chỉ tạo job + đẩy vào hàng đợi rồi trả ngay; tiến trình
+// mos2-studio chạy nền tối đa TOI_DA việc song song. Trạng thái nằm ở xv_job (trang hỏi lại mỗi 4s), nên F5 không mất gì.
+const TOI_DA_NEN = 4;
+const hangNen: { dang: number; cho: Array<() => Promise<void>> } = { dang: 0, cho: [] };
+function chayNen(viec: () => Promise<void>): void {
+  hangNen.cho.push(viec);
+  bomNen();
+}
+function bomNen(): void {
+  while (hangNen.dang < TOI_DA_NEN && hangNen.cho.length) {
+    const f = hangNen.cho.shift()!;
+    hangNen.dang++;
+    f().catch((e) => console.error('[xuong-video nền]', e)).finally(() => { hangNen.dang--; bomNen(); });
+  }
+}
+
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
 
 async function admin() {
@@ -59,7 +77,7 @@ const mapPhim = (r: Row): Phim => ({
 });
 
 /** dangSinh: job ảnh còn chạy (≤10 phút) — F5 vẫn thấy "đang sinh" vì trạng thái ở sổ job máy chủ, không ở trình duyệt. */
-export type PhimDayDu = { phim: Phim; nhanVat: NhanVat[]; tap: Tap[]; dangSinh: { nhanVat: number[]; bienThe: number[] }; ganDay: Job[]; tongTien: number };
+export type PhimDayDu = { phim: Phim; nhanVat: NhanVat[]; tap: Tap[]; dangSinh: { nhanVat: number[]; bienThe: number[] }; loiAnh: { nhanVat: Record<number, string>; bienThe: Record<number, string> }; ganDay: Job[]; tongTien: number };
 export async function docPhim(id: number): Promise<PhimDayDu | null> {
   const db = getDb();
   if (!db || !(await admin())) return null;
@@ -71,19 +89,28 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
       db.execute(sql`SELECT t.*, (SELECT count(*) FROM xv_canh c WHERE c.tap_id = t.id) AS so_canh FROM xv_tap t WHERE t.phim_id = ${id} ORDER BY so`),
     ]);
     const nvs = (nv as unknown as Row[]).map(mapNhanVat);
-    const [bt, ds, gd, tg] = await Promise.all([
+    const [bt, ds, gd, tg, la] = await Promise.all([
       db.execute(sql`SELECT b.* FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE v.phim_id = ${id} ORDER BY b.nhom, b.id`),
       db.execute(sql`SELECT j.nhan_vat_id, j.bien_the_id FROM xv_job j JOIN xv_nhan_vat v ON v.id = j.nhan_vat_id
         WHERE v.phim_id = ${id} AND j.loai = 'anh' AND j.trang_thai = 'cho' AND j.created_at > now() - interval '10 minutes'`),
       db.execute(sql`SELECT * FROM xv_job WHERE phim_id = ${id} ORDER BY id DESC LIMIT 6`),
       db.execute(sql`SELECT coalesce(sum(chi_phi_cents), 0) AS t FROM xv_job WHERE phim_id = ${id}`),
+      // Lần sinh ảnh gần nhất của mỗi anchor/biến thể — lỗi thì hiện dưới thẻ (việc chạy nền nên lỗi không trả về nút nữa).
+      db.execute(sql`SELECT DISTINCT ON (j.nhan_vat_id, coalesce(j.bien_the_id, 0)) j.nhan_vat_id, j.bien_the_id, j.trang_thai, j.loi
+        FROM xv_job j JOIN xv_nhan_vat v ON v.id = j.nhan_vat_id WHERE v.phim_id = ${id} AND j.loai = 'anh'
+        ORDER BY j.nhan_vat_id, coalesce(j.bien_the_id, 0), j.id DESC`),
     ]);
+    const loiAnh = { nhanVat: {} as Record<number, string>, bienThe: {} as Record<number, string> };
+    for (const r of la as unknown as Row[]) {
+      if (s(r.trang_thai) !== 'loi') continue;
+      if (r.bien_the_id == null) loiAnh.nhanVat[n(r.nhan_vat_id)] = s(r.loi); else loiAnh.bienThe[n(r.bien_the_id)] = s(r.loi);
+    }
     const bts = (bt as unknown as Row[]).map(mapBienThe);
     for (const v of nvs) v.bien_the = bts.filter((b) => b.nhan_vat_id === v.id);
     const dsr = ds as unknown as Row[];
     return {
       phim: mapPhim(p[0]), nhanVat: nvs, tap: (tap as unknown as Row[]).map(mapTap),
-      ganDay: (gd as unknown as Row[]).map(mapJob), tongTien: n((tg as unknown as Row[])[0]?.t),
+      ganDay: (gd as unknown as Row[]).map(mapJob), tongTien: n((tg as unknown as Row[])[0]?.t), loiAnh,
       dangSinh: { nhanVat: dsr.filter((r) => r.bien_the_id == null).map((r) => n(r.nhan_vat_id)), bienThe: dsr.filter((r) => r.bien_the_id != null).map((r) => n(r.bien_the_id)) },
     };
   } catch { return null; }
@@ -237,7 +264,7 @@ export async function xoaNhanVat(id: number): Promise<Kq> {
 }
 
 /** Sinh "ảnh mẫu" cho anchor từ mô tả (character sheet). Ảnh thêm vào anh_ref; các cảnh sau dùng nó làm tham chiếu. */
-export async function sinhAnhMau(nhanVatId: number): Promise<Kq<string>> {
+export async function sinhAnhMau(nhanVatId: number): Promise<Kq<number>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
@@ -246,15 +273,17 @@ export async function sinhAnhMau(nhanVatId: number): Promise<Kq<string>> {
   const nv = mapNhanVat(r[0]);
   if (!nv.mo_ta.trim()) return loi('anchor chưa có mô tả — tả ngoại hình/đặc tính trước rồi mới sinh ảnh mẫu');
   const kt = docKinhThanh(r[0].kt as KinhThanh);
-  const thamChieu = (await Promise.all(nv.anh_ref.slice(0, 3).map(taiAnhBase64))).filter((x): x is AnhVao => !!x);
   const job = await taoJob({ nhan: `Ảnh gốc · ${nv.ten}`, nhan_vat_id: nhanVatId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { prompt: promptAnhMau(nv, kt) } });
-  const kq = await sinhAnh({ model: kt.mo_hinh_anh, prompt: promptAnhMau(nv, kt), thamChieu, tiLe: nv.loai === 'boi_canh' ? kt.ti_le : '1:1', kichCo: '1K' });
-  if (!kq.ok) { await xongJob(job, { loi: kq.loi }); return loi(kq.loi); }
-  const url = await uploadToR2(`xuong-video/anchor/${nhanVatId}-${randomUUID()}.${duoi(kq.mimeType)}`, kq.data, kq.mimeType);
-  if (!url) { await xongJob(job, { loi: 'R2 không nhận ảnh' }); return loi('R2 không nhận ảnh (thiếu cấu hình storage?)'); }
-  await xongJob(job, { output_url: url, model: kq.model, chi_phi_cents: giaAnhCents(kq.model) });
-  await db.execute(sql`UPDATE xv_nhan_vat SET anh_ref = (anh_ref || ${JSON.stringify([url])}::jsonb), updated_at = now() WHERE id = ${nhanVatId}`);
-  return { ok: true, data: url };
+  chayNen(async () => {
+    const thamChieu = (await Promise.all(nv.anh_ref.slice(0, 3).map(taiAnhBase64))).filter((x): x is AnhVao => !!x);
+    const kq = await sinhAnh({ model: kt.mo_hinh_anh, prompt: promptAnhMau(nv, kt), thamChieu, tiLe: nv.loai === 'boi_canh' ? kt.ti_le : '1:1', kichCo: '1K' });
+    if (!kq.ok) { await xongJob(job, { loi: kq.loi }); return; }
+    const url = await uploadToR2(`xuong-video/anchor/${nhanVatId}-${randomUUID()}.${duoi(kq.mimeType)}`, kq.data, kq.mimeType);
+    if (!url) { await xongJob(job, { loi: 'R2 không nhận ảnh' }); return; }
+    await xongJob(job, { output_url: url, model: kq.model, chi_phi_cents: giaAnhCents(kq.model) });
+    await db.execute(sql`UPDATE xv_nhan_vat SET anh_ref = (anh_ref || ${JSON.stringify([url])}::jsonb), updated_at = now() WHERE id = ${nhanVatId}`);
+  });
+  return { ok: true, data: job };
 }
 
 // ── Biến thể anchor (biểu cảm · trang phục · tư thế · góc máy · thời điểm…) ───────────────────────────────────────
@@ -307,7 +336,7 @@ export async function goiYAIBienThe(nhanVatId: number): Promise<Kq<number>> {
 }
 
 /** Sinh ảnh một biến thể TỪ ảnh gốc của anchor (tham chiếu) → giữ danh tính, chỉ đổi phần biến thể. */
-export async function sinhAnhBienThe(bienTheId: number): Promise<Kq<string>> {
+export async function sinhAnhBienThe(bienTheId: number): Promise<Kq<number>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
@@ -320,15 +349,17 @@ export async function sinhAnhBienThe(bienTheId: number): Promise<Kq<string>> {
   const kt = docKinhThanh(r[0].kt as KinhThanh);
   const a = { loai: s(r[0].v_loai) as LoaiNhanVat, ten: s(r[0].v_ten), mo_ta: s(r[0].v_mo_ta) };
   const prompt = promptBienThe(a, b, kt);
-  const thamChieu = (await Promise.all(anhGoc.slice(0, 2).map(taiAnhBase64))).filter((x): x is AnhVao => !!x);
   const job = await taoJob({ nhan: `Biến thể · ${a.ten} · ${b.ten}`, nhan_vat_id: b.nhan_vat_id, bien_the_id: bienTheId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { prompt } });
-  const kq = await sinhAnh({ model: kt.mo_hinh_anh, prompt, thamChieu, tiLe: a.loai === 'boi_canh' ? kt.ti_le : '1:1', kichCo: '1K' });
-  if (!kq.ok) { await xongJob(job, { loi: kq.loi }); return loi(kq.loi); }
-  const url = await uploadToR2(`xuong-video/bien-the/${bienTheId}-${randomUUID()}.${duoi(kq.mimeType)}`, kq.data, kq.mimeType);
-  if (!url) { await xongJob(job, { loi: 'R2 không nhận ảnh' }); return loi('R2 không nhận ảnh'); }
-  await xongJob(job, { output_url: url, model: kq.model, chi_phi_cents: giaAnhCents(kq.model) });
-  await db.execute(sql`UPDATE xv_bien_the SET anh_url = ${url}, updated_at = now() WHERE id = ${bienTheId}`);
-  return { ok: true, data: url };
+  chayNen(async () => {
+    const thamChieu = (await Promise.all(anhGoc.slice(0, 2).map(taiAnhBase64))).filter((x): x is AnhVao => !!x);
+    const kq = await sinhAnh({ model: kt.mo_hinh_anh, prompt, thamChieu, tiLe: a.loai === 'boi_canh' ? kt.ti_le : '1:1', kichCo: '1K' });
+    if (!kq.ok) { await xongJob(job, { loi: kq.loi }); return; }
+    const url = await uploadToR2(`xuong-video/bien-the/${bienTheId}-${randomUUID()}.${duoi(kq.mimeType)}`, kq.data, kq.mimeType);
+    if (!url) { await xongJob(job, { loi: 'R2 không nhận ảnh' }); return; }
+    await xongJob(job, { output_url: url, model: kq.model, chi_phi_cents: giaAnhCents(kq.model) });
+    await db.execute(sql`UPDATE xv_bien_the SET anh_url = ${url}, updated_at = now() WHERE id = ${bienTheId}`);
+  });
+  return { ok: true, data: job };
 }
 
 // ── Tập ──────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -462,7 +493,7 @@ function ghepPromptAnh(prompt: string, phongCach: string, nv: NhanVat[]): string
 }
 
 /** Sinh keyframe: `so` ứng viên (1-3), nối vào keyframe_uv; cảnh chưa có ảnh chọn thì tự chọn ảnh đầu. */
-export async function sinhKeyframe(canhId: number, so = 1, moHinh?: string): Promise<Kq<string[]>> {
+export async function sinhKeyframe(canhId: number, so = 1, moHinh?: string): Promise<Kq<number[]>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
@@ -479,26 +510,23 @@ export async function sinhKeyframe(canhId: number, so = 1, moHinh?: string): Pro
   const thamChieu = (await Promise.all(urlRef.map(taiAnhBase64))).filter((x): x is AnhVao => !!x);
   const ghiChuBt = bc.nhanVat.map((v) => { const b = btCanh(v); return b ? `${v.ten} in this shot: ${b.mo_ta || b.ten}.` : ''; }).filter(Boolean).join(' ');
   const prompt = [ghepPromptAnh(bc.canh.prompt_anh, bc.kt.phong_cach, bc.nhanVat), ghiChuBt].filter(Boolean).join(' ');
-  const urls: string[] = [];
-  let loiCuoi = '';
+  const jobs: number[] = [];
   for (let i = 0; i < Math.max(1, Math.min(3, so)); i++) {
     const job = await taoJob({ nhan: `Keyframe · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt, thamChieu: thamChieu.length } });
-    const kq = await sinhAnh({ model: bc.kt.mo_hinh_anh, prompt, thamChieu, tiLe: bc.kt.ti_le, kichCo: '1K' });
-    if (!kq.ok) { loiCuoi = kq.loi; await xongJob(job, { loi: kq.loi }); continue; }
-    const url = await uploadToR2(`xuong-video/keyframe/${canhId}-${randomUUID()}.${duoi(kq.mimeType)}`, kq.data, kq.mimeType);
-    if (!url) { loiCuoi = 'R2 không nhận ảnh'; await xongJob(job, { loi: loiCuoi }); continue; }
-    const gia = giaAnhCents(kq.model);
-    await xongJob(job, { output_url: url, model: kq.model, chi_phi_cents: gia });
-    urls.push(url);
-    await db.execute(sql`UPDATE xv_canh SET keyframe_uv = (keyframe_uv || ${JSON.stringify([url])}::jsonb),
-      keyframe_url = coalesce(keyframe_url, ${url}), trang_thai = CASE WHEN trang_thai = 'nhap' THEN 'co_keyframe' ELSE trang_thai END,
-      chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canhId}`);
+    jobs.push(job);
+    chayNen(async () => {
+      const kq = await sinhAnh({ model: bc.kt.mo_hinh_anh, prompt, thamChieu, tiLe: bc.kt.ti_le, kichCo: '1K' });
+      if (!kq.ok) { await xongJob(job, { loi: kq.loi }); await db.execute(sql`UPDATE xv_canh SET loi = ${kq.loi}, updated_at = now() WHERE id = ${canhId}`); return; }
+      const url = await uploadToR2(`xuong-video/keyframe/${canhId}-${randomUUID()}.${duoi(kq.mimeType)}`, kq.data, kq.mimeType);
+      if (!url) { await xongJob(job, { loi: 'R2 không nhận ảnh' }); await db.execute(sql`UPDATE xv_canh SET loi = 'R2 không nhận ảnh' WHERE id = ${canhId}`); return; }
+      const gia = giaAnhCents(kq.model);
+      await xongJob(job, { output_url: url, model: kq.model, chi_phi_cents: gia });
+      await db.execute(sql`UPDATE xv_canh SET keyframe_uv = (keyframe_uv || ${JSON.stringify([url])}::jsonb),
+        keyframe_url = coalesce(keyframe_url, ${url}), trang_thai = CASE WHEN trang_thai = 'nhap' THEN 'co_keyframe' ELSE trang_thai END,
+        chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canhId}`);
+    });
   }
-  if (!urls.length) {
-    await db.execute(sql`UPDATE xv_canh SET loi = ${loiCuoi}, updated_at = now() WHERE id = ${canhId}`);
-    return loi(loiCuoi || 'không sinh được ảnh');
-  }
-  return { ok: true, data: urls };
+  return { ok: true, data: jobs };
 }
 
 export async function chonKeyframe(canhId: number, url: string): Promise<Kq> {

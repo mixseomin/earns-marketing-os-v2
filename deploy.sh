@@ -160,6 +160,11 @@ STUDIO_CHANGED=false
 if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^(apps/xuong-video/|packages/db/src/|package-lock\.json)"; then
   STUDIO_CHANGED=true
 fi
+# Luôn thay khi artifact mới khác bản đang chạy: so git diff PREV..NEW hỏng khi hai lượt deploy chồng nhau (lượt trước đã kéo code
+# mới nhưng thay build CŨ, lượt sau thấy PREV==NEW nên bỏ qua → máy chạy build cũ, 08/10/2026 bản sửa keyframe không lên).
+if [ -f apps/xuong-video/.next.new/BUILD_ID ] && ! cmp -s apps/xuong-video/.next.new/BUILD_ID apps/xuong-video/.next/BUILD_ID; then
+  STUDIO_CHANGED=true
+fi
 if [ -f apps/xuong-video/.next.new/BUILD_ID ] && { [ "$STUDIO_CHANGED" = "true" ] || [ "$DEPS_CHANGED" = "true" ] || [ ! -f apps/xuong-video/.next/BUILD_ID ]; }; then
   rm -rf apps/xuong-video/.next.old
   [ -e apps/xuong-video/.next ] && mv apps/xuong-video/.next apps/xuong-video/.next.old

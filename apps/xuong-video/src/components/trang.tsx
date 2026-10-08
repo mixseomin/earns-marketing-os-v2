@@ -12,12 +12,13 @@ import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, nhanKyThuat, type Nhom
 import {
   dsPhim, docPhim, dsCanh, taoPhim, taoPhimMau, suaPhim, xoaPhim, luuNhanVat, xoaNhanVat, sinhAnhMau, taoTap, suaTap,
   vietKichBanTap, tachCanhTap, suaCanh, themCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, uocTien, sinhVideoCanh, kiemVideo, taiAnhLen,
-  dsMoHinh, xepCanh, datAnhChinh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, dsGiongModel, dsGiongCua, chonGiong, ngheThuGiong, xoaAnhGoc, xoaAnhBienThe, xoaKeyframe, dsThungRac, khoiPhuc, type MoHinhChon,
+  dsMoHinh, xepCanh, datAnhChinh, layTuLinkSanPham, sinhGiong, sinhAmThanh, sinhNhac, uocAm, dsGiongModel, dsGiongCua, chonGiong, ngheThuGiong, xoaAnhGoc, xoaAnhBienThe, xoaKeyframe, dsThungRac, khoiPhuc, type MoHinhChon,
   goiYAIKinhThanh, goiYAIAnchor, goiYAIBoAnchor, goiYAIBrief, goiYAICanh, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, nangCapCanh, chonPhienBan,
   type PhimDayDu,
 } from '@/lib/actions';
 import {
   LOAI_PHIM, LOAI_NHAN_VAT, TRANG_THAI_CANH, NHOM_BIEN_THE, nhanNhom, thanhPhanCanh, NANG_CAP, MO_HINH_ANH, MO_HINH_VIDEO, MO_HINH_CHU, docKinhThanh, giaAnhCents, giaVideoCents, tien,
+  QC_TRONG, type ThongTinQc,
   type Phim, type NhanVat, type BienThe, type Tap, type Canh, type Job, type KinhThanh, type LoaiPhim, type LoaiNhanVat,
 } from '@/lib/xuong-video/kieu';
 
@@ -281,7 +282,7 @@ function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onCl
         <button type="button" className="xv-btn" onClick={onClose}>Đóng</button>
       </div>
 
-      <KinhThanhForm phim={phim} onSaved={tai} />
+      <KinhThanhForm phim={phim} khoa={khoa} onSaved={tai} />
       <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} />
 
       <div className="xv-panel">
@@ -334,7 +335,7 @@ function ChiPhiGanDay({ jobs, tong, phimId }: { jobs: Job[]; tong: number; phimI
 
 // ── Kinh thánh (bible) ──────────────────────────────────────────────────────────────────────────────────────────
 
-function KinhThanhForm({ phim, onSaved }: { phim: Phim; onSaved: () => Promise<void> }) {
+function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa; onSaved: () => Promise<void> }) {
   const goc = useMemo(() => docKinhThanh(phim.kinh_thanh), [phim.kinh_thanh]);
   const moHinh = useContext(MoHinhCtx);
   const [kt, setKt] = useState<Required<KinhThanh>>(goc);
@@ -345,18 +346,53 @@ function KinhThanhForm({ phim, onSaved }: { phim: Phim; onSaved: () => Promise<v
   useEffect(() => { setKt(goc); setMoTa(phim.mo_ta); }, [goc, phim.mo_ta]);
   const dirty = JSON.stringify(kt) !== JSON.stringify(goc) || moTa !== phim.mo_ta;
   const set = <K extends keyof KinhThanh>(k: K, v: Required<KinhThanh>[K]) => setKt((x) => ({ ...x, [k]: v }));
+  // Phim quảng cáo: khai sản phẩm/dịch vụ TRƯỚC — mọi nút AI đọc nó (#1201).
+  const laQc = phim.loai === 'quang_cao';
+  const qc: ThongTinQc = { ...QC_TRONG, ...(kt.qc ?? {}) };
+  const setQc = (p: Partial<ThongTinQc>) => setKt((x) => ({ ...x, qc: { ...QC_TRONG, ...(x.qc ?? {}), ...p } }));
+  const thieuQc = laQc && !qc.ten.trim() && !qc.link.trim() && !qc.diem_noi_bat.trim();
+  const [docLink, setDocLink] = useState(false);
+  const layLink = async () => {
+    setDocLink(true); setLoiAi('');
+    const r = await layTuLinkSanPham(phim.id, qc.link);
+    setDocLink(false);
+    if (!r.ok) { setLoiAi(r.loi); return; }
+    setQc({ ...r.data, ten: qc.ten || r.data.ten, anh: [...new Set([...qc.anh, ...r.data.anh])].slice(0, 10) });
+  };
   const goiY = async () => { setAi(true); setLoiAi(''); const r = await goiYAIKinhThanh(phim.id); setAi(false); if (!r.ok) { setLoiAi(r.loi); return; } set('phong_cach', r.data.phong_cach); setMoTa(r.data.mo_ta); if (r.data.the_loai && THE_LOAI.some((t) => t.key === r.data.the_loai)) set('the_loai', r.data.the_loai as TheLoai); if (r.data.logline) set('logline', r.data.logline); if (r.data.chu_de) set('chu_de', r.data.chu_de); };
   return (
     <details className="xv-det xv-panel" open={!kt.phong_cach || !kt.the_loai}>
       <summary>1 · Kinh thánh của bộ phim <small>{kt.phong_cach ? `${kt.ti_le} · ${kt.do_phan_giai}` : 'chưa đặt phong cách'} · {kt.the_loai ? `🎭 ${THE_LOAI.find((t) => t.key === kt.the_loai)?.ten}` : <b style={{ color: 'var(--amber)' }}>⚠ chưa chọn thể loại (thư viện điện ảnh dựa vào đây)</b>}{kt.logline ? ` · “${kt.logline.slice(0, 70)}”` : ''}</small></summary>
+      {laQc && (
+        <div className="xv-panel" style={{ marginTop: 10, borderColor: thieuQc ? 'var(--amber)' : 'var(--line)' }}>
+          <h3 style={{ margin: '0 0 6px' }}>0 · Sản phẩm / dịch vụ được quảng cáo <small>{thieuQc ? '⚠ khai trước — AI gợi ý, viết kịch bản, tách cảnh đều dựa vào đây' : 'AI mọi bước bám theo thông tin này'}</small></h3>
+          <div className="xv-grid">
+            <O span label="Link trang sản phẩm" hint="dán link → bấm Lấy từ link: AI đọc trang, điền sẵn tên, điểm nổi bật, đối tượng, ưu đãi + kéo ảnh sản phẩm về (~$0.01)">
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input className="xv-in" value={qc.link} onChange={(e) => setQc({ link: e.target.value })} placeholder="https://shop.com/products/…" />
+                <Nut ly={(!/^https?:\/\//.test(qc.link.trim()) && 'dán link http(s) trước') || (!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY')} ban={docLink} onClick={() => void layLink()}>{docLink ? '… AI đang đọc trang' : '🔗 Lấy từ link'}</Nut>
+              </div>
+            </O>
+            <O label="Tên sản phẩm / dịch vụ"><input className="xv-in" value={qc.ten} onChange={(e) => setQc({ ten: e.target.value })} placeholder="Gentle Lift Bra" /></O>
+            <O label="Khách hàng mục tiêu"><input className="xv-in" value={qc.doi_tuong} onChange={(e) => setQc({ doi_tuong: e.target.value })} placeholder="Phụ nữ Mỹ 50+, mỏi vai vì bra gọng" /></O>
+            <O label="Ưu đãi / lời kêu gọi"><input className="xv-in" value={qc.uu_dai} onChange={(e) => setQc({ uu_dai: e.target.value })} placeholder="50%+ OFF · Mua 2 tặng 1 · Shop now" /></O>
+            <O label="Thị trường · ngôn ngữ"><input className="xv-in" value={qc.thi_truong} onChange={(e) => setQc({ thi_truong: e.target.value })} placeholder="Mỹ · tiếng Anh" /></O>
+            <O span label="Điểm nổi bật / lợi ích (có thật)"><textarea className="xv-ta" rows={3} value={qc.diem_noi_bat} onChange={(e) => setQc({ diem_noi_bat: e.target.value })} placeholder="Không gọng, nâng nhẹ từ hai bên, vải dệt liền mềm, dây vai bản rộng, cài trước…" /></O>
+            <O span label="Ảnh sản phẩm thật" hint="dán Ctrl+V · nút Dán (điện thoại) · kéo thả · chọn file · URL. Lưu kinh thánh → ảnh vào anchor sản phẩm, AI giữ đúng màu/dáng khi sinh cảnh.">
+              <ImageAttach value={qc.anh} onChange={(urls) => setQc({ anh: urls })} max={10} nhanBo="Bỏ ảnh"
+                upload={async (du) => { const r = await taiAnhLen(du); return r.ok ? { ok: true, url: r.data } : { ok: false, error: r.loi }; }} />
+            </O>
+          </div>
+        </div>
+      )}
       <div className="xv-grid" style={{ marginTop: 10 }}>
         <O span label="Phong cách hình ảnh" hint="Viết như tả cho hoạ sĩ: chất liệu, bảng màu, ánh sáng, lens. Tiếng Việt hay Anh đều được. Nối vào đầu mọi prompt để các tập giống nhau.">
-          <textarea className="xv-ta" rows={2} value={kt.phong_cach} onChange={(e) => set('phong_cach', e.target.value)} placeholder="3D hoạt hình kiểu Pixar, màu ấm, ánh sáng mềm buổi sáng, khu rừng cổ tích…" />
+          <textarea className="xv-ta" rows={2} value={kt.phong_cach} onChange={(e) => set('phong_cach', e.target.value)} placeholder={laQc ? "Quay thật kiểu UGC, ánh sáng cửa sổ, cầm tay, chân thực…" : "3D hoạt hình kiểu Pixar, màu ấm, ánh sáng mềm buổi sáng, khu rừng cổ tích…"} />
         </O>
         <O span label="Mô tả / tiền đề"><textarea className="xv-ta" rows={2} value={moTa} onChange={(e) => setMoTa(e.target.value)} placeholder="Bộ phim kể về… / Sản phẩm là… bán cho…" /></O>
         <O label="Thể loại" hint="quyết định thư viện cỡ cảnh / ánh sáng / âm thanh / nhạc Claude chọn cho từng shot"><Chon value={kt.the_loai} onChange={(v) => set('the_loai', v as TheLoai)} options={THE_LOAI.map((t) => ({ value: t.key, label: t.ten, title: t.mo_ta, phu: t.mo_ta.split(',')[0] }))} placeholder="chọn thể loại…" minWidth={220} /></O>
-        <O label="Logline" hint="một câu: ai · muốn gì · cái gì cản"><input className="xv-in" value={kt.logline} onChange={(e) => set('logline', e.target.value)} placeholder="Rùa con chậm chạp phải băng qua rừng úa để cứu cây mẹ trước khi mùa đông tới" /></O>
-        <O label="Chủ đề" hint="điều bộ phim muốn nói"><input className="xv-in" value={kt.chu_de} onChange={(e) => set('chu_de', e.target.value)} placeholder="Chậm mà bền, đi cùng nhau thì tới" /></O>
+        <O label="Logline" hint="một câu: ai · muốn gì · cái gì cản"><input className="xv-in" value={kt.logline} onChange={(e) => set('logline', e.target.value)} placeholder={laQc ? "Phụ nữ 50+ mỏi vai vì bra gọng tìm được chiếc bra nâng mặc cả ngày quên" : "Rùa con chậm chạp phải băng qua rừng úa để cứu cây mẹ trước khi mùa đông tới"} /></O>
+        <O label="Chủ đề" hint="điều bộ phim muốn nói"><input className="xv-in" value={kt.chu_de} onChange={(e) => set('chu_de', e.target.value)} placeholder={laQc ? "Thoải mái mà vẫn đẹp" : "Chậm mà bền, đi cùng nhau thì tới"} /></O>
         <O label="Khung hình"><Seg options={[{ value: '9:16', label: '9:16 dọc' }, { value: '16:9', label: '16:9 ngang' }]} value={kt.ti_le} onChange={(v) => set('ti_le', v)} /></O>
         <O label="Độ phân giải video"><Seg options={[{ value: '720p', label: '720p (rẻ)' }, { value: '1080p', label: '1080p' }]} value={kt.do_phan_giai} onChange={(v) => set('do_phan_giai', v)} /></O>
         <O label="Model ảnh (mặc định)"><Chon value={kt.mo_hinh_anh} onChange={(v) => set('mo_hinh_anh', v as Required<KinhThanh>['mo_hinh_anh'])} options={luaChonAnh(moHinh.anh.length ? moHinh.anh : MO_HINH_ANH.map((m) => ({ key: m.key, label: m.label, nhom: '', giaCents: m.gia1k, donVi: 'anh' as const })))} /></O>
@@ -366,7 +402,7 @@ function KinhThanhForm({ phim, onSaved }: { phim: Phim; onSaved: () => Promise<v
       </div>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
         <Nut ly={!dirty && 'chưa sửa gì'} ban={luu} chinh onClick={async () => { setLuu(true); await suaPhim(phim.id, { kinh_thanh: kt, mo_ta: moTa }); setLuu(false); await onSaved(); }}>Lưu kinh thánh</Nut>
-        <Nut ban={ai} title="Claude đọc tên phim, loại, tuyến nhân vật, các tập đã có → viết phong cách + tiền đề khớp. Chỉ điền vào ô, anh xem rồi Lưu." onClick={() => void goiY()}>{ai ? '… AI đang viết' : '✨ AI gợi ý phong cách + tiền đề'}</Nut>
+        <Nut ly={thieuQc && 'khai sản phẩm/dịch vụ ở mục 0 trước (hoặc dán link rồi bấm Lấy từ link)'} ban={ai} title="Claude đọc tên phim, loại, sản phẩm (quảng cáo), tuyến nhân vật, các tập đã có → viết phong cách + tiền đề + thể loại + logline. Chỉ điền vào ô, anh xem rồi Lưu." onClick={() => void goiY()}>{ai ? '… AI đang viết' : '✨ AI gợi ý phong cách + tiền đề'}</Nut>
       </div>
       <Loi>{loiAi}</Loi>
     </details>
@@ -720,6 +756,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
   const [uocA, setUocA] = useState<Awaited<ReturnType<typeof uocAm>> | null>(null);
   const [mhNhac, setMhNhac] = useState('cassetteai/music-generator');
   const kt = docKinhThanh(phim.kinh_thanh);
+  const thieuQc = phim.loai === 'quang_cao' && !(kt.qc?.ten.trim() || kt.qc?.link.trim() || kt.qc?.diem_noi_bat.trim()) && 'khai sản phẩm/dịch vụ ở kinh thánh (mục 0) trước';
   // Dấu vân của danh sách cảnh: đổi (sinh xong keyframe/video, duyệt, thêm/bớt cảnh) → báo phim tải lại để chip thống kê
   // đầu phim chạy theo thời gian thực (card #1191). So dấu chứ không báo mỗi lần hỏi, để không tải phim vô ích mỗi 4 giây.
   const dauCanh = useRef('');
@@ -764,7 +801,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
       {phim.loai === 'phim' && <O label="Tên tập"><input className="xv-in" value={tenTap} onChange={(e) => setTenTap(e.target.value)} placeholder="Cuộc đua bắt đầu" style={{ maxWidth: 420 }} /></O>}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 2fr) minmax(320px, 3fr)', gap: 12, alignItems: 'start' }}>
         <div>
-          <O label={<span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>3a · Brief (ý tưởng tập này) <Nut ly={!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY'} ban={banTach || ban('brief')} title="Claude đọc tiền đề + tuyến nhân vật + tóm tắt các tập trước → gợi ý brief cho tập này" onClick={() => void chay('brief', async () => { const r = await goiYAIBrief(tap.id, thoiLuong); if (r.ok) setBrief(r.data); return r; })}>{ban('brief') ? '… AI' : '✨ AI gợi ý brief'}</Nut></span>}
+          <O label={<span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>3a · Brief (ý tưởng tập này) <Nut ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || thieuQc} ban={banTach || ban('brief')} title="Claude đọc tiền đề + tuyến nhân vật + tóm tắt các tập trước → gợi ý brief cho tập này" onClick={() => void chay('brief', async () => { const r = await goiYAIBrief(tap.id, thoiLuong); if (r.ok) setBrief(r.data); return r; })}>{ban('brief') ? '… AI' : '✨ AI gợi ý brief'}</Nut></span>}
             hint="Bỏ qua nếu đã có kịch bản sẵn — dán thẳng vào ô 3b bên phải.">
             <textarea className="xv-ta" rows={12} value={brief} onChange={(e) => setBrief(e.target.value)} onBlur={() => { if (brief !== tap.brief) void suaTap(tap.id, { brief }).then(onChanged); }}
               placeholder={phim.loai === 'quang_cao' ? 'Sản phẩm, điểm bán chính, khách mục tiêu, hook mở đầu, CTA…' : phim.loai === 'phim' ? 'Tập này kể gì, xung đột, kết tập mở ra tập sau…' : 'Ý tưởng, hook 3 giây đầu, twist, CTA…'} />
@@ -772,7 +809,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             <input className="xv-in" type="number" min={8} max={300} value={thoiLuong} onChange={(e) => setThoiLuong(Number(e.target.value) || 30)} style={{ width: 70 }} title="tổng giây" />
             <span style={mono}>giây</span>
-            <Nut ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || (!brief.trim() && 'viết brief trước')} ban={banTach || ban('viet')} title="Viết kịch bản từ brief → điền sang ô 3b"
+            <Nut ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || thieuQc || (!brief.trim() && 'viết brief trước')} ban={banTach || ban('viet')} title="Viết kịch bản từ brief → điền sang ô 3b"
               onClick={() => void chay('viet', async () => { const r = await vietKichBanTap(tap.id, brief, thoiLuong); if (r.ok) setKichBan(r.data); return r; })}>
               {ban('viet') ? '… đang viết' : '✍ Claude viết kịch bản →'}
             </Nut>

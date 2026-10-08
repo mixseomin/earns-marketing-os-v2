@@ -54,7 +54,8 @@ Cảnh 7: Hai bạn ngồi bên bờ đầm, phía xa Đỉnh Núi Pha Lê lấp
     loai: 'quang_cao',
     ten: 'Mẫu creative QC · áo bra không gọng (24s)',
     mo_ta: 'Creative Meta/TikTok 9:16 cho sản phẩm áo bra không gọng: hook vấn đề → sản phẩm → bằng chứng → CTA. Thay sản phẩm bằng ảnh thật của shop ở anchor.',
-    kinh_thanh: { phong_cach: 'Quay thật kiểu UGC, ánh sáng tự nhiên trong nhà, màu trung tính ấm, máy cầm tay nhẹ, điện thoại 9:16, chân thực không bóng bẩy', ti_le: '9:16', do_phan_giai: '720p', ngon_ngu: 'vi' },
+    kinh_thanh: { phong_cach: 'Quay thật kiểu UGC, ánh sáng tự nhiên trong nhà, màu trung tính ấm, máy cầm tay nhẹ, điện thoại 9:16, chân thực không bóng bẩy', ti_le: '9:16', do_phan_giai: '720p', ngon_ngu: 'vi', the_loai: 'qc_ugc',
+      qc: { ten: 'Áo bra không gọng', link: '', diem_noi_bat: 'Không gọng, vải mềm co giãn, dây vai bản rộng 2cm, khoá móc sau 3 nấc, đường may phẳng — mặc cả ngày không hằn vai', doi_tuong: 'Phụ nữ Việt 30-50 tuổi đi làm, mặc bra gọng cả ngày bị hằn vai', uu_dai: 'Giảm 50% cho 100 đơn đầu · Mua 2 tặng 1 · Đổi size miễn phí', thi_truong: 'Việt Nam · tiếng Việt', anh: [] } },
     nhan_vat: [
       { loai: 'san_pham', ten: 'Áo bra không gọng', mo_ta: 'Áo bra không gọng màu be nude, chất vải mềm co giãn, dây vai bản rộng 2cm, khoá móc sau 3 nấc, đường may phẳng, không ren. Phải giữ ĐÚNG màu, kiểu dáng và chi tiết như ảnh mẫu.' },
       { loai: 'nhan_vat', ten: 'Chị Lan', mo_ta: 'Phụ nữ châu Á 38 tuổi, tóc đen dài buộc thấp, dáng người thật, da ngăm nhẹ, mặc áo thun trắng rộng và quần jean, biểu cảm tự nhiên, thân thiện.', giong: 'giọng nữ miền Nam, gần gũi, như kể chuyện với bạn' },
@@ -74,7 +75,8 @@ Cảnh 5: Chị Lan cầm điện thoại cười: "Đang giảm 50% cho 100 đ�
     loai: 'quang_cao',
     ten: 'Mẫu QC · Gentle lifting bra for seniors (45s, Meta US)',
     mo_ta: 'Creative Meta 9:16, 45 giây, tiếng Anh cho phụ nữ Mỹ 50+: hook "bra thiết kế cho cơ thể tuổi 25" → người sáng lập kể → demo nâng + thoải mái → bằng chứng → ưu đãi 50%+ → Shop now. Khung chữ theo hai góc đang thắng của LunaFits; thay ảnh sản phẩm thật của shop ở anchor.',
-    kinh_thanh: { phong_cach: 'Authentic UGC testimonial look, soft natural window light, warm neutral tones, handheld iPhone 9:16 framing, real skin texture, no glamour retouching, cozy American suburban home', ti_le: '9:16', do_phan_giai: '720p', ngon_ngu: 'en' },
+    kinh_thanh: { phong_cach: 'Authentic UGC testimonial look, soft natural window light, warm neutral tones, handheld iPhone 9:16 framing, real skin texture, no glamour retouching, cozy American suburban home', ti_le: '9:16', do_phan_giai: '720p', ngon_ngu: 'en', the_loai: 'qc_ugc',
+      qc: { ten: 'Gentle Lift Bra', link: '', diem_noi_bat: 'The lift of a push-up, the comfort of a bralette: no wires, no pads, seamless soft knit, wide comfort straps, front hook closure, gentle side lift', doi_tuong: 'American women 50+ tired of underwire bras that dig in and do not fit a changing body', uu_dai: '50%+ OFF Sitewide · Shop now', thi_truong: 'United States · English', anh: [] } },
     nhan_vat: [
       { loai: 'san_pham', ten: 'Gentle Lift Bra', mo_ta: 'Wireless lifting bra, soft nude beige, seamless knit, wide 2 cm comfort straps, front hook-and-eye closure, no underwire, no padding, gentle lift from the sides. Keep EXACT color, shape and details from the reference photo.' },
       { loai: 'nhan_vat', ten: 'Linda', mo_ta: 'American woman, 58, shoulder-length silver-blonde hair, warm smile, natural laugh lines, real mature body, wears a loose cream cardigan over a white tee and light jeans; friendly founder who talks to camera like a friend.', giong: 'warm, calm American female voice, mid-50s, conversational' },

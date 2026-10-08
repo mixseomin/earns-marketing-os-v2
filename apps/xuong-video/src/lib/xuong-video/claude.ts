@@ -70,6 +70,7 @@ Phong cách hình ảnh cố định của bộ phim: ${kt.phong_cach || '(chưa
 Khung hình ${kt.ti_le}, mỗi cảnh là MỘT clip video AI dài 4/6/8 giây sinh từ một ảnh keyframe, nên mỗi cảnh chỉ có một hành động chính, một góc máy.
 Ngôn ngữ lời thoại/lời dẫn: ${kt.ngon_ngu === 'vi' ? 'tiếng Việt' : kt.ngon_ngu}.
 ${kt.the_loai ? `Thể loại: ${THE_LOAI.find((t) => t.key === kt.the_loai)?.ten} (${THE_LOAI.find((t) => t.key === kt.the_loai)?.mo_ta}).` : ''}${kt.logline ? `\nLogline: ${kt.logline}` : ''}${kt.chu_de ? `\nChủ đề: ${kt.chu_de}` : ''}
+${taQc(kt)}
 QUY TẮC ĐỒNG NHẤT: nhân vật, sản phẩm, bối cảnh phải tả bằng đúng đặc tính cố định trong danh sách anchor ở mọi cảnh (cùng màu lông, cùng trang phục, cùng tỉ lệ cơ thể, cùng chất liệu). prompt_anh và prompt_video viết tiếng Anh, tả người/vật theo đặc tính chứ không dùng tên riêng (model ảnh không biết tên). Mỗi prompt tự đứng được một mình, không tham chiếu cảnh khác.`;
 
 /** Thư viện điện ảnh rút gọn cho prompt: kỹ thuật hợp thể loại trước, mỗi dòng "key — tên: dùng khi nào". */
@@ -210,12 +211,22 @@ const CanhLaiSchema = ShotSchema;   // viết lại một shot: kèm cảm xúc 
 export type DungChu = { model: string; tokens: { in: number; out: number } };
 type GoiYKq<T> = ({ ok: true; data: T } & DungChu) | { ok: false; loi: string };
 
+/** Sản phẩm / dịch vụ của phim quảng cáo — nằm trong MỌI ngữ cảnh gửi Claude (gợi ý, kịch bản, tách cảnh). */
+export function taQc(kt: Required<KinhThanh>): string {
+  const q = kt.qc;
+  if (!q || !(q.ten || q.link || q.diem_noi_bat)) return '';
+  return `SẢN PHẨM / DỊCH VỤ ĐƯỢC QUẢNG CÁO (bám đúng, không bịa tính năng):\n${[
+    q.ten && `- Tên: ${q.ten}`, q.link && `- Trang: ${q.link}`, q.diem_noi_bat && `- Điểm nổi bật: ${q.diem_noi_bat}`,
+    q.doi_tuong && `- Khách hàng mục tiêu: ${q.doi_tuong}`, q.uu_dai && `- Ưu đãi / CTA: ${q.uu_dai}`, q.thi_truong && `- Thị trường: ${q.thi_truong}`,
+  ].filter(Boolean).join('\n')}`;
+}
 function taNguCanh(nc: NguCanhPhim): string {
   const kt = docKinhThanh(nc.kinhThanh);
   return [
     `BỘ PHIM: ${nc.ten} (${LOAI_PHIM.find((l) => l.key === nc.loai)?.label ?? nc.loai})`,
     nc.mo_ta ? `TIỀN ĐỀ: ${nc.mo_ta}` : '',
     kt.phong_cach ? `PHONG CÁCH CỐ ĐỊNH: ${kt.phong_cach}` : '',
+    taQc(kt),
     `KHUNG HÌNH ${kt.ti_le} · ngôn ngữ ${kt.ngon_ngu}`,
     `TUYẾN NHÂN VẬT / SẢN PHẨM / BỐI CẢNH (phải giữ đúng):\n${taAnchor(nc.nhanVat)}`,
     nc.tap.length ? `CÁC TẬP:\n${nc.tap.map((t) => `- Tập ${t.so}${t.ten ? ` · ${t.ten}` : ''}: ${t.tom_tat || (t.kich_ban ? t.kich_ban.slice(0, 300) + '…' : '(chưa có kịch bản)')}`).join('\n')}` : '',
@@ -275,3 +286,18 @@ export function promptBienThe(a: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, b: Pic
   const khung = a.loai === 'boi_canh' ? 'Establishing shot of the SAME location as the reference image' : a.loai === 'san_pham' ? 'Product shot of the EXACT same product as the reference image' : 'The SAME character as the reference image, single character, plain light background';
   return `${khung}. Identity (must not change): ${a.mo_ta}. Change only this (${b.nhom}): ${b.mo_ta || b.ten}. Visual style: ${k.phong_cach || 'consistent with reference'}. Keep proportions, colors, markings and outfit details identical unless the change says otherwise.`;
 }
+
+// ── Đọc trang sản phẩm → thông tin quảng cáo (#1201) ──────────────────────────────────────────────────────────
+const QcSchema = z.object({
+  ten: z.string().describe('Tên sản phẩm/dịch vụ ngắn gọn'),
+  diem_noi_bat: z.string().describe('3-6 điểm nổi bật/lợi ích cụ thể có trên trang (chất liệu, công dụng, khác biệt), viết gọn, đúng ngôn ngữ của trang'),
+  doi_tuong: z.string().describe('Khách hàng mục tiêu suy ra từ trang (tuổi, giới, nhu cầu)'),
+  uu_dai: z.string().describe('Giá / giảm giá / quà / miễn phí ship… có trên trang; rỗng nếu không thấy'),
+  thi_truong: z.string().describe('Thị trường + ngôn ngữ quảng cáo nên dùng (vd "Mỹ · tiếng Anh")'),
+  anh: z.array(z.string()).describe('Tối đa 6 URL ảnh SẢN PHẨM rõ nhất lấy từ danh sách ảnh đã cho (bỏ logo, icon, banner)'),
+});
+export async function docTrangSanPham(link: string, trang: { tieuDe: string; moTa: string; chu: string; anh: string[] }, kt: Required<KinhThanh>) {
+  return hoi(QcSchema, kt, 'Bạn đọc trang bán hàng và rút thông tin để làm video quảng cáo. Chỉ ghi điều có trên trang, không bịa.',
+    `LINK: ${link}\nTIÊU ĐỀ: ${trang.tieuDe}\nMÔ TẢ: ${trang.moTa}\nẢNH TRÊN TRANG:\n${trang.anh.slice(0, 40).join('\n')}\nCHỮ TRÊN TRANG (rút gọn):\n${trang.chu.slice(0, 12000)}`);
+}
+

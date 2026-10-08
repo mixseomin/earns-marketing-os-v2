@@ -16,6 +16,7 @@ import { boVaoThungRac, boAnhVaoThungRac, dsRac, khoiPhucRac, type MucRac } from
 import { sinhAnh, batDauVeo, docVeo, taiVeo, taiAnhBase64, type AnhVao } from '@/lib/xuong-video/google';
 import { docFal, batDauNangCap, danhMucFal, dauVaoTheoSchema, guiFal, type ModelFal } from '@/lib/xuong-video/fal';
 import { type DungChu } from '@/lib/xuong-video/claude';
+import { docTrangSanPham } from '@/lib/xuong-video/claude';
 import { tachCanh, vietKichBan, promptAnhMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, promptKyThuatAnh, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
@@ -261,6 +262,14 @@ export async function suaPhim(id: number, d: { ten?: string; loai?: LoaiPhim; mo
     ten = coalesce(${d.ten ?? null}, ten), loai = coalesce(${d.loai ?? null}, loai), mo_ta = coalesce(${d.mo_ta ?? null}, mo_ta),
     kinh_thanh = coalesce(${d.kinh_thanh ? JSON.stringify(d.kinh_thanh) : null}::jsonb, kinh_thanh), trang_thai = coalesce(${d.trang_thai ?? null}, trang_thai),
     updated_at = now() WHERE id = ${id}`);
+  // Quảng cáo: sản phẩm khai ở kinh thánh → anchor sản phẩm cùng tên (tạo nếu chưa có), ảnh thật lên ĐẦU anh_ref để mọi keyframe tham chiếu đúng hàng.
+  const q = d.kinh_thanh?.qc;
+  if (q?.ten.trim()) {
+    const co = (await db.execute(sql`SELECT id, anh_ref, mo_ta FROM xv_nhan_vat WHERE phim_id = ${id} AND loai = 'san_pham' ORDER BY (lower(ten) = lower(${q.ten.trim()})) DESC, id LIMIT 1`)) as unknown as Row[];
+    const anh = [...new Set([...q.anh, ...arr<string>(co[0]?.anh_ref)])].slice(0, 10);
+    if (co[0]) await db.execute(sql`UPDATE xv_nhan_vat SET ten = ${q.ten.trim()}, anh_ref = ${JSON.stringify(anh)}::jsonb, mo_ta = CASE WHEN mo_ta = '' THEN ${q.diem_noi_bat} ELSE mo_ta END, updated_at = now() WHERE id = ${n(co[0].id)}`);
+    else await db.execute(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, anh_ref) VALUES (${id}, 'san_pham', ${q.ten.trim()}, ${q.diem_noi_bat}, ${JSON.stringify(anh)}::jsonb)`);
+  }
   return { ok: true, data: undefined };
 }
 
@@ -1072,5 +1081,44 @@ export async function uocAm(tapId: number): Promise<{ giong: number; soThoai: nu
   const nhac = Object.fromEntries(MO_HINH_AM.filter((m) => m.loai === 'nhac').map((m) => [m.key, giaAm(m.key, giay)]));
   const dn = db ? ((await db.execute(sql`SELECT count(*) AS n FROM xv_job WHERE loai = 'am' AND trang_thai = 'cho' AND request->>'tap_id' = ${String(tapId)} AND created_at > now() - interval '10 minutes'`)) as unknown as Row[]) : [];
   return { giong, soThoai, sfx, soSfx, nhac, giay, soPhanCanh: new Set(ds.map((c) => c.phan_doan).filter(Boolean)).size, dangNhac: n(dn[0]?.n) };
+}
+
+/** Đọc trang sản phẩm (link anh dán) → điền sẵn thông tin quảng cáo + ảnh sản phẩm thật (#1201). Claude chỉ đọc chữ của trang, ~$0.01. */
+export async function layTuLinkSanPham(phimId: number, link: string): Promise<Kq<import('@/lib/xuong-video/kieu').ThongTinQc>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  if (!/^https?:\/\//.test(link.trim())) return loi('link phải bắt đầu bằng http(s)://');
+  let html = '';
+  try {
+    const r = await fetch(link.trim(), { headers: { 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140 Safari/537.36', accept: 'text/html' }, signal: AbortSignal.timeout(15000) });
+    if (!r.ok) return loi(`trang trả ${r.status}`);
+    html = await r.text();
+  } catch (e) { return loi(`không mở được trang: ${e instanceof Error ? e.message : String(e)}`); }
+  const meta = (k: string) => html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${k}["'][^>]+content=["']([^"']+)`, 'i'))?.[1] ?? '';
+  const tuyet = (u: string) => { try { return new URL(u.replace(/&amp;/g, '&'), link).toString(); } catch { return ''; } };
+  // Ảnh: og:image + ảnh trong JSON-LD Product + mọi <img> lớn trên trang (bỏ icon/logo/svg).
+  const anh = new Set<string>();
+  const og = meta('og:image'); if (og) anh.add(tuyet(og));
+  for (const m of html.matchAll(/"image"\s*:\s*(\[[^\]]*\]|"[^"]+")/g)) { for (const u of m[1]!.matchAll(/"(https?:[^"]+)"/g)) anh.add(tuyet(u[1]!)); }
+  for (const m of html.matchAll(/<img[^>]+(?:data-src|src)=["']([^"']+)["']/gi)) { const u = tuyet(m[1]!); if (u && !/\.svg|logo|icon|sprite|badge|payment|flag/i.test(u)) anh.add(u); }
+  const chu = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;|&amp;|&#\d+;/g, ' ').replace(/\s+/g, ' ');
+  const r0 = (await db.execute(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[];
+  const kt = docKinhThanh(r0[0]?.kinh_thanh as KinhThanh);
+  const kq = await docTrangSanPham(link.trim(), { tieuDe: meta('og:title') || (html.match(/<title>([^<]*)/i)?.[1] ?? ''), moTa: meta('og:description') || meta('description'), chu, anh: [...anh].filter(Boolean) }, kt);
+  await ghiChu(phimId, 'AI đọc trang sản phẩm', kq);
+  if (!kq.ok) return loi(kq.loi);
+  // Ảnh trên trang → kéo về R2 (link shop có thể chặn/đổi; model ảnh cần URL ổn định).
+  const anhR2: string[] = [];
+  for (const u of kq.data.anh.slice(0, 6)) {
+    try {
+      const f = await fetch(u, { signal: AbortSignal.timeout(15000) });
+      const mime = f.headers.get('content-type')?.split(';')[0] || '';
+      if (!f.ok || !mime.startsWith('image/')) continue;
+      const url = await uploadToR2(`xuong-video/ref/${randomUUID()}.${duoi(mime)}`, Buffer.from(await f.arrayBuffer()), mime);
+      if (url) anhR2.push(url);
+    } catch { /* bỏ ảnh lỗi */ }
+  }
+  return { ok: true, data: { ten: kq.data.ten, link: link.trim(), diem_noi_bat: kq.data.diem_noi_bat, doi_tuong: kq.data.doi_tuong, uu_dai: kq.data.uu_dai, thi_truong: kq.data.thi_truong, anh: anhR2 } };
 }
 

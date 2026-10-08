@@ -313,9 +313,10 @@ function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa; onSave
   const khoaMo = (ten: string) => `xv-mo-${ten}-${phim.id}`;
   const docMo = (ten: string, macDinh: boolean) => { try { const v = localStorage.getItem(khoaMo(ten)); return v == null ? macDinh : v === '1'; } catch { return macDinh; } };
   const ghiMo = (ten: string, v: boolean) => { try { localStorage.setItem(khoaMo(ten), v ? '1' : '0'); } catch { /* chế độ riêng tư */ } };
-  const [moKhung, setMoKhungS] = useState(() => !goc.phong_cach || !goc.the_loai);
-  const setMoKhung = (v: boolean) => { setMoKhungS(v); ghiMo('kt', v); };
-  useEffect(() => { setMoKhungS(docMo('kt', !goc.phong_cach || !goc.the_loai)); setMoQcS(docMo('qc', !(goc.qc?.ten || goc.qc?.link))); }, [phim.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Đọc trạng thái đã lưu NGAY từ đầu (form này chỉ dựng ở trình duyệt, sau khi tải phim — không có SSR). CHỈ ghi khi anh bấm tiêu đề:
+  // trước đây ghi trong onToggle, mà trình duyệt bắn toggle cho cả lần mở MẶC ĐỊNH lúc tải trang → đè "đã thu gọn" thành "mở".
+  const [moKhung, setMoKhungS] = useState(() => docMo('kt', !goc.phong_cach || !goc.the_loai));
+  const latKhung = (e: React.MouseEvent) => { e.preventDefault(); setMoKhungS((v) => { ghiMo('kt', !v); return !v; }); };
   const set = <K extends keyof KinhThanh>(k: K, v: Required<KinhThanh>[K]) => setKt((x) => ({ ...x, [k]: v }));
   // Phim quảng cáo: khai sản phẩm/dịch vụ TRƯỚC — mọi nút AI đọc nó (#1201).
   const laQc = phim.loai === 'quang_cao';
@@ -323,8 +324,8 @@ function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa; onSave
   const setQc = (p: Partial<ThongTinQc>) => setKt((x) => ({ ...x, qc: { ...QC_TRONG, ...(x.qc ?? {}), ...p } }));
   const thieuQc = laQc && !qc.ten.trim() && !qc.link.trim() && !qc.diem_noi_bat.trim();
   const [docLink, setDocLink] = useState(false);
-  const [moQc, setMoQcS] = useState(() => !(goc.qc?.ten || goc.qc?.link));
-  const setMoQc = (v: boolean) => { setMoQcS(v); ghiMo('qc', v); };
+  const [moQc, setMoQcS] = useState(() => docMo('qc', !(goc.qc?.ten || goc.qc?.link)));
+  const latQc = (e: React.MouseEvent) => { e.preventDefault(); setMoQcS((v) => { ghiMo('qc', !v); return !v; }); };
   const layLink = async () => {
     setDocLink(true); setLoiAi('');
     const r = await layTuLinkSanPham(phim.id, qc.link);
@@ -350,8 +351,8 @@ function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa; onSave
   return (
     <>
       {laQc && (
-        <details className="xv-det xv-panel" open={moQc} onToggle={(e) => setMoQc((e.target as HTMLDetailsElement).open)} style={{ borderColor: thieuQc ? 'var(--amber)' : 'var(--line)' }}>
-          <summary>0 · Sản phẩm / dịch vụ được quảng cáo <small>{thieuQc ? '⚠ khai trước — AI gợi ý, viết kịch bản, tách cảnh đều dựa vào đây' : `${qc.ten}${qc.anh.length ? ` · ${qc.anh.length} ảnh` : ''}${qc.uu_dai ? ` · ${qc.uu_dai}` : ''}`}</small></summary>
+        <details className="xv-det xv-panel" open={moQc} style={{ borderColor: thieuQc ? 'var(--amber)' : 'var(--line)' }}>
+          <summary onClick={latQc}>0 · Sản phẩm / dịch vụ được quảng cáo <small>{thieuQc ? '⚠ khai trước — AI gợi ý, viết kịch bản, tách cảnh đều dựa vào đây' : `${qc.ten}${qc.anh.length ? ` · ${qc.anh.length} ảnh` : ''}${qc.uu_dai ? ` · ${qc.uu_dai}` : ''}`}</small></summary>
           <div className="xv-grid">
             <O span label="Link trang sản phẩm" hint="dán link → bấm Lấy từ link: AI đọc trang, điền sẵn tên, điểm nổi bật, đối tượng, ưu đãi + kéo ảnh sản phẩm về (~$0.01)">
               <div style={{ display: 'flex', gap: 6 }}>
@@ -371,8 +372,8 @@ function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa; onSave
           </div>
         </details>
       )}
-    <details className="xv-det xv-panel" open={moKhung} onToggle={(e) => setMoKhung((e.target as HTMLDetailsElement).open)}>
-      <summary>1 · Kinh thánh của bộ phim <small>{kt.phong_cach ? `${kt.ti_le} · ${kt.do_phan_giai}` : 'chưa đặt phong cách'} · {kt.the_loai ? `🎭 ${THE_LOAI.find((t) => t.key === kt.the_loai)?.ten}` : <b style={{ color: 'var(--amber)' }}>⚠ chưa chọn thể loại (thư viện điện ảnh dựa vào đây)</b>}{kt.logline ? ` · “${kt.logline.slice(0, 70)}”` : ''}</small></summary>
+    <details className="xv-det xv-panel" open={moKhung}>
+      <summary onClick={latKhung}>1 · Kinh thánh của bộ phim <small>{kt.phong_cach ? `${kt.ti_le} · ${kt.do_phan_giai}` : 'chưa đặt phong cách'} · {kt.the_loai ? `🎭 ${THE_LOAI.find((t) => t.key === kt.the_loai)?.ten}` : <b style={{ color: 'var(--amber)' }}>⚠ chưa chọn thể loại (thư viện điện ảnh dựa vào đây)</b>}{kt.logline ? ` · “${kt.logline.slice(0, 70)}”` : ''}</small></summary>
 
       <div className="xv-grid" style={{ marginTop: 10 }}>
         <O span label="Phong cách hình ảnh" hint="Viết như tả cho hoạ sĩ: chất liệu, bảng màu, ánh sáng, lens. Tiếng Việt hay Anh đều được. Nối vào đầu mọi prompt để các tập giống nhau.">

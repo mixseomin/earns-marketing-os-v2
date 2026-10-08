@@ -30,7 +30,7 @@ const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 
 // ── Đọc ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-const KHO = 'studio';   // xv_phim.project — app riêng dùng một kho chung; cột giữ để sau này tách theo thương hiệu nếu cần
+const KHO = 'studio';   // xv_phim.project khi tạo mới. Danh sách hiện MỌI phim (kể cả phim tạo lúc còn nằm trong mos2, project='bra') — app riêng = một kho.
 
 export async function dsPhim(): Promise<Phim[]> {
   const db = getDb();
@@ -43,7 +43,7 @@ export async function dsPhim(): Promise<Phim[]> {
         (SELECT count(*) FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = p.id) AS so_canh,
         (SELECT coalesce(sum(c.chi_phi_cents), 0) FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = p.id)
           + (SELECT coalesce(sum(j.chi_phi_cents), 0) FROM xv_job j JOIN xv_nhan_vat v ON v.id = j.nhan_vat_id WHERE v.phim_id = p.id) AS chi_phi_cents
-      FROM xv_phim p WHERE p.project = ${KHO} ORDER BY p.updated_at DESC`);
+      FROM xv_phim p ORDER BY p.updated_at DESC`);
     return (r as unknown as Row[]).map(mapPhim);
   } catch { return []; }
 }

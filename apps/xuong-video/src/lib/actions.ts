@@ -10,6 +10,7 @@ import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { uploadToR2 } from '@/lib/r2';
 import { dayViecAnh, giaAnhSv } from '@/lib/xuong-video/hoan-tat';
+import { boVaoThungRac, boAnhVaoThungRac, dsRac, khoiPhucRac, type MucRac } from '@/lib/xuong-video/thung-rac';
 import { sinhAnh, batDauVeo, docVeo, taiVeo, taiAnhBase64, type AnhVao } from '@/lib/xuong-video/google';
 import { docFal, batDauNangCap, danhMucFal, dauVaoTheoSchema, guiFal, type ModelFal } from '@/lib/xuong-video/fal';
 import { type DungChu } from '@/lib/xuong-video/claude';
@@ -256,8 +257,9 @@ export async function suaPhim(id: number, d: { ten?: string; loai?: LoaiPhim; mo
 export async function xoaPhim(id: number): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
-  if (!(await admin())) return loi('không có quyền');
-  await db.execute(sql`DELETE FROM xv_phim WHERE id = ${id}`);
+  const me = await admin();
+  if (!me) return loi('không có quyền');
+  await boVaoThungRac(db, 'phim', [id], me.email);   // vào thùng rác, khôi phục được — không xoá thật (#1192)
   return { ok: true, data: undefined };
 }
 
@@ -280,8 +282,9 @@ export async function luuNhanVat(d: { id?: number; phim_id: number; loai: LoaiNh
 export async function xoaNhanVat(id: number): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
-  if (!(await admin())) return loi('không có quyền');
-  await db.execute(sql`DELETE FROM xv_nhan_vat WHERE id = ${id}`);
+  const me = await admin();
+  if (!me) return loi('không có quyền');
+  await boVaoThungRac(db, 'nhan_vat', [id], me.email);   // vào thùng rác, khôi phục được — không xoá thật (#1192)
   return { ok: true, data: undefined };
 }
 
@@ -300,33 +303,43 @@ export async function sinhAnhMau(nhanVatId: number): Promise<Kq<number>> {
   return { ok: true, data: job };
 }
 
-/** Xoá một ảnh gốc khỏi anchor (anh yêu cầu 08/10/2026: ảnh không cần / không hợp thì bỏ). Bỏ khỏi danh sách; file R2 giữ lại
- *  vì keyframe/clip cũ có thể đã dùng nó làm tham chiếu. */
+/** Bỏ ảnh vào thùng rác (ảnh gốc / ảnh biến thể / ứng viên keyframe): gỡ khỏi danh sách, khôi phục được; file R2 giữ nguyên (#1192). */
 export async function xoaAnhGoc(nhanVatId: number, url: string): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
-  if (!(await admin())) return loi('không có quyền');
-  await db.execute(sql`UPDATE xv_nhan_vat SET anh_ref = anh_ref - ${url}, updated_at = now() WHERE id = ${nhanVatId}`);
+  const me = await admin();
+  if (!me) return loi('không có quyền');
+  await boAnhVaoThungRac(db, 'anh_goc', nhanVatId, url, me.email);
   return { ok: true, data: undefined };
 }
-/** Xoá ảnh của một biến thể (biến thể giữ nguyên, sinh lại được). */
 export async function xoaAnhBienThe(bienTheId: number): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
-  if (!(await admin())) return loi('không có quyền');
-  await db.execute(sql`UPDATE xv_bien_the SET anh_url = NULL, updated_at = now() WHERE id = ${bienTheId}`);
+  const me = await admin();
+  if (!me) return loi('không có quyền');
+  await boAnhVaoThungRac(db, 'anh_bien_the', bienTheId, '', me.email);
   return { ok: true, data: undefined };
 }
-/** Xoá một ứng viên keyframe của cảnh. Đang là keyframe chính thì chuyển sang ứng viên còn lại; hết ứng viên thì cảnh về nháp. */
 export async function xoaKeyframe(canhId: number, url: string): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
-  if (!(await admin())) return loi('không có quyền');
-  await db.execute(sql`UPDATE xv_canh SET keyframe_uv = keyframe_uv - ${url},
-      keyframe_url = CASE WHEN keyframe_url = ${url} THEN (keyframe_uv - ${url})->>0 ELSE keyframe_url END,
-      trang_thai = CASE WHEN jsonb_array_length(keyframe_uv - ${url}) = 0 AND trang_thai IN ('co_keyframe', 'duyet') THEN 'nhap' ELSE trang_thai END,
-      updated_at = now() WHERE id = ${canhId}`);
+  const me = await admin();
+  if (!me) return loi('không có quyền');
+  await boAnhVaoThungRac(db, 'keyframe', canhId, url, me.email);
   return { ok: true, data: undefined };
+}
+/** Thùng rác: phimId = null → các PHIM đã xoá (trang chủ); có phimId → mọi thứ đã xoá trong phim đó. */
+export async function dsThungRac(phimId: number | null): Promise<MucRac[]> {
+  const db = getDb();
+  if (!db || !(await admin())) return [];
+  return dsRac(db, phimId);
+}
+export async function khoiPhuc(id: number): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const r = await khoiPhucRac(db, id);
+  return r.ok ? { ok: true, data: undefined } : loi(r.loi);
 }
 
 /** Chọn một ảnh gốc làm ảnh chính (đưa lên đầu anh_ref) — ảnh đầu là ảnh thẻ hiện + tham chiếu ưu tiên khi sinh cảnh. */
@@ -357,9 +370,9 @@ export async function luuBienThe(d: { id?: number; nhan_vat_id: number; nhom: st
 export async function xoaBienThe(id: number): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
-  if (!(await admin())) return loi('không có quyền');
-  await db.execute(sql`DELETE FROM xv_bien_the WHERE id = ${id}`);
-  await db.execute(sql`UPDATE xv_canh SET bien_the = coalesce((SELECT jsonb_agg(e) FROM jsonb_array_elements(bien_the) e WHERE e::int <> ${id}), '[]'::jsonb) WHERE bien_the @> ${JSON.stringify([id])}::jsonb`);
+  const me = await admin();
+  if (!me) return loi('không có quyền');
+  await boVaoThungRac(db, 'bien_the', [id], me.email);   // vào thùng rác, khôi phục được — không xoá thật (#1192)
   return { ok: true, data: undefined };
 }
 
@@ -430,8 +443,9 @@ export async function suaTap(id: number, d: { ten?: string; brief?: string; kich
 export async function xoaTap(id: number): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
-  if (!(await admin())) return loi('không có quyền');
-  await db.execute(sql`DELETE FROM xv_tap WHERE id = ${id}`);
+  const me = await admin();
+  if (!me) return loi('không có quyền');
+  await boVaoThungRac(db, 'tap', [id], me.email);   // vào thùng rác, khôi phục được — không xoá thật (#1192)
   return { ok: true, data: undefined };
 }
 
@@ -472,7 +486,9 @@ export async function tachCanhTap(tapId: number, soCanh: number): Promise<Kq<num
   if (!kq.ok) return loi(kq.loi);
   const tenToId = new Map(bc.nhanVat.map((v) => [v.ten.trim().toLowerCase(), v.id]));
   const btToId = new Map(bc.nhanVat.flatMap((v) => (v.bien_the ?? []).map((b) => [`${v.ten} · ${b.ten}`.trim().toLowerCase(), b.id] as [string, number])));
-  await db.execute(sql`DELETE FROM xv_canh WHERE tap_id = ${tapId} AND trang_thai = 'nhap'`);
+  // Cảnh nháp cũ bị thay bằng bộ cảnh mới → vào thùng rác (khôi phục được), không xoá thật (#1192).
+  const nhapCu = (await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${tapId} AND trang_thai = 'nhap'`)) as unknown as Row[];
+  await boVaoThungRac(db, 'canh', nhapCu.map((x) => n(x.id)), (await admin())!.email, `${nhapCu.length} cảnh nháp cũ (tách lại cảnh · ${bc.tap.ten})`);
   const giu = (await db.execute(sql`SELECT coalesce(max(thu_tu), 0) AS m FROM xv_canh WHERE tap_id = ${tapId}`)) as unknown as Row[];
   let thuTu = n(giu[0]?.m);
   for (const c of kq.canh) {
@@ -522,8 +538,9 @@ export async function themCanh(tapId: number): Promise<Kq<number>> {
 export async function xoaCanh(id: number): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
-  if (!(await admin())) return loi('không có quyền');
-  await db.execute(sql`DELETE FROM xv_canh WHERE id = ${id}`);
+  const me = await admin();
+  if (!me) return loi('không có quyền');
+  await boVaoThungRac(db, 'canh', [id], me.email);   // vào thùng rác, khôi phục được — không xoá thật (#1192)
   return { ok: true, data: undefined };
 }
 

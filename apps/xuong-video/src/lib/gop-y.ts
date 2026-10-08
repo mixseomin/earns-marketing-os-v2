@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
-import { uploadToR2, deleteFromR2, r2KeyFromUrl, r2Enabled } from '@/lib/r2';
+import { uploadToR2, r2Enabled } from '@/lib/r2';
 
 const DU_AN = 'xuong-video';
 export type TinTraoDoi = { nguoi: string; noiDung: string; xuLy: string | null; luc: string; anh: string[]; trang?: string; nguCanh?: string };
@@ -32,12 +32,9 @@ export async function taiAnhGopY(dataUrl: string): Promise<{ ok: boolean; url?: 
   const url = await uploadToR2(`gop-y-studio/${randomUUID()}.${m[1]!.split('/')[1]}`, buf, m[1]!);
   return url ? { ok: true, url } : { ok: false, error: 'upload thất bại' };
 }
-/** Bỏ ảnh chưa gửi (✕ hoặc Huỷ nháp). Chỉ xoá ảnh của chính hòm góp ý studio trên R2; URL ngoài thì thôi. */
-export async function xoaAnhGopY(url: string): Promise<{ ok: boolean }> {
-  if (!(await getCurrentUser())) return { ok: false };
-  const key = r2KeyFromUrl(url || '');
-  if (!key || !key.startsWith('gop-y-studio/')) return { ok: true };
-  return { ok: await deleteFromR2(key) };
+/** Bỏ ảnh chưa gửi (✕ hoặc Huỷ nháp): chỉ gỡ khỏi form, KHÔNG xoá file R2 — studio không xoá thật bất cứ thứ gì (card #1192). */
+export async function xoaAnhGopY(_url: string): Promise<{ ok: boolean }> {
+  return { ok: true };
 }
 
 async function datTrangThai(id: number, st: string, url = '') {

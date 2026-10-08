@@ -218,7 +218,7 @@ export function ImageAttach({ value, onChange, folder = 'uploads', max = 6 }: {
                   <span style={{ color: 'var(--ok,#22c55e)' }}>✓</span> {m ? (m.kb ? tenKc(m) : `${m.w}×${m.h}`) : '…'}
                   {m?.goc && m.goc.kb !== m.kb && <div style={{ color: 'var(--fg-4)' }}>gốc {tenKc(m.goc)}</div>}
                 </div>
-                <button type="button" onClick={() => { void deleteImage(u); onChange(value.filter((_, j) => j !== i)); }} title="Bỏ (xoá luôn khỏi storage)" style={{ position: 'absolute', top: -7, right: -7, width: 18, height: 18, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', cursor: 'pointer', fontSize: 11, lineHeight: '16px', padding: 0 }}>✕</button>
+                <button type="button" onClick={() => { void deleteImage(u); onChange(value.filter((_, j) => j !== i)); }} title="Bỏ ảnh khỏi góp ý" style={{ position: 'absolute', top: -7, right: -7, width: 18, height: 18, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', cursor: 'pointer', fontSize: 11, lineHeight: '16px', padding: 0 }}>✕</button>
               </div>
             );
           })}

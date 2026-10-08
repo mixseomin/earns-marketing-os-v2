@@ -8,7 +8,7 @@ import { Timeline } from './timeline';
 import {
   dsPhim, docPhim, dsCanh, taoPhim, taoPhimMau, suaPhim, xoaPhim, luuNhanVat, xoaNhanVat, sinhAnhMau, taoTap, suaTap,
   vietKichBanTap, tachCanhTap, suaCanh, themCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, uocTien, sinhVideoCanh, kiemVideo, taiAnhLen,
-  dsMoHinh, xepCanh, datAnhChinh, xoaAnhGoc, xoaAnhBienThe, xoaKeyframe, type MoHinhChon,
+  dsMoHinh, xepCanh, datAnhChinh, xoaAnhGoc, xoaAnhBienThe, xoaKeyframe, dsThungRac, khoiPhuc, type MoHinhChon,
   goiYAIKinhThanh, goiYAIAnchor, goiYAIBoAnchor, goiYAIBrief, goiYAICanh, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, nangCapCanh, chonPhienBan,
   type PhimDayDu,
 } from '@/lib/actions';
@@ -34,11 +34,11 @@ function Nut({ ly, ban, chinh, nguy, title, onClick, children }: { ly?: string |
   const why = ly ? String(ly) : '';
   return <button type="button" className={`xv-btn${chinh ? ' chinh' : ''}${nguy ? ' nguy' : ''}`} disabled={!!why || ban} title={why || title} onClick={onClick}>{children}</button>;
 }
-/** Xoá hai nhịp: bấm lần một = cảnh báo, bấm lần hai trong 4s = xoá. */
+/** Bỏ vào thùng rác hai nhịp: bấm lần một = cảnh báo, bấm lần hai trong 4s = chuyển vào thùng rác (khôi phục được, #1192). */
 function Xoa({ nhan, onXoa, ban }: { nhan: string; onXoa: () => Promise<void>; ban?: boolean }) {
   const [armed, setArmed] = useState(false);
   useEffect(() => { if (!armed) return; const t = setTimeout(() => setArmed(false), 4000); return () => clearTimeout(t); }, [armed]);
-  return <button type="button" className="xv-btn nguy" disabled={ban} onClick={() => { if (armed) { setArmed(false); void onXoa(); } else setArmed(true); }}>{armed ? `⚠ bấm lại để xoá ${nhan}` : '🗑'}</button>;
+  return <button type="button" className="xv-btn nguy" disabled={ban} title={`Chuyển ${nhan} vào thùng rác — khôi phục được ở nút 🗑 Thùng rác`} onClick={() => { if (armed) { setArmed(false); void onXoa(); } else setArmed(true); }}>{armed ? `⚠ bấm lại để bỏ ${nhan} vào thùng rác` : '🗑'}</button>;
 }
 function Ngan({ onClose, nho, children }: { onClose: () => void; nho?: boolean; children: ReactNode }) {
   useEffect(() => { const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [onClose]);
@@ -51,7 +51,7 @@ function AnhNho({ url, kich = 40, vien, nhan, title, onClick, onXoa }: { url: st
     <span className="xv-anh-nho" title={title} style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
       <img src={url} alt="" onClick={onClick} style={{ width: kich, height: kich, objectFit: 'cover', borderRadius: 5, display: 'block', cursor: onClick ? 'pointer' : 'default', border: `2px solid ${vien ?? 'transparent'}` }} />
       {nhan && <span style={{ position: 'absolute', left: 3, bottom: 2, fontSize: 8.5, color: '#fff', textShadow: '0 1px 2px #000', pointerEvents: 'none' }}>{nhan}</span>}
-      {onXoa && <button type="button" className="xv-x" title="Xoá ảnh này" onClick={(e) => { e.stopPropagation(); if (window.confirm('Xoá ảnh này?')) void onXoa(); }}>✕</button>}
+      {onXoa && <button type="button" className="xv-x" title="Bỏ ảnh vào thùng rác (khôi phục được)" onClick={(e) => { e.stopPropagation(); if (window.confirm('Bỏ ảnh này vào thùng rác? Khôi phục được ở nút 🗑 Thùng rác.')) void onXoa(); }}>✕</button>}
     </span>
   );
 }
@@ -246,6 +246,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
         </div>
       </div>
 
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}><ThungRac phimId={null} onKhoiPhuc={taiLai} /></div>
       {phim.length === 0 ? (
         <div className="xv-panel" style={{ textAlign: 'center', padding: 40 }}><div style={{ fontSize: 28 }}>🎬</div><b>Chưa có phim nào</b><div style={mono}>Tạo một phim ở trên: đặt tên, chọn loại, rồi khai nhân vật/sản phẩm và dán kịch bản.</div></div>
       ) : (
@@ -295,6 +296,7 @@ function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onCl
         <span style={mono}>#{phim.id}</span>
         <span style={{ flex: 1 }} />
         <ThongKe tk={d.thongKe} tongTien={d.tongTien} soAnchor={nhanVat.length} soTap={tap.length} />
+        <ThungRac phimId={phim.id} onKhoiPhuc={tai} />
         <Xoa nhan="cả phim (tập + cảnh)" onXoa={onXoa} />
         <button type="button" className="xv-btn" onClick={onClose}>Đóng</button>
       </div>
@@ -385,6 +387,46 @@ function KinhThanhForm({ phim, onSaved }: { phim: Phim; onSaved: () => Promise<v
       </div>
       <Loi>{loiAi}</Loi>
     </details>
+  );
+}
+
+const NHAN_RAC: Record<string, string> = { phim: 'phim', tap: 'tập', canh: 'cảnh', nhan_vat: 'anchor', bien_the: 'biến thể', anh_goc: 'ảnh gốc', keyframe: 'keyframe', anh_bien_the: 'ảnh biến thể' };
+/** Nút 🗑 Thùng rác + ngăn liệt kê thứ đã bỏ (phimId null = phim đã xoá) với nút Khôi phục. Không có xoá vĩnh viễn (#1192). */
+function ThungRac({ phimId, onKhoiPhuc }: { phimId: number | null; onKhoiPhuc: () => Promise<void> }) {
+  const [mo, setMo] = useState(false);
+  const [ds, setDs] = useState<Awaited<ReturnType<typeof dsThungRac>> | null>(null);
+  const [loi, setLoi] = useState('');
+  const [ban, setBan] = useState<number | null>(null);
+  const nap = useCallback(async () => setDs(await dsThungRac(phimId)), [phimId]);
+  useEffect(() => { void nap(); }, [nap, mo]);
+  return (
+    <>
+      <button type="button" className="xv-btn" onClick={() => setMo(true)} title="Thứ đã bỏ — khôi phục được">🗑 Thùng rác{ds?.length ? ` (${ds.length})` : ''}</button>
+      {mo && (
+        <Ngan nho onClose={() => setMo(false)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <h2 style={{ margin: 0, fontSize: 16, flex: 1 }}>🗑 Thùng rác{phimId == null ? ' · phim đã xoá' : ''}</h2>
+            <button type="button" className="xv-btn" onClick={() => setMo(false)}>Đóng</button>
+          </div>
+          <div style={{ ...mono, marginBottom: 8 }}>Bỏ vào đây = gỡ khỏi màn, dữ liệu + ảnh giữ nguyên. Khôi phục đưa về đúng chỗ cũ (cùng id, cùng sổ chi phí).</div>
+          <Loi>{loi}</Loi>
+          {ds === null ? <span style={mono}>…</span> : ds.length === 0 ? <div style={mono}>Thùng rác trống.</div> : (
+            <div style={{ display: 'grid', gap: 6 }}>
+              {ds.map((m) => (
+                <div key={m.id} className="xv-canh" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  {m.anh ? <img src={m.anh} alt="" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 5, flexShrink: 0 }} /> : <div style={{ width: 44, height: 44, borderRadius: 5, background: 'var(--bg-2)', flexShrink: 0 }} />}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.ten}</div>
+                    <div style={mono}>{NHAN_RAC[m.loai] ?? m.loai} · bỏ lúc {gioVN(m.xoa_luc)} · {m.nguoi}</div>
+                  </div>
+                  <Nut ban={ban === m.id} onClick={async () => { setBan(m.id); setLoi(''); const r = await khoiPhuc(m.id); setBan(null); if (!r.ok) { setLoi(r.loi); return; } await nap(); await onKhoiPhuc(); }}>↩ Khôi phục</Nut>
+                </div>
+              ))}
+            </div>
+          )}
+        </Ngan>
+      )}
+    </>
   );
 }
 
@@ -646,7 +688,16 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged }: { tap: Tap; phim: Phim
   const [chonCanh, setChonCanh] = useState<number | null>(null);
   const [uoc, setUoc] = useState<{ anh1: number; videoTong: number; soCanhDuyet: number; giayDuyet: number } | null>(null);
   const kt = docKinhThanh(phim.kinh_thanh);
-  const taiCanh = useCallback(async () => { setCanh(await dsCanh(tap.id)); setUoc(await uocTien(tap.id)); }, [tap.id]);
+  // Dấu vân của danh sách cảnh: đổi (sinh xong keyframe/video, duyệt, thêm/bớt cảnh) → báo phim tải lại để chip thống kê
+  // đầu phim chạy theo thời gian thực (card #1191). So dấu chứ không báo mỗi lần hỏi, để không tải phim vô ích mỗi 4 giây.
+  const dauCanh = useRef('');
+  const taiCanh = useCallback(async () => {
+    const ds = await dsCanh(tap.id);
+    setCanh(ds); setUoc(await uocTien(tap.id));
+    const dau = ds.map((c) => `${c.id}:${c.trang_thai}:${c.keyframe_uv.length}:${c.video_url ? 1 : 0}:${c.video_cuoi_url ? 1 : 0}:${c.thoi_luong_s}:${c.chi_phi_cents}`).join('|');
+    if (dauCanh.current && dau !== dauCanh.current) void onChanged();
+    dauCanh.current = dau;
+  }, [tap.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { void taiCanh(); }, [taiCanh]);
   useEffect(() => { setKichBan(tap.kich_ban); setTenTap(tap.ten); setBrief(tap.brief); }, [tap.kich_ban, tap.ten, tap.brief]);
 

@@ -21,11 +21,11 @@ export const LOAI_NHAN_VAT: { key: LoaiNhanVat; label: string }[] = [
 export type TrangThaiCanh = 'nhap' | 'co_keyframe' | 'duyet' | 'dang_sinh' | 'xong' | 'loi';
 export const TRANG_THAI_CANH: Record<TrangThaiCanh, { label: string; color: string }> = {
   nhap: { label: 'Nháp', color: 'var(--fg-3)' },
-  co_keyframe: { label: 'Có keyframe', color: 'var(--neon-amber)' },
-  duyet: { label: 'Đã duyệt', color: 'var(--neon-cyan)' },
-  dang_sinh: { label: 'Đang sinh video', color: 'var(--neon-violet)' },
-  xong: { label: 'Xong', color: 'var(--neon-lime)' },
-  loi: { label: 'Lỗi', color: 'var(--neon-red, #f87171)' },
+  co_keyframe: { label: 'Có keyframe', color: 'var(--amber)' },
+  duyet: { label: 'Đã duyệt', color: 'var(--cyan)' },
+  dang_sinh: { label: 'Đang sinh video', color: 'var(--violet)' },
+  xong: { label: 'Xong', color: 'var(--lime)' },
+  loi: { label: 'Lỗi', color: 'var(--red)' },
 };
 
 export type TiLe = '9:16' | '16:9';

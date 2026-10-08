@@ -1,0 +1,29 @@
+{
+  "name": "@mos2/xuong-video",
+  "version": "0.0.1",
+  "description": "Xưởng video AI (video.on.tc) — kịch bản → storyboard → keyframe → clip Veo → ghép; app riêng, dùng chung DB mos2 + phiên .on.tc",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 3840",
+    "build": "next build",
+    "start": "next start -p ${PORT:-3840}",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.1",
+    "@mos2/db": "*",
+    "drizzle-orm": "^0.36.0",
+    "next": "^15.0.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "server-only": "^0.0.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}

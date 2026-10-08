@@ -30,7 +30,9 @@ const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 
 // ── Đọc ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-export async function dsPhim(project: string): Promise<Phim[]> {
+const KHO = 'studio';   // xv_phim.project — app riêng dùng một kho chung; cột giữ để sau này tách theo thương hiệu nếu cần
+
+export async function dsPhim(): Promise<Phim[]> {
   const db = getDb();
   if (!db || !(await admin())) return [];
   try {
@@ -41,7 +43,7 @@ export async function dsPhim(project: string): Promise<Phim[]> {
         (SELECT count(*) FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = p.id) AS so_canh,
         (SELECT coalesce(sum(c.chi_phi_cents), 0) FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = p.id)
           + (SELECT coalesce(sum(j.chi_phi_cents), 0) FROM xv_job j JOIN xv_nhan_vat v ON v.id = j.nhan_vat_id WHERE v.phim_id = p.id) AS chi_phi_cents
-      FROM xv_phim p WHERE p.project = ${project} ORDER BY p.updated_at DESC`);
+      FROM xv_phim p WHERE p.project = ${KHO} ORDER BY p.updated_at DESC`);
     return (r as unknown as Row[]).map(mapPhim);
   } catch { return []; }
 }
@@ -111,13 +113,13 @@ export async function trangThaiKhoa(): Promise<{ google: boolean; anthropic: boo
 
 // ── Phim ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-export async function taoPhim(project: string, ten: string, loai: LoaiPhim): Promise<Kq<number>> {
+export async function taoPhim(ten: string, loai: LoaiPhim): Promise<Kq<number>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   if (!ten.trim()) return loi('thiếu tên');
   const kt: KinhThanh = loai === 'quang_cao' ? { ti_le: '9:16' } : {};
-  const r = (await db.execute(sql`INSERT INTO xv_phim (project, ten, loai, kinh_thanh) VALUES (${project}, ${ten.trim()}, ${loai}, ${JSON.stringify(kt)}::jsonb) RETURNING id`)) as unknown as Row[];
+  const r = (await db.execute(sql`INSERT INTO xv_phim (project, ten, loai, kinh_thanh) VALUES (${KHO}, ${ten.trim()}, ${loai}, ${JSON.stringify(kt)}::jsonb) RETURNING id`)) as unknown as Row[];
   // Short / quảng cáo: một tập sẵn, khỏi bắt người bấm "thêm tập".
   const id = n(r[0]?.id);
   if (loai !== 'phim') await db.execute(sql`INSERT INTO xv_tap (phim_id, so, ten) VALUES (${id}, 1, ${ten.trim()})`);
@@ -436,6 +438,17 @@ export async function kiemVideo(tapId: number): Promise<{ conChay: number; vuaXo
     vuaXong++;
   }
   return { conChay, vuaXong };
+}
+
+/** Tải ảnh tham chiếu (data URL từ trình duyệt) lên R2 — thay cho ImageAttach của mos2. */
+export async function taiAnhLen(dataUrl: string): Promise<Kq<string>> {
+  if (!(await admin())) return loi('không có quyền');
+  const m = (dataUrl || '').match(/^data:(image\/\w+);base64,(.+)$/s);
+  if (!m) return loi('không phải ảnh');
+  const buf = Buffer.from(m[2]!, 'base64');
+  if (buf.length > 8_000_000) return loi('ảnh quá lớn (>8MB)');
+  const url = await uploadToR2(`xuong-video/ref/${randomUUID()}.${duoi(m[1]!)}`, buf, m[1]!);
+  return url ? { ok: true, data: url } : loi('R2 không nhận ảnh (thiếu cấu hình storage?)');
 }
 
 // ── Job ──────────────────────────────────────────────────────────────────────────────────────────────────────────

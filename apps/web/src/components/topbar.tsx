@@ -7,7 +7,7 @@ import { useT } from '@/lib/lang-context';
 import type { Mode, Project } from '@/lib/mock/types';
 import { SiteMenu } from './site-menu';
 
-type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'scenes' | 'outreach' | 'backlinks' | 'plays' | 'pillars' | 'seeding' | 'studio' | 'resources' | 'settings' | 'plans' | 'phu' | 'xuong-video';
+type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'scenes' | 'outreach' | 'backlinks' | 'plays' | 'pillars' | 'seeding' | 'studio' | 'resources' | 'settings' | 'plans' | 'phu';
 
 interface SubItem { label: string; href: string; icon?: string }
 
@@ -190,7 +190,6 @@ export function TopBar({
     { id: 'backlinks', label: t('nav.backlinks', 'Backlinks'), adminOnly: true },
     { id: 'plays', label: t('nav.plays', 'Plays'), adminOnly: true },
     { id: 'phu', label: t('nav.phu', 'Phủ'), adminOnly: true },
-    { id: 'xuong-video', label: 'Xưởng video', adminOnly: true },
     {
       id: 'plans', label: t('nav.plans', 'Kế hoạch'), adminOnly: true,
       subItems: [

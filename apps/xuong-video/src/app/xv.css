@@ -1,0 +1,54 @@
+/* Xưởng video — token màu tối giản, cùng tông tối với mos2 nhưng là app riêng. */
+:root {
+  --bg-0: #0b0d12; --bg-1: #12151c; --bg-2: #1a1e27; --line: #262b36;
+  --fg-1: #e8eaf0; --fg-2: #b4b9c6; --fg-3: #7d8494; --fg-4: #545a68;
+  --cyan: #38d9f5; --amber: #f5b638; --violet: #a78bfa; --lime: #a3e635; --red: #f87171;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg-0); color: var(--fg-1); font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+a { color: var(--cyan); }
+.xv-top { display: flex; align-items: center; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--bg-1); position: sticky; top: 0; z-index: 5; }
+.xv-brand { font-weight: 700; color: var(--fg-1); text-decoration: none; font-size: 14px; }
+.xv-main { padding: 16px 20px 56px; max-width: 1400px; margin: 0 auto; }
+.xv-mono { font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-3); text-decoration: none; }
+.xv-panel { background: var(--bg-1); border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 14px; }
+.xv-panel h3 { margin: 0 0 10px; font-size: 13px; }
+.xv-panel h3 small { font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-3); font-weight: 400; margin-left: 8px; }
+.xv-btn { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg-2); color: var(--fg-1); cursor: pointer; white-space: nowrap; }
+.xv-btn:disabled { opacity: .5; cursor: not-allowed; }
+.xv-btn.chinh { background: var(--cyan); color: #000; border-color: transparent; font-weight: 700; }
+.xv-btn.nguy { color: var(--red); }
+.xv-lbl { display: block; font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); text-transform: uppercase; letter-spacing: .06em; margin: 0 0 4px; font-weight: 700; }
+.xv-in, .xv-ta, .xv-sel { width: 100%; background: var(--bg-0); color: var(--fg-1); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: inherit; font-size: 12px; }
+.xv-ta { resize: vertical; min-height: 60px; }
+.xv-in:focus, .xv-ta:focus, .xv-sel:focus { outline: 1px solid var(--cyan); }
+.xv-field { margin-bottom: 8px; }
+.xv-hint { font-size: 10.5px; color: var(--fg-3); margin-top: 3px; }
+.xv-loi { font-size: 11px; color: var(--red); margin-top: 4px; }
+.xv-pill { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 999px; font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .04em; border: 1px solid currentColor; }
+.xv-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.xv-seg button { background: var(--bg-2); color: var(--fg-2); border: 0; padding: 4px 10px; font-size: 11px; cursor: pointer; }
+.xv-seg button + button { border-left: 1px solid var(--line); }
+.xv-seg button.on { background: var(--bg-0); color: var(--cyan); font-weight: 700; }
+.xv-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 6px; margin-bottom: 12px; }
+.xv-stat { background: var(--bg-1); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.xv-stat .l { font-family: var(--font-mono); font-size: 9.5px; color: var(--fg-3); text-transform: uppercase; }
+.xv-stat .v { font-size: 18px; font-weight: 700; margin-top: 2px; }
+.xv-stat .s { font-size: 10.5px; color: var(--fg-3); }
+table.xv-tbl { width: 100%; border-collapse: collapse; }
+table.xv-tbl th { text-align: left; font-family: var(--font-mono); font-size: 9.5px; color: var(--fg-3); text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+table.xv-tbl td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+table.xv-tbl td.n, table.xv-tbl th.n { text-align: right; font-family: var(--font-mono); }
+.xv-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 50; }
+.xv-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(1100px, 96vw); background: var(--bg-1); border-left: 1px solid var(--line); z-index: 51; overflow: auto; padding: 18px 20px 40px; }
+.xv-drawer.nho { width: min(520px, 96vw); z-index: 53; }
+.xv-backdrop.nho { z-index: 52; background: rgba(0,0,0,.35); }
+.xv-canh { border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: var(--bg-0); }
+.xv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.xv-anchor { border: 1px solid var(--line); border-radius: 8px; padding: 8px; display: flex; gap: 8px; }
+.xv-banner { font-family: var(--font-mono); font-size: 10.5px; color: var(--amber); border: 1px dashed var(--amber); border-radius: 6px; padding: 6px 10px; margin-bottom: 10px; }
+details.xv-det > summary { cursor: pointer; font-weight: 600; font-size: 12px; list-style: none; display: flex; gap: 8px; align-items: center; }
+details.xv-det > summary::before { content: '▸'; color: var(--fg-3); }
+details.xv-det[open] > summary::before { content: '▾'; }
+details.xv-det > summary small { font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-3); font-weight: 400; }

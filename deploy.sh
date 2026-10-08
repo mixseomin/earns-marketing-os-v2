@@ -148,6 +148,30 @@ else
   echo "↺ Store unchanged — keep running build"
 fi
 
+# 5c. Xưởng video (apps/xuong-video, cổng 3840, mos2-studio.service, studio.on.tc) — app riêng trên subdomain on.tc (anh chốt 08/10/2026).
+#     Unit + vhost nginx cài từ repo (deploy/mos2-studio.service, deploy/nginx-studio.conf) để không ai phải ssh gõ tay; idempotent.
+if ! cmp -s deploy/mos2-studio.service /etc/systemd/system/mos2-studio.service; then
+  cp deploy/mos2-studio.service /etc/systemd/system/mos2-studio.service && systemctl daemon-reload && systemctl enable mos2-studio >/dev/null 2>&1 && echo "✓ mos2-studio unit cài/cập nhật"
+fi
+if ! cmp -s deploy/nginx-studio.conf /etc/nginx/sites-enabled/studio.on.tc; then
+  cp deploy/nginx-studio.conf /etc/nginx/sites-enabled/studio.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx studio.on.tc cài/cập nhật" || { echo "✗ nginx studio.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/studio.on.tc; }
+fi
+STUDIO_CHANGED=false
+if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^(apps/xuong-video/|packages/db/src/|package-lock\.json)"; then
+  STUDIO_CHANGED=true
+fi
+if [ -f apps/xuong-video/.next.new/BUILD_ID ] && { [ "$STUDIO_CHANGED" = "true" ] || [ "$DEPS_CHANGED" = "true" ] || [ ! -f apps/xuong-video/.next/BUILD_ID ]; }; then
+  rm -rf apps/xuong-video/.next.old
+  [ -e apps/xuong-video/.next ] && mv apps/xuong-video/.next apps/xuong-video/.next.old
+  mv apps/xuong-video/.next.new apps/xuong-video/.next
+  rm -rf apps/xuong-video/.next.old
+  systemctl restart mos2-studio; sleep 1
+  systemctl is-active mos2-studio && echo "✓ mos2-studio active" || { echo "✗ mos2-studio failed"; systemctl status mos2-studio --no-pager | tail -20; exit 1; }
+else
+  rm -rf apps/xuong-video/.next.new
+  echo "↺ Studio unchanged — keep running build"
+fi
+
 # 6. Restart systemd unit
 systemctl restart mos2-web
 sleep 1

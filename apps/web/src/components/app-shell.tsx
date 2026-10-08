@@ -15,8 +15,8 @@ import { VisibilityWatcher } from './visibility-watcher';
 import type { Mode, Project } from '@/lib/mock/types';
 import type { VisibilityConfig } from '@/lib/visibility';
 
-type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'scenes' | 'outreach' | 'backlinks' | 'plays' | 'pillars' | 'seeding' | 'studio' | 'resources' | 'settings' | 'plans' | 'phu' | 'xuong-video';
-const TAB_TIEU_DE: Record<Tab, string> = { dashboard: 'Tổng quan', board: 'Board', squads: 'Squads', tribes: 'Tribes', scenes: 'Scenes', outreach: 'Outreach', backlinks: 'Backlinks', plays: 'Plays', pillars: 'Pillars', seeding: 'Seeding', studio: 'Studio', resources: 'Tài nguyên', settings: 'Cài đặt', plans: 'Kế hoạch', phu: 'Phủ', 'xuong-video': 'Xưởng video' };
+type Tab = 'dashboard' | 'board' | 'squads' | 'tribes' | 'scenes' | 'outreach' | 'backlinks' | 'plays' | 'pillars' | 'seeding' | 'studio' | 'resources' | 'settings' | 'plans' | 'phu';
+const TAB_TIEU_DE: Record<Tab, string> = { dashboard: 'Tổng quan', board: 'Board', squads: 'Squads', tribes: 'Tribes', scenes: 'Scenes', outreach: 'Outreach', backlinks: 'Backlinks', plays: 'Plays', pillars: 'Pillars', seeding: 'Seeding', studio: 'Studio', resources: 'Tài nguyên', settings: 'Cài đặt', plans: 'Kế hoạch', phu: 'Phủ' };
 
 export interface CurrentUserInfo {
   id: number;

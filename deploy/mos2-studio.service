@@ -1,0 +1,15 @@
+[Unit]
+Description=Xuong video AI (apps/xuong-video, port 3840) — studio.on.tc
+After=network.target
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/earns-marketing-os-v2/apps/xuong-video
+EnvironmentFile=/opt/earns-marketing-os-v2/.env.production
+Environment=NODE_ENV=production
+Environment=PORT=3840
+ExecStart=/usr/bin/npm run start
+Restart=always
+RestartSec=3
+[Install]
+WantedBy=multi-user.target

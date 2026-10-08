@@ -4,7 +4,7 @@ import 'server-only';
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';   // helper zodOutputFormat của SDK cần zod v4 (zod 3.25 kèm sẵn ở 'zod/v4'); import 'zod' gốc → TypeError 'def'
-import type { KinhThanh, LoaiNhanVat, LoaiPhim, NhanVat } from './kieu';
+import type { BienThe, KinhThanh, LoaiNhanVat, LoaiPhim, NhanVat } from './kieu';
 import { docKinhThanh, LOAI_PHIM } from './kieu';
 
 const CanhSchema = z.object({
@@ -15,6 +15,7 @@ const CanhSchema = z.object({
   am_thanh: z.string().describe('Âm thanh nền / hiệu ứng / nhạc; rỗng nếu không có'),
   thoi_luong_s: z.number().int().describe('Thời lượng clip: chỉ 4, 6 hoặc 8'),
   nhan_vat: z.array(z.string()).describe('Tên CHÍNH XÁC của các anchor (nhân vật, sản phẩm, bối cảnh) xuất hiện trong cảnh, lấy từ danh sách đã cho'),
+  bien_the: z.array(z.string()).describe('Biến thể dùng trong cảnh, ghi đúng dạng "Tên anchor · tên biến thể" lấy từ danh sách biến thể đã cho (biểu cảm, trang phục, góc máy…); mỗi anchor tối đa 1 biến thể; rỗng nếu không có biến thể phù hợp'),
   prompt_anh: z.string().describe('Prompt tiếng Anh cho model sinh ảnh keyframe: tả khung hình tĩnh đầu cảnh — bố cục, ánh sáng, cỡ cảnh, nhân vật tả theo đặc tính cố định (KHÔNG dùng tên riêng), bối cảnh, phong cách. Không nhắc chuyển động.'),
   prompt_video: z.string().describe('Prompt tiếng Anh cho model sinh video từ keyframe: chuyển động nhân vật, chuyển động máy, nhịp, âm thanh/lời thoại (ghi dialogue trong ngoặc kép kèm ngôn ngữ). Giữ nhân vật đúng như khung đầu.'),
 });
@@ -31,7 +32,7 @@ function client(): Anthropic | null {
 
 function taAnchor(nv: NhanVat[]): string {
   if (!nv.length) return '(chưa khai anchor nào — tự đặt tên nhân vật/bối cảnh và tả cố định, dùng cùng một mô tả ở mọi cảnh)';
-  return nv.map((a) => `- [${a.loai}] ${a.ten}: ${a.mo_ta || '(chưa mô tả)'}${a.giong ? ` · giọng: ${a.giong}` : ''}`).join('\n');
+  return nv.map((a) => `- [${a.loai}] ${a.ten}: ${a.mo_ta || '(chưa mô tả)'}${a.giong ? ` · giọng: ${a.giong}` : ''}${a.bien_the?.length ? `\n    biến thể: ${a.bien_the.map((b) => `"${a.ten} · ${b.ten}" (${b.nhom}: ${b.mo_ta.slice(0, 80)})`).join('; ')}` : ''}`).join('\n');
 }
 
 const heThong = (loai: LoaiPhim, kt: Required<KinhThanh>) => `Bạn là đạo diễn kiêm storyboard artist cho xưởng video AI. Loại sản phẩm: ${LOAI_PHIM.find((l) => l.key === loai)?.label ?? loai}.
@@ -75,7 +76,7 @@ export async function tachCanh(opts: {
 /** Viết kịch bản từ brief (sản phẩm, ý tưởng, tập số N của bộ phim). Trả văn bản thuần để người sửa trước khi tách cảnh. */
 export async function vietKichBan(opts: {
   loai: LoaiPhim; kinhThanh: KinhThanh; nhanVat: NhanVat[]; brief: string; tapSo?: number; tapTruoc?: string[]; thoiLuongS?: number;
-}): Promise<{ ok: true; kichBan: string } | { ok: false; loi: string }> {
+}): Promise<({ ok: true; kichBan: string } & DungChu) | { ok: false; loi: string }> {
   const c = client();
   if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
   const kt = docKinhThanh(opts.kinhThanh);
@@ -93,7 +94,7 @@ export async function vietKichBan(opts: {
     });
     if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
     const text = r.content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map((b) => b.text).join('\n').trim();
-    return text ? { ok: true, kichBan: text } : { ok: false, loi: 'Claude không trả chữ' };
+    return text ? { ok: true, kichBan: text, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude không trả chữ' };
   } catch (e) {
     return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
   }
@@ -102,7 +103,7 @@ export async function vietKichBan(opts: {
 /** Mô tả anchor → prompt tiếng Anh sinh "ảnh mẫu" (character sheet) để các cảnh sau tham chiếu. Không gọi LLM: ghép chuỗi là đủ. */
 export function promptAnhMau(nv: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, kt: KinhThanh): string {
   const k = docKinhThanh(kt);
-  const loai = nv.loai === 'nhan_vat' ? 'Character reference sheet, full body, front view, neutral pose, plain light background'
+  const loai = nv.loai === 'nhan_vat' ? 'Character design reference sheet on a plain light background: full-body turnaround (front, three-quarter, side, back) in a neutral pose, plus a row of head close-ups showing neutral, happy, sad and surprised expressions; identical design in every view'
     : nv.loai === 'san_pham' ? 'Product reference shot, centered, soft studio lighting, plain background, exact product details'
     : nv.loai === 'boi_canh' ? 'Establishing shot of the location, wide angle, no characters'
     : nv.loai === 'dao_cu' ? 'Prop reference shot, centered, plain background' : 'Style reference frame';
@@ -136,7 +137,8 @@ const BoAnchorSchema = z.object({
 const BriefSchema = z.object({ brief: z.string().describe('Brief 4-8 dòng cho tập này: mục tiêu, hook, diễn biến chính, xung đột, kết/CTA; nối mạch các tập trước') });
 const CanhLaiSchema = CanhSchema;
 
-type GoiYKq<T> = { ok: true; data: T } | { ok: false; loi: string };
+export type DungChu = { model: string; tokens: { in: number; out: number } };
+type GoiYKq<T> = ({ ok: true; data: T } & DungChu) | { ok: false; loi: string };
 
 function taNguCanh(nc: NguCanhPhim): string {
   const kt = docKinhThanh(nc.kinhThanh);
@@ -160,7 +162,7 @@ async function hoi<T>(schema: z.ZodType<T>, kt: Required<KinhThanh>, system: str
     });
     if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
     const p = r.parsed_output as T | null;
-    return p ? { ok: true, data: p } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
+    return p ? { ok: true, data: p, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
   } catch (e) {
     return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
   }
@@ -183,3 +185,23 @@ export const goiYBrief = (nc: NguCanhPhim, tapSo: number, thoiLuongS: number) =>
 export const goiYCanh = (nc: NguCanhPhim, c: { thu_tu: number; canh: string; goc_may: string; hanh_dong: string; loi_thoai: string; nhan_vat: string[] }, truoc?: string, sau?: string) =>
   hoi(CanhLaiSchema, docKinhThanh(nc.kinhThanh), heThong(nc.loai, docKinhThanh(nc.kinhThanh)) + '\n' + HE_THONG_GOI_Y,
     `${taNguCanh(nc)}\n\n${truoc ? `CẢNH TRƯỚC: ${truoc}\n` : ''}${sau ? `CẢNH SAU: ${sau}\n` : ''}\nViết lại đầy đủ CẢNH #${c.thu_tu}: nhãn "${c.canh}", góc máy "${c.goc_may}", hành động "${c.hanh_dong}", lời thoại "${c.loi_thoai}", anchor trong cảnh: ${c.nhan_vat.join(', ') || '(tự chọn từ tuyến)'}. Giữ ý người đã viết, bổ sung chỗ trống, sinh prompt_anh + prompt_video tiếng Anh khớp cảnh trước/sau và đúng đặc tính anchor.`);
+
+// ── Biến thể anchor ────────────────────────────────────────────────────────────────────────────────────────────────
+
+const BoBienTheSchema = z.object({
+  bien_the: z.array(z.object({
+    nhom: z.string().describe('Mã nhóm, chọn trong danh sách nhóm đã cho'),
+    ten: z.string().describe('Tên ngắn tiếng Việt, ví dụ "vui", "buồn", "đồ mùa đông", "góc cao", "hoàng hôn"'),
+    mo_ta: z.string().describe('Mô tả tiếng Anh cho model ảnh: chỉ phần THAY ĐỔI so với ảnh gốc (nét mặt, quần áo, tư thế, góc máy, ánh sáng); không tả lại danh tính'),
+  })).describe('Các biến thể CẦN cho kịch bản (đọc kịch bản các tập), cộng vài biến thể nền tảng; không lặp biến thể đã có'),
+});
+
+export const goiYBienThe = (nc: NguCanhPhim, a: NhanVat, nhom: { key: string; label: string }[]) =>
+  hoi(BoBienTheSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y,
+    `${taNguCanh(nc)}\n\nAnchor cần biến thể: [${a.loai}] ${a.ten}: ${a.mo_ta}\nBiến thể đã có: ${(a.bien_the ?? []).map((b) => `${b.nhom}/${b.ten}`).join(', ') || '(chưa có)'}\nNhóm hợp lệ: ${nhom.map((x) => `${x.key} (${x.label})`).join(', ')}\n\nĐề xuất 4-10 biến thể mà kịch bản các tập thật sự dùng tới (vd cảnh khóc → biểu cảm buồn; cảnh đêm → bối cảnh ban đêm), ưu tiên thứ xuất hiện nhiều.`);
+
+export function promptBienThe(a: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, b: Pick<BienThe, 'nhom' | 'mo_ta' | 'ten'>, kt: KinhThanh): string {
+  const k = docKinhThanh(kt);
+  const khung = a.loai === 'boi_canh' ? 'Establishing shot of the SAME location as the reference image' : a.loai === 'san_pham' ? 'Product shot of the EXACT same product as the reference image' : 'The SAME character as the reference image, single character, plain light background';
+  return `${khung}. Identity (must not change): ${a.mo_ta}. Change only this (${b.nhom}): ${b.mo_ta || b.ten}. Visual style: ${k.phong_cach || 'consistent with reference'}. Keep proportions, colors, markings and outfit details identical unless the change says otherwise.`;
+}

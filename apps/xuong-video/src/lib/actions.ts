@@ -10,10 +10,11 @@ import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { uploadToR2 } from '@/lib/r2';
 import { sinhAnh, batDauVeo, docVeo, taiVeo, taiAnhBase64, type AnhVao } from '@/lib/xuong-video/google';
-import { tachCanh, vietKichBan, promptAnhMau, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
+import { type DungChu } from '@/lib/xuong-video/claude';
+import { tachCanh, vietKichBan, promptAnhMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import {
-  docKinhThanh, giaAnhCents, giaVideoCents,
+  docKinhThanh, giaAnhCents, giaVideoCents, giaChuCents, NHOM_BIEN_THE, type BienThe,
   type Phim, type NhanVat, type Tap, type Canh, type Job, type KinhThanh, type LoaiPhim, type LoaiNhanVat, type TrangThaiCanh,
 } from '@/lib/xuong-video/kieu';
 
@@ -42,8 +43,7 @@ export async function dsPhim(): Promise<Phim[]> {
         (SELECT count(*) FROM xv_tap t WHERE t.phim_id = p.id) AS so_tap,
         (SELECT count(*) FROM xv_nhan_vat v WHERE v.phim_id = p.id) AS so_nhan_vat,
         (SELECT count(*) FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = p.id) AS so_canh,
-        (SELECT coalesce(sum(c.chi_phi_cents), 0) FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = p.id)
-          + (SELECT coalesce(sum(j.chi_phi_cents), 0) FROM xv_job j JOIN xv_nhan_vat v ON v.id = j.nhan_vat_id WHERE v.phim_id = p.id) AS chi_phi_cents
+        (SELECT coalesce(sum(j.chi_phi_cents), 0) FROM xv_job j WHERE j.phim_id = p.id) AS chi_phi_cents
       FROM xv_phim p ORDER BY p.updated_at DESC`);
     return (r as unknown as Row[]).map(mapPhim);
   } catch { return []; }
@@ -54,7 +54,8 @@ const mapPhim = (r: Row): Phim => ({
   so_tap: n(r.so_tap), so_nhan_vat: n(r.so_nhan_vat), so_canh: n(r.so_canh), chi_phi_cents: n(r.chi_phi_cents), updated_at: s(r.updated_at),
 });
 
-export type PhimDayDu = { phim: Phim; nhanVat: NhanVat[]; tap: Tap[] };
+/** dangSinh: job ảnh còn chạy (≤10 phút) — F5 vẫn thấy "đang sinh" vì trạng thái ở sổ job máy chủ, không ở trình duyệt. */
+export type PhimDayDu = { phim: Phim; nhanVat: NhanVat[]; tap: Tap[]; dangSinh: { nhanVat: number[]; bienThe: number[] }; ganDay: Job[]; tongTien: number };
 export async function docPhim(id: number): Promise<PhimDayDu | null> {
   const db = getDb();
   if (!db || !(await admin())) return null;
@@ -65,18 +66,35 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
       db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${id} ORDER BY loai, id`),
       db.execute(sql`SELECT t.*, (SELECT count(*) FROM xv_canh c WHERE c.tap_id = t.id) AS so_canh FROM xv_tap t WHERE t.phim_id = ${id} ORDER BY so`),
     ]);
-    return { phim: mapPhim(p[0]), nhanVat: (nv as unknown as Row[]).map(mapNhanVat), tap: (tap as unknown as Row[]).map(mapTap) };
+    const nvs = (nv as unknown as Row[]).map(mapNhanVat);
+    const [bt, ds, gd, tg] = await Promise.all([
+      db.execute(sql`SELECT b.* FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE v.phim_id = ${id} ORDER BY b.nhom, b.id`),
+      db.execute(sql`SELECT j.nhan_vat_id, j.bien_the_id FROM xv_job j JOIN xv_nhan_vat v ON v.id = j.nhan_vat_id
+        WHERE v.phim_id = ${id} AND j.loai = 'anh' AND j.trang_thai = 'cho' AND j.created_at > now() - interval '10 minutes'`),
+      db.execute(sql`SELECT * FROM xv_job WHERE phim_id = ${id} ORDER BY id DESC LIMIT 6`),
+      db.execute(sql`SELECT coalesce(sum(chi_phi_cents), 0) AS t FROM xv_job WHERE phim_id = ${id}`),
+    ]);
+    const bts = (bt as unknown as Row[]).map(mapBienThe);
+    for (const v of nvs) v.bien_the = bts.filter((b) => b.nhan_vat_id === v.id);
+    const dsr = ds as unknown as Row[];
+    return {
+      phim: mapPhim(p[0]), nhanVat: nvs, tap: (tap as unknown as Row[]).map(mapTap),
+      ganDay: (gd as unknown as Row[]).map(mapJob), tongTien: n((tg as unknown as Row[])[0]?.t),
+      dangSinh: { nhanVat: dsr.filter((r) => r.bien_the_id == null).map((r) => n(r.nhan_vat_id)), bienThe: dsr.filter((r) => r.bien_the_id != null).map((r) => n(r.bien_the_id)) },
+    };
   } catch { return null; }
 }
+const mapBienThe = (r: Row): BienThe => ({ id: n(r.id), nhan_vat_id: n(r.nhan_vat_id), nhom: s(r.nhom), ten: s(r.ten), mo_ta: s(r.mo_ta), anh_url: r.anh_url == null ? null : s(r.anh_url) });
 const mapNhanVat = (r: Row): NhanVat => ({ id: n(r.id), phim_id: n(r.phim_id), loai: s(r.loai) as LoaiNhanVat, ten: s(r.ten), mo_ta: s(r.mo_ta), anh_ref: arr<string>(r.anh_ref), giong: s(r.giong) });
 const mapTap = (r: Row): Tap => ({ id: n(r.id), phim_id: n(r.phim_id), so: n(r.so), ten: s(r.ten), kich_ban: s(r.kich_ban), tom_tat: s(r.tom_tat), trang_thai: s(r.trang_thai), video_url: r.video_url == null ? null : s(r.video_url), so_canh: n(r.so_canh) });
 const mapCanh = (r: Row): Canh => ({
   id: n(r.id), tap_id: n(r.tap_id), thu_tu: n(r.thu_tu), canh: s(r.canh), goc_may: s(r.goc_may), hanh_dong: s(r.hanh_dong), loi_thoai: s(r.loi_thoai), am_thanh: s(r.am_thanh),
-  thoi_luong_s: n(r.thoi_luong_s), nhan_vat: arr<number>(r.nhan_vat).map(Number), prompt_anh: s(r.prompt_anh), prompt_video: s(r.prompt_video),
+  thoi_luong_s: n(r.thoi_luong_s), nhan_vat: arr<number>(r.nhan_vat).map(Number), bien_the: arr<number>(r.bien_the).map(Number), dang_sinh_anh: r.dang_sinh_anh === true, prompt_anh: s(r.prompt_anh), prompt_video: s(r.prompt_video),
   keyframe_url: r.keyframe_url == null ? null : s(r.keyframe_url), keyframe_uv: arr<string>(r.keyframe_uv), video_url: r.video_url == null ? null : s(r.video_url),
   trang_thai: s(r.trang_thai) as TrangThaiCanh, loi: s(r.loi), chi_phi_cents: n(r.chi_phi_cents),
 });
 const mapJob = (r: Row): Job => ({
+  phim_id: r.phim_id == null ? null : n(r.phim_id), nhan: s(r.nhan), tokens_in: n(r.tokens_in), tokens_out: n(r.tokens_out), phim_ten: s(r.phim_ten),
   id: n(r.id), canh_id: r.canh_id == null ? null : n(r.canh_id), nhan_vat_id: r.nhan_vat_id == null ? null : n(r.nhan_vat_id), loai: s(r.loai), provider: s(r.provider), model: s(r.model),
   trang_thai: s(r.trang_thai), task_id: r.task_id == null ? null : s(r.task_id), output_url: r.output_url == null ? null : s(r.output_url), chi_phi_cents: n(r.chi_phi_cents), loi: s(r.loi), created_at: s(r.created_at),
 });
@@ -85,7 +103,7 @@ export async function dsCanh(tapId: number): Promise<Canh[]> {
   const db = getDb();
   if (!db || !(await admin())) return [];
   try {
-    const r = await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`);
+    const r = await db.execute(sql`SELECT c.*, EXISTS (SELECT 1 FROM xv_job j WHERE j.canh_id = c.id AND j.loai = 'anh' AND j.trang_thai = 'cho' AND j.created_at > now() - interval '10 minutes') AS dang_sinh_anh FROM xv_canh c WHERE c.tap_id = ${tapId} ORDER BY c.thu_tu, c.id`);
     return (r as unknown as Row[]).map(mapCanh);
   } catch { return []; }
 }
@@ -100,6 +118,26 @@ export async function dsJobPhim(phimId: number): Promise<Job[]> {
       WHERE t.phim_id = ${phimId} OR v.phim_id = ${phimId} ORDER BY j.id DESC LIMIT 200`);
     return (r as unknown as Row[]).map(mapJob);
   } catch { return []; }
+}
+
+/** Sổ chi phí (trang /log): mọi lần gọi AI, mới nhất trước. */
+export async function soChiPhi(opts: { phimId?: number; ngay?: number }): Promise<{ jobs: Job[]; theoNgay: { ngay: string; tien: number; so: number }[]; theoLoai: { loai: string; tien: number; so: number }[] }> {
+  const db = getDb();
+  if (!db || !(await admin())) return { jobs: [], theoNgay: [], theoLoai: [] };
+  const ngay = Math.max(1, Math.min(365, opts.ngay ?? 30));
+  const loc = opts.phimId ? sql`AND j.phim_id = ${opts.phimId}` : sql``;
+  const [jobs, nd, ll] = await Promise.all([
+    db.execute(sql`SELECT j.*, p.ten AS phim_ten FROM xv_job j LEFT JOIN xv_phim p ON p.id = j.phim_id
+      WHERE j.created_at > now() - make_interval(days => ${ngay}) ${loc} ORDER BY j.id DESC LIMIT 1000`),
+    db.execute(sql`SELECT to_char(j.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') AS ngay, sum(j.chi_phi_cents) AS tien, count(*) AS so
+      FROM xv_job j WHERE j.created_at > now() - make_interval(days => ${ngay}) ${loc} GROUP BY 1 ORDER BY 1 DESC`),
+    db.execute(sql`SELECT j.loai, sum(j.chi_phi_cents) AS tien, count(*) AS so FROM xv_job j WHERE j.created_at > now() - make_interval(days => ${ngay}) ${loc} GROUP BY 1 ORDER BY 2 DESC`),
+  ]);
+  return {
+    jobs: (jobs as unknown as Row[]).map(mapJob),
+    theoNgay: (nd as unknown as Row[]).map((r) => ({ ngay: s(r.ngay), tien: n(r.tien), so: n(r.so) })),
+    theoLoai: (ll as unknown as Row[]).map((r) => ({ loai: s(r.loai), tien: n(r.tien), so: n(r.so) })),
+  };
 }
 
 /** Trạng thái khoá: trang báo thiếu gì thay vì để nút Sinh lỗi âm thầm. Chỉ trả có/không, không trả giá trị. */
@@ -204,13 +242,87 @@ export async function sinhAnhMau(nhanVatId: number): Promise<Kq<string>> {
   if (!nv.mo_ta.trim()) return loi('anchor chưa có mô tả — tả ngoại hình/đặc tính trước rồi mới sinh ảnh mẫu');
   const kt = docKinhThanh(r[0].kt as KinhThanh);
   const thamChieu = (await Promise.all(nv.anh_ref.slice(0, 3).map(taiAnhBase64))).filter((x): x is AnhVao => !!x);
-  const job = await taoJob({ nhan_vat_id: nhanVatId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { prompt: promptAnhMau(nv, kt) } });
+  const job = await taoJob({ nhan: `Ảnh gốc · ${nv.ten}`, nhan_vat_id: nhanVatId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { prompt: promptAnhMau(nv, kt) } });
   const kq = await sinhAnh({ model: kt.mo_hinh_anh, prompt: promptAnhMau(nv, kt), thamChieu, tiLe: nv.loai === 'boi_canh' ? kt.ti_le : '1:1', kichCo: '1K' });
   if (!kq.ok) { await xongJob(job, { loi: kq.loi }); return loi(kq.loi); }
   const url = await uploadToR2(`xuong-video/anchor/${nhanVatId}-${randomUUID()}.${duoi(kq.mimeType)}`, kq.data, kq.mimeType);
   if (!url) { await xongJob(job, { loi: 'R2 không nhận ảnh' }); return loi('R2 không nhận ảnh (thiếu cấu hình storage?)'); }
   await xongJob(job, { output_url: url, model: kq.model, chi_phi_cents: giaAnhCents(kq.model) });
   await db.execute(sql`UPDATE xv_nhan_vat SET anh_ref = (anh_ref || ${JSON.stringify([url])}::jsonb), updated_at = now() WHERE id = ${nhanVatId}`);
+  return { ok: true, data: url };
+}
+
+// ── Biến thể anchor (biểu cảm · trang phục · tư thế · góc máy · thời điểm…) ───────────────────────────────────────
+
+export async function luuBienThe(d: { id?: number; nhan_vat_id: number; nhom: string; ten: string; mo_ta: string }): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  if (!d.ten.trim()) return loi('thiếu tên biến thể');
+  if (d.id) {
+    await db.execute(sql`UPDATE xv_bien_the SET nhom = ${d.nhom}, ten = ${d.ten.trim()}, mo_ta = ${d.mo_ta}, updated_at = now() WHERE id = ${d.id}`);
+    return { ok: true, data: d.id };
+  }
+  const r = (await db.execute(sql`INSERT INTO xv_bien_the (nhan_vat_id, nhom, ten, mo_ta) VALUES (${d.nhan_vat_id}, ${d.nhom}, ${d.ten.trim()}, ${d.mo_ta}) RETURNING id`)) as unknown as Row[];
+  return { ok: true, data: n(r[0]?.id) };
+}
+
+export async function xoaBienThe(id: number): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  await db.execute(sql`DELETE FROM xv_bien_the WHERE id = ${id}`);
+  await db.execute(sql`UPDATE xv_canh SET bien_the = coalesce((SELECT jsonb_agg(e) FROM jsonb_array_elements(bien_the) e WHERE e::int <> ${id}), '[]'::jsonb) WHERE bien_the @> ${JSON.stringify([id])}::jsonb`);
+  return { ok: true, data: undefined };
+}
+
+/** Claude đọc kịch bản các tập → đề xuất biến thể cần cho anchor này → tạo luôn (chưa có ảnh). */
+export async function goiYAIBienThe(nhanVatId: number): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const r = (await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE id = ${nhanVatId}`)) as unknown as Row[];
+  if (!r[0]) return loi('không thấy anchor');
+  const nc = await nguCanhPhim(db, n(r[0].phim_id));
+  if (!nc) return loi('không thấy phim');
+  const a = nc.nhanVat.find((v) => v.id === nhanVatId)!;
+  const nhom = NHOM_BIEN_THE[a.loai] ?? NHOM_BIEN_THE.nhan_vat;
+  const kq = await goiYBienThe(nc, a, nhom);
+  await ghiChu(n(r[0].phim_id), `AI đề xuất biến thể · ${a.ten}`, kq);
+  if (!kq.ok) return loi(kq.loi);
+  const daCo = new Set((a.bien_the ?? []).map((b) => `${b.nhom}/${b.ten}`.toLowerCase()));
+  let them = 0;
+  for (const b of kq.data.bien_the) {
+    const k = nhom.some((x) => x.key === b.nhom) ? b.nhom : nhom[0]!.key;
+    if (daCo.has(`${k}/${b.ten}`.toLowerCase())) continue;
+    await db.execute(sql`INSERT INTO xv_bien_the (nhan_vat_id, nhom, ten, mo_ta) VALUES (${nhanVatId}, ${k}, ${b.ten.trim()}, ${b.mo_ta})`);
+    them++;
+  }
+  return { ok: true, data: them };
+}
+
+/** Sinh ảnh một biến thể TỪ ảnh gốc của anchor (tham chiếu) → giữ danh tính, chỉ đổi phần biến thể. */
+export async function sinhAnhBienThe(bienTheId: number): Promise<Kq<string>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const r = (await db.execute(sql`SELECT b.*, v.loai AS v_loai, v.ten AS v_ten, v.mo_ta AS v_mo_ta, v.anh_ref AS v_anh, p.kinh_thanh AS kt
+    FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id JOIN xv_phim p ON p.id = v.phim_id WHERE b.id = ${bienTheId}`)) as unknown as Row[];
+  if (!r[0]) return loi('không thấy biến thể');
+  const b = mapBienThe(r[0]);
+  const anhGoc = arr<string>(r[0].v_anh);
+  if (!anhGoc.length) return loi('anchor chưa có ảnh gốc — bấm "Sinh ảnh mẫu" của anchor trước để biến thể bám theo');
+  const kt = docKinhThanh(r[0].kt as KinhThanh);
+  const a = { loai: s(r[0].v_loai) as LoaiNhanVat, ten: s(r[0].v_ten), mo_ta: s(r[0].v_mo_ta) };
+  const prompt = promptBienThe(a, b, kt);
+  const thamChieu = (await Promise.all(anhGoc.slice(0, 2).map(taiAnhBase64))).filter((x): x is AnhVao => !!x);
+  const job = await taoJob({ nhan: `Biến thể · ${a.ten} · ${b.ten}`, nhan_vat_id: b.nhan_vat_id, bien_the_id: bienTheId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { prompt } });
+  const kq = await sinhAnh({ model: kt.mo_hinh_anh, prompt, thamChieu, tiLe: a.loai === 'boi_canh' ? kt.ti_le : '1:1', kichCo: '1K' });
+  if (!kq.ok) { await xongJob(job, { loi: kq.loi }); return loi(kq.loi); }
+  const url = await uploadToR2(`xuong-video/bien-the/${bienTheId}-${randomUUID()}.${duoi(kq.mimeType)}`, kq.data, kq.mimeType);
+  if (!url) { await xongJob(job, { loi: 'R2 không nhận ảnh' }); return loi('R2 không nhận ảnh'); }
+  await xongJob(job, { output_url: url, model: kq.model, chi_phi_cents: giaAnhCents(kq.model) });
+  await db.execute(sql`UPDATE xv_bien_the SET anh_url = ${url}, updated_at = now() WHERE id = ${bienTheId}`);
   return { ok: true, data: url };
 }
 
@@ -247,8 +359,9 @@ async function boiCanhTap(db: NonNullable<ReturnType<typeof getDb>>, tapId: numb
   if (!r[0]) return null;
   const tap = mapTap(r[0]);
   const nv = (await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${tap.phim_id} ORDER BY loai, id`)) as unknown as Row[];
+  const nvKem = await kemBienThe(db, nv.map(mapNhanVat));
   const truoc = (await db.execute(sql`SELECT tom_tat FROM xv_tap WHERE phim_id = ${tap.phim_id} AND so < ${tap.so} AND tom_tat <> '' ORDER BY so`)) as unknown as Row[];
-  return { tap, loai: s(r[0].p_loai) as LoaiPhim, kt: (r[0].kt ?? {}) as KinhThanh, nhanVat: nv.map(mapNhanVat), tapTruoc: truoc.map((x) => s(x.tom_tat)) };
+  return { tap, loai: s(r[0].p_loai) as LoaiPhim, kt: (r[0].kt ?? {}) as KinhThanh, nhanVat: nvKem, tapTruoc: truoc.map((x) => s(x.tom_tat)) };
 }
 
 /** Claude viết kịch bản từ brief → lưu vào tập (người sửa tiếp trong ô kịch bản). */
@@ -261,6 +374,7 @@ export async function vietKichBanTap(tapId: number, brief: string, thoiLuongS: n
   if (!brief.trim()) return loi('thiếu brief');
   const kq = await vietKichBan({ loai: bc.loai, kinhThanh: bc.kt, nhanVat: bc.nhanVat, brief, tapSo: bc.loai === 'phim' ? bc.tap.so : undefined, tapTruoc: bc.tapTruoc, thoiLuongS });
   if (!kq.ok) return loi(kq.loi);
+  await ghiChu(bc.tap.phim_id, `Viết kịch bản · tập ${bc.tap.so}`, kq);
   await db.execute(sql`UPDATE xv_tap SET kich_ban = ${kq.kichBan}, updated_at = now() WHERE id = ${tapId}`);
   return { ok: true, data: kq.kichBan };
 }
@@ -276,30 +390,32 @@ export async function tachCanhTap(tapId: number, soCanh: number): Promise<Kq<num
   const kq = await tachCanh({ loai: bc.loai, kinhThanh: bc.kt, nhanVat: bc.nhanVat, kichBan: bc.tap.kich_ban, soCanh, tapTruoc: bc.tapTruoc });
   if (!kq.ok) return loi(kq.loi);
   const tenToId = new Map(bc.nhanVat.map((v) => [v.ten.trim().toLowerCase(), v.id]));
+  const btToId = new Map(bc.nhanVat.flatMap((v) => (v.bien_the ?? []).map((b) => [`${v.ten} · ${b.ten}`.trim().toLowerCase(), b.id] as [string, number])));
   await db.execute(sql`DELETE FROM xv_canh WHERE tap_id = ${tapId} AND trang_thai = 'nhap'`);
   const giu = (await db.execute(sql`SELECT coalesce(max(thu_tu), 0) AS m FROM xv_canh WHERE tap_id = ${tapId}`)) as unknown as Row[];
   let thuTu = n(giu[0]?.m);
   for (const c of kq.canh) {
     thuTu += 1;
     const ids = c.nhan_vat.map((t) => tenToId.get(t.trim().toLowerCase())).filter((x): x is number => typeof x === 'number');
-    await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, loi_thoai, am_thanh, thoi_luong_s, nhan_vat, prompt_anh, prompt_video)
-      VALUES (${tapId}, ${thuTu}, ${c.canh}, ${c.goc_may}, ${c.hanh_dong}, ${c.loi_thoai}, ${c.am_thanh}, ${c.thoi_luong_s}, ${JSON.stringify(ids)}::jsonb, ${c.prompt_anh}, ${c.prompt_video})`);
+    const bts = (c.bien_the ?? []).map((t) => btToId.get(t.replace(/\s*[·\-–|]\s*/, ' · ').trim().toLowerCase())).filter((x): x is number => typeof x === 'number');
+    await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, loi_thoai, am_thanh, thoi_luong_s, nhan_vat, bien_the, prompt_anh, prompt_video)
+      VALUES (${tapId}, ${thuTu}, ${c.canh}, ${c.goc_may}, ${c.hanh_dong}, ${c.loi_thoai}, ${c.am_thanh}, ${c.thoi_luong_s}, ${JSON.stringify(ids)}::jsonb, ${JSON.stringify(bts)}::jsonb, ${c.prompt_anh}, ${c.prompt_video})`);
   }
   await db.execute(sql`UPDATE xv_tap SET tom_tat = CASE WHEN tom_tat = '' THEN ${kq.tomTat} ELSE tom_tat END, trang_thai = 'storyboard', updated_at = now() WHERE id = ${tapId}`);
-  await taoJob({ loai: 'chu', provider: 'anthropic', model: kq.model, request: { tapId, tokens: kq.tokens }, xong: true });
+  await ghiChu(bc.tap.phim_id, `Tách cảnh · tập ${bc.tap.so} (${kq.canh.length} cảnh)`, kq);
   return { ok: true, data: kq.canh.length };
 }
 
 // ── Cảnh ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-export async function suaCanh(id: number, d: Partial<Pick<Canh, 'canh' | 'goc_may' | 'hanh_dong' | 'loi_thoai' | 'am_thanh' | 'thoi_luong_s' | 'nhan_vat' | 'prompt_anh' | 'prompt_video' | 'thu_tu'>>): Promise<Kq> {
+export async function suaCanh(id: number, d: Partial<Pick<Canh, 'canh' | 'goc_may' | 'hanh_dong' | 'loi_thoai' | 'am_thanh' | 'thoi_luong_s' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'prompt_video' | 'thu_tu'>>): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   await db.execute(sql`UPDATE xv_canh SET
     canh = coalesce(${d.canh ?? null}, canh), goc_may = coalesce(${d.goc_may ?? null}, goc_may), hanh_dong = coalesce(${d.hanh_dong ?? null}, hanh_dong),
     loi_thoai = coalesce(${d.loi_thoai ?? null}, loi_thoai), am_thanh = coalesce(${d.am_thanh ?? null}, am_thanh), thoi_luong_s = coalesce(${d.thoi_luong_s ?? null}, thoi_luong_s),
-    nhan_vat = coalesce(${d.nhan_vat ? JSON.stringify(d.nhan_vat) : null}::jsonb, nhan_vat), prompt_anh = coalesce(${d.prompt_anh ?? null}, prompt_anh),
+    nhan_vat = coalesce(${d.nhan_vat ? JSON.stringify(d.nhan_vat) : null}::jsonb, nhan_vat), bien_the = coalesce(${d.bien_the ? JSON.stringify(d.bien_the) : null}::jsonb, bien_the), prompt_anh = coalesce(${d.prompt_anh ?? null}, prompt_anh),
     prompt_video = coalesce(${d.prompt_video ?? null}, prompt_video), thu_tu = coalesce(${d.thu_tu ?? null}, thu_tu), updated_at = now() WHERE id = ${id}`);
   return { ok: true, data: undefined };
 }
@@ -326,7 +442,7 @@ async function boiCanhCanh(db: NonNullable<ReturnType<typeof getDb>>, canhId: nu
   const canh = mapCanh(r[0]);
   const kt = docKinhThanh(r[0].kt as KinhThanh);
   const nv = canh.nhan_vat.length
-    ? ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE id = ANY(${canh.nhan_vat}::int[])`)) as unknown as Row[]).map(mapNhanVat)
+    ? await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE id = ANY(${canh.nhan_vat}::int[])`)) as unknown as Row[]).map(mapNhanVat))
     : [];
   return { canh, kt, nhanVat: nv };
 }
@@ -348,12 +464,16 @@ export async function sinhKeyframe(canhId: number, so = 1): Promise<Kq<string[]>
   const bc = await boiCanhCanh(db, canhId);
   if (!bc) return loi('không thấy cảnh');
   if (!bc.canh.prompt_anh.trim()) return loi('cảnh chưa có prompt ảnh');
-  const thamChieu = (await Promise.all(bc.nhanVat.flatMap((v) => v.anh_ref.slice(0, 2)).slice(0, 8).map(taiAnhBase64))).filter((x): x is AnhVao => !!x);
-  const prompt = ghepPromptAnh(bc.canh.prompt_anh, bc.kt.phong_cach, bc.nhanVat);
+  // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.
+  const btCanh = (v: NhanVat) => (v.bien_the ?? []).find((b) => bc.canh.bien_the.includes(b.id));
+  const urlRef = bc.nhanVat.flatMap((v) => { const b = btCanh(v); return [...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, b?.anh_url ? 1 : 2)]; }).slice(0, 10);
+  const thamChieu = (await Promise.all(urlRef.map(taiAnhBase64))).filter((x): x is AnhVao => !!x);
+  const ghiChuBt = bc.nhanVat.map((v) => { const b = btCanh(v); return b ? `${v.ten} in this shot: ${b.mo_ta || b.ten}.` : ''; }).filter(Boolean).join(' ');
+  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, bc.kt.phong_cach, bc.nhanVat), ghiChuBt].filter(Boolean).join(' ');
   const urls: string[] = [];
   let loiCuoi = '';
   for (let i = 0; i < Math.max(1, Math.min(3, so)); i++) {
-    const job = await taoJob({ canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt, thamChieu: thamChieu.length } });
+    const job = await taoJob({ nhan: `Keyframe · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt, thamChieu: thamChieu.length } });
     const kq = await sinhAnh({ model: bc.kt.mo_hinh_anh, prompt, thamChieu, tiLe: bc.kt.ti_le, kichCo: '1K' });
     if (!kq.ok) { loiCuoi = kq.loi; await xongJob(job, { loi: kq.loi }); continue; }
     const url = await uploadToR2(`xuong-video/keyframe/${canhId}-${randomUUID()}.${duoi(kq.mimeType)}`, kq.data, kq.mimeType);
@@ -363,7 +483,7 @@ export async function sinhKeyframe(canhId: number, so = 1): Promise<Kq<string[]>
     urls.push(url);
     await db.execute(sql`UPDATE xv_canh SET keyframe_uv = (keyframe_uv || ${JSON.stringify([url])}::jsonb),
       keyframe_url = coalesce(keyframe_url, ${url}), trang_thai = CASE WHEN trang_thai = 'nhap' THEN 'co_keyframe' ELSE trang_thai END,
-      chi_phi_cents = chi_phi_cents + ${Math.round(gia)}, loi = '', updated_at = now() WHERE id = ${canhId}`);
+      chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canhId}`);
   }
   if (!urls.length) {
     await db.execute(sql`UPDATE xv_canh SET loi = ${loiCuoi}, updated_at = now() WHERE id = ${canhId}`);
@@ -421,7 +541,7 @@ export async function sinhVideoCanh(canhId: number): Promise<Kq<number>> {
   if (!anhDau) return loi('không tải được keyframe');
   const prompt = [bc.kt.phong_cach ? `Visual style: ${bc.kt.phong_cach}.` : '', bc.canh.prompt_video.trim() || bc.canh.hanh_dong].filter(Boolean).join(' ');
   const giay = (bc.canh.thoi_luong_s <= 4 ? 4 : bc.canh.thoi_luong_s <= 6 ? 6 : 8) as 4 | 6 | 8;
-  const job = await taoJob({ canh_id: canhId, loai: 'video', provider: 'google', model: bc.kt.mo_hinh_video, request: { prompt, giay, doPhanGiai: bc.kt.do_phan_giai, tiLe: bc.kt.ti_le } });
+  const job = await taoJob({ nhan: `Video · cảnh #${bc.canh.thu_tu} ${bc.canh.canh} · ${giay}s`, canh_id: canhId, loai: 'video', provider: 'google', model: bc.kt.mo_hinh_video, request: { prompt, giay, doPhanGiai: bc.kt.do_phan_giai, tiLe: bc.kt.ti_le } });
   const kq = await batDauVeo({ model: bc.kt.mo_hinh_video, prompt, anhDau, tiLe: bc.kt.ti_le, doPhanGiai: bc.kt.do_phan_giai, giay });
   if (!kq.ok) {
     await xongJob(job, { loi: kq.loi });
@@ -475,6 +595,22 @@ export async function taiAnhLen(dataUrl: string): Promise<Kq<string>> {
   return url ? { ok: true, data: url } : loi('R2 không nhận ảnh (thiếu cấu hình storage?)');
 }
 
+async function kemBienThe(db: NonNullable<ReturnType<typeof getDb>>, nvs: NhanVat[]): Promise<NhanVat[]> {
+  if (!nvs.length) return nvs;
+  const bt = ((await db.execute(sql`SELECT * FROM xv_bien_the WHERE nhan_vat_id = ANY(${nvs.map((v) => v.id)}::int[]) ORDER BY nhom, id`)) as unknown as Row[]).map(mapBienThe);
+  for (const v of nvs) v.bien_the = bt.filter((b) => b.nhan_vat_id === v.id);
+  return nvs;
+}
+
+/** Ghi một lần gọi Claude vào sổ chi phí (token → cents). */
+async function ghiChu(phimId: number | null, nhan: string, r: { ok: boolean } & Partial<DungChu>): Promise<void> {
+  if (!r.ok || !r.model || !r.tokens) return;
+  const db = getDb()!;
+  const gia = giaChuCents(r.model, r.tokens.in, r.tokens.out);
+  await db.execute(sql`INSERT INTO xv_job (phim_id, nhan, loai, provider, model, trang_thai, chi_phi_cents, tokens_in, tokens_out)
+    VALUES (${phimId}, ${nhan}, 'chu', 'anthropic', ${r.model}, 'xong', ${Math.round(gia * 100) / 100}, ${r.tokens.in}, ${r.tokens.out})`);
+}
+
 // ── Gợi ý AI cho mọi form (đọc ngữ cảnh cả phim) ──────────────────────────────────────────────────────────────
 
 async function nguCanhPhim(db: NonNullable<ReturnType<typeof getDb>>, phimId: number): Promise<NguCanhPhim | null> {
@@ -483,7 +619,7 @@ async function nguCanhPhim(db: NonNullable<ReturnType<typeof getDb>>, phimId: nu
   const nv = (await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY loai, id`)) as unknown as Row[];
   const tap = (await db.execute(sql`SELECT so, ten, tom_tat, kich_ban FROM xv_tap WHERE phim_id = ${phimId} ORDER BY so`)) as unknown as Row[];
   return {
-    loai: s(p[0].loai) as LoaiPhim, ten: s(p[0].ten), mo_ta: s(p[0].mo_ta), kinhThanh: (p[0].kinh_thanh ?? {}) as KinhThanh, nhanVat: nv.map(mapNhanVat),
+    loai: s(p[0].loai) as LoaiPhim, ten: s(p[0].ten), mo_ta: s(p[0].mo_ta), kinhThanh: (p[0].kinh_thanh ?? {}) as KinhThanh, nhanVat: await kemBienThe(db, nv.map(mapNhanVat)),
     tap: tap.map((t) => ({ so: n(t.so), ten: s(t.ten), tom_tat: s(t.tom_tat), kich_ban: s(t.kich_ban) })),
   };
 }
@@ -495,6 +631,7 @@ export async function goiYAIKinhThanh(phimId: number): Promise<Kq<{ phong_cach: 
   const nc = await nguCanhPhim(db, phimId);
   if (!nc) return loi('không thấy phim');
   const r = await goiYKinhThanh(nc);
+  await ghiChu(phimId, 'AI gợi ý kinh thánh', r);
   return r.ok ? { ok: true, data: r.data } : loi(r.loi);
 }
 
@@ -506,6 +643,7 @@ export async function goiYAIAnchor(phimId: number, a: { loai: LoaiNhanVat; ten: 
   const nc = await nguCanhPhim(db, phimId);
   if (!nc) return loi('không thấy phim');
   const r = await goiYAnchor(nc, a);
+  await ghiChu(phimId, `AI tả anchor · ${a.ten}`, r);
   return r.ok ? { ok: true, data: r.data } : loi(r.loi);
 }
 
@@ -518,6 +656,7 @@ export async function goiYAIBoAnchor(phimId: number): Promise<Kq<number>> {
   if (!nc) return loi('không thấy phim');
   if (!nc.mo_ta.trim() && !nc.tap.some((t) => t.kich_ban.trim())) return loi('viết tiền đề (kinh thánh) hoặc kịch bản trước để AI có gì mà đề xuất');
   const r = await goiYBoAnchor(nc);
+  await ghiChu(phimId, 'AI đề xuất tuyến nhân vật', r);
   if (!r.ok) return loi(r.loi);
   const daCo = new Set(nc.nhanVat.map((v) => v.ten.trim().toLowerCase()));
   let them = 0;
@@ -538,6 +677,7 @@ export async function goiYAIBrief(tapId: number, thoiLuongS: number): Promise<Kq
   const nc = await nguCanhPhim(db, n(t[0].phim_id));
   if (!nc) return loi('không thấy phim');
   const r = await goiYBrief(nc, n(t[0].so), thoiLuongS);
+  await ghiChu(n(t[0].phim_id), `AI gợi ý brief · tập ${n(t[0].so)}`, r);
   return r.ok ? { ok: true, data: r.data.brief } : loi(r.loi);
 }
 
@@ -555,6 +695,7 @@ export async function goiYAICanh(canhId: number, nhap: { canh: string; goc_may: 
   const ta = (r?: Row) => (r ? `${s(r.canh)} — ${s(r.hanh_dong)}` : undefined);
   const tenNv = nhap.nhan_vat.map((id) => nc.nhanVat.find((v) => v.id === id)?.ten).filter((x): x is string => !!x);
   const r = await goiYCanh(nc, { thu_tu: thuTu, ...nhap, nhan_vat: tenNv }, ta(lanCan.find((x) => n(x.thu_tu) === thuTu - 1)), ta(lanCan.find((x) => n(x.thu_tu) === thuTu + 1)));
+  await ghiChu(n(c[0].phim_id), `AI viết lại cảnh #${thuTu}`, r);
   if (!r.ok) return loi(r.loi);
   const tenToId = new Map(nc.nhanVat.map((v) => [v.ten.trim().toLowerCase(), v.id]));
   const ids = r.data.nhan_vat.map((t) => tenToId.get(t.trim().toLowerCase())).filter((x): x is number => typeof x === 'number');
@@ -563,15 +704,19 @@ export async function goiYAICanh(canhId: number, nhap: { canh: string; goc_may: 
 
 // ── Job ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-async function taoJob(d: { canh_id?: number; nhan_vat_id?: number; loai: string; provider: string; model: string; request: unknown; xong?: boolean }): Promise<number> {
+async function taoJob(d: { phim_id?: number; nhan?: string; canh_id?: number; nhan_vat_id?: number; bien_the_id?: number; loai: string; provider: string; model: string; request: unknown; xong?: boolean }): Promise<number> {
   const db = getDb()!;
-  const r = (await db.execute(sql`INSERT INTO xv_job (canh_id, nhan_vat_id, loai, provider, model, request, trang_thai)
-    VALUES (${d.canh_id ?? null}, ${d.nhan_vat_id ?? null}, ${d.loai}, ${d.provider}, ${d.model}, ${JSON.stringify(d.request ?? {})}::jsonb, ${d.xong ? 'xong' : 'cho'}) RETURNING id`)) as unknown as Row[];
+  const r = (await db.execute(sql`INSERT INTO xv_job (phim_id, nhan, canh_id, nhan_vat_id, bien_the_id, loai, provider, model, request, trang_thai)
+    VALUES (coalesce(${d.phim_id ?? null}::int,
+        (SELECT t.phim_id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${d.canh_id ?? null}::int),
+        (SELECT v.phim_id FROM xv_nhan_vat v WHERE v.id = ${d.nhan_vat_id ?? null}::int)),
+      ${d.nhan ?? ''}, ${d.canh_id ?? null}, ${d.nhan_vat_id ?? null}, ${d.bien_the_id ?? null}, ${d.loai}, ${d.provider}, ${d.model}, ${JSON.stringify(d.request ?? {})}::jsonb, ${d.xong ? 'xong' : 'cho'}) RETURNING id`)) as unknown as Row[];
   return n(r[0]?.id);
 }
 async function xongJob(id: number, d: { output_url?: string; model?: string; chi_phi_cents?: number; loi?: string }) {
   const db = getDb()!;
+  if (d.model?.startsWith('gpt-')) await db.execute(sql`UPDATE xv_job SET provider = 'openai' WHERE id = ${id}`);
   await db.execute(sql`UPDATE xv_job SET trang_thai = ${d.loi ? 'loi' : 'xong'}, output_url = coalesce(${d.output_url ?? null}, output_url), model = coalesce(${d.model ?? null}, model),
-    chi_phi_cents = ${Math.round(d.chi_phi_cents ?? 0)}, loi = ${d.loi ?? ''}, updated_at = now() WHERE id = ${id}`);
+    chi_phi_cents = ${Math.round((d.chi_phi_cents ?? 0) * 1000) / 1000}, loi = ${d.loi ?? ''}, updated_at = now() WHERE id = ${id}`);
 }
 const duoi = (mime: string) => (mime.split('/')[1] || 'png').replace('jpeg', 'jpg');

@@ -77,21 +77,39 @@ export type Phim = {
   id: number; project: string; ten: string; loai: LoaiPhim; mo_ta: string; kinh_thanh: KinhThanh; trang_thai: string;
   so_tap: number; so_nhan_vat: number; so_canh: number; chi_phi_cents: number; updated_at: string;
 };
-export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref: string[]; giong: string };
+export type BienThe = { id: number; nhan_vat_id: number; nhom: string; ten: string; mo_ta: string; anh_url: string | null };
+export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref: string[]; giong: string; bien_the?: BienThe[] };
+
+/** Nhóm biến thể gợi ý theo loại anchor (nhãn hiển thị). */
+export const NHOM_BIEN_THE: Record<LoaiNhanVat, { key: string; label: string }[]> = {
+  nhan_vat: [{ key: 'bieu_cam', label: 'Biểu cảm' }, { key: 'trang_phuc', label: 'Trang phục' }, { key: 'tu_the', label: 'Tư thế / hành động' }],
+  san_pham: [{ key: 'goc_may', label: 'Góc chụp' }, { key: 'ngu_canh', label: 'Ngữ cảnh dùng' }, { key: 'trang_thai', label: 'Trạng thái / màu' }],
+  boi_canh: [{ key: 'goc_may', label: 'Góc máy' }, { key: 'thoi_diem', label: 'Thời điểm / thời tiết' }],
+  dao_cu: [{ key: 'trang_thai', label: 'Trạng thái' }, { key: 'goc_may', label: 'Góc' }],
+  phong_cach: [{ key: 'trang_thai', label: 'Biến tấu' }],
+};
+export const nhanNhom = (loai: LoaiNhanVat, nhom: string) => NHOM_BIEN_THE[loai]?.find((x) => x.key === nhom)?.label ?? nhom;
 export type Tap = { id: number; phim_id: number; so: number; ten: string; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number };
 export type Canh = {
   id: number; tap_id: number; thu_tu: number; canh: string; goc_may: string; hanh_dong: string; loi_thoai: string; am_thanh: string;
-  thoi_luong_s: number; nhan_vat: number[]; prompt_anh: string; prompt_video: string;
+  thoi_luong_s: number; nhan_vat: number[]; bien_the: number[]; prompt_anh: string; prompt_video: string; dang_sinh_anh?: boolean;
   keyframe_url: string | null; keyframe_uv: string[]; video_url: string | null; trang_thai: TrangThaiCanh; loi: string; chi_phi_cents: number;
 };
 export type Job = {
   id: number; canh_id: number | null; nhan_vat_id: number | null; loai: string; provider: string; model: string;
   trang_thai: string; task_id: string | null; output_url: string | null; chi_phi_cents: number; loi: string; created_at: string;
+  phim_id?: number | null; nhan?: string; tokens_in?: number; tokens_out?: number; phim_ten?: string;
 };
 
+/** Giá Claude (USD / 1M token in/out, docs Anthropic 09/2026) → cents. */
+const GIA_CHU: Record<string, [number, number]> = { 'claude-opus-5-5': [4, 20], 'claude-sonnet-5-5': [2, 10], 'claude-haiku-4-5': [1, 5] };
+export const giaChuCents = (model: string, tin: number, tout: number): number => {
+  const g = GIA_CHU[model] ?? GIA_CHU[Object.keys(GIA_CHU).find((k) => model.startsWith(k)) ?? ''] ?? [4, 20];
+  return (tin * g[0] + tout * g[1]) / 10_000;   // USD/1M token → cents/token = /1e6*100
+};
 export const giaAnhCents = (model: string): number => MO_HINH_ANH.find((m) => m.key === model)?.gia1k ?? 6.7;
 export const giaVideoCents = (model: string, doPhanGiai: DoPhanGiai, giay: number): number => {
   const m = MO_HINH_VIDEO.find((x) => x.key === model);
   return Math.round((m?.giaGiay[doPhanGiai] ?? 10) * giay);
 };
-export const tien = (cents: number): string => (cents >= 100 ? `$${(cents / 100).toFixed(2)}` : `${cents.toFixed(cents < 10 ? 1 : 0)}¢`);
+export const tien = (cents: number): string => (cents >= 100 ? `$${(cents / 100).toFixed(2)}` : cents > 0 && cents < 0.1 ? `${cents.toFixed(2)}¢` : `${cents.toFixed(cents < 10 ? 1 : 0)}¢`);

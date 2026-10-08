@@ -7,7 +7,7 @@ import { useModalParam } from '@/lib/use-modal-param';
 import {
   dsPhim, docPhim, dsCanh, taoPhim, taoPhimMau, suaPhim, xoaPhim, luuNhanVat, xoaNhanVat, sinhAnhMau, taoTap, suaTap,
   vietKichBanTap, tachCanhTap, suaCanh, themCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, uocTien, sinhVideoCanh, kiemVideo, taiAnhLen,
-  goiYAIKinhThanh, goiYAIAnchor, goiYAIBoAnchor, goiYAIBrief, goiYAICanh, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, nangCapCanh,
+  goiYAIKinhThanh, goiYAIAnchor, goiYAIBoAnchor, goiYAIBrief, goiYAICanh, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, nangCapCanh, chonPhienBan,
   type PhimDayDu,
 } from '@/lib/actions';
 import {
@@ -725,6 +725,24 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay }: { c: Canh; nhanVat: NhanVa
           <div style={{ fontSize: 11.5, marginTop: 3 }}>{c.hanh_dong}</div>
           {c.loi_thoai && <div style={{ fontSize: 11, color: 'var(--fg-2)', fontStyle: 'italic' }}>“{c.loi_thoai}”</div>}
           <Loi>{c.loi}</Loi>
+          {c.video_phien_ban.length > 0 && (
+            <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={mono}>Phiên bản video ({c.video_phien_ban.length}):</span>
+              {c.video_phien_ban.map((v, k) => {
+                const dung = v.url === c.video_url || v.url === c.video_cuoi_url;
+                return (
+                  <span key={v.url + k} style={{ display: 'inline-flex', gap: 3, alignItems: 'center', border: `1px solid ${dung ? 'var(--cyan)' : 'var(--line)'}`, borderRadius: 6, padding: '2px 5px', fontSize: 10.5 }}
+                    title={`${v.model ?? ''}${v.luc ? ' · ' + gioVN(v.luc) : ''}`}>
+                    <a href={v.url} target="_blank" rel="noreferrer">▶ {k + 1}</a>
+                    <span style={{ color: v.ban === 'cuoi' ? 'var(--lime)' : 'var(--fg-3)' }}>{v.ban === 'cuoi' ? 'cuối' : 'nháp'}</span>
+                    <span style={{ color: 'var(--fg-4)' }}>{(v.model ?? '').replace('fal:', '').split('/').slice(-2, -1)[0] || (v.model ?? '').split('-').slice(0, 2).join(' ')}</span>
+                    {v.url !== c.video_url && <button type="button" className="xv-btn" style={{ padding: '0 4px', fontSize: 10 }} onClick={() => void chay(k + 'n' + c.id, () => chonPhienBan(c.id, v.url, 'nhap'))}>dùng làm nháp</button>}
+                    {v.url !== c.video_cuoi_url && <button type="button" className="xv-btn" style={{ padding: '0 4px', fontSize: 10 }} onClick={() => void chay(k + 'c' + c.id, () => chonPhienBan(c.id, v.url, 'cuoi'))}>làm bản cuối</button>}
+                  </span>
+                );
+              })}
+            </div>
+          )}
           {c.keyframe_uv.length > 1 && (
             <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
               {c.keyframe_uv.map((u) => (

@@ -69,46 +69,65 @@ async function doc(st) {
   return (await r.json()).data;
 }
 // Link duyệt MOS2 (trang cần đăng nhập) không có gì để xem trước → tắt preview cho gọn; link sàn (Etsy…) giữ ảnh nhỏ.
+// Trả message_id (để xoá khi việc đã xong) hoặc null khi gửi hỏng.
 async function gui(text, topic) {
-  if (DRY) { console.log(`[dry] ${text.replace(/\n/g, ' | ')}`); return true; }
+  if (DRY) { console.log(`[dry] ${text.replace(/\n/g, ' | ')}`); return -1; }
   const g = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: TG_CHAT, message_thread_id: topic ? Number(topic) : undefined, text, parse_mode: 'HTML',
       link_preview_options: text.includes(MOS2) ? { is_disabled: true } : { prefer_small_media: true } }) });
   const j = await g.json();
-  if (!j.ok) { console.error(`✗ gửi hỏng: ${j.description}`); process.exitCode = 1; }
-  return j.ok;
+  if (!j.ok) { console.error(`✗ gửi hỏng: ${j.description}`); process.exitCode = 1; return null; }
+  return j.result.message_id;
+}
+// Xoá tin CỦA BOT (chỉ mã tin chính bot đã gửi và lưu trong tệp trạng thái — không bao giờ đoán mã tin, vì bot là admin xoá được cả tin người khác)
+async function xoa(ids) {
+  for (const id of ids) {
+    if (DRY || id < 0) { console.log(`[dry] xoá tin ${id}`); continue; }
+    const j = await (await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/deleteMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TG_CHAT, message_id: id }) })).json();
+    if (!j.ok && !/not found|can't be deleted/i.test(j.description)) console.error(`✗ xoá tin ${id}: ${j.description}`);
+  }
 }
 const gom = (ds) => { const g = new Map(); for (const x of ds) g.set(x.title, [...(g.get(x.title) ?? []), x]); return [...g]; };
 const docTep = (p) => JSON.parse(readFileSync(p, 'utf8'));
 const ghi = (p, v) => { if (!DRY) writeFileSync(p, JSON.stringify(v)); };
 
-// Kênh theo TRẠNG THÁI: tệp "đã báo" = danh sách id. nhom(ds) → [[khoá, text, ids]].
-async function kenh(st, topic, tep, nhom) {
+// Kênh theo TRẠNG THÁI. Tệp = { da: [id dòng đã báo], tin: { message_id: [id dòng] } }; tệp cũ dạng mảng = chỉ có 'da'.
+// donKhiXong: tin mà MỌI dòng của nó đã rời trạng thái này (anh duyệt xong → ready) thì xoá — kênh "việc cần làm" tự dọn.
+async function kenh(st, topic, tep, nhom, donKhiXong = false) {
   const TT = `${THU}/${tep}`, ds = await doc(st);
-  if (!existsSync(TT)) { mkdirSync(THU, { recursive: true }); writeFileSync(TT, JSON.stringify(ds.map((x) => x.id))); console.log(`${st}: lần đầu, ghi nhận ${ds.length} dòng, không báo`); return; }
+  if (!existsSync(TT)) { mkdirSync(THU, { recursive: true }); writeFileSync(TT, JSON.stringify({ da: ds.map((x) => x.id), tin: {} })); console.log(`${st}: lần đầu, ghi nhận ${ds.length} dòng, không báo`); return; }
+  const cu = docTep(TT), S = Array.isArray(cu) ? { da: cu, tin: {} } : cu;
   // Chỉ giữ dòng CÒN ở trạng thái này: rời đi rồi quay lại (dựng lại sau góp ý → chờ duyệt lần nữa) thì báo lại
-  const con = new Set(ds.map((x) => x.id)), da = new Set(docTep(TT).filter((i) => con.has(i)));
+  const con = new Set(ds.map((x) => x.id)), da = new Set(S.da.filter((i) => con.has(i)));
+  if (donKhiXong) for (const [m, ids] of Object.entries(S.tin)) if (!ids.some((i) => con.has(i))) { await xoa([Number(m)]); delete S.tin[m]; console.log(`🗑 ${st} · xoá tin ${m}`); }
   const moi = nhom(ds.filter((x) => !da.has(x.id))).slice(0, 10);   // ponytail: tối đa 10 tin/lượt/kênh, phần còn lại lượt sau (giới hạn gửi của Telegram)
   for (const [k, text, ids] of moi) {
-    if (!(await gui(text, topic))) continue;   // không ghi "đã báo" khi gửi hỏng → lượt sau thử lại
-    ids.forEach((i) => da.add(i)); ghi(TT, [...da]);
+    const m = await gui(text, topic); if (m == null) continue;   // không ghi "đã báo" khi gửi hỏng → lượt sau thử lại
+    ids.forEach((i) => da.add(i)); if (donKhiXong) S.tin[m] = ids;
     console.log(`✓ ${st} · ${k}`);
   }
+  S.da = [...da]; ghi(TT, S);
   if (!moi.length) console.log(`${st}: không có gì mới`);
 }
 await kenh('published', TG_TOPIC, 'da-bao.json', (ds) => ds.map((x) => [`${x.platform} · ${x.title}`, tin(x), [x.id]]));
-if (TG_TOPIC_SX) await kenh('owner_review', TG_TOPIC_SX, 'da-bao-sx.json', (ds) => gom(ds).map(([ten, xs]) => [ten, tinSx(ten, xs), xs.map((x) => x.id)]));
+if (TG_TOPIC_SX) await kenh('owner_review', TG_TOPIC_SX, 'da-bao-sx.json', (ds) => gom(ds).map(([ten, xs]) => [ten, tinSx(ten, xs), xs.map((x) => x.id)]), true);
 
-// Kênh TỚI NGÀY CHƯA DUYỆT: tệp = { tên sách: ngày đã nhắc } → mỗi sách một tin mỗi ngày tới khi anh duyệt.
+// Kênh TỚI NGÀY CHƯA DUYỆT: tệp = { tên sách: { ngay, tin: [message_id] } } (tệp cũ: { tên: ngày }).
+// Mỗi sách một tin mỗi ngày; tin hôm nay thay tin hôm trước (xoá cũ); anh duyệt xong / sách lên sàn → xoá hết tin nhắc của sách đó.
 {
-  const TT = `${THU}/da-nhac-tre.json`, nhac = existsSync(TT) ? docTep(TT) : {};
+  const TT = `${THU}/da-nhac-tre.json`, nhac = Object.fromEntries(Object.entries(existsSync(TT) ? docTep(TT) : {}).map(([k, v]) => [k, typeof v === 'string' ? { ngay: v, tin: [] } : v]));
   const tre = gom((await doc('planned,draft,owner_review')).filter((x) => x.listing_config?.dangDuKien && x.listing_config.dangDuKien <= HOM_NAY));
+  const conTre = new Set(tre.map(([ten]) => ten));
+  for (const ten of Object.keys(nhac)) if (!conTre.has(ten)) { await xoa(nhac[ten].tin); delete nhac[ten]; console.log(`🗑 tới ngày chưa duyệt · ${ten}: đã xong, xoá tin nhắc`); }
   let n = 0;
   for (const [ten, xs] of tre) {
-    if (nhac[ten] === HOM_NAY || n >= 10) continue;
-    if (!(await gui(tinTre(ten, xs, HOM_NAY), TG_TOPIC))) continue;
-    nhac[ten] = HOM_NAY; ghi(TT, nhac); n++;
+    if (nhac[ten]?.ngay === HOM_NAY || n >= 10) continue;
+    const m = await gui(tinTre(ten, xs, HOM_NAY), TG_TOPIC); if (m == null) continue;
+    await xoa(nhac[ten]?.tin ?? []);
+    nhac[ten] = { ngay: HOM_NAY, tin: [m] }; n++;
     console.log(`✓ tới ngày chưa duyệt · ${ten}`);
   }
+  ghi(TT, nhac);
   if (!n) console.log('tới ngày chưa duyệt: không có gì mới');
 }

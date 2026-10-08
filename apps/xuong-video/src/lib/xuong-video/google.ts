@@ -87,12 +87,13 @@ export async function batDauVeo(opts: {
   const key = khoaGoogle();
   if (!key) return { ok: false, loi: 'Thiếu GOOGLE_API_KEY trên máy chủ' };
   const inst: Record<string, unknown> = { prompt: opts.prompt };
-  if (opts.anhDau) inst.image = { inlineData: opts.anhDau };
-  if (opts.anhCuoi) inst.lastFrame = { inlineData: opts.anhCuoi };
+  // Veo (predictLongRunning) nhận ảnh dạng {bytesBase64Encoded, mimeType}; inlineData bị từ chối "isn't supported by this model" (08/10/2026).
+  if (opts.anhDau) inst.image = { bytesBase64Encoded: opts.anhDau.data, mimeType: opts.anhDau.mimeType };
+  if (opts.anhCuoi) inst.lastFrame = { bytesBase64Encoded: opts.anhCuoi.data, mimeType: opts.anhCuoi.mimeType };
   // 1080p bắt buộc 8s; ảnh đầu → personGeneration allow_adult (allow_all chỉ cho text-to-video).
   const giay = opts.doPhanGiai === '1080p' ? 8 : opts.giay;
-  const parameters: Record<string, string> = {
-    aspectRatio: opts.tiLe, resolution: opts.doPhanGiai, durationSeconds: String(giay),
+  const parameters: Record<string, string | number> = {
+    aspectRatio: opts.tiLe, resolution: opts.doPhanGiai, durationSeconds: giay,   // phải là SỐ (Google báo lỗi nếu gửi chuỗi)
     personGeneration: opts.anhDau ? 'allow_adult' : 'allow_all',
   };
   const r = await fetch(`${GOC}/models/${opts.model}:predictLongRunning`, {

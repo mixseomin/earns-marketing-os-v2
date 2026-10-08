@@ -1,0 +1,10 @@
+[Unit]
+Description=Bao san pham moi vao Telegram MINE moi 10 phut
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

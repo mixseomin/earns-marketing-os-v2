@@ -1,0 +1,11 @@
+# Báo sản phẩm mới (sổ products → published) vào topic "🛍️ Sản phẩm mới" của nhóm Telegram MINE. Xem scripts/bao-sp-telegram.mjs.
+[Unit]
+Description=Bao san pham moi vao Telegram MINE
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/earns-marketing-os-v2
+EnvironmentFile=/opt/earns-marketing-os-v2/.env.production
+EnvironmentFile=/root/.secrets/mine-tg.env
+ExecStart=/usr/bin/node scripts/bao-sp-telegram.mjs

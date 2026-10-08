@@ -978,6 +978,20 @@ function Animatic({ canh, tiLe, ngonNgu, onClose }: { canh: Canh[]; tiLe: string
 
 // ── Một cảnh ────────────────────────────────────────────────────────────────────────────────────────────────────
 
+/** Trang phục của người trong shot — sửa ngay trên thẻ (Enter/blur là lưu). Trống = mặc như mô tả nhân vật. */
+function TrangPhucShot({ c, onLuu }: { c: Canh; onLuu: (t: string) => void }) {
+  const [v, setV] = useState(c.trang_phuc);
+  useEffect(() => { setV(c.trang_phuc); }, [c.trang_phuc]);
+  const luu = () => { if (v.trim() !== c.trang_phuc.trim()) onLuu(v.trim()); };
+  return (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4 }} title="Trang phục trong shot này — đè lên bộ đồ trong mô tả nhân vật (mặt, tóc, dáng vẫn giữ)">
+      <span style={{ fontSize: 11 }}>👗</span>
+      <input className="xv-in" value={v} onChange={(e) => setV(e.target.value)} onBlur={luu} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); luu(); } }}
+        placeholder="trang phục trong shot (trống = như mô tả nhân vật) · vd: chỉ mặc áo bra không gọng, không áo ngoài" style={{ fontSize: 11.5, padding: '3px 8px', flex: 1, maxWidth: 560 }} />
+    </div>
+  );
+}
+
 function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanVat: NhanVat[]; kt: Required<KinhThanh>; khoa: Khoa; phimLoai: LoaiPhim; ban: (k: string) => boolean; chay: (ten: string, fn: () => Promise<KqChay>) => Promise<void> }) {
   const [mo, setMo] = useState(false);
   const [f, setF] = useState<Canh>(c);
@@ -1049,6 +1063,9 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
             </div>
           )}
           <div style={{ fontSize: 11.5, marginTop: 3, color: 'var(--fg-2)' }} title={c.loi_thoai ? `“${c.loi_thoai}”` : undefined}>{c.hanh_dong}</div>
+          {nhanVat.some((v) => v.loai === 'nhan_vat' && c.nhan_vat.includes(v.id)) && (
+            <TrangPhucShot c={c} onLuu={(t) => void chay(k, () => suaCanh(c.id, { trang_phuc: t }))} />
+          )}
           {dongThoai(c, nhanVat).length > 0 && (
             <div style={{ marginTop: 4, padding: '4px 8px', borderLeft: '2px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
               {dongThoai(c, nhanVat).map((d, i) => (
@@ -1126,6 +1143,7 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
           <O label="Thời lượng"><Chon value={String(f.thoi_luong_s)} onChange={(v) => setF({ ...f, thoi_luong_s: Number(v) })} options={[3, 4, 5, 6, 8, 10, 12, 15].map((x) => ({ value: String(x), label: `${x} giây`, phu: x > 8 ? 'chỉ model fal' : undefined }))} minWidth={140} /></O>
           <O label="Nhân vật · sản phẩm · bối cảnh trong cảnh"><Chon multi values={f.nhan_vat.map(String)} onValues={(v) => setF({ ...f, nhan_vat: v.map(Number) })} options={nhanVat.map((v) => ({ value: String(v.id), label: v.ten, nhom: LOAI_NHAN_VAT.find((l) => l.key === v.loai)?.label }))} placeholder="chọn…" /></O>
           <O label="Biến thể trong cảnh" hint="mỗi anchor tối đa 1 (biểu cảm / trang phục / góc…)"><Chon multi values={f.bien_the.map(String)} onValues={(v) => setF({ ...f, bien_the: v.map(Number) })} options={tatCaBt.filter((b) => f.nhan_vat.includes(b.nhan_vat_id)).map((b) => ({ value: String(b.id), label: b.ten, nhom: b.nv }))} placeholder="không dùng biến thể" /></O>
+          <O span label="👗 Trang phục trong shot" hint="đè lên bộ đồ trong mô tả nhân vật; khuôn mặt, tóc, dáng vẫn giữ. Vd: chỉ mặc áo bra không gọng, KHÔNG áo ngoài"><input className="xv-in" value={f.trang_phuc} onChange={(e) => setF({ ...f, trang_phuc: e.target.value })} placeholder="để trống = mặc như mô tả nhân vật" /></O>
           <O span label="Hành động"><textarea className="xv-ta" rows={2} value={f.hanh_dong} onChange={(e) => setF({ ...f, hanh_dong: e.target.value })} /></O>
           <div style={{ gridColumn: '1 / -1' }}>
             <div className="xv-lbl" style={{ marginBottom: 4 }}>Thoại (kiểu kịch bản phim) <span style={{ ...mono, textTransform: 'none' }}>— mỗi lượt nói một dòng: nhân vật · diễn xuất (nhìn lên, giơ tay…) · lời. Mỗi dòng sinh giọng riêng theo giọng nhân vật.</span></div>
@@ -1166,7 +1184,7 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
             <Nut ly={!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY'} ban={ai || ban(k)} title="Claude đọc cảnh trước/sau + tuyến nhân vật + phong cách → điền đủ góc máy, hành động, lời thoại, prompt ảnh, prompt video khớp mạch. Chỉ điền vào form, anh xem rồi Lưu cảnh." onClick={() => void aiVietLai()}>{ai ? '… AI đang viết' : '✨ AI viết lại cảnh (khớp cảnh trước/sau)'}</Nut>
             <Loi>{loiAi}</Loi>
             <Nut ly={!dirty && 'chưa sửa'} ban={ban(k)} chinh onClick={() => void chay(k, async () => {
-              await suaCanh(c.id, { canh: f.canh, goc_may: f.goc_may, thoi_luong_s: f.thoi_luong_s, nhan_vat: f.nhan_vat, bien_the: f.bien_the, hanh_dong: f.hanh_dong, loi_thoai: f.loi_thoai, am_thanh: f.am_thanh, prompt_anh: f.prompt_anh, prompt_video: f.prompt_video, phan_doan: f.phan_doan, cam_xuc: f.cam_xuc, ky_thuat: f.ky_thuat, thoai: f.thoai });
+              await suaCanh(c.id, { canh: f.canh, goc_may: f.goc_may, thoi_luong_s: f.thoi_luong_s, nhan_vat: f.nhan_vat, bien_the: f.bien_the, hanh_dong: f.hanh_dong, loi_thoai: f.loi_thoai, am_thanh: f.am_thanh, prompt_anh: f.prompt_anh, prompt_video: f.prompt_video, phan_doan: f.phan_doan, cam_xuc: f.cam_xuc, ky_thuat: f.ky_thuat, thoai: f.thoai, trang_phuc: f.trang_phuc });
               setMo(false);
             })}>Lưu cảnh</Nut>
             <button type="button" className="xv-btn" onClick={() => { setF(c); setMo(false); }}>Huỷ</button>

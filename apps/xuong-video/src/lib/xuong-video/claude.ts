@@ -34,6 +34,7 @@ const DongThoaiSchema = z.object({
   loi: z.string().describe('Lời nói, đúng giọng nhân vật, có ẩn ý khi hợp'),
 });
 const ShotSchema = CanhSchema.extend({
+  trang_phuc: z.string().describe('Trang phục của người trong shot NẾU khác bộ đồ trong mô tả anchor, ghi rõ và đủ (tiếng Anh hoặc Việt), vd "chỉ mặc áo bra không gọng màu be và quần jean, KHÔNG áo ngoài, lộ vai". Quảng cáo đồ mặc (áo lót, đồ bơi, áo…): shot khoe/demo sản phẩm phải ghi rõ người CHỈ mặc sản phẩm ở phần đó, không áo khoác ngoài. Rỗng nếu giữ bộ đồ mặc định.'),
   thoai: z.array(DongThoaiSchema).describe('Thoại của shot theo dòng kiểu kịch bản phim chuyên nghiệp (mỗi lượt nói một dòng); rỗng nếu shot không có thoại. Trường loi_thoai để rỗng.'),
   cam_xuc: z.number().int().describe('Giá trị cảm xúc của khán giả ở CUỐI shot, từ -5 (đau/sợ/tuyệt vọng) tới +5 (vui/hy vọng/chiến thắng)'),
   ky_thuat: KyThuatSchema.describe('Ngôn ngữ điện ảnh của shot, chọn từ thư viện cho hợp thể loại + cảm xúc'),

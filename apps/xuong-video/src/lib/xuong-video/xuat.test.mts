@@ -64,6 +64,8 @@ console.log('xuat.test: ok');
   // Không logo, không ảnh → như cũ: không overlay, end card nền tối.
   const kh3 = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh, nhanVat: nv, tap, qc: { ...qc, anh: [], logo_url: '', vi_tri_chu: 'tren' }, nhanh: 'A', nguyenLieu, font: '/f.ttf', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
   const loc3 = kh3.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
-  assert.ok(!loc3.includes('overlay=') && loc3.includes('color=c=0x101014') && loc3.includes('y=h*0.15'));
+  assert.ok(!loc3.includes('overlay=W-w-') && loc3.includes('color=c=0x101014') && loc3.includes('y=h*0.15'));   // không logo → không overlay góc
+  // Ảnh tĩnh (shot chưa có clip): vừa khung trên nền mờ, KHÔNG cắt (ảnh vuông thật của shop giữ nguyên hai bên).
+  assert.ok(loc3.includes('force_original_aspect_ratio=decrease') && loc3.includes('boxblur=24:2') && loc3.includes('overlay=(W-w)/2:(H-h)/2'), 'ảnh tĩnh fit + nền mờ');
 }
 console.log('xuat.test: mẫu ok');

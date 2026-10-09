@@ -83,6 +83,9 @@ export function keHoachXuat(o: {
   // Logo góc trên phải (qc.logo_url) đè lên MỌI shot + end card: cao 6% màn, cách mép 3%.
   const logoUrl = o.qc?.logo_url && nl.has(o.qc.logo_url) ? o.qc.logo_url : null;
   const khung = `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=30,format=yuv420p`;
+  // Ảnh tĩnh: đặt VỪA khung + nền là chính ảnh phóng mờ — ảnh vuông thật của shop (lưới review, ảnh sản phẩm) không bị cắt mất hai bên;
+  // keyframe đã 9:16 thì vừa khít, nền mờ không lộ (09/10/2026, dùng ảnh thật Orabra cho shot bằng chứng + end card).
+  const khungTinh = (i: number) => `split=2[nb${i}][nf${i}];[nb${i}]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},boxblur=24:2[nbb${i}];[nf${i}]scale=${W}:${H}:force_original_aspect_ratio=decrease[nff${i}];[nbb${i}][nff${i}]overlay=(W-w)/2:(H-h)/2,setsar=1,fps=30,format=yuv420p`;
 
   const loc: string[] = [];
   const nhanhVideo: string[] = [];
@@ -98,7 +101,7 @@ export function keHoachXuat(o: {
     if (!nguon) { canhThieu.push(`#${c.thu_tu} ${c.canh}`); return; }
     const laVideo = nguon === vUrl;
     const k = laVideo ? them(nguon) : them(nguon, ['-loop', '1', '-framerate', '30', '-t', so(phat)]);
-    const ve: string[] = [laVideo ? `[${k}:v]trim=0:${so(phat)},setpts=PTS-STARTPTS,${khung}` : `[${k}:v]${khung},trim=0:${so(phat)},setpts=PTS-STARTPTS`];
+    const ve: string[] = [laVideo ? `[${k}:v]trim=0:${so(phat)},setpts=PTS-STARTPTS,${khung}` : `[${k}:v]${khungTinh(i)},trim=0:${so(phat)},setpts=PTS-STARTPTS`];
     if (c.chu_man.trim()) ve.push(drawMan(`man_${i}`, ngatDong(c.chu_man, wrapMan)));
     if (logoUrl) { const kl = them(logoUrl, ['-loop', '1', '-framerate', '30', '-t', so(phat)]); loc.push(`[${kl}:v]scale=-1:${Math.round(H * 0.06)},format=rgba[lg${i}]`); ve[ve.length - 1] += `[vv${i}];[vv${i}][lg${i}]overlay=W-w-${Math.round(W * 0.03)}:${Math.round(H * 0.03)}:shortest=1`; }
     // Giọng từng dòng nối tiếp nhau trong shot (theo độ dài file giọng; chưa có giọng thì chia đều giây phát để giữ nhịp).

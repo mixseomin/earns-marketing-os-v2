@@ -33,6 +33,8 @@ const ids = ((process.argv.find((a) => a.startsWith('--canh=')) ?? '').split('='
 if (!ids.length) { console.error('thiếu --canh=<id,id>'); process.exit(1); }
 const urlChon = (process.argv.find((a) => a.startsWith('--chon=')) ?? '').slice(7);
 const moHinhAnh = (process.argv.find((a) => a.startsWith('--mo-hinh=')) ?? '').slice(10) || undefined;
+// --mo-hinh-video=fal:fal-ai/veo3.1/lite/image-to-video : cùng Veo 3.1 Lite qua fal (cùng giá) khi khoá Google hết hạn mức/tiền (10/10/2026).
+const moHinhVideo = (process.argv.find((a) => a.startsWith('--mo-hinh-video=')) ?? '').slice(16) || undefined;
 const db = getDb(); if (!db) { console.error('không có DATABASE_URL'); process.exit(1); }
 const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as Row[];
 const doi = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
@@ -98,7 +100,7 @@ if (arg('video')) {
   while ((cho.length || chay.size) && Date.now() - t0 < 50 * 60_000 && soLanCho <= 5 && !dungHan) {
     while (cho.length && chay.size < toiDa && Date.now() >= nghi) {
       const bc = cho.shift()!;
-      const r = await batDauVideoCanh(db, bc.canh.id);
+      const r = await batDauVideoCanh(db, bc.canh.id, moHinhVideo);
       if (r.ok) { chay.set(r.data, bc.canh.thu_tu); jobs.push(r.data); console.log(`  → gửi #${bc.canh.thu_tu}`); }
       else if (/THEO NGÀY/.test(r.loi)) { console.log(`  ✗ dừng: ${r.loi}`); cho.unshift(bc); dungHan = true; break; }
       else if (/rate limit|hạn mức|429/i.test(r.loi)) { cho.unshift(bc); soLanCho++; if (soLanCho > 5) { console.log(`  ✗ dừng: Google vẫn báo hạn mức sau 5 lần đợi — ${r.loi}`); break; } nghi = Date.now() + 60_000; console.log(`  … hạn mức, đợi 60s (#${bc.canh.thu_tu}, lần ${soLanCho})`); }

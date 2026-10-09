@@ -7,7 +7,7 @@
 //   --chon=<url>                 : (0đ) chọn một ảnh trong dải ứng viên làm keyframe đang dùng (chỉ khi --canh có MỘT shot).
 //   --duyet                      : đánh dấu shot đã duyệt keyframe (0đ) — bước bắt buộc trước --video.
 //   --video                      : gửi sinh video nháp (Veo/fal theo kinh thánh), đợi provider trả, in link + tiền.
-//   --giong                      : sinh giọng đọc từng dòng thoại của các shot, đợi file, in link.
+//   --giong                      : sinh giọng cho dòng thoại CHƯA có giọng của các shot (--giong-lai: cả dòng đã có), đợi file, in link.
 //   --xuat                       : (0đ) dựng MP4 CHỈ các shot này (chữ màn kiểu phim, logo, giọng, nhạc) để xem thử — không ghi vào danh sách bản xuất của tập.
 //   THỨ TỰ: --keyframe → (anh xem) → --duyet → --giong → --video. Giọng TRƯỚC video: có file giọng thì Veo sinh clip câm (chỉ cử miệng),
 //   không có thì Veo tự đọc thoại — đọc lơ lớ và dễ in phụ đề giả (thử 09/10/2026 tốn $0,40 cho 2 clip hỏng).
@@ -104,7 +104,8 @@ if (arg('video')) {
   for (const r of kq) console.log(`  #${r.thu_tu} ${r.trang_thai} ${r.output_url ?? r.loi} · ${tien(Number(r.chi_phi_cents))}`);
 }
 if (arg('giong')) {
-  const r = await sinhGiongShots(db, tapId, ids, {});
+  // Chỉ dòng CHƯA có giọng (giữ giọng đã duyệt); --giong-lai để sinh lại cả dòng đã có.
+  const r = await sinhGiongShots(db, tapId, ids, { chiThieu: !arg('giong-lai') });
   if (!r.ok) { console.error('  ✗', r.loi); process.exit(1); }
   console.log(`  đã gửi ${r.data} dòng thoại, đợi file…`);
   for (let i = 0; i < 60; i++) {

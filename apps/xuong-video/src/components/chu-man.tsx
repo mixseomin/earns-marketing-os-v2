@@ -9,6 +9,7 @@ export function ChuManXem({ chu, giay, rong, qc }: { chu: string; giay: number; 
   const cau = [...doan].reverse().find((d) => d.tu <= giay + 0.001) ?? doan[0]!;
   const k = { ...KIEU_CHU_MAC_DINH, ...Object.fromEntries(Object.entries(qc?.kieu_chu ?? {}).filter(([, v]) => v !== '' && v != null)) } as typeof KIEU_CHU_MAC_DINH;
   const fs = Math.max(9, Math.round(rong * k.co));
+  const hep = k.ngang / 100;
   const vien = Math.max(1, Math.round(fs * k.vien_day));
   const viTri = qc?.vi_tri_chu ?? 'tren';
   const font = k.font === 'DejaVu Sans' ? 'system-ui, sans-serif' : `"${k.font}", "Montserrat", system-ui, sans-serif`;
@@ -17,7 +18,7 @@ export function ChuManXem({ chu, giay, rong, qc }: { chu: string; giay: number; 
     <div style={{ position: 'absolute', left: '5%', right: '5%', textAlign: 'center', pointerEvents: 'none', fontFamily: font, fontWeight: 900, fontSize: fs, lineHeight: 1.15, color: k.mau,
       WebkitTextStroke: `${vien}px ${k.vien}`, paintOrder: 'stroke fill', textShadow: '0 1px 4px rgba(0,0,0,.35)',
       ...(viTri === 'giua' ? { top: '50%', transform: 'translateY(-50%)' } : viTri === 'duoi' ? { top: '62%', transform: 'translateY(-50%)' } : { top: '14%' }) }}>
-      {cau.dong.map((d, i) => <div key={i}>{to(d)}</div>)}
+      {cau.dong.map((d, i) => <div key={i} style={{ transform: hep !== 1 ? `scaleX(${hep})` : undefined }}>{to(d)}</div>)}
     </div>
   );
 }

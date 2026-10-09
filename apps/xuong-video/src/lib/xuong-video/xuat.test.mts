@@ -102,3 +102,9 @@ console.log('xuat.test: mẫu ok');
   assert.ok(k2.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung.includes('atempo=1.281,'), 'giọng 1,96s trong 1,53s → nhanh 1,28×');
   console.log('xuat.test: trễ giọng ok');
 }
+// Cỡ chữ to kiểu mẫu (0,145W, ngang 86%): "PAY 1 GET 3 PANTS" vẫn MỘT dòng như bản gốc.
+{
+  const a = tepAss({ W: 1080, H: 1920, viTri: 'giua', kieu: { font: 'Montserrat Black', co: 0.145, ngang: 86 }, cau: [{ tu: 0, den: 2, dong: ['PAY 1 GET 3 PANTS'] }] });
+  assert.ok(!a.includes('\\N'), a);
+  console.log('xuat.test: một dòng ok');
+}

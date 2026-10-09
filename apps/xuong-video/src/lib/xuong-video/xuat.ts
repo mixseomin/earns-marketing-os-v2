@@ -54,7 +54,8 @@ const gioAss = (t: number): string => { const cs = Math.max(0, Math.round(t * 10
 export function tepAss(o: { W: number; H: number; kieu?: KieuChu; viTri: ViTriChu; cau: { tu: number; den: number; dong: string[] }[] }): string {
   const k = { ...KIEU_CHU_MAC_DINH, ...Object.fromEntries(Object.entries(o.kieu ?? {}).filter(([, v]) => v !== '' && v != null)) } as typeof KIEU_CHU_MAC_DINH;
   const fs = Math.round(o.W * k.co);
-  const wrap = Math.max(8, Math.round((o.W * 0.9) / (fs * 0.6 * (k.ngang / 100))));
+  // Bề rộng một ký tự ≈ 0,4 × cỡ ASS × độ rộng chữ (đo 10/10/2026: "PAY 1 GET 3 PANTS" Montserrat Black cỡ 0,13W, ngang 86% phủ 75% khung).
+  const wrap = Math.max(8, Math.floor((o.W * 0.92) / (fs * 0.4 * (k.ngang / 100))));
   const tamY = (n: number) => Math.round(o.viTri === 'giua' ? o.H / 2 : o.viTri === 'duoi' ? o.H * 0.62 : o.H * 0.15 + (n * fs * 1.25) / 2);
   const nhan = (t: string) => (k.nhan ? t.replace(/[0-9?$%]+/g, (m) => `{\\c${mauAss(k.nhan)}}${m}{\\c${mauAss(k.mau)}}`) : t);
   const dau = ['[Script Info]', 'ScriptType: v4.00+', `PlayResX: ${o.W}`, `PlayResY: ${o.H}`, 'ScaledBorderAndShadow: yes', 'WrapStyle: 2', '',

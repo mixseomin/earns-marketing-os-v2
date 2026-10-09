@@ -3,7 +3,8 @@
 // Sau mỗi deploy, tab đang mở giữ mã cũ: mọi server action (gửi góp ý, sinh ảnh, tự làm mới) trả 404 và nút đứng "…" mãi
 // (góp ý #1194, 08/10/2026). Ở đây: hỏi mã bản mỗi 20 giây + bắt lỗi "Failed to find Server Action"; thấy bản mới thì
 // tự tải lại nếu anh không đang gõ dở, còn đang gõ thì hiện thanh báo để anh bấm (nháp góp ý tự giữ qua F5).
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useDinhKy } from './dinh-ky';
 
 const dangGo = () => {
   const a = document.activeElement as HTMLElement | null;
@@ -12,21 +13,21 @@ const dangGo = () => {
 
 export function TheoDoiBan({ banDau }: { banDau: string }) {
   const [moi, setMoi] = useState(false);
+  const xong = useRef(false);
+  const coBanMoi = () => {
+    if (xong.current) return;
+    if (!dangGo()) { xong.current = true; window.location.reload(); return; }
+    setMoi(true);
+  };
+  const hoi = async () => {
+    try {
+      const r = await fetch('/api/xv/ban', { cache: 'no-store' });
+      const j = (await r.json()) as { ban?: string };
+      if (j.ban && j.ban !== banDau) coBanMoi();
+    } catch { /* mạng chập — lần sau hỏi lại */ }
+  };
+  useDinhKy(hoi, 20_000);
   useEffect(() => {
-    let xong = false;
-    const coBanMoi = () => {
-      if (xong) return;
-      if (!dangGo()) { xong = true; window.location.reload(); return; }
-      setMoi(true);
-    };
-    const hoi = async () => {
-      try {
-        const r = await fetch('/api/xv/ban', { cache: 'no-store' });
-        const j = (await r.json()) as { ban?: string };
-        if (j.ban && j.ban !== banDau) coBanMoi();
-      } catch { /* mạng chập — lần sau hỏi lại */ }
-    };
-    const t = setInterval(() => { if (document.visibilityState === 'visible') void hoi(); }, 20_000);
     const khiHien = () => { if (document.visibilityState === 'visible') void hoi(); };
     const loiAction = (ev: PromiseRejectionEvent) => {
       const m = ev.reason instanceof Error ? ev.reason.message : String(ev.reason ?? '');
@@ -34,8 +35,8 @@ export function TheoDoiBan({ banDau }: { banDau: string }) {
     };
     document.addEventListener('visibilitychange', khiHien);
     window.addEventListener('unhandledrejection', loiAction);
-    return () => { clearInterval(t); document.removeEventListener('visibilitychange', khiHien); window.removeEventListener('unhandledrejection', loiAction); };
-  }, [banDau]);
+    return () => { document.removeEventListener('visibilitychange', khiHien); window.removeEventListener('unhandledrejection', loiAction); };
+  }, [banDau]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!moi) return null;
   return (
     <div style={{ position: 'fixed', left: '50%', top: 10, transform: 'translateX(-50%)', zIndex: 1000, background: 'var(--amber)', color: '#111', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, boxShadow: '0 6px 20px rgba(0,0,0,.4)', display: 'flex', gap: 10, alignItems: 'center' }}>

@@ -7,11 +7,12 @@
 // Phần đầu ghim trên cùng khi cuộn (#1233, YDNI "ghim phần đầu") — MỘT khuôn cho mọi drawer, không drawer nào tự dựng hàng tiêu đề:
 //   `tieuDe` (h2) · `nut` (nút/chip phụ bên phải) · nút Đóng tự có · `dau` (dải dưới tiêu đề, vd tab).
 import { useLayoutEffect, useRef, useState, useEffect, type ReactNode, type PointerEvent as PE } from 'react';
+import { docLT, ghiLT } from '@/lib/luu-tru';
 
 const LO = 64;
 const MAC_DINH = { rong: 1100, nho: 520 };
 const khoa = (nho?: boolean) => `xv-ngan-rong-${nho ? 'nho' : 'rong'}`;
-const docRong = (nho?: boolean) => { try { const v = Number(localStorage.getItem(khoa(nho))); return v >= 360 ? v : null; } catch { return null; } };
+const docRong = (nho?: boolean) => { const v = Number(docLT(khoa(nho))); return v >= 360 ? v : null; };
 
 export function Ngan({ onClose, nho, tieuDe, nut, dau, children }: { onClose: () => void; nho?: boolean; tieuDe?: ReactNode; nut?: ReactNode; dau?: ReactNode; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -36,11 +37,11 @@ export function Ngan({ onClose, nho, tieuDe, nut, dau, children }: { onClose: ()
     const di = (ev: PointerEvent) => { gocRef.current = Math.round(Math.min(window.innerWidth * 0.98, Math.max(360, window.innerWidth - ev.clientX + tang * LO))); setGoc(gocRef.current); };
     const xong = () => {
       el.removeEventListener('pointermove', di); el.removeEventListener('pointerup', xong); el.removeEventListener('pointercancel', xong);
-      try { if (gocRef.current) localStorage.setItem(khoa(nho), String(gocRef.current)); } catch { /* chế độ riêng tư */ }
+      if (gocRef.current) ghiLT(khoa(nho), String(gocRef.current));
     };
     el.addEventListener('pointermove', di); el.addEventListener('pointerup', xong); el.addEventListener('pointercancel', xong);
   };
-  const veMacDinh = () => { gocRef.current = null; setGoc(null); try { localStorage.removeItem(khoa(nho)); } catch { /* chế độ riêng tư */ } };
+  const veMacDinh = () => { gocRef.current = null; setGoc(null); ghiLT(khoa(nho), null); };
   const z = tang ? 51 + tang * 2 : nho ? 53 : 51;
   return <><div className={`xv-backdrop${nho ? ' nho' : ''}`} style={tang ? { zIndex: 50 + tang * 2, background: 'rgba(0,0,0,.3)' } : undefined} onClick={onClose} />
     <div ref={ref} className={`xv-drawer${nho ? ' nho' : ''}`} style={{ width: rong, ...(tang ? { zIndex: z, boxShadow: '-12px 0 30px rgba(0,0,0,.45)' } : {}) }}>{(tieuDe != null || dau != null) && <div className="xv-dau">

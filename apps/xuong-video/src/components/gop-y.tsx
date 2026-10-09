@@ -11,6 +11,8 @@ import { ImageAttach, discardAttachments } from './image-attach';
 import { moNgan } from './ngan-chung';
 import { gioVN } from '@/lib/xuong-video/kieu';
 import { dsGopYCuaToi, docTraoDoi, guiGopY, guiTraoDoi, type GopYCuaToi, type TinTraoDoi } from '@/lib/gop-y';
+import { docJsonLT, ghiJsonLT, ghiLT } from '@/lib/luu-tru';
+import { useNho } from './nho';
 
 const KHOA = 'studio.gop-y.nhap';
 const KHOA_TAB = 'studio.gop-y.tab';
@@ -18,11 +20,9 @@ type TabGopY = 'gui' | 'cua-toi' | 'hoi-dap';
 type Nhap = { loai: string; noiDung: string; anh: string[] };
 const TRANG_MOI: Nhap = { loai: 'loi', noiDung: '', anh: [] };
 const docNhap = (): Nhap => {
-  try {
-    const v = JSON.parse(localStorage.getItem(KHOA) ?? '');
-    if (v && typeof v === 'object') return { loai: v.loai === 'cau_hoi' ? 'cau_hoi' : 'loi', noiDung: typeof v.noiDung === 'string' ? v.noiDung : '', anh: Array.isArray(v.anh) ? v.anh.filter((u: unknown) => typeof u === 'string') : [] };
-  } catch { /* nháp hỏng */ }
-  return TRANG_MOI;
+  const v = docJsonLT<Partial<Record<keyof Nhap, unknown>> | null>(KHOA, null);
+  if (!v || typeof v !== 'object') return TRANG_MOI;
+  return { loai: v.loai === 'cau_hoi' ? 'cau_hoi' : 'loi', noiDung: typeof v.noiDung === 'string' ? v.noiDung : '', anh: Array.isArray(v.anh) ? v.anh.filter((u: unknown): u is string => typeof u === 'string') : [] };
 };
 
 const TT: Record<string, { nhan: string; mau: string }> = {
@@ -74,8 +74,8 @@ function FormGopY({ onGui }: { onGui: (id: number, loai: string) => void }) {
     const doc = () => { setTrang(window.location.href); setNc(docNguCanh()); };
     doc(); const t = setInterval(doc, 1000); return () => clearInterval(t);
   }, []);
-  const ghi = (doi: (n: Nhap) => Nhap) => setNhap((cu) => { const n = doi(cu); try { localStorage.setItem(KHOA, JSON.stringify(n)); } catch { /* đầy */ } return n; });
-  const xoaNhap = () => { discardAttachments(nhap.anh); ghi(() => TRANG_MOI); try { localStorage.removeItem(KHOA); } catch { /* thôi */ } };
+  const ghi = (doi: (n: Nhap) => Nhap) => setNhap((cu) => { const n = doi(cu); ghiJsonLT(KHOA, n); return n; });
+  const xoaNhap = () => { discardAttachments(nhap.anh); ghi(() => TRANG_MOI); ghiLT(KHOA, null); };
   const gui = async () => {
     setBusy(true); setKet('');
     let r: Awaited<ReturnType<typeof guiGopY>>;
@@ -83,7 +83,7 @@ function FormGopY({ onGui }: { onGui: (id: number, loai: string) => void }) {
     catch (e) { setBusy(false); setKet(`⚠ Chưa gửi được (${e instanceof Error ? e.message.slice(0, 80) : 'lỗi mạng'}) — nếu studio vừa cập nhật, bấm ↻ Tải lại rồi gửi lại; nháp vẫn giữ.`); return; }
     setBusy(false);
     if (!r.ok || !r.id) { setKet(`⚠ ${r.error}`); return; }
-    try { localStorage.removeItem(KHOA); } catch { /* thôi */ }
+    ghiLT(KHOA, null);
     setNhap(TRANG_MOI);
     setKet('');
     onGui(r.id, nhap.loai);   // khung tự đóng; nút nổi báo ✓ #id (#1225)
@@ -165,10 +165,8 @@ const THU_TU = ['review', 'pending', 'claimed', 'broken', 'completed', 'dropped'
 function CuaToi({ ds, onNap, trong = 'Chưa có góp ý nào.' }: { ds: GopYCuaToi[] | null; onNap: () => void; trong?: string }) {
   const [mo, setMo] = useState<number | null>(null);
   // Bộ lọc như hòm mos2: chip trạng thái (bấm lại để bỏ lọc) + ô tìm theo nội dung / số card / trang. Nhớ chip theo trình duyệt.
-  const [loc, setLoc] = useState('');
+  const [loc, datLoc] = useNho<string>('studio.gop-y.loc', '');
   const [q, setQ] = useState('');
-  useEffect(() => { try { setLoc(localStorage.getItem('studio.gop-y.loc') ?? ''); } catch { /* thôi */ } }, []);
-  const datLoc = (k: string) => { setLoc(k); try { localStorage.setItem('studio.gop-y.loc', k); } catch { /* thôi */ } };
   if (ds === null) return <div style={{ fontSize: 12, color: 'var(--fg-3)', padding: 8 }}>đang đọc…</div>;
   if (!ds.length) return <div style={{ fontSize: 12.5, color: 'var(--fg-3)', padding: '18px 8px', textAlign: 'center' }}>{trong}</div>;
   const dem = new Map<string, number>();
@@ -215,7 +213,7 @@ function CuaToi({ ds, onNap, trong = 'Chưa có góp ý nào.' }: { ds: GopYCuaT
 
 export function GopY() {
   const [mo, setMo] = useState(false);
-  const [tab, setTab] = useState<TabGopY>('gui');
+  const [tab, doiTab] = useNho<TabGopY>(KHOA_TAB, 'gui', ['gui', 'cua-toi', 'hoi-dap']);
   const [vuaGui, setVuaGui] = useState<number | null>(null);
   useEffect(() => { if (vuaGui == null) return; const t = setTimeout(() => setVuaGui(null), 4000); return () => clearTimeout(t); }, [vuaGui]);
   const [ds, setDs] = useState<GopYCuaToi[] | null>(null);
@@ -229,10 +227,8 @@ export function GopY() {
   const nap = () => { void dsGopYCuaToi().then(setDs); };
   useEffect(() => {
     if (!mo) return;
-    try { const t = localStorage.getItem(KHOA_TAB); if (t === 'cua-toi' || t === 'hoi-dap') setTab(t); } catch { /* thôi */ }
     nap();
   }, [mo]);
-  const doiTab = (t: TabGopY) => { setTab(t); try { localStorage.setItem(KHOA_TAB, t); } catch { /* thôi */ } };
   const conMo = ds?.filter((b) => !DA_DONG.has(nhomTT(b.trangThai))).length ?? 0;
   // Câu hỏi có tab riêng (#1227): mỗi câu vẫn là một card bình thường, mở ra thấy câu trả lời và trả lời tiếp được.
   const hoi = ds?.filter((b) => b.loai === 'cau_hoi') ?? null;

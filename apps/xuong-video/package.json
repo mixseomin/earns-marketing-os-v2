@@ -8,7 +8,7 @@
     "dev": "next dev -p 3840",
     "build": "next build",
     "start": "next start -p ${PORT:-3840}",
-    "typecheck": "tsc --noEmit && node scripts/khong-tab-moi.mjs"
+    "typecheck": "tsc --noEmit --noUnusedLocals && node scripts/khong-tab-moi.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",

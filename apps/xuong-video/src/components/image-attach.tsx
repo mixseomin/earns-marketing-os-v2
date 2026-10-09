@@ -8,6 +8,7 @@
 import { moNgan } from './ngan-chung';
 import { useState, useRef, useEffect, type CSSProperties } from 'react';
 import { taiAnhGopY, xoaAnhGopY as deleteImage } from '@/lib/gop-y';
+import { docJsonLT, ghiJsonLT } from '@/lib/luu-tru';
 const uploadImage = (du: string, _thuMuc?: string) => taiAnhGopY(du);
 
 // Delete uploaded (unsent) attachments from R2. Call from a form's Cancel/close so nothing is
@@ -55,9 +56,10 @@ async function thuNho(bl: Blob): Promise<{ du: string; goc: KichCo; sau: KichCo 
 // Kích thước ảnh đã lên giữ ở localStorage theo URL: ảnh trên img.on.tc không có CORS nên sau F5 trình duyệt không đọc lại được
 // dung lượng. Mất kho (riêng tư / xoá dữ liệu) thì ô chỉ hiện W×H đo từ <img>.
 const KHO_META = 'image-attach.meta';
-const docMeta = (): Record<string, AnhMeta> => { try { return JSON.parse(localStorage.getItem(KHO_META) ?? '{}') ?? {}; } catch { return {}; } };
+const docMeta = (): Record<string, AnhMeta> => docJsonLT<Record<string, AnhMeta> | null>(KHO_META, null) ?? {};
 const ghiMeta = (url: string, m: AnhMeta) => {
-  try { const all = docMeta(); all[url] = m; const keys = Object.keys(all); for (const k of keys.slice(0, Math.max(0, keys.length - 200))) delete all[k]; localStorage.setItem(KHO_META, JSON.stringify(all)); } catch { /* đầy/chặn */ }
+  const all = docMeta(); all[url] = m; const keys = Object.keys(all); for (const k of keys.slice(0, Math.max(0, keys.length - 200))) delete all[k];
+  ghiJsonLT(KHO_META, all);
 };
 
 const btn: CSSProperties = { fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 };

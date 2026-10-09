@@ -1,10 +1,10 @@
 'use client';
 
 // Ô chọn kiểu select2 dùng chung cho mọi màn của studio (tách khỏi trang.tsx để timeline / bảng sinh dùng được, #1202).
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useViTriNoi } from './vi-tri-noi';
+import { mono } from './ui';
 
-const mono: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)' };
 
 export type LuaChon = { value: string; label: string; nhom?: string; phu?: string; title?: string };
 export function Chon({ value, onChange, options, multi, values, onValues, placeholder, minWidth = 180, title, nho }: {
@@ -29,7 +29,7 @@ export function Chon({ value, onChange, options, multi, values, onValues, placeh
     <span ref={ref} style={{ position: 'relative', display: 'inline-block', minWidth: nho ? undefined : `min(${minWidth}px, 100%)`, maxWidth: '100%' }} title={title}>
       <button type="button" className="xv-in" onClick={() => setMo(!mo)} style={{ textAlign: 'left', cursor: 'pointer', display: 'flex', gap: 6, alignItems: 'center', minWidth: 0, overflow: 'hidden', padding: nho ? '3px 8px' : undefined, fontSize: nho ? 11 : undefined }}>
         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nhan}</span>
-        {!multi && chon[0]?.phu && <span style={{ color: 'var(--amber)', fontFamily: 'var(--font-mono)', fontSize: 10.5, whiteSpace: 'nowrap' }}>{chon[0].phu}</span>}
+        {!multi && chon[0]?.phu && <span style={{ ...mono, color: 'var(--amber)', whiteSpace: 'nowrap' }}>{chon[0].phu}</span>}
         <span style={{ color: 'var(--fg-3)' }}>▾</span>
       </button>
       {mo && (
@@ -48,7 +48,7 @@ export function Chon({ value, onChange, options, multi, values, onValues, placeh
                       onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-2)'; setRe(o); }} onMouseLeave={(e) => { e.currentTarget.style.background = on ? 'var(--bg-2)' : ''; }}>
                       {multi && <input type="checkbox" readOnly checked={!!on} />}
                       <span style={{ flex: 1, fontSize: 12, color: on ? 'var(--cyan)' : 'var(--fg-1)' }}>{o.label}</span>
-                      {o.phu && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--amber)', whiteSpace: 'nowrap' }}>{o.phu}</span>}
+                      {o.phu && <span style={{ ...mono, color: 'var(--amber)', whiteSpace: 'nowrap' }}>{o.phu}</span>}
                     </div>
                   );
                 })}

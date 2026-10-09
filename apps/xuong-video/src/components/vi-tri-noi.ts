@@ -2,15 +2,17 @@
 
 // Vị trí cho lớp nổi neo vào một nút (menu ⋯, ô chọn select2…): position FIXED theo toạ độ nút, kẹp trong khung nhìn, thiếu chỗ bên dưới thì
 // lật lên trên. Trước đây dùng position:absolute trong ngăn phim (overflow:auto) → lớp nổi thò ra mép ngăn là bị cắt mất chữ (#1213).
+// Neo là một phần tử (ref) hoặc một ĐIỂM trên màn (bảng ＋ mở tại chỗ bấm trên timeline) — cùng một luật kẹp/lật.
 import { useLayoutEffect, useState, type CSSProperties, type RefObject } from 'react';
 
-export function useViTriNoi(neo: RefObject<HTMLElement | null>, mo: boolean, o: { rong: number; canPhai?: boolean; caoToiDa?: number }): CSSProperties {
+export type DiemNeo = { x: number; y: number };
+export function useViTriNoi(neo: RefObject<HTMLElement | null> | DiemNeo, mo: boolean, o: { rong: number; canPhai?: boolean; caoToiDa?: number }): CSSProperties {
   const [st, setSt] = useState<CSSProperties>({ position: 'fixed', visibility: 'hidden' });
   useLayoutEffect(() => {
     if (!mo) return;
     const tinh = () => {
-      const el = neo.current; if (!el) return;
-      const r = el.getBoundingClientRect();
+      const r = 'current' in neo ? neo.current?.getBoundingClientRect() : { left: neo.x, right: neo.x, top: neo.y, bottom: neo.y };
+      if (!r) return;
       const vw = window.innerWidth, vh = window.innerHeight, le = 8;
       const rong = Math.min(o.rong, vw - 2 * le);
       let left = o.canPhai ? r.right - rong : r.left;
@@ -24,6 +26,6 @@ export function useViTriNoi(neo: RefObject<HTMLElement | null>, mo: boolean, o: 
     tinh();
     window.addEventListener('resize', tinh); window.addEventListener('scroll', tinh, true);
     return () => { window.removeEventListener('resize', tinh); window.removeEventListener('scroll', tinh, true); };
-  }, [mo, neo, o.rong, o.canPhai, o.caoToiDa]);
+  }, [mo, 'current' in neo ? neo : `${neo.x},${neo.y}`, o.rong, o.canPhai, o.caoToiDa]); // eslint-disable-line react-hooks/exhaustive-deps
   return st;
 }

@@ -8,4 +8,8 @@ Dùng chung DB `mos2_prod` + `.env.production` + phiên SSO `mos2-session` (.on.
   Không đụng card của dự án khác; nộp Review, không tự đóng.
 - Sinh ảnh chạy trên Cloudflare Worker `xv-worker` (tài khoản CF Astrolas, Workers Paid) qua queue `xv-jobs`; Worker báo về `/api/xv/xong`.
 - Luật: **CẤM tự sinh video bằng AI** (hook rule 23); mọi lượt sinh tốn tiền chỉ do anh bấm. Giá chỉ ghi dạng `$`. Giờ GMT+7.
-- File chính: `src/lib/actions.ts` (server actions), `src/components/trang.tsx` (UI), `timeline.tsx`, `gop-y.tsx`, `src/lib/xuong-video/*` (provider, worker job), `worker/`.
+- File chính: `src/lib/actions.ts` (server actions), `src/lib/xuong-video/*` (provider, worker job), `worker/`. UI `src/components/` chia theo vai:
+  `trang.tsx` (danh sách phim + drawer phim) · `kinh-thanh.tsx` (mục 0–1) · `nhan-vat.tsx` (mục 2) · `tap.tsx` (mục 3) · `canh.tsx` (thẻ shot + form) ·
+  `animatic.tsx` · `timeline.tsx` · `bang-sinh.tsx` · `gop-y.tsx`. Dùng chung: `ui.tsx` (O, Nut, Seg, Menu, mono, kiểu Khoa/TabPhim) · `mo-hinh-ui.tsx` ·
+  `ngan.tsx` (MỌI drawer: tieuDe/nut/dau, ghim đầu, kéo rộng) · `nho.ts` (useNho) · `dinh-ky.ts` (useDinhKy) · `vi-tri-noi.ts` (lớp nổi neo ref/điểm) ·
+  `lib/luu-tru.ts` (mọi localStorage). Đừng dựng lại hàng tiêu đề drawer, try/catch localStorage hay setInterval tay — `npm run typecheck` chặn biến/import thừa.

@@ -12,11 +12,12 @@ import { dsGiongModel, dsGiongCua, chonGiong, type TuyGiong, type TuyAm } from '
 import { MO_HINH_AM, GIONG, giaAm, dongThoai, giaGiong, GIONG_MAC_DINH, tenNoi, timNv, LOI_DAN } from '@/lib/xuong-video/am-thanh';
 import { nhanKyThuat } from '@/lib/xuong-video/dien-anh';
 import { tien, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
+import { mono } from './ui';
+import { useViTriNoi } from './vi-tri-noi';
 
 export type YeuCauBang = { loai: 'giong' | 'sfx' | 'nhac'; cc?: Canh; phanDoan?: string; giay: number; x: number; y: number };
 type MoHinhG = Awaited<ReturnType<typeof dsGiongModel>>[number];
 
-const mono = { fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)' } as const;
 
 export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, onNhac }: {
   yc: YeuCauBang; nhanVat: NhanVat[]; tap: Tap; mhNhac: string; onClose: () => void;
@@ -69,14 +70,12 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
   const xn = useXacNhanTien(giaNut);
   const chuNut = (chu: string) => (xn.dangHoi ? `⚠ ${tien(giaNut)} — bấm lại để xác nhận` : chu);
 
-  // Vị trí: ngay dưới nút ＋, không tràn mép phải/dưới màn.
-  const W = 420;
-  const left = Math.max(8, Math.min(yc.x - W + 24, (typeof window !== 'undefined' ? window.innerWidth : 1200) - W - 8));
-  const top = Math.min(yc.y + 8, (typeof window !== 'undefined' ? window.innerHeight : 800) - 420);
+  // Vị trí: ngay dưới nút ＋ (canh phải theo nút), kẹp trong màn, thiếu chỗ bên dưới thì lật lên — cùng luật với menu ⋯ / ô chọn.
+  const viTri = useViTriNoi({ x: yc.x + 24, y: yc.y + 6 }, true, { rong: 420, canPhai: true, caoToiDa: typeof window !== 'undefined' ? Math.round(window.innerHeight * 0.8) : 640 });
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 70 }} />
-      <div style={{ position: 'fixed', left, top: Math.max(8, top), width: W, zIndex: 71, background: 'var(--bg-1)', border: '1px solid var(--cyan)', borderRadius: 10, boxShadow: '0 12px 40px rgba(0,0,0,.6)', padding: 12, display: 'grid', gap: 8, maxHeight: '80vh', overflow: 'auto' }}>
+      <div style={{ ...viTri, zIndex: 71, background: 'var(--bg-1)', border: '1px solid var(--cyan)', borderRadius: 10, boxShadow: '0 12px 40px rgba(0,0,0,.6)', padding: 12, display: 'grid', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <b style={{ fontSize: 13, flex: 1 }}>{yc.loai === 'giong' ? `🗣 Giọng · shot #${cc?.thu_tu}` : yc.loai === 'sfx' ? `🔊 Hiệu ứng · shot #${cc?.thu_tu}` : `🎵 Nhạc · ${yc.phanDoan ? `phân cảnh “${yc.phanDoan}”` : 'cả tập'}`}</b>
           <button type="button" className="xv-btn" onClick={onClose}>✕</button>

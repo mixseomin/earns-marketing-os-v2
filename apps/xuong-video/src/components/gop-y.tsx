@@ -13,6 +13,7 @@ import { dsGopYCuaToi, docTraoDoi, guiGopY, guiTraoDoi, type GopYCuaToi, type Ti
 
 const KHOA = 'studio.gop-y.nhap';
 const KHOA_TAB = 'studio.gop-y.tab';
+type TabGopY = 'gui' | 'cua-toi' | 'hoi-dap';
 type Nhap = { loai: string; noiDung: string; anh: string[] };
 const TRANG_MOI: Nhap = { loai: 'loi', noiDung: '', anh: [] };
 const docNhap = (): Nhap => {
@@ -61,7 +62,7 @@ function docNguCanh(): string {
   ].filter(Boolean).join(' · ');
 }
 
-function FormGopY({ onGui }: { onGui: () => void }) {
+function FormGopY({ onGui }: { onGui: (id: number, loai: string) => void }) {
   const [nhap, setNhap] = useState<Nhap>(TRANG_MOI);
   const [trang, setTrang] = useState('');
   const [nc, setNc] = useState('');
@@ -83,8 +84,8 @@ function FormGopY({ onGui }: { onGui: () => void }) {
     if (!r.ok || !r.id) { setKet(`⚠ ${r.error}`); return; }
     try { localStorage.removeItem(KHOA); } catch { /* thôi */ }
     setNhap(TRANG_MOI);
-    setKet(`✓ Đã lên bảng plays xuong-video — card #${r.id}`);
-    onGui();
+    setKet('');
+    onGui(r.id, nhap.loai);   // khung tự đóng; nút nổi báo ✓ #id (#1225)
   };
   const trong = !nhap.noiDung.trim();
   return (
@@ -160,7 +161,7 @@ function Luong({ id, onXong }: { id: number; onXong: () => void }) {
 }
 
 const THU_TU = ['review', 'pending', 'claimed', 'broken', 'completed', 'dropped'];
-function CuaToi({ ds, onNap }: { ds: GopYCuaToi[] | null; onNap: () => void }) {
+function CuaToi({ ds, onNap, trong = 'Chưa có góp ý nào.' }: { ds: GopYCuaToi[] | null; onNap: () => void; trong?: string }) {
   const [mo, setMo] = useState<number | null>(null);
   // Bộ lọc như hòm mos2: chip trạng thái (bấm lại để bỏ lọc) + ô tìm theo nội dung / số card / trang. Nhớ chip theo trình duyệt.
   const [loc, setLoc] = useState('');
@@ -168,7 +169,7 @@ function CuaToi({ ds, onNap }: { ds: GopYCuaToi[] | null; onNap: () => void }) {
   useEffect(() => { try { setLoc(localStorage.getItem('studio.gop-y.loc') ?? ''); } catch { /* thôi */ } }, []);
   const datLoc = (k: string) => { setLoc(k); try { localStorage.setItem('studio.gop-y.loc', k); } catch { /* thôi */ } };
   if (ds === null) return <div style={{ fontSize: 12, color: 'var(--fg-3)', padding: 8 }}>đang đọc…</div>;
-  if (!ds.length) return <div style={{ fontSize: 12.5, color: 'var(--fg-3)', padding: '18px 8px', textAlign: 'center' }}>Chưa có góp ý nào.</div>;
+  if (!ds.length) return <div style={{ fontSize: 12.5, color: 'var(--fg-3)', padding: '18px 8px', textAlign: 'center' }}>{trong}</div>;
   const dem = new Map<string, number>();
   for (const b of ds) { const k = nhomTT(b.trangThai); dem.set(k, (dem.get(k) ?? 0) + 1); }
   const nd = q.trim().toLowerCase();
@@ -213,7 +214,9 @@ function CuaToi({ ds, onNap }: { ds: GopYCuaToi[] | null; onNap: () => void }) {
 
 export function GopY() {
   const [mo, setMo] = useState(false);
-  const [tab, setTab] = useState<'gui' | 'cua-toi'>('gui');
+  const [tab, setTab] = useState<TabGopY>('gui');
+  const [vuaGui, setVuaGui] = useState<number | null>(null);
+  useEffect(() => { if (vuaGui == null) return; const t = setTimeout(() => setVuaGui(null), 4000); return () => clearTimeout(t); }, [vuaGui]);
   const [ds, setDs] = useState<GopYCuaToi[] | null>(null);
   useEffect(() => {
     const e = (ev: ErrorEvent) => ghiLoiJs(ev.message || String(ev.error));
@@ -225,15 +228,19 @@ export function GopY() {
   const nap = () => { void dsGopYCuaToi().then(setDs); };
   useEffect(() => {
     if (!mo) return;
-    try { if (localStorage.getItem(KHOA_TAB) === 'cua-toi') setTab('cua-toi'); } catch { /* thôi */ }
+    try { const t = localStorage.getItem(KHOA_TAB); if (t === 'cua-toi' || t === 'hoi-dap') setTab(t); } catch { /* thôi */ }
     nap();
   }, [mo]);
-  const doiTab = (t: 'gui' | 'cua-toi') => { setTab(t); try { localStorage.setItem(KHOA_TAB, t); } catch { /* thôi */ } };
+  const doiTab = (t: TabGopY) => { setTab(t); try { localStorage.setItem(KHOA_TAB, t); } catch { /* thôi */ } };
   const conMo = ds?.filter((b) => !DA_DONG.has(nhomTT(b.trangThai))).length ?? 0;
+  // Câu hỏi có tab riêng (#1227): mỗi câu vẫn là một card bình thường, mở ra thấy câu trả lời và trả lời tiếp được.
+  const hoi = ds?.filter((b) => b.loai === 'cau_hoi') ?? null;
+  const hoiCoTraLoi = hoi?.filter((b) => b.soTin > 0 && !DA_DONG.has(nhomTT(b.trangThai))).length ?? 0;
+  const daGui = (id: number) => { setVuaGui(id); setMo(false); nap(); };
   return (
     <>
-      <button type="button" aria-label="Góp ý / báo lỗi" title="Góp ý / báo lỗi về màn đang xem" onClick={() => setMo((v) => !v)}
-        style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 60, width: 40, height: 40, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,.35)', fontSize: 17 }}>💬</button>
+      <button type="button" aria-label="Góp ý / báo lỗi" title={vuaGui ? `Đã gửi card #${vuaGui}` : 'Góp ý / báo lỗi về màn đang xem'} onClick={() => setMo((v) => !v)}
+        style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 60, minWidth: 40, height: 40, padding: vuaGui ? '0 12px' : 0, borderRadius: 999, border: `1px solid ${vuaGui ? 'var(--lime)' : 'var(--line)'}`, background: 'var(--bg-2)', color: vuaGui ? 'var(--lime)' : 'var(--fg-2)', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,.35)', fontSize: vuaGui ? 12 : 17, transition: 'all .2s' }}>{vuaGui ? `✓ đã gửi #${vuaGui}` : '💬'}</button>
       {mo && (
         <>
           <div className="xv-backdrop nho" style={{ zIndex: 60 }} onClick={() => setMo(false)} />
@@ -246,8 +253,9 @@ export function GopY() {
             <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
               <button type="button" className={`xv-btn${tab === 'gui' ? ' chinh' : ''}`} onClick={() => doiTab('gui')}>Gửi góp ý</button>
               <button type="button" className={`xv-btn${tab === 'cua-toi' ? ' chinh' : ''}`} onClick={() => doiTab('cua-toi')}>Của tôi{conMo ? ` (${conMo})` : ''}</button>
+              <button type="button" className={`xv-btn${tab === 'hoi-dap' ? ' chinh' : ''}`} onClick={() => doiTab('hoi-dap')} title="Câu hỏi đã gửi + câu trả lời; trả lời tiếp ngay trong luồng">Hỏi đáp{hoi?.length ? ` (${hoiCoTraLoi ? `${hoiCoTraLoi} có trả lời · ` : ''}${hoi.length})` : ''}</button>
             </div>
-            {tab === 'gui' ? <FormGopY onGui={nap} /> : <CuaToi ds={ds} onNap={nap} />}
+            {tab === 'gui' ? <FormGopY onGui={daGui} /> : tab === 'hoi-dap' ? <CuaToi ds={hoi} onNap={nap} trong="Chưa có câu hỏi nào — chọn Loại: Câu hỏi khi gửi." /> : <CuaToi ds={ds} onNap={nap} />}
           </div>
         </>
       )}

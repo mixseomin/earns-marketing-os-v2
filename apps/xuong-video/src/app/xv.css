@@ -19,7 +19,7 @@ a { color: var(--cyan); }
 .xv-btn:disabled { opacity: .5; cursor: not-allowed; }
 .xv-btn.chinh { background: var(--cyan); color: #000; border-color: transparent; font-weight: 700; }
 .xv-btn.nguy { color: var(--red); }
-.xv-lbl { display: block; font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); text-transform: uppercase; letter-spacing: .06em; margin: 0 0 4px; font-weight: 700; }
+.xv-lbl { display: block; font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); text-transform: uppercase; letter-spacing: .06em; margin: 0 0 4px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .xv-in, .xv-ta, .xv-sel { width: 100%; background: var(--bg-0); color: var(--fg-1); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: inherit; font-size: 12px; }
 .xv-ta { resize: vertical; min-height: 60px; }
 .xv-in:focus, .xv-ta:focus, .xv-sel:focus { outline: 1px solid var(--cyan); }

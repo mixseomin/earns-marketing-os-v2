@@ -12,6 +12,7 @@ export function Chon({ value, onChange, options, multi, values, onValues, placeh
   placeholder?: string; minWidth?: number; title?: string; nho?: boolean;
 }) {
   const [mo, setMo] = useState(false);
+  const [re, setRe] = useState<LuaChon | null>(null);
   const [q, setQ] = useState('');
   const ref = useRef<HTMLSpanElement>(null);
   const viTri = useViTriNoi(ref, mo, { rong: Math.min(460, Math.max(minWidth, 300)) });
@@ -25,8 +26,8 @@ export function Chon({ value, onChange, options, multi, values, onValues, placeh
   const nhom = [...new Set(loc.map((o) => o.nhom ?? ''))];
   const nhan = chon.length ? (multi ? chon.map((o) => o.label).join(', ') : chon[0]!.label) : (placeholder ?? 'Chọn…');
   return (
-    <span ref={ref} style={{ position: 'relative', display: 'inline-block', minWidth: nho ? undefined : minWidth, maxWidth: '100%' }} title={title}>
-      <button type="button" className="xv-in" onClick={() => setMo(!mo)} style={{ textAlign: 'left', cursor: 'pointer', display: 'flex', gap: 6, alignItems: 'center', padding: nho ? '3px 8px' : undefined, fontSize: nho ? 11 : undefined }}>
+    <span ref={ref} style={{ position: 'relative', display: 'inline-block', minWidth: nho ? undefined : `min(${minWidth}px, 100%)`, maxWidth: '100%' }} title={title}>
+      <button type="button" className="xv-in" onClick={() => setMo(!mo)} style={{ textAlign: 'left', cursor: 'pointer', display: 'flex', gap: 6, alignItems: 'center', minWidth: 0, overflow: 'hidden', padding: nho ? '3px 8px' : undefined, fontSize: nho ? 11 : undefined }}>
         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nhan}</span>
         {!multi && chon[0]?.phu && <span style={{ color: 'var(--amber)', fontFamily: 'var(--font-mono)', fontSize: 10.5, whiteSpace: 'nowrap' }}>{chon[0].phu}</span>}
         <span style={{ color: 'var(--fg-3)' }}>▾</span>
@@ -44,7 +45,7 @@ export function Chon({ value, onChange, options, multi, values, onValues, placeh
                   return (
                     <div key={o.value} title={o.title} onClick={() => { if (multi) { const v = values ?? []; onValues?.(on ? v.filter((x) => x !== o.value) : [...v, o.value]); } else { onChange?.(o.value); setMo(false); } }}
                       style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', background: on ? 'var(--bg-2)' : undefined }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-2)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = on ? 'var(--bg-2)' : ''; }}>
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-2)'; setRe(o); }} onMouseLeave={(e) => { e.currentTarget.style.background = on ? 'var(--bg-2)' : ''; }}>
                       {multi && <input type="checkbox" readOnly checked={!!on} />}
                       <span style={{ flex: 1, fontSize: 12, color: on ? 'var(--cyan)' : 'var(--fg-1)' }}>{o.label}</span>
                       {o.phu && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--amber)', whiteSpace: 'nowrap' }}>{o.phu}</span>}
@@ -55,6 +56,12 @@ export function Chon({ value, onChange, options, multi, values, onValues, placeh
             ))}
             {loc.length === 0 && <div style={{ ...mono, padding: 8 }}>không có kết quả</div>}
           </div>
+          {/* Rê vào lựa chọn → mô tả chi tiết hiện ngay ở chân danh sách (#1223), không phải chờ tooltip trình duyệt. */}
+          {options.some((o) => o.title) && (
+            <div style={{ borderTop: '1px solid var(--line)', padding: '6px 10px', fontSize: 11.5, color: 'var(--fg-2)', minHeight: 44, lineHeight: 1.4 }}>
+              {(re ?? chon[0])?.title ? <><b style={{ color: 'var(--fg-1)' }}>{(re ?? chon[0])!.label}</b> — {(re ?? chon[0])!.title}</> : <span style={mono}>rê chuột vào một lựa chọn để xem mô tả</span>}
+            </div>
+          )}
         </div>
       )}
     </span>

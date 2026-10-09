@@ -38,8 +38,9 @@ type KqChay = { ok: boolean; loi?: string } | void;
 
 // ── Khối giao diện nhỏ của app (không mượn primitive của mos2 — app riêng) ─────────────────────────────────────────
 
+// Nhãn một dòng (cắt bằng … , đủ chữ khi rê) → các ô cùng hàng luôn thẳng nhau, không ô nào bị nhãn hai dòng đẩy xuống (#1220).
 function O({ label, hint, children, span }: { label?: ReactNode; hint?: ReactNode; children: ReactNode; span?: boolean }) {
-  return <div className="xv-field" style={span ? { gridColumn: '1 / -1' } : undefined}>{label && <label className="xv-lbl">{label}</label>}{children}{hint && <div className="xv-hint">{hint}</div>}</div>;
+  return <div className="xv-field" style={span ? { gridColumn: '1 / -1' } : undefined}>{label && <label className="xv-lbl" title={typeof label === 'string' ? label : undefined}>{label}</label>}{children}{hint && <div className="xv-hint">{hint}</div>}</div>;
 }
 function Pill({ color, children }: { color: string; children: ReactNode }) { return <span className="xv-pill" style={{ color }}>{children}</span>; }
 function Seg<T extends string | number>({ options, value, onChange }: { options: { value: T; label: string; title?: string }[]; value: T; onChange: (v: T) => void }) {
@@ -84,7 +85,7 @@ import { useXacNhanTien } from './xac-nhan-tien';
 function Menu({ children, nhan = '⋯' }: { children: ReactNode; nhan?: string }) {
   const [mo, setMo] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
-  const viTri = useViTriNoi(ref, mo, { rong: 340, canPhai: true, caoToiDa: 520 });
+  const viTri = useViTriNoi(ref, mo, { rong: 420, canPhai: true, caoToiDa: 560 });
   useEffect(() => {
     if (!mo) return;
     const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setMo(false); };
@@ -93,14 +94,14 @@ function Menu({ children, nhan = '⋯' }: { children: ReactNode; nhan?: string }
   return (
     <span ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
       <button type="button" className="xv-btn" onClick={() => setMo(!mo)} title="Thêm thao tác">{nhan}</button>
-      {mo && <div onClick={(e) => { if ((e.target as HTMLElement).closest('[data-dong]')) setMo(false); }} style={{ ...viTri, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.5)', padding: 6, display: 'grid', gap: 4, alignContent: 'start' }}>{children}</div>}
+      {mo && <div onClick={(e) => { if ((e.target as HTMLElement).closest('[data-dong]')) setMo(false); }} style={{ ...viTri, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.5)', padding: 6, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 4, alignContent: 'start', overflowX: 'hidden' }}>{children}</div>}
     </span>
   );
 }
 function MucMenu({ onClick, children, ly, nguy, gia }: { onClick: () => void; children: ReactNode; ly?: string | false | null; nguy?: boolean; gia?: number }) {
   const xn = useXacNhanTien(gia);
   // Đang hỏi xác nhận thì KHÔNG mang data-dong — menu không đóng ở lần bấm đầu.
-  return <button type="button" {...(xn.canHoi && !xn.dangHoi ? {} : { 'data-dong': '' })} disabled={!!ly} title={ly || undefined} onClick={() => xn.bam(onClick)} className="xv-btn" style={{ textAlign: 'left', color: nguy || xn.dangHoi ? 'var(--red)' : undefined, opacity: ly ? 0.5 : 1 }}>{xn.dangHoi ? `⚠ ${tien(gia ?? 0)} — bấm lại để xác nhận` : children}</button>;
+  return <button type="button" {...(xn.canHoi && !xn.dangHoi ? {} : { 'data-dong': '' })} disabled={!!ly} title={ly || undefined} onClick={() => xn.bam(onClick)} className="xv-btn" style={{ textAlign: 'left', whiteSpace: 'normal', color: nguy || xn.dangHoi ? 'var(--red)' : undefined, opacity: ly ? 0.5 : 1 }}>{xn.dangHoi ? `⚠ ${tien(gia ?? 0)} — bấm lại để xác nhận` : children}</button>;
 }
 
 /** Danh mục model (Google/OpenAI + ~100 model fal) nạp một lần cho cả trang. */
@@ -1267,15 +1268,17 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
           {tabF === 'noi_dung' && (
             <div className="xv-grid">
               <O label="Nhãn cảnh"><input className="xv-in" value={f.canh} onChange={(e) => setF({ ...f, canh: e.target.value })} /></O>
-              <O label="Nhân vật · sản phẩm · bối cảnh trong cảnh"><Chon multi values={f.nhan_vat.map(String)} onValues={(v) => setF({ ...f, nhan_vat: v.map(Number) })} options={nhanVat.map((v) => ({ value: String(v.id), label: v.ten, nhom: LOAI_NHAN_VAT.find((l) => l.key === v.loai)?.label }))} placeholder="chọn…" /></O>
-              <O label="Biến thể trong cảnh" hint="mỗi anchor tối đa 1 (biểu cảm / trang phục / góc…)"><Chon multi values={f.bien_the.map(String)} onValues={(v) => setF({ ...f, bien_the: v.map(Number) })} options={tatCaBt.filter((b) => f.nhan_vat.includes(b.nhan_vat_id)).map((b) => ({ value: String(b.id), label: b.ten, nhom: b.nv }))} placeholder="không dùng biến thể" /></O>
+              <O label="Đối tượng"><Chon multi values={f.nhan_vat.map(String)} onValues={(v) => setF({ ...f, nhan_vat: v.map(Number) })} options={nhanVat.map((v) => ({ value: String(v.id), label: v.ten, nhom: LOAI_NHAN_VAT.find((l) => l.key === v.loai)?.label }))} placeholder="chọn…" /></O>
+              <O label="Biến thể" hint="mỗi đối tượng tối đa 1"><Chon multi values={f.bien_the.map(String)} onValues={(v) => setF({ ...f, bien_the: v.map(Number) })} options={tatCaBt.filter((b) => f.nhan_vat.includes(b.nhan_vat_id)).map((b) => ({ value: String(b.id), label: b.ten, nhom: b.nv }))} placeholder="không dùng biến thể" /></O>
               <O span label="Hành động"><textarea className="xv-ta" rows={2} value={f.hanh_dong} onChange={(e) => setF({ ...f, hanh_dong: e.target.value })} /></O>
               <div style={{ gridColumn: '1 / -1' }}>
-                <div className="xv-lbl" style={{ marginBottom: 4 }}>Thoại (kiểu kịch bản phim) <span style={{ ...mono, textTransform: 'none' }}>— mỗi lượt nói một dòng: nhân vật · diễn xuất (nhìn lên, giơ tay…) · lời. Mỗi dòng sinh giọng riêng theo giọng nhân vật.</span></div>
+                <div className="xv-lbl" style={{ marginBottom: 4 }} title="Mỗi lượt nói một dòng: nhân vật · diễn xuất · lời. Mỗi dòng sinh giọng riêng theo giọng cố định của nhân vật (đổi ở nút giọng cạnh tên).">Thoại</div>
                 {f.thoai.map((d, i) => (
-                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '160px 200px 1fr auto', gap: 6, marginBottom: 4 }}>
+                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '150px auto 180px 1fr auto', gap: 6, marginBottom: 4, alignItems: 'center' }}>
                     <Chon nho value={d.nhan_vat} onChange={(v) => setF({ ...f, thoai: f.thoai.map((x, j) => (j === i ? { ...x, nhan_vat: v } : x)) })} minWidth={150}
                       options={[{ value: '', label: 'Lời dẫn' }, ...nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => ({ value: v.ten, label: v.ten }))]} />
+                {/* Chọn model + giọng của người nói ngay tại dòng (#1221) — giọng cố định theo nhân vật, đổi ở đây là đổi cả phim. */}
+                {(() => { const v = nhanVat.find((x) => x.loai === 'nhan_vat' && x.ten === d.nhan_vat); return v ? <GiongNhanVat v={v} onChanged={async () => { await chay(k, async () => undefined); }} /> : <span style={mono}>—</span>; })()}
                     <input className="xv-in" placeholder="diễn xuất: nhìn lên, giơ tay" value={d.dien_xuat} onChange={(e) => setF({ ...f, thoai: f.thoai.map((x, j) => (j === i ? { ...x, dien_xuat: e.target.value } : x)) })} />
                     <input className="xv-in" placeholder="lời nói" value={d.loi} onChange={(e) => setF({ ...f, thoai: f.thoai.map((x, j) => (j === i ? { ...x, loi: e.target.value } : x)) })} />
                     <button type="button" className="xv-btn" title="Bỏ dòng" onClick={() => setF({ ...f, thoai: f.thoai.filter((_, j) => j !== i) })}>✕</button>
@@ -1283,18 +1286,18 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
                 ))}
                 <button type="button" className="xv-btn" onClick={() => setF({ ...f, thoai: [...f.thoai, { nhan_vat: f.thoai[f.thoai.length - 1]?.nhan_vat ?? '', dien_xuat: '', loi: '' }] })}>+ Dòng thoại</button>
               </div>
-              <O span label="✎ Chữ trên màn" hint="≤ 8 từ: câu hook, số liệu, ưu đãi, CTA — bản xuất vẽ đúng chữ này"><input className="xv-in" value={f.chu_man} onChange={(e) => setF({ ...f, chu_man: e.target.value })} placeholder="để trống = không có chữ" /></O>
-              <O span label="👗 Trang phục trong shot" hint="đè lên bộ đồ trong mô tả nhân vật; khuôn mặt, tóc, dáng vẫn giữ. Vd: chỉ mặc áo bra không gọng, KHÔNG áo ngoài"><input className="xv-in" value={f.trang_phuc} onChange={(e) => setF({ ...f, trang_phuc: e.target.value })} placeholder="để trống = mặc như mô tả nhân vật" /></O>
+              <O span label="Chữ trên màn" hint="≤ 8 từ: hook, số liệu, ưu đãi, CTA"><input className="xv-in" value={f.chu_man} onChange={(e) => setF({ ...f, chu_man: e.target.value })} placeholder="để trống = không có chữ" /></O>
+              <O span label="Trang phục" hint="đè bộ đồ trong mô tả nhân vật, giữ mặt/tóc/dáng — vd: chỉ mặc áo bra, KHÔNG áo ngoài"><input className="xv-in" value={f.trang_phuc} onChange={(e) => setF({ ...f, trang_phuc: e.target.value })} placeholder="để trống = mặc như mô tả nhân vật" /></O>
             </div>
           )}
           {tabF === 'may' && (
             <div className="xv-grid">
               <O label="Góc máy"><input className="xv-in" value={f.goc_may} onChange={(e) => setF({ ...f, goc_may: e.target.value })} /></O>
-              <O label="Phân cảnh (scene)" hint="shot cùng tên phân cảnh hợp thành một cảnh trên timeline"><input className="xv-in" value={f.phan_doan} onChange={(e) => setF({ ...f, phan_doan: e.target.value })} /></O>
+              <O label="Phân cảnh"><input className="xv-in" value={f.phan_doan} onChange={(e) => setF({ ...f, phan_doan: e.target.value })} /></O>
               <O label={`Cảm xúc cuối shot: ${f.cam_xuc > 0 ? '+' : ''}${f.cam_xuc}`} hint="-5 đau/sợ … +5 vui/hy vọng — vẽ đường cong cảm xúc của tập"><input type="range" min={-5} max={5} step={1} value={f.cam_xuc} onChange={(e) => setF({ ...f, cam_xuc: Number(e.target.value) })} /></O>
               <O label="Âm thanh"><input className="xv-in" value={f.am_thanh} onChange={(e) => setF({ ...f, am_thanh: e.target.value })} /></O>
               <div style={{ gridColumn: '1 / -1' }}>
-                <div className="xv-lbl" style={{ marginBottom: 4 }}>Ngôn ngữ điện ảnh <span style={{ ...mono, textTransform: 'none' }}>— chọn từ thư viện; nhóm "Hợp {THE_LOAI.find((t) => t.key === kt.the_loai)?.ten ?? 'thể loại'}" đứng đầu; ghép vào prompt ảnh/video khi sinh · <button type="button" className="xv-lienket" onClick={() => moNgan({ loai: 'thu-vien', tl: kt.the_loai })}>xem thư viện</button></span></div>
+                <div className="xv-lbl" style={{ marginBottom: 4 }} title="Chọn từ thư viện; nhóm hợp thể loại phim đứng đầu; ghép vào prompt ảnh/video khi sinh">Ngôn ngữ điện ảnh · <button type="button" className="xv-lienket" style={{ textTransform: 'none', fontWeight: 400 }} onClick={() => moNgan({ loai: 'thu-vien', tl: kt.the_loai })}>thư viện</button></div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 6 }}>
                   {NHOM_KY_THUAT.map((n) => {
                     const tl = (kt.the_loai || undefined) as TheLoai | undefined;
@@ -1314,11 +1317,11 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
           )}
           {tabF === 'ky_thuat' && (
             <div className="xv-grid">
-              <O label="Clip sinh" hint="độ dài model sinh (Veo 4/6/8)"><Chon value={String(f.thoi_luong_s)} onChange={(v) => setF({ ...f, thoi_luong_s: Number(v) })} options={[3, 4, 5, 6, 8, 10, 12, 15].map((x) => ({ value: String(x), label: `${x} giây`, phu: x > 8 ? 'chỉ model fal' : undefined }))} minWidth={140} /></O>
-              <O label="Giây phát" hint="cắt lấy phần đầu clip; trống = cả clip"><input className="xv-in" type="number" min={1} max={15} step={0.5} value={f.phat_s ?? ''} onChange={(e) => setF({ ...f, phat_s: e.target.value === '' ? null : Number(e.target.value) })} placeholder={String(f.thoi_luong_s)} style={{ width: 90 }} /></O>
-              <O label="Nhánh hook" hint="trống = thân chung; A/B/C = shot thay thế nhau ở hook"><input className="xv-in" value={f.nhanh} onChange={(e) => setF({ ...f, nhanh: e.target.value.trim().toUpperCase().slice(0, 2) })} placeholder="—" style={{ width: 70 }} /></O>
-              <O span label="Prompt ảnh (keyframe, tiếng Anh)"><textarea className="xv-ta" rows={3} value={f.prompt_anh} onChange={(e) => setF({ ...f, prompt_anh: e.target.value })} style={{ fontFamily: 'var(--font-mono)' }} /></O>
-              <O span label="Prompt video (chuyển động, tiếng Anh)"><textarea className="xv-ta" rows={3} value={f.prompt_video} onChange={(e) => setF({ ...f, prompt_video: e.target.value })} style={{ fontFamily: 'var(--font-mono)' }} /></O>
+              <O label="Clip sinh"><Chon value={String(f.thoi_luong_s)} onChange={(v) => setF({ ...f, thoi_luong_s: Number(v) })} options={[3, 4, 5, 6, 8, 10, 12, 15].map((x) => ({ value: String(x), label: `${x} giây`, phu: x > 8 ? 'chỉ model fal' : undefined }))} minWidth={140} /></O>
+              <O label="Giây phát" hint="cắt phần đầu clip; trống = cả clip"><input className="xv-in" type="number" min={1} max={15} step={0.5} value={f.phat_s ?? ''} onChange={(e) => setF({ ...f, phat_s: e.target.value === '' ? null : Number(e.target.value) })} placeholder={String(f.thoi_luong_s)} style={{ width: 90 }} /></O>
+              <O label="Nhánh hook" hint="trống = thân chung · A/B/C"><input className="xv-in" value={f.nhanh} onChange={(e) => setF({ ...f, nhanh: e.target.value.trim().toUpperCase().slice(0, 2) })} placeholder="—" style={{ width: 70 }} /></O>
+              <O span label="Prompt ảnh · tiếng Anh"><textarea className="xv-ta" rows={3} value={f.prompt_anh} onChange={(e) => setF({ ...f, prompt_anh: e.target.value })} style={{ fontFamily: 'var(--font-mono)' }} /></O>
+              <O span label="Prompt video · tiếng Anh"><textarea className="xv-ta" rows={3} value={f.prompt_video} onChange={(e) => setF({ ...f, prompt_video: e.target.value })} style={{ fontFamily: 'var(--font-mono)' }} /></O>
             </div>
           )}
           <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>

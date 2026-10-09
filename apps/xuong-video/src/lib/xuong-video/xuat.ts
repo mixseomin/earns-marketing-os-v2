@@ -129,6 +129,9 @@ export function keHoachXuat(o: {
   let t = 0; let soAm = 0;
   const cauMan: { tu: number; den: number; dong: string[]; kieu?: KieuChu }[] = [];
   const themAm = (bieuThuc: string) => { const nhan = `a${soAm++}`; loc.push(`${bieuThuc},aformat=sample_rates=48000:channel_layouts=stereo[${nhan}]`); nhanhAm.push(`[${nhan}]`); };
+  // Mốc bắt đầu tuyệt đối của mọi câu LỜI DẪN (để câu trước không đè câu sau: dải giọng đọc liên tục của QC mẫu).
+  const mocDan: number[] = [];
+  { let tt = 0; for (const c of ds) { for (const d of dongThoai(c, o.nhanVat)) if (!d.nhan_vat.trim() && d.url) mocDan.push(tt + Math.min(d.tre ?? 0, Math.max(0, giayPhat(c) - 0.2))); tt += giayPhat(c); } }
   ds.forEach((c, i) => {
     const phat = giayPhat(c);
     const vUrl = c.video_cuoi_url || c.video_url;
@@ -152,7 +155,10 @@ export function keHoachXuat(o: {
       const conLai = Math.max(0.2, phat - tDong);
       // Lời dẫn (không người nói) = dải giọng đọc liên tục như QC mẫu: đọc TRỌN câu, vắt qua shot sau, không cắt không tăng tốc.
       const loiDan = !d.nhan_vat.trim();
-      const nhanh = !loiDan && d.url && nl.get(d.url)?.dai && daiGiong > conLai + 0.05 ? Math.min(1.35, daiGiong / conLai) : 1;
+      // Lời dẫn dài hơn khoảng tới câu dẫn kế → đọc nhanh lên (≤1,35×) để hết trước khi câu sau vào; thoại nhân vật → vừa phần còn lại của shot.
+      const keTiep = loiDan ? mocDan.find((m) => m > t + tDong + 0.01) : undefined;
+      const choPhep = loiDan ? (keTiep != null ? keTiep - (t + tDong) - 0.05 : Infinity) : conLai;
+      const nhanh = d.url && nl.get(d.url)?.dai && daiGiong > choPhep + 0.05 ? Math.min(1.35, daiGiong / choPhep) : 1;
       if (d.url && nl.has(d.url)) { const ka = them(d.url); themAm(`[${ka}:a]${nhanh > 1.001 ? `atempo=${so(nhanh)},` : ''}${loiDan ? '' : `atrim=0:${so(conLai + 0.3)},`}asetpts=PTS-STARTPTS,adelay=${Math.round((t + tDong) * 1000)}:all=1`); }
       tDong += daiGiong / nhanh + 0.15;
     });

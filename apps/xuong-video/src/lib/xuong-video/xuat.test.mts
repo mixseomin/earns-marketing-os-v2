@@ -125,3 +125,13 @@ console.log('xuat.test: mẫu ok');
   assert.ok(/Style: Man3,Montserrat Black,157,/.test(a), a);
   console.log('xuat.test: kiểu từng shot ok');
 }
+// Lời dẫn sắp đè câu dẫn kế (shot sau) → nhanh lên vừa khoảng trống; không đè thì giữ nguyên tốc độ.
+{
+  const s1 = { ...canh[0]!, thu_tu: 1, phat_s: 2.5, nhanh: '', thoai: [{ nhan_vat: '', dien_xuat: '', loi: 'a', url: 'https://x/g1.mp3', tre: 0 }] };
+  const s2 = { ...canh[0]!, thu_tu: 2, phat_s: 2, nhanh: '', video_url: 'https://x/c1.mp4', thoai: [{ nhan_vat: '', dien_xuat: '', loi: 'b', url: 'https://x/g2.mp3', tre: 0.2 }] };
+  const nl2 = [...nguyenLieu.filter((x) => x.url !== 'https://x/g1.mp3'), nl('https://x/g1.mp3', 3.4), nl('https://x/g2.mp3', 1)];
+  const l = keHoachXuat({ loai: 'phim', tiLe: '9:16', canh: [s1, s2] as never, nhanVat: nv, tap: { nhac_url: null, nhac_phan_canh: {} }, nguyenLieu: nl2, font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' }).tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
+  assert.ok(l.includes('atempo=1.283,'), l);              // 3,4s phải hết trước 2,7s − 0,05 = 2,65s → 1,283×
+  assert.ok(l.includes('adelay=2700:all=1'), l);          // câu sau vào đúng 2,5 + 0,2
+  console.log('xuat.test: lời dẫn không đè ok');
+}

@@ -78,6 +78,6 @@ if (arg('xuat') && tapId) {
     console.log(`  ✓ bản xuất ${kq.giay}s → ${kq.url}${kq.canhThieu.length ? ` · thiếu hình: ${kq.canhThieu.join(', ')}` : ''}`);
   }
 }
-const tong = await q(sql`SELECT coalesce(sum(chi_phi_cents), 0) AS c FROM xv_job WHERE phim_id = ${phimId}`);
+const tong = await q(sql`SELECT coalesce(sum(chi_phi_cents), 0) AS c FROM xv_job WHERE phim_id = ${phimId} AND tinh_chi`);
 console.log(`tổng đã chi cho phim #${phimId}: ${tien(Number(tong[0]!.c))} → https://studio.on.tc/?m=phim&mId=${phimId}`);
 process.exit(0);

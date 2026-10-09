@@ -269,7 +269,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             {c && (vid ? <video ref={vidRef} key={vid} src={vid} playsInline preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               : c.keyframe_url ? <img src={c.keyframe_url} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb }} />
               : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} chưa có hình</div>)}
-            {c?.chu_man && <ChuManXem chu={c.chu_man} giay={tTrong} rong={doc916 ? 220 : 480} qc={qc} />}
+            {c?.chu_man && <ChuManXem chu={c.chu_man} giay={tTrong} rong={doc916 ? 220 : 480} qc={qc} kieu={c.kieu_chu} />}
             {c && (() => {
               const ds = dongThoai(c, nhanVat).map((d) => d.url).filter((u): u is string => !!u);
               const u = ds[dong];

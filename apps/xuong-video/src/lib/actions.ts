@@ -82,7 +82,7 @@ export async function dsPhim(): Promise<Phim[]> {
         (SELECT count(*) FROM xv_tap t WHERE t.phim_id = p.id) AS so_tap,
         (SELECT count(*) FROM xv_nhan_vat v WHERE v.phim_id = p.id) AS so_nhan_vat,
         (SELECT count(*) FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = p.id) AS so_canh,
-        (SELECT coalesce(sum(j.chi_phi_cents), 0) FROM xv_job j WHERE j.phim_id = p.id) AS chi_phi_cents
+        (SELECT coalesce(sum(j.chi_phi_cents), 0) FROM xv_job j WHERE j.phim_id = p.id AND j.tinh_chi) AS chi_phi_cents
       FROM xv_phim p ORDER BY p.updated_at DESC`);
     return (r as unknown as Row[]).map(mapPhim);
   } catch { return []; }
@@ -113,7 +113,7 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
       db.execute(sql`SELECT j.nhan_vat_id, j.bien_the_id FROM xv_job j JOIN xv_nhan_vat v ON v.id = j.nhan_vat_id
         WHERE v.phim_id = ${id} AND j.loai = 'anh' AND j.trang_thai = 'cho' AND j.created_at > now() - interval '10 minutes'`),
       db.execute(sql`SELECT * FROM xv_job WHERE phim_id = ${id} ORDER BY id DESC LIMIT 6`),
-      db.execute(sql`SELECT coalesce(sum(chi_phi_cents), 0) AS t FROM xv_job WHERE phim_id = ${id}`),
+      db.execute(sql`SELECT coalesce(sum(chi_phi_cents), 0) AS t FROM xv_job WHERE phim_id = ${id} AND tinh_chi`),
       // Lần sinh ảnh gần nhất của mỗi anchor/biến thể — lỗi thì hiện dưới thẻ (việc chạy nền nên lỗi không trả về nút nữa).
       db.execute(sql`SELECT DISTINCT ON (j.nhan_vat_id, coalesce(j.bien_the_id, 0)) j.nhan_vat_id, j.bien_the_id, j.trang_thai, j.loi
         FROM xv_job j JOIN xv_nhan_vat v ON v.id = j.nhan_vat_id WHERE v.phim_id = ${id} AND j.loai = 'anh'
@@ -124,7 +124,7 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
       db.execute(sql`SELECT count(*) AS so, coalesce(sum(chi_phi_cents) FILTER (WHERE loai = 'anh'), 0) AS anh,
           coalesce(sum(chi_phi_cents) FILTER (WHERE loai IN ('video', 'nang_cap')), 0) AS video,
           coalesce(sum(chi_phi_cents) FILTER (WHERE loai NOT IN ('anh', 'video', 'nang_cap')), 0) AS chu
-        FROM xv_job WHERE phim_id = ${id} AND trang_thai = 'xong'`),
+        FROM xv_job WHERE phim_id = ${id} AND trang_thai = 'xong' AND tinh_chi`),
     ]);
     const loiAnh = { nhanVat: {} as Record<number, string>, bienThe: {} as Record<number, string> };
     for (const r of la as unknown as Row[]) {
@@ -628,7 +628,7 @@ export async function xepCanh(tapId: number, ids: number[]): Promise<Kq> {
   return { ok: true, data: undefined };
 }
 
-export async function suaCanh(id: number, d: Partial<Pick<Canh, 'canh' | 'goc_may' | 'hanh_dong' | 'loi_thoai' | 'am_thanh' | 'thoi_luong_s' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'prompt_video' | 'thu_tu' | 'phan_doan' | 'cam_xuc' | 'ky_thuat' | 'thoai' | 'trang_phuc' | 'phat_s' | 'chu_man' | 'nhanh'>>): Promise<Kq> {
+export async function suaCanh(id: number, d: Partial<Pick<Canh, 'canh' | 'goc_may' | 'hanh_dong' | 'loi_thoai' | 'am_thanh' | 'thoi_luong_s' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'prompt_video' | 'thu_tu' | 'phan_doan' | 'cam_xuc' | 'ky_thuat' | 'thoai' | 'trang_phuc' | 'phat_s' | 'chu_man' | 'nhanh' | 'kieu_chu'>>): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
@@ -647,7 +647,7 @@ export async function suaCanh(id: number, d: Partial<Pick<Canh, 'canh' | 'goc_ma
     nhan_vat = coalesce(${d.nhan_vat ? JSON.stringify(d.nhan_vat) : null}::jsonb, nhan_vat), bien_the = coalesce(${d.bien_the ? JSON.stringify(d.bien_the) : null}::jsonb, bien_the), prompt_anh = coalesce(${d.prompt_anh ?? null}, prompt_anh),
     prompt_video = coalesce(${d.prompt_video ?? null}, prompt_video), thu_tu = coalesce(${d.thu_tu ?? null}, thu_tu),
     phan_doan = coalesce(${d.phan_doan ?? null}, phan_doan), cam_xuc = coalesce(${d.cam_xuc ?? null}, cam_xuc), trang_phuc = coalesce(${d.trang_phuc ?? null}, trang_phuc),
-    phat_s = CASE WHEN ${d.phat_s === undefined} THEN phat_s ELSE ${d.phat_s ?? null} END, chu_man = coalesce(${d.chu_man ?? null}, chu_man), nhanh = coalesce(${d.nhanh ?? null}, nhanh),
+    phat_s = CASE WHEN ${d.phat_s === undefined} THEN phat_s ELSE ${d.phat_s ?? null} END, chu_man = coalesce(${d.chu_man ?? null}, chu_man), nhanh = coalesce(${d.nhanh ?? null}, nhanh), kieu_chu = coalesce(${d.kieu_chu ? JSON.stringify(d.kieu_chu) : null}::jsonb, kieu_chu),
     ky_thuat = coalesce(${d.ky_thuat ? JSON.stringify(lamSachKyThuat(d.ky_thuat as unknown as Record<string, unknown>)) : null}::jsonb, ky_thuat), updated_at = now() WHERE id = ${id}`);
   return { ok: true, data: undefined };
 }

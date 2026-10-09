@@ -50,23 +50,35 @@ export function ngatDong(chu: string, toiDa: number): string[] {
 }
 const mauAss = (hex: string): string => { const h = (hex || '#FFFFFF').replace('#', '').padEnd(6, 'F').slice(0, 6); return `&H00${h.slice(4, 6)}${h.slice(2, 4)}${h.slice(0, 2)}&`.toUpperCase(); };
 const gioAss = (t: number): string => { const cs = Math.max(0, Math.round(t * 100)); const h = Math.floor(cs / 360000), m = Math.floor(cs / 6000) % 60, s = Math.floor(cs / 100) % 60, c = cs % 100; return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(c).padStart(2, '0')}`; };
-/** Tệp ASS (libass) cho chữ màn cả bản xuất: một style theo kieu_chu, mỗi câu một Dialogue đặt giữa ngang, dọc theo vị trí. */
-export function tepAss(o: { W: number; H: number; kieu?: KieuChu; viTri: ViTriChu; cau: { tu: number; den: number; dong: string[] }[] }): string {
-  const k = { ...KIEU_CHU_MAC_DINH, ...Object.fromEntries(Object.entries(o.kieu ?? {}).filter(([, v]) => v !== '' && v != null)) } as typeof KIEU_CHU_MAC_DINH;
-  const fs = Math.round(o.W * k.co);
-  // Bề rộng một ký tự ≈ 0,4 × cỡ ASS × độ rộng chữ (đo 10/10/2026: "PAY 1 GET 3 PANTS" Montserrat Black cỡ 0,13W, ngang 86% phủ 75% khung).
-  const wrap = Math.max(8, Math.floor((o.W * 0.92) / (fs * 0.4 * (k.ngang / 100))));
-  const tamY = (n: number) => Math.round(o.viTri === 'giua' ? o.H / 2 : o.viTri === 'duoi' ? o.H * 0.62 : o.H * 0.15 + (n * fs * 1.25) / 2);
-  const nhan = (t: string) => (k.nhan ? t.replace(/[0-9?$%]+/g, (m) => `{\\c${mauAss(k.nhan)}}${m}{\\c${mauAss(k.mau)}}`) : t);
-  const dau = ['[Script Info]', 'ScriptType: v4.00+', `PlayResX: ${o.W}`, `PlayResY: ${o.H}`, 'ScaledBorderAndShadow: yes', 'WrapStyle: 2', '',
-    '[V4+ Styles]', 'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
-    `Style: Man,${k.font},${fs},${mauAss(k.mau)},${mauAss(k.mau)},${mauAss(k.vien)},&H80000000&,-1,0,0,0,${k.ngang},100,0,0,1,${Math.max(1, Math.round(fs * k.vien_day))},0,5,0,0,0,1`, '',
-    '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text'];
+/** Gộp kiểu chữ: mặc định ← phim ← shot (giá trị rỗng không đè). */
+export const gopKieu = (...ds: (KieuChu | undefined | null)[]): typeof KIEU_CHU_MAC_DINH & { y?: number; nen?: string } =>
+  Object.assign({}, KIEU_CHU_MAC_DINH, ...ds.map((d) => Object.fromEntries(Object.entries(d ?? {}).filter(([, v]) => v !== '' && v != null))));
+/** Tệp ASS (libass) cho chữ màn cả bản xuất. Mỗi kiểu chữ khác nhau (phim + shot) là một Style; mỗi câu một Dialogue đặt giữa ngang,
+ *  dọc theo y của kiểu hoặc vị trí phim. "**chữ**" = đoạn nhấn: to gấp 1,8, nghiêng, màu nhấn (kiểu "YES!" của QC mẫu).
+ *  nen = băng nền đặc sau chữ (BorderStyle 3). */
+export function tepAss(o: { W: number; H: number; kieu?: KieuChu; viTri: ViTriChu; cau: { tu: number; den: number; dong: string[]; kieu?: KieuChu }[] }): string {
+  const kieuStyle = new Map<string, { ten: string; k: ReturnType<typeof gopKieu> }>();
+  const style = (kc?: KieuChu) => {
+    const k = gopKieu(o.kieu, kc); const khoa = JSON.stringify(k);
+    if (!kieuStyle.has(khoa)) kieuStyle.set(khoa, { ten: kieuStyle.size ? `Man${kieuStyle.size}` : 'Man', k });
+    return kieuStyle.get(khoa)!;
+  };
   const su = o.cau.map((c) => {
-    const dong = c.dong.flatMap((d) => ngatDong(d.replace(/[{}\\]/g, ''), wrap));
-    return `Dialogue: 0,${gioAss(c.tu)},${gioAss(c.den)},Man,,0,0,0,,{\\an5\\pos(${Math.round(o.W / 2)},${tamY(dong.length)})}${dong.map(nhan).join('\\N')}`;
+    const { ten, k } = style(c.kieu);
+    const fs = Math.round(o.W * k.co);
+    // Bề rộng một ký tự ≈ 0,4 × cỡ ASS × độ rộng chữ (đo 10/10/2026: "PAY 1 GET 3 PANTS" Montserrat Black cỡ 0,13W, ngang 86% phủ 75% khung).
+    const wrap = Math.max(8, Math.floor((o.W * 0.92) / (fs * 0.4 * (k.ngang / 100))));
+    const tamY = (n: number) => Math.round(typeof k.y === 'number' ? o.H * k.y : o.viTri === 'giua' ? o.H / 2 : o.viTri === 'duoi' ? o.H * 0.62 : o.H * 0.15 + (n * fs * 1.25) / 2);
+    const nhan = (t: string) => (k.nhan ? t.replace(/[0-9?$%]+/g, (m) => `{\\c${mauAss(k.nhan)}}${m}{\\c${mauAss(k.mau)}}`) : t);
+    const to = (t: string) => t.replace(/\*\*(.+?)\*\*/g, (_, m: string) => `{\\fs${Math.round(fs * 1.8)}\\i1\\c${mauAss(k.nhan || k.mau)}}${m}{\\r}`);
+    const dong = c.dong.flatMap((d) => (/\*\*/.test(d) ? [d] : ngatDong(d, wrap))).map((d) => d.replace(/[{}\\]/g, ''));
+    return `Dialogue: 0,${gioAss(c.tu)},${gioAss(c.den)},${ten},,0,0,0,,{\\an5\\pos(${Math.round(o.W / 2)},${tamY(dong.length)})}${dong.map((d) => to(nhan(d))).join('\\N')}`;
   });
-  return [...dau, ...su, ''].join('\n');
+  const dong = ['[Script Info]', 'ScriptType: v4.00+', `PlayResX: ${o.W}`, `PlayResY: ${o.H}`, 'ScaledBorderAndShadow: yes', 'WrapStyle: 2', '',
+    '[V4+ Styles]', 'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
+    ...[...kieuStyle.values()].map(({ ten, k }) => { const fs = Math.round(o.W * k.co); return `Style: ${ten},${k.font},${fs},${mauAss(k.mau)},${mauAss(k.mau)},${mauAss(k.nen || k.vien)},&H80000000&,-1,0,0,0,${k.ngang},100,0,0,${k.nen ? 3 : 1},${k.nen ? Math.round(fs * 0.35) : Math.max(1, Math.round(fs * k.vien_day))},0,5,0,0,0,1`; }),
+    '', '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text', ...su, ''];
+  return dong.join('\n');
 }
 // drawtext expansion=none: '%' trong chữ ("giảm 70%") không bị hiểu là lệnh %{…} — thử '%%' trên ffmpeg 8 vẫn báo "Stray %" và end card ra đen.
 const so = (x: number) => (Math.round(x * 1000) / 1000).toString();
@@ -115,7 +127,7 @@ export function keHoachXuat(o: {
   const nhanhAm: string[] = [];
   const canhThieu: string[] = [];
   let t = 0; let soAm = 0;
-  const cauMan: { tu: number; den: number; dong: string[] }[] = [];
+  const cauMan: { tu: number; den: number; dong: string[]; kieu?: KieuChu }[] = [];
   const themAm = (bieuThuc: string) => { const nhan = `a${soAm++}`; loc.push(`${bieuThuc},aformat=sample_rates=48000:channel_layouts=stereo[${nhan}]`); nhanhAm.push(`[${nhan}]`); };
   ds.forEach((c, i) => {
     const phat = giayPhat(c);
@@ -126,7 +138,7 @@ export function keHoachXuat(o: {
     const laVideo = nguon === vUrl;
     const k = laVideo ? them(nguon) : them(nguon, ['-loop', '1', '-framerate', '30', '-t', so(phat)]);
     const ve: string[] = [laVideo ? `[${k}:v]trim=0:${so(phat)},setpts=PTS-STARTPTS,${khung}` : `[${k}:v]${khungTinh(i)},trim=0:${so(phat)},setpts=PTS-STARTPTS`];
-    for (const d of doanChuMan(c.chu_man, phat)) cauMan.push({ tu: t + d.tu, den: t + d.den, dong: d.dong });
+    for (const d of doanChuMan(c.chu_man, phat)) cauMan.push({ tu: t + d.tu, den: t + d.den, dong: d.dong, kieu: c.kieu_chu });
     if (logoUrl) { const kl = them(logoUrl, ['-loop', '1', '-framerate', '30', '-t', so(phat)]); loc.push(`[${kl}:v]scale=-1:${Math.round(H * 0.06)},format=rgba[lg${i}]`); ve[ve.length - 1] += `[vv${i}];[vv${i}][lg${i}]overlay=W-w-${Math.round(W * 0.03)}:${Math.round(H * 0.03)}:shortest=1`; }
     // Giọng từng dòng nối tiếp nhau trong shot (theo độ dài file giọng; chưa có giọng thì chia đều giây phát để giữ nhịp).
     const dong = dongThoai(c, o.nhanVat);
@@ -138,8 +150,10 @@ export function keHoachXuat(o: {
       // Giọng dài hơn phần còn lại của shot → đọc nhanh lên (tối đa 1,35×, nghe vẫn tự nhiên) để giữ nhịp như QC mẫu thay vì bị cắt cụt
       // (10/10/2026: "Pay one, get three pants." TTS 1,96s, mẫu đọc 1,3s trong shot 2s).
       const conLai = Math.max(0.2, phat - tDong);
-      const nhanh = d.url && nl.get(d.url)?.dai && daiGiong > conLai + 0.05 ? Math.min(1.35, daiGiong / conLai) : 1;
-      if (d.url && nl.has(d.url)) { const ka = them(d.url); themAm(`[${ka}:a]${nhanh > 1.001 ? `atempo=${so(nhanh)},` : ''}atrim=0:${so(conLai + 0.3)},asetpts=PTS-STARTPTS,adelay=${Math.round((t + tDong) * 1000)}:all=1`); }
+      // Lời dẫn (không người nói) = dải giọng đọc liên tục như QC mẫu: đọc TRỌN câu, vắt qua shot sau, không cắt không tăng tốc.
+      const loiDan = !d.nhan_vat.trim();
+      const nhanh = !loiDan && d.url && nl.get(d.url)?.dai && daiGiong > conLai + 0.05 ? Math.min(1.35, daiGiong / conLai) : 1;
+      if (d.url && nl.has(d.url)) { const ka = them(d.url); themAm(`[${ka}:a]${nhanh > 1.001 ? `atempo=${so(nhanh)},` : ''}${loiDan ? '' : `atrim=0:${so(conLai + 0.3)},`}asetpts=PTS-STARTPTS,adelay=${Math.round((t + tDong) * 1000)}:all=1`); }
       tDong += daiGiong / nhanh + 0.15;
     });
     if (c.am_thanh_url && nl.has(c.am_thanh_url)) { const ka = them(c.am_thanh_url); themAm(`[${ka}:a]atrim=0:${so(phat)},asetpts=PTS-STARTPTS,volume=0.8,adelay=${Math.round(t * 1000)}:all=1`); }

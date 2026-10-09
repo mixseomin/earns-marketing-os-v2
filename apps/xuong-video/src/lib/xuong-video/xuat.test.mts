@@ -98,8 +98,10 @@ console.log('xuat.test: mẫu ok');
   const l = k.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
   assert.ok(l.includes('adelay=470:all=1'), 'giọng trễ 0,47s');
   assert.ok(!l.includes('atempo'), 'giọng 1,4s vừa phần còn lại 1,53s → không tăng tốc');
-  const k2 = keHoachXuat({ loai: 'phim', tiLe: '9:16', canh: c1 as never, nhanVat: nv, tap: { nhac_url: null, nhac_phan_canh: {} }, nhanh: 'A', nguyenLieu: nguyenLieu.map((x) => (x.url === 'https://x/g1.mp3' ? { ...x, dai: 1.96 } : x)), font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
-  assert.ok(k2.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung.includes('atempo=1.281,'), 'giọng 1,96s trong 1,53s → nhanh 1,28×');
+  assert.ok(!/atrim=0:[0-9.]+,asetpts=PTS-STARTPTS,adelay=470/.test(l), 'lời dẫn đọc trọn câu, không cắt ở cuối shot');
+  const c2 = [{ ...canh[0]!, thoai: [{ nhan_vat: 'Lan', dien_xuat: '', loi: 'x', url: 'https://x/g1.mp3', tre: 0.47 }] }];
+  const k2 = keHoachXuat({ loai: 'phim', tiLe: '9:16', canh: c2 as never, nhanVat: nv, tap: { nhac_url: null, nhac_phan_canh: {} }, nhanh: 'A', nguyenLieu: nguyenLieu.map((x) => (x.url === 'https://x/g1.mp3' ? { ...x, dai: 1.96 } : x)), font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
+  assert.ok(k2.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung.includes('atempo=1.281,'), 'thoại nhân vật 1,96s trong 1,53s → nhanh 1,28×');
   console.log('xuat.test: trễ giọng ok');
 }
 // Cỡ chữ to kiểu mẫu (0,145W, ngang 86%): "PAY 1 GET 3 PANTS" vẫn MỘT dòng như bản gốc.
@@ -107,4 +109,19 @@ console.log('xuat.test: mẫu ok');
   const a = tepAss({ W: 1080, H: 1920, viTri: 'giua', kieu: { font: 'Montserrat Black', co: 0.145, ngang: 86 }, cau: [{ tu: 0, den: 2, dong: ['PAY 1 GET 3 PANTS'] }] });
   assert.ok(!a.includes('\\N'), a);
   console.log('xuat.test: một dòng ok');
+}
+// Kiểu chữ riêng từng shot + đoạn nhấn "**YES!**" + băng nền: mỗi kiểu một Style; nhấn = to 1,8×, nghiêng, màu nhấn; nền = BorderStyle 3.
+{
+  const a = tepAss({ W: 1080, H: 1920, viTri: 'giua', kieu: { font: 'Montserrat ExtraBold', mau: '#FFFFFF', vien: '#222222', nhan: '#F8D800', co: 0.06 }, cau: [
+    { tu: 0, den: 1, dong: ['**YES!**'] },
+    { tu: 1, den: 2, dong: ['These viral jeans'], kieu: { y: 0.58 } },
+    { tu: 2, den: 3, dong: ['Every senior loves these!'], kieu: { nen: '#6B4FD8', y: 0.45 } },
+    { tu: 3, den: 4, dong: ['PAY 1 GET 3 PANTS'], kieu: { font: 'Montserrat Black', mau: '#0858A4', vien: '#FFFFFF', co: 0.145, ngang: 86 } },
+  ] });
+  assert.strictEqual((a.match(/^Style: /gm) ?? []).length, 4, a);
+  assert.ok(a.includes('{\\fs117\\i1\\c&H0000D8F8&}YES!{\\r}'), a);                  // 0,06×1080=65 → nhấn 117
+  assert.ok(a.includes('\\pos(540,1114)}These viral jeans'), a);                          // y 0,58
+  assert.ok(/Style: Man2,Montserrat ExtraBold,65,&H00FFFFFF&,&H00FFFFFF&,&H00D84F6B&,&H80000000&,-1,0,0,0,100,100,0,0,3,23,/.test(a), a);   // băng nền tím
+  assert.ok(/Style: Man3,Montserrat Black,157,/.test(a), a);
+  console.log('xuat.test: kiểu từng shot ok');
 }

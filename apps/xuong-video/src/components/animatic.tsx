@@ -51,7 +51,7 @@ export function Animatic({ canh, tiLe, ngonNgu, onClose, qc }: { canh: Canh[]; t
         <div style={{ position: 'absolute', left: 0, right: 0, top: 0, padding: '8px 12px', background: 'linear-gradient(rgba(0,0,0,.6), transparent)', color: '#fff', fontSize: 12 }}>
           #{c.thu_tu} {c.canh} · {c.thoi_luong_s}s · {vid ? (c.video_cuoi_url ? 'bản cuối' : 'nháp') : 'keyframe'}
         </div>
-        {c.chu_man && <ChuManXem chu={c.chu_man} giay={t / 1000} rong={typeof window === 'undefined' ? 360 : (doc916 ? window.innerHeight * 0.78 * 9 / 16 : Math.min(window.innerWidth * 0.92, 1200))} qc={qc} />}
+        {c.chu_man && <ChuManXem chu={c.chu_man} giay={t / 1000} rong={typeof window === 'undefined' ? 360 : (doc916 ? window.innerHeight * 0.78 * 9 / 16 : Math.min(window.innerWidth * 0.92, 1200))} qc={qc} kieu={c.kieu_chu} />}
       </div>
       {/* Trên hình CHỈ có chữ màn (thứ bản xuất vẽ thật); lời thoại ghi bên ngoài khung, chỉ lời — không tên, không diễn xuất (#1229, #1231). */}
       <div style={{ width: doc916 ? 'calc(78vh * 9 / 16)' : 'min(92vw, 1200px)', minHeight: 20, textAlign: 'center', color: 'var(--fg-2)', fontSize: 13 }}>{c.thoai.length ? c.thoai.map((d) => d.loi).join(' ') : c.loi_thoai.replace(/^[^:"“]*:\s*/gm, '').replace(/["“”]/g, '')}</div>

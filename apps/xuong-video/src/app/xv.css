@@ -44,6 +44,12 @@ table.xv-tbl td.n, table.xv-tbl th.n { text-align: right; font-family: var(--fon
 .xv-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(1100px, 96vw); background: var(--bg-1); border-left: 1px solid var(--line); z-index: 51; overflow: auto; --ngan-py: 18px; --ngan-px: 20px; padding: var(--ngan-py) var(--ngan-px) 40px; }
 .xv-drawer.nho { width: min(520px, 96vw); z-index: 53; }
 .xv-backdrop.nho { z-index: 52; background: rgba(0,0,0,.35); }
+.xv-goi-y { position: fixed; z-index: 1100; max-width: 340px; pointer-events: none; background: var(--bg-1); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.55); padding: 8px 10px; font-size: 11.5px; line-height: 1.45; color: var(--fg-1); }
+.xv-goi-y-tieu-de { font-weight: 700; }
+.xv-goi-y-than { margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--line); display: grid; gap: 3px; }
+.xv-goi-y-dong { display: grid; grid-template-columns: minmax(64px, auto) 1fr; gap: 8px; }
+.xv-goi-y-dong > span:first-child { font: 10.5px var(--font-mono); color: var(--fg-3); padding-top: 1px; }
+.xv-goi-y-van { color: var(--fg-2); }
 .xv-nhom-nut { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 6px 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg-1); }
 .xv-nhom-nut-nhan { font: 10px var(--font-mono); color: var(--fg-3); white-space: nowrap; }
 .xv-nghe { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg-2); font: 10.5px var(--font-mono); cursor: pointer; white-space: nowrap; max-width: 220px; }

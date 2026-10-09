@@ -11,7 +11,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { uploadToR2 } from '@/lib/r2';
 import { dayViecAnh, dayViecAm, chayNen } from '@/lib/xuong-video/hoan-tat';
 import { chayXuat, gopAm } from '@/lib/xuong-video/xuat-chay';
-import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiong, GIONG_MAC_DINH, timNv } from '@/lib/xuong-video/am-thanh';
+import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiong, GIONG_MAC_DINH, timNv, promptCamXuc } from '@/lib/xuong-video/am-thanh';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, coElevenTrucTiep, type MoHinhGiong } from '@/lib/xuong-video/giong';
 import { boVaoThungRac, boAnhVaoThungRac, dsRac, khoiPhucRac, type MucRac } from '@/lib/xuong-video/thung-rac';
 import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from '@/lib/xuong-video/google';
@@ -667,7 +667,7 @@ export async function sinhKeyframe(canhId: number, so = 1, moHinh?: string): Pro
   const btCanh = (v: NhanVat) => (v.bien_the ?? []).find((b) => bc.canh.bien_the.includes(b.id));
   const urlRef = bc.nhanVat.flatMap((v) => { const b = btCanh(v); return [...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, b?.anh_url ? 1 : 2)]; }).slice(0, 10);
   const ghiChuBt = bc.nhanVat.map((v) => { const b = btCanh(v); return b ? `${v.ten} in this shot: ${b.mo_ta || b.ten}.` : ''; }).filter(Boolean).join(' ');
-  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, bc.kt.phong_cach, bc.nhanVat, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), ghiChuBt].filter(Boolean).join(' ');
+  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, bc.kt.phong_cach, bc.nhanVat, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
   const jobs: number[] = [];
   for (let i = 0; i < Math.max(1, Math.min(3, so)); i++) {
     const job = await taoJob({ nhan: `Keyframe · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt, thamChieu: urlRef.length } });
@@ -735,7 +735,7 @@ export async function sinhVideoCanh(canhId: number, moHinh?: string, ban: 'nhap'
   if (moHinh && (moHinh.startsWith('fal:') || MO_HINH_VIDEO.some((m) => m.key === moHinh))) bc.kt.mo_hinh_video = moHinh as typeof bc.kt.mo_hinh_video;
   // Shot đã có file giọng riêng → clip KHÔNG được tự đọc thoại (Veo đọc giọng lơ lớ, chồng với TTS — #1219); miệng vẫn cử động để khớp miệng sau.
   const coGiong = dongThoai(bc.canh, bc.nhanVat).some((d) => d.url);
-  const prompt = [bc.kt.phong_cach ? `Visual style: ${bc.kt.phong_cach}.` : '', bc.canh.prompt_video.trim() || bc.canh.hanh_dong, bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', promptKyThuatVideo(bc.canh.ky_thuat),
+  const prompt = [bc.kt.phong_cach ? `Visual style: ${bc.kt.phong_cach}.` : '', bc.canh.prompt_video.trim() || bc.canh.hanh_dong, bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', promptKyThuatVideo(bc.canh.ky_thuat), promptCamXuc(bc.canh, bc.nhanVat, 'video'),
     coGiong ? 'IMPORTANT: the audio track must contain NO spoken words or voice — the character mouths the lines with natural lip movement in silence; only ambient sound. A separate voice recording is added later.' : ''].filter(Boolean).join(' ');
   const giay = lamTronClip(bc.canh.thoi_luong_s);
   const laFal = bc.kt.mo_hinh_video.startsWith('fal:');

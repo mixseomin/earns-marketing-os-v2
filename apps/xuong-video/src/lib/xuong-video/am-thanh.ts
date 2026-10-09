@@ -4,6 +4,7 @@
 //   Hiệu ứng: shot đã có clip → sinh từ chính clip (khớp hành động); chưa có clip → sinh từ mô tả âm thanh + kỹ thuật âm thanh của shot.
 //   Nhạc: một bài nền cho cả tập, dài bằng tập, lời nhắc ghép từ thể loại + kỹ thuật nhạc của các shot + đường cong cảm xúc.
 import type { Canh, NhanVat, DongThoai } from './kieu';
+import { CAM_XUC_EN } from './kieu';
 
 export type LoaiAm = 'giong' | 'sfx_video' | 'sfx_chu' | 'nhac';
 export type MoHinhAm = { key: string; ten: string; loai: LoaiAm; /** cents mỗi đơn vị */ gia: number; donVi: '1k_ky_tu' | 'giay' | 'phut'; ghiChu: string };
@@ -91,3 +92,20 @@ export function dongThoai(c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'th
   return ds;
 }
 
+
+/** Cảm xúc của shot ĐI VÀO prompt ảnh/video (#1248) — đọc lúc sinh, nên sửa cảm xúc khán giả / diễn xuất ở form là lần sinh sau ăn theo,
+ *  không phụ thuộc Claude đã viết sẵn vào prompt hay chưa. Ảnh: biểu cảm + không khí khung tĩnh; video: diễn xuất theo từng câu. */
+export function promptCamXuc(c: Pick<Canh, 'cam_xuc' | 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url'>, nv: NhanVat[], loai: 'anh' | 'video'): string {
+  const v = Math.max(-5, Math.min(5, Math.round(c.cam_xuc || 0)));
+  const moodEn = CAM_XUC_EN[v] ?? '';
+  const dx = dongThoai(c, nv).map((d) => d.dien_xuat.trim()).filter(Boolean);
+  const out: string[] = [];
+  if (loai === 'anh') {
+    if (dx[0]) out.push(`Facial expression and body language (director's note, Vietnamese): "${dx[0]}".`);
+    if (moodEn && v !== 0) out.push(`Mood: the frame should make the viewer feel ${moodEn} — show it in the expression, lighting and color.`);
+  } else {
+    if (dx.length) out.push(`Performance, in order (director's notes, Vietnamese): ${dx.map((x, i) => `${i + 1}) "${x}"`).join(' ')}.`);
+    if (moodEn && v !== 0) out.push(`Emotional beat: by the end of the shot the viewer feels ${moodEn}.`);
+  }
+  return out.join(' ');
+}

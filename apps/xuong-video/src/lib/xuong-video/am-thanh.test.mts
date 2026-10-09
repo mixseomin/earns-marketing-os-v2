@@ -1,7 +1,7 @@
 // Tự kiểm bộ đọc thoại theo dòng + người nói + giá giọng (một nguồn cho thẻ shot, bảng ＋, timeline, máy chủ — #1204, audit 09/10/2026).
 // Chạy: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/am-thanh.test.mts
 import assert from 'node:assert';
-import { dongThoai, giaGiong, tenNoi, cungTen, timNv, LOI_DAN } from './am-thanh';
+import { dongThoai, giaGiong, promptCamXuc, tenNoi, cungTen, timNv, LOI_DAN } from './am-thanh';
 import type { NhanVat } from './kieu';
 
 const nv = [
@@ -48,3 +48,13 @@ const dsTen = dongThoai(cTen, [{ id: 1, ...nvTen[0] }, { id: 2, ...nvTen[1] }] a
 assert.equal(dsTen[0]!.nhan_vat, 'chị lan');
 assert.equal(dsTen[0]!.dien_xuat, 'cười');
 assert.equal(dsTen[1]!.nhan_vat, 'Chị Lan');
+
+// Cảm xúc vào prompt ảnh/video (#1248): diễn xuất + cảm xúc khán giả đọc lúc sinh.
+const cCx = { thoai: [{ nhan_vat: 'Chị Lan', dien_xuat: 'nhăn mặt, xoa vai', loi: 'Mỏi quá' }, { nhan_vat: 'Chị Lan', dien_xuat: 'thở dài', loi: 'Thôi kệ' }], loi_thoai: '', nhan_vat: [1], thoai_url: null, cam_xuc: -3 } as never;
+const pAnh = promptCamXuc(cCx, nvTen as never, 'anh');
+assert.ok(pAnh.includes('nhăn mặt, xoa vai') && !pAnh.includes('thở dài'), pAnh);
+assert.ok(pAnh.includes('pain and discomfort'), pAnh);
+const pVid = promptCamXuc(cCx, nvTen as never, 'video');
+assert.ok(pVid.includes('1) "nhăn mặt, xoa vai"') && pVid.includes('2) "thở dài"'), pVid);
+// Trung tính + không diễn xuất → không chèn gì.
+assert.equal(promptCamXuc({ ...(cCx as object), thoai: [], cam_xuc: 0 } as never, nvTen as never, 'video'), '');

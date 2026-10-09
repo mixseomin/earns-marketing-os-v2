@@ -199,7 +199,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   // Nút điều khiển của track nằm NGAY ở nhãn track đó (#1230 YDNI: nút cho khối nào thì ở cạnh khối đó, không gom lên trên cùng).
   const track = (nhan: string, mo: string, noiDung: ReactNode, cao = 26, nut?: ReactNode) => (
     <div style={{ display: 'flex', alignItems: 'stretch', height: cao, marginTop: 3 }}>
-      <div title={`${nhan}\n${mo}`} style={{ width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-1)', ...mono, display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, paddingRight: 4 }}>
+      <div data-goi-y={`${nhan}\n${mo}`} style={{ width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-1)', ...mono, display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, paddingRight: 4 }}>
         <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nhan}</span>{nut}{tayNhan}
       </div>
       <div style={{ position: 'relative', width: W, flexShrink: 0 }}>{noiDung}</div>
@@ -226,7 +226,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   useEffect(() => () => ngheRef.current?.pause(), []);
   type NutSinh = { loai: YeuCauBang['loai']; cc?: Canh; phanDoan?: string; giay: number; title: string; dang?: boolean; nghe?: string[] };
   const khoiAm = (x: number, w: number, co: boolean, mau: string, chu: string, title: string, key: number | string, onClick?: () => void, nutSinh?: NutSinh) => (
-    <div key={key} title={title} onClick={onClick}
+    <div key={key} data-goi-y={title} onClick={onClick}
       style={{ position: 'absolute', left: x + 1, width: Math.max(4, w - 2), top: 2, bottom: 2, borderRadius: 4, overflow: 'hidden', cursor: onClick ? 'pointer' : 'default',
         background: co ? `${mau}33` : 'transparent', border: `1px ${co ? 'solid' : 'dashed'} ${mau}${co ? '' : '99'}`,
         color: co ? mau : 'var(--fg-3)', fontSize: 10, lineHeight: '20px', padding: nutSinh ? '0 22px 0 5px' : '0 5px', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
@@ -326,7 +326,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               const mau = pc ? beatMau(pc.beat) : '#64748b';
               const tt = pc ? `${pc.ten}\nBeat: ${pc.beat} · nhịp ${pc.nhip}\nMục tiêu: ${pc.muc_tieu}\nXung đột: ${pc.xung_dot}${pc.an_y ? `\nẨn ý: ${pc.an_y}` : ''}\nCảm xúc: ${pc.cam_xuc_dau} → ${pc.cam_xuc_cuoi}` : kh.ten || '(chưa đặt phân cảnh)';
               return (
-                <div key={j} title={tt} style={{ position: 'absolute', left: x + 1, width: Math.max(4, w - 2), top: 2, bottom: 2, borderRadius: 4, background: `${mau}26`, borderLeft: `3px solid ${mau}`, color: 'var(--fg-2)', fontSize: 10, lineHeight: '20px', padding: '0 5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div key={j} data-goi-y={tt} style={{ position: 'absolute', left: x + 1, width: Math.max(4, w - 2), top: 2, bottom: 2, borderRadius: 4, background: `${mau}26`, borderLeft: `3px solid ${mau}`, color: 'var(--fg-2)', fontSize: 10, lineHeight: '20px', padding: '0 5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {pc?.beat ? <b style={{ color: mau }}>{pc.beat} · </b> : null}{kh.ten || '—'}{pc ? ` (${pc.cam_xuc_dau > 0 ? '+' : ''}${pc.cam_xuc_dau}→${pc.cam_xuc_cuoi > 0 ? '+' : ''}${pc.cam_xuc_cuoi})` : ''}
                 </div>
               );
@@ -340,7 +340,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               <div key={cc.id} draggable onDragStart={() => setKeo(cc.id)} onDragEnd={() => { setKeo(null); setTha(null); }}
                 onDragOver={(e) => { e.preventDefault(); setTha(cc.id); }} onDrop={() => { thaVao(cc.id); setKeo(null); setTha(null); }}
                 onClick={() => { onChon(cc.id); tuaToi(batDau[i]!); }}
-                title={`#${cc.thu_tu} ${cc.canh} · phát ${dur(cc)}s${dur(cc) !== (cc.thoi_luong_s || 4) ? ` (clip ${cc.thoi_luong_s || 4}s)` : ''}`}
+                data-goi-y={[`#${cc.thu_tu} ${cc.canh}`, `Phát: ${dur(cc)}s${dur(cc) !== (cc.thoi_luong_s || 4) ? ` (clip ${cc.thoi_luong_s || 4}s, cắt phần đầu)` : ''}`, `Hình: ${cc.video_cuoi_url ? 'bản cuối' : cc.video_url ? 'nháp' : cc.keyframe_url ? 'keyframe (chưa có clip)' : 'chưa có'}`, cc.hanh_dong && `Hành động: ${cc.hanh_dong}`, cc.chu_man && `Chữ màn: ${cc.chu_man}`, `Khán giả: ${tenCamXuc(cc.cam_xuc)}`, 'Kéo mép phải = cắt giây · kéo khối = đổi thứ tự'].filter(Boolean).join('\n')}
                 style={{ position: 'absolute', left: x + 1, width: Math.max(6, w - 2), top: 0, bottom: 0, borderRadius: 5, overflow: 'hidden', cursor: 'grab',
                   border: `2px solid ${dangChon ? 'var(--cyan)' : tha === cc.id && keo !== cc.id ? 'var(--amber)' : coVid ? '#4ade8088' : 'var(--line)'}`,
                   background: anh ? `url(${anh}) left center / auto 100% repeat-x, #111` : 'var(--bg-2)', opacity: keo === cc.id ? 0.4 : 1 }}>
@@ -391,7 +391,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               if (!cua.length && !coMat) return null;
               const dx = [...new Set(cua.map((d) => d.dien_xuat.trim()).filter(Boolean))].join(' → ');
               const chu = dx || (cua.length ? 'nói, chưa ghi diễn xuất' : 'có mặt, không nói');
-              return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!dx, mauNv(v), chu, `${ten} · shot #${cc.thu_tu}\n${chu}${cc.hanh_dong ? `\nHành động: ${cc.hanh_dong}` : ''}`, `cx${cc.id}`, () => { onChon(cc.id); tuaToi(batDau[i]!); });
+              return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!dx, mauNv(v), chu, `${ten} · shot #${cc.thu_tu}\nCảm xúc: ${chu}${cc.hanh_dong ? `\nHành động: ${cc.hanh_dong}` : ''}`, `cx${cc.id}`, () => { onChon(cc.id); tuaToi(batDau[i]!); });
             });
             return (
               <div key={ten} style={{ borderLeft: `2px solid ${mauNv(v)}`, marginTop: 4 }}>
@@ -401,8 +401,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               const cua = dsT.filter((d) => cungTen(tenNoi(d), ten));
               if (!cua.length) return null;
               const co = cua.filter((d) => d.url).length;
-              const tt = cua.map((d) => `${d.dien_xuat ? `(${d.dien_xuat}) ` : ''}${d.loi}${d.url ? ' ✓' : ''}`).join('\n');
-              return khoiAm(batDau[i]! * pps, dur(cc) * pps, co === cua.length, mauNv(v), `${cc.dang_sinh_giong ? '⏳ ' : ''}${cua.map((d) => d.loi).join(' · ')}${co && co < cua.length ? ` (${co}/${cua.length})` : ''}`, `${ten.toUpperCase()}\n${tt}\n${co}/${cua.length} dòng có giọng`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
+              const tt = cua.map((d, j) => `Câu ${j + 1}: ${d.dien_xuat ? `(${d.dien_xuat}) ` : ''}${d.loi}${d.url ? ' ✓' : ''}`).join('\n');
+              return khoiAm(batDau[i]! * pps, dur(cc) * pps, co === cua.length, mauNv(v), `${cc.dang_sinh_giong ? '⏳ ' : ''}${cua.map((d) => d.loi).join(' · ')}${co && co < cua.length ? ` (${co}/${cua.length})` : ''}`, `${ten} · shot #${cc.thu_tu}\n${tt}\nGiọng: ${co}/${cua.length} câu đã sinh`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
                 sinh && { loai: 'giong', cc, giay: dur(cc), dang: cc.dang_sinh_giong || sinh.ban(`g${cc.id}`), nghe: cua.map((d) => d.url).filter((u): u is string => !!u), title: `Bấm để chọn model, giọng từng người nói, cảm xúc, phạm vi rồi sinh giọng cả shot` });
             }), 26, ten === nguoiNoiDau ? <>{nutNho('🤖', docThu ? 'Đang đọc thử thoại chưa có giọng bằng giọng máy — bấm để tắt' : 'Bấm để đọc thử thoại chưa có giọng bằng giọng máy', !docThu, () => setDocThu((x) => !x))}{nutNho(tat.thoai ? '🔇' : '🔊', tat.thoai ? 'Thoại đang tắt — bấm để bật' : 'Tắt tiếng thoại', !!tat.thoai, () => batTat('thoai'))}</> : undefined)}
               </div>

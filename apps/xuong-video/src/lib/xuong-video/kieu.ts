@@ -169,6 +169,11 @@ export const CAM_XUC_KHAN_GIA: Record<number, string> = {
   [-5]: 'tuyệt vọng', [-4]: 'sợ / ám ảnh', [-3]: 'đau, khó chịu', [-2]: 'bực, lo', [-1]: 'hơi khó chịu', 0: 'trung tính',
   1: 'tò mò', 2: 'thích thú', 3: 'nhẹ nhõm, tin', 4: 'hào hứng, muốn có', 5: 'phấn khích, muốn mua ngay',
 };
+/** Cùng thang, tiếng Anh — để ĐƯA VÀO prompt ảnh/video (model ảnh/video làm theo tiếng Anh chính xác nhất). */
+export const CAM_XUC_EN: Record<number, string> = {
+  [-5]: 'despair', [-4]: 'dread', [-3]: 'pain and discomfort', [-2]: 'frustration and worry', [-1]: 'mild unease', 0: 'calm neutrality',
+  1: 'curiosity', 2: 'delight', 3: 'relief and trust', 4: 'excitement and desire', 5: 'euphoric must-have excitement',
+};
 export const tenCamXuc = (v: number): string => CAM_XUC_KHAN_GIA[Math.max(-5, Math.min(5, Math.round(v)))] ?? '';
 export const tien = (cents: number): string => { const d = cents / 100; return `$${d >= 1 ? d.toFixed(2) : d >= 0.1 ? d.toFixed(2) : d.toFixed(3)}`; };
 

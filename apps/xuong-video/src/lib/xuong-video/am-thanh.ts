@@ -95,16 +95,20 @@ export function dongThoai(c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'th
 
 /** Cảm xúc của shot ĐI VÀO prompt ảnh/video (#1248) — đọc lúc sinh, nên sửa cảm xúc khán giả / diễn xuất ở form là lần sinh sau ăn theo,
  *  không phụ thuộc Claude đã viết sẵn vào prompt hay chưa. Ảnh: biểu cảm + không khí khung tĩnh; video: diễn xuất theo từng câu. */
+/** Ghi chú diễn xuất là lời dẫn ngoài khung (V.O./voice-over/off-screen) — không ai trong khung diễn theo nó. */
+export const laLoiDan = (dienXuat: string): boolean => /\bV\.?\s?O\.?\b|voice[- ]?over|off[- ]?screen|ngoài khung|lời dẫn/i.test(dienXuat);
 export function promptCamXuc(c: Pick<Canh, 'cam_xuc' | 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url'>, nv: NhanVat[], loai: 'anh' | 'video'): string {
   const v = Math.max(-5, Math.min(5, Math.round(c.cam_xuc || 0)));
   const moodEn = CAM_XUC_EN[v] ?? '';
-  const dx = dongThoai(c, nv).map((d) => d.dien_xuat.trim()).filter(Boolean);
+  // Chỉ diễn xuất của người NÓI TRONG KHUNG (lời dẫn V.O. không áp lên ai), bỏ nhãn "V.O.", KHÔNG đặt trong ngoặc kép (model ảnh/video dễ in
+  // câu trong ngoặc thành chữ) và không ghi cứng "Vietnamese" — ghi chú đi theo ngôn ngữ phim (09/10/2026).
+  const dx = dongThoai(c, nv).filter((d) => d.nhan_vat.trim() && !laLoiDan(d.dien_xuat)).map((d) => `${d.nhan_vat.trim()}: ${d.dien_xuat.trim()}`).filter((x) => !/:\s*$/.test(x));
   const out: string[] = [];
   if (loai === 'anh') {
-    if (dx[0]) out.push(`Facial expression and body language (director's note, Vietnamese): "${dx[0]}".`);
+    if (dx[0]) out.push(`Facial expression and body language (director's note) — ${dx[0]}.`);
     if (moodEn && v !== 0) out.push(`Mood: the frame should make the viewer feel ${moodEn} — show it in the expression, lighting and color.`);
   } else {
-    if (dx.length) out.push(`Performance, in order (director's notes, Vietnamese): ${dx.map((x, i) => `${i + 1}) "${x}"`).join(' ')}.`);
+    if (dx.length) out.push(`Performance, in order (director's notes) — ${dx.map((x, i) => `${i + 1}) ${x}`).join('; ')}.`);
     if (moodEn && v !== 0) out.push(`Emotional beat: by the end of the shot the viewer feels ${moodEn}.`);
   }
   return out.join(' ');

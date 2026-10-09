@@ -7,7 +7,7 @@ import { uploadToR2 } from '@/lib/r2';
 import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from './google';
 import { docFal, guiFal, dauVaoTheoSchema } from './fal';
 import { promptKyThuatVideo } from './dien-anh';
-import { dongThoai, promptCamXuc } from './am-thanh';
+import { dongThoai, promptCamXuc, laLoiDan } from './am-thanh';
 import { lamTronClip, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { boiCanhCanh, taoJob, xongJob, mapJob, giaVideoSv, s, type Db, type Row } from './doc-db';
 
@@ -27,7 +27,7 @@ export function promptVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   const dong = dongThoai(bc.canh, bc.nhanVat).filter((d) => d.loi.trim());
   // Lời dẫn ngoài khung (V.O./voice-over/không có người nói) KHÔNG được cho ai trong khung nhép miệng — thử 09/10/2026: lời Linda V.O. mà prompt
   // bảo "nhân vật cử miệng" thì ông Tom nhép câu của vợ. Chỉ người nói có mặt trong shot + không ghi V.O. mới cử miệng.
-  const laVO = (d: { nhan_vat: string; dien_xuat: string }) => !d.nhan_vat.trim() || /\bV\.?\s?O\.?\b|voice[- ]?over|off[- ]?screen|ngoài khung/i.test(d.dien_xuat);
+  const laVO = (d: { nhan_vat: string; dien_xuat: string }) => !d.nhan_vat.trim() || laLoiDan(d.dien_xuat);
   const trongKhung = dong.filter((d) => !laVO(d));
   const thoaiVeo = coGiong || !dong.length ? '' : [
     trongKhung.length ? `On-camera dialogue (${tenNgonNgu(bc.kt.ngon_ngu)}, natural lip-sync, no subtitles): ${trongKhung.map((d) => `${d.nhan_vat} says "${d.loi.trim()}"`).join('; ')}.` : '',

@@ -65,7 +65,8 @@ export const MO_HINH_CHU = [
 export type MoHinhChu = (typeof MO_HINH_CHU)[number]['key'];
 
 /** Một dòng thoại kiểu kịch bản phim: ai nói · diễn xuất · lời · file giọng (nếu đã sinh). */
-export type DongThoai = { nhan_vat: string; dien_xuat: string; loi: string; url?: string | null };
+/** tre = giây bắt đầu đọc tính từ đầu shot (chép nhịp QC mẫu: giọng vào ở 0,47s); bỏ trống = nối ngay sau dòng trước. */
+export type DongThoai = { nhan_vat: string; dien_xuat: string; loi: string; url?: string | null; tre?: number };
 /** Ghép dòng thoại thành chuỗi loi_thoai (tương thích chỗ cũ: animatic, tìm người nói). */
 export const ghepThoai = (ds: DongThoai[]) => ds.filter((d) => d.loi.trim()).map((d) => `${d.nhan_vat ? `${d.nhan_vat}${d.dien_xuat ? ` (${d.dien_xuat})` : ''}: ` : ''}"${d.loi.trim()}"`).join('\n');
 /** Một phân cảnh (scene): nhóm shot cùng phan_doan. Cảm xúc -5..5. */

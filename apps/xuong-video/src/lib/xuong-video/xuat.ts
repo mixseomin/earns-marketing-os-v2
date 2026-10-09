@@ -133,6 +133,7 @@ export function keHoachXuat(o: {
     const tiengRieng = coTiengRieng(c, o.nhanVat);
     dong.forEach((d) => {
       const daiGiong = d.url && nl.get(d.url)?.dai ? nl.get(d.url)!.dai! : phat / dong.length;
+      if (typeof d.tre === 'number' && d.tre > tDong) tDong = Math.min(d.tre, Math.max(0, phat - 0.2));
       if (d.url && nl.has(d.url)) { const ka = them(d.url); themAm(`[${ka}:a]atrim=0:${so(Math.max(0.2, phat - tDong + 0.3))},asetpts=PTS-STARTPTS,adelay=${Math.round((t + tDong) * 1000)}:all=1`); }
       tDong += daiGiong + 0.15;
     });

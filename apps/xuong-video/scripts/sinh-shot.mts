@@ -1,6 +1,7 @@
 // Sinh TỪNG BƯỚC cho vài shot chọn tay trên box (anh 09/10/2026: "cấm làm hàng loạt — tập trung 2 shot đầu xem ra thế nào"):
 //   --canh=73,74                 : id shot (bắt buộc). Mặc định chỉ ƯỚC LƯỢNG (0đ), không chạy gì.
 //   --xem                        : (0đ) in đúng prompt video sẽ gửi cho từng shot + cổng ngôn ngữ — kiểm trước khi tiêu tiền.
+//   --mo-hinh=<key>              : model ảnh cho --keyframe (so A/B, vd gemini-nano-banana-2.1); mặc định theo kinh thánh.
 //   --keyframe                   : sinh lại 1 keyframe cho mỗi shot, đợi xong, CHỌN ảnh mới làm keyframe đang dùng (ảnh cũ vẫn trong dải ứng viên,
 //                                  ↶ Hoàn tác được). 09/10/2026: không chọn → video chạy từ keyframe cũ sai quần, mất $0,40.
 //   --chon=<url>                 : (0đ) chọn một ảnh trong dải ứng viên làm keyframe đang dùng (chỉ khi --canh có MỘT shot).
@@ -31,6 +32,7 @@ const arg = (k: string) => process.argv.includes(`--${k}`);
 const ids = ((process.argv.find((a) => a.startsWith('--canh=')) ?? '').split('=')[1] ?? '').split(',').map(Number).filter((x) => x > 0);
 if (!ids.length) { console.error('thiếu --canh=<id,id>'); process.exit(1); }
 const urlChon = (process.argv.find((a) => a.startsWith('--chon=')) ?? '').slice(7);
+const moHinhAnh = (process.argv.find((a) => a.startsWith('--mo-hinh=')) ?? '').slice(10) || undefined;
 const db = getDb(); if (!db) { console.error('không có DATABASE_URL'); process.exit(1); }
 const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as Row[];
 const doi = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
@@ -67,7 +69,7 @@ if (!arg('keyframe') && !arg('duyet') && !arg('video') && !arg('giong') && !arg(
 
 if (arg('keyframe')) {
   const jobs: number[] = [];
-  for (const bc of bcs) { const r = await sinhKeyframeCanh(db, bc.canh.id, 1); if (r.ok) jobs.push(...r.data); else console.log(`  ✗ #${bc.canh.thu_tu}: ${r.loi}`); }
+  for (const bc of bcs) { const r = await sinhKeyframeCanh(db, bc.canh.id, 1, moHinhAnh); if (r.ok) jobs.push(...r.data); else console.log(`  ✗ #${bc.canh.thu_tu}: ${r.loi}`); }
   for (let i = 0; i < 120; i++) {
     const r = await q(sql`SELECT count(*) FILTER (WHERE trang_thai = 'cho') AS cho FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[])`);
     if (Number(r[0]?.cho) === 0) break; await doi(5000);

@@ -45,7 +45,8 @@ export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: 
   const urlRef: string[] = []; const dong: string[] = [];
   for (const v of thuTu) {
     const b = btCanh(v);
-    const anh = v.loai === 'san_pham' ? v.anh_ref.slice(0, nhieuMau ? 3 : 1) : [...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, b?.anh_url ? 1 : 2)];
+    // Sản phẩm: shot chọn biến thể màu có ảnh thật (vd 'Medium Blue') → ảnh đó là màu chính; không thì ảnh đầu của anchor.
+    const anh = v.loai === 'san_pham' ? (b?.anh_url ? [b.anh_url, ...(nhieuMau ? v.anh_ref.filter((u) => u !== b.anh_url).slice(0, 2) : [])] : v.anh_ref.slice(0, nhieuMau ? 3 : 1)) : [...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, b?.anh_url ? 1 : 2)];
     const con = Math.max(0, 10 - urlRef.length);
     const lay = anh.slice(0, con);
     if (!lay.length) continue;

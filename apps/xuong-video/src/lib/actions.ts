@@ -637,7 +637,7 @@ export async function suaCanh(id: number, d: Partial<Pick<Canh, 'canh' | 'goc_ma
   if (d.thoai) {
     const cu = ((await db.execute(sql`SELECT thoai FROM xv_canh WHERE id = ${id}`)) as unknown as Row[])[0];
     const cuDs = arr<Canh['thoai'][number]>(cu?.thoai);
-    const moi = d.thoai.filter((x) => x.loi.trim() || x.nhan_vat.trim()).map((x) => { const c0 = cuDs.find((y) => y.loi === x.loi && y.nhan_vat === x.nhan_vat); return { nhan_vat: x.nhan_vat, dien_xuat: x.dien_xuat, loi: x.loi, url: c0?.url ?? null }; });
+    const moi = d.thoai.filter((x) => x.loi.trim() || x.nhan_vat.trim()).map((x) => { const c0 = cuDs.find((y) => y.loi === x.loi && y.nhan_vat === x.nhan_vat); return { nhan_vat: x.nhan_vat, dien_xuat: x.dien_xuat, loi: x.loi, url: c0?.url ?? null, ...(typeof x.tre === 'number' ? { tre: x.tre } : {}) }; });
     d = { ...d, loi_thoai: ghepThoai(moi) };
     await db.execute(sql`UPDATE xv_canh SET thoai = ${JSON.stringify(moi)}::jsonb, thoai_url = ${moi[0]?.url ?? null} WHERE id = ${id}`);
   }

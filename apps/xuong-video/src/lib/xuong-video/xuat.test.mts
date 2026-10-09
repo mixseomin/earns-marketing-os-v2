@@ -91,3 +91,10 @@ console.log('xuat.test: mẫu ok');
   assert.ok(k1.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung.includes("fontsdir='/x/fonts'"));
   console.log('xuat.test: chữ màn kiểu mẫu ok');
 }
+// Dòng thoại có độ trễ (tre): giọng vào đúng giây như QC mẫu.
+{
+  const c1 = [{ ...canh[0]!, thoai: [{ nhan_vat: '', dien_xuat: '', loi: 'Pay one get three pants.', url: 'https://x/g1.mp3', tre: 0.47 }] }];
+  const k = keHoachXuat({ loai: 'phim', tiLe: '9:16', canh: c1 as never, nhanVat: nv, tap: { nhac_url: null, nhac_phan_canh: {} }, nhanh: 'A', nguyenLieu, font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
+  assert.ok(k.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung.includes('adelay=470:all=1'), 'giọng trễ 0,47s');
+  console.log('xuat.test: trễ giọng ok');
+}

@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Chon } from './chon';
 import { useXacNhanTien } from './xac-nhan-tien';
 import { dsGiongModel, dsGiongCua, chonGiong, type TuyGiong, type TuyAm } from '@/lib/actions';
-import { MO_HINH_AM, GIONG, giaAm, dongThoai, giaGiong, GIONG_MAC_DINH } from '@/lib/xuong-video/am-thanh';
+import { MO_HINH_AM, GIONG, giaAm, dongThoai, giaGiong, GIONG_MAC_DINH, tenNoi, timNv, LOI_DAN } from '@/lib/xuong-video/am-thanh';
 import { nhanKyThuat } from '@/lib/xuong-video/dien-anh';
 import { tien, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 
@@ -50,7 +50,7 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
     if (yc.loai !== 'giong') return;
     const o: Record<string, { model: string; voice: string; luu: boolean }> = {};
     for (const ten of nguoi) {
-      const v = nhanVat.find((x) => x.ten.toLowerCase() === ten.toLowerCase());
+      const v = timNv(nhanVat, ten);
       o[ten] = v?.giong_model ? { model: v.giong_model, voice: v.giong_id, luu: false } : { ...MAC_DINH, luu: !!v };
       napGiong(o[ten]!.model);
     }
@@ -86,18 +86,18 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
           <>
             <div style={{ display: 'grid', gap: 3, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
               {dong.map((d, i) => {
-                const v = nhanVat.find((x) => x.ten.toLowerCase() === d.nhan_vat.toLowerCase());
-                return <div key={i}><b style={{ color: 'var(--cyan)' }}>{(d.nhan_vat || 'Lời dẫn').toUpperCase()}</b>{d.dien_xuat ? <i style={{ color: 'var(--fg-3)' }}> ({d.dien_xuat})</i> : null}: {d.loi} <span style={mono}>· {v?.giong_id ? `giọng ${v.giong_id}` : 'giọng mặc định'}{d.url ? ' · ✓ đã có' : ''}</span></div>;
+                const v = timNv(nhanVat, d.nhan_vat);
+                return <div key={i}><b style={{ color: 'var(--cyan)' }}>{tenNoi(d).toUpperCase()}</b>{d.dien_xuat ? <i style={{ color: 'var(--fg-3)' }}> ({d.dien_xuat})</i> : null}: {d.loi} <span style={mono}>· {v?.giong_id ? `giọng ${v.giong_id}` : 'giọng mặc định'}{d.url ? ' · ✓ đã có' : ''}</span></div>;
               })}
             </div>
             {nguoi.map((ten) => {
-              const v = nhanVat.find((x) => x.ten.toLowerCase() === ten.toLowerCase());
+              const v = timNv(nhanVat, ten);
               const cg = chonG[ten] ?? { ...MAC_DINH, luu: false };
               const dsG = dsGTheoModel[cg.model];
               const doi = (p: Partial<typeof cg>) => setChonG((x) => ({ ...x, [ten]: { ...cg, ...p } }));
               return (
                 <div key={ten || '_dan'} style={{ border: '1px solid var(--line)', borderRadius: 8, padding: 8, display: 'grid', gap: 5 }}>
-                  <b style={{ fontSize: 12 }}>{ten ? `🗣 ${ten}` : '🎙 Lời dẫn'} <span style={mono}>{v?.giong_model ? '· đang có giọng cố định' : v ? '· chưa có giọng cố định' : ''}</span></b>
+                  <b style={{ fontSize: 12 }}>{ten ? `🗣 ${ten}` : `🎙 ${LOI_DAN}`} <span style={mono}>{v?.giong_model ? '· đang có giọng cố định' : v ? '· chưa có giọng cố định' : ''}</span></b>
                   <Chon value={cg.model} onChange={(m) => { doi({ model: m, voice: '' }); napGiong(m); }} minWidth={360} placeholder={dsM.length ? 'chọn model giọng…' : 'đang tải model…'}
                     options={dsM.map((m) => ({ value: m.key, label: m.ten, nhom: m.nhom, phu: m.giaCents == null ? (m.key.startsWith('elevenlabs:') ? 'trong gói' : 'chưa có giá') : `${tien(m.giaCents)}${m.donVi === '1k_ky_tu' ? '/1k ký tự' : m.donVi === 'giay' ? '/giây' : m.donVi === 'luot' ? '/lượt' : ''}`, title: m.giaText }))} />
                   <Chon value={cg.voice} onChange={(g) => doi({ voice: g })} minWidth={360} placeholder={dsG ? (dsG.length ? 'chọn giọng…' : 'model không công bố danh sách — để trống = mặc định') : 'đang tải giọng…'}
@@ -114,7 +114,7 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
             </label>
             <div style={mono}>Nên sinh khi đã chốt lời thoại; giọng sinh sớm giúp biết độ dài thoại để chỉnh số giây shot.</div>
             <button type="button" className="xv-btn chinh" disabled={!soKyTu || nguoi.some((t) => !chonG[t]?.model)} onClick={() => xn.bam(async () => {
-              for (const ten of nguoi) { const v = nhanVat.find((x) => x.ten.toLowerCase() === ten.toLowerCase()); const cg = chonG[ten]; if (v && cg?.luu && cg.model) await chonGiong(v.id, cg.model, cg.voice); }
+              for (const ten of nguoi) { const v = timNv(nhanVat, ten); const cg = chonG[ten]; if (v && cg?.luu && cg.model) await chonGiong(v.id, cg.model, cg.voice); }
               onGiong(cc.id, { theoNguoi: Object.fromEntries(nguoi.map((t) => [t, { model: chonG[t]!.model, voice: chonG[t]!.voice }])), camXuc: camXucSo, chiThieu: phamVi === 'thieu' }); onClose();
             })}>{chuNut(`🗣 Sinh giọng · ${giaG.chuaRo ? (giaG.tong ? `≈${tien(giaG.tong)} + model chưa rõ giá` : 'model chưa công bố giá') : `≈${tien(giaG.tong)}`}`)}</button>
           </>

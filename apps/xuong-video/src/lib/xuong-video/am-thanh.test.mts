@@ -1,7 +1,7 @@
 // Tự kiểm bộ đọc thoại theo dòng + người nói + giá giọng (một nguồn cho thẻ shot, bảng ＋, timeline, máy chủ — #1204, audit 09/10/2026).
 // Chạy: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/am-thanh.test.mts
 import assert from 'node:assert';
-import { dongThoai, nguoiNoi, giaGiong } from './am-thanh';
+import { dongThoai, nguoiNoi, giaGiong, tenNoi, cungTen, timNv, LOI_DAN } from './am-thanh';
 import type { NhanVat } from './kieu';
 
 const nv = [
@@ -33,3 +33,20 @@ assert.strictEqual(giaGiong({ giaCents: 0.7, donVi: 'luot' }, 999), 0.7);
 assert.strictEqual(giaGiong({ giaCents: null, donVi: 'khac' }, 500), null);
 assert.strictEqual(giaGiong(undefined, 500), null);
 console.log('am-thanh: mọi bài tự kiểm qua');
+
+// Người nói / tìm nhân vật theo tên — một luật cho thẻ shot, bảng ＋, timeline, máy chủ.
+const nvTen = [{ ten: 'Chị Lan', loai: 'nhan_vat' }, { ten: 'Bé Na', loai: 'nhan_vat' }];
+assert.equal(tenNoi({ nhan_vat: '' }), LOI_DAN);
+assert.equal(tenNoi({ nhan_vat: '   ' }), LOI_DAN);
+assert.equal(tenNoi({ nhan_vat: 'Chị Lan' }), 'Chị Lan');
+assert.ok(cungTen(' chị lan ', 'Chị Lan'));
+assert.ok(!cungTen('Chị Lan', 'Bé Na'));
+assert.equal(timNv(nvTen, 'CHỊ LAN ')?.ten, 'Chị Lan');
+assert.equal(timNv(nvTen, 'Lời dẫn'), undefined);
+assert.equal(timNv([], 'Chị Lan'), undefined);
+// Shot cũ chỉ có chuỗi: dòng ghi tên khác hoa thường vẫn nhận đúng nhân vật; dòng không tên → nhân vật đầu của shot.
+const cTen = { thoai: [], loi_thoai: 'chị lan (cười): Mặc cả ngày\nNhẹ tênh', nhan_vat: [1], thoai_url: null } as never;
+const dsTen = dongThoai(cTen, [{ id: 1, ...nvTen[0] }, { id: 2, ...nvTen[1] }] as never);
+assert.equal(dsTen[0]!.nhan_vat, 'chị lan');
+assert.equal(dsTen[0]!.dien_xuat, 'cười');
+assert.equal(dsTen[1]!.nhan_vat, 'Chị Lan');

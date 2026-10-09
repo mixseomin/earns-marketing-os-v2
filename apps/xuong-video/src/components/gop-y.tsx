@@ -5,6 +5,7 @@
 // Ngữ cảnh tự gom lúc bấm Gửi: tiêu đề màn · phim/tập/cảnh đang mở (data-ngu-canh) · vị trí timeline · lỗi đang hiện trên màn ·
 // lỗi JavaScript gần nhất · thiết bị + khổ màn. Tab "Của tôi": góp ý đã gửi + luồng trao đổi ngay tại đây (trả lời / làm lại / duyệt).
 // Card rơi vào mos2.on.tc/p/xuong-video/plays; Claude nhặt bằng /tasks-studio.
+import { Ngan } from './ngan';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { ImageAttach, discardAttachments } from './image-attach';
 import { moNgan } from './ngan-chung';
@@ -239,25 +240,20 @@ export function GopY() {
   const daGui = (id: number) => { setVuaGui(id); setMo(false); nap(); };
   return (
     <>
-      <button type="button" aria-label="Góp ý / báo lỗi" title={vuaGui ? `Đã gửi card #${vuaGui}` : 'Góp ý / báo lỗi về màn đang xem'} onClick={() => setMo((v) => !v)}
-        style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 60, minWidth: 40, height: 40, padding: vuaGui ? '0 12px' : 0, borderRadius: 999, border: `1px solid ${vuaGui ? 'var(--lime)' : 'var(--line)'}`, background: 'var(--bg-2)', color: vuaGui ? 'var(--lime)' : 'var(--fg-2)', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,.35)', fontSize: vuaGui ? 12 : 17, transition: 'all .2s' }}>{vuaGui ? `✓ đã gửi #${vuaGui}` : '💬'}</button>
+      {!mo && <button type="button" aria-label="Góp ý / báo lỗi" title={vuaGui ? `Đã gửi card #${vuaGui}` : 'Góp ý / báo lỗi về màn đang xem'} onClick={() => setMo((v) => !v)}
+        style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 60, minWidth: 40, height: 40, padding: vuaGui ? '0 12px' : 0, borderRadius: 999, border: `1px solid ${vuaGui ? 'var(--lime)' : 'var(--line)'}`, background: 'var(--bg-2)', color: vuaGui ? 'var(--lime)' : 'var(--fg-2)', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,.35)', fontSize: vuaGui ? 12 : 17, transition: 'all .2s' }}>{vuaGui ? `✓ đã gửi #${vuaGui}` : '💬'}</button>}
       {mo && (
-        <>
-          <div className="xv-backdrop nho" style={{ zIndex: 60 }} onClick={() => setMo(false)} />
-          <div className="xv-drawer nho" data-gop-y="" style={{ zIndex: 61, width: 'min(560px, 96vw)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <b style={{ fontSize: 14 }}>💬 Góp ý / báo lỗi · Xưởng video</b>
-              <span style={{ marginLeft: 'auto' }} />
-              <button type="button" onClick={() => setMo(false)} aria-label="Đóng" style={{ background: 'none', border: 'none', color: 'var(--fg-3)', cursor: 'pointer', fontSize: 15 }}>✕</button>
-            </div>
-            <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
-              <button type="button" className={`xv-btn${tab === 'gui' ? ' chinh' : ''}`} onClick={() => doiTab('gui')}>Gửi góp ý</button>
-              <button type="button" className={`xv-btn${tab === 'cua-toi' ? ' chinh' : ''}`} onClick={() => doiTab('cua-toi')}>Của tôi{conMo ? ` (${conMo})` : ''}</button>
-              <button type="button" className={`xv-btn${tab === 'hoi-dap' ? ' chinh' : ''}`} onClick={() => doiTab('hoi-dap')} title="Câu hỏi đã gửi + câu trả lời; trả lời tiếp ngay trong luồng">Hỏi đáp{hoi?.length ? ` (${hoiCoTraLoi ? `${hoiCoTraLoi} có trả lời · ` : ''}${hoi.length})` : ''}</button>
-            </div>
+        <Ngan nho onClose={() => setMo(false)} tieuDe="💬 Góp ý / báo lỗi · Xưởng video" dau={
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button type="button" className={`xv-btn${tab === 'gui' ? ' chinh' : ''}`} onClick={() => doiTab('gui')}>Gửi góp ý</button>
+            <button type="button" className={`xv-btn${tab === 'cua-toi' ? ' chinh' : ''}`} onClick={() => doiTab('cua-toi')}>Của tôi{conMo ? ` (${conMo})` : ''}</button>
+            <button type="button" className={`xv-btn${tab === 'hoi-dap' ? ' chinh' : ''}`} onClick={() => doiTab('hoi-dap')} title="Câu hỏi đã gửi + câu trả lời; trả lời tiếp ngay trong luồng">Hỏi đáp{hoi?.length ? ` (${hoiCoTraLoi ? `${hoiCoTraLoi} có trả lời · ` : ''}${hoi.length})` : ''}</button>
+          </div>
+        }>
+          <div data-gop-y="">
             {tab === 'gui' ? <FormGopY onGui={daGui} /> : tab === 'hoi-dap' ? <CuaToi ds={hoi} onNap={nap} trong="Chưa có câu hỏi nào — chọn Loại: Câu hỏi khi gửi." /> : <CuaToi ds={ds} onNap={nap} />}
           </div>
-        </>
+        </Ngan>
       )}
     </>
   );

@@ -11,7 +11,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { uploadToR2 } from '@/lib/r2';
 import { dayViecAnh, dayViecAm, giaAnhSv, chayNen } from '@/lib/xuong-video/hoan-tat';
 import { chayXuat, gopAm } from '@/lib/xuong-video/xuat-chay';
-import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiong, GIONG_MAC_DINH } from '@/lib/xuong-video/am-thanh';
+import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiong, GIONG_MAC_DINH, timNv } from '@/lib/xuong-video/am-thanh';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, coElevenTrucTiep, type MoHinhGiong } from '@/lib/xuong-video/giong';
 import { boVaoThungRac, boAnhVaoThungRac, dsRac, khoiPhucRac, type MucRac } from '@/lib/xuong-video/thung-rac';
 import { sinhAnh, batDauVeo, docVeo, taiVeo, taiAnhBase64, type AnhVao } from '@/lib/xuong-video/google';
@@ -1082,7 +1082,7 @@ export async function sinhGiong(tapId: number, canhIds?: number[], tuy: TuyGiong
     if (c.thoai.length) {
       for (const [i, d] of c.thoai.entries()) {
         if (!d.loi.trim() || (tuy.chiThieu && d.url)) continue;
-        const v = bc.nhanVat.find((x) => x.ten.toLowerCase() === d.nhan_vat.trim().toLowerCase()) ?? null;
+        const v = timNv(bc.nhanVat, d.nhan_vat) ?? null;
         const chon = tuy.theoNguoi?.[d.nhan_vat.trim()] ?? tuy.theoNguoi?.[(v?.ten ?? '')];
         const model = chon?.model || tuy.model || v?.giong_model || MODEL_GIONG_MAC_DINH();
         const voice = chon?.voice || (tuy.model ? tuy.voice : '') || (v?.giong_model === model ? v.giong_id : '') || await giongMacDinh(model);
@@ -1189,7 +1189,7 @@ export async function uocAm(tapId: number): Promise<{ giong: number; soThoai: nu
   for (const c of ds) {
     const dsT = bc ? dongThoai(c, bc.nhanVat) : c.thoai;
     if (dsT.length) {
-      for (const d of dsT) { const v = bc?.nhanVat.find((x) => x.ten.toLowerCase() === d.nhan_vat.trim().toLowerCase()); giong += giaGiong(dm.find((m) => m.key === (v?.giong_model || MODEL_GIONG_MAC_DINH())), d.loi.length) ?? 0; }
+      for (const d of dsT) { const v = timNv(bc?.nhanVat ?? [], d.nhan_vat); giong += giaGiong(dm.find((m) => m.key === (v?.giong_model || MODEL_GIONG_MAC_DINH())), d.loi.length) ?? 0; }
       soThoai++;
     }
     const clip = c.video_cuoi_url || c.video_url;

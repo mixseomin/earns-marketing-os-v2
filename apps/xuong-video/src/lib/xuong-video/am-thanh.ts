@@ -48,10 +48,16 @@ export const GIONG: Record<string, { id: string; ta: string }[]> = {
   ],
 };
 
+/** Người nói của một dòng thoại để HIỂN THỊ/NHÓM — dòng không ghi tên = lời dẫn. Một chỗ cho mọi màn (thẻ shot, bảng ＋, timeline). */
+export const LOI_DAN = 'Lời dẫn';
+export const tenNoi = (d: Pick<DongThoai, 'nhan_vat'>): string => d.nhan_vat.trim() || LOI_DAN;
+export const cungTen = (a: string, b: string): boolean => a.trim().toLowerCase() === b.trim().toLowerCase();
+/** Nhân vật theo tên người nói (không phân biệt hoa thường, bỏ khoảng trắng thừa). */
+export const timNv = <T extends Pick<NhanVat, 'ten'>>(nv: T[], ten: string): T | undefined => nv.find((x) => cungTen(x.ten, ten));
 /** Ai nói (dòng đầu) — đọc qua dongThoai, cùng MỘT bộ tách "Tên (diễn xuất): lời" với mọi chỗ khác (trước đây có bộ tách thứ hai lệch regex). */
 export function nguoiNoi(c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url'>, nv: NhanVat[]): NhanVat | null {
-  const ten = dongThoai(c, nv)[0]?.nhan_vat.trim().toLowerCase();
-  return (ten ? nv.find((x) => x.ten.toLowerCase() === ten) : undefined) ?? nhanVatDauCua(c, nv) ?? null;
+  const ten = dongThoai(c, nv)[0]?.nhan_vat.trim();
+  return (ten ? timNv(nv, ten) : undefined) ?? nhanVatDauCua(c, nv) ?? null;
 }
 /** Shot có tiếng sinh RIÊNG (file giọng của dòng thoại nào đó, hoặc hiệu ứng) → tiếng sẵn của clip (Veo/Kling tự nói) phải tắt, không chồng
  *  hai giọng (#1219). MỘT luật cho timeline (xem thử) và bản xuất (ffmpeg). */
@@ -83,7 +89,7 @@ export function dongThoai(c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'th
   const ds: DongThoai[] = c.loi_thoai.split('\n').map((l) => l.split(/\b(Chữ( kết)?|Text on screen)\s*:/i)[0]!.trim()).filter(Boolean).map((l) => {
     const m = l.match(/^\s*([^:"“(]{1,40}?)\s*(?:\(([^)]*)\))?\s*:\s*(.*)$/);
     const ten = m ? m[1]!.trim() : '';
-    const laNv = ten && nv.some((x) => x.ten.toLowerCase() === ten.toLowerCase());
+    const laNv = ten && !!timNv(nv, ten);
     return m && laNv ? { nhan_vat: ten, dien_xuat: (m[2] ?? '').trim(), loi: m[3]!.replace(/["“”]/g, '').trim() } : { nhan_vat: mac, dien_xuat: '', loi: l.replace(/["“”]/g, '').trim() };
   }).filter((d) => d.loi);
   if (ds.length === 1 && c.thoai_url) ds[0] = { ...ds[0]!, url: c.thoai_url };

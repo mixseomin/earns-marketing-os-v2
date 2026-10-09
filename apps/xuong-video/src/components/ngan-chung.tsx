@@ -30,24 +30,18 @@ function Host() {
   const laAm = !!xem && /\.(mp3|wav|m4a|ogg)(\?|$)/i.test(xem.url);
   return (<>
     {ngan.is('thu-vien') && (
-      <Ngan onClose={ngan.close}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}><h2 style={{ margin: 0, fontSize: 17, flex: 1 }}>🎬 Thư viện điện ảnh</h2><button type="button" className="xv-btn" onClick={ngan.close}>Đóng</button></div>
+      <Ngan onClose={ngan.close} tieuDe="🎬 Thư viện điện ảnh">
         <ThuVienNoiDung key={tl} tlDau={tl} />
       </Ngan>
     )}
     {ngan.is('so-chi-phi') && (
-      <Ngan onClose={ngan.close}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}><h2 style={{ margin: 0, fontSize: 17, flex: 1 }}>💰 Sổ chi phí</h2><button type="button" className="xv-btn" onClick={ngan.close}>Đóng</button></div>
+      <Ngan onClose={ngan.close} tieuDe="💰 Sổ chi phí">
         <SoChiPhi phimDau={ngan.numId ?? undefined} />
       </Ngan>
     )}
     {xem && (
-      <Ngan nho onClose={() => setXem(null)}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-          <h2 style={{ margin: 0, fontSize: 15, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{xem.ten || (laVideo ? 'Clip' : laAm ? 'Âm thanh' : 'Ảnh')}</h2>
-          <a href={linkTai(xem.url)} download className="xv-btn chinh" style={{ textDecoration: 'none' }}>⬇ Tải về</a>
-          <button type="button" className="xv-btn" onClick={() => setXem(null)}>Đóng</button>
-        </div>
+      <Ngan nho onClose={() => setXem(null)} tieuDe={xem.ten || (laVideo ? 'Clip' : laAm ? 'Âm thanh' : 'Ảnh')}
+        nut={<a href={linkTai(xem.url)} download className="xv-btn chinh" style={{ textDecoration: 'none' }}>⬇ Tải về</a>}>
         {laVideo ? <video key={xem.url} src={xem.url} controls autoPlay playsInline style={{ width: '100%', maxHeight: '80vh', borderRadius: 8, background: '#000' }} />
           : laAm ? <audio key={xem.url} src={xem.url} controls autoPlay style={{ width: '100%' }} />
           : <img src={xem.url} alt="" data-khong-phong-to="" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--line)' }} />}

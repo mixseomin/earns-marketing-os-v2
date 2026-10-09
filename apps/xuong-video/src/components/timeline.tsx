@@ -10,7 +10,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as PE, type ReactNode } from 'react';
 import { giayPhat, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat } from '@/lib/xuong-video/dien-anh';
-import { nguoiNoi, dongThoai, coTiengRieng } from '@/lib/xuong-video/am-thanh';
+import { nguoiNoi, dongThoai, coTiengRieng, tenNoi, cungTen, timNv, LOI_DAN } from '@/lib/xuong-video/am-thanh';
 import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 
@@ -35,7 +35,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   // Người nói của cả tập theo thứ tự xuất hiện → mỗi người một làn thoại.
   const nguoiNoiTap = useMemo(() => {
     const ds: string[] = [];
-    for (const c of canh) for (const d of dongThoai(c, nhanVat)) { const t = d.nhan_vat || 'Lời dẫn'; if (!ds.some((x) => x.toLowerCase() === t.toLowerCase())) ds.push(t); }
+    for (const c of canh) for (const d of dongThoai(c, nhanVat)) { const t = tenNoi(d); if (!ds.some((x) => cungTen(x, t))) ds.push(t); }
     return ds;
   }, [canh, nhanVat]);
   const tong = canh.reduce((a, c) => a + dur(c), 0);
@@ -259,7 +259,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           {c && <div style={{ fontSize: 12 }}><b>#{c.thu_tu} {c.canh}</b> <span style={mono}>· phát {dur(c)}s{dur(c) !== (c.thoi_luong_s || 4) ? ` / clip ${c.thoi_luong_s || 4}s` : ''} · {vid ? (c.video_cuoi_url ? 'bản cuối' : 'nháp') : c.keyframe_url ? 'keyframe' : 'chưa có hình'}{c.nhanh ? ` · hook ${c.nhanh}` : ''}</span></div>}
           {c?.chu_man && <div style={{ fontSize: 11.5 }}>✎ <b>{c.chu_man}</b></div>}
           {c?.hanh_dong && <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{c.hanh_dong}</div>}
-          {c?.loi_thoai && <div style={{ fontSize: 11.5 }}><span style={{ color: mauNv(nv) }}>🗣 {nv?.ten ?? 'Lời dẫn'}</span>{nv?.giong ? <span style={mono}> · giọng: {nv.giong}</span> : null}{!c.thoai_url && <span style={{ ...mono, color: 'var(--amber)' }}> · chưa sinh giọng{docThu ? ', đang đọc thử bằng giọng máy' : ''}</span>}</div>}
+          {c?.loi_thoai && <div style={{ fontSize: 11.5 }}><span style={{ color: mauNv(nv) }}>🗣 {nv?.ten ?? LOI_DAN}</span>{nv?.giong ? <span style={mono}> · giọng: {nv.giong}</span> : null}{!c.thoai_url && <span style={{ ...mono, color: 'var(--amber)' }}> · chưa sinh giọng{docThu ? ', đang đọc thử bằng giọng máy' : ''}</span>}</div>}
           {c?.am_thanh && <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>🔊 {c.am_thanh}{!c.am_thanh_url && <span style={{ ...mono, color: 'var(--amber)' }}> · chưa sinh</span>}</div>}
         </div>
       </div>
@@ -351,10 +351,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
 
           {/* Thoại tách MỘT làn cho MỖI người nói (#1237): lời + diễn xuất thuộc về nhân vật, nhìn theo làn thấy ngay ai nói khi nào. */}
           {nguoiNoiTap.map((ten, k) => {
-            const v = nhanVat.find((x) => x.ten.toLowerCase() === ten.toLowerCase()) ?? null;
+            const v = timNv(nhanVat, ten) ?? null;
             return <Fragment key={ten}>{track(`🗣 ${ten}`, `Thoại của ${ten} theo từng shot — bấm khối để sinh giọng cả shot`, canh.map((cc, i) => {
               const dsT = dongThoai(cc, nhanVat);
-              const cua = dsT.filter((d) => (d.nhan_vat || 'Lời dẫn').toLowerCase() === ten.toLowerCase());
+              const cua = dsT.filter((d) => cungTen(tenNoi(d), ten));
               if (!cua.length) return null;
               const co = cua.filter((d) => d.url).length;
               const tt = cua.map((d) => `${d.dien_xuat ? `(${d.dien_xuat}) ` : ''}${d.loi}${d.url ? ' ✓' : ''}`).join('\n');

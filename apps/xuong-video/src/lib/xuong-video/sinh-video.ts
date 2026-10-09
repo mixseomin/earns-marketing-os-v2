@@ -32,9 +32,16 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   // Thoại: KHÔNG lấy câu trong ngoặc kép của prompt_video (ngôn ngữ cũ, Veo in thành phụ đề) — ghép từ dòng thoại hiện tại của shot;
   // có file giọng riêng rồi thì clip câm (chỉ cử miệng). Nên sinh GIỌNG trước VIDEO.
   const dong = dongThoai(bc.canh, bc.nhanVat).filter((d) => d.loi.trim());
-  const thoaiVeo = !coGiong && dong.length ? `Spoken dialogue (${tenNgonNgu(bc.kt.ngon_ngu)}, natural lip-sync, no subtitles): ${dong.map((d) => `${d.nhan_vat ? d.nhan_vat : 'off-screen narrator'} says "${d.loi.trim()}"`).join('; ')}.` : '';
+  // Lời dẫn ngoài khung (V.O./voice-over/không có người nói) KHÔNG được cho ai trong khung nhép miệng — thử 09/10/2026: lời Linda V.O. mà prompt
+  // bảo "nhân vật cử miệng" thì ông Tom nhép câu của vợ. Chỉ người nói có mặt trong shot + không ghi V.O. mới cử miệng.
+  const laVO = (d: { nhan_vat: string; dien_xuat: string }) => !d.nhan_vat.trim() || /\bV\.?\s?O\.?\b|voice[- ]?over|off[- ]?screen|ngoài khung/i.test(d.dien_xuat);
+  const trongKhung = dong.filter((d) => !laVO(d));
+  const thoaiVeo = coGiong || !dong.length ? '' : [
+    trongKhung.length ? `On-camera dialogue (${tenNgonNgu(bc.kt.ngon_ngu)}, natural lip-sync, no subtitles): ${trongKhung.map((d) => `${d.nhan_vat} says "${d.loi.trim()}"`).join('; ')}.` : '',
+    dong.some(laVO) ? `Off-screen voice-over (${tenNgonNgu(bc.kt.ngon_ngu)}, nobody in frame moves their lips for it): ${dong.filter(laVO).map((d) => `"${d.loi.trim()}"`).join(' ')}` : '',
+  ].filter(Boolean).join(' ');
   const prompt = [phongCachHinh(bc.kt.phong_cach) ? `Visual style: ${phongCachHinh(bc.kt.phong_cach)}.` : '', boThoaiTrongPrompt(bc.canh.prompt_video.trim() || bc.canh.hanh_dong), thoaiVeo, giuKhung, bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', promptKyThuatVideo(bc.canh.ky_thuat), promptCamXuc(bc.canh, bc.nhanVat, 'video'),
-    coGiong ? 'IMPORTANT: the audio track must contain NO spoken words or voice — the character mouths the lines with natural lip movement in silence; only ambient sound. A separate voice recording is added later.' : ''].filter(Boolean).join(' ');
+    coGiong ? `IMPORTANT: the audio track must contain NO spoken words or voice — only ambient sound; a separate voice recording is added later. ${trongKhung.length ? `${[...new Set(trongKhung.map((d) => d.nhan_vat))].join(' and ')} mouth their lines with natural lip movement in silence.` : 'The lines are an off-screen voice-over: nobody in frame talks or moves their lips as if speaking.'}` : ''].filter(Boolean).join(' ');
   const giay = lamTronClip(bc.canh.thoi_luong_s);
   const laFal = bc.kt.mo_hinh_video.startsWith('fal:');
   // Nối cảnh: khung cuối = keyframe cảnh kế (cùng tập) khi tập bật noi_khung → các clip ghép liền mạch, bản cuối khớp bố cục bản nháp.

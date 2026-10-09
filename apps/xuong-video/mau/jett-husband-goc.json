@@ -1,0 +1,444 @@
+{
+ "nguon": "Orabra FB - Jett Husband · creative_doi_thu #10210 · creative_tep 9953 (mp4 55,7s 720×1280) · Ads Library 1379397090976285",
+ "do_ngay": "2026-10-10",
+ "cach_do": "Điểm cắt: ffmpeg scene>0,12 + 2 tấm khung 0,5s; chữ màn đọc từ khung; lời đọc = Whisper (fal) có mốc giây; giọng nữ (F0 ~219 Hz); màu chữ hook đọc pixel.",
+ "loi_doc": [
+  [
+   0.47,
+   "Pay one, get three pants."
+  ],
+  [
+   3.27,
+   "Yes, these viral jeans is on massive sale today only."
+  ],
+  [
+   9.47,
+   "You won't see this price again."
+  ],
+  [
+   11.89,
+   "Last chance to bring home these comfy stylish jeans"
+  ],
+  [
+   14.63,
+   "that every senior loves."
+  ],
+  [
+   18.39,
+   "Stretchier fabric."
+  ],
+  [
+   20.35,
+   "Let you move with ease and adapt perfectly to your fit."
+  ],
+  [
+   24.39,
+   "No more digging and awkward bunching."
+  ],
+  [
+   27.81,
+   "They look like jeans, but they fit like sweatpants."
+  ],
+  [
+   30.85,
+   "It's like the best of both worlds."
+  ],
+  [
+   32.85,
+   "Three times more breathable."
+  ],
+  [
+   35.05,
+   "Two times tougher than regular denim."
+  ],
+  [
+   39.41,
+   "100% wrinkle-free and fade resistant."
+  ],
+  [
+   43.85,
+   "Streamline straight cut, make your leg look longer and more refined."
+  ],
+  [
+   47.49,
+   "The perfect fit for men over 40, 60, and even 80."
+  ],
+  [
+   52.0,
+   "Shop these seniors approved jeans now."
+  ]
+ ],
+ "canh": [
+  {
+   "tu": 0,
+   "den": 3.37,
+   "loai": "hook",
+   "mau_quan": "Medium Blue",
+   "chu": "PAY ? GET ? PANTS\n@0.55 PAY 1 GET ? PANTS\n@1.35 PAY 1 GET 3 PANTS",
+   "hinh": "Người mẫu cắt ngang cổ, sơ mi xanh nhạt sơ vin, thắt lưng đen, giày da đen, mặc quần; tay giơ móc gỗ, chiếc quần thứ hai buông dài cạnh chân; phông sảnh cầu thang, sàn cẩm thạch.",
+   "y": 0.47,
+   "kieu": {
+    "font": "Montserrat Black",
+    "mau": "#0858A4",
+    "vien": "#FFFFFF",
+    "nhan": "#F8D800",
+    "co": 0.145,
+    "vien_day": 0.1,
+    "ngang": 86
+   }
+  },
+  {
+   "tu": 3.37,
+   "den": 7.1,
+   "loai": "uu_dai",
+   "mau_quan": "Light Blue",
+   "chu": "**YES!**\n@1.4 These viral jeans\n@2.5 is on massive sale",
+   "hinh": "Cận eo: sơ mi xám đậm sơ vin, thắt lưng da đen khoá bạc trơn, tay vuốt túi trước rồi véo nhẹ vải quần xanh sáng.",
+   "y": 0.58,
+   "kieu": {
+    "nhan": "#F8D800"
+   },
+   "prompt_anh": "Vertical 9:16 phone photo, close-up from the chest to mid-thigh (face not in frame). A man wears the pants (the product, exactly as in the reference images) with a dark charcoal-gray dress shirt tucked in and a black leather belt with a plain silver buckle (no logo). His right hand rests on the front pocket. Neutral backdrop of warm woven rattan and wood. Soft even daylight, true-to-life colors.",
+   "prompt_video": "Static camera. The man slides his hand down over the front pocket and lightly pinches the fabric at the thigh, then smooths it; framing stays chest to mid-thigh.",
+   "goc_may": "Static close-up of the waist, chest to mid-thigh",
+   "anchor": []
+  },
+  {
+   "tu": 7.1,
+   "den": 8.83,
+   "loai": "uu_dai",
+   "mau_quan": "Light Blue",
+   "chu": "TODAY ONLY",
+   "hinh": "Cận cẳng chân đứng trên bục tròn trắng, ống quần xanh sáng phủ giày boot da nâu, tay chạm gối, nền gỗ tối.",
+   "y": 0.55,
+   "prompt_anh": "Vertical 9:16 phone photo, low close shot of a man's lower legs from the knees down, standing on a small round white pedestal. He wears the pants (the product, exactly as in the reference images); the hems fall straight over brown leather lace-up boots. One hand touches the knee. Dark wooden background. True-to-life colors.",
+   "prompt_video": "Static camera. The man shifts his weight and lifts one heel slightly so the straight hem moves; his hand brushes the knee. Framing stays on the lower legs.",
+   "goc_may": "Low close shot of the lower legs"
+  },
+  {
+   "tu": 8.83,
+   "den": 11.8,
+   "loai": "uu_dai",
+   "mau_quan": "Dark Blue",
+   "chu": "@0.6 You won't see\nthis price again!",
+   "hinh": "Flat lay từ trên xuống trên thảm xám: tay đặt hai chiếc quần xanh đen gấp gọn, mép trên có hoa tulip nhỏ.",
+   "y": 0.6,
+   "prompt_anh": "Vertical 9:16 top-down photo of a light gray carpet: a hand places two neatly folded pairs of the pants (the product, exactly as in the reference images) side by side, back pockets with button visible, a few small colorful tulips along the top edge and the corner of a white box. Soft daylight, true-to-life colors.",
+   "prompt_video": "Top-down static camera. A hand sets the second folded pair down beside the first and smooths it flat.",
+   "goc_may": "Top-down flat lay"
+  },
+  {
+   "tu": 11.8,
+   "den": 14.33,
+   "loai": "bang_chung",
+   "mau_quan": "Light Blue",
+   "chu": "LAST CHANCE\n@0.6 to bring home these\n@1.6 comfy stylish jeans",
+   "hinh": "Ông lớn tuổi hói, đeo kính, râu dê bạc, polo đỏ, quần xanh sáng, giày đỏ, đứng tay đút túi trong phòng khách tường gạch đỏ có lò sưởi, ghế lót da cừu (gốc có 3 ảnh bình luận đè lên — bỏ, vì phải vẽ chữ).",
+   "y": 0.6,
+   "prompt_anh": "Vertical 9:16 phone photo, medium-full shot. The older man (exactly as in his reference image) stands with hands in his pockets wearing a red polo shirt, the pants (the product, exactly as in the reference images), and red sneakers, in the cozy living room with a red brick wall, a fireplace and a chair draped with a sheepskin. Warm natural light, true-to-life colors.",
+   "prompt_video": "Static camera. The older man shifts his weight, smiles and nods proudly, hands in his pockets, keeping his mouth closed (no speaking).",
+   "goc_may": "Static medium-full shot",
+   "anchor": [
+    "oi"
+   ]
+  },
+  {
+   "tu": 14.33,
+   "den": 18.07,
+   "loai": "bang_chung",
+   "anh_that": "cff4a08cf555bf94",
+   "chu": "Every senior loves these!\n★★★★★",
+   "hinh": "Lưới ảnh khách thật mặc quần (gốc: 6 ảnh khách + băng tím). Dùng ảnh review thật của Orabra.",
+   "y": 0.45,
+   "kieu": {
+    "nen": "#7B5CF0",
+    "co": 0.06
+   }
+  },
+  {
+   "tu": 18.07,
+   "den": 21.47,
+   "loai": "tinh_nang",
+   "mau_quan": "Light Blue",
+   "chu": "Stretchier Fabric\n@2.3 Let you move with ease",
+   "hinh": "Cận eo trước: sơ mi trắng sơ vin, thắt lưng đen, tay vỗ lưng quần rồi kéo cạp ra hai bên cho thấy co giãn; phông kệ sách gỗ đỏ.",
+   "y": 0.6,
+   "prompt_anh": "Vertical 9:16 phone photo, close-up of a man's waist from the chest to the upper thighs (face not in frame): white dress shirt tucked into the pants (the product, exactly as in the reference images), black leather belt with a plain buckle; both hands rest on the waistband. Backdrop of a red-brown wooden bookshelf. Soft light, true-to-life colors.",
+   "prompt_video": "Static camera. The man pats the waistband twice, then hooks his thumbs in and pulls the waistband outward on both sides to show the stretch, then lets it spring back.",
+   "goc_may": "Static close-up of the waist"
+  },
+  {
+   "tu": 21.47,
+   "den": 23.67,
+   "loai": "tinh_nang",
+   "mau_quan": "Light Blue",
+   "chu": "and adapt perfectly\nto your fit",
+   "hinh": "Người bước lên bục thấp, nhấc cao gối rồi chùng chân, quần co theo, giày tây đen; tường hồng lavender có hốc kệ.",
+   "y": 0.58,
+   "prompt_anh": "Vertical 9:16 phone photo, framed from the chest down to the shoes (the face is NOT in frame). A man in a light green shirt and the pants (the product, exactly as in the reference images) with black dress shoes steps up onto a low step, lifting one knee high. Lavender-pink wall with small arched niche shelves, white floor. True-to-life colors.",
+   "prompt_video": "Static camera. The man lifts his knee high onto the step and sinks into a deep lunge; the pants flex with him. Framing stays from the chest down.",
+   "goc_may": "Static medium shot of the legs"
+  },
+  {
+   "tu": 23.67,
+   "den": 25.0,
+   "loai": "noi_dau",
+   "mau_quan": "Light Blue",
+   "chu": "No more digging",
+   "hinh": "Cận eo: sơ mi xanh cộc tay sơ vin, ngón cái kéo cạp quần ra cho thấy không hằn; phông kệ sách đỏ.",
+   "y": 0.67,
+   "prompt_anh": "Vertical 9:16 phone photo, close-up of the waist (face not in frame): a man in a blue short-sleeve shirt tucked into the pants (the product, exactly as in the reference images) with a black belt; his thumb is hooked inside the waistband at the front. Red-brown bookshelf backdrop. True-to-life colors.",
+   "prompt_video": "Static camera. The man pulls the waistband away from his stomach with his thumb, shows there is no mark, and lets go.",
+   "goc_may": "Close-up of the waist"
+  },
+  {
+   "tu": 25.0,
+   "den": 27.73,
+   "loai": "noi_dau",
+   "mau_quan": "Light Blue",
+   "chu": "and awkward bunching",
+   "hinh": "Từ phía sau: áo thun trắng, ngồi xổm rồi đứng lên, thấy túi sau cài cúc, thắt lưng đen, giày nâu; phông kệ sách đỏ.",
+   "y": 0.67,
+   "prompt_anh": "Vertical 9:16 phone photo from behind, from the shoulders to the shoes: a man in a white T-shirt wears the pants (the product, exactly as in the reference images) with a black belt and brown shoes, showing the two back pockets with button-through closure. Red-brown bookshelf backdrop. True-to-life colors.",
+   "prompt_video": "Static camera from behind. The man squats down deeply and stands back up; the seat and back pockets stay smooth with no bunching.",
+   "goc_may": "Static shot from behind"
+  },
+  {
+   "tu": 27.73,
+   "den": 29.8,
+   "loai": "so_sanh",
+   "chu": "They look\n@0.6 They look like jeans",
+   "hinh": "Talking head: ông ~55 đeo kính, râu bạc ngắn, polo sọc xám, hai tay khoa nói với máy (không mở miệng đọc — giọng dẫn nữ), phòng khách có tranh phong cảnh.",
+   "y": 0.47,
+   "prompt_anh": "Vertical 9:16 phone photo, medium close-up of a friendly white American man about 55 with rectangular glasses, short gray beard and a gray striped polo shirt, gesturing with both hands toward the camera, in a living room with a sofa and a colorful landscape painting behind him. Warm natural light.",
+   "prompt_video": "Static camera. The man gestures expressively with both hands as if explaining, smiling, mouth closed (no speaking; a separate voice-over plays).",
+   "goc_may": "Talking-head medium close-up",
+   "anchor": [
+    "none"
+   ]
+  },
+  {
+   "tu": 29.8,
+   "den": 32.33,
+   "loai": "so_sanh",
+   "mau_quan": "Light Blue",
+   "chu": "but feel like\n@0.5 but feel like sweatpants\n@1.0 it's like\nthe best of both worlds",
+   "hinh": "Ông ~55 tóc muối tiêu, áo thun xanh rêu, quần xanh sáng, giày thể thao trắng, chùng chân sâu, xoay người trong phòng khách tường gạch.",
+   "y": 0.45,
+   "prompt_anh": "Vertical 9:16 phone photo, full shot. A fit white American man about 55 with salt-and-pepper hair, wearing an olive-green T-shirt, the pants (the product, exactly as in the reference images) and white sneakers, drops into a deep lunge in the living room with a red brick wall, a rug and a sheepskin chair. True-to-life colors.",
+   "prompt_video": "Static camera. The man does a deep lunge, rises and twists into a quick squat; the pants move freely with him.",
+   "goc_may": "Static full shot",
+   "anchor": [
+    "phong"
+   ]
+  },
+  {
+   "tu": 32.33,
+   "den": 34.6,
+   "loai": "so_sanh",
+   "mau_quan": "Light Blue",
+   "chu": "3x more breathable",
+   "hinh": "Đặc tả vải quần xanh sáng căng cong, làn hơi nước luồn xuyên qua thớ vải.",
+   "y": 0.58,
+   "prompt_anh": "Vertical 9:16 extreme close-up of the fabric of the pants (the product, exactly as in the reference images) stretched over a rounded surface, thin wisps of white steam rising through the weave. Soft studio light, true color.",
+   "prompt_video": "Static macro shot. Wisps of steam drift up and pass through the fabric weave.",
+   "goc_may": "Extreme close-up of the fabric"
+  },
+  {
+   "tu": 34.6,
+   "den": 36.67,
+   "loai": "so_sanh",
+   "mau_quan": "Light Blue",
+   "chu": "2x tougher than",
+   "hinh": "Người sơ mi sọc xanh đậm sơ vin, quần xanh sáng, giày nâu, cầm dũa cạo mạnh lên đùi quần, vải không xước; sàn gỗ, chậu cây.",
+   "y": 0.58,
+   "prompt_anh": "Vertical 9:16 phone photo, framed from the chest down to the shoes (the face is NOT in frame). A man in a navy striped shirt tucked into the pants (the product, exactly as in the reference images) and tan shoes holds a small metal nail file against the front of his thigh. Wooden floor and a potted plant. True-to-life colors.",
+   "prompt_video": "Static camera. The man scrapes the file hard back and forth across the thigh fabric; the fabric stays smooth and undamaged.",
+   "goc_may": "Static medium shot"
+  },
+  {
+   "tu": 36.67,
+   "den": 38.13,
+   "loai": "so_sanh",
+   "mau_quan": "Light Blue",
+   "chu": "regular denim",
+   "hinh": "Người sơ mi trắng nắm gấu một ống quần kéo dang rộng sang bên cho thấy co giãn; phông tường hoa văn đỏ, chậu cây, giày da nâu nhạt.",
+   "y": 0.58,
+   "prompt_anh": "Vertical 9:16 phone photo, framed from the chest down to the shoes (the face is NOT in frame). A man in a white shirt wears the pants (the product, exactly as in the reference images) with light tan shoes and grabs the hem of one pant leg. Backdrop of a red patterned wall and a large potted plant. True-to-life colors.",
+   "prompt_video": "Static camera. The man pulls the pant leg hem far out to the side, stretching the fabric wide, then releases it.",
+   "goc_may": "Static medium-wide shot"
+  },
+  {
+   "tu": 38.13,
+   "den": 41.6,
+   "loai": "demo",
+   "mau_quan": "Light Blue",
+   "chu": "@0.9 100% wrinkle free",
+   "hinh": "Người sơ mi xanh nhạt sơ vin, thắt lưng đen khoá trơn, vò chặt một nắm vải ở đùi rồi thả, vải rơi phẳng; tường lavender, sàn trắng, giày lười đỏ đô.",
+   "y": 0.58,
+   "prompt_anh": "Vertical 9:16 phone photo, framed from the chest down to the shoes (the face is NOT in frame). A man in a light blue shirt tucked into the pants (the product, exactly as in the reference images), black leather belt with a plain buckle, burgundy loafers, grips a fistful of the pant leg at the thigh. Lavender wall, white floor. True-to-life colors.",
+   "prompt_video": "Static camera. The man crumples the fabric tightly in his fist, then lets go; the pant leg falls back smooth with no wrinkles.",
+   "goc_may": "Static medium shot"
+  },
+  {
+   "tu": 41.6,
+   "den": 43.8,
+   "loai": "demo",
+   "mau_quan": "Dark Blue",
+   "chu": "Fade resistant",
+   "hinh": "Từ trên xuống: hai tay vò chiếc quần xanh đen ngâm trong chậu kim loại vàng lớn đầy nước, rồi vốc nước lên — nước vẫn trong vắt; thấy tay áo tím.",
+   "y": 0.48,
+   "prompt_anh": "Vertical 9:16 top-down close-up of a large golden metal bowl full of clear water with a pair of the pants (the product, exactly as in the reference images) submerged in it; two hands in the water, a purple shirt sleeve at the top. True-to-life colors.",
+   "prompt_video": "Top-down static camera. The hands scrub the submerged pants, then scoop up the water in cupped palms — the water stays perfectly clear.",
+   "goc_may": "Top-down close-up",
+   "anchor": [
+    "bowl"
+   ]
+  },
+  {
+   "tu": 43.8,
+   "den": 46.37,
+   "loai": "tinh_nang",
+   "mau_quan": "Dark Blue",
+   "chu": "Streamline\nstraight cut\n@1.6 make your leg\nlook longer",
+   "hinh": "Cận cẳng chân quần xanh đen, tay đeo vòng bạc véo nếp ly thẳng ở ống, giày lười da nâu, nội thất ấm.",
+   "y": 0.45,
+   "prompt_anh": "Vertical 9:16 close-up of a man's lower leg in the pants (the product, exactly as in the reference images); a hand with a silver chain bracelet pinches the straight front crease at the shin; brown leather loafers; warm interior light. True-to-life colors.",
+   "prompt_video": "Static camera. The hand runs down the straight crease of the pant leg toward the shoe, showing the clean straight cut.",
+   "goc_may": "Close-up of the lower leg"
+  },
+  {
+   "tu": 46.37,
+   "den": 48.83,
+   "loai": "tinh_nang",
+   "mau_quan": "Light Blue",
+   "chu": "and more refined\n@1.1 THE PERFECT FIT\n@1.6 THE PERFECT FIT\nFOR MEN OVER 40",
+   "hinh": "Góc ngang: người (cắt cổ) sơ mi trắng, tay đút túi, bước ngang qua studio trắng xanh nhạt, quần xanh sáng, giày nâu.",
+   "y": 0.47,
+   "prompt_anh": "Vertical 9:16 phone photo, side view, framed from the chest down to the shoes (the face is NOT in frame): a man in a white shirt with one hand in his pocket walks across a bright white-and-pale-blue studio, wearing the pants (the product, exactly as in the reference images) and brown leather shoes. True-to-life colors.",
+   "prompt_video": "The man walks confidently across the frame from left to right; the camera pans slightly to follow; the straight legs swing cleanly.",
+   "goc_may": "Side tracking shot"
+  },
+  {
+   "tu": 48.83,
+   "den": 49.87,
+   "loai": "bang_chung",
+   "mau_quan": "Dark Blue",
+   "chu": "THE PERFECT FIT\nFOR MEN OVER 40\n@0.6 THE PERFECT FIT\nFOR MEN OVER 60",
+   "hinh": "Toàn thân: ông ~50 tóc bạc, sơ mi cộc tay hoạ tiết đen trắng, quần xanh đen, chân trần, phòng khách sáng.",
+   "y": 0.47,
+   "prompt_anh": "Vertical 9:16 phone photo, full-body shot of a white American man about 50 with silver hair, a black-and-white patterned short-sleeve shirt, the pants (the product, exactly as in the reference images), barefoot, standing in a bright modern living room. True-to-life colors.",
+   "prompt_video": "Static camera. The man stands relaxed, shifts his weight and smiles at the camera, mouth closed.",
+   "goc_may": "Static full shot"
+  },
+  {
+   "tu": 49.87,
+   "den": 51.33,
+   "loai": "bang_chung",
+   "mau_quan": "Light Blue",
+   "chu": "THE PERFECT FIT\nFOR MEN OVER 80",
+   "hinh": "Ông lớn tuổi polo đỏ (cùng người cảnh 5), quần xanh sáng, giày đỏ, đứng thẳng mỉm cười trong phòng khách tường gạch.",
+   "y": 0.47,
+   "prompt_anh": "Vertical 9:16 phone photo, full shot. The older man (exactly as in his reference image) stands upright with arms at his sides wearing a red polo shirt, the pants (the product, exactly as in the reference images) and red sneakers, in the living room with a red brick wall and fireplace. Warm natural light, true-to-life colors.",
+   "prompt_video": "Static camera. The older man smiles and gives a firm nod at the camera, mouth closed.",
+   "goc_may": "Static full shot",
+   "anchor": [
+    "oi",
+    "phong"
+   ]
+  },
+  {
+   "tu": 51.33,
+   "den": 52.5,
+   "loai": "end_card",
+   "anh_that": "1ec254d089fb89db",
+   "chu": "FLASH SALE\nSHOP NOW",
+   "hinh": "Ảnh sản phẩm Light Blue trên nền trắng + FLASH SALE · SHOP NOW.",
+   "y": 0.87,
+   "kieu": {
+    "font": "Montserrat Black",
+    "mau": "#0858A4",
+    "vien": "#FFFFFF",
+    "co": 0.11,
+    "vien_day": 0.06
+   }
+  },
+  {
+   "tu": 52.5,
+   "den": 53.5,
+   "loai": "end_card",
+   "anh_that": "9be34da3ff70665a",
+   "chu": "FLASH SALE\nSHOP NOW",
+   "hinh": "Ảnh sản phẩm Medium Blue.",
+   "y": 0.87,
+   "kieu": {
+    "font": "Montserrat Black",
+    "mau": "#0858A4",
+    "vien": "#FFFFFF",
+    "co": 0.11,
+    "vien_day": 0.06
+   }
+  },
+  {
+   "tu": 53.5,
+   "den": 54.5,
+   "loai": "end_card",
+   "anh_that": "00a3b09fd6c475b2",
+   "chu": "FLASH SALE\nSHOP NOW",
+   "hinh": "Ảnh sản phẩm Dark Blue.",
+   "y": 0.87,
+   "kieu": {
+    "font": "Montserrat Black",
+    "mau": "#0858A4",
+    "vien": "#FFFFFF",
+    "co": 0.11,
+    "vien_day": 0.06
+   }
+  },
+  {
+   "tu": 54.5,
+   "den": 55.74,
+   "loai": "end_card",
+   "anh_that": "2c46c22a68f091c0",
+   "chu": "FLASH SALE\nSHOP NOW",
+   "hinh": "Ảnh sản phẩm Black.",
+   "y": 0.87,
+   "kieu": {
+    "font": "Montserrat Black",
+    "mau": "#0858A4",
+    "vien": "#FFFFFF",
+    "co": 0.11,
+    "vien_day": 0.06
+   }
+  }
+ ],
+ "bai_dang_goc": "lấy nguyên văn từ kinh_thanh.qc.mau (chu_bai/tieu_de/cta)",
+ "phong_cach": "Real-life UGC-style product ad for men's stretch pants, shot vertically on a phone, bright natural light, true-to-life colors, a mix of simple studio backdrops and real home interiors; quick cuts",
+ "kieu_chu_phim": {
+  "font": "Montserrat ExtraBold",
+  "mau": "#FFFFFF",
+  "vien": "#1B1B1B",
+  "nhan": "",
+  "co": 0.062,
+  "vien_day": 0.1,
+  "ngang": 100
+ },
+ "anchor_moi": {
+  "oi": {
+   "loai": "nhan_vat",
+   "ten": "Older man in red polo",
+   "mo_ta": "White American man around 70, bald on top with short gray hair at the sides, rectangular black glasses, short gray goatee, friendly smile, average build; wears a bright red polo shirt and red sneakers."
+  },
+  "phong": {
+   "loai": "boi_canh",
+   "ten": "Brick living room",
+   "mo_ta": "Cozy American living room: red brick accent wall, black wood-burning stove/fireplace, a wooden chair draped with a white sheepskin, patterned rug on a wooden floor, warm natural light."
+  }
+ },
+ "doi_ten_anchor": {
+  "26": {
+   "ten": "Golden water bowl",
+   "mo_ta": "Large shallow golden metal bowl filled with clear water, placed on the floor, used to dunk and scrub the pants."
+  }
+ }
+}

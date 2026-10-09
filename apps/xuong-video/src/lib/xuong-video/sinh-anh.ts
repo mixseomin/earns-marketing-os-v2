@@ -49,7 +49,7 @@ export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: 
     const tu = urlRef.length + 1; urlRef.push(...lay); const den = urlRef.length;
     const so = tu === den ? `image ${tu}` : `images ${tu}–${den}`;
     dong.push(v.loai === 'san_pham'
-      ? `${so} = THE PRODUCT: draw exactly this item — same color, cut, pockets, seams, hardware and fabric texture; never a generic version. Where text and these images disagree, the images win. Do not write its name.`
+      ? `${so} = THE PRODUCT: draw exactly this item — same cut, pockets, seams, hardware and fabric texture; never a generic version. ${lay.length > 1 ? `Image ${tu} shows its MAIN color — use exactly that color unless the shot names another color of the same item; the other product images show other colors of the same item.` : 'Use exactly its color.'} Where text and these images disagree, the images win. Do not write its name.`
       : v.loai === 'nhan_vat' ? `${so} = the person ${v.ten} (same face, hair, age, body).` : `${so} = ${v.loai === 'boi_canh' ? 'the location' : 'the prop'} ${v.ten}.`);
   }
   return { urlRef, banDoRef: dong.length ? `Reference images: ${dong.join(' ')}` : '' };

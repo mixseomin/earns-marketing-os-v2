@@ -52,21 +52,25 @@ const COT_NV = ['ten', 'mo_ta', 'giong'] as const;
 const COT_BT = ['ten', 'mo_ta'] as const;
 export type NoiDungPhim = { phimId: number; kt: KinhThanh; tap: Row[]; canh: Row[]; nhanVat: Row[]; bienThe: Row[]; chuoi: string[]; chars: number; soLo: number; soCoGiong: number };
 
-export async function docPhimDich(db: Db, phimId: number): Promise<NoiDungPhim | null> {
+/** chiShot: chỉ dịch chữ của các shot này + anchor xuất hiện/nói trong đó + phong cách phim (đủ cho model sinh ảnh/video/giọng của chúng).
+ *  Bản dịch vẫn ÁP cho cả phim theo đúng chuỗi gốc, nên tên anchor đổi ở mọi chỗ cùng lúc (thoại shot khác vẫn tìm đúng người nói). */
+export async function docPhimDich(db: Db, phimId: number, chiShot?: number[]): Promise<NoiDungPhim | null> {
   const p = (await db.execute(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[];
   if (!p[0]) return null;
   const kt = (p[0].kinh_thanh ?? {}) as KinhThanh;
   const tap = (await db.execute(sql`SELECT id, ${sql.raw(COT_TAP.join(', '))} FROM xv_tap WHERE phim_id = ${phimId} ORDER BY so`)) as unknown as Row[];
-  const canh = (await db.execute(sql`SELECT c.id, c.thoai_url, ${sql.raw(COT_CANH.map((c) => `c.${c}`).join(', '))} FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = ${phimId} ORDER BY t.so, c.thu_tu`)) as unknown as Row[];
+  const canh = (await db.execute(sql`SELECT c.id, c.thoai_url, c.nhan_vat AS nv_ids, ${sql.raw(COT_CANH.map((c) => `c.${c}`).join(', '))} FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = ${phimId} ORDER BY t.so, c.thu_tu`)) as unknown as Row[];
   const nhanVat = (await db.execute(sql`SELECT id, ${sql.raw(COT_NV.join(', '))} FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)) as unknown as Row[];
   const bienThe = (await db.execute(sql`SELECT b.id, b.ten, b.mo_ta FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE v.phim_id = ${phimId}`)) as unknown as Row[];
   const s = new Set<string>();
-  gomChuoi(kt, s);
-  for (const r of tap) for (const c of COT_TAP) gomChuoi(r[c], s);
+  const canhChon = chiShot ? canh.filter((r) => chiShot.includes(Number(r.id))) : canh;
+  const nvChon = chiShot ? nhanVat.filter((v) => canhChon.some((r) => (Array.isArray(r.nv_ids) ? (r.nv_ids as number[]) : []).includes(Number(v.id))
+    || (Array.isArray(r.thoai) ? (r.thoai as DongThoai[]) : []).some((d) => d.nhan_vat.trim().toLowerCase() === String(v.ten).trim().toLowerCase()))) : nhanVat;
+  if (chiShot) gomChuoi(kt.phong_cach ?? '', s);
+  else { gomChuoi(kt, s); for (const r of tap) for (const c of COT_TAP) gomChuoi(r[c], s); for (const r of bienThe) for (const c of COT_BT) gomChuoi(r[c], s); }
   // loi_thoai là chuỗi ghép từ thoai → chỉ dịch riêng khi shot không có thoai theo dòng (còn lại ghép lại sau dịch).
-  for (const r of canh) for (const c of COT_CANH) if (c !== 'loi_thoai' || !(Array.isArray(r.thoai) && r.thoai.length)) gomChuoi(r[c], s);
-  for (const r of nhanVat) for (const c of COT_NV) gomChuoi(r[c], s);
-  for (const r of bienThe) for (const c of COT_BT) gomChuoi(r[c], s);
+  for (const r of canhChon) for (const c of COT_CANH) if (c !== 'loi_thoai' || !(Array.isArray(r.thoai) && r.thoai.length)) gomChuoi(r[c], s);
+  for (const r of nvChon) for (const c of COT_NV) gomChuoi(r[c], s);
   const chuoi = [...s];
   return { phimId, kt, tap, canh, nhanVat, bienThe, chuoi, chars: chuoi.reduce((a, x) => a + x.length, 0), soLo: chiaLo(chuoi).length,
     soCoGiong: canh.filter((r) => (Array.isArray(r.thoai) ? (r.thoai as DongThoai[]) : []).some((d) => d.url && coTiengViet(d.loi))).length };
@@ -118,8 +122,8 @@ export async function apDungDichPhim(db: Db, nd: NoiDungPhim, sang: string, m: M
 
 /** Chạy trọn bước dịch phim (TỐN TIỀN — chỉ gọi khi anh đã duyệt con số): từng lô một, thuật ngữ = bản dịch các chuỗi ngắn (≤ 60 ký tự)
  *  đã có; mỗi lô ghi một job 'chu' kèm tiền thật; lô lỗi → dừng, KHÔNG ghi gì vào phim (tiền các lô đã chạy vẫn vào sổ). */
-export async function chayDichPhim(db: Db, phimId: number, sang: string, nguoi: string, baoLo?: (i: number, tong: number) => void): Promise<{ ok: true; data: { soBanGhi: number; boGiong: number; cents: number; conViet: number } } | { ok: false; loi: string }> {
-  const nd = await docPhimDich(db, phimId);
+export async function chayDichPhim(db: Db, phimId: number, sang: string, nguoi: string, baoLo?: (i: number, tong: number) => void, chiShot?: number[]): Promise<{ ok: true; data: { soBanGhi: number; boGiong: number; cents: number; conViet: number } } | { ok: false; loi: string }> {
+  const nd = await docPhimDich(db, phimId, chiShot);
   if (!nd) return { ok: false, loi: 'không thấy phim' };
   if (!nd.chuoi.length) return { ok: false, loi: 'phim không còn chữ tiếng Việt nào để dịch' };
   const m = new Map<string, string>(); let cents = 0;
@@ -135,6 +139,6 @@ export async function chayDichPhim(db: Db, phimId: number, sang: string, nguoi: 
     ds.forEach((g, k) => m.set(g, kq.data[k] ?? g));
   }
   const r = await apDungDichPhim(db, nd, sang, m, nguoi);
-  const sau = await docPhimDich(db, phimId);
+  const sau = await docPhimDich(db, phimId, chiShot);
   return { ok: true, data: { ...r, cents, conViet: sau?.chuoi.length ?? 0 } };
 }

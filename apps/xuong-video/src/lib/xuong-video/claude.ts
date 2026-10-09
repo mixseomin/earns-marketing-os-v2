@@ -144,9 +144,11 @@ export async function tachCanh(opts: {
     mau ? HUONG_DAN_MAU(mau.shots.length) : opts.soCanh ? `Tổng khoảng ${opts.soCanh} shot.` : laQc ? 'Số shot theo nhịp quảng cáo: phần lớn shot phát 1,5–3 giây.' : 'Số shot vừa đủ kể hết kịch bản, mỗi shot 4-8 giây.',
   ].filter(Boolean).join('\n\n');
   try {
+    // Mỗi shot ≈ 700–900 token JSON (2 prompt tiếng Anh + kỹ thuật + thoại); 28 shot bám mẫu vượt trần 16k → JSON đứt giữa chừng (09/10/2026).
+    const soShot = (opts.soCanh || 20) + 4;   // + hook_bien_the
     const r = await c.messages.parse({
       model: kt.mo_hinh_chu,
-      max_tokens: 16000,
+      max_tokens: Math.min(64000, Math.max(16000, 6000 + soShot * 1000)),
       system: `${heThong(opts.loai, kt)}\n\n${HUONG_DAN_DAO_DIEN}${laQc ? `\n\n${HUONG_DAN_QC}` : ''}`,
       messages: [{ role: 'user', content: user }],
       // Kiểu của helper khai theo zod v3 nhưng runtime cần v4 (đã thử: v3 → TypeError 'def', v4 chạy) → ép kiểu ở ranh này.

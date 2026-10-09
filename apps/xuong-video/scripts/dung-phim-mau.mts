@@ -4,6 +4,7 @@
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; NODE_OPTIONS=--conditions=react-server \
 //     node_modules/.bin/tsx apps/xuong-video/scripts/dung-phim-mau.mts apps/xuong-video/mau/jett-husband.json [--chi-tao]
 // --chi-tao = chỉ tạo phim/anchor/tập, không gọi Claude. Chạy lại cùng tệp = tạo phim MỚI (không đè).
+// --phim=<id> = chạy TIẾP trên phim đã tạo (đọc anchor + tập 1 từ DB; có kịch bản rồi thì không viết lại) — dùng khi một bước lỗi giữa chừng.
 import { readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
@@ -25,20 +26,32 @@ type Row = Record<string, unknown>;
 const mau = hs.kinh_thanh.qc?.mau as MauQc | undefined;
 const thoiLuong = mau?.shots?.length ? giayMau(mau) : 30;
 
-const p = (await db.execute(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh) VALUES (${hs.project}, ${hs.ten}, 'quang_cao', ${hs.mo_ta}, ${JSON.stringify(hs.kinh_thanh)}::jsonb) RETURNING id`)) as unknown as Row[];
-const phimId = Number(p[0]!.id);
-console.log(`phim #${phimId} · ${hs.ten}`);
+const tiep = Number((process.argv.find((a) => a.startsWith('--phim=')) ?? '').split('=')[1] || 0);
+let phimId: number; let tapId: number; let kichBanCu = '';
 const nhanVat: NhanVat[] = [];
-for (const v of hs.nhan_vat) {
-  const r = (await db.execute(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, anh_ref, giong) VALUES (${phimId}, ${v.loai}, ${v.ten}, ${v.mo_ta}, ${JSON.stringify(v.anh_ref ?? [])}::jsonb, ${v.giong ?? ''}) RETURNING id`)) as unknown as Row[];
-  nhanVat.push({ id: Number(r[0]!.id), phim_id: phimId, loai: v.loai, ten: v.ten, mo_ta: v.mo_ta, anh_ref: v.anh_ref ?? [], giong: v.giong ?? '', bien_the: [] } as NhanVat);
-  console.log(`  anchor #${r[0]!.id} [${v.loai}] ${v.ten}${v.anh_ref?.length ? ` · ${v.anh_ref.length} ảnh` : ''}`);
+if (tiep) {
+  phimId = tiep;
+  const nv = (await db.execute(sql`SELECT id, loai, ten, mo_ta, anh_ref, giong FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)) as unknown as Row[];
+  for (const r of nv) nhanVat.push({ id: Number(r.id), phim_id: phimId, loai: String(r.loai) as LoaiNhanVat, ten: String(r.ten), mo_ta: String(r.mo_ta), anh_ref: (r.anh_ref as string[]) ?? [], giong: String(r.giong ?? ''), bien_the: [] } as NhanVat);
+  const t = (await db.execute(sql`SELECT id, kich_ban FROM xv_tap WHERE phim_id = ${phimId} ORDER BY so LIMIT 1`)) as unknown as Row[];
+  if (!t[0]) { console.error('phim chưa có tập'); process.exit(1); }
+  tapId = Number(t[0].id); kichBanCu = String(t[0].kich_ban ?? '');
+  console.log(`chạy tiếp phim #${phimId} · tập #${tapId} · ${nhanVat.length} anchor${kichBanCu ? ' · đã có kịch bản' : ''}`);
+} else {
+  const p = (await db.execute(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh) VALUES (${hs.project}, ${hs.ten}, 'quang_cao', ${hs.mo_ta}, ${JSON.stringify(hs.kinh_thanh)}::jsonb) RETURNING id`)) as unknown as Row[];
+  phimId = Number(p[0]!.id);
+  console.log(`phim #${phimId} · ${hs.ten}`);
+  for (const v of hs.nhan_vat) {
+    const r = (await db.execute(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, anh_ref, giong) VALUES (${phimId}, ${v.loai}, ${v.ten}, ${v.mo_ta}, ${JSON.stringify(v.anh_ref ?? [])}::jsonb, ${v.giong ?? ''}) RETURNING id`)) as unknown as Row[];
+    nhanVat.push({ id: Number(r[0]!.id), phim_id: phimId, loai: v.loai, ten: v.ten, mo_ta: v.mo_ta, anh_ref: v.anh_ref ?? [], giong: v.giong ?? '', bien_the: [] } as NhanVat);
+    console.log(`  anchor #${r[0]!.id} [${v.loai}] ${v.ten}${v.anh_ref?.length ? ` · ${v.anh_ref.length} ảnh` : ''}`);
+  }
+  const t = (await db.execute(sql`INSERT INTO xv_tap (phim_id, so, ten, brief, thoi_luong_s) VALUES (${phimId}, 1, ${hs.tap.ten}, ${hs.tap.brief}, ${thoiLuong}) RETURNING id`)) as unknown as Row[];
+  tapId = Number(t[0]!.id);
+  console.log(`  tập #${tapId} · ${hs.tap.ten} · ${thoiLuong}s${mau?.shots?.length ? ` · QC mẫu ${mau.shots.length} shot` : ''}`);
 }
-const t = (await db.execute(sql`INSERT INTO xv_tap (phim_id, so, ten, brief, thoi_luong_s) VALUES (${phimId}, 1, ${hs.tap.ten}, ${hs.tap.brief}, ${thoiLuong}) RETURNING id`)) as unknown as Row[];
-const tapId = Number(t[0]!.id);
-console.log(`  tập #${tapId} · ${hs.tap.ten} · ${thoiLuong}s${mau?.shots?.length ? ` · QC mẫu ${mau.shots.length} shot` : ''}`);
 const tenSp = hs.kinh_thanh.qc?.ten ?? '';
-if (mau?.shots?.length) console.log(`  thư viện khuôn: +${await ghiKhuonTuMau(db, mau.shots, nhanVat, tenSp, `QC mẫu · ${mau.nguon.slice(0, 60)}`, phimId)} khuôn mới từ mẫu`);
+if (mau?.shots?.length && !tiep) console.log(`  thư viện khuôn: +${await ghiKhuonTuMau(db, mau.shots, nhanVat, tenSp, `QC mẫu · ${mau.nguon.slice(0, 60)}`, phimId)} khuôn mới từ mẫu`);
 if (chiTao) { console.log('--chi-tao: dừng, chưa gọi Claude'); process.exit(0); }
 
 const ghiJob = async (nhan: string, r: { model?: string; tokens?: { in: number; out: number } }) => {
@@ -49,17 +62,21 @@ const ghiJob = async (nhan: string, r: { model?: string; tokens?: { in: number; 
   console.log(`  ${nhan}: ${r.tokens.in}/${r.tokens.out} tokens ≈ ${(gia / 100).toFixed(3)}$`);
 };
 const kt = docKinhThanh(hs.kinh_thanh);
-const kb = await vietKichBan({ loai: 'quang_cao', kinhThanh: kt, nhanVat, brief: hs.tap.brief, thoiLuongS: thoiLuong });
-if (!kb.ok) { console.error('viết kịch bản lỗi:', kb.loi); process.exit(1); }
-await ghiJob('Viết kịch bản · tập 1', kb);
-await db.execute(sql`UPDATE xv_tap SET kich_ban = ${kb.kichBan}, updated_at = now() WHERE id = ${tapId}`);
-const tc = await tachCanh({ loai: 'quang_cao', kinhThanh: kt, nhanVat, kichBan: kb.kichBan, soCanh: 0, thoiLuongS: thoiLuong, khuon: taKhuon(await dsKhuon(db, { toiDa: 60 })) });
+let kichBan = kichBanCu;
+if (!kichBan) {
+  const kb = await vietKichBan({ loai: 'quang_cao', kinhThanh: kt, nhanVat, brief: hs.tap.brief, thoiLuongS: thoiLuong });
+  if (!kb.ok) { console.error('viết kịch bản lỗi:', kb.loi); process.exit(1); }
+  await ghiJob('Viết kịch bản · tập 1', kb);
+  await db.execute(sql`UPDATE xv_tap SET kich_ban = ${kb.kichBan}, updated_at = now() WHERE id = ${tapId}`);
+  kichBan = kb.kichBan;
+}
+const tc = await tachCanh({ loai: 'quang_cao', kinhThanh: kt, nhanVat, kichBan, soCanh: 0, thoiLuongS: thoiLuong, khuon: taKhuon(await dsKhuon(db, { toiDa: 60 })) });
 if (!tc.ok) { console.error('tách cảnh lỗi:', tc.loi); process.exit(1); }
 await ghiJob('Tách cảnh · tập 1 (bám QC mẫu)', tc);
 const so = await luuCanhTach(db, { tapId, tenTap: hs.tap.ten, kq: tc, nhanVat, nguoi: 'script dung-phim-mau', thoiLuongS: thoiLuong });
 console.log(`  thư viện khuôn: +${await ghiKhuonTuCanh(db, tc.canh, nhanVat, tenSp, `phim #${phimId} tập 1`, phimId)} khuôn mới từ cảnh`);
 console.log(`  ${so} cảnh · tổng phát ${tc.canh.filter((c) => !c.nhanh || c.nhanh === 'A').reduce((a, c) => a + (c.phat_s ?? c.thoi_luong_s), 0)}s`);
-const bd = await vietBaiDang({ kinhThanh: kt, kichBan: kb.kichBan, chuMan: tc.canh.map((c) => c.chu_man ?? '') });
+const bd = await vietBaiDang({ kinhThanh: kt, kichBan, chuMan: tc.canh.map((c) => c.chu_man ?? '') });
 if (bd.ok) { await ghiJob('Bài đăng kèm · tập 1', bd); await db.execute(sql`UPDATE xv_tap SET bai_dang = ${JSON.stringify({ ...bd.data, luc: new Date().toISOString() })}::jsonb WHERE id = ${tapId}`); }
 else console.error('bài đăng lỗi:', bd.loi);
 console.log(`xong → https://studio.on.tc/?m=phim&mId=${phimId}`);

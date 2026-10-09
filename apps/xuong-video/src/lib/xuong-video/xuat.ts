@@ -7,7 +7,7 @@
 //   - chuẩn -14 LUFS, H.264 30fps, 1080×1920 (9:16) hoặc 1920×1080.
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/xuat.test.mts
 import type { Canh, KieuChu, LoaiPhim, NhanVat, Tap, ThongTinQc, ViTriChu } from './kieu';
-import { giayPhat, locNhanh, doanChuMan, KIEU_CHU_MAC_DINH } from './kieu';
+import { giayPhat, locNhanh, doanChuMan, coMau, KIEU_CHU_MAC_DINH } from './kieu';
 export { doanChuMan, chuManHien } from './kieu';
 import { dongThoai, coTiengRieng } from './am-thanh';
 
@@ -176,7 +176,8 @@ export function keHoachXuat(o: {
   else if (o.tap.nhac_url && nl.has(o.tap.nhac_url)) nhac(o.tap.nhac_url, 0, t);
   // End card quảng cáo: 2 giây, tên + ưu đãi (từ mục 0) — người xem tới cuối có một màn đọc được để bấm.
   let giay = t;
-  if (o.loai === 'quang_cao' && o.qc?.uu_dai?.trim() && nhanhVideo.length && !o.chiThuTu?.length) {
+  // Có QC mẫu → phần kết theo đúng mẫu (mẫu có end card riêng trong các shot) — không gắn thêm end card tự động.
+  if (o.loai === 'quang_cao' && o.qc?.uu_dai?.trim() && nhanhVideo.length && !o.chiThuTu?.length && !coMau(o.qc)) {
     const dong = [...(o.qc.ten ? ngatDong(o.qc.ten, wrapMan) : []), ' ', ...ngatDong(o.qc.uu_dai, wrapMan)];
     // Có ảnh sản phẩm (mục 0) → end card = ảnh phủ kín, tối 45%, chữ ở 1/4 dưới (kiểu "FLASH SALE · SHOP NOW" đè lên ảnh sản phẩm); không có → nền tối, chữ giữa.
     const anhEnd = o.qc.anh?.[0] && nl.has(o.qc.anh[0]) ? o.qc.anh[0] : null;

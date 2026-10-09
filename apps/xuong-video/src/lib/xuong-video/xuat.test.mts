@@ -135,3 +135,10 @@ console.log('xuat.test: mẫu ok');
   assert.ok(l.includes('adelay=2700:all=1'), l);          // câu sau vào đúng 2,5 + 0,2
   console.log('xuat.test: lời dẫn không đè ok');
 }
+// Có QC mẫu → không gắn end card tự động (phần kết theo mẫu).
+{
+  const qcMau = { ten: 'Bra', uu_dai: 'SALE', link: '', diem_noi_bat: '', doi_tuong: '', thi_truong: '', anh: [], mau: { nguon: 'x', video_url: '', chu_bai: '', tieu_de: '', cta: '', ghi_chu: '', shots: [{ giay: 2, loai: 'hook', chu_man: '', hinh: '' }] } } as never;
+  const k = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh, nhanVat: nv, tap, qc: qcMau, nhanh: 'A', nguyenLieu, font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
+  assert.strictEqual(k.giay, 2 + 3 + 2.5);
+  console.log('xuat.test: không end card khi có mẫu ok');
+}

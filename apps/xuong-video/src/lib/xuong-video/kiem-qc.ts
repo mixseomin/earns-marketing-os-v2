@@ -3,7 +3,7 @@
 // Mỗi luật là một thứ ads thật đo được: 85% xem tắt tiếng → chữ màn; 3 giây đầu quyết định giữ tay; sản phẩm phải thấy sớm;
 // số liệu chỉ được lấy từ mục sản phẩm; CTA phải có chữ. File thuần, tự kiểm bằng kiem-qc.test.mts.
 import type { Canh, LoaiPhim, NhanVat, ThongTinQc } from './kieu';
-import { giayPhat, locNhanh, coMau, giayMau } from './kieu';
+import { giayPhat, locNhanh, coMau, giayMau, shotLechNgonNgu, tenNgonNgu } from './kieu';
 
 export type MucKiem = { key: string; ok: boolean; chu: string; chiTiet?: string };
 type ShotKiem = Pick<Canh, 'thu_tu' | 'nhan_vat' | 'phan_doan' | 'chu_man' | 'nhanh' | 'phat_s' | 'thoi_luong_s' | 'loi_thoai' | 'thoai' | 'trang_thai' | 'keyframe_url'>;
@@ -15,7 +15,7 @@ const coSo = (s: string) => /\d|★|⭐|%/.test(s);
 export const TU_MOI_GIAY = 2.8;
 
 /** Kiểm một bản dựng (thân + một nhánh hook). Phim/short chỉ kiểm độ dài; quảng cáo kiểm đủ bộ. */
-export function kiemQc(opts: { loai: LoaiPhim; canh: ShotKiem[]; nhanVat: Pick<NhanVat, 'id' | 'loai'>[]; qc?: ThongTinQc | null; mucTieuS?: number | null; nhanh?: string | null }): MucKiem[] {
+export function kiemQc(opts: { loai: LoaiPhim; canh: ShotKiem[]; nhanVat: Pick<NhanVat, 'id' | 'loai'>[]; qc?: ThongTinQc | null; mucTieuS?: number | null; nhanh?: string | null; ngonNgu?: string }): MucKiem[] {
   const ds = locNhanh(opts.canh, opts.nhanh).slice().sort((a, b) => a.thu_tu - b.thu_tu);
   const out: MucKiem[] = [];
   if (!ds.length) return out;
@@ -23,6 +23,11 @@ export function kiemQc(opts: { loai: LoaiPhim; canh: ShotKiem[]; nhanVat: Pick<N
   if (opts.mucTieuS) {
     const lech = Math.abs(tong - opts.mucTieuS) / opts.mucTieuS;
     out.push({ key: 'dai', ok: lech <= 0.12, chu: `${Math.round(tong)}s / mục tiêu ${opts.mucTieuS}s`, chiTiet: lech > 0.12 ? `Lệch ${Math.round(lech * 100)}% — cắt bớt (kéo mép clip) hoặc tách lại với đúng thời lượng` : undefined });
+  }
+  // Ngôn ngữ: phim không phải tiếng Việt mà chữ màn/thoại còn tiếng Việt → chặn trước khi tốn tiền ảnh/giọng (09/10/2026).
+  if (opts.ngonNgu && opts.ngonNgu !== 'vi') {
+    const lech = shotLechNgonNgu(opts.ngonNgu, ds);
+    out.push({ key: 'ngon_ngu', ok: !lech.length, chu: `Chữ đúng ${tenNgonNgu(opts.ngonNgu)}`, chiTiet: lech.length ? `${lech.length} shot còn chữ màn/thoại tiếng Việt (#${lech.slice(0, 8).join(', #')}${lech.length > 8 ? '…' : ''}) — bấm 🌐 Dịch tập ở tab Kịch bản, đừng sinh keyframe/giọng trước` : undefined });
   }
   if (opts.loai !== 'quang_cao') return out;
   // 0. Có QC mẫu: số shot đúng bằng mẫu, tổng giây ±10% — bản clone "gần giống nhất" đo được ở đây.

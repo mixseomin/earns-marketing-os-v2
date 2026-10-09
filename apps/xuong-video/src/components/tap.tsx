@@ -189,7 +189,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
       )}
       {/* Bộ kiểm "đạt chưa" (0đ, tức thì): quảng cáo chấm hook/sản phẩm/bằng chứng/CTA/tốc độ nói; mọi loại chấm độ dài so với mục tiêu. */}
       {(tab === 'storyboard' || tab === 'xuat') && !!canh?.length && (() => {
-        const ds = kiemQc({ loai: phim.loai, canh, nhanVat, qc: kt.qc, mucTieuS: tap.thoi_luong_s ?? thoiLuong, nhanh });
+        const ds = kiemQc({ loai: phim.loai, canh, nhanVat, qc: kt.qc, mucTieuS: tap.thoi_luong_s ?? thoiLuong, nhanh, ngonNgu: kt.ngon_ngu });
         if (!ds.length) return null;
         const hong = ds.filter((x) => !x.ok).length;
         return (

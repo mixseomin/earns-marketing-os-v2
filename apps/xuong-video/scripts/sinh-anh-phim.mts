@@ -3,6 +3,7 @@
 //   --anchor     : sinh ảnh gốc cho anchor chưa có ảnh (sinh-anh.sinhAnhGoc), đợi xong.
 //   --keyframe   : sinh 1 keyframe cho mọi shot chưa có (sinh-anh.sinhKeyframeCanh), đợi xong.
 //   --xuat       : dựng MP4 thử (0đ, ffmpeg) → R2 + ghi vào tập như nút ⬇ Xuất.
+//   Cổng ngôn ngữ: phim không phải tiếng Việt mà shot còn chữ màn/thoại tiếng Việt → DỪNG trước --keyframe/--xuat (dịch tập trước); --bo-qua-ngon-ngu để ép.
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
 //     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/sinh-anh-phim.mts --phim=5 --uoc
 //   (chạy từ apps/xuong-video để tsx đọc tsconfig có alias @/lib; --conditions=react-server để 'server-only' không ném lỗi ngoài Next)
@@ -11,7 +12,7 @@ import { getDb } from '@mos2/db';
 import { sinhAnhGoc, sinhKeyframeCanh } from '../src/lib/xuong-video/sinh-anh';
 import { boiCanhTap, mapCanh, taoJob, type Row } from '../src/lib/xuong-video/doc-db';
 import { chayXuat } from '../src/lib/xuong-video/xuat-chay';
-import { docKinhThanh, tien } from '../src/lib/xuong-video/kieu';
+import { docKinhThanh, tien, shotLechNgonNgu, tenNgonNgu } from '../src/lib/xuong-video/kieu';
 import { giaAnhSv } from '../src/lib/xuong-video/hoan-tat';
 
 const arg = (k: string) => process.argv.includes(`--${k}`);
@@ -51,6 +52,12 @@ if (arg('anchor') && anchorThieu.length) {
   await doi(jobs, 'ảnh gốc');
   const loi = await q(sql`SELECT nhan, loi FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[]) AND trang_thai = 'loi'`);
   for (const l of loi) console.log(`  ✗ ${l.nhan}: ${String(l.loi).slice(0, 160)}`);
+}
+// Cổng ngôn ngữ (0đ): chữ sai thì ảnh/giọng sinh ra cũng phải làm lại — 09/10/2026 phim EN ra chữ VI, keyframe chạy mù mất tiền.
+if ((arg('keyframe') || arg('xuat')) && tapId && !arg('bo-qua-ngon-ngu')) {
+  const shots = await q(sql`SELECT thu_tu, chu_man, thoai, loi_thoai FROM xv_canh WHERE tap_id = ${tapId}`);
+  const lech = shotLechNgonNgu(kt.ngon_ngu, shots as never);
+  if (lech.length) { console.error(`  ✗ phim ${tenNgonNgu(kt.ngon_ngu)} nhưng ${lech.length} shot còn chữ màn/thoại tiếng Việt (#${lech.slice(0, 10).join(', #')}) — dịch tập trước (scripts/dich-tap.mts), hoặc --bo-qua-ngon-ngu`); process.exit(2); }
 }
 if (arg('keyframe') && canhThieu.length) {
   const jobs: number[] = [];

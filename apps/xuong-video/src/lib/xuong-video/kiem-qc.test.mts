@@ -79,3 +79,15 @@ console.log('kiem-qc.test: ok');
   assert.ok(!kq({ loai: 'quang_cao', canh: [s(1, 2, 'A')], nhanVat: nvM, qc: { ...qcM, mau: undefined }, nhanh: 'A' }).some((m) => m.key === 'mau'));
 }
 console.log('kiem-qc.test: mẫu ok');
+
+// Ngôn ngữ: phim EN mà chữ màn/thoại tiếng Việt → ✗ ngon_ngu; phim vi không kiểm; chữ EN thuần → ✓.
+{
+  const vi = { thu_tu: 1, nhan_vat: [], phan_doan: '', chu_man: 'CHỈ $34.99', nhanh: '', phat_s: 2, thoi_luong_s: 4, loi_thoai: '', thoai: [{ nhan_vat: 'Bà Linda', dien_xuat: '', loi: 'Rẻ không tin nổi.' }], trang_thai: 'nhap', keyframe_url: null } as never;
+  const en = { ...(vi as object), thu_tu: 2, chu_man: 'ONLY $34.99', thoai: [{ nhan_vat: 'Linda', dien_xuat: '', loi: 'Unbelievably cheap.' }] } as never;
+  const r1 = kiemQc({ loai: 'short', canh: [vi, en], nhanVat: [], ngonNgu: 'en' });
+  const m1 = r1.find((x) => x.key === 'ngon_ngu')!;
+  assert.strictEqual(m1.ok, false); assert.ok(m1.chiTiet!.includes('1 shot') && m1.chiTiet!.includes('#1'), m1.chiTiet);
+  assert.strictEqual(kiemQc({ loai: 'short', canh: [en], nhanVat: [], ngonNgu: 'en' }).find((x) => x.key === 'ngon_ngu')!.ok, true);
+  assert.strictEqual(kiemQc({ loai: 'short', canh: [vi], nhanVat: [], ngonNgu: 'vi' }).some((x) => x.key === 'ngon_ngu'), false);
+  console.log('kiem-qc.test: ngôn ngữ ok');
+}

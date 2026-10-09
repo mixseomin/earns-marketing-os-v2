@@ -116,6 +116,11 @@ export const NGON_NGU: { value: string; label: string; ten: string }[] = [
   { value: 'pt', label: 'Português', ten: 'Portuguese (Brazil)' }, { value: 'de', label: 'Deutsch', ten: 'German' }, { value: 'fr', label: 'Français', ten: 'French' }, { value: 'ja', label: '日本語', ten: 'Japanese' },
 ];
 export const tenNgonNgu = (ma?: string): string => NGON_NGU.find((x) => x.value === ma)?.ten ?? ma ?? 'tiếng Việt';
+/** Chữ có ký tự riêng của tiếng Việt (ă â đ ê ô ơ ư + dấu thanh)? Dùng để bắt chữ màn/thoại tiếng Việt lọt vào phim ngôn ngữ khác (09/10/2026: phim EN ra chữ VI, keyframe vẫn chạy). */
+export const coTiengViet = (s: string): boolean => /[ăâđêôơưĂÂĐÊÔƠƯàáảãạằắẳẵặầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵÀÁẢÃẠẰẮẲẴẶẦẤẨẪẬÈÉẺẼẸỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌỒỐỔỖỘỜỚỞỠỢÙÚỦŨỤỪỨỬỮỰỲÝỶỸỴ]/.test(s);
+/** Những shot có chữ màn/thoại tiếng Việt trong khi phim không phải tiếng Việt (phim 'vi' không kiểm: chữ Anh xen là bình thường). */
+export const shotLechNgonNgu = (ngonNgu: string | undefined, canh: Pick<Canh, 'thu_tu' | 'chu_man' | 'thoai' | 'loi_thoai'>[]): number[] =>
+  !ngonNgu || ngonNgu === 'vi' ? [] : canh.filter((c) => coTiengViet(c.chu_man) || coTiengViet(c.thoai?.length ? c.thoai.map((d) => d.loi).join(' ') : c.loi_thoai.replace(/^[^:"“]*:\s*/, ''))).map((c) => c.thu_tu);
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
   phong_cach: '', ti_le: '9:16', do_phan_giai: '720p',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },

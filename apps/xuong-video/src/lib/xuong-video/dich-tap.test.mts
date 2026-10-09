@@ -14,5 +14,6 @@ const d = { kichBan: 'abc', baiDang: null, canh: [{ id: 1, chu_man: '12345', tho
 assert.equal(demChu(d), 3 + 2 + 5 + 3);   // 'null' → JSON của '' là '""' = 2 ký tự
 assert.ok(uocDichCents('claude-opus-5-5', 18_000) > uocDichCents('claude-opus-5-5', 1_000));
 assert.ok(uocDichCents('claude-sonnet-5-5', 18_000) < uocDichCents('claude-opus-5-5', 18_000));
-assert.ok(uocDichCents('claude-opus-5-5', 18_000) < 60, String(uocDichCents('claude-opus-5-5', 18_000)));   // 18k ký tự phải dưới $0,60
+const u = uocDichCents('claude-opus-5-5', 14_023);   // đo thật: $0,26 — ước phải nằm trong ±25%
+assert.ok(u > 26 * 0.75 && u < 26 * 1.25, String(u));
 console.log('dich-tap.test: ok', uocDichCents('claude-opus-5-5', 18_000).toFixed(1), 'cents/18k ký tự');

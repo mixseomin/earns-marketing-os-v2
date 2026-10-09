@@ -26,8 +26,8 @@ export async function docNoiDungDich(db: Db, tapId: number): Promise<NoiDungDich
   return { phimId: Number(t[0].phim_id), kt: (t[0].kinh_thanh ?? {}) as KinhThanh, dauVao, thoaiGoc, soCoGiong: rows.filter((r) => r.thoai_url).length, chars: demChu(dauVao) };
 }
 export const demChu = (d: Omit<DauVaoDich, 'sang' | 'kinhThanh'>): number => d.kichBan.length + JSON.stringify(d.baiDang ?? '').length + d.canh.reduce((a, c) => a + c.chu_man.length + c.thoai.join('').length, 0);
-/** Ước lượng tiền (cents) một lượt dịch: ~3 ký tự/token đầu vào (tiếng Việt có dấu), bản dịch ra cỡ 0,8 lần đầu vào + 1,5k token khuôn/hệ thống. */
-export const uocDichCents = (model: string, chars: number): number => giaChuCents(model, Math.ceil(chars / 3) + 1500, Math.ceil((chars * 0.8) / 3) + 300);
+/** Ước lượng tiền (cents) một lượt dịch — đo thật 09/10/2026 (tập 6, 14.023 ký tự, Opus): vào 15.483 token (≈1,1 token/ký tự — JSON + chữ có dấu), ra 9.886 (≈0,7 token/ký tự) = $0,26; ước cũ $0,11 thấp 2,4 lần. */
+export const uocDichCents = (model: string, chars: number): number => giaChuCents(model, Math.ceil(chars * 1.1) + 1500, Math.ceil(chars * 0.7) + 300);
 
 /** Gộp lời đã dịch vào dòng thoại gốc (giữ nhân vật, diễn xuất, url). Lệch số dòng → giữ dòng gốc cho phần thiếu. */
 export function gopThoaiDich(goc: DongThoai[], loiMoi: string[]): DongThoai[] {

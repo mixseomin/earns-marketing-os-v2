@@ -38,8 +38,10 @@ export async function chupTruoc(db: Db, o: { bang: BangHoanTac; id: number; cot:
   if (!cot.length) return nhom;
   const phimId = await phimCua(db, o.bang, o.id);
   if (phimId == null) return nhom;
-  const them = o.bang === 'xv_canh' ? sql`, thu_tu AS _thu_tu` : sql``;
-  const r = await rows(db, sql`SELECT jsonb_build_object(${sql.raw(cot.map((c) => `'${c}', "${c}"`).join(', '))}) AS truoc${them} FROM ${sql.raw(o.bang)} WHERE id = ${o.id}`);
+  // Một chuỗi raw duy nhất cho phần SELECT: nhúng sql`…` con vào sql`…` thì drizzle bọc ngoặc → "AS truoc(, thu_tu…)" lỗi cú pháp, mọi thao tác
+  // sửa shot gãy từ adafb308 tới 4/fix (09/10/2026). Cột lấy từ sổ COT_CHO_PHEP nên raw an toàn.
+  const chon = `jsonb_build_object(${cot.map((c) => `'${c}', "${c}"`).join(', ')}) AS truoc${o.bang === 'xv_canh' ? ', thu_tu AS _thu_tu' : ''}`;
+  const r = await rows(db, sql`SELECT ${sql.raw(chon)} FROM ${sql.raw(o.bang)} WHERE id = ${o.id}`);
   if (!r[0]) return nhom;
   const moTa = o.bang === 'xv_canh' && r[0]._thu_tu != null ? `${o.moTa} · shot #${r[0]._thu_tu}` : o.moTa;
   await db.execute(sql`INSERT INTO xv_hoan_tac (phim_id, nhom, bang, ban_ghi_id, cot, truoc, mo_ta, nguoi)

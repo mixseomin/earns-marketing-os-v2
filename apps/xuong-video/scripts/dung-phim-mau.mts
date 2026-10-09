@@ -5,7 +5,8 @@
 //     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/dung-phim-mau.mts mau/jett-husband.json [--claude]
 // MẶC ĐỊNH 0đ: chỉ tạo phim/anchor/tập/QC mẫu, KHÔNG gọi Claude. Muốn Claude viết kịch bản + tách cảnh + bài đăng (≈ $1,1 cho 28 shot)
 // thì thêm --claude — và chỉ khi anh bảo chạy (09/10/2026: chạy không hỏi, anh chửi). Chạy lại cùng tệp = tạo phim MỚI (không đè).
-// --phim=<id> = chạy TIẾP trên phim đã tạo (đọc anchor + tập 1 từ DB; có kịch bản rồi thì không viết lại) — dùng khi một bước lỗi giữa chừng.
+// --phim=<id> = chạy TIẾP trên phim đã tạo (đọc kinh thánh + anchor + tập 1 từ DB; có kịch bản rồi thì không viết lại) — dùng khi một bước lỗi giữa chừng.
+// --viet-lai  = (kèm --phim) bỏ kịch bản cũ, viết lại từ đầu theo kinh thánh hiện tại trong DB (vd vừa đổi ngôn ngữ phim) — cũng TỐN TIỀN như lượt đầu.
 import { readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
@@ -24,10 +25,11 @@ if (!tep) { console.error('thiếu đường dẫn hồ sơ json'); process.exit
 const hs = JSON.parse(readFileSync(tep, 'utf8')) as HoSo;
 const db = getDb(); if (!db) { console.error('không có DATABASE_URL'); process.exit(1); }
 type Row = Record<string, unknown>;
-const mau = hs.kinh_thanh.qc?.mau as MauQc | undefined;
-const thoiLuong = mau?.shots?.length ? giayMau(mau) : 30;
 
+const docMau = () => { const m = hs.kinh_thanh.qc?.mau as MauQc | undefined; return { mau: m, thoiLuong: m?.shots?.length ? giayMau(m) : 30 }; };
+let { mau, thoiLuong } = docMau();
 const tiep = Number((process.argv.find((a) => a.startsWith('--phim=')) ?? '').split('=')[1] || 0);
+const vietLai = process.argv.includes('--viet-lai');
 let phimId: number; let tapId: number; let kichBanCu = '';
 const nhanVat: NhanVat[] = [];
 if (tiep) {
@@ -36,8 +38,10 @@ if (tiep) {
   for (const r of nv) nhanVat.push({ id: Number(r.id), phim_id: phimId, loai: String(r.loai) as LoaiNhanVat, ten: String(r.ten), mo_ta: String(r.mo_ta), anh_ref: (r.anh_ref as string[]) ?? [], giong: String(r.giong ?? ''), bien_the: [] } as NhanVat);
   const t = (await db.execute(sql`SELECT id, kich_ban FROM xv_tap WHERE phim_id = ${phimId} ORDER BY so LIMIT 1`)) as unknown as Row[];
   if (!t[0]) { console.error('phim chưa có tập'); process.exit(1); }
-  tapId = Number(t[0].id); kichBanCu = String(t[0].kich_ban ?? '');
-  console.log(`chạy tiếp phim #${phimId} · tập #${tapId} · ${nhanVat.length} anchor${kichBanCu ? ' · đã có kịch bản' : ''}`);
+  tapId = Number(t[0].id); kichBanCu = vietLai ? '' : String(t[0].kich_ban ?? '');
+  const p = (await db.execute(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[];
+  if (p[0]?.kinh_thanh) { hs.kinh_thanh = p[0].kinh_thanh as KinhThanh; ({ mau, thoiLuong } = docMau()); }   // kinh thánh THẬT của phim (đã sửa trên studio/SQL), không lấy từ tệp mẫu
+  console.log(`chạy tiếp phim #${phimId} · tập #${tapId} · ${nhanVat.length} anchor · ngôn ngữ ${hs.kinh_thanh.ngon_ngu ?? 'vi'}${kichBanCu ? ' · đã có kịch bản' : vietLai ? ' · viết lại kịch bản' : ''}`);
 } else {
   const p = (await db.execute(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh) VALUES (${hs.project}, ${hs.ten}, 'quang_cao', ${hs.mo_ta}, ${JSON.stringify(hs.kinh_thanh)}::jsonb) RETURNING id`)) as unknown as Row[];
   phimId = Number(p[0]!.id);

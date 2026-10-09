@@ -11,6 +11,7 @@ import { boiCanhCanh, mapNhanVat, taoJob, type Db, type Row } from './doc-db';
 export type KqSinh<T> = { ok: true; data: T } | { ok: false; loi: string };
 
 /** Prompt ảnh cuối = phong cách bộ phim + prompt cảnh + nhắc giữ đúng anchor theo ảnh tham chiếu. */
+export const KHONG_CHU = 'Absolutely NO text, letters, captions, subtitles, watermarks or logos anywhere in the image — the frame must be clean; on-screen text is added later in post.';
 export function ghepPromptAnh(prompt: string, phongCach: string, nv: NhanVat[], kyThuatAnh = '', trangPhuc = ''): string {
   // Kỹ thuật điện ảnh của shot (cỡ cảnh, góc, ống kính, ánh sáng, màu — thư viện dien-anh.ts) đứng ngay sau phong cách.
   const dong = [phongCach ? `Visual style: ${phongCach}.` : '', kyThuatAnh ? `Cinematography: ${kyThuatAnh}.` : '', prompt.trim()];
@@ -24,6 +25,8 @@ export function ghepPromptAnh(prompt: string, phongCach: string, nv: NhanVat[], 
       : `Keep these people EXACTLY as described (and as shown in the reference images): ${nguoi.map((v) => `${v.ten} — ${v.mo_ta}`).join(' | ')}. Do not redesign them.`);
   }
   if (vat.length) dong.push(`Keep these products / places / props EXACTLY as described and as in the reference images (same color, shape, details): ${vat.map((v) => `${v.ten} — ${v.mo_ta}`).join(' | ')}.`);
+  // Chữ màn do xưởng tự vẽ lúc xuất (drawtext, đúng font) — model ảnh KHÔNG được tự vẽ phụ đề: Seedream bịa chữ giả "hử le œ hiút nốp dòos" lên keyframe (#1251).
+  dong.push(KHONG_CHU);
   return dong.filter(Boolean).join(' ');
 }
 

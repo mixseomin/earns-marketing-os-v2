@@ -1,5 +1,6 @@
 // Sinh TỪNG BƯỚC cho vài shot chọn tay trên box (anh 09/10/2026: "cấm làm hàng loạt — tập trung 2 shot đầu xem ra thế nào"):
 //   --canh=73,74                 : id shot (bắt buộc). Mặc định chỉ ƯỚC LƯỢNG (0đ), không chạy gì.
+//   --xem                        : (0đ) in đúng prompt video sẽ gửi cho từng shot + cổng ngôn ngữ — kiểm trước khi tiêu tiền.
 //   --keyframe                   : sinh lại 1 keyframe cho mỗi shot (kể cả shot đã có — ảnh cũ vẫn nằm trong dải ứng viên), đợi xong, in link.
 //   --duyet                      : đánh dấu shot đã duyệt keyframe (0đ) — bước bắt buộc trước --video.
 //   --video                      : gửi sinh video nháp (Veo/fal theo kinh thánh), đợi provider trả, in link + tiền.
@@ -12,13 +13,13 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { sinhKeyframeCanh } from '../src/lib/xuong-video/sinh-anh';
-import { batDauVideoCanh, kiemVideoTap } from '../src/lib/xuong-video/sinh-video';
+import { batDauVideoCanh, kiemVideoTap, promptVideoCanh } from '../src/lib/xuong-video/sinh-video';
 import { sinhGiongShots } from '../src/lib/xuong-video/sinh-giong';
 import { giaAnhSv } from '../src/lib/xuong-video/hoan-tat';
 import { dongThoai, giaGiong } from '../src/lib/xuong-video/am-thanh';
 import { dsMoHinhGiong } from '../src/lib/xuong-video/giong';
 import { boiCanhCanh, mapCanh, giaVideoSv, type Row } from '../src/lib/xuong-video/doc-db';
-import { lamTronClip, tien } from '../src/lib/xuong-video/kieu';
+import { lamTronClip, tien, chanChuModel, coTiengViet } from '../src/lib/xuong-video/kieu';
 
 const arg = (k: string) => process.argv.includes(`--${k}`);
 const ids = ((process.argv.find((a) => a.startsWith('--canh=')) ?? '').split('=')[1] ?? '').split(',').map(Number).filter((x) => x > 0);
@@ -40,6 +41,14 @@ for (const bc of bcs) {
 }
 console.log(`tập #${tapId} · ${bcs.map((b) => `#${b.canh.thu_tu} (id ${b.canh.id}, ${b.canh.trang_thai}${b.canh.keyframe_url ? ', có keyframe' : ''})`).join(' · ')}`);
 console.log(`  ước: keyframe ${bcs.length} × ${tien(giaAnh)} = ${tien(giaAnh * bcs.length)} · video ${kt.mo_hinh_video} ${kt.do_phan_giai} ≈ ${tien(uocVideo)} · giọng ≈ ${tien(uocGiong)}`);
+if (arg('xem')) {
+  for (const bc of bcs) {
+    const p = promptVideoCanh(bc);
+    console.log(`\n── #${bc.canh.thu_tu} cổng: ${chanChuModel(kt.ngon_ngu, { phongCach: kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat }) ?? 'sạch'} · tiếng Việt trong prompt: ${coTiengViet(p) ? 'CÓ' : 'không'} · chữ "text/caption" ngoài lệnh cấm: ${/(?<!no )\b(text|captions?|subtitles?)\b(?! or| appear)/i.test(p.replace(/no text, captions or logos appear/i, '')) ? 'CÓ' : 'không'}`);
+    console.log(p);
+  }
+  process.exit(0);
+}
 if (!arg('keyframe') && !arg('duyet') && !arg('video') && !arg('giong')) { console.log('(chỉ ước lượng — thêm MỘT cờ --keyframe / --duyet / --video / --giong để chạy)'); process.exit(0); }
 
 if (arg('keyframe')) {

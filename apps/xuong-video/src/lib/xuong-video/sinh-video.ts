@@ -14,15 +14,8 @@ import { boiCanhCanh, taoJob, xongJob, mapJob, giaVideoSv, s, type Db, type Row 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
 
-/** Gửi một shot đi sinh video (nháp hoặc bản cuối) — shot phải đã duyệt keyframe. Trả về id job; kết quả về qua kiemVideoTap. */
-export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, ban: 'nhap' | 'cuoi' = 'nhap'): Promise<Kq<number>> {
-  const bc = await boiCanhCanh(db, canhId);
-  if (!bc) return loi('không thấy cảnh');
-  if (bc.canh.trang_thai !== 'duyet' && bc.canh.trang_thai !== 'loi' && bc.canh.trang_thai !== 'xong') return loi('cảnh chưa duyệt keyframe');
-  if (!bc.canh.keyframe_url) return loi('cảnh chưa có keyframe');
-  const chan = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
-  if (chan) return loi(chan);
-  if (moHinh && (moHinh.startsWith('fal:') || MO_HINH_VIDEO.some((m) => m.key === moHinh))) bc.kt.mo_hinh_video = moHinh as typeof bc.kt.mo_hinh_video;
+/** Prompt gửi model video cho một shot — tách riêng để script xem trước (0đ) đúng câu sẽ gửi (scripts/sinh-shot.mts --xem). */
+export function promptVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>): string {
   // Shot đã có file giọng riêng → clip KHÔNG được tự đọc thoại (Veo đọc giọng lơ lớ, chồng với TTS — #1219); miệng vẫn cử động để khớp miệng sau.
   const coGiong = dongThoai(bc.canh, bc.nhanVat).some((d) => d.url);
   // Sản phẩm/người/bối cảnh phải giữ y như khung đầu (keyframe đã duyệt): Veo tự "sửa" quần theo chữ tả trong prompt_video và cho nhân vật
@@ -40,8 +33,20 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
     trongKhung.length ? `On-camera dialogue (${tenNgonNgu(bc.kt.ngon_ngu)}, natural lip-sync, no subtitles): ${trongKhung.map((d) => `${d.nhan_vat} says "${d.loi.trim()}"`).join('; ')}.` : '',
     dong.some(laVO) ? `Off-screen voice-over (${tenNgonNgu(bc.kt.ngon_ngu)}, nobody in frame moves their lips for it): ${dong.filter(laVO).map((d) => `"${d.loi.trim()}"`).join(' ')}` : '',
   ].filter(Boolean).join(' ');
-  const prompt = [phongCachHinh(bc.kt.phong_cach) ? `Visual style: ${phongCachHinh(bc.kt.phong_cach)}.` : '', boThoaiTrongPrompt(bc.canh.prompt_video.trim() || bc.canh.hanh_dong), thoaiVeo, giuKhung, bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', promptKyThuatVideo(bc.canh.ky_thuat), promptCamXuc(bc.canh, bc.nhanVat, 'video'),
+  return [phongCachHinh(bc.kt.phong_cach) ? `Visual style: ${phongCachHinh(bc.kt.phong_cach)}.` : '', boThoaiTrongPrompt(bc.canh.prompt_video.trim() || bc.canh.hanh_dong), thoaiVeo, giuKhung, bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', promptKyThuatVideo(bc.canh.ky_thuat), promptCamXuc(bc.canh, bc.nhanVat, 'video'),
     coGiong ? `IMPORTANT: the audio track must contain NO spoken words or voice — only ambient sound; a separate voice recording is added later. ${trongKhung.length ? `${[...new Set(trongKhung.map((d) => d.nhan_vat))].join(' and ')} mouth their lines with natural lip movement in silence.` : 'The lines are an off-screen voice-over: nobody in frame talks or moves their lips as if speaking.'}` : ''].filter(Boolean).join(' ');
+}
+
+/** Gửi một shot đi sinh video (nháp hoặc bản cuối) — shot phải đã duyệt keyframe. Trả về id job; kết quả về qua kiemVideoTap. */
+export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, ban: 'nhap' | 'cuoi' = 'nhap'): Promise<Kq<number>> {
+  const bc = await boiCanhCanh(db, canhId);
+  if (!bc) return loi('không thấy cảnh');
+  if (bc.canh.trang_thai !== 'duyet' && bc.canh.trang_thai !== 'loi' && bc.canh.trang_thai !== 'xong') return loi('cảnh chưa duyệt keyframe');
+  if (!bc.canh.keyframe_url) return loi('cảnh chưa có keyframe');
+  const chan = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
+  if (chan) return loi(chan);
+  if (moHinh && (moHinh.startsWith('fal:') || MO_HINH_VIDEO.some((m) => m.key === moHinh))) bc.kt.mo_hinh_video = moHinh as typeof bc.kt.mo_hinh_video;
+  const prompt = promptVideoCanh(bc);
   const giay = lamTronClip(bc.canh.thoi_luong_s);
   const laFal = bc.kt.mo_hinh_video.startsWith('fal:');
   // Nối cảnh: khung cuối = keyframe cảnh kế (cùng tập) khi tập bật noi_khung → các clip ghép liền mạch, bản cuối khớp bố cục bản nháp.

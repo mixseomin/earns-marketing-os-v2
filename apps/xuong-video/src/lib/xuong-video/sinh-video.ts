@@ -8,7 +8,7 @@ import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from './google';
 import { docFal, guiFal, dauVaoTheoSchema } from './fal';
 import { promptKyThuatVideo } from './dien-anh';
 import { dongThoai, promptCamXuc } from './am-thanh';
-import { lamTronClip, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
+import { lamTronClip, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { boiCanhCanh, taoJob, xongJob, mapJob, giaVideoSv, s, type Db, type Row } from './doc-db';
 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
@@ -33,7 +33,7 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   // có file giọng riêng rồi thì clip câm (chỉ cử miệng). Nên sinh GIỌNG trước VIDEO.
   const dong = dongThoai(bc.canh, bc.nhanVat).filter((d) => d.loi.trim());
   const thoaiVeo = !coGiong && dong.length ? `Spoken dialogue (${tenNgonNgu(bc.kt.ngon_ngu)}, natural lip-sync, no subtitles): ${dong.map((d) => `${d.nhan_vat ? d.nhan_vat : 'off-screen narrator'} says "${d.loi.trim()}"`).join('; ')}.` : '';
-  const prompt = [bc.kt.phong_cach ? `Visual style: ${bc.kt.phong_cach}.` : '', boThoaiTrongPrompt(bc.canh.prompt_video.trim() || bc.canh.hanh_dong), thoaiVeo, giuKhung, bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', promptKyThuatVideo(bc.canh.ky_thuat), promptCamXuc(bc.canh, bc.nhanVat, 'video'),
+  const prompt = [phongCachHinh(bc.kt.phong_cach) ? `Visual style: ${phongCachHinh(bc.kt.phong_cach)}.` : '', boThoaiTrongPrompt(bc.canh.prompt_video.trim() || bc.canh.hanh_dong), thoaiVeo, giuKhung, bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', promptKyThuatVideo(bc.canh.ky_thuat), promptCamXuc(bc.canh, bc.nhanVat, 'video'),
     coGiong ? 'IMPORTANT: the audio track must contain NO spoken words or voice — the character mouths the lines with natural lip movement in silence; only ambient sound. A separate voice recording is added later.' : ''].filter(Boolean).join(' ');
   const giay = lamTronClip(bc.canh.thoi_luong_s);
   const laFal = bc.kt.mo_hinh_video.startsWith('fal:');

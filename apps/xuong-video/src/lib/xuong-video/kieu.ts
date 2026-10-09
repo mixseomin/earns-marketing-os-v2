@@ -144,6 +144,10 @@ export const shotLechNgonNgu = (ngonNgu: string | undefined, canh: ShotChu[]): n
   !ngonNgu || ngonNgu === 'vi' ? [] : canh.filter((c) => coTiengViet(chuShot(c))).map((c) => c.thu_tu);
 /** Cổng trước mọi lượt sinh tốn tiền (ảnh/video/giọng): chữ SẼ ĐI VÀO model còn tiếng Việt khi phim không phải tiếng Việt → trả câu lỗi.
  *  09/10/2026: phong cách + mô tả anchor tiếng Việt ghép vào prompt → Veo in phụ đề Việt giả lên clip ($0,40 bỏ đi). */
+/** Phong cách phim CHO MODEL ẢNH/VIDEO: bỏ mọi vế nói về chữ/phụ đề/logo/font. Chữ màn do xưởng vẽ lúc xuất; để vế đó vào prompt là bảo
+ *  model tự vẽ chữ ("white text with black outline overlaid…" → Veo/Seedream in phụ đề giả, 09/10/2026). Claude vẫn đọc bản đầy đủ. */
+export const phongCachHinh = (pc?: string): string =>
+  (pc ?? '').split(/(?<=[;.])\s+/).filter((v) => !/\b(text|texts|caption|captions|subtitle|subtitles|overlay|overlaid|logo|font|lettering|typography)\b|chữ|phụ đề|font/i.test(v)).join(' ').replace(/[;,]\s*$/, '').trim();
 export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: string; shot?: Partial<ShotChu>; anchor?: Pick<NhanVat, 'ten' | 'mo_ta'>[] }): string | null {
   if (!ngonNgu || ngonNgu === 'vi') return null;
   const cho: string[] = [];

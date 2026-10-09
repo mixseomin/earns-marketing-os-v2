@@ -6,7 +6,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';   // helper zodOutputFormat của SDK cần zod v4 (zod 3.25 kèm sẵn ở 'zod/v4'); import 'zod' gốc → TypeError 'def'
 import { THU_VIEN, THE_LOAI, CAU_TRUC, giayBeat, hopTheLoai, NHOM_KY_THUAT, type NhomKyThuat } from './dien-anh';
 import type { BienThe, DoiChieu, KinhThanh, LoaiNhanVat, LoaiPhim, NhanVat } from './kieu';
-import { docKinhThanh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA, LOAI_SHOT_MAU, giayMau, coMau, tenNgonNgu, type BaiDang, type ShotMau } from './kieu';
+import { docKinhThanh, phongCachHinh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA, LOAI_SHOT_MAU, giayMau, coMau, tenNgonNgu, type BaiDang, type ShotMau } from './kieu';
 
 const CanhSchema = z.object({
   canh: z.string().describe('Nhãn ngắn của cảnh, tiếng Việt, ví dụ "Cảnh 1 · Khu rừng buổi sáng"'),
@@ -221,7 +221,7 @@ export function promptAnhMau(nv: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, kt: Ki
   if (daCo > 0) {
     const ds = GOC_THEM[nv.loai] ?? GOC_THEM.boi_canh!;
     const goc = ds[(daCo - 1) % ds.length]!;
-    return `${goc}. Subject: ${nv.mo_ta}. Visual style: ${docKinhThanh(kt).phong_cach || 'consistent cinematic look'}. `
+    return `${goc}. Subject: ${nv.mo_ta}. Visual style: ${phongCachHinh(docKinhThanh(kt).phong_cach) || 'consistent cinematic look'}. `
       + 'The reference images only define the identity/design of the subject — create a NEW image with a clearly DIFFERENT camera angle and composition; do NOT reproduce the reference image.';
   }
   const k = docKinhThanh(kt);
@@ -229,7 +229,7 @@ export function promptAnhMau(nv: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, kt: Ki
     : nv.loai === 'san_pham' ? 'Product reference shot, centered, soft studio lighting, plain background, exact product details'
     : nv.loai === 'boi_canh' ? 'Establishing shot of the location, wide angle, no characters'
     : nv.loai === 'dao_cu' ? 'Prop reference shot, centered, plain background' : 'Style reference frame';
-  return `${loai}. ${nv.mo_ta}. Visual style: ${k.phong_cach || 'consistent cinematic look'}.`;
+  return `${loai}. ${nv.mo_ta}. Visual style: ${phongCachHinh(k.phong_cach) || 'consistent cinematic look'}.`;
 }
 
 // ── Gợi ý AI cho MỌI form (anh yêu cầu 08/10/2026): mỗi lần sinh đều đọc ngữ cảnh của cả phim — kinh thánh, tuyến nhân vật,
@@ -348,7 +348,7 @@ export const goiYBienThe = (nc: NguCanhPhim, a: NhanVat, nhom: { key: string; la
 export function promptBienThe(a: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, b: Pick<BienThe, 'nhom' | 'mo_ta' | 'ten'>, kt: KinhThanh): string {
   const k = docKinhThanh(kt);
   const khung = a.loai === 'boi_canh' ? 'Establishing shot of the SAME location as the reference image' : a.loai === 'san_pham' ? 'Product shot of the EXACT same product as the reference image' : 'The SAME character as the reference image, single character, plain light background';
-  return `${khung}. Identity (must not change): ${a.mo_ta}. Change only this (${b.nhom}): ${b.mo_ta || b.ten}. Visual style: ${k.phong_cach || 'consistent with reference'}. Keep proportions, colors, markings and outfit details identical unless the change says otherwise.`;
+  return `${khung}. Identity (must not change): ${a.mo_ta}. Change only this (${b.nhom}): ${b.mo_ta || b.ten}. Visual style: ${phongCachHinh(k.phong_cach) || 'consistent with reference'}. Keep proportions, colors, markings and outfit details identical unless the change says otherwise.`;
 }
 
 // ── Đối chiếu ảnh gốc của anchor với mô tả (review 09/10/2026) ───────────────────────────────────────────────────

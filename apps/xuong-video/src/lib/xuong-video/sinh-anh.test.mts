@@ -22,3 +22,13 @@ assert.ok(g.startsWith(KHONG_CHU) && g.endsWith(KHONG_CHU), g);
 assert.ok(!g.includes('JettJeans3') && g.includes('THE PRODUCT in this shot must be copied EXACTLY'), g);   // sản phẩm có ảnh: không tên, không mô tả chữ
 assert.ok(g.includes('Phòng khách'), g);
 console.log('sinh-anh.test: ok');
+// Phong cách cho model: bỏ vế về chữ/phụ đề, giữ phần hình (phá thử: bỏ lọc thì câu "white text…" còn → đỏ).
+{
+  const { phongCachHinh } = await import('./kieu');
+  const pc = "UGC-style ad shot vertically on a phone, natural indoor light in an American home, true-to-life color, no cinematic filter; fast cuts at 2 seconds per shot; white text with black outline overlaid in the lower part of the frame";
+  const r = phongCachHinh(pc);
+  assert.ok(!/text|outline/i.test(r) && r.includes('natural indoor light') && r.includes('fast cuts'), r);
+  assert.equal(phongCachHinh('Pixar 3D, warm light. Chữ trắng viền đen ở dưới.'), 'Pixar 3D, warm light.');
+  assert.equal(phongCachHinh(''), '');
+  console.log('sinh-anh.test: phong cách ok');
+}

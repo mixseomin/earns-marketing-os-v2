@@ -12,6 +12,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { vietKichBan, tachCanh, vietBaiDang } from '../src/lib/xuong-video/claude';
 import { luuCanhTach } from '../src/lib/xuong-video/luu-canh';
+import { boVaoThungRac } from '../src/lib/xuong-video/thung-rac';
 import { dsKhuon, taKhuon, ghiKhuonTuCanh, ghiKhuonTuMau } from '../src/lib/xuong-video/khuon-shot';
 import { docKinhThanh, giaChuCents, giayMau, type KinhThanh, type LoaiNhanVat, type NhanVat, type MauQc } from '../src/lib/xuong-video/kieu';
 
@@ -78,6 +79,11 @@ if (!kichBan) {
 const tc = await tachCanh({ loai: 'quang_cao', kinhThanh: kt, nhanVat, kichBan, soCanh: 0, thoiLuongS: thoiLuong, khuon: taKhuon(await dsKhuon(db, { toiDa: 60 })) });
 if (!tc.ok) { console.error('tách cảnh lỗi:', tc.loi); process.exit(1); }
 await ghiJob('Tách cảnh · tập 1 (bám QC mẫu)', tc);
+// --viet-lai = thay cả bộ shot: shot cũ đã có keyframe cũng vào thùng rác (luuCanhTach chỉ dọn shot nháp), kẻo tập có 60 shot (09/10/2026).
+if (vietLai) {
+  const cu = (await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${tapId} AND trang_thai <> 'nhap'`)) as unknown as Row[];
+  if (cu.length) { await boVaoThungRac(db, 'canh', cu.map((x) => Number(x.id)), 'script dung-phim-mau', `${cu.length} shot cũ (viết lại kịch bản)`); console.log(`  ${cu.length} shot cũ đã có keyframe → thùng rác (viết lại)`); }
+}
 const so = await luuCanhTach(db, { tapId, tenTap: hs.tap.ten, kq: tc, nhanVat, nguoi: 'script dung-phim-mau', thoiLuongS: thoiLuong });
 console.log(`  thư viện khuôn: +${await ghiKhuonTuCanh(db, tc.canh, nhanVat, tenSp, `phim #${phimId} tập 1`, phimId)} khuôn mới từ cảnh`);
 console.log(`  ${so} cảnh · tổng phát ${tc.canh.filter((c) => !c.nhanh || c.nhanh === 'A').reduce((a, c) => a + (c.phat_s ?? c.thoi_luong_s), 0)}s`);

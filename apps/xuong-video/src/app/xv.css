@@ -44,6 +44,10 @@ table.xv-tbl td.n, table.xv-tbl th.n { text-align: right; font-family: var(--fon
 .xv-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(1100px, 96vw); background: var(--bg-1); border-left: 1px solid var(--line); z-index: 51; overflow: auto; padding: 18px 20px 40px; }
 .xv-drawer.nho { width: min(520px, 96vw); z-index: 53; }
 .xv-backdrop.nho { z-index: 52; background: rgba(0,0,0,.35); }
+.xv-keo-mep { position: fixed; top: 0; bottom: 0; width: 8px; cursor: col-resize; touch-action: none; }
+.xv-keo-mep:hover, .xv-keo-mep:active { background: linear-gradient(90deg, transparent 3px, var(--cyan, #22d3ee) 3px, var(--cyan, #22d3ee) 5px, transparent 5px); }
+/* Đầu drawer dính khi cuộn (#1233): tiêu đề + thống kê + tab luôn thấy. Bù đúng padding của .xv-drawer (18px 20px). */
+.xv-dau { position: sticky; top: -18px; z-index: 6; background: var(--bg-1); margin: -18px -20px 10px; padding: 18px 20px 8px; border-bottom: 1px solid var(--line); }
 .xv-canh { border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: var(--bg-0); }
 .xv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
 .xv-anchor { border: 1px solid var(--line); border-radius: 8px; padding: 8px; display: flex; gap: 8px; }

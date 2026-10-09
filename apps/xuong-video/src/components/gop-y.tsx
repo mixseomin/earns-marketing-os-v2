@@ -153,8 +153,8 @@ function Luong({ id, onXong }: { id: number; onXong: () => void }) {
       {loi && <div style={{ fontSize: 11.5, color: 'var(--red)' }}>⚠ {loi}</div>}
       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <button type="button" className="xv-btn" disabled={busy || !chu.trim()} onClick={() => void gui('')}>💬 Trả lời</button>
-        <button type="button" className="xv-btn" disabled={busy || !chu.trim()} onClick={() => void gui('rework')} title="Chưa đạt — card về Chờ xử">↩ Làm lại</button>
-        <button type="button" className="xv-btn chinh" disabled={busy || !chu.trim()} onClick={() => void gui('duyet')} title="Đạt — đóng card">✓ Duyệt xong</button>
+        <button type="button" className="xv-btn" disabled={busy || !chu.trim()} onClick={() => void gui('rework')} title={chu.trim() ? 'Chưa đạt — card về Chờ xử' : 'Gõ chỗ chưa đạt vào ô trả lời rồi bấm'}>↩ Làm lại</button>
+        <button type="button" className="xv-btn chinh" disabled={busy} onClick={() => void gui('duyet')} title="Đạt — đóng card (không cần gõ gì)">✓ Duyệt xong</button>
       </div>
     </div>
   );

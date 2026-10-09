@@ -235,7 +235,8 @@ function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onCl
 
   return (
     <Ngan onClose={onClose}>
-      <div data-ngu-canh={`phim #${phim.id} ${phim.ten}`} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+      <div className="xv-dau">
+      <div data-ngu-canh={`phim #${phim.id} ${phim.ten}`} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
         <h2 style={{ margin: 0, fontSize: 18 }}>{phim.ten}</h2>
         <Pill color="var(--fg-3)">{LOAI_PHIM.find((l) => l.key === phim.loai)?.label ?? phim.loai}</Pill>
         <span style={mono}>#{phim.id}</span>
@@ -247,8 +248,9 @@ function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onCl
         <button type="button" className="xv-btn" onClick={onClose}>Đóng</button>
       </div>
 
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid var(--line)' }}>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
         {TAB_PHIM.map((t) => <button key={t.key} type="button" className={`xv-btn${tab === t.key ? ' chinh' : ''}`} title={t.mo} onClick={() => setTab(t.key)}>{t.label}</button>)}
+      </div>
       </div>
       {tab === 'kich_ban' && <>
         <KinhThanhForm phim={phim} khoa={khoa} onSaved={tai} />
@@ -1086,10 +1088,8 @@ function Animatic({ canh, tiLe, ngonNgu, onClose }: { canh: Canh[]; tiLe: string
 /** Keyframe nhỏ dưới video (#1218): có video rồi vẫn xem lại được ảnh gốc của clip (rê để phóng to, kèm ảnh so sánh). */
 function KfNho({ url, soSanh }: { url: string; soSanh: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }} title="Keyframe của clip — rê để phóng to">
-      <img src={url} alt="" data-so-sanh={soSanh} style={{ width: 34, height: 34, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} />
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--fg-3)' }}>keyframe</span>
-    </div>
+    <img src={url} alt="" data-so-sanh={soSanh} title="Keyframe của clip — rê để phóng to"
+      style={{ display: 'block', width: 34, height: 34, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)', marginTop: 4 }} />
   );
 }
 

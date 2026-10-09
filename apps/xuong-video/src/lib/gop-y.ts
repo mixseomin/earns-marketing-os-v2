@@ -122,9 +122,10 @@ export async function guiTraoDoi(input: { taskId: number; noiDung: string; anhUr
   const me = await getCurrentUser();
   const db = getDb();
   if (!me || !db) return { ok: false, error: 'chưa đăng nhập' };
-  const noiDung = input.noiDung.trim();
-  if (!noiDung) return { ok: false, error: 'Chưa gõ nội dung.' };
   const xuLy = input.xuLy === 'rework' || input.xuLy === 'duyet' ? input.xuLy : null;
+  // Đọc xong là duyệt được, không bắt gõ chữ (#1234); trả lời / làm lại vẫn phải có nội dung.
+  const noiDung = input.noiDung.trim() || (xuLy === 'duyet' ? 'Đã duyệt.' : '');
+  if (!noiDung) return { ok: false, error: xuLy === 'rework' ? 'Ghi chỗ chưa đạt để làm lại.' : 'Chưa gõ nội dung.' };
   if (xuLy === 'duyet' && me.role !== 'admin') return { ok: false, error: 'Duyệt xong là quyền admin.' };
   const tin: TinTraoDoi = { nguoi: me.displayName || me.email, noiDung: noiDung.slice(0, 4000), xuLy, luc: new Date().toISOString(),
     anh: (Array.isArray(input.anhUrls) ? input.anhUrls : []).filter((u) => /^https?:\/\//.test(u)).slice(0, 6) };

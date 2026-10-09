@@ -3,11 +3,11 @@
 // Timeline kiểu CapCut cho một tập: màn xem trước ở trên, các track ở dưới chạy chung một thước giây.
 //   Hình   — mỗi cảnh một clip, dài bằng số giây THỰC PHÁT (phat_s: cắt từ đầu clip 4/6/8s); kéo mép phải = cắt, kéo thả clip đổi thứ tự.
 //   Chữ    — chữ trên màn của từng shot (hook, số liệu, CTA) — bản xuất vẽ đúng chữ này.
-//   Thoại  — lời thoại từng cảnh, màu theo nhân vật nói; có file giọng (thoai_url) thì phát file, chưa có thì đọc thử bằng giọng máy.
+//   Thoại  — MỘT làn cho mỗi người nói (#1237), màu theo nhân vật; có file giọng (thoai_url) thì phát file, chưa có thì đọc thử bằng giọng máy.
 //   Âm thanh — hiệu ứng/âm nền từng cảnh (am_thanh / am_thanh_url).
 //   Nhạc   — nhạc nền cả tập (nhac_url / nhac_mo_ta).
 // Nét đứt = mới có mô tả trong kịch bản, chưa sinh file. Toàn bộ chạy ở trình duyệt, không tốn tiền.
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as PE, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as PE, type ReactNode } from 'react';
 import { giayPhat, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat } from '@/lib/xuong-video/dien-anh';
 import { nguoiNoi, dongThoai, coTiengRieng } from '@/lib/xuong-video/am-thanh';
@@ -32,6 +32,12 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const [giayTam, setGiayTam] = useState<Record<number, number>>({});
   const dur = (c: Canh) => giayTam[c.id] ?? giayPhat(c);
   const batDau = useMemo(() => { let a = 0; return canh.map((c) => { const s = a; a += dur(c); return s; }); }, [canh, giayTam]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Người nói của cả tập theo thứ tự xuất hiện → mỗi người một làn thoại.
+  const nguoiNoiTap = useMemo(() => {
+    const ds: string[] = [];
+    for (const c of canh) for (const d of dongThoai(c, nhanVat)) { const t = d.nhan_vat || 'Lời dẫn'; if (!ds.some((x) => x.toLowerCase() === t.toLowerCase())) ds.push(t); }
+    return ds;
+  }, [canh, nhanVat]);
   const tong = canh.reduce((a, c) => a + dur(c), 0);
 
   const [t, setT] = useState(0);
@@ -315,7 +321,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           }), 48, nutNho(tat.clip === undefined ? '🔈' : tat.clip ? '🔇' : '🔊', `Tiếng có sẵn của clip: ${tat.clip === undefined ? 'tự (tắt khi shot có giọng/hiệu ứng sinh riêng)' : tat.clip ? 'tắt hết' : 'bật hết'} — bấm để đổi`, !!tat.clip, vongClip))}
 
           {/* Đường cong cảm xúc: điểm ở cuối mỗi shot, -5..+5, vạch giữa = 0. */}
-          {canh.some((x) => x.cam_xuc) && track('❤ Cảm xúc', 'Cảm xúc khán giả cuối mỗi shot (-5 đau/sợ … +5 vui/hy vọng) — phim hay có lên có xuống', (() => {
+          {canh.some((x) => x.cam_xuc) && track('❤ Khán giả', 'Cảm xúc KỲ VỌNG của khán giả cuối mỗi shot (-5 đau/sợ … +5 vui/hy vọng) — phim hay có lên có xuống', (() => {
             const H = 40; const y = (v: number) => H / 2 - (v / 5) * (H / 2 - 4);
             const diem = canh.map((cc, i) => ({ x: (batDau[i]! + dur(cc)) * pps, y: y(cc.cam_xuc), v: cc.cam_xuc, cc }));
             const duong = [`0,${y(0)}`, ...diem.map((d) => `${d.x},${d.y}`)].join(' ');
@@ -343,18 +349,19 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, '#facc15', cc.chu_man, cc.chu_man, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); });
           }))}
 
-          {track('🗣 Thoại', 'Lời thoại từng cảnh — màu theo nhân vật nói', canh.map((cc, i) => {
-            if (!cc.loi_thoai.trim()) return null;
-            const v = nguoiNoi(cc, nhanVat);
-            const dsT = dongThoai(cc, nhanVat);
-            if (dsT.length) {
-              const co = dsT.filter((d) => d.url).length;
-              const tt = dsT.map((d) => `${(d.nhan_vat || 'Lời dẫn').toUpperCase()}${d.dien_xuat ? ` (${d.dien_xuat})` : ''}: ${d.loi}${d.url ? ' ✓' : ''}`).join('\n');
-              return khoiAm(batDau[i]! * pps, dur(cc) * pps, co === dsT.length, mauNv(v), `${cc.dang_sinh_giong ? '⏳ ' : ''}${dsT.map((d) => `${d.nhan_vat || 'Dẫn'}: ${d.loi}`).join(' · ')}${co && co < dsT.length ? ` (${co}/${dsT.length})` : ''}`, `${tt}\n${co}/${dsT.length} dòng có giọng`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
-                sinh && { loai: 'giong', cc, giay: dur(cc), dang: cc.dang_sinh_giong || sinh.ban(`g${cc.id}`), nghe: dsT.map((d) => d.url).filter((u): u is string => !!u), title: `Bấm để chọn model, giọng từng người nói, cảm xúc, phạm vi rồi sinh` });
-            }
-            return null;
-          }), 26, <>{nutNho(docThu ? '🤖' : '🤖', docThu ? 'Đang đọc thử thoại chưa có giọng bằng giọng máy — bấm để tắt' : 'Bấm để đọc thử thoại chưa có giọng bằng giọng máy', !docThu, () => setDocThu((x) => !x))}{nutNho(tat.thoai ? '🔇' : '🔊', tat.thoai ? 'Thoại đang tắt — bấm để bật' : 'Tắt tiếng thoại', !!tat.thoai, () => batTat('thoai'))}</>)}
+          {/* Thoại tách MỘT làn cho MỖI người nói (#1237): lời + diễn xuất thuộc về nhân vật, nhìn theo làn thấy ngay ai nói khi nào. */}
+          {nguoiNoiTap.map((ten, k) => {
+            const v = nhanVat.find((x) => x.ten.toLowerCase() === ten.toLowerCase()) ?? null;
+            return <Fragment key={ten}>{track(`🗣 ${ten}`, `Thoại của ${ten} theo từng shot — bấm khối để sinh giọng cả shot`, canh.map((cc, i) => {
+              const dsT = dongThoai(cc, nhanVat);
+              const cua = dsT.filter((d) => (d.nhan_vat || 'Lời dẫn').toLowerCase() === ten.toLowerCase());
+              if (!cua.length) return null;
+              const co = cua.filter((d) => d.url).length;
+              const tt = cua.map((d) => `${d.dien_xuat ? `(${d.dien_xuat}) ` : ''}${d.loi}${d.url ? ' ✓' : ''}`).join('\n');
+              return khoiAm(batDau[i]! * pps, dur(cc) * pps, co === cua.length, mauNv(v), `${cc.dang_sinh_giong ? '⏳ ' : ''}${cua.map((d) => d.loi).join(' · ')}${co && co < cua.length ? ` (${co}/${cua.length})` : ''}`, `${ten.toUpperCase()}\n${tt}\n${co}/${cua.length} dòng có giọng`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
+                sinh && { loai: 'giong', cc, giay: dur(cc), dang: cc.dang_sinh_giong || sinh.ban(`g${cc.id}`), nghe: cua.map((d) => d.url).filter((u): u is string => !!u), title: `Bấm để chọn model, giọng từng người nói, cảm xúc, phạm vi rồi sinh giọng cả shot` });
+            }), 26, k === 0 ? <>{nutNho('🤖', docThu ? 'Đang đọc thử thoại chưa có giọng bằng giọng máy — bấm để tắt' : 'Bấm để đọc thử thoại chưa có giọng bằng giọng máy', !docThu, () => setDocThu((x) => !x))}{nutNho(tat.thoai ? '🔇' : '🔊', tat.thoai ? 'Thoại đang tắt — bấm để bật' : 'Tắt tiếng thoại', !!tat.thoai, () => batTat('thoai'))}</> : undefined)}</Fragment>;
+          })}
 
           {track('🔊 Âm thanh', 'Hiệu ứng / âm nền từng cảnh', canh.map((cc, i) => {
             if (!cc.am_thanh.trim()) return null;

@@ -93,14 +93,15 @@ if (arg('video')) {
   // Hàng đợi có trần: Veo chỉ nhận ~3 yêu cầu cùng lúc — gửi 19 một lượt thì 16 bị "rate limit" (10/10/2026). Tối đa --song-song=2 clip
   // đang chạy; clip xong mới gửi tiếp; bị hạn mức thì đợi 60s rồi gửi lại (lượt bị từ chối không tốn tiền).
   const toiDa = Number((process.argv.find((a) => a.startsWith('--song-song=')) ?? '').split('=')[1] || 2);
-  const cho = [...bcs]; const chay = new Map<number, number>(); const jobs: number[] = []; let nghi = 0;
+  const cho = [...bcs]; const chay = new Map<number, number>(); const jobs: number[] = []; let nghi = 0; let soLanCho = 0; let dungHan = false;
   const t0 = Date.now();
-  while ((cho.length || chay.size) && Date.now() - t0 < 50 * 60_000) {
+  while ((cho.length || chay.size) && Date.now() - t0 < 50 * 60_000 && soLanCho <= 5 && !dungHan) {
     while (cho.length && chay.size < toiDa && Date.now() >= nghi) {
       const bc = cho.shift()!;
       const r = await batDauVideoCanh(db, bc.canh.id);
       if (r.ok) { chay.set(r.data, bc.canh.thu_tu); jobs.push(r.data); console.log(`  → gửi #${bc.canh.thu_tu}`); }
-      else if (/rate limit|hạn mức|429/i.test(r.loi)) { cho.unshift(bc); nghi = Date.now() + 60_000; console.log(`  … hạn mức, đợi 60s (#${bc.canh.thu_tu})`); }
+      else if (/THEO NGÀY/.test(r.loi)) { console.log(`  ✗ dừng: ${r.loi}`); cho.unshift(bc); dungHan = true; break; }
+      else if (/rate limit|hạn mức|429/i.test(r.loi)) { cho.unshift(bc); soLanCho++; if (soLanCho > 5) { console.log(`  ✗ dừng: Google vẫn báo hạn mức sau 5 lần đợi — ${r.loi}`); break; } nghi = Date.now() + 60_000; console.log(`  … hạn mức, đợi 60s (#${bc.canh.thu_tu}, lần ${soLanCho})`); }
       else console.log(`  ✗ #${bc.canh.thu_tu}: ${r.loi}`);
     }
     await doi(10000);

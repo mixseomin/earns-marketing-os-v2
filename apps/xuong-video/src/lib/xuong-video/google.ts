@@ -146,6 +146,14 @@ function docLoi(j: Record<string, unknown>, status: number): string {
   const m = e?.message ?? '';
   // Lỗi hay gặp nhất: project của khoá chưa gắn Cloud Billing → ảnh/Veo bị quota free tier = 0. Nói thẳng nguyên nhân + cách sửa, không đổ nguyên đoạn tiếng Anh dài.
   if (status === 429 && /limit: 0|free_tier/i.test(m)) return 'Google chặn: project của GOOGLE_API_KEY chưa gắn Cloud Billing (ảnh/Veo không có trong free tier). Gắn billing ở aistudio.google.com/billing → Import projects.';
-  if (status === 429) return 'Google báo vượt hạn mức gọi (rate limit) — đợi 1 phút rồi bấm lại.';
+  // 429 có nhiều loại: hạn mức theo PHÚT (đợi 1 phút) khác hạn mức theo NGÀY (đợi qua ngày / xin nâng). Gộp chung thành "đợi 1 phút" làm
+  // script thử lại vô ích 30 phút (10/10/2026) — đọc quotaId/quotaMetric trong error.details và nói đúng loại, kèm nguyên văn ngắn.
+  if (status === 429) {
+    const ct = JSON.stringify((j.error as { details?: unknown } | undefined)?.details ?? '');
+    const theoNgay = /PerDay|per_day|PerProjectPerDay|daily/i.test(ct + m);
+    const quota = (ct.match(/"quotaId":"([^"]+)"/) ?? [])[1] ?? '';
+    return theoNgay ? `Google: HẾT HẠN MỨC THEO NGÀY${quota ? ` (${quota})` : ''} — thử lại sau mốc reset ngày của Google hoặc xin nâng hạn mức; không thử lại ngay.`
+      : `Google báo vượt hạn mức gọi (rate limit${quota ? `: ${quota}` : ''}) — đợi 1 phút rồi bấm lại. ${m.slice(0, 120)}`;
+  }
   return m ? `${e?.status ?? status}: ${m}`.slice(0, 300) : `HTTP ${status}`;
 }

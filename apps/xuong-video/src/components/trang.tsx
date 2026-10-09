@@ -7,7 +7,8 @@ import { useModalParam } from '@/lib/use-modal-param';
 import { Ngan } from './ngan';
 import { moNgan } from './ngan-chung';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
-import { dsPhim, docPhim, taoPhim, taoPhimMau, xoaPhim, taoTap, dsMoHinh, dsThungRac, khoiPhuc, type MoHinhChon, type PhimDayDu } from '@/lib/actions';
+import { dsPhim, docPhim, taoPhim, taoPhimMau, xoaPhim, taoTap, dsMoHinh, dsThungRac, khoiPhuc, docHoanTac, hoanTac, type MoHinhChon, type PhimDayDu } from '@/lib/actions';
+import type { MucHoanTac } from '@/lib/xuong-video/hoan-tac';
 import { LOAI_PHIM, docKinhThanh, giaAnhCents, giaVideoCents, tien, gioVN, type Phim, type Job, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Khoa, TabPhim, TAB_PHIM, O, Pill, Seg, Nut, Xoa, Loi, mono } from './ui';
 import { MoHinhCtx } from './mo-hinh-ui';
@@ -119,6 +120,7 @@ function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onCl
       <span style={mono} data-ngu-canh={`phim #${phim.id} ${phim.ten}`}>#{phim.id}</span>
       <ThongKe tk={d.thongKe} tongTien={d.tongTien} soAnchor={nhanVat.length} soTap={tap.length} />
       <button type="button" className="xv-btn" onClick={() => moNgan({ loai: 'thu-vien', tl: docKinhThanh(phim.kinh_thanh).the_loai })} title="Cỡ cảnh, góc, chuyển động máy, ống kính, ánh sáng, màu, chuyển cảnh, âm thanh, nhạc — lọc sẵn theo thể loại của phim">🎬 Thư viện</button>
+      <HoanTac phimId={phim.id} onDone={tai} />
       <ThungRac phimId={phim.id} onKhoiPhuc={tai} />
       <Xoa nhan="cả phim (tập + cảnh)" onXoa={onXoa} />
     </>} dau={
@@ -179,6 +181,26 @@ function ChiPhiGanDay({ jobs, tong, phimId }: { jobs: Job[]; tong: number; phimI
 // ── Kinh thánh (bible) ──────────────────────────────────────────────────────────────────────────────────────────
 
 const NHAN_RAC: Record<string, string> = { phim: 'phim', tap: 'tập', canh: 'cảnh', nhan_vat: 'anchor', bien_the: 'biến thể', anh_goc: 'ảnh gốc', keyframe: 'keyframe', anh_bien_the: 'ảnh biến thể' };
+
+/** ↶ Hoàn tác thao tác mới nhất của phim (#1252): sửa shot/tập/kinh thánh, chọn keyframe/bản video, duyệt, đổi giọng, xếp thứ tự.
+ *  Máy chụp giá trị cũ trước mỗi lần ghi (lib/hoan-tac.ts); nút hỏi máy chủ 4s/lần để luôn hiện đúng việc mới nhất. Xoá thì ở 🗑. */
+function HoanTac({ phimId, onDone }: { phimId: number; onDone: () => Promise<void> }) {
+  const [m, setM] = useState<MucHoanTac | null>(null);
+  const [dang, setDang] = useState(false);
+  const [loi, setLoi] = useState('');
+  const nap = useCallback(async () => { const r = await docHoanTac(phimId); if (r.ok) setM(r.data); }, [phimId]);
+  useEffect(() => { void nap(); }, [nap]);
+  useDinhKy(nap, 4000);
+  const lam = async () => { setDang(true); setLoi(''); const r = await hoanTac(phimId); setDang(false); if (!r.ok) { setLoi(r.loi); return; } await onDone(); await nap(); };
+  return (
+    <>
+      <button type="button" className="xv-btn" disabled={!m || dang} onClick={() => void lam()} title={m ? `Hoàn tác: ${m.mo_ta} (${gioVN(m.luc, { chiGio: true })})` : 'Chưa có thao tác nào để hoàn tác'}>
+        {dang ? '…' : `↶ Hoàn tác${m ? `: ${m.mo_ta.length > 34 ? `${m.mo_ta.slice(0, 32)}…` : m.mo_ta}` : ''}`}
+      </button>
+      {loi && <span style={{ ...mono, color: 'var(--red)' }}>{loi}</span>}
+    </>
+  );
+}
 
 /** Nút 🗑 Thùng rác + ngăn liệt kê thứ đã bỏ (phimId null = phim đã xoá) với nút Khôi phục. Không có xoá vĩnh viễn (#1192). */
 function ThungRac({ phimId, onKhoiPhuc }: { phimId: number | null; onKhoiPhuc: () => Promise<void> }) {

@@ -28,6 +28,18 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
   const [dsM, setDsM] = useState<MoHinhG[]>([]);
   // Mỗi người nói trong shot một cặp model + giọng (điền sẵn giọng cố định của nhân vật) — luôn thấy model nào đang dùng (#1203).
   const [chonG, setChonG] = useState<Record<string, { model: string; voice: string; luu: boolean }>>({});
+  // Giọng cố định của nhân vật LƯU NGAY khi chọn xong model + giọng (#1253: "lưu ngay khi chọn chứ không phải bấm Sinh mới lưu");
+  // luu = true nghĩa là đã lưu (hiện ✓), không còn là ô tích chờ nút Sinh.
+  const [loiLuu, setLoiLuu] = useState('');
+  const luuNgay = async (ten: string, model: string, voice: string) => {
+    const v = timNv(nhanVat, ten);
+    if (!v || !model) return;
+    const ds = dsGTheoModel[model];
+    if (ds && ds.length && !voice) return;   // model có danh sách giọng → đợi chọn giọng
+    const r = await chonGiong(v.id, model, voice);
+    if (!r.ok) { setLoiLuu(r.loi); return; }
+    setLoiLuu(''); setChonG((x) => ({ ...x, [ten]: { model, voice, luu: true } }));
+  };
   const [dsGTheoModel, setDsGTheoModel] = useState<Record<string, { id: string; ten: string }[]>>({});
   const napGiong = (m: string) => { if (m && !dsGTheoModel[m]) void dsGiongCua(m).then((g) => setDsGTheoModel((x) => ({ ...x, [m]: g }))); };
   const [camXuc, setCamXuc] = useState('shot');
@@ -52,7 +64,7 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
     const o: Record<string, { model: string; voice: string; luu: boolean }> = {};
     for (const ten of nguoi) {
       const v = timNv(nhanVat, ten);
-      o[ten] = v?.giong_model ? { model: v.giong_model, voice: v.giong_id, luu: false } : { ...MAC_DINH, luu: !!v };
+      o[ten] = v?.giong_model ? { model: v.giong_model, voice: v.giong_id, luu: true } : { ...MAC_DINH, luu: false };
       napGiong(o[ten]!.model);
     }
     setChonG(o);
@@ -97,11 +109,11 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
               return (
                 <div key={ten || '_dan'} style={{ border: '1px solid var(--line)', borderRadius: 8, padding: 8, display: 'grid', gap: 5 }}>
                   <b style={{ fontSize: 12 }}>{ten ? `🗣 ${ten}` : `🎙 ${LOI_DAN}`} <span style={mono}>{v?.giong_model ? '· đang có giọng cố định' : v ? '· chưa có giọng cố định' : ''}</span></b>
-                  <Chon value={cg.model} onChange={(m) => { doi({ model: m, voice: '' }); napGiong(m); }} minWidth={360} placeholder={dsM.length ? 'chọn model giọng…' : 'đang tải model…'}
+                  <Chon value={cg.model} onChange={(m) => { doi({ model: m, voice: '', luu: false }); napGiong(m); void luuNgay(ten, m, ''); }} minWidth={360} placeholder={dsM.length ? 'chọn model giọng…' : 'đang tải model…'}
                     options={dsM.map((m) => ({ value: m.key, label: m.ten, nhom: m.nhom, phu: m.giaCents == null ? (m.key.startsWith('elevenlabs:') ? 'trong gói' : 'chưa có giá') : `${tien(m.giaCents)}${m.donVi === '1k_ky_tu' ? '/1k ký tự' : m.donVi === 'giay' ? '/giây' : m.donVi === 'luot' ? '/lượt' : ''}`, title: m.giaText }))} />
-                  <Chon value={cg.voice} onChange={(g) => doi({ voice: g })} minWidth={360} placeholder={dsG ? (dsG.length ? 'chọn giọng…' : 'model không công bố danh sách — để trống = mặc định') : 'đang tải giọng…'}
+                  <Chon value={cg.voice} onChange={(g) => { doi({ voice: g, luu: false }); void luuNgay(ten, cg.model, g); }} minWidth={360} placeholder={dsG ? (dsG.length ? 'chọn giọng…' : 'model không công bố danh sách — để trống = mặc định') : 'đang tải giọng…'}
                     options={(dsG ?? []).map((g) => ({ value: g.id, label: g.ten, phu: Object.values(GIONG).flat().find((x) => x.id === g.id)?.ta }))} />
-                  {v && <label style={{ ...mono, display: 'inline-flex', gap: 5, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={cg.luu} onChange={(e) => doi({ luu: e.target.checked })} /> Lưu làm giọng cố định của {v.ten} (mọi shot sau dùng giọng này)</label>}
+                  {v && <span style={{ ...mono, color: cg.luu ? 'var(--lime)' : undefined }}>{cg.luu ? `✓ đã lưu làm giọng cố định của ${v.ten} — mọi shot sau dùng giọng này` : 'chọn model + giọng → tự lưu làm giọng cố định của nhân vật'}</span>}
                 </div>
               );
             })}
@@ -111,9 +123,9 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
             <label style={{ display: 'grid', gap: 3 }}><span style={mono}>Phạm vi</span>
               <Chon value={phamVi} onChange={(v) => setPhamVi(v as 'thieu' | 'tat_ca')} minWidth={380} options={[{ value: 'tat_ca', label: `Tất cả ${dong.length} dòng (sinh lại cả dòng đã có)` }, { value: 'thieu', label: `Chỉ dòng chưa có giọng (${dong.filter((d) => !d.url).length})` }]} />
             </label>
+            {loiLuu && <div style={{ ...mono, color: 'var(--red)' }}>{loiLuu}</div>}
             <div style={mono}>Nên sinh khi đã chốt lời thoại; giọng sinh sớm giúp biết độ dài thoại để chỉnh số giây shot.</div>
             <button type="button" className="xv-btn chinh" disabled={!soKyTu || nguoi.some((t) => !chonG[t]?.model)} onClick={() => xn.bam(async () => {
-              for (const ten of nguoi) { const v = timNv(nhanVat, ten); const cg = chonG[ten]; if (v && cg?.luu && cg.model) await chonGiong(v.id, cg.model, cg.voice); }
               onGiong(cc.id, { theoNguoi: Object.fromEntries(nguoi.map((t) => [t, { model: chonG[t]!.model, voice: chonG[t]!.voice }])), camXuc: camXucSo, chiThieu: phamVi === 'thieu' }); onClose();
             })}>{chuNut(`🗣 Sinh giọng · ${giaG.chuaRo ? (giaG.tong ? `≈${tien(giaG.tong)} + model chưa rõ giá` : 'model chưa công bố giá') : `≈${tien(giaG.tong)}`}`)}</button>
           </>

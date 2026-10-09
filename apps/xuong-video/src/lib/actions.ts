@@ -23,6 +23,7 @@ import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
 import { ghepThoai, thieuQc, lamTronClip, coMau, giayMau, type BaiDang, type MauQc } from '@/lib/xuong-video/kieu';
 import { luuCanhTach } from '@/lib/xuong-video/luu-canh';
+import { chupTruoc, ganNhat, hoanTacGanNhat, type MucHoanTac } from '@/lib/xuong-video/hoan-tac';
 import { docNoiDungDich, uocDichCents, apDungDich } from '@/lib/xuong-video/dich-tap';
 import { NGON_NGU, tenNgonNgu } from '@/lib/xuong-video/kieu';
 import { type Row, n, s, arr, mangInt, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
@@ -70,6 +71,8 @@ async function admin() {
   const me = await getCurrentUser();
   return me && me.role === 'admin' ? me : null;
 }
+/** Email người đang sửa (ghi vào sổ hoàn tác) — gọi sau khi đã qua admin(). */
+const ai = async () => (await admin())?.email ?? '';
 
 // ── Đọc ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -253,6 +256,7 @@ export async function suaPhim(id: number, d: { ten?: string; loai?: LoaiPhim; mo
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
+  await chupTruoc(db, { bang: 'xv_phim', id, cot: Object.keys(d), moTa: `sửa phim: ${Object.keys(d).join(', ')}`, nguoi: await ai() });
   await db.execute(sql`UPDATE xv_phim SET
     ten = coalesce(${d.ten ?? null}, ten), loai = coalesce(${d.loai ?? null}, loai), mo_ta = coalesce(${d.mo_ta ?? null}, mo_ta),
     kinh_thanh = coalesce(${d.kinh_thanh ? JSON.stringify(d.kinh_thanh) : null}::jsonb, kinh_thanh), trang_thai = coalesce(${d.trang_thai ?? null}, trang_thai),
@@ -359,6 +363,7 @@ export async function datAnhChinh(nhanVatId: number, url: string): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
+  await chupTruoc(db, { bang: 'xv_nhan_vat', id: nhanVatId, cot: ['anh_ref'], moTa: 'đặt ảnh chính của anchor', nguoi: await ai() });
   await db.execute(sql`UPDATE xv_nhan_vat SET anh_ref = (${JSON.stringify([url])}::jsonb || (anh_ref - ${url})), updated_at = now()
     WHERE id = ${nhanVatId} AND anh_ref ? ${url}`);
   return { ok: true, data: undefined };
@@ -370,6 +375,7 @@ export async function luuBienThe(d: { id?: number; nhan_vat_id: number; nhom: st
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
+  if (d.id) await chupTruoc(db, { bang: 'xv_bien_the', id: d.id, cot: ['nhom', 'ten', 'mo_ta'], moTa: `sửa biến thể ${d.ten.trim()}`, nguoi: await ai() });
   if (!d.ten.trim()) return loi('thiếu tên biến thể');
   if (d.id) {
     await db.execute(sql`UPDATE xv_bien_the SET nhom = ${d.nhom}, ten = ${d.ten.trim()}, mo_ta = ${d.mo_ta}, updated_at = now() WHERE id = ${d.id}`);
@@ -447,6 +453,7 @@ export async function suaTap(id: number, d: { ten?: string; brief?: string; kich
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
+  await chupTruoc(db, { bang: 'xv_tap', id, cot: Object.keys(d), moTa: `sửa tập: ${Object.keys(d).join(', ')}`, nguoi: await ai() });
   await db.execute(sql`UPDATE xv_tap SET ten = coalesce(${d.ten ?? null}, ten), brief = coalesce(${d.brief ?? null}, brief), kich_ban = coalesce(${d.kich_ban ?? null}, kich_ban),
     tom_tat = coalesce(${d.tom_tat ?? null}, tom_tat), so = coalesce(${d.so ?? null}, so), thoi_luong_s = coalesce(${d.thoi_luong_s ?? null}, thoi_luong_s), noi_khung = coalesce(${d.noi_khung ?? null}, noi_khung), nhac_mo_ta = coalesce(${d.nhac_mo_ta ?? null}, nhac_mo_ta), updated_at = now() WHERE id = ${id}`);
   return { ok: true, data: undefined };
@@ -545,11 +552,27 @@ export async function dichTapSang(tapId: number, sang: string): Promise<Kq<{ soS
   const r = await apDungDich(db, nd, tapId, sang, kq.data);
   return { ok: true, data: { ...r, soCoGiong: nd.soCoGiong } };
 }
+/** Thao tác mới nhất có thể hoàn tác của phim (nút ↶ trên đầu drawer phim, #1252). */
+export async function docHoanTac(phimId: number): Promise<Kq<MucHoanTac | null>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  return { ok: true, data: await ganNhat(db, phimId) };
+}
+/** ↶ Hoàn tác thao tác mới nhất (cả nhóm) — ghi lại giá trị cũ đã chụp trước khi sửa. */
+export async function hoanTac(phimId: number): Promise<Kq<string>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const m = await hoanTacGanNhat(db, phimId);
+  return m == null ? loi('không còn gì để hoàn tác') : { ok: true, data: m };
+}
 /** Sửa tay bài đăng (sau khi Claude viết). */
 export async function suaBaiDang(tapId: number, d: Omit<BaiDang, 'luc'>): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
+  await chupTruoc(db, { bang: 'xv_tap', id: tapId, cot: ['bai_dang'], moTa: 'sửa bài đăng', nguoi: await ai() });
   const bd: BaiDang = { chu_bai: d.chu_bai, tieu_de: d.tieu_de, mo_ta: d.mo_ta, cta: d.cta, luc: new Date().toISOString() };
   await db.execute(sql`UPDATE xv_tap SET bai_dang = ${JSON.stringify(bd)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
   return { ok: true, data: undefined };
@@ -616,6 +639,7 @@ export async function xepCanh(tapId: number, ids: number[]): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
+  { const nhom = await chupTruoc(db, { bang: 'xv_canh', id: ids[0] ?? 0, cot: ['thu_tu'], moTa: `xếp lại thứ tự ${ids.length} shot`, nguoi: await ai() }); for (const id of ids.slice(1)) await chupTruoc(db, { bang: 'xv_canh', id, cot: ['thu_tu'], moTa: 'xếp lại thứ tự', nguoi: '', nhom }); }
   await db.execute(sql`UPDATE xv_canh c SET thu_tu = x.i, updated_at = now()
     FROM unnest(${mangInt(ids)}::int[]) WITH ORDINALITY AS x(id, i) WHERE c.id = x.id AND c.tap_id = ${tapId}`);
   return { ok: true, data: undefined };
@@ -625,6 +649,7 @@ export async function suaCanh(id: number, d: Partial<Pick<Canh, 'canh' | 'goc_ma
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
+  await chupTruoc(db, { bang: 'xv_canh', id, cot: [...Object.keys(d), ...(d.thoai ? ['loi_thoai', 'thoai_url'] : [])], moTa: `sửa shot: ${Object.keys(d).join(', ')}`, nguoi: await ai() });
   // Thoại theo dòng: lưu dòng + ghép lại loi_thoai; dòng nào đổi lời thì bỏ file giọng cũ của dòng đó (đọc sai lời).
   if (d.thoai) {
     const cu = ((await db.execute(sql`SELECT thoai FROM xv_canh WHERE id = ${id}`)) as unknown as Row[])[0];
@@ -683,6 +708,7 @@ export async function chonKeyframe(canhId: number, url: string): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
+  await chupTruoc(db, { bang: 'xv_canh', id: canhId, cot: ['keyframe_url', 'keyframe_uv', 'trang_thai'], moTa: 'chọn keyframe', nguoi: await ai() });
   await db.execute(sql`UPDATE xv_canh SET keyframe_url = ${url}, keyframe_uv = CASE WHEN keyframe_uv @> ${JSON.stringify([url])}::jsonb THEN keyframe_uv ELSE keyframe_uv || ${JSON.stringify([url])}::jsonb END,
     trang_thai = CASE WHEN trang_thai IN ('nhap', 'loi') THEN 'co_keyframe' ELSE trang_thai END, updated_at = now() WHERE id = ${canhId}`);
   return { ok: true, data: undefined };
@@ -695,6 +721,7 @@ export async function lamLaiTuKeyframe(canhId: number): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
+  await chupTruoc(db, { bang: 'xv_canh', id: canhId, cot: ['video_url', 'video_cuoi_url', 'trang_thai', 'loi'], moTa: 'làm lại từ keyframe', nguoi: await ai() });
   await db.execute(sql`UPDATE xv_canh SET video_url = NULL, video_cuoi_url = NULL, trang_thai = CASE WHEN keyframe_url IS NULL THEN 'nhap' ELSE 'co_keyframe' END, loi = '', updated_at = now() WHERE id = ${canhId}`);
   return { ok: true, data: undefined };
 }
@@ -703,6 +730,7 @@ export async function duyetCanh(canhId: number, duyet: boolean): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
+  await chupTruoc(db, { bang: 'xv_canh', id: canhId, cot: ['trang_thai', 'loi'], moTa: duyet ? 'duyệt keyframe' : 'bỏ duyệt keyframe', nguoi: await ai() });
   if (duyet) {
     const r = (await db.execute(sql`UPDATE xv_canh SET trang_thai = 'duyet', loi = '', updated_at = now() WHERE id = ${canhId} AND keyframe_url IS NOT NULL RETURNING id`)) as unknown as Row[];
     if (!r[0]) return loi('cảnh chưa có keyframe để duyệt');
@@ -771,6 +799,7 @@ export async function chonPhienBan(canhId: number, url: string, ban: 'nhap' | 'c
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
+  await chupTruoc(db, { bang: 'xv_canh', id: canhId, cot: ['video_url', 'video_cuoi_url', 'trang_thai', 'loi'], moTa: ban === 'cuoi' ? 'chọn bản cuối' : 'chọn bản nháp', nguoi: await ai() });
   if (ban === 'cuoi') await db.execute(sql`UPDATE xv_canh SET video_cuoi_url = ${url}, updated_at = now() WHERE id = ${canhId} AND video_phien_ban @> ${JSON.stringify([{ url }])}::jsonb`);
   else await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, trang_thai = 'xong', loi = '', updated_at = now() WHERE id = ${canhId} AND video_phien_ban @> ${JSON.stringify([{ url }])}::jsonb`);
   return { ok: true, data: undefined };
@@ -1023,6 +1052,7 @@ export async function chonGiong(nhanVatId: number, model: string, voice: string)
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
+  await chupTruoc(db, { bang: 'xv_nhan_vat', id: nhanVatId, cot: ['giong_model', 'giong_id', 'giong_mau_url'], moTa: 'đổi giọng cố định của nhân vật', nguoi: await ai() });
   if (!model) return loi('chọn model giọng');
   const ds = await giongCua(model);
   if (ds.length && !ds.some((g) => g.id === voice)) return loi('giọng không có trong danh sách của model');

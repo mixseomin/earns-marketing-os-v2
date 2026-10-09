@@ -32,3 +32,13 @@ console.log('sinh-anh.test: ok');
   assert.equal(phongCachHinh(''), '');
   console.log('sinh-anh.test: phong cách ok');
 }
+// Một màu → chỉ ảnh chính; shot nhắc màu khác / nhiều đôi → tới 3 ảnh.
+{
+  const { xepThamChieu, shotNhieuMau } = await import('./sinh-anh');
+  assert.deepEqual(xepThamChieu(nv, undefined, false).urlRef.slice(0, 2), ['p1', 't1']);
+  assert.ok(xepThamChieu(nv, undefined, false).banDoRef.includes('image 1 = THE PRODUCT') && xepThamChieu(nv, undefined, false).banDoRef.includes('Use exactly its color'));
+  assert.equal(shotNhieuMau('He holds up the product from the reference images in front of his chest'), false);
+  assert.equal(shotNhieuMau('two hangers side by side, the right pair the same product in black'), true);
+  assert.equal(shotNhieuMau('lined up in all colors'), true);
+  console.log('sinh-anh.test: màu ok');
+}

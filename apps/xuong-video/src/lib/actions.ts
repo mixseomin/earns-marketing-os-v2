@@ -11,23 +11,26 @@ import { getCurrentUser } from '@/lib/auth';
 import { uploadToR2 } from '@/lib/r2';
 import { dayViecAnh, dayViecAm, chayNen } from '@/lib/xuong-video/hoan-tat';
 import { chayXuat, gopAm } from '@/lib/xuong-video/xuat-chay';
-import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiong, GIONG_MAC_DINH, timNv, promptCamXuc } from '@/lib/xuong-video/am-thanh';
-import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, coElevenTrucTiep, type MoHinhGiong } from '@/lib/xuong-video/giong';
+import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiong, timNv } from '@/lib/xuong-video/am-thanh';
+import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, type MoHinhGiong } from '@/lib/xuong-video/giong';
 import { boVaoThungRac, boAnhVaoThungRac, dsRac, khoiPhucRac, type MucRac } from '@/lib/xuong-video/thung-rac';
-import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from '@/lib/xuong-video/google';
-import { docFal, batDauNangCap, danhMucFal, dauVaoTheoSchema, guiFal, type ModelFal } from '@/lib/xuong-video/fal';
+import { batDauNangCap, danhMucFal, guiFal, type ModelFal } from '@/lib/xuong-video/fal';
 import { type DungChu } from '@/lib/xuong-video/claude';
 import { docTrangSanPham, doiChieuAnchor as doiChieuAnchorClaude } from '@/lib/xuong-video/claude';
 import { tachCanh, vietKichBan, vietBaiDang, phanTichMau, dichNoiDung, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
-import { ghepThoai, thieuQc, lamTronClip, coMau, giayMau, type BaiDang, type MauQc } from '@/lib/xuong-video/kieu';
+import { ghepThoai, thieuQc, coMau, giayMau, type BaiDang, type MauQc } from '@/lib/xuong-video/kieu';
 import { luuCanhTach } from '@/lib/xuong-video/luu-canh';
 import { chupTruoc, ganNhat, hoanTacGanNhat, type MucHoanTac } from '@/lib/xuong-video/hoan-tac';
 import { docNoiDungDich, uocDichCents, apDungDich } from '@/lib/xuong-video/dich-tap';
 import { NGON_NGU, tenNgonNgu } from '@/lib/xuong-video/kieu';
 import { type Row, n, s, arr, mangInt, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
 import { sinhAnhGoc, sinhKeyframeCanh } from '@/lib/xuong-video/sinh-anh';
+import { batDauVideoCanh, kiemVideoTap } from '@/lib/xuong-video/sinh-video';
+import { sinhGiongShots, MODEL_GIONG_MAC_DINH, type TuyGiong } from '@/lib/xuong-video/sinh-giong';
+import { xongJob as xongJobDb, mapJob } from '@/lib/xuong-video/doc-db';
+export type { TuyGiong };
 import { dsKhuon, taKhuon, ghiKhuonTuCanh, ghiKhuonTuMau, type KhuonShot } from '@/lib/xuong-video/khuon-shot';
 import {
   docKinhThanh, giaAnhCents, giaVideoCents, giaChuCents, MO_HINH_ANH, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG, NHOM_BIEN_THE,
@@ -38,14 +41,6 @@ type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
 /** Mảng số → literal mảng Postgres dạng chuỗi ('{1,2}'). Truyền mảng JS thẳng vào sql`` thì postgres-js gửi phần tử số thô
  *  và ném ERR_INVALID_ARG_TYPE ("Received type number (4)") — sinh keyframe hỏng 08/10/2026. */
 /** Giá theo danh mục fal (động) nếu là model fal:, không thì bảng tĩnh. */
-async function giaVideoSv(model: string, dpg: '720p' | '1080p', giay: number): Promise<number> {
-  if (model.startsWith('fal:')) {
-    const m = (await danhMucFal()).find((x) => x.id === model.slice(4));
-    const g = m?.gia.chinh[dpg]; if (g != null) return g * giay;
-    const clip = m?.gia.clip[dpg]; if (clip) return clip[1];
-  }
-  return giaVideoCents(model, dpg, giay);
-}
 
 /** Danh mục model cho ô chọn: Google/OpenAI (cố định) + fal (động, ~100 model) kèm giá. */
 export type MoHinhChon = { key: string; label: string; nhom: string; giaCents: number | null; donVi: 'giay' | 'anh' | 'khac'; giaText?: string; gia?: import('@/lib/xuong-video/gia-fal').GiaTom };
@@ -152,11 +147,6 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
     };
   } catch { return null; }
 }
-const mapJob = (r: Row): Job => ({
-  phim_id: r.phim_id == null ? null : n(r.phim_id), nhan: s(r.nhan), tokens_in: n(r.tokens_in), tokens_out: n(r.tokens_out), phim_ten: s(r.phim_ten),
-  id: n(r.id), canh_id: r.canh_id == null ? null : n(r.canh_id), nhan_vat_id: r.nhan_vat_id == null ? null : n(r.nhan_vat_id), loai: s(r.loai), provider: s(r.provider), model: s(r.model),
-  trang_thai: s(r.trang_thai), task_id: r.task_id == null ? null : s(r.task_id), output_url: r.output_url == null ? null : s(r.output_url), chi_phi_cents: n(r.chi_phi_cents), loi: s(r.loi), created_at: s(r.created_at),
-});
 
 export async function dsCanh(tapId: number): Promise<Canh[]> {
   const db = getDb();
@@ -754,44 +744,26 @@ export async function uocTien(tapId: number): Promise<{ anh1: number; videoTong:
 }
 
 /** Bắt đầu sinh video Veo cho một cảnh ĐÃ DUYỆT (keyframe làm khung đầu). Async: trả job id, UI gọi kiemVideo để poll. */
+
+/** Sinh video cho một shot (lõi ở sinh-video.ts — script dùng chung). */
 export async function sinhVideoCanh(canhId: number, moHinh?: string, ban: 'nhap' | 'cuoi' = 'nhap'): Promise<Kq<number>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  const bc = await boiCanhCanh(db, canhId);
-  if (!bc) return loi('không thấy cảnh');
-  if (bc.canh.trang_thai !== 'duyet' && bc.canh.trang_thai !== 'loi' && bc.canh.trang_thai !== 'xong') return loi('cảnh chưa duyệt keyframe');
-  if (!bc.canh.keyframe_url) return loi('cảnh chưa có keyframe');
-  if (moHinh && (moHinh.startsWith('fal:') || MO_HINH_VIDEO.some((m) => m.key === moHinh))) bc.kt.mo_hinh_video = moHinh as typeof bc.kt.mo_hinh_video;
-  // Shot đã có file giọng riêng → clip KHÔNG được tự đọc thoại (Veo đọc giọng lơ lớ, chồng với TTS — #1219); miệng vẫn cử động để khớp miệng sau.
-  const coGiong = dongThoai(bc.canh, bc.nhanVat).some((d) => d.url);
-  const prompt = [bc.kt.phong_cach ? `Visual style: ${bc.kt.phong_cach}.` : '', bc.canh.prompt_video.trim() || bc.canh.hanh_dong, bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', promptKyThuatVideo(bc.canh.ky_thuat), promptCamXuc(bc.canh, bc.nhanVat, 'video'),
-    coGiong ? 'IMPORTANT: the audio track must contain NO spoken words or voice — the character mouths the lines with natural lip movement in silence; only ambient sound. A separate voice recording is added later.' : ''].filter(Boolean).join(' ');
-  const giay = lamTronClip(bc.canh.thoi_luong_s);
-  const laFal = bc.kt.mo_hinh_video.startsWith('fal:');
-  // Nối cảnh: khung cuối = keyframe cảnh kế (cùng tập) khi tập bật noi_khung → các clip ghép liền mạch, bản cuối khớp bố cục bản nháp.
-  const ke = (await db.execute(sql`SELECT c2.keyframe_url, t.noi_khung FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id
-    LEFT JOIN LATERAL (SELECT keyframe_url FROM xv_canh x WHERE x.tap_id = c.tap_id AND x.thu_tu > c.thu_tu ORDER BY x.thu_tu LIMIT 1) c2 ON true WHERE c.id = ${canhId}`)) as unknown as Row[];
-  const khungCuoi = ke[0]?.noi_khung === true && ke[0]?.keyframe_url ? s(ke[0].keyframe_url) : null;
-  const job = await taoJob(db, { nhan: `Video ${ban === 'cuoi' ? 'BẢN CUỐI' : 'nháp'} · cảnh #${bc.canh.thu_tu} ${bc.canh.canh} · ${giay}s`, canh_id: canhId, loai: 'video', provider: laFal ? 'fal' : 'google', model: bc.kt.mo_hinh_video, request: { prompt, giay, doPhanGiai: bc.kt.do_phan_giai, tiLe: bc.kt.ti_le, ban, khungDau: bc.canh.keyframe_url, khungCuoi } });
-  let kq: { ok: true; taskId: string } | { ok: false; loi: string };
-  if (laFal) {
-    const id = bc.kt.mo_hinh_video.slice(4);
-    kq = await guiFal(id, await dauVaoTheoSchema(id, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, giay: bc.canh.thoi_luong_s || giay, tiLe: bc.kt.ti_le }));
-  } else {
-    const anhDau = await taiAnhBase64(bc.canh.keyframe_url);
-    if (!anhDau) { await xongJob(job, { loi: 'không tải được keyframe' }); return loi('không tải được keyframe'); }
-    const anhCuoi = khungCuoi ? await taiAnhBase64(khungCuoi) : null;
-    kq = await batDauVeo({ model: bc.kt.mo_hinh_video, prompt, anhDau, anhCuoi, tiLe: bc.kt.ti_le, doPhanGiai: bc.kt.do_phan_giai, giay });
-  }
-  if (!kq.ok) {
-    await xongJob(job, { loi: kq.loi });
-    await db.execute(sql`UPDATE xv_canh SET trang_thai = 'loi', loi = ${kq.loi}, updated_at = now() WHERE id = ${canhId}`);
-    return loi(kq.loi);
-  }
-  await db.execute(sql`UPDATE xv_job SET trang_thai = 'chay', task_id = ${kq.taskId}, updated_at = now() WHERE id = ${job}`);
-  await db.execute(sql`UPDATE xv_canh SET trang_thai = 'dang_sinh', loi = '', updated_at = now() WHERE id = ${canhId}`);
-  return { ok: true, data: job };
+  return batDauVideoCanh(db, canhId, moHinh, ban);
+}
+/** Nhận kết quả video của tập (lõi ở sinh-video.ts). */
+export async function kiemVideo(tapId: number): Promise<{ conChay: number; vuaXong: number }> {
+  const db = getDb();
+  if (!db || !(await admin())) return { conChay: 0, vuaXong: 0 };
+  return kiemVideoTap(db, tapId);
+}
+/** Sinh giọng đọc thoại cho các shot (lõi ở sinh-giong.ts — script dùng chung). */
+export async function sinhGiong(tapId: number, canhIds?: number[], tuy: TuyGiong = {}): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  return sinhGiongShots(db, tapId, canhIds, tuy);
 }
 
 /** Chọn một phiên bản đã sinh làm nháp hoặc bản cuối đang dùng (không tốn tiền). */
@@ -850,46 +822,6 @@ export async function khopMiengCanh(canhId: number): Promise<Kq<number>> {
 }
 
 /** Poll mọi job video đang chạy của tập: xong → tải về R2, ghi tiền, cảnh = xong. Gọi từ UI mỗi 10s khi có cảnh dang_sinh. */
-export async function kiemVideo(tapId: number): Promise<{ conChay: number; vuaXong: number }> {
-  const db = getDb();
-  if (!db || !(await admin())) return { conChay: 0, vuaXong: 0 };
-  const jobs = (await db.execute(sql`SELECT j.* FROM xv_job j JOIN xv_canh c ON c.id = j.canh_id WHERE c.tap_id = ${tapId} AND j.loai = 'video' AND j.trang_thai = 'chay' AND j.task_id IS NOT NULL`)) as unknown as Row[];
-  let conChay = 0, vuaXong = 0;
-  for (const r of jobs.map(mapJob)) {
-    const kq = r.provider === 'fal' ? await docFal(r.task_id!) : await docVeo(r.task_id!);
-    if (!kq.done) { conChay++; continue; }
-    if (!kq.ok) {
-      await xongJob(r.id, { loi: kq.loi });
-      await db.execute(sql`UPDATE xv_canh SET trang_thai = 'loi', loi = ${kq.loi}, updated_at = now() WHERE id = ${r.canh_id}`);
-      continue;
-    }
-    const buf = r.provider === 'fal' ? await fetch(kq.uri).then((x) => (x.ok ? x.arrayBuffer().then((a) => Buffer.from(a)) : null)).catch(() => null) : await taiVeo(kq.uri);
-    const url = buf ? await uploadToR2(`xuong-video/clip/${r.canh_id}-${randomUUID()}.mp4`, buf, 'video/mp4') : null;
-    if (!url) {
-      await xongJob(r.id, { loi: 'tải/lưu video thất bại' });
-      await db.execute(sql`UPDATE xv_canh SET trang_thai = 'loi', loi = 'tải/lưu video thất bại', updated_at = now() WHERE id = ${r.canh_id}`);
-      continue;
-    }
-    const req = (await db.execute(sql`SELECT request, model FROM xv_job WHERE id = ${r.id}`)) as unknown as Row[];
-    const rq = (req[0]?.request ?? {}) as { giay?: number; doPhanGiai?: '720p' | '1080p'; ban?: 'nhap' | 'cuoi'; nangCap?: boolean; khopMieng?: boolean; prompt?: string; khungDau?: string; khungCuoi?: string | null };
-    const gia = rq.nangCap ? NANG_CAP.giaGiayCents * (rq.giay ?? 8) : rq.khopMieng ? KHOP_MIENG.giaGiayCents * (rq.giay ?? 8) : await giaVideoSv(s(req[0]?.model), rq.doPhanGiai ?? '720p', rq.giay ?? 8);
-    await xongJob(r.id, { output_url: url, chi_phi_cents: gia });
-    const pb = JSON.stringify([{ url, ban: rq.ban === 'cuoi' || rq.nangCap ? 'cuoi' : 'nhap', model: s(req[0]?.model), job: r.id, luc: new Date().toISOString() }]);
-    await db.execute(sql`UPDATE xv_canh SET video_phien_ban = video_phien_ban || ${pb}::jsonb WHERE id = ${r.canh_id}`);
-    if (rq.ban === 'cuoi' || rq.nangCap) {
-      await db.execute(sql`UPDATE xv_canh SET video_cuoi_url = ${url}, trang_thai = 'xong', loi = '', chi_phi_cents = chi_phi_cents + ${gia}, updated_at = now() WHERE id = ${r.canh_id}`);
-    } else if (rq.khopMieng) {
-      // Khớp miệng: thay bản nháp đang dùng, GIỮ nguồn sinh (model/prompt/khung) của clip gốc để bản cuối vẫn tái lập được.
-      await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, trang_thai = 'xong', loi = '', chi_phi_cents = chi_phi_cents + ${gia}, updated_at = now() WHERE id = ${r.canh_id}`);
-    } else {
-      // Nháp: lưu NGUỒN để bản cuối tái lập đúng (model, prompt, khung đầu/cuối).
-      const nguon = { model: s(req[0]?.model), prompt: rq.prompt ?? '', khung_dau: rq.khungDau ?? null, khung_cuoi: rq.khungCuoi ?? null, giay: rq.giay ?? null, job: r.id };
-      await db.execute(sql`UPDATE xv_canh SET video_url = ${url}, nguon_video = ${JSON.stringify(nguon)}::jsonb, trang_thai = 'xong', loi = '', chi_phi_cents = chi_phi_cents + ${gia}, updated_at = now() WHERE id = ${r.canh_id}`);
-    }
-    vuaXong++;
-  }
-  return { conChay, vuaXong };
-}
 
 /** Tải ảnh tham chiếu (data URL từ trình duyệt) lên R2 — thay cho ImageAttach của mos2. */
 export async function taiAnhLen(dataUrl: string): Promise<Kq<string>> {
@@ -1024,12 +956,7 @@ export async function goiYAICanh(canhId: number, nhap: { canh: string; goc_may: 
 
 // ── Job ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-async function xongJob(id: number, d: { output_url?: string; model?: string; chi_phi_cents?: number; loi?: string }) {
-  const db = getDb()!;
-  if (d.model?.startsWith('gpt-')) await db.execute(sql`UPDATE xv_job SET provider = 'openai' WHERE id = ${id}`);
-  await db.execute(sql`UPDATE xv_job SET trang_thai = ${d.loi ? 'loi' : 'xong'}, output_url = coalesce(${d.output_url ?? null}, output_url), model = coalesce(${d.model ?? null}, model),
-    chi_phi_cents = ${Math.round((d.chi_phi_cents ?? 0) * 1000) / 1000}, loi = ${d.loi ?? ''}, updated_at = now() WHERE id = ${id}`);
-}
+const xongJob = (id: number, d: Parameters<typeof xongJobDb>[2]) => xongJobDb(getDb()!, id, d);
 const duoi = (mime: string) => (mime.split('/')[1] || 'png').replace('jpeg', 'jpg');
 
 // ── Giọng · hiệu ứng âm thanh · nhạc nền (08/10/2026) ──────────────────────────────────────────────────────────
@@ -1060,52 +987,9 @@ export async function chonGiong(nhanVatId: number, model: string, voice: string)
   return { ok: true, data: undefined };
 }
 
-const MODEL_GIONG_MAC_DINH = () => (coElevenTrucTiep() ? 'elevenlabs:eleven_v3' : GIONG_MAC_DINH.model);
-async function giongMacDinh(model: string): Promise<string> {
-  const ds = await giongCua(model);
-  return ds.find((g) => g.id === GIONG_MAC_DINH.voice)?.id ?? ds[0]?.id ?? '';
-}
 
 /** Sinh giọng đọc lời thoại cho các shot (một shot hoặc mọi shot có thoại của tập). */
 /** tuy: chọn từ bảng ＋ trên timeline (#1202) — model/giọng cho lượt này (không đổi giọng cố định của nhân vật), cảm xúc, chỉ dòng chưa có giọng. */
-export type TuyGiong = { model?: string; voice?: string; camXuc?: number; chiThieu?: boolean;
-  /** giọng cho từng người nói của lượt này (khoá = tên nhân vật, '' = lời dẫn) — chọn trong bảng ＋ (#1203) */
-  theoNguoi?: Record<string, { model: string; voice: string }> };
-export async function sinhGiong(tapId: number, canhIds?: number[], tuy: TuyGiong = {}): Promise<Kq<number>> {
-  const db = getDb();
-  if (!db) return loi('no db');
-  if (!(await admin())) return loi('không có quyền');
-  const bc = await boiCanhTap(db, tapId);
-  if (!bc) return loi('không thấy tập');
-  const ds = (await dsCanh(tapId)).filter((c) => (!canhIds || canhIds.includes(c.id)) && dongThoai(c, bc.nhanVat).length > 0);
-  if (!ds.length) return loi('không có shot nào có lời thoại');
-  const dm = await dsMoHinhGiong();
-  let so = 0;
-  for (const c of ds) {
-    // Thoại theo dòng (kịch bản phim): mỗi dòng một file, giọng của đúng người nói dòng đó. Shot cũ chỉ có chuỗi → tách dòng và LƯU
-    // vào c.thoai trước, để file giọng gắn đúng dòng (cùng một cách đọc với thẻ shot/timeline: dongThoai).
-    if (!c.thoai.length && c.loi_thoai.trim()) {
-      c.thoai = dongThoai(c, bc.nhanVat);
-      await db.execute(sql`UPDATE xv_canh SET thoai = ${JSON.stringify(c.thoai)}::jsonb WHERE id = ${c.id}`);
-    }
-    if (c.thoai.length) {
-      for (const [i, d] of c.thoai.entries()) {
-        if (!d.loi.trim() || (tuy.chiThieu && d.url)) continue;
-        const v = timNv(bc.nhanVat, d.nhan_vat) ?? null;
-        const chon = tuy.theoNguoi?.[d.nhan_vat.trim()] ?? tuy.theoNguoi?.[(v?.ten ?? '')];
-        const model = chon?.model || tuy.model || v?.giong_model || MODEL_GIONG_MAC_DINH();
-        const voice = chon?.voice || (tuy.model ? tuy.voice : '') || (v?.giong_model === model ? v.giong_id : '') || await giongMacDinh(model);
-        const text = d.loi.trim();
-        const g = giaGiong(dm.find((m) => m.key === model), text.length);
-        const gia = g ?? 0;   // model không công bố giá → sổ ghi 0 và nhãn job ghi "giá chưa rõ" để sổ chi phí không hiểu nhầm là miễn phí
-        const job = await taoJob(db, { nhan: `Giọng · shot #${c.thu_tu} dòng ${i + 1} · ${v?.ten ?? 'lời dẫn'} (${voice})${g == null ? ' · giá chưa rõ' : ''}`, canh_id: c.id, nhan_vat_id: v?.id, loai: 'am', provider: model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: model.startsWith('elevenlabs:') ? model : `fal:${model}`, request: { dich: 'thoai', dong: i, gia, text, voice } });
-        await dayViecAm({ kieu: 'am', job, model, input: await dauVaoGiongTheoModel(model, { text: d.dien_xuat && /eleven/.test(model) && /v3/.test(model) ? `[${d.dien_xuat}] ${text}` : text, voice, ngonNgu: bc.kt.ngon_ngu ?? 'vi', camXuc: tuy.camXuc ?? c.cam_xuc, theLoai: bc.kt.the_loai ?? '' }), thuMuc: `thoai/${c.id}-${i}` });
-        so++;
-      }
-    }
-  }
-  return { ok: true, data: so };
-}
 
 /** Nghe thử giọng của một nhân vật (một câu ngắn). */
 export async function ngheThuGiong(nhanVatId: number): Promise<Kq<number>> {

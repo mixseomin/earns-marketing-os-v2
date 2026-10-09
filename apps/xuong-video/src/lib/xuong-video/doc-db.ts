@@ -3,7 +3,8 @@
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import type { getDb } from '@mos2/db';
-import { docKinhThanh, type BienThe, type Canh, type KinhThanh, type LoaiNhanVat, type LoaiPhim, type NhanVat, type Tap, type TrangThaiCanh } from './kieu';
+import { docKinhThanh, giaVideoCents, type BienThe, type Canh, type Job, type KinhThanh, type LoaiNhanVat, type LoaiPhim, type NhanVat, type Tap, type TrangThaiCanh } from './kieu';
+import { danhMucFal } from './fal';
 
 export type Db = NonNullable<ReturnType<typeof getDb>>;
 export type Row = Record<string, unknown>;
@@ -71,4 +72,26 @@ export async function taoJob(db: Db, d: { phim_id?: number; nhan?: string; canh_
   const r = (await db.execute(sql`INSERT INTO xv_job (phim_id, nhan, canh_id, nhan_vat_id, bien_the_id, loai, provider, model, request, trang_thai)
     VALUES (${phimId}, ${d.nhan ?? ''}, ${d.canh_id ?? null}, ${d.nhan_vat_id ?? null}, ${d.bien_the_id ?? null}, ${d.loai}, ${d.provider}, ${d.model}, ${JSON.stringify(d.request ?? {})}::jsonb, ${d.xong ? 'xong' : 'cho'}) RETURNING id`)) as unknown as Row[];
   return n(r[0]?.id);
+}
+
+/** Khép một job: xong (kèm file/tiền) hoặc lỗi. Dùng chung actions + lib sinh video/giọng + script trên box. */
+export async function xongJob(db: Db, id: number, d: { output_url?: string; model?: string; chi_phi_cents?: number; loi?: string }) {
+  if (d.model?.startsWith('gpt-')) await db.execute(sql`UPDATE xv_job SET provider = 'openai' WHERE id = ${id}`);
+  await db.execute(sql`UPDATE xv_job SET trang_thai = ${d.loi ? 'loi' : 'xong'}, output_url = coalesce(${d.output_url ?? null}, output_url), model = coalesce(${d.model ?? null}, model),
+    chi_phi_cents = ${Math.round((d.chi_phi_cents ?? 0) * 1000) / 1000}, loi = ${d.loi ?? ''}, updated_at = now() WHERE id = ${id}`);
+}
+export const mapJob = (r: Row): Job => ({
+  phim_id: r.phim_id == null ? null : n(r.phim_id), nhan: s(r.nhan), tokens_in: n(r.tokens_in), tokens_out: n(r.tokens_out), phim_ten: s(r.phim_ten),
+  id: n(r.id), canh_id: r.canh_id == null ? null : n(r.canh_id), nhan_vat_id: r.nhan_vat_id == null ? null : n(r.nhan_vat_id), loai: s(r.loai), provider: s(r.provider), model: s(r.model),
+  trang_thai: s(r.trang_thai), task_id: r.task_id == null ? null : s(r.task_id), output_url: r.output_url == null ? null : s(r.output_url), chi_phi_cents: n(r.chi_phi_cents), loi: s(r.loi), created_at: s(r.created_at),
+});
+
+/** Giá video thật theo model (fal: danh mục động; Google: bảng kieu.ts). */
+export async function giaVideoSv(model: string, dpg: '720p' | '1080p', giay: number): Promise<number> {
+  if (model.startsWith('fal:')) {
+    const m = (await danhMucFal()).find((x) => x.id === model.slice(4));
+    const g = m?.gia.chinh[dpg]; if (g != null) return g * giay;
+    const clip = m?.gia.clip[dpg]; if (clip) return clip[1];
+  }
+  return giaVideoCents(model, dpg, giay);
 }

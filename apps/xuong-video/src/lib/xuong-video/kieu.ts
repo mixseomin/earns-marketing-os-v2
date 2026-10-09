@@ -116,6 +116,23 @@ export const NGON_NGU: { value: string; label: string; ten: string }[] = [
   { value: 'pt', label: 'Português', ten: 'Portuguese (Brazil)' }, { value: 'de', label: 'Deutsch', ten: 'German' }, { value: 'fr', label: 'Français', ten: 'French' }, { value: 'ja', label: '日本語', ten: 'Japanese' },
 ];
 export const tenNgonNgu = (ma?: string): string => NGON_NGU.find((x) => x.value === ma)?.ten ?? ma ?? 'tiếng Việt';
+/** Bỏ mọi câu có lời thoại trong ngoặc kép + nhãn ngôn ngữ khỏi prompt video: Claude nhét thoại (đúng ngôn ngữ lúc tách) vào prompt_video,
+ *  Veo in nó thành phụ đề giả và đọc sai ngôn ngữ sau khi dịch (thử 2 shot 09/10/2026). Thoại thật ghép lại từ c.thoai ở batDauVideoCanh. */
+export function boThoaiTrongPrompt(p: string): string {
+  // Tách câu bằng máy trạng thái: dấu chấm TRONG ngoặc kép không kết câu; ngoặc đóng sau một câu đã có dấu chấm thì kết câu ngay
+  // ("… pride: "Chưa tới ba lăm đô." Keep both…" → bỏ đúng câu thoại, giữ "Keep both…").
+  const cau: string[] = []; let cur = ''; let trong = false; let truoc = '';
+  for (const ch of p) {
+    cur += ch;
+    if (ch === '"' || ch === '“' || ch === '”') {
+      trong = !trong;
+      if (!trong && /[.!?]/.test(truoc)) { cau.push(cur); cur = ''; }
+    } else if (!trong && /[.!?\n]/.test(ch)) { cau.push(cur); cur = ''; }
+    truoc = ch;
+  }
+  if (cur.trim()) cau.push(cur);
+  return cau.filter((c) => !/["“”]/.test(c)).join('').replace(/\((?:Vietnamese|English|Spanish|Portuguese|German|French|Japanese|tiếng Việt|tiếng Anh)[^)]*\)/gi, ' ').replace(/\s{2,}/g, ' ').trim();
+}
 /** Chữ có ký tự riêng của tiếng Việt (ă â đ ê ô ơ ư + dấu thanh)? Dùng để bắt chữ màn/thoại tiếng Việt lọt vào phim ngôn ngữ khác (09/10/2026: phim EN ra chữ VI, keyframe vẫn chạy). */
 export const coTiengViet = (s: string): boolean => /[ăâđêôơưĂÂĐÊÔƠƯàáảãạằắẳẵặầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵÀÁẢÃẠẰẮẲẴẶẦẤẨẪẬÈÉẺẼẸỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌỒỐỔỖỘỜỚỞỠỢÙÚỦŨỤỪỨỬỮỰỲÝỶỸỴ]/.test(s);
 /** Những shot có chữ màn/thoại tiếng Việt trong khi phim không phải tiếng Việt (phim 'vi' không kiểm: chữ Anh xen là bình thường). */

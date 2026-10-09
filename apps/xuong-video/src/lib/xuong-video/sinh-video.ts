@@ -8,7 +8,7 @@ import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from './google';
 import { docFal, guiFal, dauVaoTheoSchema } from './fal';
 import { promptKyThuatVideo } from './dien-anh';
 import { dongThoai, promptCamXuc } from './am-thanh';
-import { lamTronClip, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
+import { lamTronClip, boThoaiTrongPrompt, tenNgonNgu, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { boiCanhCanh, taoJob, xongJob, mapJob, giaVideoSv, s, type Db, type Row } from './doc-db';
 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
@@ -27,7 +27,11 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   // đi khỏi khung (thử 2 shot 09/10/2026) — nói rõ khung đầu là chân lý, chủ thể ở trong khung suốt clip, không chữ.
   const coSp = bc.nhanVat.some((v) => v.loai === 'san_pham');
   const giuKhung = `The first frame is the ground truth: keep every person, ${coSp ? 'the product (exact same garment — cut, color, pockets, fabric — never restyled), ' : ''}the set and the framing exactly as in it; the main subject stays fully in frame for the whole clip; no text, captions or logos appear.`;
-  const prompt = [bc.kt.phong_cach ? `Visual style: ${bc.kt.phong_cach}.` : '', bc.canh.prompt_video.trim() || bc.canh.hanh_dong, giuKhung, bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', promptKyThuatVideo(bc.canh.ky_thuat), promptCamXuc(bc.canh, bc.nhanVat, 'video'),
+  // Thoại: KHÔNG lấy câu trong ngoặc kép của prompt_video (ngôn ngữ cũ, Veo in thành phụ đề) — ghép từ dòng thoại hiện tại của shot;
+  // có file giọng riêng rồi thì clip câm (chỉ cử miệng). Nên sinh GIỌNG trước VIDEO.
+  const dong = dongThoai(bc.canh, bc.nhanVat).filter((d) => d.loi.trim());
+  const thoaiVeo = !coGiong && dong.length ? `Spoken dialogue (${tenNgonNgu(bc.kt.ngon_ngu)}, natural lip-sync, no subtitles): ${dong.map((d) => `${d.nhan_vat ? d.nhan_vat : 'off-screen narrator'} says "${d.loi.trim()}"`).join('; ')}.` : '';
+  const prompt = [bc.kt.phong_cach ? `Visual style: ${bc.kt.phong_cach}.` : '', boThoaiTrongPrompt(bc.canh.prompt_video.trim() || bc.canh.hanh_dong), thoaiVeo, giuKhung, bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', promptKyThuatVideo(bc.canh.ky_thuat), promptCamXuc(bc.canh, bc.nhanVat, 'video'),
     coGiong ? 'IMPORTANT: the audio track must contain NO spoken words or voice — the character mouths the lines with natural lip movement in silence; only ambient sound. A separate voice recording is added later.' : ''].filter(Boolean).join(' ');
   const giay = lamTronClip(bc.canh.thoi_luong_s);
   const laFal = bc.kt.mo_hinh_video.startsWith('fal:');

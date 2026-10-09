@@ -58,7 +58,8 @@ const mau = (await q(sql`SELECT kinh_thanh->'qc'->'mau' AS m FROM xv_phim WHERE 
 await chup('xv_tap', tapId, ['kich_ban', 'beats', 'phan_canh', 'bai_dang', 'thoi_luong_s']);
 await db.execute(sql`UPDATE xv_tap SET kich_ban = ${kichBan}, beats = '[]'::jsonb, phan_canh = '[]'::jsonb, thoi_luong_s = ${Math.round(hs.canh[hs.canh.length - 1]!.den)},
   bai_dang = ${JSON.stringify({ chu_bai: mau.chu_bai ?? '', tieu_de: mau.tieu_de ?? '', mo_ta: '', cta: mau.cta ?? 'Shop now', luc: new Date().toISOString() })}::jsonb, updated_at = now() WHERE id = ${tapId}`);
-// 6. Shot
+// 6. Shot — hành động ghi tiếng Anh (cổng ngôn ngữ chặn mọi chữ Việt của phim EN); mô tả tiếng Việt giữ ở qc.mau.shots[].hinh cho anh đọc.
+const hanhDong = (c: Canh, anh: string | null) => (c.prompt_video ? c.prompt_video.split('. ').slice(0, 2).join('. ') : anh ? (c.loai === 'end_card' ? 'Real product photo on white with FLASH SALE · SHOP NOW' : 'Real customer photo collage (shop reviews)') : '');
 for (const [i, c] of hs.canh.entries()) {
   const phat = r2(c.den - c.tu);
   const kieu = { ...(c.kieu ?? {}), y: c.y };
@@ -75,7 +76,7 @@ for (const [i, c] of hs.canh.entries()) {
   const bt = c.mau_quan && mauQuan.get(c.mau_quan) ? [mauQuan.get(c.mau_quan)!] : [];
   const anh = c.anh_that ? `${B}${c.anh_that}.webp` : null;
   await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, loi_thoai, thoai, am_thanh, thoi_luong_s, nhan_vat, bien_the, prompt_anh, prompt_video, phan_doan, cam_xuc, ky_thuat, trang_phuc, phat_s, chu_man, nhanh, kieu_chu, keyframe_url, keyframe_uv, trang_thai)
-    VALUES (${tapId}, ${i + 1}, ${`Shot ${i + 1} · ${c.loai}`}, ${c.goc_may ?? (anh ? 'Still real product/customer photo' : '')}, ${c.hinh}, ${ghepThoai(thoai)}, ${JSON.stringify(thoai)}::jsonb, '', 4,
+    VALUES (${tapId}, ${i + 1}, ${`Shot ${i + 1} · ${c.loai}`}, ${c.goc_may ?? (anh ? 'Still real product/customer photo' : '')}, ${hanhDong(c, anh)}, ${ghepThoai(thoai)}, ${JSON.stringify(thoai)}::jsonb, '', 4,
       ${JSON.stringify(anh ? [] : ids)}::jsonb, ${JSON.stringify(bt)}::jsonb, ${c.prompt_anh ?? ''}, ${c.prompt_video ?? ''}, ${c.loai}, 0, '{}'::jsonb, '', ${phat}, ${c.chu}, '', ${JSON.stringify(kieu)}::jsonb,
       ${anh}, ${JSON.stringify(anh ? [anh] : [])}::jsonb, ${anh ? 'co_keyframe' : 'nhap'})`);
 }

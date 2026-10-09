@@ -11,10 +11,10 @@ import { boiCanhCanh, mapNhanVat, taoJob, type Db, type Row } from './doc-db';
 export type KqSinh<T> = { ok: true; data: T } | { ok: false; loi: string };
 
 /** Prompt ảnh cuối = phong cách bộ phim + prompt cảnh + nhắc giữ đúng anchor theo ảnh tham chiếu. */
-export const KHONG_CHU = 'Absolutely NO text, letters, captions, subtitles, watermarks or logos anywhere in the image — the frame must be clean; on-screen text is added later in post.';
+export const KHONG_CHU = 'Absolutely NO text, letters, words, numbers, captions, subtitles, labels, watermarks or logos anywhere in the image — not even product names; the frame must be clean, on-screen text is added later in post.';
 export function ghepPromptAnh(prompt: string, phongCach: string, nv: NhanVat[], kyThuatAnh = '', trangPhuc = ''): string {
   // Kỹ thuật điện ảnh của shot (cỡ cảnh, góc, ống kính, ánh sáng, màu — thư viện dien-anh.ts) đứng ngay sau phong cách.
-  const dong = [phongCach ? `Visual style: ${phongCach}.` : '', kyThuatAnh ? `Cinematography: ${kyThuatAnh}.` : '', prompt.trim()];
+  const dong = [KHONG_CHU, phongCach ? `Visual style: ${phongCach}.` : '', kyThuatAnh ? `Cinematography: ${kyThuatAnh}.` : '', prompt.trim()];
   // DANH TÍNH ≠ TRANG PHỤC: người giữ y mặt/tóc/tuổi/dáng; quần áo theo shot nếu shot ghi trang phục. Trước đây "giữ ĐÚNG như mô tả"
   // khoá luôn bộ đồ trong mô tả anchor → shot khoe áo bra bị chồng lên áo thun (09/10/2026).
   const nguoi = nv.filter((v) => v.loai === 'nhan_vat');
@@ -24,7 +24,12 @@ export function ghepPromptAnh(prompt: string, phongCach: string, nv: NhanVat[], 
       ? `Keep the SAME person(s) as in the reference images — identical face, hair, age, skin and body type: ${nguoi.map((v) => `${v.ten} — ${v.mo_ta}`).join(' | ')}. CLOTHING IN THIS SHOT overrides any clothing in that description: ${trangPhuc.trim()}. Do not add any other garment or outer layer that is not stated.`
       : `Keep these people EXACTLY as described (and as shown in the reference images): ${nguoi.map((v) => `${v.ten} — ${v.mo_ta}`).join(' | ')}. Do not redesign them.`);
   }
-  if (vat.length) dong.push(`Keep these products / places / props EXACTLY as described and as in the reference images (same color, shape, details): ${vat.map((v) => `${v.ten} — ${v.mo_ta}`).join(' | ')}.`);
+  // Sản phẩm có ảnh tham chiếu: KHÔNG đưa tên lẫn mô tả chữ vào prompt — model vẽ tên trong ngoặc kép thành phụ đề và bám chữ tả hơn ảnh
+  // (09/10/2026: "JettJeans3 - Men's…" thành chữ trên quần, quần vẽ theo chữ "denim 5 túi" thay vì ảnh). Chỉ nói: chép đúng món trong ảnh.
+  const spCoAnh = vat.filter((v) => v.loai === 'san_pham' && v.anh_ref.length);
+  const vatTa = vat.filter((v) => !spCoAnh.includes(v));
+  if (spCoAnh.length) dong.push('THE PRODUCT in this shot must be copied EXACTLY from its reference images (same cut, color, pockets, seams, hardware, fabric) — never a generic version; any wording about the product in this prompt is secondary to those images.');
+  if (vatTa.length) dong.push(`Keep these places / props EXACTLY as described and as in the reference images (same color, shape, details): ${vatTa.map((v) => `${v.ten} — ${v.mo_ta}`).join(' | ')}.`);
   // Chữ màn do xưởng tự vẽ lúc xuất (drawtext, đúng font) — model ảnh KHÔNG được tự vẽ phụ đề: Seedream bịa chữ giả "hử le œ hiút nốp dòos" lên keyframe (#1251).
   dong.push(KHONG_CHU);
   return dong.filter(Boolean).join(' ');
@@ -44,8 +49,8 @@ export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: 
     const tu = urlRef.length + 1; urlRef.push(...lay); const den = urlRef.length;
     const so = tu === den ? `image ${tu}` : `images ${tu}–${den}`;
     dong.push(v.loai === 'san_pham'
-      ? `${so} = the PRODUCT "${v.ten}": draw EXACTLY this item — same color, cut, pockets, seams, hardware, fabric texture and label; never a generic version of it. If any text description conflicts with these images, the images win.`
-      : v.loai === 'nhan_vat' ? `${so} = ${v.ten} (same face, hair, age, body).` : `${so} = ${v.ten} (${v.loai === 'boi_canh' ? 'the location' : 'the prop'}).`);
+      ? `${so} = THE PRODUCT: draw exactly this item — same color, cut, pockets, seams, hardware and fabric texture; never a generic version. Where text and these images disagree, the images win. Do not write its name.`
+      : v.loai === 'nhan_vat' ? `${so} = the person ${v.ten} (same face, hair, age, body).` : `${so} = ${v.loai === 'boi_canh' ? 'the location' : 'the prop'} ${v.ten}.`);
   }
   return { urlRef, banDoRef: dong.length ? `Reference images: ${dong.join(' ')}` : '' };
 }

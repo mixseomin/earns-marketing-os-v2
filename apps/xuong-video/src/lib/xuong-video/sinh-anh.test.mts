@@ -8,8 +8,8 @@ const nv = [
 ] as never;
 const r = xepThamChieu(nv);
 assert.deepEqual(r.urlRef, ['p1', 'p2', 'p3', 't1', 't2', 'b1']);
-assert.ok(r.banDoRef.startsWith('Reference images: images 1–3 = the PRODUCT "JettJeans3"'), r.banDoRef);
-assert.ok(r.banDoRef.includes('images 4–5 = Ông Tom') && r.banDoRef.includes('image 6 = Phòng khách (the location)'), r.banDoRef);
+assert.ok(r.banDoRef.startsWith('Reference images: images 1–3 = THE PRODUCT') && !r.banDoRef.includes('JettJeans3'), r.banDoRef);   // tên sản phẩm KHÔNG vào prompt
+assert.ok(r.banDoRef.includes('images 4–5 = the person Ông Tom') && r.banDoRef.includes('image 6 = the location Phòng khách'), r.banDoRef);
 // biến thể của người đứng trước ảnh gốc
 const r2 = xepThamChieu(nv, (v) => (v.ten === 'Ông Tom' ? { anh_url: 'bt1' } : undefined));
 assert.deepEqual(r2.urlRef.slice(3, 5), ['bt1', 't1']);
@@ -17,5 +17,8 @@ assert.deepEqual(r2.urlRef.slice(3, 5), ['bt1', 't1']);
 const nhieu = Array.from({ length: 6 }, (_, i) => ({ id: i, loai: 'nhan_vat', ten: `N${i}`, mo_ta: '', anh_ref: ['a', 'b'] })) as never;
 assert.equal(xepThamChieu(nhieu).urlRef.length, 10);
 assert.deepEqual(xepThamChieu([] as never), { urlRef: [], banDoRef: '' });
-assert.ok(ghepPromptAnh('x', '', []).includes(KHONG_CHU));
+const g = ghepPromptAnh('x', '', nv);
+assert.ok(g.startsWith(KHONG_CHU) && g.endsWith(KHONG_CHU), g);
+assert.ok(!g.includes('JettJeans3') && g.includes('THE PRODUCT in this shot must be copied EXACTLY'), g);   // sản phẩm có ảnh: không tên, không mô tả chữ
+assert.ok(g.includes('Phòng khách'), g);
 console.log('sinh-anh.test: ok');

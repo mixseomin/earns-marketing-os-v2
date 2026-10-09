@@ -5,6 +5,7 @@
 // where Ctrl+V is awkward), file picker, and add-by-URL. Uploads immediately to R2 and shows a
 // coloured success/error status. `value` is the list of attached URLs. Use anywhere attachments
 // are needed (blocker report, feedback form, …).
+import { moNgan } from './ngan-chung';
 import { useState, useRef, useEffect, type CSSProperties } from 'react';
 import { taiAnhGopY, xoaAnhGopY as deleteImage } from '@/lib/gop-y';
 const uploadImage = (du: string, _thuMuc?: string) => taiAnhGopY(du);
@@ -212,9 +213,9 @@ export function ImageAttach({ value, onChange, folder = 'uploads', max = 6, uplo
             const m = meta[u];
             return (
               <div key={u} style={{ position: 'relative', width: 96 }}>
-                <a href={u} target="_blank" rel="noopener noreferrer"><img src={u} alt={`ảnh ${i + 1}`}
+                <img src={u} alt={`ảnh ${i + 1}`} onClick={() => moNgan({ loai: 'xem', url: u })}
                   onLoad={(e) => { if (!m) { const im = e.currentTarget; setMeta((x) => ({ ...x, [u]: { w: im.naturalWidth, h: im.naturalHeight, kb: 0 } })); } }}
-                  style={{ width: 96, height: 64, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--ok,#22c55e)', display: 'block' }} /></a>
+                  style={{ width: 96, height: 64, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--ok,#22c55e)', display: 'block', cursor: 'zoom-in' }} />
                 <div title={m?.goc && (m.goc.w !== m.w || m.goc.kb !== m.kb) ? `gốc ${tenKc(m.goc)} → đã thu nhỏ/nén` : 'giữ nguyên ảnh gốc'}
                   style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', marginTop: 2, lineHeight: 1.3 }}>
                   <span style={{ color: 'var(--ok,#22c55e)' }}>✓</span> {m ? (m.kb ? tenKc(m) : `${m.w}×${m.h}`) : '…'}

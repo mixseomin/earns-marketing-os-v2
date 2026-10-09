@@ -7,6 +7,7 @@
 // Card rơi vào mos2.on.tc/p/xuong-video/plays; Claude nhặt bằng /tasks-studio.
 import { useEffect, useState, type CSSProperties } from 'react';
 import { ImageAttach, discardAttachments } from './image-attach';
+import { moNgan } from './ngan-chung';
 import { gioVN } from '@/lib/xuong-video/kieu';
 import { dsGopYCuaToi, docTraoDoi, guiGopY, guiTraoDoi, type GopYCuaToi, type TinTraoDoi } from '@/lib/gop-y';
 
@@ -143,7 +144,7 @@ function Luong({ id, onXong }: { id: number; onXong: () => void }) {
           </div>
           <div style={{ fontSize: 12.5, whiteSpace: 'pre-wrap', marginTop: 2 }}>{t.noiDung}</div>
           {t.nguCanh && <div style={{ fontSize: 10.5, color: 'var(--fg-4)', marginTop: 2 }}>{t.nguCanh}</div>}
-          {!!t.anh?.length && <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>{t.anh.map((u) => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="" style={{ width: 90, height: 60, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} /></a>)}</div>}
+          {!!t.anh?.length && <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>{t.anh.map((u) => <img key={u} src={u} alt="" onClick={() => moNgan({ loai: 'xem', url: u })} style={{ width: 90, height: 60, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)', cursor: 'zoom-in' }} />)}</div>}
         </div>
       ))}
       <textarea rows={3} placeholder="Trả lời…" value={chu} onChange={(e) => setChu(e.target.value)} style={{ ...oNhap, resize: 'vertical' }} />
@@ -200,7 +201,6 @@ function CuaToi({ ds, onNap }: { ds: GopYCuaToi[] | null; onNap: () => void }) {
             </div>
             {mo === b.id && (
               <>
-                <a href={`https://mos2.on.tc/plays?proj=xuong-video&task=${b.id}`} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--cyan)' }}>mở card trên plays ↗</a>
                 <Luong id={b.id} onXong={onNap} />
               </>
             )}

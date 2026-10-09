@@ -68,3 +68,6 @@ details.xv-det > summary small { font-family: var(--font-mono); font-size: 10.5p
 /* Nút sinh trên khối timeline (#1211): chỉ icon, nhỏ, mờ; rõ khi rê vào khối hoặc vào nút. */
 .xv-nut-sinh { opacity: .45; transition: opacity .15s; }
 div:hover > .xv-nut-sinh, .xv-nut-sinh:hover, .xv-nut-sinh:focus-visible { opacity: 1; }
+/* Chữ bấm được trông như link nhưng là nút (mở drawer, không điều hướng). */
+.xv-lienket { background: none; border: 0; padding: 0; font: inherit; color: var(--cyan); cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.xv-lienket:hover { text-decoration-style: solid; }

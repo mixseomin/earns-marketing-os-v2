@@ -73,7 +73,8 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
   const dangNhacTruoc = useRef(0);
   useEffect(() => { const n = uocA?.dangNhac ?? 0; if (dangNhacTruoc.current > 0 && n < dangNhacTruoc.current) void onChanged(); dangNhacTruoc.current = n; }, [uocA?.dangNhac]); // eslint-disable-line react-hooks/exhaustive-deps
   // Thời gian thực: có việc ảnh đang chạy → hỏi lại 4s/lần; không có → 15s/lần (bấm ở tab khác / Worker xong muộn vẫn tự hiện). Tab ẩn thì thôi.
-  useDinhKy(taiCanh, banTach ? null : dangSinhAnh ? 4000 : 15000);
+  // Nhàn rỗi vẫn hỏi 8s/lần: job do script trên box hay cửa sổ khác bắt đầu phải hiện ⏳ trên trang mà không cần F5 (anh 09/10/2026).
+  useDinhKy(taiCanh, banTach ? null : dangSinhAnh ? 4000 : 8000);
   useDinhKy(async () => { const r = await kiemVideo(tap.id); if (r.vuaXong || r.conChay === 0) await taiCanh(); }, dangSinh ? 10_000 : null, { caKhiAn: true });
 
   const chay = async (ten: string, fn: () => Promise<KqChay>) => {

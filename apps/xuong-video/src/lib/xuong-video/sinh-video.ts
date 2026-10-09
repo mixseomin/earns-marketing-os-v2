@@ -57,6 +57,10 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
   const jobs = (await db.execute(sql`SELECT j.* FROM xv_job j JOIN xv_canh c ON c.id = j.canh_id WHERE c.tap_id = ${tapId} AND j.loai = 'video' AND j.trang_thai = 'chay' AND j.task_id IS NOT NULL`)) as unknown as Row[];
   let conChay = 0, vuaXong = 0;
   for (const r of jobs.map(mapJob)) {
+    // Nhiều bên cùng hỏi (trang đang mở + script trên box): nhận job theo "thuê" 45s qua updated_at — ai cập nhật trước thì xử, bên kia bỏ
+    // qua vòng này; không thì một clip bị tải/ghi hai lần (phiên bản trùng, tiền cộng đôi).
+    const thue = (await db.execute(sql`UPDATE xv_job SET updated_at = now() WHERE id = ${r.id} AND trang_thai = 'chay' AND updated_at < now() - interval '45 seconds' RETURNING id`)) as unknown as Row[];
+    if (!thue.length) { conChay++; continue; }
     const kq = r.provider === 'fal' ? await docFal(r.task_id!) : await docVeo(r.task_id!);
     if (!kq.done) { conChay++; continue; }
     if (!kq.ok) {

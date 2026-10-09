@@ -134,8 +134,12 @@ export function keHoachXuat(o: {
     dong.forEach((d) => {
       const daiGiong = d.url && nl.get(d.url)?.dai ? nl.get(d.url)!.dai! : phat / dong.length;
       if (typeof d.tre === 'number' && d.tre > tDong) tDong = Math.min(d.tre, Math.max(0, phat - 0.2));
-      if (d.url && nl.has(d.url)) { const ka = them(d.url); themAm(`[${ka}:a]atrim=0:${so(Math.max(0.2, phat - tDong + 0.3))},asetpts=PTS-STARTPTS,adelay=${Math.round((t + tDong) * 1000)}:all=1`); }
-      tDong += daiGiong + 0.15;
+      // Giọng dài hơn phần còn lại của shot → đọc nhanh lên (tối đa 1,35×, nghe vẫn tự nhiên) để giữ nhịp như QC mẫu thay vì bị cắt cụt
+      // (10/10/2026: "Pay one, get three pants." TTS 1,96s, mẫu đọc 1,3s trong shot 2s).
+      const conLai = Math.max(0.2, phat - tDong);
+      const nhanh = d.url && nl.get(d.url)?.dai && daiGiong > conLai + 0.05 ? Math.min(1.35, daiGiong / conLai) : 1;
+      if (d.url && nl.has(d.url)) { const ka = them(d.url); themAm(`[${ka}:a]${nhanh > 1.001 ? `atempo=${so(nhanh)},` : ''}atrim=0:${so(conLai + 0.3)},asetpts=PTS-STARTPTS,adelay=${Math.round((t + tDong) * 1000)}:all=1`); }
+      tDong += daiGiong / nhanh + 0.15;
     });
     if (c.am_thanh_url && nl.has(c.am_thanh_url)) { const ka = them(c.am_thanh_url); themAm(`[${ka}:a]atrim=0:${so(phat)},asetpts=PTS-STARTPTS,volume=0.8,adelay=${Math.round(t * 1000)}:all=1`); }
     if (laVideo && !tiengRieng && nl.get(nguon)?.coAm) themAm(`[${k}:a]atrim=0:${so(phat)},asetpts=PTS-STARTPTS,adelay=${Math.round(t * 1000)}:all=1`);

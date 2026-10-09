@@ -95,6 +95,10 @@ console.log('xuat.test: mẫu ok');
 {
   const c1 = [{ ...canh[0]!, thoai: [{ nhan_vat: '', dien_xuat: '', loi: 'Pay one get three pants.', url: 'https://x/g1.mp3', tre: 0.47 }] }];
   const k = keHoachXuat({ loai: 'phim', tiLe: '9:16', canh: c1 as never, nhanVat: nv, tap: { nhac_url: null, nhac_phan_canh: {} }, nhanh: 'A', nguyenLieu, font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
-  assert.ok(k.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung.includes('adelay=470:all=1'), 'giọng trễ 0,47s');
+  const l = k.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
+  assert.ok(l.includes('adelay=470:all=1'), 'giọng trễ 0,47s');
+  assert.ok(!l.includes('atempo'), 'giọng 1,4s vừa phần còn lại 1,53s → không tăng tốc');
+  const k2 = keHoachXuat({ loai: 'phim', tiLe: '9:16', canh: c1 as never, nhanVat: nv, tap: { nhac_url: null, nhac_phan_canh: {} }, nhanh: 'A', nguyenLieu: nguyenLieu.map((x) => (x.url === 'https://x/g1.mp3' ? { ...x, dai: 1.96 } : x)), font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
+  assert.ok(k2.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung.includes('atempo=1.281,'), 'giọng 1,96s trong 1,53s → nhanh 1,28×');
   console.log('xuat.test: trễ giọng ok');
 }

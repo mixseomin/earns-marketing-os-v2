@@ -91,3 +91,15 @@ console.log('kiem-qc.test: mẫu ok');
   assert.strictEqual(kiemQc({ loai: 'short', canh: [vi], nhanVat: [], ngonNgu: 'vi' }).some((x) => x.key === 'ngon_ngu'), false);
   console.log('kiem-qc.test: ngôn ngữ ok');
 }
+// Cổng model: phim EN mà shot còn ghi chú diễn xuất / hành động / anchor tiếng Việt → chặn; sạch → null; phim vi → không chặn.
+{
+  const { chanChuModel, shotLechNgonNgu } = await import('./kieu');
+  const shot = { thu_tu: 3, chu_man: 'ONLY $34.99', loi_thoai: '', thoai: [{ nhan_vat: 'Linda', dien_xuat: 'cười khẽ', loi: 'So cheap.' }], hanh_dong: 'Linda holds two hangers' };
+  assert.ok(chanChuModel('en', { shot })?.includes('shot #3'), 'diễn xuất tiếng Việt phải bị chặn');
+  assert.ok(chanChuModel('en', { anchor: [{ ten: 'Bà Linda', mo_ta: 'woman' }] })?.includes('anchor "Bà Linda"'));
+  assert.ok(chanChuModel('en', { phongCach: 'UGC dọc, màu thật' })?.includes('phong cách phim'));
+  assert.equal(chanChuModel('en', { phongCach: 'Vertical UGC', shot: { ...shot, thoai: [{ nhan_vat: 'Linda', dien_xuat: 'soft laugh', loi: 'So cheap.' }] }, anchor: [{ ten: 'Linda', mo_ta: 'woman, 58' }] }), null);
+  assert.equal(chanChuModel('vi', { phongCach: 'UGC dọc' }), null);
+  assert.deepEqual(shotLechNgonNgu('en', [{ ...shot, thoai: [], hanh_dong: 'Ông Tom giơ quần' } as never]), [3]);   // hành động tiếng Việt cũng tính
+  console.log('kiem-qc.test: cổng model ok');
+}

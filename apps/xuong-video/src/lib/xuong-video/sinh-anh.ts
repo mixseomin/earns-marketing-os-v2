@@ -5,7 +5,7 @@ import { dayViecAnh } from './hoan-tat';
 import { promptAnhMau } from './claude';
 import { promptCamXuc } from './am-thanh';
 import { promptKyThuatAnh } from './dien-anh';
-import { docKinhThanh, thanhPhanCanh, MO_HINH_ANH, type KinhThanh, type NhanVat } from './kieu';
+import { docKinhThanh, thanhPhanCanh, chanChuModel, MO_HINH_ANH, type KinhThanh, type NhanVat } from './kieu';
 import { boiCanhCanh, mapNhanVat, taoJob, type Db, type Row } from './doc-db';
 
 export type KqSinh<T> = { ok: true; data: T } | { ok: false; loi: string };
@@ -63,6 +63,8 @@ export async function sinhAnhGoc(db: Db, nhanVatId: number): Promise<KqSinh<numb
   const nv = mapNhanVat(r[0]);
   if (!nv.mo_ta.trim()) return loi('anchor chưa có mô tả — tả ngoại hình/đặc tính trước rồi mới sinh ảnh mẫu');
   const kt = docKinhThanh(r[0].kt as KinhThanh);
+  const chan = chanChuModel(kt.ngon_ngu, { phongCach: kt.phong_cach, anchor: [nv] });
+  if (chan) return loi(chan);
   const job = await taoJob(db, { nhan: `Ảnh gốc · ${nv.ten}`, nhan_vat_id: nhanVatId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { prompt: promptAnhMau(nv, kt, nv.anh_ref.length) } });
   await dayViecAnh({ job, model: kt.mo_hinh_anh, prompt: promptAnhMau(nv, kt, nv.anh_ref.length), thamChieuUrl: nv.anh_ref.slice(0, 3), tiLe: nv.loai === 'boi_canh' ? kt.ti_le : '1:1', thuMuc: `anchor/${nhanVatId}` });
   return { ok: true, data: job };
@@ -76,6 +78,8 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
   if (!bc.canh.prompt_anh.trim()) return loi('cảnh chưa có prompt ảnh');
   if (moHinh && (moHinh.startsWith('fal:') || MO_HINH_ANH.some((m) => m.key === moHinh))) bc.kt.mo_hinh_anh = moHinh as typeof bc.kt.mo_hinh_anh;
   await db.execute(sql`UPDATE xv_canh SET loi = '' WHERE id = ${canhId}`);
+  const chan = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
+  if (chan) return loi(chan);
   const tp = thanhPhanCanh(bc.canh, bc.nhanVat);
   if (tp.thieu.length) return loi(`Chưa chuẩn bị đủ thành phần: ${tp.thieu.join('; ')}. Làm ở mục 2 (Tuyến nhân vật) rồi sinh lại.`);
   // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.

@@ -8,7 +8,7 @@ import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from './google';
 import { docFal, guiFal, dauVaoTheoSchema } from './fal';
 import { promptKyThuatVideo } from './dien-anh';
 import { dongThoai, promptCamXuc } from './am-thanh';
-import { lamTronClip, boThoaiTrongPrompt, tenNgonNgu, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
+import { lamTronClip, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { boiCanhCanh, taoJob, xongJob, mapJob, giaVideoSv, s, type Db, type Row } from './doc-db';
 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
@@ -20,6 +20,8 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   if (!bc) return loi('không thấy cảnh');
   if (bc.canh.trang_thai !== 'duyet' && bc.canh.trang_thai !== 'loi' && bc.canh.trang_thai !== 'xong') return loi('cảnh chưa duyệt keyframe');
   if (!bc.canh.keyframe_url) return loi('cảnh chưa có keyframe');
+  const chan = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
+  if (chan) return loi(chan);
   if (moHinh && (moHinh.startsWith('fal:') || MO_HINH_VIDEO.some((m) => m.key === moHinh))) bc.kt.mo_hinh_video = moHinh as typeof bc.kt.mo_hinh_video;
   // Shot đã có file giọng riêng → clip KHÔNG được tự đọc thoại (Veo đọc giọng lơ lớ, chồng với TTS — #1219); miệng vẫn cử động để khớp miệng sau.
   const coGiong = dongThoai(bc.canh, bc.nhanVat).some((d) => d.url);

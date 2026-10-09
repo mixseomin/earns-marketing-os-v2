@@ -458,41 +458,32 @@ export async function phanTichMau(khung: { giay: number; b64: string }[], tongGi
   }
 }
 
-// ── Dịch cả tập sang ngôn ngữ khác (kịch bản · chữ màn · thoại · bài đăng) — giữ shot, keyframe, video; chỉ đổi chữ ─────
-const DichSchema = z.object({
-  kich_ban: z.string().describe('Kịch bản đã dịch, giữ nguyên bố cục dòng/đầu mục/số cảnh'),
-  bai_dang: z.object({ chu_bai: z.string(), tieu_de: z.string(), mo_ta: z.string(), cta: z.string() }).nullable().describe('Bài đăng đã dịch; null nếu đầu vào không có bài đăng'),
-  canh: z.array(z.object({
-    id: z.number().int().describe('id shot, chép đúng từ đầu vào'),
-    chu_man: z.string().describe('Chữ trên màn đã dịch — ngắn như chữ gốc, VIẾT HOA nếu gốc viết hoa, giữ số/giá/emoji'),
-    thoai: z.array(z.string()).describe('Lời từng dòng thoại đã dịch, ĐÚNG số dòng và thứ tự như đầu vào (mảng rỗng nếu shot không có thoại)'),
-  })).describe('Đủ mọi shot của đầu vào, đúng thứ tự'),
-});
-export type DauVaoDich = { kinhThanh: KinhThanh; sang: string; kichBan: string; baiDang: Omit<BaiDang, 'luc'> | null; canh: { id: number; chu_man: string; thoai: string[] }[] };
-export async function dichNoiDung(o: DauVaoDich): Promise<GoiYKq<z.infer<typeof DichSchema>>> {
+// ── Dịch một lô chuỗi của phim (dich-phim.ts gom + chia lô + thay lại) ──────────────────────────────────────────
+const DichChuoiSchema = z.object({ ban_dich: z.array(z.object({ i: z.number().int().describe('chỉ số chuỗi gốc, chép đúng'), v: z.string().describe('bản dịch') })).describe('Đủ MỌI chuỗi đầu vào, mỗi i đúng một lần') });
+export async function dichChuoi(o: { kinhThanh: KinhThanh; sang: string; ds: string[]; thuatNgu: [string, string][] }): Promise<GoiYKq<string[]>> {
   const c = client();
   if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
   const kt = docKinhThanh(o.kinhThanh);
-  const tong = o.kichBan.length + JSON.stringify(o.baiDang ?? '').length + JSON.stringify(o.canh).length;
+  const tong = o.ds.reduce((a, x) => a + x.length, 0);
   try {
     const r = await c.messages.parse({
-      // Trần token theo ký tự đầu vào (1 token/ký tự — JSON escape chữ có dấu phình gấp 2–3): 14k ký tự với trần 7k đứt giữa chừng (09/10/2026).
-      model: kt.mo_hinh_chu, max_tokens: Math.min(20000, Math.max(8000, tong)),
-      system: `Bạn là copywriter quảng cáo bản ngữ, dịch toàn bộ nội dung một video quảng cáo sang ${tenNgonNgu(o.sang)}${kt.qc?.thi_truong ? ` cho thị trường ${kt.qc.thi_truong}` : ''}. ${taQc(kt)}
-Luật: dịch như người bản ngữ viết quảng cáo (tự nhiên, ngắn, mạnh), KHÔNG dịch sát chữ; giữ nguyên số, giá, %, tên sản phẩm/thương hiệu, emoji, số dòng và bố cục; tên riêng nhân vật/bối cảnh (anchor) GIỮ NGUYÊN không dịch; chữ màn phải ngắn tương đương chữ gốc (đọc được trong 2 giây); mỗi shot trả đúng số dòng thoại như đầu vào; kịch bản giữ nguyên tiêu đề cảnh/đầu mục, chỉ đổi ngôn ngữ.`,
-      messages: [{ role: 'user', content: `KỊCH BẢN:
-${o.kichBan}
-
-BÀI ĐĂNG: ${o.baiDang ? JSON.stringify(o.baiDang) : 'null'}
-
-SHOT (id · chữ màn · dòng thoại):
-${JSON.stringify(o.canh)}` }],
-      output_config: { format: zodOutputFormat(DichSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
+      model: kt.mo_hinh_chu, max_tokens: Math.min(16000, 2000 + tong),
+      system: `Bạn dịch TOÀN BỘ nội dung một phim quảng cáo sang ${tenNgonNgu(o.sang)}${kt.qc?.thi_truong ? ` (thị trường ${kt.qc.thi_truong})` : ''}. Mỗi chuỗi là một mảnh của phim: chữ trên màn, lời thoại, ghi chú diễn xuất, nhãn shot, góc máy, hành động, mô tả nhân vật/bối cảnh/sản phẩm, prompt cho model ảnh/video, kịch bản, bài đăng.
+Luật:
+- Chữ khán giả thấy/nghe (chữ màn, thoại, bài đăng): như người bản ngữ viết quảng cáo — tự nhiên, ngắn, mạnh; chữ màn ngắn tương đương gốc.
+- Ghi chú kỹ thuật (góc máy, hành động, diễn xuất, mô tả, prompt): tiếng ${tenNgonNgu(o.sang)} rõ ràng, đủ ý, đúng thuật ngữ quay phim.
+- Tên người kiểu "Ông X"/"Bà X" → chỉ "X" (vd "Bà Linda" → "Linda"); tên bối cảnh/đạo cụ dịch thành cụm danh từ ngắn.
+- Giữ nguyên: số, giá, %, tên sản phẩm/thương hiệu, emoji, xuống dòng, markdown, khoá snake_case, URL, phần đã là ${tenNgonNgu(o.sang)}.
+- KHÔNG còn một chữ tiếng Việt nào trong bản dịch.${o.thuatNgu.length ? `\n- BẮT BUỘC dùng đúng bảng thuật ngữ đã chốt (gốc → dịch), kể cả khi chúng nằm trong câu dài:\n${o.thuatNgu.map(([a, b]) => `  ${a} → ${b}`).join('\n')}` : ''}`,
+      messages: [{ role: 'user', content: `Dịch từng chuỗi, trả về đủ chỉ số:\n${JSON.stringify(o.ds.map((v, i) => ({ i, v })))}` }],
+      output_config: { format: zodOutputFormat(DichChuoiSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
     });
     if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
-    if (r.stop_reason === 'max_tokens') return { ok: false, loi: 'bản dịch dài quá trần token — chia tập nhỏ hơn' };
-    const p = r.parsed_output as z.infer<typeof DichSchema> | null;
-    return p ? { ok: true, data: p, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
+    if (r.stop_reason === 'max_tokens') return { ok: false, loi: 'lô dịch dài quá trần token' };
+    const p = r.parsed_output as z.infer<typeof DichChuoiSchema> | null;
+    if (!p) return { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
+    const out = o.ds.map((g, i) => p.ban_dich.find((x) => x.i === i)?.v?.trim() || g);
+    return { ok: true, data: out, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
   } catch (e) {
     return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
   }

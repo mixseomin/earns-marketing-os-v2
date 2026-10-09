@@ -6,6 +6,7 @@ import { dayViecAm } from './hoan-tat';
 import { dongThoai, giaGiong, GIONG_MAC_DINH, timNv } from './am-thanh';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, coElevenTrucTiep } from './giong';
 import { boiCanhTap, mapCanh, taoJob, type Db, type Row } from './doc-db';
+import { chanChuModel } from './kieu';
 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
@@ -25,6 +26,7 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
   if (!bc) return loi('không thấy tập');
   const ds = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh).filter((c) => (!canhIds || canhIds.includes(c.id)) && dongThoai(c, bc.nhanVat).length > 0);
   if (!ds.length) return loi('không có shot nào có lời thoại');
+  for (const c of ds) { const chan = chanChuModel(bc.kt.ngon_ngu, { shot: { thu_tu: c.thu_tu, thoai: c.thoai, loi_thoai: c.loi_thoai } }); if (chan) return loi(chan); }
   const dm = await dsMoHinhGiong();
   let so = 0;
   for (const c of ds) {

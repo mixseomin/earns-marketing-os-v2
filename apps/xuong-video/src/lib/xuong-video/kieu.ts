@@ -135,9 +135,23 @@ export function boThoaiTrongPrompt(p: string): string {
 }
 /** Chữ có ký tự riêng của tiếng Việt (ă â đ ê ô ơ ư + dấu thanh)? Dùng để bắt chữ màn/thoại tiếng Việt lọt vào phim ngôn ngữ khác (09/10/2026: phim EN ra chữ VI, keyframe vẫn chạy). */
 export const coTiengViet = (s: string): boolean => /[ăâđêôơưĂÂĐÊÔƠƯàáảãạằắẳẵặầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵÀÁẢÃẠẰẮẲẴẶẦẤẨẪẬÈÉẺẼẸỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌỒỐỔỖỘỜỚỞỠỢÙÚỦŨỤỪỨỬỮỰỲÝỶỸỴ]/.test(s);
-/** Những shot có chữ màn/thoại tiếng Việt trong khi phim không phải tiếng Việt (phim 'vi' không kiểm: chữ Anh xen là bình thường). */
-export const shotLechNgonNgu = (ngonNgu: string | undefined, canh: Pick<Canh, 'thu_tu' | 'chu_man' | 'thoai' | 'loi_thoai'>[]): number[] =>
-  !ngonNgu || ngonNgu === 'vi' ? [] : canh.filter((c) => coTiengViet(c.chu_man) || coTiengViet(c.thoai?.length ? c.thoai.map((d) => d.loi).join(' ') : c.loi_thoai.replace(/^[^:"“]*:\s*/, ''))).map((c) => c.thu_tu);
+/** Mọi chữ của một shot (nhãn, góc máy, hành động, âm thanh, phân đoạn, trang phục, prompt, chữ màn, thoại kể cả diễn xuất + người nói). */
+type ShotChu = Pick<Canh, 'thu_tu' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'canh' | 'goc_may' | 'hanh_dong' | 'am_thanh' | 'phan_doan' | 'trang_phuc' | 'prompt_anh' | 'prompt_video'>>;
+const chuShot = (c: ShotChu): string => [c.chu_man, c.canh, c.goc_may, c.hanh_dong, c.am_thanh, c.phan_doan, c.trang_phuc, c.prompt_anh, c.prompt_video,
+  ...(c.thoai?.length ? c.thoai.flatMap((d) => [d.loi, d.dien_xuat, d.nhan_vat]) : [c.loi_thoai])].filter(Boolean).join(' ');
+/** Những shot còn BẤT KỲ chữ tiếng Việt nào khi phim không phải tiếng Việt (phim 'vi' không kiểm: chữ Anh xen là bình thường). */
+export const shotLechNgonNgu = (ngonNgu: string | undefined, canh: ShotChu[]): number[] =>
+  !ngonNgu || ngonNgu === 'vi' ? [] : canh.filter((c) => coTiengViet(chuShot(c))).map((c) => c.thu_tu);
+/** Cổng trước mọi lượt sinh tốn tiền (ảnh/video/giọng): chữ SẼ ĐI VÀO model còn tiếng Việt khi phim không phải tiếng Việt → trả câu lỗi.
+ *  09/10/2026: phong cách + mô tả anchor tiếng Việt ghép vào prompt → Veo in phụ đề Việt giả lên clip ($0,40 bỏ đi). */
+export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: string; shot?: Partial<ShotChu>; anchor?: Pick<NhanVat, 'ten' | 'mo_ta'>[] }): string | null {
+  if (!ngonNgu || ngonNgu === 'vi') return null;
+  const cho: string[] = [];
+  if (o.phongCach && coTiengViet(o.phongCach)) cho.push('phong cách phim');
+  if (o.shot && coTiengViet(chuShot({ thu_tu: 0, chu_man: '', thoai: [], loi_thoai: '', ...o.shot }))) cho.push(`shot${o.shot.thu_tu ? ` #${o.shot.thu_tu}` : ''}`);
+  for (const a of o.anchor ?? []) if (coTiengViet(`${a.ten} ${a.mo_ta}`)) cho.push(`anchor "${a.ten}"`);
+  return cho.length ? `Phim ${tenNgonNgu(ngonNgu)} nhưng chữ đi vào model còn tiếng Việt (${cho.slice(0, 5).join(', ')}${cho.length > 5 ? '…' : ''}) — bấm 🌐 Dịch cả phim trước, không sinh để khỏi mất tiền.` : null;
+}
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
   phong_cach: '', ti_le: '9:16', do_phan_giai: '720p',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },

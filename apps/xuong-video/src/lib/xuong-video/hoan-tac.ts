@@ -11,7 +11,7 @@ type Row = Record<string, unknown>;
 export type BangHoanTac = 'xv_phim' | 'xv_tap' | 'xv_canh' | 'xv_nhan_vat' | 'xv_bien_the';
 export const COT_CHO_PHEP: Record<BangHoanTac, readonly string[]> = {
   xv_phim: ['ten', 'loai', 'mo_ta', 'kinh_thanh', 'trang_thai'],
-  xv_tap: ['ten', 'brief', 'kich_ban', 'tom_tat', 'so', 'noi_khung', 'nhac_mo_ta', 'thoi_luong_s', 'bai_dang'],
+  xv_tap: ['ten', 'brief', 'kich_ban', 'tom_tat', 'so', 'noi_khung', 'nhac_mo_ta', 'thoi_luong_s', 'bai_dang', 'beats', 'phan_canh', 'nhac_phan_canh'],
   xv_canh: ['canh', 'goc_may', 'hanh_dong', 'loi_thoai', 'am_thanh', 'thoi_luong_s', 'nhan_vat', 'bien_the', 'prompt_anh', 'prompt_video', 'thu_tu', 'phan_doan', 'cam_xuc', 'ky_thuat', 'thoai', 'thoai_url', 'trang_phuc', 'phat_s', 'chu_man', 'nhanh', 'keyframe_url', 'keyframe_uv', 'trang_thai', 'loi', 'video_url', 'video_cuoi_url'],
   xv_nhan_vat: ['ten', 'mo_ta', 'anh_ref', 'giong', 'giong_model', 'giong_id', 'giong_mau_url'],
   xv_bien_the: ['nhom', 'ten', 'mo_ta'],

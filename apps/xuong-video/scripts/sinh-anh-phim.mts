@@ -55,7 +55,7 @@ if (arg('anchor') && anchorThieu.length) {
 }
 // Cổng ngôn ngữ (0đ): chữ sai thì ảnh/giọng sinh ra cũng phải làm lại — 09/10/2026 phim EN ra chữ VI, keyframe chạy mù mất tiền.
 if ((arg('keyframe') || arg('xuat')) && tapId && !arg('bo-qua-ngon-ngu')) {
-  const shots = await q(sql`SELECT thu_tu, chu_man, thoai, loi_thoai FROM xv_canh WHERE tap_id = ${tapId}`);
+  const shots = await q(sql`SELECT thu_tu, chu_man, thoai, loi_thoai, canh, goc_may, hanh_dong, am_thanh, phan_doan, trang_phuc, prompt_anh, prompt_video FROM xv_canh WHERE tap_id = ${tapId}`);
   const lech = shotLechNgonNgu(kt.ngon_ngu, shots as never);
   if (lech.length) { console.error(`  ✗ phim ${tenNgonNgu(kt.ngon_ngu)} nhưng ${lech.length} shot còn chữ màn/thoại tiếng Việt (#${lech.slice(0, 10).join(', #')}) — dịch tập trước (scripts/dich-tap.mts), hoặc --bo-qua-ngon-ngu`); process.exit(2); }
 }

@@ -85,7 +85,7 @@ if (vietLai) {
   if (cu.length) { await boVaoThungRac(db, 'canh', cu.map((x) => Number(x.id)), 'script dung-phim-mau', `${cu.length} shot cũ (viết lại kịch bản)`); console.log(`  ${cu.length} shot cũ đã có keyframe → thùng rác (viết lại)`); }
 }
 const so = await luuCanhTach(db, { tapId, tenTap: hs.tap.ten, kq: tc, nhanVat, nguoi: 'script dung-phim-mau', thoiLuongS: thoiLuong });
-{ const lech = shotLechNgonNgu(kt.ngon_ngu, tc.canh.map((c, i) => ({ thu_tu: i + 1, chu_man: c.chu_man ?? '', thoai: (c.thoai ?? []) as never, loi_thoai: c.loi_thoai })));
+{ const lech = shotLechNgonNgu(kt.ngon_ngu, tc.canh.map((c, i) => ({ thu_tu: i + 1, chu_man: c.chu_man ?? '', thoai: (c.thoai ?? []) as never, loi_thoai: c.loi_thoai, canh: c.canh, goc_may: c.goc_may, hanh_dong: c.hanh_dong, am_thanh: c.am_thanh, prompt_anh: c.prompt_anh, prompt_video: c.prompt_video })));
   if (lech.length) console.log(`  ⚠ phim ${tenNgonNgu(kt.ngon_ngu)} nhưng ${lech.length} shot còn chữ tiếng Việt (#${lech.slice(0, 10).join(', #')}) — dịch tập trước khi sinh ảnh/giọng`); }
 console.log(`  thư viện khuôn: +${await ghiKhuonTuCanh(db, tc.canh, nhanVat, tenSp, `phim #${phimId} tập 1`, phimId)} khuôn mới từ cảnh`);
 console.log(`  ${so} cảnh · tổng phát ${tc.canh.filter((c) => !c.nhanh || c.nhanh === 'A').reduce((a, c) => a + (c.phat_s ?? c.thoi_luong_s), 0)}s`);

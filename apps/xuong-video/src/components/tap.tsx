@@ -13,7 +13,7 @@ import { GiongNhanVat } from './nhan-vat';
 import { Animatic } from './animatic';
 import { CanhRow } from './canh';
 import { BaiDangKem } from './bai-dang';
-import { DichTap } from './dich-tap';
+import { DichPhim } from './dich-phim';
 import { useNho } from './nho';
 import { useDinhKy } from './dinh-ky';
 
@@ -122,7 +122,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
           {tap.tom_tat && <div style={{ ...mono, marginTop: -4, marginBottom: 6 }}>Tóm tắt (tập sau đọc): {tap.tom_tat}</div>}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             <Nut ly={!kbDirty && 'chưa sửa'} ban={banTach || ban('luu')} onClick={() => void chay('luu', async () => { await suaTap(tap.id, { kich_ban: kichBan, ten: tenTap, brief }); })}>Lưu brief + kịch bản</Nut>
-            <DichTap tap={tap} ngonNgu={kt.ngon_ngu} coAnthropic={khoa.anthropic} ban={banTach} onChanged={onChanged} />
+            <DichPhim tap={tap} ngonNgu={kt.ngon_ngu} coAnthropic={khoa.anthropic} ban={banTach} onChanged={onChanged} />
             <span style={{ flex: 1 }} />
             {mauQc ? <span style={mono} title="Số shot + giây lấy từ bảng xương sống của QC mẫu (mục 0)">🎯 bám QC mẫu: {mauQc.shots.length} shot · {giayMau(mauQc)}s</span>
               : <input className="xv-in" type="number" min={0} max={40} value={soCanh || ''} onChange={(e) => setSoCanh(Number(e.target.value) || 0)} placeholder="số cảnh (tự)" style={{ width: 110 }} />}

@@ -1,7 +1,9 @@
 // Sinh TỪNG BƯỚC cho vài shot chọn tay trên box (anh 09/10/2026: "cấm làm hàng loạt — tập trung 2 shot đầu xem ra thế nào"):
 //   --canh=73,74                 : id shot (bắt buộc). Mặc định chỉ ƯỚC LƯỢNG (0đ), không chạy gì.
 //   --xem                        : (0đ) in đúng prompt video sẽ gửi cho từng shot + cổng ngôn ngữ — kiểm trước khi tiêu tiền.
-//   --keyframe                   : sinh lại 1 keyframe cho mỗi shot (kể cả shot đã có — ảnh cũ vẫn nằm trong dải ứng viên), đợi xong, in link.
+//   --keyframe                   : sinh lại 1 keyframe cho mỗi shot, đợi xong, CHỌN ảnh mới làm keyframe đang dùng (ảnh cũ vẫn trong dải ứng viên,
+//                                  ↶ Hoàn tác được). 09/10/2026: không chọn → video chạy từ keyframe cũ sai quần, mất $0,40.
+//   --chon=<url>                 : (0đ) chọn một ảnh trong dải ứng viên làm keyframe đang dùng (chỉ khi --canh có MỘT shot).
 //   --duyet                      : đánh dấu shot đã duyệt keyframe (0đ) — bước bắt buộc trước --video.
 //   --video                      : gửi sinh video nháp (Veo/fal theo kinh thánh), đợi provider trả, in link + tiền.
 //   --giong                      : sinh giọng đọc từng dòng thoại của các shot, đợi file, in link.
@@ -20,14 +22,22 @@ import { dongThoai, giaGiong } from '../src/lib/xuong-video/am-thanh';
 import { dsMoHinhGiong } from '../src/lib/xuong-video/giong';
 import { boiCanhCanh, mapCanh, giaVideoSv, type Row } from '../src/lib/xuong-video/doc-db';
 import { lamTronClip, tien, chanChuModel, coTiengViet } from '../src/lib/xuong-video/kieu';
+import { chupTruoc } from '../src/lib/xuong-video/hoan-tac';
 
 const arg = (k: string) => process.argv.includes(`--${k}`);
 const ids = ((process.argv.find((a) => a.startsWith('--canh=')) ?? '').split('=')[1] ?? '').split(',').map(Number).filter((x) => x > 0);
 if (!ids.length) { console.error('thiếu --canh=<id,id>'); process.exit(1); }
+const urlChon = (process.argv.find((a) => a.startsWith('--chon=')) ?? '').slice(7);
 const db = getDb(); if (!db) { console.error('không có DATABASE_URL'); process.exit(1); }
 const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as Row[];
 const doi = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 
+/** Chọn ảnh làm keyframe đang dùng — cùng câu với action chonKeyframe, kèm chụp hoàn tác. */
+async function chonKf(id: number, url: string) {
+  await chupTruoc(db!, { bang: 'xv_canh', id, cot: ['keyframe_url', 'keyframe_uv', 'trang_thai'], moTa: 'chọn keyframe (script)', nguoi: 'script sinh-shot' });
+  await db!.execute(sql`UPDATE xv_canh SET keyframe_url = ${url}, keyframe_uv = CASE WHEN keyframe_uv @> ${JSON.stringify([url])}::jsonb THEN keyframe_uv ELSE keyframe_uv || ${JSON.stringify([url])}::jsonb END,
+    trang_thai = CASE WHEN trang_thai IN ('nhap', 'loi', 'duyet', 'xong') THEN 'co_keyframe' ELSE trang_thai END, updated_at = now() WHERE id = ${id}`);
+}
 const bcs = [];
 for (const id of ids) { const bc = await boiCanhCanh(db, id); if (!bc) { console.error(`không thấy shot #${id}`); process.exit(1); } bcs.push(bc); }
 const kt = bcs[0]!.kt; const tapId = bcs[0]!.canh.tap_id;
@@ -44,12 +54,13 @@ console.log(`  ước: keyframe ${bcs.length} × ${tien(giaAnh)} = ${tien(giaAnh
 if (arg('xem')) {
   for (const bc of bcs) {
     const p = promptVideoCanh(bc);
-    console.log(`\n── #${bc.canh.thu_tu} cổng: ${chanChuModel(kt.ngon_ngu, { phongCach: kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat }) ?? 'sạch'} · tiếng Việt trong prompt: ${coTiengViet(p) ? 'CÓ' : 'không'} · chữ "text/caption" ngoài lệnh cấm: ${/(?<!no )\b(text|captions?|subtitles?)\b(?! or| appear)/i.test(p.replace(/no text, captions or logos appear/i, '')) ? 'CÓ' : 'không'}`);
+    console.log(`\n── #${bc.canh.thu_tu} keyframe đang dùng: ${bc.canh.keyframe_url}`);
+    console.log(`   cổng: ${chanChuModel(kt.ngon_ngu, { phongCach: kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat }) ?? 'sạch'} · tiếng Việt trong prompt: ${coTiengViet(p) ? 'CÓ' : 'không'} · chữ "text/caption" ngoài lệnh cấm: ${/(?<!no )\b(text|captions?|subtitles?)\b(?! or| appear)/i.test(p.replace(/no text, captions or logos appear/i, '')) ? 'CÓ' : 'không'}`);
     console.log(p);
   }
   process.exit(0);
 }
-if (!arg('keyframe') && !arg('duyet') && !arg('video') && !arg('giong')) { console.log('(chỉ ước lượng — thêm MỘT cờ --keyframe / --duyet / --video / --giong để chạy)'); process.exit(0); }
+if (!arg('keyframe') && !arg('duyet') && !arg('video') && !arg('giong') && !urlChon) { console.log('(chỉ ước lượng — thêm MỘT cờ --keyframe / --duyet / --video / --giong để chạy)'); process.exit(0); }
 
 if (arg('keyframe')) {
   const jobs: number[] = [];
@@ -59,7 +70,15 @@ if (arg('keyframe')) {
     if (Number(r[0]?.cho) === 0) break; await doi(5000);
   }
   const kq = await q(sql`SELECT j.canh_id, j.trang_thai, j.output_url, j.loi, j.chi_phi_cents, c.thu_tu FROM xv_job j JOIN xv_canh c ON c.id = j.canh_id WHERE j.id = ANY(${`{${jobs.join(',')}}`}::int[]) ORDER BY c.thu_tu`);
-  for (const r of kq) console.log(`  #${r.thu_tu} ${r.trang_thai} ${r.output_url ?? r.loi} · ${tien(Number(r.chi_phi_cents))}`);
+  for (const r of kq) {
+    if (r.trang_thai === 'xong' && r.output_url) await chonKf(Number(r.canh_id), String(r.output_url));
+    console.log(`  #${r.thu_tu} ${r.trang_thai} ${r.output_url ?? r.loi} · ${tien(Number(r.chi_phi_cents))}${r.output_url ? ' · ĐÃ CHỌN làm keyframe (cần --duyet lại trước --video)' : ''}`);
+  }
+}
+if (urlChon) {
+  if (bcs.length !== 1) { console.error('--chon chỉ dùng với MỘT shot'); process.exit(1); }
+  await chonKf(bcs[0]!.canh.id, urlChon);
+  console.log(`  ✓ #${bcs[0]!.canh.thu_tu} keyframe = ${urlChon}`);
 }
 if (arg('duyet')) {
   for (const bc of bcs) await db.execute(sql`UPDATE xv_canh SET trang_thai = 'duyet', loi = '', updated_at = now() WHERE id = ${bc.canh.id} AND keyframe_url IS NOT NULL`);

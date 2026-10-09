@@ -6,7 +6,7 @@ import { moNgan, linkTai } from './ngan-chung';
 import { dongThoai, tenNoi, LOI_DAN } from '@/lib/xuong-video/am-thanh';
 import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, chiTietKyThuat, type TheLoai } from '@/lib/xuong-video/dien-anh';
 import { suaCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, sinhVideoCanh, lamLaiTuKeyframe, sinhGiong, sinhAmThanh, xoaKeyframe, goiYAICanh, nangCapCanh, chonPhienBan, khopMiengCanh } from '@/lib/actions';
-import { LOAI_NHAN_VAT, TRANG_THAI_CANH, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim } from '@/lib/xuong-video/kieu';
+import { LOAI_NHAN_VAT, TRANG_THAI_CANH, doiBienThe, motBienTheMoiDoiTuong, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, KqChay, O, Pill, Nut, Loi, AnhNho, DangSinh, mono, Menu, MucMenu, NhomNut } from './ui';
 import { MoHinhCtx, giaVideoUi, giaAnhUi, luaChonAnh, luaChonVideo } from './mo-hinh-ui';
@@ -123,7 +123,13 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh
                 <span key={nv.id} title={thieu.length ? thieu.join('\n') : `${nv.ten}${bt ? ` · ${bt.ten}` : ''} — sẵn sàng`}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 7px 2px 2px', borderRadius: 999, border: `1px solid ${thieu.length ? 'var(--red)' : 'var(--line)'}`, background: 'var(--bg-1)', fontSize: 10.5 }}>
                   {anh ? <img src={anh} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }} /> : <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg-2)', display: 'grid', placeItems: 'center', color: 'var(--red)' }}>!</span>}
-                  <span>{nv.ten}{bt && <span style={{ color: 'var(--violet)' }}> · {bt.ten}</span>}</span>
+                  <span>{nv.ten}</span>
+                  {/* Chọn biến thể ngay trên chip (#1249): ảnh gốc hoặc một biến thể (phòng ngủ sáng / tối…) — mỗi đối tượng tối đa 1. */}
+                  {(nv.bien_the ?? []).length > 0 ? (
+                    <Chon nho value={bt ? String(bt.id) : ''} onChange={(x) => void chay(k, () => suaCanh(c.id, { bien_the: doiBienThe(c.bien_the, nv, x ? Number(x) : null) }))}
+                      title={`Biến thể của ${nv.ten} trong shot này`}
+                      options={[{ value: '', label: 'ảnh gốc' }, ...(nv.bien_the ?? []).map((b) => ({ value: String(b.id), label: b.ten, phu: b.anh_url ? undefined : 'chưa ảnh', title: b.mo_ta }))]} />
+                  ) : null}
                   {thieu.length > 0 && <span style={{ color: 'var(--red)' }}>thiếu</span>}
                 </span>
               ))}
@@ -237,7 +243,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh
             <div className="xv-grid">
               <O label="Nhãn cảnh"><input className="xv-in" value={f.canh} onChange={(e) => setF({ ...f, canh: e.target.value })} /></O>
               <O label="Đối tượng"><Chon multi values={f.nhan_vat.map(String)} onValues={(v) => setF({ ...f, nhan_vat: v.map(Number) })} options={nhanVat.map((v) => ({ value: String(v.id), label: v.ten, nhom: LOAI_NHAN_VAT.find((l) => l.key === v.loai)?.label }))} placeholder="chọn…" /></O>
-              <O label="Biến thể" hint="mỗi đối tượng tối đa 1"><Chon multi values={f.bien_the.map(String)} onValues={(v) => setF({ ...f, bien_the: v.map(Number) })} options={tatCaBt.filter((b) => f.nhan_vat.includes(b.nhan_vat_id)).map((b) => ({ value: String(b.id), label: b.ten, nhom: b.nv }))} placeholder="không dùng biến thể" /></O>
+              <O label="Biến thể" hint="mỗi đối tượng tối đa 1"><Chon multi values={f.bien_the.map(String)} onValues={(v) => setF({ ...f, bien_the: motBienTheMoiDoiTuong(v.map(Number), nhanVat) })} options={tatCaBt.filter((b) => f.nhan_vat.includes(b.nhan_vat_id)).map((b) => ({ value: String(b.id), label: b.ten, nhom: b.nv }))} placeholder="không dùng biến thể" /></O>
               <O span label="Hành động"><textarea className="xv-ta" rows={2} value={f.hanh_dong} onChange={(e) => setF({ ...f, hanh_dong: e.target.value })} /></O>
               <div style={{ gridColumn: '1 / -1' }}>
                 <div className="xv-lbl" style={{ marginBottom: 4 }} title="Mỗi lượt nói một dòng: nhân vật · diễn xuất · lời. Mỗi dòng sinh giọng riêng theo giọng cố định của nhân vật (đổi ở nút giọng cạnh tên).">Thoại</div>

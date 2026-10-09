@@ -174,6 +174,17 @@ export const CAM_XUC_EN: Record<number, string> = {
   [-5]: 'despair', [-4]: 'dread', [-3]: 'pain and discomfort', [-2]: 'frustration and worry', [-1]: 'mild unease', 0: 'calm neutrality',
   1: 'curiosity', 2: 'delight', 3: 'relief and trust', 4: 'excitement and desire', 5: 'euphoric must-have excitement',
 };
+/** Đổi biến thể của MỘT đối tượng trong shot: mỗi đối tượng tối đa 1 biến thể (#1249) — luật chung cho chip trên thẻ shot và form sửa. null = dùng ảnh gốc. */
+export function doiBienThe(bienThe: number[], nv: Pick<NhanVat, 'bien_the'>, btId: number | null): number[] {
+  const cuaNv = new Set((nv.bien_the ?? []).map((b) => b.id));
+  return [...bienThe.filter((id) => !cuaNv.has(id)), ...(btId != null && cuaNv.has(btId) ? [btId] : [])];
+}
+/** Chuẩn hoá danh sách biến thể: mỗi đối tượng giữ biến thể chọn SAU CÙNG. */
+export function motBienTheMoiDoiTuong(bienThe: number[], nvs: Pick<NhanVat, 'bien_the'>[]): number[] {
+  let out = bienThe;
+  for (const v of nvs) { const cua = out.filter((id) => (v.bien_the ?? []).some((b) => b.id === id)); if (cua.length > 1) out = doiBienThe(out, v, cua[cua.length - 1]!); }
+  return out;
+}
 export const tenCamXuc = (v: number): string => CAM_XUC_KHAN_GIA[Math.max(-5, Math.min(5, Math.round(v)))] ?? '';
 export const tien = (cents: number): string => { const d = cents / 100; return `$${d >= 1 ? d.toFixed(2) : d >= 0.1 ? d.toFixed(2) : d.toFixed(3)}`; };
 

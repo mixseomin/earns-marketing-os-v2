@@ -58,3 +58,13 @@ const pVid = promptCamXuc(cCx, nvTen as never, 'video');
 assert.ok(pVid.includes('1) "nhăn mặt, xoa vai"') && pVid.includes('2) "thở dài"'), pVid);
 // Trung tính + không diễn xuất → không chèn gì.
 assert.equal(promptCamXuc({ ...(cCx as object), thoai: [], cam_xuc: 0 } as never, nvTen as never, 'video'), '');
+
+// Biến thể: mỗi đối tượng tối đa 1 (#1249).
+{
+  const { doiBienThe, motBienTheMoiDoiTuong } = await import('./kieu');
+  const phong = { bien_the: [{ id: 10 }, { id: 11 }] } as never, lan = { bien_the: [{ id: 20 }] } as never;
+  assert.deepEqual(doiBienThe([10, 20], phong, 11), [20, 11]);
+  assert.deepEqual(doiBienThe([10, 20], phong, null), [20]);
+  assert.deepEqual(doiBienThe([20], phong, 20), [20]);          // id không thuộc đối tượng → bỏ qua
+  assert.deepEqual(motBienTheMoiDoiTuong([10, 20, 11], [phong, lan]), [20, 11]);
+}

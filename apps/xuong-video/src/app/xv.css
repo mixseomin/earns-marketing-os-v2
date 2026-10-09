@@ -26,7 +26,7 @@ a { color: var(--cyan); }
 .xv-field { margin-bottom: 8px; }
 .xv-hint { font-size: 10.5px; color: var(--fg-3); margin-top: 3px; }
 .xv-loi { font-size: 11px; color: var(--red); margin-top: 4px; }
-.xv-pill { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 999px; font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .04em; border: 1px solid currentColor; }
+.xv-pill { display: inline-flex; align-items: center; white-space: nowrap; flex-shrink: 0; padding: 1px 7px; border-radius: 999px; font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .04em; border: 1px solid currentColor; }
 .xv-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
 .xv-seg button { background: var(--bg-2); color: var(--fg-2); border: 0; padding: 4px 10px; font-size: 11px; cursor: pointer; }
 .xv-seg button + button { border-left: 1px solid var(--line); }

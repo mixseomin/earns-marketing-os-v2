@@ -17,7 +17,7 @@ const CanhSchema = z.object({
   thoi_luong_s: z.number().int().describe('Thời lượng clip: chỉ 4, 6 hoặc 8'),
   nhan_vat: z.array(z.string()).describe('Tên CHÍNH XÁC của các anchor (nhân vật, sản phẩm, bối cảnh) xuất hiện trong cảnh, lấy từ danh sách đã cho'),
   bien_the: z.array(z.string()).describe('Biến thể dùng trong cảnh, ghi đúng dạng "Tên anchor · tên biến thể" lấy từ danh sách biến thể đã cho (biểu cảm, trang phục, góc máy…); mỗi anchor tối đa 1 biến thể; rỗng nếu không có biến thể phù hợp'),
-  prompt_anh: z.string().describe('Prompt tiếng Anh cho model sinh ảnh keyframe: tả khung hình tĩnh đầu cảnh — bố cục, ánh sáng, cỡ cảnh, nhân vật tả theo đặc tính cố định (KHÔNG dùng tên riêng), bối cảnh, phong cách. Không nhắc chuyển động.'),
+  prompt_anh: z.string().describe('Prompt tiếng Anh cho model sinh ảnh keyframe: tả khung hình tĩnh đầu cảnh — bố cục, ánh sáng, cỡ cảnh, nhân vật tả theo đặc tính cố định (KHÔNG dùng tên riêng), bối cảnh, phong cách. Không nhắc chuyển động. SẢN PHẨM chỉ gọi bằng tên chung + "the product from the reference images" (vd "holds up the jeans from the reference images"): KHÔNG tự tả màu, túi, cúc, chất vải — ảnh tham chiếu quyết định, chữ tả sai sẽ đè lên ảnh.'),
   prompt_video: z.string().describe('Prompt tiếng Anh cho model sinh video từ keyframe: chuyển động nhân vật, chuyển động máy, nhịp, âm thanh/lời thoại (ghi dialogue trong ngoặc kép kèm ngôn ngữ). Giữ nhân vật đúng như khung đầu.'),
 });
 // Kỹ thuật điện ảnh: chuỗi kèm danh sách key hợp lệ trong mô tả. KHÔNG dùng z.enum: helper SDK chuyển enum thành mô tả rồi parse lại

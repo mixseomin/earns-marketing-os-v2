@@ -30,6 +30,26 @@ export function ghepPromptAnh(prompt: string, phongCach: string, nv: NhanVat[], 
   return dong.filter(Boolean).join(' ');
 }
 
+/** Xếp ảnh tham chiếu cho một shot: sản phẩm trước (tối đa 3 ảnh), rồi người (biến thể trước ảnh gốc), rồi bối cảnh/đạo cụ; tối đa 10.
+ *  Trả kèm "bản đồ" ảnh nào là gì để model không đoán — với sản phẩm ghi rõ: vẽ ĐÚNG món trong ảnh, ảnh thắng mọi chữ mô tả. */
+export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: string | null } | undefined = () => undefined): { urlRef: string[]; banDoRef: string } {
+  const thuTu = [...nv.filter((v) => v.loai === 'san_pham'), ...nv.filter((v) => v.loai === 'nhan_vat'), ...nv.filter((v) => v.loai !== 'san_pham' && v.loai !== 'nhan_vat')];
+  const urlRef: string[] = []; const dong: string[] = [];
+  for (const v of thuTu) {
+    const b = btCanh(v);
+    const anh = v.loai === 'san_pham' ? v.anh_ref.slice(0, 3) : [...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, b?.anh_url ? 1 : 2)];
+    const con = Math.max(0, 10 - urlRef.length);
+    const lay = anh.slice(0, con);
+    if (!lay.length) continue;
+    const tu = urlRef.length + 1; urlRef.push(...lay); const den = urlRef.length;
+    const so = tu === den ? `image ${tu}` : `images ${tu}–${den}`;
+    dong.push(v.loai === 'san_pham'
+      ? `${so} = the PRODUCT "${v.ten}": draw EXACTLY this item — same color, cut, pockets, seams, hardware, fabric texture and label; never a generic version of it. If any text description conflicts with these images, the images win.`
+      : v.loai === 'nhan_vat' ? `${so} = ${v.ten} (same face, hair, age, body).` : `${so} = ${v.ten} (${v.loai === 'boi_canh' ? 'the location' : 'the prop'}).`);
+  }
+  return { urlRef, banDoRef: dong.length ? `Reference images: ${dong.join(' ')}` : '' };
+}
+
 /** Sinh "ảnh mẫu" cho anchor từ mô tả (character sheet). Ảnh thêm vào anh_ref; các cảnh sau dùng nó làm tham chiếu. */
 export async function sinhAnhGoc(db: Db, nhanVatId: number): Promise<KqSinh<number>> {
   const loi = (x: string): KqSinh<number> => ({ ok: false, loi: x });
@@ -55,9 +75,11 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
   if (tp.thieu.length) return loi(`Chưa chuẩn bị đủ thành phần: ${tp.thieu.join('; ')}. Làm ở mục 2 (Tuyến nhân vật) rồi sinh lại.`);
   // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.
   const btCanh = (v: NhanVat) => (v.bien_the ?? []).find((b) => bc.canh.bien_the.includes(b.id));
-  const urlRef = bc.nhanVat.flatMap((v) => { const b = btCanh(v); return [...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, b?.anh_url ? 1 : 2)]; }).slice(0, 10);
+  // Sản phẩm đứng ĐẦU danh sách tham chiếu (3 ảnh), rồi người/bối cảnh — và prompt nói rõ ảnh số mấy là gì, ảnh thắng chữ (#1256: quần
+  // sinh ra là jeans chung chung vì ảnh sản phẩm nằm sau ảnh người, không được gọi tên, còn chữ mô tả "light blue, cúc đồng" lấn ảnh).
+  const { urlRef, banDoRef } = xepThamChieu(bc.nhanVat, btCanh);
   const ghiChuBt = bc.nhanVat.map((v) => { const b = btCanh(v); return b ? `${v.ten} in this shot: ${b.mo_ta || b.ten}.` : ''; }).filter(Boolean).join(' ');
-  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, bc.kt.phong_cach, bc.nhanVat, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
+  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, bc.kt.phong_cach, bc.nhanVat, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), banDoRef, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
   const jobs: number[] = [];
   for (let i = 0; i < Math.max(1, Math.min(3, so)); i++) {
     const job = await taoJob(db, { nhan: `Keyframe · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt, thamChieu: urlRef.length } });

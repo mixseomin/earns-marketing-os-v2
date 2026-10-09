@@ -52,7 +52,9 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const [t, setT] = useState(0);
   const [chay, setChay] = useState(false);
   const [docThu, setDocThu] = useState(true);
-  const [zoom, setZoom] = useState(1);
+  // Độ phóng thước nằm trong URL (?tlz=) để F5/chia sẻ giữ nguyên (#1255) — luật chung: mọi trạng thái đổi cách nhìn đều ở URL.
+  const [zoom, setZoom] = useState(() => { if (typeof window === 'undefined') return 1; const v = Number(new URLSearchParams(window.location.search).get('tlz')); return v >= 1 && v <= 6 ? v : 1; });
+  useEffect(() => { const u = new URL(window.location.href); if (zoom === 1) u.searchParams.delete('tlz'); else u.searchParams.set('tlz', String(zoom)); window.history.replaceState(window.history.state, '', u.toString()); }, [zoom]);
   const [nhanW, setNhanW] = useState(() => { const v = Number(docLT(KHOA_NHAN_W)); return v >= 80 && v <= 400 ? v : NHAN_W_MAC_DINH; });
   // Mép phải của MỌI ô nhãn (cả thước) đều kéo được → bám chỗ nào cũng nới cả cột.
   const keoNhan = (e: PE<HTMLDivElement>) => {
@@ -301,9 +303,9 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           <div style={{ display: 'flex', height: 18 }}>
             <div style={{ width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, ...mono }}>
               <span title="Space chạy/dừng · ←/→ đổi cảnh · kéo mép clip = cắt giây phát · kéo clip đổi thứ tự · nét đứt = chưa sinh" style={{ cursor: 'help' }}>⌨</span>
-              {nutNho('−', 'Thu nhỏ thước thời gian', false, () => setZoom((z) => Math.max(1, z - 0.5)))}
-              <span title="Độ phóng thước thời gian" style={{ minWidth: 22, textAlign: 'center' }}>{zoom}×</span>
-              {nutNho('+', 'Phóng to thước thời gian', false, () => setZoom((z) => Math.min(6, z + 0.5)))}
+              {nutNho('🔍−', 'Thu nhỏ thước thời gian', zoom <= 1, () => setZoom((z) => Math.max(1, z - 0.5)))}
+              <span title="Độ phóng thước thời gian (giữ qua F5)" style={{ minWidth: 22, textAlign: 'center' }}>{zoom}×</span>
+              {nutNho('🔍+', 'Phóng to thước thời gian', zoom >= 6, () => setZoom((z) => Math.min(6, z + 0.5)))}
               {tayNhan}
             </div>
             <div style={{ position: 'relative', width: W, cursor: 'pointer' }}

@@ -3,7 +3,8 @@
 // Chạy trên box3 (có DB + ANTHROPIC_API_KEY):
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; NODE_OPTIONS=--conditions=react-server \
 //     node_modules/.bin/tsx apps/xuong-video/scripts/dung-phim-mau.mts apps/xuong-video/mau/jett-husband.json [--chi-tao]
-// --chi-tao = chỉ tạo phim/anchor/tập, không gọi Claude. Chạy lại cùng tệp = tạo phim MỚI (không đè).
+// MẶC ĐỊNH 0đ: chỉ tạo phim/anchor/tập/QC mẫu, KHÔNG gọi Claude. Muốn Claude viết kịch bản + tách cảnh + bài đăng (≈ $1,1 cho 28 shot)
+// thì thêm --claude — và chỉ khi anh bảo chạy (09/10/2026: chạy không hỏi, anh chửi). Chạy lại cùng tệp = tạo phim MỚI (không đè).
 // --phim=<id> = chạy TIẾP trên phim đã tạo (đọc anchor + tập 1 từ DB; có kịch bản rồi thì không viết lại) — dùng khi một bước lỗi giữa chừng.
 import { readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
@@ -18,7 +19,7 @@ type HoSo = {
   nhan_vat: { loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref?: string[]; giong?: string }[];
   tap: { ten: string; brief: string };
 };
-const tep = process.argv[2]; const chiTao = process.argv.includes('--chi-tao');
+const tep = process.argv[2]; const chiTao = !process.argv.includes('--claude');
 if (!tep) { console.error('thiếu đường dẫn hồ sơ json'); process.exit(1); }
 const hs = JSON.parse(readFileSync(tep, 'utf8')) as HoSo;
 const db = getDb(); if (!db) { console.error('không có DATABASE_URL'); process.exit(1); }
@@ -52,7 +53,7 @@ if (tiep) {
 }
 const tenSp = hs.kinh_thanh.qc?.ten ?? '';
 if (mau?.shots?.length && !tiep) console.log(`  thư viện khuôn: +${await ghiKhuonTuMau(db, mau.shots, nhanVat, tenSp, `QC mẫu · ${mau.nguon.slice(0, 60)}`, phimId)} khuôn mới từ mẫu`);
-if (chiTao) { console.log('--chi-tao: dừng, chưa gọi Claude'); process.exit(0); }
+if (chiTao) { console.log('dừng ở đây (0đ). Gọi Claude viết kịch bản + tách cảnh + bài đăng: thêm --claude (≈ $1,1 / 28 shot) khi anh duyệt.'); process.exit(0); }
 
 const ghiJob = async (nhan: string, r: { model?: string; tokens?: { in: number; out: number } }) => {
   if (!r.model || !r.tokens) return;

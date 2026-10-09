@@ -146,7 +146,8 @@ export async function tachCanh(opts: {
   try {
     // Mỗi shot ≈ 700–900 token JSON (2 prompt tiếng Anh + kỹ thuật + thoại); 28 shot bám mẫu vượt trần 16k → JSON đứt giữa chừng (09/10/2026).
     const soShot = (opts.soCanh || 20) + 4;   // + hook_bien_the
-    const r = await c.messages.parse({
+    // Trần > ~21k token thì SDK bắt STREAM (lượt có thể quá 10 phút) → stream rồi tự parse JSON theo schema; cùng một đường cho mọi cỡ.
+    const st = c.messages.stream({
       model: kt.mo_hinh_chu,
       max_tokens: Math.min(64000, Math.max(16000, 6000 + soShot * 1000)),
       system: `${heThong(opts.loai, kt)}\n\n${HUONG_DAN_DAO_DIEN}${laQc ? `\n\n${HUONG_DAN_QC}` : ''}`,
@@ -154,9 +155,12 @@ export async function tachCanh(opts: {
       // Kiểu của helper khai theo zod v3 nhưng runtime cần v4 (đã thử: v3 → TypeError 'def', v4 chạy) → ép kiểu ở ranh này.
       output_config: { format: zodOutputFormat(StoryboardSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
     });
+    const r = await st.finalMessage();
     if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
-    const p = r.parsed_output as z.infer<typeof StoryboardSchema> | null;
-    if (!p) return { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
+    if (r.stop_reason === 'max_tokens') return { ok: false, loi: 'Claude viết chưa hết đã chạm trần token — giảm số shot hoặc tách làm hai' };
+    const chu = r.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
+    let p: z.infer<typeof StoryboardSchema> | null = null;
+    try { p = StoryboardSchema.parse(JSON.parse(chu)); } catch (e) { return { ok: false, loi: `Claude trả JSON không đúng khuôn: ${e instanceof Error ? e.message.slice(0, 160) : String(e)}` }; }
     const kep = (v: number) => Math.max(-5, Math.min(5, Math.round(v)));
     // phat_s = giây thực phát (1–8, bước 0,5); clip sinh = làm tròn lên 4/6/8. Claude quên phat_s thì lấy thoi_luong_s.
     const phat = (x: z.infer<typeof ShotSchema>) => { const g = Number.isFinite(x.phat_s) && x.phat_s > 0 ? x.phat_s : x.thoi_luong_s; return Math.max(1, Math.min(8, Math.round(g * 2) / 2)); };

@@ -4,7 +4,7 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'r
 import { ImageAttach } from './image-attach';
 import { THE_LOAI, type TheLoai } from '@/lib/xuong-video/dien-anh';
 import { suaPhim, taiAnhLen, layTuLinkSanPham, goiYAIKinhThanh } from '@/lib/actions';
-import { MO_HINH_ANH, MO_HINH_VIDEO, MO_HINH_CHU, docKinhThanh, QC_TRONG, type ThongTinQc, thieuQc, gioVN, type Phim, type KinhThanh } from '@/lib/xuong-video/kieu';
+import { MO_HINH_ANH, MO_HINH_VIDEO, MO_HINH_CHU, NGON_NGU, docKinhThanh, QC_TRONG, type ThongTinQc, thieuQc, gioVN, type Phim, type KinhThanh } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { MauQcForm } from './mau-qc';
 import { Khoa, O, Seg, Nut, Loi, mono } from './ui';
@@ -115,7 +115,7 @@ export function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa;
         <O label="Model ảnh (mặc định)"><Chon value={kt.mo_hinh_anh} onChange={(v) => set('mo_hinh_anh', v as Required<KinhThanh>['mo_hinh_anh'])} options={luaChonAnh(moHinh.anh.length ? moHinh.anh : MO_HINH_ANH.map((m) => ({ key: m.key, label: m.label, nhom: '', giaCents: m.gia1k, donVi: 'anh' as const })))} /></O>
         <O label="Model video (mặc định)"><Chon value={kt.mo_hinh_video} onChange={(v) => set('mo_hinh_video', v as Required<KinhThanh>['mo_hinh_video'])} options={luaChonVideo(moHinh.video.length ? moHinh.video : MO_HINH_VIDEO.map((m) => ({ key: m.key, label: m.label, nhom: '', giaCents: m.giaGiay['720p'], donVi: 'giay' as const })), 5, kt.do_phan_giai)} /></O>
         <O label="Model chữ (kịch bản, tách cảnh)"><Chon value={kt.mo_hinh_chu} onChange={(v) => set('mo_hinh_chu', v as Required<KinhThanh>['mo_hinh_chu'])} options={MO_HINH_CHU.map((m) => ({ value: m.key, label: m.label, nhom: 'Anthropic' }))} /></O>
-        <O label="Ngôn ngữ lời thoại"><Chon value={kt.ngon_ngu} onChange={(v) => set('ngon_ngu', v)} options={[{ value: 'vi', label: 'Tiếng Việt' }, { value: 'en', label: 'English' }]} /></O>
+        <O label="Ngôn ngữ lời thoại"><Chon value={kt.ngon_ngu} onChange={(v) => set('ngon_ngu', v)} options={NGON_NGU} /></O>
       </div>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
         <Nut ly={!dirty && 'đã lưu'} ban={luu} chinh onClick={() => void luuNgay(kt, moTa)}>Lưu kinh thánh</Nut>

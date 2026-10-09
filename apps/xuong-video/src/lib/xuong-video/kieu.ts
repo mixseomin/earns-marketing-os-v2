@@ -110,6 +110,12 @@ export type ThongTinQc = {
 export const QC_TRONG: ThongTinQc = { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] };
 /** Bài đăng đi kèm video trên Meta/TikTok (văn bản chính · tiêu đề · mô tả · nút) — Claude viết theo QC mẫu, lưu ở tập. */
 export type BaiDang = { chu_bai: string; tieu_de: string; mo_ta: string; cta: string; luc: string };
+/** Ngôn ngữ lời thoại/chữ màn/bài đăng của phim — MỘT sổ cho form kinh thánh, prompt Claude và nút 🌐 Dịch tập. */
+export const NGON_NGU: { value: string; label: string; ten: string }[] = [
+  { value: 'vi', label: 'Tiếng Việt', ten: 'tiếng Việt' }, { value: 'en', label: 'English', ten: 'English (US)' }, { value: 'es', label: 'Español', ten: 'Spanish' },
+  { value: 'pt', label: 'Português', ten: 'Portuguese (Brazil)' }, { value: 'de', label: 'Deutsch', ten: 'German' }, { value: 'fr', label: 'Français', ten: 'French' }, { value: 'ja', label: '日本語', ten: 'Japanese' },
+];
+export const tenNgonNgu = (ma?: string): string => NGON_NGU.find((x) => x.value === ma)?.ten ?? ma ?? 'tiếng Việt';
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
   phong_cach: '', ti_le: '9:16', do_phan_giai: '720p',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },

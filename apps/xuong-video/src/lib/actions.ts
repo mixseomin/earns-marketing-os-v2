@@ -18,11 +18,13 @@ import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from '@/lib/xuong-video/googl
 import { docFal, batDauNangCap, danhMucFal, dauVaoTheoSchema, guiFal, type ModelFal } from '@/lib/xuong-video/fal';
 import { type DungChu } from '@/lib/xuong-video/claude';
 import { docTrangSanPham, doiChieuAnchor as doiChieuAnchorClaude } from '@/lib/xuong-video/claude';
-import { tachCanh, vietKichBan, vietBaiDang, phanTichMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
+import { tachCanh, vietKichBan, vietBaiDang, phanTichMau, dichNoiDung, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
 import { ghepThoai, thieuQc, lamTronClip, coMau, giayMau, type BaiDang, type MauQc } from '@/lib/xuong-video/kieu';
 import { luuCanhTach } from '@/lib/xuong-video/luu-canh';
+import { docNoiDungDich, uocDichCents, apDungDich } from '@/lib/xuong-video/dich-tap';
+import { NGON_NGU, tenNgonNgu } from '@/lib/xuong-video/kieu';
 import { type Row, n, s, arr, mangInt, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
 import { sinhAnhGoc, sinhKeyframeCanh } from '@/lib/xuong-video/sinh-anh';
 import { dsKhuon, taKhuon, ghiKhuonTuCanh, ghiKhuonTuMau, type KhuonShot } from '@/lib/xuong-video/khuon-shot';
@@ -516,6 +518,32 @@ export async function vietBaiDangTap(tapId: number): Promise<Kq<BaiDang>> {
   const bd: BaiDang = { ...kq.data, luc: new Date().toISOString() };
   await db.execute(sql`UPDATE xv_tap SET bai_dang = ${JSON.stringify(bd)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
   return { ok: true, data: bd };
+}
+/** Ước tiền dịch cả tập (0đ): số ký tự phải dịch + giá model chữ của phim. */
+export async function uocDichTap(tapId: number): Promise<Kq<{ cents: number; chars: number; soShot: number; soCoGiong: number; ngonNgu: string }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const nd = await docNoiDungDich(db, tapId);
+  if (!nd) return loi('không thấy tập');
+  const kt = docKinhThanh(nd.kt);
+  return { ok: true, data: { cents: uocDichCents(kt.mo_hinh_chu, nd.chars), chars: nd.chars, soShot: nd.dauVao.canh.length, soCoGiong: nd.soCoGiong, ngonNgu: kt.ngon_ngu } };
+}
+/** Dịch cả tập sang ngôn ngữ khác (Claude, TỐN TIỀN): kịch bản · chữ màn · thoại · bài đăng; giữ shot/keyframe/video; đổi ngon_ngu của phim. */
+export async function dichTapSang(tapId: number, sang: string): Promise<Kq<{ soShot: number; thieu: number; soCoGiong: number }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  const ad = await admin();
+  if (!ad) return loi('không có quyền');
+  if (!NGON_NGU.some((x) => x.value === sang)) return loi(`ngôn ngữ lạ: ${sang}`);
+  const nd = await docNoiDungDich(db, tapId);
+  if (!nd) return loi('không thấy tập');
+  if (!nd.chars) return loi('tập chưa có chữ để dịch (kịch bản/cảnh/bài đăng đều rỗng)');
+  const kq = await dichNoiDung({ kinhThanh: nd.kt, sang, ...nd.dauVao });
+  if (!kq.ok) return loi(kq.loi);
+  await ghiChu(nd.phimId, `Dịch tập sang ${tenNgonNgu(sang)} (${nd.dauVao.canh.length} shot)`, kq);
+  const r = await apDungDich(db, nd, tapId, sang, kq.data);
+  return { ok: true, data: { ...r, soCoGiong: nd.soCoGiong } };
 }
 /** Sửa tay bài đăng (sau khi Claude viết). */
 export async function suaBaiDang(tapId: number, d: Omit<BaiDang, 'luc'>): Promise<Kq> {

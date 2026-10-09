@@ -6,7 +6,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';   // helper zodOutputFormat của SDK cần zod v4 (zod 3.25 kèm sẵn ở 'zod/v4'); import 'zod' gốc → TypeError 'def'
 import { THU_VIEN, THE_LOAI, CAU_TRUC, giayBeat, hopTheLoai, NHOM_KY_THUAT, type NhomKyThuat } from './dien-anh';
 import type { BienThe, DoiChieu, KinhThanh, LoaiNhanVat, LoaiPhim, NhanVat } from './kieu';
-import { docKinhThanh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA, LOAI_SHOT_MAU, giayMau, coMau, type BaiDang, type ShotMau } from './kieu';
+import { docKinhThanh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA, LOAI_SHOT_MAU, giayMau, coMau, tenNgonNgu, type BaiDang, type ShotMau } from './kieu';
 
 const CanhSchema = z.object({
   canh: z.string().describe('Nhãn ngắn của cảnh, tiếng Việt, ví dụ "Cảnh 1 · Khu rừng buổi sáng"'),
@@ -75,7 +75,7 @@ function taAnchor(nv: NhanVat[]): string {
 const heThong = (loai: LoaiPhim, kt: Required<KinhThanh>) => `Bạn là đạo diễn kiêm storyboard artist cho xưởng video AI. Loại sản phẩm: ${LOAI_PHIM.find((l) => l.key === loai)?.label ?? loai}.
 Phong cách hình ảnh cố định của bộ phim: ${kt.phong_cach || '(chưa đặt, tự chọn một phong cách và giữ nhất quán)'}.
 Khung hình ${kt.ti_le}, mỗi cảnh là MỘT clip video AI dài 4/6/8 giây sinh từ một ảnh keyframe, nên mỗi cảnh chỉ có một hành động chính, một góc máy.
-Ngôn ngữ lời thoại/lời dẫn: ${kt.ngon_ngu === 'vi' ? 'tiếng Việt' : kt.ngon_ngu}.
+Ngôn ngữ lời thoại/lời dẫn: ${tenNgonNgu(kt.ngon_ngu)}.
 ${kt.the_loai ? `Thể loại: ${THE_LOAI.find((t) => t.key === kt.the_loai)?.ten} (${THE_LOAI.find((t) => t.key === kt.the_loai)?.mo_ta}).` : ''}${kt.logline ? `\nLogline: ${kt.logline}` : ''}${kt.chu_de ? `\nChủ đề: ${kt.chu_de}` : ''}
 ${taQc(kt)}
 QUY TẮC ĐỒNG NHẤT: nhân vật, sản phẩm, bối cảnh phải tả bằng đúng đặc tính cố định trong danh sách anchor ở mọi cảnh (cùng màu lông, cùng trang phục, cùng tỉ lệ cơ thể, cùng chất liệu). prompt_anh và prompt_video viết tiếng Anh, tả người/vật theo đặc tính chứ không dùng tên riêng (model ảnh không biết tên). Mỗi prompt tự đứng được một mình, không tham chiếu cảnh khác.`;
@@ -412,7 +412,7 @@ export async function vietBaiDang(opts: { kinhThanh: KinhThanh; kichBan: string;
   try {
     const r = await c.messages.parse({
       model: kt.mo_hinh_chu, max_tokens: 2500,
-      system: `Bạn viết bài đăng quảng cáo (Meta/TikTok) đi kèm video. ${taQc(kt)}\nLuật: không bịa số liệu/tính năng ngoài mục SẢN PHẨM; có bài mẫu thì giữ nguyên CẤU TRÚC (số dòng, emoji, ✅, nhịp câu) và chỉ đổi nội dung cho đúng sản phẩm, không chép nguyên câu; không có mẫu thì viết theo khuôn: móc 1 dòng → 3 lợi ích ✅ → trấn an → ưu đãi + kêu gọi. Ngôn ngữ: ${kt.qc?.thi_truong || (kt.ngon_ngu === 'vi' ? 'tiếng Việt' : kt.ngon_ngu)}.`,
+      system: `Bạn viết bài đăng quảng cáo (Meta/TikTok) đi kèm video. ${taQc(kt)}\nLuật: không bịa số liệu/tính năng ngoài mục SẢN PHẨM; có bài mẫu thì giữ nguyên CẤU TRÚC (số dòng, emoji, ✅, nhịp câu) và chỉ đổi nội dung cho đúng sản phẩm, không chép nguyên câu; không có mẫu thì viết theo khuôn: móc 1 dòng → 3 lợi ích ✅ → trấn an → ưu đãi + kêu gọi. Ngôn ngữ: ${tenNgonNgu(kt.ngon_ngu)}${kt.qc?.thi_truong ? ` (thị trường ${kt.qc.thi_truong})` : ''}.`,
       messages: [{ role: 'user', content: `KỊCH BẢN VIDEO ĐI KÈM:\n${opts.kichBan.slice(0, 6000)}\n\nCHỮ TRÊN MÀN CỦA VIDEO (để bài đăng không lặp y chang): ${opts.chuMan.filter(Boolean).join(' · ') || '(chưa có)'}` }],
       output_config: { format: zodOutputFormat(BaiDangSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
     });
@@ -453,6 +453,45 @@ export async function phanTichMau(khung: { giay: number; b64: string }[], tongGi
     if (!p) return { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
     const shots: ShotMau[] = p.shots.map((s) => ({ giay: Math.max(0.5, Math.min(8, Math.round(s.giay * 2) / 2)), loai: s.loai, chu_man: s.chu_man.trim(), hinh: s.hinh.trim() }));
     return { ok: true, data: { shots, ghi_chu: p.ghi_chu }, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
+  } catch (e) {
+    return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
+  }
+}
+
+// ── Dịch cả tập sang ngôn ngữ khác (kịch bản · chữ màn · thoại · bài đăng) — giữ shot, keyframe, video; chỉ đổi chữ ─────
+const DichSchema = z.object({
+  kich_ban: z.string().describe('Kịch bản đã dịch, giữ nguyên bố cục dòng/đầu mục/số cảnh'),
+  bai_dang: z.object({ chu_bai: z.string(), tieu_de: z.string(), mo_ta: z.string(), cta: z.string() }).nullable().describe('Bài đăng đã dịch; null nếu đầu vào không có bài đăng'),
+  canh: z.array(z.object({
+    id: z.number().int().describe('id shot, chép đúng từ đầu vào'),
+    chu_man: z.string().describe('Chữ trên màn đã dịch — ngắn như chữ gốc, VIẾT HOA nếu gốc viết hoa, giữ số/giá/emoji'),
+    thoai: z.array(z.string()).describe('Lời từng dòng thoại đã dịch, ĐÚNG số dòng và thứ tự như đầu vào (mảng rỗng nếu shot không có thoại)'),
+  })).describe('Đủ mọi shot của đầu vào, đúng thứ tự'),
+});
+export type DauVaoDich = { kinhThanh: KinhThanh; sang: string; kichBan: string; baiDang: Omit<BaiDang, 'luc'> | null; canh: { id: number; chu_man: string; thoai: string[] }[] };
+export async function dichNoiDung(o: DauVaoDich): Promise<GoiYKq<z.infer<typeof DichSchema>>> {
+  const c = client();
+  if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
+  const kt = docKinhThanh(o.kinhThanh);
+  const tong = o.kichBan.length + JSON.stringify(o.baiDang ?? '').length + JSON.stringify(o.canh).length;
+  try {
+    const r = await c.messages.parse({
+      model: kt.mo_hinh_chu, max_tokens: Math.min(20000, Math.max(4000, Math.ceil(tong / 2))),
+      system: `Bạn là copywriter quảng cáo bản ngữ, dịch toàn bộ nội dung một video quảng cáo sang ${tenNgonNgu(o.sang)}${kt.qc?.thi_truong ? ` cho thị trường ${kt.qc.thi_truong}` : ''}. ${taQc(kt)}
+Luật: dịch như người bản ngữ viết quảng cáo (tự nhiên, ngắn, mạnh), KHÔNG dịch sát chữ; giữ nguyên số, giá, %, tên sản phẩm/thương hiệu, emoji, số dòng và bố cục; tên riêng nhân vật/bối cảnh (anchor) GIỮ NGUYÊN không dịch; chữ màn phải ngắn tương đương chữ gốc (đọc được trong 2 giây); mỗi shot trả đúng số dòng thoại như đầu vào; kịch bản giữ nguyên tiêu đề cảnh/đầu mục, chỉ đổi ngôn ngữ.`,
+      messages: [{ role: 'user', content: `KỊCH BẢN:
+${o.kichBan}
+
+BÀI ĐĂNG: ${o.baiDang ? JSON.stringify(o.baiDang) : 'null'}
+
+SHOT (id · chữ màn · dòng thoại):
+${JSON.stringify(o.canh)}` }],
+      output_config: { format: zodOutputFormat(DichSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
+    });
+    if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
+    if (r.stop_reason === 'max_tokens') return { ok: false, loi: 'bản dịch dài quá trần token — chia tập nhỏ hơn' };
+    const p = r.parsed_output as z.infer<typeof DichSchema> | null;
+    return p ? { ok: true, data: p, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
   } catch (e) {
     return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
   }

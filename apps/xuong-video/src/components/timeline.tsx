@@ -8,15 +8,18 @@
 //   Nhạc   — nhạc nền cả tập (nhac_url / nhac_mo_ta).
 // Nét đứt = mới có mô tả trong kịch bản, chưa sinh file. Toàn bộ chạy ở trình duyệt, không tốn tiền.
 import { Fragment, useEffect, useMemo, useRef, useState, type PointerEvent as PE, type ReactNode } from 'react';
-import { giayPhat, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
+import { giayPhat, tenCamXuc, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat } from '@/lib/xuong-video/dien-anh';
 import { nguoiNoi, dongThoai, coTiengRieng, tenNoi, cungTen, timNv, LOI_DAN } from '@/lib/xuong-video/am-thanh';
 import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 import { mono } from './ui';
+import { docLT, ghiLT } from '@/lib/luu-tru';
 
 const MAU_NV = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#4ade80', '#fb923c', '#60a5fa'];
-const NHAN_W = 100;
+// Cột nhãn track: kéo mép phải để nới (#1240) — nhớ theo trình duyệt.
+const NHAN_W_MAC_DINH = 150;
+const KHOA_NHAN_W = 'xv-tl-nhan-w';
 const dongHo = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${(s % 60).toFixed(1).padStart(4, '0')}`;
 
 /** Sinh ngay trên timeline (#1199): khối nét đứt có nút ＋ — bấm là sinh đúng thứ đó, giá + gợi ý thời điểm ở chú thích. */
@@ -44,6 +47,18 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const [chay, setChay] = useState(false);
   const [docThu, setDocThu] = useState(true);
   const [zoom, setZoom] = useState(1);
+  const [nhanW, setNhanW] = useState(() => { const v = Number(docLT(KHOA_NHAN_W)); return v >= 80 && v <= 400 ? v : NHAN_W_MAC_DINH; });
+  // Mép phải của MỌI ô nhãn (cả thước) đều kéo được → bám chỗ nào cũng nới cả cột.
+  const keoNhan = (e: PE<HTMLDivElement>) => {
+    e.preventDefault(); e.stopPropagation();
+    const el = e.currentTarget; el.setPointerCapture(e.pointerId);
+    const x0 = e.clientX, w0 = nhanW; let w = w0;
+    const di = (ev: PointerEvent) => { w = Math.max(80, Math.min(400, w0 + ev.clientX - x0)); setNhanW(w); };
+    const xong = () => { el.removeEventListener('pointermove', di); el.removeEventListener('pointerup', xong); el.removeEventListener('pointercancel', xong); ghiLT(KHOA_NHAN_W, String(w)); };
+    el.addEventListener('pointermove', di); el.addEventListener('pointerup', xong); el.addEventListener('pointercancel', xong);
+  };
+  const tayNhan = <div onPointerDown={keoNhan} onDoubleClick={() => { setNhanW(NHAN_W_MAC_DINH); ghiLT(KHOA_NHAN_W, null); }} title="Kéo để nới cột nhãn · nhấp đúp = mặc định" className="xv-keo-cot" />;
+
   const [rong, setRong] = useState(800);
   const vungRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -51,7 +66,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     const ro = new ResizeObserver(() => setRong(el.clientWidth)); ro.observe(el); setRong(el.clientWidth);
     return () => ro.disconnect();
   }, []);
-  const pps = Math.max(12, ((rong - NHAN_W - 16) / Math.max(tong, 1)) * zoom);   // pixel mỗi giây: vừa khít bề ngang × zoom
+  const pps = Math.max(12, ((rong - nhanW - 16) / Math.max(tong, 1)) * zoom);   // pixel mỗi giây: vừa khít bề ngang × zoom
 
   const idx = Math.max(0, batDau.reduce((k, s, i) => (s <= t + 1e-6 ? i : k), 0));
   const c = canh[idx];
@@ -179,8 +194,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   // Nút điều khiển của track nằm NGAY ở nhãn track đó (#1230 YDNI: nút cho khối nào thì ở cạnh khối đó, không gom lên trên cùng).
   const track = (nhan: string, mo: string, noiDung: ReactNode, cao = 26, nut?: ReactNode) => (
     <div style={{ display: 'flex', alignItems: 'stretch', height: cao, marginTop: 3 }}>
-      <div title={mo} style={{ width: NHAN_W, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-1)', ...mono, display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, paddingRight: 4 }}>
-        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nhan}</span>{nut}
+      <div title={`${nhan}\n${mo}`} style={{ width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-1)', ...mono, display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, paddingRight: 4 }}>
+        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nhan}</span>{nut}{tayNhan}
       </div>
       <div style={{ position: 'relative', width: W, flexShrink: 0 }}>{noiDung}</div>
     </div>
@@ -266,14 +281,15 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
 
       {/* Các track */}
       <div ref={vungRef} style={{ marginTop: 10, overflowX: 'auto', position: 'relative', paddingBottom: 4 }}>
-        <div style={{ width: W + NHAN_W, position: 'relative' }}>
+        <div style={{ width: W + nhanW, position: 'relative' }}>
           {/* Thước giây — bấm/kéo để tua */}
           <div style={{ display: 'flex', height: 18 }}>
-            <div style={{ width: NHAN_W, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, ...mono }}>
+            <div style={{ width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, ...mono }}>
               <span title="Space chạy/dừng · ←/→ đổi cảnh · kéo mép clip = cắt giây phát · kéo clip đổi thứ tự · nét đứt = chưa sinh" style={{ cursor: 'help' }}>⌨</span>
               {nutNho('−', 'Thu nhỏ thước thời gian', false, () => setZoom((z) => Math.max(1, z - 0.5)))}
               <span title="Độ phóng thước thời gian" style={{ minWidth: 22, textAlign: 'center' }}>{zoom}×</span>
               {nutNho('+', 'Phóng to thước thời gian', false, () => setZoom((z) => Math.min(6, z + 0.5)))}
+              {tayNhan}
             </div>
             <div style={{ position: 'relative', width: W, cursor: 'pointer' }}
               onPointerDown={(e) => keoDauPhat(e, e.currentTarget.getBoundingClientRect().left)}>
@@ -321,7 +337,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           }), 48, nutNho(tat.clip === undefined ? '🔈' : tat.clip ? '🔇' : '🔊', `Tiếng có sẵn của clip: ${tat.clip === undefined ? 'tự (tắt khi shot có giọng/hiệu ứng sinh riêng)' : tat.clip ? 'tắt hết' : 'bật hết'} — bấm để đổi`, !!tat.clip, vongClip))}
 
           {/* Đường cong cảm xúc: điểm ở cuối mỗi shot, -5..+5, vạch giữa = 0. */}
-          {canh.some((x) => x.cam_xuc) && track('❤ Khán giả', 'Cảm xúc KỲ VỌNG của khán giả cuối mỗi shot (-5 đau/sợ … +5 vui/hy vọng) — phim hay có lên có xuống', (() => {
+          {canh.some((x) => x.cam_xuc) && track('❤ Khán giả', 'Khán giả cảm thấy gì ở cuối mỗi shot (cảm xúc ta MUỐN họ có): dưới vạch = khó chịu/đau (đúng nỗi đau của họ), trên vạch = tò mò → thích → muốn mua. QC tốt: chạm đáy ở nỗi đau rồi leo lên muốn mua.', (() => {
             const H = 40; const y = (v: number) => H / 2 - (v / 5) * (H / 2 - 4);
             const diem = canh.map((cc, i) => ({ x: (batDau[i]! + dur(cc)) * pps, y: y(cc.cam_xuc), v: cc.cam_xuc, cc }));
             const duong = [`0,${y(0)}`, ...diem.map((d) => `${d.x},${d.y}`)].join(' ');
@@ -330,7 +346,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                 <line x1={0} x2={W} y1={y(0)} y2={y(0)} stroke="var(--line)" strokeDasharray="3 3" />
                 <polygon points={`0,${y(0)} ${duong.split(' ').slice(1).join(' ')} ${diem.length ? `${diem[diem.length - 1]!.x},${y(0)}` : ''}`} fill="rgba(244,114,182,.12)" />
                 <polyline points={duong} fill="none" stroke="#f472b6" strokeWidth={2} />
-                {diem.map((d) => <circle key={d.cc.id} cx={d.x} cy={d.y} r={3.5} fill={d.v >= 0 ? '#4ade80' : '#f87171'}><title>{`#${d.cc.thu_tu} ${d.cc.canh}: ${d.v > 0 ? '+' : ''}${d.v}`}</title></circle>)}
+                {diem.map((d) => <circle key={d.cc.id} cx={d.x} cy={d.y} r={3.5} fill={d.v >= 0 ? '#4ade80' : '#f87171'}><title>{`#${d.cc.thu_tu} ${d.cc.canh}: ${tenCamXuc(d.v)} (${d.v > 0 ? '+' : ''}${d.v})`}</title></circle>)}
+                {diem.map((d, i) => (i === 0 || diem[i - 1]!.v !== d.v) && <text key={`t${d.cc.id}`} x={d.x - 4} y={d.v >= 0 ? d.y + 12 : d.y - 6} textAnchor="end" fontSize={9} fill="var(--fg-3)">{tenCamXuc(d.v)}</text>)}
               </svg>
             );
           })(), 40)}
@@ -382,8 +399,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
 
           {yc && sinh && <BangSinh yc={yc} nhanVat={nhanVat} tap={tap} mhNhac={sinh.mhNhac} onClose={() => setYc(null)} onGiong={sinh.giong} onSfx={sinh.sfx} onNhac={sinh.nhac} />}
           {/* Đầu phát */}
-          <div style={{ position: 'absolute', left: NHAN_W + t * pps - 1, top: 0, bottom: 0, width: 2, background: '#ef4444', pointerEvents: 'none', zIndex: 4 }}>
-            <div title="Kéo để tua" onPointerDown={(e) => keoDauPhat(e, (vungRef.current?.getBoundingClientRect().left ?? 0) + NHAN_W - (vungRef.current?.scrollLeft ?? 0))}
+          <div style={{ position: 'absolute', left: nhanW + t * pps - 1, top: 0, bottom: 0, width: 2, background: '#ef4444', pointerEvents: 'none', zIndex: 4 }}>
+            <div title="Kéo để tua" onPointerDown={(e) => keoDauPhat(e, (vungRef.current?.getBoundingClientRect().left ?? 0) + nhanW - (vungRef.current?.scrollLeft ?? 0))}
               style={{ position: 'absolute', top: 0, left: -7, width: 16, height: 16, background: '#ef4444', borderRadius: '3px 3px 8px 8px', cursor: 'ew-resize', pointerEvents: 'auto', boxShadow: '0 1px 4px #0008' }} />
           </div>
         </div>

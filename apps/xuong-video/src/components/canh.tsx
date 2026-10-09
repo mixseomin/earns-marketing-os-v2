@@ -5,11 +5,12 @@ import { moNgan, linkTai } from './ngan-chung';
 import { dongThoai, tenNoi, LOI_DAN } from '@/lib/xuong-video/am-thanh';
 import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, nhanKyThuat, type TheLoai } from '@/lib/xuong-video/dien-anh';
 import { suaCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, sinhVideoCanh, lamLaiTuKeyframe, sinhGiong, sinhAmThanh, xoaKeyframe, goiYAICanh, nangCapCanh, chonPhienBan, khopMiengCanh } from '@/lib/actions';
-import { LOAI_NHAN_VAT, TRANG_THAI_CANH, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, type NhanVat, type Canh, type KinhThanh, type LoaiPhim } from '@/lib/xuong-video/kieu';
+import { LOAI_NHAN_VAT, TRANG_THAI_CANH, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, KqChay, O, Pill, Nut, Loi, AnhNho, DangSinh, mono, Menu, MucMenu } from './ui';
 import { MoHinhCtx, giaVideoUi, giaAnhUi, luaChonAnh, luaChonVideo } from './mo-hinh-ui';
 import { GiongNhanVat } from './nhan-vat';
+import { NutNghe, ClipNho } from './media';
 
 /** Keyframe nhỏ dưới video (#1218): có video rồi vẫn xem lại được ảnh gốc của clip (rê để phóng to, kèm ảnh so sánh). */
 export function KfNho({ url, soSanh }: { url: string; soSanh: string }) {
@@ -51,7 +52,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh
   const dirty = JSON.stringify(f) !== JSON.stringify(c);
   const tatCaBt = nhanVat.flatMap((v) => (v.bien_the ?? []).map((b) => ({ ...b, nv: v.ten })));
   const doc = kt.ti_le === '9:16';
-  const anhKhung: CSSProperties = { width: doc ? 68 : 120, height: doc ? 120 : 68, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)' };
+  const anhKhung: CSSProperties = { width: doc ? 90 : 160, height: doc ? 160 : 90, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)' };
   const k = `c${c.id}`;
   const tp = thanhPhanCanh(c, nhanVat);
   // Ảnh tham chiếu của các đối tượng cần khớp danh tính trong shot — nhân vật, sản phẩm, đạo cụ (bỏ bối cảnh), biến thể đang chọn nếu có —
@@ -77,9 +78,9 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh
   return (
     <div className="xv-canh">
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-        <div style={{ flexShrink: 0 }}>
-          {c.video_cuoi_url ? <div><video src={c.video_cuoi_url} controls preload="metadata" style={anhKhung} /><div style={{ ...mono, color: 'var(--lime)', textAlign: 'center' }}>bản cuối</div>{c.keyframe_url && <KfNho url={c.keyframe_url} soSanh={soSanh} />}</div>
-            : c.video_url ? <div><video src={c.video_url} controls preload="metadata" style={anhKhung} /><div style={{ ...mono, textAlign: 'center' }}>nháp</div>{c.keyframe_url && <KfNho url={c.keyframe_url} soSanh={soSanh} />}</div>
+        <div style={{ flexShrink: 0, width: anhKhung.width }}>
+          {c.video_cuoi_url ? <div><ClipNho url={c.video_cuoi_url} ten={`#${c.thu_tu} ${c.canh} · bản cuối`} style={anhKhung} /><div style={{ ...mono, color: 'var(--lime)', textAlign: 'center' }}>bản cuối</div>{c.keyframe_url && <KfNho url={c.keyframe_url} soSanh={soSanh} />}</div>
+            : c.video_url ? <div><ClipNho url={c.video_url} ten={`#${c.thu_tu} ${c.canh} · nháp`} style={anhKhung} /><div style={{ ...mono, textAlign: 'center' }}>nháp</div>{c.keyframe_url && <KfNho url={c.keyframe_url} soSanh={soSanh} />}</div>
             : c.keyframe_url ? <div style={{ position: 'relative' }}><img src={c.keyframe_url} alt="" data-so-sanh={soSanh} style={anhKhung} />{buoc === 'dang' && <DangSinh chu="" />}</div>
             : <div style={{ ...anhKhung, position: 'relative', display: 'grid', placeItems: 'center', color: 'var(--fg-4)', fontSize: 10, overflow: 'hidden' }}>chưa có{buoc === 'dang' && <DangSinh chu={c.dang_sinh_anh ? 'ảnh' : 'video'} />}</div>}
         </div>
@@ -120,16 +121,17 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh
                   <b style={{ color: 'var(--cyan)', textTransform: 'uppercase' }}>{tenNoi(d)}</b>
                   {d.dien_xuat && <i style={{ color: 'var(--fg-3)' }}>({d.dien_xuat})</i>}
                   <span style={{ color: 'var(--fg-1)' }}>{d.loi}</span>
-                  {d.url && <audio src={d.url} controls preload="none" style={{ height: 20, width: 120 }} />}
+                  {d.url && <NutNghe url={d.url} title={`Nghe giọng ${tenNoi(d)}`} />}
                 </div>
               ))}
             </div>
           )}
           {(() => { const ds = nhanKyThuat(c.ky_thuat); return ds.length ? <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 4 }}>{c.phan_doan && <span style={{ ...mono, fontSize: 9.5, color: 'var(--violet)' }}>🎬 {c.phan_doan} ·</span>}{ds.map((x) => <span key={x} style={{ fontSize: 9.5, lineHeight: '15px', padding: '0 5px', borderRadius: 4, border: '1px solid var(--line)', color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{x}</span>)}</div> : null; })()}
-          {(c.thoai_url || c.am_thanh_url || c.dang_sinh_am) && (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
-              {c.thoai_url && <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center', ...mono }}>🗣<audio src={c.thoai_url} controls preload="none" style={{ height: 24, width: 170 }} /></span>}
-              {c.am_thanh_url && <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center', ...mono }}>🔊<audio src={c.am_thanh_url} controls preload="none" style={{ height: 24, width: 170 }} /></span>}
+          {/* Giọng đã nằm ở từng dòng thoại phía trên; ở đây chỉ còn file giọng gộp cũ (không gán được dòng nào) + hiệu ứng. */}
+          {((c.thoai_url && !dongThoai(c, nhanVat).some((d) => d.url)) || c.am_thanh_url || c.dang_sinh_am) && (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
+              {c.thoai_url && !dongThoai(c, nhanVat).some((d) => d.url) && <NutNghe url={c.thoai_url} nhan="🗣 giọng" />}
+              {c.am_thanh_url && <NutNghe url={c.am_thanh_url} nhan="🔊 hiệu ứng" />}
               {(c.dang_sinh_giong || c.dang_sinh_sfx) && <span style={{ ...mono, color: 'var(--violet)' }}>⏳ đang sinh {[c.dang_sinh_giong && 'giọng', c.dang_sinh_sfx && 'hiệu ứng'].filter(Boolean).join(' + ')}…</span>}
             </div>
           )}
@@ -223,7 +225,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh
             <div className="xv-grid">
               <O label="Góc máy"><input className="xv-in" value={f.goc_may} onChange={(e) => setF({ ...f, goc_may: e.target.value })} /></O>
               <O label="Phân cảnh"><input className="xv-in" value={f.phan_doan} onChange={(e) => setF({ ...f, phan_doan: e.target.value })} /></O>
-              <O label={`Cảm xúc khán giả cuối shot: ${f.cam_xuc > 0 ? '+' : ''}${f.cam_xuc}`} hint="-5 đau/sợ … +5 vui/hy vọng — vẽ đường cong cảm xúc của tập"><input type="range" min={-5} max={5} step={1} value={f.cam_xuc} onChange={(e) => setF({ ...f, cam_xuc: Number(e.target.value) })} /></O>
+              <O label={`Khán giả cuối shot: ${tenCamXuc(f.cam_xuc)} (${f.cam_xuc > 0 ? '+' : ''}${f.cam_xuc})`} hint="Cảm xúc ta muốn khán giả có ở cuối shot: -5 tuyệt vọng … 0 trung tính … +5 muốn mua ngay — vẽ đường cong Khán giả trên timeline"><input type="range" min={-5} max={5} step={1} value={f.cam_xuc} onChange={(e) => setF({ ...f, cam_xuc: Number(e.target.value) })} /></O>
               <O label="Âm thanh"><input className="xv-in" value={f.am_thanh} onChange={(e) => setF({ ...f, am_thanh: e.target.value })} /></O>
               <div style={{ gridColumn: '1 / -1' }}>
                 <div className="xv-lbl" style={{ marginBottom: 4 }} title="Chọn từ thư viện; nhóm hợp thể loại phim đứng đầu; ghép vào prompt ảnh/video khi sinh">Ngôn ngữ điện ảnh · <button type="button" className="xv-lienket" style={{ textTransform: 'none', fontWeight: 400 }} onClick={() => moNgan({ loai: 'thu-vien', tl: kt.the_loai })}>thư viện</button></div>

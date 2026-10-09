@@ -6,7 +6,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';   // helper zodOutputFormat của SDK cần zod v4 (zod 3.25 kèm sẵn ở 'zod/v4'); import 'zod' gốc → TypeError 'def'
 import { THU_VIEN, THE_LOAI, CAU_TRUC, giayBeat, hopTheLoai, NHOM_KY_THUAT, type NhomKyThuat } from './dien-anh';
 import type { BienThe, DoiChieu, KinhThanh, LoaiNhanVat, LoaiPhim, NhanVat } from './kieu';
-import { docKinhThanh, lamTronClip, LOAI_PHIM } from './kieu';
+import { docKinhThanh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA } from './kieu';
 
 const CanhSchema = z.object({
   canh: z.string().describe('Nhãn ngắn của cảnh, tiếng Việt, ví dụ "Cảnh 1 · Khu rừng buổi sáng"'),
@@ -36,7 +36,7 @@ const DongThoaiSchema = z.object({
 const ShotSchema = CanhSchema.extend({
   trang_phuc: z.string().describe('Trang phục của người trong shot NẾU khác bộ đồ trong mô tả anchor, ghi rõ và đủ (tiếng Anh hoặc Việt), vd "chỉ mặc áo bra không gọng màu be và quần jean, KHÔNG áo ngoài, lộ vai". Quảng cáo đồ mặc (áo lót, đồ bơi, áo…): shot khoe/demo sản phẩm phải ghi rõ người CHỈ mặc sản phẩm ở phần đó, không áo khoác ngoài. Rỗng nếu giữ bộ đồ mặc định.'),
   thoai: z.array(DongThoaiSchema).describe('Thoại của shot theo dòng kiểu kịch bản phim chuyên nghiệp (mỗi lượt nói một dòng); rỗng nếu shot không có thoại. Trường loi_thoai để rỗng.'),
-  cam_xuc: z.number().int().describe('Giá trị cảm xúc của khán giả ở CUỐI shot, từ -5 (đau/sợ/tuyệt vọng) tới +5 (vui/hy vọng/chiến thắng)'),
+  cam_xuc: z.number().int().describe(`Cảm xúc KHÁN GIẢ ở CUỐI shot theo thang: ${Object.entries(CAM_XUC_KHAN_GIA).sort((a, b) => Number(a[0]) - Number(b[0])).map(([k, v]) => `${k} ${v}`).join(', ')}`),
   ky_thuat: KyThuatSchema.describe('Ngôn ngữ điện ảnh của shot, chọn từ thư viện cho hợp thể loại + cảm xúc'),
   phat_s: z.number().describe('Số giây shot THỰC PHÁT trong bản dựng (1.5–8, bước 0.5). Clip sinh 4/6/8s rồi cắt lấy phat_s giây đầu. Quảng cáo: hook, insert, demo 1.5–3s; thoại dài hơn thì 4–6s. Tổng phat_s của cả tập phải bằng thời lượng mục tiêu ±10%.'),
   chu_man: z.string().describe('Chữ hiện trên màn trong shot (đúng ngôn ngữ phim, ≤ 8 từ): câu hook, số liệu, tên tính năng, ưu đãi, CTA. Quảng cáo: BẮT BUỘC ở shot hook và shot CTA, nên có ở bằng chứng/ưu đãi; phim/short: rỗng trừ khi cần.'),

@@ -164,6 +164,12 @@ export function gioVN(iso: string | Date = new Date(), o: { giay?: boolean; chiG
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', ...(o.giay ? { second: '2-digit' } : {}), ...(o.chiGio ? {} : { day: '2-digit', month: '2-digit' }) });
 }
+/** Cảm xúc KHÁN GIẢ (-5..+5) ra chữ — trục âm là khó chịu/đau, trục dương là thích/muốn. Một bảng cho timeline, form shot, lời nhắc Claude. */
+export const CAM_XUC_KHAN_GIA: Record<number, string> = {
+  [-5]: 'tuyệt vọng', [-4]: 'sợ / ám ảnh', [-3]: 'đau, khó chịu', [-2]: 'bực, lo', [-1]: 'hơi khó chịu', 0: 'trung tính',
+  1: 'tò mò', 2: 'thích thú', 3: 'nhẹ nhõm, tin', 4: 'hào hứng, muốn có', 5: 'phấn khích, muốn mua ngay',
+};
+export const tenCamXuc = (v: number): string => CAM_XUC_KHAN_GIA[Math.max(-5, Math.min(5, Math.round(v)))] ?? '';
 export const tien = (cents: number): string => { const d = cents / 100; return `$${d >= 1 ? d.toFixed(2) : d >= 0.1 ? d.toFixed(2) : d.toFixed(3)}`; };
 
 /** Thành phần một cảnh dùng: anchor + biến thể chọn + thiếu gì. Dùng CHUNG cho UI (khoá nút, hiện chip) và máy chủ (chặn sinh). */

@@ -9,6 +9,7 @@ import { luuNhanVat, xoaNhanVat, sinhAnhMau, taiAnhLen, datAnhChinh, dsGiongMode
 import { LOAI_NHAN_VAT, NHOM_BIEN_THE, nhanNhom, docKinhThanh, giaAnhCents, tien, gioVN, type NhanVat, type BienThe, type KinhThanh, type LoaiNhanVat } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, O, Pill, Seg, Nut, Xoa, Loi, AnhNho, DangSinh, mono } from './ui';
+import { NutNghe } from './media';
 
 /** Giọng cố định của một nhân vật (cả bộ phim): chọn model (ElevenLabs tài khoản anh / mọi TTS fal) + giọng, nghe thử. */
 export function GiongNhanVat({ v, onChanged }: { v: NhanVat; onChanged: () => Promise<void> }) {
@@ -39,7 +40,7 @@ export function GiongNhanVat({ v, onChanged }: { v: NhanVat; onChanged: () => Pr
           <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <Nut chinh ly={!model && 'chọn model'} ban={ban === 'luu'} onClick={async () => { setBan('luu'); setLoi(''); const r = await chonGiong(v.id, model, voice); setBan(''); if (!r.ok) { setLoi(r.loi); return; } await onChanged(); }}>Lưu giọng</Nut>
             <Nut ly={(!v.giong_model && 'lưu giọng trước') || ((v.giong_model !== model || v.giong_id !== voice) && 'lưu giọng vừa chọn trước')} ban={ban === 'nghe'} title="Sinh một câu chào ngắn bằng giọng này (~$0.01)" onClick={async () => { setBan('nghe'); setLoi(''); const r = await ngheThuGiong(v.id); setBan(''); if (!r.ok) { setLoi(r.loi); return; } await onChanged(); }}>🎧 Nghe thử</Nut>
-            {v.giong_mau_url && <audio src={v.giong_mau_url} controls preload="none" style={{ height: 28 }} />}
+            {v.giong_mau_url && <NutNghe url={v.giong_mau_url} nhan="giọng mẫu" />}
           </div>
         </Ngan>
       )}

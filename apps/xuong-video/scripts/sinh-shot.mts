@@ -6,7 +6,7 @@
 //                                  ↶ Hoàn tác được). 09/10/2026: không chọn → video chạy từ keyframe cũ sai quần, mất $0,40.
 //   --chon=<url>                 : (0đ) chọn một ảnh trong dải ứng viên làm keyframe đang dùng (chỉ khi --canh có MỘT shot).
 //   --duyet                      : đánh dấu shot đã duyệt keyframe (0đ) — bước bắt buộc trước --video.
-//   --video                      : gửi sinh video nháp (Veo/fal theo kinh thánh), đợi provider trả, in link + tiền.
+//   --video                      : sinh video nháp (Veo/fal theo kinh thánh) qua hàng đợi tối đa --song-song=2 clip, tự đợi hạn mức, in link + tiền.
 //   --giong                      : sinh giọng cho dòng thoại CHƯA có giọng của các shot (--giong-lai: cả dòng đã có), đợi file, in link.
 //   --xuat                       : (0đ) dựng MP4 CHỈ các shot này (chữ màn kiểu phim, logo, giọng, nhạc) để xem thử — không ghi vào danh sách bản xuất của tập.
 //   THỨ TỰ: --keyframe → (anh xem) → --duyet → --giong → --video. Giọng TRƯỚC video: có file giọng thì Veo sinh clip câm (chỉ cử miệng),
@@ -90,18 +90,28 @@ if (arg('duyet')) {
   console.log(`  ✓ đã duyệt keyframe ${bcs.length} shot`);
 }
 if (arg('video')) {
-  const jobs: number[] = [];
-  for (const bc of bcs) { const r = await batDauVideoCanh(db, bc.canh.id); if (r.ok) jobs.push(r.data); else console.log(`  ✗ #${bc.canh.thu_tu}: ${r.loi}`); }
-  console.log(`  đã gửi ${jobs.length} clip, đợi provider…`);
-  for (let i = 0; i < 90; i++) {
-    const k = await kiemVideoTap(db, tapId);
-    const con = await q(sql`SELECT count(*) AS n FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[]) AND trang_thai = 'chay'`);
-    process.stdout.write(`\r  còn chạy ${con[0]?.n} (tập: ${k.conChay})   `);
-    if (Number(con[0]?.n) === 0) break; await doi(10000);
+  // Hàng đợi có trần: Veo chỉ nhận ~3 yêu cầu cùng lúc — gửi 19 một lượt thì 16 bị "rate limit" (10/10/2026). Tối đa --song-song=2 clip
+  // đang chạy; clip xong mới gửi tiếp; bị hạn mức thì đợi 60s rồi gửi lại (lượt bị từ chối không tốn tiền).
+  const toiDa = Number((process.argv.find((a) => a.startsWith('--song-song=')) ?? '').split('=')[1] || 2);
+  const cho = [...bcs]; const chay = new Map<number, number>(); const jobs: number[] = []; let nghi = 0;
+  const t0 = Date.now();
+  while ((cho.length || chay.size) && Date.now() - t0 < 50 * 60_000) {
+    while (cho.length && chay.size < toiDa && Date.now() >= nghi) {
+      const bc = cho.shift()!;
+      const r = await batDauVideoCanh(db, bc.canh.id);
+      if (r.ok) { chay.set(r.data, bc.canh.thu_tu); jobs.push(r.data); console.log(`  → gửi #${bc.canh.thu_tu}`); }
+      else if (/rate limit|hạn mức|429/i.test(r.loi)) { cho.unshift(bc); nghi = Date.now() + 60_000; console.log(`  … hạn mức, đợi 60s (#${bc.canh.thu_tu})`); }
+      else console.log(`  ✗ #${bc.canh.thu_tu}: ${r.loi}`);
+    }
+    await doi(10000);
+    await kiemVideoTap(db, tapId);
+    if (chay.size) {
+      const xong = await q(sql`SELECT id, trang_thai, output_url, loi FROM xv_job WHERE id = ANY(${`{${[...chay.keys()].join(',')}}`}::int[]) AND trang_thai <> 'chay'`);
+      for (const r of xong) { console.log(`  #${chay.get(Number(r.id))} ${r.trang_thai} ${r.output_url ?? r.loi}`); chay.delete(Number(r.id)); }
+    }
   }
-  console.log('');
-  const kq = await q(sql`SELECT j.trang_thai, j.output_url, j.loi, j.chi_phi_cents, c.thu_tu FROM xv_job j JOIN xv_canh c ON c.id = j.canh_id WHERE j.id = ANY(${`{${jobs.join(',')}}`}::int[]) ORDER BY c.thu_tu`);
-  for (const r of kq) console.log(`  #${r.thu_tu} ${r.trang_thai} ${r.output_url ?? r.loi} · ${tien(Number(r.chi_phi_cents))}`);
+  const tong = await q(sql`SELECT coalesce(sum(chi_phi_cents), 0) AS t, count(*) FILTER (WHERE trang_thai = 'xong') AS xong, count(*) FILTER (WHERE trang_thai <> 'xong') AS hong FROM xv_job WHERE id = ANY(${`{${jobs.join(',') || 0}}`}::int[])`);
+  console.log(`  video: ${tong[0]?.xong} xong · ${tong[0]?.hong} hỏng/chưa xong · ${tien(Number(tong[0]?.t))}${cho.length ? ` · còn ${cho.length} chưa gửi` : ''}`);
 }
 if (arg('giong')) {
   // Chỉ dòng CHƯA có giọng (giữ giọng đã duyệt); --giong-lai để sinh lại cả dòng đã có.

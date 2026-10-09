@@ -1,6 +1,6 @@
 // Tự kiểm bộ dựng lệnh ffmpeg của bản xuất. Chạy: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/xuat.test.mts
 import assert from 'node:assert';
-import { keHoachXuat, urlCanXuat, ngatDong } from './xuat';
+import { keHoachXuat, urlCanXuat, ngatDong, doanChuMan, tepAss, chuManHien } from './xuat';
 import type { Canh, NhanVat } from './kieu';
 
 const nv = [{ id: 1, ten: 'Lan', loai: 'nhan_vat' }, { id: 2, ten: 'Bra', loai: 'san_pham' }] as unknown as NhanVat[];
@@ -31,12 +31,15 @@ assert.ok(loc.includes('aloop=loop=-1') && loc.includes('volume=0.22,adelay=2000
 assert.ok(!loc.includes('[0:a]atrim'));                              // clip 1 có giọng riêng → không lấy tiếng clip
 assert.ok(!/\[\d+:a\]atrim=0:2\.5/.test(loc));                       // clip 4 không có luồng tiếng → không tham chiếu :a
 assert.ok(!loc.includes('enable=') && !kh.tep.some((x) => /\/pd_/.test(x.duong)));   // không vẽ phụ đề thoại lên hình (#1231)
-assert.strictEqual(kh.tep.filter((x) => /\/man_/.test(x.duong)).length, 2);          // chỉ shot có chữ màn mới có chữ (shot 3 không có)
-assert.ok(loc.includes('concat=n=4:v=1:a=0[vout]') && loc.includes('amix=inputs=') && loc.includes('loudnorm=I=-14'));
+const ass = kh.tep.find((x) => x.duong.endsWith('/chu.ass'))!.noiDung;
+assert.strictEqual((ass.match(/^Dialogue:/gm) ?? []).length, 2);          // chỉ shot có chữ màn mới có chữ (shot 3 không có)
+assert.ok(loc.includes('concat=n=4:v=1:a=0[vcat]') && loc.includes("[vcat]ass=filename='/tmp/t/chu.ass'[vout]"));   // chữ vẽ một lần bằng libass
+assert.ok(loc.includes('amix=inputs=') && loc.includes('loudnorm=I=-14'));
 assert.ok(loc.includes('color=c=0x101014:s=1080x1920:d=2'));          // end card
-assert.ok(kh.tep.find((x) => x.duong.endsWith('/man_0_0.txt'))!.noiDung === 'Vai hằn đỏ mỗi tối?');
-assert.ok(kh.tep.find((x) => x.duong.endsWith('/man_2_0.txt'))!.noiDung === 'Giảm 70% · Mua ngay' && loc.includes('expansion=none'));   // '%' giữ nguyên, drawtext không mở rộng
-assert.ok(loc.includes('y=h*0.15+0') && loc.includes("y=(h-"));                      // dòng đầu ở 15% chiều cao; end card giữa màn
+assert.ok(ass.includes('Dialogue: 0,0:00:00.00,0:00:02.00,Man,,0,0,0,,{\\an5\\pos(540,330)}Vai hằn đỏ mỗi tối?'), ass);   // 0–2s, giữa ngang, mặc định trên: 15% + nửa khối
+assert.ok(ass.includes('0:00:05.00,0:00:07.50') && ass.includes('Giảm 70% · Mua ngay'));   // shot 4 từ 5s; '%' giữ nguyên
+assert.ok(ass.includes('Style: Man,DejaVu Sans,67,&H00FFFFFF&,&H00FFFFFF&,&H00000000&'));   // mặc định: trắng viền đen như cũ
+assert.ok(loc.includes("y=(h-"));                      // end card (drawtext) giữa màn
 assert.ok(kh.args.includes('-/filter_complex') && kh.args[kh.args.length - 1] === '/tmp/t/ra.mp4');
 // Thiếu nguyên liệu → shot bị ghi thiếu, không chết.
 const kh2 = keHoachXuat({ loai: 'phim', tiLe: '16:9', canh, nhanVat: nv, tap, nhanh: 'B', nguyenLieu: [nl('https://x/c4f.mp4', 4, false)], font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
@@ -58,14 +61,33 @@ console.log('xuat.test: ok');
   const kh2 = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh, nhanVat: nv, tap, qc, nhanh: 'A', nguyenLieu: [...nguyenLieu, nl('https://x/logo.png', null, false), nl('https://x/sp.jpg', null, false)], font: '/f.ttf', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
   const loc2 = kh2.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
   assert.ok(loc2.includes('overlay=W-w-32:58:shortest=1'), 'logo overlay góc trên phải');      // 1080×0.03=32 · 1920×0.03=58
-  assert.ok(loc2.includes('y=h*0.62-'), 'chữ màn ở dưới');
+  assert.ok(kh2.tep.find((x) => x.duong.endsWith('/chu.ass'))!.noiDung.includes('\\pos(540,1190)'), 'chữ màn ở dưới (62%)');
   assert.ok(loc2.includes('colorlevels=rimax=0.55') && loc2.includes('y=h*0.78-'), 'end card trên ảnh sản phẩm, chữ 1/4 dưới');
   assert.strictEqual(kh2.giay, 2 + 3 + 2.5 + 2);
   // Không logo, không ảnh → như cũ: không overlay, end card nền tối.
   const kh3 = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh, nhanVat: nv, tap, qc: { ...qc, anh: [], logo_url: '', vi_tri_chu: 'tren' }, nhanh: 'A', nguyenLieu, font: '/f.ttf', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
   const loc3 = kh3.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
-  assert.ok(!loc3.includes('overlay=W-w-') && loc3.includes('color=c=0x101014') && loc3.includes('y=h*0.15'));   // không logo → không overlay góc
+  assert.ok(!loc3.includes('overlay=W-w-') && loc3.includes('color=c=0x101014'));   // không logo → không overlay góc
   // Ảnh tĩnh (shot chưa có clip): vừa khung trên nền mờ, KHÔNG cắt (ảnh vuông thật của shop giữ nguyên hai bên).
   assert.ok(loc3.includes('force_original_aspect_ratio=decrease') && loc3.includes('boxblur=24:2') && loc3.includes('overlay=(W-w)/2:(H-h)/2'), 'ảnh tĩnh fit + nền mờ');
 }
 console.log('xuat.test: mẫu ok');
+
+// Chữ màn kiểu QC mẫu (10/10/2026): đổi chữ theo giây trong shot, chữ xanh viền trắng, số + '?' màu vàng, giữa màn, font Montserrat.
+{
+  const d = doanChuMan('PAY ? GET ? PANTS\n@0.9 PAY 1 GET ? PANTS\n@1.6 PAY 1 GET 3 PANTS', 2);
+  assert.deepStrictEqual(d, [{ tu: 0, den: 0.9, dong: ['PAY ? GET ? PANTS'] }, { tu: 0.9, den: 1.6, dong: ['PAY 1 GET ? PANTS'] }, { tu: 1.6, den: 2, dong: ['PAY 1 GET 3 PANTS'] }]);
+  assert.deepStrictEqual(doanChuMan('Dòng một\nDòng hai', 2), [{ tu: 0, den: 2, dong: ['Dòng một', 'Dòng hai'] }]);
+  assert.deepStrictEqual(doanChuMan('', 2), []);
+  assert.deepStrictEqual(doanChuMan('@3 quá giờ', 2), []);          // mốc vượt giây phát → bỏ, không ra câu 0 giây
+  assert.strictEqual(chuManHien('PAY ? GET ? PANTS\n@1.6 PAY 1 GET 3 PANTS'), 'PAY 1 GET 3 PANTS');
+  const a = tepAss({ W: 1080, H: 1920, viTri: 'giua', kieu: { font: 'Montserrat Black', mau: '#1E66D0', vien: '#FFFFFF', nhan: '#FFD400', co: 0.075 }, cau: d });
+  assert.ok(a.includes('Style: Man,Montserrat Black,81,&H00D0661E&,&H00D0661E&,&H00FFFFFF&'), a);   // BGR trong ASS
+  assert.ok(a.includes('{\\an5\\pos(540,960)}PAY {\\c&H0000D4FF&}1{\\c&H00D0661E&} GET {\\c&H0000D4FF&}?{\\c&H00D0661E&} PANTS'), a);   // số/? vàng
+  assert.strictEqual((a.match(/^Dialogue:/gm) ?? []).length, 3);
+  // Xuất riêng shot 1 (xem thử): chỉ shot đó, không end card.
+  const k1 = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh, nhanVat: nv, tap, qc: { ten: 'Bra', uu_dai: 'SALE', link: '', diem_noi_bat: '', doi_tuong: '', thi_truong: '', anh: [] }, nhanh: 'A', nguyenLieu, font: '/f.ttf', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4', chiThuTu: [1], fontsDir: '/x/fonts' });
+  assert.strictEqual(k1.giay, 2);
+  assert.ok(k1.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung.includes("fontsdir='/x/fonts'"));
+  console.log('xuat.test: chữ màn kiểu mẫu ok');
+}

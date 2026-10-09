@@ -6,7 +6,7 @@ import { moNgan, linkTai } from './ngan-chung';
 import { dongThoai, tenNoi, LOI_DAN } from '@/lib/xuong-video/am-thanh';
 import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, chiTietKyThuat, type TheLoai } from '@/lib/xuong-video/dien-anh';
 import { suaCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, sinhVideoCanh, lamLaiTuKeyframe, sinhGiong, sinhAmThanh, xoaKeyframe, goiYAICanh, nangCapCanh, chonPhienBan, khopMiengCanh } from '@/lib/actions';
-import { LOAI_NHAN_VAT, TRANG_THAI_CANH, doiBienThe, motBienTheMoiDoiTuong, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim } from '@/lib/xuong-video/kieu';
+import { chuManHien, LOAI_NHAN_VAT, TRANG_THAI_CANH, doiBienThe, motBienTheMoiDoiTuong, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, KqChay, O, Pill, Nut, Loi, AnhNho, DangSinh, mono, Menu, MucMenu, NhomNut } from './ui';
 import { MoHinhCtx, giaVideoUi, giaAnhUi, luaChonAnh, luaChonVideo } from './mo-hinh-ui';
@@ -115,7 +115,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh
             <Pill color={tt.color}>{tt.label}</Pill>
             <span style={mono} title={c.phat_s && c.phat_s !== c.thoi_luong_s ? `phát ${c.phat_s}s, clip sinh ${c.thoi_luong_s}s (cắt lấy phần đầu)` : undefined}>{c.phat_s && c.phat_s !== c.thoi_luong_s ? `phát ${c.phat_s}s / clip ${c.thoi_luong_s}s` : `${c.thoi_luong_s}s`}{c.chi_phi_cents > 0 ? ` · đã tốn ${tien(c.chi_phi_cents)}` : ''}</span>
             {c.nhanh && <Pill color="var(--amber)">hook {c.nhanh}</Pill>}
-            {c.chu_man && <span style={{ fontSize: 11, padding: '1px 7px', borderRadius: 4, border: '1px solid var(--line)', color: 'var(--fg-1)', fontWeight: 600 }} title="Chữ trên màn">✎ {c.chu_man}</span>}
+            {c.chu_man && <span style={{ fontSize: 11, padding: '1px 7px', borderRadius: 4, border: '1px solid var(--line)', color: 'var(--fg-1)', fontWeight: 600 }} title={c.chu_man}>✎ {chuManHien(c.chu_man)}</span>}
           </div>
           {(
             <div style={{ display: 'flex', gap: 6, marginTop: 5, flexWrap: 'wrap', alignItems: 'center' }}>

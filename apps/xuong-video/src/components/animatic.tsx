@@ -1,10 +1,12 @@
 'use client';
+import { ChuManXem } from './chu-man';
+import type { ThongTinQc } from '@/lib/xuong-video/kieu';
 // Animatic: xem cả tập từ keyframe/clip đã có, đúng thứ tự + số giây, 0 đồng.
 import { useEffect, useState } from 'react';
 import { type Canh } from '@/lib/xuong-video/kieu';
 import { mono } from './ui';
 
-export function Animatic({ canh, tiLe, ngonNgu, onClose }: { canh: Canh[]; tiLe: string; ngonNgu: string; onClose: () => void }) {
+export function Animatic({ canh, tiLe, ngonNgu, onClose, qc }: { canh: Canh[]; tiLe: string; ngonNgu: string; onClose: () => void; qc?: ThongTinQc | null }) {
   const ds = canh.filter((c) => c.keyframe_url || c.video_url);
   const [i, setI] = useState(0);
   const [chay, setChay] = useState(true);
@@ -49,7 +51,7 @@ export function Animatic({ canh, tiLe, ngonNgu, onClose }: { canh: Canh[]; tiLe:
         <div style={{ position: 'absolute', left: 0, right: 0, top: 0, padding: '8px 12px', background: 'linear-gradient(rgba(0,0,0,.6), transparent)', color: '#fff', fontSize: 12 }}>
           #{c.thu_tu} {c.canh} · {c.thoi_luong_s}s · {vid ? (c.video_cuoi_url ? 'bản cuối' : 'nháp') : 'keyframe'}
         </div>
-        {c.chu_man && <div style={{ position: 'absolute', left: '6%', right: '6%', top: '14%', textAlign: 'center', color: '#fff', fontSize: doc916 ? 20 : 26, fontWeight: 800, lineHeight: 1.15, textShadow: '0 2px 8px #000, 0 0 3px #000' }}>{c.chu_man}</div>}
+        {c.chu_man && <ChuManXem chu={c.chu_man} giay={t / 1000} rong={typeof window === 'undefined' ? 360 : (doc916 ? window.innerHeight * 0.78 * 9 / 16 : Math.min(window.innerWidth * 0.92, 1200))} qc={qc} />}
       </div>
       {/* Trên hình CHỈ có chữ màn (thứ bản xuất vẽ thật); lời thoại ghi bên ngoài khung, chỉ lời — không tên, không diễn xuất (#1229, #1231). */}
       <div style={{ width: doc916 ? 'calc(78vh * 9 / 16)' : 'min(92vw, 1200px)', minHeight: 20, textAlign: 'center', color: 'var(--fg-2)', fontSize: 13 }}>{c.thoai.length ? c.thoai.map((d) => d.loi).join(' ') : c.loi_thoai.replace(/^[^:"“]*:\s*/gm, '').replace(/["“”]/g, '')}</div>

@@ -101,11 +101,16 @@ export const giayMau = (m: MauQc | null | undefined): number => Math.round((m?.s
 export const coMau = (q: ThongTinQc | null | undefined): boolean => !!q?.mau?.shots?.length;
 /** Vị trí khối chữ màn trên hình khi xuất: trên (1/6 màn, mặc định cũ) · giữa · dưới (≈62%, kiểu QC UGC — mắt đang nhìn người thì đọc được chữ). */
 export type ViTriChu = 'tren' | 'giua' | 'duoi';
+/** Kiểu chữ màn khi xuất — chép theo QC mẫu (10/10/2026: mẫu Jett chữ xanh viền trắng, số vàng, giữa màn). font = tên họ font trong
+ *  assets/fonts (Montserrat Black/ExtraBold) hoặc DejaVu Sans; màu #RRGGBB; nhan = màu riêng cho số, '?', '$', '%'; co = cỡ chữ / bề ngang. */
+export type KieuChu = { font?: string; mau?: string; vien?: string; nhan?: string; co?: number; vien_day?: number };
+export const KIEU_CHU_MAC_DINH = { font: 'DejaVu Sans', mau: '#FFFFFF', vien: '#000000', nhan: '', co: 0.062, vien_day: 0.07 };
+export const FONT_CHU: { key: string; ten: string }[] = [{ key: 'DejaVu Sans', ten: 'DejaVu Sans Bold (mặc định)' }, { key: 'Montserrat Black', ten: 'Montserrat Black' }, { key: 'Montserrat ExtraBold', ten: 'Montserrat ExtraBold' }];
 export const VI_TRI_CHU: { key: ViTriChu; ten: string }[] = [{ key: 'tren', ten: 'Trên' }, { key: 'giua', ten: 'Giữa' }, { key: 'duoi', ten: 'Dưới' }];
 export type ThongTinQc = {
   ten: string; link: string; diem_noi_bat: string; doi_tuong: string; uu_dai: string; thi_truong: string; anh: string[];
   /** QC mẫu làm khuôn (tuỳ chọn). logo_url = logo chèn góc trên phải khi xuất. vi_tri_chu = chỗ đặt chữ màn. */
-  mau?: MauQc; logo_url?: string; vi_tri_chu?: ViTriChu;
+  mau?: MauQc; logo_url?: string; vi_tri_chu?: ViTriChu; kieu_chu?: KieuChu;
 };
 export const QC_TRONG: ThongTinQc = { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] };
 /** Bài đăng đi kèm video trên Meta/TikTok (văn bản chính · tiêu đề · mô tả · nút) — Claude viết theo QC mẫu, lưu ở tập. */
@@ -277,3 +282,18 @@ export function thanhPhanCanh(c: Pick<Canh, 'nhan_vat' | 'bien_the'>, nhanVat: N
 export const KHOP_MIENG = { model: 'fal-ai/sync-lipsync/v2', label: 'Sync Lipsync v2', giaGiayCents: 5 } as const;
 /** Nâng cấp video (fal Topaz Precision) — giữ nguyên chuyển động của clip nháp. Giá công khai 10/2026: $0,10/10s ra 720p, $0,20/10s ra 1080p. */
 export const NANG_CAP = { model: 'topaz/upscale/video/precision', label: 'Topaz Precision ×2', giaGiayCents: 2 } as const;
+
+/** (dùng chung UI + bản xuất) Chữ màn theo mốc giây trong shot: dòng "@0.9 PAY 1 GET ? PANTS" mở câu mới từ giây 0,9 (QC mẫu đổi chữ ngay trong shot);
+ *  dòng thường nối vào câu đang hiện (xuống dòng). Không có "@" → một câu suốt shot. */
+export function doanChuMan(chu: string, phat: number): { tu: number; den: number; dong: string[] }[] {
+  const out: { tu: number; den: number; dong: string[] }[] = [];
+  for (const dong of chu.split('\n')) {
+    const m = dong.match(/^\s*@(\d+(?:[.,]\d+)?)s?\s+(.*)$/);
+    if (m) out.push({ tu: Math.min(phat, Number(m[1]!.replace(',', '.'))), den: phat, dong: [m[2]!.trim()] });
+    else if (dong.trim()) { if (!out.length) out.push({ tu: 0, den: phat, dong: [] }); out[out.length - 1]!.dong.push(dong.trim()); }
+  }
+  for (let i = 0; i < out.length - 1; i++) out[i]!.den = out[i + 1]!.tu;
+  return out.filter((d) => d.den > d.tu && d.dong.length);
+}
+/** Chữ màn hiện trên timeline/thẻ shot: chỉ câu cuối (câu đã "lộ hết"), bỏ cú pháp "@giây". */
+export const chuManHien = (chu: string): string => { const d = doanChuMan(chu, 999); return d.length ? d[d.length - 1]!.dong.join(' ') : chu.trim(); };

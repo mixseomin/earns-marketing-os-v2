@@ -1,4 +1,5 @@
 'use client';
+import { ChuManXem } from './chu-man';
 
 // Timeline kiểu CapCut cho một tập: màn xem trước ở trên, các track ở dưới chạy chung một thước giây.
 //   Hình   — mỗi cảnh một clip, dài bằng số giây THỰC PHÁT (phat_s: cắt từ đầu clip 4/6/8s); kéo mép phải = cắt, kéo thả clip đổi thứ tự.
@@ -8,7 +9,7 @@
 //   Nhạc   — nhạc nền cả tập (nhac_url / nhac_mo_ta).
 // Nét đứt = mới có mô tả trong kịch bản, chưa sinh file. Toàn bộ chạy ở trình duyệt, không tốn tiền.
 import { useEffect, useMemo, useRef, useState, type PointerEvent as PE, type ReactNode } from 'react';
-import { giayPhat, tenCamXuc, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
+import { chuManHien, giayPhat, tenCamXuc, type Canh, type ThongTinQc, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat } from '@/lib/xuong-video/dien-anh';
 import { dongThoai, coTiengRieng, tenNoi, cungTen, timNv } from '@/lib/xuong-video/am-thanh';
 import { BangSinh, type YeuCauBang } from './bang-sinh';
@@ -27,8 +28,8 @@ export type SinhTaiCho = {
   giong: (canhId: number, tuy: TuyGiong) => void; sfx: (canhId: number, tuy: TuyAm) => void; nhac: (phanDoan: string | undefined, model: string, moTa: string) => void;
   mhNhac: string; ban: (k: string) => boolean; dangPhanDoan: string[]; dangCaTap: boolean;
 };
-export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh }: {
-  canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null;
+export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc }: {
+  canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null; qc?: ThongTinQc | null;
   onChon: (id: number) => void; onDoiGiay: (id: number, giay: number) => void; onXep: (ids: number[]) => void; onToanManHinh: () => void; sinh?: SinhTaiCho;
 }) {
   // Số giây tạm khi đang kéo mép clip (chưa ghi) — timeline co giãn theo tay ngay.
@@ -259,7 +260,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
         <div style={{ display: 'grid', gap: 6, alignContent: 'start', textAlign: 'right' }}>
           {c && <div style={{ fontSize: 12 }}><b>#{c.thu_tu} {c.canh}</b></div>}
           {c && <div style={mono}>phát {dur(c)}s{dur(c) !== (c.thoi_luong_s || 4) ? ` / clip ${c.thoi_luong_s || 4}s` : ''} · {vid ? (c.video_cuoi_url ? 'bản cuối' : 'nháp') : c.keyframe_url ? 'keyframe' : 'chưa có hình'}{c.nhanh ? ` · hook ${c.nhanh}` : ''}</div>}
-          {c?.chu_man && <div style={{ fontSize: 11.5 }}>✎ <b>{c.chu_man}</b></div>}
+          {c?.chu_man && <div style={{ fontSize: 11.5 }}>✎ <b>{chuManHien(c.chu_man)}</b></div>}
           {c?.hanh_dong && <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{c.hanh_dong}</div>}
           {c && <div style={mono}>❤ khán giả: <span style={{ color: c.cam_xuc >= 0 ? 'var(--lime)' : 'var(--red)' }}>{tenCamXuc(c.cam_xuc)}</span></div>}
         </div>
@@ -268,7 +269,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             {c && (vid ? <video ref={vidRef} key={vid} src={vid} playsInline preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               : c.keyframe_url ? <img src={c.keyframe_url} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb }} />
               : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} chưa có hình</div>)}
-            {c?.chu_man && <div style={{ position: 'absolute', left: '6%', right: '6%', top: '14%', textAlign: 'center', color: '#fff', fontSize: doc916 ? 13 : 18, fontWeight: 800, lineHeight: 1.15, textShadow: '0 2px 8px #000, 0 0 3px #000', textTransform: 'none' }}>{c.chu_man}</div>}
+            {c?.chu_man && <ChuManXem chu={c.chu_man} giay={tTrong} rong={doc916 ? 220 : 480} qc={qc} />}
             {c && (() => {
               const ds = dongThoai(c, nhanVat).map((d) => d.url).filter((u): u is string => !!u);
               const u = ds[dong];
@@ -380,7 +381,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
 
           {canh.some((x) => x.chu_man.trim()) && track('✎ Chữ màn', 'Chữ hiện trên màn của từng shot (hook, số liệu, ưu đãi, CTA) — sửa ở form cảnh; bản xuất vẽ đúng chữ này', canh.map((cc, i) => {
             if (!cc.chu_man.trim()) return null;
-            return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, '#facc15', cc.chu_man, cc.chu_man, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); });
+            return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, '#facc15', chuManHien(cc.chu_man), cc.chu_man, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); });
           }))}
 
           {/* MỖI nhân vật một NHÓM làn (#1237, #1244), viền màu nhân vật: 🎭 cảm xúc/diễn xuất theo shot (có mặt mà không nói cũng hiện) · 🗣 thoại. */}

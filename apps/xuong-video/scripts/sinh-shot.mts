@@ -7,6 +7,7 @@
 //   --duyet                      : đánh dấu shot đã duyệt keyframe (0đ) — bước bắt buộc trước --video.
 //   --video                      : gửi sinh video nháp (Veo/fal theo kinh thánh), đợi provider trả, in link + tiền.
 //   --giong                      : sinh giọng đọc từng dòng thoại của các shot, đợi file, in link.
+//   --xuat                       : (0đ) dựng MP4 CHỈ các shot này (chữ màn kiểu phim, logo, giọng, nhạc) để xem thử — không ghi vào danh sách bản xuất của tập.
 //   THỨ TỰ: --keyframe → (anh xem) → --duyet → --giong → --video. Giọng TRƯỚC video: có file giọng thì Veo sinh clip câm (chỉ cử miệng),
 //   không có thì Veo tự đọc thoại — đọc lơ lớ và dễ in phụ đề giả (thử 09/10/2026 tốn $0,40 cho 2 clip hỏng).
 //   MỖI LẦN CHẠY MỘT CỜ TỐN TIỀN. Ví dụ:
@@ -23,6 +24,8 @@ import { dsMoHinhGiong } from '../src/lib/xuong-video/giong';
 import { boiCanhCanh, mapCanh, giaVideoSv, type Row } from '../src/lib/xuong-video/doc-db';
 import { lamTronClip, tien, chanChuModel, coTiengViet } from '../src/lib/xuong-video/kieu';
 import { chupTruoc } from '../src/lib/xuong-video/hoan-tac';
+import { chayXuat } from '../src/lib/xuong-video/xuat-chay';
+import { mapNhanVat, mapTap } from '../src/lib/xuong-video/doc-db';
 
 const arg = (k: string) => process.argv.includes(`--${k}`);
 const ids = ((process.argv.find((a) => a.startsWith('--canh=')) ?? '').split('=')[1] ?? '').split(',').map(Number).filter((x) => x > 0);
@@ -58,9 +61,9 @@ if (arg('xem')) {
     console.log(`   cổng: ${chanChuModel(kt.ngon_ngu, { phongCach: kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat }) ?? 'sạch'} · tiếng Việt trong prompt: ${coTiengViet(p) ? 'CÓ' : 'không'} · chữ "text/caption" ngoài lệnh cấm: ${/(?<!no )\b(text|captions?|subtitles?)\b(?! or| appear)/i.test(p.replace(/no text, captions or logos appear/i, '')) ? 'CÓ' : 'không'}`);
     console.log(p);
   }
-  process.exit(0);
+process.exit(0);
 }
-if (!arg('keyframe') && !arg('duyet') && !arg('video') && !arg('giong') && !urlChon) { console.log('(chỉ ước lượng — thêm MỘT cờ --keyframe / --duyet / --video / --giong để chạy)'); process.exit(0); }
+if (!arg('keyframe') && !arg('duyet') && !arg('video') && !arg('giong') && !arg('xuat') && !urlChon) { console.log('(chỉ ước lượng — thêm MỘT cờ --keyframe / --duyet / --video / --giong để chạy)'); process.exit(0); }
 
 if (arg('keyframe')) {
   const jobs: number[] = [];
@@ -110,5 +113,13 @@ if (arg('giong')) {
   for (const c of rows) for (const d of c.thoai) console.log(`  #${c.thu_tu} ${d.nhan_vat || 'lời dẫn'}: "${d.loi}" → ${d.url ?? '(chưa có file)'}`);
   const tienG = await q(sql`SELECT coalesce(sum(chi_phi_cents), 0) AS t, count(*) FILTER (WHERE trang_thai = 'loi') AS loi FROM xv_job WHERE loai = 'am' AND canh_id = ANY(${`{${ids.join(',')}}`}::int[]) AND created_at > now() - interval '15 minutes'`);
   console.log(`  giọng: ${tien(Number(tienG[0]?.t))} · lỗi ${tienG[0]?.loi}`);
+}
+if (arg('xuat')) {
+  const tap = mapTap(((await q(sql`SELECT * FROM xv_tap WHERE id = ${tapId}`)) as Row[])[0]!);
+  const phim = (await q(sql`SELECT p.loai, p.kinh_thanh FROM xv_phim p JOIN xv_tap t ON t.phim_id = p.id WHERE t.id = ${tapId}`))[0]!;
+  const nhanVat = (await q(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${tap.phim_id} ORDER BY id`)).map(mapNhanVat);
+  const canhTap = (await q(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)).map(mapCanh);
+  const r = await chayXuat({ loai: String(phim.loai) as never, tiLe: kt.ti_le, canh: canhTap, nhanVat, tap, qc: kt.qc, nhanh: null, chiThuTu: bcs.map((b) => b.canh.thu_tu) });
+  console.log(r.ok ? `  ✓ MP4 ${r.giay}s → ${r.url}${r.canhThieu.length ? ` · thiếu ${r.canhThieu.join(', ')}` : ''}` : `  ✗ ${r.loi}`);
 }
 process.exit(0);

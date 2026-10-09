@@ -24,13 +24,16 @@ async function doTep(duong: string): Promise<{ dai: number | null; coAm: boolean
 
 export type KqXuat = { ok: true; url: string; giay: number; canhThieu: string[] } | { ok: false; loi: string };
 
-export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'nhac_url' | 'nhac_phan_canh'>; qc?: ThongTinQc | null; nhanh?: string | null }): Promise<KqXuat> {
+/** Thư mục font chữ màn — MỘT chỗ cho cả bản xuất (libass) lẫn trang xem trước (@font-face /fonts/…): apps/xuong-video/public/fonts (Montserrat, OFL). */
+const FONTS_DIR = [`${process.cwd()}/public/fonts`, `${process.cwd()}/apps/xuong-video/public/fonts`, '/opt/earns-marketing-os-v2/apps/xuong-video/public/fonts'].find((d) => existsSync(d));
+
+export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'nhac_url' | 'nhac_phan_canh'>; qc?: ThongTinQc | null; nhanh?: string | null; chiThuTu?: number[] }): Promise<KqXuat> {
   const font = FONT_UNG_VIEN.find((f) => existsSync(f));
   if (!font) return { ok: false, loi: 'máy chủ không có font để vẽ chữ (DejaVuSans-Bold)' };
   const thuMuc = `${tmpdir()}/xv-xuat-${o.tap.id}-${randomUUID().slice(0, 8)}`;
   await mkdir(thuMuc, { recursive: true });
   try {
-    const urls = urlCanXuat(o.canh, o.nhanVat, o.tap, o.nhanh, o.qc);
+    const urls = urlCanXuat(o.chiThuTu?.length ? o.canh.filter((c) => o.chiThuTu!.includes(c.thu_tu)) : o.canh, o.nhanVat, o.tap, o.nhanh, o.qc);
     const nguyenLieu: NguyenLieu[] = [];
     // Tải song song từng cụm 4 (R2 cùng host, không cần hơn); tệp hỏng thì bỏ qua → shot đó báo thiếu.
     for (let i = 0; i < urls.length; i += 4) {
@@ -46,7 +49,7 @@ export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; canh: Canh[]; 
       }));
     }
     const ra = `${thuMuc}/ra.mp4`;
-    const kh = keHoachXuat({ ...o, nguyenLieu, font, thuMuc, ra });
+    const kh = keHoachXuat({ ...o, nguyenLieu, font, thuMuc, ra, fontsDir: FONTS_DIR });
     if (!kh.args.length) return { ok: false, loi: `không shot nào có clip/keyframe tải được${kh.canhThieu.length ? ` (${kh.canhThieu.join(', ')})` : ''}` };
     await Promise.all(kh.tep.map((t) => writeFile(t.duong, t.noiDung, 'utf8')));
     try { await run('ffmpeg', kh.args, { timeout: 15 * 60_000, maxBuffer: 8 << 20 }); }

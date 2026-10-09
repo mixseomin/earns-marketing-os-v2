@@ -1,3 +1,6 @@
+/* Font chữ màn — cùng tệp bản xuất (libass) dùng: public/fonts (Montserrat, SIL OFL). */
+@font-face { font-family: 'Montserrat Black'; src: url('/fonts/Montserrat-Black.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Montserrat ExtraBold'; src: url('/fonts/Montserrat-ExtraBold.ttf') format('truetype'); font-display: swap; }
 /* Xưởng video — token màu tối giản, cùng tông tối với mos2 nhưng là app riêng. */
 :root {
   --bg-0: #0b0d12; --bg-1: #12151c; --bg-2: #1a1e27; --line: #262b36;

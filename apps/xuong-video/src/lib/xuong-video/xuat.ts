@@ -3,7 +3,7 @@
 //   - mỗi shot phát đúng phat_s (cắt từ đầu clip), clip chưa có thì dùng keyframe tĩnh;
 //   - giọng từng dòng thoại nối tiếp từ đầu shot, hiệu ứng từ đầu shot, tiếng sẵn của clip chỉ khi shot KHÔNG có tiếng riêng (cùng luật timeline);
 //   - nhạc theo phân cảnh (ưu tiên) hoặc một bài cả tập, lặp nếu ngắn, nhỏ tiếng dưới giọng;
-//   - chữ màn (chu_man) to ở 1/6 trên, phụ đề thoại ở 3/4 dưới (trong vùng an toàn 9:16), end card ưu đãi cho quảng cáo;
+//   - trên hình CHỈ có chữ màn (chu_man, to ở 1/6 trên) — shot không có chữ màn thì không có chữ nào (anh chốt 09/10/2026, #1231); end card ưu đãi cho quảng cáo;
 //   - chuẩn -14 LUFS, H.264 30fps, 1080×1920 (9:16) hoặc 1920×1080.
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/xuat.test.mts
 import type { Canh, LoaiPhim, NhanVat, Tap, ThongTinQc } from './kieu';
@@ -67,14 +67,13 @@ export function keHoachXuat(o: {
   };
   const tep: TepChu[] = [];
   const tepChu = (ten: string, noiDung: string) => { const duong = `${o.thuMuc}/${ten}.txt`; tep.push({ duong, noiDung }); return duong; };
-  const fsMan = Math.round(W * (doc ? 0.062 : 0.04)), fsPd = Math.round(W * (doc ? 0.042 : 0.028));
-  const wrapMan = doc ? 20 : 36, wrapPd = doc ? 32 : 50;
+  const fsMan = Math.round(W * (doc ? 0.062 : 0.04));
+  const wrapMan = doc ? 20 : 36;
   const font = duongFf(o.font);
   // Khối chữ nhiều dòng = nhiều drawtext, dòng i ở y = gốc + i·(cỡ chữ × 1,25); gốc tính theo tỉ lệ chiều cao (vùng an toàn 9:16) hoặc giữa màn.
   const khoiChu = (ten: string, dong: string[], fs: number, goc: (n: number) => string, them: string, chiBo: string) =>
     dong.map((d, i) => `drawtext=fontfile='${font}':textfile='${duongFf(tepChu(`${ten}_${i}`, d))}':expansion=none:fontsize=${fs}:fontcolor=white:${them}:x=(w-text_w)/2:y=${goc(dong.length)}+${Math.round(i * fs * 1.25)}${chiBo}`).join(',');
   const drawMan = (ten: string, dong: string[], giua = false) => khoiChu(ten, dong, fsMan, (n) => (giua ? `(h-${Math.round(n * fsMan * 1.25)})/2` : 'h*0.15'), `borderw=${Math.round(fsMan / 14)}:bordercolor=black@0.85`, '');
-  const drawPd = (ten: string, dong: string[], tu: number, den: number) => khoiChu(ten, dong, fsPd, () => 'h*0.74', `box=1:boxcolor=black@0.55:boxborderw=${Math.round(fsPd / 3)}`, `:enable='between(t,${so(tu)},${so(den)})'`);
   const khung = `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=30,format=yuv420p`;
 
   const loc: string[] = [];
@@ -93,14 +92,12 @@ export function keHoachXuat(o: {
     const k = laVideo ? them(nguon) : them(nguon, ['-loop', '1', '-framerate', '30', '-t', so(phat)]);
     const ve: string[] = [laVideo ? `[${k}:v]trim=0:${so(phat)},setpts=PTS-STARTPTS,${khung}` : `[${k}:v]${khung},trim=0:${so(phat)},setpts=PTS-STARTPTS`];
     if (c.chu_man.trim()) ve.push(drawMan(`man_${i}`, ngatDong(c.chu_man, wrapMan)));
-    // Phụ đề: theo độ dài file giọng từng dòng (nối tiếp), chưa có giọng thì chia đều giây phát.
+    // Giọng từng dòng nối tiếp nhau trong shot (theo độ dài file giọng; chưa có giọng thì chia đều giây phát để giữ nhịp).
     const dong = dongThoai(c, o.nhanVat);
     let tDong = 0;
     const tiengRieng = coTiengRieng(c, o.nhanVat);
-    dong.forEach((d, j) => {
+    dong.forEach((d) => {
       const daiGiong = d.url && nl.get(d.url)?.dai ? nl.get(d.url)!.dai! : phat / dong.length;
-      const tu = tDong, den = Math.min(phat, tDong + daiGiong);
-      if (den > tu) ve.push(drawPd(`pd_${i}_${j}`, ngatDong(d.loi, wrapPd), tu, den));
       if (d.url && nl.has(d.url)) { const ka = them(d.url); themAm(`[${ka}:a]atrim=0:${so(Math.max(0.2, phat - tDong + 0.3))},asetpts=PTS-STARTPTS,adelay=${Math.round((t + tDong) * 1000)}:all=1`); }
       tDong += daiGiong + 0.15;
     });

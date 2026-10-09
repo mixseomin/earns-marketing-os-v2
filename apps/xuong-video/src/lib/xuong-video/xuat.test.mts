@@ -30,8 +30,8 @@ assert.ok(loc.includes('volume=0.8,adelay=2000:all=1'));             // hiệu �
 assert.ok(loc.includes('aloop=loop=-1') && loc.includes('volume=0.22,adelay=2000:all=1'));  // nhạc phân cảnh Demo từ 2s
 assert.ok(!loc.includes('[0:a]atrim'));                              // clip 1 có giọng riêng → không lấy tiếng clip
 assert.ok(!/\[\d+:a\]atrim=0:2\.5/.test(loc));                       // clip 4 không có luồng tiếng → không tham chiếu :a
-assert.ok(loc.includes("enable='between(t,0,1.4)'"));                // phụ đề theo độ dài giọng
-assert.ok(loc.includes("enable='between(t,0,3)'"));                  // không giọng → chia đều giây phát
+assert.ok(!loc.includes('enable=') && !kh.tep.some((x) => /\/pd_/.test(x.duong)));   // không vẽ phụ đề thoại lên hình (#1231)
+assert.strictEqual(kh.tep.filter((x) => /\/man_/.test(x.duong)).length, 2);          // chỉ shot có chữ màn mới có chữ (shot 3 không có)
 assert.ok(loc.includes('concat=n=4:v=1:a=0[vout]') && loc.includes('amix=inputs=') && loc.includes('loudnorm=I=-14'));
 assert.ok(loc.includes('color=c=0x101014:s=1080x1920:d=2'));          // end card
 assert.ok(kh.tep.find((x) => x.duong.endsWith('/man_0_0.txt'))!.noiDung === 'Vai hằn đỏ mỗi tối?');

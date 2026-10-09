@@ -906,7 +906,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap; phim:
           {chonNhanh}
           <span style={{ flex: 1 }} />
           <Nut chinh ly={!(canh ?? []).some((c) => c.video_url || c.video_cuoi_url || c.keyframe_url) && 'chưa có clip/keyframe nào'} ban={jobXuat != null}
-            title="Dựng MP4 hoàn chỉnh trên máy chủ (0đ): nối clip theo giây phát, giọng + hiệu ứng + nhạc, chữ màn, phụ đề, end card ưu đãi, chuẩn âm -14 LUFS, 1080p. Shot chưa có clip dùng keyframe tĩnh."
+            title="Dựng MP4 hoàn chỉnh trên máy chủ (0đ): nối clip theo giây phát, giọng + hiệu ứng + nhạc, chữ màn (shot nào có), end card ưu đãi, chuẩn âm -14 LUFS, 1080p. Shot chưa có clip dùng keyframe tĩnh."
             onClick={async () => { setLoiXuat(''); const r = await xuatTap(tap.id, nhanh ?? cacNhanh(canh ?? [])[0] ?? null); if (!r.ok) setLoiXuat(r.loi); else setJobXuat(r.data); }}>
             {jobXuat != null ? '… đang dựng bản xuất (30–90s)' : `⬇ Xuất MP4${cacNhanh(canh ?? []).length ? ` · hook ${nhanh ?? cacNhanh(canh ?? [])[0]}` : ''}`}
           </Nut>
@@ -1011,7 +1011,7 @@ function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap; phim:
 }
 
 // ── Animatic: xem cả tập từ keyframe (0 đồng) ──────────────────────────────────────────────────────────────────
-// Mỗi cảnh: ưu tiên bản cuối → nháp → keyframe (zoom/lia nhẹ kiểu Ken Burns) trong đúng số giây; lời thoại hiện phụ đề và đọc bằng
+// Mỗi cảnh: ưu tiên bản cuối → nháp → keyframe (zoom/lia nhẹ kiểu Ken Burns) trong đúng số giây; trên hình chỉ có chữ màn, lời thoại ghi dưới khung và đọc bằng
 // giọng trình duyệt (miễn phí). Mục đích: duyệt nhịp, thứ tự, độ dài TRƯỚC khi tốn tiền video.
 
 function Animatic({ canh, tiLe, ngonNgu, onClose }: { canh: Canh[]; tiLe: string; ngonNgu: string; onClose: () => void }) {
@@ -1059,8 +1059,10 @@ function Animatic({ canh, tiLe, ngonNgu, onClose }: { canh: Canh[]; tiLe: string
         <div style={{ position: 'absolute', left: 0, right: 0, top: 0, padding: '8px 12px', background: 'linear-gradient(rgba(0,0,0,.6), transparent)', color: '#fff', fontSize: 12 }}>
           #{c.thu_tu} {c.canh} · {c.thoi_luong_s}s · {vid ? (c.video_cuoi_url ? 'bản cuối' : 'nháp') : 'keyframe'}
         </div>
-        {c.loi_thoai && <div style={{ position: 'absolute', left: '6%', right: '6%', bottom: '7%', textAlign: 'center', color: '#fff', fontSize: doc916 ? 15 : 18, fontWeight: 600, textShadow: '0 2px 6px #000, 0 0 2px #000' }}>{c.loi_thoai}</div>}
+        {c.chu_man && <div style={{ position: 'absolute', left: '6%', right: '6%', top: '14%', textAlign: 'center', color: '#fff', fontSize: doc916 ? 20 : 26, fontWeight: 800, lineHeight: 1.15, textShadow: '0 2px 8px #000, 0 0 3px #000' }}>{c.chu_man}</div>}
       </div>
+      {/* Trên hình CHỈ có chữ màn (thứ bản xuất vẽ thật); lời thoại ghi bên ngoài khung, chỉ lời — không tên, không diễn xuất (#1229, #1231). */}
+      <div style={{ width: doc916 ? 'calc(78vh * 9 / 16)' : 'min(92vw, 1200px)', minHeight: 20, textAlign: 'center', color: 'var(--fg-2)', fontSize: 13 }}>{c.thoai.length ? c.thoai.map((d) => d.loi).join(' ') : c.loi_thoai.replace(/^[^:"“]*:\s*/gm, '').replace(/["“”]/g, '')}</div>
       <div style={{ width: doc916 ? 'calc(78vh * 9 / 16)' : 'min(92vw, 1200px)', display: 'flex', gap: 2 }}>
         {ds.map((x, k) => (
           <div key={x.id} onClick={() => setI(k)} title={`#${x.thu_tu} ${x.canh}`} style={{ flex: x.thoi_luong_s || 4, height: 6, borderRadius: 3, cursor: 'pointer', background: k < i ? 'var(--cyan)' : k === i ? `linear-gradient(90deg, var(--cyan) ${p * 100}%, #444 ${p * 100}%)` : '#444' }} />
@@ -1241,10 +1243,11 @@ function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh; nhanV
             {(buoc === 'nhap' || buoc === 'cuoi') && <>{chonVideo}<Nut ly={lyVideo} ban={ban(k)} title="Sinh một bản nháp video mới từ keyframe đang chọn; bản cũ vẫn giữ trong danh sách phiên bản" onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))} gia={giaVid}>↻ Sinh lại nháp · {giay}s · {tien(giaVid)}</Nut></>}
             {buoc === 'nhap' && <Nut chinh ly={!khoa.fal && 'thiếu FAL_KEY'} ban={ban(k)} title="Nâng cấp CHÍNH clip nháp (Topaz ×2): chuyển động, bố cục, nhân vật y hệt bản nháp" onClick={() => void chay(k, () => nangCapCanh(c.id))} gia={giaNangCap}>⬆ Làm bản cuối (nâng cấp nháp, khớp 100%) · {tien(giaNangCap)}</Nut>}
             {buoc === 'cuoi' && <a href={linkTai(c.video_cuoi_url!)} download className="xv-btn chinh" style={{ textDecoration: 'none' }}>⬇ Tải bản cuối</a>}
+            {/* Sửa cảnh là việc hay làm nhất sau sinh ảnh → nút riêng cạnh ⋯ (#1228), không chôn trong menu. */}
+            <button type="button" className={`xv-btn${mo ? ' chinh' : ''}`} onClick={() => setMo(!mo)} title="Sửa cảnh: nội dung, thoại, máy, prompt">✎ Sửa</button>
             <Menu>
               <div style={{ ...mono, padding: '2px 4px' }}>Model cho các lệnh bên dưới</div>
               <div style={{ display: 'grid', gap: 4 }}>{chonAnh}{chonVideo}</div>
-              <MucMenu onClick={() => setMo(true)}>✎ Sửa cảnh (góc máy, lời thoại, prompt, nhân vật)</MucMenu>
               {c.loi_thoai.trim() && <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} onClick={() => void chay(`g${c.id}`, () => sinhGiong(c.tap_id, [c.id]))}>🗣 {c.thoai_url ? 'Sinh lại' : 'Sinh'} giọng shot này</MucMenu>}
               <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} onClick={() => void chay(`s${c.id}`, () => sinhAmThanh(c.tap_id, [c.id]))}>🔊 {c.am_thanh_url ? 'Sinh lại' : 'Sinh'} hiệu ứng âm thanh{c.video_url ? ' (từ clip)' : ''}</MucMenu>
               {(buoc === 'nhap' || buoc === 'cuoi') && dongThoai(c, nhanVat).some((d) => d.url) && <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} gia={KHOP_MIENG.giaGiayCents * (c.thoi_luong_s || 8)} onClick={() => void chay(k, () => khopMiengCanh(c.id))}>👄 Khớp miệng với giọng đã sinh ({KHOP_MIENG.label}) · {tien(KHOP_MIENG.giaGiayCents * (c.thoi_luong_s || 8))}</MucMenu>}

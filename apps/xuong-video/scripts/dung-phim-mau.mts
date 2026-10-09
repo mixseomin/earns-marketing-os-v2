@@ -1,8 +1,8 @@
 // Dựng MỘT phim quảng cáo từ hồ sơ mẫu (mau/<ten>.json): phim + mục 0 (sản phẩm, QC mẫu) + anchor + tập → Claude viết kịch bản →
 // tách cảnh bám mẫu → bài đăng kèm. CHỈ gọi Claude (chữ, vài cent); không sinh ảnh/video (tốn tiền — bấm tay trên studio khi anh chốt).
 // Chạy trên box3 (có DB + ANTHROPIC_API_KEY):
-//   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; NODE_OPTIONS=--conditions=react-server \
-//     node_modules/.bin/tsx apps/xuong-video/scripts/dung-phim-mau.mts apps/xuong-video/mau/jett-husband.json [--chi-tao]
+//   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
+//     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/dung-phim-mau.mts mau/jett-husband.json [--claude]
 // MẶC ĐỊNH 0đ: chỉ tạo phim/anchor/tập/QC mẫu, KHÔNG gọi Claude. Muốn Claude viết kịch bản + tách cảnh + bài đăng (≈ $1,1 cho 28 shot)
 // thì thêm --claude — và chỉ khi anh bảo chạy (09/10/2026: chạy không hỏi, anh chửi). Chạy lại cùng tệp = tạo phim MỚI (không đè).
 // --phim=<id> = chạy TIẾP trên phim đã tạo (đọc anchor + tập 1 từ DB; có kịch bản rồi thì không viết lại) — dùng khi một bước lỗi giữa chừng.

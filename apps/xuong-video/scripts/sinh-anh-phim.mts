@@ -3,8 +3,9 @@
 //   --anchor     : sinh ảnh gốc cho anchor chưa có ảnh (sinh-anh.sinhAnhGoc), đợi xong.
 //   --keyframe   : sinh 1 keyframe cho mọi shot chưa có (sinh-anh.sinhKeyframeCanh), đợi xong.
 //   --xuat       : dựng MP4 thử (0đ, ffmpeg) → R2 + ghi vào tập như nút ⬇ Xuất.
-//   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; NODE_OPTIONS=--conditions=react-server \
-//     node_modules/.bin/tsx apps/xuong-video/scripts/sinh-anh-phim.mts --phim=5 --uoc
+//   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
+//     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/sinh-anh-phim.mts --phim=5 --uoc
+//   (chạy từ apps/xuong-video để tsx đọc tsconfig có alias @/lib; --conditions=react-server để 'server-only' không ném lỗi ngoài Next)
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { sinhAnhGoc, sinhKeyframeCanh } from '../src/lib/xuong-video/sinh-anh';

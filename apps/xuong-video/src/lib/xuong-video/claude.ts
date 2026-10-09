@@ -75,7 +75,7 @@ function taAnchor(nv: NhanVat[]): string {
 const heThong = (loai: LoaiPhim, kt: Required<KinhThanh>) => `Bạn là đạo diễn kiêm storyboard artist cho xưởng video AI. Loại sản phẩm: ${LOAI_PHIM.find((l) => l.key === loai)?.label ?? loai}.
 Phong cách hình ảnh cố định của bộ phim: ${kt.phong_cach || '(chưa đặt, tự chọn một phong cách và giữ nhất quán)'}.
 Khung hình ${kt.ti_le}, mỗi cảnh là MỘT clip video AI dài 4/6/8 giây sinh từ một ảnh keyframe, nên mỗi cảnh chỉ có một hành động chính, một góc máy.
-Ngôn ngữ lời thoại/lời dẫn: ${tenNgonNgu(kt.ngon_ngu)}.
+NGÔN NGỮ PHIM: ${tenNgonNgu(kt.ngon_ngu)}. ${kt.ngon_ngu === 'vi' ? '' : `MỌI chữ khán giả thấy hoặc nghe — lời thoại, lời dẫn, chữ trên màn (chu_man), tên/nhãn trong kịch bản, bài đăng — PHẢI viết bằng ${tenNgonNgu(kt.ngon_ngu)} như người bản ngữ viết quảng cáo; kịch bản cũng viết bằng ${tenNgonNgu(kt.ngon_ngu)}. Chỉ phần ghi chú kỹ thuật nội bộ (nhãn cảnh, góc máy, hành động) mới dùng tiếng Việt. Trả lời thoại/chữ màn bằng tiếng Việt khi phim không phải tiếng Việt = SAI.`}
 ${kt.the_loai ? `Thể loại: ${THE_LOAI.find((t) => t.key === kt.the_loai)?.ten} (${THE_LOAI.find((t) => t.key === kt.the_loai)?.mo_ta}).` : ''}${kt.logline ? `\nLogline: ${kt.logline}` : ''}${kt.chu_de ? `\nChủ đề: ${kt.chu_de}` : ''}
 ${taQc(kt)}
 QUY TẮC ĐỒNG NHẤT: nhân vật, sản phẩm, bối cảnh phải tả bằng đúng đặc tính cố định trong danh sách anchor ở mọi cảnh (cùng màu lông, cùng trang phục, cùng tỉ lệ cơ thể, cùng chất liệu). prompt_anh và prompt_video viết tiếng Anh, tả người/vật theo đặc tính chứ không dùng tên riêng (model ảnh không biết tên). Mỗi prompt tự đứng được một mình, không tham chiếu cảnh khác.`;
@@ -476,7 +476,8 @@ export async function dichNoiDung(o: DauVaoDich): Promise<GoiYKq<z.infer<typeof 
   const tong = o.kichBan.length + JSON.stringify(o.baiDang ?? '').length + JSON.stringify(o.canh).length;
   try {
     const r = await c.messages.parse({
-      model: kt.mo_hinh_chu, max_tokens: Math.min(20000, Math.max(4000, Math.ceil(tong / 2))),
+      // Trần token theo ký tự đầu vào (1 token/ký tự — JSON escape chữ có dấu phình gấp 2–3): 14k ký tự với trần 7k đứt giữa chừng (09/10/2026).
+      model: kt.mo_hinh_chu, max_tokens: Math.min(20000, Math.max(8000, tong)),
       system: `Bạn là copywriter quảng cáo bản ngữ, dịch toàn bộ nội dung một video quảng cáo sang ${tenNgonNgu(o.sang)}${kt.qc?.thi_truong ? ` cho thị trường ${kt.qc.thi_truong}` : ''}. ${taQc(kt)}
 Luật: dịch như người bản ngữ viết quảng cáo (tự nhiên, ngắn, mạnh), KHÔNG dịch sát chữ; giữ nguyên số, giá, %, tên sản phẩm/thương hiệu, emoji, số dòng và bố cục; tên riêng nhân vật/bối cảnh (anchor) GIỮ NGUYÊN không dịch; chữ màn phải ngắn tương đương chữ gốc (đọc được trong 2 giây); mỗi shot trả đúng số dòng thoại như đầu vào; kịch bản giữ nguyên tiêu đề cảnh/đầu mục, chỉ đổi ngôn ngữ.`,
       messages: [{ role: 'user', content: `KỊCH BẢN:

@@ -30,7 +30,7 @@ export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; canh: Canh[]; 
   const thuMuc = `${tmpdir()}/xv-xuat-${o.tap.id}-${randomUUID().slice(0, 8)}`;
   await mkdir(thuMuc, { recursive: true });
   try {
-    const urls = urlCanXuat(o.canh, o.nhanVat, o.tap, o.nhanh);
+    const urls = urlCanXuat(o.canh, o.nhanVat, o.tap, o.nhanh, o.qc);
     const nguyenLieu: NguyenLieu[] = [];
     // Tải song song từng cụm 4 (R2 cùng host, không cần hơn); tệp hỏng thì bỏ qua → shot đó báo thiếu.
     for (let i = 0; i < urls.length; i += 4) {
@@ -77,5 +77,26 @@ export async function gopAm(urls: string[]): Promise<Buffer | null> {
     await run('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', ...tep.flatMap((t) => ['-i', t]), '-filter_complex', loc, '-map', '[aout]', '-c:a', 'libmp3lame', '-q:a', '2', ra], { timeout: 120_000 });
     return await readFile(ra);
   } catch (e) { console.error('[gộp giọng]', e); return null; }
+  finally { await rm(thuMuc, { recursive: true, force: true }).catch(() => {}); }
+}
+
+/** Khung hình của một video (URL) lấy cách đều nhau, JPEG base64 rộng 360px — cho Claude đọc QC mẫu (phanTichMau). Tối đa `toiDa` khung. */
+export async function khungHinhVideo(url: string, toiDa = 40): Promise<{ ok: true; giay: number; khung: { giay: number; b64: string }[] } | { ok: false; loi: string }> {
+  const thuMuc = `${tmpdir()}/xv-mau-${randomUUID().slice(0, 8)}`;
+  await mkdir(thuMuc, { recursive: true });
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(180_000) });
+    if (!r.ok) return { ok: false, loi: `tải video mẫu: HTTP ${r.status}` };
+    const tep = `${thuMuc}/goc.mp4`;
+    await writeFile(tep, Buffer.from(await r.arrayBuffer()));
+    const { dai } = await doTep(tep);
+    if (!dai) return { ok: false, loi: 'không đọc được thời lượng video mẫu (không phải mp4?)' };
+    const buoc = Math.max(1, Math.ceil(dai / toiDa));
+    await run('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-i', tep, '-vf', `fps=1/${buoc},scale=360:-2`, '-q:v', '6', `${thuMuc}/k%03d.jpg`], { timeout: 180_000 });
+    const { readdir } = await import('node:fs/promises');
+    const ds = (await readdir(thuMuc)).filter((f) => f.startsWith('k') && f.endsWith('.jpg')).sort();
+    const khung = await Promise.all(ds.map(async (f, i) => ({ giay: i * buoc, b64: (await readFile(`${thuMuc}/${f}`)).toString('base64') })));
+    return { ok: true, giay: Math.round(dai * 10) / 10, khung };
+  } catch (e) { return { ok: false, loi: `khung hình mẫu: ${e instanceof Error ? e.message.slice(0, 200) : String(e)}` }; }
   finally { await rm(thuMuc, { recursive: true, force: true }).catch(() => {}); }
 }

@@ -1,7 +1,10 @@
 'use client';
 // Thư viện ngôn ngữ điện ảnh (#1195) — nội dung dùng chung cho drawer 🎬 (mở từ đầu trang / form shot) và trang /thu-vien.
 // Lọc theo thể loại tại chỗ (state), không điều hướng.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { dsKhuonShot } from '@/lib/actions';
+import { LOAI_SHOT_MAU } from '@/lib/xuong-video/kieu';
+import type { KhuonShot } from '@/lib/xuong-video/khuon-shot';
 import { THE_LOAI, NHOM_KY_THUAT, THU_VIEN, CAU_TRUC, hopTheLoai, type TheLoai } from '@/lib/xuong-video/dien-anh';
 
 export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
@@ -33,6 +36,7 @@ export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
           </details>
         );
       })}
+      <KhuonShotKhoi />
       <details className="xv-det xv-panel">
         <summary>📖 Cấu trúc beat theo loại phim <small>{Object.keys(CAU_TRUC).length}</small></summary>
         {Object.entries(CAU_TRUC).map(([k, c]) => (
@@ -42,5 +46,34 @@ export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
         ))}
       </details>
     </div>
+  );
+}
+
+/** Khuôn shot máy tự ghi từ QC mẫu + cảnh đã tách (xv_khuon_shot) — xem theo loại, hay gặp trước. */
+function KhuonShotKhoi() {
+  const [ds, setDs] = useState<KhuonShot[] | null>(null);
+  const [loai, setLoai] = useState('');
+  useEffect(() => { void dsKhuonShot().then(setDs); }, []);
+  const ten = (k: string) => LOAI_SHOT_MAU.find((x) => x.key === k)?.ten ?? k;
+  const loc = (ds ?? []).filter((k) => !loai || k.loai === loai);
+  const cac = [...new Set((ds ?? []).map((k) => k.loai))];
+  return (
+    <details className="xv-det xv-panel" open>
+      <summary>🧩 Khuôn shot dùng lại <small>{ds ? `${ds.length} khuôn — máy tự ghi từ QC mẫu và cảnh đã tách, tên riêng đã thay bằng {sản phẩm} {nhân vật}; Claude đọc lại khi tách cảnh` : '…'}</small></summary>
+      {!!cac.length && <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', margin: '8px 0' }}>
+        <button type="button" className={`xv-btn${!loai ? ' chinh' : ''}`} style={{ padding: '2px 9px' }} onClick={() => setLoai('')}>Tất cả</button>
+        {cac.map((k) => <button key={k} type="button" className={`xv-btn${loai === k ? ' chinh' : ''}`} style={{ padding: '2px 9px' }} onClick={() => setLoai(k)}>{ten(k)} <span className="xv-mono">{(ds ?? []).filter((x) => x.loai === k).length}</span></button>)}
+      </div>}
+      {ds && !ds.length && <div className="xv-mono">Chưa có khuôn nào — tách cảnh một QC hoặc phân tích một video mẫu là máy tự ghi.</div>}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 6, marginTop: 6 }}>
+        {loc.map((k) => (
+          <div key={k.id} className="xv-canh" title={`${k.nguon}${k.dung > 1 ? ` · gặp ${k.dung} lần` : ''}`}>
+            <b style={{ fontSize: 12 }}>{k.ten}</b> <span className="xv-mono">{ten(k.loai)} · {k.giay}s{k.dung > 1 ? ` · ×${k.dung}` : ''}</span>
+            <div style={{ fontSize: 11.5, color: 'var(--fg-2)', marginTop: 2 }}>{k.hinh}</div>
+            {k.chu_man && <div className="xv-mono" style={{ marginTop: 2 }}>chữ: {k.chu_man}</div>}
+          </div>
+        ))}
+      </div>
+    </details>
   );
 }

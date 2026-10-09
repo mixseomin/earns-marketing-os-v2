@@ -84,8 +84,32 @@ export type KinhThanh = {
   qc?: ThongTinQc;              // phim quảng cáo: sản phẩm/dịch vụ — AI mọi bước dựa vào đây (#1201)
 };
 /** Thông tin sản phẩm / dịch vụ của phim quảng cáo. */
-export type ThongTinQc = { ten: string; link: string; diem_noi_bat: string; doi_tuong: string; uu_dai: string; thi_truong: string; anh: string[] };
+/** QC MẪU (anh 09/10/2026: "sinh ra một QC gần giống nhất với mẫu này"): một quảng cáo đang bán tốt (của mình hay đối thủ) làm KHUÔN —
+ *  Claude tách cảnh bám 1:1 (cùng số shot, cùng giây, cùng vị trí/ý chữ màn, cùng loại shot), chỉ đổi sản phẩm + lợi ích thật.
+ *  `shots` = xương sống của mẫu theo thời gian; điền tay hoặc bấm "Phân tích video mẫu" (Claude nhìn khung hình). Dùng cho MỌI sản phẩm. */
+export type LoaiShotMau = 'hook' | 'uu_dai' | 'noi_dau' | 'giai_phap' | 'tinh_nang' | 'demo' | 'so_sanh' | 'bang_chung' | 'tran_an' | 'cta' | 'end_card' | 'khac';
+export const LOAI_SHOT_MAU: { key: LoaiShotMau; ten: string; mo: string }[] = [
+  { key: 'hook', ten: 'Hook', mo: 'giây đầu giữ tay' }, { key: 'uu_dai', ten: 'Ưu đãi', mo: 'giá, giảm, mua 1 tặng…' }, { key: 'noi_dau', ten: 'Nỗi đau', mo: 'vấn đề người xem đang gặp' },
+  { key: 'giai_phap', ten: 'Giải pháp', mo: 'sản phẩm xuất hiện' }, { key: 'tinh_nang', ten: 'Tính năng', mo: 'một lợi ích, thấy bằng hình' }, { key: 'demo', ten: 'Demo', mo: 'dùng thử, cận chi tiết' },
+  { key: 'so_sanh', ten: 'So sánh', mo: 'trước/sau, hơn hàng thường' }, { key: 'bang_chung', ten: 'Bằng chứng', mo: 'người thật, bình luận, số liệu' }, { key: 'tran_an', ten: 'Trấn an', mo: 'đổi trả, size, bảo hành' },
+  { key: 'cta', ten: 'CTA', mo: 'kêu gọi hành động' }, { key: 'end_card', ten: 'End card', mo: 'màn cuối: sản phẩm + ưu đãi + nút' }, { key: 'khac', ten: 'Khác', mo: '' },
+];
+export type ShotMau = { giay: number; loai: LoaiShotMau; chu_man: string; hinh: string };
+export type MauQc = { nguon: string; video_url: string; chu_bai: string; tieu_de: string; cta: string; ghi_chu: string; shots: ShotMau[] };
+export const MAU_TRONG: MauQc = { nguon: '', video_url: '', chu_bai: '', tieu_de: '', cta: '', ghi_chu: '', shots: [] };
+export const giayMau = (m: MauQc | null | undefined): number => Math.round((m?.shots ?? []).reduce((a, s) => a + (Number(s.giay) || 0), 0) * 2) / 2;
+export const coMau = (q: ThongTinQc | null | undefined): boolean => !!q?.mau?.shots?.length;
+/** Vị trí khối chữ màn trên hình khi xuất: trên (1/6 màn, mặc định cũ) · giữa · dưới (≈62%, kiểu QC UGC — mắt đang nhìn người thì đọc được chữ). */
+export type ViTriChu = 'tren' | 'giua' | 'duoi';
+export const VI_TRI_CHU: { key: ViTriChu; ten: string }[] = [{ key: 'tren', ten: 'Trên' }, { key: 'giua', ten: 'Giữa' }, { key: 'duoi', ten: 'Dưới' }];
+export type ThongTinQc = {
+  ten: string; link: string; diem_noi_bat: string; doi_tuong: string; uu_dai: string; thi_truong: string; anh: string[];
+  /** QC mẫu làm khuôn (tuỳ chọn). logo_url = logo chèn góc trên phải khi xuất. vi_tri_chu = chỗ đặt chữ màn. */
+  mau?: MauQc; logo_url?: string; vi_tri_chu?: ViTriChu;
+};
 export const QC_TRONG: ThongTinQc = { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] };
+/** Bài đăng đi kèm video trên Meta/TikTok (văn bản chính · tiêu đề · mô tả · nút) — Claude viết theo QC mẫu, lưu ở tập. */
+export type BaiDang = { chu_bai: string; tieu_de: string; mo_ta: string; cta: string; luc: string };
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
   phong_cach: '', ti_le: '9:16', do_phan_giai: '720p',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },
@@ -131,7 +155,7 @@ export const NHOM_BIEN_THE: Record<LoaiNhanVat, { key: string; label: string }[]
   phong_cach: [{ key: 'trang_thai', label: 'Biến tấu' }],
 };
 export const nhanNhom = (loai: LoaiNhanVat, nhom: string) => NHOM_BIEN_THE[loai]?.find((x) => x.key === nhom)?.label ?? nhom;
-export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null; xuat: BanXuat[] };
+export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null; xuat: BanXuat[]; bai_dang: BaiDang | null };
 /** Một bản xuất MP4 của tập (mỗi nhánh hook một tệp). */
 export type BanXuat = { url: string; nhanh: string; giay: number; luc: string; job?: number };
 export type Canh = {

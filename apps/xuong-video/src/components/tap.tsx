@@ -6,12 +6,13 @@ import { moNgan } from './ngan-chung';
 import { MO_HINH_AM } from '@/lib/xuong-video/am-thanh';
 import { kiemQc } from '@/lib/xuong-video/kiem-qc';
 import { dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, trangThaiXuat } from '@/lib/actions';
-import { thanhPhanCanh, docKinhThanh, giaAnhCents, giaVideoCents, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
+import { thanhPhanCanh, docKinhThanh, giaAnhCents, giaVideoCents, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, coMau, giayMau, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, TabPhim, KqChay, O, Nut, Loi, mono } from './ui';
 import { GiongNhanVat } from './nhan-vat';
 import { Animatic } from './animatic';
 import { CanhRow } from './canh';
+import { BaiDangKem } from './bai-dang';
 import { useNho } from './nho';
 import { useDinhKy } from './dinh-ky';
 
@@ -47,6 +48,8 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
   const [loiUoc, setLoiUoc] = useState('');
   const kt = docKinhThanh(phim.kinh_thanh);
   const thieuSp = thieuQc(phim.loai, kt);
+  // Có QC mẫu → tách cảnh bám mẫu: số shot + thời lượng lấy từ mẫu, ô nhập tay khoá lại cho khỏi hiểu nhầm.
+  const mauQc = phim.loai === 'quang_cao' && coMau(kt.qc) ? kt.qc.mau! : null;
   // Dấu vân của danh sách cảnh: đổi (sinh xong keyframe/video, duyệt, thêm/bớt cảnh) → báo phim tải lại để chip thống kê
   // đầu phim chạy theo thời gian thực (card #1191). So dấu chứ không báo mỗi lần hỏi, để không tải phim vô ích mỗi 4 giây.
   const dauCanh = useRef('');
@@ -118,11 +121,12 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             <Nut ly={!kbDirty && 'chưa sửa'} ban={banTach || ban('luu')} onClick={() => void chay('luu', async () => { await suaTap(tap.id, { kich_ban: kichBan, ten: tenTap, brief }); })}>Lưu brief + kịch bản</Nut>
             <span style={{ flex: 1 }} />
-            <input className="xv-in" type="number" min={0} max={40} value={soCanh || ''} onChange={(e) => setSoCanh(Number(e.target.value) || 0)} placeholder="số cảnh (tự)" style={{ width: 110 }} />
+            {mauQc ? <span style={mono} title="Số shot + giây lấy từ bảng xương sống của QC mẫu (mục 0)">🎯 bám QC mẫu: {mauQc.shots.length} shot · {giayMau(mauQc)}s</span>
+              : <input className="xv-in" type="number" min={0} max={40} value={soCanh || ''} onChange={(e) => setSoCanh(Number(e.target.value) || 0)} placeholder="số cảnh (tự)" style={{ width: 110 }} />}
             <Nut chinh ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || (!kichBan.trim() && 'chưa có kịch bản')} ban={banTach || ban('tach')}
-              title="Claude đọc kịch bản + anchor + biến thể → bảng cảnh 3c bên dưới. Cảnh đã có keyframe giữ nguyên."
+              title={mauQc ? `Claude tách bám 1:1 QC mẫu: ${mauQc.shots.length} shot, đúng giây, đúng loại, chữ màn cùng ý — chỉ đổi sản phẩm` : 'Claude đọc kịch bản + anchor + biến thể → bảng cảnh 3c bên dưới. Cảnh đã có keyframe giữ nguyên.'}
               onClick={() => void chay('tach', async () => { if (kbDirty) await suaTap(tap.id, { kich_ban: kichBan, ten: tenTap, brief }); return tachCanhTap(tap.id, soCanh, thoiLuong); })}>
-              {ban('tach') ? '… Claude đang tách' : '✂ Tách cảnh ↓'}
+              {ban('tach') ? '… Claude đang tách' : mauQc ? '✂ Tách cảnh theo QC mẫu ↓' : '✂ Tách cảnh ↓'}
             </Nut>
           </div>
         </div>
@@ -169,6 +173,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
         </div>
       )}
       {tab === 'xuat' && <Loi>{loiXuat}</Loi>}
+      {tab === 'xuat' && phim.loai === 'quang_cao' && <BaiDangKem tap={tap} coAnthropic={khoa.anthropic} thieuSp={thieuSp} onChanged={onChanged} />}
       {tab === 'xuat' && tap.xuat.length > 0 && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
           <span style={mono}>Đã xuất:</span>

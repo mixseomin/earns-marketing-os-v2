@@ -6,6 +6,7 @@ import { THE_LOAI, type TheLoai } from '@/lib/xuong-video/dien-anh';
 import { suaPhim, taiAnhLen, layTuLinkSanPham, goiYAIKinhThanh } from '@/lib/actions';
 import { MO_HINH_ANH, MO_HINH_VIDEO, MO_HINH_CHU, docKinhThanh, QC_TRONG, type ThongTinQc, thieuQc, gioVN, type Phim, type KinhThanh } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
+import { MauQcForm } from './mau-qc';
 import { Khoa, O, Seg, Nut, Loi, mono } from './ui';
 import { MoHinhCtx, luaChonAnh, luaChonVideo } from './mo-hinh-ui';
 import { docLT, ghiLT } from '@/lib/luu-tru';
@@ -94,6 +95,7 @@ export function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa;
               <ImageAttach value={qc.anh} onChange={(urls) => setQc({ anh: urls })} max={10} nhanBo="Bỏ ảnh"
                 upload={async (du) => { const r = await taiAnhLen(du); return r.ok ? { ok: true, url: r.data } : { ok: false, error: r.loi }; }} />
             </O>
+            <MauQcForm phimId={phim.id} qc={qc} setQc={setQc} coAnthropic={khoa.anthropic} />
           </div>
         </details>
       )}

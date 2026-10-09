@@ -49,3 +49,21 @@ assert.deepStrictEqual(keHoachXuat({ loai: 'phim', tiLe: '9:16', canh, nhanVat: 
 assert.deepStrictEqual(ngatDong('Giảm 70% cho 100 đơn đầu tiên hôm nay', 12), ['Giảm 70% cho', '100 đơn đầu', 'tiên hôm nay']);
 assert.deepStrictEqual(ngatDong('  a  ', 5), ['a']);
 console.log('xuat.test: ok');
+
+// QC mẫu (09/10/2026): logo góc, chữ màn ở dưới, end card dùng ảnh sản phẩm — urlCanXuat phải kéo logo + ảnh; kế hoạch phải overlay + đặt chữ đúng chỗ.
+{
+  const qc = { ten: 'Bra', uu_dai: 'FLASH SALE · SHOP NOW', link: '', diem_noi_bat: '', doi_tuong: '', thi_truong: '', anh: ['https://x/sp.jpg'], logo_url: 'https://x/logo.png', vi_tri_chu: 'duoi' as const };
+  const u2 = urlCanXuat(canh, nv, tap, 'A', qc);
+  assert.ok(u2.includes('https://x/logo.png') && u2.includes('https://x/sp.jpg'));
+  const kh2 = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh, nhanVat: nv, tap, qc, nhanh: 'A', nguyenLieu: [...nguyenLieu, nl('https://x/logo.png', null, false), nl('https://x/sp.jpg', null, false)], font: '/f.ttf', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
+  const loc2 = kh2.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
+  assert.ok(loc2.includes('overlay=W-w-32:58:shortest=1'), 'logo overlay góc trên phải');      // 1080×0.03=32 · 1920×0.03=58
+  assert.ok(loc2.includes('y=h*0.62-'), 'chữ màn ở dưới');
+  assert.ok(loc2.includes('colorlevels=rimax=0.55') && loc2.includes('y=h*0.78-'), 'end card trên ảnh sản phẩm, chữ 1/4 dưới');
+  assert.strictEqual(kh2.giay, 2 + 3 + 2.5 + 2);
+  // Không logo, không ảnh → như cũ: không overlay, end card nền tối.
+  const kh3 = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh, nhanVat: nv, tap, qc: { ...qc, anh: [], logo_url: '', vi_tri_chu: 'tren' }, nhanh: 'A', nguyenLieu, font: '/f.ttf', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
+  const loc3 = kh3.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
+  assert.ok(!loc3.includes('overlay=') && loc3.includes('color=c=0x101014') && loc3.includes('y=h*0.15'));
+}
+console.log('xuat.test: mẫu ok');

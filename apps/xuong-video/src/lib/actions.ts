@@ -18,10 +18,12 @@ import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from '@/lib/xuong-video/googl
 import { docFal, batDauNangCap, danhMucFal, dauVaoTheoSchema, guiFal, type ModelFal } from '@/lib/xuong-video/fal';
 import { type DungChu } from '@/lib/xuong-video/claude';
 import { docTrangSanPham, doiChieuAnchor as doiChieuAnchorClaude } from '@/lib/xuong-video/claude';
-import { tachCanh, vietKichBan, promptAnhMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
+import { tachCanh, vietKichBan, vietBaiDang, phanTichMau, promptAnhMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, promptKyThuatAnh, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
-import { ghepThoai, thieuQc, lamTronClip } from '@/lib/xuong-video/kieu';
+import { ghepThoai, thieuQc, lamTronClip, coMau, giayMau, type BaiDang, type MauQc } from '@/lib/xuong-video/kieu';
+import { luuCanhTach } from '@/lib/xuong-video/luu-canh';
+import { dsKhuon, taKhuon, ghiKhuonTuCanh, ghiKhuonTuMau, type KhuonShot } from '@/lib/xuong-video/khuon-shot';
 import {
   docKinhThanh, giaAnhCents, giaVideoCents, giaChuCents, thanhPhanCanh, MO_HINH_ANH, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG, NHOM_BIEN_THE, type BienThe,
   type Phim, type NhanVat, type Tap, type Canh, type Job, type KinhThanh, type LoaiPhim, type LoaiNhanVat, type TrangThaiCanh,
@@ -150,7 +152,7 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
 }
 const mapBienThe = (r: Row): BienThe => ({ id: n(r.id), nhan_vat_id: n(r.nhan_vat_id), nhom: s(r.nhom), ten: s(r.ten), mo_ta: s(r.mo_ta), anh_url: r.anh_url == null ? null : s(r.anh_url) });
 const mapNhanVat = (r: Row): NhanVat => ({ id: n(r.id), phim_id: n(r.phim_id), loai: s(r.loai) as LoaiNhanVat, ten: s(r.ten), mo_ta: s(r.mo_ta), anh_ref: arr<string>(r.anh_ref), giong: s(r.giong), giong_model: s(r.giong_model), giong_id: s(r.giong_id), giong_mau_url: r.giong_mau_url == null ? null : s(r.giong_mau_url), doi_chieu: (r.doi_chieu && typeof r.doi_chieu === 'object' ? r.doi_chieu : null) as NhanVat['doi_chieu'] });
-const mapTap = (r: Row): Tap => ({ id: n(r.id), phim_id: n(r.phim_id), so: n(r.so), ten: s(r.ten), brief: s(r.brief), noi_khung: r.noi_khung === true, thoi_luong_s: r.thoi_luong_s == null ? null : n(r.thoi_luong_s), xuat: arr<Tap['xuat'][number]>(r.xuat), nhac_url: r.nhac_url == null ? null : s(r.nhac_url), nhac_mo_ta: s(r.nhac_mo_ta), nhac_phan_canh: (r.nhac_phan_canh && typeof r.nhac_phan_canh === 'object' ? r.nhac_phan_canh : {}) as Record<string, string>, beats: arr<Tap['beats'][number]>(r.beats), phan_canh: arr<Tap['phan_canh'][number]>(r.phan_canh), kich_ban: s(r.kich_ban), tom_tat: s(r.tom_tat), trang_thai: s(r.trang_thai), video_url: r.video_url == null ? null : s(r.video_url), so_canh: n(r.so_canh) });
+const mapTap = (r: Row): Tap => ({ id: n(r.id), phim_id: n(r.phim_id), so: n(r.so), ten: s(r.ten), brief: s(r.brief), noi_khung: r.noi_khung === true, thoi_luong_s: r.thoi_luong_s == null ? null : n(r.thoi_luong_s), xuat: arr<Tap['xuat'][number]>(r.xuat), bai_dang: (r.bai_dang && typeof r.bai_dang === 'object' ? r.bai_dang : null) as Tap['bai_dang'], nhac_url: r.nhac_url == null ? null : s(r.nhac_url), nhac_mo_ta: s(r.nhac_mo_ta), nhac_phan_canh: (r.nhac_phan_canh && typeof r.nhac_phan_canh === 'object' ? r.nhac_phan_canh : {}) as Record<string, string>, beats: arr<Tap['beats'][number]>(r.beats), phan_canh: arr<Tap['phan_canh'][number]>(r.phan_canh), kich_ban: s(r.kich_ban), tom_tat: s(r.tom_tat), trang_thai: s(r.trang_thai), video_url: r.video_url == null ? null : s(r.video_url), so_canh: n(r.so_canh) });
 const mapCanh = (r: Row): Canh => ({
   id: n(r.id), tap_id: n(r.tap_id), thu_tu: n(r.thu_tu), canh: s(r.canh), goc_may: s(r.goc_may), hanh_dong: s(r.hanh_dong), loi_thoai: s(r.loi_thoai), am_thanh: s(r.am_thanh), thoai_url: r.thoai_url == null ? null : s(r.thoai_url), am_thanh_url: r.am_thanh_url == null ? null : s(r.am_thanh_url), phan_doan: s(r.phan_doan), cam_xuc: n(r.cam_xuc), thoai: arr<Canh['thoai'][number]>(r.thoai), trang_phuc: s(r.trang_phuc),
   ky_thuat: (r.ky_thuat && typeof r.ky_thuat === 'object' ? r.ky_thuat : {}) as Canh['ky_thuat'],
@@ -269,6 +271,10 @@ export async function suaPhim(id: number, d: { ten?: string; loai?: LoaiPhim; mo
     updated_at = now() WHERE id = ${id}`);
   // Quảng cáo: sản phẩm khai ở kinh thánh → anchor sản phẩm cùng tên (tạo nếu chưa có), ảnh thật lên ĐẦU anh_ref để mọi keyframe tham chiếu đúng hàng.
   const q = d.kinh_thanh?.qc;
+  if (q?.mau?.shots?.length) {
+    const nvK = (await db.execute(sql`SELECT ten, loai FROM xv_nhan_vat WHERE phim_id = ${id}`)) as unknown as Row[];
+    await ghiKhuonTuMau(db, q.mau.shots, nvK.map((v) => ({ ten: s(v.ten), loai: s(v.loai) as NhanVat['loai'] })), q.ten ?? '', `QC mẫu${q.mau.nguon ? ` · ${q.mau.nguon.slice(0, 60)}` : ''}`, id);
+  }
   if (q?.ten.trim()) {
     const co = (await db.execute(sql`SELECT id, anh_ref, mo_ta FROM xv_nhan_vat WHERE phim_id = ${id} AND loai = 'san_pham' ORDER BY (lower(ten) = lower(${q.ten.trim()})) DESC, id LIMIT 1`)) as unknown as Row[];
     const anh = [...new Set([...q.anh, ...arr<string>(co[0]?.anh_ref)])].slice(0, 10);
@@ -353,6 +359,12 @@ export async function xoaKeyframe(canhId: number, url: string): Promise<Kq> {
   if (!me) return loi('không có quyền');
   await boAnhVaoThungRac(db, 'keyframe', canhId, url, me.email);
   return { ok: true, data: undefined };
+}
+/** Thư viện khuôn shot (máy tự ghi từ QC mẫu + cảnh đã tách) — cho drawer Thư viện và ô chọn ở mục 0. */
+export async function dsKhuonShot(loai?: string): Promise<KhuonShot[]> {
+  const db = getDb();
+  if (!db || !(await admin())) return [];
+  return dsKhuon(db, { loai: loai || undefined });
 }
 /** Thùng rác: phimId = null → các PHIM đã xoá (trang chủ); có phimId → mọi thứ đã xoá trong phim đó. */
 export async function dsThungRac(phimId: number | null): Promise<MucRac[]> {
@@ -512,31 +524,66 @@ export async function tachCanhTap(tapId: number, soCanh: number, thoiLuongS?: nu
   const thieu = thieuQc(bc.loai, bc.kt);
   if (thieu) return loi(thieu);
   if (!bc.tap.kich_ban.trim()) return loi('tập chưa có kịch bản');
-  const mucTieu = thoiLuongS && thoiLuongS > 0 ? Math.round(thoiLuongS) : bc.tap.thoi_luong_s ?? undefined;
-  const kq = await tachCanh({ loai: bc.loai, kinhThanh: bc.kt, nhanVat: bc.nhanVat, kichBan: bc.tap.kich_ban, soCanh, tapTruoc: bc.tapTruoc, thoiLuongS: mucTieu });
+  // Có QC mẫu → thời lượng = tổng giây mẫu, số shot = số shot mẫu (tachCanh tự ép); không mẫu → theo ô nhập / tập.
+  const kt = docKinhThanh(bc.kt);
+  const mucTieu = coMau(kt.qc) ? giayMau(kt.qc.mau) : thoiLuongS && thoiLuongS > 0 ? Math.round(thoiLuongS) : bc.tap.thoi_luong_s ?? undefined;
+  const kq = await tachCanh({ loai: bc.loai, kinhThanh: bc.kt, nhanVat: bc.nhanVat, kichBan: bc.tap.kich_ban, soCanh, tapTruoc: bc.tapTruoc, thoiLuongS: mucTieu, khuon: bc.loai === 'quang_cao' ? taKhuon(await dsKhuon(db, { toiDa: 60 })) : undefined });
   if (!kq.ok) return loi(kq.loi);
-  if (mucTieu) await db.execute(sql`UPDATE xv_tap SET thoi_luong_s = ${mucTieu} WHERE id = ${tapId}`);
-  const tenToId = new Map(bc.nhanVat.map((v) => [v.ten.trim().toLowerCase(), v.id]));
-  const btToId = new Map(bc.nhanVat.flatMap((v) => (v.bien_the ?? []).map((b) => [`${v.ten} · ${b.ten}`.trim().toLowerCase(), b.id] as [string, number])));
-  // Cảnh nháp cũ bị thay bằng bộ cảnh mới → vào thùng rác (khôi phục được), không xoá thật (#1192).
-  const nhapCu = (await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${tapId} AND trang_thai = 'nhap'`)) as unknown as Row[];
-  await boVaoThungRac(db, 'canh', nhapCu.map((x) => n(x.id)), (await admin())!.email, `${nhapCu.length} cảnh nháp cũ (tách lại cảnh · ${bc.tap.ten})`);
-  const giu = (await db.execute(sql`SELECT coalesce(max(thu_tu), 0) AS m FROM xv_canh WHERE tap_id = ${tapId}`)) as unknown as Row[];
-  let thuTu = n(giu[0]?.m);
-  for (const c of kq.canh) {
-    thuTu += 1;
-    const ids = c.nhan_vat.map((t) => tenToId.get(t.trim().toLowerCase())).filter((x): x is number => typeof x === 'number');
-    const bts = (c.bien_the ?? []).map((t) => btToId.get(t.replace(/\s*[·\-–|]\s*/, ' · ').trim().toLowerCase())).filter((x): x is number => typeof x === 'number');
-    const thoai = (c.thoai ?? []).filter((d) => d.loi.trim());
-    await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, loi_thoai, thoai, am_thanh, thoi_luong_s, nhan_vat, bien_the, prompt_anh, prompt_video, phan_doan, cam_xuc, ky_thuat, trang_phuc, phat_s, chu_man, nhanh)
-      VALUES (${tapId}, ${thuTu}, ${c.canh}, ${c.goc_may}, ${c.hanh_dong}, ${thoai.length ? ghepThoai(thoai) : c.loi_thoai}, ${JSON.stringify(thoai)}::jsonb, ${c.am_thanh}, ${c.thoi_luong_s}, ${JSON.stringify(ids)}::jsonb, ${JSON.stringify(bts)}::jsonb, ${c.prompt_anh}, ${c.prompt_video},
-        ${c.phan_doan}, ${c.cam_xuc}, ${JSON.stringify(lamSachKyThuat(c.ky_thuat as unknown as Record<string, unknown>))}::jsonb, ${c.trang_phuc ?? ''}, ${c.phat_s}, ${c.chu_man ?? ''}, ${c.nhanh ?? ''})`);
-  }
-  // Beat + phân cảnh của tập (đường cong cảm xúc, mục tiêu/xung đột từng phân cảnh) — tách lại thì thay bản mới.
-  await db.execute(sql`UPDATE xv_tap SET tom_tat = CASE WHEN tom_tat = '' THEN ${kq.tomTat} ELSE tom_tat END, beats = ${JSON.stringify(kq.beats)}::jsonb,
-    phan_canh = ${JSON.stringify(kq.phanCanh)}::jsonb, trang_thai = 'storyboard', updated_at = now() WHERE id = ${tapId}`);
-  await ghiChu(bc.tap.phim_id, `Tách cảnh · tập ${bc.tap.so} (${kq.canh.length} cảnh)`, kq);
-  return { ok: true, data: kq.canh.length };
+  const so = await luuCanhTach(db, { tapId, tenTap: bc.tap.ten, kq, nhanVat: bc.nhanVat, nguoi: (await admin())!.email, thoiLuongS: mucTieu });
+  // Shot vừa tách có hình tả được → vào thư viện khuôn (gỡ tên anchor), không cần ai bấm.
+  if (bc.loai === 'quang_cao') await ghiKhuonTuCanh(db, kq.canh, bc.nhanVat, kt.qc?.ten ?? '', `phim #${bc.tap.phim_id} tập ${bc.tap.so}`, bc.tap.phim_id);
+  await ghiChu(bc.tap.phim_id, `Tách cảnh · tập ${bc.tap.so} (${so} cảnh${coMau(kt.qc) ? ', bám QC mẫu' : ''})`, kq);
+  return { ok: true, data: so };
+}
+
+// ── QC mẫu (anh 09/10/2026): bài đăng kèm theo mẫu + phân tích video mẫu thành xương sống shot ─────────────────
+/** Claude viết văn bản chính · tiêu đề · mô tả · nút cho bài đăng của tập (bám bài mẫu nếu có) → lưu xv_tap.bai_dang. */
+export async function vietBaiDangTap(tapId: number): Promise<Kq<BaiDang>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const bc = await boiCanhTap(db, tapId);
+  if (!bc) return loi('không thấy tập');
+  const thieu = thieuQc(bc.loai, bc.kt);
+  if (thieu) return loi(thieu);
+  const canh = (await db.execute(sql`SELECT chu_man FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu`)) as unknown as Row[];
+  const kq = await vietBaiDang({ kinhThanh: bc.kt, kichBan: bc.tap.kich_ban || bc.tap.brief, chuMan: canh.map((c) => s(c.chu_man)) });
+  if (!kq.ok) return loi(kq.loi);
+  await ghiChu(bc.tap.phim_id, `Bài đăng kèm · tập ${bc.tap.so}`, kq);
+  const bd: BaiDang = { ...kq.data, luc: new Date().toISOString() };
+  await db.execute(sql`UPDATE xv_tap SET bai_dang = ${JSON.stringify(bd)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
+  return { ok: true, data: bd };
+}
+/** Sửa tay bài đăng (sau khi Claude viết). */
+export async function suaBaiDang(tapId: number, d: Omit<BaiDang, 'luc'>): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const bd: BaiDang = { chu_bai: d.chu_bai, tieu_de: d.tieu_de, mo_ta: d.mo_ta, cta: d.cta, luc: new Date().toISOString() };
+  await db.execute(sql`UPDATE xv_tap SET bai_dang = ${JSON.stringify(bd)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
+  return { ok: true, data: undefined };
+}
+/** Tải video mẫu (qc.mau.video_url) về máy chủ, lấy khung hình mỗi ~2s (tối đa 40 khung), Claude nhìn → shots + ghi chú vào qc.mau. */
+export async function phanTichVideoMau(phimId: number): Promise<Kq<MauQc>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const r = (await db.execute(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[];
+  if (!r[0]) return loi('không thấy phim');
+  const kt = docKinhThanh(r[0].kinh_thanh as KinhThanh);
+  const mau: MauQc = { nguon: '', video_url: '', chu_bai: '', tieu_de: '', cta: '', ghi_chu: '', shots: [], ...(kt.qc?.mau ?? {}) };
+  if (!/^https?:\/\//.test(mau.video_url.trim())) return loi('dán link video mẫu (mp4) vào ô Video mẫu trước');
+  const { khungHinhVideo } = await import('@/lib/xuong-video/xuat-chay');
+  const kh = await khungHinhVideo(mau.video_url.trim(), 40);
+  if (!kh.ok) return loi(kh.loi);
+  const kq = await phanTichMau(kh.khung, kh.giay, kt);
+  if (!kq.ok) return loi(kq.loi);
+  await ghiChu(phimId, 'Phân tích video mẫu', kq);
+  const moi: MauQc = { ...mau, shots: kq.data.shots, ghi_chu: mau.ghi_chu.trim() ? mau.ghi_chu : kq.data.ghi_chu };
+  const nvK = (await db.execute(sql`SELECT ten, loai FROM xv_nhan_vat WHERE phim_id = ${phimId}`)) as unknown as Row[];
+  await ghiKhuonTuMau(db, moi.shots, nvK.map((v) => ({ ten: s(v.ten), loai: s(v.loai) as NhanVat['loai'] })), kt.qc?.ten ?? '', `QC mẫu${moi.nguon ? ` · ${moi.nguon.slice(0, 60)}` : ''}`, phimId);
+  await db.execute(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{qc}', coalesce(kinh_thanh->'qc', '{}'::jsonb)), '{qc,mau}', ${JSON.stringify(moi)}::jsonb), updated_at = now() WHERE id = ${phimId}`);
+  return { ok: true, data: moi };
 }
 
 // ── Bản xuất (review 09/10/2026): MP4 hoàn chỉnh của tập theo nhánh hook — thứ gửi Meta/TikTok ──────────────────

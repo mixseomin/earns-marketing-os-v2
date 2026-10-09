@@ -62,3 +62,20 @@ assert.strictEqual(gb.length, 7); assert.deepStrictEqual([gb[0]!.tu, gb[0]!.den]
 // Phim không có phan → chia đều.
 const gp = giayBeat('phim', 80); assert.strictEqual(gp[0]!.den, 10); assert.strictEqual(gp[gp.length - 1]!.den, 80);
 console.log('kiem-qc.test: ok');
+
+// Bám QC mẫu (09/10/2026): số shot thân phải bằng mẫu, tổng giây ±10%.
+{
+  const { kiemQc: kq } = await import('./kiem-qc');
+  const mau = { nguon: '', video_url: '', chu_bai: '', tieu_de: '', cta: '', ghi_chu: '', shots: [{ giay: 2, loai: 'hook' as const, chu_man: 'a', hinh: '' }, { giay: 2, loai: 'cta' as const, chu_man: 'b', hinh: '' }] };
+  const nvM = [{ id: 1, loai: 'san_pham' }] as never;
+  const s = (thu_tu: number, phat_s: number, nhanh = '') => ({ thu_tu, nhan_vat: [1], phan_doan: '', chu_man: 'x', nhanh, phat_s, thoi_luong_s: 4, loi_thoai: '', thoai: [], trang_thai: 'nhap', keyframe_url: null }) as never;
+  const qcM = { ten: 'X', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [], mau };
+  const dat = kq({ loai: 'quang_cao', canh: [s(1, 2, 'A'), s(2, 2), s(3, 2, 'B')], nhanVat: nvM, qc: qcM, nhanh: 'A' }).find((m) => m.key === 'mau')!;
+  assert.ok(dat.ok, dat.chiTiet);
+  const thieu = kq({ loai: 'quang_cao', canh: [s(1, 2, 'A')], nhanVat: nvM, qc: qcM, nhanh: 'A' }).find((m) => m.key === 'mau')!;
+  assert.ok(!thieu.ok && /1\/2 shot/.test(thieu.chu));
+  const lech = kq({ loai: 'quang_cao', canh: [s(1, 4, 'A'), s(2, 4)], nhanVat: nvM, qc: qcM, nhanh: 'A' }).find((m) => m.key === 'mau')!;
+  assert.ok(!lech.ok && /lệch/.test(lech.chiTiet ?? ''));
+  assert.ok(!kq({ loai: 'quang_cao', canh: [s(1, 2, 'A')], nhanVat: nvM, qc: { ...qcM, mau: undefined }, nhanh: 'A' }).some((m) => m.key === 'mau'));
+}
+console.log('kiem-qc.test: mẫu ok');

@@ -11,7 +11,7 @@ const nhanVat = JSON.parse(psql(`SELECT coalesce(json_agg(row_to_json(v)),'[]') 
 for (const c of canh) { c.phat_s = c.phat_s == null ? null : Number(c.phat_s); c.thoai = c.thoai ?? []; c.chu_man = c.chu_man ?? ''; c.nhanh = c.nhanh ?? ''; }
 const kt = tap.kinh_thanh ?? {};
 const dir = `/tmp/xv-thu-xuat/t${TAP}`; mkdirSync(dir, { recursive: true });
-const urls = urlCanXuat(canh, nhanVat, tap, NHANH);
+const urls = urlCanXuat(canh, nhanVat, tap, NHANH, kt.qc);
 console.log('shot', canh.length, 'url cần tải', urls.length);
 const probe = (f: string) => { try { const j = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type', '-of', 'json', f]).toString()); return { dai: Number(j.format?.duration) || null, coAm: (j.streams ?? []).some((s: any) => s.codec_type === 'audio') }; } catch { return { dai: null, coAm: false }; } };
 const nguyenLieu = urls.map((url, i) => { const duong = `${dir}/${i}.${(url.split('?')[0].split('.').pop() || 'bin').slice(0, 5)}`; if (!existsSync(duong)) execFileSync('curl', ['-sfL', '-o', duong, url]); return { url, duong, ...probe(duong) }; });

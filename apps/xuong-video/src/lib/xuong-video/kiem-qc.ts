@@ -3,7 +3,7 @@
 // Mỗi luật là một thứ ads thật đo được: 85% xem tắt tiếng → chữ màn; 3 giây đầu quyết định giữ tay; sản phẩm phải thấy sớm;
 // số liệu chỉ được lấy từ mục sản phẩm; CTA phải có chữ. File thuần, tự kiểm bằng kiem-qc.test.mts.
 import type { Canh, LoaiPhim, NhanVat, ThongTinQc } from './kieu';
-import { giayPhat, locNhanh } from './kieu';
+import { giayPhat, locNhanh, coMau, giayMau } from './kieu';
 
 export type MucKiem = { key: string; ok: boolean; chu: string; chiTiet?: string };
 type ShotKiem = Pick<Canh, 'thu_tu' | 'nhan_vat' | 'phan_doan' | 'chu_man' | 'nhanh' | 'phat_s' | 'thoi_luong_s' | 'loi_thoai' | 'thoai' | 'trang_thai' | 'keyframe_url'>;
@@ -25,6 +25,13 @@ export function kiemQc(opts: { loai: LoaiPhim; canh: ShotKiem[]; nhanVat: Pick<N
     out.push({ key: 'dai', ok: lech <= 0.12, chu: `${Math.round(tong)}s / mục tiêu ${opts.mucTieuS}s`, chiTiet: lech > 0.12 ? `Lệch ${Math.round(lech * 100)}% — cắt bớt (kéo mép clip) hoặc tách lại với đúng thời lượng` : undefined });
   }
   if (opts.loai !== 'quang_cao') return out;
+  // 0. Có QC mẫu: số shot đúng bằng mẫu, tổng giây ±10% — bản clone "gần giống nhất" đo được ở đây.
+  if (coMau(opts.qc)) {
+    const m = opts.qc!.mau!; const gm = giayMau(m); const than = ds.filter((c) => !c.nhanh || c.nhanh === 'A');
+    const lechGiay = gm ? Math.abs(tong - gm) / gm : 0;
+    out.push({ key: 'mau', ok: than.length === m.shots.length && lechGiay <= 0.1, chu: `Bám QC mẫu: ${than.length}/${m.shots.length} shot · ${Math.round(tong)}/${gm}s`,
+      chiTiet: than.length !== m.shots.length ? `Mẫu có ${m.shots.length} shot, bản này ${than.length} — tách lại theo mẫu hoặc thêm/bớt shot` : lechGiay > 0.1 ? `Tổng giây lệch ${Math.round(lechGiay * 100)}% so với mẫu — kéo mép clip cho khớp` : undefined });
+  }
   const spIds = new Set(opts.nhanVat.filter((v) => v.loai === 'san_pham').map((v) => v.id));
   const coSp = (c: ShotKiem) => c.nhan_vat.some((id) => spIds.has(id));
   // 1. Hook: shot đầu ≤ 3 giây phát, có chữ trên màn.

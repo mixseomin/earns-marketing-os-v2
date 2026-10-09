@@ -6,7 +6,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';   // helper zodOutputFormat của SDK cần zod v4 (zod 3.25 kèm sẵn ở 'zod/v4'); import 'zod' gốc → TypeError 'def'
 import { THU_VIEN, THE_LOAI, CAU_TRUC, giayBeat, hopTheLoai, NHOM_KY_THUAT, type NhomKyThuat } from './dien-anh';
 import type { BienThe, DoiChieu, KinhThanh, LoaiNhanVat, LoaiPhim, NhanVat } from './kieu';
-import { docKinhThanh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA } from './kieu';
+import { docKinhThanh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA, LOAI_SHOT_MAU, giayMau, coMau, type BaiDang, type ShotMau } from './kieu';
 
 const CanhSchema = z.object({
   canh: z.string().describe('Nhãn ngắn của cảnh, tiếng Việt, ví dụ "Cảnh 1 · Khu rừng buổi sáng"'),
@@ -109,25 +109,39 @@ const HUONG_DAN_QC = `LUẬT QUẢNG CÁO (bắt buộc, máy sẽ chấm lại)
 - Cắt nhanh: phần lớn shot phat_s 1,5–3s; chỉ shot có thoại dài mới 4–6s. Tổng phat_s = thời lượng mục tiêu ±10%.
 - hook_bien_the: 2 phương án hook khác góc (tò mò · trước/sau · số liệu/bằng chứng · nỗi đau khác), mỗi phương án 1–2 shot, thay thế đúng các shot của beat Hook.`;
 
-/** Tách kịch bản thành cảnh. `soCanh` = số cảnh mong muốn (0 = để Claude tự chia). */
+/** Bám QC mẫu 1:1 — thứ làm bản clone "gần giống nhất" (anh 09/10/2026): cùng nhịp cắt, cùng chỗ đặt chữ, chỉ đổi sản phẩm. */
+const HUONG_DAN_MAU = (so: number) => `BÁM QC MẪU 1:1 (bắt buộc, máy chấm lại):
+- Đúng ${so} shot, theo đúng THỨ TỰ và đúng GIÂY (phat_s) của từng shot mẫu; không gộp, không thêm, không đảo.
+- Shot i của bản mới cùng LOẠI với shot i của mẫu (hook/ưu đãi/tính năng/so sánh/bằng chứng/CTA/end card) và cùng kiểu hình (cận chi tiết ↔ cận chi tiết, người mặc thử ↔ người mặc thử, so sánh ↔ so sánh).
+- chu_man: shot mẫu có chữ thì shot mới PHẢI có chữ cùng ý, cùng độ dài (≤ 8 từ), viết lại cho ĐÚNG sản phẩm của mình — không chép nguyên câu, không bịa số/tính năng ngoài mục SẢN PHẨM.
+- Mẫu dùng NHIỀU người khác nhau (kiểu UGC ghép) thì luân phiên các anchor nhân vật có sẵn; mẫu có bình luận/ảnh ghép thì tả thành một khung hình tương đương (ảnh chụp màn hình bình luận, lưới 4 người mặc) trong prompt_anh.
+- Mẫu ưu đãi gì thì bản mới dùng ưu đãi trong mục SẢN PHẨM; thiếu thì dùng câu kêu gọi không số.
+- hook_bien_the: vẫn đưa 2 phương án hook khác góc, cùng số giây với shot hook mẫu.`;
+
+/** Tách kịch bản thành cảnh. `soCanh` = số cảnh mong muốn (0 = để Claude tự chia). Phim có QC mẫu → bám mẫu, bỏ qua soCanh/thoiLuongS. */
 export async function tachCanh(opts: {
   loai: LoaiPhim; kinhThanh: KinhThanh; nhanVat: NhanVat[]; kichBan: string; soCanh?: number; tapTruoc?: string[]; thoiLuongS?: number;
+  /** Đoạn THƯ VIỆN KHUÔN SHOT (khuon-shot.taKhuon) — hình đã dùng ở QC trước để Claude dùng lại. */ khuon?: string;
 }): Promise<{ ok: true; tomTat: string; canh: CanhSinh[]; beats: { ten: string; mo_ta: string; cam_xuc: number }[]; phanCanh: PhanCanhSinh[]; model: string; tokens: { in: number; out: number } } | { ok: false; loi: string }> {
   const c = client();
   if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
   const kt = docKinhThanh(opts.kinhThanh);
   const laQc = opts.loai === 'quang_cao';
   const khung = CAU_TRUC[opts.loai] ?? CAU_TRUC.phim!;
+  // Có QC MẪU → khuôn của mẫu thắng mọi thứ: số shot = số shot mẫu, thời lượng = tổng giây mẫu, beat chỉ để tham khảo.
+  const mau = laQc && coMau(kt.qc) ? kt.qc.mau! : null;
+  if (mau) { opts = { ...opts, soCanh: mau.shots.length, thoiLuongS: giayMau(mau) }; }
   // Thời lượng mục tiêu chia cho từng beat (quảng cáo có tỉ lệ sẵn) → Claude biết hook được mấy giây, không tự kéo 24s thành 64s.
-  const giayTheoBeat = opts.thoiLuongS ? giayBeat(opts.loai, opts.thoiLuongS) : null;
+  const giayTheoBeat = opts.thoiLuongS && !mau ? giayBeat(opts.loai, opts.thoiLuongS) : null;
   const user = [
     `DANH SÁCH ANCHOR (dùng đúng tên trong trường nhan_vat):\n${taAnchor(opts.nhanVat)}`,
     opts.tapTruoc?.length ? `TÓM TẮT CÁC TẬP TRƯỚC (nối mạch, không kể lại):\n${opts.tapTruoc.map((t, i) => `Tập ${i + 1}: ${t}`).join('\n')}` : '',
     `KỊCH BẢN:\n${opts.kichBan.trim()}`,
     `KHUNG BEAT (${khung.ten}):\n${khung.beats.map((b, i) => `- ${b.ten}: ${b.mo_ta}${giayTheoBeat ? ` → giây ${giayTheoBeat[i]!.tu}–${giayTheoBeat[i]!.den}` : ''}`).join('\n')}`,
     `THƯ VIỆN ĐIỆN ẢNH (chọn key cho từng shot):\n${taThuVien(kt.the_loai)}`,
+    opts.khuon ?? '',
     opts.thoiLuongS ? `THỜI LƯỢNG MỤC TIÊU: ${opts.thoiLuongS} giây — tổng phat_s của mọi shot (trừ hook_bien_the) phải trong khoảng ${Math.round(opts.thoiLuongS * 0.9)}–${Math.round(opts.thoiLuongS * 1.1)} giây.` : '',
-    opts.soCanh ? `Tổng khoảng ${opts.soCanh} shot.` : laQc ? 'Số shot theo nhịp quảng cáo: phần lớn shot phát 1,5–3 giây.' : 'Số shot vừa đủ kể hết kịch bản, mỗi shot 4-8 giây.',
+    mau ? HUONG_DAN_MAU(mau.shots.length) : opts.soCanh ? `Tổng khoảng ${opts.soCanh} shot.` : laQc ? 'Số shot theo nhịp quảng cáo: phần lớn shot phát 1,5–3 giây.' : 'Số shot vừa đủ kể hết kịch bản, mỗi shot 4-8 giây.',
   ].filter(Boolean).join('\n\n');
   try {
     const r = await c.messages.parse({
@@ -252,7 +266,17 @@ export function taQc(kt: Required<KinhThanh>): string {
   return `SẢN PHẨM / DỊCH VỤ ĐƯỢC QUẢNG CÁO (bám đúng, không bịa tính năng):\n${[
     q.ten && `- Tên: ${q.ten}`, q.link && `- Trang: ${q.link}`, q.diem_noi_bat && `- Điểm nổi bật: ${q.diem_noi_bat}`,
     q.doi_tuong && `- Khách hàng mục tiêu: ${q.doi_tuong}`, q.uu_dai && `- Ưu đãi / CTA: ${q.uu_dai}`, q.thi_truong && `- Thị trường: ${q.thi_truong}`,
-  ].filter(Boolean).join('\n')}`;
+  ].filter(Boolean).join('\n')}${taMau(kt)}`;
+}
+/** QC MẪU làm khuôn: xương sống theo thời gian + bài đăng của mẫu. Rỗng nếu phim không có mẫu. */
+export function taMau(kt: Required<KinhThanh>): string {
+  const m = kt.qc?.mau;
+  if (!m || !coMau(kt.qc)) return '';
+  const ten = (k: string) => LOAI_SHOT_MAU.find((x) => x.key === k)?.ten ?? k;
+  let t = 0;
+  const dong = m.shots.map((s, i) => { const tu = t; t += Number(s.giay) || 0; return `${i + 1}. [${tu}s–${Math.round(t * 10) / 10}s · ${s.giay}s · ${ten(s.loai)}] chữ màn mẫu: "${s.chu_man || '—'}" · hình: ${s.hinh || '—'}`; });
+  return `\n\nQC MẪU LÀM KHUÔN (một quảng cáo đang bán tốt — bám cấu trúc của nó, KHÔNG chép nguyên chữ):${m.nguon ? `\n- Nguồn: ${m.nguon}` : ''}${m.ghi_chu ? `\n- Ghi chú: ${m.ghi_chu}` : ''}
+- ${m.shots.length} shot, tổng ${giayMau(m)} giây:\n${dong.join('\n')}${m.chu_bai ? `\n- Văn bản chính của bài đăng mẫu:\n${m.chu_bai}` : ''}${m.tieu_de ? `\n- Tiêu đề mẫu: ${m.tieu_de}` : ''}${m.cta ? `\n- Nút mẫu: ${m.cta}` : ''}`;
 }
 function taNguCanh(nc: NguCanhPhim): string {
   const kt = docKinhThanh(nc.kinhThanh);
@@ -366,3 +390,64 @@ export async function docTrangSanPham(link: string, trang: { tieuDe: string; moT
     `LINK: ${link}\nTIÊU ĐỀ: ${trang.tieuDe}\nMÔ TẢ: ${trang.moTa}\nẢNH TRÊN TRANG:\n${trang.anh.slice(0, 40).join('\n')}\nCHỮ TRÊN TRANG (rút gọn):\n${trang.chu.slice(0, 12000)}`);
 }
 
+
+// ── Bài đăng kèm video (văn bản chính · tiêu đề · mô tả · nút) theo QC mẫu ───────────────────────────────────────
+const BaiDangSchema = z.object({
+  chu_bai: z.string().describe('Văn bản chính của bài đăng (primary text): cùng cấu trúc, cùng độ dài, cùng kiểu xuống dòng/emoji/✅ với bài mẫu; đổi sang sản phẩm của mình; chỉ dùng số liệu/ưu đãi có trong mục SẢN PHẨM; ngôn ngữ theo thị trường'),
+  tieu_de: z.string().describe('Tiêu đề (headline) ≤ 40 ký tự, cùng kiểu với mẫu'),
+  mo_ta: z.string().describe('Mô tả ngắn dưới tiêu đề ≤ 30 ký tự (ưu đãi / trấn an); rỗng nếu mẫu không có'),
+  cta: z.string().describe('Nhãn nút: Shop now / Mua ngay / Learn more…'),
+});
+export async function vietBaiDang(opts: { kinhThanh: KinhThanh; kichBan: string; chuMan: string[] }): Promise<GoiYKq<Omit<BaiDang, 'luc'>>> {
+  const c = client();
+  if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
+  const kt = docKinhThanh(opts.kinhThanh);
+  if (!kt.qc?.ten && !kt.qc?.diem_noi_bat) return { ok: false, loi: 'chưa khai sản phẩm ở mục 0' };
+  try {
+    const r = await c.messages.parse({
+      model: kt.mo_hinh_chu, max_tokens: 2500,
+      system: `Bạn viết bài đăng quảng cáo (Meta/TikTok) đi kèm video. ${taQc(kt)}\nLuật: không bịa số liệu/tính năng ngoài mục SẢN PHẨM; có bài mẫu thì giữ nguyên CẤU TRÚC (số dòng, emoji, ✅, nhịp câu) và chỉ đổi nội dung cho đúng sản phẩm, không chép nguyên câu; không có mẫu thì viết theo khuôn: móc 1 dòng → 3 lợi ích ✅ → trấn an → ưu đãi + kêu gọi. Ngôn ngữ: ${kt.qc?.thi_truong || (kt.ngon_ngu === 'vi' ? 'tiếng Việt' : kt.ngon_ngu)}.`,
+      messages: [{ role: 'user', content: `KỊCH BẢN VIDEO ĐI KÈM:\n${opts.kichBan.slice(0, 6000)}\n\nCHỮ TRÊN MÀN CỦA VIDEO (để bài đăng không lặp y chang): ${opts.chuMan.filter(Boolean).join(' · ') || '(chưa có)'}` }],
+      output_config: { format: zodOutputFormat(BaiDangSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
+    });
+    if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
+    const p = r.parsed_output as z.infer<typeof BaiDangSchema> | null;
+    return p ? { ok: true, data: p, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
+  } catch (e) {
+    return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
+  }
+}
+
+// ── Phân tích video mẫu → xương sống shot (Claude nhìn khung hình lấy mỗi 2 giây) ───────────────────────────────
+const MauSchema = z.object({
+  shots: z.array(z.object({
+    giay: z.number().describe('Số giây shot này phát (0,5–8; khung hình liên tiếp giống nhau = cùng một shot)'),
+    loai: z.enum(['hook', 'uu_dai', 'noi_dau', 'giai_phap', 'tinh_nang', 'demo', 'so_sanh', 'bang_chung', 'tran_an', 'cta', 'end_card', 'khac']),
+    chu_man: z.string().describe('Chữ đọc được trên màn của shot (đúng nguyên văn, kể cả tiếng Anh); rỗng nếu không có'),
+    hinh: z.string().describe('Hình trong shot: ai/cái gì, cỡ cảnh, hành động, bối cảnh — 1 câu tiếng Việt, đủ để dựng lại một khung tương đương'),
+  })).describe('Toàn bộ shot của video theo thứ tự thời gian; tổng giây = thời lượng video'),
+  ghi_chu: z.string().describe('Nhận xét 2–3 câu: công thức của mẫu (nhịp cắt, kiểu hình, chỗ đặt chữ, cách mở, cách chốt)'),
+});
+export async function phanTichMau(khung: { giay: number; b64: string }[], tongGiay: number, kt: Required<KinhThanh>): Promise<GoiYKq<{ shots: ShotMau[]; ghi_chu: string }>> {
+  const c = client();
+  if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
+  if (!khung.length) return { ok: false, loi: 'không có khung hình' };
+  try {
+    const r = await c.messages.parse({
+      model: kt.mo_hinh_chu, max_tokens: 8000,
+      system: 'Bạn là người dựng quảng cáo, đọc video mẫu từ các khung hình lấy cách đều nhau để ghi lại XƯƠNG SỐNG của nó: từng shot kéo dài mấy giây, loại shot, chữ trên màn, hình gì. Chỉ ghi thứ nhìn thấy. Khung hình giống nhau liên tiếp = một shot dài. Trả lời tiếng Việt (chữ trên màn giữ nguyên văn).',
+      messages: [{ role: 'user', content: [
+        ...khung.flatMap((k) => [{ type: 'text' as const, text: `giây ${k.giay}:` }, { type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/jpeg' as const, data: k.b64 } }]),
+        { type: 'text', text: `Video dài ${tongGiay} giây, ${khung.length} khung hình ở trên (mỗi khung ghi giây). Liệt kê toàn bộ shot theo thứ tự; tổng giây các shot phải ≈ ${tongGiay}.` },
+      ] }],
+      output_config: { format: zodOutputFormat(MauSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
+    });
+    if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
+    const p = r.parsed_output as z.infer<typeof MauSchema> | null;
+    if (!p) return { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
+    const shots: ShotMau[] = p.shots.map((s) => ({ giay: Math.max(0.5, Math.min(8, Math.round(s.giay * 2) / 2)), loai: s.loai, chu_man: s.chu_man.trim(), hinh: s.hinh.trim() }));
+    return { ok: true, data: { shots, ghi_chu: p.ghi_chu }, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
+  } catch (e) {
+    return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
+  }
+}

@@ -16,9 +16,12 @@ export type TepChu = { duong: string; noiDung: string };
 export type KeHoachXuat = { args: string[]; tep: TepChu[]; giay: number; canhThieu: string[] };
 
 /** URL cần tải cho một bản xuất (clip/keyframe, giọng, hiệu ứng, nhạc) — tải trước, đo rồi mới dựng lệnh. */
-export function urlCanXuat(canh: Canh[], nhanVat: NhanVat[], tap: Pick<Tap, 'nhac_url' | 'nhac_phan_canh'>, nhanh?: string | null): string[] {
+export function urlCanXuat(canh: Canh[], nhanVat: NhanVat[], tap: Pick<Tap, 'nhac_url' | 'nhac_phan_canh'>, nhanh?: string | null, qc?: ThongTinQc | null): string[] {
   const ds = locNhanh(canh, nhanh);
   const out = new Set<string>();
+  // Logo góc + ảnh sản phẩm cho end card (mục 0) — tải cùng nguyên liệu; thiếu thì xuất không có, không chặn.
+  if (qc?.logo_url && /^https?:\/\//.test(qc.logo_url)) out.add(qc.logo_url);
+  if (qc?.anh?.[0] && /^https?:\/\//.test(qc.anh[0])) out.add(qc.anh[0]);
   for (const c of ds) {
     const v = c.video_cuoi_url || c.video_url || c.keyframe_url;
     if (v) out.add(v);
@@ -73,7 +76,12 @@ export function keHoachXuat(o: {
   // Khối chữ nhiều dòng = nhiều drawtext, dòng i ở y = gốc + i·(cỡ chữ × 1,25); gốc tính theo tỉ lệ chiều cao (vùng an toàn 9:16) hoặc giữa màn.
   const khoiChu = (ten: string, dong: string[], fs: number, goc: (n: number) => string, them: string, chiBo: string) =>
     dong.map((d, i) => `drawtext=fontfile='${font}':textfile='${duongFf(tepChu(`${ten}_${i}`, d))}':expansion=none:fontsize=${fs}:fontcolor=white:${them}:x=(w-text_w)/2:y=${goc(dong.length)}+${Math.round(i * fs * 1.25)}${chiBo}`).join(',');
-  const drawMan = (ten: string, dong: string[], giua = false) => khoiChu(ten, dong, fsMan, (n) => (giua ? `(h-${Math.round(n * fsMan * 1.25)})/2` : 'h*0.15'), `borderw=${Math.round(fsMan / 14)}:bordercolor=black@0.85`, '');
+  // Vị trí chữ màn theo mục 0 (qc.vi_tri_chu): trên = 1/6 màn (mặc định), giữa, dưới ≈ 62% (kiểu QC UGC, chữ ngay dưới mặt/sản phẩm).
+  const viTri = o.qc?.vi_tri_chu ?? 'tren';
+  const gocMan = (n: number) => (viTri === 'giua' ? `(h-${Math.round(n * fsMan * 1.25)})/2` : viTri === 'duoi' ? `h*0.62-${Math.round(n * fsMan * 1.25 / 2)}` : 'h*0.15');
+  const drawMan = (ten: string, dong: string[], giua = false) => khoiChu(ten, dong, fsMan, (n) => (giua ? `(h-${Math.round(n * fsMan * 1.25)})/2` : gocMan(n)), `borderw=${Math.round(fsMan / 14)}:bordercolor=black@0.85`, '');
+  // Logo góc trên phải (qc.logo_url) đè lên MỌI shot + end card: cao 6% màn, cách mép 3%.
+  const logoUrl = o.qc?.logo_url && nl.has(o.qc.logo_url) ? o.qc.logo_url : null;
   const khung = `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=30,format=yuv420p`;
 
   const loc: string[] = [];
@@ -92,6 +100,7 @@ export function keHoachXuat(o: {
     const k = laVideo ? them(nguon) : them(nguon, ['-loop', '1', '-framerate', '30', '-t', so(phat)]);
     const ve: string[] = [laVideo ? `[${k}:v]trim=0:${so(phat)},setpts=PTS-STARTPTS,${khung}` : `[${k}:v]${khung},trim=0:${so(phat)},setpts=PTS-STARTPTS`];
     if (c.chu_man.trim()) ve.push(drawMan(`man_${i}`, ngatDong(c.chu_man, wrapMan)));
+    if (logoUrl) { const kl = them(logoUrl, ['-loop', '1', '-framerate', '30', '-t', so(phat)]); loc.push(`[${kl}:v]scale=-1:${Math.round(H * 0.06)},format=rgba[lg${i}]`); ve[ve.length - 1] += `[vv${i}];[vv${i}][lg${i}]overlay=W-w-${Math.round(W * 0.03)}:${Math.round(H * 0.03)}:shortest=1`; }
     // Giọng từng dòng nối tiếp nhau trong shot (theo độ dài file giọng; chưa có giọng thì chia đều giây phát để giữ nhịp).
     const dong = dongThoai(c, o.nhanVat);
     let tDong = 0;
@@ -117,7 +126,12 @@ export function keHoachXuat(o: {
   let giay = t;
   if (o.loai === 'quang_cao' && o.qc?.uu_dai?.trim() && nhanhVideo.length) {
     const dong = [...(o.qc.ten ? ngatDong(o.qc.ten, wrapMan) : []), ' ', ...ngatDong(o.qc.uu_dai, wrapMan)];
-    loc.push(`color=c=0x101014:s=${W}x${H}:d=2:r=30,format=yuv420p,${drawMan('end', dong, true)}[vend]`);
+    // Có ảnh sản phẩm (mục 0) → end card = ảnh phủ kín, tối 45%, chữ ở 1/4 dưới (kiểu "FLASH SALE · SHOP NOW" đè lên ảnh sản phẩm); không có → nền tối, chữ giữa.
+    const anhEnd = o.qc.anh?.[0] && nl.has(o.qc.anh[0]) ? o.qc.anh[0] : null;
+    if (anhEnd) {
+      const ke = them(anhEnd, ['-loop', '1', '-framerate', '30', '-t', '2']);
+      loc.push(`[${ke}:v]${khung},trim=0:2,setpts=PTS-STARTPTS,colorlevels=rimax=0.55:gimax=0.55:bimax=0.55,${khoiChu('end', dong, fsMan, (n) => `h*0.78-${Math.round(n * fsMan * 1.25 / 2)}`, `borderw=${Math.round(fsMan / 14)}:bordercolor=black@0.85`, '')}[vend]`);
+    } else loc.push(`color=c=0x101014:s=${W}x${H}:d=2:r=30,format=yuv420p,${drawMan('end', dong, true)}[vend]`);
     nhanhVideo.push('[vend]'); giay += 2;
   }
   if (!nhanhVideo.length) return { args: [], tep, giay: 0, canhThieu };

@@ -19,7 +19,7 @@ assert.equal(xepThamChieu(nhieu).urlRef.length, 10);
 assert.deepEqual(xepThamChieu([] as never), { urlRef: [], banDoRef: '' });
 const g = ghepPromptAnh('x', '', nv);
 assert.ok(g.startsWith(KHONG_CHU) && g.endsWith(KHONG_CHU), g);
-assert.ok(!g.includes('JettJeans3') && g.includes('THE PRODUCT in this shot must be copied EXACTLY'), g);   // sản phẩm có ảnh: không tên, không mô tả chữ
+assert.ok(!g.includes('JettJeans3') && g.includes('THE PRODUCT in this shot must be copied EXACTLY') && g.includes('Product facts (must all hold): quần'), g);   // sản phẩm có ảnh: không tên, có mô tả chính xác
 assert.ok(g.includes('Phòng khách'), g);
 console.log('sinh-anh.test: ok');
 // Phong cách cho model: bỏ vế về chữ/phụ đề, giữ phần hình (phá thử: bỏ lọc thì câu "white text…" còn → đỏ).

@@ -28,7 +28,9 @@ export function ghepPromptAnh(prompt: string, phongCach: string, nv: NhanVat[], 
   // (09/10/2026: "JettJeans3 - Men's…" thành chữ trên quần, quần vẽ theo chữ "denim 5 túi" thay vì ảnh). Chỉ nói: chép đúng món trong ảnh.
   const spCoAnh = vat.filter((v) => v.loai === 'san_pham' && v.anh_ref.length);
   const vatTa = vat.filter((v) => !spCoAnh.includes(v));
-  if (spCoAnh.length) dong.push('THE PRODUCT in this shot must be copied EXACTLY from its reference images (same cut, color, pockets, seams, hardware, fabric) — never a generic version; any wording about the product in this prompt is secondary to those images.');
+  // Ảnh + MÔ TẢ CHÍNH XÁC (kể cả điều cấm): chỉ ảnh thì model rơi về kiểu đồ quen ("jeans 5 túi bạc màu") khi sản phẩm chiếm góc nhỏ của ảnh
+  // mẫu — thử A/B Seedream vs Nano Banana 10/10/2026, cả hai cùng sai khi bỏ mô tả. Mô tả lấy từ anchor (đã đối chiếu trang sản phẩm).
+  if (spCoAnh.length) dong.push(`THE PRODUCT in this shot must be copied EXACTLY from its reference images — never a generic version. Product facts (must all hold): ${spCoAnh.map((v) => v.mo_ta).join(' | ')}`);
   if (vatTa.length) dong.push(`Keep these places / props EXACTLY as described and as in the reference images (same color, shape, details): ${vatTa.map((v) => `${v.ten} — ${v.mo_ta}`).join(' | ')}.`);
   // Chữ màn do xưởng tự vẽ lúc xuất (drawtext, đúng font) — model ảnh KHÔNG được tự vẽ phụ đề: Seedream bịa chữ giả "hử le œ hiút nốp dòos" lên keyframe (#1251).
   dong.push(KHONG_CHU);

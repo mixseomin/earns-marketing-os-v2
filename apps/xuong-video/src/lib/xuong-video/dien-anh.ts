@@ -152,16 +152,18 @@ export function promptKyThuatVideo(kt: KyThuatShot | undefined): string {
   return [may && `Camera: ${may}.`, ket && `${ket}.`, am.length ? `Sound: ${am.join(', ')}.` : '', nhac ? `Music: ${nhac}.` : ''].filter(Boolean).join(' ');
 }
 /** Nhãn tiếng Việt ngắn của các kỹ thuật đã chọn — hiện trên thẻ shot / timeline. */
-export function nhanKyThuat(kt: KyThuatShot | undefined): string[] {
+/** Kỹ thuật đã chọn của một shot, đủ nhóm + mô tả — nguồn cho nhãn ngắn (thẻ shot, bảng ＋) và hover chi tiết. */
+export type MucKyThuat = { nhom: string; icon: string; ten: string; mo_ta: string };
+export function chiTietKyThuat(kt: KyThuatShot | undefined): MucKyThuat[] {
   if (!kt) return [];
-  const out: string[] = [];
+  const out: MucKyThuat[] = [];
   for (const n of NHOM_KY_THUAT) {
-    if (n.key === 'am_thanh') { for (const a of kt.am_thanh ?? []) { const x = kyThuat(a, 'am_thanh'); if (x) out.push(`${n.icon} ${x.ten}`); } continue; }
-    const x = kyThuat(kt[n.key as Exclude<NhomKyThuat, 'am_thanh'>], n.key);
-    if (x) out.push(`${n.icon} ${x.ten}`);
+    const keys = n.key === 'am_thanh' ? kt.am_thanh ?? [] : [kt[n.key as Exclude<NhomKyThuat, 'am_thanh'>]];
+    for (const k of keys) { const x = kyThuat(k, n.key); if (x) out.push({ nhom: n.ten, icon: n.icon, ten: x.ten, mo_ta: x.mo_ta }); }
   }
   return out;
 }
+export const nhanKyThuat = (kt: KyThuatShot | undefined): string[] => chiTietKyThuat(kt).map((m) => `${m.icon} ${m.ten}`);
 /** Chỉ giữ key có trong thư viện (Claude lỡ bịa key thì bỏ). */
 export function lamSachKyThuat(kt: Record<string, unknown> | undefined): KyThuatShot {
   const o: KyThuatShot = {};

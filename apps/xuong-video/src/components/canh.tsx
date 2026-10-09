@@ -1,13 +1,14 @@
 'use client';
 // Một shot trên storyboard: thẻ cảnh, keyframe/clip, form sửa 3 tab.
-import { useContext, useEffect, useState, type CSSProperties } from 'react';
+import { Fragment, useContext, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useViTriNoi } from './vi-tri-noi';
 import { moNgan, linkTai } from './ngan-chung';
 import { dongThoai, tenNoi, LOI_DAN } from '@/lib/xuong-video/am-thanh';
-import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, nhanKyThuat, type TheLoai } from '@/lib/xuong-video/dien-anh';
+import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, chiTietKyThuat, type TheLoai } from '@/lib/xuong-video/dien-anh';
 import { suaCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, sinhVideoCanh, lamLaiTuKeyframe, sinhGiong, sinhAmThanh, xoaKeyframe, goiYAICanh, nangCapCanh, chonPhienBan, khopMiengCanh } from '@/lib/actions';
 import { LOAI_NHAN_VAT, TRANG_THAI_CANH, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
-import { Khoa, KqChay, O, Pill, Nut, Loi, AnhNho, DangSinh, mono, Menu, MucMenu } from './ui';
+import { Khoa, KqChay, O, Pill, Nut, Loi, AnhNho, DangSinh, mono, Menu, MucMenu, NhomNut } from './ui';
 import { MoHinhCtx, giaVideoUi, giaAnhUi, luaChonAnh, luaChonVideo } from './mo-hinh-ui';
 import { GiongNhanVat } from './nhan-vat';
 import { NutNghe, ClipNho } from './media';
@@ -17,6 +18,29 @@ export function KfNho({ url, soSanh }: { url: string; soSanh: string }) {
   return (
     <img src={url} alt="" data-so-sanh={soSanh} title="Keyframe của clip — rê để phóng to"
       style={{ display: 'block', width: 34, height: 34, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)', marginTop: 4 }} />
+  );
+}
+
+/** Kỹ thuật quay của shot GỌN một dòng (#1243): 3 thứ quyết định khung hình + "+N"; rê vào hiện bảng đủ nhóm · tên · mô tả. */
+const NHOM_CHINH = ['Cỡ cảnh', 'Chuyển động máy', 'Ánh sáng'];
+function KyThuatGon({ kt, phanDoan }: { kt: Canh['ky_thuat']; phanDoan: string }) {
+  const ds = chiTietKyThuat(kt);
+  const [mo, setMo] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const viTri = useViTriNoi(ref, mo, { rong: 380, caoToiDa: 420 });
+  if (!ds.length && !phanDoan) return null;
+  const chinh = ds.filter((m) => NHOM_CHINH.includes(m.nhom));
+  const conLai = ds.length - chinh.length;
+  return (
+    <div ref={ref} onMouseEnter={() => setMo(true)} onMouseLeave={() => setMo(false)} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginTop: 4, maxWidth: '100%', ...mono, cursor: 'help' }}>
+      {phanDoan && <span style={{ color: 'var(--violet)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>🎬 {phanDoan}</span>}
+      {ds.length > 0 && <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>🎥 {chinh.map((m) => m.ten).join(' · ') || ds[0]!.ten}{conLai > 0 && <span style={{ color: 'var(--fg-4)' }}> +{conLai}</span>}</span>}
+      {mo && ds.length > 0 && (
+        <div style={{ ...viTri, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.5)', padding: 8, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 10px', fontSize: 11, cursor: 'default' }}>
+          {ds.map((m, i) => <Fragment key={i}><span style={{ ...mono, whiteSpace: 'nowrap' }}>{m.icon} {m.nhom}</span><span><b style={{ color: 'var(--fg-1)' }}>{m.ten}</b>{m.mo_ta && <span style={{ color: 'var(--fg-3)' }}> — {m.mo_ta}</span>}</span></Fragment>)}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -126,7 +150,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh
               ))}
             </div>
           )}
-          {(() => { const ds = nhanKyThuat(c.ky_thuat); return ds.length ? <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 4 }}>{c.phan_doan && <span style={{ ...mono, fontSize: 9.5, color: 'var(--violet)' }}>🎬 {c.phan_doan} ·</span>}{ds.map((x) => <span key={x} style={{ fontSize: 9.5, lineHeight: '15px', padding: '0 5px', borderRadius: 4, border: '1px solid var(--line)', color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{x}</span>)}</div> : null; })()}
+          <KyThuatGon kt={c.ky_thuat} phanDoan={c.phan_doan} />
           {/* Giọng đã nằm ở từng dòng thoại phía trên; ở đây chỉ còn file giọng gộp cũ (không gán được dòng nào) + hiệu ứng. */}
           {((c.thoai_url && !dongThoai(c, nhanVat).some((d) => d.url)) || c.am_thanh_url || c.dang_sinh_am) && (
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
@@ -161,16 +185,28 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh
               })}
             </div>
           )}
-          <div style={{ display: 'flex', gap: 6, marginTop: 7, flexWrap: 'wrap', alignItems: 'center' }}>
-            {buoc === 'trong' && <>{chonAnh}<Nut chinh ly={lyAnh} ban={ban(k)} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))} gia={giaAnh}>🖼 Sinh keyframe · {tien(giaAnh)}</Nut></>}
-            {buoc === 'kf' && <Nut chinh ban={ban(k)} onClick={() => void chay(k, () => duyetCanh(c.id, true))}>✓ Duyệt keyframe</Nut>}
-            {/* Sinh lại ảnh hiện ngay cạnh nút chính (không giấu trong ⋯): sửa trang phục / prompt / đối tượng xong là bấm lại được. Ảnh cũ vẫn giữ làm ứng viên. */}
-            {(buoc === 'kf' || buoc === 'duyet' || buoc === 'nhap' || buoc === 'cuoi') && <>{chonAnh}<Nut ly={lyAnh} ban={ban(k)} title="Sinh thêm một ảnh keyframe mới theo prompt / trang phục / đối tượng hiện tại; ảnh cũ vẫn giữ trong dải ứng viên để chọn lại" onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))} gia={giaAnh}>↻ Sinh lại ảnh · {tien(giaAnh)}</Nut></>}
-            {buoc === 'duyet' && <>{chonVideo}<Nut chinh ly={lyVideo} ban={ban(k)} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))} gia={giaVid}>🎬 Sinh nháp · {giay}s · {tien(giaVid)}</Nut></>}
-            {buoc === 'dang' && <span style={{ ...mono, color: 'var(--violet)' }}>{c.dang_sinh_anh ? 'đang sinh ảnh…' : 'đang sinh video, tự kiểm mỗi 10s…'}</span>}
-            {(buoc === 'nhap' || buoc === 'cuoi') && <>{chonVideo}<Nut ly={lyVideo} ban={ban(k)} title="Sinh một bản nháp video mới từ keyframe đang chọn; bản cũ vẫn giữ trong danh sách phiên bản" onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))} gia={giaVid}>↻ Sinh lại nháp · {giay}s · {tien(giaVid)}</Nut></>}
-            {buoc === 'nhap' && <Nut chinh ly={!khoa.fal && 'thiếu FAL_KEY'} ban={ban(k)} title="Nâng cấp CHÍNH clip nháp (Topaz ×2): chuyển động, bố cục, nhân vật y hệt bản nháp" onClick={() => void chay(k, () => nangCapCanh(c.id))} gia={giaNangCap}>⬆ Làm bản cuối (nâng cấp nháp, khớp 100%) · {tien(giaNangCap)}</Nut>}
-            {buoc === 'cuoi' && <a href={linkTai(c.video_cuoi_url!)} download className="xv-btn chinh" style={{ textDecoration: 'none' }}>⬇ Tải bản cuối</a>}
+          {/* Nút xếp theo NHÓM (#1245): Ảnh (model + sinh/duyệt) · Video (model + nháp/bản cuối) · sửa/⋯ ở mép phải. */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 7, flexWrap: 'wrap', alignItems: 'stretch' }}>
+            <NhomNut nhan="🖼 Ảnh">
+              {chonAnh}
+              {buoc === 'trong' && <Nut chinh ly={lyAnh} ban={ban(k)} onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))} gia={giaAnh}>Sinh keyframe · {tien(giaAnh)}</Nut>}
+              {/* Sinh lại ảnh hiện ngay (không giấu trong ⋯): sửa trang phục / prompt / đối tượng xong là bấm lại được. Ảnh cũ vẫn giữ làm ứng viên. */}
+              {buoc !== 'trong' && buoc !== 'dang' && <Nut ly={lyAnh} ban={ban(k)} title="Sinh thêm một ảnh keyframe mới theo prompt / trang phục / đối tượng hiện tại; ảnh cũ vẫn giữ trong dải ứng viên để chọn lại" onClick={() => void chay(k, () => sinhKeyframe(c.id, 1, mhAnh))} gia={giaAnh}>↻ Sinh lại · {tien(giaAnh)}</Nut>}
+              {buoc === 'kf' && <Nut chinh ban={ban(k)} onClick={() => void chay(k, () => duyetCanh(c.id, true))}>✓ Duyệt keyframe</Nut>}
+              {buoc === 'dang' && c.dang_sinh_anh && <span style={{ ...mono, color: 'var(--violet)', alignSelf: 'center' }}>đang sinh ảnh…</span>}
+            </NhomNut>
+            {(buoc === 'duyet' || buoc === 'nhap' || buoc === 'cuoi' || (buoc === 'dang' && !c.dang_sinh_anh)) && (
+              <NhomNut nhan="🎬 Video">
+                {buoc !== 'dang' && chonVideo}
+                {buoc === 'duyet' && <Nut chinh ly={lyVideo} ban={ban(k)} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))} gia={giaVid}>Sinh nháp · {giay}s · {tien(giaVid)}</Nut>}
+                {buoc === 'dang' && <span style={{ ...mono, color: 'var(--violet)', alignSelf: 'center' }}>đang sinh video, tự kiểm mỗi 10s…</span>}
+                {(buoc === 'nhap' || buoc === 'cuoi') && <Nut ly={lyVideo} ban={ban(k)} title="Sinh một bản nháp video mới từ keyframe đang chọn; bản cũ vẫn giữ trong danh sách phiên bản" onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))} gia={giaVid}>↻ Nháp mới · {giay}s · {tien(giaVid)}</Nut>}
+                {buoc === 'nhap' && <Nut chinh ly={!khoa.fal && 'thiếu FAL_KEY'} ban={ban(k)} title="Nâng cấp CHÍNH clip nháp (Topaz ×2): chuyển động, bố cục, nhân vật y hệt bản nháp" onClick={() => void chay(k, () => nangCapCanh(c.id))} gia={giaNangCap}>⬆ Làm bản cuối · {tien(giaNangCap)}</Nut>}
+                {buoc === 'cuoi' && <a href={linkTai(c.video_cuoi_url!)} download className="xv-btn chinh" style={{ textDecoration: 'none' }}>⬇ Tải bản cuối</a>}
+              </NhomNut>
+            )}
+            <span style={{ flex: 1 }} />
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             {/* Sửa cảnh là việc hay làm nhất sau sinh ảnh → nút riêng cạnh ⋯ (#1228), không chôn trong menu. */}
             <button type="button" className={`xv-btn${mo ? ' chinh' : ''}`} onClick={() => setMo(!mo)} title="Sửa cảnh: nội dung, thoại, máy, prompt">✎ Sửa</button>
             <Menu>
@@ -187,6 +223,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh
               {c.video_url && <a data-dong="" href={linkTai(c.video_url)} download className="xv-btn" style={{ textDecoration: 'none' }}>⬇ Tải nháp</a>}
               <MucMenu nguy onClick={() => void chay(k, async () => { await xoaCanh(c.id); })}>🗑 Xoá cảnh</MucMenu>
             </Menu>
+            </div>
           </div>
         </div>
       </div>

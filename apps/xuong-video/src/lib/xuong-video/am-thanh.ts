@@ -54,11 +54,6 @@ export const tenNoi = (d: Pick<DongThoai, 'nhan_vat'>): string => d.nhan_vat.tri
 export const cungTen = (a: string, b: string): boolean => a.trim().toLowerCase() === b.trim().toLowerCase();
 /** Nhân vật theo tên người nói (không phân biệt hoa thường, bỏ khoảng trắng thừa). */
 export const timNv = <T extends Pick<NhanVat, 'ten'>>(nv: T[], ten: string): T | undefined => nv.find((x) => cungTen(x.ten, ten));
-/** Ai nói (dòng đầu) — đọc qua dongThoai, cùng MỘT bộ tách "Tên (diễn xuất): lời" với mọi chỗ khác (trước đây có bộ tách thứ hai lệch regex). */
-export function nguoiNoi(c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url'>, nv: NhanVat[]): NhanVat | null {
-  const ten = dongThoai(c, nv)[0]?.nhan_vat.trim();
-  return (ten ? timNv(nv, ten) : undefined) ?? nhanVatDauCua(c, nv) ?? null;
-}
 /** Shot có tiếng sinh RIÊNG (file giọng của dòng thoại nào đó, hoặc hiệu ứng) → tiếng sẵn của clip (Veo/Kling tự nói) phải tắt, không chồng
  *  hai giọng (#1219). MỘT luật cho timeline (xem thử) và bản xuất (ffmpeg). */
 export const coTiengRieng = (c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url' | 'am_thanh_url'>, nv: NhanVat[]): boolean => dongThoai(c, nv).some((d) => d.url) || !!c.am_thanh_url;

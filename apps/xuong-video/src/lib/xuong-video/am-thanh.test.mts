@@ -1,7 +1,7 @@
 // Tự kiểm bộ đọc thoại theo dòng + người nói + giá giọng (một nguồn cho thẻ shot, bảng ＋, timeline, máy chủ — #1204, audit 09/10/2026).
 // Chạy: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/am-thanh.test.mts
 import assert from 'node:assert';
-import { dongThoai, nguoiNoi, giaGiong, tenNoi, cungTen, timNv, LOI_DAN } from './am-thanh';
+import { dongThoai, giaGiong, tenNoi, cungTen, timNv, LOI_DAN } from './am-thanh';
 import type { NhanVat } from './kieu';
 
 const nv = [
@@ -24,8 +24,6 @@ assert.strictEqual(d.length, 1);
 // Rỗng → không dòng nào.
 assert.deepStrictEqual(dongThoai(shot('', [1]), nv), []);
 // nguoiNoi đi cùng một bộ tách.
-assert.strictEqual(nguoiNoi(shot('Lio: "Chạy!"', [1, 2]), nv)?.ten, 'Lio');
-assert.strictEqual(nguoiNoi(shot('"Chạy!"', [2, 1]), nv)?.ten, 'Lio');
 // Giá: theo 1k ký tự / giây / lượt; chưa công bố → null (không đoán).
 assert.strictEqual(giaGiong({ giaCents: 10, donVi: '1k_ky_tu' }, 500), 5);
 assert.strictEqual(giaGiong({ giaCents: 0.2, donVi: 'giay' }, 150), 2);

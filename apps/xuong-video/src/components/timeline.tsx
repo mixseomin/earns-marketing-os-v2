@@ -7,10 +7,10 @@
 //   Âm thanh — hiệu ứng/âm nền từng cảnh (am_thanh / am_thanh_url).
 //   Nhạc   — nhạc nền cả tập (nhac_url / nhac_mo_ta).
 // Nét đứt = mới có mô tả trong kịch bản, chưa sinh file. Toàn bộ chạy ở trình duyệt, không tốn tiền.
-import { Fragment, useEffect, useMemo, useRef, useState, type PointerEvent as PE, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as PE, type ReactNode } from 'react';
 import { giayPhat, tenCamXuc, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat } from '@/lib/xuong-video/dien-anh';
-import { nguoiNoi, dongThoai, coTiengRieng, tenNoi, cungTen, timNv, LOI_DAN } from '@/lib/xuong-video/am-thanh';
+import { dongThoai, coTiengRieng, tenNoi, cungTen, timNv } from '@/lib/xuong-video/am-thanh';
 import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 import { mono } from './ui';
@@ -35,12 +35,18 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const [giayTam, setGiayTam] = useState<Record<number, number>>({});
   const dur = (c: Canh) => giayTam[c.id] ?? giayPhat(c);
   const batDau = useMemo(() => { let a = 0; return canh.map((c) => { const s = a; a += dur(c); return s; }); }, [canh, giayTam]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Người nói của cả tập theo thứ tự xuất hiện → mỗi người một làn thoại.
+  // Nhân vật của cả tập theo thứ tự xuất hiện (người nói + nhân vật có mặt mà không nói) → mỗi người MỘT nhóm làn: cảm xúc + thoại (#1244).
   const nguoiNoiTap = useMemo(() => {
     const ds: string[] = [];
-    for (const c of canh) for (const d of dongThoai(c, nhanVat)) { const t = tenNoi(d); if (!ds.some((x) => cungTen(x, t))) ds.push(t); }
+    const them = (t: string) => { if (!ds.some((x) => cungTen(x, t))) ds.push(t); };
+    for (const c of canh) {
+      for (const d of dongThoai(c, nhanVat)) them(tenNoi(d));
+      for (const id of c.nhan_vat) { const v = nhanVat.find((x) => x.id === id && x.loai === 'nhan_vat'); if (v) them(v.ten); }
+    }
     return ds;
   }, [canh, nhanVat]);
+  // Nút đọc thử / tắt thoại (chung cho mọi giọng) nằm ở làn thoại của người nói ĐẦU TIÊN.
+  const nguoiNoiDau = useMemo(() => { for (const c of canh) { const d = dongThoai(c, nhanVat)[0]; if (d) return tenNoi(d); } return ''; }, [canh, nhanVat]);
   const tong = canh.reduce((a, c) => a + dur(c), 0);
 
   const [t, setT] = useState(0);
@@ -187,7 +193,6 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const vid = c ? c.video_cuoi_url || c.video_url : null;
   const p = c ? Math.min(1, tTrong / dur(c)) : 0;
   const kb = idx % 2 === 0 ? `scale(${1 + 0.08 * p}) translate(${-1.5 * p}%, ${-1 * p}%)` : `scale(${1.08 - 0.08 * p}) translate(${1.5 * p}%, 0)`;
-  const nv = c ? nguoiNoi(c, nhanVat) : null;
   const mauNv = (v: NhanVat | null) => (v ? MAU_NV[nhanVat.filter((x) => x.loai === 'nhan_vat').findIndex((x) => x.id === v.id) % MAU_NV.length] ?? '#94a3b8' : '#94a3b8');
   const W = tong * pps;
 
@@ -247,35 +252,45 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   if (!canh.length) return null;
   return (
     <div className="xv-panel" style={{ marginTop: 8, padding: 10 }} data-ngu-canh={`timeline ${t.toFixed(1)}s/${tong}s · cảnh #${c?.thu_tu ?? '?'} đang ở đầu phát`}>
-      {/* Màn xem trước */}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', width: doc916 ? 190 : 480, aspectRatio: doc916 ? '9 / 16' : '16 / 9', overflow: 'hidden', borderRadius: 8, background: '#000', flexShrink: 0 }}>
-          {c && (vid ? <video ref={vidRef} key={vid} src={vid} playsInline preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : c.keyframe_url ? <img src={c.keyframe_url} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb }} />
-            : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} chưa có hình</div>)}
-          {c?.chu_man && <div style={{ position: 'absolute', left: '6%', right: '6%', top: '14%', textAlign: 'center', color: '#fff', fontSize: doc916 ? 13 : 18, fontWeight: 800, lineHeight: 1.15, textShadow: '0 2px 8px #000, 0 0 3px #000', textTransform: 'none' }}>{c.chu_man}</div>}
-          {c && (() => {
-            const ds = dongThoai(c, nhanVat).map((d) => d.url).filter((u): u is string => !!u);
-            const u = ds[dong];
-            return u ? <audio ref={thoaiRef} key={`${c.id}-${dong}`} src={u} preload="auto" autoPlay={chay && dong > 0} onEnded={() => setDong((x) => x + 1)} /> : null;
-          })()}
-          {c?.am_thanh_url && <audio ref={sfxRef} key={c.am_thanh_url} src={c.am_thanh_url} preload="auto" />}
-          {tap.nhac_url && <audio ref={nhacRef} src={tap.nhac_url} preload="auto" />}
-          {nhacPc && <audio ref={nhacPcRef} key={nhacPc} src={nhacPc} preload="auto" />}
+      {/* Màn xem trước (#1246): hình ở GIỮA, nút chạy ngay dưới hình; bên trái = hình (shot, chữ màn, hành động, khán giả), bên phải = tiếng (thoại từng người, hiệu ứng). */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px, 1fr) auto minmax(160px, 1fr)', gap: 16, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gap: 6, alignContent: 'start', textAlign: 'right' }}>
+          {c && <div style={{ fontSize: 12 }}><b>#{c.thu_tu} {c.canh}</b></div>}
+          {c && <div style={mono}>phát {dur(c)}s{dur(c) !== (c.thoi_luong_s || 4) ? ` / clip ${c.thoi_luong_s || 4}s` : ''} · {vid ? (c.video_cuoi_url ? 'bản cuối' : 'nháp') : c.keyframe_url ? 'keyframe' : 'chưa có hình'}{c.nhanh ? ` · hook ${c.nhanh}` : ''}</div>}
+          {c?.chu_man && <div style={{ fontSize: 11.5 }}>✎ <b>{c.chu_man}</b></div>}
+          {c?.hanh_dong && <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{c.hanh_dong}</div>}
+          {c && <div style={mono}>❤ khán giả: <span style={{ color: c.cam_xuc >= 0 ? 'var(--lime)' : 'var(--red)' }}>{tenCamXuc(c.cam_xuc)}</span></div>}
         </div>
-        <div style={{ flex: 1, minWidth: 220, display: 'grid', gap: 6, alignContent: 'start' }}>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button type="button" className="xv-btn" onClick={() => tuaToi(batDau[Math.max(0, idx - 1)] ?? 0)}>⏮</button>
+        <div style={{ display: 'grid', gap: 8, justifyItems: 'center' }}>
+          <div style={{ position: 'relative', width: doc916 ? 220 : 480, aspectRatio: doc916 ? '9 / 16' : '16 / 9', overflow: 'hidden', borderRadius: 8, background: '#000', flexShrink: 0 }}>
+            {c && (vid ? <video ref={vidRef} key={vid} src={vid} playsInline preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : c.keyframe_url ? <img src={c.keyframe_url} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb }} />
+              : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} chưa có hình</div>)}
+            {c?.chu_man && <div style={{ position: 'absolute', left: '6%', right: '6%', top: '14%', textAlign: 'center', color: '#fff', fontSize: doc916 ? 13 : 18, fontWeight: 800, lineHeight: 1.15, textShadow: '0 2px 8px #000, 0 0 3px #000', textTransform: 'none' }}>{c.chu_man}</div>}
+            {c && (() => {
+              const ds = dongThoai(c, nhanVat).map((d) => d.url).filter((u): u is string => !!u);
+              const u = ds[dong];
+              return u ? <audio ref={thoaiRef} key={`${c.id}-${dong}`} src={u} preload="auto" autoPlay={chay && dong > 0} onEnded={() => setDong((x) => x + 1)} /> : null;
+            })()}
+            {c?.am_thanh_url && <audio ref={sfxRef} key={c.am_thanh_url} src={c.am_thanh_url} preload="auto" />}
+            {tap.nhac_url && <audio ref={nhacRef} src={tap.nhac_url} preload="auto" />}
+            {nhacPc && <audio ref={nhacPcRef} key={nhacPc} src={nhacPc} preload="auto" />}
+          </div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button type="button" className="xv-btn" title="Cảnh trước" onClick={() => tuaToi(batDau[Math.max(0, idx - 1)] ?? 0)}>⏮</button>
             <button type="button" className="xv-btn chinh" style={{ minWidth: 80 }} onClick={() => { if (!chay && t >= tong - 0.05) setT(0); setChay(!chay); }}>{chay ? '⏸ Dừng' : '▶ Chạy'}</button>
-            <button type="button" className="xv-btn" onClick={() => tuaToi(batDau[Math.min(canh.length - 1, idx + 1)] ?? 0)}>⏭</button>
+            <button type="button" className="xv-btn" title="Cảnh sau" onClick={() => tuaToi(batDau[Math.min(canh.length - 1, idx + 1)] ?? 0)}>⏭</button>
             <span style={{ ...mono, fontSize: 12, color: 'var(--fg-1)' }}>{dongHo(t)} / {dongHo(tong)}</span>
             <button type="button" className="xv-btn" onClick={onToanManHinh} title="Xem cả tập toàn màn hình">⛶</button>
           </div>
-          {c && <div style={{ fontSize: 12 }}><b>#{c.thu_tu} {c.canh}</b> <span style={mono}>· phát {dur(c)}s{dur(c) !== (c.thoi_luong_s || 4) ? ` / clip ${c.thoi_luong_s || 4}s` : ''} · {vid ? (c.video_cuoi_url ? 'bản cuối' : 'nháp') : c.keyframe_url ? 'keyframe' : 'chưa có hình'}{c.nhanh ? ` · hook ${c.nhanh}` : ''}</span></div>}
-          {c?.chu_man && <div style={{ fontSize: 11.5 }}>✎ <b>{c.chu_man}</b></div>}
-          {c?.hanh_dong && <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{c.hanh_dong}</div>}
-          {c?.loi_thoai && <div style={{ fontSize: 11.5 }}><span style={{ color: mauNv(nv) }}>🗣 {nv?.ten ?? LOI_DAN}</span>{nv?.giong ? <span style={mono}> · giọng: {nv.giong}</span> : null}{!c.thoai_url && <span style={{ ...mono, color: 'var(--amber)' }}> · chưa sinh giọng{docThu ? ', đang đọc thử bằng giọng máy' : ''}</span>}</div>}
+        </div>
+        <div style={{ display: 'grid', gap: 6, alignContent: 'start' }}>
+          {c && dongThoai(c, nhanVat).map((d, i) => {
+            const v = timNv(nhanVat, tenNoi(d)) ?? null;
+            return <div key={i} style={{ fontSize: 11.5 }}><b style={{ color: mauNv(v) }}>🗣 {tenNoi(d)}</b>{d.dien_xuat && <i style={{ color: 'var(--fg-3)' }}> ({d.dien_xuat})</i>}: {d.loi}{!d.url && <span style={{ ...mono, color: 'var(--amber)' }}> · chưa sinh giọng{docThu ? ', đang đọc thử' : ''}</span>}</div>;
+          })}
           {c?.am_thanh && <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>🔊 {c.am_thanh}{!c.am_thanh_url && <span style={{ ...mono, color: 'var(--amber)' }}> · chưa sinh</span>}</div>}
+          {c && !dongThoai(c, nhanVat).length && !c.am_thanh && <div style={mono}>shot này không có thoại / hiệu ứng</div>}
         </div>
       </div>
 
@@ -366,10 +381,22 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, '#facc15', cc.chu_man, cc.chu_man, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); });
           }))}
 
-          {/* Thoại tách MỘT làn cho MỖI người nói (#1237): lời + diễn xuất thuộc về nhân vật, nhìn theo làn thấy ngay ai nói khi nào. */}
-          {nguoiNoiTap.map((ten, k) => {
+          {/* MỖI nhân vật một NHÓM làn (#1237, #1244), viền màu nhân vật: 🎭 cảm xúc/diễn xuất theo shot (có mặt mà không nói cũng hiện) · 🗣 thoại. */}
+          {nguoiNoiTap.map((ten) => {
             const v = timNv(nhanVat, ten) ?? null;
-            return <Fragment key={ten}>{track(`🗣 ${ten}`, `Thoại của ${ten} theo từng shot — bấm khối để sinh giọng cả shot`, canh.map((cc, i) => {
+            const coThoai = canh.some((cc) => dongThoai(cc, nhanVat).some((d) => cungTen(tenNoi(d), ten)));
+            const camXuc = canh.map((cc, i) => {
+              const cua = dongThoai(cc, nhanVat).filter((d) => cungTen(tenNoi(d), ten));
+              const coMat = !!v && cc.nhan_vat.includes(v.id);
+              if (!cua.length && !coMat) return null;
+              const dx = [...new Set(cua.map((d) => d.dien_xuat.trim()).filter(Boolean))].join(' → ');
+              const chu = dx || (cua.length ? 'nói, chưa ghi diễn xuất' : 'có mặt, không nói');
+              return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!dx, mauNv(v), chu, `${ten} · shot #${cc.thu_tu}\n${chu}${cc.hanh_dong ? `\nHành động: ${cc.hanh_dong}` : ''}`, `cx${cc.id}`, () => { onChon(cc.id); tuaToi(batDau[i]!); });
+            });
+            return (
+              <div key={ten} style={{ borderLeft: `2px solid ${mauNv(v)}`, marginTop: 4 }}>
+                {track(`🎭 ${ten}`, `Cảm xúc / diễn xuất của ${ten} theo từng shot (lấy từ diễn xuất của dòng thoại; nét đứt = có mặt nhưng chưa ghi cảm xúc) — sửa ở form shot`, camXuc)}
+                {coThoai && track(`🗣 ${ten} · thoại`, `Thoại của ${ten} theo từng shot — bấm khối để sinh giọng cả shot`, canh.map((cc, i) => {
               const dsT = dongThoai(cc, nhanVat);
               const cua = dsT.filter((d) => cungTen(tenNoi(d), ten));
               if (!cua.length) return null;
@@ -377,7 +404,9 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               const tt = cua.map((d) => `${d.dien_xuat ? `(${d.dien_xuat}) ` : ''}${d.loi}${d.url ? ' ✓' : ''}`).join('\n');
               return khoiAm(batDau[i]! * pps, dur(cc) * pps, co === cua.length, mauNv(v), `${cc.dang_sinh_giong ? '⏳ ' : ''}${cua.map((d) => d.loi).join(' · ')}${co && co < cua.length ? ` (${co}/${cua.length})` : ''}`, `${ten.toUpperCase()}\n${tt}\n${co}/${cua.length} dòng có giọng`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
                 sinh && { loai: 'giong', cc, giay: dur(cc), dang: cc.dang_sinh_giong || sinh.ban(`g${cc.id}`), nghe: cua.map((d) => d.url).filter((u): u is string => !!u), title: `Bấm để chọn model, giọng từng người nói, cảm xúc, phạm vi rồi sinh giọng cả shot` });
-            }), 26, k === 0 ? <>{nutNho('🤖', docThu ? 'Đang đọc thử thoại chưa có giọng bằng giọng máy — bấm để tắt' : 'Bấm để đọc thử thoại chưa có giọng bằng giọng máy', !docThu, () => setDocThu((x) => !x))}{nutNho(tat.thoai ? '🔇' : '🔊', tat.thoai ? 'Thoại đang tắt — bấm để bật' : 'Tắt tiếng thoại', !!tat.thoai, () => batTat('thoai'))}</> : undefined)}</Fragment>;
+            }), 26, ten === nguoiNoiDau ? <>{nutNho('🤖', docThu ? 'Đang đọc thử thoại chưa có giọng bằng giọng máy — bấm để tắt' : 'Bấm để đọc thử thoại chưa có giọng bằng giọng máy', !docThu, () => setDocThu((x) => !x))}{nutNho(tat.thoai ? '🔇' : '🔊', tat.thoai ? 'Thoại đang tắt — bấm để bật' : 'Tắt tiếng thoại', !!tat.thoai, () => batTat('thoai'))}</> : undefined)}
+              </div>
+            );
           })}
 
           {track('🔊 Âm thanh', 'Hiệu ứng / âm nền từng cảnh', canh.map((cc, i) => {

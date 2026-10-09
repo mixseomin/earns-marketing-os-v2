@@ -65,6 +65,10 @@ export function DangSinh({ chu = 'đang sinh' }: { chu?: string }) {
   return <div className="xv-dang"><span>⏳ {chu}</span></div>;
 }
 
+/** Một nhóm nút cùng việc (vd 🖼 Ảnh: model + sinh + duyệt) — viền mảnh + nhãn nhỏ để các nhóm tách nhau rõ (#1245). */
+export function NhomNut({ nhan, children }: { nhan: string; children: ReactNode }) {
+  return <div className="xv-nhom-nut"><span className="xv-nhom-nut-nhan">{nhan}</span>{children}</div>;
+}
 /** Chữ phụ (mono, nhỏ, xám) — một định nghĩa cho mọi màn studio. */
 export const mono: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)' };
 

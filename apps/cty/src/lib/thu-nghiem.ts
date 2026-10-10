@@ -17,9 +17,10 @@ export type Luot = { ts: string; bat_dau?: string; ket_thuc?: string; viec: stri
 
 export async function dsLuot(): Promise<Luot[]> {
   if (!fs.existsSync(NK)) return [];
-  return fs.readdirSync(NK).filter((f) => f.endsWith('.json')).sort().reverse().slice(0, 20)
-    .map((f) => { try { return JSON.parse(fs.readFileSync(path.join(NK, f), 'utf8')) as Luot; } catch { return null; } }).filter((x): x is Luot => !!x)
-    .map(boGio);
+  return fs.readdirSync(NK).filter((f) => f.endsWith('.json')).sort().reverse()
+    .map((f) => { try { return JSON.parse(fs.readFileSync(path.join(NK, f), 'utf8')) as Luot & { bo_viec?: string | null }; } catch { return null; } })
+    .filter((x): x is Luot & { bo_viec?: string | null } => !!x && !x.bo_viec)   // lượt chấm bộ việc chuẩn của Hà không phải việc của phòng → xem ở tab Quy trình
+    .slice(0, 30).map(boGio);
 }
 
 // Lượt ghi trước 10/10/2026 tối chưa có giờ từng bước: lấy từ sổ sự kiện — proxy ghi một dòng `goi` lúc mỗi lượt gọi XONG, theo

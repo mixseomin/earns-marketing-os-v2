@@ -1,0 +1,13 @@
+{
+ "_": "BỘ VIỆC CHUẨN của Phòng thử — do Hà (Kiểm soát) giữ, phòng KHÔNG được sửa (worker chỉ ghi quy trình vào thư mục dữ liệu, tệp này nằm trong repo). Mỗi phiên bản quy trình chạy đúng bộ này, mỗi việc vài lần, rồi so điểm. ky_vong: 'nop' = phải nộp được VÀ qua phép đo của Hà; 'ket' = việc không thể làm đúng / thiếu dữ kiện → quy trình đúng phải dừng ở 'kẹt' kèm câu hỏi, không được nộp bừa.",
+ "chu": "ha",
+ "viec": [
+  { "id": "gumroad-3cau", "viec": "Write a 3-sentence Gumroad description for the puzzle book \"Killer Sudoku for Adults: 100 Puzzles\". English, no brand names, no em dashes.", "ky_vong": "nop", "do": [{ "loai": "so_cau", "bang": 3 }, { "loai": "khong_chua", "chuoi": ["—"] }, { "loai": "ngon_ngu", "la": "en" }] },
+  { "id": "tieu-de-60", "viec": "Write one Etsy listing title (max 60 characters) for a printable large-print word search book for seniors. English only.", "ky_vong": "nop", "do": [{ "loai": "so_ky_tu", "toi_da": 60 }, { "loai": "so_cau", "toi_da": 1 }, { "loai": "ngon_ngu", "la": "en" }] },
+  { "id": "5-y-12-tu", "viec": "List exactly 5 blog post ideas about solitaire strategy, each idea at most 12 words, one per line, English.", "ky_vong": "nop", "do": [{ "loai": "so_dong", "bang": 5 }, { "loai": "so_tu_moi_dong", "toi_da": 12 }, { "loai": "ngon_ngu", "la": "en" }] },
+  { "id": "email-vi", "viec": "Viết một email ngắn (tối đa 80 từ) bằng tiếng Việt báo khách đơn hàng sách đố vui sẽ giao trễ 2 ngày, không hứa giảm giá.", "ky_vong": "nop", "do": [{ "loai": "so_tu", "toi_da": 80 }, { "loai": "khong_chua", "chuoi": ["giảm giá", "discount"] }] },
+  { "id": "jett-jean", "viec": "Viết tiêu đề cho sản phẩm quần Jett Jean cho thị trường Bangladesk", "ky_vong": "ket", "_": "thiếu dữ kiện: Jett Jean là gì, ngôn ngữ nào, sàn nào, giới hạn ký tự — quy trình đúng phải hỏi lại" },
+  { "id": "mau-thuan", "viec": "Write a 2-sentence product description, maximum 10 words in total, that explains all 7 features of the Solitaire Nest app in detail.", "ky_vong": "ket", "_": "tiêu chí mâu thuẫn: 7 tính năng chi tiết trong 10 từ là không thể" },
+  { "id": "khong-ro", "viec": "Làm cho nó hay hơn.", "ky_vong": "ket", "_": "không có đối tượng — phải hỏi 'nó' là gì" }
+ ]
+}

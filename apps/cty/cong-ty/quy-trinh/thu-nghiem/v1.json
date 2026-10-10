@@ -1,0 +1,28 @@
+{
+ "phong": "thu-nghiem",
+ "ban": 1,
+ "tu": "seed",
+ "ngay": "2026-10-11",
+ "ly_do": "Bản gốc tách từ worker/ca.mjs — giữ nguyên hành vi trước khi phòng tự cải tiến.",
+ "nguoi": {
+  "giao": "tam",
+  "lam": "loc",
+  "kiem": "ky",
+  "bao_cao": "tam",
+  "trong_tai": null
+ },
+ "so_vong_lam_lai": 1,
+ "hoi_lai_khi_thieu_du_kien": false,
+ "may_do": false,
+ "khoa_tieu_chi": false,
+ "het_vong": "revision",
+ "bao_cao_do_may": false,
+ "loi_nhac": {
+  "giao": "Việc Giám đốc giao cho phòng: \"{viec}\". Chia thành MỘT việc cụ thể cho Lộc kèm 2–4 tiêu chí đo được. BẮT BUỘC: giữ nguyên mọi ràng buộc trong câu gốc (ngôn ngữ, số câu, cấm từ) thành tiêu chí; việc gốc tiếng Anh thì \"viec\" viết tiếng Anh. Trả lời JSON: {\"giao_cho\":\"loc\",\"viec\":\"…\",\"tieu_chi\":[\"…\"]}",
+  "lam": "Việc: {viec_giao}\nTiêu chí:\n{tieu_chi}\nLàm đúng ngôn ngữ tiêu chí yêu cầu. Trả lời JSON: {\"ket_qua\":\"…\",\"bang_chung\":\"…\"}",
+  "soat": "Tiêu chí:\n{tieu_chi}\nKết quả Lộc nộp:\n{ket_qua}\nBằng chứng Lộc khai: {bang_chung}\nSoát từng tiêu chí. Tiêu chí đếm được (số câu, số từ): liệt kê từng câu/từ rồi đếm, ghi số đếm vào ly_do. Trả lời JSON: {\"ok\":true|false,\"ly_do\":\"…\"}",
+  "lam_lai": "Kỳ trả về vì: {ly_do}\nViệc: {viec_giao}\nTiêu chí:\n{tieu_chi}\nSửa và nộp lại JSON: {\"ket_qua\":\"…\",\"bang_chung\":\"…\"}",
+  "soat_lai": "Tiêu chí:\n{tieu_chi}\nKết quả nộp lại:\n{ket_qua}\nBằng chứng: {bang_chung}\nLiệt kê từng câu rồi đếm. Trả lời JSON: {\"ok\":true|false,\"ly_do\":\"…\"}",
+  "bao_cao": "Viết báo cáo sáng bằng VĂN BẢN THUẦN đúng 4 dòng theo mẫu dưới (không JSON, không thêm dòng):\n[Tên] · [phòng] · [ngày]\nXong: <việc> — <bằng chứng>\nĐang: <việc> — <tới đâu>\nCần: <mức> — <một câu>\n\nDữ kiện: việc \"{viec_giao}\"; Lộc nộp: {ket_qua_ngan}; bằng chứng: {bang_chung}; Kỳ soát: {ket_soat}. Trạng thái việc: {trang_thai_viec}. Ngày {ngay}."
+ }
+}

@@ -9,6 +9,9 @@ import { SoDoKhuon } from '../so-do-khuon';
 import { SvgTuongTac } from '../svg-tuong-tac';
 import { PhongThuChay, PhongThuDs, demLuot } from '../phong-thu';
 import { TabPhong } from '../tab-phong';
+import { QuyTrinhPhong, nhanKhoa } from '../quy-trinh-phong';
+import { dsQuyTrinhCacPhong } from '@/lib/quy-trinh';
+import { Gio } from '../gio';
 import { DoDac } from '../do-dac';
 import { SoSuKien } from '../so-su-kien';
 import { Nguoi } from '../nguoi';
@@ -69,6 +72,8 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
   const svg = p.fm.so_do ? soDo(String(p.fm.so_do)) : '';
   const thu = String(p.fm.thu_nghiem) === 'true';
   const dem = thu ? await demLuot() : null;
+  const qt = (await dsQuyTrinhCacPhong()).find((x) => x.phong === id);
+  const qtTom = qt ? `v${qt.hienHanh.ban}${qt.deXuat.some((d: { trang_thai: string }) => d.trang_thai === 'cho_duyet') ? ' · chờ ký' : ''}` : undefined;
   const moi = dem?.moi;
   // Cảnh báo phải liếc-thấy, không nằm trong tab (YDNI): lượt gần nhất lỗi / phải làm lại → một dải ghim trên thanh tab.
   const canhBao = moi?.trang_thai === 'lỗi' ? `Lượt gần nhất lỗi: ${moi.loi ?? ''}`
@@ -92,8 +97,8 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
     </>
   );
   const than = thu
-    ? <TabPhong khoa={id} dau={dau} tabs={[{ key: 'chay', nhan: 'Chạy' }, { key: 'luot', nhan: 'Các lượt', so: dem!.tong }, { key: 'dodac', nhan: 'Đồ đạc' }, { key: 'sodo', nhan: 'Sơ đồ' }]}>
-        {[<PhongThuChay key="c" admin={admin} />, <PhongThuDs key="l" />, <DoDac key="d" p={p} ns={ns} />, <div key="s">{soDoTab}</div>]}
+    ? <TabPhong khoa={id} dau={dau} tabs={[{ key: 'chay', nhan: 'Chạy' }, { key: 'luot', nhan: 'Các lượt', so: dem!.tong }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }, { key: 'sodo', nhan: 'Sơ đồ' }]}>
+        {[<PhongThuChay key="c" admin={admin} />, <PhongThuDs key="l" />, <QuyTrinhPhong key="q" phong={id} admin={admin} />, <DoDac key="d" p={p} ns={ns} />, <div key="s">{soDoTab}</div>]}
       </TabPhong>
     : <TabPhong khoa={id} dau={dau} tabs={[{ key: 'sodo', nhan: 'Sơ đồ' }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
         {[<div key="s">{soDoTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
@@ -133,6 +138,27 @@ export function nganMucTieu(): Ngan {
   };
 }
 
+const TT_DX: Record<string, string> = { dang_thu: 'đang thử', giu: 'đã giữ', quay_lai: 'đã quay lại', cho_duyet: 'chờ ký', bi_bac: 'bị bác', vuot_bien: 'vượt biên', khong_doi: 'không đổi' };
+export async function nganQuyTrinh(): Promise<Ngan> {
+  const ds = await dsQuyTrinhCacPhong(); const tatCa = dsPhong();
+  const coQt = new Set(ds.map((x) => x.phong));
+  return {
+    tieuDe: 'Quy trình các phòng',
+    than: (
+      <div className="nk-mot nk-cot-dai">
+        <p className="cty-muted cty-nho">Quy trình là dữ liệu có phiên bản; phòng tự cải tiến trong biên (mức 1 tự áp · 2 Hà duyệt · 3 Giám đốc ký), mỗi thay đổi phải thắng trên bộ việc chuẩn do Hà giữ mới được giữ. Bấm tên phòng → tab Quy trình.</p>
+        <div className="cty-md cty-cuon"><table className="cty-qt-bang"><thead><tr><th>Phòng</th><th>Đang chạy</th><th>Cải tiến gần nhất</th><th>Đã giữ</th><th>Chờ ký</th></tr></thead><tbody>
+          {ds.map((x) => { const moi = x.deXuat[0] as { ts: string; trang_thai: string; thay_doi: { khoa: string }[] } | undefined; const ph = tatCa.find((p) => p.id === x.phong); return (
+            <tr key={x.phong}><td><Link href={`/phong/${x.phong}`}>{ph ? String(ph.fm.ten) : x.phong}</Link></td><td><b>v{x.hienHanh.ban}</b> <span className="cty-muted">/ {x.soBan} bản</span></td>
+              <td>{moi ? <><span className="cty-pill">{TT_DX[moi.trang_thai] ?? moi.trang_thai}</span> {moi.thay_doi.map((t) => nhanKhoa(t.khoa)).join(', ') || '—'} <span className="cty-muted cty-nho"><Gio iso={moi.ts} /></span></> : <span className="cty-muted">chưa họp</span>}</td>
+              <td>{x.deXuat.filter((d: { trang_thai: string }) => d.trang_thai === 'giu').length}</td><td>{x.deXuat.filter((d: { trang_thai: string }) => d.trang_thai === 'cho_duyet').length || '—'}</td></tr>); })}
+          {tatCa.filter((p) => !coQt.has(p.id)).map((p) => <tr key={p.id} className="cty-muted"><td><Link href={`/phong/${p.id}`}>{String(p.fm.ten)}</Link></td><td colSpan={4}>chưa số hoá — đang mô tả theo khuôn &quot;{String(p.fm.khuon)}&quot;, chưa có quy trình máy chạy</td></tr>)}
+        </tbody></table></div>
+      </div>
+    ),
+  };
+}
+
 export async function nganTheoKhoa(khoa: string, admin: boolean): Promise<Ngan> {
   const { loai, ma } = tachKhoa(khoa);
   if (loai === 'nhan-su') return nganNhanSu(ma);
@@ -140,5 +166,6 @@ export async function nganTheoKhoa(khoa: string, admin: boolean): Promise<Ngan> 
   if (loai === 'nhat-ky') return nganNhatKy(ma);
   if (loai === 'luat') return nganLuat();
   if (loai === 'muc-tieu') return nganMucTieu();
+  if (loai === 'quy-trinh') return await nganQuyTrinh();
   return { tieuDe: khoa, than: <Thieu chu={`Không biết mở ngăn loại "${loai}".`} /> };
 }

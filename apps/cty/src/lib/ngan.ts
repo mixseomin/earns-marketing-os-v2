@@ -1,7 +1,7 @@
 // CHỒNG NGĂN KÉO của cty.on.tc theo chuẩn skill ngan-keo (8 luật). Phần thuần, dùng cả máy chủ lẫn trình duyệt:
 // khoá ngăn `loại:mã`, đọc khoá từ một link nội bộ, đọc/ghi chồng trong URL (`?ngan=nhan-su:tam&ngan=phong:sach`, đúng thứ tự).
 // Tự kiểm: `node scripts/thu-ngan.mjs`.
-export const LOAI_NGAN = ['nhan-su', 'phong', 'nhat-ky', 'luat', 'muc-tieu'] as const;
+export const LOAI_NGAN = ['nhan-su', 'phong', 'nhat-ky', 'luat', 'muc-tieu', 'quy-trinh'] as const;
 export type LoaiNgan = (typeof LOAI_NGAN)[number];
 
 export function tachKhoa(k: string): { loai: string; ma: string } {
@@ -17,7 +17,7 @@ export function khoaTuHref(href: string | null | undefined): string | null {
   const m = u.pathname.match(/^\/(nhan-su|phong)\/([^/]+)\/?$/);
   if (m) return `${m[1]}:${decodeURIComponent(m[2]!)}`;
   if (u.pathname === '/nhat-ky') return `nhat-ky:${u.search.slice(1)}`;
-  if (u.pathname === '/luat' || u.pathname === '/muc-tieu') return `${u.pathname.slice(1)}:`;
+  if (u.pathname === '/luat' || u.pathname === '/muc-tieu' || u.pathname === '/quy-trinh') return `${u.pathname.slice(1)}:`;
   return null;
 }
 

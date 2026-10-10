@@ -1,0 +1,17 @@
+{
+ "_": "BIÊN để phòng tự sửa quy trình (Giám đốc giữ; chỉ đổi qua git). Mỗi khoá: giá trị cho phép + MỨC cần để đổi. 1 = trưởng phòng tự áp (vẫn phải so trên bộ việc chuẩn mới được giữ) · 2 = người ngoài phòng duyệt (Hà) · 3 = Giám đốc ký. Khoá KHÔNG có ở đây = mức 3 (đóng mặc định). Vượt biên = loại, không ai duyệt được.",
+ "so_vong_lam_lai": { "muc": 1, "min": 0, "max": 3 },
+ "hoi_lai_khi_thieu_du_kien": { "muc": 1, "kieu": "bool" },
+ "may_do": { "muc": 1, "kieu": "bool" },
+ "khoa_tieu_chi": { "muc": 1, "kieu": "bool" },
+ "bao_cao_do_may": { "muc": 1, "kieu": "bool" },
+ "het_vong": { "muc": 2, "cho_phep": ["revision", "ket", "trong_tai", "nop_kem_ghi_chu"] },
+ "nguoi.trong_tai": { "muc": 2, "cho_phep": [null, "ha", "minh"] },
+ "nguoi.kiem": { "muc": 2, "cho_phep": ["ky", "ha"] },
+ "loi_nhac.lam": { "muc": 2, "kieu": "chu" },
+ "loi_nhac.lam_lai": { "muc": 2, "kieu": "chu" },
+ "loi_nhac.soat": { "muc": 2, "kieu": "chu" },
+ "loi_nhac.soat_lai": { "muc": 2, "kieu": "chu" },
+ "loi_nhac.bao_cao": { "muc": 2, "kieu": "chu" },
+ "loi_nhac.giao": { "muc": 3, "kieu": "chu", "_": "lời giao việc quyết định tiêu chí — đổi nó là đổi chuẩn chất lượng → Giám đốc ký" }
+}

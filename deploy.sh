@@ -228,6 +228,17 @@ if command -v pixel-agents >/dev/null 2>&1 && { [ "$CTY_CHANGED" = "true" ] || !
   systemctl is-active mos2-vp && echo "✓ mos2-vp active" || { echo "✗ mos2-vp failed (không chặn deploy)"; systemctl status mos2-vp --no-pager | tail -15; }
 fi
 
+# 5g. Proxy đa mô hình của công ty (worker/proxy.mjs, cổng 3862, mos2-cty-proxy.service) — bật 10/10/2026 cho Phòng thử
+#     (anh bấm "Chạy một lượt" mới gọi mô hình; proxy đứng im không tốn gì). Nhật ký lượt ở /var/lib/cty.
+mkdir -p /var/lib/cty/nhat-ky
+if ! cmp -s deploy/mos2-cty-proxy.service /etc/systemd/system/mos2-cty-proxy.service; then
+  cp deploy/mos2-cty-proxy.service /etc/systemd/system/mos2-cty-proxy.service && systemctl daemon-reload && systemctl enable mos2-cty-proxy >/dev/null 2>&1 && echo "✓ mos2-cty-proxy unit cài/cập nhật"
+fi
+if [ "$CTY_CHANGED" = "true" ] || ! systemctl is-active --quiet mos2-cty-proxy; then
+  systemctl restart mos2-cty-proxy; sleep 1
+  systemctl is-active mos2-cty-proxy && echo "✓ mos2-cty-proxy active" || { echo "✗ mos2-cty-proxy failed (không chặn deploy)"; systemctl status mos2-cty-proxy --no-pager | tail -10; }
+fi
+
 # 6. Restart systemd unit
 systemctl restart mos2-web
 sleep 1

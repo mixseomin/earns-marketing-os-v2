@@ -74,3 +74,15 @@ h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem}
 .cty-tt-links{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:.4rem}
 .cty-tt-links a{color:var(--accent);font-weight:600;text-decoration:none;font-size:.88rem}
 @media (max-width:600px){.cty-tt-panel{position:fixed;left:8px!important;right:8px;top:auto!important;bottom:calc(8px + env(safe-area-inset-bottom,0px));width:auto;max-width:none}}
+
+.cty-thu{margin:.8rem 0}
+.cty-thu-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px}
+.cty-thu-form textarea{flex:1 1 320px;min-width:0;font:inherit;font-size:.92rem;padding:.4rem .6rem;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink)}
+.cty-thu-form button{font-family:var(--head);font-weight:600;background:var(--accent);color:#fff;border:0;border-radius:4px;padding:.5rem .9rem;cursor:pointer}
+.cty-thu-form button:disabled{opacity:.5;cursor:default}
+.cty-thu-buoc{padding-left:1.2rem;margin:.4rem 0}
+.cty-thu-buoc li{margin:.4rem 0}
+.cty-thu-head{font-size:.92rem}
+.cty-thu-buoc pre{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:.4rem .6rem;font-size:.84rem;margin:.2rem 0 0}
+.cty-thu-loi{color:var(--warn)}
+.cty-thu-ket{padding:.3rem 0 .4rem;font-size:.93rem}

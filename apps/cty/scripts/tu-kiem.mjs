@@ -12,7 +12,7 @@ const loi = [];
 for (const [id, f] of Object.entries(ns)) {
   if (!phong[f.phong]) loi.push(`${id}: phòng "${f.phong}" không tồn tại`);
   if (f.bao_cao_cho && !ns[f.bao_cao_cho]) loi.push(`${id}: bao_cao_cho "${f.bao_cao_cho}" không tồn tại`);
-  if (f.heartbeat !== 'off') loi.push(`${id}: heartbeat phải là off trong đợt tham quan (đang: ${f.heartbeat})`);
+  if (f.heartbeat !== 'off' && String(phong[f.phong]?.thu_nghiem) !== 'true') loi.push(`${id}: heartbeat phải là off trong đợt tham quan (đang: ${f.heartbeat}); chỉ phòng thu_nghiem: true được khác`);
   if (!['ai', 'human', 'vendor'].includes(f.kind)) loi.push(`${id}: kind lạ "${f.kind}"`);
   if (!fs.existsSync(path.join(R, 'nhan-su', id, 'HEARTBEAT.md'))) loi.push(`${id}: thiếu HEARTBEAT.md`);
 }

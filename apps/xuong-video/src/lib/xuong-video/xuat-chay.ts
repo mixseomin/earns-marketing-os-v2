@@ -50,6 +50,16 @@ export async function ghiBanXuat(db: Db, o: { tapId: number; job: number; nhanh:
   await db.execute(sql`UPDATE xv_job SET trang_thai = 'xong', output_url = ${o.kq.url}, loi = ${ghiChu.join(' · ')}, updated_at = now() WHERE id = ${o.job}`);
 }
 
+/** Luồng tiếng ngắn hơn luồng hình bao nhiêu giây (bộ lọc trộn dừng sớm → cuối phim câm; máy đo khoảng im không thấy vì chỉ đo phần có tiếng). */
+async function tiengNganHon(duong: string): Promise<number | null> {
+  try {
+    const { stdout } = await run('ffprobe', ['-v', 'error', '-show_entries', 'stream=codec_type,duration', '-of', 'json', duong], { timeout: 30_000 });
+    const st = (JSON.parse(stdout) as { streams?: { codec_type?: string; duration?: string }[] }).streams ?? [];
+    const d = (k: string) => Number(st.find((x) => x.codec_type === k)?.duration);
+    return Number.isFinite(d('video')) && Number.isFinite(d('audio')) ? d('video') - d('audio') : null;
+  } catch { return null; }
+}
+
 /** Đo bản vừa xuất: các đoạn ≥0,5s im/đứt nền. */
 async function doKhoangIm(duong: string, giay: number, thuMuc: string): Promise<[number, number][] | null> {
   const tep = `${thuMuc}/m128.txt`;
@@ -91,8 +101,9 @@ export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; canh: Canh[]; 
     try { await run('ffmpeg', kh.args, { timeout: 15 * 60_000, maxBuffer: 8 << 20 }); }
     catch (e) { const err = e as { stderr?: string; message?: string }; return { ok: false, loi: `ffmpeg: ${(err.stderr || err.message || String(e)).trim().split('\n').slice(-3).join(' · ').slice(0, 400)}` }; }
     const im = await doKhoangIm(ra, kh.giay, thuMuc);
+    const ngan = await tiengNganHon(ra);
     const vi = (x: number) => (Math.round(x * 10) / 10).toString().replace('.', ',');
-    const canhBao = [...kh.canhBao, ...(im == null ? ['không đo được độ to bản xuất'] : im.length ? [`nền đứt (dưới ${NGUONG_IM_LUFS} LUFS) ở ${im.map(([a, b]) => `${vi(a)}–${vi(b)}s`).join(' · ')}`] : [])];
+    const canhBao = [...kh.canhBao, ...(ngan != null && ngan > 0.3 ? [`tiếng ngắn hơn hình ${vi(ngan)}s — cuối phim câm`] : []), ...(im == null ? ['không đo được độ to bản xuất'] : im.length ? [`nền đứt (dưới ${NGUONG_IM_LUFS} LUFS) ở ${im.map(([a, b]) => `${vi(a)}–${vi(b)}s`).join(' · ')}`] : [])];
     const buf = await readFile(ra);
     const url = await uploadToR2(`xuong-video/xuat/${o.tap.id}-${o.nhanh || 'thân'}-${randomUUID()}.mp4`, buf, 'video/mp4');
     if (!url) return { ok: false, loi: 'không tải được bản xuất lên R2 (thiếu cấu hình R2)' };

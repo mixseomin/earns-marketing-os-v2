@@ -192,5 +192,8 @@ console.log('xuat.test: mẫu ok');
   // Khoảng im từ ebur128 M: ô 1–2s im → [[1,2]]; ô đầu (fade) và ô cuối bỏ qua.
   const md = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5].map((t) => `frame:0 pts:0 pts_time:${t}\nlavfi.r128.M=${t === 0 || t === 1 || t === 1.5 || t === 3.5 ? '-120.0' : '-18.0'}`).join('\n');
   assert.deepStrictEqual(khoangIm(md, 4), [[1, 2]]);
+  // Bài nhạc tự kết (im từ 25s) → cắt phần im trước khi lặp.
+  const kN = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh: ds as never, nhanVat: nv, tap: { nhac_url: 'https://x/n.mp3', nhac_phan_canh: {} }, qc: qcV, nguyenLieu: nlA.map((x) => (x.url === 'https://x/n.mp3' ? { ...x, imCuoi: 25 } : x)), font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
+  assert.ok(kN.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung.includes('atrim=0:25,asetpts=PTS-STARTPTS,aloop=loop=-1'));
   console.log('xuat.test: âm thanh liền mạch ok');
 }

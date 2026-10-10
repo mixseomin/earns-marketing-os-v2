@@ -12,7 +12,8 @@ export { doanChuMan, chuManHien } from './kieu';
 import { dongThoai, dungTiengClip } from './am-thanh';
 
 /** Một tệp nguyên liệu đã tải về + đo: dai = giây (âm/video), coAm = clip có luồng tiếng, lufs = độ to tích hợp (tệp chỉ có tiếng). */
-export type NguyenLieu = { url: string; duong: string; dai: number | null; coAm: boolean; fps?: number | null; lufs?: number | null };
+export type NguyenLieu = { url: string; duong: string; dai: number | null; coAm: boolean; fps?: number | null; lufs?: number | null;
+  /** giây bắt đầu đoạn im ở CUỐI tệp tiếng (bài nhạc tự kết) — null = không có */ imCuoi?: number | null };
 export type TepChu = { duong: string; noiDung: string };
 /** loi = không dựng được (args rỗng) và vì sao; canhBao = dựng được nhưng lệch chuẩn (lẫn giọng lời dẫn, bản nháp thiếu nhạc…). */
 export type KeHoachXuat = { args: string[]; tep: TepChu[]; giay: number; canhThieu: string[]; canhBao: string[]; loi?: string };
@@ -237,7 +238,8 @@ export function keHoachXuat(o: {
   { let tt = 0; for (const c of ds) { const l = khoi[khoi.length - 1]; const g = giayPhat(c); if (l && l.ten === c.phan_doan) l.dai += g; else khoi.push({ ten: c.phan_doan, tu: tt, dai: g }); tt += g; } }
   const nhacPc = khoi.filter((kh) => o.tap.nhac_phan_canh?.[kh.ten] && nl.has(o.tap.nhac_phan_canh[kh.ten]!));
   // Nhạc to hơn trước (0,35 thay 0,22) vì đã có nén theo giọng: khoảng giữa câu nghe rõ nhạc như QC mẫu, lúc có giọng nhạc tự lùi.
-  const nhac = (url: string, tu: number, dai: number) => { const k = them(url); themAm(`[${k}:a]aloop=loop=-1:size=2147483647,atrim=0:${so(dai)},asetpts=PTS-STARTPTS,afade=t=in:d=0.6,afade=t=out:st=${so(Math.max(0, dai - 1.2))}:d=1.2,volume=0.35,adelay=${Math.round(tu * 1000)}:all=1`, nhanhNhac); };
+  // Bài nhạc tự kết (đoạn im ở cuối tệp) → cắt phần im TRƯỚC khi lặp, kẻo phim câm ở cuối (phim #5: bài 56s im từ 53,8s, phim câm 1,5s cuối).
+  const nhac = (url: string, tu: number, dai: number) => { const k = them(url); const ic = nl.get(url)?.imCuoi; themAm(`[${k}:a]${ic && ic > 2 ? `atrim=0:${so(ic)},asetpts=PTS-STARTPTS,` : ''}aloop=loop=-1:size=2147483647,atrim=0:${so(dai)},asetpts=PTS-STARTPTS,afade=t=in:d=0.6,afade=t=out:st=${so(Math.max(0, dai - 1.2))}:d=1.2,volume=0.35,adelay=${Math.round(tu * 1000)}:all=1`, nhanhNhac); };
   if (nhacPc.length) for (const kh of nhacPc) nhac(o.tap.nhac_phan_canh[kh.ten]!, kh.tu, kh.dai);
   else if (o.tap.nhac_url && nl.has(o.tap.nhac_url)) nhac(o.tap.nhac_url, 0, t);
   // End card quảng cáo: 2 giây, tên + ưu đãi (từ mục 0) — người xem tới cuối có một màn đọc được để bấm.

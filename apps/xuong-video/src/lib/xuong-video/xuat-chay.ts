@@ -25,7 +25,20 @@ async function doLufs(duong: string): Promise<number | null> {
   } catch { return null; }
 }
 
-async function doTep(duong: string): Promise<{ dai: number | null; coAm: boolean; fps: number | null; lufs?: number | null }> {
+/** Giây bắt đầu đoạn im ở CUỐI tệp tiếng (dưới -40 dB, ≥0,3s, kéo tới hết tệp) — bài nhạc có đoạn kết lặng. */
+async function doImCuoi(duong: string, dai: number | null): Promise<number | null> {
+  if (!dai) return null;
+  try {
+    const { stderr } = await run('ffmpeg', ['-hide_banner', '-nostats', '-i', duong, '-af', 'silencedetect=noise=-40dB:d=0.3', '-f', 'null', '-'], { timeout: 30_000, maxBuffer: 8 << 20 });
+    const bd = [...stderr.matchAll(/silence_start:\s*([\d.]+)/g)].map((m) => Number(m[1]));
+    const kt = [...stderr.matchAll(/silence_end:\s*([\d.]+)/g)].map((m) => Number(m[1]));
+    const cuoi = bd[bd.length - 1];
+    // Đoạn im cuối chưa có silence_end (kéo tới hết tệp) hoặc end sát cuối tệp.
+    return cuoi != null && (kt.length < bd.length || (kt[kt.length - 1] ?? 0) >= dai - 0.1) ? cuoi : null;
+  } catch { return null; }
+}
+
+async function doTep(duong: string): Promise<{ dai: number | null; coAm: boolean; fps: number | null; lufs?: number | null; imCuoi?: number | null }> {
   try {
     const { stdout } = await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type,r_frame_rate', '-of', 'json', duong], { timeout: 30_000 });
     const j = JSON.parse(stdout) as { format?: { duration?: string }; streams?: { codec_type?: string; r_frame_rate?: string }[] };
@@ -34,7 +47,9 @@ async function doTep(duong: string): Promise<{ dai: number | null; coAm: boolean
     const dai = Number(j.format?.duration); const coAm = (j.streams ?? []).some((s) => s.codec_type === 'audio');
     // Tệp chỉ có tiếng (giọng, hiệu ứng, nhạc) → đo độ to; clip video thì không cần (tiếng clip đã có luật riêng).
     const lufs = coAm && !v ? await doLufs(duong) : null;
-    return { dai: Number.isFinite(dai) && dai > 0 ? dai : null, coAm, fps, lufs };
+    const daiOk = Number.isFinite(dai) && dai > 0 ? dai : null;
+    const imCuoi = coAm && !v && (daiOk ?? 0) > 10 ? await doImCuoi(duong, daiOk) : null;   // chỉ tệp dài (nhạc), câu giọng không cần
+    return { dai: daiOk, coAm, fps, lufs, imCuoi };
   } catch { return { dai: null, coAm: false, fps: null }; }
 }
 

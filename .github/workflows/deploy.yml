@@ -48,11 +48,15 @@ jobs:
       # Xưởng video (apps/xuong-video → studio.on.tc): app riêng, dựng cùng lượt, máy chủ chỉ đổi khi phần của nó đổi (deploy.sh 5c).
       - run: npm run build --workspace=apps/xuong-video
       - run: tar -C apps/xuong-video --exclude='.next/cache' -czf studio.tar.gz .next
+      # Công ty AI (apps/cty → cty.on.tc): hồ sơ phòng/nhân sự tự kiểm trước, dựng cùng lượt, máy chủ chỉ đổi khi phần của nó đổi (deploy.sh 5e).
+      - run: node apps/cty/scripts/tu-kiem.mjs
+      - run: npm run build --workspace=apps/cty
+      - run: tar -C apps/cty --exclude='.next/cache' -czf cty.tar.gz .next
       # Tar so scp transfers one file (faster + atomic on receive). EXCLUDE .next/cache — it's build-time
       # only (next start never reads it), it's cached separately above, and shipping it bloats the artifact.
       - run: tar -C apps/web --exclude='.next/cache' -czf next.tar.gz .next
       - uses: actions/upload-artifact@v4
-        with: { name: next-build, path: "next.tar.gz\nstore.tar.gz\nstudio.tar.gz", retention-days: 1 }
+        with: { name: next-build, path: "next.tar.gz\nstore.tar.gz\nstudio.tar.gz\ncty.tar.gz", retention-days: 1 }
 
   deploy:
     needs: build
@@ -69,7 +73,7 @@ jobs:
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
       - name: Ship build artifact
         run: |
-          scp -i ~/.ssh/id_ed25519 next.tar.gz store.tar.gz studio.tar.gz root@${{ secrets.DEPLOY_HOST }}:/tmp/
+          scp -i ~/.ssh/id_ed25519 next.tar.gz store.tar.gz studio.tar.gz cty.tar.gz root@${{ secrets.DEPLOY_HOST }}:/tmp/
           ssh -i ~/.ssh/id_ed25519 root@${{ secrets.DEPLOY_HOST }} '
             set -e
             cd /opt/earns-marketing-os-v2/apps/web
@@ -88,6 +92,11 @@ jobs:
             tar -xzf /tmp/studio.tar.gz -C /tmp/studio-build/
             mv /tmp/studio-build/.next/* .next.new/
             rm -rf /tmp/studio-build /tmp/studio.tar.gz
+            mkdir -p /opt/earns-marketing-os-v2/apps/cty && cd /opt/earns-marketing-os-v2/apps/cty
+            rm -rf .next.new /tmp/cty-build && mkdir -p .next.new /tmp/cty-build
+            tar -xzf /tmp/cty.tar.gz -C /tmp/cty-build/
+            mv /tmp/cty-build/.next/* .next.new/
+            rm -rf /tmp/cty-build /tmp/cty.tar.gz
           '
       - name: Run server-side deploy (migrations + swap + restart)
         run: |

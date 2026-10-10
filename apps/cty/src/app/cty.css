@@ -1,0 +1,51 @@
+
+:root{--bg:#f2f4f7;--surface:#fff;--ink:#1a2230;--muted:#5b6675;--line:#d8dde4;--accent:#0f6e73;--warn:#b4541a;--warn-bg:#fbf1e9;--soft:#e8f3f3;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;--body:"Source Sans 3","Segoe UI",system-ui,sans-serif;--head:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#141a22;--surface:#1c2430;--ink:#e6e9ee;--muted:#9aa5b3;--line:#2d3744;--accent:#4fb3b8;--warn:#e08a4a;--warn-bg:#2a1f16;--soft:#18302f;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+a{color:inherit}
+.cty-top{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:5}
+.cty-brand{font-family:var(--head);font-weight:600;font-size:1.15rem;text-decoration:none}
+.cty-top a{text-decoration:none}
+.cty-top a:hover{color:var(--accent)}
+.cty-mono{font-family:var(--mono);font-size:.82rem}
+.cty-muted{color:var(--muted)}
+.cty-main{max-width:1100px;margin:0 auto;padding:18px 16px 60px}
+.cty-banner{background:var(--warn-bg);border-left:3px solid var(--warn);padding:.6rem .9rem;border-radius:0 6px 6px 0;margin:0 0 1.2rem;font-size:.95rem}
+.cty-banner b{color:var(--warn)}
+h1,h2,h3{font-family:var(--head);line-height:1.15;margin:0;text-wrap:balance}
+h1{font-size:1.9rem;font-weight:600;margin-bottom:.4rem}
+h2{font-size:1.3rem;font-weight:600;margin:1.8rem 0 .6rem}
+h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem}
+.cty-phong{margin-top:1.6rem;padding-top:1rem;border-top:1px solid var(--line)}
+.cty-phong-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.cty-phong-head h2{margin:0}
+.cty-phong-head h2 a{text-decoration:none}
+.cty-pill{display:inline-block;font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;padding:.1rem .45rem;border-radius:999px;background:var(--soft);color:var(--accent);vertical-align:middle}
+.cty-pill-off{background:var(--warn-bg);color:var(--warn)}
+.cty-pill-kind{background:var(--line);color:var(--muted)}
+.cty-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-top:.7rem}
+.cty-the{display:flex;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px;text-decoration:none}
+.cty-the:hover{border-color:var(--accent)}
+.cty-the-ten{font-weight:600}
+.cty-the-chuc{font-size:.92rem}
+.cty-the-body{min-width:0}
+.cty-so-do{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px;margin:1rem 0;overflow-x:auto}
+.cty-so-do svg{display:block;width:100%;min-width:720px;height:auto;font-family:var(--body);font-size:12px}
+.cty-md{max-width:72ch}
+.cty-md h1{font-size:1.5rem;margin-top:1.4rem}
+.cty-md h2{font-size:1.2rem}
+.cty-md h3{font-size:1.02rem}
+.cty-md table{border-collapse:collapse;font-size:.93rem;margin:.6rem 0;display:block;overflow-x:auto}
+.cty-md th,.cty-md td{text-align:left;vertical-align:top;padding:.35rem .6rem;border-bottom:1px solid var(--line)}
+.cty-md th{font-family:var(--mono);font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.cty-md code{font-family:var(--mono);font-size:.88em;background:var(--soft);padding:.05em .3em;border-radius:3px}
+.cty-md pre{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 12px;overflow-x:auto;font-size:.84rem}
+.cty-md pre code{background:none;padding:0}
+.cty-md blockquote{margin:.6rem 0;padding:.4rem .9rem;border-left:3px solid var(--line);color:var(--muted)}
+.cty-kv{display:grid;grid-template-columns:max-content 1fr;gap:.25rem 1rem;font-size:.93rem;margin:.6rem 0 1rem}
+.cty-kv dt{font-family:var(--mono);font-size:.76rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding-top:.15rem}
+.cty-kv dd{margin:0}
+.cty-head-nhan-su{display:flex;gap:14px;align-items:center;margin-bottom:.6rem}
+@media (max-width:600px){.cty-kv{grid-template-columns:1fr}.cty-kv dt{padding-top:.4rem}}

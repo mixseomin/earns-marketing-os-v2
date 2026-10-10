@@ -1,0 +1,39 @@
+<svg viewBox="0 0 920 480" role="img" aria-label="Phòng Marketing: một backlink đi qua tìm nguồn, lập card, dựng standing, soạn, gửi, review; link gate và tài khoản do Kiên giữ; từ chối và khiếu nại về Trang; kệ là bảng backlinks" class="so-do"><defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+<g fill="none" stroke="currentColor" stroke-width="1.2">
+<rect x="20" y="20" width="880" height="440" rx="6" stroke-dasharray="4 3"/>
+<text x="34" y="42" font-size="14" font-weight="600" fill="currentColor" stroke="none">Phòng Marketing (outreach · backlink · seeding, mọi dự án) — trưởng phòng Khoa</text>
+<rect x="40" y="70" width="120" height="58" rx="4"/><line x1="160" y1="99" x2="178" y2="99" marker-end="url(#ar)"/><rect x="180" y="70" width="120" height="58" rx="4"/><line x1="300" y1="99" x2="318" y2="99" marker-end="url(#ar)"/><rect x="320" y="70" width="120" height="58" rx="4"/><line x1="440" y1="99" x2="458" y2="99" marker-end="url(#ar)"/><rect x="460" y="70" width="120" height="58" rx="4"/><line x1="580" y1="99" x2="598" y2="99" marker-end="url(#ar)"/><rect x="600" y="70" width="120" height="58" rx="4"/><line x1="720" y1="99" x2="738" y2="99" marker-end="url(#ar)"/><rect x="740" y="64" width="140" height="70" rx="4" stroke="#b4541a" stroke-width="2"/>
+<rect x="740" y="150" width="140" height="40" rx="4" stroke="#0f6e73" stroke-width="2"/>
+<path d="M810 134 V148" marker-end="url(#ar)" stroke="#b4541a" stroke-width="2"/>
+<path d="M810 190 V208" marker-end="url(#ar)" stroke="#0f6e73" stroke-width="2"/>
+<path d="M740 170 H380 V130" stroke-dasharray="3 3" stroke="#0f6e73"/>
+<rect x="40" y="200" width="250" height="150" rx="4"/><line x1="40" y1="224" x2="290" y2="224"/><line x1="123" y1="224" x2="123" y2="350"/><line x1="206" y1="224" x2="206" y2="350"/>
+<rect x="330" y="230" width="200" height="60" rx="4"/>
+<rect x="600" y="210" width="280" height="140" rx="4"/><line x1="600" y1="258" x2="880" y2="258"/><line x1="600" y1="306" x2="880" y2="306"/>
+<path d="M165 200 V160 H100 V130" marker-end="url(#ar)"/>
+<path d="M430 230 V150 H560" stroke-dasharray="3 3"/>
+<rect x="40" y="390" width="195" height="52" rx="4" stroke-dasharray="4 3"/><rect x="250" y="390" width="195" height="52" rx="4" stroke-dasharray="4 3"/><rect x="460" y="390" width="195" height="52" rx="4" stroke="#0f6e73" stroke-dasharray="4 3"/><rect x="670" y="390" width="210" height="52" rx="4" stroke="#b4541a" stroke-dasharray="4 3"/>
+<path d="M137 390 V352" marker-end="url(#ar)"/><path d="M347 390 V292" marker-end="url(#ar)"/><path d="M557 390 V352" marker-end="url(#ar)" stroke="#0f6e73"/><path d="M775 350 V388" marker-end="url(#ar)" stroke="#b4541a"/>
+</g>
+<g fill="currentColor"><text x="100" y="92" text-anchor="middle" font-weight="600">1 Tìm nguồn</text><text x="100" y="108" text-anchor="middle" font-size="10.5">backlink_sources · habitats · prospects</text><text x="100" y="121" text-anchor="middle" font-size="10.5">Khoa (openai)</text><text x="240" y="92" text-anchor="middle" font-weight="600">2 Lập card</text><text x="240" y="108" text-anchor="middle" font-size="10.5">play add · 1 task = 1 link</text><text x="240" y="121" text-anchor="middle" font-size="10.5">máy</text><text x="380" y="92" text-anchor="middle" font-weight="600">3 Dựng standing</text><text x="380" y="108" text-anchor="middle" font-size="10.5">phase warm-up→value→bridge→seed</text><text x="380" y="121" text-anchor="middle" font-size="10.5">Khoa + TK của Kiên duyệt</text><text x="520" y="92" text-anchor="middle" font-weight="600">4 Soạn</text><text x="520" y="108" text-anchor="middle" font-size="10.5">email AI theo pillar · voice-score</text><text x="520" y="121" text-anchor="middle" font-size="10.5">Ngọc (Nội dung)</text><text x="660" y="92" text-anchor="middle" font-weight="600">5 Gửi</text><text x="660" y="108" text-anchor="middle" font-size="10.5">email Mailjet auto · social có tay</text><text x="660" y="121" text-anchor="middle" font-size="10.5">máy / Tùng (br, Crew ext)</text><text x="810" y="88" text-anchor="middle" font-weight="600" fill="#b4541a">6 Review</text><text x="810" y="104" text-anchor="middle" font-size="10.5">link đã đặt = kết quả</text><text x="810" y="118" text-anchor="middle" font-size="10.5">Hà soát link → anh Done</text>
+<text x="810" y="166" text-anchor="middle" font-weight="600" fill="#0f6e73">Kiên · link gate</text><text x="810" y="181" text-anchor="middle" font-size="10.5">tenure · karma · seeds đủ mới cho link</text>
+<text x="390" y="146" text-anchor="end" font-size="10.5" fill="#0f6e73">chưa đủ standing → vẫn seeding, không link</text>
+<text x="120" y="145" font-size="10.5">card tuần này</text>
+<text x="470" y="146" font-size="10.5">Khoa theo card: email tự gửi, social mở tay</text>
+<text x="165" y="216" text-anchor="middle" font-weight="600">Bảng plays (mos2.on.tc/plays)</text>
+<text x="81" y="242" text-anchor="middle" font-size="10.5">Tuần này</text><text x="164" y="242" text-anchor="middle" font-size="10.5">Đang làm</text><text x="248" y="242" text-anchor="middle" font-size="10.5">Chờ duyệt</text>
+<text x="81" y="262" text-anchor="middle" font-size="10.5">🌱 r/army #324</text><text x="81" y="277" text-anchor="middle" font-size="10.5">🔗 GovLoop</text>
+<text x="164" y="262" text-anchor="middle" font-size="10.5">email 12 gửi</text><text x="164" y="277" text-anchor="middle" font-size="10.5">2 chờ duyệt mod</text>
+<text x="248" y="262" text-anchor="middle" font-size="10.5">3 Review</text>
+<text x="430" y="252" text-anchor="middle" font-weight="600">Bàn Khoa</text><text x="430" y="268" text-anchor="middle" font-size="10.5">heartbeat T2/T4 · ~/bin/play list</text><text x="430" y="282" text-anchor="middle" font-size="10.5">play done = nộp Review, không phải Done</text>
+<text x="740" y="226" text-anchor="middle" font-weight="600">Bảng backlinks (kết quả)</text>
+<text x="612" y="248" font-size="10.5">pending → claimed → submitted → completed → verified</text>
+<text x="612" y="276" font-size="10.5">cron thứ hai 08:00 UTC kiểm link-rot → broken</text>
+<text x="612" y="292" font-size="10.5">broken = không tính là thắng nữa, mở lại card</text>
+<text x="612" y="326" font-size="10.5">email: sent / replied tay · touches: assisted</text>
+<text x="137" y="408" text-anchor="middle" font-weight="600">Cửa ← Ngọc (Nội dung)</text><text x="137" y="424" text-anchor="middle" font-size="10.5">bài seeding, email theo pillar · voice-score chặn duyệt</text>
+<text x="347" y="408" text-anchor="middle" font-weight="600">Cửa ← Trưởng dự án</text><text x="347" y="424" text-anchor="middle" font-size="10.5">đặt hàng link cho site mình · nhận kết quả</text>
+<text x="557" y="408" text-anchor="middle" font-weight="600" fill="#0f6e73">Cửa ← Kiên (An toàn TK)</text><text x="557" y="424" text-anchor="middle" font-size="10.5">TK sạch cho seeding · shadowban = ⛔ · freeze</text>
+<text x="775" y="408" text-anchor="middle" font-weight="600" fill="#b4541a">Cửa → Trang (Pháp chế)</text><text x="775" y="424" text-anchor="middle" font-size="10.5">bị mod gỡ, bị tố spam, khiếu nại email</text>
+<text x="640" y="372" font-size="10.5">link lỗi / bị gỡ</text>
+</g></svg>

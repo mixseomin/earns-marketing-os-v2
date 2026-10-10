@@ -1,0 +1,29 @@
+{
+  "name": "@mos2/cty",
+  "version": "0.0.1",
+  "description": "Công ty AI (cty.on.tc) — sơ đồ tổ chức, phòng ban, hồ sơ nhân sự, luật; app riêng, dùng chung DB mos2 + phiên .on.tc. Đợt 1: tham quan, chưa hoạt động.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 3850",
+    "build": "next build",
+    "start": "next start -p ${PORT:-3850}",
+    "typecheck": "tsc --noEmit",
+    "tu-kiem": "node scripts/tu-kiem.mjs"
+  },
+  "dependencies": {
+    "@mos2/db": "*",
+    "drizzle-orm": "^0.36.0",
+    "next": "^15.0.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}

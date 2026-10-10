@@ -1,0 +1,65 @@
+<svg viewBox="0 0 920 480" role="img" aria-label="Phòng Sách: một cuốn đi qua 6 trạm máy làm, dừng ở cổng anh ký, qua cờ freeze của Kiên rồi ra kệ KDP/Etsy; review và khiếu nại từ kệ chảy về Trang; bảng lịch 104 cuốn cấp việc; Bình, An, Phúc nối qua cửa bên" class="so-do">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+<g fill="none" stroke="currentColor" stroke-width="1.2">
+<rect x="20" y="20" width="880" height="440" rx="6" stroke-dasharray="4 3"/>
+<text x="34" y="42" font-size="14" font-weight="600" fill="currentColor" stroke="none">Phòng Sách — trưởng phòng Thảo (claude-code, có tay)</text>
+<rect x="40" y="70" width="120" height="58" rx="4"/><rect x="180" y="70" width="120" height="58" rx="4"/><rect x="320" y="70" width="120" height="58" rx="4"/><rect x="460" y="70" width="120" height="58" rx="4"/><rect x="600" y="70" width="120" height="58" rx="4"/>
+<rect x="740" y="64" width="140" height="70" rx="4" stroke="#b4541a" stroke-width="2"/>
+<line x1="160" y1="99" x2="178" y2="99" marker-end="url(#ar)"/><line x1="300" y1="99" x2="318" y2="99" marker-end="url(#ar)"/><line x1="440" y1="99" x2="458" y2="99" marker-end="url(#ar)"/><line x1="580" y1="99" x2="598" y2="99" marker-end="url(#ar)"/><line x1="720" y1="99" x2="738" y2="99" marker-end="url(#ar)"/>
+<!-- Kiên: cờ freeze giữa cổng và kệ -->
+<rect x="740" y="150" width="140" height="40" rx="4" stroke="#0f6e73" stroke-width="2"/>
+<path d="M810 134 V148" marker-end="url(#ar)" stroke="#b4541a" stroke-width="2"/>
+<path d="M810 190 V208" marker-end="url(#ar)" stroke="#0f6e73" stroke-width="2"/>
+<path d="M740 170 H660 V130" stroke-dasharray="3 3" stroke="#0f6e73"/>
+<!-- bảng lịch -->
+<rect x="40" y="200" width="250" height="150" rx="4"/>
+<line x1="40" y1="224" x2="290" y2="224"/>
+<line x1="123" y1="224" x2="123" y2="350"/><line x1="206" y1="224" x2="206" y2="350"/>
+<!-- bàn Thảo -->
+<rect x="330" y="230" width="200" height="60" rx="4"/>
+<!-- kệ -->
+<rect x="600" y="210" width="280" height="140" rx="4"/>
+<line x1="600" y1="258" x2="880" y2="258"/><line x1="600" y1="306" x2="880" y2="306"/>
+<path d="M165 200 V160 H100 V130" marker-end="url(#ar)"/>
+<path d="M430 230 V150 H560" stroke-dasharray="3 3"/>
+<!-- 4 cửa bên -->
+<rect x="40" y="390" width="195" height="52" rx="4" stroke-dasharray="4 3"/>
+<rect x="250" y="390" width="195" height="52" rx="4" stroke-dasharray="4 3"/>
+<rect x="460" y="390" width="195" height="52" rx="4" stroke-dasharray="4 3"/>
+<rect x="670" y="390" width="210" height="52" rx="4" stroke="#b4541a" stroke-dasharray="4 3"/>
+<path d="M137 390 V352" marker-end="url(#ar)"/>
+<path d="M347 390 V292" marker-end="url(#ar)"/>
+<path d="M640 350 V388" marker-end="url(#ar)"/>
+<path d="M800 350 V388" marker-end="url(#ar)" stroke="#b4541a"/>
+<path d="M860 390 V456" stroke="#b4541a" stroke-dasharray="3 3"/>
+</g>
+<g fill="currentColor">
+<text x="100" y="92" text-anchor="middle" font-weight="600">1 Nội dung</text><text x="100" y="108" text-anchor="middle" font-size="10.5">100 chủ đề · lint thương hiệu</text><text x="100" y="121" text-anchor="middle" font-size="10.5">Nhi (openai)</text>
+<text x="240" y="92" text-anchor="middle" font-weight="600">2 Ruột PDF</text><text x="240" y="108" text-anchor="middle" font-size="10.5">Letter + A4 · build.mjs</text><text x="240" y="121" text-anchor="middle" font-size="10.5">máy</text>
+<text x="380" y="92" text-anchor="middle" font-weight="600">3 Bìa</text><text x="380" y="108" text-anchor="middle" font-size="10.5">cover.mjs · Playwright</text><text x="380" y="121" text-anchor="middle" font-size="10.5">máy</text>
+<text x="520" y="92" text-anchor="middle" font-weight="600">4 Ảnh bán</text><text x="520" y="108" text-anchor="middle" font-size="10.5">mockups + ảnh ghim</text><text x="520" y="121" text-anchor="middle" font-size="10.5">máy</text>
+<text x="660" y="92" text-anchor="middle" font-weight="600">5 Mô tả</text><text x="660" y="108" text-anchor="middle" font-size="10.5">kdp-&lt;ten&gt;.json · khai AI</text><text x="660" y="121" text-anchor="middle" font-size="10.5">Ngọc (Nội dung)</text>
+<text x="810" y="88" text-anchor="middle" font-weight="600" fill="#b4541a">6 Cổng duyệt</text><text x="810" y="104" text-anchor="middle" font-size="10.5">Hà soát bằng chứng</text><text x="810" y="118" text-anchor="middle" font-size="10.5">→ anh ký (mức 3)</text>
+<text x="810" y="166" text-anchor="middle" font-weight="600" fill="#0f6e73">Kiên · cờ freeze</text><text x="810" y="181" text-anchor="middle" font-size="10.5">điểm rủi ro FrontPorchZ / KDP · bật = không đăng</text>
+<text x="600" y="146" text-anchor="end" font-size="10.5" fill="#0f6e73">lint rớt, nhịp đăng vượt → Kiên biết</text>
+<text x="120" y="145" font-size="10.5">cuốn kế theo lịch</text>
+<text x="470" y="146" font-size="10.5">Thảo bấm quy-trinh.mjs --den het, chờ ở cổng</text>
+<text x="165" y="216" text-anchor="middle" font-weight="600">Bảng lịch 104 cuốn (tới 10/2027)</text>
+<text x="81" y="242" text-anchor="middle" font-size="10.5">Tuần này</text><text x="164" y="242" text-anchor="middle" font-size="10.5">Đang dựng</text><text x="248" y="242" text-anchor="middle" font-size="10.5">Chờ suất</text>
+<text x="81" y="262" text-anchor="middle" font-size="10.5">▪ killer sudoku</text><text x="81" y="277" text-anchor="middle" font-size="10.5">▪ lịch 2027</text>
+<text x="164" y="262" text-anchor="middle" font-size="10.5">▪ kakuro 3/6</text>
+<text x="248" y="262" text-anchor="middle" font-size="10.5">▪ 7 cuốn xong</text><text x="248" y="277" text-anchor="middle" font-size="10.5">KDP 2/tuần</text>
+<text x="430" y="252" text-anchor="middle" font-weight="600">Bàn Thảo</text><text x="430" y="268" text-anchor="middle" font-size="10.5">heartbeat 6:00 · đọc sổ MOS2 Tài sản</text><text x="430" y="282" text-anchor="middle" font-size="10.5">"▶ quy trình n/6 · kế: …"</text>
+<text x="740" y="226" text-anchor="middle" font-weight="600">Kệ sách đã đăng</text>
+<text x="612" y="248" font-size="10.5">KDP · bút danh Martha Delaney · kdp.mjs (br play)</text>
+<text x="612" y="276" font-size="10.5">Etsy FrontPorchZ · nháp từ box3 · bật bán $0,20 → hỏi anh</text>
+<text x="612" y="292" font-size="10.5">giãn 2 cuốn/tuần, etsy.mjs chặn trước ngày</text>
+<text x="612" y="326" font-size="10.5">Gumroad · tự đăng</text>
+<text x="137" y="408" text-anchor="middle" font-weight="600">Cửa ← Bình (thị trường)</text><text x="137" y="424" text-anchor="middle" font-size="10.5">Keywords Everywhere · BSR · đổi tựa giữ ngày</text>
+<text x="347" y="408" text-anchor="middle" font-weight="600">Cửa ← An (Tài chính)</text><text x="347" y="424" text-anchor="middle" font-size="10.5">đơn mỗi tuần · tập 2 chỉ khi có đơn sau 8 tuần</text>
+<text x="557" y="408" text-anchor="middle" font-weight="600">Cửa → Phúc + Khoa</text><text x="557" y="424" text-anchor="middle" font-size="10.5">clip TikTok/YouTube/IG/FB · ghim Pinterest</text>
+<text x="775" y="408" text-anchor="middle" font-weight="600" fill="#b4541a">Cửa → Trang (Pháp chế)</text><text x="775" y="424" text-anchor="middle" font-size="10.5">review · comment · khiếu nại · DMCA → soạn, anh ký</text>
+<text x="640" y="372" font-size="10.5">cuốn vừa đăng</text>
+<text x="805" y="372" font-size="10.5" fill="#b4541a">review, khiếu nại</text>
+</g>
+</svg>

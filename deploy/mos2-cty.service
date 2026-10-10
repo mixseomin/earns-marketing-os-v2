@@ -1,0 +1,15 @@
+[Unit]
+Description=Cong ty AI (apps/cty, port 3850) — cty.on.tc
+After=network.target
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/earns-marketing-os-v2/apps/cty
+EnvironmentFile=/opt/earns-marketing-os-v2/.env.production
+Environment=NODE_ENV=production
+Environment=PORT=3850
+ExecStart=/usr/bin/npm run start
+Restart=always
+RestartSec=3
+[Install]
+WantedBy=multi-user.target

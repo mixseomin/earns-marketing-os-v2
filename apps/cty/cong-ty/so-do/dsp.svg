@@ -1,0 +1,64 @@
+<svg viewBox="0 0 920 500" role="img" aria-label="Phòng Kỹ thuật / dự án sản phẩm theo khuôn dựng sản phẩm: phát sinh từ hòm góp ý, review queue, followup, họp đổ vào bảng issues; người có tay dựng trong worktree, tự kiểm, nộp bằng chứng; Hà soát; đẩy git để GHA deploy; thao tác không hoàn tác và dữ liệu thật là cổng anh ký; verify sau deploy ghi sổ tiến độ; Kiên freeze deploy khi sự cố; Trang nhận phàn nàn người dùng" class="so-do"><defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+<g fill="none" stroke="currentColor" stroke-width="1.2">
+<rect x="20" y="20" width="880" height="460" rx="6" stroke-dasharray="4 3"/>
+<text x="34" y="42" font-size="14" font-weight="600" fill="currentColor" stroke="none">Phòng dựng sản phẩm (Astrolas · MOS2 · site công cụ) — khuôn ISSUE → BUILD → REVIEW → DEPLOY — Quân / Tùng</text>
+<!-- nguồn -->
+<rect x="40" y="70" width="150" height="150" rx="4" stroke-dasharray="4 3"/>
+<!-- bảng issues -->
+<rect x="220" y="70" width="150" height="150" rx="4"/>
+<path d="M190 145 H218" marker-end="url(#ar)"/>
+<!-- build -->
+<rect x="400" y="70" width="170" height="70" rx="4"/>
+<path d="M370 105 H398" marker-end="url(#ar)"/>
+<!-- tự kiểm -->
+<rect x="400" y="150" width="170" height="56" rx="4"/>
+<path d="M485 140 V148" marker-end="url(#ar)"/>
+<path d="M400 178 H385 V120 H398" marker-end="url(#ar)" stroke-dasharray="3 3"/>
+<!-- Hà review -->
+<rect x="600" y="70" width="140" height="70" rx="4"/>
+<path d="M570 105 H598" marker-end="url(#ar)"/>
+<path d="M600 125 H585 V178 H570" marker-end="url(#ar)" stroke-dasharray="3 3"/>
+<!-- cổng -->
+<rect x="760" y="64" width="130" height="82" rx="4" stroke="#b4541a" stroke-width="2"/>
+<path d="M740 105 H758" marker-end="url(#ar)"/>
+<!-- deploy -->
+<rect x="600" y="190" width="140" height="60" rx="4"/>
+<path d="M670 140 V188" marker-end="url(#ar)"/>
+<path d="M825 146 V220 H742" marker-end="url(#ar)" stroke="#b4541a" stroke-width="2"/>
+<!-- Kiên -->
+<rect x="760" y="250" width="130" height="40" rx="4" stroke="#0f6e73" stroke-width="2"/>
+<path d="M760 270 H742 V252" marker-end="url(#ar)" stroke="#0f6e73" stroke-width="2"/>
+<!-- verify + sổ -->
+<rect x="600" y="280" width="140" height="56" rx="4"/>
+<path d="M670 250 V278" marker-end="url(#ar)"/>
+<rect x="400" y="240" width="170" height="96" rx="4"/>
+<path d="M600 308 H572" marker-end="url(#ar)"/>
+<!-- sản phẩm sống -->
+<rect x="40" y="250" width="330" height="86" rx="4"/>
+<path d="M400 290 H372" marker-end="url(#ar)"/>
+<!-- cửa dưới -->
+<rect x="40" y="400" width="195" height="52" rx="4" stroke-dasharray="4 3"/><rect x="250" y="400" width="195" height="52" rx="4" stroke-dasharray="4 3"/><rect x="460" y="400" width="195" height="52" rx="4" stroke="#0f6e73" stroke-dasharray="4 3"/><rect x="670" y="400" width="210" height="52" rx="4" stroke="#b4541a" stroke-dasharray="4 3"/>
+<path d="M137 400 V338" marker-end="url(#ar)"/><path d="M347 400 V338" marker-end="url(#ar)"/><path d="M557 400 V338" marker-end="url(#ar)" stroke="#0f6e73"/>
+<path d="M775 400 V360 H205 V338" marker-end="url(#ar)" stroke="#b4541a"/>
+<path d="M115 250 V220" stroke="#b4541a" stroke-dasharray="3 3"/>
+</g>
+<g fill="currentColor">
+<text x="115" y="88" text-anchor="middle" font-weight="600">Phát sinh</text>
+<text x="50" y="108" font-size="10.5">· hòm góp ý 💬 (ảnh)</text><text x="50" y="124" font-size="10.5">· review queue 🚩 #id</text><text x="50" y="140" font-size="10.5">· followup đến hạn</text><text x="50" y="156" font-size="10.5">· quyết định họp</text><text x="50" y="172" font-size="10.5">· box-monitor sập</text><text x="50" y="188" font-size="10.5">· bước Kẹt trong sổ</text><text x="50" y="204" font-size="10.5">· Trang: khách phàn nàn</text>
+<text x="295" y="88" text-anchor="middle" font-weight="600">Bảng issues → tasks</text>
+<text x="230" y="108" font-size="10.5">Hùng gắn nhãn, mức</text><text x="230" y="124" font-size="10.5">trưởng dự án xếp ưu tiên</text><text x="230" y="146" font-size="10.5">1 issue = 1 task, có hạng</text><text x="230" y="160" font-size="10.5">mục H0x trong sổ tiến độ</text><text x="230" y="182" font-size="10.5">planned → assigned</text><text x="230" y="198" font-size="10.5">→ in_progress</text>
+<text x="485" y="90" text-anchor="middle" font-weight="600">BUILD (có tay)</text><text x="485" y="106" text-anchor="middle" font-size="10.5">claude -p trong worktree riêng</text><text x="485" y="120" text-anchor="middle" font-size="10.5">chỉ repo được phép · đọc CLAUDE.md + contexts</text><text x="485" y="133" text-anchor="middle" font-size="10.5">Quân (Astrolas) · Tùng (MOS2, hạ tầng)</text>
+<text x="485" y="170" text-anchor="middle" font-weight="600">Tự kiểm (tuyến 1)</text><text x="485" y="186" text-anchor="middle" font-size="10.5">typecheck · test · lint · voice-score</text><text x="485" y="199" text-anchor="middle" font-size="10.5">dòng Phạm vi: yêu cầu · đã sửa · ngoài yêu cầu</text>
+<text x="382" y="162" font-size="10.5" text-anchor="end">rớt → sửa</text>
+<text x="670" y="90" text-anchor="middle" font-weight="600">Hà review (tuyến 3)</text><text x="670" y="106" text-anchor="middle" font-size="10.5">diff + log test + ảnh chụp</text><text x="670" y="120" text-anchor="middle" font-size="10.5">có "ngoài yêu cầu" → trả về</text><text x="670" y="133" text-anchor="middle" font-size="10.5">submitted → revision | ok</text>
+<text x="825" y="84" text-anchor="middle" font-weight="600" fill="#b4541a">CỔNG anh ký</text><text x="825" y="100" text-anchor="middle" font-size="10.5">migration xoá/đổi cột</text><text x="825" y="113" text-anchor="middle" font-size="10.5">đụng dữ liệu thật · đổi DNS</text><text x="825" y="126" text-anchor="middle" font-size="10.5">reset/revert · mua dịch vụ</text><text x="825" y="139" text-anchor="middle" font-size="10.5">việc thường: không qua đây</text>
+<text x="670" y="210" text-anchor="middle" font-weight="600">DEPLOY = git push</text><text x="670" y="226" text-anchor="middle" font-size="10.5">GHA tự deploy (MOS2) · deploy.sh (cities)</text><text x="670" y="240" text-anchor="middle" font-size="10.5">không scp · gh-watch tới xong</text>
+<text x="825" y="266" text-anchor="middle" font-weight="600" fill="#0f6e73">Kiên · freeze deploy</text><text x="825" y="281" text-anchor="middle" font-size="10.5">đang sự cố / giờ cao điểm → chờ</text>
+<text x="670" y="300" text-anchor="middle" font-weight="600">Verify sau deploy</text><text x="670" y="316" text-anchor="middle" font-size="10.5">curl + grep · BUILD_ID · psql</text><text x="670" y="329" text-anchor="middle" font-size="10.5">không đạt → mở lại task</text>
+<text x="485" y="260" text-anchor="middle" font-weight="600">Sổ tiến độ (tiendo)</text><text x="485" y="276" text-anchor="middle" font-size="10.5">bước Xong có link bản dựng</text><text x="485" y="290" text-anchor="middle" font-size="10.5">Kẹt ghi chờ gì · trạng thái H0x máy tính</text><text x="485" y="304" text-anchor="middle" font-size="10.5">bump version mỗi artifact</text><text x="485" y="318" text-anchor="middle" font-size="10.5">NAV.md khi dời hàm lớn</text><text x="485" y="331" text-anchor="middle" font-size="10.5">completed = anh ký</text>
+<text x="205" y="268" text-anchor="middle" font-weight="600">Sản phẩm đang sống</text><text x="50" y="288" font-size="10.5">Astrolas · MOS2 (box3, GHA) · cities-v2 (PM2) · militarycalc :3811 · govcalcs :3812</text><text x="50" y="304" font-size="10.5">VisaGPS :3814 · Mint Almanac :3815 · chatlt · orit-web :3801/3802</text><text x="50" y="320" font-size="10.5">box-monitor canh nhịp tim · CF cache rule tự tạo cho site tĩnh</text>
+<text x="137" y="418" text-anchor="middle" font-weight="600">Cửa ← Trưởng dự án</text><text x="137" y="434" text-anchor="middle" font-size="10.5">đặt hàng tính năng · nhận bản dựng</text>
+<text x="347" y="418" text-anchor="middle" font-weight="600">Cửa ← Ngọc / Khoa</text><text x="347" y="434" text-anchor="middle" font-size="10.5">nội dung, SEO lên site · landing cho camp</text>
+<text x="557" y="418" text-anchor="middle" font-weight="600" fill="#0f6e73">Cửa ← Kiên</text><text x="557" y="434" text-anchor="middle" font-size="10.5">hook chặn box3 · secret không vào git · freeze</text>
+<text x="775" y="418" text-anchor="middle" font-weight="600" fill="#b4541a">Cửa → Trang</text><text x="775" y="434" text-anchor="middle" font-size="10.5">khách phàn nàn, DMCA nội dung → issue mới</text>
+</g></svg>

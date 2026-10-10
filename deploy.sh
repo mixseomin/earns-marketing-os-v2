@@ -184,6 +184,50 @@ else
   echo "↺ Studio unchanged — keep running build"
 fi
 
+# 5e. Công ty AI (apps/cty, cổng 3850, mos2-cty.service, cty.on.tc) — app riêng như studio (anh chốt 10/10/2026: dựng để tham quan).
+#     Unit + vhost cài từ repo (deploy/mos2-cty.service, deploy/nginx-cty.conf); idempotent.
+if ! cmp -s deploy/mos2-cty.service /etc/systemd/system/mos2-cty.service; then
+  cp deploy/mos2-cty.service /etc/systemd/system/mos2-cty.service && systemctl daemon-reload && systemctl enable mos2-cty >/dev/null 2>&1 && echo "✓ mos2-cty unit cài/cập nhật"
+fi
+if ! cmp -s deploy/nginx-cty.conf /etc/nginx/sites-enabled/cty.on.tc; then
+  cp deploy/nginx-cty.conf /etc/nginx/sites-enabled/cty.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx cty.on.tc cài/cập nhật" || { echo "✗ nginx cty.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/cty.on.tc; }
+fi
+CTY_CHANGED=false
+if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^(apps/cty/|packages/db/src/|package-lock\.json)"; then
+  CTY_CHANGED=true
+fi
+if [ -f apps/cty/.next.new/BUILD_ID ] && ! cmp -s apps/cty/.next.new/BUILD_ID apps/cty/.next/BUILD_ID; then
+  CTY_CHANGED=true
+fi
+if [ -f apps/cty/.next.new/BUILD_ID ] && { [ "$CTY_CHANGED" = "true" ] || [ "$DEPS_CHANGED" = "true" ] || [ ! -f apps/cty/.next/BUILD_ID ]; }; then
+  rm -rf apps/cty/.next.old
+  [ -e apps/cty/.next ] && mv apps/cty/.next apps/cty/.next.old
+  mv apps/cty/.next.new apps/cty/.next
+  rm -rf apps/cty/.next.old
+  systemctl restart mos2-cty; sleep 1
+  systemctl is-active mos2-cty && echo "✓ mos2-cty active" || { echo "✗ mos2-cty failed"; systemctl status mos2-cty --no-pager | tail -20; exit 1; }
+else
+  rm -rf apps/cty/.next.new
+  echo "↺ Cty unchanged — keep running build"
+fi
+
+# 5f. Văn phòng pixel (pixel-agents standalone, cổng 3851, mos2-vp.service, vp.on.tc) — gói npm toàn cục, ghim bản; nhân sự bơm
+#     bằng hook giả từ apps/cty/cong-ty (ExecStartPost). Vhost đứng sau auth_request của cty (/api/phien).
+PA_VER=1.4.1
+if [ "$(npm ls -g pixel-agents --depth=0 2>/dev/null | grep -o "pixel-agents@[0-9.]*")" != "pixel-agents@$PA_VER" ]; then
+  npm i -g "pixel-agents@$PA_VER" --no-audit --no-fund >/dev/null 2>&1 && echo "✓ pixel-agents@$PA_VER cài" || echo "✗ pixel-agents cài lỗi — vp.on.tc chưa lên, cty vẫn chạy"
+fi
+if ! cmp -s deploy/mos2-vp.service /etc/systemd/system/mos2-vp.service; then
+  cp deploy/mos2-vp.service /etc/systemd/system/mos2-vp.service && systemctl daemon-reload && systemctl enable mos2-vp >/dev/null 2>&1 && echo "✓ mos2-vp unit cài/cập nhật"
+fi
+if ! cmp -s deploy/nginx-vp.conf /etc/nginx/sites-enabled/vp.on.tc; then
+  cp deploy/nginx-vp.conf /etc/nginx/sites-enabled/vp.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx vp.on.tc cài/cập nhật" || { echo "✗ nginx vp.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/vp.on.tc; }
+fi
+if command -v pixel-agents >/dev/null 2>&1 && { [ "$CTY_CHANGED" = "true" ] || ! systemctl is-active --quiet mos2-vp; }; then
+  systemctl restart mos2-vp; sleep 8
+  systemctl is-active mos2-vp && echo "✓ mos2-vp active" || { echo "✗ mos2-vp failed (không chặn deploy)"; systemctl status mos2-vp --no-pager | tail -15; }
+fi
+
 # 6. Restart systemd unit
 systemctl restart mos2-web
 sleep 1

@@ -90,18 +90,20 @@ h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem}
 
 .cty-dodac{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:8px;margin:.8rem 0}
 .cty-dd{background:var(--surface);border:1px solid var(--line);border-radius:6px;min-width:0}
-.cty-dd>summary{cursor:pointer;padding:.55rem .8rem;font-family:var(--head);font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.cty-dd>summary{cursor:pointer;padding:.55rem .8rem;font-family:var(--head);font-weight:600;list-style:none;display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 8px;align-items:baseline;white-space:nowrap}
 .cty-dd[open]{grid-column:1/-1}
-.cty-dd-so{font-family:var(--mono);font-size:.78rem;font-weight:400;color:var(--muted);text-align:right}
+.cty-dd-so{font-family:var(--mono);font-size:.78rem;font-weight:400;color:var(--muted);text-align:right;white-space:normal;margin-left:auto}
 .cty-dd>*:not(summary){padding:0 .9rem .6rem;font-size:.92rem}
 .cty-dd ul{margin:.3rem 0;padding-left:0;list-style:none;display:grid;gap:.5rem}
 .cty-dd li{overflow-wrap:anywhere;line-height:1.45}
-.cty-dd li>.cty-pill:first-child{margin-right:.45rem}
+/* Hàng có nhãn trạng thái: nhãn một cột cố định, chữ một cột — mọi hàng thẳng mép, nhãn không dính chữ (#1267) */
+.cty-hang{display:grid;grid-template-columns:4.6rem 1fr;gap:.7rem;align-items:baseline}
+.cty-hang>.cty-pill:first-child{justify-self:start;text-align:center;min-width:3.6rem}
 .cty-tin li{border-left:2px solid var(--line);padding-left:.6rem}
 .cty-tin-dau{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:.9rem}
 .cty-tin-gio{margin-left:auto}
 .cty-tin-than{font-size:.88rem;color:var(--muted);margin-top:2px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
-@media (max-width:600px){.cty-dd>summary{flex-wrap:wrap}.cty-dd-so{text-align:left}}
+
 
 /* Drawer dùng chung (components/drawer.tsx) */
 .cty-drawer-nen{position:fixed;inset:0;z-index:40;background:rgb(10 14 20/.38);display:flex;justify-content:flex-end}

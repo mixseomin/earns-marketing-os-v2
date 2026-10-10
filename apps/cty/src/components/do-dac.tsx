@@ -16,11 +16,11 @@ export async function DoDac({ p, ns }: { p: Doc; ns: Doc[] }) {
     <div className="cty-dodac">
       <details className="cty-dd">
         <summary>📋 Bảng công việc <span className="cty-dd-so">{bang.loai === 'thu-nghiem' ? `${bang.tong} lượt` : bang.loai === 'du-an' ? (bang.hm ? `${dem(bang.hm, 'trang_thai', 'Đang làm')} đang · ${(bang.buoc ?? []).filter((b) => b.trang_thai === 'Kẹt').length} kẹt · ${dem(bang.plays, 'status', 'pending')} card chờ` : 'không đọc được DB') : 'chưa gắn dự án'}</span></summary>
-        {bang.loai === 'thu-nghiem' && <ul>{bang.luot.map((l) => <li key={l.ts}><span className="cty-pill cty-pill-kind">{l.trang_thai}</span> {l.viec.slice(0, 80)} → <b>{l.viec_trang_thai || '—'}</b></li>)}{!bang.tong && <li className="cty-muted">chưa có lượt nào</li>}</ul>}
+        {bang.loai === 'thu-nghiem' && <ul>{bang.luot.map((l) => <li key={l.ts} className="cty-hang"><span className={`cty-pill ${l.trang_thai === 'xong' ? '' : 'cty-pill-off'}`}>{l.trang_thai}</span><span>{l.viec.slice(0, 80)} → <b>{l.viec_trang_thai || '—'}</b></span></li>)}{!bang.tong && <li className="cty-muted">chưa có lượt nào</li>}</ul>}
         {bang.loai === 'du-an' && (<>
           <p className="cty-mono">{duAn.map((d) => <span key={d}><a href={`https://mos2.on.tc/plays?view=tiendo&tdp=${d}`}>sổ tiến độ {d}</a> · <a href={`https://mos2.on.tc/p/${d}/plays`}>plays {d}</a> &nbsp;</span>)}</p>
           {bang.hm && <p className="cty-mono cty-muted">hạng mục: {['Đang làm', 'Chờ', 'Ý tưởng', 'Xong'].map((t) => `${t} ${dem(bang.hm, 'trang_thai', t)}`).join(' · ')} · plays: {['pending', 'claimed', 'submitted', 'completed', 'verified'].map((t) => `${t} ${dem(bang.plays, 'status', t)}`).join(' · ')}</p>}
-          <ul>{(bang.buoc ?? []).map((b, i) => <li key={i}><span className={`cty-pill ${b.trang_thai === 'Kẹt' ? 'cty-pill-off' : ''}`}>{String(b.trang_thai)}</span> <span className="cty-mono">{String(b.project_id)} {String(b.ma)} #{String(b.thu_tu)}</span> {String(b.buoc).slice(0, 90)}{b.ghi_chu ? <span className="cty-muted"> — {String(b.ghi_chu).slice(0, 80)}</span> : null}</li>)}</ul>
+          <ul>{(bang.buoc ?? []).map((b, i) => <li key={i} className="cty-hang"><span className={`cty-pill ${b.trang_thai === 'Kẹt' ? 'cty-pill-off' : ''}`}>{String(b.trang_thai)}</span><span><span className="cty-mono">{String(b.project_id)} {String(b.ma)} #{String(b.thu_tu)}</span> {String(b.buoc).slice(0, 90)}{b.ghi_chu ? <span className="cty-muted"> — {String(b.ghi_chu).slice(0, 80)}</span> : null}</span></li>)}</ul>
         </>)}
         {bang.loai === 'khong' && <p className="cty-muted">Phòng chức năng: việc nằm ở bảng của dự án đặt hàng.</p>}
       </details>

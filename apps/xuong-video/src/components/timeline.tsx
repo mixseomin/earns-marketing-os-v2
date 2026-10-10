@@ -426,7 +426,9 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               sinh && { loai: 'sfx', cc, giay: dur(cc), dang: cc.dang_sinh_sfx || sinh.ban(`s${cc.id}`), nghe: cc.am_thanh_url ? [cc.am_thanh_url] : [], title: `Bấm để chọn nguồn (clip / mô tả), model, mô tả, số giây rồi sinh` });
           }), 26, nutNho(tat.sfx ? '🔇' : '🔊', tat.sfx ? 'Hiệu ứng đang tắt — bấm để bật' : 'Tắt tiếng hiệu ứng', !!tat.sfx, () => batTat('sfx')))}
 
-          {track('🎵 Nhạc', 'Nhạc nền: theo từng phân cảnh (ưu tiên) hoặc một bài cả tập', khoiPc.some((kh) => kh.ten)
+          {/* Cùng luật bản xuất (urlCanXuat): có nhạc phân cảnh nào thì vẽ theo phân cảnh; không thì một khối nhạc cả tập — trước đây cứ có tên phân cảnh
+              là vẽ "chưa có nhạc" từng khối dù tập đã có bài cả tập (phim #5, 10/10/2026). */}
+          {track('🎵 Nhạc', 'Nhạc nền: theo từng phân cảnh (ưu tiên) hoặc một bài cả tập', khoiPc.some((kh) => kh.ten && tap.nhac_phan_canh?.[kh.ten]) || (!tap.nhac_url && khoiPc.some((kh) => kh.ten))
             ? khoiPc.map((kh, j) => {
                 const x = batDau[kh.tu]! * pps; const w = (batDau[kh.den]! + dur(canh[kh.den]!)) * pps - x;
                 const url = tap.nhac_phan_canh?.[kh.ten];

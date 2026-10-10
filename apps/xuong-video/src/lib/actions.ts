@@ -13,6 +13,7 @@ import { dayViecAnh, dayViecAm, chayNen } from '@/lib/xuong-video/hoan-tat';
 import { chayXuat, ghiBanXuat, gopAm } from '@/lib/xuong-video/xuat-chay';
 import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiong, timNv, giayNhac } from '@/lib/xuong-video/am-thanh';
 import { sinhNhacTap } from '@/lib/xuong-video/sinh-nhac';
+import { dsKho, luuShotVaoKho, dungTaiSan, boKhoiKho } from '@/lib/xuong-video/kho';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, type MoHinhGiong } from '@/lib/xuong-video/giong';
 import { boVaoThungRac, boAnhVaoThungRac, dsRac, khoiPhucRac, type MucRac } from '@/lib/xuong-video/thung-rac';
 import { batDauNangCap, danhMucFal, guiFal, type ModelFal } from '@/lib/xuong-video/fal';
@@ -25,7 +26,7 @@ import { ghepThoai, thieuQc, coMau, giayMau, type BaiDang, type MauQc } from '@/
 import { luuCanhTach } from '@/lib/xuong-video/luu-canh';
 import { chupTruoc, ganNhat, hoanTacGanNhat, type MucHoanTac } from '@/lib/xuong-video/hoan-tac';
 import { docPhimDich, uocDichCents, chayDichPhim } from '@/lib/xuong-video/dich-phim';
-import { NGON_NGU } from '@/lib/xuong-video/kieu';
+import { NGON_NGU, type LoaiTaiSan, type TaiSan } from '@/lib/xuong-video/kieu';
 import { type Row, n, s, arr, mangInt, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
 import { sinhAnhGoc, sinhKeyframeCanh } from '@/lib/xuong-video/sinh-anh';
 import { batDauVideoCanh, kiemVideoTap } from '@/lib/xuong-video/sinh-video';
@@ -1050,6 +1051,34 @@ export async function sinhNhac(tapId: number, model = 'cassetteai/music-generato
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   return sinhNhacTap(db, tapId, model, phanDoan, moTaThem);
+}
+
+// ── Kho tài sản dùng lại (10/10/2026) — lõi ở kho.ts ─────────────────────────────────────────────────────────────
+export async function dsTaiSan(o: { loai?: LoaiTaiSan[]; thuongHieu?: string; q?: string } = {}): Promise<TaiSan[]> {
+  const db = getDb();
+  if (!db || !(await admin())) return [];
+  return dsKho(db, o);
+}
+/** Lưu keyframe + clip đang dùng của shot vào kho. */
+export async function luuShotKho(canhId: number): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  return luuShotVaoKho(db, canhId);
+}
+/** Dùng một tài sản cho shot (clip/keyframe) hoặc tập (nhạc) — có ↶ Hoàn tác. */
+export async function dungTaiSanCho(id: number, dich: { canhId?: number; tapId?: number }): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  return dungTaiSan(db, id, dich, await ai());
+}
+export async function boTaiSan(id: number): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  await boKhoiKho(db, id);
+  return { ok: true, data: undefined };
 }
 
 /** Ước giá trước khi bấm (hiện trên nút). */

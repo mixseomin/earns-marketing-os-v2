@@ -7,8 +7,9 @@ import { useModalParam } from '@/lib/use-modal-param';
 import { Ngan } from './ngan';
 import { ThuVienNoiDung } from './thu-vien';
 import { SoChiPhi } from './so-chi-phi';
+import { KhoNoiDung, maDich, docDich, type DichKho } from './kho';
 
-export type YeuCauNgan = { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string };
+export type YeuCauNgan = { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho };
 const SU_KIEN = 'xv-ngan';
 export function moNgan(y: YeuCauNgan): void { window.dispatchEvent(new CustomEvent<YeuCauNgan>(SU_KIEN, { detail: y })); }
 /** Link tải tệp R2 qua proxy cùng nguồn (Content-Disposition: attachment) — tải về, không mở trang. */
@@ -22,6 +23,7 @@ function Host() {
     const h = (e: Event) => {
       const y = (e as CustomEvent<YeuCauNgan>).detail;
       if (y.loai === 'xem') setXem({ url: y.url, ten: y.ten });
+      else if (y.loai === 'kho') ngan.open('kho', maDich(y.dich ?? {}) || null);
       else { if (y.loai === 'thu-vien') setTl(y.tl ?? ''); ngan.open(y.loai, y.loai === 'so-chi-phi' ? y.phim ?? null : null); }
     };
     window.addEventListener(SU_KIEN, h); return () => window.removeEventListener(SU_KIEN, h);
@@ -32,6 +34,11 @@ function Host() {
     {ngan.is('thu-vien') && (
       <Ngan onClose={ngan.close} tieuDe="🎬 Thư viện điện ảnh">
         <ThuVienNoiDung key={tl} tlDau={tl} />
+      </Ngan>
+    )}
+    {ngan.is('kho') && (
+      <Ngan onClose={ngan.close} tieuDe="📦 Kho tài sản">
+        <KhoNoiDung key={ngan.id ?? ''} dich={docDich(ngan.id)} />
       </Ngan>
     )}
     {ngan.is('so-chi-phi') && (

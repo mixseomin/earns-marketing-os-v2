@@ -6,6 +6,7 @@
 // Hàng đợi không nhận (thiếu khoá, Cloudflare lỗi) → chạy ngay trong tiến trình như cũ, nút bấm không bao giờ chết theo.
 import 'server-only';
 import { sql } from 'drizzle-orm';
+import { luuVaoKho } from './kho';
 import { getDb } from '@mos2/db';
 import { danhMucFal } from './fal';
 import { giaAnhCents } from './kieu';
@@ -78,7 +79,7 @@ export async function hoanTatAm(kq: KqViecAm): Promise<boolean> {
   if (!db || !kq.job) return false;
   const r = (await db.execute(sql`UPDATE xv_job SET trang_thai = ${kq.ok ? 'xong' : 'loi'}, output_url = ${kq.ok ? kq.url : null},
       chi_phi_cents = CASE WHEN ${kq.ok} THEN coalesce((request->>'gia')::numeric, 0) ELSE 0 END, loi = ${kq.ok ? '' : kq.loi}, updated_at = now()
-    WHERE id = ${kq.job} AND trang_thai = 'cho' RETURNING canh_id, nhan_vat_id, request`)) as unknown as Row[];
+    WHERE id = ${kq.job} AND trang_thai = 'cho' RETURNING canh_id, nhan_vat_id, request, model`)) as unknown as Row[];
   const j = r[0];
   if (!j) return false;
   const rq = (j.request ?? {}) as Record<string, unknown>;
@@ -100,6 +101,10 @@ export async function hoanTatAm(kq: KqViecAm): Promise<boolean> {
   if (dich === 'nhac' && rq.tap_id != null) {
     if (rq.phan_doan) await db.execute(sql`UPDATE xv_tap SET nhac_phan_canh = nhac_phan_canh || jsonb_build_object(${String(rq.phan_doan)}::text, ${kq.url}::text), updated_at = now() WHERE id = ${Number(rq.tap_id)}`);
     else await db.execute(sql`UPDATE xv_tap SET nhac_url = ${kq.url}, updated_at = now() WHERE id = ${Number(rq.tap_id)}`);
+    // Nhạc nền luôn dùng lại được → tự vào kho tài sản (creative sau chọn từ kho thay vì sinh lại).
+    const p = (await db.execute(sql`SELECT p.id, p.project, p.ten, t.so FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${Number(rq.tap_id)}`)) as unknown as Array<Record<string, unknown>>;
+    if (p[0]) await luuVaoKho(db, { loai: 'nhac', url: kq.url, ten: `Nhạc · ${String(p[0].ten)} · tập ${String(p[0].so)}${rq.phan_doan ? ` · ${String(rq.phan_doan)}` : ''}`, thuong_hieu: String(p[0].project ?? ''),
+      mo_ta: String(rq.prompt ?? ''), so_do: { model: String(j.model ?? '') }, nguon: { phim_id: Number(p[0].id), tap_id: Number(rq.tap_id) } }).catch((e) => console.error('[kho] lưu nhạc hỏng', e));
   }
   if (dich === 'giong_mau' && j.nhan_vat_id != null) await db.execute(sql`UPDATE xv_nhan_vat SET giong_mau_url = ${kq.url}, updated_at = now() WHERE id = ${Number(j.nhan_vat_id)}`);
   return true;

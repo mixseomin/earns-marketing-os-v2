@@ -3,6 +3,7 @@
 // Lọc theo thể loại tại chỗ (state), không điều hướng.
 import { useEffect, useState } from 'react';
 import { dsKhuonShot } from '@/lib/actions';
+import { moNgan } from './ngan-chung';
 import { LOAI_SHOT_MAU } from '@/lib/xuong-video/kieu';
 import type { KhuonShot } from '@/lib/xuong-video/khuon-shot';
 import { THE_LOAI, NHOM_KY_THUAT, THU_VIEN, CAU_TRUC, hopTheLoai, type TheLoai } from '@/lib/xuong-video/dien-anh';
@@ -14,6 +15,7 @@ export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
   );
   return (
     <div>
+      <div style={{ marginBottom: 8 }}><button type="button" className="xv-btn" onClick={() => moNgan({ loai: 'kho' })}>📦 Kho tài sản dùng lại (clip · keyframe · nhạc)</button></div>
       <div className="xv-mono" style={{ marginBottom: 8 }}>Claude chọn kỹ thuật cho từng shot từ thư viện này theo thể loại của phim; đổi được trong form shot. {THU_VIEN.length} kỹ thuật · {THE_LOAI.length} thể loại.</div>
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 12 }}>
         {chip('', 'Tất cả')}

@@ -223,6 +223,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
           <Chon nho value={mhNhac} onChange={setMhNhac} minWidth={200} title="Model nhạc" options={MO_HINH_AM.filter((m) => m.loai === 'nhac').map((m) => ({ value: m.key, label: m.ten, phu: `${tien(m.gia)}/phút`, title: m.ghiChu }))} />
           <Nut ly={(!khoa.fal && 'thiếu FAL_KEY') || (!u.soPhanCanh && 'chưa có phân cảnh — tách lại cảnh')} ban={ban('nhac')} gia={uocA ? u.nhac[mhNhac] : undefined} title="Mỗi phân cảnh một đoạn nhạc riêng: dài bằng phân cảnh, theo cảm xúc đầu→cuối + nhịp + kỹ thuật nhạc của các shot" onClick={() => void chay('nhac', () => sinhNhac(tap.id, mhNhac, '*'))}>🎵 Nhạc theo {u.soPhanCanh} phân cảnh · {gia(u.nhac[mhNhac] ?? 0)}</Nut>
           <Nut ly={!khoa.fal && 'thiếu FAL_KEY'} ban={ban('nhac1')} gia={uocA ? u.nhac[mhNhac] : undefined} title="Một bài nền chạy suốt cả tập" onClick={() => void chay('nhac1', () => sinhNhac(tap.id, mhNhac))}>🎵 Một bài cả tập ({u.giay}s)</Nut>
+          <button type="button" className="xv-btn" title="Chọn nhạc nền đã sinh từ kho (0đ) — nhạc nào sinh xong cũng tự vào kho" onClick={() => moNgan({ loai: 'kho', dich: { tapId: tap.id } })}>📦 Nhạc từ kho</button>
           {u.dangNhac > 0 && <span style={{ ...mono, color: 'var(--violet)' }}>⏳ đang sinh {u.dangNhac} đoạn âm…</span>}
           {loiUoc && <span className="xv-loi">{loiUoc}</span>}
         </div>

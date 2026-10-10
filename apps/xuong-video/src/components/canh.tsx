@@ -5,7 +5,7 @@ import { useViTriNoi } from './vi-tri-noi';
 import { moNgan, linkTai } from './ngan-chung';
 import { dongThoai, tenNoi, LOI_DAN } from '@/lib/xuong-video/am-thanh';
 import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, chiTietKyThuat, type TheLoai } from '@/lib/xuong-video/dien-anh';
-import { suaCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, sinhVideoCanh, lamLaiTuKeyframe, sinhGiong, sinhAmThanh, xoaKeyframe, goiYAICanh, nangCapCanh, chonPhienBan, khopMiengCanh } from '@/lib/actions';
+import { suaCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, sinhVideoCanh, lamLaiTuKeyframe, sinhGiong, sinhAmThanh, xoaKeyframe, goiYAICanh, nangCapCanh, chonPhienBan, khopMiengCanh, luuShotKho } from '@/lib/actions';
 import { chuManHien, LOAI_NHAN_VAT, TRANG_THAI_CANH, doiBienThe, motBienTheMoiDoiTuong, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, KqChay, O, Pill, Nut, Loi, AnhNho, DangSinh, mono, Menu, MucMenu, NhomNut } from './ui';
@@ -227,6 +227,8 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh
               {(buoc === 'nhap' || buoc === 'cuoi') && <MucMenu ly={lyVideo} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo, 'cuoi'))} gia={giaVid}>🎬 Bản cuối = sinh lại bằng model đã chọn · {tien(giaVid)} (chuyển động có thể khác nháp)</MucMenu>}
               {buoc === 'cuoi' && <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} onClick={() => void chay(k, () => nangCapCanh(c.id))} gia={giaNangCap}>⬆ Nâng cấp lại từ nháp · {tien(giaNangCap)}</MucMenu>}
               {c.video_url && <a data-dong="" href={linkTai(c.video_url)} download className="xv-btn" style={{ textDecoration: 'none' }}>⬇ Tải nháp</a>}
+              {(c.keyframe_url || c.video_url) && <MucMenu onClick={() => void chay(k, () => luuShotKho(c.id))}>⭐ Lưu shot vào kho (keyframe + clip đang dùng)</MucMenu>}
+              <MucMenu onClick={() => moNgan({ loai: 'kho', dich: { canhId: c.id } })}>📦 Lấy clip / keyframe từ kho (0đ)</MucMenu>
               <MucMenu nguy onClick={() => void chay(k, async () => { await xoaCanh(c.id); })}>🗑 Xoá cảnh</MucMenu>
             </Menu>
             </div>

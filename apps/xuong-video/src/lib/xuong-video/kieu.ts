@@ -218,6 +218,15 @@ export const NHOM_BIEN_THE: Record<LoaiNhanVat, { key: string; label: string }[]
 export const nhanNhom = (loai: LoaiNhanVat, nhom: string) => NHOM_BIEN_THE[loai]?.find((x) => x.key === nhom)?.label ?? nhom;
 export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null; xuat: BanXuat[]; bai_dang: BaiDang | null };
 /** Một bản xuất MP4 của tập (mỗi nhánh hook một tệp). */
+/** Kho tài sản dùng lại (xv_tai_san): clip/keyframe đạt, nhạc nền, preset giọng, khuôn QC, kiểu chữ thương hiệu. */
+export type LoaiTaiSan = 'clip' | 'anh' | 'nhac' | 'giong' | 'khuon_qc' | 'kieu_chu';
+export const LOAI_TAI_SAN: { key: LoaiTaiSan; ten: string; icon: string }[] = [
+  { key: 'clip', ten: 'Clip', icon: '🎞' }, { key: 'anh', ten: 'Keyframe', icon: '🖼' }, { key: 'nhac', ten: 'Nhạc nền', icon: '🎵' },
+  { key: 'giong', ten: 'Giọng', icon: '🗣' }, { key: 'khuon_qc', ten: 'Khuôn QC', icon: '🧩' }, { key: 'kieu_chu', ten: 'Kiểu chữ', icon: '🔤' },
+];
+export type TaiSan = { id: number; loai: LoaiTaiSan; ten: string; url: string | null; thuong_hieu: string; san_pham: string; the: string[]; mo_ta: string;
+  so_do: Record<string, unknown> & { keyframe_url?: string | null; ti_le?: string; dai?: number }; du_lieu: Record<string, unknown>;
+  nguon: { phim_id?: number; tap_id?: number; canh_id?: number; job_id?: number }; chi_phi_cents: number; so_lan_dung: number; created_at: string };
 /** canh_bao = lệch chuẩn máy đo sau xuất (khoảng im, lẫn giọng, thiếu nhạc) — có là bản chưa đạt, studio tô đỏ. */
 export type BanXuat = { url: string; nhanh: string; giay: number; luc: string; job?: number; canh_bao?: string[] };
 export type Canh = {

@@ -77,6 +77,15 @@ export function giaGiong(m: GiaGiongModel | undefined, soKyTu: number): number |
   return null;
 }
 
+/** Giá (cents) một câu theo model — MỘT cửa cho nút, bảng ＋, ước lượng và sổ: danh mục fal trước, danh mục thiếu model / thiếu giá thì lấy giá đã
+ *  đọc tay trong MO_HINH_AM (10/10/2026: fal bỏ eleven-v3 khỏi danh mục TTS → 48 câu ghi $0). null = thật sự không rõ giá. */
+export function giaGiongTheo(dm: (GiaGiongModel & { key: string })[], model: string, soKyTu: number): number | null {
+  const g = giaGiong(dm.find((m) => m.key === model), soKyTu);
+  if (g != null) return g;
+  const tay = moHinhAm(model);
+  return tay?.loai === 'giong' ? giaAm(model, soKyTu) : null;
+}
+
 /** Nhân vật (loại nhan_vat) xuất hiện ĐẦU TIÊN theo thứ tự của shot — không theo thứ tự danh sách nhân vật của phim. */
 function nhanVatDauCua(c: Pick<Canh, 'nhan_vat'>, nv: NhanVat[]): NhanVat | undefined {
   for (const id of c.nhan_vat) { const v = nv.find((x) => x.id === id && x.loai === 'nhan_vat'); if (v) return v; }

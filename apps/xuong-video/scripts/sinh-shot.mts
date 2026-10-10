@@ -21,7 +21,7 @@ import { sinhKeyframeCanh } from '../src/lib/xuong-video/sinh-anh';
 import { batDauVideoCanh, kiemVideoTap, promptVideoCanh } from '../src/lib/xuong-video/sinh-video';
 import { sinhGiongShots } from '../src/lib/xuong-video/sinh-giong';
 import { giaAnhSv } from '../src/lib/xuong-video/hoan-tat';
-import { dongThoai, giaGiong } from '../src/lib/xuong-video/am-thanh';
+import { dongThoai, giaGiongTheo } from '../src/lib/xuong-video/am-thanh';
 import { dsMoHinhGiong } from '../src/lib/xuong-video/giong';
 import { boiCanhCanh, mapCanh, giaVideoSv, type Row } from '../src/lib/xuong-video/doc-db';
 import { lamTronClip, tien, chanChuModel, coTiengViet } from '../src/lib/xuong-video/kieu';
@@ -55,7 +55,7 @@ let uocVideo = 0, uocGiong = 0;
 for (const bc of bcs) {
   const giay = lamTronClip(bc.canh.thoi_luong_s);
   uocVideo += await giaVideoSv(kt.mo_hinh_video, kt.do_phan_giai, giay).catch(() => 0);
-  for (const d of dongThoai(bc.canh, bc.nhanVat)) { const v = bc.nhanVat.find((x) => x.ten === d.nhan_vat); uocGiong += giaGiong(dm.find((m) => m.key === (v?.giong_model || 'elevenlabs:eleven_v3')), d.loi.length) ?? 0; }
+  for (const d of dongThoai(bc.canh, bc.nhanVat)) { const v = bc.nhanVat.find((x) => x.ten === d.nhan_vat); uocGiong += giaGiongTheo(dm, v?.giong_model || 'elevenlabs:eleven_v3', d.loi.length) ?? 0; }
 }
 console.log(`tập #${tapId} · ${bcs.map((b) => `#${b.canh.thu_tu} (id ${b.canh.id}, ${b.canh.trang_thai}${b.canh.keyframe_url ? ', có keyframe' : ''})`).join(' · ')}`);
 console.log(`  ước: keyframe ${bcs.length} × ${tien(giaAnh)} = ${tien(giaAnh * bcs.length)} · video ${kt.mo_hinh_video} ${kt.do_phan_giai} ≈ ${tien(uocVideo)} · giọng ≈ ${tien(uocGiong)}`);

@@ -3,7 +3,7 @@
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import { dayViecAm } from './hoan-tat';
-import { dongThoai, giaGiong, GIONG_MAC_DINH, timNv } from './am-thanh';
+import { dongThoai, giaGiongTheo, GIONG_MAC_DINH, timNv } from './am-thanh';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, coElevenTrucTiep } from './giong';
 import { boiCanhTap, mapCanh, taoJob, type Db, type Row } from './doc-db';
 import { chanChuModel, coMau, thuongHieu } from './kieu';
@@ -83,7 +83,7 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
             dungLai++; continue;
           }
         }
-        const g = giaGiong(dm.find((m) => m.key === model), text.length);
+        const g = giaGiongTheo(dm, model, text.length);
         const gia = g ?? 0;   // model không công bố giá → sổ ghi 0 và nhãn job ghi "giá chưa rõ" để sổ chi phí không hiểu nhầm là miễn phí
         const job = await taoJob(db, { nhan: `Giọng · shot #${c.thu_tu} dòng ${i + 1} · ${v?.ten ?? 'lời dẫn'} (${voice})${g == null ? ' · giá chưa rõ' : ''}`, canh_id: c.id, nhan_vat_id: v?.id, loai: 'am', provider: model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: model.startsWith('elevenlabs:') ? model : `fal:${model}`, request: { dich: 'thoai', dong: i, gia, text, voice, giong: `${model}|${voice}` } });
         await dayViecAm({ kieu: 'am', job, model, input: await dauVaoGiongTheoModel(model, { text: d.dien_xuat && /eleven/.test(model) && /v3/.test(model) ? `[${d.dien_xuat}] ${text}` : text, voice, ngonNgu: bc.kt.ngon_ngu ?? 'vi', camXuc: tuy.camXuc ?? (v ? c.cam_xuc : camDan), theLoai: bc.kt.the_loai ?? '' }), thuMuc: `thoai/${c.id}-${i}` });

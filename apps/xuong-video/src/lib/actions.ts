@@ -11,7 +11,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { uploadToR2 } from '@/lib/r2';
 import { dayViecAnh, dayViecAm, chayNen } from '@/lib/xuong-video/hoan-tat';
 import { chayXuat, ghiBanXuat, gopAm } from '@/lib/xuong-video/xuat-chay';
-import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiong, timNv, giayNhac } from '@/lib/xuong-video/am-thanh';
+import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiongTheo, timNv, giayNhac } from '@/lib/xuong-video/am-thanh';
 import { sinhNhacTap } from '@/lib/xuong-video/sinh-nhac';
 import { dsKho, luuShotVaoKho, dungTaiSan, boKhoiKho, luuKhuonQc, taoTapTuKhuon, apKieuChuThuongHieu } from '@/lib/xuong-video/kho';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, type MoHinhGiong } from '@/lib/xuong-video/giong';
@@ -1014,7 +1014,7 @@ export async function ngheThuGiong(nhanVatId: number): Promise<Kq<number>> {
   const v = mapNhanVat(r[0]); const kt = docKinhThanh(r[0].kt as KinhThanh);
   if (!v.giong_model) return loi('chọn giọng trước');
   const text = kt.ngon_ngu === 'vi' ? `Xin chào, mình là ${v.ten}. Đây là giọng của mình trong cả bộ phim.` : `Hi, I'm ${v.ten}. This is how I sound in the whole series.`;
-  const g = giaGiong((await dsMoHinhGiong()).find((m) => m.key === v.giong_model), text.length);
+  const g = giaGiongTheo(await dsMoHinhGiong(), v.giong_model, text.length);
   const gia = g ?? 0;
   const job = await taoJob(db, { nhan: `Nghe thử giọng · ${v.ten} (${v.giong_id})${g == null ? ' · giá chưa rõ' : ''}`, nhan_vat_id: v.id, loai: 'am', provider: v.giong_model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: v.giong_model.startsWith('elevenlabs:') ? v.giong_model : `fal:${v.giong_model}`, request: { dich: 'giong_mau', gia, text } });
   await dayViecAm({ kieu: 'am', job, model: v.giong_model, input: await dauVaoGiongTheoModel(v.giong_model, { text, voice: v.giong_id, ngonNgu: kt.ngon_ngu, camXuc: 0, theLoai: kt.the_loai }), thuMuc: `giong/${v.id}` });
@@ -1106,7 +1106,7 @@ export async function uocAm(tapId: number): Promise<{ giong: number; soThoai: nu
   for (const c of ds) {
     const dsT = bc ? dongThoai(c, bc.nhanVat) : c.thoai;
     if (dsT.length) {
-      for (const d of dsT) { const v = timNv(bc?.nhanVat ?? [], d.nhan_vat); giong += giaGiong(dm.find((m) => m.key === (v?.giong_model || MODEL_GIONG_MAC_DINH())), d.loi.length) ?? 0; }
+      for (const d of dsT) { const v = timNv(bc?.nhanVat ?? [], d.nhan_vat); giong += giaGiongTheo(dm, v?.giong_model || MODEL_GIONG_MAC_DINH(), d.loi.length) ?? 0; }
       soThoai++;
     }
     const clip = c.video_cuoi_url || c.video_url;

@@ -4,7 +4,6 @@
 // - ElevenLabs trực tiếp (khoá ELEVENLABS_API_KEY trên box): mọi giọng trong tài khoản (giọng clone, giọng thêm từ thư viện),
 //   tính vào gói ElevenLabs của tài khoản thay vì fal. Không có khoá thì nhóm này không hiện.
 import 'server-only';
-import { moHinhAm } from './am-thanh';
 
 type Truong = { type?: string; enum?: unknown[]; examples?: unknown[]; anyOf?: Array<{ enum?: unknown[]; $ref?: string }>; allOf?: Array<{ $ref?: string }>; $ref?: string; properties?: Record<string, Truong>; description?: string };
 export type MoHinhGiong = { key: string; ten: string; nhom: string; giaCents: number | null; donVi: '1k_ky_tu' | 'giay' | 'luot' | 'khac'; giaText: string };
@@ -44,10 +43,7 @@ export async function dsMoHinhGiong(): Promise<MoHinhGiong[]> {
       const fal = (j.items ?? []).map((m) => String(m.id ?? '')).filter((id) => id && !/voice-clone|voice-design|clone-voice|stream|batch|realtime/.test(id));
       const items = new Map((j.items ?? []).map((m) => [String(m.id), m]));
       const tao = (giaTrang: Map<string, string>) => fal.map((id) => {
-        const m = items.get(id)!; const goc = String(m.pricingInfoOverride ?? '').trim() || giaTrang.get(id) || ''; const g0 = giaTts(goc);
-        // Danh mục fal trống giá + giá trang riêng đọc NỀN chưa kịp về (script chạy ngắn trên box) → lấy giá đã đọc tay trong MO_HINH_AM,
-        // kẻo sổ ghi 0 cho lượt giọng có tính tiền thật (10/10/2026: 32 câu ElevenLabs v3 của phim #5 ghi $0).
-        const tay = moHinhAm(id); const g = g0.cents == null && tay?.loai === 'giong' ? { cents: tay.gia, donVi: tay.donVi as MoHinhGiong['donVi'] } : g0;
+        const m = items.get(id)!; const goc = String(m.pricingInfoOverride ?? '').trim() || giaTrang.get(id) || ''; const g = giaTts(goc);   // thiếu giá → giaGiongTheo (am-thanh) lấy giá đọc tay, một cửa cho mọi nơi tra
         const hang = id.split('/')[0] === 'fal-ai' ? id.split('/')[1] : id.split('/')[0];
         return { key: id, ten: String(m.title ?? id), nhom: `fal · ${hang}`, giaCents: g.cents, donVi: g.donVi, giaText: goc.replace(/\*\*/g, '') || 'fal chưa công bố giá' } as MoHinhGiong;
       });

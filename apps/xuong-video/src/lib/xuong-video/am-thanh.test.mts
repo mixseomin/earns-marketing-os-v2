@@ -68,3 +68,11 @@ assert.equal(promptCamXuc({ ...(cCx as object), thoai: [], cam_xuc: 0 } as never
   assert.deepEqual(doiBienThe([20], phong, 20), [20]);          // id không thuộc đối tượng → bỏ qua
   assert.deepEqual(motBienTheMoiDoiTuong([10, 20, 11], [phong, lan]), [20, 11]);
 }
+// Danh mục fal không còn model (eleven-v3 bị bỏ khỏi danh mục TTS) → vẫn tính theo giá đọc tay, không ghi $0 (10/10/2026).
+{
+  const { giaGiongTheo } = await import('./am-thanh');
+  assert.strictEqual(giaGiongTheo([], 'fal-ai/elevenlabs/tts/eleven-v3', 500), 5);
+  assert.strictEqual(giaGiongTheo([{ key: 'x', giaCents: 20, donVi: '1k_ky_tu' }], 'x', 500), 10);
+  assert.strictEqual(giaGiongTheo([], 'model-la', 500), null);
+  console.log('am-thanh: giá giọng thiếu danh mục ok');
+}

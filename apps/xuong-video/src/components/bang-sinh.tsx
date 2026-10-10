@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Chon } from './chon';
 import { useXacNhanTien } from './xac-nhan-tien';
 import { dsGiongModel, dsGiongCua, chonGiong, type TuyGiong, type TuyAm } from '@/lib/actions';
-import { MO_HINH_AM, GIONG, giaAm, dongThoai, giaGiong, GIONG_MAC_DINH, tenNoi, timNv, LOI_DAN } from '@/lib/xuong-video/am-thanh';
+import { MO_HINH_AM, GIONG, giaAm, dongThoai, giaGiongTheo, GIONG_MAC_DINH, tenNoi, timNv, LOI_DAN } from '@/lib/xuong-video/am-thanh';
 import { nhanKyThuat } from '@/lib/xuong-video/dien-anh';
 import { tien, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { mono } from './ui';
@@ -73,7 +73,7 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
   // Cùng luật giá với máy chủ (am-thanh.giaGiong); có dòng dùng model chưa công bố giá → báo "chưa rõ" thay vì đoán.
   const giaG = useMemo(() => {
     let tong = 0, chuaRo = false;
-    for (const d of dong.filter((x) => phamVi === 'tat_ca' || !x.url)) { const g = giaGiong(dsM.find((m) => m.key === chonG[d.nhan_vat.trim()]?.model), d.loi.length); if (g == null) chuaRo = true; else tong += g; }
+    for (const d of dong.filter((x) => phamVi === 'tat_ca' || !x.url)) { const g = giaGiongTheo(dsM, chonG[d.nhan_vat.trim()]?.model ?? '', d.loi.length); if (g == null) chuaRo = true; else tong += g; }
     return { tong, chuaRo };
   }, [dsM, dong, phamVi, chonG]);
   const camXucSo = camXuc === 'shot' ? undefined : Number(camXuc);

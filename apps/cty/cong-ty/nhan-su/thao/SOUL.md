@@ -1,5 +1,6 @@
 ---
 ten: Thảo
+gioi_tinh: nu
 thu_tu: 7
 chuc_danh: Trưởng phòng Sách
 phong: sach

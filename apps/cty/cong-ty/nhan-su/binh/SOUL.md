@@ -1,5 +1,6 @@
 ---
 ten: Bình
+gioi_tinh: nam
 thu_tu: 11
 chuc_danh: Nhân viên thị trường
 phong: sach

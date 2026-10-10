@@ -1,5 +1,6 @@
 ---
 ten: Dũng
+gioi_tinh: nam
 thu_tu: 8
 chuc_danh: Trưởng dự án cụm site công cụ
 phong: dung-san-pham

@@ -1,5 +1,6 @@
 ---
 ten: Lộc
+gioi_tinh: nam
 thu_tu: 22
 chuc_danh: Nhân viên làm việc
 phong: thu-nghiem

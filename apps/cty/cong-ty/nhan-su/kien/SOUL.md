@@ -1,5 +1,6 @@
 ---
 ten: Kiên
+gioi_tinh: nam
 thu_tu: 19
 chuc_danh: Trưởng phòng An toàn tài khoản
 phong: an-toan-tk

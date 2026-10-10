@@ -1,5 +1,6 @@
 ---
 ten: Nhi
+gioi_tinh: nu
 thu_tu: 10
 chuc_danh: Nhân viên nội dung sách
 phong: sach

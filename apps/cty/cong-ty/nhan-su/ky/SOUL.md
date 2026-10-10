@@ -1,5 +1,6 @@
 ---
 ten: Kỳ
+gioi_tinh: nam
 thu_tu: 23
 chuc_danh: Người kiểm (khác mô hình người làm)
 phong: thu-nghiem

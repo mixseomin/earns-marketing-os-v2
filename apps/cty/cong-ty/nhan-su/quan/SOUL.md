@@ -1,5 +1,6 @@
 ---
 ten: Quân
+gioi_tinh: nam
 thu_tu: 6
 chuc_danh: Trưởng dự án Astrolas
 phong: dung-san-pham

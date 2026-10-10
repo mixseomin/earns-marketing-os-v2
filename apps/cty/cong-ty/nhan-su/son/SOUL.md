@@ -1,5 +1,6 @@
 ---
 ten: Sơn
+gioi_tinh: nam
 thu_tu: 17
 chuc_danh: Trưởng phòng Kinh doanh
 phong: kinh-doanh

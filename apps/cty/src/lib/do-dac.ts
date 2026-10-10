@@ -10,7 +10,10 @@ import gia from '../../worker/gia-model.json';
 import { dsLuot } from './thu-nghiem';
 
 type Row = Record<string, unknown>;
-const q = async (s: ReturnType<typeof sql>): Promise<Row[] | null> => { const db = getDb(); if (!db) return null; try { return (await db.execute(s)) as unknown as Row[]; } catch { return null; } };
+// Mảng JS trong sql`` bị drizzle bung thành ($1, $2) → `= ANY(($1,$2))` hỏng cú pháp; phải dựng ARRAY[...] tường minh.
+const arr = (xs: string[]) => sql`ARRAY[${sql.join(xs.map((x) => sql`${x}`), sql`, `)}]::text[]`;
+// null = không đọc được (không DB hoặc truy vấn lỗi). Lỗi ghi ra journal của mos2-cty, không nuốt im.
+const q = async (s: ReturnType<typeof sql>): Promise<Row[] | null> => { const db = getDb(); if (!db) return null; try { return (await db.execute(s)) as unknown as Row[]; } catch (e) { console.error('do-dac:', (e as Error).message); return null; } };
 
 export async function bangCongViec(p: Doc) {
   const duAn = Array.isArray(p.fm.du_an) ? (p.fm.du_an as string[]) : [];
@@ -19,9 +22,9 @@ export async function bangCongViec(p: Doc) {
     return { loai: 'thu-nghiem' as const, luot: luot.slice(0, 5).map((l) => ({ ts: l.ts, viec: l.viec, trang_thai: l.trang_thai, viec_trang_thai: l.ket?.trang_thai_viec ?? '' })), tong: luot.length };
   }
   if (!duAn.length) return { loai: 'khong' as const };
-  const hm = await q(sql`SELECT project_id, trang_thai, count(*)::int AS n FROM tien_do_hang_muc WHERE project_id = ANY(${duAn}) GROUP BY 1, 2`);
-  const buoc = await q(sql`SELECT h.project_id, h.ma, b.thu_tu, b.buoc, b.trang_thai, b.ghi_chu FROM tien_do_buoc b JOIN tien_do_hang_muc h ON h.id = b.hang_muc_id WHERE h.project_id = ANY(${duAn}) AND b.trang_thai IN ('Đang', 'Kẹt') ORDER BY b.trang_thai, b.updated_at DESC LIMIT 8`);
-  const plays = await q(sql`SELECT project_id, status, count(*)::int AS n FROM human_tasks WHERE platform_key = 'backlink' AND project_id = ANY(${duAn}) GROUP BY 1, 2`);
+  const hm = await q(sql`SELECT project_id, trang_thai, count(*)::int AS n FROM tien_do_hang_muc WHERE project_id = ANY(${arr(duAn)}) GROUP BY 1, 2`);
+  const buoc = await q(sql`SELECT h.project_id, h.ma, b.thu_tu, b.buoc, b.trang_thai, b.ghi_chu FROM tien_do_buoc b JOIN tien_do_hang_muc h ON h.id = b.hang_muc_id WHERE h.project_id = ANY(${arr(duAn)}) AND b.trang_thai IN ('Đang', 'Kẹt') ORDER BY b.trang_thai, b.updated_at DESC LIMIT 8`);
+  const plays = await q(sql`SELECT project_id, status, count(*)::int AS n FROM human_tasks WHERE platform_key = 'backlink' AND project_id = ANY(${arr(duAn)}) GROUP BY 1, 2`);
   return { loai: 'du-an' as const, duAn, hm, buoc, plays };
 }
 
@@ -45,7 +48,7 @@ export function homTin(ns: Doc[], n = 8) {
 
 export async function soChi(ns: Doc[]) {
   const feats = ns.map((d) => `cty:${d.id}`);
-  const rows = await q(sql`SELECT feature, model, sum(prompt_tokens)::int AS vao, sum(completion_tokens)::int AS ra, count(*)::int AS luot FROM ai_usage WHERE feature = ANY(${feats}) AND created_at >= date_trunc('month', now()) GROUP BY 1, 2 ORDER BY 1`);
+  const rows = await q(sql`SELECT feature, model, sum(prompt_tokens)::int AS vao, sum(completion_tokens)::int AS ra, count(*)::int AS luot FROM ai_usage WHERE feature = ANY(${arr(feats)}) AND created_at >= date_trunc('month', now()) GROUP BY 1, 2 ORDER BY 1`);
   if (!rows) return null;
   const giaCua = (model: string) => { const ten = model.includes(':') ? model.split(':')[1]! : model; const k = Object.keys(gia).filter((x) => x !== '_' && ten.startsWith(x)).sort((a, b) => b.length - a.length)[0]; return k ? (gia as unknown as Record<string, [number, number]>)[k] : null; };
   const ds = rows.map((r) => { const g = giaCua(String(r.model)); const usd = g ? (Number(r.vao) * g[0] + Number(r.ra) * g[1]) / 1e6 : null; return { nguoi: String(r.feature).replace('cty:', ''), model: String(r.model), vao: Number(r.vao), ra: Number(r.ra), luot: Number(r.luot), usd }; });

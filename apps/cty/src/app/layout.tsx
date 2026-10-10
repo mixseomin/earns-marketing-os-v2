@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import './cty.css';
 import { getCurrentUser } from '@/lib/auth';
+import { DrawerLinks } from '@/components/drawer';
+import { GopY } from '@/components/gop-y';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: { default: 'Công ty', template: '%s · Công ty' }, robots: { index: false, follow: false } };
 
-export default async function Layout({ children }: { children: React.ReactNode }) {
+export default async function Layout({ children, drawer }: { children: React.ReactNode; drawer: React.ReactNode }) {
   const me = await getCurrentUser();
   return (
     <html lang="vi">
@@ -24,6 +26,9 @@ export default async function Layout({ children }: { children: React.ReactNode }
           {me && <span className="cty-mono cty-muted">{me.displayName || me.email}</span>}
         </header>
         <main className="cty-main">{children}</main>
+        {drawer}
+        <DrawerLinks />
+        {me?.role === 'admin' && <GopY />}
       </body>
     </html>
   );

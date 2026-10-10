@@ -12,7 +12,7 @@ export async function DoDac({ p, ns }: { p: Doc; ns: Doc[] }) {
   return (
     <div className="cty-dodac">
       <details className="cty-dd">
-        <summary>📋 Bảng công việc <span className="cty-dd-so">{bang.loai === 'thu-nghiem' ? `${bang.tong} lượt` : bang.loai === 'du-an' ? (bang.hm ? `${dem(bang.hm, 'trang_thai', 'Đang làm')} đang · ${(bang.buoc ?? []).filter((b) => b.trang_thai === 'Kẹt').length} kẹt · ${dem(bang.plays, 'status', 'pending')} card chờ` : 'không nối DB') : 'chưa gắn dự án'}</span></summary>
+        <summary>📋 Bảng công việc <span className="cty-dd-so">{bang.loai === 'thu-nghiem' ? `${bang.tong} lượt` : bang.loai === 'du-an' ? (bang.hm ? `${dem(bang.hm, 'trang_thai', 'Đang làm')} đang · ${(bang.buoc ?? []).filter((b) => b.trang_thai === 'Kẹt').length} kẹt · ${dem(bang.plays, 'status', 'pending')} card chờ` : 'không đọc được DB') : 'chưa gắn dự án'}</span></summary>
         {bang.loai === 'thu-nghiem' && <ul>{bang.luot.map((l) => <li key={l.ts}><span className="cty-pill cty-pill-kind">{l.trang_thai}</span> {l.viec.slice(0, 80)} → <b>{l.viec_trang_thai || '—'}</b></li>)}{!bang.tong && <li className="cty-muted">chưa có lượt nào</li>}</ul>}
         {bang.loai === 'du-an' && (<>
           <p className="cty-mono">{duAn.map((d) => <span key={d}><a href={`https://mos2.on.tc/plays?view=tiendo&tdp=${d}`}>sổ tiến độ {d}</a> · <a href={`https://mos2.on.tc/p/${d}/plays`}>plays {d}</a> &nbsp;</span>)}</p>
@@ -35,7 +35,7 @@ export async function DoDac({ p, ns }: { p: Doc; ns: Doc[] }) {
         <ul>{tin.map((t, i) => <li key={i}><span className="cty-mono cty-muted">{t.ts.slice(5, 16).replace('T', ' ')}</span> <b>{t.tu}</b> → <b>{t.toi}</b> <span className="cty-mono">{t.buoc}</span>: {t.noi_dung.slice(0, 140)} {t.luot && <Link className="cty-mono" href={`/nhat-ky?luot=${encodeURIComponent(t.luot)}`}>↗</Link>}</li>)}</ul>
       </details>
       <details className="cty-dd">
-        <summary>💰 Sổ chi tháng này <span className="cty-dd-so">{chi ? `$${chi.tongUsd.toFixed(4)} · ${chi.ds.reduce((s, r) => s + r.luot, 0)} lượt gọi` : 'không nối DB'}</span></summary>
+        <summary>💰 Sổ chi tháng này <span className="cty-dd-so">{chi ? `$${chi.tongUsd.toFixed(4)} · ${chi.ds.reduce((s, r) => s + r.luot, 0)} lượt gọi` : 'không đọc được DB'}</span></summary>
         {chi && (chi.ds.length ? <ul>{chi.ds.map((r, i) => <li key={i}><b>{r.nguoi}</b> <span className="cty-mono">{r.model}</span> · {r.luot} lượt · {r.vao}+{r.ra} tok · {r.usd != null ? `$${r.usd.toFixed(4)}` : 'giá ?'} / trần ${chi.tranNguoi[r.nguoi] ?? 0}</li>)}</ul> : <p className="cty-muted">chưa chi đồng nào</p>)}
       </details>
       <details className="cty-dd">

@@ -1,5 +1,6 @@
 ---
 ten: Phúc
+gioi_tinh: nam
 thu_tu: 12
 chuc_danh: Nhân viên kênh video
 phong: sach

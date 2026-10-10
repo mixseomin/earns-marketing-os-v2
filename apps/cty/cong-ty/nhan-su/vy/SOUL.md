@@ -1,5 +1,6 @@
 ---
 ten: Vy
+gioi_tinh: nu
 thu_tu: 9
 chuc_danh: Trưởng dự án CourseForge
 phong: du-an

@@ -1,5 +1,6 @@
 ---
 ten: Hùng
+gioi_tinh: nam
 thu_tu: 1
 chuc_danh: Tiếp nhận
 phong: vp-giam-doc

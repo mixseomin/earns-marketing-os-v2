@@ -1,5 +1,6 @@
 ---
 ten: Lan
+gioi_tinh: nu
 thu_tu: 5
 chuc_danh: Trưởng dự án AdFond
 phong: adfond

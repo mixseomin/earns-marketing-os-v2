@@ -1,5 +1,6 @@
 ---
 ten: Tâm
+gioi_tinh: nu
 thu_tu: 21
 chuc_danh: Trưởng phòng thử
 phong: thu-nghiem

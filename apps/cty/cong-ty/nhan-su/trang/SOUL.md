@@ -1,5 +1,6 @@
 ---
 ten: Trang
+gioi_tinh: nu
 thu_tu: 18
 chuc_danh: Trưởng phòng Pháp chế
 phong: phap-che

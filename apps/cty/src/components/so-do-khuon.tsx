@@ -74,7 +74,7 @@ export function SoDoKhuon({ p, ns }: { p: Doc; ns: Doc[] }) {
     <Box x={660} y={152} w={240} h={34} t="Kiên · cờ freeze" teal href="/nhan-su/kien" />
     <Ar d="M780 186 V212" />
     <Box x={660} y={214} w={240} h={40} t="Kệ kết quả" s="đã đăng / đã giao" />
-    <Box x={30} y={190} w={330} h={44} t="Trang · sau sự cố" s="review, khiếu nại → soạn, anh ký" warn href="/nhan-su/trang" />
+    <Box x={30} y={212} w={330} h={44} t="Trang · sau sự cố" s="review, khiếu nại → soạn, anh ký" warn href="/nhan-su/trang" />
     <Ar d="M660 234 H362" warn dash />
   </>);
   return (

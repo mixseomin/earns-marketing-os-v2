@@ -1,5 +1,6 @@
 ---
 ten: Khoa
+gioi_tinh: nam
 thu_tu: 13
 chuc_danh: Trưởng phòng Marketing
 phong: marketing

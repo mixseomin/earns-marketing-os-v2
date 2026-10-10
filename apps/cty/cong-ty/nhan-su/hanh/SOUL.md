@@ -1,5 +1,6 @@
 ---
 ten: Hạnh
+gioi_tinh: nu
 thu_tu: 16
 chuc_danh: Thuê ngoài
 phong: thue-ngoai

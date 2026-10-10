@@ -1,5 +1,6 @@
 ---
 ten: Tùng
+gioi_tinh: nam
 thu_tu: 15
 chuc_danh: Trưởng phòng Kỹ thuật
 phong: ky-thuat

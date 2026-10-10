@@ -1,5 +1,6 @@
 ---
 ten: Mai
+gioi_tinh: nu
 thu_tu: 20
 chuc_danh: Trưởng phòng nghiên cứu thị trường
 phong: nghien-cuu-thi-truong

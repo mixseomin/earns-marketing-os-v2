@@ -1,5 +1,6 @@
 ---
 ten: Ngọc
+gioi_tinh: nu
 thu_tu: 14
 chuc_danh: Trưởng phòng Nội dung
 phong: noi-dung

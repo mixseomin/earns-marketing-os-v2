@@ -1,5 +1,6 @@
 ---
 ten: Hà
+gioi_tinh: nu
 thu_tu: 3
 chuc_danh: Kiểm soát (tuyến 3)
 phong: vp-giam-doc

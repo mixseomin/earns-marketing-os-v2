@@ -1,5 +1,6 @@
 ---
 ten: An
+gioi_tinh: nu
 thu_tu: 4
 chuc_danh: Tài chính
 phong: vp-giam-doc

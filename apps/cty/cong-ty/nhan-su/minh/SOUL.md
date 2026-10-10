@@ -1,5 +1,6 @@
 ---
 ten: Minh
+gioi_tinh: nam
 thu_tu: 2
 chuc_danh: Chánh văn phòng
 phong: vp-giam-doc

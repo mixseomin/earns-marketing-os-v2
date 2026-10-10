@@ -88,7 +88,7 @@ h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem}
 .cty-log-ct{max-width:60ch;overflow-wrap:anywhere}
 .cty-pills a.cty-pill{text-decoration:none}
 
-.cty-dodac{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px;margin:.8rem 0}
+.cty-dodac{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:8px;margin:.8rem 0}
 .cty-dd{background:var(--surface);border:1px solid var(--line);border-radius:6px;min-width:0}
 .cty-dd>summary{cursor:pointer;padding:.55rem .8rem;font-family:var(--head);font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
 .cty-dd[open]{grid-column:1/-1}
@@ -97,6 +97,11 @@ h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem}
 .cty-dd ul{margin:.3rem 0;padding-left:0;list-style:none;display:grid;gap:.5rem}
 .cty-dd li{overflow-wrap:anywhere;line-height:1.45}
 .cty-dd li>.cty-pill:first-child{margin-right:.45rem}
+.cty-tin li{border-left:2px solid var(--line);padding-left:.6rem}
+.cty-tin-dau{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:.9rem}
+.cty-tin-gio{margin-left:auto}
+.cty-tin-than{font-size:.88rem;color:var(--muted);margin-top:2px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+@media (max-width:600px){.cty-dd>summary{flex-wrap:wrap}.cty-dd-so{text-align:left}}
 
 /* Drawer dùng chung (components/drawer.tsx) */
 .cty-drawer-nen{position:fixed;inset:0;z-index:40;background:rgb(10 14 20/.38);display:flex;justify-content:flex-end}
@@ -107,21 +112,10 @@ h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem}
 .cty-drawer-than{flex:1;overflow:auto;padding:14px 16px calc(40px + env(safe-area-inset-bottom,0px))}
 .cty-drawer-than .cty-main{padding:0}
 
-/* Hòm góp ý */
-.cty-gopy-nut{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:30;width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-size:1.4rem;cursor:pointer;box-shadow:0 4px 14px rgb(0 0 0/.18)}
-.cty-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px}
-.cty-tabs button{border:0;background:none;color:var(--muted);padding:6px 10px;cursor:pointer;font:inherit;border-bottom:2px solid transparent}
-.cty-tabs button[aria-selected=true]{color:var(--accent);border-bottom-color:var(--accent)}
-.cty-gopy form{display:grid;gap:10px}
-.cty-gopy textarea,.cty-gopy select{width:100%;font:inherit;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
-.cty-gopy-anh{display:flex;flex-wrap:wrap;gap:6px}
-.cty-gopy-anh span{position:relative}
-.cty-gopy-anh img{width:84px;height:64px;object-fit:cover;border:1px solid var(--line);border-radius:4px;display:block}
-.cty-gopy-anh button{position:absolute;top:-6px;right:-6px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);width:20px;height:20px;line-height:1;cursor:pointer;padding:0}
-.cty-gopy-loi{background:var(--warn-bg);color:var(--warn);border-left:3px solid var(--warn);padding:.5rem .7rem;border-radius:0 6px 6px 0}
-.cty-gopy-ok{background:var(--soft);color:var(--accent);padding:.5rem .7rem;border-radius:6px}
-.cty-gopy ul{list-style:none;padding:0;margin:0;display:grid;gap:8px}
-.cty-gopy li{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
-.cty-gopy li a{text-decoration:none;display:block}
-.cty-nut{font:inherit;padding:8px 14px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;justify-self:start}
-.cty-nut:disabled{opacity:.55;cursor:default}
+/* Hòm góp ý (@mos2/gop-y/client): hòm dùng chung đọc biến màu kiểu studio → ánh xạ sang token cty, đổi theo sáng/tối cùng token. */
+:root{--fg-0:var(--ink);--fg-1:var(--ink);--fg-2:var(--ink);--fg-3:var(--muted);--fg-4:var(--muted);--bg-1:var(--bg);--bg-2:var(--surface);
+  --cyan:var(--accent);--lime:#2f9e5b;--amber:var(--warn);--red:#c0392b;--ok:#2f9e5b;--bad:#c0392b;--font-mono:var(--mono)}
+.cty-gopy-dau{position:sticky;top:-14px;z-index:1;background:var(--bg);padding:2px 0 10px;margin-bottom:6px}
+.cty-btn{font:inherit;font-size:.82rem;padding:5px 11px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;white-space:nowrap}
+.cty-btn:disabled{opacity:.5;cursor:not-allowed}
+.cty-btn.chinh{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}

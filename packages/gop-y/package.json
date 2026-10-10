@@ -1,0 +1,19 @@
+{
+  "name": "@mos2/gop-y",
+  "version": "0.0.1",
+  "description": "Hòm góp ý 💬 dùng chung cho các app con (studio, cty…): card trên plays của project, luồng trao đổi + duyệt/làm lại ngay trong hòm.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./server": "./src/server.ts",
+    "./client": "./src/client.tsx"
+  },
+  "dependencies": {
+    "@mos2/db": "*",
+    "drizzle-orm": "^0.36.0",
+    "server-only": "^0.0.1"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  }
+}

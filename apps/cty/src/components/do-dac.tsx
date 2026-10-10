@@ -1,13 +1,16 @@
 // Năm món đồ trong mỗi phòng: 📋 bảng công việc · 🗄 tủ tài liệu · 📨 hòm tin · 💰 sổ chi · 📈 gói số. Mỗi ô một con số
 // nhìn thấy ngay, bấm mở ra chi tiết; số lấy từ dữ liệu thật (sổ tiến độ, plays, sổ sự kiện, ai_usage).
 import Link from 'next/link';
-import type { Doc } from '@/lib/cong-ty';
+import { dsNhanSu, type Doc } from '@/lib/cong-ty';
 import { bangCongViec, tuTaiLieu, homTin, soChi, goiSo } from '@/lib/do-dac';
+
+const gioVN = (iso: string) => new Date(iso).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
 
 export async function DoDac({ p, ns }: { p: Doc; ns: Doc[] }) {
   const [bang, chi] = await Promise.all([bangCongViec(p), soChi(ns)]);
   const tu = tuTaiLieu(p, ns); const tin = homTin(ns); const so = goiSo(ns);
   const duAn = Array.isArray(p.fm.du_an) ? (p.fm.du_an as string[]) : [];
+  const ten: Record<string, string> = Object.fromEntries(dsNhanSu().map((d) => [d.id, String(d.fm.ten)]));   // tin có thể từ người phòng khác (Minh → Tâm)
   const dem = (rows: Record<string, unknown>[] | null | undefined, k: string, v: string) => rows?.filter((r) => String(r[k]) === v).reduce((s, r) => s + Number(r.n), 0) ?? 0;
   return (
     <div className="cty-dodac">
@@ -32,7 +35,13 @@ export async function DoDac({ p, ns }: { p: Doc; ns: Doc[] }) {
       </details>
       <details className="cty-dd">
         <summary>📨 Hòm tin <span className="cty-dd-so">{tin.length ? `${tin.length} tin gần nhất` : 'chưa có tin'}</span></summary>
-        <ul>{tin.map((t, i) => <li key={i}><span className="cty-mono cty-muted">{t.ts.slice(5, 16).replace('T', ' ')}</span> <b>{t.tu}</b> → <b>{t.toi}</b> <span className="cty-mono">{t.buoc}</span>: {t.noi_dung.slice(0, 140)} {t.luot && <Link className="cty-mono" href={`/nhat-ky?luot=${encodeURIComponent(t.luot)}`}>↗</Link>}</li>)}</ul>
+        <ul className="cty-tin">{tin.map((t, i) => (
+          <li key={i}>
+            <div className="cty-tin-dau"><b>{ten[t.tu] ?? t.tu}</b> → <b>{ten[t.toi] ?? t.toi}</b>{t.buoc && <span className="cty-pill cty-pill-kind">{t.buoc}</span>}
+              <span className="cty-mono cty-muted cty-tin-gio">{gioVN(t.ts)}</span>
+              {t.luot && <Link className="cty-mono" href={`/nhat-ky?luot=${encodeURIComponent(t.luot)}`} title="sổ sự kiện lượt này">↗</Link>}</div>
+            <div className="cty-tin-than">{t.noi_dung}</div>
+          </li>))}</ul>
       </details>
       <details className="cty-dd">
         <summary>💰 Sổ chi tháng này <span className="cty-dd-so">{chi ? `$${chi.tongUsd.toFixed(4)} · ${chi.ds.reduce((s, r) => s + r.luot, 0)} lượt gọi` : 'không đọc được DB'}</span></summary>

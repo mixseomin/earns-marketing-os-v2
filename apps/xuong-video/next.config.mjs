@@ -4,7 +4,7 @@ export default {
   poweredByHeader: false,
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },   // tsc chạy riêng trước khi đẩy (cùng nếp apps/web, apps/store)
-  transpilePackages: ['@mos2/db'],
+  transpilePackages: ['@mos2/db', '@mos2/gop-y'],
   serverExternalPackages: ['postgres'],
   experimental: { serverActions: { bodySizeLimit: '2mb' } },
   async headers() {

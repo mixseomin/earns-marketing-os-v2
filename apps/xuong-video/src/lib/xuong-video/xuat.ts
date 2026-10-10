@@ -125,7 +125,8 @@ export function keHoachXuat(o: {
   // Ảnh tĩnh: đặt VỪA khung + nền là chính ảnh phóng mờ — ảnh vuông thật của shop (lưới review, ảnh sản phẩm) không bị cắt mất hai bên;
   // keyframe đã 9:16 thì vừa khít, nền mờ không lộ (09/10/2026, dùng ảnh thật Orabra cho shot bằng chứng + end card).
   // Ảnh tĩnh đẩy máy chậm (zoom vào 6% suốt giây phát) — ảnh đứng im 3–4s giữa các clip động trông như video bị khựng (10/10/2026).
-  const dayMay = (phat: number) => `,crop=w='iw/(1+0.06*t/${so(Math.max(phat, 0.5))})':h='ih/(1+0.06*t/${so(Math.max(phat, 0.5))})':x='(iw-ow)/2':y='(ih-oh)/2',scale=${W}:${H},setsar=1`;
+  // crop với w/h đổi theo từng khung làm libx264 báo lỗi -22 (kích thước khung thay đổi) → dùng zoompan; phóng 2× trước để zoompan làm tròn không rung.
+  const dayMay = (phat: number) => { const n = Math.max(2, Math.round(phat * fpsRa)); return `,scale=${W * 2}:${H * 2},zoompan=z='1+0.06*on/${n}':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${W}x${H}:fps=${so(fpsRa)},setsar=1`; };
   const khungTinh = (i: number) => `split=2[nb${i}][nf${i}];[nb${i}]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},boxblur=24:2[nbb${i}];[nf${i}]scale=${W}:${H}:force_original_aspect_ratio=decrease[nff${i}];[nbb${i}][nff${i}]overlay=(W-w)/2:(H-h)/2,setsar=1,fps=${so(fpsRa)},format=yuv420p`;
 
   const loc: string[] = [];

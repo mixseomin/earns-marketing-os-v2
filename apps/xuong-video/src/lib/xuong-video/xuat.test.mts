@@ -155,6 +155,6 @@ console.log('xuat.test: mẫu ok');
 // Ảnh tĩnh có đẩy máy chậm theo giây phát (không đứng im).
 {
   const l = keHoachXuat({ loai: 'phim', tiLe: '9:16', canh: [canh[2]!] as never, nhanVat: nv, tap: { nhac_url: null, nhac_phan_canh: {} }, nguyenLieu, font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' }).tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
-  assert.ok(l.includes("crop=w='iw/(1+0.06*t/3)'") && l.includes(',scale=1080:1920,setsar=1'), l);
+  assert.ok(l.includes("scale=2160:3840,zoompan=z='1+0.06*on/90':d=1:") && l.includes(':s=1080x1920:fps=30,setsar=1'), l);   // 3s × 30fps = 90 khung
   console.log('xuat.test: ảnh tĩnh đẩy máy ok');
 }

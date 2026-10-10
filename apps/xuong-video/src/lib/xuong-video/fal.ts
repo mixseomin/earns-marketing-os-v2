@@ -7,14 +7,14 @@ import { tomGia, type GiaTom } from './gia-fal';
 const QUEUE = 'https://queue.fal.run';
 export const khoaFal = (): string | null => process.env.FAL_KEY || null;
 
-type Vao = { prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; tiLe: '9:16' | '16:9' };
+type Vao = { prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; tiLe: '9:16' | '16:9'; /** sinh kèm tiếng (mặc định có) */ tieng?: boolean };
 /** Ánh xạ đầu vào chung → trường riêng của từng model fal. */
 function dauVao(model: string, v: Vao): Record<string, unknown> {
   if (model.startsWith('fal-ai/kling-video/')) {
-    return { prompt: v.prompt, start_image_url: v.anhDau, ...(v.anhCuoi ? { end_image_url: v.anhCuoi } : {}), duration: String(Math.min(15, Math.max(3, v.giay))), generate_audio: true };
+    return { prompt: v.prompt, start_image_url: v.anhDau, ...(v.anhCuoi ? { end_image_url: v.anhCuoi } : {}), duration: String(Math.min(15, Math.max(3, v.giay))), generate_audio: v.tieng ?? true };
   }
   if (model.startsWith('bytedance/seedance')) {
-    return { prompt: v.prompt, image_url: v.anhDau, ...(v.anhCuoi ? { end_image_url: v.anhCuoi } : {}), duration: Math.min(30, Math.max(4, v.giay)), resolution: '720p', generate_audio: true };
+    return { prompt: v.prompt, image_url: v.anhDau, ...(v.anhCuoi ? { end_image_url: v.anhCuoi } : {}), duration: Math.min(30, Math.max(4, v.giay)), resolution: '720p', generate_audio: v.tieng ?? true };
   }
   if (model.startsWith('minimax/')) {
     return { prompt: v.prompt, image_url: v.anhDau, ...(v.anhCuoi ? { end_image_url: v.anhCuoi } : {}), duration: v.giay <= 6 ? 6 : 10, resolution: '768P' };
@@ -142,7 +142,7 @@ async function canAnh(id: string): Promise<boolean | null> {
 const enumCua = (f?: SchemaTruong) => (f?.enum ?? f?.anyOf?.flatMap((a) => a.enum ?? []) ?? []) as unknown[];
 
 /** Đầu vào chung → đúng tên/kiểu trường của endpoint fal, đọc từ OpenAPI. */
-export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?: string | null; anhCuoi?: string | null; anhThamChieu?: string[]; giay?: number; tiLe?: string }): Promise<Record<string, unknown>> {
+export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?: string | null; anhCuoi?: string | null; anhThamChieu?: string[]; giay?: number; tiLe?: string; tieng?: boolean }): Promise<Record<string, unknown>> {
   const p = await schemaVao(id);
   const co = (k: string) => k in p;
   const o: Record<string, unknown> = { prompt: v.prompt };
@@ -170,7 +170,8 @@ export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?:
     const en = enumCua(p.aspect_ratio).map(String);
     if (!en.length || en.includes(v.tiLe)) o.aspect_ratio = v.tiLe; else if (en.includes('auto')) o.aspect_ratio = 'auto';
   }
-  if (co('generate_audio')) o.generate_audio = true;
+  // Tiếng clip chỉ dùng khi shot có người nói trong khung (dungTiengClip) — còn lại tắt hẳn, Veo khỏi bịa giọng/nhạc (10/10/2026).
+  if (co('generate_audio')) o.generate_audio = v.tieng ?? true;
   return o;
 }
 

@@ -6,7 +6,7 @@ import { dayViecAm } from './hoan-tat';
 import { dongThoai, giaGiong, GIONG_MAC_DINH, timNv } from './am-thanh';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, coElevenTrucTiep } from './giong';
 import { boiCanhTap, mapCanh, taoJob, type Db, type Row } from './doc-db';
-import { chanChuModel } from './kieu';
+import { chanChuModel, coMau } from './kieu';
 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
@@ -28,6 +28,19 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
   if (!ds.length) return loi('không có shot nào có lời thoại');
   for (const c of ds) { const chan = chanChuModel(bc.kt.ngon_ngu, { shot: { thu_tu: c.thu_tu, thoai: c.thoai, loi_thoai: c.loi_thoai } }); if (chan) return loi(chan); }
   const dm = await dsMoHinhGiong();
+  // Lời dẫn = MỘT giọng cho cả phim (kt.giong_dan). Chọn giọng lời dẫn ở lượt này (bảng ＋ hoặc model/giọng chung của lượt) = đổi giọng
+  // lời dẫn của cả phim; chưa có thì lượt đầu khoá giọng nó dùng. Phim có QC mẫu mà chưa chọn → dừng, không tự rơi về giọng mặc định
+  // (10/10/2026: phim #5 đọc bằng George nam, QC mẫu giọng nữ).
+  const coLoiDan = ds.some((c) => c.thoai.concat(c.thoai.length ? [] : dongThoai(c, bc.nhanVat)).some((d) => d.loi.trim() && !timNv(bc.nhanVat, d.nhan_vat) && !(tuy.chiThieu && d.url)));
+  const chonDan = tuy.theoNguoi?.[''] ?? (tuy.model && tuy.voice ? { model: tuy.model, voice: tuy.voice } : null);
+  let giongDan = chonDan ?? bc.kt.giong_dan ?? null;
+  if (coLoiDan && !giongDan) {
+    if (coMau(bc.kt.qc)) return loi('Phim có QC mẫu: chọn giọng LỜI DẪN cho cả phim trước (cùng giới tính với giọng của mẫu) — không tự dùng giọng mặc định');
+    const m = MODEL_GIONG_MAC_DINH(); giongDan = { model: m, voice: await giongMacDinh(m) };
+  }
+  if (coLoiDan && giongDan && (giongDan.model !== bc.kt.giong_dan?.model || giongDan.voice !== bc.kt.giong_dan?.voice)) {
+    await db.execute(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{giong_dan}', ${JSON.stringify(giongDan)}::jsonb), updated_at = now() WHERE id = ${bc.tap.phim_id}`);
+  }
   let so = 0;
   for (const c of ds) {
     // Thoại theo dòng (kịch bản phim): mỗi dòng một file, giọng của đúng người nói dòng đó. Shot cũ chỉ có chuỗi → tách dòng và LƯU
@@ -40,13 +53,13 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
       for (const [i, d] of c.thoai.entries()) {
         if (!d.loi.trim() || (tuy.chiThieu && d.url)) continue;
         const v = timNv(bc.nhanVat, d.nhan_vat) ?? null;
-        const chon = tuy.theoNguoi?.[d.nhan_vat.trim()] ?? tuy.theoNguoi?.[(v?.ten ?? '')];
+        const chon = v ? tuy.theoNguoi?.[d.nhan_vat.trim()] ?? tuy.theoNguoi?.[v.ten] : giongDan;
         const model = chon?.model || tuy.model || v?.giong_model || MODEL_GIONG_MAC_DINH();
         const voice = chon?.voice || (tuy.model ? tuy.voice : '') || (v?.giong_model === model ? v.giong_id : '') || await giongMacDinh(model);
         const text = d.loi.trim();
         const g = giaGiong(dm.find((m) => m.key === model), text.length);
         const gia = g ?? 0;   // model không công bố giá → sổ ghi 0 và nhãn job ghi "giá chưa rõ" để sổ chi phí không hiểu nhầm là miễn phí
-        const job = await taoJob(db, { nhan: `Giọng · shot #${c.thu_tu} dòng ${i + 1} · ${v?.ten ?? 'lời dẫn'} (${voice})${g == null ? ' · giá chưa rõ' : ''}`, canh_id: c.id, nhan_vat_id: v?.id, loai: 'am', provider: model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: model.startsWith('elevenlabs:') ? model : `fal:${model}`, request: { dich: 'thoai', dong: i, gia, text, voice } });
+        const job = await taoJob(db, { nhan: `Giọng · shot #${c.thu_tu} dòng ${i + 1} · ${v?.ten ?? 'lời dẫn'} (${voice})${g == null ? ' · giá chưa rõ' : ''}`, canh_id: c.id, nhan_vat_id: v?.id, loai: 'am', provider: model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: model.startsWith('elevenlabs:') ? model : `fal:${model}`, request: { dich: 'thoai', dong: i, gia, text, voice, giong: `${model}|${voice}` } });
         await dayViecAm({ kieu: 'am', job, model, input: await dauVaoGiongTheoModel(model, { text: d.dien_xuat && /eleven/.test(model) && /v3/.test(model) ? `[${d.dien_xuat}] ${text}` : text, voice, ngonNgu: bc.kt.ngon_ngu ?? 'vi', camXuc: tuy.camXuc ?? c.cam_xuc, theLoai: bc.kt.the_loai ?? '' }), thuMuc: `thoai/${c.id}-${i}` });
         so++;
       }

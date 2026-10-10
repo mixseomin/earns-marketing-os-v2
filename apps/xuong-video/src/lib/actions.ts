@@ -10,7 +10,7 @@ import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { uploadToR2 } from '@/lib/r2';
 import { dayViecAnh, dayViecAm, chayNen } from '@/lib/xuong-video/hoan-tat';
-import { chayXuat, gopAm } from '@/lib/xuong-video/xuat-chay';
+import { chayXuat, ghiBanXuat, gopAm } from '@/lib/xuong-video/xuat-chay';
 import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiong, timNv } from '@/lib/xuong-video/am-thanh';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, type MoHinhGiong } from '@/lib/xuong-video/giong';
 import { boVaoThungRac, boAnhVaoThungRac, dsRac, khoiPhucRac, type MucRac } from '@/lib/xuong-video/thung-rac';
@@ -249,7 +249,10 @@ export async function suaPhim(id: number, d: { ten?: string; loai?: LoaiPhim; mo
   await chupTruoc(db, { bang: 'xv_phim', id, cot: Object.keys(d), moTa: `sửa phim: ${Object.keys(d).join(', ')}`, nguoi: await ai() });
   await db.execute(sql`UPDATE xv_phim SET
     ten = coalesce(${d.ten ?? null}, ten), loai = coalesce(${d.loai ?? null}, loai), mo_ta = coalesce(${d.mo_ta ?? null}, mo_ta),
-    kinh_thanh = coalesce(${d.kinh_thanh ? JSON.stringify(d.kinh_thanh) : null}::jsonb, kinh_thanh), trang_thai = coalesce(${d.trang_thai ?? null}, trang_thai),
+    kinh_thanh = coalesce(${d.kinh_thanh ? JSON.stringify(d.kinh_thanh) : null}::jsonb
+      -- giọng lời dẫn đã khoá (sinh-giong ghi) không bị form kinh thánh đang mở từ trước ghi đè thành rỗng
+      || CASE WHEN coalesce(${d.kinh_thanh ? JSON.stringify(d.kinh_thanh) : null}::jsonb->'giong_dan', 'null'::jsonb) = 'null'::jsonb AND coalesce(kinh_thanh->'giong_dan', 'null'::jsonb) <> 'null'::jsonb
+         THEN jsonb_build_object('giong_dan', kinh_thanh->'giong_dan') ELSE '{}'::jsonb END, kinh_thanh), trang_thai = coalesce(${d.trang_thai ?? null}, trang_thai),
     updated_at = now() WHERE id = ${id}`);
   // Quảng cáo: sản phẩm khai ở kinh thánh → anchor sản phẩm cùng tên (tạo nếu chưa có), ảnh thật lên ĐẦU anh_ref để mọi keyframe tham chiếu đúng hàng.
   const q = d.kinh_thanh?.qc;
@@ -600,10 +603,7 @@ export async function xuatTap(tapId: number, nhanh?: string | null): Promise<Kq<
   chayNen(async () => {
     const kq = await chayXuat({ loai: bc.loai, tiLe: kt.ti_le, canh, nhanVat: bc.nhanVat, tap: bc.tap, qc: kt.qc, nhanh });
     if (!kq.ok) { await xongJob(job, { loi: kq.loi }); return; }
-    const ban = { url: kq.url, nhanh: nhanh ?? '', giay: Math.round(kq.giay * 10) / 10, luc: new Date().toISOString(), job };
-    await db.execute(sql`UPDATE xv_tap SET xuat = coalesce(xuat, '[]'::jsonb) || ${JSON.stringify([ban])}::jsonb, video_url = ${kq.url}, updated_at = now() WHERE id = ${tapId}`);
-    await xongJob(job, { output_url: kq.url, loi: kq.canhThieu.length ? undefined : undefined });
-    if (kq.canhThieu.length) await db.execute(sql`UPDATE xv_job SET loi = ${`thiếu hình: ${kq.canhThieu.join(', ')} (bỏ qua)`} WHERE id = ${job}`);
+    await ghiBanXuat(db, { tapId, job, nhanh: nhanh ?? '', kq });
   });
   return { ok: true, data: job };
 }

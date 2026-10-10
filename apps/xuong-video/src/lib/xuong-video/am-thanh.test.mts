@@ -55,7 +55,7 @@ const pAnh = promptCamXuc(cCx, nvTen as never, 'anh');
 assert.ok(pAnh.includes('nhăn mặt, xoa vai') && !pAnh.includes('thở dài'), pAnh);
 assert.ok(pAnh.includes('pain and discomfort'), pAnh);
 const pVid = promptCamXuc(cCx, nvTen as never, 'video');
-assert.ok(pVid.includes('1) "nhăn mặt, xoa vai"') && pVid.includes('2) "thở dài"'), pVid);
+assert.ok(pVid.includes('1) Chị Lan: nhăn mặt, xoa vai') && pVid.includes('2) Chị Lan: thở dài') && !pVid.includes('"'), pVid);   // không ngoặc kép (model in thành chữ)
 // Trung tính + không diễn xuất → không chèn gì.
 assert.equal(promptCamXuc({ ...(cCx as object), thoai: [], cam_xuc: 0 } as never, nvTen as never, 'video'), '');
 

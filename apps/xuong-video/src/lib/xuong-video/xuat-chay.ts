@@ -8,28 +8,61 @@ import { tmpdir } from 'node:os';
 import { promisify } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '@/lib/r2';
-import { keHoachXuat, urlCanXuat, type NguyenLieu } from './xuat';
+import { keHoachXuat, urlCanXuat, khoangIm, NGUONG_IM_LUFS, type NguyenLieu } from './xuat';
+import { sql } from 'drizzle-orm';
 import type { Canh, LoaiPhim, NhanVat, Tap, ThongTinQc } from './kieu';
+import type { Db } from './doc-db';
 
 const run = promisify(execFile);
 const FONT_UNG_VIEN = ['/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', '/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf', '/System/Library/Fonts/Supplemental/Arial Bold.ttf', '/Library/Fonts/Arial Bold.ttf'];
 
-async function doTep(duong: string): Promise<{ dai: number | null; coAm: boolean; fps: number | null }> {
+/** Độ to tích hợp (LUFS) của một tệp tiếng — để đưa mọi câu giọng về cùng mức trước khi trộn. */
+async function doLufs(duong: string): Promise<number | null> {
+  try {
+    const { stderr } = await run('ffmpeg', ['-hide_banner', '-nostats', '-i', duong, '-af', 'ebur128', '-f', 'null', '-'], { timeout: 30_000, maxBuffer: 8 << 20 });
+    const m = stderr.match(/Integrated loudness:\s*\n\s*I:\s*(-?[\d.]+)\s*LUFS/); const v = m ? Number(m[1]) : NaN;
+    return Number.isFinite(v) ? v : null;
+  } catch { return null; }
+}
+
+async function doTep(duong: string): Promise<{ dai: number | null; coAm: boolean; fps: number | null; lufs?: number | null }> {
   try {
     const { stdout } = await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type,r_frame_rate', '-of', 'json', duong], { timeout: 30_000 });
     const j = JSON.parse(stdout) as { format?: { duration?: string }; streams?: { codec_type?: string; r_frame_rate?: string }[] };
     const v = (j.streams ?? []).find((s) => s.codec_type === 'video')?.r_frame_rate?.split('/').map(Number);
     const fps = v && v[0] && v[1] ? Math.round((v[0] / v[1]) * 100) / 100 : null;
-    const dai = Number(j.format?.duration); return { dai: Number.isFinite(dai) && dai > 0 ? dai : null, coAm: (j.streams ?? []).some((s) => s.codec_type === 'audio'), fps };
+    const dai = Number(j.format?.duration); const coAm = (j.streams ?? []).some((s) => s.codec_type === 'audio');
+    // Tệp chỉ có tiếng (giọng, hiệu ứng, nhạc) → đo độ to; clip video thì không cần (tiếng clip đã có luật riêng).
+    const lufs = coAm && !v ? await doLufs(duong) : null;
+    return { dai: Number.isFinite(dai) && dai > 0 ? dai : null, coAm, fps, lufs };
   } catch { return { dai: null, coAm: false, fps: null }; }
 }
 
-export type KqXuat = { ok: true; url: string; giay: number; canhThieu: string[] } | { ok: false; loi: string };
+/** canhBao = lệch chuẩn máy tự đo được (khoảng im, lẫn giọng lời dẫn, bản nháp thiếu nhạc) — studio hiện cờ đỏ cạnh bản xuất. */
+export type KqXuat = { ok: true; url: string; giay: number; canhThieu: string[]; canhBao: string[] } | { ok: false; loi: string };
+
+/** Ghi một bản xuất thành công vào tập + job — MỘT đường cho nút ⬇ Xuất (actions) và script trên box. Thiếu hình + cờ đỏ máy đo
+ *  ghi vào job.loi (job vẫn 'xong') và vào bản xuất (canh_bao) để studio tô đỏ. */
+export async function ghiBanXuat(db: Db, o: { tapId: number; job: number; nhanh: string; kq: Extract<KqXuat, { ok: true }> }): Promise<void> {
+  const ban = { url: o.kq.url, nhanh: o.nhanh, giay: Math.round(o.kq.giay * 10) / 10, luc: new Date().toISOString(), job: o.job, canh_bao: o.kq.canhBao };
+  await db.execute(sql`UPDATE xv_tap SET xuat = coalesce(xuat, '[]'::jsonb) || ${JSON.stringify([ban])}::jsonb, video_url = ${o.kq.url}, updated_at = now() WHERE id = ${o.tapId}`);
+  const ghiChu = [...(o.kq.canhThieu.length ? [`thiếu hình: ${o.kq.canhThieu.join(', ')} (bỏ qua)`] : []), ...o.kq.canhBao];
+  await db.execute(sql`UPDATE xv_job SET trang_thai = 'xong', output_url = ${o.kq.url}, loi = ${ghiChu.join(' · ')}, updated_at = now() WHERE id = ${o.job}`);
+}
+
+/** Đo bản vừa xuất: các đoạn ≥0,5s im/đứt nền. */
+async function doKhoangIm(duong: string, giay: number, thuMuc: string): Promise<[number, number][] | null> {
+  const tep = `${thuMuc}/m128.txt`;
+  try {
+    await run('ffmpeg', ['-hide_banner', '-nostats', '-i', duong, '-vn', '-af', `ebur128=metadata=1,ametadata=print:key=lavfi.r128.M:file=${tep}`, '-f', 'null', '-'], { timeout: 120_000, maxBuffer: 8 << 20 });
+    return khoangIm(await readFile(tep, 'utf8'), giay);
+  } catch (e) { console.error('[xuất] đo khoảng im hỏng', e); return null; }
+}
 
 /** Thư mục font chữ màn — MỘT chỗ cho cả bản xuất (libass) lẫn trang xem trước (@font-face /fonts/…): apps/xuong-video/public/fonts (Montserrat, OFL). */
 const FONTS_DIR = [`${process.cwd()}/public/fonts`, `${process.cwd()}/apps/xuong-video/public/fonts`, '/opt/earns-marketing-os-v2/apps/xuong-video/public/fonts'].find((d) => existsSync(d));
 
-export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'nhac_url' | 'nhac_phan_canh'>; qc?: ThongTinQc | null; nhanh?: string | null; chiThuTu?: number[] }): Promise<KqXuat> {
+export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'nhac_url' | 'nhac_phan_canh'>; qc?: ThongTinQc | null; nhanh?: string | null; chiThuTu?: number[]; choThieuNhac?: boolean }): Promise<KqXuat> {
   const font = FONT_UNG_VIEN.find((f) => existsSync(f));
   if (!font) return { ok: false, loi: 'máy chủ không có font để vẽ chữ (DejaVuSans-Bold)' };
   const thuMuc = `${tmpdir()}/xv-xuat-${o.tap.id}-${randomUUID().slice(0, 8)}`;
@@ -52,14 +85,18 @@ export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; canh: Canh[]; 
     }
     const ra = `${thuMuc}/ra.mp4`;
     const kh = keHoachXuat({ ...o, nguyenLieu, font, thuMuc, ra, fontsDir: FONTS_DIR });
+    if (kh.loi) return { ok: false, loi: kh.loi };
     if (!kh.args.length) return { ok: false, loi: `không shot nào có clip/keyframe tải được${kh.canhThieu.length ? ` (${kh.canhThieu.join(', ')})` : ''}` };
     await Promise.all(kh.tep.map((t) => writeFile(t.duong, t.noiDung, 'utf8')));
     try { await run('ffmpeg', kh.args, { timeout: 15 * 60_000, maxBuffer: 8 << 20 }); }
     catch (e) { const err = e as { stderr?: string; message?: string }; return { ok: false, loi: `ffmpeg: ${(err.stderr || err.message || String(e)).trim().split('\n').slice(-3).join(' · ').slice(0, 400)}` }; }
+    const im = await doKhoangIm(ra, kh.giay, thuMuc);
+    const vi = (x: number) => (Math.round(x * 10) / 10).toString().replace('.', ',');
+    const canhBao = [...kh.canhBao, ...(im == null ? ['không đo được độ to bản xuất'] : im.length ? [`nền đứt (dưới ${NGUONG_IM_LUFS} LUFS) ở ${im.map(([a, b]) => `${vi(a)}–${vi(b)}s`).join(' · ')}`] : [])];
     const buf = await readFile(ra);
     const url = await uploadToR2(`xuong-video/xuat/${o.tap.id}-${o.nhanh || 'thân'}-${randomUUID()}.mp4`, buf, 'video/mp4');
     if (!url) return { ok: false, loi: 'không tải được bản xuất lên R2 (thiếu cấu hình R2)' };
-    return { ok: true, url, giay: kh.giay, canhThieu: kh.canhThieu };
+    return { ok: true, url, giay: kh.giay, canhThieu: kh.canhThieu, canhBao };
   } finally {
     await rm(thuMuc, { recursive: true, force: true }).catch(() => {});
   }

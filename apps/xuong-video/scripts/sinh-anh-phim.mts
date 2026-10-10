@@ -2,7 +2,8 @@
 //   --uoc        : chỉ ƯỚC LƯỢNG (0đ): đếm anchor chưa ảnh gốc + shot chưa keyframe × giá model → in ra, không chạy gì.
 //   --anchor     : sinh ảnh gốc cho anchor chưa có ảnh (sinh-anh.sinhAnhGoc), đợi xong.
 //   --keyframe   : sinh 1 keyframe cho mọi shot chưa có (sinh-anh.sinhKeyframeCanh), đợi xong.
-//   --xuat       : dựng MP4 thử (0đ, ffmpeg) → R2 + ghi vào tập như nút ⬇ Xuất.
+//   --xuat       : dựng MP4 thử (0đ, ffmpeg) → R2 + ghi vào tập như nút ⬇ Xuất. QC có lời dẫn mà chưa có nhạc nền → bị chặn;
+//                  --thieu-nhac = vẫn xuất làm bản nháp (gắn cờ đỏ "thiếu nhạc nền").
 //   Cổng ngôn ngữ: phim không phải tiếng Việt mà shot còn chữ màn/thoại tiếng Việt → DỪNG trước --keyframe/--xuat (dịch tập trước); --bo-qua-ngon-ngu để ép.
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
 //     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/sinh-anh-phim.mts --phim=5 --uoc
@@ -11,7 +12,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { sinhAnhGoc, sinhKeyframeCanh } from '../src/lib/xuong-video/sinh-anh';
 import { boiCanhTap, mapCanh, taoJob, type Row } from '../src/lib/xuong-video/doc-db';
-import { chayXuat } from '../src/lib/xuong-video/xuat-chay';
+import { chayXuat, ghiBanXuat } from '../src/lib/xuong-video/xuat-chay';
 import { docKinhThanh, tien, shotLechNgonNgu, tenNgonNgu } from '../src/lib/xuong-video/kieu';
 import { giaAnhSv } from '../src/lib/xuong-video/hoan-tat';
 
@@ -70,12 +71,12 @@ if (arg('xuat') && tapId) {
   const bc = (await boiCanhTap(db, tapId))!;
   const canh = (await q(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu`)).map(mapCanh);
   const job = await taoJob(db, { phim_id: phimId, nhan: `Xuất bản · tập ${bc.tap.so} (script)`, loai: 'xuat', provider: 'ffmpeg', model: 'ffmpeg', request: { tap_id: tapId, nhanh: 'A' } });
-  const kq = await chayXuat({ loai: bc.loai, tiLe: kt.ti_le, canh, nhanVat: bc.nhanVat, tap: bc.tap, qc: kt.qc, nhanh: 'A' });
+  const kq = await chayXuat({ loai: bc.loai, tiLe: kt.ti_le, canh, nhanVat: bc.nhanVat, tap: bc.tap, qc: kt.qc, nhanh: 'A', choThieuNhac: arg('thieu-nhac') });
   if (!kq.ok) { await db.execute(sql`UPDATE xv_job SET trang_thai = 'loi', loi = ${kq.loi} WHERE id = ${job}`); console.log(`  ✗ xuất: ${kq.loi}`); }
   else {
-    await db.execute(sql`UPDATE xv_tap SET xuat = coalesce(xuat, '[]'::jsonb) || ${JSON.stringify([{ url: kq.url, nhanh: 'A', giay: Math.round(kq.giay * 10) / 10, luc: new Date().toISOString(), job }])}::jsonb, video_url = ${kq.url}, updated_at = now() WHERE id = ${tapId}`);
-    await db.execute(sql`UPDATE xv_job SET trang_thai = 'xong', output_url = ${kq.url}, loi = ${kq.canhThieu.length ? `thiếu hình: ${kq.canhThieu.join(', ')} (bỏ qua)` : ''} WHERE id = ${job}`);
+    await ghiBanXuat(db, { tapId, job, nhanh: 'A', kq });
     console.log(`  ✓ bản xuất ${kq.giay}s → ${kq.url}${kq.canhThieu.length ? ` · thiếu hình: ${kq.canhThieu.join(', ')}` : ''}`);
+    for (const c of kq.canhBao) console.log(`  ⚠ ${c}`);
   }
 }
 const tong = await q(sql`SELECT coalesce(sum(chi_phi_cents), 0) AS c FROM xv_job WHERE phim_id = ${phimId} AND tinh_chi`);

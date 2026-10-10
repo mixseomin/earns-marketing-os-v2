@@ -181,10 +181,12 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
           <span style={mono}>Đã xuất:</span>
           {tap.xuat.slice().reverse().slice(0, 6).map((b) => (
-            <button key={b.url} type="button" className="xv-btn" onClick={() => moNgan({ loai: 'xem', url: b.url, ten: `Bản xuất${b.nhanh ? ` · hook ${b.nhanh}` : ''} · ${b.giay}s` })} title={`${b.giay}s · ${gioVN(b.luc)}`}>🎬 {b.nhanh ? `hook ${b.nhanh}` : 'bản'} · {b.giay}s · {gioVN(b.luc, { chiGio: true })}</button>
+            <button key={b.url} type="button" className="xv-btn" onClick={() => moNgan({ loai: 'xem', url: b.url, ten: `Bản xuất${b.nhanh ? ` · hook ${b.nhanh}` : ''} · ${b.giay}s` })} title={`${b.giay}s · ${gioVN(b.luc)}${b.canh_bao?.length ? `\nCHƯA ĐẠT:\n${b.canh_bao.join('\n')}` : ''}`} style={b.canh_bao?.length ? { borderColor: 'var(--red)', color: 'var(--red)' } : undefined}>{b.canh_bao?.length ? '⚠' : '🎬'} {b.nhanh ? `hook ${b.nhanh}` : 'bản'} · {b.giay}s · {gioVN(b.luc, { chiGio: true })}</button>
           ))}
         </div>
       )}
+      {/* Cờ đỏ của bản mới nhất: máy đo sau xuất (khoảng im, lẫn giọng lời dẫn, thiếu nhạc) — không phải nghe lại mới biết. */}
+      {tab === 'xuat' && !!tap.xuat[tap.xuat.length - 1]?.canh_bao?.length && <Loi>{`Bản mới nhất chưa đạt: ${tap.xuat[tap.xuat.length - 1]!.canh_bao!.join(' · ')}`}</Loi>}
       {tab === 'xuat' && tap.xuat.length > 0 && (
         <video key={tap.xuat[tap.xuat.length - 1]!.url} src={tap.xuat[tap.xuat.length - 1]!.url} controls preload="metadata" style={{ marginTop: 8, maxHeight: 420, borderRadius: 8, background: '#000', aspectRatio: kt.ti_le === '9:16' ? '9 / 16' : '16 / 9' }} />
       )}

@@ -9,12 +9,49 @@
 import type { Canh, KieuChu, LoaiPhim, NhanVat, Tap, ThongTinQc, ViTriChu } from './kieu';
 import { giayPhat, locNhanh, doanChuMan, coMau, KIEU_CHU_MAC_DINH } from './kieu';
 export { doanChuMan, chuManHien } from './kieu';
-import { dongThoai, coTiengRieng } from './am-thanh';
+import { dongThoai, dungTiengClip } from './am-thanh';
 
-/** Một tệp nguyên liệu đã tải về + đo: dai = giây (âm/video), coAm = clip có luồng tiếng. */
-export type NguyenLieu = { url: string; duong: string; dai: number | null; coAm: boolean; fps?: number | null };
+/** Một tệp nguyên liệu đã tải về + đo: dai = giây (âm/video), coAm = clip có luồng tiếng, lufs = độ to tích hợp (tệp chỉ có tiếng). */
+export type NguyenLieu = { url: string; duong: string; dai: number | null; coAm: boolean; fps?: number | null; lufs?: number | null };
 export type TepChu = { duong: string; noiDung: string };
-export type KeHoachXuat = { args: string[]; tep: TepChu[]; giay: number; canhThieu: string[] };
+/** loi = không dựng được (args rỗng) và vì sao; canhBao = dựng được nhưng lệch chuẩn (lẫn giọng lời dẫn, bản nháp thiếu nhạc…). */
+export type KeHoachXuat = { args: string[]; tep: TepChu[]; giay: number; canhThieu: string[]; canhBao: string[]; loi?: string };
+
+/** Đo sau xuất (máy tự kiểm, không ai phải nghe lại): đọc chuỗi độ to tức thời (ebur128 M, file ametadata) → các khoảng 0,5s mà
+ *  to nhất vẫn dưới ngưỡng = khoảng im/đứt nền. QC mẫu Jett không có ô nào dưới -21 LUFS; bản #5 cũ có 9 ô -120 (10/10/2026).
+ *  Bỏ 0,5s đầu (nhạc fade vào) và 0,5s cuối. Trả các đoạn đã gộp liền nhau, giây bắt đầu–kết thúc. */
+export const NGUONG_IM_LUFS = -40;
+export function khoangIm(metadata: string, giay: number): [number, number][] {
+  const o = new Map<number, number>(); let t: number | null = null;
+  for (const dong of metadata.split('\n')) {
+    const a = dong.match(/pts_time:([\d.]+)/); if (a) { t = Number(a[1]); continue; }
+    const b = dong.match(/lavfi\.r128\.M=(\S+)/);
+    if (b && t != null) { const v = Number(b[1]); const k = Math.floor(t * 2) / 2; o.set(k, Math.max(o.get(k) ?? -200, Number.isFinite(v) ? v : -200)); }
+  }
+  const im = [...o.entries()].filter(([k, v]) => k >= 0.5 && k + 0.5 <= giay - 0.5 && v < NGUONG_IM_LUFS).map(([k]) => k).sort((x, y) => x - y);
+  const out: [number, number][] = [];
+  for (const k of im) { const l = out[out.length - 1]; if (l && Math.abs(l[1] - k) < 1e-6) l[1] = k + 0.5; else out.push([k, k + 0.5]); }
+  return out;
+}
+
+/** Mức to chuẩn của MỌI câu giọng trước khi trộn — câu nào ra từ model cũng về cùng mức, không câu to câu nhỏ. */
+export const LUFS_GIONG = -16;
+/** Tăng tốc lời dẫn tối đa (nghe vẫn tự nhiên). */
+const NHANH_TOI_DA = 1.35;
+
+/** Giọng lời dẫn của các câu đã có file: lẫn nhiều giọng → cảnh báo (phim #5 10/10/2026: một shot nghe như người khác đọc).
+ *  Thuần — bản xuất gắn vào kết quả, studio hiện cờ đỏ. */
+export function kiemGiongLoiDan(canh: Canh[], nhanVat: NhanVat[]): string[] {
+  const dem = new Map<string, number>(); let khongRo = 0;
+  for (const c of canh) for (const d of dongThoai(c, nhanVat)) {
+    if (!d.url || d.nhan_vat.trim()) continue;
+    if (d.giong) dem.set(d.giong, (dem.get(d.giong) ?? 0) + 1); else khongRo++;
+  }
+  const out: string[] = [];
+  if (dem.size > 1) out.push(`lời dẫn lẫn ${dem.size} giọng: ${[...dem.entries()].map(([g, n]) => `${g.split('|').pop()} (${n} câu)`).join(', ')} — đọc lại cho cùng một giọng`);
+  if (khongRo && dem.size) out.push(`${khongRo} câu lời dẫn không rõ giọng đã đọc`);
+  return out;
+}
 
 /** URL cần tải cho một bản xuất (clip/keyframe, giọng, hiệu ứng, nhạc) — tải trước, đo rồi mới dựng lệnh. */
 export function urlCanXuat(canh: Canh[], nhanVat: NhanVat[], tap: Pick<Tap, 'nhac_url' | 'nhac_phan_canh'>, nhanh?: string | null, qc?: ThongTinQc | null): string[] {
@@ -90,11 +127,22 @@ export function keHoachXuat(o: {
   nhanh?: string | null; nguyenLieu: NguyenLieu[]; font: string; thuMuc: string; ra: string;
   /** thư mục font cho libass (assets/fonts); chiThuTu = chỉ xuất các shot này (xem thử từng shot, không end card). */
   fontsDir?: string; chiThuTu?: number[];
+  /** cho xuất khi phim quảng cáo có lời dẫn mà chưa có nhạc nền (bản nháp để nghe thử) — mặc định chặn. */
+  choThieuNhac?: boolean;
 }): KeHoachXuat {
   const doc = o.tiLe !== '16:9';
   const W = doc ? 1080 : 1920, H = doc ? 1920 : 1080;
   const ds = locNhanh(o.canh, o.nhanh).slice().sort((a, b) => a.thu_tu - b.thu_tu).filter((c) => !o.chiThuTu?.length || o.chiThuTu.includes(c.thu_tu));
   const nl = new Map(o.nguyenLieu.map((x) => [x.url, x]));
+  const canhBao = kiemGiongLoiDan(ds, o.nhanVat);
+  // Nhạc nền là lớp liền mạch duy nhất của QC: giọng đọc ngắt quãng, clip mỗi cái một tiếng (đã tắt) → thiếu nhạc là có khoảng im tuyệt đối
+  // giữa các câu (phim #5 10/10/2026: 9 đoạn -120 LUFS, bản gốc không đoạn nào dưới -21). Quảng cáo có lời dẫn mà thiếu nhạc → không xuất.
+  const coNhac = locNhanh(o.canh, o.nhanh).some((c) => o.tap.nhac_phan_canh?.[c.phan_doan] && nl.has(o.tap.nhac_phan_canh[c.phan_doan]!)) || (!!o.tap.nhac_url && nl.has(o.tap.nhac_url));
+  const coLoiDan = ds.some((c) => dongThoai(c, o.nhanVat).some((d) => d.url && !d.nhan_vat.trim()));
+  if (o.loai === 'quang_cao' && coLoiDan && !coNhac && !o.chiThuTu?.length) {
+    if (!o.choThieuNhac) return { args: [], tep: [], giay: 0, canhThieu: [], canhBao, loi: 'quảng cáo có lời dẫn nhưng chưa có nhạc nền — sinh/chọn nhạc cho tập trước (bản xuất sẽ có khoảng im giữa các câu)' };
+    canhBao.push('bản nháp THIẾU nhạc nền — giữa các câu lời dẫn là khoảng im');
+  }
   const dauVao: string[] = [];           // tham số -i theo thứ tự chỉ số
   const chiSo = new Map<string, number>();
   let soDauVao = 0;
@@ -131,14 +179,22 @@ export function keHoachXuat(o: {
 
   const loc: string[] = [];
   const nhanhVideo: string[] = [];
+  // Ba lớp tiếng trộn riêng: giọng (điều khiển nén nhạc), nhạc (nhỏ lại khi có giọng), còn lại (hiệu ứng, tiếng clip có người nói).
+  const nhanhGiong: string[] = [];
+  const nhanhNhac: string[] = [];
   const nhanhAm: string[] = [];
   const canhThieu: string[] = [];
   let t = 0; let soAm = 0;
   const cauMan: { tu: number; den: number; dong: string[]; kieu?: KieuChu }[] = [];
-  const themAm = (bieuThuc: string) => { const nhan = `a${soAm++}`; loc.push(`${bieuThuc},aformat=sample_rates=48000:channel_layouts=stereo[${nhan}]`); nhanhAm.push(`[${nhan}]`); };
-  // Mốc bắt đầu tuyệt đối của mọi câu LỜI DẪN (để câu trước không đè câu sau: dải giọng đọc liên tục của QC mẫu).
-  const mocDan: number[] = [];
-  { let tt = 0; for (const c of ds) { for (const d of dongThoai(c, o.nhanVat)) if (!d.nhan_vat.trim() && d.url) mocDan.push(tt + Math.min(d.tre ?? 0, Math.max(0, giayPhat(c) - 0.2))); tt += giayPhat(c); } }
+  const themAm = (bieuThuc: string, lop: string[] = nhanhAm) => { const nhan = `a${soAm++}`; loc.push(`${bieuThuc},aformat=sample_rates=48000:channel_layouts=stereo[${nhan}]`); lop.push(`[${nhan}]`); };
+  /** Đưa câu giọng về LUFS_GIONG theo độ to đã đo (±15 dB) — không đo được thì để nguyên. */
+  const chuanGiong = (url: string) => { const l = nl.get(url)?.lufs; return l != null && Number.isFinite(l) && l > -70 ? `volume=${so(Math.max(-15, Math.min(15, LUFS_GIONG - l)))}dB,` : ''; };
+  // Mốc bắt đầu tuyệt đối + độ dài của mọi câu LỜI DẪN (để câu trước không đè câu sau: dải giọng đọc liên tục của QC mẫu).
+  const dsDan: { moc: number; dai: number | null }[] = [];
+  { let tt = 0; for (const c of ds) { for (const d of dongThoai(c, o.nhanVat)) if (!d.nhan_vat.trim() && d.url) { const m = tt + Math.min(d.tre ?? 0, Math.max(0, giayPhat(c) - 0.2)); dsDan.push({ moc: m, dai: nl.get(d.url)?.dai ?? null }); } tt += giayPhat(c); } }
+  // MỘT tốc độ đọc cho cả dải lời dẫn = tốc độ câu chật nhất cần để không đè câu sau (≤ NHANH_TOI_DA). Trước đây mỗi câu một tốc độ
+  // (phim #5: 2 câu ×1,26, 14 câu ×1,0) → nhịp đọc giật giữa các câu như hai người đọc.
+  const nhanhDan = Math.min(NHANH_TOI_DA, Math.max(1, ...dsDan.map((x, i) => { const ke = dsDan[i + 1]?.moc; return x.dai && ke != null ? x.dai / Math.max(0.2, ke - x.moc - 0.05) : 1; })));
   ds.forEach((c, i) => {
     const phat = giayPhat(c);
     const vUrl = c.video_cuoi_url || c.video_url;
@@ -157,7 +213,7 @@ export function keHoachXuat(o: {
     // Giọng từng dòng nối tiếp nhau trong shot (theo độ dài file giọng; chưa có giọng thì chia đều giây phát để giữ nhịp).
     const dong = dongThoai(c, o.nhanVat);
     let tDong = 0;
-    const tiengRieng = coTiengRieng(c, o.nhanVat);
+    const dungClip = dungTiengClip(c, o.nhanVat);
     dong.forEach((d) => {
       const daiGiong = d.url && nl.get(d.url)?.dai ? nl.get(d.url)!.dai! : phat / dong.length;
       if (typeof d.tre === 'number' && d.tre > tDong) tDong = Math.min(d.tre, Math.max(0, phat - 0.2));
@@ -166,15 +222,13 @@ export function keHoachXuat(o: {
       const conLai = Math.max(0.2, phat - tDong);
       // Lời dẫn (không người nói) = dải giọng đọc liên tục như QC mẫu: đọc TRỌN câu, vắt qua shot sau, không cắt không tăng tốc.
       const loiDan = !d.nhan_vat.trim();
-      // Lời dẫn dài hơn khoảng tới câu dẫn kế → đọc nhanh lên (≤1,35×) để hết trước khi câu sau vào; thoại nhân vật → vừa phần còn lại của shot.
-      const keTiep = loiDan ? mocDan.find((m) => m > t + tDong + 0.01) : undefined;
-      const choPhep = loiDan ? (keTiep != null ? keTiep - (t + tDong) - 0.05 : Infinity) : conLai;
-      const nhanh = d.url && nl.get(d.url)?.dai && daiGiong > choPhep + 0.05 ? Math.min(1.35, daiGiong / choPhep) : 1;
-      if (d.url && nl.has(d.url)) { const ka = them(d.url); themAm(`[${ka}:a]${nhanh > 1.001 ? `atempo=${so(nhanh)},` : ''}${loiDan ? '' : `atrim=0:${so(conLai + 0.3)},`}asetpts=PTS-STARTPTS,adelay=${Math.round((t + tDong) * 1000)}:all=1`); }
+      // Lời dẫn: một tốc độ chung cả phim (nhanhDan); thoại nhân vật → vừa phần còn lại của shot (≤ NHANH_TOI_DA).
+      const nhanh = loiDan ? nhanhDan : d.url && nl.get(d.url)?.dai && daiGiong > conLai + 0.05 ? Math.min(NHANH_TOI_DA, daiGiong / conLai) : 1;
+      if (d.url && nl.has(d.url)) { const ka = them(d.url); themAm(`[${ka}:a]${chuanGiong(d.url)}${nhanh > 1.001 ? `atempo=${so(nhanh)},` : ''}${loiDan ? '' : `atrim=0:${so(conLai + 0.3)},`}asetpts=PTS-STARTPTS,adelay=${Math.round((t + tDong) * 1000)}:all=1`, nhanhGiong); }
       tDong += daiGiong / nhanh + 0.15;
     });
     if (c.am_thanh_url && nl.has(c.am_thanh_url)) { const ka = them(c.am_thanh_url); themAm(`[${ka}:a]atrim=0:${so(phat)},asetpts=PTS-STARTPTS,volume=0.8,adelay=${Math.round(t * 1000)}:all=1`); }
-    if (laVideo && !tiengRieng && nl.get(nguon)?.coAm) themAm(`[${k}:a]atrim=${so(boDau)}:${so(boDau + phat)},asetpts=PTS-STARTPTS,adelay=${Math.round(t * 1000)}:all=1`);
+    if (laVideo && dungClip && nl.get(nguon)?.coAm) themAm(`[${k}:a]atrim=${so(boDau)}:${so(boDau + phat)},asetpts=PTS-STARTPTS,adelay=${Math.round(t * 1000)}:all=1`);
     loc.push(`${ve.join(',')}[v${i}]`); nhanhVideo.push(`[v${i}]`);
     t += phat;
   });
@@ -182,7 +236,8 @@ export function keHoachXuat(o: {
   const khoi: { ten: string; tu: number; dai: number }[] = [];
   { let tt = 0; for (const c of ds) { const l = khoi[khoi.length - 1]; const g = giayPhat(c); if (l && l.ten === c.phan_doan) l.dai += g; else khoi.push({ ten: c.phan_doan, tu: tt, dai: g }); tt += g; } }
   const nhacPc = khoi.filter((kh) => o.tap.nhac_phan_canh?.[kh.ten] && nl.has(o.tap.nhac_phan_canh[kh.ten]!));
-  const nhac = (url: string, tu: number, dai: number) => { const k = them(url); themAm(`[${k}:a]aloop=loop=-1:size=2147483647,atrim=0:${so(dai)},asetpts=PTS-STARTPTS,afade=t=in:d=0.6,afade=t=out:st=${so(Math.max(0, dai - 1.2))}:d=1.2,volume=0.22,adelay=${Math.round(tu * 1000)}:all=1`); };
+  // Nhạc to hơn trước (0,35 thay 0,22) vì đã có nén theo giọng: khoảng giữa câu nghe rõ nhạc như QC mẫu, lúc có giọng nhạc tự lùi.
+  const nhac = (url: string, tu: number, dai: number) => { const k = them(url); themAm(`[${k}:a]aloop=loop=-1:size=2147483647,atrim=0:${so(dai)},asetpts=PTS-STARTPTS,afade=t=in:d=0.6,afade=t=out:st=${so(Math.max(0, dai - 1.2))}:d=1.2,volume=0.35,adelay=${Math.round(tu * 1000)}:all=1`, nhanhNhac); };
   if (nhacPc.length) for (const kh of nhacPc) nhac(o.tap.nhac_phan_canh[kh.ten]!, kh.tu, kh.dai);
   else if (o.tap.nhac_url && nl.has(o.tap.nhac_url)) nhac(o.tap.nhac_url, 0, t);
   // End card quảng cáo: 2 giây, tên + ưu đãi (từ mục 0) — người xem tới cuối có một màn đọc được để bấm.
@@ -198,7 +253,7 @@ export function keHoachXuat(o: {
     } else loc.push(`color=c=0x101014:s=${W}x${H}:d=2:r=30,format=yuv420p,${drawMan('end', dong, true)}[vend]`);
     nhanhVideo.push('[vend]'); giay += 2;
   }
-  if (!nhanhVideo.length) return { args: [], tep, giay: 0, canhThieu };
+  if (!nhanhVideo.length) return { args: [], tep, giay: 0, canhThieu, canhBao };
   // Chữ màn vẽ MỘT lần trên cả video bằng libass (màu chữ/viền/nhấn số, font, đổi chữ theo giây) — thay drawtext từng shot.
   if (cauMan.length) {
     const ass = tepChu('chu', tepAss({ W, H, kieu: o.qc?.kieu_chu, viTri, cau: cauMan })).replace(/\.txt$/, '.ass');
@@ -206,10 +261,19 @@ export function keHoachXuat(o: {
     loc.push(`${nhanhVideo.join('')}concat=n=${nhanhVideo.length}:v=1:a=0[vcat]`);
     loc.push(`[vcat]ass=filename='${duongFf(ass)}'${o.fontsDir ? `:fontsdir='${duongFf(o.fontsDir)}'` : ''}[vout]`);
   } else loc.push(`${nhanhVideo.join('')}concat=n=${nhanhVideo.length}:v=1:a=0[vout]`);
-  if (nhanhAm.length) loc.push(`${nhanhAm.join('')}amix=inputs=${nhanhAm.length}:normalize=0:dropout_transition=0,atrim=0:${so(giay)},loudnorm=I=-14:TP=-1.5:LRA=11[aout]`);
+  // Ducking: nhạc nén theo dải giọng (sidechaincompress) → nền liền mạch mà giọng luôn nổi, mức nghe đều cả phim.
+  const tron = (ds2: string[], ten: string) => { if (ds2.length === 1) { loc.push(`${ds2[0]}anull[${ten}]`); return `[${ten}]`; } loc.push(`${ds2.join('')}amix=inputs=${ds2.length}:normalize=0:dropout_transition=0[${ten}]`); return `[${ten}]`; };
+  const lop: string[] = [];
+  if (nhanhGiong.length && nhanhNhac.length) {
+    loc.push(`${tron(nhanhGiong, 'giong')}asplit=2[gm][gsc]`);
+    loc.push(`${tron(nhanhNhac, 'nhac')}[gsc]sidechaincompress=threshold=0.03:ratio=6:attack=15:release=350[nhacnen]`);
+    lop.push('[gm]', '[nhacnen]');
+  } else lop.push(...nhanhGiong, ...nhanhNhac);
+  lop.push(...nhanhAm);
+  if (lop.length) loc.push(`${lop.join('')}amix=inputs=${lop.length}:normalize=0:dropout_transition=0,atrim=0:${so(giay)},loudnorm=I=-14:TP=-1.5:LRA=11[aout]`);
   else loc.push(`anullsrc=r=48000:cl=stereo,atrim=0:${so(giay)}[aout]`);
   const kichBan = tepChu('loc', loc.join(';\n'));
   const args = ['-y', '-hide_banner', '-loglevel', 'error', ...dauVao, '-/filter_complex', kichBan, '-map', '[vout]', '-map', '[aout]',
     '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-r', so(fpsRa), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', '-t', so(giay), o.ra];
-  return { args, tep, giay, canhThieu };
+  return { args, tep, giay, canhThieu, canhBao };
 }

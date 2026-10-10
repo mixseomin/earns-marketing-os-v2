@@ -55,9 +55,12 @@ export const tenNoi = (d: Pick<DongThoai, 'nhan_vat'>): string => d.nhan_vat.tri
 export const cungTen = (a: string, b: string): boolean => a.trim().toLowerCase() === b.trim().toLowerCase();
 /** Nhân vật theo tên người nói (không phân biệt hoa thường, bỏ khoảng trắng thừa). */
 export const timNv = <T extends Pick<NhanVat, 'ten'>>(nv: T[], ten: string): T | undefined => nv.find((x) => cungTen(x.ten, ten));
-/** Shot có tiếng sinh RIÊNG (file giọng của dòng thoại nào đó, hoặc hiệu ứng) → tiếng sẵn của clip (Veo/Kling tự nói) phải tắt, không chồng
- *  hai giọng (#1219). MỘT luật cho timeline (xem thử) và bản xuất (ffmpeg). */
-export const coTiengRieng = (c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url' | 'am_thanh_url'>, nv: NhanVat[]): boolean => dongThoai(c, nv).some((d) => d.url) || !!c.am_thanh_url;
+/** Tiếng sẵn của clip (Veo/Kling tự sinh) CHỈ được dùng khi shot có người NÓI TRONG KHUNG mà dòng đó chưa có file giọng riêng — tức model
+ *  video là nguồn duy nhất của câu nói (khớp miệng). Mọi trường hợp khác TẮT, kể cả shot không có thoại: Veo tự bịa giọng/nhạc/tiếng rít
+ *  (10/10/2026, phim #5: shot 3 có giọng nam 129 Hz không ai viết, shot 15/20/21 ồn -11 LUFS, shot 2 im -44) → bật lên là nền nhảy 30 dB
+ *  giữa các shot. Shot có hiệu ứng riêng (am_thanh_url) cũng tắt. MỘT luật cho timeline, bản xuất và lúc gửi sinh video (generate_audio). */
+export const dungTiengClip = (c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url' | 'am_thanh_url'>, nv: NhanVat[]): boolean =>
+  !c.am_thanh_url && dongThoai(c, nv).some((d) => !!d.nhan_vat.trim() && !laLoiDan(d.dien_xuat) && !d.url);
 /** Giọng mặc định khi nhân vật chưa chọn giọng cố định (model fal; máy chủ có khoá ElevenLabs riêng thì đổi sang ElevenLabs trực tiếp). */
 export const GIONG_MAC_DINH = { model: 'fal-ai/elevenlabs/tts/eleven-v3', voice: 'George' };
 /** Giá (cents) một câu đọc theo model giọng — MỘT luật cho nút, bảng ＋ và sổ chi phí. null = model không công bố giá

@@ -13,6 +13,8 @@ export type GiaTom = {
   clip: Record<'720p' | '1080p', Khoang | null>;
   /** Giá dùng ghi sổ: mỗi giây, có tiếng (studio bật generate_audio). */
   chinh: Record<'720p' | '1080p', number | null>;
+  /** Giá mỗi giây khi TẮT tiếng (generate_audio=false) — null = model không công bố riêng, ghi sổ theo giá có tiếng. */
+  khongTieng: Record<'720p' | '1080p', number | null>;
   /** Giá một ảnh (model ảnh). */
   anh: Khoang | null;
   moTa: string;
@@ -103,13 +105,15 @@ export function tomGia(raw: string): GiaTom {
   const clipGiay = ds.filter((x) => x.kieu === 'clip' && x.giay).map((x) => ({ ...x, kieu: 'giay' as const, cents: x.cents / x.giay! }));
   const clipCo = ds.filter((x) => x.kieu === 'clip' && !x.giay);
   const nguonGiay = giay.length ? giay : clipGiay;
-  const out: GiaTom = { giay: { '720p': null, '1080p': null }, clip: { '720p': null, '1080p': null }, chinh: { '720p': null, '1080p': null }, anh: khoang(ds.filter((x) => x.kieu === 'anh').map((x) => x.cents)), moTa: '' };
+  const out: GiaTom = { giay: { '720p': null, '1080p': null }, clip: { '720p': null, '1080p': null }, chinh: { '720p': null, '1080p': null }, khongTieng: { '720p': null, '1080p': null }, anh: khoang(ds.filter((x) => x.kieu === 'anh').map((x) => x.cents)), moTa: '' };
   for (const r of ['720p', '1080p'] as const) {
     if (nguonGiay.length) {
       const m = theoRes(nguonGiay, r);
       out.giay[r] = khoang(m.map((x) => x.cents));
       const coTieng = m.filter((x) => x.tieng === true);
       out.chinh[r] = (coTieng.length ? Math.max(...coTieng.map((x) => x.cents)) : m.filter((x) => x.tieng !== false).length ? Math.max(...m.filter((x) => x.tieng !== false).map((x) => x.cents)) : Math.max(...m.map((x) => x.cents)));
+      const khong = m.filter((x) => x.tieng === false);
+      out.khongTieng[r] = khong.length ? Math.max(...khong.map((x) => x.cents)) : null;
     } else if (clipCo.length) {
       out.clip[r] = khoang(theoRes(clipCo, r).map((x) => x.cents));
     }

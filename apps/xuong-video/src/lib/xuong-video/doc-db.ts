@@ -87,10 +87,10 @@ export const mapJob = (r: Row): Job => ({
 });
 
 /** Giá video thật theo model (fal: danh mục động; Google: bảng kieu.ts). */
-export async function giaVideoSv(model: string, dpg: '720p' | '1080p', giay: number): Promise<number> {
+export async function giaVideoSv(model: string, dpg: '720p' | '1080p', giay: number, tieng = true): Promise<number> {
   if (model.startsWith('fal:')) {
     const m = (await danhMucFal()).find((x) => x.id === model.slice(4));
-    const g = m?.gia.chinh[dpg]; if (g != null) return g * giay;
+    const g = (!tieng ? m?.gia.khongTieng?.[dpg] : null) ?? m?.gia.chinh[dpg]; if (g != null) return g * giay;
     const clip = m?.gia.clip[dpg]; if (clip) return clip[1];
   }
   return giaVideoCents(model, dpg, giay);

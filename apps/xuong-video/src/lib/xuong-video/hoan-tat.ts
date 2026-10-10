@@ -91,7 +91,8 @@ export async function hoanTatAm(kq: KqViecAm): Promise<boolean> {
   if (dich === 'thoai' && j.canh_id != null) {
     if (rq.dong != null) {
       const i = Number(rq.dong);
-      await db.execute(sql`UPDATE xv_canh SET thoai = CASE WHEN jsonb_array_length(thoai) > ${i} THEN jsonb_set(thoai, ${`{${i},url}`}::text[], to_jsonb(${kq.url}::text)) ELSE thoai END,
+      // Ghi kèm giọng đã đọc ("model|voice") vào dòng — bản xuất đếm số giọng của lời dẫn để chặn phim lẫn giọng.
+      await db.execute(sql`UPDATE xv_canh SET thoai = CASE WHEN jsonb_array_length(thoai) > ${i} THEN jsonb_set(jsonb_set(thoai, ${`{${i},url}`}::text[], to_jsonb(${kq.url}::text)), ${`{${i},giong}`}::text[], to_jsonb(${String(rq.giong ?? '')}::text)) ELSE thoai END,
         thoai_url = CASE WHEN ${i} = 0 THEN ${kq.url} ELSE thoai_url END, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${Number(j.canh_id)}`);
     } else await db.execute(sql`UPDATE xv_canh SET thoai_url = ${kq.url}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${Number(j.canh_id)}`);
   }

@@ -5,7 +5,7 @@ import 'server-only';
 import { sql } from 'drizzle-orm';
 import { chupTruoc } from './hoan-tac';
 import { mapCanh, s, n, type Db, type Row } from './doc-db';
-import type { LoaiTaiSan, TaiSan } from './kieu';
+import { thuongHieu, type KinhThanh, type LoaiTaiSan, type TaiSan } from './kieu';
 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
@@ -38,7 +38,7 @@ export async function luuVaoKho(db: Db, t: { loai: LoaiTaiSan; url: string; ten:
 /** Lưu shot ĐẠT vào kho: keyframe đang chọn (ảnh) + clip đang dùng (bản cuối, không thì nháp). Nhãn = sản phẩm/anchor trong shot,
  *  loại shot, góc máy; mô tả = cảnh + hành động — creative sau tìm theo sản phẩm + động tác. */
 export async function luuShotVaoKho(db: Db, canhId: number): Promise<Kq<number>> {
-  const r = (await db.execute(sql`SELECT c.*, t.phim_id, p.project, p.ten AS phim_ten, p.kinh_thanh->>'ti_le' AS ti_le FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id JOIN xv_phim p ON p.id = t.phim_id WHERE c.id = ${canhId}`)) as unknown as Row[];
+  const r = (await db.execute(sql`SELECT c.*, t.phim_id, p.project, p.kinh_thanh, p.ten AS phim_ten, p.kinh_thanh->>'ti_le' AS ti_le FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id JOIN xv_phim p ON p.id = t.phim_id WHERE c.id = ${canhId}`)) as unknown as Row[];
   if (!r[0]) return loi('không thấy shot');
   const c = mapCanh(r[0]);
   const nv = c.nhan_vat.length ? ((await db.execute(sql`SELECT ten, loai FROM xv_nhan_vat WHERE id = ANY(${`{${c.nhan_vat.join(',')}}`}::int[])`)) as unknown as Row[]) : [];
@@ -46,7 +46,7 @@ export async function luuShotVaoKho(db: Db, canhId: number): Promise<Kq<number>>
   const the = [...nv.filter((x) => s(x.loai) !== 'san_pham').map((x) => s(x.ten)), c.goc_may].filter(Boolean).slice(0, 6);
   const moTa = [c.canh, c.hanh_dong].filter(Boolean).join(' — ');
   const nguon = { phim_id: n(r[0].phim_id), tap_id: c.tap_id, canh_id: c.id };
-  const chung = { thuong_hieu: s(r[0].project), san_pham: sp, the, mo_ta: moTa, nguon };
+  const chung = { thuong_hieu: thuongHieu(s(r[0].project), r[0].kinh_thanh as KinhThanh), san_pham: sp, the, mo_ta: moTa, nguon };
   const tenGoc = `${s(r[0].phim_ten)} · shot ${c.thu_tu}`;
   let so = 0;
   if (c.keyframe_url) { await luuVaoKho(db, { ...chung, loai: 'anh', url: c.keyframe_url, ten: `${tenGoc} · keyframe`, so_do: { ti_le: s(r[0].ti_le), prompt: c.prompt_anh } }); so++; }

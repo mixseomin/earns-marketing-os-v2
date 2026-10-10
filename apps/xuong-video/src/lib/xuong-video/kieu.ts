@@ -219,6 +219,11 @@ export const nhanNhom = (loai: LoaiNhanVat, nhom: string) => NHOM_BIEN_THE[loai]
 export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null; xuat: BanXuat[]; bai_dang: BaiDang | null };
 /** Một bản xuất MP4 của tập (mỗi nhánh hook một tệp). */
 /** Kho tài sản dùng lại (xv_tai_san): clip/keyframe đạt, nhạc nền, preset giọng, khuôn QC, kiểu chữ thương hiệu. */
+/** Khoá THƯƠNG HIỆU của kho tài sản = tên miền shop của phim QC (qc.link, bỏ www) — project của studio là nhãn chung ('studio'), không phải
+ *  thương hiệu. Không có link thì dùng project. MỘT luật cho kho, preset giọng, nhạc tự lưu. */
+export const thuongHieu = (project: string, kt?: Pick<KinhThanh, 'qc'> | null): string => {
+  try { const h = kt?.qc?.link ? new URL(kt.qc.link).hostname.replace(/^www\./, '') : ''; return h || project; } catch { return project; }
+};
 export type LoaiTaiSan = 'clip' | 'anh' | 'nhac' | 'giong' | 'khuon_qc' | 'kieu_chu';
 export const LOAI_TAI_SAN: { key: LoaiTaiSan; ten: string; icon: string }[] = [
   { key: 'clip', ten: 'Clip', icon: '🎞' }, { key: 'anh', ten: 'Keyframe', icon: '🖼' }, { key: 'nhac', ten: 'Nhạc nền', icon: '🎵' },

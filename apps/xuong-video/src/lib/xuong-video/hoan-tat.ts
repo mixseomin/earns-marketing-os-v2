@@ -9,7 +9,7 @@ import { sql } from 'drizzle-orm';
 import { luuVaoKho } from './kho';
 import { getDb } from '@mos2/db';
 import { danhMucFal } from './fal';
-import { giaAnhCents } from './kieu';
+import { giaAnhCents, thuongHieu, type KinhThanh } from './kieu';
 import { chayViecAnh, type ViecAnh, type KqViec } from './viec-anh';
 import { chayViecAm, type ViecAm, type KqViecAm } from './viec-am';
 
@@ -102,8 +102,8 @@ export async function hoanTatAm(kq: KqViecAm): Promise<boolean> {
     if (rq.phan_doan) await db.execute(sql`UPDATE xv_tap SET nhac_phan_canh = nhac_phan_canh || jsonb_build_object(${String(rq.phan_doan)}::text, ${kq.url}::text), updated_at = now() WHERE id = ${Number(rq.tap_id)}`);
     else await db.execute(sql`UPDATE xv_tap SET nhac_url = ${kq.url}, updated_at = now() WHERE id = ${Number(rq.tap_id)}`);
     // Nhạc nền luôn dùng lại được → tự vào kho tài sản (creative sau chọn từ kho thay vì sinh lại).
-    const p = (await db.execute(sql`SELECT p.id, p.project, p.ten, t.so FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${Number(rq.tap_id)}`)) as unknown as Array<Record<string, unknown>>;
-    if (p[0]) await luuVaoKho(db, { loai: 'nhac', url: kq.url, ten: `Nhạc · ${String(p[0].ten)} · tập ${String(p[0].so)}${rq.phan_doan ? ` · ${String(rq.phan_doan)}` : ''}`, thuong_hieu: String(p[0].project ?? ''),
+    const p = (await db.execute(sql`SELECT p.id, p.project, p.kinh_thanh, p.ten, t.so FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${Number(rq.tap_id)}`)) as unknown as Array<Record<string, unknown>>;
+    if (p[0]) await luuVaoKho(db, { loai: 'nhac', url: kq.url, ten: `Nhạc · ${String(p[0].ten)} · tập ${String(p[0].so)}${rq.phan_doan ? ` · ${String(rq.phan_doan)}` : ''}`, thuong_hieu: thuongHieu(String(p[0].project ?? ''), p[0].kinh_thanh as KinhThanh),
       mo_ta: String(rq.prompt ?? ''), so_do: { model: String(j.model ?? '') }, nguon: { phim_id: Number(p[0].id), tap_id: Number(rq.tap_id) } }).catch((e) => console.error('[kho] lưu nhạc hỏng', e));
   }
   if (dich === 'giong_mau' && j.nhan_vat_id != null) await db.execute(sql`UPDATE xv_nhan_vat SET giong_mau_url = ${kq.url}, updated_at = now() WHERE id = ${Number(j.nhan_vat_id)}`);

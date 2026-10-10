@@ -6,7 +6,7 @@ import { dayViecAm } from './hoan-tat';
 import { dongThoai, giaGiong, GIONG_MAC_DINH, timNv } from './am-thanh';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, coElevenTrucTiep } from './giong';
 import { boiCanhTap, mapCanh, taoJob, type Db, type Row } from './doc-db';
-import { chanChuModel, coMau } from './kieu';
+import { chanChuModel, coMau, thuongHieu } from './kieu';
 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
@@ -33,7 +33,11 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
   // (10/10/2026: phim #5 đọc bằng George nam, QC mẫu giọng nữ).
   const coLoiDan = ds.some((c) => c.thoai.concat(c.thoai.length ? [] : dongThoai(c, bc.nhanVat)).some((d) => d.loi.trim() && !timNv(bc.nhanVat, d.nhan_vat) && !(tuy.chiThieu && d.url)));
   const chonDan = tuy.theoNguoi?.[''] ?? (tuy.model && tuy.voice ? { model: tuy.model, voice: tuy.voice } : null);
-  let giongDan = chonDan ?? bc.kt.giong_dan ?? null;
+  // Preset giọng lời dẫn của THƯƠNG HIỆU (kho tài sản, loai 'giong', theo project): phim mới cùng thương hiệu tự dùng, khỏi chọn lại.
+  const pj = thuongHieu(String(((await db.execute(sql`SELECT project FROM xv_phim WHERE id = ${bc.tap.phim_id}`)) as unknown as Row[])[0]?.project ?? ''), bc.kt);
+  const preset = (await db.execute(sql`SELECT du_lieu FROM xv_tai_san WHERE loai = 'giong' AND thuong_hieu = ${pj} AND xoa_luc IS NULL ORDER BY updated_at DESC LIMIT 1`)) as unknown as Row[];
+  const giongTh = (preset[0]?.du_lieu as { model?: string; voice?: string } | undefined);
+  let giongDan = chonDan ?? bc.kt.giong_dan ?? (giongTh?.model && giongTh.voice ? { model: giongTh.model, voice: giongTh.voice } : null);
   if (coLoiDan && !giongDan) {
     if (coMau(bc.kt.qc)) return loi('Phim có QC mẫu: chọn giọng LỜI DẪN cho cả phim trước (cùng giới tính với giọng của mẫu) — không tự dùng giọng mặc định');
     const m = MODEL_GIONG_MAC_DINH(); giongDan = { model: m, voice: await giongMacDinh(m) };
@@ -41,7 +45,13 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
   if (coLoiDan && giongDan && (giongDan.model !== bc.kt.giong_dan?.model || giongDan.voice !== bc.kt.giong_dan?.voice)) {
     await db.execute(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{giong_dan}', ${JSON.stringify(giongDan)}::jsonb), updated_at = now() WHERE id = ${bc.tap.phim_id}`);
   }
-  let so = 0;
+  // Giọng lời dẫn vừa chốt = preset của thương hiệu (một dòng mỗi thương hiệu, cập nhật tại chỗ).
+  if (coLoiDan && giongDan && pj && (giongDan.model !== giongTh?.model || giongDan.voice !== giongTh?.voice)) {
+    const daCo = (await db.execute(sql`UPDATE xv_tai_san SET du_lieu = ${JSON.stringify(giongDan)}::jsonb, ten = ${`Giọng lời dẫn · ${pj} · ${giongDan.voice}`}, xoa_luc = NULL, updated_at = now()
+      WHERE loai = 'giong' AND thuong_hieu = ${pj} RETURNING id`)) as unknown as Row[];
+    if (!daCo.length) await db.execute(sql`INSERT INTO xv_tai_san (loai, ten, thuong_hieu, du_lieu, nguon) VALUES ('giong', ${`Giọng lời dẫn · ${pj} · ${giongDan.voice}`}, ${pj}, ${JSON.stringify(giongDan)}::jsonb, ${JSON.stringify({ phim_id: bc.tap.phim_id })}::jsonb)`);
+  }
+  let so = 0; let dungLai = 0;
   for (const c of ds) {
     // Thoại theo dòng (kịch bản phim): mỗi dòng một file, giọng của đúng người nói dòng đó. Shot cũ chỉ có chuỗi → tách dòng và LƯU
     // vào c.thoai trước, để file giọng gắn đúng dòng (cùng một cách đọc với thẻ shot/timeline: dongThoai).
@@ -57,6 +67,17 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
         const model = chon?.model || tuy.model || v?.giong_model || MODEL_GIONG_MAC_DINH();
         const voice = chon?.voice || (tuy.model ? tuy.voice : '') || (v?.giong_model === model ? v.giong_id : '') || await giongMacDinh(model);
         const text = d.loi.trim();
+        // Câu MỚI (chưa có file) mà câu y hệt — cùng chữ, cùng diễn xuất, cùng giọng — đã đọc ở bất kỳ phim nào → dùng lại file đó, 0đ.
+        // Câu đang có file mà bấm sinh lại = muốn bản đọc mới → vẫn sinh.
+        if (!d.url) {
+          const cu = (await db.execute(sql`SELECT x->>'url' AS url FROM xv_canh k, jsonb_array_elements(CASE WHEN jsonb_typeof(k.thoai) = 'array' THEN k.thoai ELSE '[]'::jsonb END) x
+            WHERE x->>'loi' = ${d.loi} AND coalesce(x->>'dien_xuat', '') = ${d.dien_xuat ?? ''} AND x->>'giong' = ${`${model}|${voice}`} AND coalesce(x->>'url', '') <> '' LIMIT 1`)) as unknown as Row[];
+          if (cu[0]?.url) {
+            await db.execute(sql`UPDATE xv_canh SET thoai = jsonb_set(jsonb_set(thoai, ${`{${i},url}`}::text[], to_jsonb(${String(cu[0].url)}::text)), ${`{${i},giong}`}::text[], to_jsonb(${`${model}|${voice}`}::text)),
+              thoai_url = CASE WHEN ${i} = 0 THEN ${String(cu[0].url)} ELSE thoai_url END, updated_at = now() WHERE id = ${c.id}`);
+            dungLai++; continue;
+          }
+        }
         const g = giaGiong(dm.find((m) => m.key === model), text.length);
         const gia = g ?? 0;   // model không công bố giá → sổ ghi 0 và nhãn job ghi "giá chưa rõ" để sổ chi phí không hiểu nhầm là miễn phí
         const job = await taoJob(db, { nhan: `Giọng · shot #${c.thu_tu} dòng ${i + 1} · ${v?.ten ?? 'lời dẫn'} (${voice})${g == null ? ' · giá chưa rõ' : ''}`, canh_id: c.id, nhan_vat_id: v?.id, loai: 'am', provider: model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: model.startsWith('elevenlabs:') ? model : `fal:${model}`, request: { dich: 'thoai', dong: i, gia, text, voice, giong: `${model}|${voice}` } });
@@ -65,5 +86,6 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
       }
     }
   }
+  if (dungLai) console.log(`[giọng] dùng lại ${dungLai} câu đã đọc (0đ)`);
   return { ok: true, data: so };
 }

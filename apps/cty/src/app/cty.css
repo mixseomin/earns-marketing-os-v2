@@ -91,3 +91,12 @@ h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem}
 .cty-log td{vertical-align:top}
 .cty-log-ct{max-width:60ch;overflow-wrap:anywhere}
 .cty-pills a.cty-pill{text-decoration:none}
+
+.cty-dodac{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px;margin:.8rem 0}
+.cty-dd{background:var(--surface);border:1px solid var(--line);border-radius:6px;min-width:0}
+.cty-dd>summary{cursor:pointer;padding:.55rem .8rem;font-family:var(--head);font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.cty-dd[open]{grid-column:1/-1}
+.cty-dd-so{font-family:var(--mono);font-size:.78rem;font-weight:400;color:var(--muted);text-align:right}
+.cty-dd>*:not(summary){padding:0 .9rem .6rem;font-size:.92rem}
+.cty-dd ul{margin:.2rem 0;padding-left:1.1rem}
+.cty-dd li{margin:.25rem 0;overflow-wrap:anywhere}

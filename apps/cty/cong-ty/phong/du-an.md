@@ -7,6 +7,7 @@ don_vi_viec: 1 dự án · theo khuôn của dự án
 cong_nguoi: theo phòng của dự án
 so_do: 
 tom_tat: 5 trưởng dự án, mỗi người cầm một phòng theo khuôn riêng
+du_an: [courseforge]
 trang_thai: tham quan · chưa hoạt động
 ---
 ## Trưởng dự án và phòng của họ

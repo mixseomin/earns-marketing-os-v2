@@ -7,6 +7,7 @@ don_vi_viec: 1 camp đang sống · giờ
 cong_nguoi: tiền (thoát khỏi vòng: Hà soát số → Giám đốc ký); Kiên là công tắc cắt vòng, không đợi ký
 so_do: adfond
 tom_tat: Vòng chạy → đo → quyết → chỉnh, mỗi giờ; tiền thoát ra cổng
+du_an: [adfond]
 trang_thai: tham quan · chưa hoạt động
 ---
 ## Một ngày mẫu

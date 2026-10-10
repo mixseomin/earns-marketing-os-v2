@@ -7,6 +7,7 @@ don_vi_viec: 1 cuốn · tuần (KDP 2 bìa mềm/tuần, Etsy giãn 2/tuần)
 cong_nguoi: trạm 6: Hà soát bằng chứng → Giám đốc ký; sau đó cờ freeze của Kiên
 so_do: sach
 tom_tat: Dây chuyền 6 trạm bọc lên quy-trinh.mjs đang có
+du_an: [puzzle-books]
 trang_thai: tham quan · chưa hoạt động
 ---
 ## Một tuần mẫu

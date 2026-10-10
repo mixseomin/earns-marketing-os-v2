@@ -7,6 +7,7 @@ don_vi_viec: 1 issue = 1 task = 1 bước tiến độ · ngày
 cong_nguoi: ngoài đường chính: chỉ migration xoá/đổi cột, dữ liệu thật, DNS, revert/reset, mua dịch vụ
 so_do: dsp
 tom_tat: Issue → build → review → git push → GHA deploy → verify
+du_an: [astrolas, militarycalc, govcalcs, visagps, mint-almanac, cities-gg]
 trang_thai: tham quan · chưa hoạt động
 ---
 ## Một ngày mẫu

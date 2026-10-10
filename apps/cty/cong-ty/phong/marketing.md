@@ -7,6 +7,7 @@ don_vi_viec: 1 card plays = 1 link / 1 bài · ngày
 cong_nguoi: link / bài theo standing (link gate); play done = nộp Review, Hà kiểm link đã đặt, Giám đốc Done
 so_do: mkt
 tom_tat: Bảng plays mọi dự án; email tự gửi, social có tay
+du_an: [adfond, astrolas, puzzle-books, militarycalc, govcalcs, visagps, mint-almanac, steamsolo]
 trang_thai: tham quan · chưa hoạt động
 ---
 ## Một tuần mẫu

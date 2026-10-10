@@ -6,6 +6,7 @@ import { Avatar, hueOf } from '@/components/avatar';
 import { SoDoKhuon } from '@/components/so-do-khuon';
 import { SvgTuongTac } from '@/components/svg-tuong-tac';
 import { PhongThu } from '@/components/phong-thu';
+import { DoDac } from '@/components/do-dac';
 import { Md } from '@/components/md';
 
 export const dynamic = 'force-dynamic';
@@ -31,6 +32,7 @@ export default async function TrangPhong({ params }: { params: Promise<{ id: str
           </Link>
         ))}
       </div>
+      <DoDac p={p} ns={ns} />
       {String(p.fm.thu_nghiem) === 'true' && <PhongThu admin={me.role === 'admin'} />}
       <details className="cty-details"><summary>Chi tiết phòng</summary>
         <dl className="cty-kv">

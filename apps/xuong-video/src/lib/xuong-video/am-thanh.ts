@@ -4,7 +4,10 @@
 //   Hiệu ứng: shot đã có clip → sinh từ chính clip (khớp hành động); chưa có clip → sinh từ mô tả âm thanh + kỹ thuật âm thanh của shot.
 //   Nhạc: một bài nền cho cả tập, dài bằng tập, lời nhắc ghép từ thể loại + kỹ thuật nhạc của các shot + đường cong cảm xúc.
 import type { Canh, NhanVat, DongThoai } from './kieu';
-import { CAM_XUC_EN } from './kieu';
+import { CAM_XUC_EN, giayPhat, locNhanh } from './kieu';
+/** Độ dài nhạc cần sinh = tổng giây PHÁT thật của một nhánh (thứ bản xuất dựng), làm tròn lên — không lấy thoi_luong_s của mọi shot
+ *  (cộng cả clip dư + nhánh B → phim #5 ra 95s thay 56s, ElevenLabs tính 2 phút thay 1). */
+export const giayNhac = (ds: Pick<Canh, 'nhanh' | 'phat_s' | 'thoi_luong_s'>[]): number => Math.max(5, Math.ceil(locNhanh(ds).reduce((a, c) => a + giayPhat(c), 0) - 0.05));
 
 export type LoaiAm = 'giong' | 'sfx_video' | 'sfx_chu' | 'nhac';
 export type MoHinhAm = { key: string; ten: string; loai: LoaiAm; /** cents mỗi đơn vị */ gia: number; donVi: '1k_ky_tu' | 'giay' | 'phut'; ghiChu: string };

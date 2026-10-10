@@ -7,6 +7,7 @@
 //   --chon=<url>                 : (0đ) chọn một ảnh trong dải ứng viên làm keyframe đang dùng (chỉ khi --canh có MỘT shot).
 //   --duyet                      : đánh dấu shot đã duyệt keyframe (0đ) — bước bắt buộc trước --video.
 //   --video                      : sinh video nháp (Veo/fal theo kinh thánh) qua hàng đợi tối đa --song-song=2 clip, tự đợi hạn mức, in link + tiền.
+//   --giong-dan=<model>|<voice>  : (kèm --giong) đổi giọng LỜI DẪN của cả phim, vd fal-ai/elevenlabs/tts/eleven-v3|Jessica
 //   --giong                      : sinh giọng cho dòng thoại CHƯA có giọng của các shot (--giong-lai: cả dòng đã có), đợi file, in link.
 //   --xuat                       : (0đ) dựng MP4 CHỈ các shot này (chữ màn kiểu phim, logo, giọng, nhạc) để xem thử — không ghi vào danh sách bản xuất của tập.
 //   THỨ TỰ: --keyframe → (anh xem) → --duyet → --giong → --video. Giọng TRƯỚC video: có file giọng thì Veo sinh clip câm (chỉ cử miệng),
@@ -118,7 +119,9 @@ if (arg('video')) {
 }
 if (arg('giong')) {
   // Chỉ dòng CHƯA có giọng (giữ giọng đã duyệt); --giong-lai để sinh lại cả dòng đã có.
-  const r = await sinhGiongShots(db, tapId, ids, { chiThieu: !arg('giong-lai') });
+  // --giong-dan=<model>|<voice>: đặt giọng LỜI DẪN cho cả phim (khoá ở kinh_thanh.giong_dan) rồi đọc bằng giọng đó.
+  const gd = (process.argv.find((a) => a.startsWith('--giong-dan=')) ?? '').slice(12).split('|');
+  const r = await sinhGiongShots(db, tapId, ids, { chiThieu: !arg('giong-lai'), ...(gd[0] && gd[1] ? { theoNguoi: { '': { model: gd[0], voice: gd[1] } } } : {}) });
   if (!r.ok) { console.error('  ✗', r.loi); process.exit(1); }
   console.log(`  đã gửi ${r.data} dòng thoại, đợi file…`);
   for (let i = 0; i < 60; i++) {

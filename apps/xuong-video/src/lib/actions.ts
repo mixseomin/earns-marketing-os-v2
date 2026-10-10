@@ -11,7 +11,8 @@ import { getCurrentUser } from '@/lib/auth';
 import { uploadToR2 } from '@/lib/r2';
 import { dayViecAnh, dayViecAm, chayNen } from '@/lib/xuong-video/hoan-tat';
 import { chayXuat, ghiBanXuat, gopAm } from '@/lib/xuong-video/xuat-chay';
-import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiong, timNv } from '@/lib/xuong-video/am-thanh';
+import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiong, timNv, giayNhac } from '@/lib/xuong-video/am-thanh';
+import { sinhNhacTap } from '@/lib/xuong-video/sinh-nhac';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, type MoHinhGiong } from '@/lib/xuong-video/giong';
 import { boVaoThungRac, boAnhVaoThungRac, dsRac, khoiPhucRac, type MucRac } from '@/lib/xuong-video/thung-rac';
 import { batDauNangCap, danhMucFal, guiFal, type ModelFal } from '@/lib/xuong-video/fal';
@@ -1026,43 +1027,12 @@ export async function sinhAmThanh(tapId: number, canhIds?: number[], moHinhChu =
   return so ? { ok: true, data: so } : loi('không shot nào có clip hoặc mô tả âm thanh');
 }
 
-/** Sinh nhạc nền: theo TỪNG PHÂN CẢNH (mặc định — mỗi đoạn đúng không khí + cảm xúc của phân cảnh, dài bằng phân cảnh) hoặc một bài cả tập.
- *  phanDoan: tên một phân cảnh · '*' = mọi phân cảnh · undefined = một bài cả tập. */
+/** Sinh nhạc nền (lõi ở sinh-nhac.ts). */
 export async function sinhNhac(tapId: number, model = 'cassetteai/music-generator', phanDoan?: string, moTaThem = ''): Promise<Kq<number>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  const bc = await boiCanhTap(db, tapId);
-  if (!bc) return loi('không thấy tập');
-  if (!moHinhAm(model) || moHinhAm(model)!.loai !== 'nhac') return loi('model nhạc không hợp lệ');
-  const ds = await dsCanh(tapId);
-  const tl = bc.kt.the_loai ? `Genre: ${bc.kt.the_loai.replace('_', ' ')}` : '';
-  const dauVao = (prompt: string, giay: number) => (model.includes('elevenlabs') ? { prompt, music_length_ms: giay * 1000, force_instrumental: true } : { prompt, duration: giay });
-  const nhacCua = (shots: typeof ds) => [...new Set(shots.map((c) => promptKyThuatVideo({ nhac: c.ky_thuat.nhac }).replace(/^Music:\s*/, '').replace(/\.$/, '')).filter(Boolean))];
-  if (phanDoan === undefined) {
-    const giay = Math.max(10, ds.reduce((a, c) => a + (c.thoi_luong_s || 5), 0));
-    const cx = ds.map((c) => c.cam_xuc);
-    const prompt = [moTaThem || bc.tap.nhac_mo_ta, tl, nhacCua(ds).length ? `Style: ${nhacCua(ds).join('; ')}` : '', cx.length ? `emotional arc from ${cx[0]} to ${cx[cx.length - 1]} (scale -5..5)` : '', 'instrumental background score, no vocals'].filter(Boolean).join('. ');
-    const gia = giaAm(model, giay);
-    const job = await taoJob(db, { phim_id: bc.tap.phim_id, nhan: `Nhạc nền cả tập ${bc.tap.so} (${giay}s)`, loai: 'am', provider: 'fal', model: `fal:${model}`, request: { dich: 'nhac', gia, tap_id: tapId, prompt } });
-    if (moTaThem) await db.execute(sql`UPDATE xv_tap SET nhac_mo_ta = ${moTaThem}, updated_at = now() WHERE id = ${tapId}`);
-    await dayViecAm({ kieu: 'am', job, model, input: dauVao(prompt, giay), thuMuc: `nhac/${tapId}` });
-    return { ok: true, data: 1 };
-  }
-  const tenPc = phanDoan === '*' ? [...new Set(ds.map((c) => c.phan_doan).filter(Boolean))] : [phanDoan];
-  if (!tenPc.length) return loi('tập chưa có phân cảnh — tách lại cảnh để có phân cảnh, hoặc sinh một bài cả tập');
-  for (const ten of tenPc) {
-    const shots = ds.filter((c) => c.phan_doan === ten);
-    if (!shots.length) continue;
-    const pc = bc.tap.phan_canh.find((x) => x.ten === ten);
-    const giay = Math.max(5, shots.reduce((a, c) => a + (c.thoi_luong_s || 5), 0));
-    const nhip = pc?.nhip === 'nhanh' ? 'fast tempo' : pc?.nhip === 'cham' ? 'slow tempo' : 'medium tempo';
-    const prompt = [moTaThem, tl, nhacCua(shots).length ? `Style: ${nhacCua(shots).join('; ')}` : '', pc ? `Scene mood moves from ${pc.cam_xuc_dau} to ${pc.cam_xuc_cuoi} on a -5..5 scale (${pc.cam_xuc_cuoi > pc.cam_xuc_dau ? 'building hope/energy' : pc.cam_xuc_cuoi < pc.cam_xuc_dau ? 'darkening, tension or sadness' : 'steady'})` : '', nhip, 'instrumental cue, no vocals, clean start and ending'].filter(Boolean).join('. ');
-    const gia = giaAm(model, giay);
-    const job = await taoJob(db, { phim_id: bc.tap.phim_id, nhan: `Nhạc phân cảnh · ${ten} (${giay}s)`, loai: 'am', provider: 'fal', model: `fal:${model}`, request: { dich: 'nhac', gia, tap_id: tapId, phan_doan: ten, prompt } });
-    await dayViecAm({ kieu: 'am', job, model, input: dauVao(prompt, giay), thuMuc: `nhac/${tapId}` });
-  }
-  return { ok: true, data: tenPc.length };
+  return sinhNhacTap(db, tapId, model, phanDoan, moTaThem);
 }
 
 /** Ước giá trước khi bấm (hiện trên nút). */
@@ -1081,7 +1051,7 @@ export async function uocAm(tapId: number): Promise<{ giong: number; soThoai: nu
     const clip = c.video_cuoi_url || c.video_url;
     if (clip || c.am_thanh.trim() || c.ky_thuat.am_thanh?.length) { sfx += giaAm(clip ? 'mirelo-ai/sfx-v1/video-to-audio' : 'sonilo/v1.1/text-to-sound-effects', c.thoi_luong_s || 5); soSfx++; }
   }
-  const giay = Math.max(10, ds.reduce((a, c) => a + (c.thoi_luong_s || 5), 0));
+  const giay = giayNhac(ds);
   const nhac = Object.fromEntries(MO_HINH_AM.filter((m) => m.loai === 'nhac').map((m) => [m.key, giaAm(m.key, giay)]));
   // Nhạc đang sinh: theo phân cảnh nào / cả tập — timeline phủ sọc đúng khối đó (#1205).
   const dn = db ? ((await db.execute(sql`SELECT request->>'phan_doan' AS pd FROM xv_job WHERE loai = 'am' AND trang_thai = 'cho' AND request->>'dich' = 'nhac' AND request->>'tap_id' = ${String(tapId)} AND created_at > now() - interval '10 minutes'`)) as unknown as Row[]) : [];

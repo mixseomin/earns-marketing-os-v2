@@ -2,6 +2,7 @@
 //   --uoc        : chỉ ƯỚC LƯỢNG (0đ): đếm anchor chưa ảnh gốc + shot chưa keyframe × giá model → in ra, không chạy gì.
 //   --anchor     : sinh ảnh gốc cho anchor chưa có ảnh (sinh-anh.sinhAnhGoc), đợi xong.
 //   --keyframe   : sinh 1 keyframe cho mọi shot chưa có (sinh-anh.sinhKeyframeCanh), đợi xong.
+//   --nhac=<model> [--mo-ta-nhac="…"] : sinh MỘT bài nhạc nền cả tập (dài = giây phát của nhánh A), đợi xong — TỐN TIỀN.
 //   --xuat       : dựng MP4 thử (0đ, ffmpeg) → R2 + ghi vào tập như nút ⬇ Xuất. QC có lời dẫn mà chưa có nhạc nền → bị chặn;
 //                  --thieu-nhac = vẫn xuất làm bản nháp (gắn cờ đỏ "thiếu nhạc nền").
 //   Cổng ngôn ngữ: phim không phải tiếng Việt mà shot còn chữ màn/thoại tiếng Việt → DỪNG trước --keyframe/--xuat (dịch tập trước); --bo-qua-ngon-ngu để ép.
@@ -13,6 +14,7 @@ import { getDb } from '@mos2/db';
 import { sinhAnhGoc, sinhKeyframeCanh } from '../src/lib/xuong-video/sinh-anh';
 import { boiCanhTap, mapCanh, taoJob, type Row } from '../src/lib/xuong-video/doc-db';
 import { chayXuat, ghiBanXuat } from '../src/lib/xuong-video/xuat-chay';
+import { sinhNhacTap } from '../src/lib/xuong-video/sinh-nhac';
 import { docKinhThanh, tien, shotLechNgonNgu, tenNgonNgu } from '../src/lib/xuong-video/kieu';
 import { giaAnhSv } from '../src/lib/xuong-video/hoan-tat';
 
@@ -66,6 +68,18 @@ if (arg('keyframe') && canhThieu.length) {
   await doi(jobs, 'keyframe');
   const loi = await q(sql`SELECT nhan, loi FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[]) AND trang_thai = 'loi'`);
   for (const l of loi) console.log(`  ✗ ${l.nhan}: ${String(l.loi).slice(0, 160)}`);
+}
+const moNhac = (process.argv.find((a) => a.startsWith('--nhac=')) ?? '').slice(7);
+if (moNhac && tapId) {
+  const moTa = (process.argv.find((a) => a.startsWith('--mo-ta-nhac=')) ?? '').slice(13);
+  const truoc = Number((await q(sql`SELECT coalesce(max(id), 0) AS m FROM xv_job`))[0]!.m);
+  const r = await sinhNhacTap(db, tapId, moNhac, undefined, moTa);
+  if (!r.ok) { console.log(`  ✗ nhạc: ${r.loi}`); process.exit(1); }
+  for (let i = 0; i < 120; i++) {
+    const j = await q(sql`SELECT id, nhan, trang_thai, loi, output_url, chi_phi_cents FROM xv_job WHERE id > ${truoc} AND loai = 'am' AND request->>'dich' = 'nhac' AND request->>'tap_id' = ${String(tapId)} ORDER BY id DESC LIMIT 1`);
+    if (j[0] && j[0].trang_thai !== 'cho') { console.log(`  ${j[0].trang_thai === 'xong' ? '✓' : '✗'} ${j[0].nhan} · ${tien(Number(j[0].chi_phi_cents))} → ${j[0].output_url ?? j[0].loi}`); break; }
+    await new Promise((ok) => setTimeout(ok, 5000));
+  }
 }
 if (arg('xuat') && tapId) {
   const bc = (await boiCanhTap(db, tapId))!;

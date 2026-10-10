@@ -37,6 +37,8 @@ export function khoangIm(metadata: string, giay: number): [number, number][] {
 
 /** Mức to chuẩn của MỌI câu giọng trước khi trộn — câu nào ra từ model cũng về cùng mức, không câu to câu nhỏ. */
 export const LUFS_GIONG = -16;
+/** Nhạc nền nằm dưới giọng bao nhiêu dB (trước ducking). 10 dB: nghe rõ nền liên tục như QC mẫu mà không lấn lời. */
+export const LUFS_NHAC_DUOI_GIONG = 10;
 
 /** Giọng lời dẫn của các câu đã có file: lẫn nhiều giọng → cảnh báo (phim #5 10/10/2026: một shot nghe như người khác đọc).
  *  Thuần — bản xuất gắn vào kết quả, studio hiện cờ đỏ. */
@@ -220,9 +222,10 @@ export function keHoachXuat(o: {
   const khoi: { ten: string; tu: number; dai: number }[] = [];
   { let tt = 0; for (const c of ds) { const l = khoi[khoi.length - 1]; const g = giayPhat(c); if (l && l.ten === c.phan_doan) l.dai += g; else khoi.push({ ten: c.phan_doan, tu: tt, dai: g }); tt += g; } }
   const nhacPc = khoi.filter((kh) => o.tap.nhac_phan_canh?.[kh.ten] && nl.has(o.tap.nhac_phan_canh[kh.ten]!));
-  // Nhạc to hơn trước (0,35 thay 0,22) vì đã có nén theo giọng: khoảng giữa câu nghe rõ nhạc như QC mẫu, lúc có giọng nhạc tự lùi.
+  // Mức nhạc theo độ to ĐO ĐƯỢC của bài: nằm dưới giọng LUFS_NHAC_DUOI_GIONG dB (hệ số cố định thì bài to/nhỏ ra mức khác nhau). Bài chưa đo → 0,35.
+  // QC mẫu Jett: dải trầm (nhạc) đứng ~-24 LUFS suốt phim, gần như không lùi dưới giọng (10/10/2026).
   // Bài nhạc tự kết (đoạn im ở cuối tệp) → cắt phần im TRƯỚC khi lặp, kẻo phim câm ở cuối (phim #5: bài 56s im từ 53,8s, phim câm 1,5s cuối).
-  const nhac = (url: string, tu: number, dai: number) => { const k = them(url); const ic = nl.get(url)?.imCuoi; themAm(`[${k}:a]${ic && ic > 2 ? `atrim=0:${so(ic)},asetpts=PTS-STARTPTS,` : ''}aloop=loop=-1:size=2147483647,atrim=0:${so(dai)},asetpts=PTS-STARTPTS,afade=t=in:d=0.6,afade=t=out:st=${so(Math.max(0, dai - 1.2))}:d=1.2,volume=0.35,adelay=${Math.round(tu * 1000)}:all=1`, nhanhNhac); };
+  const nhac = (url: string, tu: number, dai: number) => { const k = them(url); const ic = nl.get(url)?.imCuoi; const ln = nl.get(url)?.lufs; const muc = ln != null && Number.isFinite(ln) && ln > -70 ? `volume=${so(Math.max(-30, Math.min(6, LUFS_GIONG - LUFS_NHAC_DUOI_GIONG - ln)))}dB` : 'volume=0.35'; themAm(`[${k}:a]${ic && ic > 2 ? `atrim=0:${so(ic)},asetpts=PTS-STARTPTS,` : ''}aloop=loop=-1:size=2147483647,atrim=0:${so(dai)},asetpts=PTS-STARTPTS,afade=t=in:d=0.6,afade=t=out:st=${so(Math.max(0, dai - 1.2))}:d=1.2,${muc},adelay=${Math.round(tu * 1000)}:all=1`, nhanhNhac); };
   if (nhacPc.length) for (const kh of nhacPc) nhac(o.tap.nhac_phan_canh[kh.ten]!, kh.tu, kh.dai);
   else if (o.tap.nhac_url && nl.has(o.tap.nhac_url)) nhac(o.tap.nhac_url, 0, t);
   // End card quảng cáo: 2 giây, tên + ưu đãi (từ mục 0) — người xem tới cuối có một màn đọc được để bấm.
@@ -246,13 +249,14 @@ export function keHoachXuat(o: {
     loc.push(`${nhanhVideo.join('')}concat=n=${nhanhVideo.length}:v=1:a=0[vcat]`);
     loc.push(`[vcat]ass=filename='${duongFf(ass)}'${o.fontsDir ? `:fontsdir='${duongFf(o.fontsDir)}'` : ''}[vout]`);
   } else loc.push(`${nhanhVideo.join('')}concat=n=${nhanhVideo.length}:v=1:a=0[vout]`);
-  // Ducking: nhạc nén theo dải giọng (sidechaincompress) → nền liền mạch mà giọng luôn nổi, mức nghe đều cả phim.
+  // Ducking NHẸ (2:1, ngưỡng cao): nhạc chỉ lùi vài dB khi có giọng. Trước đây 6:1 ngưỡng 0,03 → giọng đọc dày làm nhạc bị nén gần như suốt phim,
+  // dải trầm tụt -30/-42 LUFS so với -24/-27 của QC mẫu — nghe như mất nền (10/10/2026).
   const tron = (ds2: string[], ten: string) => { if (ds2.length === 1) { loc.push(`${ds2[0]}anull[${ten}]`); return `[${ten}]`; } loc.push(`${ds2.join('')}amix=inputs=${ds2.length}:normalize=0:dropout_transition=0[${ten}]`); return `[${ten}]`; };
   const lop: string[] = [];
   if (nhanhGiong.length && nhanhNhac.length) {
     // apad: sidechaincompress dừng theo luồng NGẮN hơn — không đệm thì nhạc bị cắt khi câu giọng cuối hết (phim #5: tiếng 53,8s / hình 55,5s).
     loc.push(`${tron(nhanhGiong, 'giong')}asplit=2[gm][gsc0];[gsc0]apad[gsc]`);
-    loc.push(`${tron(nhanhNhac, 'nhac')}[gsc]sidechaincompress=threshold=0.03:ratio=6:attack=15:release=350[nhacnen]`);
+    loc.push(`${tron(nhanhNhac, 'nhac')}[gsc]sidechaincompress=threshold=0.125:ratio=2:attack=30:release=400[nhacnen]`);
     lop.push('[gm]', '[nhacnen]');
   } else lop.push(...nhanhGiong, ...nhanhNhac);
   lop.push(...nhanhAm);

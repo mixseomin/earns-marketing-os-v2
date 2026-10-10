@@ -9,6 +9,8 @@ import { getDb } from '@mos2/db';
 export type AuthUser = { id: number; email: string; displayName: string; role: 'admin' | 'operator' | 'viewer' };
 
 export async function getCurrentUser(): Promise<AuthUser | null> {
+  // Chỉ dev local: CTY_DEV_USER=1 giả một admin để chụp màn hình/kiểm giao diện không cần DB. Production bỏ qua hoàn toàn.
+  if (process.env.NODE_ENV !== 'production' && process.env.CTY_DEV_USER === '1') return { id: 0, email: 'dev@local', displayName: 'dev', role: 'admin' };
   const raw = (await headers()).get('cookie') || '';
   const tokens = Array.from(raw.matchAll(/(?:^|;\s*)mos2-session=([^;]+)/g)).map((m) => (m[1] ?? '').trim()).filter(Boolean);
   if (!tokens.length) return null;

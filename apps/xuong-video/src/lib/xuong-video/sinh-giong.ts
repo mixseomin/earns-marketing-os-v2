@@ -51,6 +51,11 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
       WHERE loai = 'giong' AND thuong_hieu = ${pj} RETURNING id`)) as unknown as Row[];
     if (!daCo.length) await db.execute(sql`INSERT INTO xv_tai_san (loai, ten, thuong_hieu, du_lieu, nguon) VALUES ('giong', ${`Giọng lời dẫn · ${pj} · ${giongDan.voice}`}, ${pj}, ${JSON.stringify(giongDan)}::jsonb, ${JSON.stringify({ phim_id: bc.tap.phim_id })}::jsonb)`);
   }
+  // Lời dẫn đọc MỘT cách cho cả phim: cảm xúc = trung vị cảm xúc mục tiêu của các shot có lời dẫn (cả tập, không chỉ shot đang sinh).
+  // Theo từng shot thì câu ở shot 2 đọc thường, câu ở shot ≥3 đọc [excited] — một người dẫn lúc phấn khích lúc không (10/10/2026).
+  const tatCa = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId}`)) as unknown as Row[]).map(mapCanh);
+  const cxDan = tatCa.filter((c) => dongThoai(c, bc.nhanVat).some((d) => !timNv(bc.nhanVat, d.nhan_vat))).map((c) => c.cam_xuc).sort((a, b) => a - b);
+  const camDan = cxDan.length ? cxDan[Math.floor(cxDan.length / 2)]! : 0;
   let so = 0; let dungLai = 0;
   for (const c of ds) {
     // Thoại theo dòng (kịch bản phim): mỗi dòng một file, giọng của đúng người nói dòng đó. Shot cũ chỉ có chuỗi → tách dòng và LƯU
@@ -81,7 +86,7 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
         const g = giaGiong(dm.find((m) => m.key === model), text.length);
         const gia = g ?? 0;   // model không công bố giá → sổ ghi 0 và nhãn job ghi "giá chưa rõ" để sổ chi phí không hiểu nhầm là miễn phí
         const job = await taoJob(db, { nhan: `Giọng · shot #${c.thu_tu} dòng ${i + 1} · ${v?.ten ?? 'lời dẫn'} (${voice})${g == null ? ' · giá chưa rõ' : ''}`, canh_id: c.id, nhan_vat_id: v?.id, loai: 'am', provider: model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: model.startsWith('elevenlabs:') ? model : `fal:${model}`, request: { dich: 'thoai', dong: i, gia, text, voice, giong: `${model}|${voice}` } });
-        await dayViecAm({ kieu: 'am', job, model, input: await dauVaoGiongTheoModel(model, { text: d.dien_xuat && /eleven/.test(model) && /v3/.test(model) ? `[${d.dien_xuat}] ${text}` : text, voice, ngonNgu: bc.kt.ngon_ngu ?? 'vi', camXuc: tuy.camXuc ?? c.cam_xuc, theLoai: bc.kt.the_loai ?? '' }), thuMuc: `thoai/${c.id}-${i}` });
+        await dayViecAm({ kieu: 'am', job, model, input: await dauVaoGiongTheoModel(model, { text: d.dien_xuat && /eleven/.test(model) && /v3/.test(model) ? `[${d.dien_xuat}] ${text}` : text, voice, ngonNgu: bc.kt.ngon_ngu ?? 'vi', camXuc: tuy.camXuc ?? (v ? c.cam_xuc : camDan), theLoai: bc.kt.the_loai ?? '' }), thuMuc: `thoai/${c.id}-${i}` });
         so++;
       }
     }

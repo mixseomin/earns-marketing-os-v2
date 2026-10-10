@@ -35,7 +35,7 @@ const giaAnh = await giaAnhSv(kt.mo_hinh_anh).catch(() => 0);
 console.log(`phim #${phimId} · model ảnh ${kt.mo_hinh_anh} ≈ ${tien(giaAnh)}/ảnh`);
 console.log(`  anchor chưa ảnh gốc: ${anchorThieu.length} → ≈ ${tien(anchorThieu.length * giaAnh)}`);
 console.log(`  shot chưa keyframe: ${canhThieu.length} → ≈ ${tien(canhThieu.length * giaAnh)}`);
-if (arg('uoc') || (!arg('anchor') && !arg('keyframe') && !arg('xuat'))) { console.log('(chỉ ước lượng — thêm --anchor / --keyframe / --xuat để chạy)'); process.exit(0); }
+if (arg('uoc') || (!arg('anchor') && !arg('keyframe') && !arg('xuat') && !process.argv.some((a) => a.startsWith('--nhac=')))) { console.log('(chỉ ước lượng — thêm --anchor / --keyframe / --nhac=… / --xuat để chạy)'); process.exit(0); }
 
 /** Đợi các job ảnh xong (cả đường Cloudflare lẫn hàng nền trong tiến trình này). */
 async function doi(jobs: number[], nhan: string, phutToiDa = 25) {

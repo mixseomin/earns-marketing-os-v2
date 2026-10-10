@@ -180,3 +180,14 @@ h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem}
   .nk-3cot{grid-template-columns:1fr;grid-template-rows:none;height:auto}
   .nk-cot,.nk-mot{overflow:visible;height:auto}
 }
+
+/* Sổ chi: mỗi người một hàng 2 tầng — [người · mô hình | tiền / trần] trên, [lượt · token | thanh % trần] dưới, thẳng cột */
+.cty-chi{display:grid;gap:10px}
+.cty-chi-hang{display:grid;grid-template-columns:1fr auto;gap:3px 12px;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.cty-chi-hang:last-child{border-bottom:0;padding-bottom:0}
+.cty-chi-ai{display:flex;align-items:center;gap:8px;min-width:0}
+.cty-chi-mh{font-family:var(--mono);font-size:.76rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cty-chi-tien{font-family:var(--mono);font-size:.84rem;text-align:right;white-space:nowrap}
+.cty-chi-so{font-size:.8rem;color:var(--muted)}
+.cty-chi-thanh{width:84px;height:5px;border-radius:3px;background:var(--line);justify-self:end;overflow:hidden}
+.cty-chi-thanh i{display:block;height:100%;background:var(--accent)}

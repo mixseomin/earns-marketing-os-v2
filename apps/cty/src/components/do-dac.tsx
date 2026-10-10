@@ -45,7 +45,17 @@ export async function DoDac({ p, ns }: { p: Doc; ns: Doc[] }) {
       </details>
       <details className="cty-dd">
         <summary>💰 Sổ chi tháng này <span className="cty-dd-so">{chi ? `$${chi.tongUsd.toFixed(4)} · ${chi.ds.reduce((s, r) => s + r.luot, 0)} lượt gọi` : 'không đọc được DB'}</span></summary>
-        {chi && (chi.ds.length ? <ul>{chi.ds.map((r, i) => <li key={i}><Nguoi id={r.nguoi} /> <span className="cty-mono">{r.model}</span> · {r.luot} lượt · {r.vao}+{r.ra} tok · {r.usd != null ? `$${r.usd.toFixed(4)}` : 'giá ?'} / trần ${chi.tranNguoi[r.nguoi] ?? 0}</li>)}</ul> : <p className="cty-muted">chưa chi đồng nào</p>)}
+        {chi && (chi.ds.length ? <div className="cty-chi">{chi.ds.map((r, i) => {
+          const tran = chi.tranNguoi[r.nguoi] ?? 0; const phan = r.usd != null && tran > 0 ? Math.min(100, (r.usd / tran) * 100) : 0;
+          return (
+            <div key={i} className="cty-chi-hang">
+              <div className="cty-chi-ai"><Nguoi id={r.nguoi} /><span className="cty-chi-mh">{r.model.replace(/^[a-z]+:/, '')}</span></div>
+              <div className="cty-chi-tien"><b>{r.usd != null ? `$${r.usd.toFixed(4)}` : 'giá ?'}</b><span className="cty-muted"> / ${tran}</span></div>
+              <div className="cty-chi-so">{r.luot} lượt · {r.vao.toLocaleString('vi-VN')} vào → {r.ra.toLocaleString('vi-VN')} ra token</div>
+              <div className="cty-chi-thanh" title={`${phan.toFixed(2)}% trần tháng`}><i style={{ width: `${Math.max(phan, 1)}%` }} /></div>
+            </div>
+          );
+        })}</div> : <p className="cty-muted">chưa chi đồng nào</p>)}
       </details>
       <details className="cty-dd">
         <summary>📈 Gói số <span className="cty-dd-so">{so.length ? `${so.length} nguồn` : 'chưa khai'}</span></summary>

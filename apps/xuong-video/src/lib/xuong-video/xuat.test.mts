@@ -1,6 +1,6 @@
 // Tự kiểm bộ dựng lệnh ffmpeg của bản xuất. Chạy: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/xuat.test.mts
 import assert from 'node:assert';
-import { keHoachXuat, urlCanXuat, ngatDong, doanChuMan, tepAss, chuManHien, kiemGiongLoiDan, khoangIm } from './xuat';
+import { keHoachXuat, urlCanXuat, ngatDong, doanChuMan, tepAss, chuManHien, kiemGiongLoiDan, khoangIm, duoiNhac } from './xuat';
 import { lichGiong } from './am-thanh';
 import type { Canh, NhanVat } from './kieu';
 
@@ -215,4 +215,12 @@ console.log('xuat.test: mẫu ok');
   assert.deepStrictEqual(l.map((x) => Math.round(x.tu * 100) / 100), [0.47, 3.17, 7.74]);   // tre 3,27 kẹp ≤ phát−0,2 = 3,17; câu 3: 3,37 + 3,73 + 0,64
   assert.ok(l.every((x) => x.cat == null && x.nhanh === l[0]!.nhanh));                    // lời dẫn: đọc trọn, một tốc độ
   console.log('xuat.test: lịch giọng ok');
+}
+
+// Đuôi bài nhạc: bài -15 đều tới 51s rồi rút (-19, -23, …) → cắt ở 51,5; bài đều tới hết → không cắt.
+{
+  const md = (f: (t: number) => number, het: number) => Array.from({ length: het * 2 }, (_, i) => `frame:0 pts:0 pts_time:${i / 2}\nlavfi.r128.M=${f(i / 2)}`).join('\n');
+  assert.strictEqual(duoiNhac(md((t) => (t < 51.5 ? -15 : t < 52 ? -19 : t < 52.5 ? -23 : -40), 56)), 51.5);
+  assert.strictEqual(duoiNhac(md(() => -15, 56)), null);
+  console.log('xuat.test: đuôi nhạc ok');
 }

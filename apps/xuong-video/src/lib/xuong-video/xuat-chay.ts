@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { promisify } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '@/lib/r2';
-import { keHoachXuat, urlCanXuat, khoangIm, NGUONG_IM_LUFS, type NguyenLieu } from './xuat';
+import { keHoachXuat, urlCanXuat, khoangIm, duoiNhac, NGUONG_IM_LUFS, type NguyenLieu } from './xuat';
 import { sql } from 'drizzle-orm';
 import type { Canh, LoaiPhim, NhanVat, Tap, ThongTinQc } from './kieu';
 import type { Db } from './doc-db';
@@ -26,16 +26,13 @@ async function doLufs(duong: string): Promise<number | null> {
   } catch { return null; }
 }
 
-/** Giây bắt đầu đoạn im ở CUỐI tệp tiếng (dưới -40 dB, ≥0,3s, kéo tới hết tệp) — bài nhạc có đoạn kết lặng. */
+/** Giây cắt đuôi bài nhạc (đoạn kết nhỏ dần + im) — đo độ to tức thời (duoiNhac), không chỉ bắt im hẳn như silencedetect. */
 async function doImCuoi(duong: string, dai: number | null): Promise<number | null> {
   if (!dai) return null;
+  const tep = `${duong}.m128.txt`;
   try {
-    const { stderr } = await run('ffmpeg', ['-hide_banner', '-nostats', '-i', duong, '-af', 'silencedetect=noise=-40dB:d=0.3', '-f', 'null', '-'], { timeout: 30_000, maxBuffer: 8 << 20 });
-    const bd = [...stderr.matchAll(/silence_start:\s*([\d.]+)/g)].map((m) => Number(m[1]));
-    const kt = [...stderr.matchAll(/silence_end:\s*([\d.]+)/g)].map((m) => Number(m[1]));
-    const cuoi = bd[bd.length - 1];
-    // Đoạn im cuối chưa có silence_end (kéo tới hết tệp) hoặc end sát cuối tệp.
-    return cuoi != null && (kt.length < bd.length || (kt[kt.length - 1] ?? 0) >= dai - 0.1) ? cuoi : null;
+    await run('ffmpeg', ['-hide_banner', '-nostats', '-i', duong, '-af', `ebur128=metadata=1,ametadata=print:key=lavfi.r128.M:file=${tep}`, '-f', 'null', '-'], { timeout: 60_000, maxBuffer: 8 << 20 });
+    return duoiNhac(await readFile(tep, 'utf8'));
   } catch { return null; }
 }
 

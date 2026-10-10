@@ -35,6 +35,24 @@ export function khoangIm(metadata: string, giay: number): [number, number][] {
   return out;
 }
 
+/** Đuôi bài nhạc: giây cuối cùng bài còn giữ mức gần trung vị của chính nó (to nhất mỗi ô 0,5s ≥ trung vị − 3 LU), đọc từ chuỗi ebur128 M.
+ *  Bài AI hay tự viết đoạn KẾT nhỏ dần rồi im (phim #5: từ ~51s nhạc rút, im hẳn 53,4s) → cắt ở đây rồi lặp, nền phủ kín tới end card.
+ *  null = đuôi không tụt (không cần cắt) hoặc không đọc được. */
+export function duoiNhac(metadata: string): number | null {
+  const o = new Map<number, number>(); let t: number | null = null;
+  for (const dong of metadata.split('\n')) {
+    const a = dong.match(/pts_time:([\d.]+)/); if (a) { t = Number(a[1]); continue; }
+    const b = dong.match(/lavfi\.r128\.M=(\S+)/);
+    if (b && t != null) { const v = Number(b[1]); const k = Math.floor(t * 2) / 2; o.set(k, Math.max(o.get(k) ?? -200, Number.isFinite(v) ? v : -200)); }
+  }
+  const ks = [...o.keys()].sort((x, y) => x - y);
+  if (ks.length < 8) return null;
+  const sx = ks.map((k) => o.get(k)!).sort((x, y) => x - y); const trungVi = sx[Math.floor(sx.length / 2)]!;
+  let cuoi = -1; for (const k of ks) if (o.get(k)! >= trungVi - 3) cuoi = k;
+  const het = ks[ks.length - 1]! + 0.5;
+  return cuoi >= 0 && het - (cuoi + 0.5) >= 0.5 ? cuoi + 0.5 : null;
+}
+
 /** Mức to chuẩn của MỌI câu giọng trước khi trộn — câu nào ra từ model cũng về cùng mức, không câu to câu nhỏ. */
 export const LUFS_GIONG = -16;
 /** Nhạc nền nằm dưới giọng bao nhiêu dB (trước ducking). 10 dB: nghe rõ nền liên tục như QC mẫu mà không lấn lời. */

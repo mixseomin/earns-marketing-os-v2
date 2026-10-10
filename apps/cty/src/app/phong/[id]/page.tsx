@@ -4,6 +4,7 @@ import { getCurrentUser, loginUrl } from '@/lib/auth';
 import { phong, dsNhanSu, soDo, KHUON } from '@/lib/cong-ty';
 import { Avatar, hueOf } from '@/components/avatar';
 import { SoDoKhuon } from '@/components/so-do-khuon';
+import { SvgTuongTac } from '@/components/svg-tuong-tac';
 import { Md } from '@/components/md';
 
 export const dynamic = 'force-dynamic';
@@ -13,13 +14,14 @@ export default async function TrangPhong({ params }: { params: Promise<{ id: str
   const me = await getCurrentUser();
   if (!me) redirect(loginUrl(`/phong/${id}`));
   const p = phong(id); if (!p) notFound();
-  const ns = dsNhanSu().filter((d) => d.fm.phong === id);
+  const tatCa = dsNhanSu(); const ns = tatCa.filter((d) => d.fm.phong === id);
+  const ten = Object.fromEntries(tatCa.map((d) => [String(d.fm.ten), d.id]));
   const k = KHUON[String(p.fm.khuon)];
   const svg = p.fm.so_do ? soDo(String(p.fm.so_do)) : '';
   return (
     <>
       <p className="cty-mono cty-muted" style={{ margin: 0 }}><a href="/">sơ đồ</a> › {String(p.fm.ten)} · <span className="cty-pill">{k?.ten ?? String(p.fm.khuon)}</span> <span className="cty-pill cty-pill-off">chưa hoạt động</span></p>
-      {svg ? <figure className="cty-so-do" dangerouslySetInnerHTML={{ __html: svg }} /> : <SoDoKhuon p={p} ns={ns} />}
+      <SvgTuongTac ten={ten}>{svg ? <figure className="cty-so-do" dangerouslySetInnerHTML={{ __html: svg }} /> : <SoDoKhuon p={p} ns={ns} />}</SvgTuongTac>
       <div className="cty-row">
         {ns.map((d) => (
           <Link key={d.id} href={`/nhan-su/${d.id}`} className="cty-nguoi">

@@ -64,3 +64,13 @@ h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem}
 .cty-so-do svg a{cursor:pointer}
 .cty-so-do svg a:hover rect{filter:brightness(1.08)}
 .cty-so-do svg text{font-family:var(--body)}
+
+.cty-tt{position:relative}
+.cty-tt svg rect{cursor:pointer}
+.cty-tt-panel{position:absolute;z-index:6;width:300px;max-width:calc(100% - 8px);background:var(--surface);color:var(--ink);border:1px solid var(--accent);border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.25);padding:.5rem .7rem .6rem;font-size:.9rem}
+.cty-tt-title{display:flex;justify-content:space-between;gap:8px;font-family:var(--head);font-weight:600;margin-bottom:.3rem}
+.cty-tt-title button{background:none;border:0;color:var(--muted);font-size:1.1rem;cursor:pointer;line-height:1}
+.cty-tt-line{color:var(--muted);font-size:.86rem;margin:.15rem 0}
+.cty-tt-links{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:.4rem}
+.cty-tt-links a{color:var(--accent);font-weight:600;text-decoration:none;font-size:.88rem}
+@media (max-width:600px){.cty-tt-panel{position:fixed;left:8px!important;right:8px;top:auto!important;bottom:calc(8px + env(safe-area-inset-bottom,0px));width:auto;max-width:none}}

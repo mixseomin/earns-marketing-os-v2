@@ -135,7 +135,7 @@ h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem}
 
 
 /* Drawer dùng chung (components/drawer.tsx) */
-.cty-drawer-nen{position:fixed;inset:0;z-index:40;background:rgb(10 14 20/.38);display:flex;justify-content:flex-end}
+.cty-drawer-nen{position:fixed;inset:0;z-index:90;background:rgb(10 14 20/.38);display:flex;justify-content:flex-end}
 .cty-drawer{width:min(760px,100%);height:100%;background:var(--bg);border-left:1px solid var(--line);display:flex;flex-direction:column;box-shadow:-8px 0 24px rgb(0 0 0/.18)}
 .cty-drawer-dau{display:flex;align-items:center;gap:8px;padding:8px 12px 8px 16px;border-bottom:1px solid var(--line);background:var(--surface);padding-top:calc(8px + env(safe-area-inset-top,0px))}
 .cty-drawer-ten{flex:1;font-family:var(--head);font-weight:600;min-width:0}
@@ -151,3 +151,32 @@ h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem}
 .cty-btn:disabled{opacity:.5;cursor:not-allowed}
 .cty-btn.chinh{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
 .cty-cuon{overflow-x:auto;max-width:100%}
+
+/* CHỒNG NGĂN KÉO chuẩn ngan-keo (components/ngan): tầng i hẹp hơn tầng dưới 64px, mép ngăn dưới lộ ra để bấm quay về. */
+.nk-nen{position:fixed;inset:0;z-index:59;background:rgb(10 14 20/.4)}
+.nk{position:fixed;top:0;right:0;bottom:0;max-width:100vw;background:var(--bg);border-left:1px solid var(--line);display:flex;flex-direction:column;box-shadow:-12px 0 30px rgb(0 0 0/.28)}
+.nk-duoi{cursor:pointer}
+.nk-duoi::after{content:"";position:absolute;inset:0;background:rgb(10 14 20/.18)}
+.nk-dau{display:flex;align-items:center;gap:10px;padding:10px var(--le);padding-top:calc(10px + env(safe-area-inset-top,0px));border-bottom:1px solid var(--line);background:var(--surface)}
+.nk-tieu{flex:1;min-width:0;font-family:var(--head);font-weight:600;font-size:1.1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nk-dong{border:0;background:none;color:var(--ink);font-size:1.3rem;line-height:1;cursor:pointer;padding:4px 8px}
+.nk-than{flex:1;min-height:0;overflow:hidden;padding:var(--le)}
+.nk-3cot{display:grid;grid-template-columns:minmax(220px,.8fr) minmax(300px,1.1fr) minmax(320px,1.4fr);grid-template-rows:minmax(0,1fr);gap:18px;height:100%;min-height:0}
+.nk-cot{min-height:0;min-width:0;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.nk-mot{height:100%;overflow:auto}
+.nk-cot-hinh{align-items:flex-start}
+.nk-cot-hinh h2{margin:6px 0 0}
+.nk-cot h3{margin:0}
+.nk-luoi{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.nk-o{min-width:0}
+.nk-o-nhan{font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.nk-o-gt{overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.nk-o-gt:hover{-webkit-line-clamp:unset}
+/* Trang đầy đủ (không phải ngăn): cùng bố cục, chiều cao tự nhiên. CHỈ con trực tiếp của main — ngăn cũng nằm trong main. */
+.cty-main > .nk-3cot{height:auto;grid-template-rows:none}
+.cty-main > .nk-3cot > .nk-cot,.cty-main > .nk-mot{overflow:visible}
+@media (max-width:900px){
+  .nk-than{overflow:auto}
+  .nk-3cot{grid-template-columns:1fr;grid-template-rows:none;height:auto}
+  .nk-cot,.nk-mot{overflow:visible;height:auto}
+}

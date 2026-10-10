@@ -3,9 +3,8 @@
 // nằm trong ô thành bảng chi tiết; tên nhân sự trong ô thành link hồ sơ; từ khoá (CỔNG, Kiên, Trang, Kệ, plays…) kèm
 // gợi ý + link đúng chỗ, hiện trong drawer. Ô có data-href thì bấm là mở thẳng hồ sơ (cũng trong drawer). Dùng chung cho sơ đồ vẽ tay (cong-ty/so-do) và sơ đồ khuôn.
 import { useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Drawer } from './drawer';
+import { moNgan } from './ngan/links';
 
 type Panel = { title: string; lines: string[]; links: { href: string; text: string }[] };
 const GOI_Y: [RegExp, string, string][] = [
@@ -22,11 +21,10 @@ const GOI_Y: [RegExp, string, string][] = [
 export function SvgTuongTac({ children, ten }: { children: React.ReactNode; ten: Record<string, string> }) {
   const ref = useRef<HTMLDivElement>(null);
   const [p, setP] = useState<Panel | null>(null);
-  const router = useRouter();
   const onClick = (e: React.MouseEvent) => {
     const root = ref.current; if (!root) return;
     const t = e.target as Element;
-    const a = t.closest('a'); if (a && !(a.getAttribute('href') ?? a.getAttribute('xlink:href') ?? '#').startsWith('#')) return;   // link thật: DrawerLinks/trình duyệt lo
+    const a = t.closest('a'); if (a && !(a.getAttribute('href') ?? a.getAttribute('xlink:href') ?? '#').startsWith('#')) return;   // link thật: chồng ngăn (ngan/links) hoặc trình duyệt lo
     const svg = t.closest('svg'); if (!svg) { setP(null); return; }
     const px = e.clientX, py = e.clientY;
     let best: Element | null = null, bestA = Infinity;
@@ -43,7 +41,7 @@ export function SvgTuongTac({ children, ten }: { children: React.ReactNode; ten:
     });
     if (!texts.length) { setP(null); return; }
     const href = (best as Element).closest('[data-href]')?.getAttribute('data-href');
-    if (href) { router.push(href, { scroll: false }); return; }
+    if (href) { moNgan(href); return; }
     const all = texts.join(' · ');
     const links: Panel['links'] = [];
     for (const [tenNs, id] of Object.entries(ten)) if (new RegExp(`(^|[^\\p{L}])${tenNs}([^\\p{L}]|$)`, 'u').test(all)) links.push({ href: `/nhan-su/${id}`, text: `hồ sơ ${tenNs}` });
@@ -57,7 +55,7 @@ export function SvgTuongTac({ children, ten }: { children: React.ReactNode; ten:
       {p && (
         <Drawer title={p.title} onClose={() => setP(null)}>
           {p.lines.map((l, i) => <div key={i} className="cty-tt-line">{l}</div>)}
-          {p.links.length > 0 && <div className="cty-tt-links">{p.links.map((l) => l.href.startsWith('/') ? <Link key={l.href} href={l.href} onClick={() => setP(null)}>{l.text} →</Link> : <a key={l.href} href={l.href}>{l.text} →</a>)}</div>}
+          {p.links.length > 0 && <div className="cty-tt-links">{p.links.map((l) => l.href.startsWith('/') ? <a key={l.href} href={l.href} onClickCapture={() => setP(null)}>{l.text} →</a> : <a key={l.href} href={l.href}>{l.text} →</a>)}</div>}
         </Drawer>
       )}
     </div>

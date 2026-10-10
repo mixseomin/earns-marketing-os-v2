@@ -17,9 +17,14 @@ const nghe = (f: () => void) => { window.addEventListener(SU_KIEN, f); window.ad
 const useMui = () => useSyncExternalStore(nghe, doc, () => MAC_DINH);
 const nhanMui = (k: string) => MUI_GIO.find((m) => m.k === k)?.nhan ?? k;
 
+// Tự ghép từ các phần số (formatToParts) thay vì toLocaleString: Node và trình duyệt định dạng vi-VN khác nhau (dấu cách,
+// thứ tự) → chuỗi máy chủ ≠ chuỗi trình duyệt → React #418 (đo 11/10/2026 trên bản production). Phần số thì hai bên như nhau.
 function dd(iso: string, tz: string, o: { ngay?: boolean; giay?: boolean }) {
   const d = new Date(iso); if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString('vi-VN', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false, ...(o.giay !== false ? { second: '2-digit' } : {}), ...(o.ngay ? { day: '2-digit', month: '2-digit', year: 'numeric' } : {}) });
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hourCycle: 'h23' })
+    .formatToParts(d).map((x) => [x.type, x.value]));
+  const gio = `${p.hour}:${p.minute}${o.giay !== false ? `:${p.second}` : ''}`;
+  return o.ngay ? `${gio} ${p.day}/${p.month}/${p.year}` : gio;
 }
 
 /** Một mốc: "22:23:34 10/10/2026 GMT+7". `ngay=false` bỏ ngày, `mui=false` bỏ nhãn múi (khi đứng cạnh nhãn chung). */

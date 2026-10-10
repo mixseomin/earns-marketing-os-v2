@@ -30,5 +30,9 @@ else {
   if (!(tong > 0)) loi.push('cau-hinh: tran_tong_usd_thang phải > 0');
   if (nguoi > tong) loi.push(`tổng trần người $${nguoi} > trần tổng $${tong}`);
 }
+// Mọi màn phải gắn chồng ngăn kéo (chuẩn ngan-keo): thiếu thì `?ngan=` trên màn đó không mở được ngăn, F5 mất ngăn.
+const APP = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'src', 'app');
+const trang = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? (e.name === 'api' ? [] : trang(path.join(d, e.name))) : e.name === 'page.tsx' ? [path.join(d, e.name)] : []);
+for (const f of trang(APP)) if (!fs.readFileSync(f, 'utf8').includes('<ChongNgan')) loi.push(`${path.relative(APP, f)}: thiếu <ChongNgan ngan={searchParams.ngan} /> (chuẩn ngan-keo)`);
 if (loi.length) { console.error('✗ tu-kiem cty:\n  ' + loi.join('\n  ')); process.exit(1); }
 console.log(`✓ tu-kiem cty: ${Object.keys(ns).length} nhân sự, ${Object.keys(phong).length} phòng, hồ sơ nhất quán`);

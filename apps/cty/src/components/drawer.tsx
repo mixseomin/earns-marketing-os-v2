@@ -1,10 +1,7 @@
 'use client';
-// Drawer dùng chung của cty.on.tc: hồ sơ nhân sự / phòng (intercepting route @drawer), chi tiết ô sơ đồ, hòm góp ý.
-// Phải bên phải trên máy tính, tấm toàn màn trên điện thoại. Esc / bấm nền / × là đóng.
-// DrawerLinks (gắn ở layout): bấm mọi link nội bộ tới thực thể (MO_TRONG_DRAWER) — kể cả <a> trong SVG, thứ Next <Link> không bọc được —
-// thì đi bằng router.push để route bị chặn mở trong drawer thay vì chuyển trang. Cmd/Ctrl-bấm vẫn mở trang đầy đủ.
+// Hộp trượt cho CÔNG CỤ không phải bản ghi (hòm góp ý, chi tiết một ô sơ đồ) — nằm trên chồng ngăn kéo. Bản ghi (nhân sự,
+// phòng, nhật ký, luật, mục tiêu) mở bằng chồng ngăn chuẩn ngan-keo ở components/ngan, KHÔNG dùng hộp này.
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 
 export function Drawer({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title?: React.ReactNode }) {
   useEffect(() => {
@@ -21,28 +18,4 @@ export function Drawer({ children, onClose, title }: { children: React.ReactNode
       </aside>
     </div>
   );
-}
-
-export function RouteDrawer({ children }: { children: React.ReactNode }) {
-  const r = useRouter();
-  return <Drawer onClose={() => r.back()}>{children}</Drawer>;
-}
-
-// Mọi thực thể mở trong drawer (#1268): nhân sự, phòng, sổ sự kiện (kể cả ?luot=…), luật, mục tiêu. Thanh đầu (.cty-top) là
-// điều hướng trang nên đi trang thật.
-export const MO_TRONG_DRAWER = /^\/((nhan-su|phong)\/[^/?#]+|(nhat-ky|luat|muc-tieu)(\?[^#]*)?)$/;
-export function DrawerLinks() {
-  const r = useRouter();
-  useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-      const a = (e.target as Element).closest?.('a'); if (!a || a.closest('.cty-top')) return;
-      const href = a.getAttribute('href') ?? a.getAttribute('xlink:href') ?? '';
-      if (!MO_TRONG_DRAWER.test(href)) return;
-      e.preventDefault(); r.push(href, { scroll: false });
-    };
-    document.addEventListener('click', h);
-    return () => document.removeEventListener('click', h);
-  }, [r]);
-  return null;
 }

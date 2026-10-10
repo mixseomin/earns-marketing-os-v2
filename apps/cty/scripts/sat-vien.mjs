@@ -5,11 +5,13 @@
 // repo không cài playwright (nặng, chỉ máy anh cần) → trỏ tới bản có sẵn qua PLAYWRIGHT, mặc định bản của courseforge-demo.
 const { chromium } = await import(process.env.PLAYWRIGHT || '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs');
 const base = process.argv[3] || 'http://localhost:3870';
-const TRANG = ['/', '/phong/thu-nghiem', '/phong/sach', '/nhan-su/hung', '/nhan-su/tam', '/nhat-ky', '/luat', '/muc-tieu'];
+const TRANG = ['/?ngan=nhan-su:tam', '/?ngan=phong:thu-nghiem', '/', '/phong/thu-nghiem', '/phong/sach', '/nhan-su/hung', '/nhan-su/tam', '/nhat-ky', '/luat', '/muc-tieu'];
 const b = await chromium.launch({ channel: 'chrome' });
+const ctx = await b.newContext(); const tok = process.argv[4];   // bản production: truyền phiên mos2-session
+if (tok) await ctx.addCookies([{ name: 'mos2-session', value: tok, url: base }]);
 let tong = 0;
 for (const w of [1200, 390]) for (const t of TRANG) {
-  const p = await b.newPage({ viewport: { width: w, height: 900 }, colorScheme: 'dark' });
+  const p = await ctx.newPage(); await p.setViewportSize({ width: w, height: 900 }); await p.emulateMedia({ colorScheme: 'dark' });
   await p.goto(base + t, { waitUntil: 'networkidle' });
   await p.$$eval('details', (ds) => ds.forEach((d) => { d.open = true; }));
   if (t === '/') { await p.click('button[aria-label="Góp ý / báo lỗi"]').catch(() => {}); await p.waitForTimeout(300); }
@@ -38,6 +40,7 @@ for (const w of [1200, 390]) for (const t of TRANG) {
         const rg = document.createRange(); rg.selectNodeContents(n);
         for (const q of rg.getClientRects()) {
           if (!q.width) continue;
+          if (q.bottom > innerHeight || q.top < 0) continue;   // chữ nằm ngoài khung nhìn (trong vùng cuộn): chưa hiện, không đo
                     // chỉ tính cạnh có viền thật (hoặc cả 4 cạnh khi có nền); dọc nới 4px vì line-height đã tạo khoảng
           const canh = (w) => coNen || w > 0;
           const ds = [];

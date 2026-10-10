@@ -1,5 +1,5 @@
 // Tên nhân sự ở BẤT CỨ ĐÂU trên cty.on.tc là thực thể mở được (#1268): ảnh nhỏ + tên, bấm mở hồ sơ trong drawer
-// (DrawerLinks chặn /nhan-su/*). Id lạ (giam-doc, he-thong…) hiện chữ thường. Server component — đọc hồ sơ từ cong-ty/.
+// (components/ngan/links.tsx bắt /nhan-su/*, chồng ngăn). Id lạ (giam-doc, he-thong…) hiện chữ thường. Server component — đọc hồ sơ từ cong-ty/.
 import Link from 'next/link';
 import { dsNhanSu } from '@/lib/cong-ty';
 import { avatarDataUri, hueOf } from './avatar';

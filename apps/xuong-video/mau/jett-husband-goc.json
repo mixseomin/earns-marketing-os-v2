@@ -196,7 +196,7 @@
       "hinh": "Cận eo: sơ mi xanh cộc tay sơ vin, ngón cái kéo cạp quần ra cho thấy không hằn; phông kệ sách đỏ.",
       "y": 0.67,
       "prompt_anh": "Vertical 9:16 phone photo, close-up of the waist (face not in frame): a man in a blue short-sleeve shirt tucked into the pants (the product, exactly as in the reference images) with a black belt; his thumb is hooked inside the waistband at the front. Red-brown bookshelf backdrop. True-to-life colors.",
-      "prompt_video": "Static camera. The man pulls the waistband away from his stomach with his thumb, shows there is no mark, and lets go.",
+      "prompt_video": "Static camera, framing from chest to mid-thigh. The belt stays buckled and the waistband stays exactly in place the whole time. The man slides one thumb just inside the waistband at his side and runs it a few centimeters along the waist to show it sits comfortably with no red mark or digging, then lets his hand fall to his side. The jeans keep their exact shape, color, belt loops and closed fly; the fabric never stretches, peels open or deforms. No unbuckling, no unbuttoning, no exposed stomach.",
       "goc_may": "Close-up of the waist",
       "cam_xuc": -1
     },

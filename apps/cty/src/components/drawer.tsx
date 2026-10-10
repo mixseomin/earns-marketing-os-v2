@@ -1,7 +1,7 @@
 'use client';
 // Drawer dùng chung của cty.on.tc: hồ sơ nhân sự / phòng (intercepting route @drawer), chi tiết ô sơ đồ, hòm góp ý.
 // Phải bên phải trên máy tính, tấm toàn màn trên điện thoại. Esc / bấm nền / × là đóng.
-// DrawerLinks (gắn ở layout): bấm mọi link nội bộ /nhan-su/* · /phong/* — kể cả <a> trong SVG, thứ Next <Link> không bọc được —
+// DrawerLinks (gắn ở layout): bấm mọi link nội bộ tới thực thể (MO_TRONG_DRAWER) — kể cả <a> trong SVG, thứ Next <Link> không bọc được —
 // thì đi bằng router.push để route bị chặn mở trong drawer thay vì chuyển trang. Cmd/Ctrl-bấm vẫn mở trang đầy đủ.
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -28,13 +28,15 @@ export function RouteDrawer({ children }: { children: React.ReactNode }) {
   return <Drawer onClose={() => r.back()}>{children}</Drawer>;
 }
 
-export const MO_TRONG_DRAWER = /^\/(nhan-su|phong)\/[^/?#]+$/;
+// Mọi thực thể mở trong drawer (#1268): nhân sự, phòng, sổ sự kiện (kể cả ?luot=…), luật, mục tiêu. Thanh đầu (.cty-top) là
+// điều hướng trang nên đi trang thật.
+export const MO_TRONG_DRAWER = /^\/((nhan-su|phong)\/[^/?#]+|(nhat-ky|luat|muc-tieu)(\?[^#]*)?)$/;
 export function DrawerLinks() {
   const r = useRouter();
   useEffect(() => {
     const h = (e: MouseEvent) => {
       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-      const a = (e.target as Element).closest?.('a'); if (!a) return;
+      const a = (e.target as Element).closest?.('a'); if (!a || a.closest('.cty-top')) return;
       const href = a.getAttribute('href') ?? a.getAttribute('xlink:href') ?? '';
       if (!MO_TRONG_DRAWER.test(href)) return;
       e.preventDefault(); r.push(href, { scroll: false });

@@ -3,6 +3,7 @@ import './cty.css';
 import { getCurrentUser } from '@/lib/auth';
 import { DrawerLinks } from '@/components/drawer';
 import { GopY } from '@/components/gop-y';
+import { ChonMuiGio } from '@/components/gio';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: { default: 'Công ty', template: '%s · Công ty' }, robots: { index: false, follow: false } };
@@ -21,6 +22,7 @@ export default async function Layout({ children, drawer }: { children: React.Rea
           <a href="/nhat-ky" className="cty-mono">nhật ký</a>
           <a href="https://vp.on.tc" className="cty-mono">văn phòng pixel ↗</a>
           <span style={{ flex: 1 }} />
+          <ChonMuiGio />
           <span className="cty-pill cty-pill-off">chế độ tham quan</span>
           <a href="https://mos2.on.tc" className="cty-mono">mos2</a>
           {me && <span className="cty-mono cty-muted">{me.displayName || me.email}</span>}

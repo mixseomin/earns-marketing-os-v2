@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getCurrentUser, loginUrl } from '@/lib/auth';
 import { docLog } from '../../../worker/log.mjs';
+import { Gio, MuiNhan } from '@/components/gio';
+import { Nguoi } from '@/components/nguoi';
 
 export const dynamic = 'force-dynamic';
 type SuKien = { ts: string; luot?: string | null; loai: string; tu?: string | null; toi?: string | null; chi_tiet?: Record<string, unknown> };
@@ -35,14 +37,14 @@ export default async function NhatKy({ searchParams }: { searchParams: Promise<R
       </p>
       <p className="cty-pills">{Object.entries(LOAI).map(([k, v]) => <Link key={k} className={`cty-pill ${q.loai === k ? '' : 'cty-pill-kind'}`} href={loc('loai', q.loai === k ? undefined : k)}>{v}</Link>)}</p>
       {!ds.length && <p className="cty-muted">Chưa có sự kiện nào. Sự kiện sinh ra khi một lượt chạy (Phòng thử) hoặc khi proxy nhận lượt gọi.</p>}
-      <div className="cty-md"><table className="cty-log">
-        <thead><tr><th>lúc</th><th>lượt</th><th>loại</th><th>từ → tới</th><th>chi tiết</th></tr></thead>
+      <div className="cty-md cty-cuon"><table className="cty-log">
+        <thead><tr><th>lúc <MuiNhan /></th><th>lượt</th><th>loại</th><th>từ → tới</th><th>chi tiết</th></tr></thead>
         <tbody>{ds.map((e, i) => (
           <tr key={i}>
-            <td className="cty-mono">{e.ts.slice(5, 19).replace('T', ' ')}</td>
+            <td className="cty-mono"><Gio iso={e.ts} mui={false} /></td>
             <td className="cty-mono">{e.luot ? <Link href={loc('luot', e.luot)}>{e.luot.slice(11, 19)}</Link> : '—'}</td>
             <td><span className={`cty-pill ${e.loai === 'loi' ? 'cty-pill-off' : e.loai === 'goi' ? '' : 'cty-pill-kind'}`}>{LOAI[e.loai] ?? e.loai}</span></td>
-            <td className="cty-mono">{e.tu ? <Link href={loc('tu', e.tu)}>{e.tu}</Link> : ''}{e.toi ? <> → <Link href={loc('tu', e.toi)}>{e.toi}</Link></> : ''}</td>
+            <td className="cty-log-ai"><Nguoi id={e.tu} anh={false} />{e.tu && <Link className="cty-loc" href={loc('tu', e.tu)} title="lọc theo người này">⌕</Link>}{e.toi ? <> → <Nguoi id={e.toi} anh={false} /><Link className="cty-loc" href={loc('tu', e.toi)} title="lọc theo người này">⌕</Link></> : ''}</td>
             <td className="cty-log-ct">{tomTat(e)}</td>
           </tr>
         ))}</tbody>

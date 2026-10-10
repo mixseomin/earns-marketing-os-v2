@@ -26,12 +26,12 @@ async function goi(ns, user, buoc, nk, toi) {
     system: `Bạn là ${ns.ten}, ${ns.chuc_danh}, Phòng thử của công ty. LUẬT CHUNG (rút gọn): ba mức quyết định; việc nộp phải có bằng chứng; không khen mở đầu; trả lời đúng định dạng được yêu cầu, không thêm lời dẫn.\n\nHỒ SƠ CỦA BẠN:\n${ns.body}`,
     messages: [{ role: 'user', content: user }] };
   await vpBao(ns.id, 'lam', buoc);
-  const t0 = Date.now();
+  const t0 = Date.now(); const bat_dau = new Date(t0).toISOString();
   const r = await fetch(`${PROXY()}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': ns.id, 'x-cty-luot': nk.ts }, body: JSON.stringify(body) });
   const d = await r.json();
   await vpBao(ns.id, 'xong', buoc);
   const text = r.ok ? (d.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('') : '';
-  nk.buoc.push({ buoc, ai: ns.ten, id: ns.id, model: ns.model, ms: Date.now() - t0, http: r.status, usage: d.usage || null, loi: r.ok ? null : d.error || JSON.stringify(d).slice(0, 200), hoi: user, dap: text });
+  nk.buoc.push({ buoc, ai: ns.ten, id: ns.id, model: ns.model, bat_dau, ket_thuc: new Date().toISOString(), ms: Date.now() - t0, http: r.status, usage: d.usage || null, loi: r.ok ? null : d.error || JSON.stringify(d).slice(0, 200), hoi: user, dap: text });
   if (!r.ok) throw new Error(`${ns.ten}: ${r.status} ${d.error || ''}`);
   ghiLog({ luot: nk.ts, loai: 'tin', tu: ns.id, toi: toi?.tu ?? 'giam-doc', chi_tiet: { buoc, tra_loi: text.slice(0, 240) } });
   return text;
@@ -42,7 +42,7 @@ export async function motLuot(viec, ghi = true) {
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
   ghiLog({ luot: ts, loai: 'he-thong', tu: 'giam-doc', chi_tiet: { su_kien: 'bắt đầu lượt', viec } });
   const tam = nhanSu('tam', ts), loc = nhanSu('loc', ts), ky = nhanSu('ky', ts);
-  const nk = { ts, viec, trang_thai: 'đang chạy', buoc: [], ket: null };
+  const nk = { ts, bat_dau: new Date().toISOString(), viec, trang_thai: 'đang chạy', buoc: [], ket: null };
   const f = path.join(DATA, 'nhat-ky', `${ts}.json`);
   const luu = () => { if (ghi) { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(nk, null, 2)); } };
   luu();
@@ -64,6 +64,7 @@ export async function motLuot(viec, ghi = true) {
   } catch (e) { nk.trang_thai = 'lỗi'; nk.loi = String(e.message || e); ghiLog({ luot: ts, loai: 'loi', tu: 'he-thong', chi_tiet: { loi: nk.loi } }); }
   const tok = nk.buoc.reduce((s, b) => s + (b.usage?.input_tokens || 0) + (b.usage?.output_tokens || 0), 0);
   nk.tong = { buoc: nk.buoc.length, token: tok, ms: nk.buoc.reduce((s, b) => s + b.ms, 0) };
+  nk.ket_thuc = new Date().toISOString();
   luu();
   ghiLog({ luot: ts, loai: 'he-thong', tu: 'he-thong', chi_tiet: { su_kien: 'kết thúc lượt', trang_thai: nk.trang_thai, tong: nk.tong } });
   return nk;

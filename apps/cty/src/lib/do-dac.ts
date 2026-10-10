@@ -19,7 +19,7 @@ export async function bangCongViec(p: Doc) {
   const duAn = Array.isArray(p.fm.du_an) ? (p.fm.du_an as string[]) : [];
   if (String(p.fm.thu_nghiem) === 'true') {
     const luot = await dsLuot();
-    return { loai: 'thu-nghiem' as const, luot: luot.slice(0, 5).map((l) => ({ ts: l.ts, viec: l.viec, trang_thai: l.trang_thai, viec_trang_thai: l.ket?.trang_thai_viec ?? '' })), tong: luot.length };
+    return { loai: 'thu-nghiem' as const, luot: luot.slice(0, 5).map((l) => ({ ts: l.ts, bat_dau: l.bat_dau, viec: l.viec, trang_thai: l.trang_thai, viec_trang_thai: l.ket?.trang_thai_viec ?? '' })), tong: luot.length };
   }
   if (!duAn.length) return { loai: 'khong' as const };
   const hm = await q(sql`SELECT project_id, trang_thai, count(*)::int AS n FROM tien_do_hang_muc WHERE project_id = ANY(${arr(duAn)}) GROUP BY 1, 2`);

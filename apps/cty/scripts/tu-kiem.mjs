@@ -30,6 +30,10 @@ else {
   if (!(tong > 0)) loi.push('cau-hinh: tran_tong_usd_thang phải > 0');
   if (nguoi > tong) loi.push(`tổng trần người $${nguoi} > trần tổng $${tong}`);
 }
+// Module worker có thể bị Next đóng gói → import.meta.url thành đường dẫn LÚC BUILD (máy GHA), sai trên box → 500 (11/10/2026).
+// Chỉ worker/goc.mjs được tự tìm đường bằng import.meta.url (có lối về process.cwd()); mọi tệp khác dùng GOC.
+const WK = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'worker');
+for (const f of fs.readdirSync(WK).filter((x) => x.endsWith('.mjs') && x !== 'goc.mjs')) if (/new URL\(import\.meta\.url\)\.pathname/.test(fs.readFileSync(path.join(WK, f), 'utf8'))) loi.push(`worker/${f}: dùng import.meta.url để tìm đường — dùng GOC từ worker/goc.mjs`);
 // Mọi màn phải gắn chồng ngăn kéo (chuẩn ngan-keo): thiếu thì `?ngan=` trên màn đó không mở được ngăn, F5 mất ngăn.
 const APP = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'src', 'app');
 const trang = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? (e.name === 'api' ? [] : trang(path.join(d, e.name))) : e.name === 'page.tsx' ? [path.join(d, e.name)] : []);

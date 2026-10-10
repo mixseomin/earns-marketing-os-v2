@@ -5,8 +5,9 @@
 // `node worker/quy-trinh.mjs --tu-kiem` = kiểm mức thay đổi, biên, phép đo máy, phiên bản, quay về v1.
 import fs from 'node:fs';
 import path from 'node:path';
+import { GOC } from './goc.mjs';
 
-const DIR = path.dirname(new URL(import.meta.url).pathname);
+const DIR = path.join(GOC, 'worker');   // không dùng import.meta.url: xem worker/goc.mjs
 const CONG_TY = path.join(DIR, '..', 'cong-ty');
 const data = () => path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'quy-trinh');
 const docJson = (f) => JSON.parse(fs.readFileSync(f, 'utf8'));

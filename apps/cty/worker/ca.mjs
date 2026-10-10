@@ -5,13 +5,14 @@
 // (nút "Chạy một lượt" hoặc `node worker/ca.mjs --viec "…"`). `--tu-kiem` = proxy giả, $0.
 import fs from 'node:fs';
 import path from 'node:path';
+import { GOC } from './goc.mjs';
 import http from 'node:http';
 import { parseFm } from '../scripts/fm.mjs';
 import { ghiLog } from './log.mjs';
 import { vpBao } from './vp.mjs';
 import { hienHanh, dsBan, mayDo, dien, LOAI_DO } from './quy-trinh.mjs';
 
-const DIR = path.dirname(new URL(import.meta.url).pathname);
+const DIR = path.join(GOC, 'worker');   // không dùng import.meta.url: xem worker/goc.mjs
 const CONG_TY = path.join(DIR, '..', 'cong-ty');
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const PROXY = () => process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862';   // đọc lúc gọi: tự kiểm đổi env sau khi nạp module

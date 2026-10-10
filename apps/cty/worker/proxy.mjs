@@ -15,11 +15,12 @@ import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { GOC } from './goc.mjs';
 import crypto from 'node:crypto';
 import { parseFm } from '../scripts/fm.mjs';
 import { ghiLog } from './log.mjs';
 
-const DIR = path.dirname(new URL(import.meta.url).pathname);
+const DIR = path.join(GOC, 'worker');   // xem worker/goc.mjs
 const CONG_TY = path.join(DIR, '..', 'cong-ty');
 const GIA = JSON.parse(fs.readFileSync(path.join(DIR, 'gia-model.json'), 'utf8'));   // USD / 1M token [vào, ra]
 const CACHE_DIR = path.join(os.homedir(), '.cty-cache');

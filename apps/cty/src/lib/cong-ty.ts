@@ -40,6 +40,7 @@ export function dsNhanSu(): Doc[] {
 }
 export function nhanSu(id: string): Doc | null { return readDoc(path.join(ROOT, 'nhan-su', id, 'SOUL.md'), id); }
 export function heartbeat(id: string): string { return docText(path.join('nhan-su', id, 'HEARTBEAT.md')); }
+export function cauHinh(): Fm { const f = path.join(ROOT, 'cau-hinh.md'); return fs.existsSync(f) ? parseFm(fs.readFileSync(f, 'utf8')).fm : {}; }
 export function soDo(id: string): string { return docText(path.join('so-do', `${id}.svg`)); }
 
 export const KHUON: Record<string, { ten: string; mota: string }> = {

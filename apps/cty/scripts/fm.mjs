@@ -17,7 +17,7 @@ export function parseFm(raw) {
   return { fm, body: m[2] };
 }
 
-if (process.argv.includes('--tu-kiem')) {
+if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('fm.mjs')) {
   const assert = (c, msg) => { if (!c) { console.error('✗ fm.mjs:', msg); process.exit(1); } };
   const r = parseFm('---\nten: Lan\nbao_cao_cho: \nkind: ai\nskills: [a, b]\nmuc: 2\nok: true\n---\n# Thân\n');
   assert(r.fm.ten === 'Lan', 'chuỗi');

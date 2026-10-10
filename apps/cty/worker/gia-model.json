@@ -1,0 +1,10 @@
+{
+  "_": "USD / 1M token [vào, ra]. Chép từ apps/web/src/lib/ai/cost.ts (OpenAI, ước lượng ~2025) — khi bật công ty thì gom hai nơi về một; mô hình KHÔNG có trong đây thì proxy từ chối (fail-closed). Claude/DeepSeek: điền giá thật từ trang giá của nhà trước khi dùng, không đoán.",
+  "gpt-4.1": [2, 8],
+  "gpt-4.1-mini": [0.4, 1.6],
+  "gpt-4.1-nano": [0.1, 0.4],
+  "gpt-4o": [2.5, 10],
+  "gpt-4o-mini": [0.15, 0.6],
+  "o3-mini": [1.1, 4.4],
+  "o1-mini": [1.1, 4.4]
+}

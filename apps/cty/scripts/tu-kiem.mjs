@@ -21,5 +21,13 @@ for (const [id, f] of Object.entries(phong)) {
   if (!Object.values(ns).some((n) => n.phong === id)) loi.push(`phong ${id}: không có nhân sự nào`);
 }
 if (!fs.existsSync(path.join(R, 'AGENTS.md'))) loi.push('thiếu AGENTS.md');
+const chF = path.join(R, 'cau-hinh.md');
+if (!fs.existsSync(chF)) loi.push('thiếu cau-hinh.md');
+else {
+  const ch = fm(chF); const tong = Number(ch.tran_tong_usd_thang || 0);
+  const nguoi = Object.values(ns).reduce((s, f) => s + Number(f.tran_usd_thang || 0), 0);
+  if (!(tong > 0)) loi.push('cau-hinh: tran_tong_usd_thang phải > 0');
+  if (nguoi > tong) loi.push(`tổng trần người $${nguoi} > trần tổng $${tong}`);
+}
 if (loi.length) { console.error('✗ tu-kiem cty:\n  ' + loi.join('\n  ')); process.exit(1); }
 console.log(`✓ tu-kiem cty: ${Object.keys(ns).length} nhân sự, ${Object.keys(phong).length} phòng, hồ sơ nhất quán`);

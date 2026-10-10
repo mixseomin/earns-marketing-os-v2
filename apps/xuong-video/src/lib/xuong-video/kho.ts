@@ -93,3 +93,84 @@ export async function dungTaiSan(db: Db, id: number, dich: { canhId?: number; ta
 export async function boKhoiKho(db: Db, id: number): Promise<void> {
   await db.execute(sql`UPDATE xv_tai_san SET xoa_luc = now(), updated_at = now() WHERE id = ${id}`);
 }
+
+// ── Khuôn QC + kiểu chữ thương hiệu (đợt C) ─────────────────────────────────────────────────────────────────────
+
+/** Cột của shot chép vào khuôn — phần CẤU TRÚC (giây, chữ màn nguyên văn, lời + độ trễ, máy, prompt), không chép tệp (hình/clip/giọng). */
+type ShotKhuon = { thu_tu: number; canh: string; goc_may: string; hanh_dong: string; loi_thoai: string; am_thanh: string; thoi_luong_s: number; phat_s: number | null;
+  prompt_anh: string; prompt_video: string; phan_doan: string; cam_xuc: number; ky_thuat: unknown; trang_phuc: string; chu_man: string; nhanh: string; kieu_chu: unknown;
+  thoai: { nhan_vat: string; dien_xuat: string; loi: string; tre?: number }[]; nhan_vat_ten: string[] };
+
+/** Lưu cả một tập làm KHUÔN QC: cấu trúc từng shot + kiểu chữ + QC mẫu + bài đăng — tạo tập mới từ khuôn là có ngay bộ khung đã thắng. */
+export async function luuKhuonQc(db: Db, tapId: number, ten?: string): Promise<Kq<number>> {
+  const t = (await db.execute(sql`SELECT t.*, p.project, p.kinh_thanh, p.ten AS phim_ten FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tapId}`)) as unknown as Row[];
+  if (!t[0]) return loi('không thấy tập');
+  const kt = (t[0].kinh_thanh ?? {}) as KinhThanh;
+  const nv = (await db.execute(sql`SELECT id, ten FROM xv_nhan_vat WHERE phim_id = ${n(t[0].phim_id)}`)) as unknown as Row[];
+  const tenNv = new Map(nv.map((x) => [n(x.id), s(x.ten)]));
+  const ds = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh);
+  if (!ds.length) return loi('tập chưa có shot');
+  const shots: ShotKhuon[] = ds.map((c) => ({ thu_tu: c.thu_tu, canh: c.canh, goc_may: c.goc_may, hanh_dong: c.hanh_dong, loi_thoai: c.loi_thoai, am_thanh: c.am_thanh,
+    thoi_luong_s: c.thoi_luong_s, phat_s: c.phat_s ?? null, prompt_anh: c.prompt_anh, prompt_video: c.prompt_video, phan_doan: c.phan_doan, cam_xuc: c.cam_xuc, ky_thuat: c.ky_thuat,
+    trang_phuc: c.trang_phuc ?? '', chu_man: c.chu_man, nhanh: c.nhanh ?? '', kieu_chu: c.kieu_chu,
+    thoai: c.thoai.map((d) => ({ nhan_vat: d.nhan_vat, dien_xuat: d.dien_xuat, loi: d.loi, ...(typeof d.tre === 'number' ? { tre: d.tre } : {}) })),
+    nhan_vat_ten: c.nhan_vat.map((id) => tenNv.get(id) ?? '').filter(Boolean) }));
+  const giay = ds.reduce((a, c) => a + (c.phat_s || c.thoi_luong_s || 0), 0);
+  const tenK = ten?.trim() || `Khuôn · ${s(t[0].phim_ten)} · ${s(t[0].ten)}`;
+  const duLieu = { shots, kieu_chu: kt.qc?.kieu_chu ?? null, vi_tri_chu: kt.qc?.vi_tri_chu ?? null, mau: kt.qc?.mau ?? null, bai_dang: t[0].bai_dang ?? null, brief: s(t[0].brief), giong_dan: kt.giong_dan ?? null };
+  const r = (await db.execute(sql`INSERT INTO xv_tai_san (loai, ten, thuong_hieu, san_pham, mo_ta, so_do, du_lieu, nguon)
+    VALUES ('khuon_qc', ${tenK}, ${thuongHieu(s(t[0].project), kt)}, ${kt.qc?.ten ?? ''}, ${`${ds.length} shot · ${Math.round(giay)}s`}, ${JSON.stringify({ so_shot: ds.length, dai: giay })}::jsonb,
+      ${JSON.stringify(duLieu)}::jsonb, ${JSON.stringify({ phim_id: n(t[0].phim_id), tap_id: tapId })}::jsonb) RETURNING id`)) as unknown as Row[];
+  return { ok: true, data: n(r[0]!.id) };
+}
+
+/** Tạo TẬP MỚI trong một phim từ khuôn QC: chép nguyên cấu trúc shot (chữ màn + lời nguyên văn, mốc giây, máy, prompt), anchor khớp theo TÊN
+ *  trong phim đích (không khớp thì bỏ), chưa có hình/clip/giọng — sinh lại theo từng bước như thường. */
+export async function taoTapTuKhuon(db: Db, khuonId: number, phimId: number, nguoi: string): Promise<Kq<number>> {
+  const k = (await db.execute(sql`SELECT * FROM xv_tai_san WHERE id = ${khuonId} AND loai = 'khuon_qc' AND xoa_luc IS NULL`)) as unknown as Row[];
+  if (!k[0]) return loi('không thấy khuôn QC');
+  const du = (k[0].du_lieu ?? {}) as { shots?: ShotKhuon[]; brief?: string; bai_dang?: unknown };
+  if (!du.shots?.length) return loi('khuôn rỗng');
+  const nv = (await db.execute(sql`SELECT id, ten FROM xv_nhan_vat WHERE phim_id = ${phimId}`)) as unknown as Row[];
+  const idTheoTen = new Map(nv.map((x) => [s(x.ten).trim().toLowerCase(), n(x.id)]));
+  const so = n(((await db.execute(sql`SELECT coalesce(max(so), 0) + 1 AS so FROM xv_tap WHERE phim_id = ${phimId}`)) as unknown as Row[])[0]?.so);
+  const giay = du.shots.reduce((a, x) => a + (x.phat_s || x.thoi_luong_s || 0), 0);
+  const t = (await db.execute(sql`INSERT INTO xv_tap (phim_id, so, ten, brief, thoi_luong_s, bai_dang) VALUES (${phimId}, ${so}, ${`Từ khuôn: ${s(k[0].ten)}`}, ${du.brief ?? ''}, ${Math.round(giay)}, ${du.bai_dang ? JSON.stringify(du.bai_dang) : null}::jsonb) RETURNING id`)) as unknown as Row[];
+  const tapId = n(t[0]!.id);
+  for (const x of du.shots) {
+    const ids = x.nhan_vat_ten.map((tn) => idTheoTen.get(tn.trim().toLowerCase())).filter((v): v is number => v != null);
+    await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, loi_thoai, am_thanh, thoi_luong_s, nhan_vat, prompt_anh, prompt_video, phan_doan, cam_xuc, ky_thuat, trang_phuc, chu_man, nhanh, kieu_chu, thoai, phat_s, trang_thai)
+      VALUES (${tapId}, ${x.thu_tu}, ${x.canh}, ${x.goc_may}, ${x.hanh_dong}, ${x.loi_thoai}, ${x.am_thanh}, ${x.thoi_luong_s}, ${JSON.stringify(ids)}::jsonb, ${x.prompt_anh}, ${x.prompt_video},
+        ${x.phan_doan}, ${x.cam_xuc}, ${JSON.stringify(x.ky_thuat ?? {})}::jsonb, ${x.trang_phuc}, ${x.chu_man}, ${x.nhanh || null}, ${JSON.stringify(x.kieu_chu ?? {})}::jsonb, ${JSON.stringify(x.thoai)}::jsonb, ${x.phat_s}, 'nhap')`);
+  }
+  await db.execute(sql`UPDATE xv_tai_san SET so_lan_dung = so_lan_dung + 1, updated_at = now() WHERE id = ${khuonId}`);
+  console.log(`[kho] ${nguoi}: tập #${tapId} từ khuôn #${khuonId} (${du.shots.length} shot)`);
+  return { ok: true, data: tapId };
+}
+
+/** Kiểu chữ màn của phim → preset của thương hiệu (một dòng mỗi thương hiệu, cập nhật tại chỗ). Gọi khi xuất bản: kiểu đang dùng thật. */
+export async function luuKieuChuThuongHieu(db: Db, phimId: number): Promise<void> {
+  const p = (await db.execute(sql`SELECT project, kinh_thanh FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[];
+  const kt = (p[0]?.kinh_thanh ?? {}) as KinhThanh;
+  const kc = kt.qc?.kieu_chu;
+  if (!p[0] || !kc || !Object.keys(kc).length) return;
+  const th = thuongHieu(s(p[0].project), kt);
+  const du = JSON.stringify({ kieu_chu: kc, vi_tri_chu: kt.qc?.vi_tri_chu ?? null });
+  const r = (await db.execute(sql`UPDATE xv_tai_san SET du_lieu = ${du}::jsonb, nguon = ${JSON.stringify({ phim_id: phimId })}::jsonb, xoa_luc = NULL, updated_at = now()
+    WHERE loai = 'kieu_chu' AND thuong_hieu = ${th} RETURNING id`)) as unknown as Row[];
+  if (!r.length) await db.execute(sql`INSERT INTO xv_tai_san (loai, ten, thuong_hieu, du_lieu, nguon) VALUES ('kieu_chu', ${`Kiểu chữ · ${th}`}, ${th}, ${du}::jsonb, ${JSON.stringify({ phim_id: phimId })}::jsonb)`);
+}
+
+/** Phim của thương hiệu có preset kiểu chữ mà chưa đặt kiểu chữ → điền từ preset (gọi sau khi lưu kinh thánh). */
+export async function apKieuChuThuongHieu(db: Db, phimId: number): Promise<boolean> {
+  const p = (await db.execute(sql`SELECT project, kinh_thanh FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[];
+  const kt = (p[0]?.kinh_thanh ?? {}) as KinhThanh;
+  if (!p[0] || !kt.qc || (kt.qc.kieu_chu && Object.keys(kt.qc.kieu_chu).length)) return false;
+  const th = thuongHieu(s(p[0].project), kt);
+  const r = (await db.execute(sql`SELECT du_lieu FROM xv_tai_san WHERE loai = 'kieu_chu' AND thuong_hieu = ${th} AND xoa_luc IS NULL ORDER BY updated_at DESC LIMIT 1`)) as unknown as Row[];
+  const du = r[0]?.du_lieu as { kieu_chu?: object; vi_tri_chu?: string | null } | undefined;
+  if (!du?.kieu_chu) return false;
+  const qc = { ...kt.qc, kieu_chu: du.kieu_chu, ...(du.vi_tri_chu && !kt.qc.vi_tri_chu ? { vi_tri_chu: du.vi_tri_chu } : {}) };
+  await db.execute(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(kinh_thanh, '{qc}', ${JSON.stringify(qc)}::jsonb), updated_at = now() WHERE id = ${phimId}`);
+  return true;
+}

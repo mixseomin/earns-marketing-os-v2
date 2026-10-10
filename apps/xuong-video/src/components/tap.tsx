@@ -5,7 +5,7 @@ import { Timeline } from './timeline';
 import { moNgan } from './ngan-chung';
 import { MO_HINH_AM } from '@/lib/xuong-video/am-thanh';
 import { kiemQc } from '@/lib/xuong-video/kiem-qc';
-import { dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, trangThaiXuat } from '@/lib/actions';
+import { luuKhuonTap, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, trangThaiXuat } from '@/lib/actions';
 import { thanhPhanCanh, docKinhThanh, giaAnhCents, giaVideoCents, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, coMau, giayMau, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, TabPhim, KqChay, O, Nut, Loi, mono } from './ui';
@@ -176,6 +176,13 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
         </div>
       )}
       {tab === 'xuat' && <Loi>{loiXuat}</Loi>}
+      {/* Kho tài sản: cả tập (giây, chữ màn + lời nguyên văn, máy, prompt, kiểu chữ) thành khuôn QC dùng lại; tạo tập mới từ khuôn đã lưu. */}
+      {tab === 'xuat' && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+          <Nut ban={ban('khuon')} title="Lưu cấu trúc tập này (giây từng shot, chữ màn + lời nguyên văn, độ trễ, góc máy, prompt, kiểu chữ, bài đăng) vào kho làm khuôn QC" onClick={() => void chay('khuon', () => luuKhuonTap(tap.id))}>🧩 Lưu tập làm khuôn QC</Nut>
+          <button type="button" className="xv-btn" title="Chọn một khuôn QC trong kho → tạo tập mới trong phim này (chưa có hình/giọng, sinh lại từng bước)" onClick={() => moNgan({ loai: 'kho', dich: { phimId: tap.phim_id } })}>🧩 Tạo tập từ khuôn</button>
+        </div>
+      )}
       {tab === 'xuat' && phim.loai === 'quang_cao' && <BaiDangKem tap={tap} coAnthropic={khoa.anthropic} thieuSp={thieuSp} onChanged={onChanged} />}
       {tab === 'xuat' && tap.xuat.length > 0 && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>

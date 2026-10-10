@@ -13,7 +13,7 @@ import { dayViecAnh, dayViecAm, chayNen } from '@/lib/xuong-video/hoan-tat';
 import { chayXuat, ghiBanXuat, gopAm } from '@/lib/xuong-video/xuat-chay';
 import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiong, timNv, giayNhac } from '@/lib/xuong-video/am-thanh';
 import { sinhNhacTap } from '@/lib/xuong-video/sinh-nhac';
-import { dsKho, luuShotVaoKho, dungTaiSan, boKhoiKho } from '@/lib/xuong-video/kho';
+import { dsKho, luuShotVaoKho, dungTaiSan, boKhoiKho, luuKhuonQc, taoTapTuKhuon, apKieuChuThuongHieu } from '@/lib/xuong-video/kho';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, type MoHinhGiong } from '@/lib/xuong-video/giong';
 import { boVaoThungRac, boAnhVaoThungRac, dsRac, khoiPhucRac, type MucRac } from '@/lib/xuong-video/thung-rac';
 import { batDauNangCap, danhMucFal, guiFal, type ModelFal } from '@/lib/xuong-video/fal';
@@ -273,6 +273,7 @@ export async function suaPhim(id: number, d: { ten?: string; loai?: LoaiPhim; mo
       || CASE WHEN coalesce(${d.kinh_thanh ? JSON.stringify(d.kinh_thanh) : null}::jsonb->'giong_dan', 'null'::jsonb) = 'null'::jsonb AND coalesce(kinh_thanh->'giong_dan', 'null'::jsonb) <> 'null'::jsonb
          THEN jsonb_build_object('giong_dan', kinh_thanh->'giong_dan') ELSE '{}'::jsonb END, kinh_thanh), trang_thai = coalesce(${d.trang_thai ?? null}, trang_thai),
     updated_at = now() WHERE id = ${id}`);
+  if (d.kinh_thanh?.qc) await apKieuChuThuongHieu(db, id).catch(() => false);   // chưa có kiểu chữ → lấy preset của thương hiệu
   // Quảng cáo: sản phẩm khai ở kinh thánh → anchor sản phẩm cùng tên (tạo nếu chưa có), ảnh thật lên ĐẦU anh_ref để mọi keyframe tham chiếu đúng hàng.
   const q = d.kinh_thanh?.qc;
   if (q?.mau?.shots?.length) {
@@ -1072,6 +1073,20 @@ export async function dungTaiSanCho(id: number, dich: { canhId?: number; tapId?:
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   return dungTaiSan(db, id, dich, await ai());
+}
+/** Lưu cả tập làm khuôn QC trong kho. */
+export async function luuKhuonTap(tapId: number): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  return luuKhuonQc(db, tapId);
+}
+/** Tạo tập mới trong phim từ một khuôn QC (chưa có hình/giọng — sinh lại từng bước). */
+export async function taoTapTuKhuonQc(khuonId: number, phimId: number): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  return taoTapTuKhuon(db, khuonId, phimId, await ai());
 }
 export async function boTaiSan(id: number): Promise<Kq> {
   const db = getDb();

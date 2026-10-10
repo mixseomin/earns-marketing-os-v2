@@ -12,6 +12,7 @@ import { keHoachXuat, urlCanXuat, khoangIm, NGUONG_IM_LUFS, type NguyenLieu } fr
 import { sql } from 'drizzle-orm';
 import type { Canh, LoaiPhim, NhanVat, Tap, ThongTinQc } from './kieu';
 import type { Db } from './doc-db';
+import { luuKieuChuThuongHieu } from './kho';
 
 const run = promisify(execFile);
 const FONT_UNG_VIEN = ['/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', '/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf', '/System/Library/Fonts/Supplemental/Arial Bold.ttf', '/Library/Fonts/Arial Bold.ttf'];
@@ -63,6 +64,9 @@ export async function ghiBanXuat(db: Db, o: { tapId: number; job: number; nhanh:
   await db.execute(sql`UPDATE xv_tap SET xuat = coalesce(xuat, '[]'::jsonb) || ${JSON.stringify([ban])}::jsonb, video_url = ${o.kq.url}, updated_at = now() WHERE id = ${o.tapId}`);
   const ghiChu = [...(o.kq.canhThieu.length ? [`thiếu hình: ${o.kq.canhThieu.join(', ')} (bỏ qua)`] : []), ...o.kq.canhBao];
   await db.execute(sql`UPDATE xv_job SET trang_thai = 'xong', output_url = ${o.kq.url}, loi = ${ghiChu.join(' · ')}, updated_at = now() WHERE id = ${o.job}`);
+  // Kiểu chữ đang dùng thật của phim → preset thương hiệu trong kho (phim mới cùng shop tự lấy).
+  const p = (await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${o.tapId}`)) as unknown as Array<{ phim_id: number }>;
+  if (p[0]) await luuKieuChuThuongHieu(db, Number(p[0].phim_id)).catch((e) => console.error('[kho] lưu kiểu chữ hỏng', e));
 }
 
 /** Luồng tiếng ngắn hơn luồng hình bao nhiêu giây (bộ lọc trộn dừng sớm → cuối phim câm; máy đo khoảng im không thấy vì chỉ đo phần có tiếng). */

@@ -5,9 +5,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev -p 3850",
+    "dev": "next dev -p 3860",
     "build": "next build",
-    "start": "next start -p ${PORT:-3850}",
+    "start": "next start -p ${PORT:-3860}",
     "typecheck": "tsc --noEmit",
     "tu-kiem": "node scripts/tu-kiem.mjs"
   },

@@ -1,5 +1,5 @@
 [Unit]
-Description=Van phong pixel (pixel-agents standalone, port 3851) — vp.on.tc
+Description=Van phong pixel (pixel-agents standalone, port 3861) — vp.on.tc
 After=network.target mos2-cty.service
 [Service]
 Type=simple
@@ -8,7 +8,7 @@ WorkingDirectory=/opt/earns-marketing-os-v2/apps/cty
 Environment=NODE_ENV=production
 # watchAllSessions=true để nhận hook giả không gắn project; alwaysShowLabels để tên nhân sự luôn hiện.
 ExecStartPre=/usr/bin/node /opt/earns-marketing-os-v2/apps/cty/scripts/seed-van-phong.mjs --config
-ExecStart=/usr/bin/pixel-agents --host 127.0.0.1 --port 3851
+ExecStart=/usr/bin/pixel-agents --host 127.0.0.1 --port 3861
 # Token đổi mỗi lần khởi động → bơm lại 20 nhân sự sau khi server lên (đọc ~/.pixel-agents/server.json).
 ExecStartPost=/bin/sh -c 'sleep 5; /usr/bin/node /opt/earns-marketing-os-v2/apps/cty/scripts/seed-van-phong.mjs'
 Restart=always

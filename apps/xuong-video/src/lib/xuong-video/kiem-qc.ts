@@ -6,7 +6,7 @@ import type { Canh, LoaiPhim, NhanVat, ThongTinQc } from './kieu';
 import { giayPhat, locNhanh, coMau, giayMau, shotLechNgonNgu, tenNgonNgu } from './kieu';
 
 export type MucKiem = { key: string; ok: boolean; chu: string; chiTiet?: string };
-type ShotKiem = Pick<Canh, 'thu_tu' | 'nhan_vat' | 'phan_doan' | 'chu_man' | 'nhanh' | 'phat_s' | 'thoi_luong_s' | 'loi_thoai' | 'thoai' | 'trang_thai' | 'keyframe_url'>;
+type ShotKiem = Pick<Canh, 'thu_tu' | 'nhan_vat' | 'phan_doan' | 'chu_man' | 'nhanh' | 'phat_s' | 'thoi_luong_s' | 'loi_thoai' | 'thoai' | 'trang_thai' | 'keyframe_url'> & Partial<Pick<Canh, 'cam_xuc'>>;
 
 const soTu = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
 const loiCua = (c: ShotKiem) => (c.thoai?.length ? c.thoai.map((d) => d.loi).join(' ') : c.loi_thoai.replace(/^[^:"“]*:\s*/, ''));
@@ -28,6 +28,13 @@ export function kiemQc(opts: { loai: LoaiPhim; canh: ShotKiem[]; nhanVat: Pick<N
   if (opts.ngonNgu && opts.ngonNgu !== 'vi') {
     const lech = shotLechNgonNgu(opts.ngonNgu, ds);
     out.push({ key: 'ngon_ngu', ok: !lech.length, chu: `Chữ đúng ${tenNgonNgu(opts.ngonNgu)}`, chiTiet: lech.length ? `${lech.length} shot còn chữ màn/thoại tiếng Việt (#${lech.slice(0, 8).join(', #')}${lech.length > 8 ? '…' : ''}) — bấm 🌐 Dịch tập ở tab Kịch bản, đừng sinh keyframe/giọng trước` : undefined });
+  }
+  // Cảm xúc khán giả = đích từng shot phải đạt (đi vào prompt ảnh/video). Phẳng gần hết ở 0 = chưa ai đặt đích → model nhận "calm neutrality"
+  // (phim #5 10/10/2026: script dựng từ khung mẫu ghi cứng 0 cho 24/25 shot).
+  if (ds.some((c) => typeof c.cam_xuc === 'number')) {
+    const phang = ds.filter((c) => !c.cam_xuc).length;
+    out.push({ key: 'cam_xuc', ok: phang * 2 <= ds.length, chu: phang * 2 > ds.length ? `${phang}/${ds.length} shot cảm xúc trung tính` : 'Có đường cảm xúc',
+      chiTiet: phang * 2 > ds.length ? 'Đặt cảm xúc khán giả mục tiêu cho từng shot (form cảnh) — đường cảm xúc phẳng thì ảnh/video sinh ra cũng phẳng' : undefined });
   }
   if (opts.loai !== 'quang_cao') return out;
   // 0. Có QC mẫu: số shot đúng bằng mẫu, tổng giây ±10% — bản clone "gần giống nhất" đo được ở đây.

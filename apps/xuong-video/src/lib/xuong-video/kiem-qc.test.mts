@@ -103,3 +103,12 @@ console.log('kiem-qc.test: mẫu ok');
   assert.deepEqual(shotLechNgonNgu('en', [{ ...shot, thoai: [], hanh_dong: 'Ông Tom giơ quần' } as never]), [3]);   // hành động tiếng Việt cũng tính
   console.log('kiem-qc.test: cổng model ok');
 }
+// Cảm xúc khán giả phẳng (gần hết shot ở 0) → cờ đỏ; có đường cảm xúc → đạt (phim #5 10/10/2026: 24/25 shot = 0).
+{
+  const sh = (thu_tu: number, cam_xuc: number) => ({ thu_tu, nhan_vat: [], phan_doan: '', chu_man: 'x', nhanh: '', phat_s: 2, thoi_luong_s: 2, loi_thoai: '', thoai: [], trang_thai: 'nhap', keyframe_url: null, cam_xuc });
+  const phang = kiemQc({ loai: 'phim', canh: [sh(1, 2), sh(2, 0), sh(3, 0)] as never, nhanVat: [] }).find((x) => x.key === 'cam_xuc');
+  assert.ok(phang && !phang.ok, JSON.stringify(phang));
+  const co = kiemQc({ loai: 'phim', canh: [sh(1, 2), sh(2, -1), sh(3, 0)] as never, nhanVat: [] }).find((x) => x.key === 'cam_xuc');
+  assert.ok(co?.ok, JSON.stringify(co));
+  console.log('kiem-qc.test: cảm xúc ok');
+}

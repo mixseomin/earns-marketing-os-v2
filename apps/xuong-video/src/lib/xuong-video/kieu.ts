@@ -287,6 +287,10 @@ export function motBienTheMoiDoiTuong(bienThe: number[], nvs: Pick<NhanVat, 'bie
   for (const v of nvs) { const cua = out.filter((id) => (v.bien_the ?? []).some((b) => b.id === id)); if (cua.length > 1) out = doiBienThe(out, v, cua[cua.length - 1]!); }
   return out;
 }
+/** Cảm xúc khán giả MỤC TIÊU mặc định theo loại shot của QC mẫu — dùng khi khung/kịch bản không ghi, để không đường nào ghi 0 hàng loạt. */
+export const CAM_XUC_THEO_LOAI: Record<LoaiShotMau, number> = {
+  hook: 1, uu_dai: 4, noi_dau: -2, giai_phap: 3, tinh_nang: 2, demo: 3, so_sanh: 3, bang_chung: 3, tran_an: 3, cta: 5, end_card: 5, khac: 0,
+};
 export const tenCamXuc = (v: number): string => CAM_XUC_KHAN_GIA[Math.max(-5, Math.min(5, Math.round(v)))] ?? '';
 export const tien = (cents: number): string => { const d = cents / 100; return `$${d >= 1 ? d.toFixed(2) : d >= 0.1 ? d.toFixed(2) : d.toFixed(3)}`; };
 

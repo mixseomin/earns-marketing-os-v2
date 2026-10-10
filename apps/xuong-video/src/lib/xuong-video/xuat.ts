@@ -124,6 +124,8 @@ export function keHoachXuat(o: {
   const khung = `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=${so(fpsRa)},format=yuv420p`;
   // Ảnh tĩnh: đặt VỪA khung + nền là chính ảnh phóng mờ — ảnh vuông thật của shop (lưới review, ảnh sản phẩm) không bị cắt mất hai bên;
   // keyframe đã 9:16 thì vừa khít, nền mờ không lộ (09/10/2026, dùng ảnh thật Orabra cho shot bằng chứng + end card).
+  // Ảnh tĩnh đẩy máy chậm (zoom vào 6% suốt giây phát) — ảnh đứng im 3–4s giữa các clip động trông như video bị khựng (10/10/2026).
+  const dayMay = (phat: number) => `,crop=w='iw/(1+0.06*t/${so(Math.max(phat, 0.5))})':h='ih/(1+0.06*t/${so(Math.max(phat, 0.5))})':x='(iw-ow)/2':y='(ih-oh)/2',scale=${W}:${H},setsar=1`;
   const khungTinh = (i: number) => `split=2[nb${i}][nf${i}];[nb${i}]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},boxblur=24:2[nbb${i}];[nf${i}]scale=${W}:${H}:force_original_aspect_ratio=decrease[nff${i}];[nbb${i}][nff${i}]overlay=(W-w)/2:(H-h)/2,setsar=1,fps=${so(fpsRa)},format=yuv420p`;
 
   const loc: string[] = [];
@@ -148,7 +150,7 @@ export function keHoachXuat(o: {
     // Bỏ tối đa 0,5s đầu khi clip còn dư so với giây phát — cảnh mở ra giữa chuyển động như QC thật.
     const daiClip = laVideo ? nl.get(nguon)?.dai ?? null : null;
     const boDau = laVideo && daiClip ? Math.max(0, Math.min(0.5, daiClip - phat - 0.02)) : 0;
-    const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(boDau + phat)},setpts=PTS-STARTPTS,${khung}` : `[${k}:v]${khungTinh(i)},trim=0:${so(phat)},setpts=PTS-STARTPTS`];
+    const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(boDau + phat)},setpts=PTS-STARTPTS,${khung}` : `[${k}:v]${khungTinh(i)},trim=0:${so(phat)},setpts=PTS-STARTPTS${dayMay(phat)}`];
     for (const d of doanChuMan(c.chu_man, phat)) cauMan.push({ tu: t + d.tu, den: t + d.den, dong: d.dong, kieu: c.kieu_chu });
     if (logoUrl) { const kl = them(logoUrl, ['-loop', '1', '-framerate', '30', '-t', so(phat)]); loc.push(`[${kl}:v]scale=-1:${Math.round(H * 0.06)},format=rgba[lg${i}]`); ve[ve.length - 1] += `[vv${i}];[vv${i}][lg${i}]overlay=W-w-${Math.round(W * 0.03)}:${Math.round(H * 0.03)}:shortest=1`; }
     // Giọng từng dòng nối tiếp nhau trong shot (theo độ dài file giọng; chưa có giọng thì chia đều giây phát để giữ nhịp).

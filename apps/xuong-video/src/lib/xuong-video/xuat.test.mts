@@ -152,3 +152,9 @@ console.log('xuat.test: mẫu ok');
   assert.ok(k.args.join(' ').includes('-r 24 '), k.args.join(' '));
   console.log('xuat.test: bỏ đầu clip + fps nguồn ok');
 }
+// Ảnh tĩnh có đẩy máy chậm theo giây phát (không đứng im).
+{
+  const l = keHoachXuat({ loai: 'phim', tiLe: '9:16', canh: [canh[2]!] as never, nhanVat: nv, tap: { nhac_url: null, nhac_phan_canh: {} }, nguyenLieu, font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' }).tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
+  assert.ok(l.includes("crop=w='iw/(1+0.06*t/3)'") && l.includes(',scale=1080:1920,setsar=1'), l);
+  console.log('xuat.test: ảnh tĩnh đẩy máy ok');
+}

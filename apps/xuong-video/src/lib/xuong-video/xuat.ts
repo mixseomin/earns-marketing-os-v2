@@ -12,7 +12,7 @@ export { doanChuMan, chuManHien } from './kieu';
 import { dongThoai, coTiengRieng } from './am-thanh';
 
 /** Một tệp nguyên liệu đã tải về + đo: dai = giây (âm/video), coAm = clip có luồng tiếng. */
-export type NguyenLieu = { url: string; duong: string; dai: number | null; coAm: boolean };
+export type NguyenLieu = { url: string; duong: string; dai: number | null; coAm: boolean; fps?: number | null };
 export type TepChu = { duong: string; noiDung: string };
 export type KeHoachXuat = { args: string[]; tep: TepChu[]; giay: number; canhThieu: string[] };
 
@@ -117,10 +117,14 @@ export function keHoachXuat(o: {
   const drawMan = (ten: string, dong: string[], giua = false) => khoiChu(ten, dong, fsMan, (n) => (giua ? `(h-${Math.round(n * fsMan * 1.25)})/2` : gocMan(n)), `borderw=${Math.round(fsMan / 14)}:bordercolor=black@0.85`, '');
   // Logo góc trên phải (qc.logo_url) đè lên MỌI shot + end card: cao 6% màn, cách mép 3%.
   const logoUrl = o.qc?.logo_url && nl.has(o.qc.logo_url) ? o.qc.logo_url : null;
-  const khung = `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=30,format=yuv420p`;
+  // Tốc độ khung của bản xuất = tốc độ phổ biến nhất của các clip nguồn (Veo 24) — ép 24→30 phải nhân đôi khung, hình giật nhẹ (10/10/2026).
+  const demFps = new Map<number, number>();
+  for (const c of ds) { const u = c.video_cuoi_url || c.video_url; const f = u ? nl.get(u)?.fps : null; if (f && f >= 15 && f <= 60) demFps.set(f, (demFps.get(f) ?? 0) + 1); }
+  const fpsRa = [...demFps.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 30;
+  const khung = `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=${so(fpsRa)},format=yuv420p`;
   // Ảnh tĩnh: đặt VỪA khung + nền là chính ảnh phóng mờ — ảnh vuông thật của shop (lưới review, ảnh sản phẩm) không bị cắt mất hai bên;
   // keyframe đã 9:16 thì vừa khít, nền mờ không lộ (09/10/2026, dùng ảnh thật Orabra cho shot bằng chứng + end card).
-  const khungTinh = (i: number) => `split=2[nb${i}][nf${i}];[nb${i}]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},boxblur=24:2[nbb${i}];[nf${i}]scale=${W}:${H}:force_original_aspect_ratio=decrease[nff${i}];[nbb${i}][nff${i}]overlay=(W-w)/2:(H-h)/2,setsar=1,fps=30,format=yuv420p`;
+  const khungTinh = (i: number) => `split=2[nb${i}][nf${i}];[nb${i}]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},boxblur=24:2[nbb${i}];[nf${i}]scale=${W}:${H}:force_original_aspect_ratio=decrease[nff${i}];[nbb${i}][nff${i}]overlay=(W-w)/2:(H-h)/2,setsar=1,fps=${so(fpsRa)},format=yuv420p`;
 
   const loc: string[] = [];
   const nhanhVideo: string[] = [];
@@ -140,7 +144,11 @@ export function keHoachXuat(o: {
     if (!nguon) { canhThieu.push(`#${c.thu_tu} ${c.canh}`); return; }
     const laVideo = nguon === vUrl;
     const k = laVideo ? them(nguon) : them(nguon, ['-loop', '1', '-framerate', '30', '-t', so(phat)]);
-    const ve: string[] = [laVideo ? `[${k}:v]trim=0:${so(phat)},setpts=PTS-STARTPTS,${khung}` : `[${k}:v]${khungTinh(i)},trim=0:${so(phat)},setpts=PTS-STARTPTS`];
+    // Clip sinh từ keyframe khởi động chậm ~0,3–0,5s (đo: chuyển động 0,5–1 rồi mới lên 2,5–4,6) → cắt vào đó cảnh nào cũng như khựng.
+    // Bỏ tối đa 0,5s đầu khi clip còn dư so với giây phát — cảnh mở ra giữa chuyển động như QC thật.
+    const daiClip = laVideo ? nl.get(nguon)?.dai ?? null : null;
+    const boDau = laVideo && daiClip ? Math.max(0, Math.min(0.5, daiClip - phat - 0.02)) : 0;
+    const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(boDau + phat)},setpts=PTS-STARTPTS,${khung}` : `[${k}:v]${khungTinh(i)},trim=0:${so(phat)},setpts=PTS-STARTPTS`];
     for (const d of doanChuMan(c.chu_man, phat)) cauMan.push({ tu: t + d.tu, den: t + d.den, dong: d.dong, kieu: c.kieu_chu });
     if (logoUrl) { const kl = them(logoUrl, ['-loop', '1', '-framerate', '30', '-t', so(phat)]); loc.push(`[${kl}:v]scale=-1:${Math.round(H * 0.06)},format=rgba[lg${i}]`); ve[ve.length - 1] += `[vv${i}];[vv${i}][lg${i}]overlay=W-w-${Math.round(W * 0.03)}:${Math.round(H * 0.03)}:shortest=1`; }
     // Giọng từng dòng nối tiếp nhau trong shot (theo độ dài file giọng; chưa có giọng thì chia đều giây phát để giữ nhịp).
@@ -163,7 +171,7 @@ export function keHoachXuat(o: {
       tDong += daiGiong / nhanh + 0.15;
     });
     if (c.am_thanh_url && nl.has(c.am_thanh_url)) { const ka = them(c.am_thanh_url); themAm(`[${ka}:a]atrim=0:${so(phat)},asetpts=PTS-STARTPTS,volume=0.8,adelay=${Math.round(t * 1000)}:all=1`); }
-    if (laVideo && !tiengRieng && nl.get(nguon)?.coAm) themAm(`[${k}:a]atrim=0:${so(phat)},asetpts=PTS-STARTPTS,adelay=${Math.round(t * 1000)}:all=1`);
+    if (laVideo && !tiengRieng && nl.get(nguon)?.coAm) themAm(`[${k}:a]atrim=${so(boDau)}:${so(boDau + phat)},asetpts=PTS-STARTPTS,adelay=${Math.round(t * 1000)}:all=1`);
     loc.push(`${ve.join(',')}[v${i}]`); nhanhVideo.push(`[v${i}]`);
     t += phat;
   });
@@ -199,6 +207,6 @@ export function keHoachXuat(o: {
   else loc.push(`anullsrc=r=48000:cl=stereo,atrim=0:${so(giay)}[aout]`);
   const kichBan = tepChu('loc', loc.join(';\n'));
   const args = ['-y', '-hide_banner', '-loglevel', 'error', ...dauVao, '-/filter_complex', kichBan, '-map', '[vout]', '-map', '[aout]',
-    '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-r', '30', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', '-t', so(giay), o.ra];
+    '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-r', so(fpsRa), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', '-t', so(giay), o.ra];
   return { args, tep, giay, canhThieu };
 }

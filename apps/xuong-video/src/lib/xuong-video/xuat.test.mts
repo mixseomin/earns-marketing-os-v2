@@ -22,7 +22,7 @@ const kh = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh, nhanVat: nv, tap
 assert.deepStrictEqual(kh.canhThieu, []);
 assert.strictEqual(kh.giay, 2 + 3 + 2.5 + 2);                    // 3 shot nhánh A + end card 2s
 const loc = kh.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
-assert.ok(loc.includes('trim=0:2,setpts=PTS-STARTPTS,scale=1080:1920'));        // shot 1 cắt 2s, 9:16
+assert.ok(loc.includes('trim=0.5:2.5,setpts=PTS-STARTPTS,scale=1080:1920'));    // shot 1: bỏ 0,5s khởi động chậm của clip 4s, phát 2s, 9:16
 assert.ok(/-loop 1 -framerate 30 -t 3 -i \/tmp\/t\/k3.jpg/.test(kh.args.join(' ')));  // keyframe tĩnh 3s
 assert.ok(!kh.args.join(' ').includes('c1b.mp4'));                   // nhánh B không vào bản A
 assert.ok(loc.includes('adelay=0:all=1'));                           // giọng shot 1 ở 0ms
@@ -141,4 +141,14 @@ console.log('xuat.test: mẫu ok');
   const k = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh, nhanVat: nv, tap, qc: qcMau, nhanh: 'A', nguyenLieu, font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
   assert.strictEqual(k.giay, 2 + 3 + 2.5);
   console.log('xuat.test: không end card khi có mẫu ok');
+}
+// Clip không dư giây → không bỏ đầu; tốc độ khung bản xuất = tốc độ phổ biến của clip nguồn (24 → -r 24, không nhân đôi khung).
+{
+  const c1 = [{ ...canh[0]!, phat_s: 4 }];
+  const nl24 = nguyenLieu.map((x) => (x.url === 'https://x/c1.mp4' ? { ...x, fps: 24 } : x));
+  const k = keHoachXuat({ loai: 'phim', tiLe: '9:16', canh: c1 as never, nhanVat: nv, tap: { nhac_url: null, nhac_phan_canh: {} }, nhanh: 'A', nguyenLieu: nl24, font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
+  const l = k.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
+  assert.ok(l.includes('trim=0:4,') && l.includes('fps=24,'), l);
+  assert.ok(k.args.join(' ').includes('-r 24 '), k.args.join(' '));
+  console.log('xuat.test: bỏ đầu clip + fps nguồn ok');
 }

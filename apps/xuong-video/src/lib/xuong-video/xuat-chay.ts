@@ -14,12 +14,14 @@ import type { Canh, LoaiPhim, NhanVat, Tap, ThongTinQc } from './kieu';
 const run = promisify(execFile);
 const FONT_UNG_VIEN = ['/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', '/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf', '/System/Library/Fonts/Supplemental/Arial Bold.ttf', '/Library/Fonts/Arial Bold.ttf'];
 
-async function doTep(duong: string): Promise<{ dai: number | null; coAm: boolean }> {
+async function doTep(duong: string): Promise<{ dai: number | null; coAm: boolean; fps: number | null }> {
   try {
-    const { stdout } = await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type', '-of', 'json', duong], { timeout: 30_000 });
-    const j = JSON.parse(stdout) as { format?: { duration?: string }; streams?: { codec_type?: string }[] };
-    const dai = Number(j.format?.duration); return { dai: Number.isFinite(dai) && dai > 0 ? dai : null, coAm: (j.streams ?? []).some((s) => s.codec_type === 'audio') };
-  } catch { return { dai: null, coAm: false }; }
+    const { stdout } = await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type,r_frame_rate', '-of', 'json', duong], { timeout: 30_000 });
+    const j = JSON.parse(stdout) as { format?: { duration?: string }; streams?: { codec_type?: string; r_frame_rate?: string }[] };
+    const v = (j.streams ?? []).find((s) => s.codec_type === 'video')?.r_frame_rate?.split('/').map(Number);
+    const fps = v && v[0] && v[1] ? Math.round((v[0] / v[1]) * 100) / 100 : null;
+    const dai = Number(j.format?.duration); return { dai: Number.isFinite(dai) && dai > 0 ? dai : null, coAm: (j.streams ?? []).some((s) => s.codec_type === 'audio'), fps };
+  } catch { return { dai: null, coAm: false, fps: null }; }
 }
 
 export type KqXuat = { ok: true; url: string; giay: number; canhThieu: string[] } | { ok: false; loi: string };

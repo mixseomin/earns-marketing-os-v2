@@ -153,7 +153,7 @@ function CaiTien({ k, dx, admin }: { k: string; dx: DeXuat[]; admin: boolean }) 
         <p className="cty-qt-ha"><Nguoi id="ha" /> {d.ha.dong_y ? 'đồng ý' : 'không đồng ý'} — <span className="cty-muted">{d.ha.ly_do}</span></p>
         {d.so_sanh && <p className="cty-qt-ss">Bộ việc chuẩn: v{d.so_sanh.cu.ban} <b>{d.so_sanh.cu.so_dung}/{d.so_sanh.cu.tong}</b> → v{d.so_sanh.moi.ban} <b>{d.so_sanh.moi.so_dung}/{d.so_sanh.moi.tong}</b> · {d.trang_thai === 'giu' ? 'giữ bản mới' : 'quay lại bản cũ'}</p>}
         {d.trang_thai === 'dang_thu' && <p className="cty-muted cty-nho">Chưa chấm trên bộ việc chuẩn — bấm &quot;So bản thử…&quot; ở trên để máy quyết giữ hay quay lại.</p>}
-        {d.trang_thai === 'cho_duyet' && <NutKy phong={k} id={d.id} admin={admin} />}
+        {d.trang_thai === 'cho_duyet' && <NutKy khoa={k} id={d.id} admin={admin} />}
       </article>))}
     </div>
   );
@@ -171,7 +171,7 @@ export async function nganChiTietQuyTrinh(k: string, ten: string, admin: boolean
   const nhatKy = t.nhatKy as { ts: string; loai: string; ban: number; tu_ban: number; ly_do: string; ai?: string; ai_duyet?: string }[];
   const dau = (
     <>
-      <NutQuyTrinh phong={k} banHienHanh={cfg.ban} dangChay={(t.dangChay as { viec: string } | null)?.viec ?? null} coBanThu={coBanThu} admin={admin} />
+      <NutQuyTrinh khoa={k} banHienHanh={cfg.ban} dangChay={(t.dangChay as { viec: string } | null)?.viec ?? null} coBanThu={coBanThu} admin={admin} />
       {kq && !t.dangChay && <p className={kq.ok ? 'cty-bao-ok' : 'cty-bao-loi'} data-loi={kq.ok ? undefined : ''}>Lần {kq.viec === 'hop' ? 'họp' : 'chấm'} gần nhất (<Gio iso={kq.luc} />): {kq.tom_tat ?? kq.loi}</p>}
     </>
   );

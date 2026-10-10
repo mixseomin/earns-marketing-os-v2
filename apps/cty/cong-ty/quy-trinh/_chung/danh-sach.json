@@ -1,11 +1,26 @@
 {
- "_": "Quy trình CHUNG — phòng nào cũng có (hiện trong danh sách quy trình của mọi phòng). Ngưỡng là đề xuất, chờ Giám đốc chốt. 'mo-ta' = chưa máy chạy: cần bảng việc (C06 bước 5).",
+ "_": "Quy trình CHUNG — phòng nào cũng có (hiện trong danh sách quy trình của mọi phòng). Ngưỡng là đề xuất, chờ Giám đốc chốt. 'mo-ta' = mới mô tả, CHƯA có máy làm — chữ trong đây là luật sẽ áp, không phải việc đang xảy ra.",
  "quy_trinh": [
-  { "id": "xu-ly-ton", "ten": "Xử lý việc tồn", "so_hoa": "mo-ta", "kich_hoat": "Tự kích khi hàng chờ của phòng > 10 việc hoặc có việc chờ quá 3 ngày (ngưỡng đề xuất)",
-    "mo_ta": "Trưởng phòng phân loại từng việc tồn: làm ngay · dời kèm hạn mới · gộp với việc khác · bỏ (mức 2, ghi lý do) · nâng lên Giám đốc (mức 3). Báo một dòng trong báo cáo sáng. Việc tồn quá 7 ngày tự lên hòm tiếp nhận của Hùng." },
-  { "id": "bao-cao-sang", "ten": "Báo cáo sáng", "so_hoa": "mo-ta", "kich_hoat": "Theo heartbeat của trưởng phòng (đang tắt)",
-    "mo_ta": "4 dòng theo AGENTS.md §7: Xong (kèm bằng chứng) · Đang (tới đâu) · Cần (mức + một câu). Không có gì mới thì không gửi." },
-  { "id": "tiep-nhan-phat-sinh", "ten": "Tiếp nhận phát sinh", "so_hoa": "mo-ta", "kich_hoat": "Khi có việc ngoài kế hoạch hoặc mức 3",
-    "mo_ta": "Ghi vào hòm tiếp nhận → Hùng gom thành một lô mỗi ngày → Minh chọn tối đa 3 việc đưa Giám đốc (AGENTS.md §1)." }
+  {
+   "id": "xu-ly-ton",
+   "ten": "Xử lý việc tồn",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "CHƯA máy chạy (cần bảng việc, C06 bước 5). Khi có: kích khi hàng chờ > 10 việc hoặc có việc chờ quá 3 ngày (ngưỡng đề xuất)",
+   "mo_ta": "Trưởng phòng phân loại từng việc tồn: làm ngay · dời kèm hạn mới · gộp với việc khác · bỏ (mức 2, ghi lý do) · nâng lên Giám đốc (mức 3); báo một dòng trong báo cáo sáng. Việc tồn quá 7 ngày đưa lên hòm tiếp nhận của Hùng (đề xuất, chưa có máy làm)."
+  },
+  {
+   "id": "bao-cao-sang",
+   "ten": "Báo cáo sáng",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "CHƯA máy chạy riêng — theo heartbeat của trưởng phòng (đang tắt); Phòng thử có báo cáo ở cuối mỗi lượt",
+   "mo_ta": "4 dòng theo AGENTS.md §7: Xong (kèm bằng chứng) · Đang (tới đâu) · Cần (mức + một câu). Không có gì mới thì không gửi."
+  },
+  {
+   "id": "tiep-nhan-phat-sinh",
+   "ten": "Tiếp nhận phát sinh",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "CHƯA máy chạy (cần hòm tiếp nhận, C06 bước 5)",
+   "mo_ta": "Ghi vào hòm tiếp nhận → Hùng gom thành một lô mỗi ngày → Minh chọn tối đa 3 việc đưa Giám đốc (AGENTS.md §1)."
+  }
  ]
 }

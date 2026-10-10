@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { GOC } from './goc.mjs';
 import { parseFm } from '../scripts/fm.mjs';
+import { tienUsd } from './gia.mjs';
 
 const DIR = path.join(GOC, 'worker');   // không dùng import.meta.url: xem worker/goc.mjs
 const CONG_TY = path.join(DIR, '..', 'cong-ty');
@@ -35,6 +36,8 @@ export function quyDinhCuaPhong(phong) {
   ];
 }
 
+/** Tên hiển thị của phòng (frontmatter `ten`), từ khoá phòng hoặc khoá quy trình 'phòng/quy-trình'. */
+export const tenPhong = (k) => { const id = String(k).split('/')[0]; const f = path.join(CONG_TY, 'phong', `${id}.md`); return fs.existsSync(f) ? String(parseFm(fs.readFileSync(f, 'utf8')).fm.ten ?? id) : id; };
 export const coPhienBan = (k) => fs.existsSync(path.join(CONG_TY, 'quy-trinh', k, 'v1.json'));
 export const bien = () => docJson(path.join(CONG_TY, 'bien-quy-trinh.json'));
 export const boViecChuan = (qt) => { const f = path.join(CONG_TY, 'bo-viec-chuan', `${qt}.json`); return fs.existsSync(f) ? docJson(f) : null; };
@@ -98,12 +101,11 @@ export function dsDeXuat(qt) { const d = dxDir(qt); return fs.existsSync(d) ? fs
 export function ghiDeXuat(dx) { fs.mkdirSync(dxDir(dx.qt), { recursive: true }); fs.writeFileSync(path.join(dxDir(dx.qt), `${dx.id}.json`), JSON.stringify(dx, null, 1)); return dx; }
 
 // ---- số liệu: máy tự tính từ các lượt (không AI) ----
-const GIA = docJson(path.join(DIR, 'gia-model.json'));
-const usdBuoc = (b) => { if (!b.usage) return 0; const t = String(b.model).split(':').pop(); const k = Object.keys(GIA).filter((x) => x !== '_' && t.startsWith(x)).sort((x, y) => y.length - x.length)[0]; return k ? ((b.usage.input_tokens || 0) * GIA[k][0] + (b.usage.output_tokens || 0) * GIA[k][1]) / 1e6 : 0; };
+const usdBuoc = (b) => tienUsd(b.model, b.usage) ?? 0;
 export const usdLuot = (l) => (l.buoc || []).reduce((s, b) => s + usdBuoc(b), 0);
 export function dsLuotTho() {
   const d = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'nhat-ky');
-  return fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith('.json')).sort().reverse().flatMap((f) => { try { return [docJson(path.join(d, f))]; } catch { return []; } }) : [];
+  return fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith('.json')).sort().reverse().flatMap((f) => { try { return [docJson(path.join(d, f))]; } catch (e) { console.error(`nhat-ky/${f} hỏng, bỏ qua:`, e.message); return []; } }) : [];
 }
 /** Chỉ số của một tập lượt (đã xong hoặc lỗi). */
 export function chiSo(ds) {

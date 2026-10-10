@@ -2,17 +2,13 @@
 // một dòng (bấm bung đủ bước). Mỗi lần bấm Chạy = một lượt (~$0,0005).
 import Link from 'next/link';
 import { dsLuot, type Luot } from '@/lib/thu-nghiem';
+import { usdLuot } from '../../worker/quy-trinh.mjs';
 import { KhungChay } from './khung-chay';
 import { dsNhanSu } from '@/lib/cong-ty';
 import { Gio, KhoangGio } from './gio';
 import { Nguoi } from './nguoi';
 
 const VIEC_MAU = 'Write a 3-sentence Gumroad description for the puzzle book "Killer Sudoku for Adults: 100 Puzzles". English, no brand names, no em dashes.';
-const usd = (b: { model: string; usage: { input_tokens?: number; output_tokens?: number } | null }) => {
-  const g: Record<string, [number, number]> = { 'gpt-4.1-nano': [0.1, 0.4], 'gpt-4o-mini': [0.15, 0.6] };
-  const k = Object.keys(g).find((x) => b.model.includes(x)); if (!k || !b.usage) return null;
-  const [i, o] = g[k]!; return ((b.usage.input_tokens || 0) * i + (b.usage.output_tokens || 0) * o) / 1e6;
-};
 
 // Câu trả lời của mô hình là JSON (giao việc / kết quả / soát) → hiện thành nhãn + nội dung; chữ thường (báo cáo) giữ nguyên dòng.
 const NHAN: Record<string, string> = { giao_cho: 'Giao cho', viec: 'Việc', tieu_chi: 'Tiêu chí', ket_qua: 'Kết quả', bang_chung: 'Bằng chứng', ok: 'Kết luận', ly_do: 'Lý do' };
@@ -42,7 +38,7 @@ function Dap({ text }: { text: string }) {
 
 const TT: Record<string, string> = { xong: '', 'lỗi': 'cty-pill-loi', 'đang chạy': 'cty-pill-off' };
 const KQ: Record<string, [string, string]> = { submitted: ['nộp, chờ ký', ''], revision: ['phải làm lại', 'cty-pill-off'] };
-const tienLuot = (l: Luot) => l.buoc.reduce((s, b) => s + (usd(b) ?? 0), 0);
+const tienLuot = (l: Luot) => usdLuot(l) as number;
 
 /** Một lượt đủ bước: đầu lượt (trạng thái · việc · giờ · số) + từng bước (người, giờ, mô hình, trả lời đã dàn nhãn). */
 export function LuotChiTiet({ l }: { l: Luot }) {

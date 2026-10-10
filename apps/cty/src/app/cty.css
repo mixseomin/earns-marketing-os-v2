@@ -246,10 +246,12 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-qt-day,.cty-qt-vong{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px}
 .cty-qt-vong{padding:10px var(--le);border:1px dashed var(--line);border-radius:8px;align-items:center}
 .cty-qt-vong-nhan{font-size:.84rem;color:var(--muted)}
-.cty-qt-buoc{border:1px solid var(--line);border-radius:8px;background:var(--surface);min-width:150px;max-width:260px}
+.cty-qt-buoc{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--surface);min-width:150px;max-width:260px}
 .cty-qt-buoc>summary{list-style:none;cursor:pointer;padding:10px 12px;display:grid;gap:4px}
 .cty-qt-buoc>summary::-webkit-details-marker{display:none}
-.cty-qt-buoc[open]{max-width:100%;flex-basis:100%}
+/* mở một bước = lời nhắc nổi lên dưới ô (không đẩy các bước bên cạnh — YDNI "bố cục đứng yên") */
+.cty-qt-buoc[open]{border-color:var(--accent);z-index:5}
+.cty-qt-buoc[open]>.cty-qt-nhac,.cty-qt-buoc[open]>p{position:absolute;left:-1px;top:calc(100% + 4px);width:min(560px,86vw);max-height:50vh;overflow:auto;border:1px solid var(--accent);border-radius:8px;box-shadow:0 8px 24px rgb(0 0 0/.3);background:var(--surface);z-index:6}
 .cty-qt-buoc-tat{border-style:dashed;opacity:.6}
 .cty-qt-buoc-dau{display:flex;align-items:center;gap:6px}
 .cty-qt-buoc-ai{font-size:.88rem}
@@ -257,7 +259,7 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-qt-mui{align-self:center;color:var(--muted);display:grid;justify-items:center;line-height:1;pointer-events:none}
 .cty-qt-mui-doc{display:none}
 .cty-qt-mui small{font-size:.68rem}
-.cty-qt-nhac{white-space:pre-wrap;font-size:.8rem;background:var(--bg);border-top:1px solid var(--line);margin:0;padding:10px 12px}
+.cty-qt-nhac{white-space:pre-wrap;font-size:.8rem;margin:0;padding:10px 12px}
 .cty-qt-dsdx{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
 .cty-qt-dx{border:1px solid var(--line);border-radius:6px;background:var(--surface);padding:12px var(--le);display:grid;gap:8px}
 .cty-qt-dx-dau{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}

@@ -74,7 +74,7 @@ jobs:
       - run: tar -C apps/xuong-video --exclude='.next/cache' -czf studio.tar.gz .next
         if: steps.chon.outputs.studio == '1'
       # Công ty AI (apps/cty → cty.on.tc): hồ sơ phòng/nhân sự tự kiểm trước, dựng cùng lượt, máy chủ chỉ đổi khi phần của nó đổi (deploy.sh 5e).
-      - run: node apps/cty/scripts/tu-kiem.mjs && node apps/cty/scripts/fm.mjs --tu-kiem && node apps/cty/worker/log.mjs --tu-kiem && node apps/cty/worker/proxy.mjs --tu-kiem && node apps/cty/worker/ca.mjs --tu-kiem && node apps/cty/scripts/thu-ngan.mjs && node apps/cty/worker/quy-trinh.mjs --tu-kiem && node apps/cty/worker/cai-tien.mjs --tu-kiem
+      - run: node apps/cty/scripts/tu-kiem.mjs && node apps/cty/scripts/fm.mjs --tu-kiem && node apps/cty/worker/gia.mjs --tu-kiem && node apps/cty/worker/log.mjs --tu-kiem && node apps/cty/worker/proxy.mjs --tu-kiem && node apps/cty/worker/ca.mjs --tu-kiem && node apps/cty/scripts/thu-ngan.mjs && node apps/cty/worker/quy-trinh.mjs --tu-kiem && node apps/cty/worker/cai-tien.mjs --tu-kiem
         if: steps.chon.outputs.cty == '1'
       - run: npm run build --workspace=apps/cty
         if: steps.chon.outputs.cty == '1'

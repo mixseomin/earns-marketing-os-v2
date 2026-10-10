@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 import { goi, json, nhanSu, motLuot } from './ca.mjs';
-import { hienHanh, dsBan, bien, boViecChuan, mucThayDoi, apBanMoi, veBan, dsDeXuat, ghiDeXuat, dsLuotTho, chiSo, chamViecChuan, usdLuot } from './quy-trinh.mjs';
+import { tenPhong, hienHanh, dsBan, bien, boViecChuan, mucThayDoi, apBanMoi, veBan, dsDeXuat, ghiDeXuat, dsLuotTho, chiSo, chamViecChuan, usdLuot } from './quy-trinh.mjs';
 import { ghiLog } from './log.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
@@ -42,7 +42,7 @@ export async function soPhienBan(k, ban, lan = 2) {
   if (!bo) throw new Error(`phòng ${k} chưa có bộ việc chuẩn`); if (!cfg) throw new Error(`không có bản v${ban}`);
   const chiTiet = [];
   for (const v of bo.viec) for (let i = 0; i < lan; i++) {
-    const l = await motLuot(v.viec, true, { quyTrinh: cfg, boViec: v.id });
+    const l = await motLuot(v.viec, true, { khoa: k, quyTrinh: cfg, boViec: v.id });
     chiTiet.push({ id: v.id, ky_vong: v.ky_vong, luot: l.ts, tt: l.ket?.trang_thai_viec ?? l.trang_thai, usd: usdLuot(l), ...chamViecChuan(l, v) });
   }
   const dung = chiTiet.filter((x) => x.dung).length;
@@ -72,14 +72,14 @@ export async function hop(k) {
   if (dsDeXuat(k).some((d) => d.trang_thai === 'dang_thu')) throw new Error('đang có bản thử chưa so trên bộ việc chuẩn — so xong rồi mới họp tiếp (mỗi lần một thay đổi)');
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
   const nk = { ts: `hop-${ts}`, buoc: [] };
-  const luot = dsLuotTho().filter((l) => !l.bo_viec && (l.quy_trinh ?? 1) === cfg.ban);
+  const luot = dsLuotTho().filter((l) => !l.bo_viec && (l.khoa ?? 'thu-nghiem/lam-viec') === k && (l.quy_trinh ?? 1) === cfg.ban);   // lượt cũ chưa ghi khoá = quy trình duy nhất lúc đó
   const cs = chiSo(luot);
   const chuaDat = luot.filter((l) => l.trang_thai !== 'đang chạy' && l.ket?.trang_thai_viec !== 'submitted').slice(0, 3)
     .map((l) => ({ luot: l.ts, viec: l.viec, ket: l.ket?.trang_thai_viec ?? l.trang_thai, buoc: (l.buoc || []).map((x) => `${x.buoc} · ${x.ai}: ${String(x.dap || x.loi || '').slice(0, 350)}`) }));
   const diem = dsBan(k).map((x) => ({ ban: x.ban, diem: diemMoiNhat(k, x.ban) })).filter((x) => x.diem).map((x) => ({ ban: x.ban, dung: `${x.diem.so_dung}/${x.diem.tong}`, sai: x.diem.chi_tiet.filter((c) => !c.dung).map((c) => `${c.id}: ${c.ly_do}`).slice(0, 6) }));
   const cu = dsDeXuat(k).slice(0, 5).map((d) => ({ id: d.id, trang_thai: d.trang_thai, thay: d.thay_doi.map((t) => `${t.khoa}=${JSON.stringify(t.moi)}`) }));
   const tam = nhanSu(cfg.nguoi.giao, nk.ts), ha = nhanSu('ha', nk.ts);
-  const deXuat = json(await goi(tam, `HỌP RÚT KINH NGHIỆM — Phòng thử, quy trình hiện hành v${cfg.ban}.
+  const deXuat = json(await goi(tam, `HỌP RÚT KINH NGHIỆM — ${tenPhong(k)}, quy trình "${k}" đang chạy v${cfg.ban}.
 Cấu hình hiện hành: ${JSON.stringify(rutGon(cfg))}
 Biên (mức 1 phòng tự áp · 2 cần Hà · 3 cần Giám đốc; khoá ngoài biên = mức 3): ${JSON.stringify(b)}
 ${CONG_TAC}
@@ -91,7 +91,7 @@ Quy định của công ty và của dự án phòng tham gia đứng TRÊN quy 
 Nhiệm vụ: chỉ ra tối đa 3 vấn đề CÓ BẰNG CHỨNG (mã lượt + bước), rồi đề xuất thay đổi NHỎ NHẤT trên cấu hình để sửa gốc. TUYỆT ĐỐI không nới tiêu chí cho dễ đạt. Không có vấn đề thật thì để thay_doi rỗng.
 Trả JSON: {"van_de":[{"mo_ta":"…","bang_chung":"…"}],"thay_doi":{"<khoá, vd so_vong_lam_lai hoặc nguoi.trong_tai>":<giá trị>},"ky_vong":"<chỉ số nào sẽ tốt lên, bao nhiêu>"}`, 'đề xuất', nk, { tu: 'giam-doc' }));
   if (!deXuat) throw new Error(`${tam.ten} không trả JSON đề xuất`);
-  const pb = json(await goi(ha, `PHẢN BIỆN đề xuất đổi quy trình của Phòng thử (bạn là Kiểm soát, ngoài phòng).
+  const pb = json(await goi(ha, `PHẢN BIỆN đề xuất đổi quy trình "${k}" của ${tenPhong(k)} (bạn là Kiểm soát, ngoài phòng).
 Cấu hình hiện hành: ${JSON.stringify(rutGon(cfg))}
 Số liệu: ${JSON.stringify(cs)} · Điểm bộ việc chuẩn: ${JSON.stringify(diem)}
 Đề xuất của ${tam.ten}: ${JSON.stringify(deXuat)}

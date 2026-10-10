@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import type { Doc } from './cong-ty';
 import { docLog } from '../../worker/log.mjs';
-import gia from '../../worker/gia-model.json';
+import { tienUsd } from '../../worker/gia.mjs';
 import { dsLuot } from './thu-nghiem';
 
 type Row = Record<string, unknown>;
@@ -50,8 +50,7 @@ export async function soChi(ns: Doc[]) {
   const feats = ns.map((d) => `cty:${d.id}`);
   const rows = await q(sql`SELECT feature, model, sum(prompt_tokens)::int AS vao, sum(completion_tokens)::int AS ra, count(*)::int AS luot FROM ai_usage WHERE feature = ANY(${arr(feats)}) AND created_at >= date_trunc('month', now()) GROUP BY 1, 2 ORDER BY 1`);
   if (!rows) return null;
-  const giaCua = (model: string) => { const ten = model.includes(':') ? model.split(':')[1]! : model; const k = Object.keys(gia).filter((x) => x !== '_' && ten.startsWith(x)).sort((a, b) => b.length - a.length)[0]; return k ? (gia as unknown as Record<string, [number, number]>)[k] : null; };
-  const ds = rows.map((r) => { const g = giaCua(String(r.model)); const usd = g ? (Number(r.vao) * g[0] + Number(r.ra) * g[1]) / 1e6 : null; return { nguoi: String(r.feature).replace('cty:', ''), model: String(r.model), vao: Number(r.vao), ra: Number(r.ra), luot: Number(r.luot), usd }; });
+  const ds = rows.map((r) => ({ nguoi: String(r.feature).replace('cty:', ''), model: String(r.model), vao: Number(r.vao), ra: Number(r.ra), luot: Number(r.luot), usd: tienUsd(String(r.model), { input_tokens: Number(r.vao), output_tokens: Number(r.ra) }) as number | null }));
   return { ds, tongUsd: ds.reduce((s, r) => s + (r.usd ?? 0), 0), tranNguoi: Object.fromEntries(ns.map((d) => [d.id, Number(d.fm.tran_usd_thang || 0)])) };
 }
 

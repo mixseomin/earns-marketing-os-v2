@@ -16,13 +16,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { GOC } from './goc.mjs';
+import { giaCua, tienUsd } from './gia.mjs';
 import crypto from 'node:crypto';
 import { parseFm } from '../scripts/fm.mjs';
 import { ghiLog } from './log.mjs';
 
 const DIR = path.join(GOC, 'worker');   // xem worker/goc.mjs
 const CONG_TY = path.join(DIR, '..', 'cong-ty');
-const GIA = JSON.parse(fs.readFileSync(path.join(DIR, 'gia-model.json'), 'utf8'));   // USD / 1M token [vào, ra]
 const CACHE_DIR = path.join(os.homedir(), '.cty-cache');
 
 // Nhà cung cấp: dạng API + địa chỉ + tên biến khoá. Nhà mới = thêm một dòng (bagidea providers.js có danh sách dài hơn).
@@ -76,12 +76,7 @@ export function toAnthropic(o, model) {
 }
 
 // ---------- trần chi ----------
-export function giaCua(model) {   // longest-prefix như apps/web/src/lib/ai/cost.ts; không có → null (fail-closed)
-  const ten = model.includes(':') ? model.split(':')[1] : model;
-  const k = Object.keys(GIA).filter((x) => ten.startsWith(x)).sort((a, b) => b.length - a.length)[0];
-  return k ? GIA[k] : null;
-}
-export const tienUsd = (model, u) => { const g = giaCua(model); return g ? ((u.input_tokens || 0) * g[0] + (u.output_tokens || 0) * g[1]) / 1e6 : null; };
+export { giaCua, tienUsd } from './gia.mjs';   // giá: một nguồn (worker/gia.mjs)
 export function tranCua(staff) {
   const f = path.join(CONG_TY, 'nhan-su', staff, 'SOUL.md');
   if (!fs.existsSync(f)) return null;

@@ -225,18 +225,44 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 /* Điện thoại: thanh đầu một hàng, vuốt ngang — không bẻ thành 4 dòng ăn nửa màn. */
 @media (max-width:600px){.cty-top{flex-wrap:nowrap;overflow-x:auto;gap:12px;scrollbar-width:none}.cty-top>*{flex:none}.cty-top>span[style]{display:none}}
 
-/* Tab Quy trình (components/quy-trinh-phong.tsx) */
-.cty-qt{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
-.cty-qt-khoi{display:grid;gap:10px}
-.cty-qt-khoi h3{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;margin:0}
-.cty-qt-luoi{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+/* Quy trình (components/quy-trinh.tsx): danh sách một dòng mỗi quy trình → ngăn chi tiết có sơ đồ dây các bước. */
+.cty-qt-tab,.cty-qt-tong{display:grid;gap:20px;grid-template-columns:minmax(0,1fr)}
+.cty-qt-tab section,.cty-qt-nhom{display:grid;gap:8px}
+.cty-qt-tab h3,.cty-qt-nhom h3{margin:0}
+.cty-qt-ds{display:grid;gap:8px;grid-template-columns:minmax(0,1fr)}
+.cty-qt-dong{display:grid;gap:4px;border:1px solid var(--line);border-radius:6px;background:var(--surface);padding:10px var(--le);text-decoration:none;color:inherit}
+.cty-qt-dong-mo-duoc{cursor:pointer}
+.cty-qt-dong-mo-duoc:hover{border-color:var(--accent)}
+.cty-qt-dong-dau{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;list-style:none}
+.cty-qt-dong-dau::-webkit-details-marker{display:none}
+.cty-qd>summary{cursor:pointer}
+.cty-qd[open]>summary{margin-bottom:6px}
+.cty-qt-dong-mo{font-size:.9rem;color:var(--muted)}
+.cty-qt-dong-so{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:.84rem}
+.cty-qt-gio{margin-left:auto}
+.cty-qt-nut{display:grid;gap:8px}
 .cty-qt-bat{color:var(--accent);font-weight:600}
-.cty-qt-nhac pre{white-space:pre-wrap;font-size:.8rem;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:8px 10px;margin:4px 0 10px}
+.cty-qt-sodo{display:grid;gap:14px}
+.cty-qt-day,.cty-qt-vong{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px}
+.cty-qt-vong{padding:10px var(--le);border:1px dashed var(--line);border-radius:8px;align-items:center}
+.cty-qt-vong-nhan{font-size:.84rem;color:var(--muted)}
+.cty-qt-buoc{border:1px solid var(--line);border-radius:8px;background:var(--surface);min-width:150px;max-width:260px}
+.cty-qt-buoc>summary{list-style:none;cursor:pointer;padding:10px 12px;display:grid;gap:4px}
+.cty-qt-buoc>summary::-webkit-details-marker{display:none}
+.cty-qt-buoc[open]{max-width:100%;flex-basis:100%}
+.cty-qt-buoc-tat{border-style:dashed;opacity:.6}
+.cty-qt-buoc-dau{display:flex;align-items:center;gap:6px}
+.cty-qt-buoc-ai{font-size:.88rem}
+.cty-qt-cong{font-size:.76rem;color:var(--muted)}
+.cty-qt-mui{align-self:center;color:var(--muted);display:grid;justify-items:center;line-height:1;pointer-events:none}
+.cty-qt-mui-doc{display:none}
+.cty-qt-mui small{font-size:.68rem}
+.cty-qt-nhac{white-space:pre-wrap;font-size:.8rem;background:var(--bg);border-top:1px solid var(--line);margin:0;padding:10px 12px}
+.cty-qt-dsdx{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
 .cty-qt-dx{border:1px solid var(--line);border-radius:6px;background:var(--surface);padding:12px var(--le);display:grid;gap:8px}
 .cty-qt-dx-dau{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
-.cty-qt-gio{margin-left:auto}
 .cty-qt-vd{margin:0;padding-left:1.1rem;display:grid;gap:4px}
-.cty-qt-thay{justify-self:start;border-collapse:collapse;font-size:.9rem;width:auto;max-width:100%;table-layout:auto}
+.cty-qt-thay{justify-self:start;border-collapse:collapse;font-size:.9rem;width:auto;max-width:100%}
 .cty-qt-thay td{padding:3px 14px 3px 0;vertical-align:baseline;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cty-qt-ha,.cty-qt-ss{margin:0;font-size:.9rem}
 .cty-qt-ky{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -245,3 +271,4 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-qt-bang td.cty-qt-lydo{white-space:normal;min-width:220px}
 .cty-qt-hh td{background:var(--soft)}
 .cty-qt-nk{margin:0;padding-left:1.1rem;display:grid;gap:4px;font-size:.88rem}
+@media (max-width:600px){.cty-qt-buoc{min-width:0;max-width:none;flex:1 1 100%}.cty-qt-mui{flex-basis:100%}.cty-qt-mui-ngang{display:none}.cty-qt-mui-doc{display:inline}}

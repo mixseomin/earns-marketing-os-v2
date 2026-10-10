@@ -18,6 +18,8 @@ export function khoaTuHref(href: string | null | undefined): string | null {
   if (m) return `${m[1]}:${decodeURIComponent(m[2]!)}`;
   if (u.pathname === '/nhat-ky') return `nhat-ky:${u.search.slice(1)}`;
   if (u.pathname === '/luat' || u.pathname === '/muc-tieu' || u.pathname === '/quy-trinh') return `${u.pathname.slice(1)}:`;
+  const q = u.pathname.match(/^\/quy-trinh\/([^/]+\/[^/]+)\/?$/);
+  if (q) return `quy-trinh:${decodeURIComponent(q[1]!)}`;
   return null;
 }
 

@@ -24,5 +24,6 @@
   "lam_lai": "Kỳ trả về vì: {ly_do}\nViệc: {viec_giao}\nTiêu chí:\n{tieu_chi}\nSửa và nộp lại JSON: {\"ket_qua\":\"…\",\"bang_chung\":\"…\"}",
   "soat_lai": "Tiêu chí:\n{tieu_chi}\nKết quả nộp lại:\n{ket_qua}\nBằng chứng: {bang_chung}\nLiệt kê từng câu rồi đếm. Trả lời JSON: {\"ok\":true|false,\"ly_do\":\"…\"}",
   "bao_cao": "Viết báo cáo sáng bằng VĂN BẢN THUẦN đúng 4 dòng theo mẫu dưới (không JSON, không thêm dòng):\n[Tên] · [phòng] · [ngày]\nXong: <việc> — <bằng chứng>\nĐang: <việc> — <tới đâu>\nCần: <mức> — <một câu>\n\nDữ kiện: việc \"{viec_giao}\"; Lộc nộp: {ket_qua_ngan}; bằng chứng: {bang_chung}; Kỳ soát: {ket_soat}. Trạng thái việc: {trang_thai_viec}. Ngày {ngay}."
- }
+ },
+ "quy_trinh": "lam-viec"
 }

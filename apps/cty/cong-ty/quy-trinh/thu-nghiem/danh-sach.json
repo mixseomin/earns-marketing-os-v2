@@ -1,0 +1,29 @@
+{
+ "_": "Các quy trình nghiệp vụ của Phòng thử. so_hoa: 'co-phien-ban' = máy chạy theo tệp quy trình có phiên bản, phòng tự cải tiến được trong biên · 'co-dinh' = máy chạy nhưng luật nằm trong mã (chưa tự sửa được) · 'mo-ta' = mới mô tả, chưa máy chạy.",
+ "phong": "thu-nghiem",
+ "quy_trinh": [
+  {
+   "id": "lam-viec",
+   "ten": "Làm việc được giao",
+   "so_hoa": "co-phien-ban",
+   "kich_hoat": "Giám đốc bấm Chạy một lượt",
+   "mo_ta": "Giám đốc giao một việc → Tâm chia việc + tiêu chí → Lộc làm → Kỳ soát (làm lại nếu bị bác) → báo cáo."
+  },
+  {
+   "id": "hop-cai-tien",
+   "ten": "Họp rút kinh nghiệm",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Giám đốc bấm Họp (trong quy trình được cải tiến)",
+   "mo_ta": "Đọc số liệu + lượt chưa đạt → Tâm đề xuất thay đổi nhỏ nhất → Hà phản biện → máy xếp mức theo biên → áp thử / chờ Giám đốc ký.",
+   "ma": "worker/cai-tien.mjs hop()"
+  },
+  {
+   "id": "cham-viec-chuan",
+   "ten": "Chấm trên bộ việc chuẩn",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Giám đốc bấm Chấm (trong quy trình được chấm)",
+   "mo_ta": "Hà chạy bộ việc chuẩn với một bản (mỗi việc 2 lần) → so với bản gốc → giữ bản mới hoặc tự quay lại.",
+   "ma": "worker/cai-tien.mjs soVaQuyet()"
+  }
+ ]
+}

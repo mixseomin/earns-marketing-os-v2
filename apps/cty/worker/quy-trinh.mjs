@@ -6,33 +6,56 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { GOC } from './goc.mjs';
+import { parseFm } from '../scripts/fm.mjs';
 
 const DIR = path.join(GOC, 'worker');   // không dùng import.meta.url: xem worker/goc.mjs
 const CONG_TY = path.join(DIR, '..', 'cong-ty');
 const data = () => path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'quy-trinh');
 const docJson = (f) => JSON.parse(fs.readFileSync(f, 'utf8'));
 
-export const dsPhongCoQuyTrinh = () => fs.existsSync(path.join(CONG_TY, 'quy-trinh')) ? fs.readdirSync(path.join(CONG_TY, 'quy-trinh')).filter((d) => fs.existsSync(path.join(CONG_TY, 'quy-trinh', d, 'v1.json'))) : [];
-export const bien = () => docJson(path.join(CONG_TY, 'bien-quy-trinh.json'));
-export const boViecChuan = (phong) => { const f = path.join(CONG_TY, 'bo-viec-chuan', `${phong}.json`); return fs.existsSync(f) ? docJson(f) : null; };
+/** Mọi quy trình nghiệp vụ: của riêng từng phòng (cong-ty/quy-trinh/<phòng>/danh-sach.json) + quy trình CHUNG mọi phòng đều có
+ *  (cong-ty/quy-trinh/_chung/danh-sach.json) → [{ phong, id, khoa: 'phòng/id', nguon: 'phong'|'chung', ten, so_hoa, … }]. */
+export function dsQuyTrinh() {
+  const goc = path.join(CONG_TY, 'quy-trinh'); if (!fs.existsSync(goc)) return [];
+  const doc = (p) => { const f = path.join(goc, p, 'danh-sach.json'); return fs.existsSync(f) ? docJson(f).quy_trinh : []; };
+  const chung = doc('_chung');
+  const phongs = fs.readdirSync(path.join(CONG_TY, 'phong')).filter((f) => f.endsWith('.md')).map((f) => f.slice(0, -3));
+  return phongs.flatMap((p) => [...doc(p).map((q) => ({ ...q, phong: p, khoa: `${p}/${q.id}`, nguon: 'phong' })), ...chung.map((q) => ({ ...q, phong: p, khoa: `${p}/${q.id}`, nguon: 'chung' }))]);
+}
+/** Quy định phòng phải tuân theo, theo tầng: luật chung công ty → quy định từng dự án phòng tham gia (du_an trong cong-ty/phong/<id>.md)
+ *  → quy định riêng của phòng (thân tệp phòng). Phòng KHÔNG sửa được tầng công ty / dự án (không nằm trong biên). */
+export function quyDinhCuaPhong(phong) {
+  const f = path.join(CONG_TY, 'phong', `${phong}.md`); if (!fs.existsSync(f)) return [];
+  const p = parseFm(fs.readFileSync(f, 'utf8'));
+  const duAn = Array.isArray(p.fm.du_an) ? p.fm.du_an : [];
+  return [
+    { tang: 'cong-ty', id: 'cong-ty', ten: 'Luật chung công ty', tep: 'AGENTS.md', noi_dung: fs.readFileSync(path.join(CONG_TY, 'AGENTS.md'), 'utf8') },
+    ...duAn.map((d) => { const g = path.join(CONG_TY, 'quy-dinh', 'du-an', `${d}.md`); if (!fs.existsSync(g)) return { tang: 'du-an', id: d, ten: `Dự án ${d}`, tep: null, noi_dung: '' }; const x = parseFm(fs.readFileSync(g, 'utf8')); return { tang: 'du-an', id: d, ten: String(x.fm.ten ?? d), nguon: String(x.fm.nguon ?? ''), tep: `quy-dinh/du-an/${d}.md`, noi_dung: x.body.trim() }; }),
+    { tang: 'phong', id: phong, ten: `Riêng ${String(p.fm.ten ?? phong)}`, tep: `phong/${phong}.md`, noi_dung: p.body.trim() },
+  ];
+}
 
-const thuMuc = (phong) => path.join(data(), phong);
+export const coPhienBan = (k) => fs.existsSync(path.join(CONG_TY, 'quy-trinh', k, 'v1.json'));
+export const bien = () => docJson(path.join(CONG_TY, 'bien-quy-trinh.json'));
+export const boViecChuan = (qt) => { const f = path.join(CONG_TY, 'bo-viec-chuan', `${qt}.json`); return fs.existsSync(f) ? docJson(f) : null; };
+
+const thuMuc = (qt) => path.join(data(), qt);
 /** Mọi phiên bản của phòng, cũ → mới: v1 từ repo + vN từ thư mục dữ liệu. */
-export function dsBan(phong) {
-  const goc = docJson(path.join(CONG_TY, 'quy-trinh', phong, 'v1.json'));
-  const them = fs.existsSync(thuMuc(phong)) ? fs.readdirSync(thuMuc(phong)).filter((f) => /^v\d+\.json$/.test(f) && f !== 'v1.json').map((f) => docJson(path.join(thuMuc(phong), f))) : [];
+export function dsBan(qt) {
+  const goc = docJson(path.join(CONG_TY, 'quy-trinh', qt, 'v1.json'));
+  const them = fs.existsSync(thuMuc(qt)) ? fs.readdirSync(thuMuc(qt)).filter((f) => /^v\d+\.json$/.test(f) && f !== 'v1.json').map((f) => docJson(path.join(thuMuc(qt), f))) : [];
   return [goc, ...them].sort((a, b) => a.ban - b.ban);
 }
-const conTro = (phong) => { const f = path.join(thuMuc(phong), 'hien-hanh.json'); return fs.existsSync(f) ? docJson(f) : { ban: 1 }; };
-export function hienHanh(phong) { const ds = dsBan(phong); const c = conTro(phong); return ds.find((b) => b.ban === c.ban) ?? ds[0]; }
-export function nhatKyQuyTrinh(phong) { const f = path.join(thuMuc(phong), 'nhat-ky.jsonl'); return fs.existsSync(f) ? fs.readFileSync(f, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l)) : []; }
-function ghiNhatKy(phong, e) { fs.mkdirSync(thuMuc(phong), { recursive: true }); fs.appendFileSync(path.join(thuMuc(phong), 'nhat-ky.jsonl'), JSON.stringify({ ts: new Date().toISOString(), ...e }) + '\n'); }
-function datConTro(phong, ban, ly_do) { fs.mkdirSync(thuMuc(phong), { recursive: true }); fs.writeFileSync(path.join(thuMuc(phong), 'hien-hanh.json'), JSON.stringify({ ban, tu: new Date().toISOString(), ly_do })); }
+const conTro = (qt) => { const f = path.join(thuMuc(qt), 'hien-hanh.json'); return fs.existsSync(f) ? docJson(f) : { ban: 1 }; };
+export function hienHanh(qt) { const ds = dsBan(qt); const c = conTro(qt); return ds.find((b) => b.ban === c.ban) ?? ds[0]; }
+export function nhatKyQuyTrinh(qt) { const f = path.join(thuMuc(qt), 'nhat-ky.jsonl'); return fs.existsSync(f) ? fs.readFileSync(f, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l)) : []; }
+function ghiNhatKy(qt, e) { fs.mkdirSync(thuMuc(qt), { recursive: true }); fs.appendFileSync(path.join(thuMuc(qt), 'nhat-ky.jsonl'), JSON.stringify({ ts: new Date().toISOString(), ...e }) + '\n'); }
+function datConTro(qt, ban, ly_do) { fs.mkdirSync(thuMuc(qt), { recursive: true }); fs.writeFileSync(path.join(thuMuc(qt), 'hien-hanh.json'), JSON.stringify({ ban, tu: new Date().toISOString(), ly_do })); }
 
 // ---- mức thay đổi theo biên ----
 const lay = (o, k) => k.split('.').reduce((x, p) => (x == null ? undefined : x[p]), o);
 const phang = (o, tien = '') => Object.entries(o).flatMap(([k, v]) => (v && typeof v === 'object' && !Array.isArray(v) ? phang(v, `${tien}${k}.`) : [[`${tien}${k}`, v]]));
-const META = new Set(['phong', 'ban', 'tu', 'ngay', 'ly_do', 'de_xuat']);
+const META = new Set(['phong', 'quy_trinh', 'qt', 'ban', 'tu', 'ngay', 'ly_do', 'de_xuat']);
 /** So hai bản → { muc: 0..3, thay: [{khoa, cu, moi, muc}], vuot: [lý do vượt biên] }. Khoá không có trong biên = mức 3. */
 export function mucThayDoi(cu, moi, b = bien()) {
   const khoa = new Set([...phang(cu), ...phang(moi)].map(([k]) => k).filter((k) => !META.has(k.split('.')[0])));
@@ -53,26 +76,26 @@ export function mucThayDoi(cu, moi, b = bien()) {
 }
 
 /** Áp một bản mới (đã duyệt đúng mức) → ghi vN+1, trỏ hiện hành vào nó. Trả bản mới. */
-export function apBanMoi(phong, moi, { ly_do, de_xuat, ai_duyet }) {
-  const ds = dsBan(phong); const ban = ds.at(-1).ban + 1;
-  const ghi = { ...moi, phong, ban, tu: hienHanh(phong).ban, ngay: new Date().toISOString().slice(0, 10), ly_do, de_xuat: de_xuat ?? null };
-  fs.mkdirSync(thuMuc(phong), { recursive: true });
-  fs.writeFileSync(path.join(thuMuc(phong), `v${ban}.json`), JSON.stringify(ghi, null, 1));
-  datConTro(phong, ban, ly_do);
-  ghiNhatKy(phong, { loai: 'ap', ban, tu_ban: ghi.tu, ly_do, de_xuat: de_xuat ?? null, ai_duyet });
+export function apBanMoi(qt, moi, { ly_do, de_xuat, ai_duyet }) {
+  const ds = dsBan(qt); const ban = ds.at(-1).ban + 1;
+  const ghi = { ...moi, qt, ban, tu: hienHanh(qt).ban, ngay: new Date().toISOString().slice(0, 10), ly_do, de_xuat: de_xuat ?? null };
+  fs.mkdirSync(thuMuc(qt), { recursive: true });
+  fs.writeFileSync(path.join(thuMuc(qt), `v${ban}.json`), JSON.stringify(ghi, null, 1));
+  datConTro(qt, ban, ly_do);
+  ghiNhatKy(qt, { loai: 'ap', ban, tu_ban: ghi.tu, ly_do, de_xuat: de_xuat ?? null, ai_duyet });
   return ghi;
 }
 /** Trỏ hiện hành về một bản đã có (quay lại sau thử thua, hoặc nút "Về bản đầu"). Không xoá bản nào. */
-export function veBan(phong, ban, ly_do, ai) {
-  if (!dsBan(phong).some((b) => b.ban === ban)) throw new Error(`không có bản v${ban}`);
-  const tu = hienHanh(phong).ban; datConTro(phong, ban, ly_do);
-  ghiNhatKy(phong, { loai: ban === 1 ? 've-dau' : 'quay-lai', ban, tu_ban: tu, ly_do, ai });
+export function veBan(qt, ban, ly_do, ai) {
+  if (!dsBan(qt).some((b) => b.ban === ban)) throw new Error(`không có bản v${ban}`);
+  const tu = hienHanh(qt).ban; datConTro(qt, ban, ly_do);
+  ghiNhatKy(qt, { loai: ban === 1 ? 've-dau' : 'quay-lai', ban, tu_ban: tu, ly_do, ai });
 }
 
 // ---- đề xuất cải tiến (do buổi họp sinh ra) — ${DATA}/de-xuat/<phòng>/<id>.json ----
-const dxDir = (phong) => path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'de-xuat', phong);
-export function dsDeXuat(phong) { const d = dxDir(phong); return fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith('.json')).sort().reverse().map((f) => docJson(path.join(d, f))) : []; }
-export function ghiDeXuat(dx) { fs.mkdirSync(dxDir(dx.phong), { recursive: true }); fs.writeFileSync(path.join(dxDir(dx.phong), `${dx.id}.json`), JSON.stringify(dx, null, 1)); return dx; }
+const dxDir = (qt) => path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'de-xuat', qt);
+export function dsDeXuat(qt) { const d = dxDir(qt); return fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith('.json')).sort().reverse().map((f) => docJson(path.join(d, f))) : []; }
+export function ghiDeXuat(dx) { fs.mkdirSync(dxDir(dx.qt), { recursive: true }); fs.writeFileSync(path.join(dxDir(dx.qt), `${dx.id}.json`), JSON.stringify(dx, null, 1)); return dx; }
 
 // ---- số liệu: máy tự tính từ các lượt (không AI) ----
 const GIA = docJson(path.join(DIR, 'gia-model.json'));
@@ -132,7 +155,7 @@ export const dien = (mau, v) => mau.replace(/\{([a-z_]+)\}/g, (m, k) => (k in v 
 if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('quy-trinh.mjs')) {
   process.env.CTY_DATA_DIR = fs.mkdtempSync('/tmp/cty-qt-');
   const a = (c, m) => { if (!c) { console.error('✗ quy-trinh:', m); process.exit(1); } };
-  const v1 = hienHanh('thu-nghiem');
+  const v1 = hienHanh('thu-nghiem/lam-viec');
   a(v1.ban === 1 && v1.so_vong_lam_lai === 1, 'hiện hành mặc định = v1 từ repo');
   a(mucThayDoi(v1, { ...v1, so_vong_lam_lai: 2 }).muc === 1, 'đổi số vòng trong biên = mức 1');
   a(mucThayDoi(v1, { ...v1, so_vong_lam_lai: 9 }).vuot.length === 1, 'số vòng ngoài biên = vượt');
@@ -141,11 +164,11 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('quy-
   a(mucThayDoi(v1, { ...v1, loi_nhac: { ...v1.loi_nhac, giao: 'dễ thôi' } }).muc === 3, 'đổi lời giao (chuẩn chất lượng) = mức 3');
   a(mucThayDoi(v1, { ...v1, tran_chi: 99 }).muc === 3, 'khoá không có trong biên = mức 3');
   a(mucThayDoi(v1, { ...v1, ban: 7, ly_do: 'x' }).thay.length === 0, 'trường mô tả không tính là thay đổi');
-  const v2 = apBanMoi('thu-nghiem', { ...v1, so_vong_lam_lai: 2 }, { ly_do: 'thử', ai_duyet: 'tam' });
-  a(v2.ban === 2 && hienHanh('thu-nghiem').ban === 2 && dsBan('thu-nghiem').length === 2, 'áp → v2 hiện hành');
-  veBan('thu-nghiem', 1, 'về bản đầu để thử', 'anh');
-  a(hienHanh('thu-nghiem').ban === 1 && dsBan('thu-nghiem').length === 2, 'về v1: con trỏ đổi, v2 vẫn còn');
-  a(nhatKyQuyTrinh('thu-nghiem').map((e) => e.loai).join() === 'ap,ve-dau', 'nhật ký ghi áp + về đầu');
+  const v2 = apBanMoi('thu-nghiem/lam-viec', { ...v1, so_vong_lam_lai: 2 }, { ly_do: 'thử', ai_duyet: 'tam' });
+  a(v2.ban === 2 && hienHanh('thu-nghiem/lam-viec').ban === 2 && dsBan('thu-nghiem/lam-viec').length === 2, 'áp → v2 hiện hành');
+  veBan('thu-nghiem/lam-viec', 1, 'về bản đầu để thử', 'anh');
+  a(hienHanh('thu-nghiem/lam-viec').ban === 1 && dsBan('thu-nghiem/lam-viec').length === 2, 'về v1: con trỏ đổi, v2 vẫn còn');
+  a(nhatKyQuyTrinh('thu-nghiem/lam-viec').map((e) => e.loai).join() === 'ap,ve-dau', 'nhật ký ghi áp + về đầu');
   a(mayDo({ loai: 'so_cau', bang: 3 }, 'One. Two! Three?').dat && !mayDo({ loai: 'so_cau', bang: 3 }, 'One. Two.').dat, 'đếm câu');
   a(mayDo({ loai: 'so_tu', toi_da: 6 }, 'Jett Jean Bangladesh: Stylish & Durable Denim').so === 6, 'đếm từ (& không phải từ) — ca Kỳ đếm sai thành 8');
   a(!mayDo({ loai: 'khong_chua', chuoi: ['—'] }, 'a — b').dat, 'bắt gạch dài');
@@ -157,5 +180,9 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('quy-
   a(chamViecChuan(lNop('A. B. C.'), { ky_vong: 'nop', do: [{ loai: 'so_cau', bang: 3 }] }).dung && !chamViecChuan(lNop('A. B.'), { ky_vong: 'nop', do: [{ loai: 'so_cau', bang: 3 }] }).dung, 'chấm: nộp phải qua phép đo của Hà');
   const cs = chiSo([{ trang_thai: 'xong', ket: { trang_thai_viec: 'submitted', vong: 0 }, buoc: [] }, { trang_thai: 'xong', ket: { trang_thai_viec: 'revision', vong: 1, soat: { ok: false, ly_do: 'không thu hút' } }, buoc: [{ buoc: '4 làm lại', model: 'openai:gpt-4o-mini', usage: { input_tokens: 1e6, output_tokens: 0 } }] }]);
   a(cs.so_luot === 2 && cs.ti_le_nop === 0.5 && cs.ti_le_dat_vong_1 === 0.5 && cs.so_vong_tb === 0.5 && Math.abs(cs.chi_phi_tb - 0.075) < 1e-9 && cs.ly_do_bac[0] === 'không thu hút', 'chỉ số từ lượt');
-  console.log('✓ quy-trinh: mức/biên/áp/về v1/phép đo máy/chấm việc chuẩn/chỉ số — 21 ca'); process.exit(0);
+  const ds = dsQuyTrinh();
+  a(ds.some((q) => q.khoa === 'thu-nghiem/lam-viec' && q.nguon === 'phong') && ds.filter((q) => q.id === 'xu-ly-ton').length === fs.readdirSync(path.join(CONG_TY, 'phong')).filter((f) => f.endsWith('.md')).length, 'quy trình riêng + quy trình chung có ở mọi phòng');
+  const qd = quyDinhCuaPhong('sach');
+  a(qd[0].tang === 'cong-ty' && qd.some((x) => x.tang === 'du-an' && x.id === 'puzzle-books' && /thương hiệu/.test(x.noi_dung)) && qd.at(-1).tang === 'phong', 'quy định theo tầng: công ty → dự án → phòng');
+  console.log('✓ quy-trinh: mức/biên/áp/về v1/phép đo máy/chấm việc chuẩn/chỉ số/danh sách/quy định — 23 ca'); process.exit(0);
 }

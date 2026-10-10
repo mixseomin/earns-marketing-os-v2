@@ -10,13 +10,13 @@ import http from 'node:http';
 import { parseFm } from '../scripts/fm.mjs';
 import { ghiLog } from './log.mjs';
 import { vpBao } from './vp.mjs';
-import { hienHanh, dsBan, mayDo, dien, LOAI_DO } from './quy-trinh.mjs';
+import { hienHanh, dsBan, mayDo, dien, LOAI_DO, quyDinhCuaPhong } from './quy-trinh.mjs';
 
 const DIR = path.join(GOC, 'worker');   // không dùng import.meta.url: xem worker/goc.mjs
 const CONG_TY = path.join(DIR, '..', 'cong-ty');
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const PROXY = () => process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862';   // đọc lúc gọi: tự kiểm đổi env sau khi nạp module
-const PHONG = 'thu-nghiem';
+const QT = 'thu-nghiem/lam-viec';   // khoá quy trình: phòng/quy-trình
 
 const doc = (rel) => parseFm(fs.readFileSync(path.join(CONG_TY, rel), 'utf8'));
 const luat = fs.readFileSync(path.join(CONG_TY, 'AGENTS.md'), 'utf8');
@@ -25,7 +25,7 @@ export const nhanSu = (id, luot) => { const rel = `nhan-su/${id}/SOUL.md`; const
 export async function goi(ns, user, buoc, nk, toi) {
   ghiLog({ luot: nk.ts, loai: 'tin', tu: toi?.tu ?? 'giam-doc', toi: ns.id, chi_tiet: { buoc, noi_dung: user.slice(0, 240) } });
   const body = { model: ns.model, max_tokens: 500, temperature: 0.3,
-    system: `Bạn là ${ns.ten}, ${ns.chuc_danh}, Phòng thử của công ty. LUẬT CHUNG (rút gọn): ba mức quyết định; việc nộp phải có bằng chứng; không khen mở đầu; trả lời đúng định dạng được yêu cầu, không thêm lời dẫn.\n\nHỒ SƠ CỦA BẠN:\n${ns.body}`,
+    system: `Bạn là ${ns.ten}, ${ns.chuc_danh}, Phòng thử của công ty. LUẬT CHUNG (rút gọn): ba mức quyết định; việc nộp phải có bằng chứng; không khen mở đầu; trả lời đúng định dạng được yêu cầu, không thêm lời dẫn.\n\n${nk.quy_dinh ? `\n\nQUY ĐỊNH DỰ ÁN PHÒNG PHẢI TUÂN THEO (trên quy trình của phòng, không được làm trái):\n${nk.quy_dinh}` : ''}\n\nHỒ SƠ CỦA BẠN:\n${ns.body}`,
     messages: [{ role: 'user', content: user }] };
   await vpBao(ns.id, 'lam', buoc);
   const t0 = Date.now(); const bat_dau = new Date(t0).toISOString();
@@ -45,12 +45,14 @@ const MAU_DO = 'so_cau{bang|toi_da} · so_tu{toi_da} · so_ky_tu{toi_da} · so_d
 /** Một lượt chạy THEO QUY TRÌNH của phòng (worker/quy-trinh.mjs: hiện hành, hoặc `o.quyTrinh` khi so phiên bản).
  *  Công tắc phòng được tự bật trong biên: so_vong_lam_lai · hoi_lai_khi_thieu_du_kien · may_do · khoa_tieu_chi · het_vong · bao_cao_do_may. */
 export async function motLuot(viec, ghi = true, o = {}) {
-  const qt = o.quyTrinh ?? hienHanh(PHONG); const L = qt.loi_nhac;
+  const qt = o.quyTrinh ?? hienHanh(QT); const L = qt.loi_nhac;
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
   ghiLog({ luot: ts, loai: 'he-thong', tu: 'giam-doc', chi_tiet: { su_kien: 'bắt đầu lượt', viec, quy_trinh: qt.ban } });
   const nsCache = {}; const N = (id) => (nsCache[id] ??= nhanSu(id, ts));
   const giaoNs = N(qt.nguoi.giao), lamNs = N(qt.nguoi.lam), kiemNs = N(qt.nguoi.kiem), bcNs = N(qt.nguoi.bao_cao);
-  const nk = { ts, bat_dau: new Date().toISOString(), viec, quy_trinh: qt.ban, bo_viec: o.boViec ?? null, trang_thai: 'đang chạy', buoc: [], do_may: [], ket: null };
+  // Quy định dự án mà phòng tham gia (cong-ty/quy-dinh/du-an) đi vào lời dặn của mọi người trong lượt; luật chung công ty đã ở system.
+  const quyDinh = quyDinhCuaPhong(QT.split('/')[0]).filter((x) => x.tang === 'du-an' && x.noi_dung).map((x) => `[${x.ten}]\n${x.noi_dung}`).join('\n\n').slice(0, 3000);
+  const nk = { ts, bat_dau: new Date().toISOString(), viec, quy_trinh: qt.ban, quy_dinh: quyDinh, bo_viec: o.boViec ?? null, trang_thai: 'đang chạy', buoc: [], do_may: [], ket: null };
   const f = path.join(DATA(), 'nhat-ky', `${ts}.json`);
   const luu = () => { if (ghi) { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(nk, null, 2)); } };
   const so = () => nk.buoc.length + 1;
@@ -149,7 +151,7 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('ca.m
   process.env.CTY_DATA_DIR = fs.mkdtempSync('/tmp/cty-ca-'); process.env.CTY_VP_HOMES = process.env.CTY_DATA_DIR;
   const { docLog } = await import('./log.mjs');
   const assert = (c, m, nk) => { if (!c) { console.error('✗ ca.mjs:', m, JSON.stringify(nk ?? {}).slice(0, 400)); process.exit(1); } };
-  const chay = async (k, sua) => { kich = k; dem.loc = 0; dem.ky = 0; const v1 = hienHanh(PHONG); return motLuot('thử', false, sua ? { quyTrinh: { ...v1, ...sua, nguoi: { ...v1.nguoi, ...(sua.nguoi ?? {}) } } } : {}); };
+  const chay = async (k, sua) => { kich = k; dem.loc = 0; dem.ky = 0; const v1 = hienHanh(QT); return motLuot('thử', false, sua ? { quyTrinh: { ...v1, ...sua, nguoi: { ...v1.nguoi, ...(sua.nguoi ?? {}) } } } : {}); };
   const ten = (nk) => nk.buoc.map((b) => b.buoc).join(' | ');
 
   // v1: y như trước khi tách quy trình
@@ -182,7 +184,7 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('ca.m
 if (process.argv.includes('--viec') && (process.argv[1] || '').endsWith('ca.mjs')) {
   const viec = process.argv[process.argv.indexOf('--viec') + 1];
   const ban = process.argv.includes('--ban') ? Number(process.argv[process.argv.indexOf('--ban') + 1]) : null;
-  const nk = await motLuot(viec, true, ban ? { quyTrinh: dsBan(PHONG).find((b) => b.ban === ban) } : {});
+  const nk = await motLuot(viec, true, ban ? { quyTrinh: dsBan(QT).find((b) => b.ban === ban) } : {});
   console.log(JSON.stringify({ ts: nk.ts, trang_thai: nk.trang_thai, loi: nk.loi, tong: nk.tong, ket: nk.ket?.trang_thai_viec }, null, 1));
   process.exit(nk.trang_thai === 'xong' ? 0 : 1);
 }

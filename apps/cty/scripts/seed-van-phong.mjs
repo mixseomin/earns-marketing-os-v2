@@ -66,19 +66,27 @@ export function paletteTheoGioi(ds) {   // ds theo thu_tu → { ten: palette }, 
   return out;
 }
 const theoTen = paletteTheoGioi(ds);
-const ws = new WebSocket(`ws://127.0.0.1:${srv.port}/ws`);
-const agents = await new Promise((ok, fail) => {
-  const t = setTimeout(() => fail(new Error('ws: không nhận existingAgents sau 10s')), 10000);
-  ws.onopen = () => ws.send(JSON.stringify({ type: 'webviewReady' }));
-  ws.onmessage = (m) => { const v = JSON.parse(String(m.data)); if (v.type === 'existingAgents') { clearTimeout(t); ok(v); } };
-  ws.onerror = () => { clearTimeout(t); fail(new Error('ws: lỗi kết nối')); };
-});
-let cu = {}; try { cu = JSON.parse(fs.readFileSync(path.join(HOME, 'standalone-state.json'), 'utf8')).seats || {}; } catch {}
-const seats = {};
-for (const id of agents.agents) {
-  const ten = agents.folderNames?.[id]; if (!(ten in theoTen)) continue;
-  seats[id] = { palette: theoTen[ten], hueShift: 0, ...(cu[id]?.seatId ? { seatId: cu[id].seatId } : agents.agentMeta?.[id]?.seatId ? { seatId: agents.agentMeta[id].seatId } : {}) };
+async function apGioiTinh() {
+  const ws = new WebSocket(`ws://127.0.0.1:${srv.port}/ws`);
+  const agents = await new Promise((ok, fail) => {
+    const t = setTimeout(() => fail(new Error('ws: không nhận existingAgents sau 10s')), 10000);
+    ws.onopen = () => ws.send(JSON.stringify({ type: 'webviewReady' }));
+    ws.onmessage = (m) => { const v = JSON.parse(String(m.data)); if (v.type === 'existingAgents') { clearTimeout(t); ok(v); } };
+    ws.onerror = () => { clearTimeout(t); fail(new Error('ws: lỗi kết nối')); };
+  });
+  let cu = {}; try { cu = JSON.parse(fs.readFileSync(path.join(HOME, 'standalone-state.json'), 'utf8')).seats || {}; } catch {}
+  const seats = {};
+  for (const id of agents.agents) {
+    const ten = agents.folderNames?.[id]; if (!(ten in theoTen)) continue;
+    const seatId = cu[id]?.seatId ?? agents.agentMeta?.[id]?.seatId;
+    seats[id] = { palette: theoTen[ten], hueShift: 0, ...(seatId ? { seatId } : {}) };
+  }
+  ws.send(JSON.stringify({ type: 'saveAgentSeats', seats }));
+  await new Promise((r) => setTimeout(r, 300)); ws.close();
+  return Object.keys(seats).length;
 }
-ws.send(JSON.stringify({ type: 'saveAgentSeats', seats }));
-await new Promise((r) => setTimeout(r, 300)); ws.close();
-console.log(`nhân vật theo giới tính: ${Object.keys(seats).length} người`);
+// Tab trình duyệt đang mở nối lại ngay khi server lên, cầm palette ngẫu nhiên lúc đó và gửi saveAgentSeats đè lên (đo 10/10/2026
+// trên vpthu). Áp lần hai sau 20s để thắng nó; tab đó tải lại là thấy đúng.
+console.log(`nhân vật theo giới tính: ${await apGioiTinh()} người`);
+await new Promise((r) => setTimeout(r, 20000));
+console.log(`nhân vật theo giới tính (lần 2): ${await apGioiTinh()} người`);

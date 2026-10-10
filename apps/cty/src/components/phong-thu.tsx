@@ -1,4 +1,5 @@
 // Khối vận hành của Phòng thử: nút "Chạy một lượt" (mỗi lần bấm = một lượt, ~1 cent) + nhật ký từng lượt, từng bước.
+import Link from 'next/link';
 import { dsLuot, chayMotLuot } from '@/lib/thu-nghiem';
 
 const VIEC_MAU = 'Write a 3-sentence Gumroad description for the puzzle book "Killer Sudoku for Adults: 100 Puzzles". English, no brand names, no em dashes.';
@@ -26,7 +27,7 @@ export async function PhongThu({ admin }: { admin: boolean }) {
           <details key={l.ts} className="cty-details" open={l === luot[0]}>
             <summary>
               <span className={`cty-pill ${l.trang_thai === 'xong' ? '' : 'cty-pill-off'}`}>{l.trang_thai}</span> {l.ts.replace('T', ' ').slice(0, 19)} · {l.viec.slice(0, 70)}
-              {l.tong && <span className="cty-mono cty-muted"> · {l.tong.buoc} bước · {l.tong.token} token · ${tien.toFixed(4)} · {(l.tong.ms / 1000).toFixed(1)}s</span>}
+              {l.tong && <span className="cty-mono cty-muted"> · {l.tong.buoc} bước · {l.tong.token} token · ${tien.toFixed(4)} · {(l.tong.ms / 1000).toFixed(1)}s</span>} <Link className="cty-pill" href={`/nhat-ky?luot=${encodeURIComponent(l.ts)}`}>sổ sự kiện lượt này</Link>
             </summary>
             {l.loi && <p className="cty-thu-loi">Lỗi: {l.loi}</p>}
             <ol className="cty-thu-buoc">

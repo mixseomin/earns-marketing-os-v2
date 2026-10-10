@@ -17,6 +17,7 @@ import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { parseFm } from '../scripts/fm.mjs';
+import { ghiLog } from './log.mjs';
 
 const DIR = path.dirname(new URL(import.meta.url).pathname);
 const CONG_TY = path.join(DIR, '..', 'cong-ty');
@@ -155,7 +156,10 @@ export function server(port, so = soChi()) {
     if (req.method !== 'POST' || req.url !== '/v1/messages') { res.writeHead(404); return res.end(); }
     let raw = ''; for await (const c of req) raw += c;
     let body; try { body = JSON.parse(raw); } catch { res.writeHead(400); return res.end('{"error":"json"}'); }
+    const t0 = Date.now();
     const [code, data] = await xuLy(body, req.headers['x-cty-staff'], so).catch((e) => [502, { error: String(e.message || e) }]);
+    ghiLog({ luot: req.headers['x-cty-luot'] || null, loai: code === 200 ? 'goi' : 'loi', tu: req.headers['x-cty-staff'] || null,
+      chi_tiet: { model: body.model, http: code, ms: Date.now() - t0, usage: data.usage || null, usd: data.usage ? tienUsd(String(body.model), data.usage) : null, cache: !!data._cache, loi: data.error || null, he_thong_ky_tu: String(body.system || '').length, tin_nhan: (body.messages || []).length } });
     res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(data));
   }).listen(port, '127.0.0.1');
 }

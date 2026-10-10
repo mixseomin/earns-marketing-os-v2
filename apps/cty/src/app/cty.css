@@ -86,3 +86,8 @@ h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem}
 .cty-thu-buoc pre{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:.4rem .6rem;font-size:.84rem;margin:.2rem 0 0}
 .cty-thu-loi{color:var(--warn)}
 .cty-thu-ket{padding:.3rem 0 .4rem;font-size:.93rem}
+
+.cty-log{font-size:.86rem}
+.cty-log td{vertical-align:top}
+.cty-log-ct{max-width:60ch;overflow-wrap:anywhere}
+.cty-pills a.cty-pill{text-decoration:none}

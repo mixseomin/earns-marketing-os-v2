@@ -96,7 +96,10 @@ const mapPhim = (r: Row): Phim => ({
 
 /** dangSinh: job ảnh còn chạy (≤10 phút) — F5 vẫn thấy "đang sinh" vì trạng thái ở sổ job máy chủ, không ở trình duyệt. */
 /** Thống kê gọn cả phim cho đầu ngăn phim (anh yêu cầu 08/10/2026). */
-export type ThongKePhim = { soCanh: number; giay: number; coKf: number; duyet: number; nhap: number; cuoi: number; anhGoc: number; bienThe: number; btCoAnh: number; soLanSinh: number; tienAnh: number; tienVideo: number; tienChu: number };
+export type ThongKePhim = { soCanh: number; giay: number; coKf: number; duyet: number; nhap: number; cuoi: number; anhGoc: number; bienThe: number; btCoAnh: number; soLanSinh: number; tienAnh: number; tienVideo: number; tienChu: number;
+  /** Chi phí THỰC TẾ nếu không phải sinh lại: chỉ lượt sinh ra thứ đang nằm trong phim (keyframe/clip/giọng/hiệu ứng/nhạc/ảnh anchor đang dùng)
+   *  + lượt Claude mới nhất của mỗi việc. Khác tongTien = tiền mất vì sinh lại / bỏ / lỗi. */
+  tienDung: number };
 export type PhimDayDu = { thongKe: ThongKePhim; phim: Phim; nhanVat: NhanVat[]; tap: Tap[]; dangSinh: { nhanVat: number[]; bienThe: number[] }; loiAnh: { nhanVat: Record<number, string>; bienThe: Record<number, string> }; ganDay: Job[]; tongTien: number };
 export async function docPhim(id: number): Promise<PhimDayDu | null> {
   const db = getDb();
@@ -109,7 +112,7 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
       db.execute(sql`SELECT t.*, (SELECT count(*) FROM xv_canh c WHERE c.tap_id = t.id) AS so_canh FROM xv_tap t WHERE t.phim_id = ${id} ORDER BY so`),
     ]);
     const nvs = (nv as unknown as Row[]).map(mapNhanVat);
-    const [bt, ds, gd, tg, la, tkc, tkj] = await Promise.all([
+    const [bt, ds, gd, tg, la, tkc, tdg, tkj] = await Promise.all([
       db.execute(sql`SELECT b.* FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE v.phim_id = ${id} ORDER BY b.nhom, b.id`),
       db.execute(sql`SELECT j.nhan_vat_id, j.bien_the_id FROM xv_job j JOIN xv_nhan_vat v ON v.id = j.nhan_vat_id
         WHERE v.phim_id = ${id} AND j.loai = 'anh' AND j.trang_thai = 'cho' AND j.created_at > now() - interval '10 minutes'`),
@@ -122,6 +125,20 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
       db.execute(sql`SELECT count(*) AS so, coalesce(sum(c.thoi_luong_s), 0) AS giay, count(c.keyframe_url) AS kf,
           count(*) FILTER (WHERE c.trang_thai = 'duyet') AS duyet, count(c.video_url) AS nhap, count(c.video_cuoi_url) AS cuoi
         FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = ${id}`),
+      // Tiền của thứ ĐANG DÙNG: job có output_url nằm trong tập url đang gắn vào phim (không lọc tinh_chi — tài sản đang dùng sinh từ trước
+      // lúc đặt lại sổ vẫn là tiền của phim) + lượt Claude mới nhất mỗi việc (nhãn bỏ phần ngoặc cuối).
+      db.execute(sql`WITH c AS (SELECT c.* FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = ${id}),
+          dung AS (
+            SELECT keyframe_url AS u FROM c UNION SELECT video_url FROM c UNION SELECT video_cuoi_url FROM c UNION SELECT thoai_url FROM c UNION SELECT am_thanh_url FROM c
+            UNION SELECT d->>'url' FROM c, jsonb_array_elements(CASE WHEN jsonb_typeof(c.thoai) = 'array' THEN c.thoai ELSE '[]'::jsonb END) d
+            UNION SELECT nhac_url FROM xv_tap WHERE phim_id = ${id}
+            UNION SELECT x.value FROM xv_tap t, jsonb_each_text(coalesce(t.nhac_phan_canh, '{}'::jsonb)) x WHERE t.phim_id = ${id}
+            UNION SELECT jsonb_array_elements_text(anh_ref) FROM xv_nhan_vat WHERE phim_id = ${id}
+            UNION SELECT b.anh_url FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE v.phim_id = ${id})
+        SELECT coalesce((SELECT sum(j.chi_phi_cents) FROM xv_job j WHERE j.trang_thai = 'xong' AND j.output_url IN (SELECT u FROM dung WHERE u IS NOT NULL)
+            AND (j.phim_id = ${id} OR j.canh_id IN (SELECT id FROM c) OR j.nhan_vat_id IN (SELECT id FROM xv_nhan_vat WHERE phim_id = ${id}))), 0)
+          + coalesce((SELECT sum(x.chi_phi_cents) FROM (SELECT DISTINCT ON (regexp_replace(nhan, '[[:space:]]*[(].*[)][[:space:]]*$', '')) chi_phi_cents FROM xv_job
+            WHERE phim_id = ${id} AND loai = 'chu' AND trang_thai = 'xong' ORDER BY regexp_replace(nhan, '[[:space:]]*[(].*[)][[:space:]]*$', ''), id DESC) x), 0) AS dung`),
       db.execute(sql`SELECT count(*) AS so, coalesce(sum(chi_phi_cents) FILTER (WHERE loai = 'anh'), 0) AS anh,
           coalesce(sum(chi_phi_cents) FILTER (WHERE loai IN ('video', 'nang_cap')), 0) AS video,
           coalesce(sum(chi_phi_cents) FILTER (WHERE loai NOT IN ('anh', 'video', 'nang_cap')), 0) AS chu
@@ -139,7 +156,7 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
     const thongKe: ThongKePhim = {
       soCanh: n(c0.so), giay: n(c0.giay), coKf: n(c0.kf), duyet: n(c0.duyet), nhap: n(c0.nhap), cuoi: n(c0.cuoi),
       anhGoc: nvs.reduce((a, v) => a + v.anh_ref.length, 0), bienThe: bts.length, btCoAnh: bts.filter((b) => b.anh_url).length,
-      soLanSinh: n(j0.so), tienAnh: n(j0.anh), tienVideo: n(j0.video), tienChu: n(j0.chu),
+      soLanSinh: n(j0.so), tienAnh: n(j0.anh), tienVideo: n(j0.video), tienChu: n(j0.chu), tienDung: n(((tdg as unknown as Row[])[0] ?? {}).dung),
     };
     return {
       thongKe, phim: mapPhim(p[0]), nhanVat: nvs, tap: (tap as unknown as Row[]).map(mapTap),

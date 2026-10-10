@@ -1,6 +1,7 @@
 // Tự kiểm bộ dựng lệnh ffmpeg của bản xuất. Chạy: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/xuat.test.mts
 import assert from 'node:assert';
 import { keHoachXuat, urlCanXuat, ngatDong, doanChuMan, tepAss, chuManHien, kiemGiongLoiDan, khoangIm } from './xuat';
+import { lichGiong } from './am-thanh';
 import type { Canh, NhanVat } from './kieu';
 
 const nv = [{ id: 1, ten: 'Lan', loai: 'nhan_vat' }, { id: 2, ten: 'Bra', loai: 'san_pham' }] as unknown as NhanVat[];
@@ -29,7 +30,7 @@ assert.ok(loc.includes('adelay=0:all=1'));                           // giọng 
 assert.ok(loc.includes('volume=0.8,adelay=2000:all=1'));             // hiệu ứng shot 3 ở 2000ms
 assert.ok(loc.includes('aloop=loop=-1') && loc.includes('volume=0.35,adelay=2000:all=1'));  // nhạc phân cảnh Demo từ 2s
 assert.ok(loc.includes('asplit=2[gm][gsc0];[gsc0]apad[gsc]') && loc.includes('[gsc]sidechaincompress='));   // nhạc nén theo giọng; dải điều khiển đệm im để nhạc không bị cắt khi giọng hết
-assert.ok(!loc.includes('[0:a]atrim'));                              // clip 1 có giọng riêng → không lấy tiếng clip
+{ const i1 = kh.args.filter((a, i) => kh.args[i - 1] === '-i').indexOf('/tmp/t/c1.mp4'); assert.ok(i1 >= 0 && !loc.includes(`[${i1}:a]`)); }   // clip 1 có giọng riêng → không lấy tiếng clip
 assert.ok(!/\[\d+:a\]atrim=0:2\.5/.test(loc));                       // clip 4 không có luồng tiếng → không tham chiếu :a
 assert.ok(!loc.includes('enable=') && !kh.tep.some((x) => /\/pd_/.test(x.duong)));   // không vẽ phụ đề thoại lên hình (#1231)
 const ass = kh.tep.find((x) => x.duong.endsWith('/chu.ass'))!.noiDung;
@@ -196,4 +197,18 @@ console.log('xuat.test: mẫu ok');
   const kN = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh: ds as never, nhanVat: nv, tap: { nhac_url: 'https://x/n.mp3', nhac_phan_canh: {} }, qc: qcV, nguyenLieu: nlA.map((x) => (x.url === 'https://x/n.mp3' ? { ...x, imCuoi: 25 } : x)), font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
   assert.ok(kN.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung.includes('atrim=0:25,asetpts=PTS-STARTPTS,aloop=loop=-1'));
   console.log('xuat.test: âm thanh liền mạch ok');
+}
+
+// lichGiong — lịch chung bản xuất + timeline: shot nhiều câu rồi shot một câu vẫn có giọng (lỗi timeline phim #5: mất giọng sau shot 1),
+// độ trễ tre đúng giây, lời dẫn đọc trọn (cat null) vắt qua shot sau.
+{
+  const sh = (thu_tu: number, phat_s: number, thoai: object[]) => ({ ...canh[0]!, thu_tu, phat_s, nhanh: '', thoai });
+  const ds = [sh(1, 3.37, [{ nhan_vat: '', dien_xuat: '', loi: 'a', url: 'u1', tre: 0.47 }, { nhan_vat: '', dien_xuat: '', loi: 'b', url: 'u2', tre: 3.27 }]),
+    sh(2, 3.73, []), sh(3, 2.97, [{ nhan_vat: '', dien_xuat: '', loi: 'c', url: 'u3', tre: 0.64 }])];
+  const dai: Record<string, number> = { u1: 1.96, u2: 3.55, u3: 1.57 };
+  const l = lichGiong(ds as never, nv, (u) => dai[u] ?? null);
+  assert.deepStrictEqual(l.map((x) => x.url), ['u1', 'u2', 'u3']);
+  assert.deepStrictEqual(l.map((x) => Math.round(x.tu * 100) / 100), [0.47, 3.17, 7.74]);   // tre 3,27 kẹp ≤ phát−0,2 = 3,17; câu 3: 3,37 + 3,73 + 0,64
+  assert.ok(l.every((x) => x.cat == null && x.nhanh === l[0]!.nhanh));                    // lời dẫn: đọc trọn, một tốc độ
+  console.log('xuat.test: lịch giọng ok');
 }

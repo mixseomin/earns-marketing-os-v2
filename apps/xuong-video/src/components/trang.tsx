@@ -246,6 +246,7 @@ function ThongKe({ tk, tongTien, soAnchor, soTap }: { tk: PhimDayDu['thongKe']; 
   return (
     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
       {chip('💰', tien(tongTien), `Tổng đã tốn ${tien(tongTien)}\nảnh ${tien(tk.tienAnh)} · video ${tien(tk.tienVideo)} · chữ (Claude) ${tien(tk.tienChu)}\n${tk.soLanSinh} lần sinh thành công`, 'var(--amber)')}
+      {chip('🎯', tien(tk.tienDung), `Chi phí thực tế nếu không phải lặp lại: ${tien(tk.tienDung)}\nchỉ tính lượt sinh ra thứ đang nằm trong phim (keyframe, clip, giọng, nhạc, ảnh anchor đang dùng) + lượt Claude mới nhất mỗi việc\nmất vì sinh lại / bỏ / lỗi: ${tien(Math.max(0, tongTien - tk.tienDung))}${tongTien > 0 ? ` (${Math.round((Math.max(0, tongTien - tk.tienDung) / tongTien) * 100)}%)` : ''} — tổng 💰 chỉ đếm lượt còn tính vào phim, nên hai số không cộng trừ thẳng khi đã đặt lại sổ`, 'var(--lime)')}
       {chip('📺', `${soTap} tập`, `${soTap} tập`)}
       {chip('🎬', `${tk.soCanh} cảnh · ${phut}`, `${tk.soCanh} cảnh, tổng ${tk.giay} giây`)}
       {chip('🖼', `${tk.coKf}/${tk.soCanh}`, `${tk.coKf}/${tk.soCanh} cảnh có keyframe · ${tk.duyet} cảnh đã duyệt chờ video`)}

@@ -9,7 +9,7 @@
 import type { Canh, KieuChu, LoaiPhim, NhanVat, Tap, ThongTinQc, ViTriChu } from './kieu';
 import { giayPhat, locNhanh, doanChuMan, coMau, KIEU_CHU_MAC_DINH } from './kieu';
 export { doanChuMan, chuManHien } from './kieu';
-import { dongThoai, dungTiengClip } from './am-thanh';
+import { dongThoai, dungTiengClip, lichGiong } from './am-thanh';
 
 /** Một tệp nguyên liệu đã tải về + đo: dai = giây (âm/video), coAm = clip có luồng tiếng, lufs = độ to tích hợp (tệp chỉ có tiếng). */
 export type NguyenLieu = { url: string; duong: string; dai: number | null; coAm: boolean; fps?: number | null; lufs?: number | null;
@@ -37,8 +37,6 @@ export function khoangIm(metadata: string, giay: number): [number, number][] {
 
 /** Mức to chuẩn của MỌI câu giọng trước khi trộn — câu nào ra từ model cũng về cùng mức, không câu to câu nhỏ. */
 export const LUFS_GIONG = -16;
-/** Tăng tốc lời dẫn tối đa (nghe vẫn tự nhiên). */
-const NHANH_TOI_DA = 1.35;
 
 /** Giọng lời dẫn của các câu đã có file: lẫn nhiều giọng → cảnh báo (phim #5 10/10/2026: một shot nghe như người khác đọc).
  *  Thuần — bản xuất gắn vào kết quả, studio hiện cờ đỏ. */
@@ -190,12 +188,13 @@ export function keHoachXuat(o: {
   const themAm = (bieuThuc: string, lop: string[] = nhanhAm) => { const nhan = `a${soAm++}`; loc.push(`${bieuThuc},aformat=sample_rates=48000:channel_layouts=stereo[${nhan}]`); lop.push(`[${nhan}]`); };
   /** Đưa câu giọng về LUFS_GIONG theo độ to đã đo (±15 dB) — không đo được thì để nguyên. */
   const chuanGiong = (url: string) => { const l = nl.get(url)?.lufs; return l != null && Number.isFinite(l) && l > -70 ? `volume=${so(Math.max(-15, Math.min(15, LUFS_GIONG - l)))}dB,` : ''; };
-  // Mốc bắt đầu tuyệt đối + độ dài của mọi câu LỜI DẪN (để câu trước không đè câu sau: dải giọng đọc liên tục của QC mẫu).
-  const dsDan: { moc: number; dai: number | null }[] = [];
-  { let tt = 0; for (const c of ds) { for (const d of dongThoai(c, o.nhanVat)) if (!d.nhan_vat.trim() && d.url) { const m = tt + Math.min(d.tre ?? 0, Math.max(0, giayPhat(c) - 0.2)); dsDan.push({ moc: m, dai: nl.get(d.url)?.dai ?? null }); } tt += giayPhat(c); } }
-  // MỘT tốc độ đọc cho cả dải lời dẫn = tốc độ câu chật nhất cần để không đè câu sau (≤ NHANH_TOI_DA). Trước đây mỗi câu một tốc độ
-  // (phim #5: 2 câu ×1,26, 14 câu ×1,0) → nhịp đọc giật giữa các câu như hai người đọc.
-  const nhanhDan = Math.min(NHANH_TOI_DA, Math.max(1, ...dsDan.map((x, i) => { const ke = dsDan[i + 1]?.moc; return x.dai && ke != null ? x.dai / Math.max(0.2, ke - x.moc - 0.05) : 1; })));
+  // Lịch giọng (mốc, tốc độ, điểm cắt) — CÙNG một hàm với timeline xem thử (lichGiong), trên đúng các shot có hình sẽ dựng.
+  const coHinh = (c: Canh) => { const v = c.video_cuoi_url || c.video_url; return (!!v && nl.has(v)) || (!!c.keyframe_url && nl.has(c.keyframe_url)); };
+  for (const g of lichGiong(ds.filter(coHinh), o.nhanVat, (u) => nl.get(u)?.dai ?? null)) {
+    if (!nl.has(g.url)) continue;
+    const ka = them(g.url);
+    themAm(`[${ka}:a]${chuanGiong(g.url)}${g.nhanh > 1.001 ? `atempo=${so(g.nhanh)},` : ''}${g.cat != null ? `atrim=0:${so(g.cat)},` : ''}asetpts=PTS-STARTPTS,adelay=${Math.round(g.tu * 1000)}:all=1`, nhanhGiong);
+  }
   ds.forEach((c, i) => {
     const phat = giayPhat(c);
     const vUrl = c.video_cuoi_url || c.video_url;
@@ -211,23 +210,7 @@ export function keHoachXuat(o: {
     const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(boDau + phat)},setpts=PTS-STARTPTS,${khung}` : `[${k}:v]${khungTinh(i)},trim=0:${so(phat)},setpts=PTS-STARTPTS${dayMay(phat)}`];
     for (const d of doanChuMan(c.chu_man, phat)) cauMan.push({ tu: t + d.tu, den: t + d.den, dong: d.dong, kieu: c.kieu_chu });
     if (logoUrl) { const kl = them(logoUrl, ['-loop', '1', '-framerate', '30', '-t', so(phat)]); loc.push(`[${kl}:v]scale=-1:${Math.round(H * 0.06)},format=rgba[lg${i}]`); ve[ve.length - 1] += `[vv${i}];[vv${i}][lg${i}]overlay=W-w-${Math.round(W * 0.03)}:${Math.round(H * 0.03)}:shortest=1`; }
-    // Giọng từng dòng nối tiếp nhau trong shot (theo độ dài file giọng; chưa có giọng thì chia đều giây phát để giữ nhịp).
-    const dong = dongThoai(c, o.nhanVat);
-    let tDong = 0;
     const dungClip = dungTiengClip(c, o.nhanVat);
-    dong.forEach((d) => {
-      const daiGiong = d.url && nl.get(d.url)?.dai ? nl.get(d.url)!.dai! : phat / dong.length;
-      if (typeof d.tre === 'number' && d.tre > tDong) tDong = Math.min(d.tre, Math.max(0, phat - 0.2));
-      // Giọng dài hơn phần còn lại của shot → đọc nhanh lên (tối đa 1,35×, nghe vẫn tự nhiên) để giữ nhịp như QC mẫu thay vì bị cắt cụt
-      // (10/10/2026: "Pay one, get three pants." TTS 1,96s, mẫu đọc 1,3s trong shot 2s).
-      const conLai = Math.max(0.2, phat - tDong);
-      // Lời dẫn (không người nói) = dải giọng đọc liên tục như QC mẫu: đọc TRỌN câu, vắt qua shot sau, không cắt không tăng tốc.
-      const loiDan = !d.nhan_vat.trim();
-      // Lời dẫn: một tốc độ chung cả phim (nhanhDan); thoại nhân vật → vừa phần còn lại của shot (≤ NHANH_TOI_DA).
-      const nhanh = loiDan ? nhanhDan : d.url && nl.get(d.url)?.dai && daiGiong > conLai + 0.05 ? Math.min(NHANH_TOI_DA, daiGiong / conLai) : 1;
-      if (d.url && nl.has(d.url)) { const ka = them(d.url); themAm(`[${ka}:a]${chuanGiong(d.url)}${nhanh > 1.001 ? `atempo=${so(nhanh)},` : ''}${loiDan ? '' : `atrim=0:${so(conLai + 0.3)},`}asetpts=PTS-STARTPTS,adelay=${Math.round((t + tDong) * 1000)}:all=1`, nhanhGiong); }
-      tDong += daiGiong / nhanh + 0.15;
-    });
     if (c.am_thanh_url && nl.has(c.am_thanh_url)) { const ka = them(c.am_thanh_url); themAm(`[${ka}:a]atrim=0:${so(phat)},asetpts=PTS-STARTPTS,volume=0.8,adelay=${Math.round(t * 1000)}:all=1`); }
     if (laVideo && dungClip && nl.get(nguon)?.coAm) themAm(`[${k}:a]atrim=${so(boDau)}:${so(boDau + phat)},asetpts=PTS-STARTPTS,adelay=${Math.round(t * 1000)}:all=1`);
     loc.push(`${ve.join(',')}[v${i}]`); nhanhVideo.push(`[v${i}]`);

@@ -119,3 +119,39 @@ export function promptCamXuc(c: Pick<Canh, 'cam_xuc' | 'thoai' | 'loi_thoai' | '
   }
   return out.join(' ');
 }
+
+/** Tăng tốc giọng tối đa (nghe vẫn tự nhiên). */
+export const NHANH_TOI_DA = 1.35;
+/** Một câu giọng trên trục thời gian của tập: tu = giây bắt đầu (tuyệt đối), nhanh = hệ số đọc nhanh, cat = cắt sau bao nhiêu giây
+ *  ĐÃ tăng tốc (thoại nhân vật vừa shot; lời dẫn null = đọc trọn, vắt sang shot sau), dai = giây phát sau tăng tốc (null = chưa biết). */
+export type MucGiong = { url: string; tu: number; nhanh: number; cat: number | null; dai: number | null; loiDan: boolean };
+/** Lịch phát giọng của một dãy shot — MỘT luật cho bản xuất (ffmpeg) và timeline xem thử (trước đây timeline tự phát theo shot:
+ *  bỏ qua độ trễ, cắt lời dẫn khi đổi shot, mất giọng sau shot nhiều câu — phim #5 10/10/2026).
+ *  - dòng trong shot nối tiếp nhau (cách 0,15s), dòng có tre vào đúng giây đó;
+ *  - lời dẫn: MỘT tốc độ chung = câu chật nhất cần để không đè câu dẫn kế (≤ NHANH_TOI_DA);
+ *  - thoại nhân vật: nhanh lên vừa phần còn lại của shot, cắt ở cuối shot (+0,3s). */
+export function lichGiong(ds: Canh[], nhanVat: NhanVat[], dai: (url: string) => number | null): MucGiong[] {
+  const dan: { moc: number; dai: number | null }[] = [];
+  { let tt = 0; for (const c of ds) { for (const d of dongThoai(c, nhanVat)) if (!d.nhan_vat.trim() && d.url) dan.push({ moc: tt + Math.min(d.tre ?? 0, Math.max(0, giayPhat(c) - 0.2)), dai: dai(d.url) }); tt += giayPhat(c); } }
+  // MỘT tốc độ đọc cho cả dải lời dẫn (phim #5: trước đây 2 câu ×1,26, 14 câu ×1,0 → nhịp giật như hai người đọc).
+  const nhanhDan = Math.min(NHANH_TOI_DA, Math.max(1, ...dan.map((x, i) => { const ke = dan[i + 1]?.moc; return x.dai && ke != null ? x.dai / Math.max(0.2, ke - x.moc - 0.05) : 1; })));
+  const out: MucGiong[] = [];
+  let t = 0;
+  for (const c of ds) {
+    const phat = giayPhat(c);
+    const dong = dongThoai(c, nhanVat);
+    let tDong = 0;
+    for (const d of dong) {
+      const daiFile = d.url ? dai(d.url) : null;
+      const daiGiong = daiFile ?? phat / dong.length;
+      if (typeof d.tre === 'number' && d.tre > tDong) tDong = Math.min(d.tre, Math.max(0, phat - 0.2));
+      const conLai = Math.max(0.2, phat - tDong);
+      const loiDan = !d.nhan_vat.trim();
+      const nhanh = loiDan ? nhanhDan : daiFile && daiGiong > conLai + 0.05 ? Math.min(NHANH_TOI_DA, daiGiong / conLai) : 1;
+      if (d.url) out.push({ url: d.url, tu: t + tDong, nhanh, cat: loiDan ? null : conLai + 0.3, dai: daiFile ? daiFile / nhanh : null, loiDan });
+      tDong += daiGiong / nhanh + 0.15;
+    }
+    t += phat;
+  }
+  return out;
+}

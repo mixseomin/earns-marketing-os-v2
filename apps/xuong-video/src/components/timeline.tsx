@@ -11,7 +11,7 @@ import { ChuManXem } from './chu-man';
 import { useEffect, useMemo, useRef, useState, type PointerEvent as PE, type ReactNode } from 'react';
 import { chuManHien, giayPhat, tenCamXuc, type Canh, type ThongTinQc, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat } from '@/lib/xuong-video/dien-anh';
-import { dongThoai, dungTiengClip, tenNoi, cungTen, timNv } from '@/lib/xuong-video/am-thanh';
+import { dongThoai, dungTiengClip, tenNoi, cungTen, timNv, lichGiong } from '@/lib/xuong-video/am-thanh';
 import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 import { mono } from './ui';
@@ -105,8 +105,17 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   // Video + file âm thanh bám theo t: đổi cảnh hoặc tua thì đặt lại currentTime; dừng thì pause.
   const vidRef = useRef<HTMLVideoElement>(null);
   const thoaiRef = useRef<HTMLAudioElement>(null);
-  // Thoại nhiều dòng: phát lần lượt từng file giọng của shot (dòng sau bắt đầu khi dòng trước hết).
-  const [dong, setDong] = useState(0);
+  // Giọng theo LỊCH CHUNG với bản xuất (lichGiong): mốc tuyệt đối, độ trễ, một tốc độ cho lời dẫn, lời dẫn vắt qua shot sau. Trước đây
+  // phát theo từng shot với bộ đếm dòng không đặt lại → sau shot nhiều câu là mất giọng tới hết phim (phim #5, 10/10/2026).
+  const [daiAm, setDaiAm] = useState<Record<string, number>>({});
+  useEffect(() => {
+    const can = [...new Set(canh.flatMap((x) => dongThoai(x, nhanVat).map((d) => d.url).filter((u): u is string => !!u)))].filter((u) => daiAm[u] == null);
+    const ds = can.map((u) => { const a = new Audio(); a.preload = 'metadata'; a.onloadedmetadata = () => { if (Number.isFinite(a.duration)) setDaiAm((m) => ({ ...m, [u]: a.duration })); }; a.src = u; return a; });
+    return () => { for (const a of ds) { a.onloadedmetadata = null; a.src = ''; } };
+  }, [canh, nhanVat]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lich = useMemo(() => lichGiong(canh, nhanVat, (u) => daiAm[u] ?? null), [canh, nhanVat, daiAm]);
+  const giongNay = lich.filter((g) => g.tu <= t + 1e-6 && t < g.tu + Math.min(g.dai ?? 30, g.cat ?? 30)).pop() ?? null;
+  const khoaGiong = giongNay ? `${giongNay.url}@${giongNay.tu}` : '';
   const sfxRef = useRef<HTMLAudioElement>(null);
   const nhacRef = useRef<HTMLAudioElement>(null);
   const nhacPcRef = useRef<HTMLAudioElement>(null);
@@ -121,12 +130,15 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   useEffect(() => {
     dongBo(vidRef.current, tTrong, true);
     if (c && vidRef.current && tTrong >= dur(c)) vidRef.current.pause();   // hết phần phát (phat_s) thì dừng dù clip còn
-    if (c && dongThoai(c, nhanVat).length > 1) { setDong(0); if (thoaiRef.current) { thoaiRef.current.currentTime = 0; if (chay) void thoaiRef.current.play().catch(() => {}); else thoaiRef.current.pause(); } }
-    else dongBo(thoaiRef.current, tTrong, true);
     dongBo(sfxRef.current, tTrong, true);
     dongBo(nhacRef.current, nhacPc ? tNhacPc : t, true);
     dongBo(nhacPcRef.current, tNhacPc, true);
   }, [idx, chay, tua, nhacPc]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const el = thoaiRef.current; if (!el || !giongNay) return;
+    el.playbackRate = giongNay.nhanh;   // trình duyệt giữ cao độ khi đổi tốc độ (preservesPitch mặc định bật) — như atempo của bản xuất
+    dongBo(el, (t - giongNay.tu) * giongNay.nhanh, true);
+  }, [khoaGiong, chay, tua]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     // Tiếng sẵn của clip chỉ phát khi shot có người nói trong khung chưa có giọng riêng (dungTiengClip — cùng luật bản xuất); còn lại tắt,
     // Veo tự bịa giọng/tiếng ồn ở shot không thoại. Nút "tiếng clip" bật lại cho mọi shot khi cần nghe thử.
@@ -270,11 +282,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               : c.keyframe_url ? <img src={c.keyframe_url} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb }} />
               : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} chưa có hình</div>)}
             {c?.chu_man && <ChuManXem chu={c.chu_man} giay={tTrong} rong={doc916 ? 220 : 480} qc={qc} kieu={c.kieu_chu} />}
-            {c && (() => {
-              const ds = dongThoai(c, nhanVat).map((d) => d.url).filter((u): u is string => !!u);
-              const u = ds[dong];
-              return u ? <audio ref={thoaiRef} key={`${c.id}-${dong}`} src={u} preload="auto" autoPlay={chay && dong > 0} onEnded={() => setDong((x) => x + 1)} /> : null;
-            })()}
+            {giongNay && <audio ref={thoaiRef} key={khoaGiong} src={giongNay.url} preload="auto" />}
             {c?.am_thanh_url && <audio ref={sfxRef} key={c.am_thanh_url} src={c.am_thanh_url} preload="auto" />}
             {tap.nhac_url && <audio ref={nhacRef} src={tap.nhac_url} preload="auto" />}
             {nhacPc && <audio ref={nhacPcRef} key={nhacPc} src={nhacPc} preload="auto" />}

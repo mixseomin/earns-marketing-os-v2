@@ -239,6 +239,20 @@ if [ "$CTY_CHANGED" = "true" ] || ! systemctl is-active --quiet mos2-cty-proxy; 
   systemctl is-active mos2-cty-proxy && echo "✓ mos2-cty-proxy active" || { echo "✗ mos2-cty-proxy failed (không chặn deploy)"; systemctl status mos2-cty-proxy --no-pager | tail -10; }
 fi
 
+# 5h. Văn phòng pixel RIÊNG Phòng thử (vpthu.on.tc, :3863, HOME /var/lib/cty/vp-thu) — cùng gói pixel-agents, instance thứ hai.
+if command -v pixel-agents >/dev/null 2>&1; then
+  if ! cmp -s deploy/mos2-vp-thu.service /etc/systemd/system/mos2-vp-thu.service; then
+    cp deploy/mos2-vp-thu.service /etc/systemd/system/mos2-vp-thu.service && systemctl daemon-reload && systemctl enable mos2-vp-thu >/dev/null 2>&1 && echo "✓ mos2-vp-thu unit cài/cập nhật"
+  fi
+  if ! cmp -s deploy/nginx-vpthu.conf /etc/nginx/sites-enabled/vpthu.on.tc; then
+    cp deploy/nginx-vpthu.conf /etc/nginx/sites-enabled/vpthu.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx vpthu.on.tc cài/cập nhật" || { echo "✗ nginx vpthu.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/vpthu.on.tc; }
+  fi
+  if [ "$CTY_CHANGED" = "true" ] || ! systemctl is-active --quiet mos2-vp-thu; then
+    systemctl restart mos2-vp-thu; sleep 8
+    systemctl is-active mos2-vp-thu && echo "✓ mos2-vp-thu active" || { echo "✗ mos2-vp-thu failed (không chặn deploy)"; systemctl status mos2-vp-thu --no-pager | tail -10; }
+  fi
+fi
+
 # 6. Restart systemd unit
 systemctl restart mos2-web
 sleep 1

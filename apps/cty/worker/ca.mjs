@@ -8,6 +8,7 @@ import path from 'node:path';
 import http from 'node:http';
 import { parseFm } from '../scripts/fm.mjs';
 import { ghiLog } from './log.mjs';
+import { vpBao } from './vp.mjs';
 
 const DIR = path.dirname(new URL(import.meta.url).pathname);
 const CONG_TY = path.join(DIR, '..', 'cong-ty');
@@ -24,9 +25,11 @@ async function goi(ns, user, buoc, nk, toi) {
   const body = { model: ns.model, max_tokens: 500, temperature: 0.3,
     system: `Bạn là ${ns.ten}, ${ns.chuc_danh}, Phòng thử của công ty. LUẬT CHUNG (rút gọn): ba mức quyết định; việc nộp phải có bằng chứng; không khen mở đầu; trả lời đúng định dạng được yêu cầu, không thêm lời dẫn.\n\nHỒ SƠ CỦA BẠN:\n${ns.body}`,
     messages: [{ role: 'user', content: user }] };
+  await vpBao(ns.id, 'lam', buoc);
   const t0 = Date.now();
   const r = await fetch(`${PROXY()}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': ns.id, 'x-cty-luot': nk.ts }, body: JSON.stringify(body) });
   const d = await r.json();
+  await vpBao(ns.id, 'xong', buoc);
   const text = r.ok ? (d.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('') : '';
   nk.buoc.push({ buoc, ai: ns.ten, id: ns.id, model: ns.model, ms: Date.now() - t0, http: r.status, usage: d.usage || null, loi: r.ok ? null : d.error || JSON.stringify(d).slice(0, 200), hoi: user, dap: text });
   if (!r.ok) throw new Error(`${ns.ten}: ${r.status} ${d.error || ''}`);
@@ -78,7 +81,7 @@ if (process.argv.includes('--tu-kiem')) {
   }).listen(0, '127.0.0.1');
   await new Promise((r) => fake.once('listening', r));
   process.env.CTY_PROXY_URL = `http://127.0.0.1:${fake.address().port}`;
-  process.env.CTY_DATA_DIR = fs.mkdtempSync('/tmp/cty-ca-');
+  process.env.CTY_DATA_DIR = fs.mkdtempSync('/tmp/cty-ca-'); process.env.CTY_VP_HOMES = process.env.CTY_DATA_DIR;
   const nk = await motLuot('thử', false);
   const { docLog } = await import('./log.mjs');
   const lg = docLog({ luot: nk.ts, n: 999 });

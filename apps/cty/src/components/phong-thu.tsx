@@ -19,6 +19,8 @@ export async function PhongThu({ admin }: { admin: boolean }) {
         <textarea name="viec" rows={2} defaultValue={VIEC_MAU} required disabled={!admin} />
         <button type="submit" disabled={!admin || dangChay}>{dangChay ? 'đang chạy…' : '▶ Chạy một lượt'}</button>
         <span className="cty-mono cty-muted">mỗi lần bấm = 1 lượt qua proxy (gpt-4.1-nano + gpt-4o-mini), ghi ai_usage, trần $1/người</span>
+        <a className="cty-pill" href="https://vpthu.on.tc" target="_blank" rel="noreferrer">văn phòng pixel riêng phòng này ↗</a>
+        <span className="cty-mono cty-muted">mở cửa sổ đó cạnh trang này rồi bấm chạy: ai đang được gọi thì gõ phím, xong về ghế; từng bước hiện ở dưới (tự tải lại mỗi 4 giây)</span>
       </form>
       {!luot.length && <p className="cty-muted">Chưa có lượt nào. Bấm nút để xem Tâm giao việc → Lộc làm → Kỳ soát → báo cáo.</p>}
       {luot.map((l) => {

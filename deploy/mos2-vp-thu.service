@@ -1,0 +1,18 @@
+[Unit]
+Description=Van phong pixel RIENG Phong thu (pixel-agents, port 3863, HOME rieng) — vpthu.on.tc
+After=network.target mos2-cty.service
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/earns-marketing-os-v2/apps/cty
+Environment=NODE_ENV=production
+# HOME riêng → ~/.pixel-agents riêng (server.json, state, layout) không đụng instance cả công ty.
+Environment=HOME=/var/lib/cty/vp-thu
+ExecStartPre=/bin/mkdir -p /var/lib/cty/vp-thu
+ExecStartPre=/usr/bin/node /opt/earns-marketing-os-v2/apps/cty/scripts/seed-van-phong.mjs --config
+ExecStart=/usr/bin/pixel-agents --host 127.0.0.1 --port 3863
+ExecStartPost=/bin/sh -c 'sleep 5; /usr/bin/node /opt/earns-marketing-os-v2/apps/cty/scripts/seed-van-phong.mjs --phong thu-nghiem'
+Restart=always
+RestartSec=3
+[Install]
+WantedBy=multi-user.target

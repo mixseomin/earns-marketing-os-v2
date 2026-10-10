@@ -14,7 +14,7 @@ function docs() {
   return fs.readdirSync(NS_DIR).filter((d) => fs.existsSync(path.join(NS_DIR, d, 'SOUL.md'))).map((d) => {
     const raw = fs.readFileSync(path.join(NS_DIR, d, 'SOUL.md'), 'utf8');
     const fm = parseFm(raw).fm;
-    return { id: d, ten: String(fm.ten || d), thu_tu: Number(fm.thu_tu || 99) };
+    return { id: d, ten: String(fm.ten || d), phong: String(fm.phong || ''), thu_tu: Number(fm.thu_tu || 99) };
   }).sort((a, b) => a.thu_tu - b.thu_tu);
 }
 
@@ -44,8 +44,9 @@ async function hook(body) {
   const r = await fetch(`${base}/api/hooks/claude`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${srv.token}` }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error(`${body.hook_event_name} ${r.status}`);
 }
+const phongLoc = process.argv.includes('--phong') ? process.argv[process.argv.indexOf('--phong') + 1] : null;   // instance riêng một phòng (vpthu.on.tc)
 let n = 0;
-for (const d of docs()) {
+for (const d of docs().filter((x) => !phongLoc || x.phong === phongLoc)) {
   const session_id = `cty-${d.id}`;
   await hook({ session_id, hook_event_name: 'SessionStart', cwd: `/office/${d.ten}`, source: 'startup' });
   await hook({ session_id, hook_event_name: 'Stop' });

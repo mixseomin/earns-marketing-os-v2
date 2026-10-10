@@ -14,7 +14,7 @@ lich: theo lịch khoá
 skills: [courseforge-video, udemy-publish, elevenlabs]
 data: [tien-do:courseforge, san-pham:udemy]
 pay: 
-tran_usd: 0
+tran_usd_thang: 0
 ---
 ## Vai
 

@@ -14,7 +14,7 @@ lich: theo phát sinh
 skills: [marketplace-compliance, google-ads-cam-appeal, inbox]
 data: [reviews:*, inbox:khieu-nai, vu-viec:*]
 pay: 
-tran_usd: 15
+tran_usd_thang: 15
 ---
 ## Vai
 

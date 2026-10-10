@@ -3,8 +3,9 @@
 // phải là off, kind hợp lệ, có HEARTBEAT.md. Chạy trong GHA trước build (như check-canon). Exit 1 khi lệch.
 import fs from 'node:fs';
 import path from 'node:path';
+import { parseFm } from './fm.mjs';
 const R = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'cong-ty');
-const fm = (f) => Object.fromEntries([...(fs.readFileSync(f, 'utf8').match(/^---\n([\s\S]*?)\n---/)?.[1] ?? '').matchAll(/^([\w-]+):[ \t]*(.*)$/gm)].map((m) => [m[1], m[2].trim()]));
+const fm = (f) => parseFm(fs.readFileSync(f, 'utf8')).fm;
 const phong = Object.fromEntries(fs.readdirSync(path.join(R, 'phong')).filter((f) => f.endsWith('.md')).map((f) => [f.replace(/\.md$/, ''), fm(path.join(R, 'phong', f))]));
 const ns = Object.fromEntries(fs.readdirSync(path.join(R, 'nhan-su')).filter((d) => fs.existsSync(path.join(R, 'nhan-su', d, 'SOUL.md'))).map((d) => [d, fm(path.join(R, 'nhan-su', d, 'SOUL.md'))]));
 const loi = [];

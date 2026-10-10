@@ -1,30 +1,18 @@
 // Kho hồ sơ công ty = thư mục `cong-ty/` (markdown + frontmatter + svg), đọc lúc render. Đây là nguồn sự thật cho
 // sơ đồ tổ chức, phòng, nhân sự, luật; worker đợt sau đọc cùng thư mục này để lắp ráp gói đọc theo vai.
-// ponytail: parser frontmatter tự viết (key: value · [a, b] · số · true/false), đủ cho hồ sơ; không thêm gray-matter.
 import 'server-only';
 import fs from 'node:fs';
 import path from 'node:path';
+import { parseFm as parseFmJs } from '../../scripts/fm.mjs';
+const parseFm = parseFmJs as (raw: string) => { fm: Fm; body: string };
 
 export const ROOT = path.join(process.cwd(), 'cong-ty');
 
 export type Fm = Record<string, string | number | boolean | string[]>;
 export type Doc = { id: string; fm: Fm; body: string };
 
-export function parseFm(raw: string): { fm: Fm; body: string } {
-  const m = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
-  if (!m) return { fm: {}, body: raw };
-  const fm: Fm = {};
-  for (const line of (m[1] ?? '').split('\n')) {
-    const kv = line.match(/^([a-zA-Z_][\w-]*):\s*(.*)$/);
-    if (!kv) continue;
-    const k = kv[1] ?? ''; const v: string = (kv[2] ?? '').trim();
-    if (v.startsWith('[') && v.endsWith(']')) { fm[k] = v.slice(1, -1).split(',').map((x) => x.trim().replace(/^["']|["']$/g, '')).filter(Boolean); continue; }
-    if (v === 'true' || v === 'false') { fm[k] = v === 'true'; continue; }
-    if (/^-?\d+(\.\d+)?$/.test(v)) { fm[k] = Number(v); continue; }
-    fm[k] = v.replace(/^["']|["']$/g, '');
-  }
-  return { fm, body: m[2] ?? '' };
-}
+// Parser dùng chung với script (scripts/fm.mjs) — một bản, một bộ tự kiểm.
+export { parseFm };
 
 function readDoc(file: string, id: string): Doc | null {
   if (!fs.existsSync(file)) return null;

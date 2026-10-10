@@ -29,7 +29,7 @@ h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem}
 .cty-the{display:flex;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px;text-decoration:none}
 .cty-the:hover{border-color:var(--accent)}
 .cty-the-ten{font-weight:600}
-.cty-the-chuc{font-size:.92rem}
+.cty-the-chuc{font-size:.92rem;font-weight:400}
 .cty-the-body{min-width:0}
 .cty-so-do{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px;margin:1rem 0;overflow-x:auto}
 .cty-so-do svg{display:block;width:100%;min-width:720px;height:auto;font-family:var(--body);font-size:12px}

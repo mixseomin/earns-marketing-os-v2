@@ -14,7 +14,7 @@ lich: theo issue + ca gấp
 skills: [deploy-git, box-monitor, nginx, mos2]
 data: [box-monitor:*, journalctl:*, gha:*, tien-do:mos2]
 pay: 
-tran_usd: 0
+tran_usd_thang: 0
 ---
 ## Vai
 

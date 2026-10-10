@@ -14,7 +14,7 @@ lich: 06:30 hằng ngày + theo cảnh báo
 skills: [dang-nhap-van-tay, marketplace-compliance, profile-locks]
 data: [accounts:*, platform_alerts:*, nhip_dang:*, voice_score:*, lint:*, outreach:tu-choi]
 pay: 
-tran_usd: 15
+tran_usd_thang: 15
 ---
 ## Vai
 

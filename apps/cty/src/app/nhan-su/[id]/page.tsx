@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getCurrentUser, loginUrl } from '@/lib/auth';
 import { nhanSu, heartbeat, phong, KHUON, MUC } from '@/lib/cong-ty';
-import { Avatar, HUE } from '@/components/avatar';
+import { Avatar, hueOf } from '@/components/avatar';
 import { Md } from '@/components/md';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +19,7 @@ export default async function TrangNhanSu({ params }: { params: Promise<{ id: st
     <>
       <p className="cty-mono cty-muted"><a href="/">sơ đồ</a> › {p ? <Link href={`/phong/${p.id}`}>{String(p.fm.ten)}</Link> : String(f.phong)} › nhân sự</p>
       <div className="cty-head-nhan-su">
-        <Avatar seed={id} hue={HUE[String(f.phong)] ?? 200} size={64} />
+        <Avatar seed={id} hue={hueOf(String(f.phong))} size={64} />
         <div><h1>{String(f.ten)}</h1><div>{String(f.chuc_danh)} <span className="cty-pill cty-pill-kind">{f.kind === 'ai' ? '🤖 AI' : f.kind === 'human' ? '👤 người' : '🏷 vendor'}</span></div></div>
       </div>
       <dl className="cty-kv">
@@ -31,7 +31,7 @@ export default async function TrangNhanSu({ params }: { params: Promise<{ id: st
         <dt>Kỹ năng</dt><dd className="cty-mono">{arr('skills').join(' · ') || '—'}</dd>
         <dt>Gói số đọc</dt><dd className="cty-mono">{arr('data').join(' · ') || '—'}</dd>
         {f.pay ? <><dt>Trả công</dt><dd>{String(f.pay)}</dd></> : null}
-        <dt>Trần chi tháng</dt><dd>{f.tran_usd != null && f.tran_usd !== '' ? `$${String(f.tran_usd)}` : '—'}</dd>
+        <dt>Trần chi tháng</dt><dd>{f.tran_usd_thang != null && f.tran_usd_thang !== '' ? `$${String(f.tran_usd_thang)}` : '—'}</dd>
       </dl>
       <Md>{d.body}</Md>
       {hb && <><h2>HEARTBEAT.md</h2><Md>{hb}</Md></>}

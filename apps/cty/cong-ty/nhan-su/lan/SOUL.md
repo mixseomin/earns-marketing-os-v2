@@ -14,7 +14,7 @@ lich: mỗi giờ khi bật
 skills: [google-ads, gsc-monitoring, ga4, google-ads-cam-appeal]
 data: [ga4_daily:adfond, kenh_so_ngay:adfond, tien-do:adfond, phong_bi:adfond, camp:*]
 pay: 
-tran_usd: 40
+tran_usd_thang: 40
 ---
 ## Vai
 

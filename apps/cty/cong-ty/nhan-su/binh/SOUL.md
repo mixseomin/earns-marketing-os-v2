@@ -14,7 +14,7 @@ lich: thứ hai hằng tuần
 skills: [keywords-everywhere, kdp-book-market]
 data: [kdp:bsr, etsy:ban, keywords:*]
 pay: 
-tran_usd: 0
+tran_usd_thang: 0
 ---
 ## Vai
 

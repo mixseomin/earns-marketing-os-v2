@@ -21,11 +21,11 @@ C bảo vệ A và B: năm qua mất Etsy cũ và asfy_03.
 | Thuê ngoài | $150 | thử |
 | Marketing · Nội dung · Kỹ thuật · Kinh doanh · Pháp chế · An toàn TK | $0 | server đã trả; chỉ API |
 
-Trong phong bì: trưởng phòng ký (mức 2). Vượt: mức 3. An giữ sổ phong bì; worker kiểm trước ca có tay chạm tiền.
+Trong phong bì: trưởng phòng ký (mức 2). Vượt: mức 3. Khi bật: An giữ sổ phong bì, worker kiểm trước ca có tay chạm tiền (chưa dựng).
 
 ## Trần chi API tháng, đợt 1
 
-Tổng **$150/tháng**. Theo người: Lan $40 · Minh $25 · Hà $20 · Kiên $15 · An $15 · Trang $15 · Hùng $10 · dự phòng $10. Ước lượng, đo lại sau 2 tuần. Vượt trần người → không mở ca mới cho người đó, báo An. Vượt trần tổng → cả công ty dừng, báo Giám đốc.
+Tổng **$150/tháng**. Theo người: Lan $40 · Minh $25 · Hà $20 · Kiên $15 · An $15 · Trang $15 · Hùng $10 · dự phòng $10. Ước lượng, đo lại sau 2 tuần. Khi bật: vượt trần người → không mở ca mới cho người đó, báo An; vượt trần tổng → cả công ty dừng, báo Giám đốc (cơ chế chưa dựng).
 
 ## Sub
 

@@ -4,6 +4,7 @@
 // ~/.pixel-agents/server.json rồi bơm; systemd mos2-vp.service gọi ở ExecStartPost. `--config` chỉ ghi watchAllSessions (ExecStartPre).
 import fs from 'node:fs';
 import path from 'node:path';
+import { parseFm } from './fm.mjs';
 import os from 'node:os';
 
 const HOME = path.join(os.homedir(), '.pixel-agents');
@@ -12,8 +13,8 @@ const NS_DIR = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 
 function docs() {
   return fs.readdirSync(NS_DIR).filter((d) => fs.existsSync(path.join(NS_DIR, d, 'SOUL.md'))).map((d) => {
     const raw = fs.readFileSync(path.join(NS_DIR, d, 'SOUL.md'), 'utf8');
-    const fm = Object.fromEntries([...(raw.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? '').matchAll(/^([\w-]+):[ \t]*(.*)$/gm)].map((m) => [m[1], m[2].trim()]));
-    return { id: d, ten: fm.ten || d, phong: fm.phong || '', thu_tu: Number(fm.thu_tu || 99) };
+    const fm = parseFm(raw).fm;
+    return { id: d, ten: String(fm.ten || d), thu_tu: Number(fm.thu_tu || 99) };
   }).sort((a, b) => a.thu_tu - b.thu_tu);
 }
 
@@ -28,8 +29,17 @@ if (process.argv.includes('--config')) {
   process.exit(0);
 }
 
-const srv = JSON.parse(fs.readFileSync(path.join(HOME, 'server.json'), 'utf8'));
-const base = `http://127.0.0.1:${srv.port}`;
+// Chờ server thật sự nhận request (poll /api/health tới 30s) thay vì tin một con số sleep — server.json có thể còn là của lần chạy trước.
+let srv, base;
+for (let i = 0; i < 60; i++) {
+  try {
+    srv = JSON.parse(fs.readFileSync(path.join(HOME, 'server.json'), 'utf8'));
+    base = `http://127.0.0.1:${srv.port}`;
+    if ((await fetch(`${base}/api/health`)).ok) break;
+  } catch {}
+  await new Promise((r) => setTimeout(r, 500));
+  if (i === 59) { console.error('✗ pixel-agents không lên sau 30s'); process.exit(1); }
+}
 async function hook(body) {
   const r = await fetch(`${base}/api/hooks/claude`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${srv.token}` }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error(`${body.hook_event_name} ${r.status}`);

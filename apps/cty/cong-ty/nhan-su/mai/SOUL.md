@@ -14,7 +14,7 @@ lich: off (dựng xong, chưa chạy)
 skills: [medium, reddit, kdp-book-market, udemy]
 data: [nguon:medium, nguon:instructables, nguon:reddit, kiem:udemy, kiem:kdp, kiem:etsy]
 pay: 
-tran_usd: 0
+tran_usd_thang: 0
 ---
 ## Vai
 

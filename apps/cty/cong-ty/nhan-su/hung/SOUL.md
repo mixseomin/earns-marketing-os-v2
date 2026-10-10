@@ -14,7 +14,7 @@ lich: mỗi 15 phút
 skills: [mos2-review-queue, telegram]
 data: [issues:*, box-monitor, review-queue, tien-do:ket]
 pay: 
-tran_usd: 10
+tran_usd_thang: 10
 ---
 ## Vai
 

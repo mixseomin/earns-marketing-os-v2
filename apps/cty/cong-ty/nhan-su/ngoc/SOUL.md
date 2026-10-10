@@ -14,7 +14,7 @@ lich: theo đặt hàng
 skills: [human-voice, voice-score, content-pillars]
 data: [content_pillars:*, san-pham:mo-ta, outreach:email-draft]
 pay: 
-tran_usd: 0
+tran_usd_thang: 0
 ---
 ## Vai
 

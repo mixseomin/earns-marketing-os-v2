@@ -14,7 +14,7 @@ lich: sau mỗi cuốn đăng
 skills: [courseforge-video, tiktok, youtube]
 data: [san-pham:vua-dang, kenh_so_ngay:video]
 pay: 
-tran_usd: 0
+tran_usd_thang: 0
 ---
 ## Vai
 

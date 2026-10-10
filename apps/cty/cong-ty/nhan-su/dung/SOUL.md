@@ -14,7 +14,7 @@ lich: theo issue
 skills: [gsc-monitoring, seo, git]
 data: [tien-do:militarycalc, tien-do:govcalcs, tien-do:visagps, tien-do:mint-almanac, gsc:*]
 pay: 
-tran_usd: 0
+tran_usd_thang: 0
 ---
 ## Vai
 

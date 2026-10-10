@@ -14,7 +14,7 @@ lich: 07:30 hằng ngày
 skills: [mos2-plays, tiendo]
 data: [tasks:submitted, tien-do:*, backlinks:*, san-pham:*]
 pay: 
-tran_usd: 20
+tran_usd_thang: 20
 ---
 ## Vai
 

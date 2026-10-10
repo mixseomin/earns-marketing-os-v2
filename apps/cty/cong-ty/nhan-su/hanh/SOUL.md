@@ -14,7 +14,7 @@ lich: theo đặt hàng
 skills: [vendor-brief, fiverr, upwork]
 data: [vendors:*, phong_bi:thue-ngoai, tasks:vendor]
 pay: 
-tran_usd: 0
+tran_usd_thang: 0
 ---
 ## Vai
 

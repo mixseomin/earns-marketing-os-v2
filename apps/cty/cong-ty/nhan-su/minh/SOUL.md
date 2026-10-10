@@ -14,7 +14,7 @@ lich: 08:00 hằng ngày · thứ hai bản tuần · quý QBR
 skills: [tiendo, play, followup]
 data: [tien-do:*, tasks:submitted, issues:lo-cho-ky, staff_state:*, ai_usage:*]
 pay: 
-tran_usd: 25
+tran_usd_thang: 25
 ---
 ## Vai
 

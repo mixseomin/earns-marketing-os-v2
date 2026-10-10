@@ -9,7 +9,5 @@ export function Avatar({ seed, hue, size = 44 }: { seed: string; hue: number; si
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.5 -0.5 8 8" shape-rendering="crispEdges"><rect x="-0.5" y="-0.5" width="8" height="8" rx="1" fill="hsl(${hue} 40% 92%)"/><g fill="hsl(${hue} 55% 42%)">${cells.join('')}</g></svg>`;
   return <img src={`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`} width={size} height={size} alt="" style={{ borderRadius: 6, display: 'block' }} />;
 }
-export const HUE: Record<string, number> = {
-  'vp-giam-doc': 200, 'du-an': 150, 'sach': 30, 'adfond': 0, 'dung-san-pham': 260, 'marketing': 320, 'noi-dung': 45,
-  'ky-thuat': 220, 'thue-ngoai': 90, 'kinh-doanh': 110, 'phap-che': 20, 'an-toan-tk': 180, 'nghien-cuu-thi-truong': 280,
-};
+// Màu theo phòng: băm id phòng → hue (0–359). Không giữ bảng màu riêng để thêm phòng không phải sửa hai nơi.
+export function hueOf(phong: string): number { let h = 5381; for (const ch of phong) h = ((h << 5) + h + ch.charCodeAt(0)) >>> 0; return h % 360; }

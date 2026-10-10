@@ -14,7 +14,7 @@ lich: theo issue (wake-on-mention)
 skills: [astrolas, git, tiendo]
 data: [tien-do:astrolas, tasks:astrolas, gop-y:astrolas, review-queue:astrolas]
 pay: 
-tran_usd: 0
+tran_usd_thang: 0
 ---
 ## Vai
 

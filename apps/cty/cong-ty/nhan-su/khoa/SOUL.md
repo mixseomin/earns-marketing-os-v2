@@ -14,7 +14,7 @@ lich: T2 và T4
 skills: [mos2-plays, outreach, link-gate, reddit]
 data: [plays:*, backlinks:*, outreach_prospects:*, habitats:*]
 pay: 
-tran_usd: 0
+tran_usd_thang: 0
 ---
 ## Vai
 

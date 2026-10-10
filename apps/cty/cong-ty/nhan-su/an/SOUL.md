@@ -14,7 +14,7 @@ lich: 07:00 hằng ngày · CN bản tuần
 skills: [ga4, kenh-so-ngay]
 data: [ga4_daily:*, kenh_so_ngay:*, ai_usage:*, phong_bi:*, doanh_thu_theo_nguon:*]
 pay: 
-tran_usd: 15
+tran_usd_thang: 15
 ---
 ## Vai
 

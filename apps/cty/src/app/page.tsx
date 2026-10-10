@@ -14,7 +14,7 @@ export default async function Trang() {
   const soAi = ns.filter((d) => d.fm.kind === 'ai').length;
   return (
     <>
-      <div className="cty-banner"><b>Chế độ tham quan.</b> {ns.length} nhân sự ({soAi} AI) trong {phong.length} phòng đã có hồ sơ; heartbeat tắt, chưa gọi mô hình, chưa tốn tiền. Bật từng phòng khi anh duyệt.</div>
+      <div className="cty-banner"><b>Chế độ tham quan.</b> {ns.length} nhân sự ({soAi} AI) trong {phong.length} phòng đã có hồ sơ; heartbeat tắt, chưa gọi mô hình, chưa tốn tiền. Chưa có cơ chế bật: worker, proxy mô hình, bảng việc chưa dựng (<a href="https://mos2.on.tc/plays?view=tiendo&tdp=adfond&td=hm&tdId=115">sổ C06, bước 5</a>).</div>
       <h1>Sơ đồ tổ chức</h1>
       <p className="cty-muted">Giám đốc: anh — nhận một tin sáng, ký tối đa 3 quyết định/ngày. Luồng báo cáo: nhân viên → trưởng phòng → Minh → anh.</p>
       {phong.map((p) => {

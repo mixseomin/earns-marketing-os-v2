@@ -14,7 +14,7 @@ lich: 06:00 hằng ngày khi bật
 skills: [kdp-paperback, etsy, puzzle-books, marketplace-compliance]
 data: [san-pham:etsy:FrontPorchZ, san-pham:kdp, lich-104-cuon, phong_bi:sach]
 pay: 
-tran_usd: 0
+tran_usd_thang: 0
 ---
 ## Vai
 

@@ -14,7 +14,7 @@ lich: T2 hằng tuần (khi bật)
 skills: [affiliate, gumroad, etsy-coupon]
 data: [doanh_thu_theo_nguon:*, ma_nguon:*, hoa_hong:*]
 pay: 
-tran_usd: 0
+tran_usd_thang: 0
 ---
 ## Vai
 

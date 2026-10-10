@@ -14,7 +14,7 @@ lich: theo việc Thảo giao
 skills: [puzzle-books, marketplace-compliance]
 data: [themes:*, lint:*]
 pay: 
-tran_usd: 0
+tran_usd_thang: 0
 ---
 ## Vai
 

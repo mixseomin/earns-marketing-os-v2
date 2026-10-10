@@ -9,6 +9,26 @@ const usd = (b: { model: string; usage: { input_tokens?: number; output_tokens?:
   const [i, o] = g[k]!; return ((b.usage.input_tokens || 0) * i + (b.usage.output_tokens || 0) * o) / 1e6;
 };
 
+// Câu trả lời của mô hình là JSON (giao việc / kết quả / soát) → hiện thành nhãn + nội dung; chữ thường (báo cáo) giữ nguyên dòng.
+const NHAN: Record<string, string> = { giao_cho: 'Giao cho', viec: 'Việc', tieu_chi: 'Tiêu chí', ket_qua: 'Kết quả', bang_chung: 'Bằng chứng', ok: 'Kết luận', ly_do: 'Lý do' };
+function Dap({ text }: { text: string }) {
+  let v: unknown = null;
+  try { v = JSON.parse(text); } catch { /* không phải JSON */ }
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return <div className="cty-dap cty-dap-chu">{text}</div>;
+  return (
+    <dl className="cty-dap">
+      {Object.entries(v as Record<string, unknown>).map(([k, x]) => (
+        <div key={k} className="cty-dap-hang">
+          <dt>{NHAN[k] ?? k}</dt>
+          <dd>{typeof x === 'boolean' ? <span className={`cty-pill ${x ? '' : 'cty-pill-off'}`}>{x ? 'đạt' : 'chưa đạt'}</span>
+            : Array.isArray(x) ? <ol>{x.map((y, i) => <li key={i}>{String(y)}</li>)}</ol>
+            : <span className="cty-dap-chu">{String(x)}</span>}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 export async function PhongThu({ admin }: { admin: boolean }) {
   const luot = await dsLuot();
   const dangChay = luot.some((l) => l.trang_thai === 'đang chạy');
@@ -36,7 +56,7 @@ export async function PhongThu({ admin }: { admin: boolean }) {
               {l.buoc.map((b, i) => (
                 <li key={i}>
                   <div className="cty-thu-head"><b>{b.buoc}</b> · {b.ai} <span className="cty-mono cty-muted">{b.model} · {b.usage ? `${b.usage.input_tokens}+${b.usage.output_tokens} tok` : ''} · {(b.ms / 1000).toFixed(1)}s{b.loi ? ` · HTTP ${b.http}` : ''}</span></div>
-                  {b.loi ? <pre className="cty-thu-loi">{b.loi}</pre> : <pre>{b.dap}</pre>}
+                  {b.loi ? <pre className="cty-thu-loi">{b.loi}</pre> : <Dap text={b.dap} />}
                 </li>
               ))}
             </ol>

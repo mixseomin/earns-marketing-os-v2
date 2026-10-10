@@ -40,17 +40,17 @@ export async function motLuot(viec, ghi = true) {
   const luu = () => { if (ghi) { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(nk, null, 2)); } };
   luu();
   try {
-    const giao = json(await goi(tam, `Việc Giám đốc giao cho phòng: "${viec}". Chia thành MỘT việc cụ thể cho Lộc kèm 2–3 tiêu chí đo được. ${tam.body.includes('JSON') ? '' : ''}Trả lời JSON: {"giao_cho":"loc","viec":"…","tieu_chi":["…"]}`, '1 giao việc', nk));
+    const giao = json(await goi(tam, `Việc Giám đốc giao cho phòng: "${viec}". Chia thành MỘT việc cụ thể cho Lộc kèm 2–4 tiêu chí đo được. BẮT BUỘC: giữ nguyên mọi ràng buộc trong câu gốc (ngôn ngữ, số câu, cấm từ) thành tiêu chí; việc gốc tiếng Anh thì "viec" viết tiếng Anh. Trả lời JSON: {"giao_cho":"loc","viec":"…","tieu_chi":["…"]}`, '1 giao việc', nk));
     if (!giao?.viec) throw new Error('Tâm không trả JSON giao việc');
     const tieuChi = (giao.tieu_chi || []).map((t, i) => `${i + 1}. ${t}`).join('\n');
-    let lam = json(await goi(loc, `Việc: ${giao.viec}\nTiêu chí:\n${tieuChi}\nLàm và trả lời JSON: {"ket_qua":"…","bang_chung":"…"}`, '2 làm', nk));
+    let lam = json(await goi(loc, `Việc: ${giao.viec}\nTiêu chí:\n${tieuChi}\nLàm đúng ngôn ngữ tiêu chí yêu cầu. Trả lời JSON: {"ket_qua":"…","bang_chung":"…"}`, '2 làm', nk));
     if (!lam?.ket_qua) throw new Error('Lộc không trả JSON kết quả');
-    let soat = json(await goi(ky, `Tiêu chí:\n${tieuChi}\nKết quả Lộc nộp:\n${lam.ket_qua}\nBằng chứng Lộc khai: ${lam.bang_chung}\nSoát từng tiêu chí. Trả lời JSON: {"ok":true|false,"ly_do":"…"}`, '3 soát', nk));
+    let soat = json(await goi(ky, `Tiêu chí:\n${tieuChi}\nKết quả Lộc nộp:\n${lam.ket_qua}\nBằng chứng Lộc khai: ${lam.bang_chung}\nSoát từng tiêu chí. Tiêu chí đếm được (số câu, số từ): liệt kê từng câu/từ rồi đếm, ghi số đếm vào ly_do. Trả lời JSON: {"ok":true|false,"ly_do":"…"}`, '3 soát', nk));
     if (soat && soat.ok === false) {
       lam = json(await goi(loc, `Kỳ trả về vì: ${soat.ly_do}\nViệc: ${giao.viec}\nTiêu chí:\n${tieuChi}\nSửa và nộp lại JSON: {"ket_qua":"…","bang_chung":"…"}`, '4 làm lại', nk)) || lam;
-      soat = json(await goi(ky, `Tiêu chí:\n${tieuChi}\nKết quả nộp lại:\n${lam.ket_qua}\nBằng chứng: ${lam.bang_chung}\nTrả lời JSON: {"ok":true|false,"ly_do":"…"}`, '5 soát lại', nk)) || soat;
+      soat = json(await goi(ky, `Tiêu chí:\n${tieuChi}\nKết quả nộp lại:\n${lam.ket_qua}\nBằng chứng: ${lam.bang_chung}\nLiệt kê từng câu rồi đếm. Trả lời JSON: {"ok":true|false,"ly_do":"…"}`, '5 soát lại', nk)) || soat;
     }
-    const baoCao = await goi(tam, `Viết báo cáo sáng theo mẫu:\n[Tên] · [phòng] · [ngày]\nXong: <việc> — <bằng chứng>\nĐang: <việc> — <tới đâu>\nCần: <mức> — <một câu>\n\nDữ kiện: việc "${giao.viec}"; Lộc nộp: ${lam.ket_qua.slice(0, 300)}; bằng chứng: ${lam.bang_chung}; Kỳ soát: ${soat ? (soat.ok ? 'đạt' : 'chưa đạt — ' + soat.ly_do) : 'không có kết luận'}. Trạng thái việc: ${soat?.ok ? 'submitted (chờ Giám đốc ký)' : 'revision'}. Ngày ${new Date().toISOString().slice(0, 10)}.`, '6 báo cáo', nk);
+    const baoCao = await goi(tam, `Viết báo cáo sáng bằng VĂN BẢN THUẦN đúng 4 dòng theo mẫu dưới (không JSON, không thêm dòng):\n[Tên] · [phòng] · [ngày]\nXong: <việc> — <bằng chứng>\nĐang: <việc> — <tới đâu>\nCần: <mức> — <một câu>\n\nDữ kiện: việc "${giao.viec}"; Lộc nộp: ${lam.ket_qua.slice(0, 300)}; bằng chứng: ${lam.bang_chung}; Kỳ soát: ${soat ? (soat.ok ? 'đạt' : 'chưa đạt — ' + soat.ly_do) : 'không có kết luận'}. Trạng thái việc: ${soat?.ok ? 'submitted (chờ Giám đốc ký)' : 'revision'}. Ngày ${new Date().toISOString().slice(0, 10)}.`, '6 báo cáo', nk);
     nk.ket = { giao, lam, soat, bao_cao: baoCao, trang_thai_viec: soat?.ok ? 'submitted' : 'revision' };
     nk.trang_thai = 'xong';
   } catch (e) { nk.trang_thai = 'lỗi'; nk.loi = String(e.message || e); }

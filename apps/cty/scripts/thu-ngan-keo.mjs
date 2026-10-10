@@ -16,7 +16,7 @@ let sai = 0; const kq = (ten, ok, chi) => { console.log(`${ok ? '✓' : '✗'} $
 const LUOT = 'nhat-ky:luot=2026-10-10T15-23-33-941Z';
 
 await p.goto(`${base}/phong/thu-nghiem`); await doi();
-await p.locator('.cty-row a.cty-nguoi').first().click();
+await p.locator('.cty-phong-nguoi a.cty-nguoi-link').first().click();
 kq('0 mở từ màn (bấm thẻ người)', (await choChong('nhan-su:tam')) === 'nhan-su:tam' && new URL(p.url()).pathname === '/phong/thu-nghiem', await tieu());
 
 await p.goto(`${base}/?ngan=phong:thu-nghiem&ngan=nhan-su:tam&ngan=${encodeURIComponent(LUOT)}`); await doi();

@@ -7,14 +7,15 @@ import { Avatar, hueOf } from '../avatar';
 import { Md } from '../md';
 import { SoDoKhuon } from '../so-do-khuon';
 import { SvgTuongTac } from '../svg-tuong-tac';
-import { PhongThu } from '../phong-thu';
+import { PhongThuChay, PhongThuDs, demLuot } from '../phong-thu';
+import { TabPhong } from '../tab-phong';
 import { DoDac } from '../do-dac';
 import { SoSuKien } from '../so-su-kien';
 import { Nguoi } from '../nguoi';
 import { tachKhoa } from '@/lib/ngan';
 
 export type Ngan = { tieuDe: React.ReactNode; than: React.ReactNode };
-const Thieu = ({ chu }: { chu: string }) => <p className="cty-gopy-loi" data-loi>{chu}</p>;
+const Thieu = ({ chu }: { chu: string }) => <p className="cty-bao-loi" data-loi>{chu}</p>;
 const O = ({ nhan, children }: { nhan: string; children: React.ReactNode }) => <div className="nk-o"><div className="nk-o-nhan">{nhan}</div><div className="nk-o-gt">{children}</div></div>;
 
 export function nganNhanSu(id: string): Ngan {
@@ -59,7 +60,7 @@ export function nganNhanSu(id: string): Ngan {
   };
 }
 
-export function nganPhong(id: string, admin: boolean): Ngan {
+export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
   const p = phong(id);
   if (!p) return { tieuDe: id, than: <Thieu chu={`Không có phòng "${id}" (cong-ty/phong/${id}.md).`} /> };
   const tatCa = dsNhanSu(); const ns = tatCa.filter((d) => d.fm.phong === id);
@@ -67,32 +68,37 @@ export function nganPhong(id: string, admin: boolean): Ngan {
   const k = KHUON[String(p.fm.khuon)];
   const svg = p.fm.so_do ? soDo(String(p.fm.so_do)) : '';
   const thu = String(p.fm.thu_nghiem) === 'true';
-  return {
-    tieuDe: <>{String(p.fm.ten)} <span className="cty-pill">{k?.ten ?? String(p.fm.khuon)}</span> <span className="cty-pill cty-pill-off">chưa hoạt động</span></>,
-    than: (
-      <div className="nk-3cot">
-        <div className="nk-cot">
-          <SvgTuongTac ten={ten}>{svg ? <figure className="cty-so-do" dangerouslySetInnerHTML={{ __html: svg }} /> : <SoDoKhuon p={p} ns={ns} />}</SvgTuongTac>
-          <div className="cty-row">
-            {ns.map((d) => (
-              <Link key={d.id} href={`/nhan-su/${d.id}`} className="cty-nguoi">
-                <Avatar seed={d.id} hue={hueOf(id)} size={36} />
-                <span><b>{String(d.fm.ten)}</b><br /><small className="cty-muted">{String(d.fm.chuc_danh)}</small></span>
-              </Link>
-            ))}
-          </div>
-          <div className="nk-luoi">
-            <O nhan="Trưởng phòng">{String(p.fm.truong ?? '—')}</O>
-            <O nhan="Đơn vị việc">{String(p.fm.don_vi_viec ?? '—')}</O>
-            <O nhan="Cổng người">{String(p.fm.cong_nguoi ?? '—')}</O>
-            <O nhan="Khuôn">{k ? k.mota : String(p.fm.khuon)}</O>
-          </div>
-        </div>
-        <div className="nk-cot nk-cot-dai"><DoDac p={p} ns={ns} /></div>
-        <div className="nk-cot nk-cot-dai">{thu ? <PhongThu admin={admin} /> : <Md>{p.body}</Md>}</div>
+  const dem = thu ? await demLuot() : null;
+  const moi = dem?.moi;
+  // Cảnh báo phải liếc-thấy, không nằm trong tab (YDNI): lượt gần nhất lỗi / phải làm lại → một dải ghim trên thanh tab.
+  const canhBao = moi?.trang_thai === 'lỗi' ? `Lượt gần nhất lỗi: ${moi.loi ?? ''}`
+    : moi?.ket?.trang_thai_viec === 'revision' ? `Lượt gần nhất phải làm lại — Kỳ: ${moi.ket.soat?.ly_do ?? ''}` : '';
+  const soDoTab = (
+    <div className="cty-sodo-tab">
+      <SvgTuongTac ten={ten}>{svg ? <figure className="cty-so-do" dangerouslySetInnerHTML={{ __html: svg }} /> : <SoDoKhuon p={p} ns={ns} />}</SvgTuongTac>
+      <div className="nk-luoi">
+        <O nhan="Trưởng phòng">{String(p.fm.truong ?? '—')}</O>
+        <O nhan="Đơn vị việc">{String(p.fm.don_vi_viec ?? '—')}</O>
+        <O nhan="Cổng người">{String(p.fm.cong_nguoi ?? '—')}</O>
+        <O nhan="Khuôn">{k ? `${k.ten} — ${k.mota}` : String(p.fm.khuon)}</O>
       </div>
-    ),
-  };
+      {p.body.trim() && <details className="cty-details"><summary>Mô tả phòng</summary><Md>{p.body}</Md></details>}
+    </div>
+  );
+  const dau = (
+    <>
+      <div className="cty-phong-nguoi">{ns.map((d) => <Nguoi key={d.id} id={d.id} />)}<span className="cty-muted cty-nho">{ns.length} người</span></div>
+      {canhBao && <p className="cty-bao-loi cty-bao-mot" data-loi title={canhBao}>{canhBao}</p>}
+    </>
+  );
+  const than = thu
+    ? <TabPhong khoa={id} dau={dau} tabs={[{ key: 'chay', nhan: 'Chạy' }, { key: 'luot', nhan: 'Các lượt', so: dem!.tong }, { key: 'dodac', nhan: 'Đồ đạc' }, { key: 'sodo', nhan: 'Sơ đồ' }]}>
+        {[<PhongThuChay key="c" admin={admin} />, <PhongThuDs key="l" />, <DoDac key="d" p={p} ns={ns} />, <div key="s">{soDoTab}</div>]}
+      </TabPhong>
+    : <TabPhong khoa={id} dau={dau} tabs={[{ key: 'sodo', nhan: 'Sơ đồ' }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
+        {[<div key="s">{soDoTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
+      </TabPhong>;
+  return { tieuDe: <>{String(p.fm.ten)} <span className="cty-pill cty-pill-kind">{k?.ten ?? String(p.fm.khuon)}</span></>, than };
 }
 
 export function nganNhatKy(ma: string): Ngan {
@@ -127,10 +133,10 @@ export function nganMucTieu(): Ngan {
   };
 }
 
-export function nganTheoKhoa(khoa: string, admin: boolean): Ngan {
+export async function nganTheoKhoa(khoa: string, admin: boolean): Promise<Ngan> {
   const { loai, ma } = tachKhoa(khoa);
   if (loai === 'nhan-su') return nganNhanSu(ma);
-  if (loai === 'phong') return nganPhong(ma, admin);
+  if (loai === 'phong') return await nganPhong(ma, admin);
   if (loai === 'nhat-ky') return nganNhatKy(ma);
   if (loai === 'luat') return nganLuat();
   if (loai === 'muc-tieu') return nganMucTieu();

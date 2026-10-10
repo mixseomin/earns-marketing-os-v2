@@ -1,8 +1,10 @@
-// Khối vận hành của Phòng thử: nút "Chạy một lượt" (mỗi lần bấm = một lượt, ~1 cent) + nhật ký từng lượt, từng bước.
+// Phòng thử, chia mảnh cho các tab của ngăn phòng (YDNI): Chạy = khung giao việc + lượt mới nhất đủ bước; Các lượt = mỗi lượt
+// một dòng (bấm bung đủ bước). Mỗi lần bấm Chạy = một lượt (~$0,0005).
 import Link from 'next/link';
-import { dsLuot, chayMotLuot } from '@/lib/thu-nghiem';
+import { dsLuot, type Luot } from '@/lib/thu-nghiem';
+import { KhungChay } from './khung-chay';
 import { dsNhanSu } from '@/lib/cong-ty';
-import { KhoangGio } from './gio';
+import { Gio, KhoangGio } from './gio';
 import { Nguoi } from './nguoi';
 
 const VIEC_MAU = 'Write a 3-sentence Gumroad description for the puzzle book "Killer Sudoku for Adults: 100 Puzzles". English, no brand names, no em dashes.';
@@ -38,50 +40,65 @@ function Dap({ text }: { text: string }) {
   );
 }
 
-export async function PhongThu({ admin }: { admin: boolean }) {
-  const luot = await dsLuot();
-  const dangChay = luot.some((l) => l.trang_thai === 'đang chạy');
+const TT: Record<string, string> = { xong: '', 'lỗi': 'cty-pill-loi', 'đang chạy': 'cty-pill-off' };
+const KQ: Record<string, [string, string]> = { submitted: ['nộp, chờ ký', ''], revision: ['phải làm lại', 'cty-pill-off'] };
+const tienLuot = (l: Luot) => l.buoc.reduce((s, b) => s + (usd(b) ?? 0), 0);
+
+/** Một lượt đủ bước: đầu lượt (trạng thái · việc · giờ · số) + từng bước (người, giờ, mô hình, trả lời đã dàn nhãn). */
+export function LuotChiTiet({ l }: { l: Luot }) {
   return (
-    <section className="cty-thu">
-      {dangChay && <meta httpEquiv="refresh" content="4" />}
-      <form action={chayMotLuot} className="cty-thu-form">
-        <textarea name="viec" rows={2} defaultValue={VIEC_MAU} required disabled={!admin} aria-label="Việc giao cho phòng" />
-        <div className="cty-thu-nut">
-          <button type="submit" disabled={!admin || dangChay}>{dangChay ? 'đang chạy…' : '▶ Chạy một lượt'}</button>
-          <a className="cty-btn" href="https://vpthu.on.tc" target="_blank" rel="noreferrer">Văn phòng pixel phòng này ↗</a>
-          <span className="cty-muted cty-nho">1 lượt ≈ $0,0005 qua proxy (gpt-4.1-nano + gpt-4o-mini) · trang tự tải lại mỗi 4 giây khi đang chạy</span>
-        </div>
-      </form>
-      {!luot.length && <p className="cty-muted">Chưa có lượt nào. Bấm nút để xem Tâm giao việc → Lộc làm → Kỳ soát → báo cáo.</p>}
-      {luot.map((l) => {
-        const tien = l.buoc.reduce((s, b) => s + (usd(b) ?? 0), 0);
-        return (
-          <details key={l.ts} id={`luot-${l.ts}`} className="cty-details cty-luot" open={l === luot[0]}>
-            <summary>
-              <div className="cty-luot-dau"><span className={`cty-pill ${l.trang_thai === 'xong' ? '' : 'cty-pill-off'}`}>{l.trang_thai}</span><span className="cty-luot-viec">{l.viec}</span></div>
-              <div className="cty-luot-meta"><KhoangGio tu={l.bat_dau} den={l.ket_thuc} />
-                {l.tong && <span> · {l.tong.buoc} bước · {so(l.tong.token)} token · ${tien.toFixed(4)} · {giay(l.tong.ms)}</span>}
-                {' · '}<Link href={`/nhat-ky?luot=${encodeURIComponent(l.ts)}`}>sổ sự kiện ↗</Link></div>
-            </summary>
-            {l.loi && <p className="cty-thu-loi">Lỗi: {l.loi}</p>}
-            <ol className="cty-thu-buoc">
-              {l.buoc.map((b, i) => { const t = tachBuoc(b.buoc); return (
-                <li key={i}>
-                  <div className="cty-buoc-dau">
-                    <span className="cty-buoc-so">{t.so || i + 1}</span>
-                    <b className="cty-buoc-ten">{t.ten}</b>
-                    <Nguoi id={b.id} />
-                    <span className="cty-buoc-gio"><KhoangGio tu={b.bat_dau} den={b.ket_thuc} ngay={false} /></span>
-                  </div>
-                  <div className="cty-buoc-meta">{b.model.replace(/^[a-z]+:/, '')} · {b.usage ? `${so(b.usage.input_tokens ?? 0)} vào → ${so(b.usage.output_tokens ?? 0)} ra token` : 'không có số token'} · {giay(b.ms)}{b.loi ? ` · HTTP ${b.http}` : ''}</div>
-                  {b.loi ? <pre className="cty-thu-loi">{b.loi}</pre> : <Dap text={b.dap} />}
-                </li>
-              ); })}
-            </ol>
-            {l.ket && <div className="cty-thu-ket">Kết luận: việc ở trạng thái <span className={`cty-pill ${l.ket.trang_thai_viec === 'submitted' ? '' : 'cty-pill-off'}`}>{l.ket.trang_thai_viec === 'submitted' ? 'nộp, chờ Giám đốc ký' : l.ket.trang_thai_viec === 'revision' ? 'phải làm lại' : l.ket.trang_thai_viec}</span></div>}
-          </details>
-        );
-      })}
-    </section>
+    <div className="cty-luot">
+      <div className="cty-luot-meta"><KhoangGio tu={l.bat_dau} den={l.ket_thuc} />
+        {l.tong && <span> · {l.tong.buoc} bước · {so(l.tong.token)} token · ${tienLuot(l).toFixed(4)} · {giay(l.tong.ms)}</span>}
+        {' · '}<Link href={`/nhat-ky?luot=${encodeURIComponent(l.ts)}`}>sổ sự kiện ↗</Link></div>
+      {l.loi && <p className="cty-bao-loi" data-loi>Lỗi: {l.loi}</p>}
+      <ol className="cty-thu-buoc">
+        {l.buoc.map((b, i) => { const t = tachBuoc(b.buoc); return (
+          <li key={i}>
+            <div className="cty-buoc-dau">
+              <span className="cty-buoc-so">{t.so || i + 1}</span>
+              <b className="cty-buoc-ten">{t.ten}</b>
+              <Nguoi id={b.id} />
+              <span className="cty-buoc-gio"><KhoangGio tu={b.bat_dau} den={b.ket_thuc} ngay={false} /></span>
+            </div>
+            <div className="cty-buoc-meta">{b.model.replace(/^[a-z]+:/, '')} · {b.usage ? `${so(b.usage.input_tokens ?? 0)} vào → ${so(b.usage.output_tokens ?? 0)} ra token` : 'không có số token'} · {giay(b.ms)}{b.loi ? ` · HTTP ${b.http}` : ''}</div>
+            {b.loi ? <pre className="cty-thu-loi">{b.loi}</pre> : <Dap text={b.dap} />}
+          </li>
+        ); })}
+        {l.trang_thai === 'đang chạy' && <li className="cty-muted">đang chạy bước tiếp…</li>}
+      </ol>
+    </div>
   );
 }
+
+function DauLuot({ l }: { l: Luot }) {
+  const kq = l.ket ? KQ[l.ket.trang_thai_viec] : null;
+  return (
+    <span className="cty-luot-dong">
+      <span className={`cty-pill ${TT[l.trang_thai] ?? 'cty-pill-kind'}`}>{l.trang_thai}</span>
+      <span className="cty-luot-viec">{l.viec}</span>
+      {kq && <span className={`cty-pill ${kq[1]}`}>{kq[0]}</span>}
+      <span className="cty-luot-gio"><Gio iso={l.bat_dau} /></span>
+    </span>
+  );
+}
+
+/** Tab Chạy: khung giao việc + lượt mới nhất đủ bước. */
+export async function PhongThuChay({ admin }: { admin: boolean }) {
+  const ds = await dsLuot(); const moi = ds[0];
+  return (
+    <div className="cty-thu">
+      <KhungChay macDinh={VIEC_MAU} admin={admin} dangChay={ds.some((l) => l.trang_thai === 'đang chạy')} />
+      {moi ? <><h3 className="cty-thu-tieu"><DauLuot l={moi} /></h3><LuotChiTiet l={moi} /></> : <p className="cty-muted">Chưa có lượt nào. Bấm Chạy để xem Tâm giao việc → Lộc làm → Kỳ soát → báo cáo.</p>}
+    </div>
+  );
+}
+
+/** Tab Các lượt: mỗi lượt một dòng, bấm bung đủ bước. */
+export async function PhongThuDs() {
+  const ds = await dsLuot();
+  if (!ds.length) return <p className="cty-muted">Chưa có lượt nào.</p>;
+  return <div className="cty-ds-luot">{ds.map((l) => <details key={l.ts} id={`luot-${l.ts}`} className="cty-luot-hang"><summary><DauLuot l={l} /></summary><LuotChiTiet l={l} /></details>)}</div>;
+}
+
+export async function demLuot() { const ds = await dsLuot(); return { tong: ds.length, dangChay: ds.some((l) => l.trang_thai === 'đang chạy'), moi: ds[0] ?? null }; }

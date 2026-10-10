@@ -11,5 +11,6 @@ export async function ChongNgan({ ngan }: { ngan: string | string[] | undefined 
   if (!chong.length) return null;
   const me = await getCurrentUser();
   if (!me) return null;
-  return <>{chong.map((k, i) => { const n = nganTheoKhoa(k, me.role === 'admin'); return <TangNgan key={k} khoa={k} tang={i} tong={chong.length} tieuDe={n.tieuDe}>{n.than}</TangNgan>; })}</>;
+  const ds = await Promise.all(chong.map((k) => nganTheoKhoa(k, me.role === 'admin')));
+  return <>{chong.map((k, i) => <TangNgan key={k} khoa={k} tang={i} tong={chong.length} tieuDe={ds[i]!.tieuDe}>{ds[i]!.than}</TangNgan>)}</>;
 }

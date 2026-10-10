@@ -35,15 +35,25 @@ function boGio(l: Luot): Luot {
   return { ...l, bat_dau: batDau, ket_thuc: l.ket_thuc ?? (l.trang_thai === 'đang chạy' ? undefined : buoc.at(-1)?.ket_thuc), buoc };
 }
 
-export async function chayMotLuot(form: FormData): Promise<void> {
+/** Giao một lượt (bấm nút trên trang = một lượt, ~$0,0005). Trả lời RÕ cho nút: ok, hay lý do bị từ chối — không im lặng. */
+export async function chayMotLuot(viecGoc: string): Promise<{ ok: boolean; loi?: string }> {
   const me = await getCurrentUser();
-  if (!me || me.role !== 'admin') return;
-  const viec = String(form.get('viec') || '').trim().slice(0, 500);
-  if (!viec) return;
+  if (!me) return { ok: false, loi: 'Phiên đăng nhập đã hết — tải lại trang để đăng nhập.' };
+  if (me.role !== 'admin') return { ok: false, loi: 'Chỉ admin được chạy lượt (tốn tiền).' };
+  const viec = String(viecGoc || '').trim().slice(0, 500);
+  if (!viec) return { ok: false, loi: 'Chưa gõ việc cần giao.' };
+  if ((await dsLuot()).some((l) => l.trang_thai === 'đang chạy')) return { ok: false, loi: 'Đang có một lượt chạy — đợi lượt đó xong (vài giây).' };
   const worker = path.join(process.cwd(), 'worker', 'ca.mjs');
-  fs.mkdirSync(NK, { recursive: true });
-  const log = fs.openSync(path.join(DATA, 'ca.log'), 'a');
-  const child = spawn(process.execPath, [worker, '--viec', viec], { detached: true, stdio: ['ignore', log, log], env: process.env });
-  child.unref();
-  revalidatePath('/phong/thu-nghiem');
+  if (!fs.existsSync(worker)) return { ok: false, loi: `Không thấy worker ở ${worker}.` };
+  try {
+    fs.mkdirSync(NK, { recursive: true });
+    const log = fs.openSync(path.join(DATA, 'ca.log'), 'a');
+    const child = spawn(process.execPath, [worker, '--viec', viec], { detached: true, stdio: ['ignore', log, log], env: process.env });
+    child.unref();
+  } catch (e) { return { ok: false, loi: `Không khởi động được worker: ${(e as Error).message}` }; }
+  // Worker ghi tệp lượt "đang chạy" ngay khi vào; đợi tệp đó xuất hiện (≤3s) để danh sách hiện lượt mới liền.
+  const truoc = (await dsLuot())[0]?.ts;
+  for (let i = 0; i < 20; i++) { await new Promise((r) => setTimeout(r, 150)); if ((await dsLuot())[0]?.ts !== truoc) break; }
+  revalidatePath('/', 'layout');
+  return { ok: true };
 }

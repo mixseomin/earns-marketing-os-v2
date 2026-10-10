@@ -80,10 +80,6 @@ h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem}
 .cty-thu-buoc li{padding-left:var(--le);border-left:2px solid var(--line)}
 .cty-nho{font-size:.82rem}
 .cty-thu-nut{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;width:100%}
-.cty-luot>summary{display:grid;gap:4px}
-.cty-luot>summary::before{display:none}
-.cty-luot-dau{display:flex;gap:10px;align-items:baseline;min-width:0}
-.cty-luot-viec{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .cty-luot-meta{font-family:var(--body);font-weight:400;font-size:.84rem;color:var(--muted)}
 .cty-buoc-dau{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
 .cty-buoc-so{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--soft);color:var(--accent);font-family:var(--mono);font-size:.78rem;font-weight:600}
@@ -191,3 +187,40 @@ h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem}
 .cty-chi-so{font-size:.8rem;color:var(--muted)}
 .cty-chi-thanh{width:84px;height:5px;border-radius:3px;background:var(--line);justify-self:end;overflow:hidden}
 .cty-chi-thanh i{display:block;height:100%;background:var(--accent)}
+
+/* Ô báo dưới một hành động (luật: mọi lỗi kêu to ngay chỗ đang nhìn) — đỏ = bị từ chối/lỗi, xanh = đã nhận. */
+.cty-bao-loi{margin:0;background:var(--warn-bg);color:var(--warn);border-left:3px solid var(--warn);padding:.55rem .8rem;border-radius:0 6px 6px 0;font-size:.9rem}
+.cty-bao-ok{margin:0;background:var(--soft);color:var(--accent);border-left:3px solid var(--accent);padding:.55rem .8rem;border-radius:0 6px 6px 0;font-size:.9rem}
+
+/* Tab của ngăn/trang phòng (components/tab-phong.tsx): đầu ghim, chỉ vùng tab cuộn. */
+.cty-tabkhung{display:flex;flex-direction:column;height:100%;min-height:0}
+.cty-tabdau{display:grid;gap:8px;padding-bottom:2px}
+.cty-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);overflow-x:auto}
+.cty-tabs button{border:0;background:none;color:var(--muted);padding:8px 14px;cursor:pointer;font:inherit;font-family:var(--head);font-weight:600;border-bottom:2px solid transparent;white-space:nowrap}
+.cty-tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
+.cty-tab-so{margin-left:6px;font-family:var(--mono);font-size:.74rem;font-weight:400;color:var(--muted)}
+.cty-tabnoi{flex:1;min-height:0;overflow:auto;padding-top:var(--le)}
+/* Trang đầy đủ có tab: thân trang = đúng một màn, tab tự chia phần còn lại (không đoán chiều cao thanh đầu). */
+body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.cty-main:has(> .cty-tabkhung){flex:1;min-height:0;width:100%;display:flex;flex-direction:column;padding-bottom:12px}
+.cty-main > .cty-tabkhung{flex:1;min-height:0;height:auto}
+.cty-main:has(> .cty-tabkhung) > h1{flex:none}
+.cty-phong-nguoi{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
+.cty-bao-mot{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cty-sodo-tab{display:grid;gap:14px}
+.cty-thu-tieu{margin:14px 0 6px;font-size:1rem}
+.cty-luot-dong{display:flex;align-items:center;gap:10px;min-width:0}
+.cty-luot-dong .cty-luot-viec{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.cty-luot-gio{font-family:var(--mono);font-size:.78rem;color:var(--muted);white-space:nowrap}
+.cty-ds-luot{display:grid;grid-template-columns:minmax(0,1fr)}
+.cty-luot-hang{border-bottom:1px solid var(--line)}
+.cty-luot-hang>summary{list-style:none;cursor:pointer;padding:10px 4px}
+.cty-luot-hang>summary::-webkit-details-marker{display:none}
+.cty-luot-hang>summary:hover{background:var(--surface)}
+.cty-luot-hang[open]>summary{border-bottom:1px dashed var(--line)}
+.cty-luot-hang>.cty-luot{padding:10px 4px 16px}
+.cty-pill-loi{background:var(--warn-bg);color:var(--warn)}
+@media (max-width:600px){.cty-luot-gio{display:none}}
+
+/* Điện thoại: thanh đầu một hàng, vuốt ngang — không bẻ thành 4 dòng ăn nửa màn. */
+@media (max-width:600px){.cty-top{flex-wrap:nowrap;overflow-x:auto;gap:12px;scrollbar-width:none}.cty-top>*{flex:none}.cty-top>span[style]{display:none}}

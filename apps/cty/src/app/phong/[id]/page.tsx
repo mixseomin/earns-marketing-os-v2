@@ -11,6 +11,6 @@ export default async function TrangPhong({ params, searchParams }: { params: Pro
   const { id } = await params;
   const me = await getCurrentUser(); if (!me) redirect(loginUrl(`/phong/${id}`));
   if (!phong(id)) notFound();
-  const n = nganPhong(id, me.role === 'admin');
+  const n = await nganPhong(id, me.role === 'admin');
   return <><h1>{n.tieuDe}</h1>{n.than}<ChongNgan ngan={(await searchParams).ngan} /></>;
 }

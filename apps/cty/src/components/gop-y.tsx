@@ -10,5 +10,5 @@ const Khung: KhungHom = ({ onClose, tieuDe, dau, children }) => (
 );
 
 export function GopY() {
-  return <HomGopY ten="Công ty" khoa="cty" hd={hd} Khung={Khung} nut={{ thuong: 'cty-btn', chinh: 'cty-btn chinh' }} chonNgan=".cty-drawer" chonLoi=".cty-thu-loi, .cty-gopy-loi" />;
+  return <HomGopY ten="Công ty" khoa="cty" hd={hd} Khung={Khung} nut={{ thuong: 'cty-btn', chinh: 'cty-btn chinh' }} chonNgan=".cty-drawer" chonLoi=".cty-thu-loi, .cty-bao-loi" />;
 }

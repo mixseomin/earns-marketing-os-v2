@@ -51,12 +51,18 @@ export const tinTre = (ten, ds, homNay) => {
   ].join('\n');
 };
 
+// Trang Pricing của nháp KDP = nơi có nút "Publish Your Paperback Book" (đúng đường link Bookshelf dùng, đọc 10/10/2026)
+export const linkKdp = (id) => `https://kdp.amazon.com/action/dualbookshelf.editpaperbackpricing/en_US/title-setup/paperback/${encodeURIComponent(id)}/pricing`;
+// KDP chỉ nhắc khi máy ĐÃ tạo nháp (puzzle-books kdp.mjs ghi listing_config.nhapKdp) — trước đó anh không có gì để bấm
+export const canNhac = (r) => r.platform !== 'kdp' || !!r.listing_config?.nhapKdp?.id;
 export const tinCanDang = (ten, ds, homNay) => {
   const d = ngayDang(ds), tre = Math.round((Date.parse(homNay) - Date.parse(d)) / 86_400_000);
+  const nhap = ds.find((r) => r.platform === 'kdp' && r.listing_config?.nhapKdp?.id)?.listing_config.nhapKdp, khac = ds.filter((r) => r.platform !== 'kdp');
   return [
     `📤 <b>${esc(ten)}</b>`,
     esc(dong(`đăng ${ngayVn(d)}${tre > 0 ? ` (trễ ${tre} ngày)` : ' (hôm nay)'}`, ds.map(nen).join(', '))),
-    '<i>Đã duyệt, cần bấm Publish trên sàn</i>',
+    ...(nhap ? ['<i>Nháp KDP đã sẵn, chỉ còn bấm Publish</i>', ...(nhap.canhBao ? [`⚠️ ${esc(nhap.canhBao)}`] : []), `<a href="${esc(linkKdp(nhap.id))}">Mở nháp KDP (trang có nút Publish) →</a>`] : []),
+    ...(khac.length ? [`<i>${esc(khac.map(nen).join(', '))}: đã duyệt, cần bấm Publish trên sàn</i>`] : []),
   ].join('\n');
 };
 
@@ -74,7 +80,11 @@ if (process.argv.includes('--tu-kiem')) {
   a.equal(choAnh({ status: 'owner_review', listing_config: { duyetLuc: '2026-10-05T11:00:00Z', xem: { ngay: '2026-10-06T17:44:59Z' } } }), true);    // dựng lại sau lần duyệt
   a.equal(choAnh({ status: 'draft', listing_config: {} }), true);
   a.ok(tinCanDang('S', [{ platform: 'gumroad', listing_config: { dangDuKien: '2026-10-10' } }], '2026-10-12').includes('đăng 10/10 (trễ 2 ngày) · Gumroad'));
-  console.log('bao-sp-telegram: 9/9 ok'); process.exit(0);
+  const k = { platform: 'kdp', category: 'paperback', listing_config: { dangDuKien: '2026-10-10', nhapKdp: { id: 'AB12CD34EF5', canhBao: 'chỉ chọn được 1/3 danh mục' } } };
+  a.ok(!canNhac({ platform: 'kdp', listing_config: {} }) && canNhac(k) && canNhac({ platform: 'gumroad' }));   // KDP chưa có nháp → không nhắc
+  const tk = tinCanDang('S', [k], '2026-10-10');
+  a.ok(tk.includes('Nháp KDP đã sẵn') && tk.includes('paperback/AB12CD34EF5/pricing') && tk.includes('1/3 danh mục') && !tk.includes('cần bấm Publish trên sàn'));
+  console.log('bao-sp-telegram: 11/11 ok'); process.exit(0);
 }
 
 const { DIRECTUS_URL = 'https://as.on.tc', DIRECTUS_TOKEN, TG_BOT_TOKEN, TG_CHAT, TG_TOPIC, TG_TOPIC_SX } = process.env;
@@ -95,7 +105,7 @@ async function gui(text, topic) {
   if (DRY) { console.log(`[dry] ${text.replace(/\n/g, ' | ')}`); return -1; }
   const g = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: TG_CHAT, message_thread_id: topic ? Number(topic) : undefined, text, parse_mode: 'HTML',
-      link_preview_options: text.includes(MOS2) ? { is_disabled: true } : { prefer_small_media: true } }) });
+      link_preview_options: text.includes(MOS2) || text.includes('kdp.amazon.com') ? { is_disabled: true } : { prefer_small_media: true } }) });
   const j = await g.json();
   if (!j.ok) { console.error(`✗ gửi hỏng: ${j.description}`); process.exitCode = 1; return null; }
   return j.result.message_id;
@@ -175,4 +185,4 @@ const toiNgay = (x) => x.listing_config?.dangDuKien && x.listing_config.dangDuKi
 await nhacTheoNgay('da-nhac-tre.json', 'tới ngày chưa duyệt', (await doc('planned,draft,owner_review')).filter(choAnh).filter(toiNgay), (ten, xs) => tinTre(ten, xs, HOM_NAY));
 // Tới ngày, ĐÃ DUYỆT, nền máy không tự đăng được (KDP, Gumroad: nút Publish là của anh) → nhắc đăng. Etsy máy tự bật (may-chay dang) nên không nhắc.
 const daDuyet = [...(await doc('ready')), ...(await doc('owner_review')).filter((x) => !choAnh(x))];
-await nhacTheoNgay('da-nhac-dang.json', 'tới ngày cần đăng', daDuyet.filter((x) => ['kdp', 'gumroad'].includes(x.platform)).filter(toiNgay), (ten, xs) => tinCanDang(ten, xs, HOM_NAY));
+await nhacTheoNgay('da-nhac-dang.json', 'tới ngày cần đăng', daDuyet.filter((x) => ['kdp', 'gumroad'].includes(x.platform)).filter(canNhac).filter(toiNgay), (ten, xs) => tinCanDang(ten, xs, HOM_NAY));

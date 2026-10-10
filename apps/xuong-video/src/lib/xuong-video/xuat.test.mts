@@ -28,7 +28,7 @@ assert.ok(!kh.args.join(' ').includes('c1b.mp4'));                   // nhánh B
 assert.ok(loc.includes('adelay=0:all=1'));                           // giọng shot 1 ở 0ms
 assert.ok(loc.includes('volume=0.8,adelay=2000:all=1'));             // hiệu ứng shot 3 ở 2000ms
 assert.ok(loc.includes('aloop=loop=-1') && loc.includes('volume=0.35,adelay=2000:all=1'));  // nhạc phân cảnh Demo từ 2s
-assert.ok(loc.includes('asplit=2[gm][gsc]') && loc.includes('[gsc]sidechaincompress='));   // nhạc nén theo giọng (ducking)
+assert.ok(loc.includes('asplit=2[gm][gsc0];[gsc0]apad[gsc]') && loc.includes('[gsc]sidechaincompress='));   // nhạc nén theo giọng; dải điều khiển đệm im để nhạc không bị cắt khi giọng hết
 assert.ok(!loc.includes('[0:a]atrim'));                              // clip 1 có giọng riêng → không lấy tiếng clip
 assert.ok(!/\[\d+:a\]atrim=0:2\.5/.test(loc));                       // clip 4 không có luồng tiếng → không tham chiếu :a
 assert.ok(!loc.includes('enable=') && !kh.tep.some((x) => /\/pd_/.test(x.duong)));   // không vẽ phụ đề thoại lên hình (#1231)

@@ -265,7 +265,8 @@ export function keHoachXuat(o: {
   const tron = (ds2: string[], ten: string) => { if (ds2.length === 1) { loc.push(`${ds2[0]}anull[${ten}]`); return `[${ten}]`; } loc.push(`${ds2.join('')}amix=inputs=${ds2.length}:normalize=0:dropout_transition=0[${ten}]`); return `[${ten}]`; };
   const lop: string[] = [];
   if (nhanhGiong.length && nhanhNhac.length) {
-    loc.push(`${tron(nhanhGiong, 'giong')}asplit=2[gm][gsc]`);
+    // apad: sidechaincompress dừng theo luồng NGẮN hơn — không đệm thì nhạc bị cắt khi câu giọng cuối hết (phim #5: tiếng 53,8s / hình 55,5s).
+    loc.push(`${tron(nhanhGiong, 'giong')}asplit=2[gm][gsc0];[gsc0]apad[gsc]`);
     loc.push(`${tron(nhanhNhac, 'nhac')}[gsc]sidechaincompress=threshold=0.03:ratio=6:attack=15:release=350[nhacnen]`);
     lop.push('[gm]', '[nhacnen]');
   } else lop.push(...nhanhGiong, ...nhanhNhac);

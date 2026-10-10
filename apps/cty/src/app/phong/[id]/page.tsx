@@ -1,7 +1,9 @@
 import { notFound, redirect } from 'next/navigation';
+import Link from 'next/link';
 import { getCurrentUser, loginUrl } from '@/lib/auth';
 import { phong, dsNhanSu, soDo, KHUON } from '@/lib/cong-ty';
-import { TheNhanSu } from '@/components/the-nhan-su';
+import { Avatar, hueOf } from '@/components/avatar';
+import { SoDoKhuon } from '@/components/so-do-khuon';
 import { Md } from '@/components/md';
 
 export const dynamic = 'force-dynamic';
@@ -16,19 +18,25 @@ export default async function TrangPhong({ params }: { params: Promise<{ id: str
   const svg = p.fm.so_do ? soDo(String(p.fm.so_do)) : '';
   return (
     <>
-      <p className="cty-mono cty-muted"><a href="/">sơ đồ</a> › phòng</p>
-      <h1>{String(p.fm.ten)}</h1>
-      <dl className="cty-kv">
-        <dt>Khuôn</dt><dd>{k ? `${k.ten} — ${k.mota}` : String(p.fm.khuon)}</dd>
-        <dt>Trưởng phòng</dt><dd>{String(p.fm.truong ?? '')}</dd>
-        <dt>Đơn vị việc</dt><dd>{String(p.fm.don_vi_viec ?? '')}</dd>
-        <dt>Cổng người</dt><dd>{String(p.fm.cong_nguoi ?? '')}</dd>
-        <dt>Trạng thái</dt><dd><span className="cty-pill cty-pill-off">{String(p.fm.trang_thai ?? 'tham quan · chưa hoạt động')}</span></dd>
-      </dl>
-      {svg && <figure className="cty-so-do" dangerouslySetInnerHTML={{ __html: svg }} />}
-      <h2>Nhân sự</h2>
-      <div className="cty-grid">{ns.map((d) => <TheNhanSu key={d.id} d={d} />)}</div>
-      <Md>{p.body}</Md>
+      <p className="cty-mono cty-muted" style={{ margin: 0 }}><a href="/">sơ đồ</a> › {String(p.fm.ten)} · <span className="cty-pill">{k?.ten ?? String(p.fm.khuon)}</span> <span className="cty-pill cty-pill-off">chưa hoạt động</span></p>
+      {svg ? <figure className="cty-so-do" dangerouslySetInnerHTML={{ __html: svg }} /> : <SoDoKhuon p={p} ns={ns} />}
+      <div className="cty-row">
+        {ns.map((d) => (
+          <Link key={d.id} href={`/nhan-su/${d.id}`} className="cty-nguoi">
+            <Avatar seed={d.id} hue={hueOf(id)} size={36} />
+            <span><b>{String(d.fm.ten)}</b><br /><small className="cty-muted">{String(d.fm.chuc_danh)}</small></span>
+          </Link>
+        ))}
+      </div>
+      <details className="cty-details"><summary>Chi tiết phòng</summary>
+        <dl className="cty-kv">
+          <dt>Khuôn</dt><dd>{k ? `${k.ten} — ${k.mota}` : String(p.fm.khuon)}</dd>
+          <dt>Trưởng phòng</dt><dd>{String(p.fm.truong ?? '')}</dd>
+          <dt>Đơn vị việc</dt><dd>{String(p.fm.don_vi_viec ?? '')}</dd>
+          <dt>Cổng người</dt><dd>{String(p.fm.cong_nguoi ?? '')}</dd>
+        </dl>
+        <Md>{p.body}</Md>
+      </details>
     </>
   );
 }

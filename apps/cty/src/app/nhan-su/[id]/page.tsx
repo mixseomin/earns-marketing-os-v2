@@ -17,24 +17,28 @@ export default async function TrangNhanSu({ params }: { params: Promise<{ id: st
   const hb = heartbeat(id);
   return (
     <>
-      <p className="cty-mono cty-muted"><a href="/">sơ đồ</a> › {p ? <Link href={`/phong/${p.id}`}>{String(p.fm.ten)}</Link> : String(f.phong)} › nhân sự</p>
+      <p className="cty-mono cty-muted" style={{ margin: 0 }}><a href="/">sơ đồ</a> › {p ? <Link href={`/phong/${p.id}`}>{String(p.fm.ten)}</Link> : String(f.phong)}</p>
       <div className="cty-head-nhan-su">
-        <Avatar seed={id} hue={hueOf(String(f.phong))} size={64} />
-        <div><h1>{String(f.ten)}</h1><div>{String(f.chuc_danh)} <span className="cty-pill cty-pill-kind">{f.kind === 'ai' ? '🤖 AI' : f.kind === 'human' ? '👤 người' : '🏷 vendor'}</span></div></div>
+        <Avatar seed={id} hue={hueOf(String(f.phong))} size={72} />
+        <div>
+          <h1 style={{ margin: 0 }}>{String(f.ten)}</h1>
+          <div>{String(f.chuc_danh)}</div>
+          <div className="cty-pills">
+            <span className="cty-pill cty-pill-kind">{f.kind === 'ai' ? '🤖 AI' : f.kind === 'human' ? '👤 người' : '🏷 vendor'}</span>
+            <span className="cty-pill">{String(f.model)}</span>
+            <span className="cty-pill">mức {String(f.muc_quyet)} · {MUC[Number(f.muc_quyet)] ?? ''}</span>
+            <span className="cty-pill">{KHUON[String(f.room)]?.ten ?? String(f.room)}</span>
+            <span className="cty-pill cty-pill-off">heartbeat tắt{f.lich ? ` · khi bật: ${String(f.lich)}` : ''}</span>
+            {f.tran_usd_thang ? <span className="cty-pill">trần ${String(f.tran_usd_thang)}/tháng</span> : null}
+            {f.bao_cao_cho ? <Link className="cty-pill" href={`/nhan-su/${String(f.bao_cao_cho)}`}>báo cáo → {String(f.bao_cao_cho)}</Link> : <span className="cty-pill">báo cáo → Giám đốc</span>}
+          </div>
+        </div>
       </div>
-      <dl className="cty-kv">
-        <dt>Mô hình</dt><dd className="cty-mono">{String(f.model)}</dd>
-        <dt>Báo cáo cho</dt><dd>{f.bao_cao_cho ? <Link href={`/nhan-su/${String(f.bao_cao_cho)}`}>{String(f.bao_cao_cho)}</Link> : 'Giám đốc'}</dd>
-        <dt>Khuôn phòng</dt><dd>{KHUON[String(f.room)]?.ten ?? String(f.room)}</dd>
-        <dt>Mức quyết định</dt><dd>mức {String(f.muc_quyet)} ({MUC[Number(f.muc_quyet)] ?? ''}) · approval: {String(f.approval ?? 'STRICT')}</dd>
-        <dt>Heartbeat</dt><dd><span className="cty-pill cty-pill-off">{f.heartbeat === 'off' ? 'tắt (tham quan)' : String(f.heartbeat)}</span> {f.lich ? <span className="cty-mono cty-muted">khi bật: {String(f.lich)}</span> : null}</dd>
-        <dt>Kỹ năng</dt><dd className="cty-mono">{arr('skills').join(' · ') || '—'}</dd>
-        <dt>Gói số đọc</dt><dd className="cty-mono">{arr('data').join(' · ') || '—'}</dd>
-        {f.pay ? <><dt>Trả công</dt><dd>{String(f.pay)}</dd></> : null}
-        <dt>Trần chi tháng</dt><dd>{f.tran_usd_thang != null && f.tran_usd_thang !== '' ? `$${String(f.tran_usd_thang)}` : '—'}</dd>
-      </dl>
-      <Md>{d.body}</Md>
-      {hb && <><h2>HEARTBEAT.md</h2><Md>{hb}</Md></>}
+      <details className="cty-details"><summary>Vai · KPI · quyền · cấm</summary><Md>{d.body}</Md></details>
+      <details className="cty-details"><summary>Kỹ năng · gói số</summary>
+        <dl className="cty-kv"><dt>Kỹ năng</dt><dd className="cty-mono">{arr('skills').join(' · ') || '—'}</dd><dt>Gói số đọc</dt><dd className="cty-mono">{arr('data').join(' · ') || '—'}</dd></dl>
+      </details>
+      {hb && <details className="cty-details"><summary>HEARTBEAT.md</summary><Md>{hb}</Md></details>}
     </>
   );
 }

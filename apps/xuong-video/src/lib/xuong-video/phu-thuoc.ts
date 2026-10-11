@@ -36,7 +36,7 @@ export function phuThuocShot(viec: ViecShot, c: Canh, nhanVat: NhanVat[], o: { t
 /** doi = cờ đỏ (đổi cấu trúc: keyframe khác, khung cuối, ảnh tham chiếu); cauLenh = câu thêm/bớt so với giờ sẽ gửi (vàng, để đọc). */
 export type BuocNguon = { job: number; model: string; luc: string; chi_phi_cents: number; nhan: string; prompt: string; doi: string[]; cauLenh: { them: string[]; bot: string[] } | null };
 export type NguonShot = {
-  thu_tu: number; canh: string; ti_le: string; keyframe_url: string | null; video_url: string | null;
+  id: number; thu_tu: number; canh: string; ti_le: string; keyframe_url: string | null; video_url: string | null;
   thamChieu: { url: string; nhan: string }[];
   keyframe: (BuocNguon & { thamChieuUrl: string[] | null }) | null;
   video: (BuocNguon & { khungDau: string | null; khungCuoi: string | null; xuLySau: string | null }) | null;

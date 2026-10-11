@@ -151,6 +151,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
         <label style={{ ...mono, display: 'inline-flex', gap: 4, alignItems: 'center', cursor: 'pointer' }} title="Khung cuối của mỗi clip = keyframe cảnh kế → các clip nối liền mạch; bản cuối sinh lại cũng giữ đúng hai đầu">
           <input type="checkbox" checked={tap.noi_khung} onChange={(e) => void chay('noi', async () => { await suaTap(tap.id, { noi_khung: e.target.checked }); })} /> Nối khung (khung cuối = keyframe cảnh sau)
         </label>
+        <button type="button" className="xv-btn" disabled={!canh?.length} title="Sơ đồ cả tập: keyframe → clip → keyframe shot sau, dây đỏ ở chỗ nối lệch (clip sinh từ keyframe cũ / khung cuối đã đổi). 0đ" onClick={() => moNgan({ loai: 'noi-khung', tapId: tap.id })}>⛓ Sơ đồ nối khung</button>
         <span style={{ flex: 1 }} />
         {/* Sinh tốn tiền đi qua bảng chọn shot (chay-chon.tsx): thấy trước shot nào chưa chạy được / hệ quả nối khung, thoại — rồi mới bấm. */}
         <button type="button" className={`xv-btn${moChon ? ' chinh' : ''}`} disabled={!canh?.length || banTach}

@@ -42,5 +42,5 @@ export async function nguonShot(db: Db, canhId: number): Promise<NguonShot | nul
     if (video.khungDau && (video.khungCuoi ?? null) !== khungCuoiNay) video.doi.push(khungCuoiNay ? 'khung cuối đã đổi (keyframe shot sau đổi hoặc vừa bật nối khung)' : 'lúc sinh có khung cuối, giờ không còn (tắt nối khung / shot sau mất keyframe)');
     if (video.prompt && video.prompt !== promptVideoNay) video.cauLenh = khacCauLenh(video.prompt, promptVideoNay);
   }
-  return { thu_tu: c.thu_tu, canh: c.canh, ti_le: bc.kt.ti_le, keyframe_url: c.keyframe_url, video_url: vid, thamChieu: vai, keyframe, video, khungCuoiNay, promptAnhNay, promptVideoNay };
+  return { id: c.id, thu_tu: c.thu_tu, canh: c.canh, ti_le: bc.kt.ti_le, keyframe_url: c.keyframe_url, video_url: vid, thamChieu: vai, keyframe, video, khungCuoiNay, promptAnhNay, promptVideoNay };
 }

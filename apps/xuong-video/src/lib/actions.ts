@@ -773,6 +773,13 @@ export async function nguonCuaShot(canhId: number): Promise<NguonShot | null> {
   if (!db || !(await admin())) return null;
   return nguonShot(db, canhId);
 }
+/** Nguồn của MỌI shot trong tập (sơ đồ nối khung cả tập) — cùng lõi nguonShot, theo thứ tự shot. 0đ, chỉ đọc. */
+export async function nguonCuaTap(tapId: number): Promise<NguonShot[]> {
+  const db = getDb();
+  if (!db || !(await admin())) return [];
+  const ids = ((await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map((r) => n(r.id));
+  return (await Promise.all(ids.map((id) => nguonShot(db, id)))).filter((x): x is NguonShot => !!x);
+}
 /** Nhận kết quả video của tập (lõi ở sinh-video.ts). */
 export async function kiemVideo(tapId: number): Promise<{ conChay: number; vuaXong: number }> {
   const db = getDb();

@@ -63,7 +63,15 @@ export function LuotChiTiet({ l, admin = false }: { l: Luot; admin?: boolean }) 
             {b.loi ? <pre className="cty-thu-loi">{b.loi}</pre> : <Dap text={b.dap} />}
           </li>
         ); })}
-        {l.trang_thai === 'đang chạy' && <li className="cty-muted">đang chạy bước tiếp…</li>}
+        {l.trang_thai === 'đang chạy' && (l.dang ? (() => { const t = tachBuoc(l.dang.buoc); return (   // worker ghi `dang` ngay trước mỗi lời gọi mô hình (#1317)
+          <li className="cty-thu-dang" aria-live="polite">
+            <div className="cty-buoc-dau">
+              <span className="cty-buoc-so">{t.so || l.buoc.length + 1}</span>
+              <b className="cty-buoc-ten">{t.ten}</b>
+              <Nguoi id={l.dang.id} />
+              <span className="cty-buoc-gio cty-muted">đang làm · từ <Gio iso={l.dang.bat_dau} ngay={false} mui={false} /></span>
+            </div>
+          </li>); })() : <li className="cty-muted">đang chuyển sang bước tiếp…</li>)}
       </ol>
     </div>
   );

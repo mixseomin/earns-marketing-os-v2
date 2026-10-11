@@ -11,7 +11,7 @@ import { docLog } from '../../worker/log.mjs';
 const DATA = process.env.CTY_DATA_DIR || '/var/lib/cty';
 const NK = path.join(DATA, 'nhat-ky');
 
-export type Luot = { ts: string; bat_dau?: string; ket_thuc?: string; viec: string; trang_thai: string; loi?: string; tong?: { buoc: number; token: number; ms: number };
+export type Luot = { ts: string; bat_dau?: string; ket_thuc?: string; viec: string; trang_thai: string; loi?: string; dang?: { buoc: string; ai: string; id: string; bat_dau: string }; tong?: { buoc: number; token: number; ms: number };
   buoc: { buoc: string; ai: string; id: string; model: string; bat_dau?: string; ket_thuc?: string; ms: number; http: number; usage: { input_tokens?: number; output_tokens?: number } | null; loi: string | null; hoi: string; dap: string }[];
   ket: { giao: { viec: string; tieu_chi: string[] }; lam: { ket_qua: string; bang_chung: string }; soat: { ok: boolean; ly_do: string } | null; bao_cao: string; trang_thai_viec: string } | null };
 
@@ -27,13 +27,14 @@ export async function dsLuot(): Promise<Luot[]> {
 // đúng thứ tự bước (bước n ↔ dòng goi thứ n của lượt), bắt đầu = xong − ms. Giờ lượt: tên tệp (ts) là lúc bắt đầu.
 function boGio(l: Luot): Luot {
   const batDau = l.bat_dau ?? l.ts.replace(/T(\d\d)-(\d\d)-(\d\d)-(\d+)Z$/, 'T$1:$2:$3.$4Z');
-  if (l.buoc.every((b) => b.ket_thuc)) return { ...l, bat_dau: batDau, ket_thuc: l.ket_thuc ?? l.buoc.at(-1)?.ket_thuc };
+  const ketThuc = (bs: Luot['buoc']) => l.ket_thuc ?? (l.trang_thai === 'đang chạy' ? undefined : bs.at(-1)?.ket_thuc);   // đang chạy: chưa có giờ xong (bước hiện dần từ #1317)
+  if (l.buoc.every((b) => b.ket_thuc)) return { ...l, bat_dau: batDau, ket_thuc: ketThuc(l.buoc) };
   const goi = (docLog({ luot: l.ts, loai: 'goi', n: 100 }) as { ts: string }[]).reverse();
   const buoc = l.buoc.map((b, i) => {
     const xong = b.ket_thuc ?? goi[i]?.ts;
     return xong ? { ...b, ket_thuc: xong, bat_dau: b.bat_dau ?? new Date(new Date(xong).getTime() - b.ms).toISOString() } : b;
   });
-  return { ...l, bat_dau: batDau, ket_thuc: l.ket_thuc ?? (l.trang_thai === 'đang chạy' ? undefined : buoc.at(-1)?.ket_thuc), buoc };
+  return { ...l, bat_dau: batDau, ket_thuc: ketThuc(buoc), buoc };
 }
 
 /** Giao một lượt (bấm nút trên trang = một lượt, ~$0,0005). Trả lời RÕ cho nút: ok, hay lý do bị từ chối — không im lặng. */

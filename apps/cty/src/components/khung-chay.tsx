@@ -1,7 +1,8 @@
 'use client';
 // Khung giao việc của Phòng thử. Chữ anh gõ là của anh: giữ nguyên sau khi bấm (không reset về câu mẫu) và nhớ qua F5.
 // Bấm → nút đổi "Đang giao…", xong thì một dòng báo NGAY dưới nút: đã giao (xanh) hoặc lý do bị từ chối (đỏ, đủ câu máy chủ).
-// Đang có lượt chạy → làm mới danh sách mỗi 3 giây (router.refresh, chạy được cả trong ngăn kéo — meta refresh thì không).
+// Đang có lượt chạy → làm mới mỗi 1,5 giây (router.refresh, chạy được cả trong ngăn kéo — meta refresh thì không); worker ghi từng bước
+// ngay khi xong + người đang làm (#1317), nên kết quả hiện gần như tức thì.
 import { useEffect, useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { NutXacNhan } from './nut-xac-nhan';
@@ -39,7 +40,7 @@ export function KhungChay({ macDinh, admin, dangChay }: { macDinh: string; admin
   const router = useRouter();
   const [viec, setViec] = useState(macDinh);
   useEffect(() => { try { const v = localStorage.getItem(KHOA); if (v) setViec(v); } catch { /* không đọc được: dùng câu mẫu */ } }, []);
-  useEffect(() => { if (!dangChay) return; const t = setInterval(() => router.refresh(), 3000); return () => clearInterval(t); }, [dangChay, router]);
+  useEffect(() => { if (!dangChay) return; const t = setInterval(() => router.refresh(), 1500); return () => clearInterval(t); }, [dangChay, router]);
   const doi = (v: string) => { setViec(v); try { localStorage.setItem(KHOA, v); } catch { /* chỉ giữ tới F5 */ } };
   return (
     <div className="cty-thu-form">

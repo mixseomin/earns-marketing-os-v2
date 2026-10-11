@@ -31,6 +31,12 @@ const tenCua = (id) => id === 'giam-doc' ? 'Giám đốc' : (() => { try { retur
 
 /** Lời hệ thống của một nhân sự trong một lượt — một bản cho lượt thật lẫn dò model (worker/do-model.mjs). */
 export const heThong = (ns, nk) => `Bạn là ${ns.ten}, ${ns.vai?.ten ?? ns.chuc_danh}, ${nk.ten_phong ?? 'công ty'}. LUẬT CHUNG (rút gọn): ba mức quyết định; việc nộp phải có bằng chứng; không khen mở đầu; trả lời đúng định dạng được yêu cầu, không thêm lời dẫn.\n\n${nk.quy_dinh ? `\n\nQUY ĐỊNH DỰ ÁN PHÒNG PHẢI TUÂN THEO (trên quy trình của phòng, không được làm trái):\n${nk.quy_dinh}` : ''}${ns.vai ? `\n\nVAI CỦA BẠN Ở PHÒNG — ${ns.vai.ten}:\n${ns.vai.body}` : ''}${loiDanTinhCach(ns.tinh_cach ?? [])}${loiDanKinhNghiem(ns.bai_hoc ?? [])}\n\nHỒ SƠ CỦA BẠN:\n${ns.body}`;
+// KẾT QUẢ THỜI GIAN THỰC (#1317, 12/10/2026): trước chỉ ghi tệp lượt lúc bắt đầu và lúc kết thúc → trang đang theo dõi không thấy bước
+// nào tới khi xong cả lượt. Giờ MỌI bước đi qua themBuoc (thêm + ghi tệp ngay), và trước mỗi lời gọi mô hình ghi `nk.dang` (ai đang làm
+// bước gì, từ lúc nào) để trang hiện "Tâm đang giao việc…". Hàm ghi gắn theo lượt (WeakMap): lượt không ghi tệp (ghi=false) thì bỏ qua.
+const GHI_LUOT = new WeakMap();
+const ghiLuot = (nk) => GHI_LUOT.get(nk)?.();
+export const themBuoc = (nk, b) => { nk.buoc.push(b); delete nk.dang; ghiLuot(nk); };
 export async function goi(ns, user, buoc, nk, toi) {
   ghiLog({ luot: nk.ts, loai: 'tin', tu: toi?.tu ?? 'giam-doc', toi: ns.id, chi_tiet: { buoc, noi_dung: user.slice(0, 240) } });
   const body = { model: ns.model, max_tokens: 500, temperature: 0.3, system: heThong(ns, nk),
@@ -38,13 +44,14 @@ export async function goi(ns, user, buoc, nk, toi) {
   const moTa = `${buoc} · từ ${tenCua(toi?.tu ?? 'giam-doc')}`;
   await vpBao(ns.id, 'lam', moTa);
   const t0 = Date.now(); const bat_dau = new Date(t0).toISOString();
+  nk.dang = { buoc, ai: ns.ten, id: ns.id, bat_dau }; ghiLuot(nk);
   const r = await fetch(`${PROXY()}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': ns.id, 'x-cty-luot': nk.ts }, body: JSON.stringify(body) });
   const d = await r.json();
   const ms = Date.now() - t0; const ket_thuc = new Date().toISOString();   // giờ của mô hình, không tính nhịp chờ
-  if (NHIP * 1000 > ms) await new Promise((ok) => setTimeout(ok, NHIP * 1000 - ms));
-  await vpBao(ns.id, 'xong', moTa);
   const text = r.ok ? (d.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('') : '';
-  nk.buoc.push({ buoc, ai: ns.ten, id: ns.id, model: ns.model, bat_dau, ket_thuc, ms, http: r.status, usage: d.usage || null, loi: r.ok ? null : d.error || JSON.stringify(d).slice(0, 200), hoi: user, dap: text, bai_hoc: (ns.bai_hoc ?? []).map((b) => b.ma) });
+  themBuoc(nk, { buoc, ai: ns.ten, id: ns.id, model: ns.model, bat_dau, ket_thuc, ms, http: r.status, usage: d.usage || null, loi: r.ok ? null : d.error || JSON.stringify(d).slice(0, 200), hoi: user, dap: text, bai_hoc: (ns.bai_hoc ?? []).map((b) => b.ma) });   // kết quả lên trang NGAY, trước nhịp chờ
+  if (NHIP * 1000 > ms) await new Promise((ok) => setTimeout(ok, NHIP * 1000 - ms));   // chạy chậm: văn phòng pixel giữ "đang làm" thêm, trang đã có kết quả
+  await vpBao(ns.id, 'xong', moTa);
   if (!r.ok) throw new Error(`${ns.ten}: ${r.status} ${d.error || ''}`);
   ghiLog({ luot: nk.ts, loai: 'tin', tu: ns.id, toi: toi?.tu ?? 'giam-doc', chi_tiet: { buoc, tra_loi: text.slice(0, 240) } });
   return text;
@@ -71,7 +78,8 @@ export async function motLuot(viec, ghi = true, o = {}) {
   const quyDinh = quyDinhLuot(khoa);
   const nk = { ts, bat_dau: new Date().toISOString(), viec, khoa, ten_phong: tenPhong(khoa), quy_trinh: qt.ban, quy_dinh: quyDinh, bo_viec: o.boViec ?? null, trang_thai: 'đang chạy', buoc: [], do_may: [], ket: null };
   const f = path.join(DATA(), 'nhat-ky', `${ts}.json`);
-  const luu = () => { if (ghi) { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(nk, null, 2)); } };
+  const luu = () => { if (ghi) { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(`${f}.tam`, JSON.stringify(nk, null, 2)); fs.renameSync(`${f}.tam`, f); } };   // ghi tạm rồi đổi tên: trang đọc giữa chừng không gặp tệp dở
+  GHI_LUOT.set(nk, luu);
   const so = () => nk.buoc.length + 1;
   luu();
   try {
@@ -95,7 +103,7 @@ export async function motLuot(viec, ghi = true, o = {}) {
           const truot = kq.filter((x) => !x.dat);
           nk.do_may.push({ buoc: so(), kq });
           const ly = truot.map((x) => x.mo_ta).join('; ');
-          nk.buoc.push({ buoc: `${so()} máy đo`, ai: 'Máy đo', id: 'may-do', model: 'máy', bat_dau: new Date().toISOString(), ket_thuc: new Date().toISOString(), ms: 0, http: 200, usage: null, loi: null, hoi: '', dap: JSON.stringify({ ok: !truot.length, ly_do: truot.length ? ly : kq.map((x) => x.mo_ta).join('; ') }) });
+          themBuoc(nk, { buoc: `${so()} máy đo`, ai: 'Máy đo', id: 'may-do', model: 'máy', bat_dau: new Date().toISOString(), ket_thuc: new Date().toISOString(), ms: 0, http: 200, usage: null, loi: null, hoi: '', dap: JSON.stringify({ ok: !truot.length, ly_do: truot.length ? ly : kq.map((x) => x.mo_ta).join('; ') }) });
           ghiLog({ luot: ts, loai: 'quyet', tu: 'may-do', chi_tiet: { ok: !truot.length, ly_do: ly || 'đạt mọi phép đo', kq } });
           if (truot.length) return { ok: false, ly_do: `Máy đo: ${ly}`, may: true };
         }
@@ -140,7 +148,7 @@ export async function motLuot(viec, ghi = true, o = {}) {
         tt === 'submitted' ? `Xong: ${giao?.viec ?? viec} — ${ghiChu ?? (nk.do_may.length ? 'máy đo đạt + người kiểm đạt' : 'người kiểm đạt')}` : `Xong: —`,
         tt === 'submitted' ? 'Đang: chờ Giám đốc ký' : `Đang: ${giao?.viec ?? viec} — ${NHAN_TT[tt]}`,
         tt === 'ket' ? `Cần: mức 3 — ${cauHoi}` : tt === 'revision' ? `Cần: mức 2 — ${soat?.ly_do ?? ''}` : 'Cần: mức 3 — ký nộp'].join('\n');
-      nk.buoc.push({ buoc: `${so()} báo cáo (máy)`, ai: 'Máy', id: 'may-do', model: 'máy', bat_dau: new Date().toISOString(), ket_thuc: new Date().toISOString(), ms: 0, http: 200, usage: null, loi: null, hoi: '', dap: baoCao });
+      themBuoc(nk, { buoc: `${so()} báo cáo (máy)`, ai: 'Máy', id: 'may-do', model: 'máy', bat_dau: new Date().toISOString(), ket_thuc: new Date().toISOString(), ms: 0, http: 200, usage: null, loi: null, hoi: '', dap: baoCao });
     } else {
       baoCao = await goi(bcNs, dien(L.bao_cao, { viec_giao: giao?.viec ?? viec, ket_qua_ngan: (lam?.ket_qua ?? '—').slice(0, 300), bang_chung: lam?.bang_chung ?? '—',
         ket_soat: cauHoi ? `kẹt — ${cauHoi}` : soat ? (soat.ok ? 'đạt' : 'chưa đạt — ' + soat.ly_do) : 'không có kết luận',
@@ -152,7 +160,7 @@ export async function motLuot(viec, ghi = true, o = {}) {
   } catch (e) { nk.trang_thai = 'lỗi'; nk.loi = String(e.message || e); ghiLog({ luot: ts, loai: 'loi', tu: 'he-thong', chi_tiet: { loi: nk.loi } }); }
   const tok = nk.buoc.reduce((s, b) => s + (b.usage?.input_tokens || 0) + (b.usage?.output_tokens || 0), 0);
   nk.tong = { buoc: nk.buoc.length, token: tok, ms: nk.buoc.reduce((s, b) => s + b.ms, 0) };
-  nk.ket_thuc = new Date().toISOString();
+  nk.ket_thuc = new Date().toISOString(); delete nk.dang;
   luu();
   ghiLog({ luot: ts, loai: 'he-thong', tu: 'he-thong', chi_tiet: { su_kien: 'kết thúc lượt', trang_thai: nk.trang_thai, tong: nk.tong } });
   return nk;
@@ -166,6 +174,7 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('ca.m
     let raw = ''; for await (const c of req) raw += c; const goc = req.headers['x-cty-staff']; const body = JSON.parse(raw);
     const vai = (String(body.system).match(/VAI CỦA BẠN Ở PHÒNG — ([^:]+):/) || [])[1]; const staff = VAI_NHU[vai] ?? goc;
     const hoi = String(body.messages?.[0]?.content || ''); thay.push({ goc, vai, system: String(body.system), hoi });
+    if (staff === 'loc' && kich.chup === true) { const d = path.join(process.env.CTY_DATA_DIR, 'nhat-ky'); kich.chup = { tep: JSON.parse(fs.readFileSync(path.join(d, fs.readdirSync(d).filter((x) => x.endsWith('.json')).sort().at(-1)), 'utf8')) }; }   // tệp lượt NGAY lúc Người làm đang được gọi
     let ans;
     if (staff === 'tam') ans = hoi.includes('báo cáo sáng') ? 'Tâm · Phòng thử · 2026-10-10\nXong: việc — bằng chứng\nĐang: —\nCần: mức 3 — ký'
       : kich.thieu && hoi.includes('"thieu"') ? '{"thieu":"Jett Jean là sản phẩm gì, viết bằng ngôn ngữ nào?"}'
@@ -229,7 +238,12 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('ca.m
   assert(thay.some((x) => x.goc === 'loc' && /TÍNH CÁCH GỐC[\s\S]*Cẩn thận 5\/10: Kiểm lại các tiêu chí đếm được/.test(x.system)), 'tính cách gốc vào lời dặn', thay.filter((x) => x.goc === 'loc').map((x) => x.system.slice(-300)));
   thay.length = 0; dem.loc = 0; dem.ky = 0; await motLuot('thử', false, { tinhCach: { loc: { can_than: 9 } } });
   assert(thay.some((x) => x.goc === 'loc' && /Cẩn thận 9\/10: Trước khi nộp, tự đếm lại TỪNG tiêu chí/.test(x.system)) && thay.some((x) => x.goc === 'tam' && /Cẩn thận 6\/10/.test(x.system)) && !thay.some((x) => x.goc === 'tam' && /Cẩn thận 9\/10/.test(x.system)), 'ghi đè tính cách chỉ đổi đúng người (Tâm vẫn 6)', thay.map((x) => x.goc));
-  fake.close(); console.log('✓ ca.mjs: v1 y cũ + 5 công tắc (hỏi lại, máy đo, khoá tiêu chí, hết vòng→kẹt, trọng tài) + vai tách khỏi người + tính cách gốc + phúc khảo lời bác'); process.exit(0);
+  // thời gian thực (#1317): lượt GHI tệp → giữa lượt, tệp đã có bước giao + `dang` = Người làm; xong thì đủ bước, hết `dang`, không sót tệp tạm
+  kich = { chup: true }; dem.loc = 0; dem.ky = 0; const nkThat = await motLuot('thử thời gian thực', true);
+  const giua = kich.chup?.tep; const dNk = path.join(process.env.CTY_DATA_DIR, 'nhat-ky'); const cuoi = JSON.parse(fs.readFileSync(path.join(dNk, `${nkThat.ts}.json`), 'utf8'));
+  assert(giua?.trang_thai === 'đang chạy' && giua.buoc.length === 1 && /giao/.test(giua.buoc[0].buoc) && giua.dang?.id === 'loc' && /làm/.test(giua.dang.buoc), 'giữa lượt: tệp có bước giao + đang = Người làm', { buoc: giua?.buoc.map((b) => b.buoc), dang: giua?.dang });
+  assert(cuoi.trang_thai === 'xong' && cuoi.buoc.length === nkThat.buoc.length && !('dang' in cuoi) && !fs.readdirSync(dNk).some((x) => x.endsWith('.tam')), 'xong lượt: đủ bước, hết "đang", không sót tệp tạm', cuoi);
+  fake.close(); console.log('✓ ca.mjs: v1 y cũ + 5 công tắc (hỏi lại, máy đo, khoá tiêu chí, hết vòng→kẹt, trọng tài) + vai tách khỏi người + tính cách gốc + phúc khảo lời bác + ghi từng bước ngay khi xong (thời gian thực)'); process.exit(0);
 }
 
 if (process.argv.includes('--viec') && (process.argv[1] || '').endsWith('ca.mjs')) {

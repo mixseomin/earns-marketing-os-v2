@@ -1,7 +1,7 @@
 // HỒ SƠ NĂNG LỰC — máy đo từ KẾT QUẢ THẬT (nhật ký lượt + bộ việc chuẩn), không ai tự khai, không ai sửa tay (decision 2026-10-11
 // nhân sự sống, lớp "năng lực đo được"). 0 đồng: chỉ đọc nhật ký. Mỗi năng lực có số mẫu — ít mẫu thì điểm chưa đáng tin, hiện kèm.
 // Năng lực gắn với LOẠI BƯỚC người đó làm, không gắn với vai: người đổi vai vẫn giữ lịch sử năng lực của mình.
-import { dsLuotTho, boViecChuan, chamViecChuan } from './quy-trinh.mjs';
+import { dsLuotTho, boViecChuan, chamViecChuan, json } from './quy-trinh.mjs';
 import { tienUsd } from './gia.mjs';
 
 export const NANG_LUC = {
@@ -11,9 +11,12 @@ export const NANG_LUC = {
   bao_cao: { ten: 'Báo cáo', do: 'báo cáo đúng mẫu 4 dòng' },
   on_dinh: { ten: 'Ổn định', do: 'bước không lỗi (HTTP / không trả lời)' },
 };
+/** Tên bước (ca.mjs đặt: "1 giao việc", "4 làm lại", "5 soát lại"…) → loại việc. Một bản cho đo năng lực lẫn trả lương (luong.mjs). */
 const LOAI = [['giao_viec', /giao việc/], ['bao_cao', /báo cáo/], ['kiem_soat', /soát/], ['thuc_hien', /\blàm\b/]];
-const loai = (buoc) => LOAI.find(([, r]) => r.test(buoc))?.[0] ?? null;
-const jsonOk = (s) => { const m = String(s || '').match(/\{[\s\S]*\}/); try { return m ? JSON.parse(m[0]) : null; } catch { return null; } };
+export const loaiBuoc = (buoc) => LOAI.find(([, r]) => r.test(buoc))?.[0] ?? null;
+const loai = loaiBuoc;
+/** Ngày theo giờ Việt Nam (GMT+7) của một mốc ISO → 'YYYY-MM-DD'. */
+export const ngayVN = (iso) => new Date(Date.parse(iso) + 7 * 3600e3).toISOString().slice(0, 10);
 
 /** Một lượt đúng hay sai THEO KẾT QUẢ: bộ việc chuẩn chấm theo kỳ vọng; lượt thật = nộp được. null = chưa xong. */
 function ketDung(l) {
@@ -31,7 +34,7 @@ export function hoSoNangLuc(luot = dsLuotTho()) {
     const buoc = l.buoc || []; const dung = ketDung(l);
     const giao = buoc.find((b) => loai(b.buoc) === 'giao_viec'); if (giao) cham(giao.id, 'giao_viec', dung);
     const lam = buoc.find((b) => loai(b.buoc) === 'thuc_hien'); const soat1 = buoc.find((b) => loai(b.buoc) === 'kiem_soat');
-    if (lam && soat1 && !soat1.loi) cham(lam.id, 'thuc_hien', jsonOk(soat1.dap)?.ok === true);
+    if (lam && soat1 && !soat1.loi) cham(lam.id, 'thuc_hien', json(soat1.dap)?.ok === true);
     if (l.bo_viec) for (const id of new Set(buoc.filter((b) => loai(b.buoc) === 'kiem_soat').map((b) => b.id))) cham(id, 'kiem_soat', dung);
     for (const b of buoc) {
       const h = cua(b.id); h.so_buoc++; h.chi_phi += b.usage ? tienUsd(b.model, b.usage) : 0; h.ms += b.ms || 0;
@@ -75,7 +78,6 @@ export function theGame(hs) {
 
 // LỊCH SỬ (thấy tích luỹ): chỉ số mỗi ngày tính NGƯỢC từ nhật ký — mỗi lượt có giờ nên "ảnh chụp ngày D" = hồ sơ trên các lượt bắt
 // đầu trước hết ngày D (GMT+7). Không cần job chụp hằng ngày, có lịch sử từ ngày đầu. Ngày không có việc mới thì giữ số hôm trước.
-const ngayVN = (iso) => new Date(Date.parse(iso) + 7 * 3600e3).toISOString().slice(0, 10);
 export function lichSu(luot = dsLuotTho(), soNgay = 14, homNay = new Date().toISOString()) {
   const cuoi = ngayVN(homNay); const ngay = [];
   for (let i = soNgay - 1; i >= 0; i--) ngay.push(ngayVN(new Date(Date.parse(cuoi + 'T12:00:00Z') - i * 864e5).toISOString()));

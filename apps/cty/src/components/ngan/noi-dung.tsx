@@ -136,7 +136,7 @@ function ViNhanSu({ vi, lg, tenVai }: { vi: Vi | undefined; lg: Luong | null; te
         <div><span className="cty-muted cty-nho">Số dư ví</span><b>{dong(vi?.tong_vnd ?? 0)}</b></div>
         <div><span className="cty-muted cty-nho">Tháng này</span><b>{dong(vi?.thang.vnd ?? 0)}</b></div>
         <div><span className="cty-muted cty-nho">Chi phí AI tháng này</span><b>${(vi?.thang.chi_ai_usd ?? 0).toFixed(4)}</b></div>
-        <div title="Theo giá Mỹ (cùng đơn vị USD): giá trị lao động quy đổi chia chi phí AI thật"><span className="cty-muted cty-nho">Giá trị / chi phí AI</span><b>{chiAi > 0 ? `gấp ${Math.round(giaTriUs / chiAi).toLocaleString('vi-VN')} lần` : '—'}</b></div>
+        <div title="Theo giá Mỹ (cùng đơn vị USD): giá trị lao động quy đổi — dựa trên số phút GIẢ ĐỊNH mỗi bước — chia chi phí AI thật"><span className="cty-muted cty-nho">Giá trị ước / chi phí AI</span><b>{chiAi > 0 ? `gấp ${Math.round(giaTriUs / chiAi).toLocaleString('vi-VN')} lần` : '—'}</b></div>
       </div>
       {lg ? <p>Lương tương đương <b>{tenVai}</b> ({BAC[lg.bac]} theo cấp): <b>{trieu(lg.vn_thang)}/tháng</b> <span className="cty-muted cty-nho">— {lg.nghe_vn} ở Việt Nam</span> · <b>${lg.us_gio.toFixed(2)}/giờ</b> <span className="cty-muted cty-nho">— {lg.nghe_us} ở Mỹ</span></p>
         : <p className="cty-muted">Chưa giữ vai nào có bảng lương.</p>}

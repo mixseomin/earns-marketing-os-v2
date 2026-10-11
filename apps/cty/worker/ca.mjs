@@ -11,7 +11,7 @@ import http from 'node:http';
 import { parseFm } from '../scripts/fm.mjs';
 import { ghiLog } from './log.mjs';
 import { vpBao } from './vp.mjs';
-import { hienHanh, dsBan, mayDo, dien as dienMau, LOAI_DO, quyDinhCuaPhong, tenPhong, giaiNguoi } from './quy-trinh.mjs';
+import { json, hienHanh, dsBan, mayDo, dien as dienMau, LOAI_DO, quyDinhCuaPhong, tenPhong, giaiNguoi } from './quy-trinh.mjs';
 
 const DIR = path.join(GOC, 'worker');   // không dùng import.meta.url: xem worker/goc.mjs
 const CONG_TY = path.join(DIR, '..', 'cong-ty');
@@ -47,7 +47,7 @@ export async function goi(ns, user, buoc, nk, toi) {
   ghiLog({ luot: nk.ts, loai: 'tin', tu: ns.id, toi: toi?.tu ?? 'giam-doc', chi_tiet: { buoc, tra_loi: text.slice(0, 240) } });
   return text;
 }
-export const json = (t) => { const m = t.match(/\{[\s\S]*\}/); try { return JSON.parse(m ? m[0] : t); } catch { return null; } };
+export { json };   // bản dùng chung ở quy-trinh.mjs
 
 const MAU_DO = 'so_cau{bang|toi_da} · so_tu{toi_da} · so_ky_tu{toi_da} · so_dong{bang} · so_tu_moi_dong{toi_da} · khong_chua{chuoi:[…]} · ngon_ngu{la:"en"}';
 

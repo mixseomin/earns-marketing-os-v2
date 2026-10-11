@@ -15,7 +15,10 @@ await p.reload({ waitUntil: 'networkidle' });
 const VIEC = `Thử nút ${Date.now()}: viết 1 câu chào tiếng Anh`;
 const truoc = await p.locator('.cty-ds-luot details').count();
 await p.fill('.cty-thu-form textarea', VIEC);
+const cacNut = () => p.evaluate(() => [...document.querySelectorAll('.cty-thu-form .cty-thu-nut > *')].map((e) => { const r = e.getBoundingClientRect(); return `${Math.round(r.x)},${Math.round(r.y)}`; }).join(' '));
+const viTriTruoc = await cacNut();
 await p.click('.cty-thu-form button:has-text("Chạy một lượt")');
+kq('mở xác nhận: các nút cạnh đứng yên (YDNI 6)', (await cacNut()) === viTriTruoc, `${viTriTruoc} → ${await cacNut()}`);
 // #1271: bấm lần đầu chỉ mở xác nhận tại chỗ — chưa được gửi gì. Huỷ thì thôi; Xác nhận mới chạy.
 await p.waitForTimeout(800);
 kq('bấm lần đầu chỉ hỏi xác nhận, chưa giao lượt', (await p.locator('.cty-thu-form .cty-xac-nhan').count()) === 1 && (await p.locator('.cty-thu-form .cty-bao-ok, .cty-thu-form .cty-bao-loi').count()) === 0, '');

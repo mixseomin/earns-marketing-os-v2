@@ -163,6 +163,8 @@ export function mayDo(d, text) {
 export const LOAI_DO = ['so_cau', 'so_tu', 'so_ky_tu', 'so_dong', 'so_tu_moi_dong', 'khong_chua', 'ngon_ngu'];
 
 /** Điền {chỗ_giữ} trong lời nhắc; chỉ thay khoá có trong `v` (ngoặc của JSON mẫu giữ nguyên). */
+/** JSON đầu tiên trong một câu trả lời mô hình (có thể kèm chữ quanh) → object, không đọc được → null. Một bản cho cả worker lẫn đo năng lực. */
+export const json = (t) => { const s = String(t ?? ''); const m = s.match(/\{[\s\S]*\}/); try { return JSON.parse(m ? m[0] : s); } catch { return null; } };
 export const dien = (mau, v) => mau.replace(/\{([a-z_]+)\}/g, (m, k) => (k in v ? String(v[k]) : m));
 
 if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('quy-trinh.mjs')) {

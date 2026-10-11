@@ -274,7 +274,9 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-qt-hh td{background:var(--soft)}
 .cty-qt-nk{margin:0;padding-left:1.1rem;display:grid;gap:4px;font-size:.88rem}
 @media (max-width:600px){.cty-qt-buoc{min-width:0;max-width:none;flex:1 1 100%}.cty-qt-mui{flex-basis:100%}.cty-qt-mui-ngang{display:none}.cty-qt-mui-doc{display:inline}}
-.cty-xac-nhan{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;padding:4px 8px;border:1px solid var(--accent);border-radius:8px}
+.cty-xn{position:relative;display:inline-block}
+.cty-xac-nhan{position:absolute;left:0;top:calc(100% + 6px);z-index:20;display:grid;gap:8px;width:max-content;max-width:min(380px,86vw);padding:10px 12px;border:1px solid var(--accent);border-radius:8px;background:var(--surface);box-shadow:0 8px 24px rgb(0 0 0/.25);white-space:normal}
+.cty-xac-nhan-nut{display:flex;gap:6px}
 .cty-phong-hai{display:grid;grid-template-columns:minmax(0,1fr) var(--vp-rong,minmax(320px,38%));gap:14px}
 .cty-phong-hai > .cty-tabkhung{min-height:0}
 .cty-vp-khung{position:relative;display:flex;flex-direction:column;gap:6px;min-height:0;height:100%}
@@ -285,13 +287,13 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-vp-dau{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .cty-vp-khung iframe{display:block;flex:1;min-height:0;width:100%;border:1px solid var(--line);border-radius:8px;background:#000}
 .cty-vp-nut{display:none}
-/* Điện thoại: văn phòng là tấm trượt từ đáy (65% màn), nút cố định giữa đáy — 💬 góp ý giữ góc phải. */
+/* Điện thoại: văn phòng là tấm trượt từ đáy (65% màn), nút cố định giữa đáy — 💬 góp ý giữ góc phải. Lớp 57–58: DƯỚI nền ngăn kéo (59) và các tầng ngăn (60+). */
 @media (max-width:900px){
   .cty-phong-hai{grid-template-columns:minmax(0,1fr)}
   .cty-vp-keo{display:none}
-  .cty-phong-hai > .cty-vp-khung{position:fixed;left:0;right:0;bottom:0;height:65dvh;z-index:70;padding:10px 12px calc(64px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--line);box-shadow:0 -10px 30px rgb(0 0 0/.3);transform:translateY(105%);transition:transform .2s ease}
+  .cty-phong-hai > .cty-vp-khung{position:fixed;left:0;right:0;bottom:0;height:65dvh;z-index:57;padding:10px 12px calc(64px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--line);box-shadow:0 -10px 30px rgb(0 0 0/.3);transform:translateY(105%);transition:transform .2s ease}
   .cty-phong-hai > .cty-vp-khung.mo{transform:none}
-  .cty-vp-nut{display:block;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:71;padding:10px 18px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:#fff;font:inherit;font-weight:600;box-shadow:0 4px 14px rgb(0 0 0/.3)}
+  .cty-vp-nut{display:block;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:58;padding:10px 18px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:#fff;font:inherit;font-weight:600;box-shadow:0 4px 14px rgb(0 0 0/.3)}
   .cty-tabnoi{padding-bottom:64px}
 }
 .cty-ns-dau{display:flex;gap:12px;align-items:center}
@@ -306,8 +308,6 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-ns-hs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
 @media (max-width:900px){.cty-ns-hs{grid-template-columns:minmax(0,1fr)}.cty-nl-do{display:none}}
 .cty-av{image-rendering:pixelated;border-radius:4px;background:var(--line);display:inline-block}
-/* Ngăn kéo đang mở thì nút văn phòng (điện thoại) nhường chỗ — không nổi đè lên ngăn. */
-body:has(.nk) .cty-vp-nut{display:none}
 .cty-gm{display:grid;grid-template-columns:minmax(150px,200px) minmax(0,560px);gap:28px;align-items:start}
 .cty-gm-trai{display:grid;gap:6px;justify-items:start}.cty-gm-trai .cty-av{border-radius:8px}
 .cty-gm-cap{font-family:var(--head);font-weight:700;font-size:1.35rem}

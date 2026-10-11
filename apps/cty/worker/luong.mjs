@@ -5,12 +5,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { GOC } from './goc.mjs';
 import { dsLuotTho } from './quy-trinh.mjs';
-import { hoSoNangLuc, theGame } from './nang-luc.mjs';
+import { hoSoNangLuc, theGame, loaiBuoc as loai, ngayVN } from './nang-luc.mjs';
 import { tienUsd } from './gia.mjs';
 
 export const bangLuong = () => JSON.parse(fs.readFileSync(path.join(GOC, 'cong-ty', 'luong', 'thi-truong.json'), 'utf8'));
-const LOAI = [['giao_viec', /giao việc/], ['bao_cao', /báo cáo/], ['kiem_soat', /soát/], ['thuc_hien', /\blàm\b/]];
-const loai = (buoc) => LOAI.find(([, r]) => r.test(buoc))?.[0] ?? null;
 export const bacCuaCap = (B, cap) => Object.entries(B.bac_theo_cap).find(([k, [a, b]]) => !k.endsWith('_') && cap >= a && cap <= b)?.[0] ?? 'tb';
 const usTheoBac = (us, bac) => (bac === 'thap' ? us.nam_p10 : bac === 'cao' ? us.nam_p90 : us.nam_trung_vi);
 
@@ -24,11 +22,11 @@ export function luongVai(vai, cap, B = bangLuong()) {
 /** Ví của mọi người: { <id>: { muc: [...], tong_vnd, tong_usd, chi_ai_usd, thang: {vnd, usd, chi_ai_usd} } }. */
 export function soVi(luot = dsLuotTho(), B = bangLuong(), luc = new Date()) {
   const capCua = Object.fromEntries(Object.entries(theGame(hoSoNangLuc(luot))).map(([id, t]) => [id, t.cap]));
-  const thang = new Date(Date.parse(luc.toISOString()) + 7 * 3600e3).toISOString().slice(0, 7);
+  const thang = ngayVN(luc.toISOString()).slice(0, 7);
   const out = {};
   for (const l of luot) for (const b of l.buoc || []) {
     const lo = loai(b.buoc); const vai = lo && B.viec_sang_vai[lo]; const v = (out[b.id] ??= { muc: [], tong_vnd: 0, tong_usd: 0, chi_ai_usd: 0, thang: { vnd: 0, usd: 0, chi_ai_usd: 0 } });
-    const ai = b.usage ? tienUsd(b.model, b.usage) ?? 0 : 0; const trongThang = b.bat_dau && new Date(Date.parse(b.bat_dau) + 7 * 3600e3).toISOString().slice(0, 7) === thang;
+    const ai = b.usage ? tienUsd(b.model, b.usage) ?? 0 : 0; const trongThang = b.bat_dau && ngayVN(b.bat_dau).slice(0, 7) === thang;
     v.chi_ai_usd += ai; if (trongThang) v.thang.chi_ai_usd += ai;
     if (!vai || b.loi) continue;   // bước lỗi không có công
     const lg = luongVai(vai, capCua[b.id] ?? 1, B); const phut = B.phut_quy_doi[lo];

@@ -129,9 +129,9 @@ export function duyetDeXuat(k, id, dongY, ai = 'giam-doc') {
 // Việc đang chạy (họp / so phiên bản) của một phòng — trang đọc để khoá nút + hiện "đang chạy", worker xoá khi xong (kể cả lỗi).
 const khoaDir = () => path.join(DATA(), 'dang-chay');
 export function dangChayCaiTien(k) { const f = path.join(khoaDir(), `${k}.json`); if (!fs.existsSync(f)) return null; const x = JSON.parse(fs.readFileSync(f, 'utf8')); return Date.now() - Date.parse(x.tu) > 30 * 60e3 ? null : x; }
-// tom_tat luôn là CHỮ (trang in thẳng ra) — một việc từng trả object vào đây làm trang quy trình 500 (11/10/2026); đọc thì chuẩn hoá cả tệp cũ.
+// tom_tat luôn là CHỮ (trang in thẳng ra) — một việc từng trả object vào đây làm trang quy trình 500 (11/10/2026). Ghi là chặn, đọc không vá.
 const tomTat = (r) => (typeof r === 'string' ? r : r?.ben ? r.ben.map((b) => `${r.nguoi}.${r.chi_so}=${b.gia_tri}: ${b.so_dung}/${b.tong}`).join(' vs ') : JSON.stringify(r ?? '').slice(0, 200));
-export function ketQuaGanNhat(k) { const f = path.join(khoaDir(), `${k}-ket.json`); if (!fs.existsSync(f)) return null; const x = JSON.parse(fs.readFileSync(f, 'utf8')); return x.tom_tat === undefined ? x : { ...x, tom_tat: tomTat(x.tom_tat) }; }
+export function ketQuaGanNhat(k) { const f = path.join(khoaDir(), `${k}-ket.json`); return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null; }
 async function voiKhoa(k, viec, fn) {
   const f = path.join(khoaDir(), `${k}.json`); fs.mkdirSync(path.dirname(f), { recursive: true });
   fs.writeFileSync(f, JSON.stringify({ viec, tu: new Date().toISOString() }));
@@ -143,7 +143,7 @@ async function voiKhoa(k, viec, fn) {
 // TRƯỞNG PHÒNG TỰ TRIỆU TẬP (anh chốt 11/10/2026). Sau mỗi lượt thật, máy xét chỉ số (0 đồng) theo ngưỡng `tu_hop` của quy trình;
 // chạm ngưỡng thì trưởng phòng tự họp, ra bản thử thì tự so trên bộ việc chuẩn. Chỉ chi trong ngân sách tháng của phòng
 // (`ngan_sach_cai_tien_usd_thang` trong hồ sơ phòng — Giám đốc cấp; 0/không khai = không tự họp). Hết ngân sách: ghi sổ, không chi.
-const UOC = { hop: 0.01, so: 0.02 };   // ponytail: ước trước khi chi; số thật cộng từ chi_phi đã ghi của đề xuất + lần so
+const UOC = { hop: 0.01, so: 0.02, luot: 0.0006 };   // ponytail: ước trước khi chi; số thật cộng từ chi_phi đã ghi của đề xuất + lần so
 export function chiThang(k, luc = new Date()) {
   const thang = luc.toISOString().slice(0, 7);
   const cong = (ds) => ds.filter((x) => String(x.ts).slice(0, 7) === thang).reduce((s, x) => s + (Number(x.chi_phi) || 0), 0);
@@ -221,7 +221,7 @@ if (laCli && process.argv.includes('--so')) { const P = thamSo('--qt', 'thu-nghi
 if (laCli && process.argv.includes('--so-tinh-cach')) {   // node worker/cai-tien.mjs --so-tinh-cach --qt thu-nghiem/lam-viec --nguoi loc --chi-so can_than --gia-tri 2,9 [--lan 1]
   const P = thamSo('--qt', 'thu-nghiem/lam-viec'); const ns = nganSach(P), chi = chiThang(P);
   const gt = String(thamSo('--gia-tri', '2,9')).split(',').map(Number); const lan = Number(thamSo('--lan', 1));
-  const uoc = gt.length * (boViecChuan(P)?.viec.length ?? 0) * lan * 0.0006;
+  const uoc = gt.length * (boViecChuan(P)?.viec.length ?? 0) * lan * UOC.luot;
   if (chi + uoc > ns) { console.log(`✗ vượt ngân sách cải tiến tháng: đã chi $${chi.toFixed(3)}, ước thêm $${uoc.toFixed(3)}, trần $${ns}`); process.exit(1); }
   const kq = await voiKhoa(P, 'so', () => soTinhCach(P, thamSo('--nguoi', 'loc'), thamSo('--chi-so', 'can_than'), gt, lan));
   console.log(kq.ben.map((b) => `${kq.nguoi}.${kq.chi_so}=${b.gia_tri}: ${b.so_dung}/${b.tong} đúng · thực hiện vòng đầu ${b.nang_luc.thuc_hien?.dat ?? '-'}/${b.nang_luc.thuc_hien?.so_mau ?? '-'} · $${b.chi_phi.toFixed(4)}`).join('\n')); process.exit(0);
@@ -297,8 +297,6 @@ if (laCli && process.argv.includes('--tu-kiem')) {
   // kết quả gần nhất luôn là CHỮ (trang in thẳng) — kể cả tệp cũ ghi object
   await voiKhoa(P, 'so', async () => ({ nguoi: 'loc', chi_so: 'can_than', ben: [{ gia_tri: 2, so_dung: 1, tong: 7 }] }));
   a(typeof ketQuaGanNhat(P).tom_tat === 'string' && /loc.can_than=2: 1\/7/.test(ketQuaGanNhat(P).tom_tat), 'voiKhoa ghi chữ', ketQuaGanNhat(P));
-  fs.writeFileSync(path.join(khoaDir(), `${P}-ket.json`), JSON.stringify({ viec: 'so', ok: true, luc: 'x', tom_tat: { qt: 1 } }));
-  a(typeof ketQuaGanNhat(P).tom_tat === 'string', 'tệp cũ ghi object → đọc ra chữ', ketQuaGanNhat(P));
   // so chỉ số gốc: chạy được, ghi kết quả, cộng vào chi tháng
   const chiTruoc = chiThang(P); const tc = await soTinhCach(P, 'loc', 'can_than', [2, 9], 1);
   a(tc.ben.length === 2 && tc.ben[0].tong === boViecChuan(P).viec.length && dsSoTinhCach(P).length === 1 && chiThang(P) > chiTruoc, 'so chỉ số gốc: 2 bên × bộ việc, có lưu, cộng chi tháng', tc.ben.map((b) => b.tong));

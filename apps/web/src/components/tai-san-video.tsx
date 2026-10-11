@@ -39,7 +39,8 @@ export function TaiSanVideo({ nen, video, tenSp }: { nen: NenTong[]; video: Vide
         const dam = o.xem7 != null && o.xem7 > 0 && o.xem7 === dau[key];
         const chu = <span style={{ fontWeight: dam ? 800 : 500, color: o.xem7 == null ? 'var(--fg-4)' : dam ? 'var(--accent)' : undefined, fontVariantNumeric: 'tabular-nums' }}>{so(o.xem7)}</span>;
         return o.url ? <a {...extLinkProps(o.url)} style={{ color: 'inherit', textDecoration: 'none' }}>{chu}</a> : chu; },
-      total: (rows) => so(rows.reduce((t, v) => t + (v.nen[key]?.xem7 ?? 0), 0)),
+      // cả cột chưa đo → '–' (không phải 0)
+      total: (rows) => { const xs = rows.map((v) => v.nen[key]?.xem7).filter((x): x is number => x != null); return so(xs.length ? xs.reduce((t, x) => t + x, 0) : null); },
     })),
     { key: 'tong', header: 'Tổng 7 ngày', width: 104, sortValue: (v) => v.tong7,
       cell: (v) => <b style={{ fontVariantNumeric: 'tabular-nums' }}>{so(v.tong7)}</b>,

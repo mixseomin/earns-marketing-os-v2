@@ -53,11 +53,12 @@ if [ -n "${DATABASE_URL:-}" ] && [ -d "packages/db/migrations" ]; then
       applied_at timestamptz NOT NULL DEFAULT now()
     );
   " >/dev/null
+  # Một truy vấn lấy cả danh sách đã chạy (trước đây mỗi tệp một kết nối psql: 249 tệp = 12,5s mỗi lần deploy).
+  da_chay=$(psql "$DATABASE_URL" -tAc "SELECT filename FROM _file_migrations")
   for sql_file in packages/db/migrations/[0-9][0-9][0-9][0-9]_*.sql; do
     [ -f "$sql_file" ] || continue
     fname=$(basename "$sql_file")
-    already=$(psql "$DATABASE_URL" -tAc "SELECT 1 FROM _file_migrations WHERE filename = '$fname' LIMIT 1")
-    if [ "$already" = "1" ]; then
+    if grep -qxF "$fname" <<<"$da_chay"; then
       continue
     fi
     echo "→ Applying $fname"
@@ -193,6 +194,12 @@ if ! cmp -s deploy/nginx-cty.conf /etc/nginx/sites-enabled/cty.on.tc; then
   cp deploy/nginx-cty.conf /etc/nginx/sites-enabled/cty.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx cty.on.tc cài/cập nhật" || { echo "✗ nginx cty.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/cty.on.tc; }
 fi
 CTY_CHANGED=false
+# Văn phòng pixel chỉ đọc hồ sơ nhân sự + script bơm + unit của nó → chỉ khởi động lại khi mấy thứ đó đổi
+# (trước đây mọi lần sửa apps/cty đều khởi động lại 2 văn phòng, mỗi cái ~34s → 68s mỗi deploy).
+VP_CHANGED=false
+if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^(apps/cty/cong-ty/nhan-su/|apps/cty/scripts/seed-van-phong\.mjs|deploy/mos2-vp)"; then
+  VP_CHANGED=true
+fi
 if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^(apps/cty/|packages/db/src/|package-lock\.json)"; then
   CTY_CHANGED=true
 fi
@@ -223,8 +230,8 @@ fi
 if ! cmp -s deploy/nginx-vp.conf /etc/nginx/sites-enabled/vp.on.tc; then
   cp deploy/nginx-vp.conf /etc/nginx/sites-enabled/vp.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx vp.on.tc cài/cập nhật" || { echo "✗ nginx vp.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/vp.on.tc; }
 fi
-if command -v pixel-agents >/dev/null 2>&1 && { [ "$CTY_CHANGED" = "true" ] || ! systemctl is-active --quiet mos2-vp; }; then
-  systemctl restart mos2-vp; sleep 8
+if command -v pixel-agents >/dev/null 2>&1 && { [ "$VP_CHANGED" = "true" ] || ! systemctl is-active --quiet mos2-vp; }; then
+  systemctl restart mos2-vp; sleep 1
   systemctl is-active mos2-vp && echo "✓ mos2-vp active" || { echo "✗ mos2-vp failed (không chặn deploy)"; systemctl status mos2-vp --no-pager | tail -15; }
 fi
 
@@ -247,8 +254,8 @@ if command -v pixel-agents >/dev/null 2>&1; then
   if ! cmp -s deploy/nginx-vpthu.conf /etc/nginx/sites-enabled/vpthu.on.tc; then
     cp deploy/nginx-vpthu.conf /etc/nginx/sites-enabled/vpthu.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx vpthu.on.tc cài/cập nhật" || { echo "✗ nginx vpthu.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/vpthu.on.tc; }
   fi
-  if [ "$CTY_CHANGED" = "true" ] || ! systemctl is-active --quiet mos2-vp-thu; then
-    systemctl restart mos2-vp-thu; sleep 8
+  if [ "$VP_CHANGED" = "true" ] || ! systemctl is-active --quiet mos2-vp-thu; then
+    systemctl restart mos2-vp-thu; sleep 1
     systemctl is-active mos2-vp-thu && echo "✓ mos2-vp-thu active" || { echo "✗ mos2-vp-thu failed (không chặn deploy)"; systemctl status mos2-vp-thu --no-pager | tail -10; }
   fi
 fi

@@ -1,0 +1,7 @@
+# Tệp NGOÀI apps/cty mà CHỈ cty dùng (hook ~/.claude/hooks/pham-vi-app.py coi là của cty: sửa không phải hỏi).
+# Mỗi dòng một mẫu glob tính từ gốc repo. Tệp dùng chung thật (deploy.sh, workflow, packages/*) KHÔNG khai ở đây.
+deploy/nginx-cty.conf
+deploy/nginx-vp*.conf
+deploy/mos2-cty*.service
+deploy/mos2-vp*.service
+deploy/vp-touch-pan.js

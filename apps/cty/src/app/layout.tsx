@@ -21,7 +21,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
           <a href="/muc-tieu" className="cty-mono">mục tiêu · ngân sách</a>
           <a href="/quy-trinh" className="cty-mono">quy trình</a>
           <a href="/nhat-ky" className="cty-mono">nhật ký</a>
-          <a href="https://vp.on.tc" className="cty-mono">văn phòng pixel ↗</a>
+          <a href="/vp/cong-ty/" className="cty-mono">văn phòng pixel ↗</a>
           <span style={{ flex: 1 }} />
           <ChonMuiGio />
           <span className="cty-pill cty-pill-off">chế độ tham quan</span>

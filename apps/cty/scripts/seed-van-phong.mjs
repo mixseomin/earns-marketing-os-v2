@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Bơm nhân sự vào văn phòng pixel (pixel-agents standalone, vp.on.tc). pixel-agents không có agent "ảo": phải gửi hook giả
+// Bơm nhân sự vào văn phòng pixel (pixel-agents standalone, cty.on.tc/vp/cong-ty/). pixel-agents không có agent "ảo": phải gửi hook giả
 // SessionStart + Stop cho mỗi người (cwd=/office/<Tên> → nhãn = Tên). Token đổi mỗi lần server khởi động → script đọc lại
 // ~/.pixel-agents/server.json rồi bơm; systemd mos2-vp.service gọi ở ExecStartPost. `--config` chỉ ghi watchAllSessions (ExecStartPre).
 import fs from 'node:fs';
@@ -44,7 +44,7 @@ async function hook(body) {
   const r = await fetch(`${base}/api/hooks/claude`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${srv.token}` }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error(`${body.hook_event_name} ${r.status}`);
 }
-const phongLoc = process.argv.includes('--phong') ? process.argv[process.argv.indexOf('--phong') + 1] : null;   // instance riêng một phòng (vpthu.on.tc)
+const phongLoc = process.argv.includes('--phong') ? process.argv[process.argv.indexOf('--phong') + 1] : null;   // instance riêng một phòng (cty.on.tc/vp/<phòng>/)
 let n = 0;
 const ds = docs().filter((x) => !phongLoc || x.phong === phongLoc);
 for (const d of ds) {

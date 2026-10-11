@@ -32,7 +32,7 @@ export function KhungChay({ macDinh, admin, dangChay }: { macDinh: string; admin
       <div className="cty-thu-nut">
         <NutXacNhan chinh onXacNhan={chay} disabled={!admin || ban || !viec.trim()} nhan={dangGui ? 'Đang giao…' : dangChay ? 'Đang chạy…' : '▶ Chạy một lượt'}
           hoi="Lượt gọi mô hình, tốn ≈ $0,0005 và chạy tới khi xong." />
-        <a className="cty-btn" href="https://vpthu.on.tc" target="_blank" rel="noreferrer">Văn phòng pixel ↗</a>
+        <a className="cty-btn" href="/vp/thu-nghiem/" target="_blank" rel="noreferrer">Văn phòng pixel ↗</a>
         {viec !== macDinh && <button type="button" className="cty-btn" onClick={() => doi(macDinh)}>Dùng câu mẫu</button>}
         <span className="cty-muted cty-nho">≈ $0,0005 / lượt</span>
       </div>

@@ -19,7 +19,7 @@ Số nằm ở `cong-ty/cau-hinh.md` (trần tổng, phong bì theo phòng) và 
 ## Sub
 
 - `cty.on.tc` — trang này (sơ đồ, phòng, hồ sơ, luật); sau là portal need-to-know cho người thật / vendor.
-- `vp.on.tc` — văn phòng pixel (pixel-agents), đứng sau cổng kiểm phiên của cty.
+- `cty.on.tc/vp/<phòng>/` — văn phòng pixel (pixel-agents, mỗi phòng một tiến trình), đứng sau cổng kiểm phiên của cty.
 - `mos2.on.tc` — bàn của Giám đốc, như cũ.
 
 ## Đo sau 2 tuần khi bật

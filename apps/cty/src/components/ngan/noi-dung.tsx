@@ -116,7 +116,7 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
   const hai = (
     <div className="cty-tabkhung cty-phong-hai">
       {than}
-      <KhungVp src={vp || 'https://vp.on.tc'} ghi={vp ? `Văn phòng ${String(p.fm.ten)} · live` : 'Văn phòng chung cả công ty · phòng này chưa có văn phòng riêng'} />
+      <KhungVp src={vp || '/vp/cong-ty/'} ghi={vp ? `Văn phòng ${String(p.fm.ten)} · live` : 'Văn phòng chung cả công ty · phòng này chưa có văn phòng riêng'} />
     </div>
   );
   return { tieuDe: <>{String(p.fm.ten)} <span className="cty-pill cty-pill-kind">{k?.ten ?? String(p.fm.khuon)}</span></>, than: hai };

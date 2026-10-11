@@ -37,8 +37,12 @@ for (const w of [1200, 390]) for (const t of TRANG) {
         // chữ thuộc một hộp có viền/nền khác nằm bên trong el → hộp đó tự đo
         let a = pe, rieng = false; while (a && a !== el) { const c = getComputedStyle(a); if (c.borderLeftWidth !== '0px' || c.backgroundColor !== 'rgba(0, 0, 0, 0)') { rieng = true; break; } a = a.parentElement; }
         if (rieng) continue;
-        const rg = document.createRange(); rg.selectNodeContents(n);
-        for (const q of rg.getClientRects()) {
+        // pre-wrap: dấu cách cuối dòng được TREO sang vùng lề (vô hình) nhưng vẫn nằm trong khung dòng → đo từng chữ, bỏ khoảng trắng
+        // (12/10/2026: lời nhắc quy trình báo "dính 6–7px" chỉ vì một dấu cách treo). Chữ thường: khung dòng như cũ.
+        const treo = /^(pre|pre-wrap|break-spaces)$/.test(getComputedStyle(pe).whiteSpace);
+        const khung = treo ? [...n.textContent].flatMap((c, i, arr) => { if (/\s/.test(c)) return []; const off = arr.slice(0, i).join('').length; const rc = document.createRange(); rc.setStart(n, off); rc.setEnd(n, off + c.length); return [...rc.getClientRects()]; })
+          : (() => { const rg = document.createRange(); rg.selectNodeContents(n); return [...rg.getClientRects()]; })();
+        for (const q of khung) {
           if (!q.width) continue;
           if (q.bottom > innerHeight || q.top < 0) continue;   // chữ nằm ngoài khung nhìn (trong vùng cuộn): chưa hiện, không đo
                     // chỉ tính cạnh có viền thật (hoặc cả 4 cạnh khi có nền); dọc nới 4px vì line-height đã tạo khoảng

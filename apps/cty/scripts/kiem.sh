@@ -60,7 +60,7 @@ TREN_BOX
     for s in sat-vien thang-hang thu-ngan-keo thu-nut-chay thu-so-do; do
       case "$s" in sat-vien|thang-hang) thamso=(. "$BASE" "$(cat "$TAM/tok")");; *) thamso=("$BASE" "$(cat "$TAM/tok")");; esac   # sat-vien, thang-hang nhận thêm "." ở đầu
       out=$(cd "$APP" && node "scripts/$s.mjs" "${thamso[@]}" </dev/null 2>&1 | tail -1); echo "  $s: $out"
-      case "$out" in ✓*|"TỔNG chỗ dính: 0") ;; *) sai=$((sai+1));; esac
+      case "$out" in ✓*|"TỔNG chỗ dính: 0"|⤼*) ;; *) sai=$((sai+1));; esac   # ⤼ = bài tự từ chối (vd nút Chạy trên production: tốn tiền)
     done
     [ "$sai" = 0 ] && echo "✓ giao diện ổn" || { echo "✗ giao diện: $sai bài sai"; exit 1; }
     ;;

@@ -4,6 +4,9 @@
 // Kiểm: chữ anh gõ GIỮ sau bấm và qua F5 · có dòng báo dưới nút · lượt mới hiện trên màn không cần F5 · lỗi lượt hiện đỏ.
 const { chromium } = await import(process.env.PLAYWRIGHT || '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs');
 const [base, tok, anh, man = '/phong/thu-nghiem'] = process.argv.slice(2);
+// CHẶN TIỀN (11/10/2026: con trỏ bài này vào production qua đường hầm → 4 lượt thật, ~$0,011, bẩn nhật ký/chỉ số Phòng thử): bài này
+// BẤM Chạy thật. Chỉ chạy trên bản Mac `kiem.sh may-len` (cổng 3871, proxy trỏ cổng đóng); địa chỉ khác → từ chối, không mở trình duyệt.
+if (new URL(base).port !== '3871') { console.log(`⤼ bỏ qua: ${base} không phải bản Mac proxy đóng (kiem.sh may-len, cổng 3871) — bấm Chạy ở đây là giao lượt thật, tốn tiền`); process.exit(2); }
 const b = await chromium.launch({ channel: 'chrome' });
 const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: 'dark' });
 await ctx.addCookies([{ name: 'mos2-session', value: tok, url: base }]);

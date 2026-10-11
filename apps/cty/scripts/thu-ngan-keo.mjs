@@ -11,6 +11,8 @@ const tieu = async () => (await p.$$eval('.nk[data-khoa]', (ns) => ns.map((n) =>
 const urlChong = () => new URL(p.url()).searchParams.getAll('ngan').join(' > ');
 const doi = async () => { await p.waitForLoadState('networkidle'); await p.waitForTimeout(300); };
 // Đợi tới khi chồng ngăn = mong muốn (máy chủ dựng ngăn mất một nhịp sau cú bấm), tối đa 8s; trả về chồng cuối cùng thấy.
+// Đóng ngăn ẩn NGAY ở máy (#1300), URL đổi khi máy chủ trả trang (~1–2 giây) → kiểm URL phải CHỜ, không đọc liền.
+const choUrl = async (mong) => { const t0 = Date.now(); let c = ''; while (Date.now() - t0 < 8000) { c = urlChong(); if (c === mong) return c; await p.waitForTimeout(150); } return c; };
 const choChong = async (mong) => { const t0 = Date.now(); let c = ''; while (Date.now() - t0 < 8000) { c = await tieu(); if (c === mong) return c; await p.waitForTimeout(150); } return c; };
 let sai = 0; const kq = (ten, ok, chi) => { console.log(`${ok ? '✓' : '✗'} ${ten}: ${chi}`); if (!ok) sai++; };
 const LUOT = 'nhat-ky:luot=2026-10-10T15-23-33-941Z';
@@ -26,7 +28,7 @@ kq('1b mỗi tầng hẹp hơn 64px', w[0] - w[1] === 64 && w[1] - w[2] === 64, 
 if (anh) await p.screenshot({ path: `${anh}/nk-3tang.png` });
 
 await p.locator('.nk[data-tang="2"] .nk-dong').click();
-kq('2 ✕ tầng trên → còn 2, URL bớt 1', (await choChong('phong:thu-nghiem > nhan-su:tam')) === 'phong:thu-nghiem > nhan-su:tam' && urlChong() === 'phong:thu-nghiem > nhan-su:tam', `${await tieu()} | url ${urlChong()}`);
+kq('2 ✕ tầng trên → còn 2, URL bớt 1', (await choChong('phong:thu-nghiem > nhan-su:tam')) === 'phong:thu-nghiem > nhan-su:tam' && (await choUrl('phong:thu-nghiem > nhan-su:tam')) === 'phong:thu-nghiem > nhan-su:tam', `${await tieu()} | url ${urlChong()}`);
 
 await p.reload(); await doi();
 kq('3 F5 → vẫn 2 ngăn', (await tieu()) === 'phong:thu-nghiem > nhan-su:tam', await tieu());

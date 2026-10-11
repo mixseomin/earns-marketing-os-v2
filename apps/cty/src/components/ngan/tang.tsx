@@ -12,6 +12,7 @@ export const rongTang = (tang: number) => `calc(min(1360px, 98vw) - ${tang * 64}
 
 let anTu = Infinity; const nghe = new Set<() => void>();   // tầng ≥ anTu đang đóng: ẩn trước khi máy chủ trả trang mới
 export const datAnTu = (i: number) => { if (anTu !== i) { anTu = i; nghe.forEach((f) => f()); } };
+export const layAnTu = () => anTu;   // mở ngăn khi máy chủ chưa trả trang đóng: bỏ các tầng đang đóng dở khỏi URL mới
 const useAnTu = () => useSyncExternalStore((f) => { nghe.add(f); return () => { nghe.delete(f); }; }, () => anTu, () => Infinity);
 
 export function useChong() {

@@ -1,6 +1,6 @@
 
 :root{--le:14px;--bg:#f2f4f7;--surface:#fff;--ink:#1a2230;--muted:#5b6675;--line:#d8dde4;--accent:#0f6e73;--warn:#b4541a;--warn-bg:#fbf1e9;--soft:#e8f3f3;
-  --body:"Source Sans 3","Segoe UI",system-ui,sans-serif}   /* MỘT họ chữ cho cả app (#1299, 11/10/2026: bỏ IBM Plex Mono + Sans Condensed); tiêu đề khác bằng độ đậm, số canh cột bằng tabular-nums */
+  --body:"Be Vietnam Pro","Segoe UI",system-ui,sans-serif}   /* MỘT họ chữ cho cả app: Be Vietnam Pro, dựng riêng cho dấu tiếng Việt (#1294 làm lại 11/10/2026: anh chê Source Sans; #1299 bỏ IBM Plex); tiêu đề khác bằng độ đậm, số canh cột bằng tabular-nums */
 @media (prefers-color-scheme:dark){:root{--bg:#141a22;--surface:#1c2430;--ink:#e6e9ee;--muted:#9aa5b3;--line:#2d3744;--accent:#4fb3b8;--warn:#e08a4a;--warn-bg:#2a1f16;--soft:#18302f;color-scheme:dark}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;font-variant-numeric:tabular-nums}

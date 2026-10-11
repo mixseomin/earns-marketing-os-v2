@@ -13,7 +13,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
   const me = await getCurrentUser();
   return (
     <html lang="vi">
-      <head><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" /></head>
+      <head><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" /></head>
       <body>
         <header className="cty-top">
           <a href="/" className="cty-brand">🏢 Công ty</a>

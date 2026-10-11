@@ -11,7 +11,9 @@ import { docChong, urlVoiChong } from '@/lib/ngan';
 export const rongTang = (tang: number) => `calc(min(1360px, 98vw) - ${tang * 64}px)`;
 
 let anTu = Infinity; const nghe = new Set<() => void>();   // tầng ≥ anTu đang đóng: ẩn trước khi máy chủ trả trang mới
-export const datAnTu = (i: number) => { if (anTu !== i) { anTu = i; nghe.forEach((f) => f()); } };
+const bao = () => nghe.forEach((f) => f());
+export const datAnTu = (i: number) => { if (i < anTu) { anTu = i; bao(); } };   // chỉ LÙI xuống: đang chờ máy chủ thì không tầng nào được hiện lại
+export const boAnTu = () => { if (anTu !== Infinity) { anTu = Infinity; bao(); } };   // URL đã đổi xong (NganLinks)
 export const layAnTu = () => anTu;   // mở ngăn khi máy chủ chưa trả trang đóng: bỏ các tầng đang đóng dở khỏi URL mới
 const useAnTu = () => useSyncExternalStore((f) => { nghe.add(f); return () => { nghe.delete(f); }; }, () => anTu, () => Infinity);
 
@@ -23,8 +25,9 @@ export function useChong() {
 }
 
 export function TangNgan({ khoa, tang, tong, tieuDe, children }: { khoa: string; tang: number; tong: number; tieuDe: React.ReactNode; children: React.ReactNode }) {
-  const { chong, dat } = useChong(); const an = useAnTu() <= tang;
-  const laTren = tang === tong - 1;
+  const { chong, dat } = useChong(); const anTuNay = useAnTu(); const an = anTuNay <= tang;
+  const tren = Math.min(tong, anTuNay) - 1;   // tầng trên cùng ĐANG HIỆN (tầng đang đóng dở không tính)
+  const laTren = tang === tren;
   const dongTu = (i: number) => dat(chong.slice(0, i));
   useEffect(() => {
     if (!laTren) return;
@@ -34,7 +37,7 @@ export function TangNgan({ khoa, tang, tong, tieuDe, children }: { khoa: string;
   if (an) return null;
   return (
     <>
-      {tang === 0 && <div className="nk-nen" onClick={() => dongTu(tong - 1)} />}
+      {tang === 0 && <div className="nk-nen" onClick={() => dongTu(tren)} />}
       <aside className={`nk${laTren ? '' : ' nk-duoi'}`} data-khoa={khoa} data-tang={tang} role="dialog" aria-modal={laTren}
         style={{ width: rongTang(tang), zIndex: 60 + tang * 2 }}
         onClickCapture={laTren ? undefined : (e) => { e.preventDefault(); e.stopPropagation(); dongTu(tang + 1); }}

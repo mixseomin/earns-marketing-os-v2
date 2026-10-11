@@ -112,3 +112,17 @@ console.log('kiem-qc.test: mẫu ok');
   assert.ok(co?.ok, JSON.stringify(co));
   console.log('kiem-qc.test: cảm xúc ok');
 }
+
+// Lệch mục tiêu theo loại beat: nỗi đau mà ghi vui (+3) → lệch; ưu đãi +4 → khớp.
+{
+  const { lechCamXuc, camXucMucTieu } = await import('./kieu');
+  assert.strictEqual(camXucMucTieu({ phan_doan: 'noi_dau' }), -2);
+  assert.strictEqual(camXucMucTieu({ phan_doan: 'Cảnh mở đầu' }), null);
+  assert.ok(lechCamXuc({ phan_doan: 'noi_dau', cam_xuc: 3 }));
+  assert.ok(lechCamXuc({ phan_doan: 'uu_dai', cam_xuc: 0 }));
+  assert.ok(!lechCamXuc({ phan_doan: 'uu_dai', cam_xuc: 4 }) && !lechCamXuc({ phan_doan: 'khac', cam_xuc: 0 }) && !lechCamXuc({ phan_doan: '', cam_xuc: 0 }));
+  const sh2 = (thu_tu: number, phan_doan: string, cam_xuc: number) => ({ thu_tu, nhan_vat: [], phan_doan, chu_man: 'x', nhanh: '', phat_s: 2, thoi_luong_s: 2, loi_thoai: '', thoai: [], trang_thai: 'nhap', keyframe_url: null, cam_xuc });
+  const k = kiemQc({ loai: 'phim', canh: [sh2(1, 'uu_dai', 4), sh2(2, 'noi_dau', 3)] as never, nhanVat: [] }).find((x) => x.key === 'cam_xuc')!;
+  assert.ok(!k.ok && k.chu.includes('1 shot') && k.chiTiet!.includes('#2'), JSON.stringify(k));
+  console.log('kiem-qc.test: lệch cảm xúc ok');
+}

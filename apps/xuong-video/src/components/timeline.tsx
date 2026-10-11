@@ -9,7 +9,7 @@ import { ChuManXem } from './chu-man';
 //   Nhạc   — nhạc nền cả tập (nhac_url / nhac_mo_ta).
 // Nét đứt = mới có mô tả trong kịch bản, chưa sinh file. Toàn bộ chạy ở trình duyệt, không tốn tiền.
 import { useEffect, useMemo, useRef, useState, type PointerEvent as PE, type ReactNode } from 'react';
-import { chuManHien, giayPhat, tenCamXuc, type Canh, type Lop, type ThongTinQc, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
+import { chuManHien, giayPhat, tenCamXuc, camXucMucTieu, lechCamXuc, type Canh, type Lop, type ThongTinQc, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat, chuyenCanhGiua } from '@/lib/xuong-video/dien-anh';
 import { NutChuyenCanh } from './chuyen-canh-ui';
 import { dongThoai, dungTiengClip, tenNoi, cungTen, timNv, lichGiong } from '@/lib/xuong-video/am-thanh';
@@ -450,16 +450,22 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           })())}
 
           {/* Đường cong cảm xúc: điểm ở cuối mỗi shot, -5..+5, vạch giữa = 0. */}
-          {canh.some((x) => x.cam_xuc) && track('❤ Khán giả', 'Khán giả cảm thấy gì ở cuối mỗi shot (cảm xúc ta MUỐN họ có): dưới vạch = khó chịu/đau (đúng nỗi đau của họ), trên vạch = tò mò → thích → muốn mua. QC tốt: chạm đáy ở nỗi đau rồi leo lên muốn mua.', (() => {
+          {/* Hiện cả khi mọi shot ghi 0: "trung tính hết" chính là thứ cần thấy, ẩn làn đi là giấu lỗi. Nét đứt xám = cảm xúc MỤC TIÊU theo loại beat. */}
+          {canh.some((x) => x.cam_xuc || camXucMucTieu(x) != null) && track('❤ Khán giả', 'Khán giả cảm thấy gì ở cuối mỗi shot (cảm xúc ta MUỐN họ có): dưới vạch = khó chịu/đau (đúng nỗi đau của họ), trên vạch = tò mò → thích → muốn mua. QC tốt: chạm đáy ở nỗi đau rồi leo lên muốn mua.', (() => {
             const H = 40; const y = (v: number) => H / 2 - (v / 5) * (H / 2 - 4);
             const diem = canh.map((cc, i) => ({ x: (batDau[i]! + dur(cc)) * pps, y: y(cc.cam_xuc), v: cc.cam_xuc, cc }));
             const duong = [`0,${y(0)}`, ...diem.map((d) => `${d.x},${d.y}`)].join(' ');
+            const mucTieu = canh.map((cc, i) => { const m = camXucMucTieu(cc); return m == null ? null : `${(batDau[i]! + dur(cc)) * pps},${y(m)}`; }).filter(Boolean).join(' ');
             return (
               <svg width={W} height={H} style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible' }}>
                 <line x1={0} x2={W} y1={y(0)} y2={y(0)} stroke="var(--line)" strokeDasharray="3 3" />
                 <polygon points={`0,${y(0)} ${duong.split(' ').slice(1).join(' ')} ${diem.length ? `${diem[diem.length - 1]!.x},${y(0)}` : ''}`} fill="rgba(244,114,182,.12)" />
+                {mucTieu && <polyline points={mucTieu} fill="none" stroke="var(--fg-3)" strokeWidth={1.5} strokeDasharray="5 4"><title>Cảm xúc mục tiêu theo loại beat</title></polyline>}
                 <polyline points={duong} fill="none" stroke="#f472b6" strokeWidth={2} />
-                {diem.map((d) => <circle key={d.cc.id} cx={d.x} cy={d.y} r={3.5} fill={d.v >= 0 ? '#4ade80' : '#f87171'}><title>{`#${d.cc.thu_tu} ${d.cc.canh}: ${tenCamXuc(d.v)} (${d.v > 0 ? '+' : ''}${d.v})`}</title></circle>)}
+                {diem.map((d) => { const lech = lechCamXuc(d.cc); const m = camXucMucTieu(d.cc); return <g key={d.cc.id} style={{ cursor: 'pointer' }} onClick={() => { onChon(d.cc.id); tuaToi(batDau[canh.indexOf(d.cc)]!); }}>
+                  {lech && <circle cx={d.x} cy={d.y} r={7} fill="none" stroke="var(--red)" strokeWidth={1.5} />}
+                  <circle cx={d.x} cy={d.y} r={3.5} fill={d.v >= 0 ? '#4ade80' : '#f87171'} />
+                  <title>{`#${d.cc.thu_tu} ${d.cc.canh}: ${tenCamXuc(d.v)} (${d.v > 0 ? '+' : ''}${d.v})${m != null ? `\nmục tiêu (${d.cc.phan_doan}): ${tenCamXuc(m)} (${m > 0 ? '+' : ''}${m})` : ''}${lech ? '\n⚠ lệch mục tiêu — sửa cảm xúc ở form shot' : ''}`}</title></g>; })}
                 {diem.map((d, i) => (i === 0 || diem[i - 1]!.v !== d.v) && <text key={`t${d.cc.id}`} x={d.x - 4} y={d.v >= 0 ? d.y + 12 : d.y - 6} textAnchor="end" fontSize={9} fill="var(--fg-3)">{tenCamXuc(d.v)}</text>)}
               </svg>
             );

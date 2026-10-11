@@ -310,6 +310,13 @@ export function motBienTheMoiDoiTuong(bienThe: number[], nvs: Pick<NhanVat, 'bie
 export const CAM_XUC_THEO_LOAI: Record<LoaiShotMau, number> = {
   hook: 1, uu_dai: 4, noi_dau: -2, giai_phap: 3, tinh_nang: 2, demo: 3, so_sanh: 3, bang_chung: 3, tran_an: 3, cta: 5, end_card: 5, khac: 0,
 };
+/** Cảm xúc mục tiêu của một shot = theo loại beat của nó (phan_doan là khoá loại shot QC mẫu: hook, uu_dai, noi_dau…); không phải loại đã biết → null.
+ *  lechCamXuc: shot ghi cảm xúc lệch mục tiêu ≥ 3 nấc, hoặc trung tính trong khi mục tiêu không trung tính — chỗ đường cảm xúc "phẳng/tụt" (anh 11/10/2026). */
+export const camXucMucTieu = (c: Pick<Canh, 'phan_doan'>): number | null => (c.phan_doan in CAM_XUC_THEO_LOAI ? CAM_XUC_THEO_LOAI[c.phan_doan as LoaiShotMau] : null);
+export function lechCamXuc(c: Pick<Canh, 'phan_doan' | 'cam_xuc'>): boolean {
+  const m = camXucMucTieu(c); const v = c.cam_xuc ?? 0;
+  return m != null && (Math.abs(v - m) >= 3 || (v === 0 && m !== 0));
+}
 export const tenCamXuc = (v: number): string => CAM_XUC_KHAN_GIA[Math.max(-5, Math.min(5, Math.round(v)))] ?? '';
 export const tien = (cents: number): string => { const d = cents / 100; return `$${d >= 1 ? d.toFixed(2) : d >= 0.1 ? d.toFixed(2) : d.toFixed(3)}`; };
 

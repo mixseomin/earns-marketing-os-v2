@@ -3,7 +3,7 @@
 // Mỗi luật là một thứ ads thật đo được: 85% xem tắt tiếng → chữ màn; 3 giây đầu quyết định giữ tay; sản phẩm phải thấy sớm;
 // số liệu chỉ được lấy từ mục sản phẩm; CTA phải có chữ. File thuần, tự kiểm bằng kiem-qc.test.mts.
 import type { Canh, LoaiPhim, NhanVat, ThongTinQc } from './kieu';
-import { giayPhat, locNhanh, coMau, giayMau, shotLechNgonNgu, tenNgonNgu } from './kieu';
+import { lechCamXuc, giayPhat, locNhanh, coMau, giayMau, shotLechNgonNgu, tenNgonNgu } from './kieu';
 
 export type MucKiem = { key: string; ok: boolean; chu: string; chiTiet?: string };
 type ShotKiem = Pick<Canh, 'thu_tu' | 'nhan_vat' | 'phan_doan' | 'chu_man' | 'nhanh' | 'phat_s' | 'thoi_luong_s' | 'loi_thoai' | 'thoai' | 'trang_thai' | 'keyframe_url'> & Partial<Pick<Canh, 'cam_xuc'>>;
@@ -33,8 +33,12 @@ export function kiemQc(opts: { loai: LoaiPhim; canh: ShotKiem[]; nhanVat: Pick<N
   // (phim #5 10/10/2026: script dựng từ khung mẫu ghi cứng 0 cho 24/25 shot).
   if (ds.some((c) => typeof c.cam_xuc === 'number')) {
     const phang = ds.filter((c) => !c.cam_xuc).length;
-    out.push({ key: 'cam_xuc', ok: phang * 2 <= ds.length, chu: phang * 2 > ds.length ? `${phang}/${ds.length} shot cảm xúc trung tính` : 'Có đường cảm xúc',
-      chiTiet: phang * 2 > ds.length ? 'Đặt cảm xúc khán giả mục tiêu cho từng shot (form cảnh) — đường cảm xúc phẳng thì ảnh/video sinh ra cũng phẳng' : undefined });
+    // Lệch mục tiêu theo loại beat (lechCamXuc — cùng luật vòng đỏ trên làn ❤ Khán giả của timeline).
+    const lech = ds.filter((c) => lechCamXuc({ phan_doan: c.phan_doan, cam_xuc: c.cam_xuc ?? 0 })).map((c) => c.thu_tu);
+    const ok = phang * 2 <= ds.length && !lech.length;
+    out.push({ key: 'cam_xuc', ok, chu: phang * 2 > ds.length ? `${phang}/${ds.length} shot cảm xúc trung tính` : lech.length ? `${lech.length} shot cảm xúc lệch mục tiêu` : 'Có đường cảm xúc',
+      chiTiet: phang * 2 > ds.length ? 'Đặt cảm xúc khán giả mục tiêu cho từng shot (form cảnh) — đường cảm xúc phẳng thì ảnh/video sinh ra cũng phẳng'
+        : lech.length ? `Shot #${lech.slice(0, 8).join(', #')}${lech.length > 8 ? '…' : ''} lệch ≥3 nấc so với loại beat (vòng đỏ trên làn ❤ Khán giả)` : undefined });
   }
   if (opts.loai !== 'quang_cao') return out;
   // 0. Có QC mẫu: số shot đúng bằng mẫu, tổng giây ±10% — bản clone "gần giống nhất" đo được ở đây.

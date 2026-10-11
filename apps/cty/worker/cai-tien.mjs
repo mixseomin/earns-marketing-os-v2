@@ -145,7 +145,36 @@ const UOC = { hop: 0.01, so: 0.02 };   // ponytail: ước trước khi chi; s�
 export function chiThang(k, luc = new Date()) {
   const thang = luc.toISOString().slice(0, 7);
   const cong = (ds) => ds.filter((x) => String(x.ts).slice(0, 7) === thang).reduce((s, x) => s + (Number(x.chi_phi) || 0), 0);
-  return cong(dsDeXuat(k)) + cong(dsSoSanh(k));
+  return cong(dsDeXuat(k)) + cong(dsSoSanh(k)) + cong(dsSoTinhCach(k));
+}
+
+// SO CHỈ SỐ GỐC (decision 2026-10-11): chỉ số tính cách phải CHỨNG MINH tác dụng. Chạy bộ việc chuẩn hai lần cho cùng quy trình, chỉ đổi
+// một chỉ số của một người (ghi đè riêng lượt, không đụng SOUL) → so tỉ lệ đúng + năng lực của người đó. Không khác = chỉ số trang trí.
+const tcDir = (k) => path.join(DATA(), 'tinh-cach', k);
+export function dsSoTinhCach(k) { const d = tcDir(k); return fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith('.json')).sort().reverse().map((f) => JSON.parse(fs.readFileSync(path.join(d, f), 'utf8'))) : []; }
+/** Mọi lần so chỉ số gốc của một người, ở mọi quy trình. */
+export function soTinhCachCua(nguoi) {
+  const goc = path.join(DATA(), 'tinh-cach'); if (!fs.existsSync(goc)) return [];
+  const ds = []; const di = (d) => { for (const f of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, f.name); if (f.isDirectory()) di(p); else if (f.name.startsWith(`${nguoi}-`) && f.name.endsWith('.json')) ds.push(JSON.parse(fs.readFileSync(p, 'utf8'))); } };
+  di(goc); return ds.sort((a, b) => b.ts.localeCompare(a.ts));
+}
+export async function soTinhCach(k, nguoi, ma, giaTri, lan = 1) {
+  const bo = boViecChuan(k); if (!bo) throw new Error(`${k} chưa có bộ việc chuẩn`);
+  const { hoSoNangLuc } = await import('./nang-luc.mjs');
+  const ben = [];
+  for (const v of giaTri) {
+    const ct = []; const luot = [];
+    for (const x of bo.viec) for (let i = 0; i < lan; i++) {
+      const l = await motLuot(x.viec, true, { khoa: k, boViec: x.id, tinhCach: { [nguoi]: { [ma]: v } } }); luot.push(l);
+      ct.push({ id: x.id, luot: l.ts, usd: usdLuot(l), ...chamViecChuan(l, x) });
+    }
+    const nl = hoSoNangLuc(luot)[nguoi]?.nang_luc ?? {};
+    ben.push({ gia_tri: v, so_dung: ct.filter((c) => c.dung).length, tong: ct.length, chi_phi: ct.reduce((s, c) => s + c.usd, 0), nang_luc: Object.fromEntries(Object.entries(nl).map(([kk, x]) => [kk, { dat: x.dat, so_mau: x.so_mau }])), chi_tiet: ct });
+  }
+  const kq = { qt: k, nguoi, chi_so: ma, lan, ts: new Date().toISOString(), ben, chi_phi: ben.reduce((s, b) => s + b.chi_phi, 0) };
+  fs.mkdirSync(tcDir(k), { recursive: true }); fs.writeFileSync(path.join(tcDir(k), `${nguoi}-${ma}-${kq.ts.replace(/[:.]/g, '-')}.json`), JSON.stringify(kq, null, 1));
+  ghiLog({ luot: `tc-${kq.ts}`, loai: 'quyet', tu: 'ha', chi_tiet: { so_tinh_cach: `${nguoi}.${ma}`, ket: ben.map((b) => `${b.gia_tri}: ${b.so_dung}/${b.tong}`).join(' vs ') } });
+  return kq;
 }
 export const nganSach = (k) => Number(phongFm(k).ngan_sach_cai_tien_usd_thang) || 0;
 export function xetTuHop(k, { boQuaKhoa = false } = {}) {
@@ -186,6 +215,15 @@ const laCli = (process.argv[1] || '').endsWith('cai-tien.mjs');
 const thamSo = (k, mac) => (process.argv.includes(k) ? process.argv[process.argv.indexOf(k) + 1] : mac);
 if (laCli && process.argv.includes('--hop')) { const P = thamSo('--qt', 'thu-nghiem/lam-viec'); const dx = await voiKhoa(P, 'hop', async () => { const d = await hop(P); return `đề xuất ${d.id}: mức ${d.muc} → ${d.trang_thai}`; }); console.log(dx); process.exit(0); }
 if (laCli && process.argv.includes('--so')) { const P = thamSo('--qt', 'thu-nghiem/lam-viec'); const r = await voiKhoa(P, 'so', async () => { const x = await soVaQuyet(P, Number(thamSo('--lan', 2))); return x.quyet ? `v${x.dx.ban_moi} ${x.kq.so_dung}/${x.kq.tong} so với v${x.dx.tu_ban} ${x.goc.so_dung}/${x.goc.tong} → ${x.quyet === 'giu' ? 'giữ' : 'quay lại'}` : `v${x.kq.ban}: ${x.kq.so_dung}/${x.kq.tong} việc chuẩn đúng`; }); console.log(r); process.exit(0); }
+
+if (laCli && process.argv.includes('--so-tinh-cach')) {   // node worker/cai-tien.mjs --so-tinh-cach --qt thu-nghiem/lam-viec --nguoi loc --chi-so can_than --gia-tri 2,9 [--lan 1]
+  const P = thamSo('--qt', 'thu-nghiem/lam-viec'); const ns = nganSach(P), chi = chiThang(P);
+  const gt = String(thamSo('--gia-tri', '2,9')).split(',').map(Number); const lan = Number(thamSo('--lan', 1));
+  const uoc = gt.length * (boViecChuan(P)?.viec.length ?? 0) * lan * 0.0006;
+  if (chi + uoc > ns) { console.log(`✗ vượt ngân sách cải tiến tháng: đã chi $${chi.toFixed(3)}, ước thêm $${uoc.toFixed(3)}, trần $${ns}`); process.exit(1); }
+  const kq = await voiKhoa(P, 'so', () => soTinhCach(P, thamSo('--nguoi', 'loc'), thamSo('--chi-so', 'can_than'), gt, lan));
+  console.log(kq.ben.map((b) => `${kq.nguoi}.${kq.chi_so}=${b.gia_tri}: ${b.so_dung}/${b.tong} đúng · thực hiện vòng đầu ${b.nang_luc.thuc_hien?.dat ?? '-'}/${b.nang_luc.thuc_hien?.so_mau ?? '-'} · $${b.chi_phi.toFixed(4)}`).join('\n')); process.exit(0);
+}
 
 if (laCli && process.argv.includes('--tu-xet')) {   // gọi sau mỗi lượt thật (ca.mjs): xét 0 đồng, chạm ngưỡng mới chi
   const P = thamSo('--qt', 'thu-nghiem/lam-viec'); const x = xetTuHop(P);
@@ -254,6 +292,9 @@ if (laCli && process.argv.includes('--tu-kiem')) {
   for (let i = 0; i < 5; i++) await motLuot('Viết 1 câu chào', true, { khoa: P });
   const tHet = xetTuHop(P);
   a(tHet.lam === null && tHet.het_tien && /hết ngân sách/.test(tHet.ly_do) && tHet.chi > 0.5, 'hết ngân sách tháng → không họp', tHet);
+  // so chỉ số gốc: chạy được, ghi kết quả, cộng vào chi tháng
+  const chiTruoc = chiThang(P); const tc = await soTinhCach(P, 'loc', 'can_than', [2, 9], 1);
+  a(tc.ben.length === 2 && tc.ben[0].tong === boViecChuan(P).viec.length && dsSoTinhCach(P).length === 1 && chiThang(P) > chiTruoc, 'so chỉ số gốc: 2 bên × bộ việc, có lưu, cộng chi tháng', tc.ben.map((b) => b.tong));
   // về bản đầu để thử
   veBan(P, 1, 'thử lại từ đầu', 'anh');
   a(hienHanh(P).ban === 1 && dsBan(P).length >= 3, 'về v1: còn đủ các bản để xem lại');

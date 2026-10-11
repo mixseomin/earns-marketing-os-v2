@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { GOC } from './goc.mjs';
+import { tinhCachCua, loiDanTinhCach } from './tinh-cach.mjs';
 import http from 'node:http';
 import { parseFm } from '../scripts/fm.mjs';
 import { ghiLog } from './log.mjs';
@@ -30,7 +31,7 @@ const tenCua = (id) => id === 'giam-doc' ? 'Giám đốc' : (() => { try { retur
 export async function goi(ns, user, buoc, nk, toi) {
   ghiLog({ luot: nk.ts, loai: 'tin', tu: toi?.tu ?? 'giam-doc', toi: ns.id, chi_tiet: { buoc, noi_dung: user.slice(0, 240) } });
   const body = { model: ns.model, max_tokens: 500, temperature: 0.3,
-    system: `Bạn là ${ns.ten}, ${ns.vai?.ten ?? ns.chuc_danh}, ${nk.ten_phong ?? 'công ty'}. LUẬT CHUNG (rút gọn): ba mức quyết định; việc nộp phải có bằng chứng; không khen mở đầu; trả lời đúng định dạng được yêu cầu, không thêm lời dẫn.\n\n${nk.quy_dinh ? `\n\nQUY ĐỊNH DỰ ÁN PHÒNG PHẢI TUÂN THEO (trên quy trình của phòng, không được làm trái):\n${nk.quy_dinh}` : ''}${ns.vai ? `\n\nVAI CỦA BẠN Ở PHÒNG — ${ns.vai.ten}:\n${ns.vai.body}` : ''}\n\nHỒ SƠ CỦA BẠN:\n${ns.body}`,
+    system: `Bạn là ${ns.ten}, ${ns.vai?.ten ?? ns.chuc_danh}, ${nk.ten_phong ?? 'công ty'}. LUẬT CHUNG (rút gọn): ba mức quyết định; việc nộp phải có bằng chứng; không khen mở đầu; trả lời đúng định dạng được yêu cầu, không thêm lời dẫn.\n\n${nk.quy_dinh ? `\n\nQUY ĐỊNH DỰ ÁN PHÒNG PHẢI TUÂN THEO (trên quy trình của phòng, không được làm trái):\n${nk.quy_dinh}` : ''}${ns.vai ? `\n\nVAI CỦA BẠN Ở PHÒNG — ${ns.vai.ten}:\n${ns.vai.body}` : ''}${loiDanTinhCach(ns.tinh_cach ?? [])}\n\nHỒ SƠ CỦA BẠN:\n${ns.body}`,
     messages: [{ role: 'user', content: user }] };
   const moTa = `${buoc} · từ ${tenCua(toi?.tu ?? 'giam-doc')}`;
   await vpBao(ns.id, 'lam', moTa);
@@ -58,7 +59,7 @@ export async function motLuot(viec, ghi = true, o = {}) {
   ghiLog({ luot: ts, loai: 'he-thong', tu: 'giam-doc', chi_tiet: { su_kien: 'bắt đầu lượt', viec, quy_trinh: qt.ban } });
   // Quy trình trỏ VAI → người đang giữ vai ở phòng (đổi người không phải sửa quy trình). Cache theo người: một người hai vai đọc hồ sơ một lần.
   // o.giuVai = { <vai>: <người> } đặt người khác giữ vai cho riêng lượt này (thử việc / tự kiểm), không đụng hồ sơ phòng.
-  const nsCache = {}; const N = (ma) => { const g0 = giaiNguoi(khoa, ma); const g = o.giuVai?.[ma] ? { ...g0, nguoi: o.giuVai[ma] } : g0; return (nsCache[g.nguoi] ??= { ...nhanSu(g.nguoi, ts), vai: g.vai }); };
+  const nsCache = {}; const N = (ma) => { const g0 = giaiNguoi(khoa, ma); const g = o.giuVai?.[ma] ? { ...g0, nguoi: o.giuVai[ma] } : g0; return (nsCache[g.nguoi] ??= (() => { const n = nhanSu(g.nguoi, ts); return { ...n, vai: g.vai, tinh_cach: tinhCachCua(n, o.tinhCach?.[g.nguoi]) }; })()); };
   const giaoNs = N(qt.nguoi.giao), lamNs = N(qt.nguoi.lam), kiemNs = N(qt.nguoi.kiem), bcNs = N(qt.nguoi.bao_cao);
   const dien = (mau, v) => dienMau(mau, { nguoi_lam: lamNs.ten, nguoi_kiem: kiemNs.ten, ma_nguoi_lam: lamNs.id, ...v });   // lời nhắc không gõ tên người
   // Quy định dự án mà phòng tham gia (cong-ty/quy-dinh/du-an) đi vào lời dặn của mọi người trong lượt; luật chung công ty đã ở system.
@@ -198,7 +199,12 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('ca.m
   thay.length = 0; kich = {}; dem.loc = 0; dem.ky = 0; nk = await motLuot('thử', false, { giuVai: { 'nguoi-lam': 'minh' } });
   assert(nk.trang_thai === 'xong' && nk.buoc.some((b) => b.id === 'minh' && /làm/.test(b.buoc)) && !nk.buoc.some((b) => b.id === 'loc'), `đổi người giữ vai Người làm → Minh làm, Lộc không (${nk.buoc.map((b) => b.id).join(',')})`, nk);
   assert(thay.some((x) => x.goc === 'ky' && /Kết quả Minh nộp/.test(x.hoi)) && thay.some((x) => x.goc === 'tam' && /"giao_cho":"minh"/.test(x.hoi)), 'lời nhắc tự đổi sang tên + mã người mới', thay.map((x) => x.hoi.slice(0, 80)));
-  fake.close(); console.log('✓ ca.mjs: v1 y cũ + 5 công tắc (hỏi lại, máy đo, khoá tiêu chí, hết vòng→kẹt, trọng tài) + vai tách khỏi người (đổi người giữ vai)'); process.exit(0);
+  // tính cách gốc vào lời dặn; ghi đè chỉ cho riêng lượt (chạy so sánh) — Lộc khai Cẩn thận 5 (nấc giữa), ép 9 → nấc cao
+  thay.length = 0; kich = {}; dem.loc = 0; dem.ky = 0; await motLuot('thử', false, {});
+  assert(thay.some((x) => x.goc === 'loc' && /TÍNH CÁCH GỐC[\s\S]*Cẩn thận 5\/10: Kiểm lại các tiêu chí đếm được/.test(x.system)), 'tính cách gốc vào lời dặn', thay.filter((x) => x.goc === 'loc').map((x) => x.system.slice(-300)));
+  thay.length = 0; dem.loc = 0; dem.ky = 0; await motLuot('thử', false, { tinhCach: { loc: { can_than: 9 } } });
+  assert(thay.some((x) => x.goc === 'loc' && /Cẩn thận 9\/10: Trước khi nộp, tự đếm lại TỪNG tiêu chí/.test(x.system)) && thay.some((x) => x.goc === 'tam' && /Cẩn thận 6\/10/.test(x.system)) && !thay.some((x) => x.goc === 'tam' && /Cẩn thận 9\/10/.test(x.system)), 'ghi đè tính cách chỉ đổi đúng người (Tâm vẫn 6)', thay.map((x) => x.goc));
+  fake.close(); console.log('✓ ca.mjs: v1 y cũ + 5 công tắc (hỏi lại, máy đo, khoá tiêu chí, hết vòng→kẹt, trọng tài) + vai tách khỏi người + tính cách gốc'); process.exit(0);
 }
 
 if (process.argv.includes('--viec') && (process.argv[1] || '').endsWith('ca.mjs')) {

@@ -2,7 +2,9 @@
 // mỗi hàm nhận đúng mã, tự đọc dữ liệu. Không có bản ghi → nội dung báo rõ thiếu gì, không treo (luật 7).
 // Ngăn chi tiết chia 3 cột một màn (luật 8): [hình] [thông tin lưới ô] [phân tích / nội dung dài]; cột nào dài thì riêng cột đó cuộn.
 import { vaiCuaPhong, theVai } from '../../../worker/quy-trinh.mjs';
-import { hoSoNangLuc, theGame, NANG_LUC } from '../../../worker/nang-luc.mjs';
+import { hoSoNangLuc, theGame, lichSu, viecCua, NANG_LUC } from '../../../worker/nang-luc.mjs';
+import { tinhCachCua, TINH_CACH } from '../../../worker/tinh-cach.mjs';
+import { soTinhCachCua } from '../../../worker/cai-tien.mjs';
 import { KhungVp } from '@/components/khung-vp';
 import Link from 'next/link';
 import { Gio } from '../gio';
@@ -33,33 +35,86 @@ const NHAN_QUYEN: Record<string, string> = { tu_trieu_tap_hop: 'tự triệu t�
 type The = { cap: number; xp: number; xp_cap_nay: number; xp_cap_sau: number; chi_so: { ma: string; ten: string; tu: string; gia_tri: number | null; so_mau: number }[] };
 const DO_CHI_SO: Record<string, string> = { toc_do: 'thời gian mỗi bước, xếp hạng so với mọi người đã làm ≥ 5 bước', chi_phi: 'tiền mỗi bước, xếp hạng so với mọi người đã làm ≥ 5 bước' };
 
-/** Thẻ nhân vật kiểu game — mọi con số là MÁY ĐO từ kết quả (nang-luc.mjs), không ai gõ tay. Cách tính gập trong "Cách tính". */
-function TheNhanVat({ id, h, t }: { id: string; h: HoSo | undefined; t: The | undefined }) {
-  if (!h || !t) return <p className="cty-muted">Chưa làm bước nào — chưa có chỉ số. Chỉ số chỉ mọc ra khi người này làm việc thật.</p>;
-  const tienDo = Math.round(((t.xp - t.xp_cap_nay) / (t.xp_cap_sau - t.xp_cap_nay)) * 100);
+type Ngay = { ngay: string; cap: number; xp: number; cs: Record<string, number | null> };
+type TinhCach = { ma: string; ten: string; gia_tri: number; hanh_vi: string };
+type SoTc = { ts: string; chi_so: string; lan: number; chi_phi: number; ben: { gia_tri: number; so_dung: number; tong: number; nang_luc: Record<string, { dat: number; so_mau: number }> }[] };
+
+/** Đường xu hướng nhỏ: một điểm mỗi ngày; ngày chưa có số thì đứt đoạn. */
+function XuHuong({ ds, max = 100 }: { ds: (number | null)[]; max?: number }) {
+  const W = 84, H = 18, n = ds.length; if (!n || ds.every((v) => v == null)) return <span className="cty-gm-xh" />;
+  const x = (i: number) => (n === 1 ? W : (i / (n - 1)) * W), y = (v: number) => H - 2 - (v / (max || 1)) * (H - 4);
+  const doan: string[] = []; let cur = '';
+  ds.forEach((v, i) => { if (v == null) { if (cur) doan.push(cur); cur = ''; } else cur += `${cur ? ' ' : ''}${x(i).toFixed(1)},${y(v).toFixed(1)}`; }); if (cur) doan.push(cur);
+  return <svg className="cty-gm-xh" viewBox={`-2 0 ${W + 4} ${H}`} width={W} height={H} aria-hidden="true">{doan.map((d, i) => (d.includes(' ')
+    ? <polyline key={i} points={d} fill="none" stroke="currentColor" strokeWidth="1.5" />
+    : <circle key={i} cx={d.split(',')[0]} cy={d.split(',')[1]} r="1.8" fill="currentColor" />))}</svg>;
+}
+const lech = (ds: (number | null)[]) => { const cuoi = ds[ds.length - 1]; const truoc = ds[Math.max(0, ds.length - 8)]; return cuoi == null || truoc == null ? null : cuoi - truoc; };
+const Lech = ({ d }: { d: number | null }) => (d == null || d === 0 ? <span className="cty-muted">·</span> : <span className={d > 0 ? 'cty-gm-len' : 'cty-gm-xuong'}>{d > 0 ? '+' : ''}{d}</span>);
+
+/** Thẻ nhân vật kiểu game — mọi con số là MÁY ĐO từ kết quả (nang-luc.mjs), không ai gõ tay. Gốc (tính cách) cố định từ SOUL. */
+function TheNhanVat({ id, h, t, ls, tc, so }: { id: string; h: HoSo | undefined; t: The | undefined; ls: Ngay[]; tc: TinhCach[]; so: SoTc[] }) {
+  const tienDo = t ? Math.round(((t.xp - t.xp_cap_nay) / (t.xp_cap_sau - t.xp_cap_nay)) * 100) : 0;
+  const xp = ls.map((d) => d.xp);
   return (
     <div className="cty-gm">
       <div className="cty-gm-trai">
         <Avatar seed={id} hue={0} size={112} />
-        <div className="cty-gm-cap">Cấp {t.cap}</div>
-        <div className="cty-gm-bar" title={`${t.xp - t.xp_cap_nay} / ${t.xp_cap_sau - t.xp_cap_nay} XP tới cấp ${t.cap + 1}`}><i style={{ width: `${tienDo}%` }} /></div>
-        <div className="cty-muted cty-nho">{t.xp} XP · cấp {t.cap + 1} ở {t.xp_cap_sau}</div>
+        {t ? <>
+          <div className="cty-gm-cap">Cấp {t.cap}</div>
+          <div className="cty-gm-bar" title={`${t.xp - t.xp_cap_nay} / ${t.xp_cap_sau - t.xp_cap_nay} XP tới cấp ${t.cap + 1}`}><i style={{ width: `${tienDo}%` }} /></div>
+          <div className="cty-muted cty-nho">{t.xp} XP <Lech d={lech(xp)} /> · cấp {t.cap + 1} ở {t.xp_cap_sau} <XuHuong ds={xp} max={Math.max(...xp, 1)} /></div>
+        </> : <div className="cty-muted cty-nho">Cấp 1 · chưa làm việc nào</div>}
+        <div className="cty-gm-goc">
+          <div className="cty-gm-nhom">Gốc <span className="cty-muted cty-nho">cố định từ lúc tuyển</span></div>
+          {tc.length ? tc.map((x) => (
+            <div key={x.ma} className="cty-gm-tc" title={`${x.gia_tri}/10 → ${x.hanh_vi}`}><span>{x.ten}</span><div className="cty-gm-bar cty-gm-bar-goc"><i style={{ width: `${x.gia_tri * 10}%` }} /></div><b>{x.gia_tri}</b></div>
+          )) : <div className="cty-muted cty-nho">chưa đặt chỉ số gốc</div>}
+        </div>
       </div>
       <div className="cty-gm-phai">
-        <table className="cty-gm-cs"><tbody>{t.chi_so.map((c) => {
-          const nl = (NANG_LUC as Record<string, { do: string }>)[c.tu];
-          return (
-            <tr key={c.ma} title={`Đo: ${nl?.do ?? DO_CHI_SO[c.tu] ?? ''} · ${c.so_mau} mẫu`}>
-              <th><span className="cty-mono cty-gm-ma">{c.ma}</span> {c.ten}</th>
-              <td className="cty-gm-thanh"><div className="cty-gm-bar"><i style={{ width: `${c.gia_tri ?? 0}%` }} /></div></td>
-              <td className="cty-gm-so">{c.gia_tri == null ? <span className="cty-muted">—</span> : c.gia_tri}{c.gia_tri != null && c.so_mau < 5 && <span className="cty-muted" title="ít hơn 5 mẫu — chưa chắc">?</span>}</td>
-            </tr>); })}</tbody></table>
+        {!h || !t ? <p className="cty-muted">Chưa làm bước nào — chỉ số chỉ mọc ra khi người này làm việc thật.</p> : (
+          <table className="cty-gm-cs"><thead><tr><th>Năng lực <span className="cty-muted cty-nho">máy đo</span></th><th /><th className="cty-gm-so">nay</th><th>14 ngày</th><th className="cty-gm-so">7 ngày</th></tr></thead><tbody>{t.chi_so.map((c) => {
+            const nl = (NANG_LUC as Record<string, { do: string }>)[c.tu]; const d = ls.map((x) => x.cs[c.ma] ?? null);
+            return (
+              <tr key={c.ma} title={`Đo: ${nl?.do ?? DO_CHI_SO[c.tu] ?? ''} · ${c.so_mau} mẫu`}>
+                <th><span className="cty-mono cty-gm-ma">{c.ma}</span> {c.ten}</th>
+                <td className="cty-gm-thanh"><div className="cty-gm-bar"><i style={{ width: `${c.gia_tri ?? 0}%` }} /></div></td>
+                <td className="cty-gm-so">{c.gia_tri == null ? <span className="cty-muted">—</span> : c.gia_tri}{c.gia_tri != null && c.so_mau < 5 && <span className="cty-muted" title="ít hơn 5 mẫu — chưa chắc">?</span>}</td>
+                <td><XuHuong ds={d} /></td>
+                <td className="cty-gm-so"><Lech d={lech(d)} /></td>
+              </tr>); })}</tbody></table>
+        )}
+        {so[0] && <p className="cty-nho cty-gm-so-tc">Đã thử tác dụng {(TINH_CACH as Record<string, { ten: string }>)[so[0].chi_so]?.ten ?? so[0].chi_so} (<Gio iso={so[0].ts} />): {so[0].ben.map((b, i) => <span key={i}>{i > 0 && ' vs '}<b>{b.gia_tri}</b> → {b.so_dung}/{b.tong} việc chuẩn đúng, vòng đầu {b.nang_luc.thuc_hien?.dat ?? 0}/{b.nang_luc.thuc_hien?.so_mau ?? 0}</span>)} · ${so[0].chi_phi.toFixed(4)}</p>}
         <details className="cty-details"><summary>Cách tính</summary>
-          <p className="cty-nho">Máy đo từ kết quả các lượt và bộ việc chuẩn, không ai sửa tay. XP: +10 mỗi bước làm xong không lỗi, +20 mỗi lần đạt (giao việc, thực hiện, kiểm soát, báo cáo); cấp L cần 50·L·(L−1) XP. Rê chuột lên từng chỉ số để xem cách đo. Dấu ? = ít hơn 5 mẫu, — = chưa có mẫu.</p>
-          <p className="cty-muted cty-nho">{h.so_buoc} bước · ${h.chi_phi.toFixed(4)} · {(h.ms_tb / 1000).toFixed(1)} s/bước{h.lan_cuoi ? <> · lần cuối <Gio iso={h.lan_cuoi} /></> : null}</p>
+          <p className="cty-nho">Năng lực: máy đo từ kết quả các lượt và bộ việc chuẩn, không ai sửa tay; rê chuột lên từng dòng để xem cách đo. XP: +10 mỗi bước làm xong không lỗi, +20 mỗi lần đạt; cấp L cần 50·L·(L−1) XP. Xu hướng tính ngược từ nhật ký theo ngày (GMT+7); cột 7 ngày = chênh so với 7 ngày trước. Gốc: tính cách 1–10 đặt lúc tuyển, đi vào lời dặn theo thang 3 nấc (rê chuột để xem hành vi). ? = ít hơn 5 mẫu, — = chưa có mẫu.</p>
+          {h && <p className="cty-muted cty-nho">{h.so_buoc} bước · ${h.chi_phi.toFixed(4)} · {(h.ms_tb / 1000).toFixed(1)} s/bước{h.lan_cuoi ? <> · lần cuối <Gio iso={h.lan_cuoi} /></> : null}</p>}
         </details>
       </div>
     </div>
+  );
+}
+
+type Viec = { luot: string; viec: string; bo_viec: string | null; buoc: string; bat_dau: string; ms: number; usd: number; loi: string | null; dap: string; ket: string; dung: boolean | null };
+/** Việc người này đã làm, gom theo LƯỢT (một lượt một dòng: các bước họ làm · kết quả lượt · tốn bao nhiêu), 12 lượt gần nhất;
+ *  toàn bộ ở sổ sự kiện lọc theo người. Rê chuột lên dòng để xem câu trả lời của bước cuối. */
+function DsViec({ id, ds }: { id: string; ds: Viec[] }) {
+  if (!ds.length) return <p className="cty-muted">Chưa làm bước nào.</p>;
+  const nhom = new Map<string, Viec[]>(); for (const v of ds) nhom.set(v.luot, [...(nhom.get(v.luot) ?? []), v]);
+  const dong = [...nhom.values()]; const dat = dong.filter((g) => g[0]?.dung).length;
+  return (
+    <>
+      <p className="cty-muted cty-nho">{dong.length} lượt gần nhất · {dat}/{dong.length} đạt · ${ds.reduce((s, v) => s + v.usd, 0).toFixed(4)} · <Link href={`/nhat-ky?tu=${encodeURIComponent(id)}`}>toàn bộ trong sổ sự kiện ↗</Link></p>
+      <table className="cty-viec"><tbody>{dong.slice(0, 12).map((g) => { const v = g[0]!; const loi = g.find((x) => x.loi); return (
+        <tr key={v.luot} title={loi ? `Lỗi: ${loi.loi}` : g.map((x) => `${x.buoc}: ${x.dap}`).join('\n')}>
+          <td className="cty-muted cty-nho"><Gio iso={g[g.length - 1]!.bat_dau} /></td>
+          <td className="cty-viec-ten">{v.bo_viec && <span className="cty-muted cty-nho">chuẩn · </span>}{v.viec}</td>
+          <td className="cty-muted cty-nho">{[...new Set([...g].reverse().map((x) => x.buoc.replace(/^\d+\s*/, '')))].join(' · ')}</td>
+          <td>{loi ? <span className="cty-pill cty-pill-loi">lỗi</span> : v.dung == null ? <span className="cty-muted cty-nho">{v.ket}</span> : <span className={v.dung ? 'cty-pill' : 'cty-pill cty-pill-off'}>{v.dung ? 'đạt' : 'chưa đạt'}</span>}</td>
+          <td className="cty-muted cty-nho cty-gm-so">${g.reduce((s, x) => s + x.usd, 0).toFixed(4)}</td>
+          <td><Link href={`/nhat-ky?luot=${encodeURIComponent(v.luot)}`}>lượt ↗</Link></td>
+        </tr>); })}</tbody></table>
+    </>
   );
 }
 
@@ -70,6 +125,7 @@ export function nganNhanSu(id: string): Ngan {
   const f = d.fm; const p = phong(String(f.phong)); const hb = heartbeat(id);
   const arr = (k: string) => (Array.isArray(f[k]) ? (f[k] as string[]) : []);
   const hs = hoSoNangLuc() as Record<string, HoSo>; const h = hs[id]; const t = (theGame(hs) as Record<string, The>)[id];
+  const ls = ((lichSu() as Record<string, Ngay[]>)[id]) ?? []; const tc = tinhCachCua(f) as TinhCach[]; const so = soTinhCachCua(id) as SoTc[]; const viec = viecCua(id) as Viec[];
   const giu = vaiDangGiu(id);
   const dau = (
     <div className="cty-ns-dau">
@@ -89,9 +145,10 @@ export function nganNhanSu(id: string): Ngan {
   return {
     tieuDe: <>{String(f.ten)} <span className="cty-muted">· {giu[0]?.the?.ten ?? String(f.chuc_danh)}{t ? ` · cấp ${t.cap}` : ''}</span></>,
     than: (
-      <TabPhong khoa={`ns-${id}`} dau={dau} tabs={[{ key: 'nl', nhan: 'Chỉ số', so: t ? `cấp ${t.cap}` : '' }, { key: 'vai', nhan: 'Vai', so: giu.length }, { key: 'hs', nhan: 'Hồ sơ' }, { key: 'lich', nhan: 'Lịch chạy' }]}>
+      <TabPhong khoa={`ns-${id}`} dau={dau} tabs={[{ key: 'nl', nhan: 'Chỉ số', so: t ? `cấp ${t.cap}` : '' }, { key: 'viec', nhan: 'Việc', so: new Set(viec.map((v) => v.luot)).size }, { key: 'vai', nhan: 'Vai', so: giu.length }, { key: 'hs', nhan: 'Hồ sơ' }, { key: 'lich', nhan: 'Lịch chạy' }]}>
         {[
-          <TheNhanVat key="nl" id={id} h={h} t={t} />,
+          <TheNhanVat key="nl" id={id} h={h} t={t} ls={ls} tc={tc} so={so} />,
+          <DsViec key="viec" id={id} ds={viec} />,
           <div key="vai" className="cty-ns-vai">{giu.length ? giu.map((g, i) => (
             <section key={i}>
               <h3>{g.the?.ten ?? g.ma} <span className="cty-muted cty-nho">ở <Link href={`/phong/${g.p.id}`}>{String(g.p.fm.ten)}</Link></span></h3>

@@ -16,6 +16,9 @@ skills: []
 data: []
 pay:
 tran_usd_thang: 1
+tc_can_than: 6   # chỉ số gốc 1–10 (worker/tinh-cach.mjs): cố định từ lúc tuyển, đi vào lời dặn theo thang 3 nấc
+tc_sang_tao: 4
+tc_mem_mong: 3
 ---
 ## Tính cách
 

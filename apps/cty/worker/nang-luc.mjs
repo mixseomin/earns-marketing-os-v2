@@ -73,6 +73,26 @@ export function theGame(hs) {
   return out;
 }
 
+// LỊCH SỬ (thấy tích luỹ): chỉ số mỗi ngày tính NGƯỢC từ nhật ký — mỗi lượt có giờ nên "ảnh chụp ngày D" = hồ sơ trên các lượt bắt
+// đầu trước hết ngày D (GMT+7). Không cần job chụp hằng ngày, có lịch sử từ ngày đầu. Ngày không có việc mới thì giữ số hôm trước.
+const ngayVN = (iso) => new Date(Date.parse(iso) + 7 * 3600e3).toISOString().slice(0, 10);
+export function lichSu(luot = dsLuotTho(), soNgay = 14, homNay = new Date().toISOString()) {
+  const cuoi = ngayVN(homNay); const ngay = [];
+  for (let i = soNgay - 1; i >= 0; i--) ngay.push(ngayVN(new Date(Date.parse(cuoi + 'T12:00:00Z') - i * 864e5).toISOString()));
+  const out = {};   // mỗi người đủ soNgay điểm: ngày chưa làm gì = 0 XP, chỉ số trống (đường xu hướng cùng chiều dài)
+  ngay.forEach((d, i) => {
+    const g = theGame(hoSoNangLuc(luot.filter((l) => l.bat_dau && ngayVN(l.bat_dau) <= d)));
+    for (const [id, t] of Object.entries(g)) (out[id] ??= ngay.map((x) => ({ ngay: x, cap: 1, xp: 0, cs: {} })))[i] = { ngay: d, cap: t.cap, xp: t.xp, cs: Object.fromEntries(t.chi_so.map((c) => [c.ma, c.gia_tri])) };
+  });
+  return out;
+}
+/** Mọi bước một người đã làm, mới nhất trước: lượt nào, bước gì, kết quả lượt, tốn bao nhiêu. */
+export function viecCua(id, luot = dsLuotTho(), n = 40) {
+  const out = [];
+  for (const l of luot) for (const b of l.buoc || []) if (b.id === id) out.push({ luot: l.ts, viec: l.viec, bo_viec: l.bo_viec ?? null, buoc: b.buoc, bat_dau: b.bat_dau, ms: b.ms, usd: b.usage ? tienUsd(b.model, b.usage) : 0, loi: b.loi ?? null, dap: String(b.dap ?? '').slice(0, 160), ket: l.ket?.trang_thai_viec ?? l.trang_thai, dung: ketDung(l) });
+  return out.sort((a, b) => String(b.bat_dau).localeCompare(String(a.bat_dau))).slice(0, n);
+}
+
 if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('nang-luc.mjs')) {
   const a = (c, m, x) => { if (!c) { console.error('✗ nang-luc:', m, JSON.stringify(x ?? {}).slice(0, 300)); process.exit(1); } };
   const B = (buoc, id, dap, o = {}) => ({ buoc, id, dap, model: 'openai:gpt-4o-mini', usage: { input_tokens: 100, output_tokens: 50 }, ms: 1000, bat_dau: '2026-10-11T00:00:00Z', ...o });
@@ -94,5 +114,11 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('nang
   a(g.tam.xp === 110 && g.tam.cap === 2 && g.tam.xp_cap_nay === 100 && g.tam.xp_cap_sau === 300, 'XP + cấp theo việc đã làm', g.tam);
   a(g.tam.chi_so.find((c) => c.ma === 'CHI').gia_tri === 67 && g.tam.chi_so.find((c) => c.ma === 'MAT').gia_tri === null, 'chỉ số = năng lực đo được; chưa có mẫu thì để trống', g.tam.chi_so);
   a(g.loc.chi_so.find((c) => c.ma === 'NHA').gia_tri === null, 'ít hơn 5 bước thì chưa xếp nhanh nhẹn', g.loc.chi_so);
-  console.log('✓ nang-luc: giao việc / thực hiện vòng đầu / báo cáo đúng mẫu / ổn định / kiểm soát chỉ từ bộ việc chuẩn · thẻ game: XP, cấp, chỉ số');
+  // lịch sử: lượt hôm qua + hôm nay → XP hôm qua < hôm nay; ngày trước đó chưa có gì
+  const hq = '2026-10-10T03:00:00Z', hn = '2026-10-11T03:00:00Z';
+  const ls = lichSu([{ ...luot[0], bat_dau: hq }, { ...luot[1], bat_dau: hn }], 3, hn);
+  a(ls.tam.length === 3 && ls.tam[0].xp === 0 && ls.tam[1].xp > 0 && ls.tam[2].xp > ls.tam[1].xp, 'lịch sử: XP tích luỹ theo ngày', ls.tam);
+  a(ls.tam[1].ngay === '2026-10-10' && ls.tam[2].ngay === '2026-10-11', 'ngày theo GMT+7', ls.tam.map((x) => x.ngay));
+  const vc = viecCua('loc', luot); a(vc.length === 3 && vc.every((x) => /làm/.test(x.buoc)), 'việc của một người: đúng các bước người đó làm', vc);
+  console.log('✓ nang-luc: giao việc / thực hiện vòng đầu / báo cáo đúng mẫu / ổn định / kiểm soát chỉ từ bộ việc chuẩn · thẻ game · lịch sử theo ngày · việc từng người');
 }

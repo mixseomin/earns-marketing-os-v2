@@ -11,7 +11,7 @@ a{color:inherit}
 .cty-top a:hover{color:var(--accent)}
 .cty-mono{font-family:var(--mono);font-size:.82rem}
 .cty-muted{color:var(--muted)}
-.cty-main{max-width:1100px;margin:0 auto;padding:18px 16px 60px}
+.cty-main{padding:18px 24px 60px}   /* full width màn PC (anh 11/10/2026); chữ dài tự giới hạn ở .cty-md 72ch */
 .cty-banner{background:var(--warn-bg);border-left:3px solid var(--warn);padding:.6rem .9rem;border-radius:0 6px 6px 0;margin:0 0 1.2rem;font-size:.95rem}
 .cty-banner b{color:var(--warn)}
 h1,h2,h3{font-family:var(--head);line-height:1.15;margin:0;text-wrap:balance}

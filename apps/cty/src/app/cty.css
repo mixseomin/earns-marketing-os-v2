@@ -84,6 +84,7 @@ h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem}
 .cty-thu-buoc li{padding-left:var(--le);border-left:2px solid var(--line)}
 .cty-nho{font-size:.82rem}
 .cty-thu-nut{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;width:100%}
+.cty-thu-nut>:is(.cty-bao-ok,.cty-bao-loi){flex-basis:100%;order:99}   /* dòng báo của nút giao lượt xuống hàng riêng, cuối hàng nút: các nút cạnh không dịch */
 .cty-luot-meta{font-family:var(--body);font-weight:400;font-size:.84rem;color:var(--muted)}
 .cty-buoc-dau{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
 .cty-buoc-so{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--soft);color:var(--accent);font-size:.78rem;font-weight:600}

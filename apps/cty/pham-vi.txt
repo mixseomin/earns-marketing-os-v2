@@ -4,4 +4,4 @@ deploy/nginx-cty.conf
 deploy/nginx-vp*.conf
 deploy/mos2-cty*.service
 deploy/mos2-vp*.service
-deploy/vp-touch-pan.js
+deploy/vp-chen.js

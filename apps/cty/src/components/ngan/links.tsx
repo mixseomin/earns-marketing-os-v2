@@ -5,7 +5,7 @@
 // Trong lúc máy chủ dựng ngăn: một tầng "Đang tải…" hiện ngay (luật 7). Thanh đầu (.cty-top) và Cmd/Ctrl-bấm: điều hướng thường.
 import { useEffect, useState, useTransition } from 'react';
 import { khoaTuHref, moKhoa, urlVoiChong } from '@/lib/ngan';
-import { useChong, rongTang } from './tang';
+import { useChong, rongTang, datAnTu } from './tang';
 import { usePathname, useRouter } from 'next/navigation';
 
 export const SU_KIEN_MO = 'cty:mo-ngan';
@@ -40,6 +40,7 @@ export function NganLinks() {
 
   useEffect(() => { if (!dangMo) setCho(null); }, [dangMo]);
   useEffect(() => { document.body.style.overflow = chong.length ? 'hidden' : ''; }, [chong.length]);
+  useEffect(() => { datAnTu(Infinity); }, [chong.join('|')]);   // URL đã đổi xong → bỏ mốc ẩn (tầng đã đóng đã rời khỏi cây)
 
   if (!dangMo || !cho || chong.includes(cho)) return null;
   return (

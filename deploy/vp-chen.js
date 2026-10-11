@@ -1,9 +1,14 @@
-// vp.on.tc — cảm ứng cho văn phòng pixel. pixel-agents chỉ kéo bằng chuột giữa và zoom bằng Ctrl+wheel (OfficeCanvas.tsx),
-// trên điện thoại không làm gì được. Script này được nginx sub_filter chèn vào index.html (không sửa gói npm):
+// Văn phòng pixel (cty.on.tc/vp/<phòng>/) — script cty CHÈN vào index.html của pixel-agents qua nginx sub_filter (không sửa gói npm).
+// Hai việc:
+// 1) Cảm ứng (10/10/2026). pixel-agents chỉ kéo bằng chuột giữa và zoom bằng Ctrl+wheel (OfficeCanvas.tsx), trên điện thoại không làm gì được:
 //   một ngón kéo      → WheelEvent(deltaX/deltaY)            = kéo bản đồ
 //   hai ngón chụm/mở  → WheelEvent(ctrlKey, deltaY)          = zoom (ngưỡng 50 mỗi nấc, ZOOM_SCROLL_THRESHOLD)
 //   lúc mở trên màn cảm ứng → zoom về mức nhỏ nhất để thấy cả văn phòng (mặc định zoom theo DPR, điện thoại DPR 3 → quá to)
-// ponytail: không chạm state React; chỉ phát đúng sự kiện canvas đã nghe. Gói đổi cách bắt sự kiện thì sửa đây.
+//   ponytail: không chạm state React; chỉ phát đúng sự kiện canvas đã nghe. Gói đổi cách bắt sự kiện thì sửa đây.
+// 2) Giữ websocket + chào lại khi nối lại (#1301, 11/10/2026). Cloudflare cắt websocket đứng im 100 giây (nginx để 3600s); pixel-agents tự
+//   nối lại nhưng chỉ gửi "webviewReady" MỘT lần lúc mở trang → server không gửi lại bản đồ/nhân vật cho kết nối mới: văn phòng trống
+//   hoặc đứng hình tới khi tải lại (đo trên box: 6/9 kết nối /ws không có lời chào, cách nhau ~2 phút). Bọc WebSocket: mỗi 45 giây gửi
+//   một tin nhỏ (server bỏ qua loại lạ) để không bao giờ đứng im đủ 100 giây, và từ lần mở thứ hai tự gửi lại lời chào.
 (function () {
   var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
   var last = null, dist = 0, zoomAcc = 0;
@@ -39,4 +44,22 @@
       else if (++tries > 40) clearInterval(t);
     }, 250);
   }
+})();
+
+(function () {
+  var Goc = window.WebSocket; if (!Goc) return;
+  var lanMo = 0;
+  function WS(url, giaoThuc) {
+    var ws = giaoThuc === undefined ? new Goc(url) : new Goc(url, giaoThuc);
+    if (!/\/ws$/.test(String(url))) return ws;
+    var giu = null;
+    ws.addEventListener('open', function () {
+      if (lanMo++ > 0) ws.send(JSON.stringify({ type: 'webviewReady' }));   // nối lại → chào lại → server gửi lại trạng thái
+      giu = setInterval(function () { if (ws.readyState === 1) ws.send('{"type":"cty-giu"}'); }, 45000);
+    });
+    ws.addEventListener('close', function () { clearInterval(giu); });
+    return ws;
+  }
+  WS.prototype = Goc.prototype; WS.CONNECTING = 0; WS.OPEN = 1; WS.CLOSING = 2; WS.CLOSED = 3;
+  window.WebSocket = WS;
 })();

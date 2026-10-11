@@ -1,0 +1,55 @@
+{
+ "project": "studio",
+ "ten": "Astrolas · Transit story — the day it wasn't luck (organic short, bản nháp)",
+ "mo_ta": "Short dọc kể chuyện ngôi thứ hai (POV người xem): tháng ngày bị từ chối → 01/08/2024 nhận được lời đồng ý → xem transit ngày đó trên Astrolas: Sao Mộc trùng Mặt Trời gốc 0°34' (kết quả thật từ công cụ, lá số minh hoạ 04/06/1996 12:00 New York). Không phải lời chứng thực của khách thật.",
+ "kinh_thanh": {
+  "phong_cach": "Cinematic, moody storytelling for a vertical social video: real-life night apartment scenes with cold blue light that turns warm gold at the turning point, mixed with mystical deep navy skies and glowing gold planets; elegant, premium, emotional; people only seen from behind or as hands and silhouettes, never faces",
+  "ti_le": "9:16",
+  "do_phan_giai": "720p",
+  "mo_hinh_anh": "gemini-nano-banana-2.1",
+  "mo_hinh_video": "fal:fal-ai/veo3.1/lite/image-to-video",
+  "mo_hinh_chu": "claude-opus-5-5",
+  "ngon_ngu": "en",
+  "the_loai": "",
+  "logline": "",
+  "chu_de": "",
+  "qc": {
+   "ten": "Astrolas Transit",
+   "link": "https://astrolas.com/transit",
+   "diem_noi_bat": "Free transit interpretation: enter your birth data and any date, see which transiting planets hit your natal chart that day, with the orb and a written meaning for each aspect.",
+   "doi_tuong": "English-speaking astrology fans 18-35 on TikTok/Reels: zodiac memers, relationship-synastry curious, people checking a crush or partner",
+   "uu_dai": "Free — no account needed",
+   "thi_truong": "Global English (US first)",
+   "anh": [
+    "https://img.on.tc/xuong-video/astrolas/5516f7f9-53a6-440c-8938-ce951ccf14fc.png",
+    "https://img.on.tc/xuong-video/astrolas/4b3727a2-107d-4b3b-a5ff-92a5be4d6f0f.png"
+   ],
+   "logo_url": "https://astrolas.com/images/logo/wordmark-on-dark@2x.png",
+   "vi_tri_chu": "giua",
+   "kieu_chu": {
+    "font": "Playfair Display Black",
+    "mau": "#FFFFFF",
+    "vien": "#0B1A2E",
+    "nhan": "#E6B800",
+    "co": 0.1,
+    "vien_day": 0.06,
+    "ngang": 100
+   }
+  }
+ },
+ "nhan_vat": [
+  {
+   "loai": "san_pham",
+   "ten": "Astrolas Transit tool",
+   "mo_ta": "The astrolas.com Transit Interpretation page on a phone: dark navy interface with gold accents, birth data form and transit date, aspect list with planet glyphs, orbs and written meanings",
+   "anh_ref": [
+    "https://img.on.tc/xuong-video/astrolas/5516f7f9-53a6-440c-8938-ce951ccf14fc.png",
+    "https://img.on.tc/xuong-video/astrolas/4b3727a2-107d-4b3b-a5ff-92a5be4d6f0f.png"
+   ]
+  }
+ ],
+ "tap": {
+  "ten": "It wasn't luck. It was Jupiter.",
+  "brief": "Kể chuyện POV: chuỗi ngày bị từ chối → ngày nhận lời đồng ý → xem transit ngày đó: Jupiter trùng Mặt Trời, sai số 0°34' (kết quả thật) → mỗi ~12 năm mới có → hỏi ngày của bạn là khi nào → xem transit miễn phí."
+ }
+}

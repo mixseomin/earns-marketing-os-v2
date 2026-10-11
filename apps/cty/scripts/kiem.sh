@@ -30,8 +30,9 @@ sai=0
 for u in / /quy-trinh /quy-trinh/thu-nghiem/lam-viec /phong/thu-nghiem /phong/sach /nhan-su/tam /nhat-ky /luat /muc-tieu "/?ngan=quy-trinh:thu-nghiem/lam-viec"; do
   c=$(curl -s -m 15 -o /dev/null -w "%{http_code}" -b "mos2-session=$T" "http://localhost:3860$u" </dev/null); printf "  %-42s %s\n" "$u" "$c"; [ "$c" = 200 ] || sai=$((sai+1))
 done
-loi=$(journalctl -u mos2-cty --since "-10min" --no-pager 2>/dev/null | grep -cE "ENOENT|⨯ Error" || true)
-echo "  journal 10 phút: $loi dòng lỗi"; [ "$loi" = 0 ] || { sai=$((sai+1)); journalctl -u mos2-cty --since "-10min" --no-pager | grep -E "ENOENT|⨯ Error" | tail -3; }
+TU=$(systemctl show mos2-cty -p ActiveEnterTimestamp --value)   # chỉ đếm lỗi của bản ĐANG chạy (từ lúc khởi động), không đếm bản trước
+loi=$(journalctl -u mos2-cty --since "$TU" --no-pager 2>/dev/null | grep -cE "ENOENT|⨯" || true)   # Next in lỗi dạng "⨯ [Error: …" — mẫu cũ "⨯ Error" bỏ sót (11/10/2026)
+echo "  journal từ lúc khởi động: $loi dòng lỗi"; [ "$loi" = 0 ] || { sai=$((sai+1)); journalctl -u mos2-cty --since "$TU" --no-pager | grep -E "ENOENT|⨯" | tail -3; }
 cd apps/cty && for t in worker/quy-trinh.mjs worker/ca.mjs worker/cai-tien.mjs; do node "$t" --tu-kiem </dev/null 2>&1 | tail -1 | sed 's/^/  /'; done
 [ "$sai" = 0 ] && echo "✓ box ổn" || { echo "✗ box: $sai chỗ sai"; exit 1; }
 TREN_BOX

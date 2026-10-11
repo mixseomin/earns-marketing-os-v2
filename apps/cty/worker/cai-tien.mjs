@@ -129,11 +129,13 @@ export function duyetDeXuat(k, id, dongY, ai = 'giam-doc') {
 // Việc đang chạy (họp / so phiên bản) của một phòng — trang đọc để khoá nút + hiện "đang chạy", worker xoá khi xong (kể cả lỗi).
 const khoaDir = () => path.join(DATA(), 'dang-chay');
 export function dangChayCaiTien(k) { const f = path.join(khoaDir(), `${k}.json`); if (!fs.existsSync(f)) return null; const x = JSON.parse(fs.readFileSync(f, 'utf8')); return Date.now() - Date.parse(x.tu) > 30 * 60e3 ? null : x; }
-export function ketQuaGanNhat(k) { const f = path.join(khoaDir(), `${k}-ket.json`); return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null; }
+// tom_tat luôn là CHỮ (trang in thẳng ra) — một việc từng trả object vào đây làm trang quy trình 500 (11/10/2026); đọc thì chuẩn hoá cả tệp cũ.
+const tomTat = (r) => (typeof r === 'string' ? r : r?.ben ? r.ben.map((b) => `${r.nguoi}.${r.chi_so}=${b.gia_tri}: ${b.so_dung}/${b.tong}`).join(' vs ') : JSON.stringify(r ?? '').slice(0, 200));
+export function ketQuaGanNhat(k) { const f = path.join(khoaDir(), `${k}-ket.json`); if (!fs.existsSync(f)) return null; const x = JSON.parse(fs.readFileSync(f, 'utf8')); return x.tom_tat === undefined ? x : { ...x, tom_tat: tomTat(x.tom_tat) }; }
 async function voiKhoa(k, viec, fn) {
   const f = path.join(khoaDir(), `${k}.json`); fs.mkdirSync(path.dirname(f), { recursive: true });
   fs.writeFileSync(f, JSON.stringify({ viec, tu: new Date().toISOString() }));
-  try { const r = await fn(); fs.writeFileSync(path.join(khoaDir(), `${k}-ket.json`), JSON.stringify({ viec, ok: true, luc: new Date().toISOString(), tom_tat: r })); return r; }
+  try { const r = await fn(); fs.writeFileSync(path.join(khoaDir(), `${k}-ket.json`), JSON.stringify({ viec, ok: true, luc: new Date().toISOString(), tom_tat: tomTat(r) })); return r; }
   catch (e) { fs.writeFileSync(path.join(khoaDir(), `${k}-ket.json`), JSON.stringify({ viec, ok: false, luc: new Date().toISOString(), loi: String(e.message || e) })); throw e; }
   finally { fs.rmSync(f, { force: true }); }
 }
@@ -292,6 +294,11 @@ if (laCli && process.argv.includes('--tu-kiem')) {
   for (let i = 0; i < 5; i++) await motLuot('Viết 1 câu chào', true, { khoa: P });
   const tHet = xetTuHop(P);
   a(tHet.lam === null && tHet.het_tien && /hết ngân sách/.test(tHet.ly_do) && tHet.chi > 0.5, 'hết ngân sách tháng → không họp', tHet);
+  // kết quả gần nhất luôn là CHỮ (trang in thẳng) — kể cả tệp cũ ghi object
+  await voiKhoa(P, 'so', async () => ({ nguoi: 'loc', chi_so: 'can_than', ben: [{ gia_tri: 2, so_dung: 1, tong: 7 }] }));
+  a(typeof ketQuaGanNhat(P).tom_tat === 'string' && /loc.can_than=2: 1\/7/.test(ketQuaGanNhat(P).tom_tat), 'voiKhoa ghi chữ', ketQuaGanNhat(P));
+  fs.writeFileSync(path.join(khoaDir(), `${P}-ket.json`), JSON.stringify({ viec: 'so', ok: true, luc: 'x', tom_tat: { qt: 1 } }));
+  a(typeof ketQuaGanNhat(P).tom_tat === 'string', 'tệp cũ ghi object → đọc ra chữ', ketQuaGanNhat(P));
   // so chỉ số gốc: chạy được, ghi kết quả, cộng vào chi tháng
   const chiTruoc = chiThang(P); const tc = await soTinhCach(P, 'loc', 'can_than', [2, 9], 1);
   a(tc.ben.length === 2 && tc.ben[0].tong === boViecChuan(P).viec.length && dsSoTinhCach(P).length === 1 && chiThang(P) > chiTruoc, 'so chỉ số gốc: 2 bên × bộ việc, có lưu, cộng chi tháng', tc.ben.map((b) => b.tong));

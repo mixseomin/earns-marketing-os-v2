@@ -225,7 +225,7 @@ export function keHoachXuat(o: {
   const dsHinh = ds.filter(coHinh);
   const chuyenSau = new Map<number, { xfade: string; d: number }>();
   dsHinh.forEach((c, r) => {
-    const ke = dsHinh[r + 1]; const x = ke && chuyenCanhGiua(c.ky_thuat?.chuyen_canh, giayPhat(c), giayPhat(ke));
+    const ke = dsHinh[r + 1]; const x = ke && chuyenCanhGiua(c.ky_thuat?.chuyen_canh, giayPhat(c), giayPhat(ke), c.ky_thuat?.giay_cc);
     if (x) chuyenSau.set(c.id, { xfade: x.xfade, d: x.d });
   });
   const mocSeg: number[] = []; const xSeg: ({ xfade: string; d: number } | null)[] = [];

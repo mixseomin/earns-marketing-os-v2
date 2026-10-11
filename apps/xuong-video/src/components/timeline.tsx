@@ -15,7 +15,8 @@ import { NutChuyenCanh } from './chuyen-canh-ui';
 import { dongThoai, dungTiengClip, tenNoi, cungTen, timNv, lichGiong } from '@/lib/xuong-video/am-thanh';
 import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
-import { mono } from './ui';
+import { mono, Menu } from './ui';
+import { docLT, ghiLT } from '@/lib/luu-tru';
 import { lopMoi, idLop, tenLop, chonLopMoi, nhomCua, gopNhom, boNhom } from '@/lib/xuong-video/lop';
 import { useLop, LopXem, LopCongCu, LopNguyenLieu, LopBang, LopNhieu, KhoiLop, KhungHieuUng } from './lop-ui';
 import { moNgan } from './ngan-chung';
@@ -35,7 +36,7 @@ export type SinhTaiCho = {
 export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, onDoiChuyenCanh }: {
   canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null; qc?: ThongTinQc | null;
   onChon: (id: number) => void; onDoiGiay: (id: number, giay: number) => void;
-  /** đổi chuyển cảnh SAU shot id (ky_thuat.chuyen_canh) — '' = cắt thẳng */ onDoiChuyenCanh?: (id: number, key: string) => void; onXep: (ids: number[]) => void; onToanManHinh: () => void; sinh?: SinhTaiCho;
+  /** đổi chuyển cảnh SAU shot id (ky_thuat.chuyen_canh; '' = cắt thẳng) và/hoặc số giây đặt tay (giay: undefined = giữ, null = về mặc định) */ onDoiChuyenCanh?: (id: number, key: string, giay?: number | null) => void; onXep: (ids: number[]) => void; onToanManHinh: () => void; sinh?: SinhTaiCho;
 }) {
   // Số giây tạm khi đang kéo mép clip (chưa ghi) — timeline co giãn theo tay ngay.
   const [giayTam, setGiayTam] = useState<Record<number, number>>({});
@@ -237,7 +238,18 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
 
   // Nút điều khiển của track nằm NGAY ở nhãn track đó (#1230 YDNI: nút cho khối nào thì ở cạnh khối đó, không gom lên trên cùng).
   // keoLop: id lớp phủ — nhãn làn kéo thả được để đổi thứ tự hiển thị (#1276).
-  const track = (nhan: string, mo: string, noiDung: ReactNode, cao = 26, nut?: ReactNode, keoLop?: string) => (
+  // Ẩn / hiện thành phần (#1296): làn nào ẩn khỏi timeline (nhớ theo trình duyệt) + chữ màn ẩn khỏi khung xem (chỉ khi xem, bản xuất vẫn vẽ).
+  const [anLan, setAnLan] = useState<string[]>(() => { try { const v = JSON.parse(docLT('xv-tl-an-lan') ?? '[]') as unknown; return Array.isArray(v) ? v.map(String) : []; } catch { return []; } });
+  const doiAnLan = (n: string) => setAnLan((d) => { const m = d.includes(n) ? d.filter((x) => x !== n) : [...d, n]; ghiLT('xv-tl-an-lan', JSON.stringify(m)); return m; });
+  const anChuMan = anLan.includes('xem:chu_man');
+  const dsLan: string[] = [];
+  // Danh sách làn của lần vẽ trước — menu 👁 đọc lúc mở (làn được khai trong lúc vẽ, sau ô thước nơi đặt menu).
+  const lanRef = useRef<string[]>([]);
+  useEffect(() => { lanRef.current = dsLan; });
+  const track = (nhan: string, mo: string, noiDung: ReactNode, cao = 26, nut?: ReactNode, keoLop?: string) => {
+    if (!keoLop && !dsLan.includes(nhan)) dsLan.push(nhan);
+    if (!keoLop && nhan !== '🎬 Hình' && anLan.includes(nhan)) return null;
+    return (
     <div style={{ display: 'flex', alignItems: 'stretch', height: cao, marginTop: 3, outline: keoLop && dangThaVao === keoLop ? '1px solid var(--cyan)' : undefined }}>
       <div data-goi-y={`${nhan}\n${mo}`}
         {...(keoLop ? { draggable: true, onDragStart: (e: React.DragEvent) => { e.dataTransfer.setData('text/xv-lop', keoLop); e.dataTransfer.effectAllowed = 'move'; },
@@ -248,7 +260,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
       </div>
       <div style={{ position: 'relative', width: W, flexShrink: 0 }}>{noiDung}</div>
     </div>
-  );
+  ); };
   const nutNho = (chu: string, title: string, tat: boolean, onClick: () => void) => (
     <button type="button" title={title} onClick={onClick} style={{ flexShrink: 0, fontSize: 11, lineHeight: '16px', padding: '0 3px', borderRadius: 3, border: '1px solid var(--line)', background: tat ? 'none' : 'var(--bg-2)', color: tat ? 'var(--fg-4)' : 'var(--fg-2)', cursor: 'pointer', opacity: tat ? 0.6 : 1 }}>{chu}</button>
   );
@@ -330,13 +342,13 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             {/* Hiệu ứng khung (lớp ✦, lop.ts › hieuUngKhungTai): rung/zoom/mờ/đen trắng/glitch áp lên hình + lớp phủ; chớp/tối viền/hạt là lớp phủ trên đó, dưới chữ màn. */}
             {/* Hiệu ứng khung + chuyển cảnh + lớp phủ hiệu ứng: MỘT component cho timeline và màn toàn màn hình (KhungHieuUng, lop-ui.tsx). */}
             <KhungHieuUng lop={lop} t={t} rong={rongXem} tTrong={tTrong}
-              chuyen={idx > 0 && c ? { anh: canh[idx - 1]!.keyframe_url, key: canh[idx - 1]!.ky_thuat?.chuyen_canh, phatTruoc: dur(canh[idx - 1]!), phatNay: dur(c) } : undefined}>
+              chuyen={idx > 0 && c ? { anh: canh[idx - 1]!.keyframe_url, key: canh[idx - 1]!.ky_thuat?.chuyen_canh, giay: canh[idx - 1]!.ky_thuat?.giay_cc, phatTruoc: dur(canh[idx - 1]!), phatNay: dur(c) } : undefined}>
               {c && (vid ? <video ref={vidRef} key={vid} src={vid} playsInline preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : c.keyframe_url ? <img src={c.keyframe_url} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb }} />
                 : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} chưa có hình</div>)}
               <LopXem lop={lop} t={t} rong={rongXem} cao={caoXem} chonIds={chonLops} onChon={bamLop} onDoi={doiLop} dangChay={chay} />
             </KhungHieuUng>
-            {c?.chu_man && <ChuManXem chu={c.chu_man} giay={tTrong} rong={rongXem} qc={qc} kieu={c.kieu_chu} />}
+            {c?.chu_man && !anChuMan && <ChuManXem chu={c.chu_man} giay={tTrong} rong={rongXem} qc={qc} kieu={c.kieu_chu} />}
             {giongNay && <audio ref={thoaiRef} key={khoaGiong} src={giongNay.url} preload="auto" />}
             {c?.am_thanh_url && <audio ref={sfxRef} key={c.am_thanh_url} src={c.am_thanh_url} preload="auto" />}
             {tap.nhac_url && <audio ref={nhacRef} src={tap.nhac_url} preload="auto" />}
@@ -374,6 +386,9 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               {nutNho('🔍−', 'Thu nhỏ thước thời gian', zoom <= 1, () => setZoom((z) => Math.max(1, z - 0.5)))}
               <span title="Độ phóng thước thời gian (giữ qua F5)" style={{ minWidth: 22, textAlign: 'center' }}>{zoom}×</span>
               {nutNho('🔍+', 'Phóng to thước thời gian', zoom >= 6, () => setZoom((z) => Math.min(6, z + 0.5)))}
+              <Menu nhan={anLan.filter((x) => !x.startsWith('xem:')).length ? `👁 ${anLan.filter((x) => !x.startsWith('xem:')).length} ẩn` : '👁'}>
+                <DsLanAn lay={() => lanRef.current} an={anLan} onDoi={doiAnLan} />
+              </Menu>
               {tayNhan}
             </div>
             <div style={{ position: 'relative', width: W, cursor: 'pointer' }}
@@ -389,11 +404,12 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           {canh.some((x) => x.chu_man.trim()) && track('✎ Chữ màn', 'Chữ hiện trên màn của từng shot (hook, số liệu, ưu đãi, CTA) — sửa ở form cảnh; bản xuất vẽ đúng chữ này', canh.map((cc, i) => {
             if (!cc.chu_man.trim()) return null;
             return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, '#facc15', chuManHien(cc.chu_man), cc.chu_man, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); });
-          }))}
+          }), 26, nutNho(anChuMan ? '🙈' : '👁', anChuMan ? 'Chữ màn đang ẩn khỏi khung xem (bản xuất vẫn có) — bấm để hiện' : 'Ẩn chữ màn khỏi khung xem để nhìn hình sạch (bản xuất vẫn có)', anChuMan, () => doiAnLan('xem:chu_man')))}
 
           {/* Lớp phủ: mỗi lớp một làn (lớp sau nằm trên), kéo khối đổi giờ — bấm chọn để sửa ở bảng bên phải khung xem. */}
           {lop.length ? [...lop].reverse().map((l) => track(`⋮⋮ ${tenLop(l)}`, 'Lớp phủ — kéo thân để dời, kéo mép để đổi giờ vào/ra; bấm để sửa',
-              <KhoiLop l={l} pps={pps} chon={chonLops.includes(l.id)} cung={chonLops.includes(l.id) ? dsChonLop : lop.filter((x) => nhomCua(lop, l.id).includes(x.id))} onChon={(them) => bamLop(l.id, them)} onDoi={doiLop} />, 20, undefined, l.id))
+              <KhoiLop l={l} pps={pps} chon={chonLops.includes(l.id)} cung={chonLops.includes(l.id) ? dsChonLop : lop.filter((x) => nhomCua(lop, l.id).includes(x.id))} onChon={(them) => bamLop(l.id, them)} onDoi={doiLop} />, 20,
+              nutNho(l.an ? '🙈' : '👁', l.an ? 'Lớp đang ẩn (không hiện, không xuất) — bấm để hiện' : 'Ẩn lớp này (không hiện, không xuất)', !!l.an, () => doiLop(l.id, { an: !l.an })), l.id))
             : track('🧩 Lớp phủ', 'Chữ, ảnh, hình khối tự do đè lên video', <button type="button" className="xv-lienket xv-mono" style={{ lineHeight: '20px', paddingLeft: 6 }} onClick={() => themLop([lopMoi('chu', t)])}>chưa có lớp — bấm để thêm lớp chữ ở giây {t.toFixed(1)}</button>, 20)}
           {track('🎬 Hình', 'Mỗi cảnh một clip, dài đúng số giây', canh.map((cc, i) => {
             const x = batDau[i]! * pps; const w = dur(cc) * pps; const anh = cc.keyframe_url;
@@ -414,8 +430,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           }).concat(canh.slice(0, -1).map((cc, i) => {
             // Điểm nối giữa hai clip: nút ⇄ chọn chuyển cảnh (ky_thuat.chuyen_canh của shot TRƯỚC) + dải d giây bản xuất hoà hình.
             const sau = canh[i + 1]!;
-            return <NutChuyenCanh key={`cc${cc.id}`} trai={batDau[i + 1]! * pps} pps={pps} value={cc.ky_thuat?.chuyen_canh} phatTruoc={dur(cc)} phatSau={dur(sau)}
-              anhTruoc={cc.keyframe_url} anhSau={sau.keyframe_url} tieuDe={`Chuyển #${cc.thu_tu} → #${sau.thu_tu}`} onChon={onDoiChuyenCanh && ((k) => onDoiChuyenCanh(cc.id, k))} />;
+            return <NutChuyenCanh key={`cc${cc.id}`} trai={batDau[i + 1]! * pps} pps={pps} value={cc.ky_thuat?.chuyen_canh} giayTay={cc.ky_thuat?.giay_cc} phatTruoc={dur(cc)} phatSau={dur(sau)}
+              anhTruoc={cc.keyframe_url} anhSau={sau.keyframe_url} tieuDe={`Chuyển #${cc.thu_tu} → #${sau.thu_tu}`} onChon={onDoiChuyenCanh && ((k, g) => onDoiChuyenCanh(cc.id, k, g))} />;
           })), 48, nutNho(tat.clip === undefined ? '🔈' : tat.clip ? '🔇' : '🔊', `Tiếng có sẵn của clip: ${tat.clip === undefined ? 'tự (tắt khi shot có giọng/hiệu ứng sinh riêng)' : tat.clip ? 'tắt hết' : 'bật hết'} — bấm để đổi`, !!tat.clip, vongClip))}
 
           {/* Phân cảnh (scene): shot liền nhau cùng phan_doan gộp một khối; rê thấy beat · mục tiêu · xung đột · ẩn ý · cảm xúc đầu→cuối. */}
@@ -524,4 +540,20 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
       </div>
     </div>
   );
+}
+
+/** Menu ẩn / hiện làn (#1296): tick = hiện. 🎬 Hình luôn hiện (là trục của timeline). Lớp phủ ẩn bằng 👁 ở nhãn làn của nó. */
+function DsLanAn({ lay, an, onDoi }: { lay: () => string[]; an: string[]; onDoi: (n: string) => void }) {
+  const ds = lay().filter((n) => n !== '🎬 Hình');
+  return (<>
+    <div style={{ ...mono, padding: '2px 4px' }}>Hiện làn nào trên timeline (nhớ theo trình duyệt)</div>
+    {ds.map((n) => (
+      <label key={n} style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, padding: '2px 4px', cursor: 'pointer' }}>
+        <input type="checkbox" checked={!an.includes(n)} onChange={() => onDoi(n)} /> {n}
+      </label>
+    ))}
+    <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, padding: '2px 4px', cursor: 'pointer', borderTop: '1px solid var(--line)', marginTop: 2 }}>
+      <input type="checkbox" checked={!an.includes('xem:chu_man')} onChange={() => onDoi('xem:chu_man')} /> Chữ màn trên khung xem (bản xuất vẫn có)
+    </label>
+  </>);
 }

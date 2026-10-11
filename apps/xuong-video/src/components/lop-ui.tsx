@@ -21,9 +21,9 @@ const HAT_PHIM = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/200
  *  lớp phủ (children); chuyển cảnh = trong d giây đầu shot, hình shot TRƯỚC phủ lên rồi biến đi theo kiểu (gần đúng xfade bản xuất, cùng luật
  *  chuyenCanhGiua); tối viền / hạt / chớp phủ trên cùng, dưới chữ màn. t = giây của cả tập, tTrong = giây trong shot. */
 export function KhungHieuUng({ lop, t, rong, tTrong, chuyen, children }: { lop: Lop[]; t: number; rong: number; tTrong: number;
-  chuyen?: { anh: string | null; key?: string; phatTruoc: number; phatNay: number }; children: React.ReactNode }) {
+  chuyen?: { anh: string | null; key?: string; giay?: number; phatTruoc: number; phatNay: number }; children: React.ReactNode }) {
   const hk = hieuUngKhungTai(lop, t, rong);
-  const cg = chuyen?.anh ? chuyenCanhGiua(chuyen.key, chuyen.phatTruoc, chuyen.phatNay) : null;
+  const cg = chuyen?.anh ? chuyenCanhGiua(chuyen.key, chuyen.phatTruoc, chuyen.phatNay, chuyen.giay) : null;
   const x = cg && tTrong < cg.d ? xemChuyenCanh(cg.xfade, tTrong / cg.d) : null;
   const phu: CSSProperties = { position: 'absolute', inset: 0, pointerEvents: 'none' };
   return (<>

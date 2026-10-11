@@ -13,7 +13,8 @@ export const NHOM_CHUYEN_CANH: { key: NhomChuyenCanh; ten: string }[] = [
   { key: 'cat', ten: 'Cắt (không hiệu ứng)' }, { key: 'co_ban', ten: 'Cơ bản' }, { key: 'truot', ten: 'Trượt' }, { key: 'quet', ten: 'Quét' }, { key: 'hinh', ten: 'Hình khối' }, { key: 'dong', ten: 'Động' },
 ];
 /** Kỹ thuật đã chọn cho một shot (mỗi nhóm một key; âm thanh có thể nhiều). */
-export type KyThuatShot = Partial<Record<Exclude<NhomKyThuat, 'am_thanh'>, string>> & { am_thanh?: string[] };
+/** giay_cc: số giây chuyển cảnh đặt tay cho điểm nối SAU shot này (#1297) — trống = mặc định của kiểu. */
+export type KyThuatShot = Partial<Record<Exclude<NhomKyThuat, 'am_thanh'>, string>> & { am_thanh?: string[]; giay_cc?: number };
 
 export const THE_LOAI: { key: TheLoai; ten: string; mo_ta: string }[] = [
   { key: 'hoat_hinh', ten: 'Hoạt hình gia đình', mo_ta: 'Ấm áp, màu tươi, máy mềm, cảm xúc rõ ràng' },
@@ -42,11 +43,13 @@ const cc = (key: string, ten: string, mo_ta: string, nhom_cc: NhomChuyenCanh, xf
 
 /** Chuyển cảnh thật giữa hai shot liền nhau — MỘT luật cho bản xuất (xfade) lẫn timeline (dải + xem trước): d = giây kiểu, không quá nửa
  *  thời lượng phát của mỗi bên, làm tròn 0,01s; dưới 0,1s hoặc kiểu không có hiệu ứng hình → null (cắt thẳng). */
-export function chuyenCanhGiua(key: string | undefined, phatTruoc: number, phatSau: number): { kt: KyThuat; xfade: string; d: number } | null {
+/** giayTay = số giây đặt tay (ky_thuat.giay_cc của shot trước); muon = số giây xin (tay hoặc mặc định), d = số giây thật sau khi chặn nửa shot. */
+export function chuyenCanhGiua(key: string | undefined, phatTruoc: number, phatSau: number, giayTay?: number): { kt: KyThuat; xfade: string; d: number; muon: number } | null {
   const kt = kyThuat(key, 'chuyen_canh');
   if (!kt?.xfade) return null;
-  const d = Math.round(Math.min(kt.giay_cc ?? 0.4, phatTruoc * 0.5, phatSau * 0.5) * 100) / 100;
-  return d >= 0.1 ? { kt, xfade: kt.xfade, d } : null;
+  const muon = giayTay && giayTay > 0 ? giayTay : kt.giay_cc ?? 0.4;
+  const d = Math.round(Math.min(muon, phatTruoc * 0.5, phatSau * 0.5) * 100) / 100;
+  return d >= 0.1 ? { kt, xfade: kt.xfade, d, muon } : null;
 }
 
 export const THU_VIEN: KyThuat[] = [
@@ -214,6 +217,7 @@ export function lamSachKyThuat(kt: Record<string, unknown> | undefined): KyThuat
     if (n.key === 'am_thanh') { const ds = (Array.isArray(v) ? v : [v]).filter((x): x is string => typeof x === 'string' && !!kyThuat(x, 'am_thanh')); if (ds.length) o.am_thanh = ds.slice(0, 3); continue; }
     if (typeof v === 'string' && kyThuat(v, n.key)) (o as Record<string, string>)[n.key] = v;
   }
+  const g = Number(kt.giay_cc); if (Number.isFinite(g) && g >= 0.1 && g <= 3) o.giay_cc = Math.round(g * 100) / 100;
   return o;
 }
 

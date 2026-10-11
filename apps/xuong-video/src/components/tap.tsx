@@ -8,7 +8,7 @@ import { kiemQc } from '@/lib/xuong-video/kiem-qc';
 import { luuKhuonTap, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, trangThaiXuat } from '@/lib/actions';
 import { thanhPhanCanh, docKinhThanh, giaAnhCents, giaVideoCents, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, coMau, giayMau, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
-import { Khoa, TabPhim, KqChay, O, Nut, Loi, mono } from './ui';
+import { Khoa, TabPhim, KqChay, O, Nut, Loi, Menu, MucMenu, mono } from './ui';
 import { GiongNhanVat } from './nhan-vat';
 import { Animatic } from './animatic';
 import { CanhRow } from './canh';
@@ -99,6 +99,20 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
       {cacNhanh(canh).map((h) => <button key={h} type="button" className={`xv-btn${(nhanh ?? cacNhanh(canh)[0]) === h ? ' chinh' : ''}`} style={{ padding: '1px 7px' }} onClick={() => setNhanh(h)}>{h}</button>)}
     </span>
   );
+  // Bộ kiểm "đạt chưa" (0đ, tức thì) gọn thành MỘT nút trên thanh (#1311 YDNI): số mục chưa đạt; bấm mở danh sách — mục hỏng trước, kèm cách sửa.
+  const qcDs = canh?.length ? kiemQc({ loai: phim.loai, canh, nhanVat, qc: kt.qc, mucTieuS: tap.thoi_luong_s ?? thoiLuong, nhanh, ngonNgu: kt.ngon_ngu }) : [];
+  const qcHong = qcDs.filter((x) => !x.ok);
+  const nutQc = qcDs.length > 0 && (
+    <Menu nhan={qcHong.length ? `⚠ ${qcHong.length} mục chưa đạt ▾` : '✓ đạt bộ kiểm ▾'}>
+      <div style={{ ...mono, padding: '2px 4px' }}>Bộ kiểm quảng cáo (0đ) — đỏ thì sửa shot (form cảnh / kéo mép / ＋ đối tượng) hoặc tách lại</div>
+      {[...qcHong, ...qcDs.filter((x) => x.ok)].map((x) => (
+        <div key={x.key} style={{ display: 'grid', gap: 2, padding: '3px 4px', borderLeft: `2px solid ${x.ok ? 'var(--lime)' : 'var(--red)'}` }}>
+          <span style={{ fontSize: 11.5, color: x.ok ? 'var(--lime)' : 'var(--red)' }}>{x.ok ? '✓' : '✗'} {x.chu}</span>
+          {!x.ok && x.chiTiet && <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{x.chiTiet}</span>}
+        </div>
+      ))}
+    </Menu>
+  );
   const giayPhatTong = canh?.length ? Math.round(locNhanh(canh, nhanh).reduce((a, c) => a + giayPhat(c), 0) * 10) / 10 : 0;
   return (
     <div>
@@ -149,17 +163,21 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
         <strong style={{ fontSize: 12 }}>Storyboard · {canh?.length ?? '…'} cảnh{canh?.length ? ` · phát ${giayPhatTong}s` : ''}</strong>
         {chonNhanh}
-        <Nut ly={!(canh ?? []).some((c) => c.keyframe_url) && 'chưa có keyframe nào'} title="Xem cả tập từ keyframe (và clip đã có): đúng thứ tự, đúng số giây, có zoom nhẹ + lời thoại. Không tốn tiền." onClick={() => setAnimatic(true)}>▶ Xem animatic (0đ)</Nut>
-        <label style={{ ...mono, display: 'inline-flex', gap: 4, alignItems: 'center', cursor: 'pointer' }} title="Khung cuối của mỗi clip = keyframe cảnh kế → các clip nối liền mạch; bản cuối sinh lại cũng giữ đúng hai đầu">
-          <input type="checkbox" checked={tap.noi_khung} onChange={(e) => void chay('noi', async () => { await suaTap(tap.id, { noi_khung: e.target.checked }); })} /> Nối khung (khung cuối = keyframe cảnh sau)
-        </label>
-        <button type="button" className="xv-btn" disabled={!canh?.length} title="Sơ đồ cả tập: keyframe → clip → keyframe shot sau, dây đỏ ở chỗ nối lệch (clip sinh từ keyframe cũ / khung cuối đã đổi). 0đ" onClick={() => moNgan({ loai: 'noi-khung', tapId: tap.id })}>⛓ Sơ đồ nối khung</button>
+        {nutQc}
         <span style={{ flex: 1 }} />
+        {/* Công cụ xem (0đ) gọn thành nút icon nhỏ (#1211, #1311); nối khung là công tắc + sơ đồ trong cùng một menu. */}
+        <button type="button" className="xv-btn" style={{ opacity: 0.8 }} disabled={!(canh ?? []).some((c) => c.keyframe_url)} title="▶ Xem animatic cả tập (0đ) — đúng thứ tự, số giây, hiệu ứng, chuyển cảnh" onClick={() => setAnimatic(true)}>▶</button>
+        <Menu nhan={tap.noi_khung ? '⛓ nối' : '⛓'}>
+          <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, padding: '3px 4px', cursor: 'pointer' }} title="Khung cuối của mỗi clip = keyframe cảnh kế → các clip nối liền mạch; bản cuối sinh lại cũng giữ đúng hai đầu">
+            <input type="checkbox" checked={tap.noi_khung} onChange={(e) => void chay('noi', async () => { await suaTap(tap.id, { noi_khung: e.target.checked }); })} /> Nối khung — khung cuối clip = keyframe cảnh sau
+          </label>
+          <MucMenu onClick={() => moNgan({ loai: 'noi-khung', tapId: tap.id })}>⛓ Sơ đồ nối khung cả tập (0đ)</MucMenu>
+        </Menu>
+        <button type="button" className={`xv-btn${moBang ? ' chinh' : ''}`} style={{ opacity: moBang ? 1 : 0.8 }} disabled={!canh?.length} title="▦ Đối tượng × shot: shot nào dùng sản phẩm/người/bối cảnh nào; đỏ = thiếu ảnh, vàng = khác màu / nhắc tên chưa gắn. 0đ" onClick={() => setMoBang((x) => !x)}>▦</button>
         {/* Sinh tốn tiền đi qua bảng chọn shot (chay-chon.tsx): thấy trước shot nào chưa chạy được / hệ quả nối khung, thoại — rồi mới bấm. */}
         <button type="button" className={`xv-btn${moChon ? ' chinh' : ''}`} disabled={!canh?.length || banTach}
           title={`Chọn shot để sinh keyframe hoặc video nháp — ${sanSang.length} shot sẵn sàng sinh keyframe${kemThieu ? `, ${kemThieu} còn thiếu thành phần` : ''}; ${soDuyet} shot đã duyệt chờ video${uoc ? ` (≈ ${tien(uoc.videoTong)})` : ''}`}
           onClick={() => setMoChon((x) => !x)}>☑ Sinh theo lựa chọn{soDuyet || sanSang.length ? ` · ${sanSang.length} 🖼 · ${soDuyet} 🎬` : ''}</button>
-        <button type="button" className={`xv-btn${moBang ? ' chinh' : ''}`} disabled={!canh?.length} title="Bảng đối tượng × shot: shot nào dùng sản phẩm/người/bối cảnh nào, biến thể nào; đỏ = thiếu ảnh, vàng = khác màu với đa số / nhắc tên chưa gắn. 0đ" onClick={() => setMoBang((x) => !x)}>▦ Đối tượng × shot</button>
         <button type="button" className="xv-btn" disabled={banTach || ban('them')} onClick={() => void chay('them', async () => { await themCanh(tap.id); })}>+ Cảnh</button>
       </div>
       )}
@@ -172,6 +190,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
           <strong style={{ fontSize: 12 }}>Bản xuất · {canh?.length ?? '…'} cảnh · phát {giayPhatTong}s{tap.thoi_luong_s ? ` / mục tiêu ${tap.thoi_luong_s}s` : ''}</strong>
           {chonNhanh}
+          {nutQc}
           <span style={{ flex: 1 }} />
           <Nut chinh ly={!(canh ?? []).some((c) => c.video_url || c.video_cuoi_url || c.keyframe_url) && 'chưa có clip/keyframe nào'} ban={jobXuat != null}
             title="Dựng MP4 hoàn chỉnh trên máy chủ (0đ): nối clip theo giây phát, giọng + hiệu ứng + nhạc, chữ màn (shot nào có), end card ưu đãi, chuẩn âm -14 LUFS, 1080p. Shot chưa có clip dùng keyframe tĩnh."
@@ -202,18 +221,6 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
       {tab === 'xuat' && tap.xuat.length > 0 && (
         <video key={tap.xuat[tap.xuat.length - 1]!.url} src={tap.xuat[tap.xuat.length - 1]!.url} controls preload="metadata" style={{ marginTop: 8, maxHeight: 420, borderRadius: 8, background: '#000', aspectRatio: kt.ti_le === '9:16' ? '9 / 16' : '16 / 9' }} />
       )}
-      {/* Bộ kiểm "đạt chưa" (0đ, tức thì): quảng cáo chấm hook/sản phẩm/bằng chứng/CTA/tốc độ nói; mọi loại chấm độ dài so với mục tiêu. */}
-      {(tab === 'storyboard' || tab === 'xuat') && !!canh?.length && (() => {
-        const ds = kiemQc({ loai: phim.loai, canh, nhanVat, qc: kt.qc, mucTieuS: tap.thoi_luong_s ?? thoiLuong, nhanh, ngonNgu: kt.ngon_ngu });
-        if (!ds.length) return null;
-        const hong = ds.filter((x) => !x.ok).length;
-        return (
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }} title="Mỗi mục là một thứ quảng cáo thật đo được — đỏ thì sửa shot (form cảnh / kéo mép / ＋ đối tượng) hoặc tách lại">
-            <span style={{ ...mono, color: hong ? 'var(--amber)' : 'var(--lime)' }}>{hong ? `${hong} mục chưa đạt` : '✓ đạt bộ kiểm'}</span>
-            {ds.map((x) => <span key={x.key} title={x.chiTiet ?? x.chu} style={{ fontSize: 10.5, padding: '1px 7px', borderRadius: 999, border: `1px solid ${x.ok ? 'var(--lime)' : 'var(--red)'}`, color: x.ok ? 'var(--lime)' : 'var(--red)', cursor: x.chiTiet ? 'help' : 'default' }}>{x.ok ? '✓' : '✗'} {x.chu}</span>)}
-          </div>
-        );
-      })()}
       {tab === 'am_thanh' && (canh === null ? <span style={mono}>…</span> : !canh.length ? <div style={mono}>Chưa có cảnh — tách cảnh ở tab Kịch bản trước.</div> : null)}
       {tab === 'am_thanh' && !!canh?.length && (() => {
         const u = uocA ?? { dangPhanDoan: [] as string[], dangCaTap: false, giong: 0, soThoai: canh.filter((c) => c.loi_thoai.trim()).length, sfx: 0, soSfx: canh.length, nhac: {} as Record<string, number>, giay: canh.reduce((a, c) => a + (c.thoi_luong_s || 5), 0), soPhanCanh: new Set(canh.map((c) => c.phan_doan).filter(Boolean)).size, dangNhac: 0 };
@@ -267,7 +274,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
                 <Timeline canh={canhNhanh} nhanVat={nhanVat} tap={tap} qc={kt.qc} tiLe={kt.ti_le} ngonNgu={kt.ngon_ngu} chon={cc.id} onChon={setChonCanh} onToanManHinh={() => setAnimatic(true)}
                   // Kéo mép = đổi giây PHÁT: ngắn hơn clip là cắt (không tốn tiền); dài hơn clip thì clip phải sinh lại dài hơn.
                   onDoiGiay={(id, g) => void chay(`c${id}`, () => { const c0 = canh.find((x) => x.id === id); return suaCanh(id, { phat_s: g, ...(c0 && g > (c0.thoi_luong_s || 4) ? { thoi_luong_s: Math.ceil(g) } : {}) }); })}
-                  onDoiChuyenCanh={(id, key) => void chay(`c${id}`, () => { const c0 = canh.find((x) => x.id === id); return suaCanh(id, { ky_thuat: { ...(c0?.ky_thuat ?? {}), chuyen_canh: key || undefined } }); })}
+                  onDoiChuyenCanh={(id, key, giay) => void chay(`c${id}`, () => { const c0 = canh.find((x) => x.id === id); const kt0 = c0?.ky_thuat ?? {}; return suaCanh(id, { ky_thuat: { ...kt0, chuyen_canh: key || undefined, giay_cc: giay === undefined ? kt0.giay_cc : giay ?? undefined } }); })}
                   sinh={{
                     giong: (id, tuy) => void chay(`g${id}`, () => sinhGiong(tap.id, [id], tuy)),
                     sfx: (id, tuy) => void chay(`s${id}`, () => sinhAmThanh(tap.id, [id], undefined, tuy)),

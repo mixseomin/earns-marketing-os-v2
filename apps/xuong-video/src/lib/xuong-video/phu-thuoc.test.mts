@@ -40,3 +40,13 @@ console.log('phu-thuoc.test: ok');
   assert.deepStrictEqual(b[1]!.o.map((o) => o.nhac), [false, false, true]);           // nhắc "Tom" mà chưa gắn
   console.log('phu-thuoc.test: bảng đối tượng ok');
 }
+// Số giây chuyển cảnh đặt tay (#1297): thắng mặc định của kiểu, vẫn bị chặn ở nửa shot ngắn hơn; lamSachKyThuat giữ giay_cc hợp lệ.
+{
+  const { chuyenCanhGiua, lamSachKyThuat } = await import('./dien-anh');
+  assert.strictEqual(chuyenCanhGiua('hoa_tan', 4, 4)!.d, 0.6);
+  assert.strictEqual(chuyenCanhGiua('hoa_tan', 4, 4, 1)!.d, 1);
+  const chan = chuyenCanhGiua('hoa_tan', 4, 1.2, 1)!; assert.deepStrictEqual([chan.d, chan.muon], [0.6, 1]);
+  assert.strictEqual(lamSachKyThuat({ chuyen_canh: 'hoa_tan', giay_cc: 0.75 }).giay_cc, 0.75);
+  assert.strictEqual(lamSachKyThuat({ giay_cc: 9 }).giay_cc, undefined);
+  console.log('phu-thuoc.test: giây chuyển cảnh ok');
+}

@@ -49,7 +49,7 @@ export function Animatic({ canh, tiLe, ngonNgu, onClose, qc, lop = [] }: { canh:
     <div data-animatic="" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 900, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
       <div style={{ position: 'relative', height: doc916 ? '78vh' : 'auto', width: doc916 ? 'calc(78vh * 9 / 16)' : 'min(92vw, 1200px)', aspectRatio: doc916 ? '9 / 16' : '16 / 9', overflow: 'hidden', borderRadius: 10, background: '#000' }}>
         {/* Cùng khung hiệu ứng với timeline: hiệu ứng ✦ bọc hình + lớp phủ, chuyển cảnh từ shot trước, tối viền/hạt/chớp. */}
-        <KhungHieuUng lop={lop} t={daQua} rong={rongK} tTrong={t / 1000} chuyen={i > 0 ? { anh: ds[i - 1]!.keyframe_url, key: ds[i - 1]!.ky_thuat?.chuyen_canh, phatTruoc: giayPhat(ds[i - 1]!), phatNay: giayPhat(c) } : undefined}>
+        <KhungHieuUng lop={lop} t={daQua} rong={rongK} tTrong={t / 1000} chuyen={i > 0 ? { anh: ds[i - 1]!.keyframe_url, key: ds[i - 1]!.ky_thuat?.chuyen_canh, giay: ds[i - 1]!.ky_thuat?.giay_cc, phatTruoc: giayPhat(ds[i - 1]!), phatNay: giayPhat(c) } : undefined}>
           {vid ? <video key={vid} src={vid} autoPlay muted={false} playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : <img src={c.keyframe_url!} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb, transition: 'transform .1s linear' }} />}
           <LopXem lop={lop} t={daQua} rong={rongK} cao={doc916 ? (rongK * 16) / 9 : (rongK * 9) / 16} chonIds={[]} onChon={() => {}} onDoi={() => {}} dangChay={chay} />

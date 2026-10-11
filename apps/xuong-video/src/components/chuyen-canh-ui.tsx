@@ -31,9 +31,10 @@ function OXem({ xfade, a, b, chay }: { xfade?: string; a?: string | null; b?: st
 }
 
 /** Nút điểm nối + bảng chọn. `trai` = toạ độ px của điểm nối trên làn; `pps` để vẽ dải d giây. */
-export function NutChuyenCanh({ trai, pps, value, phatTruoc, phatSau, anhTruoc, anhSau, tieuDe, onChon }: {
-  trai: number; pps: number; value?: string; phatTruoc: number; phatSau: number; anhTruoc?: string | null; anhSau?: string | null; tieuDe: string;
-  onChon?: (key: string) => void;
+export function NutChuyenCanh({ trai, pps, value, giayTay, phatTruoc, phatSau, anhTruoc, anhSau, tieuDe, onChon }: {
+  trai: number; pps: number; value?: string; giayTay?: number; phatTruoc: number; phatSau: number; anhTruoc?: string | null; anhSau?: string | null; tieuDe: string;
+  /** giay: undefined = giữ số giây đang đặt, null = về mặc định của kiểu (#1297) */
+  onChon?: (key: string, giay?: number | null) => void;
 }) {
   const [mo, setMo] = useState(false);
   const [re, setRe] = useState<string | null>(null);
@@ -47,7 +48,8 @@ export function NutChuyenCanh({ trai, pps, value, phatTruoc, phatSau, anhTruoc, 
     document.addEventListener('mousedown', h); document.addEventListener('keydown', k);
     return () => { document.removeEventListener('mousedown', h); document.removeEventListener('keydown', k); };
   }, [mo]);
-  const that = chuyenCanhGiua(value, phatTruoc, phatSau);
+  const that = chuyenCanhGiua(value, phatTruoc, phatSau, giayTay);
+  const datGiay = (g: number | null) => { if (that) onChon?.(that.kt.key, g == null ? null : Math.round(Math.min(3, Math.max(0.1, g)) * 100) / 100); };
   const chon = (key: string) => { onChon?.(key); setMo(false); };
   const o = (k: KyThuat | null) => {
     const key = k?.key ?? ''; const dang = (that?.kt.key ?? '') === key;
@@ -80,6 +82,18 @@ export function NutChuyenCanh({ trai, pps, value, phatTruoc, phatSau, anhTruoc, 
             <b style={{ fontSize: 12, flex: 1 }}>{tieuDe}</b>
             <span style={mono}>rê lên ô để xem chạy thử</span>
           </div>
+          {/* Số giây cụ thể (#1297): đặt tay cho điểm nối này; tổng video KHÔNG dài thêm — shot trước mượn phần đuôi clip, shot sau vẫn vào đúng giây. */}
+          {that && <div style={{ display: 'grid', gap: 4, padding: '6px 8px', marginBottom: 8, border: '1px solid var(--line)', borderRadius: 6 }}>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 11.5 }}>Thời lượng</span>
+              <button type="button" className="xv-btn" style={{ padding: '0 6px' }} onClick={() => datGiay(that.muon - 0.1)}>−</button>
+              <b style={{ fontFamily: 'var(--font-mono)', fontSize: 12, minWidth: 42, textAlign: 'center' }}>{that.d.toFixed(2)}s</b>
+              <button type="button" className="xv-btn" style={{ padding: '0 6px' }} onClick={() => datGiay(that.muon + 0.1)}>+</button>
+              {[0.2, 0.4, 0.6, 1].map((g) => <button key={g} type="button" className={`xv-btn${Math.abs(that.muon - g) < 0.001 ? ' chinh' : ''}`} style={{ padding: '0 6px' }} onClick={() => datGiay(g)}>{g}s</button>)}
+              {giayTay ? <button type="button" className="xv-lienket xv-mono" onClick={() => datGiay(null)}>về mặc định ({that.kt.giay_cc ?? 0.4}s)</button> : <span style={mono}>mặc định của kiểu</span>}
+            </div>
+            <span style={mono}>{that.d < that.muon ? `Xin ${that.muon}s nhưng chỉ được ${that.d}s (không quá nửa shot ngắn hơn). ` : ''}Không làm video dài thêm: shot trước mượn đuôi clip, shot sau vẫn vào đúng giây.</span>
+          </div>}
           {NHOM_CHUYEN_CANH.map((n) => {
             const ds = n.key === 'cat' ? [null] : KIEU.filter((k) => k.nhom_cc === n.key);
             if (!ds.length) return null;

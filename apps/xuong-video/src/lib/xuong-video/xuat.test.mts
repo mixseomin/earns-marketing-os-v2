@@ -198,7 +198,7 @@ console.log('xuat.test: mẫu ok');
   const lL = kL.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
   assert.ok(lL.includes('volume=-12dB,adelay=') && lL.includes('sidechaincompress=threshold=0.125:ratio=2'), lL);
   // Bài nhạc tự kết (im từ 25s) → cắt phần im trước khi lặp.
-  const kN = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh: ds as never, nhanVat: nv, tap: { nhac_url: 'https://x/n.mp3', nhac_phan_canh: {} }, qc: qcV, nguyenLieu: nlA.map((x) => (x.url === 'https://x/n.mp3' ? { ...x, imCuoi: 25 } : x)), font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
+  const kN = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh: ds as never, nhanVat: nv, tap: { nhac_url: 'https://x/n.mp3', nhac_phan_canh: {} }, qc: qcV, nguyenLieu: nlA.map((x) => (x.url === 'https://x/n.mp3' ? { ...x, catDuoi: 25 } : x)), font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
   assert.ok(kN.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung.includes('atrim=0:25,asetpts=PTS-STARTPTS,aloop=loop=-1'));
   console.log('xuat.test: âm thanh liền mạch ok');
 }

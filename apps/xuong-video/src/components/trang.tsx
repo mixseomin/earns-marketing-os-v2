@@ -104,7 +104,7 @@ function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onCl
   const tai = useCallback(async () => setD(await docPhim(id)), [id]);
   useEffect(() => { void tai(); }, [tai]);
   // Tab đang mở, nhớ theo phim (đọc ngay từ đầu, chỉ ghi khi bấm — cùng cách với khung thu gọn #1212).
-  const [tab, setTab] = useNho<TabPhim>(`xv-tab-${id}`, 'kich_ban', TAB_PHIM.map((t) => t.key));
+  const [tab, setTab] = useNho<TabPhim>(`xv-tab-${id}`, 'kich_ban', TAB_PHIM.map((t) => t.key), 'tab');
   // Job ảnh còn chạy trên máy chủ (kể cả sau F5) → hỏi lại mỗi 4s tới khi xong.
   const conChay = !!d && (d.dangSinh.nhanVat.length > 0 || d.dangSinh.bienThe.length > 0);
   useDinhKy(tai, conChay ? 4000 : 15000);

@@ -15,7 +15,7 @@ import { dongThoai, dungTiengClip, tenNoi, cungTen, timNv, lichGiong } from '@/l
 import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 import { mono } from './ui';
-import { lopMoi } from '@/lib/xuong-video/lop';
+import { lopMoi, idLop, tenLop } from '@/lib/xuong-video/lop';
 import { useLop, LopXem, LopCongCu, LopNguyenLieu, LopBang, KhoiLop } from './lop-ui';
 import { moNgan } from './ngan-chung';
 import { docLT, ghiLT } from '@/lib/luu-tru';
@@ -319,7 +319,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           <div style={{ ...mono, letterSpacing: 0.5 }}>THUỘC TÍNH</div>
           {lopChon ? <LopBang l={lopChon} t={t} onDoi={(p) => doiLop(lopChon.id, p)} onDong={() => setChonLop(null)}
             onXoa={() => { datLop((ds) => ds.filter((x) => x.id !== lopChon.id)); setChonLop(null); }}
-            onNhanBan={() => { const moi = { ...lopChon, id: Math.random().toString(36).slice(2, 10), x: Math.min(1, lopChon.x + 0.04), y: Math.min(1, lopChon.y + 0.04) }; datLop((ds) => [...ds, moi]); setChonLop(moi.id); }}
+            onNhanBan={() => { const moi = { ...lopChon, id: idLop(), x: Math.min(1, lopChon.x + 0.04), y: Math.min(1, lopChon.y + 0.04) }; datLop((ds) => [...ds, moi]); setChonLop(moi.id); }}
             onLenXuong={(d) => datLop((ds) => { const i = ds.findIndex((x) => x.id === lopChon.id); const j = i + d; if (i < 0 || j < 0 || j >= ds.length) return ds; const n = [...ds]; [n[i], n[j]] = [n[j]!, n[i]!]; return n; })} />
           : <>
             <div style={mono}>Bấm một lớp trên khung hình hoặc làn 🧩 để sửa. Đang xem âm thanh của shot #{c?.thu_tu}:</div>
@@ -361,7 +361,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           }))}
 
           {/* Lớp phủ: mỗi lớp một làn (lớp sau nằm trên), kéo khối đổi giờ — bấm chọn để sửa ở bảng bên phải khung xem. */}
-          {lop.length ? [...lop].reverse().map((l) => track(`🧩 ${l.ten || (l.loai === 'chu' ? (l.chu ?? '').split('\n')[0] : l.loai === 'anh' ? 'Ảnh' : 'Hình')}`, 'Lớp phủ — kéo thân để dời, kéo mép để đổi giờ vào/ra; bấm để sửa',
+          {lop.length ? [...lop].reverse().map((l) => track(`🧩 ${tenLop(l)}`, 'Lớp phủ — kéo thân để dời, kéo mép để đổi giờ vào/ra; bấm để sửa',
               <KhoiLop l={l} pps={pps} chon={l.id === chonLop} onChon={() => setChonLop(l.id)} onDoi={(p) => doiLop(l.id, p)} />, 20))
             : track('🧩 Lớp phủ', 'Chữ, ảnh, hình khối tự do đè lên video', <button type="button" className="xv-lienket xv-mono" style={{ lineHeight: '20px', paddingLeft: 6 }} onClick={() => themLop([lopMoi('chu', t)])}>chưa có lớp — bấm để thêm lớp chữ ở giây {t.toFixed(1)}</button>, 20)}
           {track('🎬 Hình', 'Mỗi cảnh một clip, dài đúng số giây', canh.map((cc, i) => {

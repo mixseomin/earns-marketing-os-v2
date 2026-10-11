@@ -252,3 +252,7 @@ KHÔNG rsync/scp mã lên máy chủ (deploy.sh `git reset --hard` xoá ở lư�
 - Worker workflow chain: card complete → auto-spawn next step
 - Inbox feedback type: success / revise / error → trigger downstream
 - Anchor card 'Reddit Launch Orit' full flow test
+
+## Phiên đo màn
+
+`do-man` (YDNI) cho studio.on.tc / mos2: tunnel `ssh -f -N -L 13840:127.0.0.1:3840 root@167.233.241.16` (studio; mos2 = 3821) · phiên = INSERT `auth_sessions (session_token, user_id, expires_at now()+15 min)` với `user_id` của `members.role='admin'` → cookie `mos2-session=<token>` (để tự hết hạn, KHÔNG xoá dòng) · trang studio mở thẳng tab bằng `?m=phim&mId=<id>&tab=storyboard`.

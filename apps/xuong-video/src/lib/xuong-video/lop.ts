@@ -11,11 +11,14 @@ export const mauAss = (hex: string): string => { const h = (hex || '#FFFFFF').re
 export const gioAss = (t: number): string => { const cs = Math.max(0, Math.round(t * 100)); const h = Math.floor(cs / 360000), m = Math.floor(cs / 6000) % 60, s = Math.floor(cs / 100) % 60, c = cs % 100; return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(c).padStart(2, '0')}`; };
 const alphaAss = (mo: number) => `&H${Math.round((1 - kep(mo, 0, 1)) * 255).toString(16).toUpperCase().padStart(2, '0')}&`;
 
-const id = () => Math.random().toString(36).slice(2, 10);
+/** Mã lớp mới — một chỗ cho lớp mới, mẫu và nhân bản. */
+export const idLop = () => Math.random().toString(36).slice(2, 10);
+/** Tên hiển thị của lớp (nhãn làn, bảng thuộc tính): tên đặt tay, không thì dòng chữ đầu / loại. */
+export const tenLop = (l: Lop): string => l.ten || (l.loai === 'chu' ? (l.chu ?? '').split('\n')[0]!.slice(0, 24) || 'Chữ' : l.loai === 'anh' ? 'Ảnh' : 'Hình');
 const NEN: Omit<Lop, 'id' | 'loai' | 'tu' | 'den'> = { x: 0.5, y: 0.5, w: 0.6, h: 0.1, xoay: 0, mo: 1, vao: 'mo', ra: 'mo' };
 /** Lớp mới theo loại, đặt ở giây `tu`, dài 2,5s. */
 export function lopMoi(loai: LoaiLop, tu: number, them: Partial<Lop> = {}): Lop {
-  const goc: Lop = { ...NEN, id: id(), loai, tu: Math.max(0, tu), den: Math.max(0, tu) + 2.5 };
+  const goc: Lop = { ...NEN, id: idLop(), loai, tu: Math.max(0, tu), den: Math.max(0, tu) + 2.5 };
   // Chữ mới đặt ở 1/3 trên — không đè chữ màn (giữa/dưới) để vừa thêm là thấy ngay.
   if (loai === 'chu') Object.assign(goc, { chu: 'Chữ mới', font: 'Montserrat Black', co: 0.07, mau: '#FFFFFF', vien: '#000000', vien_day: 0.08, w: 0.8, y: 0.3 });
   if (loai === 'hinh') Object.assign(goc, { dang: 'bo_goc' as DangHinh, mau: '#6B4FD8', w: 0.6, h: 0.08 });

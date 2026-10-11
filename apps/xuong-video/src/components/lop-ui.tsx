@@ -5,11 +5,10 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as PE } from 'react';
 import { luuLop, taiAnhLen } from '@/lib/actions';
 import { FONT_CHU, type Lop } from '@/lib/xuong-video/kieu';
-import { lopHien, hieuUngTai, lopMoi, MAU_LOP } from '@/lib/xuong-video/lop';
+import { lopHien, hieuUngTai, lopMoi, tenLop, MAU_LOP } from '@/lib/xuong-video/lop';
 import { Menu, MucMenu, mono } from './ui';
 
 const ICON_LOAI: Record<Lop['loai'], string> = { chu: 'T', anh: '🖼', hinh: '◼' };
-const tenLop = (l: Lop) => l.ten || (l.loai === 'chu' ? (l.chu ?? '').split('\n')[0]!.slice(0, 24) || 'Chữ' : l.loai === 'anh' ? 'Ảnh' : 'Hình');
 const fontCss = (f?: string) => (!f || f === 'DejaVu Sans' ? '"DejaVu Sans", system-ui, sans-serif' : `"${f}", "Montserrat", system-ui, sans-serif`);
 const lam = (v: number, n = 3) => Math.round(v * 10 ** n) / 10 ** n;
 

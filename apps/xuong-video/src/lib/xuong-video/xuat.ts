@@ -14,22 +14,28 @@ import { dongThoai, dungTiengClip, lichGiong } from './am-thanh';
 
 /** Một tệp nguyên liệu đã tải về + đo: dai = giây (âm/video), coAm = clip có luồng tiếng, lufs = độ to tích hợp (tệp chỉ có tiếng). */
 export type NguyenLieu = { url: string; duong: string; dai: number | null; coAm: boolean; fps?: number | null; lufs?: number | null;
-  /** giây bắt đầu đoạn im ở CUỐI tệp tiếng (bài nhạc tự kết) — null = không có */ imCuoi?: number | null };
+  /** giây CẮT ĐUÔI bài nhạc (đoạn kết nhỏ dần + im, đo bằng duoiNhac) — null = đuôi không tụt */ catDuoi?: number | null };
 export type TepChu = { duong: string; noiDung: string };
 /** loi = không dựng được (args rỗng) và vì sao; canhBao = dựng được nhưng lệch chuẩn (lẫn giọng lời dẫn, bản nháp thiếu nhạc…). */
 export type KeHoachXuat = { args: string[]; tep: TepChu[]; giay: number; canhThieu: string[]; canhBao: string[]; loi?: string };
 
-/** Đo sau xuất (máy tự kiểm, không ai phải nghe lại): đọc chuỗi độ to tức thời (ebur128 M, file ametadata) → các khoảng 0,5s mà
- *  to nhất vẫn dưới ngưỡng = khoảng im/đứt nền. QC mẫu Jett không có ô nào dưới -21 LUFS; bản #5 cũ có 9 ô -120 (10/10/2026).
- *  Bỏ 0,5s đầu (nhạc fade vào) và 0,5s cuối. Trả các đoạn đã gộp liền nhau, giây bắt đầu–kết thúc. */
-export const NGUONG_IM_LUFS = -40;
-export function khoangIm(metadata: string, giay: number): [number, number][] {
+/** Đọc chuỗi ebur128 độ to tức thời (ametadata lavfi.r128.M) → to NHẤT mỗi ô 0,5s. Một bộ đọc cho khoangIm và duoiNhac. */
+function docM05(metadata: string): Map<number, number> {
   const o = new Map<number, number>(); let t: number | null = null;
   for (const dong of metadata.split('\n')) {
     const a = dong.match(/pts_time:([\d.]+)/); if (a) { t = Number(a[1]); continue; }
     const b = dong.match(/lavfi\.r128\.M=(\S+)/);
     if (b && t != null) { const v = Number(b[1]); const k = Math.floor(t * 2) / 2; o.set(k, Math.max(o.get(k) ?? -200, Number.isFinite(v) ? v : -200)); }
   }
+  return o;
+}
+
+/** Đo sau xuất (máy tự kiểm, không ai phải nghe lại): đọc chuỗi độ to tức thời (ebur128 M, file ametadata) → các khoảng 0,5s mà
+ *  to nhất vẫn dưới ngưỡng = khoảng im/đứt nền. QC mẫu Jett không có ô nào dưới -21 LUFS; bản #5 cũ có 9 ô -120 (10/10/2026).
+ *  Bỏ 0,5s đầu (nhạc fade vào) và 0,5s cuối. Trả các đoạn đã gộp liền nhau, giây bắt đầu–kết thúc. */
+export const NGUONG_IM_LUFS = -40;
+export function khoangIm(metadata: string, giay: number): [number, number][] {
+  const o = docM05(metadata);
   const im = [...o.entries()].filter(([k, v]) => k >= 0.5 && k + 0.5 <= giay - 0.5 && v < NGUONG_IM_LUFS).map(([k]) => k).sort((x, y) => x - y);
   const out: [number, number][] = [];
   for (const k of im) { const l = out[out.length - 1]; if (l && Math.abs(l[1] - k) < 1e-6) l[1] = k + 0.5; else out.push([k, k + 0.5]); }
@@ -40,12 +46,7 @@ export function khoangIm(metadata: string, giay: number): [number, number][] {
  *  Bài AI hay tự viết đoạn KẾT nhỏ dần rồi im (phim #5: từ ~51s nhạc rút, im hẳn 53,4s) → cắt ở đây rồi lặp, nền phủ kín tới end card.
  *  null = đuôi không tụt (không cần cắt) hoặc không đọc được. */
 export function duoiNhac(metadata: string): number | null {
-  const o = new Map<number, number>(); let t: number | null = null;
-  for (const dong of metadata.split('\n')) {
-    const a = dong.match(/pts_time:([\d.]+)/); if (a) { t = Number(a[1]); continue; }
-    const b = dong.match(/lavfi\.r128\.M=(\S+)/);
-    if (b && t != null) { const v = Number(b[1]); const k = Math.floor(t * 2) / 2; o.set(k, Math.max(o.get(k) ?? -200, Number.isFinite(v) ? v : -200)); }
-  }
+  const o = docM05(metadata);
   const ks = [...o.keys()].sort((x, y) => x - y);
   if (ks.length < 8) return null;
   const sx = ks.map((k) => o.get(k)!).sort((x, y) => x - y); const trungVi = sx[Math.floor(sx.length / 2)]!;
@@ -246,7 +247,7 @@ export function keHoachXuat(o: {
   // Mức nhạc theo độ to ĐO ĐƯỢC của bài: nằm dưới giọng LUFS_NHAC_DUOI_GIONG dB (hệ số cố định thì bài to/nhỏ ra mức khác nhau). Bài chưa đo → 0,35.
   // QC mẫu Jett: dải trầm (nhạc) đứng ~-24 LUFS suốt phim, gần như không lùi dưới giọng (10/10/2026).
   // Bài nhạc tự kết (đoạn im ở cuối tệp) → cắt phần im TRƯỚC khi lặp, kẻo phim câm ở cuối (phim #5: bài 56s im từ 53,8s, phim câm 1,5s cuối).
-  const nhac = (url: string, tu: number, dai: number) => { const k = them(url); const ic = nl.get(url)?.imCuoi; const ln = nl.get(url)?.lufs; const muc = ln != null && Number.isFinite(ln) && ln > -70 ? `volume=${so(Math.max(-30, Math.min(6, LUFS_GIONG - LUFS_NHAC_DUOI_GIONG - ln)))}dB` : 'volume=0.35'; themAm(`[${k}:a]${ic && ic > 2 ? `atrim=0:${so(ic)},asetpts=PTS-STARTPTS,` : ''}aloop=loop=-1:size=2147483647,atrim=0:${so(dai)},asetpts=PTS-STARTPTS,afade=t=in:d=0.6,afade=t=out:st=${so(Math.max(0, dai - 1.2))}:d=1.2,${muc},adelay=${Math.round(tu * 1000)}:all=1`, nhanhNhac); };
+  const nhac = (url: string, tu: number, dai: number) => { const k = them(url); const ic = nl.get(url)?.catDuoi; const ln = nl.get(url)?.lufs; const muc = ln != null && Number.isFinite(ln) && ln > -70 ? `volume=${so(Math.max(-30, Math.min(6, LUFS_GIONG - LUFS_NHAC_DUOI_GIONG - ln)))}dB` : 'volume=0.35'; themAm(`[${k}:a]${ic && ic > 2 ? `atrim=0:${so(ic)},asetpts=PTS-STARTPTS,` : ''}aloop=loop=-1:size=2147483647,atrim=0:${so(dai)},asetpts=PTS-STARTPTS,afade=t=in:d=0.6,afade=t=out:st=${so(Math.max(0, dai - 1.2))}:d=1.2,${muc},adelay=${Math.round(tu * 1000)}:all=1`, nhanhNhac); };
   if (nhacPc.length) for (const kh of nhacPc) nhac(o.tap.nhac_phan_canh[kh.ten]!, kh.tu, kh.dai);
   else if (o.tap.nhac_url && nl.has(o.tap.nhac_url)) nhac(o.tap.nhac_url, 0, t);
   // End card quảng cáo: 2 giây, tên + ưu đãi (từ mục 0) — người xem tới cuối có một màn đọc được để bấm.

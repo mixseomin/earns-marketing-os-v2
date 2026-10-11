@@ -3,10 +3,17 @@
 import { useState } from 'react';
 import { docLT, ghiLT } from '@/lib/luu-tru';
 
-export function useNho<T extends string>(khoa: string, macDinh: T, hopLe?: readonly T[]): [T, (v: T) => void] {
+/** thamSoUrl: trạng thái đổi cách nhìn cũng nằm trên URL (luật nhà #1255, như ?tlz=) — link/F5 mở đúng chỗ, URL thắng localStorage. */
+export function useNho<T extends string>(khoa: string, macDinh: T, hopLe?: readonly T[], thamSoUrl?: string): [T, (v: T) => void] {
+  const hop = (s: string | null): s is T => s != null && (!hopLe || hopLe.includes(s as T));
   const [v, setV] = useState<T>(() => {
-    const s = docLT(khoa) as T | null;
-    return s != null && (!hopLe || hopLe.includes(s)) ? s : macDinh;
+    const u = thamSoUrl && typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get(thamSoUrl) : null;
+    if (hop(u)) return u;
+    const s = docLT(khoa);
+    return hop(s) ? s : macDinh;
   });
-  return [v, (x: T) => { setV(x); ghiLT(khoa, x); }];
+  return [v, (x: T) => {
+    setV(x); ghiLT(khoa, x);
+    if (thamSoUrl && typeof window !== 'undefined') { const u = new URL(window.location.href); u.searchParams.set(thamSoUrl, x); window.history.replaceState(window.history.state, '', u.toString()); }
+  }];
 }

@@ -23,20 +23,20 @@ async function doLufs(duong: string): Promise<number | null> {
     const { stderr } = await run('ffmpeg', ['-hide_banner', '-nostats', '-i', duong, '-af', 'ebur128', '-f', 'null', '-'], { timeout: 30_000, maxBuffer: 8 << 20 });
     const m = stderr.match(/Integrated loudness:\s*\n\s*I:\s*(-?[\d.]+)\s*LUFS/); const v = m ? Number(m[1]) : NaN;
     return Number.isFinite(v) ? v : null;
-  } catch { return null; }
+  } catch (e) { console.error('[xuất] đo độ to hỏng — câu này không được chuẩn hoá mức', duong, e); return null; }
 }
 
 /** Giây cắt đuôi bài nhạc (đoạn kết nhỏ dần + im) — đo độ to tức thời (duoiNhac), không chỉ bắt im hẳn như silencedetect. */
-async function doImCuoi(duong: string, dai: number | null): Promise<number | null> {
+async function doCatDuoi(duong: string, dai: number | null): Promise<number | null> {
   if (!dai) return null;
   const tep = `${duong}.m128.txt`;
   try {
     await run('ffmpeg', ['-hide_banner', '-nostats', '-i', duong, '-af', `ebur128=metadata=1,ametadata=print:key=lavfi.r128.M:file=${tep}`, '-f', 'null', '-'], { timeout: 60_000, maxBuffer: 8 << 20 });
     return duoiNhac(await readFile(tep, 'utf8'));
-  } catch { return null; }
+  } catch (e) { console.error('[xuất] đo đuôi nhạc hỏng — nhạc lặp nguyên bài', duong, e); return null; }
 }
 
-async function doTep(duong: string): Promise<{ dai: number | null; coAm: boolean; fps: number | null; lufs?: number | null; imCuoi?: number | null }> {
+async function doTep(duong: string): Promise<{ dai: number | null; coAm: boolean; fps: number | null; lufs?: number | null; catDuoi?: number | null }> {
   try {
     const { stdout } = await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type,r_frame_rate', '-of', 'json', duong], { timeout: 30_000 });
     const j = JSON.parse(stdout) as { format?: { duration?: string }; streams?: { codec_type?: string; r_frame_rate?: string }[] };
@@ -46,8 +46,8 @@ async function doTep(duong: string): Promise<{ dai: number | null; coAm: boolean
     // Tệp chỉ có tiếng (giọng, hiệu ứng, nhạc) → đo độ to; clip video thì không cần (tiếng clip đã có luật riêng).
     const lufs = coAm && !v ? await doLufs(duong) : null;
     const daiOk = Number.isFinite(dai) && dai > 0 ? dai : null;
-    const imCuoi = coAm && !v && (daiOk ?? 0) > 10 ? await doImCuoi(duong, daiOk) : null;   // chỉ tệp dài (nhạc), câu giọng không cần
-    return { dai: daiOk, coAm, fps, lufs, imCuoi };
+    const catDuoi = coAm && !v && (daiOk ?? 0) > 10 ? await doCatDuoi(duong, daiOk) : null;   // chỉ tệp dài (nhạc), câu giọng không cần
+    return { dai: daiOk, coAm, fps, lufs, catDuoi };
   } catch { return { dai: null, coAm: false, fps: null }; }
 }
 
@@ -73,7 +73,7 @@ async function tiengNganHon(duong: string): Promise<number | null> {
     const st = (JSON.parse(stdout) as { streams?: { codec_type?: string; duration?: string }[] }).streams ?? [];
     const d = (k: string) => Number(st.find((x) => x.codec_type === k)?.duration);
     return Number.isFinite(d('video')) && Number.isFinite(d('audio')) ? d('video') - d('audio') : null;
-  } catch { return null; }
+  } catch (e) { console.error('[xuất] đo độ dài tiếng/hình hỏng', duong, e); return null; }
 }
 
 /** Đo bản vừa xuất: các đoạn ≥0,5s im/đứt nền. */

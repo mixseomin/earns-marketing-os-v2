@@ -8,7 +8,7 @@
 // Mọi lời gọi qua proxy (giá fail-closed, sổ ai_usage dưới tên Hà, người giữ bộ đo). MỌI lời gọi đã trả tiền ghi nguyên văn vào
 // <DATA>/do-model/<dot>/goi.jsonl (hỏi, đáp, token, USD, ms, điểm) để làm insight về sau. Chạy lại cùng --dot = chạy tiếp phần còn
 // thiếu, không trả tiền lần hai.
-//   node worker/do-model.mjs --chay --dot <tên> --tran <USD> [--lan 3] [--lan-kiem 2] [--models a,b] [--song-song 24]
+//   node worker/do-model.mjs --chay --dot <tên> --tran <USD> [--lan 3] [--lan-kiem 2] [--models a,b] [--song-song 24] [--moi-vai N: chạy thử N việc đầu mỗi vai]
 //   node worker/do-model.mjs --tong <dot>     tổng hợp → ket.json + in bảng (0 đồng)
 //   node worker/do-model.mjs --tu-kiem        bộ đo tự kiểm + chạy giả qua proxy giả ($0)
 import fs from 'node:fs';
@@ -118,7 +118,7 @@ async function goi(model, vai, user, nk, luot) {
 const docDong = (tep) => (fs.existsSync(tep) ? fs.readFileSync(tep, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l)) : []);
 const xongRoi = (x) => x.http === 200 || (x.http >= 400 && x.http < 500 && x.http !== 429);   // 4xx (vd tên model sai) chạy lại cũng thế
 
-export async function chay({ dot, tran, lan = 3, lanKiem = 2, models = MODELS, songSong = 24, im = false }) {
+export async function chay({ dot, tran, lan = 3, lanKiem = 2, models = MODELS, songSong = 24, moiVai = Infinity, im = false }) {
   if (!dot || !(tran > 0)) throw new Error('cần --dot và --tran <USD>');
   const dir = path.join(DATA(), 'do-model', dot); fs.mkdirSync(dir, { recursive: true });
   const tep = path.join(dir, 'goi.jsonl'); const cu = docDong(tep);
@@ -126,7 +126,7 @@ export async function chay({ dot, tran, lan = 3, lanKiem = 2, models = MODELS, s
   let chi = cu.reduce((s, x) => s + (x.usd || 0), 0);
   const qt = hienHanh(K); const nk = { ten_phong: tenPhong(K), quy_dinh: quyDinhLuot(K) }; const bo = boDo(); const hang = [];
   for (let l = 1; l <= lan; l++) for (const vai of ['kiem', 'giao', 'lam']) if (l <= (vai === 'kiem' ? lanKiem : lan))
-    for (const m of bo[vai]) for (const model of models) { const khoa = `${vai}|${m.id}|${l}|${model}`; if (!xong.has(khoa)) hang.push({ vai, m, lan: l, model, khoa }); }
+    for (const m of bo[vai].slice(0, moiVai)) for (const model of models) { const khoa = `${vai}|${m.id}|${l}|${model}`; if (!xong.has(khoa)) hang.push({ vai, m, lan: l, model, khoa }); }
   fs.writeFileSync(path.join(dir, 'meta.json'), JSON.stringify({ dot, tran, lan, lan_kiem: lanKiem, models, quy_trinh: `${K} v${qt.ban}`, lan_chay: [...(docJson(path.join(dir, 'meta.json'))?.lan_chay ?? []), { ts: new Date().toISOString(), con_lai: hang.length, da_chi: chi }] }, null, 1));
   if (!im) console.log(`dò model ${dot}: ${hang.length} lời gọi còn lại · đã chi $${chi.toFixed(4)} · trần $${tran} · quy trình v${qt.ban}`);
   let dung = null, i = 0, n = 0;
@@ -204,7 +204,7 @@ const laCli = (process.argv[1] || '').endsWith('do-model.mjs');
 const thamSo = (k, mac) => (process.argv.includes(k) ? process.argv[process.argv.indexOf(k) + 1] : mac);
 if (laCli && process.argv.includes('--chay')) {
   const r = await chay({ dot: thamSo('--dot'), tran: Number(thamSo('--tran')), lan: Number(thamSo('--lan', 3)), lanKiem: Number(thamSo('--lan-kiem', 2)),
-    models: thamSo('--models') ? thamSo('--models').split(',') : MODELS, songSong: Number(thamSo('--song-song', 24)) });
+    models: thamSo('--models') ? thamSo('--models').split(',') : MODELS, songSong: Number(thamSo('--song-song', 24)), moiVai: Number(thamSo('--moi-vai', Infinity)) });
   inBang(tong(thamSo('--dot'))); process.exit(r.dung && !/trần/.test(r.dung) ? 1 : 0);
 }
 if (laCli && process.argv.includes('--tong')) { inBang(tong(thamSo('--tong'))); process.exit(0); }

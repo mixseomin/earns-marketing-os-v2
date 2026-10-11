@@ -10,7 +10,7 @@
 //   2. GHI SỔ: mỗi lượt một dòng ai_usage (feature 'cty:<id>', model, token) — cùng bảng MOS2 đang dùng, An đọc được ngay.
 //   3. CACHE theo hash: CTY_CACHE=1 → cùng body → trả bản đã lưu (~/.cty-cache), chạy lại kịch bản $0.
 // Khoá thật chỉ nằm ở đây (env OPENAI_API_KEY / ANTHROPIC_API_KEY / <NHÀ>_API_KEY); nhân sự không bao giờ thấy khoá.
-// CHƯA CÓ UNIT SYSTEMD — đợt tham quan không chạy. `node worker/proxy.mjs --tu-kiem` = tự kiểm với upstream giả.
+// Chạy bằng unit deploy/mos2-cty-proxy.service. `node worker/proxy.mjs --tu-kiem` = tự kiểm với upstream giả.
 import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';

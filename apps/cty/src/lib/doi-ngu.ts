@@ -105,13 +105,15 @@ export function deXuatCho(model: string, vai: Vai, k: KetDo | null, tc: Record<s
     : `Giữ: ngang ${tenModel(c.model)} (${pc(cur.ti_le)} so với ${pc(c.ti_le)}); đổi chỉ rẻ hơn ${lan(r)} lần, tiết kiệm $${((cur.usd_goi - c.usd_goi) * 1000).toFixed(3).replace('.', ',')}/1.000 lời gọi — chưa đáng đổi` };
 }
 
-export function doiNgu(): { k: KetDo | null; ds: Nguoi[] } {
+/** `phong`: chỉ người của phòng đó (`chi`: mã người, bên gọi đã tính ai thuộc phòng), vai = vai họ giữ Ở phòng đó (#1305, tab Nhân sự trong phòng). */
+export function doiNgu(o: { phong?: string; chi?: string[] } = {}): { k: KetDo | null; ds: Nguoi[] } {
   const k = ketDoModel(); const td = tacDungTinhCach(); const phong = dsPhong(); const tenPhong = Object.fromEntries(phong.map((p) => [p.id, String(p.fm.ten ?? p.id)]));
   const vaiDangGiu: Record<string, { phong: string; vai: Vai }[]> = {};
   for (const p of phong) for (const [v, ai] of Object.entries((vaiCuaPhong(p.id) ?? {}) as Record<string, string>)) if (MA_VAI[v] && ai) (vaiDangGiu[ai] ??= []).push({ phong: p.id, vai: MA_VAI[v]! });
-  const ds = dsNhanSu().map((d) => {
+  const chi = o.chi && new Set(o.chi);
+  const ds = dsNhanSu().filter((d) => !chi || chi.has(d.id)).map((d) => {
     const fm = d.fm as Record<string, unknown>; const model = String(fm.model ?? ''); const cd = String(fm.chuc_danh ?? '');
-    const vai = vaiDangGiu[d.id]?.[0]?.vai ?? vaiTuChucDanh(cd);
+    const vai = (o.phong && vaiDangGiu[d.id]?.find((g) => g.phong === o.phong)?.vai) || vaiDangGiu[d.id]?.[0]?.vai || vaiTuChucDanh(cd);
     const tc = Object.fromEntries(Object.entries(fm).filter(([x]) => x.startsWith('tc_')).map(([x, v]) => [x.slice(3), Number(v)]));
     return { id: d.id, ten: String(fm.ten ?? d.id), phong: String(fm.phong ?? ''), phongTen: tenPhong[String(fm.phong ?? '')] ?? String(fm.phong ?? ''), chucDanh: cd, model, vai,
       giuVai: (vaiDangGiu[d.id] ?? []).map((g) => `${TEN_VAI[g.vai]} · ${tenPhong[g.phong] ?? g.phong}`),

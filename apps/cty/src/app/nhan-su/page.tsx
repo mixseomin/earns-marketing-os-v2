@@ -4,17 +4,13 @@ import { getCurrentUser, loginUrl } from '@/lib/auth';
 import { ChongNgan } from '@/components/ngan/chong';
 import { TabPhong } from '@/components/tab-phong';
 import { Nguoi } from '@/components/nguoi';
-import { doiNgu, tongChiDo, tacDungTinhCach, ketVanDai, canhBao, tenModel, pc, VAI, TEN_VAI, NGUONG_CANH_BAO, type TK, type Nguoi as NS, COT_VAI } from '@/lib/doi-ngu';
+import { BangNhanSu, Diem, tien, usd } from '@/components/bang-nhan-su';
+import { doiNgu, tongChiDo, tacDungTinhCach, ketVanDai, canhBao, tenModel, pc, VAI, TEN_VAI, NGUONG_CANH_BAO, type Nguoi as NS, COT_VAI } from '@/lib/doi-ngu';
 import { TINH_CACH } from '../../../worker/tinh-cach.mjs';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Đội ngũ' };
 
-const tien = (x: number) => `$${x.toFixed(x >= 1 ? 2 : 3).replace('.', ',')}`;
-const usd = (moiGoi: number) => tien(moiGoi * 1000);   // giá 1.000 lời gọi
-const Diem = ({ s, chinh }: { s: TK | null; chinh?: boolean }) =>
-  s ? <span className={chinh ? 'cty-dn-chinh' : 'cty-muted'} title={`${s.dung}/${s.n} đúng · khoảng tin cậy 95%: ${pc(s.kt95[0])}–${pc(s.kt95[1])}`}>{pc(s.ti_le)}</span> : <span className="cty-muted">—</span>;
-const NHAN_MUC = { giu: 'Giữ', doi: 'Nên đổi', 'chua-do': 'Chưa đo' } as const;
 
 export default async function TrangDoiNgu({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   if (!(await getCurrentUser())) redirect(loginUrl('/nhan-su'));
@@ -35,31 +31,18 @@ export default async function TrangDoiNgu({ searchParams }: { searchParams: Prom
       </p>
       {!k ? <p>Chưa có kết quả dò model trên máy chủ (worker/do-model.mjs).</p> : (
         <TabPhong khoa="doi-ngu" tabs={[{ key: 'ns', nhan: 'Nhân sự', so: ds.length }, { key: 'ss', nhan: 'So sánh bộ não', so: models.length }, { key: 'dx', nhan: 'Đề xuất', so: nhom('doi').length }]}>
+          <BangNhanSu ds={ds} />
           <div className="cty-dn-cuon">
-            <table className="cty-viec cty-dn cty-dn-ns">
-              <thead><tr><th>Người</th><th>Phòng</th><th>Vai chính</th><th>Bộ não</th>{VAI.map((v) => <th key={v} className="cty-so" title={TEN_VAI[v]}>{COT_VAI[v]}</th>)}<th className="cty-so" title="Giá 1.000 lời gọi ở vai chính của người đó">$/1.000 lời gọi<br />vai chính</th><th>Đề xuất</th></tr></thead>
-              <tbody>{ds.map((d) => (
-                <tr key={d.id}>
-                  <td><Nguoi id={d.id} /></td><td className="cty-muted">{d.phongTen}</td><td title={d.giuVai.join(' · ') || d.chucDanh}>{TEN_VAI[d.vai]}</td>
-                  <td className="cty-nho">{tenModel(d.model)}</td>
-                  {VAI.map((v) => <td key={v} className="cty-so"><Diem s={d.chiSo[v]} chinh={v === d.vai} /></td>)}
-                  <td className="cty-so cty-muted">{d.chiSo[d.vai] ? usd(d.chiSo[d.vai]!.usd_goi) : '—'}</td>
-                  <td title={d.deXuat.chu}><span className={`cty-pill${d.deXuat.muc === 'doi' ? ' cty-pill-off' : d.deXuat.muc === 'chua-do' ? ' cty-pill-kind' : ''}`}>{NHAN_MUC[d.deXuat.muc]}</span></td>
-                </tr>))}</tbody>
-            </table>
-            <p className="cty-muted cty-nho">Số đậm = vai người đó đang giữ. Rê chuột lên số để xem số câu đúng và khoảng tin cậy.</p>
-          </div>
-          <div className="cty-dn-cuon">
-            <table className="cty-viec cty-dn cty-dn-ss">
-              <thead><tr><th>Bộ não</th><th>Ai đang dùng</th>{VAI.map((v) => <th key={v} className="cty-so" title={TEN_VAI[v]}>{COT_VAI[v]}</th>)}<th className="cty-so" title="Trung bình giá 1.000 lời gọi của ba vai">$/1.000 lời gọi<br />TB 3 vai</th><th>Đáng chú ý</th></tr></thead>
+            <table className="cty-viec cty-dn">
+              <thead><tr><th>Bộ não</th><th className="cty-an-hep">Ai đang dùng</th>{VAI.map((v) => <th key={v} className="cty-so" title={TEN_VAI[v]}>{COT_VAI[v]}</th>)}<th className="cty-so cty-an-hep" title="Trung bình giá 1.000 lời gọi của ba vai">$/1.000 lời gọi<br />TB 3 vai</th><th>Đáng chú ý</th></tr></thead>
               <tbody>{models.sort((a, b) => tb(b) - tb(a)).map((m) => {
                 const dung = aiDung(m); const chu = VAI.flatMap((v) => canhBao(v, k.theo_vai[v][m])).join(' · ');
                 return (
                   <tr key={m}>
                     <td>{tenModel(m)}</td>
-                    <td>{dung.length ? <span className="cty-nho">{dung.slice(0, 3).map((d, i) => <span key={d.id}>{i > 0 && ', '}<Nguoi id={d.id} anh={false} /></span>)}{dung.length > 3 && ` +${dung.length - 3}`}</span> : <span className="cty-pill cty-pill-kind">ứng viên</span>}</td>
+                    <td className="cty-an-hep">{dung.length ? <span className="cty-nho">{dung.slice(0, 3).map((d, i) => <span key={d.id}>{i > 0 && ', '}<Nguoi id={d.id} anh={false} /></span>)}{dung.length > 3 && ` +${dung.length - 3}`}</span> : <span className="cty-pill cty-pill-kind">ứng viên</span>}</td>
                     {VAI.map((v) => <td key={v} className="cty-so"><Diem s={k.theo_vai[v][m] ?? null} chinh={k.de_xuat[v]?.model === m} /></td>)}
-                    <td className="cty-so cty-muted">{usd(giaTb(m))}</td><td className="cty-muted cty-nho">{chu}</td>
+                    <td className="cty-so cty-muted cty-an-hep">{usd(giaTb(m))}</td><td className="cty-muted cty-nho">{chu}</td>
                   </tr>);
               })}</tbody>
             </table>

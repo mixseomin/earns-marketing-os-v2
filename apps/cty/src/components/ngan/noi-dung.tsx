@@ -25,6 +25,8 @@ import { DoDac } from '../do-dac';
 import { SoSuKien } from '../so-su-kien';
 import { Nguoi } from '../nguoi';
 import { tachKhoa } from '@/lib/ngan';
+import { BangNhanSu } from '../bang-nhan-su';
+import { doiNgu } from '@/lib/doi-ngu';
 
 export type Ngan = { tieuDe: React.ReactNode; than: React.ReactNode };
 const Thieu = ({ chu }: { chu: string }) => <p className="cty-bao-loi" data-loi>{chu}</p>;
@@ -279,6 +281,8 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
       <section><h3>Quy định phải tuân theo <span className="cty-tab-so">{qd.length}</span></h3><p className="cty-muted cty-nho">Tầng trên đứng trên quy trình của phòng; phòng không tự sửa được khi họp cải tiến.</p><DsQuyDinh ds={qd} /></section>
     </div>
   );
+  // tab Nhân sự (#1305): bảng của trang Đội ngũ, chỉ người của phòng, vai tính theo vai họ giữ ở đây
+  const nsTab = <BangNhanSu ds={doiNgu({ phong: id, chi: ns.map((d) => d.id) }).ds} trongPhong />;
   const moi = dem?.moi;
   // Cảnh báo phải liếc-thấy, không nằm trong tab (YDNI): lượt gần nhất lỗi / phải làm lại → một dải ghim trên thanh tab.
   const canhBao = moi?.trang_thai === 'lỗi' ? `Lượt gần nhất lỗi: ${moi.loi ?? ''}`
@@ -308,11 +312,11 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
     </>
   );
   const than = thu
-    ? <TabPhong khoa={id} dau={dau} tabs={[{ key: 'chay', nhan: 'Chạy' }, { key: 'luot', nhan: 'Các lượt', so: dem!.tong }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }, { key: 'sodo', nhan: 'Sơ đồ' }]}>
-        {[<PhongThuChay key="c" admin={admin} />, <PhongThuDs key="l" admin={admin} />, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />, <div key="s">{soDoTab}</div>]}
+    ? <TabPhong khoa={id} dau={dau} tabs={[{ key: 'chay', nhan: 'Chạy' }, { key: 'luot', nhan: 'Các lượt', so: dem!.tong }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }, { key: 'sodo', nhan: 'Sơ đồ' }]}>
+        {[<PhongThuChay key="c" admin={admin} />, <PhongThuDs key="l" admin={admin} />, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />, <div key="s">{soDoTab}</div>]}
       </TabPhong>
-    : <TabPhong khoa={id} dau={dau} tabs={[{ key: 'sodo', nhan: 'Sơ đồ' }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
-        {[<div key="s">{soDoTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
+    : <TabPhong khoa={id} dau={dau} tabs={[{ key: 'sodo', nhan: 'Sơ đồ' }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
+        {[<div key="s">{soDoTab}</div>, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
       </TabPhong>;
   // Văn phòng pixel LIVE cố định bên phải: phòng có văn phòng riêng (van_phong) thì xem đúng phòng đó, chưa có thì văn phòng chung.
   const vp = p.fm.van_phong ? String(p.fm.van_phong) : '';

@@ -99,7 +99,16 @@ export async function motLuot(viec, ghi = true, o = {}) {
         if (doMay.length) loi += '\nCác tiêu chí đo được đã được MÁY đếm và ĐẠT — không đếm lại, chỉ chấm phần còn lại.';
         if (qt.khoa_tieu_chi) loi += '\nChỉ được bác theo đúng các tiêu chí đã đánh số ở trên; ghi số tiêu chí trượt vào "truot" (vd [2]). Lý do ngoài danh sách không tính. JSON {"ok":true|false,"truot":[…],"ly_do":"…"}';
         let s = json(await goi(kiemNs, loi, `${so()} ${lai ? 'soát lại' : 'soát'}`, nk, { tu: lamNs.id }));
-        if (qt.khoa_tieu_chi && s?.ok === false && !(Array.isArray(s.truot) && s.truot.length)) s = { ...s, ok: true, ly_do: `Bác mà không chỉ ra tiêu chí trượt → không tính (khoá tiêu chí). ${s.ly_do ?? ''}` };
+        const bSoat = nk.buoc[nk.buoc.length - 1];   // bước soát vừa ghi — đánh dấu lời bác bị gạt / được giữ để ghi đúng người đúng tội
+        if (qt.khoa_tieu_chi && s?.ok === false && !(Array.isArray(s.truot) && s.truot.length)) { s = { ...s, ok: true, ly_do: `Bác mà không chỉ ra tiêu chí trượt → không tính (khoá tiêu chí). ${s.ly_do ?? ''}` }; bSoat.bi_gat = 'khoa_tieu_chi'; }
+        // PHÚC KHẢO (11/10/2026 — "Kỳ bác mà Kỳ sai thì sao"): người ngoài (Hà, mô hình khác) chấm lại LỜI BÁC theo đúng tiêu chí.
+        // Bác sai → gạt (người làm không bị trừ, người kiểm bị trừ Tinh mắt); bác đúng → giữ (người kiểm được cộng). ti_le = phần lời bác đem phúc khảo.
+        const pkNs = (qt.phuc_khao?.ti_le ?? 0) > 0 && s?.ok === false ? N(qt.nguoi.phuc_khao ?? 'ha') : null;
+        if (pkNs && pkNs.id !== kiemNs.id && Math.random() < qt.phuc_khao.ti_le) {
+          const pk = json(await goi(pkNs, `PHÚC KHẢO một lời bác — chấm lại xem NGƯỜI KIỂM bác có đúng không, chỉ theo các tiêu chí đã đánh số.\nViệc: ${giao.viec}\nTiêu chí:\n${tieuChi}\nKết quả nộp:\n${lam.ket_qua}\nNgười làm khai bằng chứng: ${lam.bang_chung}\nNgười kiểm (${kiemNs.ten}) bác: ${s.ly_do ?? ''}${Array.isArray(s.truot) ? ` (tiêu chí trượt: ${s.truot.join(', ')})` : ''}${nk.do_may.length ? `\nMáy đo các tiêu chí đếm được: ${JSON.stringify(nk.do_may.at(-1).kq.map((x) => ({ loai: x.loai, dat: x.dat })))}` : ''}\nTự đếm/kiểm từng tiêu chí người kiểm nêu. Lời bác đúng nếu có ít nhất một tiêu chí thật sự trượt. JSON {"bac_dung":true|false,"ly_do":"…"}`, `${so()} phúc khảo`, nk, { tu: kiemNs.id }));
+          bSoat.phuc_khao = pk?.bac_dung === false ? 'gat' : pk?.bac_dung === true ? 'giu' : 'khong_ro';
+          if (pk?.bac_dung === false) { s = { ok: true, ly_do: `Phúc khảo (${pkNs.ten}) gạt lời bác của ${kiemNs.ten}: ${pk.ly_do ?? ''}`, bac_goc: s }; bSoat.bi_gat = 'phuc_khao'; }
+        }
         return s;
       };
       soat = await kiem(false);
@@ -157,6 +166,7 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('ca.m
       : kich.thieu && hoi.includes('"thieu"') ? '{"thieu":"Jett Jean là sản phẩm gì, viết bằng ngôn ngữ nào?"}'
       : `{"giao_cho":"loc","viec":"viết 3 câu","tieu_chi":["3 câu","English"]${kich.do ? ',"do":[{"loai":"so_cau","bang":3},{"loai":"bua"}]' : ''}}`;
     else if (staff === 'loc') ans = (++dem.loc === 1 && kich.locSaiLan1) ? '{"ket_qua":"One. Two.","bang_chung":"3 câu"}' : '{"ket_qua":"One. Two. Three.","bang_chung":"3 câu"}';
+    else if (hoi.startsWith('PHÚC KHẢO')) ans = JSON.stringify({ bac_dung: kich.pk === 'giu', ly_do: kich.pk === 'giu' ? 'thiếu câu thật' : 'đủ 3 câu, người kiểm đếm sai' });
     else if (staff === 'ha') ans = '{"dat":true,"ly_do":"đủ 3 câu"}';
     else { ++dem.ky; ans = kich.kyDat ? '{"ok":true,"ly_do":"đủ"}' : kich.kyLuonBac ? '{"ok":false,"truot":[1],"ly_do":"chưa hay"}' : kich.kyBacKhongChiRa ? '{"ok":false,"ly_do":"không thu hút"}' : dem.ky === 1 ? '{"ok":false,"ly_do":"thiếu"}' : '{"ok":true,"ly_do":"đủ"}'; }
     res.end(JSON.stringify({ content: [{ type: 'text', text: ans }], usage: { input_tokens: 10, output_tokens: 5 } }));
@@ -200,12 +210,19 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('ca.m
   thay.length = 0; kich = {}; dem.loc = 0; dem.ky = 0; nk = await motLuot('thử', false, { giuVai: { 'nguoi-lam': 'minh' } });
   assert(nk.trang_thai === 'xong' && nk.buoc.some((b) => b.id === 'minh' && /làm/.test(b.buoc)) && !nk.buoc.some((b) => b.id === 'loc'), `đổi người giữ vai Người làm → Minh làm, Lộc không (${nk.buoc.map((b) => b.id).join(',')})`, nk);
   assert(thay.some((x) => x.goc === 'ky' && /Kết quả Minh nộp/.test(x.hoi)) && thay.some((x) => x.goc === 'tam' && /"giao_cho":"minh"/.test(x.hoi)), 'lời nhắc tự đổi sang tên + mã người mới', thay.map((x) => x.hoi.slice(0, 80)));
+  // phúc khảo: Kỳ bác (lần 1) → Hà chấm lại. Gạt → nộp luôn, không làm lại, bước soát mang dấu bị gạt. Giữ → làm lại như cũ, bước soát mang dấu được giữ.
+  nk = await chay({ pk: 'gat' }, { phuc_khao: { ti_le: 1 } });
+  assert(nk.ket.trang_thai_viec === 'submitted' && nk.ket.vong === 0 && nk.buoc.some((b) => /phúc khảo/.test(b.buoc) && b.id === 'ha') && nk.buoc.find((b) => /soát/.test(b.buoc)).bi_gat === 'phuc_khao', `phúc khảo gạt lời bác sai → nộp, không làm lại (${ten(nk)})`, nk.buoc.map((b) => [b.buoc, b.bi_gat]));
+  nk = await chay({ pk: 'giu' }, { phuc_khao: { ti_le: 1 } });
+  assert(nk.ket.vong === 1 && nk.buoc.find((b) => /soát/.test(b.buoc)).phuc_khao === 'giu' && !nk.buoc.find((b) => /soát/.test(b.buoc)).bi_gat, `phúc khảo giữ lời bác đúng → làm lại (${ten(nk)})`, nk.buoc.map((b) => [b.buoc, b.phuc_khao]));
+  nk = await chay({}, { phuc_khao: { ti_le: 0 } });
+  assert(!nk.buoc.some((b) => /phúc khảo/.test(b.buoc)), 'tỉ lệ 0 → không phúc khảo (không tốn)', ten(nk));
   // tính cách gốc vào lời dặn; ghi đè chỉ cho riêng lượt (chạy so sánh) — Lộc khai Cẩn thận 5 (nấc giữa), ép 9 → nấc cao
   thay.length = 0; kich = {}; dem.loc = 0; dem.ky = 0; await motLuot('thử', false, {});
   assert(thay.some((x) => x.goc === 'loc' && /TÍNH CÁCH GỐC[\s\S]*Cẩn thận 5\/10: Kiểm lại các tiêu chí đếm được/.test(x.system)), 'tính cách gốc vào lời dặn', thay.filter((x) => x.goc === 'loc').map((x) => x.system.slice(-300)));
   thay.length = 0; dem.loc = 0; dem.ky = 0; await motLuot('thử', false, { tinhCach: { loc: { can_than: 9 } } });
   assert(thay.some((x) => x.goc === 'loc' && /Cẩn thận 9\/10: Trước khi nộp, tự đếm lại TỪNG tiêu chí/.test(x.system)) && thay.some((x) => x.goc === 'tam' && /Cẩn thận 6\/10/.test(x.system)) && !thay.some((x) => x.goc === 'tam' && /Cẩn thận 9\/10/.test(x.system)), 'ghi đè tính cách chỉ đổi đúng người (Tâm vẫn 6)', thay.map((x) => x.goc));
-  fake.close(); console.log('✓ ca.mjs: v1 y cũ + 5 công tắc (hỏi lại, máy đo, khoá tiêu chí, hết vòng→kẹt, trọng tài) + vai tách khỏi người + tính cách gốc'); process.exit(0);
+  fake.close(); console.log('✓ ca.mjs: v1 y cũ + 5 công tắc (hỏi lại, máy đo, khoá tiêu chí, hết vòng→kẹt, trọng tài) + vai tách khỏi người + tính cách gốc + phúc khảo lời bác'); process.exit(0);
 }
 
 if (process.argv.includes('--viec') && (process.argv[1] || '').endsWith('ca.mjs')) {

@@ -33,7 +33,7 @@ export function ghiApDung(nk) {
   const theoNguoi = {};
   for (const b of nk.buoc || []) {
     if (!b.bai_hoc?.length || b.loi) continue;
-    const dat = /\blàm\b/.test(b.buoc) && !/làm lại/.test(b.buoc) ? json(soat1?.dap)?.ok === true : dung;
+    const dat = /\blàm\b/.test(b.buoc) && !/làm lại/.test(b.buoc) ? json(soat1?.dap)?.ok === true || !!soat1?.bi_gat : dung;
     for (const ma of b.bai_hoc) { const x = (theoNguoi[b.id] ??= {})[ma] ??= { ap: 0, dat: 0 }; x.ap++; if (dat) x.dat++; }
   }
   for (const [id, m] of Object.entries(theoNguoi)) {
@@ -75,5 +75,7 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('kinh
   a(trangThai(dsBaiHoc('loc').find((b) => b.ma === r2.ma)) === 'phai' && !chonBaiHoc('loc', K).some((b) => b.ma === r2.ma), '4 lần áp dụng, không đạt lần nào → phai, không nạp nữa');
   a(/\[kỹ năng\] Đếm lại số câu/.test(loiDanKinhNghiem(chonBaiHoc('loc', K))) && loiDanKinhNghiem([]) === '', 'lời dặn: kỹ năng có nhãn, rỗng thì không thêm gì');
   a(boBaiHoc('loc', r2.ma) && dsBaiHoc('loc').length === 1, 'bỏ bài học');
+  const truoc = dsBaiHoc('loc')[0].lan_dat; const gat = nk({ ok: false, bh: [r.ma] }); gat.buoc[1].bi_gat = 'phuc_khao';
+  ghiApDung(gat); a(dsBaiHoc('loc')[0].lan_dat === truoc + 1, 'lời bác bị gạt → bài học của người làm vẫn tính đạt');
   console.log('✓ kinh-nghiem: bằng chứng phải trỏ lượt vừa làm, gộp trùng, nạp đúng quy trình, lên kỹ năng / phai theo kết quả, bỏ bài');
 }

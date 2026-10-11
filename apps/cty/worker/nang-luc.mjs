@@ -7,7 +7,7 @@ import { tienUsd } from './gia.mjs';
 export const NANG_LUC = {
   giao_viec: { ten: 'Giao việc', do: 'lượt người này giao kết thúc đúng (bộ việc chuẩn: khớp kỳ vọng; lượt thật: nộp được)' },
   thuc_hien: { ten: 'Thực hiện', do: 'bài làm được người kiểm duyệt ngay vòng đầu' },
-  kiem_soat: { ten: 'Kiểm soát', do: 'trên bộ việc chuẩn, kết luận cuối khớp kỳ vọng khi người này soát' },
+  kiem_soat: { ten: 'Kiểm soát', do: 'bộ việc chuẩn: kết luận cuối khớp kỳ vọng; lượt thật: lời bác được phúc khảo giữ (đúng) hay bị gạt (sai)' },
   bao_cao: { ten: 'Báo cáo', do: 'báo cáo đúng mẫu 4 dòng' },
   on_dinh: { ten: 'Ổn định', do: 'bước không lỗi (HTTP / không trả lời)' },
 };
@@ -34,8 +34,9 @@ export function hoSoNangLuc(luot = dsLuotTho()) {
     const buoc = l.buoc || []; const dung = ketDung(l);
     const giao = buoc.find((b) => loai(b.buoc) === 'giao_viec'); if (giao) cham(giao.id, 'giao_viec', dung);
     const lam = buoc.find((b) => loai(b.buoc) === 'thuc_hien'); const soat1 = buoc.find((b) => loai(b.buoc) === 'kiem_soat');
-    if (lam && soat1 && !soat1.loi) cham(lam.id, 'thuc_hien', json(soat1.dap)?.ok === true);
+    if (lam && soat1 && !soat1.loi) cham(lam.id, 'thuc_hien', json(soat1.dap)?.ok === true || !!soat1.bi_gat);   // bị bác SAI (đã gạt) thì người làm không bị trừ
     if (l.bo_viec) for (const id of new Set(buoc.filter((b) => loai(b.buoc) === 'kiem_soat').map((b) => b.id))) cham(id, 'kiem_soat', dung);
+    else for (const b of buoc) if (loai(b.buoc) === 'kiem_soat' && (b.bi_gat || b.phuc_khao === 'giu')) cham(b.id, 'kiem_soat', !b.bi_gat);   // lượt thật: phúc khảo là thước đo người kiểm
     for (const b of buoc) {
       const h = cua(b.id); h.so_buoc++; h.chi_phi += b.usage ? tienUsd(b.model, b.usage) : 0; h.ms += b.ms || 0;
       if (!h.lan_cuoi || String(b.bat_dau) > h.lan_cuoi) h.lan_cuoi = b.bat_dau ?? h.lan_cuoi;
@@ -111,6 +112,13 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('nang
   a(hs.tam.nang_luc.on_dinh.so_mau === 6 && hs.tam.nang_luc.on_dinh.dat === 5, 'ổn định: bước lỗi trừ điểm', hs.tam);
   a(hs.ky.nang_luc.kiem_soat.so_mau === 0 && hs.ky.nang_luc.kiem_soat.diem === null, 'kiểm soát: chưa có bộ việc chuẩn thì chưa có điểm (không bịa)', hs.ky);
   a(hs.loc.chi_phi > 0 && hs.loc.ms_tb === 1000, 'cộng chi phí + thời gian', hs.loc);
+  // bác sai (phúc khảo gạt) → người làm không bị trừ vòng đầu, người kiểm bị trừ; phúc khảo giữ → người kiểm được cộng
+  const pk = hoSoNangLuc([
+    { trang_thai: 'xong', ket: { trang_thai_viec: 'submitted' }, buoc: [B('1 giao việc', 'tam', '{}'), B('2 làm', 'loc', '{}'), B('3 soát', 'ky', '{"ok":false}', { bi_gat: 'phuc_khao', phuc_khao: 'gat' }), B('4 phúc khảo', 'ha', '{"bac_dung":false}')] },
+    { trang_thai: 'xong', ket: { trang_thai_viec: 'revision' }, buoc: [B('1 giao việc', 'tam', '{}'), B('2 làm', 'loc', '{}'), B('3 soát', 'ky', '{"ok":false}', { phuc_khao: 'giu' })] },
+  ]);
+  a(pk.loc.nang_luc.thuc_hien.dat === 1 && pk.loc.nang_luc.thuc_hien.so_mau === 2, 'bị bác sai → vẫn tính đạt vòng đầu', pk.loc);
+  a(pk.ky.nang_luc.kiem_soat.so_mau === 2 && pk.ky.nang_luc.kiem_soat.dat === 1, 'phúc khảo chấm người kiểm: gạt = trượt, giữ = đạt', pk.ky);
   const g = theGame(hs);
   // tam: 5 bước không lỗi (×10) + đạt 2 giao + 1 báo cáo (×20) = 50 + 60 = 110 XP → cấp 2 (cần 100), cấp 3 cần 300
   a(g.tam.xp === 110 && g.tam.cap === 2 && g.tam.xp_cap_nay === 100 && g.tam.xp_cap_sau === 300, 'XP + cấp theo việc đã làm', g.tam);

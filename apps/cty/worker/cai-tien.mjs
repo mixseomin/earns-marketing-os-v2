@@ -11,6 +11,7 @@ import path from 'node:path';
 import http from 'node:http';
 import { goi, json, nhanSu, motLuot } from './ca.mjs';
 import { ghiApDung, ghiBaiHoc, dsBaiHoc, trangThai } from './kinh-nghiem.mjs';
+import { mayDo } from './quy-trinh.mjs';
 import { phongFm, giaiNguoi, theVai, tenPhong, hienHanh, dsBan, bien, boViecChuan, mucThayDoi, apBanMoi, veBan, dsDeXuat, ghiDeXuat, dsLuotTho, chiSo, chamViecChuan, usdLuot } from './quy-trinh.mjs';
 import { ghiLog } from './log.mjs';
 
@@ -37,20 +38,34 @@ export function diemMoiNhat(k, ban) {
 }
 export function dsSoSanh(k) { const d = ssDir(k); return fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith('.json')).sort().reverse().map((f) => JSON.parse(fs.readFileSync(path.join(d, f), 'utf8'))) : []; }
 
-/** Chạy BỘ VIỆC CHUẨN với một phiên bản, `lan` lần mỗi việc; chấm theo kỳ vọng của Hà. Tốn ~ (số việc × lan) lượt. */
-export async function soPhienBan(k, ban, lan = 2) {
-  const bo = boViecChuan(k); const cfg = dsBan(k).find((b) => b.ban === ban);
-  if (!bo) throw new Error(`phòng ${k} chưa có bộ việc chuẩn`); if (!cfg) throw new Error(`không có bản v${ban}`);
+/** Chạy BỘ VIỆC CHUẨN với MỘT cấu hình, `lan` lần mỗi việc; chấm theo kỳ vọng của Hà; lưu vào so-sanh/<khoá>/<tiền tố>-<giờ>.json.
+ *  Một hàm cho cả so phiên bản (tiền tố v<bản>) lẫn thử cấu hình chưa áp (tiền tố thu-). Tốn ~ (số việc × lan) lượt. */
+async function chayBoViec(k, cfg, lan, tienTo, them = {}) {
+  const bo = boViecChuan(k); if (!bo) throw new Error(`phòng ${k} chưa có bộ việc chuẩn`);
   const chiTiet = [];
   for (const v of bo.viec) for (let i = 0; i < lan; i++) {
     const l = await motLuot(v.viec, true, { khoa: k, quyTrinh: cfg, boViec: v.id });
-    chiTiet.push({ id: v.id, ky_vong: v.ky_vong, luot: l.ts, tt: l.ket?.trang_thai_viec ?? l.trang_thai, usd: usdLuot(l), ...chamViecChuan(l, v) });
+    const soat = (l.buoc || []).filter((b) => /soát/.test(b.buoc));
+    // thước đối chiếu người kiểm: bài làm VÒNG ĐẦU có qua mọi phép đo máy của Hà không (chỉ việc có phép đo). Qua mà vẫn bị bác = nhiều khả năng bác sai.
+    const lam1 = json((l.buoc || []).find((b) => /\blàm\b/.test(b.buoc) && !/lại/.test(b.buoc))?.dap)?.ket_qua;
+    const v1May = Array.isArray(v.do) && v.do.length && lam1 ? v.do.every((d) => mayDo(d, lam1).dat) : null;
+    chiTiet.push({ id: v.id, ky_vong: v.ky_vong, luot: l.ts, tt: l.ket?.trang_thai_viec ?? l.trang_thai, usd: usdLuot(l), ...chamViecChuan(l, v),
+      vong_dau: soat[0] ? json(soat[0].dap)?.ok === true || !!soat[0].bi_gat : null, kiem_bac_v1: soat[0] ? json(soat[0].dap)?.ok === false : null, v1_dat_may: v1May,
+      phuc_khao: soat.map((b) => b.phuc_khao).filter(Boolean), pk_v1: soat[0]?.phuc_khao ?? null });
   }
   const dung = chiTiet.filter((x) => x.dung).length;
-  const kq = { qt: k, ban, lan, ts: new Date().toISOString(), diem: dung / (chiTiet.length || 1), so_dung: dung, tong: chiTiet.length, chi_phi: chiTiet.reduce((s, x) => s + x.usd, 0), chi_tiet: chiTiet };
-  fs.mkdirSync(ssDir(k), { recursive: true }); fs.writeFileSync(path.join(ssDir(k), `v${ban}-${kq.ts.replace(/[:.]/g, '-')}.json`), JSON.stringify(kq, null, 1));
-  ghiLog({ luot: `so-v${ban}`, loai: 'quyet', tu: 'ha', chi_tiet: { so_phien_ban: ban, diem: kq.diem, so_dung: dung, tong: kq.tong } });
+  const kq = { qt: k, lan, ts: new Date().toISOString(), diem: dung / (chiTiet.length || 1), so_dung: dung, tong: chiTiet.length, chi_phi: chiTiet.reduce((s, x) => s + x.usd, 0), chi_tiet: chiTiet, ...them };
+  fs.mkdirSync(ssDir(k), { recursive: true }); fs.writeFileSync(path.join(ssDir(k), `${tienTo}-${kq.ts.replace(/[:.]/g, '-')}.json`), JSON.stringify(kq, null, 1));
+  ghiLog({ luot: `so-${tienTo}`, loai: 'quyet', tu: 'ha', chi_tiet: { so: tienTo, diem: kq.diem, so_dung: dung, tong: kq.tong } });
   return kq;
+}
+export async function soPhienBan(k, ban, lan = 2) {
+  const cfg = dsBan(k).find((b) => b.ban === ban); if (!cfg) throw new Error(`không có bản v${ban}`);
+  return chayBoViec(k, cfg, lan, `v${ban}`, { ban });
+}
+/** Thử một THAY ĐỔI cấu hình trên bộ việc chuẩn mà KHÔNG áp vào quy trình đang chạy (để đánh giá trước khi đề xuất). */
+export async function thuCauHinh(k, thayDoi, lan = 2) {
+  const goc = hienHanh(k); return chayBoViec(k, apThayDoi(goc, thayDoi), lan, 'thu', { ban: goc.ban, thu: thayDoi });
 }
 
 /** So bản đang thử với bản gốc của nó trên cùng bộ việc → GIỮ hoặc tự QUAY LẠI. Bản gốc chưa có điểm thì chạy luôn. */
@@ -156,12 +171,15 @@ export function chiThang(k, luc = new Date()) {
 // suôn sẻ thì không rút (đỡ tiền). Lưu, chọn, đếm, lên kỹ năng/phai ở kinh-nghiem.mjs.
 const rutDir = (k) => path.join(DATA(), 'kinh-nghiem', 'lan', k);
 export function dsLanRut(k) { const d = rutDir(k); return fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(fs.readFileSync(path.join(d, f), 'utf8'))) : []; }
-export const coVap = (nk) => nk.ket?.trang_thai_viec !== 'submitted' || (nk.buoc || []).some((b) => /làm lại/.test(b.buoc));
+export const coVap = (nk) => nk.ket?.trang_thai_viec !== 'submitted' || (nk.buoc || []).some((b) => /làm lại/.test(b.buoc) || b.bi_gat);
+// Ai rút bài học: có lời bác bị GẠT (bác sai) thì người BÁC rút, người bị bác thì không (không học theo lời bác sai);
+// còn vấp thật (làm lại sau lời bác đúng, không nộp được) thì mọi người tham gia rút.
+export const nguoiRut = (nk) => { const gat = [...new Set((nk.buoc || []).filter((b) => b.bi_gat).map((b) => b.id))]; const that = nk.ket?.trang_thai_viec !== 'submitted' || (nk.buoc || []).some((b) => /làm lại/.test(b.buoc));
+  return that ? [...new Set((nk.buoc || []).map((b) => b.id).filter((id) => id !== 'may-do'))] : gat; };
 export async function rutBaiHoc(nk, k = nk.khoa ?? 'thu-nghiem/lam-viec') {
   if (nk.bo_viec || !coVap(nk)) return [];
   const ra = [];
-  const nguoi = [...new Set((nk.buoc || []).map((b) => b.id))];
-  for (const id of nguoi) {
+  for (const id of nguoiRut(nk)) {
     if (chiThang(k) + UOC.rut > nganSach(k)) { ra.push({ id, ghi: null, ly_do: `hết ngân sách cải tiến tháng ($${chiThang(k).toFixed(3)} / $${nganSach(k)})` }); continue; }
     const cua = (nk.buoc || []).filter((b) => b.id === id); const ns = { ...nhanSu(id, nk.ts), vai: null };
     const phanHoi = (nk.buoc || []).filter((b) => b.id !== id && /soát|trọng tài/.test(b.buoc)).map((b) => `${b.buoc} · ${b.ai}: ${String(b.dap || '').slice(0, 240)}`);
@@ -264,6 +282,18 @@ if (laCli && process.argv.includes('--so-tinh-cach')) {   // node worker/cai-tie
   console.log(kq.ben.map((b) => `${kq.nguoi}.${kq.chi_so}=${b.gia_tri}: ${b.so_dung}/${b.tong} đúng · thực hiện vòng đầu ${b.nang_luc.thuc_hien?.dat ?? '-'}/${b.nang_luc.thuc_hien?.so_mau ?? '-'} · $${b.chi_phi.toFixed(4)}`).join('\n')); process.exit(0);
 }
 
+if (laCli && process.argv.includes('--thu-cau-hinh')) {   // node worker/cai-tien.mjs --thu-cau-hinh '{"phuc_khao.ti_le":1}' --qt thu-nghiem/lam-viec --lan 2
+  const P = thamSo('--qt', 'thu-nghiem/lam-viec'); const lan = Number(thamSo('--lan', 2)); const td = JSON.parse(thamSo('--thu-cau-hinh', '{}'));
+  const uoc = (boViecChuan(P)?.viec.length ?? 0) * lan * UOC.luot * 1.5;
+  if (chiThang(P) + uoc > nganSach(P)) { console.log(`✗ vượt ngân sách cải tiến tháng: đã chi $${chiThang(P).toFixed(3)}, ước thêm $${uoc.toFixed(3)}, trần $${nganSach(P)}`); process.exit(1); }
+  const kq = await voiKhoa(P, 'so', () => thuCauHinh(P, td, lan));
+  const ct = kq.chi_tiet; const bacV1 = ct.filter((c) => c.kiem_bac_v1 && c.v1_dat_may != null);
+  console.log(JSON.stringify({ thu: td, ban_goc: kq.ban, dung_ky_vong: `${kq.so_dung}/${kq.tong}`, duyet_vong_dau: `${ct.filter((c) => c.vong_dau).length}/${ct.filter((c) => c.vong_dau != null).length}`,
+    kiem_bac_v1_o_viec_co_do: bacV1.length, trong_do_bai_dat_moi_phep_do: bacV1.filter((c) => c.v1_dat_may).length,
+    phuc_khao_v1: { gat_khi_bai_dat_do: bacV1.filter((c) => c.v1_dat_may && c.pk_v1 === 'gat').length, giu_khi_bai_dat_do: bacV1.filter((c) => c.v1_dat_may && c.pk_v1 === 'giu').length, gat_khi_bai_truot_do: bacV1.filter((c) => !c.v1_dat_may && c.pk_v1 === 'gat').length, giu_khi_bai_truot_do: bacV1.filter((c) => !c.v1_dat_may && c.pk_v1 === 'giu').length },
+    phuc_khao_tong: ct.flatMap((c) => c.phuc_khao).length, chi_phi: kq.chi_phi.toFixed(4) }, null, 1)); process.exit(0);
+}
+
 if (laCli && process.argv.includes('--sau-luot')) {   // ca.mjs gọi sau mỗi lượt thật: đếm áp dụng (0 đồng) → rút kinh nghiệm nếu có vấp → tự xét họp
   const P = thamSo('--qt', 'thu-nghiem/lam-viec'); const ts = thamSo('--sau-luot', '');
   const nk = JSON.parse(fs.readFileSync(path.join(DATA(), 'nhat-ky', `${ts}.json`), 'utf8'));
@@ -339,6 +369,8 @@ if (laCli && process.argv.includes('--tu-kiem')) {
   a(/họp vì .*3\/14/.test(kqTu) && /so:/.test(kqTu), `tự họp → bản thử → tự so (${kqTu})`);
   // rút kinh nghiệm: lượt có vấp → mỗi người rút 1 bài (bằng chứng trỏ lượt), tính vào chi tháng; lượt suôn sẻ → không rút; lượt sau → bài vào lời dặn
   const vap = { ts: '2026-10-11T07-00-00-000Z', khoa: P, viec: 'thử', trang_thai: 'xong', ket: { trang_thai_viec: 'revision' }, buoc: [{ buoc: '1 giao việc', id: 'tam', ai: 'Tâm', dap: '{}' }, { buoc: '2 làm', id: 'loc', ai: 'Lộc', dap: '{}' }, { buoc: '3 soát', id: 'ky', ai: 'Kỳ', dap: '{"ok":false,"ly_do":"thiếu câu"}' }] };
+  const gatMa = { ...vap, ts: '2026-10-11T06-59-00-000Z', ket: { trang_thai_viec: 'submitted' }, buoc: [vap.buoc[0], vap.buoc[1], { ...vap.buoc[2], bi_gat: 'phuc_khao' }, { buoc: '4 phúc khảo', id: 'ha', ai: 'Hà', dap: '{"bac_dung":false}' }] };
+  a(coVap(gatMa) && JSON.stringify(nguoiRut(gatMa)) === '["ky"]' && JSON.stringify(nguoiRut(vap)) === '["tam","loc","ky"]', 'bác sai bị gạt → chỉ người bác rút bài học; vấp thật → mọi người', { gat: nguoiRut(gatMa), vap: nguoiRut(vap) });
   const chiTruocRut = chiThang(P); const rut = await rutBaiHoc(vap, P);
   a(rut.length === 3 && rut.every((r) => r.ghi === 'moi') && dsLanRut(P).length === 3 && chiThang(P) > chiTruocRut, 'lượt có vấp: 3 người rút bài, có lưu, cộng chi tháng', rut);
   a((await rutBaiHoc({ ...vap, ts: '2026-10-11T07-01-00-000Z', ket: { trang_thai_viec: 'submitted' } }, P)).length === 0, 'lượt suôn sẻ: không rút, không tốn');
@@ -355,6 +387,9 @@ if (laCli && process.argv.includes('--tu-kiem')) {
   // kết quả gần nhất luôn là CHỮ (trang in thẳng) — kể cả tệp cũ ghi object
   await voiKhoa(P, 'so', async () => ({ nguoi: 'loc', chi_so: 'can_than', ben: [{ gia_tri: 2, so_dung: 1, tong: 7 }] }));
   a(typeof ketQuaGanNhat(P).tom_tat === 'string' && /loc.can_than=2: 1\/7/.test(ketQuaGanNhat(P).tom_tat), 'voiKhoa ghi chữ', ketQuaGanNhat(P));
+  // thử cấu hình: chạy đủ bộ việc với thay đổi, lưu tiền tố thu-, KHÔNG đổi quy trình đang chạy
+  const banTruoc = hienHanh(P).ban; const thu = await thuCauHinh(P, { 'phuc_khao.ti_le': 1 }, 1);
+  a(thu.tong === boViecChuan(P).viec.length && thu.thu['phuc_khao.ti_le'] === 1 && hienHanh(P).ban === banTruoc && fs.readdirSync(ssDir(P)).some((f) => f.startsWith('thu-')), 'thử cấu hình: đủ bộ việc, có lưu, không áp', { tong: thu.tong });
   // so chỉ số gốc: chạy được, ghi kết quả, cộng vào chi tháng
   const chiTruoc = chiThang(P); const tc = await soTinhCach(P, 'loc', 'can_than', [2, 9], 1);
   a(tc.ben.length === 2 && tc.ben[0].tong === boViecChuan(P).viec.length && dsSoTinhCach(P).length === 1 && chiThang(P) > chiTruoc, 'so chỉ số gốc: 2 bên × bộ việc, có lưu, cộng chi tháng', tc.ben.map((b) => b.tong));

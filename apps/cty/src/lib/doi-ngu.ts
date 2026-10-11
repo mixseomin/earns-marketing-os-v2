@@ -21,7 +21,7 @@ export type KetDo = { dot: string; ts: string; so_goi: number; tong_chi: number;
 const doc = <T,>(f: string): T | null => {   // chưa có tệp = chưa đo; tệp hỏng thì kêu, không giả làm "chưa đo"
   try { return JSON.parse(fs.readFileSync(f, 'utf8')) as T; } catch (e) { if ((e as NodeJS.ErrnoException).code === 'ENOENT') return null; throw new Error(`đọc ${f}: ${(e as Error).message}`); }
 };
-const dsDot = () => { try { return fs.readdirSync(DIR()); } catch { return []; } };
+const dsDot = () => { try { return fs.readdirSync(DIR(), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name); } catch { return []; } };   // đợt = thư mục (bên cạnh có .sh/.log chạy tay)
 
 export const tenModel = (m: string) => m.replace(/^[a-z]+:/, '').replace(/^[a-z-]+\//, '');
 export const pc = (x: number) => `${Math.round(x * 100)}%`;

@@ -14,7 +14,9 @@
 // <DATA>/do-model/<dot>/goi.jsonl (hỏi, đáp, token, USD, ms, điểm) để làm insight về sau. Chạy lại cùng --dot = chạy tiếp phần còn
 // thiếu, không trả tiền lần hai.
 //   node worker/do-model.mjs --chay --dot <tên> --tran <USD> [--lan 3] [--lan-kiem 2] [--models a,b] [--song-song 24] [--moi-vai N: chạy thử N việc đầu mỗi vai]
+//   ... --tinh-cach can_than=9[,mem_mong=2]     cùng hồ sơ trung tính + chỉ số tính cách (đo tính cách có đổi hành vi không)
 //   node worker/do-model.mjs --tong <dot>     tổng hợp → ket.json + in bảng (0 đồng)
+//   node worker/do-model.mjs --so <dot> --voi <dot gốc>   so THEO CẶP (cùng bài, cùng lần, cùng model): chênh điểm + McNemar (0 đồng)
 //   node worker/do-model.mjs --tu-kiem        bộ đo tự kiểm + chạy giả qua proxy giả ($0)
 import fs from 'node:fs';
 import path from 'node:path';
@@ -23,6 +25,7 @@ import { GOC } from './goc.mjs';
 import { hienHanh, dien, json, mayDo, theVai, tenPhong } from './quy-trinh.mjs';
 import { heThong, LOI_HOI_LAI, quyDinhLuot } from './ca.mjs';
 import { tienUsd } from './gia.mjs';
+import { tinhCachCua } from './tinh-cach.mjs';
 
 const K = 'thu-nghiem/lam-viec';
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
@@ -108,8 +111,8 @@ export function cham(vai, m, dap) {
   return { dung: !truot.length, dinh_dang: true, truot };
 }
 
-async function goi(model, vai, user, nk, luot) {
-  const ns = { id: 'ung-vien', ten: 'Ứng viên', model, vai: theVai(VAI[vai]), body: HO_SO, tinh_cach: [], bai_hoc: [] };
+async function goi(model, vai, user, nk, luot, tc = []) {
+  const ns = { id: 'ung-vien', ten: 'Ứng viên', model, vai: theVai(VAI[vai]), body: HO_SO, tinh_cach: tc, bai_hoc: [] };
   const fal = model.startsWith('fal:');
   for (let thu = 0; ; thu++) {
     const bb = BAT_BUOC.has(model); const suy_luan = fal ? (bb ? 'minimal' : 'none') : null;
@@ -128,7 +131,8 @@ async function goi(model, vai, user, nk, luot) {
 const docDong = (tep) => (fs.existsSync(tep) ? fs.readFileSync(tep, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l)) : []);
 const xongRoi = (x) => x.http === 200 || (x.http >= 400 && x.http < 500 && x.http !== 429);   // 4xx (vd tên model sai) chạy lại cũng thế
 
-export async function chay({ dot, tran, lan = 3, lanKiem = 2, models = MODELS, songSong = 24, moiVai = Infinity, im = false }) {
+export async function chay({ dot, tran, lan = 3, lanKiem = 2, models = MODELS, songSong = 24, moiVai = Infinity, tinhCach = null, im = false }) {
+  const tc = tinhCach ? tinhCachCua({}, tinhCach) : [];
   if (!dot || !(tran > 0)) throw new Error('cần --dot và --tran <USD>');
   const dir = path.join(DATA(), 'do-model', dot); fs.mkdirSync(dir, { recursive: true });
   const tep = path.join(dir, 'goi.jsonl'); const cu = docDong(tep);
@@ -137,7 +141,7 @@ export async function chay({ dot, tran, lan = 3, lanKiem = 2, models = MODELS, s
   const qt = hienHanh(K); const nk = { ten_phong: tenPhong(K), quy_dinh: quyDinhLuot(K) }; const bo = boDo(); const hang = [];
   for (let l = 1; l <= lan; l++) for (const vai of ['kiem', 'giao', 'lam']) if (l <= (vai === 'kiem' ? lanKiem : lan))
     for (const m of bo[vai].slice(0, moiVai)) for (const model of models) { const khoa = `${vai}|${m.id}|${l}|${model}`; if (!xong.has(khoa)) hang.push({ vai, m, lan: l, model, khoa }); }
-  fs.writeFileSync(path.join(dir, 'meta.json'), JSON.stringify({ dot, tran, lan, lan_kiem: lanKiem, models, quy_trinh: `${K} v${qt.ban}`, lan_chay: [...(docJson(path.join(dir, 'meta.json'))?.lan_chay ?? []), { ts: new Date().toISOString(), con_lai: hang.length, da_chi: chi }] }, null, 1));
+  fs.writeFileSync(path.join(dir, 'meta.json'), JSON.stringify({ dot, tran, lan, lan_kiem: lanKiem, models, tinh_cach: tinhCach, quy_trinh: `${K} v${qt.ban}`, lan_chay: [...(docJson(path.join(dir, 'meta.json'))?.lan_chay ?? []), { ts: new Date().toISOString(), con_lai: hang.length, da_chi: chi }] }, null, 1));
   if (!im) console.log(`dò model ${dot}: ${hang.length} lời gọi còn lại · đã chi $${chi.toFixed(4)} · trần $${tran} · quy trình v${qt.ban}`);
   let dung = null, i = 0, n = 0, falBay = 0; const cho = [];
   const vaoFal = () => (falBay < FAL_SONG_SONG ? (falBay++, Promise.resolve()) : new Promise((ok) => cho.push(ok)));
@@ -147,12 +151,12 @@ export async function chay({ dot, tran, lan = 3, lanKiem = 2, models = MODELS, s
       if (chi >= tran - 0.05) { dung = `chạm trần $${tran}`; break; }   // chừa biên cho các lời gọi đang bay
       const h = hang[i++]; const user = loiNhac(h.vai, h.m, qt);
       const fal = h.model.startsWith('fal:'); if (fal) await vaoFal();
-      const r = await goi(h.model, h.vai, user, nk, `do-model-${dot}`).finally(() => fal && raFal());
+      const r = await goi(h.model, h.vai, user, nk, `do-model-${dot}`, tc).finally(() => fal && raFal());
       if (r.tran_chan) dung = `proxy chặn trần: ${r.loi}`;
       const usd = r.usage ? r.usage.cost_usd ?? tienUsd(h.model, r.usage) ?? 0 : 0; chi += usd;
       const diem = r.http === 200 ? { ...cham(h.vai, h.m, r.dap), vuot_500: (r.usage?.output_tokens ?? 0) - (r.usage?.reasoning_tokens ?? 0) > TRAN_THAT } : {};
       fs.appendFileSync(tep, JSON.stringify({ ts: new Date().toISOString(), khoa: h.khoa, vai: h.vai, muc: h.m.id, loai: h.m.loai, loi_cai: h.m.loi ?? null, ky_vong: h.m.ky_vong ?? null,
-        lan: h.lan, model: h.model, suy_luan: r.suy_luan, quy_trinh: qt.ban, http: r.http, ms: r.ms, usage: r.usage, usd, het: r.het, loi: r.loi, hoi: user, dap: r.dap, ...diem }) + '\n');
+        lan: h.lan, model: h.model, ...(tinhCach ? { tinh_cach: tinhCach } : {}), suy_luan: r.suy_luan, quy_trinh: qt.ban, http: r.http, ms: r.ms, usage: r.usage, usd, het: r.het, loi: r.loi, hoi: user, dap: r.dap, ...diem }) + '\n');
       if (++n % 250 === 0 && !im) console.log(`  ${n}/${hang.length} · chi $${chi.toFixed(3)}`);
     }
   };
@@ -213,15 +217,52 @@ function inBang(kq) {
   }
 }
 
+// ---- so theo cặp (0 đồng): cùng khoá (vai|bài|lần|model) ở hai đợt → chỉ khác thứ đổi giữa hai đợt (vd tính cách) ----
+const lnF = (n) => { let s = 0; for (let i = 2; i <= n; i++) s += Math.log(i); return s; };
+/** McNemar chính xác, hai phía: b = chỉ A đúng, c = chỉ B đúng. p nhỏ = chênh thật, không phải may rủi. */
+export const mcnemar = (b, c) => { const n = b + c; if (!n) return 1; let s = 0; for (let i = 0; i <= Math.min(b, c); i++) s += Math.exp(lnF(n) - lnF(i) - lnF(n - i) - n * Math.LN2); return Math.min(1, 2 * s); };
+const DEM = { kiem: ['bac_sai', 'duyet_sai'], giao: ['hoi_thua', 'giao_bua', 'mat'], lam: ['truot'] };
+const coLoi = (x, f) => (Array.isArray(x[f]) ? x[f].length > 0 : !!x[f]);
+export function soCap(dotA, dotB) {
+  const doc = (d) => new Map(docDong(path.join(DATA(), 'do-model', d, 'goi.jsonl')).filter((x) => x.http === 200).map((x) => [x.khoa, x]));
+  const A = doc(dotA), B = doc(dotB); const nhom = {};
+  for (const [k, a] of A) {
+    const b = B.get(k); if (!b) continue;
+    const g = (nhom[`${a.model}|${a.vai}`] ??= { model: a.model, vai: a.vai, n: 0, a_dung: 0, b_dung: 0, chi_a: 0, chi_b: 0, tok_a: 0, tok_b: 0, usd_a: 0, usd_b: 0, dem: {} });
+    g.n++; g.a_dung += a.dung ? 1 : 0; g.b_dung += b.dung ? 1 : 0; g.chi_a += a.dung && !b.dung ? 1 : 0; g.chi_b += b.dung && !a.dung ? 1 : 0;
+    g.tok_a += a.usage?.output_tokens ?? 0; g.tok_b += b.usage?.output_tokens ?? 0; g.usd_a += a.usd || 0; g.usd_b += b.usd || 0;
+    for (const f of DEM[a.vai] ?? []) { const d = (g.dem[f] ??= [0, 0]); d[0] += coLoi(a, f) ? 1 : 0; d[1] += coLoi(b, f) ? 1 : 0; }
+  }
+  return Object.values(nhom).map((g) => ({ ...g, a: g.a_dung / g.n, b: g.b_dung / g.n, chenh: (g.a_dung - g.b_dung) / g.n, p: mcnemar(g.chi_a, g.chi_b) }));
+}
+/** Nhiễu nền: cùng đợt, lần 1 so lần 2 (chẳng đổi gì) — bao nhiêu câu tự lật đúng/sai. Chênh giữa hai đợt phải vượt mức này mới đáng tin. */
+export function nhieuNen(dot) {
+  const ds = docDong(path.join(DATA(), 'do-model', dot, 'goi.jsonl')).filter((x) => x.http === 200); const m = new Map(); const out = {};
+  for (const x of ds) (m.get(`${x.model}|${x.vai}|${x.muc}`) ?? m.set(`${x.model}|${x.vai}|${x.muc}`, []).get(`${x.model}|${x.vai}|${x.muc}`)).push(x);
+  for (const [k, xs] of m) { if (xs.length < 2) continue; const [model, vai] = k.split('|'); const o = (out[`${model}|${vai}`] ??= { n: 0, lat: 0 }); o.n++; o.lat += xs[0].dung !== xs[1].dung ? 1 : 0; }
+  return out;
+}
+
 // ---------- CLI ----------
 const laCli = (process.argv[1] || '').endsWith('do-model.mjs');
 const thamSo = (k, mac) => (process.argv.includes(k) ? process.argv[process.argv.indexOf(k) + 1] : mac);
 if (laCli && process.argv.includes('--chay')) {
   const r = await chay({ dot: thamSo('--dot'), tran: Number(thamSo('--tran')), lan: Number(thamSo('--lan', 3)), lanKiem: Number(thamSo('--lan-kiem', 2)),
-    models: thamSo('--models') ? thamSo('--models').split(',') : MODELS, songSong: Number(thamSo('--song-song', 24)), moiVai: Number(thamSo('--moi-vai', Infinity)) });
+    models: thamSo('--models') ? thamSo('--models').split(',') : MODELS, songSong: Number(thamSo('--song-song', 24)), moiVai: Number(thamSo('--moi-vai', Infinity)),
+    tinhCach: thamSo('--tinh-cach') ? Object.fromEntries(thamSo('--tinh-cach').split(',').map((x) => x.split('=')).map(([k, v]) => [k, Number(v)])) : null });
   inBang(tong(thamSo('--dot'))); process.exit(r.dung && !/trần/.test(r.dung) ? 1 : 0);
 }
 if (laCli && process.argv.includes('--tong')) { inBang(tong(thamSo('--tong'))); process.exit(0); }
+if (laCli && process.argv.includes('--so')) {
+  const [A, B] = [thamSo('--so'), thamSo('--voi')]; const kq = soCap(A, B); const nen = nhieuNen(B);
+  fs.writeFileSync(path.join(DATA(), 'do-model', A, `so-voi-${B}.json`), JSON.stringify({ a: A, b: B, ts: new Date().toISOString(), kq, nhieu_nen: nen }, null, 1));
+  console.log(`${A} so với ${B} (theo cặp):`);
+  for (const g of kq.sort((x, y) => (x.vai + x.model).localeCompare(y.vai + y.model))) {
+    const nn = nen[`${g.model}|${g.vai}`];
+    console.log(`  ${g.vai.padEnd(5)} ${g.model.split(':').pop().padEnd(28)} ${pc(g.b)}→${pc(g.a)} (${g.chenh >= 0 ? '+' : ''}${Math.round(g.chenh * 100)} điểm, p=${g.p.toFixed(3)}${g.p < 0.05 ? ' THẬT' : ''}) · n=${g.n} · ${Object.entries(g.dem).map(([f, [a, b]]) => `${f} ${b}→${a}`).join(' · ')} · token ra ${Math.round(g.tok_b / g.n)}→${Math.round(g.tok_a / g.n)} · nhiễu nền ${nn ? pc(nn.lat / nn.n) : '—'}`);
+  }
+  process.exit(0);
+}
 
 if (laCli && process.argv.includes('--tu-kiem')) {
   process.env.CTY_DATA_DIR = fs.mkdtempSync('/tmp/cty-dm-');
@@ -260,6 +301,16 @@ if (laCli && process.argv.includes('--tu-kiem')) {
   const bb = docDong(path.join(process.env.CTY_DATA_DIR, 'do-model', 'thu-bb', 'goi.jsonl'));
   a(bb.length === 6 && bb.every((x) => x.http === 200 && x.suy_luan === 'minimal' && !x.vuot_500) && hieu.filter((e) => e === 'none').length <= 2, 'bắt buộc suy luận → tự lùi "minimal", không ghi dòng lỗi; token suy luận không tính vào "vượt 500"', { hieu, bb: bb.map((x) => [x.http, x.suy_luan]) });
   fake2.close(); process.env.CTY_PROXY_URL = proxyCu;
+  // tính cách đi vào lời hệ thống; so theo cặp + McNemar
+  const thay = []; const fake3 = http.createServer(async (req, res) => { let raw = ''; for await (const c of req) raw += c; const b = JSON.parse(raw); thay.push(b.system);
+    res.end(JSON.stringify({ content: [{ type: 'text', text: '{"ok":false}' }], usage: { input_tokens: 10, output_tokens: 5 }, stop_reason: 'end_turn' })); }).listen(0, '127.0.0.1');
+  await new Promise((r) => fake3.once('listening', r)); process.env.CTY_PROXY_URL = `http://127.0.0.1:${fake3.address().port}`;
+  await chay({ dot: 'thu-tc', tran: 1, lan: 1, lanKiem: 1, models: ['openai:gpt-4o-mini'], songSong: 2, moiVai: 60, tinhCach: { mem_mong: 9 }, im: true });
+  fake3.close(); process.env.CTY_PROXY_URL = proxyCu;
+  a(thay.length && thay.every((s) => /TÍNH CÁCH GỐC[\s\S]*Mềm mỏng 9\/10/.test(s)) && !thay.some((s) => /Cẩn thận/.test(s)), 'tính cách vào lời hệ thống, chỉ đúng chỉ số đã đặt');
+  const sc = soCap('thu-tc', 'thu').find((g) => g.vai === 'kiem');   // gốc duyệt hết (đúng 30 bài sạch), biến thể bác hết (đúng 30 bài lỗi)
+  a(sc.n === 60 && sc.chi_a === 30 && sc.chi_b === 30 && sc.chenh === 0 && sc.p === 1 && sc.dem.bac_sai[0] === 30 && sc.dem.duyet_sai[1] === 30, 'so theo cặp: đếm lật hai chiều, bác sai / duyệt sai', sc);
+  a(mcnemar(0, 10) < 0.005 && mcnemar(5, 5) === 1 && mcnemar(0, 0) === 1, 'McNemar: 0/10 là thật, 5/5 là nhiễu');
   const kq = tong('thu');
   a(kq.theo_vai.kiem['openai:gpt-4o-mini'].ti_le === 0.5 && kq.theo_vai.kiem['openai:gpt-4o-mini'].duyet_sai === 30 && kq.theo_vai.lam['openai:gpt-4.1-nano'].hong_dinh_dang === 48, 'tổng hợp: duyệt-hết = 50% kiểm, 30 duyệt sai; trả lời hỏng = hỏng định dạng', kq.theo_vai.kiem);
   a(kq.theo_loai.lam.phan_loai['openai:gpt-4o-mini'].ti_le > 0 && kq.de_xuat.lam.nhom_dan_dau.includes('openai:gpt-4o-mini') && kq.duong_bien.lam.at(-1) === 'openai:gpt-4o-mini' && fs.existsSync(path.join(process.env.CTY_DATA_DIR, 'do-model', 'thu', 'ket.json')), 'đề xuất + ket.json', kq.de_xuat);

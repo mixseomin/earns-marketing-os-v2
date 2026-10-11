@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 import { goi, json, nhanSu, motLuot } from './ca.mjs';
+import { ghiApDung, ghiBaiHoc, dsBaiHoc, trangThai } from './kinh-nghiem.mjs';
 import { phongFm, giaiNguoi, theVai, tenPhong, hienHanh, dsBan, bien, boViecChuan, mucThayDoi, apBanMoi, veBan, dsDeXuat, ghiDeXuat, dsLuotTho, chiSo, chamViecChuan, usdLuot } from './quy-trinh.mjs';
 import { ghiLog } from './log.mjs';
 
@@ -143,11 +144,47 @@ async function voiKhoa(k, viec, fn) {
 // TRƯỞNG PHÒNG TỰ TRIỆU TẬP (anh chốt 11/10/2026). Sau mỗi lượt thật, máy xét chỉ số (0 đồng) theo ngưỡng `tu_hop` của quy trình;
 // chạm ngưỡng thì trưởng phòng tự họp, ra bản thử thì tự so trên bộ việc chuẩn. Chỉ chi trong ngân sách tháng của phòng
 // (`ngan_sach_cai_tien_usd_thang` trong hồ sơ phòng — Giám đốc cấp; 0/không khai = không tự họp). Hết ngân sách: ghi sổ, không chi.
-const UOC = { hop: 0.01, so: 0.02, luot: 0.0006 };   // ponytail: ước trước khi chi; số thật cộng từ chi_phi đã ghi của đề xuất + lần so
+const UOC = { hop: 0.01, so: 0.02, luot: 0.0006, rut: 0.0004 };   // ponytail: ước trước khi chi; số thật cộng từ chi_phi đã ghi của đề xuất + lần so
 export function chiThang(k, luc = new Date()) {
   const thang = luc.toISOString().slice(0, 7);
   const cong = (ds) => ds.filter((x) => String(x.ts).slice(0, 7) === thang).reduce((s, x) => s + (Number(x.chi_phi) || 0), 0);
-  return cong(dsDeXuat(k)) + cong(dsSoSanh(k)) + cong(dsSoTinhCach(k));
+  return cong(dsDeXuat(k)) + cong(dsSoSanh(k)) + cong(dsSoTinhCach(k)) + cong(dsLanRut(k));
+}
+
+// RÚT KINH NGHIỆM (decision 2026-10-11 nhân sự sống, bước 2): sau một lượt CÓ VẤP (không nộp được, hoặc bị bác rồi làm lại), mỗi người
+// tham gia tự rút MỘT bài học kèm bằng chứng trỏ lượt vừa làm; trùng ý bài đang có thì cộng vào bài đó. Chi trong ngân sách phòng; lượt
+// suôn sẻ thì không rút (đỡ tiền). Lưu, chọn, đếm, lên kỹ năng/phai ở kinh-nghiem.mjs.
+const rutDir = (k) => path.join(DATA(), 'kinh-nghiem', 'lan', k);
+export function dsLanRut(k) { const d = rutDir(k); return fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(fs.readFileSync(path.join(d, f), 'utf8'))) : []; }
+export const coVap = (nk) => nk.ket?.trang_thai_viec !== 'submitted' || (nk.buoc || []).some((b) => /làm lại/.test(b.buoc));
+export async function rutBaiHoc(nk, k = nk.khoa ?? 'thu-nghiem/lam-viec') {
+  if (nk.bo_viec || !coVap(nk)) return [];
+  const ra = [];
+  const nguoi = [...new Set((nk.buoc || []).map((b) => b.id))];
+  for (const id of nguoi) {
+    if (chiThang(k) + UOC.rut > nganSach(k)) { ra.push({ id, ghi: null, ly_do: `hết ngân sách cải tiến tháng ($${chiThang(k).toFixed(3)} / $${nganSach(k)})` }); continue; }
+    const cua = (nk.buoc || []).filter((b) => b.id === id); const ns = { ...nhanSu(id, nk.ts), vai: null };
+    const phanHoi = (nk.buoc || []).filter((b) => b.id !== id && /soát|trọng tài/.test(b.buoc)).map((b) => `${b.buoc} · ${b.ai}: ${String(b.dap || '').slice(0, 240)}`);
+    const dang = dsBaiHoc(id).filter((b) => b.khoa === k && trangThai(b) !== 'phai').map((b) => ({ ma: b.ma, noi_dung: b.noi_dung }));
+    const tam = { ts: `kn-${nk.ts}-${id}`, buoc: [], ten_phong: tenPhong(k) };
+    let kq = null; let loi = null;
+    try {
+      kq = json(await goi(ns, `RÚT KINH NGHIỆM sau lượt ${nk.ts} (${tenPhong(k)}).
+Việc: ${nk.viec}
+Kết quả lượt: ${nk.ket?.trang_thai_viec ?? nk.trang_thai}${nk.ket?.ghi_chu ? ` — ${nk.ket.ghi_chu}` : ''}
+Các bước BẠN làm: ${JSON.stringify(cua.map((b) => ({ buoc: b.buoc, tra_loi: String(b.dap || b.loi || '').slice(0, 300) })))}
+Phản hồi người khác về việc trong lượt: ${JSON.stringify(phanHoi)}
+Bài học bạn đang có: ${JSON.stringify(dang)}
+Nếu có MỘT điều lần sau BẠN nên làm khác để tránh vấp này, viết thành một câu hành động cụ thể (tối đa 25 từ), kèm bằng chứng = mã lượt + tên bước. Trùng ý một bài đang có thì trả trung_voi = mã bài đó. Không có gì đáng rút thì bai_hoc = null. Cấm rút bài học kiểu nới chuẩn, bỏ qua tiêu chí hay đổ lỗi cho người khác.
+Trả JSON: {"bai_hoc":"…"|null,"bang_chung":"<mã lượt> <tên bước>","trung_voi":null|"<mã bài>"}`, 'rút kinh nghiệm', tam, { tu: 'giam-doc' }));
+    } catch (e) { loi = `lỗi gọi mô hình: ${e.message}`; }
+    const g = kq ? ghiBaiHoc(id, k, nk, kq) : { ghi: null, ly_do: loi ?? 'không trả JSON' };
+    const lan = { qt: k, luot: nk.ts, nguoi: id, ts: new Date().toISOString(), chi_phi: usdLuot(tam), ...g, bai_hoc: kq?.bai_hoc ?? null };
+    fs.mkdirSync(rutDir(k), { recursive: true }); fs.writeFileSync(path.join(rutDir(k), `${nk.ts}-${id}.json`), JSON.stringify(lan));
+    ghiLog({ luot: nk.ts, loai: 'quyet', tu: id, chi_tiet: { rut_kinh_nghiem: g.ghi ?? 'không', bai_hoc: kq?.bai_hoc ?? null, ly_do: g.ly_do } });
+    ra.push({ id, ...g });
+  }
+  return ra;
 }
 
 // SO CHỈ SỐ GỐC (decision 2026-10-11): chỉ số tính cách phải CHỨNG MINH tác dụng. Chạy bộ việc chuẩn hai lần cho cùng quy trình, chỉ đổi
@@ -227,6 +264,16 @@ if (laCli && process.argv.includes('--so-tinh-cach')) {   // node worker/cai-tie
   console.log(kq.ben.map((b) => `${kq.nguoi}.${kq.chi_so}=${b.gia_tri}: ${b.so_dung}/${b.tong} đúng · thực hiện vòng đầu ${b.nang_luc.thuc_hien?.dat ?? '-'}/${b.nang_luc.thuc_hien?.so_mau ?? '-'} · $${b.chi_phi.toFixed(4)}`).join('\n')); process.exit(0);
 }
 
+if (laCli && process.argv.includes('--sau-luot')) {   // ca.mjs gọi sau mỗi lượt thật: đếm áp dụng (0 đồng) → rút kinh nghiệm nếu có vấp → tự xét họp
+  const P = thamSo('--qt', 'thu-nghiem/lam-viec'); const ts = thamSo('--sau-luot', '');
+  const nk = JSON.parse(fs.readFileSync(path.join(DATA(), 'nhat-ky', `${ts}.json`), 'utf8'));
+  console.log(`sau lượt ${ts}: áp dụng bài học của ${ghiApDung(nk)} người`);
+  for (const r of await rutBaiHoc(nk, P)) console.log(`  rút kinh nghiệm ${r.id}: ${r.ghi ?? 'không'}${r.ly_do ? ` (${r.ly_do})` : ''}`);
+  const x = xetTuHop(P);
+  if (!x.lam) { if (x.het_tien) await tuXet(P); console.log(`tự xét ${P}: ${x.ly_do}`); process.exit(0); }
+  console.log(`tự xét ${P}: ` + await voiKhoa(P, x.lam, () => tuXet(P))); process.exit(0);
+}
+
 if (laCli && process.argv.includes('--tu-xet')) {   // gọi sau mỗi lượt thật (ca.mjs): xét 0 đồng, chạm ngưỡng mới chi
   const P = thamSo('--qt', 'thu-nghiem/lam-viec'); const x = xetTuHop(P);
   if (!x.lam) { if (x.het_tien) await tuXet(P); console.log(`tự xét ${P}: ${x.ly_do}`); process.exit(0); }
@@ -235,12 +282,13 @@ if (laCli && process.argv.includes('--tu-xet')) {   // gọi sau mỗi lượt t
 
 if (laCli && process.argv.includes('--tu-kiem')) {
   // Proxy giả: Tâm/Hà/Kỳ/Lộc trả lời theo kịch bản; v2 bật hỏi-lại → việc không thể sẽ kẹt đúng → điểm v2 > v1 → GIỮ.
-  let kich = {};
+  let kich = {}; const danCua = {};
   const fake = http.createServer(async (req, res) => {
-    let raw = ''; for await (const c of req) raw += c; const staff = req.headers['x-cty-staff'];
+    let raw = ''; for await (const c of req) raw += c; const staff = req.headers['x-cty-staff']; danCua[staff] = String(JSON.parse(raw).system || '');
     const hoi = String(JSON.parse(raw).messages?.[0]?.content || '');
     let ans;
-    if (hoi.startsWith('HỌP')) ans = JSON.stringify({ van_de: [{ mo_ta: 'việc thiếu dữ kiện vẫn làm', bang_chung: 'lượt X bước 2' }], thay_doi: kich.thayDoi, ky_vong: 'việc không thể → kẹt' });
+    if (hoi.startsWith('RÚT KINH NGHIỆM')) { const ts = (hoi.match(/sau lượt (\S+)/) || [])[1]; ans = JSON.stringify({ bai_hoc: `${staff} lần sau đếm lại từng tiêu chí trước khi nộp`, bang_chung: `${ts} bước làm`, trung_voi: null }); }
+    else if (hoi.startsWith('HỌP')) ans = JSON.stringify({ van_de: [{ mo_ta: 'việc thiếu dữ kiện vẫn làm', bang_chung: 'lượt X bước 2' }], thay_doi: kich.thayDoi, ky_vong: 'việc không thể → kẹt' });
     else if (hoi.startsWith('PHẢN BIỆN')) ans = JSON.stringify({ dong_y: kich.haDongY !== false, sua: null, ly_do: 'có bằng chứng' });
     else if (staff === 'tam') ans = hoi.includes('báo cáo sáng') ? 'Tâm · Phòng thử\nXong: —\nĐang: —\nCần: —'
       : (hoi.includes('"thieu"') && /Jett Jean|Làm cho nó|7 features/.test(hoi)) ? '{"thieu":"thiếu dữ kiện"}'
@@ -289,11 +337,21 @@ if (laCli && process.argv.includes('--tu-kiem')) {
   kich = { thayDoi: { so_vong_lam_lai: 2 } };
   const kqTu = await tuXet(P);
   a(/họp vì .*3\/14/.test(kqTu) && /so:/.test(kqTu), `tự họp → bản thử → tự so (${kqTu})`);
+  // rút kinh nghiệm: lượt có vấp → mỗi người rút 1 bài (bằng chứng trỏ lượt), tính vào chi tháng; lượt suôn sẻ → không rút; lượt sau → bài vào lời dặn
+  const vap = { ts: '2026-10-11T07-00-00-000Z', khoa: P, viec: 'thử', trang_thai: 'xong', ket: { trang_thai_viec: 'revision' }, buoc: [{ buoc: '1 giao việc', id: 'tam', ai: 'Tâm', dap: '{}' }, { buoc: '2 làm', id: 'loc', ai: 'Lộc', dap: '{}' }, { buoc: '3 soát', id: 'ky', ai: 'Kỳ', dap: '{"ok":false,"ly_do":"thiếu câu"}' }] };
+  const chiTruocRut = chiThang(P); const rut = await rutBaiHoc(vap, P);
+  a(rut.length === 3 && rut.every((r) => r.ghi === 'moi') && dsLanRut(P).length === 3 && chiThang(P) > chiTruocRut, 'lượt có vấp: 3 người rút bài, có lưu, cộng chi tháng', rut);
+  a((await rutBaiHoc({ ...vap, ts: '2026-10-11T07-01-00-000Z', ket: { trang_thai_viec: 'submitted' } }, P)).length === 0, 'lượt suôn sẻ: không rút, không tốn');
+  const sau = await motLuot('Viết 1 câu chào', true, { khoa: P });
+  a(/KINH NGHIỆM CỦA BẠN[\s\S]*loc lần sau đếm lại/.test(danCua.loc ?? '') && sau.buoc.some((b) => b.id === 'loc' && b.bai_hoc?.length === 1), 'lượt sau: bài học vào lời dặn + ghi bước đã dùng bài nào', { dan: (danCua.loc ?? '').slice(-200) });
+  a(ghiApDung(sau) >= 1 && dsBaiHoc('loc').some((b) => b.lan_ap_dung === 1), 'đếm áp dụng sau lượt', dsBaiHoc('loc'));
   // hết ngân sách tháng → không chi, chỉ ghi lý do (khoản chi giả $0,60 trong tháng, ngân sách phòng $0,50)
   ghiDeXuat({ id: '0000-chi-gia', ts: new Date().toISOString(), qt: P, tu_ban: 1, trang_thai: 'khong_doi', muc: 1, thay_doi: [], vuot: [], van_de: [], chi_phi: 0.6 });
   for (let i = 0; i < 5; i++) await motLuot('Viết 1 câu chào', true, { khoa: P });
   const tHet = xetTuHop(P);
   a(tHet.lam === null && tHet.het_tien && /hết ngân sách/.test(tHet.ly_do) && tHet.chi > 0.5, 'hết ngân sách tháng → không họp', tHet);
+  const rutHet = await rutBaiHoc({ ...vap, ts: '2026-10-11T07-02-00-000Z' }, P);
+  a(rutHet.length === 3 && rutHet.every((r) => r.ghi === null && /hết ngân sách/.test(r.ly_do)), 'hết ngân sách → không rút kinh nghiệm', rutHet);
   // kết quả gần nhất luôn là CHỮ (trang in thẳng) — kể cả tệp cũ ghi object
   await voiKhoa(P, 'so', async () => ({ nguoi: 'loc', chi_so: 'can_than', ben: [{ gia_tri: 2, so_dung: 1, tong: 7 }] }));
   a(typeof ketQuaGanNhat(P).tom_tat === 'string' && /loc.can_than=2: 1\/7/.test(ketQuaGanNhat(P).tom_tat), 'voiKhoa ghi chữ', ketQuaGanNhat(P));
@@ -303,5 +361,5 @@ if (laCli && process.argv.includes('--tu-kiem')) {
   // về bản đầu để thử
   veBan(P, 1, 'thử lại từ đầu', 'anh');
   a(hienHanh(P).ban === 1 && dsBan(P).length >= 3, 'về v1: còn đủ các bản để xem lại');
-  fake.close(); console.log('✓ cai-tien: họp → mức 1/2/3/vượt biên, so bộ việc chuẩn → giữ / tự quay lại, ký mức 3, tự triệu tập theo ngưỡng + ngân sách, về v1'); process.exit(0);
+  fake.close(); console.log('✓ cai-tien: họp → mức 1/2/3/vượt biên, so bộ việc chuẩn → giữ / tự quay lại, ký mức 3, tự triệu tập theo ngưỡng + ngân sách, rút kinh nghiệm khi có vấp (trong ngân sách), về v1'); process.exit(0);
 }

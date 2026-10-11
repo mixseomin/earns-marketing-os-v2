@@ -5,6 +5,8 @@ import { vaiCuaPhong, theVai } from '../../../worker/quy-trinh.mjs';
 import { hoSoNangLuc, theGame, lichSu, viecCua, NANG_LUC } from '../../../worker/nang-luc.mjs';
 import { tinhCachCua, TINH_CACH } from '../../../worker/tinh-cach.mjs';
 import { soVi, luongVai, bangLuong } from '../../../worker/luong.mjs';
+import { dsBaiHoc, trangThai, NGUONG } from '../../../worker/kinh-nghiem.mjs';
+import { NutBoBaiHoc } from '../nut-bo-bai-hoc';
 import { soTinhCachCua } from '../../../worker/cai-tien.mjs';
 import { KhungVp } from '@/components/khung-vp';
 import Link from 'next/link';
@@ -54,7 +56,7 @@ const lech = (ds: (number | null)[]) => { const cuoi = ds[ds.length - 1]; const 
 const Lech = ({ d }: { d: number | null }) => (d == null || d === 0 ? <span className="cty-muted">·</span> : <span className={d > 0 ? 'cty-gm-len' : 'cty-gm-xuong'}>{d > 0 ? '+' : ''}{d}</span>);
 
 /** Thẻ nhân vật kiểu game — mọi con số là MÁY ĐO từ kết quả (nang-luc.mjs), không ai gõ tay. Gốc (tính cách) cố định từ SOUL. */
-function TheNhanVat({ id, h, t, ls, tc, so, lg }: { id: string; h: HoSo | undefined; t: The | undefined; ls: Ngay[]; tc: TinhCach[]; so: SoTc[]; lg: { vn_thang: number } | null }) {
+function TheNhanVat({ id, h, t, ls, tc, so, lg, kn }: { id: string; h: HoSo | undefined; t: The | undefined; ls: Ngay[]; tc: TinhCach[]; so: SoTc[]; lg: { vn_thang: number } | null; kn: { ky_nang: number; bai_hoc: number } }) {
   const tienDo = t ? Math.round(((t.xp - t.xp_cap_nay) / (t.xp_cap_sau - t.xp_cap_nay)) * 100) : 0;
   const xp = ls.map((d) => d.xp);
   return (
@@ -65,6 +67,7 @@ function TheNhanVat({ id, h, t, ls, tc, so, lg }: { id: string; h: HoSo | undefi
           <div className="cty-gm-cap">Cấp {t.cap}</div>
           <div className="cty-gm-bar" title={`${t.xp - t.xp_cap_nay} / ${t.xp_cap_sau - t.xp_cap_nay} XP tới cấp ${t.cap + 1}`}><i style={{ width: `${tienDo}%` }} /></div>
           <div className="cty-muted cty-nho">{t.xp} XP <Lech d={lech(xp)} /> · cấp {t.cap + 1} ở {t.xp_cap_sau} <XuHuong ds={xp} max={Math.max(...xp, 1)} /></div>
+          <div className="cty-nho">{kn.ky_nang} kỹ năng · {kn.bai_hoc} bài học đang thử</div>
           {lg && <div className="cty-nho">Lương tương đương <b>{(lg.vn_thang / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} tr ₫/tháng</b></div>}
         </> : <div className="cty-muted cty-nho">Cấp 1 · chưa làm việc nào</div>}
         <div className="cty-gm-goc">
@@ -107,7 +110,7 @@ function DsViec({ id, ds }: { id: string; ds: Viec[] }) {
   return (
     <>
       <p className="cty-muted cty-nho">{dong.length} lượt gần nhất · {dat}/{dong.length} đạt · ${ds.reduce((s, v) => s + v.usd, 0).toFixed(4)} · <Link href={`/nhat-ky?tu=${encodeURIComponent(id)}`}>toàn bộ trong sổ sự kiện ↗</Link></p>
-      <table className="cty-viec"><tbody>{dong.slice(0, 12).map((g) => { const v = g[0]!; const loi = g.find((x) => x.loi); return (
+      <table className="cty-viec cty-viec-luot"><tbody>{dong.slice(0, 12).map((g) => { const v = g[0]!; const loi = g.find((x) => x.loi); return (
         <tr key={v.luot} title={loi ? `Lỗi: ${loi.loi}` : g.map((x) => `${x.buoc}: ${x.dap}`).join('\n')}>
           <td className="cty-muted cty-nho"><Gio iso={g[g.length - 1]!.bat_dau} /></td>
           <td className="cty-viec-ten">{v.bo_viec && <span className="cty-muted cty-nho">chuẩn · </span>}{v.viec}</td>
@@ -160,14 +163,39 @@ function ViNhanSu({ vi, lg, tenVai }: { vi: Vi | undefined; lg: Luong | null; te
   );
 }
 
+type BaiHoc = { ma: string; ts: string; khoa: string; noi_dung: string; bang_chung: string; nguon: string[]; lan_ap_dung: number; lan_dat: number; luot_cuoi?: string };
+/** Kinh nghiệm tự lớn (worker/kinh-nghiem.mjs): bài học rút sau lượt có vấp → lên KỸ NĂNG khi dùng mà đạt, PHAI khi dùng mà không đạt. */
+function KinhNghiem({ id, ds, admin }: { id: string; ds: BaiHoc[]; admin: boolean }) {
+  if (!ds.length) return <p className="cty-muted">Chưa có bài học nào. Bài học mọc ra sau những lượt có vấp (bị bác, làm lại, không nộp được): người tham gia tự rút một bài kèm bằng chứng, trong ngân sách cải tiến của phòng.</p>;
+  const nhom = (tt: string) => ds.filter((b) => trangThai(b) === tt);
+  const Dong = ({ b }: { b: BaiHoc }) => (
+    <tr>
+      <td className="cty-kn-nd">{b.noi_dung}<div className="cty-muted cty-nho">{b.khoa} · bằng chứng {b.bang_chung} · <Link href={`/nhat-ky?luot=${encodeURIComponent(b.nguon[0] ?? '')}`}>lượt ↗</Link>{b.nguon.length > 1 && ` · gặp lại ${b.nguon.length - 1} lần`}</div></td>
+      <td className="cty-gm-so" title="đạt / áp dụng">{b.lan_dat}/{b.lan_ap_dung}</td>
+      {admin && <td><NutBoBaiHoc nguoi={id} ma={b.ma} /></td>}
+    </tr>
+  );
+  const kn = nhom('ky_nang').sort((a, c) => c.lan_dat - a.lan_dat); const moi = nhom('moi'); const phai = nhom('phai');
+  return (
+    <div className="cty-kn">
+      <p className="cty-muted cty-nho">Dùng mà đạt ≥ {NGUONG.ky_nang.ap_dung} lần, tỉ lệ ≥ {NGUONG.ky_nang.ti_le * 100}% → kỹ năng (cấp = số lần đạt). Dùng {NGUONG.phai.ap_dung} lần mà đạt dưới {NGUONG.phai.ti_le * 100}% → phai, không nạp nữa. Mỗi lần làm việc nạp tối đa {NGUONG.nap_toi_da} bài, kỹ năng trước.</p>
+      <h3>Kỹ năng <span className="cty-tab-so">{kn.length}</span></h3>
+      {kn.length ? <table className="cty-viec"><tbody>{kn.map((b) => <Dong key={b.ma} b={b} />)}</tbody></table> : <p className="cty-muted cty-nho">Chưa bài học nào đủ điều kiện thành kỹ năng.</p>}
+      <h3>Bài học mới <span className="cty-tab-so">{moi.length}</span></h3>
+      {moi.length ? <table className="cty-viec"><tbody>{moi.map((b) => <Dong key={b.ma} b={b} />)}</tbody></table> : <p className="cty-muted cty-nho">—</p>}
+      {phai.length > 0 && <details className="cty-details"><summary>Đã phai ({phai.length})</summary><table className="cty-viec"><tbody>{phai.map((b) => <Dong key={b.ma} b={b} />)}</tbody></table></details>}
+    </div>
+  );
+}
+
 /** Ngăn nhân sự (YDNI): đầu ghim = ai · giữ vai gì · ở đâu · model; còn lại chia tab, mỗi tab vừa một màn. */
-export function nganNhanSu(id: string): Ngan {
+export function nganNhanSu(id: string, admin = false): Ngan {
   const d = nhanSu(id);
   if (!d) return { tieuDe: id, than: <Thieu chu={`Không có hồ sơ nhân sự "${id}" (cong-ty/nhan-su/${id}/SOUL.md).`} /> };
   const f = d.fm; const p = phong(String(f.phong)); const hb = heartbeat(id);
   const arr = (k: string) => (Array.isArray(f[k]) ? (f[k] as string[]) : []);
   const hs = hoSoNangLuc() as Record<string, HoSo>; const h = hs[id]; const t = (theGame(hs) as Record<string, The>)[id];
-  const giu = vaiDangGiu(id);
+  const giu = vaiDangGiu(id); const bh = dsBaiHoc(id) as BaiHoc[]; const soKn = bh.filter((b) => trangThai(b) === 'ky_nang').length;
   const vi = (soVi() as Record<string, Vi>)[id];
   const vaiLuong = giu.find((g) => (bangLuong() as { vai: Record<string, unknown> }).vai[g.ma])?.ma ?? vi?.muc[0]?.vai ?? null;
   const lg = vaiLuong ? (luongVai(vaiLuong, t?.cap ?? 1) as Luong | null) : null; const tenVai = vaiLuong ? ((theVai(vaiLuong) as { ten?: string } | null)?.ten ?? vaiLuong) : '';
@@ -190,10 +218,11 @@ export function nganNhanSu(id: string): Ngan {
   return {
     tieuDe: <>{String(f.ten)} <span className="cty-muted">· {giu[0]?.the?.ten ?? String(f.chuc_danh)}{t ? ` · cấp ${t.cap}` : ''}</span></>,
     than: (
-      <TabPhong khoa={`ns-${id}`} dau={dau} tabs={[{ key: 'nl', nhan: 'Chỉ số', so: t ? `cấp ${t.cap}` : '' }, { key: 'viec', nhan: 'Việc', so: new Set(viec.map((v) => v.luot)).size }, { key: 'vi', nhan: 'Ví', so: vi ? trieu(vi.tong_vnd) : '' }, { key: 'vai', nhan: 'Vai', so: giu.length }, { key: 'hs', nhan: 'Hồ sơ' }, { key: 'lich', nhan: 'Lịch chạy' }]}>
+      <TabPhong khoa={`ns-${id}`} dau={dau} tabs={[{ key: 'nl', nhan: 'Chỉ số', so: t ? `cấp ${t.cap}` : '' }, { key: 'viec', nhan: 'Việc', so: new Set(viec.map((v) => v.luot)).size }, { key: 'kn', nhan: 'Kinh nghiệm', so: bh.length }, { key: 'vi', nhan: 'Ví', so: vi ? trieu(vi.tong_vnd) : '' }, { key: 'vai', nhan: 'Vai', so: giu.length }, { key: 'hs', nhan: 'Hồ sơ' }, { key: 'lich', nhan: 'Lịch chạy' }]}>
         {[
-          <TheNhanVat key="nl" id={id} h={h} t={t} ls={ls} tc={tc} so={so} lg={lg} />,
+          <TheNhanVat key="nl" id={id} h={h} t={t} ls={ls} tc={tc} so={so} lg={lg} kn={{ ky_nang: soKn, bai_hoc: bh.length - soKn }} />,
           <DsViec key="viec" id={id} ds={viec} />,
+          <KinhNghiem key="kn" id={id} ds={bh} admin={admin} />,
           <ViNhanSu key="vi" vi={vi} lg={lg} tenVai={tenVai} />,
           <div key="vai" className="cty-ns-vai">{giu.length ? giu.map((g, i) => (
             <section key={i}>
@@ -337,7 +366,7 @@ export async function nganQuyTrinh(): Promise<Ngan> {
 
 export async function nganTheoKhoa(khoa: string, admin: boolean): Promise<Ngan> {
   const { loai, ma } = tachKhoa(khoa);
-  if (loai === 'nhan-su') return nganNhanSu(ma);
+  if (loai === 'nhan-su') return nganNhanSu(ma, admin);
   if (loai === 'phong') return await nganPhong(ma, admin);
   if (loai === 'nhat-ky') return nganNhatKy(ma);
   if (loai === 'luat') return nganLuat();

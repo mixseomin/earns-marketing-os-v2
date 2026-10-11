@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { GOC } from './goc.mjs';
 import { tinhCachCua, loiDanTinhCach } from './tinh-cach.mjs';
+import { chonBaiHoc, loiDanKinhNghiem } from './kinh-nghiem.mjs';
 import http from 'node:http';
 import { parseFm } from '../scripts/fm.mjs';
 import { ghiLog } from './log.mjs';
@@ -31,7 +32,7 @@ const tenCua = (id) => id === 'giam-doc' ? 'Giám đốc' : (() => { try { retur
 export async function goi(ns, user, buoc, nk, toi) {
   ghiLog({ luot: nk.ts, loai: 'tin', tu: toi?.tu ?? 'giam-doc', toi: ns.id, chi_tiet: { buoc, noi_dung: user.slice(0, 240) } });
   const body = { model: ns.model, max_tokens: 500, temperature: 0.3,
-    system: `Bạn là ${ns.ten}, ${ns.vai?.ten ?? ns.chuc_danh}, ${nk.ten_phong ?? 'công ty'}. LUẬT CHUNG (rút gọn): ba mức quyết định; việc nộp phải có bằng chứng; không khen mở đầu; trả lời đúng định dạng được yêu cầu, không thêm lời dẫn.\n\n${nk.quy_dinh ? `\n\nQUY ĐỊNH DỰ ÁN PHÒNG PHẢI TUÂN THEO (trên quy trình của phòng, không được làm trái):\n${nk.quy_dinh}` : ''}${ns.vai ? `\n\nVAI CỦA BẠN Ở PHÒNG — ${ns.vai.ten}:\n${ns.vai.body}` : ''}${loiDanTinhCach(ns.tinh_cach ?? [])}\n\nHỒ SƠ CỦA BẠN:\n${ns.body}`,
+    system: `Bạn là ${ns.ten}, ${ns.vai?.ten ?? ns.chuc_danh}, ${nk.ten_phong ?? 'công ty'}. LUẬT CHUNG (rút gọn): ba mức quyết định; việc nộp phải có bằng chứng; không khen mở đầu; trả lời đúng định dạng được yêu cầu, không thêm lời dẫn.\n\n${nk.quy_dinh ? `\n\nQUY ĐỊNH DỰ ÁN PHÒNG PHẢI TUÂN THEO (trên quy trình của phòng, không được làm trái):\n${nk.quy_dinh}` : ''}${ns.vai ? `\n\nVAI CỦA BẠN Ở PHÒNG — ${ns.vai.ten}:\n${ns.vai.body}` : ''}${loiDanTinhCach(ns.tinh_cach ?? [])}${loiDanKinhNghiem(ns.bai_hoc ?? [])}\n\nHỒ SƠ CỦA BẠN:\n${ns.body}`,
     messages: [{ role: 'user', content: user }] };
   const moTa = `${buoc} · từ ${tenCua(toi?.tu ?? 'giam-doc')}`;
   await vpBao(ns.id, 'lam', moTa);
@@ -42,7 +43,7 @@ export async function goi(ns, user, buoc, nk, toi) {
   if (NHIP * 1000 > ms) await new Promise((ok) => setTimeout(ok, NHIP * 1000 - ms));
   await vpBao(ns.id, 'xong', moTa);
   const text = r.ok ? (d.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('') : '';
-  nk.buoc.push({ buoc, ai: ns.ten, id: ns.id, model: ns.model, bat_dau, ket_thuc, ms, http: r.status, usage: d.usage || null, loi: r.ok ? null : d.error || JSON.stringify(d).slice(0, 200), hoi: user, dap: text });
+  nk.buoc.push({ buoc, ai: ns.ten, id: ns.id, model: ns.model, bat_dau, ket_thuc, ms, http: r.status, usage: d.usage || null, loi: r.ok ? null : d.error || JSON.stringify(d).slice(0, 200), hoi: user, dap: text, bai_hoc: (ns.bai_hoc ?? []).map((b) => b.ma) });
   if (!r.ok) throw new Error(`${ns.ten}: ${r.status} ${d.error || ''}`);
   ghiLog({ luot: nk.ts, loai: 'tin', tu: ns.id, toi: toi?.tu ?? 'giam-doc', chi_tiet: { buoc, tra_loi: text.slice(0, 240) } });
   return text;
@@ -59,7 +60,7 @@ export async function motLuot(viec, ghi = true, o = {}) {
   ghiLog({ luot: ts, loai: 'he-thong', tu: 'giam-doc', chi_tiet: { su_kien: 'bắt đầu lượt', viec, quy_trinh: qt.ban } });
   // Quy trình trỏ VAI → người đang giữ vai ở phòng (đổi người không phải sửa quy trình). Cache theo người: một người hai vai đọc hồ sơ một lần.
   // o.giuVai = { <vai>: <người> } đặt người khác giữ vai cho riêng lượt này (thử việc / tự kiểm), không đụng hồ sơ phòng.
-  const nsCache = {}; const N = (ma) => { const g0 = giaiNguoi(khoa, ma); const g = o.giuVai?.[ma] ? { ...g0, nguoi: o.giuVai[ma] } : g0; return (nsCache[g.nguoi] ??= (() => { const n = nhanSu(g.nguoi, ts); return { ...n, vai: g.vai, tinh_cach: tinhCachCua(n, o.tinhCach?.[g.nguoi]) }; })()); };
+  const nsCache = {}; const N = (ma) => { const g0 = giaiNguoi(khoa, ma); const g = o.giuVai?.[ma] ? { ...g0, nguoi: o.giuVai[ma] } : g0; return (nsCache[g.nguoi] ??= (() => { const n = nhanSu(g.nguoi, ts); return { ...n, vai: g.vai, tinh_cach: tinhCachCua(n, o.tinhCach?.[g.nguoi]), bai_hoc: o.khongKinhNghiem ? [] : chonBaiHoc(g.nguoi, khoa) }; })()); };
   const giaoNs = N(qt.nguoi.giao), lamNs = N(qt.nguoi.lam), kiemNs = N(qt.nguoi.kiem), bcNs = N(qt.nguoi.bao_cao);
   const dien = (mau, v) => dienMau(mau, { nguoi_lam: lamNs.ten, nguoi_kiem: kiemNs.ten, ma_nguoi_lam: lamNs.id, ...v });   // lời nhắc không gõ tên người
   // Quy định dự án mà phòng tham gia (cong-ty/quy-dinh/du-an) đi vào lời dặn của mọi người trong lượt; luật chung công ty đã ở system.
@@ -212,7 +213,8 @@ if (process.argv.includes('--viec') && (process.argv[1] || '').endsWith('ca.mjs'
   const ban = process.argv.includes('--ban') ? Number(process.argv[process.argv.indexOf('--ban') + 1]) : null;
   const nk = await motLuot(viec, true, ban ? { quyTrinh: dsBan(QT).find((b) => b.ban === ban) } : {});
   console.log(JSON.stringify({ ts: nk.ts, trang_thai: nk.trang_thai, loi: nk.loi, tong: nk.tong, ket: nk.ket?.trang_thai_viec }, null, 1));
-  // Trưởng phòng xét có cần họp không (0 đồng; chạm ngưỡng mới chi, trong ngân sách phòng) — tiến trình riêng để lượt trả kết quả ngay.
-  if (nk.trang_thai === 'xong') { const { spawn } = await import('node:child_process'); spawn(process.execPath, [path.join(path.dirname(process.argv[1]), 'cai-tien.mjs'), '--tu-xet', '--qt', nk.khoa ?? QT], { detached: true, stdio: ['ignore', 'inherit', 'inherit'], env: process.env }).unref(); }
+  // Sau lượt (tiến trình riêng để lượt trả kết quả ngay): đếm bài học đã áp dụng (0 đồng) → lượt có vấp thì người tham gia rút kinh
+  // nghiệm (trong ngân sách phòng) → trưởng phòng xét có cần họp không.
+  if (nk.trang_thai === 'xong') { const { spawn } = await import('node:child_process'); spawn(process.execPath, [path.join(path.dirname(process.argv[1]), 'cai-tien.mjs'), '--sau-luot', nk.ts, '--qt', nk.khoa ?? QT], { detached: true, stdio: ['ignore', 'inherit', 'inherit'], env: process.env }).unref(); }
   process.exit(nk.trang_thai === 'xong' ? 0 : 1);
 }

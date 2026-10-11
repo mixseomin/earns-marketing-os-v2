@@ -328,8 +328,8 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-viec{border-collapse:collapse;width:100%}
 .cty-viec td{padding:5px 8px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:baseline}
 .cty-viec-ten{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0;width:100%}
-@media (max-width:700px){.cty-gm-cs th:nth-child(4),.cty-gm-cs td:nth-child(4){display:none}.cty-viec td:nth-child(5){display:none}}
-@media (max-width:700px){.cty-viec td:nth-child(3){display:none}}
+@media (max-width:700px){.cty-gm-cs th:nth-child(4),.cty-gm-cs td:nth-child(4){display:none}.cty-viec-luot td:nth-child(5){display:none}}
+@media (max-width:700px){.cty-viec-luot td:nth-child(3){display:none}}   /* chỉ bảng Việc (các bước · $) — không áp lên bảng khác dùng .cty-viec */
 @media (max-width:700px){.cty-gm{gap:10px}.cty-gm-trai .cty-av{width:56px;height:56px}.cty-gm-goc{margin-top:2px}}
 @media (max-width:700px){.cty-gm-cs thead{display:none}}
 .cty-vi{display:grid;gap:12px;max-width:980px}
@@ -339,3 +339,5 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 @media (max-width:700px){.cty-vi-so{grid-template-columns:repeat(2,minmax(0,1fr))}.cty-vi .cty-viec td:nth-child(3),.cty-vi .cty-viec td:nth-child(5){display:none}}
 .cty-vi>*,.cty-vi-so>div{min-width:0}
 @media (max-width:700px){.cty-vi .cty-viec td:first-child{display:none}.cty-vi .cty-viec tr:nth-child(n+6){display:none}.cty-vi-so>div{padding:8px 10px}.cty-vi-so b{font-size:1rem}}
+.cty-kn{display:grid;gap:8px;max-width:980px}.cty-kn h3{margin:6px 0 0}
+.cty-kn-nd{white-space:normal!important;width:100%}

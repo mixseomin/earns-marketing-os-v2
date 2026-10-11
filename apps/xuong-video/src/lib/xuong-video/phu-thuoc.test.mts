@@ -29,3 +29,14 @@ console.log('phu-thuoc.test: ok');
   assert.deepStrictEqual(khacCauLenh('Same.', 'Same.'), { them: [], bot: [] });
   console.log('phu-thuoc.test: khác câu lệnh ok');
 }
+{
+  const { bangDoiTuong } = await import('./phu-thuoc');
+  const q = { id: 9, ten: 'Quần', loai: 'san_pham', mo_ta: 'q', anh_ref: ['p1'], bien_the: [{ id: 1, nhan_vat_id: 9, nhom: 'mau', ten: 'Đen', mo_ta: '', anh_url: 'den' }, { id: 2, nhan_vat_id: 9, nhom: 'mau', ten: 'Xanh', mo_ta: '', anh_url: null }] } as unknown as NhanVat;
+  const tom = { id: 5, ten: 'Tom', loai: 'nhan_vat', mo_ta: 'm', anh_ref: [], bien_the: [] } as unknown as NhanVat;
+  const ds = [shot({ id: 1, nhan_vat: [9], bien_the: [1] }), shot({ id: 2, nhan_vat: [9], bien_the: [1] }), shot({ id: 3, nhan_vat: [9], bien_the: [2], prompt_anh: 'Tom walks' })];
+  const b = bangDoiTuong(ds, [q, tom]);
+  assert.deepStrictEqual(b[0]!.o.map((o) => o.khac), [false, false, true]);          // shot 3 đổi màu so với đa số
+  assert.ok(b[0]!.o[2]!.thieu.length && !b[0]!.o[0]!.thieu.length);                     // biến thể Xanh chưa có ảnh
+  assert.deepStrictEqual(b[1]!.o.map((o) => o.nhac), [false, false, true]);           // nhắc "Tom" mà chưa gắn
+  console.log('phu-thuoc.test: bảng đối tượng ok');
+}

@@ -13,6 +13,7 @@ import { GiongNhanVat } from './nhan-vat';
 import { Animatic } from './animatic';
 import { CanhRow } from './canh';
 import { ChayChon } from './chay-chon';
+import { BangDoiTuong } from './bang-doi-tuong';
 import { BaiDangKem } from './bai-dang';
 import { DichPhim } from './dich-phim';
 import { useNho } from './nho';
@@ -42,6 +43,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
   const [loi, setLoi] = useState('');
   const [animatic, setAnimatic] = useState(false);
   const [moChon, setMoChon] = useState(false);
+  const [moBang, setMoBang] = useState(false);
   // 3c xem dạng timeline (mặc định, kiểu CapCut) hoặc danh sách; nhớ theo trình duyệt.
   const [xem, setXem] = useNho<'timeline' | 'ds'>('xv-xem-3c', 'timeline', ['timeline', 'ds']);
   const [chonCanh, setChonCanh] = useState<number | null>(null);
@@ -157,9 +159,11 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
         <button type="button" className={`xv-btn${moChon ? ' chinh' : ''}`} disabled={!canh?.length || banTach}
           title={`Chọn shot để sinh keyframe hoặc video nháp — ${sanSang.length} shot sẵn sàng sinh keyframe${kemThieu ? `, ${kemThieu} còn thiếu thành phần` : ''}; ${soDuyet} shot đã duyệt chờ video${uoc ? ` (≈ ${tien(uoc.videoTong)})` : ''}`}
           onClick={() => setMoChon((x) => !x)}>☑ Sinh theo lựa chọn{soDuyet || sanSang.length ? ` · ${sanSang.length} 🖼 · ${soDuyet} 🎬` : ''}</button>
+        <button type="button" className={`xv-btn${moBang ? ' chinh' : ''}`} disabled={!canh?.length} title="Bảng đối tượng × shot: shot nào dùng sản phẩm/người/bối cảnh nào, biến thể nào; đỏ = thiếu ảnh, vàng = khác màu với đa số / nhắc tên chưa gắn. 0đ" onClick={() => setMoBang((x) => !x)}>▦ Đối tượng × shot</button>
         <button type="button" className="xv-btn" disabled={banTach || ban('them')} onClick={() => void chay('them', async () => { await themCanh(tap.id); })}>+ Cảnh</button>
       </div>
       )}
+      {tab === 'storyboard' && moBang && !!canh?.length && <BangDoiTuong canh={canh} nhanVat={nhanVat} onChonShot={setChonCanh} onDong={() => setMoBang(false)} />}
       {tab === 'storyboard' && moChon && !!canh?.length && (
         <ChayChon canh={canh} nhanVat={nhanVat} kt={kt} noiKhung={tap.noi_khung} ban={ban('chon')} onDong={() => setMoChon(false)}
           onChay={(viec, ids, model) => void chay('chon', async () => { for (const id of ids) { const r = viec === 'keyframe' ? await sinhKeyframe(id, 1, model) : await sinhVideoCanh(id, model); if (!r.ok) return r; } })} />

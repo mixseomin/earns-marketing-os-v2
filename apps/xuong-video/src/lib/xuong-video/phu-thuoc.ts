@@ -50,3 +50,23 @@ export function khacCauLenh(cu: string, moi: string): { them: string[]; bot: str
   const a = tach(cu), b = tach(moi); const A = new Set(a), B = new Set(b);
   return { them: b.filter((c) => !A.has(c)), bot: a.filter((c) => !B.has(c)) };
 }
+
+/** Bảng đối tượng × shot (12/10/2026): mỗi ô = đối tượng v trong shot c.
+ *  thieu  (đỏ)  — gắn mà thiếu ảnh gốc / biến thể chưa có ảnh → không sinh được keyframe.
+ *  khac   (vàng) — sản phẩm dùng biến thể khác ĐA SỐ các shot (màu đổi giữa chừng, lỗi kiểu #1256).
+ *  nhac   (vàng, ô trống) — mô tả shot nhắc tên đối tượng mà chưa gắn → model vẽ theo chữ, không có ảnh tham chiếu. */
+export type OBang = { gan: boolean; anh: string | null; bt: string | null; thieu: string[]; khac: boolean; nhac: boolean };
+export function bangDoiTuong(canh: Canh[], nhanVat: NhanVat[]): { nv: NhanVat; o: OBang[] }[] {
+  return nhanVat.filter((v) => v.loai !== 'phong_cach').map((v) => {
+    const tp = canh.map((c) => (c.nhan_vat.includes(v.id) ? thanhPhanCanh({ nhan_vat: [v.id], bien_the: c.bien_the }, [v]).ds[0] ?? null : null));
+    const dem = new Map<string, number>();
+    for (const t of tp) if (t) dem.set(String(t.bt?.id ?? 'goc'), (dem.get(String(t.bt?.id ?? 'goc')) ?? 0) + 1);
+    const daSo = [...dem.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    const ten = v.ten.trim().toLowerCase();
+    return { nv: v, o: canh.map((c, i) => {
+      const t = tp[i];
+      if (!t) return { gan: false, anh: null, bt: null, thieu: [], khac: false, nhac: ten.length >= 3 && `${c.prompt_anh} ${c.hanh_dong} ${c.canh}`.toLowerCase().includes(ten) };
+      return { gan: true, anh: t.anh, bt: t.bt?.ten ?? null, thieu: t.thieu, khac: v.loai === 'san_pham' && dem.size > 1 && String(t.bt?.id ?? 'goc') !== daSo, nhac: false };
+    }) };
+  });
+}

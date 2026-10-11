@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 import { goi, json, nhanSu, motLuot } from './ca.mjs';
-import { phongFm, tenPhong, hienHanh, dsBan, bien, boViecChuan, mucThayDoi, apBanMoi, veBan, dsDeXuat, ghiDeXuat, dsLuotTho, chiSo, chamViecChuan, usdLuot } from './quy-trinh.mjs';
+import { phongFm, giaiNguoi, theVai, tenPhong, hienHanh, dsBan, bien, boViecChuan, mucThayDoi, apBanMoi, veBan, dsDeXuat, ghiDeXuat, dsLuotTho, chiSo, chamViecChuan, usdLuot } from './quy-trinh.mjs';
 import { ghiLog } from './log.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
@@ -78,7 +78,7 @@ export async function hop(k) {
     .map((l) => ({ luot: l.ts, viec: l.viec, ket: l.ket?.trang_thai_viec ?? l.trang_thai, buoc: (l.buoc || []).map((x) => `${x.buoc} · ${x.ai}: ${String(x.dap || x.loi || '').slice(0, 350)}`) }));
   const diem = dsBan(k).map((x) => ({ ban: x.ban, diem: diemMoiNhat(k, x.ban) })).filter((x) => x.diem).map((x) => ({ ban: x.ban, dung: `${x.diem.so_dung}/${x.diem.tong}`, sai: x.diem.chi_tiet.filter((c) => !c.dung).map((c) => `${c.id}: ${c.ly_do}`).slice(0, 6) }));
   const cu = dsDeXuat(k).slice(0, 5).map((d) => ({ id: d.id, trang_thai: d.trang_thai, thay: d.thay_doi.map((t) => `${t.khoa}=${JSON.stringify(t.moi)}`) }));
-  const tam = nhanSu(cfg.nguoi.giao, nk.ts), ha = nhanSu('ha', nk.ts);
+  const tam = nhanSu(giaiNguoi(k, cfg.nguoi.giao).nguoi, nk.ts), ha = nhanSu('ha', nk.ts);   // người đang giữ vai giao việc (trưởng phòng)
   const deXuat = json(await goi(tam, `HỌP RÚT KINH NGHIỆM — ${tenPhong(k)}, quy trình "${k}" đang chạy v${cfg.ban}.
 Cấu hình hiện hành: ${JSON.stringify(rutGon(cfg))}
 Biên (mức 1 phòng tự áp · 2 cần Hà · 3 cần Giám đốc; khoá ngoài biên = mức 3): ${JSON.stringify(b)}
@@ -152,6 +152,8 @@ export function xetTuHop(k, { boQuaKhoa = false } = {}) {
   const cfg = hienHanh(k); const t = cfg.tu_hop; const ns = nganSach(k); const chi = chiThang(k);
   const tien = { chi, ngan_sach: ns };
   if (!t?.bat) return { lam: null, ly_do: 'quy trình chưa bật tự họp', ...tien };
+  const vaiGiao = theVai(cfg.nguoi?.giao);   // quyền tự triệu tập thuộc VAI, không thuộc người
+  if (vaiGiao && !(vaiGiao.quyen ?? []).includes('tu_trieu_tap_hop')) return { lam: null, ly_do: `vai "${vaiGiao.ten}" không có quyền tự triệu tập họp`, ...tien };
   if (!ns) return { lam: null, ly_do: 'phòng chưa được cấp ngân sách cải tiến', ...tien };
   if (!boQuaKhoa && dangChayCaiTien(k)) return { lam: null, ly_do: 'đang họp / đang so', ...tien };
   const dx = dsDeXuat(k);
@@ -167,7 +169,7 @@ export function xetTuHop(k, { boQuaKhoa = false } = {}) {
   return lyDo ? can('hop', lyDo) : { lam: null, ly_do: 'chỉ số trong ngưỡng', ...tien };
 }
 export async function tuXet(k) {
-  const x = xetTuHop(k, { boQuaKhoa: true }); const truong = hienHanh(k).nguoi?.giao ?? 'tam';
+  const x = xetTuHop(k, { boQuaKhoa: true }); const truong = giaiNguoi(k, hienHanh(k).nguoi?.giao)?.nguoi ?? 'tam';
   if (x.lam || x.het_tien) ghiLog({ luot: `tu-xet-${Date.now()}`, loai: 'quyet', tu: truong, chi_tiet: { tu_trieu_tap: k, lam: x.lam ?? 'không (hết ngân sách)', ly_do: x.ly_do, chi_thang: x.chi, ngan_sach: x.ngan_sach } });
   if (!x.lam) return x.ly_do;
   let kq = '';

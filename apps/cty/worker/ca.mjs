@@ -10,7 +10,7 @@ import http from 'node:http';
 import { parseFm } from '../scripts/fm.mjs';
 import { ghiLog } from './log.mjs';
 import { vpBao } from './vp.mjs';
-import { hienHanh, dsBan, mayDo, dien, LOAI_DO, quyDinhCuaPhong, tenPhong } from './quy-trinh.mjs';
+import { hienHanh, dsBan, mayDo, dien as dienMau, LOAI_DO, quyDinhCuaPhong, tenPhong, giaiNguoi } from './quy-trinh.mjs';
 
 const DIR = path.join(GOC, 'worker');   // không dùng import.meta.url: xem worker/goc.mjs
 const CONG_TY = path.join(DIR, '..', 'cong-ty');
@@ -30,7 +30,7 @@ const tenCua = (id) => id === 'giam-doc' ? 'Giám đốc' : (() => { try { retur
 export async function goi(ns, user, buoc, nk, toi) {
   ghiLog({ luot: nk.ts, loai: 'tin', tu: toi?.tu ?? 'giam-doc', toi: ns.id, chi_tiet: { buoc, noi_dung: user.slice(0, 240) } });
   const body = { model: ns.model, max_tokens: 500, temperature: 0.3,
-    system: `Bạn là ${ns.ten}, ${ns.chuc_danh}, ${nk.ten_phong ?? 'công ty'}. LUẬT CHUNG (rút gọn): ba mức quyết định; việc nộp phải có bằng chứng; không khen mở đầu; trả lời đúng định dạng được yêu cầu, không thêm lời dẫn.\n\n${nk.quy_dinh ? `\n\nQUY ĐỊNH DỰ ÁN PHÒNG PHẢI TUÂN THEO (trên quy trình của phòng, không được làm trái):\n${nk.quy_dinh}` : ''}\n\nHỒ SƠ CỦA BẠN:\n${ns.body}`,
+    system: `Bạn là ${ns.ten}, ${ns.vai?.ten ?? ns.chuc_danh}, ${nk.ten_phong ?? 'công ty'}. LUẬT CHUNG (rút gọn): ba mức quyết định; việc nộp phải có bằng chứng; không khen mở đầu; trả lời đúng định dạng được yêu cầu, không thêm lời dẫn.\n\n${nk.quy_dinh ? `\n\nQUY ĐỊNH DỰ ÁN PHÒNG PHẢI TUÂN THEO (trên quy trình của phòng, không được làm trái):\n${nk.quy_dinh}` : ''}${ns.vai ? `\n\nVAI CỦA BẠN Ở PHÒNG — ${ns.vai.ten}:\n${ns.vai.body}` : ''}\n\nHỒ SƠ CỦA BẠN:\n${ns.body}`,
     messages: [{ role: 'user', content: user }] };
   const moTa = `${buoc} · từ ${tenCua(toi?.tu ?? 'giam-doc')}`;
   await vpBao(ns.id, 'lam', moTa);
@@ -56,8 +56,11 @@ export async function motLuot(viec, ghi = true, o = {}) {
   const khoa = o.khoa ?? QT; const qt = o.quyTrinh ?? hienHanh(khoa); const L = qt.loi_nhac;
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
   ghiLog({ luot: ts, loai: 'he-thong', tu: 'giam-doc', chi_tiet: { su_kien: 'bắt đầu lượt', viec, quy_trinh: qt.ban } });
-  const nsCache = {}; const N = (id) => (nsCache[id] ??= nhanSu(id, ts));
+  // Quy trình trỏ VAI → người đang giữ vai ở phòng (đổi người không phải sửa quy trình). Cache theo người: một người hai vai đọc hồ sơ một lần.
+  // o.giuVai = { <vai>: <người> } đặt người khác giữ vai cho riêng lượt này (thử việc / tự kiểm), không đụng hồ sơ phòng.
+  const nsCache = {}; const N = (ma) => { const g0 = giaiNguoi(khoa, ma); const g = o.giuVai?.[ma] ? { ...g0, nguoi: o.giuVai[ma] } : g0; return (nsCache[g.nguoi] ??= { ...nhanSu(g.nguoi, ts), vai: g.vai }); };
   const giaoNs = N(qt.nguoi.giao), lamNs = N(qt.nguoi.lam), kiemNs = N(qt.nguoi.kiem), bcNs = N(qt.nguoi.bao_cao);
+  const dien = (mau, v) => dienMau(mau, { nguoi_lam: lamNs.ten, nguoi_kiem: kiemNs.ten, ma_nguoi_lam: lamNs.id, ...v });   // lời nhắc không gõ tên người
   // Quy định dự án mà phòng tham gia (cong-ty/quy-dinh/du-an) đi vào lời dặn của mọi người trong lượt; luật chung công ty đã ở system.
   const quyDinh = quyDinhCuaPhong(khoa.split('/')[0]).filter((x) => x.tang === 'du-an' && x.noi_dung).map((x) => `[${x.ten}]\n${x.noi_dung}`).join('\n\n').slice(0, 3000);
   const nk = { ts, bat_dau: new Date().toISOString(), viec, khoa, ten_phong: tenPhong(khoa), quy_trinh: qt.ban, quy_dinh: quyDinh, bo_viec: o.boViec ?? null, trang_thai: 'đang chạy', buoc: [], do_may: [], ket: null };
@@ -69,7 +72,7 @@ export async function motLuot(viec, ghi = true, o = {}) {
     // 1. Giao việc
     let loiGiao = dien(L.giao, { viec });
     if (qt.hoi_lai_khi_thieu_du_kien) loiGiao += '\nNếu việc THIẾU dữ kiện để làm đúng (không rõ đối tượng, ngôn ngữ, nơi đăng, giới hạn) hoặc các ràng buộc MÂU THUẪN nhau đến mức không thể làm đúng, thì KHÔNG giao: trả JSON {"thieu":"<một câu hỏi cụ thể gửi Giám đốc>"}.';
-    if (qt.may_do) loiGiao += `\nTiêu chí nào đo được bằng máy thì thêm vào "do" (mỗi phép một trong: ${MAU_DO}), ví dụ {"giao_cho":"loc","viec":"…","tieu_chi":["…"],"do":[{"loai":"so_cau","bang":3}]}.`;
+    if (qt.may_do) loiGiao += `\nTiêu chí nào đo được bằng máy thì thêm vào "do" (mỗi phép một trong: ${MAU_DO}), ví dụ {"giao_cho":"${lamNs.id}","viec":"…","tieu_chi":["…"],"do":[{"loai":"so_cau","bang":3}]}.`;
     const giao = json(await goi(giaoNs, loiGiao, `${so()} giao việc`, nk, { tu: 'giam-doc' }));
     let lam = null, soat = null, vong = 0, tt, cauHoi, ghiChu;
     if (giao?.thieu) { tt = 'ket'; cauHoi = String(giao.thieu); }
@@ -141,10 +144,12 @@ export async function motLuot(viec, ghi = true, o = {}) {
 
 if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('ca.mjs')) {
   // Proxy giả trả lời đúng vai theo x-cty-staff + nội dung câu hỏi; mỗi ca đặt `kich` để điều khiển. 0 đồng.
-  let kich = {}; const dem = { loc: 0, ky: 0 };
+  let kich = {}; const dem = { loc: 0, ky: 0 }; const thay = [];
+  const VAI_NHU = { 'Trưởng phòng': 'tam', 'Người làm': 'loc', 'Người kiểm': 'ky' };   // giả trả lời theo VAI người đó giữ (đổi người vẫn chạy)
   const fake = http.createServer(async (req, res) => {
-    let raw = ''; for await (const c of req) raw += c; const staff = req.headers['x-cty-staff'];
-    const hoi = String(JSON.parse(raw).messages?.[0]?.content || '');   // chỉ nhìn câu hỏi, không nhìn system
+    let raw = ''; for await (const c of req) raw += c; const goc = req.headers['x-cty-staff']; const body = JSON.parse(raw);
+    const vai = (String(body.system).match(/VAI CỦA BẠN Ở PHÒNG — ([^:]+):/) || [])[1]; const staff = VAI_NHU[vai] ?? goc;
+    const hoi = String(body.messages?.[0]?.content || ''); thay.push({ goc, vai, system: String(body.system), hoi });
     let ans;
     if (staff === 'tam') ans = hoi.includes('báo cáo sáng') ? 'Tâm · Phòng thử · 2026-10-10\nXong: việc — bằng chứng\nĐang: —\nCần: mức 3 — ký'
       : kich.thieu && hoi.includes('"thieu"') ? '{"thieu":"Jett Jean là sản phẩm gì, viết bằng ngôn ngữ nào?"}'
@@ -186,7 +191,14 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('ca.m
   // hết vòng → trọng tài (Hà) phân xử
   nk = await chay({ kyLuonBac: true }, { so_vong_lam_lai: 0, het_vong: 'trong_tai', nguoi: { trong_tai: 'ha' } });
   assert(nk.ket.trang_thai_viec === 'submitted' && /Trọng tài Hà/.test(nk.ket.ghi_chu) && /trọng tài/.test(ten(nk)), `trọng tài xử đạt (${ten(nk)})`, nk);
-  fake.close(); console.log('✓ ca.mjs: v1 y cũ + 5 công tắc (hỏi lại, máy đo, khoá tiêu chí, hết vòng→kẹt, trọng tài)'); process.exit(0);
+  // VAI tách khỏi NGƯỜI: lời nhắc điền tên người đang giữ vai, lời dặn có thẻ vai; đổi người giữ vai không phải sửa quy trình
+  thay.length = 0; nk = await chay({});
+  assert(thay.some((x) => x.goc === 'loc' && /VAI CỦA BẠN Ở PHÒNG — Người làm/.test(x.system) && /^Bạn là Lộc, Người làm/.test(x.system)), 'Lộc nhận thẻ vai Người làm', thay.map((x) => x.system.slice(0, 40)));
+  assert(thay.some((x) => x.goc === 'ky' && /Kết quả Lộc nộp/.test(x.hoi)) && !thay.some((x) => /\{nguoi_lam\}|\{nguoi_kiem\}|\{ma_nguoi_lam\}/.test(x.hoi)), 'lời nhắc điền đúng tên, không sót chỗ trống', thay.map((x) => x.hoi.slice(0, 60)));
+  thay.length = 0; kich = {}; dem.loc = 0; dem.ky = 0; nk = await motLuot('thử', false, { giuVai: { 'nguoi-lam': 'minh' } });
+  assert(nk.trang_thai === 'xong' && nk.buoc.some((b) => b.id === 'minh' && /làm/.test(b.buoc)) && !nk.buoc.some((b) => b.id === 'loc'), `đổi người giữ vai Người làm → Minh làm, Lộc không (${nk.buoc.map((b) => b.id).join(',')})`, nk);
+  assert(thay.some((x) => x.goc === 'ky' && /Kết quả Minh nộp/.test(x.hoi)) && thay.some((x) => x.goc === 'tam' && /"giao_cho":"minh"/.test(x.hoi)), 'lời nhắc tự đổi sang tên + mã người mới', thay.map((x) => x.hoi.slice(0, 80)));
+  fake.close(); console.log('✓ ca.mjs: v1 y cũ + 5 công tắc (hỏi lại, máy đo, khoá tiêu chí, hết vòng→kẹt, trọng tài) + vai tách khỏi người (đổi người giữ vai)'); process.exit(0);
 }
 
 if (process.argv.includes('--viec') && (process.argv[1] || '').endsWith('ca.mjs')) {

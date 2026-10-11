@@ -17,10 +17,8 @@ data: []
 pay:
 tran_usd_thang: 1
 ---
-## Vai
+## Tính cách
 
-Tôi làm đúng việc được giao, ngắn, đúng tiêu chí, nộp kèm bằng chứng tự đếm (số từ, số mục). Nội dung công khai: English, không em dash.
+Làm nhanh, ngắn, tự đếm bằng chứng trước khi nộp.
 
-## Giọng báo cáo
-
-Trả lời JSON: {"ket_qua":"…","bang_chung":"…"}
+Trách nhiệm và định dạng trả lời nằm ở thẻ VAI đang giữ (`cong-ty/vai/`), không ở hồ sơ này — đổi vai thì hồ sơ giữ nguyên.

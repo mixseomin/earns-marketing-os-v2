@@ -7,6 +7,16 @@ import { tongQuanQuyTrinh, type DongQuyTrinh, type QuyDinh } from '@/lib/quy-tri
 import { Md } from './md';
 import { Gio } from './gio';
 import { Nguoi } from './nguoi';
+import { theVai, giaiNguoi } from '../../worker/quy-trinh.mjs';
+
+/** Mã trong quy trình là VAI (→ người đang giữ + tên vai) hoặc là người (vd Hà ngoài phòng). */
+function NguoiVai({ ma, khoa }: { ma: string; khoa?: string }) {
+  const v = theVai(ma) as { ten?: string } | null;
+  if (!v) return <Nguoi id={ma} />;
+  let ai: string | null = null; try { ai = khoa ? (giaiNguoi(khoa, ma) as { nguoi: string }).nguoi : null; } catch { ai = null; }
+  return <>{ai && <Nguoi id={ai} />}<span className="cty-muted cty-nho"> {ai ? `(${v.ten})` : `vai ${v.ten}`}</span></>;
+}
+const khoaCua = (cfg: Cfg) => { const c = cfg as Cfg & { phong?: string; quy_trinh?: string }; return c.phong && c.quy_trinh ? `${c.phong}/${c.quy_trinh}` : undefined; };
 import { NutQuyTrinh, NutKy } from './nut-quy-trinh';
 import { TabPhong } from './tab-phong';
 
@@ -24,7 +34,7 @@ export const NHAN_KHOA: Record<string, string> = { 'tu_hop.ty_le_dat_duoi': 'T�
 export const nhanKhoa = (k: string) => NHAN_KHOA[k] ?? (k.startsWith('loi_nhac.') ? `Lời nhắc bước "${k.slice(9)}"` : k);
 const HET_VONG: Record<string, string> = { revision: 'dừng ở "phải làm lại" — không ai quyết', ket: 'kẹt, hỏi Giám đốc', trong_tai: 'trọng tài phân xử', nop_kem_ghi_chu: 'nộp kèm ghi chú' };
 function GiaTri({ k, v }: { k: string; v: unknown }) {
-  if (k.startsWith('nguoi.')) return v ? <Nguoi id={String(v)} /> : <span className="cty-muted">không có</span>;
+  if (k.startsWith('nguoi.')) return v ? <NguoiVai ma={String(v)} /> : <span className="cty-muted">không có</span>;
   if (typeof v === 'boolean') return <span className={v ? 'cty-qt-bat' : 'cty-muted'}>{v ? 'bật' : 'tắt'}</span>;
   if (k === 'het_vong') return <>{HET_VONG[String(v)] ?? String(v)}</>;
   if (typeof v === 'string' && v.length > 60) return <span title={v}>{v.slice(0, 60)}…</span>;
@@ -107,7 +117,7 @@ function Buoc({ so, ten, nguoi, nhac, tat, cong }: { so?: number; ten: string; n
 const Mui = ({ chu }: { chu?: string }) => <span className="cty-qt-mui" aria-hidden>{chu ? <small>{chu}</small> : null}<span className="cty-qt-mui-ngang">→</span><span className="cty-qt-mui-doc">↓</span></span>;
 
 export function SoDoQuyTrinh({ cfg }: { cfg: Cfg }) {
-  const N = (k: string) => (cfg.nguoi[k] ? <Nguoi id={cfg.nguoi[k]!} /> : null);
+  const N = (k: string) => (cfg.nguoi[k] ? <NguoiVai ma={cfg.nguoi[k]!} khoa={khoaCua(cfg)} /> : null);
   const bat = (v: boolean) => <span className={v ? 'cty-qt-bat' : 'cty-muted'}>{v ? 'bật' : 'tắt'}</span>;
   return (
     <div className="cty-qt-sodo">
@@ -185,7 +195,7 @@ export async function nganChiTietQuyTrinh(k: string, ten: string, admin: boolean
   const dau = (
     <>
       <NutQuyTrinh khoa={k} banHienHanh={cfg.ban} dangChay={(t.dangChay as { viec: string } | null)?.viec ?? null} coBanThu={coBanThu} admin={admin} />
-      <TuHop cfg={cfg} x={t.tuHop as TuXet} truong={String(cfg.nguoi?.giao ?? 'tam')} />
+      <TuHop cfg={cfg} x={t.tuHop as TuXet} truong={(() => { try { return (giaiNguoi(k, cfg.nguoi?.giao) as { nguoi: string }).nguoi; } catch { return String(cfg.nguoi?.giao ?? ''); } })()} />
       {kq && !t.dangChay && <p className={kq.ok ? 'cty-bao-ok' : 'cty-bao-loi'} data-loi={kq.ok ? undefined : ''}>Lần {kq.viec === 'hop' ? 'họp' : 'chấm'} gần nhất (<Gio iso={kq.luc} />): {kq.tom_tat ?? kq.loi}</p>}
     </>
   );

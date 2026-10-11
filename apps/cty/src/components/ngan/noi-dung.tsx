@@ -1,8 +1,11 @@
 // NỘI DUNG từng loại ngăn — một nguồn cho cả ngăn kéo lẫn trang đầy đủ (/nhan-su/x, /phong/x…). Mở được chỉ từ khoá (luật 6):
 // mỗi hàm nhận đúng mã, tự đọc dữ liệu. Không có bản ghi → nội dung báo rõ thiếu gì, không treo (luật 7).
 // Ngăn chi tiết chia 3 cột một màn (luật 8): [hình] [thông tin lưới ô] [phân tích / nội dung dài]; cột nào dài thì riêng cột đó cuộn.
+import { vaiCuaPhong, theVai } from '../../../worker/quy-trinh.mjs';
+import { hoSoNangLuc, NANG_LUC } from '../../../worker/nang-luc.mjs';
 import { KhungVp } from '@/components/khung-vp';
 import Link from 'next/link';
+import { Gio } from '../gio';
 import { nhanSu, heartbeat, phong, dsNhanSu, soDo, docText, cauHinh, dsPhong, KHUON, MUC } from '@/lib/cong-ty';
 import { Avatar, hueOf } from '../avatar';
 import { Md } from '../md';
@@ -20,6 +23,26 @@ import { tachKhoa } from '@/lib/ngan';
 export type Ngan = { tieuDe: React.ReactNode; than: React.ReactNode };
 const Thieu = ({ chu }: { chu: string }) => <p className="cty-bao-loi" data-loi>{chu}</p>;
 const O = ({ nhan, children }: { nhan: string; children: React.ReactNode }) => <div className="nk-o"><div className="nk-o-nhan">{nhan}</div><div className="nk-o-gt">{children}</div></div>;
+
+/** Năng lực do MÁY ĐO từ kết quả các lượt + bộ việc chuẩn (không ai khai, không sửa tay) + vai đang giữ ở các phòng. */
+function NangLuc({ id }: { id: string }) {
+  const h = (hoSoNangLuc() as Record<string, { nang_luc: Record<string, { dat: number; so_mau: number; diem: number | null }>; so_buoc: number; chi_phi: number; ms_tb: number; lan_cuoi: string | null }>)[id];
+  const giu = dsPhong().flatMap((p) => Object.entries(vaiCuaPhong(p.id) as Record<string, string>).filter(([, ai]) => ai === id).map(([vai]) => ({ p, vai: (theVai(vai) as { ten?: string } | null)?.ten ?? vai })));
+  return (
+    <>
+      <h3>Vai đang giữ</h3>
+      <p>{giu.length ? giu.map((g, i) => <span key={i}>{i > 0 && ' · '}{g.vai} ở <Link href={`/phong/${g.p.id}`}>{String(g.p.fm.ten)}</Link></span>) : <span className="cty-muted">chưa giữ vai nào (phòng chưa khai vai)</span>}</p>
+      <h3>Năng lực <span className="cty-muted cty-nho">máy đo từ kết quả, không ai sửa tay</span></h3>
+      {!h ? <p className="cty-muted">Chưa làm bước nào — chưa có số đo.</p> : (
+        <>
+          <table className="cty-qt-bang"><tbody>{Object.entries(NANG_LUC as Record<string, { ten: string; do: string }>).map(([k, nl]) => { const x = h.nang_luc[k] ?? { dat: 0, so_mau: 0, diem: null }; return (
+            <tr key={k} title={`Đo: ${nl.do}`}><td>{nl.ten}</td><td>{x.diem == null ? <span className="cty-muted">chưa có mẫu</span> : <b>{Math.round(x.diem * 100)}%</b>}</td><td className="cty-muted cty-nho">{x.dat}/{x.so_mau} lần{x.so_mau > 0 && x.so_mau < 5 ? ' · ít mẫu' : ''}</td></tr>); })}</tbody></table>
+          <p className="cty-muted cty-nho">{h.so_buoc} bước · ${h.chi_phi.toFixed(4)} · {(h.ms_tb / 1000).toFixed(1)} s/bước{h.lan_cuoi ? <> · lần cuối <Gio iso={h.lan_cuoi} /></> : null}</p>
+        </>
+      )}
+    </>
+  );
+}
 
 export function nganNhanSu(id: string): Ngan {
   const d = nhanSu(id);
@@ -54,6 +77,7 @@ export function nganNhanSu(id: string): Ngan {
           </div>
         </div>
         <div className="nk-cot nk-cot-dai">
+          <NangLuc id={id} />
           <h3>Vai · KPI · quyền · cấm</h3>
           <Md>{d.body}</Md>
           {hb && <><h3>HEARTBEAT.md</h3><Md>{hb}</Md></>}
@@ -73,6 +97,8 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
   const thu = String(p.fm.thu_nghiem) === 'true';
   const dem = thu ? await demLuot() : null;
   const dsQt = (await dsQuyTrinhCacPhong()).filter((x) => x.phong === id);
+  // ai đang giữ vai nào ở phòng (decision 2026-10-11 nhân sự sống) — phòng chưa khai vai thì không hiện gì thêm
+  const vaiCua: Record<string, string> = {}; for (const [vai, ai] of Object.entries(vaiCuaPhong(id) as Record<string, string>)) vaiCua[ai] = [vaiCua[ai], (theVai(vai) as { ten?: string } | null)?.ten ?? vai].filter(Boolean).join(' · ');
   const choKy = dsQt.reduce((n, q) => n + (q.deXuat?.filter((d) => d.trang_thai === 'cho_duyet').length ?? 0), 0);
   const qtTom = `${dsQt.length}${choKy ? ` · ${choKy} chờ ký` : ''}`;
   const qd = await quyDinhPhong(id);
@@ -90,7 +116,7 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
     <div className="cty-sodo-tab">
       <SvgTuongTac ten={ten}>{svg ? <figure className="cty-so-do" dangerouslySetInnerHTML={{ __html: svg }} /> : <SoDoKhuon p={p} ns={ns} />}</SvgTuongTac>
       <div className="nk-luoi">
-        <O nhan="Trưởng phòng">{String(p.fm.truong ?? '—')}</O>
+        <O nhan="Trưởng phòng">{(vaiCuaPhong(id) as Record<string, string>)['truong-phong'] ? <Nguoi id={(vaiCuaPhong(id) as Record<string, string>)['truong-phong']} /> : String(p.fm.truong ?? '—')}</O>
         <O nhan="Đơn vị việc">{String(p.fm.don_vi_viec ?? '—')}</O>
         <O nhan="Cổng người">{String(p.fm.cong_nguoi ?? '—')}</O>
         <O nhan="Khuôn">{k ? `${k.ten} — ${k.mota}` : String(p.fm.khuon)}</O>
@@ -100,7 +126,7 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
   );
   const dau = (
     <>
-      <div className="cty-phong-nguoi">{ns.map((d) => <Nguoi key={d.id} id={d.id} />)}<span className="cty-muted cty-nho">{ns.length} người</span></div>
+      <div className="cty-phong-nguoi">{ns.map((d) => <span key={d.id}><Nguoi id={d.id} />{vaiCua[d.id] && <span className="cty-muted cty-nho"> {vaiCua[d.id]}</span>}</span>)}<span className="cty-muted cty-nho">{ns.length} người</span></div>
       {canhBao && <p className="cty-bao-loi cty-bao-mot" data-loi title={canhBao}>{canhBao}</p>}
     </>
   );

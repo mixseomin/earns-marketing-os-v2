@@ -3,6 +3,9 @@ ten: Phòng thử (mô hình rẻ nhất)
 thu_tu: 14
 khuon: day-chuyen
 truong: Tâm
+vai_truong_phong: tam   # ai đang giữ vai (decision 2026-10-11 nhân sự sống): quy trình trỏ vai, đổi người = đổi dòng này
+vai_nguoi_lam: loc
+vai_nguoi_kiem: ky
 don_vi_viec: 1 việc nhỏ · mỗi lần bấm "Chạy một lượt"
 cong_nguoi: người kiểm (Kỳ, mô hình khác người làm) soát theo tiêu chí; Giám đốc đọc nhật ký
 so_do:

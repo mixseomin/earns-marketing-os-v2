@@ -38,6 +38,16 @@ export function quyDinhCuaPhong(phong) {
 
 /** Tên hiển thị của phòng (frontmatter `ten`), từ khoá phòng hoặc khoá quy trình 'phòng/quy-trình'. */
 export const phongFm = (k) => { const id = String(k).split('/')[0]; const f = path.join(CONG_TY, 'phong', `${id}.md`); return fs.existsSync(f) ? parseFm(fs.readFileSync(f, 'utf8')).fm : {}; };
+// VAI tách khỏi NGƯỜI (decision 2026-10-11 nhân sự sống): quy trình trỏ tới vai (`cong-ty/vai/<vai>.md`); hồ sơ phòng ghi ai đang
+// giữ vai (`vai_<vai>: <người>`). Mã trong quy trình không phải vai (vd 'ha' — Kiểm soát ngoài phòng) thì là người, giữ nguyên.
+export const theVai = (vai) => { const f = path.join(CONG_TY, 'vai', `${vai}.md`); if (!vai || !fs.existsSync(f)) return null; const d = parseFm(fs.readFileSync(f, 'utf8')); return { id: vai, ...d.fm, body: d.body.trim() }; };
+export const vaiCuaPhong = (k) => Object.fromEntries(Object.entries(phongFm(k)).filter(([x]) => x.startsWith('vai_')).map(([x, v]) => [x.slice(4).replace(/_/g, '-'), String(v)]));
+export function giaiNguoi(k, ma) {
+  if (!ma) return null; const v = theVai(ma); if (!v) return { nguoi: ma, vai: null };
+  const n = vaiCuaPhong(k)[ma];
+  if (!n) throw new Error(`${tenPhong(k)} chưa có ai giữ vai "${v.ten ?? ma}" — thêm "vai_${ma.replace(/-/g, '_')}: <mã người>" vào hồ sơ phòng`);
+  return { nguoi: n, vai: v };
+}
 export const tenPhong = (k) => String(phongFm(k).ten ?? String(k).split('/')[0]);
 export const coPhienBan = (k) => fs.existsSync(path.join(CONG_TY, 'quy-trinh', k, 'v1.json'));
 export const bien = () => docJson(path.join(CONG_TY, 'bien-quy-trinh.json'));

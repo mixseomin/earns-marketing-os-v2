@@ -41,6 +41,7 @@
  "nguoi.kiem": {
   "muc": 2,
   "cho_phep": [
+   "nguoi-kiem",
    "ky",
    "ha"
   ]

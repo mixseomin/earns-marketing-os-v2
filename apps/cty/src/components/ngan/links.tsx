@@ -5,7 +5,7 @@
 // Trong lúc máy chủ dựng ngăn: một tầng "Đang tải…" hiện ngay (luật 7). Thanh đầu (.cty-top) và Cmd/Ctrl-bấm: điều hướng thường.
 import { useEffect, useState, useTransition } from 'react';
 import { khoaTuHref, moKhoa, urlVoiChong } from '@/lib/ngan';
-import { useChong, rongTang, boAnTu, layAnTu } from './tang';
+import { useChong, rongTang, datMongDoi, layMongDoi, xetMongDoi } from './tang';
 import { usePathname, useRouter } from 'next/navigation';
 
 export const SU_KIEN_MO = 'cty:mo-ngan';
@@ -21,8 +21,9 @@ export function NganLinks() {
     const mo = (href: string, thay?: number) => {
       const khoa = khoaTuHref(href); if (!khoa) return false;
       setCho(khoa);
-      const con = chong.slice(0, Math.min(chong.length, layAnTu()));   // tầng vừa đóng (ẩn, URL chưa kịp đổi) không được sống lại
-      chuyen(() => router.replace(urlVoiChong(path, window.location.search, moKhoa(con, khoa, thay)), { scroll: false }));
+      const moi = moKhoa(layMongDoi() ?? chong, khoa, thay);   // đang chờ máy chủ: dựng từ chồng mong đợi → tầng vừa đóng không sống lại
+      datMongDoi(moi);
+      chuyen(() => router.replace(urlVoiChong(path, window.location.search, moi), { scroll: false }));
       return true;
     };
     const bam = (e: MouseEvent) => {
@@ -41,7 +42,8 @@ export function NganLinks() {
 
   useEffect(() => { if (!dangMo) setCho(null); }, [dangMo]);
   useEffect(() => { document.body.style.overflow = chong.length ? 'hidden' : ''; }, [chong.length]);
-  useEffect(() => { boAnTu(); }, [chong.join('|')]);   // URL đã đổi xong → bỏ mốc ẩn (tầng đã đóng đã rời khỏi cây)
+  useEffect(() => { xetMongDoi(chong); }, [chong.join('|')]);
+  useEffect(() => { datMongDoi(null); }, [path]);   // đổi màn (thanh trên): chồng chờ của màn cũ không áp sang màn mới   // URL đã đổi xong → bỏ mốc ẩn (tầng đã đóng đã rời khỏi cây)
 
   if (!dangMo || !cho || chong.includes(cho)) return null;
   return (

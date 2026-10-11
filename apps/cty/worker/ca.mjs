@@ -194,5 +194,7 @@ if (process.argv.includes('--viec') && (process.argv[1] || '').endsWith('ca.mjs'
   const ban = process.argv.includes('--ban') ? Number(process.argv[process.argv.indexOf('--ban') + 1]) : null;
   const nk = await motLuot(viec, true, ban ? { quyTrinh: dsBan(QT).find((b) => b.ban === ban) } : {});
   console.log(JSON.stringify({ ts: nk.ts, trang_thai: nk.trang_thai, loi: nk.loi, tong: nk.tong, ket: nk.ket?.trang_thai_viec }, null, 1));
+  // Trưởng phòng xét có cần họp không (0 đồng; chạm ngưỡng mới chi, trong ngân sách phòng) — tiến trình riêng để lượt trả kết quả ngay.
+  if (nk.trang_thai === 'xong') { const { spawn } = await import('node:child_process'); spawn(process.execPath, [path.join(path.dirname(process.argv[1]), 'cai-tien.mjs'), '--tu-xet', '--qt', nk.khoa ?? QT], { detached: true, stdio: ['ignore', 'inherit', 'inherit'], env: process.env }).unref(); }
   process.exit(nk.trang_thai === 'xong' ? 0 : 1);
 }

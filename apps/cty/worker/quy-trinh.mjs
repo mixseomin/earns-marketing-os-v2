@@ -37,7 +37,8 @@ export function quyDinhCuaPhong(phong) {
 }
 
 /** Tên hiển thị của phòng (frontmatter `ten`), từ khoá phòng hoặc khoá quy trình 'phòng/quy-trình'. */
-export const tenPhong = (k) => { const id = String(k).split('/')[0]; const f = path.join(CONG_TY, 'phong', `${id}.md`); return fs.existsSync(f) ? String(parseFm(fs.readFileSync(f, 'utf8')).fm.ten ?? id) : id; };
+export const phongFm = (k) => { const id = String(k).split('/')[0]; const f = path.join(CONG_TY, 'phong', `${id}.md`); return fs.existsSync(f) ? parseFm(fs.readFileSync(f, 'utf8')).fm : {}; };
+export const tenPhong = (k) => String(phongFm(k).ten ?? String(k).split('/')[0]);
 export const coPhienBan = (k) => fs.existsSync(path.join(CONG_TY, 'quy-trinh', k, 'v1.json'));
 export const bien = () => docJson(path.join(CONG_TY, 'bien-quy-trinh.json'));
 export const boViecChuan = (qt) => { const f = path.join(CONG_TY, 'bo-viec-chuan', `${qt}.json`); return fs.existsSync(f) ? docJson(f) : null; };

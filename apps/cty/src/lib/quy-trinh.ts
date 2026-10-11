@@ -7,7 +7,7 @@ import { spawn } from 'node:child_process';
 import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from './auth';
 import { dsQuyTrinh, quyDinhCuaPhong, coPhienBan, hienHanh, dsBan, nhatKyQuyTrinh, dsDeXuat, boViecChuan, dsLuotTho, chiSo, veBan } from '../../worker/quy-trinh.mjs';
-import { dsSoSanh, diemMoiNhat, duyetDeXuat, dangChayCaiTien, ketQuaGanNhat } from '../../worker/cai-tien.mjs';
+import { dsSoSanh, diemMoiNhat, duyetDeXuat, dangChayCaiTien, ketQuaGanNhat, xetTuHop } from '../../worker/cai-tien.mjs';
 
 type Kq = { ok: boolean; loi?: string };
 const chiAdmin = async (): Promise<string | null> => { const me = await getCurrentUser(); return !me ? 'Phiên đăng nhập đã hết — tải lại trang.' : me.role !== 'admin' ? 'Chỉ Giám đốc (admin) được làm việc này.' : null; };
@@ -19,7 +19,7 @@ export async function tongQuanQuyTrinh(khoa: string) {
   return {
     hienHanh: hh, cacBan: ds.map((b: { ban: number }) => ({ ...b, chiSo: chiSo(luot.filter((l) => (l.quy_trinh ?? 1) === b.ban)), diem: diemMoiNhat(khoa, b.ban) })),
     deXuat: dsDeXuat(khoa), nhatKy: nhatKyQuyTrinh(khoa).reverse(), boViec: boViecChuan(khoa), soSanh: dsSoSanh(khoa).slice(0, 10),
-    dangChay: dangChayCaiTien(khoa), ketQua: ketQuaGanNhat(khoa),
+    dangChay: dangChayCaiTien(khoa), ketQua: ketQuaGanNhat(khoa), tuHop: xetTuHop(khoa),
   };
 }
 export type DongQuyTrinh = { phong: string; id: string; khoa: string; nguon: 'phong' | 'chung'; ten: string; mo_ta: string; so_hoa: string; kich_hoat: string; ma?: string;

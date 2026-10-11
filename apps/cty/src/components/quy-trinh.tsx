@@ -16,7 +16,7 @@ type DeXuat = { id: string; ts: string; tu_ban: number; ban_moi?: number; muc: n
   thay_doi: { khoa: string; cu: unknown; moi: unknown; muc: number }[]; vuot: string[]; ha: { dong_y: boolean; ly_do: string }; chi_phi: number;
   so_sanh?: { cu: { ban: number; so_dung: number; tong: number }; moi: { ban: number; so_dung: number; tong: number } } };
 
-export const NHAN_KHOA: Record<string, string> = {
+export const NHAN_KHOA: Record<string, string> = { 'tu_hop.ty_le_dat_duoi': 'Tự họp khi đạt dưới', 'tu_hop.lam_lai_lien_tiep': 'Tự họp sau số lượt chưa đạt', 'tu_hop.cach_toi_thieu_luot': 'Cách buổi họp trước (lượt)', 'tu_hop.bat': 'Trưởng phòng tự họp',
   so_vong_lam_lai: 'Số lần làm lại tối đa', hoi_lai_khi_thieu_du_kien: 'Thiếu dữ kiện / mâu thuẫn thì hỏi lại', may_do: 'Máy đếm tiêu chí đo được',
   khoa_tieu_chi: 'Người kiểm chỉ bác theo tiêu chí đã giao', het_vong: 'Hết vòng mà chưa đạt', bao_cao_do_may: 'Báo cáo do máy dựng',
   'nguoi.trong_tai': 'Trọng tài', 'nguoi.kiem': 'Người kiểm', 'nguoi.lam': 'Người làm', 'nguoi.giao': 'Người giao', 'nguoi.bao_cao': 'Người báo cáo',
@@ -159,6 +159,19 @@ function CaiTien({ k, dx, admin }: { k: string; dx: DeXuat[]; admin: boolean }) 
   );
 }
 
+type TuXet = { lam: string | null; ly_do: string; het_tien?: boolean; chi: number; ngan_sach: number };
+/** Trưởng phòng tự triệu tập: ngưỡng + ngân sách tháng + lúc này máy xét ra sao — ghim ở đầu ngăn, liếc là thấy. */
+function TuHop({ cfg, x, truong }: { cfg: Cfg; x: TuXet; truong: string }) {
+  const t = (cfg as Cfg & { tu_hop?: { bat: boolean; ty_le_dat_duoi: number; lam_lai_lien_tiep: number; cach_toi_thieu_luot: number } }).tu_hop;
+  if (!t?.bat) return null;
+  return (
+    <p className={x.het_tien ? 'cty-bao-loi' : 'cty-muted cty-nho'} data-loi={x.het_tien ? '' : undefined}>
+      <Nguoi id={truong} /> tự họp khi bộ việc chuẩn đạt dưới {Math.round(t.ty_le_dat_duoi * 100)}% hoặc {t.lam_lai_lien_tiep} lượt liên tiếp chưa đạt (cách buổi trước ≥ {t.cach_toi_thieu_luot} lượt)
+      {' · '}đã chi <b>${x.chi.toFixed(3)}</b> / ${x.ngan_sach.toFixed(2)} tháng này · lúc này: {x.lam ? `sẽ ${x.lam === 'hop' ? 'họp' : 'so'} sau lượt tới — ${x.ly_do}` : x.ly_do}
+    </p>
+  );
+}
+
 /** Ngăn chi tiết MỘT quy trình. */
 export async function nganChiTietQuyTrinh(k: string, ten: string, admin: boolean): Promise<{ tieuDe: React.ReactNode; than: React.ReactNode }> {
   const t = await tongQuanQuyTrinh(k);
@@ -172,6 +185,7 @@ export async function nganChiTietQuyTrinh(k: string, ten: string, admin: boolean
   const dau = (
     <>
       <NutQuyTrinh khoa={k} banHienHanh={cfg.ban} dangChay={(t.dangChay as { viec: string } | null)?.viec ?? null} coBanThu={coBanThu} admin={admin} />
+      <TuHop cfg={cfg} x={t.tuHop as TuXet} truong={String(cfg.nguoi?.giao ?? 'tam')} />
       {kq && !t.dangChay && <p className={kq.ok ? 'cty-bao-ok' : 'cty-bao-loi'} data-loi={kq.ok ? undefined : ''}>Lần {kq.viec === 'hop' ? 'họp' : 'chấm'} gần nhất (<Gio iso={kq.luc} />): {kq.tom_tat ?? kq.loi}</p>}
     </>
   );

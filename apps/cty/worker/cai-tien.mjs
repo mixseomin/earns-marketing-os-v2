@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 import { goi, json, nhanSu, motLuot } from './ca.mjs';
-import { tenPhong, hienHanh, dsBan, bien, boViecChuan, mucThayDoi, apBanMoi, veBan, dsDeXuat, ghiDeXuat, dsLuotTho, chiSo, chamViecChuan, usdLuot } from './quy-trinh.mjs';
+import { phongFm, tenPhong, hienHanh, dsBan, bien, boViecChuan, mucThayDoi, apBanMoi, veBan, dsDeXuat, ghiDeXuat, dsLuotTho, chiSo, chamViecChuan, usdLuot } from './quy-trinh.mjs';
 import { ghiLog } from './log.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
@@ -138,10 +138,58 @@ async function voiKhoa(k, viec, fn) {
   finally { fs.rmSync(f, { force: true }); }
 }
 
+// TRƯỞNG PHÒNG TỰ TRIỆU TẬP (anh chốt 11/10/2026). Sau mỗi lượt thật, máy xét chỉ số (0 đồng) theo ngưỡng `tu_hop` của quy trình;
+// chạm ngưỡng thì trưởng phòng tự họp, ra bản thử thì tự so trên bộ việc chuẩn. Chỉ chi trong ngân sách tháng của phòng
+// (`ngan_sach_cai_tien_usd_thang` trong hồ sơ phòng — Giám đốc cấp; 0/không khai = không tự họp). Hết ngân sách: ghi sổ, không chi.
+const UOC = { hop: 0.01, so: 0.02 };   // ponytail: ước trước khi chi; số thật cộng từ chi_phi đã ghi của đề xuất + lần so
+export function chiThang(k, luc = new Date()) {
+  const thang = luc.toISOString().slice(0, 7);
+  const cong = (ds) => ds.filter((x) => String(x.ts).slice(0, 7) === thang).reduce((s, x) => s + (Number(x.chi_phi) || 0), 0);
+  return cong(dsDeXuat(k)) + cong(dsSoSanh(k));
+}
+export const nganSach = (k) => Number(phongFm(k).ngan_sach_cai_tien_usd_thang) || 0;
+export function xetTuHop(k, { boQuaKhoa = false } = {}) {
+  const cfg = hienHanh(k); const t = cfg.tu_hop; const ns = nganSach(k); const chi = chiThang(k);
+  const tien = { chi, ngan_sach: ns };
+  if (!t?.bat) return { lam: null, ly_do: 'quy trình chưa bật tự họp', ...tien };
+  if (!ns) return { lam: null, ly_do: 'phòng chưa được cấp ngân sách cải tiến', ...tien };
+  if (!boQuaKhoa && dangChayCaiTien(k)) return { lam: null, ly_do: 'đang họp / đang so', ...tien };
+  const dx = dsDeXuat(k);
+  const can = (lam, lyDo) => (chi + UOC[lam] <= ns ? { lam, ly_do: lyDo, ...tien } : { lam: null, het_tien: true, ly_do: `${lyDo} — nhưng hết ngân sách tháng ($${chi.toFixed(3)} / $${ns})`, ...tien });
+  if (dx.some((d) => d.trang_thai === 'dang_thu')) return can('so', 'có bản thử chưa so trên bộ việc chuẩn');
+  const luot = dsLuotTho().filter((l) => !l.bo_viec && l.trang_thai !== 'đang chạy' && (l.khoa ?? 'thu-nghiem/lam-viec') === k);
+  const sau = dx[0] ? luot.filter((l) => String(l.bat_dau ?? '') > dx[0].ts).length : luot.length;
+  if (dx[0] && sau < (t.cach_toi_thieu_luot ?? 5)) return { lam: null, ly_do: `mới ${sau} lượt từ buổi họp trước (cần ${t.cach_toi_thieu_luot ?? 5})`, ...tien };
+  let lien = 0; for (const l of luot) { if (l.ket?.trang_thai_viec === 'submitted') break; lien++; }
+  const d = diemMoiNhat(k, cfg.ban);
+  const lyDo = d && d.diem < t.ty_le_dat_duoi ? `v${cfg.ban} chỉ đạt ${d.so_dung}/${d.tong} việc chuẩn (dưới ${Math.round(t.ty_le_dat_duoi * 100)}%)`
+    : lien >= t.lam_lai_lien_tiep ? `${lien} lượt liên tiếp chưa đạt (ngưỡng ${t.lam_lai_lien_tiep})` : null;
+  return lyDo ? can('hop', lyDo) : { lam: null, ly_do: 'chỉ số trong ngưỡng', ...tien };
+}
+export async function tuXet(k) {
+  const x = xetTuHop(k, { boQuaKhoa: true }); const truong = hienHanh(k).nguoi?.giao ?? 'tam';
+  if (x.lam || x.het_tien) ghiLog({ luot: `tu-xet-${Date.now()}`, loai: 'quyet', tu: truong, chi_tiet: { tu_trieu_tap: k, lam: x.lam ?? 'không (hết ngân sách)', ly_do: x.ly_do, chi_thang: x.chi, ngan_sach: x.ngan_sach } });
+  if (!x.lam) return x.ly_do;
+  let kq = '';
+  if (x.lam === 'hop') {
+    const dx = await hop(k); kq = `họp vì ${x.ly_do} → mức ${dx.muc}, ${dx.trang_thai}`;
+    if (dx.trang_thai !== 'dang_thu') return kq;
+    const y = xetTuHop(k, { boQuaKhoa: true }); if (y.lam !== 'so') return `${kq}; chưa so: ${y.ly_do}`;
+  }
+  const r = await soVaQuyet(k);
+  return `${kq ? `${kq}; ` : ''}so: ${r.quyet ? `v${r.dx.ban_moi} ${r.kq.so_dung}/${r.kq.tong} vs v${r.dx.tu_ban} ${r.goc.so_dung}/${r.goc.tong} → ${r.quyet === 'giu' ? 'giữ' : 'quay lại'}` : `v${r.kq.ban} ${r.kq.so_dung}/${r.kq.tong}`}`;
+}
+
 const laCli = (process.argv[1] || '').endsWith('cai-tien.mjs');
 const thamSo = (k, mac) => (process.argv.includes(k) ? process.argv[process.argv.indexOf(k) + 1] : mac);
 if (laCli && process.argv.includes('--hop')) { const P = thamSo('--qt', 'thu-nghiem/lam-viec'); const dx = await voiKhoa(P, 'hop', async () => { const d = await hop(P); return `đề xuất ${d.id}: mức ${d.muc} → ${d.trang_thai}`; }); console.log(dx); process.exit(0); }
 if (laCli && process.argv.includes('--so')) { const P = thamSo('--qt', 'thu-nghiem/lam-viec'); const r = await voiKhoa(P, 'so', async () => { const x = await soVaQuyet(P, Number(thamSo('--lan', 2))); return x.quyet ? `v${x.dx.ban_moi} ${x.kq.so_dung}/${x.kq.tong} so với v${x.dx.tu_ban} ${x.goc.so_dung}/${x.goc.tong} → ${x.quyet === 'giu' ? 'giữ' : 'quay lại'}` : `v${x.kq.ban}: ${x.kq.so_dung}/${x.kq.tong} việc chuẩn đúng`; }); console.log(r); process.exit(0); }
+
+if (laCli && process.argv.includes('--tu-xet')) {   // gọi sau mỗi lượt thật (ca.mjs): xét 0 đồng, chạm ngưỡng mới chi
+  const P = thamSo('--qt', 'thu-nghiem/lam-viec'); const x = xetTuHop(P);
+  if (!x.lam) { if (x.het_tien) await tuXet(P); console.log(`tự xét ${P}: ${x.ly_do}`); process.exit(0); }
+  console.log(`tự xét ${P}: ` + await voiKhoa(P, x.lam, () => tuXet(P))); process.exit(0);
+}
 
 if (laCli && process.argv.includes('--tu-kiem')) {
   // Proxy giả: Tâm/Hà/Kỳ/Lộc trả lời theo kịch bản; v2 bật hỏi-lại → việc không thể sẽ kẹt đúng → điểm v2 > v1 → GIỮ.
@@ -188,8 +236,24 @@ if (laCli && process.argv.includes('--tu-kiem')) {
   const v3 = dsBan(P).find((x) => x.ban === 3); fs.writeFileSync(path.join(DATA(), 'quy-trinh', P, 'v3.json'), JSON.stringify({ ...v3, hoi_lai_khi_thieu_du_kien: false }));
   const r2 = await soVaQuyet(P, 1);
   a(r2.quyet === 'quay_lai' && hienHanh(P).ban === 2, `v3 thua v2 → tự quay lại v2 (v2 ${r2.goc?.so_dung}, v3 ${r2.kq.so_dung})`, r2.dx);
+  // tự triệu tập: v1 điểm thấp → họp; hết ngân sách → không chi; chưa đủ lượt từ buổi trước → chờ
+  veBan(P, 1, 'thử tự họp', 'anh');
+  fs.writeFileSync(path.join(ssDir(P), 'v1-zz.json'), JSON.stringify({ qt: P, ban: 1, ts: new Date().toISOString(), diem: 0.2, so_dung: 3, tong: 14, chi_phi: 0, chi_tiet: [] }));
+  const tKhong = xetTuHop(P);
+  a(tKhong.lam === null && /lượt từ buổi họp trước/.test(tKhong.ly_do), 'vừa họp xong → chờ đủ lượt', tKhong);
+  for (let i = 0; i < 5; i++) await motLuot('Viết 1 câu chào', true, { khoa: P });
+  const tCo = xetTuHop(P);
+  a(tCo.lam === 'hop' && /3\/14/.test(tCo.ly_do), 'v1 3/14 + đủ 5 lượt → Tâm tự họp', tCo);
+  kich = { thayDoi: { so_vong_lam_lai: 2 } };
+  const kqTu = await tuXet(P);
+  a(/họp vì .*3\/14/.test(kqTu) && /so:/.test(kqTu), `tự họp → bản thử → tự so (${kqTu})`);
+  // hết ngân sách tháng → không chi, chỉ ghi lý do (khoản chi giả $0,60 trong tháng, ngân sách phòng $0,50)
+  ghiDeXuat({ id: '0000-chi-gia', ts: new Date().toISOString(), qt: P, tu_ban: 1, trang_thai: 'khong_doi', muc: 1, thay_doi: [], vuot: [], van_de: [], chi_phi: 0.6 });
+  for (let i = 0; i < 5; i++) await motLuot('Viết 1 câu chào', true, { khoa: P });
+  const tHet = xetTuHop(P);
+  a(tHet.lam === null && tHet.het_tien && /hết ngân sách/.test(tHet.ly_do) && tHet.chi > 0.5, 'hết ngân sách tháng → không họp', tHet);
   // về bản đầu để thử
   veBan(P, 1, 'thử lại từ đầu', 'anh');
-  a(hienHanh(P).ban === 1 && dsBan(P).length === 3, 'về v1: còn đủ v2, v3 để xem lại');
-  fake.close(); console.log('✓ cai-tien: họp → mức 1/2/3/vượt biên, so bộ việc chuẩn → giữ / tự quay lại, ký mức 3, về v1'); process.exit(0);
+  a(hienHanh(P).ban === 1 && dsBan(P).length >= 3, 'về v1: còn đủ các bản để xem lại');
+  fake.close(); console.log('✓ cai-tien: họp → mức 1/2/3/vượt biên, so bộ việc chuẩn → giữ / tự quay lại, ký mức 3, tự triệu tập theo ngưỡng + ngân sách, về v1'); process.exit(0);
 }

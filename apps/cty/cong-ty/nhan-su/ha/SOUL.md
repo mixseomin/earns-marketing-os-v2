@@ -6,7 +6,7 @@ chuc_danh: Kiểm soát (tuyến 3)
 phong: vp-giam-doc
 bao_cao_cho: minh
 kind: ai
-model: openai:gpt-4o
+model: fal:z-ai/glm-5.3-flash
 room: bo-loc
 muc_quyet: 2
 approval: STRICT

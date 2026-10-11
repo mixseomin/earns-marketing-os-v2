@@ -6,7 +6,7 @@ chuc_danh: Trưởng phòng An toàn tài khoản
 phong: an-toan-tk
 bao_cao_cho: minh
 kind: ai
-model: openai:gpt-4o
+model: fal:google/gemini-3.8-flash
 room: bo-loc
 muc_quyet: 1
 approval: AUTO

@@ -6,7 +6,7 @@ chuc_danh: Trưởng phòng Nội dung
 phong: noi-dung
 bao_cao_cho: minh
 kind: ai
-model: openai:gpt-4o
+model: fal:google/gemini-3.8-flash
 room: day-chuyen
 muc_quyet: 2
 approval: SMART

@@ -33,8 +33,16 @@ export const NHA = {
   openrouter: { dang: 'openai', url: 'https://openrouter.ai/api/v1/chat/completions', key: 'OPENROUTER_API_KEY' },
   // fal = OpenRouter qua tài khoản fal (một khoá, 200+ mô hình): tên mô hình theo OpenRouter (fal:google/gemini-3.8-flash),
   // xác thực "Key", trả usage.cost (USD) — kiểm 11/10/2026: cost khớp đúng giá OpenRouter.
-  fal: { dang: 'openai', url: 'https://fal.run/openrouter/router/openai/v1/chat/completions', key: 'FAL_KEY', auth: 'Key' },
+  fal: { dang: 'openai', url: 'https://fal.run/openrouter/router/openai/v1/chat/completions', key: 'FAL_KEY', auth: 'Key', suyLuan: true },
 };
+// Model qua fal (OpenRouter) mặc định SUY LUẬN NGẦM và tính phần đó vào max_tokens → lượt thật (500 token) trả RỖNG (đo 11/10/2026: 9/11 model).
+// Gọi đúng cấu hình đã dùng khi dò model (worker/do-model.mjs) để điểm đo áp được vào việc thật: tắt suy luận + trần ≥ 1000 token; model không
+// cho tắt (400 "Reasoning is mandatory": gemini-3.8-flash, glm-5.3-flash…) → mức thấp nhất + trần ≥ 2000 (suy luận tính chung vào trần).
+// Bên gọi tự đặt `reasoning` (vd do-model) thì giữ nguyên.
+const BAT_BUOC_SUY_LUAN = new Set();
+const cauHinhSuyLuan = (b, ten) => (b.reasoning ? b : BAT_BUOC_SUY_LUAN.has(ten)
+  ? { ...b, reasoning: { effort: 'minimal' }, max_tokens: Math.max(b.max_tokens || 0, 2000) }
+  : { ...b, reasoning: { effort: 'none' }, max_tokens: Math.max(b.max_tokens || 0, 1000) });
 
 // ---------- dịch Anthropic → OpenAI (text, ảnh base64, tool_use/tool_result) ----------
 const sysText = (c) => (typeof c === 'string' ? c : Array.isArray(c) ? c.filter((b) => b && b.type === 'text').map((b) => b.text).join('\n') : '');
@@ -138,8 +146,10 @@ export async function xuLy(body, staff, so, fetchFn = fetch) {
   const ten = model.split(':').pop();
   let res, data;
   if (cfg.dang === 'openai') {
-    res = await fetchFn(url, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `${cfg.auth ?? 'Bearer'} ${key}` }, body: JSON.stringify(toOpenAI(clean, ten)) });
-    const o = await res.json(); if (!res.ok) return [res.status, o];
+    const gui = () => fetchFn(url, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `${cfg.auth ?? 'Bearer'} ${key}` }, body: JSON.stringify(toOpenAI(cfg.suyLuan ? cauHinhSuyLuan(clean, ten) : clean, ten)) });
+    res = await gui(); let o = await res.json();
+    if (!res.ok && cfg.suyLuan && !clean.reasoning && !BAT_BUOC_SUY_LUAN.has(ten) && /reasoning is mandatory/i.test(JSON.stringify(o))) { BAT_BUOC_SUY_LUAN.add(ten); res = await gui(); o = await res.json(); }   // 400 không tính tiền
+    if (!res.ok) return [res.status, o];
     data = toAnthropic(o, model);
   } else {
     res = await fetchFn(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ ...clean, model: ten }) });
@@ -168,7 +178,8 @@ export function server(port, so = soChi()) {
 if (process.argv.includes('--tu-kiem')) {
   process.env.CTY_DB = 'mem'; process.env.OPENAI_API_KEY = 'test'; process.env.CTY_CACHE = '0';
   const assert = (c, m) => { if (!c) { console.error('✗ proxy:', m); process.exit(1); } };
-  let auth = ''; const fake = http.createServer(async (req, res) => { auth = req.headers.authorization; let raw = ''; for await (const c of req) raw += c; const b = JSON.parse(raw);
+  let auth = ''; const nhan = []; const fake = http.createServer(async (req, res) => { auth = req.headers.authorization; let raw = ''; for await (const c of req) raw += c; const b = JSON.parse(raw); nhan.push(b);
+    if (b.model === 'z-ai/glm-5.3-flash' && b.reasoning?.effort === 'none') { res.writeHead(400); return res.end(JSON.stringify({ error: { message: 'Reasoning is mandatory for this endpoint and cannot be disabled.' } })); }
     assert(b.messages[0].role === 'system' && b.messages[1].content === 'xin chào', 'dịch Anthropic→OpenAI (system + user)');
     res.end(JSON.stringify({ id: 'x', choices: [{ message: { content: 'chào Lan' }, finish_reason: 'stop' }], usage: { prompt_tokens: 1_000_000, completion_tokens: 0 } })); }).listen(0, '127.0.0.1');
   await new Promise((r) => fake.once('listening', r));
@@ -184,7 +195,12 @@ if (process.argv.includes('--tu-kiem')) {
   process.env.FAL_KEY = 'k'; process.env.CTY_UPSTREAM_FAL = process.env.CTY_UPSTREAM_OPENAI;
   [c, d] = await xuLy({ ...req, model: 'fal:anthropic/claude-haiku-5.5' }, 'ha', so); assert(c === 200 && auth === 'Key k' && d.content[0].text === 'chào Lan', `ca 5 fal: xác thực "Key", tên mô hình OpenRouter (${c} ${auth})`);
   assert(toAnthropic({ choices: [{ message: { content: 'x' } }], usage: { prompt_tokens: 1, completion_tokens: 9, cost: 0.002, completion_tokens_details: { reasoning_tokens: 8 } } }, 'm').usage.cost_usd === 0.002 && toOpenAI({ messages: [], reasoning: { effort: 'none' } }, 'm').reasoning.effort === 'none', 'ca 6 giữ tiền + token suy luận nhà báo, chuyển tiếp tham số suy luận');
-  fake.close(); console.log('✓ proxy: 6 ca đạt (dịch 2 chiều · giá fail-closed · hồ sơ · trần người · fal "Key" · giữ tiền nhà báo)'); process.exit(0);
+  [c, d] = await xuLy({ ...req, model: 'fal:deepseek/deepseek-v4-flash', max_tokens: 500 }, 'ha', so); let cuoi = nhan.at(-1);
+  assert(c === 200 && cuoi.reasoning?.effort === 'none' && cuoi.max_tokens === 1000, `ca 7 fal: tắt suy luận + trần 1000 như lúc đo (${JSON.stringify(cuoi.reasoning)} ${cuoi.max_tokens})`);
+  const truoc = nhan.length; [c, d] = await xuLy({ ...req, model: 'fal:z-ai/glm-5.3-flash', max_tokens: 500 }, 'ha', so); cuoi = nhan.at(-1);
+  assert(c === 200 && nhan.length - truoc === 2 && cuoi.reasoning?.effort === 'minimal' && cuoi.max_tokens === 2000, `ca 8 bắt buộc suy luận → gọi lại mức thấp nhất, trần 2000 (${c} ${nhan.length - truoc} ${JSON.stringify(cuoi.reasoning)})`);
+  [c, d] = await xuLy({ ...req, model: 'fal:z-ai/glm-5.3-flash', max_tokens: 500 }, 'ha', so); assert(c === 200 && nhan.at(-1).reasoning?.effort === 'minimal', 'ca 9 lần sau nhớ, không gọi hỏng nữa');
+  fake.close(); console.log('✓ proxy: 9 ca đạt (dịch 2 chiều · giá fail-closed · hồ sơ · trần người · fal "Key" · giữ tiền nhà báo · suy luận như lúc đo)'); process.exit(0);
 }
 
 if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])) && !process.argv.includes('--tu-kiem')) {

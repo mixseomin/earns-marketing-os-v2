@@ -6,7 +6,7 @@ chuc_danh: Người kiểm (khác mô hình người làm)
 phong: thu-nghiem
 bao_cao_cho: tam
 kind: ai
-model: openai:gpt-4o-mini
+model: fal:z-ai/glm-5.3-flash
 room: day-chuyen
 muc_quyet: 1
 approval: STRICT

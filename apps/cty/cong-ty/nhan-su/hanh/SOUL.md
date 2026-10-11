@@ -6,7 +6,7 @@ chuc_danh: Thuê ngoài
 phong: thue-ngoai
 bao_cao_cho: minh
 kind: ai
-model: openai:gpt-4o
+model: fal:deepseek/deepseek-v4-flash
 room: hat-nho
 muc_quyet: 2
 approval: STRICT

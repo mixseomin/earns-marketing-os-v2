@@ -6,7 +6,7 @@ chuc_danh: Trưởng phòng nghiên cứu thị trường
 phong: nghien-cuu-thi-truong
 bao_cao_cho: minh
 kind: ai
-model: openai:gpt-4o
+model: fal:google/gemini-3.8-flash
 room: hat-nho
 muc_quyet: 2
 approval: STRICT

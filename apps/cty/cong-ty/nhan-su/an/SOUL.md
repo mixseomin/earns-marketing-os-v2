@@ -6,7 +6,7 @@ chuc_danh: Tài chính
 phong: vp-giam-doc
 bao_cao_cho: minh
 kind: ai
-model: openai:gpt-4o
+model: fal:deepseek/deepseek-v4-flash
 room: bo-loc
 muc_quyet: 2
 approval: SMART

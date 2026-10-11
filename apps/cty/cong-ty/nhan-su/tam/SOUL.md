@@ -6,7 +6,7 @@ chuc_danh: Trưởng phòng thử
 phong: thu-nghiem
 bao_cao_cho: minh
 kind: ai
-model: openai:gpt-4o-mini
+model: fal:google/gemini-3.8-flash
 room: day-chuyen
 muc_quyet: 1
 approval: STRICT

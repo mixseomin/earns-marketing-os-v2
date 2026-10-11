@@ -6,7 +6,7 @@ chuc_danh: Nhân viên thị trường
 phong: sach
 bao_cao_cho: thao
 kind: ai
-model: openai:gpt-4o
+model: fal:deepseek/deepseek-v4-flash
 room: hat-nho
 muc_quyet: 1
 approval: AUTO

@@ -284,4 +284,13 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-chay-lai{display:inline-flex;align-items:center;gap:8px;margin-left:10px}
 .cty-vp-dau{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .cty-vp-khung iframe{display:block;flex:1;min-height:0;width:100%;border:1px solid var(--line);border-radius:8px;background:#000}
-@media (max-width:900px){.cty-phong-hai{grid-template-columns:minmax(0,1fr);grid-template-rows:200px minmax(0,1fr)}.cty-phong-hai > .cty-vp-khung{order:-1}.cty-vp-keo{display:none}}
+.cty-vp-nut{display:none}
+/* Điện thoại: văn phòng là tấm trượt từ đáy (65% màn), nút cố định giữa đáy — 💬 góp ý giữ góc phải. */
+@media (max-width:900px){
+  .cty-phong-hai{grid-template-columns:minmax(0,1fr)}
+  .cty-vp-keo{display:none}
+  .cty-phong-hai > .cty-vp-khung{position:fixed;left:0;right:0;bottom:0;height:65dvh;z-index:70;padding:10px 12px calc(64px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--line);box-shadow:0 -10px 30px rgb(0 0 0/.3);transform:translateY(105%);transition:transform .2s ease}
+  .cty-phong-hai > .cty-vp-khung.mo{transform:none}
+  .cty-vp-nut{display:block;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:71;padding:10px 18px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:#fff;font:inherit;font-weight:600;box-shadow:0 4px 14px rgb(0 0 0/.3)}
+  .cty-tabnoi{padding-bottom:64px}
+}

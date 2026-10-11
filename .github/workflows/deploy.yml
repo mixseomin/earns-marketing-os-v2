@@ -18,10 +18,11 @@ concurrency:
 # (CX22 4GB, swap-thrashing → next build OOM SIGKILL → wiped .next/static/, served
 # HTML referencing dead CSS hashes; incident 2026-06-28). Server still runs migrations,
 # deps install, and `next start` — only the build moved.
+# Một job duy nhất (build + gửi + deploy): bỏ khởi động job thứ hai + tải lên/tải về artifact (~10s). Đo 11/10/2026.
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }   # cần lịch sử để so before..sha khi chọn app phải build
@@ -46,81 +47,77 @@ jobs:
           if [ "$F" = "__HET__" ] || echo "$F" | grep -vqE '^(apps/(store|xuong-video|cty)/|packages/gop-y/|deploy/|deploy\.sh$)'; then echo "web=1" >> "$GITHUB_OUTPUT"; fi
           echo "Tệp đổi:"; echo "$F" | head -40; echo "Build:"; cat "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
-        with: { node-version: '22', cache: 'npm' }   # match server node v22 (.next swapped in raw) + Node 20 is GHA-deprecated
-      # Restore Next.js incremental build cache — without it every CI build is COLD and grows with the
-      # app (the "deploy keeps getting slower"). Keyed per-sha, restore-keys falls back to the newest.
+        with: { node-version: '22' }   # match server node v22 (.next swapped in raw) + Node 20 is GHA-deprecated
+      # node_modules theo lockfile: trúng cache thì bỏ hẳn npm ci (14s → ~5s khôi phục).
+      - name: Restore node_modules
+        id: nm
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+      - run: npm ci --prefer-offline --no-audit --no-fund
+        if: steps.nm.outputs.cache-hit != 'true'
+      # Next.js incremental build cache cho CẢ 4 app (trước chỉ web → store/studio/cty build nguội mỗi lượt).
+      # Keyed per-sha, restore-keys falls back to the newest.
       - name: Restore Next.js build cache
         uses: actions/cache@v4
         with:
-          path: apps/web/.next/cache
-          key: nextcache-${{ github.sha }}
-          restore-keys: nextcache-
-      - run: npm ci --prefer-offline --no-audit --no-fund
-      - run: node scripts/check-sql-aliases.mjs
-      - run: node scripts/check-canon.mjs
-      - run: node scripts/check-gop-y-surface.mjs
-      - run: node scripts/check-mos2-host.mjs --tu-kiem && node scripts/check-mos2-host.mjs
-      - run: node scripts/check-tab-trang.mjs --tu-kiem && node scripts/check-tab-trang.mjs
-      - run: node scripts/check-client-db.mjs --tu-kiem && node scripts/check-client-db.mjs
-      - run: npm run build:web
-        if: steps.chon.outputs.web == '1'
-      # Mặt tiền shop (apps/store, một bản dựng cho mọi tên miền shop) — dựng cùng lượt, máy chủ chỉ đổi khi phần của nó đổi.
-      - run: npm run build --workspace=apps/store
-        if: steps.chon.outputs.store == '1'
-      - run: tar -C apps/store --exclude='.next/cache' -czf store.tar.gz .next
-        if: steps.chon.outputs.store == '1'
-      # Xưởng video (apps/xuong-video → studio.on.tc): app riêng, dựng cùng lượt, máy chủ chỉ đổi khi phần của nó đổi (deploy.sh 5c).
-      - run: npm run build --workspace=apps/xuong-video
-        if: steps.chon.outputs.studio == '1'
-      - run: tar -C apps/xuong-video --exclude='.next/cache' -czf studio.tar.gz .next
-        if: steps.chon.outputs.studio == '1'
-      # Công ty AI (apps/cty → cty.on.tc): hồ sơ phòng/nhân sự tự kiểm trước, dựng cùng lượt, máy chủ chỉ đổi khi phần của nó đổi (deploy.sh 5e).
+          path: |
+            apps/web/.next/cache
+            apps/store/.next/cache
+            apps/xuong-video/.next/cache
+            apps/cty/.next/cache
+          key: nextcache4-${{ github.sha }}
+          restore-keys: nextcache4-
+      - name: Kiểm tĩnh
+        run: |
+          node scripts/check-sql-aliases.mjs
+          node scripts/check-canon.mjs
+          node scripts/check-gop-y-surface.mjs
+          node scripts/check-mos2-host.mjs --tu-kiem && node scripts/check-mos2-host.mjs
+          node scripts/check-tab-trang.mjs --tu-kiem && node scripts/check-tab-trang.mjs
+          node scripts/check-client-db.mjs --tu-kiem && node scripts/check-client-db.mjs
+      # Công ty AI: hồ sơ phòng/nhân sự + worker tự kiểm trước khi dựng.
       - run: node apps/cty/scripts/tu-kiem.mjs && node apps/cty/scripts/fm.mjs --tu-kiem && node apps/cty/worker/gia.mjs --tu-kiem && node apps/cty/worker/log.mjs --tu-kiem && node apps/cty/worker/proxy.mjs --tu-kiem && node apps/cty/worker/ca.mjs --tu-kiem && node apps/cty/scripts/thu-ngan.mjs && node apps/cty/worker/quy-trinh.mjs --tu-kiem && node apps/cty/worker/cai-tien.mjs --tu-kiem
         if: steps.chon.outputs.cty == '1'
-      - run: npm run build --workspace=apps/cty
-        if: steps.chon.outputs.cty == '1'
-      - run: tar -C apps/cty --exclude='.next/cache' -czf cty.tar.gz .next
-        if: steps.chon.outputs.cty == '1'
-      # Tar so scp transfers one file (faster + atomic on receive). EXCLUDE .next/cache — it's build-time
-      # only (next start never reads it), it's cached separately above, and shipping it bloats the artifact.
-      - run: tar -C apps/web --exclude='.next/cache' -czf next.tar.gz .next
-        if: steps.chon.outputs.web == '1'
-      - uses: actions/upload-artifact@v4
-        with: { name: next-build, path: "next.tar.gz\nstore.tar.gz\nstudio.tar.gz\ncty.tar.gz", retention-days: 1, if-no-files-found: error }
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/download-artifact@v4
-        with: { name: next-build }
+      # Dựng SONG SONG các app được chọn (runner repo công khai: 4 nhân, 16GB) — trước dựng nối đuôi web 41s + store 21s
+      # + studio 22s + cty 21s. Mỗi app một tarball <app>.tar.gz; app không dựng lượt này máy chủ giữ nguyên bản đang chạy.
+      - name: Build (song song)
+        run: |
+          dung() { ( npm run build --workspace="apps/$1" > "/tmp/build-$1.log" 2>&1 && tar -C "apps/$1" --exclude='.next/cache' -czf "$1.tar.gz" .next; echo $? > "/tmp/build-$1.rc" ) & }
+          if [ "${{ steps.chon.outputs.web }}" = 1 ]; then dung web; fi
+          if [ "${{ steps.chon.outputs.store }}" = 1 ]; then dung store; fi
+          if [ "${{ steps.chon.outputs.studio }}" = 1 ]; then dung xuong-video; fi
+          if [ "${{ steps.chon.outputs.cty }}" = 1 ]; then dung cty; fi
+          wait
+          sai=0
+          for rc in /tmp/build-*.rc; do
+            [ -f "$rc" ] || continue
+            a=$(basename "$rc" .rc); a=${a#build-}
+            echo "::group::build $a"; cat "/tmp/build-$a.log"; echo "::endgroup::"
+            [ "$(cat "$rc")" = 0 ] && echo "✓ $a" || { echo "::error::build $a lỗi — xem nhóm log 'build $a'"; sai=1; }
+          done
+          exit $sai
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
-      - name: Ship build artifact
+      # Gửi + bung + deploy trong MỘT phiên ssh. Lượt không dựng app nào (chỉ sửa deploy.sh/deploy/) thì không có tarball.
+      - name: Ship + server-side deploy (migrations + swap + restart)
         run: |
-          ls -la *.tar.gz
-          scp -i ~/.ssh/id_ed25519 *.tar.gz root@${{ secrets.DEPLOY_HOST }}:/tmp/
+          if ls *.tar.gz >/dev/null 2>&1; then ls -la *.tar.gz; scp -i ~/.ssh/id_ed25519 *.tar.gz root@${{ secrets.DEPLOY_HOST }}:/tmp/; else echo "↺ không app nào dựng lượt này"; fi
           ssh -i ~/.ssh/id_ed25519 root@${{ secrets.DEPLOY_HOST }} '
             set -e
-            bung() {   # app tarball — chỉ app được build lượt này mới có tarball; app không build giữ nguyên bản đang chạy
-              [ -f "/tmp/$2" ] || { echo "↺ $1: không build lượt này"; return 0; }
-              mkdir -p "/opt/earns-marketing-os-v2/apps/$1" && cd "/opt/earns-marketing-os-v2/apps/$1"
-              rm -rf .next.new "/tmp/b-$1" && mkdir -p .next.new "/tmp/b-$1"
-              tar -xzf "/tmp/$2" -C "/tmp/b-$1/"
-              mv "/tmp/b-$1/.next/"* .next.new/
-              rm -rf "/tmp/b-$1" "/tmp/$2"
-              echo "✓ $1: đã gửi bản mới"
-            }
-            bung web next.tar.gz
-            bung store store.tar.gz
-            bung xuong-video studio.tar.gz
-            bung cty cty.tar.gz
+            for a in web store xuong-video cty; do
+              [ -f "/tmp/$a.tar.gz" ] || { echo "↺ $a: không build lượt này"; continue; }
+              mkdir -p "/opt/earns-marketing-os-v2/apps/$a" && cd "/opt/earns-marketing-os-v2/apps/$a"
+              rm -rf .next.new "/tmp/b-$a" && mkdir -p .next.new "/tmp/b-$a"
+              tar -xzf "/tmp/$a.tar.gz" -C "/tmp/b-$a/"
+              mv "/tmp/b-$a/.next/"* .next.new/
+              rm -rf "/tmp/b-$a" "/tmp/$a.tar.gz"
+              echo "✓ $a: đã gửi bản mới"
+            done
+            SKIP_BUILD=1 /opt/earns-marketing-os-v2/deploy.sh
           '
-      - name: Run server-side deploy (migrations + swap + restart)
-        run: |
-          ssh -i ~/.ssh/id_ed25519 root@${{ secrets.DEPLOY_HOST }} 'SKIP_BUILD=1 /opt/earns-marketing-os-v2/deploy.sh'

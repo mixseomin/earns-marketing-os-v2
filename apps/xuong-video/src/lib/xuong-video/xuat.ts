@@ -265,7 +265,9 @@ export function keHoachXuat(o: {
   // End card quảng cáo: 2 giây, tên + ưu đãi (từ mục 0) — người xem tới cuối có một màn đọc được để bấm.
   let giay = t;
   // Có QC mẫu → phần kết theo đúng mẫu (mẫu có end card riêng trong các shot) — không gắn thêm end card tự động.
-  if (o.loai === 'quang_cao' && o.qc?.uu_dai?.trim() && nhanhVideo.length && !o.chiThuTu?.length && !coMau(o.qc)) {
+  // Kịch bản tự kết bằng shot CTA / end card (vd short Astrolas 12/10/2026) cũng vậy: gắn thêm là hai màn kết chồng nhau, dài thêm 2s.
+  const ketRieng = ['cta', 'end_card'].includes(ds[ds.length - 1]?.phan_doan ?? '');
+  if (o.loai === 'quang_cao' && o.qc?.uu_dai?.trim() && nhanhVideo.length && !o.chiThuTu?.length && !coMau(o.qc) && !ketRieng) {
     const dong = [...(o.qc.ten ? ngatDong(o.qc.ten, wrapMan) : []), ' ', ...ngatDong(o.qc.uu_dai, wrapMan)];
     // Có ảnh sản phẩm (mục 0) → end card = ảnh phủ kín, tối 45%, chữ ở 1/4 dưới (kiểu "FLASH SALE · SHOP NOW" đè lên ảnh sản phẩm); không có → nền tối, chữ giữa.
     const anhEnd = o.qc.anh?.[0] && nl.has(o.qc.anh[0]) ? o.qc.anh[0] : null;

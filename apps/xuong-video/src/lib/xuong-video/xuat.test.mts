@@ -238,3 +238,10 @@ console.log('xuat.test: mẫu ok');
   assert.ok(kKhong.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung.includes('[v0][v1]concat=n=2:v=1:a=0[vcat]'));
   console.log('xuat.test: chuyển cảnh ok');
 }
+// Kịch bản tự kết bằng shot cta / end_card → KHÔNG gắn end card tự động (hai màn kết chồng nhau, +2s) — short Astrolas 12/10/2026.
+{
+  const ket = canh.map((c, i) => (i === canh.length - 1 ? { ...c, phan_doan: 'end_card' } : c));
+  const k2 = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh: ket, nhanVat: nv, tap, qc: { ten: 'Bra', uu_dai: '$24.99', link: '', diem_noi_bat: '', doi_tuong: '', thi_truong: '', anh: [] }, nhanh: 'A', nguyenLieu, font: '/f/DejaVuSans-Bold.ttf', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
+  assert.strictEqual(k2.giay, kh.giay - 2);
+  console.log('xuat.test: kết riêng không end card ok');
+}

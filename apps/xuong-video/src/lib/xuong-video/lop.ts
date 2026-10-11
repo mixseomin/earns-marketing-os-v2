@@ -16,7 +16,8 @@ const NEN: Omit<Lop, 'id' | 'loai' | 'tu' | 'den'> = { x: 0.5, y: 0.5, w: 0.6, h
 /** Lớp mới theo loại, đặt ở giây `tu`, dài 2,5s. */
 export function lopMoi(loai: LoaiLop, tu: number, them: Partial<Lop> = {}): Lop {
   const goc: Lop = { ...NEN, id: id(), loai, tu: Math.max(0, tu), den: Math.max(0, tu) + 2.5 };
-  if (loai === 'chu') Object.assign(goc, { chu: 'Chữ mới', font: 'Montserrat Black', co: 0.07, mau: '#FFFFFF', vien: '#000000', vien_day: 0.08, w: 0.8 });
+  // Chữ mới đặt ở 1/3 trên — không đè chữ màn (giữa/dưới) để vừa thêm là thấy ngay.
+  if (loai === 'chu') Object.assign(goc, { chu: 'Chữ mới', font: 'Montserrat Black', co: 0.07, mau: '#FFFFFF', vien: '#000000', vien_day: 0.08, w: 0.8, y: 0.3 });
   if (loai === 'hinh') Object.assign(goc, { dang: 'bo_goc' as DangHinh, mau: '#6B4FD8', w: 0.6, h: 0.08 });
   if (loai === 'anh') Object.assign(goc, { w: 0.35 });
   return { ...goc, ...them };

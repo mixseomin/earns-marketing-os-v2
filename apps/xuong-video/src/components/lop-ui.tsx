@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as P
 import { luuLop, taiAnhLen } from '@/lib/actions';
 import { FONT_CHU, type Lop } from '@/lib/xuong-video/kieu';
 import { lopHien, hieuUngTai, lopMoi, MAU_LOP } from '@/lib/xuong-video/lop';
-import { mono } from './ui';
+import { Menu, MucMenu, mono } from './ui';
 
 const MAU_LOAI: Record<Lop['loai'], string> = { chu: '#f5b638', anh: '#38d9f5', hinh: '#a78bfa' };
 const tenLop = (l: Lop) => l.ten || (l.loai === 'chu' ? (l.chu ?? '').split('\n')[0]!.slice(0, 24) || 'Chữ' : l.loai === 'anh' ? 'Ảnh' : 'Hình');
@@ -74,7 +74,7 @@ export function LopXem({ lop, t, rong, cao, chonId, onChon, onDoi }: { lop: Lop[
   );
 }
 
-/** Thanh thêm lớp: mẫu dựng sẵn + ảnh (tải lên / ảnh sản phẩm / logo) — lớp mới bắt đầu ở đầu phát. */
+/** Nút "＋ Lớp" (một nút cạnh nút Chạy) — bấm mới mở menu: mẫu dựng sẵn, tải ảnh, ảnh sản phẩm/logo. Lớp mới bắt đầu ở đầu phát. */
 export function LopThem({ t, tiLe, anhSan, onThem }: { t: number; tiLe: number; anhSan: { url: string; ten: string }[]; onThem: (ds: Lop[]) => void }) {
   const [dang, setDang] = useState(false); const [loi, setLoi] = useState('');
   const tai = (f: File) => {
@@ -83,77 +83,80 @@ export function LopThem({ t, tiLe, anhSan, onThem }: { t: number; tiLe: number; 
     r.readAsDataURL(f);
   };
   return (
-    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
-      <span style={mono}>🧩 thêm lớp:</span>
-      {MAU_LOP.map((m) => <button key={m.key} type="button" className="xv-btn" style={{ padding: '1px 7px' }} title={`Thêm ${m.ten} ở giây đang đứng`} onClick={() => onThem(m.tao(t, tiLe))}>＋ {m.ten}</button>)}
-      <label className="xv-btn" style={{ padding: '1px 7px', cursor: 'pointer' }} title="Tải ảnh lên làm lớp (PNG nền trong suốt đẹp nhất)">{dang ? '⏳' : '＋ Ảnh'}
-        <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) tai(f); e.target.value = ''; }} />
-      </label>
-      {anhSan.slice(0, 6).map((a) => <button key={a.url} type="button" title={`Thêm ${a.ten} làm lớp`} onClick={() => onThem([lopMoi('anh', t, { url: a.url, ten: a.ten })])} style={{ padding: 0, border: '1px solid var(--line)', borderRadius: 4, background: 'none', cursor: 'pointer' }}><img src={a.url} alt="" data-khong-phong-to="" style={{ width: 26, height: 26, objectFit: 'contain', display: 'block' }} /></button>)}
+    <>
+      <Menu nhan={dang ? '⏳ Lớp' : '＋ Lớp'}>
+        <div style={{ ...mono, padding: '2px 4px' }}>Thêm lớp ở giây {t.toFixed(1)}</div>
+        {MAU_LOP.map((m) => <MucMenu key={m.key} onClick={() => onThem(m.tao(t, tiLe))}>{m.ten}</MucMenu>)}
+        <label data-dong="" className="xv-btn" style={{ textAlign: 'left', cursor: 'pointer' }}>Ảnh từ máy…
+          <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) tai(f); e.target.value = ''; }} />
+        </label>
+        {!!anhSan.length && <div style={{ ...mono, padding: '4px 4px 0' }}>Ảnh sản phẩm / logo</div>}
+        {!!anhSan.length && (
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', padding: 4 }}>
+            {anhSan.slice(0, 8).map((a) => <button key={a.url} data-dong="" type="button" title={a.ten} onClick={() => onThem([lopMoi('anh', t, { url: a.url, ten: a.ten })])} style={{ padding: 0, border: '1px solid var(--line)', borderRadius: 4, background: 'none', cursor: 'pointer' }}><img src={a.url} alt="" data-khong-phong-to="" style={{ width: 40, height: 40, objectFit: 'contain', display: 'block' }} /></button>)}
+          </div>
+        )}
+      </Menu>
       {loi && <span className="xv-loi">{loi}</span>}
-    </div>
+    </>
   );
 }
 
-/** Bảng thuộc tính của lớp đang chọn. */
+/** Bảng thuộc tính gọn: thứ hay sửa (nội dung, màu, cỡ, giờ) hiện sẵn; vị trí · xoay · độ đậm · hiệu ứng gấp trong "Nâng cao". */
 export function LopBang({ l, t, onDoi, onXoa, onNhanBan, onLenXuong, onDong }: { l: Lop; t: number; onDoi: (p: Partial<Lop>) => void; onXoa: () => void; onNhanBan: () => void; onLenXuong: (d: 1 | -1) => void; onDong: () => void }) {
-  const so = (nhan: string, k: keyof Lop, buoc = 0.01, a = 0, b = 1, title?: string) => (
-    <label style={{ display: 'grid', gap: 1, fontSize: 10.5, color: 'var(--fg-3)' }} title={title}>{nhan}
-      <input className="xv-in" type="number" step={buoc} min={a} max={b} value={Number(l[k] ?? 0)} onChange={(e) => onDoi({ [k]: Number(e.target.value) } as Partial<Lop>)} style={{ width: '100%' }} />
-    </label>
+  const o: CSSProperties = { display: 'grid', gap: 2, fontSize: 10.5, color: 'var(--fg-3)', minWidth: 0 };
+  const so = (nhan: string, k: keyof Lop, buoc = 0.01, a = 0, b = 1) => (
+    <label style={o}>{nhan}<input className="xv-in" type="number" step={buoc} min={a} max={b} value={Number(l[k] ?? 0)} onChange={(e) => onDoi({ [k]: Number(e.target.value) } as Partial<Lop>)} style={{ width: '100%', minWidth: 0 }} /></label>
   );
   const mau = (nhan: string, k: 'mau' | 'vien' | 'nen') => (
-    <label style={{ display: 'grid', gap: 1, fontSize: 10.5, color: 'var(--fg-3)' }}>{nhan}
-      <span style={{ display: 'flex', gap: 3, alignItems: 'center' }}><input type="color" value={l[k] || '#000000'} onChange={(e) => onDoi({ [k]: e.target.value })} />{k === 'nen' && l.nen && <button type="button" className="xv-btn" style={{ padding: '0 5px' }} onClick={() => onDoi({ nen: undefined })} title="Bỏ nền">✕</button>}</span>
+    <label style={o} title={k === 'nen' ? 'Nền sau chữ — để trống = không nền' : undefined}>{nhan}
+      <span style={{ display: 'flex', gap: 2 }}><input type="color" value={l[k] || '#000000'} onChange={(e) => onDoi({ [k]: e.target.value })} style={{ width: 34, height: 24, padding: 0, border: 0, background: 'none' }} />
+        {k === 'nen' && l.nen && <button type="button" className="xv-btn" style={{ padding: '0 4px' }} onClick={() => onDoi({ nen: undefined })} title="Bỏ nền">✕</button>}</span>
     </label>
   );
+  const nut = (chu: string, title: string, f: () => void, nguy?: boolean) => <button type="button" className={`xv-btn${nguy ? ' nguy' : ''}`} style={{ padding: '0 5px', lineHeight: '18px' }} title={title} onClick={f}>{chu}</button>;
   return (
-    <div className="xv-panel" style={{ padding: 8, display: 'grid', gap: 6, textAlign: 'left' }}>
-      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-        <b style={{ fontSize: 12, color: MAU_LOAI[l.loai], flex: 1 }}>🧩 {tenLop(l)}</b>
-        <button type="button" className="xv-btn" style={{ padding: '0 6px' }} title="Đưa lên trên" onClick={() => onLenXuong(1)}>⬆</button>
-        <button type="button" className="xv-btn" style={{ padding: '0 6px' }} title="Đưa xuống dưới" onClick={() => onLenXuong(-1)}>⬇</button>
-        <button type="button" className="xv-btn" style={{ padding: '0 6px' }} title="Nhân bản" onClick={onNhanBan}>⧉</button>
-        <button type="button" className="xv-btn" style={{ padding: '0 6px' }} title={l.an ? 'Hiện lại' : 'Ẩn (không xuất)'} onClick={() => onDoi({ an: !l.an })}>{l.an ? '🙈' : '👁'}</button>
-        <button type="button" className="xv-btn nguy" style={{ padding: '0 6px' }} title="Bỏ lớp (↶ Hoàn tác được)" onClick={onXoa}>🗑</button>
-        <button type="button" className="xv-btn" style={{ padding: '0 6px' }} onClick={onDong}>✕</button>
+    <div className="xv-panel" style={{ padding: 8, display: 'grid', gap: 6, textAlign: 'left', width: 260 }}
+      title="Kéo lớp trên khung để dời · kéo ô xanh ở góc để đổi cỡ · kéo khối trên làn 🧩 để đổi giờ. Tự lưu, ↶ Hoàn tác ở đầu trang.">
+      <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+        <b style={{ fontSize: 12, color: MAU_LOAI[l.loai], flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tenLop(l)}</b>
+        {nut('⧉', 'Nhân bản', onNhanBan)}{nut(l.an ? '🙈' : '👁', l.an ? 'Hiện lại' : 'Ẩn (không xuất)', () => onDoi({ an: !l.an }))}{nut('🗑', 'Bỏ lớp (↶ Hoàn tác được)', onXoa, true)}{nut('✕', 'Đóng', onDong)}
       </div>
-      <input className="xv-in" placeholder="tên lớp" value={l.ten ?? ''} onChange={(e) => onDoi({ ten: e.target.value })} />
       {l.loai === 'chu' && <textarea className="xv-in" rows={2} value={l.chu ?? ''} onChange={(e) => onDoi({ chu: e.target.value })} placeholder="chữ (xuống dòng = dòng mới)" />}
-      {l.loai === 'anh' && <input className="xv-in" placeholder="https://… ảnh" value={l.url ?? ''} onChange={(e) => onDoi({ url: e.target.value })} />}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
-        {so('Vào (s)', 'tu', 0.1, 0, 3600)}{so('Ra (s)', 'den', 0.1, 0, 3600)}
-        <button type="button" className="xv-btn" style={{ alignSelf: 'end', padding: '1px 4px' }} title="Lớp bắt đầu ở đầu phát" onClick={() => onDoi({ tu: lam(t, 2), den: Math.max(lam(t, 2) + 0.3, l.den) })}>vào = ▸</button>
-        <button type="button" className="xv-btn" style={{ alignSelf: 'end', padding: '1px 4px' }} title="Lớp kết thúc ở đầu phát" onClick={() => onDoi({ den: Math.max(l.tu + 0.3, lam(t, 2)) })}>ra = ▸</button>
-        {so('Tâm X', 'x', 0.01, -0.5, 1.5)}{so('Tâm Y', 'y', 0.01, -0.5, 1.5)}{so('Rộng', 'w', 0.01, 0.01, 2)}
-        {l.loai === 'hinh' ? so('Cao', 'h', 0.005, 0.005, 2) : l.loai === 'chu' ? so('Cỡ chữ', 'co', 0.005, 0.01, 0.4, 'phần của bề rộng khung') : <span />}
-        {so('Xoay°', 'xoay', 1, -180, 180)}{so('Độ đậm', 'mo', 0.05, 0, 1)}
-        <label style={{ display: 'grid', gap: 1, fontSize: 10.5, color: 'var(--fg-3)' }}>Hiệu ứng vào
-          <select className="xv-in" value={l.vao} onChange={(e) => onDoi({ vao: e.target.value as Lop['vao'] })}><option value="khong">không</option><option value="mo">hiện dần</option><option value="pop">bật ra</option><option value="truot">trượt lên</option></select>
-        </label>
-        <label style={{ display: 'grid', gap: 1, fontSize: 10.5, color: 'var(--fg-3)' }}>Ra
-          <select className="xv-in" value={l.ra} onChange={(e) => onDoi({ ra: e.target.value as Lop['ra'] })}><option value="khong">cắt</option><option value="mo">mờ dần</option></select>
-        </label>
-      </div>
       {l.loai === 'chu' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, alignItems: 'end' }}>
-          <label style={{ display: 'grid', gap: 1, fontSize: 10.5, color: 'var(--fg-3)', gridColumn: 'span 2' }}>Font
-            <select className="xv-in" value={l.font ?? 'Montserrat Black'} onChange={(e) => onDoi({ font: e.target.value })}>{FONT_CHU.map((f) => <option key={f.key} value={f.key}>{f.ten}</option>)}</select>
-          </label>
-          {mau('Màu', 'mau')}{mau('Viền', 'vien')}
-          {so('Dày viền', 'vien_day', 0.01, 0, 0.3)}{mau('Nền', 'nen')}
-          <label style={{ fontSize: 10.5, color: 'var(--fg-3)' }}><input type="checkbox" checked={!!l.nghieng} onChange={(e) => onDoi({ nghieng: e.target.checked })} /> nghiêng</label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 6, alignItems: 'end' }}>
+          <label style={o}>Font<select className="xv-in" value={l.font ?? 'Montserrat Black'} onChange={(e) => onDoi({ font: e.target.value })} style={{ minWidth: 0 }}>{FONT_CHU.map((f) => <option key={f.key} value={f.key}>{f.key}</option>)}</select></label>
+          {mau('Màu', 'mau')}{mau('Viền', 'vien')}{mau('Nền', 'nen')}
         </div>
       )}
       {l.loai === 'hinh' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, alignItems: 'end' }}>
-          <label style={{ display: 'grid', gap: 1, fontSize: 10.5, color: 'var(--fg-3)' }}>Dạng
-            <select className="xv-in" value={l.dang ?? 'bo_goc'} onChange={(e) => onDoi({ dang: e.target.value as Lop['dang'] })}><option value="chu_nhat">chữ nhật</option><option value="bo_goc">bo góc</option><option value="tron">tròn / elip</option></select>
-          </label>
-          {mau('Màu', 'mau')}{mau('Viền', 'vien')}{so('Dày viền', 'vien_day', 0.01, 0, 0.3)}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 6, alignItems: 'end' }}>
+          <label style={o}>Dạng<select className="xv-in" value={l.dang ?? 'bo_goc'} onChange={(e) => onDoi({ dang: e.target.value as Lop['dang'] })}><option value="chu_nhat">Chữ nhật</option><option value="bo_goc">Bo góc</option><option value="tron">Tròn / elip</option></select></label>
+          {mau('Màu', 'mau')}{mau('Viền', 'vien')}
         </div>
       )}
-      <div style={mono}>Kéo lớp trên khung để dời · kéo góc xanh để đổi cỡ · kéo khối trên làn 🧩 để đổi giờ. Tự lưu, ↶ Hoàn tác ở đầu trang.</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, alignItems: 'end' }}>
+        {l.loai === 'chu' ? so('Cỡ chữ', 'co', 0.005, 0.01, 0.4) : so('Rộng', 'w', 0.01, 0.01, 2)}
+        {l.loai === 'hinh' ? so('Cao', 'h', 0.005, 0.005, 2) : so('Độ đậm', 'mo', 0.05, 0, 1)}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, alignItems: 'end' }}>
+        <label style={o}>Vào (s)<span style={{ display: 'flex', gap: 2 }}><input className="xv-in" type="number" step={0.1} min={0} value={l.tu} onChange={(e) => onDoi({ tu: Number(e.target.value) })} style={{ width: '100%', minWidth: 0 }} />{nut('▸', 'Lấy giây đang đứng', () => onDoi({ tu: lam(t, 2), den: Math.max(lam(t, 2) + 0.3, l.den) }))}</span></label>
+        <label style={o}>Ra (s)<span style={{ display: 'flex', gap: 2 }}><input className="xv-in" type="number" step={0.1} min={0} value={l.den} onChange={(e) => onDoi({ den: Number(e.target.value) })} style={{ width: '100%', minWidth: 0 }} />{nut('▸', 'Lấy giây đang đứng', () => onDoi({ den: Math.max(l.tu + 0.3, lam(t, 2)) }))}</span></label>
+      </div>
+      <details>
+        <summary style={{ fontSize: 11, color: 'var(--fg-3)', cursor: 'pointer' }}>Nâng cao — vị trí, xoay, hiệu ứng, thứ tự</summary>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 6, alignItems: 'end' }}>
+          {so('Tâm X', 'x', 0.01, -0.5, 1.5)}{so('Tâm Y', 'y', 0.01, -0.5, 1.5)}
+          {l.loai === 'chu' ? so('Rộng', 'w', 0.01, 0.01, 2) : l.loai === 'hinh' ? so('Độ đậm', 'mo', 0.05, 0, 1) : <span />}{so('Xoay (°)', 'xoay', 1, -180, 180)}
+          {l.loai !== 'anh' && so('Dày viền', 'vien_day', 0.01, 0, 0.3)}
+          {l.loai === 'chu' && <label style={{ ...o, alignSelf: 'center' }}><span><input type="checkbox" checked={!!l.nghieng} onChange={(e) => onDoi({ nghieng: e.target.checked })} /> Nghiêng</span></label>}
+          <label style={o}>Hiệu ứng vào<select className="xv-in" value={l.vao} onChange={(e) => onDoi({ vao: e.target.value as Lop['vao'] })}><option value="khong">Không</option><option value="mo">Hiện dần</option><option value="pop">Bật ra</option><option value="truot">Trượt lên</option></select></label>
+          <label style={o}>Khi ra<select className="xv-in" value={l.ra} onChange={(e) => onDoi({ ra: e.target.value as Lop['ra'] })}><option value="khong">Cắt</option><option value="mo">Mờ dần</option></select></label>
+          {l.loai === 'anh' && <label style={{ ...o, gridColumn: 'span 2' }}>Đường dẫn ảnh<input className="xv-in" value={l.url ?? ''} onChange={(e) => onDoi({ url: e.target.value })} /></label>}
+          <label style={{ ...o, gridColumn: 'span 2' }}>Tên lớp<input className="xv-in" value={l.ten ?? ''} placeholder={tenLop(l)} onChange={(e) => onDoi({ ten: e.target.value })} /></label>
+          <span style={{ display: 'flex', gap: 4, gridColumn: 'span 2' }}>{nut('⬆ Lên trên', 'Đưa lớp lên trên', () => onLenXuong(1))}{nut('⬇ Xuống dưới', 'Đưa lớp xuống dưới', () => onLenXuong(-1))}</span>
+        </div>
+      </details>
     </div>
   );
 }

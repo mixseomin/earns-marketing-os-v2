@@ -301,8 +301,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             <button type="button" className="xv-btn" title="Cảnh sau" onClick={() => tuaToi(batDau[Math.min(canh.length - 1, idx + 1)] ?? 0)}>⏭</button>
             <span style={{ ...mono, fontSize: 12, color: 'var(--fg-1)' }}>{dongHo(t)} / {dongHo(tong)}</span>
             <button type="button" className="xv-btn" onClick={onToanManHinh} title="Xem cả tập toàn màn hình">⛶</button>
+            <LopThem t={t} tiLe={doc916 ? 9 / 16 : 16 / 9} anhSan={anhSan} onThem={(ds) => { datLop((x) => [...x, ...ds]); setChonLop(ds[ds.length - 1]?.id ?? null); setChay(false); }} />
           </div>
-          <LopThem t={t} tiLe={doc916 ? 9 / 16 : 16 / 9} anhSan={anhSan} onThem={(ds) => { datLop((x) => [...x, ...ds]); setChonLop(ds[ds.length - 1]?.id ?? null); setChay(false); }} />
           {loiLop && <span className="xv-loi">{loiLop}</span>}
         </div>
         <div style={{ display: 'grid', gap: 6, alignContent: 'start' }}>

@@ -12,11 +12,14 @@ export function giaCua(model) {
 }
 /** USD của một lượt gọi; không có giá → null. */
 export const tienUsd = (model, u) => { const g = giaCua(model); return g && u ? ((u.input_tokens || 0) * g[0] + (u.output_tokens || 0) * g[1]) / 1e6 : null; };
+/** USD THẬT của một lời gọi: nhà báo tiền (fal/OpenRouter `usage.cost_usd`, proxy giữ lại) thì lấy, không thì tính theo bảng giá. */
+export const tienGoi = (model, u) => (u ? u.cost_usd ?? tienUsd(model, u) : null);
 
 if ((process.argv[1] || '').endsWith('gia.mjs') && process.argv.includes('--tu-kiem')) {
   const a = (c, m) => { if (!c) { console.error('✗ gia:', m); process.exit(1); } };
   a(giaCua('openai:gpt-4o-mini')[0] === 0.15 && giaCua('openai:gpt-4o')[0] === 2.5, 'tiền tố dài nhất (4o-mini ≠ 4o)');
   a(giaCua('claude:sonnet') === null && tienUsd('x:y', { input_tokens: 1 }) === null, 'không có giá → null');
   a(Math.abs(tienUsd('openai:gpt-4.1-nano', { input_tokens: 1e6, output_tokens: 1e6 }) - 0.5) < 1e-12, 'tính tiền');
-  console.log('✓ gia: 3 ca'); process.exit(0);
+  a(tienGoi('openai:gpt-4.1-nano', { input_tokens: 1e6, output_tokens: 0, cost_usd: 0.002 }) === 0.002 && tienGoi('openai:gpt-4.1-nano', { input_tokens: 1e6 }) === 0.1 && tienGoi('x', null) === null, 'tiền nhà báo thắng bảng giá');
+  console.log('✓ gia: 4 ca'); process.exit(0);
 }

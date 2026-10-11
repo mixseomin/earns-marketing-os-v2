@@ -10,13 +10,13 @@
 //   2. GHI SỔ: mỗi lượt một dòng ai_usage (feature 'cty:<id>', model, token) — cùng bảng MOS2 đang dùng, An đọc được ngay.
 //   3. CACHE theo hash: CTY_CACHE=1 → cùng body → trả bản đã lưu (~/.cty-cache), chạy lại kịch bản $0.
 // Khoá thật chỉ nằm ở đây (env OPENAI_API_KEY / ANTHROPIC_API_KEY / <NHÀ>_API_KEY); nhân sự không bao giờ thấy khoá.
-// CHƯA CÓ UNIT SYSTEMD — đợt tham quan không chạy. `node worker/proxy.mjs --tu-kiem` = 4 ca tự kiểm với upstream giả.
+// CHƯA CÓ UNIT SYSTEMD — đợt tham quan không chạy. `node worker/proxy.mjs --tu-kiem` = tự kiểm với upstream giả.
 import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { GOC } from './goc.mjs';
-import { giaCua, tienUsd } from './gia.mjs';
+import { giaCua, tienUsd, tienGoi } from './gia.mjs';
 import crypto from 'node:crypto';
 import { parseFm } from '../scripts/fm.mjs';
 import { ghiLog } from './log.mjs';
@@ -38,7 +38,8 @@ export const NHA = {
 // Model qua fal (OpenRouter) mặc định SUY LUẬN NGẦM và tính phần đó vào max_tokens → lượt thật (500 token) trả RỖNG (đo 11/10/2026: 9/11 model).
 // Gọi đúng cấu hình đã dùng khi dò model (worker/do-model.mjs) để điểm đo áp được vào việc thật: tắt suy luận + trần ≥ 1000 token; model không
 // cho tắt (400 "Reasoning is mandatory": gemini-3.8-flash, glm-5.3-flash…) → mức thấp nhất + trần ≥ 2000 (suy luận tính chung vào trần).
-// Bên gọi tự đặt `reasoning` (vd do-model) thì giữ nguyên.
+// Đây là CHỖ DUY NHẤT đặt cấu hình này (do-model đi qua đây nên đo và chạy thật cùng một luật); trả lại mức đã dùng ở `suy_luan`.
+// Bên gọi tự đặt `reasoning` thì giữ nguyên.
 const BAT_BUOC_SUY_LUAN = new Set();
 const cauHinhSuyLuan = (b, ten) => (b.reasoning ? b : BAT_BUOC_SUY_LUAN.has(ten)
   ? { ...b, reasoning: { effort: 'minimal' }, max_tokens: Math.max(b.max_tokens || 0, 2000) }
@@ -146,11 +147,12 @@ export async function xuLy(body, staff, so, fetchFn = fetch) {
   const ten = model.split(':').pop();
   let res, data;
   if (cfg.dang === 'openai') {
-    const gui = () => fetchFn(url, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `${cfg.auth ?? 'Bearer'} ${key}` }, body: JSON.stringify(toOpenAI(cfg.suyLuan ? cauHinhSuyLuan(clean, ten) : clean, ten)) });
+    let gui1 = clean;
+    const gui = () => { gui1 = cfg.suyLuan ? cauHinhSuyLuan(clean, ten) : clean; return fetchFn(url, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `${cfg.auth ?? 'Bearer'} ${key}` }, body: JSON.stringify(toOpenAI(gui1, ten)) }); };
     res = await gui(); let o = await res.json();
     if (!res.ok && cfg.suyLuan && !clean.reasoning && !BAT_BUOC_SUY_LUAN.has(ten) && /reasoning is mandatory/i.test(JSON.stringify(o))) { BAT_BUOC_SUY_LUAN.add(ten); res = await gui(); o = await res.json(); }   // 400 không tính tiền
     if (!res.ok) return [res.status, o];
-    data = toAnthropic(o, model);
+    data = toAnthropic(o, model); if (gui1.reasoning) data.suy_luan = gui1.reasoning.effort;
   } else {
     res = await fetchFn(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ ...clean, model: ten }) });
     data = await res.json(); if (!res.ok) return [res.status, data];
@@ -169,7 +171,7 @@ export function server(port, so = soChi()) {
     const t0 = Date.now();
     const [code, data] = await xuLy(body, req.headers['x-cty-staff'], so).catch((e) => [502, { error: String(e.message || e) }]);
     ghiLog({ luot: req.headers['x-cty-luot'] || null, loai: code === 200 ? 'goi' : 'loi', tu: req.headers['x-cty-staff'] || null,
-      chi_tiet: { model: body.model, http: code, ms: Date.now() - t0, usage: data.usage || null, usd: data.usage ? tienUsd(String(body.model), data.usage) : null, cache: !!data._cache, loi: data.error || null, he_thong_ky_tu: String(body.system || '').length, tin_nhan: (body.messages || []).length } });
+      chi_tiet: { model: body.model, http: code, ms: Date.now() - t0, usage: data.usage || null, usd: tienGoi(String(body.model), data.usage), cache: !!data._cache, loi: data.error || null, he_thong_ky_tu: String(body.system || '').length, tin_nhan: (body.messages || []).length } });
     res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(data));
   }).listen(port, '127.0.0.1');
 }
@@ -196,10 +198,10 @@ if (process.argv.includes('--tu-kiem')) {
   [c, d] = await xuLy({ ...req, model: 'fal:anthropic/claude-haiku-5.5' }, 'ha', so); assert(c === 200 && auth === 'Key k' && d.content[0].text === 'chào Lan', `ca 5 fal: xác thực "Key", tên mô hình OpenRouter (${c} ${auth})`);
   assert(toAnthropic({ choices: [{ message: { content: 'x' } }], usage: { prompt_tokens: 1, completion_tokens: 9, cost: 0.002, completion_tokens_details: { reasoning_tokens: 8 } } }, 'm').usage.cost_usd === 0.002 && toOpenAI({ messages: [], reasoning: { effort: 'none' } }, 'm').reasoning.effort === 'none', 'ca 6 giữ tiền + token suy luận nhà báo, chuyển tiếp tham số suy luận');
   [c, d] = await xuLy({ ...req, model: 'fal:deepseek/deepseek-v4-flash', max_tokens: 500 }, 'ha', so); let cuoi = nhan.at(-1);
-  assert(c === 200 && cuoi.reasoning?.effort === 'none' && cuoi.max_tokens === 1000, `ca 7 fal: tắt suy luận + trần 1000 như lúc đo (${JSON.stringify(cuoi.reasoning)} ${cuoi.max_tokens})`);
+  assert(c === 200 && cuoi.reasoning?.effort === 'none' && cuoi.max_tokens === 1000 && d.suy_luan === 'none', `ca 7 fal: tắt suy luận + trần 1000 như lúc đo (${JSON.stringify(cuoi.reasoning)} ${cuoi.max_tokens})`);
   const truoc = nhan.length; [c, d] = await xuLy({ ...req, model: 'fal:z-ai/glm-5.3-flash', max_tokens: 500 }, 'ha', so); cuoi = nhan.at(-1);
   assert(c === 200 && nhan.length - truoc === 2 && cuoi.reasoning?.effort === 'minimal' && cuoi.max_tokens === 2000, `ca 8 bắt buộc suy luận → gọi lại mức thấp nhất, trần 2000 (${c} ${nhan.length - truoc} ${JSON.stringify(cuoi.reasoning)})`);
-  [c, d] = await xuLy({ ...req, model: 'fal:z-ai/glm-5.3-flash', max_tokens: 500 }, 'ha', so); assert(c === 200 && nhan.at(-1).reasoning?.effort === 'minimal', 'ca 9 lần sau nhớ, không gọi hỏng nữa');
+  [c, d] = await xuLy({ ...req, model: 'fal:z-ai/glm-5.3-flash', max_tokens: 500 }, 'ha', so); assert(c === 200 && nhan.at(-1).reasoning?.effort === 'minimal' && d.suy_luan === 'minimal', 'ca 9 lần sau nhớ, không gọi hỏng nữa; trả lại mức suy luận đã dùng');
   fake.close(); console.log('✓ proxy: 9 ca đạt (dịch 2 chiều · giá fail-closed · hồ sơ · trần người · fal "Key" · giữ tiền nhà báo · suy luận như lúc đo)'); process.exit(0);
 }
 

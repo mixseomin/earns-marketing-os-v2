@@ -4,7 +4,7 @@ import { getCurrentUser, loginUrl } from '@/lib/auth';
 import { ChongNgan } from '@/components/ngan/chong';
 import { TabPhong } from '@/components/tab-phong';
 import { Nguoi } from '@/components/nguoi';
-import { doiNgu, tongChiDo, tacDungTinhCach, ketVanDai, tenModel, pc, VAI, TEN_VAI, type Vai, type TK, type Nguoi as NS, COT_VAI } from '@/lib/doi-ngu';
+import { doiNgu, tongChiDo, tacDungTinhCach, ketVanDai, canhBao, tenModel, pc, VAI, TEN_VAI, NGUONG_CANH_BAO, type TK, type Nguoi as NS, COT_VAI } from '@/lib/doi-ngu';
 import { TINH_CACH } from '../../../worker/tinh-cach.mjs';
 
 export const dynamic = 'force-dynamic';
@@ -24,6 +24,9 @@ export default async function TrangDoiNgu({ searchParams }: { searchParams: Prom
   const giaTb = (m: string) => VAI.reduce((s, v) => s + (k?.theo_vai[v]?.[m]?.usd_goi ?? 0), 0) / VAI.length;
   const aiDung = (m: string) => ds.filter((d) => d.model === m);
   const nhom = (muc: NS['deXuat']['muc']) => ds.filter((d) => d.deXuat.muc === muc);
+  const diem = (x: number) => Math.round(x * 100);
+  const chenhModel = k ? Math.max(...VAI.map((v) => { const ts = Object.values(k.theo_vai[v] ?? {}).filter((s) => s.n).map((s) => s.ti_le); return ts.length ? Math.max(...ts) - Math.min(...ts) : 0; })) : 0;
+  const chenhTc = tc.length ? Math.max(...tc.map((x) => Math.abs(x.chenh))) : 0; const tcNhieu = tc.filter((x) => x.p >= 0.05).length;
   return (
     <>
       <h1>Đội ngũ</h1>
@@ -34,7 +37,7 @@ export default async function TrangDoiNgu({ searchParams }: { searchParams: Prom
         <TabPhong khoa="doi-ngu" tabs={[{ key: 'ns', nhan: 'Nhân sự', so: ds.length }, { key: 'ss', nhan: 'So sánh bộ não', so: models.length }, { key: 'dx', nhan: 'Đề xuất', so: nhom('doi').length }]}>
           <div className="cty-dn-cuon">
             <table className="cty-viec cty-dn cty-dn-ns">
-              <thead><tr><th>Người</th><th>Phòng</th><th>Vai chính</th><th>Bộ não</th>{VAI.map((v) => <th key={v} className="cty-so" title={TEN_VAI[v]}>{COT_VAI[v]}</th>)}<th className="cty-so">$/1.000 lời gọi</th><th>Đề xuất</th></tr></thead>
+              <thead><tr><th>Người</th><th>Phòng</th><th>Vai chính</th><th>Bộ não</th>{VAI.map((v) => <th key={v} className="cty-so" title={TEN_VAI[v]}>{COT_VAI[v]}</th>)}<th className="cty-so" title="Giá 1.000 lời gọi ở vai chính của người đó">$/1.000 lời gọi vai chính</th><th>Đề xuất</th></tr></thead>
               <tbody>{ds.map((d) => (
                 <tr key={d.id}>
                   <td><Nguoi id={d.id} /></td><td className="cty-muted">{d.phongTen}</td><td title={d.giuVai.join(' · ') || d.chucDanh}>{TEN_VAI[d.vai]}</td>
@@ -48,10 +51,9 @@ export default async function TrangDoiNgu({ searchParams }: { searchParams: Prom
           </div>
           <div className="cty-dn-cuon">
             <table className="cty-viec cty-dn cty-dn-ss">
-              <thead><tr><th>Bộ não</th><th>Ai đang dùng</th>{VAI.map((v) => <th key={v} className="cty-so" title={TEN_VAI[v]}>{COT_VAI[v]}</th>)}<th className="cty-so">$/1.000 lời gọi</th><th>Đáng chú ý</th></tr></thead>
+              <thead><tr><th>Bộ não</th><th>Ai đang dùng</th>{VAI.map((v) => <th key={v} className="cty-so" title={TEN_VAI[v]}>{COT_VAI[v]}</th>)}<th className="cty-so" title="Trung bình giá 1.000 lời gọi của ba vai">$/1.000 lời gọi TB 3 vai</th><th>Đáng chú ý</th></tr></thead>
               <tbody>{models.sort((a, b) => tb(b) - tb(a)).map((m) => {
-                const dung = aiDung(m); const kiem = k.theo_vai.kiem[m], giao = k.theo_vai.giao[m];
-                const chu = [kiem && (kiem.bac_sai ?? 0) >= 10 ? `bác nhầm ${kiem.bac_sai}/60 bài sạch` : '', giao && (giao.giao_bua ?? 0) >= 10 ? `giao bừa ${giao.giao_bua}/32` : '', giao && (giao.mat_rang_buoc ?? 0) >= 10 ? `rơi ràng buộc ${giao.mat_rang_buoc}/96` : ''].filter(Boolean).join(' · ');
+                const dung = aiDung(m); const chu = VAI.flatMap((v) => canhBao(v, k.theo_vai[v][m])).join(' · ');
                 return (
                   <tr key={m}>
                     <td>{tenModel(m)}</td>
@@ -61,7 +63,7 @@ export default async function TrangDoiNgu({ searchParams }: { searchParams: Prom
                   </tr>);
               })}</tbody>
             </table>
-            <p className="cty-muted cty-nho">Số đậm = lựa chọn đáng tiền nhất của vai (kém người giỏi nhất ≤ 5 điểm, lấy rẻ nhất). &quot;Ứng viên&quot; = bộ não đã đo, chưa ai dùng.</p>
+            <p className="cty-muted cty-nho">Số đậm = lựa chọn đáng tiền nhất của vai (kém người giỏi nhất ≤ 5 điểm, lấy rẻ nhất). &quot;Ứng viên&quot; = bộ não đã đo, chưa ai dùng. &quot;Đáng chú ý&quot; = thói xấu gặp ở từ {pc(NGUONG_CANH_BAO)} số mẫu trở lên.</p>
             <h3>Tính cách có đổi điểm không</h3>
             <table className="cty-viec cty-dn">
               <thead><tr><th>Chỉ số · mức</th>{VAI.map((v) => <th key={v} className="cty-so" title={TEN_VAI[v]}>{COT_VAI[v]}</th>)}</tr></thead>
@@ -88,8 +90,8 @@ export default async function TrangDoiNgu({ searchParams }: { searchParams: Prom
               </section>))}
             <h3>Tính cách</h3>
             <ul>
-              <li>Bộ não quyết định năng lực: đổi model chênh 30+ điểm, đổi tính cách chỉ ±6 điểm (53/54 phép so nằm trong nhiễu).</li>
-              <li>Tính cách chỉ có tác dụng ở model chịu nghe lời dặn (glm, haiku): Mềm mỏng 9 làm lời bác kèm cách sửa 27–41% → 76–87%; Sáng tạo 9 đổi bài viết dài ở glm. gpt-4o-mini gần như không đổi.</li>
+              {tc.length > 0 && <li>Bộ não quyết định năng lực: đổi model chênh tới {diem(chenhModel)} điểm, đổi tính cách chỉ tới ±{diem(chenhTc)} điểm ({tcNhieu}/{tc.length} phép so nằm trong nhiễu).</li>}
+              <li>Tính cách chỉ có tác dụng ở model chịu nghe lời dặn (glm, haiku): Mềm mỏng 9 làm lời bác kèm cách sửa 27–41% → 76–87%; Sáng tạo 9 đổi bài viết dài ở glm. gpt-4o-mini gần như không đổi (đọc câu trả lời đợt tính cách 11/10/2026, không phải số máy tính lại).</li>
             </ul>
             <p className="cty-muted cty-nho">Đổi bộ não hay đổi người giữ vai là mức 3: Giám đốc ký.</p>
           </div>

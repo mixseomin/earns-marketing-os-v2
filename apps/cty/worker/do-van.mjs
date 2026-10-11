@@ -11,7 +11,6 @@ import path from 'node:path';
 import { goi } from './do-model.mjs';
 import { hienHanh, dien, json, tenPhong } from './quy-trinh.mjs';
 import { quyDinhLuot } from './ca.mjs';
-import { tienUsd } from './gia.mjs';
 import { tinhCachCua } from './tinh-cach.mjs';
 
 const K = 'thu-nghiem/lam-viec';
@@ -50,7 +49,7 @@ export async function sinh(tran) {
       user: dien(qt.loi_nhac.lam, { nguoi_lam: 'Người làm', viec_giao: de, tieu_chi: `1. ${nn === 'en' ? 'English' : 'Viết bằng tiếng Việt'}\n2. ${a}–${b} ${nn === 'en' ? 'words' : 'từ'}` }) });
   }
   return chayHang(hang, tep, tran, async (h) => { const r = await goi(h.model, 'lam', h.user, nk, 'do-van', tinhCachCua({}, { sang_tao: h.muc }));
-    const { user, ...g } = h; return { ...g, ts: new Date().toISOString(), hoi: user, http: r.http, ms: r.ms, usage: r.usage, usd: r.usage ? r.usage.cost_usd ?? tienUsd(h.model, r.usage) ?? 0 : 0, dap: r.dap, loi: r.loi }; });
+    const { user, ...g } = h; return { ...g, ts: new Date().toISOString(), hoi: user, http: r.http, ms: r.ms, usage: r.usage, usd: r.usd, dap: r.dap, loi: r.loi }; });
 }
 
 const capLan1 = () => { const bai = new Map(docDong(path.join(DIR(), 'bai.jsonl')).filter((x) => x.http === 200 && ketQua(x.dap)).map((x) => [x.khoa, x]));
@@ -65,7 +64,7 @@ export async function cham(tran) {
     const [A, B] = h.thuTu === 's2-truoc' ? [h.c.s2, h.c.s9] : [h.c.s9, h.c.s2];
     const r = await goi(h.gk, 'kiem', loiGK(DE[h.c.de][1], A, B), {}, 'do-van-cham', [], HE_GK);
     const hon = json(r.dap)?.hon; const chon = hon === 'ngang' ? 'ngang' : hon === 'A' ? (h.thuTu === 's2-truoc' ? 's2' : 's9') : hon === 'B' ? (h.thuTu === 's2-truoc' ? 's9' : 's2') : null;
-    return { khoa: h.khoa, cap: h.cap, gk: h.gk, thu_tu: h.thuTu, ts: new Date().toISOString(), http: r.http, usage: r.usage, usd: r.usage ? r.usage.cost_usd ?? tienUsd(h.gk, r.usage) ?? 0 : 0, dap: r.dap, chon, loi: r.loi };
+    return { khoa: h.khoa, cap: h.cap, gk: h.gk, thu_tu: h.thuTu, ts: new Date().toISOString(), http: r.http, usage: r.usage, usd: r.usd, dap: r.dap, chon, loi: r.loi };
   });
 }
 

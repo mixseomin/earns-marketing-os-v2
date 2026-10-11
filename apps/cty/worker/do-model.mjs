@@ -5,10 +5,9 @@
 //   kiem  60 bài nộp cố định (30 sạch, 30 cài đúng 1 lỗi × 6 loại) → chấm đúng? bác sai? duyệt sai? bắt được loại lỗi nào?
 //   lam   6 loại việc × 8, tiêu chí chuẩn đưa sẵn → phép đo máy (quy-trinh.mjs mayDo) trên ket_qua
 //   giao  48 việc làm được (brief phải giữ đủ ràng buộc) + 16 việc thiếu dữ kiện / mâu thuẫn (phải trả {"thieu"}, không giao)
-// Cấu hình đo (chạy thử 11/10: 9/11 model qua fal trả RỖNG vì suy luận ngầm ăn hết trần 500 token): model qua fal gửi reasoning
-// {effort:'none'}; trần 1000 token và đếm số câu vượt 500 (= lượt thật đang để 500 sẽ cắt cụt, phải nâng nếu dùng model đó).
-// Model bắt buộc suy luận (400 "Reasoning is mandatory": glm-5.3-flash, gemini-3.8-flash, sonnet-5.5, grok-4.7 lúc thử) → tự lùi về
-// effort 'minimal', trần TRAN_SUY_LUAN (suy luận tính chung vào trần); dòng nhật ký ghi suy_luan để so cho đúng.
+// Cấu hình đo (chạy thử 11/10: 9/11 model qua fal trả RỖNG vì suy luận ngầm ăn hết trần 500 token): trần 1000 token và đếm số câu
+// vượt 500 (= lượt thật đang để 500 sẽ cắt cụt, phải nâng nếu dùng model đó). Suy luận của model fal do PROXY đặt (worker/proxy.mjs
+// cauHinhSuyLuan — cùng một luật cho đo lẫn lượt thật: tắt, model không cho tắt thì 'minimal'); dòng nhật ký ghi `suy_luan` proxy trả về.
 // fal giới hạn 10 lời gọi đồng thời mỗi tài khoản → tối đa FAL_SONG_SONG lời gọi fal bay cùng lúc.
 // Mọi lời gọi qua proxy (giá fail-closed, sổ ai_usage dưới tên Hà, người giữ bộ đo). MỌI lời gọi đã trả tiền ghi nguyên văn vào
 // <DATA>/do-model/<dot>/goi.jsonl (hỏi, đáp, token, USD, ms, điểm) để làm insight về sau. Chạy lại cùng --dot = chạy tiếp phần còn
@@ -24,7 +23,7 @@ import http from 'node:http';
 import { GOC } from './goc.mjs';
 import { hienHanh, dien, json, mayDo, theVai, tenPhong } from './quy-trinh.mjs';
 import { heThong, LOI_HOI_LAI, quyDinhLuot } from './ca.mjs';
-import { tienUsd } from './gia.mjs';
+import { tienGoi } from './gia.mjs';
 import { tinhCachCua } from './tinh-cach.mjs';
 
 const K = 'thu-nghiem/lam-viec';
@@ -39,8 +38,7 @@ export const MODELS = ['openai:gpt-4o', 'openai:gpt-4o-mini', 'openai:gpt-4.1-na
 const VAI = { giao: 'truong-phong', lam: 'nguoi-lam', kiem: 'nguoi-kiem' };
 const TEN = { nguoi_lam: 'Người làm', nguoi_kiem: 'Người kiểm', ma_nguoi_lam: 'nguoi-lam' };
 const HO_SO = 'Ứng viên đang được đo năng lực ở vai này. Chưa có kinh nghiệm riêng ở công ty. Làm đúng thẻ vai và lời dặn của lượt.';
-const TRAN_TOKEN = 1000, TRAN_SUY_LUAN = 2000, TRAN_THAT = 500, FAL_SONG_SONG = 8;
-const BAT_BUOC = new Set();   // model fal không tắt được suy luận (học trong lượt chạy)
+const TRAN_TOKEN = 1000, TRAN_THAT = 500, FAL_SONG_SONG = 8;
 const NGUONG = 0.05;   // nhóm dẫn đầu = kém người giỏi nhất không quá 5 điểm → chọn người rẻ nhất trong nhóm (anh chưa đổi thì giữ)
 const so = (ds) => ds.map((t, i) => `${i + 1}. ${t}`).join('\n');
 const q = (x) => `"${x}"`;
@@ -113,17 +111,14 @@ export function cham(vai, m, dap) {
 
 export async function goi(model, vai, user, nk, luot, tc = [], heThongRieng = null) {   // heThongRieng: giám khảo (do-van.mjs) không mang thẻ vai
   const ns = { id: 'ung-vien', ten: 'Ứng viên', model, vai: theVai(VAI[vai]), body: HO_SO, tinh_cach: tc, bai_hoc: [] };
-  const fal = model.startsWith('fal:');
   for (let thu = 0; ; thu++) {
-    const bb = BAT_BUOC.has(model); const suy_luan = fal ? (bb ? 'minimal' : 'none') : null;
-    const body = { model, max_tokens: bb ? TRAN_SUY_LUAN : TRAN_TOKEN, temperature: 0.3, system: heThongRieng ?? heThong(ns, nk), messages: [{ role: 'user', content: user }], ...(fal ? { reasoning: { effort: suy_luan } } : {}) };   // như goi() của lượt thật, trừ trần token + suy luận
+    const body = { model, max_tokens: TRAN_TOKEN, temperature: 0.3, system: heThongRieng ?? heThong(ns, nk), messages: [{ role: 'user', content: user }] };   // như goi() của lượt thật, trừ trần token
     const t0 = Date.now(); let st = 0, d = {};
     try { const r = await fetch(`${PROXY()}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': 'ha', 'x-cty-luot': luot }, body: JSON.stringify(body) }); st = r.status; d = await r.json().catch(() => ({})); } catch (e) { d = { error: String(e.message || e) }; }
     const loi = st === 200 ? null : typeof d.error === 'string' ? d.error : d.error?.message ?? JSON.stringify(d).slice(0, 300);
-    if (st === 400 && fal && !bb && /reasoning is mandatory/i.test(loi ?? '')) { BAT_BUOC.add(model); thu--; continue; }   // 400 không tính tiền
     const tranChan = st === 429 && /trần/.test(loi ?? '');
     if (!tranChan && (st === 0 || st === 429 || st >= 500) && thu < 3) { await new Promise((ok) => setTimeout(ok, 2000 * 2 ** thu)); continue; }   // mạng / nhà quá tải: thử lại
-    return { http: st, ms: Date.now() - t0, usage: d.usage ?? null, het: d.stop_reason ?? null, loi, tran_chan: tranChan, suy_luan,
+    return { http: st, ms: Date.now() - t0, usage: d.usage ?? null, usd: tienGoi(model, d.usage) ?? 0, het: d.stop_reason ?? null, loi, tran_chan: tranChan, suy_luan: d.suy_luan ?? null,
       dap: st === 200 ? (d.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('') : '' };
   }
 }
@@ -153,7 +148,7 @@ export async function chay({ dot, tran, lan = 3, lanKiem = 2, models = MODELS, s
       const fal = h.model.startsWith('fal:'); if (fal) await vaoFal();
       const r = await goi(h.model, h.vai, user, nk, `do-model-${dot}`, tc).finally(() => fal && raFal());
       if (r.tran_chan) dung = `proxy chặn trần: ${r.loi}`;
-      const usd = r.usage ? r.usage.cost_usd ?? tienUsd(h.model, r.usage) ?? 0 : 0; chi += usd;
+      const usd = r.usd; chi += usd;
       const diem = r.http === 200 ? { ...cham(h.vai, h.m, r.dap), vuot_500: (r.usage?.output_tokens ?? 0) - (r.usage?.reasoning_tokens ?? 0) > TRAN_THAT } : {};
       fs.appendFileSync(tep, JSON.stringify({ ts: new Date().toISOString(), khoa: h.khoa, vai: h.vai, muc: h.m.id, loai: h.m.loai, loi_cai: h.m.loi ?? null, ky_vong: h.m.ky_vong ?? null,
         lan: h.lan, model: h.model, ...(tinhCach ? { tinh_cach: tinhCach } : {}), suy_luan: r.suy_luan, quy_trinh: qt.ban, http: r.http, ms: r.ms, usage: r.usage, usd, het: r.het, loi: r.loi, hoi: user, dap: r.dap, ...diem }) + '\n');
@@ -191,11 +186,12 @@ export function tong(dot) {
     for (const [model, xs] of Object.entries(gom(dsVai, (x) => x.model))) {
       const s = thongKe(xs); const ok = xs.filter((x) => x.http === 200);
       if (vai === 'kiem') {
-        s.bac_sai = ok.filter((x) => x.bac_sai).length; s.duyet_sai = ok.filter((x) => x.duyet_sai).length;
+        s.bac_sai = ok.filter((x) => x.bac_sai).length; s.duyet_sai = ok.filter((x) => x.duyet_sai).length; s.n_sach = ok.filter((x) => !x.loi_cai).length;   // mẫu số của bác sai
         s.bat_loi = Object.fromEntries(Object.entries(gom(ok.filter((x) => x.loi_cai), (x) => x.loi_cai)).map(([l, ys]) => [l, ys.filter((y) => y.ok === false).length / ys.length]));
         const cap = Object.values(gom(ok, (x) => x.muc)).filter((ys) => ys.length > 1); s.on_dinh = cap.length ? cap.filter((ys) => ys.every((y) => y.ok === ys[0].ok)).length / cap.length : null;
       }
-      if (vai === 'giao') { s.hoi_thua = ok.filter((x) => x.hoi_thua).length; s.giao_bua = ok.filter((x) => x.giao_bua).length; s.mat_rang_buoc = ok.filter((x) => x.mat?.length).length; }
+      if (vai === 'giao') { s.hoi_thua = ok.filter((x) => x.hoi_thua).length; s.giao_bua = ok.filter((x) => x.giao_bua).length; s.mat_rang_buoc = ok.filter((x) => x.mat?.length).length;
+        s.n_ket = ok.filter((x) => x.ky_vong === 'ket').length; s.n_lam_duoc = ok.length - s.n_ket; }   // mẫu số: giao bừa / việc phải hỏi lại, rơi ràng buộc / việc làm được
       tk[model] = s;
     }
     kq.theo_vai[vai] = tk; kq.duong_bien[vai] = duongBien(tk); kq.de_xuat[vai] = chon(tk);
@@ -293,13 +289,12 @@ if (laCli && process.argv.includes('--tu-kiem')) {
   a(r1.dung && r1.n > 0 && r1.n < tong1, 'trần chặn giữa chừng', r1);
   const r2 = await chay({ dot: 'thu', tran: 1, lan: 1, lanKiem: 1, models: M2, songSong: 4, im: true });
   a(!r2.dung && goiN === tong1 && r1.n + r2.n === tong1, `chạy tiếp: đủ ${tong1} lời gọi, không gọi lại phần đã xong`, { goiN, r1: r1.n, r2: r2.n });
-  const hieu = []; const fake2 = http.createServer(async (req, res) => { let raw = ''; for await (const c of req) raw += c; const b = JSON.parse(raw); hieu.push(b.reasoning?.effort);
-    if (b.reasoning?.effort === 'none') { res.writeHead(400); return res.end(JSON.stringify({ error: { message: 'Reasoning is mandatory for this endpoint and cannot be disabled.' } })); }
-    res.end(JSON.stringify({ content: [{ type: 'text', text: '{"ok":true}' }], usage: { input_tokens: 10, output_tokens: 700, reasoning_tokens: 600 }, stop_reason: 'end_turn' })); }).listen(0, '127.0.0.1');
+  const hieu = []; const fake2 = http.createServer(async (req, res) => { let raw = ''; for await (const c of req) raw += c; const b = JSON.parse(raw); hieu.push(b.reasoning?.effort ?? null);
+    res.end(JSON.stringify({ content: [{ type: 'text', text: '{"ok":true}' }], usage: { input_tokens: 10, output_tokens: 700, reasoning_tokens: 600, cost_usd: 0.001 }, stop_reason: 'end_turn', suy_luan: 'minimal' })); }).listen(0, '127.0.0.1');
   await new Promise((r) => fake2.once('listening', r)); const proxyCu = process.env.CTY_PROXY_URL; process.env.CTY_PROXY_URL = `http://127.0.0.1:${fake2.address().port}`;
   await chay({ dot: 'thu-bb', tran: 1, lan: 1, lanKiem: 1, models: ['fal:z-ai/glm-5.3-flash'], songSong: 2, moiVai: 2, im: true });
   const bb = docDong(path.join(process.env.CTY_DATA_DIR, 'do-model', 'thu-bb', 'goi.jsonl'));
-  a(bb.length === 6 && bb.every((x) => x.http === 200 && x.suy_luan === 'minimal' && !x.vuot_500) && hieu.filter((e) => e === 'none').length <= 2, 'bắt buộc suy luận → tự lùi "minimal", không ghi dòng lỗi; token suy luận không tính vào "vượt 500"', { hieu, bb: bb.map((x) => [x.http, x.suy_luan]) });
+  a(bb.length === 6 && bb.every((x) => x.http === 200 && x.suy_luan === 'minimal' && !x.vuot_500 && x.usd === 0.001) && hieu.every((e) => e === null), 'suy luận để proxy đặt (không tự gửi reasoning), ghi mức proxy trả về; tiền nhà báo; token suy luận không tính vào "vượt 500"', { hieu, bb: bb.map((x) => [x.http, x.suy_luan, x.usd]) });
   fake2.close(); process.env.CTY_PROXY_URL = proxyCu;
   // tính cách đi vào lời hệ thống; so theo cặp + McNemar
   const thay = []; const fake3 = http.createServer(async (req, res) => { let raw = ''; for await (const c of req) raw += c; const b = JSON.parse(raw); thay.push(b.system);
@@ -312,7 +307,7 @@ if (laCli && process.argv.includes('--tu-kiem')) {
   a(sc.n === 60 && sc.chi_a === 30 && sc.chi_b === 30 && sc.chenh === 0 && sc.p === 1 && sc.dem.bac_sai[0] === 30 && sc.dem.duyet_sai[1] === 30, 'so theo cặp: đếm lật hai chiều, bác sai / duyệt sai', sc);
   a(mcnemar(0, 10) < 0.005 && mcnemar(5, 5) === 1 && mcnemar(0, 0) === 1, 'McNemar: 0/10 là thật, 5/5 là nhiễu');
   const kq = tong('thu');
-  a(kq.theo_vai.kiem['openai:gpt-4o-mini'].ti_le === 0.5 && kq.theo_vai.kiem['openai:gpt-4o-mini'].duyet_sai === 30 && kq.theo_vai.lam['openai:gpt-4.1-nano'].hong_dinh_dang === 48, 'tổng hợp: duyệt-hết = 50% kiểm, 30 duyệt sai; trả lời hỏng = hỏng định dạng', kq.theo_vai.kiem);
+  a(kq.theo_vai.kiem['openai:gpt-4o-mini'].ti_le === 0.5 && kq.theo_vai.kiem['openai:gpt-4o-mini'].duyet_sai === 30 && kq.theo_vai.kiem['openai:gpt-4o-mini'].n_sach === 30 && kq.theo_vai.giao['openai:gpt-4o-mini'].n_ket === 16 && kq.theo_vai.giao['openai:gpt-4o-mini'].n_lam_duoc === 48 && kq.theo_vai.lam['openai:gpt-4.1-nano'].hong_dinh_dang === 48, 'tổng hợp: duyệt-hết = 50% kiểm, 30 duyệt sai, mẫu số bài sạch / việc phải hỏi / việc làm được; trả lời hỏng = hỏng định dạng', kq.theo_vai.kiem);
   a(kq.theo_loai.lam.phan_loai['openai:gpt-4o-mini'].ti_le > 0 && kq.de_xuat.lam.nhom_dan_dau.includes('openai:gpt-4o-mini') && kq.duong_bien.lam.at(-1) === 'openai:gpt-4o-mini' && fs.existsSync(path.join(process.env.CTY_DATA_DIR, 'do-model', 'thu', 'ket.json')), 'đề xuất + ket.json', kq.de_xuat);
   fake.close(); console.log(`✓ do-model: bộ đo 60/48/64 nhãn khớp máy · chấm 3 vai trượt được · trần chặn · chạy tiếp không trả tiền hai lần · tổng hợp`); process.exit(0);
 }

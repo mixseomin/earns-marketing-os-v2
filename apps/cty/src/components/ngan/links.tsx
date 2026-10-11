@@ -42,8 +42,8 @@ export function NganLinks() {
 
   useEffect(() => { if (!dangMo) setCho(null); }, [dangMo]);
   useEffect(() => { document.body.style.overflow = chong.length ? 'hidden' : ''; }, [chong.length]);
-  useEffect(() => { xetMongDoi(chong); }, [chong.join('|')]);
-  useEffect(() => { datMongDoi(null); }, [path]);   // đổi màn (thanh trên): chồng chờ của màn cũ không áp sang màn mới   // URL đã đổi xong → bỏ mốc ẩn (tầng đã đóng đã rời khỏi cây)
+  useEffect(() => { xetMongDoi(chong); }, [chong.join('|')]);   // URL đã đổi xong → bỏ mốc ẩn (tầng đã đóng đã rời khỏi cây)
+  useEffect(() => { datMongDoi(null); }, [path]);   // đổi màn (thanh trên): chồng chờ của màn cũ không áp sang màn mới
 
   if (!dangMo || !cho || chong.includes(cho)) return null;
   return (

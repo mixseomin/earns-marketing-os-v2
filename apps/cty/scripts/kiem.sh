@@ -47,11 +47,12 @@ TREN_BOX
     (cd "$APP" && npx next build 2>&1 | grep -E "Compiled|rror|Failed" | head -5)
     # Cả khối chạy nền phải nhả stdout/stderr/stdin của script, không thì `kiem.sh may-len | tail` chờ mãi (11/10/2026).
     (cd "$APP" && DATABASE_URL="$(cat "$TAM/dbu")" CTY_DATA_DIR="$TAM/data" CTY_PROXY_URL=http://127.0.0.1:9 CTY_VP_HOMES=/nonexistent NODE_ENV=production exec npx next start -p 3871) </dev/null > "$TAM/prod.log" 2>&1 &
+    echo $! > "$TAM/may-len.pid"   # thu-nut-chay.mjs chỉ bấm Chạy khi tiến trình nghe cổng là con của đúng tiến trình này (proxy cổng đóng)
     for i in $(seq 1 30); do c=$(curl -s -m 3 -o /dev/null -w "%{http_code}" -b "mos2-session=$(cat "$TAM/tok")" http://localhost:3871/ </dev/null); [ "$c" = 200 ] && break; sleep 1; done
     echo "bản Mac: http://localhost:3871 → $c (dữ liệu thử ở $TAM/data, proxy cổng đóng = 0 đồng)"
     ;;
   may-xuong)
-    pkill -f "next start -p 3871" 2>/dev/null; pkill -f "ssh -N -L 55432" 2>/dev/null; rm -f "$TAM/dbu"; echo "đã dừng bản Mac + đường hầm"
+    pkill -f "next start -p 3871" 2>/dev/null; pkill -f "ssh -N -L 55432" 2>/dev/null; rm -f "$TAM/dbu" "$TAM/may-len.pid"; echo "đã dừng bản Mac + đường hầm"
     ;;
   ui)
     BASE=${2:-http://localhost:3871}
@@ -66,7 +67,7 @@ TREN_BOX
     ;;
   tu-kiem)
     cd "$APP" || exit 1
-    for c in "scripts/tu-kiem.mjs" "scripts/fm.mjs --tu-kiem" "scripts/thu-ngan.mjs" "worker/gia.mjs --tu-kiem" "worker/log.mjs --tu-kiem" "worker/proxy.mjs --tu-kiem" "worker/quy-trinh.mjs --tu-kiem" "worker/ca.mjs --tu-kiem" "worker/cai-tien.mjs --tu-kiem" "worker/nang-luc.mjs --tu-kiem" "scripts/nhan-vat.mjs --tu-kiem" "worker/tinh-cach.mjs --tu-kiem" "worker/luong.mjs --tu-kiem" "worker/kinh-nghiem.mjs --tu-kiem" "worker/do-model.mjs --tu-kiem" "worker/do-van.mjs --tu-kiem"; do
+    for c in "scripts/tu-kiem.mjs" "scripts/trang-do.mjs --tu-kiem" "scripts/fm.mjs --tu-kiem" "scripts/thu-ngan.mjs" "worker/gia.mjs --tu-kiem" "worker/log.mjs --tu-kiem" "worker/proxy.mjs --tu-kiem" "worker/quy-trinh.mjs --tu-kiem" "worker/ca.mjs --tu-kiem" "worker/cai-tien.mjs --tu-kiem" "worker/nang-luc.mjs --tu-kiem" "scripts/nhan-vat.mjs --tu-kiem" "worker/tinh-cach.mjs --tu-kiem" "worker/luong.mjs --tu-kiem" "worker/kinh-nghiem.mjs --tu-kiem" "worker/do-model.mjs --tu-kiem" "worker/do-van.mjs --tu-kiem"; do
       node $c </dev/null 2>&1 | tail -1 | sed 's/^/  /'; [ "${PIPESTATUS[0]}" = 0 ] || { echo "✗ $c"; exit 1; }
     done; echo "✓ tự kiểm đạt"
     ;;

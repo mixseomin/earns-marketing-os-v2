@@ -5,8 +5,21 @@
 const { chromium } = await import(process.env.PLAYWRIGHT || '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs');
 const [base, tok, anh, man = '/phong/thu-nghiem'] = process.argv.slice(2);
 // CHẶN TIỀN (11/10/2026: con trỏ bài này vào production qua đường hầm → 4 lượt thật, ~$0,011, bẩn nhật ký/chỉ số Phòng thử): bài này
-// BẤM Chạy thật. Chỉ chạy trên bản Mac `kiem.sh may-len` (cổng 3871, proxy trỏ cổng đóng); địa chỉ khác → từ chối, không mở trình duyệt.
-if (new URL(base).port !== '3871') { console.log(`⤼ bỏ qua: ${base} không phải bản Mac proxy đóng (kiem.sh may-len, cổng 3871) — bấm Chạy ở đây là giao lượt thật, tốn tiền`); process.exit(2); }
+// BẤM Chạy thật. Chỉ chạy khi tiến trình ĐANG NGHE cổng của base là (con của) đúng tiến trình `kiem.sh may-len` đã dựng với proxy cổng
+// đóng — may-len ghi mã tiến trình vào <CTY_KIEM_TAM>/may-len.pid. Không đoán theo số cổng (đường hầm tới production cũng có thể nằm ở
+// cổng đó); macOS không cho đọc biến môi trường của tiến trình khác nên không đọc thẳng CTY_PROXY_URL được. Không chứng minh được → từ chối.
+import fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
+const proxyDong = () => {
+  const u = new URL(base); if (!['localhost', '127.0.0.1'].includes(u.hostname)) return 'không phải máy này';
+  let goc; try { goc = fs.readFileSync(`${process.env.CTY_KIEM_TAM || '/tmp/cty-kiem'}/may-len.pid`, 'utf8').trim(); } catch { return 'chưa có bản kiem.sh may-len (thiếu may-len.pid)'; }
+  let pid; try { pid = execFileSync('lsof', ['-ti', `tcp:${u.port}`, '-sTCP:LISTEN']).toString().trim().split('\n')[0]; } catch { return `không có tiến trình nghe cổng ${u.port}`; }
+  for (let p = pid, i = 0; p && p !== '1' && i < 6; i++, p = execFileSync('ps', ['-o', 'ppid=', '-p', p]).toString().trim()) if (p === goc) return null;
+  return `tiến trình ${pid} nghe cổng ${u.port} không do kiem.sh may-len (${goc}) dựng`;
+};
+const vi = proxyDong();
+if (vi) { console.log(`⤼ bỏ qua: ${base} — ${vi}; bấm Chạy ở đây có thể giao lượt thật, tốn tiền`); process.exit(2); }
+if (process.argv.includes('--chi-xet')) { console.log(`✓ ${base}: proxy cổng đóng`); process.exit(0); }
 const b = await chromium.launch({ channel: 'chrome' });
 const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: 'dark' });
 await ctx.addCookies([{ name: 'mos2-session', value: tok, url: base }]);

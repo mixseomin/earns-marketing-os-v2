@@ -42,7 +42,8 @@ jobs:
           co '^(apps/store/|packages/(shop|db)/|package-lock\.json)' && echo "store=1" >> "$GITHUB_OUTPUT"
           co '^(apps/xuong-video/|packages/(db|gop-y)/|package-lock\.json)' && echo "studio=1" >> "$GITHUB_OUTPUT"
           co '^(apps/cty/|packages/(db|gop-y)/|package-lock\.json)' && echo "cty=1" >> "$GITHUB_OUTPUT"
-          if [ "$F" = "__HET__" ] || echo "$F" | grep -vqE '^(apps/(store|xuong-video|cty)/|packages/gop-y/)'; then echo "web=1" >> "$GITHUB_OUTPUT"; fi
+          # deploy.sh + deploy/ chỉ chạy trên máy chủ, không vào bản build → không kéo build web (38s).
+          if [ "$F" = "__HET__" ] || echo "$F" | grep -vqE '^(apps/(store|xuong-video|cty)/|packages/gop-y/|deploy/|deploy\.sh$)'; then echo "web=1" >> "$GITHUB_OUTPUT"; fi
           echo "Tệp đổi:"; echo "$F" | head -40; echo "Build:"; cat "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
         with: { node-version: '22', cache: 'npm' }   # match server node v22 (.next swapped in raw) + Node 20 is GHA-deprecated

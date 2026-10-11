@@ -63,10 +63,11 @@ export async function docLuotNguon(): Promise<Record<string, Record<string, numb
 export async function docVideoSo(): Promise<{ dongs: DongSo[]; tenSp: Record<string, string> }> {
   const d = getDb(); if (!d) return { dongs: [], tenSp: {} };
   const rows = (await d.execute(sql`SELECT kenh, san_pham, ngay::text AS ngay, chi_tiet FROM kenh_so_ngay
-    WHERE kenh IN ('youtube','tiktok','fb-reels','ig-reels') AND ngay >= current_date - 15`)) as unknown as { kenh: string; san_pham: string; ngay: string; chi_tiet: { videos?: VideoSo[] } | null }[];
+    WHERE kenh IN ('youtube','tiktok','fb-reels','ig-reels') AND ngay >= current_date - 15`)) as unknown as { kenh: string; san_pham: string; ngay: string; chi_tiet: { videos?: VideoSo[]; vaoShop7?: number; vaoShopChung7?: number } | null }[];
   const ten = (await d.execute(sql`SELECT DISTINCT ON (san_pham) san_pham, ten FROM kenh_sp`)) as unknown as { san_pham: string; ten: string }[];
   return {
-    dongs: rows.map((r) => ({ kenh: r.kenh, sanPham: r.san_pham, ngay: r.ngay.slice(0, 10), videos: r.chi_tiet?.videos ?? [] })),
+    dongs: rows.map((r) => ({ kenh: r.kenh, sanPham: r.san_pham, ngay: r.ngay.slice(0, 10), videos: r.chi_tiet?.videos ?? [],
+      vaoShop: r.chi_tiet?.vaoShop7 == null ? null : r.chi_tiet.vaoShop7 + (r.chi_tiet.vaoShopChung7 ?? 0) })),
     tenSp: Object.fromEntries(ten.map((r) => [r.san_pham, r.ten])),
   };
 }

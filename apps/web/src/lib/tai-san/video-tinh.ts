@@ -7,10 +7,11 @@ export const KENH_VIDEO = [
   { key: 'fb-reels', nhan: 'FB Reels' }, { key: 'ig-reels', nhan: 'IG Reels' },
 ] as const;
 export type VideoSo = { slug: string; url?: string; tieuDe?: string; ngayDang?: string; xem: number; thich?: number; binhLuan?: number };
-export type DongSo = { kenh: string; sanPham: string; ngay: string; videos: VideoSo[] };
+/** vaoShop = phiên vào pickjot /printables 7 ngày từ nền này (GA4, so-short.mjs) — đã là số 7 ngày, lấy ở bản ghi mới nhất */
+export type DongSo = { kenh: string; sanPham: string; ngay: string; videos: VideoSo[]; vaoShop?: number | null };
 export type ONen = { xem7: number | null; tong: number; url?: string; thich?: number; binhLuan?: number };
 export type VideoDong = { slug: string; tieuDe: string; sanPham: string; ngayDang: string | null; nen: Record<string, ONen>; tong7: number | null };
-export type NenTong = { kenh: string; nhan: string; xem7: number | null; truoc7: number | null; tong: number; soVideo: number; chuaDo: number; ngay: string | null };
+export type NenTong = { kenh: string; nhan: string; xem7: number | null; truoc7: number | null; tong: number; soVideo: number; chuaDo: number; ngay: string | null; vaoShop7: number | null };
 
 const lui = (ymd: string, n: number) => new Date(Date.parse(`${ymd}T00:00:00Z`) - n * 86_400_000).toISOString().slice(0, 10);
 
@@ -28,10 +29,11 @@ export function tinhVideo(dongs: DongSo[], hom: string): { nen: NenTong[]; video
     const cua = dongs.filter((d) => d.kenh === key);
     const theoSp = new Map<string, DongSo[]>();
     for (const d of cua) theoSp.set(d.sanPham, [...(theoSp.get(d.sanPham) ?? []), d]);
-    let xem7 = 0, truoc7 = 0, tong = 0, soVideo = 0, chuaDo = 0, coTruoc = false, ngay: string | null = null;
+    let xem7 = 0, truoc7 = 0, tong = 0, soVideo = 0, chuaDo = 0, coTruoc = false, ngay: string | null = null, vaoShop7: number | null = null;
     for (const [sp, ds] of theoSp) {
       const moi = [...ds].sort((a, b) => b.ngay.localeCompare(a.ngay))[0]; if (!moi) continue;
       if (!ngay || moi.ngay > ngay) ngay = moi.ngay;
+      if (moi.vaoShop != null) vaoShop7 = (vaoShop7 ?? 0) + moi.vaoShop;
       for (const v of moi.videos) {
         const goc = tai(ds, v.slug, d7, v.ngayDang), goc2 = tai(ds, v.slug, d14, v.ngayDang);
         const x7 = goc == null ? null : Math.max(0, v.xem - goc);
@@ -44,7 +46,7 @@ export function tinhVideo(dongs: DongSo[], hom: string): { nen: NenTong[]; video
         video.set(v.slug, vd);
       }
     }
-    return { kenh: key, nhan, xem7: soVideo && chuaDo < soVideo ? xem7 : null, truoc7: coTruoc ? truoc7 : null, tong, soVideo, chuaDo, ngay };
+    return { kenh: key, nhan, xem7: soVideo && chuaDo < soVideo ? xem7 : null, truoc7: coTruoc ? truoc7 : null, tong, soVideo, chuaDo, ngay, vaoShop7 };
   });
   for (const v of video.values()) { const xs = Object.values(v.nen).map((o) => o.xem7).filter((x): x is number => x != null); v.tong7 = xs.length ? xs.reduce((a, b) => a + b, 0) : null; }
   return { nen, video: [...video.values()].sort((a, b) => (b.tong7 ?? -1) - (a.tong7 ?? -1) || a.tieuDe.localeCompare(b.tieuDe)) };

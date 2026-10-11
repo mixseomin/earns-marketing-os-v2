@@ -18,10 +18,11 @@ export function TaiSanVideo({ nen, video, tenSp }: { nen: NenTong[]; video: Vide
       key: n.kenh, label: n.nhan, value: so(n.xem7),
       color: n.xem7 == null ? 'var(--fg-4)' : undefined,
       sub: n.soVideo
-        ? <span>{p == null ? <span style={mo}>chưa đủ 14 ngày để so</span> : <span style={{ color: p >= 0 ? 'var(--ok)' : 'var(--warn)' }}>{p >= 0 ? '▲' : '▼'} {Math.abs(p)}% so 7 ngày trước</span>} · {n.soVideo} video</span>
+        ? <span>{p == null ? <span style={mo}>chưa đủ 14 ngày để so</span> : <span style={{ color: p >= 0 ? 'var(--ok)' : 'var(--warn)' }}>{p >= 0 ? '▲' : '▼'} {Math.abs(p)}% so 7 ngày trước</span>} · {n.soVideo} video<br />
+            <span style={{ color: n.vaoShop7 ? 'var(--fg-1)' : 'var(--fg-3)' }}>{n.vaoShop7 == null ? 'vào shop: chưa đo' : `${so(n.vaoShop7)} vào shop`}</span></span>
         : <span style={mo}>chưa đo</span>,
       title: n.soVideo
-        ? `${n.nhan}: ${so(n.xem7)} lượt xem trong 7 ngày · cộng dồn ${so(n.tong)} · số tới ${ngayVn(n.ngay)}${n.chuaDo ? ` · ${n.chuaDo} video chưa có mốc 7 ngày trước (không tính)` : ''}`
+        ? `${n.nhan}: ${so(n.xem7)} lượt xem trong 7 ngày · cộng dồn ${so(n.tong)} · vào trang printables 7 ngày (GA4 pickjot): ${so(n.vaoShop7)} · số tới ${ngayVn(n.ngay)}${n.chuaDo ? ` · ${n.chuaDo} video chưa có mốc 7 ngày trước (không tính)` : ''}`
         : `${n.nhan}: máy chưa đọc số nền này`,
     };
   });

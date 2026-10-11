@@ -1,0 +1,25 @@
+{
+ "_": "LƯƠNG QUY ĐỔI THEO GIÁ THỊ TRƯỜNG (anh chốt 11/10/2026): mỗi vai khớp một nghề có thật, số lấy từ nguồn công khai, ghi nguồn + ngày lấy. Không quy đổi VND↔USD (chưa có tỉ giá đã kiểm) — giá trị so với chi phí AI tính theo giá Mỹ (cùng đơn vị USD). Sửa số = sửa tệp này kèm nguồn mới, không gõ số không nguồn.",
+ "gio_thang_vn": 208,
+ "gio_thang_vn_": "26 ngày công × 8 giờ — giả định để đổi lương tháng ra giờ",
+ "gio_nam_us": 2080,
+ "phut_quy_doi": { "giao_viec": 10, "thuc_hien": 20, "kiem_soat": 10, "bao_cao": 5 },
+ "phut_quy_doi_": "GIẢ ĐỊNH: số phút một người thật cần cho một bước cỡ việc Phòng thử (một đoạn văn ngắn). Chưa đo — sửa khi có số đo.",
+ "bac_theo_cap": { "thap": [1, 3], "tb": [4, 7], "cao": [8, 999] },
+ "bac_theo_cap_": "cấp 1–3 ăn mức thấp của khảo sát, 4–7 mức trung bình, từ 8 mức cao",
+ "viec_sang_vai": { "giao_viec": "truong-phong", "bao_cao": "truong-phong", "thuc_hien": "nguoi-lam", "kiem_soat": "nguoi-kiem" },
+ "vai": {
+  "truong-phong": {
+   "vn": { "nghe": "Trưởng phòng marketing", "thap": 15129786, "tb": 25779130, "cao": 43924189, "mau": 277, "nguon": "Indeed Việt Nam", "url": "https://vn.indeed.com/career/tr%C6%B0%E1%BB%9Fng-ph%C3%B2ng-marketing/salaries", "cap_nhat": "2026-10-02", "lay": "2026-10-11" },
+   "us": { "nghe": "Marketing Managers", "nam_p10": 90260, "nam_trung_vi": 166790, "nam_p90": 293610, "nguon": "BLS Occupational Outlook Handbook (May 2025)", "url": "https://www.bls.gov/ooh/management/advertising-promotions-and-marketing-managers.htm", "lay": "2026-10-11" }
+  },
+  "nguoi-lam": {
+   "vn": { "nghe": "Copywriter", "thap": 5611519, "tb": 8845414, "cao": 13942990, "mau": 19, "nguon": "Indeed Việt Nam", "url": "https://vn.indeed.com/career/copywriter/salaries", "cap_nhat": "2026-09-14", "lay": "2026-10-11" },
+   "us": { "nghe": "Writers and Authors", "nam_p10": 44310, "nam_trung_vi": 76910, "nam_p90": 139870, "nguon": "BLS Occupational Outlook Handbook (May 2025)", "url": "https://www.bls.gov/ooh/media-and-communication/writers-and-authors.htm", "lay": "2026-10-11" }
+  },
+  "nguoi-kiem": {
+   "vn": { "nghe": "Biên tập viên", "thap": 6530608, "tb": 10462248, "cao": 16760865, "mau": 85, "nguon": "Indeed Việt Nam", "url": "https://vn.indeed.com/career/bi%C3%AAn-t%E1%BA%ADp-vi%C3%AAn/salaries", "cap_nhat": "2026-09-25", "lay": "2026-10-11" },
+   "us": { "nghe": "Editors", "nam_p10": 41250, "nam_trung_vi": 77920, "nam_p90": 153700, "nguon": "BLS Occupational Outlook Handbook (May 2025)", "url": "https://www.bls.gov/ooh/media-and-communication/editors.htm", "lay": "2026-10-11" }
+  }
+ }
+}

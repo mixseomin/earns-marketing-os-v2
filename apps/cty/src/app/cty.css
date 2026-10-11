@@ -332,3 +332,10 @@ body:has(.nk) .cty-vp-nut{display:none}
 @media (max-width:700px){.cty-viec td:nth-child(3){display:none}}
 @media (max-width:700px){.cty-gm{gap:10px}.cty-gm-trai .cty-av{width:56px;height:56px}.cty-gm-goc{margin-top:2px}}
 @media (max-width:700px){.cty-gm-cs thead{display:none}}
+.cty-vi{display:grid;gap:12px;max-width:980px}
+.cty-vi-so{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.cty-vi-so>div{display:grid;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:8px}
+.cty-vi-so b{font-size:1.1rem;font-variant-numeric:tabular-nums}
+@media (max-width:700px){.cty-vi-so{grid-template-columns:repeat(2,minmax(0,1fr))}.cty-vi .cty-viec td:nth-child(3),.cty-vi .cty-viec td:nth-child(5){display:none}}
+.cty-vi>*,.cty-vi-so>div{min-width:0}
+@media (max-width:700px){.cty-vi .cty-viec td:first-child{display:none}.cty-vi .cty-viec tr:nth-child(n+6){display:none}.cty-vi-so>div{padding:8px 10px}.cty-vi-so b{font-size:1rem}}

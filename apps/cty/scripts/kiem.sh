@@ -65,7 +65,7 @@ TREN_BOX
     ;;
   tu-kiem)
     cd "$APP" || exit 1
-    for c in "scripts/tu-kiem.mjs" "scripts/fm.mjs --tu-kiem" "scripts/thu-ngan.mjs" "worker/gia.mjs --tu-kiem" "worker/log.mjs --tu-kiem" "worker/proxy.mjs --tu-kiem" "worker/quy-trinh.mjs --tu-kiem" "worker/ca.mjs --tu-kiem" "worker/cai-tien.mjs --tu-kiem" "worker/nang-luc.mjs --tu-kiem" "scripts/nhan-vat.mjs --tu-kiem" "worker/tinh-cach.mjs --tu-kiem"; do
+    for c in "scripts/tu-kiem.mjs" "scripts/fm.mjs --tu-kiem" "scripts/thu-ngan.mjs" "worker/gia.mjs --tu-kiem" "worker/log.mjs --tu-kiem" "worker/proxy.mjs --tu-kiem" "worker/quy-trinh.mjs --tu-kiem" "worker/ca.mjs --tu-kiem" "worker/cai-tien.mjs --tu-kiem" "worker/nang-luc.mjs --tu-kiem" "scripts/nhan-vat.mjs --tu-kiem" "worker/tinh-cach.mjs --tu-kiem" "worker/luong.mjs --tu-kiem"; do
       node $c </dev/null 2>&1 | tail -1 | sed 's/^/  /'; [ "${PIPESTATUS[0]}" = 0 ] || { echo "✗ $c"; exit 1; }
     done; echo "✓ tự kiểm đạt"
     ;;

@@ -4,6 +4,7 @@
 import { vaiCuaPhong, theVai } from '../../../worker/quy-trinh.mjs';
 import { hoSoNangLuc, theGame, lichSu, viecCua, NANG_LUC } from '../../../worker/nang-luc.mjs';
 import { tinhCachCua, TINH_CACH } from '../../../worker/tinh-cach.mjs';
+import { soVi, luongVai, bangLuong } from '../../../worker/luong.mjs';
 import { soTinhCachCua } from '../../../worker/cai-tien.mjs';
 import { KhungVp } from '@/components/khung-vp';
 import Link from 'next/link';
@@ -53,7 +54,7 @@ const lech = (ds: (number | null)[]) => { const cuoi = ds[ds.length - 1]; const 
 const Lech = ({ d }: { d: number | null }) => (d == null || d === 0 ? <span className="cty-muted">·</span> : <span className={d > 0 ? 'cty-gm-len' : 'cty-gm-xuong'}>{d > 0 ? '+' : ''}{d}</span>);
 
 /** Thẻ nhân vật kiểu game — mọi con số là MÁY ĐO từ kết quả (nang-luc.mjs), không ai gõ tay. Gốc (tính cách) cố định từ SOUL. */
-function TheNhanVat({ id, h, t, ls, tc, so }: { id: string; h: HoSo | undefined; t: The | undefined; ls: Ngay[]; tc: TinhCach[]; so: SoTc[] }) {
+function TheNhanVat({ id, h, t, ls, tc, so, lg }: { id: string; h: HoSo | undefined; t: The | undefined; ls: Ngay[]; tc: TinhCach[]; so: SoTc[]; lg: { vn_thang: number } | null }) {
   const tienDo = t ? Math.round(((t.xp - t.xp_cap_nay) / (t.xp_cap_sau - t.xp_cap_nay)) * 100) : 0;
   const xp = ls.map((d) => d.xp);
   return (
@@ -64,6 +65,7 @@ function TheNhanVat({ id, h, t, ls, tc, so }: { id: string; h: HoSo | undefined;
           <div className="cty-gm-cap">Cấp {t.cap}</div>
           <div className="cty-gm-bar" title={`${t.xp - t.xp_cap_nay} / ${t.xp_cap_sau - t.xp_cap_nay} XP tới cấp ${t.cap + 1}`}><i style={{ width: `${tienDo}%` }} /></div>
           <div className="cty-muted cty-nho">{t.xp} XP <Lech d={lech(xp)} /> · cấp {t.cap + 1} ở {t.xp_cap_sau} <XuHuong ds={xp} max={Math.max(...xp, 1)} /></div>
+          {lg && <div className="cty-nho">Lương tương đương <b>{(lg.vn_thang / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} tr ₫/tháng</b></div>}
         </> : <div className="cty-muted cty-nho">Cấp 1 · chưa làm việc nào</div>}
         <div className="cty-gm-goc">
           <div className="cty-gm-nhom">Gốc <span className="cty-muted cty-nho">cố định từ lúc tuyển</span></div>
@@ -118,6 +120,46 @@ function DsViec({ id, ds }: { id: string; ds: Viec[] }) {
   );
 }
 
+type Luong = { vai: string; bac: string; vn_thang: number; vn_gio: number; us_nam: number; us_gio: number; nghe_vn: string; nghe_us: string };
+type Vi = { muc: { luc: string; luot: string; buoc: string; vai: string; phut: number; vnd: number; usd: number; ai_usd: number }[]; tong_vnd: number; tong_usd: number; chi_ai_usd: number; thang: { vnd: number; usd: number; chi_ai_usd: number } };
+const dong = (n: number) => `${Math.round(n).toLocaleString('vi-VN')} ₫`;
+const trieu = (n: number) => `${(n / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} tr ₫`;
+const BAC: Record<string, string> = { thap: 'mức thấp', tb: 'mức trung bình', cao: 'mức cao' };
+
+/** Ví ảo: lương quy đổi theo giá thị trường cho từng bước đã làm (worker/luong.mjs) — sổ tính từ nhật ký, không chạm tiền thật. */
+function ViNhanSu({ vi, lg, tenVai }: { vi: Vi | undefined; lg: Luong | null; tenVai: string }) {
+  const B = bangLuong() as { vai: Record<string, { vn: { nghe: string; thap: number; tb: number; cao: number; mau: number; nguon: string; url: string; cap_nhat: string; lay: string }; us: { nghe: string; nam_p10: number; nam_trung_vi: number; nam_p90: number; nguon: string; url: string; lay: string } }>; phut_quy_doi: Record<string, number> };
+  const giaTriUs = vi?.tong_usd ?? 0, chiAi = vi?.chi_ai_usd ?? 0;
+  return (
+    <div className="cty-vi">
+      <div className="cty-vi-so">
+        <div><span className="cty-muted cty-nho">Số dư ví</span><b>{dong(vi?.tong_vnd ?? 0)}</b></div>
+        <div><span className="cty-muted cty-nho">Tháng này</span><b>{dong(vi?.thang.vnd ?? 0)}</b></div>
+        <div><span className="cty-muted cty-nho">Chi phí AI tháng này</span><b>${(vi?.thang.chi_ai_usd ?? 0).toFixed(4)}</b></div>
+        <div title="Theo giá Mỹ (cùng đơn vị USD): giá trị lao động quy đổi chia chi phí AI thật"><span className="cty-muted cty-nho">Giá trị / chi phí AI</span><b>{chiAi > 0 ? `gấp ${Math.round(giaTriUs / chiAi).toLocaleString('vi-VN')} lần` : '—'}</b></div>
+      </div>
+      {lg ? <p>Lương tương đương <b>{tenVai}</b> ({BAC[lg.bac]} theo cấp): <b>{trieu(lg.vn_thang)}/tháng</b> <span className="cty-muted cty-nho">— {lg.nghe_vn} ở Việt Nam</span> · <b>${lg.us_gio.toFixed(2)}/giờ</b> <span className="cty-muted cty-nho">— {lg.nghe_us} ở Mỹ</span></p>
+        : <p className="cty-muted">Chưa giữ vai nào có bảng lương.</p>}
+      {vi?.muc.length ? <table className="cty-viec"><tbody>{vi.muc.slice(0, 10).map((m, i) => (
+        <tr key={i}>
+          <td className="cty-muted cty-nho"><Gio iso={m.luc} /></td>
+          <td>{m.buoc.replace(/^\d+\s*/, '')}</td>
+          <td className="cty-muted cty-nho">{m.phut} phút</td>
+          <td className="cty-gm-so">+{dong(m.vnd)}</td>
+          <td className="cty-muted cty-nho cty-gm-so">AI ${m.ai_usd.toFixed(4)}</td>
+          <td><Link href={`/nhat-ky?luot=${encodeURIComponent(m.luot)}`}>lượt ↗</Link></td>
+        </tr>))}</tbody></table> : <p className="cty-muted">Chưa có khoản lương nào — ví nhận lương khi người này làm xong một bước.</p>}
+      <details className="cty-details"><summary>Nguồn lương thị trường và cách tính</summary>
+        <p className="cty-nho">Mỗi bước làm xong không lỗi = phút quy đổi × đơn giá giờ của vai ứng với loại việc × bậc theo cấp (1–3 thấp, 4–7 trung bình, 8+ cao). Phút quy đổi là <b>giả định</b> chưa đo: {Object.entries(B.phut_quy_doi).map(([k, v]) => `${k.replace('_', ' ')} ${v}`).join(' · ')}. Giờ Việt Nam = lương tháng / 208 (26 ngày × 8 giờ). Bước lỗi không có công. Không đổi VND ↔ USD.</p>
+        <table className="cty-viec"><tbody>{Object.entries(B.vai).map(([k, v]) => (
+          <tr key={k}><td><b>{(theVai(k) as { ten?: string } | null)?.ten ?? k}</b></td>
+            <td className="cty-nho">{v.vn.nghe}: {trieu(v.vn.thap)} · {trieu(v.vn.tb)} · {trieu(v.vn.cao)} <a href={v.vn.url} target="_blank" rel="noreferrer">{v.vn.nguon} ↗</a> <span className="cty-muted">{v.vn.mau} mẫu, cập nhật {v.vn.cap_nhat}</span></td>
+            <td className="cty-nho">{v.us.nghe}: ${v.us.nam_p10.toLocaleString('en-US')} · ${v.us.nam_trung_vi.toLocaleString('en-US')} · ${v.us.nam_p90.toLocaleString('en-US')}/năm <a href={v.us.url} target="_blank" rel="noreferrer">BLS ↗</a></td></tr>))}</tbody></table>
+      </details>
+    </div>
+  );
+}
+
 /** Ngăn nhân sự (YDNI): đầu ghim = ai · giữ vai gì · ở đâu · model; còn lại chia tab, mỗi tab vừa một màn. */
 export function nganNhanSu(id: string): Ngan {
   const d = nhanSu(id);
@@ -125,8 +167,11 @@ export function nganNhanSu(id: string): Ngan {
   const f = d.fm; const p = phong(String(f.phong)); const hb = heartbeat(id);
   const arr = (k: string) => (Array.isArray(f[k]) ? (f[k] as string[]) : []);
   const hs = hoSoNangLuc() as Record<string, HoSo>; const h = hs[id]; const t = (theGame(hs) as Record<string, The>)[id];
-  const ls = ((lichSu() as Record<string, Ngay[]>)[id]) ?? []; const tc = tinhCachCua(f) as TinhCach[]; const so = soTinhCachCua(id) as SoTc[]; const viec = viecCua(id) as Viec[];
   const giu = vaiDangGiu(id);
+  const vi = (soVi() as Record<string, Vi>)[id];
+  const vaiLuong = giu.find((g) => (bangLuong() as { vai: Record<string, unknown> }).vai[g.ma])?.ma ?? vi?.muc[0]?.vai ?? null;
+  const lg = vaiLuong ? (luongVai(vaiLuong, t?.cap ?? 1) as Luong | null) : null; const tenVai = vaiLuong ? ((theVai(vaiLuong) as { ten?: string } | null)?.ten ?? vaiLuong) : '';
+  const ls = ((lichSu() as Record<string, Ngay[]>)[id]) ?? []; const tc = tinhCachCua(f) as TinhCach[]; const so = soTinhCachCua(id) as SoTc[]; const viec = viecCua(id) as Viec[];
   const dau = (
     <div className="cty-ns-dau">
       <Avatar seed={id} hue={hueOf(String(f.phong))} size={44} />
@@ -145,10 +190,11 @@ export function nganNhanSu(id: string): Ngan {
   return {
     tieuDe: <>{String(f.ten)} <span className="cty-muted">· {giu[0]?.the?.ten ?? String(f.chuc_danh)}{t ? ` · cấp ${t.cap}` : ''}</span></>,
     than: (
-      <TabPhong khoa={`ns-${id}`} dau={dau} tabs={[{ key: 'nl', nhan: 'Chỉ số', so: t ? `cấp ${t.cap}` : '' }, { key: 'viec', nhan: 'Việc', so: new Set(viec.map((v) => v.luot)).size }, { key: 'vai', nhan: 'Vai', so: giu.length }, { key: 'hs', nhan: 'Hồ sơ' }, { key: 'lich', nhan: 'Lịch chạy' }]}>
+      <TabPhong khoa={`ns-${id}`} dau={dau} tabs={[{ key: 'nl', nhan: 'Chỉ số', so: t ? `cấp ${t.cap}` : '' }, { key: 'viec', nhan: 'Việc', so: new Set(viec.map((v) => v.luot)).size }, { key: 'vi', nhan: 'Ví', so: vi ? trieu(vi.tong_vnd) : '' }, { key: 'vai', nhan: 'Vai', so: giu.length }, { key: 'hs', nhan: 'Hồ sơ' }, { key: 'lich', nhan: 'Lịch chạy' }]}>
         {[
-          <TheNhanVat key="nl" id={id} h={h} t={t} ls={ls} tc={tc} so={so} />,
+          <TheNhanVat key="nl" id={id} h={h} t={t} ls={ls} tc={tc} so={so} lg={lg} />,
           <DsViec key="viec" id={id} ds={viec} />,
+          <ViNhanSu key="vi" vi={vi} lg={lg} tenVai={tenVai} />,
           <div key="vai" className="cty-ns-vai">{giu.length ? giu.map((g, i) => (
             <section key={i}>
               <h3>{g.the?.ten ?? g.ma} <span className="cty-muted cty-nho">ở <Link href={`/phong/${g.p.id}`}>{String(g.p.fm.ten)}</Link></span></h3>

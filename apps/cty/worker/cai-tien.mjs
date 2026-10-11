@@ -63,6 +63,30 @@ export async function soPhienBan(k, ban, lan = 2) {
   const cfg = dsBan(k).find((b) => b.ban === ban); if (!cfg) throw new Error(`không có bản v${ban}`);
   return chayBoViec(k, cfg, lan, `v${ban}`, { ban });
 }
+/** Áp MỘT kết quả thử (tệp thu-*.json) thành bản mới — đường máy cho thay đổi đã có số đo, không phải chờ họp. Chỉ áp khi: thử trên đúng
+ *  bản đang chạy · điểm bộ việc chuẩn HƠN bản đang chạy (thước của Hà — đó là chữ ký mức 2) · không khoá nào mức 3 / vượt biên · không có bản
+ *  thử dở. Ghi thành đề xuất kèm bằng chứng (trạng thái "giữ" vì đã so), chép điểm sang bản mới để lần tự xét sau dùng đúng điểm. */
+export function apKetQuaThu(k, tenTep) {
+  const f = path.join(ssDir(k), path.basename(tenTep)); if (!fs.existsSync(f)) throw new Error(`không có tệp thử ${tenTep}`);
+  const t = JSON.parse(fs.readFileSync(f, 'utf8')); if (!t.thu) throw new Error(`${tenTep} không phải kết quả thử cấu hình`);
+  const cfg = hienHanh(k); if (t.ban !== cfg.ban) throw new Error(`thử trên v${t.ban} nhưng đang chạy v${cfg.ban} — thử lại trên bản đang chạy`);
+  if (dsDeXuat(k).some((d) => d.trang_thai === 'dang_thu')) throw new Error('đang có bản thử chưa so — xong rồi mới áp thêm (mỗi lần một thay đổi)');
+  const goc = diemMoiNhat(k, cfg.ban); if (!goc) throw new Error(`v${cfg.ban} chưa có điểm bộ việc chuẩn để so`);
+  if (t.diem <= goc.diem) throw new Error(`thử ${t.so_dung}/${t.tong} không hơn v${cfg.ban} ${goc.so_dung}/${goc.tong} — không áp`);
+  const moi = apThayDoi(cfg, t.thu); const m = mucThayDoi(cfg, moi);
+  if (m.vuot.length) throw new Error(`vượt biên: ${m.vuot.map((x) => x.khoa).join(', ')}`);
+  if (m.muc >= 3) throw new Error('có thay đổi mức 3 — cần Giám đốc ký, không áp bằng máy');
+  const id = new Date().toISOString().replace(/[:.]/g, '-'); const lyDo = `bộ việc chuẩn: thử ${t.so_dung}/${t.tong} > v${cfg.ban} ${goc.so_dung}/${goc.tong}`;
+  const v = apBanMoi(k, moi, { ly_do: lyDo, de_xuat: id, ai_duyet: 'ha' });
+  const dx = { id, ts: new Date().toISOString(), qt: k, tu_ban: cfg.ban, ban_moi: v.ban, van_de: [{ mo_ta: 'áp kết quả thử cấu hình', bang_chung: path.basename(f) }], ky_vong: lyDo, thay_doi: m.thay, vuot: [], muc: m.muc,
+    ha: { dong_y: true, ly_do: `Hà chấm trên bộ việc chuẩn: ${lyDo}`, sua: null }, moi, chi_phi: 0, trang_thai: 'giu',
+    so_sanh: { cu: { ban: cfg.ban, diem: goc.diem, so_dung: goc.so_dung, tong: goc.tong, chi_phi: goc.chi_phi }, moi: { ban: v.ban, diem: t.diem, so_dung: t.so_dung, tong: t.tong, chi_phi: t.chi_phi } } };
+  ghiDeXuat(dx);
+  fs.writeFileSync(path.join(ssDir(k), `v${v.ban}-${t.ts.replace(/[:.]/g, '-')}.json`), JSON.stringify({ ...t, ban: v.ban, chi_phi: 0, tu_thu: path.basename(f) }, null, 1));   // chi_phi 0: đã tính ở tệp thử
+  ghiLog({ luot: `ap-thu-${id}`, loai: 'quyet', tu: 'ha', chi_tiet: { ap_thu: path.basename(f), ban_moi: v.ban, muc: m.muc, thay: m.thay.map((x) => x.khoa) } });
+  return dx;
+}
+
 /** Thử một THAY ĐỔI cấu hình trên bộ việc chuẩn mà KHÔNG áp vào quy trình đang chạy (để đánh giá trước khi đề xuất). */
 export async function thuCauHinh(k, thayDoi, lan = 2) {
   const goc = hienHanh(k); return chayBoViec(k, apThayDoi(goc, thayDoi), lan, 'thu', { ban: goc.ban, thu: thayDoi });
@@ -294,6 +318,12 @@ if (laCli && process.argv.includes('--thu-cau-hinh')) {   // node worker/cai-tie
     phuc_khao_tong: ct.flatMap((c) => c.phuc_khao).length, chi_phi: kq.chi_phi.toFixed(4) }, null, 1)); process.exit(0);
 }
 
+if (laCli && process.argv.includes('--ap-thu')) {   // node worker/cai-tien.mjs --ap-thu thu-<giờ>.json --qt thu-nghiem/lam-viec
+  const P = thamSo('--qt', 'thu-nghiem/lam-viec');
+  try { const dx = apKetQuaThu(P, thamSo('--ap-thu', '')); console.log(`✓ áp v${dx.ban_moi} (mức ${dx.muc}): ${dx.ky_vong} · đổi ${dx.thay_doi.map((x) => x.khoa).join(', ')}`); process.exit(0); }
+  catch (e) { console.log(`✗ không áp: ${e.message}`); process.exit(1); }
+}
+
 if (laCli && process.argv.includes('--sau-luot')) {   // ca.mjs gọi sau mỗi lượt thật: đếm áp dụng (0 đồng) → rút kinh nghiệm nếu có vấp → tự xét họp
   const P = thamSo('--qt', 'thu-nghiem/lam-viec'); const ts = thamSo('--sau-luot', '');
   const nk = JSON.parse(fs.readFileSync(path.join(DATA(), 'nhat-ky', `${ts}.json`), 'utf8'));
@@ -390,6 +420,17 @@ if (laCli && process.argv.includes('--tu-kiem')) {
   // thử cấu hình: chạy đủ bộ việc với thay đổi, lưu tiền tố thu-, KHÔNG đổi quy trình đang chạy
   const banTruoc = hienHanh(P).ban; const thu = await thuCauHinh(P, { 'phuc_khao.ti_le': 1 }, 1);
   a(thu.tong === boViecChuan(P).viec.length && thu.thu['phuc_khao.ti_le'] === 1 && hienHanh(P).ban === banTruoc && fs.readdirSync(ssDir(P)).some((f) => f.startsWith('thu-')), 'thử cấu hình: đủ bộ việc, có lưu, không áp', { tong: thu.tong });
+  // áp kết quả thử: chỉ khi hơn bản đang chạy, không mức 3; áp xong thành bản mới "giữ" và có điểm
+  const tepThu = fs.readdirSync(ssDir(P)).find((x) => x.startsWith('thu-')); const tThu = JSON.parse(fs.readFileSync(path.join(ssDir(P), tepThu), 'utf8'));
+  const banNay = hienHanh(P).ban; const diemNay = diemMoiNhat(P, banNay);
+  let loiAp = ''; try { apKetQuaThu(P, tepThu); } catch (e) { loiAp = e.message; }
+  a(diemNay && tThu.diem <= diemNay.diem ? /không hơn/.test(loiAp) && hienHanh(P).ban === banNay : true, 'thử không hơn → không áp', { loiAp });
+  fs.writeFileSync(path.join(ssDir(P), 'thu-zz-hon.json'), JSON.stringify({ ...tThu, ban: banNay, diem: 1, so_dung: tThu.tong, thu: { so_vong_lam_lai: 1 } }));
+  const dxAp = apKetQuaThu(P, 'thu-zz-hon.json');
+  a(dxAp.trang_thai === 'giu' && hienHanh(P).ban === dxAp.ban_moi && diemMoiNhat(P, dxAp.ban_moi)?.diem === 1, 'thử hơn → áp thành bản mới, có điểm', dxAp);
+  fs.writeFileSync(path.join(ssDir(P), 'thu-zz-m3.json'), JSON.stringify({ ...tThu, ban: hienHanh(P).ban, diem: 1.1, thu: { 'loi_nhac.giao': 'x {viec}' } }));
+  loiAp = ''; try { apKetQuaThu(P, 'thu-zz-m3.json'); } catch (e) { loiAp = e.message; }
+  a(/mức 3/.test(loiAp), 'thay đổi mức 3 → không áp bằng máy', { loiAp });
   // so chỉ số gốc: chạy được, ghi kết quả, cộng vào chi tháng
   const chiTruoc = chiThang(P); const tc = await soTinhCach(P, 'loc', 'can_than', [2, 9], 1);
   a(tc.ben.length === 2 && tc.ben[0].tong === boViecChuan(P).viec.length && dsSoTinhCach(P).length === 1 && chiThang(P) > chiTruoc, 'so chỉ số gốc: 2 bên × bộ việc, có lưu, cộng chi tháng', tc.ben.map((b) => b.tong));

@@ -14,6 +14,10 @@ TAM=${CTY_KIEM_TAM:-/tmp/cty-kiem}; mkdir -p "$TAM"; chmod 700 "$TAM"
 QPHIEN="select s.session_token from auth_sessions s join members m on m.user_id=s.user_id and m.project_id is null where m.role=chr(97)||chr(100)||chr(109)||chr(105)||chr(110) and s.revoked_at is null and s.expires_at>now() order by s.expires_at desc limit 1"   # một câu, dùng cho cả phiên ở Mac lẫn kiểm trên box
 SSH=(ssh -o ConnectTimeout=10 -o ServerAliveInterval=5 -o ServerAliveCountMax=3 -o BatchMode=yes)
 
+# Dừng bản Mac: next đổi tên tiến trình thành "next-server", `pkill -f "next start -p 3871"` chỉ giết vỏ npm, tiến trình con vẫn giữ cổng
+# (12/10/2026: bản cũ sống từ hôm trước, may-len sau đụng cổng) → giết luôn tiến trình đang nghe cổng 3871.
+dung_may() { pkill -f "next start -p 3871" 2>/dev/null; lsof -ti tcp:3871 -sTCP:LISTEN 2>/dev/null | xargs kill 2>/dev/null; pkill -f "ssh -N -L 55432" 2>/dev/null; rm -f "$TAM/may-len.pid"; }
+
 phien() {   # phiên admin còn hạn trên box → $TAM/tok (không in ra)
   "${SSH[@]}" "$BOX" "U=\$(grep ^DATABASE_URL /opt/earns-marketing-os-v2/.env.production | cut -d= -f2-); psql \"\$U\" -tAc \"$QPHIEN\"" </dev/null > "$TAM/tok" && chmod 600 "$TAM/tok"
   [ -s "$TAM/tok" ] || { echo "✗ không lấy được phiên admin"; exit 1; }
@@ -38,7 +42,7 @@ cd apps/cty && for t in worker/quy-trinh.mjs worker/ca.mjs worker/cai-tien.mjs; 
 TREN_BOX
     ;;
   may-len)
-    pkill -f "next start -p 3871" 2>/dev/null; pkill -f "ssh -N -L 55432" 2>/dev/null
+    dung_may
     # ssh -f chạy nền nhưng giữ stdout/stderr của script → lệnh nối sau (`| tail`) chờ mãi (11/10/2026). Đường hầm không được giữ đầu ra.
     "${SSH[@]}" -f -N -L 55432:127.0.0.1:5432 "$BOX" </dev/null >/dev/null 2>&1 || { echo "✗ không mở được đường hầm DB"; exit 1; }
     "${SSH[@]}" "$BOX" 'grep ^DATABASE_URL /opt/earns-marketing-os-v2/.env.production | cut -d= -f2-' </dev/null | sed 's#@127.0.0.1:5432/#@127.0.0.1:55432/#' > "$TAM/dbu"; chmod 600 "$TAM/dbu"
@@ -52,7 +56,7 @@ TREN_BOX
     echo "bản Mac: http://localhost:3871 → $c (dữ liệu thử ở $TAM/data, proxy cổng đóng = 0 đồng)"
     ;;
   may-xuong)
-    pkill -f "next start -p 3871" 2>/dev/null; pkill -f "ssh -N -L 55432" 2>/dev/null; rm -f "$TAM/dbu" "$TAM/may-len.pid"; echo "đã dừng bản Mac + đường hầm"
+    dung_may; rm -f "$TAM/dbu"; lsof -ti tcp:3871 -sTCP:LISTEN >/dev/null 2>&1 && { echo "✗ cổng 3871 vẫn có tiến trình nghe"; exit 1; }; echo "đã dừng bản Mac + đường hầm"
     ;;
   ui)
     BASE=${2:-http://localhost:3871}

@@ -5,7 +5,7 @@
 // repo không cài playwright (nặng, chỉ máy anh cần) → trỏ tới bản có sẵn qua PLAYWRIGHT, mặc định bản của courseforge-demo.
 const { chromium } = await import(process.env.PLAYWRIGHT || '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs');
 const base = process.argv[3] || 'http://localhost:3870';
-const TRANG = ['/?ngan=nhan-su:tam', '/?ngan=phong:thu-nghiem', '/', '/phong/thu-nghiem', '/phong/sach', '/nhan-su/hung', '/nhan-su/tam', '/nhat-ky', '/luat', '/muc-tieu'];
+const TRANG = ['/?ngan=nhan-su:tam', '/?ngan=phong:thu-nghiem', '/', '/phong/thu-nghiem', '/phong/sach', '/nhan-su/hung', '/nhan-su/tam', '/nhat-ky', '/luat', '/muc-tieu', '/nhan-su'];
 const b = await chromium.launch({ channel: 'chrome' });
 const ctx = await b.newContext(); const tok = process.argv[4];   // bản production: truyền phiên mos2-session
 if (tok) await ctx.addCookies([{ name: 'mos2-session', value: tok, url: base }]);

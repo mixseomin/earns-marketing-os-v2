@@ -4,7 +4,7 @@
 //   CTY_DEV_USER=1 CTY_DATA_DIR=<dữ liệu> npx next dev -p 3870   rồi   node scripts/thang-hang.mjs . http://localhost:3870
 const { chromium } = await import(process.env.PLAYWRIGHT || '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs');
 const base = process.argv[3] || 'http://localhost:3870';
-const TRANG = ['/?ngan=phong:thu-nghiem', '/?ngan=nhan-su:tam', '/', '/phong/thu-nghiem', '/quy-trinh', '/nhat-ky', '/nhan-su/ky'];
+const TRANG = ['/?ngan=phong:thu-nghiem', '/?ngan=nhan-su:tam', '/', '/phong/thu-nghiem', '/quy-trinh', '/nhat-ky', '/nhan-su/ky', '/nhan-su'];
 const NGUONG = 1.5;
 const PHA = process.argv.includes('--pha');   // phá thử: dán lại kiểu chip cũ (inline-flex) → phải đỏ
 const b = await chromium.launch({ channel: 'chrome' });

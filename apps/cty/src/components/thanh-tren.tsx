@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const MUC: [string, string][] = [['/', 'Sơ đồ'], ['/luat', 'Luật chung'], ['/muc-tieu', 'Mục tiêu · ngân sách'], ['/quy-trinh', 'Quy trình'], ['/nhat-ky', 'Nhật ký']];
+const MUC: [string, string][] = [['/', 'Sơ đồ'], ['/luat', 'Luật chung'], ['/muc-tieu', 'Mục tiêu · ngân sách'], ['/nhan-su', 'Đội ngũ'], ['/quy-trinh', 'Quy trình'], ['/nhat-ky', 'Nhật ký']];
 
 export function ThanhTren() {
   const p = usePathname() ?? '/';

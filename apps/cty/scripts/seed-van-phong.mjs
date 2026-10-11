@@ -5,6 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseFm } from './fm.mjs';
+import { spriteTheoNguoi } from './nhan-vat.mjs';
 import os from 'node:os';
 
 const HOME = path.join(os.homedir(), '.pixel-agents');
@@ -55,17 +56,12 @@ for (const d of ds) {
 }
 console.log(`seeded ${n} nhân sự vào văn phòng (${base})`);
 
-// Nhân vật theo giới tính. pixel-agents bốc ngẫu nhiên 1 trong 6 sprite (assets/characters/char_N.png) lúc agent vào; không có API
-// đặt sẵn, chỉ có tin WS `saveAgentSeats` (cái webview gửi khi anh đổi áo tay). Nên sau khi bơm: hỏi danh sách agent như webview
-// (`webviewReady` → `existingAgents`), rồi gửi palette theo gioi_tinh. Sprite: 1 tóc dài váy đen · 3 tóc bạc ngắn · 5 tóc đen ngắn
-// = nữ; 0 · 2 · 4 = nam (nhìn ảnh 10/10/2026). Giữ seatId cũ để không xếp lại chỗ ngồi.
-export const SPRITE = { nam: [0, 2, 4], nu: [1, 3, 5] };
-export function paletteTheoGioi(ds) {   // ds theo thu_tu → { ten: palette }, xoay vòng trong từng giới để cạnh nhau ít trùng áo
-  const dem = { nam: 0, nu: 0 }; const out = {};
-  for (const d of ds) { const g = d.gioi_tinh === 'nu' ? 'nu' : 'nam'; out[d.ten] = SPRITE[g][dem[g]++ % 3]; }
-  return out;
-}
-const theoTen = paletteTheoGioi(ds);
+// Nhân vật theo người. pixel-agents bốc ngẫu nhiên 1 trong 6 sprite lúc agent vào; không có API đặt sẵn, chỉ có tin WS `saveAgentSeats`
+// (cái webview gửi khi anh đổi áo tay). Nên sau khi bơm: hỏi danh sách agent như webview (`webviewReady` → `existingAgents`), rồi gửi
+// sprite theo quy tắc chung scripts/nhan-vat.mjs — tính trên TOÀN BỘ nhân sự (không phải danh sách của văn phòng này) để một người một
+// hình ở mọi văn phòng và khớp avatar trên cty.on.tc. Giữ seatId cũ để không xếp lại chỗ ngồi.
+const tatCa = docs(); const spriteCua = spriteTheoNguoi(tatCa);
+const theoTen = Object.fromEntries(tatCa.map((d) => [d.ten, spriteCua[d.id]]));
 async function apGioiTinh() {
   const ws = new WebSocket(`ws://127.0.0.1:${srv.port}/ws`);
   const agents = await new Promise((ok, fail) => {

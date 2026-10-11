@@ -1,4 +1,11 @@
-// Avatar pixel 7×7 đối xứng, sinh từ tên (ổn định, không random); màu theo phòng. Thay bằng sprite pixel-agents khi văn phòng lên.
+// Avatar = ĐÚNG nhân vật của người đó trên văn phòng pixel (scripts/nhan-vat.mjs, cùng quy tắc với seed-van-phong) — nhìn avatar là nhận
+// ra người trên văn phòng. Ảnh cắt sẵn ở public/nhan-vat/<sprite>.png. Mã không phải nhân sự (giám đốc, hệ thống…) → ô pixel sinh từ tên.
+import { dsNhanSu } from '@/lib/cong-ty';
+import { spriteTheoNguoi } from '../../scripts/nhan-vat.mjs';
+export function anhNhanSu(id: string, hue = 0): string {
+  const ds = dsNhanSu(); const sp = (spriteTheoNguoi(ds.map((d) => ({ id: d.id, gioi_tinh: d.fm.gioi_tinh, thu_tu: d.fm.thu_tu }))) as Record<string, number>)[id];
+  return sp == null ? avatarDataUri(id, hue) : `/nhan-vat/${sp}.png`;
+}
 export function avatarDataUri(seed: string, hue: number): string {
   let h = 2166136261; for (const ch of seed) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
   const cells: string[] = [];
@@ -10,7 +17,7 @@ export function avatarDataUri(seed: string, hue: number): string {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 export function Avatar({ seed, hue, size = 44 }: { seed: string; hue: number; size?: number }) {
-  return <img src={avatarDataUri(seed, hue)} width={size} height={size} alt="" style={{ borderRadius: 6, display: 'block' }} />;
+  return <img src={anhNhanSu(seed, hue)} width={size} height={size} alt="" className="cty-av" />;
 }
 // Màu theo phòng: băm id phòng → hue (0–359). Không giữ bảng màu riêng để thêm phòng không phải sửa hai nơi.
 export function hueOf(phong: string): number { let h = 5381; for (const ch of phong) h = ((h << 5) + h + ch.charCodeAt(0)) >>> 0; return h % 360; }

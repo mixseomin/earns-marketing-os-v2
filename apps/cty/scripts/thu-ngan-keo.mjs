@@ -32,15 +32,15 @@ await p.reload(); await doi();
 kq('3 F5 → vẫn 2 ngăn', (await tieu()) === 'phong:thu-nghiem > nhan-su:tam', await tieu());
 
 const truoc = new URL(p.url()).pathname;
-await p.locator('.nk[data-tang="1"] .nk-luoi a.cty-nguoi-link').first().click();
+await p.locator('.nk[data-tang="1"] .cty-ns-dau a.cty-nguoi-link').first().click();
 kq('4 link trong ngăn → chồng thêm, màn không đổi', (await choChong('phong:thu-nghiem > nhan-su:tam > nhan-su:minh')) === 'phong:thu-nghiem > nhan-su:tam > nhan-su:minh' && new URL(p.url()).pathname === truoc, await tieu());
 if (anh) await p.screenshot({ path: `${anh}/nk-link.png` });
 
-await p.locator('.nk[data-tang="2"] .nk-luoi a[href="/phong/vp-giam-doc"]').click();
+await p.locator('.nk[data-tang="2"] .cty-ns-dau a[href="/phong/vp-giam-doc"]').click();
 await choChong('phong:thu-nghiem > nhan-su:tam > nhan-su:minh > phong:vp-giam-doc');
 await p.locator('.nk[data-tang="3"] a[href="/nhan-su/hung"]').first().click();
 await choChong('phong:thu-nghiem > nhan-su:tam > nhan-su:minh > phong:vp-giam-doc > nhan-su:hung');
-await p.locator('.nk[data-tang="4"] .nk-luoi a.cty-nguoi-link').first().click();   // Hùng báo cáo cho Minh — Minh đã có ở tầng 2
+await p.locator('.nk[data-tang="4"] .cty-ns-dau a.cty-nguoi-link').first().click();   // Hùng báo cáo cho Minh — Minh đã có ở tầng 2
 const sau = await choChong('phong:thu-nghiem > nhan-su:tam > phong:vp-giam-doc > nhan-su:hung > nhan-su:minh');
 kq('5 mở lại khoá đã có → không tăng, lên trên cùng', sau === 'phong:thu-nghiem > nhan-su:tam > phong:vp-giam-doc > nhan-su:hung > nhan-su:minh', sau);
 

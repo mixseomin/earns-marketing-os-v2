@@ -44,6 +44,35 @@ export function hoSoNangLuc(luot = dsLuotTho()) {
   return hs;
 }
 
+// CHỈ SỐ KIỂU GAME (anh 11/10/2026) — vẫn là số MÁY ĐO, chỉ đổi cách trình bày: cấp + XP tự lớn theo việc đã làm, 7 chỉ số 0–100.
+// XP = 10 mỗi bước làm xong không lỗi + 20 mỗi lần đạt (giao/thực hiện/kiểm soát/báo cáo). Cấp L cần 50·L·(L−1) XP tích luỹ.
+// Nhanh nhẹn / Tiết kiệm là thứ hạng so với mọi người đã làm ≥ 5 bước (ít bước thì chưa xếp). Ít mẫu (< 5) → đánh dấu chưa chắc.
+export const CHI_SO = [
+  { ma: 'CHI', ten: 'Chỉ huy', tu: 'giao_viec' }, { ma: 'TAY', ten: 'Tay nghề', tu: 'thuc_hien' }, { ma: 'MAT', ten: 'Tinh mắt', tu: 'kiem_soat' },
+  { ma: 'NOI', ten: 'Truyền đạt', tu: 'bao_cao' }, { ma: 'BEN', ten: 'Bền bỉ', tu: 'on_dinh' },
+  { ma: 'NHA', ten: 'Nhanh nhẹn', tu: 'toc_do' }, { ma: 'KIE', ten: 'Tiết kiệm', tu: 'chi_phi' },
+];
+const capTuXp = (xp) => { let L = 1; while (50 * (L + 1) * L <= xp) L++; return L; };
+export function theGame(hs) {
+  const du = Object.values(hs).filter((h) => h.so_buoc >= 5);
+  const hang = (h, f, thapLaTot) => {   // phần trăm người xếp sau (0–100) trong nhóm đủ bước
+    if (h.so_buoc < 5 || du.length < 2) return null;
+    const v = f(h); const sau = du.filter((x) => (thapLaTot ? f(x) > v : f(x) < v)).length; return Math.round((sau / (du.length - 1)) * 100);
+  };
+  const out = {};
+  for (const h of Object.values(hs)) {
+    const dat = ['giao_viec', 'thuc_hien', 'kiem_soat', 'bao_cao'].reduce((s, k) => s + h.nang_luc[k].dat, 0);
+    const xp = 10 * h.nang_luc.on_dinh.dat + 20 * dat; const cap = capTuXp(xp);
+    const chi_so = CHI_SO.map((c) => {
+      if (c.tu === 'toc_do') return { ...c, gia_tri: hang(h, (x) => x.ms_tb, true), so_mau: h.so_buoc };
+      if (c.tu === 'chi_phi') return { ...c, gia_tri: hang(h, (x) => x.chi_phi / (x.so_buoc || 1), true), so_mau: h.so_buoc };
+      const n = h.nang_luc[c.tu]; return { ...c, gia_tri: n.diem == null ? null : Math.round(n.diem * 100), so_mau: n.so_mau };
+    });
+    out[h.id] = { cap, xp, xp_cap_nay: 50 * cap * (cap - 1), xp_cap_sau: 50 * (cap + 1) * cap, chi_so };
+  }
+  return out;
+}
+
 if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('nang-luc.mjs')) {
   const a = (c, m, x) => { if (!c) { console.error('✗ nang-luc:', m, JSON.stringify(x ?? {}).slice(0, 300)); process.exit(1); } };
   const B = (buoc, id, dap, o = {}) => ({ buoc, id, dap, model: 'openai:gpt-4o-mini', usage: { input_tokens: 100, output_tokens: 50 }, ms: 1000, bat_dau: '2026-10-11T00:00:00Z', ...o });
@@ -60,5 +89,10 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('nang
   a(hs.tam.nang_luc.on_dinh.so_mau === 6 && hs.tam.nang_luc.on_dinh.dat === 5, 'ổn định: bước lỗi trừ điểm', hs.tam);
   a(hs.ky.nang_luc.kiem_soat.so_mau === 0 && hs.ky.nang_luc.kiem_soat.diem === null, 'kiểm soát: chưa có bộ việc chuẩn thì chưa có điểm (không bịa)', hs.ky);
   a(hs.loc.chi_phi > 0 && hs.loc.ms_tb === 1000, 'cộng chi phí + thời gian', hs.loc);
-  console.log('✓ nang-luc: giao việc / thực hiện vòng đầu / báo cáo đúng mẫu / ổn định / kiểm soát chỉ từ bộ việc chuẩn');
+  const g = theGame(hs);
+  // tam: 5 bước không lỗi (×10) + đạt 2 giao + 1 báo cáo (×20) = 50 + 60 = 110 XP → cấp 2 (cần 100), cấp 3 cần 300
+  a(g.tam.xp === 110 && g.tam.cap === 2 && g.tam.xp_cap_nay === 100 && g.tam.xp_cap_sau === 300, 'XP + cấp theo việc đã làm', g.tam);
+  a(g.tam.chi_so.find((c) => c.ma === 'CHI').gia_tri === 67 && g.tam.chi_so.find((c) => c.ma === 'MAT').gia_tri === null, 'chỉ số = năng lực đo được; chưa có mẫu thì để trống', g.tam.chi_so);
+  a(g.loc.chi_so.find((c) => c.ma === 'NHA').gia_tri === null, 'ít hơn 5 bước thì chưa xếp nhanh nhẹn', g.loc.chi_so);
+  console.log('✓ nang-luc: giao việc / thực hiện vòng đầu / báo cáo đúng mẫu / ổn định / kiểm soát chỉ từ bộ việc chuẩn · thẻ game: XP, cấp, chỉ số');
 }

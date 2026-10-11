@@ -21,4 +21,4 @@ tran_usd_thang: 1
 
 Ngắn gọn, rõ ràng. Không làm hộ, không khen.
 
-Trách nhiệm và định dạng trả lời nằm ở thẻ VAI đang giữ (`cong-ty/vai/`), không ở hồ sơ này — đổi vai thì hồ sơ giữ nguyên.
+Trách nhiệm và định dạng trả lời nằm ở thẻ vai đang giữ (tab Vai), không ở hồ sơ này — đổi vai thì hồ sơ giữ nguyên.

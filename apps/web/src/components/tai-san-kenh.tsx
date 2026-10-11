@@ -29,8 +29,9 @@ function ChipO({ o, k }: { o: KenhO; k: PhuongPhap }) {
       <TienDo xong={o.muc} tong={k.buoc.length - 1} buoc={k.buoc.slice(1)} so={false} rong={32} />
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', fontSize: 12 }}>{k.buoc[o.muc] ?? o.muc}</span>
       {o.tong != null && <span style={{ ...phu, fontSize: 11 }}>{o.xong ?? 0}/{o.tong}</span>}
-      {o.so && <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: o.so.click ? 'var(--fg-1)' : 'var(--fg-3)', whiteSpace: 'nowrap' }}>👁{o.so.hien} ↗{o.so.click}</span>}
-      {o.luot7 != null && <span style={{ fontSize: 11, color: o.luot7 ? 'var(--fg-1)' : 'var(--fg-3)' }} title="lượt về Gumroad 7 ngày">🛒{o.luot7}</span>}
+      {/* số KÈM CHỮ + KHUNG THỜI GIAN (11/10/2026: 👁/↗/🛒 trần, 30 ngày đứng cạnh 7 ngày → anh không đọc được) */}
+      {o.so && <span style={{ fontSize: 11, color: o.so.hien ? 'var(--fg-1)' : 'var(--fg-3)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{o.so.hien.toLocaleString('vi-VN')} hiện<span style={phu}>/30n</span></span>}
+      {o.luot7 != null && <span style={{ fontSize: 11, color: o.luot7 ? 'var(--fg-1)' : 'var(--fg-3)', whiteSpace: 'nowrap' }}>{o.luot7} về shop<span style={phu}>/7n</span></span>}
       {o.canhBao && <span style={{ color: 'var(--warn)' }}>⚠</span>}
     </span>
   );
@@ -80,11 +81,13 @@ function TheTua({ t, bat, onSua }: { t: Tua; bat: PhuongPhap[]; onSua: (o: KenhO
 export function TaiSanKenh({ ap, lib, shops }: { ap: ApDung; lib: PhuongPhap[]; shops: Shop[] }) {
   const [thuVien, datThuVien] = useState(false);
   const [sua, datSua] = useState<{ t: Tua; o: KenhO } | null>(null);
+  const [tatCa, datTatCa] = useState(false);   // mặc định chỉ tựa ĐANG có việc; ~100 tựa trống chỉ hiện khi bấm
   const ppCua = Object.fromEntries(lib.map((p) => [p.key, p]));
   const dem = demO(ap);
   const bat = lib.filter((p) => p.bat);
   // Tựa có việc thật lên đầu, rồi tựa bán ở nhiều shop, rồi tên — người mở panel xem cái đang chạy trước.
-  const rows = [...ap.tua].sort((a, b) => soThat(b) - soThat(a) || b.ban.length - a.ban.length || a.ten.localeCompare(b.ten));
+  const sapXep = [...ap.tua].sort((a, b) => soThat(b) - soThat(a) || b.ban.length - a.ban.length || a.ten.localeCompare(b.ten));
+  const rows = tatCa ? sapXep : sapXep.filter((t) => soThat(t) > 0);
   const cot: DataColumn<Tua>[] = [
     { key: 'ten', header: 'Tựa', align: 'left', width: 260, sortValue: (t) => t.ten,
       cellTitle: (t) => t.ban.map((x) => `${x.noi} · ${TT_SP.find((k) => k.key === x.trangThai)!.chu}`).join('\n') || 'chưa lên sàn',
@@ -107,7 +110,9 @@ export function TaiSanKenh({ ap, lib, shops }: { ap: ApDung; lib: PhuongPhap[]; 
   return (
     <Panel title="📣 Kênh kéo khách theo sản phẩm"
       subtitle={`${ap.tua.length} tựa · ${dem.that} ô có việc · ${dem.ao} ô chưa làm${dem.sp ? ` · ${dem.sp} sản phẩm chưa có phương pháp nào` : ''}`}
-      actions={<button type="button" onClick={() => datThuVien(true)} style={nutNho}>📚 Thư viện ({bat.length})</button>}>
+      actions={<span style={{ display: 'inline-flex', gap: 6 }}>
+        <button type="button" onClick={() => datTatCa(!tatCa)} style={nutNho}>{tatCa ? `Chỉ tựa đang chạy (${sapXep.filter((t) => soThat(t) > 0).length})` : `Hiện tất cả (${ap.tua.length})`}</button>
+        <button type="button" onClick={() => datThuVien(true)} style={nutNho}>📚 Thư viện ({bat.length})</button></span>}>
       {rows.length > 0 && (
         <DataTable rows={rows} columns={cot} getRowKey={(t) => t.khoa} persistKey="tai-san-kenh" pageSize={25} fixedLayout
           card={{ render: (t) => <TheTua t={t} bat={bat} onSua={(o) => datSua({ t, o })} />, minWidth: 300 }}

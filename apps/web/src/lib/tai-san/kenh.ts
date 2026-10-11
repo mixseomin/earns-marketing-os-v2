@@ -5,6 +5,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 
 import type { KenhSo, KenhSp, PhuongPhap } from './kieu';
+import type { DongSo, VideoSo } from './video-tinh';
 export type { KenhO, KenhSp, PhuongPhap } from './kieu';
 
 export async function docKenh(): Promise<KenhSp[]> {
@@ -56,4 +57,16 @@ export async function docLuotNguon(): Promise<Record<string, Record<string, numb
   const ra: Record<string, Record<string, number>> = {};
   for (const r of rows) (ra[`gumroad:${r.product_id}`] ??= {})[r.k] = r.n;
   return ra;
+}
+
+/** Video short: bản ghi kenh_so_ngay 15 ngày gần nhất của 4 nền video (đủ cho 7 ngày + kỳ trước) + tên sách từ kenh_sp. Tính ở video-tinh.ts. */
+export async function docVideoSo(): Promise<{ dongs: DongSo[]; tenSp: Record<string, string> }> {
+  const d = getDb(); if (!d) return { dongs: [], tenSp: {} };
+  const rows = (await d.execute(sql`SELECT kenh, san_pham, ngay::text AS ngay, chi_tiet FROM kenh_so_ngay
+    WHERE kenh IN ('youtube','tiktok','fb-reels','ig-reels') AND ngay >= current_date - 15`)) as unknown as { kenh: string; san_pham: string; ngay: string; chi_tiet: { videos?: VideoSo[] } | null }[];
+  const ten = (await d.execute(sql`SELECT DISTINCT ON (san_pham) san_pham, ten FROM kenh_sp`)) as unknown as { san_pham: string; ten: string }[];
+  return {
+    dongs: rows.map((r) => ({ kenh: r.kenh, sanPham: r.san_pham, ngay: r.ngay.slice(0, 10), videos: r.chi_tiet?.videos ?? [] })),
+    tenSp: Object.fromEntries(ten.map((r) => [r.san_pham, r.ten])),
+  };
 }

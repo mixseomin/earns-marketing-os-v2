@@ -2,10 +2,10 @@
 // Lớp phủ tự do trên timeline (11/10/2026, anh: "thêm các thành phần, layer custom như ảnh, text, objects… như các công cụ làm video").
 // Xem trước dựng bằng CSS theo CÙNG số đo với bản xuất (lop.ts): toạ độ tâm chuẩn hoá, cỡ chữ theo rộng khung, hiệu ứng vào/ra 0,3s.
 // Mọi sửa lưu tự động (gom 0,7s) qua luuLop — có ↶ Hoàn tác ở đầu trang.
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as PE } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as PE } from 'react';
 import { luuLop, taiAnhLen } from '@/lib/actions';
 import { FONT_CHU, type Lop } from '@/lib/xuong-video/kieu';
-import { lopHien, hieuUngTai, lopMoi, tenLop, soKyTuGo, MAU_LOP, HIEU_UNG } from '@/lib/xuong-video/lop';
+import { lopHien, hieuUngTai, lopMoi, tenLop, soKyTuGo, MAU_LOP, HIEU_UNG, nhomCua, bienDoiNhom } from '@/lib/xuong-video/lop';
 import { Chon } from './chon';
 import { Menu, MucMenu, Xoa, mono } from './ui';
 
@@ -33,8 +33,9 @@ export function useLop(tapId: number, tuServer: Lop[]) {
   return { lop, dat, doi, loi, luu };
 }
 
-/** Lớp đang hiện ở giây t, vẽ đè lên khung xem trước. Lớp đang chọn: viền nét đứt + góc kéo đổi cỡ; kéo thân để dời. */
-export function LopXem({ lop, t, rong, cao, chonId, onChon, onDoi, dangChay = true }: { lop: Lop[]; t: number; rong: number; cao: number; chonId: string | null; onChon: (id: string) => void; onDoi: (id: string, p: Partial<Lop>) => void;
+/** Lớp đang hiện ở giây t, vẽ đè lên khung xem trước. Lớp đang chọn: viền nét đứt + góc kéo đổi cỡ; kéo thân để dời.
+ *  Chọn nhiều (#1289): Shift/⌘ + bấm = thêm/bớt; bấm lớp trong nhóm = chọn cả nhóm; kéo một lớp đang chọn = dời cả vùng chọn. */
+export function LopXem({ lop, t, rong, cao, chonIds, onChon, onDoi, dangChay = true }: { lop: Lop[]; t: number; rong: number; cao: number; chonIds: string[]; onChon: (id: string, them: boolean) => void; onDoi: (id: string, p: Partial<Lop>) => void;
   /** Đang phát → chạy hiệu ứng vào/ra; dừng để chỉnh → vẽ lớp ở trạng thái ĐẦY ĐỦ (như After Effects). Trước đây lớp mới "hiện dần"
    *  có độ đậm 0 đúng giây vừa thêm → thêm xong không thấy gì, phải kéo đầu phát (#1279). */
   dangChay?: boolean }) {
@@ -42,9 +43,22 @@ export function LopXem({ lop, t, rong, cao, chonId, onChon, onDoi, dangChay = tr
   // Mọi thao tác ngay trên khung (#1280): dời · đổi cỡ (góc) · rộng (cạnh phải) · cao (cạnh dưới) · xoay (núm trên, Shift = nấc 15°).
   // Sau khi xoay vẫn đúng cảm giác (#1287): cỡ theo KHOẢNG CÁCH tới tâm (không phụ thuộc góc), rộng/cao chiếu độ dời lên TRỤC đã xoay của lớp.
   const lopEl = useRef<Record<string, HTMLDivElement | null>>({});
+  const gocRef = useRef<HTMLDivElement>(null);
   const keo = (l: Lop, kieu: 'doi' | 'co' | 'rong' | 'cao' | 'xoay') => (e: PE<HTMLDivElement>) => {
     if (sua === l.id && kieu === 'doi') return;
-    e.preventDefault(); e.stopPropagation(); onChon(l.id);
+    e.preventDefault(); e.stopPropagation();
+    if (kieu === 'doi') {
+      if (e.shiftKey || e.metaKey || e.ctrlKey) { onChon(l.id, true); return; }
+      // Kéo lớp đang nằm trong vùng chọn = dời cả vùng chọn; lớp ngoài vùng chọn = chọn (cả nhóm của nó) rồi dời.
+      const ids = chonIds.includes(l.id) ? chonIds : nhomCua(lop, l.id);
+      if (!chonIds.includes(l.id)) onChon(l.id, false);
+      const goc = lop.filter((x) => ids.includes(x.id)); const x0 = e.clientX, y0 = e.clientY;
+      const el = e.currentTarget; el.setPointerCapture(e.pointerId);
+      const di = (ev: PointerEvent) => { const px = (ev.clientX - x0) / rong, py = (ev.clientY - y0) / cao; for (const g of goc) onDoi(g.id, { x: lam(g.x + px), y: lam(g.y + py) }); };
+      const xong = () => { el.removeEventListener('pointermove', di); el.removeEventListener('pointerup', xong); el.removeEventListener('pointercancel', xong); };
+      el.addEventListener('pointermove', di); el.addEventListener('pointerup', xong); el.addEventListener('pointercancel', xong);
+      return;
+    }
     const el = e.currentTarget; el.setPointerCapture(e.pointerId);
     const x0 = e.clientX, y0 = e.clientY; const goc = { ...l };
     const r = (lopEl.current[l.id] ?? el).getBoundingClientRect();
@@ -53,8 +67,7 @@ export function LopXem({ lop, t, rong, cao, chonId, onChon, onDoi, dangChay = tr
     const rad = (goc.xoay * Math.PI) / 180, cos = Math.cos(rad), sin = Math.sin(rad);
     const di = (ev: PointerEvent) => {
       const px = ev.clientX - x0, py = ev.clientY - y0;
-      if (kieu === 'doi') onDoi(l.id, { x: lam(goc.x + px / rong), y: lam(goc.y + py / cao) });
-      else if (kieu === 'xoay') { let a = (Math.atan2(ev.clientY - cy, ev.clientX - cx) * 180) / Math.PI + 90; if (a > 180) a -= 360; if (ev.shiftKey) a = Math.round(a / 15) * 15; onDoi(l.id, { xoay: Math.round(a) }); }
+      if (kieu === 'xoay') { let a = (Math.atan2(ev.clientY - cy, ev.clientX - cx) * 180) / Math.PI + 90; if (a > 180) a -= 360; if (ev.shiftKey) a = Math.round(a / 15) * 15; onDoi(l.id, { xoay: Math.round(a) }); }
       else if (kieu === 'rong') { const dc = px * cos + py * sin; onDoi(l.id, { w: lam(Math.max(0.02, goc.w + (dc * 2) / rong)) }); }
       else if (kieu === 'cao') { const dc = -px * sin + py * cos; onDoi(l.id, { h: lam(Math.max(0.005, goc.h + (dc * 2) / cao)) }); }
       else { const k = Math.max(0.1, Math.hypot(ev.clientX - cx, ev.clientY - cy) / d0); onDoi(l.id, { w: lam(goc.w * k), ...(l.loai === 'hinh' ? { h: lam(Math.max(0.005, goc.h * k)) } : {}), ...(l.loai === 'chu' && goc.co ? { co: lam(goc.co * k, 4) } : {}) }); }
@@ -63,10 +76,11 @@ export function LopXem({ lop, t, rong, cao, chonId, onChon, onDoi, dangChay = tr
     el.addEventListener('pointermove', di); el.addEventListener('pointerup', xong); el.addEventListener('pointercancel', xong);
   };
   const hien = lopHien(lop, t);
-  const chon = chonId ? lop.find((l) => l.id === chonId && !l.an) : undefined;
-  const ve = chon && !hien.includes(chon) ? [...hien, chon] : hien;   // lớp đang chọn hiện mờ cả ngoài giờ của nó, để kéo chỉnh được
+  const dsChon = lop.filter((l) => chonIds.includes(l.id) && !l.an && l.loai !== 'hieu_ung');
+  const ve = [...hien, ...dsChon.filter((l) => !hien.includes(l))];   // lớp đang chọn hiện mờ cả ngoài giờ của nó, để kéo chỉnh được
+  const chon = dsChon.length === 1 ? dsChon[0] : undefined;
   return (
-    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+    <div ref={gocRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
       {ve.map((l) => {
         const hu = dangChay ? hieuUngTai(l, t) : { mo: l.mo, dy: 0, scale: 1 };
         const ngoaiGio = t < l.tu || t >= l.den;
@@ -94,6 +108,7 @@ export function LopXem({ lop, t, rong, cao, chonId, onChon, onDoi, dangChay = tr
       })}
       {/* Khung chọn + tay nắm vẽ RIÊNG trên mọi lớp và chữ màn (#1287): lớp đang chọn nằm dưới vẫn kéo/xoay/đổi cỡ được. */}
       {chon && sua !== chon.id && ve.includes(chon) && <KhungChon l={chon} el={lopEl.current[chon.id] ?? null} t={t} dangChay={dangChay} keo={keo} />}
+      {dsChon.length > 1 && <KhungNhom ds={dsChon} lopEl={lopEl.current} goc={gocRef.current} rong={rong} cao={cao} onDoi={onDoi} />}
     </div>
   );
 }
@@ -113,6 +128,62 @@ function KhungChon({ l, el, t, dangChay, keo }: { l: Lop; el: HTMLDivElement | n
       {l.loai === 'hinh' && tay('cao', { bottom: -6, left: 'calc(50% - 5px)' }, 'ns-resize', 'Kéo để đổi bề cao')}
       <div style={{ position: 'absolute', left: '50%', top: -20, width: 1, height: 14, background: 'var(--cyan)' }} />
       <div onPointerDown={keo(l, 'xoay')} title={`Kéo để xoay (${l.xoay}°) · giữ Shift = nấc 15°`} style={{ position: 'absolute', left: 'calc(50% - 6px)', top: -30, width: 12, height: 12, borderRadius: '50%', background: 'var(--cyan)', border: '1px solid #000', cursor: 'grab', pointerEvents: 'auto' }} />
+    </div>
+  );
+}
+
+/** Khung bao vùng chọn nhiều lớp (#1289): hộp nét đứt ôm mọi lớp đang chọn; góc = đổi cỡ cả nhóm, núm trên = xoay cả nhóm quanh tâm chung. */
+function KhungNhom({ ds, lopEl, goc, rong, cao, onDoi }: { ds: Lop[]; lopEl: Record<string, HTMLDivElement | null>; goc: HTMLDivElement | null; rong: number; cao: number; onDoi: (id: string, p: Partial<Lop>) => void }) {
+  const [hop, setHop] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!goc) return;
+    const g = goc.getBoundingClientRect(); let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity;
+    for (const l of ds) { const r = lopEl[l.id]?.getBoundingClientRect(); if (!r) continue; a = Math.min(a, r.left); b = Math.min(b, r.top); c = Math.max(c, r.right); d = Math.max(d, r.bottom); }
+    const moi = a === Infinity ? null : { x: Math.round(a - g.left), y: Math.round(b - g.top), w: Math.round(c - a), h: Math.round(d - b) };
+    setHop((cu) => (JSON.stringify(cu) === JSON.stringify(moi) ? cu : moi));
+  });
+  if (!hop || !goc) return null;
+  const keo = (kieu: 'co' | 'xoay') => (e: PE<HTMLDivElement>) => {
+    e.preventDefault(); e.stopPropagation();
+    const el = e.currentTarget; el.setPointerCapture(e.pointerId);
+    const g = goc.getBoundingClientRect(); const cx = g.left + hop.x + hop.w / 2, cy = g.top + hop.y + hop.h / 2;
+    const tamX = (cx - g.left) / rong, tamY = (cy - g.top) / cao; const truoc = ds.map((l) => ({ ...l }));
+    const d0 = Math.max(4, Math.hypot(e.clientX - cx, e.clientY - cy)); const a0 = Math.atan2(e.clientY - cy, e.clientX - cx);
+    const di = (ev: PointerEvent) => {
+      const k = kieu === 'co' ? Math.max(0.1, Math.hypot(ev.clientX - cx, ev.clientY - cy) / d0) : 1;
+      let a = kieu === 'xoay' ? ((Math.atan2(ev.clientY - cy, ev.clientX - cx) - a0) * 180) / Math.PI : 0;
+      if (ev.shiftKey) a = Math.round(a / 15) * 15;
+      const p = bienDoiNhom(truoc, tamX, tamY, k, a, rong, cao); for (const id of Object.keys(p)) onDoi(id, p[id]!);
+    };
+    const xong = () => { el.removeEventListener('pointermove', di); el.removeEventListener('pointerup', xong); el.removeEventListener('pointercancel', xong); };
+    el.addEventListener('pointermove', di); el.addEventListener('pointerup', xong); el.addEventListener('pointercancel', xong);
+  };
+  const nhom = ds.every((l) => l.nhom && l.nhom === ds[0]!.nhom);
+  return (
+    <div style={{ position: 'absolute', left: hop.x, top: hop.y, width: hop.w, height: hop.h, outline: `1.5px ${nhom ? 'solid' : 'dashed'} var(--cyan)`, outlineOffset: 3, pointerEvents: 'none', zIndex: 20 }}>
+      <span style={{ position: 'absolute', left: 0, top: -17, fontSize: 10, color: 'var(--cyan)', whiteSpace: 'nowrap', textShadow: '0 1px 2px #000' }}>{nhom ? `⛓ nhóm ${ds.length} lớp` : `${ds.length} lớp`}</span>
+      <div onPointerDown={keo('co')} title="Kéo để đổi cỡ cả vùng chọn" style={{ position: 'absolute', right: -7, bottom: -7, width: 9, height: 9, background: 'var(--cyan)', border: '1px solid #000', borderRadius: 2, cursor: 'nwse-resize', pointerEvents: 'auto' }} />
+      <div style={{ position: 'absolute', left: '50%', top: -20, width: 1, height: 14, background: 'var(--cyan)' }} />
+      <div onPointerDown={keo('xoay')} title="Kéo để xoay cả vùng chọn · giữ Shift = nấc 15°" style={{ position: 'absolute', left: 'calc(50% - 6px)', top: -30, width: 12, height: 12, borderRadius: '50%', background: 'var(--cyan)', border: '1px solid #000', cursor: 'grab', pointerEvents: 'auto' }} />
+    </div>
+  );
+}
+
+/** Bảng thuộc tính khi chọn nhiều lớp: gộp / bỏ nhóm / xoá — cùng phím tắt ⌘G · ⇧⌘G · Del. */
+export function LopNhieu({ ds, onGop, onBoNhom, onXoa, onDong }: { ds: Lop[]; onGop: () => void; onBoNhom: () => void; onXoa: () => void; onDong: () => void }) {
+  const nhom = ds.every((l) => l.nhom && l.nhom === ds[0]!.nhom);
+  const nut = (chu: string, title: string, f: () => void) => <button type="button" className="xv-btn" style={{ padding: '0 6px', lineHeight: '20px' }} title={title} onClick={f}>{chu}</button>;
+  return (
+    <div style={{ display: 'grid', gap: 6, textAlign: 'left' }}>
+      <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+        <b style={{ fontSize: 12, flex: 1 }}>{nhom ? `⛓ Nhóm ${ds.length} lớp` : `${ds.length} lớp đang chọn`}</b>{nut('✕', 'Bỏ chọn (Esc)', onDong)}
+      </div>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        {nhom ? nut('Bỏ nhóm', 'Tách nhóm thành từng lớp (⇧⌘G)', onBoNhom) : nut('⛓ Gộp nhóm', 'Gộp thành một đối tượng (⌘G)', onGop)}
+        {nut('🗑 Xoá', 'Xoá các lớp đang chọn (Del)', onXoa)}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>{ds.map((l) => `${ICON_LOAI[l.loai]} ${tenLop(l)}`).join(' · ')}</div>
+      <div style={{ ...mono }}>Kéo một lớp = dời cả vùng chọn · góc khung = đổi cỡ · núm trên = xoay. Shift/⌘ + bấm = thêm/bớt lớp.</div>
     </div>
   );
 }
@@ -231,16 +302,20 @@ export function LopBang({ l, t, onDoi, onXoa, onNhanBan, onLenXuong, onDong }: {
 }
 
 /** Khối thời gian của một lớp trên làn timeline: kéo thân = dời, kéo hai mép = đổi giờ vào/ra. */
-export function KhoiLop({ l, pps, chon, onChon, onDoi }: { l: Lop; pps: number; chon: boolean; onChon: () => void; onDoi: (p: Partial<Lop>) => void }) {
+export function KhoiLop({ l, pps, chon, cung, onChon, onDoi }: { l: Lop; pps: number; chon: boolean;
+  /** các lớp dời giờ CÙNG khi kéo thân (vùng chọn / nhóm có lớp này) */ cung: Lop[]; onChon: (them: boolean) => void; onDoi: (id: string, p: Partial<Lop>) => void }) {
   const keo = (kieu: 'than' | 'trai' | 'phai') => (e: PE<HTMLDivElement>) => {
-    e.preventDefault(); e.stopPropagation(); onChon();
+    e.preventDefault(); e.stopPropagation();
+    if (e.shiftKey || e.metaKey || e.ctrlKey) { onChon(true); return; }
+    if (!chon) onChon(false);
     const el = e.currentTarget; el.setPointerCapture(e.pointerId);
-    const x0 = e.clientX; const tu0 = l.tu, den0 = l.den;
+    const x0 = e.clientX; const tu0 = l.tu, den0 = l.den; const goc = (cung.length ? cung : [l]).map((x) => ({ id: x.id, tu: x.tu, den: x.den }));
+    const tuMin = Math.min(...goc.map((x) => x.tu));
     const di = (ev: PointerEvent) => {
       const d = lam((ev.clientX - x0) / pps, 2);
-      if (kieu === 'than') { const dd = Math.max(-tu0, d); onDoi({ tu: lam(tu0 + dd, 2), den: lam(den0 + dd, 2) }); }
-      else if (kieu === 'trai') onDoi({ tu: lam(Math.max(0, Math.min(den0 - 0.2, tu0 + d)), 2) });
-      else onDoi({ den: lam(Math.max(tu0 + 0.2, den0 + d), 2) });
+      if (kieu === 'than') { const dd = Math.max(-tuMin, d); for (const g of goc) onDoi(g.id, { tu: lam(g.tu + dd, 2), den: lam(g.den + dd, 2) }); }
+      else if (kieu === 'trai') onDoi(l.id, { tu: lam(Math.max(0, Math.min(den0 - 0.2, tu0 + d)), 2) });
+      else onDoi(l.id, { den: lam(Math.max(tu0 + 0.2, den0 + d), 2) });
     };
     const xong = () => { el.removeEventListener('pointermove', di); el.removeEventListener('pointerup', xong); el.removeEventListener('pointercancel', xong); };
     el.addEventListener('pointermove', di); el.addEventListener('pointerup', xong); el.addEventListener('pointercancel', xong);
@@ -250,7 +325,7 @@ export function KhoiLop({ l, pps, chon, onChon, onDoi }: { l: Lop; pps: number; 
       style={{ position: 'absolute', left: l.tu * pps, width: Math.max(6, (l.den - l.tu) * pps), top: 2, bottom: 2, borderRadius: 4, cursor: 'grab', touchAction: 'none', opacity: l.an ? 0.4 : 1,
         background: 'var(--bg-2)', border: `1px solid ${chon ? 'var(--cyan)' : 'var(--line)'}`, outline: chon ? '1px solid var(--cyan)' : undefined, color: chon ? 'var(--fg-1)' : 'var(--fg-2)', fontSize: 10, lineHeight: '14px', padding: '0 8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
       <div onPointerDown={keo('trai')} style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 6, cursor: 'ew-resize' }} />
-      {ICON_LOAI[l.loai]} {tenLop(l)}
+      {l.nhom ? '⛓ ' : ''}{ICON_LOAI[l.loai]} {tenLop(l)}
       <div onPointerDown={keo('phai')} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 6, cursor: 'ew-resize' }} />
     </div>
   );

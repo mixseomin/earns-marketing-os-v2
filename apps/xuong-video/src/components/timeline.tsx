@@ -16,8 +16,8 @@ import { dongThoai, dungTiengClip, tenNoi, cungTen, timNv, lichGiong } from '@/l
 import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 import { mono } from './ui';
-import { lopMoi, idLop, tenLop, hieuUngKhungTai, xemChuyenCanh } from '@/lib/xuong-video/lop';
-import { useLop, LopXem, LopCongCu, LopNguyenLieu, LopBang, KhoiLop } from './lop-ui';
+import { lopMoi, idLop, tenLop, hieuUngKhungTai, xemChuyenCanh, chonLopMoi, nhomCua, gopNhom, boNhom } from '@/lib/xuong-video/lop';
+import { useLop, LopXem, LopCongCu, LopNguyenLieu, LopBang, LopNhieu, KhoiLop } from './lop-ui';
 import { moNgan } from './ngan-chung';
 import { useKichThuoc, TayKeo } from './keo';
 
@@ -176,6 +176,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     const h = (e: KeyboardEvent) => {
       const tg = e.target as HTMLElement;
       if (tg.closest('input, textarea, select, [contenteditable="true"]') || document.querySelector('.xv-drawer.nho, [data-animatic]')) return;
+      // Lớp phủ đang chọn (#1289): Del/Backspace xoá · Esc bỏ chọn · ⌘G gộp nhóm · ⇧⌘G bỏ nhóm.
+      if (chonLops.length && (e.key === 'Delete' || e.key === 'Backspace')) { e.preventDefault(); xoaChon(); return; }
+      if (chonLops.length && e.key === 'Escape') { setChonLops([]); return; }
+      if (chonLops.length && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'g') { e.preventDefault(); if (e.shiftKey) boNhomChon(); else gopChon(); return; }
       if (e.key === ' ') { e.preventDefault(); setChay((x) => { if (!x && t >= tong) setT(0); return !x; }); }
       if (e.key === 'ArrowRight') tuaToi(batDau[Math.min(canh.length - 1, idx + 1)] ?? 0);
       if (e.key === 'ArrowLeft') tuaToi(batDau[Math.max(0, tTrong > 0.5 ? idx : idx - 1)] ?? 0);
@@ -207,8 +211,17 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const doc916 = tiLe === '9:16';
   // Lớp phủ tự do (chữ · ảnh · hình khối) — lop-ui.tsx; số đo dùng chung với bản xuất (lop.ts).
   const { lop, dat: datLop, doi: doiLop, loi: loiLop, luu: luuLop } = useLop(tap.id, tap.lop ?? []);
-  const [chonLop, setChonLop] = useState<string | null>(null);
-  const lopChon = lop.find((l) => l.id === chonLop) ?? null;
+  // Vùng chọn lớp phủ (#1289): nhiều lớp; bấm một lớp trong nhóm = chọn cả nhóm (lop.ts › chonLopMoi).
+  const [chonLops, setChonLops] = useState<string[]>([]);
+  const dsChonLop = lop.filter((l) => chonLops.includes(l.id));
+  const lopChon = dsChonLop.length === 1 ? dsChonLop[0]! : null;
+  const setChonLop = (id: string | null) => setChonLops(id ? [id] : []);
+  const bamLop = (id: string, them: boolean) => setChonLops((d) => chonLopMoi(lop, d, id, them));
+  const [vuaXoa, setVuaXoa] = useState<{ truoc: Lop[]; so: number } | null>(null);
+  useEffect(() => { if (!vuaXoa) return; const h = setTimeout(() => setVuaXoa(null), 10000); return () => clearTimeout(h); }, [vuaXoa]);
+  const xoaChon = () => { if (!chonLops.length) return; setVuaXoa({ truoc: lop, so: chonLops.length }); datLop((ds) => ds.filter((l) => !chonLops.includes(l.id))); setChonLops([]); };
+  const gopChon = () => datLop((ds) => gopNhom(ds, chonLops));
+  const boNhomChon = () => datLop((ds) => boNhom(ds, chonLops));
   const panTrai = useKichThuoc('xv-tl-trai', 200, 140, 440);
   const panPhai = useKichThuoc('xv-tl-phai', 280, 220, 560);
   const hangPan = useKichThuoc(`xv-tl-hang-${doc916 ? 'doc' : 'ngang'}`, doc916 ? 524 : 360, 260, 1000);
@@ -296,6 +309,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
         <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--line)', margin: '0 4px' }} />
         <LopCongCu t={t} tiLe={doc916 ? 9 / 16 : 16 / 9} onThem={themLop} />
         <span style={{ flex: 1 }} />
+        {vuaXoa && <span style={mono}>đã xoá {vuaXoa.so} lớp · <button type="button" className="xv-lienket" onClick={() => { const tr = vuaXoa.truoc; datLop(() => tr); setVuaXoa(null); }}>↶ Hoàn tác</button></span>}
         {loiLop ? <span className="xv-loi">{loiLop}</span> : <span style={{ ...mono, minWidth: 70, textAlign: 'right' }}>{luuLop === 'dang' ? 'đang lưu…' : luuLop === 'xong' ? '✓ đã lưu' : ''}</span>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: `${panTrai.v}px 4px minmax(0, 1fr) 4px ${panPhai.v}px`, height: hangPan.v }}>
@@ -311,15 +325,16 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           {c && <button type="button" className="xv-lienket xv-mono" style={{ textAlign: 'left' }} onClick={() => moNgan({ loai: 'kho', dich: { canhId: c.id } })}>📦 Kho tài sản → clip / keyframe cho shot này</button>}
         </aside>
         <TayKeo truc="x" onPointerDown={panTrai.keo('x')} onDoubleClick={panTrai.veMacDinh} />
-        <main style={{ display: 'grid', placeItems: 'center', padding: 8, background: 'var(--bg-0, #0b0b0d)' }}>
-          <div style={{ position: 'relative', width: rongXem, height: caoXem, overflow: 'hidden', borderRadius: 4, background: '#000' }} onPointerDown={(e) => { if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === 'VIDEO' || (e.target as HTMLElement).tagName === 'IMG') setChonLop(null); }}>
+        {/* Bấm vào chỗ trống (ngoài lớp, trong hay ngoài khung hình) = bỏ chọn (#1288) — lớp và tay nắm tự chặn sự kiện của mình. */}
+        <main style={{ display: 'grid', placeItems: 'center', padding: 8, background: 'var(--bg-0, #0b0b0d)' }} onPointerDown={(e) => { if (!e.shiftKey && !e.metaKey && !e.ctrlKey) setChonLops([]); }}>
+          <div style={{ position: 'relative', width: rongXem, height: caoXem, overflow: 'hidden', borderRadius: 4, background: '#000' }}>
             {/* Hiệu ứng khung (lớp ✦, lop.ts › hieuUngKhungTai): rung/zoom/mờ/đen trắng/glitch áp lên hình + lớp phủ; chớp/tối viền/hạt là lớp phủ trên đó, dưới chữ màn. */}
             {(() => { const hk = hieuUngKhungTai(lop, t, rongXem); return (<>
               <div style={{ position: 'absolute', inset: 0, transform: hk.transform || undefined, filter: hk.filter || undefined }}>
                 {c && (vid ? <video ref={vidRef} key={vid} src={vid} playsInline preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : c.keyframe_url ? <img src={c.keyframe_url} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb }} />
                   : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} chưa có hình</div>)}
-                <LopXem lop={lop} t={t} rong={rongXem} cao={caoXem} chonId={chonLop} onChon={setChonLop} onDoi={doiLop} dangChay={chay} />
+                <LopXem lop={lop} t={t} rong={rongXem} cao={caoXem} chonIds={chonLops} onChon={bamLop} onDoi={doiLop} dangChay={chay} />
               </div>
               {(() => {
                 // Chuyển cảnh: trong d giây đầu shot này, hình shot TRƯỚC phủ lên và biến đi theo kiểu (xemChuyenCanh) — gần đúng xfade của bản xuất.
@@ -343,9 +358,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
         <TayKeo truc="x" onPointerDown={panPhai.keo('x', -1)} onDoubleClick={panPhai.veMacDinh} />
         <aside style={{ overflowY: 'auto', padding: 8, display: 'grid', gap: 6, alignContent: 'start' }}>
           <div style={{ ...mono, letterSpacing: 0.5 }}>THUỘC TÍNH</div>
-          {lopChon ? <LopBang l={lopChon} t={t} onDoi={(p) => doiLop(lopChon.id, p)} onDong={() => setChonLop(null)}
+          {dsChonLop.length > 1 ? <LopNhieu ds={dsChonLop} onGop={gopChon} onBoNhom={boNhomChon} onXoa={xoaChon} onDong={() => setChonLops([])} />
+          : lopChon ? <LopBang l={lopChon} t={t} onDoi={(p) => doiLop(lopChon.id, p)} onDong={() => setChonLop(null)}
             onXoa={() => { datLop((ds) => ds.filter((x) => x.id !== lopChon.id)); setChonLop(null); }}
-            onNhanBan={() => { const moi = { ...lopChon, id: idLop(), x: Math.min(1, lopChon.x + 0.04), y: Math.min(1, lopChon.y + 0.04) }; datLop((ds) => [...ds, moi]); setChonLop(moi.id); }}
+            onNhanBan={() => { const moi = { ...lopChon, id: idLop(), nhom: undefined, x: Math.min(1, lopChon.x + 0.04), y: Math.min(1, lopChon.y + 0.04) }; datLop((ds) => [...ds, moi]); setChonLop(moi.id); }}
             onLenXuong={(d) => datLop((ds) => { const i = ds.findIndex((x) => x.id === lopChon.id); const j = i + d; if (i < 0 || j < 0 || j >= ds.length) return ds; const n = [...ds]; [n[i], n[j]] = [n[j]!, n[i]!]; return n; })} />
           : <>
             <div style={mono}>Bấm một lớp trên khung hình hoặc làn 🧩 để sửa. Đang xem âm thanh của shot #{c?.thu_tu}:</div>
@@ -389,7 +405,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
 
           {/* Lớp phủ: mỗi lớp một làn (lớp sau nằm trên), kéo khối đổi giờ — bấm chọn để sửa ở bảng bên phải khung xem. */}
           {lop.length ? [...lop].reverse().map((l) => track(`⋮⋮ ${tenLop(l)}`, 'Lớp phủ — kéo thân để dời, kéo mép để đổi giờ vào/ra; bấm để sửa',
-              <KhoiLop l={l} pps={pps} chon={l.id === chonLop} onChon={() => setChonLop(l.id)} onDoi={(p) => doiLop(l.id, p)} />, 20, undefined, l.id))
+              <KhoiLop l={l} pps={pps} chon={chonLops.includes(l.id)} cung={chonLops.includes(l.id) ? dsChonLop : lop.filter((x) => nhomCua(lop, l.id).includes(x.id))} onChon={(them) => bamLop(l.id, them)} onDoi={doiLop} />, 20, undefined, l.id))
             : track('🧩 Lớp phủ', 'Chữ, ảnh, hình khối tự do đè lên video', <button type="button" className="xv-lienket xv-mono" style={{ lineHeight: '20px', paddingLeft: 6 }} onClick={() => themLop([lopMoi('chu', t)])}>chưa có lớp — bấm để thêm lớp chữ ở giây {t.toFixed(1)}</button>, 20)}
           {track('🎬 Hình', 'Mỗi cảnh một clip, dài đúng số giây', canh.map((cc, i) => {
             const x = batDau[i]! * pps; const w = dur(cc) * pps; const anh = cc.keyframe_url;

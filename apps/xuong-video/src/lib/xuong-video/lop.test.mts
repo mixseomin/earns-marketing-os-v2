@@ -51,3 +51,24 @@ console.log('lop.test: ok');
   assert.ok(lopAss([lopMoi('chu', 0, { vao: 'nay' })], W, H).events[0]!.includes('\\fscx115'));
   console.log('lop.test: hiệu ứng ok');
 }
+// Chọn nhiều + gộp nhóm (#1289) — bấm một lớp chọn cả nhóm; Shift bật/tắt; đổi cỡ/xoay cả nhóm quanh tâm chung.
+{
+  const { chonLopMoi, gopNhom, boNhom, bienDoiNhom, nhomCua } = await import('./lop');
+  const a = { ...lopMoi('chu', 0), id: 'a' }, b = { ...lopMoi('hinh', 0), id: 'b' }, c = { ...lopMoi('anh', 0), id: 'c' };
+  let ds = [a, b, c];
+  assert.deepStrictEqual(chonLopMoi(ds, ['a'], 'b', false), ['b']);
+  assert.deepStrictEqual(chonLopMoi(ds, ['a'], 'b', true), ['a', 'b']);
+  assert.deepStrictEqual(chonLopMoi(ds, ['a', 'b'], 'b', true), ['a']);
+  assert.strictEqual(gopNhom(ds, ['a']), ds);   // một lớp không thành nhóm
+  ds = gopNhom(ds, ['a', 'b'], 'g1');
+  assert.deepStrictEqual(nhomCua(ds, 'b'), ['a', 'b']);
+  assert.deepStrictEqual(chonLopMoi(ds, [], 'a', false), ['a', 'b']);
+  assert.deepStrictEqual(chonLopMoi(ds, ['c'], 'a', true), ['c', 'a', 'b']);
+  assert.deepStrictEqual(nhomCua(boNhom(ds, ['a', 'b']), 'a'), ['a']);
+  // Xoay 90° quanh tâm trên khung 9:16 (100×200 px): lớp ở bên phải tâm 10px → xuống dưới tâm 10px.
+  const p = bienDoiNhom([{ ...a, x: 0.6, y: 0.5, xoay: 0 }], 0.5, 0.5, 1, 90, 100, 200);
+  assert.deepStrictEqual([p.a!.x, p.a!.y, p.a!.xoay], [0.5, 0.55, 90]);
+  const q = bienDoiNhom([{ ...b, x: 0.6, y: 0.5, w: 0.2, h: 0.1 }], 0.5, 0.5, 2, 0, 100, 200);
+  assert.deepStrictEqual([q.b!.x, q.b!.w, q.b!.h], [0.7, 0.4, 0.2]);
+  console.log('lop.test: nhóm ok');
+}

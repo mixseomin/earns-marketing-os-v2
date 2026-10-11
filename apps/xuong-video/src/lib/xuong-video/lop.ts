@@ -13,6 +13,29 @@ const alphaAss = (mo: number) => `&H${Math.round((1 - kep(mo, 0, 1)) * 255).toSt
 
 /** Mã lớp mới — một chỗ cho lớp mới, mẫu và nhân bản. */
 export const idLop = () => Math.random().toString(36).slice(2, 10);
+/** Chọn lớp kiểu Figma/CapCut: bấm một lớp = chọn cả NHÓM của nó; `them` (Shift/⌘) = bật/tắt nhóm đó trong vùng chọn đang có. */
+export const nhomCua = (ds: Lop[], id: string): string[] => { const l = ds.find((x) => x.id === id); return !l ? [] : l.nhom ? ds.filter((x) => x.nhom === l.nhom).map((x) => x.id) : [id]; };
+export function chonLopMoi(ds: Lop[], dang: string[], id: string, them: boolean): string[] {
+  const n = nhomCua(ds, id);
+  if (!them) return n;
+  return n.every((x) => dang.includes(x)) ? dang.filter((x) => !n.includes(x)) : [...dang, ...n.filter((x) => !dang.includes(x))];
+}
+/** Gộp ≥2 lớp thành một đối tượng (mã nhóm mới; nhóm cũ bên trong tan vào nhóm mới). Dưới 2 lớp → giữ nguyên. */
+export const gopNhom = (ds: Lop[], ids: string[], ma = idLop()): Lop[] => (ids.length < 2 ? ds : ds.map((l) => (ids.includes(l.id) ? { ...l, nhom: ma } : l)));
+export const boNhom = (ds: Lop[], ids: string[]): Lop[] => ds.map((l) => (ids.includes(l.id) && l.nhom ? { ...l, nhom: undefined } : l));
+/** Đổi cỡ (k) + xoay (độ) cả vùng chọn quanh tâm (cx, cy chuẩn hoá) — vị trí từng lớp xoay/co theo tâm chung, cỡ và góc riêng cộng thêm.
+ *  Tính bằng px (rong × cao) để xoay không méo trên khung 9:16. */
+export function bienDoiNhom(goc: Lop[], cx: number, cy: number, k: number, doXoay: number, rong: number, cao: number): Record<string, Partial<Lop>> {
+  const r = (doXoay * Math.PI) / 180, cos = Math.cos(r), sin = Math.sin(r), lam = (v: number, n = 3) => Math.round(v * 10 ** n) / 10 ** n;
+  const ra: Record<string, Partial<Lop>> = {};
+  for (const l of goc) {
+    const dx = (l.x - cx) * rong * k, dy = (l.y - cy) * cao * k;
+    let xo = Math.round(l.xoay + doXoay); if (xo > 180) xo -= 360; if (xo < -180) xo += 360;
+    ra[l.id] = { x: lam(cx + (dx * cos - dy * sin) / rong), y: lam(cy + (dx * sin + dy * cos) / cao), xoay: xo,
+      ...(k !== 1 ? { w: lam(Math.max(0.01, l.w * k)), ...(l.loai === 'hinh' ? { h: lam(Math.max(0.005, l.h * k)) } : {}), ...(l.loai === 'chu' && l.co ? { co: lam(Math.min(0.4, l.co * k), 4) } : {}) } : {}) };
+  }
+  return ra;
+}
 /** Tên hiển thị của lớp (nhãn làn, bảng thuộc tính): tên đặt tay, không thì dòng chữ đầu / loại. */
 export const tenLop = (l: Lop): string => l.ten || (l.loai === 'hieu_ung' ? HIEU_UNG.find((h) => h.key === l.hu)?.ten ?? 'Hiệu ứng' : l.loai === 'chu' ? (l.chu ?? '').split('\n')[0]!.slice(0, 24) || 'Chữ' : l.loai === 'anh' ? 'Ảnh' : 'Hình');
 const NEN: Omit<Lop, 'id' | 'loai' | 'tu' | 'den'> = { x: 0.5, y: 0.5, w: 0.6, h: 0.1, xoay: 0, mo: 1, vao: 'mo', ra: 'mo' };

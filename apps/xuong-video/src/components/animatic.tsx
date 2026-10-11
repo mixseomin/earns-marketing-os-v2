@@ -52,7 +52,7 @@ export function Animatic({ canh, tiLe, ngonNgu, onClose, qc, lop = [] }: { canh:
         <div style={{ position: 'absolute', left: 0, right: 0, top: 0, padding: '8px 12px', background: 'linear-gradient(rgba(0,0,0,.6), transparent)', color: '#fff', fontSize: 12 }}>
           #{c.thu_tu} {c.canh} · {giayPhat(c)}s · {vid ? (c.video_cuoi_url ? 'bản cuối' : 'nháp') : 'keyframe'}
         </div>
-        {(() => { const r = typeof window === 'undefined' ? 360 : (doc916 ? window.innerHeight * 0.78 * 9 / 16 : Math.min(window.innerWidth * 0.92, 1200)); return <LopXem lop={lop} t={daQua} rong={r} cao={doc916 ? (r * 16) / 9 : (r * 9) / 16} chonId={null} onChon={() => {}} onDoi={() => {}} />; })()}
+        {(() => { const r = typeof window === 'undefined' ? 360 : (doc916 ? window.innerHeight * 0.78 * 9 / 16 : Math.min(window.innerWidth * 0.92, 1200)); return <LopXem lop={lop} t={daQua} rong={r} cao={doc916 ? (r * 16) / 9 : (r * 9) / 16} chonIds={[]} onChon={() => {}} onDoi={() => {}} />; })()}
         {c.chu_man && <ChuManXem chu={c.chu_man} giay={t / 1000} rong={typeof window === 'undefined' ? 360 : (doc916 ? window.innerHeight * 0.78 * 9 / 16 : Math.min(window.innerWidth * 0.92, 1200))} qc={qc} kieu={c.kieu_chu} />}
       </div>
       {/* Trên hình CHỈ có chữ màn (thứ bản xuất vẽ thật); lời thoại ghi bên ngoài khung, chỉ lời — không tên, không diễn xuất (#1229, #1231). */}

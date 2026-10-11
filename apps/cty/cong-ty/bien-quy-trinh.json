@@ -97,5 +97,9 @@
   "cho_phep": [
    "ha"
   ]
+ },
+ "phuc_khao.chi_vong_dau": {
+  "muc": 2,
+  "kieu": "bool"
  }
 }

@@ -103,7 +103,8 @@ export async function motLuot(viec, ghi = true, o = {}) {
         if (qt.khoa_tieu_chi && s?.ok === false && !(Array.isArray(s.truot) && s.truot.length)) { s = { ...s, ok: true, ly_do: `Bác mà không chỉ ra tiêu chí trượt → không tính (khoá tiêu chí). ${s.ly_do ?? ''}` }; bSoat.bi_gat = 'khoa_tieu_chi'; }
         // PHÚC KHẢO (11/10/2026 — "Kỳ bác mà Kỳ sai thì sao"): người ngoài (Hà, mô hình khác) chấm lại LỜI BÁC theo đúng tiêu chí.
         // Bác sai → gạt (người làm không bị trừ, người kiểm bị trừ Tinh mắt); bác đúng → giữ (người kiểm được cộng). ti_le = phần lời bác đem phúc khảo.
-        const pkNs = (qt.phuc_khao?.ti_le ?? 0) > 0 && s?.ok === false ? N(qt.nguoi.phuc_khao ?? 'ha') : null;
+        // chi_vong_dau: chỉ phúc khảo lời bác ĐẦU (vòng sau đã có bài sửa theo lời bác — thử 11/10: phúc khảo mọi vòng tốn gấp 5).
+        const pkNs = (qt.phuc_khao?.ti_le ?? 0) > 0 && s?.ok === false && !(qt.phuc_khao.chi_vong_dau && lai) ? N(qt.nguoi.phuc_khao ?? 'ha') : null;
         if (pkNs && pkNs.id !== kiemNs.id && Math.random() < qt.phuc_khao.ti_le) {
           const pk = json(await goi(pkNs, `PHÚC KHẢO một lời bác — chấm lại xem NGƯỜI KIỂM bác có đúng không, chỉ theo các tiêu chí đã đánh số.\nViệc: ${giao.viec}\nTiêu chí:\n${tieuChi}\nKết quả nộp:\n${lam.ket_qua}\nNgười làm khai bằng chứng: ${lam.bang_chung}\nNgười kiểm (${kiemNs.ten}) bác: ${s.ly_do ?? ''}${Array.isArray(s.truot) ? ` (tiêu chí trượt: ${s.truot.join(', ')})` : ''}${nk.do_may.length ? `\nMáy đo các tiêu chí đếm được: ${JSON.stringify(nk.do_may.at(-1).kq.map((x) => ({ loai: x.loai, dat: x.dat })))}` : ''}\nTự đếm/kiểm từng tiêu chí người kiểm nêu. Lời bác đúng nếu có ít nhất một tiêu chí thật sự trượt. JSON {"bac_dung":true|false,"ly_do":"…"}`, `${so()} phúc khảo`, nk, { tu: kiemNs.id }));
           bSoat.phuc_khao = pk?.bac_dung === false ? 'gat' : pk?.bac_dung === true ? 'giu' : 'khong_ro';
@@ -215,6 +216,8 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('ca.m
   assert(nk.ket.trang_thai_viec === 'submitted' && nk.ket.vong === 0 && nk.buoc.some((b) => /phúc khảo/.test(b.buoc) && b.id === 'ha') && nk.buoc.find((b) => /soát/.test(b.buoc)).bi_gat === 'phuc_khao', `phúc khảo gạt lời bác sai → nộp, không làm lại (${ten(nk)})`, nk.buoc.map((b) => [b.buoc, b.bi_gat]));
   nk = await chay({ pk: 'giu' }, { phuc_khao: { ti_le: 1 } });
   assert(nk.ket.vong === 1 && nk.buoc.find((b) => /soát/.test(b.buoc)).phuc_khao === 'giu' && !nk.buoc.find((b) => /soát/.test(b.buoc)).bi_gat, `phúc khảo giữ lời bác đúng → làm lại (${ten(nk)})`, nk.buoc.map((b) => [b.buoc, b.phuc_khao]));
+  nk = await chay({ kyLuonBac: true, pk: 'giu' }, { so_vong_lam_lai: 2, phuc_khao: { ti_le: 1, chi_vong_dau: true } });
+  assert(nk.buoc.filter((b) => /phúc khảo/.test(b.buoc)).length === 1 && nk.buoc.filter((b) => /soát/.test(b.buoc)).length === 3, `chỉ vòng đầu → 1 lần phúc khảo dù 3 lần soát (${ten(nk)})`, ten(nk));
   nk = await chay({}, { phuc_khao: { ti_le: 0 } });
   assert(!nk.buoc.some((b) => /phúc khảo/.test(b.buoc)), 'tỉ lệ 0 → không phúc khảo (không tốn)', ten(nk));
   // tính cách gốc vào lời dặn; ghi đè chỉ cho riêng lượt (chạy so sánh) — Lộc khai Cẩn thận 5 (nấc giữa), ép 9 → nấc cao

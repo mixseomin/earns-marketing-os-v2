@@ -29,7 +29,7 @@ type DeXuat = { id: string; ts: string; tu_ban: number; ban_moi?: number; muc: n
 export const NHAN_KHOA: Record<string, string> = { 'tu_hop.ty_le_dat_duoi': 'Tự họp khi đạt dưới', 'tu_hop.lam_lai_lien_tiep': 'Tự họp sau số lượt chưa đạt', 'tu_hop.cach_toi_thieu_luot': 'Cách buổi họp trước (lượt)', 'tu_hop.bat': 'Trưởng phòng tự họp',
   so_vong_lam_lai: 'Số lần làm lại tối đa', hoi_lai_khi_thieu_du_kien: 'Thiếu dữ kiện / mâu thuẫn thì hỏi lại', may_do: 'Máy đếm tiêu chí đo được',
   khoa_tieu_chi: 'Người kiểm chỉ bác theo tiêu chí đã giao', het_vong: 'Hết vòng mà chưa đạt', bao_cao_do_may: 'Báo cáo do máy dựng',
-  'phuc_khao.ti_le': 'Phần lời bác đem phúc khảo', 'nguoi.phuc_khao': 'Người phúc khảo', 'nguoi.trong_tai': 'Trọng tài', 'nguoi.kiem': 'Người kiểm', 'nguoi.lam': 'Người làm', 'nguoi.giao': 'Người giao', 'nguoi.bao_cao': 'Người báo cáo',
+  'phuc_khao.ti_le': 'Phần lời bác đem phúc khảo', 'phuc_khao.chi_vong_dau': 'Chỉ phúc khảo lời bác đầu', 'nguoi.phuc_khao': 'Người phúc khảo', 'nguoi.trong_tai': 'Trọng tài', 'nguoi.kiem': 'Người kiểm', 'nguoi.lam': 'Người làm', 'nguoi.giao': 'Người giao', 'nguoi.bao_cao': 'Người báo cáo',
 };
 export const nhanKhoa = (k: string) => NHAN_KHOA[k] ?? (k.startsWith('loi_nhac.') ? `Lời nhắc bước "${k.slice(9)}"` : k);
 const HET_VONG: Record<string, string> = { revision: 'dừng ở "phải làm lại" — không ai quyết', ket: 'kẹt, hỏi Giám đốc', trong_tai: 'trọng tài phân xử', nop_kem_ghi_chu: 'nộp kèm ghi chú' };

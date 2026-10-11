@@ -45,10 +45,11 @@ export function Ngan({ onClose, nho, tieuDe, nut, dau, children }: { onClose: ()
   const z = tang ? 51 + tang * 2 : nho ? 53 : 51;
   return <><div className={`xv-backdrop${nho ? ' nho' : ''}`} style={tang ? { zIndex: 50 + tang * 2, background: 'rgba(0,0,0,.3)' } : undefined} onClick={onClose} />
     <div ref={ref} className={`xv-drawer${nho ? ' nho' : ''}`} style={{ width: rong, ...(tang ? { zIndex: z, boxShadow: '-12px 0 30px rgba(0,0,0,.45)' } : {}) }}>{(tieuDe != null || dau != null) && <div className="xv-dau">
-      {tieuDe != null && <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontSize: nho ? 15 : 17, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tieuDe}</h2>
-        {nut}
-        <button type="button" className="xv-btn" onClick={onClose}>Đóng</button>
+      {/* Hàng tiêu đề KHÔNG xuống dòng: tên giữ tối thiểu 140px (trước co còn "M…"), cụm nút tự xuống dòng TRONG cụm, ✕ luôn ở góc phải (#1277). */}
+      {tieuDe != null && <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+        <h2 title={typeof tieuDe === 'string' ? tieuDe : undefined} style={{ margin: 0, fontSize: nho ? 15 : 17, flex: '1 1 140px', minWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: '26px' }}>{tieuDe}</h2>
+        {nut && <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0 }}>{nut}</div>}
+        <button type="button" className="xv-btn" onClick={onClose} title="Đóng (Esc)" style={{ flexShrink: 0, padding: '0 8px', opacity: 0.75 }}>✕</button>
       </div>}
       {dau != null && <div style={{ marginTop: tieuDe != null ? 8 : 0 }}>{dau}</div>}
     </div>}{children}</div>

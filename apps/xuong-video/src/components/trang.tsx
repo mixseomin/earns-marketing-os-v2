@@ -10,7 +10,7 @@ import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { dsPhim, docPhim, taoPhim, taoPhimMau, xoaPhim, taoTap, dsMoHinh, dsThungRac, khoiPhuc, docHoanTac, hoanTac, type MoHinhChon, type PhimDayDu } from '@/lib/actions';
 import type { MucHoanTac } from '@/lib/xuong-video/hoan-tac';
 import { LOAI_PHIM, docKinhThanh, giaAnhCents, giaVideoCents, tien, gioVN, type Phim, type Job, type LoaiPhim } from '@/lib/xuong-video/kieu';
-import { Khoa, TabPhim, TAB_PHIM, O, Pill, Seg, Nut, Xoa, Loi, mono } from './ui';
+import { Khoa, TabPhim, TAB_PHIM, O, Pill, Seg, Nut, Xoa, Loi, Menu, MucMenu, mono } from './ui';
 import { MoHinhCtx } from './mo-hinh-ui';
 import { KinhThanhForm } from './kinh-thanh';
 import { NhanVatSection } from './nhan-vat';
@@ -119,10 +119,14 @@ function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onCl
       <Pill color="var(--fg-3)">{LOAI_PHIM.find((l) => l.key === phim.loai)?.label ?? phim.loai}</Pill>
       <span style={mono} data-ngu-canh={`phim #${phim.id} ${phim.ten}`}>#{phim.id}</span>
       <ThongKe tk={d.thongKe} tongTien={d.tongTien} soAnchor={nhanVat.length} soTap={tap.length} />
-      <button type="button" className="xv-btn" onClick={() => moNgan({ loai: 'thu-vien', tl: docKinhThanh(phim.kinh_thanh).the_loai })} title="Cỡ cảnh, góc, chuyển động máy, ống kính, ánh sáng, màu, chuyển cảnh, âm thanh, nhạc — lọc sẵn theo thể loại của phim">🎬 Thư viện</button>
       <HoanTac phimId={phim.id} onDone={tai} />
       <ThungRac phimId={phim.id} onKhoiPhuc={tai} />
-      <Xoa nhan="cả phim (tập + cảnh)" onXoa={onXoa} />
+      {/* Ít dùng / nguy hiểm → sau ⋯ (YDNI, #1277). */}
+      <Menu>
+        <MucMenu onClick={() => moNgan({ loai: 'thu-vien', tl: docKinhThanh(phim.kinh_thanh).the_loai })}>🎬 Thư viện điện ảnh</MucMenu>
+        <MucMenu onClick={() => moNgan({ loai: 'kho' })}>📦 Kho tài sản</MucMenu>
+        <Xoa nhan="cả phim (tập + cảnh)" onXoa={onXoa} />
+      </Menu>
     </>} dau={
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
         {TAB_PHIM.map((t) => <button key={t.key} type="button" className={`xv-btn${tab === t.key ? ' chinh' : ''}`} title={t.mo} onClick={() => setTab(t.key)}>{t.label}</button>)}
@@ -195,7 +199,7 @@ function HoanTac({ phimId, onDone }: { phimId: number; onDone: () => Promise<voi
   return (
     <>
       <button type="button" className="xv-btn" disabled={!m || dang} onClick={() => void lam()} title={m ? `Hoàn tác: ${m.mo_ta} (${gioVN(m.luc, { chiGio: true })})` : 'Chưa có thao tác nào để hoàn tác'}>
-        {dang ? '…' : `↶ Hoàn tác${m ? `: ${m.mo_ta.length > 34 ? `${m.mo_ta.slice(0, 32)}…` : m.mo_ta}` : ''}`}
+        {dang ? '…' : '↶'}
       </button>
       {loi && <span style={{ ...mono, color: 'var(--red)' }}>{loi}</span>}
     </>
@@ -212,7 +216,7 @@ function ThungRac({ phimId, onKhoiPhuc }: { phimId: number | null; onKhoiPhuc: (
   useEffect(() => { void nap(); }, [nap, mo]);
   return (
     <>
-      <button type="button" className="xv-btn" onClick={() => setMo(true)} title="Thứ đã bỏ — khôi phục được">🗑 Thùng rác{ds?.length ? ` (${ds.length})` : ''}</button>
+      <button type="button" className="xv-btn" onClick={() => setMo(true)} title={`Thùng rác${ds?.length ? ` (${ds.length})` : ''} — thứ đã bỏ, khôi phục được`}>🗑{ds?.length ? ` ${ds.length}` : ''}</button>
       {mo && (
         <Ngan nho onClose={() => setMo(false)} tieuDe={`🗑 Thùng rác${phimId == null ? ' · phim đã xoá' : ''}`}>
           <div style={{ ...mono, marginBottom: 8 }}>Bỏ vào đây = gỡ khỏi màn, dữ liệu + ảnh giữ nguyên. Khôi phục đưa về đúng chỗ cũ (cùng id, cùng sổ chi phí).</div>
@@ -245,15 +249,9 @@ function ThongKe({ tk, tongTien, soAnchor, soTap }: { tk: PhimDayDu['thongKe']; 
   );
   return (
     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-      {chip('💰', tien(tongTien), `Tổng đã tốn ${tien(tongTien)}\nảnh ${tien(tk.tienAnh)} · video ${tien(tk.tienVideo)} · chữ (Claude) ${tien(tk.tienChu)}\n${tk.soLanSinh} lần sinh thành công`, 'var(--amber)')}
-      {chip('🎯', tien(tk.tienDung), `Chi phí thực tế nếu không phải lặp lại: ${tien(tk.tienDung)}\nchỉ tính lượt sinh ra thứ đang nằm trong phim (keyframe, clip, giọng, nhạc, ảnh anchor đang dùng) + lượt Claude mới nhất mỗi việc\nmất vì sinh lại / bỏ / lỗi: ${tien(Math.max(0, tongTien - tk.tienDung))}${tongTien > 0 ? ` (${Math.round((Math.max(0, tongTien - tk.tienDung) / tongTien) * 100)}%)` : ''} — tổng 💰 chỉ đếm lượt còn tính vào phim, nên hai số không cộng trừ thẳng khi đã đặt lại sổ`, 'var(--lime)')}
-      {chip('📺', `${soTap} tập`, `${soTap} tập`)}
-      {chip('🎬', `${tk.soCanh} cảnh · ${phut}`, `${tk.soCanh} cảnh, tổng ${tk.giay} giây`)}
-      {chip('🖼', `${tk.coKf}/${tk.soCanh}`, `${tk.coKf}/${tk.soCanh} cảnh có keyframe · ${tk.duyet} cảnh đã duyệt chờ video`)}
-      {chip('🎞', `${tk.nhap}/${tk.soCanh}`, `${tk.nhap}/${tk.soCanh} cảnh có video nháp`)}
-      {chip('✅', `${tk.cuoi}/${tk.soCanh}`, `${tk.cuoi}/${tk.soCanh} cảnh có bản cuối`, tk.cuoi && tk.cuoi === tk.soCanh ? 'var(--lime)' : undefined)}
-      {chip('👤', `${soAnchor} · ${tk.anhGoc} ảnh`, `${soAnchor} anchor · ${tk.anhGoc} ảnh gốc`)}
-      {chip('🎭', `${tk.btCoAnh}/${tk.bienThe}`, `${tk.bienThe} biến thể, ${tk.btCoAnh} đã có ảnh`)}
+      {/* Hai chip (#1277): tiền (đã tốn · thực tế nếu không lặp lại) và tiến độ — chi tiết trong tooltip. */}
+      {chip('💰', <>{tien(tongTien)} · 🎯 {tien(tk.tienDung)}</>, `Đã tốn ${tien(tongTien)} — ảnh ${tien(tk.tienAnh)} · video ${tien(tk.tienVideo)} · chữ (Claude) ${tien(tk.tienChu)} · ${tk.soLanSinh} lần sinh thành công\n🎯 Chi phí thực tế nếu không phải lặp lại: ${tien(tk.tienDung)} — chỉ lượt sinh ra thứ đang nằm trong phim + lượt Claude mới nhất mỗi việc\nmất vì sinh lại / bỏ / lỗi: ${tien(Math.max(0, tongTien - tk.tienDung))}`, 'var(--amber)')}
+      {chip('🎬', `${tk.soCanh} cảnh · ${phut} · 🎞 ${tk.nhap}/${tk.soCanh}`, `${soTap} tập · ${tk.soCanh} cảnh, ${tk.giay} giây\n🖼 keyframe ${tk.coKf}/${tk.soCanh} (đã duyệt ${tk.duyet}) · 🎞 video nháp ${tk.nhap}/${tk.soCanh} · ✅ bản cuối ${tk.cuoi}/${tk.soCanh}\n👤 ${soAnchor} anchor · ${tk.anhGoc} ảnh gốc · 🎭 biến thể ${tk.btCoAnh}/${tk.bienThe} có ảnh`)}
     </div>
   );
 }

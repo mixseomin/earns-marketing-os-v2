@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as P
 import { luuLop, taiAnhLen } from '@/lib/actions';
 import { FONT_CHU, type Lop } from '@/lib/xuong-video/kieu';
 import { lopHien, hieuUngTai, lopMoi, tenLop, MAU_LOP } from '@/lib/xuong-video/lop';
-import { Menu, MucMenu, mono } from './ui';
+import { Menu, MucMenu, Xoa, mono } from './ui';
 
 const ICON_LOAI: Record<Lop['loai'], string> = { chu: 'T', anh: '🖼', hinh: '◼' };
 const fontCss = (f?: string) => (!f || f === 'DejaVu Sans' ? '"DejaVu Sans", system-ui, sans-serif' : `"${f}", "Montserrat", system-ui, sans-serif`);
@@ -121,13 +121,13 @@ export function LopBang({ l, t, onDoi, onXoa, onNhanBan, onLenXuong, onDong }: {
         {k === 'nen' && l.nen && <button type="button" className="xv-btn" style={{ padding: '0 4px' }} onClick={() => onDoi({ nen: undefined })} title="Bỏ nền">✕</button>}</span>
     </label>
   );
-  const nut = (chu: string, title: string, f: () => void, nguy?: boolean) => <button type="button" className={`xv-btn${nguy ? ' nguy' : ''}`} style={{ padding: '0 5px', lineHeight: '18px' }} title={title} onClick={f}>{chu}</button>;
+  const nut = (chu: string, title: string, f: () => void) => <button type="button" className="xv-btn" style={{ padding: '0 5px', lineHeight: '18px' }} title={title} onClick={f}>{chu}</button>;
   return (
     <div style={{ display: 'grid', gap: 6, textAlign: 'left' }}
       title="Kéo lớp trên khung để dời · kéo ô xanh ở góc để đổi cỡ · kéo khối trên làn 🧩 để đổi giờ. Tự lưu, ↶ Hoàn tác ở đầu trang.">
       <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
         <b style={{ fontSize: 12, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ICON_LOAI[l.loai]} {tenLop(l)}</b>
-        {nut('⧉', 'Nhân bản', onNhanBan)}{nut(l.an ? '🙈' : '👁', l.an ? 'Hiện lại' : 'Ẩn (không xuất)', () => onDoi({ an: !l.an }))}{nut('🗑', 'Bỏ lớp (↶ Hoàn tác được)', onXoa, true)}{nut('✕', 'Đóng', onDong)}
+        {nut('⧉', 'Nhân bản', onNhanBan)}{nut(l.an ? '🙈' : '👁', l.an ? 'Hiện lại' : 'Ẩn (không xuất)', () => onDoi({ an: !l.an }))}<Xoa gon nhan="lớp" noiKhoiPhuc="↶ Hoàn tác" onXoa={onXoa} />{nut('✕', 'Đóng', onDong)}
       </div>
       {l.loai === 'chu' && <textarea className="xv-in" rows={2} value={l.chu ?? ''} onChange={(e) => onDoi({ chu: e.target.value })} placeholder="chữ (xuống dòng = dòng mới)" />}
       {l.loai === 'chu' && (

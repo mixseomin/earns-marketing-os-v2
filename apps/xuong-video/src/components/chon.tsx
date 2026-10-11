@@ -7,10 +7,14 @@ import { mono } from './ui';
 
 
 export type LuaChon = { value: string; label: string; nhom?: string; phu?: string; title?: string };
-export function Chon({ value, onChange, options, multi, values, onValues, placeholder, minWidth = 180, title, nho }: {
+export function Chon({ value, onChange, options, multi, values, onValues, placeholder, minWidth = 180, title, nho, xacNhanBo }: {
   value?: string; onChange?: (v: string) => void; options: LuaChon[]; multi?: boolean; values?: string[]; onValues?: (v: string[]) => void;
   placeholder?: string; minWidth?: number; title?: string; nho?: boolean;
+  /** multi: bỏ tick một mục phải bấm HAI nhịp (lần 1 cảnh báo tại chỗ, lần 2 trong 4s mới bỏ) — bỏ đối tượng khỏi shot (#1274). */
+  xacNhanBo?: boolean;
 }) {
+  const [hoiBo, setHoiBo] = useState<string | null>(null);
+  useEffect(() => { if (!hoiBo) return; const t = setTimeout(() => setHoiBo(null), 4000); return () => clearTimeout(t); }, [hoiBo]);
   const [mo, setMo] = useState(false);
   const [re, setRe] = useState<LuaChon | null>(null);
   const [q, setQ] = useState('');
@@ -43,11 +47,11 @@ export function Chon({ value, onChange, options, multi, values, onValues, placeh
                 {loc.filter((o) => (o.nhom ?? '') === g).map((o) => {
                   const on = multi ? values?.includes(o.value) : o.value === value;
                   return (
-                    <div key={o.value} title={o.title} onClick={() => { if (multi) { const v = values ?? []; onValues?.(on ? v.filter((x) => x !== o.value) : [...v, o.value]); } else { onChange?.(o.value); setMo(false); } }}
+                    <div key={o.value} title={o.title} onClick={() => { if (multi) { const v = values ?? []; if (on && xacNhanBo && hoiBo !== o.value) { setHoiBo(o.value); return; } setHoiBo(null); onValues?.(on ? v.filter((x) => x !== o.value) : [...v, o.value]); } else { onChange?.(o.value); setMo(false); } }}
                       style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '5px 8px', borderRadius: 5, cursor: 'pointer', background: on ? 'var(--bg-2)' : undefined }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-2)'; setRe(o); }} onMouseLeave={(e) => { e.currentTarget.style.background = on ? 'var(--bg-2)' : ''; }}>
                       {multi && <input type="checkbox" readOnly checked={!!on} />}
-                      <span style={{ flex: 1, fontSize: 12, color: on ? 'var(--cyan)' : 'var(--fg-1)' }}>{o.label}</span>
+                      <span style={{ flex: 1, fontSize: 12, color: hoiBo === o.value ? 'var(--red)' : on ? 'var(--cyan)' : 'var(--fg-1)' }}>{hoiBo === o.value ? `⚠ bấm lại để bỏ ${o.label}` : o.label}</span>
                       {o.phu && <span style={{ ...mono, color: 'var(--amber)', whiteSpace: 'nowrap' }}>{o.phu}</span>}
                     </div>
                   );

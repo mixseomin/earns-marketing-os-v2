@@ -18,7 +18,7 @@ import { mono } from './ui';
 import { lopMoi, idLop, tenLop } from '@/lib/xuong-video/lop';
 import { useLop, LopXem, LopCongCu, LopNguyenLieu, LopBang, KhoiLop } from './lop-ui';
 import { moNgan } from './ngan-chung';
-import { docLT, ghiLT } from '@/lib/luu-tru';
+import { useKichThuoc, TayKeo } from './keo';
 
 const MAU_NV = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#4ade80', '#fb923c', '#60a5fa'];
 // Cột nhãn track: kéo mép phải để nới (#1240) — nhớ theo trình duyệt.
@@ -59,17 +59,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   // Độ phóng thước nằm trong URL (?tlz=) để F5/chia sẻ giữ nguyên (#1255) — luật chung: mọi trạng thái đổi cách nhìn đều ở URL.
   const [zoom, setZoom] = useState(() => { if (typeof window === 'undefined') return 1; const v = Number(new URLSearchParams(window.location.search).get('tlz')); return v >= 1 && v <= 6 ? v : 1; });
   useEffect(() => { const u = new URL(window.location.href); if (zoom === 1) u.searchParams.delete('tlz'); else u.searchParams.set('tlz', String(zoom)); window.history.replaceState(window.history.state, '', u.toString()); }, [zoom]);
-  const [nhanW, setNhanW] = useState(() => { const v = Number(docLT(KHOA_NHAN_W)); return v >= 80 && v <= 400 ? v : NHAN_W_MAC_DINH; });
-  // Mép phải của MỌI ô nhãn (cả thước) đều kéo được → bám chỗ nào cũng nới cả cột.
-  const keoNhan = (e: PE<HTMLDivElement>) => {
-    e.preventDefault(); e.stopPropagation();
-    const el = e.currentTarget; el.setPointerCapture(e.pointerId);
-    const x0 = e.clientX, w0 = nhanW; let w = w0;
-    const di = (ev: PointerEvent) => { w = Math.max(80, Math.min(400, w0 + ev.clientX - x0)); setNhanW(w); };
-    const xong = () => { el.removeEventListener('pointermove', di); el.removeEventListener('pointerup', xong); el.removeEventListener('pointercancel', xong); ghiLT(KHOA_NHAN_W, String(w)); };
-    el.addEventListener('pointermove', di); el.addEventListener('pointerup', xong); el.addEventListener('pointercancel', xong);
-  };
-  const tayNhan = <div onPointerDown={keoNhan} onDoubleClick={() => { setNhanW(NHAN_W_MAC_DINH); ghiLT(KHOA_NHAN_W, null); }} title="Kéo để nới cột nhãn · nhấp đúp = mặc định" className="xv-keo-cot" />;
+  // Cột nhãn, panel trái/phải, chiều cao hàng panel — cùng một cơ chế kéo (keo.tsx, #1276).
+  const cotNhan = useKichThuoc(KHOA_NHAN_W, NHAN_W_MAC_DINH, 80, 400);
+  const nhanW = cotNhan.v;
+  const tayNhan = <div onPointerDown={cotNhan.keo('x')} onDoubleClick={cotNhan.veMacDinh} title="Kéo để nới cột nhãn · nhấp đúp = mặc định" className="xv-keo-cot" />;
 
   const [rong, setRong] = useState(800);
   const vungRef = useRef<HTMLDivElement>(null);
@@ -212,7 +205,13 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const { lop, dat: datLop, doi: doiLop, loi: loiLop, luu: luuLop } = useLop(tap.id, tap.lop ?? []);
   const [chonLop, setChonLop] = useState<string | null>(null);
   const lopChon = lop.find((l) => l.id === chonLop) ?? null;
-  const rongXem = doc916 ? 270 : 560, caoXem = Math.round(doc916 ? (270 * 16) / 9 : (560 * 9) / 16);
+  const panTrai = useKichThuoc('xv-tl-trai', 200, 140, 440);
+  const panPhai = useKichThuoc('xv-tl-phai', 280, 220, 560);
+  const hangPan = useKichThuoc(`xv-tl-hang-${doc916 ? 'doc' : 'ngang'}`, doc916 ? 524 : 360, 260, 1000);
+  const caoXem = hangPan.v - 44, rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9);
+  const [dangThaVao, setDangThaVao] = useState<string | null>(null);
+  /** Thả lớp `tu` vào chỗ lớp `den` (mảng: cuối = trên cùng; làn hiển thị đảo ngược như After Effects). */
+  const doiThuTuLop = (tu: string, den: string) => { if (!tu || tu === den) return; datLop((ds) => { const l = ds.find((x) => x.id === tu); if (!l) return ds; const con = ds.filter((x) => x.id !== tu); const i = con.findIndex((x) => x.id === den); if (i < 0) return ds; const j = ds.findIndex((x) => x.id === tu) < ds.findIndex((x) => x.id === den) ? i + 1 : i; return [...con.slice(0, j), l, ...con.slice(j)]; }); };
   const themLop = (ds: Lop[]) => { datLop((x) => [...x, ...ds]); setChonLop(ds[ds.length - 1]?.id ?? null); setChay(false); };
   const anhSan = [...(qc?.logo_url ? [{ url: qc.logo_url, ten: 'Logo' }] : []), ...(qc?.anh ?? []).map((u, i) => ({ url: u, ten: `Ảnh sản phẩm ${i + 1}` }))];
   const vid = c ? c.video_cuoi_url || c.video_url : null;
@@ -222,9 +221,14 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const W = tong * pps;
 
   // Nút điều khiển của track nằm NGAY ở nhãn track đó (#1230 YDNI: nút cho khối nào thì ở cạnh khối đó, không gom lên trên cùng).
-  const track = (nhan: string, mo: string, noiDung: ReactNode, cao = 26, nut?: ReactNode) => (
-    <div style={{ display: 'flex', alignItems: 'stretch', height: cao, marginTop: 3 }}>
-      <div data-goi-y={`${nhan}\n${mo}`} style={{ width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-1)', ...mono, display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, paddingRight: 4 }}>
+  // keoLop: id lớp phủ — nhãn làn kéo thả được để đổi thứ tự hiển thị (#1276).
+  const track = (nhan: string, mo: string, noiDung: ReactNode, cao = 26, nut?: ReactNode, keoLop?: string) => (
+    <div style={{ display: 'flex', alignItems: 'stretch', height: cao, marginTop: 3, outline: keoLop && dangThaVao === keoLop ? '1px solid var(--cyan)' : undefined }}>
+      <div data-goi-y={`${nhan}\n${mo}`}
+        {...(keoLop ? { draggable: true, onDragStart: (e: React.DragEvent) => { e.dataTransfer.setData('text/xv-lop', keoLop); e.dataTransfer.effectAllowed = 'move'; },
+          onDragOver: (e: React.DragEvent) => { if (e.dataTransfer.types.includes('text/xv-lop')) { e.preventDefault(); setDangThaVao(keoLop); } },
+          onDragLeave: () => setDangThaVao(null), onDrop: (e: React.DragEvent) => { e.preventDefault(); setDangThaVao(null); doiThuTuLop(e.dataTransfer.getData('text/xv-lop'), keoLop); } } : {})}
+        style={{ cursor: keoLop ? 'grab' : undefined,  width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-1)', ...mono, display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, paddingRight: 4 }}>
         <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nhan}</span>{nut}{tayNhan}
       </div>
       <div style={{ position: 'relative', width: W, flexShrink: 0 }}>{noiDung}</div>
@@ -290,8 +294,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
         <span style={{ flex: 1 }} />
         {loiLop ? <span className="xv-loi">{loiLop}</span> : <span style={{ ...mono, minWidth: 70, textAlign: 'right' }}>{luuLop === 'dang' ? 'đang lưu…' : luuLop === 'xong' ? '✓ đã lưu' : ''}</span>}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '200px minmax(0, 1fr) 280px', height: caoXem + 44 }}>
-        <aside style={{ borderRight: '1px solid var(--line)', overflowY: 'auto', padding: 8, display: 'grid', gap: 6, alignContent: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `${panTrai.v}px 4px minmax(0, 1fr) 4px ${panPhai.v}px`, height: hangPan.v }}>
+        <aside style={{ overflowY: 'auto', padding: 8, display: 'grid', gap: 6, alignContent: 'start' }}>
           <div style={{ ...mono, letterSpacing: 0.5 }}>DỰ ÁN</div>
           {c && <div style={{ fontSize: 12 }}><b>#{c.thu_tu} {c.canh}</b></div>}
           {c && <div style={mono}>phát {dur(c)}s{dur(c) !== (c.thoi_luong_s || 4) ? ` / clip ${c.thoi_luong_s || 4}s` : ''} · {vid ? (c.video_cuoi_url ? 'bản cuối' : 'nháp') : c.keyframe_url ? 'keyframe' : 'chưa có hình'}{c.nhanh ? ` · hook ${c.nhanh}` : ''}</div>}
@@ -302,6 +306,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           <LopNguyenLieu t={t} anh={anhSan} onThem={themLop} />
           {c && <button type="button" className="xv-lienket xv-mono" style={{ textAlign: 'left' }} onClick={() => moNgan({ loai: 'kho', dich: { canhId: c.id } })}>📦 Kho tài sản → clip / keyframe cho shot này</button>}
         </aside>
+        <TayKeo truc="x" onPointerDown={panTrai.keo('x')} onDoubleClick={panTrai.veMacDinh} />
         <main style={{ display: 'grid', placeItems: 'center', padding: 8, background: 'var(--bg-0, #0b0b0d)' }}>
           <div style={{ position: 'relative', width: rongXem, height: caoXem, overflow: 'hidden', borderRadius: 4, background: '#000' }} onPointerDown={(e) => { if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === 'VIDEO' || (e.target as HTMLElement).tagName === 'IMG') setChonLop(null); }}>
             {c && (vid ? <video ref={vidRef} key={vid} src={vid} playsInline preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -315,7 +320,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             {nhacPc && <audio ref={nhacPcRef} key={nhacPc} src={nhacPc} preload="auto" />}
           </div>
         </main>
-        <aside style={{ borderLeft: '1px solid var(--line)', overflowY: 'auto', padding: 8, display: 'grid', gap: 6, alignContent: 'start' }}>
+        <TayKeo truc="x" onPointerDown={panPhai.keo('x', -1)} onDoubleClick={panPhai.veMacDinh} />
+        <aside style={{ overflowY: 'auto', padding: 8, display: 'grid', gap: 6, alignContent: 'start' }}>
           <div style={{ ...mono, letterSpacing: 0.5 }}>THUỘC TÍNH</div>
           {lopChon ? <LopBang l={lopChon} t={t} onDoi={(p) => doiLop(lopChon.id, p)} onDong={() => setChonLop(null)}
             onXoa={() => { datLop((ds) => ds.filter((x) => x.id !== lopChon.id)); setChonLop(null); }}
@@ -333,6 +339,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
         </aside>
       </div>
 
+      <TayKeo truc="y" onPointerDown={hangPan.keo('y')} onDoubleClick={hangPan.veMacDinh} title="Kéo để đổi chiều cao khung hình · nhấp đúp = mặc định" />
       {/* Các track */}
       <div ref={vungRef} style={{ marginTop: 0, padding: '6px 10px 0', borderTop: '1px solid var(--line)', overflowX: 'auto', position: 'relative', paddingBottom: 4 }}>
         <div style={{ width: W + nhanW, position: 'relative' }}>
@@ -361,8 +368,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           }))}
 
           {/* Lớp phủ: mỗi lớp một làn (lớp sau nằm trên), kéo khối đổi giờ — bấm chọn để sửa ở bảng bên phải khung xem. */}
-          {lop.length ? [...lop].reverse().map((l) => track(`🧩 ${tenLop(l)}`, 'Lớp phủ — kéo thân để dời, kéo mép để đổi giờ vào/ra; bấm để sửa',
-              <KhoiLop l={l} pps={pps} chon={l.id === chonLop} onChon={() => setChonLop(l.id)} onDoi={(p) => doiLop(l.id, p)} />, 20))
+          {lop.length ? [...lop].reverse().map((l) => track(`⋮⋮ ${tenLop(l)}`, 'Lớp phủ — kéo thân để dời, kéo mép để đổi giờ vào/ra; bấm để sửa',
+              <KhoiLop l={l} pps={pps} chon={l.id === chonLop} onChon={() => setChonLop(l.id)} onDoi={(p) => doiLop(l.id, p)} />, 20, undefined, l.id))
             : track('🧩 Lớp phủ', 'Chữ, ảnh, hình khối tự do đè lên video', <button type="button" className="xv-lienket xv-mono" style={{ lineHeight: '20px', paddingLeft: 6 }} onClick={() => themLop([lopMoi('chu', t)])}>chưa có lớp — bấm để thêm lớp chữ ở giây {t.toFixed(1)}</button>, 20)}
           {track('🎬 Hình', 'Mỗi cảnh một clip, dài đúng số giây', canh.map((cc, i) => {
             const x = batDau[i]! * pps; const w = dur(cc) * pps; const anh = cc.keyframe_url;

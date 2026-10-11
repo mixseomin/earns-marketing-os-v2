@@ -41,10 +41,11 @@ export function Nut({ ly, ban, chinh, nguy, title, onClick, children, gia }: { l
 }
 
 /** Bỏ vào thùng rác hai nhịp: bấm lần một = cảnh báo, bấm lần hai trong 4s = chuyển vào thùng rác (khôi phục được, #1192). */
-export function Xoa({ nhan, onXoa, ban }: { nhan: string; onXoa: () => Promise<void>; ban?: boolean }) {
+/** noiKhoiPhuc: chỗ lấy lại sau khi bỏ (mặc định thùng rác; lớp phủ = ↶ Hoàn tác). gon: chỉ icon 🗑 nhỏ (bảng thuộc tính). */
+export function Xoa({ nhan, onXoa, ban, noiKhoiPhuc = 'nút 🗑 Thùng rác', gon }: { nhan: string; onXoa: () => Promise<void> | void; ban?: boolean; noiKhoiPhuc?: string; gon?: boolean }) {
   const [armed, setArmed] = useState(false);
   useEffect(() => { if (!armed) return; const t = setTimeout(() => setArmed(false), 4000); return () => clearTimeout(t); }, [armed]);
-  return <button type="button" className="xv-btn nguy" disabled={ban} title={`Chuyển ${nhan} vào thùng rác — khôi phục được ở nút 🗑 Thùng rác`} onClick={() => { if (armed) { setArmed(false); void onXoa(); } else setArmed(true); }}>{armed ? `⚠ bấm lại để bỏ ${nhan} vào thùng rác` : '🗑'}</button>;
+  return <button type="button" className="xv-btn nguy" disabled={ban} style={gon ? { padding: '0 5px', lineHeight: '18px' } : undefined} title={`Bỏ ${nhan} — lấy lại được ở ${noiKhoiPhuc}`} onClick={() => { if (armed) { setArmed(false); void onXoa(); } else setArmed(true); }}>{armed ? `⚠ bấm lại để bỏ ${nhan}` : '🗑'}</button>;
 }
 
 export function Loi({ children }: { children: ReactNode }) { return children ? <div className="xv-loi">{children}</div> : null; }

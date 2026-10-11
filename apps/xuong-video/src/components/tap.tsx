@@ -12,6 +12,7 @@ import { Khoa, TabPhim, KqChay, O, Nut, Loi, mono } from './ui';
 import { GiongNhanVat } from './nhan-vat';
 import { Animatic } from './animatic';
 import { CanhRow } from './canh';
+import { ChayChon } from './chay-chon';
 import { BaiDangKem } from './bai-dang';
 import { DichPhim } from './dich-phim';
 import { useNho } from './nho';
@@ -40,6 +41,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
   const banTach = banSet.has('tach');
   const [loi, setLoi] = useState('');
   const [animatic, setAnimatic] = useState(false);
+  const [moChon, setMoChon] = useState(false);
   // 3c xem dạng timeline (mặc định, kiểu CapCut) hoặc danh sách; nhớ theo trình duyệt.
   const [xem, setXem] = useNho<'timeline' | 'ds'>('xv-xem-3c', 'timeline', ['timeline', 'ds']);
   const [chonCanh, setChonCanh] = useState<number | null>(null);
@@ -150,18 +152,16 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
           <input type="checkbox" checked={tap.noi_khung} onChange={(e) => void chay('noi', async () => { await suaTap(tap.id, { noi_khung: e.target.checked }); })} /> Nối khung (khung cuối = keyframe cảnh sau)
         </label>
         <span style={{ flex: 1 }} />
-        <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || ((canh?.length ?? 0) === 0 && 'chưa có cảnh — bấm ✂ Tách cảnh trước') || (chuaKeyframe === 0 && 'mọi cảnh đã có keyframe') || (sanSang.length === 0 && `${kemThieu} cảnh còn thiếu thành phần (ảnh gốc/biến thể) — chuẩn bị ở mục 2`)} ban={banTach || ban('kf-all')}
-          title={`Sinh 1 keyframe cho mỗi cảnh đủ thành phần (${sanSang.length} cảnh ≈ ${tien(sanSang.length * giaAnhCents(kt.mo_hinh_anh))})`}
-          gia={sanSang.length * giaAnhCents(kt.mo_hinh_anh)} onClick={() => void chay('kf-all', async () => { for (const c of sanSang) { const r = await sinhKeyframe(c.id, 1); if (!r.ok) return r; } })}>
-          {ban('kf-all') ? '… đang sinh ảnh' : `🖼 Sinh keyframe ${sanSang.length} cảnh sẵn sàng${kemThieu ? ` (${kemThieu} cảnh còn thiếu thành phần)` : ''}`}
-        </Nut>
-        <Nut chinh ly={(!khoa.google && !khoa.fal && 'thiếu khoá video (GOOGLE_API_KEY/FAL_KEY)') || ((canh?.length ?? 0) === 0 && 'chưa có cảnh — bấm ✂ Tách cảnh trước') || (soDuyet === 0 && 'chưa có cảnh nào được duyệt keyframe')} ban={banTach || ban('vid-all')}
-          title={uoc ? `Veo: ${uoc.soCanhDuyet} cảnh · ${uoc.giayDuyet}s ≈ ${tien(uoc.videoTong)} — trừ vào khoá Google` : ''}
-          gia={uoc?.videoTong} onClick={() => void chay('vid-all', async () => { for (const c of (canh ?? []).filter((x) => x.trang_thai === 'duyet')) { const r = await sinhVideoCanh(c.id); if (!r.ok) return r; } })}>
-          {ban('vid-all') ? '… đang gửi Veo' : `🎬 Sinh video ${soDuyet} cảnh đã duyệt${uoc ? ` (≈ ${tien(uoc.videoTong)})` : ''}`}
-        </Nut>
+        {/* Sinh tốn tiền đi qua bảng chọn shot (chay-chon.tsx): thấy trước shot nào chưa chạy được / hệ quả nối khung, thoại — rồi mới bấm. */}
+        <button type="button" className={`xv-btn${moChon ? ' chinh' : ''}`} disabled={!canh?.length || banTach}
+          title={`Chọn shot để sinh keyframe hoặc video nháp — ${sanSang.length} shot sẵn sàng sinh keyframe${kemThieu ? `, ${kemThieu} còn thiếu thành phần` : ''}; ${soDuyet} shot đã duyệt chờ video${uoc ? ` (≈ ${tien(uoc.videoTong)})` : ''}`}
+          onClick={() => setMoChon((x) => !x)}>☑ Sinh theo lựa chọn{soDuyet || sanSang.length ? ` · ${sanSang.length} 🖼 · ${soDuyet} 🎬` : ''}</button>
         <button type="button" className="xv-btn" disabled={banTach || ban('them')} onClick={() => void chay('them', async () => { await themCanh(tap.id); })}>+ Cảnh</button>
       </div>
+      )}
+      {tab === 'storyboard' && moChon && !!canh?.length && (
+        <ChayChon canh={canh} nhanVat={nhanVat} kt={kt} noiKhung={tap.noi_khung} ban={ban('chon')} onDong={() => setMoChon(false)}
+          onChay={(viec, ids, model) => void chay('chon', async () => { for (const id of ids) { const r = viec === 'keyframe' ? await sinhKeyframe(id, 1, model) : await sinhVideoCanh(id, model); if (!r.ok) return r; } })} />
       )}
       {tab === 'xuat' && (
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>

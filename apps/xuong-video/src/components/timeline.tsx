@@ -323,6 +323,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           <div style={{ ...mono, letterSpacing: 0.5, marginTop: 6 }}>NGUYÊN LIỆU</div>
           <LopNguyenLieu t={t} anh={anhSan} onThem={themLop} />
           {c && <button type="button" className="xv-lienket xv-mono" style={{ textAlign: 'left' }} onClick={() => moNgan({ loai: 'kho', dich: { canhId: c.id } })}>📦 Kho tài sản → clip / keyframe cho shot này</button>}
+          {c && (c.keyframe_url || c.video_url) && <button type="button" className="xv-lienket xv-mono" style={{ textAlign: 'left' }} onClick={() => moNgan({ loai: 'nguon', canhId: c.id })}>🔗 Nguồn của shot này</button>}
         </aside>
         <TayKeo truc="x" onPointerDown={panTrai.keo('x')} onDoubleClick={panTrai.veMacDinh} />
         {/* Bấm vào chỗ trống (ngoài lớp, trong hay ngoài khung hình) = bỏ chọn (#1288) — lớp và tay nắm tự chặn sự kiện của mình. */}

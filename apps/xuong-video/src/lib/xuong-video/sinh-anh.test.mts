@@ -13,10 +13,13 @@ assert.ok(r.banDoRef.includes('images 4–5 = the person Ông Tom') && r.banDoRe
 // biến thể của người đứng trước ảnh gốc
 const r2 = xepThamChieu(nv, (v) => (v.ten === 'Ông Tom' ? { anh_url: 'bt1' } : undefined));
 assert.deepEqual(r2.urlRef.slice(3, 5), ['bt1', 't1']);
+// nhãn từng ảnh cho sơ đồ nguồn: khớp đúng thứ tự urlRef, sản phẩm ảnh đầu = màu chính, ảnh biến thể ghi là biến thể
+assert.deepEqual(r.vai.map((v) => v.url), r.urlRef);
+assert.ok(r.vai[0]!.nhan.includes('màu chính') && !r.vai[1]!.nhan.includes('màu chính') && r2.vai[3]!.nhan.includes('biến thể'), JSON.stringify(r2.vai));
 // trần 10 ảnh
 const nhieu = Array.from({ length: 6 }, (_, i) => ({ id: i, loai: 'nhan_vat', ten: `N${i}`, mo_ta: '', anh_ref: ['a', 'b'] })) as never;
 assert.equal(xepThamChieu(nhieu).urlRef.length, 10);
-assert.deepEqual(xepThamChieu([] as never), { urlRef: [], banDoRef: '' });
+assert.deepEqual(xepThamChieu([] as never), { urlRef: [], banDoRef: '', vai: [] });
 const g = ghepPromptAnh('x', '', nv);
 assert.ok(g.startsWith(KHONG_CHU) && g.endsWith(KHONG_CHU), g);
 assert.ok(!g.includes('JettJeans3') && g.includes('THE PRODUCT in this shot must be copied EXACTLY') && g.includes('Product facts (must all hold): quần'), g);   // sản phẩm có ảnh: không tên, có mô tả chính xác

@@ -229,6 +229,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay, phimLoai }: { c: Canh
               {c.video_url && <a data-dong="" href={linkTai(c.video_url)} download className="xv-btn" style={{ textDecoration: 'none' }}>⬇ Tải nháp</a>}
               {(c.keyframe_url || c.video_url) && <MucMenu onClick={() => void chay(k, () => luuShotKho(c.id))}>⭐ Lưu shot vào kho (keyframe + clip đang dùng)</MucMenu>}
               <MucMenu onClick={() => moNgan({ loai: 'kho', dich: { canhId: c.id } })}>📦 Lấy clip / keyframe từ kho (0đ)</MucMenu>
+              {(c.keyframe_url || c.video_url) && <MucMenu onClick={() => moNgan({ loai: 'nguon', canhId: c.id })}>🔗 Nguồn của shot — keyframe/clip sinh từ gì, nguồn nào đã đổi (0đ)</MucMenu>}
               <MucMenu nguy onClick={() => void chay(k, async () => { await xoaCanh(c.id); })}>🗑 Xoá cảnh</MucMenu>
             </Menu>
             </div>

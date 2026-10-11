@@ -37,6 +37,14 @@ export function promptVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     coGiong ? `IMPORTANT: the audio track must contain NO spoken words or voice — only ambient sound; a separate voice recording is added later. ${trongKhung.length ? `${[...new Set(trongKhung.map((d) => d.nhan_vat))].join(' and ')} mouth their lines with natural lip movement in silence.` : 'The lines are an off-screen voice-over: nobody in frame talks or moves their lips as if speaking.'}` : ''].filter(Boolean).join(' ');
 }
 
+/** Nối cảnh: khung cuối = keyframe cảnh kế (cùng tập) khi tập bật noi_khung → các clip ghép liền mạch, bản cuối khớp bố cục bản nháp.
+ *  Một chỗ cho lúc sinh thật và sơ đồ nguồn. */
+export async function khungCuoiCanh(db: Db, canhId: number): Promise<string | null> {
+  const ke = (await db.execute(sql`SELECT c2.keyframe_url, t.noi_khung FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id
+    LEFT JOIN LATERAL (SELECT keyframe_url FROM xv_canh x WHERE x.tap_id = c.tap_id AND x.thu_tu > c.thu_tu ORDER BY x.thu_tu LIMIT 1) c2 ON true WHERE c.id = ${canhId}`)) as unknown as Row[];
+  return ke[0]?.noi_khung === true && ke[0]?.keyframe_url ? s(ke[0].keyframe_url) : null;
+}
+
 /** Gửi một shot đi sinh video (nháp hoặc bản cuối) — shot phải đã duyệt keyframe. Trả về id job; kết quả về qua kiemVideoTap. */
 export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, ban: 'nhap' | 'cuoi' = 'nhap'): Promise<Kq<number>> {
   const bc = await boiCanhCanh(db, canhId);
@@ -49,10 +57,7 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   const prompt = promptVideoCanh(bc);
   const giay = lamTronClip(bc.canh.thoi_luong_s);
   const laFal = bc.kt.mo_hinh_video.startsWith('fal:');
-  // Nối cảnh: khung cuối = keyframe cảnh kế (cùng tập) khi tập bật noi_khung → các clip ghép liền mạch, bản cuối khớp bố cục bản nháp.
-  const ke = (await db.execute(sql`SELECT c2.keyframe_url, t.noi_khung FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id
-    LEFT JOIN LATERAL (SELECT keyframe_url FROM xv_canh x WHERE x.tap_id = c.tap_id AND x.thu_tu > c.thu_tu ORDER BY x.thu_tu LIMIT 1) c2 ON true WHERE c.id = ${canhId}`)) as unknown as Row[];
-  const khungCuoi = ke[0]?.noi_khung === true && ke[0]?.keyframe_url ? s(ke[0].keyframe_url) : null;
+  const khungCuoi = await khungCuoiCanh(db, canhId);
   // Tiếng clip chỉ sinh khi shot có người nói trong khung chưa có giọng riêng — cùng luật bản xuất dùng tiếng clip (dungTiengClip).
   // Google Veo (Gemini API) không có công tắc tiếng: vẫn sinh, bản xuất tự bỏ.
   const tieng = dungTiengClip(bc.canh, bc.nhanVat);

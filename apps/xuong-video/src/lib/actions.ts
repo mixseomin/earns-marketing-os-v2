@@ -30,6 +30,8 @@ import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-vi
 import { type Row, n, s, arr, mangInt, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
 import { sinhAnhGoc, sinhKeyframeCanh } from '@/lib/xuong-video/sinh-anh';
 import { batDauVideoCanh, kiemVideoTap } from '@/lib/xuong-video/sinh-video';
+import { nguonShot } from '@/lib/xuong-video/nguon-shot';
+import type { NguonShot } from '@/lib/xuong-video/phu-thuoc';
 import { sinhGiongShots, MODEL_GIONG_MAC_DINH, type TuyGiong } from '@/lib/xuong-video/sinh-giong';
 import { xongJob as xongJobDb, mapJob } from '@/lib/xuong-video/doc-db';
 export type { TuyGiong };
@@ -764,6 +766,12 @@ export async function sinhVideoCanh(canhId: number, moHinh?: string, ban: 'nhap'
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   return batDauVideoCanh(db, canhId, moHinh, ban);
+}
+/** Sơ đồ nguồn của một shot (lõi ở nguon-shot.ts): đã gửi gì lúc sinh keyframe / clip, so với giờ sẽ gửi — 0đ, chỉ đọc. */
+export async function nguonCuaShot(canhId: number): Promise<NguonShot | null> {
+  const db = getDb();
+  if (!db || !(await admin())) return null;
+  return nguonShot(db, canhId);
 }
 /** Nhận kết quả video của tập (lõi ở sinh-video.ts). */
 export async function kiemVideo(tapId: number): Promise<{ conChay: number; vuaXong: number }> {

@@ -4,28 +4,37 @@
 // "–" = chưa đo (máy chưa có mốc 7 ngày trước) — khác 0. Số tính ở lib/tai-san/video-tinh.ts từ kenh_so_ngay (máy so-short.mjs ghi).
 import { DataTable, Panel, StatsStrip, type DataColumn, type StatCard } from '@/components/ui';
 import { extLinkProps } from '@/lib/external-url';
-import { KENH_VIDEO, doi, type NenTong, type VideoDong } from '@/lib/tai-san/video-tinh';
+import { KENH_VIDEO, doi, soCu, type NenTong, type PinTong, type VideoDong } from '@/lib/tai-san/video-tinh';
 
 const so = (n: number | null | undefined) => (n == null ? '–' : n.toLocaleString('vi-VN'));
 const ngayVn = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : '–');
 const mo: React.CSSProperties = { color: 'var(--fg-4)' };
 
-export function TaiSanVideo({ nen, video, tenSp }: { nen: NenTong[]; video: VideoDong[]; tenSp: Record<string, string> }) {
+// Số quá 2 ngày không mới = máy đọc nền đó đã chết → dòng đỏ ngay trên thẻ (Pinterest câm 5 ngày mà panel vẫn hiện số cũ, 12/10/2026)
+const cuChu = (ngay: string | null) => <span style={{ color: 'var(--bad)', fontWeight: 600 }}>⚠ số cũ từ {ngayVn(ngay)} — máy đọc số đang hỏng</span>;
+
+export function TaiSanVideo({ nen, video, tenSp, pin, hom }: { nen: NenTong[]; video: VideoDong[]; tenSp: Record<string, string>; pin: PinTong | null; hom: string }) {
   const moiNhat = nen.map((n) => n.ngay).filter(Boolean).sort().pop() ?? null;
   const cards: StatCard[] = nen.map((n) => {
     const p = doi(n);
     return {
-      key: n.kenh, label: n.nhan, value: so(n.xem7),
+      key: n.kenh, label: `${n.nhan} · xem 7 ngày`, value: so(n.xem7),
       color: n.xem7 == null ? 'var(--fg-4)' : undefined,
       sub: n.soVideo
         ? <span>{p == null ? <span style={mo}>chưa đủ 14 ngày để so</span> : <span style={{ color: p >= 0 ? 'var(--ok)' : 'var(--warn)' }}>{p >= 0 ? '▲' : '▼'} {Math.abs(p)}% so 7 ngày trước</span>} · {n.soVideo} video<br />
-            <span style={{ color: n.vaoShop7 ? 'var(--fg-1)' : 'var(--fg-3)' }}>{n.vaoShop7 == null ? 'vào shop: chưa đo' : `${so(n.vaoShop7)} vào shop`}</span></span>
+            <span style={{ color: n.vaoShop7 ? 'var(--fg-1)' : 'var(--fg-3)' }}>{n.vaoShop7 == null ? 'vào shop: chưa đo' : `${so(n.vaoShop7)} vào shop`}</span>{soCu(n.ngay, hom) && <><br />{cuChu(n.ngay)}</>}</span>
         : <span style={mo}>chưa đo</span>,
       title: n.soVideo
         ? `${n.nhan}: ${so(n.xem7)} lượt xem trong 7 ngày · cộng dồn ${so(n.tong)} · vào trang printables 7 ngày (GA4 pickjot): ${so(n.vaoShop7)} · số tới ${ngayVn(n.ngay)}${n.chuaDo ? ` · ${n.chuaDo} video chưa có mốc 7 ngày trước (không tính)` : ''}`
         : `${n.nhan}: máy chưa đọc số nền này`,
     };
   });
+  // Pinterest tự tính khung 30 NGÀY (không cộng dồn) → thẻ ghi rõ 30 ngày, không trộn vào số 7 ngày của video
+  cards.push(pin
+    ? { key: 'pinterest', label: 'Pinterest · hiện 30 ngày', value: so(pin.hien30),
+        sub: <span>{pin.soGhim} ghim · {so(pin.click30)} click ra · {so(pin.tuongTac30)} tương tác<br />{soCu(pin.ngay, hom) ? cuChu(pin.ngay) : <span style={mo}>số tới {ngayVn(pin.ngay)}</span>}</span>,
+        title: `Pinterest (analytics 30 ngày): ${so(pin.hien30)} lượt hiện · ${so(pin.click30)} click ra · ${pin.soGhim} ghim · số tới ${ngayVn(pin.ngay)}` }
+    : { key: 'pinterest', label: 'Pinterest', value: '–', color: 'var(--fg-4)', sub: <span style={mo}>chưa đo</span>, title: 'Pinterest: máy chưa đọc số (puzzle-books pin-so.mjs)' });
   // video đứng đầu từng cột → tô đậm
   const dau = Object.fromEntries(KENH_VIDEO.map(({ key }) => [key, Math.max(0, ...video.map((v) => v.nen[key]?.xem7 ?? 0))]));
   const cot: DataColumn<VideoDong>[] = [
@@ -48,7 +57,7 @@ export function TaiSanVideo({ nen, video, tenSp }: { nen: NenTong[]; video: Vide
       total: (rows) => <b>{so(rows.reduce((t, v) => t + (v.tong7 ?? 0), 0))}</b> },
   ];
   return (
-    <Panel title="🎬 Video ngắn — lượt xem 7 ngày" subtitle={`${video.length} video · số tới ${ngayVn(moiNhat)} · "–" = chưa đo (khác 0) · bấm số để mở video`}>
+    <Panel title="📣 Kênh social" subtitle={`video: lượt xem 7 ngày (${video.length} video, số tới ${ngayVn(moiNhat)}) · Pinterest: khung 30 ngày · "–" = chưa đo (khác 0) · bấm số để mở video`}>
       <div style={{ display: 'grid', gap: 12 }}>
         <StatsStrip cards={cards} />
         {video.length > 0

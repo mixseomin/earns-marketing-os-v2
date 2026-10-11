@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/web/src/lib/tai-san/video-tinh.test.mts
 import assert from 'node:assert';
-import { doi, tinhVideo, type DongSo, type VideoSo } from './video-tinh';
+import { doi, tinhVideo, type DongSo, type VideoSo, soCu, tinhPin } from './video-tinh';
 
   const a = assert;
   const yt = (x: ReturnType<typeof tinhVideo>) => x.nen[0]!;
@@ -17,4 +17,9 @@ import { doi, tinhVideo, type DongSo, type VideoSo } from './video-tinh';
   // vào shop: lấy ở bản ghi MỚI NHẤT (đã là số 7 ngày), cộng các sách; không có = null
   r = tinhVideo([{ ...D('2026-10-10', [{ slug: 'a', xem: 1 }]), vaoShop: 9 }, { ...D('2026-10-11', [{ slug: 'a', xem: 2 }]), vaoShop: 3 }, { ...D('2026-10-11', [{ slug: 'b', xem: 2 }]), sanPham: 'p:y', vaoShop: 1 }], '2026-10-11');
   a.equal(yt(r).vaoShop7, 4); a.equal(r.nen[1]!.vaoShop7, null);
-  console.log('video-tinh: 10/10 ok');
+  // số cũ: 09/10 so với hôm nay 12/10 = cũ (máy chết); 10/10 = còn trong hạn
+  a.equal(soCu('2026-10-09', '2026-10-12'), true); a.equal(soCu('2026-10-10', '2026-10-12'), false); a.equal(soCu(null, '2026-10-12'), false);
+  // Pinterest: cộng mọi sách, chỉ khoá pinterest|…, ngày = mới nhất; không có dòng = null
+  const so = { 'pinterest|p:a': { ngay: '2026-10-12', hien: 12, tuongTac: 1, click: 2, soMuc: 4 }, 'pinterest|p:b': { ngay: '2026-10-07', hien: 3, tuongTac: 0, click: 0, soMuc: 1 }, 'youtube|p:a': { ngay: '2026-10-12', hien: 999, tuongTac: 0, click: 0, soMuc: 9 } };
+  a.deepEqual(tinhPin(so), { hien30: 15, click30: 2, tuongTac30: 1, soGhim: 5, ngay: '2026-10-12' }); a.equal(tinhPin({}), null);
+  console.log('video-tinh: 15/15 ok');

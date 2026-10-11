@@ -6,7 +6,7 @@ import { SeoSitesPanel, docSeoSites } from './seo-sites-panel';
 import { TaiSanView } from './tai-san-view';
 import { docTaiSanBan } from '@/lib/tai-san/doc';
 import { docKenh, docKenhSo, docLuotNguon, docPhuongPhap, docVideoSo } from '@/lib/tai-san/kenh';
-import { tinhVideo } from '@/lib/tai-san/video-tinh';
+import { tinhPin, tinhVideo } from '@/lib/tai-san/video-tinh';
 import { TaiSanVideo } from './tai-san-video';
 import { apDung, ganLuot, ganSo } from '@/lib/tai-san/ap-dung';
 import { TaiSanKenh } from './tai-san-kenh';
@@ -15,7 +15,7 @@ import type { TrangThaiSp } from '@/lib/tai-san/kieu';
 export async function TaiSanTab() {
   const [sites, ban, kenhDoc, libDoc, luot, so, vso] = await Promise.all([docSeoSites(), docTaiSanBan(), docKenh().catch((e: Error) => e), docPhuongPhap().catch((e: Error) => e), docLuotNguon().catch(() => ({})), docKenhSo().catch(() => ({})), docVideoSo().catch((e: Error) => e)]);
   if (vso instanceof Error) ban.loi.push(`số video short (kenh_so_ngay): ${vso.message}`);
-  const vid = tinhVideo(vso instanceof Error ? [] : vso.dongs, new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }));
+  const hom = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }), vid = tinhVideo(vso instanceof Error ? [] : vso.dongs, hom);
   if (kenhDoc instanceof Error) ban.loi.push(`kênh kéo khách (kenh_sp): ${kenhDoc.message}`);
   if (libDoc instanceof Error) ban.loi.push(`thư viện phương pháp (phuong_phap): ${libDoc.message}`);
   const lib = libDoc instanceof Error ? [] : libDoc;
@@ -42,7 +42,7 @@ export async function TaiSanTab() {
       <StatsStrip cards={cards} />
       <SeoSitesPanel d={sites} />
       <TaiSanView ban={ban} />
-      <TaiSanVideo nen={vid.nen} video={vid.video} tenSp={vso instanceof Error ? {} : vso.tenSp} />
+      <TaiSanVideo nen={vid.nen} video={vid.video} tenSp={vso instanceof Error ? {} : vso.tenSp} pin={tinhPin(so)} hom={hom} />
       <TaiSanKenh ap={ap} lib={lib} shops={ban.shops.map((x) => ({ khoa: x.khoa, ten: x.ten }))} />
     </div>
   );

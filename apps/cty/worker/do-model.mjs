@@ -111,12 +111,12 @@ export function cham(vai, m, dap) {
   return { dung: !truot.length, dinh_dang: true, truot };
 }
 
-async function goi(model, vai, user, nk, luot, tc = []) {
+export async function goi(model, vai, user, nk, luot, tc = [], heThongRieng = null) {   // heThongRieng: giám khảo (do-van.mjs) không mang thẻ vai
   const ns = { id: 'ung-vien', ten: 'Ứng viên', model, vai: theVai(VAI[vai]), body: HO_SO, tinh_cach: tc, bai_hoc: [] };
   const fal = model.startsWith('fal:');
   for (let thu = 0; ; thu++) {
     const bb = BAT_BUOC.has(model); const suy_luan = fal ? (bb ? 'minimal' : 'none') : null;
-    const body = { model, max_tokens: bb ? TRAN_SUY_LUAN : TRAN_TOKEN, temperature: 0.3, system: heThong(ns, nk), messages: [{ role: 'user', content: user }], ...(fal ? { reasoning: { effort: suy_luan } } : {}) };   // như goi() của lượt thật, trừ trần token + suy luận
+    const body = { model, max_tokens: bb ? TRAN_SUY_LUAN : TRAN_TOKEN, temperature: 0.3, system: heThongRieng ?? heThong(ns, nk), messages: [{ role: 'user', content: user }], ...(fal ? { reasoning: { effort: suy_luan } } : {}) };   // như goi() của lượt thật, trừ trần token + suy luận
     const t0 = Date.now(); let st = 0, d = {};
     try { const r = await fetch(`${PROXY()}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': 'ha', 'x-cty-luot': luot }, body: JSON.stringify(body) }); st = r.status; d = await r.json().catch(() => ({})); } catch (e) { d = { error: String(e.message || e) }; }
     const loi = st === 200 ? null : typeof d.error === 'string' ? d.error : d.error?.message ?? JSON.stringify(d).slice(0, 300);

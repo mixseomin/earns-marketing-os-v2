@@ -6,6 +6,7 @@
 #   kiem.sh may-xuong           # dừng bản ở Mac + đường hầm, xoá chuỗi DB tạm
 #   kiem.sh ui [base]           # máy đo viền + chồng ngăn kéo + nút Chạy + sơ đồ đứng yên (mặc định bản ở Mac http://localhost:3871)
 #   kiem.sh tu-kiem             # mọi bài tự kiểm không cần mạng (giống GHA)
+#   kiem.sh gha [run-id]        # đo lần deploy: giây của từng bước + tổng từ lúc đẩy tới lúc web lên (mặc định lần gần nhất)
 set -uo pipefail
 BOX=root@167.233.241.16
 APP=$(cd "$(dirname "$0")/.." && pwd)
@@ -68,5 +69,14 @@ TREN_BOX
       node $c </dev/null 2>&1 | tail -1 | sed 's/^/  /'; [ "${PIPESTATUS[0]}" = 0 ] || { echo "✗ $c"; exit 1; }
     done; echo "✓ tự kiểm đạt"
     ;;
-  *) sed -n 3,8p "$0"; exit 2 ;;
+  gha)
+    R=${2:-$(gh run list --workflow deploy.yml -L 1 --json databaseId --jq '.[0].databaseId' </dev/null)}
+    gh run view "$R" --json createdAt,headSha,jobs --jq '
+      def s: sub("\\.[0-9]+Z$";"Z") | fromdateiso8601;
+      (.createdAt|s) as $t0 | "run \(.headSha[0:8]) · tạo \(.createdAt[11:19])",
+      (.jobs[].steps[] | select(.completedAt != null and .startedAt != null) | ((.completedAt|s) - (.startedAt|s)) as $d
+        | select($d >= 1) | "  \($d|tostring|.[0:4])s\t\(.name[0:60])"),
+      ([.jobs[].steps[] | select(.name|test("server-side")) | .completedAt][0] | if . then "web lên sau \((s) - $t0)s kể từ lúc tạo run" else "chưa xong bước deploy" end)' </dev/null
+    ;;
+  *) sed -n 3,9p "$0"; exit 2 ;;
 esac

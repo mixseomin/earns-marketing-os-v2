@@ -8,7 +8,7 @@ import { FONT_CHU, type Lop } from '@/lib/xuong-video/kieu';
 import { lopHien, hieuUngTai, lopMoi, MAU_LOP } from '@/lib/xuong-video/lop';
 import { Menu, MucMenu, mono } from './ui';
 
-const MAU_LOAI: Record<Lop['loai'], string> = { chu: '#f5b638', anh: '#38d9f5', hinh: '#a78bfa' };
+const ICON_LOAI: Record<Lop['loai'], string> = { chu: 'T', anh: '🖼', hinh: '◼' };
 const tenLop = (l: Lop) => l.ten || (l.loai === 'chu' ? (l.chu ?? '').split('\n')[0]!.slice(0, 24) || 'Chữ' : l.loai === 'anh' ? 'Ảnh' : 'Hình');
 const fontCss = (f?: string) => (!f || f === 'DejaVu Sans' ? '"DejaVu Sans", system-ui, sans-serif' : `"${f}", "Montserrat", system-ui, sans-serif`);
 const lam = (v: number, n = 3) => Math.round(v * 10 ** n) / 10 ** n;
@@ -19,17 +19,18 @@ export function useLop(tapId: number, tuServer: Lop[]) {
   const dangSua = useRef(false);
   const hen = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loi, setLoi] = useState('');
+  const [luu, setLuu] = useState<'' | 'dang' | 'xong'>('');
   const khoa = JSON.stringify(tuServer);
   useEffect(() => { if (!dangSua.current) setLop(tuServer); }, [khoa]); // eslint-disable-line react-hooks/exhaustive-deps
   const dat = (fn: (ds: Lop[]) => Lop[]) => setLop((ds) => {
     const moi = fn(ds);
-    dangSua.current = true;
+    dangSua.current = true; setLuu('dang');
     if (hen.current) clearTimeout(hen.current);
-    hen.current = setTimeout(() => { void luuLop(tapId, moi).then((r) => { dangSua.current = false; setLoi(r.ok ? '' : r.loi); }).catch(() => { dangSua.current = false; setLoi('không lưu được lớp phủ'); }); }, 700);
+    hen.current = setTimeout(() => { void luuLop(tapId, moi).then((r) => { dangSua.current = false; setLoi(r.ok ? '' : r.loi); setLuu(r.ok ? 'xong' : ''); }).catch(() => { dangSua.current = false; setLoi('không lưu được lớp phủ'); setLuu(''); }); }, 700);
     return moi;
   });
   const doi = (id: string, p: Partial<Lop>) => dat((ds) => ds.map((l) => (l.id === id ? { ...l, ...p } : l)));
-  return { lop, dat, doi, loi };
+  return { lop, dat, doi, loi, luu };
 }
 
 /** Lớp đang hiện ở giây t, vẽ đè lên khung xem trước. Lớp đang chọn: viền nét đứt + góc kéo đổi cỡ; kéo thân để dời. */
@@ -54,7 +55,7 @@ export function LopXem({ lop, t, rong, cao, chonId, onChon, onDoi }: { lop: Lop[
       {ve.map((l) => {
         const hu = hieuUngTai(l, t); const ngoaiGio = t < l.tu || t >= l.den; const dangChon = l.id === chonId;
         const goc: CSSProperties = { position: 'absolute', left: `${l.x * 100}%`, top: `${(l.y + hu.dy) * 100}%`, transform: `translate(-50%, -50%) rotate(${l.xoay}deg) scale(${hu.scale})`,
-          opacity: ngoaiGio ? 0.35 : hu.mo, pointerEvents: 'auto', cursor: 'move', outline: dangChon ? '1.5px dashed #38d9f5' : undefined, outlineOffset: 2, touchAction: 'none' };
+          opacity: ngoaiGio ? 0.35 : hu.mo, pointerEvents: 'auto', cursor: 'move', outline: dangChon ? '1.5px dashed var(--cyan)' : undefined, outlineOffset: 2, touchAction: 'none' };
         const fs = (l.co ?? 0.07) * rong;
         const noi = l.loai === 'chu'
           ? <div style={{ fontFamily: fontCss(l.font), fontWeight: 900, fontStyle: l.nghieng ? 'italic' : undefined, fontSize: fs, lineHeight: 1.15, color: l.mau ?? '#fff', whiteSpace: 'pre', textAlign: 'center',
@@ -66,7 +67,7 @@ export function LopXem({ lop, t, rong, cao, chonId, onChon, onDoi }: { lop: Lop[
         return (
           <div key={l.id} style={goc} onPointerDown={keo(l, 'doi')} title={`${tenLop(l)} — kéo để dời${dangChon ? ', kéo góc để đổi cỡ' : ''}`}>
             {noi}
-            {dangChon && <div onPointerDown={keo(l, 'co')} title="Kéo để đổi cỡ" style={{ position: 'absolute', right: -6, bottom: -6, width: 10, height: 10, background: '#38d9f5', borderRadius: 2, cursor: 'nwse-resize' }} />}
+            {dangChon && <div onPointerDown={keo(l, 'co')} title="Kéo để đổi cỡ" style={{ position: 'absolute', right: -6, bottom: -6, width: 10, height: 10, background: 'var(--cyan)', borderRadius: 2, cursor: 'nwse-resize' }} />}
           </div>
         );
       })}
@@ -74,31 +75,38 @@ export function LopXem({ lop, t, rong, cao, chonId, onChon, onDoi }: { lop: Lop[
   );
 }
 
-/** Nút "＋ Lớp" (một nút cạnh nút Chạy) — bấm mới mở menu: mẫu dựng sẵn, tải ảnh, ảnh sản phẩm/logo. Lớp mới bắt đầu ở đầu phát. */
-export function LopThem({ t, tiLe, anhSan, onThem }: { t: number; tiLe: number; anhSan: { url: string; ten: string }[]; onThem: (ds: Lop[]) => void }) {
+/** Thanh công cụ kiểu After Effects: T Chữ · ◼ Hình · 🖼 Ảnh từ máy · ✨ Mẫu ▾ — lớp mới bắt đầu ở đầu phát. */
+export function LopCongCu({ t, tiLe, onThem }: { t: number; tiLe: number; onThem: (ds: Lop[]) => void }) {
   const [dang, setDang] = useState(false); const [loi, setLoi] = useState('');
   const tai = (f: File) => {
     const r = new FileReader();
     r.onload = async () => { setDang(true); setLoi(''); const k = await taiAnhLen(String(r.result)); setDang(false); if (k.ok) onThem([lopMoi('anh', t, { url: k.data, ten: f.name.slice(0, 30) })]); else setLoi(k.loi); };
     r.readAsDataURL(f);
   };
+  const mau = (k: string) => MAU_LOP.find((m) => m.key === k)!;
   return (
-    <>
-      <Menu nhan={dang ? '⏳ Lớp' : '＋ Lớp'}>
-        <div style={{ ...mono, padding: '2px 4px' }}>Thêm lớp ở giây {t.toFixed(1)}</div>
-        {MAU_LOP.map((m) => <MucMenu key={m.key} onClick={() => onThem(m.tao(t, tiLe))}>{m.ten}</MucMenu>)}
-        <label data-dong="" className="xv-btn" style={{ textAlign: 'left', cursor: 'pointer' }}>Ảnh từ máy…
-          <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) tai(f); e.target.value = ''; }} />
-        </label>
-        {!!anhSan.length && <div style={{ ...mono, padding: '4px 4px 0' }}>Ảnh sản phẩm / logo</div>}
-        {!!anhSan.length && (
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', padding: 4 }}>
-            {anhSan.slice(0, 8).map((a) => <button key={a.url} data-dong="" type="button" title={a.ten} onClick={() => onThem([lopMoi('anh', t, { url: a.url, ten: a.ten })])} style={{ padding: 0, border: '1px solid var(--line)', borderRadius: 4, background: 'none', cursor: 'pointer' }}><img src={a.url} alt="" data-khong-phong-to="" style={{ width: 40, height: 40, objectFit: 'contain', display: 'block' }} /></button>)}
-          </div>
-        )}
+    <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+      <button type="button" className="xv-btn" title="Thêm lớp chữ ở giây đang đứng" onClick={() => onThem(mau('chu').tao(t, tiLe))}>T Chữ</button>
+      <button type="button" className="xv-btn" title="Thêm hình khối (chữ nhật / bo góc / tròn)" onClick={() => onThem(mau('hinh').tao(t, tiLe))}>◼ Hình</button>
+      <label className="xv-btn" style={{ cursor: 'pointer' }} title="Thêm ảnh từ máy làm lớp (PNG nền trong suốt đẹp nhất)">{dang ? '⏳' : '🖼'} Ảnh
+        <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) tai(f); e.target.value = ''; }} />
+      </label>
+      <Menu nhan="✨ Mẫu ▾">
+        {MAU_LOP.filter((m) => m.key !== 'chu' && m.key !== 'hinh').map((m) => <MucMenu key={m.key} onClick={() => onThem(m.tao(t, tiLe))}>{m.ten}</MucMenu>)}
       </Menu>
       {loi && <span className="xv-loi">{loi}</span>}
-    </>
+    </span>
+  );
+}
+
+/** Panel "Dự án" (như Project của After Effects): nguyên liệu bấm là thành lớp ở giây đang đứng. */
+export function LopNguyenLieu({ t, anh, onThem }: { t: number; anh: { url: string; ten: string }[]; onThem: (ds: Lop[]) => void }) {
+  if (!anh.length) return <div style={mono}>Chưa có ảnh sản phẩm / logo ở mục sản phẩm của phim.</div>;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(44px, 1fr))', gap: 4 }}>
+      {anh.map((a) => <button key={a.url} type="button" title={`${a.ten} — bấm để thêm làm lớp ở giây ${t.toFixed(1)}`} onClick={() => onThem([lopMoi('anh', t, { url: a.url, ten: a.ten })])}
+        style={{ padding: 0, border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-2)', cursor: 'copy' }}><img src={a.url} alt="" data-khong-phong-to="" style={{ width: '100%', aspectRatio: '1', objectFit: 'contain', display: 'block' }} /></button>)}
+    </div>
   );
 }
 
@@ -116,10 +124,10 @@ export function LopBang({ l, t, onDoi, onXoa, onNhanBan, onLenXuong, onDong }: {
   );
   const nut = (chu: string, title: string, f: () => void, nguy?: boolean) => <button type="button" className={`xv-btn${nguy ? ' nguy' : ''}`} style={{ padding: '0 5px', lineHeight: '18px' }} title={title} onClick={f}>{chu}</button>;
   return (
-    <div className="xv-panel" style={{ padding: 8, display: 'grid', gap: 6, textAlign: 'left', width: 260 }}
+    <div style={{ display: 'grid', gap: 6, textAlign: 'left' }}
       title="Kéo lớp trên khung để dời · kéo ô xanh ở góc để đổi cỡ · kéo khối trên làn 🧩 để đổi giờ. Tự lưu, ↶ Hoàn tác ở đầu trang.">
       <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-        <b style={{ fontSize: 12, color: MAU_LOAI[l.loai], flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tenLop(l)}</b>
+        <b style={{ fontSize: 12, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ICON_LOAI[l.loai]} {tenLop(l)}</b>
         {nut('⧉', 'Nhân bản', onNhanBan)}{nut(l.an ? '🙈' : '👁', l.an ? 'Hiện lại' : 'Ẩn (không xuất)', () => onDoi({ an: !l.an }))}{nut('🗑', 'Bỏ lớp (↶ Hoàn tác được)', onXoa, true)}{nut('✕', 'Đóng', onDong)}
       </div>
       {l.loai === 'chu' && <textarea className="xv-in" rows={2} value={l.chu ?? ''} onChange={(e) => onDoi({ chu: e.target.value })} placeholder="chữ (xuống dòng = dòng mới)" />}
@@ -176,13 +184,12 @@ export function KhoiLop({ l, pps, chon, onChon, onDoi }: { l: Lop; pps: number; 
     const xong = () => { el.removeEventListener('pointermove', di); el.removeEventListener('pointerup', xong); el.removeEventListener('pointercancel', xong); };
     el.addEventListener('pointermove', di); el.addEventListener('pointerup', xong); el.addEventListener('pointercancel', xong);
   };
-  const mau = MAU_LOAI[l.loai];
   return (
     <div onPointerDown={keo('than')} data-goi-y={`${tenLop(l)}\nvào ${l.tu}s · ra ${l.den}s\nkéo để dời · kéo mép để đổi giờ`}
       style={{ position: 'absolute', left: l.tu * pps, width: Math.max(6, (l.den - l.tu) * pps), top: 2, bottom: 2, borderRadius: 4, cursor: 'grab', touchAction: 'none', opacity: l.an ? 0.4 : 1,
-        background: `${mau}${chon ? '55' : '2a'}`, border: `1px solid ${mau}`, outline: chon ? `1.5px solid ${mau}` : undefined, color: mau, fontSize: 10, lineHeight: '14px', padding: '0 8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        background: 'var(--bg-2)', border: `1px solid ${chon ? 'var(--cyan)' : 'var(--line)'}`, outline: chon ? '1px solid var(--cyan)' : undefined, color: chon ? 'var(--fg-1)' : 'var(--fg-2)', fontSize: 10, lineHeight: '14px', padding: '0 8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
       <div onPointerDown={keo('trai')} style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 6, cursor: 'ew-resize' }} />
-      {l.loai === 'chu' ? '✎' : l.loai === 'anh' ? '🖼' : '◼'} {tenLop(l)}
+      {ICON_LOAI[l.loai]} {tenLop(l)}
       <div onPointerDown={keo('phai')} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 6, cursor: 'ew-resize' }} />
     </div>
   );

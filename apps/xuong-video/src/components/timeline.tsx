@@ -9,13 +9,15 @@ import { ChuManXem } from './chu-man';
 //   Nhạc   — nhạc nền cả tập (nhac_url / nhac_mo_ta).
 // Nét đứt = mới có mô tả trong kịch bản, chưa sinh file. Toàn bộ chạy ở trình duyệt, không tốn tiền.
 import { useEffect, useMemo, useRef, useState, type PointerEvent as PE, type ReactNode } from 'react';
-import { chuManHien, giayPhat, tenCamXuc, type Canh, type ThongTinQc, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
+import { chuManHien, giayPhat, tenCamXuc, type Canh, type Lop, type ThongTinQc, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat } from '@/lib/xuong-video/dien-anh';
 import { dongThoai, dungTiengClip, tenNoi, cungTen, timNv, lichGiong } from '@/lib/xuong-video/am-thanh';
 import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 import { mono } from './ui';
-import { useLop, LopXem, LopThem, LopBang, KhoiLop } from './lop-ui';
+import { lopMoi } from '@/lib/xuong-video/lop';
+import { useLop, LopXem, LopCongCu, LopNguyenLieu, LopBang, KhoiLop } from './lop-ui';
+import { moNgan } from './ngan-chung';
 import { docLT, ghiLT } from '@/lib/luu-tru';
 
 const MAU_NV = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#4ade80', '#fb923c', '#60a5fa'];
@@ -207,10 +209,11 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
 
   const doc916 = tiLe === '9:16';
   // Lớp phủ tự do (chữ · ảnh · hình khối) — lop-ui.tsx; số đo dùng chung với bản xuất (lop.ts).
-  const { lop, dat: datLop, doi: doiLop, loi: loiLop } = useLop(tap.id, tap.lop ?? []);
+  const { lop, dat: datLop, doi: doiLop, loi: loiLop, luu: luuLop } = useLop(tap.id, tap.lop ?? []);
   const [chonLop, setChonLop] = useState<string | null>(null);
   const lopChon = lop.find((l) => l.id === chonLop) ?? null;
-  const rongXem = doc916 ? 220 : 480, caoXem = doc916 ? (220 * 16) / 9 : (480 * 9) / 16;
+  const rongXem = doc916 ? 270 : 560, caoXem = Math.round(doc916 ? (270 * 16) / 9 : (560 * 9) / 16);
+  const themLop = (ds: Lop[]) => { datLop((x) => [...x, ...ds]); setChonLop(ds[ds.length - 1]?.id ?? null); setChay(false); };
   const anhSan = [...(qc?.logo_url ? [{ url: qc.logo_url, ten: 'Logo' }] : []), ...(qc?.anh ?? []).map((u, i) => ({ url: u, ten: `Ảnh sản phẩm ${i + 1}` }))];
   const vid = c ? c.video_cuoi_url || c.video_url : null;
   const p = c ? Math.min(1, tTrong / dur(c)) : 0;
@@ -273,54 +276,65 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
 
   if (!canh.length) return null;
   return (
-    <div className="xv-panel" style={{ marginTop: 8, padding: 10 }} data-ngu-canh={`timeline ${t.toFixed(1)}s/${tong}s · cảnh #${c?.thu_tu ?? '?'} đang ở đầu phát`}>
-      {/* Màn xem trước (#1246): hình ở GIỮA, nút chạy ngay dưới hình; bên trái = hình (shot, chữ màn, hành động, khán giả), bên phải = tiếng (thoại từng người, hiệu ứng). */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px, 1fr) auto minmax(160px, 1fr)', gap: 16, alignItems: 'start' }}>
-        <div style={{ display: 'grid', gap: 6, alignContent: 'start', textAlign: 'right' }}>
+    <div className="xv-panel" style={{ marginTop: 8, padding: 0, overflow: 'hidden' }} data-ngu-canh={`timeline ${t.toFixed(1)}s/${tong}s · cảnh #${c?.thu_tu ?? '?'} đang ở đầu phát`}>
+      {/* Bố cục kiểu After Effects (anh 11/10/2026): thanh công cụ · 3 panel CỐ ĐỊNH (Dự án | Khung hình | Thuộc tính) · timeline thứ tự lớp.
+          Hàng panel cao cố định = khung hình, panel tự cuộn bên trong → chọn/bỏ chọn lớp chỉ đổi NỘI DUNG panel, không xô timeline (YDNI §bố cục đứng yên). */}
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '6px 10px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
+        <button type="button" className="xv-btn" title="Cảnh trước (←)" onClick={() => tuaToi(batDau[Math.max(0, idx - 1)] ?? 0)}>⏮</button>
+        <button type="button" className="xv-btn chinh" style={{ minWidth: 80 }} title="Chạy / dừng (Space)" onClick={() => { if (!chay && t >= tong - 0.05) setT(0); setChay(!chay); }}>{chay ? '⏸ Dừng' : '▶ Chạy'}</button>
+        <button type="button" className="xv-btn" title="Cảnh sau (→)" onClick={() => tuaToi(batDau[Math.min(canh.length - 1, idx + 1)] ?? 0)}>⏭</button>
+        <span style={{ ...mono, fontSize: 12, color: 'var(--fg-1)', minWidth: 96 }}>{dongHo(t)} / {dongHo(tong)}</span>
+        <button type="button" className="xv-btn" onClick={onToanManHinh} title="Xem cả tập toàn màn hình">⛶</button>
+        <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--line)', margin: '0 4px' }} />
+        <LopCongCu t={t} tiLe={doc916 ? 9 / 16 : 16 / 9} onThem={themLop} />
+        <span style={{ flex: 1 }} />
+        {loiLop ? <span className="xv-loi">{loiLop}</span> : <span style={{ ...mono, minWidth: 70, textAlign: 'right' }}>{luuLop === 'dang' ? 'đang lưu…' : luuLop === 'xong' ? '✓ đã lưu' : ''}</span>}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '200px minmax(0, 1fr) 280px', height: caoXem + 44 }}>
+        <aside style={{ borderRight: '1px solid var(--line)', overflowY: 'auto', padding: 8, display: 'grid', gap: 6, alignContent: 'start' }}>
+          <div style={{ ...mono, letterSpacing: 0.5 }}>DỰ ÁN</div>
           {c && <div style={{ fontSize: 12 }}><b>#{c.thu_tu} {c.canh}</b></div>}
           {c && <div style={mono}>phát {dur(c)}s{dur(c) !== (c.thoi_luong_s || 4) ? ` / clip ${c.thoi_luong_s || 4}s` : ''} · {vid ? (c.video_cuoi_url ? 'bản cuối' : 'nháp') : c.keyframe_url ? 'keyframe' : 'chưa có hình'}{c.nhanh ? ` · hook ${c.nhanh}` : ''}</div>}
-          {c?.chu_man && <div style={{ fontSize: 11.5 }}>✎ <b>{chuManHien(c.chu_man)}</b></div>}
-          {c?.hanh_dong && <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{c.hanh_dong}</div>}
-          {c && <div style={mono}>❤ khán giả: <span style={{ color: c.cam_xuc >= 0 ? 'var(--lime)' : 'var(--red)' }}>{tenCamXuc(c.cam_xuc)}</span></div>}
-        </div>
-        <div style={{ display: 'grid', gap: 8, justifyItems: 'center' }}>
-          <div style={{ position: 'relative', width: doc916 ? 220 : 480, aspectRatio: doc916 ? '9 / 16' : '16 / 9', overflow: 'hidden', borderRadius: 8, background: '#000', flexShrink: 0 }}>
+          {c?.chu_man && <div style={{ fontSize: 11.5 }}>✎ {chuManHien(c.chu_man)}</div>}
+          {c?.hanh_dong && <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>{c.hanh_dong}</div>}
+          {c && <div style={mono}>❤ khán giả: {tenCamXuc(c.cam_xuc)}</div>}
+          <div style={{ ...mono, letterSpacing: 0.5, marginTop: 6 }}>NGUYÊN LIỆU</div>
+          <LopNguyenLieu t={t} anh={anhSan} onThem={themLop} />
+          {c && <button type="button" className="xv-lienket xv-mono" style={{ textAlign: 'left' }} onClick={() => moNgan({ loai: 'kho', dich: { canhId: c.id } })}>📦 Kho tài sản → clip / keyframe cho shot này</button>}
+        </aside>
+        <main style={{ display: 'grid', placeItems: 'center', padding: 8, background: 'var(--bg-0, #0b0b0d)' }}>
+          <div style={{ position: 'relative', width: rongXem, height: caoXem, overflow: 'hidden', borderRadius: 4, background: '#000' }} onPointerDown={(e) => { if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === 'VIDEO' || (e.target as HTMLElement).tagName === 'IMG') setChonLop(null); }}>
             {c && (vid ? <video ref={vidRef} key={vid} src={vid} playsInline preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               : c.keyframe_url ? <img src={c.keyframe_url} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb }} />
               : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} chưa có hình</div>)}
             <LopXem lop={lop} t={t} rong={rongXem} cao={caoXem} chonId={chonLop} onChon={setChonLop} onDoi={doiLop} />
-            {c?.chu_man && <ChuManXem chu={c.chu_man} giay={tTrong} rong={doc916 ? 220 : 480} qc={qc} kieu={c.kieu_chu} />}
+            {c?.chu_man && <ChuManXem chu={c.chu_man} giay={tTrong} rong={rongXem} qc={qc} kieu={c.kieu_chu} />}
             {giongNay && <audio ref={thoaiRef} key={khoaGiong} src={giongNay.url} preload="auto" />}
             {c?.am_thanh_url && <audio ref={sfxRef} key={c.am_thanh_url} src={c.am_thanh_url} preload="auto" />}
             {tap.nhac_url && <audio ref={nhacRef} src={tap.nhac_url} preload="auto" />}
             {nhacPc && <audio ref={nhacPcRef} key={nhacPc} src={nhacPc} preload="auto" />}
           </div>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button type="button" className="xv-btn" title="Cảnh trước" onClick={() => tuaToi(batDau[Math.max(0, idx - 1)] ?? 0)}>⏮</button>
-            <button type="button" className="xv-btn chinh" style={{ minWidth: 80 }} onClick={() => { if (!chay && t >= tong - 0.05) setT(0); setChay(!chay); }}>{chay ? '⏸ Dừng' : '▶ Chạy'}</button>
-            <button type="button" className="xv-btn" title="Cảnh sau" onClick={() => tuaToi(batDau[Math.min(canh.length - 1, idx + 1)] ?? 0)}>⏭</button>
-            <span style={{ ...mono, fontSize: 12, color: 'var(--fg-1)' }}>{dongHo(t)} / {dongHo(tong)}</span>
-            <button type="button" className="xv-btn" onClick={onToanManHinh} title="Xem cả tập toàn màn hình">⛶</button>
-            <LopThem t={t} tiLe={doc916 ? 9 / 16 : 16 / 9} anhSan={anhSan} onThem={(ds) => { datLop((x) => [...x, ...ds]); setChonLop(ds[ds.length - 1]?.id ?? null); setChay(false); }} />
-          </div>
-          {loiLop && <span className="xv-loi">{loiLop}</span>}
-        </div>
-        <div style={{ display: 'grid', gap: 6, alignContent: 'start' }}>
-          {lopChon && <LopBang l={lopChon} t={t} onDoi={(p) => doiLop(lopChon.id, p)} onDong={() => setChonLop(null)}
+        </main>
+        <aside style={{ borderLeft: '1px solid var(--line)', overflowY: 'auto', padding: 8, display: 'grid', gap: 6, alignContent: 'start' }}>
+          <div style={{ ...mono, letterSpacing: 0.5 }}>THUỘC TÍNH</div>
+          {lopChon ? <LopBang l={lopChon} t={t} onDoi={(p) => doiLop(lopChon.id, p)} onDong={() => setChonLop(null)}
             onXoa={() => { datLop((ds) => ds.filter((x) => x.id !== lopChon.id)); setChonLop(null); }}
             onNhanBan={() => { const moi = { ...lopChon, id: Math.random().toString(36).slice(2, 10), x: Math.min(1, lopChon.x + 0.04), y: Math.min(1, lopChon.y + 0.04) }; datLop((ds) => [...ds, moi]); setChonLop(moi.id); }}
-            onLenXuong={(d) => datLop((ds) => { const i = ds.findIndex((x) => x.id === lopChon.id); const j = i + d; if (i < 0 || j < 0 || j >= ds.length) return ds; const n = [...ds]; [n[i], n[j]] = [n[j]!, n[i]!]; return n; })} />}
-          {c && dongThoai(c, nhanVat).map((d, i) => {
-            const v = timNv(nhanVat, tenNoi(d)) ?? null;
-            return <div key={i} style={{ fontSize: 11.5 }}><b style={{ color: mauNv(v) }}>🗣 {tenNoi(d)}</b>{d.dien_xuat && <i style={{ color: 'var(--fg-3)' }}> ({d.dien_xuat})</i>}: {d.loi}{!d.url && <span style={{ ...mono, color: 'var(--amber)' }}> · chưa sinh giọng{docThu ? ', đang đọc thử' : ''}</span>}</div>;
-          })}
-          {c?.am_thanh && <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>🔊 {c.am_thanh}{!c.am_thanh_url && <span style={{ ...mono, color: 'var(--amber)' }}> · chưa sinh</span>}</div>}
-          {c && !dongThoai(c, nhanVat).length && !c.am_thanh && <div style={mono}>shot này không có thoại / hiệu ứng</div>}
-        </div>
+            onLenXuong={(d) => datLop((ds) => { const i = ds.findIndex((x) => x.id === lopChon.id); const j = i + d; if (i < 0 || j < 0 || j >= ds.length) return ds; const n = [...ds]; [n[i], n[j]] = [n[j]!, n[i]!]; return n; })} />
+          : <>
+            <div style={mono}>Bấm một lớp trên khung hình hoặc làn 🧩 để sửa. Đang xem âm thanh của shot #{c?.thu_tu}:</div>
+            {c && dongThoai(c, nhanVat).map((d, i) => {
+              const v = timNv(nhanVat, tenNoi(d)) ?? null;
+              return <div key={i} style={{ fontSize: 11.5 }}><b style={{ color: mauNv(v) }}>🗣 {tenNoi(d)}</b>{d.dien_xuat && <i style={{ color: 'var(--fg-3)' }}> ({d.dien_xuat})</i>}: {d.loi}{!d.url && <span style={{ ...mono, color: 'var(--amber)' }}> · chưa sinh giọng{docThu ? ', đang đọc thử' : ''}</span>}</div>;
+            })}
+            {c?.am_thanh && <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>🔊 {c.am_thanh}{!c.am_thanh_url && <span style={{ ...mono, color: 'var(--amber)' }}> · chưa sinh</span>}</div>}
+            {c && !dongThoai(c, nhanVat).length && !c.am_thanh && <div style={mono}>shot này không có thoại / hiệu ứng</div>}
+          </>}
+        </aside>
       </div>
 
       {/* Các track */}
-      <div ref={vungRef} style={{ marginTop: 10, overflowX: 'auto', position: 'relative', paddingBottom: 4 }}>
+      <div ref={vungRef} style={{ marginTop: 0, padding: '6px 10px 0', borderTop: '1px solid var(--line)', overflowX: 'auto', position: 'relative', paddingBottom: 4 }}>
         <div style={{ width: W + nhanW, position: 'relative' }}>
           {/* Thước giây — bấm/kéo để tua */}
           <div style={{ display: 'flex', height: 18 }}>
@@ -340,24 +354,16 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             </div>
           </div>
 
-          {/* Phân cảnh (scene): shot liền nhau cùng phan_doan gộp một khối; rê thấy beat · mục tiêu · xung đột · ẩn ý · cảm xúc đầu→cuối. */}
-          {canh.some((x) => x.phan_doan) && track('🎞 Phân cảnh', 'Shot cùng phân cảnh gộp một khối — mỗi phân cảnh có mục tiêu, xung đột, cảm xúc đổi từ đầu tới cuối', (() => {
-            const khoi: { ten: string; tu: number; den: number }[] = [];
-            canh.forEach((cc, i) => { const l = khoi[khoi.length - 1]; if (l && l.ten === cc.phan_doan) l.den = i; else khoi.push({ ten: cc.phan_doan, tu: i, den: i }); });
-            const beatMau = (b: string) => MAU_NV[Math.max(0, tap.beats.findIndex((x) => x.ten === b)) % MAU_NV.length]!;
-            return khoi.map((kh, j) => {
-              const pc = tap.phan_canh.find((x) => x.ten === kh.ten);
-              const x = batDau[kh.tu]! * pps; const w = (batDau[kh.den]! + dur(canh[kh.den]!)) * pps - x;
-              const mau = pc ? beatMau(pc.beat) : '#64748b';
-              const tt = pc ? `${pc.ten}\nBeat: ${pc.beat} · nhịp ${pc.nhip}\nMục tiêu: ${pc.muc_tieu}\nXung đột: ${pc.xung_dot}${pc.an_y ? `\nẨn ý: ${pc.an_y}` : ''}\nCảm xúc: ${pc.cam_xuc_dau} → ${pc.cam_xuc_cuoi}` : kh.ten || '(chưa đặt phân cảnh)';
-              return (
-                <div key={j} data-goi-y={tt} style={{ position: 'absolute', left: x + 1, width: Math.max(4, w - 2), top: 2, bottom: 2, borderRadius: 4, background: `${mau}26`, borderLeft: `3px solid ${mau}`, color: 'var(--fg-2)', fontSize: 10, lineHeight: '20px', padding: '0 5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {pc?.beat ? <b style={{ color: mau }}>{pc.beat} · </b> : null}{kh.ten || '—'}{pc ? ` (${pc.cam_xuc_dau > 0 ? '+' : ''}${pc.cam_xuc_dau}→${pc.cam_xuc_cuoi > 0 ? '+' : ''}${pc.cam_xuc_cuoi})` : ''}
-                </div>
-              );
-            });
-          })())}
+          {/* Thứ tự làn như After Effects: trên cùng = vẽ trên cùng (chữ màn → lớp phủ → video), rồi làn tham chiếu, rồi âm thanh. */}
+          {canh.some((x) => x.chu_man.trim()) && track('✎ Chữ màn', 'Chữ hiện trên màn của từng shot (hook, số liệu, ưu đãi, CTA) — sửa ở form cảnh; bản xuất vẽ đúng chữ này', canh.map((cc, i) => {
+            if (!cc.chu_man.trim()) return null;
+            return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, '#facc15', chuManHien(cc.chu_man), cc.chu_man, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); });
+          }))}
 
+          {/* Lớp phủ: mỗi lớp một làn (lớp sau nằm trên), kéo khối đổi giờ — bấm chọn để sửa ở bảng bên phải khung xem. */}
+          {lop.length ? [...lop].reverse().map((l) => track(`🧩 ${l.ten || (l.loai === 'chu' ? (l.chu ?? '').split('\n')[0] : l.loai === 'anh' ? 'Ảnh' : 'Hình')}`, 'Lớp phủ — kéo thân để dời, kéo mép để đổi giờ vào/ra; bấm để sửa',
+              <KhoiLop l={l} pps={pps} chon={l.id === chonLop} onChon={() => setChonLop(l.id)} onDoi={(p) => doiLop(l.id, p)} />, 20))
+            : track('🧩 Lớp phủ', 'Chữ, ảnh, hình khối tự do đè lên video', <button type="button" className="xv-lienket xv-mono" style={{ lineHeight: '20px', paddingLeft: 6 }} onClick={() => themLop([lopMoi('chu', t)])}>chưa có lớp — bấm để thêm lớp chữ ở giây {t.toFixed(1)}</button>, 20)}
           {track('🎬 Hình', 'Mỗi cảnh một clip, dài đúng số giây', canh.map((cc, i) => {
             const x = batDau[i]! * pps; const w = dur(cc) * pps; const anh = cc.keyframe_url;
             const dangChon = chon === cc.id; const coVid = !!(cc.video_cuoi_url || cc.video_url);
@@ -375,6 +381,24 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               </div>
             );
           }), 48, nutNho(tat.clip === undefined ? '🔈' : tat.clip ? '🔇' : '🔊', `Tiếng có sẵn của clip: ${tat.clip === undefined ? 'tự (tắt khi shot có giọng/hiệu ứng sinh riêng)' : tat.clip ? 'tắt hết' : 'bật hết'} — bấm để đổi`, !!tat.clip, vongClip))}
+
+          {/* Phân cảnh (scene): shot liền nhau cùng phan_doan gộp một khối; rê thấy beat · mục tiêu · xung đột · ẩn ý · cảm xúc đầu→cuối. */}
+          {canh.some((x) => x.phan_doan) && track('🎞 Phân cảnh', 'Shot cùng phân cảnh gộp một khối — mỗi phân cảnh có mục tiêu, xung đột, cảm xúc đổi từ đầu tới cuối', (() => {
+            const khoi: { ten: string; tu: number; den: number }[] = [];
+            canh.forEach((cc, i) => { const l = khoi[khoi.length - 1]; if (l && l.ten === cc.phan_doan) l.den = i; else khoi.push({ ten: cc.phan_doan, tu: i, den: i }); });
+            const beatMau = (b: string) => MAU_NV[Math.max(0, tap.beats.findIndex((x) => x.ten === b)) % MAU_NV.length]!;
+            return khoi.map((kh, j) => {
+              const pc = tap.phan_canh.find((x) => x.ten === kh.ten);
+              const x = batDau[kh.tu]! * pps; const w = (batDau[kh.den]! + dur(canh[kh.den]!)) * pps - x;
+              const mau = pc ? beatMau(pc.beat) : '#64748b';
+              const tt = pc ? `${pc.ten}\nBeat: ${pc.beat} · nhịp ${pc.nhip}\nMục tiêu: ${pc.muc_tieu}\nXung đột: ${pc.xung_dot}${pc.an_y ? `\nẨn ý: ${pc.an_y}` : ''}\nCảm xúc: ${pc.cam_xuc_dau} → ${pc.cam_xuc_cuoi}` : kh.ten || '(chưa đặt phân cảnh)';
+              return (
+                <div key={j} data-goi-y={tt} style={{ position: 'absolute', left: x + 1, width: Math.max(4, w - 2), top: 2, bottom: 2, borderRadius: 4, background: `${mau}26`, borderLeft: `3px solid ${mau}`, color: 'var(--fg-2)', fontSize: 10, lineHeight: '20px', padding: '0 5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {pc?.beat ? <b style={{ color: mau }}>{pc.beat} · </b> : null}{kh.ten || '—'}{pc ? ` (${pc.cam_xuc_dau > 0 ? '+' : ''}${pc.cam_xuc_dau}→${pc.cam_xuc_cuoi > 0 ? '+' : ''}${pc.cam_xuc_cuoi})` : ''}
+                </div>
+              );
+            });
+          })())}
 
           {/* Đường cong cảm xúc: điểm ở cuối mỗi shot, -5..+5, vạch giữa = 0. */}
           {canh.some((x) => x.cam_xuc) && track('❤ Khán giả', 'Khán giả cảm thấy gì ở cuối mỗi shot (cảm xúc ta MUỐN họ có): dưới vạch = khó chịu/đau (đúng nỗi đau của họ), trên vạch = tò mò → thích → muốn mua. QC tốt: chạm đáy ở nỗi đau rồi leo lên muốn mua.', (() => {
@@ -399,11 +423,6 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             if (!chu) return null;
             const day = ['co_canh', 'goc', 'chuyen_dong', 'ong_kinh', 'anh_sang', 'mau', 'chuyen_canh', 'nhac'].map((n) => kyThuat((kt as Record<string, string>)[n])?.ten).filter(Boolean).join('\n');
             return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, '#38d9f5', chu, day, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); });
-          }))}
-
-          {canh.some((x) => x.chu_man.trim()) && track('✎ Chữ màn', 'Chữ hiện trên màn của từng shot (hook, số liệu, ưu đãi, CTA) — sửa ở form cảnh; bản xuất vẽ đúng chữ này', canh.map((cc, i) => {
-            if (!cc.chu_man.trim()) return null;
-            return khoiAm(batDau[i]! * pps, dur(cc) * pps, true, '#facc15', chuManHien(cc.chu_man), cc.chu_man, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); });
           }))}
 
           {/* MỖI nhân vật một NHÓM làn (#1237, #1244), viền màu nhân vật: 🎭 cảm xúc/diễn xuất theo shot (có mặt mà không nói cũng hiện) · 🗣 thoại. */}
@@ -434,10 +453,6 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             );
           })}
 
-          {/* Lớp phủ: mỗi lớp một làn (lớp sau nằm trên), kéo khối đổi giờ — bấm chọn để sửa ở bảng bên phải khung xem. */}
-          {lop.length ? lop.map((l) => track(`🧩 ${l.ten || (l.loai === 'chu' ? (l.chu ?? '').split('\n')[0] : l.loai === 'anh' ? 'Ảnh' : 'Hình')}`, 'Lớp phủ — kéo thân để dời, kéo mép để đổi giờ vào/ra; bấm để sửa',
-              <KhoiLop l={l} pps={pps} chon={l.id === chonLop} onChon={() => setChonLop(l.id)} onDoi={(p) => doiLop(l.id, p)} />, 20))
-            : track('🧩 Lớp phủ', 'Chữ, ảnh, hình khối tự do đè lên video — thêm ở thanh dưới khung xem trước', <div style={{ ...mono, lineHeight: '20px', paddingLeft: 6 }}>chưa có lớp — ＋ ở thanh dưới khung xem trước</div>, 20)}
           {track('🔊 Âm thanh', 'Hiệu ứng / âm nền từng cảnh', canh.map((cc, i) => {
             if (!cc.am_thanh.trim()) return null;
             return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!cc.am_thanh_url, '#fb923c', cc.am_thanh, `${cc.am_thanh}\n${cc.am_thanh_url ? 'đã có file' : 'chưa sinh'}`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },

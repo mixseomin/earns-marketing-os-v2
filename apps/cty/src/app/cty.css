@@ -341,3 +341,4 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 @media (max-width:700px){.cty-vi .cty-viec td:first-child{display:none}.cty-vi .cty-viec tr:nth-child(n+6){display:none}.cty-vi-so>div{padding:8px 10px}.cty-vi-so b{font-size:1rem}}
 .cty-kn{display:grid;gap:8px;max-width:980px}.cty-kn h3{margin:6px 0 0}
 .cty-kn-nd{white-space:normal!important;width:100%}
+.cty-de-cu{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:8px 12px;border:1px solid var(--accent);border-radius:8px}

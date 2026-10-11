@@ -41,7 +41,17 @@ export const phongFm = (k) => { const id = String(k).split('/')[0]; const f = pa
 // VAI tách khỏi NGƯỜI (decision 2026-10-11 nhân sự sống): quy trình trỏ tới vai (`cong-ty/vai/<vai>.md`); hồ sơ phòng ghi ai đang
 // giữ vai (`vai_<vai>: <người>`). Mã trong quy trình không phải vai (vd 'ha' — Kiểm soát ngoài phòng) thì là người, giữ nguyên.
 export const theVai = (vai) => { const f = path.join(CONG_TY, 'vai', `${vai}.md`); if (!vai || !fs.existsSync(f)) return null; const d = parseFm(fs.readFileSync(f, 'utf8')); return { id: vai, ...d.fm, body: d.body.trim() }; };
-export const vaiCuaPhong = (k) => Object.fromEntries(Object.entries(phongFm(k)).filter(([x]) => x.startsWith('vai_')).map(([x, v]) => [x.slice(4).replace(/_/g, '-'), String(v)]));
+// SỔ BỔ NHIỆM (bước 3): <DATA>/bo-nhiem.json { <phòng>: { <vai>: <người> } } ghi đè hồ sơ phòng trong git — đổi người giữ vai sau thử việc
+// + Giám đốc ký, không phải sửa git. Mọi nơi đọc "ai giữ vai" đi qua đây.
+const boNhiemTep = () => path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'bo-nhiem.json');
+export const soBoNhiem = () => { try { return JSON.parse(fs.readFileSync(boNhiemTep(), 'utf8')); } catch { return {}; } };   // chưa có tệp = chưa bổ nhiệm gì
+export function boNhiem(phong, vai, nguoi, ly_do) {
+  const s = soBoNhiem(); const cu = vaiCuaPhong(phong)[vai] ?? null; (s[phong] ??= {})[vai] = nguoi;
+  (s._lich_su ??= []).push({ luc: new Date().toISOString(), phong, vai, cu, moi: nguoi, ly_do });
+  fs.mkdirSync(path.dirname(boNhiemTep()), { recursive: true }); fs.writeFileSync(boNhiemTep(), JSON.stringify(s, null, 1)); return { cu, moi: nguoi };
+}
+export const vaiCuaPhong = (k) => { const id = String(k).split('/')[0];
+  return { ...Object.fromEntries(Object.entries(phongFm(k)).filter(([x]) => x.startsWith('vai_')).map(([x, v]) => [x.slice(4).replace(/_/g, '-'), String(v)])), ...(soBoNhiem()[id] ?? {}) }; };
 export function giaiNguoi(k, ma) {
   if (!ma) return null; const v = theVai(ma); if (!v) return { nguoi: ma, vai: null };
   const n = vaiCuaPhong(k)[ma];

@@ -12,7 +12,7 @@ import http from 'node:http';
 import { goi, json, nhanSu, motLuot } from './ca.mjs';
 import { ghiApDung, ghiBaiHoc, dsBaiHoc, trangThai } from './kinh-nghiem.mjs';
 import { mayDo } from './quy-trinh.mjs';
-import { phongFm, giaiNguoi, theVai, tenPhong, hienHanh, dsBan, bien, boViecChuan, mucThayDoi, apBanMoi, veBan, dsDeXuat, ghiDeXuat, dsLuotTho, chiSo, chamViecChuan, usdLuot } from './quy-trinh.mjs';
+import { boNhiem, vaiCuaPhong, phongFm, giaiNguoi, theVai, tenPhong, hienHanh, dsBan, bien, boViecChuan, mucThayDoi, apBanMoi, veBan, dsDeXuat, ghiDeXuat, dsLuotTho, chiSo, chamViecChuan, usdLuot } from './quy-trinh.mjs';
 import { ghiLog } from './log.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
@@ -40,11 +40,11 @@ export function dsSoSanh(k) { const d = ssDir(k); return fs.existsSync(d) ? fs.r
 
 /** Chạy BỘ VIỆC CHUẨN với MỘT cấu hình, `lan` lần mỗi việc; chấm theo kỳ vọng của Hà; lưu vào so-sanh/<khoá>/<tiền tố>-<giờ>.json.
  *  Một hàm cho cả so phiên bản (tiền tố v<bản>) lẫn thử cấu hình chưa áp (tiền tố thu-). Tốn ~ (số việc × lan) lượt. */
-async function chayBoViec(k, cfg, lan, tienTo, them = {}) {
+async function chayBoViec(k, cfg, lan, tienTo, them = {}, oLuot = {}) {
   const bo = boViecChuan(k); if (!bo) throw new Error(`phòng ${k} chưa có bộ việc chuẩn`);
   const chiTiet = [];
   for (const v of bo.viec) for (let i = 0; i < lan; i++) {
-    const l = await motLuot(v.viec, true, { khoa: k, quyTrinh: cfg, boViec: v.id });
+    const l = await motLuot(v.viec, true, { khoa: k, quyTrinh: cfg, boViec: v.id, ...oLuot });
     const soat = (l.buoc || []).filter((b) => /soát/.test(b.buoc));
     // thước đối chiếu người kiểm: bài làm VÒNG ĐẦU có qua mọi phép đo máy của Hà không (chỉ việc có phép đo). Qua mà vẫn bị bác = nhiều khả năng bác sai.
     const lam1 = json((l.buoc || []).find((b) => /\blàm\b/.test(b.buoc) && !/lại/.test(b.buoc))?.dap)?.ket_qua;
@@ -85,6 +85,40 @@ export function apKetQuaThu(k, tenTep) {
   fs.writeFileSync(path.join(ssDir(k), `v${v.ban}-${t.ts.replace(/[:.]/g, '-')}.json`), JSON.stringify({ ...t, ban: v.ban, chi_phi: 0, tu_thu: path.basename(f) }, null, 1));   // chi_phi 0: đã tính ở tệp thử
   ghiLog({ luot: `ap-thu-${id}`, loai: 'quyet', tu: 'ha', chi_tiet: { ap_thu: path.basename(f), ban_moi: v.ban, muc: m.muc, thay: m.thay.map((x) => x.khoa) } });
   return dx;
+}
+
+// THỬ VIỆC + ĐỀ CỬ (decision 2026-10-11 nhân sự sống, bước 3): người đang giữ vai và từng ứng viên lần lượt giữ vai trên CÙNG bộ việc chuẩn,
+// cùng cấu hình (mặc định tắt phúc khảo để đo đúng người kiểm). Ứng viên hơn người đang giữ → ĐỀ CỬ chờ Giám đốc ký (đổi người = mức 3).
+// Với vai Người kiểm còn đo: bác sai = bác bài vòng đầu đã qua mọi phép đo máy; duyệt sai = duyệt bài vòng đầu trượt phép đo.
+const tvDir = (k) => path.join(DATA(), 'thu-viec', k);
+export function dsThuViec(k) { const d = tvDir(k); return fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith('.json')).sort().reverse().map((f) => JSON.parse(fs.readFileSync(path.join(d, f), 'utf8'))) : []; }
+const hon = (a, b) => a.diem > b.diem || (a.diem === b.diem && a.loi_kiem < b.loi_kiem);   // điểm trước, rồi ít lỗi kiểm hơn
+export async function thuViec(k, vai, ungVien, lan = 2, thayDoi = { 'phuc_khao.ti_le': 0 }) {
+  const cu = vaiCuaPhong(k)[vai]; if (!cu) throw new Error(`${tenPhong(k)} chưa có ai giữ vai ${vai}`);
+  const cfg = apThayDoi(hienHanh(k), thayDoi); const ket = [];
+  for (const nguoi of [cu, ...ungVien.filter((x) => x !== cu)]) {
+    const r = await chayBoViec(k, cfg, lan, `tv-${nguoi}`, { thu_viec: { vai, nguoi } }, { giuVai: { [vai]: nguoi } });
+    const c = r.chi_tiet; const bacSai = c.filter((x) => x.kiem_bac_v1 && x.v1_dat_may === true).length; const duyetSai = c.filter((x) => x.kiem_bac_v1 === false && x.v1_dat_may === false).length;
+    ket.push({ nguoi, diem: r.diem, so_dung: r.so_dung, tong: r.tong, so_bac_v1: c.filter((x) => x.kiem_bac_v1).length, bac_sai: bacSai, duyet_sai: duyetSai, loi_kiem: bacSai + duyetSai, chi_phi: r.chi_phi });
+  }
+  const goc = ket[0]; const tot = ket.slice(1).filter((x) => hon(x, goc)).sort((a, b) => (hon(a, b) ? -1 : 1))[0] ?? null;
+  const id = new Date().toISOString().replace(/[:.]/g, '-');
+  const kq = { id, ts: new Date().toISOString(), qt: k, phong: k.split('/')[0], vai, nguoi_cu: cu, lan, thu: thayDoi, ket, chi_phi: ket.reduce((s, x) => s + x.chi_phi, 0),
+    de_cu: tot ? { nguoi: tot.nguoi, trang_thai: 'cho_ky', ly_do: `${tot.nguoi} ${tot.so_dung}/${tot.tong} (lỗi kiểm ${tot.loi_kiem}) > ${cu} ${goc.so_dung}/${goc.tong} (lỗi kiểm ${goc.loi_kiem})` } : null };
+  fs.mkdirSync(tvDir(k), { recursive: true }); fs.writeFileSync(path.join(tvDir(k), `${id}.json`), JSON.stringify(kq, null, 1));
+  ghiLog({ luot: `thu-viec-${id}`, loai: 'quyet', tu: 'ha', chi_tiet: { thu_viec: vai, ket: ket.map((x) => `${x.nguoi} ${x.so_dung}/${x.tong} lỗi ${x.loi_kiem}`).join(' · '), de_cu: kq.de_cu?.nguoi ?? 'không' } });
+  return kq;
+}
+/** Giám đốc ký / bác một đề cử (đổi người giữ vai = mức 3). Ký → sổ bổ nhiệm, lượt sau dùng người mới. */
+export function kyDeCu(k, id, dongY) {
+  const f = path.join(tvDir(k), `${id}.json`); if (!fs.existsSync(f)) throw new Error(`không có thử việc ${id}`);
+  const kq = JSON.parse(fs.readFileSync(f, 'utf8')); if (kq.de_cu?.trang_thai !== 'cho_ky') throw new Error('đề cử này không chờ ký');
+  if (vaiCuaPhong(k)[kq.vai] !== kq.nguoi_cu) throw new Error(`người giữ vai đã đổi từ lúc thử việc — thử lại`);
+  if (dongY) boNhiem(kq.phong, kq.vai, kq.de_cu.nguoi, `thử việc ${id}: ${kq.de_cu.ly_do}`);
+  kq.de_cu = { ...kq.de_cu, trang_thai: dongY ? 'da_ky' : 'bi_bac', luc: new Date().toISOString() };
+  fs.writeFileSync(f, JSON.stringify(kq, null, 1));
+  ghiLog({ luot: `de-cu-${id}`, loai: 'quyet', tu: 'giam-doc', chi_tiet: { de_cu: kq.de_cu.nguoi, vai: kq.vai, ky: dongY } });
+  return kq;
 }
 
 /** Thử một THAY ĐỔI cấu hình trên bộ việc chuẩn mà KHÔNG áp vào quy trình đang chạy (để đánh giá trước khi đề xuất). */
@@ -187,7 +221,7 @@ const UOC = { hop: 0.01, so: 0.02, luot: 0.0006, rut: 0.0004 };   // ponytail: �
 export function chiThang(k, luc = new Date()) {
   const thang = luc.toISOString().slice(0, 7);
   const cong = (ds) => ds.filter((x) => String(x.ts).slice(0, 7) === thang).reduce((s, x) => s + (Number(x.chi_phi) || 0), 0);
-  return cong(dsDeXuat(k)) + cong(dsSoSanh(k)) + cong(dsSoTinhCach(k)) + cong(dsLanRut(k));
+  return cong(dsDeXuat(k)) + cong(dsSoSanh(k)) + cong(dsSoTinhCach(k)) + cong(dsLanRut(k));   // thử việc lưu từng lần chạy vào so-sanh (tiền tố tv-) nên đã nằm trong dsSoSanh
 }
 
 // RÚT KINH NGHIỆM (decision 2026-10-11 nhân sự sống, bước 2): sau một lượt CÓ VẤP (không nộp được, hoặc bị bác rồi làm lại), mỗi người
@@ -318,6 +352,15 @@ if (laCli && process.argv.includes('--thu-cau-hinh')) {   // node worker/cai-tie
     phuc_khao_tong: ct.flatMap((c) => c.phuc_khao).length, chi_phi: kq.chi_phi.toFixed(4) }, null, 1)); process.exit(0);
 }
 
+if (laCli && process.argv.includes('--thu-viec')) {   // node worker/cai-tien.mjs --thu-viec nguoi-kiem --ung-vien ngoc,nhi --qt thu-nghiem/lam-viec --lan 2
+  const P = thamSo('--qt', 'thu-nghiem/lam-viec'); const vai = thamSo('--thu-viec', 'nguoi-kiem'); const uv = String(thamSo('--ung-vien', '')).split(',').filter(Boolean); const lan = Number(thamSo('--lan', 2));
+  const uoc = (uv.length + 1) * (boViecChuan(P)?.viec.length ?? 0) * lan * UOC.luot * 3;
+  if (chiThang(P) + uoc > nganSach(P)) { console.log(`✗ vượt ngân sách cải tiến tháng: đã chi $${chiThang(P).toFixed(3)}, ước thêm $${uoc.toFixed(3)}, trần $${nganSach(P)}`); process.exit(1); }
+  const kq = await voiKhoa(P, 'so', () => thuViec(P, vai, uv, lan));
+  for (const x of kq.ket) console.log(`${x.nguoi.padEnd(5)} ${x.so_dung}/${x.tong} đúng · bác v1 ${x.so_bac_v1} · bác sai ${x.bac_sai} · duyệt sai ${x.duyet_sai} · $${x.chi_phi.toFixed(4)}`);
+  console.log(kq.de_cu ? `→ đề cử ${kq.de_cu.nguoi} (chờ Giám đốc ký): ${kq.de_cu.ly_do}` : '→ không ai hơn người đang giữ vai — không đề cử'); process.exit(0);
+}
+
 if (laCli && process.argv.includes('--ap-thu')) {   // node worker/cai-tien.mjs --ap-thu thu-<giờ>.json --qt thu-nghiem/lam-viec
   const P = thamSo('--qt', 'thu-nghiem/lam-viec');
   try { const dx = apKetQuaThu(P, thamSo('--ap-thu', '')); console.log(`✓ áp v${dx.ban_moi} (mức ${dx.muc}): ${dx.ky_vong} · đổi ${dx.thay_doi.map((x) => x.khoa).join(', ')}`); process.exit(0); }
@@ -420,6 +463,14 @@ if (laCli && process.argv.includes('--tu-kiem')) {
   // thử cấu hình: chạy đủ bộ việc với thay đổi, lưu tiền tố thu-, KHÔNG đổi quy trình đang chạy
   const banTruoc = hienHanh(P).ban; const thu = await thuCauHinh(P, { 'phuc_khao.ti_le': 1 }, 1);
   a(thu.tong === boViecChuan(P).viec.length && thu.thu['phuc_khao.ti_le'] === 1 && hienHanh(P).ban === banTruoc && fs.readdirSync(ssDir(P)).some((f) => f.startsWith('thu-')), 'thử cấu hình: đủ bộ việc, có lưu, không áp', { tong: thu.tong });
+  // thử việc + đề cử + ký → sổ bổ nhiệm (ứng viên 'nhi' trả lời như người kiểm giả: luôn duyệt)
+  const tv = await thuViec(P, 'nguoi-kiem', ['nhi'], 1);
+  a(tv.ket.length === 2 && tv.ket[0].nguoi === 'ky' && tv.ket[1].nguoi === 'nhi' && dsThuViec(P).length === 1, 'thử việc: người đang giữ + ứng viên, cùng bộ việc', tv.ket);
+  const tvGia = { ...tv, id: 'zz-gia', de_cu: { nguoi: 'nhi', trang_thai: 'cho_ky', ly_do: 'thử' } }; fs.writeFileSync(path.join(tvDir(P), 'zz-gia.json'), JSON.stringify(tvGia));
+  kyDeCu(P, 'zz-gia', true);
+  a(vaiCuaPhong(P)['nguoi-kiem'] === 'nhi' && giaiNguoi(P, 'nguoi-kiem').nguoi === 'nhi', 'ký đề cử → sổ bổ nhiệm, lượt sau người mới giữ vai', vaiCuaPhong(P));
+  let loiKy = ''; try { kyDeCu(P, 'zz-gia', true); } catch (e) { loiKy = e.message; } a(/không chờ ký/.test(loiKy), 'ký lại đề cử đã ký → từ chối');
+  boNhiem('thu-nghiem', 'nguoi-kiem', 'ky', 'trả lại cho các ca sau');
   // áp kết quả thử: chỉ khi hơn bản đang chạy, không mức 3; áp xong thành bản mới "giữ" và có điểm
   const tepThu = fs.readdirSync(ssDir(P)).find((x) => x.startsWith('thu-')); const tThu = JSON.parse(fs.readFileSync(path.join(ssDir(P), tepThu), 'utf8'));
   const banNay = hienHanh(P).ban; const diemNay = diemMoiNhat(P, banNay);

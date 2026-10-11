@@ -7,7 +7,8 @@ import { tinhCachCua, TINH_CACH } from '../../../worker/tinh-cach.mjs';
 import { soVi, luongVai, bangLuong } from '../../../worker/luong.mjs';
 import { dsBaiHoc, trangThai, NGUONG } from '../../../worker/kinh-nghiem.mjs';
 import { NutBoBaiHoc } from '../nut-bo-bai-hoc';
-import { soTinhCachCua } from '../../../worker/cai-tien.mjs';
+import { soTinhCachCua, dsThuViec } from '../../../worker/cai-tien.mjs';
+import { NutDeCu } from '../nut-de-cu';
 import { KhungVp } from '@/components/khung-vp';
 import Link from 'next/link';
 import { Gio } from '../gio';
@@ -256,13 +257,17 @@ export function nganNhanSu(id: string, admin = false): Ngan {
 export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
   const p = phong(id);
   if (!p) return { tieuDe: id, than: <Thieu chu={`Không có phòng "${id}" (cong-ty/phong/${id}.md).`} /> };
-  const tatCa = dsNhanSu(); const ns = tatCa.filter((d) => d.fm.phong === id);
+  // người của phòng = hồ sơ thuộc phòng + người phòng khác đang được bổ nhiệm giữ vai ở đây (sổ bổ nhiệm, bước 3)
+  const tatCa = dsNhanSu(); const giuO = new Set(Object.values(vaiCuaPhong(id) as Record<string, string>)); const ns = tatCa.filter((d) => d.fm.phong === id || giuO.has(d.id));
   const ten = Object.fromEntries(tatCa.map((d) => [String(d.fm.ten), d.id]));
   const k = KHUON[String(p.fm.khuon)];
   const svg = p.fm.so_do ? soDo(String(p.fm.so_do)) : '';
   const thu = String(p.fm.thu_nghiem) === 'true';
   const dem = thu ? await demLuot() : null;
   const dsQt = (await dsQuyTrinhCacPhong()).filter((x) => x.phong === id);
+  // đề cử chờ Giám đốc ký (thử việc, bước 3) — ghim đầu ngăn phòng vì là quyết định đang chờ
+  type TV = { id: string; ts: string; vai: string; nguoi_cu: string; lan: number; ket: { nguoi: string; so_dung: number; tong: number; bac_sai: number; duyet_sai: number; chi_phi: number }[]; de_cu: { nguoi: string; trang_thai: string; ly_do: string } | null };
+  const deCu = dsQt.filter((q) => q.ban).flatMap((q) => (dsThuViec(q.khoa) as TV[]).filter((t) => t.de_cu?.trang_thai === 'cho_ky').map((t) => ({ ...t, k: q.khoa })));
   // ai đang giữ vai nào ở phòng (decision 2026-10-11 nhân sự sống) — phòng chưa khai vai thì không hiện gì thêm
   const vaiCua: Record<string, string> = {}; for (const [vai, ai] of Object.entries(vaiCuaPhong(id) as Record<string, string>)) vaiCua[ai] = [vaiCua[ai], (theVai(vai) as { ten?: string } | null)?.ten ?? vai].filter(Boolean).join(' · ');
   const choKy = dsQt.reduce((n, q) => n + (q.deXuat?.filter((d) => d.trang_thai === 'cho_duyet').length ?? 0), 0);
@@ -294,6 +299,12 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
     <>
       <div className="cty-phong-nguoi">{ns.map((d) => <span key={d.id}><Nguoi id={d.id} />{vaiCua[d.id] && <span className="cty-muted cty-nho"> {vaiCua[d.id]}</span>}</span>)}<span className="cty-muted cty-nho">{ns.length} người</span></div>
       {canhBao && <p className="cty-bao-loi cty-bao-mot" data-loi title={canhBao}>{canhBao}</p>}
+      {deCu.map((t) => (
+        <div key={t.id} className="cty-de-cu">
+          <span>Đề cử <Nguoi id={t.de_cu!.nguoi} /> thay <Nguoi id={t.nguoi_cu} /> giữ vai <b>{(theVai(t.vai) as { ten?: string } | null)?.ten ?? t.vai}</b> — thử việc <Gio iso={t.ts} />:{' '}
+            {t.ket.map((x, i) => <span key={x.nguoi} className="cty-nho">{i > 0 && ' · '}{x.nguoi}: {x.so_dung}/{x.tong} đúng, bác sai {x.bac_sai}, duyệt sai {x.duyet_sai}</span>)}</span>
+          {admin && <NutDeCu khoa={t.k} id={t.id} nguoi={String(t.de_cu!.nguoi)} />}
+        </div>))}
     </>
   );
   const than = thu

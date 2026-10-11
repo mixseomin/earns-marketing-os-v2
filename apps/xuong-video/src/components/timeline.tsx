@@ -10,13 +10,13 @@ import { ChuManXem } from './chu-man';
 // Nét đứt = mới có mô tả trong kịch bản, chưa sinh file. Toàn bộ chạy ở trình duyệt, không tốn tiền.
 import { useEffect, useMemo, useRef, useState, type PointerEvent as PE, type ReactNode } from 'react';
 import { chuManHien, giayPhat, tenCamXuc, type Canh, type Lop, type ThongTinQc, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
-import { kyThuat, THU_VIEN, NHOM_CHUYEN_CANH } from '@/lib/xuong-video/dien-anh';
+import { kyThuat, chuyenCanhGiua } from '@/lib/xuong-video/dien-anh';
+import { NutChuyenCanh } from './chuyen-canh-ui';
 import { dongThoai, dungTiengClip, tenNoi, cungTen, timNv, lichGiong } from '@/lib/xuong-video/am-thanh';
 import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 import { mono } from './ui';
 import { lopMoi, idLop, tenLop, hieuUngKhungTai, xemChuyenCanh } from '@/lib/xuong-video/lop';
-import { Chon } from './chon';
 import { useLop, LopXem, LopCongCu, LopNguyenLieu, LopBang, KhoiLop } from './lop-ui';
 import { moNgan } from './ngan-chung';
 import { useKichThuoc, TayKeo } from './keo';
@@ -24,9 +24,6 @@ import { useKichThuoc, TayKeo } from './keo';
 const MAU_NV = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#4ade80', '#fb923c', '#60a5fa'];
 // Cột nhãn track: kéo mép phải để nới (#1240) — nhớ theo trình duyệt.
 const NHAN_W_MAC_DINH = 150;
-/** Lựa chọn chuyển cảnh theo nhóm (kiểu CapCut) — chỉ kiểu có hiệu ứng hình (xfade); '' = cắt thẳng. */
-const LUA_CHUYEN_CANH = [{ value: '', label: 'Cắt thẳng', nhom: 'Cắt' },
-  ...THU_VIEN.filter((x) => x.nhom === 'chuyen_canh' && x.xfade).map((x) => ({ value: x.key, label: x.ten, title: x.mo_ta, nhom: NHOM_CHUYEN_CANH.find((n) => n.key === x.nhom_cc)?.ten ?? 'Khác' }))];
 /** Nhiễu hạt cho xem trước hiệu ứng "Hạt phim" (SVG feTurbulence, không tải gì). */
 const HAT_PHIM = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`;
 const KHOA_NHAN_W = 'xv-tl-nhan-w';
@@ -326,10 +323,9 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               </div>
               {(() => {
                 // Chuyển cảnh: trong d giây đầu shot này, hình shot TRƯỚC phủ lên và biến đi theo kiểu (xemChuyenCanh) — gần đúng xfade của bản xuất.
-                const truoc = idx > 0 ? canh[idx - 1] : undefined; const ktc = truoc ? kyThuat(truoc.ky_thuat?.chuyen_canh, 'chuyen_canh') : undefined;
-                if (!truoc || !ktc?.xfade || !truoc.keyframe_url) return null;
-                const d = Math.min(ktc.giay_cc ?? 0.4, dur(truoc) * 0.5, c ? dur(c) * 0.5 : 0.4); if (tTrong >= d) return null;
-                const x = xemChuyenCanh(ktc.xfade, tTrong / d);
+                const truoc = idx > 0 ? canh[idx - 1] : undefined; const cg = truoc && c ? chuyenCanhGiua(truoc.ky_thuat?.chuyen_canh, dur(truoc), dur(c)) : null;
+                if (!truoc?.keyframe_url || !cg || tTrong >= cg.d) return null;
+                const x = xemChuyenCanh(cg.xfade, tTrong / cg.d);
                 return <>{<img src={truoc.keyframe_url} alt="" data-khong-phong-to="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', ...x.cu }} />}
                   {x.loe && <div style={{ position: 'absolute', inset: 0, background: x.loe.mau, opacity: x.loe.mo, pointerEvents: 'none' }} />}</>;
               })()}
@@ -411,15 +407,13 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                 <div onPointerDown={keoMep(cc)} title="Kéo để cắt / kéo dài giây phát" style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 7, cursor: 'ew-resize', background: 'rgba(255,255,255,.25)' }} />
               </div>
             );
-          }), 48, nutNho(tat.clip === undefined ? '🔈' : tat.clip ? '🔇' : '🔊', `Tiếng có sẵn của clip: ${tat.clip === undefined ? 'tự (tắt khi shot có giọng/hiệu ứng sinh riêng)' : tat.clip ? 'tắt hết' : 'bật hết'} — bấm để đổi`, !!tat.clip, vongClip))}
+          }).concat(canh.slice(0, -1).map((cc, i) => {
+            // Điểm nối giữa hai clip: nút ⇄ chọn chuyển cảnh (ky_thuat.chuyen_canh của shot TRƯỚC) + dải d giây bản xuất hoà hình.
+            const sau = canh[i + 1]!;
+            return <NutChuyenCanh key={`cc${cc.id}`} trai={batDau[i + 1]! * pps} pps={pps} value={cc.ky_thuat?.chuyen_canh} phatTruoc={dur(cc)} phatSau={dur(sau)}
+              anhTruoc={cc.keyframe_url} anhSau={sau.keyframe_url} tieuDe={`Chuyển #${cc.thu_tu} → #${sau.thu_tu}`} onChon={onDoiChuyenCanh && ((k) => onDoiChuyenCanh(cc.id, k))} />;
+          })), 48, nutNho(tat.clip === undefined ? '🔈' : tat.clip ? '🔇' : '🔊', `Tiếng có sẵn của clip: ${tat.clip === undefined ? 'tự (tắt khi shot có giọng/hiệu ứng sinh riêng)' : tat.clip ? 'tắt hết' : 'bật hết'} — bấm để đổi`, !!tat.clip, vongClip))}
 
-          {/* Chuyển cảnh giữa hai shot (ky_thuat.chuyen_canh của shot TRƯỚC, nhóm kiểu CapCut) — bản xuất dựng thật bằng xfade, shot sau vẫn vào đúng giây. */}
-          {canh.length > 1 && track('✂ Chuyển cảnh', 'Kiểu chuyển giữa hai shot — bấm điểm cắt để chọn (Cắt · Cơ bản · Trượt · Quét · Hình khối · Động)', canh.slice(0, -1).map((cc, i) => (
-            <div key={cc.id} style={{ position: 'absolute', left: batDau[i + 1]! * pps, top: 1, transform: 'translateX(-50%)', zIndex: 2 }}>
-              <Chon nho minWidth={60} value={cc.ky_thuat?.chuyen_canh && kyThuat(cc.ky_thuat.chuyen_canh, 'chuyen_canh')?.xfade ? cc.ky_thuat.chuyen_canh : ''} onChange={(v) => onDoiChuyenCanh?.(cc.id, v)}
-                title={`Chuyển từ #${cc.thu_tu} sang #${canh[i + 1]!.thu_tu}`} options={LUA_CHUYEN_CANH} />
-            </div>
-          )), 24)}
           {/* Phân cảnh (scene): shot liền nhau cùng phan_doan gộp một khối; rê thấy beat · mục tiêu · xung đột · ẩn ý · cảm xúc đầu→cuối. */}
           {canh.some((x) => x.phan_doan) && track('🎞 Phân cảnh', 'Shot cùng phân cảnh gộp một khối — mỗi phân cảnh có mục tiêu, xung đột, cảm xúc đổi từ đầu tới cuối', (() => {
             const khoi: { ten: string; tu: number; den: number }[] = [];

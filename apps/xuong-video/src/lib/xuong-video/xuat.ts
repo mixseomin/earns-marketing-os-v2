@@ -8,7 +8,7 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/xuat.test.mts
 import type { Canh, KieuChu, LoaiPhim, Lop, NhanVat, Tap, ThongTinQc, ViTriChu } from './kieu';
 import { mauAss, gioAss, lopAss, lopAnhLoc, lopHieuUngLoc } from './lop';
-import { kyThuat } from './dien-anh';
+import { chuyenCanhGiua } from './dien-anh';
 import { giayPhat, locNhanh, doanChuMan, coMau, KIEU_CHU_MAC_DINH } from './kieu';
 export { doanChuMan, chuManHien } from './kieu';
 import { dongThoai, dungTiengClip, lichGiong } from './am-thanh';
@@ -225,10 +225,8 @@ export function keHoachXuat(o: {
   const dsHinh = ds.filter(coHinh);
   const chuyenSau = new Map<number, { xfade: string; d: number }>();
   dsHinh.forEach((c, r) => {
-    const ke = dsHinh[r + 1]; const kt = kyThuat(c.ky_thuat?.chuyen_canh, 'chuyen_canh');
-    if (!ke || !kt?.xfade) return;
-    const d = Math.min(kt.giay_cc ?? 0.4, giayPhat(c) * 0.5, giayPhat(ke) * 0.5);
-    if (d >= 0.1) chuyenSau.set(c.id, { xfade: kt.xfade, d: Math.round(d * 100) / 100 });
+    const ke = dsHinh[r + 1]; const x = ke && chuyenCanhGiua(c.ky_thuat?.chuyen_canh, giayPhat(c), giayPhat(ke));
+    if (x) chuyenSau.set(c.id, { xfade: x.xfade, d: x.d });
   });
   const mocSeg: number[] = []; const xSeg: ({ xfade: string; d: number } | null)[] = [];
   ds.forEach((c, i) => {

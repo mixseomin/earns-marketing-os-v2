@@ -40,6 +40,15 @@ const k = (nhom: NhomKyThuat, key: string, ten: string, mo_ta: string, prompt: s
 /** Chuyển cảnh có hiệu ứng hình (bản xuất dựng bằng xfade). */
 const cc = (key: string, ten: string, mo_ta: string, nhom_cc: NhomChuyenCanh, xfade: string, giay_cc = 0.4, the_loai: TheLoai[] | 'tat_ca' = T): KyThuat => ({ key, nhom: 'chuyen_canh', ten, mo_ta, prompt: '', the_loai, xfade, nhom_cc, giay_cc });
 
+/** Chuyển cảnh thật giữa hai shot liền nhau — MỘT luật cho bản xuất (xfade) lẫn timeline (dải + xem trước): d = giây kiểu, không quá nửa
+ *  thời lượng phát của mỗi bên, làm tròn 0,01s; dưới 0,1s hoặc kiểu không có hiệu ứng hình → null (cắt thẳng). */
+export function chuyenCanhGiua(key: string | undefined, phatTruoc: number, phatSau: number): { kt: KyThuat; xfade: string; d: number } | null {
+  const kt = kyThuat(key, 'chuyen_canh');
+  if (!kt?.xfade) return null;
+  const d = Math.round(Math.min(kt.giay_cc ?? 0.4, phatTruoc * 0.5, phatSau * 0.5) * 100) / 100;
+  return d >= 0.1 ? { kt, xfade: kt.xfade, d } : null;
+}
+
 export const THU_VIEN: KyThuat[] = [
   // ── Cỡ cảnh
   k('co_canh', 'ews', 'Toàn cảnh rất rộng (mở cảnh)', 'Giới thiệu nơi chốn, cho thấy nhân vật nhỏ bé trước thế giới. Đặt đầu phân cảnh.', 'extreme wide establishing shot, tiny figures in a vast environment', ['phieu_luu', 'hoat_hinh', 'vien_tuong', 'chinh_kich', 'kinh_di', 'tai_lieu']),

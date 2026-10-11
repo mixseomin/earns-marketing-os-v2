@@ -5,7 +5,13 @@
 
 export type TheLoai = 'hoat_hinh' | 'phieu_luu' | 'kinh_di' | 'hanh_dong' | 'tinh_cam' | 'hai' | 'chinh_kich' | 'vien_tuong' | 'tai_lieu' | 'qc_ugc' | 'qc_cao_cap';
 export type NhomKyThuat = 'co_canh' | 'goc' | 'chuyen_dong' | 'ong_kinh' | 'anh_sang' | 'mau' | 'chuyen_canh' | 'am_thanh' | 'nhac';
-export type KyThuat = { key: string; nhom: NhomKyThuat; ten: string; mo_ta: string; prompt: string; the_loai: TheLoai[] | 'tat_ca' };
+/** xfade/nhom_cc/giay_cc: riêng nhóm chuyển cảnh — kiểu ffmpeg xfade mà BẢN XUẤT dựng thật giữa shot này và shot sau, nhóm kiểu CapCut, độ dài (giây). */
+export type KyThuat = { key: string; nhom: NhomKyThuat; ten: string; mo_ta: string; prompt: string; the_loai: TheLoai[] | 'tat_ca'; xfade?: string; nhom_cc?: NhomChuyenCanh; giay_cc?: number };
+export type NhomChuyenCanh = 'cat' | 'co_ban' | 'truot' | 'quet' | 'hinh' | 'dong';
+/** Nhóm hiệu ứng chuyển cảnh (kiểu CapCut) — để chọn theo nhóm. 'cat' = cắt thẳng/kỹ thuật dựng không có hiệu ứng hình. */
+export const NHOM_CHUYEN_CANH: { key: NhomChuyenCanh; ten: string }[] = [
+  { key: 'cat', ten: 'Cắt (không hiệu ứng)' }, { key: 'co_ban', ten: 'Cơ bản' }, { key: 'truot', ten: 'Trượt' }, { key: 'quet', ten: 'Quét' }, { key: 'hinh', ten: 'Hình khối' }, { key: 'dong', ten: 'Động' },
+];
 /** Kỹ thuật đã chọn cho một shot (mỗi nhóm một key; âm thanh có thể nhiều). */
 export type KyThuatShot = Partial<Record<Exclude<NhomKyThuat, 'am_thanh'>, string>> & { am_thanh?: string[] };
 
@@ -31,6 +37,8 @@ export const NHOM_KY_THUAT: { key: NhomKyThuat; ten: string; icon: string }[] = 
 
 const T = 'tat_ca' as const;
 const k = (nhom: NhomKyThuat, key: string, ten: string, mo_ta: string, prompt: string, the_loai: TheLoai[] | 'tat_ca'): KyThuat => ({ key, nhom, ten, mo_ta, prompt, the_loai });
+/** Chuyển cảnh có hiệu ứng hình (bản xuất dựng bằng xfade). */
+const cc = (key: string, ten: string, mo_ta: string, nhom_cc: NhomChuyenCanh, xfade: string, giay_cc = 0.4, the_loai: TheLoai[] | 'tat_ca' = T): KyThuat => ({ key, nhom: 'chuyen_canh', ten, mo_ta, prompt: '', the_loai, xfade, nhom_cc, giay_cc });
 
 export const THU_VIEN: KyThuat[] = [
   // ── Cỡ cảnh
@@ -101,11 +109,35 @@ export const THU_VIEN: KyThuat[] = [
   k('chuyen_canh', 'cat_khop', 'Cắt khớp hình (match cut)', 'Hình dáng/chuyển động shot sau khớp shot trước — nối ý, thời gian trôi.', 'end on a strong shape or motion that the next shot will mirror', ['phieu_luu', 'chinh_kich', 'vien_tuong', 'qc_cao_cap', 'hoat_hinh']),
   k('chuyen_canh', 'j_cut', 'J-cut (tiếng đến trước)', 'Âm thanh cảnh sau vang lên trước khi hình đổi — dẫn mượt.', '', ['chinh_kich', 'tinh_cam', 'tai_lieu', 'phieu_luu']),
   k('chuyen_canh', 'l_cut', 'L-cut (tiếng còn kéo dài)', 'Tiếng cảnh trước còn đọng khi hình đã sang — dư âm cảm xúc.', '', ['chinh_kich', 'tinh_cam', 'tai_lieu']),
-  k('chuyen_canh', 'hoa_tan', 'Hoà tan (dissolve)', 'Hình chồng mờ — thời gian trôi, hồi ức.', '', ['tinh_cam', 'chinh_kich', 'hoat_hinh']),
-  k('chuyen_canh', 'toi_den', 'Tắt dần về đen', 'Kết một chương, khoảng lặng.', '', ['chinh_kich', 'kinh_di', 'tinh_cam', 'tai_lieu']),
-  k('chuyen_canh', 'quat_chuyen', 'Quất chuyển (whip)', 'Lia nhanh sang cảnh mới — năng lượng, hài, quảng cáo.', 'end with a fast whip-pan motion blur', ['hai', 'hanh_dong', 'qc_ugc']),
+  { ...k('chuyen_canh', 'hoa_tan', 'Hoà tan (dissolve)', 'Hình chồng mờ — thời gian trôi, hồi ức.', '', ['tinh_cam', 'chinh_kich', 'hoat_hinh']), xfade: 'dissolve', nhom_cc: 'co_ban' as NhomChuyenCanh, giay_cc: 0.6 },
+  { ...k('chuyen_canh', 'toi_den', 'Tắt dần về đen', 'Kết một chương, khoảng lặng.', '', ['chinh_kich', 'kinh_di', 'tinh_cam', 'tai_lieu']), xfade: 'fadeblack', nhom_cc: 'co_ban' as NhomChuyenCanh, giay_cc: 0.6 },
+  { ...k('chuyen_canh', 'quat_chuyen', 'Quất chuyển (whip)', 'Lia nhanh sang cảnh mới — năng lượng, hài, quảng cáo.', 'end with a fast whip-pan motion blur', ['hai', 'hanh_dong', 'qc_ugc']), xfade: 'hblur', nhom_cc: 'dong' as NhomChuyenCanh, giay_cc: 0.35 },
   k('chuyen_canh', 'cat_soc', 'Cắt sốc (smash cut)', 'Từ yên tĩnh cắt phắt sang ồn ào (hoặc ngược) — doạ, hài.', '', ['kinh_di', 'hai', 'hanh_dong']),
   k('chuyen_canh', 'nhay', 'Jump cut', 'Cắt nhảy trong cùng khung — nhịp nhanh kiểu TikTok/UGC.', '', ['qc_ugc', 'hai']),
+  // Nhóm hiệu ứng chuyển cảnh kiểu CapCut (11/10/2026) — bản xuất dựng thật bằng ffmpeg xfade, mượn đuôi shot trước nên giờ các shot không đổi.
+  cc('mo_cheo', 'Mờ chéo', 'Hình trước mờ dần sang hình sau — mềm, dùng được mọi chỗ.', 'co_ban', 'fade', 0.4),
+  cc('loe_trang', 'Loé trắng', 'Loé sáng rồi vào cảnh mới — lộ giá, chuyển nhịp QC.', 'co_ban', 'fadewhite', 0.4),
+  cc('qua_xam', 'Mờ qua xám', 'Phai màu rồi lên màu cảnh sau — hồi tưởng, trước/sau.', 'co_ban', 'fadegrays', 0.5),
+  cc('truot_trai', 'Trượt trái', 'Cảnh sau đẩy cảnh trước sang trái — lướt kiểu story.', 'truot', 'slideleft', 0.35),
+  cc('truot_phai', 'Trượt phải', 'Cảnh sau đẩy sang phải.', 'truot', 'slideright', 0.35),
+  cc('truot_len', 'Trượt lên', 'Đẩy lên như vuốt TikTok.', 'truot', 'slideup', 0.35),
+  cc('truot_xuong', 'Trượt xuống', 'Đẩy xuống.', 'truot', 'slidedown', 0.35),
+  cc('phu_trai', 'Phủ từ phải', 'Cảnh sau trượt vào phủ lên cảnh trước (cảnh trước đứng yên).', 'truot', 'coverleft', 0.35),
+  cc('quet_trai', 'Quét trái', 'Vạch quét ngang thay cảnh — gọn, đồ hoạ.', 'quet', 'wipeleft', 0.35),
+  cc('quet_phai', 'Quét phải', 'Vạch quét sang phải.', 'quet', 'wiperight', 0.35),
+  cc('quet_len', 'Quét lên', 'Vạch quét từ dưới lên.', 'quet', 'wipeup', 0.35),
+  cc('quet_cheo', 'Quét chéo', 'Quét từ góc trên trái — năng động.', 'quet', 'wipetl', 0.4),
+  cc('muot_trai', 'Quét mượt', 'Quét có mép mềm — sang trọng.', 'quet', 'smoothleft', 0.45),
+  cc('mo_tron', 'Mở tròn', 'Vòng tròn nở ra lộ cảnh sau — tiết lộ sản phẩm.', 'hinh', 'circleopen', 0.45),
+  cc('dong_tron', 'Đóng tròn', 'Vòng tròn khép lại vào cảnh sau.', 'hinh', 'circleclose', 0.45),
+  cc('mo_doc', 'Mở cửa dọc', 'Tách đôi dọc như mở cửa — ra mắt, khai trương.', 'hinh', 'vertopen', 0.4),
+  cc('mo_ngang', 'Mở cửa ngang', 'Tách đôi ngang.', 'hinh', 'horzopen', 0.4),
+  cc('quat_tron', 'Quạt xoay', 'Quét vòng như kim đồng hồ.', 'hinh', 'radial', 0.45),
+  cc('lat_cat', 'Lát cắt', 'Các lát ngang thay cảnh — kiểu đồ hoạ.', 'hinh', 'hlslice', 0.4),
+  cc('phong_vao', 'Phóng vào', 'Phóng to cảnh trước rồi vào cảnh sau — dồn năng lượng, hook.', 'dong', 'zoomin', 0.35),
+  cc('pixel', 'Vỡ điểm ảnh', 'Vỡ thành ô vuông rồi ghép lại — game, công nghệ.', 'dong', 'pixelize', 0.45),
+  cc('ep_ngang', 'Ép ngang', 'Ép dẹt cảnh trước rồi bung cảnh sau — vui, nảy.', 'dong', 'squeezeh', 0.35),
+  cc('gio_cuon', 'Gió cuốn', 'Vệt gió quét ngang — nhanh, hài.', 'dong', 'hlwind', 0.4),
   // ── Âm thanh
   k('am_thanh', 'nen_phong', 'Âm nền phòng', 'Tiếng phòng nhỏ, đồng hồ, tủ lạnh — thật, gần.', 'quiet room tone ambience', T),
   k('am_thanh', 'rung', 'Âm rừng', 'Chim, gió lá, côn trùng.', 'forest ambience, birdsong, rustling leaves', ['hoat_hinh', 'phieu_luu', 'kinh_di', 'tai_lieu']),

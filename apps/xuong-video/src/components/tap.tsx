@@ -262,6 +262,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
                 <Timeline canh={canhNhanh} nhanVat={nhanVat} tap={tap} qc={kt.qc} tiLe={kt.ti_le} ngonNgu={kt.ngon_ngu} chon={cc.id} onChon={setChonCanh} onToanManHinh={() => setAnimatic(true)}
                   // Kéo mép = đổi giây PHÁT: ngắn hơn clip là cắt (không tốn tiền); dài hơn clip thì clip phải sinh lại dài hơn.
                   onDoiGiay={(id, g) => void chay(`c${id}`, () => { const c0 = canh.find((x) => x.id === id); return suaCanh(id, { phat_s: g, ...(c0 && g > (c0.thoi_luong_s || 4) ? { thoi_luong_s: Math.ceil(g) } : {}) }); })}
+                  onDoiChuyenCanh={(id, key) => void chay(`c${id}`, () => { const c0 = canh.find((x) => x.id === id); return suaCanh(id, { ky_thuat: { ...(c0?.ky_thuat ?? {}), chuyen_canh: key || undefined } }); })}
                   sinh={{
                     giong: (id, tuy) => void chay(`g${id}`, () => sinhGiong(tap.id, [id], tuy)),
                     sfx: (id, tuy) => void chay(`s${id}`, () => sinhAmThanh(tap.id, [id], undefined, tuy)),

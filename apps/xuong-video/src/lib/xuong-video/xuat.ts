@@ -8,6 +8,7 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/xuat.test.mts
 import type { Canh, KieuChu, LoaiPhim, Lop, NhanVat, Tap, ThongTinQc, ViTriChu } from './kieu';
 import { mauAss, gioAss, lopAss, lopAnhLoc, lopHieuUngLoc } from './lop';
+import { kyThuat } from './dien-anh';
 import { giayPhat, locNhanh, doanChuMan, coMau, KIEU_CHU_MAC_DINH } from './kieu';
 export { doanChuMan, chuManHien } from './kieu';
 import { dongThoai, dungTiengClip, lichGiong } from './am-thanh';
@@ -219,25 +220,38 @@ export function keHoachXuat(o: {
     const ka = them(g.url);
     themAm(`[${ka}:a]${chuanGiong(g.url)}${g.nhanh > 1.001 ? `atempo=${so(g.nhanh)},` : ''}${g.cat != null ? `atrim=0:${so(g.cat)},` : ''}asetpts=PTS-STARTPTS,adelay=${Math.round(g.tu * 1000)}:all=1`, nhanhGiong);
   }
+  // Chuyển cảnh (ky_thuat.chuyen_canh có xfade, dien-anh.ts): shot trước MƯỢN ĐUÔI d giây (clip còn dư, thiếu thì giữ khung cuối), shot sau vẫn
+  // bắt đầu đúng giây cũ và được xfade hoà vào trong d giây đó → giọng, chữ màn, nhạc, lớp phủ không lệch.
+  const dsHinh = ds.filter(coHinh);
+  const chuyenSau = new Map<number, { xfade: string; d: number }>();
+  dsHinh.forEach((c, r) => {
+    const ke = dsHinh[r + 1]; const kt = kyThuat(c.ky_thuat?.chuyen_canh, 'chuyen_canh');
+    if (!ke || !kt?.xfade) return;
+    const d = Math.min(kt.giay_cc ?? 0.4, giayPhat(c) * 0.5, giayPhat(ke) * 0.5);
+    if (d >= 0.1) chuyenSau.set(c.id, { xfade: kt.xfade, d: Math.round(d * 100) / 100 });
+  });
+  const mocSeg: number[] = []; const xSeg: ({ xfade: string; d: number } | null)[] = [];
   ds.forEach((c, i) => {
     const phat = giayPhat(c);
+    const cs = chuyenSau.get(c.id) ?? null; const dai = phat + (cs?.d ?? 0);
     const vUrl = c.video_cuoi_url || c.video_url;
     const kUrl = c.keyframe_url;
     const nguon = vUrl && nl.has(vUrl) ? vUrl : kUrl && nl.has(kUrl) ? kUrl : null;
     if (!nguon) { canhThieu.push(`#${c.thu_tu} ${c.canh}`); return; }
     const laVideo = nguon === vUrl;
-    const k = laVideo ? them(nguon) : them(nguon, ['-loop', '1', '-framerate', '30', '-t', so(phat)]);
+    const k = laVideo ? them(nguon) : them(nguon, ['-loop', '1', '-framerate', '30', '-t', so(dai)]);
     // Clip sinh từ keyframe khởi động chậm ~0,3–0,5s (đo: chuyển động 0,5–1 rồi mới lên 2,5–4,6) → cắt vào đó cảnh nào cũng như khựng.
     // Bỏ tối đa 0,5s đầu khi clip còn dư so với giây phát — cảnh mở ra giữa chuyển động như QC thật.
     const daiClip = laVideo ? nl.get(nguon)?.dai ?? null : null;
     const boDau = laVideo && daiClip ? Math.max(0, Math.min(0.5, daiClip - phat - 0.02)) : 0;
-    const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(boDau + phat)},setpts=PTS-STARTPTS,${khung}` : `[${k}:v]${khungTinh(i)},trim=0:${so(phat)},setpts=PTS-STARTPTS${dayMay(phat)}`];
+    const cuoiThat = laVideo ? Math.min(daiClip ?? boDau + dai, boDau + dai) : 0; const dem = laVideo ? Math.max(0, boDau + dai - cuoiThat) : 0;
+    const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(cuoiThat)},setpts=PTS-STARTPTS,${khung}${dem > 0.01 ? `,tpad=stop_mode=clone:stop_duration=${so(dem)}` : ''}` : `[${k}:v]${khungTinh(i)},trim=0:${so(dai)},setpts=PTS-STARTPTS${dayMay(dai)}`];
     for (const d of doanChuMan(c.chu_man, phat)) cauMan.push({ tu: t + d.tu, den: t + d.den, dong: d.dong, kieu: c.kieu_chu });
-    if (logoUrl) { const kl = them(logoUrl, ['-loop', '1', '-framerate', '30', '-t', so(phat)]); loc.push(`[${kl}:v]scale=-1:${Math.round(H * 0.06)},format=rgba[lg${i}]`); ve[ve.length - 1] += `[vv${i}];[vv${i}][lg${i}]overlay=W-w-${Math.round(W * 0.03)}:${Math.round(H * 0.03)}:shortest=1`; }
+    if (logoUrl) { const kl = them(logoUrl, ['-loop', '1', '-framerate', '30', '-t', so(dai)]); loc.push(`[${kl}:v]scale=-1:${Math.round(H * 0.06)},format=rgba[lg${i}]`); ve[ve.length - 1] += `[vv${i}];[vv${i}][lg${i}]overlay=W-w-${Math.round(W * 0.03)}:${Math.round(H * 0.03)}:shortest=1`; }
     const dungClip = dungTiengClip(c, o.nhanVat);
     if (c.am_thanh_url && nl.has(c.am_thanh_url)) { const ka = them(c.am_thanh_url); themAm(`[${ka}:a]atrim=0:${so(phat)},asetpts=PTS-STARTPTS,volume=0.8,adelay=${Math.round(t * 1000)}:all=1`); }
     if (laVideo && dungClip && nl.get(nguon)?.coAm) themAm(`[${k}:a]atrim=${so(boDau)}:${so(boDau + phat)},asetpts=PTS-STARTPTS,adelay=${Math.round(t * 1000)}:all=1`);
-    loc.push(`${ve.join(',')}[v${i}]`); nhanhVideo.push(`[v${i}]`);
+    loc.push(`${ve.join(',')},settb=AVTB[v${i}]`); nhanhVideo.push(`[v${i}]`); mocSeg.push(t); xSeg.push(cs);
     t += phat;
   });
   // Nhạc: theo phân cảnh (khối shot liền nhau cùng phan_doan) nếu có, không thì một bài; lặp khi ngắn, nhỏ tiếng, fade hai đầu.
@@ -259,16 +273,25 @@ export function keHoachXuat(o: {
     const anhEnd = o.qc.anh?.[0] && nl.has(o.qc.anh[0]) ? o.qc.anh[0] : null;
     if (anhEnd) {
       const ke = them(anhEnd, ['-loop', '1', '-framerate', '30', '-t', '2']);
-      loc.push(`[${ke}:v]${khung},trim=0:2,setpts=PTS-STARTPTS,colorlevels=rimax=0.55:gimax=0.55:bimax=0.55,${khoiChu('end', dong, fsMan, (n) => `h*0.78-${Math.round(n * fsMan * 1.25 / 2)}`, `borderw=${Math.round(fsMan / 14)}:bordercolor=black@0.85`, '')}[vend]`);
-    } else loc.push(`color=c=0x101014:s=${W}x${H}:d=2:r=30,format=yuv420p,${drawMan('end', dong, true)}[vend]`);
-    nhanhVideo.push('[vend]'); giay += 2;
+      loc.push(`[${ke}:v]${khung},trim=0:2,setpts=PTS-STARTPTS,colorlevels=rimax=0.55:gimax=0.55:bimax=0.55,${khoiChu('end', dong, fsMan, (n) => `h*0.78-${Math.round(n * fsMan * 1.25 / 2)}`, `borderw=${Math.round(fsMan / 14)}:bordercolor=black@0.85`, '')},settb=AVTB[vend]`);
+    } else loc.push(`color=c=0x101014:s=${W}x${H}:d=2:r=30,format=yuv420p,${drawMan('end', dong, true)},settb=AVTB[vend]`);
+    nhanhVideo.push('[vend]'); mocSeg.push(giay); xSeg.push(null); giay += 2;
   }
   if (!nhanhVideo.length) return { args: [], tep, giay: 0, canhThieu, canhBao };
   // Chữ màn vẽ MỘT lần trên cả video bằng libass (màu chữ/viền/nhấn số, font, đổi chữ theo giây) — thay drawtext từng shot.
   // Lớp phủ (kieu.ts › Lop): ảnh phủ bằng overlay ngay sau ghép hình; chữ/hình vào CÙNG tệp ASS với chữ màn (chữ màn lớp 100, nằm trên).
   // Xem từng shot (chiThuTu) thì bỏ lớp phủ — giây của lớp tính trên cả tập.
   const lop = o.chiThuTu?.length ? [] : (o.tap.lop ?? []).filter((l) => !l.an && l.den > l.tu && l.tu < giay);
-  loc.push(`${nhanhVideo.join('')}concat=n=${nhanhVideo.length}:v=1:a=0[vcat]`);
+  if (!xSeg.some(Boolean)) loc.push(`${nhanhVideo.join('')}concat=n=${nhanhVideo.length}:v=1:a=0[vcat]`);
+  else {
+    // Nối từng cặp: có chuyển cảnh → xfade tại giây bắt đầu của shot sau (dòng tích luỹ dài đúng mốc + d); không → concat.
+    let acc = nhanhVideo[0]!;
+    for (let j = 1; j < nhanhVideo.length; j++) {
+      const x = xSeg[j - 1]; const ra = j === nhanhVideo.length - 1 ? '[vcat]' : `[vx${j}]`;
+      loc.push(x ? `${acc}${nhanhVideo[j]}xfade=transition=${x.xfade}:duration=${so(x.d)}:offset=${so(mocSeg[j]!)}${ra}` : `${acc}${nhanhVideo[j]}concat=n=2:v=1:a=0${ra}`);
+      acc = ra;
+    }
+  }
   let nen = 'vcat';
   lop.filter((l) => l.loai === 'anh' && l.url && nl.has(l.url)).forEach((l, i) => {
     const k = them(l.url!, ['-loop', '1', '-framerate', so(fpsRa), '-t', so(giay)]);

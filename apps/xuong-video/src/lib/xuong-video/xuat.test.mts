@@ -224,3 +224,17 @@ console.log('xuat.test: mẫu ok');
   assert.strictEqual(duoiNhac(md(() => -15, 56)), null);
   console.log('xuat.test: đuôi nhạc ok');
 }
+// Chuyển cảnh (ky_thuat.chuyen_canh có xfade): shot trước mượn đuôi d, xfade tại giây bắt đầu shot sau; không có → concat; clip thiếu → tpad.
+{
+  const sh = (id: number, cc?: string) => ({ ...canh[0]!, id, thu_tu: id, phat_s: 2, nhanh: '', chu_man: '', thoai: [], video_url: `https://x/v${id}.mp4`, video_cuoi_url: null, ky_thuat: cc ? { chuyen_canh: cc } : {} });
+  const nlC = [nl('https://x/v1.mp4', 3), nl('https://x/v2.mp4', 2.1), nl('https://x/v3.mp4', 4)];
+  const k = keHoachXuat({ loai: 'phim', tiLe: '9:16', canh: [sh(1, 'mo_tron'), sh(2), sh(3)] as never, nhanVat: nv, tap: { nhac_url: null, nhac_phan_canh: {} }, nguyenLieu: nlC, font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
+  const l = k.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
+  assert.ok(l.includes('[v0][v1]xfade=transition=circleopen:duration=0.45:offset=2[vx1]'), l);   // shot 2 vào đúng giây 2
+  assert.ok(l.includes('[vx1][v2]concat=n=2:v=1:a=0[vcat]'), l);                                   // không chuyển cảnh → nối thẳng
+  assert.ok(/\[0:v\]trim=0\.5:2\.95,/.test(l), l);                                                  // shot 1 mượn đuôi 0,45s (bỏ 0,5s đầu)
+  assert.strictEqual(k.giay, 6);                                                                    // tổng giờ không đổi
+  const kKhong = keHoachXuat({ loai: 'phim', tiLe: '9:16', canh: [sh(1), sh(2)] as never, nhanVat: nv, tap: { nhac_url: null, nhac_phan_canh: {} }, nguyenLieu: nlC, font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
+  assert.ok(kKhong.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung.includes('[v0][v1]concat=n=2:v=1:a=0[vcat]'));
+  console.log('xuat.test: chuyển cảnh ok');
+}

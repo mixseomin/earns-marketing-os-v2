@@ -154,3 +154,20 @@ export function hieuUngKhungTai(ds: Lop[], t: number, rong: number): { transform
   }
   return out;
 }
+
+/** Xem trước chuyển cảnh (CSS, gần đúng xfade của bản xuất): hình shot TRƯỚC phủ lên và biến đi theo kiểu, p = 0→1 trong d giây đầu shot sau.
+ *  Trả style cho lớp hình cũ + màu loé (đen/trắng) nếu có. */
+export function xemChuyenCanh(xfade: string, p: number): { cu: Record<string, string | number>; loe?: { mau: string; mo: number } } {
+  const q = kep(p, 0, 1), pc = `${Math.round(q * 100)}%`;
+  if (xfade === 'fadeblack' || xfade === 'fadewhite') return { cu: { opacity: q < 0.5 ? 1 : 0 }, loe: { mau: xfade === 'fadeblack' ? '#000' : '#fff', mo: 1 - Math.abs(2 * q - 1) } };
+  if (/^slide|^cover/.test(xfade)) { const h = xfade.replace(/^(slide|cover)/, ''); const tr = h === 'left' ? `translateX(-${pc})` : h === 'right' ? `translateX(${pc})` : h === 'up' ? `translateY(-${pc})` : `translateY(${pc})`; return { cu: { transform: tr } }; }
+  if (/^wipe|^smooth/.test(xfade)) { const h = xfade.replace(/^(wipe|smooth)/, ''); const ins = h === 'left' ? `inset(0 ${pc} 0 0)` : h === 'right' ? `inset(0 0 0 ${pc})` : h === 'up' ? `inset(0 0 ${pc} 0)` : h === 'down' ? `inset(${pc} 0 0 0)` : `inset(0 0 ${pc} ${pc})`; return { cu: { clipPath: ins } }; }
+  if (xfade === 'circleopen') return { cu: { WebkitMaskImage: `radial-gradient(circle at center, transparent ${Math.round(q * 75)}%, #000 ${Math.round(q * 75) + 1}%)`, maskImage: `radial-gradient(circle at center, transparent ${Math.round(q * 75)}%, #000 ${Math.round(q * 75) + 1}%)` } };
+  if (xfade === 'circleclose') return { cu: { clipPath: `circle(${Math.round((1 - q) * 75)}% at 50% 50%)` } };
+  if (xfade === 'vertopen') return { cu: { clipPath: `polygon(0 0, ${50 - q * 50}% 0, ${50 - q * 50}% 100%, 0 100%, 0 0, 100% 0, 100% 100%, ${50 + q * 50}% 100%, ${50 + q * 50}% 0, 100% 0)` } };
+  if (xfade === 'horzopen') return { cu: { clipPath: `polygon(0 0, 100% 0, 100% ${50 - q * 50}%, 0 ${50 - q * 50}%, 0 ${50 + q * 50}%, 100% ${50 + q * 50}%, 100% 100%, 0 100%)` } };
+  if (xfade === 'zoomin') return { cu: { transform: `scale(${1 + q * 0.6})`, opacity: 1 - q } };
+  if (xfade === 'squeezeh') return { cu: { transform: `scaleY(${1 - q})` } };
+  if (xfade === 'pixelize' || xfade === 'hblur' || /wind$/.test(xfade)) return { cu: { filter: `blur(${Math.round(q * 12)}px)`, opacity: 1 - q } };
+  return { cu: { opacity: 1 - q } };   // fade, dissolve, fadegrays, radial, hlslice… → mờ chéo
+}

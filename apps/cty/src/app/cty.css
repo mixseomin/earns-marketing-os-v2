@@ -355,7 +355,6 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-dn thead th{position:sticky;top:0;background:var(--bg);z-index:1}
 .cty-dn th{text-align:left;font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:10px;border-bottom:1px solid var(--line);white-space:nowrap;font-weight:600}
 .cty-dn .cty-so{text-align:right}
-.cty-dn th.cty-so{white-space:normal}   /* nhãn cột số dài hơn số bên dưới: cho xuống dòng, cột rộng theo số (bảng không tràn ngang ở 1280) */
 .cty-dn-chinh{font-weight:700;color:var(--ink)}
 .cty-dn-dx ul{margin:.2rem 0 .6rem;padding-left:1.1rem;display:grid;gap:4px}
 .cty-dn-dx h3{margin:.4rem 0 .1rem;font-size:1rem}

@@ -37,7 +37,7 @@ export default async function TrangDoiNgu({ searchParams }: { searchParams: Prom
         <TabPhong khoa="doi-ngu" tabs={[{ key: 'ns', nhan: 'Nhân sự', so: ds.length }, { key: 'ss', nhan: 'So sánh bộ não', so: models.length }, { key: 'dx', nhan: 'Đề xuất', so: nhom('doi').length }]}>
           <div className="cty-dn-cuon">
             <table className="cty-viec cty-dn cty-dn-ns">
-              <thead><tr><th>Người</th><th>Phòng</th><th>Vai chính</th><th>Bộ não</th>{VAI.map((v) => <th key={v} className="cty-so" title={TEN_VAI[v]}>{COT_VAI[v]}</th>)}<th className="cty-so" title="Giá 1.000 lời gọi ở vai chính của người đó">$/1.000 lời gọi vai chính</th><th>Đề xuất</th></tr></thead>
+              <thead><tr><th>Người</th><th>Phòng</th><th>Vai chính</th><th>Bộ não</th>{VAI.map((v) => <th key={v} className="cty-so" title={TEN_VAI[v]}>{COT_VAI[v]}</th>)}<th className="cty-so" title="Giá 1.000 lời gọi ở vai chính của người đó">$/1.000 lời gọi<br />vai chính</th><th>Đề xuất</th></tr></thead>
               <tbody>{ds.map((d) => (
                 <tr key={d.id}>
                   <td><Nguoi id={d.id} /></td><td className="cty-muted">{d.phongTen}</td><td title={d.giuVai.join(' · ') || d.chucDanh}>{TEN_VAI[d.vai]}</td>
@@ -51,7 +51,7 @@ export default async function TrangDoiNgu({ searchParams }: { searchParams: Prom
           </div>
           <div className="cty-dn-cuon">
             <table className="cty-viec cty-dn cty-dn-ss">
-              <thead><tr><th>Bộ não</th><th>Ai đang dùng</th>{VAI.map((v) => <th key={v} className="cty-so" title={TEN_VAI[v]}>{COT_VAI[v]}</th>)}<th className="cty-so" title="Trung bình giá 1.000 lời gọi của ba vai">$/1.000 lời gọi TB 3 vai</th><th>Đáng chú ý</th></tr></thead>
+              <thead><tr><th>Bộ não</th><th>Ai đang dùng</th>{VAI.map((v) => <th key={v} className="cty-so" title={TEN_VAI[v]}>{COT_VAI[v]}</th>)}<th className="cty-so" title="Trung bình giá 1.000 lời gọi của ba vai">$/1.000 lời gọi<br />TB 3 vai</th><th>Đáng chú ý</th></tr></thead>
               <tbody>{models.sort((a, b) => tb(b) - tb(a)).map((m) => {
                 const dung = aiDung(m); const chu = VAI.flatMap((v) => canhBao(v, k.theo_vai[v][m])).join(' · ');
                 return (

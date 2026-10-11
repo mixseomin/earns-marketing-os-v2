@@ -1,5 +1,6 @@
 // Phòng thử, chia mảnh cho các tab của ngăn phòng (YDNI): Chạy = khung giao việc + lượt mới nhất đủ bước; Các lượt = mỗi lượt
 // một dòng (bấm bung đủ bước). Mỗi lần bấm Chạy = một lượt (~$0,0005).
+import { NutChayLai } from './khung-chay';
 import Link from 'next/link';
 import { dsLuot, type Luot } from '@/lib/thu-nghiem';
 import { usdLuot } from '../../worker/quy-trinh.mjs';
@@ -41,12 +42,13 @@ const KQ: Record<string, [string, string]> = { submitted: ['nộp, chờ ký', '
 const tienLuot = (l: Luot) => usdLuot(l) as number;
 
 /** Một lượt đủ bước: đầu lượt (trạng thái · việc · giờ · số) + từng bước (người, giờ, mô hình, trả lời đã dàn nhãn). */
-export function LuotChiTiet({ l }: { l: Luot }) {
+export function LuotChiTiet({ l, admin = false }: { l: Luot; admin?: boolean }) {
   return (
     <div className="cty-luot">
       <div className="cty-luot-meta"><KhoangGio tu={l.bat_dau} den={l.ket_thuc} />
         {l.tong && <span> · {l.tong.buoc} bước · {so(l.tong.token)} token · ${tienLuot(l).toFixed(4)} · {giay(l.tong.ms)}</span>}
-        {' · '}<Link href={`/nhat-ky?luot=${encodeURIComponent(l.ts)}`}>sổ sự kiện ↗</Link></div>
+        {' · '}<Link href={`/nhat-ky?luot=${encodeURIComponent(l.ts)}`}>sổ sự kiện ↗</Link>
+        {l.trang_thai !== 'đang chạy' && <NutChayLai viec={l.viec} admin={admin} />}</div>
       {l.loi && <p className="cty-bao-loi" data-loi>Lỗi: {l.loi}</p>}
       <ol className="cty-thu-buoc">
         {l.buoc.map((b, i) => { const t = tachBuoc(b.buoc); return (
@@ -85,16 +87,16 @@ export async function PhongThuChay({ admin }: { admin: boolean }) {
   return (
     <div className="cty-thu">
       <KhungChay macDinh={VIEC_MAU} admin={admin} dangChay={ds.some((l) => l.trang_thai === 'đang chạy')} />
-      {moi ? <><h3 className="cty-thu-tieu"><DauLuot l={moi} /></h3><LuotChiTiet l={moi} /></> : <p className="cty-muted">Chưa có lượt nào. Bấm Chạy để xem Tâm giao việc → Lộc làm → Kỳ soát → báo cáo.</p>}
+      {moi ? <><h3 className="cty-thu-tieu"><DauLuot l={moi} /></h3><LuotChiTiet l={moi} admin={admin} /></> : <p className="cty-muted">Chưa có lượt nào. Bấm Chạy để xem Tâm giao việc → Lộc làm → Kỳ soát → báo cáo.</p>}
     </div>
   );
 }
 
 /** Tab Các lượt: mỗi lượt một dòng, bấm bung đủ bước. */
-export async function PhongThuDs() {
+export async function PhongThuDs({ admin }: { admin: boolean }) {
   const ds = await dsLuot();
   if (!ds.length) return <p className="cty-muted">Chưa có lượt nào.</p>;
-  return <div className="cty-ds-luot">{ds.map((l) => <details key={l.ts} id={`luot-${l.ts}`} className="cty-luot-hang"><summary><DauLuot l={l} /></summary><LuotChiTiet l={l} /></details>)}</div>;
+  return <div className="cty-ds-luot">{ds.map((l) => <details key={l.ts} id={`luot-${l.ts}`} className="cty-luot-hang"><summary><DauLuot l={l} /></summary><LuotChiTiet l={l} admin={admin} /></details>)}</div>;
 }
 
 export async function demLuot() { const ds = await dsLuot(); return { tong: ds.length, dangChay: ds.some((l) => l.trang_thai === 'đang chạy'), moi: ds[0] ?? null }; }

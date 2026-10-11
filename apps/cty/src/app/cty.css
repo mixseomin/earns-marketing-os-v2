@@ -351,7 +351,7 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 
 /* Đội ngũ (/nhan-su): bảng nhân sự + so sánh bộ não + đề xuất. Khung tab (.cty-tabnoi) là chỗ cuộn duy nhất — trang không cuộn, đầu bảng
    dính trên khung đó; không đặt chiều cao tay ở đây (bản cũ calc(100dvh - 210px) lệch khung tab 7px ở 1440×900, 12/10/2026). */
-.cty-dn-cuon{display:grid;gap:8px;align-content:start}
+.cty-dn-cuon{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;align-content:start}   /* cột không nở theo bảng: chú thích xuống dòng trong khung */
 .cty-dn thead th{position:sticky;top:0;background:var(--bg);z-index:1}
 .cty-dn th{text-align:left;font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:10px;border-bottom:1px solid var(--line);white-space:nowrap;font-weight:600}
 .cty-dn .cty-so{text-align:right}
@@ -359,4 +359,5 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-dn-dx ul{margin:.2rem 0 .6rem;padding-left:1.1rem;display:grid;gap:4px}
 .cty-dn-dx h3{margin:.4rem 0 .1rem;font-size:1rem}
 @media (max-width:700px){
-  .cty-dn .cty-an-hep{display:none}}   /* cột phụ gắn class ngay ô (không đếm thứ tự cột: bảng trong phòng bỏ cột Phòng thì thứ tự lệch) */
+  .cty-dn .cty-an-hep{display:none}
+  .cty-dn :is(th,td){padding-inline:6px}   /* 390px: 5 cột còn lại vừa khung tab (lề 8–10px tràn 7–11px, #1305) */}   /* cột phụ gắn class ngay ô (không đếm thứ tự cột: bảng trong phòng bỏ cột Phòng thì thứ tự lệch) */

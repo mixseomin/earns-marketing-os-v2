@@ -20,6 +20,6 @@ if (!t[0]) { console.error('không thấy tập'); process.exit(1); }
 const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(t[0].phim_id)} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
 const lech = kq.canh.flatMap((c: { nhan_vat: string[] }) => c.nhan_vat.filter((x) => !nv.some((v) => v.ten.trim().toLowerCase() === x.trim().toLowerCase())));
 if (lech.length) { console.error(`tên anchor không có trong phim: ${[...new Set(lech)].join(', ')}`); process.exit(1); }
-const so = await luuCanhTach(db, { tapId, tenTap: String(t[0].ten), kq: kq as never, nhanVat: nv, nguoi: 'script nap-canh', thoiLuongS: kq.canh.reduce((a: number, c: { phat_s: number }) => a + c.phat_s, 0) });
+const so = await luuCanhTach(db, { tapId, tenTap: String(t[0].ten), kq: kq as never, nhanVat: nv, nguoi: 'script nap-canh', thoiLuongS: Math.round(kq.canh.reduce((a: number, c: { phat_s: number }) => a + c.phat_s, 0)) });   // cột thoi_luong_s là số nguyên
 console.log(`đã nạp ${so} shot vào tập #${tapId}`);
 process.exit(0);

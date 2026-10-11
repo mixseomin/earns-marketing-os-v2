@@ -37,7 +37,7 @@ function boGio(l: Luot): Luot {
 }
 
 /** Giao một lượt (bấm nút trên trang = một lượt, ~$0,0005). Trả lời RÕ cho nút: ok, hay lý do bị từ chối — không im lặng. */
-export async function chayMotLuot(viecGoc: string): Promise<{ ok: boolean; loi?: string }> {
+export async function chayMotLuot(viecGoc: string, nhip = 0): Promise<{ ok: boolean; loi?: string }> {
   const me = await getCurrentUser();
   if (!me) return { ok: false, loi: 'Phiên đăng nhập đã hết — tải lại trang để đăng nhập.' };
   if (me.role !== 'admin') return { ok: false, loi: 'Chỉ admin được chạy lượt (tốn tiền).' };
@@ -49,7 +49,7 @@ export async function chayMotLuot(viecGoc: string): Promise<{ ok: boolean; loi?:
   try {
     fs.mkdirSync(NK, { recursive: true });
     const log = fs.openSync(path.join(DATA, 'ca.log'), 'a');
-    const child = spawn(process.execPath, [worker, '--viec', viec], { detached: true, stdio: ['ignore', log, log], env: process.env });
+    const child = spawn(process.execPath, [worker, '--viec', viec, ...(nhip > 0 ? ['--nhip', String(Math.min(Math.round(nhip), 30))] : [])], { detached: true, stdio: ['ignore', log, log], env: process.env });
     child.unref();
   } catch (e) { return { ok: false, loi: `Không khởi động được worker: ${(e as Error).message}` }; }
   // Worker ghi tệp lượt "đang chạy" ngay khi vào; đợi tệp đó xuất hiện (≤3s) để danh sách hiện lượt mới liền.

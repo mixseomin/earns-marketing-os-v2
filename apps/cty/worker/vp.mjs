@@ -16,12 +16,14 @@ async function hook(home, body) {
   } catch { return false; }
 }
 
-// trangThai: 'lam' (đang gọi mô hình → nhân vật gõ) · 'xong' (về ghế) · 'cho' (chờ người)
-export async function vpBao(id, trangThai, buoc = '') {
+// trangThai: 'lam' (đang gọi mô hình → nhân vật gõ) · 'xong' (về ghế) · 'cho' (chờ người). moTa = chữ hiện trên đầu nhân vật
+// (vd "2 làm · từ Tâm"): đi qua Bash.command vì pixel-agents chỉ hiện chữ tự do của công cụ này ("Running: …", cắt ở 30 ký tự).
+export async function vpBao(id, trangThai, moTa = '') {
   const session_id = `cty-${id}`;
-  const ev = trangThai === 'lam' ? [{ session_id, hook_event_name: 'PreToolUse', tool_name: 'Edit', tool_input: { file_path: buoc || 'ca' } }]
+  const cong = { tool_name: 'Bash', tool_input: { command: moTa || 'ca' } };
+  const ev = trangThai === 'lam' ? [{ session_id, hook_event_name: 'PreToolUse', ...cong }]
     : trangThai === 'cho' ? [{ session_id, hook_event_name: 'Notification', notification_type: 'idle_prompt' }]
-    : [{ session_id, hook_event_name: 'PostToolUse', tool_name: 'Edit', tool_input: { file_path: buoc || 'ca' } }, { session_id, hook_event_name: 'Stop' }];
+    : [{ session_id, hook_event_name: 'PostToolUse', ...cong }, { session_id, hook_event_name: 'Stop' }];
   let ok = 0;
   for (const home of HOMES()) for (const e of ev) if (await hook(home, e)) ok++;
   return ok;

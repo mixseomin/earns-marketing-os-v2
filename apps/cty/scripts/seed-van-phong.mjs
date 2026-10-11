@@ -22,8 +22,8 @@ if (process.argv.includes('--config')) {
   fs.mkdirSync(HOME, { recursive: true });
   const f = path.join(HOME, 'config.json');
   const cfg = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : {};
-  cfg.standalone = { ...(cfg.standalone || {}), watchAllSessions: true };
-  cfg.alwaysShowLabels = true;
+  // pixel-agents standalone đọc khoá trong `standalone` — trước ghi alwaysShowLabels ở ngoài nên nhãn trên đầu chưa từng bật (11/10/2026).
+  cfg.standalone = { ...(cfg.standalone || {}), watchAllSessions: true, alwaysShowLabels: true };
   fs.writeFileSync(f, JSON.stringify(cfg, null, 2));
   console.log('config: watchAllSessions=true, alwaysShowLabels=true');
   process.exit(0);

@@ -22,18 +22,26 @@ const doc = (rel) => parseFm(fs.readFileSync(path.join(CONG_TY, rel), 'utf8'));
 const luat = fs.readFileSync(path.join(CONG_TY, 'AGENTS.md'), 'utf8');
 export const nhanSu = (id, luot) => { const rel = `nhan-su/${id}/SOUL.md`; const d = doc(rel); ghiLog({ luot, loai: 'doc', tu: id, chi_tiet: { tep: rel, ky_tu: d.body.length, ly_do: 'nạp hồ sơ trước ca' } }); return { id, ...d.fm, body: d.body }; };
 
+// --nhip <giây>: mỗi bước giữ "đang làm" ít nhất chừng ấy giây rồi mới chuyển người (chạy chậm để xem trên văn phòng / gỡ lỗi).
+// Chỉ thêm thời gian chờ, không gọi thêm mô hình → không tốn thêm tiền. Mặc định 0 = chạy hết tốc.
+const NHIP = Math.min(Math.max(Number(process.argv.includes('--nhip') ? process.argv[process.argv.indexOf('--nhip') + 1] : 0) || 0, 0), 30);
+const tenCua = (id) => id === 'giam-doc' ? 'Giám đốc' : (() => { try { return String(doc(`nhan-su/${id}/SOUL.md`).fm.ten || id); } catch { return id; } })();
+
 export async function goi(ns, user, buoc, nk, toi) {
   ghiLog({ luot: nk.ts, loai: 'tin', tu: toi?.tu ?? 'giam-doc', toi: ns.id, chi_tiet: { buoc, noi_dung: user.slice(0, 240) } });
   const body = { model: ns.model, max_tokens: 500, temperature: 0.3,
     system: `Bạn là ${ns.ten}, ${ns.chuc_danh}, ${nk.ten_phong ?? 'công ty'}. LUẬT CHUNG (rút gọn): ba mức quyết định; việc nộp phải có bằng chứng; không khen mở đầu; trả lời đúng định dạng được yêu cầu, không thêm lời dẫn.\n\n${nk.quy_dinh ? `\n\nQUY ĐỊNH DỰ ÁN PHÒNG PHẢI TUÂN THEO (trên quy trình của phòng, không được làm trái):\n${nk.quy_dinh}` : ''}\n\nHỒ SƠ CỦA BẠN:\n${ns.body}`,
     messages: [{ role: 'user', content: user }] };
-  await vpBao(ns.id, 'lam', buoc);
+  const moTa = `${buoc} · từ ${tenCua(toi?.tu ?? 'giam-doc')}`;
+  await vpBao(ns.id, 'lam', moTa);
   const t0 = Date.now(); const bat_dau = new Date(t0).toISOString();
   const r = await fetch(`${PROXY()}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': ns.id, 'x-cty-luot': nk.ts }, body: JSON.stringify(body) });
   const d = await r.json();
-  await vpBao(ns.id, 'xong', buoc);
+  const ms = Date.now() - t0; const ket_thuc = new Date().toISOString();   // giờ của mô hình, không tính nhịp chờ
+  if (NHIP * 1000 > ms) await new Promise((ok) => setTimeout(ok, NHIP * 1000 - ms));
+  await vpBao(ns.id, 'xong', moTa);
   const text = r.ok ? (d.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('') : '';
-  nk.buoc.push({ buoc, ai: ns.ten, id: ns.id, model: ns.model, bat_dau, ket_thuc: new Date().toISOString(), ms: Date.now() - t0, http: r.status, usage: d.usage || null, loi: r.ok ? null : d.error || JSON.stringify(d).slice(0, 200), hoi: user, dap: text });
+  nk.buoc.push({ buoc, ai: ns.ten, id: ns.id, model: ns.model, bat_dau, ket_thuc, ms, http: r.status, usage: d.usage || null, loi: r.ok ? null : d.error || JSON.stringify(d).slice(0, 200), hoi: user, dap: text });
   if (!r.ok) throw new Error(`${ns.ten}: ${r.status} ${d.error || ''}`);
   ghiLog({ luot: nk.ts, loai: 'tin', tu: ns.id, toi: toi?.tu ?? 'giam-doc', chi_tiet: { buoc, tra_loi: text.slice(0, 240) } });
   return text;

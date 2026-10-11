@@ -47,15 +47,20 @@ export function NutChayLai({ viec, admin }: { viec: string; admin: boolean }) {
   const router = useRouter();
   const [dang, gui] = useTransition();
   const [bao, setBao] = useState<{ ok: boolean; chu: string } | null>(null);
+  const [nhip, setNhip] = useState(0);
   if (!admin) return null;
   const chay = () => gui(async () => {
     setBao(null);
-    try { const r = await chayMotLuot(viec); setBao(r.ok ? { ok: true, chu: 'Đã giao lại — lượt mới hiện ở đầu danh sách.' } : { ok: false, chu: r.loi ?? 'Máy chủ từ chối, không rõ lý do.' }); router.refresh(); }
+    try { const r = await chayMotLuot(viec, nhip); setBao(r.ok ? { ok: true, chu: 'Đã giao lại — lượt mới hiện ở đầu danh sách.' } : { ok: false, chu: r.loi ?? 'Máy chủ từ chối, không rõ lý do.' }); router.refresh(); }
     catch (e) { setBao({ ok: false, chu: `Không gửi được (${(e as Error).message}). Tải lại trang rồi bấm lại.` }); }
   });
   return (
     <span className="cty-chay-lai">
-      <NutXacNhan disabled={dang} nhan={dang ? 'Đang giao…' : '↻ Chạy lại'} hoi="Giao lại đúng việc này, tốn ≈ $0,0005." onXacNhan={chay} />
+      <NutXacNhan disabled={dang} nhan={dang ? 'Đang giao…' : '↻ Chạy lại'} onXacNhan={chay}
+        hoi={<>Giao lại đúng việc này, tốn ≈ $0,0005. Tốc độ{' '}
+          <select value={nhip} onChange={(e) => setNhip(Number(e.target.value))} aria-label="Tốc độ chạy">
+            <option value={0}>thường</option><option value={5}>chậm · 5 giây/bước</option><option value={15}>rất chậm · 15 giây/bước</option>
+          </select></>} />
       {bao && <span className={bao.ok ? 'cty-bao-ok' : 'cty-bao-loi'} data-loi={bao.ok ? undefined : ''}>{bao.chu}</span>}
     </span>
   );

@@ -17,5 +17,6 @@ for (const id of ids) {
   console.log(`#${d.thu_tu} ${d.canh.slice(0, 40)} · ${d.thamChieu.length} ảnh tham chiếu`
     + ` | kf: ${k ? `job ${k.job} ${k.model} ${k.thamChieuUrl ? `${k.thamChieuUrl.length} ref` : 'ref?'}${k.doi.length ? ` ⚠ ${k.doi.join(' / ')}` : ''}${cl(k)}${!k.doi.length && !k.cauLenh ? ' ✓' : ''}` : d.keyframe_url ? 'không có job' : '—'}`
     + ` | clip: ${v ? `job ${v.job} ${v.model}${v.xuLySau ? ` (+${v.xuLySau})` : ''}${v.doi.length ? ` ⚠ ${v.doi.join(' / ')}` : ''}${cl(v)}${!v.doi.length && !v.cauLenh ? ' ✓' : ''}` : d.video_url ? 'không có job' : '—'}`);
+  if (chiTiet) for (const [ten, b] of [['kf', k], ['clip', v]] as const) if (b?.cauLenh) { for (const c of b.cauLenh.them) console.log(`    ${ten} + ${c.slice(0, 200)}`); for (const c of b.cauLenh.bot) console.log(`    ${ten} − ${c.slice(0, 200)}`); }
 }
 process.exit(0);

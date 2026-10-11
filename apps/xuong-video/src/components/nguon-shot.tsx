@@ -10,16 +10,18 @@ import { moNgan } from './ngan-chung';
 import { mono } from './ui';
 
 type TT = 'ok' | 'doi' | 'cau' | 'mo';
+const KHOA_VT = 'xv-nguon-vi-tri';
 const MAU: Record<TT, string> = { ok: 'var(--lime)', doi: 'var(--red)', cau: 'var(--amber)', mo: 'var(--fg-3)' };
 const NHAN_TT: Record<TT, string> = { ok: 'khớp', doi: 'đã đổi', cau: 'câu lệnh khác', mo: 'không rõ' };
 type Day = { tu: string; den: string; tt: TT; nhan?: string };
 const ttBuoc = (b: BuocNguon | null): TT => (!b ? 'mo' : b.doi.length ? 'doi' : b.cauLenh ? 'cau' : 'ok');
 
 /** Thẻ node: đầu thẻ (tiêu đề + chấm trạng thái), thân; cổng vào bên trái do `cong` vẽ, cổng ra là mép phải giữa thẻ. */
-function The({ id, tieuDe, tt, chon, onChon, w = 150, children, dat }: { id: string; tieuDe: string; tt?: TT; chon: boolean; onChon: () => void; w?: number; children: ReactNode; dat: (id: string, el: HTMLElement | null) => void }) {
+function The({ id, tieuDe, tt, chon, onChon, w = 150, children, dat, lech, onKeo }: { id: string; tieuDe: string; tt?: TT; chon: boolean; onChon: () => void; w?: number; children: ReactNode; dat: (id: string, el: HTMLElement | null) => void;
+  /** độ dời do kéo (px) + hàm kéo: kéo ĐẦU thẻ để dời, thân thẻ vẫn bấm chọn / rê xem ảnh */ lech?: { x: number; y: number }; onKeo: (id: string, e: React.PointerEvent) => void }) {
   return (
-    <div ref={(el) => dat(id, el)} onClick={onChon} style={{ width: w, background: 'var(--bg-1)', border: `1px solid ${chon ? 'var(--cyan)' : 'var(--line)'}`, borderRadius: 8, boxShadow: chon ? '0 0 0 1px var(--cyan)' : '0 2px 8px rgba(0,0,0,.35)', cursor: 'pointer', position: 'relative', zIndex: 1 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 7px', borderBottom: '1px solid var(--line)', fontSize: 10.5, fontWeight: 600 }}>
+    <div ref={(el) => dat(id, el)} onClick={onChon} style={{ transform: lech ? `translate(${lech.x}px, ${lech.y}px)` : undefined, width: w, background: 'var(--bg-1)', border: `1px solid ${chon ? 'var(--cyan)' : 'var(--line)'}`, borderRadius: 8, boxShadow: chon ? '0 0 0 1px var(--cyan)' : '0 2px 8px rgba(0,0,0,.35)', cursor: 'pointer', position: 'relative', zIndex: 1 }}>
+      <div onPointerDown={(e) => onKeo(id, e)} title="Kéo để dời thẻ" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 7px', borderBottom: '1px solid var(--line)', fontSize: 10.5, fontWeight: 600, cursor: 'grab', touchAction: 'none', userSelect: 'none' }}>
         {tt && <span title={NHAN_TT[tt]} style={{ width: 7, height: 7, borderRadius: '50%', background: MAU[tt], flexShrink: 0 }} />}
         <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tieuDe}</span>
       </div>
@@ -48,6 +50,16 @@ function ChiTiet({ b, tieuDe }: { b: BuocNguon; tieuDe: string }) {
 export function NguonShotNoiDung({ canhId }: { canhId: number }) {
   const [d, setD] = useState<NguonShot | null | undefined>(undefined);
   const [chon, setChon] = useState<string>('clip');
+  // Vị trí thẻ do anh kéo (dời so với chỗ xếp sẵn) — nhớ theo trình duyệt, cùng một bố cục cho mọi shot (id thẻ giống nhau).
+  const [vt, setVt] = useState<Record<string, { x: number; y: number }>>(() => { try { return JSON.parse(localStorage.getItem(KHOA_VT) ?? '{}') as Record<string, { x: number; y: number }>; } catch { return {}; } });
+  useEffect(() => { try { localStorage.setItem(KHOA_VT, JSON.stringify(vt)); } catch { /* trình duyệt chặn lưu: vẫn kéo được, chỉ không nhớ */ } }, [vt]);
+  const keo = (id: string, e: React.PointerEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    const x0 = e.clientX, y0 = e.clientY, goc = vt[id] ?? { x: 0, y: 0 }; const tg = e.currentTarget as HTMLElement; tg.setPointerCapture(e.pointerId);
+    const di = (ev: PointerEvent) => setVt((m) => ({ ...m, [id]: { x: goc.x + ev.clientX - x0, y: goc.y + ev.clientY - y0 } }));
+    const xong = () => { tg.removeEventListener('pointermove', di); tg.removeEventListener('pointerup', xong); tg.removeEventListener('pointercancel', xong); };
+    tg.addEventListener('pointermove', di); tg.addEventListener('pointerup', xong); tg.addEventListener('pointercancel', xong);
+  };
   useEffect(() => { setD(undefined); void nguonCuaShot(canhId).then((x) => { setD(x); setChon(x?.video ? 'clip' : 'kf'); }); }, [canhId]);
   // Dây nối: đo vị trí thật của thẻ / cổng sau khi vẽ (ảnh tải xong làm thẻ cao lên → ResizeObserver đo lại).
   const khung = useRef<HTMLDivElement>(null);
@@ -85,8 +97,8 @@ export function NguonShotNoiDung({ canhId }: { canhId: number }) {
     if (d.khungCuoiNay || vd.khungCuoi) days.push({ tu: 'ke', den: 'cong:cuoi', tt: (vd.khungCuoi ?? null) === d.khungCuoiNay ? 'ok' : 'doi', nhan: (vd.khungCuoi ?? null) === d.khungCuoiNay ? undefined : 'đã đổi' });
     days.push({ tu: 'cauVideo', den: 'cong:lenh', tt: vd.cauLenh ? 'cau' : 'ok' });
   }
-  const anh = (url: string | null, w: number, ten: string) => url
-    ? <img src={url} alt="" data-khong-phong-to="" onDoubleClick={(e) => { e.stopPropagation(); moNgan({ loai: 'xem', url, ten }); }} title="Nhấp đúp để phóng to" style={{ width: w, aspectRatio: tl, objectFit: 'cover', borderRadius: 4, display: 'block', background: '#000' }} />
+  const anh = (url: string | null, w: number, ten: string, soSanh?: { ten: string; url: string }[]) => url
+    ? <img src={url} alt="" data-so-sanh={soSanh?.length ? JSON.stringify(soSanh) : undefined} draggable={false} onDoubleClick={(e) => { e.stopPropagation(); moNgan({ loai: 'xem', url, ten }); }} title="Rê để xem to · nhấp đúp để mở" style={{ width: w, aspectRatio: tl, objectFit: 'cover', borderRadius: 4, display: 'block', background: '#000' }} />
     : <div style={{ width: w, aspectRatio: tl, border: '1px dashed var(--line)', borderRadius: 4, display: 'grid', placeItems: 'center', fontSize: 10, color: 'var(--fg-3)' }}>không có</div>;
   const cong = (id: string, nhan: string, url: string | null, tt: TT) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginLeft: -12 }}>
@@ -103,6 +115,7 @@ export function NguonShotNoiDung({ canhId }: { canhId: number }) {
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <b style={{ fontSize: 12 }}>#{d.thu_tu} {d.canh}</b>
         <span style={{ flex: 1 }} />
+        {Object.keys(vt).length > 0 && <button type="button" className="xv-lienket xv-mono" onClick={() => setVt({})} title="Đưa mọi thẻ về chỗ xếp sẵn">↺ xếp lại</button>}
         {(['ok', 'cau', 'doi', 'mo'] as TT[]).map((t) => <span key={t} style={{ ...mono, display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 14, height: 2, background: MAU[t] }} />{NHAN_TT[t]}</span>)}
       </div>
       {/* Bàn node */}
@@ -116,33 +129,33 @@ export function NguonShotNoiDung({ canhId }: { canhId: number }) {
           </svg>
           {cot(<>
             {d.thamChieu.map((v, i) => (
-              <The key={v.url + i} id={`ref${i}`} tieuDe={`${i + 1}. ${v.nhan.split(' · ')[0]}`} chon={chon === `ref${i}`} onChon={() => setChon(`ref${i}`)} w={wNho + 64} dat={dat}>
+              <The key={v.url + i} id={`ref${i}`} tieuDe={`${i + 1}. ${v.nhan.split(' · ')[0]}`} chon={chon === `ref${i}`} onChon={() => setChon(`ref${i}`)} w={wNho + 64} dat={dat} lech={vt[`ref${i}`]} onKeo={keo}>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>{anh(v.url, ngang ? 56 : 30, v.nhan)}<span style={{ fontSize: 10, color: 'var(--fg-2)', lineHeight: 1.25 }}>{v.nhan.split(' · ').slice(1).join(' · ')}</span></div>
               </The>
             ))}
             {!d.thamChieu.length && <div style={{ ...mono, width: 150 }}>Không có ảnh tham chiếu — model vẽ theo chữ.</div>}
-            <The id="cauAnh" tieuDe="📝 Câu lệnh ảnh" tt={!kf ? 'mo' : kf.cauLenh ? 'cau' : 'ok'} chon={chon === 'cauAnh'} onChon={() => setChon('cauAnh')} w={wNho + 64} dat={dat}>
+            <The id="cauAnh" tieuDe="📝 Câu lệnh ảnh" tt={!kf ? 'mo' : kf.cauLenh ? 'cau' : 'ok'} chon={chon === 'cauAnh'} onChon={() => setChon('cauAnh')} w={wNho + 64} dat={dat} lech={vt["cauAnh"]} onKeo={keo}>
               <div style={{ ...mono, fontSize: 9.5, lineHeight: 1.3 }}>{cauNgan(d.promptAnhNay)}</div>
               {kf?.cauLenh && <div style={{ fontSize: 10, color: 'var(--amber)' }}>+{kf.cauLenh.them.length} / −{kf.cauLenh.bot.length} câu so lúc sinh</div>}
             </The>
           </>)}
           {cot(<>
-            <The id="kf" tieuDe="🖼 Keyframe" tt={kf ? ttBuoc(kf) : d.keyframe_url ? 'mo' : undefined} chon={chon === 'kf'} onChon={() => setChon('kf')} w={ngang ? 210 : 130} dat={dat}>
-              {anh(d.keyframe_url, ngang ? 196 : 116, 'Keyframe đang chọn')}
+            <The id="kf" tieuDe="🖼 Keyframe" tt={kf ? ttBuoc(kf) : d.keyframe_url ? 'mo' : undefined} chon={chon === 'kf'} onChon={() => setChon('kf')} w={ngang ? 210 : 130} dat={dat} lech={vt["kf"]} onKeo={keo}>
+              {anh(d.keyframe_url, ngang ? 196 : 116, 'Keyframe đang chọn', d.thamChieu.map((v) => ({ ten: v.nhan, url: v.url })))}
               <div style={mono}>{kf ? `${kf.model.replace(/^fal:/, '').split('/').pop()} · ${tien(kf.chi_phi_cents)}` : d.keyframe_url ? 'không do xưởng sinh' : 'chưa có'}</div>
             </The>
             {(d.khungCuoiNay || vd?.khungCuoi) && (
-              <The id="ke" tieuDe="⏭ Keyframe shot sau" tt={vd && (vd.khungCuoi ?? null) !== d.khungCuoiNay ? 'doi' : 'ok'} chon={chon === 'ke'} onChon={() => setChon('ke')} w={wNho + 16} dat={dat}>
+              <The id="ke" tieuDe="⏭ Keyframe shot sau" tt={vd && (vd.khungCuoi ?? null) !== d.khungCuoiNay ? 'doi' : 'ok'} chon={chon === 'ke'} onChon={() => setChon('ke')} w={wNho + 16} dat={dat} lech={vt["ke"]} onKeo={keo}>
                 {anh(d.khungCuoiNay, wNho, 'Keyframe shot sau (khung cuối giờ sẽ dùng)')}
               </The>
             )}
-            {vd && <The id="cauVideo" tieuDe="📝 Câu lệnh video" tt={vd.cauLenh ? 'cau' : 'ok'} chon={chon === 'cauVideo'} onChon={() => setChon('cauVideo')} w={ngang ? 210 : 150} dat={dat}>
+            {vd && <The id="cauVideo" tieuDe="📝 Câu lệnh video" tt={vd.cauLenh ? 'cau' : 'ok'} chon={chon === 'cauVideo'} onChon={() => setChon('cauVideo')} w={ngang ? 210 : 150} dat={dat} lech={vt["cauVideo"]} onKeo={keo}>
               <div style={{ ...mono, fontSize: 9.5, lineHeight: 1.3 }}>{cauNgan(d.promptVideoNay)}</div>
               {vd.cauLenh && <div style={{ fontSize: 10, color: 'var(--amber)' }}>+{vd.cauLenh.them.length} / −{vd.cauLenh.bot.length} câu so lúc sinh</div>}
             </The>}
           </>)}
           {cot(
-            <The id="clip" tieuDe={`🎬 Clip${vd?.xuLySau ? ` · ${vd.xuLySau}` : ''}`} tt={vd ? ttBuoc(vd) : d.video_url ? 'mo' : undefined} chon={chon === 'clip'} onChon={() => setChon('clip')} w={ngang ? 240 : 150} dat={dat}>
+            <The id="clip" tieuDe={`🎬 Clip${vd?.xuLySau ? ` · ${vd.xuLySau}` : ''}`} tt={vd ? ttBuoc(vd) : d.video_url ? 'mo' : undefined} chon={chon === 'clip'} onChon={() => setChon('clip')} w={ngang ? 240 : 150} dat={dat} lech={vt["clip"]} onKeo={keo}>
               {vd && <div style={{ display: 'grid', gap: 5, paddingBottom: 4 }}>
                 {cong('dau', 'khung đầu', vd.khungDau, vd.khungDau && vd.khungDau !== d.keyframe_url ? 'doi' : 'ok')}
                 {(d.khungCuoiNay || vd.khungCuoi) && cong('cuoi', 'khung cuối', vd.khungCuoi, (vd.khungCuoi ?? null) === d.khungCuoiNay ? 'ok' : 'doi')}

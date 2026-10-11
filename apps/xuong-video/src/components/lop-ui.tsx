@@ -33,15 +33,26 @@ export function useLop(tapId: number, tuServer: Lop[]) {
 }
 
 /** Lớp đang hiện ở giây t, vẽ đè lên khung xem trước. Lớp đang chọn: viền nét đứt + góc kéo đổi cỡ; kéo thân để dời. */
-export function LopXem({ lop, t, rong, cao, chonId, onChon, onDoi }: { lop: Lop[]; t: number; rong: number; cao: number; chonId: string | null; onChon: (id: string) => void; onDoi: (id: string, p: Partial<Lop>) => void }) {
-  const keo = (l: Lop, kieu: 'doi' | 'co') => (e: PE<HTMLDivElement>) => {
+export function LopXem({ lop, t, rong, cao, chonId, onChon, onDoi, dangChay = true }: { lop: Lop[]; t: number; rong: number; cao: number; chonId: string | null; onChon: (id: string) => void; onDoi: (id: string, p: Partial<Lop>) => void;
+  /** Đang phát → chạy hiệu ứng vào/ra; dừng để chỉnh → vẽ lớp ở trạng thái ĐẦY ĐỦ (như After Effects). Trước đây lớp mới "hiện dần"
+   *  có độ đậm 0 đúng giây vừa thêm → thêm xong không thấy gì, phải kéo đầu phát (#1279). */
+  dangChay?: boolean }) {
+  const [sua, setSua] = useState<string | null>(null);   // lớp chữ đang sửa chữ ngay trên khung (nhấp đúp)
+  // Mọi thao tác ngay trên khung (#1280): dời · đổi cỡ (góc) · rộng (cạnh phải) · cao (cạnh dưới, hình khối) · xoay (núm trên, Shift = nấc 15°).
+  const keo = (l: Lop, kieu: 'doi' | 'co' | 'rong' | 'cao' | 'xoay') => (e: PE<HTMLDivElement>) => {
+    if (sua === l.id && kieu === 'doi') return;
     e.preventDefault(); e.stopPropagation(); onChon(l.id);
     const el = e.currentTarget; el.setPointerCapture(e.pointerId);
     const x0 = e.clientX, y0 = e.clientY; const goc = { ...l };
+    const khung = (kieu === 'doi' ? el : el.parentElement!).getBoundingClientRect();
+    const cx = khung.left + khung.width / 2, cy = khung.top + khung.height / 2;
     const di = (ev: PointerEvent) => {
       const dx = (ev.clientX - x0) / rong, dy = (ev.clientY - y0) / cao;
       if (kieu === 'doi') onDoi(l.id, { x: lam(goc.x + dx), y: lam(goc.y + dy) });
-      else { const k = Math.max(0.1, (goc.w + dx * 2) / goc.w); onDoi(l.id, { w: lam(goc.w * k), ...(l.loai === 'hinh' ? { h: lam(Math.max(0.005, goc.h + dy * 2)) } : {}), ...(l.loai === 'chu' && goc.co ? { co: lam(goc.co * k, 4) } : {}) }); }
+      else if (kieu === 'xoay') { let a = (Math.atan2(ev.clientY - cy, ev.clientX - cx) * 180) / Math.PI + 90; if (a > 180) a -= 360; if (ev.shiftKey) a = Math.round(a / 15) * 15; onDoi(l.id, { xoay: Math.round(a) }); }
+      else if (kieu === 'rong') onDoi(l.id, { w: lam(Math.max(0.02, goc.w + dx * 2)) });
+      else if (kieu === 'cao') onDoi(l.id, { h: lam(Math.max(0.005, goc.h + dy * 2)) });
+      else { const k = Math.max(0.1, (goc.w + dx * 2) / goc.w); onDoi(l.id, { w: lam(goc.w * k), ...(l.loai === 'hinh' ? { h: lam(Math.max(0.005, goc.h * k)) } : {}), ...(l.loai === 'chu' && goc.co ? { co: lam(goc.co * k, 4) } : {}) }); }
     };
     const xong = () => { el.removeEventListener('pointermove', di); el.removeEventListener('pointerup', xong); el.removeEventListener('pointercancel', xong); };
     el.addEventListener('pointermove', di); el.addEventListener('pointerup', xong); el.addEventListener('pointercancel', xong);
@@ -49,24 +60,39 @@ export function LopXem({ lop, t, rong, cao, chonId, onChon, onDoi }: { lop: Lop[
   const hien = lopHien(lop, t);
   const chon = chonId ? lop.find((l) => l.id === chonId && !l.an) : undefined;
   const ve = chon && !hien.includes(chon) ? [...hien, chon] : hien;   // lớp đang chọn hiện mờ cả ngoài giờ của nó, để kéo chỉnh được
+  const nutTay = (l: Lop, kieu: 'co' | 'rong' | 'cao', vt: CSSProperties, con: string, title: string) =>
+    <div onPointerDown={keo(l, kieu)} title={title} style={{ position: 'absolute', width: 9, height: 9, background: 'var(--cyan)', border: '1px solid #000', borderRadius: 2, cursor: con, ...vt }} />;
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
       {ve.map((l) => {
-        const hu = hieuUngTai(l, t); const ngoaiGio = t < l.tu || t >= l.den; const dangChon = l.id === chonId;
+        const hu = dangChay ? hieuUngTai(l, t) : { mo: l.mo, dy: 0, scale: 1 };
+        const ngoaiGio = t < l.tu || t >= l.den; const dangChon = l.id === chonId;
         const goc: CSSProperties = { position: 'absolute', left: `${l.x * 100}%`, top: `${(l.y + hu.dy) * 100}%`, transform: `translate(-50%, -50%) rotate(${l.xoay}deg) scale(${hu.scale})`,
-          opacity: ngoaiGio ? 0.35 : hu.mo, pointerEvents: 'auto', cursor: 'move', outline: dangChon ? '1.5px dashed var(--cyan)' : undefined, outlineOffset: 2, touchAction: 'none' };
+          opacity: ngoaiGio ? 0.35 : hu.mo, pointerEvents: 'auto', cursor: sua === l.id ? 'text' : 'move', outline: dangChon ? '1.5px dashed var(--cyan)' : undefined, outlineOffset: 2, touchAction: 'none' };
         const fs = (l.co ?? 0.07) * rong;
+        const kieuChu: CSSProperties = { fontFamily: fontCss(l.font), fontWeight: 900, fontStyle: l.nghieng ? 'italic' : undefined, fontSize: fs, lineHeight: 1.15, color: l.mau ?? '#fff', whiteSpace: 'pre', textAlign: 'center',
+          ...(l.nen ? { background: l.nen, padding: '0.15em 0.3em' } : { WebkitTextStroke: `${Math.max(0, (l.vien_day ?? 0.08) * fs * 2)}px ${l.vien ?? '#000'}`, paintOrder: 'stroke fill' }) };
         const noi = l.loai === 'chu'
-          ? <div style={{ fontFamily: fontCss(l.font), fontWeight: 900, fontStyle: l.nghieng ? 'italic' : undefined, fontSize: fs, lineHeight: 1.15, color: l.mau ?? '#fff', whiteSpace: 'pre', textAlign: 'center',
-              ...(l.nen ? { background: l.nen, padding: '0.15em 0.3em' } : { WebkitTextStroke: `${Math.max(0, (l.vien_day ?? 0.08) * fs * 2)}px ${l.vien ?? '#000'}`, paintOrder: 'stroke fill' }) }}>{l.chu}</div>
+          ? (sua === l.id
+            ? <div contentEditable suppressContentEditableWarning autoFocus ref={(el) => { if (el && document.activeElement !== el) { el.focus(); document.getSelection()?.selectAllChildren(el); } }}
+                onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') (e.currentTarget as HTMLElement).blur(); }}
+                onBlur={(e) => { onDoi(l.id, { chu: e.currentTarget.innerText.replace(/\n$/, '') }); setSua(null); }} style={{ ...kieuChu, outline: 'none', minWidth: 20 }}>{l.chu}</div>
+            : <div style={kieuChu}>{l.chu}</div>)
           : l.loai === 'anh'
             ? (l.url ? <img src={l.url} alt="" data-khong-phong-to="" draggable={false} style={{ width: l.w * rong, display: 'block' }} /> : <div style={{ width: l.w * rong, height: l.w * rong * 0.6, border: '1px dashed #fff', color: '#fff', fontSize: 10, display: 'grid', placeItems: 'center' }}>chưa có ảnh</div>)
             : <div style={{ width: l.w * rong, height: l.h * cao, background: l.mau ?? '#6B4FD8', borderRadius: l.dang === 'tron' ? '50%' : l.dang === 'bo_goc' ? Math.min(l.w * rong, l.h * cao) * 0.22 : 0,
                 border: l.vien_day ? `${Math.max(1, rong * l.vien_day * 0.05)}px solid ${l.vien ?? '#000'}` : undefined, boxSizing: 'border-box' }} />;
         return (
-          <div key={l.id} style={goc} onPointerDown={keo(l, 'doi')} title={`${tenLop(l)} — kéo để dời${dangChon ? ', kéo góc để đổi cỡ' : ''}`}>
+          <div key={l.id} style={goc} onPointerDown={keo(l, 'doi')} onDoubleClick={() => { if (l.loai === 'chu') setSua(l.id); }}
+            title={`${tenLop(l)} — kéo để dời${l.loai === 'chu' ? ' · nhấp đúp để sửa chữ' : ''}`}>
             {noi}
-            {dangChon && <div onPointerDown={keo(l, 'co')} title="Kéo để đổi cỡ" style={{ position: 'absolute', right: -6, bottom: -6, width: 10, height: 10, background: 'var(--cyan)', borderRadius: 2, cursor: 'nwse-resize' }} />}
+            {dangChon && sua !== l.id && <>
+              {nutTay(l, 'co', { right: -6, bottom: -6 }, 'nwse-resize', 'Kéo để đổi cỡ (giữ tỉ lệ)')}
+              {l.loai !== 'chu' && nutTay(l, 'rong', { right: -6, top: 'calc(50% - 5px)' }, 'ew-resize', 'Kéo để đổi bề rộng')}
+              {l.loai === 'hinh' && nutTay(l, 'cao', { bottom: -6, left: 'calc(50% - 5px)' }, 'ns-resize', 'Kéo để đổi bề cao')}
+              <div style={{ position: 'absolute', left: '50%', top: -20, width: 1, height: 14, background: 'var(--cyan)', pointerEvents: 'none' }} />
+              <div onPointerDown={keo(l, 'xoay')} title={`Kéo để xoay (${l.xoay}°) · giữ Shift = nấc 15°`} style={{ position: 'absolute', left: 'calc(50% - 6px)', top: -30, width: 12, height: 12, borderRadius: '50%', background: 'var(--cyan)', border: '1px solid #000', cursor: 'grab' }} />
+            </>}
           </div>
         );
       })}

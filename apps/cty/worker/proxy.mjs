@@ -62,6 +62,7 @@ export function toOpenAI(a, model) {
   const out = { model, messages: msgs };
   if (a.max_tokens) out.max_tokens = a.max_tokens;
   if (a.temperature != null) out.temperature = a.temperature;
+  if (a.reasoning) out.reasoning = a.reasoning;   // OpenRouter/fal: {effort:'none'} tắt suy luận ngầm (mặc định nó ăn hết max_tokens → trả rỗng)
   if (Array.isArray(a.tools) && a.tools.length) {
     out.tools = a.tools.filter((t) => t && t.name && t.input_schema).map((t) => ({ type: 'function', function: { name: t.name, description: t.description || '', parameters: t.input_schema } }));
     const tc = a.tool_choice;
@@ -75,7 +76,7 @@ export function toAnthropic(o, model) {
   if (typeof msg.content === 'string' && msg.content.trim()) content.push({ type: 'text', text: msg.content });
   for (const tc of msg.tool_calls || []) { let input = {}; try { input = JSON.parse(tc.function?.arguments || '{}'); } catch {} content.push({ type: 'tool_use', id: tc.id, name: tc.function?.name, input }); }
   return { id: o.id || 'msg_proxy', type: 'message', role: 'assistant', model, content, stop_reason: STOP[choice.finish_reason] || 'end_turn', stop_sequence: null,
-    usage: { input_tokens: o.usage?.prompt_tokens || 0, output_tokens: o.usage?.completion_tokens || 0, ...(o.usage?.cost != null ? { cost_usd: o.usage.cost } : {}) } };   // nhà báo tiền thật (fal/OpenRouter) thì giữ
+    usage: { input_tokens: o.usage?.prompt_tokens || 0, output_tokens: o.usage?.completion_tokens || 0, ...(o.usage?.cost != null ? { cost_usd: o.usage.cost } : {}), ...(o.usage?.completion_tokens_details?.reasoning_tokens ? { reasoning_tokens: o.usage.completion_tokens_details.reasoning_tokens } : {}) } };   // nhà báo tiền thật (fal/OpenRouter) thì giữ
 }
 
 // ---------- trần chi ----------
@@ -182,7 +183,7 @@ if (process.argv.includes('--tu-kiem')) {
   [c, d] = await xuLy(req, 'lan', so); assert(c === 429 && /trần/.test(d.error), `ca 4 vượt trần người → 429 (${c})`);
   process.env.FAL_KEY = 'k'; process.env.CTY_UPSTREAM_FAL = process.env.CTY_UPSTREAM_OPENAI;
   [c, d] = await xuLy({ ...req, model: 'fal:anthropic/claude-haiku-5.5' }, 'ha', so); assert(c === 200 && auth === 'Key k' && d.content[0].text === 'chào Lan', `ca 5 fal: xác thực "Key", tên mô hình OpenRouter (${c} ${auth})`);
-  assert(toAnthropic({ choices: [{ message: { content: 'x' } }], usage: { prompt_tokens: 1, completion_tokens: 1, cost: 0.002 } }, 'm').usage.cost_usd === 0.002, 'ca 6 giữ tiền nhà báo (usage.cost)');
+  assert(toAnthropic({ choices: [{ message: { content: 'x' } }], usage: { prompt_tokens: 1, completion_tokens: 9, cost: 0.002, completion_tokens_details: { reasoning_tokens: 8 } } }, 'm').usage.cost_usd === 0.002 && toOpenAI({ messages: [], reasoning: { effort: 'none' } }, 'm').reasoning.effort === 'none', 'ca 6 giữ tiền + token suy luận nhà báo, chuyển tiếp tham số suy luận');
   fake.close(); console.log('✓ proxy: 6 ca đạt (dịch 2 chiều · giá fail-closed · hồ sơ · trần người · fal "Key" · giữ tiền nhà báo)'); process.exit(0);
 }
 

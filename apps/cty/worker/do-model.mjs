@@ -5,6 +5,9 @@
 //   kiem  60 bài nộp cố định (30 sạch, 30 cài đúng 1 lỗi × 6 loại) → chấm đúng? bác sai? duyệt sai? bắt được loại lỗi nào?
 //   lam   6 loại việc × 8, tiêu chí chuẩn đưa sẵn → phép đo máy (quy-trinh.mjs mayDo) trên ket_qua
 //   giao  48 việc làm được (brief phải giữ đủ ràng buộc) + 16 việc thiếu dữ kiện / mâu thuẫn (phải trả {"thieu"}, không giao)
+// Cấu hình đo (chạy thử 11/10: 9/11 model qua fal trả RỖNG vì suy luận ngầm ăn hết trần 500 token): model qua fal gửi reasoning
+// {effort:'none'}; trần 1000 token và đếm số câu vượt 500 (= lượt thật đang để 500 sẽ cắt cụt, phải nâng nếu dùng model đó).
+// fal giới hạn 10 lời gọi đồng thời mỗi tài khoản → tối đa FAL_SONG_SONG lời gọi fal bay cùng lúc.
 // Mọi lời gọi qua proxy (giá fail-closed, sổ ai_usage dưới tên Hà, người giữ bộ đo). MỌI lời gọi đã trả tiền ghi nguyên văn vào
 // <DATA>/do-model/<dot>/goi.jsonl (hỏi, đáp, token, USD, ms, điểm) để làm insight về sau. Chạy lại cùng --dot = chạy tiếp phần còn
 // thiếu, không trả tiền lần hai.
@@ -31,6 +34,7 @@ export const MODELS = ['openai:gpt-4o', 'openai:gpt-4o-mini', 'openai:gpt-4.1-na
 const VAI = { giao: 'truong-phong', lam: 'nguoi-lam', kiem: 'nguoi-kiem' };
 const TEN = { nguoi_lam: 'Người làm', nguoi_kiem: 'Người kiểm', ma_nguoi_lam: 'nguoi-lam' };
 const HO_SO = 'Ứng viên đang được đo năng lực ở vai này. Chưa có kinh nghiệm riêng ở công ty. Làm đúng thẻ vai và lời dặn của lượt.';
+const TRAN_TOKEN = 1000, TRAN_THAT = 500, FAL_SONG_SONG = 8;
 const NGUONG = 0.05;   // nhóm dẫn đầu = kém người giỏi nhất không quá 5 điểm → chọn người rẻ nhất trong nhóm (anh chưa đổi thì giữ)
 const so = (ds) => ds.map((t, i) => `${i + 1}. ${t}`).join('\n');
 const q = (x) => `"${x}"`;
@@ -103,7 +107,7 @@ export function cham(vai, m, dap) {
 
 async function goi(model, vai, user, nk, luot) {
   const ns = { id: 'ung-vien', ten: 'Ứng viên', model, vai: theVai(VAI[vai]), body: HO_SO, tinh_cach: [], bai_hoc: [] };
-  const body = { model, max_tokens: 500, temperature: 0.3, system: heThong(ns, nk), messages: [{ role: 'user', content: user }] };   // như goi() của lượt thật
+  const body = { model, max_tokens: TRAN_TOKEN, temperature: 0.3, system: heThong(ns, nk), messages: [{ role: 'user', content: user }], ...(model.startsWith('fal:') ? { reasoning: { effort: 'none' } } : {}) };   // như goi() của lượt thật, trừ trần token + tắt suy luận
   for (let thu = 0; ; thu++) {
     const t0 = Date.now(); let st = 0, d = {};
     try { const r = await fetch(`${PROXY()}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': 'ha', 'x-cty-luot': luot }, body: JSON.stringify(body) }); st = r.status; d = await r.json().catch(() => ({})); } catch (e) { d = { error: String(e.message || e) }; }
@@ -129,15 +133,18 @@ export async function chay({ dot, tran, lan = 3, lanKiem = 2, models = MODELS, s
     for (const m of bo[vai].slice(0, moiVai)) for (const model of models) { const khoa = `${vai}|${m.id}|${l}|${model}`; if (!xong.has(khoa)) hang.push({ vai, m, lan: l, model, khoa }); }
   fs.writeFileSync(path.join(dir, 'meta.json'), JSON.stringify({ dot, tran, lan, lan_kiem: lanKiem, models, quy_trinh: `${K} v${qt.ban}`, lan_chay: [...(docJson(path.join(dir, 'meta.json'))?.lan_chay ?? []), { ts: new Date().toISOString(), con_lai: hang.length, da_chi: chi }] }, null, 1));
   if (!im) console.log(`dò model ${dot}: ${hang.length} lời gọi còn lại · đã chi $${chi.toFixed(4)} · trần $${tran} · quy trình v${qt.ban}`);
-  let dung = null, i = 0, n = 0;
+  let dung = null, i = 0, n = 0, falBay = 0; const cho = [];
+  const vaoFal = () => (falBay < FAL_SONG_SONG ? (falBay++, Promise.resolve()) : new Promise((ok) => cho.push(ok)));
+  const raFal = () => { const k = cho.shift(); if (k) k(); else falBay--; };
   const tho = async () => {
     while (!dung && i < hang.length) {
       if (chi >= tran - 0.05) { dung = `chạm trần $${tran}`; break; }   // chừa biên cho các lời gọi đang bay
       const h = hang[i++]; const user = loiNhac(h.vai, h.m, qt);
-      const r = await goi(h.model, h.vai, user, nk, `do-model-${dot}`);
+      const fal = h.model.startsWith('fal:'); if (fal) await vaoFal();
+      const r = await goi(h.model, h.vai, user, nk, `do-model-${dot}`).finally(() => fal && raFal());
       if (r.tran_chan) dung = `proxy chặn trần: ${r.loi}`;
       const usd = r.usage ? r.usage.cost_usd ?? tienUsd(h.model, r.usage) ?? 0 : 0; chi += usd;
-      const diem = r.http === 200 ? cham(h.vai, h.m, r.dap) : {};
+      const diem = r.http === 200 ? { ...cham(h.vai, h.m, r.dap), vuot_500: (r.usage?.output_tokens ?? 0) - (r.usage?.reasoning_tokens ?? 0) > TRAN_THAT } : {};
       fs.appendFileSync(tep, JSON.stringify({ ts: new Date().toISOString(), khoa: h.khoa, vai: h.vai, muc: h.m.id, loai: h.m.loai, loi_cai: h.m.loi ?? null, ky_vong: h.m.ky_vong ?? null,
         lan: h.lan, model: h.model, quy_trinh: qt.ban, http: r.http, ms: r.ms, usage: r.usage, usd, het: r.het, loi: r.loi, hoi: user, dap: r.dap, ...diem }) + '\n');
       if (++n % 250 === 0 && !im) console.log(`  ${n}/${hang.length} · chi $${chi.toFixed(3)}`);
@@ -155,7 +162,8 @@ function thongKe(xs) {
   const ok = xs.filter((x) => x.http === 200); const n = ok.length, k = ok.filter((x) => x.dung).length;
   const usd = xs.reduce((s, x) => s + (x.usd || 0), 0); const ms = ok.map((x) => x.ms).sort((a, b) => a - b);
   return { n, dung: k, ti_le: n ? k / n : 0, kt95: wilson(k, n), usd, usd_goi: n ? usd / n : 0, usd_moi_dat: k ? usd / k : null, ms_giua: ms[Math.floor(ms.length / 2)] ?? null,
-    hong_ky_thuat: xs.length - n, hong_dinh_dang: ok.filter((x) => x.dinh_dang === false).length, cat_cut: ok.filter((x) => x.het === 'max_tokens').length };
+    hong_ky_thuat: xs.length - n, hong_dinh_dang: ok.filter((x) => x.dinh_dang === false).length, cat_cut: ok.filter((x) => x.het === 'max_tokens').length,
+    vuot_500: ok.filter((x) => x.vuot_500).length, token_ra_tb: n ? Math.round(ok.reduce((s, x) => s + (x.usage?.output_tokens ?? 0), 0) / n) : 0 };
 }
 const gom = (ds, f) => { const m = {}; for (const x of ds) (m[f(x)] ??= []).push(x); return m; };
 /** Đường biên chi phí–chất lượng: xếp theo giá mỗi lời gọi, giữ model nào đúng hơn mọi model rẻ hơn nó. */
@@ -193,7 +201,7 @@ function inBang(kq) {
     console.log(`\n== ${vai} (${VAI[vai]}) · chọn: ${kq.de_xuat[vai]?.model} · đường biên: ${kq.duong_bien[vai].join(' → ')}`);
     for (const [m, s] of Object.entries(tk).sort((a, b) => b[1].ti_le - a[1].ti_le)) {
       const them = vai === 'kiem' ? `bác sai ${s.bac_sai} · duyệt sai ${s.duyet_sai} · ổn định ${s.on_dinh == null ? '—' : pc(s.on_dinh)}` : vai === 'giao' ? `hỏi thừa ${s.hoi_thua} · giao bừa ${s.giao_bua} · mất ràng buộc ${s.mat_rang_buoc}` : '';
-      console.log(`  ${m.padEnd(34)} ${pc(s.ti_le).padStart(4)} [${pc(s.kt95[0])}–${pc(s.kt95[1])}] n=${s.n} · $${(s.usd_goi * 1000).toFixed(3)}/1000 lời gọi · ${s.ms_giua}ms · hỏng mạng/định dạng/cắt cụt ${s.hong_ky_thuat}/${s.hong_dinh_dang}/${s.cat_cut} · ${them}`);
+      console.log(`  ${m.padEnd(34)} ${pc(s.ti_le).padStart(4)} [${pc(s.kt95[0])}–${pc(s.kt95[1])}] n=${s.n} · $${(s.usd_goi * 1000).toFixed(3)}/1000 lời gọi · ${s.ms_giua}ms · hỏng mạng/định dạng/cắt cụt ${s.hong_ky_thuat}/${s.hong_dinh_dang}/${s.cat_cut} · vượt 500 token ${s.vuot_500} · ${them}`);
     }
     for (const [loai, t] of Object.entries(kq.theo_loai[vai])) console.log(`    ${loai.padEnd(14)} chọn ${t._chon?.model} (${pc(t._chon?.ti_le ?? 0)}; giỏi nhất ${pc(t._chon?.gioi_nhat ?? 0)})`);
   }

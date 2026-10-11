@@ -26,7 +26,7 @@ export function SoSuKien({ q }: { q: Record<string, string | undefined> }) {
   const loc = (k: string, v?: string) => { const p = new URLSearchParams(); for (const [a, b] of Object.entries({ ...q, [k]: v })) if (b) p.set(a, b); const s = p.toString(); return `/nhat-ky${s ? '?' + s : ''}`; };
   return (
     <>
-      <p className="cty-mono cty-muted" style={{ margin: 0 }}>sổ sự kiện · {ds.length} dòng gần nhất
+      <p className="cty-nho cty-muted" style={{ margin: 0 }}>sổ sự kiện · {ds.length} dòng gần nhất
         {q.luot && <> · lượt <b>{q.luot}</b> <Link data-thay href={loc('luot')}>×</Link></>}
         {q.tu && <> · người <b>{q.tu}</b> <Link data-thay href={loc('tu')}>×</Link></>}
         {q.loai && <> · loại <b>{LOAI[q.loai] ?? q.loai}</b> <Link data-thay href={loc('loai')}>×</Link></>}
@@ -37,8 +37,8 @@ export function SoSuKien({ q }: { q: Record<string, string | undefined> }) {
         <thead><tr><th>lúc <MuiNhan /></th><th>lượt</th><th>loại</th><th>từ → tới</th><th>chi tiết</th></tr></thead>
         <tbody>{ds.map((e, i) => (
           <tr key={i}>
-            <td className="cty-mono"><Gio iso={e.ts} mui={false} /></td>
-            <td className="cty-mono">{e.luot ? <Link data-thay href={loc('luot', e.luot)}>{e.luot.slice(11, 19)}</Link> : '—'}</td>
+            <td className="cty-nho"><Gio iso={e.ts} mui={false} /></td>
+            <td className="cty-nho">{e.luot ? <Link data-thay href={loc('luot', e.luot)}>{e.luot.slice(11, 19)}</Link> : '—'}</td>
             <td><span className={`cty-pill ${e.loai === 'loi' ? 'cty-pill-off' : e.loai === 'goi' ? '' : 'cty-pill-kind'}`}>{LOAI[e.loai] ?? e.loai}</span></td>
             <td className="cty-log-ai"><Nguoi id={e.tu} anh={false} />{e.tu && <Link data-thay className="cty-loc" href={loc('tu', e.tu)} title="lọc theo người này">⌕</Link>}{e.toi ? <> → <Nguoi id={e.toi} anh={false} /><Link data-thay className="cty-loc" href={loc('tu', e.toi)} title="lọc theo người này">⌕</Link></> : ''}</td>
             <td className="cty-log-ct">{tomTat(e)}</td>

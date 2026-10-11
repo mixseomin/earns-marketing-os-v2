@@ -84,7 +84,7 @@ function TheNhanVat({ id, h, t, ls, tc, so, lg, kn }: { id: string; h: HoSo | un
             const nl = (NANG_LUC as Record<string, { do: string }>)[c.tu]; const d = ls.map((x) => x.cs[c.ma] ?? null);
             return (
               <tr key={c.ma} title={`Đo: ${nl?.do ?? DO_CHI_SO[c.tu] ?? ''} · ${c.so_mau} mẫu`}>
-                <th><span className="cty-mono cty-gm-ma">{c.ma}</span> {c.ten}</th>
+                <th><span className="cty-nho cty-gm-ma">{c.ma}</span> {c.ten}</th>
                 <td className="cty-gm-thanh"><div className="cty-gm-bar"><i style={{ width: `${c.gia_tri ?? 0}%` }} /></div></td>
                 <td className="cty-gm-so">{c.gia_tri == null ? <span className="cty-muted">—</span> : c.gia_tri}{c.gia_tri != null && c.so_mau < 5 && <span className="cty-muted" title="ít hơn 5 mẫu — chưa chắc">?</span>}</td>
                 <td><XuHuong ds={d} /></td>
@@ -210,7 +210,7 @@ export function nganNhanSu(id: string, admin = false): Ngan {
             : <>{String(f.chuc_danh)}{p && <> · <Link href={`/phong/${p.id}`}>{String(p.fm.ten)}</Link></>}</>}
         </div>
         <div className="cty-muted cty-nho">
-          <span className="cty-mono">{String(f.model)}</span> · báo cáo cho {f.bao_cao_cho ? <Nguoi id={String(f.bao_cao_cho)} /> : 'Giám đốc'}
+          <span className="cty-nho">{String(f.model)}</span> · báo cáo cho {f.bao_cao_cho ? <Nguoi id={String(f.bao_cao_cho)} /> : 'Giám đốc'}
           {f.kind !== 'ai' && <> · {f.kind === 'human' ? 'người' : 'vendor'}</>}
         </div>
       </div>
@@ -234,13 +234,13 @@ export function nganNhanSu(id: string, admin = false): Ngan {
           <div key="hs" className="cty-ns-hs">
             <div className="nk-luoi">
               <O nhan="Phòng">{p ? <Link href={`/phong/${p.id}`}>{String(p.fm.ten)}</Link> : String(f.phong)}</O>
-              <O nhan="Mô hình"><span className="cty-mono">{String(f.model)}</span></O>
+              <O nhan="Mô hình"><span className="cty-nho">{String(f.model)}</span></O>
               <O nhan="Giới tính">{f.gioi_tinh === 'nu' ? 'nữ' : 'nam'}</O>
               <O nhan="Mức quyết">mức {String(f.muc_quyet)} · {MUC[Number(f.muc_quyet)] ?? ''}</O>
               <O nhan="Trần chi / tháng">{f.tran_usd_thang ? `$${String(f.tran_usd_thang)}` : '—'}</O>
               <O nhan="Khuôn làm việc">{KHUON[String(f.room)]?.ten ?? String(f.room)}</O>
-              <O nhan="Kỹ năng"><span className="cty-mono">{arr('skills').join(' · ') || '—'}</span></O>
-              <O nhan="Gói số đọc"><span className="cty-mono">{arr('data').join(' · ') || '—'}</span></O>
+              <O nhan="Kỹ năng"><span className="cty-nho">{arr('skills').join(' · ') || '—'}</span></O>
+              <O nhan="Gói số đọc"><span className="cty-nho">{arr('data').join(' · ') || '—'}</span></O>
             </div>
             <div className="cty-md"><Md>{d.body}</Md></div>
           </div>,
@@ -349,7 +349,7 @@ export function nganMucTieu(): Ngan {
         <div className="nk-cot nk-cot-dai">
           <h3>Trần chi API tháng · tổng ${tong} / trần ${String(ch.tran_tong_usd_thang ?? '?')}</h3>
           <div className="cty-md"><table><thead><tr><th>Người</th><th>Mô hình</th><th>Trần</th></tr></thead><tbody>
-            {ns.map((d) => <tr key={d.id}><td><Nguoi id={d.id} /></td><td className="cty-mono">{String(d.fm.model)}</td><td>${String(d.fm.tran_usd_thang)}</td></tr>)}
+            {ns.map((d) => <tr key={d.id}><td><Nguoi id={d.id} /></td><td className="cty-nho">{String(d.fm.model)}</td><td>${String(d.fm.tran_usd_thang)}</td></tr>)}
           </tbody></table></div>
         </div>
       </div>

@@ -14,7 +14,7 @@ export default async function Trang({ searchParams }: { searchParams: Promise<Re
   const phong = dsPhong(); const ns = dsNhanSu();
   return (
     <>
-      <p className="cty-mono cty-muted" style={{ margin: '0 0 .5rem' }}>{ns.length} nhân sự · {phong.length} phòng · tham quan, chưa hoạt động · bấm vào người hoặc phòng</p>
+      <p className="cty-nho cty-muted" style={{ margin: '0 0 .5rem' }}>{ns.length} nhân sự · {phong.length} phòng · tham quan, chưa hoạt động · bấm vào người hoặc phòng</p>
       <SoDoToChuc phong={phong} ns={ns} />
       <ChongNgan ngan={(await searchParams).ngan} />
     </>

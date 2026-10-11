@@ -57,8 +57,8 @@ TREN_BOX
     BASE=${2:-http://localhost:3871}
     [ -s "$TAM/tok" ] || phien
     sai=0
-    for s in sat-vien thu-ngan-keo thu-nut-chay thu-so-do; do
-      [ "$s" = sat-vien ] && thamso=(. "$BASE" "$(cat "$TAM/tok")") || thamso=("$BASE" "$(cat "$TAM/tok")")   # sat-vien nhận thêm "." ở đầu
+    for s in sat-vien thang-hang thu-ngan-keo thu-nut-chay thu-so-do; do
+      case "$s" in sat-vien|thang-hang) thamso=(. "$BASE" "$(cat "$TAM/tok")");; *) thamso=("$BASE" "$(cat "$TAM/tok")");; esac   # sat-vien, thang-hang nhận thêm "." ở đầu
       out=$(cd "$APP" && node "scripts/$s.mjs" "${thamso[@]}" </dev/null 2>&1 | tail -1); echo "  $s: $out"
       case "$out" in ✓*|"TỔNG chỗ dính: 0") ;; *) sai=$((sai+1));; esac
     done

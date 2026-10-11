@@ -6,5 +6,17 @@
   "gpt-4o": [2.5, 10],
   "gpt-4o-mini": [0.15, 0.6],
   "o3-mini": [1.1, 4.4],
-  "o1-mini": [1.1, 4.4]
+  "o1-mini": [1.1, 4.4],
+  "_fal": "Mô hình qua fal (fal:<tên OpenRouter>): giá OpenRouter lấy từ openrouter.ai/api/v1/models ngày 11/10/2026; fal trả usage.cost khớp đúng giá này (kiểm 2 lời gọi).",
+  "anthropic/claude-haiku-5.5": [0.1, 0.5],
+  "anthropic/claude-sonnet-5.5": [2, 10],
+  "openai/gpt-5.6-luna": [0.2, 1.2],
+  "openai/gpt-5.6-sol": [2, 10],
+  "google/gemini-3.8-flash": [0.75, 3.75],
+  "deepseek/deepseek-v4-flash": [0.03, 1.28],
+  "deepseek/deepseek-v4-pro": [0.209, 0.418],
+  "qwen/qwen3.8-flash": [0.15, 0.47],
+  "z-ai/glm-5.3-flash": [0.15, 0.5],
+  "mistralai/mistral-large-4-0": [0.68, 2.09],
+  "x-ai/grok-4.7": [2, 6]
 }

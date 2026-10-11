@@ -31,6 +31,9 @@ export const NHA = {
   deepseek: { dang: 'anthropic', url: 'https://api.deepseek.com/anthropic/v1/messages', key: 'DEEPSEEK_API_KEY' },
   openai: { dang: 'openai', url: 'https://api.openai.com/v1/chat/completions', key: 'OPENAI_API_KEY' },
   openrouter: { dang: 'openai', url: 'https://openrouter.ai/api/v1/chat/completions', key: 'OPENROUTER_API_KEY' },
+  // fal = OpenRouter qua tài khoản fal (một khoá, 200+ mô hình): tên mô hình theo OpenRouter (fal:google/gemini-3.8-flash),
+  // xác thực "Key", trả usage.cost (USD) — kiểm 11/10/2026: cost khớp đúng giá OpenRouter.
+  fal: { dang: 'openai', url: 'https://fal.run/openrouter/router/openai/v1/chat/completions', key: 'FAL_KEY', auth: 'Key' },
 };
 
 // ---------- dịch Anthropic → OpenAI (text, ảnh base64, tool_use/tool_result) ----------
@@ -72,7 +75,7 @@ export function toAnthropic(o, model) {
   if (typeof msg.content === 'string' && msg.content.trim()) content.push({ type: 'text', text: msg.content });
   for (const tc of msg.tool_calls || []) { let input = {}; try { input = JSON.parse(tc.function?.arguments || '{}'); } catch {} content.push({ type: 'tool_use', id: tc.id, name: tc.function?.name, input }); }
   return { id: o.id || 'msg_proxy', type: 'message', role: 'assistant', model, content, stop_reason: STOP[choice.finish_reason] || 'end_turn', stop_sequence: null,
-    usage: { input_tokens: o.usage?.prompt_tokens || 0, output_tokens: o.usage?.completion_tokens || 0 } };
+    usage: { input_tokens: o.usage?.prompt_tokens || 0, output_tokens: o.usage?.completion_tokens || 0, ...(o.usage?.cost != null ? { cost_usd: o.usage.cost } : {}) } };   // nhà báo tiền thật (fal/OpenRouter) thì giữ
 }
 
 // ---------- trần chi ----------
@@ -134,7 +137,7 @@ export async function xuLy(body, staff, so, fetchFn = fetch) {
   const ten = model.split(':').pop();
   let res, data;
   if (cfg.dang === 'openai') {
-    res = await fetchFn(url, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: JSON.stringify(toOpenAI(clean, ten)) });
+    res = await fetchFn(url, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `${cfg.auth ?? 'Bearer'} ${key}` }, body: JSON.stringify(toOpenAI(clean, ten)) });
     const o = await res.json(); if (!res.ok) return [res.status, o];
     data = toAnthropic(o, model);
   } else {
@@ -164,7 +167,7 @@ export function server(port, so = soChi()) {
 if (process.argv.includes('--tu-kiem')) {
   process.env.CTY_DB = 'mem'; process.env.OPENAI_API_KEY = 'test'; process.env.CTY_CACHE = '0';
   const assert = (c, m) => { if (!c) { console.error('✗ proxy:', m); process.exit(1); } };
-  const fake = http.createServer(async (req, res) => { let raw = ''; for await (const c of req) raw += c; const b = JSON.parse(raw);
+  let auth = ''; const fake = http.createServer(async (req, res) => { auth = req.headers.authorization; let raw = ''; for await (const c of req) raw += c; const b = JSON.parse(raw);
     assert(b.messages[0].role === 'system' && b.messages[1].content === 'xin chào', 'dịch Anthropic→OpenAI (system + user)');
     res.end(JSON.stringify({ id: 'x', choices: [{ message: { content: 'chào Lan' }, finish_reason: 'stop' }], usage: { prompt_tokens: 1_000_000, completion_tokens: 0 } })); }).listen(0, '127.0.0.1');
   await new Promise((r) => fake.once('listening', r));
@@ -177,7 +180,10 @@ if (process.argv.includes('--tu-kiem')) {
   // ca 4: Lan trần $40; mỗi lượt giả 1M token vào gpt-4o-mini = $0.15 → cần 267 lượt; gọi thẳng so.ghi để vượt trần rồi kiểm 429
   for (let i = 0; i < 300; i++) await so.ghi('lan', 'openai:gpt-4o-mini', { input_tokens: 1_000_000, output_tokens: 0 });
   [c, d] = await xuLy(req, 'lan', so); assert(c === 429 && /trần/.test(d.error), `ca 4 vượt trần người → 429 (${c})`);
-  fake.close(); console.log('✓ proxy: 4 ca đạt (dịch 2 chiều · giá fail-closed · hồ sơ · trần người)'); process.exit(0);
+  process.env.FAL_KEY = 'k'; process.env.CTY_UPSTREAM_FAL = process.env.CTY_UPSTREAM_OPENAI;
+  [c, d] = await xuLy({ ...req, model: 'fal:anthropic/claude-haiku-5.5' }, 'ha', so); assert(c === 200 && auth === 'Key k' && d.content[0].text === 'chào Lan', `ca 5 fal: xác thực "Key", tên mô hình OpenRouter (${c} ${auth})`);
+  assert(toAnthropic({ choices: [{ message: { content: 'x' } }], usage: { prompt_tokens: 1, completion_tokens: 1, cost: 0.002 } }, 'm').usage.cost_usd === 0.002, 'ca 6 giữ tiền nhà báo (usage.cost)');
+  fake.close(); console.log('✓ proxy: 6 ca đạt (dịch 2 chiều · giá fail-closed · hồ sơ · trần người · fal "Key" · giữ tiền nhà báo)'); process.exit(0);
 }
 
 if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])) && !process.argv.includes('--tu-kiem')) {

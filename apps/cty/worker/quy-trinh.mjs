@@ -156,10 +156,23 @@ export function chamViecChuan(l, viec) {
 const cau = (t) => String(t).trim().split(/(?<=[.!?])\s+(?=\S)/).filter((s) => s.trim());
 const tu = (t) => String(t).trim().split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w));
 const dong = (t) => String(t).trim().split('\n').map((s) => s.trim()).filter(Boolean);
+const soTrong = (t) => (String(t).match(/\d+(?:[.,]\d+)*/g) || []).map((x) => x.replace(/[.,]/g, ''));   // "1.289" = "1,289" = 1289
+const thuong = (x) => String(x ?? '').normalize('NFC').trim().toLowerCase();
+// Một giá trị JSON khớp kỳ vọng: số so theo số (chuỗi "89.000 đồng" vẫn là 89000), chữ thì chứa là đủ ("#C88" khớp "C88").
+const khop1 = (a, e) => (typeof e === 'number' ? (typeof a === 'number' ? a === e : a != null && Number(String(a).replace(Number.isInteger(e) ? /[^\d-]/g : /[^\d.-]/g, '')) === e) : a != null && thuong(a).includes(thuong(e)));
 /** Một phép đo → { dat, so, mo_ta }. Loại lạ = không đạt (đóng mặc định). */
 export function mayDo(d, text) {
-  const t = String(text ?? '');
+  const t = String(text ?? '').normalize('NFC');
   switch (d.loai) {
+    case 'chua': { const thieu = (d.chuoi || []).filter((c) => !t.toLowerCase().includes(thuong(c))); return { dat: !thieu.length, so: thieu.length, mo_ta: thieu.length ? `thiếu ${thieu.map((c) => `"${c}"`).join(', ')}` : 'có đủ chữ cần' }; }
+    case 'bang_chuoi': { const v = thuong(t).replace(/^["'`*\s]+|["'`*.\s]+$/g, ''); return { dat: (d.la || []).some((x) => thuong(x) === v), so: 0, mo_ta: `"${v.slice(0, 40)}" (cần ${(d.la || []).join(' | ')})` }; }
+    case 'so_trong_nguon': { const co = new Set(soTrong(d.nguon)); const la = soTrong(t).filter((x) => !co.has(x)); return { dat: !la.length, so: la.length, mo_ta: la.length ? `số không có trong nguồn: ${la.join(', ')}` : 'số liệu đều có trong nguồn' }; }
+    case 'json_khop': {
+      const o = json(t); if (!o || typeof o !== 'object') return { dat: false, so: 0, mo_ta: 'không đọc được JSON' };
+      const sai = Object.entries(d.khop || {}).filter(([k, v]) => !khop1(o[k], v)).map(([k]) => k);
+      const thua = d.du_khoa ? Object.keys(o).filter((k) => !(k in (d.khop || {}))) : [];
+      return { dat: !sai.length && !thua.length, so: sai.length + thua.length, mo_ta: [sai.length && `sai/thiếu ${sai.join(', ')}`, thua.length && `thừa khoá ${thua.join(', ')}`].filter(Boolean).join('; ') || 'khớp' };
+    }
     case 'so_cau': { const n = cau(t).length; return { dat: d.bang != null ? n === d.bang : n <= d.toi_da, so: n, mo_ta: `${n} câu (cần ${d.bang != null ? `đúng ${d.bang}` : `≤ ${d.toi_da}`})` }; }
     case 'so_tu': { const n = tu(t).length; return { dat: n <= d.toi_da, so: n, mo_ta: `${n} từ (cần ≤ ${d.toi_da})` }; }
     case 'so_ky_tu': { const n = [...t.trim()].length; return { dat: n <= d.toi_da, so: n, mo_ta: `${n} ký tự (cần ≤ ${d.toi_da})` }; }
@@ -170,7 +183,7 @@ export function mayDo(d, text) {
     default: return { dat: false, so: 0, mo_ta: `phép đo lạ "${d.loai}"` };
   }
 }
-export const LOAI_DO = ['so_cau', 'so_tu', 'so_ky_tu', 'so_dong', 'so_tu_moi_dong', 'khong_chua', 'ngon_ngu'];
+export const LOAI_DO = ['so_cau', 'so_tu', 'so_ky_tu', 'so_dong', 'so_tu_moi_dong', 'khong_chua', 'ngon_ngu', 'chua', 'bang_chuoi', 'so_trong_nguon', 'json_khop'];
 
 /** Điền {chỗ_giữ} trong lời nhắc; chỉ thay khoá có trong `v` (ngoặc của JSON mẫu giữ nguyên). */
 /** JSON đầu tiên trong một câu trả lời mô hình (có thể kèm chữ quanh) → object, không đọc được → null. Một bản cho cả worker lẫn đo năng lực. */
@@ -199,6 +212,11 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('quy-
   a(!mayDo({ loai: 'khong_chua', chuoi: ['—'] }, 'a — b').dat, 'bắt gạch dài');
   a(mayDo({ loai: 'ngon_ngu', la: 'en' }, 'Hello world.').dat && !mayDo({ loai: 'ngon_ngu', la: 'en' }, 'Xin chào thế giới').dat, 'ngôn ngữ');
   a(!mayDo({ loai: 'bua' }, 'x').dat, 'phép đo lạ = không đạt');
+  a(mayDo({ loai: 'chua', chuoi: ['Large Print'] }, 'large print sudoku').dat && !mayDo({ loai: 'chua', chuoi: ['bút chì'] }, 'bút lông').dat, 'chứa chữ cần (không phân biệt hoa thường)');
+  a(mayDo({ loai: 'bang_chuoi', la: ['giao_hang'] }, '"giao_hang".').dat && !mayDo({ loai: 'bang_chuoi', la: ['giao_hang'] }, 'giao_hang, khac').dat, 'đúng nhãn (bỏ ngoặc/chấm cuối, không nhận hai nhãn)');
+  a(mayDo({ loai: 'so_trong_nguon', nguon: 'có 1.289 người, bản 3.6' }, '1,289 người dùng bản 3.6').dat && !mayDo({ loai: 'so_trong_nguon', nguon: 'có 100 câu' }, '250 câu đố').dat, 'số liệu phải có trong nguồn (1.289 = 1,289)');
+  const jk = { loai: 'json_khop', khop: { ten: 'Trần Mai', so_luong: 3, gia: 12.5 }, du_khoa: true };
+  a(mayDo(jk, 'đây: {"ten":"Trần Mai","so_luong":"3 cuốn","gia":12.5}').dat && !mayDo(jk, '{"ten":"Trần Mai","so_luong":3,"gia":12.5,"x":1}').dat && !mayDo(jk, '{"ten":"Đà Nẵng","so_luong":3,"gia":12.5}').dat && !mayDo(jk, 'không có').dat, 'khớp JSON: số theo số, thừa khoá / sai giá trị / không JSON = trượt');
   a(dien('{"a":"{viec}"} {x}', { viec: 'V' }) === '{"a":"V"} {x}', 'điền chỗ giữ, giữ ngoặc lạ');
   const lKet = { trang_thai: 'xong', ket: { trang_thai_viec: 'ket' } }, lNop = (kq) => ({ trang_thai: 'xong', ket: { trang_thai_viec: 'submitted', lam: { ket_qua: kq } } });
   a(chamViecChuan(lKet, { ky_vong: 'ket' }).dung && !chamViecChuan(lNop('x'), { ky_vong: 'ket' }).dung, 'chấm: việc không thể → phải kẹt, nộp bừa là sai');

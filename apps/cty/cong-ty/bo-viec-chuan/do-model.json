@@ -1,0 +1,954 @@
+{
+ "_": "BỘ ĐO MODEL — Hà giữ, dùng cho worker/do-model.mjs (dò model theo vai, 11/10/2026). kiem: bài nộp cố định, 'loi' = lỗi cài sẵn (null = bài sạch, đạt mọi tiêu chí); nhãn đúng/sai do phép đo máy 'do' xác nhận (do-model --tu-kiem). lam: tham số theo loại việc, mẫu câu nằm trong do-model.mjs. ket: việc thiếu dữ kiện (mo_ho) / ràng buộc mâu thuẫn (mau_thuan) — trưởng phòng đúng phải trả {\"thieu\"}, không giao.",
+ "chu": "ha",
+ "kiem": [
+  {
+   "id": "etsy-title",
+   "tieu_chi": [
+    "Một tiêu đề Etsy duy nhất, một dòng",
+    "Tối đa 60 ký tự (tính cả khoảng trắng)",
+    "Viết bằng tiếng Anh",
+    "Có cụm \"large print\"",
+    "Không nhắc tên thương hiệu (Amazon, Walmart, Kindle)"
+   ],
+   "do": [
+    {
+     "loai": "so_dong",
+     "bang": 1
+    },
+    {
+     "loai": "so_ky_tu",
+     "toi_da": 60
+    },
+    {
+     "loai": "ngon_ngu",
+     "la": "en"
+    },
+    {
+     "loai": "chua",
+     "chuoi": [
+      "large print"
+     ]
+    },
+    {
+     "loai": "khong_chua",
+     "chuoi": [
+      "Amazon",
+      "Walmart",
+      "Kindle"
+     ]
+    }
+   ],
+   "bai": [
+    {
+     "ket_qua": "Large Print Word Search for Seniors: 100 Easy Puzzles"
+    },
+    {
+     "ket_qua": "Large Print Crossword Book, Relaxing Puzzles for Adults"
+    },
+    {
+     "ket_qua": "Printable Large Print Sudoku, 120 Puzzles PDF"
+    },
+    {
+     "loi": "vuot_do_dai",
+     "ket_qua": "Large Print Word Search Book for Seniors and Adults: 100 Easy Relaxing Puzzles with Solutions"
+    },
+    {
+     "loi": "sai_ngon_ngu",
+     "ket_qua": "Large print: sách tìm chữ cho người cao tuổi, 100 câu đố"
+    },
+    {
+     "loi": "chu_cam",
+     "ket_qua": "Large Print Word Search for Kindle and Print, 100 Puzzles"
+    }
+   ]
+  },
+  {
+   "id": "gumroad-3cau",
+   "tieu_chi": [
+    "Đúng 3 câu",
+    "Viết bằng tiếng Anh",
+    "Không dùng dấu gạch dài (—)",
+    "Nhắc đúng tên sách \"Killer Sudoku for Adults\"",
+    "Chỉ dùng số liệu có trong đề: sách có 100 câu đố"
+   ],
+   "do": [
+    {
+     "loai": "so_cau",
+     "bang": 3
+    },
+    {
+     "loai": "ngon_ngu",
+     "la": "en"
+    },
+    {
+     "loai": "khong_chua",
+     "chuoi": [
+      "—"
+     ]
+    },
+    {
+     "loai": "chua",
+     "chuoi": [
+      "Killer Sudoku for Adults"
+     ]
+    },
+    {
+     "loai": "so_trong_nguon",
+     "nguon": "100"
+    }
+   ],
+   "bai": [
+    {
+     "ket_qua": "Killer Sudoku for Adults brings 100 puzzles that sharpen logic one cage at a time. Each grid ramps up gently, so beginners and veterans both find a fair challenge. Print a page, grab a pencil, and enjoy a calm half hour of focused play."
+    },
+    {
+     "ket_qua": "Killer Sudoku for Adults is a printable collection of 100 puzzles for patient solvers. Every puzzle has one unique solution and a full answer key. It makes a thoughtful gift for anyone who loves numbers."
+    },
+    {
+     "ket_qua": "Meet Killer Sudoku for Adults, a book of 100 cage puzzles with clear, large grids. Puzzles move from easy warmups to tough finishers. Solutions are included at the back of the book."
+    },
+    {
+     "loi": "sai_so_luong",
+     "ket_qua": "Killer Sudoku for Adults brings 100 puzzles that sharpen logic one cage at a time. Each grid ramps up gently, so beginners and veterans both find a fair challenge. Print a page, grab a pencil, and enjoy a calm half hour of focused play. Download it today and start solving tonight."
+    },
+    {
+     "loi": "chu_cam",
+     "ket_qua": "Killer Sudoku for Adults brings 100 puzzles — each one a small logic adventure. Grids ramp up gently for every level. Print a page and enjoy."
+    },
+    {
+     "loi": "bia_so_lieu",
+     "ket_qua": "Killer Sudoku for Adults packs 250 puzzles that sharpen logic. Each grid ramps up gently for every level. Over 10,000 solvers already love it."
+    }
+   ]
+  },
+  {
+   "id": "email-vi",
+   "tieu_chi": [
+    "Viết bằng tiếng Việt",
+    "Tối đa 80 từ",
+    "Báo đơn hàng sách đố vui giao trễ 2 ngày",
+    "Không hứa giảm giá hay bồi thường"
+   ],
+   "do": [
+    {
+     "loai": "ngon_ngu",
+     "la": "vi"
+    },
+    {
+     "loai": "so_tu",
+     "toi_da": 80
+    },
+    {
+     "loai": "chua",
+     "chuoi": [
+      "2 ngày"
+     ]
+    },
+    {
+     "loai": "khong_chua",
+     "chuoi": [
+      "giảm giá",
+      "bồi thường",
+      "discount"
+     ]
+    },
+    {
+     "loai": "so_trong_nguon",
+     "nguon": "2"
+    }
+   ],
+   "bai": [
+    {
+     "ket_qua": "Chào anh/chị, đơn sách đố vui của anh/chị sẽ đến chậm hơn dự kiến 2 ngày do kho đang dồn hàng. Chúng tôi xin lỗi vì sự bất tiện này và sẽ gửi mã vận đơn ngay khi hàng rời kho. Cảm ơn anh/chị đã kiên nhẫn chờ."
+    },
+    {
+     "ket_qua": "Kính gửi quý khách, đơn hàng sách đố vui của quý khách sẽ giao trễ 2 ngày so với lịch hẹn. Chúng tôi rất tiếc và sẽ báo ngay khi đơn được giao cho đơn vị vận chuyển. Trân trọng."
+    },
+    {
+     "ket_qua": "Chào bạn, sách đố vui bạn đặt sẽ tới trễ 2 ngày vì nhà in giao chậm. Mình sẽ nhắn mã theo dõi ngay khi có. Cảm ơn bạn đã thông cảm!"
+    },
+    {
+     "loi": "vuot_do_dai",
+     "ket_qua": "Chào anh/chị, chúng tôi viết thư này để báo rằng đơn sách đố vui của anh/chị sẽ đến chậm hơn dự kiến 2 ngày. Nguyên nhân là kho hàng đang dồn đơn trong mùa cao điểm và đơn vị vận chuyển cũng đang quá tải ở nhiều tuyến. Chúng tôi hiểu việc chờ đợi gây bất tiện, nhất là khi anh/chị đã lên kế hoạch dùng sách làm quà tặng cho người thân. Ngay khi hàng rời kho, chúng tôi sẽ gửi mã vận đơn để anh/chị theo dõi từng chặng. Nếu cần hỗ trợ gì thêm, anh/chị cứ trả lời thư này. Xin cảm ơn anh/chị rất nhiều."
+    },
+    {
+     "loi": "chu_cam",
+     "ket_qua": "Chào bạn, sách đố vui bạn đặt sẽ tới trễ 2 ngày vì nhà in giao chậm. Mình sẽ nhắn mã theo dõi ngay khi có. Để bù lại, bạn được giảm giá cho đơn sau nhé."
+    },
+    {
+     "loi": "bia_so_lieu",
+     "ket_qua": "Chào bạn, sách đố vui bạn đặt sẽ tới trễ 5 ngày vì nhà in giao chậm. Mình sẽ nhắn mã theo dõi ngay khi có. Cảm ơn bạn đã thông cảm!"
+    }
+   ]
+  },
+  {
+   "id": "5-y-tuong",
+   "tieu_chi": [
+    "Đúng 5 ý tưởng bài viết về chiến thuật solitaire, mỗi ý một dòng",
+    "Mỗi dòng tối đa 12 từ",
+    "Viết bằng tiếng Anh"
+   ],
+   "do": [
+    {
+     "loai": "so_dong",
+     "bang": 5
+    },
+    {
+     "loai": "so_tu_moi_dong",
+     "toi_da": 12
+    },
+    {
+     "loai": "ngon_ngu",
+     "la": "en"
+    }
+   ],
+   "bai": [
+    {
+     "ket_qua": "Why revealing face-down cards first wins more Klondike games\nWhen to leave a column empty in solitaire\nHow to plan three moves ahead in Spider Solitaire\nCommon solitaire mistakes that quietly lose winnable games\nUsing the stock pile wisely in draw-three solitaire"
+    },
+    {
+     "ket_qua": "A beginner guide to sorting long solitaire columns\nWhy kings matter most when a column opens up\nHow to decide between two legal moves in FreeCell\nThe quiet power of building foundations slowly\nReading the deck: tracking cards you have already seen"
+    },
+    {
+     "ket_qua": "Five habits of players who win at solitaire often\nWhen undo helps you learn and when it hurts\nPlanning your first ten moves in a Klondike deal\nHow suit color changes your Spider Solitaire strategy\nSimple rules for knowing when a game is lost"
+    },
+    {
+     "loi": "sai_so_luong",
+     "ket_qua": "Why revealing face-down cards first wins more Klondike games\nWhen to leave a column empty in solitaire\nHow to plan three moves ahead in Spider Solitaire\nCommon solitaire mistakes that quietly lose winnable games\nUsing the stock pile wisely in draw-three solitaire\nWhy patience beats speed in every solitaire variant"
+    },
+    {
+     "loi": "sai_ngon_ngu",
+     "ket_qua": "Vì sao nên lật bài úp trước khi chơi Klondike\nKhi nào nên để trống một cột trong solitaire\nCách tính trước ba nước đi trong Spider Solitaire\nNhững lỗi phổ biến làm thua ván solitaire dễ thắng\nDùng chồng bài rút khôn ngoan trong solitaire rút ba"
+    },
+    {
+     "loi": "vuot_do_dai",
+     "ket_qua": "A beginner guide to sorting long solitaire columns\nWhy kings matter more than any other card when a long column finally opens up for you\nHow to decide between two legal moves in FreeCell\nThe quiet power of building foundations slowly\nReading the deck: tracking cards you have already seen"
+    }
+   ]
+  },
+  {
+   "id": "mo-ta-but-chi",
+   "tieu_chi": [
+    "Mô tả sản phẩm bằng tiếng Việt",
+    "Đúng 2 câu",
+    "Tối đa 40 từ",
+    "Nói về bộ bút chì gỗ 12 màu",
+    "Có nhắc chữ \"bút chì\""
+   ],
+   "do": [
+    {
+     "loai": "ngon_ngu",
+     "la": "vi"
+    },
+    {
+     "loai": "so_cau",
+     "bang": 2
+    },
+    {
+     "loai": "so_tu",
+     "toi_da": 40
+    },
+    {
+     "loai": "chua",
+     "chuoi": [
+      "bút chì"
+     ]
+    }
+   ],
+   "bai": [
+    {
+     "ket_qua": "Bộ bút chì gỗ 12 màu cho nét tô mềm, lên màu đều trên giấy vẽ và sổ tô màu. Ruột chì chắc, ít gãy, hợp cho cả trẻ em lẫn người lớn tập vẽ."
+    },
+    {
+     "ket_qua": "Hộp bút chì 12 màu vỏ gỗ tự nhiên, màu tươi và dễ phối. Gọt nhẹ tay, ruột không vụn, dùng tốt cho sổ tô màu thư giãn."
+    },
+    {
+     "ket_qua": "Bút chì màu gỗ 12 cây, đủ gam nóng lạnh cho mọi bức tranh nhỏ. Nét đậm nhạt dễ điều chỉnh nên rất hợp người mới bắt đầu."
+    },
+    {
+     "loi": "sai_so_luong",
+     "ket_qua": "Hộp bút chì 12 màu vỏ gỗ tự nhiên, màu tươi và dễ phối. Gọt nhẹ tay, ruột không vụn, dùng tốt cho sổ tô màu thư giãn. Hộp giấy gọn, dễ mang theo khi đi học."
+    },
+    {
+     "loi": "sai_ngon_ngu",
+     "ket_qua": "This set of 12 wooden colored pencils (bút chì) gives smooth, even color on sketch paper. The leads are sturdy and rarely break."
+    },
+    {
+     "loi": "sai_noi_dung",
+     "ket_qua": "Bộ bút lông màu nước 24 màu cho nét vẽ mềm và tươi. Đầu bút êm, hợp vẽ minh hoạ và viết chữ đẹp."
+    }
+   ]
+  },
+  {
+   "id": "tom-tat",
+   "tieu_chi": [
+    "Tóm tắt bằng tiếng Việt, tối đa 30 từ",
+    "Giữ con số 1.289 người dùng",
+    "Chỉ dùng số liệu có trong đoạn nguồn",
+    "Đoạn nguồn: \"Ứng dụng Ghi Nhanh vừa ra bản 3.6 với tính năng trò chuyện nhóm. Trong tuần đầu, 1.289 người dùng đã đăng ký và 312 nhóm được tạo. Đội phát triển cho biết bản tiếp theo sẽ thêm thông báo đẩy và chế độ tối.\""
+   ],
+   "do": [
+    {
+     "loai": "ngon_ngu",
+     "la": "vi"
+    },
+    {
+     "loai": "so_tu",
+     "toi_da": 30
+    },
+    {
+     "loai": "chua",
+     "chuoi": [
+      "1.289"
+     ]
+    },
+    {
+     "loai": "so_trong_nguon",
+     "nguon": "Ứng dụng Ghi Nhanh vừa ra bản 3.6 với tính năng trò chuyện nhóm. Trong tuần đầu, 1.289 người dùng đã đăng ký và 312 nhóm được tạo. Đội phát triển cho biết bản tiếp theo sẽ thêm thông báo đẩy và chế độ tối."
+    }
+   ],
+   "bai": [
+    {
+     "ket_qua": "Ghi Nhanh ra bản 3.6 có trò chuyện nhóm; tuần đầu có 1.289 người đăng ký và 312 nhóm, bản sau sẽ thêm thông báo đẩy."
+    },
+    {
+     "ket_qua": "Bản 3.6 của Ghi Nhanh thêm trò chuyện nhóm và thu hút 1.289 người đăng ký ngay tuần đầu."
+    },
+    {
+     "ket_qua": "Tuần đầu sau khi ra mắt trò chuyện nhóm, Ghi Nhanh có 1.289 người đăng ký và 312 nhóm mới."
+    },
+    {
+     "loi": "vuot_do_dai",
+     "ket_qua": "Ứng dụng Ghi Nhanh vừa ra mắt bản 3.6 với tính năng trò chuyện nhóm hoàn toàn mới, và chỉ trong tuần đầu tiên đã có 1.289 người dùng đăng ký cùng 312 nhóm được tạo, trong khi đội phát triển hứa bản tiếp theo sẽ có thông báo đẩy và chế độ tối."
+    },
+    {
+     "loi": "bia_so_lieu",
+     "ket_qua": "Ghi Nhanh bản 3.6 có trò chuyện nhóm, thu hút 1.289 người đăng ký, tăng 40% so với bản trước."
+    },
+    {
+     "loi": "sai_noi_dung",
+     "ket_qua": "Ghi Nhanh bản 3.6 có trò chuyện nhóm và được nhiều người đăng ký trong tuần đầu."
+    }
+   ]
+  },
+  {
+   "id": "trich-json",
+   "tieu_chi": [
+    "Trả JSON đúng 3 khoá: ten_khach, so_luong, don_gia — không thêm khoá",
+    "Giá trị lấy đúng từ đoạn nguồn; số viết dạng số",
+    "Đoạn nguồn: \"Đơn #A17: khách Trần Mai đặt 3 cuốn Sudoku khổ lớn, giá 89.000 đồng mỗi cuốn, giao tới Đà Nẵng.\""
+   ],
+   "do": [
+    {
+     "loai": "json_khop",
+     "khop": {
+      "ten_khach": "Trần Mai",
+      "so_luong": 3,
+      "don_gia": 89000
+     },
+     "du_khoa": true
+    }
+   ],
+   "bai": [
+    {
+     "ket_qua": "{\"ten_khach\":\"Trần Mai\",\"so_luong\":3,\"don_gia\":89000}"
+    },
+    {
+     "ket_qua": "{\n  \"ten_khach\": \"Trần Mai\",\n  \"so_luong\": 3,\n  \"don_gia\": 89000\n}"
+    },
+    {
+     "ket_qua": "{\"don_gia\":89000,\"so_luong\":3,\"ten_khach\":\"Trần Mai\"}"
+    },
+    {
+     "loi": "sai_so_luong",
+     "ket_qua": "{\"ten_khach\":\"Trần Mai\",\"so_luong\":3,\"don_gia\":89000,\"thanh_pho\":\"Đà Nẵng\"}"
+    },
+    {
+     "loi": "bia_so_lieu",
+     "ket_qua": "{\"ten_khach\":\"Trần Mai\",\"so_luong\":3,\"don_gia\":98000}"
+    },
+    {
+     "loi": "sai_noi_dung",
+     "ket_qua": "{\"ten_khach\":\"Đà Nẵng\",\"so_luong\":3,\"don_gia\":89000}"
+    }
+   ]
+  },
+  {
+   "id": "dich",
+   "tieu_chi": [
+    "Dịch sang tiếng Anh",
+    "Giữ nguyên thuật ngữ \"Killer Sudoku\" và \"PDF\"",
+    "Không thêm thông tin ngoài câu gốc; không nhắc tên sàn bán hàng (Amazon, Etsy)",
+    "Câu gốc: \"Cuốn Killer Sudoku này có 100 câu đố, kèm lời giải ở cuối sách và bản PDF để in tại nhà.\""
+   ],
+   "do": [
+    {
+     "loai": "ngon_ngu",
+     "la": "en"
+    },
+    {
+     "loai": "chua",
+     "chuoi": [
+      "Killer Sudoku",
+      "PDF"
+     ]
+    },
+    {
+     "loai": "khong_chua",
+     "chuoi": [
+      "Amazon",
+      "Etsy"
+     ]
+    },
+    {
+     "loai": "so_trong_nguon",
+     "nguon": "Cuốn Killer Sudoku này có 100 câu đố, kèm lời giải ở cuối sách và bản PDF để in tại nhà."
+    }
+   ],
+   "bai": [
+    {
+     "ket_qua": "This Killer Sudoku book has 100 puzzles, with solutions at the back and a PDF version to print at home."
+    },
+    {
+     "ket_qua": "This Killer Sudoku book contains 100 puzzles, includes solutions at the end, and comes with a PDF you can print at home."
+    },
+    {
+     "ket_qua": "The Killer Sudoku book offers 100 puzzles, an answer key at the back, and a printable PDF for home use."
+    },
+    {
+     "loi": "sai_ngon_ngu",
+     "ket_qua": "Cuốn Killer Sudoku này gồm 100 câu đố, có lời giải cuối sách và bản PDF để in tại nhà."
+    },
+    {
+     "loi": "chu_cam",
+     "ket_qua": "This Killer Sudoku book, a bestseller on Amazon, has 100 puzzles, solutions at the back, and a printable PDF."
+    },
+    {
+     "loi": "sai_noi_dung",
+     "ket_qua": "This killer-style number puzzle book has 100 puzzles, with solutions at the back and a printable file for home use."
+    }
+   ]
+  },
+  {
+   "id": "phan-loai",
+   "bai": [
+    {
+     "tieu_chi": [
+      "Phân loại tin nhắn khách vào ĐÚNG MỘT nhãn trong: hoan_tien, giao_hang, ky_thuat, khac",
+      "Chỉ trả nhãn, viết đúng như danh sách",
+      "Tin nhắn: \"Tôi đặt sách từ thứ Hai mà đến giờ vẫn chưa thấy shipper gọi.\""
+     ],
+     "do": [
+      {
+       "loai": "bang_chuoi",
+       "la": [
+        "giao_hang"
+       ]
+      }
+     ],
+     "ket_qua": "giao_hang"
+    },
+    {
+     "tieu_chi": [
+      "Phân loại tin nhắn khách vào ĐÚNG MỘT nhãn trong: hoan_tien, giao_hang, ky_thuat, khac",
+      "Chỉ trả nhãn, viết đúng như danh sách",
+      "Tin nhắn: \"File PDF tôi mua bị trùng với cuốn trước, cho tôi xin lại tiền.\""
+     ],
+     "do": [
+      {
+       "loai": "bang_chuoi",
+       "la": [
+        "hoan_tien"
+       ]
+      }
+     ],
+     "ket_qua": "hoan_tien"
+    },
+    {
+     "tieu_chi": [
+      "Phân loại tin nhắn khách vào ĐÚNG MỘT nhãn trong: hoan_tien, giao_hang, ky_thuat, khac",
+      "Chỉ trả nhãn, viết đúng như danh sách",
+      "Tin nhắn: \"Tôi tải file về nhưng mở trên điện thoại báo lỗi định dạng.\""
+     ],
+     "do": [
+      {
+       "loai": "bang_chuoi",
+       "la": [
+        "ky_thuat"
+       ]
+      }
+     ],
+     "ket_qua": "ky_thuat"
+    },
+    {
+     "tieu_chi": [
+      "Phân loại tin nhắn khách vào ĐÚNG MỘT nhãn trong: hoan_tien, giao_hang, ky_thuat, khac",
+      "Chỉ trả nhãn, viết đúng như danh sách",
+      "Tin nhắn: \"Tôi đặt sách từ thứ Hai mà đến giờ vẫn chưa thấy shipper gọi.\""
+     ],
+     "do": [
+      {
+       "loai": "bang_chuoi",
+       "la": [
+        "giao_hang"
+       ]
+      }
+     ],
+     "ket_qua": "giao_hang, khac",
+     "loi": "sai_so_luong"
+    },
+    {
+     "tieu_chi": [
+      "Phân loại tin nhắn khách vào ĐÚNG MỘT nhãn trong: hoan_tien, giao_hang, ky_thuat, khac",
+      "Chỉ trả nhãn, viết đúng như danh sách",
+      "Tin nhắn: \"File PDF tôi mua bị trùng với cuốn trước, cho tôi xin lại tiền.\""
+     ],
+     "do": [
+      {
+       "loai": "bang_chuoi",
+       "la": [
+        "hoan_tien"
+       ]
+      }
+     ],
+     "ket_qua": "hoàn tiền",
+     "loi": "sai_ngon_ngu"
+    },
+    {
+     "tieu_chi": [
+      "Phân loại tin nhắn khách vào ĐÚNG MỘT nhãn trong: hoan_tien, giao_hang, ky_thuat, khac",
+      "Chỉ trả nhãn, viết đúng như danh sách",
+      "Tin nhắn: \"Tôi tải file về nhưng mở trên điện thoại báo lỗi định dạng.\""
+     ],
+     "do": [
+      {
+       "loai": "bang_chuoi",
+       "la": [
+        "ky_thuat"
+       ]
+      }
+     ],
+     "ket_qua": "giao_hang",
+     "loi": "sai_noi_dung"
+    }
+   ]
+  },
+  {
+   "id": "mo-ta-en",
+   "tieu_chi": [
+    "Mô tả sản phẩm bằng tiếng Anh, tối đa 25 từ",
+    "Sản phẩm: sách tô màu mandala 50 trang",
+    "Có cụm \"50 pages\"",
+    "Không nhắc tên thương hiệu (Amazon, Kindle, Etsy)",
+    "Chỉ dùng số liệu có trong đề"
+   ],
+   "do": [
+    {
+     "loai": "ngon_ngu",
+     "la": "en"
+    },
+    {
+     "loai": "so_tu",
+     "toi_da": 25
+    },
+    {
+     "loai": "chua",
+     "chuoi": [
+      "50 pages"
+     ]
+    },
+    {
+     "loai": "khong_chua",
+     "chuoi": [
+      "Amazon",
+      "Kindle",
+      "Etsy"
+     ]
+    },
+    {
+     "loai": "so_trong_nguon",
+     "nguon": "50"
+    }
+   ],
+   "bai": [
+    {
+     "ket_qua": "A calming mandala coloring book with 50 pages of detailed patterns, printed single sided so markers never bleed through."
+    },
+    {
+     "ket_qua": "Relax with 50 pages of mandala designs, from simple rings to intricate florals, made for quiet evenings and steady hands."
+    },
+    {
+     "ket_qua": "This mandala coloring book offers 50 pages of balanced, soothing patterns for adults who enjoy slow, mindful coloring."
+    },
+    {
+     "loi": "vuot_do_dai",
+     "ket_qua": "A calming mandala coloring book with 50 pages of detailed patterns, printed single sided so markers never bleed through, perfect for quiet evenings, gifts, and anyone who wants a slower and gentler hobby."
+    },
+    {
+     "loi": "chu_cam",
+     "ket_qua": "A calming mandala coloring book with 50 pages of patterns, ready to ship from our Etsy shop today."
+    },
+    {
+     "loi": "bia_so_lieu",
+     "ket_qua": "A calming mandala coloring book with 50 pages and 200 bonus designs for endless relaxing evenings."
+    }
+   ]
+  }
+ ],
+ "lam": {
+  "copy_en": [
+   [
+    "a printable large-print word search book for seniors",
+    60,
+    "large print"
+   ],
+   [
+    "a killer sudoku puzzle book for adults",
+    55,
+    "killer sudoku"
+   ],
+   [
+    "a mandala coloring book for adults",
+    50,
+    "mandala"
+   ],
+   [
+    "a printable weekly meal planner PDF",
+    45,
+    "meal planner"
+   ],
+   [
+    "a kids maze activity book for ages 6 to 8",
+    60,
+    "maze"
+   ],
+   [
+    "a cryptogram puzzle book with 200 puzzles",
+    58,
+    "cryptogram"
+   ],
+   [
+    "a printable habit tracker for 2027",
+    40,
+    "habit tracker"
+   ],
+   [
+    "a large-print crossword book for seniors",
+    50,
+    "crossword"
+   ]
+  ],
+  "viet_vi": [
+   [
+    "bộ bút chì gỗ 12 màu",
+    2,
+    40,
+    "bút chì",
+    "rẻ nhất"
+   ],
+   [
+    "sách sudoku khổ lớn cho người cao tuổi",
+    3,
+    50,
+    "khổ lớn",
+    "hàng đầu"
+   ],
+   [
+    "sổ tay kế hoạch tuần bản in",
+    2,
+    35,
+    "kế hoạch",
+    "tuyệt vời"
+   ],
+   [
+    "bộ thẻ học từ vựng tiếng Anh cho trẻ",
+    3,
+    45,
+    "thẻ học",
+    "thần kỳ"
+   ],
+   [
+    "sách tô màu mandala cho người lớn",
+    2,
+    30,
+    "mandala",
+    "chữa bệnh"
+   ],
+   [
+    "lịch để bàn năm 2027",
+    2,
+    35,
+    "để bàn",
+    "giảm giá"
+   ],
+   [
+    "bộ câu đố logic cho học sinh",
+    3,
+    50,
+    "logic",
+    "đảm bảo"
+   ],
+   [
+    "file PDF theo dõi chi tiêu hằng tháng",
+    2,
+    40,
+    "chi tiêu",
+    "miễn phí"
+   ]
+  ],
+  "tom_tat": [
+   [
+    "Ứng dụng Ghi Nhanh vừa ra bản 3.6 với tính năng trò chuyện nhóm. Trong tuần đầu, 1.289 người dùng đã đăng ký và 312 nhóm được tạo. Đội phát triển cho biết bản tiếp theo sẽ thêm thông báo đẩy và chế độ tối.",
+    30,
+    "1.289",
+    "Ghi Nhanh"
+   ],
+   [
+    "Cửa hàng sách Đố Vui bán được 4.250 cuốn trong quý ba, tăng 18% so với quý hai. Sách sudoku khổ lớn chiếm gần một nửa doanh số. Cửa hàng dự định mở thêm kênh bán trên sàn thương mại điện tử vào tháng 11.",
+    30,
+    "4.250",
+    "Đố Vui"
+   ],
+   [
+    "Khảo sát 600 phụ huynh cho thấy 72% muốn sách tô màu có chủ đề động vật. Chỉ 9% chọn chủ đề xe cộ. Nhóm nghiên cứu đề xuất ra mắt bộ sách động vật trước mùa tựu trường.",
+    25,
+    "72%",
+    "phụ huynh"
+   ],
+   [
+    "Kênh video hướng dẫn giải đố đạt 15.000 lượt xem trong tháng 9, thời gian xem trung bình 4 phút. Video về killer sudoku được xem nhiều nhất. Tháng tới kênh sẽ đăng 8 video mới.",
+    30,
+    "15.000",
+    "lượt xem"
+   ],
+   [
+    "Bản dùng thử công cụ tính lương có 2.300 lượt dùng trong 10 ngày. Tỉ lệ người quay lại là 27%. Người dùng góp ý nhiều nhất về việc thiếu bảng phụ cấp theo vùng.",
+    25,
+    "27%",
+    "phụ cấp"
+   ],
+   [
+    "Xưởng in nhận 3 đơn sách đố vui khổ lớn, tổng 1.500 cuốn, giao trong 12 ngày. Giấy in dùng loại 100 gsm để chữ không bị thấm. Chi phí in mỗi cuốn khoảng 21.000 đồng.",
+    30,
+    "1.500",
+    "xưởng in"
+   ],
+   [
+    "Chiến dịch email gửi tới 8.400 người nhận, tỉ lệ mở đạt 31% và tỉ lệ nhấp 4%. Tiêu đề có câu hỏi cho tỉ lệ mở cao hơn tiêu đề thường. Lần gửi sau sẽ thử gửi vào buổi sáng.",
+    30,
+    "31%",
+    "email"
+   ],
+   [
+    "Sau khi đổi ảnh bìa, trang sách tô màu mandala tăng tỉ lệ chuyển đổi từ 1,8% lên 2,6% trong 14 ngày. Số lượt xem trang giữ ở mức khoảng 900 mỗi tuần. Nhóm sẽ thử thêm ảnh trang mẫu.",
+    30,
+    "2,6%",
+    "ảnh bìa"
+   ]
+  ],
+  "trich_json": [
+   [
+    "Đơn #A17: khách Trần Mai đặt 3 cuốn Sudoku khổ lớn, giá 89.000 đồng mỗi cuốn, giao tới Đà Nẵng.",
+    {
+     "ten_khach": "Trần Mai",
+     "so_luong": 3,
+     "don_gia": 89000
+    },
+    "Trần Mai"
+   ],
+   [
+    "Order #B204 from Liam Carter: 2 copies of Mandala Calm at $12.50 each, shipping to Austin.",
+    {
+     "customer": "Liam Carter",
+     "quantity": 2,
+     "unit_price": 12.5
+    },
+    "Liam Carter"
+   ],
+   [
+    "Hoá đơn ngày 03/10/2026 của công ty Sao Mai: 150 cuốn sổ kế hoạch, tổng tiền 6.750.000 đồng.",
+    {
+     "cong_ty": "Sao Mai",
+     "so_luong": 150,
+     "tong_tien": 6750000
+    },
+    "Sao Mai"
+   ],
+   [
+    "Ticket 5531: user Priya Nair reports the PDF won't open on iPad, priority high.",
+    {
+     "ticket_id": 5531,
+     "user": "Priya Nair",
+     "device": "iPad"
+    },
+    "Priya Nair"
+   ],
+   [
+    "Lô hàng LH-09 gồm 40 thùng, mỗi thùng 25 cuốn, xuất kho ngày 7 tháng 10.",
+    {
+     "ma_lo": "LH-09",
+     "so_thung": 40,
+     "cuon_moi_thung": 25
+    },
+    "LH-09"
+   ],
+   [
+    "Refund request from Ana Silva for order #C88, amount $9.99, reason: duplicate purchase.",
+    {
+     "customer": "Ana Silva",
+     "order_id": "C88",
+     "amount": 9.99
+    },
+    "Ana Silva"
+   ],
+   [
+    "Nhân viên Lê Bình làm 6 giờ ngày thứ Bảy, đơn giá 45.000 đồng một giờ.",
+    {
+     "nhan_vien": "Lê Bình",
+     "so_gio": 6,
+     "don_gia": 45000
+    },
+    "Lê Bình"
+   ],
+   [
+    "Campaign Spring-Puzzles spent $340 for 1,200 clicks and 36 sales.",
+    {
+     "campaign": "Spring-Puzzles",
+     "spend": 340,
+     "sales": 36
+    },
+    "Spring-Puzzles"
+   ]
+  ],
+  "dich": [
+   [
+    "Cuốn Killer Sudoku này có 100 câu đố, kèm lời giải ở cuối sách và bản PDF để in tại nhà.",
+    [
+     "Killer Sudoku",
+     "PDF"
+    ],
+    "lời giải"
+   ],
+   [
+    "Gói Habit Tracker gồm 12 trang theo dõi, in được trên khổ A4 và Letter.",
+    [
+     "Habit Tracker",
+     "A4",
+     "Letter"
+    ],
+    "trang theo dõi"
+   ],
+   [
+    "Bạn có thể tải file SVG và dùng với Cricut để cắt dán trang trí.",
+    [
+     "SVG",
+     "Cricut"
+    ],
+    "cắt dán"
+   ],
+   [
+    "Sách Word Search khổ lớn dùng cỡ chữ 18pt, phù hợp người cao tuổi.",
+    [
+     "Word Search",
+     "18pt"
+    ],
+    "người cao tuổi"
+   ],
+   [
+    "Mỗi trang mandala được in một mặt để bút dạ không thấm sang trang sau.",
+    [
+     "mandala"
+    ],
+    "bút dạ"
+   ],
+   [
+    "Bản Daily Planner có 365 trang, mỗi trang có ô ghi việc theo từng giờ trong ngày.",
+    [
+     "Daily Planner"
+    ],
+    "ghi việc"
+   ],
+   [
+    "Gói Printable Bundle gồm 5 file PDF và 1 file PNG chất lượng cao.",
+    [
+     "Printable Bundle",
+     "PDF",
+     "PNG"
+    ],
+    "chất lượng cao"
+   ],
+   [
+    "Bộ Cryptogram này có 200 câu đố, chia 4 mức độ từ dễ đến chuyên gia.",
+    [
+     "Cryptogram"
+    ],
+    "chuyên gia"
+   ]
+  ],
+  "phan_loai": [
+   [
+    "Tôi đặt sách từ thứ Hai mà đến giờ vẫn chưa thấy shipper gọi.",
+    "giao_hang",
+    "shipper"
+   ],
+   [
+    "File PDF tôi mua bị trùng với cuốn trước, cho tôi xin lại tiền.",
+    "hoan_tien",
+    "xin lại tiền"
+   ],
+   [
+    "Tôi tải file về nhưng mở trên điện thoại báo lỗi định dạng.",
+    "ky_thuat",
+    "lỗi định dạng"
+   ],
+   [
+    "Shop có nhận in sách theo tên riêng làm quà sinh nhật không?",
+    "khac",
+    "sinh nhật"
+   ],
+   [
+    "My order shows delivered but there is nothing at my door.",
+    "giao_hang",
+    "delivered"
+   ],
+   [
+    "The download link in my email says expired, can you send a new one?",
+    "ky_thuat",
+    "expired"
+   ],
+   [
+    "I was charged twice for the same coloring book, please refund one.",
+    "hoan_tien",
+    "charged twice"
+   ],
+   [
+    "Do you have a version of this planner in Spanish?",
+    "khac",
+    "Spanish"
+   ]
+  ]
+ },
+ "ket": {
+  "mo_ho": [
+   "Làm cho nó hay hơn.",
+   "Viết tiêu đề cho sản phẩm mới của mình.",
+   "Dịch đoạn hôm qua sang tiếng Anh.",
+   "Đặt giá cho cuốn sách đó.",
+   "Write a description for it, same style as last time.",
+   "Sửa lại cái email kia cho lịch sự hơn.",
+   "Tóm tắt báo cáo này giúp tôi.",
+   "Reply to the customer about their complaint."
+  ],
+  "mau_thuan": [
+   "Write a 2-sentence product description, maximum 10 words in total, that explains all 7 features of the Solitaire Nest app in detail.",
+   "Viết một tiêu đề Etsy tối đa 20 ký tự, phải chứa đủ 5 cụm: \"large print\", \"word search\", \"seniors\", \"100 puzzles\", \"easy\".",
+   "Viết email báo khách đơn giao trễ 2 ngày, chỉ dùng tiếng Việt, nhưng mọi câu phải viết bằng tiếng Anh.",
+   "List exactly 5 blog post ideas, one per line, in exactly 3 lines.",
+   "Viết mô tả sản phẩm đúng 3 câu, mỗi câu ít nhất 20 từ, tổng cả đoạn không quá 30 từ.",
+   "Write an Etsy title under 30 characters that contains the full phrase \"Large Print Crossword Puzzles for Seniors Vol 2\" word for word.",
+   "Tóm tắt đoạn sau trong tối đa 5 từ nhưng phải giữ đủ cả 6 con số: \"Quý ba bán 4.250 cuốn, tăng 18%, lãi 312 triệu, ra 9 đầu sách, mở 27 điểm bán, 1.289 khách quay lại.\"",
+   "Write a product description in English that never uses the letter e, and it must include the exact phrase \"free shipping\"."
+  ]
+ }
+}

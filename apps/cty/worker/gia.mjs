@@ -7,7 +7,7 @@ import { GOC } from './goc.mjs';
 const GIA = JSON.parse(fs.readFileSync(path.join(GOC, 'worker', 'gia-model.json'), 'utf8'));
 export function giaCua(model) {
   const ten = String(model).includes(':') ? String(model).split(':')[1] : String(model);
-  const k = Object.keys(GIA).filter((x) => x !== '_' && ten.startsWith(x)).sort((a, b) => b.length - a.length)[0];
+  const k = Object.keys(GIA).filter((x) => !x.startsWith('_') && ten.startsWith(x)).sort((a, b) => b.length - a.length)[0];
   return k ? GIA[k] : null;
 }
 /** USD của một lượt gọi; không có giá → null. */

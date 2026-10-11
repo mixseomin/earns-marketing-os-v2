@@ -29,10 +29,11 @@ export const nhanSu = (id, luot) => { const rel = `nhan-su/${id}/SOUL.md`; const
 const NHIP = Math.min(Math.max(Number(process.argv.includes('--nhip') ? process.argv[process.argv.indexOf('--nhip') + 1] : 0) || 0, 0), 30);
 const tenCua = (id) => id === 'giam-doc' ? 'Giám đốc' : (() => { try { return String(doc(`nhan-su/${id}/SOUL.md`).fm.ten || id); } catch { return id; } })();
 
+/** Lời hệ thống của một nhân sự trong một lượt — một bản cho lượt thật lẫn dò model (worker/do-model.mjs). */
+export const heThong = (ns, nk) => `Bạn là ${ns.ten}, ${ns.vai?.ten ?? ns.chuc_danh}, ${nk.ten_phong ?? 'công ty'}. LUẬT CHUNG (rút gọn): ba mức quyết định; việc nộp phải có bằng chứng; không khen mở đầu; trả lời đúng định dạng được yêu cầu, không thêm lời dẫn.\n\n${nk.quy_dinh ? `\n\nQUY ĐỊNH DỰ ÁN PHÒNG PHẢI TUÂN THEO (trên quy trình của phòng, không được làm trái):\n${nk.quy_dinh}` : ''}${ns.vai ? `\n\nVAI CỦA BẠN Ở PHÒNG — ${ns.vai.ten}:\n${ns.vai.body}` : ''}${loiDanTinhCach(ns.tinh_cach ?? [])}${loiDanKinhNghiem(ns.bai_hoc ?? [])}\n\nHỒ SƠ CỦA BẠN:\n${ns.body}`;
 export async function goi(ns, user, buoc, nk, toi) {
   ghiLog({ luot: nk.ts, loai: 'tin', tu: toi?.tu ?? 'giam-doc', toi: ns.id, chi_tiet: { buoc, noi_dung: user.slice(0, 240) } });
-  const body = { model: ns.model, max_tokens: 500, temperature: 0.3,
-    system: `Bạn là ${ns.ten}, ${ns.vai?.ten ?? ns.chuc_danh}, ${nk.ten_phong ?? 'công ty'}. LUẬT CHUNG (rút gọn): ba mức quyết định; việc nộp phải có bằng chứng; không khen mở đầu; trả lời đúng định dạng được yêu cầu, không thêm lời dẫn.\n\n${nk.quy_dinh ? `\n\nQUY ĐỊNH DỰ ÁN PHÒNG PHẢI TUÂN THEO (trên quy trình của phòng, không được làm trái):\n${nk.quy_dinh}` : ''}${ns.vai ? `\n\nVAI CỦA BẠN Ở PHÒNG — ${ns.vai.ten}:\n${ns.vai.body}` : ''}${loiDanTinhCach(ns.tinh_cach ?? [])}${loiDanKinhNghiem(ns.bai_hoc ?? [])}\n\nHỒ SƠ CỦA BẠN:\n${ns.body}`,
+  const body = { model: ns.model, max_tokens: 500, temperature: 0.3, system: heThong(ns, nk),
     messages: [{ role: 'user', content: user }] };
   const moTa = `${buoc} · từ ${tenCua(toi?.tu ?? 'giam-doc')}`;
   await vpBao(ns.id, 'lam', moTa);
@@ -52,6 +53,9 @@ export { json };   // bản dùng chung ở quy-trinh.mjs
 
 const MAU_DO = 'so_cau{bang|toi_da} · so_tu{toi_da} · so_ky_tu{toi_da} · so_dong{bang} · so_tu_moi_dong{toi_da} · khong_chua{chuoi:[…]} · ngon_ngu{la:"en"}';
 
+export const LOI_HOI_LAI = '\nNếu việc THIẾU dữ kiện để làm đúng (không rõ đối tượng, ngôn ngữ, nơi đăng, giới hạn) hoặc các ràng buộc MÂU THUẪN nhau đến mức không thể làm đúng, thì KHÔNG giao: trả JSON {"thieu":"<một câu hỏi cụ thể gửi Giám đốc>"}.';
+export const quyDinhLuot = (khoa) => quyDinhCuaPhong(khoa.split('/')[0]).filter((x) => x.tang === 'du-an' && x.noi_dung).map((x) => `[${x.ten}]\n${x.noi_dung}`).join('\n\n').slice(0, 3000);
+
 /** Một lượt chạy THEO QUY TRÌNH của phòng (worker/quy-trinh.mjs: hiện hành, hoặc `o.quyTrinh` khi so phiên bản).
  *  Công tắc phòng được tự bật trong biên: so_vong_lam_lai · hoi_lai_khi_thieu_du_kien · may_do · khoa_tieu_chi · het_vong · bao_cao_do_may. */
 export async function motLuot(viec, ghi = true, o = {}) {
@@ -64,7 +68,7 @@ export async function motLuot(viec, ghi = true, o = {}) {
   const giaoNs = N(qt.nguoi.giao), lamNs = N(qt.nguoi.lam), kiemNs = N(qt.nguoi.kiem), bcNs = N(qt.nguoi.bao_cao);
   const dien = (mau, v) => dienMau(mau, { nguoi_lam: lamNs.ten, nguoi_kiem: kiemNs.ten, ma_nguoi_lam: lamNs.id, ...v });   // lời nhắc không gõ tên người
   // Quy định dự án mà phòng tham gia (cong-ty/quy-dinh/du-an) đi vào lời dặn của mọi người trong lượt; luật chung công ty đã ở system.
-  const quyDinh = quyDinhCuaPhong(khoa.split('/')[0]).filter((x) => x.tang === 'du-an' && x.noi_dung).map((x) => `[${x.ten}]\n${x.noi_dung}`).join('\n\n').slice(0, 3000);
+  const quyDinh = quyDinhLuot(khoa);
   const nk = { ts, bat_dau: new Date().toISOString(), viec, khoa, ten_phong: tenPhong(khoa), quy_trinh: qt.ban, quy_dinh: quyDinh, bo_viec: o.boViec ?? null, trang_thai: 'đang chạy', buoc: [], do_may: [], ket: null };
   const f = path.join(DATA(), 'nhat-ky', `${ts}.json`);
   const luu = () => { if (ghi) { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(nk, null, 2)); } };
@@ -73,7 +77,7 @@ export async function motLuot(viec, ghi = true, o = {}) {
   try {
     // 1. Giao việc
     let loiGiao = dien(L.giao, { viec });
-    if (qt.hoi_lai_khi_thieu_du_kien) loiGiao += '\nNếu việc THIẾU dữ kiện để làm đúng (không rõ đối tượng, ngôn ngữ, nơi đăng, giới hạn) hoặc các ràng buộc MÂU THUẪN nhau đến mức không thể làm đúng, thì KHÔNG giao: trả JSON {"thieu":"<một câu hỏi cụ thể gửi Giám đốc>"}.';
+    if (qt.hoi_lai_khi_thieu_du_kien) loiGiao += LOI_HOI_LAI;
     if (qt.may_do) loiGiao += `\nTiêu chí nào đo được bằng máy thì thêm vào "do" (mỗi phép một trong: ${MAU_DO}), ví dụ {"giao_cho":"${lamNs.id}","viec":"…","tieu_chi":["…"],"do":[{"loai":"so_cau","bang":3}]}.`;
     const giao = json(await goi(giaoNs, loiGiao, `${so()} giao việc`, nk, { tu: 'giam-doc' }));
     let lam = null, soat = null, vong = 0, tt, cauHoi, ghiChu;

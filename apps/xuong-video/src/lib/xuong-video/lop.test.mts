@@ -33,3 +33,21 @@ assert.ok(loc.includes('[vcat][la') && loc.includes("[vla0]ass=filename='/t/chu.
 const ass = kh.tep.find((x) => x.duong.endsWith('/chu.ass'))!.noiDung;
 assert.ok(ass.includes('Dialogue: 100,') && ass.includes(',Lop0,') && ass.includes(',LopHinh,'), ass);
 console.log('lop.test: ok');
+// Hiệu ứng khung kiểu CapCut + chữ gõ/nảy (11/10/2026).
+{
+  const { lopHieuUngLoc, hieuUngKhungTai, HIEU_UNG, GO_CHU_MS } = await import('./lop');
+  const hu = (k: string, tu: number) => lopMoi('hieu_ung', tu, { hu: k as never, cuong: 1 });
+  assert.ok(lopHieuUngLoc(hu('chop', 1), W, H, 'a', 'b', 0).startsWith("[a]eq=brightness='0.6*max(0\\,1-(t-1)/0.35)':eval=frame:enable='between(t\\,1\\,2)'[b]"));
+  assert.ok(lopHieuUngLoc(hu('rung', 0), W, H, 'a', 'b', 3).includes('[hu3a][hu3c]overlay=0:0:enable='));   // crop không có timeline → tách luồng + overlay
+  assert.strictEqual(HIEU_UNG.length, 8);
+  for (const h of HIEU_UNG) assert.ok(!lopHieuUngLoc(hu(h.key, 0), W, H, 'a', 'b', 0).includes('null'), h.key);
+  const k = hieuUngKhungTai([hu('den_trang', 0), hu('zoom', 0), hu('chop', 5)], 0.5, 270);
+  assert.ok(k.filter.includes('grayscale(1)') && k.transform.includes('scale(1.12)') && k.chop === 0);
+  // Hiệu ứng không vẽ như một vật, không vào ASS.
+  assert.deepStrictEqual(lopHien([hu('rung', 0)], 0.5), []);
+  assert.strictEqual(lopAss([hu('rung', 0)], W, H).events.length, 0);
+  const go = lopAss([lopMoi('chu', 0, { chu: 'AB', vao: 'go_chu' })], W, H).events[0]!;
+  assert.ok(go.includes(`\\t(${GO_CHU_MS},${GO_CHU_MS + 1},\\alpha&H00&)}B`), go);
+  assert.ok(lopAss([lopMoi('chu', 0, { vao: 'nay' })], W, H).events[0]!.includes('\\fscx115'));
+  console.log('lop.test: hiệu ứng ok');
+}

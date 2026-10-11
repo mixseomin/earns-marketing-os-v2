@@ -7,7 +7,7 @@
 //   - chuẩn -14 LUFS, H.264 30fps, 1080×1920 (9:16) hoặc 1920×1080.
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/xuat.test.mts
 import type { Canh, KieuChu, LoaiPhim, Lop, NhanVat, Tap, ThongTinQc, ViTriChu } from './kieu';
-import { mauAss, gioAss, lopAss, lopAnhLoc } from './lop';
+import { mauAss, gioAss, lopAss, lopAnhLoc, lopHieuUngLoc } from './lop';
 import { giayPhat, locNhanh, doanChuMan, coMau, KIEU_CHU_MAC_DINH } from './kieu';
 export { doanChuMan, chuManHien } from './kieu';
 import { dongThoai, dungTiengClip, lichGiong } from './am-thanh';
@@ -274,7 +274,9 @@ export function keHoachXuat(o: {
     const k = them(l.url!, ['-loop', '1', '-framerate', so(fpsRa), '-t', so(giay)]);
     loc.push(lopAnhLoc(l, k, W, H, nen, `vla${i}`)); nen = `vla${i}`;
   });
-  const coAss = cauMan.length || lop.some((l) => l.loai !== 'anh');
+  // Lớp hiệu ứng khung (rung, chớp, zoom…) áp lên video + lớp ảnh, DƯỚI chữ/hình/chữ màn — chữ vẫn đọc được khi rung/mờ.
+  lop.filter((l) => l.loai === 'hieu_ung').forEach((l, i) => { loc.push(lopHieuUngLoc(l, W, H, nen, `vhu${i}`, i)); nen = `vhu${i}`; });
+  const coAss = cauMan.length || lop.some((l) => l.loai === 'chu' || l.loai === 'hinh');
   if (coAss) {
     const ass = tepChu('chu', tepAss({ W, H, kieu: o.qc?.kieu_chu, viTri, cau: cauMan, lop })).replace(/\.txt$/, '.ass');
     tep[tep.length - 1]!.duong = ass;

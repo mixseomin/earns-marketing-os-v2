@@ -5,10 +5,11 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as PE } from 'react';
 import { luuLop, taiAnhLen } from '@/lib/actions';
 import { FONT_CHU, type Lop } from '@/lib/xuong-video/kieu';
-import { lopHien, hieuUngTai, lopMoi, tenLop, MAU_LOP } from '@/lib/xuong-video/lop';
+import { lopHien, hieuUngTai, lopMoi, tenLop, soKyTuGo, MAU_LOP, HIEU_UNG } from '@/lib/xuong-video/lop';
+import { Chon } from './chon';
 import { Menu, MucMenu, Xoa, mono } from './ui';
 
-const ICON_LOAI: Record<Lop['loai'], string> = { chu: 'T', anh: '🖼', hinh: '◼' };
+const ICON_LOAI: Record<Lop['loai'], string> = { chu: 'T', anh: '🖼', hinh: '◼', hieu_ung: '✦' };
 const fontCss = (f?: string) => (!f || f === 'DejaVu Sans' ? '"DejaVu Sans", system-ui, sans-serif' : `"${f}", "Montserrat", system-ui, sans-serif`);
 const lam = (v: number, n = 3) => Math.round(v * 10 ** n) / 10 ** n;
 
@@ -79,7 +80,7 @@ export function LopXem({ lop, t, rong, cao, chonId, onChon, onDoi, dangChay = tr
             ? <div contentEditable suppressContentEditableWarning autoFocus ref={(el) => { if (el && document.activeElement !== el) { el.focus(); document.getSelection()?.selectAllChildren(el); } }}
                 onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') (e.currentTarget as HTMLElement).blur(); }}
                 onBlur={(e) => { onDoi(l.id, { chu: e.currentTarget.innerText.replace(/\n$/, '') }); setSua(null); }} style={{ ...kieuChu, outline: 'none', minWidth: 20 }}>{l.chu}</div>
-            : <div style={kieuChu}>{l.chu}</div>)
+            : <div style={kieuChu}>{dangChay && l.vao === 'go_chu' && !ngoaiGio ? (l.chu ?? '').slice(0, soKyTuGo(l, t)) : l.chu}</div>)
           : l.loai === 'anh'
             ? (l.url ? <img src={l.url} alt="" data-khong-phong-to="" draggable={false} style={{ width: l.w * rong, display: 'block' }} /> : <div style={{ width: l.w * rong, height: l.w * rong * 0.6, border: '1px dashed #fff', color: '#fff', fontSize: 10, display: 'grid', placeItems: 'center' }}>chưa có ảnh</div>)
             : <div style={{ width: l.w * rong, height: l.h * cao, background: l.mau ?? '#6B4FD8', borderRadius: l.dang === 'tron' ? '50%' : l.dang === 'bo_goc' ? Math.min(l.w * rong, l.h * cao) * 0.22 : 0,
@@ -132,6 +133,10 @@ export function LopCongCu({ t, tiLe, onThem }: { t: number; tiLe: number; onThem
       <label className="xv-btn" style={{ cursor: 'pointer' }} title="Thêm ảnh từ máy làm lớp (PNG nền trong suốt đẹp nhất)">{dang ? '⏳' : '🖼'} Ảnh
         <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) tai(f); e.target.value = ''; }} />
       </label>
+      <Menu nhan="✦ Hiệu ứng ▾">
+        <div style={{ ...mono, padding: '2px 4px' }}>Hiệu ứng khung kiểu CapCut — áp lên video ở giây {t.toFixed(1)}, dài 1s</div>
+        {HIEU_UNG.map((h) => <MucMenu key={h.key} onClick={() => onThem([lopMoi('hieu_ung', t, { hu: h.key })])}>{h.ten} <span style={mono}>· {h.mo}</span></MucMenu>)}
+      </Menu>
       <Menu nhan="✨ Mẫu ▾">
         {MAU_LOP.filter((m) => m.key !== 'chu' && m.key !== 'hinh').map((m) => <MucMenu key={m.key} onClick={() => onThem(m.tao(t, tiLe))}>{m.ten}</MucMenu>)}
       </Menu>
@@ -164,6 +169,21 @@ export function LopBang({ l, t, onDoi, onXoa, onNhanBan, onLenXuong, onDong }: {
     </label>
   );
   const nut = (chu: string, title: string, f: () => void) => <button type="button" className="xv-btn" style={{ padding: '0 5px', lineHeight: '18px' }} title={title} onClick={f}>{chu}</button>;
+  if (l.loai === 'hieu_ung') return (
+    <div style={{ display: 'grid', gap: 6, textAlign: 'left' }}>
+      <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+        <b style={{ fontSize: 12, flex: 1 }}>{ICON_LOAI[l.loai]} {tenLop(l)}</b>
+        {nut('⧉', 'Nhân bản', onNhanBan)}{nut(l.an ? '🙈' : '👁', l.an ? 'Bật lại' : 'Tắt (không xuất)', () => onDoi({ an: !l.an }))}<Xoa gon nhan="hiệu ứng" noiKhoiPhuc="↶ Hoàn tác" onXoa={onXoa} />{nut('✕', 'Đóng', onDong)}
+      </div>
+      <label style={o}>Hiệu ứng<Chon value={l.hu ?? 'rung'} onChange={(v) => onDoi({ hu: v as Lop['hu'], ten: undefined })} options={HIEU_UNG.map((h) => ({ value: h.key, label: h.ten, title: h.mo }))} minWidth={200} /></label>
+      <label style={o}>Cường độ {Math.round((l.cuong ?? 0.6) * 100)}%<input type="range" min={0.05} max={1} step={0.05} value={l.cuong ?? 0.6} onChange={(e) => onDoi({ cuong: Number(e.target.value) })} /></label>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, alignItems: 'end' }}>
+        <label style={o}>Vào (s)<span style={{ display: 'flex', gap: 2 }}><input className="xv-in" type="number" step={0.1} min={0} value={l.tu} onChange={(e) => onDoi({ tu: Number(e.target.value) })} style={{ width: '100%', minWidth: 0 }} />{nut('▸', 'Lấy giây đang đứng', () => onDoi({ tu: lam(t, 2), den: Math.max(lam(t, 2) + 0.2, l.den) }))}</span></label>
+        <label style={o}>Ra (s)<span style={{ display: 'flex', gap: 2 }}><input className="xv-in" type="number" step={0.1} min={0} value={l.den} onChange={(e) => onDoi({ den: Number(e.target.value) })} style={{ width: '100%', minWidth: 0 }} />{nut('▸', 'Lấy giây đang đứng', () => onDoi({ den: Math.max(l.tu + 0.2, lam(t, 2)) }))}</span></label>
+      </div>
+      <div style={mono}>Áp lên video + lớp ảnh bên dưới, chữ vẫn nằm trên. Bấm ▶ để xem hiệu ứng chạy.</div>
+    </div>
+  );
   return (
     <div style={{ display: 'grid', gap: 6, textAlign: 'left' }}
       title="Kéo lớp trên khung để dời · kéo ô xanh ở góc để đổi cỡ · kéo khối trên làn 🧩 để đổi giờ. Tự lưu, ↶ Hoàn tác ở đầu trang.">
@@ -199,7 +219,7 @@ export function LopBang({ l, t, onDoi, onXoa, onNhanBan, onLenXuong, onDong }: {
           {l.loai === 'chu' ? so('Rộng', 'w', 0.01, 0.01, 2) : l.loai === 'hinh' ? so('Độ đậm', 'mo', 0.05, 0, 1) : <span />}{so('Xoay (°)', 'xoay', 1, -180, 180)}
           {l.loai !== 'anh' && so('Dày viền', 'vien_day', 0.01, 0, 0.3)}
           {l.loai === 'chu' && <label style={{ ...o, alignSelf: 'center' }}><span><input type="checkbox" checked={!!l.nghieng} onChange={(e) => onDoi({ nghieng: e.target.checked })} /> Nghiêng</span></label>}
-          <label style={o}>Hiệu ứng vào<select className="xv-in" value={l.vao} onChange={(e) => onDoi({ vao: e.target.value as Lop['vao'] })}><option value="khong">Không</option><option value="mo">Hiện dần</option><option value="pop">Bật ra</option><option value="truot">Trượt lên</option></select></label>
+          <label style={o}>Hiệu ứng vào<select className="xv-in" value={l.vao} onChange={(e) => onDoi({ vao: e.target.value as Lop['vao'] })}><option value="khong">Không</option><option value="mo">Hiện dần</option><option value="pop">Bật ra</option><option value="truot">Trượt lên</option>{l.loai === 'chu' && <><option value="nay">Nảy</option><option value="go_chu">Gõ chữ</option></>}</select></label>
           <label style={o}>Khi ra<select className="xv-in" value={l.ra} onChange={(e) => onDoi({ ra: e.target.value as Lop['ra'] })}><option value="khong">Cắt</option><option value="mo">Mờ dần</option></select></label>
           {l.loai === 'anh' && <label style={{ ...o, gridColumn: 'span 2' }}>Đường dẫn ảnh<input className="xv-in" value={l.url ?? ''} onChange={(e) => onDoi({ url: e.target.value })} /></label>}
           <label style={{ ...o, gridColumn: 'span 2' }}>Tên lớp<input className="xv-in" value={l.ten ?? ''} placeholder={tenLop(l)} onChange={(e) => onDoi({ ten: e.target.value })} /></label>

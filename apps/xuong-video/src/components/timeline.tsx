@@ -15,7 +15,7 @@ import { dongThoai, dungTiengClip, tenNoi, cungTen, timNv, lichGiong } from '@/l
 import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 import { mono } from './ui';
-import { lopMoi, idLop, tenLop } from '@/lib/xuong-video/lop';
+import { lopMoi, idLop, tenLop, hieuUngKhungTai } from '@/lib/xuong-video/lop';
 import { useLop, LopXem, LopCongCu, LopNguyenLieu, LopBang, KhoiLop } from './lop-ui';
 import { moNgan } from './ngan-chung';
 import { useKichThuoc, TayKeo } from './keo';
@@ -23,6 +23,8 @@ import { useKichThuoc, TayKeo } from './keo';
 const MAU_NV = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#4ade80', '#fb923c', '#60a5fa'];
 // Cột nhãn track: kéo mép phải để nới (#1240) — nhớ theo trình duyệt.
 const NHAN_W_MAC_DINH = 150;
+/** Nhiễu hạt cho xem trước hiệu ứng "Hạt phim" (SVG feTurbulence, không tải gì). */
+const HAT_PHIM = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`;
 const KHOA_NHAN_W = 'xv-tl-nhan-w';
 const dongHo = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${(s % 60).toFixed(1).padStart(4, '0')}`;
 
@@ -309,10 +311,18 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
         <TayKeo truc="x" onPointerDown={panTrai.keo('x')} onDoubleClick={panTrai.veMacDinh} />
         <main style={{ display: 'grid', placeItems: 'center', padding: 8, background: 'var(--bg-0, #0b0b0d)' }}>
           <div style={{ position: 'relative', width: rongXem, height: caoXem, overflow: 'hidden', borderRadius: 4, background: '#000' }} onPointerDown={(e) => { if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === 'VIDEO' || (e.target as HTMLElement).tagName === 'IMG') setChonLop(null); }}>
-            {c && (vid ? <video ref={vidRef} key={vid} src={vid} playsInline preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : c.keyframe_url ? <img src={c.keyframe_url} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb }} />
-              : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} chưa có hình</div>)}
-            <LopXem lop={lop} t={t} rong={rongXem} cao={caoXem} chonId={chonLop} onChon={setChonLop} onDoi={doiLop} dangChay={chay} />
+            {/* Hiệu ứng khung (lớp ✦, lop.ts › hieuUngKhungTai): rung/zoom/mờ/đen trắng/glitch áp lên hình + lớp phủ; chớp/tối viền/hạt là lớp phủ trên đó, dưới chữ màn. */}
+            {(() => { const hk = hieuUngKhungTai(lop, t, rongXem); return (<>
+              <div style={{ position: 'absolute', inset: 0, transform: hk.transform || undefined, filter: hk.filter || undefined }}>
+                {c && (vid ? <video ref={vidRef} key={vid} src={vid} playsInline preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : c.keyframe_url ? <img src={c.keyframe_url} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb }} />
+                  : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} chưa có hình</div>)}
+                <LopXem lop={lop} t={t} rong={rongXem} cao={caoXem} chonId={chonLop} onChon={setChonLop} onDoi={doiLop} dangChay={chay} />
+              </div>
+              {hk.toiVien > 0 && <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: `radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,${hk.toiVien}) 100%)` }} />}
+              {hk.hat > 0 && <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: hk.hat, mixBlendMode: 'overlay', backgroundImage: HAT_PHIM, backgroundPosition: `${Math.round(t * 997) % 97}px ${Math.round(t * 613) % 89}px` }} />}
+              {hk.chop > 0 && <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: '#fff', opacity: hk.chop }} />}
+            </>); })()}
             {c?.chu_man && <ChuManXem chu={c.chu_man} giay={tTrong} rong={rongXem} qc={qc} kieu={c.kieu_chu} />}
             {giongNay && <audio ref={thoaiRef} key={khoaGiong} src={giongNay.url} preload="auto" />}
             {c?.am_thanh_url && <audio ref={sfxRef} key={c.am_thanh_url} src={c.am_thanh_url} preload="auto" />}

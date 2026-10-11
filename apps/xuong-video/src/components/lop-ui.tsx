@@ -5,13 +5,36 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as PE } from 'react';
 import { luuLop, taiAnhLen } from '@/lib/actions';
 import { FONT_CHU, type Lop } from '@/lib/xuong-video/kieu';
-import { lopHien, hieuUngTai, lopMoi, tenLop, soKyTuGo, MAU_LOP, HIEU_UNG, nhomCua, bienDoiNhom } from '@/lib/xuong-video/lop';
+import { lopHien, hieuUngTai, lopMoi, tenLop, soKyTuGo, MAU_LOP, HIEU_UNG, nhomCua, bienDoiNhom, hieuUngKhungTai, xemChuyenCanh } from '@/lib/xuong-video/lop';
+import { chuyenCanhGiua } from '@/lib/xuong-video/dien-anh';
 import { Chon } from './chon';
 import { Menu, MucMenu, Xoa, mono } from './ui';
 
 const ICON_LOAI: Record<Lop['loai'], string> = { chu: 'T', anh: '🖼', hinh: '◼', hieu_ung: '✦' };
 const fontCss = (f?: string) => (!f || f === 'DejaVu Sans' ? '"DejaVu Sans", system-ui, sans-serif' : `"${f}", "Montserrat", system-ui, sans-serif`);
 const lam = (v: number, n = 3) => Math.round(v * 10 ** n) / 10 ** n;
+
+/** Nhiễu hạt cho xem trước hiệu ứng "Hạt phim" (SVG feTurbulence, không tải gì). */
+const HAT_PHIM = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`;
+
+/** Khung xem có hiệu ứng — MỘT chỗ cho timeline và màn toàn màn hình (animatic): hiệu ứng khung ✦ (rung/zoom/mờ/đen trắng/glitch) bọc hình +
+ *  lớp phủ (children); chuyển cảnh = trong d giây đầu shot, hình shot TRƯỚC phủ lên rồi biến đi theo kiểu (gần đúng xfade bản xuất, cùng luật
+ *  chuyenCanhGiua); tối viền / hạt / chớp phủ trên cùng, dưới chữ màn. t = giây của cả tập, tTrong = giây trong shot. */
+export function KhungHieuUng({ lop, t, rong, tTrong, chuyen, children }: { lop: Lop[]; t: number; rong: number; tTrong: number;
+  chuyen?: { anh: string | null; key?: string; phatTruoc: number; phatNay: number }; children: React.ReactNode }) {
+  const hk = hieuUngKhungTai(lop, t, rong);
+  const cg = chuyen?.anh ? chuyenCanhGiua(chuyen.key, chuyen.phatTruoc, chuyen.phatNay) : null;
+  const x = cg && tTrong < cg.d ? xemChuyenCanh(cg.xfade, tTrong / cg.d) : null;
+  const phu: CSSProperties = { position: 'absolute', inset: 0, pointerEvents: 'none' };
+  return (<>
+    <div style={{ position: 'absolute', inset: 0, transform: hk.transform || undefined, filter: hk.filter || undefined }}>{children}</div>
+    {x && <img src={chuyen!.anh!} alt="" data-khong-phong-to="" style={{ ...phu, width: '100%', height: '100%', objectFit: 'cover', ...x.cu }} />}
+    {x?.loe && <div style={{ ...phu, background: x.loe.mau, opacity: x.loe.mo }} />}
+    {hk.toiVien > 0 && <div style={{ ...phu, background: `radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,${hk.toiVien}) 100%)` }} />}
+    {hk.hat > 0 && <div style={{ ...phu, opacity: hk.hat, mixBlendMode: 'overlay', backgroundImage: HAT_PHIM, backgroundPosition: `${Math.round(t * 997) % 97}px ${Math.round(t * 613) % 89}px` }} />}
+    {hk.chop > 0 && <div style={{ ...phu, background: '#fff', opacity: hk.chop }} />}
+  </>);
+}
 
 /** Danh sách lớp của tập + lưu tự động. Server đổi (máy khác sửa / hoàn tác) mà mình không đang sửa → nhận bản server. */
 export function useLop(tapId: number, tuServer: Lop[]) {

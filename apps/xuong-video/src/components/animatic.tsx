@@ -4,7 +4,7 @@ import type { ThongTinQc } from '@/lib/xuong-video/kieu';
 // Animatic: xem cả tập từ keyframe/clip đã có, đúng thứ tự + số giây, 0 đồng.
 import { useEffect, useState } from 'react';
 import { giayPhat, type Canh, type Lop } from '@/lib/xuong-video/kieu';
-import { LopXem } from './lop-ui';
+import { LopXem, KhungHieuUng } from './lop-ui';
 import { mono } from './ui';
 
 export function Animatic({ canh, tiLe, ngonNgu, onClose, qc, lop = [] }: { canh: Canh[]; tiLe: string; ngonNgu: string; onClose: () => void; qc?: ThongTinQc | null; lop?: Lop[] }) {
@@ -43,17 +43,21 @@ export function Animatic({ canh, tiLe, ngonNgu, onClose, qc, lop = [] }: { canh:
   const vid = c.video_cuoi_url || c.video_url;
   const doc916 = tiLe === '9:16';
   const p = Math.min(1, t / dai);
+  const rongK = typeof window === 'undefined' ? 360 : (doc916 ? window.innerHeight * 0.78 * 9 / 16 : Math.min(window.innerWidth * 0.92, 1200));
   const kb = i % 2 === 0 ? `scale(${1 + 0.08 * p}) translate(${-1.5 * p}%, ${-1 * p}%)` : `scale(${1.08 - 0.08 * p}) translate(${1.5 * p}%, 0)`;
   return (
     <div data-animatic="" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 900, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
       <div style={{ position: 'relative', height: doc916 ? '78vh' : 'auto', width: doc916 ? 'calc(78vh * 9 / 16)' : 'min(92vw, 1200px)', aspectRatio: doc916 ? '9 / 16' : '16 / 9', overflow: 'hidden', borderRadius: 10, background: '#000' }}>
-        {vid ? <video key={vid} src={vid} autoPlay muted={false} playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : <img src={c.keyframe_url!} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb, transition: 'transform .1s linear' }} />}
+        {/* Cùng khung hiệu ứng với timeline: hiệu ứng ✦ bọc hình + lớp phủ, chuyển cảnh từ shot trước, tối viền/hạt/chớp. */}
+        <KhungHieuUng lop={lop} t={daQua} rong={rongK} tTrong={t / 1000} chuyen={i > 0 ? { anh: ds[i - 1]!.keyframe_url, key: ds[i - 1]!.ky_thuat?.chuyen_canh, phatTruoc: giayPhat(ds[i - 1]!), phatNay: giayPhat(c) } : undefined}>
+          {vid ? <video key={vid} src={vid} autoPlay muted={false} playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : <img src={c.keyframe_url!} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb, transition: 'transform .1s linear' }} />}
+          <LopXem lop={lop} t={daQua} rong={rongK} cao={doc916 ? (rongK * 16) / 9 : (rongK * 9) / 16} chonIds={[]} onChon={() => {}} onDoi={() => {}} dangChay={chay} />
+        </KhungHieuUng>
         <div style={{ position: 'absolute', left: 0, right: 0, top: 0, padding: '8px 12px', background: 'linear-gradient(rgba(0,0,0,.6), transparent)', color: '#fff', fontSize: 12 }}>
           #{c.thu_tu} {c.canh} · {giayPhat(c)}s · {vid ? (c.video_cuoi_url ? 'bản cuối' : 'nháp') : 'keyframe'}
         </div>
-        {(() => { const r = typeof window === 'undefined' ? 360 : (doc916 ? window.innerHeight * 0.78 * 9 / 16 : Math.min(window.innerWidth * 0.92, 1200)); return <LopXem lop={lop} t={daQua} rong={r} cao={doc916 ? (r * 16) / 9 : (r * 9) / 16} chonIds={[]} onChon={() => {}} onDoi={() => {}} />; })()}
-        {c.chu_man && <ChuManXem chu={c.chu_man} giay={t / 1000} rong={typeof window === 'undefined' ? 360 : (doc916 ? window.innerHeight * 0.78 * 9 / 16 : Math.min(window.innerWidth * 0.92, 1200))} qc={qc} kieu={c.kieu_chu} />}
+        {c.chu_man && <ChuManXem chu={c.chu_man} giay={t / 1000} rong={rongK} qc={qc} kieu={c.kieu_chu} />}
       </div>
       {/* Trên hình CHỈ có chữ màn (thứ bản xuất vẽ thật); lời thoại ghi bên ngoài khung, chỉ lời — không tên, không diễn xuất (#1229, #1231). */}
       <div style={{ width: doc916 ? 'calc(78vh * 9 / 16)' : 'min(92vw, 1200px)', minHeight: 20, textAlign: 'center', color: 'var(--fg-2)', fontSize: 13 }}>{c.thoai.length ? c.thoai.map((d) => d.loi).join(' ') : c.loi_thoai.replace(/^[^:"“]*:\s*/gm, '').replace(/["“”]/g, '')}</div>

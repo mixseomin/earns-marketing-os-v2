@@ -1,0 +1,49 @@
+{
+ "project": "studio",
+ "ten": "Astrolas · Compatibility roast — Leo + Scorpio (organic short, bản nháp)",
+ "mo_ta": "Short dọc 20s đăng tự nhiên TikTok/Reels/Shorts cho astrolas.com/compatibility: roast nhẹ 3 red flag của một cặp cung, kết bằng trang kiểm tra cặp miễn phí. Faceless, giọng kể nữ, vàng #e6b800 trên navy.",
+ "kinh_thanh": {
+  "phong_cach": "Mystical cinematic astrology visuals for a vertical social video: deep navy night skies full of stars, glowing gold constellation lines, crimson accents, soft volumetric light and light film grain; elegant and premium but a little playful; symbolic objects, no people's faces",
+  "ti_le": "9:16",
+  "do_phan_giai": "720p",
+  "mo_hinh_anh": "gemini-nano-banana-2.1",
+  "mo_hinh_video": "fal:fal-ai/veo3.1/lite/image-to-video",
+  "mo_hinh_chu": "claude-opus-5-5",
+  "ngon_ngu": "en",
+  "the_loai": "",
+  "logline": "",
+  "chu_de": "",
+  "qc": {
+   "ten": "Astrolas Compatibility",
+   "link": "https://astrolas.com/compatibility",
+   "diem_noi_bat": "Free synastry compatibility check: drop two birth dates (optional time and place), get a compatibility score from real birth charts calculated with high-precision planetary algorithms. No account needed.",
+   "doi_tuong": "English-speaking astrology fans 18-35 on TikTok/Reels: zodiac memers, relationship-synastry curious, people checking a crush or partner",
+   "uu_dai": "Free — no account needed",
+   "thi_truong": "Global English (US first)",
+   "anh": [],
+   "logo_url": "https://astrolas.com/images/logo/wordmark-on-dark@2x.png",
+   "vi_tri_chu": "giua",
+   "kieu_chu": {
+    "font": "Playfair Display Black",
+    "mau": "#FFFFFF",
+    "vien": "#0B1A2E",
+    "nhan": "#E6B800",
+    "co": 0.07,
+    "vien_day": 0.06,
+    "ngang": 100
+   }
+  }
+ },
+ "nhan_vat": [
+  {
+   "loai": "san_pham",
+   "ten": "Astrolas Compatibility page",
+   "mo_ta": "The astrolas.com compatibility page on a phone: dark navy interface with gold and violet accents, headline 'How compatible are you really?', Person A and Person B birth-date forms, purple 'Calculate compatibility' button",
+   "anh_ref": []
+  }
+ ],
+ "tap": {
+  "ten": "Leo + Scorpio: 3 red flags",
+  "brief": "Hook bằng cặp cung, 3 red flag roast nhẹ (vui, không xúc phạm), twist 'nhưng khi hợp thì hút nhau', bằng chứng = trang kiểm tra cặp miễn phí, kết logo + astrolas.com. 20s, giọng kể nữ dí dỏm."
+ }
+}

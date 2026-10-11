@@ -6,7 +6,8 @@
 //   - trên hình CHỈ có chữ màn (chu_man, to ở 1/6 trên) — shot không có chữ màn thì không có chữ nào (anh chốt 09/10/2026, #1231); end card ưu đãi cho quảng cáo;
 //   - chuẩn -14 LUFS, H.264 30fps, 1080×1920 (9:16) hoặc 1920×1080.
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/xuat.test.mts
-import type { Canh, KieuChu, LoaiPhim, NhanVat, Tap, ThongTinQc, ViTriChu } from './kieu';
+import type { Canh, KieuChu, LoaiPhim, Lop, NhanVat, Tap, ThongTinQc, ViTriChu } from './kieu';
+import { mauAss, gioAss, lopAss, lopAnhLoc } from './lop';
 import { giayPhat, locNhanh, doanChuMan, coMau, KIEU_CHU_MAC_DINH } from './kieu';
 export { doanChuMan, chuManHien } from './kieu';
 import { dongThoai, dungTiengClip, lichGiong } from './am-thanh';
@@ -73,7 +74,7 @@ export function kiemGiongLoiDan(canh: Canh[], nhanVat: NhanVat[]): string[] {
 }
 
 /** URL cần tải cho một bản xuất (clip/keyframe, giọng, hiệu ứng, nhạc) — tải trước, đo rồi mới dựng lệnh. */
-export function urlCanXuat(canh: Canh[], nhanVat: NhanVat[], tap: Pick<Tap, 'nhac_url' | 'nhac_phan_canh'>, nhanh?: string | null, qc?: ThongTinQc | null): string[] {
+export function urlCanXuat(canh: Canh[], nhanVat: NhanVat[], tap: Pick<Tap, 'nhac_url' | 'nhac_phan_canh'> & { lop?: Lop[] }, nhanh?: string | null, qc?: ThongTinQc | null): string[] {
   const ds = locNhanh(canh, nhanh);
   const out = new Set<string>();
   // Logo góc + ảnh sản phẩm cho end card (mục 0) — tải cùng nguyên liệu; thiếu thì xuất không có, không chặn.
@@ -89,6 +90,7 @@ export function urlCanXuat(canh: Canh[], nhanVat: NhanVat[], tap: Pick<Tap, 'nha
   const coNhacPc = [...pc].some((p) => tap.nhac_phan_canh?.[p]);
   if (coNhacPc) for (const p of pc) { const u = tap.nhac_phan_canh?.[p]; if (u) out.add(u); }
   else if (tap.nhac_url) out.add(tap.nhac_url);
+  for (const l of tap.lop ?? []) if (l.loai === 'anh' && !l.an && l.url) out.add(l.url);
   return [...out];
 }
 
@@ -104,16 +106,16 @@ export function ngatDong(chu: string, toiDa: number): string[] {
   if (hien) dong.push(hien);
   return dong;
 }
-const mauAss = (hex: string): string => { const h = (hex || '#FFFFFF').replace('#', '').padEnd(6, 'F').slice(0, 6); return `&H00${h.slice(4, 6)}${h.slice(2, 4)}${h.slice(0, 2)}&`.toUpperCase(); };
-const gioAss = (t: number): string => { const cs = Math.max(0, Math.round(t * 100)); const h = Math.floor(cs / 360000), m = Math.floor(cs / 6000) % 60, s = Math.floor(cs / 100) % 60, c = cs % 100; return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(c).padStart(2, '0')}`; };
+// mauAss / gioAss: một chỗ ở lop.ts (lớp phủ dùng chung).
 /** Gộp kiểu chữ: mặc định ← phim ← shot (giá trị rỗng không đè). */
 export const gopKieu = (...ds: (KieuChu | undefined | null)[]): typeof KIEU_CHU_MAC_DINH & { y?: number; nen?: string } =>
   Object.assign({}, KIEU_CHU_MAC_DINH, ...ds.map((d) => Object.fromEntries(Object.entries(d ?? {}).filter(([, v]) => v !== '' && v != null))));
 /** Tệp ASS (libass) cho chữ màn cả bản xuất. Mỗi kiểu chữ khác nhau (phim + shot) là một Style; mỗi câu một Dialogue đặt giữa ngang,
  *  dọc theo y của kiểu hoặc vị trí phim. "**chữ**" = đoạn nhấn: to gấp 1,8, nghiêng, màu nhấn (kiểu "YES!" của QC mẫu).
  *  nen = băng nền đặc sau chữ (BorderStyle 3). */
-export function tepAss(o: { W: number; H: number; kieu?: KieuChu; viTri: ViTriChu; cau: { tu: number; den: number; dong: string[]; kieu?: KieuChu }[] }): string {
+export function tepAss(o: { W: number; H: number; kieu?: KieuChu; viTri: ViTriChu; cau: { tu: number; den: number; dong: string[]; kieu?: KieuChu }[]; lop?: Lop[] }): string {
   const kieuStyle = new Map<string, { ten: string; k: ReturnType<typeof gopKieu> }>();
+  const lp = lopAss(o.lop ?? [], o.W, o.H);   // lớp phủ chữ/hình — dưới chữ màn (lớp 100)
   const style = (kc?: KieuChu) => {
     const k = gopKieu(o.kieu, kc); const khoa = JSON.stringify(k);
     if (!kieuStyle.has(khoa)) kieuStyle.set(khoa, { ten: kieuStyle.size ? `Man${kieuStyle.size}` : 'Man', k });
@@ -128,12 +130,13 @@ export function tepAss(o: { W: number; H: number; kieu?: KieuChu; viTri: ViTriCh
     const nhan = (t: string) => (k.nhan ? t.replace(/[0-9?$%]+/g, (m) => `{\\c${mauAss(k.nhan)}}${m}{\\c${mauAss(k.mau)}}`) : t);
     const to = (t: string) => t.replace(/\*\*(.+?)\*\*/g, (_, m: string) => `{\\fs${Math.round(fs * 1.8)}\\i1\\c${mauAss(k.nhan || k.mau)}}${m}{\\r}`);
     const dong = c.dong.flatMap((d) => (/\*\*/.test(d) ? [d] : ngatDong(d, wrap))).map((d) => d.replace(/[{}\\]/g, ''));
-    return `Dialogue: 0,${gioAss(c.tu)},${gioAss(c.den)},${ten},,0,0,0,,{\\an5\\pos(${Math.round(o.W / 2)},${tamY(dong.length)})}${dong.map((d) => to(nhan(d))).join('\\N')}`;
+    return `Dialogue: 100,${gioAss(c.tu)},${gioAss(c.den)},${ten},,0,0,0,,{\\an5\\pos(${Math.round(o.W / 2)},${tamY(dong.length)})}${dong.map((d) => to(nhan(d))).join('\\N')}`;
   });
   const dong = ['[Script Info]', 'ScriptType: v4.00+', `PlayResX: ${o.W}`, `PlayResY: ${o.H}`, 'ScaledBorderAndShadow: yes', 'WrapStyle: 2', '',
     '[V4+ Styles]', 'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
     ...[...kieuStyle.values()].map(({ ten, k }) => { const fs = Math.round(o.W * k.co); return `Style: ${ten},${k.font},${fs},${mauAss(k.mau)},${mauAss(k.mau)},${mauAss(k.nen || k.vien)},&H80000000&,-1,0,0,0,${k.ngang},100,0,0,${k.nen ? 3 : 1},${k.nen ? Math.round(fs * 0.35) : Math.max(1, Math.round(fs * k.vien_day))},0,5,0,0,0,1`; }),
-    '', '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text', ...su, ''];
+    ...lp.styles,
+    '', '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text', ...lp.events, ...su, ''];
   return dong.join('\n');
 }
 // drawtext expansion=none: '%' trong chữ ("giảm 70%") không bị hiểu là lệnh %{…} — thử '%%' trên ffmpeg 8 vẫn báo "Stray %" và end card ra đen.
@@ -142,7 +145,7 @@ const so = (x: number) => (Math.round(x * 1000) / 1000).toString();
 const duongFf = (p: string) => p.replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'");
 
 export function keHoachXuat(o: {
-  loai: LoaiPhim; tiLe: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'nhac_url' | 'nhac_phan_canh'>; qc?: ThongTinQc | null;
+  loai: LoaiPhim; tiLe: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'nhac_url' | 'nhac_phan_canh'> & { lop?: Lop[] }; qc?: ThongTinQc | null;
   nhanh?: string | null; nguyenLieu: NguyenLieu[]; font: string; thuMuc: string; ra: string;
   /** thư mục font cho libass (assets/fonts); chiThuTu = chỉ xuất các shot này (xem thử từng shot, không end card). */
   fontsDir?: string; chiThuTu?: number[];
@@ -261,24 +264,33 @@ export function keHoachXuat(o: {
   }
   if (!nhanhVideo.length) return { args: [], tep, giay: 0, canhThieu, canhBao };
   // Chữ màn vẽ MỘT lần trên cả video bằng libass (màu chữ/viền/nhấn số, font, đổi chữ theo giây) — thay drawtext từng shot.
-  if (cauMan.length) {
-    const ass = tepChu('chu', tepAss({ W, H, kieu: o.qc?.kieu_chu, viTri, cau: cauMan })).replace(/\.txt$/, '.ass');
+  // Lớp phủ (kieu.ts › Lop): ảnh phủ bằng overlay ngay sau ghép hình; chữ/hình vào CÙNG tệp ASS với chữ màn (chữ màn lớp 100, nằm trên).
+  // Xem từng shot (chiThuTu) thì bỏ lớp phủ — giây của lớp tính trên cả tập.
+  const lop = o.chiThuTu?.length ? [] : (o.tap.lop ?? []).filter((l) => !l.an && l.den > l.tu && l.tu < giay);
+  loc.push(`${nhanhVideo.join('')}concat=n=${nhanhVideo.length}:v=1:a=0[vcat]`);
+  let nen = 'vcat';
+  lop.filter((l) => l.loai === 'anh' && l.url && nl.has(l.url)).forEach((l, i) => {
+    const k = them(l.url!, ['-loop', '1', '-framerate', so(fpsRa), '-t', so(giay)]);
+    loc.push(lopAnhLoc(l, k, W, H, nen, `vla${i}`)); nen = `vla${i}`;
+  });
+  const coAss = cauMan.length || lop.some((l) => l.loai !== 'anh');
+  if (coAss) {
+    const ass = tepChu('chu', tepAss({ W, H, kieu: o.qc?.kieu_chu, viTri, cau: cauMan, lop })).replace(/\.txt$/, '.ass');
     tep[tep.length - 1]!.duong = ass;
-    loc.push(`${nhanhVideo.join('')}concat=n=${nhanhVideo.length}:v=1:a=0[vcat]`);
-    loc.push(`[vcat]ass=filename='${duongFf(ass)}'${o.fontsDir ? `:fontsdir='${duongFf(o.fontsDir)}'` : ''}[vout]`);
-  } else loc.push(`${nhanhVideo.join('')}concat=n=${nhanhVideo.length}:v=1:a=0[vout]`);
+    loc.push(`[${nen}]ass=filename='${duongFf(ass)}'${o.fontsDir ? `:fontsdir='${duongFf(o.fontsDir)}'` : ''}[vout]`);
+  } else loc.push(`[${nen}]null[vout]`);
   // Ducking NHẸ (2:1, ngưỡng cao): nhạc chỉ lùi vài dB khi có giọng. Trước đây 6:1 ngưỡng 0,03 → giọng đọc dày làm nhạc bị nén gần như suốt phim,
   // dải trầm tụt -30/-42 LUFS so với -24/-27 của QC mẫu — nghe như mất nền (10/10/2026).
   const tron = (ds2: string[], ten: string) => { if (ds2.length === 1) { loc.push(`${ds2[0]}anull[${ten}]`); return `[${ten}]`; } loc.push(`${ds2.join('')}amix=inputs=${ds2.length}:normalize=0:dropout_transition=0[${ten}]`); return `[${ten}]`; };
-  const lop: string[] = [];
+  const tangAm: string[] = [];
   if (nhanhGiong.length && nhanhNhac.length) {
     // apad: sidechaincompress dừng theo luồng NGẮN hơn — không đệm thì nhạc bị cắt khi câu giọng cuối hết (phim #5: tiếng 53,8s / hình 55,5s).
     loc.push(`${tron(nhanhGiong, 'giong')}asplit=2[gm][gsc0];[gsc0]apad[gsc]`);
     loc.push(`${tron(nhanhNhac, 'nhac')}[gsc]sidechaincompress=threshold=0.125:ratio=2:attack=30:release=400[nhacnen]`);
-    lop.push('[gm]', '[nhacnen]');
-  } else lop.push(...nhanhGiong, ...nhanhNhac);
-  lop.push(...nhanhAm);
-  if (lop.length) loc.push(`${lop.join('')}amix=inputs=${lop.length}:normalize=0:dropout_transition=0,atrim=0:${so(giay)},loudnorm=I=-14:TP=-1.5:LRA=11[aout]`);
+    tangAm.push('[gm]', '[nhacnen]');
+  } else tangAm.push(...nhanhGiong, ...nhanhNhac);
+  tangAm.push(...nhanhAm);
+  if (tangAm.length) loc.push(`${tangAm.join('')}amix=inputs=${tangAm.length}:normalize=0:dropout_transition=0,atrim=0:${so(giay)},loudnorm=I=-14:TP=-1.5:LRA=11[aout]`);
   else loc.push(`anullsrc=r=48000:cl=stereo,atrim=0:${so(giay)}[aout]`);
   const kichBan = tepChu('loc', loc.join(';\n'));
   const args = ['-y', '-hide_banner', '-loglevel', 'error', ...dauVao, '-/filter_complex', kichBan, '-map', '[vout]', '-map', '[aout]',

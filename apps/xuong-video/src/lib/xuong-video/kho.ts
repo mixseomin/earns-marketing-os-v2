@@ -117,7 +117,7 @@ export async function luuKhuonQc(db: Db, tapId: number, ten?: string): Promise<K
     nhan_vat_ten: c.nhan_vat.map((id) => tenNv.get(id) ?? '').filter(Boolean) }));
   const giay = ds.reduce((a, c) => a + (c.phat_s || c.thoi_luong_s || 0), 0);
   const tenK = ten?.trim() || `Khuôn · ${s(t[0].phim_ten)} · ${s(t[0].ten)}`;
-  const duLieu = { shots, kieu_chu: kt.qc?.kieu_chu ?? null, vi_tri_chu: kt.qc?.vi_tri_chu ?? null, mau: kt.qc?.mau ?? null, bai_dang: t[0].bai_dang ?? null, brief: s(t[0].brief), giong_dan: kt.giong_dan ?? null };
+  const duLieu = { shots, lop: t[0].lop ?? [], kieu_chu: kt.qc?.kieu_chu ?? null, vi_tri_chu: kt.qc?.vi_tri_chu ?? null, mau: kt.qc?.mau ?? null, bai_dang: t[0].bai_dang ?? null, brief: s(t[0].brief), giong_dan: kt.giong_dan ?? null };
   const r = (await db.execute(sql`INSERT INTO xv_tai_san (loai, ten, thuong_hieu, san_pham, mo_ta, so_do, du_lieu, nguon)
     VALUES ('khuon_qc', ${tenK}, ${thuongHieu(s(t[0].project), kt)}, ${kt.qc?.ten ?? ''}, ${`${ds.length} shot · ${Math.round(giay)}s`}, ${JSON.stringify({ so_shot: ds.length, dai: giay })}::jsonb,
       ${JSON.stringify(duLieu)}::jsonb, ${JSON.stringify({ phim_id: n(t[0].phim_id), tap_id: tapId })}::jsonb) RETURNING id`)) as unknown as Row[];
@@ -129,13 +129,13 @@ export async function luuKhuonQc(db: Db, tapId: number, ten?: string): Promise<K
 export async function taoTapTuKhuon(db: Db, khuonId: number, phimId: number, nguoi: string): Promise<Kq<number>> {
   const k = (await db.execute(sql`SELECT * FROM xv_tai_san WHERE id = ${khuonId} AND loai = 'khuon_qc' AND xoa_luc IS NULL`)) as unknown as Row[];
   if (!k[0]) return loi('không thấy khuôn QC');
-  const du = (k[0].du_lieu ?? {}) as { shots?: ShotKhuon[]; brief?: string; bai_dang?: unknown };
+  const du = (k[0].du_lieu ?? {}) as { shots?: ShotKhuon[]; brief?: string; bai_dang?: unknown; lop?: unknown[] };
   if (!du.shots?.length) return loi('khuôn rỗng');
   const nv = (await db.execute(sql`SELECT id, ten FROM xv_nhan_vat WHERE phim_id = ${phimId}`)) as unknown as Row[];
   const idTheoTen = new Map(nv.map((x) => [s(x.ten).trim().toLowerCase(), n(x.id)]));
   const so = n(((await db.execute(sql`SELECT coalesce(max(so), 0) + 1 AS so FROM xv_tap WHERE phim_id = ${phimId}`)) as unknown as Row[])[0]?.so);
   const giay = du.shots.reduce((a, x) => a + (x.phat_s || x.thoi_luong_s || 0), 0);
-  const t = (await db.execute(sql`INSERT INTO xv_tap (phim_id, so, ten, brief, thoi_luong_s, bai_dang) VALUES (${phimId}, ${so}, ${`Từ khuôn: ${s(k[0].ten)}`}, ${du.brief ?? ''}, ${Math.round(giay)}, ${du.bai_dang ? JSON.stringify(du.bai_dang) : null}::jsonb) RETURNING id`)) as unknown as Row[];
+  const t = (await db.execute(sql`INSERT INTO xv_tap (phim_id, so, ten, brief, thoi_luong_s, bai_dang, lop) VALUES (${phimId}, ${so}, ${`Từ khuôn: ${s(k[0].ten)}`}, ${du.brief ?? ''}, ${Math.round(giay)}, ${du.bai_dang ? JSON.stringify(du.bai_dang) : null}::jsonb, ${JSON.stringify(du.lop ?? [])}::jsonb) RETURNING id`)) as unknown as Row[];
   const tapId = n(t[0]!.id);
   for (const x of du.shots) {
     const ids = x.nhan_vat_ten.map((tn) => idTheoTen.get(tn.trim().toLowerCase())).filter((v): v is number => v != null);

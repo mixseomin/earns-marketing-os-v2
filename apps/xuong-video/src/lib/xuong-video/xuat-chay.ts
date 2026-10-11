@@ -10,7 +10,7 @@ import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '@/lib/r2';
 import { keHoachXuat, urlCanXuat, khoangIm, duoiNhac, NGUONG_IM_LUFS, type NguyenLieu } from './xuat';
 import { sql } from 'drizzle-orm';
-import type { Canh, LoaiPhim, NhanVat, Tap, ThongTinQc } from './kieu';
+import type { Canh, LoaiPhim, Lop, NhanVat, Tap, ThongTinQc } from './kieu';
 import type { Db } from './doc-db';
 import { luuKieuChuThuongHieu } from './kho';
 
@@ -88,7 +88,7 @@ async function doKhoangIm(duong: string, giay: number, thuMuc: string): Promise<
 /** Thư mục font chữ màn — MỘT chỗ cho cả bản xuất (libass) lẫn trang xem trước (@font-face /fonts/…): apps/xuong-video/public/fonts (Montserrat, OFL). */
 const FONTS_DIR = [`${process.cwd()}/public/fonts`, `${process.cwd()}/apps/xuong-video/public/fonts`, '/opt/earns-marketing-os-v2/apps/xuong-video/public/fonts'].find((d) => existsSync(d));
 
-export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'nhac_url' | 'nhac_phan_canh'>; qc?: ThongTinQc | null; nhanh?: string | null; chiThuTu?: number[]; choThieuNhac?: boolean }): Promise<KqXuat> {
+export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'nhac_url' | 'nhac_phan_canh'> & { lop?: Lop[] }; qc?: ThongTinQc | null; nhanh?: string | null; chiThuTu?: number[]; choThieuNhac?: boolean }): Promise<KqXuat> {
   const font = FONT_UNG_VIEN.find((f) => existsSync(f));
   if (!font) return { ok: false, loi: 'máy chủ không có font để vẽ chữ (DejaVuSans-Bold)' };
   const thuMuc = `${tmpdir()}/xv-xuat-${o.tap.id}-${randomUUID().slice(0, 8)}`;

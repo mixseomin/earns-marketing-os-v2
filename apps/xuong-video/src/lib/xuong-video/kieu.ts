@@ -216,7 +216,20 @@ export const NHOM_BIEN_THE: Record<LoaiNhanVat, { key: string; label: string }[]
   phong_cach: [{ key: 'trang_thai', label: 'Biến tấu' }],
 };
 export const nhanNhom = (loai: LoaiNhanVat, nhom: string) => NHOM_BIEN_THE[loai]?.find((x) => x.key === nhom)?.label ?? nhom;
-export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null; xuat: BanXuat[]; bai_dang: BaiDang | null };
+/** LỚP PHỦ tự do của tập (như trình dựng video): chữ, ảnh, hình khối đặt theo vị trí + thời gian TUYỆT ĐỐI trên tập (nhánh A).
+ *  Toạ độ chuẩn hoá theo khung: x, y = TÂM (0..1), w = bề ngang (phần của rộng khung), h = bề cao (phần của cao khung, chỉ hình khối; ảnh giữ tỉ lệ).
+ *  co = cỡ chữ (phần của rộng khung, như chữ màn). Xuất: ảnh phủ bằng ffmpeg, chữ/hình bằng libass — ảnh luôn nằm DƯỚI chữ/hình, chữ màn trên cùng. */
+export type LoaiLop = 'chu' | 'anh' | 'hinh';
+export type DangHinh = 'chu_nhat' | 'bo_goc' | 'tron';
+export type HieuUngVao = 'khong' | 'mo' | 'pop' | 'truot';
+export type Lop = {
+  id: string; loai: LoaiLop; ten?: string; tu: number; den: number;
+  x: number; y: number; w: number; h: number; xoay: number; mo: number; vao: HieuUngVao; ra: 'khong' | 'mo'; an?: boolean;
+  chu?: string; font?: string; co?: number; mau?: string; vien?: string; vien_day?: number; nen?: string; nghieng?: boolean;
+  url?: string;
+  dang?: DangHinh;
+};
+export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null; xuat: BanXuat[]; bai_dang: BaiDang | null; lop: Lop[] };
 /** Một bản xuất MP4 của tập (mỗi nhánh hook một tệp). */
 /** Kho tài sản dùng lại (xv_tai_san): clip/keyframe đạt, nhạc nền, preset giọng, khuôn QC, kiểu chữ thương hiệu. */
 /** Khoá THƯƠNG HIỆU của kho tài sản = tên miền shop của phim QC (qc.link, bỏ www) — project của studio là nhãn chung ('studio'), không phải

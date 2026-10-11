@@ -15,6 +15,7 @@ import { dongThoai, dungTiengClip, tenNoi, cungTen, timNv, lichGiong } from '@/l
 import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 import { mono } from './ui';
+import { useLop, LopXem, LopThem, LopBang, KhoiLop } from './lop-ui';
 import { docLT, ghiLT } from '@/lib/luu-tru';
 
 const MAU_NV = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#4ade80', '#fb923c', '#60a5fa'];
@@ -205,6 +206,12 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   };
 
   const doc916 = tiLe === '9:16';
+  // Lớp phủ tự do (chữ · ảnh · hình khối) — lop-ui.tsx; số đo dùng chung với bản xuất (lop.ts).
+  const { lop, dat: datLop, doi: doiLop, loi: loiLop } = useLop(tap.id, tap.lop ?? []);
+  const [chonLop, setChonLop] = useState<string | null>(null);
+  const lopChon = lop.find((l) => l.id === chonLop) ?? null;
+  const rongXem = doc916 ? 220 : 480, caoXem = doc916 ? (220 * 16) / 9 : (480 * 9) / 16;
+  const anhSan = [...(qc?.logo_url ? [{ url: qc.logo_url, ten: 'Logo' }] : []), ...(qc?.anh ?? []).map((u, i) => ({ url: u, ten: `Ảnh sản phẩm ${i + 1}` }))];
   const vid = c ? c.video_cuoi_url || c.video_url : null;
   const p = c ? Math.min(1, tTrong / dur(c)) : 0;
   const kb = idx % 2 === 0 ? `scale(${1 + 0.08 * p}) translate(${-1.5 * p}%, ${-1 * p}%)` : `scale(${1.08 - 0.08 * p}) translate(${1.5 * p}%, 0)`;
@@ -281,6 +288,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             {c && (vid ? <video ref={vidRef} key={vid} src={vid} playsInline preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               : c.keyframe_url ? <img src={c.keyframe_url} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb }} />
               : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} chưa có hình</div>)}
+            <LopXem lop={lop} t={t} rong={rongXem} cao={caoXem} chonId={chonLop} onChon={setChonLop} onDoi={doiLop} />
             {c?.chu_man && <ChuManXem chu={c.chu_man} giay={tTrong} rong={doc916 ? 220 : 480} qc={qc} kieu={c.kieu_chu} />}
             {giongNay && <audio ref={thoaiRef} key={khoaGiong} src={giongNay.url} preload="auto" />}
             {c?.am_thanh_url && <audio ref={sfxRef} key={c.am_thanh_url} src={c.am_thanh_url} preload="auto" />}
@@ -294,8 +302,14 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             <span style={{ ...mono, fontSize: 12, color: 'var(--fg-1)' }}>{dongHo(t)} / {dongHo(tong)}</span>
             <button type="button" className="xv-btn" onClick={onToanManHinh} title="Xem cả tập toàn màn hình">⛶</button>
           </div>
+          <LopThem t={t} tiLe={doc916 ? 9 / 16 : 16 / 9} anhSan={anhSan} onThem={(ds) => { datLop((x) => [...x, ...ds]); setChonLop(ds[ds.length - 1]?.id ?? null); setChay(false); }} />
+          {loiLop && <span className="xv-loi">{loiLop}</span>}
         </div>
         <div style={{ display: 'grid', gap: 6, alignContent: 'start' }}>
+          {lopChon && <LopBang l={lopChon} t={t} onDoi={(p) => doiLop(lopChon.id, p)} onDong={() => setChonLop(null)}
+            onXoa={() => { datLop((ds) => ds.filter((x) => x.id !== lopChon.id)); setChonLop(null); }}
+            onNhanBan={() => { const moi = { ...lopChon, id: Math.random().toString(36).slice(2, 10), x: Math.min(1, lopChon.x + 0.04), y: Math.min(1, lopChon.y + 0.04) }; datLop((ds) => [...ds, moi]); setChonLop(moi.id); }}
+            onLenXuong={(d) => datLop((ds) => { const i = ds.findIndex((x) => x.id === lopChon.id); const j = i + d; if (i < 0 || j < 0 || j >= ds.length) return ds; const n = [...ds]; [n[i], n[j]] = [n[j]!, n[i]!]; return n; })} />}
           {c && dongThoai(c, nhanVat).map((d, i) => {
             const v = timNv(nhanVat, tenNoi(d)) ?? null;
             return <div key={i} style={{ fontSize: 11.5 }}><b style={{ color: mauNv(v) }}>🗣 {tenNoi(d)}</b>{d.dien_xuat && <i style={{ color: 'var(--fg-3)' }}> ({d.dien_xuat})</i>}: {d.loi}{!d.url && <span style={{ ...mono, color: 'var(--amber)' }}> · chưa sinh giọng{docThu ? ', đang đọc thử' : ''}</span>}</div>;
@@ -420,6 +434,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             );
           })}
 
+          {/* Lớp phủ: mỗi lớp một làn (lớp sau nằm trên), kéo khối đổi giờ — bấm chọn để sửa ở bảng bên phải khung xem. */}
+          {lop.length ? lop.map((l) => track(`🧩 ${l.ten || (l.loai === 'chu' ? (l.chu ?? '').split('\n')[0] : l.loai === 'anh' ? 'Ảnh' : 'Hình')}`, 'Lớp phủ — kéo thân để dời, kéo mép để đổi giờ vào/ra; bấm để sửa',
+              <KhoiLop l={l} pps={pps} chon={l.id === chonLop} onChon={() => setChonLop(l.id)} onDoi={(p) => doiLop(l.id, p)} />, 20))
+            : track('🧩 Lớp phủ', 'Chữ, ảnh, hình khối tự do đè lên video — thêm ở thanh dưới khung xem trước', <div style={{ ...mono, lineHeight: '20px', paddingLeft: 6 }}>chưa có lớp — ＋ ở thanh dưới khung xem trước</div>, 20)}
           {track('🔊 Âm thanh', 'Hiệu ứng / âm nền từng cảnh', canh.map((cc, i) => {
             if (!cc.am_thanh.trim()) return null;
             return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!cc.am_thanh_url, '#fb923c', cc.am_thanh, `${cc.am_thanh}\n${cc.am_thanh_url ? 'đã có file' : 'chưa sinh'}`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },

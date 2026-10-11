@@ -38,7 +38,7 @@ assert.strictEqual((ass.match(/^Dialogue:/gm) ?? []).length, 2);          // ch�
 assert.ok(loc.includes('concat=n=4:v=1:a=0[vcat]') && loc.includes("[vcat]ass=filename='/tmp/t/chu.ass'[vout]"));   // chữ vẽ một lần bằng libass
 assert.ok(loc.includes('amix=inputs=') && loc.includes('loudnorm=I=-14'));
 assert.ok(loc.includes('color=c=0x101014:s=1080x1920:d=2'));          // end card
-assert.ok(ass.includes('Dialogue: 0,0:00:00.00,0:00:02.00,Man,,0,0,0,,{\\an5\\pos(540,330)}Vai hằn đỏ mỗi tối?'), ass);   // 0–2s, giữa ngang, mặc định trên: 15% + nửa khối
+assert.ok(ass.includes('Dialogue: 100,0:00:00.00,0:00:02.00,Man,,0,0,0,,{\\an5\\pos(540,330)}Vai hằn đỏ mỗi tối?'), ass);   // 0–2s, giữa ngang, mặc định trên: 15% + nửa khối
 assert.ok(ass.includes('0:00:05.00,0:00:07.50') && ass.includes('Giảm 70% · Mua ngay'));   // shot 4 từ 5s; '%' giữ nguyên
 assert.ok(ass.includes('Style: Man,DejaVu Sans,67,&H00FFFFFF&,&H00FFFFFF&,&H00000000&'));   // mặc định: trắng viền đen như cũ
 assert.ok(loc.includes("y=(h-"));                      // end card (drawtext) giữa màn

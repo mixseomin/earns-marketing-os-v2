@@ -279,7 +279,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
           )}
         </>
       ))}
-      {animatic && canh && <Animatic canh={canh} qc={kt.qc} tiLe={kt.ti_le} ngonNgu={kt.ngon_ngu} onClose={() => setAnimatic(false)} />}
+      {animatic && canh && <Animatic canh={locNhanh(canh, nhanh)} lop={tap.lop} qc={kt.qc} tiLe={kt.ti_le} ngonNgu={kt.ngon_ngu} onClose={() => setAnimatic(false)} />}
     </div>
   );
 }

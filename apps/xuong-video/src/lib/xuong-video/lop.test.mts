@@ -1,0 +1,35 @@
+// Tự kiểm lớp phủ. Chạy: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/lop.test.mts
+import assert from 'node:assert';
+import { lopMoi, MAU_LOP, lopAss, lopAnhLoc, lopHien, hieuUngTai } from './lop';
+import { keHoachXuat, urlCanXuat } from './xuat';
+import type { Canh, NhanVat } from './kieu';
+
+const W = 1080, H = 1920;
+const chu = lopMoi('chu', 1, { chu: 'SAVE\n70%', x: 0.5, y: 0.25, co: 0.1, vao: 'pop', xoay: 10, mo: 0.5 });
+const hinh = lopMoi('hinh', 2, { dang: 'tron', x: 0.8, y: 0.3, w: 0.3, h: 0.3 * W / H, mau: '#E11D48', vao: 'truot' });
+const anh = lopMoi('anh', 0.5, { url: 'https://x/logo.png', x: 0.2, y: 0.1, w: 0.25, den: 3 });
+const a = lopAss([chu, hinh, anh], W, H);
+assert.strictEqual(a.events.length, 2);                                               // ảnh không vào ASS
+assert.ok(a.events[0]!.startsWith('Dialogue: 1,0:00:01.00,0:00:03.50,Lop0'), a.events[0]);
+assert.ok(a.events[0]!.includes('\\pos(540,480)') && a.events[0]!.includes('\\frz-10') && a.events[0]!.includes('\\alpha&H80&') && a.events[0]!.includes('\\fscx60') && a.events[0]!.endsWith('SAVE\\N70%'), a.events[0]);
+assert.ok(a.events[1]!.includes('\\move(864,672,864,576,0,250)') && a.events[1]!.includes('\\p1}m 162 0 b'), a.events[1]);   // hình tròn trượt lên
+assert.ok(a.styles.some((x) => x.startsWith('Style: Lop0,Montserrat Black,108,')) && a.styles.some((x) => x.startsWith('Style: LopHinh,')));
+const f = lopAnhLoc(anh, 7, W, H, 'vcat', 'vla0');
+assert.ok(f.startsWith('[7:v]scale=270:-2,format=rgba,colorchannelmixer=aa=1,fade=t=in:st=0.5:d=0.3:alpha=1,fade=t=out:st=2.7:d=0.3:alpha=1[la7];[vcat][la7]overlay=x=216-w/2:y=192-h/2:enable=\'between(t\\,0.5\\,3)\'[vla0]'), f);
+// Hiện ở giây t: ảnh dưới chữ/hình; ẩn thì không hiện; hiệu ứng vào/ra.
+assert.deepStrictEqual(lopHien([chu, anh], 1.5).map((l) => l.loai), ['anh', 'chu']);
+assert.deepStrictEqual(lopHien([{ ...chu, an: true }], 1.5), []);
+assert.ok(hieuUngTai(hinh, 2).dy > 0.04 && hieuUngTai(hinh, 2.5).dy === 0 && hieuUngTai(chu, 1).scale === 0.6);
+// Mẫu dựng sẵn ra đúng loại lớp.
+assert.deepStrictEqual(MAU_LOP.find((m) => m.key === 'huy_hieu')!.tao(0, 0.5625).map((l) => l.loai), ['hinh', 'chu']);
+// Bản xuất: ảnh phủ sau ghép hình, chữ/hình vào ASS, chữ màn lớp 100; urlCanXuat tải ảnh lớp.
+const nv = [] as unknown as NhanVat[];
+const shot = { id: 1, tap_id: 1, thu_tu: 1, canh: 'C1', goc_may: '', hanh_dong: '', loi_thoai: '', am_thanh: '', thoai_url: null, am_thanh_url: null, phan_doan: '', cam_xuc: 0, ky_thuat: {}, thoai: [], trang_phuc: '', phat_s: 4, chu_man: 'Hi', nhanh: '', kieu_chu: {}, thoi_luong_s: 4, nhan_vat: [], bien_the: [], prompt_anh: '', prompt_video: '', keyframe_url: null, keyframe_uv: [], video_url: 'https://x/c.mp4', video_cuoi_url: null, trang_thai: 'xong', loi: '', chi_phi_cents: 0 } as unknown as Canh;
+const tap = { nhac_url: null, nhac_phan_canh: {}, lop: [chu, hinh, anh] };
+assert.ok(urlCanXuat([shot], nv, tap).includes('https://x/logo.png'));
+const kh = keHoachXuat({ loai: 'phim', tiLe: '9:16', canh: [shot], nhanVat: nv, tap, nguyenLieu: [{ url: 'https://x/c.mp4', duong: '/t/c.mp4', dai: 5, coAm: false }, { url: 'https://x/logo.png', duong: '/t/l.png', dai: null, coAm: false }], font: '/f', thuMuc: '/t', ra: '/t/r.mp4' });
+const loc = kh.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
+assert.ok(loc.includes('[vcat][la') && loc.includes("[vla0]ass=filename='/t/chu.ass'[vout]"), loc);
+const ass = kh.tep.find((x) => x.duong.endsWith('/chu.ass'))!.noiDung;
+assert.ok(ass.includes('Dialogue: 100,') && ass.includes(',Lop0,') && ass.includes(',LopHinh,'), ass);
+console.log('lop.test: ok');

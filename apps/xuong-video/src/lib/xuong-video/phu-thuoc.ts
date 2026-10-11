@@ -33,7 +33,8 @@ export function phuThuocShot(viec: ViecShot, c: Canh, nhanVat: NhanVat[], o: { t
 
 /** Sơ đồ nguồn của một shot (11/10/2026, ý thứ hai lấy từ MuseFlow): thứ ĐÃ gửi lúc sinh keyframe / clip đang dùng, so với thứ GIỜ sẽ gửi.
  *  doi = cờ "nguồn đã đổi sau khi sinh" → bản đang dùng không còn khớp kịch bản/tham chiếu hiện tại. */
-export type BuocNguon = { job: number; model: string; luc: string; chi_phi_cents: number; nhan: string; prompt: string; doi: string[] };
+/** doi = cờ đỏ (đổi cấu trúc: keyframe khác, khung cuối, ảnh tham chiếu); cauLenh = câu thêm/bớt so với giờ sẽ gửi (vàng, để đọc). */
+export type BuocNguon = { job: number; model: string; luc: string; chi_phi_cents: number; nhan: string; prompt: string; doi: string[]; cauLenh: { them: string[]; bot: string[] } | null };
 export type NguonShot = {
   thu_tu: number; canh: string; ti_le: string; keyframe_url: string | null; video_url: string | null;
   thamChieu: { url: string; nhan: string }[];
@@ -41,3 +42,11 @@ export type NguonShot = {
   video: (BuocNguon & { khungDau: string | null; khungCuoi: string | null; xuLySau: string | null }) | null;
   khungCuoiNay: string | null; promptAnhNay: string; promptVideoNay: string;
 };
+
+/** Hai câu lệnh khác nhau ở CÂU nào: tách theo dấu kết câu, trả câu chỉ có ở bản mới (them) / chỉ ở bản cũ (bot).
+ *  Cờ "câu lệnh đã đổi" trơn bật trên gần hết shot cũ (cách ghép đổi theo thời gian) nên vô nghĩa — phải chỉ ra đổi CÁI GÌ. */
+export function khacCauLenh(cu: string, moi: string): { them: string[]; bot: string[] } {
+  const tach = (x: string) => x.split(/(?<=[.!?])\s+/).map((c) => c.trim()).filter(Boolean);
+  const a = tach(cu), b = tach(moi); const A = new Set(a), B = new Set(b);
+  return { them: b.filter((c) => !A.has(c)), bot: a.filter((c) => !B.has(c)) };
+}

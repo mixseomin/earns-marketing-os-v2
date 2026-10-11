@@ -23,3 +23,9 @@ assert.strictEqual(v.chan.length, 0);
 assert.ok(v.luu_y.some((x) => x.includes('shot #2 chưa có keyframe')) && v.luu_y.some((x) => x.includes('chưa sinh giọng')), v.luu_y.join('|'));
 assert.ok(!phuThuocShot('video', shot({ keyframe_url: 'k', trang_thai: 'duyet', thoai: [{ nhan_vat: '', dien_xuat: '', loi: 'hi', url: 'g' }] }), [], { noiKhung: false }).luu_y.length);
 console.log('phu-thuoc.test: ok');
+{
+  const { khacCauLenh } = await import('./phu-thuoc');
+  assert.deepStrictEqual(khacCauLenh('A man stands. He smiles. No text.', 'A man stands. He laughs! No text.'), { them: ['He laughs!'], bot: ['He smiles.'] });
+  assert.deepStrictEqual(khacCauLenh('Same.', 'Same.'), { them: [], bot: [] });
+  console.log('phu-thuoc.test: khác câu lệnh ok');
+}

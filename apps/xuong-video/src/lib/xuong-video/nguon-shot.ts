@@ -5,10 +5,10 @@ import { sql } from 'drizzle-orm';
 import { boiCanhCanh, n, s, type Db, type Row } from './doc-db';
 import { chuanBiKeyframe } from './sinh-anh';
 import { promptVideoCanh, khungCuoiCanh } from './sinh-video';
-import type { BuocNguon, NguonShot } from './phu-thuoc';
+import { khacCauLenh, type BuocNguon, type NguonShot } from './phu-thuoc';
 
 const rq = (r: Row) => (r.request && typeof r.request === 'object' ? (r.request as Record<string, unknown>) : {});
-const buoc = (r: Row): BuocNguon => ({ job: n(r.id), model: s(r.model), luc: s(r.created_at), chi_phi_cents: n(r.chi_phi_cents), nhan: s(r.nhan), prompt: s(rq(r).prompt), doi: [] });
+const buoc = (r: Row): BuocNguon => ({ job: n(r.id), model: s(r.model), luc: s(r.created_at), chi_phi_cents: n(r.chi_phi_cents), nhan: s(r.nhan), prompt: s(rq(r).prompt), doi: [], cauLenh: null });
 const cung = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
 
 export async function nguonShot(db: Db, canhId: number): Promise<NguonShot | null> {
@@ -28,7 +28,7 @@ export async function nguonShot(db: Db, canhId: number): Promise<NguonShot | nul
     const t = rq(jk).thamChieuUrl; const da = Array.isArray(t) ? t.map(String) : null;
     keyframe = { ...buoc(jk), thamChieuUrl: da };
     if (da && !cung(da, urlRef)) keyframe.doi.push('ảnh tham chiếu đã đổi sau khi sinh keyframe');
-    if (keyframe.prompt && keyframe.prompt !== promptAnhNay) keyframe.doi.push('câu lệnh ảnh giờ sẽ gửi khác lúc sinh — do sửa shot/đối tượng/phong cách, hoặc xưởng đã đổi cách ghép');
+    if (keyframe.prompt && keyframe.prompt !== promptAnhNay) keyframe.cauLenh = khacCauLenh(keyframe.prompt, promptAnhNay);
   }
 
   let video: NguonShot['video'] = null;
@@ -40,7 +40,7 @@ export async function nguonShot(db: Db, canhId: number): Promise<NguonShot | nul
     video = { ...buoc(g), khungDau: r.khungDau ? s(r.khungDau) : null, khungCuoi: r.khungCuoi ? s(r.khungCuoi) : null, xuLySau: goc && goc !== jv ? s(jv.nhan) || 'xử lý sau' : null };
     if (video.khungDau && video.khungDau !== c.keyframe_url) video.doi.push('clip sinh từ keyframe KHÁC keyframe đang chọn');
     if (video.khungDau && (video.khungCuoi ?? null) !== khungCuoiNay) video.doi.push(khungCuoiNay ? 'khung cuối đã đổi (keyframe shot sau đổi hoặc vừa bật nối khung)' : 'lúc sinh có khung cuối, giờ không còn (tắt nối khung / shot sau mất keyframe)');
-    if (video.prompt && video.prompt !== promptVideoNay) video.doi.push('câu lệnh video giờ sẽ gửi khác lúc sinh — do sửa hành động/thoại/giọng/kỹ thuật, hoặc xưởng đã đổi cách ghép');
+    if (video.prompt && video.prompt !== promptVideoNay) video.cauLenh = khacCauLenh(video.prompt, promptVideoNay);
   }
   return { thu_tu: c.thu_tu, canh: c.canh, ti_le: bc.kt.ti_le, keyframe_url: c.keyframe_url, video_url: vid, thamChieu: vai, keyframe, video, khungCuoiNay, promptAnhNay, promptVideoNay };
 }

@@ -19,13 +19,17 @@ function Cot({ tieuDe, children }: { tieuDe: string; children: ReactNode }) {
 }
 const Mui = () => <div style={{ alignSelf: 'center', color: 'var(--fg-3)', fontSize: 18 }}>→</div>;
 
-function ThongTin({ b, nay }: { b: BuocNguon; nay: string }) {
+function ThongTin({ b }: { b: BuocNguon }) {
   return <>
     <div style={mono}>{b.model.replace(/^fal:/, '')} · {tien(b.chi_phi_cents)} · {gioVN(b.luc)} · job #{b.job}</div>
-    {b.doi.length ? b.doi.map((d) => <div key={d} style={{ fontSize: 11.5, color: 'var(--red)' }}>⚠ {d}</div>)
-      : <div style={{ fontSize: 11.5, color: 'var(--lime)' }}>✓ khớp nguồn hiện tại</div>}
+    {b.doi.map((d) => <div key={d} style={{ fontSize: 11.5, color: 'var(--red)' }}>⚠ {d}</div>)}
+    {b.cauLenh && <details><summary style={{ fontSize: 11.5, color: 'var(--amber)', cursor: 'pointer' }}>Câu lệnh giờ khác lúc sinh: +{b.cauLenh.them.length} câu · −{b.cauLenh.bot.length} câu</summary>
+      <div style={{ display: 'grid', gap: 3, marginTop: 4 }}>
+        {b.cauLenh.them.map((c, i) => <div key={`t${i}`} style={{ ...mono, color: 'var(--lime)' }}>+ {c}</div>)}
+        {b.cauLenh.bot.map((c, i) => <div key={`b${i}`} style={{ ...mono, color: 'var(--red)' }}>− {c}</div>)}
+      </div></details>}
+    {!b.doi.length && !b.cauLenh && <div style={{ fontSize: 11.5, color: 'var(--lime)' }}>✓ khớp nguồn hiện tại</div>}
     <details><summary style={{ fontSize: 11, color: 'var(--fg-3)', cursor: 'pointer' }}>Câu lệnh đã gửi</summary><div style={{ ...mono, whiteSpace: 'pre-wrap', marginTop: 4 }}>{b.prompt || '(job không ghi câu lệnh)'}</div></details>
-    {b.prompt !== nay && <details><summary style={{ fontSize: 11, color: 'var(--fg-3)', cursor: 'pointer' }}>Câu lệnh giờ sẽ gửi</summary><div style={{ ...mono, whiteSpace: 'pre-wrap', marginTop: 4 }}>{nay}</div></details>}
   </>;
 }
 
@@ -55,7 +59,7 @@ export function NguonShotNoiDung({ canhId }: { canhId: number }) {
         <Mui />
         <Cot tieuDe="KEYFRAME ĐANG CHỌN">
           {anhNho(d.keyframe_url, 'Keyframe đang chọn', 110 * rong, tl)}
-          {d.keyframe ? <ThongTin b={d.keyframe} nay={d.promptAnhNay} /> : <div style={mono}>{d.keyframe_url ? 'Ảnh không do xưởng sinh (tải lên / lấy từ kho) — không có câu lệnh.' : 'Chưa có keyframe.'}</div>}
+          {d.keyframe ? <ThongTin b={d.keyframe} /> : <div style={mono}>{d.keyframe_url ? 'Ảnh không do xưởng sinh (tải lên / lấy từ kho) — không có câu lệnh.' : 'Chưa có keyframe.'}</div>}
         </Cot>
         <Mui />
         <Cot tieuDe="CLIP ĐANG DÙNG">
@@ -67,7 +71,7 @@ export function NguonShotNoiDung({ canhId }: { canhId: number }) {
               <div style={{ display: 'grid', gap: 2 }}>{anhNho(d.video.khungCuoi, 'Khung cuối lúc sinh', 48 * rong, tl)}<span style={{ fontSize: 10 }}>khung cuối</span></div>
             </div>
             {d.video.xuLySau && <div style={mono}>Clip đang dùng là bản xử lý sau: {d.video.xuLySau}. Dưới là clip gốc.</div>}
-            <ThongTin b={d.video} nay={d.promptVideoNay} />
+            <ThongTin b={d.video} />
           </>}
           {d.video_url && !d.video && <div style={mono}>Clip không do xưởng sinh (lấy từ kho / tải lên).</div>}
         </Cot>

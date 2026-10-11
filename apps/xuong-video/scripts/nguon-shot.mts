@@ -9,11 +9,13 @@ const so = (k: string) => Number((process.argv.find((a) => a.startsWith(`--${k}=
 const db = getDb(); if (!db) { console.error('không có DATABASE_URL'); process.exit(1); }
 const ids = so('canh') ? [so('canh')] : ((await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${so('tap')} ORDER BY thu_tu`)) as unknown as { id: number }[]).map((r) => Number(r.id));
 if (!ids.length) { console.error('thiếu --tap=<id> hoặc --canh=<id>'); process.exit(1); }
+const cl = (b: { cauLenh: { them: string[]; bot: string[] } | null }) => (b.cauLenh ? ` ~câu lệnh +${b.cauLenh.them.length}/−${b.cauLenh.bot.length}` : '');
+const chiTiet = process.argv.includes('--chi-tiet');
 for (const id of ids) {
   const d = await nguonShot(db, id); if (!d) continue;
   const k = d.keyframe, v = d.video;
   console.log(`#${d.thu_tu} ${d.canh.slice(0, 40)} · ${d.thamChieu.length} ảnh tham chiếu`
-    + ` | kf: ${k ? `job ${k.job} ${k.model} ${k.thamChieuUrl ? `${k.thamChieuUrl.length} ref` : 'ref?'}${k.doi.length ? ` ⚠ ${k.doi.join(' / ')}` : ' ✓'}` : d.keyframe_url ? 'không có job' : '—'}`
-    + ` | clip: ${v ? `job ${v.job} ${v.model}${v.xuLySau ? ` (+${v.xuLySau})` : ''}${v.doi.length ? ` ⚠ ${v.doi.join(' / ')}` : ' ✓'}` : d.video_url ? 'không có job' : '—'}`);
+    + ` | kf: ${k ? `job ${k.job} ${k.model} ${k.thamChieuUrl ? `${k.thamChieuUrl.length} ref` : 'ref?'}${k.doi.length ? ` ⚠ ${k.doi.join(' / ')}` : ''}${cl(k)}${!k.doi.length && !k.cauLenh ? ' ✓' : ''}` : d.keyframe_url ? 'không có job' : '—'}`
+    + ` | clip: ${v ? `job ${v.job} ${v.model}${v.xuLySau ? ` (+${v.xuLySau})` : ''}${v.doi.length ? ` ⚠ ${v.doi.join(' / ')}` : ''}${cl(v)}${!v.doi.length && !v.cauLenh ? ' ✓' : ''}` : d.video_url ? 'không có job' : '—'}`);
 }
 process.exit(0);

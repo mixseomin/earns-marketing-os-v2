@@ -3,6 +3,7 @@
 // Về bản đầu (v1) · Ký / Bác đề xuất mức 3. Kết quả / lý do từ chối hiện ngay dưới nút. Đang chạy → làm mới mỗi 3 giây.
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { NutXacNhan } from './nut-xac-nhan';
 import { hopRutKinhNghiem, soTrenBoViecChuan, veBanDau, kyDeXuat } from '@/lib/quy-trinh';
 
 type Kq = { ok: boolean; loi?: string };
@@ -23,12 +24,15 @@ export function NutQuyTrinh({ khoa, banHienHanh, dangChay, coBanThu, admin }: { 
   return (
     <div className="cty-qt-nut">
       <div className="cty-thu-nut">
-        <button type="button" className="cty-btn chinh" disabled={ban || coBanThu} title={coBanThu ? 'Có bản đang thử — so trên bộ việc chuẩn trước' : ''}
-          onClick={() => bam(() => hopRutKinhNghiem(khoa), 'Đã mở buổi họp — Tâm đề xuất, Hà phản biện; kết quả hiện ở mục Cải tiến.')}>{dangChay === 'hop' ? 'Đang họp…' : 'Họp rút kinh nghiệm'}</button>
-        <button type="button" className="cty-btn" disabled={ban}
-          onClick={() => bam(() => soTrenBoViecChuan(khoa), coBanThu ? 'Đang so bản thử với bản gốc trên bộ việc chuẩn — xong sẽ tự giữ hoặc quay lại.' : 'Đang chấm bản hiện hành trên bộ việc chuẩn.')}>{dangChay === 'so' ? 'Đang so…' : coBanThu ? 'So bản thử trên bộ việc chuẩn' : 'Chấm trên bộ việc chuẩn'}</button>
-        <button type="button" className="cty-btn" disabled={ban || banHienHanh === 1}
-          onClick={() => bam(() => veBanDau(khoa), 'Đã về v1 — các bản sau vẫn giữ trong lịch sử.')}>Về bản đầu (v1)</button>
+        <NutXacNhan chinh disabled={ban || coBanThu} title={coBanThu ? 'Có bản đang thử — so trên bộ việc chuẩn trước' : ''}
+          nhan={dangChay === 'hop' ? 'Đang họp…' : 'Họp rút kinh nghiệm'} hoi="Họp gọi mô hình, tốn ≈ $0,01 và phải chờ tới khi xong."
+          onXacNhan={() => bam(() => hopRutKinhNghiem(khoa), 'Đã mở buổi họp — Tâm đề xuất, Hà phản biện; kết quả hiện ở mục Cải tiến.')} />
+        <NutXacNhan disabled={ban}
+          nhan={dangChay === 'so' ? 'Đang so…' : coBanThu ? 'So bản thử trên bộ việc chuẩn' : 'Chấm trên bộ việc chuẩn'}
+          hoi={coBanThu ? 'So 2 bản × 7 việc × 2 lần, tốn ≈ $0,014 và phải chờ tới khi xong.' : 'Chấm 7 việc × 2 lần, tốn ≈ $0,007 và phải chờ tới khi xong.'}
+          onXacNhan={() => bam(() => soTrenBoViecChuan(khoa), coBanThu ? 'Đang so bản thử với bản gốc trên bộ việc chuẩn — xong sẽ tự giữ hoặc quay lại.' : 'Đang chấm bản hiện hành trên bộ việc chuẩn.')} />
+        <NutXacNhan disabled={ban || banHienHanh === 1} nhan="Về bản đầu (v1)" hoi={`Quy trình đang chạy đổi từ v${banHienHanh} về v1 (các bản sau vẫn giữ trong lịch sử).`}
+          onXacNhan={() => bam(() => veBanDau(khoa), 'Đã về v1 — các bản sau vẫn giữ trong lịch sử.')} />
         <span className="cty-muted cty-nho">họp ≈ $0,01 · so ≈ $0,007 mỗi bản (7 việc × 2 lần)</span>
       </div>
       {!admin && <p className="cty-bao-loi" data-loi>Chỉ Giám đốc (admin) được bấm.</p>}

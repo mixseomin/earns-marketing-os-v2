@@ -16,6 +16,13 @@ const VIEC = `Thử nút ${Date.now()}: viết 1 câu chào tiếng Anh`;
 const truoc = await p.locator('.cty-ds-luot details').count();
 await p.fill('.cty-thu-form textarea', VIEC);
 await p.click('.cty-thu-form button:has-text("Chạy một lượt")');
+// #1271: bấm lần đầu chỉ mở xác nhận tại chỗ — chưa được gửi gì. Huỷ thì thôi; Xác nhận mới chạy.
+await p.waitForTimeout(800);
+kq('bấm lần đầu chỉ hỏi xác nhận, chưa giao lượt', (await p.locator('.cty-thu-form .cty-xac-nhan').count()) === 1 && (await p.locator('.cty-thu-form .cty-bao-ok, .cty-thu-form .cty-bao-loi').count()) === 0, '');
+await p.click('.cty-thu-form .cty-xac-nhan button:has-text("Huỷ")');
+kq('Huỷ thì nút Chạy trở lại', (await p.locator('.cty-thu-form button:has-text("Chạy một lượt")').count()) === 1, '');
+await p.click('.cty-thu-form button:has-text("Chạy một lượt")');
+await p.click('.cty-thu-form .cty-xac-nhan button:has-text("Xác nhận")');
 const bao = await p.locator('.cty-thu-form .cty-bao-ok, .cty-thu-form .cty-bao-loi').first().innerText({ timeout: 8000 }).catch(() => '');
 kq('có dòng báo dưới nút', !!bao, bao);
 kq('chữ đã gõ còn nguyên sau bấm', (await p.inputValue('.cty-thu-form textarea')) === VIEC, await p.inputValue('.cty-thu-form textarea'));

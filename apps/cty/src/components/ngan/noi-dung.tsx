@@ -1,6 +1,7 @@
 // NỘI DUNG từng loại ngăn — một nguồn cho cả ngăn kéo lẫn trang đầy đủ (/nhan-su/x, /phong/x…). Mở được chỉ từ khoá (luật 6):
 // mỗi hàm nhận đúng mã, tự đọc dữ liệu. Không có bản ghi → nội dung báo rõ thiếu gì, không treo (luật 7).
 // Ngăn chi tiết chia 3 cột một màn (luật 8): [hình] [thông tin lưới ô] [phân tích / nội dung dài]; cột nào dài thì riêng cột đó cuộn.
+import { KhungVp } from '@/components/khung-vp';
 import Link from 'next/link';
 import { nhanSu, heartbeat, phong, dsNhanSu, soDo, docText, cauHinh, dsPhong, KHUON, MUC } from '@/lib/cong-ty';
 import { Avatar, hueOf } from '../avatar';
@@ -110,7 +111,15 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
     : <TabPhong khoa={id} dau={dau} tabs={[{ key: 'sodo', nhan: 'Sơ đồ' }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
         {[<div key="s">{soDoTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
       </TabPhong>;
-  return { tieuDe: <>{String(p.fm.ten)} <span className="cty-pill cty-pill-kind">{k?.ten ?? String(p.fm.khuon)}</span></>, than };
+  // Văn phòng pixel LIVE cố định bên phải: phòng có văn phòng riêng (van_phong) thì xem đúng phòng đó, chưa có thì văn phòng chung.
+  const vp = p.fm.van_phong ? String(p.fm.van_phong) : '';
+  const hai = (
+    <div className="cty-tabkhung cty-phong-hai">
+      {than}
+      <KhungVp src={vp || 'https://vp.on.tc'} ghi={vp ? `Văn phòng ${String(p.fm.ten)} · live` : 'Văn phòng chung cả công ty · phòng này chưa có văn phòng riêng'} />
+    </div>
+  );
+  return { tieuDe: <>{String(p.fm.ten)} <span className="cty-pill cty-pill-kind">{k?.ten ?? String(p.fm.khuon)}</span></>, than: hai };
 }
 
 export function nganNhatKy(ma: string): Ngan {

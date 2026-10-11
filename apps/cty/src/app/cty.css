@@ -274,3 +274,10 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-qt-hh td{background:var(--soft)}
 .cty-qt-nk{margin:0;padding-left:1.1rem;display:grid;gap:4px;font-size:.88rem}
 @media (max-width:600px){.cty-qt-buoc{min-width:0;max-width:none;flex:1 1 100%}.cty-qt-mui{flex-basis:100%}.cty-qt-mui-ngang{display:none}.cty-qt-mui-doc{display:inline}}
+.cty-xac-nhan{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;padding:4px 8px;border:1px solid var(--accent);border-radius:8px}
+.cty-phong-hai{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,38%);gap:14px}
+.cty-phong-hai > .cty-tabkhung{min-height:0}
+.cty-vp-khung{display:flex;flex-direction:column;gap:6px;min-height:0;height:100%}
+.cty-vp-dau{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cty-vp-khung iframe{display:block;flex:1;min-height:0;width:100%;border:1px solid var(--line);border-radius:8px;background:#000}
+@media (max-width:900px){.cty-phong-hai{grid-template-columns:minmax(0,1fr);grid-template-rows:200px minmax(0,1fr)}.cty-phong-hai > .cty-vp-khung{order:-1}}

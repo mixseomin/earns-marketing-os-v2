@@ -4,6 +4,7 @@
 // Đang có lượt chạy → làm mới danh sách mỗi 3 giây (router.refresh, chạy được cả trong ngăn kéo — meta refresh thì không).
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { NutXacNhan } from './nut-xac-nhan';
 import { chayMotLuot } from '@/lib/thu-nghiem';
 
 const KHOA = 'cty.thu.viec';
@@ -29,7 +30,8 @@ export function KhungChay({ macDinh, admin, dangChay }: { macDinh: string; admin
     <div className="cty-thu-form">
       <textarea value={viec} onChange={(e) => doi(e.target.value)} rows={2} disabled={!admin} aria-label="Việc giao cho phòng" />
       <div className="cty-thu-nut">
-        <button type="button" onClick={chay} disabled={!admin || ban || !viec.trim()}>{dangGui ? 'Đang giao…' : dangChay ? 'Đang chạy…' : '▶ Chạy một lượt'}</button>
+        <NutXacNhan chinh onXacNhan={chay} disabled={!admin || ban || !viec.trim()} nhan={dangGui ? 'Đang giao…' : dangChay ? 'Đang chạy…' : '▶ Chạy một lượt'}
+          hoi="Lượt gọi mô hình, tốn ≈ $0,0005 và chạy tới khi xong." />
         <a className="cty-btn" href="https://vpthu.on.tc" target="_blank" rel="noreferrer">Văn phòng pixel ↗</a>
         {viec !== macDinh && <button type="button" className="cty-btn" onClick={() => doi(macDinh)}>Dùng câu mẫu</button>}
         <span className="cty-muted cty-nho">≈ $0,0005 / lượt</span>

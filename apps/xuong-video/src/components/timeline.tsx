@@ -164,7 +164,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
       if (!trong) { if (a && !a.paused) a.pause(); continue; }
       dang.add(k);
       if (!a) { a = new Audio(urlSfx(m.key)); a.preload = 'auto'; hiRef.current.set(k, a); }
-      a.loop = m.lap; a.volume = Math.min(1, Math.pow(10, m.db / 20) * 1.6);
+      a.loop = m.lap; a.volume = Math.min(1, Math.pow(10, (m.db - 2.5) / 20));   // giọng xem trước là tệp gốc (~-18,5 LUFS), bản xuất đẩy lên -16
       if (a.paused) { a.currentTime = m.bo + (t - m.tu); void a.play().catch(() => {}); }
     }
     for (const [k, a] of hiRef.current) if (!dang.has(k) && !a.paused) a.pause();

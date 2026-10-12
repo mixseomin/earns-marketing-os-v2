@@ -12,7 +12,7 @@ import { chuyenCanhGiua } from './dien-anh';
 import { giayPhat, locNhanh, doanChuMan, coMau, assVaoChu, KIEU_CHU_MAC_DINH } from './kieu';
 import { keHoachToc, bieuThucToc } from './toc-do';
 import { ngatDong, dongChuMan, boChamCuoi } from './ngat-dong';
-import { lichSfx } from './sfx';
+import { lichSfx, LUFS_GIONG } from './sfx';
 export { doanChuMan, chuManHien } from './kieu';
 import { giayGiuKet, dongThoai, dungTiengClip, lichGiong } from './am-thanh';
 
@@ -60,7 +60,7 @@ export function duoiNhac(metadata: string): number | null {
 }
 
 /** Mức to chuẩn của MỌI câu giọng trước khi trộn — câu nào ra từ model cũng về cùng mức, không câu to câu nhỏ. */
-export const LUFS_GIONG = -16;
+export { LUFS_GIONG };   // một chỗ ở sfx.ts (tiếng hiệu ứng đặt theo giọng)
 /** Nhạc nền nằm dưới giọng bao nhiêu dB (trước ducking). 10 dB: nghe rõ nền liên tục như QC mẫu mà không lấn lời. */
 export const LUFS_NHAC_DUOI_GIONG = 10;
 
@@ -276,10 +276,12 @@ export function keHoachXuat(o: {
     nhanhVideo.push(`[v${i}]`); mocSeg.push(t); xSeg.push(cs);
     t += phat;
   });
-  // Tiếng hiệu ứng thật (sfx.ts): cùng lịch với timeline xem trước; vào lớp "còn lại" (không bị nén dưới giọng như nhạc).
+  // Tiếng hiệu ứng thật (sfx.ts): cùng lịch với timeline xem trước; mức đặt theo giọng (dbSfx) và còn NÉN DƯỚI GIỌNG khi giọng đang đọc
+  // (nhanhSfx → sidechain bên dưới) — 12/10/2026 phim #9 tiếng đập/vút đầu shot đè mất câu đọc.
+  const nhanhSfx: string[] = [];
   if (o.sfxDir) for (const m of lichSfx(amShot)) {
     const k = themTep(`${o.sfxDir}/${m.key}.mp3`);
-    themAm(`[${k}:a]${m.lap ? 'aloop=loop=-1:size=2147483647,' : ''}atrim=${so(m.bo)}:${so(m.bo + m.dai)},asetpts=PTS-STARTPTS,${m.lap ? `afade=t=in:d=0.15,afade=t=out:st=${so(Math.max(0, m.dai - 0.25))}:d=0.25,` : ''}volume=${m.db}dB,adelay=${Math.round(m.tu * 1000)}:all=1`);
+    themAm(`[${k}:a]${m.lap ? 'aloop=loop=-1:size=2147483647,' : ''}atrim=${so(m.bo)}:${so(m.bo + m.dai)},asetpts=PTS-STARTPTS,${m.lap ? `afade=t=in:d=0.15,afade=t=out:st=${so(Math.max(0, m.dai - 0.25))}:d=0.25,` : ''}volume=${m.db}dB,adelay=${Math.round(m.tu * 1000)}:all=1`, nhanhSfx);
   }
   // Nhạc: theo phân cảnh (khối shot liền nhau cùng phan_doan) nếu có, không thì một bài; lặp khi ngắn, nhỏ tiếng, fade hai đầu.
   const khoi: { ten: string; tu: number; dai: number }[] = [];
@@ -342,10 +344,14 @@ export function keHoachXuat(o: {
   const tangAm: string[] = [];
   if (nhanhGiong.length && nhanhNhac.length) {
     // apad: sidechaincompress dừng theo luồng NGẮN hơn — không đệm thì nhạc bị cắt khi câu giọng cuối hết (phim #5: tiếng 53,8s / hình 55,5s).
-    loc.push(`${tron(nhanhGiong, 'giong')}asplit=2[gm][gsc0];[gsc0]apad[gsc]`);
+    loc.push(`${tron(nhanhGiong, 'giong')}asplit=3[gm][gsc0][gsc1];[gsc0]apad[gsc];[gsc1]apad[gscx]`);
     loc.push(`${tron(nhanhNhac, 'nhac')}[gsc]sidechaincompress=threshold=0.125:ratio=2:attack=30:release=400[nhacnen]`);
     tangAm.push('[gm]', '[nhacnen]');
-  } else tangAm.push(...nhanhGiong, ...nhanhNhac);
+  } else if (nhanhGiong.length) { loc.push(`${tron(nhanhGiong, 'giong')}asplit=2[gm][gsc1];[gsc1]apad[gscx]`); tangAm.push('[gm]'); }
+  else tangAm.push(...nhanhNhac);
+  // Tiếng hiệu ứng nén MẠNH dưới giọng (3:1, ngưỡng thấp, nhả nhanh): câu đọc luôn rõ, giữa hai câu cú đập vẫn đủ lực.
+  if (nhanhSfx.length && nhanhGiong.length) { loc.push(`${tron(nhanhSfx, 'sfx')}[gscx]sidechaincompress=threshold=0.05:ratio=3:attack=5:release=250[sfxnen]`); tangAm.push('[sfxnen]'); }
+  else tangAm.push(...nhanhSfx);
   tangAm.push(...nhanhAm);
   if (tangAm.length) loc.push(`${tangAm.join('')}amix=inputs=${tangAm.length}:normalize=0:dropout_transition=0,atrim=0:${so(giay)},loudnorm=I=-14:TP=-1.5:LRA=11[aout]`);
   else loc.push(`anullsrc=r=48000:cl=stereo,atrim=0:${so(giay)}[aout]`);

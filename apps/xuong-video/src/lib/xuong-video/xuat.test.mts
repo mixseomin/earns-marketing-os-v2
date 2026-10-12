@@ -243,5 +243,11 @@ console.log('xuat.test: mẫu ok');
   const ket = canh.map((c, i) => (i === canh.length - 1 ? { ...c, phan_doan: 'end_card' } : c));
   const k2 = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh: ket, nhanVat: nv, tap, qc: { ten: 'Bra', uu_dai: '$24.99', link: '', diem_noi_bat: '', doi_tuong: '', thi_truong: '', anh: [] }, nhanh: 'A', nguyenLieu, font: '/f/DejaVuSans-Bold.ttf', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
   assert.strictEqual(k2.giay, kh.giay - 2);
+  // phân cảnh tên tự do mà beat là CTA → cũng là kết riêng; beat khác → vẫn gắn end card
+  const pc = canh.map((c, i) => (i === canh.length - 1 ? { ...c, phan_doan: 'Not luck' } : c));
+  const qc = { ten: 'Bra', uu_dai: '$24.99', link: '', diem_noi_bat: '', doi_tuong: '', thi_truong: '', anh: [] };
+  const chung = { loai: 'quang_cao' as const, tiLe: '9:16', canh: pc, nhanVat: nv, qc, nhanh: 'A', nguyenLieu, font: '/f/DejaVuSans-Bold.ttf', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' };
+  assert.strictEqual(keHoachXuat({ ...chung, tap: { ...tap, phan_canh: [{ ten: 'Not luck', beat: 'CTA' }] } }).giay, kh.giay - 2);
+  assert.strictEqual(keHoachXuat({ ...chung, tap: { ...tap, phan_canh: [{ ten: 'Not luck', beat: 'Resolution' }] } }).giay, kh.giay);
   console.log('xuat.test: kết riêng không end card ok');
 }

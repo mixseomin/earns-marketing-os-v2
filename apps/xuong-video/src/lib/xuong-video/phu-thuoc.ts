@@ -4,17 +4,27 @@
 //   chan  = chưa chạy được (server cũng sẽ từ chối) → ô tick khoá, ghi lý do.
 //   luu_y = chạy được nhưng có hệ quả nên biết trước (nối khung lệch, thoại chưa có giọng, đã có bản sẵn…).
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/phu-thuoc.test.mts
-import { thanhPhanCanh, type Canh, type NhanVat } from './kieu';
+import { thanhPhanCanh, type Canh, type NhanVat, type PhanCanh } from './kieu';
 import { dongThoai } from './am-thanh';
 
 export type ViecShot = 'keyframe' | 'video';
 export type PhuThuoc = { chan: string[]; luu_y: string[] };
 
-/** truoc / ke = shot liền trước / liền sau trong tập; noiKhung = tập bật "khung cuối = keyframe cảnh sau". */
-export function phuThuocShot(viec: ViecShot, c: Canh, nhanVat: NhanVat[], o: { truoc?: Canh; ke?: Canh; noiKhung: boolean }): PhuThuoc {
+/** Luật anh 12/10/2026: MỌI video phải có PHÂN CẢNH cụ thể (mục tiêu · xung đột · cảm xúc đầu→cuối) trước khi sinh keyframe —
+ *  shot nào không thuộc một phân cảnh đã khai (phan_doan khớp tên trong tap.phan_canh) thì chưa được sinh. MỘT luật cho bảng chọn,
+ *  máy chủ (sinhKeyframeCanh) và script nạp shot (nap-canh). null = đạt. */
+export function thieuPhanCanh(phanCanh: Pick<PhanCanh, 'ten'>[], c: Pick<Canh, 'phan_doan'>): string | null {
+  if (!phanCanh.length) return 'tập chưa có phân cảnh — ✂ Tách cảnh (hoặc nạp kèm phanCanh) trước khi sinh keyframe';
+  if (!phanCanh.some((x) => x.ten === c.phan_doan)) return c.phan_doan ? `phân cảnh "${c.phan_doan}" chưa khai trong tập` : 'shot chưa thuộc phân cảnh nào';
+  return null;
+}
+
+/** truoc / ke = shot liền trước / liền sau trong tập; noiKhung = tập bật "khung cuối = keyframe cảnh sau"; phanCanh = tap.phan_canh. */
+export function phuThuocShot(viec: ViecShot, c: Canh, nhanVat: NhanVat[], o: { truoc?: Canh; ke?: Canh; noiKhung: boolean; phanCanh: Pick<PhanCanh, 'ten'>[] }): PhuThuoc {
   const chan: string[] = []; const luu_y: string[] = [];
   if (viec === 'keyframe') {
     if (c.dang_sinh_anh) chan.push('đang sinh ảnh');
+    const pc = thieuPhanCanh(o.phanCanh, c); if (pc) chan.push(pc);
     if (!c.prompt_anh.trim()) chan.push('chưa có prompt ảnh');
     chan.push(...thanhPhanCanh(c, nhanVat).thieu);
     if (c.keyframe_url) luu_y.push('đã có keyframe — ảnh mới vào dải ứng viên, phải chọn mới thay');

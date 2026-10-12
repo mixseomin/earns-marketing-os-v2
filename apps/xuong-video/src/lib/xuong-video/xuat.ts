@@ -6,7 +6,7 @@
 //   - trên hình CHỈ có chữ màn (chu_man, to ở 1/6 trên) — shot không có chữ màn thì không có chữ nào (anh chốt 09/10/2026, #1231); end card ưu đãi cho quảng cáo;
 //   - chuẩn -14 LUFS, H.264 30fps, 1080×1920 (9:16) hoặc 1920×1080.
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/xuat.test.mts
-import type { Canh, KieuChu, LoaiPhim, Lop, NhanVat, Tap, ThongTinQc, ViTriChu } from './kieu';
+import type { Canh, KieuChu, LoaiPhim, Lop, NhanVat, PhanCanh, Tap, ThongTinQc, ViTriChu } from './kieu';
 import { mauAss, gioAss, lopAss, lopAnhLoc, lopHieuUngLoc } from './lop';
 import { chuyenCanhGiua } from './dien-anh';
 import { giayPhat, locNhanh, doanChuMan, coMau, KIEU_CHU_MAC_DINH } from './kieu';
@@ -147,7 +147,7 @@ const so = (x: number) => (Math.round(x * 1000) / 1000).toString();
 const duongFf = (p: string) => p.replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'");
 
 export function keHoachXuat(o: {
-  loai: LoaiPhim; tiLe: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'nhac_url' | 'nhac_phan_canh'> & { lop?: Lop[] }; qc?: ThongTinQc | null;
+  loai: LoaiPhim; tiLe: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'nhac_url' | 'nhac_phan_canh'> & { lop?: Lop[]; phan_canh?: Pick<PhanCanh, 'ten' | 'beat'>[] }; qc?: ThongTinQc | null;
   nhanh?: string | null; nguyenLieu: NguyenLieu[]; font: string; thuMuc: string; ra: string;
   /** thư mục font cho libass (assets/fonts); chiThuTu = chỉ xuất các shot này (xem thử từng shot, không end card). */
   fontsDir?: string; chiThuTu?: number[];
@@ -266,7 +266,9 @@ export function keHoachXuat(o: {
   let giay = t;
   // Có QC mẫu → phần kết theo đúng mẫu (mẫu có end card riêng trong các shot) — không gắn thêm end card tự động.
   // Kịch bản tự kết bằng shot CTA / end card (vd short Astrolas 12/10/2026) cũng vậy: gắn thêm là hai màn kết chồng nhau, dài thêm 2s.
-  const ketRieng = ['cta', 'end_card'].includes(ds[ds.length - 1]?.phan_doan ?? '');
+  // Shot cuối là "kết" khi phan_doan là loại QC (cta/end_card) HOẶC thuộc phân cảnh mang beat CTA / End card (phân cảnh tên tự do, 12/10/2026).
+  const cuoi = ds[ds.length - 1]; const beatCuoi = o.tap.phan_canh?.find((x) => x.ten === cuoi?.phan_doan)?.beat ?? '';
+  const ketRieng = ['cta', 'end_card'].includes(cuoi?.phan_doan ?? '') || /^(cta|end[\s_-]?card)$/i.test(beatCuoi.trim());
   if (o.loai === 'quang_cao' && o.qc?.uu_dai?.trim() && nhanhVideo.length && !o.chiThuTu?.length && !coMau(o.qc) && !ketRieng) {
     const dong = [...(o.qc.ten ? ngatDong(o.qc.ten, wrapMan) : []), ' ', ...ngatDong(o.qc.uu_dai, wrapMan)];
     // Có ảnh sản phẩm (mục 0) → end card = ảnh phủ kín, tối 45%, chữ ở 1/4 dưới (kiểu "FLASH SALE · SHOP NOW" đè lên ảnh sản phẩm); không có → nền tối, chữ giữa.

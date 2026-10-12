@@ -14,7 +14,7 @@
    "bien_the": [],
    "prompt_anh": "Maya standing on a rain-soaked rooftop at night, soaked, gripping her phone, face lit by its glow, lightning and city lights behind, rain drops frozen mid-air, intense stare",
    "prompt_video": "Rain falls in extreme slow motion around Maya, then snaps to full speed as lightning flashes and she looks up sharply.",
-   "phan_doan": "hook",
+   "phan_doan": "One shot",
    "cam_xuc": 2,
    "ky_thuat": {
     "co_canh": "cu",
@@ -48,7 +48,7 @@
    "bien_the": [],
    "prompt_anh": "Maya alone in a glass startup office at night, sleeves pushed up, leaning over a desk covered in prototypes and sticky notes, a huge glowing screen behind her showing a launch countdown, city skyline outside, confident half-smile",
    "prompt_video": "The camera orbits around Maya as she straightens up and taps the screen, the countdown glows brighter.",
-   "phan_doan": "hook",
+   "phan_doan": "One shot",
    "cam_xuc": 3,
    "ky_thuat": {
     "co_canh": "ms",
@@ -79,7 +79,7 @@
    "bien_the": [],
    "prompt_anh": "A drone view diving between glowing night skyscrapers toward a small steel-grey planet Mercury with a fiery rim and no rings hanging low over the city, a bright orbit trail curving around it",
    "prompt_video": "FPV drone dives between the towers toward Mercury; its glowing orbit trail suddenly reverses and swings backward.",
-   "phan_doan": "noi_dau",
+   "phan_doan": "Mercury turns back",
    "cam_xuc": -1,
    "ky_thuat": {
     "co_canh": "ews",
@@ -112,7 +112,7 @@
    "bien_the": [],
    "prompt_anh": "Close-up of Maya at her laptop at night, red warning light from the screen on her shocked face, the laptop sparking at the hinge, papers lifting off the desk",
    "prompt_video": "Sudden crash zoom on Maya's face as the laptop sparks and the screen flashes red.",
-   "phan_doan": "noi_dau",
+   "phan_doan": "Mercury turns back",
    "cam_xuc": -2,
    "ky_thuat": {
     "co_canh": "cu",
@@ -145,7 +145,7 @@
    "bien_the": [],
    "prompt_anh": "Maya's hand holding a smartphone, glowing chat bubbles bursting out of the screen and shattering like glass in mid-air, neon teal and orange light, no readable text",
    "prompt_video": "Bullet-time: the chat bubbles shatter and hang frozen while the camera orbits fast around her hand.",
-   "phan_doan": "noi_dau",
+   "phan_doan": "Everything falls apart",
    "cam_xuc": -3,
    "ky_thuat": {
     "co_canh": "insert",
@@ -177,7 +177,7 @@
    "bien_the": [],
    "prompt_anh": "Over Maya's shoulder in a dim apartment doorway at night, a tall blurred male silhouette standing in the open door holding a single red rose, warm hallway light behind him, a pale golden planet Venus visible through the window",
    "prompt_video": "Dolly zoom vertigo on the doorway: the silhouette stays the same size while the hallway stretches behind him.",
-   "phan_doan": "noi_dau",
+   "phan_doan": "Everything falls apart",
    "cam_xuc": -3,
    "ky_thuat": {
     "co_canh": "ots",
@@ -209,7 +209,7 @@
    "bien_the": [],
    "prompt_anh": "Maya running through a rain-soaked neon street at night, coat flying, phone in hand, desperate, reflections on the wet asphalt, blurred traffic lights",
    "prompt_video": "Snorricam locked on Maya as she runs, the rainy street swinging wildly around her.",
-   "phan_doan": "noi_dau",
+   "phan_doan": "Everything falls apart",
    "cam_xuc": -4,
    "ky_thuat": {
     "co_canh": "mcu",
@@ -242,7 +242,7 @@
    "bien_the": [],
    "prompt_anh": "Top-down view of Maya alone on a rooftop in heavy rain at night, a pen hovering over a soaked contract on a ledge, phone glowing beside it showing a battery at 1 percent, city far below",
    "prompt_video": "Top-down camera spins slowly downward toward Maya as rain lashes; her pen trembles over the contract.",
-   "phan_doan": "noi_dau",
+   "phan_doan": "The last night",
    "cam_xuc": -5,
    "ky_thuat": {
     "co_canh": "ws",
@@ -275,7 +275,7 @@
    "bien_the": [],
    "prompt_anh": "Close-up of Maya on the rainy rooftop lifting her phone, its screen glowing with a golden astrology chart wheel, gold light washing over her wet face, determined eyes",
    "prompt_video": "The camera pushes forward and flies straight through the phone screen into a vast glowing golden chart wheel.",
-   "phan_doan": "giai_phap",
+   "phan_doan": "She checks her chart",
    "cam_xuc": 2,
    "ky_thuat": {
     "co_canh": "cu",
@@ -307,7 +307,7 @@
    "bien_the": [],
    "prompt_anh": "The real Astrolas transit result",
    "prompt_video": "Slow gentle zoom on the highlighted rows.",
-   "phan_doan": "bang_chung",
+   "phan_doan": "She checks her chart",
    "cam_xuc": 4,
    "ky_thuat": {
     "chuyen_canh": "loe_trang"
@@ -336,7 +336,7 @@
    "bien_the": [],
    "prompt_anh": "Maya's finger on a glowing calendar on a tablet dragging a gold event marker from November 2 to November 14, sparks of gold light trailing behind the marker, dark desk",
    "prompt_video": "The marker slides across the calendar in slow motion leaving a gold trail, then snaps into November 14 at full speed.",
-   "phan_doan": "giai_phap",
+   "phan_doan": "Timing wins",
    "cam_xuc": 3,
    "ky_thuat": {
     "co_canh": "insert",
@@ -369,7 +369,7 @@
    "bien_the": [],
    "prompt_anh": "Extreme close-up of a printed contract under a desk lamp, one paragraph circled in glowing red ink, Maya's eye reflected in a glass beside it, sharp focus, no readable words",
    "prompt_video": "Rack focus from Maya's reflected eye to the red-circled clause as the ink glows brighter.",
-   "phan_doan": "giai_phap",
+   "phan_doan": "Timing wins",
    "cam_xuc": 4,
    "ky_thuat": {
     "co_canh": "ecu",
@@ -402,7 +402,7 @@
    "bien_the": [],
    "prompt_anh": "Maya signing a contract at a glass table in a sunlit high-rise boardroom at sunrise, golden light flooding in, gold confetti sparks frozen in the air, a confident smile",
    "prompt_video": "Speed ramp: her pen stroke drops into slow motion as gold sparks burst around her, then snaps back as she stands up.",
-   "phan_doan": "tran_an",
+   "phan_doan": "Timing wins",
    "cam_xuc": 5,
    "ky_thuat": {
     "co_canh": "ms",
@@ -436,7 +436,7 @@
    "bien_the": [],
    "prompt_anh": "Low-angle wide shot of Maya walking toward camera down a wet city street at dawn, golden sun behind her, Mercury and Venus fading in the morning sky, confident stride",
    "prompt_video": "Steadicam tracks backward as Maya strides forward, sunlight flaring behind her.",
-   "phan_doan": "tran_an",
+   "phan_doan": "Not luck",
    "cam_xuc": 5,
    "ky_thuat": {
     "co_canh": "ws",
@@ -468,7 +468,7 @@
    "bien_the": [],
    "prompt_anh": "Deep navy starry sky with a soft golden glow",
    "prompt_video": "Slow drift of stars.",
-   "phan_doan": "cta",
+   "phan_doan": "Not luck",
    "cam_xuc": 5,
    "ky_thuat": {},
    "trang_phuc": "charcoal blazer, black t-shirt, gold star pendant",
@@ -480,6 +480,116 @@
      "loi": "October twenty-fourth to November thirteenth. Check your chart free at astrolas dot com."
     }
    ]
+  }
+ ],
+ "tomTat": "Maya, a founder with one shot (signing Nov 2), gets hit by a double retrograde (Mercury + Venus, Oct 24 – Nov 13): the contract bounces, a text gets misread, her ex returns. On the last night she almost signs anyway, checks her chart on Astrolas instead, moves the date past Nov 13, catches a trap clause on the reread and signs on her terms on Nov 14.",
+ "beats": [
+  {
+   "ten": "Hook",
+   "mo_ta": "Cold open: a soaked hero with one shot — the stakes in 2 seconds",
+   "cam_xuc": 2
+  },
+  {
+   "ten": "Inciting",
+   "mo_ta": "The retrograde hits and breaks the plan",
+   "cam_xuc": -2
+  },
+  {
+   "ten": "Escalation",
+   "mo_ta": "Problems stack, Venus joins, everything falls apart",
+   "cam_xuc": -4
+  },
+  {
+   "ten": "Climax",
+   "mo_ta": "Lowest point: the last night, about to sign anyway",
+   "cam_xuc": -5
+  },
+  {
+   "ten": "Turn",
+   "mo_ta": "She checks her chart: real proof of the double retrograde",
+   "cam_xuc": 2
+  },
+  {
+   "ten": "Resolution",
+   "mo_ta": "She moves the date, catches the trap, signs and wins",
+   "cam_xuc": 5
+  },
+  {
+   "ten": "CTA",
+   "mo_ta": "Not luck — timing. Check your own dates",
+   "cam_xuc": 5
+  }
+ ],
+ "phanCanh": [
+  {
+   "ten": "One shot",
+   "beat": "Hook",
+   "muc_tieu": "Show Maya and what she stands to win: 3 years of work, signing day Nov 2",
+   "xung_dot": "Time — one deal, one date, no second chance",
+   "an_y": "The storm is already coming",
+   "nhip": "fast",
+   "cam_xuc_dau": 2,
+   "cam_xuc_cuoi": 3
+  },
+  {
+   "ten": "Mercury turns back",
+   "beat": "Inciting",
+   "muc_tieu": "Show the cause: Oct 24 Mercury stations retrograde, and the first blow lands",
+   "xung_dot": "Her plan vs. the sky — the contract email bounces",
+   "an_y": "Communication and contracts are Mercury's domain",
+   "nhip": "very fast",
+   "cam_xuc_dau": -1,
+   "cam_xuc_cuoi": -2
+  },
+  {
+   "ten": "Everything falls apart",
+   "beat": "Escalation",
+   "muc_tieu": "Stack the damage: misread text, Venus retrograde brings the ex back, she runs",
+   "xung_dot": "Every relationship she relies on cracks at once",
+   "an_y": "Double retrograde = money and love hit together",
+   "nhip": "very fast",
+   "cam_xuc_dau": -3,
+   "cam_xuc_cuoi": -4
+  },
+  {
+   "ten": "The last night",
+   "beat": "Climax",
+   "muc_tieu": "The lowest point: rain, 1% battery, pen over the contract",
+   "xung_dot": "Sign blind now, or lose the deal",
+   "an_y": "Rushing is exactly the trap",
+   "nhip": "slow-fast",
+   "cam_xuc_dau": -4,
+   "cam_xuc_cuoi": -5
+  },
+  {
+   "ten": "She checks her chart",
+   "beat": "Turn",
+   "muc_tieu": "The turning decision: she opens Astrolas and sees the real proof",
+   "xung_dot": "Her panic vs. the data on the screen",
+   "an_y": "The tool reveals both planets retrograde in her 8th house",
+   "nhip": "medium",
+   "cam_xuc_dau": -2,
+   "cam_xuc_cuoi": 3
+  },
+  {
+   "ten": "Timing wins",
+   "beat": "Resolution",
+   "muc_tieu": "Payoff: move the date past Nov 13, catch the trap clause, sign on Nov 14",
+   "xung_dot": "Old risk vs. new clarity",
+   "an_y": "Knowing the timing changed the outcome",
+   "nhip": "fast",
+   "cam_xuc_dau": 3,
+   "cam_xuc_cuoi": 5
+  },
+  {
+   "ten": "Not luck",
+   "beat": "CTA",
+   "muc_tieu": "Close on the hero and turn it to the viewer: your dates are Oct 24 – Nov 13",
+   "xung_dot": "The viewer's own upcoming retrograde",
+   "an_y": "Check before it hits you",
+   "nhip": "medium",
+   "cam_xuc_dau": 4,
+   "cam_xuc_cuoi": 5
   }
  ]
 }

@@ -10,6 +10,8 @@ import type { Canh, KieuChu, LoaiPhim, Lop, NhanVat, PhanCanh, Tap, ThongTinQc, 
 import { mauAss, gioAss, lopAss, lopAnhLoc, lopHieuUngLoc } from './lop';
 import { chuyenCanhGiua } from './dien-anh';
 import { giayPhat, locNhanh, doanChuMan, coMau, KIEU_CHU_MAC_DINH } from './kieu';
+import { keHoachToc, bieuThucToc } from './toc-do';
+import { lichSfx } from './sfx';
 export { doanChuMan, chuManHien } from './kieu';
 import { dongThoai, dungTiengClip, lichGiong } from './am-thanh';
 
@@ -151,6 +153,8 @@ export function keHoachXuat(o: {
   nhanh?: string | null; nguyenLieu: NguyenLieu[]; font: string; thuMuc: string; ra: string;
   /** thư mục font cho libass (assets/fonts); chiThuTu = chỉ xuất các shot này (xem thử từng shot, không end card). */
   fontsDir?: string; chiThuTu?: number[];
+  /** thư mục tiếng hiệu ứng (public/sfx) — có thì trộn tiếng thật cho key âm thanh của shot (sfx.ts). */
+  sfxDir?: string;
   /** cho xuất khi phim quảng cáo có lời dẫn mà chưa có nhạc nền (bản nháp để nghe thử) — mặc định chặn. */
   choThieuNhac?: boolean;
 }): KeHoachXuat {
@@ -175,6 +179,8 @@ export function keHoachXuat(o: {
     if (chiSo.has(k)) return chiSo.get(k)!;
     dauVao.push(...truoc, '-i', nl.get(url)!.duong); chiSo.set(k, soDauVao); return soDauVao++;
   };
+  /** Tệp cục bộ không qua kho nguyên liệu (tiếng hiệu ứng trong repo). */
+  const themTep = (duong: string): number => { const k = `tep ${duong}`; if (chiSo.has(k)) return chiSo.get(k)!; dauVao.push('-i', duong); chiSo.set(k, soDauVao); return soDauVao++; };
   const tep: TepChu[] = [];
   const tepChu = (ten: string, noiDung: string) => { const duong = `${o.thuMuc}/${ten}.txt`; tep.push({ duong, noiDung }); return duong; };
   const fsMan = Math.round(W * (doc ? 0.062 : 0.04));
@@ -229,6 +235,7 @@ export function keHoachXuat(o: {
     if (x) chuyenSau.set(c.id, { xfade: x.xfade, d: x.d });
   });
   const mocSeg: number[] = []; const xSeg: ({ xfade: string; d: number } | null)[] = [];
+  const amShot: { am?: string[]; tu: number; phat: number }[] = [];
   ds.forEach((c, i) => {
     const phat = giayPhat(c);
     const cs = chuyenSau.get(c.id) ?? null; const dai = phat + (cs?.d ?? 0);
@@ -242,16 +249,25 @@ export function keHoachXuat(o: {
     // Bỏ tối đa 0,5s đầu khi clip còn dư so với giây phát — cảnh mở ra giữa chuyển động như QC thật.
     const daiClip = laVideo ? nl.get(nguon)?.dai ?? null : null;
     const boDau = laVideo && daiClip ? Math.max(0, Math.min(0.5, daiClip - phat - 0.02)) : 0;
-    const cuoiThat = laVideo ? Math.min(daiClip ?? boDau + dai, boDau + dai) : 0; const dem = laVideo ? Math.max(0, boDau + dai - cuoiThat) : 0;
-    const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(cuoiThat)},setpts=PTS-STARTPTS,${khung}${dem > 0.01 ? `,tpad=stop_mode=clone:stop_duration=${so(dem)}` : ''}` : `[${k}:v]${khungTinh(i)},trim=0:${so(dai)},setpts=PTS-STARTPTS${dayMay(dai)}`];
+    // Đổi tốc (ky_thuat.toc_do, toc-do.ts): lấy đủ giây nguồn cho kế hoạch tốc rồi dựng lại thời gian bằng setpts từng đoạn.
+    const toc = laVideo ? keHoachToc(c.ky_thuat?.toc_do, phat, dai, daiClip != null ? daiClip - boDau : 8) : null;
+    const canNguon = toc ? toc.canVao : dai;
+    const cuoiThat = laVideo ? Math.min(daiClip ?? boDau + canNguon, boDau + canNguon) : 0; const dem = laVideo ? Math.max(0, boDau + canNguon - cuoiThat) : 0;
+    const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(cuoiThat)},setpts=PTS-STARTPTS,${toc ? `setpts='(${bieuThucToc(toc)})/TB',` : ''}${khung}${dem > 0.01 ? `,tpad=stop_mode=clone:stop_duration=${so(dem)}` : ''}` : `[${k}:v]${khungTinh(i)},trim=0:${so(dai)},setpts=PTS-STARTPTS${dayMay(dai)}`];
     for (const d of doanChuMan(c.chu_man, phat)) cauMan.push({ tu: t + d.tu, den: t + d.den, dong: d.dong, kieu: c.kieu_chu });
     if (logoUrl) { const kl = them(logoUrl, ['-loop', '1', '-framerate', '30', '-t', so(dai)]); loc.push(`[${kl}:v]scale=-1:${Math.round(H * 0.06)},format=rgba[lg${i}]`); ve[ve.length - 1] += `[vv${i}];[vv${i}][lg${i}]overlay=W-w-${Math.round(W * 0.03)}:${Math.round(H * 0.03)}:shortest=1`; }
     const dungClip = dungTiengClip(c, o.nhanVat);
     if (c.am_thanh_url && nl.has(c.am_thanh_url)) { const ka = them(c.am_thanh_url); themAm(`[${ka}:a]atrim=0:${so(phat)},asetpts=PTS-STARTPTS,volume=0.8,adelay=${Math.round(t * 1000)}:all=1`); }
-    if (laVideo && dungClip && nl.get(nguon)?.coAm) themAm(`[${k}:a]atrim=${so(boDau)}:${so(boDau + phat)},asetpts=PTS-STARTPTS,adelay=${Math.round(t * 1000)}:all=1`);
+    amShot.push({ am: c.ky_thuat?.am_thanh, tu: t, phat });
+    if (laVideo && dungClip && !toc && nl.get(nguon)?.coAm) themAm(`[${k}:a]atrim=${so(boDau)}:${so(boDau + phat)},asetpts=PTS-STARTPTS,adelay=${Math.round(t * 1000)}:all=1`);
     loc.push(`${ve.join(',')},settb=AVTB[v${i}]`); nhanhVideo.push(`[v${i}]`); mocSeg.push(t); xSeg.push(cs);
     t += phat;
   });
+  // Tiếng hiệu ứng thật (sfx.ts): cùng lịch với timeline xem trước; vào lớp "còn lại" (không bị nén dưới giọng như nhạc).
+  if (o.sfxDir) for (const m of lichSfx(amShot)) {
+    const k = themTep(`${o.sfxDir}/${m.key}.mp3`);
+    themAm(`[${k}:a]${m.lap ? 'aloop=loop=-1:size=2147483647,' : ''}atrim=${so(m.bo)}:${so(m.bo + m.dai)},asetpts=PTS-STARTPTS,${m.lap ? `afade=t=in:d=0.15,afade=t=out:st=${so(Math.max(0, m.dai - 0.25))}:d=0.25,` : ''}volume=${m.db}dB,adelay=${Math.round(m.tu * 1000)}:all=1`);
+  }
   // Nhạc: theo phân cảnh (khối shot liền nhau cùng phan_doan) nếu có, không thì một bài; lặp khi ngắn, nhỏ tiếng, fade hai đầu.
   const khoi: { ten: string; tu: number; dai: number }[] = [];
   { let tt = 0; for (const c of ds) { const l = khoi[khoi.length - 1]; const g = giayPhat(c); if (l && l.ten === c.phan_doan) l.dai += g; else khoi.push({ ten: c.phan_doan, tu: tt, dai: g }); tt += g; } }

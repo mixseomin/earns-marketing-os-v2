@@ -4,7 +4,7 @@
 // nên ảnh + clip ra đúng cỡ cảnh, ánh sáng, chuyển động. File thuần dữ liệu — client lẫn server import được.
 
 export type TheLoai = 'hoat_hinh' | 'phieu_luu' | 'kinh_di' | 'hanh_dong' | 'tinh_cam' | 'hai' | 'chinh_kich' | 'vien_tuong' | 'tai_lieu' | 'qc_ugc' | 'qc_cao_cap';
-export type NhomKyThuat = 'co_canh' | 'goc' | 'chuyen_dong' | 'ong_kinh' | 'anh_sang' | 'mau' | 'chuyen_canh' | 'am_thanh' | 'nhac';
+export type NhomKyThuat = 'co_canh' | 'goc' | 'chuyen_dong' | 'toc_do' | 'ong_kinh' | 'anh_sang' | 'mau' | 'chuyen_canh' | 'am_thanh' | 'nhac';
 /** xfade/nhom_cc/giay_cc: riêng nhóm chuyển cảnh — kiểu ffmpeg xfade mà BẢN XUẤT dựng thật giữa shot này và shot sau, nhóm kiểu CapCut, độ dài (giây). */
 export type KyThuat = { key: string; nhom: NhomKyThuat; ten: string; mo_ta: string; prompt: string; the_loai: TheLoai[] | 'tat_ca'; xfade?: string; nhom_cc?: NhomChuyenCanh; giay_cc?: number };
 export type NhomChuyenCanh = 'cat' | 'co_ban' | 'truot' | 'quet' | 'hinh' | 'dong';
@@ -31,7 +31,7 @@ export const THE_LOAI: { key: TheLoai; ten: string; mo_ta: string }[] = [
 ];
 
 export const NHOM_KY_THUAT: { key: NhomKyThuat; ten: string; icon: string }[] = [
-  { key: 'co_canh', ten: 'Cỡ cảnh', icon: '🔲' }, { key: 'goc', ten: 'Góc máy', icon: '📐' }, { key: 'chuyen_dong', ten: 'Chuyển động máy', icon: '🎥' },
+  { key: 'co_canh', ten: 'Cỡ cảnh', icon: '🔲' }, { key: 'goc', ten: 'Góc máy', icon: '📐' }, { key: 'chuyen_dong', ten: 'Chuyển động máy', icon: '🎥' }, { key: 'toc_do', ten: 'Tốc độ (dựng)', icon: '⏩' },
   { key: 'ong_kinh', ten: 'Ống kính', icon: '🔭' }, { key: 'anh_sang', ten: 'Ánh sáng', icon: '💡' }, { key: 'mau', ten: 'Màu', icon: '🎨' },
   { key: 'chuyen_canh', ten: 'Chuyển cảnh', icon: '✂' }, { key: 'am_thanh', ten: 'Âm thanh', icon: '🔊' }, { key: 'nhac', ten: 'Nhạc', icon: '🎵' },
 ];
@@ -95,6 +95,13 @@ export const THU_VIEN: KyThuat[] = [
   k('chuyen_dong', 'xuyen_vat', 'Xuyên vật (fly-through)', 'Máy lao xuyên qua màn hình, ổ khoá, kẽ hở sang thế giới khác — nối hai cảnh không cần cắt.', 'camera pushes forward and flies straight through the object into the scene beyond, seamless fly-through', ['hanh_dong', 'vien_tuong', 'qc_cao_cap', 'qc_ugc']),
   k('chuyen_dong', 'hyperlapse', 'Hyperlapse', 'Máy di chuyển trong khi thời gian tua nhanh — đèn phố kéo vệt, mây chạy: thời gian dồn dập.', 'hyperlapse, the camera moves forward while time races, light trails streaking and clouds rushing', ['hanh_dong', 'tai_lieu', 'qc_cao_cap']),
   k('chuyen_dong', 'xoay_truc', 'Xoay trục (barrel roll)', 'Máy lăn tròn quanh trục ống kính khi lao tới — mất phương hướng, chuyển cảnh xoáy.', 'camera barrel roll, rotating around the lens axis while pushing forward', ['hanh_dong', 'vien_tuong']),
+  // ── Tốc độ (dựng) — bản xuất đổi tốc thật bằng ffmpeg (toc-do.ts), không phải lời nhắc cho model; ảnh tĩnh không đổi tốc.
+  k('toc_do', 'cham', 'Chậm 0,5×', 'Cả shot chậm một nửa — khoảnh khắc đẹp, cảm xúc.', '', T),
+  k('toc_do', 'rat_cham', 'Rất chậm 0,3×', 'Gần như đứng — mảnh vỡ, giọt nước, cú va.', '', ['hanh_dong', 'qc_cao_cap', 'vien_tuong']),
+  k('toc_do', 'nhanh', 'Nhanh 1,6×', 'Dồn nhịp, hài, chạy trốn.', '', ['hanh_dong', 'hai', 'qc_ugc']),
+  k('toc_do', 'ramp', 'Ramp: nhanh → chậm → vọt', 'Speed ramp kiểu trailer: chậm hẳn ở khoảnh khắc đỉnh rồi vọt lại.', '', ['hanh_dong', 'qc_ugc', 'qc_cao_cap']),
+  k('toc_do', 'ramp_treo', 'Ramp treo trước cắt', 'Nhanh rồi treo chậm tới điểm cắt — đặt trước cắt sốc / tiếng đập.', '', ['hanh_dong', 'kinh_di']),
+  k('toc_do', 'ramp_bung', 'Ramp bung', 'Mở bằng chậm hẳn rồi bung tốc — vào shot hành động.', '', ['hanh_dong', 'qc_ugc']),
   // ── Ống kính
   k('ong_kinh', 'probe', 'Probe macro (Laowa)', 'Ống thăm dò sát đất/sát vật, lướt giữa các chi tiết — đồ vật hoá thành công trình khổng lồ.', 'probe macro lens gliding inches above the surface, tiny objects look monumental', ['hanh_dong', 'qc_cao_cap', 'qc_ugc', 'vien_tuong']),
   k('ong_kinh', 'rong', 'Góc rộng 24mm', 'Không gian giãn, gần mà méo nhẹ — phiêu lưu, hài.', '24mm wide-angle lens', T),
@@ -171,6 +178,11 @@ export const THU_VIEN: KyThuat[] = [
   k('am_thanh', 'dap_doa', 'Âm doạ (sting)', 'Một tiếng đánh mạnh lúc doạ.', 'sharp horror sting', ['kinh_di']),
   k('am_thanh', 'cuon_len', 'Âm cuộn lên (riser)', 'Âm dâng dần dẫn vào cao trào hay tiết lộ.', 'rising whoosh riser', ['hanh_dong', 'vien_tuong', 'qc_cao_cap', 'qc_ugc', 'kinh_di']),
   k('am_thanh', 'vut', 'Vút (whoosh)', 'Đi kèm chuyển động nhanh, chuyển cảnh.', 'whoosh swoosh', ['hanh_dong', 'hai', 'qc_ugc', 'qc_cao_cap']),
+  // Có tiếng THẬT trong bản xuất (public/sfx, bảng sfx.ts): vut, dap_doa, cuon_len, tim_dap, mua + bốn tiếng dưới — đặt vào đầu shot (điểm cắt).
+  k('am_thanh', 'dap', 'Đập mạnh (impact)', 'Trống trầm "bùm" đúng điểm cắt — cắt sốc, lộ chữ, cú đánh. Có tiếng thật trong bản xuất.', 'deep cinematic impact boom', ['hanh_dong', 'kinh_di', 'qc_ugc', 'qc_cao_cap']),
+  k('am_thanh', 'vo_kinh', 'Vỡ kính', 'Kính vỡ, mảnh leng keng — đổ vỡ, sốc. Có tiếng thật trong bản xuất.', 'glass shattering, shards tinkling', ['hanh_dong', 'kinh_di', 'chinh_kich']),
+  k('am_thanh', 'chop_dien', 'Chập điện', 'Tia lửa điện xẹt — máy hỏng, glitch. Có tiếng thật trong bản xuất.', 'electric spark zap and buzz', ['hanh_dong', 'vien_tuong', 'kinh_di']),
+  k('am_thanh', 'sam', 'Sấm', 'Sấm rền — bão, điềm xấu, cao trào. Có tiếng thật trong bản xuất.', 'rolling thunder crack', ['hanh_dong', 'kinh_di', 'chinh_kich', 'phieu_luu']),
   k('am_thanh', 'cot_ket', 'Cót két', 'Cửa, sàn gỗ cót két.', 'creaking wooden door and floorboards', ['kinh_di', 'hai']),
   // ── Nhạc
   k('nhac', 'piano', 'Piano ấm', 'Vài nốt piano mộc — tình cảm, hồi tưởng.', 'gentle warm solo piano', ['tinh_cam', 'chinh_kich', 'hoat_hinh', 'qc_ugc']),

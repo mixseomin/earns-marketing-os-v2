@@ -86,6 +86,7 @@ async function doKhoangIm(duong: string, giay: number, thuMuc: string): Promise<
 }
 
 /** Thư mục font chữ màn — MỘT chỗ cho cả bản xuất (libass) lẫn trang xem trước (@font-face /fonts/…): apps/xuong-video/public/fonts (Montserrat, Playfair Display — đều OFL). */
+const SFX_DIR = [`${process.cwd()}/public/sfx`, `${process.cwd()}/apps/xuong-video/public/sfx`, '/opt/earns-marketing-os-v2/apps/xuong-video/public/sfx'].find((d) => existsSync(d));
 const FONTS_DIR = [`${process.cwd()}/public/fonts`, `${process.cwd()}/apps/xuong-video/public/fonts`, '/opt/earns-marketing-os-v2/apps/xuong-video/public/fonts'].find((d) => existsSync(d));
 
 export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'nhac_url' | 'nhac_phan_canh'> & { lop?: Lop[]; phan_canh?: Pick<PhanCanh, 'ten' | 'beat'>[] }; qc?: ThongTinQc | null; nhanh?: string | null; chiThuTu?: number[]; choThieuNhac?: boolean }): Promise<KqXuat> {
@@ -110,7 +111,7 @@ export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; canh: Canh[]; 
       }));
     }
     const ra = `${thuMuc}/ra.mp4`;
-    const kh = keHoachXuat({ ...o, nguyenLieu, font, thuMuc, ra, fontsDir: FONTS_DIR });
+    const kh = keHoachXuat({ ...o, nguyenLieu, font, thuMuc, ra, fontsDir: FONTS_DIR, sfxDir: SFX_DIR });
     if (kh.loi) return { ok: false, loi: kh.loi };
     if (!kh.args.length) return { ok: false, loi: `không shot nào có clip/keyframe tải được${kh.canhThieu.length ? ` (${kh.canhThieu.join(', ')})` : ''}` };
     await Promise.all(kh.tep.map((t) => writeFile(t.duong, t.noiDung, 'utf8')));

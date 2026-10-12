@@ -251,3 +251,17 @@ console.log('xuat.test: mẫu ok');
   assert.strictEqual(keHoachXuat({ ...chung, tap: { ...tap, phan_canh: [{ ten: 'Not luck', beat: 'Resolution' }] } }).giay, kh.giay);
   console.log('xuat.test: kết riêng không end card ok');
 }
+// Đổi tốc + tiếng hiệu ứng thật (12/10/2026): shot 1 ramp (đủ nguồn) + tiếng đập; không có sfxDir thì không trộn.
+{
+  const ramp = canh.map((c) => (c.thu_tu === 1 ? { ...c, ky_thuat: { toc_do: 'ramp', am_thanh: ['dap', 'pho'] } } : c));
+  const chung = { loai: 'quang_cao' as const, tiLe: '9:16', canh: ramp, nhanVat: nv, tap, qc: { ten: 'Bra', uu_dai: '$24.99', link: '', diem_noi_bat: '', doi_tuong: '', thi_truong: '', anh: [] }, nhanh: 'A', nguyenLieu, font: '/f/DejaVuSans-Bold.ttf', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' };
+  const k3 = keHoachXuat({ ...chung, sfxDir: '/s' });
+  const l3 = k3.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
+  // ramp 2s: cần 0,6×1,5 + 0,8×0,3 + 0,6×1,6 = 2,1s nguồn; clip 4s bỏ 0,5s đầu → trim 0,5:2,6 rồi setpts từng đoạn
+  assert.ok(l3.includes("trim=0.5:2.6,setpts=PTS-STARTPTS,setpts='(if(lt(T,0.9),"), l3.slice(0, 400));
+  assert.ok(k3.args.join(' ').includes('-i /s/dap.mp3') && !k3.args.join(' ').includes('pho.mp3'), 'chỉ key có tệp mới trộn');
+  assert.ok(/atrim=0:1\.6,asetpts=PTS-STARTPTS,volume=-6dB,adelay=0:all=1/.test(l3));
+  assert.strictEqual(k3.giay, kh.giay, 'đổi tốc không đổi tổng giờ');
+  assert.ok(!keHoachXuat(chung).args.join(' ').includes('dap.mp3'));
+  console.log('xuat.test: đổi tốc + tiếng hiệu ứng ok');
+}

@@ -11,6 +11,8 @@ import { ChuManXem } from './chu-man';
 import { useEffect, useMemo, useRef, useState, type PointerEvent as PE, type ReactNode } from 'react';
 import { chuManHien, giayPhat, tenCamXuc, camXucMucTieu, lechCamXuc, type Canh, type Lop, type ThongTinQc, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat } from '@/lib/xuong-video/dien-anh';
+import { lichSfx, urlSfx } from '@/lib/xuong-video/sfx';
+import { keHoachToc, nguonTai } from '@/lib/xuong-video/toc-do';
 import { NutChuyenCanh } from './chuyen-canh-ui';
 import { dongThoai, dungTiengClip, tenNoi, cungTen, timNv, lichGiong } from '@/lib/xuong-video/am-thanh';
 import { BangSinh, type YeuCauBang } from './bang-sinh';
@@ -79,6 +81,11 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const idx = Math.max(0, batDau.reduce((k, s, i) => (s <= t + 1e-6 ? i : k), 0));
   const c = canh[idx];
   const tTrong = c ? t - batDau[idx]! : 0;
+  // Đổi tốc + tiếng hiệu ứng thật — CÙNG kế hoạch với bản xuất (toc-do.ts, sfx.ts).
+  const [daiVid, setDaiVid] = useState(0);
+  const tocNay = useMemo(() => (c && (c.video_cuoi_url || c.video_url) ? keHoachToc(c.ky_thuat?.toc_do, dur(c), dur(c), daiVid || 8) : null), [c, daiVid, giayTam]); // eslint-disable-line react-hooks/exhaustive-deps
+  const vtVid = tocNay ? nguonTai(tocNay, tTrong).vao : tTrong;
+  const lichHu = useMemo(() => lichSfx(canh.map((cc, i) => ({ am: cc.ky_thuat?.am_thanh, tu: batDau[i]!, phat: dur(cc) }))), [canh, batDau]); // eslint-disable-line react-hooks/exhaustive-deps
   // Khối phân cảnh: shot liền nhau cùng phan_doan. Dùng cho track Phân cảnh, track Nhạc (nhạc theo phân cảnh) và phát nhạc đúng đoạn.
   const khoiPc: { ten: string; tu: number; den: number }[] = [];
   canh.forEach((cc, i) => { const l = khoiPc[khoiPc.length - 1]; if (l && l.ten === cc.phan_doan) l.den = i; else khoiPc.push({ ten: cc.phan_doan, tu: i, den: i }); });
@@ -127,12 +134,35 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     if (chay) void el.play().catch(() => { /* trình duyệt chặn tự phát khi chưa có tương tác — người dùng bấm ▶ là chạy */ }); else el.pause();
   };
   useEffect(() => {
-    dongBo(vidRef.current, tTrong, true);
+    dongBo(vidRef.current, vtVid, true);
     if (c && vidRef.current && tTrong >= dur(c)) vidRef.current.pause();   // hết phần phát (phat_s) thì dừng dù clip còn
     dongBo(sfxRef.current, tTrong, true);
     dongBo(nhacRef.current, nhacPc ? tNhacPc : t, true);
     dongBo(nhacPcRef.current, tNhacPc, true);
   }, [idx, chay, tua, nhacPc]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Tốc clip theo đoạn đang chạy; lệch quá 0,3s so với kế hoạch (vừa sang đoạn khác) thì đặt lại vị trí.
+  useEffect(() => {
+    const el = vidRef.current; if (!el) return;
+    const r = tocNay ? nguonTai(tocNay, tTrong).toc : 1;
+    if (Math.abs(el.playbackRate - r) > 0.01) el.playbackRate = r;
+    if (tocNay && chay && Math.abs(el.currentTime - vtVid) > 0.3) el.currentTime = vtVid;
+  }, [t, tocNay, chay]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Tiếng hiệu ứng thật: mỗi mục lịch một Audio, phát khi t nằm trong khoảng của nó.
+  const hiRef = useRef(new Map<string, HTMLAudioElement>());
+  useEffect(() => {
+    const dang = new Set<string>();
+    for (const m of lichHu) {
+      const k = `${m.key}@${m.tu}`; const trong = chay && !tat.sfx && t >= m.tu && t < m.tu + m.dai;
+      let a = hiRef.current.get(k);
+      if (!trong) { if (a && !a.paused) a.pause(); continue; }
+      dang.add(k);
+      if (!a) { a = new Audio(urlSfx(m.key)); a.preload = 'auto'; hiRef.current.set(k, a); }
+      a.loop = m.lap; a.volume = Math.min(1, Math.pow(10, m.db / 20) * 1.6);
+      if (a.paused) { a.currentTime = m.bo + (t - m.tu); void a.play().catch(() => {}); }
+    }
+    for (const [k, a] of hiRef.current) if (!dang.has(k) && !a.paused) a.pause();
+  }, [t, chay, lichHu, tat.sfx]);
+  useEffect(() => () => { for (const a of hiRef.current.values()) a.pause(); }, []);
   useEffect(() => {
     const el = thoaiRef.current; if (!el || !giongNay) return;
     el.playbackRate = giongNay.nhanh;   // trình duyệt giữ cao độ khi đổi tốc độ (preservesPitch mặc định bật) — như atempo của bản xuất
@@ -343,7 +373,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             {/* Hiệu ứng khung + chuyển cảnh + lớp phủ hiệu ứng: MỘT component cho timeline và màn toàn màn hình (KhungHieuUng, lop-ui.tsx). */}
             <KhungHieuUng lop={lop} t={t} rong={rongXem} tTrong={tTrong}
               chuyen={idx > 0 && c ? { anh: canh[idx - 1]!.keyframe_url, key: canh[idx - 1]!.ky_thuat?.chuyen_canh, giay: canh[idx - 1]!.ky_thuat?.giay_cc, phatTruoc: dur(canh[idx - 1]!), phatNay: dur(c) } : undefined}>
-              {c && (vid ? <video ref={vidRef} key={vid} src={vid} playsInline preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              {c && (vid ? <video ref={vidRef} key={vid} src={vid} playsInline preload="auto" onLoadedMetadata={(e) => setDaiVid(e.currentTarget.duration || 0)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : c.keyframe_url ? <img src={c.keyframe_url} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb }} />
                 : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} chưa có hình</div>)}
               <LopXem lop={lop} t={t} rong={rongXem} cao={caoXem} chonIds={chonLops} onChon={bamLop} onDoi={doiLop} dangChay={chay} />
@@ -511,11 +541,14 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             );
           })}
 
-          {track('🔊 Âm thanh', 'Hiệu ứng / âm nền từng cảnh', canh.map((cc, i) => {
+          {track('🔊 Âm thanh', 'Hiệu ứng / âm nền từng cảnh · vạch cam đậm = tiếng hiệu ứng thật của kỹ thuật âm thanh (đập, vút, dâng…) — bản xuất trộn đúng giờ này', [...lichHu.map((m, j) => (
+            <div key={`hu${j}`} data-goi-y={`${kyThuat(m.key, 'am_thanh')?.ten ?? m.key} · ${m.tu.toFixed(2)}s → ${(m.tu + m.dai).toFixed(2)}s${m.lap ? ' · lặp' : ''}`}
+              style={{ position: 'absolute', left: m.tu * pps, width: Math.max(3, m.dai * pps), bottom: 1, height: 7, borderRadius: 2, background: '#ea580c', opacity: 0.9, zIndex: 2, pointerEvents: 'auto' }} />
+          )), ...canh.map((cc, i) => {
             if (!cc.am_thanh.trim()) return null;
             return khoiAm(batDau[i]! * pps, dur(cc) * pps, !!cc.am_thanh_url, '#fb923c', cc.am_thanh, `${cc.am_thanh}\n${cc.am_thanh_url ? 'đã có file' : 'chưa sinh'}`, cc.id, () => { onChon(cc.id); tuaToi(batDau[i]!); },
               sinh && { loai: 'sfx', cc, giay: dur(cc), dang: cc.dang_sinh_sfx || sinh.ban(`s${cc.id}`), nghe: cc.am_thanh_url ? [cc.am_thanh_url] : [], title: `Bấm để chọn nguồn (clip / mô tả), model, mô tả, số giây rồi sinh` });
-          }), 26, nutNho(tat.sfx ? '🔇' : '🔊', tat.sfx ? 'Hiệu ứng đang tắt — bấm để bật' : 'Tắt tiếng hiệu ứng', !!tat.sfx, () => batTat('sfx')))}
+          })], 26, nutNho(tat.sfx ? '🔇' : '🔊', tat.sfx ? 'Hiệu ứng đang tắt — bấm để bật' : 'Tắt tiếng hiệu ứng', !!tat.sfx, () => batTat('sfx')))}
 
           {/* Cùng luật bản xuất (urlCanXuat): có nhạc phân cảnh nào thì vẽ theo phân cảnh; không thì một khối nhạc cả tập — trước đây cứ có tên phân cảnh
               là vẽ "chưa có nhạc" từng khối dù tập đã có bài cả tập (phim #5, 10/10/2026). */}

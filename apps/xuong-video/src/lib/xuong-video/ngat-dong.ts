@@ -4,7 +4,12 @@
 //      (a, the, of, to, your…) tránh đứng cuối dòng (phạt mềm) — kiểu dàn chữ của trailer/QC.
 //   2. Số dòng = ít nhất có thể với bề rộng cho phép; rồi chia CÂN (quy hoạch động, phạt bình phương phần thiếu) — chữ căn giữa nhìn
 //      thành khối, không có dòng cụt một chữ.
+//   3. Bề rộng đo theo FONT THẬT (be-rong-font.ts, đọc từ TTF — 12/10/2026 "SIGNED. HER TERMS." Playfair Black chữ hoa tràn khung: ước
+//      0,4 × cỡ cho mọi ký tự hụt gần gấp đôi với serif đậm viết hoa). Một cụm vẫn rộng hơn khung → cả câu thu nhỏ cho vừa (coVua).
+//   4. Chữ trên hình không để dấu chấm cuối câu (anh 12/10/2026) — boChamCuoi, áp ở chỗ đọc chữ màn/lớp chữ/end card.
 // Thuần — tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/ngat-dong.test.mts
+import { BE_RONG_FONT, EM_CSS } from './be-rong-font';
+
 const DINH_TRUOC = /^([·•—–\-&|:/+=!?.,;…»)\]→]+|[A-Z℞]|[0-9]{1,2}%?)$/u;
 const DINH_SAU = new Set(['a', 'an', 'the', 'of', 'to', 'in', 'on', 'at', 'by', 'for', 'and', 'or', 'my', 'your', 'her', 'his', 'its', 'our', 'their', 'is', 'no', '«', '(', '[']);
 
@@ -19,9 +24,10 @@ export function cumChu(chu: string): string[] {
 /** Phạt (đơn vị ký tự²) khi dòng kết bằng từ chức năng — tránh khi còn cách khác, nhưng không đẻ thêm dòng vì nó. */
 const PHAT_TU_CHUC_NANG = 60;
 /** Ngắt `chu` thành dòng dài tối đa `toiDa` ký tự (một cụm dài hơn toiDa thì đứng riêng một dòng). */
-export function ngatDong(chu: string, toiDa: number): string[] {
+/** `rong` = cách đo một dòng (mặc định đếm ký tự; chữ màn dùng doDong — bề rộng px theo font thật), `toiDa` cùng đơn vị. */
+export function ngatDong(chu: string, toiDa: number, rong: (s: string) => number = (s) => s.length): string[] {
   const c = cumChu(chu); if (!c.length) return [];
-  const dai = (i: number, j: number) => c.slice(i, j).join(' ').length;   // dòng gồm cụm [i, j)
+  const dai = (i: number, j: number) => rong(c.slice(i, j).join(' '));   // dòng gồm cụm [i, j)
   // số dòng tối thiểu: tham lam
   let n = 0; for (let i = 0; i < c.length;) { let j = i + 1; while (j < c.length && dai(i, j + 1) <= toiDa) j++; n++; i = j; }
   if (n === 1) return [c.join(' ')];
@@ -42,6 +48,25 @@ export function ngatDong(chu: string, toiDa: number): string[] {
   for (let k = n; k > 0; k--) { const j = tach[k]![i]!; out.push(c.slice(i, j).join(' ')); i = j; }
   return out;
 }
-/** Số ký tự một dòng chữ màn chứa được: bề rộng dùng 92% khung, một ký tự ≈ 0,4 × cỡ chữ × độ rộng chữ (đo 10/10/2026 trên libass).
- *  Bản xuất (W = 1080/1920) và ô xem trước (W = bề rộng ô) cùng tỉ lệ → cùng số ký tự → cùng chỗ xuống dòng. */
-export const kyTuMoiDong = (W: number, co: number, ngang = 100): number => Math.max(8, Math.floor((W * 0.92) / (W * co * 0.4 * (ngang / 100))));
+/** Bề rộng chuỗi theo phần nghìn cỡ chữ ASS của font (ký tự có dấu lạ → ký tự gốc bỏ dấu; không biết → 0,62). */
+export function rongChu(font: string, s: string): number {
+  const b = BE_RONG_FONT[font] ?? BE_RONG_FONT['DejaVu Sans']!;
+  let w = 0; for (const ch of s) w += b[ch] ?? b[ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '')] ?? 620;
+  return w / 1000;
+}
+/** Thước đo một dòng chữ màn khung rộng W: bề rộng px theo font thật × cỡ × độ rộng chữ, và bề rộng tối đa (90% khung trừ viền hai bên).
+ *  Bản xuất (W = 1080) và ô xem trước (W = bề rộng ô) cùng tỉ lệ → cùng chỗ xuống dòng. */
+export function doDong(W: number, k: { font: string; co: number; ngang: number; vien_day: number }): { toiDa: number; rong: (s: string) => number } {
+  const fs = W * k.co;
+  return { toiDa: W * 0.9 - 2 * fs * k.vien_day, rong: (s) => rongChu(k.font, s) * fs * (k.ngang / 100) };
+}
+/** Ngắt dòng chữ màn + hệ số thu nhỏ (≤1) khi một dòng vẫn rộng hơn khung (từ quá dài) — bản xuất và xem trước gọi chung. */
+export function dongChuMan(chu: string, W: number, k: Parameters<typeof doDong>[1]): { dong: string[]; co: number } {
+  const d = doDong(W, k); const dong = ngatDong(chu, d.toiDa, d.rong);
+  const max = Math.max(0, ...dong.map(d.rong));
+  return { dong, co: max > d.toiDa ? d.toiDa / max : 1 };
+}
+/** CSS font-size = cỡ ASS × tỉ lệ này (trình duyệt tính cỡ theo em, libass theo winAscent+winDescent) — không có thì ô xem to hơn MP4. */
+export const emCss = (font: string): number => EM_CSS[font] ?? EM_CSS['DejaVu Sans'] ?? 1;
+/** Bỏ dấu chấm cuối câu của chữ trên hình (giữ "…", "?", "!" và chấm giữa câu/tên miền). */
+export const boChamCuoi = (s: string): string => s.replace(/(?<![.\s])\.\s*$/u, '').replace(/\s+$/u, '');

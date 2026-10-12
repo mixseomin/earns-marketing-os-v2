@@ -1,4 +1,5 @@
 import type { TheLoai, KyThuatShot, Beat } from './dien-anh';
+import { boChamCuoi } from './ngat-dong';
 // Xưởng video AI — kiểu dữ liệu + bảng model/giá. File THƯỜNG (không 'use server'), client lẫn server import được.
 // Giá: ai.google.dev/gemini-api/docs/pricing đọc 08/10/2026 (Veo 3.1 Lite 720p $0,05/giây; Nano Banana 2.1 1K $0,0336/ảnh).
 // Sora 2 API của OpenAI đã đóng 24/09/2026 → video chỉ còn Google; chữ dùng Claude.
@@ -358,12 +359,13 @@ export const NANG_CAP = { model: 'topaz/upscale/video/precision', label: 'Topaz 
 
 /** (dùng chung UI + bản xuất) Chữ màn theo mốc giây trong shot: dòng "@0.9 PAY 1 GET ? PANTS" mở câu mới từ giây 0,9 (QC mẫu đổi chữ ngay trong shot);
  *  dòng thường nối vào câu đang hiện (xuống dòng). Không có "@" → một câu suốt shot. */
+/** Chữ trên hình không để dấu chấm cuối câu (anh 12/10/2026) — bỏ ngay ở đây nên bản xuất, xem trước, timeline cùng thấy. */
 export function doanChuMan(chu: string, phat: number): { tu: number; den: number; dong: string[] }[] {
   const out: { tu: number; den: number; dong: string[] }[] = [];
   for (const dong of chu.split('\n')) {
     const m = dong.match(/^\s*@(\d+(?:[.,]\d+)?)s?\s+(.*)$/);
-    if (m) out.push({ tu: Math.min(phat, Number(m[1]!.replace(',', '.'))), den: phat, dong: [m[2]!.trim()] });
-    else if (dong.trim()) { if (!out.length) out.push({ tu: 0, den: phat, dong: [] }); out[out.length - 1]!.dong.push(dong.trim()); }
+    if (m) out.push({ tu: Math.min(phat, Number(m[1]!.replace(',', '.'))), den: phat, dong: [boChamCuoi(m[2]!.trim())] });
+    else if (dong.trim()) { if (!out.length) out.push({ tu: 0, den: phat, dong: [] }); out[out.length - 1]!.dong.push(boChamCuoi(dong.trim())); }
   }
   for (let i = 0; i < out.length - 1; i++) out[i]!.den = out[i + 1]!.tu;
   return out.filter((d) => d.den > d.tu && d.dong.length);

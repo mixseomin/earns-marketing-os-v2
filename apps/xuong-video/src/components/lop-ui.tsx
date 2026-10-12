@@ -7,6 +7,7 @@ import { luuLop, taiAnhLen } from '@/lib/actions';
 import { FONT_CHU, type Lop } from '@/lib/xuong-video/kieu';
 import { lopHien, hieuUngTai, lopMoi, tenLop, soKyTuGo, MAU_LOP, HIEU_UNG, nhomCua, bienDoiNhom, hieuUngKhungTai, xemChuyenCanh } from '@/lib/xuong-video/lop';
 import { chuyenCanhGiua } from '@/lib/xuong-video/dien-anh';
+import { boChamCuoi } from '@/lib/xuong-video/ngat-dong';
 import { Chon } from './chon';
 import { Menu, MucMenu, Xoa, mono } from './ui';
 
@@ -117,7 +118,7 @@ export function LopXem({ lop, t, rong, cao, chonIds, onChon, onDoi, dangChay = t
             ? <div contentEditable suppressContentEditableWarning autoFocus ref={(el) => { if (el && document.activeElement !== el) { el.focus(); document.getSelection()?.selectAllChildren(el); } }}
                 onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') (e.currentTarget as HTMLElement).blur(); }}
                 onBlur={(e) => { onDoi(l.id, { chu: e.currentTarget.innerText.replace(/\n$/, '') }); setSua(null); }} style={{ ...kieuChu, outline: 'none', minWidth: 20 }}>{l.chu}</div>
-            : <div style={kieuChu}>{dangChay && l.vao === 'go_chu' && !ngoaiGio ? (l.chu ?? '').slice(0, soKyTuGo(l, t)) : l.chu}</div>)
+            : <div style={kieuChu}>{(() => { const c = (l.chu ?? '').split('\n').map(boChamCuoi).join('\n'); return dangChay && l.vao === 'go_chu' && !ngoaiGio ? c.slice(0, soKyTuGo(l, t)) : c; })()}</div>)
           : l.loai === 'anh'
             ? (l.url ? <img src={l.url} alt="" data-khong-phong-to="" draggable={false} style={{ width: l.w * rong, display: 'block' }} /> : <div style={{ width: l.w * rong, height: l.w * rong * 0.6, border: '1px dashed #fff', color: '#fff', fontSize: 10, display: 'grid', placeItems: 'center' }}>chưa có ảnh</div>)
             : <div style={{ width: l.w * rong, height: l.h * cao, background: l.mau ?? '#6B4FD8', borderRadius: l.dang === 'tron' ? '50%' : l.dang === 'bo_goc' ? Math.min(l.w * rong, l.h * cao) * 0.22 : 0,

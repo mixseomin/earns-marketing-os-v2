@@ -11,7 +11,7 @@ import { mauAss, gioAss, lopAss, lopAnhLoc, lopHieuUngLoc } from './lop';
 import { chuyenCanhGiua } from './dien-anh';
 import { giayPhat, locNhanh, doanChuMan, coMau, assVaoChu, KIEU_CHU_MAC_DINH } from './kieu';
 import { keHoachToc, bieuThucToc } from './toc-do';
-import { ngatDong, kyTuMoiDong } from './ngat-dong';
+import { ngatDong, dongChuMan, boChamCuoi } from './ngat-dong';
 import { lichSfx } from './sfx';
 export { doanChuMan, chuManHien } from './kieu';
 import { giayGiuKet, dongThoai, dungTiengClip, lichGiong } from './am-thanh';
@@ -120,13 +120,14 @@ export function tepAss(o: { W: number; H: number; kieu?: KieuChu; viTri: ViTriCh
   const su = o.cau.map((c) => {
     const { ten, k } = style(c.kieu);
     const fs = Math.round(o.W * k.co);
-    // Bề rộng một ký tự ≈ 0,4 × cỡ ASS × độ rộng chữ (đo 10/10/2026: "PAY 1 GET 3 PANTS" Montserrat Black cỡ 0,13W, ngang 86% phủ 75% khung).
-    const wrap = kyTuMoiDong(o.W, k.co, k.ngang);
     const tamY = (n: number) => Math.round(typeof k.y === 'number' ? o.H * k.y : o.viTri === 'giua' ? o.H / 2 : o.viTri === 'duoi' ? o.H * 0.62 : o.H * 0.15 + (n * fs * 1.25) / 2);
     const nhan = (t: string) => (k.nhan ? t.replace(/[0-9?$%]+/g, (m) => `{\\c${mauAss(k.nhan)}}${m}{\\c${mauAss(k.mau)}}`) : t);
     const to = (t: string) => t.replace(/\*\*(.+?)\*\*/g, (_, m: string) => `{\\fs${Math.round(fs * 1.8)}\\i1\\c${mauAss(k.nhan || k.mau)}}${m}{\\r}`);
-    const dong = c.dong.flatMap((d) => (/\*\*/.test(d) ? [d] : ngatDong(d, wrap))).map((d) => d.replace(/[{}\\]/g, ''));
-    return `Dialogue: 100,${gioAss(c.tu)},${gioAss(c.den)},${ten},,0,0,0,,{\\an5\\pos(${Math.round(o.W / 2)},${tamY(dong.length)})${assVaoChu(k.vao, k.ngang)}}${dong.map((d) => to(nhan(d))).join('\\N')}`;
+    // Ngắt + đo theo bề rộng font thật (ngat-dong.ts › dongChuMan); dòng vẫn rộng hơn khung → cả câu thu nhỏ (\\fs) cho vừa.
+    const ng = c.dong.map((d) => (/\*\*/.test(d) ? { dong: [d], co: 1 } : dongChuMan(d, o.W, k)));
+    const dong = ng.flatMap((x) => x.dong).map((d) => d.replace(/[{}\\]/g, ''));
+    const thu = Math.min(...ng.map((x) => x.co));
+    return `Dialogue: 100,${gioAss(c.tu)},${gioAss(c.den)},${ten},,0,0,0,,{\\an5\\pos(${Math.round(o.W / 2)},${tamY(dong.length)})${thu < 1 ? `\\fs${Math.floor(fs * thu)}` : ''}${assVaoChu(k.vao, k.ngang)}}${dong.map((d) => to(nhan(d))).join('\\N')}`;
   });
   const dong = ['[Script Info]', 'ScriptType: v4.00+', `PlayResX: ${o.W}`, `PlayResY: ${o.H}`, 'ScaledBorderAndShadow: yes', 'WrapStyle: 2', '',
     '[V4+ Styles]', 'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
@@ -298,7 +299,7 @@ export function keHoachXuat(o: {
   const cuoi = ds[ds.length - 1]; const beatCuoi = o.tap.phan_canh?.find((x) => x.ten === cuoi?.phan_doan)?.beat ?? '';
   const ketRieng = ['cta', 'end_card'].includes(cuoi?.phan_doan ?? '') || /^(cta|end[\s_-]?card)$/i.test(beatCuoi.trim());
   if (o.loai === 'quang_cao' && o.qc?.uu_dai?.trim() && nhanhVideo.length && !o.chiThuTu?.length && !coMau(o.qc) && !ketRieng) {
-    const dong = [...(o.qc.ten ? ngatDong(o.qc.ten, wrapMan) : []), ' ', ...ngatDong(o.qc.uu_dai, wrapMan)];
+    const dong = [...(o.qc.ten ? ngatDong(boChamCuoi(o.qc.ten), wrapMan) : []), ' ', ...ngatDong(boChamCuoi(o.qc.uu_dai), wrapMan)];
     // Có ảnh sản phẩm (mục 0) → end card = ảnh phủ kín, tối 45%, chữ ở 1/4 dưới (kiểu "FLASH SALE · SHOP NOW" đè lên ảnh sản phẩm); không có → nền tối, chữ giữa.
     const anhEnd = o.qc.anh?.[0] && nl.has(o.qc.anh[0]) ? o.qc.anh[0] : null;
     if (anhEnd) {

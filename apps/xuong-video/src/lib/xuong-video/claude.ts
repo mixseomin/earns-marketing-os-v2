@@ -39,7 +39,7 @@ const ShotSchema = CanhSchema.extend({
   cam_xuc: z.number().int().describe(`Cảm xúc KHÁN GIẢ ở CUỐI shot theo thang: ${Object.entries(CAM_XUC_KHAN_GIA).sort((a, b) => Number(a[0]) - Number(b[0])).map(([k, v]) => `${k} ${v}`).join(', ')}`),
   ky_thuat: KyThuatSchema.describe('Ngôn ngữ điện ảnh của shot, chọn từ thư viện cho hợp thể loại + cảm xúc'),
   phat_s: z.number().describe('Số giây shot THỰC PHÁT trong bản dựng (1.5–8, bước 0.5). Clip sinh 4/6/8s rồi cắt lấy phat_s giây đầu. Quảng cáo: hook, insert, demo 1.5–3s; thoại dài hơn thì 4–6s. Tổng phat_s của cả tập phải bằng thời lượng mục tiêu ±10%.'),
-  chu_man: z.string().describe('Chữ hiện trên màn trong shot (đúng ngôn ngữ phim, ≤ 8 từ): câu hook, số liệu, tên tính năng, ưu đãi, CTA. Quảng cáo: BẮT BUỘC ở shot hook và shot CTA, nên có ở bằng chứng/ưu đãi; phim/short: rỗng trừ khi cần.'),
+  chu_man: z.string().describe('Chữ hiện trên màn trong shot (đúng ngôn ngữ phim, ≤ 8 từ, KHÔNG dấu chấm cuối câu — máy cũng tự bỏ): câu hook, số liệu, tên tính năng, ưu đãi, CTA. Quảng cáo: BẮT BUỘC ở shot hook và shot CTA, nên có ở bằng chứng/ưu đãi; phim/short: rỗng trừ khi cần.'),
 });
 const StoryboardSchema = z.object({
   tom_tat: z.string().describe('Tóm tắt nội dung tập này trong 2-3 câu, tiếng Việt, để tập sau nối mạch'),

@@ -3,6 +3,7 @@
 // Một nguồn số đo cho cả hai nơi: toạ độ chuẩn hoá (tâm x, y; bề ngang w theo rộng khung; bề cao h theo cao khung), cỡ chữ co theo rộng khung.
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/lop.test.mts
 import type { DangHinh, HieuUngKhung, Lop, LoaiLop } from './kieu';
+import { boChamCuoi } from './ngat-dong';
 
 const so = (x: number) => (Math.round(x * 1000) / 1000).toString();
 const kep = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -98,7 +99,7 @@ export function lopAss(ds: Lop[], W: number, H: number): { styles: string[]; eve
       const fs = Math.round(W * (l.co ?? 0.07)); const ten = `Lop${i}`;
       const bord = l.nen ? Math.round(fs * 0.3) : Math.max(0, Math.round(fs * (l.vien_day ?? 0.08)));
       styles.push(`Style: ${ten},${l.font || 'Montserrat Black'},${fs},${mauAss(l.mau ?? '#FFFFFF')},${mauAss(l.mau ?? '#FFFFFF')},${mauAss(l.nen || l.vien || '#000000')},&H80000000&,-1,${l.nghieng ? -1 : 0},0,0,100,100,0,0,${l.nen ? 3 : 1},${bord},0,5,0,0,0,1`);
-      const tho = (l.chu ?? '').replace(/[{}\\]/g, '');
+      const tho = (l.chu ?? '').replace(/[{}\\]/g, '').split('\n').map(boChamCuoi).join('\n');   // không chấm cuối câu (ngat-dong.ts)
       // Gõ chữ (CapCut "typewriter"): từng ký tự hiện dần theo nhịp GO_CHU_MS — mỗi ký tự trong suốt rồi \t về đậm.
       const chu = l.vao === 'go_chu' ? [...tho].map((k, j) => (k === '\n' ? '\\N' : `{\\alpha&HFF&\\t(${j * GO_CHU_MS},${j * GO_CHU_MS + 1},\\alpha${alphaAss(l.mo)})}${k}`)).join('') : tho.split('\n').join('\\N');
       events.push(`Dialogue: ${1 + i},${thoi},${ten},,0,0,0,,{\\an5${vt}${xoay}\\alpha${alphaAss(l.mo)}${fad}${pop}}${chu}`);

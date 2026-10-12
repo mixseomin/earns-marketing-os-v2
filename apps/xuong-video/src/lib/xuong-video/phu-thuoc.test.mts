@@ -4,26 +4,28 @@ import { phuThuocShot } from './phu-thuoc';
 import type { Canh, NhanVat } from './kieu';
 
 const shot = (p: Partial<Canh>): Canh => ({ id: 1, tap_id: 1, thu_tu: 1, canh: '', prompt_anh: 'a man', prompt_video: '', bien_the: [], thoai: [], loi_thoai: '', thoai_url: null,
-  keyframe_url: null, keyframe_uv: [], video_url: null, video_cuoi_url: null, trang_thai: 'nhap', phan_doan: 'S1', ...p, nhan_vat: [50, ...((p.nhan_vat as number[] | undefined) ?? [])] } as unknown as Canh);
+  keyframe_url: null, keyframe_uv: [], video_url: null, video_cuoi_url: null, trang_thai: 'nhap', phan_doan: 'S1', ky_thuat: { co_canh: 'ms' }, ...p, nhan_vat: [50, ...((p.nhan_vat as number[] | undefined) ?? [])] } as unknown as Canh);
 const PC = [{ ten: 'S1' }];
+const TQ = { brief: 'Một brief đủ dài để qua cổng tiền kỳ', beats: [{ ten: 'a', cam_xuc: -2 }, { ten: 'b', cam_xuc: 1 }, { ten: 'c', cam_xuc: 3 }], phan_canh: PC, nhac_url: null, nhac_phan_canh: {} };
+const PQ = { phong_cach: 'cinematic night city, teal and orange, anamorphic', laQc: false };
 const BC = { id: 50, ten: 'Phòng', loai: 'boi_canh', mo_ta: 'p', anh_ref: ['b'], bien_the: [] } as unknown as NhanVat;
 const sp = { id: 9, ten: 'Quần', loai: 'san_pham', mo_ta: 'quần', anh_ref: [], bien_the: [] } as unknown as NhanVat;
 
 // keyframe: thiếu prompt + sản phẩm chưa có ảnh gốc → chặn; có keyframe sẵn → lưu ý; clip shot trước dùng nó làm khung cuối → lưu ý.
-let k = phuThuocShot('keyframe', shot({ prompt_anh: '', nhan_vat: [9] }), [sp, BC], { noiKhung: true, phanCanh: PC });
-assert.deepStrictEqual(k.chan, ['chưa có prompt ảnh', 'Quần: chưa có ảnh gốc']);
-k = phuThuocShot('keyframe', shot({ thu_tu: 2, keyframe_url: 'k' }), [BC], { noiKhung: true, phanCanh: PC, truoc: shot({ thu_tu: 1, video_url: 'v' }) });
+let k = phuThuocShot('keyframe', shot({ prompt_anh: '', nhan_vat: [9] }), [sp, BC], { noiKhung: true, tap: TQ, phim: PQ });
+assert.deepStrictEqual(k.chan.sort(), ['Quần: chưa có ảnh gốc', 'chưa có prompt ảnh'].sort());
+k = phuThuocShot('keyframe', shot({ thu_tu: 2, keyframe_url: 'k' }), [BC], { noiKhung: true, tap: TQ, phim: PQ, truoc: shot({ thu_tu: 1, video_url: 'v' }) });
 assert.strictEqual(k.chan.length, 0);
 assert.ok(k.luu_y.some((x) => x.includes('clip shot #1')) && k.luu_y.some((x) => x.includes('dải ứng viên')));
-assert.ok(!phuThuocShot('keyframe', shot({ thu_tu: 2 }), [BC], { noiKhung: false, phanCanh: PC, truoc: shot({ video_url: 'v' }) }).luu_y.length, 'tắt nối khung → không cảnh báo');
+assert.ok(!phuThuocShot('keyframe', shot({ thu_tu: 2 }), [BC], { noiKhung: false, tap: TQ, phim: PQ, truoc: shot({ video_url: 'v' }) }).luu_y.length, 'tắt nối khung → không cảnh báo');
 
-// video: chưa có keyframe / chưa duyệt → chặn; shot sau chưa keyframe khi nối khung → lưu ý; thoại chưa có giọng → lưu ý.
-assert.deepStrictEqual(phuThuocShot('video', shot({}), [], { noiKhung: false, phanCanh: PC }).chan, ['chưa có keyframe']);
-assert.deepStrictEqual(phuThuocShot('video', shot({ keyframe_url: 'k' }), [], { noiKhung: false, phanCanh: PC }).chan, ['chưa duyệt keyframe']);
-const v = phuThuocShot('video', shot({ keyframe_url: 'k', trang_thai: 'duyet', thoai: [{ nhan_vat: '', dien_xuat: '', loi: 'hi' }] }), [], { noiKhung: true, phanCanh: PC, ke: shot({ thu_tu: 2 }) });
-assert.strictEqual(v.chan.length, 0);
-assert.ok(v.luu_y.some((x) => x.includes('shot #2 chưa có keyframe')) && v.luu_y.some((x) => x.includes('chưa sinh giọng')), v.luu_y.join('|'));
-assert.ok(!phuThuocShot('video', shot({ keyframe_url: 'k', trang_thai: 'duyet', thoai: [{ nhan_vat: '', dien_xuat: '', loi: 'hi', url: 'g' }] }), [], { noiKhung: false, phanCanh: PC }).luu_y.length);
+// video: chưa có keyframe / chưa duyệt / thoại chưa có giọng → chặn (giọng trước video); shot sau chưa keyframe khi nối khung → lưu ý.
+assert.deepStrictEqual(phuThuocShot('video', shot({}), [], { noiKhung: false, tap: TQ, phim: PQ }).chan, ['chưa có keyframe']);
+assert.deepStrictEqual(phuThuocShot('video', shot({ keyframe_url: 'k' }), [], { noiKhung: false, tap: TQ, phim: PQ }).chan, ['chưa duyệt keyframe']);
+const v = phuThuocShot('video', shot({ keyframe_url: 'k', trang_thai: 'duyet', thoai: [{ nhan_vat: '', dien_xuat: '', loi: 'hi' }] }), [], { noiKhung: true, tap: TQ, phim: PQ, ke: shot({ thu_tu: 2 }) });
+assert.ok(v.chan.length === 1 && v.chan[0]!.includes('chưa có giọng'), v.chan.join('|'));
+assert.ok(v.luu_y.some((x) => x.includes('shot #2 chưa có keyframe')), v.luu_y.join('|'));
+assert.ok(!phuThuocShot('video', shot({ keyframe_url: 'k', trang_thai: 'duyet', thoai: [{ nhan_vat: '', dien_xuat: '', loi: 'hi', url: 'g' }] }), [], { noiKhung: false, tap: TQ, phim: PQ }).luu_y.length);
 // phân cảnh (luật 12/10/2026): tập chưa có phân cảnh / shot lạc phân cảnh → chặn keyframe; video không xét.
 {
   const { thieuPhanCanh } = await import('./phu-thuoc');
@@ -31,8 +33,8 @@ assert.ok(!phuThuocShot('video', shot({ keyframe_url: 'k', trang_thai: 'duyet', 
   assert.match(thieuPhanCanh(PC, shot({ phan_doan: 'Khác' }))!, /"Khác" chưa khai/);
   assert.match(thieuPhanCanh(PC, shot({ phan_doan: '' }))!, /chưa thuộc phân cảnh/);
   assert.strictEqual(thieuPhanCanh(PC, shot({})), null);
-  assert.ok(phuThuocShot('keyframe', shot({}), [], { noiKhung: false, phanCanh: [] }).chan.some((x) => x.includes('chưa có phân cảnh')));
-  assert.ok(!phuThuocShot('video', shot({ keyframe_url: 'k', trang_thai: 'duyet' }), [], { noiKhung: false, phanCanh: [] }).chan.length);
+  assert.ok(phuThuocShot('keyframe', shot({}), [], { noiKhung: false, tap: { ...TQ, phan_canh: [] }, phim: PQ }).chan.some((x) => x.includes('chưa có phân cảnh')));
+  assert.ok(!phuThuocShot('video', shot({ keyframe_url: 'k', trang_thai: 'duyet' }), [], { noiKhung: false, tap: { ...TQ, phan_canh: [] }, phim: PQ }).chan.length);
 }
 // mẫu (luật 12/10/2026): shot không gắn bối cảnh / nhắc tên nhân vật mà chưa gắn → chặn keyframe
 {
@@ -44,7 +46,17 @@ assert.ok(!phuThuocShot('video', shot({ keyframe_url: 'k', trang_thai: 'duyet', 
   assert.deepStrictEqual(thieuMau({ nhan_vat: [50], prompt_anh: "Maya's hand on a phone", hanh_dong: '' }, [maya, BC]), ['"Maya" có trong prompt mà chưa gắn mẫu']);
   assert.deepStrictEqual(thieuMau({ nhan_vat: [50, 7], prompt_anh: 'Maya runs', hanh_dong: '' }, [maya, BC]), []);
   assert.deepStrictEqual(thieuMau({ nhan_vat: [50], prompt_anh: 'mayans ruins', hanh_dong: '' }, [maya, BC]), [], 'không khớp nửa từ');
-  assert.ok(phuThuocShot('keyframe', shot({ nhan_vat: [] }), [maya, BC], { noiKhung: false, phanCanh: PC }).chan.length === 0, 'shot mặc định có bối cảnh 50');
+  assert.ok(phuThuocShot('keyframe', shot({ nhan_vat: [] }), [maya, BC], { noiKhung: false, tap: TQ, phim: PQ }).chan.length === 0, 'shot mặc định có bối cảnh 50');
+}
+// quy trình (luật 12/10/2026): cổng tiền kỳ cấp tập + shot list
+{
+  const k1 = phuThuocShot('keyframe', shot({}), [BC], { noiKhung: false, tap: { ...TQ, brief: '', beats: [{ ten: 'a', cam_xuc: 1 }, { ten: 'b', cam_xuc: 2 }, { ten: 'c', cam_xuc: 3 }] }, phim: { laQc: false } });
+  assert.ok(k1.chan.some((x) => x.includes('brief')) && k1.chan.some((x) => x.includes('phẳng')) && k1.chan.some((x) => x.includes('phong cách')), k1.chan.join('|'));
+  assert.ok(phuThuocShot('keyframe', shot({ ky_thuat: {} }), [BC], { noiKhung: false, tap: TQ, phim: PQ }).chan.some((x) => x.includes('cỡ cảnh')));
+  const { quyTrinh } = await import('./quy-trinh');
+  const q = quyTrinh({ tap: TQ, phim: { ...PQ, laQc: true }, canh: [shot({ keyframe_url: 'k', trang_thai: 'duyet', chu_man: 'Buy' })], nhanVat: [BC] });
+  assert.ok(q.find((m) => m.key === 'phan_canh')!.ok && !q.find((m) => m.key === 'nhac')!.ok && !q.find((m) => m.key === 'logo')!.ok);
+  assert.deepStrictEqual(q.find((m) => m.key === 'nhac')!.cong, 'xuat');
 }
 console.log('phu-thuoc.test: ok');
 {

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Timeline } from './timeline';
 import { moNgan } from './ngan-chung';
 import { MO_HINH_AM } from '@/lib/xuong-video/am-thanh';
+import { quyTrinh } from '@/lib/xuong-video/quy-trinh';
 import { kiemQc } from '@/lib/xuong-video/kiem-qc';
 import { luuKhuonTap, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, trangThaiXuat, khopNhipNhac } from '@/lib/actions';
 import { thanhPhanCanh, docKinhThanh, giaAnhCents, giaVideoCents, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, coMau, giayMau, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
@@ -113,6 +114,27 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
       ))}
     </Menu>
   );
+  // 🎬 Quy trình chuẩn ngành (quy-trinh.ts): tiền kỳ → sản xuất → hậu kỳ; mục gác cổng (keyframe/video/xuất) chưa đạt thì máy chủ cũng từ chối.
+  const qtDs = canh?.length ? quyTrinh({ tap, phim: { phong_cach: kt.phong_cach, logo_url: kt.qc?.logo_url, laQc: phim.loai === 'quang_cao' }, canh: locNhanh(canh, nhanh), nhanVat }) : [];
+  const qtThieu = qtDs.filter((x) => !x.ok);
+  const congKe = qtThieu.find((x) => x.cong)?.cong;
+  const nutQt = qtDs.length > 0 && (
+    <Menu nhan={qtThieu.length ? `🎬 Quy trình ${qtDs.length - qtThieu.length}/${qtDs.length}${congKe ? ` · chặn ${congKe === 'keyframe' ? 'keyframe' : congKe === 'video' ? 'video' : 'xuất'}` : ''} ▾` : '🎬 Đủ quy trình ▾'}>
+      <div style={{ ...mono, padding: '2px 4px' }}>Quy trình chuẩn ngành — mục có 🔒 chưa đạt thì máy chủ không cho chạy bước đó (không tốn tiền oan)</div>
+      {(['Tiền kỳ', 'Sản xuất', 'Hậu kỳ'] as const).map((nh) => (
+        <div key={nh} style={{ display: 'grid', gap: 2 }}>
+          <b style={{ fontSize: 11, color: 'var(--fg-2)', padding: '4px 4px 0' }}>{nh}</b>
+          {qtDs.filter((x) => x.nhom === nh).map((x) => (
+            <div key={x.key} style={{ display: 'grid', gap: 2, padding: '3px 4px', borderLeft: `2px solid ${x.ok ? 'var(--lime)' : x.cong ? 'var(--red)' : 'var(--amber)'}` }}>
+              <span style={{ fontSize: 11.5, color: x.ok ? 'var(--lime)' : x.cong ? 'var(--red)' : 'var(--amber)' }}>{x.ok ? '✓' : x.cong ? '🔒' : '○'} {x.ten}{!x.ok && x.cong ? ` — chặn ${x.cong}` : ''}</span>
+              {!x.ok && <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{x.thieu.slice(0, 4).join(' · ')}{x.thieu.length > 4 ? ` · +${x.thieu.length - 4}` : ''}</span>}
+              {!x.ok && <span style={{ ...mono }}>{x.lam}</span>}
+            </div>
+          ))}
+        </div>
+      ))}
+    </Menu>
+  );
   const giayPhatTong = canh?.length ? Math.round(locNhanh(canh, nhanh).reduce((a, c) => a + giayPhat(c), 0) * 10) / 10 : 0;
   return (
     <div>
@@ -163,7 +185,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
         <strong style={{ fontSize: 12 }}>Storyboard · {canh?.length ?? '…'} cảnh{canh?.length ? ` · phát ${giayPhatTong}s` : ''}</strong>
         {chonNhanh}
-        {nutQc}
+        {nutQt}{nutQc}
         <span style={{ flex: 1 }} />
         {/* Công cụ xem (0đ) gọn thành nút icon nhỏ (#1211, #1311); nối khung là công tắc + sơ đồ trong cùng một menu. */}
         <button type="button" className="xv-btn" style={{ opacity: 0.8 }} disabled={!(canh ?? []).some((c) => c.keyframe_url)} title="▶ Xem animatic cả tập (0đ) — đúng thứ tự, số giây, hiệu ứng, chuyển cảnh" onClick={() => setAnimatic(true)}>▶</button>
@@ -183,14 +205,14 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
       )}
       {tab === 'storyboard' && moBang && !!canh?.length && <BangDoiTuong canh={canh} nhanVat={nhanVat} onChonShot={setChonCanh} onDong={() => setMoBang(false)} />}
       {tab === 'storyboard' && moChon && !!canh?.length && (
-        <ChayChon canh={canh} nhanVat={nhanVat} kt={kt} noiKhung={tap.noi_khung} phanCanh={tap.phan_canh} ban={ban('chon')} onDong={() => setMoChon(false)}
+        <ChayChon canh={canh} nhanVat={nhanVat} kt={kt} noiKhung={tap.noi_khung} tap={tap} ban={ban('chon')} onDong={() => setMoChon(false)}
           onChay={(viec, ids, model) => void chay('chon', async () => { for (const id of ids) { const r = viec === 'keyframe' ? await sinhKeyframe(id, 1, model) : await sinhVideoCanh(id, model); if (!r.ok) return r; } })} />
       )}
       {tab === 'xuat' && (
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
           <strong style={{ fontSize: 12 }}>Bản xuất · {canh?.length ?? '…'} cảnh · phát {giayPhatTong}s{tap.thoi_luong_s ? ` / mục tiêu ${tap.thoi_luong_s}s` : ''}</strong>
           {chonNhanh}
-          {nutQc}
+          {nutQt}{nutQc}
           <span style={{ flex: 1 }} />
           <Nut chinh ly={!(canh ?? []).some((c) => c.video_url || c.video_cuoi_url || c.keyframe_url) && 'chưa có clip/keyframe nào'} ban={jobXuat != null}
             title="Dựng MP4 hoàn chỉnh trên máy chủ (0đ): nối clip theo giây phát, giọng + hiệu ứng + nhạc, chữ màn (shot nào có), end card ưu đãi, chuẩn âm -14 LUFS, 1080p. Shot chưa có clip dùng keyframe tĩnh."

@@ -5,9 +5,9 @@ import { dayViecAnh } from './hoan-tat';
 import { promptAnhMau } from './claude';
 import { promptCamXuc } from './am-thanh';
 import { promptKyThuatAnh } from './dien-anh';
-import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, MO_HINH_ANH, type KinhThanh, type NhanVat, type PhanCanh } from './kieu';
-import { thieuPhanCanh, thieuMau } from './phu-thuoc';
-import { boiCanhCanh, mapNhanVat, taoJob, type Db, type Row } from './doc-db';
+import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, MO_HINH_ANH, type KinhThanh, type NhanVat } from './kieu';
+import { chanTienKy, chanShot } from './quy-trinh';
+import { boiCanhCanh, mapNhanVat, mapTap, kemBienThe, taoJob, type Db, type Row } from './doc-db';
 
 export type KqSinh<T> = { ok: true; data: T } | { ok: false; loi: string };
 
@@ -97,12 +97,13 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
   const loi = (x: string): KqSinh<number[]> => ({ ok: false, loi: x });
   const bc = await boiCanhCanh(db, canhId);
   if (!bc) return loi('không thấy cảnh');
-  const pcTap = (await db.execute(sql`SELECT phan_canh FROM xv_tap WHERE id = ${bc.canh.tap_id}`)) as unknown as Row[];
-  const thieuPc = thieuPhanCanh(Array.isArray(pcTap[0]?.phan_canh) ? (pcTap[0]!.phan_canh as PhanCanh[]) : [], bc.canh);
-  if (thieuPc) return loi(`Shot #${bc.canh.thu_tu}: ${thieuPc}`);
-  const nvPhim = ((await db.execute(sql`SELECT id, ten, loai FROM xv_nhan_vat WHERE phim_id = (SELECT phim_id FROM xv_tap WHERE id = ${bc.canh.tap_id})`)) as unknown as Row[]).map((r) => ({ id: Number(r.id), ten: String(r.ten), loai: String(r.loai) as NhanVat['loai'] }));
-  const tm = thieuMau(bc.canh, nvPhim);
-  if (tm.length) return loi(`Shot #${bc.canh.thu_tu}: ${tm.join('; ')}`);
+  // Cổng QUY TRÌNH (quy-trinh.ts): tiền kỳ cấp tập (brief, khung truyện, phân cảnh, phong cách) + cấp shot (phân cảnh, mẫu bối cảnh/đối tượng,
+  // ảnh mẫu, cỡ cảnh) — MỌI đường gọi (nút, bảng chọn, script) đi qua đây nên không ai phải nhớ.
+  const tapR = (await db.execute(sql`SELECT * FROM xv_tap WHERE id = ${bc.canh.tap_id}`)) as unknown as Row[];
+  const tapQt = mapTap(tapR[0]!);
+  const nvPhim = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${tapQt.phim_id} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
+  const qt = [...chanTienKy(tapQt, { phong_cach: bc.kt.phong_cach, laQc: false }), ...chanShot(bc.canh, tapQt, nvPhim)];
+  if (qt.length) return loi(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ')}`);
   if (!bc.canh.prompt_anh.trim()) return loi('cảnh chưa có prompt ảnh');
   if (moHinh && (moHinh.startsWith('fal:') || MO_HINH_ANH.some((m) => m.key === moHinh))) bc.kt.mo_hinh_anh = moHinh as typeof bc.kt.mo_hinh_anh;
   await db.execute(sql`UPDATE xv_canh SET loi = '' WHERE id = ${canhId}`);

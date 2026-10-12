@@ -90,6 +90,7 @@ function taThuVien(tl: string): string {
   }).join('\n');
 }
 const HUONG_DAN_DAO_DIEN = `CÁCH DỰNG NHƯ PHIM ĐIỆN ẢNH (bắt buộc):
+- QUY TRÌNH (máy chủ chặn nếu thiếu — quy-trinh.ts): mỗi shot BẮT BUỘC có ky_thuat.co_canh; nhan_vat của shot gồm ≥1 anchor loại Bối cảnh (nơi chốn) và mọi người/sản phẩm có tên trong prompt_anh; khung beat phải có beat âm (vấn đề/cao trào) và beat dương (giải quyết).
 - Tầng truyện: chia tập theo khung beat đã cho; mỗi beat có giá trị cảm xúc (-5..5) để thành một đường cong lên xuống, không phẳng.
 - Tầng phân cảnh (scene): mỗi phân cảnh có mục tiêu của nhân vật, xung đột cản trở, và cảm xúc ĐỔI giá trị từ đầu tới cuối (vd +2 → -3). Thoại có ẩn ý khi được — nhân vật hiếm khi nói thẳng điều mình cảm.
 - Tầng shot: mỗi phân cảnh 2-5 shot. Mở bằng shot thiết lập (toàn cảnh) khi tới nơi mới; hội thoại dùng qua vai / cận trung luân phiên, giữ trục 180°; khoảnh khắc cảm xúc dùng cận mặt hoặc đặc tả phản ứng; chèn insert cho vật quan trọng. Nhịp nhanh = shot 4 giây, cắt nhiều; nhịp chậm = shot 6-8 giây, máy đẩy chậm.

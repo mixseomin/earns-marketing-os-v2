@@ -4,55 +4,27 @@
 //   chan  = chưa chạy được (server cũng sẽ từ chối) → ô tick khoá, ghi lý do.
 //   luu_y = chạy được nhưng có hệ quả nên biết trước (nối khung lệch, thoại chưa có giọng, đã có bản sẵn…).
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/phu-thuoc.test.mts
-import { thanhPhanCanh, type Canh, type NhanVat, type PhanCanh } from './kieu';
-import { dongThoai } from './am-thanh';
+import { thanhPhanCanh, type Canh, type NhanVat } from './kieu';
+import { chanTienKy, chanShot, chanVideo, type TapQt, type PhimQt } from './quy-trinh';
 
 export type ViecShot = 'keyframe' | 'video';
 export type PhuThuoc = { chan: string[]; luu_y: string[] };
 
-/** Luật anh 12/10/2026: MỌI video phải có PHÂN CẢNH cụ thể (mục tiêu · xung đột · cảm xúc đầu→cuối) trước khi sinh keyframe —
- *  shot nào không thuộc một phân cảnh đã khai (phan_doan khớp tên trong tap.phan_canh) thì chưa được sinh. MỘT luật cho bảng chọn,
- *  máy chủ (sinhKeyframeCanh) và script nạp shot (nap-canh). null = đạt. */
-export function thieuPhanCanh(phanCanh: Pick<PhanCanh, 'ten'>[], c: Pick<Canh, 'phan_doan'>): string | null {
-  if (!phanCanh.length) return 'tập chưa có phân cảnh — ✂ Tách cảnh (hoặc nạp kèm phanCanh) trước khi sinh keyframe';
-  if (!phanCanh.some((x) => x.ten === c.phan_doan)) return c.phan_doan ? `phân cảnh "${c.phan_doan}" chưa khai trong tập` : 'shot chưa thuộc phân cảnh nào';
-  return null;
-}
-
-/** Luật anh 12/10/2026 (nhắc hai lần): keyframe phải đứng trên MẪU — mỗi shot sinh ảnh gắn ≥1 anchor Bối cảnh, và đối tượng của phim
- *  (người, sản phẩm, đạo cụ) được nhắc tên trong prompt thì phải gắn mẫu, không để model vẽ theo chữ (mỗi shot một khuôn mặt / một căn phòng).
- *  Ảnh mẫu thiếu thì thanhPhanCanh đã chặn. nhanVat = MỌI anchor của phim. MỘT luật cho bảng chọn, máy chủ và script. */
-export function thieuMau(c: Pick<Canh, 'nhan_vat' | 'prompt_anh' | 'hanh_dong'>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai'>[]): string[] {
-  const out: string[] = [];
-  const gan = nhanVat.filter((v) => c.nhan_vat.includes(v.id));
-  if (!gan.some((v) => v.loai === 'boi_canh')) out.push(nhanVat.some((v) => v.loai === 'boi_canh') ? 'chưa gắn bối cảnh — gắn một anchor Bối cảnh (mục 2) để mọi shot cùng nơi trông như một chỗ' : 'phim chưa có anchor Bối cảnh nào — tả + sinh ảnh mẫu các nơi chốn lặp lại (mục 2) trước khi sinh keyframe');
-  const chu = ` ${c.prompt_anh} ${c.hanh_dong} `.toLowerCase();
-  for (const v of nhanVat) {
-    if (v.loai === 'boi_canh' || v.loai === 'phong_cach' || c.nhan_vat.includes(v.id) || v.ten.trim().length < 3) continue;
-    const t = v.ten.trim().toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    if (new RegExp(`(^|[^\\p{L}])${t}([^\\p{L}]|$)`, 'u').test(chu)) out.push(`"${v.ten}" có trong prompt mà chưa gắn mẫu`);
-  }
-  return out;
-}
+export { thieuPhanCanh, thieuMau } from './quy-trinh';
 
 /** truoc / ke = shot liền trước / liền sau trong tập; noiKhung = tập bật "khung cuối = keyframe cảnh sau"; phanCanh = tap.phan_canh. */
-export function phuThuocShot(viec: ViecShot, c: Canh, nhanVat: NhanVat[], o: { truoc?: Canh; ke?: Canh; noiKhung: boolean; phanCanh: Pick<PhanCanh, 'ten'>[] }): PhuThuoc {
+export function phuThuocShot(viec: ViecShot, c: Canh, nhanVat: NhanVat[], o: { truoc?: Canh; ke?: Canh; noiKhung: boolean; tap: TapQt; phim: PhimQt }): PhuThuoc {
   const chan: string[] = []; const luu_y: string[] = [];
   if (viec === 'keyframe') {
     if (c.dang_sinh_anh) chan.push('đang sinh ảnh');
-    const pc = thieuPhanCanh(o.phanCanh, c); if (pc) chan.push(pc);
-    chan.push(...thieuMau(c, nhanVat));
+    chan.push(...chanTienKy(o.tap, o.phim), ...chanShot(c, o.tap, nhanVat));
     if (!c.prompt_anh.trim()) chan.push('chưa có prompt ảnh');
-    chan.push(...thanhPhanCanh(c, nhanVat).thieu);
     if (c.keyframe_url) luu_y.push('đã có keyframe — ảnh mới vào dải ứng viên, phải chọn mới thay');
     if (o.noiKhung && o.truoc && (o.truoc.video_url || o.truoc.video_cuoi_url)) luu_y.push(`clip shot #${o.truoc.thu_tu} lấy keyframe này làm khung cuối — đổi keyframe thì clip đó phải sinh lại mới nối liền`);
   } else {
     if (c.trang_thai === 'dang_sinh') chan.push('đang sinh video');
-    if (!c.keyframe_url) chan.push('chưa có keyframe');
-    else if (c.trang_thai !== 'duyet' && c.trang_thai !== 'loi' && c.trang_thai !== 'xong') chan.push('chưa duyệt keyframe');
+    chan.push(...chanVideo(c, nhanVat));
     if (o.noiKhung && o.ke && !o.ke.keyframe_url) luu_y.push(`shot #${o.ke.thu_tu} chưa có keyframe — clip này sẽ không có khung cuối, nối không liền`);
-    const thieuGiong = dongThoai(c, nhanVat).filter((d) => d.loi.trim() && !d.url);
-    if (thieuGiong.length) luu_y.push(`${thieuGiong.length} dòng thoại chưa sinh giọng — clip sẽ tự đọc bằng giọng của model; nên sinh giọng trước`);
     if (c.video_url || c.video_cuoi_url) luu_y.push('đã có clip — bản mới thêm vào danh sách phiên bản');
   }
   return { chan, luu_y };

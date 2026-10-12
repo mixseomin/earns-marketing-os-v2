@@ -4,13 +4,14 @@
 // Thay hai nút "sinh hết" cũ: chọn sẵn đúng những shot hai nút đó từng chạy, bỏ bớt được trước khi bấm. Chạy lần lượt, lỗi thì dừng.
 import { useContext, useMemo, useState } from 'react';
 import { phuThuocShot, type ViecShot } from '@/lib/xuong-video/phu-thuoc';
-import { lamTronClip, tien, MO_HINH_ANH, MO_HINH_VIDEO, type Canh, type docKinhThanh, type NhanVat, type PhanCanh } from '@/lib/xuong-video/kieu';
+import type { TapQt } from '@/lib/xuong-video/quy-trinh';
+import { lamTronClip, tien, MO_HINH_ANH, MO_HINH_VIDEO, type Canh, type docKinhThanh, type NhanVat } from '@/lib/xuong-video/kieu';
 import { MoHinhCtx, giaAnhUi, giaVideoUi, luaChonAnh, luaChonVideo } from './mo-hinh-ui';
 import { Chon } from './chon';
 import { Nut, mono } from './ui';
 
-export function ChayChon({ canh, nhanVat, kt, noiKhung, phanCanh, ban, onChay, onDong }: {
-  canh: Canh[]; nhanVat: NhanVat[]; kt: ReturnType<typeof docKinhThanh>; noiKhung: boolean; phanCanh: PhanCanh[]; ban: boolean;
+export function ChayChon({ canh, nhanVat, kt, noiKhung, tap, ban, onChay, onDong }: {
+  canh: Canh[]; nhanVat: NhanVat[]; kt: ReturnType<typeof docKinhThanh>; noiKhung: boolean; tap: TapQt; ban: boolean;
   onChay: (viec: ViecShot, ids: number[], model: string) => void; onDong: () => void;
 }) {
   const moHinh = useContext(MoHinhCtx);
@@ -19,9 +20,9 @@ export function ChayChon({ canh, nhanVat, kt, noiKhung, phanCanh, ban, onChay, o
   const [viec, setViec] = useState<ViecShot>(() => (canh.some((c) => c.trang_thai === 'duyet') ? 'video' : 'keyframe'));
   const [mhAnh, setMhAnh] = useState<string>(kt.mo_hinh_anh);
   const [mhVideo, setMhVideo] = useState<string>(kt.mo_hinh_video);
-  const pt = useMemo(() => canh.map((c, i) => ({ c, ...phuThuocShot(viec, c, nhanVat, { truoc: canh[i - 1], ke: canh[i + 1], noiKhung, phanCanh }) })), [canh, nhanVat, viec, noiKhung, phanCanh]);
+  const pt = useMemo(() => canh.map((c, i) => ({ c, ...phuThuocShot(viec, c, nhanVat, { truoc: canh[i - 1], ke: canh[i + 1], noiKhung, tap, phim: { phong_cach: kt.phong_cach, laQc: false } }) })), [canh, nhanVat, viec, noiKhung, tap, kt.phong_cach]);
   // Chọn sẵn đúng việc của hai nút cũ: keyframe → shot chưa có ảnh mà đủ thành phần; video → shot đã duyệt (chưa có clip).
-  const macDinh = (v: ViecShot) => new Set(canh.filter((c, i) => !phuThuocShot(v, c, nhanVat, { truoc: canh[i - 1], ke: canh[i + 1], noiKhung, phanCanh }).chan.length
+  const macDinh = (v: ViecShot) => new Set(canh.filter((c, i) => !phuThuocShot(v, c, nhanVat, { truoc: canh[i - 1], ke: canh[i + 1], noiKhung, tap, phim: { phong_cach: kt.phong_cach, laQc: false } }).chan.length
     && (v === 'keyframe' ? !c.keyframe_url : c.trang_thai === 'duyet')).map((c) => c.id));
   const [chon, setChon] = useState<Set<number>>(() => macDinh(viec));
   const doiViec = (v: ViecShot) => { setViec(v); setChon(macDinh(v)); };

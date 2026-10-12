@@ -1,9 +1,9 @@
 {
  "project": "studio",
- "ten": "Astrolas · Double Retrograde — action trailer (organic short, bản nháp)",
- "mo_ta": "Short dọc nhịp nhanh kiểu trailer hành động: 24/10–13/11/2026 Sao Thuỷ nghịch hành, cùng lúc Sao Kim cũng nghịch hành (nghịch hành kép) → hỗn loạn (tin nhắn hiểu lầm, kế hoạch đổ, người cũ nhắn lại) → bằng chứng thật: bảng Transit Planets của Astrolas ngày 01/11/2026 có Mercury R 16°26' Scorpio + Venus R 26°09' Libra → biết trước ngày → xem transit miễn phí. Cắt ~1,5–2s/shot, máy hiện đại (FPV, bullet-time, dolly zoom, speed ramp, xuyên vật).",
+ "ten": "Astrolas · Double Retrograde — Maya (action short, bản nháp v2)",
+ "mo_ta": "Short dọc nhịp nhanh kiểu phim hành động, có nhân vật chính Maya (nhân vật hư cấu, kịch hoá — không phải lời chứng thực khách thật). Mục tiêu: ký hợp đồng đời mình ngày 02/11. Vấn đề: 24/10 Sao Thuỷ nghịch hành + Sao Kim cũng nghịch hành → email hợp đồng bị trả về, đối tác hiểu sai tin nhắn, người cũ quay lại. Cao trào: đêm cuối trên sân thượng dưới mưa, suýt ký liều. Quay đầu: mở Astrolas — bảng Transit Planets thật 01/11/2026 (Mercury R 16°26' Scorpio, Venus R 26°09' Libra, cùng nhà 8 của lá số minh hoạ). Giải quyết: dời ngày ký qua 13/11, đọc lại thì bắt được điều khoản bẫy, 14/11 ký thắng. Ngày nghịch hành 24/10–13/11/2026 đã kiểm (Chani, Farmers' Almanac).",
  "kinh_thanh": {
-  "phong_cach": "High-octane cinematic action trailer for a vertical social video: night city, teal-and-orange grade, anamorphic lens flares, sparks, shattering glass and floating debris, deep space with glowing planets Mercury (small, steel-grey, fiery rim) and Venus (pale gold, glowing), cosmic orbit trails; hyper-real, premium blockbuster look; people only as silhouettes, from behind, or hands — never faces",
+  "phong_cach": "High-octane cinematic action-thriller look for a vertical social video: night city, rain, teal-and-orange grade, anamorphic lens flares, sparks, shattering glass and floating debris; cosmic inserts of a small steel-grey planet Mercury with a fiery rim (NO rings) and a pale golden glowing planet Venus (NO rings); hyper-real premium blockbuster; the hero Maya is the only person in focus, any other people only as blurred silhouettes",
   "ti_le": "9:16",
   "do_phan_giai": "720p",
   "mo_hinh_anh": "gemini-nano-banana-2.1",
@@ -38,6 +38,11 @@
  },
  "nhan_vat": [
   {
+   "loai": "nhan_vat",
+   "ten": "Maya",
+   "mo_ta": "Maya, a determined startup founder in her late 20s, olive skin, shoulder-length dark wavy hair, sharp dark eyes, charcoal blazer over a black t-shirt, small gold star pendant necklace, slim build; intense, focused, cinematic action-heroine presence"
+  },
+  {
    "loai": "san_pham",
    "ten": "Astrolas Transit tool",
    "mo_ta": "The astrolas.com Transit page on a phone: dark navy interface with gold accents, Transit Planets table listing planet glyphs, a red R retrograde mark, sign glyph and degrees",
@@ -47,7 +52,7 @@
   }
  ],
  "tap": {
-  "ten": "Double Retrograde",
-  "brief": "Trailer hành động: 24/10 Sao Thuỷ quay đầu → hỗn loạn (tin nhắn, kế hoạch, người cũ) → Sao Kim cũng nghịch hành → nghịch hành kép 24/10–13/11 → bằng chứng thật bảng Transit Planets (Mercury R + Venus R) → biết ngày trước khi nó ập tới → xem transit miễn phí."
+  "ten": "Double Retrograde — Maya",
+  "brief": "Phim hành động 3 hồi: Maya có MỘT cơ hội (ký hợp đồng 02/11) → 24/10 nghịch hành kép làm mọi thứ đổ → đêm cuối suýt ký liều → mở Astrolas, thấy Mercury R + Venus R ở nhà 8 → dời ngày, bắt được điều khoản bẫy → 14/11 ký thắng → CTA xem lá số của bạn 24/10–13/11."
  }
 }

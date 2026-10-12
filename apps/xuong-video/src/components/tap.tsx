@@ -2,6 +2,7 @@
 // Mục 3 một tập: brief → kịch bản → tách cảnh → storyboard/timeline → âm thanh → xuất.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Timeline } from './timeline';
+import { LuoiKichBan } from './luoi-kich-ban';
 import { moNgan } from './ngan-chung';
 import { MO_HINH_AM } from '@/lib/xuong-video/am-thanh';
 import { quyTrinh } from '@/lib/xuong-video/quy-trinh';
@@ -46,7 +47,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
   const [moChon, setMoChon] = useState(false);
   const [moBang, setMoBang] = useState(false);
   // 3c xem dạng timeline (mặc định, kiểu CapCut) hoặc danh sách; nhớ theo trình duyệt.
-  const [xem, setXem] = useNho<'timeline' | 'ds'>('xv-xem-3c', 'timeline', ['timeline', 'ds']);
+  const [xem, setXem] = useNho<'timeline' | 'luoi' | 'ds'>('xv-xem-3c', 'timeline', ['timeline', 'luoi', 'ds']);
   const [chonCanh, setChonCanh] = useState<number | null>(null);
   const [uoc, setUoc] = useState<{ anh1: number; videoTong: number; soCanhDuyet: number; giayDuyet: number } | null>(null);
   const [uocA, setUocA] = useState<Awaited<ReturnType<typeof uocAm>> | null>(null);
@@ -286,6 +287,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
         <>
           <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
             <button type="button" className={`xv-btn${xem === 'timeline' ? ' chinh' : ''}`} onClick={() => setXem('timeline')}>🎞 Timeline</button>
+            <button type="button" className={`xv-btn${xem === 'luoi' ? ' chinh' : ''}`} onClick={() => setXem('luoi')} title="Cả tập trên một màn: hình · mốc giờ · chữ màn · lời đọc, xếp theo phân cảnh">▦ Lưới kịch bản</button>
             <button type="button" className={`xv-btn${xem === 'ds' ? ' chinh' : ''}`} onClick={() => setXem('ds')}>☰ Danh sách cảnh</button>
           </div>
           {xem === 'timeline' ? (() => {
@@ -312,7 +314,9 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
                 </div>
               </>
             );
-          })() : (
+          })() : xem === 'luoi' ? (
+            <LuoiKichBan canh={locNhanh(canh, nhanh)} nhanVat={nhanVat} tap={tap} tiLe={kt.ti_le} onMo={(id) => { setChonCanh(id); setXem('timeline'); }} />
+          ) : (
             <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>{canh.map((c) => <CanhRow key={c.id} c={c} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} />)}</div>
           )}
         </>

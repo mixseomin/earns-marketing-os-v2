@@ -392,7 +392,7 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 /* Quy trình một dòng (components/quy-trinh.tsx DsQuyTrinh): tên · khi chạy · chịu trách nhiệm · làm · loại; bấm bung mô tả */
 .cty-qt-ds{gap:0;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
 .cty-qt-ds .cty-qt-dong{border:0;border-top:1px solid var(--line);border-radius:0;background:none;padding:0;display:block}
-.cty-qt-hang{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.2fr) auto;gap:10px;align-items:center;padding:8px var(--le);list-style:none;cursor:pointer;font-size:.9rem}
+.cty-qt-hang{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.2fr) 8.5rem;gap:10px;align-items:center;padding:8px var(--le);list-style:none;cursor:pointer;font-size:.9rem}
 .cty-qt-hang::-webkit-details-marker{display:none}
 .cty-qt-hang>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cty-qt-hang-dau{cursor:default;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
@@ -400,7 +400,7 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-qt-ten::before{content:'▸ ';color:var(--muted);font-weight:400}
 details[open]>.cty-qt-hang .cty-qt-ten::before{content:'▾ '}
 .cty-qt-khi{color:var(--accent)}
-.cty-qt-loai{display:flex;gap:4px;justify-content:flex-end}
+.cty-qt-loai{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
 .cty-qt-bung{padding:0 var(--le) 10px calc(var(--le) + 1em);display:grid;gap:4px}
 .cty-qt-bung p{margin:0}
 .cty-qt-dong:hover>.cty-qt-hang{background:var(--soft)}
@@ -464,14 +464,15 @@ details[open]>.cty-qt-hang .cty-qt-ten::before{content:'▾ '}
 .cty-sach-nen{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .cty-sach-nen li{display:grid;gap:3px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;min-width:0;overflow-wrap:anywhere}
 .cty-sach-nen li.chon{background:var(--soft);border-color:var(--accent)}
-/* LÀN VIDEO (day-chuyen.tsx LanVideoTab): dải 5 số (không phải dòng chảy → không mũi tên) · 3 cột Kho | Đăng hôm nay | Đã đăng (rộng, thẻ tự xếp ≥150px).
-   Khung hình YouTube là ảnh 4:3 có viền mờ hai bên video dọc → cắt 3:4 giữa ảnh: thấy trọn video, viền mờ còn mỏng. */
-.cty-video{display:grid;gap:8px;min-width:0}
-.cty-dong-chay.cty-dong-video{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
-.cty-dong-video li::after{display:none}
-.cty-bang-video{display:grid;grid-template-columns:minmax(170px,1fr) minmax(190px,1.2fr) minmax(0,2.6fr);gap:8px;align-items:start}
-.cty-the-bia-video img{aspect-ratio:3/4}
-.cty-video-so{font-size:1.5rem;line-height:1.1;font-variant-numeric:tabular-nums}
+/* Dải số của dây chuyền không phải dòng chảy (video, kênh — day-chuyen.tsx Bang): không mũi tên, tự xếp theo bề ngang.
+   Khung hình video (ảnh YouTube 4:3, viền mờ hai bên) dùng cùng tỉ lệ bìa 5:4 với thẻ sách — một khuôn thẻ cho mọi dây chuyền. */
+.cty-dong-chay.cty-dong-so{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+.cty-dong-so li::after{display:none}
 .cty-video-qt{margin:0;padding-left:1.3em;display:grid;gap:6px}
 .cty-sach-nen li.loi{border-color:var(--warn)}
-@media (max-width:900px){.cty-bang-video{grid-template-columns:1fr}}
+.cty-dc-don-vi{margin:0 0 6px}
+/* Thanh tab lồng (TabPhong trong): cao theo nội dung, không thêm chỗ cuộn thứ hai trong khung tab ngoài */
+.cty-tabkhung-trong{height:auto}
+.cty-tabkhung-trong > .cty-tabnoi{flex:none;overflow:visible;padding-top:10px;padding-bottom:0}
+/* Quy trình chia theo dây chuyền (DsQuyTrinh nhom): tên dây chuyền là một hàng đầu nhóm trong cùng khung bảng */
+.cty-qt-nhom-ten{padding:10px var(--le) 6px;border-top:1px solid var(--line);font-weight:600;font-size:.86rem;background:var(--bg)}

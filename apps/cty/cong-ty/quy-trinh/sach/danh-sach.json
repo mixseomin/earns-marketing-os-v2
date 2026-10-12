@@ -1,6 +1,32 @@
 {
- "_": "Quy trình nghiệp vụ của Phòng Sách. Máy thật nằm ở repo puzzle-books (LaunchAgent do deploy-may.sh cài trên iMac + MacBook); phòng đọc kết quả từ sổ sản phẩm MOS2 (tab Dây chuyền, worker/sach.mjs). so_hoa như các phòng khác: 'co-dinh' = máy chạy, luật nằm trong mã · 'mo-ta' = chưa có máy. chu_tri = MỘT mã chịu trách nhiệm chính (vai của phòng · mã người · giam-doc), lam = ai/máy làm thật — tab Trách nhiệm của nhân sự đọc hai khoá này.",
+ "_": "Quy trình nghiệp vụ của Phòng Sách. Máy thật nằm ở repo puzzle-books (LaunchAgent do deploy-may.sh cài trên iMac + MacBook); phòng đọc kết quả từ sổ sản phẩm MOS2 (tab Dây chuyền, worker/sach.mjs). so_hoa như các phòng khác: 'co-dinh' = máy chạy, luật nằm trong mã · 'mo-ta' = chưa có máy. chu_tri = MỘT mã chịu trách nhiệm chính (vai của phòng · mã người · giam-doc), lam = ai/máy làm thật — tab Trách nhiệm của nhân sự đọc hai khoá này. day_chuyen = các dây chuyền của phòng (tab Dây chuyền chọn từng cái; nguon = bộ đọc số liệu: 'sach' worker/sach.mjs · 'video' worker/video.mjs · 'kenh:<kênh>' bảng kenh_sp); mỗi quy trình ghi day_chuyen nó thuộc (không ghi = việc chung của phòng) — tab Quy trình nhóm theo đó.",
  "phong": "sach",
+ "day_chuyen": [
+  {
+   "id": "sach",
+   "ten": "Sách",
+   "don_vi": "1 cuốn · tuần",
+   "nguon": "sach"
+  },
+  {
+   "id": "video",
+   "ten": "Video ngắn",
+   "don_vi": "1 video · ngày · 4 nền",
+   "nguon": "video"
+  },
+  {
+   "id": "ghim",
+   "ten": "Ghim Pinterest",
+   "don_vi": "ghim theo cuốn",
+   "nguon": "kenh:pinterest"
+  },
+  {
+   "id": "printables",
+   "ten": "Trang printables",
+   "don_vi": "1 trang · chủ đề",
+   "nguon": "kenh:printables"
+  }
+ ],
  "quy_trinh": [
   {
    "id": "san-xuat",
@@ -14,7 +40,8 @@
     "may",
     "nguoi-lam"
    ],
-   "khi": "02:00 mỗi đêm"
+   "khi": "02:00 mỗi đêm",
+   "day_chuyen": "sach"
   },
   {
    "id": "bat-ban-etsy",
@@ -27,7 +54,8 @@
    "lam": [
     "may"
    ],
-   "khi": "08:30 mỗi ngày"
+   "khi": "08:30 mỗi ngày",
+   "day_chuyen": "sach"
   },
   {
    "id": "dang-gumroad",
@@ -40,7 +68,8 @@
    "lam": [
     "may"
    ],
-   "khi": "09:00 mỗi ngày"
+   "khi": "09:00 mỗi ngày",
+   "day_chuyen": "sach"
   },
   {
    "id": "dang-kdp",
@@ -54,7 +83,8 @@
     "may",
     "giam-doc"
    ],
-   "khi": "2 giờ/lần"
+   "khi": "2 giờ/lần",
+   "day_chuyen": "sach"
   },
   {
    "id": "chu-de-video",
@@ -67,7 +97,8 @@
     "thi-truong",
     "truong-phong"
    ],
-   "khi": "mỗi tuần"
+   "khi": "mỗi tuần",
+   "day_chuyen": "video"
   },
   {
    "id": "dung-video",
@@ -80,7 +111,8 @@
    "lam": [
     "may"
    ],
-   "khi": "khi cần"
+   "khi": "khi cần",
+   "day_chuyen": "video"
   },
   {
    "id": "video-ngan",
@@ -93,7 +125,8 @@
    "lam": [
     "may"
    ],
-   "khi": "20:00 mỗi ngày"
+   "khi": "20:00 mỗi ngày",
+   "day_chuyen": "video"
   },
   {
    "id": "duyet-ban-xem",
@@ -107,7 +140,8 @@
     "may",
     "giam-doc"
    ],
-   "khi": "khi dựng xong"
+   "khi": "khi dựng xong",
+   "day_chuyen": "sach"
   },
   {
    "id": "dua-nhap-etsy",
@@ -120,7 +154,8 @@
    "lam": [
     "may"
    ],
-   "khi": "chạy tay"
+   "khi": "chạy tay",
+   "day_chuyen": "sach"
   },
   {
    "id": "kdp-bia-cung",
@@ -134,7 +169,8 @@
     "may",
     "giam-doc"
    ],
-   "khi": "chạy tay"
+   "khi": "chạy tay",
+   "day_chuyen": "sach"
   },
   {
    "id": "ghim-pinterest",
@@ -147,7 +183,8 @@
    "lam": [
     "may"
    ],
-   "khi": "chạy tay"
+   "khi": "chạy tay",
+   "day_chuyen": "ghim"
   },
   {
    "id": "do-ghim",
@@ -160,7 +197,8 @@
    "lam": [
     "may"
    ],
-   "khi": "chạy tay"
+   "khi": "chạy tay",
+   "day_chuyen": "ghim"
   },
   {
    "id": "trang-printables",
@@ -173,7 +211,8 @@
    "lam": [
     "may"
    ],
-   "khi": "chạy tay"
+   "khi": "chạy tay",
+   "day_chuyen": "printables"
   },
   {
    "id": "do-video",
@@ -186,7 +225,8 @@
    "lam": [
     "may"
    ],
-   "khi": "sau 20:05"
+   "khi": "sau 20:05",
+   "day_chuyen": "video"
   },
   {
    "id": "rut-kinh-nghiem-video",
@@ -198,7 +238,8 @@
    "lam": [
     "kenh-keo-khach"
    ],
-   "khi": "mỗi tuần"
+   "khi": "mỗi tuần",
+   "day_chuyen": "video"
   },
   {
    "id": "kenh-keo-khach",
@@ -237,7 +278,8 @@
     "truong-phong",
     "nguoi-lam"
    ],
-   "khi": "chưa có máy"
+   "khi": "chưa có máy",
+   "day_chuyen": "sach"
   },
   {
    "id": "do-thi-truong",
@@ -249,7 +291,8 @@
    "lam": [
     "thi-truong"
    ],
-   "khi": "chưa có máy"
+   "khi": "chưa có máy",
+   "day_chuyen": "sach"
   }
  ]
 }

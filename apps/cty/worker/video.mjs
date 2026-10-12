@@ -1,4 +1,4 @@
-// LÀN VIDEO của Phòng Sách (anh 12/10/2026: "tổ chức việc video trong phòng" — dây chuyền thứ hai, chạy song song với sách).
+// DÂY CHUYỀN VIDEO của Phòng Sách (anh 12/10/2026: "tổ chức việc video trong phòng"; nguồn 'video' trong quy-trinh/sach/danh-sach.json `day_chuyen`).
 // Đơn vị việc = 1 video (1 chủ đề ô chữ tặng → 1 clip → 4 nền). Hai nguồn, đều do máy ghi, phòng chỉ ĐỌC:
 //   · số đo: MOS2 kenh_so_ngay (puzzle-books scripts/so-short.mjs, MacBook sau lượt 20:05) — video đã đăng + lượt xem cộng dồn + vào shop 7 ngày;
 //   · lượt đăng: ${CTY_DATA_DIR}/may/video-<nền>.json (puzzle-books scripts/dang-short.mjs ghi sau MỖI lượt) — đăng được / lỗi gì, kho, video kế.

@@ -10,12 +10,11 @@ vai_thi_truong: binh      # đo cầu + cạnh tranh trước khi chọn / đổ
 don_vi_viec: 1 cuốn · tuần (KDP 2 bìa mềm/tuần, Etsy giãn 2/tuần) · 1 video · ngày · 4 nền
 cong_nguoi: trạm 6 Giám đốc duyệt bản xem trong MOS2; KDP Giám đốc bấm Publish (máy tạo nháp sẵn)
 so_do: sach
-tom_tat: Hai dây chuyền — sách (6 trạm, bọc lên quy-trinh.mjs) và video ngắn (chủ đề → dựng → kho → đăng 4 nền → đo → rút kinh nghiệm)
+tom_tat: Bốn dây chuyền (khai ở quy-trinh/sach/danh-sach.json) — sách 6 trạm, video ngắn, ghim Pinterest, trang printables; tab Dây chuyền chọn từng cái
 du_an: [puzzle-books]
 the_lien_quan: [mint-almanac]   # card plays của dự án này chỉ lấy card nhắc nền của sổ phòng (KDP/Etsy/Gumroad): bộ sách coin, không lấy 20 card backlink của site
 tai_khoan_them: [503, 504]   # tài khoản phòng dùng mà vault chưa gắn dự án puzzle-books: Pinterest #503, Gumroad store #504 frontporchpuzzles
 so_san_pham: [etsy:FrontPorchZ, kdp:htuan82, gumroad:frontporchpuzzles]   # sổ sản phẩm MOS2 (Directus products) phòng đọc → tab Dây chuyền (worker/sach.mjs)
-video_ngan: [tiktok, youtube, facebook, instagram]   # làn Video ở tab Dây chuyền (worker/video.mjs): số đo kenh_so_ngay + lượt đăng máy ghi /var/lib/cty/may/video-<nền>.json
 van_phong_cong: 3864   # văn phòng pixel riêng ở cty.on.tc/vp/sach/ (trình chạy mos2-vp-thu.service; map ở deploy/nginx-cty.conf)
 trang_thai: đang chạy · máy theo lịch (iMac + MacBook) · nhân sự AI chưa bật
 ---

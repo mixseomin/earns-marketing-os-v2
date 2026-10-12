@@ -53,11 +53,15 @@ const pt = (x: number) => `${Math.round(x * 100)}%`;
 /** Danh sách quy trình (tab phòng / trang tổng) — anh 12/10/2026 "nhiều text quá": mỗi quy trình MỘT dòng = tên · lúc chạy · người chịu
  *  trách nhiệm chính · ai/máy làm · loại; mô tả, câu kích hoạt đầy đủ, mã nằm trong dòng bung (bấm mới thấy). Quy trình tự cải tiến: tên là link
  *  tới ngăn chi tiết, kèm số bản / điểm / chờ ký. */
-export function DsQuyTrinh({ ds, hienPhong }: { ds: DongQuyTrinh[]; hienPhong?: boolean }) {
+/** `nhom` = dây chuyền của phòng: chia quy trình theo dây chuyền (thứ tự khai); quy trình không thuộc dây chuyền nào vào "Chung của phòng"
+ *  cuối cùng — phòng nhiều dây chuyền thì không thành một danh sách dài lẫn lộn. */
+export function DsQuyTrinh({ ds, hienPhong, nhom }: { ds: DongQuyTrinh[]; hienPhong?: boolean; nhom?: { id: string; ten: string }[] }) {
+  const nhoms = nhom?.length ? [...nhom.map((n) => ({ ten: n.ten, ds: ds.filter((q) => q.day_chuyen === n.id) })),
+    { ten: 'Chung của phòng', ds: ds.filter((q) => !q.day_chuyen || !nhom.some((n) => n.id === q.day_chuyen)) }].filter((n) => n.ds.length) : [{ ten: '', ds }];
   return (
     <div className="cty-qt-ds">
       <div className="cty-qt-hang cty-qt-hang-dau" aria-hidden><span>Quy trình</span><span>Khi chạy</span><span>Chịu trách nhiệm</span><span>Làm</span><span>Loại</span></div>
-      {ds.map((q) => {
+      {nhoms.map((n) => <div key={n.ten} className="cty-qt-nhom">{n.ten && <div className="cty-qt-nhom-ten">{n.ten} <span className="cty-tab-so">{n.ds.length}</span></div>}{n.ds.map((q) => {
         const moi = q.deXuat?.[0]; const choKy = q.deXuat?.filter((d) => d.trang_thai === 'cho_duyet').length ?? 0;
         return (
           <details key={q.khoa} className="cty-qt-dong">
@@ -79,7 +83,7 @@ export function DsQuyTrinh({ ds, hienPhong }: { ds: DongQuyTrinh[]; hienPhong?: 
             </div>
           </details>
         );
-      })}
+      })}</div>)}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { docLog } from '../../worker/log.mjs';
 import { tienUsd } from '../../worker/gia.mjs';
 import { dsLuot } from './thu-nghiem';
 import { lanVideo, docMay, NEN_VIDEO } from '../../worker/video.mjs';
+import { dsDayChuyen } from '../../worker/quy-trinh.mjs';
 
 type Row = Record<string, unknown>;
 // Mảng JS trong sql`` bị drizzle bung thành ($1, $2) → `= ANY(($1,$2))` hỏng cú pháp; phải dựng ARRAY[...] tường minh.
@@ -59,10 +60,10 @@ export async function kenhKeoKhach(p: Doc) {
     { san_pham: string; kenh: string; ten: string; xong: number | null; tong: number | null; canh_bao: string | null; the_id: number | null; cap_nhat: string }[] | null;
 }
 export type LanVideo = ReturnType<typeof lanVideo> & { tenSach: Record<string, string> };
-/** Làn Video của phòng khai `video_ngan` (worker/video.mjs): số đo 10 ngày (kenh_so_ngay) + tệp lượt đăng của máy. null = phòng không chạy video;
+/** Làn Video của phòng có dây chuyền nguồn 'video' (worker/video.mjs): số đo 10 ngày (kenh_so_ngay) + tệp lượt đăng của máy. null = phòng không chạy video;
  *  { loi } = không đọc được DB. `tenSach`: san_pham → tựa sách (kenh_sp) để ngăn video trỏ về ngăn sách. */
 export async function lanVideoPhong(p: Doc, hom: string, phut: number): Promise<LanVideo | { loi: string } | null> {
-  if (!p.fm.video_ngan) return null;
+  if (!(dsDayChuyen(p.id) as { nguon: string }[]).some((d) => d.nguon === 'video')) return null;
   const duAn = dsFm(p, 'du_an'); const kenh = NEN_VIDEO.map((n) => n.kenh);
   const [so, ten] = await Promise.all([
     q(sql`SELECT kenh, san_pham, ngay::text AS ngay, hien, chi_tiet FROM kenh_so_ngay WHERE split_part(san_pham, ':', 1) = ANY(${arr(duAn)}) AND kenh = ANY(${arr(kenh)}) AND ngay >= ${hom}::date - 10`),

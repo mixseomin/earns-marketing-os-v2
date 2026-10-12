@@ -1,7 +1,7 @@
 // NỘI DUNG từng loại ngăn — một nguồn cho cả ngăn kéo lẫn trang đầy đủ (/nhan-su/x, /phong/x…). Mở được chỉ từ khoá (luật 6):
 // mỗi hàm nhận đúng mã, tự đọc dữ liệu. Không có bản ghi → nội dung báo rõ thiếu gì, không treo (luật 7).
 // Ngăn chi tiết chia 3 cột một màn (luật 8): [hình] [thông tin lưới ô] [phân tích / nội dung dài]; cột nào dài thì riêng cột đó cuộn.
-import { vaiCuaPhong, theVai } from '../../../worker/quy-trinh.mjs';
+import { vaiCuaPhong, theVai, dsDayChuyen } from '../../../worker/quy-trinh.mjs';
 import { hoSoNangLuc, theGame, lichSu, viecCua, NANG_LUC } from '../../../worker/nang-luc.mjs';
 import { tinhCachCua, TINH_CACH } from '../../../worker/tinh-cach.mjs';
 import { soVi, luongVai, bangLuong } from '../../../worker/luong.mjs';
@@ -28,7 +28,7 @@ import { tachKhoa, hrefThe, hrefSach } from '@/lib/ngan';
 import { BangNhanSu } from '../bang-nhan-su';
 import { doiNgu } from '@/lib/doi-ngu';
 import { dayChuyen, linkMos2, homNay, CHANG } from '../../../worker/sach.mjs';
-import { DayChuyenTab, demCan, type DayChuyen, Ai, Tram, Thanh, KENH, mauNen, TEN_NEN, NHAN_ST, ngay, quaNgay } from '../day-chuyen';
+import { DayChuyenTab, demCan, type DayChuyen, type DcKhai, Ai, Tram, Thanh, KENH, mauNen, TEN_NEN, NHAN_ST, ngay, quaNgay, cungSach } from '../day-chuyen';
 import { kenhKeoKhach, theMot, lanVideoPhong } from '@/lib/do-dac';
 import { NEN_VIDEO, phutVN, tenSlug } from '../../../worker/video.mjs';
 import { trachNhiem, demTn, giaiMa } from '@/lib/trach-nhiem';
@@ -284,7 +284,7 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
   const qd = await quyDinhPhong(id);
   const qtTab = (
     <div className="cty-qt-tab">
-      <section><h3>Quy trình nghiệp vụ <span className="cty-tab-so">{dsQt.length}</span></h3><DsQuyTrinh ds={dsQt} /></section>
+      <section><h3>Quy trình nghiệp vụ <span className="cty-tab-so">{dsQt.length}</span></h3><DsQuyTrinh ds={dsQt} nhom={dsDayChuyen(id) as DcKhai[]} /></section>
       <section><h3>Quy định phải tuân theo <span className="cty-tab-so">{qd.length}</span></h3><p className="cty-muted cty-nho">Tầng trên đứng trên quy trình của phòng; phòng không tự sửa được khi họp cải tiến.</p><DsQuyDinh ds={qd} /></section>
     </div>
   );
@@ -326,14 +326,18 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
     </>
   );
   // Phòng khai sổ sản phẩm (so_san_pham) → tab Dây chuyền đọc trạng thái thật từ sổ MOS2 (worker/sach.mjs); không khai → null, không có tab.
+  // Phòng khai dây chuyền (quy-trinh/<phòng>/danh-sach.json `day_chuyen`) → tab Dây chuyền: mỗi nguồn đọc một lần ở đây, đếm việc + dựng tab dùng chung
   const dc = thu ? null : (await dayChuyen(id)) as DayChuyen | null;
-  const lv = dc && p ? await lanVideoPhong(p, dc.hom ?? homNay(), phutVN()) : null;   // làn Video (phòng khai video_ngan)
+  const khai = (thu ? [] : dsDayChuyen(id)) as DcKhai[];   // phòng có sổ sản phẩm mà chưa khai dây chuyền → một dây chuyền sách mặc định
+  const dsDc: DcKhai[] = khai.length ? khai : dc ? [{ id: 'sach', ten: 'Sách', don_vi: String(p?.fm.don_vi_viec ?? ''), nguon: 'sach' }] : [];
+  const [lv, kenh] = dsDc.length && p ? await Promise.all([lanVideoPhong(p, dc?.hom ?? homNay(), phutVN()), dsDc.some((d) => d.nguon.startsWith('kenh:')) ? kenhKeoKhach(p) : Promise.resolve([])]) : [null, []];
+  const coDc = dsDc.length > 0;
   const than = thu
     ? <TabPhong khoa={id} dau={dau} tabs={[{ key: 'chay', nhan: 'Chạy' }, { key: 'luot', nhan: 'Các lượt', so: dem!.tong }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }, { key: 'sodo', nhan: 'Sơ đồ' }]}>
         {[<PhongThuChay key="c" admin={admin} />, <PhongThuDs key="l" admin={admin} />, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />, <div key="s">{soDoTab}</div>]}
       </TabPhong>
-    : <TabPhong khoa={id} dau={dau} tabs={[...(dc ? [{ key: 'daychuyen', nhan: 'Dây chuyền', so: dc.loi ? '!' : demCan(dc, lv) || '' }] : []), { key: 'sodo', nhan: 'Sơ đồ' }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
-        {[...(dc ? [<DayChuyenTab key="dc" dc={dc} phong={id} p={p} lv={lv} />] : []), <div key="s">{soDoTab}</div>, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
+    : <TabPhong khoa={id} dau={dau} tabs={[...(coDc ? [{ key: 'daychuyen', nhan: 'Dây chuyền', so: dc?.loi ? '!' : demCan({ dsDc, dc, lv, kenh, phong: id }) || '' }] : []), { key: 'sodo', nhan: 'Sơ đồ' }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
+        {[...(coDc ? [<DayChuyenTab key="dc" dsDc={dsDc} dc={dc} lv={lv} kenh={kenh} phong={id} p={p} />] : []), <div key="s">{soDoTab}</div>, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
       </TabPhong>;
   // Văn phòng pixel LIVE cố định bên phải: phòng có văn phòng riêng (van_phong_cong) thì xem đúng phòng đó, chưa có thì văn phòng chung.
   const vp = p.fm.van_phong_cong ? `/vp/${id}/` : '';   // phòng khai cổng văn phòng riêng (worker/vp.mjs vanPhongCacPhong) → xem đúng phòng đó
@@ -398,8 +402,6 @@ export async function nganQuyTrinh(): Promise<Ngan> {
 
 // SÁCH + CARD (anh 12/10/2026: "ở dây chuyền bấm sao lại mở sang mos2 — tập trung link out vào drawer"): màn cty chỉ mở ngăn;
 // link ra MOS2 / sàn (mở tab mới) chỉ nằm trong hai ngăn này. Sửa / duyệt / đóng vẫn làm ở MOS2.
-// kenh_sp ghi tựa ngắn ("Nostalgic Word Search & Memory Book"), sổ sản phẩm ghi tựa đủ ("… for Seniors") → cùng cuốn khi tựa sổ BẮT ĐẦU bằng tựa kênh
-const cungSach = (tuaSo: string, tenKenh: string) => tuaSo.toLowerCase().startsWith(tenKenh.toLowerCase());
 const Ra = ({ u, chu }: { u: string; chu: string }) => <a href={u} target="_blank" rel="noreferrer">{chu} ↗</a>;
 const linkCard = (id: number, duAn: string) => `https://mos2.on.tc/p/${duAn}/plays?task=${id}`;   // EntityRef 'task' của MOS2
 
@@ -484,7 +486,7 @@ const QT_VIDEO = ['chu-de-video', 'dung-video', 'video-ngan', 'do-video', 'rut-k
 export async function nganVideo(ma: string): Promise<Ngan> {
   const [ph = '', slugMa = ''] = ma.split('/'); const slug = decodeURIComponent(slugMa); const p = phong(ph);
   const lv = p ? await lanVideoPhong(p, homNay(), phutVN()) : null;
-  if (!lv || 'loi' in lv) return { tieuDe: 'Video', than: <Thieu chu={lv ? lv.loi : `Phòng "${ph}" không chạy video ngắn (thiếu video_ngan trong hồ sơ phòng).`} /> };
+  if (!lv || 'loi' in lv) return { tieuDe: 'Video', than: <Thieu chu={lv ? lv.loi : `Phòng "${ph}" không chạy video ngắn (chưa khai dây chuyền nguồn 'video' trong quy-trinh/<phòng>/danh-sach.json).`} /> };
   const v = lv.videos.find((x) => x.slug === slug); const luot = lv.nen.filter((n) => n.slug === slug);
   if (!v && !luot.length) return { tieuDe: tenSlug(slug), than: <Thieu chu={`Chưa có số đo hay lượt đăng nào của video "${slug}".`} /> };
   const tenSach = v ? lv.tenSach[v.sach] : undefined;

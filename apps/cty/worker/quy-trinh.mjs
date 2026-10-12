@@ -23,6 +23,12 @@ export function dsQuyTrinh() {
   const phongs = fs.readdirSync(path.join(CONG_TY, 'phong')).filter((f) => f.endsWith('.md')).map((f) => f.slice(0, -3));
   return phongs.flatMap((p) => [...doc(p).map((q) => ({ ...q, phong: p, khoa: `${p}/${q.id}`, nguon: 'phong' })), ...chung.map((q) => ({ ...q, phong: p, khoa: `${p}/${q.id}`, nguon: 'chung' }))]);
 }
+/** Các dây chuyền của một phòng (khoá `day_chuyen` trong cong-ty/quy-trinh/<phòng>/danh-sach.json): [{ id, ten, don_vi, nguon }].
+ *  Phòng chưa khai → []. Quy trình thuộc dây chuyền nào ghi ở khoá `day_chuyen` của từng quy trình. */
+export function dsDayChuyen(phong) {
+  const f = path.join(CONG_TY, 'quy-trinh', phong, 'danh-sach.json');
+  return fs.existsSync(f) ? docJson(f).day_chuyen ?? [] : [];
+}
 /** Quy định phòng phải tuân theo, theo tầng: luật chung công ty → quy định từng dự án phòng tham gia (du_an trong cong-ty/phong/<id>.md)
  *  → quy định riêng của phòng (thân tệp phòng). Phòng KHÔNG sửa được tầng công ty / dự án (không nằm trong biên). */
 export function quyDinhCuaPhong(phong) {

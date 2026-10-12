@@ -123,7 +123,7 @@ export function TaiSanView({ ban }: { ban: TaiSanBan }) {
         </ul>
       )}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'flex-start' }}>
-        <nav aria-label="Danh sách shop" style={{ flex: '1 1 210px', maxWidth: 230, display: 'grid', gap: 2, maxHeight: '70vh', overflowY: 'auto' }}>
+        <nav aria-label="Danh sách shop" style={{ flex: '1 1 210px', display: 'grid', gap: 2, maxHeight: '70vh', overflowY: 'auto' }}>
           {ds.length === 0 && <div style={{ fontSize: 12, ...phu }}>không shop nào có sản phẩm ở trạng thái này</div>}
           {ds.map((d) => <DongShopTrai key={d.s.khoa} d={d} loc={loc} chon={d === dangChon} onChon={() => datSh(d.s.khoa)} />)}
         </nav>

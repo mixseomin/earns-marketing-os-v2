@@ -251,6 +251,8 @@ export type Lop = {
   hu?: HieuUngKhung; cuong?: number;
   /** mã nhóm: các lớp cùng mã là MỘT đối tượng — bấm chọn cả nhóm, dời/đổi cỡ/xoay/xoá cùng nhau; bản xuất vẫn vẽ từng lớp. */
   nhom?: string;
+  /** mã nhóm trước khi bấm Bỏ nhóm — để "Gộp lại nhóm cũ" trả đúng nhóm (12/10/2026). */
+  nhom_cu?: string;
 };
 export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null; xuat: BanXuat[]; bai_dang: BaiDang | null; lop: Lop[] };
 /** Một bản xuất MP4 của tập (mỗi nhánh hook một tệp). */

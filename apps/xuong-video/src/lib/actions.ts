@@ -1094,7 +1094,7 @@ export async function luuLop(tapId: number, lop: Lop[]): Promise<Kq> {
   const k = (v: unknown, a: number, b: number, mac: number) => { const x = Number(v); return Number.isFinite(x) ? Math.max(a, Math.min(b, x)) : mac; };
   const sach = (Array.isArray(lop) ? lop : []).slice(0, 80).map((l) => ({ ...l, tu: k(l.tu, 0, 3600, 0), den: k(l.den, 0, 3600, 2), x: k(l.x, -0.5, 1.5, 0.5), y: k(l.y, -0.5, 1.5, 0.5),
     w: k(l.w, 0.01, 2, 0.5), h: k(l.h, 0.005, 2, 0.1), xoay: k(l.xoay, -180, 180, 0), mo: k(l.mo, 0, 1, 1), co: l.co == null ? undefined : k(l.co, 0.01, 0.4, 0.07),
-    vien_day: l.vien_day == null ? undefined : k(l.vien_day, 0, 0.3, 0.08), chu: l.chu == null ? undefined : String(l.chu).slice(0, 300), url: l.url && /^https?:\/\//.test(l.url) ? l.url : undefined, nhom: l.nhom ? String(l.nhom).slice(0, 20) : undefined }));
+    vien_day: l.vien_day == null ? undefined : k(l.vien_day, 0, 0.3, 0.08), chu: l.chu == null ? undefined : String(l.chu).slice(0, 300), url: l.url && /^https?:\/\//.test(l.url) ? l.url : undefined, nhom: l.nhom ? String(l.nhom).slice(0, 20) : undefined, nhom_cu: l.nhom_cu && !l.nhom ? String(l.nhom_cu).slice(0, 20) : undefined }));
   await chupTruoc(db, { bang: 'xv_tap', id: tapId, cot: ['lop'], moTa: `sửa lớp phủ (${sach.length} lớp)`, nguoi: await ai() });
   await db.execute(sql`UPDATE xv_tap SET lop = ${JSON.stringify(sach)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
   return { ok: true, data: undefined };

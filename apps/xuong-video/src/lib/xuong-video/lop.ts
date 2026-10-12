@@ -21,7 +21,6 @@ export function chonLopMoi(ds: Lop[], dang: string[], id: string, them: boolean)
   if (!them) return n;
   return n.every((x) => dang.includes(x)) ? dang.filter((x) => !n.includes(x)) : [...dang, ...n.filter((x) => !dang.includes(x))];
 }
-/** Gộp ≥2 lớp thành một đối tượng (mã nhóm mới; nhóm cũ bên trong tan vào nhóm mới). Dưới 2 lớp → giữ nguyên. */
 /** Tên một nhóm lớp trên timeline: phần chung trước " · " của tên các lớp ("Impact · chớp/rung/zoom" → "Impact"), không có thì "Nhóm N lớp". */
 export const tenNhom = (ds: Lop[]): string => { const p = ds.map((l) => tenLop(l).split(' · ')[0]!); return p.every((x) => x === p[0]) && p[0] ? p[0] : `Nhóm ${ds.length} lớp`; };
 /** Làn lớp phủ trên timeline (12/10/2026 — 8 impact × 3 lớp thành 24 làn): lớp lẻ một làn như cũ (giữ thứ tự vẽ: làn trên = vẽ trên);
@@ -38,8 +37,17 @@ export function lanLop(ds: Lop[]): { key: string; nhan: string; khoi: Lop[][] }[
   }
   return lan;
 }
-export const gopNhom = (ds: Lop[], ids: string[], ma = idLop()): Lop[] => (ids.length < 2 ? ds : ds.map((l) => (ids.includes(l.id) ? { ...l, nhom: ma } : l)));
-export const boNhom = (ds: Lop[], ids: string[]): Lop[] => ds.map((l) => (ids.includes(l.id) && l.nhom ? { ...l, nhom: undefined } : l));
+/** Gộp ≥2 lớp thành một đối tượng (mã nhóm mới; nhóm cũ bên trong tan vào nhóm mới). Dưới 2 lớp → giữ nguyên. */
+export const gopNhom = (ds: Lop[], ids: string[], ma = idLop()): Lop[] => (ids.length < 2 ? ds : ds.map((l) => (ids.includes(l.id) ? { ...l, nhom: ma, nhom_cu: undefined } : l)));
+/** Bỏ nhóm: nhớ mã cũ vào nhom_cu để gộp lại được đúng như trước (gopLaiNhomCu). */
+export const boNhom = (ds: Lop[], ids: string[]): Lop[] => ds.map((l) => (ids.includes(l.id) && l.nhom ? { ...l, nhom: undefined, nhom_cu: l.nhom } : l));
+/** Gộp lại các nhóm đã tách (lớp còn nhom_cu, chưa vào nhóm mới) — `ids` trống = mọi lớp. Nhóm cũ chỉ còn 1 lớp thì thôi. */
+export function gopLaiNhomCu(ds: Lop[], ids?: string[]): Lop[] {
+  const dem = new Map<string, number>(); for (const l of ds) if (!l.nhom && l.nhom_cu && (!ids || ids.includes(l.id))) dem.set(l.nhom_cu, (dem.get(l.nhom_cu) ?? 0) + 1);
+  return ds.map((l) => (!l.nhom && l.nhom_cu && (!ids || ids.includes(l.id)) && (dem.get(l.nhom_cu) ?? 0) >= 2 ? { ...l, nhom: l.nhom_cu, nhom_cu: undefined } : l));
+}
+/** Số nhóm đã tách còn gộp lại được. */
+export const soNhomCu = (ds: Lop[]): number => { const dem = new Map<string, number>(); for (const l of ds) if (!l.nhom && l.nhom_cu) dem.set(l.nhom_cu, (dem.get(l.nhom_cu) ?? 0) + 1); return [...dem.values()].filter((n) => n >= 2).length; };
 /** Đổi cỡ (k) + xoay (độ) cả vùng chọn quanh tâm (cx, cy chuẩn hoá) — vị trí từng lớp xoay/co theo tâm chung, cỡ và góc riêng cộng thêm.
  *  Tính bằng px (rong × cao) để xoay không méo trên khung 9:16. */
 export function bienDoiNhom(goc: Lop[], cx: number, cy: number, k: number, doXoay: number, rong: number, cao: number): Record<string, Partial<Lop>> {

@@ -88,4 +88,19 @@ console.log('lop.test: ok');
   const chong = lanLop([...lopImpact(1), ...lopImpact(1.1)]);
   assert.strictEqual(chong.length, 2, 'hai impact chồng giờ không chung làn');
 }
-console.log('lop.test: làn ok');
+// Bỏ nhóm rồi gộp lại đúng nhóm cũ (12/10/2026: bỏ nhóm xong không có đường gộp lại)
+{
+  const { boNhom, gopLaiNhomCu, soNhomCu, gopNhom } = await import('./lop');
+  const { lopImpact } = await import('./nhip-hanh-dong');
+  const a = lopImpact(1), b = lopImpact(3); const ds = [...a, ...b];
+  const bo = boNhom(ds, ds.map((l) => l.id));
+  assert.ok(bo.every((l) => !l.nhom && l.nhom_cu)); assert.strictEqual(soNhomCu(bo), 2);
+  const lai = gopLaiNhomCu(bo);
+  assert.deepStrictEqual(lai.map((l) => l.nhom), ds.map((l) => l.nhom), 'gộp lại đúng mã nhóm cũ'); assert.strictEqual(soNhomCu(lai), 0);
+  // gộp nhóm mới thì quên nhóm cũ
+  assert.ok(gopNhom(bo, [bo[0]!.id, bo[3]!.id]).filter((l) => l.nhom).every((l) => !l.nhom_cu));
+  // nhóm cũ chỉ còn 1 lớp lẻ (đã gộp các lớp khác vào nhóm mới) → không gộp một mình
+  const le = gopLaiNhomCu(gopNhom(bo, [bo[0]!.id, bo[1]!.id]));
+  assert.ok(!le[2]!.nhom, 'lớp còn lại một mình không thành nhóm');
+}
+console.log('lop.test: làn + gộp lại ok');

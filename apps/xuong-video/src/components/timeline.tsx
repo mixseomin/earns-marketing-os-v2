@@ -20,7 +20,7 @@ import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 import { mono, Menu } from './ui';
 import { docLT, ghiLT } from '@/lib/luu-tru';
-import { lopMoi, idLop, tenLop, chonLopMoi, nhomCua, gopNhom, boNhom, lanLop } from '@/lib/xuong-video/lop';
+import { lopMoi, idLop, tenLop, chonLopMoi, nhomCua, gopNhom, boNhom, lanLop, gopLaiNhomCu, soNhomCu } from '@/lib/xuong-video/lop';
 import { useLop, LopXem, LopCongCu, LopNguyenLieu, LopBang, LopNhieu, KhoiLop, KhungHieuUng } from './lop-ui';
 import { moNgan } from './ngan-chung';
 import { useKichThuoc, TayKeo } from './keo';
@@ -254,11 +254,16 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const lopChon = dsChonLop.length === 1 ? dsChonLop[0]! : null;
   const setChonLop = (id: string | null) => setChonLops(id ? [id] : []);
   const bamLop = (id: string, them: boolean) => setChonLops((d) => chonLopMoi(lop, d, id, them));
-  const [vuaXoa, setVuaXoa] = useState<{ truoc: Lop[]; so: number } | null>(null);
+  // Hoàn tác thao tác lớp vừa làm (xoá, bỏ nhóm…) — 10 giây; "↶" trả nguyên mảng lớp trước đó.
+  const [vuaXoa, setVuaXoa] = useState<{ truoc: Lop[]; chu: string } | null>(null);
   useEffect(() => { if (!vuaXoa) return; const h = setTimeout(() => setVuaXoa(null), 10000); return () => clearTimeout(h); }, [vuaXoa]);
-  const xoaChon = () => { if (!chonLops.length) return; setVuaXoa({ truoc: lop, so: chonLops.length }); datLop((ds) => ds.filter((l) => !chonLops.includes(l.id))); setChonLops([]); };
+  const xoaChon = () => { if (!chonLops.length) return; setVuaXoa({ truoc: lop, chu: `đã xoá ${chonLops.length} lớp` }); datLop((ds) => ds.filter((l) => !chonLops.includes(l.id))); setChonLops([]); };
   const gopChon = () => datLop((ds) => gopNhom(ds, chonLops));
-  const boNhomChon = () => datLop((ds) => boNhom(ds, chonLops));
+  /** Bỏ nhóm — MỘT đường cho nút đầu làn, bảng Thuộc tính và ⇧⌘G: có ↶ hoàn tác ngay, và lớp nhớ nhóm cũ để "Gộp lại" lúc nào cũng được. */
+  const boNhomIds = (ids: string[]) => { if (!ids.some((id) => lop.find((l) => l.id === id)?.nhom)) return; setVuaXoa({ truoc: lop, chu: `đã bỏ nhóm ${ids.length} lớp` }); datLop((ds) => boNhom(ds, ids)); };
+  const boNhomChon = () => boNhomIds(chonLops);
+  const soCu = soNhomCu(lop);
+  const chonNhom = dsChonLop.length > 1 && dsChonLop.every((l) => l.nhom && l.nhom === dsChonLop[0]!.nhom);
   const panTrai = useKichThuoc('xv-tl-trai', 200, 140, 440);
   const panPhai = useKichThuoc('xv-tl-phai', 280, 220, 560);
   const hangPan = useKichThuoc(`xv-tl-hang-${doc916 ? 'doc' : 'ngang'}`, doc916 ? 524 : 360, 260, 1000);
@@ -361,7 +366,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
         {onKhopGiong && <button type="button" className="xv-btn" title="Khớp giây phát mỗi shot theo giọng đã sinh: đủ đọc hết câu (tốc ≤1,1×), mốc chữ màn co giãn theo, lớp phủ dời theo shot. 0đ, ↶ Hoàn tác được." onClick={() => { if (dangKhop) return; setDangKhop(true); void onKhopGiong().then((m) => setBaoNhip(m)).finally(() => setDangKhop(false)); }}>⏱ Khớp giọng</button>}
         {baoNhip && <span style={mono}>{baoNhip}</span>}
         <span style={{ flex: 1 }} />
-        {vuaXoa && <span style={mono}>đã xoá {vuaXoa.so} lớp · <button type="button" className="xv-lienket" onClick={() => { const tr = vuaXoa.truoc; datLop(() => tr); setVuaXoa(null); }}>↶ Hoàn tác</button></span>}
+        {vuaXoa && <span style={mono}>{vuaXoa.chu} · <button type="button" className="xv-lienket" onClick={() => { const tr = vuaXoa.truoc; datLop(() => tr); setVuaXoa(null); }}>↶ Hoàn tác</button></span>}
         {loiLop ? <span className="xv-loi">{loiLop}</span> : <span style={{ ...mono, minWidth: 70, textAlign: 'right' }}>{luuLop === 'dang' ? 'đang lưu…' : luuLop === 'xong' ? '✓ đã lưu' : ''}</span>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: `${panTrai.v}px 4px minmax(0, 1fr) 4px ${panPhai.v}px`, height: hangPan.v }}>
@@ -449,6 +454,13 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           }), 26, nutNho(anChuMan ? '🙈' : '👁', anChuMan ? 'Chữ màn đang ẩn khỏi khung xem (bản xuất vẫn có) — bấm để hiện' : 'Ẩn chữ màn khỏi khung xem để nhìn hình sạch (bản xuất vẫn có)', anChuMan, () => doiAnLan('xem:chu_man')))}
 
           {/* Lớp phủ: mỗi lớp một làn (lớp sau nằm trên), kéo khối đổi giờ — bấm chọn để sửa ở bảng bên phải khung xem. */}
+          {lop.length > 0 && track('🧩 Lớp phủ', 'Thao tác nhóm: Shift/⌘ + bấm để chọn nhiều lớp → ⛓ Gộp nhóm (⌘G); chọn một nhóm → Bỏ nhóm (⇧⌘G); lớp đã tách nhớ nhóm cũ → ⛓ Gộp lại',
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', height: '100%', paddingLeft: 6, ...mono }}>
+              {dsChonLop.length > 1 && !chonNhom && nutNho(`⛓ Gộp nhóm ${dsChonLop.length} lớp (⌘G)`, 'Gộp các lớp đang chọn thành một nhóm', false, gopChon)}
+              {chonNhom && nutNho(`Bỏ nhóm ${dsChonLop.length} lớp (⇧⌘G)`, 'Tách nhóm đang chọn thành lớp lẻ', false, boNhomChon)}
+              {soCu > 0 && nutNho(`⛓ Gộp lại ${soCu} nhóm đã tách`, 'Trả các lớp đã bỏ nhóm về đúng nhóm cũ', false, () => datLop((ds) => gopLaiNhomCu(ds)))}
+              {dsChonLop.length < 2 && !soCu && <span>Shift + bấm nhiều lớp → ⛓ Gộp nhóm</span>}
+            </div>, 22)}
           {lop.length ? lanLop(lop).map((ln) => {
               const le = ln.khoi.length === 1 && ln.khoi[0]!.length === 1 ? ln.khoi[0]![0]! : null; const tat = ln.khoi.flat(); const ids = tat.map((x) => x.id); const an = tat.every((x) => x.an);
               const cungNhom = (l: Lop) => (chonLops.includes(l.id) ? dsChonLop : lop.filter((x) => nhomCua(lop, l.id).includes(x.id)));
@@ -457,7 +469,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                 <KhoiLop l={le} pps={pps} chon={chonLops.includes(le.id)} cung={cungNhom(le)} onChon={(them) => bamLop(le.id, them)} onDoi={doiLop} />, 20, nutAn, le.id)}</Fragment>;
               const mo = moLan.includes(ln.key);
               const nutMo = nutNho(mo ? '▾' : '▸', mo ? 'Gộp lại thành một làn' : 'Mở ra từng lớp (chớp / rung / zoom…) để sửa riêng — vẫn giữ nhóm', !mo, () => setMoLan((d) => (mo ? d.filter((x) => x !== ln.key) : [...d, ln.key])));
-              const nutBo = nutNho('Bỏ nhóm', 'Tách mọi nhóm trong làn này thành lớp lẻ (mỗi lớp một làn)', true, () => datLop((ds) => boNhom(ds, ids)));
+              const nutBo = nutNho('Bỏ nhóm', 'Tách mọi nhóm trong làn này thành lớp lẻ — có ↶ hoàn tác, và "⛓ Gộp lại" ở làn 🧩 Lớp phủ trả đúng nhóm cũ', true, () => boNhomIds(ids));
               // Mở ra: mỗi tên lớp con một làn ("Impact · chớp" của cả 8 nhóm chung một làn) — kéo mép đổi giờ riêng lớp, kéo thân dời cả nhóm.
               const con = [...new Set(tat.map((x) => tenLop(x)))];
               return <Fragment key={ln.key}>

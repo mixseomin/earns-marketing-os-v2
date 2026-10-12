@@ -7,6 +7,7 @@ import { doPhach, luoiPhach, khopNhip, doiLopTheoCat, SR_PHACH } from './nhip-nh
 import { giayPhat, locNhanh, type Canh } from './kieu';
 import { mapCanh, mapTap, type Db, type Row } from './doc-db';
 import { chupTruoc } from './hoan-tac';
+import { giayClipCan } from './toc-do';
 
 async function giaiMa(url: string): Promise<Float32Array> {
   const r = await fetch(url, { signal: AbortSignal.timeout(60_000) }); if (!r.ok) throw new Error(`tải nhạc ${r.status}`);
@@ -45,7 +46,7 @@ export async function khopNhipTap(db: Db, tapId: number, nguoi: string): Promise
   for (const [i, c] of ds.entries()) {
     const p = kq.phat[i]!; if (Math.abs(p - phat[i]!) < 0.01) continue;
     await chupTruoc(db, { bang: 'xv_canh', id: c.id, cot: ['phat_s', 'thoi_luong_s'], moTa: `khớp nhịp nhạc (#${c.thu_tu} ${phat[i]}s → ${p}s)`, nguoi });
-    await db.execute(sql`UPDATE xv_canh SET phat_s = ${p}, thoi_luong_s = GREATEST(thoi_luong_s, ${Math.ceil(p)}), updated_at = now() WHERE id = ${c.id}`);
+    await db.execute(sql`UPDATE xv_canh SET phat_s = ${p}, thoi_luong_s = CASE WHEN video_url IS NULL AND video_cuoi_url IS NULL THEN ${giayClipCan(c.ky_thuat?.toc_do, p)} ELSE GREATEST(thoi_luong_s, ${Math.ceil(p)}) END, updated_at = now() WHERE id = ${c.id}`);
     doi++;
   }
   if (doi && tap.lop.length) {

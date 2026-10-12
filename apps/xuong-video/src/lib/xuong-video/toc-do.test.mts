@@ -22,4 +22,5 @@ if (process.env.CLIP) {                               // ffmpeg thật: độ d�
   assert.ok(Math.abs(giay - 2.4) < 0.1, `ffmpeg ra ${giay}s, cần 2,4s`);
   console.log(`toc-do.test: ffmpeg thật ${giay.toFixed(2)}s ok`);
 }
+{ const { giayClipCan } = await import('./toc-do'); assert.strictEqual(giayClipCan(undefined, 3.15), 4); assert.strictEqual(giayClipCan('nhanh', 3.45), 6); assert.strictEqual(giayClipCan('cham', 4.2), 4); }
 console.log('toc-do.test: ok');

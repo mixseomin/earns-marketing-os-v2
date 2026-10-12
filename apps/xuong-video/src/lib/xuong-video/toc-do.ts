@@ -34,6 +34,10 @@ export function bieuThucToc(kh: KeHoachToc): string {
   for (let i = d.length - 2; i >= 0; i--) bt = `if(lt(T,${d[i]!.denVao}),${d[i]!.tuRa}+(T-${d[i]!.tuVao})/${d[i]!.toc},${bt})`;
   return bt;
 }
+/** Số giây CLIP cần sinh cho một shot: đủ nguồn cho giây phát (và cho kiểu đổi tốc — nhanh thì ăn nhiều nguồn hơn), tối thiểu 4s
+ *  (clip ngắn nhất của model). Dùng khi khớp giọng/nhịp đổi giây phát mà shot CHƯA có clip — trước đây chỉ tăng, không giảm (shot 3,2s
+ *  vẫn sinh clip 8s, 12/10/2026). */
+export const giayClipCan = (kieu: string | undefined, phat: number): number => Math.max(4, Math.ceil(keHoachToc(kieu, phat, phat, 99)?.canVao ?? phat));
 /** Xem trước: giây nguồn ứng với giây ra t, và tốc đang chạy. */
 export function nguonTai(kh: KeHoachToc, t: number): { vao: number; toc: number } {
   const x = kh.doan.find((d) => t < d.denRa) ?? kh.doan[kh.doan.length - 1]!;

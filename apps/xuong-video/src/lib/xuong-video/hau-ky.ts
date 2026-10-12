@@ -12,6 +12,7 @@ import { docKinhThanh, type KinhThanh } from './kieu';
 import { uploadToR2 } from '../r2';
 import { randomUUID } from 'node:crypto';
 import { doiLopTheoCat } from './nhip-nhac';
+import { giayClipCan } from './toc-do';
 import { nhipHanhDong } from './nhip-hanh-dong';
 import { mapCanh, mapTap, mapNhanVat, type Db, type Row } from './doc-db';
 import { chupTruoc } from './hoan-tac';
@@ -61,7 +62,7 @@ export async function khopGiongTap(db: Db, tapId: number, nguoi: string): Promis
   for (const [i, c] of d.ds.entries()) {
     const p = phatMoi[i]!; if (Math.abs(p - phatCu[i]!) < 0.01) continue;
     await chupTruoc(db, { bang: 'xv_canh', id: c.id, cot: ['phat_s', 'thoi_luong_s', 'chu_man'], moTa: `khớp giây theo giọng (#${c.thu_tu} ${phatCu[i]}s → ${p}s)`, nguoi });
-    await db.execute(sql`UPDATE xv_canh SET phat_s = ${p}, thoi_luong_s = GREATEST(thoi_luong_s, ${Math.ceil(p)}), chu_man = ${coGianMoc(c.chu_man, p / phatCu[i]!)}, updated_at = now() WHERE id = ${c.id}`);
+    await db.execute(sql`UPDATE xv_canh SET phat_s = ${p}, thoi_luong_s = CASE WHEN video_url IS NULL AND video_cuoi_url IS NULL THEN ${giayClipCan(c.ky_thuat?.toc_do, p)} ELSE GREATEST(thoi_luong_s, ${Math.ceil(p)}) END, chu_man = ${coGianMoc(c.chu_man, p / phatCu[i]!)}, updated_at = now() WHERE id = ${c.id}`);
     doi++;
   }
   if (doi && d.tap.lop.length) {

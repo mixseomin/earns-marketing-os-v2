@@ -5,7 +5,7 @@ import { Timeline } from './timeline';
 import { moNgan } from './ngan-chung';
 import { MO_HINH_AM } from '@/lib/xuong-video/am-thanh';
 import { kiemQc } from '@/lib/xuong-video/kiem-qc';
-import { luuKhuonTap, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, trangThaiXuat } from '@/lib/actions';
+import { luuKhuonTap, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, trangThaiXuat, khopNhipNhac } from '@/lib/actions';
 import { thanhPhanCanh, docKinhThanh, giaAnhCents, giaVideoCents, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, coMau, giayMau, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, TabPhim, KqChay, O, Nut, Loi, Menu, MucMenu, mono } from './ui';
@@ -274,6 +274,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
                 <Timeline canh={canhNhanh} nhanVat={nhanVat} tap={tap} qc={kt.qc} tiLe={kt.ti_le} ngonNgu={kt.ngon_ngu} chon={cc.id} onChon={setChonCanh} onToanManHinh={() => setAnimatic(true)}
                   // Kéo mép = đổi giây PHÁT: ngắn hơn clip là cắt (không tốn tiền); dài hơn clip thì clip phải sinh lại dài hơn.
                   onDoiGiay={(id, g) => void chay(`c${id}`, () => { const c0 = canh.find((x) => x.id === id); return suaCanh(id, { phat_s: g, ...(c0 && g > (c0.thoi_luong_s || 4) ? { thoi_luong_s: Math.ceil(g) } : {}) }); })}
+                  onKhopNhip={async () => { const r = await khopNhipNhac(tap.id); await taiCanh(); await onChanged(); return r.ok ? `🎯 ${r.data.khop}/${r.data.diemCat} điểm cắt trúng phách (${r.data.bpm.join(' / ')} BPM) · ${r.data.doi} shot đổi giây phát` : `🎯 ${r.loi}`; }}
                   onDoiKyThuat={(ds) => void chay('kt', async () => { for (const x of ds) { const r = await suaCanh(x.id, { ky_thuat: x.ky_thuat }); if (!r.ok) return r; } return { ok: true as const }; })}
                   onDoiChuyenCanh={(id, key, giay) => void chay(`c${id}`, () => { const c0 = canh.find((x) => x.id === id); const kt0 = c0?.ky_thuat ?? {}; return suaCanh(id, { ky_thuat: { ...kt0, chuyen_canh: key || undefined, giay_cc: giay === undefined ? kt0.giay_cc : giay ?? undefined } }); })}
                   sinh={{

@@ -36,10 +36,11 @@ export type SinhTaiCho = {
   giong: (canhId: number, tuy: TuyGiong) => void; sfx: (canhId: number, tuy: TuyAm) => void; nhac: (phanDoan: string | undefined, model: string, moTa: string) => void;
   mhNhac: string; ban: (k: string) => boolean; dangPhanDoan: string[]; dangCaTap: boolean;
 };
-export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, onDoiChuyenCanh, onDoiKyThuat }: {
+export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, onDoiChuyenCanh, onDoiKyThuat, onKhopNhip }: {
   canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null; qc?: ThongTinQc | null;
   onChon: (id: number) => void; onDoiGiay: (id: number, giay: number) => void;
   /** đổi chuyển cảnh SAU shot id (ky_thuat.chuyen_canh; '' = cắt thẳng) và/hoặc số giây đặt tay (giay: undefined = giữ, null = về mặc định) */ onDoiChuyenCanh?: (id: number, key: string, giay?: number | null) => void; onXep: (ids: number[]) => void; onToanManHinh: () => void; sinh?: SinhTaiCho;
+  /** khớp điểm cắt vào phách nhạc nền — trả câu báo */ onKhopNhip?: () => Promise<string>;
   /** ghi kỹ thuật mới cho vài shot một lượt (gói impact / nhịp hành động thêm tiếng) */ onDoiKyThuat?: (ds: { id: number; ky_thuat: KyThuatShot }[]) => void;
 }) {
   // Số giây tạm khi đang kéo mép clip (chưa ghi) — timeline co giãn theo tay ngay.
@@ -97,6 +98,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   // Bật/tắt từng lớp tiếng khi xem (clip có tiếng sẵn thì tắt bớt để khỏi chồng).
   const [tat, setTat] = useState<Record<string, boolean>>({});
   const [baoNhip, setBaoNhip] = useState('');
+  const [dangKhop, setDangKhop] = useState(false);
 
   // Đồng hồ phát: requestAnimationFrame đẩy t, hết tập thì dừng.
   useEffect(() => {
@@ -568,7 +570,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                   sinh && kh.ten ? { loai: 'nhac', phanDoan: kh.ten, giay, dang: sinh.ban('nhac') || sinh.dangPhanDoan.includes(kh.ten), nghe: url ? [url] : [], title: `Bấm để chọn model nhạc, mô tả rồi sinh nhạc cho phân cảnh này` } : undefined);
               })
             : khoiAm(0, W, !!tap.nhac_url, '#a78bfa', tap.nhac_mo_ta || 'Nhạc nền cả tập: chưa có', tap.nhac_mo_ta || 'chưa có nhạc nền', 'nhac', undefined,
-                sinh && { loai: 'nhac', giay: tong, dang: sinh.ban('nhac1') || sinh.dangCaTap, nghe: tap.nhac_url ? [tap.nhac_url] : [], title: `Bấm để chọn model nhạc, mô tả rồi sinh một bài cả tập` }), 26, nutNho(tat.nhac ? '🔇' : '🔊', tat.nhac ? 'Nhạc đang tắt — bấm để bật' : 'Tắt tiếng nhạc', !!tat.nhac, () => batTat('nhac')))}
+                sinh && { loai: 'nhac', giay: tong, dang: sinh.ban('nhac1') || sinh.dangCaTap, nghe: tap.nhac_url ? [tap.nhac_url] : [], title: `Bấm để chọn model nhạc, mô tả rồi sinh một bài cả tập` }), 26, <>{onKhopNhip && nutNho(dangKhop ? '⏳' : '🎯', 'Khớp nhịp: dò phách của nhạc nền rồi dời mỗi điểm cắt tới phách gần nhất (về sau ≤0,35s, lùi ≤0,1s — không cụt giọng); lớp phủ dời theo shot. 0đ, ↶ Hoàn tác được.', false, () => { if (dangKhop) return; setDangKhop(true); void onKhopNhip().then((m) => setBaoNhip(m)).finally(() => setDangKhop(false)); })}{nutNho(tat.nhac ? '🔇' : '🔊', tat.nhac ? 'Nhạc đang tắt — bấm để bật' : 'Tắt tiếng nhạc', !!tat.nhac, () => batTat('nhac'))}</>)}
 
           {yc && sinh && <BangSinh yc={yc} nhanVat={nhanVat} tap={tap} mhNhac={sinh.mhNhac} onClose={() => setYc(null)} onGiong={sinh.giong} onSfx={sinh.sfx} onNhac={sinh.nhac} />}
           {/* Đầu phát */}

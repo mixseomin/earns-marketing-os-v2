@@ -1,5 +1,5 @@
 // Tự kiểm src/lib/ngan.ts (Node ≥ 22.6 tự bỏ kiểu TS). Exit 1 khi lệch.
-import { khoaTuHref, docChong, moKhoa, urlVoiChong } from '../src/lib/ngan.ts';
+import { khoaTuHref, docChong, moKhoa, urlVoiChong, rongKeo, rongHopLe } from '../src/lib/ngan.ts';
 const a = (c, m) => { if (!c) { console.error('✗ ngan:', m); process.exit(1); } };
 a(khoaTuHref('/nhan-su/tam') === 'nhan-su:tam', 'link nhân sự');
 a(khoaTuHref('/phong/thu-nghiem') === 'phong:thu-nghiem', 'link phòng');
@@ -16,4 +16,7 @@ a(khoaTuHref('/quy-trinh/thu-nghiem/lam-viec') === 'quy-trinh:thu-nghiem/lam-vie
 a(khoaTuHref('/sach/sach/123') === 'sach:sach/123' && khoaTuHref('/sach/sach') === null && khoaTuHref('/the/1107') === 'the:1107' && khoaTuHref('/the/abc') === null, 'sách + card');
 a(JSON.stringify(docChong(['phong:sach', 'sach:sach/1', 'the:2'])) === '["phong:sach","sach:sach/1","the:2"]', 'chồng nhận sách + card');
 a(khoaTuHref('/video/sach/halloween-word-search-an') === 'video:sach/halloween-word-search-an' && khoaTuHref('/video/sach') === null && docChong(['video:sach/a']).length === 1, 'video');
-console.log('✓ ngan: 15 ca đạt');
+a(rongKeo(1440, 400, 0, 0) === 1040 && rongKeo(1440, 400, -3, 1) === 1107, 'kéo mép: tầng 0 rộng = màn − x; tầng 1 cộng 64, giữ khoảng con trỏ lệch mép');
+a(rongKeo(1440, 1300, 0, 0) === 360 && rongKeo(1440, 1300, 0, 2) === 488 && rongKeo(1440, -80, 0, 0) === 1411 && rongKeo(300, 0, 0, 0) === 294, 'kéo mép: kẹp sàn 360 (tầng đang kéo), trần 98% màn, màn hẹp hơn sàn thì theo màn');
+a(rongHopLe('900') === 900 && rongHopLe('abc') === null && rongHopLe('12') === null && rongHopLe(null) === null, 'bề rộng nhớ: hỏng / quá nhỏ → mặc định');
+console.log('✓ ngan: 18 ca đạt');

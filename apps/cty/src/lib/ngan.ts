@@ -41,6 +41,18 @@ export function docChong(v: string | string[] | null | undefined): string[] {
   return ds.filter((k, i) => ds.indexOf(k) === i);
 }
 
+// BỀ RỘNG NGĂN anh tự kéo (anh 12/10/2026: "drawer phải cho resize"): MỘT bề rộng gốc (tầng 0) cho mọi ngăn, nhớ theo trình duyệt;
+// tầng i vẫn hẹp hơn tầng dưới NK_HUT px → kéo xong chồng ngăn vẫn lộ mép để bấm quay về.
+export const NK_HUT = 64, NK_MIN = 360, NK_KHOA = 'cty.ngan.rong';
+/** Bề rộng gốc mới khi kéo mép trái của tầng `tang` tới x (màn rộng `man`; `lech` = khoảng con trỏ cách mép lúc bấm, để ngăn không giật).
+ *  Kẹp: tầng đang kéo không hẹp hơn NK_MIN, gốc không quá 98% màn (màn hẹp hơn cả sàn thì theo màn). */
+export function rongKeo(man: number, x: number, lech: number, tang: number): number {
+  const goc = man - x - lech + tang * NK_HUT;
+  return Math.round(Math.min(man * 0.98, Math.max(NK_MIN + tang * NK_HUT, goc)));
+}
+/** Bề rộng đã nhớ hợp lệ? (chữ hỏng / số lạ → bỏ, về mặc định) */
+export const rongHopLe = (v: unknown) => { const n = Number(v); return Number.isFinite(n) && n >= NK_MIN && n <= 10_000 ? n : null; };
+
 /** Mở khoá: đã có trong chồng → kéo lên trên cùng (luật 3), chưa có → chồng thêm. `thay` = vị trí tầng bị thay (lọc trong ngăn). */
 export function moKhoa(chong: string[], khoa: string, thay?: number): string[] {
   const bo = chong.filter((k) => k !== khoa);

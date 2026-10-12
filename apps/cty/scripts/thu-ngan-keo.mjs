@@ -1,4 +1,4 @@
-// KIỂM CHỒNG NGĂN KÉO theo skill ngan-keo (6 bước + mở từ màn + bấm mép + Esc), trên trình duyệt thật, bản production.
+// KIỂM CHỒNG NGĂN KÉO theo skill ngan-keo (6 bước + mở từ màn + kéo mép đổi bề rộng + bấm mép + Esc), trên trình duyệt thật, bản production.
 //   node scripts/thu-ngan-keo.mjs <base> <phiên mos2-session> [thư mục ảnh]
 // Exit 1 khi bước nào sai. Không bấm nút tốn tiền / gửi góp ý.
 const { chromium } = await import(process.env.PLAYWRIGHT || '/Users/htuan/Me/Earns/courseforge-demo/node_modules/playwright/index.mjs');
@@ -26,6 +26,16 @@ kq('1 URL 3 khoá → 3 ngăn đúng thứ tự', (await tieu()) === `phong:thu-
 const w = await p.$$eval('.nk[data-khoa]', (ns) => ns.map((n) => Math.round(n.getBoundingClientRect().width)));
 kq('1b mỗi tầng hẹp hơn 64px', w[0] - w[1] === 64 && w[1] - w[2] === 64, w.join(' / '));
 if (anh) await p.screenshot({ path: `${anh}/nk-3tang.png` });
+// kéo mép (anh 12/10/2026 "drawer phải cho resize"): kéo mép trái tầng trên sang phải 300px → mọi tầng hẹp đi 300, vẫn lệch 64; F5 giữ; bấm đúp về mặc định
+const rong = () => p.$$eval('.nk[data-khoa]', (ns) => ns.map((n) => Math.round(n.getBoundingClientRect().width)));
+const hop = await p.locator('.nk[data-tang="2"] .nk-keo').boundingBox();
+await p.mouse.move(hop.x + 5, hop.y + 300); await p.mouse.down(); await p.mouse.move(hop.x + 305, hop.y + 300, { steps: 10 }); await p.mouse.up();
+const w2 = await rong();
+kq('1c kéo mép trái tầng trên → hẹp 300px, mọi tầng theo, vẫn lệch 64px', w2.every((x, i) => Math.abs(w[i] - x - 300) <= 2) && w2[0] - w2[1] === 64 && w2[1] - w2[2] === 64, `${w.join('/')} → ${w2.join('/')}`);
+await p.reload(); await doi(); const w3 = await rong();
+kq('1d F5 giữ bề rộng đã kéo', w3.join('/') === w2.join('/'), w3.join('/'));
+await p.locator('.nk[data-tang="2"] .nk-keo').dblclick(); await p.waitForTimeout(200); const w4 = await rong();
+kq('1e bấm đúp mép → về mặc định', w4.join('/') === w.join('/'), w4.join('/'));
 
 await p.locator('.nk[data-tang="2"] .nk-dong').click();
 kq('2 ✕ tầng trên → còn 2, URL bớt 1', (await choChong('phong:thu-nghiem > nhan-su:tam')) === 'phong:thu-nghiem > nhan-su:tam' && (await choUrl('phong:thu-nghiem > nhan-su:tam')) === 'phong:thu-nghiem > nhan-su:tam', `${await tieu()} | url ${urlChong()}`);

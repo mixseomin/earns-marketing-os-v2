@@ -476,3 +476,11 @@ details[open]>.cty-qt-hang .cty-qt-ten::before{content:'▾ '}
 .cty-tabkhung-trong > .cty-tabnoi{flex:none;overflow:visible;padding-top:10px;padding-bottom:0}
 /* Quy trình chia theo dây chuyền (DsQuyTrinh nhom): tên dây chuyền là một hàng đầu nhóm trong cùng khung bảng */
 .cty-qt-nhom-ten{padding:10px var(--le) 6px;border-top:1px solid var(--line);font-weight:600;font-size:.86rem;background:var(--bg)}
+/* Kéo mép trái ngăn trên cùng để đổi bề rộng (ngan/tang.tsx KeoMep). Vùng bắt 10px tràn ra ngoài mép 4px; vạch màu hiện khi rê / đang kéo.
+   Đang kéo: con trỏ ew-resize khắp trang, iframe không nuốt pointermove, chữ không bị bôi đen. Màn hẹp: ngăn gần kín màn, không cần kéo. */
+.nk-keo{position:absolute;left:-4px;top:0;bottom:0;width:10px;cursor:ew-resize;z-index:3;touch-action:none}
+.nk-keo::after{content:"";position:absolute;left:3px;top:0;bottom:0;width:3px;background:transparent;transition:background .12s}
+.nk-keo:hover::after,body.nk-dang-keo .nk-keo::after{background:var(--accent)}
+body.nk-dang-keo{cursor:ew-resize;user-select:none}
+body.nk-dang-keo iframe{pointer-events:none}
+@media (max-width:700px){.nk-keo{display:none}}

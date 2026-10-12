@@ -7,9 +7,37 @@
 // (NganLinks) → kết quả cũ về muộn (đóng hai lần liền) không làm tầng đã đóng hiện lại.
 import { useEffect, useSyncExternalStore } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { docChong, urlVoiChong } from '@/lib/ngan';
+import { docChong, urlVoiChong, rongKeo, rongHopLe, NK_HUT, NK_KHOA } from '@/lib/ngan';
 
-export const rongTang = (tang: number) => `calc(min(1360px, 98vw) - ${tang * 64}px)`;
+// Bề rộng gốc nằm ở biến CSS --nk-rong trên <html> (chưa kéo = 1360px): kéo chỉ đổi một biến, mọi tầng + tầng "Đang mở…" theo ngay,
+// không bắt React vẽ lại mỗi nhịp chuột. Trần 98vw giữ ngăn trong màn khi cửa sổ thu nhỏ sau khi đã kéo rộng.
+export const rongTang = (tang: number) => `calc(min(var(--nk-rong, 1360px), 98vw) - ${tang * NK_HUT}px)`;
+const datRong = (px: number | null) => { const r = document.documentElement.style; if (px == null) r.removeProperty('--nk-rong'); else r.setProperty('--nk-rong', `${px}px`); };
+/** Áp bề rộng đã nhớ (gọi một lần khi trang lên — NganLinks). */
+export function apRongDaLuu() { try { datRong(rongHopLe(localStorage.getItem(NK_KHOA))); } catch { /* không có kho: mặc định */ } }
+
+/** Tay nắm ở mép trái tầng trên cùng: kéo = đổi bề rộng (nhớ theo trình duyệt), bấm đúp = về mặc định.
+ *  Pointer Events (chuột, cảm ứng, bút cùng một đường) và nghe trên CỬA SỔ, không bắt con trỏ vào tay nắm: React vẽ lại thẻ giữa lượt kéo thì
+ *  mất quyền bắt, pointerup rơi chỗ khác, lượt kéo không bao giờ kết thúc (bài học adfond keo-rong.ts). Trong lúc kéo khoá iframe (văn phòng
+ *  pixel trong ngăn phòng) — con trỏ đi qua iframe thì trang mẹ mất pointermove, ngăn đứng khựng. */
+function KeoMep({ tang }: { tang: number }) {
+  const bat = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    e.preventDefault(); e.stopPropagation();
+    const ngan = e.currentTarget.parentElement!; const lech = window.innerWidth - e.clientX - ngan.getBoundingClientRect().width;
+    let cuoi: number | null = null;
+    const buoc = (ev: PointerEvent) => { cuoi = rongKeo(window.innerWidth, ev.clientX, lech, tang); datRong(cuoi); };
+    const tha = () => {
+      window.removeEventListener('pointermove', buoc); window.removeEventListener('pointerup', tha); window.removeEventListener('pointercancel', tha);
+      document.body.classList.remove('nk-dang-keo');
+      if (cuoi != null) try { localStorage.setItem(NK_KHOA, String(cuoi)); } catch { /* chỉ giữ tới F5 */ }
+    };
+    document.body.classList.add('nk-dang-keo');
+    window.addEventListener('pointermove', buoc); window.addEventListener('pointerup', tha); window.addEventListener('pointercancel', tha);
+  };
+  const veGoc = () => { datRong(null); try { localStorage.removeItem(NK_KHOA); } catch { /* không có kho */ } };
+  return <div className="nk-keo" role="separator" aria-orientation="vertical" aria-label="Kéo để đổi bề rộng ngăn" title="Kéo để đổi bề rộng · bấm đúp: về mặc định" onPointerDown={bat} onDoubleClick={veGoc} />;
+}
 
 let mongDoi: string[] | null = null; const nghe = new Set<() => void>();
 const bao = () => nghe.forEach((f) => f());
@@ -46,6 +74,7 @@ export function TangNgan({ khoa, tang, tong, tieuDe, children }: { khoa: string;
         style={{ width: rongTang(tang), zIndex: 60 + tang * 2 }}
         onClickCapture={laTren ? undefined : (e) => { e.preventDefault(); e.stopPropagation(); dongTu(tang + 1); }}
         title={laTren ? undefined : 'Bấm để quay về ngăn này'}>
+        {laTren && <KeoMep tang={tang} />}
         <div className="nk-dau"><div className="nk-tieu">{tieuDe}</div><button type="button" className="nk-dong" onClick={() => dongTu(tang)} aria-label="Đóng ngăn">✕</button></div>
         <div className="nk-than">{children}</div>
       </aside>

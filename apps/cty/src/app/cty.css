@@ -357,7 +357,7 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
    dính trên khung đó; không đặt chiều cao tay ở đây (bản cũ calc(100dvh - 210px) lệch khung tab 7px ở 1440×900, 12/10/2026). */
 .cty-dn-cuon{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;align-content:start}   /* cột không nở theo bảng: chú thích xuống dòng trong khung */
 .cty-dn thead th{position:sticky;top:0;background:var(--bg);z-index:1}
-.cty-dn th{text-align:left;font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:10px;border-bottom:1px solid var(--line);white-space:nowrap;font-weight:600}
+.cty-dn th{text-align:left;font-size:.74rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);padding:10px;border-bottom:1px solid var(--line);white-space:nowrap;font-weight:600}
 .cty-dn .cty-so{text-align:right}
 .cty-dn-chinh{font-weight:700;color:var(--ink)}
 .cty-dn-dx ul{margin:.2rem 0 .6rem;padding-left:1.1rem;display:grid;gap:4px}
@@ -379,3 +379,82 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-sach-nen .cty-pill+.cty-pill{margin-left:3px}
 .cty-sach-xa summary{cursor:pointer;font-weight:600;font-size:.95rem}
 @media (max-width:700px){.cty-sach-can li{white-space:normal}}   /* điện thoại không rê chuột được: việc xuống dòng, không cắt */
+/* Trách nhiệm nhân sự (components/trach-nhiem.tsx): 3 ô số · nhãn quy trình (đặc = chủ trì, viền = làm) · việc đang mở một dòng */
+.cty-tn{display:grid;gap:8px;min-width:0}
+.cty-tn-so{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.cty-tn-so span{display:grid;gap:1px;align-content:start;font-size:.72rem;color:var(--muted);line-height:1.2}
+.cty-tn-so b{font-size:1.35rem;color:var(--ink);font-variant-numeric:tabular-nums}
+.cty-tn-so .cty-tn-tre,.cty-tn-so .cty-tn-tre b{color:var(--warn)}
+.cty-tn-ds{display:flex;flex-wrap:wrap;gap:4px}
+.cty-tn-nhan{font-size:.74rem;padding:.1rem .45rem;border-radius:999px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;white-space:nowrap}
+.cty-tn-chu{background:var(--accent);color:var(--surface)}
+.cty-tn-chua{border-style:dashed;opacity:.75}
+.cty-tn-viec{margin:0;padding-left:1.1rem;display:grid;gap:3px;font-size:.8rem}
+.cty-tn-viec li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cty-tn-luoi{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:10px}
+.cty-tn-nguoi{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:var(--le);display:grid;gap:8px;align-content:start;min-width:0}
+.cty-tn-nguoi>h4{margin:0}
+/* Quy trình một dòng (components/quy-trinh.tsx DsQuyTrinh): tên · khi chạy · chịu trách nhiệm · làm · loại; bấm bung mô tả */
+.cty-qt-ds{gap:0;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.cty-qt-ds .cty-qt-dong{border:0;border-top:1px solid var(--line);border-radius:0;background:none;padding:0;display:block}
+.cty-qt-hang{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.2fr) auto;gap:10px;align-items:center;padding:8px var(--le);list-style:none;cursor:pointer;font-size:.9rem}
+.cty-qt-hang::-webkit-details-marker{display:none}
+.cty-qt-hang>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cty-qt-hang-dau{cursor:default;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.cty-qt-ten{font-weight:600}
+.cty-qt-ten::before{content:'▸ ';color:var(--muted);font-weight:400}
+details[open]>.cty-qt-hang .cty-qt-ten::before{content:'▾ '}
+.cty-qt-khi{color:var(--accent)}
+.cty-qt-loai{display:flex;gap:4px;justify-content:flex-end}
+.cty-qt-bung{padding:0 var(--le) 10px calc(var(--le) + 1em);display:grid;gap:4px}
+.cty-qt-bung p{margin:0}
+.cty-qt-dong:hover>.cty-qt-hang{background:var(--soft)}
+@media (max-width:700px){
+  .cty-qt-hang{grid-template-columns:minmax(0,1fr) auto;gap:2px 8px}
+  .cty-qt-hang-dau{display:none}
+  .cty-qt-hang>.cty-qt-lam{display:none}
+  .cty-qt-hang>.cty-qt-khi{grid-column:1}
+}
+/* Dây chuyền trực quan (components/day-chuyen.tsx): dải dòng chảy · bảng thẻ theo chặng · thanh kênh · cột lịch tuần */
+.cty-dong-chay{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cty-dong-chay li{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px;display:grid;gap:2px;min-width:0}
+.cty-dong-chay li:not(:last-child)::after{content:'›';position:absolute;right:-7px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:1.1rem;z-index:1}
+.cty-dong-chay b{font-size:1.5rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.cty-dong-chay span{font-size:.78rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cty-dong-chay em{font-style:normal;font-size:.72rem;color:var(--warn)}
+.cty-dong-chay li.cty-trong b{color:var(--muted)}
+.cty-bang-the{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;align-items:start}
+.cty-cot-the{display:grid;gap:6px;align-content:start;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px;min-width:0}
+.cty-cot-the h4{margin:0;font-size:.82rem}
+.cty-the{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px 8px 8px;min-width:0}
+.cty-the-tre{border-color:var(--warn)}
+.cty-the-anh{width:40px;height:40px;object-fit:cover;border-radius:3px;background:var(--line)}
+.cty-the-anh-trong{display:grid;place-items:center;font-size:1.1rem;overflow:hidden}
+.cty-the-than{display:grid;gap:3px;min-width:0}
+.cty-the-ten{font-size:.8rem;font-weight:600;line-height:1.25;color:inherit;text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cty-the-ten:hover{text-decoration:underline}
+.cty-the-dong{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;font-size:.72rem}
+.cty-the-viec{font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cty-tram{display:inline-flex;gap:2px}
+.cty-tram i{width:6px;height:6px;border-radius:50%;border:1px solid var(--muted)}
+.cty-tram i.xong{background:var(--accent);border-color:var(--accent)}
+.cty-nen{display:inline-block;min-width:18px;text-align:center;font-size:.68rem;font-weight:600;padding:0 4px;border-radius:3px;text-decoration:none}
+.cty-nen-ban{background:var(--accent);color:var(--surface)}
+.cty-nen-san{background:var(--soft);color:var(--accent)}
+.cty-nen-cam{background:var(--warn-bg);color:var(--warn);outline:1px solid var(--warn)}
+.cty-nen-nhat{background:var(--line);color:var(--muted)}
+.cty-bang-ban{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));margin-top:8px}
+.cty-kenh{display:grid;gap:10px}
+.cty-kenh-cuon{display:grid;gap:3px;min-width:0}
+.cty-kenh-cuon b{font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cty-thanh{display:grid;grid-template-columns:72px minmax(0,1fr) 56px;gap:6px;align-items:center;font-size:.76rem}
+.cty-thanh-ray{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.cty-thanh-ray i{display:block;height:100%;background:var(--warn)}
+.cty-thanh-ray i.du{background:var(--accent)}
+.cty-lich{display:flex;align-items:flex-end;gap:2px;height:72px;padding-bottom:14px;position:relative;overflow-x:clip}   /* nhãn tháng của cột cuối không đẩy khung tab tràn ngang */
+.cty-lich-cot{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;position:relative}
+.cty-lich-cot i{display:block;background:var(--line);border-radius:2px 2px 0 0;min-height:1px}
+.cty-lich-cot i.dang{background:var(--accent)}
+.cty-lich-cot small{position:absolute;bottom:-14px;left:0;font-size:.62rem;color:var(--muted)}
+@media (max-width:1100px){.cty-dong-chay{grid-template-columns:repeat(4,minmax(0,1fr))}.cty-dong-chay li::after{display:none}.cty-bang-the{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}}
+@media (max-width:700px){.cty-dong-chay{grid-template-columns:repeat(2,minmax(0,1fr))}}

@@ -7,6 +7,7 @@ import { Nguoi } from '@/components/nguoi';
 import { BangNhanSu, Diem, tien, usd } from '@/components/bang-nhan-su';
 import { doiNgu, tongChiDo, tacDungTinhCach, ketVanDai, canhBao, tenModel, pc, VAI, TEN_VAI, NGUONG_CANH_BAO, type Nguoi as NS, COT_VAI } from '@/lib/doi-ngu';
 import { TINH_CACH } from '../../../worker/tinh-cach.mjs';
+import { trachNhiem } from '@/lib/trach-nhiem';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Đội ngũ' };
@@ -31,7 +32,7 @@ export default async function TrangDoiNgu({ searchParams }: { searchParams: Prom
       </p>
       {!k ? <p>Chưa có kết quả dò model trên máy chủ (worker/do-model.mjs).</p> : (
         <TabPhong khoa="doi-ngu" tabs={[{ key: 'ns', nhan: 'Nhân sự', so: ds.length }, { key: 'ss', nhan: 'So sánh bộ não', so: models.length }, { key: 'dx', nhan: 'Đề xuất', so: nhom('doi').length }]}>
-          <BangNhanSu ds={ds} />
+          <BangNhanSu ds={ds} tn={await trachNhiem()} />
           <div className="cty-dn-cuon">
             <table className="cty-viec cty-dn">
               <thead><tr><th>Bộ não</th><th className="cty-an-hep">Ai đang dùng</th>{VAI.map((v) => <th key={v} className="cty-so" title={TEN_VAI[v]}>{COT_VAI[v]}</th>)}<th className="cty-so cty-an-hep" title="Trung bình giá 1.000 lời gọi của ba vai">$/1.000 lời gọi<br />TB 3 vai</th><th>Đáng chú ý</th></tr></thead>

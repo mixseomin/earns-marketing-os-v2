@@ -29,6 +29,8 @@ import { BangNhanSu } from '../bang-nhan-su';
 import { doiNgu } from '@/lib/doi-ngu';
 import { dayChuyen } from '../../../worker/sach.mjs';
 import { DayChuyenTab, demCan, type DayChuyen } from '../day-chuyen';
+import { trachNhiem, demTn } from '@/lib/trach-nhiem';
+import { KhoiTrachNhiem } from '../trach-nhiem';
 
 export type Ngan = { tieuDe: React.ReactNode; than: React.ReactNode };
 const Thieu = ({ chu }: { chu: string }) => <p className="cty-bao-loi" data-loi>{chu}</p>;
@@ -194,7 +196,7 @@ function KinhNghiem({ id, ds, admin }: { id: string; ds: BaiHoc[]; admin: boolea
 }
 
 /** Ngăn nhân sự (YDNI): đầu ghim = ai · giữ vai gì · ở đâu · model; còn lại chia tab, mỗi tab vừa một màn. */
-export function nganNhanSu(id: string, admin = false): Ngan {
+export async function nganNhanSu(id: string, admin = false): Promise<Ngan> {
   const d = nhanSu(id);
   if (!d) return { tieuDe: id, than: <Thieu chu={`Không có hồ sơ nhân sự "${id}" (cong-ty/nhan-su/${id}/SOUL.md).`} /> };
   const f = d.fm; const p = phong(String(f.phong)); const hb = heartbeat(id);
@@ -204,7 +206,7 @@ export function nganNhanSu(id: string, admin = false): Ngan {
   const vi = (soVi() as Record<string, Vi>)[id];
   const vaiLuong = giu.find((g) => (bangLuong() as { vai: Record<string, unknown> }).vai[g.ma])?.ma ?? vi?.muc[0]?.vai ?? null;
   const lg = vaiLuong ? (luongVai(vaiLuong, t?.cap ?? 1) as Luong | null) : null; const tenVai = vaiLuong ? ((theVai(vaiLuong) as { ten?: string } | null)?.ten ?? vaiLuong) : '';
-  const ls = ((lichSu() as Record<string, Ngay[]>)[id]) ?? []; const tc = tinhCachCua(f) as TinhCach[]; const so = soTinhCachCua(id) as SoTc[]; const viec = viecCua(id) as Viec[];
+  const ls = ((lichSu() as Record<string, Ngay[]>)[id]) ?? []; const tc = tinhCachCua(f) as TinhCach[]; const so = soTinhCachCua(id) as SoTc[]; const viec = viecCua(id) as Viec[]; const tn = await trachNhiem();
   const dau = (
     <div className="cty-ns-dau">
       <Avatar seed={id} hue={hueOf(String(f.phong))} size={44} />
@@ -223,9 +225,10 @@ export function nganNhanSu(id: string, admin = false): Ngan {
   return {
     tieuDe: <>{String(f.ten)} <span className="cty-muted">· {giu[0]?.the?.ten ?? String(f.chuc_danh)}{t ? ` · cấp ${t.cap}` : ''}</span></>,
     than: (
-      <TabPhong khoa={`ns-${id}`} dau={dau} tabs={[{ key: 'nl', nhan: 'Chỉ số', so: t ? `cấp ${t.cap}` : '' }, { key: 'viec', nhan: 'Việc', so: new Set(viec.map((v) => v.luot)).size }, { key: 'kn', nhan: 'Kinh nghiệm', so: bh.length }, { key: 'vi', nhan: 'Ví', so: vi ? trieu(vi.tong_vnd) : '' }, { key: 'vai', nhan: 'Vai', so: giu.length }, { key: 'hs', nhan: 'Hồ sơ' }, { key: 'lich', nhan: 'Lịch chạy' }]}>
+      <TabPhong khoa={`ns-${id}`} dau={dau} tabs={[{ key: 'nl', nhan: 'Chỉ số', so: t ? `cấp ${t.cap}` : '' }, { key: 'tn', nhan: 'Trách nhiệm', so: ((x) => `${x.chuTri} · ${x.viec}`)(demTn(tn, id)) }, { key: 'viec', nhan: 'Việc', so: new Set(viec.map((v) => v.luot)).size }, { key: 'kn', nhan: 'Kinh nghiệm', so: bh.length }, { key: 'vi', nhan: 'Ví', so: vi ? trieu(vi.tong_vnd) : '' }, { key: 'vai', nhan: 'Vai', so: giu.length }, { key: 'hs', nhan: 'Hồ sơ' }, { key: 'lich', nhan: 'Lịch chạy' }]}>
         {[
           <TheNhanVat key="nl" id={id} h={h} t={t} ls={ls} tc={tc} so={so} lg={lg} kn={{ ky_nang: soKn, bai_hoc: bh.length - soKn }} />,
+          <div key="tn"><KhoiTrachNhiem id={id} tn={tn} /><p className="cty-muted cty-nho">Chịu trách nhiệm chính = người trả lời khi quy trình hỏng hay trễ, kể cả phần máy làm thay. Ghi ở cong-ty/quy-trinh/&lt;phòng&gt;/danh-sach.json (chu_tri, lam) theo vai.</p></div>,
           <DsViec key="viec" id={id} ds={viec} />,
           <KinhNghiem key="kn" id={id} ds={bh} admin={admin} />,
           <ViNhanSu key="vi" vi={vi} lg={lg} tenVai={tenVai} />,
@@ -284,7 +287,14 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
     </div>
   );
   // tab Nhân sự (#1305): bảng của trang Đội ngũ, chỉ người của phòng, vai tính theo vai họ giữ ở đây
-  const nsTab = <BangNhanSu ds={doiNgu({ phong: id, chi: ns.map((d) => d.id) }).ds} trongPhong />;
+  const tn = await trachNhiem();
+  const nsTab = (
+    <div className="cty-dn-cuon">
+      <BangNhanSu ds={doiNgu({ phong: id, chi: ns.map((d) => d.id) }).ds} trongPhong tn={tn} phong={id} />
+      <h3>Trách nhiệm trong phòng</h3>
+      <div className="cty-tn-luoi">{ns.map((d) => <section key={d.id} className="cty-tn-nguoi"><h4><Nguoi id={d.id} />{vaiCua[d.id] && <span className="cty-muted cty-nho"> {vaiCua[d.id]}</span>}</h4><KhoiTrachNhiem id={d.id} tn={tn} phong={id} /></section>)}</div>
+    </div>
+  );
   const moi = dem?.moi;
   // Cảnh báo phải liếc-thấy, không nằm trong tab (YDNI): lượt gần nhất lỗi / phải làm lại → một dải ghim trên thanh tab.
   const canhBao = moi?.trang_thai === 'lỗi' ? `Lượt gần nhất lỗi: ${moi.loi ?? ''}`
@@ -385,7 +395,7 @@ export async function nganQuyTrinh(): Promise<Ngan> {
 
 export async function nganTheoKhoa(khoa: string, admin: boolean): Promise<Ngan> {
   const { loai, ma } = tachKhoa(khoa);
-  if (loai === 'nhan-su') return nganNhanSu(ma, admin);
+  if (loai === 'nhan-su') return await nganNhanSu(ma, admin);
   if (loai === 'phong') return await nganPhong(ma, admin);
   if (loai === 'nhat-ky') return nganNhatKy(ma);
   if (loai === 'luat') return nganLuat();

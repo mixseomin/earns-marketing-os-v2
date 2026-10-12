@@ -23,6 +23,7 @@ export async function tongQuanQuyTrinh(khoa: string) {
   };
 }
 export type DongQuyTrinh = { phong: string; id: string; khoa: string; nguon: 'phong' | 'chung'; ten: string; mo_ta: string; so_hoa: string; kich_hoat: string; ma?: string;
+  /** người chịu trách nhiệm chính (vai của phòng · mã người · giam-doc) + ai/máy làm thật — src/lib/trach-nhiem.ts giải ra người */ chu_tri?: string; lam?: string[]; /** nhãn ngắn lúc chạy ("02:00 mỗi đêm", "chạy tay") — kich_hoat là câu đầy đủ */ khi?: string;
   ban?: number; soBan?: number; deXuat?: { ts: string; trang_thai: string; thay_doi: { khoa: string }[] }[]; diem?: { so_dung: number; tong: number } | null };
 /** Mọi quy trình nghiệp vụ của mọi phòng (một dòng mỗi quy trình); quy trình có phiên bản thì kèm bản đang chạy, đề xuất, điểm. */
 export async function dsQuyTrinhCacPhong(): Promise<DongQuyTrinh[]> {

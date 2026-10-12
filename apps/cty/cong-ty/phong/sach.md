@@ -5,8 +5,10 @@ khuon: day-chuyen
 truong: Thảo
 vai_truong_phong: thao   # ai giữ vai (decision 2026-10-11 nhân sự sống): tab Dây chuyền giao việc theo vai, đổi người = đổi dòng này
 vai_nguoi_lam: nhi        # viết nội dung + mô tả (hai trạm máy không tự làm)
+vai_kenh_keo_khach: phuc  # video ngắn, ghim, trang printables, gom số kênh
+vai_thi_truong: binh      # đo cầu + cạnh tranh trước khi chọn / đổi tựa
 don_vi_viec: 1 cuốn · tuần (KDP 2 bìa mềm/tuần, Etsy giãn 2/tuần)
-cong_nguoi: trạm 6: Hà soát bằng chứng → Giám đốc ký; sau đó cờ freeze của Kiên
+cong_nguoi: trạm 6 Giám đốc duyệt bản xem trong MOS2; KDP Giám đốc bấm Publish (máy tạo nháp sẵn)
 so_do: sach
 tom_tat: Dây chuyền 6 trạm bọc lên quy-trinh.mjs đang có
 du_an: [puzzle-books]

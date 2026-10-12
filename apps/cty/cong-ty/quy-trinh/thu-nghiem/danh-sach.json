@@ -7,7 +7,14 @@
    "ten": "Làm việc được giao",
    "so_hoa": "co-phien-ban",
    "kich_hoat": "Giám đốc bấm Chạy một lượt",
-   "mo_ta": "Giám đốc giao một việc → Tâm chia việc + tiêu chí → Lộc làm → Kỳ soát (làm lại nếu bị bác) → báo cáo."
+   "mo_ta": "Giám đốc giao một việc → Tâm chia việc + tiêu chí → Lộc làm → Kỳ soát (làm lại nếu bị bác) → báo cáo.",
+   "chu_tri": "truong-phong",
+   "lam": [
+    "truong-phong",
+    "nguoi-lam",
+    "nguoi-kiem"
+   ],
+   "khi": "Giám đốc bấm Chạy"
   },
   {
    "id": "hop-cai-tien",
@@ -15,7 +22,13 @@
    "so_hoa": "co-dinh",
    "kich_hoat": "Giám đốc bấm Họp (trong quy trình được cải tiến)",
    "mo_ta": "Đọc số liệu + lượt chưa đạt → Tâm đề xuất thay đổi nhỏ nhất → Hà phản biện → máy xếp mức theo biên → áp thử / chờ Giám đốc ký.",
-   "ma": "worker/cai-tien.mjs hop()"
+   "ma": "worker/cai-tien.mjs hop()",
+   "chu_tri": "truong-phong",
+   "lam": [
+    "truong-phong",
+    "ha"
+   ],
+   "khi": "bấm Họp / tự họp"
   },
   {
    "id": "cham-viec-chuan",
@@ -23,7 +36,12 @@
    "so_hoa": "co-dinh",
    "kich_hoat": "Giám đốc bấm Chấm (trong quy trình được chấm)",
    "mo_ta": "Hà chạy bộ việc chuẩn với một bản (mỗi việc 2 lần) → so với bản gốc → giữ bản mới hoặc tự quay lại.",
-   "ma": "worker/cai-tien.mjs soVaQuyet()"
+   "ma": "worker/cai-tien.mjs soVaQuyet()",
+   "chu_tri": "ha",
+   "lam": [
+    "ha"
+   ],
+   "khi": "bấm Chấm"
   }
  ]
 }

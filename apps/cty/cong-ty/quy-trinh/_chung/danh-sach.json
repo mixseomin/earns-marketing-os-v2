@@ -6,21 +6,37 @@
    "ten": "Xử lý việc tồn",
    "so_hoa": "mo-ta",
    "kich_hoat": "CHƯA máy chạy (cần bảng việc, C06 bước 5). Khi có: kích khi hàng chờ > 10 việc hoặc có việc chờ quá 3 ngày (ngưỡng đề xuất)",
-   "mo_ta": "Trưởng phòng phân loại từng việc tồn: làm ngay · dời kèm hạn mới · gộp với việc khác · bỏ (mức 2, ghi lý do) · nâng lên Giám đốc (mức 3); báo một dòng trong báo cáo sáng. Việc tồn quá 7 ngày đưa lên hòm tiếp nhận của Hùng (đề xuất, chưa có máy làm)."
+   "mo_ta": "Trưởng phòng phân loại từng việc tồn: làm ngay · dời kèm hạn mới · gộp với việc khác · bỏ (mức 2, ghi lý do) · nâng lên Giám đốc (mức 3); báo một dòng trong báo cáo sáng. Việc tồn quá 7 ngày đưa lên hòm tiếp nhận của Hùng (đề xuất, chưa có máy làm).",
+   "chu_tri": "truong-phong",
+   "lam": [
+    "truong-phong"
+   ],
+   "khi": "chưa có máy"
   },
   {
    "id": "bao-cao-sang",
    "ten": "Báo cáo sáng",
    "so_hoa": "mo-ta",
    "kich_hoat": "CHƯA máy chạy riêng — theo heartbeat của trưởng phòng (đang tắt); Phòng thử có báo cáo ở cuối mỗi lượt",
-   "mo_ta": "4 dòng theo AGENTS.md §7: Xong (kèm bằng chứng) · Đang (tới đâu) · Cần (mức + một câu). Không có gì mới thì không gửi."
+   "mo_ta": "4 dòng theo AGENTS.md §7: Xong (kèm bằng chứng) · Đang (tới đâu) · Cần (mức + một câu). Không có gì mới thì không gửi.",
+   "chu_tri": "truong-phong",
+   "lam": [
+    "truong-phong"
+   ],
+   "khi": "chưa có máy"
   },
   {
    "id": "tiep-nhan-phat-sinh",
    "ten": "Tiếp nhận phát sinh",
    "so_hoa": "mo-ta",
    "kich_hoat": "CHƯA máy chạy (cần hòm tiếp nhận, C06 bước 5)",
-   "mo_ta": "Ghi vào hòm tiếp nhận → Hùng gom thành một lô mỗi ngày → Minh chọn tối đa 3 việc đưa Giám đốc (AGENTS.md §1)."
+   "mo_ta": "Ghi vào hòm tiếp nhận → Hùng gom thành một lô mỗi ngày → Minh chọn tối đa 3 việc đưa Giám đốc (AGENTS.md §1).",
+   "chu_tri": "hung",
+   "lam": [
+    "hung",
+    "minh"
+   ],
+   "khi": "chưa có máy"
   }
  ]
 }

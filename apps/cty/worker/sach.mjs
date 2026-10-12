@@ -20,23 +20,27 @@ const QT = /^▶ quy trình (\d+)\/(\d+)(?: · xong: [^·\n]*?)?(?: · (?:kế: 
 const TRAM_NOI_DUNG = /^(nội dung|mô tả)/;   // hai trạm quy-trinh.mjs không có lệnh máy (lam: null) → người viết
 export const linkMos2 = (id) => `https://mos2.on.tc/?tab=taisan&sp=sp&spId=d:${id}`;   // drawer sản phẩm (tai-san-view.tsx useModalParam('sp'))
 
+// Ảnh bìa nhỏ cho thẻ: ảnh bán "bìa" trong bản xem (puzzle-books xem.mjs ghi listing_config.xem.anh) hoặc cover của dòng; asset Directus công khai.
+const anhBia = (r) => { const xs = r.listing_config?.xem?.anh ?? []; const id = r.cover ?? (xs.find((x) => /^Ảnh bán 1/.test(x?.chu ?? '')) ?? xs[0])?.id;
+  return id ? `${process.env.DIRECTUS_URL || 'https://as.on.tc'}/assets/${id}?width=160` : null; };
 /** Một dòng sổ → dạng phòng dùng. */
 export function dong(r) {
   const lc = r.listing_config ?? {}; const q = String(r.notes ?? '').match(QT);
   return { id: r.id, nen: r.platform, shop: r.store, dinhDang: r.category ?? null, status: r.status, tua: String(r.title ?? '').trim(),
     ngay: lc.dangDuKien ?? null, loai: lc.loai ?? null, duyet: lc.duyetLuc ?? lc.duyet ?? null, url: r.url ?? null, sku: r.sku ?? null,
-    tram: q ? { dat: Number(q[1]), tong: Number(q[2]), ke: q[3]?.trim() || null } : null };
+    tram: q ? { dat: Number(q[1]), tong: Number(q[2]), ke: q[3]?.trim() || null } : null, anh: anhBia(r) };
 }
 
-/** Việc kế của MỘT dòng: { ai, muc?, chu, qua? }. ai: 'giam-doc' | VAI ở phòng ('truong-phong', 'nguoi-lam' — ai giữ vai đọc từ hồ sơ phòng,
+/** Việc kế của MỘT dòng: { ai, muc?, chu, qua?, qt? } — qt = mã quy trình của phòng (cong-ty/quy-trinh/<phòng>/danh-sach.json) mà việc thuộc về:
+ *  việc máy làm thay vẫn có NGƯỜI chịu trách nhiệm chính = người chủ trì quy trình đó (src/lib/trach-nhiem.ts). ai: 'giam-doc' | VAI ở phòng ('truong-phong', 'nguoi-lam' — ai giữ vai đọc từ hồ sơ phòng,
  *  vaiCuaPhong) | 'may' | 'san' | null (không ai phải làm gì).
  *  qua = số ngày đã quá ngày đăng dự kiến (âm = còn bấy nhiêu ngày). tre = máy lẽ ra đã làm mà chưa (sau 2 ngày). */
 export function viecKe(d, hom) {
   const qua = d.ngay ? cach(hom, d.ngay) : null; const toi = qua != null && qua >= 0;
   const dangDung = () => {   // dòng đã vào dây chuyền mà chưa dựng xong
     const { dat, tong, ke } = d.tram;
-    if (TRAM_NOI_DUNG.test(ke ?? '')) return { ai: 'nguoi-lam', muc: 1, chu: `viết ${ke} (${dat}/${tong})`, qua };
-    return { ai: 'may', chu: `dựng ${dat}/${tong} · kế: ${ke ?? '?'}${qua != null && -qua > SAP_TOI ? ' (dựng đêm khi còn ≤ 21 ngày)' : ''}`, qua };
+    if (TRAM_NOI_DUNG.test(ke ?? '')) return { ai: 'nguoi-lam', muc: 1, chu: `viết ${ke} (${dat}/${tong})`, qua, qt: 'san-xuat' };
+    return { ai: 'may', chu: `dựng ${dat}/${tong} · kế: ${ke ?? '?'}${qua != null && -qua > SAP_TOI ? ' (dựng đêm khi còn ≤ 21 ngày)' : ''}`, qua, qt: 'san-xuat' };
   };
   const dangDungLai = d.tram && d.tram.dat < d.tram.tong - 1;
   // Anh đã bấm Duyệt mà sổ còn owner_review: sách ngoài dây chuyền (bộ coin — không máy nào đẩy status) hoặc máy chưa chạy lại.
@@ -47,29 +51,43 @@ export function viecKe(d, hom) {
     case 'in_review': return { ai: 'san', chu: 'sàn đang duyệt' };
     case 'unlisted': case 'archived': return { ai: null, chu: 'ngừng' };
     case 'ready':
-      if (!d.ngay) return { ai: 'truong-phong', muc: 2, chu: 'đã duyệt nhưng chưa có ngày đăng' };
+      if (!d.ngay) return { ai: 'truong-phong', muc: 2, chu: 'đã duyệt nhưng chưa có ngày đăng', qt: 'san-xuat' };
       if (!toi) return { ai: null, chu: `đã duyệt, chờ tới ngày đăng`, qua };
       if (d.nen === 'kdp') {   // puzzle-books dang-kdp.mjs (MacBook, 2 giờ/lần) tạo nháp rồi ghi sku = mã tựa; nút Publish là chữ ký của Giám đốc
         const dd = d.dinhDang && d.dinhDang !== 'paperback' ? ` (${d.dinhDang})` : '';
-        if (d.sku) return { ai: 'giam-doc', muc: 3, chu: `bấm Publish KDP${dd} — nháp đã sẵn`, qua };
-        if (!d.tram) return { ai: 'truong-phong', muc: 2, chu: `soạn nháp KDP${dd} — sách ngoài dây chuyền, máy không tự làm`, qua };
-        return { ai: 'may', chu: `tạo nháp KDP${dd} (MacBook, 2 giờ/lần) → Giám đốc bấm Publish`, qua, tre: qua >= 1 };
+        if (d.sku) return { ai: 'giam-doc', muc: 3, chu: `bấm Publish KDP${dd} — nháp đã sẵn`, qua, qt: 'dang-kdp' };
+        if (!d.tram) return { ai: 'truong-phong', muc: 2, chu: `soạn nháp KDP${dd} — sách ngoài dây chuyền, máy không tự làm`, qua, qt: 'dang-kdp' };
+        return { ai: 'may', chu: `tạo nháp KDP${dd} (MacBook, 2 giờ/lần) → Giám đốc bấm Publish`, qua, tre: qua >= 1, qt: 'dang-kdp' };
       }
-      return { ai: 'may', chu: d.nen === 'etsy' ? 'bật bán Etsy 08:30 (≤3 cuốn/ngày)' : d.nen === 'gumroad' ? 'đăng Gumroad 09:00 (MacBook)' : `chờ đăng ${d.nen}`, qua, tre: qua >= 2 };
+      return { ai: 'may', chu: d.nen === 'etsy' ? 'bật bán Etsy 08:30 (≤3 cuốn/ngày)' : d.nen === 'gumroad' ? 'đăng Gumroad 09:00 (MacBook)' : `chờ đăng ${d.nen}`, qua, tre: qua >= 2, qt: { etsy: 'bat-ban-etsy', gumroad: 'dang-gumroad' }[d.nen] ?? null };
     case 'owner_review':
-      if (!dangDungLai) return { ai: 'giam-doc', muc: 3, chu: 'duyệt bản xem trong MOS2', qua: toi ? qua : null };
+      if (!dangDungLai) return { ai: 'giam-doc', muc: 3, chu: 'duyệt bản xem trong MOS2', qua: toi ? qua : null, qt: 'duyet-ban-xem' };
       return { ...dangDung(), chu: `dựng lại ${d.tram.dat}/${d.tram.tong} · kế: ${d.tram.ke ?? '?'} (${d.duyet ? 'đã duyệt — ảnh đổi thì duyệt lại' : 'giữ chờ duyệt'})` };
     case 'draft': case 'planned':
       if (d.tram) return dangDung();
-      if (d.status === 'draft') return { ai: 'truong-phong', muc: 2, chu: 'đang làm ngoài dây chuyền (sổ không có dòng ▶ quy trình)', qua };
+      if (d.status === 'draft') return { ai: 'truong-phong', muc: 2, chu: 'đang làm ngoài dây chuyền (sổ không có dòng ▶ quy trình)', qua, qt: 'mo-cuon-moi' };
       if (!d.ngay) return { ai: null, chu: 'chưa xếp lịch' };
       if (-qua > SAP_TOI) return { ai: null, chu: `trong lịch · còn ${-qua} ngày`, qua };
-      return { ai: 'truong-phong', muc: 2, chu: 'chưa vào dây chuyền: chưa có hồ sơ dựng (themes/<tên>.json) → máy đêm bỏ qua', qua };
+      return { ai: 'truong-phong', muc: 2, chu: 'chưa vào dây chuyền: chưa có hồ sơ dựng (themes/<tên>.json) → máy đêm bỏ qua', qua, qt: 'mo-cuon-moi' };
     default: return { ai: 'truong-phong', muc: 2, chu: `trạng thái lạ "${d.status}"` };
   }
 }
 
 const UU_TIEN = ['giam-doc', 'truong-phong', 'nguoi-lam', 'may', 'san'];
+/** CHẶNG của một dòng / một tựa trên dải dòng chảy (tab Dây chuyền). Tựa nhiều nền ở nhiều chặng → hiện ở chặng CẦN LÀM NGAY nhất
+ *  theo thứ tự UU_CHANG (đang lên sàn > chờ duyệt > cần mở hồ sơ > đang dựng > chờ tới ngày > lịch); mọi dòng đã bán / sàn duyệt → 'ban'. */
+export const CHANG = [['mo', 'Cần mở hồ sơ'], ['dung', 'Đang dựng'], ['duyet', 'Chờ anh duyệt'], ['cho-ngay', 'Chờ tới ngày'], ['dang', 'Đang lên sàn'], ['ban', 'Đang bán']];
+const UU_CHANG = ['dang', 'duyet', 'mo', 'dung', 'cho-ngay', 'lich'];
+export function changDong(d) {
+  const v = d.viec;
+  if (['published', 'in_review', 'unlisted', 'archived'].includes(d.status)) return 'ban';
+  if (v.qt === 'mo-cuon-moi') return 'mo';
+  if (v.qt === 'duyet-ban-xem') return 'duyet';
+  if (v.qt === 'san-xuat') return v.ai === 'truong-phong' ? 'mo' : 'dung';   // đã duyệt mà chưa có ngày → trưởng phòng xếp lịch
+  if (['dang-kdp', 'bat-ban-etsy', 'dang-gumroad'].includes(v.qt) || (d.status === 'ready' && v.ai)) return 'dang';
+  if (d.status === 'ready' || (d.status === 'owner_review' && d.duyet)) return 'cho-ngay';
+  return 'lich';
+}
 /** Gom dòng theo tựa (một tựa = nhiều nền / nhiều định dạng). Xếp theo ngày đăng gần nhất còn mở; nhóm: dang (có việc) · ban (chỉ còn bán/sàn duyệt) · lich (còn xa). */
 export function gomTua(ds, hom) {
   const m = new Map();
@@ -79,7 +97,8 @@ export function gomTua(ds, hom) {
     const ngay = mo.map((d) => d.ngay).filter(Boolean).sort()[0] ?? null;
     const ai = UU_TIEN.find((a) => g.dong.some((d) => d.viec.ai === a)) ?? null;
     const nhom = !mo.length || mo.every((d) => d.status === 'in_review') ? 'ban' : ['giam-doc', 'truong-phong', 'nguoi-lam', 'may'].includes(ai) || mo.some((d) => d.status !== 'planned') ? 'dang' : 'lich';
-    return { ...g, ngay, ai, nhom, loai: g.dong.find((d) => d.loai)?.loai ?? null, tram: g.dong.find((d) => d.tram)?.tram ?? null };
+    const cs = g.dong.map(changDong); const chang = cs.every((c) => c === 'ban') ? 'ban' : UU_CHANG.find((c) => cs.includes(c));
+    return { ...g, ngay, ai, nhom, chang, loai: g.dong.find((d) => d.loai)?.loai ?? null, tram: g.dong.find((d) => d.tram)?.tram ?? null, anh: g.dong.find((d) => d.anh)?.anh ?? null };
   }).sort((a, b) => (a.ngay ?? '9999').localeCompare(b.ngay ?? '9999') || a.tua.localeCompare(b.tua));
 }
 
@@ -119,7 +138,7 @@ export async function docSo(nguon) {
   if (process.env.CTY_SACH_TEP) return JSON.parse(fs.readFileSync(process.env.CTY_SACH_TEP, 'utf8')).data.filter((x) => nguon.includes(`${x.platform}:${x.store}`));
   const tok = process.env.DIRECTUS_TOKEN; if (!tok) throw new Error('môi trường của mos2-cty thiếu DIRECTUS_TOKEN → không đọc được sổ sản phẩm');
   const ds = (i) => [...new Set(nguon.map((x) => x.split(':')[i]))].map(encodeURIComponent).join(',');
-  const r = await fetch(`${process.env.DIRECTUS_URL || 'https://as.on.tc'}/items/products?limit=-1&fields=id,platform,store,status,category,title,listing_config,notes,url,sku&filter[platform][_in]=${ds(0)}&filter[store][_in]=${ds(1)}`,
+  const r = await fetch(`${process.env.DIRECTUS_URL || 'https://as.on.tc'}/items/products?limit=-1&fields=id,platform,store,status,category,title,listing_config,notes,url,sku,cover&filter[platform][_in]=${ds(0)}&filter[store][_in]=${ds(1)}`,
     { headers: { authorization: `Bearer ${tok}` }, signal: AbortSignal.timeout(8000), cache: 'no-store' });
   const d = await r.json().catch(() => ({}));
   if (!r.ok || !Array.isArray(d.data)) throw new Error(`sổ sản phẩm (Directus) trả ${r.status}: ${d.errors?.[0]?.message ?? 'không có data'}`);
@@ -157,7 +176,7 @@ if (process.argv[1]?.endsWith('sach.mjs') && process.argv.includes('--tu-kiem'))
   a.equal(R({ st: 'planned', ghi: 'Tập 1. Đủ hồ sơ' }).tram, null, 'ghi chú tay không phải dòng quy trình');
   // KDP đã duyệt quá ngày → Giám đốc bấm Publish; Etsy/Gumroad → máy, trễ sau 2 ngày
   const MAY = '▶ quy trình 6/6 · xong: anh duyệt bản xem trong MOS2 · dựng xong';
-  a.deepEqual(v({ st: 'ready', ngay: '2026-10-07', sku: 'ABC', ghi: MAY }), { ai: 'giam-doc', muc: 3, chu: 'bấm Publish KDP — nháp đã sẵn', qua: 5 });
+  a.deepEqual(v({ st: 'ready', ngay: '2026-10-07', sku: 'ABC', ghi: MAY }), { ai: 'giam-doc', muc: 3, chu: 'bấm Publish KDP — nháp đã sẵn', qua: 5, qt: 'dang-kdp' });
   a.equal(v({ st: 'ready', ngay: '2026-10-07', sku: 'ABC', dd: 'hardcover' }).chu, 'bấm Publish KDP (hardcover) — nháp đã sẵn');
   a.deepEqual([v({ st: 'ready', ngay: '2026-10-07', ghi: MAY }).ai, v({ st: 'ready', ngay: '2026-10-07', ghi: MAY }).tre], ['may', true], 'chưa có nháp mà quá ngày = máy KDP trễ, chưa tới lượt anh');
   a.equal(v({ st: 'ready', ngay: '2026-10-12', ghi: MAY }).tre, false, 'tới ngày hôm nay: máy còn trong hạn');
@@ -181,6 +200,13 @@ if (process.argv[1]?.endsWith('sach.mjs') && process.argv.includes('--tu-kiem'))
   a.equal(v({ st: 'draft', ghi: '▶ quy trình 4/6 · xong: ảnh · kế: mô tả bán hàng (KDP/Gumroad/Etsy)' }).ai, 'nguoi-lam');
   a.equal(v({ st: 'draft', ghi: '▶ quy trình 2/6 · xong: ruột · kế: bìa' }).ai, 'may');
   a.equal(v({ st: 'published' }).ai, null); a.equal(v({ st: 'in_review' }).ai, 'san');
+  // mọi việc có người/máy làm đều trỏ một quy trình CÓ THẬT của phòng (để quy về người chủ trì) — thêm nhánh mới mà quên qt thì đỏ
+  const qtPhong = new Set(JSON.parse(fs.readFileSync(path.join(CONG_TY, 'quy-trinh', 'sach', 'danh-sach.json'), 'utf8')).quy_trinh.map((q) => q.id));
+  for (const o of [{ st: 'ready' }, { st: 'ready', ngay: '2026-10-07', sku: 'A', ghi: MAY }, { st: 'ready', ngay: '2026-10-07' }, { st: 'ready', ngay: '2026-10-07', ghi: MAY },
+    { st: 'ready', nen: 'etsy', ngay: '2026-10-07' }, { st: 'ready', nen: 'gumroad', ngay: '2026-10-07' }, { st: 'owner_review' }, { st: 'draft' }, { st: 'planned', ngay: '2026-10-20' },
+    { st: 'draft', ghi: '▶ quy trình 0/6 · kế: nội dung (lint)' }, { st: 'draft', ghi: '▶ quy trình 2/6 · xong: ruột · kế: bìa' }]) {
+    const x = v(o); if (x.ai && x.ai !== 'san') a.ok(qtPhong.has(x.qt), `việc "${x.chu}" thiếu quy trình (qt=${x.qt})`);
+  }
   // gom + báo cáo
   const ds = [R({ id: 1, tua: 'Sudoku', nen: 'etsy', st: 'published', ngay: '2026-10-08' }), R({ id: 2, tua: 'Sudoku', st: 'ready', ngay: '2026-10-07', sku: 'D1' }),
     R({ id: 3, tua: 'Bingo', nen: 'etsy', st: 'ready', ngay: '2026-10-22' }), R({ id: 4, tua: 'Kakuro', st: 'planned', ngay: '2026-11-16' }),
@@ -188,6 +214,9 @@ if (process.argv[1]?.endsWith('sach.mjs') && process.argv.includes('--tu-kiem'))
   const n = gomTua(ds, H);
   a.deepEqual(n.map((g) => [g.tua, g.nhom, g.ai]), [['Sudoku', 'dang', 'giam-doc'], ['Coin', 'dang', 'giam-doc'], ['Moi', 'dang', 'truong-phong'], ['Bingo', 'dang', null], ['Kakuro', 'lich', null], ['Xa', 'lich', null], ['Cu', 'ban', null]]);
   a.equal(n[0].ngay, '2026-10-07', 'ngày của tựa = ngày sớm nhất còn mở (dòng đã bán không tính)');
+  a.deepEqual(n.map((g) => g.chang), ['dang', 'duyet', 'mo', 'cho-ngay', 'lich', 'lich', 'ban'], 'chặng: Sudoku KDP tới ngày → đang lên sàn dù Etsy đã bán; Coin chưa duyệt → chờ anh duyệt; Moi tới hạn chưa có hồ sơ → cần mở');
+  a.equal(changDong({ ...R({ st: 'owner_review', duyet: '2026-10-09', ngay: '2026-11-05' }), viec: viecKe(R({ st: 'owner_review', duyet: '2026-10-09', ngay: '2026-11-05' }), H) }), 'cho-ngay', 'đã duyệt, chưa tới ngày');
+  a.equal(changDong({ ...R({ st: 'draft', ghi: '▶ quy trình 2/6 · kế: bìa' }), viec: viecKe(R({ st: 'draft', ghi: '▶ quy trình 2/6 · kế: bìa' }), H) }), 'dung');
   const bc = baoCao(n, H, 'Thảo', 'Phòng Sách').split('\n');
   a.equal(bc.length, 4, 'đúng 4 dòng AGENTS.md §7');
   a.equal(bc[0], 'Thảo · Phòng Sách · 12/10/2026');

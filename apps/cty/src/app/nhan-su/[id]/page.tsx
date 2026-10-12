@@ -11,6 +11,6 @@ export default async function TrangNhanSu({ params, searchParams }: { params: Pr
   const { id } = await params;
   const me = await getCurrentUser(); if (!me) redirect(loginUrl(`/nhan-su/${id}`));
   if (!nhanSu(id)) notFound();
-  const n = nganNhanSu(id, me.role === 'admin');
+  const n = await nganNhanSu(id, me.role === 'admin');
   return <><h1>{n.tieuDe}</h1>{n.than}<ChongNgan ngan={(await searchParams).ngan} /></>;
 }

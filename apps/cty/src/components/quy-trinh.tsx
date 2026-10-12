@@ -8,6 +8,7 @@ import { Md } from './md';
 import { Gio } from './gio';
 import { Nguoi } from './nguoi';
 import { theVai, giaiNguoi } from '../../worker/quy-trinh.mjs';
+import { giaiMa } from '@/lib/trach-nhiem';
 
 /** Mã trong quy trình là VAI (→ người đang giữ + tên vai) hoặc là người (vd Hà ngoài phòng). */
 function NguoiVai({ ma, khoa }: { ma: string; khoa?: string }) {
@@ -16,6 +17,8 @@ function NguoiVai({ ma, khoa }: { ma: string; khoa?: string }) {
   let ai: string | null = null; try { ai = khoa ? (giaiNguoi(khoa, ma) as { nguoi: string }).nguoi : null; } catch { ai = null; }
   return <>{ai && <Nguoi id={ai} />}<span className="cty-muted cty-nho"> {ai ? `(${v.ten})` : `vai ${v.ten}`}</span></>;
 }
+/** Mã chủ trì / làm của quy trình → người đang giữ (vai) / máy / Giám đốc; vai chưa ai giữ thì nói rõ (src/lib/trach-nhiem.ts giaiMa). */
+const AiMa = ({ phong, ma }: { phong: string; ma: string }) => { const n = giaiMa(phong, ma); return n ? <Nguoi id={n} anh={false} /> : <span className="cty-thu-loi">chưa ai giữ vai {(theVai(ma) as { ten?: string } | null)?.ten ?? ma}</span>; };
 const khoaCua = (cfg: Cfg) => { const c = cfg as Cfg & { phong?: string; quy_trinh?: string }; return c.phong && c.quy_trinh ? `${c.phong}/${c.quy_trinh}` : undefined; };
 import { NutQuyTrinh, NutKy } from './nut-quy-trinh';
 import { TabPhong } from './tab-phong';
@@ -44,37 +47,38 @@ const TT: Record<string, [string, string]> = {
   dang_thu: ['đang thử', 'cty-pill-off'], giu: ['đã giữ', ''], quay_lai: ['đã quay lại', 'cty-pill-kind'], cho_duyet: ['chờ Giám đốc ký', 'cty-pill-off'],
   bi_bac: ['bị bác', 'cty-pill-kind'], vuot_bien: ['vượt biên — loại', 'cty-pill-loi'], khong_doi: ['không cần đổi', 'cty-pill-kind'],
 };
-const LOAI: Record<string, [string, string]> = { 'co-phien-ban': ['tự cải tiến được', ''], 'co-dinh': ['cố định trong mã', 'cty-pill-kind'], 'mo-ta': ['mới mô tả', 'cty-pill-kind'] };
+const LOAI: Record<string, [string, string]> = { 'co-phien-ban': ['tự cải tiến', ''], 'co-dinh': ['máy chạy', ''], 'mo-ta': ['chưa có máy', 'cty-pill-kind'] };
 const pt = (x: number) => `${Math.round(x * 100)}%`;
 
-/** Danh sách quy trình (tab phòng / trang tổng): mỗi quy trình một dòng; quy trình có phiên bản bấm được → ngăn chi tiết. */
+/** Danh sách quy trình (tab phòng / trang tổng) — anh 12/10/2026 "nhiều text quá": mỗi quy trình MỘT dòng = tên · lúc chạy · người chịu
+ *  trách nhiệm chính · ai/máy làm · loại; mô tả, câu kích hoạt đầy đủ, mã nằm trong dòng bung (bấm mới thấy). Quy trình tự cải tiến: tên là link
+ *  tới ngăn chi tiết, kèm số bản / điểm / chờ ký. */
 export function DsQuyTrinh({ ds, hienPhong }: { ds: DongQuyTrinh[]; hienPhong?: boolean }) {
   return (
     <div className="cty-qt-ds">
+      <div className="cty-qt-hang cty-qt-hang-dau" aria-hidden><span>Quy trình</span><span>Khi chạy</span><span>Chịu trách nhiệm</span><span>Làm</span><span>Loại</span></div>
       {ds.map((q) => {
         const moi = q.deXuat?.[0]; const choKy = q.deXuat?.filter((d) => d.trang_thai === 'cho_duyet').length ?? 0;
-        const than = (
-          <>
-            <div className="cty-qt-dong-dau">
-              <b>{q.ten}</b>
-              <span className={`cty-pill ${LOAI[q.so_hoa]?.[1] ?? ''}`}>{LOAI[q.so_hoa]?.[0] ?? q.so_hoa}</span>
-              {q.ban != null && <span className="cty-pill cty-pill-kind">đang chạy v{q.ban}</span>}
-              {choKy > 0 && <span className="cty-pill cty-pill-off">{choKy} chờ ký</span>}
-              {q.nguon === 'chung' && !hienPhong && <span className="cty-pill cty-pill-kind">chung cả công ty</span>}
-              {hienPhong && <span className="cty-muted cty-nho">{q.phong}</span>}
+        return (
+          <details key={q.khoa} className="cty-qt-dong">
+            <summary className="cty-qt-hang">
+              <span className="cty-qt-ten">{q.so_hoa === 'co-phien-ban' ? <Link href={`/quy-trinh/${q.khoa}`}>{q.ten}</Link> : q.ten}
+                {hienPhong && <span className="cty-muted cty-nho"> · {q.phong}</span>}
+                {q.nguon === 'chung' && !hienPhong && <span className="cty-muted cty-nho"> · chung</span>}</span>
+              <span className={`cty-qt-khi${/chưa có máy/.test(q.khi ?? '') ? ' cty-muted' : ''}`} title={q.kich_hoat}>{q.khi ?? q.kich_hoat}</span>
+              <span>{q.chu_tri ? <AiMa phong={q.phong} ma={q.chu_tri} /> : <span className="cty-muted">—</span>}</span>
+              <span className="cty-qt-lam">{q.lam?.length ? q.lam.map((m, i) => <span key={m}>{i > 0 && ' · '}<AiMa phong={q.phong} ma={m} /></span>) : <span className="cty-muted">—</span>}</span>
+              <span className="cty-qt-loai"><span className={`cty-pill ${LOAI[q.so_hoa]?.[1] ?? ''}`}>{LOAI[q.so_hoa]?.[0] ?? q.so_hoa}</span>
+                {q.ban != null && <span className="cty-pill cty-pill-kind">v{q.ban}{q.diem ? ` · ${q.diem.so_dung}/${q.diem.tong}` : ''}</span>}
+                {choKy > 0 && <span className="cty-pill cty-pill-off">{choKy} chờ ký</span>}</span>
+            </summary>
+            <div className="cty-qt-bung">
+              <p>{q.mo_ta}</p>
+              <p className="cty-muted cty-nho">Khi chạy: {q.kich_hoat}{q.ma ? <> · mã: <code>{q.ma}</code></> : ''}</p>
+              {q.so_hoa === 'co-phien-ban' && <p className="cty-muted cty-nho">Cải tiến gần nhất: {moi ? <><span className={`cty-pill ${TT[moi.trang_thai]?.[1] ?? ''}`}>{TT[moi.trang_thai]?.[0] ?? moi.trang_thai}</span> {moi.thay_doi.map((t) => nhanKhoa(t.khoa)).join(', ') || '—'}</> : 'chưa họp'}</p>}
             </div>
-            <div className="cty-qt-dong-mo">{q.mo_ta}</div>
-            {q.so_hoa === 'co-phien-ban' && <div className="cty-qt-dong-so">
-              <span>Bộ việc chuẩn: {q.diem ? <b>{q.diem.so_dung}/{q.diem.tong}</b> : <span className="cty-muted">chưa chấm</span>}</span>
-              <span>Cải tiến: {moi ? <><span className={`cty-pill ${TT[moi.trang_thai]?.[1] ?? ''}`}>{TT[moi.trang_thai]?.[0] ?? moi.trang_thai}</span> {moi.thay_doi.map((t) => nhanKhoa(t.khoa)).join(', ') || '—'}</> : <span className="cty-muted">chưa họp</span>}</span>
-              <span className="cty-muted">{q.kich_hoat}</span>
-            </div>}
-            {q.so_hoa !== 'co-phien-ban' && <div className="cty-qt-dong-so cty-muted">{q.kich_hoat}{q.ma ? ` · ${q.ma}` : ''}</div>}
-          </>
+          </details>
         );
-        return q.so_hoa === 'co-phien-ban'
-          ? <Link key={q.khoa} href={`/quy-trinh/${q.khoa}`} className="cty-qt-dong cty-qt-dong-mo-duoc">{than}</Link>
-          : <div key={q.khoa} className="cty-qt-dong">{than}</div>;
       })}
     </div>
   );

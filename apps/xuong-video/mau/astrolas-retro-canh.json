@@ -1,0 +1,364 @@
+{
+ "canh": [
+  {
+   "canh": "Hook · Oct 24 it begins",
+   "goc_may": "",
+   "hanh_dong": "The phone screen shatters outward in extreme slow motion, shards floating toward the lens, then snaps back to full speed as sparks fly.",
+   "loi_thoai": "",
+   "am_thanh": "impact boom",
+   "thoi_luong_s": 4,
+   "phat_s": 1.8,
+   "nhan_vat": [],
+   "bien_the": [],
+   "prompt_anh": "Extreme close-up of a smartphone lying face-up on a dark wet street at night, its glass screen beginning to crack in a spiderweb, tiny shards lifting into the air, orange sparks and teal neon reflections, a small steel-grey planet with a fiery rim reflected in the glass",
+   "prompt_video": "The phone screen shatters outward in extreme slow motion, shards floating toward the lens, then snaps back to full speed as sparks fly.",
+   "phan_doan": "hook",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "co_canh": "ecu",
+    "ong_kinh": "probe",
+    "chuyen_dong": "speed_ramp",
+    "anh_sang": "tuong_phan",
+    "chuyen_canh": "cat_soc"
+   },
+   "trang_phuc": "",
+   "chu_man": "OCTOBER 24\n@0.9 IT BEGINS.",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "deep gravelly male movie-trailer narrator, slow heavy delivery that turns urgent and punchy, dramatic pauses",
+     "loi": "October twenty-fourth."
+    }
+   ]
+  },
+  {
+   "canh": "Mercury turns back",
+   "goc_may": "",
+   "hanh_dong": "FPV drone dives and weaves between the skyscrapers toward Mercury; the planet's glowing orbit trail suddenly reverses direction and swings backward.",
+   "loi_thoai": "",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 1.7,
+   "nhan_vat": [],
+   "bien_the": [],
+   "prompt_anh": "View from a drone diving between glowing night skyscrapers toward a huge steel-grey planet Mercury with a fiery rim hanging low over the city, a bright orbit trail curving around it, anamorphic flares",
+   "prompt_video": "FPV drone dives and weaves between the skyscrapers toward Mercury; the planet's glowing orbit trail suddenly reverses direction and swings backward.",
+   "phan_doan": "hook",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "co_canh": "ews",
+    "chuyen_dong": "fpv",
+    "ong_kinh": "anamorphic",
+    "mau": "teal_cam",
+    "chuyen_canh": "quat_chuyen"
+   },
+   "trang_phuc": "",
+   "chu_man": "MERCURY\n@0.8 TURNS BACK.",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "deep gravelly male movie-trailer narrator, slow heavy delivery that turns urgent and punchy, dramatic pauses",
+     "loi": "Mercury... turns back."
+    }
+   ]
+  },
+  {
+   "canh": "Texts misread",
+   "goc_may": "",
+   "hanh_dong": "Bullet-time: the chat bubbles shatter and hang frozen in the air while the camera orbits fast around the hand.",
+   "loi_thoai": "",
+   "am_thanh": "glass shatter",
+   "thoi_luong_s": 4,
+   "phat_s": 1.6,
+   "nhan_vat": [],
+   "bien_the": [],
+   "prompt_anh": "A hand holding a smartphone at night, glowing chat bubbles bursting out of the screen and breaking apart like glass in mid-air, neon teal and orange light, frozen debris, no readable text",
+   "prompt_video": "Bullet-time: the chat bubbles shatter and hang frozen in the air while the camera orbits fast around the hand.",
+   "phan_doan": "noi_dau",
+   "cam_xuc": -2,
+   "ky_thuat": {
+    "co_canh": "cu",
+    "chuyen_dong": "bullet_time",
+    "anh_sang": "neon",
+    "chuyen_canh": "cat_soc"
+   },
+   "trang_phuc": "",
+   "chu_man": "TEXTS MISREAD.",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "deep gravelly male movie-trailer narrator, slow heavy delivery that turns urgent and punchy, dramatic pauses",
+     "loi": "Texts... misread."
+    }
+   ]
+  },
+  {
+   "canh": "Plans crash",
+   "goc_may": "",
+   "hanh_dong": "Handheld shaky camera: the laptop sparks and the screen glitches out, papers blast across the desk.",
+   "loi_thoai": "",
+   "am_thanh": "electric burst",
+   "thoi_luong_s": 4,
+   "phat_s": 1.6,
+   "nhan_vat": [],
+   "bien_the": [],
+   "prompt_anh": "A laptop on a desk in a dark apartment exploding in a shower of orange sparks, its screen glitching to black, papers flying, seen at a tilted Dutch angle, a person's silhouette recoiling in the background",
+   "prompt_video": "Handheld shaky camera: the laptop sparks and the screen glitches out, papers blast across the desk.",
+   "phan_doan": "noi_dau",
+   "cam_xuc": -3,
+   "ky_thuat": {
+    "co_canh": "ms",
+    "goc": "nghieng",
+    "chuyen_dong": "cam_tay",
+    "anh_sang": "tuong_phan",
+    "chuyen_canh": "phong_vao"
+   },
+   "trang_phuc": "",
+   "chu_man": "PLANS CRASH.",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "deep gravelly male movie-trailer narrator, slow heavy delivery that turns urgent and punchy, dramatic pauses",
+     "loi": "Plans crash."
+    }
+   ]
+  },
+  {
+   "canh": "Your ex texts back",
+   "goc_may": "",
+   "hanh_dong": "Sudden crash zoom into the glowing phone as it buzzes across the nightstand.",
+   "loi_thoai": "",
+   "am_thanh": "phone buzz",
+   "thoi_luong_s": 4,
+   "phat_s": 1.8,
+   "nhan_vat": [],
+   "bien_the": [],
+   "prompt_anh": "A smartphone lighting up on a dark nightstand with an incoming message notification glowing, a single red heart icon on the screen, dramatic red and teal light, no readable name",
+   "prompt_video": "Sudden crash zoom into the glowing phone as it buzzes across the nightstand.",
+   "phan_doan": "noi_dau",
+   "cam_xuc": -1,
+   "ky_thuat": {
+    "co_canh": "insert",
+    "chuyen_dong": "zoom_gat",
+    "anh_sang": "neon",
+    "chuyen_canh": "cat_soc"
+   },
+   "trang_phuc": "",
+   "chu_man": "AND YOUR EX…\n@0.9 TEXTS BACK.",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "deep gravelly male movie-trailer narrator, slow heavy delivery that turns urgent and punchy, dramatic pauses",
+     "loi": "And your ex... texts back."
+    }
+   ]
+  },
+  {
+   "canh": "Wait — Venus too",
+   "goc_may": "",
+   "hanh_dong": "Dolly zoom vertigo: she stays the same size while the sky and the two planets stretch and loom closer behind her.",
+   "loi_thoai": "",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 2.0,
+   "nhan_vat": [],
+   "bien_the": [],
+   "prompt_anh": "Silhouette of a young woman seen from behind standing still on a rooftop at night, looking up at a pale golden glowing planet Venus rising beside a steel-grey Mercury, city lights below",
+   "prompt_video": "Dolly zoom vertigo: she stays the same size while the sky and the two planets stretch and loom closer behind her.",
+   "phan_doan": "noi_dau",
+   "cam_xuc": -2,
+   "ky_thuat": {
+    "co_canh": "mcu",
+    "chuyen_dong": "dolly_zoom",
+    "anh_sang": "nguoc",
+    "chuyen_canh": "loe_trang"
+   },
+   "trang_phuc": "",
+   "chu_man": "WAIT—\n@0.8 VENUS TOO?",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "deep gravelly male movie-trailer narrator, slow heavy delivery that turns urgent and punchy, dramatic pauses",
+     "loi": "But this time... Venus is turning back too."
+    }
+   ]
+  },
+  {
+   "canh": "Double retrograde",
+   "goc_may": "",
+   "hanh_dong": "Bullet-time: the camera orbits around the two planets while debris hangs frozen, both glowing orbit trails curl backward.",
+   "loi_thoai": "",
+   "am_thanh": "deep sub drop",
+   "thoi_luong_s": 4,
+   "phat_s": 2.0,
+   "nhan_vat": [],
+   "bien_the": [],
+   "prompt_anh": "Deep space: a steel-grey planet Mercury with a fiery rim and a pale golden glowing planet Venus side by side, both orbit trails looping backward, asteroid debris frozen in space, huge anamorphic lens flare",
+   "prompt_video": "Bullet-time: the camera orbits around the two planets while debris hangs frozen, both glowing orbit trails curl backward.",
+   "phan_doan": "tinh_nang",
+   "cam_xuc": 3,
+   "ky_thuat": {
+    "co_canh": "ews",
+    "chuyen_dong": "bullet_time",
+    "ong_kinh": "anamorphic",
+    "mau": "teal_cam",
+    "chuyen_canh": "quat_chuyen"
+   },
+   "trang_phuc": "",
+   "chu_man": "DOUBLE\n@0.9 RETROGRADE.",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "deep gravelly male movie-trailer narrator, slow heavy delivery that turns urgent and punchy, dramatic pauses",
+     "loi": "A double retrograde."
+    }
+   ]
+  },
+  {
+   "canh": "Oct 24 to Nov 13",
+   "goc_may": "",
+   "hanh_dong": "Hyperlapse forward down the avenue; the light trails suddenly reverse and stream backward as the orbit ring in the sky spins backward.",
+   "loi_thoai": "",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 2.0,
+   "nhan_vat": [],
+   "bien_the": [],
+   "prompt_anh": "A night city avenue from above with car light trails streaking in teal and orange, a giant clock-like glowing orbit ring in the sky above the skyline",
+   "prompt_video": "Hyperlapse forward down the avenue; the light trails suddenly reverse and stream backward as the orbit ring in the sky spins backward.",
+   "phan_doan": "tinh_nang",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "co_canh": "ews",
+    "chuyen_dong": "hyperlapse",
+    "mau": "teal_cam",
+    "chuyen_canh": "phong_vao"
+   },
+   "trang_phuc": "",
+   "chu_man": "OCT 24 → NOV 13",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "deep gravelly male movie-trailer narrator, slow heavy delivery that turns urgent and punchy, dramatic pauses",
+     "loi": "October twenty-four... to November thirteen."
+    }
+   ]
+  },
+  {
+   "canh": "Proof · both retrograde on the chart",
+   "goc_may": "",
+   "hanh_dong": "Slow gentle zoom on the highlighted rows.",
+   "loi_thoai": "",
+   "am_thanh": "",
+   "thoi_luong_s": 6,
+   "phat_s": 3.4,
+   "nhan_vat": [
+    "Astrolas Transit tool"
+   ],
+   "bien_the": [],
+   "prompt_anh": "The real Astrolas transit result",
+   "prompt_video": "Slow gentle zoom on the highlighted rows.",
+   "phan_doan": "bang_chung",
+   "cam_xuc": 4,
+   "ky_thuat": {
+    "chuyen_canh": "loe_trang"
+   },
+   "trang_phuc": "",
+   "chu_man": "Mercury R · Venus R\n@1.7 which house they hit",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "deep gravelly male movie-trailer narrator, slow heavy delivery that turns urgent and punchy, dramatic pauses",
+     "loi": "Astrolas shows both, and which part of your life they hit."
+    }
+   ]
+  },
+  {
+   "canh": "Fly through the chart",
+   "goc_may": "",
+   "hanh_dong": "The camera pushes forward and flies straight through the phone screen into a vast glowing golden chart wheel floating in space.",
+   "loi_thoai": "",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 1.8,
+   "nhan_vat": [],
+   "bien_the": [],
+   "prompt_anh": "Close-up of a hand holding a smartphone whose screen shows a glowing golden astrology chart wheel, gold light pouring out of the screen into a dark room",
+   "prompt_video": "The camera pushes forward and flies straight through the phone screen into a vast glowing golden chart wheel floating in space.",
+   "phan_doan": "giai_phap",
+   "cam_xuc": 4,
+   "ky_thuat": {
+    "co_canh": "cu",
+    "chuyen_dong": "xuyen_vat",
+    "anh_sang": "vien",
+    "chuyen_canh": "quat_chuyen"
+   },
+   "trang_phuc": "",
+   "chu_man": "KNOW YOUR DATES.",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "deep gravelly male movie-trailer narrator, slow heavy delivery that turns urgent and punchy, dramatic pauses",
+     "loi": "Know your dates."
+    }
+   ]
+  },
+  {
+   "canh": "Before it hits",
+   "goc_may": "",
+   "hanh_dong": "Speed ramp: she walks calmly away from the camera as the spark explosion behind her drops into slow motion, then snaps back to speed.",
+   "loi_thoai": "",
+   "am_thanh": "impact boom",
+   "thoi_luong_s": 4,
+   "phat_s": 1.9,
+   "nhan_vat": [],
+   "bien_the": [],
+   "prompt_anh": "Low-angle wide shot of a young woman's silhouette from behind walking calmly away from a huge burst of orange sparks and glowing debris on a wet night street, Mercury and Venus glowing in the sky ahead",
+   "prompt_video": "Speed ramp: she walks calmly away from the camera as the spark explosion behind her drops into slow motion, then snaps back to speed.",
+   "phan_doan": "giai_phap",
+   "cam_xuc": 5,
+   "ky_thuat": {
+    "co_canh": "ws",
+    "goc": "thap",
+    "chuyen_dong": "speed_ramp",
+    "anh_sang": "nguoc",
+    "mau": "teal_cam",
+    "chuyen_canh": "cat_soc"
+   },
+   "trang_phuc": "",
+   "chu_man": "BEFORE\n@0.9 IT HITS.",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "deep gravelly male movie-trailer narrator, slow heavy delivery that turns urgent and punchy, dramatic pauses",
+     "loi": "Before it hits."
+    }
+   ]
+  },
+  {
+   "canh": "CTA · free transit check",
+   "goc_may": "",
+   "hanh_dong": "Slow drift of stars.",
+   "loi_thoai": "",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 2.6,
+   "nhan_vat": [],
+   "bien_the": [],
+   "prompt_anh": "Deep navy starry sky with a soft golden glow",
+   "prompt_video": "Slow drift of stars.",
+   "phan_doan": "cta",
+   "cam_xuc": 5,
+   "ky_thuat": {},
+   "trang_phuc": "",
+   "chu_man": "Check your transits FREE\n@1.2 astrolas.com",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "deep gravelly male movie-trailer narrator, slow heavy delivery that turns urgent and punchy, dramatic pauses",
+     "loi": "Check your transits free, at astrolas dot com."
+    }
+   ]
+  }
+ ]
+}

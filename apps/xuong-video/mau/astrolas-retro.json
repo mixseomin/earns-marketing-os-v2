@@ -1,0 +1,53 @@
+{
+ "project": "studio",
+ "ten": "Astrolas · Double Retrograde — action trailer (organic short, bản nháp)",
+ "mo_ta": "Short dọc nhịp nhanh kiểu trailer hành động: 24/10–13/11/2026 Sao Thuỷ nghịch hành, cùng lúc Sao Kim cũng nghịch hành (nghịch hành kép) → hỗn loạn (tin nhắn hiểu lầm, kế hoạch đổ, người cũ nhắn lại) → bằng chứng thật: bảng Transit Planets của Astrolas ngày 01/11/2026 có Mercury R 16°26' Scorpio + Venus R 26°09' Libra → biết trước ngày → xem transit miễn phí. Cắt ~1,5–2s/shot, máy hiện đại (FPV, bullet-time, dolly zoom, speed ramp, xuyên vật).",
+ "kinh_thanh": {
+  "phong_cach": "High-octane cinematic action trailer for a vertical social video: night city, teal-and-orange grade, anamorphic lens flares, sparks, shattering glass and floating debris, deep space with glowing planets Mercury (small, steel-grey, fiery rim) and Venus (pale gold, glowing), cosmic orbit trails; hyper-real, premium blockbuster look; people only as silhouettes, from behind, or hands — never faces",
+  "ti_le": "9:16",
+  "do_phan_giai": "720p",
+  "mo_hinh_anh": "gemini-nano-banana-2.1",
+  "mo_hinh_video": "fal:fal-ai/veo3.1/lite/image-to-video",
+  "mo_hinh_chu": "claude-opus-5-5",
+  "ngon_ngu": "en",
+  "the_loai": "hanh_dong",
+  "logline": "",
+  "chu_de": "",
+  "qc": {
+   "ten": "Astrolas Transit",
+   "link": "https://astrolas.com/transit",
+   "diem_noi_bat": "Free transit interpretation: enter your birth data and any date, see which transiting planets hit your natal chart that day, with the orb and a written meaning for each aspect.",
+   "doi_tuong": "English-speaking astrology fans 18-35 on TikTok/Reels: zodiac memers, relationship-synastry curious, people checking a crush or partner",
+   "uu_dai": "Free — no account needed",
+   "thi_truong": "Global English (US first)",
+   "anh": [
+    "https://img.on.tc/xuong-video/astrolas/ba542800-a092-4262-9da6-e7099e9a8c1a.png"
+   ],
+   "logo_url": "https://astrolas.com/images/logo/wordmark-on-dark@2x.png",
+   "vi_tri_chu": "giua",
+   "kieu_chu": {
+    "font": "Playfair Display Black",
+    "mau": "#FFFFFF",
+    "vien": "#0B1A2E",
+    "nhan": "#E6B800",
+    "co": 0.1,
+    "vien_day": 0.06,
+    "ngang": 100
+   }
+  }
+ },
+ "nhan_vat": [
+  {
+   "loai": "san_pham",
+   "ten": "Astrolas Transit tool",
+   "mo_ta": "The astrolas.com Transit page on a phone: dark navy interface with gold accents, Transit Planets table listing planet glyphs, a red R retrograde mark, sign glyph and degrees",
+   "anh_ref": [
+    "https://img.on.tc/xuong-video/astrolas/ba542800-a092-4262-9da6-e7099e9a8c1a.png"
+   ]
+  }
+ ],
+ "tap": {
+  "ten": "Double Retrograde",
+  "brief": "Trailer hành động: 24/10 Sao Thuỷ quay đầu → hỗn loạn (tin nhắn, kế hoạch, người cũ) → Sao Kim cũng nghịch hành → nghịch hành kép 24/10–13/11 → bằng chứng thật bảng Transit Planets (Mercury R + Venus R) → biết ngày trước khi nó ập tới → xem transit miễn phí."
+ }
+}

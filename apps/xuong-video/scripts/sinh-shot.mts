@@ -20,6 +20,7 @@ import { getDb } from '@mos2/db';
 import { sinhKeyframeCanh } from '../src/lib/xuong-video/sinh-anh';
 import { batDauVideoCanh, kiemVideoTap, promptVideoCanh } from '../src/lib/xuong-video/sinh-video';
 import { sinhGiongShots, MODEL_GIONG_MAC_DINH } from '../src/lib/xuong-video/sinh-giong';
+import { khopGiongTap } from '../src/lib/xuong-video/hau-ky';
 import { giaAnhSv } from '../src/lib/xuong-video/hoan-tat';
 import { dongThoai, dungTiengClip, giaGiongTheo } from '../src/lib/xuong-video/am-thanh';
 import { dsMoHinhGiong } from '../src/lib/xuong-video/giong';
@@ -132,6 +133,9 @@ if (arg('giong')) {
   for (const c of rows) for (const d of c.thoai) console.log(`  #${c.thu_tu} ${d.nhan_vat || 'lời dẫn'}: "${d.loi}" → ${d.url ?? '(chưa có file)'}`);
   const tienG = await q(sql`SELECT coalesce(sum(chi_phi_cents), 0) AS t, count(*) FILTER (WHERE trang_thai = 'loi') AS loi FROM xv_job WHERE loai = 'am' AND canh_id = ANY(${`{${ids.join(',')}}`}::int[]) AND created_at > now() - interval '15 minutes'`);
   console.log(`  giọng: ${tien(Number(tienG[0]?.t))} · lỗi ${tienG[0]?.loi}`);
+  // Giọng xong là KHỚP GIÂY PHÁT theo giọng luôn (hau-ky.ts) — trước đây làm tay, quên là giọng đè nhau / bị tăng tốc.
+  const kg = await khopGiongTap(db, tapId, 'script sinh-shot');
+  console.log(kg.ok ? `  ⏱ khớp giây theo giọng: ${kg.data.doi} shot đổi · tổng ${kg.data.tong}s` : `  ✗ khớp giọng: ${kg.loi}`);
 }
 if (arg('xuat')) {
   const tap = mapTap(((await q(sql`SELECT * FROM xv_tap WHERE id = ${tapId}`)) as Row[])[0]!);

@@ -36,11 +36,12 @@ export type SinhTaiCho = {
   giong: (canhId: number, tuy: TuyGiong) => void; sfx: (canhId: number, tuy: TuyAm) => void; nhac: (phanDoan: string | undefined, model: string, moTa: string) => void;
   mhNhac: string; ban: (k: string) => boolean; dangPhanDoan: string[]; dangCaTap: boolean;
 };
-export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, onDoiChuyenCanh, onDoiKyThuat, onKhopNhip }: {
+export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, onDoiChuyenCanh, onDoiKyThuat, onKhopNhip, onKhopGiong }: {
   canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null; qc?: ThongTinQc | null;
   onChon: (id: number) => void; onDoiGiay: (id: number, giay: number) => void;
   /** đổi chuyển cảnh SAU shot id (ky_thuat.chuyen_canh; '' = cắt thẳng) và/hoặc số giây đặt tay (giay: undefined = giữ, null = về mặc định) */ onDoiChuyenCanh?: (id: number, key: string, giay?: number | null) => void; onXep: (ids: number[]) => void; onToanManHinh: () => void; sinh?: SinhTaiCho;
   /** khớp điểm cắt vào phách nhạc nền — trả câu báo */ onKhopNhip?: () => Promise<string>;
+  /** khớp giây phát theo giọng — trả câu báo */ onKhopGiong?: () => Promise<string>;
   /** ghi kỹ thuật mới cho vài shot một lượt (gói impact / nhịp hành động thêm tiếng) */ onDoiKyThuat?: (ds: { id: number; ky_thuat: KyThuatShot }[]) => void;
 }) {
   // Số giây tạm khi đang kéo mép clip (chưa ghi) — timeline co giãn theo tay ngay.
@@ -356,6 +357,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
         <LopCongCu t={t} tiLe={doc916 ? 9 / 16 : 16 / 9} onThem={themLop} />
         {onDoiKyThuat && <button type="button" className="xv-btn" title={'Nhịp hành động cả tập: cắt sốc → chớp/rung/zoom + tiếng đập · quất/phóng → tiếng vút · loé trắng → âm doạ.\nĐiểm cắt đã có hiệu ứng thì để nguyên; chạy lại không nhân đôi.'}
           onClick={() => { const r = nhipHanhDong(canh, batDau, lop); if (r.lop.length) datLop((ds) => [...ds, ...r.lop]); if (r.kt.length) onDoiKyThuat(r.kt); setBaoNhip(r.lop.length || r.kt.length ? `⚡ +${r.lop.length / 3} impact · ${r.kt.length} shot thêm tiếng` : '⚡ không có điểm cắt nào cần thêm'); }}>⚡ Nhịp hành động</button>}
+        {onKhopGiong && <button type="button" className="xv-btn" title="Khớp giây phát mỗi shot theo giọng đã sinh: đủ đọc hết câu (tốc ≤1,1×), mốc chữ màn co giãn theo, lớp phủ dời theo shot. 0đ, ↶ Hoàn tác được." onClick={() => { if (dangKhop) return; setDangKhop(true); void onKhopGiong().then((m) => setBaoNhip(m)).finally(() => setDangKhop(false)); }}>⏱ Khớp giọng</button>}
         {baoNhip && <span style={mono}>{baoNhip}</span>}
         <span style={{ flex: 1 }} />
         {vuaXoa && <span style={mono}>đã xoá {vuaXoa.so} lớp · <button type="button" className="xv-lienket" onClick={() => { const tr = vuaXoa.truoc; datLop(() => tr); setVuaXoa(null); }}>↶ Hoàn tác</button></span>}

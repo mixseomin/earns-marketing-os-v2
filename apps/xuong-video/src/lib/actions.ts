@@ -32,6 +32,7 @@ import { sinhAnhGoc, sinhKeyframeCanh } from '@/lib/xuong-video/sinh-anh';
 import { batDauVideoCanh, kiemVideoTap } from '@/lib/xuong-video/sinh-video';
 import { nguonShot } from '@/lib/xuong-video/nguon-shot';
 import { khopNhipTap, type KqKhopNhip } from '@/lib/xuong-video/khop-nhip';
+import { khopGiongTap } from '@/lib/xuong-video/hau-ky';
 import type { NguonShot } from '@/lib/xuong-video/phu-thuoc';
 import { sinhGiongShots, MODEL_GIONG_MAC_DINH, type TuyGiong } from '@/lib/xuong-video/sinh-giong';
 import { xongJob as xongJobDb, mapJob } from '@/lib/xuong-video/doc-db';
@@ -1078,6 +1079,13 @@ export async function khopNhipNhac(tapId: number): Promise<Kq<KqKhopNhip>> {
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   return khopNhipTap(db, tapId, await ai());
+}
+/** Giây phát mỗi shot ≥ đủ đọc hết giọng; chữ màn + lớp phủ theo (hau-ky.ts) — 0đ, ↶ Hoàn tác được. */
+export async function khopGiongTapAction(tapId: number): Promise<Kq<{ doi: number; tong: number; thieu: number }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  return khopGiongTap(db, tapId, await ai());
 }
 export async function luuLop(tapId: number, lop: Lop[]): Promise<Kq> {
   const db = getDb();

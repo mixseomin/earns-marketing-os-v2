@@ -262,6 +262,26 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   /** Bỏ nhóm — MỘT đường cho nút đầu làn, bảng Thuộc tính và ⇧⌘G: có ↶ hoàn tác ngay, và lớp nhớ nhóm cũ để "Gộp lại" lúc nào cũng được. */
   const boNhomIds = (ids: string[]) => { if (!ids.some((id) => lop.find((l) => l.id === id)?.nhom)) return; setVuaXoa({ truoc: lop, chu: `đã bỏ nhóm ${ids.length} lớp` }); datLop((ds) => boNhom(ds, ids)); };
   const boNhomChon = () => boNhomIds(chonLops);
+  /** Chọn cả một tập lớp (bấm tên làn, kéo khung): thường = thay vùng chọn; Shift/⌘ = thêm, hoặc bớt nếu đã chọn hết. */
+  const chonIds = (ids: string[], them: boolean) => setChonLops((d) => (!them ? ids : ids.every((x) => d.includes(x)) ? d.filter((x) => !ids.includes(x)) : [...d, ...ids.filter((x) => !d.includes(x))]));
+  // Kéo khung chọn trên vùng làn lớp phủ: khối nào chạm khung thì vào vùng chọn (đọc data-lop-ids của khối trên màn — đúng thứ người thấy).
+  const vungLop = useRef<HTMLDivElement>(null);
+  const [khung, setKhung] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+  const keoKhung = (e: React.PointerEvent<HTMLDivElement>) => {
+    const tg = e.target as HTMLElement;
+    if (e.button !== 0 || tg.closest('[data-lop-ids],[data-nhan-lan],button,input')) return;
+    const them = e.shiftKey || e.metaKey || e.ctrlKey; const x0 = e.clientX, y0 = e.clientY; let k = { x0, y0, x1: x0, y1: y0 };
+    const di = (ev: PointerEvent) => { k = { x0, y0, x1: ev.clientX, y1: ev.clientY }; setKhung(k); };
+    const xong = () => {
+      window.removeEventListener('pointermove', di); window.removeEventListener('pointerup', xong); setKhung(null);
+      if (Math.abs(k.x1 - k.x0) < 4 && Math.abs(k.y1 - k.y0) < 4) { if (!them) setChonLops([]); return; }
+      const [l, r, t, b] = [Math.min(k.x0, k.x1), Math.max(k.x0, k.x1), Math.min(k.y0, k.y1), Math.max(k.y0, k.y1)];
+      const ids = [...(vungLop.current?.querySelectorAll<HTMLElement>('[data-lop-ids]') ?? [])].filter((el) => { const h = el.getBoundingClientRect(); return h.right > l && h.left < r && h.bottom > t && h.top < b; })
+        .flatMap((el) => (el.dataset.lopIds ?? '').split(',').filter(Boolean));
+      chonIds([...new Set(ids)], them);
+    };
+    window.addEventListener('pointermove', di); window.addEventListener('pointerup', xong);
+  };
   const soCu = soNhomCu(lop);
   const chonNhom = dsChonLop.length > 1 && dsChonLop.every((l) => l.nhom && l.nhom === dsChonLop[0]!.nhom);
   const panTrai = useKichThuoc('xv-tl-trai', 200, 140, 440);
@@ -289,16 +309,17 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   // Danh sách làn của lần vẽ trước — menu 👁 đọc lúc mở (làn được khai trong lúc vẽ, sau ô thước nơi đặt menu).
   const lanRef = useRef<string[]>([]);
   useEffect(() => { lanRef.current = dsLan; });
-  const track = (nhan: string, mo: string, noiDung: ReactNode, cao = 26, nut?: ReactNode, keoLop?: string) => {
+  const track = (nhan: string, mo: string, noiDung: ReactNode, cao = 26, nut?: ReactNode, keoLop?: string, onNhan?: (them: boolean) => void, dangChon?: boolean) => {
     if (!keoLop && !dsLan.includes(nhan)) dsLan.push(nhan);
     if (!keoLop && nhan !== '🎬 Hình' && anLan.includes(nhan)) return null;
     return (
     <div style={{ display: 'flex', alignItems: 'stretch', height: cao, marginTop: 3, outline: keoLop && dangThaVao === keoLop ? '1px solid var(--cyan)' : undefined }}>
-      <div data-goi-y={`${nhan}\n${mo}`}
+      <div data-goi-y={`${nhan}\n${mo}${onNhan ? '\nbấm tên làn = chọn cả làn · Shift/⌘ + bấm = thêm/bớt' : ''}`} data-nhan-lan="1"
+        onClick={onNhan ? (e: React.MouseEvent) => { if ((e.target as HTMLElement).closest('button')) return; onNhan(e.shiftKey || e.metaKey || e.ctrlKey); } : undefined}
         {...(keoLop ? { draggable: true, onDragStart: (e: React.DragEvent) => { e.dataTransfer.setData('text/xv-lop', keoLop); e.dataTransfer.effectAllowed = 'move'; },
           onDragOver: (e: React.DragEvent) => { if (e.dataTransfer.types.includes('text/xv-lop')) { e.preventDefault(); setDangThaVao(keoLop); } },
           onDragLeave: () => setDangThaVao(null), onDrop: (e: React.DragEvent) => { e.preventDefault(); setDangThaVao(null); doiThuTuLop(e.dataTransfer.getData('text/xv-lop'), keoLop); } } : {})}
-        style={{ cursor: keoLop ? 'grab' : undefined,  width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: 'var(--bg-1)', ...mono, display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, paddingRight: 4 }}>
+        style={{ cursor: keoLop ? 'grab' : onNhan ? 'pointer' : undefined,  width: nhanW, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, background: dangChon ? 'color-mix(in srgb, var(--cyan) 22%, var(--bg-1))' : 'var(--bg-1)', color: dangChon ? 'var(--fg-1)' : undefined, ...mono, display: 'flex', alignItems: 'center', gap: 3, paddingLeft: 4, paddingRight: 4 }}>
         <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nhan}</span>{nut}{tayNhan}
       </div>
       <div style={{ position: 'relative', width: W, flexShrink: 0 }}>{noiDung}</div>
@@ -454,19 +475,23 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           }), 26, nutNho(anChuMan ? '🙈' : '👁', anChuMan ? 'Chữ màn đang ẩn khỏi khung xem (bản xuất vẫn có) — bấm để hiện' : 'Ẩn chữ màn khỏi khung xem để nhìn hình sạch (bản xuất vẫn có)', anChuMan, () => doiAnLan('xem:chu_man')))}
 
           {/* Lớp phủ: mỗi lớp một làn (lớp sau nằm trên), kéo khối đổi giờ — bấm chọn để sửa ở bảng bên phải khung xem. */}
-          {lop.length > 0 && track('🧩 Lớp phủ', 'Thao tác nhóm: Shift/⌘ + bấm để chọn nhiều lớp → ⛓ Gộp nhóm (⌘G); chọn một nhóm → Bỏ nhóm (⇧⌘G); lớp đã tách nhớ nhóm cũ → ⛓ Gộp lại',
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', height: '100%', paddingLeft: 6, ...mono }}>
-              {dsChonLop.length > 1 && !chonNhom && nutNho(`⛓ Gộp nhóm ${dsChonLop.length} lớp (⌘G)`, 'Gộp các lớp đang chọn thành một nhóm', false, gopChon)}
-              {chonNhom && nutNho(`Bỏ nhóm ${dsChonLop.length} lớp (⇧⌘G)`, 'Tách nhóm đang chọn thành lớp lẻ', false, boNhomChon)}
+          <div ref={vungLop} onPointerDown={keoKhung}>
+          {lop.length > 0 && track('🧩 Lớp phủ', 'Chọn nhiều lớp: kéo khung trên các làn, bấm tên làn (cả làn), hoặc Shift/⌘ + bấm khối → ⛓ Gộp nhóm (⌘G) · Bỏ nhóm (⇧⌘G) · Xoá (Del) · Esc bỏ chọn',
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', height: '100%', paddingLeft: 6, borderRadius: 4, ...mono, ...(dsChonLop.length ? { background: 'color-mix(in srgb, var(--cyan) 18%, transparent)', outline: '1px solid var(--cyan)' } : {}) }}>
+              {dsChonLop.length > 0 && <b style={{ color: 'var(--fg-1)' }}>✓ {dsChonLop.length} lớp đang chọn</b>}
+              {dsChonLop.length > 1 && !chonNhom && <button type="button" className="xv-btn" style={{ padding: '0 8px', lineHeight: '18px', fontWeight: 600 }} title="Gộp các lớp đang chọn thành một nhóm (⌘G)" onClick={gopChon}>⛓ Gộp nhóm {dsChonLop.length} lớp</button>}
+              {dsChonLop.some((l) => l.nhom) && <button type="button" className="xv-btn" style={{ padding: '0 8px', lineHeight: '18px' }} title="Tách nhóm thành lớp lẻ (⇧⌘G) — có ↶ hoàn tác" onClick={boNhomChon}>Bỏ nhóm</button>}
+              {dsChonLop.length > 0 && <button type="button" className="xv-btn" style={{ padding: '0 8px', lineHeight: '18px' }} title="Xoá các lớp đang chọn (Del) — có ↶ hoàn tác" onClick={xoaChon}>🗑 Xoá</button>}
+              {dsChonLop.length > 0 && <button type="button" className="xv-btn" style={{ padding: '0 8px', lineHeight: '18px' }} title="Bỏ chọn (Esc)" onClick={() => setChonLops([])}>✕ Bỏ chọn</button>}
               {soCu > 0 && nutNho(`⛓ Gộp lại ${soCu} nhóm đã tách`, 'Trả các lớp đã bỏ nhóm về đúng nhóm cũ', false, () => datLop((ds) => gopLaiNhomCu(ds)))}
-              {dsChonLop.length < 2 && !soCu && <span>Shift + bấm nhiều lớp → ⛓ Gộp nhóm</span>}
+              {!dsChonLop.length && <span>kéo khung trên làn · bấm tên làn · Shift + bấm khối → chọn nhiều lớp</span>}
             </div>, 22)}
           {lop.length ? lanLop(lop).map((ln) => {
               const le = ln.khoi.length === 1 && ln.khoi[0]!.length === 1 ? ln.khoi[0]![0]! : null; const tat = ln.khoi.flat(); const ids = tat.map((x) => x.id); const an = tat.every((x) => x.an);
               const cungNhom = (l: Lop) => (chonLops.includes(l.id) ? dsChonLop : lop.filter((x) => nhomCua(lop, l.id).includes(x.id)));
               const nutAn = nutNho(an ? '🙈' : '👁', an ? 'Đang ẩn (không hiện, không xuất) — bấm để hiện' : 'Ẩn (không hiện, không xuất)', an, () => datLop((ds) => ds.map((x) => (ids.includes(x.id) ? { ...x, an: !an } : x))));
               if (le) return <Fragment key={ln.key}>{track(`⋮⋮ ${ln.nhan}`, 'Lớp phủ — kéo thân để dời, kéo mép để đổi giờ vào/ra; bấm để sửa',
-                <KhoiLop l={le} pps={pps} chon={chonLops.includes(le.id)} cung={cungNhom(le)} onChon={(them) => bamLop(le.id, them)} onDoi={doiLop} />, 20, nutAn, le.id)}</Fragment>;
+                <KhoiLop l={le} pps={pps} chon={chonLops.includes(le.id)} cung={cungNhom(le)} onChon={(them) => bamLop(le.id, them)} onDoi={doiLop} />, 20, nutAn, le.id, (them) => bamLop(le.id, them), chonLops.includes(le.id))}</Fragment>;
               const mo = moLan.includes(ln.key);
               const nutMo = nutNho(mo ? '▾' : '▸', mo ? 'Gộp lại thành một làn' : 'Mở ra từng lớp (chớp / rung / zoom…) để sửa riêng — vẫn giữ nhóm', !mo, () => setMoLan((d) => (mo ? d.filter((x) => x !== ln.key) : [...d, ln.key])));
               const nutBo = nutNho('Bỏ nhóm', 'Tách mọi nhóm trong làn này thành lớp lẻ — có ↶ hoàn tác, và "⛓ Gộp lại" ở làn 🧩 Lớp phủ trả đúng nhóm cũ', true, () => boNhomIds(ids));
@@ -474,13 +499,15 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
               const con = [...new Set(tat.map((x) => tenLop(x)))];
               return <Fragment key={ln.key}>
                 {track(`⛓ ${ln.nhan}${ln.khoi.length > 1 ? ` ×${ln.khoi.length}` : ''}`, 'Nhóm lớp (mỗi khối một nhóm) — kéo khối dời cả nhóm, bấm để chọn cả nhóm; ▸ mở ra từng lớp để sửa riêng',
-                  <>{ln.khoi.map((k) => { const l = k[0]!; return <KhoiLop key={l.id} l={{ ...l, tu: Math.min(...k.map((x) => x.tu)), den: Math.max(...k.map((x) => x.den)), ten: ln.nhan }} nhom pps={pps} chon={k.some((x) => chonLops.includes(x.id))} cung={cungNhom(l)} onChon={(them) => bamLop(l.id, them)} onDoi={doiLop} />; })}</>, 20,
-                  <>{nutMo}{nutBo}{nutAn}</>)}
+                  <>{ln.khoi.map((k) => { const l = k[0]!; return <KhoiLop key={l.id} ids={k.map((x) => x.id)} l={{ ...l, tu: Math.min(...k.map((x) => x.tu)), den: Math.max(...k.map((x) => x.den)), ten: ln.nhan }} nhom pps={pps} chon={k.some((x) => chonLops.includes(x.id))} cung={cungNhom(l)} onChon={(them) => bamLop(l.id, them)} onDoi={doiLop} />; })}</>, 20,
+                  <>{nutMo}{nutBo}{nutAn}</>, undefined, (them) => chonIds(ids, them), ids.every((x) => chonLops.includes(x)))}
                 {mo && con.map((tn) => <Fragment key={tn}>{track(`   ↳ ${tn.split(' · ').slice(1).join(' · ') || tn}`, `${tn} — kéo mép đổi giờ riêng lớp này, kéo thân dời cả nhóm`,
-                  <>{tat.filter((x) => tenLop(x) === tn).map((l) => <KhoiLop key={l.id} l={l} pps={pps} chon={chonLops.includes(l.id)} cung={cungNhom(l)} onChon={(them) => bamLop(l.id, them)} onDoi={doiLop} />)}</>, 18)}</Fragment>)}
+                  <>{tat.filter((x) => tenLop(x) === tn).map((l) => <KhoiLop key={l.id} l={l} pps={pps} chon={chonLops.includes(l.id)} cung={cungNhom(l)} onChon={(them) => bamLop(l.id, them)} onDoi={doiLop} />)}</>, 18, undefined, undefined, (them) => chonIds(tat.filter((x) => tenLop(x) === tn).map((x) => x.id), them), tat.filter((x) => tenLop(x) === tn).every((x) => chonLops.includes(x.id)))}</Fragment>)}
               </Fragment>;
             })
             : track('🧩 Lớp phủ', 'Chữ, ảnh, hình khối tự do đè lên video', <button type="button" className="xv-lienket xv-mono" style={{ lineHeight: '20px', paddingLeft: 6 }} onClick={() => themLop([lopMoi('chu', t)])}>chưa có lớp — bấm để thêm lớp chữ ở giây {t.toFixed(1)}</button>, 20)}
+          {khung && <div style={{ position: 'fixed', left: Math.min(khung.x0, khung.x1), top: Math.min(khung.y0, khung.y1), width: Math.abs(khung.x1 - khung.x0), height: Math.abs(khung.y1 - khung.y0), border: '1px solid var(--cyan)', background: 'color-mix(in srgb, var(--cyan) 12%, transparent)', pointerEvents: 'none', zIndex: 50 }} />}
+          </div>
           {track('🎬 Hình', 'Mỗi cảnh một clip, dài đúng số giây', canh.map((cc, i) => {
             const x = batDau[i]! * pps; const w = dur(cc) * pps; const anh = cc.keyframe_url;
             const dangChon = chon === cc.id; const coVid = !!(cc.video_cuoi_url || cc.video_url);

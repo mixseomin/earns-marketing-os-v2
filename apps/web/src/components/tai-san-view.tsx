@@ -9,9 +9,9 @@ import { useRouter } from 'next/navigation';
 import { datTrangThaiSp } from '@/lib/actions/san-pham-duyet';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { TienDo } from '@/components/ui/tien-do';
-import { DataTable, Drawer, EntityRef, FilterChips, LinkChip, NgayLich, Panel, Pill, SelectField, type DataColumn } from '@/components/ui';
+import { DataTable, Drawer, EntityRef, FilterChips, LinkChip, NgayLich, Panel, Pill, SelectField, Tabs, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
-import { BanXem } from './tai-san-ban-xem';
+import { BanXem, canDuyet } from './tai-san-ban-xem';
 import { BaoCaoAppStore } from './tai-san-bao-cao-app';
 import { extLinkProps, wrapExternalUrl } from '@/lib/external-url';
 import { useShallowParam } from '@/lib/url-shallow';
@@ -253,24 +253,51 @@ function ChiTietSp({ s, x, onClose }: { s: ShopNut; x: SpNut; onClose: () => voi
     ['Đơn', x.don ?? '—'],
     ['Thu', x.tien == null ? '— (chưa có nguồn đo)' : <>{tienTe(x.tien)} <span style={phu}>{x.ky === 'tron_doi' ? 'trọn đời' : '30 ngày'}</span></>],
   ];
+  // Drawer chia TAB, không cuộn cả drawer (card #1321, YDNI một màn): phần đầu (ảnh nhỏ · tên · link · cảnh báo · thanh tab)
+  // ghim; chỉ vùng nội dung tab cuộn. Ba tab CỐ ĐỊNH, tab rỗng mang badge 0. Mặc định mở Bản xem khi còn phải duyệt.
+  const v = x.xem;
+  // Tab thứ hai theo LOẠI sản phẩm (cố định trong một drawer): sách → Bản xem để duyệt; app App Store → Báo cáo tải.
+  const [tab, datTab] = useState<'thong_tin' | 'ban_xem' | 'noi_dung'>(canDuyet(x) || laApp ? 'ban_xem' : 'thong_tin');
+  const soNoiDung = v ? (v.moTa ? 1 : 0) + (v.chuDe?.length ?? 0) + (v.mau?.length ?? 0) : 0;
+  const rong = (chu: string) => <div style={{ fontSize: 12.5, ...phu }}>{chu}</div>;
   return (
-    <Drawer onClose={onClose} width={x.xem || laApp ? 760 : 560}>
+    <Drawer onClose={onClose} width={v || laApp ? 760 : 600} padding={0} bodyStyle={{ display: 'flex', flexDirection: 'column', overflowY: 'hidden' }}>
       {/* data-ngu-canh: hòm góp ý MOS2 đọc chuỗi này làm ngữ cảnh → góp ý gửi từ đây tự gắn đúng sản phẩm */}
-      <div style={{ display: 'grid', gap: 14 }} data-ngu-canh={`sản phẩm: ${x.ten} · ${s.ten}${x.idSo ? ` · sổ ${x.idSo}` : ''}`}>
-        {x.anh && <Anh x={x} co={520} />}
-        <div>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, lineHeight: 1.3 }}>{x.ten}</h2>
-          {x.url && <a {...extLinkProps(x.url)} style={{ fontSize: 12, color: 'var(--accent)', wordBreak: 'break-all' }}>{x.url} ↗</a>}
+      <div data-ngu-canh={`sản phẩm: ${x.ten} · ${s.ten}${x.idSo ? ` · sổ ${x.idSo}` : ''}`} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
+        <div style={{ padding: '16px 20px 0', display: 'grid', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
+            <div style={{ flex: '0 0 56px' }}><Anh x={x} co={56} /></div>
+            <div style={{ minWidth: 0, display: 'grid', gap: 3 }}>
+              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, lineHeight: 1.3 }}>{x.ten}</h2>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 12 }}>
+                <NhanTt x={x} />
+                {x.url && <a {...extLinkProps(x.url)} style={{ color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 420 }}>{x.url} ↗</a>}
+              </div>
+            </div>
+          </div>
+          {x.canhBao && <div style={{ fontSize: 12.5, color: 'var(--warn)', border: '1px solid var(--warn)', borderRadius: 6, padding: '6px 10px' }}>⚠ {x.canhBao}</div>}
+          <Tabs dinh={false} value={tab} onChange={datTab} items={[
+            { key: 'thong_tin', label: 'Thông tin' },
+            laApp ? { key: 'ban_xem', label: 'Báo cáo tải', title: 'từng lượt tải App Store: nước · nguồn · máy · bản' }
+              : { key: 'ban_xem', label: 'Bản xem', badge: v ? v.anh.length : 0, title: v ? `${v.anh.length} ảnh trang + nút duyệt` : 'chưa có bản xem' },
+            { key: 'noi_dung', label: 'Nội dung', badge: soNoiDung, title: 'mô tả bán hàng · chủ đề · trang gợi nhớ' },
+          ]} />
         </div>
-        {x.canhBao && <div style={{ fontSize: 12.5, color: 'var(--warn)', border: '1px solid var(--warn)', borderRadius: 6, padding: '6px 10px' }}>⚠ {x.canhBao}</div>}
-        <table style={{ borderCollapse: 'collapse', fontSize: 12.5 }}><tbody>
-          {dong.map(([k, v]) => <tr key={k} style={{ borderTop: '1px solid var(--line)' }}>
-            <td style={{ padding: '6px 10px 6px 0', ...phu, whiteSpace: 'nowrap', verticalAlign: 'top', width: 140 }}>{k}</td><td style={{ padding: '6px 0' }}>{v}</td></tr>)}
-        </tbody></table>
-        {x.ghiChu && <div><div style={{ fontSize: 11, ...phu, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Ghi chú</div>
-          <div style={{ fontSize: 12.5, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{x.ghiChu}</div></div>}
-        {x.xem && <BanXem x={x} />}
-        {laApp && <BaoCaoAppStore idSo={x.idSo!} />}
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 20px 20px' }}>
+          {tab === 'thong_tin' && <div style={{ display: 'grid', gap: 14 }}>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+              {x.anh && <div style={{ flex: '0 1 200px' }}><Anh x={x} co={200} /></div>}
+              <table style={{ flex: '1 1 300px', borderCollapse: 'collapse', fontSize: 12.5 }}><tbody>
+                {dong.map(([k, val]) => <tr key={k} style={{ borderTop: '1px solid var(--line)' }}>
+                  <td style={{ padding: '6px 10px 6px 0', ...phu, whiteSpace: 'nowrap', verticalAlign: 'top', width: 130 }}>{k}</td><td style={{ padding: '6px 0' }}>{val}</td></tr>)}
+              </tbody></table>
+            </div>
+            {x.ghiChu && <div><div style={{ fontSize: 11, ...phu, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Ghi chú</div>
+              <div style={{ fontSize: 12.5, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{x.ghiChu}</div></div>}
+          </div>}
+          {tab === 'ban_xem' && (laApp ? <BaoCaoAppStore idSo={x.idSo!} /> : v ? <BanXem x={x} phan="anh" /> : rong('Sản phẩm này chưa có bản xem để duyệt — máy sản xuất chỉ dựng bản xem cho sách (puzzle-books xem.mjs).'))}
+          {tab === 'noi_dung' && (v && soNoiDung ? <BanXem x={x} phan="noi_dung" /> : rong('Chưa có mô tả bán hàng / chủ đề trong bản xem.'))}
+        </div>
       </div>
     </Drawer>
   );

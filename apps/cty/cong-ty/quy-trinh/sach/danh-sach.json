@@ -30,9 +30,9 @@
    "id": "dang-kdp",
    "ten": "Đăng KDP",
    "so_hoa": "co-dinh",
-   "kich_hoat": "Giám đốc: nút Publish là chữ ký (br gác) — tab Dây chuyền liệt kê cuốn tới ngày",
-   "mo_ta": "Máy soạn nháp đủ 3 trang (tựa, ruột, bìa, giá), khoanh đỏ nút Publish; Giám đốc bấm. Chặn khi chưa duyệt, chưa tới ngày, hết suất 2 tựa/định dạng/tuần.",
-   "ma": "puzzle-books scripts/kdp.mjs <tên> --publish (playbook br kdp-paperback)"
+   "kich_hoat": "MacBook 2 giờ/lần: cuốn đã duyệt + tới ngày → máy tạo nháp; nút Publish là chữ ký của Giám đốc (br gác)",
+   "mo_ta": "Máy điền đủ 3 trang (tựa, ruột, bìa, giá), lưu nháp, ghi mã tựa vào sổ, bot Telegram nhắn link trang Pricing; đọc Bookshelf để biết Giám đốc đã Publish chưa. Chặn khi chưa duyệt, chưa tới ngày, hết suất 2 tựa/định dạng/tuần.",
+   "ma": "puzzle-books scripts/dang-kdp.mjs → kdp.mjs (playbook br kdp-paperback)"
   },
   {
    "id": "video-ngan",
@@ -41,6 +41,78 @@
    "kich_hoat": "20:00 giờ VN mỗi ngày: TikTok (iMac, máy ảo tiktok1); 20:05 YouTube · Facebook · Instagram (MacBook)",
    "mo_ta": "Mỗi nền một short 'Only ONE' mỗi ngày, caption kèm mã giảm giá riêng nền, bình luận đầu kèm link sách.",
    "ma": "puzzle-books scripts/dang-short.mjs <nền>"
+  },
+  {
+   "id": "duyet-ban-xem",
+   "ten": "Duyệt bản xem + góp ý",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Cuối trạm 5: máy đưa bản xem lên MOS2; Giám đốc duyệt trong drawer sản phẩm (tab Tài sản)",
+   "mo_ta": "Bìa full-wrap + 4 ảnh bán + trang mẫu lên MOS2 kèm dấu vân tay nội dung. Duyệt thì sang sẵn sàng; góp ý thành card plays mos2 → sửa → dựng lại → duyệt lại. Dựng lại mà ảnh y hệt thì không bắt duyệt lại.",
+   "ma": "puzzle-books scripts/xem.mjs (trạm 6 của quy-trinh.mjs) · MOS2 actions/san-pham-duyet.ts"
+  },
+  {
+   "id": "dua-nhap-etsy",
+   "ten": "Đưa nháp Etsy",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Chạy tay sau khi dựng / dựng lại (chưa có lịch)",
+   "mo_ta": "Đẩy ảnh bán + PDF lên box3 rồi tạo hoặc đồng bộ listing NHÁP trên FrontPorchZ (miễn phí). Sách dựng lại: thay ảnh + PDF trên listing, mới lên trước, cũ xoá sau.",
+   "ma": "puzzle-books deploy-etsy.sh [thay <tên>] → box3 /root/etsy/etsy.mjs"
+  },
+  {
+   "id": "kdp-bia-cung",
+   "ten": "KDP bìa cứng",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Chạy tay cho tựa đã có bìa mềm (chưa có lịch)",
+   "mo_ta": "Playbook trình duyệt tạo bản bìa cứng của tựa đang có, dừng trước nút Publish (chữ ký của Giám đốc).",
+   "ma": "br play run kdp-hardcover"
+  },
+  {
+   "id": "ghim-pinterest",
+   "ten": "Ghim Pinterest",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Chạy tay: dựng ghim sau khi có ảnh; đưa lên hàng hẹn khi Pinterest còn chỗ (tối đa 100 ghim hẹn)",
+   "mo_ta": "Mỗi cuốn ~100 ảnh ghim tải lên Directus + CSV Bulk create; hàng đợi chung lấy đúng số chỗ trống theo thứ tự ưu tiên, dời giờ hẹn đã qua. Tài khoản Pinterest #503.",
+   "ma": "puzzle-books scripts/pins.mjs <tên> → scripts/pin-hang.mjs <số chỗ trống> → ~/bin/plays/pinterest.nap-ghim-hen.sh"
+  },
+  {
+   "id": "do-ghim",
+   "ten": "Đo ghim Pinterest",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Chạy tay: playbook đọc trang analytics từng ghim (30 ngày)",
+   "mo_ta": "Ghép ghim → sách theo tiêu đề, gửi số vào MOS2 kenh_so_ngay.",
+   "ma": "~/bin/plays/pinterest.doc-so-ghim.sh → puzzle-books scripts/pin-so.mjs"
+  },
+  {
+   "id": "trang-printables",
+   "ten": "Trang ô chữ miễn phí (pickjot.com/printables)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Chạy tay khi thêm chủ đề tặng",
+   "mo_ta": "Mỗi ô chữ tặng một trang (lưới chữ to, PDF có lời giải, trang gợi nhớ) dẫn về sách; chủ đề theo số đo từ khoá theo mùa. Là đích của ghim và video.",
+   "ma": "puzzle-books scripts/site.mjs --deploy → box3 /var/www/pickjot-printables"
+  },
+  {
+   "id": "do-video",
+   "ten": "Đo video ngắn",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "MacBook ngay sau lượt đăng 20:05 mỗi ngày",
+   "mo_ta": "Lượt xem cộng dồn từng video trên YouTube (API chỉ đọc), Facebook, Instagram (đọc ô reel), TikTok (lượt đăng iMac ghi) → MOS2 kenh_so_ngay; MOS2 tính số 7 ngày + lượt vào shop.",
+   "ma": "puzzle-books scripts/so-short.mjs"
+  },
+  {
+   "id": "kenh-keo-khach",
+   "ten": "Gom kênh kéo khách",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Chạy tay sau mỗi lần dựng / đăng ghim, video, trang printables",
+   "mo_ta": "Đếm ghim đã dựng / đã hẹn, video đã dựng / đã đăng, trang printables đang sống của từng cuốn → bảng kenh_sp (tab Dây chuyền + MOS2 Tài sản đọc).",
+   "ma": "puzzle-books scripts/kenh.mjs"
+  },
+  {
+   "id": "bao-telegram",
+   "ten": "Báo Telegram",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Box3 mỗi phút (systemd bao-sp-telegram.timer)",
+   "mo_ta": "Đọc sổ sản phẩm: sách dựng xong chờ duyệt → topic Sản xuất xong (duyệt xong thì tin tự xoá); vừa lên sàn → Sản phẩm mới; tới ngày mà chưa duyệt, hoặc đã duyệt tới ngày cần Publish KDP/Gumroad → nhắc.",
+   "ma": "MOS2 scripts/bao-sp-telegram.mjs"
   },
   {
    "id": "mo-cuon-moi",

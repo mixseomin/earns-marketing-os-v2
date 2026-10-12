@@ -1,14 +1,14 @@
-// Năm món đồ trong mỗi phòng: 📋 bảng công việc · 🗄 tủ tài liệu · 📨 hòm tin · 💰 sổ chi · 📈 gói số. Mỗi ô một con số
+// Năm món đồ trong mỗi phòng: 📋 bảng công việc · 🗄 tủ tài liệu · 📨 hòm tin · 💰 sổ chi · 📈 gói số (+ 🔑 tài khoản khi phòng cầm dự án có tài khoản). Mỗi ô một con số
 // nhìn thấy ngay, bấm mở ra chi tiết; số lấy từ dữ liệu thật (sổ tiến độ, plays, sổ sự kiện, ai_usage).
 import Link from 'next/link';
 import type { Doc } from '@/lib/cong-ty';
 import { Gio } from './gio';
 import { Nguoi } from './nguoi';
-import { bangCongViec, tuTaiLieu, homTin, soChi, goiSo } from '@/lib/do-dac';
+import { bangCongViec, tuTaiLieu, homTin, soChi, goiSo, taiKhoanPhong } from '@/lib/do-dac';
 
 
 export async function DoDac({ p, ns }: { p: Doc; ns: Doc[] }) {
-  const [bang, chi] = await Promise.all([bangCongViec(p), soChi(ns)]);
+  const [bang, chi, tk] = await Promise.all([bangCongViec(p), soChi(ns), taiKhoanPhong(p)]);
   const tu = tuTaiLieu(p, ns); const tin = homTin(ns); const so = goiSo(ns);
   const duAn = Array.isArray(p.fm.du_an) ? (p.fm.du_an as string[]) : [];
   const dem = (rows: Record<string, unknown>[] | null | undefined, k: string, v: string) => rows?.filter((r) => String(r[k]) === v).reduce((s, r) => s + Number(r.n), 0) ?? 0;
@@ -57,6 +57,14 @@ export async function DoDac({ p, ns }: { p: Doc; ns: Doc[] }) {
           );
         })}</div> : <p className="cty-muted">chưa chi đồng nào</p>)}
       </details>
+      {(tk === null || tk.length > 0) && <details className="cty-dd">
+        <summary>🔑 Tài khoản <span className="cty-dd-so">{tk ? `${tk.length} tài khoản · ${tk.filter((t) => t.status !== 'active').length} không hoạt động` : 'không đọc được vault'}</span></summary>
+        {tk && <ul>{tk.map((t) => (
+          <li key={t.id} className="cty-hang"><span className={`cty-pill${t.status === 'active' ? '' : ' cty-pill-off'}`}>{t.status}</span>
+            <span>{t.project_id ? <a href={`https://mos2.on.tc/p/${t.project_id}/resources?m=edit&mId=${t.id}`}>#{t.id}</a> : `#${t.id}`} <b>{t.platform_key}</b> {t.handle}
+              <span className="cty-muted cty-nho"> · {t.account_type ?? '—'}{t.dung ? ` · dùng ${t.dung.slice(8, 10)}/${t.dung.slice(5, 7)}` : ''}{t.project_id ? '' : ' · vault chưa gắn dự án'}{t.block_reason ? ` · ${t.block_reason}` : ''}</span></span></li>))}</ul>}
+        <p className="cty-muted cty-nho">Vault MOS2 (platform_accounts), chỉ đọc cột không bí mật. Mật khẩu / token không qua trang này.</p>
+      </details>}
       <details className="cty-dd">
         <summary>📈 Gói số <span className="cty-dd-so">{so.length ? `${so.length} nguồn` : 'chưa khai'}</span></summary>
         <ul>{so.map((s) => <li key={s} className="cty-nho">{s}</li>)}</ul>

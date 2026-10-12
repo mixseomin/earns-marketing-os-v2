@@ -320,7 +320,7 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
         {[<PhongThuChay key="c" admin={admin} />, <PhongThuDs key="l" admin={admin} />, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />, <div key="s">{soDoTab}</div>]}
       </TabPhong>
     : <TabPhong khoa={id} dau={dau} tabs={[...(dc ? [{ key: 'daychuyen', nhan: 'Dây chuyền', so: dc.loi ? '!' : demCan(dc) || '' }] : []), { key: 'sodo', nhan: 'Sơ đồ' }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
-        {[...(dc ? [<DayChuyenTab key="dc" dc={dc} phong={id} />] : []), <div key="s">{soDoTab}</div>, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
+        {[...(dc ? [<DayChuyenTab key="dc" dc={dc} phong={id} p={p} />] : []), <div key="s">{soDoTab}</div>, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
       </TabPhong>;
   // Văn phòng pixel LIVE cố định bên phải: phòng có văn phòng riêng (van_phong) thì xem đúng phòng đó, chưa có thì văn phòng chung.
   const vp = p.fm.van_phong ? String(p.fm.van_phong) : '';

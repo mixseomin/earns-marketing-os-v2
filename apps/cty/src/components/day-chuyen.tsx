@@ -1,9 +1,12 @@
-// TAB DÂY CHUYỀN của phòng có sổ sản phẩm (Phòng Sách): báo cáo sáng máy dựng · việc cần người · bảng tựa đang chạy · lịch xa · đang bán.
-// Dữ liệu: worker/sach.mjs (đọc sổ MOS2, nhớ 60 giây). Chỉ ĐỌC — nút thật nằm ở MOS2 (Duyệt bản xem) và KDP (Publish), mỗi tựa trỏ tới drawer MOS2.
+// TAB DÂY CHUYỀN của phòng có sổ sản phẩm (Phòng Sách): báo cáo sáng máy dựng · việc cần người + card plays còn mở · bảng tựa đang chạy ·
+// kênh kéo khách · lịch xa · đang bán. Dữ liệu: worker/sach.mjs (sổ sản phẩm, nhớ 60 giây) + lib/do-dac (card plays, kenh_sp — DB MOS2).
+// Chỉ ĐỌC — nút thật nằm ở MOS2 (Duyệt bản xem, card) và KDP (Publish), mỗi tựa / card trỏ tới đúng drawer MOS2.
 import { Nguoi } from './nguoi';
 import { Gio } from './gio';
 import { linkMos2, SAP_TOI } from '../../worker/sach.mjs';
 import { vaiCuaPhong } from '../../worker/quy-trinh.mjs';
+import { theViecMo, kenhKeoKhach } from '@/lib/do-dac';
+import type { Doc } from '@/lib/cong-ty';
 
 type Viec = { ai: string | null; muc?: number; chu: string; qua?: number | null; tre?: boolean };
 type Dong = { id: string; nen: string; dinhDang: string | null; status: string; ngay: string | null; tram: { dat: number; tong: number } | null; viec: Viec };
@@ -55,9 +58,32 @@ function BangTua({ ds, phong, hep }: { ds: Tua[]; phong: string; hep?: boolean }
   );
 }
 
+const quaNgay = (han: string | null, hom: string) => (han && han < hom ? Math.round((Date.parse(hom) - Date.parse(han)) / 86_400_000) : 0);
+const linkCard = (id: number, duAn: string) => `https://mos2.on.tc/p/${duAn}/plays?task=${id}`;   // EntityRef 'task' của MOS2
+
+/** Kênh kéo khách theo cuốn: mỗi kênh "đã xong / cần" + việc kênh đang cần (kenh.mjs ghi, chạy tay sau mỗi lần dựng/đăng → hiện ngày cập nhật). */
+function KenhKeoKhach({ ds, hom }: { ds: NonNullable<Awaited<ReturnType<typeof kenhKeoKhach>>>; hom: string }) {
+  const cuon = [...new Map(ds.map((r) => [r.san_pham, r.ten])).entries()];
+  const moi = ds.map((r) => r.cap_nhat.slice(0, 10)).sort().pop() ?? '';
+  const O = ({ r }: { r?: (typeof ds)[number] }) => (!r ? <span className="cty-muted">—</span>
+    : <span className={`cty-pill${r.tong && r.xong === r.tong ? '' : ' cty-pill-kind'}`} title={r.canh_bao ?? ''}>{r.xong ?? '?'}/{r.tong ?? '?'}</span>);
+  return (<>
+    <h3>Kênh kéo khách <span className="cty-tab-so">{cuon.length} cuốn · máy ghi lúc dựng/đăng, cập nhật {moi ? `${moi.slice(8, 10)}/${moi.slice(5, 7)}` : '—'}</span>
+      {moi && quaNgay(moi, hom) > 3 && <span className="cty-thu-loi cty-nho"> · cũ {quaNgay(moi, hom)} ngày (chạy lại puzzle-books scripts/kenh.mjs)</span>}</h3>
+    <div className="cty-dn-cuon"><table className="cty-viec cty-dn cty-sach-bang">
+      <thead><tr><th>Cuốn</th><th title="Ghim Pinterest đã đưa lên hàng hẹn / đã dựng">Ghim</th><th title="Video ngắn đã đăng / đã dựng">Video</th><th className="cty-an-hep" title="Trang ô chữ miễn phí pickjot.com/printables đang sống / cần có">Printables</th><th>Kênh cần</th></tr></thead>
+      <tbody>{cuon.map(([sp, ten]) => { const r = (k: string) => ds.find((x) => x.san_pham === sp && x.kenh === k); const can = ds.filter((x) => x.san_pham === sp && x.canh_bao);
+        return (<tr key={sp}><td className="cty-viec-ten" title={ten}>{ten}</td><td><O r={r('pinterest')} /></td><td><O r={r('shorts')} /></td><td className="cty-an-hep"><O r={r('printables')} /></td>
+          <td className="cty-sach-viec" title={can.map((x) => x.canh_bao).join(' · ')}>{can.length ? can.map((x, i) => <span key={x.kenh}>{i > 0 && ' · '}{x.canh_bao}{x.the_id ? <> (<a href={linkCard(x.the_id, 'puzzle-books')}>#{x.the_id}</a>)</> : null}</span>) : <span className="cty-muted">—</span>}</td></tr>); })}</tbody>
+    </table></div>
+  </>);
+}
+
 const THU_TU = ['giam-doc', 'tre', 'truong-phong', 'nguoi-lam'];
-export function DayChuyenTab({ dc, phong }: { dc: DayChuyen; phong: string }) {
+export async function DayChuyenTab({ dc, phong, p }: { dc: DayChuyen; phong: string; p: Doc }) {
   if (dc.loi) return <p className="cty-bao-loi" data-loi>Không đọc được sổ sản phẩm ({dc.nguon.join(', ')}): {dc.loi}</p>;
+  const [the, kenh] = await Promise.all([theViecMo(p), kenhKeoKhach(p)]);
+  const hom = dc.hom ?? '';
   const nhom = dc.nhom ?? [];
   const can = nhom.flatMap((g) => g.dong.map((d) => ({ g, d, k: d.viec.tre ? 'tre' : d.viec.ai ?? '' }))).filter((x) => THU_TU.includes(x.k))
     .sort((a, b) => THU_TU.indexOf(a.k) - THU_TU.indexOf(b.k) || (b.d.viec.qua ?? -99) - (a.d.viec.qua ?? -99));
@@ -76,10 +102,17 @@ export function DayChuyenTab({ dc, phong }: { dc: DayChuyen; phong: string }) {
             <li key={d.id} title={`${d.viec.chu} — ${TEN_NEN[d.nen] ?? d.nen} · ${g.tua}`}><span className={`cty-pill${k === 'giam-doc' || k === 'tre' ? ' cty-pill-off' : ' cty-pill-kind'}`}>{k === 'tre' ? 'máy trễ' : `mức ${d.viec.muc ?? '?'}`}</span>{' '}
               <Ai ai={d.viec.ai} phong={phong} />: {d.viec.chu}<Qua v={d.viec} /> · <b>{TEN_NEN[d.nen] ?? d.nen}</b> <a href={linkMos2(d.id)} title="Mở sản phẩm trong MOS2 (Tài sản)">{g.tua}</a></li>))}</ul>
             : <p className="cty-muted">Không có việc nào chờ người.</p>}
+          <h3>Card việc trên plays <span className="cty-tab-so">{the ? the.length : '!'}</span></h3>
+          {the === null ? <p className="cty-bao-loi" data-loi>Không đọc được bảng card (DB MOS2) — xem journal mos2-cty.</p>
+            : the.length ? <ul className="cty-sach-can">{the.map((c) => (
+              <li key={c.id} title={`#${c.id} · ${c.project_id} · ${c.status} · ${c.title}`}><span className={`cty-pill${quaNgay(c.han, hom) ? ' cty-pill-off' : ' cty-pill-kind'}`}>{c.status}</span>{' '}
+                <a href={linkCard(c.id, c.project_id)}>#{c.id}</a> <span className="cty-muted">{c.project_id}</span> {c.title}{quaNgay(c.han, hom) > 0 && <span className="cty-thu-loi"> · quá hạn {quaNgay(c.han, hom)} ngày</span>}</li>))}</ul>
+            : <p className="cty-muted">Không có card nào còn mở.</p>}
         </section>
       </div>
       <h3>Đang chạy <span className="cty-tab-so">{dang.length} tựa</span></h3>
       <BangTua ds={dang} phong={phong} />
+      {kenh === null ? <p className="cty-bao-loi" data-loi>Không đọc được kênh kéo khách (kenh_sp, DB MOS2).</p> : kenh.length > 0 && <KenhKeoKhach ds={kenh} hom={hom} />}
       <details className="cty-sach-xa"><summary>Lịch xa <span className="cty-tab-so">{lich.length} tựa · máy đêm dựng khi còn ≤ {SAP_TOI} ngày tới ngày đăng</span></summary><BangTua ds={lich} phong={phong} hep /></details>
       <details className="cty-sach-xa"><summary>Đang bán / sàn đang duyệt <span className="cty-tab-so">{ban.length} tựa</span></summary><BangTua ds={ban} phong={phong} hep /></details>
     </div>

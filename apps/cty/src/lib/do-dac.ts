@@ -24,8 +24,37 @@ export async function bangCongViec(p: Doc) {
   if (!duAn.length) return { loai: 'khong' as const };
   const hm = await q(sql`SELECT project_id, trang_thai, count(*)::int AS n FROM tien_do_hang_muc WHERE project_id = ANY(${arr(duAn)}) GROUP BY 1, 2`);
   const buoc = await q(sql`SELECT h.project_id, h.ma, b.thu_tu, b.buoc, b.trang_thai, b.ghi_chu FROM tien_do_buoc b JOIN tien_do_hang_muc h ON h.id = b.hang_muc_id WHERE h.project_id = ANY(${arr(duAn)}) AND b.trang_thai IN ('Đang', 'Kẹt') ORDER BY b.trang_thai, b.updated_at DESC LIMIT 8`);
-  const plays = await q(sql`SELECT project_id, status, count(*)::int AS n FROM human_tasks WHERE platform_key = 'backlink' AND project_id = ANY(${arr(duAn)}) GROUP BY 1, 2`);
+  // mọi loại card của dự án (backlink, followup, góp ý…) — trước chỉ đếm backlink nên card followup của puzzle-books (#1105, #1107) không hiện
+  const plays = await q(sql`SELECT project_id, status, count(*)::int AS n FROM human_tasks WHERE project_id = ANY(${arr(duAn)}) GROUP BY 1, 2`);
   return { loai: 'du-an' as const, duAn, hm, buoc, plays };
+}
+
+const dsFm = (p: Doc, k: string) => (Array.isArray(p.fm[k]) ? (p.fm[k] as string[]) : []);
+const DONG = ['completed', 'done', 'verified', 'dropped', 'rejected', 'cancelled'];   // card đã khép (Done là chữ ký của anh; dropped/rejected = bỏ)
+/** Card plays còn mở của phòng: mọi card của dự án phòng cầm (du_an) + card của dự án liên quan (the_lien_quan) chỉ khi tựa card nhắc
+ *  một nền của sổ phòng (so_san_pham: KDP, Etsy…) — mint-almanac có card KDP của bộ sách coin lẫn 20 card backlink của site, chỉ lấy phần sách. */
+export async function theViecMo(p: Doc) {
+  const duAn = dsFm(p, 'du_an'), lq = dsFm(p, 'the_lien_quan'); const nen = [...new Set(dsFm(p, 'so_san_pham').map((x) => x.split(':')[0]!))];
+  if (!duAn.length && !lq.length) return [];
+  const nhac = nen.length ? sql.join(nen.map((n) => sql`title ~* ${`\\m${n}\\M`}`), sql` OR `) : sql`false`;
+  return (await q(sql`SELECT id, project_id, status, platform_key, sla_due_at::date::text AS han, title FROM human_tasks
+    WHERE status <> ALL(${arr(DONG)}) AND (project_id = ANY(${arr(duAn)}) OR (project_id = ANY(${arr(lq)}) AND (${nhac}))) ORDER BY sla_due_at NULLS LAST, id`)) as
+    { id: number; project_id: string; status: string; platform_key: string | null; han: string | null; title: string }[] | null;
+}
+/** Kênh kéo khách theo cuốn (bảng kenh_sp — puzzle-books/scripts/kenh.mjs ghi, MOS2 Tài sản đọc cùng bảng). */
+export async function kenhKeoKhach(p: Doc) {
+  const duAn = dsFm(p, 'du_an'); if (!duAn.length) return [];
+  return (await q(sql`SELECT san_pham, kenh, ten, xong, tong, canh_bao, the_id, cap_nhat::text AS cap_nhat FROM kenh_sp WHERE project = ANY(${arr(duAn)}) ORDER BY ten, kenh`)) as
+    { san_pham: string; kenh: string; ten: string; xong: number | null; tong: number | null; canh_bao: string | null; the_id: number | null; cap_nhat: string }[] | null;
+}
+/** Tài khoản phòng dùng (vault MOS2 platform_accounts): gắn dự án phòng cầm + id khai thêm (tai_khoan_them — vault chưa gắn dự án).
+ *  CHỈ cột không bí mật — không đọc mật khẩu / token / cookie. */
+export async function taiKhoanPhong(p: Doc) {
+  const duAn = dsFm(p, 'du_an'); const them = dsFm(p, 'tai_khoan_them').map(Number).filter(Number.isFinite);
+  if (!duAn.length && !them.length) return [];
+  return (await q(sql`SELECT id, project_id, platform_key, handle, status, account_type, block_reason, last_used_at::date::text AS dung FROM platform_accounts
+    WHERE project_id = ANY(${arr(duAn)}) OR id = ANY(ARRAY[${sql.join((them.length ? them : [-1]).map((x) => sql`${x}`), sql`, `)}]::int[]) ORDER BY platform_key, id`)) as
+    { id: number; project_id: string | null; platform_key: string; handle: string; status: string; account_type: string | null; block_reason: string | null; dung: string | null }[] | null;
 }
 
 export function tuTaiLieu(p: Doc, ns: Doc[]) {

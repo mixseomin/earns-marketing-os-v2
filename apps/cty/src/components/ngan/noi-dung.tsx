@@ -27,6 +27,8 @@ import { Nguoi } from '../nguoi';
 import { tachKhoa } from '@/lib/ngan';
 import { BangNhanSu } from '../bang-nhan-su';
 import { doiNgu } from '@/lib/doi-ngu';
+import { dayChuyen } from '../../../worker/sach.mjs';
+import { DayChuyenTab, demCan, type DayChuyen } from '../day-chuyen';
 
 export type Ngan = { tieuDe: React.ReactNode; than: React.ReactNode };
 const Thieu = ({ chu }: { chu: string }) => <p className="cty-bao-loi" data-loi>{chu}</p>;
@@ -311,12 +313,14 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
         </div>))}
     </>
   );
+  // Phòng khai sổ sản phẩm (so_san_pham) → tab Dây chuyền đọc trạng thái thật từ sổ MOS2 (worker/sach.mjs); không khai → null, không có tab.
+  const dc = thu ? null : (await dayChuyen(id)) as DayChuyen | null;
   const than = thu
     ? <TabPhong khoa={id} dau={dau} tabs={[{ key: 'chay', nhan: 'Chạy' }, { key: 'luot', nhan: 'Các lượt', so: dem!.tong }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }, { key: 'sodo', nhan: 'Sơ đồ' }]}>
         {[<PhongThuChay key="c" admin={admin} />, <PhongThuDs key="l" admin={admin} />, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />, <div key="s">{soDoTab}</div>]}
       </TabPhong>
-    : <TabPhong khoa={id} dau={dau} tabs={[{ key: 'sodo', nhan: 'Sơ đồ' }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
-        {[<div key="s">{soDoTab}</div>, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
+    : <TabPhong khoa={id} dau={dau} tabs={[...(dc ? [{ key: 'daychuyen', nhan: 'Dây chuyền', so: dc.loi ? '!' : demCan(dc) || '' }] : []), { key: 'sodo', nhan: 'Sơ đồ' }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
+        {[...(dc ? [<DayChuyenTab key="dc" dc={dc} phong={id} />] : []), <div key="s">{soDoTab}</div>, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
       </TabPhong>;
   // Văn phòng pixel LIVE cố định bên phải: phòng có văn phòng riêng (van_phong) thì xem đúng phòng đó, chưa có thì văn phòng chung.
   const vp = p.fm.van_phong ? String(p.fm.van_phong) : '';

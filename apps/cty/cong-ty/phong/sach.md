@@ -3,12 +3,15 @@ ten: Phòng Sách (KDP · Etsy · Gumroad)
 thu_tu: 3
 khuon: day-chuyen
 truong: Thảo
+vai_truong_phong: thao   # ai giữ vai (decision 2026-10-11 nhân sự sống): tab Dây chuyền giao việc theo vai, đổi người = đổi dòng này
+vai_nguoi_lam: nhi        # viết nội dung + mô tả (hai trạm máy không tự làm)
 don_vi_viec: 1 cuốn · tuần (KDP 2 bìa mềm/tuần, Etsy giãn 2/tuần)
 cong_nguoi: trạm 6: Hà soát bằng chứng → Giám đốc ký; sau đó cờ freeze của Kiên
 so_do: sach
 tom_tat: Dây chuyền 6 trạm bọc lên quy-trinh.mjs đang có
 du_an: [puzzle-books]
-trang_thai: tham quan · chưa hoạt động
+so_san_pham: [etsy:FrontPorchZ, kdp:htuan82, gumroad:frontporchpuzzles]   # sổ sản phẩm MOS2 (Directus products) phòng đọc → tab Dây chuyền (worker/sach.mjs)
+trang_thai: đang chạy · máy theo lịch (iMac + MacBook) · nhân sự AI chưa bật
 ---
 ## Một tuần mẫu
 

@@ -1,0 +1,60 @@
+{
+ "_": "Quy trình nghiệp vụ của Phòng Sách. Máy thật nằm ở repo puzzle-books (LaunchAgent do deploy-may.sh cài trên iMac + MacBook); phòng đọc kết quả từ sổ sản phẩm MOS2 (tab Dây chuyền, worker/sach.mjs). so_hoa như các phòng khác: 'co-dinh' = máy chạy, luật nằm trong mã · 'mo-ta' = chưa có máy.",
+ "phong": "sach",
+ "quy_trinh": [
+  {
+   "id": "san-xuat",
+   "ten": "Sản xuất một cuốn (6 trạm)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Máy iMac 02:00 giờ VN mỗi đêm: cuốn có ngày đăng trong 21 ngày tới mà chưa dựng xong",
+   "mo_ta": "Nội dung (lint thương hiệu) → ruột PDF Letter + A4 → bìa → ảnh bán + ảnh ghim → mô tả → Giám đốc duyệt bản xem trong MOS2. Mỗi trạm kiểm bằng tệp thật và ghi '▶ quy trình n/6' lên sổ. Hai trạm nội dung và mô tả máy không tự viết.",
+   "ma": "puzzle-books scripts/may-chay.mjs sx → quy-trinh.mjs --den het"
+  },
+  {
+   "id": "bat-ban-etsy",
+   "ten": "Bật bán Etsy",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Máy iMac 08:30 giờ VN: cuốn đã duyệt và tới ngày đăng, tối đa 3 cuốn/ngày",
+   "mo_ta": "Phí đăng ~$0,20/cuốn. Giám đốc cho máy tự bật đúng ngày (09/10/2026). Etsy API chỉ gọi từ box3.",
+   "ma": "puzzle-books scripts/may-chay.mjs dang → box3 etsy.mjs bat"
+  },
+  {
+   "id": "dang-gumroad",
+   "ten": "Đăng Gumroad",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "MacBook 09:00: mọi cuốn đã duyệt tới ngày, trong một lần mở profile",
+   "mo_ta": "Tạo sản phẩm, tải tệp, dán mô tả, bấm Publish, kiểm lại trang khách rồi đẩy sổ sang đang bán.",
+   "ma": "puzzle-books scripts/dang-gumroad.mjs"
+  },
+  {
+   "id": "dang-kdp",
+   "ten": "Đăng KDP",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Giám đốc: nút Publish là chữ ký (br gác) — tab Dây chuyền liệt kê cuốn tới ngày",
+   "mo_ta": "Máy soạn nháp đủ 3 trang (tựa, ruột, bìa, giá), khoanh đỏ nút Publish; Giám đốc bấm. Chặn khi chưa duyệt, chưa tới ngày, hết suất 2 tựa/định dạng/tuần.",
+   "ma": "puzzle-books scripts/kdp.mjs <tên> --publish (playbook br kdp-paperback)"
+  },
+  {
+   "id": "video-ngan",
+   "ten": "Video ngắn kéo khách",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "20:00 giờ VN mỗi ngày: TikTok (iMac, máy ảo tiktok1); 20:05 YouTube · Facebook · Instagram (MacBook)",
+   "mo_ta": "Mỗi nền một short 'Only ONE' mỗi ngày, caption kèm mã giảm giá riêng nền, bình luận đầu kèm link sách.",
+   "ma": "puzzle-books scripts/dang-short.mjs <nền>"
+  },
+  {
+   "id": "mo-cuon-moi",
+   "ten": "Mở cuốn mới vào dây chuyền",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "CHƯA máy chạy: tab Dây chuyền báo cuốn tới hạn trong 21 ngày mà chưa có hồ sơ dựng; hiện Claude làm khi Giám đốc bảo",
+   "mo_ta": "Thảo mở hồ sơ dựng (themes/<tên>.json + kdp-<tên>.json, nối 3 dòng sổ), loại sách chưa có máy dựng thì thêm scripts/loai/<loại>.mjs; Nhi viết nội dung 100 chủ đề + mô tả, lint thương hiệu đạt."
+  },
+  {
+   "id": "do-thi-truong",
+   "ten": "Đo thị trường đầu tuần",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "CHƯA máy chạy (Bình, thứ hai): cần nguồn số Keywords Everywhere + số bán",
+   "mo_ta": "Bình đo cầu và cạnh tranh của tựa tuần sau, đề xuất đổi tựa giữ ngày; Thảo quyết. Sổ chưa có số đơn Etsy/KDP/Gumroad nên chưa đo được tựa nào có đơn."
+  }
+ ]
+}

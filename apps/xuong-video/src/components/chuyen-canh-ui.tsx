@@ -31,10 +31,12 @@ function OXem({ xfade, a, b, chay }: { xfade?: string; a?: string | null; b?: st
 }
 
 /** Nút điểm nối + bảng chọn. `trai` = toạ độ px của điểm nối trên làn; `pps` để vẽ dải d giây. */
-export function NutChuyenCanh({ trai, pps, value, giayTay, phatTruoc, phatSau, anhTruoc, anhSau, tieuDe, onChon }: {
+export function NutChuyenCanh({ trai, pps, value, giayTay, phatTruoc, phatSau, anhTruoc, anhSau, tieuDe, onChon, onImpact }: {
   trai: number; pps: number; value?: string; giayTay?: number; phatTruoc: number; phatSau: number; anhTruoc?: string | null; anhSau?: string | null; tieuDe: string;
   /** giay: undefined = giữ số giây đang đặt, null = về mặc định của kiểu (#1297) */
   onChon?: (key: string, giay?: number | null) => void;
+  /** gói impact ở điểm cắt này: cắt sốc + tiếng đập + chớp/rung/zoom (nhip-hanh-dong.ts) */
+  onImpact?: () => void;
 }) {
   const [mo, setMo] = useState(false);
   const [re, setRe] = useState<string | null>(null);
@@ -81,6 +83,7 @@ export function NutChuyenCanh({ trai, pps, value, giayTay, phatTruoc, phatSau, a
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
             <b style={{ fontSize: 12, flex: 1 }}>{tieuDe}</b>
             <span style={mono}>rê lên ô để xem chạy thử</span>
+            {onImpact && <button type="button" className="xv-btn" title="Cắt sốc + tiếng đập ở shot sau + chớp trắng, rung, zoom nhịp đúng điểm cắt (một nhóm lớp — xoá một lần được)" onClick={() => { onImpact(); setMo(false); }}>⚡ Impact</button>}
           </div>
           {/* Số giây cụ thể (#1297): đặt tay cho điểm nối này; tổng video KHÔNG dài thêm — shot trước mượn phần đuôi clip, shot sau vẫn vào đúng giây. */}
           {that && <div style={{ display: 'grid', gap: 4, padding: '6px 8px', marginBottom: 8, border: '1px solid var(--line)', borderRadius: 6 }}>

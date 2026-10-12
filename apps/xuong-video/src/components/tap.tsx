@@ -274,6 +274,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
                 <Timeline canh={canhNhanh} nhanVat={nhanVat} tap={tap} qc={kt.qc} tiLe={kt.ti_le} ngonNgu={kt.ngon_ngu} chon={cc.id} onChon={setChonCanh} onToanManHinh={() => setAnimatic(true)}
                   // Kéo mép = đổi giây PHÁT: ngắn hơn clip là cắt (không tốn tiền); dài hơn clip thì clip phải sinh lại dài hơn.
                   onDoiGiay={(id, g) => void chay(`c${id}`, () => { const c0 = canh.find((x) => x.id === id); return suaCanh(id, { phat_s: g, ...(c0 && g > (c0.thoi_luong_s || 4) ? { thoi_luong_s: Math.ceil(g) } : {}) }); })}
+                  onDoiKyThuat={(ds) => void chay('kt', async () => { for (const x of ds) { const r = await suaCanh(x.id, { ky_thuat: x.ky_thuat }); if (!r.ok) return r; } return { ok: true as const }; })}
                   onDoiChuyenCanh={(id, key, giay) => void chay(`c${id}`, () => { const c0 = canh.find((x) => x.id === id); const kt0 = c0?.ky_thuat ?? {}; return suaCanh(id, { ky_thuat: { ...kt0, chuyen_canh: key || undefined, giay_cc: giay === undefined ? kt0.giay_cc : giay ?? undefined } }); })}
                   sinh={{
                     giong: (id, tuy) => void chay(`g${id}`, () => sinhGiong(tap.id, [id], tuy)),

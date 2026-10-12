@@ -10,7 +10,8 @@ import { ChuManXem } from './chu-man';
 // Nét đứt = mới có mô tả trong kịch bản, chưa sinh file. Toàn bộ chạy ở trình duyệt, không tốn tiền.
 import { useEffect, useMemo, useRef, useState, type PointerEvent as PE, type ReactNode } from 'react';
 import { chuManHien, giayPhat, tenCamXuc, camXucMucTieu, lechCamXuc, type Canh, type Lop, type ThongTinQc, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
-import { kyThuat } from '@/lib/xuong-video/dien-anh';
+import { kyThuat, type KyThuatShot } from '@/lib/xuong-video/dien-anh';
+import { lopImpact, nhipHanhDong, themTieng } from '@/lib/xuong-video/nhip-hanh-dong';
 import { lichSfx, urlSfx } from '@/lib/xuong-video/sfx';
 import { keHoachToc, nguonTai } from '@/lib/xuong-video/toc-do';
 import { NutChuyenCanh } from './chuyen-canh-ui';
@@ -35,10 +36,11 @@ export type SinhTaiCho = {
   giong: (canhId: number, tuy: TuyGiong) => void; sfx: (canhId: number, tuy: TuyAm) => void; nhac: (phanDoan: string | undefined, model: string, moTa: string) => void;
   mhNhac: string; ban: (k: string) => boolean; dangPhanDoan: string[]; dangCaTap: boolean;
 };
-export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, onDoiChuyenCanh }: {
+export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, onDoiChuyenCanh, onDoiKyThuat }: {
   canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null; qc?: ThongTinQc | null;
   onChon: (id: number) => void; onDoiGiay: (id: number, giay: number) => void;
   /** đổi chuyển cảnh SAU shot id (ky_thuat.chuyen_canh; '' = cắt thẳng) và/hoặc số giây đặt tay (giay: undefined = giữ, null = về mặc định) */ onDoiChuyenCanh?: (id: number, key: string, giay?: number | null) => void; onXep: (ids: number[]) => void; onToanManHinh: () => void; sinh?: SinhTaiCho;
+  /** ghi kỹ thuật mới cho vài shot một lượt (gói impact / nhịp hành động thêm tiếng) */ onDoiKyThuat?: (ds: { id: number; ky_thuat: KyThuatShot }[]) => void;
 }) {
   // Số giây tạm khi đang kéo mép clip (chưa ghi) — timeline co giãn theo tay ngay.
   const [giayTam, setGiayTam] = useState<Record<number, number>>({});
@@ -94,6 +96,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const tNhacPc = pcHienTai ? t - batDau[pcHienTai.tu]! : 0;
   // Bật/tắt từng lớp tiếng khi xem (clip có tiếng sẵn thì tắt bớt để khỏi chồng).
   const [tat, setTat] = useState<Record<string, boolean>>({});
+  const [baoNhip, setBaoNhip] = useState('');
 
   // Đồng hồ phát: requestAnimationFrame đẩy t, hết tập thì dừng.
   useEffect(() => {
@@ -348,6 +351,9 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
         <button type="button" className="xv-btn" onClick={onToanManHinh} title="Xem cả tập toàn màn hình">⛶</button>
         <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--line)', margin: '0 4px' }} />
         <LopCongCu t={t} tiLe={doc916 ? 9 / 16 : 16 / 9} onThem={themLop} />
+        {onDoiKyThuat && <button type="button" className="xv-btn" title={'Nhịp hành động cả tập: cắt sốc → chớp/rung/zoom + tiếng đập · quất/phóng → tiếng vút · loé trắng → âm doạ.\nĐiểm cắt đã có hiệu ứng thì để nguyên; chạy lại không nhân đôi.'}
+          onClick={() => { const r = nhipHanhDong(canh, batDau, lop); if (r.lop.length) datLop((ds) => [...ds, ...r.lop]); if (r.kt.length) onDoiKyThuat(r.kt); setBaoNhip(r.lop.length || r.kt.length ? `⚡ +${r.lop.length / 3} impact · ${r.kt.length} shot thêm tiếng` : '⚡ không có điểm cắt nào cần thêm'); }}>⚡ Nhịp hành động</button>}
+        {baoNhip && <span style={mono}>{baoNhip}</span>}
         <span style={{ flex: 1 }} />
         {vuaXoa && <span style={mono}>đã xoá {vuaXoa.so} lớp · <button type="button" className="xv-lienket" onClick={() => { const tr = vuaXoa.truoc; datLop(() => tr); setVuaXoa(null); }}>↶ Hoàn tác</button></span>}
         {loiLop ? <span className="xv-loi">{loiLop}</span> : <span style={{ ...mono, minWidth: 70, textAlign: 'right' }}>{luuLop === 'dang' ? 'đang lưu…' : luuLop === 'xong' ? '✓ đã lưu' : ''}</span>}
@@ -461,7 +467,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             // Điểm nối giữa hai clip: nút ⇄ chọn chuyển cảnh (ky_thuat.chuyen_canh của shot TRƯỚC) + dải d giây bản xuất hoà hình.
             const sau = canh[i + 1]!;
             return <NutChuyenCanh key={`cc${cc.id}`} trai={batDau[i + 1]! * pps} pps={pps} value={cc.ky_thuat?.chuyen_canh} giayTay={cc.ky_thuat?.giay_cc} phatTruoc={dur(cc)} phatSau={dur(sau)}
-              anhTruoc={cc.keyframe_url} anhSau={sau.keyframe_url} tieuDe={`Chuyển #${cc.thu_tu} → #${sau.thu_tu}`} onChon={onDoiChuyenCanh && ((k, g) => onDoiChuyenCanh(cc.id, k, g))} />;
+              anhTruoc={cc.keyframe_url} anhSau={sau.keyframe_url} tieuDe={`Chuyển #${cc.thu_tu} → #${sau.thu_tu}`} onChon={onDoiChuyenCanh && ((k, g) => onDoiChuyenCanh(cc.id, k, g))}
+                onImpact={onDoiChuyenCanh && onDoiKyThuat && (() => { const tc = batDau[i + 1]!; datLop((ds) => [...ds, ...lopImpact(tc)]); onDoiChuyenCanh(cc.id, 'cat_soc'); onDoiKyThuat([{ id: sau.id, ky_thuat: themTieng(sau.ky_thuat, 'dap') }]); })} />;
           })), 48, nutNho(tat.clip === undefined ? '🔈' : tat.clip ? '🔇' : '🔊', `Tiếng có sẵn của clip: ${tat.clip === undefined ? 'tự (tắt khi shot có giọng/hiệu ứng sinh riêng)' : tat.clip ? 'tắt hết' : 'bật hết'} — bấm để đổi`, !!tat.clip, vongClip))}
 
           {/* Phân cảnh (scene): shot liền nhau cùng phan_doan gộp một khối; rê thấy beat · mục tiêu · xung đột · ẩn ý · cảm xúc đầu→cuối. */}

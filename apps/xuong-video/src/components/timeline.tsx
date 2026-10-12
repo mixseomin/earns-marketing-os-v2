@@ -270,7 +270,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const [khung, setKhung] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const keoKhung = (e: React.PointerEvent<HTMLDivElement>) => {
     const tg = e.target as HTMLElement;
-    if (e.button !== 0 || tg.closest('[data-lop-ids],[data-nhan-lan],button,input')) return;
+    if (e.button !== 0 || tg.closest('[data-lop-ids],[data-nhan-lan],[data-thanh-lop],button,input,select,option,textarea,label,a')) return;   // thanh thao tác + mọi ô bấm: không phải chỗ trống
     const them = e.shiftKey || e.metaKey || e.ctrlKey; const x0 = e.clientX, y0 = e.clientY; let k = { x0, y0, x1: x0, y1: y0 };
     const di = (ev: PointerEvent) => { k = { x0, y0, x1: ev.clientX, y1: ev.clientY }; setKhung(k); };
     const xong = () => {
@@ -478,7 +478,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           {/* Lớp phủ: mỗi lớp một làn (lớp sau nằm trên), kéo khối đổi giờ — bấm chọn để sửa ở bảng bên phải khung xem. */}
           <div ref={vungLop} onPointerDown={keoKhung}>
           {lop.length > 0 && track('🧩 Lớp phủ', 'Chọn nhiều lớp: kéo khung trên các làn, bấm tên làn (cả làn), hoặc Shift/⌘ + bấm khối → ⛓ Gộp nhóm (⌘G) · Bỏ nhóm (⇧⌘G) · Xoá (Del) · Esc bỏ chọn',
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', height: '100%', paddingLeft: 6, borderRadius: 4, ...mono, ...(dsChonLop.length ? { background: 'color-mix(in srgb, var(--cyan) 18%, transparent)', outline: '1px solid var(--cyan)' } : {}) }}>
+            <div data-thanh-lop="1" style={{ display: 'flex', gap: 6, alignItems: 'center', height: '100%', paddingLeft: 6, borderRadius: 4, ...mono, ...(dsChonLop.length ? { background: 'color-mix(in srgb, var(--cyan) 18%, transparent)', outline: '1px solid var(--cyan)' } : {}) }}>
               {dsChonLop.length > 0 && <b style={{ color: 'var(--fg-1)' }}>✓ {dsChonLop.length} lớp đang chọn</b>}
               {dsChonLop.length > 1 && !chonNhom && <button type="button" className="xv-btn" style={{ padding: '0 8px', lineHeight: '18px' }} title="Gộp các lớp đang chọn thành một nhóm MỚI (⌘G)" onClick={gopChon}>⛓ Nhóm mới {dsChonLop.length} lớp</button>}
               {(() => {

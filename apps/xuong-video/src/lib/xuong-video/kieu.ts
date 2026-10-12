@@ -51,7 +51,7 @@ export const MO_HINH_VIDEO = [
   { key: 'veo-3.1-generate-preview', label: 'Veo 3.1 Quality ($3,20 / 8s)', giaGiay: { '720p': 40, '1080p': 40 } },
   // fal.ai (khoá FAL_KEY) — giá ước theo bảng giá công khai 10/2026, tiền thật xem ở fal.ai/dashboard/usage.
   { key: 'fal:fal-ai/kling-video/v3/pro/image-to-video', label: 'Kling 3.0 Pro · fal (giữ nhân vật tốt, có tiếng, ~$0,14/s)', giaGiay: { '720p': 14, '1080p': 14 } },
-  { key: 'fal:bytedance/seedance-2.5/image-to-video', label: 'Seedance 2.5 · fal (ByteDance, ~$0,23/s 720p)', giaGiay: { '720p': 23, '1080p': 57 } },
+  { key: 'fal:bytedance/seedance-2.5/image-to-video', label: 'Seedance 2.5 · fal (ByteDance, ~$0,47/s 720p)', giaGiay: { '720p': 47, '1080p': 116 } },
   { key: 'fal:fal-ai/vidu/q4/image-to-video', label: 'Vidu Q4 · fal (Shengshu, có lời thoại)', giaGiay: { '720p': 10, '1080p': 10 } },
   { key: 'fal:minimax/h3/image-to-video', label: 'MiniMax H3 · fal (Hailuo, ~$0,26/s)', giaGiay: { '720p': 26, '1080p': 26 } },
 ] as const;

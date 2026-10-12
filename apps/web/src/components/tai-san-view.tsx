@@ -1,14 +1,15 @@
 'use client';
-// Tab Tài sản › Shop → sản phẩm: CÂY shop (nơi bán có cổng thanh toán riêng) → bảng sản phẩm. Nút shop = ui/cay; lá = ui.DataTable
+// Tab Tài sản › Shop → sản phẩm: DANH SÁCH shop bên trái → chọn một shop thì bảng sản phẩm của shop đó hiện bên phải
+// (anh chốt 12/10/2026: thay cây shop xếp chồng + mục lục — chọn rồi mới hiện). Bảng sản phẩm = ui.DataTable
 // (anh chốt 05/10/2026: bảng nhiều cột phải là DataTable — sort, ô lọc, cột ẩn/hiện; bản đầu tự dựng LaBang thì giá bị cắt "181,0…").
 // Mọi bảng lá dùng CÙNG bộ cột + bề rộng cố định → cột thẳng hàng giữa các shop. Dữ liệu: lib/tai-san/doc.ts.
-// Mở/gập shop ghi ở URL ?shop=a,b ('-' = gập hết; trống = mặc định mở shop có việc đang chờ); lọc trạng thái ?tt=.
+// Shop đang chọn ghi ở URL ?sh=<khoa> (trống = shop đầu tiên có việc đang chờ); lọc trạng thái ?tt=.
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { datTrangThaiSp } from '@/lib/actions/san-pham-duyet';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { TienDo } from '@/components/ui/tien-do';
-import { Cay, DataTable, Drawer, EntityRef, FilterChips, LinkChip, NgayLich, NutCay, Panel, Pill, Segmented, SelectField, type DataColumn } from '@/components/ui';
+import { DataTable, Drawer, EntityRef, FilterChips, LinkChip, NgayLich, Panel, Pill, SelectField, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { BanXem } from './tai-san-ban-xem';
 import { extLinkProps, wrapExternalUrl } from '@/lib/external-url';
@@ -91,90 +92,70 @@ const TkRef = ({ tk }: { tk: TaiKhoan }) => (tk.nguon === 'mos2'
 const Logo = ({ s, co = 16 }: { s: ShopNut; co?: number }) => (s.loai === 'mos' || s.loai === 'san'
   ? <SiteFavicon url={s.url} size={co} /> : <SiteFavicon platformKey={s.khoa.split(':')[0]} url={s.url} size={co} />);
 
-/** Thẻ shop (mục lục, điện thoại): tên + tài khoản một dòng, số theo trạng thái gọn một dòng. */
-const TheShop = (d: DongShop) => (
-  <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px', background: 'var(--bg-1)', display: 'grid', gap: 4 }}>
-    <div style={{ display: 'flex', gap: 6, alignItems: 'center', minWidth: 0 }}>
-      <Logo s={d.s} />
-      <b style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.s.ten}</b>
-      {d.s.loi && <Pill label={d.s.loi} color="var(--bad)" size="xs" tone="soft" uppercase={false} mono={false} />}
-      <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 12 }}>{d.s.tien == null ? null : thu(d.s.tien, d.s.ky)}</span>
-    </div>
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11.5, ...phu }}>
-      <span>{d.s.sp.length} sp</span>
-      {TT_SP.filter((t) => d.dem[t.key]).map((t) => <span key={t.key} style={{ color: t.mau }}>{d.dem[t.key]} {t.chu}</span>)}
-      {d.s.tk && <span style={{ marginLeft: 'auto' }}><TkRef tk={d.s.tk} /></span>}
-    </div>
-  </div>);
-
-// MỤC LỤC shop (anh hỏi 05/10/2026: nhóm dài quá, cần duyệt gọn): mỗi shop một dòng — bấm dòng thì chỉ mở shop đó (?sh=<khoa>).
 type DongShop = { s: ShopNut; dem: Record<TrangThaiSp, number> };
-const so = (n: number, mau?: string) => (n ? <span style={{ color: mau }}>{n}</span> : <span style={{ color: 'var(--fg-4)' }}>·</span>);
-const COT_SHOP: DataColumn<DongShop>[] = [
-  { key: 'shop', header: 'Shop', align: 'left', sortValue: (d) => d.s.ten,
-    cell: (d) => <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><Logo s={d.s} /><b style={{ fontWeight: 600, color: 'var(--fg-1)' }}>{d.s.ten}</b>
-      {d.s.loi && <Pill label={d.s.loi} color="var(--bad)" size="xs" tone="soft" uppercase={false} mono={false} />}</span> },
-  { key: 'tk', header: 'Tài khoản', align: 'left', width: 200, sortValue: (d) => d.s.tk?.handle ?? '',
-    cell: (d) => (d.s.tk ? <TkRef tk={d.s.tk} /> : <span style={{ color: 'var(--fg-4)' }}>—</span>) },
-  { key: 'n', header: 'Sản phẩm', width: 80, sortValue: (d) => d.s.sp.length, cell: (d) => d.s.sp.length },
-  ...TT_SP.map((t): DataColumn<DongShop> => ({ key: t.key, header: t.chu, width: 80, sortValue: (d) => d.dem[t.key], cell: (d) => so(d.dem[t.key], t.mau) })),
-  { key: 'thu', header: 'Thu', width: 96, sortValue: (d) => d.s.tien, cell: (d) => thu(d.s.tien, d.s.ky) },
-];
 
 function demTt(sp: SpNut[]): Record<TrangThaiSp, number> {
   return Object.fromEntries(TT_SP.map((t) => [t.key, sp.filter((x) => x.trangThai === t.key).length])) as Record<TrangThaiSp, number>;
 }
 
 export function TaiSanView({ ban }: { ban: TaiSanBan }) {
-  const [moUrl, datMo] = useShallowParam('shop', '');
   const [loc, datLoc] = useShallowParam('tt', 'all');
-  const [sh, datSh] = useShallowParam('sh', '');   // '' = mục lục · 'all' = cây đầy đủ · <khoa> = một shop
+  const [sh, datSh] = useShallowParam('sh', '');   // khoá shop đang chọn ('' = shop mặc định)
   const modal = useModalParam('sp');   // ?sp=sp&spId=<khoa> — F5/share mở lại đúng sản phẩm
   const chon = modal.is('sp') ? ban.shops.flatMap((s) => s.sp.map((x) => ({ s, x }))).find((v) => v.x.khoa === modal.id) ?? null : null;
-  // Mặc định mở shop có việc đang chờ (chờ duyệt / đang làm) hoặc ít sản phẩm; Udemy 20 khoá thì gập.
-  const macMo = useMemo(() => new Set(ban.shops.filter((s) => s.sp.some((x) => x.trangThai === 'cho_anh' || x.trangThai === 'cho_duyet' || x.trangThai === 'dang_lam') || s.sp.length <= 6).map((s) => s.khoa)), [ban.shops]);
-  const dangMo = moUrl === '-' ? new Set<string>() : moUrl ? new Set(moUrl.split(',')) : macMo;
-  const doi = (k: string) => { const n = new Set(dangMo); if (n.has(k)) n.delete(k); else n.add(k); datMo(n.size ? [...n].join(',') : '-'); };
 
   const tatCa = ban.shops.flatMap((s) => s.sp);
   const dem = demTt(tatCa);
-  const shops = ban.shops.filter((s) => !sh || sh === 'all' || s.khoa === sh)
-    .map((s) => ({ s, sp: s.sp.filter((x) => loc === 'all' || x.trangThai === loc) })).filter(({ s, sp }) => loc === 'all' || sp.length || !s.sp.length);
-  const mucLuc: DongShop[] = ban.shops.map((s) => ({ s, dem: demTt(s.sp) })).filter((d) => loc === 'all' || d.dem[loc as TrangThaiSp]);
-  const motShop = sh && sh !== 'all' ? ban.shops.find((s) => s.khoa === sh) : null;
+  // Danh sách trái: shop còn sản phẩm khớp bộ lọc trạng thái; số bên phải = số sản phẩm khớp lọc.
+  const ds: DongShop[] = ban.shops.map((s) => ({ s, dem: demTt(s.sp) })).filter((d) => loc === 'all' || d.dem[loc as TrangThaiSp]);
+  // Mặc định: shop đầu có việc đang chờ (chờ duyệt / sàn duyệt / đang làm), không có thì shop đầu danh sách.
+  const choViec = (d: DongShop) => d.dem.cho_anh + d.dem.cho_duyet + d.dem.dang_lam > 0;
+  const dangChon = ds.find((d) => d.s.khoa === sh) ?? ds.find(choViec) ?? ds[0] ?? null;
+  const sp = dangChon ? dangChon.s.sp.filter((x) => loc === 'all' || x.trangThai === loc) : [];
 
   return (
     <Panel title="🛒 Shop → sản phẩm" subtitle={`${ban.shops.length} shop · ${tatCa.length} sản phẩm${ban.viewsToi ? ` · views Gumroad tới ${ban.viewsToi}` : ''}`}
-      actions={<>
-        {/* Hàng nút CỐ ĐỊNH (#1109, 05/10/2026): bản trước chèn tên shop đang xem làm ô thứ hai của Segmented → chọn shop là
-            "Xem tất cả" + 7 chip lọc dạt phải 97-127px, về Mục lục lại bật về — nhảy qua nhảy lại. Tên shop đứng CUỐI hàng,
-            cao đúng 18px như chip/Segmented — cao hơn là cả hàng tụt xuống (đo được 4px với bản 25px). */}
-        <Segmented value={motShop ? 'one' : sh || 'muc_luc'} onChange={(v) => datSh(v === 'muc_luc' ? '' : 'all')}
-          options={[{ value: 'muc_luc', label: '☰ Mục lục' }, { value: 'all', label: 'Xem tất cả' }]} />
-        <FilterChips value={loc} onChange={(v) => datLoc(v)} urlKey="tt"
-          options={[{ value: 'all', label: 'Tất cả' }, ...TT_SP.map((t) => ({ value: t.key, label: t.chu }))]} counts={{ all: tatCa.length, ...dem }} />
-        {motShop && <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 11.5, height: 18, boxSizing: 'border-box', lineHeight: 1, padding: '0 2px 0 8px', borderRadius: 999,
-          border: '1px solid var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
-          <Logo s={motShop} co={12} />{motShop.ten}
-          <button type="button" onClick={() => datSh('')} title="Về mục lục" aria-label="Về mục lục"
-            style={{ border: 0, background: 'none', color: 'var(--fg-2)', cursor: 'pointer', fontSize: 11, lineHeight: 1, padding: '0 4px' }}>✕</button></span>}
-      </>}>
+      actions={<FilterChips value={loc} onChange={(v) => datLoc(v)} urlKey="tt"
+        options={[{ value: 'all', label: 'Tất cả' }, ...TT_SP.map((t) => ({ value: t.key, label: t.chu }))]} counts={{ all: tatCa.length, ...dem }} />}>
       {ban.loi.length > 0 && (
         <ul style={{ margin: '0 0 10px', paddingLeft: 18, fontSize: 11, color: 'var(--warn)', fontFamily: 'var(--font-mono)', lineHeight: 1.5 }}>
           {ban.loi.map((l) => <li key={l}>{l}</li>)}
         </ul>
       )}
-      {!sh
-        ? <DataTable rows={mucLuc} columns={COT_SHOP} getRowKey={(d) => d.s.khoa} persistKey="tai-san-shop" minWidth={760} card={{ render: TheShop, minWidth: 280 }}
-            onRowClick={(d) => datSh(d.s.khoa)} rowTitle={(d) => `bấm để xem ${d.s.sp.length} sản phẩm của ${d.s.ten}`} />
-        : <Cay label="Shop và sản phẩm">
-            {shops.map(({ s, sp }) => <ShopNutCay key={s.khoa} s={s} sp={sp} mo={sh !== 'all' || dangMo.has(s.khoa)} onDoi={() => doi(s.khoa)} onMo={(k) => modal.open('sp', k)} />)}
-          </Cay>}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'flex-start' }}>
+        <nav aria-label="Danh sách shop" style={{ flex: '1 1 230px', maxWidth: 280, display: 'grid', gap: 2, maxHeight: '70vh', overflowY: 'auto' }}>
+          {ds.length === 0 && <div style={{ fontSize: 12, ...phu }}>không shop nào có sản phẩm ở trạng thái này</div>}
+          {ds.map((d) => <DongShopTrai key={d.s.khoa} d={d} loc={loc} chon={d === dangChon} onChon={() => datSh(d.s.khoa)} />)}
+        </nav>
+        <div style={{ flex: '999 1 520px', minWidth: 0 }}>
+          {dangChon && <ShopChiTiet s={dangChon.s} sp={sp} onMo={(k) => modal.open('sp', k)} />}
+        </div>
+      </div>
       {/* key = sản phẩm: chuyển sang sản phẩm khác khi drawer đang mở thì DỰNG LẠI, không mang trạng thái của cái trước
           (#1123: dòng "Đã duyệt…" của sản phẩm vừa duyệt dính sang sản phẩm kế; F5 mới hết). */}
       {chon && <ChiTietSp key={chon.x.khoa} s={chon.s} x={chon.x} onClose={modal.close} />}
     </Panel>
   );
+}
+
+/** Một dòng shop ở danh sách trái: logo + tên + số sản phẩm (khớp lọc); dòng phụ = số theo trạng thái. Đang chọn thì tô nền. */
+function DongShopTrai({ d, loc, chon, onChon }: { d: DongShop; loc: string; chon: boolean; onChon: () => void }) {
+  const n = loc === 'all' ? d.s.sp.length : d.dem[loc as TrangThaiSp];
+  return (
+    <button type="button" onClick={onChon} aria-current={chon || undefined}
+      style={{ all: 'unset', boxSizing: 'border-box', cursor: 'pointer', display: 'grid', gap: 2, padding: '6px 8px', borderRadius: 6, minWidth: 0,
+        background: chon ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : undefined,
+        boxShadow: chon ? 'inset 2px 0 0 var(--accent)' : undefined }}>
+      <span style={{ display: 'flex', gap: 6, alignItems: 'center', minWidth: 0 }}>
+        <Logo s={d.s} />
+        <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>{d.s.ten}</span>
+        {d.s.loi && <Pill label={d.s.loi} color="var(--bad)" size="xs" tone="soft" uppercase={false} mono={false} />}
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, ...phu }}>{n}</span>
+      </span>
+      <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap', fontSize: 11, paddingLeft: 22 }}>
+        {TT_SP.filter((t) => d.dem[t.key]).map((t) => <span key={t.key} style={{ color: t.mau }}>{d.dem[t.key]} {t.chu}</span>)}
+      </span>
+    </button>);
 }
 
 /** Các tập của một bộ — dòng bung ra dưới dòng bộ trong bảng sản phẩm: mỗi tập một hàng (số tập · tên tập), mỗi bản
@@ -196,7 +177,8 @@ function CacTap({ ds, onMo }: { ds: SpNut[]; onMo: (khoa: string) => void }) {
     </div>);
 }
 
-function ShopNutCay({ s, sp, mo, onDoi, onMo }: { s: ShopNut; sp: SpNut[]; mo: boolean; onDoi: () => void; onMo: (khoa: string) => void }) {
+/** Phần phải: đầu shop (tài khoản, link, số) + bảng sản phẩm của shop đang chọn. */
+function ShopChiTiet({ s, sp, onMo }: { s: ShopNut; sp: SpNut[]; onMo: (khoa: string) => void }) {
   const d = demTt(s.sp);
   // Bộ sách = MỘT dòng trong bảng, mặc định bung sẵn các tập (bấm dòng bộ để gập/mở)
   const bo = useMemo(() => gopBo(sp), [sp]);
@@ -204,27 +186,27 @@ function ShopNutCay({ s, sp, mo, onDoi, onMo }: { s: ShopNut; sp: SpNut[]; mo: b
   const moBo = dongBo ?? new Set(bo.con.keys());
   const dong = TT_SP.filter((t) => d[t.key]).map((t) => `${d[t.key]} ${t.chu}`).join(' · ');
   return (
-    <NutCay mo={mo} onDoi={onDoi}
-      ten={<>
-        <Logo s={s} />
-        <b style={{ fontWeight: 600 }}>{s.ten}</b>
-        {s.url && <LinkChip href={wrapExternalUrl(s.url)} tone="neutral" size="xs" onClick={(e) => e.stopPropagation()}>↗</LinkChip>}
-        {s.loi && <Pill label={s.loi} color="var(--bad)" size="xs" tone="soft" uppercase={false} mono={false} />}
-        {s.tk && <span onClick={(e) => e.stopPropagation()} style={{ fontSize: 11.5, ...phu, display: 'inline-flex', gap: 4, alignItems: 'center' }}>
-          tài khoản <TkRef tk={s.tk} />{s.tk.email && <span>· {s.tk.email}</span>}</span>}
-        {!s.tk && s.loai !== 'san' && <span style={{ fontSize: 11.5, color: 'var(--warn)' }}>chưa có tài khoản trong vault</span>}
-      </>}
-      phu={`${s.sp.length} sản phẩm${dong ? ` · ${dong}` : ''}${s.ghiChu ? ` · ${s.ghiChu}` : ''}`}
-      phai={s.tien == null ? undefined : <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{thu(s.tien, s.ky)}</span>}>
+    <div style={{ display: 'grid', gap: 8, minWidth: 0 }}>
+      <div style={{ display: 'grid', gap: 2 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Logo s={s} co={18} />
+          <b style={{ fontWeight: 600, fontSize: 15 }}>{s.ten}</b>
+          {s.url && <LinkChip href={wrapExternalUrl(s.url)} tone="neutral" size="xs">↗</LinkChip>}
+          {s.loi && <Pill label={s.loi} color="var(--bad)" size="xs" tone="soft" uppercase={false} mono={false} />}
+          {s.tk && <span style={{ fontSize: 11.5, ...phu, display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+            tài khoản <TkRef tk={s.tk} />{s.tk.email && <span>· {s.tk.email}</span>}</span>}
+          {!s.tk && s.loai !== 'san' && <span style={{ fontSize: 11.5, color: 'var(--warn)' }}>chưa có tài khoản trong vault</span>}
+          {s.tien != null && <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 12 }}>{thu(s.tien, s.ky)}</span>}
+        </div>
+        <div style={{ fontSize: 11.5, ...phu }}>{`${s.sp.length} sản phẩm${dong ? ` · ${dong}` : ''}${s.ghiChu ? ` · ${s.ghiChu}` : ''}`}</div>
+      </div>
       {sp.length
-        ? <div style={{ padding: '2px 10px 8px 12px' }}>
-            <DataTable rows={bo.dong} columns={COT} getRowKey={(x) => x.khoa} persistKey="tai-san-sp" minWidth={900} pageSize={50} fixedLayout card={{ render: TheSp, minWidth: 280 }}
-              onRowClick={(x) => (bo.con.has(x.khoa) ? datMoBo((m) => { const n = new Set(m ?? bo.con.keys()); if (n.has(x.khoa)) n.delete(x.khoa); else n.add(x.khoa); return n; }) : onMo(x.khoa))}
-              rowTitle={(x) => (bo.con.has(x.khoa) ? (moBo.has(x.khoa) ? 'bấm để gập các tập' : 'bấm để xem các tập') : 'bấm để xem chi tiết')}
-              renderExpanded={(x) => (bo.con.has(x.khoa) && moBo.has(x.khoa) ? <CacTap ds={bo.con.get(x.khoa)!} onMo={onMo} /> : null)} />
-          </div>
-        : <div style={{ padding: '6px 12px', fontSize: 12, ...phu }}>chưa có sản phẩm nào trong sổ — ghi bằng <code>sanpham add</code></div>}
-    </NutCay>
+        ? <DataTable rows={bo.dong} columns={COT} getRowKey={(x) => x.khoa} persistKey="tai-san-sp" minWidth={900} pageSize={50} fixedLayout card={{ render: TheSp, minWidth: 280 }}
+            onRowClick={(x) => (bo.con.has(x.khoa) ? datMoBo((m) => { const n = new Set(m ?? bo.con.keys()); if (n.has(x.khoa)) n.delete(x.khoa); else n.add(x.khoa); return n; }) : onMo(x.khoa))}
+            rowTitle={(x) => (bo.con.has(x.khoa) ? (moBo.has(x.khoa) ? 'bấm để gập các tập' : 'bấm để xem các tập') : 'bấm để xem chi tiết')}
+            renderExpanded={(x) => (bo.con.has(x.khoa) && moBo.has(x.khoa) ? <CacTap ds={bo.con.get(x.khoa)!} onMo={onMo} /> : null)} />
+        : <div style={{ padding: '6px 0', fontSize: 12, ...phu }}>chưa có sản phẩm nào trong sổ — ghi bằng <code>sanpham add</code></div>}
+    </div>
   );
 }
 

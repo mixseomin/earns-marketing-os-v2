@@ -157,9 +157,12 @@ export function boThoaiTrongPrompt(p: string): string {
   return cau.filter((c) => !/["“”]/.test(c)).join('').replace(/\((?:Vietnamese|English|Spanish|Portuguese|German|French|Japanese|tiếng Việt|tiếng Anh)[^)]*\)/gi, ' ').replace(/\s{2,}/g, ' ').trim();
 }
 /** Chữ có ký tự riêng của tiếng Việt (ă â đ ê ô ơ ư + dấu thanh)? Dùng để bắt chữ màn/thoại tiếng Việt lọt vào phim ngôn ngữ khác (09/10/2026: phim EN ra chữ VI, keyframe vẫn chạy). */
-/** Chữ RIÊNG của tiếng Việt: ă â đ ê ô ơ ư và nguyên âm mang dấu hỏi / ngã / nặng (kể cả chồng dấu). Dấu sắc/huyền trên nguyên âm trơn
- *  (é, á, è, ó…) KHÔNG tính — tiếng Anh/Pháp/Tây Ban Nha dùng đầy (café, résumé, piñata): 12/10/2026 bối cảnh "Café" bị chặn oan. */
-export const coTiengViet = (s: string): boolean => /[ăâđêôơưĂÂĐÊÔƠƯảãạẻẽẹỉĩịỏõọủũụỷỹỵỳẢÃẠẺẼẸỈĨỊỎÕỌỦŨỤỶỸỴỲằắẳẵặầấẩẫậềếểễệồốổỗộờớởỡợừứửữựẰẮẲẴẶẦẤẨẪẬỀẾỂỄỆỒỐỔỖỘỜỚỞỠỢỪỨỬỮỰ]/.test(s);
+/** Tiếng Việt khi có (a) chữ RIÊNG của tiếng Việt: ă â đ ê ô ơ ư hoặc nguyên âm mang dấu hỏi / ngã / nặng (kể cả chồng dấu), hoặc (b) một tiếng
+ *  ngắn ≤3 chữ cái mang dấu sắc/huyền (bà, cá, là, nhà). Từ mượn trong tiếng Anh có é/á dài hơn (café, résumé, cliché) → không tính:
+ *  12/10/2026 bối cảnh "Café" bị chặn oan ở cổng ngôn ngữ. */
+const VIET_RIENG = /[ăâđêôơưĂÂĐÊÔƠƯảãạẻẽẹỉĩịỏõọủũụỷỹỵỳẢÃẠẺẼẸỈĨỊỎÕỌỦŨỤỶỸỴỲằắẳẵặầấẩẫậềếểễệồốổỗộờớởỡợừứửữựẰẮẲẴẶẦẤẨẪẬỀẾỂỄỆỒỐỔỖỘỜỚỞỠỢỪỨỬỮỰ]/;
+const TIENG_NGAN_DAU = /(^|[^\p{L}])(?=\p{L}{1,3}(?![\p{L}]))\p{L}*[àáèéìíòóùúýÀÁÈÉÌÍÒÓÙÚÝ]/u;
+export const coTiengViet = (s: string): boolean => VIET_RIENG.test(s) || TIENG_NGAN_DAU.test(s);
 /** Mọi chữ của một shot (nhãn, góc máy, hành động, âm thanh, phân đoạn, trang phục, prompt, chữ màn, thoại kể cả diễn xuất + người nói). */
 type ShotChu = Pick<Canh, 'thu_tu' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'canh' | 'goc_may' | 'hanh_dong' | 'am_thanh' | 'phan_doan' | 'trang_phuc' | 'prompt_anh' | 'prompt_video'>>;
 const chuShot = (c: ShotChu): string => [c.chu_man, c.canh, c.goc_may, c.hanh_dong, c.am_thanh, c.phan_doan, c.trang_phuc, c.prompt_anh, c.prompt_video,

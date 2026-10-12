@@ -265,3 +265,11 @@ console.log('xuat.test: mẫu ok');
   assert.ok(!keHoachXuat(chung).args.join(' ').includes('dap.mp3'));
   console.log('xuat.test: đổi tốc + tiếng hiệu ứng ok');
 }
+// Chữ đập kiểu trailer (12/10/2026): mỗi câu mở bằng phóng 220% + mờ rồi \t về cỡ thật trong 140 ms; trống = không thêm gì.
+{
+  const a = tepAss({ W: 1080, H: 1920, kieu: { vao: 'dap', ngang: 90 }, viTri: 'giua', cau: [{ tu: 0, den: 1, dong: ['IT BEGINS.'] }] });
+  assert.ok(a.includes('\\fscx198\\fscy220\\blur10\\alpha&H70&\\t(0,140,\\fscx90\\fscy100\\blur0\\alpha&H00&)}IT BEGINS.'), a.split('\n').at(-2));
+  const b = tepAss({ W: 1080, H: 1920, viTri: 'giua', cau: [{ tu: 0, den: 1, dong: ['X'] }] });
+  assert.ok(!b.includes('\\fscx') && !b.includes('\\t('));
+  console.log('xuat.test: chữ đập ok');
+}

@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { phanTichVideoMau, dsKhuonShot } from '@/lib/actions';
 import type { KhuonShot } from '@/lib/xuong-video/khuon-shot';
-import { LOAI_SHOT_MAU, MAU_TRONG, VI_TRI_CHU, giayMau, type MauQc, type ShotMau, type ThongTinQc, type LoaiShotMau, type ViTriChu } from '@/lib/xuong-video/kieu';
+import { LOAI_SHOT_MAU, MAU_TRONG, VI_TRI_CHU, VAO_CHU, giayMau, type MauQc, type ShotMau, type ThongTinQc, type LoaiShotMau, type ViTriChu } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { O, Seg, Nut, Loi, mono } from './ui';
 import { ImageAttach } from './image-attach';
@@ -66,6 +66,7 @@ export function MauQcForm({ phimId, qc, setQc, coAnthropic }: { phimId: number; 
       <div className="xv-grid" style={{ marginTop: 10 }}>
         <O label="Logo góc trên phải khi xuất" hint="PNG nền trong; cao 6% màn, đè lên mọi shot + end card"><ImageAttach value={qc.logo_url ? [qc.logo_url] : []} onChange={(u) => setQc({ logo_url: u[0] ?? '' })} max={1} nhanBo="Bỏ logo" upload={async (du) => { const r = await taiAnhLen(du); return r.ok ? { ok: true, url: r.data } : { ok: false, error: r.loi }; }} /></O>
         <O label="Vị trí chữ màn khi xuất" hint="QC UGC hay đặt chữ ở dưới (~62% màn), ngay dưới mặt/sản phẩm"><Seg<ViTriChu> options={VI_TRI_CHU.map((v) => ({ value: v.key, label: v.ten }))} value={qc.vi_tri_chu ?? 'tren'} onChange={(v) => setQc({ vi_tri_chu: v })} /></O>
+        <O label="Hiệu ứng chữ màn" hint="Mỗi câu chữ màn vào bằng: nảy (pop) hoặc đập kiểu trailer (lao vào từ to, mờ → đập về cỡ thật). Bản xuất và xem trước giống nhau."><Seg<'' | 'bat' | 'dap'> options={VAO_CHU.map((v) => ({ value: v.key, label: v.ten }))} value={qc.kieu_chu?.vao ?? ''} onChange={(v) => setQc({ kieu_chu: { ...qc.kieu_chu, vao: v } })} /></O>
       </div>
     </details>
   );

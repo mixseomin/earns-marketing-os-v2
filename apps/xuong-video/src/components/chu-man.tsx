@@ -19,7 +19,9 @@ export function ChuManXem({ chu, giay, rong, qc, kieu }: { chu: string; giay: nu
     <div style={{ position: 'absolute', left: '5%', right: '5%', textAlign: 'center', pointerEvents: 'none', fontFamily: font, fontWeight: 900, fontSize: fs, lineHeight: 1.15, color: k.mau,
       WebkitTextStroke: `${vien}px ${k.vien}`, paintOrder: 'stroke fill', textShadow: '0 1px 4px rgba(0,0,0,.35)',
       ...(typeof k.y === 'number' ? { top: `${k.y * 100}%`, transform: 'translateY(-50%)' } : viTri === 'giua' ? { top: '50%', transform: 'translateY(-50%)' } : viTri === 'duoi' ? { top: '62%', transform: 'translateY(-50%)' } : { top: '14%' }) }}>
+      <div key={`${cau.tu}`} className={k.vao ? `xv-chu-${k.vao}` : undefined}>
       {cau.dong.map((d, i) => <div key={i} style={{ transform: hep !== 1 ? `scaleX(${hep})` : undefined }}><span style={k.nen ? { background: k.nen, padding: '0.1em 0.4em', borderRadius: 4, WebkitTextStroke: '0' } : undefined}>{to(d)}</span></div>)}
+      </div>
     </div>
   );
 }

@@ -111,9 +111,18 @@ export type ViTriChu = 'tren' | 'giua' | 'duoi';
  *  assets/fonts (Montserrat Black/ExtraBold) hoặc DejaVu Sans; màu #RRGGBB; nhan = màu riêng cho số, '?', '$', '%'; co = cỡ chữ / bề ngang. */
 export type KieuChu = { font?: string; mau?: string; vien?: string; nhan?: string; co?: number; vien_day?: number; ngang?: number;
   /** y = tâm dọc của khối chữ theo tỉ lệ chiều cao (0–1), đè vi_tri_chu; nen = màu băng nền sau chữ (kiểu nhãn "Every senior loves these!"). */
-  y?: number; nen?: string };
+  y?: number; nen?: string;
+  /** hiệu ứng vào của MỖI câu chữ màn: 'bat' = nảy lên (pop) · 'dap' = lao vào từ to + mờ rồi đập về cỡ thật (trailer). Trống = hiện thẳng. */
+  vao?: '' | 'bat' | 'dap' };
 /** ngang = độ rộng chữ % (ASS ScaleX; <100 = chữ hẹp như font QC mẫu). co = cỡ chữ ASS / bề ngang (ASS tính theo chiều cao dòng → chữ nhỏ hơn cùng số px của drawtext). */
-export const KIEU_CHU_MAC_DINH = { font: 'DejaVu Sans', mau: '#FFFFFF', vien: '#000000', nhan: '', co: 0.062, vien_day: 0.07, ngang: 100 };
+export const KIEU_CHU_MAC_DINH = { font: 'DejaVu Sans', mau: '#FFFFFF', vien: '#000000', nhan: '', co: 0.062, vien_day: 0.07, ngang: 100, vao: '' as '' | 'bat' | 'dap' };
+export const VAO_CHU: { key: '' | 'bat' | 'dap'; ten: string }[] = [{ key: '', ten: 'Hiện thẳng' }, { key: 'bat', ten: 'Nảy (pop)' }, { key: 'dap', ten: 'Đập (trailer)' }];
+/** Đoạn ASS mở đầu mỗi câu theo hiệu ứng vào — CÙNG thời lượng với CSS xem trước (xv.css › xv-chu-bat / xv-chu-dap). */
+export function assVaoChu(vao: string | undefined, ngang: number): string {
+  if (vao === 'dap') return `\\fscx${Math.round(ngang * 2.2)}\\fscy220\\blur10\\alpha&H70&\\t(0,140,\\fscx${ngang}\\fscy100\\blur0\\alpha&H00&)`;
+  if (vao === 'bat') return `\\fscx${Math.round(ngang * 0.6)}\\fscy60\\t(0,120,\\fscx${Math.round(ngang * 1.08)}\\fscy108)\\t(120,200,\\fscx${ngang}\\fscy100)`;
+  return '';
+}
 export const FONT_CHU: { key: string; ten: string }[] = [{ key: 'DejaVu Sans', ten: 'DejaVu Sans Bold (mặc định)' }, { key: 'Montserrat Black', ten: 'Montserrat Black' }, { key: 'Montserrat ExtraBold', ten: 'Montserrat ExtraBold' }, { key: 'Playfair Display Black', ten: 'Playfair Display Black (serif, thương hiệu Astrolas)' }];
 export const VI_TRI_CHU: { key: ViTriChu; ten: string }[] = [{ key: 'tren', ten: 'Trên' }, { key: 'giua', ten: 'Giữa' }, { key: 'duoi', ten: 'Dưới' }];
 export type ThongTinQc = {

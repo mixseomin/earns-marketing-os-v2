@@ -9,7 +9,7 @@
 import type { Canh, KieuChu, LoaiPhim, Lop, NhanVat, PhanCanh, Tap, ThongTinQc, ViTriChu } from './kieu';
 import { mauAss, gioAss, lopAss, lopAnhLoc, lopHieuUngLoc } from './lop';
 import { chuyenCanhGiua } from './dien-anh';
-import { giayPhat, locNhanh, doanChuMan, coMau, KIEU_CHU_MAC_DINH } from './kieu';
+import { giayPhat, locNhanh, doanChuMan, coMau, assVaoChu, KIEU_CHU_MAC_DINH } from './kieu';
 import { keHoachToc, bieuThucToc } from './toc-do';
 import { lichSfx } from './sfx';
 export { doanChuMan, chuManHien } from './kieu';
@@ -134,7 +134,7 @@ export function tepAss(o: { W: number; H: number; kieu?: KieuChu; viTri: ViTriCh
     const nhan = (t: string) => (k.nhan ? t.replace(/[0-9?$%]+/g, (m) => `{\\c${mauAss(k.nhan)}}${m}{\\c${mauAss(k.mau)}}`) : t);
     const to = (t: string) => t.replace(/\*\*(.+?)\*\*/g, (_, m: string) => `{\\fs${Math.round(fs * 1.8)}\\i1\\c${mauAss(k.nhan || k.mau)}}${m}{\\r}`);
     const dong = c.dong.flatMap((d) => (/\*\*/.test(d) ? [d] : ngatDong(d, wrap))).map((d) => d.replace(/[{}\\]/g, ''));
-    return `Dialogue: 100,${gioAss(c.tu)},${gioAss(c.den)},${ten},,0,0,0,,{\\an5\\pos(${Math.round(o.W / 2)},${tamY(dong.length)})}${dong.map((d) => to(nhan(d))).join('\\N')}`;
+    return `Dialogue: 100,${gioAss(c.tu)},${gioAss(c.den)},${ten},,0,0,0,,{\\an5\\pos(${Math.round(o.W / 2)},${tamY(dong.length)})${assVaoChu(k.vao, k.ngang)}}${dong.map((d) => to(nhan(d))).join('\\N')}`;
   });
   const dong = ['[Script Info]', 'ScriptType: v4.00+', `PlayResX: ${o.W}`, `PlayResY: ${o.H}`, 'ScaledBorderAndShadow: yes', 'WrapStyle: 2', '',
     '[V4+ Styles]', 'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',

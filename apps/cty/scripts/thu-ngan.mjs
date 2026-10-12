@@ -13,4 +13,6 @@ a(JSON.stringify(moKhoa(['phong:x', 'nhat-ky:'], 'nhat-ky:loai=goi', 1)) === '["
 a(urlVoiChong('/phong/thu-nghiem', '?ngan=old&x=1', ['nhan-su:tam', 'nhat-ky:luot=A']) === '/phong/thu-nghiem?x=1&ngan=nhan-su%3Atam&ngan=nhat-ky%3Aluot%3DA', 'ghi URL');
 a(JSON.stringify(docChong(new URLSearchParams(urlVoiChong('/', '', ['nhan-su:tam', 'nhat-ky:luot=A']).split('?')[1]).getAll('ngan'))) === '["nhan-su:tam","nhat-ky:luot=A"]', 'ghi rồi đọc lại đúng thứ tự');
 a(khoaTuHref('/quy-trinh/thu-nghiem/lam-viec') === 'quy-trinh:thu-nghiem/lam-viec' && khoaTuHref('/quy-trinh/a') === null, 'quy trình theo khoá phòng/quy-trình');
-console.log('✓ ngan: 12 ca đạt');
+a(khoaTuHref('/sach/sach/123') === 'sach:sach/123' && khoaTuHref('/sach/sach') === null && khoaTuHref('/the/1107') === 'the:1107' && khoaTuHref('/the/abc') === null, 'sách + card');
+a(JSON.stringify(docChong(['phong:sach', 'sach:sach/1', 'the:2'])) === '["phong:sach","sach:sach/1","the:2"]', 'chồng nhận sách + card');
+console.log('✓ ngan: 14 ca đạt');

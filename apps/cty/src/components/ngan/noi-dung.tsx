@@ -24,11 +24,12 @@ import { dsQuyTrinhCacPhong, quyDinhPhong } from '@/lib/quy-trinh';
 import { DoDac } from '../do-dac';
 import { SoSuKien } from '../so-su-kien';
 import { Nguoi } from '../nguoi';
-import { tachKhoa } from '@/lib/ngan';
+import { tachKhoa, hrefThe } from '@/lib/ngan';
 import { BangNhanSu } from '../bang-nhan-su';
 import { doiNgu } from '@/lib/doi-ngu';
-import { dayChuyen } from '../../../worker/sach.mjs';
-import { DayChuyenTab, demCan, type DayChuyen } from '../day-chuyen';
+import { dayChuyen, linkMos2, homNay, CHANG } from '../../../worker/sach.mjs';
+import { DayChuyenTab, demCan, type DayChuyen, Ai, Tram, Thanh, KENH, mauNen, TEN_NEN, NHAN_ST, ngay, quaNgay } from '../day-chuyen';
+import { kenhKeoKhach, theMot } from '@/lib/do-dac';
 import { trachNhiem, demTn } from '@/lib/trach-nhiem';
 import { KhoiTrachNhiem } from '../trach-nhiem';
 
@@ -393,6 +394,86 @@ export async function nganQuyTrinh(): Promise<Ngan> {
   };
 }
 
+// SÁCH + CARD (anh 12/10/2026: "ở dây chuyền bấm sao lại mở sang mos2 — tập trung link out vào drawer"): màn cty chỉ mở ngăn;
+// link ra MOS2 / sàn (mở tab mới) chỉ nằm trong hai ngăn này. Sửa / duyệt / đóng vẫn làm ở MOS2.
+const Ra = ({ u, chu }: { u: string; chu: string }) => <a href={u} target="_blank" rel="noreferrer">{chu} ↗</a>;
+const linkCard = (id: number, duAn: string) => `https://mos2.on.tc/p/${duAn}/plays?task=${id}`;   // EntityRef 'task' của MOS2
+
+/** Ngăn một tựa sách `sach:<phòng>/<id dòng sổ>`: bìa, trạm, mọi nền của tựa (dòng mở từ đó tô đậm), kênh kéo khách. */
+export async function nganSach(ma: string): Promise<Ngan> {
+  const [ph = '', id = ''] = ma.split('/'); const p = phong(ph);
+  const dc = p ? ((await dayChuyen(ph)) as DayChuyen | null) : null;
+  const g = dc?.nhom?.find((x) => x.dong.some((d) => String(d.id) === id));
+  if (!p || !g) return { tieuDe: 'Sách', than: <Thieu chu={dc?.loi ? `Không đọc được sổ sản phẩm: ${dc.loi}` : `Không thấy dòng sổ ${id} trong sổ của phòng "${ph}".`} /> };
+  const hom = dc!.hom ?? ''; const qua = quaNgay(g.ngay, hom);
+  const [kenh, qts] = await Promise.all([kenhKeoKhach(p), dsQuyTrinhCacPhong()]);
+  const kc = (kenh ?? []).filter((x) => x.ten.toLowerCase() === g.tua.toLowerCase());
+  const chang = (CHANG as [string, string][]).find(([k]) => k === g.chang)?.[1] ?? 'Trong lịch';
+  const Qt = ({ k }: { k?: string | null }) => { const q = k ? qts.find((x) => x.khoa === `${ph}/${k}`) : null; return q ? <> · <Link href={`/quy-trinh/${q.khoa}`}>{q.ten}</Link></> : null; };
+  return {
+    tieuDe: <>{g.tua} <span className="cty-pill cty-pill-kind">{chang}</span></>,
+    than: (
+      <div className="nk-3cot">
+        <div className="nk-cot nk-cot-hinh">
+          {g.anh ? <img src={g.anh.replace('width=160', 'width=480')} alt={`Bìa ${g.tua}`} className="cty-sach-bia" /> : <p className="cty-muted">Chưa có ảnh bìa.</p>}
+          <div className="nk-luoi">
+            <O nhan="Ngày đăng">{ngay(g.ngay)}{qua > 0 && g.chang !== 'ban' && <span className="cty-thu-loi"> · quá {qua} ngày</span>}</O>
+            <O nhan="Loại">{g.loai ?? '—'}</O>
+            <O nhan="Trạm">{g.tram ? <><Tram t={g.tram} /> {g.tram.dat}/{g.tram.tong}{g.tram.ke ? ` · kế: ${g.tram.ke}` : ''}</> : 'chưa vào dây chuyền'}</O>
+            <O nhan="Chặng">{chang}</O>
+          </div>
+        </div>
+        <div className="nk-cot">
+          <h3>Từng nền <span className="cty-tab-so">{g.dong.length}</span></h3>
+          <ul className="cty-sach-nen">{g.dong.map((d) => (
+            <li key={d.id} className={String(d.id) === id ? 'chon' : undefined}>
+              <div><span className={`cty-nen ${mauNen(d)}`}>{(TEN_NEN[d.nen] ?? d.nen)[0]}</span> <b>{TEN_NEN[d.nen] ?? d.nen}</b>{d.dinhDang ? ` ${d.dinhDang}` : ''} · {NHAN_ST[d.status] ?? d.status}{d.shop && <span className="cty-muted"> · {d.shop}</span>}</div>
+              <div className="cty-nho">{d.viec.ai && d.viec.ai !== 'san' && <><Ai ai={d.viec.ai} phong={ph} anh={false} />: </>}{d.viec.chu}{d.viec.qua != null && d.viec.qua > 0 && <span className="cty-thu-loi"> · quá {d.viec.qua} ngày</span>}<Qt k={d.viec.qt} /></div>
+              <div className="cty-nho"><Ra u={linkMos2(d.id)} chu="sổ MOS2" />{d.url && <> · <Ra u={d.url} chu="trên sàn" /></>}{d.sku && <span className="cty-muted"> · {d.sku}</span>}</div>
+            </li>))}</ul>
+        </div>
+        <div className="nk-cot">
+          <h3>Kênh kéo khách</h3>
+          {kenh === null ? <Thieu chu="Không đọc được kênh kéo khách (kenh_sp, DB MOS2)." /> : kc.length ? <>
+            {KENH.map(([k, nhan]) => <Thanh key={k} r={kc.find((x) => x.kenh === k)} nhan={nhan} />)}
+            <ul className="cty-nho">{kc.filter((x) => x.canh_bao).map((x) => <li key={x.kenh}>{x.kenh}: {x.canh_bao}{x.the_id && <> · <Link href={hrefThe(x.the_id)}>card #{x.the_id}</Link></>}</li>)}</ul>
+          </> : <p className="cty-muted">Tựa này chưa có dòng nào trong kenh_sp.</p>}
+        </div>
+      </div>
+    ),
+  };
+}
+
+/** Ngăn một card plays `the:<id>`: trạng thái, hạn, hướng dẫn, bản nháp — đọc trong cty; link ra MOS2 / bài đã đăng ở cột đầu. */
+export async function nganThe(ma: string): Promise<Ngan> {
+  const c = await theMot(Number(ma));
+  if (!c) return { tieuDe: `Card #${ma}`, than: <Thieu chu={c === undefined ? 'Không đọc được bảng card (DB MOS2) — xem journal mos2-cty.' : `Không có card #${ma}.`} /> };
+  const pp = c.prep_payload ?? {}; const sx = pp.site_status?.[c.project_id]; const qua = quaNgay(c.han, homNay());
+  const ngoai = ([['card trên plays MOS2', linkCard(c.id, c.project_id)], ['bài đã đăng', c.publish_url], ['link đã đặt', pp.site_url?.[c.project_id]], ['trang nguồn', pp.source_url]] as [string, string | null | undefined][])
+    .filter((x): x is [string, string] => !!x[1] && /^https?:\/\//.test(x[1]));
+  return {
+    tieuDe: <>#{c.id} {c.title}</>,
+    than: (
+      <div className="nk-3cot">
+        <div className="nk-cot">
+          <div className="nk-luoi">
+            <O nhan="Trạng thái">{c.status}{sx && sx !== c.status ? ` · ${sx}` : ''}</O>
+            <O nhan="Dự án">{c.project_id}</O>
+            <O nhan="Loại">{c.platform_key ?? '—'}</O>
+            <O nhan="Hạn">{c.han ? ngay(c.han) : '—'}{qua > 0 && <span className="cty-thu-loi"> · quá {qua} ngày</span>}</O>
+            <O nhan="Tạo"><Gio iso={c.tao} /></O>
+            <O nhan="Sửa lần cuối"><Gio iso={c.sua} /></O>
+          </div>
+          <h3>Mở ngoài</h3>
+          <ul className="cty-nho">{ngoai.map(([chu, u]) => <li key={chu}><Ra u={u} chu={chu} /></li>)}</ul>
+        </div>
+        <div className="nk-cot nk-cot-dai"><h3>Hướng dẫn</h3>{c.instructions ? <Md>{c.instructions}</Md> : <p className="cty-muted">—</p>}</div>
+        <div className="nk-cot nk-cot-dai"><h3>Bản nháp · ghi chú</h3>{pp.draft && <Md>{pp.draft}</Md>}{c.notes && <p>{c.notes}</p>}{!pp.draft && !c.notes && <p className="cty-muted">—</p>}</div>
+      </div>
+    ),
+  };
+}
+
 export async function nganTheoKhoa(khoa: string, admin: boolean): Promise<Ngan> {
   const { loai, ma } = tachKhoa(khoa);
   if (loai === 'nhan-su') return await nganNhanSu(ma, admin);
@@ -400,6 +481,8 @@ export async function nganTheoKhoa(khoa: string, admin: boolean): Promise<Ngan> 
   if (loai === 'nhat-ky') return nganNhatKy(ma);
   if (loai === 'luat') return nganLuat();
   if (loai === 'muc-tieu') return nganMucTieu();
+  if (loai === 'sach') return await nganSach(ma);
+  if (loai === 'the') return await nganThe(ma);
   if (loai === 'quy-trinh') {
     if (!ma) return await nganQuyTrinh();
     const q = (await dsQuyTrinhCacPhong()).find((x) => x.khoa === ma);

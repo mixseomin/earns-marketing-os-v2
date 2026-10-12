@@ -2,68 +2,72 @@
 //   dải dòng chảy (số cuốn ở từng chặng) · bảng thẻ theo chặng (ảnh bìa, 6 chấm trạm, nhãn nền tô màu, người phụ trách) · việc cần người +
 //   card plays (một dòng mỗi việc) · kênh kéo khách (thanh tiến độ) · lịch theo tuần (cột) · báo cáo sáng gập lại.
 // Dữ liệu: worker/sach.mjs (sổ sản phẩm, nhớ 60 giây) + lib/do-dac (card plays, kenh_sp — DB MOS2). Chỉ ĐỌC — nút thật ở MOS2 / KDP.
+// Bấm tựa / nhãn nền / card → mở NGĂN trong cty (ngăn `sach:` / `the:` ở ngan/noi-dung.tsx); link ra MOS2 / sàn chỉ nằm trong ngăn.
 import { Nguoi } from './nguoi';
 import { Gio } from './gio';
-import { linkMos2, SAP_TOI, CHANG } from '../../worker/sach.mjs';
+import { SAP_TOI, CHANG } from '../../worker/sach.mjs';
+import { hrefSach, hrefThe } from '@/lib/ngan';
 import { vaiCuaPhong } from '../../worker/quy-trinh.mjs';
 import { theViecMo, kenhKeoKhach } from '@/lib/do-dac';
 import type { Doc } from '@/lib/cong-ty';
 
-type Viec = { ai: string | null; muc?: number; chu: string; qua?: number | null; tre?: boolean; qt?: string | null };
-type Dong = { id: string; nen: string; dinhDang: string | null; status: string; ngay: string | null; tram: { dat: number; tong: number; ke: string | null } | null; viec: Viec };
-type Tua = { tua: string; ngay: string | null; ai: string | null; nhom: 'dang' | 'ban' | 'lich'; chang: string; loai: string | null; anh: string | null; tram: Dong['tram']; dong: Dong[] };
+export type Viec = { ai: string | null; muc?: number; chu: string; qua?: number | null; tre?: boolean; qt?: string | null };
+export type Dong = { id: string; nen: string; shop?: string | null; dinhDang: string | null; status: string; ngay: string | null; url?: string | null; sku?: string | null; duyet?: string | null; tram: { dat: number; tong: number; ke: string | null } | null; viec: Viec };
+export type Tua = { tua: string; ngay: string | null; ai: string | null; nhom: 'dang' | 'ban' | 'lich'; chang: string; loai: string | null; anh: string | null; tram: Dong['tram']; dong: Dong[] };
 export type DayChuyen = { nguon: string[]; loi?: string; hom?: string; luc?: string; nhom?: Tua[]; bao_cao?: string };
 
 const NEN: [string, string][] = [['kdp', 'KDP'], ['etsy', 'Etsy'], ['gumroad', 'Gumroad']];
-const TEN_NEN = Object.fromEntries(NEN);
-const ngay = (iso: string | null) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '—');
-const quaNgay = (han: string | null, hom: string) => (han && han < hom ? Math.round((Date.parse(hom) - Date.parse(han)) / 86_400_000) : 0);
-const linkCard = (id: number, duAn: string) => `https://mos2.on.tc/p/${duAn}/plays?task=${id}`;   // EntityRef 'task' của MOS2
+export const TEN_NEN = Object.fromEntries(NEN);
+export const ngay = (iso: string | null) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '—');
+export const quaNgay = (han: string | null, hom: string) => (han && han < hom ? Math.round((Date.parse(hom) - Date.parse(han)) / 86_400_000) : 0);
 /** Màu nhãn nền theo trạng thái dòng: đang bán = xanh đậm, chờ anh / máy trễ = cam, đã duyệt / sàn duyệt = xanh nhạt, còn lại = xám. */
-const mauNen = (d: Dong) => (d.viec.tre || d.viec.ai === 'giam-doc' ? 'cty-nen-cam' : d.status === 'published' ? 'cty-nen-ban' : d.status === 'ready' || d.status === 'in_review' ? 'cty-nen-san' : 'cty-nen-nhat');
-const NHAN_ST: Record<string, string> = { published: 'đang bán', in_review: 'sàn duyệt', ready: 'đã duyệt', owner_review: 'chờ duyệt', draft: 'đang dựng', planned: 'dự kiến' };
+export const mauNen = (d: Dong) => (d.viec.tre || d.viec.ai === 'giam-doc' ? 'cty-nen-cam' : d.status === 'published' ? 'cty-nen-ban' : d.status === 'ready' || d.status === 'in_review' ? 'cty-nen-san' : 'cty-nen-nhat');
+export const NHAN_ST: Record<string, string> = { published: 'đang bán', in_review: 'sàn duyệt', ready: 'đã duyệt', owner_review: 'chờ duyệt', draft: 'đang dựng', planned: 'dự kiến' };
 
-function Ai({ ai, phong, anh = true }: { ai: string | null; phong: string; anh?: boolean }) {
+export function Ai({ ai, phong, anh = true }: { ai: string | null; phong: string; anh?: boolean }) {
   if (!ai) return null;
   if (ai === 'giam-doc' || ai === 'may') return <Nguoi id={ai} />;
   if (ai === 'san') return <span className="cty-nguoi-chu">Sàn</span>;
   const id = (vaiCuaPhong(phong) as Record<string, string>)[ai];
   return id ? <Nguoi id={id} anh={anh} /> : <span className="cty-thu-loi">chưa ai giữ vai {ai}</span>;
 }
-const Tram = ({ t }: { t: NonNullable<Dong['tram']> }) => (
+export const Tram = ({ t }: { t: NonNullable<Dong['tram']> }) => (
   <span className="cty-tram" title={`trạm ${t.dat}/${t.tong}${t.ke ? ` · kế: ${t.ke}` : ''}`}>{Array.from({ length: t.tong }, (_, i) => <i key={i} className={i < t.dat ? 'xong' : ''} />)}</span>);
 
-/** Thẻ một tựa: ảnh bìa · tựa (mở sản phẩm trong MOS2) · ngày đăng · 6 chấm trạm · nhãn nền tô màu · việc kế + người. */
+/** Thẻ một tựa: ảnh bìa · tựa (mở ngăn sách) · ngày đăng · 6 chấm trạm · nhãn nền tô màu · việc kế + người. */
 function The({ g, phong, hom }: { g: Tua; phong: string; hom: string }) {
   const v = g.dong.find((d) => d.viec.ai === g.ai)?.viec; const qua = quaNgay(g.ngay, hom);
   return (
     <div className={`cty-the${g.dong.some((d) => d.viec.tre) ? ' cty-the-tre' : ''}`}>
       {g.anh ? <img src={g.anh} alt="" loading="lazy" className="cty-the-anh" /> : <span className="cty-the-anh cty-the-anh-trong" title={`chưa có ảnh bìa${g.loai ? ` · loại ${g.loai}` : ''}`}>📖</span>}
       <div className="cty-the-than">
-        <a href={linkMos2(g.dong[0]!.id)} className="cty-the-ten" title={`${g.tua} — mở trong MOS2`}>{g.tua}</a>
+        <a href={hrefSach(phong, g.dong[0]!.id)} className="cty-the-ten" title={g.tua}>{g.tua}</a>
         <div className="cty-the-dong"><span className={qua > 0 && g.chang !== 'ban' ? 'cty-thu-loi' : 'cty-muted'}>{ngay(g.ngay)}{qua > 0 && g.chang !== 'ban' ? ` · quá ${qua}n` : ''}</span>{g.tram && <Tram t={g.tram} />}</div>
-        <div className="cty-the-dong">{g.dong.map((d) => <a key={d.id} href={linkMos2(d.id)} className={`cty-nen ${mauNen(d)}`} title={`${TEN_NEN[d.nen] ?? d.nen}${d.dinhDang && !['paperback', 'pdf'].includes(d.dinhDang) ? ` ${d.dinhDang}` : ''} · ${NHAN_ST[d.status] ?? d.status} · ${d.viec.chu}`}>{(TEN_NEN[d.nen] ?? d.nen)[0]}{d.dinhDang === 'hardcover' ? '·c' : d.dinhDang === 'ebook' ? '·e' : ''}</a>)}</div>
+        <div className="cty-the-dong">{g.dong.map((d) => <a key={d.id} href={hrefSach(phong, d.id)} className={`cty-nen ${mauNen(d)}`} title={`${TEN_NEN[d.nen] ?? d.nen}${d.dinhDang && !['paperback', 'pdf'].includes(d.dinhDang) ? ` ${d.dinhDang}` : ''} · ${NHAN_ST[d.status] ?? d.status} · ${d.viec.chu}`}>{(TEN_NEN[d.nen] ?? d.nen)[0]}{d.dinhDang === 'hardcover' ? '·c' : d.dinhDang === 'ebook' ? '·e' : ''}</a>)}</div>
         {v?.ai && v.ai !== 'san' && <div className="cty-the-viec" title={v.chu}><Ai ai={v.ai} phong={phong} anh={false} /> {v.chu}</div>}
       </div>
     </div>
   );
 }
 
+type Kenh = NonNullable<Awaited<ReturnType<typeof kenhKeoKhach>>>[number];
+/** Một thanh kênh của một cuốn: đã xong / cần có. */
+export function Thanh({ r, nhan }: { r?: Kenh; nhan: string }) {
+  const pt = r?.tong ? Math.min(100, Math.round(((r.xong ?? 0) / r.tong) * 100)) : 0;
+  return <div className="cty-thanh" title={r ? `${nhan}: ${r.xong ?? '?'}/${r.tong ?? '?'}${r.canh_bao ? ` — ${r.canh_bao}` : ''}` : `${nhan}: chưa có`}>
+    <span>{nhan}</span><span className="cty-thanh-ray"><i style={{ width: `${pt}%` }} className={pt === 100 ? 'du' : ''} /></span><span className="cty-muted">{r ? `${r.xong ?? 0}/${r.tong ?? 0}` : '—'}</span></div>;
+}
+export const KENH: [string, string][] = [['pinterest', 'Ghim'], ['shorts', 'Video'], ['printables', 'Printables']];
 /** Kênh kéo khách: mỗi cuốn 3 thanh (ghim / video / trang printables) đã xong trên cần có. */
 function KenhKeoKhach({ ds, hom }: { ds: NonNullable<Awaited<ReturnType<typeof kenhKeoKhach>>>; hom: string }) {
   const cuon = [...new Map(ds.map((r) => [r.san_pham, r.ten])).entries()];
   const moi = ds.map((r) => r.cap_nhat.slice(0, 10)).sort().pop() ?? ''; const cu = quaNgay(moi, hom);
-  const Thanh = ({ r, nhan }: { r?: (typeof ds)[number]; nhan: string }) => {
-    const pt = r?.tong ? Math.min(100, Math.round(((r.xong ?? 0) / r.tong) * 100)) : 0;
-    return <div className="cty-thanh" title={r ? `${nhan}: ${r.xong ?? '?'}/${r.tong ?? '?'}${r.canh_bao ? ` — ${r.canh_bao}` : ''}` : `${nhan}: chưa có`}>
-      <span>{nhan}</span><span className="cty-thanh-ray"><i style={{ width: `${pt}%` }} className={pt === 100 ? 'du' : ''} /></span><span className="cty-muted">{r ? `${r.xong ?? 0}/${r.tong ?? 0}` : '—'}</span></div>;
-  };
   return (
     <section>
       <h3>Kênh kéo khách <span className="cty-tab-so">{cuon.length} cuốn · cập nhật {moi ? ngay(moi) : '—'}</span>{cu > 3 && <span className="cty-thu-loi cty-nho"> · cũ {cu} ngày</span>}</h3>
       <div className="cty-kenh">{cuon.map(([sp, ten]) => { const r = (k: string) => ds.find((x) => x.san_pham === sp && x.kenh === k); const can = ds.filter((x) => x.san_pham === sp && x.canh_bao);
-        return (<div key={sp} className="cty-kenh-cuon"><b title={ten}>{ten}</b><Thanh r={r('pinterest')} nhan="Ghim" /><Thanh r={r('shorts')} nhan="Video" /><Thanh r={r('printables')} nhan="Printables" />
-          {can.length > 0 && <span className="cty-muted cty-nho" title={can.map((x) => x.canh_bao).join(' · ')}>cần: {can.map((x, i) => <span key={x.kenh}>{i > 0 && ' · '}{x.the_id ? <a href={linkCard(x.the_id, 'puzzle-books')}>{x.kenh} #{x.the_id}</a> : x.kenh}</span>)}</span>}</div>); })}</div>
+        return (<div key={sp} className="cty-kenh-cuon"><b title={ten}>{ten}</b>{KENH.map(([k, nhan]) => <Thanh key={k} r={r(k)} nhan={nhan} />)}
+          {can.length > 0 && <span className="cty-muted cty-nho" title={can.map((x) => x.canh_bao).join(' · ')}>cần: {can.map((x, i) => <span key={x.kenh}>{i > 0 && ' · '}{x.the_id ? <a href={hrefThe(x.the_id)}>{x.kenh} #{x.the_id}</a> : x.kenh}</span>)}</span>}</div>); })}</div>
     </section>
   );
 }
@@ -109,7 +113,7 @@ export async function DayChuyenTab({ dc, phong, p }: { dc: DayChuyen; phong: str
           <h3>Việc cần người <span className="cty-tab-so">{can.length}</span></h3>
           {can.length ? <ul className="cty-sach-can">{can.map(({ g, d, k }) => (
             <li key={d.id} title={`${d.viec.chu} — ${TEN_NEN[d.nen] ?? d.nen} · ${g.tua}`}><span className={`cty-pill${k === 'giam-doc' || k === 'tre' ? ' cty-pill-off' : ' cty-pill-kind'}`}>{k === 'tre' ? 'máy trễ' : `mức ${d.viec.muc ?? '?'}`}</span>{' '}
-              <Ai ai={d.viec.ai} phong={phong} />: {d.viec.chu}{d.viec.qua != null && d.viec.qua > 0 && <span className="cty-thu-loi"> · quá {d.viec.qua} ngày</span>} · <b>{TEN_NEN[d.nen] ?? d.nen}</b> <a href={linkMos2(d.id)}>{g.tua}</a></li>))}</ul>
+              <Ai ai={d.viec.ai} phong={phong} />: {d.viec.chu}{d.viec.qua != null && d.viec.qua > 0 && <span className="cty-thu-loi"> · quá {d.viec.qua} ngày</span>} · <b>{TEN_NEN[d.nen] ?? d.nen}</b> <a href={hrefSach(phong, d.id)}>{g.tua}</a></li>))}</ul>
             : <p className="cty-muted">Không có việc nào chờ người.</p>}
         </section>
         <section>
@@ -117,7 +121,7 @@ export async function DayChuyenTab({ dc, phong, p }: { dc: DayChuyen; phong: str
           {the === null ? <p className="cty-bao-loi" data-loi>Không đọc được bảng card (DB MOS2) — xem journal mos2-cty.</p>
             : the.ds.length ? <ul className="cty-sach-can">{the.ds.map((c) => (
               <li key={c.id} title={`#${c.id} · ${c.project_id} · ${c.status} · ${c.title}`}><span className={`cty-pill${quaNgay(c.han, hom) ? ' cty-pill-off' : ' cty-pill-kind'}`}>{c.status}</span>{' '}
-                <a href={linkCard(c.id, c.project_id)}>#{c.id}</a> {c.title}{quaNgay(c.han, hom) > 0 && <span className="cty-thu-loi"> · quá hạn {quaNgay(c.han, hom)} ngày</span>}</li>))}</ul>
+                <a href={hrefThe(c.id)}>#{c.id}</a> {c.title}{quaNgay(c.han, hom) > 0 && <span className="cty-thu-loi"> · quá hạn {quaNgay(c.han, hom)} ngày</span>}</li>))}</ul>
             : <p className="cty-muted">Không có card nào còn mở.</p>}
         </section>
       </div>

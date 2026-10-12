@@ -458,3 +458,8 @@ details[open]>.cty-qt-hang .cty-qt-ten::before{content:'▾ '}
 .cty-lich-cot small{position:absolute;bottom:-14px;left:0;font-size:.62rem;color:var(--muted)}
 @media (max-width:1100px){.cty-dong-chay{grid-template-columns:repeat(4,minmax(0,1fr))}.cty-dong-chay li::after{display:none}.cty-bang-the{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}}
 @media (max-width:700px){.cty-dong-chay{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Ngăn sách (ngan/noi-dung.tsx nganSach): bìa lớn, mỗi nền một khối; dòng mở ngăn từ đó tô nền nhạt. */
+.cty-sach-bia{width:100%;max-width:240px;border-radius:4px;border:1px solid var(--line)}
+.cty-sach-nen{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.cty-sach-nen li{display:grid;gap:3px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;min-width:0;overflow-wrap:anywhere}
+.cty-sach-nen li.chon{background:var(--soft);border-color:var(--accent)}

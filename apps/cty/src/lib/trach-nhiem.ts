@@ -6,7 +6,8 @@ import 'server-only';
 //   · việc đang mở quy về người: việc ở tab Dây chuyền (vai → người; việc máy làm thay → người chủ trì quy trình của việc đó, nên máy
 //     trễ là việc của một người cụ thể), card plays còn mở của phòng (trưởng phòng), kênh kéo khách đang cần (chủ trì quy trình gom kênh).
 import { dsQuyTrinh, giaiNguoi, phongFm } from '../../worker/quy-trinh.mjs';
-import { dayChuyen, linkMos2 } from '../../worker/sach.mjs';
+import { dayChuyen } from '../../worker/sach.mjs';
+import { hrefSach, hrefThe } from './ngan';
 import { dsPhong, dsNhanSu } from './cong-ty';
 import { theViecMo, kenhKeoKhach } from './do-dac';
 
@@ -54,16 +55,16 @@ async function tinhTrachNhiem(): Promise<TrachNhiem> {
     for (const g of dc?.nhom ?? []) for (const d of g.dong) {
       const v = d.viec; if (!v.ai || v.ai === 'san') continue;
       const ai = v.ai === 'may' ? (v.qt ? chuTri[`${p.id}/${v.qt}`] : null) : giaiMa(p.id, v.ai);
-      if (ai) cua(ai).viec.push({ phong: p.id, chu: `${NEN[d.nen] ?? d.nen}: ${v.chu}`, ten: g.tua, link: linkMos2(d.id), qua: v.qua, tre: v.tre, mayLam: v.ai === 'may' });
+      if (ai) cua(ai).viec.push({ phong: p.id, chu: `${NEN[d.nen] ?? d.nen}: ${v.chu}`, ten: g.tua, link: hrefSach(p.id, d.id), qua: v.qua, tre: v.tre, mayLam: v.ai === 'may' });
     }
     const [the, kenh] = await Promise.all([theViecMo(p, TRAN_CARD), kenhKeoKhach(p)]);
     const tp = giaiMa(p.id, 'truong-phong');
     if (tp && the) {
-      for (const c of the.ds) cua(tp).viec.push({ phong: p.id, chu: `card #${c.id} · ${c.status}`, ten: c.title, link: `https://mos2.on.tc/p/${c.project_id}/plays?task=${c.id}`, mayLam: false });
-      if (the.tong > the.ds.length) cua(tp).viec.push({ phong: p.id, chu: `+${the.tong - the.ds.length} card nữa trên plays`, link: `https://mos2.on.tc/p/${String((p.fm.du_an as string[] | undefined)?.[0] ?? '')}/plays`, mayLam: false, so: the.tong - the.ds.length });
+      for (const c of the.ds) cua(tp).viec.push({ phong: p.id, chu: `card #${c.id} · ${c.status}`, ten: c.title, link: hrefThe(c.id), mayLam: false });
+      if (the.tong > the.ds.length) cua(tp).viec.push({ phong: p.id, chu: `+${the.tong - the.ds.length} card nữa trên plays`, link: `/phong/${p.id}`, mayLam: false, so: the.tong - the.ds.length });
     }
-    const gom = chuTri[`${p.id}/kenh-keo-khach`]; const da = Array.isArray(p.fm.du_an) ? String(p.fm.du_an[0]) : '';
-    if (gom) for (const k of (kenh ?? []).filter((x) => x.canh_bao)) cua(gom).viec.push({ phong: p.id, chu: `kênh ${k.kenh}: ${k.canh_bao}`, ten: k.ten, link: k.the_id && da ? `https://mos2.on.tc/p/${da}/plays?task=${k.the_id}` : undefined, mayLam: false });
+    const gom = chuTri[`${p.id}/kenh-keo-khach`];
+    if (gom) for (const k of (kenh ?? []).filter((x) => x.canh_bao)) cua(gom).viec.push({ phong: p.id, chu: `kênh ${k.kenh}: ${k.canh_bao}`, ten: k.ten, link: k.the_id ? hrefThe(k.the_id) : undefined, mayLam: false });
   }));
   for (const x of Object.values(tn)) x.viec.sort((a, b) => Number(!!b.tre) - Number(!!a.tre) || (b.qua ?? -999) - (a.qua ?? -999));
   return tn;

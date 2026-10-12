@@ -43,6 +43,13 @@ export async function theViecMo(p: Doc, gioiHan?: number) {
     ${gioiHan ? sql`LIMIT ${gioiHan}` : sql``}`)) as { id: number; project_id: string; status: string; platform_key: string | null; han: string | null; title: string; tong: number }[] | null;
   return rows && { tong: rows[0]?.tong ?? 0, ds: rows };
 }
+/** Một card (ngăn `the:<id>`) — đủ để đọc trong cty; sửa / duyệt vẫn ở MOS2. undefined = không đọc được DB, null = không có card. */
+export async function theMot(id: number) {
+  const r = await q(sql`SELECT id, project_id, status, platform_key, title, instructions, notes, prep_payload, publish_url, sla_due_at::date::text AS han,
+    to_json(created_at)#>>'{}' AS tao, to_json(updated_at)#>>'{}' AS sua FROM human_tasks WHERE id = ${id}`);
+  return r === null ? undefined : ((r[0] ?? null) as { id: number; project_id: string; status: string; platform_key: string | null; title: string; instructions: string | null; notes: string | null;
+    prep_payload: { draft?: string; source_url?: string; site_url?: Record<string, string>; site_status?: Record<string, string> } | null; publish_url: string | null; han: string | null; tao: string; sua: string } | null);
+}
 /** Kênh kéo khách theo cuốn (bảng kenh_sp — puzzle-books/scripts/kenh.mjs ghi, MOS2 Tài sản đọc cùng bảng). */
 export async function kenhKeoKhach(p: Doc) {
   const duAn = dsFm(p, 'du_an'); if (!duAn.length) return [];

@@ -20,7 +20,7 @@ import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 import { mono, Menu } from './ui';
 import { docLT, ghiLT } from '@/lib/luu-tru';
-import { lopMoi, idLop, tenLop, chonLopMoi, nhomCua, gopNhom, boNhom, lanLop, gopLaiNhomCu, soNhomCu } from '@/lib/xuong-video/lop';
+import { lopMoi, idLop, tenLop, tenNhom, chonLopMoi, nhomCua, gopNhom, boNhom, lanLop, gopLaiNhomCu, soNhomCu, themVaoNhom, dsNhom } from '@/lib/xuong-video/lop';
 import { useLop, LopXem, LopCongCu, LopNguyenLieu, LopBang, LopNhieu, KhoiLop, KhungHieuUng } from './lop-ui';
 import { moNgan } from './ngan-chung';
 import { useKichThuoc, TayKeo } from './keo';
@@ -480,8 +480,20 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           {lop.length > 0 && track('🧩 Lớp phủ', 'Chọn nhiều lớp: kéo khung trên các làn, bấm tên làn (cả làn), hoặc Shift/⌘ + bấm khối → ⛓ Gộp nhóm (⌘G) · Bỏ nhóm (⇧⌘G) · Xoá (Del) · Esc bỏ chọn',
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', height: '100%', paddingLeft: 6, borderRadius: 4, ...mono, ...(dsChonLop.length ? { background: 'color-mix(in srgb, var(--cyan) 18%, transparent)', outline: '1px solid var(--cyan)' } : {}) }}>
               {dsChonLop.length > 0 && <b style={{ color: 'var(--fg-1)' }}>✓ {dsChonLop.length} lớp đang chọn</b>}
-              {dsChonLop.length > 1 && !chonNhom && <button type="button" className="xv-btn" style={{ padding: '0 8px', lineHeight: '18px', fontWeight: 600 }} title="Gộp các lớp đang chọn thành một nhóm (⌘G)" onClick={gopChon}>⛓ Gộp nhóm {dsChonLop.length} lớp</button>}
-              {dsChonLop.some((l) => l.nhom) && <button type="button" className="xv-btn" style={{ padding: '0 8px', lineHeight: '18px' }} title="Tách nhóm thành lớp lẻ (⇧⌘G) — có ↶ hoàn tác" onClick={boNhomChon}>Bỏ nhóm</button>}
+              {dsChonLop.length > 1 && !chonNhom && <button type="button" className="xv-btn" style={{ padding: '0 8px', lineHeight: '18px' }} title="Gộp các lớp đang chọn thành một nhóm MỚI (⌘G)" onClick={gopChon}>⛓ Nhóm mới {dsChonLop.length} lớp</button>}
+              {(() => {
+                // Thêm vào nhóm có sẵn: vùng chọn có đúng MỘT nhóm + lớp lẻ → thêm thẳng vào nhóm đó; toàn lớp lẻ → chọn nhóm đích trong menu.
+                const ma = [...new Set(dsChonLop.map((l) => l.nhom).filter((x): x is string => !!x))];
+                const le = dsChonLop.filter((l) => !l.nhom); if (!le.length) return null;
+                const them = (m: string) => { setVuaXoa({ truoc: lop, chu: `đã thêm ${le.length} lớp vào nhóm` }); datLop((ds) => themVaoNhom(ds, le.map((l) => l.id), m)); };
+                if (ma.length === 1) { const ten = tenNhom(lop.filter((l) => l.nhom === ma[0])); return <button type="button" className="xv-btn" style={{ padding: '0 8px', lineHeight: '18px', fontWeight: 600 }} title="Giữ nhóm cũ, thêm các lớp lẻ đang chọn vào" onClick={() => them(ma[0]!)}>＋ Thêm {le.length} lớp vào ⛓ {ten}</button>; }
+                const nh = dsNhom(lop); if (ma.length || !nh.length) return null;
+                return <select className="xv-in" style={{ height: 20, padding: '0 4px', fontSize: 11, width: 'auto' }} value="" title="Thêm các lớp đang chọn vào một nhóm có sẵn" onChange={(e) => e.target.value && them(e.target.value)}>
+                  <option value="">＋ Thêm vào nhóm…</option>
+                  {nh.map((n) => <option key={n.ma} value={n.ma}>⛓ {n.ten} · {n.so} lớp · {n.tu.toFixed(1)}s</option>)}
+                </select>;
+              })()}
+              {dsChonLop.some((l) => l.nhom) && <button type="button" className="xv-btn" style={{ padding: '0 8px', lineHeight: '18px' }} title="Các lớp đang chọn rời nhóm, thành lớp lẻ (⇧⌘G) — có ↶ hoàn tác; chỉ chọn vài lớp trong nhóm (mở ▸ rồi kéo khung) thì chỉ những lớp đó rời nhóm" onClick={boNhomChon}>{dsChonLop.some((l) => l.nhom && lop.some((x) => x.nhom === l.nhom && !chonLops.includes(x.id))) ? 'Tách khỏi nhóm' : 'Bỏ nhóm'}</button>}
               {dsChonLop.length > 0 && <button type="button" className="xv-btn" style={{ padding: '0 8px', lineHeight: '18px' }} title="Xoá các lớp đang chọn (Del) — có ↶ hoàn tác" onClick={xoaChon}>🗑 Xoá</button>}
               {dsChonLop.length > 0 && <button type="button" className="xv-btn" style={{ padding: '0 8px', lineHeight: '18px' }} title="Bỏ chọn (Esc)" onClick={() => setChonLops([])}>✕ Bỏ chọn</button>}
               {soCu > 0 && nutNho(`⛓ Gộp lại ${soCu} nhóm đã tách`, 'Trả các lớp đã bỏ nhóm về đúng nhóm cũ', false, () => datLop((ds) => gopLaiNhomCu(ds)))}

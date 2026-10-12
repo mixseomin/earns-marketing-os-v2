@@ -103,4 +103,13 @@ console.log('lop.test: ok');
   const le = gopLaiNhomCu(gopNhom(bo, [bo[0]!.id, bo[1]!.id]));
   assert.ok(!le[2]!.nhom, 'lớp còn lại một mình không thành nhóm');
 }
-console.log('lop.test: làn + gộp lại ok');
+{
+  const { themVaoNhom, dsNhom, lanLop } = await import('./lop');
+  const { lopImpact } = await import('./nhip-hanh-dong');
+  const a = lopImpact(2); const x = lopMoi('hieu_ung', 2, { hu: 'mo', ten: 'Impact · mờ' });
+  const ds = themVaoNhom([...a, x], [x.id], a[0]!.nhom!);
+  assert.strictEqual(ds.filter((l) => l.nhom === a[0]!.nhom).length, 4, 'thêm vào đúng nhóm cũ, giữ mã');
+  assert.deepStrictEqual(dsNhom(ds).map((n) => [n.ten, n.so]), [['Impact', 4]]);
+  assert.strictEqual(lanLop(ds).length, 1);
+}
+console.log('lop.test: làn + gộp lại + thêm vào nhóm ok');

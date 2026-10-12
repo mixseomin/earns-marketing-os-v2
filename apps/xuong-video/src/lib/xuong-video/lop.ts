@@ -39,6 +39,13 @@ export function lanLop(ds: Lop[]): { key: string; nhan: string; khoi: Lop[][] }[
 }
 /** Gộp ≥2 lớp thành một đối tượng (mã nhóm mới; nhóm cũ bên trong tan vào nhóm mới). Dưới 2 lớp → giữ nguyên. */
 export const gopNhom = (ds: Lop[], ids: string[], ma = idLop()): Lop[] => (ids.length < 2 ? ds : ds.map((l) => (ids.includes(l.id) ? { ...l, nhom: ma, nhom_cu: undefined } : l)));
+/** Thêm lớp vào một nhóm CÓ SẴN (giữ mã nhóm đó; lớp đang ở nhóm khác thì rời nhóm kia). */
+export const themVaoNhom = (ds: Lop[], ids: string[], ma: string): Lop[] => ds.map((l) => (ids.includes(l.id) ? { ...l, nhom: ma, nhom_cu: undefined } : l));
+/** Các nhóm đang có: mã · tên · số lớp · giây bắt đầu — cho menu "Vào nhóm". */
+export const dsNhom = (ds: Lop[]): { ma: string; ten: string; so: number; tu: number }[] => {
+  const m = new Map<string, Lop[]>(); for (const l of ds) if (l.nhom) m.set(l.nhom, [...(m.get(l.nhom) ?? []), l]);
+  return [...m.entries()].map(([ma, k]) => ({ ma, ten: tenNhom(k), so: k.length, tu: Math.min(...k.map((x) => x.tu)) })).sort((a, b) => a.tu - b.tu);
+};
 /** Bỏ nhóm: nhớ mã cũ vào nhom_cu để gộp lại được đúng như trước (gopLaiNhomCu). */
 export const boNhom = (ds: Lop[], ids: string[]): Lop[] => ds.map((l) => (ids.includes(l.id) && l.nhom ? { ...l, nhom: undefined, nhom_cu: l.nhom } : l));
 /** Gộp lại các nhóm đã tách (lớp còn nhom_cu, chưa vào nhóm mới) — `ids` trống = mọi lớp. Nhóm cũ chỉ còn 1 lớp thì thôi. */

@@ -2,7 +2,7 @@
 import assert from 'node:assert';
 import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { lichSfx, SFX, dbSfx, LUFS_GIONG } from './sfx';
+import { lichSfx, SFX, dbSfx, LUFS_GIONG, LUFS_NHAC_DUOI_GIONG, amLuongXem } from './sfx';
 
 const l = lichSfx([{ am: ['vut', 'mua'], tu: 0, phat: 2 }, { am: ['dap', 'cuon_len', 'pho'], tu: 2, phat: 3 }, { am: ['vut'], tu: 5, phat: 1.5 }]);
 // vút ở shot đầu: không có chỗ trước điểm cắt → bỏ 0,42s đầu tệp; vút ở shot 3 bắt đầu 0,42s TRƯỚC điểm cắt
@@ -18,6 +18,14 @@ for (const k of Object.keys(SFX)) assert.ok(existsSync(new URL(`../../../public/
 for (const [k, x] of Object.entries(SFX)) assert.ok(x.duoi >= (x.neo === 'ca' ? 14 : 9), `${k} quá sát giọng`);
 assert.strictEqual(LUFS_GIONG - SFX.vut!.duoi, -28); assert.strictEqual(dbSfx(SFX.vut!), -18.2);
 // lufs khai trong bảng phải khớp tệp thật ±1 dB (dựng lại tệp mà quên đo lại → mức trộn sai, bài này đỏ)
+// Phát thử trên timeline cùng mức bản xuất (12/10/2026 phim #9: nhạc -13,7 phát nguyên to át giọng gốc -18,5):
+// giọng ra -22, nhạc ra -32 → giọng trên nhạc đúng LUFS_NHAC_DUOI_GIONG dB như bản xuất.
+{
+  const g = amLuongXem(-18.5, LUFS_GIONG, 0.6), n = amLuongXem(-13.7, LUFS_GIONG - LUFS_NHAC_DUOI_GIONG, 0.2);
+  const ra = (vol: number, l: number) => l + 20 * Math.log10(vol);
+  assert.ok(Math.abs(ra(g, -18.5) - ra(n, -13.7) - LUFS_NHAC_DUOI_GIONG) < 0.01, `giọng ${ra(g, -18.5)} nhạc ${ra(n, -13.7)}`);
+  assert.strictEqual(amLuongXem(null, LUFS_GIONG, 0.6), 0.6); assert.strictEqual(amLuongXem(-40, LUFS_GIONG, 0.6), 1, 'tệp quá nhỏ → kẹp 1');
+}
 let doTep = 0;
 for (const [k, x] of Object.entries(SFX)) {
   const r = spawnSync('ffmpeg', ['-nostats', '-i', new URL(`../../../public/sfx/${k}.mp3`, import.meta.url).pathname, '-af', 'ebur128', '-f', 'null', '-'], { encoding: 'utf8' });

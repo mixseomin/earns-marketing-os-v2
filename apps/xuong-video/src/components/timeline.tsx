@@ -12,7 +12,8 @@ import { Fragment, useEffect, useMemo, useRef, useState, type PointerEvent as PE
 import { chuManHien, giayPhat, tenCamXuc, camXucMucTieu, lechCamXuc, type Canh, type Lop, type ThongTinQc, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat, type KyThuatShot } from '@/lib/xuong-video/dien-anh';
 import { lopImpact, nhipHanhDong, themTieng } from '@/lib/xuong-video/nhip-hanh-dong';
-import { lichSfx, urlSfx } from '@/lib/xuong-video/sfx';
+import { lichSfx, urlSfx, amLuongXem, LUFS_GIONG, LUFS_NHAC_DUOI_GIONG, DU_XEM } from '@/lib/xuong-video/sfx';
+import { doLufsAm } from '@/lib/actions';
 import { keHoachToc, nguonTai } from '@/lib/xuong-video/toc-do';
 import { NutChuyenCanh } from './chuyen-canh-ui';
 import { dongThoai, dungTiengClip, tenNoi, cungTen, timNv, lichGiong, giayGiuKet } from '@/lib/xuong-video/am-thanh';
@@ -130,6 +131,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const giongNay = lich.filter((g) => g.tu <= t + 1e-6 && t < g.tu + Math.min(g.dai ?? 30, g.cat ?? 30)).pop() ?? null;
   const khoaGiong = giongNay ? `${giongNay.url}@${giongNay.tu}` : '';
   const sfxRef = useRef<HTMLAudioElement>(null);
+  // Mức phát thử = mức bản xuất (giọng LUFS_GIONG, nhạc dưới giọng LUFS_NHAC_DUOI_GIONG dB) theo độ to ĐO của từng tệp (doLufsAm, nhớ phía máy chủ).
+  const [lufs, setLufs] = useState<Record<string, number | null>>({});
+  const urlAm = useMemo(() => [...new Set([...lich.map((g) => g.url), tap.nhac_url, ...Object.values(tap.nhac_phan_canh ?? {})].filter((u): u is string => !!u))], [lich, tap.nhac_url, tap.nhac_phan_canh]);
+  useEffect(() => { const can = urlAm.filter((u) => !(u in lufs)); if (can.length) void doLufsAm(can).then((r) => setLufs((d) => ({ ...d, ...r }))); }, [urlAm.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
   const nhacRef = useRef<HTMLAudioElement>(null);
   const nhacPcRef = useRef<HTMLAudioElement>(null);
   const tuaRef = useRef(0);   // tăng mỗi lần người dùng tua → ép đồng bộ lại
@@ -164,7 +169,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
       if (!trong) { if (a && !a.paused) a.pause(); continue; }
       dang.add(k);
       if (!a) { a = new Audio(urlSfx(m.key)); a.preload = 'auto'; hiRef.current.set(k, a); }
-      a.loop = m.lap; a.volume = Math.min(1, Math.pow(10, (m.db - 2.5) / 20));   // giọng xem trước là tệp gốc (~-18,5 LUFS), bản xuất đẩy lên -16
+      a.loop = m.lap; a.volume = Math.min(1, Math.pow(10, (m.db - DU_XEM) / 20));   // cùng mức bản xuất, chừa DU_XEM như giọng/nhạc
       if (a.paused) { a.currentTime = m.bo + (t - m.tu); void a.play().catch(() => {}); }
     }
     for (const [k, a] of hiRef.current) if (!dang.has(k) && !a.paused) a.pause();
@@ -180,6 +185,9 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     // Veo tự bịa giọng/tiếng ồn ở shot không thoại. Nút "tiếng clip" bật lại cho mọi shot khi cần nghe thử.
     const tatClip = !c || !dungTiengClip(c, nhanVat);
     if (vidRef.current) vidRef.current.muted = tat.clip === undefined ? tatClip : !!tat.clip;
+    if (thoaiRef.current && giongNay) thoaiRef.current.volume = amLuongXem(lufs[giongNay.url], LUFS_GIONG, 0.6);
+    if (nhacRef.current && tap.nhac_url) nhacRef.current.volume = amLuongXem(lufs[tap.nhac_url], LUFS_GIONG - LUFS_NHAC_DUOI_GIONG, 0.2);
+    if (nhacPcRef.current && nhacPc) nhacPcRef.current.volume = amLuongXem(lufs[nhacPc], LUFS_GIONG - LUFS_NHAC_DUOI_GIONG, 0.2);
     if (thoaiRef.current) thoaiRef.current.muted = !!tat.thoai;
     if (sfxRef.current) sfxRef.current.muted = !!tat.sfx;
     if (nhacRef.current) nhacRef.current.muted = !!tat.nhac || !!nhacPc;

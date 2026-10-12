@@ -1073,6 +1073,15 @@ export async function sinhNhac(tapId: number, model = 'cassetteai/music-generato
 
 // ── Lớp phủ tự do của tập (11/10/2026) — chữ · ảnh · hình khối, xem lop.ts ────────────────────────────────────────
 /** Lưu toàn bộ lớp phủ của tập (thay cả mảng) — có ↶ Hoàn tác. Số liệu kẹp về khoảng hợp lệ, tối đa 80 lớp. */
+/** Độ to (LUFS) của các tệp âm thanh — timeline phát thử ở đúng mức bản xuất (sfx.ts › amLuongXem). Nhớ trong tiến trình; 0đ. */
+const lufsDaDo = new Map<string, number | null>();
+export async function doLufsAm(urls: string[]): Promise<Record<string, number | null>> {
+  if (!(await admin())) return {};
+  const ds = [...new Set(urls)].filter((u) => /^https?:\/\//.test(u)).slice(0, 80);
+  const { doLufs } = await import('@/lib/xuong-video/xuat-chay');
+  await Promise.all(ds.filter((u) => !lufsDaDo.has(u)).map(async (u) => { lufsDaDo.set(u, await doLufs(u)); }));
+  return Object.fromEntries(ds.map((u) => [u, lufsDaDo.get(u) ?? null]));
+}
 /** Khớp điểm cắt vào phách nhạc nền (khop-nhip.ts) — 0đ; chụp trước để ↶ Hoàn tác. */
 export async function khopNhipNhac(tapId: number): Promise<Kq<KqKhopNhip>> {
   const db = getDb();

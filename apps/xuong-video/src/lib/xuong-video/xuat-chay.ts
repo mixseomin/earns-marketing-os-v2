@@ -18,7 +18,7 @@ const run = promisify(execFile);
 const FONT_UNG_VIEN = ['/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', '/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf', '/System/Library/Fonts/Supplemental/Arial Bold.ttf', '/Library/Fonts/Arial Bold.ttf'];
 
 /** Độ to tích hợp (LUFS) của một tệp tiếng — để đưa mọi câu giọng về cùng mức trước khi trộn. */
-async function doLufs(duong: string): Promise<number | null> {
+export async function doLufs(duong: string): Promise<number | null> {
   try {
     const { stderr } = await run('ffmpeg', ['-hide_banner', '-nostats', '-i', duong, '-af', 'ebur128', '-f', 'null', '-'], { timeout: 30_000, maxBuffer: 8 << 20 });
     const m = stderr.match(/Integrated loudness:\s*\n\s*I:\s*(-?[\d.]+)\s*LUFS/); const v = m ? Number(m[1]) : NaN;

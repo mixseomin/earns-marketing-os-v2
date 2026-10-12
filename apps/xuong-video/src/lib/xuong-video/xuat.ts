@@ -12,7 +12,7 @@ import { chuyenCanhGiua } from './dien-anh';
 import { giayPhat, locNhanh, doanChuMan, coMau, assVaoChu, KIEU_CHU_MAC_DINH } from './kieu';
 import { keHoachToc, bieuThucToc } from './toc-do';
 import { ngatDong, dongChuMan, boChamCuoi } from './ngat-dong';
-import { lichSfx, LUFS_GIONG } from './sfx';
+import { lichSfx, LUFS_GIONG, LUFS_NHAC_DUOI_GIONG } from './sfx';
 export { doanChuMan, chuManHien } from './kieu';
 import { giayGiuKet, dongThoai, dungTiengClip, lichGiong } from './am-thanh';
 
@@ -62,7 +62,7 @@ export function duoiNhac(metadata: string): number | null {
 /** Mức to chuẩn của MỌI câu giọng trước khi trộn — câu nào ra từ model cũng về cùng mức, không câu to câu nhỏ. */
 export { LUFS_GIONG };   // một chỗ ở sfx.ts (tiếng hiệu ứng đặt theo giọng)
 /** Nhạc nền nằm dưới giọng bao nhiêu dB (trước ducking). 10 dB: nghe rõ nền liên tục như QC mẫu mà không lấn lời. */
-export const LUFS_NHAC_DUOI_GIONG = 10;
+export { LUFS_NHAC_DUOI_GIONG };   // một chỗ ở sfx.ts (phát thử trên timeline cũng dùng)
 
 /** Giọng lời dẫn của các câu đã có file: lẫn nhiều giọng → cảnh báo (phim #5 10/10/2026: một shot nghe như người khác đọc).
  *  Thuần — bản xuất gắn vào kết quả, studio hiện cờ đỏ. */

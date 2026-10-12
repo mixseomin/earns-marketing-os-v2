@@ -8,6 +8,14 @@
 export type NeoSfx = 'dau' | 'cuoi' | 'ca';
 /** Mức giọng đọc sau chuẩn hoá trong bản xuất (LUFS) — mọi tiếng hiệu ứng đặt THEO giọng, không theo đỉnh tệp. */
 export const LUFS_GIONG = -16;
+/** Nhạc nền nằm dưới giọng bao nhiêu dB (bản xuất đặt theo độ to đo được của bài). */
+export const LUFS_NHAC_DUOI_GIONG = 10;
+/** Âm lượng phát thử trên timeline (0–1) cho một tệp đo được `lufs`, muốn nghe ở mức `muc` LUFS như bản xuất — chừa DU_XEM dB vì
+ *  trình duyệt không khuếch đại quá 1. 12/10/2026: timeline phát nhạc nguyên to (-13,7) còn giọng gốc -18,5 → nhạc át giọng ~5 dB,
+ *  trong khi bản xuất giọng trên nhạc 10 dB. Chưa đo được → `macDinh`. */
+export const DU_XEM = 6;
+export const amLuongXem = (lufs: number | null | undefined, muc: number, macDinh: number): number =>
+  lufs == null || !Number.isFinite(lufs) || lufs < -70 ? macDinh : Math.max(0, Math.min(1, Math.pow(10, (muc - DU_XEM - lufs) / 20)));
 /** duoi = tiếng này nằm DƯỚI giọng bao nhiêu dB (độ to cảm nhận, LUFS) · lufs = độ to đo được của tệp public/sfx (ebur128 12/10/2026;
  *  sfx.test so lại với tệp thật). 12/10/2026 phim #9 "mất giọng": mức cũ tính theo đỉnh tệp → vút ≈ ngang giọng, đập chỉ dưới 4 dB, mà
  *  cả hai rơi đúng đầu shot lúc giọng bắt đầu đọc. Lời thoại luôn trên hết: tiếng ngắn (đập, vút) ≥ 9 dB dưới giọng, nền lặp ≥ 14 dB. */

@@ -24,13 +24,14 @@ import { dsQuyTrinhCacPhong, quyDinhPhong } from '@/lib/quy-trinh';
 import { DoDac } from '../do-dac';
 import { SoSuKien } from '../so-su-kien';
 import { Nguoi } from '../nguoi';
-import { tachKhoa, hrefThe } from '@/lib/ngan';
+import { tachKhoa, hrefThe, hrefSach } from '@/lib/ngan';
 import { BangNhanSu } from '../bang-nhan-su';
 import { doiNgu } from '@/lib/doi-ngu';
 import { dayChuyen, linkMos2, homNay, CHANG } from '../../../worker/sach.mjs';
 import { DayChuyenTab, demCan, type DayChuyen, Ai, Tram, Thanh, KENH, mauNen, TEN_NEN, NHAN_ST, ngay, quaNgay } from '../day-chuyen';
-import { kenhKeoKhach, theMot } from '@/lib/do-dac';
-import { trachNhiem, demTn } from '@/lib/trach-nhiem';
+import { kenhKeoKhach, theMot, lanVideoPhong } from '@/lib/do-dac';
+import { NEN_VIDEO, phutVN, tenSlug } from '../../../worker/video.mjs';
+import { trachNhiem, demTn, giaiMa } from '@/lib/trach-nhiem';
 import { KhoiTrachNhiem } from '../trach-nhiem';
 
 export type Ngan = { tieuDe: React.ReactNode; than: React.ReactNode };
@@ -326,12 +327,13 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
   );
   // Phòng khai sổ sản phẩm (so_san_pham) → tab Dây chuyền đọc trạng thái thật từ sổ MOS2 (worker/sach.mjs); không khai → null, không có tab.
   const dc = thu ? null : (await dayChuyen(id)) as DayChuyen | null;
+  const lv = dc && p ? await lanVideoPhong(p, dc.hom ?? homNay(), phutVN()) : null;   // làn Video (phòng khai video_ngan)
   const than = thu
     ? <TabPhong khoa={id} dau={dau} tabs={[{ key: 'chay', nhan: 'Chạy' }, { key: 'luot', nhan: 'Các lượt', so: dem!.tong }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }, { key: 'sodo', nhan: 'Sơ đồ' }]}>
         {[<PhongThuChay key="c" admin={admin} />, <PhongThuDs key="l" admin={admin} />, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />, <div key="s">{soDoTab}</div>]}
       </TabPhong>
-    : <TabPhong khoa={id} dau={dau} tabs={[...(dc ? [{ key: 'daychuyen', nhan: 'Dây chuyền', so: dc.loi ? '!' : demCan(dc) || '' }] : []), { key: 'sodo', nhan: 'Sơ đồ' }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
-        {[...(dc ? [<DayChuyenTab key="dc" dc={dc} phong={id} p={p} />] : []), <div key="s">{soDoTab}</div>, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
+    : <TabPhong khoa={id} dau={dau} tabs={[...(dc ? [{ key: 'daychuyen', nhan: 'Dây chuyền', so: dc.loi ? '!' : demCan(dc, lv) || '' }] : []), { key: 'sodo', nhan: 'Sơ đồ' }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
+        {[...(dc ? [<DayChuyenTab key="dc" dc={dc} phong={id} p={p} lv={lv} />] : []), <div key="s">{soDoTab}</div>, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
       </TabPhong>;
   // Văn phòng pixel LIVE cố định bên phải: phòng có văn phòng riêng (van_phong_cong) thì xem đúng phòng đó, chưa có thì văn phòng chung.
   const vp = p.fm.van_phong_cong ? `/vp/${id}/` : '';   // phòng khai cổng văn phòng riêng (worker/vp.mjs vanPhongCacPhong) → xem đúng phòng đó
@@ -396,6 +398,8 @@ export async function nganQuyTrinh(): Promise<Ngan> {
 
 // SÁCH + CARD (anh 12/10/2026: "ở dây chuyền bấm sao lại mở sang mos2 — tập trung link out vào drawer"): màn cty chỉ mở ngăn;
 // link ra MOS2 / sàn (mở tab mới) chỉ nằm trong hai ngăn này. Sửa / duyệt / đóng vẫn làm ở MOS2.
+// kenh_sp ghi tựa ngắn ("Nostalgic Word Search & Memory Book"), sổ sản phẩm ghi tựa đủ ("… for Seniors") → cùng cuốn khi tựa sổ BẮT ĐẦU bằng tựa kênh
+const cungSach = (tuaSo: string, tenKenh: string) => tuaSo.toLowerCase().startsWith(tenKenh.toLowerCase());
 const Ra = ({ u, chu }: { u: string; chu: string }) => <a href={u} target="_blank" rel="noreferrer">{chu} ↗</a>;
 const linkCard = (id: number, duAn: string) => `https://mos2.on.tc/p/${duAn}/plays?task=${id}`;   // EntityRef 'task' của MOS2
 
@@ -407,7 +411,7 @@ export async function nganSach(ma: string): Promise<Ngan> {
   if (!p || !g) return { tieuDe: 'Sách', than: <Thieu chu={dc?.loi ? `Không đọc được sổ sản phẩm: ${dc.loi}` : `Không thấy dòng sổ ${id} trong sổ của phòng "${ph}".`} /> };
   const hom = dc!.hom ?? ''; const qua = quaNgay(g.ngay, hom);
   const [kenh, qts] = await Promise.all([kenhKeoKhach(p), dsQuyTrinhCacPhong()]);
-  const kc = (kenh ?? []).filter((x) => x.ten.toLowerCase() === g.tua.toLowerCase());
+  const kc = (kenh ?? []).filter((x) => cungSach(g.tua, x.ten));
   const chang = (CHANG as [string, string][]).find(([k]) => k === g.chang)?.[1] ?? 'Trong lịch';
   const Qt = ({ k }: { k?: string | null }) => { const q = k ? qts.find((x) => x.khoa === `${ph}/${k}`) : null; return q ? <> · <Link href={`/quy-trinh/${q.khoa}`}>{q.ten}</Link></> : null; };
   return {
@@ -474,6 +478,55 @@ export async function nganThe(ma: string): Promise<Ngan> {
   };
 }
 
+// Dây chuyền video theo thứ tự trạm (cong-ty/quy-trinh/sach/danh-sach.json) — ngăn video hiện cả chuỗi + người chủ trì từng trạm.
+const QT_VIDEO = ['chu-de-video', 'dung-video', 'video-ngan', 'do-video', 'rut-kinh-nghiem-video'];
+/** Ngăn một video ngắn `video:<phòng>/<slug>`: khung hình, lượt xem + link từng nền, sách nó kéo khách về, dây chuyền video và ai chủ trì. */
+export async function nganVideo(ma: string): Promise<Ngan> {
+  const [ph = '', slugMa = ''] = ma.split('/'); const slug = decodeURIComponent(slugMa); const p = phong(ph);
+  const lv = p ? await lanVideoPhong(p, homNay(), phutVN()) : null;
+  if (!lv || 'loi' in lv) return { tieuDe: 'Video', than: <Thieu chu={lv ? lv.loi : `Phòng "${ph}" không chạy video ngắn (thiếu video_ngan trong hồ sơ phòng).`} /> };
+  const v = lv.videos.find((x) => x.slug === slug); const luot = lv.nen.filter((n) => n.slug === slug);
+  if (!v && !luot.length) return { tieuDe: tenSlug(slug), than: <Thieu chu={`Chưa có số đo hay lượt đăng nào của video "${slug}".`} /> };
+  const tenSach = v ? lv.tenSach[v.sach] : undefined;
+  const dc = tenSach ? ((await dayChuyen(ph)) as DayChuyen | null) : null;
+  const g = tenSach ? dc?.nhom?.find((x) => cungSach(x.tua, tenSach)) : undefined;
+  const qts = await dsQuyTrinhCacPhong();
+  return {
+    tieuDe: v?.tieuDe ?? tenSlug(slug),
+    than: (
+      <div className="nk-3cot">
+        <div className="nk-cot nk-cot-hinh">
+          {v?.anh ? <img src={v.anh} alt={`Khung hình ${v.tieuDe}`} className="cty-sach-bia" /> : <p className="cty-muted">Chưa có khung hình (chỉ lấy được khi video đã lên YouTube).</p>}
+          <div className="nk-luoi">
+            <O nhan="Đăng lần đầu">{ngay(v?.ngayDang ?? null)}</O>
+            <O nhan="Lượt xem cộng dồn">{v ? v.xem : '—'}</O>
+            <O nhan="Kéo khách về sách">{g ? <Link href={hrefSach(ph, g.dong[0]!.id)}>{g.tua}</Link> : tenSach ?? '—'}</O>
+            <O nhan="Mã video">{slug}</O>
+          </div>
+        </div>
+        <div className="nk-cot">
+          <h3>Từng nền</h3>
+          <ul className="cty-sach-nen">{NEN_VIDEO.map(({ nen, ten, kenh }) => {
+            const x = v?.nen[kenh]; const l = luot.find((n) => n.nen === nen); const u = x?.url ?? l?.url;
+            return (
+              <li key={nen} className={l?.trang === 'loi' ? 'loi' : undefined}>
+                <div><b>{ten}</b> · {x ? `${x.xem ?? '?'} lượt xem · đăng ${ngay(x.ngayDang)}` : l?.trang === 'loi' ? <span className="cty-thu-loi">lượt đăng lỗi</span> : l ? 'đã đăng, chưa có số đo' : 'chưa đăng lên nền này'}</div>
+                {l?.trang === 'loi' && <div className="cty-nho cty-thu-loi">{l.loi}</div>}
+                {u && <div className="cty-nho"><Ra u={u} chu={`trên ${ten}`} /></div>}
+              </li>);
+          })}</ul>
+        </div>
+        <div className="nk-cot">
+          <h3>Dây chuyền video</h3>
+          <ol className="cty-video-qt">{QT_VIDEO.map((k) => { const q = qts.find((x) => x.khoa === `${ph}/${k}`) as (typeof qts)[number] & { chu_tri?: string; khi?: string } | undefined; if (!q) return null;
+            const ct = q.chu_tri ? giaiMa(ph, q.chu_tri) : null;
+            return <li key={k}><Link href={`/quy-trinh/${q.khoa}`}>{q.ten}</Link> <span className="cty-muted cty-nho">· {q.khi ?? q.kich_hoat}{ct && ct !== 'may' ? <> · chủ trì <Nguoi id={ct} /></> : null}</span></li>; })}</ol>
+        </div>
+      </div>
+    ),
+  };
+}
+
 export async function nganTheoKhoa(khoa: string, admin: boolean): Promise<Ngan> {
   const { loai, ma } = tachKhoa(khoa);
   if (loai === 'nhan-su') return await nganNhanSu(ma, admin);
@@ -483,6 +536,7 @@ export async function nganTheoKhoa(khoa: string, admin: boolean): Promise<Ngan> 
   if (loai === 'muc-tieu') return nganMucTieu();
   if (loai === 'sach') return await nganSach(ma);
   if (loai === 'the') return await nganThe(ma);
+  if (loai === 'video') return await nganVideo(ma);
   if (loai === 'quy-trinh') {
     if (!ma) return await nganQuyTrinh();
     const q = (await dsQuyTrinhCacPhong()).find((x) => x.khoa === ma);

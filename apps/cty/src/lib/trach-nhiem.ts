@@ -6,10 +6,11 @@ import 'server-only';
 //   · việc đang mở quy về người: việc ở tab Dây chuyền (vai → người; việc máy làm thay → người chủ trì quy trình của việc đó, nên máy
 //     trễ là việc của một người cụ thể), card plays còn mở của phòng (trưởng phòng), kênh kéo khách đang cần (chủ trì quy trình gom kênh).
 import { dsQuyTrinh, giaiNguoi, phongFm } from '../../worker/quy-trinh.mjs';
-import { dayChuyen } from '../../worker/sach.mjs';
-import { hrefSach, hrefThe } from './ngan';
+import { dayChuyen, homNay } from '../../worker/sach.mjs';
+import { hrefSach, hrefThe, hrefVideo } from './ngan';
 import { dsPhong, dsNhanSu } from './cong-ty';
-import { theViecMo, kenhKeoKhach } from './do-dac';
+import { theViecMo, kenhKeoKhach, lanVideoPhong } from './do-dac';
+import { phutVN, tenSlug } from '../../worker/video.mjs';
 
 export type MucQt = { phong: string; khoa: string; ten: string; so_hoa: string; kich_hoat: string; chuTri: boolean; lam: string[] };
 export type ViecMo = { phong: string; chu: string; ten?: string; link?: string; qua?: number | null; tre?: boolean; mayLam: boolean; /** một dòng thay cho bấy nhiêu việc (dòng "+N card nữa") */ so?: number };
@@ -56,6 +57,12 @@ async function tinhTrachNhiem(): Promise<TrachNhiem> {
       const v = d.viec; if (!v.ai || v.ai === 'san') continue;
       const ai = v.ai === 'may' ? (v.qt ? chuTri[`${p.id}/${v.qt}`] : null) : giaiMa(p.id, v.ai);
       if (ai) cua(ai).viec.push({ phong: p.id, chu: `${NEN[d.nen] ?? d.nen}: ${v.chu}`, ten: g.tua, link: hrefSach(p.id, d.id), qua: v.qua, tre: v.tre, mayLam: v.ai === 'may' });
+    }
+    // làn Video: cùng luật giao — việc máy (đăng / đo trễ) về người chủ trì quy trình đó, việc vai về người giữ vai
+    const lv = dc && !dc.loi ? await lanVideoPhong(p, homNay(), phutVN()) : null;
+    if (lv && !('loi' in lv)) for (const v of lv.viec) {
+      const ai = v.ai === 'may' ? chuTri[`${p.id}/${v.qt}`] : giaiMa(p.id, v.ai);
+      if (ai) cua(ai).viec.push({ phong: p.id, chu: `Video: ${v.chu}`, ten: v.slug ? tenSlug(v.slug) : undefined, link: v.slug ? hrefVideo(p.id, v.slug) : `/phong/${p.id}`, qua: v.qua, tre: v.tre, mayLam: v.ai === 'may' });
     }
     const [the, kenh] = await Promise.all([theViecMo(p, TRAN_CARD), kenhKeoKhach(p)]);
     const tp = giaiMa(p.id, 'truong-phong');

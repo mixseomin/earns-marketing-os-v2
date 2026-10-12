@@ -8,6 +8,7 @@ import type { Doc } from './cong-ty';
 import { docLog } from '../../worker/log.mjs';
 import { tienUsd } from '../../worker/gia.mjs';
 import { dsLuot } from './thu-nghiem';
+import { lanVideo, docMay, NEN_VIDEO } from '../../worker/video.mjs';
 
 type Row = Record<string, unknown>;
 // Mảng JS trong sql`` bị drizzle bung thành ($1, $2) → `= ANY(($1,$2))` hỏng cú pháp; phải dựng ARRAY[...] tường minh.
@@ -50,11 +51,25 @@ export async function theMot(id: number) {
   return r === null ? undefined : ((r[0] ?? null) as { id: number; project_id: string; status: string; platform_key: string | null; title: string; instructions: string | null; notes: string | null;
     prep_payload: { draft?: string; source_url?: string; site_url?: Record<string, string>; site_status?: Record<string, string> } | null; publish_url: string | null; han: string | null; tao: string; sua: string } | null);
 }
-/** Kênh kéo khách theo cuốn (bảng kenh_sp — puzzle-books/scripts/kenh.mjs ghi, MOS2 Tài sản đọc cùng bảng). */
+/** Kênh kéo khách theo cuốn (bảng kenh_sp — puzzle-books/scripts/kenh.mjs ghi, MOS2 Tài sản đọc cùng bảng). Bỏ dòng video ('shorts'):
+ *  video có làn riêng (lanVideoPhong — số đo từng ngày + lượt đăng của máy); dòng 'shorts' chạy tay nên cũ và báo sai ("dựng máy đăng video"). */
 export async function kenhKeoKhach(p: Doc) {
   const duAn = dsFm(p, 'du_an'); if (!duAn.length) return [];
-  return (await q(sql`SELECT san_pham, kenh, ten, xong, tong, canh_bao, the_id, cap_nhat::text AS cap_nhat FROM kenh_sp WHERE project = ANY(${arr(duAn)}) ORDER BY ten, kenh`)) as
+  return (await q(sql`SELECT san_pham, kenh, ten, xong, tong, canh_bao, the_id, cap_nhat::text AS cap_nhat FROM kenh_sp WHERE project = ANY(${arr(duAn)}) AND kenh <> 'shorts' ORDER BY ten, kenh`)) as
     { san_pham: string; kenh: string; ten: string; xong: number | null; tong: number | null; canh_bao: string | null; the_id: number | null; cap_nhat: string }[] | null;
+}
+export type LanVideo = ReturnType<typeof lanVideo> & { tenSach: Record<string, string> };
+/** Làn Video của phòng khai `video_ngan` (worker/video.mjs): số đo 10 ngày (kenh_so_ngay) + tệp lượt đăng của máy. null = phòng không chạy video;
+ *  { loi } = không đọc được DB. `tenSach`: san_pham → tựa sách (kenh_sp) để ngăn video trỏ về ngăn sách. */
+export async function lanVideoPhong(p: Doc, hom: string, phut: number): Promise<LanVideo | { loi: string } | null> {
+  if (!p.fm.video_ngan) return null;
+  const duAn = dsFm(p, 'du_an'); const kenh = NEN_VIDEO.map((n) => n.kenh);
+  const [so, ten] = await Promise.all([
+    q(sql`SELECT kenh, san_pham, ngay::text AS ngay, hien, chi_tiet FROM kenh_so_ngay WHERE split_part(san_pham, ':', 1) = ANY(${arr(duAn)}) AND kenh = ANY(${arr(kenh)}) AND ngay >= ${hom}::date - 10`),
+    q(sql`SELECT DISTINCT san_pham, ten FROM kenh_sp WHERE project = ANY(${arr(duAn)})`),
+  ]);
+  if (!so || !ten) return { loi: 'không đọc được kenh_so_ngay / kenh_sp (DB MOS2) — xem journal mos2-cty' };
+  return { ...lanVideo({ so: so as never, may: docMay(), hom, phut }), tenSach: Object.fromEntries(ten.map((r) => [String(r.san_pham), String(r.ten)])) };
 }
 /** Tài khoản phòng dùng (vault MOS2 platform_accounts): gắn dự án phòng cầm + id khai thêm (tai_khoan_them — vault chưa gắn dự án).
  *  CHỈ cột không bí mật — không đọc mật khẩu / token / cookie. */

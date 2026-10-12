@@ -57,12 +57,38 @@
    "khi": "2 giờ/lần"
   },
   {
+   "id": "chu-de-video",
+   "ten": "Chọn chủ đề video",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "CHƯA máy chạy: đầu tuần, hoặc khi làn Video báo kho còn dưới 14 ngày",
+   "mo_ta": "Bình đọc từ khoá theo mùa (Keyword Planner) + số đo video cũ (lượt xem, lượt vào shop) → đề xuất chủ đề ô chữ tặng mới; Thảo xếp vào lịch. Chủ đề mới = trang printables mới = video mới.",
+   "chu_tri": "thi-truong",
+   "lam": [
+    "thi-truong",
+    "truong-phong"
+   ],
+   "khi": "mỗi tuần"
+  },
+  {
+   "id": "dung-video",
+   "ten": "Dựng video ngắn",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Chạy khi cần trên iMac (deploy-shorts.sh nạp LaunchAgent com.earns.puzzle-shorts, chạy một lần lúc nạp) — chưa có lịch",
+   "mo_ta": "Mỗi ô chữ tặng trên pickjot.com/printables → một video dọc \"Only ONE is spelled right\" ~12 giây (chụp từng khung, đẩy vào ffmpeg) + tiêu đề / mô tả trong manifest.json. MacBook kéo kho về trước lượt 20:05.",
+   "ma": "puzzle-books scripts/shorts.mjs --kieu an (iMac, out/shorts/)",
+   "chu_tri": "kenh-keo-khach",
+   "lam": [
+    "may"
+   ],
+   "khi": "khi cần"
+  },
+  {
    "id": "video-ngan",
-   "ten": "Video ngắn kéo khách",
+   "ten": "Đăng video ngắn (4 nền)",
    "so_hoa": "co-dinh",
    "kich_hoat": "20:00 giờ VN mỗi ngày: TikTok (iMac, máy ảo tiktok1); 20:05 YouTube · Facebook · Instagram (MacBook)",
-   "mo_ta": "Mỗi nền một short 'Only ONE' mỗi ngày, caption kèm mã giảm giá riêng nền, bình luận đầu kèm link sách.",
-   "ma": "puzzle-books scripts/dang-short.mjs <nền>",
+   "mo_ta": "Mỗi nền một short \"Only ONE\" mỗi ngày (video đúng mùa trước), caption kèm mã giảm giá riêng nền, bình luận đầu kèm link sách. Mỗi lượt báo kết quả (đăng được / lỗi gì, kho còn bao nhiêu) lên cty → làn Video ở tab Dây chuyền; lỗi hay quá giờ không có tin = việc trễ của người chủ trì.",
+   "ma": "puzzle-books scripts/dang-short.mjs <nền> → /var/lib/cty/may/video-<nền>.json (box3)",
    "chu_tri": "kenh-keo-khach",
    "lam": [
     "may"
@@ -161,6 +187,18 @@
     "may"
    ],
    "khi": "sau 20:05"
+  },
+  {
+   "id": "rut-kinh-nghiem-video",
+   "ten": "Rút kinh nghiệm video",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "CHƯA máy chạy: cuối tuần",
+   "mo_ta": "Phúc đọc số 7 ngày từng video trên từng nền (lượt xem, lượt vào shop qua trang printables) → giữ / bỏ kiểu video, giờ đăng, caption; đề xuất đổi khuôn. Đổi khuôn, mở nền mới, dùng tài khoản mới = hỏi Giám đốc.",
+   "chu_tri": "kenh-keo-khach",
+   "lam": [
+    "kenh-keo-khach"
+   ],
+   "khi": "mỗi tuần"
   },
   {
    "id": "kenh-keo-khach",

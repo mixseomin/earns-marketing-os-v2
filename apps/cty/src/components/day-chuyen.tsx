@@ -2,13 +2,16 @@
 //   dải dòng chảy (số cuốn ở từng chặng) · bảng thẻ theo chặng (ảnh bìa, 6 chấm trạm, nhãn nền tô màu, người phụ trách) · việc cần người +
 //   card plays (một dòng mỗi việc) · kênh kéo khách (thanh tiến độ) · lịch theo tuần (cột) · báo cáo sáng gập lại.
 // Dữ liệu: worker/sach.mjs (sổ sản phẩm, nhớ 60 giây) + lib/do-dac (card plays, kenh_sp — DB MOS2). Chỉ ĐỌC — nút thật ở MOS2 / KDP.
+// Làn Video (anh 12/10/2026 "tổ chức việc video trong phòng"): dây chuyền thứ hai ngay dưới bảng sách — dải số, Kho | Đăng hôm nay | Đã đăng
+//   (worker/video.mjs: số đo MOS2 + tệp lượt đăng máy ghi); việc máy lỗi / trễ vào "Việc cần người" và Trách nhiệm của người chủ trì.
 // Bấm tựa / nhãn nền / card → mở NGĂN trong cty (ngăn `sach:` / `the:` ở ngan/noi-dung.tsx); link ra MOS2 / sàn chỉ nằm trong ngăn.
 import { Nguoi } from './nguoi';
 import { Gio } from './gio';
 import { SAP_TOI, CHANG } from '../../worker/sach.mjs';
-import { hrefSach, hrefThe } from '@/lib/ngan';
+import { hrefSach, hrefThe, hrefVideo } from '@/lib/ngan';
+import { NEN_VIDEO, KHO_CAN, tenSlug } from '../../worker/video.mjs';
 import { vaiCuaPhong } from '../../worker/quy-trinh.mjs';
-import { theViecMo, kenhKeoKhach } from '@/lib/do-dac';
+import { theViecMo, kenhKeoKhach, type LanVideo } from '@/lib/do-dac';
 import type { Doc } from '@/lib/cong-ty';
 
 export type Viec = { ai: string | null; muc?: number; chu: string; qua?: number | null; tre?: boolean; qt?: string | null };
@@ -57,8 +60,8 @@ export function Thanh({ r, nhan }: { r?: Kenh; nhan: string }) {
   return <div className="cty-thanh" title={r ? `${nhan}: ${r.xong ?? '?'}/${r.tong ?? '?'}${r.canh_bao ? ` — ${r.canh_bao}` : ''}` : `${nhan}: chưa có`}>
     <span>{nhan}</span><span className="cty-thanh-ray"><i style={{ width: `${pt}%` }} className={pt === 100 ? 'du' : ''} /></span><span className="cty-muted">{r ? `${r.xong ?? 0}/${r.tong ?? 0}` : '—'}</span></div>;
 }
-export const KENH: [string, string][] = [['pinterest', 'Ghim'], ['shorts', 'Video'], ['printables', 'Printables']];
-/** Kênh kéo khách: mỗi cuốn 3 thanh (ghim / video / trang printables) đã xong trên cần có. */
+export const KENH: [string, string][] = [['pinterest', 'Ghim'], ['printables', 'Printables']];   // video: làn Video riêng (LanVideoTab)
+/** Kênh kéo khách: mỗi cuốn 2 thanh (ghim / trang printables) đã xong trên cần có. */
 function KenhKeoKhach({ ds, hom }: { ds: NonNullable<Awaited<ReturnType<typeof kenhKeoKhach>>>; hom: string }) {
   const cuon = [...new Map(ds.map((r) => [r.san_pham, r.ten])).entries()];
   const moi = ds.map((r) => r.cap_nhat.slice(0, 10)).sort().pop() ?? ''; const cu = quaNgay(moi, hom);
@@ -86,9 +89,62 @@ function LichTuan({ ds, hom }: { ds: Tua[]; hom: string }) {
   );
 }
 
+type Lv = LanVideo | { loi: string } | null;
+const TRANG_VIDEO: Record<string, [string, string]> = { da: ['đã đăng', 'cty-nen-ban'], cho: ['chờ', 'cty-nen-nhat'], loi: ['lỗi', 'cty-nen-cam'], tre: ['trễ', 'cty-nen-cam'] };
+/** Một nền trong cột "Đăng hôm nay": tên · trạng thái (chờ giờ / đã đăng / lỗi / trễ) · video hoặc lỗi · lần đăng gần nhất, kho. */
+function NenHom({ n, phong }: { n: LanVideo['nen'][number]; phong: string }) {
+  const [nhan, mau] = TRANG_VIDEO[n.trang]!;
+  return (
+    <div className={`cty-the${n.trang === 'loi' || n.trang === 'tre' ? ' cty-the-tre' : ''}`}><div className="cty-the-than">
+      <div className="cty-the-dong"><b>{n.ten}</b><span className={`cty-nen ${mau}`}>{n.trang === 'cho' ? `chờ ${n.gio}` : nhan}</span></div>
+      {n.trang === 'loi' ? <div className="cty-the-viec cty-thu-loi" title={n.loi ?? ''}>{n.loi}</div>
+        : n.slug ? <a href={hrefVideo(phong, n.slug)} className="cty-the-viec" title={tenSlug(n.slug)}>{tenSlug(n.slug)}</a> : null}
+      <div className="cty-the-viec cty-muted">gần nhất {ngay(n.ganNhat)}{n.kho != null && ` · kho ${n.kho}`}</div>
+    </div></div>
+  );
+}
+/** Thẻ một video kiểu Trello: khung hình (ảnh YouTube, có mới hiện) · tựa · ngày đăng · lượt xem từng nền. Bấm = ngăn video. */
+function TheVideo({ v, phong }: { v: LanVideo['videos'][number]; phong: string }) {
+  const href = hrefVideo(phong, v.slug);
+  return (
+    <div className="cty-the">
+      {v.anh && <a href={href} className="cty-the-bia cty-the-bia-video" tabIndex={-1} aria-hidden="true"><img src={v.anh} alt="" loading="lazy" /></a>}
+      <div className="cty-the-than">
+        <a href={href} className="cty-the-ten" title={v.tieuDe}>{v.tieuDe}</a>
+        <div className="cty-the-dong"><span className="cty-muted">{ngay(v.ngayDang)}</span><span>{v.xem} lượt xem</span></div>
+        <div className="cty-the-dong">{NEN_VIDEO.filter((x) => v.nen[x.kenh]).map((x) => <span key={x.kenh} className="cty-nen cty-nen-san" title={`${x.ten}: ${v.nen[x.kenh]!.xem ?? '?'} lượt xem`}>{x.ten[0]} {v.nen[x.kenh]!.xem ?? '?'}</span>)}</div>
+      </div>
+    </div>
+  );
+}
+/** LÀN VIDEO — dây chuyền thứ hai của phòng (worker/video.mjs): dải số · Kho · Đăng hôm nay (từng nền) · Đã đăng (thẻ video). */
+function LanVideoTab({ lv, phong }: { lv: NonNullable<Lv>; phong: string }) {
+  if ('loi' in lv) return <section className="cty-video"><h3>Video ngắn</h3><p className="cty-bao-loi" data-loi>{lv.loi}</p></section>;
+  const so: [string, string | number, string, string | null][] = [
+    ['kho', lv.kho ?? '—', 'Kho chờ đăng', lv.kho != null && lv.kho < KHO_CAN ? `dưới ${KHO_CAN} ngày` : null],
+    ['hom', `${lv.dangHom}/${lv.nen.length}`, 'Nền đã đăng hôm nay', ((k) => (k ? `${k} nền lỗi / trễ` : null))(lv.nen.filter((n) => n.trang === 'loi' || n.trang === 'tre').length)],
+    ['tuan', lv.dangDo, 'Video 7 ngày qua', null], ['xem', lv.xem, 'Lượt xem cộng dồn', null], ['shop', lv.vaoShop, 'Vào shop 7 ngày', null]];
+  return (
+    <section className="cty-video">
+      <h3>Video ngắn <span className="cty-tab-so">1 video · ngày · {lv.nen.length} nền · số đo {lv.soMoi ? ngay(lv.soMoi) : 'chưa có'}</span></h3>
+      <ol className="cty-dong-chay cty-dong-video" aria-label="Video ngắn: số chính">{so.map(([k, gt, ten, canh]) => <li key={k}><b>{gt}</b><span>{ten}</span>{canh && <em>{canh}</em>}</li>)}</ol>
+      <div className="cty-bang-video">
+        <section className="cty-cot-the"><h4>Kho</h4>
+          {lv.kho == null ? <p className="cty-muted cty-nho">Máy đăng chưa báo kho — mỗi lượt đăng (20:00 / 20:05) báo kèm số kho.</p>
+            : <div className={`cty-the${lv.kho < KHO_CAN ? ' cty-the-tre' : ''}`}><div className="cty-the-than"><b className="cty-video-so">{lv.kho}</b><span className="cty-nho">video chờ đăng · đủ ~{lv.kho} ngày</span>
+              {lv.ke && <span className="cty-the-viec cty-muted" title={tenSlug(lv.ke)}>kế: {tenSlug(lv.ke)}</span>}</div></div>}
+        </section>
+        <section className="cty-cot-the"><h4>Đăng hôm nay <span className="cty-tab-so">{lv.dangHom}/{lv.nen.length}</span></h4>{lv.nen.map((n) => <NenHom key={n.nen} n={n} phong={phong} />)}</section>
+        <section className="cty-cot-the cty-cot-video"><h4>Đã đăng <span className="cty-tab-so">{lv.videos.length}</span></h4>
+          {lv.videos.length ? lv.videos.map((v) => <TheVideo key={v.slug} v={v} phong={phong} />) : <p className="cty-muted cty-nho">Chưa có số đo video nào.</p>}</section>
+      </div>
+    </section>
+  );
+}
+
 const THU_TU = ['giam-doc', 'tre', 'truong-phong', 'nguoi-lam'];
 const COT = ['mo', 'dung', 'duyet', 'cho-ngay', 'dang'];
-export async function DayChuyenTab({ dc, phong, p }: { dc: DayChuyen; phong: string; p: Doc }) {
+export async function DayChuyenTab({ dc, phong, p, lv }: { dc: DayChuyen; phong: string; p: Doc; lv: Lv }) {
   if (dc.loi) return <p className="cty-bao-loi" data-loi>Không đọc được sổ sản phẩm ({dc.nguon.join(', ')}): {dc.loi}</p>;
   const [the, kenh] = await Promise.all([theViecMo(p), kenhKeoKhach(p)]);
   const hom = dc.hom ?? ''; const nhom = dc.nhom ?? [];
@@ -98,6 +154,7 @@ export async function DayChuyenTab({ dc, phong, p }: { dc: DayChuyen; phong: str
   const tuaBan = nhom.filter((g) => g.dong.some((d) => d.status === 'published'));
   const chang: [string, string, number][] = [['lich', 'Trong lịch', theo('lich').length], ...(CHANG as [string, string][]).map(([k, ten]): [string, string, number] => [k, ten, k === 'ban' ? tuaBan.length : theo(k).length])];
   const canDong = dc.bao_cao?.split('\n').find((l) => l.startsWith('Cần:'));
+  const viecVideo = lv && !('loi' in lv) ? lv.viec : [];
   return (
     <div className="cty-sach">
       <ol className="cty-dong-chay" aria-label="Dòng chảy: số tựa ở từng chặng">{chang.map(([k, ten, so]) => {
@@ -108,10 +165,14 @@ export async function DayChuyenTab({ dc, phong, p }: { dc: DayChuyen; phong: str
         return (<section key={c} className="cty-cot-the"><h4>{ten} <span className="cty-tab-so">{ds.length}</span></h4>
           {ds.length ? ds.map((g) => <The key={g.tua} g={g} phong={phong} hom={hom} />) : <p className="cty-muted cty-nho">—</p>}</section>); })}</div>
 
+      {lv && <LanVideoTab lv={lv} phong={phong} />}
+
       <div className="cty-sach-dau">
         <section>
-          <h3>Việc cần người <span className="cty-tab-so">{can.length}</span></h3>
-          {can.length ? <ul className="cty-sach-can">{can.map(({ g, d, k }) => (
+          <h3>Việc cần người <span className="cty-tab-so">{can.length + viecVideo.length}</span></h3>
+          {can.length + viecVideo.length ? <ul className="cty-sach-can">{viecVideo.map((v, i) => (
+            <li key={`v${i}`} title={v.chu}><span className={`cty-pill${v.tre ? ' cty-pill-off' : ' cty-pill-kind'}`}>{v.tre ? 'máy trễ' : `mức ${v.muc ?? '?'}`}</span>{' '}
+              <Ai ai={v.ai} phong={phong} />: {v.chu}{v.qua != null && v.qua > 0 && <span className="cty-thu-loi"> · quá {v.qua} ngày</span>} · <b>Video</b>{v.slug && <> <a href={hrefVideo(phong, v.slug)}>{tenSlug(v.slug)}</a></>}</li>))}{can.map(({ g, d, k }) => (
             <li key={d.id} title={`${d.viec.chu} — ${TEN_NEN[d.nen] ?? d.nen} · ${g.tua}`}><span className={`cty-pill${k === 'giam-doc' || k === 'tre' ? ' cty-pill-off' : ' cty-pill-kind'}`}>{k === 'tre' ? 'máy trễ' : `mức ${d.viec.muc ?? '?'}`}</span>{' '}
               <Ai ai={d.viec.ai} phong={phong} />: {d.viec.chu}{d.viec.qua != null && d.viec.qua > 0 && <span className="cty-thu-loi"> · quá {d.viec.qua} ngày</span>} · <b>{TEN_NEN[d.nen] ?? d.nen}</b> <a href={hrefSach(phong, d.id)}>{g.tua}</a></li>))}</ul>
             : <p className="cty-muted">Không có việc nào chờ người.</p>}
@@ -145,5 +206,6 @@ export async function DayChuyenTab({ dc, phong, p }: { dc: DayChuyen; phong: str
     </div>
   );
 }
-/** Số trên nhãn tab: việc chờ người (Giám đốc, vai trong phòng, máy trễ). */
-export const demCan = (dc: DayChuyen | null) => (dc?.nhom ?? []).reduce((t, g) => t + g.dong.filter((d) => d.viec.tre || ['giam-doc', 'truong-phong', 'nguoi-lam'].includes(d.viec.ai ?? '')).length, 0);
+/** Số trên nhãn tab: việc chờ người (Giám đốc, vai trong phòng, máy trễ) của dây chuyền sách + làn Video. */
+export const demCan = (dc: DayChuyen | null, lv: Lv = null) => (dc?.nhom ?? []).reduce((t, g) => t + g.dong.filter((d) => d.viec.tre || ['giam-doc', 'truong-phong', 'nguoi-lam'].includes(d.viec.ai ?? '')).length, 0)
+  + (lv && !('loi' in lv) ? lv.viec.length : 0);

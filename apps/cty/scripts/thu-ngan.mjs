@@ -15,4 +15,5 @@ a(JSON.stringify(docChong(new URLSearchParams(urlVoiChong('/', '', ['nhan-su:tam
 a(khoaTuHref('/quy-trinh/thu-nghiem/lam-viec') === 'quy-trinh:thu-nghiem/lam-viec' && khoaTuHref('/quy-trinh/a') === null, 'quy trình theo khoá phòng/quy-trình');
 a(khoaTuHref('/sach/sach/123') === 'sach:sach/123' && khoaTuHref('/sach/sach') === null && khoaTuHref('/the/1107') === 'the:1107' && khoaTuHref('/the/abc') === null, 'sách + card');
 a(JSON.stringify(docChong(['phong:sach', 'sach:sach/1', 'the:2'])) === '["phong:sach","sach:sach/1","the:2"]', 'chồng nhận sách + card');
-console.log('✓ ngan: 14 ca đạt');
+a(khoaTuHref('/video/sach/halloween-word-search-an') === 'video:sach/halloween-word-search-an' && khoaTuHref('/video/sach') === null && docChong(['video:sach/a']).length === 1, 'video');
+console.log('✓ ngan: 15 ca đạt');

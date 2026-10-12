@@ -464,3 +464,14 @@ details[open]>.cty-qt-hang .cty-qt-ten::before{content:'▾ '}
 .cty-sach-nen{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .cty-sach-nen li{display:grid;gap:3px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;min-width:0;overflow-wrap:anywhere}
 .cty-sach-nen li.chon{background:var(--soft);border-color:var(--accent)}
+/* LÀN VIDEO (day-chuyen.tsx LanVideoTab): dải 5 số (không phải dòng chảy → không mũi tên) · 3 cột Kho | Đăng hôm nay | Đã đăng (rộng, thẻ tự xếp ≥150px).
+   Khung hình YouTube là ảnh 4:3 có viền mờ hai bên video dọc → cắt 3:4 giữa ảnh: thấy trọn video, viền mờ còn mỏng. */
+.cty-video{display:grid;gap:8px;min-width:0}
+.cty-dong-chay.cty-dong-video{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+.cty-dong-video li::after{display:none}
+.cty-bang-video{display:grid;grid-template-columns:minmax(170px,1fr) minmax(190px,1.2fr) minmax(0,2.6fr);gap:8px;align-items:start}
+.cty-the-bia-video img{aspect-ratio:3/4}
+.cty-video-so{font-size:1.5rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.cty-video-qt{margin:0;padding-left:1.3em;display:grid;gap:6px}
+.cty-sach-nen li.loi{border-color:var(--warn)}
+@media (max-width:900px){.cty-bang-video{grid-template-columns:1fr}}

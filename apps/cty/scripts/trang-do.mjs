@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export const TRANG = ['/', '/?ngan=nhan-su:tam', '/?ngan=phong:thu-nghiem', '/phong/thu-nghiem', '/phong/sach', `/sach/sach/390f5948-475b-48d4-b1be-5771738e571d`, '/the/1107', '/nhan-su', '/nhan-su/hung', '/nhan-su/tam',
+export const TRANG = ['/', '/?ngan=nhan-su:tam', '/?ngan=phong:thu-nghiem', '/phong/thu-nghiem', '/phong/sach', `/sach/sach/390f5948-475b-48d4-b1be-5771738e571d`, '/the/1107', '/video/sach/halloween-word-search-an', '/nhan-su', '/nhan-su/hung', '/nhan-su/tam',
   '/nhan-su/ky', '/quy-trinh', '/quy-trinh/thu-nghiem/lam-viec', '/nhat-ky', '/luat', '/muc-tieu'];
 
 if ((process.argv[1] || '').endsWith('trang-do.mjs') && process.argv.includes('--tu-kiem')) {

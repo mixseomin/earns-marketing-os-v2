@@ -14,44 +14,37 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo }: { canh: Canh[]; 
   let t = 0;
   for (const c of canh) { const l = khoi[khoi.length - 1]; if (l && l.ten === c.phan_doan) l.ds.push({ c, tu: t }); else khoi.push({ ten: c.phan_doan, ds: [{ c, tu: t }] }); t += giayPhat(c); }
   const tong = t;
+  // MỘT lưới liền (không xuống hàng theo phân cảnh — 2 thẻ một hàng thì không thấy tổng thể): mỗi thẻ có dải phân cảnh trên đầu,
+  // thẻ đầu khối ghi tên + beat (màu theo khối), các thẻ sau cùng màu nhạt hơn — mắt vẫn thấy ranh giới phân cảnh.
+  const MAU = ['#22d3ee', '#f472b6', '#a78bfa', '#facc15', '#4ade80', '#fb923c', '#60a5fa', '#f87171'];
   return (
-    <div style={{ display: 'grid', gap: 14, marginTop: 8 }}>
+    <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
       <div style={mono}>{canh.length} shot · {gio(tong)} · {khoi.length} khối phân cảnh — bấm một thẻ để mở shot đó trên timeline</div>
-      {khoi.map((k, ki) => {
-        const pc = tap.phan_canh?.find((x) => x.ten === k.ten);
-        const tu = k.ds[0]!.tu; const den = tu + k.ds.reduce((a, x) => a + giayPhat(x.c), 0);
-        return (
-          <section key={`${k.ten}-${ki}`} style={{ display: 'grid', gap: 6 }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap', borderBottom: '1px solid var(--line)', paddingBottom: 4 }}>
-              <b style={{ fontSize: 13 }}>{k.ten || 'Chưa đặt phân cảnh'}</b>
-              {pc?.beat && <span className="xv-mono" style={{ fontSize: 10.5, color: 'var(--cyan)' }}>{pc.beat}</span>}
-              <span style={mono}>{gio(tu)}–{gio(den)} · {k.ds.length} shot</span>
-              {pc?.muc_tieu && <span style={{ fontSize: 11.5, color: 'var(--fg-3)', flexBasis: '100%' }}>{pc.muc_tieu}</span>}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${doc ? 150 : 220}px, 1fr))`, gap: 8 }}>
-              {k.ds.map(({ c, tu: tc }) => {
-                const anh = c.keyframe_url; const coVid = !!(c.video_cuoi_url || c.video_url);
-                const loi = dongThoai(c, nhanVat).map((d) => d.loi).filter(Boolean).join(' ');
-                const chu = chuManHien(c.chu_man);
-                return (
-                  <button key={c.id} type="button" onClick={() => onMo(c.id)} title={`#${c.thu_tu} ${c.canh}\n${c.hanh_dong}`}
-                    style={{ all: 'unset', cursor: 'pointer', display: 'grid', alignContent: 'start', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--bg-1)' }}>
-                    <div style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: anh ? `center / cover no-repeat url(${anh}), #111` : 'var(--bg-2)' }}>
-                      <span className="xv-mono" style={{ position: 'absolute', left: 5, top: 5, fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'rgba(0,0,0,.65)', color: '#fff' }}>{gio(tc)}</span>
-                      <span className="xv-mono" style={{ position: 'absolute', right: 5, top: 5, fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'rgba(0,0,0,.65)', color: coVid ? '#4ade80' : '#fff' }}>{coVid ? '▶ ' : ''}#{c.thu_tu} · {giayPhat(c)}s</span>
-                      {!anh && <span style={{ ...mono, position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>chưa có hình</span>}
-                      {chu && <span style={{ position: 'absolute', left: 6, right: 6, bottom: 6, textAlign: 'center', fontSize: 11, fontWeight: 800, color: '#facc15', textShadow: '0 1px 3px #000, 0 0 2px #000' }}>{chu}</span>}
-                    </div>
-                    <div style={{ padding: '6px 8px', display: 'grid', gap: 3 }}>
-                      <span style={{ fontSize: 11.5, lineHeight: 1.35, color: loi ? 'var(--fg-1)' : 'var(--fg-4)' }}>{loi || c.canh || '—'}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${doc ? 132 : 210}px, 1fr))`, gap: 8 }}>
+        {khoi.flatMap((k, ki) => {
+          const pc = tap.phan_canh?.find((x) => x.ten === k.ten); const mau = MAU[ki % MAU.length]!;
+          return k.ds.map(({ c, tu: tc }, i) => {
+            const anh = c.keyframe_url; const coVid = !!(c.video_cuoi_url || c.video_url);
+            const loi = dongThoai(c, nhanVat).map((d) => d.loi).filter(Boolean).join(' ');
+            const chu = chuManHien(c.chu_man);
+            return (
+              <button key={c.id} type="button" onClick={() => onMo(c.id)} title={[`#${c.thu_tu} ${c.canh}`, c.hanh_dong, `Phân cảnh: ${k.ten}${pc?.beat ? ` (${pc.beat})` : ''}`, pc?.muc_tieu].filter(Boolean).join('\n')}
+                style={{ all: 'unset', cursor: 'pointer', display: 'grid', alignContent: 'start', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--line)', borderTop: `3px solid ${mau}`, background: 'var(--bg-1)' }}>
+                <div style={{ height: 18, padding: '0 6px', display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', background: i === 0 ? `color-mix(in srgb, ${mau} 18%, transparent)` : undefined }}>
+                  {i === 0 ? <><b style={{ color: mau, overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.ten || 'Chưa đặt phân cảnh'}</b>{pc?.beat && <span className="xv-mono" style={{ color: 'var(--fg-3)' }}>{pc.beat}</span>}</> : <span style={{ color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.ten}</span>}
+                </div>
+                <div style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: anh ? `center / cover no-repeat url(${anh}), #111` : 'var(--bg-2)' }}>
+                  <span className="xv-mono" style={{ position: 'absolute', left: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.65)', color: '#fff' }}>{gio(tc)}</span>
+                  <span className="xv-mono" style={{ position: 'absolute', right: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.65)', color: coVid ? '#4ade80' : '#fff' }}>{coVid ? '▶ ' : ''}#{c.thu_tu} · {giayPhat(c)}s</span>
+                  {!anh && <span style={{ ...mono, position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>chưa có hình</span>}
+                  {chu && <span style={{ position: 'absolute', left: 5, right: 5, bottom: 6, textAlign: 'center', fontSize: 10.5, fontWeight: 800, color: '#facc15', textShadow: '0 1px 3px #000, 0 0 2px #000' }}>{chu}</span>}
+                </div>
+                <div style={{ padding: '5px 7px', fontSize: 11, lineHeight: 1.35, color: loi ? 'var(--fg-1)' : 'var(--fg-4)' }}>{loi || c.canh || '—'}</div>
+              </button>
+            );
+          });
+        })}
+      </div>
     </div>
   );
 }

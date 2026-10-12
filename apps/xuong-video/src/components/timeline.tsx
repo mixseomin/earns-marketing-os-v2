@@ -8,7 +8,7 @@ import { ChuManXem } from './chu-man';
 //   Âm thanh — hiệu ứng/âm nền từng cảnh (am_thanh / am_thanh_url).
 //   Nhạc   — nhạc nền cả tập (nhac_url / nhac_mo_ta).
 // Nét đứt = mới có mô tả trong kịch bản, chưa sinh file. Toàn bộ chạy ở trình duyệt, không tốn tiền.
-import { useEffect, useMemo, useRef, useState, type PointerEvent as PE, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type PointerEvent as PE, type ReactNode } from 'react';
 import { chuManHien, giayPhat, tenCamXuc, camXucMucTieu, lechCamXuc, type Canh, type Lop, type ThongTinQc, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { kyThuat, type KyThuatShot } from '@/lib/xuong-video/dien-anh';
 import { lopImpact, nhipHanhDong, themTieng } from '@/lib/xuong-video/nhip-hanh-dong';
@@ -20,7 +20,7 @@ import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 import { mono, Menu } from './ui';
 import { docLT, ghiLT } from '@/lib/luu-tru';
-import { lopMoi, idLop, chonLopMoi, nhomCua, gopNhom, boNhom, lanLop } from '@/lib/xuong-video/lop';
+import { lopMoi, idLop, tenLop, chonLopMoi, nhomCua, gopNhom, boNhom, lanLop } from '@/lib/xuong-video/lop';
 import { useLop, LopXem, LopCongCu, LopNguyenLieu, LopBang, LopNhieu, KhoiLop, KhungHieuUng } from './lop-ui';
 import { moNgan } from './ngan-chung';
 import { useKichThuoc, TayKeo } from './keo';
@@ -249,6 +249,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const { lop, dat: datLop, doi: doiLop, loi: loiLop, luu: luuLop } = useLop(tap.id, tap.lop ?? []);
   // Vùng chọn lớp phủ (#1289): nhiều lớp; bấm một lớp trong nhóm = chọn cả nhóm (lop.ts › chonLopMoi).
   const [chonLops, setChonLops] = useState<string[]>([]);
+  const [moLan, setMoLan] = useState<string[]>([]);   // làn nhóm đang mở ra từng lớp (chỉ là cách xem, không đổi dữ liệu)
   const dsChonLop = lop.filter((l) => chonLops.includes(l.id));
   const lopChon = dsChonLop.length === 1 ? dsChonLop[0]! : null;
   const setChonLop = (id: string | null) => setChonLops(id ? [id] : []);
@@ -449,10 +450,23 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
 
           {/* Lớp phủ: mỗi lớp một làn (lớp sau nằm trên), kéo khối đổi giờ — bấm chọn để sửa ở bảng bên phải khung xem. */}
           {lop.length ? lanLop(lop).map((ln) => {
-              const le = ln.khoi.length === 1 && ln.khoi[0]!.length === 1 ? ln.khoi[0]![0]! : null; const ids = ln.khoi.flat().map((x) => x.id); const an = ln.khoi.flat().every((x) => x.an);
-              return track(le ? `⋮⋮ ${ln.nhan}` : `⛓ ${ln.nhan}${ln.khoi.length > 1 ? ` ×${ln.khoi.length}` : ''}`, le ? 'Lớp phủ — kéo thân để dời, kéo mép để đổi giờ vào/ra; bấm để sửa' : 'Nhóm lớp (mỗi khối một nhóm) — kéo khối dời cả nhóm, bấm để chọn cả nhóm; "Bỏ nhóm" ở bảng bên phải để sửa từng lớp',
-                <>{ln.khoi.map((k) => { const l = k[0]!; return <KhoiLop key={l.id} l={le ? l : { ...l, tu: Math.min(...k.map((x) => x.tu)), den: Math.max(...k.map((x) => x.den)), ten: ln.nhan }} nhom={!le} pps={pps} chon={k.some((x) => chonLops.includes(x.id))} cung={chonLops.includes(l.id) ? dsChonLop : lop.filter((x) => nhomCua(lop, l.id).includes(x.id))} onChon={(them) => bamLop(l.id, them)} onDoi={doiLop} />; })}</>, 20,
-                nutNho(an ? '🙈' : '👁', an ? 'Đang ẩn (không hiện, không xuất) — bấm để hiện' : 'Ẩn (không hiện, không xuất)', an, () => datLop((ds) => ds.map((x) => (ids.includes(x.id) ? { ...x, an: !an } : x)))), le ? le.id : undefined);
+              const le = ln.khoi.length === 1 && ln.khoi[0]!.length === 1 ? ln.khoi[0]![0]! : null; const tat = ln.khoi.flat(); const ids = tat.map((x) => x.id); const an = tat.every((x) => x.an);
+              const cungNhom = (l: Lop) => (chonLops.includes(l.id) ? dsChonLop : lop.filter((x) => nhomCua(lop, l.id).includes(x.id)));
+              const nutAn = nutNho(an ? '🙈' : '👁', an ? 'Đang ẩn (không hiện, không xuất) — bấm để hiện' : 'Ẩn (không hiện, không xuất)', an, () => datLop((ds) => ds.map((x) => (ids.includes(x.id) ? { ...x, an: !an } : x))));
+              if (le) return <Fragment key={ln.key}>{track(`⋮⋮ ${ln.nhan}`, 'Lớp phủ — kéo thân để dời, kéo mép để đổi giờ vào/ra; bấm để sửa',
+                <KhoiLop l={le} pps={pps} chon={chonLops.includes(le.id)} cung={cungNhom(le)} onChon={(them) => bamLop(le.id, them)} onDoi={doiLop} />, 20, nutAn, le.id)}</Fragment>;
+              const mo = moLan.includes(ln.key);
+              const nutMo = nutNho(mo ? '▾' : '▸', mo ? 'Gộp lại thành một làn' : 'Mở ra từng lớp (chớp / rung / zoom…) để sửa riêng — vẫn giữ nhóm', !mo, () => setMoLan((d) => (mo ? d.filter((x) => x !== ln.key) : [...d, ln.key])));
+              const nutBo = nutNho('Bỏ nhóm', 'Tách mọi nhóm trong làn này thành lớp lẻ (mỗi lớp một làn)', true, () => datLop((ds) => boNhom(ds, ids)));
+              // Mở ra: mỗi tên lớp con một làn ("Impact · chớp" của cả 8 nhóm chung một làn) — kéo mép đổi giờ riêng lớp, kéo thân dời cả nhóm.
+              const con = [...new Set(tat.map((x) => tenLop(x)))];
+              return <Fragment key={ln.key}>
+                {track(`⛓ ${ln.nhan}${ln.khoi.length > 1 ? ` ×${ln.khoi.length}` : ''}`, 'Nhóm lớp (mỗi khối một nhóm) — kéo khối dời cả nhóm, bấm để chọn cả nhóm; ▸ mở ra từng lớp để sửa riêng',
+                  <>{ln.khoi.map((k) => { const l = k[0]!; return <KhoiLop key={l.id} l={{ ...l, tu: Math.min(...k.map((x) => x.tu)), den: Math.max(...k.map((x) => x.den)), ten: ln.nhan }} nhom pps={pps} chon={k.some((x) => chonLops.includes(x.id))} cung={cungNhom(l)} onChon={(them) => bamLop(l.id, them)} onDoi={doiLop} />; })}</>, 20,
+                  <>{nutMo}{nutBo}{nutAn}</>)}
+                {mo && con.map((tn) => <Fragment key={tn}>{track(`   ↳ ${tn.split(' · ').slice(1).join(' · ') || tn}`, `${tn} — kéo mép đổi giờ riêng lớp này, kéo thân dời cả nhóm`,
+                  <>{tat.filter((x) => tenLop(x) === tn).map((l) => <KhoiLop key={l.id} l={l} pps={pps} chon={chonLops.includes(l.id)} cung={cungNhom(l)} onChon={(them) => bamLop(l.id, them)} onDoi={doiLop} />)}</>, 18)}</Fragment>)}
+              </Fragment>;
             })
             : track('🧩 Lớp phủ', 'Chữ, ảnh, hình khối tự do đè lên video', <button type="button" className="xv-lienket xv-mono" style={{ lineHeight: '20px', paddingLeft: 6 }} onClick={() => themLop([lopMoi('chu', t)])}>chưa có lớp — bấm để thêm lớp chữ ở giây {t.toFixed(1)}</button>, 20)}
           {track('🎬 Hình', 'Mỗi cảnh một clip, dài đúng số giây', canh.map((cc, i) => {

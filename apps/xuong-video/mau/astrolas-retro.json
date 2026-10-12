@@ -32,7 +32,8 @@
     "nhan": "#E6B800",
     "co": 0.1,
     "vien_day": 0.06,
-    "ngang": 100
+    "ngang": 100,
+    "vao": "dap"
    }
   }
  },

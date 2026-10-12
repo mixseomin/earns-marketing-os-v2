@@ -29,7 +29,7 @@ assert.ok(!kh.args.join(' ').includes('c1b.mp4'));                   // nhánh B
 assert.ok(loc.includes('adelay=0:all=1'));                           // giọng shot 1 ở 0ms
 assert.ok(loc.includes('volume=0.8,adelay=2000:all=1'));             // hiệu ứng shot 3 ở 2000ms
 assert.ok(loc.includes('aloop=loop=-1') && loc.includes('volume=0.35,adelay=2000:all=1'));  // nhạc phân cảnh Demo từ 2s
-assert.ok(loc.includes('asplit=2[gm][gsc0];[gsc0]apad[gsc]') && loc.includes('[gsc]sidechaincompress='));   // nhạc nén theo giọng; dải điều khiển đệm im để nhạc không bị cắt khi giọng hết
+assert.ok(loc.includes('asplit=3[gm][gsc0][gsc1];[gsc0]apad[gsc];[gsc1]apad[gscx]') && loc.includes('[gsc]sidechaincompress='));   // nhạc nén theo giọng; dải điều khiển đệm im để nhạc không bị cắt khi giọng hết
 { const i1 = kh.args.filter((a, i) => kh.args[i - 1] === '-i').indexOf('/tmp/t/c1.mp4'); assert.ok(i1 >= 0 && !loc.includes(`[${i1}:a]`)); }   // clip 1 có giọng riêng → không lấy tiếng clip
 assert.ok(!/\[\d+:a\]atrim=0:2\.5/.test(loc));                       // clip 4 không có luồng tiếng → không tham chiếu :a
 assert.ok(!loc.includes('enable=') && !kh.tep.some((x) => /\/pd_/.test(x.duong)));   // không vẽ phụ đề thoại lên hình (#1231)
@@ -260,7 +260,9 @@ console.log('xuat.test: mẫu ok');
   // ramp 2s: cần 0,6×1,5 + 0,8×0,3 + 0,6×1,6 = 2,1s nguồn; clip 4s bỏ 0,5s đầu → trim 0,5:2,6 rồi setpts từng đoạn
   assert.ok(l3.includes("trim=0.5:2.6,setpts=PTS-STARTPTS,setpts='(if(lt(T,0.9),"), l3.slice(0, 400));
   assert.ok(k3.args.join(' ').includes('-i /s/dap.mp3') && !k3.args.join(' ').includes('pho.mp3'), 'chỉ key có tệp mới trộn');
-  assert.ok(/atrim=0:1\.6,asetpts=PTS-STARTPTS,volume=-6dB,adelay=0:all=1/.test(l3));
+  assert.ok(/atrim=0:1\.6,asetpts=PTS-STARTPTS,volume=-10\.7dB,adelay=0:all=1/.test(l3), 'đập đặt 9 dB dưới giọng (-16 − 9 − (-14,3))');
+  // tiếng hiệu ứng nén dưới giọng (12/10/2026 phim #9: đập/vút đầu shot đè câu đọc)
+  assert.ok(l3.includes('[gscx]sidechaincompress=threshold=0.05:ratio=3'), 'tiếng hiệu ứng phải nén theo giọng');
   assert.strictEqual(k3.giay, kh.giay, 'đổi tốc không đổi tổng giờ');
   assert.ok(!keHoachXuat(chung).args.join(' ').includes('dap.mp3'));
   console.log('xuat.test: đổi tốc + tiếng hiệu ứng ok');

@@ -30,11 +30,6 @@ h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem}
 .cty-pill-off{background:var(--warn-bg);color:var(--warn)}
 .cty-pill-kind{background:var(--line);color:var(--muted)}
 .cty-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-top:.7rem}
-.cty-the{display:flex;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px var(--le);text-decoration:none}
-.cty-the:hover{border-color:var(--accent)}
-.cty-the-ten{font-weight:600}
-.cty-the-chuc{font-size:.92rem;font-weight:400}
-.cty-the-body{min-width:0}
 .cty-so-do{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px;margin:1rem 0;overflow-x:auto}
 .cty-so-do svg{display:block;width:100%;height:auto;font-family:var(--body);font-size:12px}
 .cty-md{max-width:72ch}
@@ -426,11 +421,17 @@ details[open]>.cty-qt-hang .cty-qt-ten::before{content:'▾ '}
 .cty-bang-the{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;align-items:start}
 .cty-cot-the{display:grid;gap:6px;align-content:start;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px;min-width:0}
 .cty-cot-the h4{margin:0;font-size:.82rem}
-.cty-the{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px 8px 8px;min-width:0}
+/* thẻ trong một cột tự xếp ≥ 150px mỗi thẻ: cột hẹp (máy tính, 4-5 cột) = 1 thẻ một hàng; màn điện thoại (cột rộng hết màn) = 2 thẻ một hàng */
+.cty-cot-the{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.cty-cot-the > h4,.cty-cot-the > p{grid-column:1/-1}
+.cty-the{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden;min-width:0}
+.cty-the:hover{border-color:var(--accent)}
 .cty-the-tre{border-color:var(--warn)}
-.cty-the-anh{width:40px;height:40px;object-fit:cover;border-radius:3px;background:var(--line)}
-.cty-the-anh-trong{display:grid;place-items:center;font-size:1.1rem;overflow:hidden}
-.cty-the-than{display:grid;gap:3px;min-width:0}
+/* Thẻ kiểu Trello: có bìa thì bìa phủ hết bề ngang thẻ, chữ xuống dưới. Một tỉ lệ 5:4 cho mọi bìa (= tỉ lệ ảnh bán của puzzle-books) →
+   các thẻ cùng cột cao bằng nhau, không nhảy cột khi ảnh tải xong; bìa lệch tỉ lệ (sách coin) bị cắt mép, không méo. */
+.cty-the-bia{display:block;background:var(--line)}
+.cty-the-bia img{display:block;width:100%;aspect-ratio:5/4;object-fit:cover}
+.cty-the-than{display:grid;gap:3px;min-width:0;padding:9px 10px 10px}
 .cty-the-ten{font-size:.8rem;font-weight:600;line-height:1.25;color:inherit;text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .cty-the-ten:hover{text-decoration:underline}
 .cty-the-dong{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;font-size:.72rem}

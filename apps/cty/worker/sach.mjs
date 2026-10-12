@@ -22,7 +22,7 @@ export const linkMos2 = (id) => `https://mos2.on.tc/?tab=taisan&sp=sp&spId=d:${i
 
 // Ảnh bìa nhỏ cho thẻ: ảnh bán "bìa" trong bản xem (puzzle-books xem.mjs ghi listing_config.xem.anh) hoặc cover của dòng; asset Directus công khai.
 const anhBia = (r) => { const xs = r.listing_config?.xem?.anh ?? []; const id = r.cover ?? (xs.find((x) => /^Ảnh bán 1/.test(x?.chu ?? '')) ?? xs[0])?.id;
-  return id ? `${process.env.DIRECTUS_URL || 'https://as.on.tc'}/assets/${id}?width=160` : null; };
+  return id ? `${process.env.DIRECTUS_URL || 'https://as.on.tc'}/assets/${id}?width=480` : null; };   // 480 = bìa phủ ngang thẻ ~240px + ngăn sách, màn 2x
 /** Một dòng sổ → dạng phòng dùng. */
 export function dong(r) {
   const lc = r.listing_config ?? {}; const q = String(r.notes ?? '').match(QT);

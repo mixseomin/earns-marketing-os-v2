@@ -34,12 +34,12 @@ export function Ai({ ai, phong, anh = true }: { ai: string | null; phong: string
 export const Tram = ({ t }: { t: NonNullable<Dong['tram']> }) => (
   <span className="cty-tram" title={`trạm ${t.dat}/${t.tong}${t.ke ? ` · kế: ${t.ke}` : ''}`}>{Array.from({ length: t.tong }, (_, i) => <i key={i} className={i < t.dat ? 'xong' : ''} />)}</span>);
 
-/** Thẻ một tựa: ảnh bìa · tựa (mở ngăn sách) · ngày đăng · 6 chấm trạm · nhãn nền tô màu · việc kế + người. */
+/** Thẻ một tựa kiểu Trello: bìa phủ ngang thẻ (có ảnh mới hiện) · dưới là tựa (mở ngăn sách) · ngày đăng · 6 chấm trạm · nhãn nền tô màu · việc kế + người. */
 function The({ g, phong, hom }: { g: Tua; phong: string; hom: string }) {
   const v = g.dong.find((d) => d.viec.ai === g.ai)?.viec; const qua = quaNgay(g.ngay, hom);
   return (
     <div className={`cty-the${g.dong.some((d) => d.viec.tre) ? ' cty-the-tre' : ''}`}>
-      {g.anh ? <img src={g.anh} alt="" loading="lazy" className="cty-the-anh" /> : <span className="cty-the-anh cty-the-anh-trong" title={`chưa có ảnh bìa${g.loai ? ` · loại ${g.loai}` : ''}`}>📖</span>}
+      {g.anh && <a href={hrefSach(phong, g.dong[0]!.id)} className="cty-the-bia" tabIndex={-1} aria-hidden="true"><img src={g.anh} alt="" loading="lazy" /></a>}
       <div className="cty-the-than">
         <a href={hrefSach(phong, g.dong[0]!.id)} className="cty-the-ten" title={g.tua}>{g.tua}</a>
         <div className="cty-the-dong"><span className={qua > 0 && g.chang !== 'ban' ? 'cty-thu-loi' : 'cty-muted'}>{ngay(g.ngay)}{qua > 0 && g.chang !== 'ban' ? ` · quá ${qua}n` : ''}</span>{g.tram && <Tram t={g.tram} />}</div>

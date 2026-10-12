@@ -415,7 +415,7 @@ export async function nganSach(ma: string): Promise<Ngan> {
     than: (
       <div className="nk-3cot">
         <div className="nk-cot nk-cot-hinh">
-          {g.anh ? <img src={g.anh.replace('width=160', 'width=480')} alt={`Bìa ${g.tua}`} className="cty-sach-bia" /> : <p className="cty-muted">Chưa có ảnh bìa.</p>}
+          {g.anh ? <img src={g.anh} alt={`Bìa ${g.tua}`} className="cty-sach-bia" /> : <p className="cty-muted">Chưa có ảnh bìa.</p>}
           <div className="nk-luoi">
             <O nhan="Ngày đăng">{ngay(g.ngay)}{qua > 0 && g.chang !== 'ban' && <span className="cty-thu-loi"> · quá {qua} ngày</span>}</O>
             <O nhan="Loại">{g.loai ?? '—'}</O>

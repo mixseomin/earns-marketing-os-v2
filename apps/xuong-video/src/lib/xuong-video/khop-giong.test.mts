@@ -13,4 +13,5 @@ assert.strictEqual(canPhat(c([{ nhan_vat: '', dien_xuat: '', loi: 'x' }]), [], d
 assert.strictEqual(canPhat(c([{ nhan_vat: '', dien_xuat: '', loi: 'x', url: 'zz' }]), [], dai), null, 'không đo được');
 assert.strictEqual(coGianMoc('ONE NIGHT LEFT.\n@1.2 SIGN ANYWAY?', 1.5), 'ONE NIGHT LEFT.\n@1.8 SIGN ANYWAY?');
 assert.strictEqual(coGianMoc('Check\n@1,4 free\n@2.4s astrolas.com', 2), 'Check\n@2.8 free\n@4.8 astrolas.com');
+assert.strictEqual(canPhat(c([{ nhan_vat: '', dien_xuat: '', loi: 'x', url: 'a' }]), [], dai, 1.2), 2.1, 'phim hành động đọc 1,2×: 2,2/1,2 + 0,2 = 2,03 → 2,1');
 console.log('khop-giong.test: ok');

@@ -7,7 +7,8 @@ import { execFile } from 'node:child_process';
 import { sql } from 'drizzle-orm';
 import { giayPhat, locNhanh, type Canh } from './kieu';
 import { dongThoai } from './am-thanh';
-import { canPhat, coGianMoc, LOC_GON_GIONG } from './khop-giong';
+import { canPhat, coGianMoc, LOC_GON_GIONG, tocDocTheoLoai } from './khop-giong';
+import { docKinhThanh, type KinhThanh } from './kieu';
 import { uploadToR2 } from '../r2';
 import { randomUUID } from 'node:crypto';
 import { doiLopTheoCat } from './nhip-nhac';
@@ -54,7 +55,9 @@ export async function khopGiongTap(db: Db, tapId: number, nguoi: string): Promis
   const urls = [...new Set(d.ds.flatMap((c) => dongThoai(c, d.nv).map((x) => x.url).filter((u): u is string => !!u)))];
   const dai = new Map<string, number | null>(); for (const u of urls) dai.set(u, await doDai(u));
   const phatCu = d.ds.map(giayPhat); let doi = 0, thieu = 0;
-  const phatMoi = d.ds.map((c, i) => { const can = canPhat(c, d.nv, (u) => dai.get(u) ?? null); if (can == null) { if (dongThoai(c, d.nv).some((x) => x.loi.trim())) thieu++; return phatCu[i]!; } return Math.max(1, can); });
+  const kt = docKinhThanh(((await db.execute(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${d.tap.phim_id}`)) as unknown as Row[])[0]?.kinh_thanh as KinhThanh);
+  const toc = tocDocTheoLoai(kt.the_loai);
+  const phatMoi = d.ds.map((c, i) => { const can = canPhat(c, d.nv, (u) => dai.get(u) ?? null, toc); if (can == null) { if (dongThoai(c, d.nv).some((x) => x.loi.trim())) thieu++; return phatCu[i]!; } return Math.max(1, can); });
   for (const [i, c] of d.ds.entries()) {
     const p = phatMoi[i]!; if (Math.abs(p - phatCu[i]!) < 0.01) continue;
     await chupTruoc(db, { bang: 'xv_canh', id: c.id, cot: ['phat_s', 'thoi_luong_s', 'chu_man'], moTa: `khớp giây theo giọng (#${c.thu_tu} ${phatCu[i]}s → ${p}s)`, nguoi });

@@ -7,11 +7,13 @@ import { dongThoai } from './am-thanh';
 
 /** Tốc đọc tối đa chấp nhận (bản xuất cũng cho lời dẫn nhanh tới mức này trước khi đè câu). */
 export const TOC_DOC = 1.1;
-export function canPhat(c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url'>, nv: NhanVat[], dai: (url: string) => number | null): number | null {
+/** Nhịp đọc theo thể loại phim: hành động dồn dập hơn (vẫn dưới NHANH_TOI_DA 1,35 của bản xuất). */
+export const tocDocTheoLoai = (theLoai?: string): number => (theLoai === 'hanh_dong' ? 1.2 : theLoai === 'hai' || theLoai === 'qc_ugc' ? 1.15 : TOC_DOC);
+export function canPhat(c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url'>, nv: NhanVat[], dai: (url: string) => number | null, toc = TOC_DOC): number | null {
   let t = 0, co = false;
   for (const d of dongThoai(c, nv)) {
     if (!d.url) continue; const g = dai(d.url); if (g == null) return null;
-    t = Math.max(t + (co ? 0.15 : 0), d.tre ?? 0) + g / TOC_DOC; co = true;
+    t = Math.max(t + (co ? 0.15 : 0), d.tre ?? 0) + g / toc; co = true;
   }
   return co ? Math.ceil((t + 0.2) * 10) / 10 : null;
 }

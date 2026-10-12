@@ -284,3 +284,12 @@ console.log('xuat.test: mẫu ok');
   assert.strictEqual(kq.giay, 2 + 2, 'có end card tự động 2s → không kéo shot cuối');
   console.log('xuat.test: giữ hình kết ok');
 }
+// Rung/zoom áp trên ĐOẠN shot trước khi nối (giờ tương đối trong đoạn); chớp vẫn áp trên cả phim (12/10/2026: tránh SIGKILL/quá giờ).
+{
+  const lopT = [{ id: 'z', loai: 'hieu_ung', hu: 'zoom', cuong: 1, tu: 2.5, den: 2.8, x: 0.5, y: 0.5, w: 1, h: 1, xoay: 0, mo: 1, vao: 'khong', ra: 'khong' }, { id: 'c', loai: 'hieu_ung', hu: 'chop', cuong: 1, tu: 2.5, den: 2.8, x: 0.5, y: 0.5, w: 1, h: 1, xoay: 0, mo: 1, vao: 'khong', ra: 'khong' }] as never;
+  const kz = keHoachXuat({ loai: 'phim', tiLe: '9:16', canh, nhanVat: nv, tap: { ...tap, lop: lopT }, nhanh: 'A', nguyenLieu, font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
+  const lz = kz.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
+  assert.ok(lz.includes('settb=AVTB[s1x0]') && lz.includes('trim=start=0.5:end=0.8'), 'zoom vào đoạn shot 3 (bắt đầu 2s) ở giây 0,5–0,8 của đoạn');
+  assert.ok(!/\[vcat\]split/.test(lz) && /\[vcat\]eq=brightness/.test(lz), 'chớp vẫn trên cả phim, zoom không');
+  console.log('xuat.test: hiệu ứng nặng theo đoạn ok');
+}

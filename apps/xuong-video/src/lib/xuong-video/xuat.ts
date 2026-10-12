@@ -238,6 +238,10 @@ export function keHoachXuat(o: {
   });
   const mocSeg: number[] = []; const xSeg: ({ xfade: string; d: number } | null)[] = [];
   const amShot: { am?: string[]; tu: number; phat: number }[] = [];
+  // Rung / zoom cần tách luồng (crop không có timeline) → áp lên TỪNG ĐOẠN shot trước khi nối: chỉ xử lý vài giây của đoạn, bộ đệm nhỏ.
+  // Áp sau khi nối (cả phim) thì hoặc crop+scale toàn phim cho mỗi lớp (>15 phút), hoặc nhánh cắt làm overlay giữ cả phim trong RAM (SIGKILL) — 12/10/2026.
+  const NANG = (l: Lop) => l.loai === 'hieu_ung' && (l.hu === 'rung' || l.hu === 'zoom');
+  const lopNang = o.chiThuTu?.length ? [] : (o.tap.lop ?? []).filter((l) => !l.an && l.den > l.tu && NANG(l));
   ds.forEach((c, i) => {
     const phat = giayPhat(c);
     const cs = chuyenSau.get(c.id) ?? null; const dai = phat + (cs?.d ?? 0);
@@ -262,7 +266,13 @@ export function keHoachXuat(o: {
     if (c.am_thanh_url && nl.has(c.am_thanh_url)) { const ka = them(c.am_thanh_url); themAm(`[${ka}:a]atrim=0:${so(phat)},asetpts=PTS-STARTPTS,volume=0.8,adelay=${Math.round(t * 1000)}:all=1`); }
     amShot.push({ am: c.ky_thuat?.am_thanh, tu: t, phat });
     if (laVideo && dungClip && !toc && nl.get(nguon)?.coAm) themAm(`[${k}:a]atrim=${so(boDau)}:${so(boDau + phat)},asetpts=PTS-STARTPTS,adelay=${Math.round(t * 1000)}:all=1`);
-    loc.push(`${ve.join(',')},settb=AVTB[v${i}]`); nhanhVideo.push(`[v${i}]`); mocSeg.push(t); xSeg.push(cs);
+    const nangDoan = lopNang.filter((l) => l.tu < t + dai && l.den > t);
+    if (!nangDoan.length) loc.push(`${ve.join(',')},settb=AVTB[v${i}]`);
+    else {
+      loc.push(`${ve.join(',')},settb=AVTB[s${i}x0]`);
+      nangDoan.forEach((l, k) => loc.push(lopHieuUngLoc({ ...l, tu: Math.max(0, l.tu - t), den: Math.min(dai, l.den - t) }, W, H, `s${i}x${k}`, k === nangDoan.length - 1 ? `v${i}` : `s${i}x${k + 1}`, i * 100 + k)));
+    }
+    nhanhVideo.push(`[v${i}]`); mocSeg.push(t); xSeg.push(cs);
     t += phat;
   });
   // Tiếng hiệu ứng thật (sfx.ts): cùng lịch với timeline xem trước; vào lớp "còn lại" (không bị nén dưới giọng như nhạc).
@@ -318,7 +328,7 @@ export function keHoachXuat(o: {
     loc.push(lopAnhLoc(l, k, W, H, nen, `vla${i}`)); nen = `vla${i}`;
   });
   // Lớp hiệu ứng khung (rung, chớp, zoom…) áp lên video + lớp ảnh, DƯỚI chữ/hình/chữ màn — chữ vẫn đọc được khi rung/mờ.
-  lop.filter((l) => l.loai === 'hieu_ung').forEach((l, i) => { loc.push(lopHieuUngLoc(l, W, H, nen, `vhu${i}`, i)); nen = `vhu${i}`; });
+  lop.filter((l) => l.loai === 'hieu_ung' && !NANG(l)).forEach((l, i) => { loc.push(lopHieuUngLoc(l, W, H, nen, `vhu${i}`, i)); nen = `vhu${i}`; });
   const coAss = cauMan.length || lop.some((l) => l.loai === 'chu' || l.loai === 'hinh');
   if (coAss) {
     const ass = tepChu('chu', tepAss({ W, H, kieu: o.qc?.kieu_chu, viTri, cau: cauMan, lop })).replace(/\.txt$/, '.ass');

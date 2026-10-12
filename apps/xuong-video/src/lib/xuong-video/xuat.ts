@@ -11,6 +11,7 @@ import { mauAss, gioAss, lopAss, lopAnhLoc, lopHieuUngLoc } from './lop';
 import { chuyenCanhGiua } from './dien-anh';
 import { giayPhat, locNhanh, doanChuMan, coMau, assVaoChu, KIEU_CHU_MAC_DINH } from './kieu';
 import { keHoachToc, bieuThucToc } from './toc-do';
+import { ngatDong, kyTuMoiDong } from './ngat-dong';
 import { lichSfx } from './sfx';
 export { doanChuMan, chuManHien } from './kieu';
 import { dongThoai, dungTiengClip, lichGiong } from './am-thanh';
@@ -100,16 +101,7 @@ export function urlCanXuat(canh: Canh[], nhanVat: NhanVat[], tap: Pick<Tap, 'nha
 
 /** Ngắt dòng cho drawtext: tham lam theo từ, tối đa `toiDa` ký tự một dòng. Mỗi dòng vẽ bằng MỘT drawtext riêng — ffmpeg 8 vẽ
  *  ký tự xuống dòng trong textfile thành ô vuông (thử trên box3 09/10/2026), nên không gộp nhiều dòng vào một textfile. */
-export function ngatDong(chu: string, toiDa: number): string[] {
-  const dong: string[] = []; let hien = '';
-  for (const tu of chu.trim().split(/\s+/)) {
-    if (!hien) hien = tu;
-    else if ((hien + ' ' + tu).length <= toiDa) hien += ' ' + tu;
-    else { dong.push(hien); hien = tu; }
-  }
-  if (hien) dong.push(hien);
-  return dong;
-}
+export { ngatDong } from './ngat-dong';   // một thuật toán ngắt dòng cho bản xuất + xem trước (ngat-dong.ts)
 // mauAss / gioAss: một chỗ ở lop.ts (lớp phủ dùng chung).
 /** Gộp kiểu chữ: mặc định ← phim ← shot (giá trị rỗng không đè). */
 export const gopKieu = (...ds: (KieuChu | undefined | null)[]): typeof KIEU_CHU_MAC_DINH & { y?: number; nen?: string } =>
@@ -129,7 +121,7 @@ export function tepAss(o: { W: number; H: number; kieu?: KieuChu; viTri: ViTriCh
     const { ten, k } = style(c.kieu);
     const fs = Math.round(o.W * k.co);
     // Bề rộng một ký tự ≈ 0,4 × cỡ ASS × độ rộng chữ (đo 10/10/2026: "PAY 1 GET 3 PANTS" Montserrat Black cỡ 0,13W, ngang 86% phủ 75% khung).
-    const wrap = Math.max(8, Math.floor((o.W * 0.92) / (fs * 0.4 * (k.ngang / 100))));
+    const wrap = kyTuMoiDong(o.W, k.co, k.ngang);
     const tamY = (n: number) => Math.round(typeof k.y === 'number' ? o.H * k.y : o.viTri === 'giua' ? o.H / 2 : o.viTri === 'duoi' ? o.H * 0.62 : o.H * 0.15 + (n * fs * 1.25) / 2);
     const nhan = (t: string) => (k.nhan ? t.replace(/[0-9?$%]+/g, (m) => `{\\c${mauAss(k.nhan)}}${m}{\\c${mauAss(k.mau)}}`) : t);
     const to = (t: string) => t.replace(/\*\*(.+?)\*\*/g, (_, m: string) => `{\\fs${Math.round(fs * 1.8)}\\i1\\c${mauAss(k.nhan || k.mau)}}${m}{\\r}`);

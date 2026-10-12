@@ -212,7 +212,7 @@ function ShopChiTiet({ s, sp, onMo }: { s: ShopNut; sp: SpNut[]; onMo: (khoa: st
 
 // Trạng thái sổ cái → nhãn MOS2 (bộ chữ TT_SP). Đổi ở đây là PATCH thẳng sổ cái Directus (card #1160), máy sản xuất đọc cùng sổ.
 const TT_SO_NHAN: [string, string][] = [['planned', 'dự kiến'], ['draft', 'đang làm'], ['owner_review', 'chờ anh duyệt'], ['ready', 'sẵn sàng'],
-  ['in_review', 'sàn đang duyệt'], ['published', 'đang bán'], ['unlisted', 'ngừng (ẩn)'], ['archived', 'ngừng (lưu trữ)']];
+  ['in_review', 'đã nộp, chờ duyệt'], ['published', 'đang bán'], ['unlisted', 'ngừng (ẩn)'], ['archived', 'ngừng (lưu trữ)']];
 const TT_VE_SO: Record<string, string> = { du_kien: 'planned', dang_lam: 'draft', cho_anh: 'owner_review', san_sang: 'ready', cho_duyet: 'in_review', dang_ban: 'published', ngung: 'unlisted' };
 function SuaTrangThai({ x }: { x: SpNut }) {
   const router = useRouter();

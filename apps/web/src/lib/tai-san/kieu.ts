@@ -6,7 +6,7 @@ export type TrangThaiSp = 'du_kien' | 'dang_lam' | 'cho_anh' | 'san_sang' | 'cho
 export const TT_SP: { key: TrangThaiSp; chu: string; mau: string }[] = [
   { key: 'dang_ban', chu: 'đang bán', mau: 'var(--ok)' },
   { key: 'cho_anh', chu: 'chờ anh duyệt', mau: 'var(--accent)' },
-  { key: 'cho_duyet', chu: 'sàn đang duyệt', mau: 'var(--warn)' },
+  { key: 'cho_duyet', chu: 'đã nộp, chờ duyệt', mau: 'var(--warn)' },
   { key: 'san_sang', chu: 'sẵn sàng', mau: 'var(--ok)' },
   { key: 'dang_lam', chu: 'đang làm', mau: 'var(--fg-2)' },
   { key: 'du_kien', chu: 'dự kiến', mau: 'var(--fg-4)' },

@@ -67,6 +67,8 @@ export type MoHinhChu = (typeof MO_HINH_CHU)[number]['key'];
 /** Một dòng thoại kiểu kịch bản phim: ai nói · diễn xuất · lời · file giọng (nếu đã sinh). */
 /** tre = giây bắt đầu đọc tính từ đầu shot (chép nhịp QC mẫu: giọng vào ở 0,47s); bỏ trống = nối ngay sau dòng trước. */
 export type DongThoai = { nhan_vat: string; dien_xuat: string; loi: string; url?: string | null; tre?: number;
+  /** url là bản đã GỌN (cắt lặng đầu/cuối, rút quãng ngắt dài) — hau-ky.ts › gonGiong; không gọn lại lần hai. */
+  gon?: boolean;
   /** giọng đã đọc file url ("model|voice") — ghi lúc job giọng xong; bản xuất dùng để bắt lời dẫn lẫn giọng. */
   giong?: string };
 /** Ghép dòng thoại thành chuỗi loi_thoai (tương thích chỗ cũ: animatic, tìm người nói). */

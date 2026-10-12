@@ -15,5 +15,8 @@ export function canPhat(c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoa
   }
   return co ? Math.ceil((t + 0.2) * 10) / 10 : null;
 }
+/** Bộ lọc ffmpeg gọn giọng: cắt lặng đầu + cuối (dưới -40 dB), rút mọi quãng ngắt > 0,3s về 0,25s — giọng TTS kiểu trailer để
+ *  0,3–0,9s lặng đầu file và 0,4–0,6s giữa câu (đo phim #9: ~10s chết trong 67s). */
+export const LOC_GON_GIONG = 'silenceremove=start_periods=1:start_threshold=-40dB:start_silence=0.04,silenceremove=stop_periods=-1:stop_duration=0.3:stop_threshold=-40dB:stop_silence=0.25,areverse,silenceremove=start_periods=1:start_threshold=-40dB:start_silence=0.08,areverse';
 export const coGianMoc = (chu: string, k: number): string =>
   Math.abs(k - 1) < 1e-6 ? chu : chu.replace(/^(\s*)@(\d+(?:[.,]\d+)?)s?(\s)/gm, (_, a: string, g: string, b: string) => `${a}@${Math.round(Number(g.replace(',', '.')) * k * 10) / 10}${b}`);

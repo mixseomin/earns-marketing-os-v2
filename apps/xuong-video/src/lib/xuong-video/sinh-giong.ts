@@ -78,7 +78,7 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
           const cu = (await db.execute(sql`SELECT x->>'url' AS url FROM xv_canh k, jsonb_array_elements(CASE WHEN jsonb_typeof(k.thoai) = 'array' THEN k.thoai ELSE '[]'::jsonb END) x
             WHERE x->>'loi' = ${d.loi} AND coalesce(x->>'dien_xuat', '') = ${d.dien_xuat ?? ''} AND x->>'giong' = ${`${model}|${voice}`} AND coalesce(x->>'url', '') <> '' LIMIT 1`)) as unknown as Row[];
           if (cu[0]?.url) {
-            await db.execute(sql`UPDATE xv_canh SET thoai = jsonb_set(jsonb_set(thoai, ${`{${i},url}`}::text[], to_jsonb(${String(cu[0].url)}::text)), ${`{${i},giong}`}::text[], to_jsonb(${`${model}|${voice}`}::text)),
+            await db.execute(sql`UPDATE xv_canh SET thoai = jsonb_set(jsonb_set(thoai, ${`{${i},url}`}::text[], to_jsonb(${String(cu[0].url)}::text)), ${`{${i},giong}`}::text[], to_jsonb(${`${model}|${voice}`}::text)) #- ${`{${i},gon}`}::text[],
               thoai_url = CASE WHEN ${i} = 0 THEN ${String(cu[0].url)} ELSE thoai_url END, updated_at = now() WHERE id = ${c.id}`);
             dungLai++; continue;
           }

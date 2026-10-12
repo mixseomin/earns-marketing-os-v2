@@ -7,7 +7,9 @@ import { execFile } from 'node:child_process';
 import { sql } from 'drizzle-orm';
 import { giayPhat, locNhanh, type Canh } from './kieu';
 import { dongThoai } from './am-thanh';
-import { canPhat, coGianMoc } from './khop-giong';
+import { canPhat, coGianMoc, LOC_GON_GIONG } from './khop-giong';
+import { uploadToR2 } from '../r2';
+import { randomUUID } from 'node:crypto';
 import { doiLopTheoCat } from './nhip-nhac';
 import { nhipHanhDong } from './nhip-hanh-dong';
 import { mapCanh, mapTap, mapNhanVat, type Db, type Row } from './doc-db';
@@ -26,12 +28,33 @@ async function docTap(db: Db, tapId: number) {
 }
 const batDauCua = (phat: number[]) => phat.map((_, i) => phat.slice(0, i).reduce((a, b) => a + b, 0));
 
+/** Gọn một file giọng (LOC_GON_GIONG) → R2 mới; file cũ giữ nguyên. null = không gọn được (giữ url cũ). */
+async function gonGiong(url: string, canhId: number): Promise<string | null> {
+  const r = await fetch(url, { signal: AbortSignal.timeout(60_000) }); if (!r.ok) return null;
+  const vao = Buffer.from(await r.arrayBuffer());
+  const ra = await new Promise<Buffer | null>((ok) => {
+    const p = execFile('ffmpeg', ['-v', 'error', '-i', 'pipe:0', '-af', LOC_GON_GIONG, '-c:a', 'libmp3lame', '-b:a', '160k', '-f', 'mp3', 'pipe:1'], { encoding: 'buffer', maxBuffer: 1 << 26 }, (e, b) => ok(e ? null : (b as Buffer)));
+    p.stdin?.end(vao);
+  });
+  if (!ra || ra.length < 1000) return null;
+  return uploadToR2(`xuong-video/am/thoai/${canhId}-gon-${randomUUID()}.mp3`, ra, 'audio/mpeg');
+}
 export async function khopGiongTap(db: Db, tapId: number, nguoi: string): Promise<Kq<{ doi: number; tong: number; thieu: number }>> {
   const d = await docTap(db, tapId); if (!d) return { ok: false, loi: 'không thấy tập' };
+  // 1. Gọn giọng (một lần mỗi dòng): ghi url mới vào thoai, chụp trước để hoàn tác.
+  for (const c of d.ds) {
+    if (!c.thoai.some((x) => x.url && !x.gon)) continue;
+    const moi = await Promise.all(c.thoai.map(async (x) => { if (!x.url || x.gon) return x; const u = await gonGiong(x.url, c.id); return u ? { ...x, url: u, gon: true } : x; }));
+    if (JSON.stringify(moi) === JSON.stringify(c.thoai)) continue;
+    await chupTruoc(db, { bang: 'xv_canh', id: c.id, cot: ['thoai', 'thoai_url'], moTa: 'gọn giọng (cắt lặng, rút quãng ngắt)', nguoi });
+    await db.execute(sql`UPDATE xv_canh SET thoai = ${JSON.stringify(moi)}::jsonb, thoai_url = coalesce(${moi[0]?.url ?? null}, thoai_url), updated_at = now() WHERE id = ${c.id}`);
+    c.thoai = moi;
+  }
+  // 2. Giây phát VỪA KHÍT giọng (co cả hai chiều; tối thiểu 1s) — giọng quyết định nhịp, không để hình chờ hay giọng bị ép.
   const urls = [...new Set(d.ds.flatMap((c) => dongThoai(c, d.nv).map((x) => x.url).filter((u): u is string => !!u)))];
   const dai = new Map<string, number | null>(); for (const u of urls) dai.set(u, await doDai(u));
   const phatCu = d.ds.map(giayPhat); let doi = 0, thieu = 0;
-  const phatMoi = d.ds.map((c, i) => { const can = canPhat(c, d.nv, (u) => dai.get(u) ?? null); if (can == null) { if (dongThoai(c, d.nv).some((x) => x.loi.trim())) thieu++; return phatCu[i]!; } return Math.max(phatCu[i]!, can); });
+  const phatMoi = d.ds.map((c, i) => { const can = canPhat(c, d.nv, (u) => dai.get(u) ?? null); if (can == null) { if (dongThoai(c, d.nv).some((x) => x.loi.trim())) thieu++; return phatCu[i]!; } return Math.max(1, can); });
   for (const [i, c] of d.ds.entries()) {
     const p = phatMoi[i]!; if (Math.abs(p - phatCu[i]!) < 0.01) continue;
     await chupTruoc(db, { bang: 'xv_canh', id: c.id, cot: ['phat_s', 'thoi_luong_s', 'chu_man'], moTa: `khớp giây theo giọng (#${c.thu_tu} ${phatCu[i]}s → ${p}s)`, nguoi });

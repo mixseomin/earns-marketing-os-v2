@@ -74,24 +74,34 @@ for (const app of apps) {
     log(`${ten}: tạo yêu cầu báo cáo ${t} (Apple dựng lần đầu mất 1–2 ngày)`);
   }
   reqs = await all(`/v1/apps/${id}/analyticsReportRequests`);
-  const ngay = new Map();   // date → số
-  const cong = (d, k, n) => { const x = ngay.get(d) ?? { impressions: 0, pageViews: 0, firstTime: 0, redownloads: 0, updates: 0 }; x[k] += n; ngay.set(d, x); };
+  const ngay = new Map();   // date → số + chi tiết
+  const cong = (d, k, n) => { const x = ngay.get(d) ?? { impressions: 0, pageViews: 0, firstTime: 0, redownloads: 0, updates: 0, chiTiet: [] }; if (k) x[k] += n; ngay.set(d, x); return x; };
+  // ONGOING và ONE_TIME_SNAPSHOT cùng phủ một số ngày → cùng một dòng (ngày + mọi chiều) xuất hiện ở cả hai. Trước 12/10/2026 cộng cả
+  // hai = đếm đôi. Một báo cáo đã gộp sẵn theo tổ hợp chiều nên hai dòng y hệt chỉ có thể là cùng một sự thật → giữ một.
+  const daThay = new Set(), moi = (bc, x) => { const k = `${bc}|${Object.values(x).join('\t')}`; return !daThay.has(k) && (daThay.add(k), true); };
+  // Chi tiết từng dòng (anh cần xem lượt tải đến từ đâu, 12/10/2026): su = sự kiện, kèm nguồn/máy/iOS/nước/bản — tab Tài sản hiện ở drawer app.
+  const ghiDong = (x, su, n, them = {}) => cong(x.Date).chiTiet.push({ su, nguon: x['Source Type'] || null, trang: x['Page Type'] || null,
+    may: x.Device || null, os: x['Platform Version'] || null, nuoc: x.Territory || null, n, ...them });
   let coSo = false;
   for (const r of reqs.filter((x) => !x.attributes.stoppedDueToInactivity)) {
     const eng = await rows(r.id, 'App Store Discovery and Engagement Standard', since).catch((e) => (log(ten, 'engagement:', e.message), null));
     for (const x of eng ?? []) {
       if (x['App Apple Identifier'] && x['App Apple Identifier'] !== id) continue;
+      if (!moi('eng', x)) continue;
       const n = Number(x.Counts) || 0;
       if (x.Event === 'Impression') cong(x.Date, 'impressions', n);
       else if (x.Event === 'Page view') cong(x.Date, 'pageViews', n);
+      if (n) ghiDong(x, x.Event, n, x['Engagement Type'] ? { kieu: x['Engagement Type'] } : {});
     }
     const dl = await rows(r.id, 'App Downloads Standard', since).catch((e) => (log(ten, 'downloads:', e.message), null));
     for (const x of dl ?? []) {
       if (x['App Apple Identifier'] && x['App Apple Identifier'] !== id) continue;
+      if (!moi('dl', x)) continue;
       const n = Number(x.Counts) || 0, t = x['Download Type'] ?? '';
       if (/first/i.test(t)) cong(x.Date, 'firstTime', n);
       else if (/redownload|restore/i.test(t)) cong(x.Date, 'redownloads', n);
       else if (/update/i.test(t)) cong(x.Date, 'updates', n);
+      if (n) ghiDong(x, t, n, { ban: x['App Version'] || null });
     }
     // Tên cột/sự kiện lấy theo tài liệu Apple, chưa soát trên tệp thật (06/10) → lệch thì NÓI, đừng ra số 0 im lặng.
     const ev = new Set((eng ?? []).map((x) => x.Event)), ty = new Set((dl ?? []).map((x) => x['Download Type']));

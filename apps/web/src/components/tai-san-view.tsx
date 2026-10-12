@@ -12,6 +12,7 @@ import { TienDo } from '@/components/ui/tien-do';
 import { DataTable, Drawer, EntityRef, FilterChips, LinkChip, NgayLich, Panel, Pill, SelectField, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { BanXem } from './tai-san-ban-xem';
+import { BaoCaoAppStore } from './tai-san-bao-cao-app';
 import { extLinkProps, wrapExternalUrl } from '@/lib/external-url';
 import { useShallowParam } from '@/lib/url-shallow';
 import { TT_SP, gopBo, tenTrongBo, type TaiKhoan, type ShopNut, type SpNut, type TaiSanBan, type TrangThaiSp } from '@/lib/tai-san/kieu';
@@ -239,6 +240,7 @@ function SuaTrangThai({ x }: { x: SpNut }) {
 
 /** Drawer chi tiết một sản phẩm: ảnh lớn, link (href.li), shop + tài khoản, mọi số và ghi chú đầy đủ. */
 function ChiTietSp({ s, x, onClose }: { s: ShopNut; x: SpNut; onClose: () => void }) {
+  const laApp = s.khoa.startsWith('app-store:') && !!x.idSo;   // shop App Store (doc.ts: khoa = '<platform>:<store>')
   const dong: [string, React.ReactNode][] = [
     ['Shop', <><span style={{ display: 'inline-flex', verticalAlign: 'middle', marginRight: 6 }}><Logo s={s} /></span>{s.ten}{s.url && <> · <a {...extLinkProps(s.url)} style={{ color: 'var(--accent)' }}>mở shop ↗</a></>}</>],
     ['Tài khoản', s.tk ? <><TkRef tk={s.tk} />{s.tk.email && <span style={phu}> · {s.tk.email}</span>}</> : <span style={{ color: 'var(--warn)' }}>chưa có trong vault</span>],
@@ -252,7 +254,7 @@ function ChiTietSp({ s, x, onClose }: { s: ShopNut; x: SpNut; onClose: () => voi
     ['Thu', x.tien == null ? '— (chưa có nguồn đo)' : <>{tienTe(x.tien)} <span style={phu}>{x.ky === 'tron_doi' ? 'trọn đời' : '30 ngày'}</span></>],
   ];
   return (
-    <Drawer onClose={onClose} width={x.xem ? 760 : 560}>
+    <Drawer onClose={onClose} width={x.xem || laApp ? 760 : 560}>
       {/* data-ngu-canh: hòm góp ý MOS2 đọc chuỗi này làm ngữ cảnh → góp ý gửi từ đây tự gắn đúng sản phẩm */}
       <div style={{ display: 'grid', gap: 14 }} data-ngu-canh={`sản phẩm: ${x.ten} · ${s.ten}${x.idSo ? ` · sổ ${x.idSo}` : ''}`}>
         {x.anh && <Anh x={x} co={520} />}
@@ -268,6 +270,7 @@ function ChiTietSp({ s, x, onClose }: { s: ShopNut; x: SpNut; onClose: () => voi
         {x.ghiChu && <div><div style={{ fontSize: 11, ...phu, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Ghi chú</div>
           <div style={{ fontSize: 12.5, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{x.ghiChu}</div></div>}
         {x.xem && <BanXem x={x} />}
+        {laApp && <BaoCaoAppStore idSo={x.idSo!} />}
       </div>
     </Drawer>
   );

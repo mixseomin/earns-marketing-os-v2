@@ -96,6 +96,8 @@ async function get<T>(path: string, revalidate = 300): Promise<T[]> {
     return ((await r.json()) as { data?: T[] }).data ?? [];
   } catch { return []; }
 }
+/** Cùng lối đọc Directus (token server-side, timeout, thẻ bộ đệm) cho chỗ khác cần một bảng của sổ — vd báo cáo app (actions/bao-cao-app.ts). */
+export const docSo = get;
 
 const num = (v: unknown) => Number(v) || 0;
 

@@ -145,11 +145,14 @@ export const tenHieuUng = (k?: HieuUngKhung) => HIEU_UNG.find((h) => h.key === k
  *  crop KHÔNG có timeline (ffmpeg -filters) → rung/zoom tách luồng, bản rung/zoom phủ lại bằng overlay enable. */
 export function lopHieuUngLoc(l: Lop, W: number, H: number, vao: string, ra: string, i: number): string {
   const c = kep(l.cuong ?? 0.6, 0.05, 1), a = so(l.tu), b = so(l.den), en = `enable='between(t\\,${a}\\,${b})'`;
+  // Nhánh rung/zoom chỉ xử lý ĐÚNG khoảng của lớp (cắt ra, làm, trả về đúng giờ) — trước đây crop+scale toàn khung suốt cả phim cho mỗi lớp:
+  // phim #9 có 16 lớp impact → xuất mất >10 phút thay vì ~1 phút (12/10/2026).
+  const cua = `trim=start=${a}:end=${b},setpts=PTS-STARTPTS,`, ve = `,setpts=PTS+${a}/TB`;
   switch (l.hu) {
     case 'rung': { const A = Math.max(2, Math.round(W * 0.025 * c));
-      return `[${vao}]split=2[hu${i}a][hu${i}b];[hu${i}b]crop=${W - 2 * A}:${H - 2 * A}:'${A}+${A}*sin(t*53)':'${A}+${A}*cos(t*41)',scale=${W}:${H},setsar=1[hu${i}c];[hu${i}a][hu${i}c]overlay=0:0:${en}[${ra}]`; }
+      return `[${vao}]split=2[hu${i}a][hu${i}b];[hu${i}b]${cua}crop=${W - 2 * A}:${H - 2 * A}:'${A}+${A}*sin(t*53)':'${A}+${A}*cos(t*41)',scale=${W}:${H},setsar=1${ve}[hu${i}c];[hu${i}a][hu${i}c]overlay=0:0:eof_action=pass:${en}[${ra}]`; }
     case 'zoom': { const z = 1 + 0.12 * c; const cw = Math.round(W / z) & ~1, ch = Math.round(H / z) & ~1;
-      return `[${vao}]split=2[hu${i}a][hu${i}b];[hu${i}b]crop=${cw}:${ch}:${(W - cw) >> 1}:${(H - ch) >> 1},scale=${W}:${H},setsar=1[hu${i}c];[hu${i}a][hu${i}c]overlay=0:0:${en}[${ra}]`; }
+      return `[${vao}]split=2[hu${i}a][hu${i}b];[hu${i}b]${cua}crop=${cw}:${ch}:${(W - cw) >> 1}:${(H - ch) >> 1},scale=${W}:${H},setsar=1${ve}[hu${i}c];[hu${i}a][hu${i}c]overlay=0:0:eof_action=pass:${en}[${ra}]`; }
     case 'chop': return `[${vao}]eq=brightness='${so(0.6 * c)}*max(0\\,1-(t-${a})/0.35)':eval=frame:${en}[${ra}]`;
     case 'mo': return `[${vao}]gblur=sigma=${so(3 + 14 * c)}:${en}[${ra}]`;
     case 'den_trang': return `[${vao}]hue=s=0:${en}[${ra}]`;

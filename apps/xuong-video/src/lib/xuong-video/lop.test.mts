@@ -38,7 +38,9 @@ console.log('lop.test: ok');
   const { lopHieuUngLoc, hieuUngKhungTai, HIEU_UNG, GO_CHU_MS } = await import('./lop');
   const hu = (k: string, tu: number) => lopMoi('hieu_ung', tu, { hu: k as never, cuong: 1 });
   assert.ok(lopHieuUngLoc(hu('chop', 1), W, H, 'a', 'b', 0).startsWith("[a]eq=brightness='0.6*max(0\\,1-(t-1)/0.35)':eval=frame:enable='between(t\\,1\\,2)'[b]"));
-  assert.ok(lopHieuUngLoc(hu('rung', 0), W, H, 'a', 'b', 3).includes('[hu3a][hu3c]overlay=0:0:enable='));   // crop không có timeline → tách luồng + overlay
+  const r = lopHieuUngLoc(hu('rung', 0), W, H, 'a', 'b', 3);
+  assert.ok(r.includes('[hu3a][hu3c]overlay=0:0:eof_action=pass:enable='));   // crop không có timeline → tách luồng + overlay
+  assert.ok(r.includes('[hu3b]trim=start=0:end=') && r.includes(',setpts=PTS+0/TB[hu3c]'), 'nhánh rung chỉ xử lý đúng khoảng của lớp');
   assert.strictEqual(HIEU_UNG.length, 8);
   for (const h of HIEU_UNG) assert.ok(!lopHieuUngLoc(hu(h.key, 0), W, H, 'a', 'b', 0).includes('null'), h.key);
   const k = hieuUngKhungTai([hu('den_trang', 0), hu('zoom', 0), hu('chop', 5)], 0.5, 270);

@@ -214,13 +214,14 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
       if (tg.closest('input, textarea, select, [contenteditable="true"]') || document.querySelector('.xv-drawer.nho, [data-animatic]')) return;
       // Lớp phủ đang chọn (#1289): Del/Backspace xoá · Esc bỏ chọn · ⌘G gộp nhóm · ⇧⌘G bỏ nhóm.
       if (chonLops.length && (e.key === 'Delete' || e.key === 'Backspace')) { e.preventDefault(); xoaChon(); return; }
-      if (chonLops.length && e.key === 'Escape') { setChonLops([]); return; }
+      // Esc khi đang chọn lớp = CHỈ bỏ chọn — chặn để ngăn phim (ngan.tsx, cùng nghe Esc trên window) không đóng theo.
+      if (chonLops.length && e.key === 'Escape') { e.stopImmediatePropagation(); setChonLops([]); return; }
       if (chonLops.length && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'g') { e.preventDefault(); if (e.shiftKey) boNhomChon(); else gopChon(); return; }
       if (e.key === ' ') { e.preventDefault(); setChay((x) => { if (!x && t >= tong) setT(0); return !x; }); }
       if (e.key === 'ArrowRight') tuaToi(batDau[Math.min(canh.length - 1, idx + 1)] ?? 0);
       if (e.key === 'ArrowLeft') tuaToi(batDau[Math.max(0, tTrong > 0.5 ? idx : idx - 1)] ?? 0);
     };
-    window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h);
+    window.addEventListener('keydown', h, true); return () => window.removeEventListener('keydown', h, true);   // pha bắt: chạy trước nghe Esc của ngăn
   }); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Kéo mép phải clip hình → đổi số giây THỰC PHÁT (bước 0,5s, 1–15s); thả tay mới ghi. Ngắn hơn clip = cắt; dài hơn clip = sinh lại clip dài hơn.
@@ -494,7 +495,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                 <KhoiLop l={le} pps={pps} chon={chonLops.includes(le.id)} cung={cungNhom(le)} onChon={(them) => bamLop(le.id, them)} onDoi={doiLop} />, 20, nutAn, le.id, (them) => bamLop(le.id, them), chonLops.includes(le.id))}</Fragment>;
               const mo = moLan.includes(ln.key);
               const nutMo = nutNho(mo ? '▾' : '▸', mo ? 'Gộp lại thành một làn' : 'Mở ra từng lớp (chớp / rung / zoom…) để sửa riêng — vẫn giữ nhóm', !mo, () => setMoLan((d) => (mo ? d.filter((x) => x !== ln.key) : [...d, ln.key])));
-              const nutBo = nutNho('Bỏ nhóm', 'Tách mọi nhóm trong làn này thành lớp lẻ — có ↶ hoàn tác, và "⛓ Gộp lại" ở làn 🧩 Lớp phủ trả đúng nhóm cũ', true, () => boNhomIds(ids));
+              const nutBo = nutNho('✂', 'Bỏ nhóm: tách mọi nhóm trong làn này thành lớp lẻ — có ↶ hoàn tác, và "⛓ Gộp lại" ở làn 🧩 Lớp phủ trả đúng nhóm cũ', true, () => boNhomIds(ids));
               // Mở ra: mỗi tên lớp con một làn ("Impact · chớp" của cả 8 nhóm chung một làn) — kéo mép đổi giờ riêng lớp, kéo thân dời cả nhóm.
               const con = [...new Set(tat.map((x) => tenLop(x)))];
               return <Fragment key={ln.key}>

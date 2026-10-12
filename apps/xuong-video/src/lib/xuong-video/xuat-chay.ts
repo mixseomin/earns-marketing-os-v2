@@ -116,7 +116,12 @@ export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; canh: Canh[]; 
     if (!kh.args.length) return { ok: false, loi: `không shot nào có clip/keyframe tải được${kh.canhThieu.length ? ` (${kh.canhThieu.join(', ')})` : ''}` };
     await Promise.all(kh.tep.map((t) => writeFile(t.duong, t.noiDung, 'utf8')));
     try { await run('ffmpeg', kh.args, { timeout: 15 * 60_000, maxBuffer: 8 << 20 }); }
-    catch (e) { const err = e as { stderr?: string; message?: string }; return { ok: false, loi: `ffmpeg: ${(err.stderr || err.message || String(e)).trim().split('\n').slice(-3).join(' · ').slice(0, 400)}` }; }
+    catch (e) {
+      const err = e as { stderr?: string; message?: string; killed?: boolean; signal?: string };
+      // Bị dừng vì quá giờ thì stderr rỗng và message chỉ là nguyên câu lệnh (job 521, 12/10/2026) — nói thẳng lý do.
+      if (err.killed || err.signal) return { ok: false, loi: `ffmpeg quá 15 phút, đã dừng (${err.signal ?? 'timeout'}) — dựng quá nặng (nhiều lớp hiệu ứng/phân giải cao?)` };
+      return { ok: false, loi: `ffmpeg: ${(err.stderr?.trim() ? err.stderr : err.message || String(e)).trim().split('\n').slice(-3).join(' · ').slice(0, 400)}` };
+    }
     const im = await doKhoangIm(ra, kh.giay, thuMuc);
     const ngan = await tiengNganHon(ra);
     const vi = (x: number) => (Math.round(x * 10) / 10).toString().replace('.', ',');

@@ -326,7 +326,7 @@ export function LopBang({ l, t, onDoi, onXoa, onNhanBan, onLenXuong, onDong }: {
 }
 
 /** Khối thời gian của một lớp trên làn timeline: kéo thân = dời, kéo hai mép = đổi giờ vào/ra. */
-export function KhoiLop({ l, pps, chon, cung, onChon, onDoi }: { l: Lop; pps: number; chon: boolean;
+export function KhoiLop({ l, pps, chon, cung, onChon, onDoi, nhom }: { l: Lop; pps: number; chon: boolean; /** khối đại diện cả nhóm: chỉ kéo thân (dời cả nhóm), không kéo mép */ nhom?: boolean;
   /** các lớp dời giờ CÙNG khi kéo thân (vùng chọn / nhóm có lớp này) */ cung: Lop[]; onChon: (them: boolean) => void; onDoi: (id: string, p: Partial<Lop>) => void }) {
   const keo = (kieu: 'than' | 'trai' | 'phai') => (e: PE<HTMLDivElement>) => {
     e.preventDefault(); e.stopPropagation();
@@ -348,9 +348,9 @@ export function KhoiLop({ l, pps, chon, cung, onChon, onDoi }: { l: Lop; pps: nu
     <div onPointerDown={keo('than')} data-goi-y={`${tenLop(l)}\nvào ${l.tu}s · ra ${l.den}s\nkéo để dời · kéo mép để đổi giờ`}
       style={{ position: 'absolute', left: l.tu * pps, width: Math.max(6, (l.den - l.tu) * pps), top: 2, bottom: 2, borderRadius: 4, cursor: 'grab', touchAction: 'none', opacity: l.an ? 0.4 : 1,
         background: 'var(--bg-2)', border: `1px solid ${chon ? 'var(--cyan)' : 'var(--line)'}`, outline: chon ? '1px solid var(--cyan)' : undefined, color: chon ? 'var(--fg-1)' : 'var(--fg-2)', fontSize: 10, lineHeight: '14px', padding: '0 8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-      <div onPointerDown={keo('trai')} style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 6, cursor: 'ew-resize' }} />
-      {l.nhom ? '⛓ ' : ''}{ICON_LOAI[l.loai]} {tenLop(l)}
-      <div onPointerDown={keo('phai')} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 6, cursor: 'ew-resize' }} />
+      {!nhom && <div onPointerDown={keo('trai')} style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 6, cursor: 'ew-resize' }} />}
+      {l.nhom ? '⛓ ' : ''}{nhom ? '' : `${ICON_LOAI[l.loai]} `}{tenLop(l)}
+      {!nhom && <div onPointerDown={keo('phai')} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 6, cursor: 'ew-resize' }} />}
     </div>
   );
 }

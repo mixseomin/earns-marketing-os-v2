@@ -74,3 +74,18 @@ console.log('lop.test: ok');
   assert.deepStrictEqual([q.b!.x, q.b!.w, q.b!.h], [0.7, 0.4, 0.2]);
   console.log('lop.test: nhóm ok');
 }
+// Làn timeline (12/10/2026): 8 impact × 3 lớp nhóm → MỘT làn "Impact" 8 khối; lớp lẻ vẫn mỗi lớp một làn; nhóm chồng giờ nhau thì tách làn.
+{
+  const { lanLop } = await import('./lop');
+  const { lopImpact } = await import('./nhip-hanh-dong');
+  const imp = [1, 3, 5, 7, 9, 11, 13, 15].flatMap((t) => lopImpact(t));
+  const le = lopMoi('chu', 2, { chu: 'xin chào' });
+  const ln = lanLop([le, ...imp]);
+  assert.strictEqual(ln.length, 2, ln.map((x) => x.nhan).join('|'));
+  assert.strictEqual(ln.find((x) => x.nhan === 'Impact')!.khoi.length, 8);
+  assert.ok(ln.find((x) => x.nhan === 'Impact')!.khoi.every((k) => k.length === 3));
+  assert.strictEqual(ln[ln.length - 1]!.khoi[0]![0]!.id, le.id, 'lớp lưu trước nằm dưới');
+  const chong = lanLop([...lopImpact(1), ...lopImpact(1.1)]);
+  assert.strictEqual(chong.length, 2, 'hai impact chồng giờ không chung làn');
+}
+console.log('lop.test: làn ok');

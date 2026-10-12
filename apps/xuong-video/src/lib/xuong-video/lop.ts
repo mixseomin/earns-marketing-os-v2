@@ -22,6 +22,22 @@ export function chonLopMoi(ds: Lop[], dang: string[], id: string, them: boolean)
   return n.every((x) => dang.includes(x)) ? dang.filter((x) => !n.includes(x)) : [...dang, ...n.filter((x) => !dang.includes(x))];
 }
 /** Gộp ≥2 lớp thành một đối tượng (mã nhóm mới; nhóm cũ bên trong tan vào nhóm mới). Dưới 2 lớp → giữ nguyên. */
+/** Tên một nhóm lớp trên timeline: phần chung trước " · " của tên các lớp ("Impact · chớp/rung/zoom" → "Impact"), không có thì "Nhóm N lớp". */
+export const tenNhom = (ds: Lop[]): string => { const p = ds.map((l) => tenLop(l).split(' · ')[0]!); return p.every((x) => x === p[0]) && p[0] ? p[0] : `Nhóm ${ds.length} lớp`; };
+/** Làn lớp phủ trên timeline (12/10/2026 — 8 impact × 3 lớp thành 24 làn): lớp lẻ một làn như cũ (giữ thứ tự vẽ: làn trên = vẽ trên);
+ *  mỗi NHÓM là một khối, và các nhóm cùng tên không chồng giờ xếp chung một làn. `ds` theo thứ tự lưu, kết quả theo thứ tự hiện (trên → dưới). */
+export function lanLop(ds: Lop[]): { key: string; nhan: string; khoi: Lop[][] }[] {
+  const lan: { key: string; nhan: string; khoi: Lop[][] }[] = []; const daNhom = new Set<string>();
+  for (const l of [...ds].reverse()) {
+    if (!l.nhom) { lan.push({ key: l.id, nhan: tenLop(l), khoi: [[l]] }); continue; }
+    if (daNhom.has(l.nhom)) continue; daNhom.add(l.nhom);
+    const k = ds.filter((x) => x.nhom === l.nhom); const nhan = tenNhom(k);
+    const tu = Math.min(...k.map((x) => x.tu)), den = Math.max(...k.map((x) => x.den));
+    const cho = lan.find((x) => x.nhan === nhan && x.khoi[0]!.length > 1 && x.khoi.every((b) => Math.max(...b.map((y) => y.den)) <= tu || Math.min(...b.map((y) => y.tu)) >= den));
+    if (cho) cho.khoi.push(k); else lan.push({ key: `nhom:${l.nhom}`, nhan, khoi: [k] });
+  }
+  return lan;
+}
 export const gopNhom = (ds: Lop[], ids: string[], ma = idLop()): Lop[] => (ids.length < 2 ? ds : ds.map((l) => (ids.includes(l.id) ? { ...l, nhom: ma } : l)));
 export const boNhom = (ds: Lop[], ids: string[]): Lop[] => ds.map((l) => (ids.includes(l.id) && l.nhom ? { ...l, nhom: undefined } : l));
 /** Đổi cỡ (k) + xoay (độ) cả vùng chọn quanh tâm (cx, cy chuẩn hoá) — vị trí từng lớp xoay/co theo tâm chung, cỡ và góc riêng cộng thêm.

@@ -20,7 +20,7 @@ import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 import { mono, Menu } from './ui';
 import { docLT, ghiLT } from '@/lib/luu-tru';
-import { lopMoi, idLop, tenLop, chonLopMoi, nhomCua, gopNhom, boNhom } from '@/lib/xuong-video/lop';
+import { lopMoi, idLop, chonLopMoi, nhomCua, gopNhom, boNhom, lanLop } from '@/lib/xuong-video/lop';
 import { useLop, LopXem, LopCongCu, LopNguyenLieu, LopBang, LopNhieu, KhoiLop, KhungHieuUng } from './lop-ui';
 import { moNgan } from './ngan-chung';
 import { useKichThuoc, TayKeo } from './keo';
@@ -448,9 +448,12 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           }), 26, nutNho(anChuMan ? '🙈' : '👁', anChuMan ? 'Chữ màn đang ẩn khỏi khung xem (bản xuất vẫn có) — bấm để hiện' : 'Ẩn chữ màn khỏi khung xem để nhìn hình sạch (bản xuất vẫn có)', anChuMan, () => doiAnLan('xem:chu_man')))}
 
           {/* Lớp phủ: mỗi lớp một làn (lớp sau nằm trên), kéo khối đổi giờ — bấm chọn để sửa ở bảng bên phải khung xem. */}
-          {lop.length ? [...lop].reverse().map((l) => track(`⋮⋮ ${tenLop(l)}`, 'Lớp phủ — kéo thân để dời, kéo mép để đổi giờ vào/ra; bấm để sửa',
-              <KhoiLop l={l} pps={pps} chon={chonLops.includes(l.id)} cung={chonLops.includes(l.id) ? dsChonLop : lop.filter((x) => nhomCua(lop, l.id).includes(x.id))} onChon={(them) => bamLop(l.id, them)} onDoi={doiLop} />, 20,
-              nutNho(l.an ? '🙈' : '👁', l.an ? 'Lớp đang ẩn (không hiện, không xuất) — bấm để hiện' : 'Ẩn lớp này (không hiện, không xuất)', !!l.an, () => doiLop(l.id, { an: !l.an })), l.id))
+          {lop.length ? lanLop(lop).map((ln) => {
+              const le = ln.khoi.length === 1 && ln.khoi[0]!.length === 1 ? ln.khoi[0]![0]! : null; const ids = ln.khoi.flat().map((x) => x.id); const an = ln.khoi.flat().every((x) => x.an);
+              return track(le ? `⋮⋮ ${ln.nhan}` : `⛓ ${ln.nhan}${ln.khoi.length > 1 ? ` ×${ln.khoi.length}` : ''}`, le ? 'Lớp phủ — kéo thân để dời, kéo mép để đổi giờ vào/ra; bấm để sửa' : 'Nhóm lớp (mỗi khối một nhóm) — kéo khối dời cả nhóm, bấm để chọn cả nhóm; "Bỏ nhóm" ở bảng bên phải để sửa từng lớp',
+                <>{ln.khoi.map((k) => { const l = k[0]!; return <KhoiLop key={l.id} l={le ? l : { ...l, tu: Math.min(...k.map((x) => x.tu)), den: Math.max(...k.map((x) => x.den)), ten: ln.nhan }} nhom={!le} pps={pps} chon={k.some((x) => chonLops.includes(x.id))} cung={chonLops.includes(l.id) ? dsChonLop : lop.filter((x) => nhomCua(lop, l.id).includes(x.id))} onChon={(them) => bamLop(l.id, them)} onDoi={doiLop} />; })}</>, 20,
+                nutNho(an ? '🙈' : '👁', an ? 'Đang ẩn (không hiện, không xuất) — bấm để hiện' : 'Ẩn (không hiện, không xuất)', an, () => datLop((ds) => ds.map((x) => (ids.includes(x.id) ? { ...x, an: !an } : x)))), le ? le.id : undefined);
+            })
             : track('🧩 Lớp phủ', 'Chữ, ảnh, hình khối tự do đè lên video', <button type="button" className="xv-lienket xv-mono" style={{ lineHeight: '20px', paddingLeft: 6 }} onClick={() => themLop([lopMoi('chu', t)])}>chưa có lớp — bấm để thêm lớp chữ ở giây {t.toFixed(1)}</button>, 20)}
           {track('🎬 Hình', 'Mỗi cảnh một clip, dài đúng số giây', canh.map((cc, i) => {
             const x = batDau[i]! * pps; const w = dur(cc) * pps; const anh = cc.keyframe_url;

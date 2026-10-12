@@ -3,7 +3,7 @@
  "ten": "Astrolas · Double Retrograde — Maya (action short, bản nháp v2)",
  "mo_ta": "Short dọc nhịp nhanh kiểu phim hành động, có nhân vật chính Maya (nhân vật hư cấu, kịch hoá — không phải lời chứng thực khách thật). Mục tiêu: ký hợp đồng đời mình ngày 02/11. Vấn đề: 24/10 Sao Thuỷ nghịch hành + Sao Kim cũng nghịch hành → email hợp đồng bị trả về, đối tác hiểu sai tin nhắn, người cũ quay lại. Cao trào: đêm cuối trên sân thượng dưới mưa, suýt ký liều. Quay đầu: mở Astrolas — bảng Transit Planets thật 01/11/2026 (Mercury R 16°26' Scorpio, Venus R 26°09' Libra, cùng nhà 8 của lá số minh hoạ). Giải quyết: dời ngày ký qua 13/11, đọc lại thì bắt được điều khoản bẫy, 14/11 ký thắng. Ngày nghịch hành 24/10–13/11/2026 đã kiểm (Chani, Farmers' Almanac).",
  "kinh_thanh": {
-  "phong_cach": "High-octane cinematic action-thriller look for a vertical social video: night city, rain, teal-and-orange grade, anamorphic lens flares, sparks, shattering glass and floating debris; cosmic inserts of a small steel-grey planet Mercury with a fiery rim (NO rings) and a pale golden glowing planet Venus (NO rings); hyper-real premium blockbuster; the hero Maya is the only person in focus, any other people only as blurred silhouettes",
+  "phong_cach": "High-octane cinematic action-thriller look for a vertical social video: teal-and-orange grade, anamorphic lens flares, sparks, shattering glass and floating debris; hyper-real premium blockbuster. TIME OF DAY follows the story: act 1 bright hopeful daylight, act 2 dusk turning into a stormy rainy night, act 3 golden sunrise. Planets appear ONLY in deep-space / sky-insert shots — never in interiors, never in daytime skies: Mercury is a small grey cratered rocky planet round like the Moon with an orange sunlit edge, Venus a pale golden glowing planet, neither has rings. The hero Maya is the only person in focus; any other people only as blurred silhouettes",
   "ti_le": "9:16",
   "do_phan_giai": "720p",
   "mo_hinh_anh": "gemini-nano-banana-2.1",
@@ -75,6 +75,31 @@
    "loai": "boi_canh",
    "ten": "Sunrise boardroom",
    "mo_ta": "A high-rise glass boardroom at sunrise: long white marble table, black leather chairs, floor-to-ceiling windows flooded with golden morning sun over the city skyline"
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Startup office (day)",
+   "mo_ta": "A glass-walled startup office on a high floor in bright late-morning daylight: one long oak desk covered in hardware prototypes, cables and yellow sticky notes, a large wall screen, floor-to-ceiling windows on a sunny city skyline with blue sky, clean warm light, no planets in the sky"
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Café",
+   "mo_ta": "A busy downtown café on an overcast afternoon: small marble tables by a big rain-speckled window, espresso cups, warm pendant lamps, soft grey daylight, blurred passers-by outside, no planets"
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Taxi in the rain",
+   "mo_ta": "The back seat of a yellow city taxi at dusk in a heavy storm: rain streaking the side window, smeared red and orange traffic lights outside, wipers beating, dim cabin light, no planets"
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Investor lobby",
+   "mo_ta": "A tall marble-and-glass corporate lobby at night: polished black floor, a long reception desk, a wall of brushed-steel elevator doors, cold white downlights, rain on the glass entrance, no planets"
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Boardroom at sunrise",
+   "mo_ta": "A high-rise glass boardroom at golden sunrise: long white marble table, black leather chairs, floor-to-ceiling windows flooded with warm gold morning sun over a clear city skyline, no planets, calm and clean"
   }
  ],
  "tap": {

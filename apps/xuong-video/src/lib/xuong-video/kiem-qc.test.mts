@@ -126,3 +126,10 @@ console.log('kiem-qc.test: mẫu ok');
   assert.ok(!k.ok && k.chu.includes('1 shot') && k.chiTiet!.includes('#2'), JSON.stringify(k));
   console.log('kiem-qc.test: lệch cảm xúc ok');
 }
+// Bộ dò tiếng Việt chỉ bắt chữ riêng của tiếng Việt — từ mượn có dấu sắc/huyền (café, résumé) không bị chặn oan (12/10/2026).
+{
+  const { coTiengViet } = await import('./kieu');
+  assert.ok(!coTiengViet('Café') && !coTiengViet('résumé') && !coTiengViet('piñata'));
+  assert.ok(coTiengViet('Giảm giá hôm nay') && coTiengViet('Đi chơi') && coTiengViet('người'));
+  console.log('kiem-qc.test: dò tiếng Việt ok');
+}

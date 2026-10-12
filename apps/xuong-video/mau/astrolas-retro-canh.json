@@ -50,7 +50,7 @@
    "phat_s": 3.0,
    "nhan_vat": [
     "Maya",
-    "Startup office"
+    "Startup office (day)"
    ],
    "bien_the": [],
    "prompt_anh": "Maya alone in a glass startup office at night, sleeves pushed up, leaning over a desk covered in prototypes and sticky notes, a huge glowing screen behind her showing a launch countdown, city skyline outside, confident half-smile",
@@ -122,7 +122,7 @@
    "phat_s": 1.8,
    "nhan_vat": [
     "Maya",
-    "Startup office"
+    "Startup office (day)"
    ],
    "bien_the": [],
    "prompt_anh": "Close-up of Maya at her laptop at night, red warning light from the screen on her shocked face, the laptop sparking at the hinge, papers lifting off the desk",
@@ -188,6 +188,42 @@
    ]
   },
   {
+   "canh": "Problem · partner walks",
+   "goc_may": "",
+   "hanh_dong": "Rack focus from the empty chair to Maya as the blurred silhouette pushes out through the café door.",
+   "loi_thoai": "",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 2.0,
+   "nhan_vat": [
+    "Maya",
+    "Café"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Maya sitting alone at a café table by the window, stunned, an empty chair opposite her with a half-finished espresso, a blurred male silhouette walking out of the door in the background, overcast daylight",
+   "prompt_video": "Rack focus from the empty chair to Maya as the blurred silhouette pushes out through the café door.",
+   "phan_doan": "Everything falls apart",
+   "cam_xuc": -3,
+   "ky_thuat": {
+    "co_canh": "ms",
+    "chuyen_dong": "doi_net",
+    "anh_sang": "cua_so",
+    "chuyen_canh": "cat_soc",
+    "am_thanh": [
+     "dap_doa"
+    ]
+   },
+   "trang_phuc": "charcoal blazer, black t-shirt, gold star pendant",
+   "chu_man": "HE WALKED.",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "deep gravelly male movie-trailer narrator, tense and urgent, punchy short phrases, dramatic pauses, triumphant at the end",
+     "loi": "...and walked away from the deal."
+    }
+   ]
+  },
+  {
    "canh": "Problem · Venus too",
    "goc_may": "",
    "hanh_dong": "Dolly zoom vertigo on the doorway: the silhouette stays the same size while the hallway stretches behind him.",
@@ -220,6 +256,81 @@
      "nhan_vat": "",
      "dien_xuat": "deep gravelly male movie-trailer narrator, tense and urgent, punchy short phrases, dramatic pauses, triumphant at the end",
      "loi": "And Venus turned back too... her ex walked back in."
+    }
+   ]
+  },
+  {
+   "canh": "Problem · stuck in the storm",
+   "goc_may": "",
+   "hanh_dong": "Handheld: the taxi lurches, wipers beat, red light sweeps across her face as she checks the phone.",
+   "loi_thoai": "",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 2.6,
+   "nhan_vat": [
+    "Maya",
+    "Taxi in the rain"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Close-up of Maya in the back seat of a taxi at dusk in a storm, rain streaking the window beside her, red traffic lights smearing across her anxious face, phone in hand",
+   "prompt_video": "Handheld: the taxi lurches, wipers beat, red light sweeps across her face as she checks the phone.",
+   "phan_doan": "Everything falls apart",
+   "cam_xuc": -4,
+   "ky_thuat": {
+    "co_canh": "cu",
+    "chuyen_dong": "cam_tay",
+    "anh_sang": "neon",
+    "toc_do": "nhanh",
+    "chuyen_canh": "quat_chuyen",
+    "am_thanh": [
+     "mua",
+     "cuon_len"
+    ]
+   },
+   "trang_phuc": "charcoal blazer, black t-shirt, gold star pendant",
+   "chu_man": "STUCK.\n@0.8 LATE.",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "deep gravelly male movie-trailer narrator, tense and urgent, punchy short phrases, dramatic pauses, triumphant at the end",
+     "loi": "Stuck in the storm. Late for the meeting that mattered."
+    }
+   ]
+  },
+  {
+   "canh": "Problem · doors closed",
+   "goc_may": "",
+   "hanh_dong": "The elevator doors slam shut in front of her as the camera pulls back fast; she stops dead.",
+   "loi_thoai": "",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 2.2,
+   "nhan_vat": [
+    "Maya",
+    "Investor lobby"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Wide shot of Maya soaked from the rain, running across a polished marble corporate lobby at night toward a wall of steel elevator doors that are sliding shut",
+   "prompt_video": "The elevator doors slam shut in front of her as the camera pulls back fast; she stops dead.",
+   "phan_doan": "Everything falls apart",
+   "cam_xuc": -4,
+   "ky_thuat": {
+    "co_canh": "ws",
+    "chuyen_dong": "lui_ra",
+    "anh_sang": "tuong_phan",
+    "toc_do": "ramp_treo",
+    "chuyen_canh": "cat_soc",
+    "am_thanh": [
+     "dap"
+    ]
+   },
+   "trang_phuc": "charcoal blazer, black t-shirt, gold star pendant",
+   "chu_man": "DOORS CLOSED.",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "deep gravelly male movie-trailer narrator, tense and urgent, punchy short phrases, dramatic pauses, triumphant at the end",
+     "loi": "The doors closed without her."
     }
    ]
   },
@@ -454,7 +565,7 @@
    "phat_s": 2.6,
    "nhan_vat": [
     "Maya",
-    "Sunrise boardroom"
+    "Boardroom at sunrise"
    ],
    "bien_the": [],
    "prompt_anh": "Maya signing a contract at a glass table in a sunlit high-rise boardroom at sunrise, golden light flooding in, gold confetti sparks frozen in the air, a confident smile",

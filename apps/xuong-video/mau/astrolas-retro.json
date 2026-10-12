@@ -50,6 +50,31 @@
    "anh_ref": [
     "https://img.on.tc/xuong-video/astrolas/ba542800-a092-4262-9da6-e7099e9a8c1a.png"
    ]
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Rooftop at night",
+   "mo_ta": "The flat rooftop of a dark Manhattan-style high-rise at night: low concrete parapet ledge, two old wooden water tanks, a rusty steel access door with a single caged bulb, puddles on black tar, the glittering city skyline beyond, teal and orange city glow"
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Startup office",
+   "mo_ta": "A glass-walled startup office on a high floor at night: one long oak desk covered in hardware prototypes, cables and yellow sticky notes, a large wall screen, floor-to-ceiling windows on the city skyline, cool blue monitor light with warm desk lamps"
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Maya's apartment",
+   "mo_ta": "Maya's small modern city apartment at night: dark wood floor, a narrow desk under a brass desk lamp, a tall window with rain and city lights, a front door opening to a warm-lit hallway, a few plants and stacked books, moody low light"
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Neon street",
+   "mo_ta": "A rain-soaked downtown street at night: neon shop signs in teal, magenta and orange reflected on wet black asphalt, blurred traffic lights, steam rising from a grate, tall buildings on both sides"
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Sunrise boardroom",
+   "mo_ta": "A high-rise glass boardroom at sunrise: long white marble table, black leather chairs, floor-to-ceiling windows flooded with golden morning sun over the city skyline"
   }
  ],
  "tap": {

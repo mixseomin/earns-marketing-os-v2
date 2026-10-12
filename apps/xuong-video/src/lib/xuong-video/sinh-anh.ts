@@ -6,7 +6,7 @@ import { promptAnhMau } from './claude';
 import { promptCamXuc } from './am-thanh';
 import { promptKyThuatAnh } from './dien-anh';
 import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, MO_HINH_ANH, type KinhThanh, type NhanVat, type PhanCanh } from './kieu';
-import { thieuPhanCanh } from './phu-thuoc';
+import { thieuPhanCanh, thieuMau } from './phu-thuoc';
 import { boiCanhCanh, mapNhanVat, taoJob, type Db, type Row } from './doc-db';
 
 export type KqSinh<T> = { ok: true; data: T } | { ok: false; loi: string };
@@ -100,6 +100,9 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
   const pcTap = (await db.execute(sql`SELECT phan_canh FROM xv_tap WHERE id = ${bc.canh.tap_id}`)) as unknown as Row[];
   const thieuPc = thieuPhanCanh(Array.isArray(pcTap[0]?.phan_canh) ? (pcTap[0]!.phan_canh as PhanCanh[]) : [], bc.canh);
   if (thieuPc) return loi(`Shot #${bc.canh.thu_tu}: ${thieuPc}`);
+  const nvPhim = ((await db.execute(sql`SELECT id, ten, loai FROM xv_nhan_vat WHERE phim_id = (SELECT phim_id FROM xv_tap WHERE id = ${bc.canh.tap_id})`)) as unknown as Row[]).map((r) => ({ id: Number(r.id), ten: String(r.ten), loai: String(r.loai) as NhanVat['loai'] }));
+  const tm = thieuMau(bc.canh, nvPhim);
+  if (tm.length) return loi(`Shot #${bc.canh.thu_tu}: ${tm.join('; ')}`);
   if (!bc.canh.prompt_anh.trim()) return loi('cảnh chưa có prompt ảnh');
   if (moHinh && (moHinh.startsWith('fal:') || MO_HINH_ANH.some((m) => m.key === moHinh))) bc.kt.mo_hinh_anh = moHinh as typeof bc.kt.mo_hinh_anh;
   await db.execute(sql`UPDATE xv_canh SET loi = '' WHERE id = ${canhId}`);

@@ -12,6 +12,7 @@ import http from 'node:http';
 import { parseFm } from '../scripts/fm.mjs';
 import { ghiLog } from './log.mjs';
 import { vpBao } from './vp.mjs';
+import { hoSoViec } from './ho-so.mjs';
 import { json, hienHanh, dsBan, mayDo, dien as dienMau, LOAI_DO, quyDinhCuaPhong, tenPhong, giaiNguoi } from './quy-trinh.mjs';
 
 const DIR = path.join(GOC, 'worker');   // không dùng import.meta.url: xem worker/goc.mjs
@@ -29,8 +30,13 @@ export const nhanSu = (id, luot) => { const rel = `nhan-su/${id}/SOUL.md`; const
 const NHIP = Math.min(Math.max(Number(process.argv.includes('--nhip') ? process.argv[process.argv.indexOf('--nhip') + 1] : 0) || 0, 0), 30);
 const tenCua = (id) => id === 'giam-doc' ? 'Giám đốc' : (() => { try { return String(doc(`nhan-su/${id}/SOUL.md`).fm.ten || id); } catch { return id; } })();
 
+// HỒ SƠ VIỆC trong lời dặn của MỌI người trong lượt (worker/ho-so.mjs). Lượt không ghép hồ sơ (bộ việc chuẩn, dò model) → không có khối này.
+const khoiHoSoLuot = (hs) => (hs === undefined ? '' : hs.du_an?.length
+  ? `\n\nHỒ SƠ VIỆC (nguồn DUY NHẤT về sản phẩm/dự án, lấy từ MOS2 — chỉ khẳng định điều có ở đây; điều không có thì không viết, không đoán tính năng, số liệu, giá, lời hứa; không dùng điều hồ sơ CẤM nói):\n${hs.khoi}`
+  : `\n\nHỒ SƠ VIỆC: không có (${hs.loi ?? hs.khong}). Không tự bịa thông tin về sản phẩm, thương hiệu hay dự án cụ thể nào ngoài điều câu việc đã nói.`);
+export const LOI_HO_SO = '\nĐỐI CHIẾU HỒ SƠ VIỆC trước khi giao: (1) việc nhắc sản phẩm/thương hiệu/dự án mà cả câu việc lẫn HỒ SƠ VIỆC đều không đủ thông tin để viết đúng → KHÔNG giao, hỏi Giám đốc; (2) việc nêu một nơi đăng cụ thể (nhóm, diễn đàn, subreddit…) mà hồ sơ chưa có luật của nơi đó, và nội dung là giới thiệu/quảng bá lạc chủ đề với người ở nơi đó → KHÔNG giao, nêu rủi ro (bị coi là quảng cáo rác, bị xoá bài/khoá tài khoản) và hỏi Giám đốc có giữ không. Cả hai trả JSON {"thieu":"<rủi ro + một câu hỏi cụ thể>"}.';
 /** Lời hệ thống của một nhân sự trong một lượt — một bản cho lượt thật lẫn dò model (worker/do-model.mjs). */
-export const heThong = (ns, nk) => `Bạn là ${ns.ten}, ${ns.vai?.ten ?? ns.chuc_danh}, ${nk.ten_phong ?? 'công ty'}. LUẬT CHUNG (rút gọn): ba mức quyết định; việc nộp phải có bằng chứng; không khen mở đầu; trả lời đúng định dạng được yêu cầu, không thêm lời dẫn.\n\n${nk.quy_dinh ? `\n\nQUY ĐỊNH DỰ ÁN PHÒNG PHẢI TUÂN THEO (trên quy trình của phòng, không được làm trái):\n${nk.quy_dinh}` : ''}${ns.vai ? `\n\nVAI CỦA BẠN Ở PHÒNG — ${ns.vai.ten}:\n${ns.vai.body}` : ''}${loiDanTinhCach(ns.tinh_cach ?? [])}${loiDanKinhNghiem(ns.bai_hoc ?? [])}\n\nHỒ SƠ CỦA BẠN:\n${ns.body}`;
+export const heThong = (ns, nk) => `Bạn là ${ns.ten}, ${ns.vai?.ten ?? ns.chuc_danh}, ${nk.ten_phong ?? 'công ty'}. LUẬT CHUNG (rút gọn): ba mức quyết định; việc nộp phải có bằng chứng; không khen mở đầu; trả lời đúng định dạng được yêu cầu, không thêm lời dẫn.\n\n${nk.quy_dinh ? `\n\nQUY ĐỊNH DỰ ÁN PHÒNG PHẢI TUÂN THEO (trên quy trình của phòng, không được làm trái):\n${nk.quy_dinh}` : ''}${ns.vai ? `\n\nVAI CỦA BẠN Ở PHÒNG — ${ns.vai.ten}:\n${ns.vai.body}` : ''}${loiDanTinhCach(ns.tinh_cach ?? [])}${loiDanKinhNghiem(ns.bai_hoc ?? [])}\n\nHỒ SƠ CỦA BẠN:\n${ns.body}${khoiHoSoLuot(nk.ho_so)}`;
 // KẾT QUẢ THỜI GIAN THỰC (#1317, 12/10/2026): trước chỉ ghi tệp lượt lúc bắt đầu và lúc kết thúc → trang đang theo dõi không thấy bước
 // nào tới khi xong cả lượt. Giờ MỌI bước đi qua themBuoc (thêm + ghi tệp ngay), và trước mỗi lời gọi mô hình ghi `nk.dang` (ai đang làm
 // bước gì, từ lúc nào) để trang hiện "Tâm đang giao việc…". Hàm ghi gắn theo lượt (WeakMap): lượt không ghi tệp (ghi=false) thì bỏ qua.
@@ -81,18 +87,24 @@ export async function motLuot(viec, ghi = true, o = {}) {
   const luu = () => { if (ghi) { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(`${f}.tam`, JSON.stringify(nk, null, 2)); fs.renameSync(`${f}.tam`, f); } };   // ghi tạm rồi đổi tên: trang đọc giữa chừng không gặp tệp dở
   GHI_LUOT.set(nk, luu);
   const so = () => nk.buoc.length + 1;
-  luu();
+  luu();   // tệp lượt có NGAY (nút Chạy chờ tệp này ≤ 3 s rồi mới bật làm mới trang) — mọi việc chậm làm sau dòng này
   try {
+    // 0. Hồ sơ việc ghép từ MOS2 cho lượt thật; bộ việc chuẩn không ghép (thước so phiên bản phải cố định, không phụ thuộc DB lúc chạy)
+    if ('hoSo' in o) { if (o.hoSo !== undefined) nk.ho_so = o.hoSo; }
+    else if (!o.boViec) { nk.dang = { buoc: 'ghép hồ sơ việc', ai: 'Máy', id: 'may-do', bat_dau: new Date().toISOString() }; luu(); nk.ho_so = await hoSoViec(viec); delete nk.dang; luu(); }
     // 1. Giao việc
     let loiGiao = dien(L.giao, { viec });
     if (qt.hoi_lai_khi_thieu_du_kien) loiGiao += LOI_HOI_LAI;
+    if (nk.ho_so) loiGiao += LOI_HO_SO;
     if (qt.may_do) loiGiao += `\nTiêu chí nào đo được bằng máy thì thêm vào "do" (mỗi phép một trong: ${MAU_DO}), ví dụ {"giao_cho":"${lamNs.id}","viec":"…","tieu_chi":["…"],"do":[{"loai":"so_cau","bang":3}]}.`;
     const giao = json(await goi(giaoNs, loiGiao, `${so()} giao việc`, nk, { tu: 'giam-doc' }));
     let lam = null, soat = null, vong = 0, tt, cauHoi, ghiChu;
     if (giao?.thieu) { tt = 'ket'; cauHoi = String(giao.thieu); }
     else {
       if (!giao?.viec) throw new Error(`${giaoNs.ten} không trả JSON giao việc`);
-      const tieuChi = (giao.tieu_chi || []).map((t, i) => `${i + 1}. ${t}`).join('\n');
+      // có hồ sơ → thêm một tiêu chí nội dung cho Lộc làm và Kỳ soát (trước chỉ kiểm hình thức: số câu, ngôn ngữ, giọng)
+      const tcHoSo = nk.ho_so?.du_an?.length ? [`Mọi thông tin về ${nk.ho_so.du_an.map((d) => d.name).join(', ')} khớp HỒ SƠ VIỆC: không có tính năng, số liệu, giá, lời hứa nào ngoài hồ sơ; không dùng điều hồ sơ CẤM nói`] : [];
+      const tieuChi = [...(giao.tieu_chi || []), ...tcHoSo].map((t, i) => `${i + 1}. ${t}`).join('\n');
       const doMay = qt.may_do && Array.isArray(giao.do) ? giao.do.filter((d) => LOAI_DO.includes(d?.loai)) : [];
       const v = () => ({ viec_giao: giao.viec, tieu_chi: tieuChi, ket_qua: lam.ket_qua, bang_chung: lam.bang_chung, ly_do: soat?.ly_do ?? '' });
       lam = json(await goi(lamNs, dien(L.lam, { viec_giao: giao.viec, tieu_chi: tieuChi }), `${so()} làm`, nk, { tu: giaoNs.id }));
@@ -187,7 +199,7 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('ca.m
   }).listen(0, '127.0.0.1');
   await new Promise((r) => fake.once('listening', r));
   process.env.CTY_PROXY_URL = `http://127.0.0.1:${fake.address().port}`;
-  process.env.CTY_DATA_DIR = fs.mkdtempSync('/tmp/cty-ca-'); process.env.CTY_VP_HOMES = process.env.CTY_DATA_DIR;
+  process.env.CTY_DATA_DIR = fs.mkdtempSync('/tmp/cty-ca-'); process.env.CTY_VP_HOMES = process.env.CTY_DATA_DIR; delete process.env.DATABASE_URL;   // hồ sơ việc không đọc DB thật khi tự kiểm
   const { docLog } = await import('./log.mjs');
   const assert = (c, m, nk) => { if (!c) { console.error('✗ ca.mjs:', m, JSON.stringify(nk ?? {}).slice(0, 400)); process.exit(1); } };
   const chay = async (k, sua) => { kich = k; dem.loc = 0; dem.ky = 0; const v1 = hienHanh(QT); return motLuot('thử', false, sua ? { quyTrinh: { ...v1, ...sua, nguoi: { ...v1.nguoi, ...(sua.nguoi ?? {}) } } } : {}); };
@@ -238,12 +250,23 @@ if (process.argv.includes('--tu-kiem') && (process.argv[1] || '').endsWith('ca.m
   assert(thay.some((x) => x.goc === 'loc' && /TÍNH CÁCH GỐC[\s\S]*Cẩn thận 5\/10: Kiểm lại các tiêu chí đếm được/.test(x.system)), 'tính cách gốc vào lời dặn', thay.filter((x) => x.goc === 'loc').map((x) => x.system.slice(-300)));
   thay.length = 0; dem.loc = 0; dem.ky = 0; await motLuot('thử', false, { tinhCach: { loc: { can_than: 9 } } });
   assert(thay.some((x) => x.goc === 'loc' && /Cẩn thận 9\/10: Trước khi nộp, tự đếm lại TỪNG tiêu chí/.test(x.system)) && thay.some((x) => x.goc === 'tam' && /Cẩn thận 6\/10/.test(x.system)) && !thay.some((x) => x.goc === 'tam' && /Cẩn thận 9\/10/.test(x.system)), 'ghi đè tính cách chỉ đổi đúng người (Tâm vẫn 6)', thay.map((x) => x.goc));
+  // hồ sơ việc: mọi người trong lượt thấy hồ sơ; Tâm đối chiếu trước khi giao; Lộc + Kỳ có tiêu chí nội dung; bộ việc chuẩn không ghép
+  const { ghepHoSo } = await import('./ho-so.mjs');
+  const hs = ghepHoSo('Giới thiệu Astrolas cho nhóm kế toán', { duAn: [{ id: 'astrolas', name: 'Astrolas', one_liner: 'Astrology insights for modern seekers' }], truCot: [], noiDang: [] });
+  thay.length = 0; kich = { kyDat: true }; dem.loc = 0; dem.ky = 0; const nkHs = await motLuot('Giới thiệu Astrolas cho nhóm kế toán', false, { hoSo: hs });
+  const heTs = thay.map((t) => t.system); const hoiOf = (v) => thay.filter((t) => t.vai === v).map((t) => t.hoi).join('\n');
+  assert(nkHs.ho_so?.du_an?.[0]?.id === 'astrolas' && heTs.length >= 3 && heTs.every((x) => /HỒ SƠ VIỆC \(nguồn DUY NHẤT[\s\S]*Astrology insights/.test(x)), 'mọi người trong lượt có hồ sơ trong lời dặn', heTs.map((x) => x.slice(-200)));
+  assert(/ĐỐI CHIẾU HỒ SƠ VIỆC/.test(hoiOf('Trưởng phòng')) && /khớp HỒ SƠ VIỆC/.test(hoiOf('Người làm')) && /khớp HỒ SƠ VIỆC/.test(hoiOf('Người kiểm')), 'Tâm đối chiếu; Lộc + Kỳ có tiêu chí nội dung', { tam: hoiOf('Trưởng phòng').slice(-300), loc: hoiOf('Người làm').slice(0, 400) });
+  thay.length = 0; kich = { kyDat: true }; dem.loc = 0; dem.ky = 0; const nkBo = await motLuot('thử', false, { boViec: 'bo-thu' });
+  assert(!('ho_so' in nkBo) && !thay.some((t) => /HỒ SƠ VIỆC|ĐỐI CHIẾU HỒ SƠ/.test(t.system + t.hoi)), 'bộ việc chuẩn: không ghép hồ sơ (thước so cố định)');
+  thay.length = 0; kich = { kyDat: true }; dem.loc = 0; dem.ky = 0; const nkKhong = await motLuot('Giới thiệu Astrolas', false);
+  assert(/DATABASE_URL/.test(nkKhong.ho_so?.loi ?? '') && thay.every((t) => /HỒ SƠ VIỆC: không có \(worker không có DATABASE_URL/.test(t.system)), 'không đọc được MOS2 → ghi lỗi + dặn không bịa', nkKhong.ho_so);
   // thời gian thực (#1317): lượt GHI tệp → giữa lượt, tệp đã có bước giao + `dang` = Người làm; xong thì đủ bước, hết `dang`, không sót tệp tạm
   kich = { chup: true }; dem.loc = 0; dem.ky = 0; const nkThat = await motLuot('thử thời gian thực', true);
   const giua = kich.chup?.tep; const dNk = path.join(process.env.CTY_DATA_DIR, 'nhat-ky'); const cuoi = JSON.parse(fs.readFileSync(path.join(dNk, `${nkThat.ts}.json`), 'utf8'));
   assert(giua?.trang_thai === 'đang chạy' && giua.buoc.length === 1 && /giao/.test(giua.buoc[0].buoc) && giua.dang?.id === 'loc' && /làm/.test(giua.dang.buoc), 'giữa lượt: tệp có bước giao + đang = Người làm', { buoc: giua?.buoc.map((b) => b.buoc), dang: giua?.dang });
   assert(cuoi.trang_thai === 'xong' && cuoi.buoc.length === nkThat.buoc.length && !('dang' in cuoi) && !fs.readdirSync(dNk).some((x) => x.endsWith('.tam')), 'xong lượt: đủ bước, hết "đang", không sót tệp tạm', cuoi);
-  fake.close(); console.log('✓ ca.mjs: v1 y cũ + 5 công tắc (hỏi lại, máy đo, khoá tiêu chí, hết vòng→kẹt, trọng tài) + vai tách khỏi người + tính cách gốc + phúc khảo lời bác + ghi từng bước ngay khi xong (thời gian thực)'); process.exit(0);
+  fake.close(); console.log('✓ ca.mjs: v1 y cũ + 5 công tắc (hỏi lại, máy đo, khoá tiêu chí, hết vòng→kẹt, trọng tài) + vai tách khỏi người + tính cách gốc + phúc khảo lời bác + ghi từng bước ngay khi xong (thời gian thực) + hồ sơ việc'); process.exit(0);
 }
 
 if (process.argv.includes('--viec') && (process.argv[1] || '').endsWith('ca.mjs')) {

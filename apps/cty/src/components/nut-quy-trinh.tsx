@@ -1,9 +1,10 @@
 'use client';
 // Nút của Giám đốc trên tab Quy trình: Họp rút kinh nghiệm · So trên bộ việc chuẩn (gọi mô hình — mỗi lần bấm = một lần chạy) ·
 // Về bản đầu (v1) · Ký / Bác đề xuất mức 3. Kết quả / lý do từ chối hiện ngay dưới nút. Đang chạy → làm mới mỗi 3 giây.
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { NutXacNhan } from './nut-xac-nhan';
+import { useLamMoiKhi } from './lam-moi';
 import { hopRutKinhNghiem, soTrenBoViecChuan, veBanDau, kyDeXuat } from '@/lib/quy-trinh';
 
 type Kq = { ok: boolean; loi?: string };
@@ -18,8 +19,8 @@ function useNut() {
 }
 
 export function NutQuyTrinh({ khoa, banHienHanh, dangChay, coBanThu, admin }: { khoa: string; banHienHanh: number; dangChay: string | null; coBanThu: boolean; admin: boolean }) {
-  const router = useRouter(); const { dang, bao, bam } = useNut();
-  useEffect(() => { if (!dangChay) return; const t = setInterval(() => router.refresh(), 3000); return () => clearInterval(t); }, [dangChay, router]);
+  const { dang, bao, bam } = useNut();
+  useLamMoiKhi(!!dangChay, 3000);
   const ban = !admin || dang || !!dangChay;
   return (
     <div className="cty-qt-nut">

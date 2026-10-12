@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { dsNhanSu } from '@/lib/cong-ty';
 import { anhNhanSu, hueOf } from './avatar';
 
-const TEN_KHAC: Record<string, string> = { 'giam-doc': 'Giám đốc', 'he-thong': 'hệ thống' };
+const TEN_KHAC: Record<string, string> = { 'giam-doc': 'Giám đốc', 'he-thong': 'hệ thống', 'may-do': 'Máy' };   // mã không phải nhân sự (worker ghi 'may-do' cho bước máy đo / báo cáo máy / ghép hồ sơ)
 
 export function Nguoi({ id, anh = true }: { id?: string | null; anh?: boolean }) {
   if (!id) return null;

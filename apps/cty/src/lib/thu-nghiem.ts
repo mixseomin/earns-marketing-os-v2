@@ -11,7 +11,8 @@ import { docLog } from '../../worker/log.mjs';
 const DATA = process.env.CTY_DATA_DIR || '/var/lib/cty';
 const NK = path.join(DATA, 'nhat-ky');
 
-export type Luot = { ts: string; bat_dau?: string; ket_thuc?: string; viec: string; trang_thai: string; loi?: string; dang?: { buoc: string; ai: string; id: string; bat_dau: string }; tong?: { buoc: number; token: number; ms: number };
+export type Luot = { ts: string; bat_dau?: string; ket_thuc?: string; viec: string; trang_thai: string; loi?: string; dang?: { buoc: string; ai: string; id: string; bat_dau: string };
+  ho_so?: { du_an: { id: string; name: string; tru_cot?: unknown[] }[]; noi_dang?: { name: string }[]; khoi?: string; khong?: string; loi?: string }; tong?: { buoc: number; token: number; ms: number };
   buoc: { buoc: string; ai: string; id: string; model: string; bat_dau?: string; ket_thuc?: string; ms: number; http: number; usage: { input_tokens?: number; output_tokens?: number } | null; loi: string | null; hoi: string; dap: string }[];
   ket: { giao: { viec: string; tieu_chi: string[] }; lam: { ket_qua: string; bang_chung: string }; soat: { ok: boolean; ly_do: string } | null; bao_cao: string; trang_thai_viec: string } | null };
 

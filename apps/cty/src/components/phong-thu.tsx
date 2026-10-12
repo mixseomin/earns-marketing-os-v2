@@ -42,7 +42,18 @@ const KQ: Record<string, [string, string]> = { submitted: ['nộp, chờ ký', '
 const tienLuot = (l: Luot) => usdLuot(l) as number;
 
 /** Một lượt đủ bước: đầu lượt (trạng thái · việc · giờ · số) + từng bước (người, giờ, mô hình, trả lời đã dàn nhãn). */
-export function LuotChiTiet({ l, admin = false }: { l: Luot; admin?: boolean }) {
+/** Hồ sơ việc đã đưa cho cả phòng trong lượt này (worker/ho-so.mjs, ghép từ MOS2). Lượt cũ / bộ việc chuẩn: không có dòng này. */
+function HoSoViec({ hs, gon }: { hs: Luot['ho_so']; gon?: boolean }) {
+  if (!hs) return null;
+  if (hs.loi) return <p className="cty-bao-loi" data-loi>Hồ sơ việc: {hs.loi}. Cả phòng chỉ có câu việc, được dặn không bịa thông tin sản phẩm.</p>;
+  if (!hs.du_an.length) return <p className="cty-muted cty-nho">Hồ sơ việc: không có — {hs.khong}.</p>;
+  const truCot = hs.du_an.reduce((n, d) => n + (d.tru_cot?.length ?? 0), 0);
+  const tomTat = <>Hồ sơ việc: <b>{hs.du_an.map((d) => d.name).join(', ')}</b> · {truCot} trụ cột nội dung · nơi đăng: {hs.noi_dang?.length ? hs.noi_dang.map((h) => h.name).join(', ') : 'chưa có trong MOS2'}</>;
+  if (gon) return <p className="cty-muted cty-nho">{tomTat}</p>;   // danh sách 30 lượt: không chở ~3,5 KB chữ hồ sơ mỗi lượt vào mỗi lần làm mới
+  return <details className="cty-details cty-ho-so"><summary>{tomTat}</summary><pre>{hs.khoi}</pre></details>;
+}
+
+export function LuotChiTiet({ l, admin = false, gon = false }: { l: Luot; admin?: boolean; gon?: boolean }) {
   return (
     <div className="cty-luot">
       <div className="cty-luot-meta"><KhoangGio tu={l.bat_dau} den={l.ket_thuc} />
@@ -50,6 +61,7 @@ export function LuotChiTiet({ l, admin = false }: { l: Luot; admin?: boolean }) 
         {' · '}<Link href={`/nhat-ky?luot=${encodeURIComponent(l.ts)}`}>sổ sự kiện ↗</Link>
         {l.trang_thai !== 'đang chạy' && <NutChayLai viec={l.viec} admin={admin} />}</div>
       {l.loi && <p className="cty-bao-loi" data-loi>Lỗi: {l.loi}</p>}
+      <HoSoViec hs={l.ho_so} gon={gon} />
       <ol className="cty-thu-buoc">
         {l.buoc.map((b, i) => { const t = tachBuoc(b.buoc); return (
           <li key={i}>
@@ -104,7 +116,7 @@ export async function PhongThuChay({ admin }: { admin: boolean }) {
 export async function PhongThuDs({ admin }: { admin: boolean }) {
   const ds = await dsLuot();
   if (!ds.length) return <p className="cty-muted">Chưa có lượt nào.</p>;
-  return <div className="cty-ds-luot">{ds.map((l) => <details key={l.ts} id={`luot-${l.ts}`} className="cty-luot-hang"><summary><DauLuot l={l} /></summary><LuotChiTiet l={l} admin={admin} /></details>)}</div>;
+  return <div className="cty-ds-luot">{ds.map((l) => <details key={l.ts} id={`luot-${l.ts}`} className="cty-luot-hang"><summary><DauLuot l={l} /></summary><LuotChiTiet l={l} admin={admin} gon /></details>)}</div>;
 }
 
 export async function demLuot() { const ds = await dsLuot(); return { tong: ds.length, dangChay: ds.some((l) => l.trang_thai === 'đang chạy'), moi: ds[0] ?? null }; }

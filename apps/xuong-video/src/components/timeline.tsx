@@ -15,7 +15,7 @@ import { lopImpact, nhipHanhDong, themTieng } from '@/lib/xuong-video/nhip-hanh-
 import { lichSfx, urlSfx } from '@/lib/xuong-video/sfx';
 import { keHoachToc, nguonTai } from '@/lib/xuong-video/toc-do';
 import { NutChuyenCanh } from './chuyen-canh-ui';
-import { dongThoai, dungTiengClip, tenNoi, cungTen, timNv, lichGiong } from '@/lib/xuong-video/am-thanh';
+import { dongThoai, dungTiengClip, tenNoi, cungTen, timNv, lichGiong, giayGiuKet } from '@/lib/xuong-video/am-thanh';
 import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 import { mono, Menu } from './ui';
@@ -59,7 +59,15 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   }, [canh, nhanVat]);
   // Nút đọc thử / tắt thoại (chung cho mọi giọng) nằm ở làn thoại của người nói ĐẦU TIÊN.
   const nguoiNoiDau = useMemo(() => { for (const c of canh) { const d = dongThoai(c, nhanVat)[0]; if (d) return tenNoi(d); } return ''; }, [canh, nhanVat]);
-  const tong = canh.reduce((a, c) => a + dur(c), 0);
+  const [daiAm, setDaiAm] = useState<Record<string, number>>({});
+  useEffect(() => {
+    const can = [...new Set(canh.flatMap((x) => dongThoai(x, nhanVat).map((d) => d.url).filter((u): u is string => !!u)))].filter((u) => daiAm[u] == null);
+    const ds = can.map((u) => { const a = new Audio(); a.preload = 'metadata'; a.onloadedmetadata = () => { if (Number.isFinite(a.duration)) setDaiAm((m) => ({ ...m, [u]: a.duration })); }; a.src = u; return a; });
+    return () => { for (const a of ds) { a.onloadedmetadata = null; a.src = ''; } };
+  }, [canh, nhanVat]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lich = useMemo(() => lichGiong(canh, nhanVat, (u) => daiAm[u] ?? null), [canh, nhanVat, daiAm]);
+  // Giữ hình kết GIU_KET giây sau câu cuối — cùng luật bản xuất (am-thanh.ts › giayGiuKet): phần thêm là shot cuối đứng hình.
+  const tong = (() => { const p = canh.reduce((a, c) => a + dur(c), 0); return p + giayGiuKet(canh.reduce((a, c) => a + giayPhat(c), 0), lich); })();
 
   const [t, setT] = useState(0);
   const [chay, setChay] = useState(false);
@@ -118,13 +126,6 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const thoaiRef = useRef<HTMLAudioElement>(null);
   // Giọng theo LỊCH CHUNG với bản xuất (lichGiong): mốc tuyệt đối, độ trễ, một tốc độ cho lời dẫn, lời dẫn vắt qua shot sau. Trước đây
   // phát theo từng shot với bộ đếm dòng không đặt lại → sau shot nhiều câu là mất giọng tới hết phim (phim #5, 10/10/2026).
-  const [daiAm, setDaiAm] = useState<Record<string, number>>({});
-  useEffect(() => {
-    const can = [...new Set(canh.flatMap((x) => dongThoai(x, nhanVat).map((d) => d.url).filter((u): u is string => !!u)))].filter((u) => daiAm[u] == null);
-    const ds = can.map((u) => { const a = new Audio(); a.preload = 'metadata'; a.onloadedmetadata = () => { if (Number.isFinite(a.duration)) setDaiAm((m) => ({ ...m, [u]: a.duration })); }; a.src = u; return a; });
-    return () => { for (const a of ds) { a.onloadedmetadata = null; a.src = ''; } };
-  }, [canh, nhanVat]); // eslint-disable-line react-hooks/exhaustive-deps
-  const lich = useMemo(() => lichGiong(canh, nhanVat, (u) => daiAm[u] ?? null), [canh, nhanVat, daiAm]);
   const giongNay = lich.filter((g) => g.tu <= t + 1e-6 && t < g.tu + Math.min(g.dai ?? 30, g.cat ?? 30)).pop() ?? null;
   const khoaGiong = giongNay ? `${giongNay.url}@${giongNay.tu}` : '';
   const sfxRef = useRef<HTMLAudioElement>(null);

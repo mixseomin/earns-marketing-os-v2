@@ -134,6 +134,17 @@ export const NHANH_TOI_DA = 1.35;
 /** Một câu giọng trên trục thời gian của tập: tu = giây bắt đầu (tuyệt đối), nhanh = hệ số đọc nhanh, cat = cắt sau bao nhiêu giây
  *  ĐÃ tăng tốc (thoại nhân vật vừa shot; lời dẫn null = đọc trọn, vắt sang shot sau), dai = giây phát sau tăng tốc (null = chưa biết). */
 export type MucGiong = { url: string; tu: number; nhanh: number; cat: number | null; dai: number | null; loiDan: boolean };
+/** Giữ hình kết sau câu thoại cuối (anh 12/10/2026: "đọc tên website xong thì hết luôn — để dài chút cho họ còn nhớ"): tên miền/logo/nhạc
+ *  còn trên màn ít nhất GIU_KET giây. MỘT luật cho bản xuất (kéo dài shot cuối) và timeline xem trước (kéo dài tổng giờ). */
+export const GIU_KET = 2.5;
+/** Giây kết thúc của câu giọng cuối (đã tính tốc đọc và điểm cắt); null = chưa có giọng nào biết độ dài. */
+export function hetGiong(lich: MucGiong[]): number | null {
+  let het: number | null = null;
+  for (const g of lich) { if (g.dai == null) continue; const d = Math.min(g.dai / (g.nhanh || 1), g.cat ?? Infinity); het = Math.max(het ?? 0, g.tu + d); }
+  return het;
+}
+/** Số giây phải nối thêm vào shot cuối để sau câu cuối còn GIU_KET giây hình. */
+export const giayGiuKet = (tongPhat: number, lich: MucGiong[]): number => { const h = hetGiong(lich); return h == null ? 0 : Math.max(0, Math.round((h + GIU_KET - tongPhat) * 100) / 100); };
 /** Lịch phát giọng của một dãy shot — MỘT luật cho bản xuất (ffmpeg) và timeline xem thử (trước đây timeline tự phát theo shot:
  *  bỏ qua độ trễ, cắt lời dẫn khi đổi shot, mất giọng sau shot nhiều câu — phim #5 10/10/2026).
  *  - dòng trong shot nối tiếp nhau (cách 0,15s), dòng có tre vào đúng giây đó;

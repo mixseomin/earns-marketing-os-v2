@@ -273,3 +273,14 @@ console.log('xuat.test: mẫu ok');
   assert.ok(!b.includes('\\fscx') && !b.includes('\\t('));
   console.log('xuat.test: chữ đập ok');
 }
+// Giữ hình kết (12/10/2026): câu cuối hết ở 1,9s mà shot cuối hết ở 2s → kéo dài tới 1,9 + 2,5 = 4,4s; có end card tự động thì không kéo.
+{
+  const s1 = shot({ thu_tu: 1, phat_s: 2, video_url: 'https://x/c1.mp4', thoai: [{ nhan_vat: '', dien_xuat: '', loi: 'astrolas dot com', url: 'https://x/g9.mp3' }] });
+  const nlK = [nl('https://x/c1.mp4', 4), nl('https://x/g9.mp3', 1.9)];
+  const kk = keHoachXuat({ loai: 'phim', tiLe: '9:16', canh: [s1], nhanVat: nv, tap: { nhac_url: null, nhac_phan_canh: {} }, nguyenLieu: nlK, font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
+  assert.strictEqual(kk.giay, 4.4);
+  assert.ok(kk.canhBao.some((x) => x.includes('giữ hình kết thêm 2.4s')), kk.canhBao.join('|'));
+  const kq = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh: [s1], nhanVat: nv, tap: { nhac_url: 'https://x/n.mp3', nhac_phan_canh: {} }, qc: { ten: 'X', uu_dai: '$9', link: '', diem_noi_bat: '', doi_tuong: '', thi_truong: '', anh: [] }, nguyenLieu: [...nlK, nl('https://x/n.mp3', 10)], font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
+  assert.strictEqual(kq.giay, 2 + 2, 'có end card tự động 2s → không kéo shot cuối');
+  console.log('xuat.test: giữ hình kết ok');
+}

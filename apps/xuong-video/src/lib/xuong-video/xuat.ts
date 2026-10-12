@@ -14,7 +14,7 @@ import { keHoachToc, bieuThucToc } from './toc-do';
 import { ngatDong, kyTuMoiDong } from './ngat-dong';
 import { lichSfx } from './sfx';
 export { doanChuMan, chuManHien } from './kieu';
-import { dongThoai, dungTiengClip, lichGiong } from './am-thanh';
+import { giayGiuKet, dongThoai, dungTiengClip, lichGiong } from './am-thanh';
 
 /** Một tệp nguyên liệu đã tải về + đo: dai = giây (âm/video), coAm = clip có luồng tiếng, lufs = độ to tích hợp (tệp chỉ có tiếng). */
 export type NguyenLieu = { url: string; duong: string; dai: number | null; coAm: boolean; fps?: number | null; lufs?: number | null;
@@ -213,7 +213,17 @@ export function keHoachXuat(o: {
   const chuanGiong = (url: string) => { const l = nl.get(url)?.lufs; return l != null && Number.isFinite(l) && l > -70 ? `volume=${so(Math.max(-15, Math.min(15, LUFS_GIONG - l)))}dB,` : ''; };
   // Lịch giọng (mốc, tốc độ, điểm cắt) — CÙNG một hàm với timeline xem thử (lichGiong), trên đúng các shot có hình sẽ dựng.
   const coHinh = (c: Canh) => { const v = c.video_cuoi_url || c.video_url; return (!!v && nl.has(v)) || (!!c.keyframe_url && nl.has(c.keyframe_url)); };
-  for (const g of lichGiong(ds.filter(coHinh), o.nhanVat, (u) => nl.get(u)?.dai ?? null)) {
+  const lichG = lichGiong(ds.filter(coHinh), o.nhanVat, (u) => nl.get(u)?.dai ?? null);
+  // Giữ hình kết GIU_KET giây sau câu cuối (am-thanh.ts) — kịch bản tự kết (không có end card tự động) thì kéo dài shot cuối, hình cuối đứng
+  // (clip hết thì giữ khung cuối), chữ màn + logo + nhạc kéo theo vì mọi thứ phía dưới tính từ giây phát.
+  if (!o.chiThuTu?.length && ds.length) {
+    const cuoiDs = ds[ds.length - 1]!; const bCuoi = o.tap.phan_canh?.find((x) => x.ten === cuoiDs.phan_doan)?.beat ?? '';
+    const tuKet = ['cta', 'end_card'].includes(cuoiDs.phan_doan) || /^(cta|end[\s_-]?card)$/i.test(bCuoi.trim());
+    const endCardTuDong = o.loai === 'quang_cao' && !!o.qc?.uu_dai?.trim() && !coMau(o.qc) && !tuKet;
+    const them = endCardTuDong ? 0 : giayGiuKet(ds.reduce((a, c) => a + giayPhat(c), 0), lichG);
+    if (them > 0) { ds[ds.length - 1] = { ...cuoiDs, phat_s: Math.round((giayPhat(cuoiDs) + them) * 100) / 100 }; canhBao.push(`giữ hình kết thêm ${them}s sau câu cuối`); }
+  }
+  for (const g of lichG) {
     if (!nl.has(g.url)) continue;
     const ka = them(g.url);
     themAm(`[${ka}:a]${chuanGiong(g.url)}${g.nhanh > 1.001 ? `atempo=${so(g.nhanh)},` : ''}${g.cat != null ? `atrim=0:${so(g.cat)},` : ''}asetpts=PTS-STARTPTS,adelay=${Math.round(g.tu * 1000)}:all=1`, nhanhGiong);

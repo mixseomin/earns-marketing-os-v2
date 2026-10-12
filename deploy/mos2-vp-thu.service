@@ -1,18 +1,14 @@
 [Unit]
-Description=Van phong pixel RIENG Phong thu (pixel-agents, port 3863, HOME rieng) — vpthu.on.tc
+Description=Van phong pixel RIENG cua cac phong (moi phong khai van_phong_cong trong apps/cty/cong-ty/phong) — ten unit giu tu Phong thu vi deploy.sh cai theo ten tep
 After=network.target mos2-cty.service
 [Service]
 Type=simple
 User=root
 WorkingDirectory=/opt/earns-marketing-os-v2/apps/cty
 Environment=NODE_ENV=production
-# HOME riêng → ~/.pixel-agents riêng (server.json, state, layout) không đụng instance cả công ty.
-Environment=HOME=/var/lib/cty/vp-thu
-ExecStartPre=/bin/mkdir -p /var/lib/cty/vp-thu
-ExecStartPre=/usr/bin/node /opt/earns-marketing-os-v2/apps/cty/scripts/seed-van-phong.mjs --config
-ExecStart=/usr/bin/pixel-agents --host 127.0.0.1 --port 3863
-# Chạy nền: script bơm mất ~25s (chờ server + áp lại sau 20s); để trong ExecStartPost thì systemctl restart (và deploy) đứng chờ hết.
-ExecStartPost=/bin/sh -c '(sleep 5; /usr/bin/node /opt/earns-marketing-os-v2/apps/cty/scripts/seed-van-phong.mjs --phong thu-nghiem) &'
+# Trình chạy dựng một pixel-agents cho mỗi phòng (HOME riêng /var/lib/cty/vp-<phòng>, cổng riêng) rồi bơm nhân sự phòng đó; con chết → cả nhóm
+# dừng, systemd dựng lại. Thêm phòng = dòng van_phong_cong ở hồ sơ phòng + dòng map ở deploy/nginx-cty.conf (worker/vp.mjs --tu-kiem đối chiếu).
+ExecStart=/usr/bin/node /opt/earns-marketing-os-v2/apps/cty/scripts/seed-van-phong.mjs --cac-phong
 Restart=always
 RestartSec=3
 [Install]

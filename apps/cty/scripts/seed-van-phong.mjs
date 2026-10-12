@@ -8,6 +8,27 @@ import { parseFm } from './fm.mjs';
 import { spriteTheoNguoi } from './nhan-vat.mjs';
 import os from 'node:os';
 
+// --cac-phong: TRÌNH CHẠY văn phòng riêng của mọi phòng khai van_phong_cong (worker/vp.mjs vanPhongCacPhong) — mỗi phòng một tiến trình
+// pixel-agents (HOME riêng, cổng riêng) + bơm nhân sự của phòng đó. Unit mos2-vp-thu.service chạy lệnh này (tên unit giữ từ Phòng thử vì
+// deploy.sh cài theo tên tệp): thêm phòng không phải sửa deploy.sh. Một tiến trình con chết → dừng cả nhóm, systemd dựng lại.
+if (process.argv.includes('--cac-phong')) {
+  const { spawn, execFileSync } = await import('node:child_process');
+  const { vanPhongCacPhong } = await import('../worker/vp.mjs');
+  const SELF = new URL(import.meta.url).pathname, BIN = process.env.PIXEL_AGENTS_BIN || '/usr/bin/pixel-agents';
+  if (!fs.existsSync(BIN)) { console.error(`✗ không có ${BIN} (deploy.sh cài pixel-agents)`); process.exit(1); }
+  const con = []; const dung = (ma) => { for (const c of con) c.kill('SIGTERM'); process.exit(ma); };
+  for (const v of vanPhongCacPhong()) {
+    fs.mkdirSync(v.home, { recursive: true }); const env = { ...process.env, HOME: v.home };
+    execFileSync(process.execPath, [SELF, '--config'], { env, stdio: 'inherit' });
+    const c = spawn(BIN, ['--host', '127.0.0.1', '--port', String(v.cong)], { env, stdio: 'inherit' }); con.push(c);
+    c.on('exit', (ma) => { console.error(`✗ văn phòng ${v.phong} (:${v.cong}) thoát mã ${ma} → dừng cả nhóm`); dung(1); });
+    setTimeout(() => spawn(process.execPath, [SELF, '--phong', v.phong], { env, stdio: 'inherit' }), 5000);   // bơm sau khi server lên (script tự chờ thêm)
+    console.log(`văn phòng ${v.phong} → :${v.cong} (HOME ${v.home})`);
+  }
+  for (const s of ['SIGTERM', 'SIGINT']) process.on(s, () => dung(0));
+  await new Promise(() => {});   // giữ tiến trình (systemd theo dõi)
+}
+
 const HOME = path.join(os.homedir(), '.pixel-agents');
 const NS_DIR = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'cong-ty', 'nhan-su');
 

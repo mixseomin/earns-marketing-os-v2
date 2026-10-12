@@ -66,17 +66,17 @@ const COT: DataColumn<SpNut>[] = [
     cell: (x) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.khoa.startsWith('bo:') && <span style={{ marginRight: 6 }}><Pill label="bộ sách" color="var(--accent)" size="xs" tone="soft" uppercase={false} mono={false} /></span>}{x.url
       ? <a {...extLinkProps(x.url)} onClick={(e) => e.stopPropagation()} style={{ color: 'var(--fg-1)', textDecoration: 'none' }}>{x.ten} <span style={phu}>↗</span></a> : x.ten}
       {x.trangThai === 'cho_anh' && <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--accent)' }}>· bấm để xem + duyệt</span>}</span> },
-  { key: 'dinh_dang', header: 'Định dạng', align: 'left', width: 100, sortValue: (x) => x.phu, cell: (x) => <span style={phu}>{x.phu ?? '—'}</span> },
-  { key: 'tt', header: 'Trạng thái', align: 'left', width: 150, sortValue: (x) => TT_SP.findIndex((t) => t.key === x.trangThai),
+  { key: 'dinh_dang', header: 'Định dạng', align: 'left', width: 90, sortValue: (x) => x.phu, cell: (x) => <span style={phu}>{x.phu ?? '—'}</span> },
+  { key: 'tt', header: 'Trạng thái', align: 'left', width: 120, sortValue: (x) => TT_SP.findIndex((t) => t.key === x.trangThai),
     cell: (x) => <NhanTt x={x} /> },
-  { key: 'dang', header: 'Đăng dự kiến', align: 'left', width: 96, sortValue: (x) => x.dangDuKien ?? '9', cell: (x) => <NgayDang x={x} /> },
-  { key: 'gia', header: 'Giá', width: 96, sortValue: (x) => x.gia,
+  { key: 'dang', header: 'Đăng dự kiến', align: 'left', width: 80, sortValue: (x) => x.dangDuKien ?? '9', cell: (x) => <NgayDang x={x} /> },
+  { key: 'gia', header: 'Giá', width: 72, sortValue: (x) => x.gia,
     cell: (x) => (x.gia == null ? chuaDo : x.gia > 0 ? tienTe(x.gia, x.tienTe) : <span style={phu}>free</span>) },
-  { key: 'views', header: 'Views 7d', width: 72, sortValue: (x) => x.views7d, cell: (x) => (x.views7d == null ? chuaDo : <span style={x.views7d ? undefined : phu}>{x.views7d}</span>) },
+  { key: 'views', header: 'Views 7d', width: 60, sortValue: (x) => x.views7d, cell: (x) => (x.views7d == null ? chuaDo : <span style={x.views7d ? undefined : phu}>{x.views7d}</span>) },
   { key: 'don', header: 'Đơn', width: 56, sortValue: (x) => x.don, cell: (x) => (x.don == null ? chuaDo : <span style={x.don ? { color: 'var(--ok)' } : phu}>{x.don}</span>) },
-  { key: 'thu', header: 'Thu', title: 'Tiền thu về — Gumroad cộng trọn đời, nền tảng khác 30 ngày (rê chuột vào số)', width: 84, sortValue: (x) => x.tien, cell: (x) => thu(x.tien, x.ky) },
+  { key: 'thu', header: 'Thu', title: 'Tiền thu về — Gumroad cộng trọn đời, nền tảng khác 30 ngày (rê chuột vào số)', width: 72, sortValue: (x) => x.tien, cell: (x) => thu(x.tien, x.ky) },
   // Ghi chú chỉ MỘT dòng ngắn (anh chốt 05/10/2026: cột dài quá); đủ chữ ở tooltip + drawer chi tiết (bấm dòng).
-  { key: 'ghi_chu', header: 'Ghi chú', align: 'left', width: 180, cellTitle: (x) => [x.canhBao, x.ghiChu].filter(Boolean).join(' · '),
+  { key: 'ghi_chu', header: 'Ghi chú', align: 'left', width: 120, cellTitle: (x) => [x.canhBao, x.ghiChu].filter(Boolean).join(' · '),
     cell: (x) => <span style={{ fontSize: 11.5, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
       {x.canhBao ? <span style={{ color: 'var(--warn)' }}>⚠ {x.canhBao}</span> : <span style={phu}>{x.ghiChu ?? ''}</span>}</span> },
 ];
@@ -123,7 +123,7 @@ export function TaiSanView({ ban }: { ban: TaiSanBan }) {
         </ul>
       )}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'flex-start' }}>
-        <nav aria-label="Danh sách shop" style={{ flex: '1 1 230px', maxWidth: 280, display: 'grid', gap: 2, maxHeight: '70vh', overflowY: 'auto' }}>
+        <nav aria-label="Danh sách shop" style={{ flex: '1 1 210px', maxWidth: 230, display: 'grid', gap: 2, maxHeight: '70vh', overflowY: 'auto' }}>
           {ds.length === 0 && <div style={{ fontSize: 12, ...phu }}>không shop nào có sản phẩm ở trạng thái này</div>}
           {ds.map((d) => <DongShopTrai key={d.s.khoa} d={d} loc={loc} chon={d === dangChon} onChon={() => datSh(d.s.khoa)} />)}
         </nav>
@@ -201,7 +201,7 @@ function ShopChiTiet({ s, sp, onMo }: { s: ShopNut; sp: SpNut[]; onMo: (khoa: st
         <div style={{ fontSize: 11.5, ...phu }}>{`${s.sp.length} sản phẩm${dong ? ` · ${dong}` : ''}${s.ghiChu ? ` · ${s.ghiChu}` : ''}`}</div>
       </div>
       {sp.length
-        ? <DataTable rows={bo.dong} columns={COT} getRowKey={(x) => x.khoa} persistKey="tai-san-sp" minWidth={900} pageSize={50} fixedLayout card={{ render: TheSp, minWidth: 280 }}
+        ? <DataTable rows={bo.dong} columns={COT} getRowKey={(x) => x.khoa} persistKey="tai-san-sp" minWidth={900 /* cột cố định ~700 + tên ≥200 */} pageSize={50} fixedLayout card={{ render: TheSp, minWidth: 280 }}
             onRowClick={(x) => (bo.con.has(x.khoa) ? datMoBo((m) => { const n = new Set(m ?? bo.con.keys()); if (n.has(x.khoa)) n.delete(x.khoa); else n.add(x.khoa); return n; }) : onMo(x.khoa))}
             rowTitle={(x) => (bo.con.has(x.khoa) ? (moBo.has(x.khoa) ? 'bấm để gập các tập' : 'bấm để xem các tập') : 'bấm để xem chi tiết')}
             renderExpanded={(x) => (bo.con.has(x.khoa) && moBo.has(x.khoa) ? <CacTap ds={bo.con.get(x.khoa)!} onMo={onMo} /> : null)} />

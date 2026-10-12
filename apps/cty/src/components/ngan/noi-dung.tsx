@@ -24,11 +24,11 @@ import { dsQuyTrinhCacPhong, quyDinhPhong } from '@/lib/quy-trinh';
 import { DoDac } from '../do-dac';
 import { SoSuKien } from '../so-su-kien';
 import { Nguoi } from '../nguoi';
-import { tachKhoa, hrefThe, hrefSach } from '@/lib/ngan';
+import { tachKhoa, hrefThe, hrefSach, hrefDayChuyen } from '@/lib/ngan';
 import { BangNhanSu } from '../bang-nhan-su';
 import { doiNgu } from '@/lib/doi-ngu';
 import { dayChuyen, linkMos2, homNay, CHANG } from '../../../worker/sach.mjs';
-import { DayChuyenTab, demCan, type DayChuyen, type DcKhai, Ai, Tram, Thanh, KENH, mauNen, TEN_NEN, NHAN_ST, ngay, quaNgay, cungSach } from '../day-chuyen';
+import { DayChuyenTab, demCan, type DayChuyen, type DcKhai, Ai, Tram, Thanh, KENH, mauNen, TEN_NEN, NHAN_ST, ngay, quaNgay, cungSach, DcSach, DcVideo, DcKenh, LocSach, LocVideo, tenLoc, viecCacDayChuyen, DsViec as DsViecDc } from '../day-chuyen';
 import { kenhKeoKhach, theMot, lanVideoPhong } from '@/lib/do-dac';
 import { NEN_VIDEO, phutVN, tenSlug } from '../../../worker/video.mjs';
 import { trachNhiem, demTn, giaiMa } from '@/lib/trach-nhiem';
@@ -327,10 +327,7 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
   );
   // Phòng khai sổ sản phẩm (so_san_pham) → tab Dây chuyền đọc trạng thái thật từ sổ MOS2 (worker/sach.mjs); không khai → null, không có tab.
   // Phòng khai dây chuyền (quy-trinh/<phòng>/danh-sach.json `day_chuyen`) → tab Dây chuyền: mỗi nguồn đọc một lần ở đây, đếm việc + dựng tab dùng chung
-  const dc = thu ? null : (await dayChuyen(id)) as DayChuyen | null;
-  const khai = (thu ? [] : dsDayChuyen(id)) as DcKhai[];   // phòng có sổ sản phẩm mà chưa khai dây chuyền → một dây chuyền sách mặc định
-  const dsDc: DcKhai[] = khai.length ? khai : dc ? [{ id: 'sach', ten: 'Sách', don_vi: String(p?.fm.don_vi_viec ?? ''), nguon: 'sach' }] : [];
-  const [lv, kenh] = dsDc.length && p ? await Promise.all([lanVideoPhong(p, dc?.hom ?? homNay(), phutVN()), dsDc.some((d) => d.nguon.startsWith('kenh:')) ? kenhKeoKhach(p) : Promise.resolve([])]) : [null, []];
+  const { dsDc, dc, lv, kenh } = (thu ? null : await duLieuDc(id)) ?? { dsDc: [], dc: null, lv: null, kenh: [] };
   const coDc = dsDc.length > 0;
   const than = thu
     ? <TabPhong khoa={id} dau={dau} tabs={[{ key: 'chay', nhan: 'Chạy' }, { key: 'luot', nhan: 'Các lượt', so: dem!.tong }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }, { key: 'sodo', nhan: 'Sơ đồ' }]}>
@@ -480,6 +477,35 @@ export async function nganThe(ma: string): Promise<Ngan> {
   };
 }
 
+/** Số liệu mọi dây chuyền của một phòng — MỘT chỗ đọc cho tab Dây chuyền, ngăn dây chuyền, ngăn quy trình. Phòng có sổ sản phẩm mà chưa khai
+ *  dây chuyền → một dây chuyền sách mặc định. null = không có phòng. */
+async function duLieuDc(id: string) {
+  const p = phong(id); if (!p) return null;
+  const dc = (await dayChuyen(id)) as DayChuyen | null;
+  const khai = dsDayChuyen(id) as DcKhai[];
+  const dsDc: DcKhai[] = khai.length ? khai : dc ? [{ id: 'sach', ten: 'Sách', don_vi: String(p.fm.don_vi_viec ?? ''), nguon: 'sach' }] : [];
+  const [lv, kenh] = dsDc.length ? await Promise.all([lanVideoPhong(p, dc?.hom ?? homNay(), phutVN()), dsDc.some((d) => d.nguon.startsWith('kenh:')) ? kenhKeoKhach(p) : Promise.resolve([])]) : [null, []];
+  return { p, dsDc, dc, lv, kenh, phong: id };
+}
+
+/** Ngăn một dây chuyền `day-chuyen:<phòng>/<dc>[/<lọc>]`: không lọc = cả bảng (như tab); có lọc = phần ô sơ đồ trỏ tới (lịch, trạm, kho…). */
+export async function nganDayChuyen(ma: string): Promise<Ngan> {
+  const [ph = '', dcId = '', loc = ''] = ma.split('/'); const x = await duLieuDc(ph);
+  const d = x?.dsDc.find((y) => y.id === dcId);
+  if (!x || !d) return { tieuDe: 'Dây chuyền', than: <Thieu chu={`Phòng "${ph}" không có dây chuyền "${dcId}" (quy-trinh/${ph}/danh-sach.json → day_chuyen).`} /> };
+  const ten = loc ? tenLoc(d.nguon, loc) : undefined;
+  if (loc && !ten) return { tieuDe: d.ten, than: <Thieu chu={`Dây chuyền ${d.ten} không có phần "${loc}".`} /> };
+  const kenhK = d.nguon.startsWith('kenh:') ? d.nguon.slice(5) : '';
+  const than = d.nguon === 'sach' ? (x.dc ? (loc ? <LocSach dc={x.dc} loc={loc} phong={ph} /> : <DcSach dc={x.dc} phong={ph} />) : <Thieu chu="Phòng chưa có sổ sản phẩm." />)
+    : d.nguon === 'video' ? (x.lv ? (loc ? <LocVideo lv={x.lv} loc={loc} phong={ph} /> : <DcVideo lv={x.lv} phong={ph} />) : <Thieu chu="Không đọc được làn video." />)
+    : x.kenh === null ? <Thieu chu="Không đọc được kênh kéo khách (kenh_sp, DB MOS2)." />
+    : <DcKenh ds={x.kenh} kenh={kenhK} nhan={KENH.find(([k]) => k === kenhK)?.[1] ?? d.ten} dc={x.dc} phong={ph} hom={x.dc?.hom ?? homNay()} />;
+  return {
+    tieuDe: <>{d.ten}{ten && <> · {ten}</>} <span className="cty-pill cty-pill-kind">{d.don_vi}</span></>,
+    than: <div className="nk-mot cty-dc-ngan">{loc && <p className="cty-nho"><Link href={hrefDayChuyen(ph, d.id)}>Xem cả dây chuyền {d.ten} →</Link></p>}{than}</div>,
+  };
+}
+
 // Dây chuyền video theo thứ tự trạm (cong-ty/quy-trinh/sach/danh-sach.json) — ngăn video hiện cả chuỗi + người chủ trì từng trạm.
 const QT_VIDEO = ['chu-de-video', 'dung-video', 'video-ngan', 'do-video', 'rut-kinh-nghiem-video'];
 /** Ngăn một video ngắn `video:<phòng>/<slug>`: khung hình, lượt xem + link từng nền, sách nó kéo khách về, dây chuyền video và ai chủ trì. */
@@ -539,11 +565,25 @@ export async function nganTheoKhoa(khoa: string, admin: boolean): Promise<Ngan> 
   if (loai === 'sach') return await nganSach(ma);
   if (loai === 'the') return await nganThe(ma);
   if (loai === 'video') return await nganVideo(ma);
+  if (loai === 'day-chuyen') return await nganDayChuyen(ma);
   if (loai === 'quy-trinh') {
     if (!ma) return await nganQuyTrinh();
     const q = (await dsQuyTrinhCacPhong()).find((x) => x.khoa === ma);
     if (!q) return { tieuDe: ma, than: <Thieu chu={`Không có quy trình "${ma}" (cong-ty/quy-trinh/<phòng>/danh-sach.json).`} /> };
-    if (q.so_hoa !== 'co-phien-ban') return { tieuDe: q.ten, than: <div className="nk-mot"><p>{q.mo_ta}</p><p className="cty-muted">{q.kich_hoat}{q.ma ? ` · luật nằm trong ${q.ma}, chưa tự cải tiến được` : ''}</p></div> };
+    if (q.so_hoa !== 'co-phien-ban') {
+      // #1326: ngăn quy trình cho thấy số liệu thật — việc đang mở của quy trình này (mọi dây chuyền của phòng) + dây chuyền nó thuộc
+      const x = await duLieuDc(q.phong); const dcq = x?.dsDc.find((d) => d.id === q.day_chuyen);
+      const viec = x ? viecCacDayChuyen(x).filter((v) => v.qt === q.id) : [];
+      const ct = q.chu_tri ? giaiMa(q.phong, q.chu_tri) : null;
+      return { tieuDe: q.ten, than: (
+        <div className="nk-mot cty-dc-ngan">
+          <p>{q.mo_ta}</p>
+          <p className="cty-muted cty-nho">{q.kich_hoat}{q.ma ? <> · mã: <code>{q.ma}</code></> : ''}</p>
+          <p className="cty-nho">{dcq ? <>Thuộc dây chuyền <Link href={hrefDayChuyen(q.phong, dcq.id)}>{dcq.ten}</Link></> : 'Việc chung của phòng'}{ct && ct !== 'may' && <> · chủ trì <Nguoi id={ct} /></>}</p>
+          <h3>Việc đang mở của quy trình này <span className="cty-tab-so">{viec.length}</span></h3>
+          {viec.length ? <DsViecDc viec={viec} phong={q.phong} tenDc={Object.fromEntries((x?.dsDc ?? []).map((d) => [d.id, d.ten]))} /> : <p className="cty-muted">Không có việc nào đang mở.</p>}
+        </div>) };
+    }
     return await nganChiTietQuyTrinh(q.khoa, q.ten, admin);
   }
   return { tieuDe: khoa, than: <Thieu chu={`Không biết mở ngăn loại "${loai}".`} /> };

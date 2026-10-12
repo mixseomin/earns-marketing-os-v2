@@ -18,13 +18,15 @@
    "id": "ghim",
    "ten": "Ghim Pinterest",
    "don_vi": "ghim theo cuốn",
-   "nguon": "kenh:pinterest"
+   "nguon": "kenh:pinterest",
+   "qt_chinh": "ghim-pinterest"
   },
   {
    "id": "printables",
    "ten": "Trang printables",
    "don_vi": "1 trang · chủ đề",
-   "nguon": "kenh:printables"
+   "nguon": "kenh:printables",
+   "qt_chinh": "trang-printables"
   }
  ],
  "quy_trinh": [

@@ -38,5 +38,19 @@ for (const f of fs.readdirSync(WK).filter((x) => x.endsWith('.mjs') && x !== 'go
 const APP = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'src', 'app');
 const trang = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? (e.name === 'api' ? [] : trang(path.join(d, e.name))) : e.name === 'page.tsx' ? [path.join(d, e.name)] : []);
 for (const f of trang(APP)) if (!fs.readFileSync(f, 'utf8').includes('<ChongNgan')) loi.push(`${path.relative(APP, f)}: thiếu <ChongNgan ngan={searchParams.ngan} /> (chuẩn ngan-keo)`);
+// Ô SƠ ĐỒ (#1326 "các thành phần cần click và xem được data thực"): phòng đã khai dây chuyền thì MỌI ô của sơ đồ (rect, trừ khung ngoài cùng)
+// phải có data-href; mọi data-href (mọi sơ đồ) phải là link ngăn hợp lệ (khoaTuHref) — ô trỏ bậy thì bấm ra trang trắng.
+const { khoaTuHref } = await import('../src/lib/ngan.ts');
+for (const [id, f] of Object.entries(phong)) {
+  if (!f.so_do) continue;
+  const svg = fs.readFileSync(path.join(R, 'so-do', `${f.so_do}.svg`), 'utf8');
+  for (const [, h] of svg.matchAll(/data-href="([^"]+)"/g)) if (!khoaTuHref(h)) loi.push(`so-do/${f.so_do}.svg: data-href "${h}" không mở được ngăn nào`);
+  const dsl = path.join(R, 'quy-trinh', id, 'danh-sach.json');
+  if (fs.existsSync(dsl) && JSON.parse(fs.readFileSync(dsl, 'utf8')).day_chuyen?.length) {
+    const rect = [...svg.matchAll(/<rect\b[^>]*>/g)].map((m) => m[0]).filter((r) => !/x="20" y="20"/.test(r));   // khung ngoài cùng của mọi sơ đồ phòng
+    const thieu = rect.filter((r) => !/data-href=/.test(r));
+    if (thieu.length) loi.push(`so-do/${f.so_do}.svg: ${thieu.length} ô chưa trỏ tới số liệu (thiếu data-href): ${thieu.slice(0, 3).join(' ')}`);
+  }
+}
 if (loi.length) { console.error('✗ tu-kiem cty:\n  ' + loi.join('\n  ')); process.exit(1); }
 console.log(`✓ tu-kiem cty: ${Object.keys(ns).length} nhân sự, ${Object.keys(phong).length} phòng, hồ sơ nhất quán`);

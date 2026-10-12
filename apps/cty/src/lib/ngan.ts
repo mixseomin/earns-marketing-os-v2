@@ -1,7 +1,7 @@
 // CHỒNG NGĂN KÉO của cty.on.tc theo chuẩn skill ngan-keo (8 luật). Phần thuần, dùng cả máy chủ lẫn trình duyệt:
 // khoá ngăn `loại:mã`, đọc khoá từ một link nội bộ, đọc/ghi chồng trong URL (`?ngan=nhan-su:tam&ngan=phong:sach`, đúng thứ tự).
 // Tự kiểm: `node scripts/thu-ngan.mjs`.
-export const LOAI_NGAN = ['nhan-su', 'phong', 'nhat-ky', 'luat', 'muc-tieu', 'quy-trinh', 'sach', 'the', 'video'] as const;
+export const LOAI_NGAN = ['nhan-su', 'phong', 'nhat-ky', 'luat', 'muc-tieu', 'quy-trinh', 'sach', 'the', 'video', 'day-chuyen'] as const;
 export type LoaiNgan = (typeof LOAI_NGAN)[number];
 
 export function tachKhoa(k: string): { loai: string; ma: string } {
@@ -22,6 +22,8 @@ export function khoaTuHref(href: string | null | undefined): string | null {
   if (q) return `quy-trinh:${decodeURIComponent(q[1]!)}`;
   const sp = u.pathname.match(/^\/(sach|video)\/([^/]+)\/([^/]+)\/?$/);
   if (sp) return `${sp[1]}:${decodeURIComponent(sp[2]!)}/${decodeURIComponent(sp[3]!)}`;
+  const dch = u.pathname.match(/^\/day-chuyen\/([^/]+)\/([^/]+)(?:\/([^/]+))?\/?$/);
+  if (dch) return `day-chuyen:${[dch[1], dch[2], dch[3]].filter(Boolean).map((x) => decodeURIComponent(x!)).join('/')}`;
   const t = u.pathname.match(/^\/the\/(\d+)\/?$/);
   if (t) return `the:${t[1]}`;
   return null;
@@ -32,6 +34,8 @@ export function khoaTuHref(href: string | null | undefined): string | null {
 export const hrefSach = (phong: string, id: string | number) => `/sach/${phong}/${id}`;
 /** Ngăn một video ngắn: mã = phòng/slug (worker/video.mjs). */
 export const hrefVideo = (phong: string, slug: string) => `/video/${phong}/${encodeURIComponent(slug)}`;
+/** Ngăn một dây chuyền của phòng (cả bảng), hoặc một phần đã lọc (`loc`: lich · tram-1…6 · len-san · ban · kho · hom · do) — ô sơ đồ trỏ vào đây. */
+export const hrefDayChuyen = (phong: string, dc: string, loc?: string) => `/day-chuyen/${phong}/${dc}${loc ? `/${loc}` : ''}`;
 /** Ngăn một card plays (human_tasks.id). */
 export const hrefThe = (id: string | number) => `/the/${id}`;
 

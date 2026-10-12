@@ -19,4 +19,5 @@ a(khoaTuHref('/video/sach/halloween-word-search-an') === 'video:sach/halloween-w
 a(rongKeo(1440, 400, 0, 0) === 1040 && rongKeo(1440, 400, -3, 1) === 1107, 'kéo mép: tầng 0 rộng = màn − x; tầng 1 cộng 64, giữ khoảng con trỏ lệch mép');
 a(rongKeo(1440, 1300, 0, 0) === 360 && rongKeo(1440, 1300, 0, 2) === 488 && rongKeo(1440, -80, 0, 0) === 1411 && rongKeo(300, 0, 0, 0) === 294, 'kéo mép: kẹp sàn 360 (tầng đang kéo), trần 98% màn, màn hẹp hơn sàn thì theo màn');
 a(rongHopLe('900') === 900 && rongHopLe('abc') === null && rongHopLe('12') === null && rongHopLe(null) === null, 'bề rộng nhớ: hỏng / quá nhỏ → mặc định');
-console.log('✓ ngan: 18 ca đạt');
+a(khoaTuHref('/day-chuyen/sach/sach/lich') === 'day-chuyen:sach/sach/lich' && khoaTuHref('/day-chuyen/sach/video') === 'day-chuyen:sach/video' && khoaTuHref('/day-chuyen/sach') === null && docChong(['day-chuyen:sach/sach']).length === 1, 'dây chuyền (có / không lọc)');
+console.log('✓ ngan: 19 ca đạt');

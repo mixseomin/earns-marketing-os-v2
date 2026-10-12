@@ -367,7 +367,7 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-sach-dau section{display:grid;gap:6px;align-content:start;min-width:0}
 .cty-sach-bc{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:.84rem;line-height:1.55;margin:0}
 .cty-sach-can{margin:0;padding-left:1.1rem;display:grid;gap:4px;font-size:.88rem}
-.cty-sach-can li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* một việc một dòng: ai + việc trước, tựa dài cắt cuối (rê chuột xem đủ) */
+.cty-sach-can li{overflow-wrap:anywhere}   /* #1327: việc dài xuống dòng đủ chữ, không cắt "…" — câu việc không nằm ở chỗ nào khác để đọc */
 .cty-sach a.cty-pill{text-decoration:none}
 .cty-sach-bang .cty-viec-ten{width:50%}
 .cty-sach-viec{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0;width:50%}
@@ -385,7 +385,7 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-tn-chu{background:var(--accent);color:var(--surface)}
 .cty-tn-chua{border-style:dashed;opacity:.75}
 .cty-tn-viec{margin:0;padding-left:1.1rem;display:grid;gap:3px;font-size:.8rem}
-.cty-tn-viec li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cty-tn-viec li{overflow-wrap:anywhere}   /* #1327: như .cty-sach-can li */
 .cty-tn-luoi{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:10px}
 .cty-tn-nguoi{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:var(--le);display:grid;gap:8px;align-content:start;min-width:0}
 .cty-tn-nguoi>h4{margin:0}
@@ -432,10 +432,10 @@ details[open]>.cty-qt-hang .cty-qt-ten::before{content:'▾ '}
 .cty-the-bia{display:block;background:var(--line)}
 .cty-the-bia img{display:block;width:100%;aspect-ratio:5/4;object-fit:cover}
 .cty-the-than{display:grid;gap:3px;min-width:0;padding:9px 10px 10px}
-.cty-the-ten{font-size:.8rem;font-weight:600;line-height:1.25;color:inherit;text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cty-the-ten{font-size:.8rem;font-weight:600;line-height:1.25;color:inherit;text-decoration:none;overflow-wrap:anywhere}   /* #1327: tựa đủ chữ như thẻ Trello */
 .cty-the-ten:hover{text-decoration:underline}
 .cty-the-dong{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;font-size:.72rem}
-.cty-the-viec{font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cty-the-viec{font-size:.72rem;overflow-wrap:anywhere}   /* #1327: việc kế / cảnh báo / lỗi trên thẻ đủ chữ */
 .cty-tram{display:inline-flex;gap:2px}
 .cty-tram i{width:6px;height:6px;border-radius:50%;border:1px solid var(--muted)}
 .cty-tram i.xong{background:var(--accent);border-color:var(--accent)}
@@ -484,3 +484,16 @@ details[open]>.cty-qt-hang .cty-qt-ten::before{content:'▾ '}
 body.nk-dang-keo{cursor:ew-resize;user-select:none}
 body.nk-dang-keo iframe{pointer-events:none}
 @media (max-width:700px){.nk-keo{display:none}}
+/* #1326 ô sơ đồ có data-href = mở ngăn số liệu thật: cả lòng ô bắt chuột (rect fill none mặc định chỉ bắt ở viền), rê chuột tô nền */
+.cty-tt svg rect[data-href]{pointer-events:all}
+.cty-tt svg rect[data-href]:hover{fill:var(--soft)}
+/* Bảng phần lọc dây chuyền (day-chuyen.tsx LocSach / LocVideo): một dòng một mục, đủ chữ */
+.cty-dc-ngan{display:grid;gap:10px;align-content:start}
+.cty-dc-ngan > p{margin:0}
+.cty-dc-ngan h3{margin:6px 0 0;font-size:.95rem}
+.cty-bang-loc{border-collapse:collapse;width:100%;font-size:.86rem}
+.cty-bang-loc th{text-align:left;font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.cty-bang-loc td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+.cty-bang-loc .cty-so{white-space:nowrap;font-variant-numeric:tabular-nums}
+.cty-bang-loc-nen{white-space:nowrap}
+.cty-bang-loc-nen .cty-nen+.cty-nen{margin-left:3px}

@@ -6,8 +6,9 @@ import { dayViecAm } from './hoan-tat';
 import { dongThoai, giaGiongTheo, GIONG_MAC_DINH, timNv } from './am-thanh';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, coElevenTrucTiep } from './giong';
 import { boiCanhTap, mapCanh, taoJob, canhDangSinhAm, type Db, type Row } from './doc-db';
-import { chanChuModel, coMau, thuongHieu } from './kieu';
+import { chanChuModel, coMau, thuongHieu, type NhanVat } from './kieu';
 import { chonGiongRieng } from './giong-rieng';
+import { giayAmHieu, moTaAmHieu, amHieuKhop } from './am-hieu';
 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
@@ -32,6 +33,10 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
   const dangGiong = await canhDangSinhAm(db, ds.map((c) => c.id), 'thoai');
   if (dangGiong.size) { ds = ds.filter((c) => !dangGiong.has(c.id)); if (!ds.length) return loi('shot này đang sinh giọng — đợi xong (tự hiện khi có), không sinh thêm lượt nữa'); }
   for (const c of ds) { const chan = chanChuModel(bc.kt.ngon_ngu, { shot: { thu_tu: c.thu_tu, thoai: c.thoai, loi_thoai: c.loi_thoai } }); if (chan) return loi(chan); }
+  // PHIM KHÔNG LỜI (kinh_thanh.khong_loi — Tango & Lint): dòng thoại là ÂM HIỆU, không đọc chữ bằng TTS. Khớp bộ âm hiệu của nhân vật
+  // (xv_nhan_vat.am_hieu) thì dùng lại đúng file (0đ, mọi tập cùng một tiếng); còn lại sinh bằng máy hiệu ứng âm thanh theo mô tả giọng
+  // của nhân vật + diễn xuất. Job vẫn là 'thoai' → hoàn tất / khớp giây / kiểm tiếng đi chung đường với giọng.
+  if (bc.kt.khong_loi) return amHieuShots(db, ds, bc.nhanVat, tuy);
   const dm = await dsMoHinhGiong();
   // Lời dẫn = MỘT giọng cho cả phim (kt.giong_dan). Chọn giọng lời dẫn ở lượt này (bảng ＋ hoặc model/giọng chung của lượt) = đổi giọng
   // lời dẫn của cả phim; chưa có thì lượt đầu khoá giọng nó dùng. Phim có QC mẫu mà chưa chọn → dừng, không tự rơi về giọng mặc định
@@ -109,5 +114,29 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
     }
   }
   if (dungLai) console.log(`[giọng] dùng lại ${dungLai} câu đã đọc (0đ)`);
+  return { ok: true, data: so };
+}
+
+const SFX_AM = 'fal-ai/elevenlabs/sound-effects/v2';
+async function amHieuShots(db: Db, ds: ReturnType<typeof mapCanh>[], nhanVat: NhanVat[], tuy: TuyGiong): Promise<Kq<number>> {
+  let so = 0; let dungLai = 0;
+  for (const c of ds) {
+    for (const [i, d] of c.thoai.entries()) {
+      if (!d.loi.trim() || (tuy.chiThieu && d.url)) continue;
+      const v = timNv(nhanVat, d.nhan_vat) ?? null;
+      const kit = amHieuKhop(v, d.loi);
+      if (kit) {
+        await db.execute(sql`UPDATE xv_canh SET thoai = jsonb_set(jsonb_set(thoai, ${`{${i},url}`}::text[], to_jsonb(${kit.url}::text)), ${`{${i},giong}`}::text[], to_jsonb(${`am_hieu|${v?.ten ?? ''}`}::text)) #- ${`{${i},gon}`}::text[],
+          thoai_url = CASE WHEN ${i} = 0 THEN ${kit.url} ELSE thoai_url END, updated_at = now() WHERE id = ${c.id}`);
+        dungLai++; continue;
+      }
+      const text = moTaAmHieu(v, d); const giay = giayAmHieu(d.loi);
+      const gia = Math.round(0.2 * giay * 100) / 100;
+      const job = await taoJob(db, { nhan: `Âm hiệu · shot #${c.thu_tu} dòng ${i + 1} · ${v?.ten ?? '?'}`, canh_id: c.id, nhan_vat_id: v?.id, loai: 'am', provider: 'fal', model: `fal:${SFX_AM}`, request: { dich: 'thoai', dong: i, gia, text, giong: `sfx|${v?.ten ?? ''}`, ...(tuy.sauVideo ? { sau_video: tuy.sauVideo } : {}) } });
+      await dayViecAm({ kieu: 'am', job, model: SFX_AM, input: { text, duration_seconds: giay, prompt_influence: 0.6 }, thuMuc: `thoai/${c.id}-${i}` });
+      so++;
+    }
+  }
+  if (dungLai) console.log(`[âm hiệu] dùng lại ${dungLai} âm của bộ âm hiệu (0đ)`);
   return { ok: true, data: so };
 }

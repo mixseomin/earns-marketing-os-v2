@@ -41,8 +41,8 @@ const KINH_THANH = {
 };
 /** DÀN NHÂN VẬT (anh chốt 14/10/2026). mo_ta = đặc tính NHÌN THẤY (vào prompt hình); tieu_su = kiểu Marvel (nguồn gốc, sức mạnh, điểm yếu…)
  *  cho Claude viết kịch bản + làm nền tập phim về chính nhân vật; phuong_an = ảnh thử (scripts/thu-nhan-vat.mts) làm tham chiếu tạo hình. */
-const NHAN_VAT: { ten: string; phuong_an: string; mo_ta: string; tieu_su: string }[] = [
-  { ten: 'Tango', phuong_an: 'dat_set_cam',
+const NHAN_VAT: { ten: string; phuong_an: string; mo_ta: string; tieu_su: string; giong?: string }[] = [
+  { ten: 'Tango', giong: 'a tiny high-pitched, squeaky, bouncy cartoon clay creature voice, playful and toddler-like', phuong_an: 'dat_set_cam',
     mo_ta: 'A small round egg-shaped creature made of soft matte ORANGE modelling clay, about 5 cm tall, no neck, two big round white googly eyes with black pupils, tiny stubby clay arms and legs, faint fingerprint texture in the clay, a slightly deeper thumbprint dent on his back, and ONE thin curly strand of slightly darker orange clay springing from the very top of his head like a little antenna.',
     tieu_su: `Origin: a leftover lump of orange modelling clay from the Giant's craft day. One stormy night the charging cable sparked beside him and the jolt brought him to life — the thumbprint on his back is the Giant's, his "birthmark".
 Personality: curious, reckless, endlessly optimistic, impatient; he acts first and thinks later — he is the one who starts every adventure (and every mess).
@@ -57,7 +57,7 @@ Hates: water drops — one drip from the Giant's cold drink sends him running.
 Quirk: he presses his thumbprint on everything he is proud of, like signing his name.
 Secret talent: he knows how to dance a dramatic TANGO — head snap, sharp turns, a dip — but he NEVER dances in Season 1. Nobody on the desk knows he can. (Season 1 may only hint at it: a tapping foot, a twitch of rhythm he stops himself. The first real dance is saved for a big payoff in a later season.)
 Secret: when he gets scared he leaves tiny orange crumbs behind — a trail his enemies can follow.` },
-  { ten: 'Lint', phuong_an: 'bui_long',
+  { ten: 'Lint', giong: 'a tiny soft, breathy, timid fluffy creature voice, whispery and gentle', phuong_an: 'bui_long',
     mo_ta: 'A small fluffy dust-bunny creature made of soft GREY felt and fuzz, about 5 cm tall, a round puffball body with wispy fibres sticking out, two big round shiny black eyes, tiny felt feet poking out underneath, no arms, and ONE bright blue thread poking out of the fuzz on top of his head.',
     tieu_su: `Origin: born in the dark cable jungle behind the monitors from years of dust, fluff and a single blue thread from the Giant's sweater — the first dust bunny ever to open its eyes.
 Personality: shy, gentle, anxious and fiercely loyal; he hides at the first sign of danger but becomes surprisingly brave when a friend is in trouble.
@@ -71,7 +71,7 @@ Loves (signature): cotton balls — he keeps one as his teddy and pillow and nev
 Hates: the "pssht" of a spray bottle (cleaning is coming) and the roar of the vacuum.
 Quirk: when nervous he hides inside anything round — a cup, a bottle cap, Tango's hands.
 Secret: the blue thread inside him is the last piece of the Giant's favourite sweater — and it is what makes him alive.` },
-  { ten: 'Clicky', phuong_an: 'chuot_song',
+  { ten: 'Clicky', giong: 'a living computer mouse that "speaks" only in crisp clicks, soft electronic chirps and purring hums', phuong_an: 'chuot_song',
     mo_ta: 'The white Magic Mouse brought to life: a smooth glossy white shell like a gentle turtle or beetle, two small kind black eyes on its front edge, a soft glow underneath its body, a short dark scratch scar across the right side of its shell, big enough for Tango to ride on its back.',
     tieu_su: `Origin: the Giant's wireless mouse, left on overnight with its battery at 1%. In the half-sleep of low power it woke up and found it could move on its own.
 Personality: a gentle giant — sleepy, loyal, playful as a puppy; it talks only with soft clicks and the colour of its belly glow (green = happy, amber = sleepy, red = alarm).
@@ -85,7 +85,7 @@ Loves (signature): fresh AA batteries — its favourite treat, like a dog's bone
 Hates: the laptop trackpad, the rival that could replace it.
 Quirk: it chases any blinking light like a cat chasing a laser dot.
 Secret: it remembers every place the Giant ever clicked — a map of the whole desk inside its head.` },
-  { ten: 'Mr. Wipe', phuong_an: 'gie_lau',
+  { ten: 'Mr. Wipe', giong: 'a deep, pompous, theatrical cartoon-villain voice of a cleaning cloth, with soft fabric swooshes', phuong_an: 'gie_lau',
     mo_ta: 'A villain made from a grey-blue microfiber screen-cleaning cloth: a floppy fabric creature that can billow up like a looming ghost, two narrow angry button eyes, fabric edges that flap like arms, and a faded brown coffee-ring stain on one corner.',
     tieu_su: `Origin: a microfiber cleaning cloth that spent years wiping the Giant's screens. Every speck of dust he ever touched made him greyer — until one day he decided dust itself was the enemy.
 Personality: an obsessive neat-freak — dramatic, arrogant, theatrical; secretly very lonely.
@@ -99,7 +99,7 @@ Loves (signature): his little blue bottle of screen-cleaner spray — he hugs it
 Hates: fingerprints — and Tango leaves clay fingerprints everywhere.
 Quirk: he straightens everything he passes into perfect right angles.
 Secret: he was white when he was new — and deep in one fold he keeps a single tiny piece of dust he has never been able to throw away.` },
-  { ten: 'Cordy', phuong_an: 'ran_cap',
+  { ten: 'Cordy', giong: 'a mischievous crackly electric creature voice made of sparks, static and little zaps', phuong_an: 'ran_cap',
     mo_ta: "The long white charging cable as a playful snake-like creature: its metal plug is the head with two tiny dot eyes and a small smile, a smooth white cable body that curls and coils across the desk, with a short wrap of black electrical tape around the cable just below the plug like a bandage.",
     tieu_su: `Origin: the iMac's charging cable — the cable whose spark brought Tango to life. That same spark woke Cordy up too.
 Personality: playful, cheeky, a prankster who can never sit still; he "talks" with little sparks and zaps.
@@ -113,7 +113,7 @@ Loves (signature): the satisfying "click" of plugging into a perfect port, and t
 Hates: twist ties and knots.
 Quirk: instead of talking he ties himself into shapes — a heart, an arrow, a question mark.
 Secret: he feels guilty that his spark made the desk come alive — and he does not know if it can happen again.` },
-  { ten: 'Sticky', phuong_an: 'giay_note',
+  { ten: 'Sticky', giong: 'a tiny cheerful high-pitched paper creature voice with paper rustles', phuong_an: 'giay_note',
     mo_ta: 'A bright yellow sticky-note paper character: a square paper body folded into a little figure with paper arms, two drawn-on ink dot eyes, one corner curled up like a cowlick, and a jagged torn edge on her left side patched with a strip of clear shiny tape.',
     tieu_su: `Origin: peeled from the Giant's sticky-note pad in a hurry and dropped behind the keyboard; she woke up with a message written on her back that she can never read.
 Personality: cheerful, clever, chatty (in pictures), the problem-solver of the group.
@@ -318,7 +318,7 @@ if (dot === 'nhan_vat') await theoDot(trong(NHAN_VAT), async (n) => {
   if (!thu) { ra.push({ ten: n.ten, url: null, loi: 'chưa có ảnh thử phương án' }); return; }
   let v = (await q(sql`SELECT id, anh_ref FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = 'nhan_vat' AND ten = ${n.ten} LIMIT 1`))[0];
   if (!v) v = (await q(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, tieu_su, anh_ref) VALUES (${phimId}, 'nhan_vat', ${n.ten}, ${n.mo_ta}, ${n.tieu_su}, ${JSON.stringify([thu])}::jsonb) RETURNING id, anh_ref`))[0]!;
-  else await q(sql`UPDATE xv_nhan_vat SET mo_ta = ${n.mo_ta}, tieu_su = ${n.tieu_su}, updated_at = now() WHERE id = ${Number(v.id)}`);
+  else await q(sql`UPDATE xv_nhan_vat SET mo_ta = ${n.mo_ta}, tieu_su = ${n.tieu_su}, giong = ${n.giong ?? ''}, updated_at = now() WHERE id = ${Number(v.id)}`);
   // Sheet hiện có = mọi ảnh ĐÃ SINH trừ ảnh thử gốc của phương án (gồm cả ảnh thử đã chọn bằng --chon). Trước đây chỉ đếm /anchor/ → sheet
   // chọn từ ảnh thử bị coi như chưa có, lượt cập nhật tiểu sử sinh thêm sheet ngoài ý (14/10/2026, $0.034).
   const sheetCu = ((v.anh_ref as string[]) ?? []).filter((u) => anhRa(u) && u !== thu);

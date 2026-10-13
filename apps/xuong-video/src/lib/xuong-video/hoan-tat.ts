@@ -97,6 +97,7 @@ export async function hoanTatAm(kq: KqViecAm): Promise<boolean> {
         thoai_url = CASE WHEN ${i} = 0 THEN ${kq.url} ELSE thoai_url END, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${Number(j.canh_id)}`);
     } else await db.execute(sql`UPDATE xv_canh SET thoai_url = ${kq.url}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${Number(j.canh_id)}`);
   }
+  if (dich === 'thoai' && j.canh_id != null) await khopSauGiong(Number(j.canh_id));
   if (dich === 'thoai' && j.canh_id != null && rq.sau_video) await videoSauGiong(Number(j.canh_id), rq.sau_video as { moHinh?: string; ban: 'nhap' | 'cuoi' });
   if (dich === 'sfx' && j.canh_id != null) await db.execute(sql`UPDATE xv_canh SET am_thanh_url = ${kq.url}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${Number(j.canh_id)}`);
   if (dich === 'nhac' && rq.tap_id != null) {
@@ -111,6 +112,22 @@ export async function hoanTatAm(kq: KqViecAm): Promise<boolean> {
   return true;
 }
 export const thuHangDoi = (job = 0) => guiHangDoi({ job, model: '', prompt: '', thamChieuUrl: [], tiLe: '1:1', thuMuc: 'thu', thu: true });
+
+/** Giọng vừa về → độ dài shot khớp theo giọng ngay (hau-ky.ts › khopGiongTap: cắt lặng, giây phát vừa khít câu), khi tập không còn lượt giọng
+ *  nào đang chạy. Trước đây là nút ⏱ bấm tay, không ai bấm → lời dẫn 3s nằm trong shot 2,5s tràn sang đè câu của Felix (13/10/2026). */
+async function khopSauGiong(canhId: number): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  const t = (await db.execute(sql`SELECT tap_id FROM xv_canh WHERE id = ${canhId}`)) as unknown as Row[];
+  if (!t[0]) return;
+  const tapId = Number(t[0].tap_id);
+  const con = (await db.execute(sql`SELECT 1 FROM xv_job j JOIN xv_canh c ON c.id = j.canh_id WHERE c.tap_id = ${tapId} AND j.loai = 'am' AND j.request->>'dich' = 'thoai'
+    AND j.trang_thai = 'cho' AND j.created_at > now() - interval '10 minutes' LIMIT 1`)) as unknown as Row[];
+  if (con.length) return;
+  const { khopGiongTap } = await import('./hau-ky');
+  const r = await khopGiongTap(db, tapId, 'tự khớp sau khi sinh giọng').catch((e: unknown) => ({ ok: false as const, loi: String(e) }));
+  if (!r.ok) console.error('[khớp giọng tự động]', tapId, r.loi);
+}
 
 /** Giọng của shot vừa đủ (không còn dòng thiếu, không còn lượt giọng đang chạy) → gửi video mà người bấm "Sinh nháp" đã đặt.
  *  Nhận việc bằng cách gỡ cờ sau_video khỏi mọi job giọng của shot: hai dòng xong cùng lúc thì chỉ bên gỡ được mới gửi (không trả tiền đôi). */

@@ -7,6 +7,7 @@ import { dongThoai, giaGiongTheo, GIONG_MAC_DINH, timNv } from './am-thanh';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, coElevenTrucTiep } from './giong';
 import { boiCanhTap, mapCanh, taoJob, canhDangSinhAm, type Db, type Row } from './doc-db';
 import { chanChuModel, coMau, thuongHieu } from './kieu';
+import { chonGiongRieng } from './giong-rieng';
 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
@@ -60,6 +61,18 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
   const tatCa = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId}`)) as unknown as Row[]).map(mapCanh);
   const cxDan = tatCa.filter((c) => dongThoai(c, bc.nhanVat).some((d) => !timNv(bc.nhanVat, d.nhan_vat))).map((c) => c.cam_xuc).sort((a, b) => a - b);
   const camDan = cxDan.length ? cxDan[Math.floor(cxDan.length / 2)]! : 0;
+  // Nhân vật nói trong lượt này mà chưa có giọng riêng (và lượt không chọn giọng cho nó) → gán giọng không trùng người dẫn / nhân vật khác,
+  // lưu vào nhân vật (giong-rieng.ts). Trước đây rơi về giọng mặc định = giọng người dẫn: Felix nói "Ahem" bằng giọng George (13/10/2026).
+  for (const ten of [...new Set(ds.flatMap((c) => dongThoai(c, bc.nhanVat).filter((d) => d.loi.trim()).map((d) => d.nhan_vat.trim())))]) {
+    const v = timNv(bc.nhanVat, ten);
+    if (!v || v.giong_id || tuy.theoNguoi?.[ten]?.voice || tuy.theoNguoi?.[v.ten]?.voice || (tuy.model && tuy.voice)) continue;
+    const model = tuy.model || v.giong_model || MODEL_GIONG_MAC_DINH();
+    const daDung = [...(giongDan?.model === model ? [giongDan.voice] : []), ...bc.nhanVat.filter((x) => x.id !== v.id && x.giong_id && (x.giong_model || model) === model).map((x) => x.giong_id)];
+    const voice = chonGiongRieng(v, (await giongCua(model)).map((g) => g.id), daDung);
+    if (!voice) continue;
+    await db.execute(sql`UPDATE xv_nhan_vat SET giong_model = ${model}, giong_id = ${voice}, updated_at = now() WHERE id = ${v.id}`);
+    v.giong_model = model; v.giong_id = voice;
+  }
   let so = 0; let dungLai = 0;
   for (const c of ds) {
     // Thoại theo dòng (kịch bản phim): mỗi dòng một file, giọng của đúng người nói dòng đó. Shot cũ chỉ có chuỗi → tách dòng và LƯU

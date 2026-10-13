@@ -49,7 +49,7 @@ Hates: water drops — one drip from the Giant's cold drink sends him running.
 Quirk: he presses his thumbprint on everything he is proud of, like signing his name.
 Secret: when he gets scared he leaves tiny orange crumbs behind — a trail his enemies can follow.` },
   { ten: 'Lint', phuong_an: 'bui_long',
-    mo_ta: 'A small fluffy dust-bunny creature made of soft GREY felt and fuzz, about 5 cm tall, a round puffball body with wispy fibres sticking out, two big round shiny black eyes, tiny felt feet poking out underneath, no arms.',
+    mo_ta: 'A small fluffy dust-bunny creature made of soft GREY felt and fuzz, about 5 cm tall, a round puffball body with wispy fibres sticking out, two big round shiny black eyes, tiny felt feet poking out underneath, no arms, and ONE bright blue thread poking out of the fuzz on top of his head.',
     tieu_su: `Origin: born in the dark cable jungle behind the monitors from years of dust, fluff and a single blue thread from the Giant's sweater — the first dust bunny ever to open its eyes.
 Personality: shy, gentle, anxious and fiercely loyal; he hides at the first sign of danger but becomes surprisingly brave when a friend is in trouble.
 Power: almost weightless — he floats on the warm air from the computer vents, bounces like a ball, and puffs up to three times his size when frightened; small things stick to his fuzz.
@@ -57,12 +57,13 @@ Weakness: Mr. Wipe and anything that cleans; a big sneeze blows him apart (he sl
 Wants: a safe, cozy home that will never, ever be cleaned.
 Fears: being wiped away — for a dust bunny that means disappearing forever.
 Relationships: Tango drags him into adventures and always protects him; Sticky draws him pictures to calm him; Mr. Wipe hunts him.
+Mark: the bright blue thread poking out of his fuzz — when it glows faintly, the magic that keeps him alive is working.
 Loves (signature): cotton balls — he keeps one as his teddy and pillow and never goes anywhere without it.
 Hates: the "pssht" of a spray bottle (cleaning is coming) and the roar of the vacuum.
 Quirk: when nervous he hides inside anything round — a cup, a bottle cap, Tango's hands.
 Secret: the blue thread inside him is the last piece of the Giant's favourite sweater — and it is what makes him alive.` },
   { ten: 'Clicky', phuong_an: 'chuot_song',
-    mo_ta: 'The white Magic Mouse brought to life: a smooth glossy white shell like a gentle turtle or beetle, two small kind black eyes on its front edge, a soft glow underneath its body, big enough for Tango to ride on its back.',
+    mo_ta: 'The white Magic Mouse brought to life: a smooth glossy white shell like a gentle turtle or beetle, two small kind black eyes on its front edge, a soft glow underneath its body, a short dark scratch scar across the right side of its shell, big enough for Tango to ride on its back.',
     tieu_su: `Origin: the Giant's wireless mouse, left on overnight with its battery at 1%. In the half-sleep of low power it woke up and found it could move on its own.
 Personality: a gentle giant — sleepy, loyal, playful as a puppy; it talks only with soft clicks and the colour of its belly glow (green = happy, amber = sleepy, red = alarm).
 Power: glides fast and silently across the desk; its belly light becomes a searchlight in the dark; one double-click can launch Tango into the air.
@@ -70,12 +71,13 @@ Weakness: low battery — it slows down and falls asleep mid-adventure until Cor
 Wants: to be gently scratched on its back like a pet.
 Fears: being replaced by a new mouse and thrown in a drawer.
 Relationships: Tango's ride and loyal steed; best buddy of Cordy, who charges it; Lint likes to nap on its warm shell.
+Mark: a dark scratch across its right side from "the Great Fall" — the night it slid off the desk edge and lay alone on the floor until the Giant found it in the morning. Since then it brakes hard at every edge.
 Loves (signature): fresh AA batteries — its favourite treat, like a dog's bone; it does a happy spin when it gets one.
 Hates: the laptop trackpad, the rival that could replace it.
 Quirk: it chases any blinking light like a cat chasing a laser dot.
 Secret: it remembers every place the Giant ever clicked — a map of the whole desk inside its head.` },
   { ten: 'Mr. Wipe', phuong_an: 'gie_lau',
-    mo_ta: 'A villain made from a grey-blue microfiber screen-cleaning cloth: a floppy fabric creature that can billow up like a looming ghost, two narrow angry button eyes, fabric edges that flap like arms.',
+    mo_ta: 'A villain made from a grey-blue microfiber screen-cleaning cloth: a floppy fabric creature that can billow up like a looming ghost, two narrow angry button eyes, fabric edges that flap like arms, and a faded brown coffee-ring stain on one corner.',
     tieu_su: `Origin: a microfiber cleaning cloth that spent years wiping the Giant's screens. Every speck of dust he ever touched made him greyer — until one day he decided dust itself was the enemy.
 Personality: an obsessive neat-freak — dramatic, arrogant, theatrical; secretly very lonely.
 Power: billows and swoops like a ghost, wraps around things, and uses static cling to pull dust (and Lint) towards him.
@@ -83,12 +85,13 @@ Weakness: water makes him soggy, heavy and slow; he gets tangled in cables; heig
 Wants: a perfectly spotless desk — which means wiping away Lint for good.
 Fears: the washing machine.
 Relationships: arch-enemy of Lint and Tango; tries to boss Clicky and Cordy around; Sticky keeps outsmarting him.
+Mark: a brown coffee-ring stain on one corner — the day the Giant used him to mop up spilled coffee and no wash ever got it out. It is his shame, the reason he can never stand a mess.
 Loves (signature): his little blue bottle of screen-cleaner spray — he hugs it like a teddy and sniffs its "clean" smell.
 Hates: fingerprints — and Tango leaves clay fingerprints everywhere.
 Quirk: he straightens everything he passes into perfect right angles.
 Secret: he was white when he was new — and deep in one fold he keeps a single tiny piece of dust he has never been able to throw away.` },
   { ten: 'Cordy', phuong_an: 'ran_cap',
-    mo_ta: "The long white charging cable as a playful snake-like creature: its metal plug is the head with two tiny dot eyes and a small smile, a smooth white cable body that curls and coils across the desk.",
+    mo_ta: "The long white charging cable as a playful snake-like creature: its metal plug is the head with two tiny dot eyes and a small smile, a smooth white cable body that curls and coils across the desk, with a short wrap of black electrical tape around the cable just below the plug like a bandage.",
     tieu_su: `Origin: the iMac's charging cable — the cable whose spark brought Tango to life. That same spark woke Cordy up too.
 Personality: playful, cheeky, a prankster who can never sit still; he "talks" with little sparks and zaps.
 Power: his long body becomes a bridge, a rope, a zipline or a slide; he can give a small charge to wake Clicky or power any gadget on the desk.
@@ -96,6 +99,7 @@ Weakness: knots and tangles; sharp bends hurt him; his plug only fits the right 
 Wants: to find the one perfect port that feels like home.
 Fears: scissors, and being coiled up and forgotten in a drawer.
 Relationships: Clicky's best friend and charger; loves teasing Tango; ties Mr. Wipe in knots.
+Mark: a wrap of black electrical tape just below his plug — where the Giant's scissors nicked him while tidying cables. Tango and Sticky bandaged him; that is why he fears scissors.
 Loves (signature): the satisfying "click" of plugging into a perfect port, and the charging chime "ding".
 Hates: twist ties and knots.
 Quirk: instead of talking he ties himself into shapes — a heart, an arrow, a question mark.

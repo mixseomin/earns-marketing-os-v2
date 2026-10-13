@@ -11,7 +11,7 @@ import { SAP_TOI, CHANG } from '../../worker/sach.mjs';
 import { hrefSach, hrefThe, hrefVideo } from '@/lib/ngan';
 import { NEN_VIDEO, KHO_CAN, tenSlug } from '../../worker/video.mjs';
 import { LENH_MAY, lenhGanNhat, nguoiLenh } from '../../worker/lenh-may.mjs';
-import { TEN_LOAI } from '../../worker/mail-bao-mat.mjs';
+import { TEN_LOAI, BAT_TU } from '../../worker/mail-bao-mat.mjs';
 import { NutChayLai, type LenhHien } from './nut-chay-lai';
 import { giaiMa } from '@/lib/trach-nhiem';
 import { theViecMo, type kenhKeoKhach, type LanVideo } from '@/lib/do-dac';
@@ -236,7 +236,7 @@ export function viecCacDayChuyen({ dsDc, dc, lv, kenh, phong, mail }: DuLieuDc):
     if (d.nguon.startsWith('kenh:')) for (const r of (kenh ?? []).filter((x) => x.kenh === d.nguon.slice(5) && x.canh_bao))
       ds.push({ key: `k${r.kenh}${r.san_pham}`, dc: d.id, k: 'kenh-keo-khach', ai: 'kenh-keo-khach', chu: r.canh_bao!, href: r.the_id ? hrefThe(r.the_id) : undefined, ten: r.ten, qt: d.qt_chinh ?? null });
     // thư bảo mật chưa xử (còn "new" trong hòm) → việc của trưởng phòng; thư giả / có người mạo danh lên mức 1 (làm ngay)
-    if (d.nguon === 'mail') for (const m of (mail ?? []).filter((x) => !x.xong && x.ket !== 'thuong'))
+    if (d.nguon === 'mail') for (const m of (mail ?? []).filter((x) => !x.xong && x.ket !== 'thuong' && x.luc >= BAT_TU))   // thư trước khi bật Kiên không thành việc
       ds.push({ key: `m${m.id}`, dc: d.id, k: 'truong-phong', ai: 'truong-phong', chu: `${m.chu} → ${m.viec}`, muc: m.ket === 'gia' || m.loai.some((l) => l !== 'thanh-toan') ? 1 : 2, nhan: m.mien, ten: m.tieuDe, qt: 'tham-dinh-mail-bao-mat' });
   }
   const tt = (k: string) => (THU_TU.includes(k) ? THU_TU.indexOf(k) : THU_TU.length);

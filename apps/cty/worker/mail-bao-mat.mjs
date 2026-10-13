@@ -18,7 +18,14 @@ const nhan = (mien) => mien.split('.')[0];
 /** Nhà thật anh đang có tài khoản — chỉ thư của những nhà này mới được gọi là "thư thật". ponytail: danh sách tay; dùng nền tảng mới thì thêm một
  *  dòng (không có tên ở đây → máy nói "tên miền lạ", không bao giờ nói "thật"). Tên nhái (paypa1, amaz0n) rơi vào nhánh lạ. */
 export const NHA = new Set(['amazon', 'google', 'youtube', 'apple', 'icloud', 'paypal', 'etsy', 'gumroad', 'stripe', 'payoneer', 'wise', 'udemy', 'facebook',
-  'facebookmail', 'meta', 'instagram', 'tiktok', 'pinterest', 'printables', 'cloudflare', 'hetzner', 'github', 'microsoft', 'mailjet', 'okx', 'telegram', 'x', 'twitter']);
+  'facebookmail', 'meta', 'instagram', 'tiktok', 'pinterest', 'printables', 'cloudflare', 'hetzner', 'github', 'microsoft', 'mailjet', 'okx', 'telegram', 'x', 'twitter',
+  'namecheap', 'examweight']);   // examweight = dự án nhà
+/** HỌ TÊN MIỀN của một nhà: link sang miền trong họ không phải "lạ" (thư AdSense thật dùng c.gle — 14/10/2026 bị gắn THƯ GIẢ). */
+const HO = { google: ['c.gle', 'goo.gl', 'g.co', 'gstatic.com', 'googleusercontent.com', 'youtube.com', 'withgoogle.com', 'google.com'], amazon: ['a.co', 'amzn.to', 'media-amazon.com', 'amazon.com'],
+  facebookmail: ['facebook.com', 'fb.com', 'instagram.com'], facebook: ['fb.com', 'facebookmail.com'], microsoft: ['live.com', 'outlook.com', 'office.com', 'aka.ms'] };
+const cungNha = (host, mien) => { const m = mienGoc(host); return nhan(m) === nhan(mien) || (HO[nhan(mien)] ?? []).includes(m); };
+/** Kiên chỉ BÁO thư đến từ lúc được bật — thư cũ hơn coi như anh đã thấy (14/10/2026: lần đầu đọc mọi thư lôi 3 thư tháng 9 ra báo). */
+export const BAT_TU = '2026-10-13T00:00:00Z';
 const LOAI = [
   ['xac-nhan-lien-he', /confirm (that )?you('|’)?re contacting|customer service wants to confirm|approve (or deny|this request)|xác nhận.*liên hệ/i, 'xác nhận liên hệ CSKH'],
   ['dang-nhap', /sign-?in|log-?in|new device|unrecognized|đăng nhập|thiết bị mới/i, 'đăng nhập'],
@@ -51,7 +58,7 @@ export function thamDinh({ from, subject = '', html = '' }) {
   const { gui, chuyenTiep } = nguoiGui(from, html);
   const mien = gui.includes('@') ? mienGoc(gui.split('@')[1]) : '';
   const t = `${subject}\n${chu(html)}`, loai = LOAI.filter(([, re]) => re.test(t)).map(([k]) => k);
-  const links = tachLink(html), la = mien ? links.filter((h) => nhan(mienGoc(h)) !== nhan(mien)) : [];
+  const links = tachLink(html), la = mien ? links.filter((h) => !cungNha(h, mien)) : [];
   const dkim = chuyenTiep ? ' (thư chuyển tiếp mất header gốc nên chưa đọc được chữ ký DKIM — kết luận theo link)' : '';
   if (!mien) return { gui, mien, loai, links, la, ket: 'chua-ro', chu: 'Không đọc được địa chỉ người gửi.', viec: 'Không bấm link nào; chuyển tiếp lại thư dạng tệp đính kèm (.eml) để đọc header.' };
   if (la.length) return { gui, mien, loai, links, la, ket: 'gia', chu: `THƯ GIẢ: mang tên ${mien} nhưng link dẫn sang ${la.slice(0, 3).join(', ')}.`, viec: 'Không bấm link, không nhập gì; xoá thư. Đã lỡ bấm/nhập → đổi mật khẩu ngay trên trang thật (gõ tay địa chỉ) + bật xác minh 2 lớp.' };
@@ -107,15 +114,17 @@ export function buocTin(st, ds, gio, ten = '') {
   const goi = ten && new RegExp(ten.normalize('NFD').replace(/[\u0300-\u036f]/g, ''), 'i');
   const da = new Set(st.da ?? []);
   for (const m of ds) {
+    if (m.luc && m.luc < BAT_TU) continue;
     if (m.ket !== 'thuong') { if (!m.xong && !tin[m.id]) gui.push(m); }
     else if (goi && !da.has(m.id) && goi.test(String(m.tieuDe).normalize('NFD').replace(/[\u0300-\u036f]/g, ''))) daDoc.push(m);   // thư gọi tên → báo "đã đọc" một lần
   }
   for (const [mid, t] of Object.entries(tin)) {
     const m = ds.find((x) => x.id === mid);
-    if (!t.xong && (!m || m.xong)) { tha.push(t.id); tin[mid] = { ...t, xong: new Date(gio).toISOString() }; }
+    // hết là việc (đã xử / thẩm định lại thành thư thường / thư trước khi bật) → ❤ rồi gỡ
+    if (!t.xong && (!m || m.xong || m.ket === 'thuong' || (m.luc && m.luc < BAT_TU))) { tha.push(t.id); tin[mid] = { ...t, xong: new Date(gio).toISOString() }; }
     else if (t.xong && gio - Date.parse(t.xong) >= XOA_SAU) { xoa.push(t.id); delete tin[mid]; }
   }
-  return { gui, tha, xoa, daDoc, st: { ...st, tin, da: [...da, ...daDoc.map((m) => m.id)].slice(-300) }, cho: ds.filter((m) => !m.xong && m.ket !== 'thuong').length };
+  return { gui, tha, xoa, daDoc, st: { ...st, tin, da: [...da, ...daDoc.map((m) => m.id)].slice(-300) }, cho: ds.filter((m) => !m.xong && m.ket !== 'thuong' && !(m.luc && m.luc < BAT_TU)).length };
 }
 /** Nhịp thật (box3): đọc hòm → Telegram + pixel. env: DIRECTUS_*, TG_BOT_TOKEN, TG_CHAT (/root/.secrets/mine-tg.env). */
 export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', tep = `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/bao-mat-tg.json` } = {}) {
@@ -160,6 +169,8 @@ if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && process.argv.includes('--tu
   const bk = buocTin({}, [th, { ...th, id: 'u', tieuDe: 'GSC report' }], 0, 'Kiên'); a.deepEqual(bk.daDoc.map((m) => m.id), ['t'], 'thư gọi tên Kiên (kể cả không dấu) → trả lời; thư thường khác → im'); a.equal(bk.cho, 0);
   a.equal(buocTin(bk.st, [th], 1, 'Kiên').daDoc.length, 0, 'trả lời một lần');
   a.equal(thamDinh({ from: 'htuan82@gmail.com', subject: 'Kiên check mail', html: '<p>hi</p>' }).ket, 'thuong');
+  a.notEqual(thamDinh({ from: 'adsense-noreply@google.com', subject: 'fix issues', html: '<a href="https://c.gle/abc">x</a>' }).ket, 'gia', 'link c.gle trong thư Google không phải lạ');
+  a.equal(buocTin({}, [{ ...m1, luc: '2026-09-26T04:30:00Z' }], 0).gui.length, 0, 'thư trước khi bật không báo');
   const b1 = buocTin({}, [m1], 0); a.deepEqual(b1.gui.map((m) => m.id), ['a']); a.equal(b1.cho, 1);
   const s1 = { tin: { a: { id: 7 } } }; a.equal(buocTin(s1, [m1], 1).gui.length, 0, 'đã báo thì không báo lại');
   a.equal(buocTin(s1, null, 1).st, s1, 'không đọc được hòm → không đụng tin nào');

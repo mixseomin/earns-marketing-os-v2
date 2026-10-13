@@ -9,7 +9,9 @@ import { GOC } from './goc.mjs';
 import { parseFm } from '../scripts/fm.mjs';
 
 /** Tần suất mọi nhịp máy = tần suất cty-nhip.timer (apps/cty/deploy/cty-nhip.timer OnUnitActiveSec). Đổi timer thì đổi chữ này. */
-export const TAN_SUAT = 'mỗi phút';
+export const TAN_SUAT = '1 lần/phút';
+/** Tên việc nhịp bằng chữ người đọc (bảng nhân sự hiện cái này, không hiện mã). */
+export const TEN_NHIP = { 'mail-bao-mat': 'Báo khi có thư bảo mật mới (gọi mô hình chỉ lúc có thư)' };
 export const NHIP = {
   'mail-bao-mat': async (n) => (await import('./mail-bao-mat.mjs')).nhipBaoMat(n.id, { ten: n.ten, model: n.model, phong: n.phong }),   // Phòng Bảo mật: thư bảo mật → Telegram + pixel
 };

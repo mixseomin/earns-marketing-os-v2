@@ -6,11 +6,11 @@ import { Nguoi } from './nguoi';
 import { tenModel, pc, VAI, TEN_VAI, COT_VAI, type TK, type Nguoi as NS } from '@/lib/doi-ngu';
 import { demTn, type TrachNhiem } from '@/lib/trach-nhiem';
 import { vaiCuaPhong, theVai } from '../../worker/quy-trinh.mjs';
-import { NHIP, TAN_SUAT } from '../../worker/nhip.mjs';
+import { NHIP, TAN_SUAT, TEN_NHIP } from '../../worker/nhip.mjs';
 import { nhanSu, type Doc } from '@/lib/cong-ty';
 import { soChi } from '@/lib/do-dac';
 import { docLog } from '../../worker/log.mjs';
-import { Gio } from './gio';
+import { TruocDay } from './truoc-day';
 
 // số nhỏ (nhịp glm ~$0,0001/lần) giữ đủ chữ số có nghĩa — làm tròn 3 số lẻ thì tiền thật hiện thành $0,000 như chưa tiêu
 export const tien = (x: number) => `$${x.toFixed(x >= 1 ? 2 : x === 0 || x >= 0.001 ? 3 : 5).replace('.', ',')}`;
@@ -27,15 +27,11 @@ export function nhipChu(fm: Record<string, unknown>) {
   const may = hb.split(',').map((v) => v.trim()).filter((v) => v in NHIP);
   if (!may.length) return { chu: hb, bat: true, viec: hb };
   const ca = fm.ca ? String(fm.ca) : 'cả ngày';
-  return { chu: `${may.join(', ')} · ${TAN_SUAT} · ca ${ca}`, bat: true, viec: may.join(', '), tanSuat: TAN_SUAT, ca };
+  const ten = may.map((v) => (TEN_NHIP as Record<string, string>)[v] ?? v).join(' · ');
+  return { chu: `${ten} · máy kiểm ${TAN_SUAT} · ca ${ca}`, bat: true, viec: ten, tanSuat: TAN_SUAT, ca };
 }
 /** Lần làm việc gần nhất của từng người: dòng nhật ký mới nhất do chính người đó phát ra (gọi mô hình, gửi tin) — nhịp chạy mà không có
  *  việc thì không ghi nhật ký, nên không tính là "làm". Một lượt đọc cho cả bảng. */
-/** "17 phút trước" — hiện khi rê chuột vào ô làm lần cuối (anh 14/10/2026). Trang tự làm mới 20 giây nên số không đứng yên. */
-export function truoc(iso: string, gio = Date.now()) {
-  const p = Math.max(0, Math.round((gio - Date.parse(iso)) / 60000));
-  return p < 1 ? 'vừa xong' : p < 60 ? `${p} phút trước` : p < 1440 ? `${Math.floor(p / 60)} giờ ${p % 60 ? `${p % 60} phút ` : ''}trước` : `${Math.floor(p / 1440)} ngày trước`;
-}
 function lanCuoi(ids: string[]) {
   const ra: Record<string, string> = {}; const can = new Set(ids);
   for (const e of docLog({ n: 5000 }) as { tu?: string; ts?: string }[]) if (e.tu && can.has(e.tu) && !ra[e.tu] && e.ts) ra[e.tu] = e.ts;
@@ -53,7 +49,7 @@ export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS
     <div className="cty-dn-cuon">
       <table className="cty-viec cty-dn">
         <thead><tr><th>Người</th>{!trongPhong && <th>Phòng</th>}<th>{trongPhong ? 'Vai ở phòng' : 'Vai chính'}</th><th>Bộ não</th>
-          <th title="Việc tự làm theo nhịp (worker/nhip.mjs)">Nhịp</th><th>Tần suất</th><th title="Giờ làm, giờ VN">Ca</th>
+          <th title="Việc người đó tự làm, không cần ai nhắc (worker/nhip.mjs)">Tự làm</th><th title="Máy kiểm có việc chưa bao lâu một lần — KHÔNG phải số lần gọi mô hình; mô hình chỉ chạy khi có việc thật">Máy kiểm</th><th title="Giờ làm, giờ VN">Ca</th>
           <th title="Lần gần nhất người đó thật sự làm việc (gọi mô hình / gửi tin) — theo nhật ký">Làm lần cuối</th>
           <th className="cty-so" title={`Tiền mô hình thật THÁNG LỊCH ${thang} (từ 01/${thang} tới giờ — cơ sở lương)${trongPhong ? ', chỉ phần làm cho phòng này' : ', mọi phòng'} · sổ ai_usage`}>{trongPhong ? 'Chi ở phòng' : 'Chi'} tháng {thang}<br /><span className="cty-muted">từ 01/{thang}</span></th>
           <th className="cty-so" title="Trần chi tháng của người đó (mọi phòng cộng lại) — chạm trần thì proxy chặn">Trần / tháng</th>
@@ -65,7 +61,7 @@ export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS
             <td className={`cty-nho${n.bat ? '' : ' cty-muted'}`}>{n.viec}</td>
             <td className="cty-nho">{n.tanSuat ?? <span className="cty-muted">—</span>}</td>
             <td className="cty-nho">{n.ca ?? <span className="cty-muted">—</span>}</td>
-            <td className="cty-nho" title={cuoi[d.id] ? truoc(cuoi[d.id]!) : undefined}>{cuoi[d.id] ? <Gio iso={cuoi[d.id]} giay={false} mui={false} /> : <span className="cty-muted">chưa làm</span>}</td>
+            <td className="cty-nho">{cuoi[d.id] ? <TruocDay iso={cuoi[d.id]!} /> : <span className="cty-muted">chưa làm</span>}</td>
             <td className="cty-so" title={so ? `${so.ds.filter((r) => r.nguoi === d.id).reduce((t, r) => t + r.luot, 0)} lời gọi tháng này` : 'không nối được DB'}>{c === null ? <span className="cty-thu-loi">?</span> : tien(c)}</td>
             <td className="cty-so cty-muted">{tr ? tien(tr) : '—'}</td>
             {tn && !trongPhong && ((x) => <td className="cty-so" title={`${x.chuTri} quy trình chủ trì · ${x.lam} được giao làm · ${x.viec} việc đang mở${x.tre ? ` (${x.tre} máy trễ)` : ''}`}>

@@ -131,6 +131,10 @@ export function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa;
           </div>
         </O>
         <O label="Khung hình"><Seg options={[{ value: '9:16', label: '9:16 dọc' }, { value: '16:9', label: '16:9 ngang' }]} value={kt.ti_le} onChange={(v) => set('ti_le', v)} /></O>
+        <O label="Kiểu phim" hint="Không lời: Claude viết truyện bằng hành động + âm hiệu nhân vật (không thoại). Nhịp stop-motion: bản xuất giữ mỗi hình hai nhịp (12 hình/giây) cho giống quay stop-motion thật.">
+          <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginRight: 14, fontSize: 12 }}><input type="checkbox" checked={!!kt.khong_loi} onChange={(e) => set('khong_loi', e.target.checked)} /> Không lời</label>
+          <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 12 }}><input type="checkbox" checked={!!kt.nhip_stop_motion} onChange={(e) => set('nhip_stop_motion', e.target.checked)} /> Nhịp stop-motion (12 hình/giây)</label>
+        </O>
         <O label="Độ phân giải video"><Seg options={[{ value: '720p', label: '720p (rẻ)' }, { value: '1080p', label: '1080p' }]} value={kt.do_phan_giai} onChange={(v) => set('do_phan_giai', v)} /></O>
         <O label="Model ảnh (mặc định)"><Chon value={kt.mo_hinh_anh} onChange={(v) => set('mo_hinh_anh', v as Required<KinhThanh>['mo_hinh_anh'])} options={luaChonAnh(moHinh.anh.length ? moHinh.anh : MO_HINH_ANH.map((m) => ({ key: m.key, label: m.label, nhom: '', giaCents: m.gia1k, donVi: 'anh' as const })))} /></O>
         <O label="Model video (mặc định)"><Chon value={kt.mo_hinh_video} onChange={(v) => set('mo_hinh_video', v as Required<KinhThanh>['mo_hinh_video'])} options={luaChonVideo(moHinh.video.length ? moHinh.video : MO_HINH_VIDEO.map((m) => ({ key: m.key, label: m.label, nhom: '', giaCents: m.giaGiay['720p'], donVi: 'giay' as const })), 5, kt.do_phan_giai)} /></O>

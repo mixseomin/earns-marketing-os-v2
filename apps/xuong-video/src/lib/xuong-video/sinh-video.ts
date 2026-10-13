@@ -11,7 +11,7 @@ import { dongThoai, promptCamXuc, laLoiDan, dungTiengClip } from './am-thanh';
 import { chanVideo } from './quy-trinh';
 import { chupTruoc } from './hoan-tac';
 import { sinhGiongShots } from './sinh-giong';
-import { coMau, camCongCuVe, loaiCongCuVe, lamTronClip, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
+import { coMau, camCongCuVe, loaiCongCuVe, laTayNguoi, lamTronClip, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { boiCanhCanh, taoJob, xongJob, mapJob, giaVideoSv, s, type Db, type Row } from './doc-db';
 /** Khung hình sống (nhip-hinh.ts): clip AI hay đứng như ảnh — nhân vật làm hành động bằng cả thân, chuyển động phụ không ngừng. */
 const KHUNG_SONG = 'Keep the whole frame alive: the characters perform the action with clear, readable whole-body movement (not just a small facial change), and secondary motion never stops — fur, leaves, grass, clouds and small background details keep drifting.';
@@ -38,7 +38,7 @@ export function promptVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     trongKhung.length ? `On-camera dialogue (${tenNgonNgu(bc.kt.ngon_ngu)}, natural lip-sync, no subtitles): ${trongKhung.map((d) => `${d.nhan_vat} says "${d.loi.trim()}"`).join('; ')}.` : '',
     dong.some(laVO) ? `Off-screen voice-over (${tenNgonNgu(bc.kt.ngon_ngu)}, nobody in frame moves their lips for it): ${dong.filter(laVO).map((d) => `"${d.loi.trim()}"`).join(' ')}` : '',
   ].filter(Boolean).join(' ');
-  return [phongCachHinh(bc.kt.phong_cach) ? `Visual style: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}.` : '', camCongCuVe(bc.kt.phong_cach), boThoaiTrongPrompt(bc.canh.prompt_video.trim() || bc.canh.hanh_dong), coMau(bc.kt.qc) ? '' : KHUNG_SONG, thoaiVeo, giuKhung, bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', promptKyThuatVideo(bc.canh.ky_thuat), promptCamXuc(bc.canh, bc.nhanVat, 'video'),
+  return [phongCachHinh(bc.kt.phong_cach) ? `Visual style: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}.` : '', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), boThoaiTrongPrompt(bc.canh.prompt_video.trim() || bc.canh.hanh_dong), coMau(bc.kt.qc) ? '' : KHUNG_SONG, thoaiVeo, giuKhung, bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', promptKyThuatVideo(bc.canh.ky_thuat), promptCamXuc(bc.canh, bc.nhanVat, 'video'),
     coGiong ? `IMPORTANT: the audio track must contain NO spoken words or voice — only ambient sound; a separate voice recording is added later. ${trongKhung.length ? `${[...new Set(trongKhung.map((d) => d.nhan_vat))].join(' and ')} mouth their lines with natural lip movement in silence.` : 'The lines are an off-screen voice-over: nobody in frame talks or moves their lips as if speaking.'}` : ''].filter(Boolean).join(' ');
 }
 
@@ -82,12 +82,12 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   let kq: { ok: true; taskId: string } | { ok: false; loi: string };
   if (laFal) {
     const id = bc.kt.mo_hinh_video.slice(4);
-    kq = await guiFal(id, await dauVaoTheoSchema(id, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, giay: bc.canh.thoi_luong_s || giay, tiLe: bc.kt.ti_le, tieng, loai: loaiCongCuVe(bc.kt.phong_cach) }));
+    kq = await guiFal(id, await dauVaoTheoSchema(id, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, giay: bc.canh.thoi_luong_s || giay, tiLe: bc.kt.ti_le, tieng, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) }));
   } else {
     const anhDau = await taiAnhBase64(bc.canh.keyframe_url);
     if (!anhDau) { await xongJob(db, job, { loi: 'không tải được keyframe' }); return loi('không tải được keyframe'); }
     const anhCuoi = khungCuoi ? await taiAnhBase64(khungCuoi) : null;
-    kq = await batDauVeo({ model: bc.kt.mo_hinh_video, prompt, anhDau, anhCuoi, tiLe: bc.kt.ti_le, doPhanGiai: bc.kt.do_phan_giai, giay, loai: loaiCongCuVe(bc.kt.phong_cach) });
+    kq = await batDauVeo({ model: bc.kt.mo_hinh_video, prompt, anhDau, anhCuoi, tiLe: bc.kt.ti_le, doPhanGiai: bc.kt.do_phan_giai, giay, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) });
   }
   if (!kq.ok) {
     await xongJob(db, job, { loi: kq.loi });

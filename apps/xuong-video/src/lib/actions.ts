@@ -671,7 +671,7 @@ export async function xuatTap(tapId: number, nhanh?: string | null): Promise<Kq<
   const kt = docKinhThanh(bc.kt);
   const job = await taoJob(db, { phim_id: bc.tap.phim_id, nhan: `Xuất bản · tập ${bc.tap.so}${nhanh ? ` · hook ${nhanh}` : ''}`, loai: 'xuat', provider: 'ffmpeg', model: 'ffmpeg', request: { tap_id: tapId, nhanh: nhanh ?? '' } });
   chayNen(async () => {
-    const kq = await chayXuat({ loai: bc.loai, tiLe: kt.ti_le, canh, nhanVat: bc.nhanVat, tap: bc.tap, qc: kt.qc, nhanh });
+    const kq = await chayXuat({ loai: bc.loai, tiLe: kt.ti_le, nhipStopMotion: kt.nhip_stop_motion, canh, nhanVat: bc.nhanVat, tap: bc.tap, qc: kt.qc, nhanh });
     if (!kq.ok) { await xongJob(job, { loi: kq.loi }); return; }
     await ghiBanXuat(db, { tapId, job, nhanh: nhanh ?? '', kq });
   });

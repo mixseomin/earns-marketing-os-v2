@@ -106,7 +106,7 @@ export async function xuatLongTiengTap(db: Db, tapId: number, job: number, sang 
     }
   }
   const canhDich = theoNgonNgu(daGan, sang).canh;
-  const kq = await chayXuat({ loai: bc.loai, tiLe: kt.ti_le, canh: canhDich, nhanVat: bc.nhanVat, tap: bc.tap, qc: kt.qc, nhanh: null, choThieuNhac: true });
+  const kq = await chayXuat({ loai: bc.loai, tiLe: kt.ti_le, nhipStopMotion: kt.nhip_stop_motion, canh: canhDich, nhanVat: bc.nhanVat, tap: bc.tap, qc: kt.qc, nhanh: null, choThieuNhac: true });
   if (!kq.ok) return kq;
   const amUrl = await tachTrackTieng(kq.url, `${tapId}-${sang}`);
   const canhBao = [...(loiGiong.length ? [`${loiGiong.length} câu không đọc được (im): ${loiGiong.join(' · ').slice(0, 300)}`] : []), ...(amUrl ? [] : ['không tách được track tiếng M4A']), ...kq.canhBao];

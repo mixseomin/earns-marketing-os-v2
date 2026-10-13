@@ -25,6 +25,8 @@ assert.deepStrictEqual(kiemTieng([sh(1, 3.2, [{ nhan_vat: '', dien_xuat: '', loi
 // chưa đo độ dài → không kêu oan
 assert.deepStrictEqual(kiemTieng([sh(1, 1, [{ nhan_vat: '', dien_xuat: '', loi: 'a', url: 'd' }]), sh(2, 3, [])], [FELIX]).filter((x) => !x.includes('shot có câu nói')), []);
 console.log('khop-giong.test: ok');
-import { camCongCuVe } from './kieu';
+import { camCongCuVe, laTayNguoi } from './kieu';
 assert.ok(camCongCuVe('naive wax crayon drawing on paper').includes('NO human hands'));
 assert.strictEqual(camCongCuVe('cinematic 3D Pixar look'), '');
+assert.strictEqual(camCongCuVe('naive wax crayon drawing on paper', true), '', 'shot có nhân vật là bàn tay người → không cấm bàn tay');
+assert.ok(laTayNguoi([{ mo_ta: 'The Giant: a huge human hand in a blue knitted sweater sleeve' }]) && !laTayNguoi([{ mo_ta: 'orange clay blob' }]));

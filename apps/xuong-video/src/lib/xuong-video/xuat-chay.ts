@@ -89,7 +89,7 @@ async function doKhoangIm(duong: string, giay: number, thuMuc: string): Promise<
 const SFX_DIR = [`${process.cwd()}/public/sfx`, `${process.cwd()}/apps/xuong-video/public/sfx`, '/opt/earns-marketing-os-v2/apps/xuong-video/public/sfx'].find((d) => existsSync(d));
 const FONTS_DIR = [`${process.cwd()}/public/fonts`, `${process.cwd()}/apps/xuong-video/public/fonts`, '/opt/earns-marketing-os-v2/apps/xuong-video/public/fonts'].find((d) => existsSync(d));
 
-export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'nhac_url' | 'nhac_phan_canh'> & { lop?: Lop[]; phan_canh?: Pick<PhanCanh, 'ten' | 'beat'>[] }; qc?: ThongTinQc | null; nhanh?: string | null; chiThuTu?: number[]; choThieuNhac?: boolean }): Promise<KqXuat> {
+export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; nhipStopMotion?: boolean; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'nhac_url' | 'nhac_phan_canh'> & { lop?: Lop[]; phan_canh?: Pick<PhanCanh, 'ten' | 'beat'>[] }; qc?: ThongTinQc | null; nhanh?: string | null; chiThuTu?: number[]; choThieuNhac?: boolean }): Promise<KqXuat> {
   const font = FONT_UNG_VIEN.find((f) => existsSync(f));
   if (!font) return { ok: false, loi: 'máy chủ không có font để vẽ chữ (DejaVuSans-Bold)' };
   const thuMuc = `${tmpdir()}/xv-xuat-${o.tap.id}-${randomUUID().slice(0, 8)}`;

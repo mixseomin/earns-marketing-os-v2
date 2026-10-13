@@ -103,6 +103,10 @@ export type KinhThanh = {
   series?: Series | null;
   /** bản lưu trữ (thử xong, không dùng): ẩn khỏi danh sách phim mặc định, không xoá (nhom-phim.ts). */
   luu_tru?: boolean;
+  /** nhịp stop-motion: bản xuất giữ mỗi hình hai nhịp (12 hình/giây) — chuyển động AI mượt quá trông như quay stop-motion thật (Tango & Lint) */
+  nhip_stop_motion?: boolean;
+  /** phim KHÔNG LỜI (kiểu Larva): không thoại; nhân vật chỉ phát âm hiệu riêng; truyện kể bằng hành động + âm thanh (claude.ts › heThong) */
+  khong_loi?: boolean;
 };
 export type Series = { /** tên series — gom các bản (bút chì, sáp màu…) trên danh sách phim */ ten?: string; dong_co: string; khan_gia: string; dinh_dang: string; tap: { so: number; ten: string; logline: string }[] };
 /** Thông tin sản phẩm / dịch vụ của phim quảng cáo. */
@@ -203,12 +207,14 @@ export const phongCachHinh = (pc?: string): string =>
   (pc ?? '').split(/(?<=[;.])\s+/).filter((v) => !/\b(text|texts|caption|captions|subtitle|subtitles|overlay|overlaid|logo|font|lettering|typography)\b|chữ|phụ đề|font/i.test(v)).join(' ').replace(/[;,]\s*$/, '').trim();
 /** Phong cách VẼ TAY (sáp màu, bút chì, màu nước, phấn, mực…): model video hiểu thành cảnh "có người đang vẽ" — Fox Tales 13/10/2026: bàn tay
  *  cầm bút sáp thò vào khung shot 1. Trả câu cấm gắn vào prompt video; phong cách khác trả ''. */
-export const camCongCuVe = (pc?: string): string =>
-  /crayon|pencil|sketch|watercolou?r|chalk|pastel|doodle|scribbl|ink\b|marker|hand-drawn|hand drawn|drawn|paper|sáp|bút chì|màu nước|phấn|vẽ/i.test(pc ?? '')
+/** coTay = shot có nhân vật LÀ bàn tay người (anchor tả "human hand", vd Gã khổng lồ của Tango & Lint) → không cấm bàn tay. */
+export const camCongCuVe = (pc?: string, coTay = false): string =>
+  !coTay && /crayon|pencil|sketch|watercolou?r|chalk|pastel|doodle|scribbl|ink\b|marker|hand-drawn|hand drawn|drawn|paper|sáp|bút chì|màu nước|phấn|vẽ/i.test(pc ?? '')
     ? 'This is an animated illustration: the drawn characters and scenery themselves move. NO human hands, NO crayons, pencils, brushes, scissors, glue or any drawing / crafting tools, NO artist, NO table or desk and NO border of a sheet of paper ever appear in the frame (the frame IS the illustration, not a photo of it); nothing is being drawn or cut on screen.'
     : '';
 /** Negative prompt cho model video có ô riêng (Veo / Kling): liệt kê DANH TỪ cần loại, không viết "no …" (hướng dẫn prompt Veo của Google). */
-export const loaiCongCuVe = (pc?: string): string => (camCongCuVe(pc) ? 'human hand, artist hand, fingers, crayon, pencil, brush, marker, scissors, glue, drawing tool, paper being drawn on, artist' : '');
+export const laTayNguoi = (nv: { mo_ta: string }[]): boolean => nv.some((v) => /\bhuman hand\b/i.test(v.mo_ta));
+export const loaiCongCuVe = (pc?: string, coTay = false): string => (camCongCuVe(pc, coTay) ? 'human hand, artist hand, fingers, crayon, pencil, brush, marker, scissors, glue, drawing tool, paper being drawn on, artist' : '');
 export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: string; shot?: Partial<ShotChu>; anchor?: Pick<NhanVat, 'ten' | 'mo_ta'>[] }): string | null {
   if (!ngonNgu || ngonNgu === 'vi') return null;
   const cho: string[] = [];
@@ -220,7 +226,7 @@ export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: strin
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
   phong_cach: '', ti_le: '9:16', do_phan_giai: '720p',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },
-  giong_dan: null, series: null, luu_tru: false,
+  giong_dan: null, series: null, luu_tru: false, nhip_stop_motion: false, khong_loi: false,
 };
 export const docKinhThanh = (kt: KinhThanh | null | undefined): Required<KinhThanh> => ({ ...KINH_THANH_MAC_DINH, ...(kt ?? {}) });
 

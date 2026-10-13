@@ -93,6 +93,8 @@ export const LUAT_KE_CHUYEN = `LUẬT KỂ CHUYỆN (người xem xem MỘT lầ
 7. Mỗi shot nối shot trước bằng nguyên nhân → kết quả hoặc hướng nhìn (nhân vật nhìn gì thì shot sau cho thấy cái đó); đổi nơi chốn thì có shot toàn cảnh mở.
 8. Kết rõ: người xem nói lại được trong một câu chuyện gì đã xảy ra và bài học / lời hẹn là gì.
 9. Khung hình phải ĐỘNG: mỗi shot một hành động thân thể lớn nhìn thấy rõ (chạy, nhảy, với, ném, ngã, bay, đuổi, giấu…), không chỉ biểu cảm mặt (nheo mắt, lắc đầu, nín thở); hai shot liền nhau không cùng cỡ cảnh + cùng chuyển động máy; tối đa 40% shot máy đứng yên — còn lại đẩy vào, lùi ra, lia, trượt, cẩu theo ý nghĩa cảnh.`;
+/** Phim KHÔNG LỜI (kinh_thanh.khong_loi — Tango & Lint): thoại thay bằng âm hiệu của nhân vật, truyện kể bằng hành động. */
+export const LUAT_KHONG_LOI = `PHIM KHÔNG LỜI (kiểu Larva / Shaun the Sheep): KHÔNG có một câu thoại hay lời dẫn nào bằng ngôn ngữ người. Trường thoại chỉ ghi ÂM HIỆU của nhân vật (tiếng kêu, bập bẹ, cười, thở, tiếng chất liệu của nó — theo dòng "Voice" / tính cách trong tiểu sử), ngắn ≤ 3 từ âm, vd Tango: "Hup!", Lint: "[gasps] pff…". Mọi ý truyện phải hiểu được chỉ bằng hành động + biểu cảm + âm thanh; chữ màn tối đa vài chữ ở đầu tập (tên tập) hoặc không có. Mỗi gag phải đọc được khi tắt tiếng.`;
 const heThong = (loai: LoaiPhim, kt: Required<KinhThanh>) => `Bạn là đạo diễn kiêm storyboard artist cho xưởng video AI. Loại sản phẩm: ${LOAI_PHIM.find((l) => l.key === loai)?.label ?? loai}.
 Phong cách hình ảnh cố định của bộ phim: ${kt.phong_cach || '(chưa đặt, tự chọn một phong cách và giữ nhất quán)'}.
 Khung hình ${kt.ti_le}, mỗi cảnh là MỘT clip video AI dài 4/6/8 giây sinh từ một ảnh keyframe, nên mỗi cảnh chỉ có một hành động chính, một góc máy.
@@ -100,7 +102,7 @@ NGÔN NGỮ PHIM: ${tenNgonNgu(kt.ngon_ngu)}. ${kt.ngon_ngu === 'vi' ? '' : `M�
 ${kt.the_loai ? `Thể loại: ${THE_LOAI.find((t) => t.key === kt.the_loai)?.ten} (${THE_LOAI.find((t) => t.key === kt.the_loai)?.mo_ta}).` : ''}${kt.logline ? `\nLogline: ${kt.logline}` : ''}${kt.chu_de ? `\nChủ đề: ${kt.chu_de}` : ''}
 ${taQc(kt)}
 ${LUAT_KE_CHUYEN}
-QUY TẮC ĐỒNG NHẤT: nhân vật, sản phẩm, bối cảnh phải tả bằng đúng đặc tính cố định trong danh sách anchor ở mọi cảnh (cùng màu lông, cùng trang phục, cùng tỉ lệ cơ thể, cùng chất liệu). prompt_anh và prompt_video viết tiếng Anh, tả người/vật theo đặc tính chứ không dùng tên riêng (model ảnh không biết tên). Mỗi prompt tự đứng được một mình, không tham chiếu cảnh khác.`;
+${kt.khong_loi ? LUAT_KHONG_LOI + '\n' : ''}QUY TẮC ĐỒNG NHẤT: nhân vật, sản phẩm, bối cảnh phải tả bằng đúng đặc tính cố định trong danh sách anchor ở mọi cảnh (cùng màu lông, cùng trang phục, cùng tỉ lệ cơ thể, cùng chất liệu). prompt_anh và prompt_video viết tiếng Anh, tả người/vật theo đặc tính chứ không dùng tên riêng (model ảnh không biết tên). Mỗi prompt tự đứng được một mình, không tham chiếu cảnh khác.`;
 
 /** Thư viện điện ảnh rút gọn cho prompt: kỹ thuật hợp thể loại trước, mỗi dòng "key — tên: dùng khi nào". */
 function taThuVien(tl: string): string {

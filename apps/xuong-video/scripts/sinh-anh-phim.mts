@@ -85,7 +85,7 @@ if (arg('xuat') && tapId) {
   const bc = (await boiCanhTap(db, tapId))!;
   const canh = (await q(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu`)).map(mapCanh);
   const job = await taoJob(db, { phim_id: phimId, nhan: `Xuất bản · tập ${bc.tap.so} (script)`, loai: 'xuat', provider: 'ffmpeg', model: 'ffmpeg', request: { tap_id: tapId, nhanh: 'A' } });
-  const kq = await chayXuat({ loai: bc.loai, tiLe: kt.ti_le, canh, nhanVat: bc.nhanVat, tap: bc.tap, qc: kt.qc, nhanh: 'A', choThieuNhac: arg('thieu-nhac') });
+  const kq = await chayXuat({ loai: bc.loai, tiLe: kt.ti_le, nhipStopMotion: kt.nhip_stop_motion, canh, nhanVat: bc.nhanVat, tap: bc.tap, qc: kt.qc, nhanh: 'A', choThieuNhac: arg('thieu-nhac') });
   if (!kq.ok) { await db.execute(sql`UPDATE xv_job SET trang_thai = 'loi', loi = ${kq.loi} WHERE id = ${job}`); console.log(`  ✗ xuất: ${kq.loi}`); }
   else {
     await ghiBanXuat(db, { tapId, job, nhanh: 'A', kq });

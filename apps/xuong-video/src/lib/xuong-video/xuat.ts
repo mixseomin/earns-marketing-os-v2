@@ -147,6 +147,8 @@ export function keHoachXuat(o: {
   sfxDir?: string;
   /** cho xuất khi phim quảng cáo có lời dẫn mà chưa có nhạc nền (bản nháp để nghe thử) — mặc định chặn. */
   choThieuNhac?: boolean;
+  /** nhịp stop-motion (kinh_thanh.nhip_stop_motion): mỗi hình giữ hai nhịp — fps=12 trước khi ra -r chuẩn */
+  nhipStopMotion?: boolean;
 }): KeHoachXuat {
   const doc = o.tiLe !== '16:9';
   const W = doc ? 1080 : 1920, H = doc ? 1920 : 1080;
@@ -333,8 +335,9 @@ export function keHoachXuat(o: {
   if (coAss) {
     const ass = tepChu('chu', tepAss({ W, H, kieu: o.qc?.kieu_chu, viTri, cau: cauMan, lop })).replace(/\.txt$/, '.ass');
     tep[tep.length - 1]!.duong = ass;
-    loc.push(`[${nen}]ass=filename='${duongFf(ass)}'${o.fontsDir ? `:fontsdir='${duongFf(o.fontsDir)}'` : ''}[vout]`);
-  } else loc.push(`[${nen}]null[vout]`);
+    loc.push(`[${nen}]ass=filename='${duongFf(ass)}'${o.fontsDir ? `:fontsdir='${duongFf(o.fontsDir)}'` : ''}[vtruoc]`);
+  } else loc.push(`[${nen}]null[vtruoc]`);
+  loc.push(`[vtruoc]${o.nhipStopMotion ? 'fps=12' : 'null'}[vout]`);
   // Ducking NHẸ (2:1, ngưỡng cao): nhạc chỉ lùi vài dB khi có giọng. Trước đây 6:1 ngưỡng 0,03 → giọng đọc dày làm nhạc bị nén gần như suốt phim,
   // dải trầm tụt -30/-42 LUFS so với -24/-27 của QC mẫu — nghe như mất nền (10/10/2026).
   const tron = (ds2: string[], ten: string) => { if (ds2.length === 1) { loc.push(`${ds2[0]}anull[${ten}]`); return `[${ten}]`; } loc.push(`${ds2.join('')}amix=inputs=${ds2.length}:normalize=0:dropout_transition=0[${ten}]`); return `[${ten}]`; };

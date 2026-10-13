@@ -1,6 +1,6 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/nhip-hinh.test.mts
 import assert from 'node:assert';
-import { kiemNhipHinh, daDangMay, kiemGiayDoc, giayDoc, soShotToiDa, kiemDanKhongGian } from './nhip-hinh';
+import { kiemNhipHinh, daDangMay, kiemGiayDoc, giayDoc, soShotToiDa, kiemDanKhongGian, kiemVaiKe } from './nhip-hinh';
 // Fox tập 2 (13/10/2026): cỡ cảnh + chuyển động máy 14 shot
 const FOX = [['cu', 'day_vao'], ['cu', 'day_vao'], ['ws', 'tinh'], ['ms', 'tinh'], ['two', 'tinh'], ['ms', 'tinh'], ['ws', 'lui_ra'], ['cu', 'day_vao'], ['cu', 'day_vao'], ['ms', 'tinh'], ['cu', 'tinh'], ['two', 'tinh'], ['ws', 'truot_ngang'], ['ws', 'truot_ngang']]
   .map(([co_canh, chuyen_dong], i) => ({ id: 100 + i, thu_tu: i + 1, ky_thuat: { co_canh, chuyen_dong } }));
@@ -38,4 +38,13 @@ assert.ok(lx.some((x) => x.includes('mở tập chưa có shot toàn cảnh')), 
 assert.ok(lx.some((x) => x.includes('#3') && !x.includes('#5')), 'vào rừng cáp ở #3 bằng ms → lỗi; #5 có #4 ws ngay trước (hành trình) → không lỗi: ' + lx.join('\n'));
 assert.deepStrictEqual(kiemDanKhongGian(xau, BC, { laQc: true }), [], 'quảng cáo không xét');
 assert.deepStrictEqual(kiemDanKhongGian(xau, [], {}).filter((x) => x.includes('nơi mới')), [], 'phim chưa có bối cảnh → không xét nơi mới');
+// vai kể: tập chỉ toàn hành động → thiếu mở thời điểm, tổng thể, phản ứng/tâm trạng/người thứ ba, 4 shot hành động liền
+const vk = (thu_tu: number, vai: string, phan_doan = 'A') => ({ thu_tu, phan_doan, ky_thuat: { vai } });
+const toanHd = [1, 2, 3, 4, 5, 6].map((i) => vk(i, 'hanh_dong'));
+const lv = kiemVaiKe(toanHd, {});
+for (const t of ['NƠI + THỜI ĐIỂM', 'tổng thể', 'phản ứng, tâm trạng, góc người thứ ba', 'bốn shot hành động liền']) assert.ok(lv.some((x) => x.includes(t)), `${t}: ${lv.join('\n')}`);
+const du = [vk(1, 'thiet_lap'), vk(2, 'nguoi_thu_ba'), vk(3, 'hanh_dong'), vk(4, 'phan_ung'), vk(5, 'tong_the', 'B'), vk(6, 'tam_trang', 'B'), vk(7, 'hanh_dong', 'B')];
+assert.deepStrictEqual(kiemVaiKe(du, {}), [], kiemVaiKe(du, {}).join('\n'));
+assert.ok(kiemVaiKe([...du.slice(0, 6), { thu_tu: 7, phan_doan: 'B', ky_thuat: {} }], {})[0]!.includes('1 shot chưa chọn vai kể (#7)'));
+assert.deepStrictEqual(kiemVaiKe(toanHd, { laQc: true }), []);
 console.log('nhip-hinh.test: ok');

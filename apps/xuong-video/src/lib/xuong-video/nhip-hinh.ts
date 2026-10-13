@@ -69,6 +69,24 @@ export const giayDoc = (p: { laQc?: boolean; khong_loi?: boolean }): number => (
 export const soShotToiDa = (giay: number, p: { laQc?: boolean; khong_loi?: boolean }): number => Math.max(1, Math.floor(giay / (giayDoc(p) + (p.laQc ? 0 : 0.5))));
 export const TIEN_TO_NHIP_DOC = 'nhịp đọc: ';
 export const TIEN_TO_DAN_KHONG_GIAN = 'dẫn không gian: ';
+export const TIEN_TO_VAI_KE = 'vai kể: ';
+/** VAI KỂ (14/10/2026 — "thiếu dẫn thời gian, góc người thứ 3, góc tổng thể, góc tâm trạng…"): một tập phim truyện phải kể bằng nhiều
+ *  điểm nhìn, không chỉ chuỗi shot hành động. Đo trên ky_thuat.vai (dien-anh.ts › nhóm 'vai'). Quảng cáo và tập < 6 shot không xét. */
+export function kiemVaiKe(ds: { thu_tu: number; phan_doan?: string; ky_thuat?: KyThuatShot | null }[], p: { laQc?: boolean }): string[] {
+  if (p.laQc || ds.length < 6) return [];
+  const out: string[] = []; const v = (i: number) => ds[i]?.ky_thuat?.vai ?? '';
+  const chua = ds.filter((_, i) => !v(i));
+  if (chua.length) out.push(`${TIEN_TO_VAI_KE}${chua.length} shot chưa chọn vai kể (${chua.slice(0, 6).map((c) => `#${c.thu_tu}`).join(', ')}${chua.length > 6 ? '…' : ''})`);
+  if (![0, 1, 2].some((i) => ['thiet_lap', 'thoi_gian'].includes(v(i)))) out.push(`${TIEN_TO_VAI_KE}mở tập chưa đặt NƠI + THỜI ĐIỂM — 3 shot đầu cần một shot thiết lập hoặc dấu thời gian`);
+  const pc = new Map<string, number[]>(); ds.forEach((c, i) => { const k = c.phan_doan ?? ''; if (k) pc.set(k, [...(pc.get(k) ?? []), i]); });
+  const thieuTt = [...pc].filter(([, is]) => is.length >= 3 && !is.some((i) => ['tong_the', 'thiet_lap'].includes(v(i)))).map(([k]) => `"${k}"`);
+  if (thieuTt.length) out.push(`${TIEN_TO_VAI_KE}phân cảnh chưa có shot tổng thể (ai ở đâu): ${thieuTt.join(', ')}`);
+  const co = new Set(ds.map((_, i) => v(i)));
+  const thieu = [!co.has('phan_ung') && 'phản ứng', !co.has('tam_trang') && 'tâm trạng', !co.has('nguoi_thu_ba') && !co.has('chu_quan') && 'góc người thứ ba / chủ quan'].filter(Boolean);
+  if (thieu.length) out.push(`${TIEN_TO_VAI_KE}cả tập thiếu shot ${thieu.join(', ')}`);
+  for (let i = 0; i + 3 < ds.length; i++) if ([0, 1, 2, 3].every((j) => v(i + j) === 'hanh_dong')) { out.push(`${TIEN_TO_VAI_KE}#${ds[i]!.thu_tu}–#${ds[i + 3]!.thu_tu} bốn shot hành động liền — chen phản ứng / chi tiết / người thứ ba để người xem kịp cảm`); break; }
+  return out;
+}
 const RONG = new Set(['ews', 'ws']);
 /** DẪN KHÔNG GIAN (14/10/2026 — kiểu Larva): người xem phải biết MÌNH ĐANG Ở ĐÂU trong thế giới trước khi chuyện xảy ra.
  *  1. Mở tập: một trong 2 shot đầu là toàn cảnh (ews/ws) — dẫn từ cả thế giới vào.

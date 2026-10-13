@@ -10,7 +10,7 @@ import { chamKichBan } from './cham-kich-ban';
 import { kiemTieng } from './khop-giong';
 import type { Series, ThuNguoiXem } from './kieu';
 import { chanNguoiXem, TIEN_TO_NGUOI_XEM, TEN_NUT_NGUOI_XEM } from './nguoi-xem';
-import { kiemNhipHinh, kiemGiayDoc, kiemDanKhongGian, TIEN_TO_NHIP_HINH } from './nhip-hinh';
+import { kiemNhipHinh, kiemGiayDoc, kiemDanKhongGian, kiemVaiKe, TIEN_TO_NHIP_HINH } from './nhip-hinh';
 
 export type Cong = 'keyframe' | 'video' | 'xuat';
 export type NhomQt = 'Tiền kỳ' | 'Sản xuất' | 'Hậu kỳ';
@@ -79,6 +79,7 @@ export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' 
   out.push(...kiemNhipHinh(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, ky_thuat: c.ky_thuat }))));
   // Nhịp đọc (nhip-hinh.ts › giayDoc): shot phim truyện phát quá ngắn → người xem chưa hiểu đã cắt.
   out.push(...kiemGiayDoc(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, phat_s: c.phat_s, thoi_luong_s: c.thoi_luong_s })), phim));
+  out.push(...kiemVaiKe(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, phan_doan: c.phan_doan, ky_thuat: c.ky_thuat })), phim));
   if (boiCanh?.length) out.push(...kiemDanKhongGian(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, nhan_vat: c.nhan_vat, ky_thuat: c.ky_thuat })), boiCanh, phim));
   return out;
 }

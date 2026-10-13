@@ -4,7 +4,7 @@
 // nên ảnh + clip ra đúng cỡ cảnh, ánh sáng, chuyển động. File thuần dữ liệu — client lẫn server import được.
 
 export type TheLoai = 'hoat_hinh' | 'phieu_luu' | 'kinh_di' | 'hanh_dong' | 'tinh_cam' | 'hai' | 'chinh_kich' | 'vien_tuong' | 'tai_lieu' | 'qc_ugc' | 'qc_cao_cap';
-export type NhomKyThuat = 'co_canh' | 'goc' | 'chuyen_dong' | 'toc_do' | 'ong_kinh' | 'anh_sang' | 'mau' | 'chuyen_canh' | 'am_thanh' | 'nhac';
+export type NhomKyThuat = 'vai' | 'co_canh' | 'goc' | 'chuyen_dong' | 'toc_do' | 'ong_kinh' | 'anh_sang' | 'mau' | 'chuyen_canh' | 'am_thanh' | 'nhac';
 /** xfade/nhom_cc/giay_cc: riêng nhóm chuyển cảnh — kiểu ffmpeg xfade mà BẢN XUẤT dựng thật giữa shot này và shot sau, nhóm kiểu CapCut, độ dài (giây). */
 export type KyThuat = { key: string; nhom: NhomKyThuat; ten: string; mo_ta: string; prompt: string; the_loai: TheLoai[] | 'tat_ca'; xfade?: string; nhom_cc?: NhomChuyenCanh; giay_cc?: number };
 export type NhomChuyenCanh = 'cat' | 'co_ban' | 'truot' | 'quet' | 'hinh' | 'dong';
@@ -31,7 +31,7 @@ export const THE_LOAI: { key: TheLoai; ten: string; mo_ta: string }[] = [
 ];
 
 export const NHOM_KY_THUAT: { key: NhomKyThuat; ten: string; icon: string }[] = [
-  { key: 'co_canh', ten: 'Cỡ cảnh', icon: '🔲' }, { key: 'goc', ten: 'Góc máy', icon: '📐' }, { key: 'chuyen_dong', ten: 'Chuyển động máy', icon: '🎥' }, { key: 'toc_do', ten: 'Tốc độ (dựng)', icon: '⏩' },
+  { key: 'vai', ten: 'Vai kể / điểm nhìn', icon: '👁' }, { key: 'co_canh', ten: 'Cỡ cảnh', icon: '🔲' }, { key: 'goc', ten: 'Góc máy', icon: '📐' }, { key: 'chuyen_dong', ten: 'Chuyển động máy', icon: '🎥' }, { key: 'toc_do', ten: 'Tốc độ (dựng)', icon: '⏩' },
   { key: 'ong_kinh', ten: 'Ống kính', icon: '🔭' }, { key: 'anh_sang', ten: 'Ánh sáng', icon: '💡' }, { key: 'mau', ten: 'Màu', icon: '🎨' },
   { key: 'chuyen_canh', ten: 'Chuyển cảnh', icon: '✂' }, { key: 'am_thanh', ten: 'Âm thanh', icon: '🔊' }, { key: 'nhac', ten: 'Nhạc', icon: '🎵' },
 ];
@@ -53,6 +53,18 @@ export function chuyenCanhGiua(key: string | undefined, phatTruoc: number, phatS
 }
 
 export const THU_VIEN: KyThuat[] = [
+  // ── Vai kể / điểm nhìn (14/10/2026 — "shot thiếu góc người thứ 3, góc tổng thể, góc tâm trạng, dẫn thời gian"): shot này kể bằng mắt
+  // AI và để làm gì trong cảnh. Cỡ cảnh nói khung rộng/hẹp; vai nói chức năng. Cổng tiền kỳ đòi đủ vai (nhip-hinh.ts › kiemVaiKe).
+  k('vai', 'thiet_lap', 'Thiết lập (nơi + thời điểm)', 'Cho thấy ĐANG Ở ĐÂU và LÚC NÀO trước khi chuyện xảy ra: cả nơi chốn + giờ trong ngày qua ánh sáng.', 'establishing shot that shows where and when: the whole place and the time of day told by its light', T),
+  k('vai', 'thoi_gian', 'Dấu thời gian', 'Một hình cho biết giờ / thời gian trôi: đèn tắt, ánh bình minh bò qua bàn, bóng đổ dài, màn hình tối dần.', 'a clear visual cue of the time of day or of time passing: the colour and direction of the light, long shadows, a lamp or screen changing', T),
+  k('vai', 'tong_the', 'Tổng thể (master)', 'Mọi nhân vật trong cảnh + khoảng cách giữa họ trong một khung — khán giả nắm vị trí ai ở đâu.', 'master shot: every character of the scene and the space between them visible at once, clear geography', T),
+  k('vai', 'hanh_trinh', 'Hành trình', 'Nhân vật đi từ nơi này sang nơi khác qua một mốc quen — nối hai nơi.', 'journey shot: the character travelling across the landscape past a recognizable landmark', T),
+  k('vai', 'hanh_dong', 'Hành động', 'Shot kể việc chính (mặc định).', '', T),
+  k('vai', 'nguoi_thu_ba', 'Góc người thứ ba (quan sát)', 'Nhìn từ chỗ một nhân vật/vật KHÁC đang quan sát (nấp, ló, từ xa) — khán giả biết điều nhân vật chính chưa biết.', 'seen from a hidden observer\'s position: a soft out-of-focus foreground shape partly framing the action, as if someone is secretly watching', T),
+  k('vai', 'chu_quan', 'Chủ quan (POV)', 'Nhìn bằng mắt nhân vật — thấy đúng cái nó thấy.', 'point-of-view shot, seeing exactly what the character sees', T),
+  k('vai', 'phan_ung', 'Phản ứng', 'Giữ trên mặt/người nhân vật khi nó phản ứng — cảm xúc lắng vào khán giả.', 'reaction shot holding on the character as they react, the emotion clearly readable', T),
+  k('vai', 'chi_tiet', 'Chi tiết (insert)', 'Cận vật/chi tiết làm nên truyện (cái gài, cái trả).', 'insert detail of the story object, crisp and clearly readable', T),
+  k('vai', 'tam_trang', 'Tâm trạng', 'Khung không khí, gần như không hành động: ánh sáng, khoảng trống, một chuyển động nhỏ của môi trường — giữ nhịp lặng để cảm xúc ngấm.', 'mood shot with almost no action: atmosphere, light and empty space, one small movement in the environment, a quiet held moment', T),
   // ── Cỡ cảnh
   k('co_canh', 'ews', 'Toàn cảnh rất rộng (mở cảnh)', 'Giới thiệu nơi chốn, cho thấy nhân vật nhỏ bé trước thế giới. Đặt đầu phân cảnh.', 'extreme wide establishing shot, tiny figures in a vast environment', ['phieu_luu', 'hoat_hinh', 'vien_tuong', 'chinh_kich', 'kinh_di', 'tai_lieu']),
   k('co_canh', 'ws', 'Toàn cảnh', 'Thấy trọn người và không gian quanh — hành động lớn, vị trí nhân vật.', 'wide shot, full bodies visible with their surroundings', T),
@@ -209,7 +221,7 @@ export const dsTheoNhom = (nhom: NhomKyThuat, tl?: TheLoai) => THU_VIEN.filter((
 /** Đoạn prompt tiếng Anh cho ẢNH keyframe (khung tĩnh: cỡ cảnh, góc, ống kính, ánh sáng, màu). */
 export function promptKyThuatAnh(kt: KyThuatShot | undefined): string {
   if (!kt) return '';
-  return (['co_canh', 'goc', 'ong_kinh', 'anh_sang', 'mau'] as const).map((n) => kyThuat(kt[n], n)?.prompt).filter(Boolean).join(', ');
+  return (['vai', 'co_canh', 'goc', 'ong_kinh', 'anh_sang', 'mau'] as const).map((n) => kyThuat(kt[n], n)?.prompt).filter(Boolean).join(', ');
 }
 /** Đoạn prompt tiếng Anh cho VIDEO (chuyển động máy + chuyển cảnh + âm thanh + nhạc — model có tiếng hiểu được). */
 export function promptKyThuatVideo(kt: KyThuatShot | undefined): string {

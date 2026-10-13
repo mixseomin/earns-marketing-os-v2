@@ -8,4 +8,5 @@ Checklist mỗi vòng (không có gì mới → NO_REPLY):
 - Lịch tuần này: mở hồ sơ cuốn
 - Chạy quy-trinh.mjs --den het
 - Tới cổng → submitted kèm PDF, bìa, lint, mô tả
-- Sau ký: kiểm freeze → kdp.mjs / etsy.mjs bat
+- Việc nền của tôi (dựng sách, Etsy, Gumroad, KDP, nhận lệnh máy, báo Telegram): lượt hỏng / trễ → Chạy lại ngay hoặc nêu lỗi
+- Cuốn đã duyệt chưa có bìa cứng → dựng ruột + bìa cứng, đặt giá

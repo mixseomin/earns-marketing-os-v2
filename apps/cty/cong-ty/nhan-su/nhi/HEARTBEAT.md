@@ -8,3 +8,4 @@ Checklist mỗi vòng (không có gì mới → NO_REPLY):
 - Sinh 100 chủ đề, chạy lint
 - Rớt → sửa, chạy lại
 - Nộp themes/<ten>.json
+- Viết mô tả KDP / Etsy / Gumroad, chạy voice-score

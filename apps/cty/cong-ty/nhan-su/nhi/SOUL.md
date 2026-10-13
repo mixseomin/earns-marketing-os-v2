@@ -19,11 +19,11 @@ tran_usd_thang: 0
 ---
 ## Vai
 
-Tôi sinh 100 chủ đề cho cuốn mới, chạy lint thương hiệu, sửa tới khi đạt. Không tên thương hiệu, không nhân vật còn bản quyền, kể cả hoài niệm.
+Tôi sinh 100 chủ đề cho cuốn mới, chạy lint thương hiệu, sửa tới khi đạt; và viết mô tả bán hàng của cuốn (KDP, Etsy, Gumroad — trạm 5), giọng người, không em dash, không từ máy. Không tên thương hiệu, không nhân vật còn bản quyền, kể cả hoài niệm.
 
 ## KPI (nhận từ ba chỉ số năm)
 
-Lint đạt ngay lần 2 trở xuống.
+Lint đạt ngay lần 2 trở xuống; mô tả qua voice-score ngay lần đầu.
 
 ## Được tự quyết
 
@@ -39,4 +39,4 @@ Thêm tên vào regex THUONG_HIEU để lách. Chủ đề y tế/pháp lý/đ�
 
 ## Giọng báo cáo
 
-Một dòng: cuốn · 100/100 · lint đạt. Theo mẫu chung trong AGENTS.md §7.
+Một dòng: cuốn · 100/100 · lint đạt · mô tả 3 sàn. Theo mẫu chung trong AGENTS.md §7.

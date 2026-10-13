@@ -1,5 +1,5 @@
 {
- "_": "Quy trình nghiệp vụ của Phòng Sách. Máy thật nằm ở repo puzzle-books (LaunchAgent do deploy-may.sh cài trên iMac + MacBook); phòng đọc kết quả từ sổ sản phẩm MOS2 (tab Dây chuyền, worker/sach.mjs). so_hoa như các phòng khác: 'co-dinh' = máy chạy, luật nằm trong mã · 'mo-ta' = chưa có máy. chu_tri = MỘT mã chịu trách nhiệm chính (vai của phòng · mã người · giam-doc), lam = ai/máy làm thật — tab Trách nhiệm của nhân sự đọc hai khoá này. day_chuyen = các dây chuyền của phòng (tab Dây chuyền chọn từng cái; nguon = bộ đọc số liệu: 'sach' worker/sach.mjs · 'video' worker/video.mjs · 'kenh:<kênh>' bảng kenh_sp); mỗi quy trình ghi day_chuyen nó thuộc (không ghi = việc chung của phòng) — tab Quy trình nhóm theo đó.",
+ "_": "Quy trình nghiệp vụ của Phòng Sách. Máy thật nằm ở repo puzzle-books (LaunchAgent do deploy-may.sh cài trên iMac + MacBook); phòng đọc kết quả từ sổ sản phẩm MOS2 (tab Dây chuyền, worker/sach.mjs). so_hoa như các phòng khác: 'co-dinh' = máy chạy, luật nằm trong mã · 'mo-ta' = chưa có máy. chu_tri = MỘT mã chịu trách nhiệm chính (vai của phòng · mã người · giam-doc), lam = ai/máy làm thật — tab Trách nhiệm của nhân sự đọc hai khoá này. day_chuyen = các dây chuyền của phòng (tab Dây chuyền chọn từng cái; nguon = bộ đọc số liệu: 'sach' worker/sach.mjs · 'video' worker/video.mjs · 'kenh:<kênh>' bảng kenh_sp); mỗi quy trình ghi day_chuyen nó thuộc (không ghi = việc chung của phòng) — tab Quy trình nhóm theo đó. lich = việc nền THẬT của quy trình ('<máy>:<nhãn LaunchAgent / unit systemd>'; [] = chạy tay hoặc chạy trong lượt của quy trình khác — ghi rõ trong kich_hoat). Mỗi việc nền thuộc ĐÚNG MỘT quy trình → một người chủ trì chịu trách nhiệm + chi phí (anh 13/10/2026: mọi cron, tự động phải gắn một nhân sự cụ thể); tu-kiem cty chặn việc nền không ra người, puzzle-books deploy-may.sh chặn việc nền chưa khai. chi_phi = tiền thật mỗi lượt/tháng ('chưa đo' khi chưa có số).",
  "phong": "sach",
  "day_chuyen": [
   {
@@ -62,7 +62,11 @@
     "nguoi-lam"
    ],
    "khi": "02:00 mỗi đêm",
-   "day_chuyen": "sach"
+   "day_chuyen": "sach",
+   "lich": [
+    "iMac:com.earns.puzzle-sx"
+   ],
+   "chi_phi": "0 tiền mô hình (máy dựng trên iMac)"
   },
   {
    "id": "bat-ban-etsy",
@@ -76,7 +80,11 @@
     "may"
    ],
    "khi": "08:30 mỗi ngày",
-   "day_chuyen": "sach"
+   "day_chuyen": "sach",
+   "lich": [
+    "iMac:com.earns.puzzle-dang"
+   ],
+   "chi_phi": "phí Etsy ~$0,20 mỗi cuốn bật bán"
   },
   {
    "id": "dang-gumroad",
@@ -90,21 +98,29 @@
     "may"
    ],
    "khi": "09:00 mỗi ngày",
-   "day_chuyen": "sach"
+   "day_chuyen": "sach",
+   "lich": [
+    "MacBook:com.earns.puzzle-gumroad"
+   ],
+   "chi_phi": "0 khi đăng (Gumroad thu phí trên đơn)"
   },
   {
    "id": "dang-kdp",
    "ten": "Đăng KDP",
    "so_hoa": "co-dinh",
    "kich_hoat": "iMac 2 giờ/lần: cuốn đã duyệt + tới ngày → máy tạo nháp rồi TỰ bấm Publish (anh chốt 12/10/2026; trước đó Publish là chữ ký của Giám đốc)",
-   "mo_ta": "Máy điền đủ 3 trang (tựa, ruột, bìa, giá), lưu nháp, ghi mã tựa vào sổ; nháp đủ 3 trang → kiểm giá trên trang đúng giá khai → bấm Publish, đọc lại Bookshelf → sổ in_review. Bìa cứng cho tựa đã nộp. Chặn khi chưa duyệt, chưa tới ngày, hết suất 2 tựa/định dạng/tuần, trần 2 lượt/ngày/cuốn.",
+   "mo_ta": "Máy điền đủ 3 trang (tựa, ruột, bìa, giá), lưu nháp, ghi mã tựa vào sổ; nháp đủ 3 trang → kiểm giá trên trang đúng giá khai → bấm Publish, đọc lại Bookshelf → sổ in_review. Bước 3: bìa cứng cho tựa bìa mềm đã nộp (quy trình KDP bìa cứng). Chặn khi chưa duyệt, chưa tới ngày, hết suất 2 tựa/định dạng/tuần, trần 2 lượt/ngày/cuốn.",
    "ma": "puzzle-books scripts/dang-kdp.mjs (iMac, LaunchAgent com.earns.puzzle-kdp) → kdp.mjs / kdp-hc.mjs (playbook br kdp-paperback / kdp-hardcover)",
    "chu_tri": "truong-phong",
    "lam": [
     "may"
    ],
    "khi": "2 giờ/lần",
-   "day_chuyen": "sach"
+   "day_chuyen": "sach",
+   "lich": [
+    "iMac:com.earns.puzzle-kdp"
+   ],
+   "chi_phi": "0 khi đăng (KDP trừ phí in vào tiền bán)"
   },
   {
    "id": "chu-de-video",
@@ -118,7 +134,9 @@
     "truong-phong"
    ],
    "khi": "mỗi tuần",
-   "day_chuyen": "video"
+   "day_chuyen": "video",
+   "lich": [],
+   "chi_phi": "0"
   },
   {
    "id": "dung-video",
@@ -132,21 +150,30 @@
     "may"
    ],
    "khi": "khi cần",
-   "day_chuyen": "video"
+   "day_chuyen": "video",
+   "lich": [
+    "iMac:com.earns.puzzle-shorts"
+   ],
+   "chi_phi": "0"
   },
   {
    "id": "video-ngan",
    "ten": "Đăng video ngắn (4 nền)",
    "so_hoa": "co-dinh",
    "kich_hoat": "20:00 giờ VN mỗi ngày: TikTok (iMac, máy ảo tiktok1); 20:05 YouTube · Facebook · Instagram (MacBook)",
-   "mo_ta": "Mỗi nền một short \"Only ONE\" mỗi ngày (video đúng mùa trước), caption kèm mã giảm giá riêng nền, bình luận đầu kèm link sách. Mỗi lượt báo kết quả (đăng được / lỗi gì, kho còn bao nhiêu) lên cty → làn Video ở tab Dây chuyền; lỗi hay quá giờ không có tin = việc trễ của người chủ trì.",
+   "mo_ta": "Mỗi nền một short \"Only ONE\" mỗi ngày (video đúng mùa trước), caption kèm mã giảm giá riêng nền, bình luận đầu kèm link sách. Mỗi lượt báo kết quả (đăng được / lỗi gì, kho còn bao nhiêu) lên cty → làn Video ở tab Dây chuyền; lỗi hay quá giờ không có tin = việc trễ của người chủ trì. Lượt TikTok xong là tắt sạch máy ảo (~2,6 GB RAM).",
    "ma": "puzzle-books scripts/dang-short.mjs <nền> → /var/lib/cty/may/video-<nền>.json (box3)",
    "chu_tri": "kenh-keo-khach",
    "lam": [
     "may"
    ],
    "khi": "20:00 mỗi ngày",
-   "day_chuyen": "video"
+   "day_chuyen": "video",
+   "lich": [
+    "iMac:com.earns.puzzle-short",
+    "MacBook:com.earns.puzzle-short-yt"
+   ],
+   "chi_phi": "proxy cho máy ảo TikTok (thuê theo tháng, chưa ghi số) · nền khác 0"
   },
   {
    "id": "duyet-ban-xem",
@@ -161,7 +188,9 @@
     "giam-doc"
    ],
    "khi": "khi dựng xong",
-   "day_chuyen": "sach"
+   "day_chuyen": "sach",
+   "lich": [],
+   "chi_phi": "0"
   },
   {
    "id": "dua-nhap-etsy",
@@ -175,22 +204,25 @@
     "may"
    ],
    "khi": "chạy tay",
-   "day_chuyen": "sach"
+   "day_chuyen": "sach",
+   "lich": [],
+   "chi_phi": "0"
   },
   {
    "id": "kdp-bia-cung",
    "ten": "KDP bìa cứng",
    "so_hoa": "co-dinh",
-   "kich_hoat": "Chạy tay cho tựa đã có bìa mềm (chưa có lịch)",
-   "mo_ta": "Playbook trình duyệt tạo bản bìa cứng của tựa đang có, dừng trước nút Publish (chữ ký của Giám đốc).",
-   "ma": "br play run kdp-hardcover",
+   "kich_hoat": "Trong lượt dang-kdp (bước 3, iMac 2 giờ/lần): tựa bìa mềm đã nộp + đã đặt giá bìa cứng + ruột/bìa cứng dựng sau bản đã duyệt",
+   "mo_ta": "Máy bấm \"+ Create hardcover\" trên Bookshelf, điền trang Content (ISBN, khổ 8.25x11, ruột, bìa, khai AI), Previewer, giá, rồi TỰ bấm Publish (anh chốt 12/10/2026) và đọc lại Bookshelf. Suất bìa cứng 2 tựa/tuần riêng; trần 2 lượt/ngày/cuốn; hết suất chỉ chặn trong tuần.",
+   "ma": "puzzle-books scripts/kdp-hc.mjs <tên> → br play run kdp-hardcover (dùng chung ~/bin/plays/kdp-chung.sh)",
    "chu_tri": "truong-phong",
    "lam": [
-    "may",
-    "giam-doc"
+    "may"
    ],
-   "khi": "chạy tay",
-   "day_chuyen": "sach"
+   "khi": "trong lượt dang-kdp",
+   "day_chuyen": "sach",
+   "lich": [],
+   "chi_phi": "0 khi đăng (phí in bìa cứng $9,54/cuốn trừ vào tiền bán)"
   },
   {
    "id": "ghim-pinterest",
@@ -204,21 +236,27 @@
     "may"
    ],
    "khi": "chạy tay",
-   "day_chuyen": "ghim"
+   "day_chuyen": "ghim",
+   "lich": [],
+   "chi_phi": "0"
   },
   {
    "id": "do-ghim",
    "ten": "Đo ghim Pinterest",
    "so_hoa": "co-dinh",
-   "kich_hoat": "Chạy tay: playbook đọc trang analytics từng ghim (30 ngày)",
+   "kich_hoat": "MacBook 09:20 mỗi ngày (LaunchAgent com.earns.pinterest-doc-so): playbook đọc trang analytics ghim (khung 30 ngày)",
    "mo_ta": "Ghép ghim → sách theo tiêu đề, gửi số vào MOS2 kenh_so_ngay.",
    "ma": "~/bin/plays/pinterest.doc-so-ghim.sh → puzzle-books scripts/pin-so.mjs",
    "chu_tri": "kenh-keo-khach",
    "lam": [
     "may"
    ],
-   "khi": "chạy tay",
-   "day_chuyen": "ghim"
+   "khi": "09:20 mỗi ngày",
+   "day_chuyen": "ghim",
+   "lich": [
+    "MacBook:com.earns.pinterest-doc-so"
+   ],
+   "chi_phi": "0"
   },
   {
    "id": "trang-printables",
@@ -232,13 +270,15 @@
     "may"
    ],
    "khi": "chạy tay",
-   "day_chuyen": "printables"
+   "day_chuyen": "printables",
+   "lich": [],
+   "chi_phi": "0"
   },
   {
    "id": "do-video",
    "ten": "Đo video ngắn",
    "so_hoa": "co-dinh",
-   "kich_hoat": "MacBook ngay sau lượt đăng 20:05 mỗi ngày",
+   "kich_hoat": "Trong lượt MacBook com.earns.puzzle-short-yt, ngay sau khi đăng 20:05",
    "mo_ta": "Lượt xem cộng dồn từng video trên YouTube (API chỉ đọc), Facebook, Instagram (đọc ô reel), TikTok (lượt đăng iMac ghi) → MOS2 kenh_so_ngay; MOS2 tính số 7 ngày + lượt vào shop.",
    "ma": "puzzle-books scripts/so-short.mjs",
    "chu_tri": "kenh-keo-khach",
@@ -246,7 +286,9 @@
     "may"
    ],
    "khi": "sau 20:05",
-   "day_chuyen": "video"
+   "day_chuyen": "video",
+   "lich": [],
+   "chi_phi": "0 (YouTube Data API chỉ đọc)"
   },
   {
    "id": "rut-kinh-nghiem-video",
@@ -259,7 +301,9 @@
     "kenh-keo-khach"
    ],
    "khi": "mỗi tuần",
-   "day_chuyen": "video"
+   "day_chuyen": "video",
+   "lich": [],
+   "chi_phi": "0"
   },
   {
    "id": "kenh-keo-khach",
@@ -272,20 +316,26 @@
    "lam": [
     "may"
    ],
-   "khi": "chạy tay"
+   "khi": "chạy tay",
+   "lich": [],
+   "chi_phi": "0"
   },
   {
    "id": "bao-telegram",
    "ten": "Báo Telegram",
    "so_hoa": "co-dinh",
    "kich_hoat": "Box3 mỗi phút (systemd bao-sp-telegram.timer)",
-   "mo_ta": "Đọc sổ sản phẩm: sách dựng xong chờ duyệt → topic Sản xuất xong (duyệt xong thì tin tự xoá); vừa lên sàn → Sản phẩm mới; tới ngày mà chưa duyệt, hoặc đã duyệt tới ngày cần Publish KDP/Gumroad → nhắc.",
+   "mo_ta": "Đọc sổ sản phẩm: sách dựng xong chờ duyệt → topic Sản xuất xong (duyệt xong thì tin tự xoá); vừa lên sàn → Sản phẩm mới; tới ngày mà chưa duyệt → nhắc. KDP/Gumroad máy tự bấm Publish: câu nhắc \"cần bấm Publish\" trong bot đã cũ, chờ Giám đốc cho sửa tệp dùng chung.",
    "ma": "MOS2 scripts/bao-sp-telegram.mjs",
    "chu_tri": "truong-phong",
    "lam": [
     "may"
    ],
-   "khi": "mỗi phút"
+   "khi": "mỗi phút",
+   "lich": [
+    "box3:bao-sp-telegram.timer"
+   ],
+   "chi_phi": "0"
   },
   {
    "id": "mo-cuon-moi",
@@ -299,7 +349,9 @@
     "nguoi-lam"
    ],
    "khi": "chưa có máy",
-   "day_chuyen": "sach"
+   "day_chuyen": "sach",
+   "lich": [],
+   "chi_phi": "0"
   },
   {
    "id": "do-thi-truong",
@@ -312,7 +364,88 @@
     "thi-truong"
    ],
    "khi": "chưa có máy",
-   "day_chuyen": "sach"
+   "day_chuyen": "sach",
+   "lich": [],
+   "chi_phi": "0"
+  },
+  {
+   "id": "nhan-lenh-may",
+   "ten": "Nhận lệnh máy từ cty",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac + MacBook mỗi 60 giây: hỏi box3 lệnh 'Chạy lại ngay' bấm trên tab Dây chuyền, chạy đúng việc nền đã khai",
+   "mo_ta": "Máy chỉ chạy lệnh có trong danh sách của nó (nhan-lenh.mjs khớp LENH_MAY của cty), ghi kết quả về cùng tệp lệnh để nút trên cty hiện đang chạy / xong / lỗi.",
+   "ma": "puzzle-books scripts/nhan-lenh.mjs",
+   "chu_tri": "truong-phong",
+   "lam": [
+    "may"
+   ],
+   "khi": "mỗi phút",
+   "lich": [
+    "iMac:com.earns.puzzle-nhan-lenh",
+    "MacBook:com.earns.puzzle-nhan-lenh"
+   ],
+   "chi_phi": "0"
+  },
+  {
+   "id": "dung-bia-cung",
+   "ten": "Dựng bìa cứng + đặt giá",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "CHƯA máy chạy: sau khi bìa mềm được duyệt; hiện Claude làm khi Giám đốc bảo (12/10/2026 Bible, Christmas)",
+   "mo_ta": "Ruột 8.25x11 (KHO=hc build.mjs) + bìa cứng (BIA=cung cover.mjs, gáy/toàn bìa theo KDP Cover Calculator: 229 trang → 0.705 / 18.779x12.417) dựng từ ĐÚNG nội dung đã duyệt; đặt kdp_hardcover.price_usd (tiền lệ $24,99 khi bìa mềm $14,99). Thiếu bước này thì KDP bìa cứng bỏ qua cuốn.",
+   "chu_tri": "truong-phong",
+   "lam": [
+    "may",
+    "truong-phong"
+   ],
+   "khi": "chưa có máy",
+   "day_chuyen": "sach",
+   "lich": [],
+   "chi_phi": "0"
+  },
+  {
+   "id": "doc-don-theo-ma",
+   "ten": "Đọc đơn theo mã giảm giá",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "CHƯA máy chạy: khi Gumroad có đơn đầu tiên",
+   "mo_ta": "Mỗi nền một mã 20% (YT20 · TT20 · FB20 · IG20, store frontporchpuzzles #504) → đếm đơn theo mã = nền nào ra đơn thật; ghi vào kenh_so_ngay để bảng Kênh social có cột đơn.",
+   "chu_tri": "kenh-keo-khach",
+   "lam": [
+    "kenh-keo-khach"
+   ],
+   "khi": "chưa có máy",
+   "day_chuyen": "video",
+   "lich": [],
+   "chi_phi": "0"
+  },
+  {
+   "id": "tong-ket-video",
+   "ten": "Tin tổng kết video thứ Hai",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "CHƯA máy chạy: thứ Hai (chờ Giám đốc cho tạo tệp trong scripts/ của MOS2)",
+   "mo_ta": "Một tin Telegram: lượt xem 7 ngày từng nền, so tuần trước, video đứng đầu, lượt vào shop, nền nào đứng im (vd TikTok 0 lượt xem).",
+   "chu_tri": "kenh-keo-khach",
+   "lam": [
+    "may"
+   ],
+   "khi": "chưa có máy",
+   "day_chuyen": "video",
+   "lich": [],
+   "chi_phi": "0"
+  },
+  {
+   "id": "ho-so-kenh",
+   "ten": "Hồ sơ kênh + mã giảm giá",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "Khi mở nền mới hoặc đổi chiến dịch",
+   "mo_ta": "Giữ hồ sơ từng kênh đúng (avatar, bio, link Instagram chỉ sửa được trong app, YouTube cần xác minh một lần để ghim bình luận) và mã giảm giá Gumroad của từng nền.",
+   "chu_tri": "kenh-keo-khach",
+   "lam": [
+    "kenh-keo-khach"
+   ],
+   "khi": "khi cần",
+   "day_chuyen": "video",
+   "lich": [],
+   "chi_phi": "0"
   }
  ]
 }

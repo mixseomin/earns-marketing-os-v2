@@ -8,7 +8,7 @@ vai_nguoi_lam: nhi        # viết nội dung + mô tả (hai trạm máy không
 vai_kenh_keo_khach: phuc  # chủ trì dây chuyền video ngắn + ghim, trang printables, gom số kênh
 vai_thi_truong: binh      # đo cầu + cạnh tranh trước khi chọn / đổi tựa
 don_vi_viec: 1 cuốn · tuần (KDP 2 bìa mềm/tuần, Etsy giãn 2/tuần) · 1 video · ngày · 4 nền
-cong_nguoi: trạm 6 Giám đốc duyệt bản xem trong MOS2 (duyệt xong máy tự lên sàn: KDP máy iMac tạo nháp + bấm Publish từ 12/10/2026); sách ngoài dây chuyền có nháp KDP → Giám đốc bấm
+cong_nguoi: trạm 6 Giám đốc duyệt bản xem trong MOS2 — cổng người DUY NHẤT; duyệt xong máy tự lên sàn (Etsy 09/10, Gumroad, KDP bìa mềm + bìa cứng tự bấm Publish 12/10/2026). Mọi việc nền của phòng gắn một người chủ trì (lich trong quy-trinh/sach/danh-sach.json, puzzle-books kiem-lich.mjs đối chiếu máy thật)
 so_do: sach
 tom_tat: Bốn dây chuyền (khai ở quy-trinh/sach/danh-sach.json) — sách 6 trạm, video ngắn, ghim Pinterest, trang printables; tab Dây chuyền chọn từng cái
 du_an: [puzzle-books]
@@ -25,8 +25,8 @@ trang_thai: đang chạy · máy theo lịch (iMac + MacBook) · nhân sự AI c
 | T2 07:00 | Bình nộp số: killer sudoku 40,5k/tháng, cạnh tranh 0,01 → giữ |
 | T2–T3 | Máy chạy trạm 2 → 5. Lint chặn một chủ đề có tên thương hiệu → Nhi sửa. Mỗi bước ghi "▶ quy trình n/6" lên sổ Tài sản |
 | T4 07:30 | Hà soát cổng: 2 PDF có, bìa có, lint đạt, dòng khai AI có, bút danh Martha Delaney → vào lô chờ ký |
-| T4 08:00 | Minh: "Phòng Sách: 2 cuốn chờ anh ký. Etsy: cuốn X đến ngày bật bán, $0,20, ký?" |
-| Giám đốc | "ký cả 3" → worker kiểm cờ freeze (tắt) → kdp.mjs --publish, etsy.mjs bat từ box3 |
+| T4 08:00 | Minh: "Phòng Sách: 2 cuốn chờ anh duyệt bản xem" |
+| Giám đốc | duyệt trong MOS2 → tới ngày, máy tự bật Etsy (box3), đăng Gumroad (MacBook 09:00), nháp + Publish KDP bìa mềm rồi bìa cứng (iMac 2 giờ/lần); lượt hỏng là việc của Thảo |
 | T4 15:00 | Kiên thấy KDP gửi mail content review cuốn cũ → freeze KDP 48h; Trang soạn giải trình, Giám đốc ký |
 | Hằng ngày 20:00–20:05 | Máy đăng 1 video mỗi nền (TikTok, YouTube, Facebook, Instagram), rồi đo lượt xem; lượt lỗi / quá giờ không có tin → việc trễ của Phúc trên tab Dây chuyền |
 | T2 | Bình chọn chủ đề video tuần (từ khoá mùa + số đo video cũ), Thảo xếp lịch; kho dưới 14 ngày thì dựng thêm |

@@ -5,5 +5,6 @@
 Checklist mỗi vòng (không có gì mới → NO_REPLY):
 
 - T2: đo tựa tuần sau (KE + BSR + Etsy)
+- T2: chủ đề video tuần (mùa + số video cũ) → Phúc, Thảo xếp lịch
 - Cuốn 8 tuần không đơn → đề xuất đổi tựa giữ ngày
 - AdFond: cặp ngách×nước biên dương → nộp Lan

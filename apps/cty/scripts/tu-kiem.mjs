@@ -54,5 +54,24 @@ for (const [id, f] of Object.entries(phong)) {
     if (thieu.length) loi.push(`so-do/${f.so_do}.svg: ${thieu.length} ô chưa trỏ tới số liệu (thiếu data-href): ${thieu.slice(0, 3).join(' ')}`);
   }
 }
+// VIỆC NỀN → MỘT NGƯỜI (anh 13/10/2026: "mọi hoạt động trong phòng (cron, tự động…) đều phải gắn với 1 nhân sự cụ thể để tính trách nhiệm,
+// chi phí"). Quy trình khai `lich` = việc nền thật (LaunchAgent / unit systemd). Phòng đã khai lich thì MỌI quy trình máy chạy phải khai (kể cả []);
+// việc nền thuộc đúng một quy trình; người chủ trì giải ra MỘT nhân sự có hồ sơ (không 'may', không vai bỏ trống); có chi_phi.
+const { dsQuyTrinh, giaiNguoi } = await import('../worker/quy-trinh.mjs');
+const nenCua = {};
+for (const q of dsQuyTrinh().filter((x) => x.nguon === 'phong')) {
+  const coLich = dsQuyTrinh().some((x) => x.phong === q.phong && Array.isArray(x.lich));
+  if (!coLich) continue;
+  if (q.so_hoa === 'co-dinh' && !Array.isArray(q.lich)) loi.push(`${q.khoa}: quy trình máy chạy chưa khai lich (việc nền thật, [] nếu chạy tay)`);
+  if (!Array.isArray(q.lich) || !q.lich.length) continue;
+  let nguoi = null; try { nguoi = giaiNguoi(q.phong, q.chu_tri)?.nguoi; } catch (e) { loi.push(`${q.khoa}: ${e.message}`); }
+  if (!nguoi || !ns[nguoi]) loi.push(`${q.khoa}: việc nền ${q.lich.join(', ')} không ra một nhân sự cụ thể (chu_tri "${q.chu_tri}" → "${nguoi}")`);
+  if (!q.chi_phi) loi.push(`${q.khoa}: việc nền chưa khai chi_phi ('chưa đo' nếu chưa có số)`);
+  for (const l of q.lich) {
+    if (!/^(iMac|MacBook|box\d):\S+$/.test(l)) loi.push(`${q.khoa}: lich "${l}" phải dạng <iMac|MacBook|boxN>:<nhãn việc nền>`);
+    if (nenCua[l]) loi.push(`việc nền ${l} khai ở hai quy trình (${nenCua[l]} · ${q.khoa}) — mỗi việc nền thuộc đúng một người`);
+    nenCua[l] = q.khoa;
+  }
+}
 if (loi.length) { console.error('✗ tu-kiem cty:\n  ' + loi.join('\n  ')); process.exit(1); }
 console.log(`✓ tu-kiem cty: ${Object.keys(ns).length} nhân sự, ${Object.keys(phong).length} phòng, hồ sơ nhất quán`);

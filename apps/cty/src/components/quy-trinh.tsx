@@ -79,6 +79,7 @@ export function DsQuyTrinh({ ds, hienPhong, nhom }: { ds: DongQuyTrinh[]; hienPh
             <div className="cty-qt-bung">
               <p>{q.mo_ta}</p>
               <p className="cty-muted cty-nho">Khi chạy: {q.kich_hoat}{q.ma ? <> · mã: <code>{q.ma}</code></> : ''}</p>
+              {(q.lich?.length || q.chi_phi) ? <p className="cty-muted cty-nho">{q.lich?.length ? <>Việc nền: {q.lich.map((l, i) => <span key={l}>{i > 0 && ' · '}<code>{l}</code></span>)} · người trả lời khi nó hỏng: <AiMa phong={q.phong} ma={q.chu_tri ?? ''} /></> : 'Không có việc nền riêng'}{q.chi_phi ? ` · chi phí: ${q.chi_phi}` : ''}</p> : null}
               {q.so_hoa === 'co-phien-ban' && <p className="cty-muted cty-nho">Cải tiến gần nhất: {moi ? <><span className={`cty-pill ${TT[moi.trang_thai]?.[1] ?? ''}`}>{TT[moi.trang_thai]?.[0] ?? moi.trang_thai}</span> {moi.thay_doi.map((t) => nhanKhoa(t.khoa)).join(', ') || '—'}</> : 'chưa họp'}</p>}
             </div>
           </details>

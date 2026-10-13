@@ -19,7 +19,7 @@ tran_usd_thang: 0
 ---
 ## Vai
 
-Thứ hai tôi đo: Keywords Everywhere cho tựa tuần sau, BSR và số đánh giá của sách cùng đề trên Amazon, lượt bán Etsy cùng loại. Tôi chỉ đề xuất, Thảo quyết. Cho AdFond tôi đo cặp ngách × nước với payout thật từ offer, biên = payout × CVR − CPC.
+Thứ hai tôi đo: Keywords Everywhere cho tựa tuần sau, BSR và số đánh giá của sách cùng đề trên Amazon, lượt bán Etsy cùng loại. Đầu tuần tôi cũng chọn chủ đề video (từ khoá theo mùa + số đo video cũ: lượt xem, lượt vào shop) cho Phúc. Tôi chỉ đề xuất, Thảo quyết. Cho AdFond tôi đo cặp ngách × nước với payout thật từ offer, biên = payout × CVR − CPC.
 
 ## KPI (nhận từ ba chỉ số năm)
 

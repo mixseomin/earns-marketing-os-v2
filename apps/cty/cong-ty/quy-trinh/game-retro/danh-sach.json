@@ -1,0 +1,139 @@
+{
+ "_": "Quy trình của Phòng Game Retro. Máy thật nằm ở repo ~/Me/Earns/nes-video (iMac): quay.sh + dung-khung.sh chạy tay, CHƯA có việc nền nào (luật 12/10/2026: dựng việc nền phải hỏi Giám đốc từng việc). so_hoa 'co-dinh' = có máy, 'mo-ta' = chưa có máy. chu_tri = vai chịu trách nhiệm chính, lam = ai/máy làm thật.",
+ "phong": "game-retro",
+ "quy_trinh": [
+  {
+   "id": "chon-game",
+   "ten": "Chọn game tuần",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "CHƯA máy chạy: thứ hai hằng tuần",
+   "mo_ta": "Tiến chọn game NES có bản TAS hiện hành trên TASVideos (tải .fm2), game nổi tiếng với khán giả Mỹ 30–45 tuổi, cộng số đo video tuần trước; ghi MD5 ROM cần (romChecksum trong .fm2) và xin Giám đốc ROM. Duy chốt.",
+   "chu_tri": "thi-truong",
+   "lam": [
+    "thi-truong",
+    "truong-phong"
+   ],
+   "khi": "thứ hai hằng tuần",
+   "lich": [],
+   "chi_phi": "0"
+  },
+  {
+   "id": "quay-tas",
+   "ten": "Quay trọn bản TAS có tiếng",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Chạy tay trên iMac khi game tuần có ROM",
+   "mo_ta": "FCEUX tự dựng (vendor/fceux, đã bật lại --soundrecord) phát lại .fm2, Lua lấy màn trần từng khung → ffmpeg; tiếng WAV ghép vào. Kiểm mốc giữa + cuối: nhân vật không bấm lệch (ROM sai bản = lệch).",
+   "ma": "nes-video scripts/quay.sh rom/<game>.nes tas/<phim>.fm2 out/<game>-goc.mp4",
+   "chu_tri": "nguoi-lam",
+   "lam": [
+    "may",
+    "nguoi-lam"
+   ],
+   "khi": "thứ hai–ba",
+   "lich": [],
+   "chi_phi": "0 tiền mô hình (máy iMac)"
+  },
+  {
+   "id": "cat-dung",
+   "ten": "Cắt khoảnh khắc + dựng khung 9:16",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Chạy tay sau khi quay xong",
+   "mo_ta": "Linh chọn 5–10 khoảnh khắc trọn một pha (boss, qua màn, pha né), 30–60 giây; bản trên 1 phút cho TikTok. Dựng 1080x1920, nền là hình game làm mờ.",
+   "ma": "nes-video scripts/dung-khung.sh out/<game>-goc.mp4 mo out/<doan>.mp4 <giây> <số giây>",
+   "chu_tri": "nguoi-lam",
+   "lam": [
+    "nguoi-lam",
+    "may"
+   ],
+   "khi": "thứ ba",
+   "lich": [],
+   "chi_phi": "0"
+  },
+  {
+   "id": "tieu-de",
+   "ten": "Tiêu đề + caption tiếng Anh",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "CHƯA máy chạy: theo lô cắt",
+   "mo_ta": "Câu mở đầu gây tò mò (frame-perfect, every boss in 60 seconds…), nhãn tool-assisted, tên tác giả TAS (điều kiện TASVideos), không em dash, qua voice-score.",
+   "chu_tri": "nguoi-lam",
+   "lam": [
+    "nguoi-lam"
+   ],
+   "khi": "thứ ba",
+   "lich": [],
+   "chi_phi": "0"
+  },
+  {
+   "id": "duyet-lo",
+   "ten": "Duyệt lô video",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "Thứ ba 17:00",
+   "mo_ta": "Duy xem lô: đúng pha, không lệch, đủ ghi công, chữ đạt. Lô đầu của mỗi game Giám đốc xem. Trả về có lý do.",
+   "chu_tri": "truong-phong",
+   "lam": [
+    "truong-phong"
+   ],
+   "khi": "thứ ba",
+   "lich": [],
+   "chi_phi": "0"
+  },
+  {
+   "id": "dang-video",
+   "ten": "Đăng 3 nền + link tiếp thị",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "CHƯA có tài khoản kênh (Giám đốc cấp, mức 3)",
+   "mo_ta": "YouTube Shorts, TikTok, Facebook Reels; 1–2 video/ngày/nền; link tiếp thị liên kết máy chơi game cầm tay retro ở mô tả + bio.",
+   "chu_tri": "kenh-keo-khach",
+   "lam": [
+    "kenh-keo-khach"
+   ],
+   "khi": "hằng ngày",
+   "lich": [],
+   "chi_phi": "0"
+  },
+  {
+   "id": "do-so",
+   "ten": "Đo số 7 ngày + tổng kết",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "Chủ nhật",
+   "mo_ta": "Lượt xem, giữ chân, bấm link theo từng video; Duy rút: kiểu video nào giữ, game nào bỏ, đưa vào chọn game tuần sau.",
+   "chu_tri": "truong-phong",
+   "lam": [
+    "kenh-keo-khach",
+    "truong-phong"
+   ],
+   "khi": "chủ nhật",
+   "lich": [],
+   "chi_phi": "0"
+  },
+  {
+   "id": "soi-thi-truong",
+   "ten": "Soi thị trường máy retro (spy.on.tc)",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "Mỗi tháng; Góc bán mới cần Giám đốc duyệt (tốn tiền AI)",
+   "mo_ta": "Góc bán \"máy chơi game cầm tay retro\" (Reddit, YouTube, Amazon, Trustpilot) → câu mở đầu + sản phẩm đáng gắn link; quảng cáo Meta đối thủ bán máy retro: mẫu nào chạy lâu, có ai ghép gameplay vào máy chưa.",
+   "chu_tri": "thi-truong",
+   "lam": [
+    "thi-truong"
+   ],
+   "khi": "mỗi tháng",
+   "lich": [],
+   "chi_phi": "chưa đo (Góc bán gọi mô hình)"
+  },
+  {
+   "id": "mau-quang-cao",
+   "ten": "Mẫu quảng cáo bán máy retro",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "CHƯA: chờ Giám đốc chốt bán máy retro (shop hay tiếp thị liên kết)",
+   "mo_ta": "Ghép gameplay TAS vào màn hình ảnh sản phẩm máy cầm tay; mỗi game một mẫu, chọn game theo tuổi tệp khách. Chạy quảng cáo = mức 3.",
+   "chu_tri": "truong-phong",
+   "lam": [
+    "nguoi-lam",
+    "thi-truong"
+   ],
+   "khi": "khi được duyệt",
+   "lich": [],
+   "chi_phi": "0"
+  }
+ ]
+}

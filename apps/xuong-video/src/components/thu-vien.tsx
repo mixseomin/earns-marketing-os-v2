@@ -7,6 +7,7 @@ import { moNgan } from './ngan-chung';
 import { LOAI_SHOT_MAU } from '@/lib/xuong-video/kieu';
 import type { KhuonShot } from '@/lib/xuong-video/khuon-shot';
 import { THE_LOAI, NHOM_KY_THUAT, THU_VIEN, CAU_TRUC, hopTheLoai, type TheLoai } from '@/lib/xuong-video/dien-anh';
+import { LUAT_DUNG_CANH } from '@/lib/xuong-video/luat-dung';
 
 export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
   const [tl, setTl] = useState<TheLoai | ''>(tlDau as TheLoai | '');
@@ -21,11 +22,23 @@ export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
         {chip('', 'Tất cả')}
         {THE_LOAI.map((t) => chip(t.key, t.ten, t.mo_ta))}
       </div>
+      <details className="xv-det xv-panel" open>
+        <summary>📐 Luật dựng cảnh <small>{LUAT_DUNG_CANH.length} — mỗi shot ghi mã luật mình thực hiện; Claude viết kịch bản, tách cảnh, xem thử đều theo đúng danh sách này</small></summary>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 6, marginTop: 8 }}>
+          {LUAT_DUNG_CANH.map((l, i) => (
+            <div key={l.key} className="xv-canh">
+              <b style={{ fontSize: 12 }}>{i + 1}. {l.ten}</b> <span className="xv-mono">{l.key}</span>
+              <div style={{ fontSize: 11.5, color: 'var(--fg-2)', marginTop: 2 }}>{l.luat}</div>
+              <div className="xv-mono" style={{ marginTop: 2 }}>máy kiểm: {l.may}</div>
+            </div>
+          ))}
+        </div>
+      </details>
       {NHOM_KY_THUAT.map((n) => {
         const ds = THU_VIEN.filter((x) => x.nhom === n.key && (!tl || hopTheLoai(x, tl)));
         if (!ds.length) return null;
         return (
-          <details key={n.key} className="xv-det xv-panel" open={n.key === 'co_canh'}>
+          <details key={n.key} className="xv-det xv-panel" open={n.key === 'vai'}>
             <summary>{n.icon} {n.ten} <small>{ds.length}</small></summary>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 6, marginTop: 8 }}>
               {ds.map((x) => (

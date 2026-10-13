@@ -7,6 +7,7 @@ import { z } from 'zod/v4';   // helper zodOutputFormat của SDK cần zod v4 (
 import { THU_VIEN, THE_LOAI, CAU_TRUC, giayBeat, hopTheLoai, NHOM_KY_THUAT, type NhomKyThuat } from './dien-anh';
 import type { BienThe, DoiChieu, KinhThanh, LoaiNhanVat, LoaiPhim, NhanVat } from './kieu';
 import { giayDoc } from './nhip-hinh';
+import { vanLuatDung, LUAT_DUNG_CANH } from './luat-dung';
 import { docKinhThanh, phongCachHinh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA, LOAI_SHOT_MAU, giayMau, coMau, tenNgonNgu, type BaiDang, type ShotMau } from './kieu';
 
 const CanhSchema = z.object({
@@ -25,6 +26,7 @@ const CanhSchema = z.object({
 // bằng zod — Claude lỡ một key lạ là cả lượt tách cảnh hỏng. Key lạ do máy chủ lọc bỏ (lamSachKyThuat), shot vẫn giữ.
 const enumNhom = (n: NhomKyThuat) => z.string().describe(`Một key trong: ${THU_VIEN.filter((x) => x.nhom === n).map((x) => x.key).join(', ')}`);
 const KyThuatSchema = z.object({
+  luat: z.array(z.string()).describe(`Mã LUẬT DỰNG CẢNH (thư viện) mà shot này thực hiện — 1-3 mã, vd shot mở = ["dan_khong_gian","dan_thoi_gian"], shot phản ứng = ["du_diem_nhin"]. Một mã trong: ${LUAT_DUNG_CANH.map((l) => l.key).join(', ')}`),
   vai: enumNhom('vai').describe('VAI KỂ của shot — kể bằng mắt ai, để làm gì (luật 13–14). Một key trong: thiet_lap, thoi_gian, tong_the, hanh_trinh, hanh_dong, nguoi_thu_ba, chu_quan, phan_ung, chi_tiet, tam_trang'),
   co_canh: enumNhom('co_canh'), goc: enumNhom('goc'), chuyen_dong: enumNhom('chuyen_dong'), ong_kinh: enumNhom('ong_kinh'),
   anh_sang: enumNhom('anh_sang'), mau: enumNhom('mau'), chuyen_canh: enumNhom('chuyen_canh'),
@@ -85,21 +87,7 @@ function loiGoi(e: unknown): string {
 /** LUẬT KỂ CHUYỆN CHO NGƯỜI XEM LẦN ĐẦU — "skill làm video" của xưởng, nằm trong MỌI lượt viết kịch bản / tách cảnh (heThong).
  *  Rút từ ca Fox Tales tập 2 (13/10/2026: kịch bản 100/100 cấu trúc mà xem không hiểu) + luật dựng chuẩn (Murch: cảm xúc > câu chuyện > nhịp).
  *  Bước kiểm sau đó: nguoi-xem.ts (Claude xem mù, chặn keyframe/xuất khi chưa hiểu). Sửa luật ở đây là sửa cho mọi phim. */
-export const LUAT_KE_CHUYEN = `LUẬT KỂ CHUYỆN (người xem xem MỘT lần trên điện thoại, không đọc kịch bản, không biết brief):
-1. Phim tự kể đủ: điều gì cú lật / câu đùa cần người xem biết trước (truyện gốc, luật chơi, lời hứa, kế hoạch) thì phim phải NÓI hoặc CHO THẤY nó trước đó (gài → trả). Không dựa vào kiến thức ngoài phim.
-2. Trong 5 giây đầu người xem phải biết nhân vật chính là ai và MUỐN GÌ — nói bằng lời hoặc thấy rõ bằng hình.
-3. Mỗi bước kế hoạch / mỗi lần thử của nhân vật: một hành động thấy rõ + một câu ngắn nói mục đích; chữ màn ≤ 5 từ và shot có chữ dài ≥ 2 giây.
-4. Khoảnh khắc quan trọng (cú lật, cao trào, câu đùa chính) KHÔNG được câm: phải có lời, tiếng (hát, đổ vỡ…) hoặc chữ — và chi tiết làm nên cú lật phải có shot cho THẤY (cận cảnh nếu nhỏ).
-5. Nhân vật / đạo cụ quan trọng xuất hiện lần đầu phải được giới thiệu (tên hoặc vai trò) — không thả một nhân vật mới vào cảnh kết.
-6. Thoại vừa giây: ~2,5 từ/giây + 0,5 giây thở trước khi cắt; câu dài hơn shot thì tách shot, không nhồi.
-7. Mỗi shot nối shot trước bằng nguyên nhân → kết quả hoặc hướng nhìn (nhân vật nhìn gì thì shot sau cho thấy cái đó); đổi nơi chốn thì có shot toàn cảnh mở.
-8. Kết rõ: người xem nói lại được trong một câu chuyện gì đã xảy ra và bài học / lời hẹn là gì.
-9. Khung hình phải ĐỘNG: mỗi shot một hành động thân thể lớn nhìn thấy rõ (chạy, nhảy, với, ném, ngã, bay, đuổi, giấu…), không chỉ biểu cảm mặt (nheo mắt, lắc đầu, nín thở); hai shot liền nhau không cùng cỡ cảnh + cùng chuyển động máy; tối đa 40% shot máy đứng yên — còn lại đẩy vào, lùi ra, lia, trượt, cẩu theo ý nghĩa cảnh.
-10. NHỊP ĐỌC: mỗi shot MỘT hành động chính, trọn đầu–giữa–cuối trong số giây phát; sau cú bất ngờ / gag giữ mặt phản ứng ≥ 1 giây. Hành động nhiều bước (nhảy → trượt → ngã) tách thành nhiều shot, không nhồi "rồi… rồi…" vào một shot. Phim truyện mỗi shot phát ≥ 3 giây, phim không lời ≥ 3,5 giây (chỉ quảng cáo mới cắt 1,5–3 giây). Shot ngắn hơn mà nhiều việc = người xem chưa hiểu đã cắt.
-11. NỐI TRẠNG THÁI: shot sau BẮT ĐẦU đúng chỗ shot trước để lại — vị trí nhân vật, đồ đang cầm/mất (nửa viên kẹo…), thương tích/biến dạng (bẹp, ướt), ánh sáng, giờ. Giữ hướng màn hình: đang chạy trái→phải thì shot sau vẫn trái→phải. Nhân vật/đồ vật không tự nhiên có mặt hay biến mất: thấy nó tới / rời đi. Không nối được bằng hình thì thiếu một shot cầu nối — thêm shot đó.
-12. DẪN KHÔNG GIAN (kiểu Larva): người xem phải biết MÌNH ĐANG Ở ĐÂU trước khi chuyện xảy ra. Mở tập bằng chuỗi 2–3 shot đi từ rộng vào hẹp: cả thế giới (toàn cảnh, giờ trong ngày, ánh sáng) → khu vực → đúng chỗ xảy ra, máy dẫn vào bằng chuyển động (cẩu xuống, đẩy vào, lia theo một vật dẫn đường đang lăn/bay/bò tới đó). Lần đầu tới một nơi mới: shot toàn cảnh nơi đó, hoặc shot hành trình cho thấy nhân vật đi qua các mốc quen để tới — đúng đường đi trên BẢN ĐỒ KHÔNG GIAN nếu có. Kết tập có thể lùi máy ra rộng (đảo chiều chuỗi mở).
-13. DẪN THỜI GIAN: người xem phải biết LÚC NÀO — giờ trong ngày, ai vừa đi đâu (Gã khổng lồ vừa rời bàn, đèn vừa tắt), chuyện xảy ra trong bao lâu. Nói bằng HÌNH: màu + hướng ánh sáng, đèn bật/tắt, màn hình sáng/tối, bóng đổ, bầu trời ngoài cửa. Mở tập có một shot thiết lập hoặc dấu thời gian; thời gian trôi (đêm → rạng sáng) phải có một shot dấu thời gian, không nhảy.
-14. ĐỦ ĐIỂM NHÌN: mỗi phân cảnh ≥ 3 shot có một shot TỔNG THỂ (mọi nhân vật + khoảng cách giữa họ). Cả tập phải có shot PHẢN ỨNG (giữ trên mặt nhân vật khi nó cảm), shot TÂM TRẠNG (không khí, gần như không hành động, nhịp lặng — trước cao trào hoặc sau mất mát), và shot NGƯỜI THỨ BA (ai đó/cái gì đó đang lén quan sát — khán giả biết trước nhân vật chính) hoặc CHỦ QUAN (thấy bằng mắt nhân vật). Không quá 3 shot HÀNH ĐỘNG liền nhau — chen phản ứng, chi tiết, người thứ ba. Mỗi shot ghi vai kể ở ky_thuat.vai.`;
+export const LUAT_KE_CHUYEN = vanLuatDung();   // nguồn: luat-dung.ts (thư viện luật dựng cảnh)
 /** Phim KHÔNG LỜI (kinh_thanh.khong_loi — Tango & Lint): thoại thay bằng âm hiệu của nhân vật, truyện kể bằng hành động. */
 export const LUAT_KHONG_LOI = `PHIM KHÔNG LỜI (kiểu Larva / Shaun the Sheep): KHÔNG có một câu thoại hay lời dẫn nào bằng ngôn ngữ người. Trường thoại chỉ ghi ÂM HIỆU của nhân vật (tiếng kêu, bập bẹ, cười, thở, tiếng chất liệu của nó — theo dòng "Voice" / tính cách trong tiểu sử), ngắn ≤ 3 từ âm, vd Tango: "Hup!", Lint: "[gasps] pff…". Mọi ý truyện phải hiểu được chỉ bằng hành động + biểu cảm + âm thanh; chữ màn tối đa vài chữ ở đầu tập (tên tập) hoặc không có. Mỗi gag phải đọc được khi tắt tiếng.`;
 const heThong = (loai: LoaiPhim, kt: Required<KinhThanh>) => `Bạn là đạo diễn kiêm storyboard artist cho xưởng video AI. Loại sản phẩm: ${LOAI_PHIM.find((l) => l.key === loai)?.label ?? loai}.

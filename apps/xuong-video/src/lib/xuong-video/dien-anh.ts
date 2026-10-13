@@ -2,6 +2,7 @@
 // màu · chuyển cảnh · âm thanh · nhạc, mỗi kỹ thuật gắn thể loại hợp với nó (kinh dị ≠ hài ≠ quảng cáo UGC) + cấu trúc beat theo loại phim.
 // Claude chọn kỹ thuật cho từng shot TỪ thư viện này (theo thể loại của phim); `prompt` (tiếng Anh) được ghép vào prompt ảnh/video
 // nên ảnh + clip ra đúng cỡ cảnh, ánh sáng, chuyển động. File thuần dữ liệu — client lẫn server import được.
+import { luatDung } from './luat-dung';
 
 export type TheLoai = 'hoat_hinh' | 'phieu_luu' | 'kinh_di' | 'hanh_dong' | 'tinh_cam' | 'hai' | 'chinh_kich' | 'vien_tuong' | 'tai_lieu' | 'qc_ugc' | 'qc_cao_cap';
 export type NhomKyThuat = 'vai' | 'co_canh' | 'goc' | 'chuyen_dong' | 'toc_do' | 'ong_kinh' | 'anh_sang' | 'mau' | 'chuyen_canh' | 'am_thanh' | 'nhac';
@@ -14,7 +15,8 @@ export const NHOM_CHUYEN_CANH: { key: NhomChuyenCanh; ten: string }[] = [
 ];
 /** Kỹ thuật đã chọn cho một shot (mỗi nhóm một key; âm thanh có thể nhiều). */
 /** giay_cc: số giây chuyển cảnh đặt tay cho điểm nối SAU shot này (#1297) — trống = mặc định của kiểu. */
-export type KyThuatShot = Partial<Record<Exclude<NhomKyThuat, 'am_thanh'>, string>> & { am_thanh?: string[]; giay_cc?: number };
+/** luat = mã luật dựng cảnh (luat-dung.ts) shot này thực hiện — shot ref tới thư viện. */
+export type KyThuatShot = Partial<Record<Exclude<NhomKyThuat, 'am_thanh'>, string>> & { am_thanh?: string[]; giay_cc?: number; luat?: string[] };
 
 export const THE_LOAI: { key: TheLoai; ten: string; mo_ta: string }[] = [
   { key: 'hoat_hinh', ten: 'Hoạt hình gia đình', mo_ta: 'Ấm áp, màu tươi, máy mềm, cảm xúc rõ ràng' },
@@ -242,6 +244,7 @@ export function chiTietKyThuat(kt: KyThuatShot | undefined): MucKyThuat[] {
     const keys = n.key === 'am_thanh' ? kt.am_thanh ?? [] : [kt[n.key as Exclude<NhomKyThuat, 'am_thanh'>]];
     for (const k of keys) { const x = kyThuat(k, n.key); if (x) out.push({ nhom: n.ten, icon: n.icon, ten: x.ten, mo_ta: x.mo_ta }); }
   }
+  for (const k of kt.luat ?? []) { const l = luatDung(k); if (l) out.push({ nhom: 'Luật dựng cảnh', icon: '📐', ten: l.ten, mo_ta: l.luat }); }
   return out;
 }
 export const nhanKyThuat = (kt: KyThuatShot | undefined): string[] => chiTietKyThuat(kt).map((m) => `${m.icon} ${m.ten}`);
@@ -255,6 +258,8 @@ export function lamSachKyThuat(kt: Record<string, unknown> | undefined): KyThuat
     if (typeof v === 'string' && kyThuat(v, n.key)) (o as Record<string, string>)[n.key] = v;
   }
   const g = Number(kt.giay_cc); if (Number.isFinite(g) && g >= 0.1 && g <= 3) o.giay_cc = Math.round(g * 100) / 100;
+  const lu = (Array.isArray(kt.luat) ? kt.luat : []).filter((x): x is string => typeof x === 'string' && !!luatDung(x));
+  if (lu.length) o.luat = [...new Set(lu)].slice(0, 4);
   return o;
 }
 

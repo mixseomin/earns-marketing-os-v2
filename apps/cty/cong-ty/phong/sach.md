@@ -8,7 +8,7 @@ vai_nguoi_lam: nhi        # viết nội dung + mô tả (hai trạm máy không
 vai_kenh_keo_khach: phuc  # chủ trì dây chuyền video ngắn + ghim, trang printables, gom số kênh
 vai_thi_truong: binh      # đo cầu + cạnh tranh trước khi chọn / đổi tựa
 don_vi_viec: 1 cuốn · tuần (KDP 2 bìa mềm/tuần, Etsy giãn 2/tuần) · 1 video · ngày · 4 nền
-cong_nguoi: trạm 6 Giám đốc duyệt bản xem trong MOS2; KDP Giám đốc bấm Publish (máy tạo nháp sẵn)
+cong_nguoi: trạm 6 Giám đốc duyệt bản xem trong MOS2 (duyệt xong máy tự lên sàn: KDP máy iMac tạo nháp + bấm Publish từ 12/10/2026); sách ngoài dây chuyền có nháp KDP → Giám đốc bấm
 so_do: sach
 tom_tat: Bốn dây chuyền (khai ở quy-trinh/sach/danh-sach.json) — sách 6 trạm, video ngắn, ghim Pinterest, trang printables; tab Dây chuyền chọn từng cái
 du_an: [puzzle-books]

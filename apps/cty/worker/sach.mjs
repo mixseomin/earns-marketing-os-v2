@@ -53,11 +53,12 @@ export function viecKe(d, hom) {
     case 'ready':
       if (!d.ngay) return { ai: 'truong-phong', muc: 2, chu: 'đã duyệt nhưng chưa có ngày đăng', qt: 'san-xuat' };
       if (!toi) return { ai: null, chu: `đã duyệt, chờ tới ngày đăng`, qua };
-      if (d.nen === 'kdp') {   // puzzle-books dang-kdp.mjs (MacBook, 2 giờ/lần) tạo nháp rồi ghi sku = mã tựa; nút Publish là chữ ký của Giám đốc
+      if (d.nen === 'kdp') {   // puzzle-books dang-kdp.mjs (iMac, 2 giờ/lần) tạo nháp, ghi sku = mã tựa, rồi TỰ bấm Publish (anh chốt 12/10/2026)
         const dd = d.dinhDang && d.dinhDang !== 'paperback' ? ` (${d.dinhDang})` : '';
-        if (d.sku) return { ai: 'giam-doc', muc: 3, chu: `bấm Publish KDP${dd} — nháp đã sẵn`, qua, qt: 'dang-kdp' };
-        if (!d.tram) return { ai: 'truong-phong', muc: 2, chu: `soạn nháp KDP${dd} — sách ngoài dây chuyền, máy không tự làm`, qua, qt: 'dang-kdp' };
-        return { ai: 'may', chu: `tạo nháp KDP${dd} (MacBook, 2 giờ/lần) → Giám đốc bấm Publish`, qua, tre: qua >= 1, qt: 'dang-kdp' };
+        // sách ngoài dây chuyền (bộ coin…): máy KDP không biết cuốn này — có nháp thì Giám đốc bấm, chưa có thì trưởng phòng soạn
+        if (!d.tram) return d.sku ? { ai: 'giam-doc', muc: 3, chu: `bấm Publish KDP${dd} — nháp đã sẵn (sách ngoài dây chuyền, máy không bấm)`, qua, qt: 'dang-kdp' }
+          : { ai: 'truong-phong', muc: 2, chu: `soạn nháp KDP${dd} — sách ngoài dây chuyền, máy không tự làm`, qua, qt: 'dang-kdp' };
+        return { ai: 'may', chu: d.sku ? `máy bấm Publish nháp KDP${dd} (iMac, 2 giờ/lần)` : `máy tạo nháp + bấm Publish KDP${dd} (iMac, 2 giờ/lần)`, qua, tre: qua >= 1, qt: 'dang-kdp' };
       }
       return { ai: 'may', chu: d.nen === 'etsy' ? 'bật bán Etsy 08:30 (≤3 cuốn/ngày)' : d.nen === 'gumroad' ? 'đăng Gumroad 09:00 (MacBook)' : `chờ đăng ${d.nen}`, qua, tre: qua >= 2, qt: { etsy: 'bat-ban-etsy', gumroad: 'dang-gumroad' }[d.nen] ?? null };
     case 'owner_review':
@@ -174,10 +175,10 @@ if (process.argv[1]?.endsWith('sach.mjs') && process.argv.includes('--tu-kiem'))
   a.deepEqual(R({ st: 'draft', ghi: '▶ quy trình 3/6 · xong: bìa · kế: ảnh bán hàng + ảnh ghim\nghi chú cũ' }).tram, { dat: 3, tong: 6, ke: 'ảnh bán hàng + ảnh ghim' });
   a.deepEqual(R({ st: 'ready', ghi: '▶ quy trình 6/6 · xong: anh duyệt bản xem trong MOS2 · dựng xong' }).tram, { dat: 6, tong: 6, ke: 'dựng xong' });
   a.equal(R({ st: 'planned', ghi: 'Tập 1. Đủ hồ sơ' }).tram, null, 'ghi chú tay không phải dòng quy trình');
-  // KDP đã duyệt quá ngày → Giám đốc bấm Publish; Etsy/Gumroad → máy, trễ sau 2 ngày
+  // KDP đã duyệt quá ngày → máy iMac tạo nháp + tự Publish (trễ sau 1 ngày); sách ngoài dây chuyền có nháp → Giám đốc bấm; Etsy/Gumroad → máy, trễ sau 2 ngày
   const MAY = '▶ quy trình 6/6 · xong: anh duyệt bản xem trong MOS2 · dựng xong';
-  a.deepEqual(v({ st: 'ready', ngay: '2026-10-07', sku: 'ABC', ghi: MAY }), { ai: 'giam-doc', muc: 3, chu: 'bấm Publish KDP — nháp đã sẵn', qua: 5, qt: 'dang-kdp' });
-  a.equal(v({ st: 'ready', ngay: '2026-10-07', sku: 'ABC', dd: 'hardcover' }).chu, 'bấm Publish KDP (hardcover) — nháp đã sẵn');
+  a.deepEqual(v({ st: 'ready', ngay: '2026-10-07', sku: 'ABC', ghi: MAY }), { ai: 'may', chu: 'máy bấm Publish nháp KDP (iMac, 2 giờ/lần)', qua: 5, tre: true, qt: 'dang-kdp' });
+  a.deepEqual([v({ st: 'ready', ngay: '2026-10-07', sku: 'ABC', dd: 'hardcover' }).ai, v({ st: 'ready', ngay: '2026-10-07', sku: 'ABC', dd: 'hardcover' }).chu], ['giam-doc', 'bấm Publish KDP (hardcover) — nháp đã sẵn (sách ngoài dây chuyền, máy không bấm)']);
   a.deepEqual([v({ st: 'ready', ngay: '2026-10-07', ghi: MAY }).ai, v({ st: 'ready', ngay: '2026-10-07', ghi: MAY }).tre], ['may', true], 'chưa có nháp mà quá ngày = máy KDP trễ, chưa tới lượt anh');
   a.equal(v({ st: 'ready', ngay: '2026-10-12', ghi: MAY }).tre, false, 'tới ngày hôm nay: máy còn trong hạn');
   a.equal(v({ st: 'ready', ngay: '2026-10-11', ghi: MAY }).tre, true, 'KDP chạy 2 giờ/lần: qua một ngày chưa có nháp là hỏng');

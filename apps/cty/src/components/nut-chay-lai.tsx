@@ -11,7 +11,7 @@ import { guiLenh } from '@/lib/lenh-may';
 
 export type LenhHien = { hien: 'cho' | 'dang' | 'xong' | 'loi' | 'ngu' | 'chet'; luc: string; nhan_luc?: string; xong_luc?: string; ket?: string } | null;
 
-export function NutChayLai({ lenh, ten, may, truoc, nhan = 'Chạy lại ngay' }: { lenh: string; ten: string; may: string; truoc: LenhHien; nhan?: string }) {
+export function NutChayLai({ lenh, ten, may, truoc, phi, nhan = 'Chạy lại ngay' }: { lenh: string; ten: string; may: string; truoc: LenhHien; phi?: string; nhan?: string }) {
   const router = useRouter(); const [dang, gui] = useTransition();
   const [loi, setLoi] = useState<string | null>(null);
   const cho = truoc && (truoc.hien === 'cho' || truoc.hien === 'dang');
@@ -25,7 +25,7 @@ export function NutChayLai({ lenh, ten, may, truoc, nhan = 'Chạy lại ngay' }
   return (
     <span className="cty-chay-lai">
       <NutXacNhan disabled={dang || !!cho} nhan={dang ? 'Đang gửi…' : truoc?.hien === 'cho' ? 'Chờ máy nhận…' : truoc?.hien === 'dang' ? 'Đang chạy…' : nhan} onXacNhan={chay}
-        hoi={<>{ten} NGAY trên {may} (không tốn tiền). Máy nhận lệnh trong ≤ 1 phút{lenh.startsWith('video:') ? '; nền đã đăng hôm nay thì máy chỉ báo lại, không đăng thêm' : ''}.</>} />
+        hoi={<>{ten} NGAY trên {may} ({phi ?? 'không tốn tiền'}). Máy nhận lệnh trong ≤ 1 phút{lenh.startsWith('video:') ? '; nền đã đăng hôm nay thì máy chỉ báo lại, không đăng thêm' : lenh.startsWith('sach:') ? '; máy làm đúng việc của lượt theo lịch, cuốn chưa tới ngày / chưa duyệt thì bỏ qua' : ''}.</>} />
       {loi ? <span className="cty-bao-loi" data-loi>{loi}</span>
         : truoc && <span className={truoc.hien === 'xong' ? 'cty-bao-ok' : ['loi', 'ngu', 'chet'].includes(truoc.hien) ? 'cty-bao-loi' : 'cty-muted cty-nho'} data-loi={['loi', 'ngu', 'chet'].includes(truoc.hien) ? '' : undefined}>
           {truoc.hien === 'cho' && <>Đã gửi <T iso={truoc.luc} /> — chờ {may} nhận (≤ 1 phút)</>}

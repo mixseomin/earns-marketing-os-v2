@@ -71,7 +71,21 @@ function The({ g, phong, hom }: { g: Tua; phong: string; hom: string }) {
 type Kenh = NonNullable<Awaited<ReturnType<typeof kenhKeoKhach>>>[number];
 type Lv = LanVideo | { loi: string } | null;
 /** Một dây chuyền phòng khai (danh-sach.json `day_chuyen`). */
-export type DcKhai = { id: string; ten: string; don_vi: string; nguon: string; /** quy trình nhận việc của dây chuyền kênh (cảnh báo kênh → việc của quy trình này) */ qt_chinh?: string };
+export type DcKhai = { id: string; ten: string; don_vi: string; nguon: string; /** quy trình nhận việc của dây chuyền kênh (cảnh báo kênh → việc của quy trình này) */ qt_chinh?: string;
+  /** máy của dây chuyền (mã lệnh worker/lenh-may.mjs) — hàng nút "chạy ngay" trên đầu bảng */ may?: string[] };
+type LenhKhai = { may: string; ten: string; qt?: string; phi?: string };
+const LM = LENH_MAY as Record<string, LenhKhai>;
+/** Nút chạy một lệnh máy (đọc lần chạy gần nhất ở máy chủ). */
+function NutLenh({ lenh, gan, nhan }: { lenh: string; gan: Record<string, LenhHien>; nhan?: string }) {
+  const l = LM[lenh]; if (!l) return null;
+  return <NutChayLai lenh={lenh} ten={l.ten} may={l.may} phi={l.phi} truoc={gan[lenh] ?? null} nhan={nhan} />;
+}
+/** HÀNG MÁY của một dây chuyền (anh 13/10/2026 "ở đây không điều khiển bắt làm luôn được à"): mỗi máy một nút "chạy ngay", kết quả lần gần nhất ngay dưới. */
+function MayDc({ dc }: { dc: DcKhai }) {
+  if (!dc.may?.length) return null;
+  const gan = lenhGanNhat() as Record<string, LenhHien>;
+  return <div className="cty-may-dc"><span className="cty-muted cty-nho">Máy chạy ngay:</span>{dc.may.map((m) => <NutLenh key={m} lenh={m} gan={gan} nhan={`${LM[m]?.ten.split(' (')[0] ?? m} ▶`} />)}</div>;
+}
 /** kenh_sp ghi tựa ngắn ("Nostalgic Word Search & Memory Book"), sổ sản phẩm ghi tựa đủ ("… for Seniors") → cùng cuốn khi tựa sổ BẮT ĐẦU bằng tựa kênh. */
 export const cungSach = (tuaSo: string, tenKenh: string) => tuaSo.toLowerCase().startsWith(tenKenh.toLowerCase());
 
@@ -179,11 +193,9 @@ export function DcKenh({ ds, kenh, nhan, dc, phong, hom }: { ds: Kenh[]; kenh: s
       {r.canh_bao && <div className="cty-the-viec cty-thu-loi" title={r.canh_bao}>{r.canh_bao}</div>}
       {r.the_id && <a href={hrefThe(r.the_id)} className="cty-the-viec">card #{r.the_id}</a>}
     </TheVo>; };
-  const gom = (lenhGanNhat() as Record<string, LenhHien>)['gom-kenh'] ?? null;
   const can = hang.filter((r) => r.canh_bao), du = hang.filter((r) => !r.canh_bao && r.tong && (r.xong ?? 0) >= r.tong), chay = hang.filter((r) => !can.includes(r) && !du.includes(r));
   return <><Bang cot={[{ ma: 'can', ten: 'Cần làm', the: can.map((r) => <TheK key={r.san_pham} r={r} />) }, { ma: 'chay', ten: 'Đang chạy', the: chay.map((r) => <TheK key={r.san_pham} r={r} />) }, { ma: 'du', ten: 'Đủ', the: du.map((r) => <TheK key={r.san_pham} r={r} />) }]}
-    dai={[{ ma: 'can', so: can.length, ten: 'Cần làm' }, { ma: 'chay', so: chay.length, ten: 'Đang chạy' }, { ma: 'du', so: du.length, ten: 'Đủ' }, { ma: 'moi', so: moi ? ngay(moi) : '—', ten: 'Số kênh cập nhật', canh: cu > 3 ? `cũ ${cu} ngày` : null }]} />
-    <p className="cty-nho cty-muted">Số kênh do máy gom (puzzle-books kenh.mjs) — <NutChayLai lenh="gom-kenh" ten={LENH_MAY['gom-kenh'].ten} may={LENH_MAY['gom-kenh'].may} truoc={gom} nhan="Gom số kênh ngay" /></p></>;
+    dai={[{ ma: 'can', so: can.length, ten: 'Cần làm' }, { ma: 'chay', so: chay.length, ten: 'Đang chạy' }, { ma: 'du', so: du.length, ten: 'Đủ' }, { ma: 'moi', so: moi ? ngay(moi) : '—', ten: 'Số kênh cập nhật', canh: cu > 3 ? `cũ ${cu} ngày — bấm "Gom số kênh" ở hàng máy` : null }]} /></>;
 }
 
 // ── VIỆC CẦN NGƯỜI gộp mọi dây chuyền (cùng một dạng → một danh sách, một số đếm cho nhãn tab)
@@ -194,7 +206,8 @@ export function viecCacDayChuyen({ dsDc, dc, lv, kenh, phong }: { dsDc: DcKhai[]
   const ds: ViecDc[] = [];
   for (const d of dsDc) {
     if (d.nguon === 'sach') for (const g of dc?.nhom ?? []) for (const x of g.dong) { const k = x.viec.tre ? 'tre' : x.viec.ai ?? '';
-      if (['giam-doc', 'tre', 'truong-phong', 'nguoi-lam'].includes(k)) ds.push({ key: `s${x.id}`, dc: d.id, k, ai: x.viec.ai, chu: x.viec.chu, muc: x.viec.muc, qua: x.viec.qua, nhan: TEN_NEN[x.nen] ?? x.nen, href: hrefSach(phong, x.id), ten: g.tua, qt: x.viec.qt }); }
+      if (['giam-doc', 'tre', 'truong-phong', 'nguoi-lam'].includes(k)) ds.push({ key: `s${x.id}`, dc: d.id, k, ai: x.viec.ai, chu: x.viec.chu, muc: x.viec.muc, qua: x.viec.qua, nhan: TEN_NEN[x.nen] ?? x.nen, href: hrefSach(phong, x.id), ten: g.tua, qt: x.viec.qt,
+        lenh: x.viec.ai === 'may' ? Object.keys(LM).find((m) => LM[m]!.qt && LM[m]!.qt === x.viec.qt) : undefined }); }
     if (d.nguon === 'video' && lv && !('loi' in lv)) lv.viec.forEach((v, i) => ds.push({ key: `v${i}`, dc: d.id, k: v.tre ? 'tre' : v.ai, ai: v.ai, chu: v.chu, muc: v.muc, qua: v.qua, href: v.slug ? hrefVideo(phong, v.slug) : undefined, ten: v.slug ? tenSlug(v.slug) : undefined, qt: v.qt,
       lenh: v.qt === 'video-ngan' && v.nen ? `video:${v.nen}` : v.qt === 'do-video' ? 'do-video' : undefined }));
     if (d.nguon.startsWith('kenh:')) for (const r of (kenh ?? []).filter((x) => x.kenh === d.nguon.slice(5) && x.canh_bao))
@@ -216,7 +229,7 @@ export function DsViec({ viec, phong, tenDc }: { viec: ViecDc[]; phong: string; 
         <td>{v.ten ? (v.href ? <a href={v.href}>{v.ten}</a> : v.ten) : <span className="cty-muted">—</span>}</td>
         <td className="cty-bang-ai">{tenDc[v.dc]}{v.nhan ? ` · ${v.nhan}` : ''}</td>
         <td className="cty-so">{v.qua != null && v.qua > 0 ? <span className="cty-thu-loi">{v.qua} ngày</span> : <span className="cty-muted">—</span>}</td>
-        {coLenh && <td>{v.lenh && LENH_MAY[v.lenh as keyof typeof LENH_MAY] ? <NutChayLai lenh={v.lenh} ten={LENH_MAY[v.lenh as keyof typeof LENH_MAY].ten} may={LENH_MAY[v.lenh as keyof typeof LENH_MAY].may} truoc={gan[v.lenh] ?? null} /> : null}</td>}</tr>)}
+        {coLenh && <td>{v.lenh ? <NutLenh lenh={v.lenh} gan={gan} /> : <span className="cty-muted cty-nho">{v.ai === 'may' ? 'chưa có nút' : 'việc người'}</span>}</td>}</tr>)}
     </tbody></table></div>
   );
 }
@@ -265,7 +278,7 @@ export async function DayChuyenTab({ dsDc, dc, lv, kenh, phong, p }: { dsDc: DcK
   return (
     <TabPhong khoa={`dc-${phong}`} trong thamSo="dc" macDinh={gap} dau={dau}
       tabs={co.map((d) => ({ key: d.id, nhan: d.ten, so: so(d.id) || '' }))}>
-      {co.map((d) => <div key={d.id}><p className="cty-muted cty-nho cty-dc-don-vi">Đơn vị việc: {d.don_vi}</p>{noiDung(d)}</div>)}
+      {co.map((d) => <div key={d.id}><p className="cty-muted cty-nho cty-dc-don-vi">Đơn vị việc: {d.don_vi}</p><MayDc dc={d} />{noiDung(d)}</div>)}
     </TabPhong>
   );
 }

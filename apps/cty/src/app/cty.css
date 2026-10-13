@@ -504,3 +504,6 @@ body.nk-dang-keo iframe{pointer-events:none}
 .cty-chay-lai{display:inline-flex;flex-direction:column;gap:4px;align-items:flex-start;max-width:320px}
 .cty-chay-lai .cty-btn{white-space:nowrap}
 .cty-bang-viec .cty-xac-nhan{right:0;left:auto}
+/* Hàng máy của một dây chuyền (day-chuyen.tsx MayDc): mỗi máy một nút chạy ngay + kết quả lần gần nhất dưới nút */
+.cty-may-dc{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px 14px;margin:0 0 10px;padding:8px 10px;border:1px dashed var(--line);border-radius:6px}
+.cty-may-dc > .cty-muted{align-self:center}

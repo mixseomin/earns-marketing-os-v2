@@ -13,6 +13,12 @@ export const LENH_MAY = {
   'video:tiktok': { may: 'iMac', ten: 'Đăng video TikTok' },
   'do-video': { may: 'MacBook', ten: 'Đo lượt xem video' },
   'gom-kenh': { may: 'MacBook', ten: 'Gom số kênh kéo khách' },
+  // máy SÁCH: nhan-lenh.mjs đánh thức chính việc nền theo lịch (launchctl kickstart) — làm đúng việc lượt theo lịch làm, không hơn. qt = quy trình
+  // của việc trễ → dòng việc máy trễ trong bảng có nút; phi = tiền thật mỗi lần (hiện trong ô xác nhận)
+  'sach:sx': { may: 'iMac', ten: 'Dựng sách (cuốn tới hạn)', qt: 'san-xuat' },
+  'sach:kdp': { may: 'iMac', ten: 'Máy KDP: tạo nháp + bấm Publish (cuốn đã duyệt, tới ngày)', qt: 'dang-kdp' },
+  'sach:etsy': { may: 'iMac', ten: 'Bật bán Etsy (cuốn đã duyệt, tới ngày, ≤ 3/ngày)', qt: 'bat-ban-etsy', phi: 'phí Etsy ~$0,20 mỗi cuốn bật bán' },
+  'sach:gumroad': { may: 'MacBook', ten: 'Đăng Gumroad (cuốn đã duyệt, tới ngày)', qt: 'dang-gumroad' },
 };
 export const CHO_NHAN = 5 * 60_000;      // máy hỏi mỗi phút; quá 5 phút chưa nhận = máy đang ngủ / tắt → báo, cho gửi lại
 const CHAY_TOI_DA = 30 * 60_000;         // nhan-lenh.mjs dừng script sau 25 phút; quá 30 phút vẫn "đang" = máy chết giữa chừng

@@ -6,27 +6,46 @@
    "id": "sach",
    "ten": "Sách",
    "don_vi": "1 cuốn · tuần",
-   "nguon": "sach"
+   "nguon": "sach",
+   "may": [
+    "sach:sx",
+    "sach:kdp",
+    "sach:etsy",
+    "sach:gumroad"
+   ]
   },
   {
    "id": "video",
    "ten": "Video ngắn",
    "don_vi": "1 video · ngày · 4 nền",
-   "nguon": "video"
+   "nguon": "video",
+   "may": [
+    "video:tiktok",
+    "video:youtube",
+    "video:facebook",
+    "video:instagram",
+    "do-video"
+   ]
   },
   {
    "id": "ghim",
    "ten": "Ghim Pinterest",
    "don_vi": "ghim theo cuốn",
    "nguon": "kenh:pinterest",
-   "qt_chinh": "ghim-pinterest"
+   "qt_chinh": "ghim-pinterest",
+   "may": [
+    "gom-kenh"
+   ]
   },
   {
    "id": "printables",
    "ten": "Trang printables",
    "don_vi": "1 trang · chủ đề",
    "nguon": "kenh:printables",
-   "qt_chinh": "trang-printables"
+   "qt_chinh": "trang-printables",
+   "may": [
+    "gom-kenh"
+   ]
   }
  ],
  "quy_trinh": [
@@ -77,13 +96,12 @@
    "id": "dang-kdp",
    "ten": "Đăng KDP",
    "so_hoa": "co-dinh",
-   "kich_hoat": "MacBook 2 giờ/lần: cuốn đã duyệt + tới ngày → máy tạo nháp; nút Publish là chữ ký của Giám đốc (br gác)",
-   "mo_ta": "Máy điền đủ 3 trang (tựa, ruột, bìa, giá), lưu nháp, ghi mã tựa vào sổ, bot Telegram nhắn link trang Pricing; đọc Bookshelf để biết Giám đốc đã Publish chưa. Chặn khi chưa duyệt, chưa tới ngày, hết suất 2 tựa/định dạng/tuần.",
-   "ma": "puzzle-books scripts/dang-kdp.mjs → kdp.mjs (playbook br kdp-paperback)",
+   "kich_hoat": "iMac 2 giờ/lần: cuốn đã duyệt + tới ngày → máy tạo nháp rồi TỰ bấm Publish (anh chốt 12/10/2026; trước đó Publish là chữ ký của Giám đốc)",
+   "mo_ta": "Máy điền đủ 3 trang (tựa, ruột, bìa, giá), lưu nháp, ghi mã tựa vào sổ; nháp đủ 3 trang → kiểm giá trên trang đúng giá khai → bấm Publish, đọc lại Bookshelf → sổ in_review. Bìa cứng cho tựa đã nộp. Chặn khi chưa duyệt, chưa tới ngày, hết suất 2 tựa/định dạng/tuần, trần 2 lượt/ngày/cuốn.",
+   "ma": "puzzle-books scripts/dang-kdp.mjs (iMac, LaunchAgent com.earns.puzzle-kdp) → kdp.mjs / kdp-hc.mjs (playbook br kdp-paperback / kdp-hardcover)",
    "chu_tri": "truong-phong",
    "lam": [
-    "may",
-    "giam-doc"
+    "may"
    ],
    "khi": "2 giờ/lần",
    "day_chuyen": "sach"

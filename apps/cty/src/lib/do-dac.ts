@@ -37,11 +37,13 @@ const DONG = ['completed', 'done', 'verified', 'dropped', 'rejected', 'cancelled
  *  một nền của sổ phòng (so_san_pham: KDP, Etsy…) — mint-almanac có card KDP của bộ sách coin lẫn 20 card backlink của site, chỉ lấy phần sách. */
 export async function theViecMo(p: Doc, gioiHan?: number) {
   const duAn = dsFm(p, 'du_an'), lq = dsFm(p, 'the_lien_quan'); const nen = [...new Set(dsFm(p, 'so_san_pham').map((x) => x.split(':')[0]!))];
+  // phòng khai lich_loc (vd Astrolas: dự án astrolas còn hàng trăm card code của phòng khác) → card của phòng chỉ là card khớp lich_loc
+  const loc = String(p.fm.lich_loc ?? '');
   if (!duAn.length && !lq.length) return { tong: 0, ds: [] };
   const nhac = nen.length ? sql.join(nen.map((n) => sql`title ~* ${`\\m${n}\\M`}`), sql` OR `) : sql`false`;
   // tong = count(*) over() cùng một truy vấn: phòng cầm nhiều dự án (Marketing 8 dự án) có hàng trăm card — chỉ kéo về `gioiHan` dòng đầu
   const rows = (await q(sql`SELECT id, project_id, status, platform_key, sla_due_at::date::text AS han, title, count(*) OVER ()::int AS tong FROM human_tasks
-    WHERE status <> ALL(${arr(DONG)}) AND (project_id = ANY(${arr(duAn)}) OR (project_id = ANY(${arr(lq)}) AND (${nhac}))) ORDER BY sla_due_at NULLS LAST, id
+    WHERE status <> ALL(${arr(DONG)}) AND (project_id = ANY(${arr(duAn)}) OR (project_id = ANY(${arr(lq)}) AND (${nhac}))) ${loc ? sql`AND title ~* ${loc}` : sql``} ORDER BY sla_due_at NULLS LAST, id
     ${gioiHan ? sql`LIMIT ${gioiHan}` : sql``}`)) as { id: number; project_id: string; status: string; platform_key: string | null; han: string | null; title: string; tong: number }[] | null;
   return rows && { tong: rows[0]?.tong ?? 0, ds: rows };
 }

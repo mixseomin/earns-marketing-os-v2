@@ -512,7 +512,9 @@ body.nk-dang-keo iframe{pointer-events:none}
 .cty-lich-thang h3{margin:0 0 .35rem;font-size:.85rem;color:var(--muted)}
 .cty-lich-muc{display:grid;grid-template-columns:3.4rem 1fr auto auto;gap:.6rem;align-items:baseline;padding:.45rem 0;border-top:1px solid var(--line);color:var(--ink);text-decoration:none}
 .cty-lich-muc:hover{background:var(--soft)}
+.cty-lich-tua a{color:inherit}
+.cty-lich-ai{white-space:nowrap}
 .cty-lich-ngay{font-variant-numeric:tabular-nums;font-weight:600}
 .cty-lich-xong{color:var(--muted)}
 .cty-lich-xong .cty-lich-tua{text-decoration:line-through}
-@media (max-width:640px){.cty-lich-muc{grid-template-columns:3rem 1fr;}.cty-lich-muc>.cty-nho{display:none}}
+@media (max-width:640px){.cty-lich-muc{grid-template-columns:3rem 1fr auto}.cty-lich-muc>.cty-lich-ai{grid-column:2}}

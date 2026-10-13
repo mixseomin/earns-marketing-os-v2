@@ -32,7 +32,7 @@ import { DayChuyenTab, demCan, type DayChuyen, type DcKhai, Ai, Tram, Thanh, KEN
 import { kenhKeoKhach, theMot, lanVideoPhong, lichPhong } from '@/lib/do-dac';
 import { LichPhong, demGap } from '../lich-phong';
 import { NEN_VIDEO, phutVN, tenSlug } from '../../../worker/video.mjs';
-import { trachNhiem, demTn, giaiMa } from '@/lib/trach-nhiem';
+import { trachNhiem, demTn, giaiMa, chuCard } from '@/lib/trach-nhiem';
 import { KhoiTrachNhiem } from '../trach-nhiem';
 
 export type Ngan = { tieuDe: React.ReactNode; than: React.ReactNode };
@@ -341,7 +341,7 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
         {[<PhongThuChay key="c" admin={admin} />, <PhongThuDs key="l" admin={admin} />, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />, <div key="s">{soDoTab}</div>]}
       </TabPhong>
     : <TabPhong khoa={id} dau={dau} tabs={[...(coLich ? [{ key: 'lich', nhan: 'Lịch', so: lich === null ? '!' : gapLich || '' }] : []), ...(coDc ? [{ key: 'daychuyen', nhan: 'Dây chuyền', so: dc?.loi ? '!' : demCan({ dsDc, dc, lv, kenh, phong: id }) || '' }] : []), { key: 'sodo', nhan: 'Sơ đồ' }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
-        {[...(coLich ? [<LichPhong key="lich" ds={lich} hom={hom} />] : []), ...(coDc ? [<DayChuyenTab key="dc" dsDc={dsDc} dc={dc} lv={lv} kenh={kenh} phong={id} p={p} />] : []), <div key="s">{soDoTab}</div>, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
+        {[...(coLich ? [<LichPhong key="lich" ds={lich} hom={hom} chu={Object.fromEntries((lich ?? []).map((m) => [m.id, chuCard(id, m.title)]))} />] : []), ...(coDc ? [<DayChuyenTab key="dc" dsDc={dsDc} dc={dc} lv={lv} kenh={kenh} phong={id} p={p} />] : []), <div key="s">{soDoTab}</div>, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
       </TabPhong>;
   // Văn phòng pixel LIVE cố định bên phải: văn phòng riêng của đúng phòng này (mọi phòng đều có — hrefVp).
   const vp = hrefVp(id);

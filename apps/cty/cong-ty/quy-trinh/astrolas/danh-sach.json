@@ -1,5 +1,5 @@
 {
- "_": "Quy trình nghiệp vụ của Phòng Astrolas (pháp nhân Astrolas LLC). Hạn của từng quy trình là card followup (tab Lịch); so_hoa 'co-dinh' = máy chạy, 'mo-ta' = người làm theo mô tả.",
+ "_": "Quy trình nghiệp vụ của Phòng Astrolas (pháp nhân Astrolas LLC). Hạn của từng quy trình là card followup (tab Lịch); so_hoa 'co-dinh' = máy chạy, 'mo-ta' = người làm theo mô tả. the_loc = regex trên tựa card followup: card khớp thuộc quy trình đó → người chủ trì chịu trách nhiệm hạn đó (tab Lịch + trách nhiệm nhân sự).",
  "phong": "astrolas",
  "quy_trinh": [
   {
@@ -27,7 +27,8 @@
    "lam": [
     "dang"
    ],
-   "khi": "theo phát sinh"
+   "khi": "theo phát sinh",
+   "the_loc": "tài khoản Northwest"
   },
   {
    "id": "bao-cao-nam",
@@ -41,7 +42,8 @@
     "dang",
     "giam-doc"
    ],
-   "khi": "tháng 9 hằng năm"
+   "khi": "tháng 9 hằng năm",
+   "the_loc": "báo cáo năm"
   },
   {
    "id": "gia-han-dai-ly",
@@ -55,7 +57,8 @@
     "dang",
     "giam-doc"
    ],
-   "khi": "tháng 8 hằng năm"
+   "khi": "tháng 8 hằng năm",
+   "the_loc": "gia hạn"
   },
   {
    "id": "so-giao-dich",
@@ -68,7 +71,8 @@
    "lam": [
     "hang"
    ],
-   "khi": "hằng tháng"
+   "khi": "hằng tháng",
+   "the_loc": "sổ giao dịch"
   },
   {
    "id": "form-5472",
@@ -82,7 +86,8 @@
     "hang",
     "giam-doc"
    ],
-   "khi": "tháng 2–4 hằng năm"
+   "khi": "tháng 2–4 hằng năm",
+   "the_loc": "5472"
   },
   {
    "id": "ein-tai-khoan",
@@ -96,7 +101,8 @@
     "dang",
     "giam-doc"
    ],
-   "khi": "một lần"
+   "khi": "một lần",
+   "the_loc": "EIN"
   },
   {
    "id": "xac-minh-meta",
@@ -110,7 +116,8 @@
     "dang",
     "giam-doc"
    ],
-   "khi": "một lần"
+   "khi": "một lần",
+   "the_loc": "xác minh Meta"
   },
   {
    "id": "ky-giay-to",
@@ -119,12 +126,14 @@
    "kich_hoat": "Có văn bản cần chữ ký thành viên (Operating Agreement, nghị quyết ngân hàng…)",
    "mo_ta": "Máy điền sẵn mọi ô chữ, mỗi trang có vùng chữ ký riêng; Giám đốc ký trong Preview và lưu; máy kiểm từng trang có chữ ký đúng chỗ rồi lưu bản SIGNED vào hồ sơ.",
    "ma": "PyMuPDF (điền + kiểm)",
-   "chu_tri": "giam-doc",
+   "chu_tri": "dang",
    "lam": [
     "may",
+    "dang",
     "giam-doc"
    ],
-   "khi": "theo phát sinh"
+   "khi": "theo phát sinh",
+   "the_loc": "Operating Agreement|ký lại|chữ ký"
   }
  ]
 }

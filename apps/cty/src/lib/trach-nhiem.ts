@@ -67,7 +67,11 @@ async function tinhTrachNhiem(): Promise<TrachNhiem> {
     const [the, kenh] = await Promise.all([theViecMo(p, TRAN_CARD), kenhKeoKhach(p)]);
     const tp = giaiMa(p.id, 'truong-phong');
     if (tp && the) {
-      for (const c of the.ds) cua(tp).viec.push({ phong: p.id, chu: `card #${c.id} · ${c.status}`, ten: c.title, link: hrefThe(c.id), mayLam: false });
+      // card thuộc một quy trình (the_loc) → về người chủ trì quy trình đó, kèm số ngày quá hạn; còn lại → trưởng phòng
+      for (const c of the.ds) {
+        const ct = chuCard(p.id, c.title); const qua = c.han && c.han < homNay() ? Math.round((Date.parse(homNay()) - Date.parse(c.han)) / 86_400_000) : null;
+        cua(ct?.nguoi ?? tp).viec.push({ phong: p.id, chu: `${ct ? ct.ten : 'card'} · #${c.id}${c.han ? ` · hạn ${c.han.slice(8, 10)}/${c.han.slice(5, 7)}` : ''}`, ten: c.title, link: hrefThe(c.id), qua, tre: !!qua, mayLam: false });
+      }
       if (the.tong > the.ds.length) cua(tp).viec.push({ phong: p.id, chu: `+${the.tong - the.ds.length} card nữa trên plays`, link: `/phong/${p.id}`, mayLam: false, so: the.tong - the.ds.length });
     }
     const gom = chuTri[`${p.id}/kenh-keo-khach`];
@@ -81,3 +85,12 @@ export const demTn = (tn: TrachNhiem, id: string, phong?: string) => {
   const x = tn[id]; const qt = (x?.qt ?? []).filter((q) => !phong || q.phong === phong); const viec = (x?.viec ?? []).filter((v) => !phong || v.phong === phong);
   return { chuTri: qt.filter((q) => q.chuTri).length, lam: qt.filter((q) => !q.chuTri).length, viec: soViec(viec), tre: viec.filter((v) => v.tre).length };
 };
+/** Card của phòng thuộc quy trình nào (the_loc trong danh-sach.json, regex trên tựa) → người chủ trì quy trình đó chịu trách nhiệm.
+ *  Không quy trình nào khớp → null (tab Lịch hiện "chưa giao" đỏ, trách nhiệm rơi về trưởng phòng). */
+export function chuCard(phong: string, tua: string): { khoa: string; ten: string; nguoi: string | null } | null {
+  for (const q of dsQuyTrinh() as (Qt & { the_loc?: string })[]) {
+    if (q.phong !== phong || !q.the_loc) continue;
+    if (new RegExp(q.the_loc, 'i').test(tua)) return { khoa: q.khoa, ten: q.ten, nguoi: q.chu_tri ? giaiMa(phong, q.chu_tri) : null };
+  }
+  return null;
+}

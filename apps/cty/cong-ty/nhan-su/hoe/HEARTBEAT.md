@@ -1,4 +1,4 @@
-# HEARTBEAT — Thư
+# HEARTBEAT — Hoè
 
 > Trạng thái: **tắt** (chế độ tham quan). Khi bật: theo hạn trong lịch phòng Astrolas.
 

@@ -2,7 +2,7 @@
 ten: Phòng Astrolas (Astrolas LLC)
 thu_tu: 15
 khuon: theo-du-an
-truong: Thư
+truong: Hoè
 don_vi_viec: 1 hạn pháp lý / thuế · theo lịch
 cong_nguoi: mọi khoản phí, ký giấy, nộp tờ khai, thông tin thanh toán = mức 3; máy chỉ nhắc, điền sẵn, đọc trạng thái
 so_do:
@@ -42,5 +42,7 @@ trang_thai: đang hoạt động · lịch theo hạn
 Năm 2027: nhắc #1178 (5472), #1324 (thẻ), #1323 (báo cáo năm). Làm xong mỗi mục thì hỏi Giám đốc có tạo nhắc năm sau không.
 
 Không phải nộp: BOI FinCEN (công ty lập tại Mỹ được miễn từ 03/2025), thuế thu nhập bang (Wyoming không có).
+
+**Người**: Hoè trưởng phòng · Đang hồ sơ pháp lý (Northwest, báo cáo năm, EIN, giấy tờ) · Hằng thuế và sổ sách (5472, 1040 Abroad).
 
 **Cấm**: tự nộp tờ khai, tự trả phí, nhập thông tin thanh toán, ký thay Giám đốc, đổi pháp nhân tài khoản Stripe cá nhân sang LLC.

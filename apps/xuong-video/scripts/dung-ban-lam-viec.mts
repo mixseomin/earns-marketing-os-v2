@@ -11,6 +11,7 @@
 //   --dot=dac_trung đạo cụ đặc trưng (món yêu/ghét) + bàn tay Gã khổng lồ
 //   --dot=logo      khung tên 'Tango & Lint' (model vẽ chữ, ~$0.13)
 //   --dot=am        bộ âm hiệu 3 âm/nhân vật (ElevenLabs SFX) + nhạc chủ đề tango (CassetteAI) · --chi=Tango,nhac
+//   --dot=mua       (0đ) ghi các mùa lên sơ đồ series (mùa 1 + mùa 2 đang lên ý), gắn tập bản đồ hiện có vào mùa 1
 //   --dot=truyen    (TỐN TIỀN, 2 lượt Claude) kinh thánh mùa 1 + bản đồ tập (--so-tap=10) + kịch bản tập 1
 //   --dot=bo_anh_that  gỡ ảnh gốc của anh khỏi mọi anchor (vào thùng rác) — anh không cho dùng ảnh gốc
 //   --chi=Tên A,Tên B --lai: chỉ sinh lại mấy mục này
@@ -232,7 +233,7 @@ const GOC_THAP = 'seen from ground level by a 5 cm tall character standing on th
 const db = getDb()!;
 const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as Row[];
 const lai = process.argv.includes('--lai');
-const dot = (process.argv.find((x) => x.startsWith('--dot='))?.slice(6) ?? 'boi_canh') as 'boi_canh' | 'bien_the' | 'do_vat' | 'bo_anh_that' | 'nhan_vat' | 'dac_trung' | 'logo' | 'am' | 'truyen';
+const dot = (process.argv.find((x) => x.startsWith('--dot='))?.slice(6) ?? 'boi_canh') as 'boi_canh' | 'bien_the' | 'do_vat' | 'bo_anh_that' | 'nhan_vat' | 'dac_trung' | 'logo' | 'am' | 'truyen' | 'mua';
 const tep = process.argv.slice(2).filter((x) => !x.startsWith('--'));
 /** --chi=Tên A,Tên B: chỉ sinh lại các bối cảnh / đồ vật này (kèm --lai). */
 const chi = process.argv.find((x) => x.startsWith('--chi='))?.slice(6).split(',').map((x) => x.trim()).filter(Boolean) ?? null;
@@ -386,7 +387,17 @@ if (dot === 'am') {
   }
 }
 // TRUYỆN (TỐN TIỀN, 2 lượt Claude): kinh thánh mùa 1 (động cơ, luật thế giới, khuôn tập, bản đồ tập) → kịch bản tập 1.
+/** Các mùa trên sơ đồ series (🗺): mùa 1 có bản đồ tập; mùa 2 đang lên ý — ghi các thứ đã gài từ mùa 1. */
+const MUA = [
+  { so: 1, ten: 'Season 1 · The Desk Comes Alive' },
+  { so: 2, ten: 'Season 2', ghi_chu: 'Đang lên ý · gài từ mùa 1: lần ĐẦU Tango nhảy tango; ai đã đọc được dòng chữ sau lưng Sticky; Mr. Wipe giữ hạt bụi (hoàn lương?); tia lửa của Cordy có lặp lại không.' },
+];
 const YEU_CAU_MUA = 'Phim KHÔNG LỜI, mỗi tập 40-60 giây (Shorts 9:16). Tango biết nhảy tango nhưng KHÔNG BAO GIỜ nhảy trong mùa 1 (chỉ được gợi rất nhẹ, vd chân gõ nhịp rồi tự dừng) — dành cho mùa sau. Tập cuối mùa là NGÀY DỌN BÀN: dòng chữ sau lưng Sticky là lời nhắc của Gã khổng lồ về ngày dọn bàn. Tập 1 phải giới thiệu Tango và Lint gặp nhau và cho thấy ngay món yêu (kẹo gấu) + kẻ thù (Mr. Wipe).';
+if (dot === 'mua') {
+  const tapCu = ((((await q(sql`SELECT kinh_thanh->'series'->'tap' AS t FROM xv_phim WHERE id = ${phimId}`))[0]?.t) as { mua?: number }[]) ?? []);
+  await q(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(kinh_thanh, '{series}', coalesce(kinh_thanh->'series', '{}'::jsonb) || ${JSON.stringify({ mua: MUA, tap: tapCu.map((t) => ({ ...t, mua: t.mua ?? 1 })) })}::jsonb), updated_at = now() WHERE id = ${phimId}`);
+  ra.push({ ten: 'Sơ đồ mùa', url: `${MUA.length} mùa · ${tapCu.length} tập` });
+}
 if (dot === 'truyen') {
   const nc = await nguCanhPhimDb(db, phimId);
   if (!nc) { console.error('không thấy phim'); process.exit(1); }
@@ -397,7 +408,7 @@ if (dot === 'truyen') {
   const m = mua.data;
   const tienDe = String((await q(sql`SELECT mo_ta FROM xv_phim WHERE id = ${phimId}`))[0]?.mo_ta ?? '').split('\n\nLUẬT THẾ GIỚI')[0];
   const moTa = `${tienDe}\n\nLUẬT THẾ GIỚI:\n${m.luat_the_gioi.map((x) => `- ${x}`).join('\n')}\n\nKHUÔN TẬP: ${m.khuon_tap}`;
-  await q(sql`UPDATE xv_phim SET mo_ta = ${moTa}, kinh_thanh = jsonb_set(kinh_thanh, '{series}', coalesce(kinh_thanh->'series', '{}'::jsonb) || ${JSON.stringify({ dong_co: m.dong_co, tap: m.tap })}::jsonb), updated_at = now() WHERE id = ${phimId}`);
+  await q(sql`UPDATE xv_phim SET mo_ta = ${moTa}, kinh_thanh = jsonb_set(kinh_thanh, '{series}', coalesce(kinh_thanh->'series', '{}'::jsonb) || ${JSON.stringify({ dong_co: m.dong_co, tap: m.tap.map((t) => ({ ...t, mua: 1 })), mua: MUA })}::jsonb), updated_at = now() WHERE id = ${phimId}`);
   ra.push({ ten: 'Mùa 1', url: `${m.tap.length} tập` });
   // Kịch bản tập 1 từ bản đồ (đúng đường nút "Claude viết kịch bản" — vietKichBan đọc kinh thánh series + nhân vật + tiểu sử + âm hiệu).
   const t1 = m.tap[0]!;

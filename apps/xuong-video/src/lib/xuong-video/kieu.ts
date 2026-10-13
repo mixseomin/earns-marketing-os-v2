@@ -108,7 +108,17 @@ export type KinhThanh = {
   /** phim KHÔNG LỜI (kiểu Larva): không thoại; nhân vật chỉ phát âm hiệu riêng; truyện kể bằng hành động + âm thanh (claude.ts › heThong) */
   khong_loi?: boolean;
 };
-export type Series = { /** tên series — gom các bản (bút chì, sáp màu…) trên danh sách phim */ ten?: string; dong_co: string; khan_gia: string; dinh_dang: string; tap: { so: number; ten: string; logline: string }[] };
+/** Một tập trong BẢN ĐỒ series (chưa chắc đã có xv_tap): số thứ tự toàn series, mùa, loại, nhân vật, gài/trả (claude.ts › vietMuaPhim). */
+export type TapBanDo = { so: number; ten: string; logline: string; mua?: number; loai?: 'phieu_luu' | 'nguon_goc' | 'ket_mua'; nhan_vat?: string[]; boi_canh?: string[]; gai_tra?: string };
+export type MuaSeries = { so: number; ten: string; dong_co?: string; ghi_chu?: string };
+export type Series = { /** tên series — gom các bản (bút chì, sáp màu…) trên danh sách phim */ ten?: string; dong_co: string; khan_gia: string; dinh_dang: string; tap: TapBanDo[];
+  /** các mùa (sơ đồ series): tên + động cơ riêng; tập thuộc mùa theo TapBanDo.mua (thiếu = mùa 1) */ mua?: MuaSeries[] };
+/** Sơ đồ series: mỗi mùa kèm các tập của nó (tập không ghi mùa = mùa 1). Mùa khai mà chưa có tập vẫn hiện (đang lên ý). */
+export function muaSeries(s: Series | null | undefined): (MuaSeries & { tap: TapBanDo[] })[] {
+  if (!s) return [];
+  const so = [...new Set([...(s.mua ?? []).map((m) => m.so), ...(s.tap ?? []).map((t) => t.mua ?? 1)])].sort((a, b) => a - b);
+  return so.map((n) => ({ ...(s.mua?.find((m) => m.so === n) ?? { so: n, ten: `Mùa ${n}` }), tap: (s.tap ?? []).filter((t) => (t.mua ?? 1) === n).sort((a, b) => a.so - b.so) }));
+}
 /** Thông tin sản phẩm / dịch vụ của phim quảng cáo. */
 /** QC MẪU (anh 09/10/2026: "sinh ra một QC gần giống nhất với mẫu này"): một quảng cáo đang bán tốt (của mình hay đối thủ) làm KHUÔN —
  *  Claude tách cảnh bám 1:1 (cùng số shot, cùng giây, cùng vị trí/ý chữ màn, cùng loại shot), chỉ đổi sản phẩm + lợi ích thật.

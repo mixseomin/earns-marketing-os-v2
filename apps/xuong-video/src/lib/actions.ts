@@ -492,6 +492,22 @@ export async function taoTap(phimId: number, ten: string): Promise<Kq<number>> {
   return { ok: true, data: n(r[0]?.id) };
 }
 
+/** 🗺 Sơ đồ: tạo tập từ BẢN ĐỒ series (kinh_thanh.series.tap) — đúng số tập, tên + brief từ logline / nhân vật / bối cảnh / gài-trả. 0đ.
+ *  Tập số đó đã có thì trả tập có sẵn. */
+export async function taoTapTuBanDo(phimId: number, so: number): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const co = (await db.execute(sql`SELECT id FROM xv_tap WHERE phim_id = ${phimId} AND so = ${so} LIMIT 1`)) as unknown as Row[];
+  if (co[0]) return { ok: true, data: n(co[0].id) };
+  const p = (await db.execute(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[];
+  const b = docKinhThanh(p[0]?.kinh_thanh as KinhThanh).series?.tap.find((t) => t.so === so);
+  if (!b) return loi(`bản đồ series không có tập ${so}`);
+  const brief = [`${b.ten} — ${b.logline}`, b.nhan_vat?.length ? `Nhân vật: ${b.nhan_vat.join(', ')}` : '', b.boi_canh?.length ? `Bối cảnh / đạo cụ: ${b.boi_canh.join(', ')}` : '', b.gai_tra ? `Gài / trả: ${b.gai_tra}` : ''].filter(Boolean).join('\n');
+  const r = (await db.execute(sql`INSERT INTO xv_tap (phim_id, so, ten, brief) VALUES (${phimId}, ${so}, ${b.ten}, ${brief}) RETURNING id`)) as unknown as Row[];
+  await db.execute(sql`UPDATE xv_phim SET updated_at = now() WHERE id = ${phimId}`);
+  return { ok: true, data: n(r[0]?.id) };
+}
 export async function suaTap(id: number, d: { ten?: string; brief?: string; kich_ban?: string; tom_tat?: string; so?: number; noi_khung?: boolean; nhac_mo_ta?: string; thoi_luong_s?: number }): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');

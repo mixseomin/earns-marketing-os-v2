@@ -20,6 +20,7 @@ import { PosterPhim } from './poster-ui';
 import { useNho } from './nho';
 import { useDinhKy } from './dinh-ky';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
+import { SoDoSeries } from './so-do';
 
 export function XuongVideoTrang(props: { phimDau: Phim[]; khoa: Khoa }) {
   return <Suspense fallback={<span style={mono}>…</span>}><Ruot {...props} /></Suspense>;
@@ -172,6 +173,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?:
         {TAB_PHIM.map((t) => <button key={t.key} type="button" className={`xv-btn${tab === t.key ? ' chinh' : ''}`} title={t.mo} onClick={() => setTab(t.key)}>{t.label}</button>)}
       </div>
     }>
+      {tab === 'so_do' && <SoDoSeries phim={phim} tap={tap} nhanVat={nhanVat} onChanged={tai} onMoTap={(id) => { tapParam.open('tap', id); setTab('kich_ban'); }} />}
       {tab === 'phim' && <>
         <KinhThanhForm phim={phim} khoa={khoa} onSaved={tai} />
         <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} />
@@ -179,7 +181,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?:
       </>}
 
       {/* Phần theo TẬP. Không tiêu đề mục (tên tab đã nói); hàng chọn tập chỉ hiện khi có thứ để chọn (phim nhiều tập / chưa có tập). */}
-      {tab !== 'phim' && <div className="xv-panel">
+      {tab !== 'phim' && tab !== 'so_do' && <div className="xv-panel">
         {(phim.loai === 'phim' || tap.length !== 1) && <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
           {tap.length > 0 && (
             <Seg options={tap.map((t) => ({ value: t.id, label: `${phim.loai === 'phim' ? `Tập ${t.so}` : 'Tập'}${t.ten && t.ten !== phim.ten ? ` · ${t.ten}` : ''} (${t.so_canh})` }))} value={tapId ?? 0} onChange={(v) => tapParam.open('tap', v)} />

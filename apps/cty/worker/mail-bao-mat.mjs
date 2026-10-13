@@ -134,13 +134,14 @@ async function loiMo(nguoi, model, m, phong) {
   } catch (e) { console.error(`✗ ${model}: ${e.message}`); return ''; }
 }
 /** Một nhịp, thuần: st = { tin: { mailId: { id, xong? } } }, ds = thư (null = không đọc được → không đụng gì). Trả việc phải làm + st mới. */
-export function buocTin(st, ds, gio, ten = '') {
+export function buocTin(st, ds, gio, ten = '', giu = () => false) {
   const tin = { ...(st.tin ?? {}) }, gui = [], tha = [], xoa = [], daDoc = [];
   if (!ds) return { gui, tha, xoa, daDoc, st };
   const goi = ten && new RegExp(ten.normalize('NFD').replace(/[\u0300-\u036f]/g, ''), 'i');
   const da = new Set(st.da ?? []);
   for (const m of ds) {
     if (m.luc && m.luc < BAT_TU) continue;
+    if (giu(m)) continue;   // thư đến NGOÀI GIỜ: giữ lại, báo dồn sau tin điểm danh 8h sáng (anh 14/10/2026)
     if (m.ket !== 'thuong') { if (!m.xong && !tin[m.id]) gui.push(m); }
     else if (goi && !da.has(m.id) && goi.test(String(m.tieuDe).normalize('NFD').replace(/[\u0300-\u036f]/g, ''))) daDoc.push(m);   // thư gọi tên → báo "đã đọc" một lần
   }
@@ -152,8 +153,28 @@ export function buocTin(st, ds, gio, ten = '') {
   }
   return { gui, tha, xoa, daDoc, st: { ...st, tin, da: [...da, ...daDoc.map((m) => m.id)].slice(-300) }, cho: ds.filter((m) => !m.xong && m.ket !== 'thuong' && !(m.luc && m.luc < BAT_TU)).length };
 }
+// ── ĐIỂM DANH + BÁO CÁO CUỐI NGÀY (anh 14/10/2026: "đầu ngày phải báo điểm danh, cuối ngày báo cáo trong ngày; ngoài giờ thì báo dồn vào đầu
+// ngày hôm sau 8h sáng"). Mốc điểm danh = `diem_danh` trong hồ sơ (Kiên 08:00); báo cáo = 5 phút trước khi hết ca. Mỗi ngày làm việc một lần.
+const gioVN = (ms) => new Date(ms).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' });
+const dongThu = (m) => `• ${KET_CHU[m.ket]} — <i>${esc(m.tieuDe)}</i> (${esc(m.mien || m.gui)})`;
+export function tinDiemDanh({ ten, ca, gio, ngoaiGio, cho }) {
+  const bm = ngoaiGio.filter((m) => m.ket !== 'thuong');
+  return `☀️ <b>${esc(ten)} điểm danh</b> ${gioVN(gio)} — ca ${esc(ca ?? 'cả ngày')}.\n`
+    + `Ngoài giờ: ${ngoaiGio.length} thư đến${bm.length ? `, ${bm.length} thư bảo mật (báo từng thư ngay dưới):\n${bm.map(dongThu).join('\n')}` : ', không có thư bảo mật.'}\n`
+    + `${cho.length ? `Đang chờ anh xử: ${cho.length} thư\n${cho.map(dongThu).join('\n')}` : 'Không có thư nào chờ anh.'}\n<a href="${CTY}">↗ cty · Bảo mật › Mail bảo mật</a>`;
+}
+export function tinBaoCao({ ten, ca, ngay, trongNgay, cho, hoc, goi, usd }) {
+  const bm = trongNgay.filter((m) => m.ket !== 'thuong'), xu = bm.filter((m) => m.xong);
+  return `🌙 <b>${esc(ten)} báo cáo ngày ${ngay.split('-').reverse().join('/')}</b> (ca ${esc(ca ?? 'cả ngày')})\n`
+    + `• Đọc ${trongNgay.length} thư: ${bm.length} thư bảo mật (${bm.filter((m) => m.ket === 'gia').length} giả), ${xu.length} đã xử\n`
+    + `• Còn chờ anh: ${cho.length} thư${cho.length ? ` — ${cho.map((m) => esc(m.mien || m.gui)).join(', ')}` : ''}\n`
+    + `• Học được: ${hoc.length ? hoc.map((x) => `${esc(x.mien)} = ${NOM_CHU[x.nhom] ?? x.nhom}`).join(', ') : 'không có gì mới'}\n`
+    + `• Mô hình: ${goi} lần gọi, $${usd.toFixed(5)}\n`
+    + `Thư đến sau giờ này sẽ được báo dồn lúc điểm danh sáng mai.\n<a href="${CTY}">↗ cty · Bảo mật › Mail bảo mật</a>`;
+}
+
 /** Nhịp thật (box3): đọc hòm → Telegram + pixel. env: DIRECTUS_*, TG_BOT_TOKEN, TG_CHAT (/root/.secrets/mine-tg.env). */
-export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', tep = `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/bao-mat-tg.json` } = {}) {
+export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', ca, diemDanh, tep = `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/bao-mat-tg.json` } = {}) {
   const fs = await import('node:fs'); const { vpBao } = await import('./vp.mjs');
   const { TG_BOT_TOKEN: T, TG_CHAT: C } = process.env; if (!T || !C) throw new Error('thiếu TG_BOT_TOKEN / TG_CHAT');
   const tg = async (m, b) => { const j = await (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(15000) })).json(); if (!j.ok) console.error(`✗ telegram ${m}: ${j.description}`); return j; };
@@ -171,8 +192,18 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', t
   for (const x of ls.slice(st.daNho)) await tg('sendMessage', { message_thread_id: st.topic, text: tinDaNho(x, ten), parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
   const moiNho = ls.length - st.daNho; st.daNho = ls.length;
   const ds = await docMailBaoMat(); if (!ds) console.error('✗ không đọc được hòm claude@orit.app');
-  const b = buocTin(st, ds, Date.now(), ten); st = b.st;
-  if ((b.gui.length || b.daDoc.length) && !st.topic) { const j = await tg('createForumTopic', { name: '🔐 Bảo mật' }); if (j.ok) st.topic = j.result.message_thread_id; }
+  const G = await import('./gio-lam.mjs'); const bay = Date.now(), ngay = G.ngayLam(bay, ca);
+  if (!st.topic) { const j = await tg('createForumTopic', { name: '🔐 Bảo mật' }); if (j.ok) st.topic = j.result.message_thread_id; }
+  const tuMoc = st.diemDanhLuc ?? BAT_TU;   // thư ngoài giờ đến SAU lần điểm danh trước = phải báo dồn ở lần điểm danh này
+  const ngoaiGio = (ds ?? []).filter((m) => m.luc > tuMoc && !G.trongCa(ca, new Date(m.luc)));
+  const choXu = () => (ds ?? []).filter((m) => !m.xong && m.ket !== 'thuong' && m.luc >= BAT_TU);
+  let bc = '';
+  if (ds && diemDanh && st.diemDanhNgay !== ngay && G.quaMoc(diemDanh, bay, ca)) {   // ☀️ điểm danh (một lần mỗi ngày làm việc), rồi thả thư giữ lại
+    await vpBao(nguoi, 'lam', 'điểm danh'); const j = await tg('sendMessage', { message_thread_id: st.topic, text: tinDiemDanh({ ten, ca, gio: bay, ngoaiGio, cho: choXu() }), parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
+    if (j.ok) { st.diemDanhNgay = ngay; st.diemDanhLuc = new Date(bay).toISOString(); bc += 'điểm danh · '; }
+  }
+  const giu = (m) => diemDanh && m.luc > (st.diemDanhLuc ?? BAT_TU) && !G.trongCa(ca, new Date(m.luc));
+  const b = buocTin(st, ds, bay, ten, giu); st = b.st;
   for (const m of b.gui) {
     await vpBao(nguoi, 'lam', `báo thư ${m.mien}`);
     const j = await tg('sendMessage', { message_thread_id: st.topic, text: tinBao(m, ten, await loiMo(nguoi, model, m, phong)), parse_mode: 'HTML', link_preview_options: { is_disabled: true }, reply_markup: nutDay(m.mien) });
@@ -183,10 +214,16 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', t
   for (const m of b.daDoc) await tg('sendMessage', { message_thread_id: st.topic, text: tinDaDoc(m, ten), parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
   for (const id of b.tha) await tg('setMessageReaction', { message_id: id, reaction: [{ type: 'emoji', emoji: '❤' }] });
   for (const id of b.xoa) await tg('deleteMessage', { message_id: id });
+  if (ds && st.baoCaoNgay !== ngay && G.quaMoc(G.mocCuoiCa(ca), bay, ca)) {   // 🌙 báo cáo cuối ngày (5 phút trước hết ca)
+    const tu = G.dauCa(bay, ca), trong = (x) => Date.parse(x) >= tu;
+    const { docLog } = await import('./log.mjs'); const goi = docLog({ n: 5000 }).filter((e) => e.tu === nguoi && e.loai === 'goi' && trong(e.ts));
+    const j = await tg('sendMessage', { message_thread_id: st.topic, text: tinBaoCao({ ten, ca, ngay, trongNgay: ds.filter((m) => trong(m.luc)), cho: choXu(), hoc: ls.filter((x) => trong(x.luc)), goi: goi.length, usd: goi.reduce((t, e) => t + (Number(e.chi_tiet?.usd) || 0), 0) }), parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
+    if (j.ok) { st.baoCaoNgay = ngay; bc += 'báo cáo cuối ngày · '; }
+  }
   const vp = b.cho ? 'cho' : 'xong';   // người phụ trách: còn thư chờ → "chờ người" trên pixel; hết → về ghế (chỉ báo khi đổi)
   if (ds && st.vp !== vp) { await vpBao(nguoi, vp, `${b.cho} thư bảo mật`); st.vp = vp; }
   fs.writeFileSync(`${tep}.tam`, JSON.stringify(st)); fs.renameSync(`${tep}.tam`, tep);
-  return `${moiNho ? `${moiNho} tin đã nhớ · ` : ''}${day ? `${day} lần anh dạy · ` : ''}${ds ? ds.length : '?'} thư đã đọc · ${b.gui.length} báo · ${b.daDoc.length} trả lời · ${b.tha.length} ❤ · ${b.xoa.length} gỡ · ${b.cho ?? '?'} thư chờ`;
+  return `${bc}${moiNho ? `${moiNho} tin đã nhớ · ` : ''}${day ? `${day} lần anh dạy · ` : ''}${ds ? ds.length : '?'} thư đã đọc · ${b.gui.length} báo · ${b.daDoc.length} trả lời · ${b.tha.length} ❤ · ${b.xoa.length} gỡ · ${b.cho ?? '?'} thư chờ`;
 }
 
 if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && process.argv.includes('--tu-kiem')) {
@@ -222,6 +259,10 @@ if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && process.argv.includes('--tu
   const b2 = buocTin(s1, [{ ...m1, xong: true }], 1000); a.deepEqual(b2.tha, [7]); a.equal(b2.cho, 0);
   a.deepEqual(buocTin(b2.st, [{ ...m1, xong: true }], 1000 + 30_000).xoa, [], 'thả tim xong chưa đủ 1 phút → chưa xoá');
   const b3 = buocTin(b2.st, [{ ...m1, xong: true }], 1000 + 60_000); a.deepEqual(b3.xoa, [7]); a.deepEqual(b3.st.tin, {});
+  const ngoai = { ...m1, id: 'n', luc: '2026-10-14T20:30:00Z' };   // 03:30 sáng VN 15/10 — ngoài ca 06–02
+  a.equal(buocTin({}, [ngoai], 0, 'Kiên', () => true).gui.length, 0, 'thư ngoài giờ bị giữ tới điểm danh');
+  a.match(tinDiemDanh({ ten: 'Kiên', ca: '06:00-02:00', gio: Date.parse('2026-10-15T01:00:00Z'), ngoaiGio: [ngoai], cho: [] }), /điểm danh.*\n.*1 thư bảo mật[\s\S]*<a href="https:\/\/cty[^"]+">[^<]+<\/a>$/);
+  a.match(tinBaoCao({ ten: 'Kiên', ca: '06:00-02:00', ngay: '2026-10-14', trongNgay: [m1], cho: [m1], hoc: [{ mien: 'examweight.com', nhom: 'nha' }], goi: 1, usd: 0.0001 }), /báo cáo ngày 14\/10\/2026[\s\S]*Còn chờ anh: 1 thư[\s\S]*examweight\.com = site nhà[\s\S]*<\/a>$/);
   a.match(tinDaNho({ mien: 'examweight.com', nhom: 'nha', ai: 'anh' }, 'Kiên'), /đã nhớ: <b>examweight\.com<\/b> = site nhà.*\n<a href="https:\/\/cty/, 'tin đã nhớ kết bằng link cty');
   a.match(tinBao(m1, 'Kiên'), /A &lt;b&gt;/, 'tiêu đề thư được thoát HTML'); a.match(tinBao(m1, 'Kiên'), /<a href="https:\/\/cty\.on\.tc\/[^"]+">[^<]+<\/a>$/, 'dòng cuối là link mở thẳng trên cty');
   console.log('✓ mail-bao-mat: 12 ca đạt (tên miền đăng ký, gỡ link chuyển tiếp, người gửi thư chuyển tiếp, thư thật yêu cầu giả, thư giả, tên miền nhái, không đọc được người gửi) + 8 ca nhịp báo (báo một lần, hòm lỗi không đụng, ❤ rồi gỡ sau 1 phút, thoát HTML)');

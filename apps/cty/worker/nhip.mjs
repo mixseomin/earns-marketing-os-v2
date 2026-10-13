@@ -13,19 +13,15 @@ export const TAN_SUAT = '1 lần/phút';
 /** Tên việc nhịp bằng chữ người đọc (bảng nhân sự hiện cái này, không hiện mã). */
 export const TEN_NHIP = { 'mail-bao-mat': 'Báo khi có thư bảo mật mới (gọi mô hình chỉ lúc có thư)' };
 export const NHIP = {
-  'mail-bao-mat': async (n) => (await import('./mail-bao-mat.mjs')).nhipBaoMat(n.id, { ten: n.ten, model: n.model, phong: n.phong }),   // Phòng Bảo mật: thư bảo mật → Telegram + pixel
+  'mail-bao-mat': async (n) => (await import('./mail-bao-mat.mjs')).nhipBaoMat(n.id, { ten: n.ten, model: n.model, phong: n.phong, ca: n.ca, diemDanh: n.diemDanh }),   // Phòng Bảo mật: thư bảo mật → Telegram + pixel
 };
-/** CA LÀM của nhân sự: `ca: 08:00-24:00` (giờ VN) → chỉ làm trong khung đó; không khai = cả ngày. Anh 13/10/2026: Kiên 2 ca 16 tiếng từ 8h. */
-export function trongCa(ca, gio = new Date()) {
-  const m = String(ca ?? '').match(/^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$/); if (!m) return true;
-  const vn = (gio.getUTCHours() + 7) % 24 * 60 + gio.getUTCMinutes(), tu = +m[1] * 60 + +m[2], den = +m[3] * 60 + +m[4];
-  return tu <= den ? vn >= tu && vn < den : vn >= tu || vn < den;
-}
+export { trongCa } from './gio-lam.mjs';
+import { trongCa } from './gio-lam.mjs';
 /** Ai đang bật nhịp: [{ id, ten, viec[] }] — heartbeat khác 'off', tách dấu phẩy. */
 export function dangBat() {
   const dir = path.join(GOC, 'cong-ty', 'nhan-su');
   return fs.readdirSync(dir).filter((d) => fs.existsSync(path.join(dir, d, 'SOUL.md'))).map((d) => ({ id: d, fm: parseFm(fs.readFileSync(path.join(dir, d, 'SOUL.md'), 'utf8')).fm }))
-    .filter((x) => x.fm.heartbeat && x.fm.heartbeat !== 'off').map((x) => ({ id: x.id, ten: String(x.fm.ten ?? x.id), model: String(x.fm.model ?? ''), phong: String(x.fm.phong ?? ''), ca: x.fm.ca, viec: String(x.fm.heartbeat).split(',').map((v) => v.trim()).filter(Boolean) }));
+    .filter((x) => x.fm.heartbeat && x.fm.heartbeat !== 'off').map((x) => ({ id: x.id, ten: String(x.fm.ten ?? x.id), model: String(x.fm.model ?? ''), phong: String(x.fm.phong ?? ''), ca: x.fm.ca, diemDanh: x.fm.diem_danh, viec: String(x.fm.heartbeat).split(',').map((v) => v.trim()).filter(Boolean) }));
 }
 
 if (process.argv[1]?.endsWith('nhip.mjs') && process.argv.includes('--tu-kiem')) {

@@ -7,6 +7,7 @@ import { tenModel, pc, VAI, TEN_VAI, COT_VAI, type TK, type Nguoi as NS } from '
 import { demTn, type TrachNhiem } from '@/lib/trach-nhiem';
 import { vaiCuaPhong, theVai } from '../../worker/quy-trinh.mjs';
 import { NHIP, TAN_SUAT, TEN_NHIP } from '../../worker/nhip.mjs';
+import { mocCuoiCa } from '../../worker/gio-lam.mjs';
 import { nhanSu, type Doc } from '@/lib/cong-ty';
 import { soChi } from '@/lib/do-dac';
 import { docLog } from '../../worker/log.mjs';
@@ -27,7 +28,7 @@ export function nhipChu(fm: Record<string, unknown>) {
   const may = hb.split(',').map((v) => v.trim()).filter((v) => v in NHIP);
   if (!may.length) return { chu: hb, bat: true, viec: hb };
   const ca = fm.ca ? String(fm.ca) : 'cả ngày';
-  const ten = may.map((v) => (TEN_NHIP as Record<string, string>)[v] ?? v).join(' · ');
+  const ten = may.map((v) => (TEN_NHIP as Record<string, string>)[v] ?? v).join(' · ') + (fm.diem_danh ? ` · điểm danh ${String(fm.diem_danh)} · báo cáo cuối ngày ${mocCuoiCa(fm.ca)}` : '');
   return { chu: `${ten} · máy kiểm ${TAN_SUAT} · ca ${ca}`, bat: true, viec: ten, tanSuat: TAN_SUAT, ca };
 }
 /** Lần làm việc gần nhất của từng người: dòng nhật ký mới nhất do chính người đó phát ra (gọi mô hình, gửi tin) — nhịp chạy mà không có

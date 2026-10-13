@@ -11,6 +11,7 @@ room: bo-loc
 muc_quyet: 1
 approval: AUTO
 heartbeat: mail-bao-mat   # nhịp máy mỗi phút (worker/nhip.mjs, cty-nhip.timer): thư bảo mật → Telegram MINE topic Bảo mật + pixel; glm viết lời báo ~$0,00006/thư mới — anh bật 13/10/2026
+diem_danh: 08:00   # điểm danh đầu ngày + báo dồn thư đến ngoài giờ (anh 14/10/2026); báo cáo cuối ngày tự động 5 phút trước khi hết ca
 ca: 06:00-02:00   # từ 6h sáng tới 2h sáng hôm sau, giờ VN (anh 14/10/2026); ngoài ca thư chờ tới 6h
 lich: 06:30 hằng ngày + theo cảnh báo
 skills: [dang-nhap-van-tay, marketplace-compliance, profile-locks]

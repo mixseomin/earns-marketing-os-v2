@@ -26,7 +26,7 @@ import { DoDac } from '../do-dac';
 import { SoSuKien } from '../so-su-kien';
 import { Nguoi } from '../nguoi';
 import { tachKhoa, hrefThe, hrefSach, hrefDayChuyen } from '@/lib/ngan';
-import { BangNhanSu } from '../bang-nhan-su';
+import { BangNhanSu, nhipChu } from '../bang-nhan-su';
 import { doiNgu } from '@/lib/doi-ngu';
 import { dayChuyen, linkMos2, homNay, CHANG } from '../../../worker/sach.mjs';
 import { DayChuyenTab, demCan, type DayChuyen, type DcKhai, Ai, Tram, Thanh, KENH, mauNen, TEN_NEN, NHAN_ST, ngay, quaNgay, cungSach, DcSach, DcVideo, DcKenh, DcMail, type MailBm, LocSach, LocVideo, tenLoc, viecCacDayChuyen, DsViec as DsViecDc } from '../day-chuyen';
@@ -221,6 +221,7 @@ export async function nganNhanSu(id: string, admin = false): Promise<Ngan> {
         </div>
         <div className="cty-muted cty-nho">
           <span className="cty-nho">{String(f.model)}</span> · báo cáo cho {f.bao_cao_cho ? <Nguoi id={String(f.bao_cao_cho)} /> : 'Giám đốc'}
+          {' · '}nhịp: {nhipChu(f).chu}{f.tran_usd_thang ? ` · trần $${String(f.tran_usd_thang)}/tháng` : ''}
           {' · '}<a href={hrefVp(String(f.phong))} target="_blank" rel="noreferrer">xem trên văn phòng pixel ↗</a>
           {f.kind !== 'ai' && <> · {f.kind === 'human' ? 'người' : 'vendor'}</>}
         </div>

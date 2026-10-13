@@ -101,13 +101,16 @@ export function tranTong() {
   return fs.existsSync(f) ? Number(parseFm(fs.readFileSync(f, 'utf8')).fm.tran_tong_usd_thang || 0) : 0;
 }
 
+/** Nhãn sổ chi: 'cty:<người>' hoặc 'cty:<người>@<phòng>' (header x-cty-phong — tiền tính theo phòng người đó đang làm cho, anh 13/10/2026).
+ *  Trần chi vẫn tính trên MỌI phòng của người đó. */
+export const nhanChi = (staff, phong) => `cty:${staff}${phong && /^[a-z0-9-]+$/.test(phong) ? `@${phong}` : ''}`;
 // Sổ chi: Postgres (bảng ai_usage của MOS2) — hoặc bộ nhớ khi tự kiểm (CTY_DB=mem).
 function soChi() {
   if (process.env.CTY_DB === 'mem') {
     const rows = [];
     return {
-      async chiThang(staff) { return rows.filter((r) => !staff || r.feature === `cty:${staff}`).reduce((s, r) => s + (tienUsd(r.model, r) ?? 0), 0); },
-      async ghi(staff, model, u) { rows.push({ feature: `cty:${staff}`, model, ...u }); },
+      async chiThang(staff) { return rows.filter((r) => !staff || r.feature === `cty:${staff}` || r.feature.startsWith(`cty:${staff}@`)).reduce((s, r) => s + (tienUsd(r.model, r) ?? 0), 0); },
+      async ghi(staff, model, u, phong) { rows.push({ feature: nhanChi(staff, phong), model, ...u }); },
     };
   }
   let sqlP;
@@ -115,18 +118,18 @@ function soChi() {
   return {
     async chiThang(staff) {
       const q = await sql();
-      const rows = await q`SELECT model, prompt_tokens, completion_tokens FROM ai_usage WHERE feature LIKE 'cty:%' ${staff ? q`AND feature = ${'cty:' + staff}` : q``} AND created_at >= date_trunc('month', now())`;
+      const rows = await q`SELECT model, prompt_tokens, completion_tokens FROM ai_usage WHERE feature LIKE 'cty:%' ${staff ? q`AND (feature = ${'cty:' + staff} OR feature LIKE ${'cty:' + staff + '@%'})` : q``} AND created_at >= date_trunc('month', now())`;
       return rows.reduce((s, r) => s + (tienUsd(r.model, { input_tokens: r.prompt_tokens, output_tokens: r.completion_tokens }) ?? 0), 0);
     },
-    async ghi(staff, model, u) {
+    async ghi(staff, model, u, phong) {
       const q = await sql();
-      await q`INSERT INTO ai_usage (feature, model, prompt_tokens, completion_tokens) VALUES (${'cty:' + staff}, ${model}, ${u.input_tokens || 0}, ${u.output_tokens || 0})`;
+      await q`INSERT INTO ai_usage (feature, model, prompt_tokens, completion_tokens) VALUES (${nhanChi(staff, phong)}, ${model}, ${u.input_tokens || 0}, ${u.output_tokens || 0})`;
     },
   };
 }
 
 // ---------- xử lý một lượt ----------
-export async function xuLy(body, staff, so, fetchFn = fetch) {
+export async function xuLy(body, staff, so, fetchFn = fetch, phong = null) {
   const model = String(body.model || '');
   const [nha] = model.includes(':') ? model.split(':') : ['anthropic'];
   const cfg = NHA[nha]; if (!cfg) return [400, { error: `nhà "${nha}" chưa khai trong NHA` }];
@@ -158,7 +161,7 @@ export async function xuLy(body, staff, so, fetchFn = fetch) {
     data = await res.json(); if (!res.ok) return [res.status, data];
     data.model = model;
   }
-  await so.ghi(staff, model, data.usage || {});
+  await so.ghi(staff, model, data.usage || {}, phong);
   if (process.env.CTY_CACHE === '1') { fs.mkdirSync(CACHE_DIR, { recursive: true }); fs.writeFileSync(cacheF, JSON.stringify(data)); }
   return [200, data];
 }
@@ -169,7 +172,7 @@ export function server(port, so = soChi()) {
     let raw = ''; for await (const c of req) raw += c;
     let body; try { body = JSON.parse(raw); } catch { res.writeHead(400); return res.end('{"error":"json"}'); }
     const t0 = Date.now();
-    const [code, data] = await xuLy(body, req.headers['x-cty-staff'], so).catch((e) => [502, { error: String(e.message || e) }]);
+    const [code, data] = await xuLy(body, req.headers['x-cty-staff'], so, fetch, req.headers['x-cty-phong'] || null).catch((e) => [502, { error: String(e.message || e) }]);
     ghiLog({ luot: req.headers['x-cty-luot'] || null, loai: code === 200 ? 'goi' : 'loi', tu: req.headers['x-cty-staff'] || null,
       chi_tiet: { model: body.model, http: code, ms: Date.now() - t0, usage: data.usage || null, usd: tienGoi(String(body.model), data.usage), cache: !!data._cache, loi: data.error || null, he_thong_ky_tu: String(body.system || '').length, tin_nhan: (body.messages || []).length } });
     res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(data));
@@ -192,7 +195,8 @@ if (process.argv.includes('--tu-kiem')) {
   [c, d] = await xuLy({ ...req, model: 'openai:gpt-9-chua-co-gia' }, 'lan', so); assert(c === 400, 'ca 2 mô hình chưa có giá → 400');
   [c, d] = await xuLy(req, 'khong-co', so); assert(c === 403, 'ca 3 nhân sự không hồ sơ → 403');
   // ca 4: Lan trần $40; mỗi lượt giả 1M token vào gpt-4o-mini = $0.15 → cần 267 lượt; gọi thẳng so.ghi để vượt trần rồi kiểm 429
-  for (let i = 0; i < 300; i++) await so.ghi('lan', 'openai:gpt-4o-mini', { input_tokens: 1_000_000, output_tokens: 0 });
+  assert(nhanChi('lan', 'sach') === 'cty:lan@sach' && nhanChi('lan', null) === 'cty:lan' && nhanChi('lan', 'x;drop') === 'cty:lan', 'nhãn sổ chi theo phòng (phòng lạ → bỏ)');
+  for (let i = 0; i < 300; i++) await so.ghi('lan', 'openai:gpt-4o-mini', { input_tokens: 1_000_000, output_tokens: 0 }, i % 2 ? 'sach' : null);   // trần cộng MỌI phòng
   [c, d] = await xuLy(req, 'lan', so); assert(c === 429 && /trần/.test(d.error), `ca 4 vượt trần người → 429 (${c})`);
   process.env.FAL_KEY = 'k'; process.env.CTY_UPSTREAM_FAL = process.env.CTY_UPSTREAM_OPENAI;
   [c, d] = await xuLy({ ...req, model: 'fal:anthropic/claude-haiku-5.5' }, 'ha', so); assert(c === 200 && auth === 'Key k' && d.content[0].text === 'chào Lan', `ca 5 fal: xác thực "Key", tên mô hình OpenRouter (${c} ${auth})`);

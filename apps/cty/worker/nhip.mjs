@@ -8,8 +8,10 @@ import path from 'node:path';
 import { GOC } from './goc.mjs';
 import { parseFm } from '../scripts/fm.mjs';
 
+/** Tần suất mọi nhịp máy = tần suất cty-nhip.timer (apps/cty/deploy/cty-nhip.timer OnUnitActiveSec). Đổi timer thì đổi chữ này. */
+export const TAN_SUAT = 'mỗi phút';
 export const NHIP = {
-  'mail-bao-mat': async (n) => (await import('./mail-bao-mat.mjs')).nhipBaoMat(n.id, { ten: n.ten, model: n.model }),   // Phòng Bảo mật: thư bảo mật → Telegram + pixel
+  'mail-bao-mat': async (n) => (await import('./mail-bao-mat.mjs')).nhipBaoMat(n.id, { ten: n.ten, model: n.model, phong: n.phong }),   // Phòng Bảo mật: thư bảo mật → Telegram + pixel
 };
 /** CA LÀM của nhân sự: `ca: 08:00-24:00` (giờ VN) → chỉ làm trong khung đó; không khai = cả ngày. Anh 13/10/2026: Kiên 2 ca 16 tiếng từ 8h. */
 export function trongCa(ca, gio = new Date()) {
@@ -21,7 +23,7 @@ export function trongCa(ca, gio = new Date()) {
 export function dangBat() {
   const dir = path.join(GOC, 'cong-ty', 'nhan-su');
   return fs.readdirSync(dir).filter((d) => fs.existsSync(path.join(dir, d, 'SOUL.md'))).map((d) => ({ id: d, fm: parseFm(fs.readFileSync(path.join(dir, d, 'SOUL.md'), 'utf8')).fm }))
-    .filter((x) => x.fm.heartbeat && x.fm.heartbeat !== 'off').map((x) => ({ id: x.id, ten: String(x.fm.ten ?? x.id), model: String(x.fm.model ?? ''), ca: x.fm.ca, viec: String(x.fm.heartbeat).split(',').map((v) => v.trim()).filter(Boolean) }));
+    .filter((x) => x.fm.heartbeat && x.fm.heartbeat !== 'off').map((x) => ({ id: x.id, ten: String(x.fm.ten ?? x.id), model: String(x.fm.model ?? ''), phong: String(x.fm.phong ?? ''), ca: x.fm.ca, viec: String(x.fm.heartbeat).split(',').map((v) => v.trim()).filter(Boolean) }));
 }
 
 if (process.argv[1]?.endsWith('nhip.mjs') && process.argv.includes('--tu-kiem')) {

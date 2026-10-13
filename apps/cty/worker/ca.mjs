@@ -51,7 +51,7 @@ export async function goi(ns, user, buoc, nk, toi) {
   await vpBao(ns.id, 'lam', moTa);
   const t0 = Date.now(); const bat_dau = new Date(t0).toISOString();
   nk.dang = { buoc, ai: ns.ten, id: ns.id, bat_dau }; ghiLuot(nk);
-  const r = await fetch(`${PROXY()}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': ns.id, 'x-cty-luot': nk.ts }, body: JSON.stringify(body) });
+  const r = await fetch(`${PROXY()}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': ns.id, 'x-cty-luot': nk.ts, 'x-cty-phong': String(nk.khoa ?? 'thu-nghiem').split('/')[0] }, body: JSON.stringify(body) });
   const d = await r.json();
   const ms = Date.now() - t0; const ket_thuc = new Date().toISOString();   // giờ của mô hình, không tính nhịp chờ
   const text = r.ok ? (d.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('') : '';

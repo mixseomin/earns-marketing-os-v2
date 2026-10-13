@@ -102,11 +102,14 @@ export function homTin(ns: Doc[], n = 8) {
     .map((e) => ({ ts: String(e.ts), luot: String(e.luot ?? ''), tu: String(e.tu ?? ''), toi: String(e.toi ?? ''), buoc: String((e.chi_tiet as Record<string, unknown>)?.buoc ?? ''), noi_dung: String((e.chi_tiet as Record<string, unknown>)?.noi_dung ?? (e.chi_tiet as Record<string, unknown>)?.tra_loi ?? '') }));
 }
 
-export async function soChi(ns: Doc[]) {
-  const feats = ns.map((d) => `cty:${d.id}`);
-  const rows = await q(sql`SELECT feature, model, sum(prompt_tokens)::int AS vao, sum(completion_tokens)::int AS ra, count(*)::int AS luot FROM ai_usage WHERE feature = ANY(${arr(feats)}) AND created_at >= date_trunc('month', now()) GROUP BY 1, 2 ORDER BY 1`);
+/** Sổ chi tháng này của các người trong ns. Nhãn 'cty:<người>@<phòng>' (worker/proxy.mjs nhanChi) → phòng đó; nhãn cũ không phòng → phòng nhà
+ *  của người (SOUL phong). phong = chỉ tính tiền làm cho phòng này. */
+export async function soChi(ns: Doc[], phong?: string) {
+  const ids = ns.map((d) => d.id), nha = Object.fromEntries(ns.map((d) => [d.id, String(d.fm.phong ?? '')]));
+  const rows = await q(sql`SELECT feature, model, sum(prompt_tokens)::int AS vao, sum(completion_tokens)::int AS ra, count(*)::int AS luot FROM ai_usage
+    WHERE feature LIKE 'cty:%' AND split_part(split_part(feature, ':', 2), '@', 1) = ANY(${arr(ids)}) AND created_at >= date_trunc('month', now()) GROUP BY 1, 2 ORDER BY 1`);
   if (!rows) return null;
-  const ds = rows.map((r) => ({ nguoi: String(r.feature).replace('cty:', ''), model: String(r.model), vao: Number(r.vao), ra: Number(r.ra), luot: Number(r.luot), usd: tienUsd(String(r.model), { input_tokens: Number(r.vao), output_tokens: Number(r.ra) }) as number | null }));
+  const ds = rows.map((r) => { const [nguoi, ph] = String(r.feature).slice(4).split('@'); return { nguoi: nguoi!, phong: ph || nha[nguoi!] || '', model: String(r.model), vao: Number(r.vao), ra: Number(r.ra), luot: Number(r.luot), usd: tienUsd(String(r.model), { input_tokens: Number(r.vao), output_tokens: Number(r.ra) }) as number | null }; }).filter((r) => !phong || r.phong === phong);
   return { ds, tongUsd: ds.reduce((s, r) => s + (r.usd ?? 0), 0), tranNguoi: Object.fromEntries(ns.map((d) => [d.id, Number(d.fm.tran_usd_thang || 0)])) };
 }
 

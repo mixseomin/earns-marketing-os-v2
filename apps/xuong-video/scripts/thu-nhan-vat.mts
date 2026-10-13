@@ -23,6 +23,14 @@ const PHU: { key: string; ten: string; mo_ta: string }[] = [
   { key: 'ran_cap', ten: 'Rắn dây cáp', mo_ta: 'the long white charging cable is a playful snake-like creature: its metal plug is the head with two tiny dot eyes, the cable body curls and coils across the desk like a friendly snake' },
   { key: 'giay_note', ten: 'Giấy note', mo_ta: 'a bright yellow sticky-note paper character that folds itself into shapes: a square paper body folded into a little figure with paper arms, two drawn-on ink dot eyes, one corner curled up like a cowlick, cheerful' },
 ];
+/** SỬA TẠO HÌNH một nhân vật đã có (--bo=sua_<tên anchor>): character sheet mới bám sheet hiện tại, chỉ đổi đúng một chi tiết; anh chọn
+ *  bản ưng rồi mới gắn vào anchor. Tango — chỏm tóc (anh 14/10/2026: "1 sợi hoặc 3 sợi, sau dùng trong câu chuyện"). */
+const SUA: Record<string, { key: string; ten: string; mo_ta: string }[]> = {
+  Tango: [
+    { key: 'tango_toc1', ten: 'Tango · 1 sợi tóc', mo_ta: 'a single thin curly strand of slightly darker orange clay sprouting from the very top of his head, like a little spring or antenna' },
+    { key: 'tango_toc3', ten: 'Tango · 3 sợi tóc', mo_ta: 'a tiny tuft of three thin strands of slightly darker orange clay sprouting from the top of his head, the middle strand a little taller' },
+  ],
+};
 
 const db = getDb()!;
 const phimId = Number(process.argv[2]); const tenBc = process.argv[3] ?? '';
@@ -39,13 +47,19 @@ if (bo === 'phu') for (const k of ['dat_set_cam', 'bui_long']) {
   if (u) kem.push(u);
 }
 const ra: { key: string; ten: string; url: string | null; loi?: string }[] = [];
-const DS = bo === 'phu' ? PHU : PHUONG_AN;
+const tenSua = bo.startsWith('sua_') ? bo.slice(4) : '';
+const sheetSua = tenSua ? (await db.execute(sql`SELECT anh_ref->>0 AS u FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = 'nhan_vat' AND ten = ${tenSua} LIMIT 1`) as unknown as Row[])[0]?.u as string | undefined : undefined;
+if (tenSua && (!SUA[tenSua] || !sheetSua)) { console.error('không có bộ sửa / sheet của', tenSua); process.exit(1); }
+if (sheetSua) kem.push(sheetSua);
+const DS = tenSua ? SUA[tenSua]! : bo === 'phu' ? PHU : PHUONG_AN;
 await Promise.all(DS.map(async (a) => {
-  const prompt = bo === 'phu'
+  const prompt = tenSua
+    ? `Character design reference sheet for a handmade stop-motion puppet, on a plain light warm-grey background: full-body turnaround (front, three-quarter, side, back) plus a row of close-ups showing neutral, happy, scared and angry expressions. It is the SAME character as in the reference image — identical body shape, colors, material, eyes and proportions. The ONLY change: ${a.mo_ta}; clearly visible in every view. No text, letters or labels anywhere.`
+    : bo === 'phu'
     ? `Character concept frame for a wordless stop-motion film. A new handmade stop-motion character: ${a.mo_ta}. It is shown together with the two main characters from reference images 2 and 3 — the small round ORANGE clay blob with googly eyes and the small grey fluffy dust bunny — keep those two EXACTLY as in their reference images. All of them on the wooden desk from reference image 1, at character eye level with a macro lens and shallow depth of field, an expressive moment that shows how the new character relates to the two. Keep the desk world exactly as in reference image 1. Every screen shows only a plain smooth gradient glow. No people, no human hands. Visual style: ${phongCachHinh(kt.phong_cach).replace(/[.\s]+$/, '')}.`
     : `Character concept frame for a wordless stop-motion film. A handmade stop-motion puppet character: ${a.mo_ta}. It stands full body in the middle of the frame on the wooden desk shown in the reference image, about 5 cm tall (roughly the height of two keyboard keys), seen at its own eye level with a macro lens and shallow depth of field, a lively expressive pose that shows its personality. Keep the desk world exactly as in the reference image. Every screen shows only a plain smooth gradient glow. No people, no hands. Visual style: ${phongCachHinh(kt.phong_cach).replace(/[.\s]+$/, '')}.`;
-  const job = await taoJob(db, { phim_id: phimId, nhan: `Thử nhân vật · ${a.ten}`, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { dich: 'thu_nhan_vat', phuong_an: a.key, prompt, thamChieuUrl: [bc, ...kem] } });
-  const kq = await chayViecAnh({ job, model: kt.mo_hinh_anh, prompt, thamChieuUrl: [bc, ...kem], tiLe: kt.ti_le, thuMuc: `thu-nhan-vat/${phimId}-${a.key}` });
+  const job = await taoJob(db, { phim_id: phimId, nhan: `Thử nhân vật · ${a.ten}`, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { dich: 'thu_nhan_vat', phuong_an: a.key, prompt, thamChieuUrl: tenSua ? kem : [bc, ...kem] } });
+  const kq = await chayViecAnh({ job, model: kt.mo_hinh_anh, prompt, thamChieuUrl: tenSua ? kem : [bc, ...kem], tiLe: tenSua ? '1:1' : kt.ti_le, thuMuc: `thu-nhan-vat/${phimId}-${a.key}` });
   await hoanTatAnh(kq);
   ra.push({ key: a.key, ten: a.ten, url: kq.ok ? kq.url : null, ...(kq.ok ? {} : { loi: kq.loi }) });
 }));

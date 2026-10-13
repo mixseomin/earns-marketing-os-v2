@@ -53,6 +53,7 @@ kq('lỗi lượt hiện thành ô báo', (await p.locator('.cty-thu .cty-bao-lo
 if (anh) await p.screenshot({ path: `${anh}/nut-chay.png` });
 await p.reload({ waitUntil: 'networkidle' });
 kq('chữ đã gõ còn sau F5', (await p.inputValue('.cty-thu-form textarea')) === VIEC, '');
-kq('tab Các lượt tăng 1', (await p.locator('.cty-ds-luot details').count()) === truoc + 1, `${truoc} → ${await p.locator('.cty-ds-luot details').count()}`);
+// danh sách chỉ hiện 30 lượt gần nhất (lib/thu-nghiem.ts dsLuot) → đã đủ 30 thì số không tăng nữa; "lượt mới hiện trên màn" ở trên đã kiểm dòng mới
+kq('tab Các lượt tăng 1', (await p.locator('.cty-ds-luot details').count()) === Math.min(truoc + 1, 30), `${truoc} → ${await p.locator('.cty-ds-luot details').count()}`);
 kq('không lỗi JS', !loiJs.length, loiJs.join(' | ') || '0');
 await b.close(); console.log(sai ? `✗ ${sai} sai` : '✓ nút chạy đạt'); process.exit(sai ? 1 : 0);

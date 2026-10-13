@@ -343,12 +343,12 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
     : <TabPhong khoa={id} dau={dau} tabs={[...(coLich ? [{ key: 'lich', nhan: 'Lịch', so: lich === null ? '!' : gapLich || '' }] : []), ...(coDc ? [{ key: 'daychuyen', nhan: 'Dây chuyền', so: dc?.loi ? '!' : demCan({ dsDc, dc, lv, kenh, phong: id }) || '' }] : []), { key: 'sodo', nhan: 'Sơ đồ' }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
         {[...(coLich ? [<LichPhong key="lich" ds={lich} hom={hom} />] : []), ...(coDc ? [<DayChuyenTab key="dc" dsDc={dsDc} dc={dc} lv={lv} kenh={kenh} phong={id} p={p} />] : []), <div key="s">{soDoTab}</div>, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
       </TabPhong>;
-  // Văn phòng pixel LIVE cố định bên phải: phòng có văn phòng riêng thì xem đúng phòng đó, chưa có thì văn phòng chung (hrefVp).
+  // Văn phòng pixel LIVE cố định bên phải: văn phòng riêng của đúng phòng này (mọi phòng đều có — hrefVp).
   const vp = hrefVp(id);
   const hai = (
     <div className="cty-tabkhung cty-phong-hai">
       {than}
-      <KhungVp src={vp} ghi={vp !== '/vp/cong-ty/' ? `Văn phòng ${String(p.fm.ten)} · live` : 'Văn phòng chung cả công ty · phòng này chưa có văn phòng riêng'} />
+      <KhungVp src={vp} ghi={`Văn phòng ${String(p.fm.ten)} · live`} />
     </div>
   );
   return { tieuDe: <>{String(p.fm.ten)} <span className="cty-pill cty-pill-kind">{k?.ten ?? String(p.fm.khuon)}</span></>, than: hai };

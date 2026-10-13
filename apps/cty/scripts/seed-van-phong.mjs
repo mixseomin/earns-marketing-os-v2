@@ -8,23 +8,36 @@ import { parseFm } from './fm.mjs';
 import { spriteTheoNguoi } from './nhan-vat.mjs';
 import os from 'node:os';
 
-// --cac-phong: TRÌNH CHẠY văn phòng riêng của mọi phòng khai van_phong_cong (worker/vp.mjs vanPhongCacPhong) — mỗi phòng một tiến trình
-// pixel-agents (HOME riêng, cổng riêng) + bơm nhân sự của phòng đó. Unit mos2-vp-thu.service chạy lệnh này (tên unit giữ từ Phòng thử vì
-// deploy.sh cài theo tên tệp): thêm phòng không phải sửa deploy.sh. Một tiến trình con chết → dừng cả nhóm, systemd dựng lại.
+// --cac-phong: TRÌNH CHẠY văn phòng riêng của MỌI phòng (worker/vp.mjs vanPhongCacPhong) — mỗi phòng một tiến trình pixel-agents (HOME riêng,
+// cổng tự xin) + bơm nhân sự phòng đó, và BỘ ĐIỀU PHỐI :3863 (nginx đưa mọi /vp/<phòng>/ về, header X-Vp-Phong → đúng văn phòng). Mỗi phút
+// quét lại danh sách phòng: phòng mới (anh 13/10/2026 "kể cả phòng mới cũng phải tự động có pixel phòng riêng") được mở văn phòng ngay, không sửa
+// nginx / deploy.sh. Unit mos2-vp-thu.service chạy lệnh này (tên unit giữ từ Phòng thử). Một tiến trình con chết → dừng cả nhóm, systemd dựng lại.
 if (process.argv.includes('--cac-phong')) {
   const { spawn, execFileSync } = await import('node:child_process');
-  const { vanPhongCacPhong } = await import('../worker/vp.mjs');
+  const net = await import('node:net');
+  const { vanPhongCacPhong, dieuPhoi, CONG_DIEU_PHOI } = await import('../worker/vp.mjs');
   const SELF = new URL(import.meta.url).pathname, BIN = process.env.PIXEL_AGENTS_BIN || '/usr/bin/pixel-agents';
   if (!fs.existsSync(BIN)) { console.error(`✗ không có ${BIN} (deploy.sh cài pixel-agents)`); process.exit(1); }
-  const con = []; const dung = (ma) => { for (const c of con) c.kill('SIGTERM'); process.exit(ma); };
-  for (const v of vanPhongCacPhong()) {
-    fs.mkdirSync(v.home, { recursive: true }); const env = { ...process.env, HOME: v.home };
+  const con = [], cong = {};   // cong: phòng → cổng pixel-agents của phòng đó (bộ điều phối đọc)
+  const dung = (ma) => { for (const c of con) c.kill('SIGTERM'); process.exit(ma); };
+  const congTrong = () => new Promise((ok, fail) => { const s = net.createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => ok(p)); }); s.on('error', fail); });
+  async function moVanPhong(v) {
+    const p = await congTrong(), env = { ...process.env, HOME: v.home };
+    // server.json cũ ghi cổng + token LẦN TRƯỚC (cổng giờ tự xin, đổi mỗi lần) → xoá để vpBao / script bơm không gõ nhầm cửa
+    fs.mkdirSync(v.home, { recursive: true }); fs.rmSync(path.join(v.home, '.pixel-agents', 'server.json'), { force: true });
     execFileSync(process.execPath, [SELF, '--config'], { env, stdio: 'inherit' });
-    const c = spawn(BIN, ['--host', '127.0.0.1', '--port', String(v.cong)], { env, stdio: 'inherit' }); con.push(c);
-    c.on('exit', (ma) => { console.error(`✗ văn phòng ${v.phong} (:${v.cong}) thoát mã ${ma} → dừng cả nhóm`); dung(1); });
+    const c = spawn(BIN, ['--host', '127.0.0.1', '--port', String(p)], { env, stdio: 'inherit' }); con.push(c); cong[v.phong] = p;
+    c.on('exit', (ma) => { console.error(`✗ văn phòng ${v.phong} (:${p}) thoát mã ${ma} → dừng cả nhóm`); dung(1); });
     setTimeout(() => spawn(process.execPath, [SELF, '--phong', v.phong], { env, stdio: 'inherit' }), 5000);   // bơm sau khi server lên (script tự chờ thêm)
-    console.log(`văn phòng ${v.phong} → :${v.cong} (HOME ${v.home})`);
+    console.log(`văn phòng ${v.phong} → :${p} (HOME ${v.home})`);
   }
+  let dangQuet = false;
+  const quet = async () => { if (dangQuet) return; dangQuet = true; try { for (const v of vanPhongCacPhong()) if (!cong[v.phong]) await moVanPhong(v); } finally { dangQuet = false; } };
+  const dp = dieuPhoi(cong);
+  dp.on('error', (e) => { console.error(`✗ bộ điều phối :${CONG_DIEU_PHOI}: ${e.message}`); dung(1); });
+  dp.listen(CONG_DIEU_PHOI, '127.0.0.1', () => console.log(`bộ điều phối văn phòng → :${CONG_DIEU_PHOI}`));
+  await quet();
+  setInterval(() => quet().catch((e) => console.error(`quét phòng mới: ${e.message}`)), 60_000);
   for (const s of ['SIGTERM', 'SIGINT']) process.on(s, () => dung(0));
   await new Promise(() => {});   // giữ tiến trình (systemd theo dõi)
 }

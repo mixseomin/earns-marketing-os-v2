@@ -15,7 +15,6 @@ du_an: [puzzle-books]
 the_lien_quan: [mint-almanac]   # card plays của dự án này chỉ lấy card nhắc nền của sổ phòng (KDP/Etsy/Gumroad): bộ sách coin, không lấy 20 card backlink của site
 tai_khoan_them: [503, 504]   # tài khoản phòng dùng mà vault chưa gắn dự án puzzle-books: Pinterest #503, Gumroad store #504 frontporchpuzzles
 so_san_pham: [etsy:FrontPorchZ, kdp:htuan82, gumroad:frontporchpuzzles]   # sổ sản phẩm MOS2 (Directus products) phòng đọc → tab Dây chuyền (worker/sach.mjs)
-van_phong_cong: 3864   # văn phòng pixel riêng ở cty.on.tc/vp/sach/ (trình chạy mos2-vp-thu.service; map ở deploy/nginx-cty.conf)
 trang_thai: đang chạy · máy theo lịch (iMac + MacBook) · nhân sự AI chưa bật
 ---
 ## Một tuần mẫu

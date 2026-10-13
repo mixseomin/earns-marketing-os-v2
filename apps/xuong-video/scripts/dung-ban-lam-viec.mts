@@ -8,6 +8,8 @@
 //   --dot=do_vat    đồ vật trên bàn thành anchor đạo cụ: ảnh gốc + 1 biến thể góc thấp tầm mắt nhân vật
 //   --dot=nhan_vat  dàn nhân vật (Tango, Lint, Clicky, Mr. Wipe, Cordy, Sticky): anchor + tiểu sử + character sheet
 //                   (chạy lại không tốn tiền: chỉ cập nhật ngoại hình + tiểu sử; --chon=<phuong_an> --chi=<tên>: gắn ảnh thử đã chọn làm sheet)
+//   --dot=dac_trung đạo cụ đặc trưng (món yêu/ghét) + bàn tay Gã khổng lồ
+//   --dot=logo      khung tên 'Tango & Lint' (model vẽ chữ, ~$0.13)
 //   --dot=bo_anh_that  gỡ ảnh gốc của anh khỏi mọi anchor (vào thùng rác) — anh không cho dùng ảnh gốc
 //   --chi=Tên A,Tên B --lai: chỉ sinh lại mấy mục này
 // cd apps/xuong-video && DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/dung-ban-lam-viec.mts <ảnh-bàn.jpg …>
@@ -29,6 +31,7 @@ const KINH_THANH = {
   phong_cach: PHONG_CACH, ti_le: '9:16', ngon_ngu: 'en', the_loai: 'hoat_hinh', do_phan_giai: '720p',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_chu: 'claude-opus-5-5', mo_hinh_video: 'fal:fal-ai/veo3.1/lite/image-to-video',
   logline: 'Tango, a reckless lump of living orange clay, and Lint, a timid dust bunny, turn a busy home-office desk into a world of wordless adventures — while Mr. Wipe the cleaning cloth tries to wipe them away.',
+  khong_loi: true, nhip_stop_motion: true,
   series: { ten: 'Tango & Lint', dong_co: '', khan_gia: 'mọi lứa tuổi, toàn cầu — phim không lời', dinh_dang: 'Shorts 9:16, 40–60 giây/tập, hài hành động không lời kiểu Larva', tap: [] },
 };
 /** DÀN NHÂN VẬT (anh chốt 14/10/2026). mo_ta = đặc tính NHÌN THẤY (vào prompt hình); tieu_su = kiểu Marvel (nguồn gốc, sức mạnh, điểm yếu…)
@@ -47,6 +50,7 @@ Hair: the single curly strand on his head is exactly where the spark struck — 
 Loves (signature): gummy bears — he hugs them, hoards them and chases one in almost every episode.
 Hates: water drops — one drip from the Giant's cold drink sends him running.
 Quirk: he presses his thumbprint on everything he is proud of, like signing his name.
+Signature move: every time he wins he dances a dramatic little TANGO — head snap, sharp turns, a dip — with a gummy bear (or a very surprised Sticky) as his partner. It is how every good episode ends.
 Secret: when he gets scared he leaves tiny orange crumbs behind — a trail his enemies can follow.` },
   { ten: 'Lint', phuong_an: 'bui_long',
     mo_ta: 'A small fluffy dust-bunny creature made of soft GREY felt and fuzz, about 5 cm tall, a round puffball body with wispy fibres sticking out, two big round shiny black eyes, tiny felt feet poking out underneath, no arms, and ONE bright blue thread poking out of the fuzz on top of his head.',
@@ -162,12 +166,32 @@ const DO_VAT: { ten: string; mo_ta: string }[] = [
   { ten: 'Loa cầu đen', mo_ta: 'a small round black fabric smart speaker, like a little dark sphere' },
   { ten: 'Chồng tạp chí', mo_ta: 'a pile of magazines and books with colorful spines' },
 ];
+/** ĐẠO CỤ ĐẶC TRƯNG (món yêu/ghét của nhân vật — phải giống hệt nhau mọi tập thì mới thành thương hiệu, như bánh rán của Doraemon). */
+const DAC_TRUNG: { ten: string; mo_ta: string }[] = [
+  { ten: 'Kẹo gấu dẻo', mo_ta: 'a single translucent RED gummy bear candy, glossy and squishy, about as tall as Tango — Tango\'s favourite thing in the world' },
+  { ten: 'Bông gòn', mo_ta: 'a single fluffy white cotton ball, soft and round, a little bigger than Lint — Lint\'s teddy and pillow' },
+  { ten: 'Pin AA', mo_ta: 'a new AA battery with a copper-coloured top and a black body, lying on its side — Clicky\'s favourite treat' },
+  { ten: 'Chai xịt xanh', mo_ta: 'a small blue plastic spray bottle of screen-cleaner with a white trigger nozzle — Mr. Wipe\'s beloved bottle' },
+  { ten: 'Bút dạ quang', mo_ta: 'a bright pink highlighter pen with a clear cap — Sticky\'s make-up' },
+  { ten: 'Cây kéo', mo_ta: 'a pair of silver office scissors with black handles, lying open on the desk like a giant metal beast — what Cordy fears most' },
+  { ten: 'Hũ đất sét', mo_ta: 'a small round plastic tub of modelling clay with an orange lid, half open — the prison Tango fears being shut back inside' },
+  { ten: 'Cốc cà phê', mo_ta: 'the Giant\'s big white ceramic coffee mug with a brown coffee ring on the desk beside it, steam rising — a hot lake for the tiny characters' },
+];
+/** Gã khổng lồ (chủ bàn): KHÔNG BAO GIỜ thấy mặt — chỉ bàn tay trong ống tay áo len xanh (cùng màu sợi chỉ giữ Lint sống). Mô tả có
+ *  "human hand" → xưởng không cấm bàn tay trong shot có anchor này (kieu.ts › laTayNguoi). */
+const GA_KHONG_LO = { ten: 'The Giant', mo_ta: 'The Giant (the desk owner): only ever seen as a huge adult human hand coming down from above, wearing a chunky BLUE knitted sweater sleeve with one loose blue thread at the cuff; the face is never shown.',
+  tieu_su: `Origin: the human who owns the desk. To the tiny characters he is a force of nature — his hands are earthquakes, his coffee cup is a hot lake, his typing is thunder.
+Personality: kind but oblivious — he never notices the little world living on his desk (or does he?).
+Power: he can move anything, switch the lamp-sun on and off, and clean the whole desk in seconds.
+Weakness: he is always busy, distracted and in a hurry.
+Wants: to get his work done.
+Secret: the blue thread that keeps Lint alive came from his favourite sweater — and the note on Sticky's back is in his handwriting.` };
 const GOC_THAP = 'seen from ground level by a 5 cm tall character standing on the desk: the object towers like a giant structure, macro lens, shallow depth of field';
 
 const db = getDb()!;
 const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as Row[];
 const lai = process.argv.includes('--lai');
-const dot = (process.argv.find((x) => x.startsWith('--dot='))?.slice(6) ?? 'boi_canh') as 'boi_canh' | 'bien_the' | 'do_vat' | 'bo_anh_that' | 'nhan_vat';
+const dot = (process.argv.find((x) => x.startsWith('--dot='))?.slice(6) ?? 'boi_canh') as 'boi_canh' | 'bien_the' | 'do_vat' | 'bo_anh_that' | 'nhan_vat' | 'dac_trung' | 'logo';
 const tep = process.argv.slice(2).filter((x) => !x.startsWith('--'));
 /** --chi=Tên A,Tên B: chỉ sinh lại các bối cảnh / đồ vật này (kèm --lai). */
 const chi = process.argv.find((x) => x.startsWith('--chi='))?.slice(6).split(',').map((x) => x.trim()).filter(Boolean) ?? null;
@@ -177,7 +201,7 @@ async function theoDot<T>(ds: T[], f: (x: T) => Promise<void>, cung = 5) { for (
 const anhRa = (u: string) => !u.includes('/ref/');   // ảnh đã sinh (ảnh thật nằm ở xuong-video/ref/)
 
 let phim = (await q(sql`SELECT id FROM xv_phim WHERE ten = ${TEN_PHIM} OR ten = ${TEN_CU[0]} ORDER BY id LIMIT 1`))[0];
-if (phim) await q(sql`UPDATE xv_phim SET ten = ${TEN_PHIM}, kinh_thanh = kinh_thanh || ${JSON.stringify({ logline: KINH_THANH.logline, series: KINH_THANH.series })}::jsonb, updated_at = now() WHERE id = ${Number(phim.id)} AND ten <> ${TEN_PHIM}`);
+if (phim) await q(sql`UPDATE xv_phim SET ten = ${TEN_PHIM}, kinh_thanh = kinh_thanh || ${JSON.stringify({ logline: KINH_THANH.logline, khong_loi: true, nhip_stop_motion: true, series: { ...KINH_THANH.series, ...((await q(sql`SELECT kinh_thanh->'series' AS s FROM xv_phim WHERE id = ${Number(phim.id)}`))[0]?.s as object ?? {}) } })}::jsonb, updated_at = now() WHERE id = ${Number(phim.id)}`);   // giữ series đã viết (dong_co, tap) nếu có
 if (!phim) {
   phim = (await q(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh, trang_thai) VALUES ('studio', ${TEN_PHIM}, 'short',
     'Phim không lời kiểu stop-motion: nhân vật tí hon sống trên bàn làm việc thật, mỗi tập một câu chuyện đủ tình tiết với đồ vật trên bàn.', ${JSON.stringify(KINH_THANH)}::jsonb, 'nhap') RETURNING id`))[0]!;
@@ -196,7 +220,7 @@ if (!anhThat.length && dot === 'boi_canh' && !lai) { console.error('cần đư�
 
 const ra: { ten: string; url: string | null; loi?: string }[] = [];
 /** Sinh một ảnh gốc cho anchor (job gắn nhan_vat_id → hoanTatAnh đưa ảnh lên ĐẦU anh_ref, ảnh thật giữ sau). */
-async function anhGoc(loai: 'boi_canh' | 'dao_cu', ten: string, mo_ta: string, prompt: string) {
+async function anhGoc(loai: 'boi_canh' | 'dao_cu' | 'nhan_vat', ten: string, mo_ta: string, prompt: string) {
   let v = (await q(sql`SELECT id, anh_ref FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = ${loai} AND ten = ${ten} LIMIT 1`))[0];
   if (!v) v = (await q(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, anh_ref) VALUES (${phimId}, ${loai}, ${ten}, ${mo_ta}, ${JSON.stringify(loai === 'boi_canh' ? anhThat : [])}::jsonb) RETURNING id, anh_ref`))[0]!;
   if (((v.anh_ref as string[]) ?? []).some(anhRa) && !lai) { ra.push({ ten, url: null, loi: 'đã có ảnh — bỏ qua' }); return; }
@@ -268,5 +292,28 @@ if (dot === 'nhan_vat') await theoDot(trong(NHAN_VAT), async (n) => {
   if (kq.ok) for (const c of sheetCu) await boAnhVaoThungRac(db, 'anh_goc', Number(v.id), c, 'claude (script sinh lại sheet)');
   ra.push({ ten: n.ten, url: kq.ok ? kq.url : null, ...(kq.ok ? {} : { loi: kq.loi }) });
 });
+if (dot === 'dac_trung') {
+  // Tham chiếu = ảnh bối cảnh đã sinh (không dùng ảnh gốc của anh).
+  anhThat = [];
+  for (const ten of ['Toàn cảnh bàn', 'Bãi chuột']) {
+    const u = (((await q(sql`SELECT anh_ref FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = 'boi_canh' AND ten = ${ten} LIMIT 1`))[0]?.anh_ref as string[]) ?? []).find(anhRa);
+    if (u) anhThat.push(u);
+  }
+  await theoDot(trong(DAC_TRUNG), (d) => anhGoc('dao_cu', d.ten, d.mo_ta, `Prop reference shot for a miniature stop-motion film: ${d.mo_ta}. Shown on the same warm wooden desk as in the reference images, at a tiny character's eye level with a macro lens, centered, shallow depth of field, no characters, no hands. Every screen shows only a plain smooth gradient glow. Visual style: ${PHONG_CACH}.`));
+  if (!chi || chi.includes(GA_KHONG_LO.ten)) {
+    await anhGoc('nhan_vat', GA_KHONG_LO.ten, GA_KHONG_LO.mo_ta, `Reference shot for a miniature stop-motion film: ${GA_KHONG_LO.mo_ta} The giant hand reaches down from the top of the frame onto the warm wooden desk from the reference images, seen from a tiny character's eye level so the hand looks enormous; only the hand and sleeve, never a face or body. Visual style: ${PHONG_CACH}.`);
+    await q(sql`UPDATE xv_nhan_vat SET tieu_su = ${GA_KHONG_LO.tieu_su} WHERE phim_id = ${phimId} AND loai = 'nhan_vat' AND ten = ${GA_KHONG_LO.ten}`);
+  }
+}
+// LOGO: khung tên series bằng chữ đất sét cam + chữ nỉ xám, Tango + Lint đứng cạnh (sheet của hai đứa làm tham chiếu). Model vẽ chữ tốt nhất.
+if (dot === 'logo') {
+  const sheet = async (ten: string) => (((await q(sql`SELECT anh_ref FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = 'nhan_vat' AND ten = ${ten} LIMIT 1`))[0]?.anh_ref as string[]) ?? [])[0];
+  const ref = (await Promise.all(['Tango', 'Lint'].map(sheet))).filter((u): u is string => !!u);
+  const prompt = `Title card / logo for the animated series "Tango & Lint": the words "Tango & Lint" spelled EXACTLY, sculpted in 3D — "Tango" in soft matte ORANGE modelling clay letters with fingerprint texture, "&" as a curly clay spring, "Lint" in fluffy GREY felt letters — standing on a warm wooden desk with soft bokeh lights behind. The two characters from the reference sheets stand beside the title: the orange clay blob Tango (one curly hair strand on top) striking a dramatic tango pose, and the grey fuzzy dust bunny Lint (one blue thread on top) peeking shyly from behind the letters. Handmade stop-motion look, cozy warm light, macro lens. The title is the ONLY text in the image.`;
+  const job = await taoJob(db, { phim_id: phimId, nhan: 'Logo · Tango & Lint', loai: 'anh', provider: 'google', model: 'gemini-3-pro-image', request: { dich: 'logo', prompt, thamChieuUrl: ref } });
+  const kq = await chayViecAnh({ job, model: 'gemini-3-pro-image', prompt, thamChieuUrl: ref, tiLe: '16:9', thuMuc: `logo/${phimId}` });
+  await hoanTatAnh(kq);
+  ra.push({ ten: 'Logo', url: kq.ok ? kq.url : null, ...(kq.ok ? {} : { loi: kq.loi }) });
+}
 console.log(JSON.stringify({ phimId, dot, xong: ra.filter((x) => x.url).length, ra }));
 process.exit(0);

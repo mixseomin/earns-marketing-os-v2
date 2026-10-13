@@ -69,7 +69,7 @@ function client(): Anthropic | null {
 
 function taAnchor(nv: NhanVat[]): string {
   if (!nv.length) return '(chưa khai anchor nào — tự đặt tên nhân vật/bối cảnh và tả cố định, dùng cùng một mô tả ở mọi cảnh)';
-  return nv.map((a) => `- [${a.loai}] ${a.ten}: ${a.mo_ta || '(chưa mô tả)'}${a.giong ? ` · giọng: ${a.giong}` : ''}${a.bien_the?.length ? `\n    biến thể: ${a.bien_the.map((b) => `"${a.ten} · ${b.ten}" (${b.nhom}: ${b.mo_ta.slice(0, 80)})`).join('; ')}` : ''}`).join('\n');
+  return nv.map((a) => `- [${a.loai}] ${a.ten}: ${a.mo_ta || '(chưa mô tả)'}${a.giong ? ` · giọng: ${a.giong}` : ''}${a.tieu_su?.trim() ? `\n    tiểu sử (tính cách, sức mạnh, điểm yếu, mong muốn — hành động trong cảnh phải đúng với nó): ${a.tieu_su.trim().replace(/\s*\n\s*/g, ' · ')}` : ''}${a.bien_the?.length ? `\n    biến thể: ${a.bien_the.map((b) => `"${a.ten} · ${b.ten}" (${b.nhom}: ${b.mo_ta.slice(0, 80)})`).join('; ')}` : ''}`).join('\n');
 }
 
 /** Lỗi gọi Claude → câu đọc được, MỘT chỗ cho mọi lượt. messages.parse NÉM khi JSON không đọc được — thường vì chạm max_tokens nên câu trả

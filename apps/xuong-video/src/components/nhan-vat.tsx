@@ -88,7 +88,7 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
                 {soDang > 0 && <DangSinh chu={`${soDang} ảnh`} />}
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}><strong style={{ fontSize: 12 }}>{v.ten}</strong><Pill color="var(--fg-3)">{LOAI_NHAN_VAT.find((l) => l.key === v.loai)?.label ?? v.loai}</Pill></div>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}><strong style={{ fontSize: 12 }}>{v.ten}</strong><Pill color="var(--fg-3)">{LOAI_NHAN_VAT.find((l) => l.key === v.loai)?.label ?? v.loai}</Pill>{!!v.tieu_su?.trim() && <button type="button" className="xv-lienket" style={{ fontSize: 12 }} title={`Tiểu sử — bấm để sửa:\n${v.tieu_su}`} onClick={() => setSua(v)}>📖</button>}</div>
                 <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 2, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={v.mo_ta}>{v.mo_ta || <em style={{ color: 'var(--fg-4)' }}>chưa mô tả</em>}</div>
                 <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
                   <button type="button" className="xv-btn" onClick={() => setSua(v)}>Sửa</button>
@@ -246,7 +246,7 @@ export function BienTheThe({ b, ly, dang, loiAnh, ban, chay }: { b: BienThe; ly:
 }
 
 export function NhanVatForm({ phimId, goc, onClose, onSaved }: { phimId: number; goc: Partial<NhanVat>; onClose: () => void; onSaved: () => Promise<void> }) {
-  const [f, setF] = useState({ loai: (goc.loai ?? 'nhan_vat') as LoaiNhanVat, ten: goc.ten ?? '', mo_ta: goc.mo_ta ?? '', anh_ref: goc.anh_ref ?? [], giong: goc.giong ?? '' });
+  const [f, setF] = useState({ loai: (goc.loai ?? 'nhan_vat') as LoaiNhanVat, ten: goc.ten ?? '', mo_ta: goc.mo_ta ?? '', anh_ref: goc.anh_ref ?? [], giong: goc.giong ?? '', tieu_su: goc.tieu_su ?? '' });
   const [loi, setLoi] = useState('');
   const [luu, setLuu] = useState(false);
   const [ai, setAi] = useState(false);
@@ -259,6 +259,9 @@ export function NhanVatForm({ phimId, goc, onClose, onSaved }: { phimId: number;
         <textarea className="xv-ta" rows={5} value={f.mo_ta} onChange={(e) => setF({ ...f, mo_ta: e.target.value })} placeholder="Rùa con 8 tuổi, mai xanh rêu có vân lục giác, mắt to nâu, đeo khăn quàng đỏ, tính điềm tĩnh, đi chậm nhưng chắc…" />
         <div style={{ marginTop: 4 }}><Nut ly={!f.ten.trim() && 'đặt tên trước'} ban={ai} title="Claude đọc phong cách + các anchor khác của phim → tả đặc tính khớp, không đụng nhân vật đã có" onClick={() => void goiY()}>{ai ? '… AI đang tả' : '✨ AI tả đặc tính (theo phong cách + tuyến đã có)'}</Nut></div>
       </O>
+      {f.loai === 'nhan_vat' && <O label="Tiểu sử" hint="Nguồn gốc · tính cách · sức mạnh · điểm yếu · mong muốn · nỗi sợ · quan hệ · bí mật. Không vào prompt hình — Claude đọc khi viết kịch bản để nhân vật hành động đúng mình; làm nền cho tập phim về chính nhân vật.">
+        <textarea className="xv-ta" rows={6} value={f.tieu_su} onChange={(e) => setF({ ...f, tieu_su: e.target.value })} placeholder={'Origin: …\nPersonality: …\nPower: …\nWeakness: …\nWants: …\nFears: …\nRelationships: …\nSecret: …'} />
+      </O>}
       {f.loai === 'nhan_vat' && <O label="Giọng (cho lồng tiếng sau này)"><input className="xv-in" value={f.giong} onChange={(e) => setF({ ...f, giong: e.target.value })} placeholder="giọng trẻ con ấm, chậm rãi" /></O>}
       <O label={f.loai === 'san_pham' ? 'Ảnh sản phẩm THẬT (quảng cáo phải đúng hàng) — dán Ctrl+V, nút Dán (điện thoại), kéo thả, chọn file, hoặc URL' : 'Ảnh tham chiếu — dán / kéo thả / file / URL, hoặc lưu rồi bấm “Sinh ảnh gốc”'}>
         <ImageAttach value={f.anh_ref} onChange={(urls) => setF({ ...f, anh_ref: urls })} max={10} nhanBo="Bỏ ảnh khỏi anchor"

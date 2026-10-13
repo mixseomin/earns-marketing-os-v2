@@ -21,8 +21,8 @@ const ketQua = await db.transaction(async (tx) => {
   const phimId = Number(phim.id);
   const doiNv = new Map<number, number>(); const doiBt = new Map<number, number>();
   for (const v of await t(sql`SELECT id FROM xv_nhan_vat WHERE phim_id = ${phimGoc} ORDER BY id`)) {
-    const m = (await t(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, anh_ref, giong, giong_model, giong_id, giong_mau_url, doi_chieu)
-      SELECT ${phimId}, loai, ten, mo_ta, anh_ref, giong, giong_model, giong_id, giong_mau_url, doi_chieu FROM xv_nhan_vat WHERE id = ${Number(v.id)} RETURNING id`))[0]!;
+    const m = (await t(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, tieu_su, anh_ref, giong, giong_model, giong_id, giong_mau_url, doi_chieu)
+      SELECT ${phimId}, loai, ten, mo_ta, tieu_su, anh_ref, giong, giong_model, giong_id, giong_mau_url, doi_chieu FROM xv_nhan_vat WHERE id = ${Number(v.id)} RETURNING id`))[0]!;
     doiNv.set(Number(v.id), Number(m.id));
     for (const b of await t(sql`SELECT id FROM xv_bien_the WHERE nhan_vat_id = ${Number(v.id)} ORDER BY id`)) {
       const mb = (await t(sql`INSERT INTO xv_bien_the (nhan_vat_id, nhom, ten, mo_ta, anh_url) SELECT ${Number(m.id)}, nhom, ten, mo_ta, anh_url FROM xv_bien_the WHERE id = ${Number(b.id)} RETURNING id`))[0]!;

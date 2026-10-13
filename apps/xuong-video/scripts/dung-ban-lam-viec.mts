@@ -69,7 +69,7 @@ const GOC_THAP = 'seen from ground level by a 5 cm tall character standing on th
 const db = getDb()!;
 const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as Row[];
 const lai = process.argv.includes('--lai');
-const dot = (process.argv.find((x) => x.startsWith('--dot='))?.slice(6) ?? 'boi_canh') as 'boi_canh' | 'bien_the' | 'do_vat';
+const dot = (process.argv.find((x) => x.startsWith('--dot='))?.slice(6) ?? 'boi_canh') as 'boi_canh' | 'bien_the' | 'do_vat' | 'bo_anh_that';
 const tep = process.argv.slice(2).filter((x) => !x.startsWith('--'));
 /** --chi=Tên A,Tên B: chỉ sinh lại các bối cảnh / đồ vật này (kèm --lai). */
 const chi = process.argv.find((x) => x.startsWith('--chi='))?.slice(6).split(',').map((x) => x.trim()).filter(Boolean) ?? null;
@@ -93,13 +93,13 @@ for (const t of tep) {
   anhThat.push(u);
 }
 if (!anhThat.length) anhThat = (((await q(sql`SELECT anh_ref FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = 'boi_canh' ORDER BY id LIMIT 1`))[0]?.anh_ref as string[]) ?? []).filter((u) => !anhRa(u));
-if (!anhThat.length) { console.error('cần đường dẫn ảnh bàn thật (lần đầu)'); process.exit(1); }
+if (!anhThat.length && dot === 'boi_canh') { console.error('cần đường dẫn ảnh bàn thật (lần đầu)'); process.exit(1); }
 
 const ra: { ten: string; url: string | null; loi?: string }[] = [];
 /** Sinh một ảnh gốc cho anchor (job gắn nhan_vat_id → hoanTatAnh đưa ảnh lên ĐẦU anh_ref, ảnh thật giữ sau). */
 async function anhGoc(loai: 'boi_canh' | 'dao_cu', ten: string, mo_ta: string, prompt: string) {
   let v = (await q(sql`SELECT id, anh_ref FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = ${loai} AND ten = ${ten} LIMIT 1`))[0];
-  if (!v) v = (await q(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, anh_ref) VALUES (${phimId}, ${loai}, ${ten}, ${mo_ta}, ${JSON.stringify(anhThat)}::jsonb) RETURNING id, anh_ref`))[0]!;
+  if (!v) v = (await q(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, anh_ref) VALUES (${phimId}, ${loai}, ${ten}, ${mo_ta}, ${JSON.stringify(loai === 'boi_canh' ? anhThat : [])}::jsonb) RETURNING id, anh_ref`))[0]!;
   if (((v.anh_ref as string[]) ?? []).some(anhRa) && !lai) { ra.push({ ten, url: null, loi: 'đã có ảnh — bỏ qua' }); return; }
   await q(sql`UPDATE xv_nhan_vat SET mo_ta = ${mo_ta}, updated_at = now() WHERE id = ${Number(v.id)} AND mo_ta <> ${mo_ta}`);   // mô tả trong script là bản đúng
   const job = await taoJob(db, { nhan_vat_id: Number(v.id), nhan: `Ảnh gốc · ${loai === 'boi_canh' ? 'bối cảnh' : 'đồ vật'} ${ten}`, loai: 'anh', provider: 'google', model: KINH_THANH.mo_hinh_anh, request: { prompt, thamChieuUrl: anhThat } });
@@ -127,8 +127,19 @@ async function bienThe(loai: 'boi_canh' | 'dao_cu', tenAnchor: string, nhom: str
 
 if (dot === 'boi_canh') await theoDot(trong(BOI_CANH), (b) => anhGoc('boi_canh', b.ten, b.mo_ta, `Establishing shot of a location for a miniature stop-motion film, no characters. Location: ${b.mo_ta}. ${NHAC}. Visual style: ${PHONG_CACH}.`));
 if (dot === 'bien_the') await theoDot(trong(BOI_CANH).filter((b) => !/ban đêm|sáng sớm/i.test(b.ten)).flatMap((b) => THOI_DIEM.map((t) => ({ b, t }))), ({ b, t }) => bienThe('boi_canh', b.ten, 'thoi_diem', t.ten, t.mo_ta));
+// Anh 14/10/2026: ảnh gốc anh gửi KHÔNG dùng làm ảnh của anchor (màn hình trong ảnh có người thật). Gỡ khỏi mọi anchor → thùng rác 🗑.
+if (dot === 'bo_anh_that') {
+  for (const v of await q(sql`SELECT id, anh_ref FROM xv_nhan_vat WHERE phim_id = ${phimId}`))
+    for (const u of ((v.anh_ref as string[]) ?? []).filter((x) => !anhRa(x))) { await boAnhVaoThungRac(db, 'anh_goc', Number(v.id), u, 'claude (bỏ ảnh gốc theo lời anh)'); ra.push({ ten: `anchor ${v.id}`, url: u }); }
+}
 if (dot === 'do_vat') {
-  await theoDot(trong(DO_VAT), (d) => anhGoc('dao_cu', d.ten, d.mo_ta, `Prop reference shot for a miniature stop-motion film: ${d.mo_ta}, photographed in place on the same warm wooden desk as in the reference photo, centered, macro lens, shallow depth of field, no characters. Keep the object's real shape, color and material exactly as in the reference photo. ${NHAC}. Visual style: ${PHONG_CACH}.`));
+  // Tham chiếu = ảnh bối cảnh ĐÃ SINH (toàn cảnh + bản đồ từ trên xuống), không phải ảnh gốc của anh.
+  anhThat = [];
+  for (const ten of ['Toàn cảnh bàn', 'Bản đồ bàn từ trên xuống']) {
+    const u = (((await q(sql`SELECT anh_ref FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = 'boi_canh' AND ten = ${ten} LIMIT 1`))[0]?.anh_ref as string[]) ?? []).find(anhRa);
+    if (u) anhThat.push(u);
+  }
+  await theoDot(trong(DO_VAT), (d) => anhGoc('dao_cu', d.ten, d.mo_ta, `Prop reference shot for a miniature stop-motion film: ${d.mo_ta}, photographed in place on the same warm wooden desk as in the reference images, centered, macro lens, shallow depth of field, no characters. Keep the object's shape, color and material exactly as it appears in the reference images. ${NHAC}. Visual style: ${PHONG_CACH}.`));
   await theoDot(trong(DO_VAT), (d) => bienThe('dao_cu', d.ten, 'goc_may', 'Góc thấp tầm nhân vật', GOC_THAP));
 }
 console.log(JSON.stringify({ phimId, dot, xong: ra.filter((x) => x.url).length, ra }));

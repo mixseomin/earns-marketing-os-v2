@@ -204,7 +204,10 @@ const TIENG_NGAN_DAU = /(^|[^\p{L}])(?=\p{L}{1,3}(?![\p{L}]))\p{L}*[àáèéìí
 export const coTiengViet = (s: string): boolean => VIET_RIENG.test(s) || TIENG_NGAN_DAU.test(s);
 /** Mọi chữ của một shot (nhãn, góc máy, hành động, âm thanh, phân đoạn, trang phục, prompt, chữ màn, thoại kể cả diễn xuất + người nói). */
 type ShotChu = Pick<Canh, 'thu_tu' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'canh' | 'goc_may' | 'hanh_dong' | 'am_thanh' | 'phan_doan' | 'trang_phuc' | 'prompt_anh' | 'prompt_video'>>;
-const chuShot = (c: ShotChu): string => [c.chu_man, c.canh, c.goc_may, c.hanh_dong, c.am_thanh, c.phan_doan, c.trang_phuc, c.prompt_anh, c.prompt_video,
+/** Chữ của shot ĐI VÀO MODEL hoặc TỚI KHÁN GIẢ: chữ màn, lời + diễn xuất, prompt ảnh/video, trang phục, mô tả âm thanh; hành động chỉ khi
+ *  shot chưa có prompt video (lúc đó hành động thay prompt). Nhãn cảnh, góc máy, phân đoạn là ghi chú nội bộ — luật tách cảnh bảo viết tiếng
+ *  Việt — không tính (14/10/2026: tập 1 Tango & Lint bị chặn keyframe vì chính những ghi chú đó). */
+const chuShot = (c: ShotChu): string => [c.chu_man, c.prompt_video?.trim() ? '' : c.hanh_dong, c.am_thanh, c.trang_phuc, c.prompt_anh, c.prompt_video,
   ...(c.thoai?.length ? c.thoai.flatMap((d) => [d.loi, d.dien_xuat, d.nhan_vat]) : [c.loi_thoai])].filter(Boolean).join(' ');
 /** Những shot còn BẤT KỲ chữ tiếng Việt nào khi phim không phải tiếng Việt (phim 'vi' không kiểm: chữ Anh xen là bình thường). */
 export const shotLechNgonNgu = (ngonNgu: string | undefined, canh: ShotChu[]): number[] =>

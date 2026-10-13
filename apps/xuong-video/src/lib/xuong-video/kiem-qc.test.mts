@@ -101,6 +101,10 @@ console.log('kiem-qc.test: mẫu ok');
   assert.equal(chanChuModel('en', { phongCach: 'Vertical UGC', shot: { ...shot, thoai: [{ nhan_vat: 'Linda', dien_xuat: 'soft laugh', loi: 'So cheap.' }] }, anchor: [{ ten: 'Linda', mo_ta: 'woman, 58' }] }), null);
   assert.equal(chanChuModel('vi', { phongCach: 'UGC dọc' }), null);
   assert.deepEqual(shotLechNgonNgu('en', [{ ...shot, thoai: [], hanh_dong: 'Ông Tom giơ quần' } as never]), [3]);   // hành động tiếng Việt cũng tính
+  // Ghi chú nội bộ (nhãn cảnh, góc máy, phân đoạn) tiếng Việt KHÔNG chặn; hành động tiếng Việt chỉ chặn khi shot chưa có prompt video
+  const sach = { thu_tu: 4, chu_man: '', loi_thoai: '', thoai: [{ nhan_vat: 'Tango', dien_xuat: 'bouncing', loi: 'Hup!' }], canh: 'Cảnh 1 · Kẹo rơi', goc_may: 'Toàn cảnh thấp', phan_doan: 'Viên kẹo rơi xuống', hanh_dong: 'Bàn tay thả viên kẹo', prompt_anh: 'A giant hand drops a red gummy bear', prompt_video: 'The hand drops the gummy bear' };
+  assert.equal(chanChuModel('en', { shot: sach }), null, 'ghi chú nội bộ tiếng Việt không chặn');
+  assert.ok(chanChuModel('en', { shot: { ...sach, prompt_video: '' } })?.includes('shot #4'), 'không có prompt video → hành động tiếng Việt vào model → chặn');
   console.log('kiem-qc.test: cổng model ok');
 }
 // Cảm xúc khán giả phẳng (gần hết shot ở 0) → cờ đỏ; có đường cảm xúc → đạt (phim #5 10/10/2026: 24/25 shot = 0).

@@ -11,6 +11,7 @@
 //   --dot=dac_trung đạo cụ đặc trưng (món yêu/ghét) + bàn tay Gã khổng lồ
 //   --dot=logo      khung tên 'Tango & Lint' (model vẽ chữ, ~$0.13)
 //   --dot=am        bộ âm hiệu 3 âm/nhân vật (ElevenLabs SFX) + nhạc chủ đề tango (CassetteAI) · --chi=Tango,nhac
+//   --dot=doi_ten   (0đ) đổi tên anchor + biến thể tiếng Việt cũ sang tiếng Anh (tên đi vào prompt model hình)
 //   --dot=mua       (0đ) ghi các mùa lên sơ đồ series (mùa 1 + mùa 2 đang lên ý), gắn tập bản đồ hiện có vào mùa 1
 //   --dot=truyen    (TỐN TIỀN, 2 lượt Claude) kinh thánh mùa 1 + bản đồ tập (--so-tap=10) + kịch bản tập 1
 //   --dot=bo_anh_that  gỡ ảnh gốc của anh khỏi mọi anchor (vào thùng rác) — anh không cho dùng ảnh gốc
@@ -129,57 +130,57 @@ Secret: the message on her back is a reminder the Giant wrote — about the day 
 ];
 /** Bối cảnh: tên (hiện trong studio) + mô tả tiếng Anh (vào prompt). Mỗi cái là một "sân chơi" cho gag. */
 const BOI_CANH: { ten: string; mo_ta: string }[] = [
-  { ten: 'Toàn cảnh bàn', mo_ta: 'The whole desk seen from the front edge at tabletop height: the yellow-silver iMac on its stand on the right, the second monitor on its silver stand on the left, the white keyboard and white mouse on the warm wooden desktop, notebooks under the left monitor; the two screens glow softly' },
-  { ten: 'Hẻm núi bàn phím', mo_ta: 'Down inside the white wireless keyboard: rows of white keys rise like a tiny white city or canyon, low angle looking along the gaps between key rows, soft monitor glow reflecting on the key tops' },
-  { ten: 'Gầm chân đế iMac', mo_ta: 'Under and around the curved pale-yellow aluminium iMac stand: the stand arches overhead like a giant gateway, the white power cable snakes across the wooden desk behind it' },
-  { ten: 'Bãi chuột', mo_ta: 'The white Magic Mouse sits on the wooden desk like a smooth white dome or parked vehicle, seen from ground level right next to it, the keyboard edge in soft focus behind' },
-  { ten: 'Rừng dây cáp sau màn hình', mo_ta: 'Behind the monitors: a tangle of white and black cables, the silver USB hub on its orange card, the dark gap between the screens and the wall, cool blue light spilling from the screens above — a jungle of cables' },
-  { ten: 'Núi sổ tay', mo_ta: 'The stack of notebooks and business cards under the left monitor stand seen from below like a layered cliff of paper, the silver monitor stand foot rising beside it' },
-  { ten: 'Vách màn hình phát sáng', mo_ta: 'At the foot of the big iMac screen looking up: the bright screen is a towering wall of glowing light filling the top of the frame, showing only a soft abstract blue gradient, its light washing over the wooden desk' },
-  { ten: 'Vực mép bàn', mo_ta: 'The front edge of the wooden desk seen from the desktop surface: the edge drops away like a cliff into the dim room below, a shelf with books faintly visible far down in the dark' },
-  { ten: 'Đỉnh màn hình iMac', mo_ta: 'Camera placed on the top edge of the thin iMac, level horizon, looking forward and down over the edge at the desk far below — keyboard, mouse, cables and notebooks look tiny like a valley seen from a mountain ridge; the thin aluminium top edge of the iMac fills the bottom of the frame' },
-  { ten: 'Sân đế màn hình trái', mo_ta: 'The flat silver foot of the left monitor stand seen at ground level: a wide smooth metal plaza with the stand column rising like a tower, notebooks stacked beside it' },
-  { ten: 'Khe giữa hai màn hình', mo_ta: 'The narrow gap between the two monitors seen from the desk: two tall glowing walls of light on the left and right, a dark corridor between them leading to the wall behind' },
-  { ten: 'Bến đế cắm', mo_ta: 'Close at ground level beside the silver USB hub resting on its orange card, the white cable plugged into it, like a small silver building on an orange platform' },
-  { ten: 'Đường dây cáp trắng', mo_ta: 'The white iMac cable lying across the wooden desk seen from ground level, curving away into the distance like a white road or river across a wooden plain' },
-  { ten: 'Hang dưới bàn phím', mo_ta: 'Camera on the desk surface looking into the narrow dark gap under the raised back edge of the white keyboard: a low wide cave mouth, the keyboard underside as the cave ceiling, warm light glowing at the far end' },
-  { ten: 'Vách sách mép trái', mo_ta: 'The pile of magazines and books at the far left edge of the desk seen from below like a tall layered cliff of colorful paper spines' },
-  { ten: 'Quả cầu loa đen', mo_ta: 'A small round black smart speaker behind the left monitor seen from ground level like a giant dark planet sitting on the desk, cables around it' },
-  { ten: 'Toàn bàn ban đêm', mo_ta: 'The same desk at night: room dark, only the two screens glow dim blue, the keyboard and mouse catch faint cool light, long soft shadows' },
-  { ten: 'Toàn bàn sáng sớm', mo_ta: 'The same desk early in the morning: screens off and black, warm golden sunlight streaming across the wooden desk from the side, dust specks floating in the light beams' },
-  { ten: 'Trang sổ mở', mo_ta: 'An open paper notebook lying on the desk seen from page level: a wide white field of lined paper, the spiral binding rising like a fence, a pen lying across like a fallen log' },
-  { ten: 'Bản đồ bàn từ trên xuống', mo_ta: 'Top-down view looking straight down at the whole desk like a map: the keyboard, mouse, two monitor stands, cables, notebooks and hub laid out on the warm wooden surface' },
+  { ten: 'The Desk (wide)', mo_ta: 'The whole desk seen from the front edge at tabletop height: the yellow-silver iMac on its stand on the right, the second monitor on its silver stand on the left, the white keyboard and white mouse on the warm wooden desktop, notebooks under the left monitor; the two screens glow softly' },
+  { ten: 'Keyboard Canyon', mo_ta: 'Down inside the white wireless keyboard: rows of white keys rise like a tiny white city or canyon, low angle looking along the gaps between key rows, soft monitor glow reflecting on the key tops' },
+  { ten: 'Under the iMac Arch', mo_ta: 'Under and around the curved pale-yellow aluminium iMac stand: the stand arches overhead like a giant gateway, the white power cable snakes across the wooden desk behind it' },
+  { ten: 'Mouse Landing', mo_ta: 'The white Magic Mouse sits on the wooden desk like a smooth white dome or parked vehicle, seen from ground level right next to it, the keyboard edge in soft focus behind' },
+  { ten: 'Cable Jungle', mo_ta: 'Behind the monitors: a tangle of white and black cables, the silver USB hub on its orange card, the dark gap between the screens and the wall, cool blue light spilling from the screens above — a jungle of cables' },
+  { ten: 'Notebook Cliffs', mo_ta: 'The stack of notebooks and business cards under the left monitor stand seen from below like a layered cliff of paper, the silver monitor stand foot rising beside it' },
+  { ten: 'Glowing Screen Wall', mo_ta: 'At the foot of the big iMac screen looking up: the bright screen is a towering wall of glowing light filling the top of the frame, showing only a soft abstract blue gradient, its light washing over the wooden desk' },
+  { ten: 'Desk Edge Cliff', mo_ta: 'The front edge of the wooden desk seen from the desktop surface: the edge drops away like a cliff into the dim room below, a shelf with books faintly visible far down in the dark' },
+  { ten: 'The Summit (iMac top)', mo_ta: 'Camera placed on the top edge of the thin iMac, level horizon, looking forward and down over the edge at the desk far below — keyboard, mouse, cables and notebooks look tiny like a valley seen from a mountain ridge; the thin aluminium top edge of the iMac fills the bottom of the frame' },
+  { ten: 'Monitor Foot Plaza', mo_ta: 'The flat silver foot of the left monitor stand seen at ground level: a wide smooth metal plaza with the stand column rising like a tower, notebooks stacked beside it' },
+  { ten: 'Between the Screens', mo_ta: 'The narrow gap between the two monitors seen from the desk: two tall glowing walls of light on the left and right, a dark corridor between them leading to the wall behind' },
+  { ten: 'USB Hub Dock', mo_ta: 'Close at ground level beside the silver USB hub resting on its orange card, the white cable plugged into it, like a small silver building on an orange platform' },
+  { ten: 'White Cable Road', mo_ta: 'The white iMac cable lying across the wooden desk seen from ground level, curving away into the distance like a white road or river across a wooden plain' },
+  { ten: 'Keyboard Cave', mo_ta: 'Camera on the desk surface looking into the narrow dark gap under the raised back edge of the white keyboard: a low wide cave mouth, the keyboard underside as the cave ceiling, warm light glowing at the far end' },
+  { ten: 'Magazine Cliff', mo_ta: 'The pile of magazines and books at the far left edge of the desk seen from below like a tall layered cliff of colorful paper spines' },
+  { ten: 'Speaker Planet', mo_ta: 'A small round black smart speaker behind the left monitor seen from ground level like a giant dark planet sitting on the desk, cables around it' },
+  { ten: 'The Desk at Night', mo_ta: 'The same desk at night: room dark, only the two screens glow dim blue, the keyboard and mouse catch faint cool light, long soft shadows' },
+  { ten: 'The Desk at Dawn', mo_ta: 'The same desk early in the morning: screens off and black, warm golden sunlight streaming across the wooden desk from the side, dust specks floating in the light beams' },
+  { ten: 'Open Notebook Field', mo_ta: 'An open paper notebook lying on the desk seen from page level: a wide white field of lined paper, the spiral binding rising like a fence, a pen lying across like a fallen log' },
+  { ten: 'Desk Map (top-down)', mo_ta: 'Top-down view looking straight down at the whole desk like a map: the keyboard, mouse, two monitor stands, cables, notebooks and hub laid out on the warm wooden surface' },
 ];
 const NHAC = 'Real desk reference: keep exactly the same objects, materials, colors and lighting as the real desk in the reference photo. IGNORE and REPLACE whatever the screens show in the reference photo: every screen displays ONLY a plain smooth blue-to-purple gradient glow — no people, no performers, no video thumbnails, no web pages, no app windows, no logos, no text. No people, no hands, no characters anywhere in the frame';
 
 /** Biến thể thời điểm cho mỗi bối cảnh (bối cảnh vốn đã là đêm / sáng sớm thì bỏ qua). */
 const THOI_DIEM: { ten: string; mo_ta: string }[] = [
-  { ten: 'Ban đêm', mo_ta: 'night time: the room is dark, the desk is lit only by the soft blue glow of the screens and a small warm desk lamp, long soft shadows' },
-  { ten: 'Sáng sớm', mo_ta: 'early morning: screens are off and black, warm golden sunlight streams low across the desk from the side, dust specks float in the light beams' },
+  { ten: 'Night', mo_ta: 'night time: the room is dark, the desk is lit only by the soft blue glow of the screens and a small warm desk lamp, long soft shadows' },
+  { ten: 'Dawn', mo_ta: 'early morning: screens are off and black, warm golden sunlight streams low across the desk from the side, dust specks float in the light beams' },
 ];
 /** Đồ vật trên bàn (theo ảnh thật) → anchor đạo cụ; mỗi món một biến thể góc thấp tầm mắt nhân vật. */
 const DO_VAT: { ten: string; mo_ta: string }[] = [
-  { ten: 'Bàn phím trắng', mo_ta: 'the slim white wireless keyboard with white keys and a silver frame' },
-  { ten: 'Chuột Magic Mouse', mo_ta: 'the smooth white wireless Magic Mouse, a low glossy white dome' },
-  { ten: 'iMac vàng', mo_ta: 'the thin pale-yellow all-in-one iMac with a white bezel on its curved pale-yellow aluminium stand' },
-  { ten: 'Màn hình trái', mo_ta: 'the second monitor with a thin black bezel on a silver aluminium stand with a flat square foot' },
-  { ten: 'Chồng sổ tay', mo_ta: 'a small stack of notebooks with business cards on top' },
-  { ten: 'Đế cắm USB', mo_ta: 'the small silver aluminium USB hub, a flat rounded rectangle with ports on its side' },
-  { ten: 'Thẻ cam', mo_ta: 'a flat orange card / card holder lying on the desk' },
-  { ten: 'Dây cáp trắng', mo_ta: 'the long white power cable of the iMac, with a metal plug end' },
-  { ten: 'Loa cầu đen', mo_ta: 'a small round black fabric smart speaker, like a little dark sphere' },
-  { ten: 'Chồng tạp chí', mo_ta: 'a pile of magazines and books with colorful spines' },
+  { ten: 'White Keyboard', mo_ta: 'the slim white wireless keyboard with white keys and a silver frame' },
+  { ten: 'Magic Mouse', mo_ta: 'the smooth white wireless Magic Mouse, a low glossy white dome' },
+  { ten: 'Yellow iMac', mo_ta: 'the thin pale-yellow all-in-one iMac with a white bezel on its curved pale-yellow aluminium stand' },
+  { ten: 'Left Monitor', mo_ta: 'the second monitor with a thin black bezel on a silver aluminium stand with a flat square foot' },
+  { ten: 'Notebook Stack', mo_ta: 'a small stack of notebooks with business cards on top' },
+  { ten: 'USB Hub', mo_ta: 'the small silver aluminium USB hub, a flat rounded rectangle with ports on its side' },
+  { ten: 'Orange Card', mo_ta: 'a flat orange card / card holder lying on the desk' },
+  { ten: 'White Cable', mo_ta: 'the long white power cable of the iMac, with a metal plug end' },
+  { ten: 'Black Speaker', mo_ta: 'a small round black fabric smart speaker, like a little dark sphere' },
+  { ten: 'Magazine Pile', mo_ta: 'a pile of magazines and books with colorful spines' },
 ];
 /** ĐẠO CỤ ĐẶC TRƯNG (món yêu/ghét của nhân vật — phải giống hệt nhau mọi tập thì mới thành thương hiệu, như bánh rán của Doraemon). */
 const DAC_TRUNG: { ten: string; mo_ta: string }[] = [
-  { ten: 'Kẹo gấu dẻo', mo_ta: 'a single translucent RED gummy bear candy, glossy and squishy, about as tall as Tango — Tango\'s favourite thing in the world' },
-  { ten: 'Bông gòn', mo_ta: 'a single fluffy white cotton ball, soft and round, a little bigger than Lint — Lint\'s teddy and pillow' },
-  { ten: 'Pin AA', mo_ta: 'a new AA battery with a copper-coloured top and a black body, lying on its side — Clicky\'s favourite treat' },
-  { ten: 'Chai xịt xanh', mo_ta: 'a small blue plastic spray bottle of screen-cleaner with a white trigger nozzle — Mr. Wipe\'s beloved bottle' },
-  { ten: 'Bút dạ quang', mo_ta: 'a bright pink highlighter pen with a clear cap — Sticky\'s make-up' },
-  { ten: 'Cây kéo', mo_ta: 'a pair of silver office scissors with black handles, lying open on the desk like a giant metal beast — what Cordy fears most' },
-  { ten: 'Hũ đất sét', mo_ta: 'a small round plastic tub of modelling clay with an orange lid, half open — the prison Tango fears being shut back inside' },
-  { ten: 'Cốc cà phê', mo_ta: 'the Giant\'s big white ceramic coffee mug with a brown coffee ring on the desk beside it, steam rising — a hot lake for the tiny characters' },
+  { ten: 'Gummy Bear', mo_ta: 'a single translucent RED gummy bear candy, glossy and squishy, about as tall as Tango — Tango\'s favourite thing in the world' },
+  { ten: 'Cotton Ball', mo_ta: 'a single fluffy white cotton ball, soft and round, a little bigger than Lint — Lint\'s teddy and pillow' },
+  { ten: 'AA Battery', mo_ta: 'a new AA battery with a copper-coloured top and a black body, lying on its side — Clicky\'s favourite treat' },
+  { ten: 'Blue Spray Bottle', mo_ta: 'a small blue plastic spray bottle of screen-cleaner with a white trigger nozzle — Mr. Wipe\'s beloved bottle' },
+  { ten: 'Pink Highlighter', mo_ta: 'a bright pink highlighter pen with a clear cap — Sticky\'s make-up' },
+  { ten: 'Scissors', mo_ta: 'a pair of silver office scissors with black handles, lying open on the desk like a giant metal beast — what Cordy fears most' },
+  { ten: 'Clay Tub', mo_ta: 'a small round plastic tub of modelling clay with an orange lid, half open — the prison Tango fears being shut back inside' },
+  { ten: 'Coffee Mug', mo_ta: 'the Giant\'s big white ceramic coffee mug with a brown coffee ring on the desk beside it, steam rising — a hot lake for the tiny characters' },
 ];
 /** Gã khổng lồ (chủ bàn): KHÔNG BAO GIỜ thấy mặt — chỉ bàn tay trong ống tay áo len xanh (cùng màu sợi chỉ giữ Lint sống). Mô tả có
  *  "human hand" → xưởng không cấm bàn tay trong shot có anchor này (kieu.ts › laTayNguoi). */
@@ -228,12 +229,14 @@ const NHAC_CHU_DE = [
   { ten: 'Chủ đề · 12s (mở / kết tập)', giay: 12, prompt: 'Playful miniature TANGO theme for a wordless stop-motion kids comedy: plucky pizzicato strings, bandoneon accordion, castanets, staccato tango rhythm, a dramatic pause and a cheeky little ending sting. Instrumental, bright, mischievous, memorable melody' },
   { ten: 'Chủ đề · 40s (nền)', giay: 40, prompt: 'Light playful miniature tango underscore for a wordless stop-motion kids comedy: pizzicato strings, soft bandoneon, light castanets, sneaky-curious mood with bouncy staccato rhythm, loopable, instrumental, no vocals' },
 ];
+/** Tên anchor tiếng Việt cũ → tiếng Anh (14/10/2026): tên anchor đi vào prompt model hình, phim tiếng Anh thì tên phải tiếng Anh. --dot=doi_ten (0đ). */
+const DOI_TEN: [string, string][] = [["Bản đồ bàn từ trên xuống", "Desk Map (top-down)"], ["Rừng dây cáp sau màn hình", "Cable Jungle"], ["Vách màn hình phát sáng", "Glowing Screen Wall"], ["Khe giữa hai màn hình", "Between the Screens"], ["Đường dây cáp trắng", "White Cable Road"], ["Sân đế màn hình trái", "Monitor Foot Plaza"], ["Đỉnh màn hình iMac", "The Summit (iMac top)"], ["Hang dưới bàn phím", "Keyboard Cave"], ["Hẻm núi bàn phím", "Keyboard Canyon"], ["Gầm chân đế iMac", "Under the iMac Arch"], ["Vách sách mép trái", "Magazine Cliff"], ["Toàn bàn ban đêm", "The Desk at Night"], ["Toàn bàn sáng sớm", "The Desk at Dawn"], ["Quả cầu loa đen", "Speaker Planet"], ["Toàn cảnh bàn", "The Desk (wide)"], ["Vực mép bàn", "Desk Edge Cliff"], ["Núi sổ tay", "Notebook Cliffs"], ["Trang sổ mở", "Open Notebook Field"], ["Bến đế cắm", "USB Hub Dock"], ["Bãi chuột", "Mouse Landing"], ["Chuột Magic Mouse", "Magic Mouse"], ["Bàn phím trắng", "White Keyboard"], ["Màn hình trái", "Left Monitor"], ["Chồng tạp chí", "Magazine Pile"], ["Chồng sổ tay", "Notebook Stack"], ["Dây cáp trắng", "White Cable"], ["Loa cầu đen", "Black Speaker"], ["Đế cắm USB", "USB Hub"], ["iMac vàng", "Yellow iMac"], ["Thẻ cam", "Orange Card"], ["Kẹo gấu dẻo", "Gummy Bear"], ["Chai xịt xanh", "Blue Spray Bottle"], ["Bút dạ quang", "Pink Highlighter"], ["Hũ đất sét", "Clay Tub"], ["Cốc cà phê", "Coffee Mug"], ["Cây kéo", "Scissors"], ["Bông gòn", "Cotton Ball"], ["Pin AA", "AA Battery"], ["Góc thấp tầm nhân vật", "Character eye-level"], ["Ban đêm", "Night"], ["Sáng sớm", "Dawn"]];
 const GOC_THAP = 'seen from ground level by a 5 cm tall character standing on the desk: the object towers like a giant structure, macro lens, shallow depth of field';
 
 const db = getDb()!;
 const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as Row[];
 const lai = process.argv.includes('--lai');
-const dot = (process.argv.find((x) => x.startsWith('--dot='))?.slice(6) ?? 'boi_canh') as 'boi_canh' | 'bien_the' | 'do_vat' | 'bo_anh_that' | 'nhan_vat' | 'dac_trung' | 'logo' | 'am' | 'truyen' | 'mua';
+const dot = (process.argv.find((x) => x.startsWith('--dot='))?.slice(6) ?? 'boi_canh') as 'boi_canh' | 'bien_the' | 'do_vat' | 'bo_anh_that' | 'nhan_vat' | 'dac_trung' | 'logo' | 'am' | 'truyen' | 'mua' | 'doi_ten';
 const tep = process.argv.slice(2).filter((x) => !x.startsWith('--'));
 /** --chi=Tên A,Tên B: chỉ sinh lại các bối cảnh / đồ vật này (kèm --lai). */
 const chi = process.argv.find((x) => x.startsWith('--chi='))?.slice(6).split(',').map((x) => x.trim()).filter(Boolean) ?? null;
@@ -302,12 +305,12 @@ if (dot === 'bo_anh_that') {
 if (dot === 'do_vat') {
   // Tham chiếu = ảnh bối cảnh ĐÃ SINH (toàn cảnh + bản đồ từ trên xuống), không phải ảnh gốc của anh.
   anhThat = [];
-  for (const ten of ['Toàn cảnh bàn', 'Bản đồ bàn từ trên xuống']) {
+  for (const ten of ['The Desk (wide)', 'Desk Map (top-down)']) {
     const u = (((await q(sql`SELECT anh_ref FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = 'boi_canh' AND ten = ${ten} LIMIT 1`))[0]?.anh_ref as string[]) ?? []).find(anhRa);
     if (u) anhThat.push(u);
   }
   await theoDot(trong(DO_VAT), (d) => anhGoc('dao_cu', d.ten, d.mo_ta, `Prop reference shot for a miniature stop-motion film: ${d.mo_ta}, photographed in place on the same warm wooden desk as in the reference images, centered, macro lens, shallow depth of field, no characters. Keep the object's shape, color and material exactly as it appears in the reference images. ${NHAC}. Visual style: ${PHONG_CACH}.`));
-  await theoDot(trong(DO_VAT), (d) => bienThe('dao_cu', d.ten, 'goc_may', 'Góc thấp tầm nhân vật', GOC_THAP));
+  await theoDot(trong(DO_VAT), (d) => bienThe('dao_cu', d.ten, 'goc_may', 'Character eye-level', GOC_THAP));
 }
 // Dàn nhân vật: anchor 'nhan_vat' (tên + đặc tính + tiểu sử) + character sheet, ảnh thử của phương án làm tham chiếu tạo hình.
 if (dot === 'nhan_vat') await theoDot(trong(NHAN_VAT), async (n) => {
@@ -339,7 +342,7 @@ if (dot === 'nhan_vat') await theoDot(trong(NHAN_VAT), async (n) => {
 if (dot === 'dac_trung') {
   // Tham chiếu = ảnh bối cảnh đã sinh (không dùng ảnh gốc của anh).
   anhThat = [];
-  for (const ten of ['Toàn cảnh bàn', 'Bãi chuột']) {
+  for (const ten of ['The Desk (wide)', 'Mouse Landing']) {
     const u = (((await q(sql`SELECT anh_ref FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = 'boi_canh' AND ten = ${ten} LIMIT 1`))[0]?.anh_ref as string[]) ?? []).find(anhRa);
     if (u) anhThat.push(u);
   }
@@ -393,6 +396,13 @@ const MUA = [
   { so: 2, ten: 'Season 2', ghi_chu: 'Đang lên ý · gài từ mùa 1: lần ĐẦU Tango nhảy tango; ai đã đọc được dòng chữ sau lưng Sticky; Mr. Wipe giữ hạt bụi (hoàn lương?); tia lửa của Cordy có lặp lại không.' },
 ];
 const YEU_CAU_MUA = 'Phim KHÔNG LỜI, mỗi tập 40-60 giây (Shorts 9:16). Tango biết nhảy tango nhưng KHÔNG BAO GIỜ nhảy trong mùa 1 (chỉ được gợi rất nhẹ, vd chân gõ nhịp rồi tự dừng) — dành cho mùa sau. Tập cuối mùa là NGÀY DỌN BÀN: dòng chữ sau lưng Sticky là lời nhắc của Gã khổng lồ về ngày dọn bàn. Tập 1 phải giới thiệu Tango và Lint gặp nhau và cho thấy ngay món yêu (kẹo gấu) + kẻ thù (Mr. Wipe).';
+if (dot === 'doi_ten') {
+  for (const [cu, moi] of DOI_TEN) {
+    const r = await q(sql`UPDATE xv_nhan_vat SET ten = ${moi}, updated_at = now() WHERE phim_id = ${phimId} AND ten = ${cu} RETURNING id`);
+    const b = await q(sql`UPDATE xv_bien_the b SET ten = ${moi}, updated_at = now() FROM xv_nhan_vat v WHERE v.id = b.nhan_vat_id AND v.phim_id = ${phimId} AND b.ten = ${cu} RETURNING b.id`);
+    if (r.length || b.length) ra.push({ ten: `${cu} → ${moi}`, url: `${r.length} anchor · ${b.length} biến thể` });
+  }
+}
 if (dot === 'mua') {
   const tapCu = ((((await q(sql`SELECT kinh_thanh->'series'->'tap' AS t FROM xv_phim WHERE id = ${phimId}`))[0]?.t) as { mua?: number }[]) ?? []);
   await q(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(kinh_thanh, '{series}', coalesce(kinh_thanh->'series', '{}'::jsonb) || ${JSON.stringify({ mua: MUA, tap: tapCu.map((t) => ({ ...t, mua: t.mua ?? 1 })) })}::jsonb), updated_at = now() WHERE id = ${phimId}`);

@@ -50,7 +50,7 @@ Hair: the single curly strand on his head is exactly where the spark struck — 
 Loves (signature): gummy bears — he hugs them, hoards them and chases one in almost every episode.
 Hates: water drops — one drip from the Giant's cold drink sends him running.
 Quirk: he presses his thumbprint on everything he is proud of, like signing his name.
-Signature move: every time he wins he dances a dramatic little TANGO — head snap, sharp turns, a dip — with a gummy bear (or a very surprised Sticky) as his partner. It is how every good episode ends.
+Secret talent: he knows how to dance a dramatic TANGO — head snap, sharp turns, a dip — but he NEVER dances in Season 1. Nobody on the desk knows he can. (Season 1 may only hint at it: a tapping foot, a twitch of rhythm he stops himself. The first real dance is saved for a big payoff in a later season.)
 Secret: when he gets scared he leaves tiny orange crumbs behind — a trail his enemies can follow.` },
   { ten: 'Lint', phuong_an: 'bui_long',
     mo_ta: 'A small fluffy dust-bunny creature made of soft GREY felt and fuzz, about 5 cm tall, a round puffball body with wispy fibres sticking out, two big round shiny black eyes, tiny felt feet poking out underneath, no arms, and ONE bright blue thread poking out of the fuzz on top of his head.',
@@ -274,7 +274,9 @@ if (dot === 'nhan_vat') await theoDot(trong(NHAN_VAT), async (n) => {
   let v = (await q(sql`SELECT id, anh_ref FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = 'nhan_vat' AND ten = ${n.ten} LIMIT 1`))[0];
   if (!v) v = (await q(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, tieu_su, anh_ref) VALUES (${phimId}, 'nhan_vat', ${n.ten}, ${n.mo_ta}, ${n.tieu_su}, ${JSON.stringify([thu])}::jsonb) RETURNING id, anh_ref`))[0]!;
   else await q(sql`UPDATE xv_nhan_vat SET mo_ta = ${n.mo_ta}, tieu_su = ${n.tieu_su}, updated_at = now() WHERE id = ${Number(v.id)}`);
-  const sheetCu = ((v.anh_ref as string[]) ?? []).filter((u) => u.includes('/anchor/'));
+  // Sheet hiện có = mọi ảnh ĐÃ SINH trừ ảnh thử gốc của phương án (gồm cả ảnh thử đã chọn bằng --chon). Trước đây chỉ đếm /anchor/ → sheet
+  // chọn từ ảnh thử bị coi như chưa có, lượt cập nhật tiểu sử sinh thêm sheet ngoài ý (14/10/2026, $0.034).
+  const sheetCu = ((v.anh_ref as string[]) ?? []).filter((u) => anhRa(u) && u !== thu);
   const chon = process.argv.find((x) => x.startsWith('--chon='))?.slice(7);   // --chon=<phuong_an>: gắn ảnh thử đã chọn làm sheet, không sinh (0đ)
   if (chon) {
     const u = (await q(sql`SELECT output_url FROM xv_job WHERE phim_id = ${phimId} AND request->>'dich' = 'thu_nhan_vat' AND request->>'phuong_an' = ${chon} AND trang_thai = 'xong' ORDER BY id DESC LIMIT 1`))[0]?.output_url as string | undefined;

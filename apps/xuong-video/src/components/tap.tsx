@@ -7,7 +7,7 @@ import { moNgan } from './ngan-chung';
 import { MO_HINH_AM } from '@/lib/xuong-video/am-thanh';
 import { quyTrinh } from '@/lib/xuong-video/quy-trinh';
 import { kiemQc } from '@/lib/xuong-video/kiem-qc';
-import { luuKhuonTap, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, xuatLongTiengVi, trangThaiXuat, khopNhipNhac, khopGiongTapAction } from '@/lib/actions';
+import { luuKhuonTap, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, xuatLongTiengVi, daDangMayTap, trangThaiXuat, khopNhipNhac, khopGiongTapAction } from '@/lib/actions';
 import { thanhPhanCanh, docKinhThanh, giaChuCents, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, coMau, giayMau, banHien, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, TabPhim, KqChay, O, Nut, Loi, Menu, MucMenu, mono, goiAction } from './ui';
@@ -144,6 +144,9 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
               <span style={{ fontSize: 11.5, color: x.ok ? 'var(--lime)' : x.cong ? 'var(--red)' : 'var(--amber)' }}>{x.ok ? '✓' : x.cong ? '🔒' : '○'} {x.ten}{!x.ok && x.cong ? ` — chặn ${x.cong}` : ''}</span>
               {!x.ok && <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{x.thieu.slice(0, 4).join(' · ')}{x.thieu.length > 4 ? ` · +${x.thieu.length - 4}` : ''}</span>}
               {!x.ok && <span style={{ ...mono }}>{x.lam}</span>}
+              {!x.ok && x.key === 'shot_list' && <button type="button" className="xv-btn" style={{ justifySelf: 'start' }} disabled={ban('nhip')}
+                title="Đổi chuyển động máy đúng các shot phạm luật nhịp hình (trùng shot trước / quá nhiều shot máy đứng yên). Không đổi cỡ cảnh. 0đ, ↶ Hoàn tác được."
+                onClick={() => void chay('nhip', async () => { const r = await daDangMayTap(tap.id); await taiCanh(); return r; })}>🎥 Đa dạng chuyển động máy (0đ)</button>}
             </div>
           ))}
         </div>

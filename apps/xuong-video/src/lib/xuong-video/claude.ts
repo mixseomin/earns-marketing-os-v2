@@ -91,7 +91,8 @@ export const LUAT_KE_CHUYEN = `LUẬT KỂ CHUYỆN (người xem xem MỘT lầ
 5. Nhân vật / đạo cụ quan trọng xuất hiện lần đầu phải được giới thiệu (tên hoặc vai trò) — không thả một nhân vật mới vào cảnh kết.
 6. Thoại vừa giây: ~2,5 từ/giây + 0,5 giây thở trước khi cắt; câu dài hơn shot thì tách shot, không nhồi.
 7. Mỗi shot nối shot trước bằng nguyên nhân → kết quả hoặc hướng nhìn (nhân vật nhìn gì thì shot sau cho thấy cái đó); đổi nơi chốn thì có shot toàn cảnh mở.
-8. Kết rõ: người xem nói lại được trong một câu chuyện gì đã xảy ra và bài học / lời hẹn là gì.`;
+8. Kết rõ: người xem nói lại được trong một câu chuyện gì đã xảy ra và bài học / lời hẹn là gì.
+9. Khung hình phải ĐỘNG: mỗi shot một hành động thân thể lớn nhìn thấy rõ (chạy, nhảy, với, ném, ngã, bay, đuổi, giấu…), không chỉ biểu cảm mặt (nheo mắt, lắc đầu, nín thở); hai shot liền nhau không cùng cỡ cảnh + cùng chuyển động máy; tối đa 40% shot máy đứng yên — còn lại đẩy vào, lùi ra, lia, trượt, cẩu theo ý nghĩa cảnh.`;
 const heThong = (loai: LoaiPhim, kt: Required<KinhThanh>) => `Bạn là đạo diễn kiêm storyboard artist cho xưởng video AI. Loại sản phẩm: ${LOAI_PHIM.find((l) => l.key === loai)?.label ?? loai}.
 Phong cách hình ảnh cố định của bộ phim: ${kt.phong_cach || '(chưa đặt, tự chọn một phong cách và giữ nhất quán)'}.
 Khung hình ${kt.ti_le}, mỗi cảnh là MỘT clip video AI dài 4/6/8 giây sinh từ một ảnh keyframe, nên mỗi cảnh chỉ có một hành động chính, một góc máy.

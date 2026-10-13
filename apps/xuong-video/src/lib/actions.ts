@@ -39,7 +39,7 @@ import type { MauPoster } from '@/lib/xuong-video/poster';
 import { batDauVideoCanh, kiemVideoTap } from '@/lib/xuong-video/sinh-video';
 import { nguonShot } from '@/lib/xuong-video/nguon-shot';
 import { khopNhipTap, type KqKhopNhip } from '@/lib/xuong-video/khop-nhip';
-import { khopGiongTap } from '@/lib/xuong-video/hau-ky';
+import { khopGiongTap, daDangMayTapDb } from '@/lib/xuong-video/hau-ky';
 import type { NguonShot } from '@/lib/xuong-video/phu-thuoc';
 import { sinhGiongShots, MODEL_GIONG_MAC_DINH, type TuyGiong } from '@/lib/xuong-video/sinh-giong';
 import { xongJob as xongJobDb, mapJob, jobDangCho, ghiTienChu } from '@/lib/xuong-video/doc-db';
@@ -1167,6 +1167,14 @@ export async function khopNhipNhac(tapId: number): Promise<Kq<KqKhopNhip>> {
   return khopNhipTap(db, tapId, await ai());
 }
 /** Giây phát mỗi shot ≥ đủ đọc hết giọng; chữ màn + lớp phủ theo (hau-ky.ts) — 0đ, ↶ Hoàn tác được. */
+/** 🎥 Đa dạng chuyển động máy (nhip-hinh.ts) — 0đ: đổi chuyển động máy đúng các shot phạm luật nhịp hình, mỗi nhánh hook xét riêng
+ *  (thân chung + nhánh). Chụp trước để ↶ Hoàn tác. */
+export async function daDangMayTap(tapId: number): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  return { ok: true, data: await daDangMayTapDb(db, tapId, await ai()) };
+}
 export async function khopGiongTapAction(tapId: number): Promise<Kq<{ doi: number; tong: number; thieu: number }>> {
   const db = getDb();
   if (!db) return loi('no db');

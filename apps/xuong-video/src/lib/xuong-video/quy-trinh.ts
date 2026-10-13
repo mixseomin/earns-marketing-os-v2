@@ -10,6 +10,7 @@ import { chamKichBan } from './cham-kich-ban';
 import { kiemTieng } from './khop-giong';
 import type { Series, ThuNguoiXem } from './kieu';
 import { chanNguoiXem, TIEN_TO_NGUOI_XEM, TEN_NUT_NGUOI_XEM } from './nguoi-xem';
+import { kiemNhipHinh, TIEN_TO_NHIP_HINH } from './nhip-hinh';
 
 export type Cong = 'keyframe' | 'video' | 'xuat';
 export type NhomQt = 'Tiền kỳ' | 'Sản xuất' | 'Hậu kỳ';
@@ -54,7 +55,7 @@ const chamTap = (tap: TapQt, phim: PhimQt, canh: Pick<Canh, 'phat_s' | 'thoi_luo
  *  hook) cũng chặn keyframe; phim lẻ chỉ hiện điểm trên thanh 🎬 Quy trình. */
 /** canhA = nhánh hook A của tập — bản người xem được kiểm trên nhánh A (kiem-nguoi-xem.ts), nên cổng phải so đúng nhánh đó, kể cả khi đang
  *  sinh shot của nhánh B (truyền canh = nhánh B thì mã phiên bản luôn lệch → chặn oan). Mặc định = canh (tập không có nhánh). */
-export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'thu_tu' | 'hanh_dong'>>)[] = [], canhA = canh): string[] {
+export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'thu_tu' | 'hanh_dong' | 'ky_thuat'>>)[] = [], canhA = canh): string[] {
   const out: string[] = [];
   // Người xem lần đầu phải hiểu câu chuyện trước khi tiêu tiền hình (nguoi-xem.ts) — mọi phim.
   out.push(...chanNguoiXem(tap.thu_nguoi_xem, canhA.map((c, i) => ({ ...c, thu_tu: c.thu_tu ?? i + 1, hanh_dong: c.hanh_dong ?? '' }))));
@@ -65,6 +66,8 @@ export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' 
   else if (!(Math.min(...cx) < 0 && Math.max(...cx) > 0)) out.push('khung truyện phẳng — phải có beat âm (vấn đề/cao trào) và beat dương (giải quyết)');
   if (!tap.phan_canh.length) out.push('chưa có phân cảnh (mục tiêu · xung đột · cảm xúc đầu→cuối)');
   if ((phim.phong_cach ?? '').trim().length < 30) out.push('chưa chốt phong cách hình (style frame: ánh sáng, màu, chất liệu) — mục 1 Kinh thánh');
+  // Nhịp hình (nhip-hinh.ts): shot liền nhau trùng cỡ cảnh + chuyển động máy, quá nhiều shot máy đứng yên — sửa 0đ bằng 🎥 trong thanh 🎬.
+  out.push(...kiemNhipHinh(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, ky_thuat: c.ky_thuat }))));
   return out;
 }
 /** Cổng tiền kỳ cấp SHOT: phân cảnh + mẫu bối cảnh/đối tượng + ảnh mẫu + ngôn ngữ máy (cỡ cảnh). */
@@ -107,7 +110,7 @@ export function quyTrinh(o: { tap: TapQt; phim: PhimQt; canh: ShotQt[]; nhanVat:
     m('phong_cach', 'Tiền kỳ', 'Phong cách hình', tk.filter((x) => x.includes('phong cách')), 'keyframe', 'Mục 1 Kinh thánh: ánh sáng, bảng màu, chất liệu, ống kính chủ đạo.'),
     m('mau_doi_tuong', 'Tiền kỳ', 'Mẫu nhân vật / sản phẩm', [...nhanVat.filter((v) => v.loai !== 'boi_canh' && v.loai !== 'phong_cach' && (!v.mo_ta.trim() || !v.anh_ref.length)).map((v) => `${v.ten}: ${!v.mo_ta.trim() ? 'chưa tả' : 'chưa có ảnh mẫu'}`), ...theoShot((c) => thieuMau(c, nhanVat).filter((x) => x.includes('có trong prompt')), sinh)], 'keyframe', 'Mục 2: tả đặc tính cố định + sinh ảnh mẫu; shot nhắc tên thì gắn mẫu.'),
     m('mau_boi_canh', 'Tiền kỳ', 'Mẫu bối cảnh', [...nhanVat.filter((v) => v.loai === 'boi_canh' && !v.anh_ref.length).map((v) => `${v.ten}: chưa có ảnh mẫu`), ...theoShot((c) => thieuMau(c, nhanVat).filter((x) => !x.includes('có trong prompt')), sinh)], 'keyframe', 'Mục 2: mỗi nơi chốn lặp lại một anchor Bối cảnh có ảnh mẫu; gắn vào shot.'),
-    m('shot_list', 'Tiền kỳ', 'Shot list (cỡ cảnh, máy)', theoShot((c) => (c.ky_thuat?.co_canh ? null : 'chưa chọn cỡ cảnh'), sinh), 'keyframe', 'Mỗi shot: cỡ cảnh + chuyển động máy (nhóm Ngôn ngữ điện ảnh).'),
+    m('shot_list', 'Tiền kỳ', 'Shot list + nhịp hình', [...theoShot((c) => (c.ky_thuat?.co_canh ? null : 'chưa chọn cỡ cảnh'), sinh), ...tk.filter((x) => x.startsWith(TIEN_TO_NHIP_HINH)).map((x) => x.slice(TIEN_TO_NHIP_HINH.length))], 'keyframe', 'Mỗi shot: cỡ cảnh + chuyển động máy; shot liền nhau không trùng cả hai, tối đa 40% shot máy đứng yên. Sửa nhanh: 🎥 Đa dạng chuyển động máy (0đ).'),
     m('keyframe', 'Sản xuất', 'Storyboard (keyframe đã duyệt)', theoShot((c) => (!c.keyframe_url ? 'chưa có keyframe' : c.trang_thai === 'co_keyframe' || c.trang_thai === 'nhap' ? 'chưa duyệt' : null)), 'video', 'Sinh keyframe, xem từng ảnh, ✓ duyệt (hoặc sinh lại).'),
     m('giong', 'Sản xuất', 'Giọng trước video', coGiong ? theoShot((c) => { const n = dongThoai(c, nhanVat).filter((d) => d.loi.trim() && !d.url).length; return n ? `${n} dòng chưa có giọng` : null; }) : [], 'video', 'Sinh giọng cho lời dẫn/thoại TRƯỚC khi sinh clip; giây phát của shot khớp theo giọng.'),
     m('tieng', 'Hậu kỳ', 'Tiếng nghe rõ (máy kiểm)', kiemTieng(canh, nhanVat), 'xuat', 'Máy đo từng câu: không bị cắt khi sang shot, không đè nhau, không đọc quá nhanh, shot đủ dài cho hình diễn. Sinh giọng xong máy tự khớp; còn lỗi thì ⏱ khớp giây theo giọng.'),

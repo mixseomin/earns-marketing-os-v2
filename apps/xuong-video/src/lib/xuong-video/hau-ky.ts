@@ -5,7 +5,7 @@
 import 'server-only';
 import { execFile } from 'node:child_process';
 import { sql } from 'drizzle-orm';
-import { giayPhat, locNhanh, type Canh } from './kieu';
+import { giayPhat, locNhanh, cacNhanh, type Canh } from './kieu';
 import { dongThoai } from './am-thanh';
 import { canPhat, coGianMoc, LOC_GON_GIONG, tocDocTheoLoai, SHOT_TOI_THIEU } from './khop-giong';
 import { docKinhThanh, type KinhThanh } from './kieu';
@@ -16,6 +16,7 @@ import { giayClipCan } from './toc-do';
 import { nhipHanhDong } from './nhip-hanh-dong';
 import { mapCanh, mapTap, mapNhanVat, type Db, type Row } from './doc-db';
 import { chupTruoc } from './hoan-tac';
+import { daDangMay } from './nhip-hinh';
 
 type Kq<T> = { ok: true; data: T } | { ok: false; loi: string };
 const doDai = (url: string) => new Promise<number | null>((ok) => execFile('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', url], { timeout: 30_000 }, (e, ra) => { const g = Number(String(ra).trim()); ok(e || !Number.isFinite(g) ? null : g); }));
@@ -91,4 +92,20 @@ export async function nhipHanhDongTap(db: Db, tapId: number, nguoi: string): Pro
     await db.execute(sql`UPDATE xv_canh SET ky_thuat = ${JSON.stringify(x.ky_thuat)}::jsonb, updated_at = now() WHERE id = ${x.id}`);
   }
   return { ok: true, data: { impact: r.lop.length / 3, shot: r.kt.length } };
+}
+
+/** 🎥 Đa dạng chuyển động máy cả tập (nhip-hinh.ts › daDangMay) — 0đ: mỗi nhánh hook xét riêng (thân chung + nhánh), chụp trước từng shot
+ *  để ↶ Hoàn tác. Một chỗ cho nút trong thanh 🎬 (actions.ts) và script (da-dang-may.mts). Trả số shot đã đổi. */
+export async function daDangMayTapDb(db: Db, tapId: number, nguoi: string): Promise<number> {
+  const canh = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh);
+  const doi = new Map<number, Canh['ky_thuat']>();
+  for (const nh of ['A', ...cacNhanh(canh).filter((x) => x !== 'A')]) {
+    const ds = locNhanh(canh, nh).map((c) => ({ ...c, ky_thuat: doi.get(c.id) ?? c.ky_thuat }));
+    for (const x of daDangMay(ds)) doi.set(x.id, x.ky_thuat);
+  }
+  for (const [id, kt] of doi) {
+    await chupTruoc(db, { bang: 'xv_canh', id, cot: ['ky_thuat'], moTa: 'đa dạng chuyển động máy (nhịp hình)', nguoi });
+    await db.execute(sql`UPDATE xv_canh SET ky_thuat = ${JSON.stringify(kt)}::jsonb, updated_at = now() WHERE id = ${id}`);
+  }
+  return doi.size;
 }

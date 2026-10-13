@@ -3,7 +3,7 @@
 // bước nào gác cổng đó mà chưa đạt thì máy chủ từ chối (sinhKeyframeCanh, batDauVideoCanh) và thanh 🎬 Quy trình trên studio chỉ đúng
 // chỗ thiếu + cách làm. Thêm một chuẩn mới = thêm MỘT mục ở đây, không vá từng nút. Khác kiem-qc.ts: bên đó chấm NỘI DUNG quảng cáo
 // (hook, CTA, bằng chứng), bên này chấm QUY TRÌNH sản xuất. Thuần — tự kiểm: quy-trinh.test.mts.
-import { thanhPhanCanh, type Canh, type NhanVat, type PhanCanh } from './kieu';
+import { thanhPhanCanh, type Canh, type NhanVat, type PhanCanh, type KinhThanh } from './kieu';
 import type { Beat } from './dien-anh';
 import { dongThoai } from './am-thanh';
 import { chamKichBan } from './cham-kich-ban';
@@ -16,7 +16,10 @@ export type Cong = 'keyframe' | 'video' | 'xuat';
 export type NhomQt = 'Tiền kỳ' | 'Sản xuất' | 'Hậu kỳ';
 export type MucQt = { key: string; nhom: NhomQt; ten: string; ok: boolean; thieu: string[]; cong: Cong | null; lam: string };
 export type TapQt = { so?: number; brief: string; thu_nguoi_xem?: ThuNguoiXem | null; beats: Pick<Beat, 'ten' | 'cam_xuc'>[]; phan_canh: (Pick<PhanCanh, 'ten'> & Partial<Pick<PhanCanh, 'beat'>>)[]; nhac_url: string | null; nhac_phan_canh: Record<string, string> };
-export type PhimQt = { phong_cach?: string; ti_le?: string; logo_url?: string; laQc: boolean; logline?: string; series?: Series | null };
+export type PhimQt = { phong_cach?: string; ti_le?: string; logo_url?: string; laQc: boolean; logline?: string; series?: Series | null; khong_loi?: boolean };
+/** PhimQt từ kinh thánh — MỘT chỗ dựng (thanh 🎬, bảng chọn shot, cổng keyframe máy chủ); trước đây 4 chỗ tự dựng, bảng chọn shot ghi cứng laQc: false. */
+export const phimQt = (loai: string, kt: Pick<KinhThanh, 'phong_cach' | 'logline' | 'series' | 'khong_loi' | 'qc'>): PhimQt =>
+  ({ phong_cach: kt.phong_cach, logo_url: kt.qc?.logo_url, laQc: loai === 'quang_cao', logline: kt.logline, series: kt.series, khong_loi: kt.khong_loi });
 type ShotQt = Pick<Canh, 'id' | 'thu_tu' | 'phat_s' | 'thoi_luong_s' | 'thoai_url' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'hanh_dong' | 'phan_doan' | 'keyframe_url' | 'trang_thai' | 'ky_thuat' | 'thoai' | 'loi_thoai' | 'chu_man'>;
 
 /** Luật anh 12/10/2026: MỌI video phải có PHÂN CẢNH cụ thể (mục tiêu · xung đột · cảm xúc đầu→cuối) trước khi sinh keyframe —
@@ -49,8 +52,8 @@ const canSinh = (c: ShotQt) => !c.keyframe_url;
 
 /** Cổng tiền kỳ cấp TẬP — áp cho mọi shot trước khi sinh keyframe. */
 /** Chấm kịch bản tập (cham-kich-ban.ts) theo dữ liệu cổng. */
-const chamTap = (tap: TapQt, phim: PhimQt, canh: Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'>[]) =>
-  chamKichBan({ tap: { so: tap.so, beats: tap.beats, phan_canh: tap.phan_canh.map((p) => ({ ten: p.ten, beat: p.beat ?? '' })) }, canh, kt: { logline: phim.logline, series: phim.series } });
+const chamTap = (tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'hanh_dong'>>)[]) =>
+  chamKichBan({ tap: { so: tap.so, beats: tap.beats, phan_canh: tap.phan_canh.map((p) => ({ ten: p.ten, beat: p.beat ?? '' })) }, canh, kt: { logline: phim.logline, series: phim.series, khong_loi: phim.khong_loi } });
 /** `canh` = các shot của tập (theo thứ tự) — có thì chấm cả hook 3 giây đầu. Phim có KINH THÁNH SERIES thì kịch bản chưa đạt (logline, 5 nhịp,
  *  hook) cũng chặn keyframe; phim lẻ chỉ hiện điểm trên thanh 🎬 Quy trình. */
 /** canhA = nhánh hook A của tập — bản người xem được kiểm trên nhánh A (kiem-nguoi-xem.ts), nên cổng phải so đúng nhánh đó, kể cả khi đang

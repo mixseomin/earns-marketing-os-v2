@@ -34,3 +34,12 @@ const PQ = { phong_cach: 'cinematic night city, teal and orange, anamorphic', la
 assert.deepStrictEqual(chanTienKy(TQ, PQ), []);
 assert.ok(chanTienKy(TQ, { ...PQ, series }).some((x) => x.startsWith('kịch bản:')));
 console.log('cham-kich-ban.test: ok');
+
+// Tên nhịp kiểu cũ của khuôn short ('Dồn nén', 'Chốt') vẫn nhận ra (dữ liệu tách trước 14/10/2026)
+import { nhipCua as nc2, chamKichBan as ck2 } from './cham-kich-ban';
+assert.strictEqual(nc2('Dồn nén'), 'leo_thang'); assert.strictEqual(nc2('Chốt'), 'ket'); assert.strictEqual(nc2('Kết / móc'), 'ket');
+// Phim KHÔNG LỜI: shot đầu chỉ có hành động vẫn đạt hook; phim thường thì không
+const s1 = { phat_s: 3, thoi_luong_s: 4, phan_doan: 'a', chu_man: '', thoai: [], loi_thoai: '', hanh_dong: 'A giant hand drops a red gummy bear and switches off the lamp' };
+const hook = (khong_loi: boolean) => ck2({ tap: { so: 1, beats: [], phan_canh: [] }, canh: [s1], kt: { logline: 'x'.repeat(30), khong_loi } }).muc.find((m) => m.key === 'hook')!.dat;
+assert.strictEqual(hook(true), true, 'không lời: hook bằng hình'); assert.strictEqual(hook(false), false, 'phim thường vẫn đòi chữ/lời');
+console.log('cham-kich-ban.test (không lời): ok');

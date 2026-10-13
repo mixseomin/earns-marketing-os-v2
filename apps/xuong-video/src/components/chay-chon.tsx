@@ -9,9 +9,10 @@ import { lamTronClip, tien, MO_HINH_ANH, MO_HINH_VIDEO, type Canh, type docKinhT
 import { MoHinhCtx, giaAnhUi, giaVideoUi, luaChonAnh, luaChonVideo } from './mo-hinh-ui';
 import { Chon } from './chon';
 import { Nut, mono } from './ui';
+import type { PhimQt } from '@/lib/xuong-video/quy-trinh';
 
-export function ChayChon({ canh, nhanVat, kt, noiKhung, tap, ban, onChay, onDong }: {
-  canh: Canh[]; nhanVat: NhanVat[]; kt: ReturnType<typeof docKinhThanh>; noiKhung: boolean; tap: TapQt; ban: boolean;
+export function ChayChon({ canh, nhanVat, kt, phimQt, noiKhung, tap, ban, onChay, onDong }: {
+  canh: Canh[]; nhanVat: NhanVat[]; kt: ReturnType<typeof docKinhThanh>; phimQt: PhimQt; noiKhung: boolean; tap: TapQt; ban: boolean;
   onChay: (viec: ViecShot, ids: number[], model: string) => void; onDong: () => void;
 }) {
   const moHinh = useContext(MoHinhCtx);
@@ -20,9 +21,9 @@ export function ChayChon({ canh, nhanVat, kt, noiKhung, tap, ban, onChay, onDong
   const [viec, setViec] = useState<ViecShot>(() => (canh.some((c) => c.trang_thai === 'duyet') ? 'video' : 'keyframe'));
   const [mhAnh, setMhAnh] = useState<string>(kt.mo_hinh_anh);
   const [mhVideo, setMhVideo] = useState<string>(kt.mo_hinh_video);
-  const pt = useMemo(() => canh.map((c, i) => ({ c, ...phuThuocShot(viec, c, nhanVat, { truoc: canh[i - 1], ke: canh[i + 1], noiKhung, tap, phim: { phong_cach: kt.phong_cach, laQc: false, logline: kt.logline, series: kt.series }, ds: canh }) })), [canh, nhanVat, viec, noiKhung, tap, kt.phong_cach, kt.logline, kt.series]);
+  const pt = useMemo(() => canh.map((c, i) => ({ c, ...phuThuocShot(viec, c, nhanVat, { truoc: canh[i - 1], ke: canh[i + 1], noiKhung, tap, phim: phimQt, ds: canh }) })), [canh, nhanVat, viec, noiKhung, tap, kt.phong_cach, kt.logline, kt.series]);
   // Chọn sẵn đúng việc của hai nút cũ: keyframe → shot chưa có ảnh mà đủ thành phần; video → shot đã duyệt (chưa có clip).
-  const macDinh = (v: ViecShot) => new Set(canh.filter((c, i) => !phuThuocShot(v, c, nhanVat, { truoc: canh[i - 1], ke: canh[i + 1], noiKhung, tap, phim: { phong_cach: kt.phong_cach, laQc: false, logline: kt.logline, series: kt.series }, ds: canh }).chan.length
+  const macDinh = (v: ViecShot) => new Set(canh.filter((c, i) => !phuThuocShot(v, c, nhanVat, { truoc: canh[i - 1], ke: canh[i + 1], noiKhung, tap, phim: phimQt, ds: canh }).chan.length
     && (v === 'keyframe' ? !c.keyframe_url : c.trang_thai === 'duyet')).map((c) => c.id));
   const [chon, setChon] = useState<Set<number>>(() => macDinh(viec));
   const doiViec = (v: ViecShot) => { setViec(v); setChon(macDinh(v)); };

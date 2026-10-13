@@ -252,9 +252,10 @@ export const CAU_TRUC: Record<string, { ten: string; beats: { ten: string; mo_ta
     { ten: 'Giữa phim', mo_ta: 'Bước ngoặt: chiến thắng giả hoặc thất bại giả, mục tiêu đổi' }, { ten: 'Tất cả sụp đổ', mo_ta: 'Điểm thấp nhất, mất mát' },
     { ten: 'Cao trào', mo_ta: 'Nhân vật dùng điều đã học để đối mặt' }, { ten: 'Kết', mo_ta: 'Thế giới mới, nhân vật đã thay đổi (móc tập sau nếu là series)' },
   ] },
-  short: { ten: 'Short (hook → dồn → twist → chốt)', beats: [
-    { ten: 'Hook 3 giây', mo_ta: 'Câu/khung hình giữ ngón tay lại' }, { ten: 'Dồn nén', mo_ta: 'Tăng tò mò, tăng tốc' },
-    { ten: 'Twist', mo_ta: 'Lật kỳ vọng' }, { ten: 'Chốt', mo_ta: 'Kết đọng lại + lời kêu gọi theo dõi' },
+  // 5 nhịp — CÙNG bộ tên máy chấm kịch bản đòi (cham-kich-ban.ts); trước đây 4 nhịp Hook/Dồn nén/Twist/Chốt làm tập series bị chặn oan.
+  short: { ten: 'Short (hook → vấn đề → leo thang → lật ngược → kết/móc)', beats: [
+    { ten: 'Hook 3 giây', mo_ta: 'Câu/khung hình giữ ngón tay lại' }, { ten: 'Vấn đề', mo_ta: 'Nhân vật muốn gì và cái gì cản' },
+    { ten: 'Leo thang', mo_ta: 'Mỗi lần thử lại tệ hơn, tăng tốc' }, { ten: 'Lật ngược', mo_ta: 'Lật kỳ vọng' }, { ten: 'Kết / móc', mo_ta: 'Kết đọng lại + móc sang tập sau / lời kêu gọi theo dõi' },
   ] },
   // Quảng cáo: `phan` = tỉ lệ thời lượng của beat (cộng = 1) → tách cảnh biết beat nào được mấy giây với thời lượng mục tiêu bất kỳ.
   quang_cao: { ten: 'Quảng cáo (hook → nỗi đau → giải pháp → bằng chứng → ưu đãi)', beats: [

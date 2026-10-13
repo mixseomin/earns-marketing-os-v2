@@ -5,7 +5,7 @@ import { Timeline } from './timeline';
 import { LuoiKichBan } from './luoi-kich-ban';
 import { moNgan } from './ngan-chung';
 import { MO_HINH_AM } from '@/lib/xuong-video/am-thanh';
-import { quyTrinh } from '@/lib/xuong-video/quy-trinh';
+import { quyTrinh, phimQt } from '@/lib/xuong-video/quy-trinh';
 import { kiemQc } from '@/lib/xuong-video/kiem-qc';
 import { luuKhuonTap, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, xuatLongTiengVi, daDangMayTap, trangThaiXuat, khopNhipNhac, khopGiongTapAction } from '@/lib/actions';
 import { thanhPhanCanh, docKinhThanh, giaChuCents, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, coMau, giayMau, banHien, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
@@ -130,7 +130,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
     </Menu>
   );
   // 🎬 Quy trình chuẩn ngành (quy-trinh.ts): tiền kỳ → sản xuất → hậu kỳ; mục gác cổng (keyframe/video/xuất) chưa đạt thì máy chủ cũng từ chối.
-  const qtDs = canh?.length ? quyTrinh({ tap, phim: { phong_cach: kt.phong_cach, logo_url: kt.qc?.logo_url, laQc: phim.loai === 'quang_cao', logline: kt.logline, series: kt.series }, canh: locNhanh(canh, nhanh), canhA: locNhanh(canh, 'A'), nhanVat }) : [];
+  const qtDs = canh?.length ? quyTrinh({ tap, phim: phimQt(phim.loai, kt), canh: locNhanh(canh, nhanh), canhA: locNhanh(canh, 'A'), nhanVat }) : [];
   const qtThieu = qtDs.filter((x) => !x.ok);
   const congKe = qtThieu.find((x) => x.cong)?.cong;
   const nutQt = qtDs.length > 0 && (
@@ -235,7 +235,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
       )}
       {tab === 'storyboard' && moBang && !!canh?.length && <BangDoiTuong canh={canh} nhanVat={nhanVat} onChonShot={setChonCanh} onDong={() => setMoBang(false)} />}
       {tab === 'storyboard' && moChon && !!canh?.length && (
-        <ChayChon canh={canh} nhanVat={nhanVat} kt={kt} noiKhung={tap.noi_khung} tap={tap} ban={ban('chon')} onDong={() => setMoChon(false)}
+        <ChayChon canh={canh} nhanVat={nhanVat} kt={kt} phimQt={phimQt(phim.loai, kt)} noiKhung={tap.noi_khung} tap={tap} ban={ban('chon')} onDong={() => setMoChon(false)}
           onChay={(viec, ids, model) => void chay('chon', async () => { for (const id of ids) { const r = viec === 'keyframe' ? await sinhKeyframe(id, 1, model) : await sinhVideoCanh(id, model, 'nhap', true); if (!r.ok) return r; } })} />
       )}
       {tab === 'xuat' && (

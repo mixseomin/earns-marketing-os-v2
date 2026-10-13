@@ -243,7 +243,9 @@ export type BienThe = { id: number; nhan_vat_id: number; nhom: string; ten: stri
 export type DoiChieu = { khop: boolean; lech: string[]; mo_ta_de_xuat: string; luc: string };
 export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string;
   /** tiểu sử (nhân vật): nguồn gốc, tính cách, sức mạnh, điểm yếu, mong muốn, nỗi sợ, quan hệ, bí mật — chỉ vào ngữ cảnh viết kịch bản, không vào prompt hình */
-  tieu_su?: string; anh_ref: string[]; giong: string; giong_model: string; giong_id: string; giong_mau_url: string | null; doi_chieu?: DoiChieu | null; bien_the?: BienThe[] };
+  tieu_su?: string;
+  /** bộ âm hiệu cố định (phim không lời): âm đặc trưng, vui, sợ… — làm một lần, mọi tập dùng lại */
+  am_hieu?: { ten: string; mo_ta: string; url: string }[]; anh_ref: string[]; giong: string; giong_model: string; giong_id: string; giong_mau_url: string | null; doi_chieu?: DoiChieu | null; bien_the?: BienThe[] };
 
 /** Phim quảng cáo mà chưa khai sản phẩm (mục 0) → lý do chặn; MỘT luật cho nút ở trình duyệt lẫn gác ở máy chủ. */
 export function thieuQc(loai: LoaiPhim, kt: KinhThanh | null | undefined): string | false {

@@ -262,6 +262,13 @@ export function NhanVatForm({ phimId, goc, onClose, onSaved }: { phimId: number;
       {f.loai === 'nhan_vat' && <O label="Tiểu sử" hint="Nguồn gốc · tính cách · sức mạnh · điểm yếu · mong muốn · nỗi sợ · quan hệ · bí mật. Không vào prompt hình — Claude đọc khi viết kịch bản để nhân vật hành động đúng mình; làm nền cho tập phim về chính nhân vật.">
         <textarea className="xv-ta" rows={6} value={f.tieu_su} onChange={(e) => setF({ ...f, tieu_su: e.target.value })} placeholder={'Origin: …\nPersonality: …\nPower: …\nWeakness: …\nWants: …\nFears: …\nRelationships: …\nSecret: …'} />
       </O>}
+      {f.loai === 'nhan_vat' && !!goc.am_hieu?.length && (
+        <O label="Âm hiệu" hint="Bộ âm cố định của nhân vật (phim không lời) — mọi tập dùng lại cùng file để khán giả nghe là nhận ra.">
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {goc.am_hieu.map((a) => <span key={a.url} title={a.mo_ta} style={{ display: 'inline-flex', gap: 4, alignItems: 'center', fontSize: 12 }}><NutNghe url={a.url} /> {a.ten}</span>)}
+          </div>
+        </O>
+      )}
       {f.loai === 'nhan_vat' && <O label="Giọng (cho lồng tiếng sau này)"><input className="xv-in" value={f.giong} onChange={(e) => setF({ ...f, giong: e.target.value })} placeholder="giọng trẻ con ấm, chậm rãi" /></O>}
       <O label={f.loai === 'san_pham' ? 'Ảnh sản phẩm THẬT (quảng cáo phải đúng hàng) — dán Ctrl+V, nút Dán (điện thoại), kéo thả, chọn file, hoặc URL' : 'Ảnh tham chiếu — dán / kéo thả / file / URL, hoặc lưu rồi bấm “Sinh ảnh gốc”'}>
         <ImageAttach value={f.anh_ref} onChange={(urls) => setF({ ...f, anh_ref: urls })} max={10} nhanBo="Bỏ ảnh khỏi anchor"

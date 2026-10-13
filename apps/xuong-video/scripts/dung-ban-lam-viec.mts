@@ -10,6 +10,7 @@
 //                   (chạy lại không tốn tiền: chỉ cập nhật ngoại hình + tiểu sử; --chon=<phuong_an> --chi=<tên>: gắn ảnh thử đã chọn làm sheet)
 //   --dot=dac_trung đạo cụ đặc trưng (món yêu/ghét) + bàn tay Gã khổng lồ
 //   --dot=logo      khung tên 'Tango & Lint' (model vẽ chữ, ~$0.13)
+//   --dot=am        bộ âm hiệu 3 âm/nhân vật (ElevenLabs SFX) + nhạc chủ đề tango (CassetteAI) · --chi=Tango,nhac
 //   --dot=bo_anh_that  gỡ ảnh gốc của anh khỏi mọi anchor (vào thùng rác) — anh không cho dùng ảnh gốc
 //   --chi=Tên A,Tên B --lai: chỉ sinh lại mấy mục này
 // cd apps/xuong-video && DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/dung-ban-lam-viec.mts <ảnh-bàn.jpg …>
@@ -18,11 +19,12 @@ import { randomUUID } from 'node:crypto';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { uploadToR2 } from '../src/lib/r2';
-import { taoJob, type Row } from '../src/lib/xuong-video/doc-db';
+import { taoJob, xongJob, type Row } from '../src/lib/xuong-video/doc-db';
 import { chayViecAnh } from '../src/lib/xuong-video/viec-anh';
 import { hoanTatAnh } from '../src/lib/xuong-video/hoan-tat';
 import { promptBienThe } from '../src/lib/xuong-video/claude';
 import { boAnhVaoThungRac } from '../src/lib/xuong-video/thung-rac';
+import { chayViecAm } from '../src/lib/xuong-video/viec-am';
 
 const TEN_PHIM = 'Series · Tango & Lint (bàn làm việc, stop-motion)';
 const TEN_CU = ['Series · Bàn làm việc (stop-motion)'];   // tên trước 14/10/2026 — tìm phim theo cả tên cũ rồi đổi (so từng tên: mảng text làm postgres-js báo malformed array)
@@ -186,12 +188,50 @@ Power: he can move anything, switch the lamp-sun on and off, and clean the whole
 Weakness: he is always busy, distracted and in a hurry.
 Wants: to get his work done.
 Secret: the blue thread that keeps Lint alive came from his favourite sweater — and the note on Sticky's back is in his handwriting.` };
+/** BỘ ÂM HIỆU (phim không lời): mỗi con 3 âm — đặc trưng (nghe là nhận ra), vui, sợ. ElevenLabs SFX sinh từ mô tả; lưu xv_nhan_vat.am_hieu. */
+const AM_HIEU: Record<string, { ten: string; mo_ta: string; giay: number }[]> = {
+  Tango: [
+    { ten: 'Đặc trưng · Hup!', mo_ta: 'a tiny cute clay cartoon creature lets out a bouncy high-pitched "Hup!" as it jumps, playful squeaky cartoon voice', giay: 1.2 },
+    { ten: 'Vui', mo_ta: 'a tiny high-pitched cartoon creature giggles and babbles excitedly in cute gibberish, chirpy toddler-like cartoon voice', giay: 2 },
+    { ten: 'Sợ', mo_ta: 'a tiny high-pitched cartoon creature yelps "eep!" in fright, followed by a soft squishy clay squelch', giay: 1.5 },
+  ],
+  Lint: [
+    { ten: 'Đặc trưng · Hắt xì', mo_ta: 'a tiny fluffy cartoon creature does a soft cute sneeze "a-choo!" followed by a gentle poof of fluff scattering', giay: 1.8 },
+    { ten: 'Vui', mo_ta: 'a tiny soft breathy cartoon creature coos and purrs contentedly, very gentle and quiet', giay: 2 },
+    { ten: 'Sợ', mo_ta: 'a tiny timid fluffy creature whimpers a soft "mew" and puffs up with a soft "pff" sound', giay: 1.5 },
+  ],
+  Clicky: [
+    { ten: 'Đặc trưng · Click-click', mo_ta: 'two crisp computer mouse clicks "click-click" followed by a happy soft electronic chirp', giay: 1.2 },
+    { ten: 'Vui', mo_ta: 'a soft electronic purring hum made of gentle rhythmic clicks, like a little robotic cat purring', giay: 2 },
+    { ten: 'Sợ', mo_ta: 'rapid nervous computer mouse clicks and a descending worried electronic whine', giay: 1.5 },
+  ],
+  'Mr. Wipe': [
+    { ten: 'Đặc trưng · Xoẹt + Hmmph', mo_ta: 'a dramatic swoosh of soft cloth sweeping through the air, followed by a haughty nasal cartoon-villain "hmmph!"', giay: 1.8 },
+    { ten: 'Vui (đắc ý)', mo_ta: 'a pompous deep theatrical cartoon villain chuckle "ho ho ho" with soft fabric rustling', giay: 2 },
+    { ten: 'Sợ', mo_ta: 'a deep cartoon villain gasps in horror "ohh!" followed by a soggy wet fabric flop', giay: 1.5 },
+  ],
+  Cordy: [
+    { ten: 'Đặc trưng · Bzzt!', mo_ta: 'a quick electric spark "bzzt!" followed by a mischievous crackly giggle made of static electricity', giay: 1.5 },
+    { ten: 'Vui', mo_ta: 'playful rhythmic crackling electric sparks like laughter, ending with a satisfying plug click "tak"', giay: 2 },
+    { ten: 'Sợ', mo_ta: 'an electric buzz sputtering and fizzling out nervously, a frightened wobbly buzz', giay: 1.5 },
+  ],
+  Sticky: [
+    { ten: 'Đặc trưng · Phựt gấp giấy', mo_ta: 'a crisp paper fold "fwip" followed by a cheerful tiny high-pitched chirp', giay: 1.2 },
+    { ten: 'Vui', mo_ta: 'a tiny cheerful high cartoon voice humming a happy little tune with rustling paper and a marker pen squeak', giay: 2 },
+    { ten: 'Sợ', mo_ta: 'paper crinkling nervously and a tiny squeaky gasp', giay: 1.5 },
+  ],
+};
+/** NHẠC CHỦ ĐỀ: điệu tango tí hon vui nhộn (tên Tango + thương hiệu) — một bản ngắn mở/kết tập + một bản dài làm nền. */
+const NHAC_CHU_DE = [
+  { ten: 'Chủ đề · 12s (mở / kết tập)', giay: 12, prompt: 'Playful miniature TANGO theme for a wordless stop-motion kids comedy: plucky pizzicato strings, bandoneon accordion, castanets, staccato tango rhythm, a dramatic pause and a cheeky little ending sting. Instrumental, bright, mischievous, memorable melody' },
+  { ten: 'Chủ đề · 40s (nền)', giay: 40, prompt: 'Light playful miniature tango underscore for a wordless stop-motion kids comedy: pizzicato strings, soft bandoneon, light castanets, sneaky-curious mood with bouncy staccato rhythm, loopable, instrumental, no vocals' },
+];
 const GOC_THAP = 'seen from ground level by a 5 cm tall character standing on the desk: the object towers like a giant structure, macro lens, shallow depth of field';
 
 const db = getDb()!;
 const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as Row[];
 const lai = process.argv.includes('--lai');
-const dot = (process.argv.find((x) => x.startsWith('--dot='))?.slice(6) ?? 'boi_canh') as 'boi_canh' | 'bien_the' | 'do_vat' | 'bo_anh_that' | 'nhan_vat' | 'dac_trung' | 'logo';
+const dot = (process.argv.find((x) => x.startsWith('--dot='))?.slice(6) ?? 'boi_canh') as 'boi_canh' | 'bien_the' | 'do_vat' | 'bo_anh_that' | 'nhan_vat' | 'dac_trung' | 'logo' | 'am';
 const tep = process.argv.slice(2).filter((x) => !x.startsWith('--'));
 /** --chi=Tên A,Tên B: chỉ sinh lại các bối cảnh / đồ vật này (kèm --lai). */
 const chi = process.argv.find((x) => x.startsWith('--chi='))?.slice(6).split(',').map((x) => x.trim()).filter(Boolean) ?? null;
@@ -316,6 +356,33 @@ if (dot === 'logo') {
   const kq = await chayViecAnh({ job, model: 'gemini-3-pro-image', prompt, thamChieuUrl: ref, tiLe: '16:9', thuMuc: `logo/${phimId}` });
   await hoanTatAnh(kq);
   ra.push({ ten: 'Logo', url: kq.ok ? kq.url : null, ...(kq.ok ? {} : { loi: kq.loi }) });
+}
+// ÂM: bộ âm hiệu từng nhân vật (ElevenLabs SFX, ~0,2 cent/giây) + nhạc chủ đề tango (CassetteAI). Mỗi file một job ghi tiền.
+if (dot === 'am') {
+  const SFX = 'fal-ai/elevenlabs/sound-effects/v2';
+  await theoDot(Object.entries(AM_HIEU).filter(([ten]) => !chi || chi.includes(ten)), async ([ten, ds]) => {
+    const v = (await q(sql`SELECT id, am_hieu FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = 'nhan_vat' AND ten = ${ten} LIMIT 1`))[0];
+    if (!v) { ra.push({ ten, url: null, loi: 'chưa có nhân vật' }); return; }
+    const co = ((v.am_hieu as { ten: string; url: string }[]) ?? []);
+    const moi: { ten: string; mo_ta: string; url: string }[] = [];
+    for (const a of ds) {
+      if (co.some((x) => x.ten === a.ten) && !lai) continue;
+      const gia = Math.round(0.2 * a.giay * 100) / 100;
+      const job = await taoJob(db, { nhan_vat_id: Number(v.id), nhan: `Âm hiệu · ${ten} · ${a.ten}`, loai: 'am', provider: 'fal', model: `fal:${SFX}`, request: { dich: 'am_hieu', gia, text: a.mo_ta } });
+      const kq = await chayViecAm({ kieu: 'am', job, model: SFX, input: { text: a.mo_ta, duration_seconds: a.giay, prompt_influence: 0.6 }, thuMuc: `am-hieu/${Number(v.id)}` });
+      await xongJob(db, job, kq.ok ? { output_url: kq.url, chi_phi_cents: gia } : { loi: kq.loi });
+      if (kq.ok) moi.push({ ten: a.ten, mo_ta: a.mo_ta, url: kq.url });
+      ra.push({ ten: `${ten} · ${a.ten}`, url: kq.ok ? kq.url : null, ...(kq.ok ? {} : { loi: kq.loi }) });
+    }
+    if (moi.length) await q(sql`UPDATE xv_nhan_vat SET am_hieu = ${JSON.stringify([...co.filter((x) => !moi.some((m) => m.ten === x.ten)), ...moi])}::jsonb, updated_at = now() WHERE id = ${Number(v.id)}`);
+  });
+  if (!chi || chi.includes('nhac')) for (const n of NHAC_CHU_DE) {
+    const gia = Math.round((2 * n.giay) / 60 * 100) / 100;
+    const job = await taoJob(db, { phim_id: phimId, nhan: `Nhạc chủ đề · ${n.ten}`, loai: 'am', provider: 'fal', model: 'fal:cassetteai/music-generator', request: { dich: 'nhac_chu_de', gia, prompt: n.prompt } });
+    const kq = await chayViecAm({ kieu: 'am', job, model: 'cassetteai/music-generator', input: { prompt: n.prompt, duration: n.giay }, thuMuc: `nhac/chu-de-${phimId}` });
+    await xongJob(db, job, kq.ok ? { output_url: kq.url, chi_phi_cents: gia } : { loi: kq.loi });
+    ra.push({ ten: n.ten, url: kq.ok ? kq.url : null, ...(kq.ok ? {} : { loi: kq.loi }) });
+  }
 }
 console.log(JSON.stringify({ phimId, dot, xong: ra.filter((x) => x.url).length, ra }));
 process.exit(0);

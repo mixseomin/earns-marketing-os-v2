@@ -500,3 +500,7 @@ body.nk-dang-keo iframe{pointer-events:none}
 /* Bảng việc / bảng lọc trên màn hẹp: giữ bề ngang đủ đọc, cuộn ngang trong khung .cty-cuon (trang không cuộn ngang); nhãn loại một dòng */
 .cty-bang-loc{min-width:720px}
 .cty-bang-loc .cty-pill{white-space:nowrap}
+/* Nút "Chạy lại ngay" (nut-chay-lai.tsx): nút + dòng trạng thái lệnh ngay dưới; ô xác nhận mở về phía trái để không tràn khỏi bảng */
+.cty-chay-lai{display:inline-flex;flex-direction:column;gap:4px;align-items:flex-start;max-width:320px}
+.cty-chay-lai .cty-btn{white-space:nowrap}
+.cty-bang-viec .cty-xac-nhan{right:0;left:auto}

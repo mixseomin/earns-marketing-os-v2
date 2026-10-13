@@ -21,8 +21,8 @@ import { boVaoThungRac, boAnhVaoThungRac, dsRac, khoiPhucRac, type MucRac } from
 import { batDauNangCap, danhMucFal, guiFal, type ModelFal } from '@/lib/xuong-video/fal';
 import { type DungChu } from '@/lib/xuong-video/claude';
 import { docTrangSanPham, doiChieuAnchor as doiChieuAnchorClaude } from '@/lib/xuong-video/claude';
-import { thuNguoiXem } from '@/lib/xuong-video/claude';
-import { banNguoiXem, maBan, chanNguoiXem, DIEM_HIEU_DAT } from '@/lib/xuong-video/nguoi-xem';
+import { kiemNguoiXemTap } from '@/lib/xuong-video/kiem-nguoi-xem';
+import { chanNguoiXem } from '@/lib/xuong-video/nguoi-xem';
 import { tachCanh, vietKichBan, vietBaiDang, phanTichMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
@@ -557,23 +557,7 @@ export async function thuNguoiXemTap(tapId: number): Promise<Kq<ThuNguoiXem>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  const bc = await boiCanhTap(db, tapId);
-  if (!bc) return loi('không thấy tập');
-  const canh = locNhanh(await dsCanh(tapId), 'A');
-  if (!canh.length) return loi('tập chưa tách cảnh — chưa có gì để người xem xem');
-  const kt = docKinhThanh(bc.kt);
-  const ban = banNguoiXem(canh);
-  const ids = new Set(canh.flatMap((c) => c.nhan_vat));
-  const nvTa = bc.nhanVat.filter((v) => ids.has(v.id) && v.loai !== 'phong_cach').map((v) => `- ${v.ten}: ${v.mo_ta.slice(0, 160)}`).join('\n');
-  const logline = (kt.series?.dong_co ? kt.series.tap.find((t) => t.so === bc.tap.so)?.logline : '') || kt.logline || '';
-  const kq = await thuNguoiXem({ ban, nhanVat: nvTa, logline, brief: bc.tap.brief, kt });
-  if (!kq.ok) return loi(kq.loi);
-  await ghiChu(bc.tap.phim_id, `Kiểm người xem có hiểu không · tập ${bc.tap.so}`, kq);
-  const { xem, doi } = kq.data;
-  const t: ThuNguoiXem = { ma: maBan(ban), luc: new Date().toISOString(), model: kq.model, ke_lai: xem.ke_lai, hieu: { ai: xem.ai, muon: xem.muon, can: xem.can, lat: xem.lat, ket: xem.ket },
-    diem: Math.max(0, Math.min(10, Math.round(xem.diem))), cho_kho: xem.cho_kho, khop: doi.khop, lech: doi.lech, dat: doi.khop && xem.diem >= DIEM_HIEU_DAT };
-  await db.execute(sql`UPDATE xv_tap SET thu_nguoi_xem = ${JSON.stringify(t)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
-  return { ok: true, data: t };
+  try { return await kiemNguoiXemTap(db, tapId); } catch (e) { console.error('[kiểm người xem]', e); return loi(`lỗi máy chủ: ${e instanceof Error ? e.message : String(e)}`); }
 }
 export async function vietBaiDangTap(tapId: number): Promise<Kq<BaiDang>> {
   const db = getDb();

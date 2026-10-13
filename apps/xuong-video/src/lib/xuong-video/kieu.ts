@@ -301,7 +301,7 @@ export type TaiSan = { id: number; loai: LoaiTaiSan; ten: string; url: string | 
   so_do: Record<string, unknown> & { keyframe_url?: string | null; ti_le?: string; dai?: number }; du_lieu: Record<string, unknown>;
   nguon: { phim_id?: number; tap_id?: number; canh_id?: number; job_id?: number }; chi_phi_cents: number; so_lan_dung: number; created_at: string };
 /** canh_bao = lệch chuẩn máy đo sau xuất (khoảng im, lẫn giọng, thiếu nhạc) — có là bản chưa đạt, studio tô đỏ. */
-export type BanXuat = { url: string; nhanh: string; giay: number; luc: string; job?: number; canh_bao?: string[] };
+export type BanXuat = { url: string; nhanh: string; giay: number; luc: string; job?: number; canh_bao?: string[]; /** 'vi' = bản phụ đề Việt cho người review (review-vi.ts) */ phu_de?: string };
 export type Canh = {
   id: number; tap_id: number; thu_tu: number; canh: string; goc_may: string; hanh_dong: string; loi_thoai: string; am_thanh: string; thoai_url: string | null; am_thanh_url: string | null; phan_doan: string; cam_xuc: number; ky_thuat: KyThuatShot; thoai: DongThoai[]; trang_phuc: string;
   /** Giây thực phát (cắt từ đầu clip); null = phát cả clip. chu_man = chữ trên màn. nhanh = '' thân chung | 'A'/'B'/'C' biến thể hook. */

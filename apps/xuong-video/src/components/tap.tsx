@@ -7,8 +7,8 @@ import { moNgan } from './ngan-chung';
 import { MO_HINH_AM } from '@/lib/xuong-video/am-thanh';
 import { quyTrinh } from '@/lib/xuong-video/quy-trinh';
 import { kiemQc } from '@/lib/xuong-video/kiem-qc';
-import { luuKhuonTap, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, trangThaiXuat, khopNhipNhac, khopGiongTapAction } from '@/lib/actions';
-import { thanhPhanCanh, docKinhThanh, giaAnhCents, giaVideoCents, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, coMau, giayMau, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
+import { luuKhuonTap, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, xuatPhuDeVi, trangThaiXuat, khopNhipNhac, khopGiongTapAction } from '@/lib/actions';
+import { thanhPhanCanh, docKinhThanh, giaAnhCents, giaVideoCents, giaChuCents, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, coMau, giayMau, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, TabPhim, KqChay, O, Nut, Loi, Menu, MucMenu, mono, goiAction } from './ui';
 import { GiongNhanVat } from './nhan-vat';
@@ -231,6 +231,10 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
             onClick={async () => { setLoiXuat(''); const r = await xuatTap(tap.id, nhanh ?? cacNhanh(canh ?? [])[0] ?? null); if (!r.ok) setLoiXuat(r.loi); else setJobXuat(r.data); }}>
             {jobXuat != null ? '… đang dựng bản xuất (30–90s)' : `⬇ Xuất MP4${cacNhanh(canh ?? []).length ? ` · hook ${nhanh ?? cacNhanh(canh ?? [])[0]}` : ''}`}
           </Nut>
+          {/* Người review chỉ biết tiếng Việt: cùng phim, chữ màn dịch + phụ đề Việt ở đáy; không thay bản xuất chính (phu-de.ts). */}
+          {kt.ngon_ngu !== 'vi' && <Nut ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || (!(canh ?? []).some((c) => c.video_url || c.video_cuoi_url || c.keyframe_url) && 'chưa có clip/keyframe nào')} ban={jobXuat != null} gia={giaChuCents(kt.mo_hinh_chu, 2500, 2500)}
+            title="Bản để nhờ người chỉ biết tiếng Việt xem hộ: chữ màn dịch sang Việt + phụ đề Việt cho mọi câu nói (tiếng giữ nguyên). Không thay bản xuất chính. Mở bản trong 'Đã xuất' để lấy link gửi qua Zalo/Messenger."
+            onClick={async () => { setLoiXuat(''); const r = await xuatPhuDeVi(tap.id); if (!r.ok) setLoiXuat(r.loi); else setJobXuat(r.data); }}>🇻🇳 Bản phụ đề Việt · ~{tien(giaChuCents(kt.mo_hinh_chu, 2500, 2500))}</Nut>}
         </div>
       )}
       {tab === 'xuat' && <Loi>{loiXuat}</Loi>}
@@ -246,7 +250,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
           <span style={mono}>Đã xuất:</span>
           {tap.xuat.slice().reverse().slice(0, 6).map((b) => (
-            <button key={b.url} type="button" className="xv-btn" onClick={() => moNgan({ loai: 'xem', url: b.url, ten: `Bản xuất${b.nhanh ? ` · hook ${b.nhanh}` : ''} · ${b.giay}s` })} title={`${b.giay}s · ${gioVN(b.luc)}${b.canh_bao?.length ? `\nCHƯA ĐẠT:\n${b.canh_bao.join('\n')}` : ''}`} style={b.canh_bao?.length ? { borderColor: 'var(--red)', color: 'var(--red)' } : undefined}>{b.canh_bao?.length ? '⚠' : '🎬'} {b.nhanh ? `hook ${b.nhanh}` : 'bản'} · {b.giay}s · {gioVN(b.luc, { chiGio: true })}</button>
+            <button key={b.url} type="button" className="xv-btn" onClick={() => moNgan({ loai: 'xem', url: b.url, ten: `${b.phu_de === 'vi' ? 'Bản phụ đề Việt' : 'Bản xuất'}${b.nhanh ? ` · hook ${b.nhanh}` : ''} · ${b.giay}s` })} title={`${b.giay}s · ${gioVN(b.luc)}${b.canh_bao?.length ? `\nCHƯA ĐẠT:\n${b.canh_bao.join('\n')}` : ''}`} style={b.canh_bao?.length ? { borderColor: 'var(--red)', color: 'var(--red)' } : undefined}>{b.canh_bao?.length ? '⚠' : b.phu_de === 'vi' ? '🇻🇳' : '🎬'} {b.phu_de === 'vi' ? 'phụ đề Việt' : b.nhanh ? `hook ${b.nhanh}` : 'bản'} · {b.giay}s · {gioVN(b.luc, { chiGio: true })}</button>
           ))}
         </div>
       )}

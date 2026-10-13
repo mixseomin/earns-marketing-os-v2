@@ -22,6 +22,7 @@ import { batDauNangCap, danhMucFal, guiFal, type ModelFal } from '@/lib/xuong-vi
 import { type DungChu } from '@/lib/xuong-video/claude';
 import { docTrangSanPham, doiChieuAnchor as doiChieuAnchorClaude } from '@/lib/xuong-video/claude';
 import { kiemNguoiXemTap, suaTheoNguoiXemTap } from '@/lib/xuong-video/kiem-nguoi-xem';
+import { xuatPhuDeViTap } from '@/lib/xuong-video/review-vi';
 import { chanNguoiXem } from '@/lib/xuong-video/nguoi-xem';
 import { tachCanh, vietKichBan, vietBaiDang, phanTichMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
@@ -676,6 +677,21 @@ export async function xuatTap(tapId: number, nhanh?: string | null): Promise<Kq<
   return { ok: true, data: job };
 }
 /** Trạng thái một job xuất: đang chạy / xong (url) / lỗi. */
+/** 🇻🇳 Bản phụ đề Việt cho người review chỉ biết tiếng Việt (review-vi.ts) — chạy nền như ⬇ Xuất, trả job để nút hỏi tiến độ.
+ *  TỐN TIỀN: 1 lượt Claude dịch (~1–3 cent); phần dựng MP4 0đ. Không qua cổng xuất: bản này chính là để kiểm. */
+export async function xuatPhuDeVi(tapId: number): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const bc = await boiCanhTap(db, tapId);
+  if (!bc) return loi('không thấy tập');
+  const job = await taoJob(db, { phim_id: bc.tap.phim_id, nhan: `Bản phụ đề Việt · tập ${bc.tap.so}`, loai: 'xuat', provider: 'ffmpeg', model: 'ffmpeg', request: { tap_id: tapId, phu_de: 'vi' } });
+  chayNen(async () => {
+    const r = await xuatPhuDeViTap(db, tapId, job).catch((e: unknown) => ({ ok: false as const, loi: e instanceof Error ? e.message : String(e) }));
+    if (!r.ok) await xongJobDb(db, job, { loi: r.loi });
+  });
+  return { ok: true, data: job };
+}
 export async function trangThaiXuat(jobId: number): Promise<{ trang_thai: string; url: string | null; loi: string }> {
   const db = getDb();
   if (!db || !(await admin())) return { trang_thai: 'loi', url: null, loi: 'không có quyền' };

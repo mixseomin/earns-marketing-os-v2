@@ -1,6 +1,6 @@
 # HEARTBEAT — Kiên
 
-> Trạng thái: **tắt** (chế độ tham quan). Khi bật: 06:30 hằng ngày + theo cảnh báo.
+> Trạng thái: **bật một việc** từ 13/10/2026 — `mail-bao-mat` mỗi phút (máy, 0 tiền): thư bảo mật chưa xử trong hòm claude@orit.app → một tin vào Telegram MINE topic "🔐 Bảo mật" + chờ người trên văn phòng pixel; xử xong (lưu trữ thư) → ❤ rồi gỡ tin. Phần còn lại dưới đây vẫn tắt.
 
 Checklist mỗi vòng (không có gì mới → NO_REPLY):
 

@@ -7,7 +7,7 @@ don_vi_viec: 1 tài khoản / 1 kênh · chấm mỗi ngày
 cong_nguoi: phanh = mức 1 (dừng luôn, báo sau); mở lại = mức 2; dính tiền = mức 3
 so_do: 
 tom_tat: Sức khoẻ mọi tài khoản/kênh; cảnh báo sớm; cờ freeze; giữ phao
-trang_thai: tham quan · chưa hoạt động
+trang_thai: chạy một việc · Mail bảo mật (Kiên, nhịp máy mỗi phút, bật 13/10/2026)
 ---
 **Nhận**: vault accounts (status · joinStatus · currentPhase), log đăng nhập/IP, cảnh báo nền tảng, nhịp đăng từng kênh, điểm giọng văn, lint, profile-locks hai máy, tỉ lệ từ chối outreach.
 

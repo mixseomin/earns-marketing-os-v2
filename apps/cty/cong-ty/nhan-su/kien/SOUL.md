@@ -10,7 +10,7 @@ model: fal:google/gemini-3.8-flash
 room: bo-loc
 muc_quyet: 1
 approval: AUTO
-heartbeat: off
+heartbeat: mail-bao-mat   # nhịp máy mỗi phút (worker/nhip.mjs, cty-nhip.timer): thư bảo mật → Telegram MINE topic Bảo mật + pixel; 0 tiền mô hình — anh bật 13/10/2026
 lich: 06:30 hằng ngày + theo cảnh báo
 skills: [dang-nhap-van-tay, marketplace-compliance, profile-locks]
 data: [accounts:*, platform_alerts:*, nhip_dang:*, voice_score:*, lint:*, outreach:tu-choi]

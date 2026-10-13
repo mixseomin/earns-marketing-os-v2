@@ -1,0 +1,13 @@
+# Nhịp nhân sự cty đã bật (apps/cty/worker/nhip.mjs) — mỗi phút, 0 tiền mô hình. Cài trên box3 từ bản git (deploy.sh là tệp dùng chung):
+#   cp apps/cty/deploy/cty-nhip.{service,timer} /etc/systemd/system/ && systemctl daemon-reload && systemctl enable --now cty-nhip.timer
+[Unit]
+Description=Nhip nhan su cty (worker/nhip.mjs)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/earns-marketing-os-v2/apps/cty
+EnvironmentFile=/opt/earns-marketing-os-v2/.env.production
+EnvironmentFile=/root/.secrets/mine-tg.env
+Environment=CTY_DATA_DIR=/var/lib/cty
+ExecStart=/usr/bin/node worker/nhip.mjs

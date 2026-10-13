@@ -568,7 +568,7 @@ export async function thuNguoiXemTap(tapId: number): Promise<Kq<ThuNguoiXem>> {
   const logline = (kt.series?.dong_co ? kt.series.tap.find((t) => t.so === bc.tap.so)?.logline : '') || kt.logline || '';
   const kq = await thuNguoiXem({ ban, nhanVat: nvTa, logline, brief: bc.tap.brief, kt });
   if (!kq.ok) return loi(kq.loi);
-  await ghiChu(bc.tap.phim_id, `Thử người xem lần đầu · tập ${bc.tap.so}`, kq);
+  await ghiChu(bc.tap.phim_id, `Kiểm người xem có hiểu không · tập ${bc.tap.so}`, kq);
   const { xem, doi } = kq.data;
   const t: ThuNguoiXem = { ma: maBan(ban), luc: new Date().toISOString(), model: kq.model, ke_lai: xem.ke_lai, hieu: { ai: xem.ai, muon: xem.muon, can: xem.can, lat: xem.lat, ket: xem.ket },
     diem: Math.max(0, Math.min(10, Math.round(xem.diem))), cho_kho: xem.cho_kho, khop: doi.khop, lech: doi.lech, dat: doi.khop && xem.diem >= DIEM_HIEU_DAT };

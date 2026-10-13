@@ -9,7 +9,7 @@ import { dongThoai } from './am-thanh';
 import { chamKichBan } from './cham-kich-ban';
 import { kiemTieng } from './khop-giong';
 import type { Series, ThuNguoiXem } from './kieu';
-import { chanNguoiXem } from './nguoi-xem';
+import { chanNguoiXem, TIEN_TO_NGUOI_XEM, TEN_NUT_NGUOI_XEM } from './nguoi-xem';
 
 export type Cong = 'keyframe' | 'video' | 'xuat';
 export type NhomQt = 'Tiền kỳ' | 'Sản xuất' | 'Hậu kỳ';
@@ -100,7 +100,7 @@ export function quyTrinh(o: { tap: TapQt; phim: PhimQt; canh: ShotQt[]; nhanVat:
     m('brief', 'Tiền kỳ', 'Brief', tk.filter((x) => x.startsWith('chưa có brief')), 'keyframe', 'Ô Brief của tập: mục tiêu, người xem, thông điệp chính.'),
     m('truyen', 'Tiền kỳ', 'Khung truyện (beat)', tk.filter((x) => x.includes('khung truyện')), 'keyframe', '✂ Tách cảnh (hoặc nạp kèm beats): mở – xung đột – cao trào – giải quyết.'),
     m('kich_ban', 'Tiền kỳ', `Kịch bản ${kb.diem}/100`, kb.muc.filter((x) => !x.dat).map((x) => `${x.ten}: ${x.ghi}`), phim.series?.dong_co?.trim() ? 'keyframe' : null, 'Logline một câu · hook ≤ 3s · đủ 5 nhịp (hook → vấn đề → leo thang → lật ngược → kết/móc) · lật ngược ở 55–92% phim · series: kết bằng móc.'),
-    m('nguoi_xem', 'Tiền kỳ', tap.thu_nguoi_xem && tap.thu_nguoi_xem.ma ? `Người xem hiểu ${tap.thu_nguoi_xem.diem}/10` : 'Người xem lần đầu hiểu', tk.filter((x) => x.startsWith('người xem lần đầu')), 'keyframe', 'Tab Kịch bản › 🧑 Thử người xem lần đầu: Claude chỉ thấy chữ/lời/hình của từng shot, kể lại câu chuyện; phải hiểu ≥7/10 và đúng ý tác giả.'),
+    m('nguoi_xem', 'Tiền kỳ', tap.thu_nguoi_xem && tap.thu_nguoi_xem.ma ? `Người xem hiểu ${tap.thu_nguoi_xem.diem}/10` : 'Người xem hiểu phim', tk.filter((x) => x.startsWith(TIEN_TO_NGUOI_XEM)), 'keyframe', `${TEN_NUT_NGUOI_XEM}` + ': Claude chỉ thấy chữ/lời/hình của từng shot, kể lại câu chuyện; phải hiểu ≥7/10 và đúng ý tác giả.'),
     m('phan_canh', 'Tiền kỳ', 'Phân cảnh', [...tk.filter((x) => x.includes('phân cảnh')), ...theoShot((c) => thieuPhanCanh(tap.phan_canh, c))].filter((x, i, a) => a.indexOf(x) === i), 'keyframe', 'Mỗi phân cảnh: mục tiêu nhân vật, xung đột, cảm xúc đổi đầu→cuối; mỗi shot thuộc một phân cảnh.'),
     m('phong_cach', 'Tiền kỳ', 'Phong cách hình', tk.filter((x) => x.includes('phong cách')), 'keyframe', 'Mục 1 Kinh thánh: ánh sáng, bảng màu, chất liệu, ống kính chủ đạo.'),
     m('mau_doi_tuong', 'Tiền kỳ', 'Mẫu nhân vật / sản phẩm', [...nhanVat.filter((v) => v.loai !== 'boi_canh' && v.loai !== 'phong_cach' && (!v.mo_ta.trim() || !v.anh_ref.length)).map((v) => `${v.ten}: ${!v.mo_ta.trim() ? 'chưa tả' : 'chưa có ảnh mẫu'}`), ...theoShot((c) => thieuMau(c, nhanVat).filter((x) => x.includes('có trong prompt')), sinh)], 'keyframe', 'Mục 2: tả đặc tính cố định + sinh ảnh mẫu; shot nhắc tên thì gắn mẫu.'),

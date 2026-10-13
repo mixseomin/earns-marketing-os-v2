@@ -10,8 +10,8 @@ assert.ok(b.includes('#2 [2.0–4.0s]') && b.includes('Felix: "Ahem."') && !b.in
 const ma = maBan(b);
 const kq = (o: Partial<ThuNguoiXem>): ThuNguoiXem => ({ ma, luc: '', model: '', ke_lai: '', hieu: { ai: '', muon: '', can: '', lat: '', ket: '' }, diem: 8, cho_kho: [], khop: true, lech: '', dat: true, ...o });
 assert.deepStrictEqual(chanNguoiXem(kq({}), ds), []);
-assert.ok(chanNguoiXem(null, ds)[0]!.includes('chưa thử'));
-assert.ok(chanNguoiXem(kq({}), [ds[0]!, { ...ds[1]!, chu_man: 'PLAN A' }])[0]!.includes('đã đổi'), 'sửa chữ màn → phải thử lại');
+assert.ok(chanNguoiXem(null, ds)[0]!.includes('chưa kiểm'));
+assert.ok(chanNguoiXem(kq({}), [ds[0]!, { ...ds[1]!, chu_man: 'PLAN A' }])[0]!.includes('đã sửa sau lần kiểm'), 'sửa chữ màn → phải kiểm lại');
 assert.ok(chanNguoiXem(kq({ dat: false, diem: 4, khop: false, lech: 'không biết truyện gốc', cho_kho: [{ shot: 8, van_de: 'quạ hát mà câm', sua: '' }] }), ds)[0]!.includes('#8 quạ hát mà câm'));
 assert.deepStrictEqual(chanNguoiXem(null, []), [], 'tập chưa tách cảnh: chưa có gì để thử');
 console.log('nguoi-xem.test: ok');

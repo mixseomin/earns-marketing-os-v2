@@ -4,7 +4,7 @@
 import { Fragment, useState } from 'react';
 import { thuNguoiXemTap } from '@/lib/actions';
 import { giaChuCents, gioVN, tien, type Canh, type Tap } from '@/lib/xuong-video/kieu';
-import { chanNguoiXem } from '@/lib/xuong-video/nguoi-xem';
+import { chanNguoiXem, TEN_NUT_NGUOI_XEM } from '@/lib/xuong-video/nguoi-xem';
 import { Nut, Loi, mono } from './ui';
 
 export function NguoiXem({ tap, canh, moHinhChu, coAnthropic, onChanged, onMoShot }: { tap: Tap; canh: Canh[]; moHinhChu: string; coAnthropic: boolean; onChanged: () => Promise<void>; onMoShot?: (thuTu: number) => void }) {
@@ -12,16 +12,16 @@ export function NguoiXem({ tap, canh, moHinhChu, coAnthropic, onChanged, onMoSho
   const [loi, setLoi] = useState('');
   const t = tap.thu_nguoi_xem;
   const chan = chanNguoiXem(t, canh);
-  const cu = !!t && chan.some((x) => x.includes('đã đổi'));
+  const cu = !!t && chan.some((x) => x.includes('đã sửa sau lần kiểm'));
   const gia = giaChuCents(moHinhChu, 5000, 2500);
   const lam = async () => { setBan(true); setLoi(''); try { const r = await thuNguoiXemTap(tap.id); if (!r.ok) setLoi(r.loi); } catch (e) { setLoi(`Không gọi được máy chủ (${e instanceof Error ? e.message.slice(0, 80) : 'lỗi mạng'})`); } setBan(false); await onChanged(); };
   const mau = !t ? 'var(--amber)' : cu ? 'var(--amber)' : t.dat ? '#4ade80' : 'var(--red)';
   return (
     <div className="xv-panel" style={{ marginTop: 10, borderLeft: `3px solid ${mau}` }}>
-      <h3>🧑 Người xem lần đầu<small>bắt buộc trước keyframe + xuất · Claude chỉ thấy chữ / lời / hình từng shot (không đọc brief), kể lại câu chuyện rồi so với ý tác giả</small></h3>
+      <h3>🧑 Người xem có hiểu phim không<small>bắt buộc trước keyframe + xuất · Claude chỉ thấy chữ / lời / hình từng shot (không đọc brief), kể lại câu chuyện rồi so với ý tác giả</small></h3>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <Nut chinh={!t || cu || !t.dat} ly={(!coAnthropic && 'thiếu ANTHROPIC_API_KEY') || (!canh.length && 'tách cảnh trước')} ban={ban} gia={gia} onClick={() => void lam()}>{ban ? '… người xem đang xem' : `🧑 ${t ? 'Thử lại' : 'Thử người xem lần đầu'} · ~${tien(gia)}`}</Nut>
-        {t && <b style={{ color: mau }}>{cu ? '⚠ kịch bản đã đổi sau lần thử — thử lại' : t.dat ? `✓ Hiểu ${t.diem}/10 · đúng ý tác giả` : `✗ Hiểu ${t.diem}/10${t.khop ? '' : ' · lệch ý tác giả'}`}</b>}
+        <Nut chinh={!t || cu || !t.dat} ly={(!coAnthropic && 'thiếu ANTHROPIC_API_KEY') || (!canh.length && 'tách cảnh trước')} ban={ban} gia={gia} onClick={() => void lam()}>{ban ? '… đang kiểm' : `${TEN_NUT_NGUOI_XEM} · ~${tien(gia)}`}</Nut>
+        {t && <b style={{ color: mau }}>{cu ? '⚠ kịch bản đã sửa sau lần kiểm — bấm kiểm lần nữa' : t.dat ? `✓ Hiểu ${t.diem}/10 · đúng ý tác giả` : `✗ Hiểu ${t.diem}/10${t.khop ? '' : ' · lệch ý tác giả'}`}</b>}
         {t && <span style={mono}>{gioVN(t.luc)}</span>}
       </div>
       <Loi>{loi}</Loi>

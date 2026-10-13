@@ -27,11 +27,15 @@ export function maBan(ban: string): string {
   return h.toString(36);
 }
 
+/** Tiền tố mọi câu chặn của bước này — quy-trinh.ts lọc theo nó. */
+export const TIEN_TO_NGUOI_XEM = 'người xem: ';
+export const TEN_NUT_NGUOI_XEM = '🧑 Kiểm người xem có hiểu không';
+
 export function chanNguoiXem(t: ThuNguoiXem | null | undefined, canh: ShotXem[]): string[] {
   if (!canh.length) return [];
-  const tien = 'người xem lần đầu: ';
-  if (!t) return [`${tien}kịch bản chưa thử — bấm 🧑 Thử người xem lần đầu (tab Kịch bản)`];
-  if (t.ma !== maBan(banNguoiXem(canh))) return [`${tien}kịch bản đã đổi sau lần thử — thử lại`];
+  const tien = TIEN_TO_NGUOI_XEM;
+  if (!t) return [`${tien}chưa kiểm — bấm ${TEN_NUT_NGUOI_XEM}`];
+  if (t.ma !== maBan(banNguoiXem(canh))) return [`${tien}kịch bản đã sửa sau lần kiểm — bấm ${TEN_NUT_NGUOI_XEM} lần nữa`];
   if (t.dat) return [];
   return [`${tien}chưa hiểu (${t.diem}/10${t.khop ? '' : ', lệch ý tác giả'}): ${[t.lech, ...t.cho_kho.slice(0, 3).map((x) => `#${x.shot} ${x.van_de}`)].filter(Boolean).join('; ')}`];
 }

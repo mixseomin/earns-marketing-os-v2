@@ -7,6 +7,7 @@
 //   --dot=bien_the  mỗi bối cảnh 2 biến thể thời điểm (ban đêm, sáng sớm) — hệ biến thể của studio (xv_bien_the)
 //   --dot=do_vat    đồ vật trên bàn thành anchor đạo cụ: ảnh gốc + 1 biến thể góc thấp tầm mắt nhân vật
 //   --dot=nhan_vat  dàn nhân vật (Tango, Lint, Clicky, Mr. Wipe, Cordy, Sticky): anchor + tiểu sử + character sheet
+//                   (chạy lại không tốn tiền: chỉ cập nhật ngoại hình + tiểu sử; --chon=<phuong_an> --chi=<tên>: gắn ảnh thử đã chọn làm sheet)
 //   --dot=bo_anh_that  gỡ ảnh gốc của anh khỏi mọi anchor (vào thùng rác) — anh không cho dùng ảnh gốc
 //   --chi=Tên A,Tên B --lai: chỉ sinh lại mấy mục này
 // cd apps/xuong-video && DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/dung-ban-lam-viec.mts <ảnh-bàn.jpg …>
@@ -34,7 +35,7 @@ const KINH_THANH = {
  *  cho Claude viết kịch bản + làm nền tập phim về chính nhân vật; phuong_an = ảnh thử (scripts/thu-nhan-vat.mts) làm tham chiếu tạo hình. */
 const NHAN_VAT: { ten: string; phuong_an: string; mo_ta: string; tieu_su: string }[] = [
   { ten: 'Tango', phuong_an: 'dat_set_cam',
-    mo_ta: 'A small round egg-shaped creature made of soft matte ORANGE modelling clay, about 5 cm tall, no neck, two big round white googly eyes with black pupils, tiny stubby clay arms and legs, faint fingerprint texture in the clay, a slightly deeper thumbprint dent on his back.',
+    mo_ta: 'A small round egg-shaped creature made of soft matte ORANGE modelling clay, about 5 cm tall, no neck, two big round white googly eyes with black pupils, tiny stubby clay arms and legs, faint fingerprint texture in the clay, a slightly deeper thumbprint dent on his back, and ONE thin curly strand of slightly darker orange clay springing from the very top of his head like a little antenna.',
     tieu_su: `Origin: a leftover lump of orange modelling clay from the Giant's craft day. One stormy night the charging cable sparked beside him and the jolt brought him to life — the thumbprint on his back is the Giant's, his "birthmark".
 Personality: curious, reckless, endlessly optimistic, impatient; he acts first and thinks later — he is the one who starts every adventure (and every mess).
 Power: he can squash, stretch and reshape his clay body — roll into a ball, flatten into a sled, stretch an arm into a hook or a rope.
@@ -42,6 +43,10 @@ Weakness: heat from the desk lamp slowly dries him stiff; water makes him soft a
 Wants: to climb "the Summit" — the top of the iMac — and see what lies beyond the glowing screen.
 Fears: being rolled up and shut back inside the clay tub in the drawer.
 Relationships: best friend and protector of Lint; rides Clicky; prank rival of Cordy; Sticky's partner in plans; sworn enemy of Mr. Wipe.
+Hair: the single curly strand on his head is exactly where the spark struck — it stands straight up like an antenna when electricity or danger is near, and twangs "boing" when he gets an idea.
+Loves (signature): gummy bears — he hugs them, hoards them and chases one in almost every episode.
+Hates: water drops — one drip from the Giant's cold drink sends him running.
+Quirk: he presses his thumbprint on everything he is proud of, like signing his name.
 Secret: when he gets scared he leaves tiny orange crumbs behind — a trail his enemies can follow.` },
   { ten: 'Lint', phuong_an: 'bui_long',
     mo_ta: 'A small fluffy dust-bunny creature made of soft GREY felt and fuzz, about 5 cm tall, a round puffball body with wispy fibres sticking out, two big round shiny black eyes, tiny felt feet poking out underneath, no arms.',
@@ -52,6 +57,9 @@ Weakness: Mr. Wipe and anything that cleans; a big sneeze blows him apart (he sl
 Wants: a safe, cozy home that will never, ever be cleaned.
 Fears: being wiped away — for a dust bunny that means disappearing forever.
 Relationships: Tango drags him into adventures and always protects him; Sticky draws him pictures to calm him; Mr. Wipe hunts him.
+Loves (signature): cotton balls — he keeps one as his teddy and pillow and never goes anywhere without it.
+Hates: the "pssht" of a spray bottle (cleaning is coming) and the roar of the vacuum.
+Quirk: when nervous he hides inside anything round — a cup, a bottle cap, Tango's hands.
 Secret: the blue thread inside him is the last piece of the Giant's favourite sweater — and it is what makes him alive.` },
   { ten: 'Clicky', phuong_an: 'chuot_song',
     mo_ta: 'The white Magic Mouse brought to life: a smooth glossy white shell like a gentle turtle or beetle, two small kind black eyes on its front edge, a soft glow underneath its body, big enough for Tango to ride on its back.',
@@ -62,6 +70,9 @@ Weakness: low battery — it slows down and falls asleep mid-adventure until Cor
 Wants: to be gently scratched on its back like a pet.
 Fears: being replaced by a new mouse and thrown in a drawer.
 Relationships: Tango's ride and loyal steed; best buddy of Cordy, who charges it; Lint likes to nap on its warm shell.
+Loves (signature): fresh AA batteries — its favourite treat, like a dog's bone; it does a happy spin when it gets one.
+Hates: the laptop trackpad, the rival that could replace it.
+Quirk: it chases any blinking light like a cat chasing a laser dot.
 Secret: it remembers every place the Giant ever clicked — a map of the whole desk inside its head.` },
   { ten: 'Mr. Wipe', phuong_an: 'gie_lau',
     mo_ta: 'A villain made from a grey-blue microfiber screen-cleaning cloth: a floppy fabric creature that can billow up like a looming ghost, two narrow angry button eyes, fabric edges that flap like arms.',
@@ -72,6 +83,9 @@ Weakness: water makes him soggy, heavy and slow; he gets tangled in cables; heig
 Wants: a perfectly spotless desk — which means wiping away Lint for good.
 Fears: the washing machine.
 Relationships: arch-enemy of Lint and Tango; tries to boss Clicky and Cordy around; Sticky keeps outsmarting him.
+Loves (signature): his little blue bottle of screen-cleaner spray — he hugs it like a teddy and sniffs its "clean" smell.
+Hates: fingerprints — and Tango leaves clay fingerprints everywhere.
+Quirk: he straightens everything he passes into perfect right angles.
 Secret: he was white when he was new — and deep in one fold he keeps a single tiny piece of dust he has never been able to throw away.` },
   { ten: 'Cordy', phuong_an: 'ran_cap',
     mo_ta: "The long white charging cable as a playful snake-like creature: its metal plug is the head with two tiny dot eyes and a small smile, a smooth white cable body that curls and coils across the desk.",
@@ -82,9 +96,12 @@ Weakness: knots and tangles; sharp bends hurt him; his plug only fits the right 
 Wants: to find the one perfect port that feels like home.
 Fears: scissors, and being coiled up and forgotten in a drawer.
 Relationships: Clicky's best friend and charger; loves teasing Tango; ties Mr. Wipe in knots.
+Loves (signature): the satisfying "click" of plugging into a perfect port, and the charging chime "ding".
+Hates: twist ties and knots.
+Quirk: instead of talking he ties himself into shapes — a heart, an arrow, a question mark.
 Secret: he feels guilty that his spark made the desk come alive — and he does not know if it can happen again.` },
   { ten: 'Sticky', phuong_an: 'giay_note',
-    mo_ta: 'A bright yellow sticky-note paper character: a square paper body folded into a little figure with paper arms, two drawn-on ink dot eyes, one corner curled up like a cowlick.',
+    mo_ta: 'A bright yellow sticky-note paper character: a square paper body folded into a little figure with paper arms, two drawn-on ink dot eyes, one corner curled up like a cowlick, and a jagged torn edge on her left side patched with a strip of clear shiny tape.',
     tieu_su: `Origin: peeled from the Giant's sticky-note pad in a hurry and dropped behind the keyboard; she woke up with a message written on her back that she can never read.
 Personality: cheerful, clever, chatty (in pictures), the problem-solver of the group.
 Power: she folds herself into anything — a paper boat, plane, umbrella, sail or sign — and sticks to any wall; she "talks" by drawing little doodles on herself.
@@ -92,6 +109,10 @@ Weakness: her stickiness slowly wears off; wind blows her away; water and tearin
 Wants: to find out what the writing on her back says.
 Fears: being crumpled into a ball and thrown in the bin.
 Relationships: plans the adventures with Tango; draws comfort pictures for Lint; outwits Mr. Wipe every time.
+Scar: a jagged tear on her left side, patched with clear tape. On her first day alive the Giant crumpled her toward the bin; she tore herself free on the rim of a coffee cup, and Tango — just born himself — patched her with tape from the dispenser. That was the start of their friendship. The scar itches when rain is coming or a friend is in danger.
+Loves (signature): highlighter pens — she paints herself in bright colours with them for special occasions.
+Hates: the growl of the paper shredder.
+Quirk: she doodles everyone's mood on her body before they even show it.
 Secret: the message on her back is a reminder the Giant wrote — about the day the desk will be cleared.` },
 ];
 /** Bối cảnh: tên (hiện trong studio) + mô tả tiếng Anh (vào prompt). Mỗi cái là một "sân chơi" cho gag. */
@@ -225,12 +246,22 @@ if (dot === 'nhan_vat') await theoDot(trong(NHAN_VAT), async (n) => {
   let v = (await q(sql`SELECT id, anh_ref FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = 'nhan_vat' AND ten = ${n.ten} LIMIT 1`))[0];
   if (!v) v = (await q(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, tieu_su, anh_ref) VALUES (${phimId}, 'nhan_vat', ${n.ten}, ${n.mo_ta}, ${n.tieu_su}, ${JSON.stringify([thu])}::jsonb) RETURNING id, anh_ref`))[0]!;
   else await q(sql`UPDATE xv_nhan_vat SET mo_ta = ${n.mo_ta}, tieu_su = ${n.tieu_su}, updated_at = now() WHERE id = ${Number(v.id)}`);
-  const daSheet = ((v.anh_ref as string[]) ?? []).some((u) => u.includes('/anchor/'));
-  if (daSheet && !lai) { ra.push({ ten: n.ten, url: null, loi: 'đã có character sheet — bỏ qua' }); return; }
-  const prompt = `Character design reference sheet for a handmade stop-motion puppet, on a plain light warm-grey background: full-body turnaround (front, three-quarter, side, back) in a neutral pose, plus a row of close-ups showing neutral, happy, scared and angry expressions; identical design in every view. ONLY this one character: ${n.mo_ta} Use the reference image only for this character's exact design (shape, colors, materials, eyes) — ignore every other character and the background in it. Real handmade materials, soft studio light, macro lens. No text, letters or labels anywhere.`;
-  const job = await taoJob(db, { nhan_vat_id: Number(v.id), nhan: `Character sheet · ${n.ten}`, loai: 'anh', provider: 'google', model: KINH_THANH.mo_hinh_anh, request: { prompt, thamChieuUrl: [thu] } });
-  const kq = await chayViecAnh({ job, model: KINH_THANH.mo_hinh_anh, prompt, thamChieuUrl: [thu], tiLe: '1:1', thuMuc: `anchor/${Number(v.id)}` });
+  const sheetCu = ((v.anh_ref as string[]) ?? []).filter((u) => u.includes('/anchor/'));
+  const chon = process.argv.find((x) => x.startsWith('--chon='))?.slice(7);   // --chon=<phuong_an>: gắn ảnh thử đã chọn làm sheet, không sinh (0đ)
+  if (chon) {
+    const u = (await q(sql`SELECT output_url FROM xv_job WHERE phim_id = ${phimId} AND request->>'dich' = 'thu_nhan_vat' AND request->>'phuong_an' = ${chon} AND trang_thai = 'xong' ORDER BY id DESC LIMIT 1`))[0]?.output_url as string | undefined;
+    if (!u) { ra.push({ ten: n.ten, url: null, loi: `không có ảnh thử ${chon}` }); return; }
+    await q(sql`UPDATE xv_nhan_vat SET anh_ref = ${JSON.stringify([u])}::jsonb || anh_ref, updated_at = now() WHERE id = ${Number(v.id)}`);
+    for (const c of sheetCu) await boAnhVaoThungRac(db, 'anh_goc', Number(v.id), c, 'claude (thay sheet đã chọn)');
+    ra.push({ ten: n.ten, url: u }); return;
+  }
+  if (sheetCu.length && !lai) { ra.push({ ten: n.ten, url: null, loi: 'đã có character sheet — bỏ qua' }); return; }
+  const prompt = `Character design reference sheet for a handmade stop-motion puppet, on a plain light warm-grey background: full-body turnaround (front, three-quarter, side, back) in a neutral pose, plus a row of close-ups showing neutral, happy, scared and angry expressions; identical design in every view. ONLY this one character: ${n.mo_ta} ${sheetCu.length ? 'It is the SAME character as in the reference sheet — keep its body, colors, materials and eyes identical; add every detail of the description that the reference is missing.' : ''} Use the reference image only for this character's exact design (shape, colors, materials, eyes) — ignore every other character and the background in it. Real handmade materials, soft studio light, macro lens. No text, letters or labels anywhere.`;
+  const ref = sheetCu.length ? sheetCu.slice(0, 1) : [thu];
+  const job = await taoJob(db, { nhan_vat_id: Number(v.id), nhan: `Character sheet · ${n.ten}`, loai: 'anh', provider: 'google', model: KINH_THANH.mo_hinh_anh, request: { prompt, thamChieuUrl: ref } });
+  const kq = await chayViecAnh({ job, model: KINH_THANH.mo_hinh_anh, prompt, thamChieuUrl: ref, tiLe: '1:1', thuMuc: `anchor/${Number(v.id)}` });
   await hoanTatAnh(kq);
+  if (kq.ok) for (const c of sheetCu) await boAnhVaoThungRac(db, 'anh_goc', Number(v.id), c, 'claude (script sinh lại sheet)');
   ra.push({ ten: n.ten, url: kq.ok ? kq.url : null, ...(kq.ok ? {} : { loi: kq.loi }) });
 });
 console.log(JSON.stringify({ phimId, dot, xong: ra.filter((x) => x.url).length, ra }));

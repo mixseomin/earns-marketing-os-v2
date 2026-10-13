@@ -10,7 +10,8 @@ import { NHIP, TAN_SUAT } from '../../worker/nhip.mjs';
 import { nhanSu, type Doc } from '@/lib/cong-ty';
 import { soChi } from '@/lib/do-dac';
 
-export const tien = (x: number) => `$${x.toFixed(x >= 1 ? 2 : 3).replace('.', ',')}`;
+// số nhỏ (nhịp glm ~$0,0001/lần) giữ đủ chữ số có nghĩa — làm tròn 3 số lẻ thì tiền thật hiện thành $0,000 như chưa tiêu
+export const tien = (x: number) => `$${x.toFixed(x >= 1 ? 2 : x === 0 || x >= 0.001 ? 3 : 5).replace('.', ',')}`;
 export const usd = (moiGoi: number) => tien(moiGoi * 1000);   // giá 1.000 lời gọi
 export const Diem = ({ s, chinh }: { s: TK | null; chinh?: boolean }) =>
   s ? <span className={chinh ? 'cty-dn-chinh' : 'cty-muted'} title={`${s.dung}/${s.n} đúng · khoảng tin cậy 95%: ${pc(s.kt95[0])}–${pc(s.kt95[1])}`}>{pc(s.ti_le)}</span> : <span className="cty-muted">—</span>;

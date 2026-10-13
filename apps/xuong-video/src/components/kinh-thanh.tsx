@@ -110,6 +110,26 @@ export function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa;
         <O label={<>Thể loại{nutAi('the_loai')}</>} hint="quyết định thư viện cỡ cảnh / ánh sáng / âm thanh / nhạc Claude chọn cho từng shot"><Chon value={kt.the_loai} onChange={(v) => set('the_loai', v as TheLoai)} options={THE_LOAI.map((t) => ({ value: t.key, label: t.ten, title: t.mo_ta, phu: t.mo_ta.split(',')[0] }))} placeholder="chọn thể loại…" minWidth={220} /></O>
         <O label={<>Logline{nutAi('logline')}</>} hint="một câu: ai · muốn gì · cái gì cản"><input className="xv-in" value={kt.logline} onChange={(e) => set('logline', e.target.value)} placeholder={laQc ? "Phụ nữ 50+ mỏi vai vì bra gọng tìm được chiếc bra nâng mặc cả ngày quên" : "Rùa con chậm chạp phải băng qua rừng úa để cứu cây mẹ trước khi mùa đông tới"} /></O>
         <O label={<>Chủ đề{nutAi('chu_de')}</>} hint="điều bộ phim muốn nói"><input className="xv-in" value={kt.chu_de} onChange={(e) => set('chu_de', e.target.value)} placeholder={laQc ? "Thoải mái mà vẫn đẹp" : "Chậm mà bền, đi cùng nhau thì tới"} /></O>
+        <O span label="Kinh thánh series" hint="Phim nhiều tập: câu ĐỘNG CƠ (mỗi tập cùng kiểu xung đột, tình huống mới) + logline từng tập. Có động cơ thì máy chấm kịch bản CHẶN keyframe khi tập thiếu logline / 5 nhịp / hook 3 giây; Claude viết tập mới không lặp tập cũ.">
+          <div style={{ display: 'grid', gap: 4 }}>
+            <input className="xv-in" value={kt.series?.dong_co ?? ''} onChange={(e) => set('series', { khan_gia: '', dinh_dang: '', tap: [], ...(kt.series ?? {}), dong_co: e.target.value })} placeholder="Động cơ: Zeus bị đày làm nhân viên văn phòng; mỗi tập một quyền năng thần thánh gây hoạ ở công sở" />
+            {kt.series?.dong_co?.trim() ? <>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <input className="xv-in" value={kt.series.khan_gia} onChange={(e) => set('series', { ...kt.series!, khan_gia: e.target.value })} placeholder="Khán giả (vd: người lớn 18–34 thích hài văn phòng)" />
+                <input className="xv-in" value={kt.series.dinh_dang} onChange={(e) => set('series', { ...kt.series!, dinh_dang: e.target.value })} placeholder="Định dạng (vd: Shorts 50–60s dọc, 3 tập/tuần)" />
+              </div>
+              {kt.series.tap.map((t, i) => (
+                <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <span className="xv-mono" style={{ width: 44, flexShrink: 0 }}>Tập {t.so}</span>
+                  <input className="xv-in" style={{ width: 170, flexShrink: 0 }} value={t.ten} onChange={(e) => set('series', { ...kt.series!, tap: kt.series!.tap.map((x, j) => (j === i ? { ...x, ten: e.target.value } : x)) })} placeholder="tên tập" />
+                  <input className="xv-in" value={t.logline} onChange={(e) => set('series', { ...kt.series!, tap: kt.series!.tap.map((x, j) => (j === i ? { ...x, logline: e.target.value } : x)) })} placeholder="logline: ai · muốn gì · cái gì cản" />
+                  <button type="button" className="xv-btn" title="Bỏ tập này khỏi danh sách" onClick={() => set('series', { ...kt.series!, tap: kt.series!.tap.filter((_, j) => j !== i) })}>✕</button>
+                </div>
+              ))}
+              <button type="button" className="xv-btn" style={{ justifySelf: 'start' }} onClick={() => set('series', { ...kt.series!, tap: [...kt.series!.tap, { so: Math.max(0, ...kt.series!.tap.map((x) => x.so)) + 1, ten: '', logline: '' }] })}>+ Tập</button>
+            </> : null}
+          </div>
+        </O>
         <O label="Khung hình"><Seg options={[{ value: '9:16', label: '9:16 dọc' }, { value: '16:9', label: '16:9 ngang' }]} value={kt.ti_le} onChange={(v) => set('ti_le', v)} /></O>
         <O label="Độ phân giải video"><Seg options={[{ value: '720p', label: '720p (rẻ)' }, { value: '1080p', label: '1080p' }]} value={kt.do_phan_giai} onChange={(v) => set('do_phan_giai', v)} /></O>
         <O label="Model ảnh (mặc định)"><Chon value={kt.mo_hinh_anh} onChange={(v) => set('mo_hinh_anh', v as Required<KinhThanh>['mo_hinh_anh'])} options={luaChonAnh(moHinh.anh.length ? moHinh.anh : MO_HINH_ANH.map((m) => ({ key: m.key, label: m.label, nhom: '', giaCents: m.gia1k, donVi: 'anh' as const })))} /></O>

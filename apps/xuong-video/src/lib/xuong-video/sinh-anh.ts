@@ -5,9 +5,9 @@ import { dayViecAnh } from './hoan-tat';
 import { promptAnhMau } from './claude';
 import { promptCamXuc } from './am-thanh';
 import { promptKyThuatAnh } from './dien-anh';
-import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, MO_HINH_ANH, type KinhThanh, type NhanVat } from './kieu';
+import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, MO_HINH_ANH, type KinhThanh, type NhanVat } from './kieu';
 import { chanTienKy, chanShot } from './quy-trinh';
-import { boiCanhCanh, mapNhanVat, mapTap, kemBienThe, taoJob, type Db, type Row } from './doc-db';
+import { boiCanhCanh, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, type Db, type Row } from './doc-db';
 
 export type KqSinh<T> = { ok: true; data: T } | { ok: false; loi: string };
 
@@ -102,7 +102,8 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
   const tapR = (await db.execute(sql`SELECT * FROM xv_tap WHERE id = ${bc.canh.tap_id}`)) as unknown as Row[];
   const tapQt = mapTap(tapR[0]!);
   const nvPhim = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${tapQt.phim_id} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
-  const qt = [...chanTienKy(tapQt, { phong_cach: bc.kt.phong_cach, laQc: false }), ...chanShot(bc.canh, tapQt, nvPhim)];
+  const dsTap = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${bc.canh.tap_id} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), bc.canh.nhanh || 'A');
+  const qt = [...chanTienKy(tapQt, { phong_cach: bc.kt.phong_cach, laQc: false, logline: bc.kt.logline, series: bc.kt.series }, dsTap), ...chanShot(bc.canh, tapQt, nvPhim)];
   if (qt.length) return loi(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ')}`);
   if (!bc.canh.prompt_anh.trim()) return loi('cảnh chưa có prompt ảnh');
   if (moHinh && (moHinh.startsWith('fal:') || MO_HINH_ANH.some((m) => m.key === moHinh))) bc.kt.mo_hinh_anh = moHinh as typeof bc.kt.mo_hinh_anh;

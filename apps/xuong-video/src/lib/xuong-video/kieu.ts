@@ -91,7 +91,11 @@ export type KinhThanh = {
   /** Giọng LỜI DẪN của cả phim — khoá ở lượt sinh giọng lời dẫn đầu tiên, mọi câu sau đọc cùng giọng (10/10/2026: phim #5 lời dẫn
    *  rơi về giọng mặc định George nam trong khi QC mẫu là giọng nữ). Phim có QC mẫu mà chưa chọn → không sinh giọng lời dẫn. */
   giong_dan?: { model: string; voice: string } | null;
+  /** KINH THÁNH SERIES (13/10/2026): phim là một series nhiều tập — câu động cơ (mỗi tập cùng kiểu xung đột, tình huống mới) + danh sách
+   *  tập với logline từng tập. Claude viết tập mới bám vào đây và không lặp tập cũ; máy chấm kịch bản chặn tập thiếu logline/nhịp (cham-kich-ban.ts). */
+  series?: Series | null;
 };
+export type Series = { dong_co: string; khan_gia: string; dinh_dang: string; tap: { so: number; ten: string; logline: string }[] };
 /** Thông tin sản phẩm / dịch vụ của phim quảng cáo. */
 /** QC MẪU (anh 09/10/2026: "sinh ra một QC gần giống nhất với mẫu này"): một quảng cáo đang bán tốt (của mình hay đối thủ) làm KHUÔN —
  *  Claude tách cảnh bám 1:1 (cùng số shot, cùng giây, cùng vị trí/ý chữ màn, cùng loại shot), chỉ đổi sản phẩm + lợi ích thật.
@@ -190,7 +194,7 @@ export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: strin
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
   phong_cach: '', ti_le: '9:16', do_phan_giai: '720p',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },
-  giong_dan: null,
+  giong_dan: null, series: null,
 };
 export const docKinhThanh = (kt: KinhThanh | null | undefined): Required<KinhThanh> => ({ ...KINH_THANH_MAC_DINH, ...(kt ?? {}) });
 

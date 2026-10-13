@@ -191,6 +191,8 @@ export async function vietKichBan(opts: {
   const user = [
     `DANH SÁCH ANCHOR:\n${taAnchor(opts.nhanVat)}`,
     opts.tapTruoc?.length ? `TÓM TẮT CÁC TẬP TRƯỚC:\n${opts.tapTruoc.map((t, i) => `Tập ${i + 1}: ${t}`).join('\n')}` : '',
+    // Kinh thánh series (13/10/2026): động cơ + logline từng tập — tập mới đi đúng động cơ, đúng logline của nó, không lặp tình huống tập khác.
+    kt.series?.dong_co?.trim() ? `KINH THÁNH SERIES:\nĐộng cơ (mỗi tập cùng kiểu xung đột, tình huống mới): ${kt.series.dong_co}${kt.series.khan_gia ? `\nKhán giả: ${kt.series.khan_gia}` : ''}${kt.series.dinh_dang ? `\nĐịnh dạng: ${kt.series.dinh_dang}` : ''}\nCác tập:\n${kt.series.tap.map((t) => `- Tập ${t.so}${t.ten ? ` "${t.ten}"` : ''}: ${t.logline || '(chưa có logline)'}`).join('\n')}\nViết đúng logline của tập được giao; KHÔNG lặp tình huống/quyền năng/cú lật của tập khác. Khung 5 nhịp bắt buộc: Hook ≤ 3 giây → Vấn đề → Leo thang (2–3 lần thử, mỗi lần tệ hơn) → Lật ngược (ở 55–90% thời lượng) → Kết; tập chưa phải tập cuối thì kết bằng MÓC (cliffhanger/teaser) sang tập sau.` : '',
     opts.tapSo ? `Viết kịch bản TẬP ${opts.tapSo}.` : '',
     `Tổng thời lượng mục tiêu: ${opts.thoiLuongS ?? 30} giây.`,
     `BRIEF:\n${opts.brief.trim()}`,

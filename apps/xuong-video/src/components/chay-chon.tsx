@@ -20,9 +20,9 @@ export function ChayChon({ canh, nhanVat, kt, noiKhung, tap, ban, onChay, onDong
   const [viec, setViec] = useState<ViecShot>(() => (canh.some((c) => c.trang_thai === 'duyet') ? 'video' : 'keyframe'));
   const [mhAnh, setMhAnh] = useState<string>(kt.mo_hinh_anh);
   const [mhVideo, setMhVideo] = useState<string>(kt.mo_hinh_video);
-  const pt = useMemo(() => canh.map((c, i) => ({ c, ...phuThuocShot(viec, c, nhanVat, { truoc: canh[i - 1], ke: canh[i + 1], noiKhung, tap, phim: { phong_cach: kt.phong_cach, laQc: false } }) })), [canh, nhanVat, viec, noiKhung, tap, kt.phong_cach]);
+  const pt = useMemo(() => canh.map((c, i) => ({ c, ...phuThuocShot(viec, c, nhanVat, { truoc: canh[i - 1], ke: canh[i + 1], noiKhung, tap, phim: { phong_cach: kt.phong_cach, laQc: false, logline: kt.logline, series: kt.series }, ds: canh }) })), [canh, nhanVat, viec, noiKhung, tap, kt.phong_cach, kt.logline, kt.series]);
   // Chọn sẵn đúng việc của hai nút cũ: keyframe → shot chưa có ảnh mà đủ thành phần; video → shot đã duyệt (chưa có clip).
-  const macDinh = (v: ViecShot) => new Set(canh.filter((c, i) => !phuThuocShot(v, c, nhanVat, { truoc: canh[i - 1], ke: canh[i + 1], noiKhung, tap, phim: { phong_cach: kt.phong_cach, laQc: false } }).chan.length
+  const macDinh = (v: ViecShot) => new Set(canh.filter((c, i) => !phuThuocShot(v, c, nhanVat, { truoc: canh[i - 1], ke: canh[i + 1], noiKhung, tap, phim: { phong_cach: kt.phong_cach, laQc: false, logline: kt.logline, series: kt.series }, ds: canh }).chan.length
     && (v === 'keyframe' ? !c.keyframe_url : c.trang_thai === 'duyet')).map((c) => c.id));
   const [chon, setChon] = useState<Set<number>>(() => macDinh(viec));
   const doiViec = (v: ViecShot) => { setViec(v); setChon(macDinh(v)); };

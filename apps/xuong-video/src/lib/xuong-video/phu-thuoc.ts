@@ -13,11 +13,11 @@ export type PhuThuoc = { chan: string[]; luu_y: string[] };
 export { thieuPhanCanh, thieuMau } from './quy-trinh';
 
 /** truoc / ke = shot liền trước / liền sau trong tập; noiKhung = tập bật "khung cuối = keyframe cảnh sau"; phanCanh = tap.phan_canh. */
-export function phuThuocShot(viec: ViecShot, c: Canh, nhanVat: NhanVat[], o: { truoc?: Canh; ke?: Canh; noiKhung: boolean; tap: TapQt; phim: PhimQt }): PhuThuoc {
+export function phuThuocShot(viec: ViecShot, c: Canh, nhanVat: NhanVat[], o: { truoc?: Canh; ke?: Canh; noiKhung: boolean; tap: TapQt; phim: PhimQt; /** các shot của tập — chấm hook kịch bản */ ds?: Canh[] }): PhuThuoc {
   const chan: string[] = []; const luu_y: string[] = [];
   if (viec === 'keyframe') {
     if (c.dang_sinh_anh) chan.push('đang sinh ảnh');
-    chan.push(...chanTienKy(o.tap, o.phim), ...chanShot(c, o.tap, nhanVat));
+    chan.push(...chanTienKy(o.tap, o.phim, o.ds), ...chanShot(c, o.tap, nhanVat));
     if (!c.prompt_anh.trim()) chan.push('chưa có prompt ảnh');
     if (c.keyframe_url) luu_y.push('đã có keyframe — ảnh mới vào dải ứng viên, phải chọn mới thay');
     if (o.noiKhung && o.truoc && (o.truoc.video_url || o.truoc.video_cuoi_url)) luu_y.push(`clip shot #${o.truoc.thu_tu} lấy keyframe này làm khung cuối — đổi keyframe thì clip đó phải sinh lại mới nối liền`);

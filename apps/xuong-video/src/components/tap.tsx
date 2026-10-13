@@ -116,7 +116,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
     </Menu>
   );
   // 🎬 Quy trình chuẩn ngành (quy-trinh.ts): tiền kỳ → sản xuất → hậu kỳ; mục gác cổng (keyframe/video/xuất) chưa đạt thì máy chủ cũng từ chối.
-  const qtDs = canh?.length ? quyTrinh({ tap, phim: { phong_cach: kt.phong_cach, logo_url: kt.qc?.logo_url, laQc: phim.loai === 'quang_cao' }, canh: locNhanh(canh, nhanh), nhanVat }) : [];
+  const qtDs = canh?.length ? quyTrinh({ tap, phim: { phong_cach: kt.phong_cach, logo_url: kt.qc?.logo_url, laQc: phim.loai === 'quang_cao', logline: kt.logline, series: kt.series }, canh: locNhanh(canh, nhanh), nhanVat }) : [];
   const qtThieu = qtDs.filter((x) => !x.ok);
   const congKe = qtThieu.find((x) => x.cong)?.cong;
   const nutQt = qtDs.length > 0 && (

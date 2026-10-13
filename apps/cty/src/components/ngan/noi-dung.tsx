@@ -10,6 +10,7 @@ import { NutBoBaiHoc } from '../nut-bo-bai-hoc';
 import { soTinhCachCua, dsThuViec } from '../../../worker/cai-tien.mjs';
 import { NutDeCu } from '../nut-de-cu';
 import { KhungVp } from '@/components/khung-vp';
+import { docMailBaoMat } from '../../../worker/mail-bao-mat.mjs';
 import Link from 'next/link';
 import { Gio } from '../gio';
 import { nhanSu, heartbeat, phong, dsNhanSu, soDo, docText, cauHinh, dsPhong, KHUON, MUC, hrefVp } from '@/lib/cong-ty';
@@ -28,7 +29,7 @@ import { tachKhoa, hrefThe, hrefSach, hrefDayChuyen } from '@/lib/ngan';
 import { BangNhanSu } from '../bang-nhan-su';
 import { doiNgu } from '@/lib/doi-ngu';
 import { dayChuyen, linkMos2, homNay, CHANG } from '../../../worker/sach.mjs';
-import { DayChuyenTab, demCan, type DayChuyen, type DcKhai, Ai, Tram, Thanh, KENH, mauNen, TEN_NEN, NHAN_ST, ngay, quaNgay, cungSach, DcSach, DcVideo, DcKenh, LocSach, LocVideo, tenLoc, viecCacDayChuyen, DsViec as DsViecDc } from '../day-chuyen';
+import { DayChuyenTab, demCan, type DayChuyen, type DcKhai, Ai, Tram, Thanh, KENH, mauNen, TEN_NEN, NHAN_ST, ngay, quaNgay, cungSach, DcSach, DcVideo, DcKenh, DcMail, type MailBm, LocSach, LocVideo, tenLoc, viecCacDayChuyen, DsViec as DsViecDc } from '../day-chuyen';
 import { kenhKeoKhach, theMot, lanVideoPhong, lichPhong } from '@/lib/do-dac';
 import { LichPhong, demGap } from '../lich-phong';
 import { NEN_VIDEO, phutVN, tenSlug } from '../../../worker/video.mjs';
@@ -334,14 +335,14 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
   );
   // Phòng khai sổ sản phẩm (so_san_pham) → tab Dây chuyền đọc trạng thái thật từ sổ MOS2 (worker/sach.mjs); không khai → null, không có tab.
   // Phòng khai dây chuyền (quy-trinh/<phòng>/danh-sach.json `day_chuyen`) → tab Dây chuyền: mỗi nguồn đọc một lần ở đây, đếm việc + dựng tab dùng chung
-  const { dsDc, dc, lv, kenh } = (thu ? null : await duLieuDc(id)) ?? { dsDc: [], dc: null, lv: null, kenh: [] };
+  const { dsDc, dc, lv, kenh, mail } = (thu ? null : await duLieuDc(id)) ?? { dsDc: [], dc: null, lv: null, kenh: [], mail: undefined };
   const coDc = dsDc.length > 0;
   const than = thu
     ? <TabPhong khoa={id} dau={dau} tabs={[{ key: 'chay', nhan: 'Chạy' }, { key: 'luot', nhan: 'Các lượt', so: dem!.tong }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }, { key: 'sodo', nhan: 'Sơ đồ' }]}>
         {[<PhongThuChay key="c" admin={admin} />, <PhongThuDs key="l" admin={admin} />, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />, <div key="s">{soDoTab}</div>]}
       </TabPhong>
-    : <TabPhong khoa={id} dau={dau} tabs={[...(coLich ? [{ key: 'lich', nhan: 'Lịch', so: lich === null ? '!' : gapLich || '' }] : []), ...(coDc ? [{ key: 'daychuyen', nhan: 'Dây chuyền', so: dc?.loi ? '!' : demCan({ dsDc, dc, lv, kenh, phong: id }) || '' }] : []), { key: 'sodo', nhan: 'Sơ đồ' }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
-        {[...(coLich ? [<LichPhong key="lich" ds={lich} hom={hom} chu={Object.fromEntries((lich ?? []).map((m) => [m.id, chuCard(id, m.title)]))} />] : []), ...(coDc ? [<DayChuyenTab key="dc" dsDc={dsDc} dc={dc} lv={lv} kenh={kenh} phong={id} p={p} />] : []), <div key="s">{soDoTab}</div>, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
+    : <TabPhong khoa={id} dau={dau} tabs={[...(coLich ? [{ key: 'lich', nhan: 'Lịch', so: lich === null ? '!' : gapLich || '' }] : []), ...(coDc ? [{ key: 'daychuyen', nhan: 'Dây chuyền', so: dc?.loi ? '!' : demCan({ dsDc, dc, lv, kenh, mail, phong: id }) || '' }] : []), { key: 'sodo', nhan: 'Sơ đồ' }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
+        {[...(coLich ? [<LichPhong key="lich" ds={lich} hom={hom} chu={Object.fromEntries((lich ?? []).map((m) => [m.id, chuCard(id, m.title)]))} />] : []), ...(coDc ? [<DayChuyenTab key="dc" dsDc={dsDc} dc={dc} lv={lv} kenh={kenh} mail={mail} phong={id} p={p} />] : []), <div key="s">{soDoTab}</div>, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
       </TabPhong>;
   // Văn phòng pixel LIVE cố định bên phải: văn phòng riêng của đúng phòng này (mọi phòng đều có — hrefVp).
   const vp = hrefVp(id);
@@ -492,7 +493,8 @@ async function duLieuDc(id: string) {
   const khai = dsDayChuyen(id) as DcKhai[];
   const dsDc: DcKhai[] = khai.length ? khai : dc ? [{ id: 'sach', ten: 'Sách', don_vi: String(p.fm.don_vi_viec ?? ''), nguon: 'sach' }] : [];
   const [lv, kenh] = dsDc.length ? await Promise.all([lanVideoPhong(p, dc?.hom ?? homNay(), phutVN()), dsDc.some((d) => d.nguon.startsWith('kenh:')) ? kenhKeoKhach(p) : Promise.resolve([])]) : [null, []];
-  return { p, dsDc, dc, lv, kenh, phong: id };
+  const mail = dsDc.some((d) => d.nguon === 'mail') ? ((await docMailBaoMat()) as MailBm[] | null) : undefined;   // Phòng An toàn tài khoản: hòm claude@orit.app
+  return { p, dsDc, dc, lv, kenh, mail, phong: id };
 }
 
 /** Ngăn một dây chuyền `day-chuyen:<phòng>/<dc>[/<lọc>]`: không lọc = cả bảng (như tab); có lọc = phần ô sơ đồ trỏ tới (lịch, trạm, kho…). */
@@ -505,6 +507,7 @@ export async function nganDayChuyen(ma: string): Promise<Ngan> {
   const kenhK = d.nguon.startsWith('kenh:') ? d.nguon.slice(5) : '';
   const than = d.nguon === 'sach' ? (x.dc ? (loc ? <LocSach dc={x.dc} loc={loc} phong={ph} /> : <DcSach dc={x.dc} phong={ph} />) : <Thieu chu="Phòng chưa có sổ sản phẩm." />)
     : d.nguon === 'video' ? (x.lv ? (loc ? <LocVideo lv={x.lv} loc={loc} phong={ph} /> : <DcVideo lv={x.lv} phong={ph} />) : <Thieu chu="Không đọc được làn video." />)
+    : d.nguon === 'mail' ? <DcMail ds={x.mail ?? null} />
     : x.kenh === null ? <Thieu chu="Không đọc được kênh kéo khách (kenh_sp, DB MOS2)." />
     : <DcKenh ds={x.kenh} kenh={kenhK} nhan={KENH.find(([k]) => k === kenhK)?.[1] ?? d.ten} dc={x.dc} phong={ph} hom={x.dc?.hom ?? homNay()} />;
   return {

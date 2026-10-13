@@ -1,0 +1,21 @@
+{
+ "_": "Quy trình của Phòng An toàn tài khoản. so_hoa: 'co-dinh' = máy chạy, luật nằm trong mã · 'mo-ta' = chưa có máy. chu_tri = MỘT mã chịu trách nhiệm chính, lam = ai/máy làm thật. day_chuyen 'mail' (nguon 'mail' = worker/mail-bao-mat.mjs đọc hòm claude@orit.app).",
+ "phong": "an-toan-tk",
+ "day_chuyen": [
+  { "id": "mail", "ten": "Mail bảo mật", "don_vi": "1 thư", "nguon": "mail" }
+ ],
+ "quy_trinh": [
+  {
+   "id": "tham-dinh-mail-bao-mat",
+   "ten": "Thẩm định mail bảo mật (thật / giả / có người mạo danh)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Anh chuyển tiếp thư nghi vấn (xác nhận liên hệ, đăng nhập mới, đổi mật khẩu, mã OTP, thanh toán) vào claude@orit.app — máy đọc hòm mỗi lần mở phòng",
+   "mo_ta": "Máy đọc người gửi thật (thư chuyển tiếp: khối From của thư gốc) → tên miền THẬT của từng link (gỡ cả link chuyển tiếp ?U=) → so với nhà người gửi + danh sách nhà anh có tài khoản. Link sang tên miền khác = THƯ GIẢ: không bấm, xoá. Link đúng nhà = thư thật, nhưng thư đòi duyệt (xác nhận liên hệ, đăng nhập, OTP) mà anh không tự làm = có người mạo danh: KHÔNG bấm Approve, đổi mật khẩu + bật 2 lớp bằng cách gõ tay địa chỉ trang. Kiên chốt với anh câu 'anh có tự làm không', xử xong thì lưu trữ thư trong hòm (hết là việc cần người).",
+   "ma": "apps/cty/worker/mail-bao-mat.mjs (thamDinh, docMailBaoMat)",
+   "chu_tri": "truong-phong",
+   "lam": ["may", "truong-phong"],
+   "khi": "Có thư bảo mật mới trong hòm",
+   "day_chuyen": "mail"
+  }
+ ]
+}

@@ -11,8 +11,9 @@ import { SAP_TOI, CHANG } from '../../worker/sach.mjs';
 import { hrefSach, hrefThe, hrefVideo } from '@/lib/ngan';
 import { NEN_VIDEO, KHO_CAN, tenSlug } from '../../worker/video.mjs';
 import { LENH_MAY, lenhGanNhat, nguoiLenh } from '../../worker/lenh-may.mjs';
+import { TEN_LOAI } from '../../worker/mail-bao-mat.mjs';
 import { NutChayLai, type LenhHien } from './nut-chay-lai';
-import { vaiCuaPhong } from '../../worker/quy-trinh.mjs';
+import { giaiMa } from '@/lib/trach-nhiem';
 import { theViecMo, type kenhKeoKhach, type LanVideo } from '@/lib/do-dac';
 import { TabPhong } from './tab-phong';
 import { hrefVp, type Doc } from '@/lib/cong-ty';
@@ -34,7 +35,7 @@ export function Ai({ ai, phong, anh = true }: { ai: string | null; phong: string
   if (!ai) return null;
   if (ai === 'giam-doc' || ai === 'may') return <Nguoi id={ai} />;
   if (ai === 'san') return <span className="cty-nguoi-chu">Sàn</span>;
-  const id = (vaiCuaPhong(phong) as Record<string, string>)[ai];
+  const id = giaiMa(phong, ai);   // cùng bộ giải với tab Trách nhiệm / Quy trình: phòng chưa tách vai thì trưởng phòng = tên ở `truong:`
   return id ? <Nguoi id={id} anh={anh} /> : <span className="cty-thu-loi">chưa ai giữ vai {ai}</span>;
 }
 export const Tram = ({ t }: { t: NonNullable<Dong['tram']> }) => (
@@ -199,11 +200,30 @@ export function DcKenh({ ds, kenh, nhan, dc, phong, hom }: { ds: Kenh[]; kenh: s
     dai={[{ ma: 'can', so: can.length, ten: 'Cần làm' }, { ma: 'chay', so: chay.length, ten: 'Đang chạy' }, { ma: 'du', so: du.length, ten: 'Đủ' }, { ma: 'moi', so: moi ? ngay(moi) : '—', ten: 'Số kênh cập nhật', canh: cu > 3 ? `cũ ${cu} ngày — bấm "Gom số kênh" ở hàng máy` : null }]} /></>;
 }
 
+const KET_MAIL: Record<MailBm['ket'], [string, string]> = { gia: ['THƯ GIẢ', ' cty-pill-off'], that: ['thư thật', ' cty-pill-kind'], 'chua-ro': ['chưa rõ', ' cty-pill-off'] };
+/** Dây chuyền MAIL BẢO MẬT (Phòng An toàn tài khoản): mỗi thư một hàng — kết luận của máy + việc phải làm; thư đã xử mờ đi. */
+export function DcMail({ ds }: { ds: MailBm[] | null }) {
+  if (ds === null) return <p className="cty-bao-loi" data-loi>Không đọc được hòm claude@orit.app (Directus claude_inbox) — xem DIRECTUS_URL / DIRECTUS_TOKEN của mos2-cty.</p>;
+  if (!ds.length) return <p className="cty-muted">30 ngày qua không có thư bảo mật nào trong hòm. Thư nghi vấn: chuyển tiếp vào claude@orit.app, máy thẩm định khi mở phòng.</p>;
+  return (
+    <div className="cty-cuon"><table className="cty-bang-loc cty-bang-viec"><thead><tr><th>Ngày</th><th>Thư</th><th>Nhà</th><th>Loại</th><th>Kết luận</th><th>Việc phải làm</th><th>Trạng thái</th></tr></thead><tbody>
+      {ds.map((m) => <tr key={m.id} className={m.xong ? 'cty-muted' : undefined}>
+        <td className="cty-so">{ngay(m.luc.slice(0, 10))}</td><td>{m.tieuDe}<div className="cty-muted cty-nho">{m.gui}</div></td><td className="cty-bang-ai">{m.mien || '—'}</td>
+        <td className="cty-bang-ai">{m.loai.map((l) => TEN_LOAI[l] ?? l).join(', ') || '—'}</td>
+        <td><span className={`cty-pill${KET_MAIL[m.ket][1]}`}>{KET_MAIL[m.ket][0]}</span><div className="cty-nho">{m.chu}</div></td>
+        <td>{m.viec}</td><td className="cty-bang-ai">{m.xong ? 'đã xử' : <span className="cty-thu-loi">chờ xử</span>}</td></tr>)}
+    </tbody></table></div>
+  );
+}
+
 // ── VIỆC CẦN NGƯỜI gộp mọi dây chuyền (cùng một dạng → một danh sách, một số đếm cho nhãn tab)
 const THU_TU = ['giam-doc', 'tre', 'truong-phong', 'nguoi-lam', 'kenh-keo-khach', 'thi-truong'];
 export type ViecDc = { key: string; dc: string; k: string; ai: string | null; chu: string; muc?: number; qua?: number | null; nhan?: string; href?: string; ten?: string; /** quy trình của việc — ngăn quy trình liệt kê việc đang mở của nó */ qt?: string | null;
   /** lệnh máy làm lại được ngay (worker/lenh-may.mjs) — có thì hàng có nút "Chạy lại ngay" */ lenh?: string };
-export function viecCacDayChuyen({ dsDc, dc, lv, kenh, phong }: { dsDc: DcKhai[]; dc: DayChuyen | null; lv: Lv; kenh: Kenh[] | null; phong: string }): ViecDc[] {
+/** Một thư bảo mật đã thẩm định (worker/mail-bao-mat.mjs docMailBaoMat). xong = anh/Kiên đã đọc hoặc lưu trữ thư trong hòm. */
+export type MailBm = { id: string; luc: string; tieuDe: string; xong: boolean; gui: string; mien: string; loai: string[]; ket: 'gia' | 'that' | 'chua-ro'; chu: string; viec: string };
+type DuLieuDc = { dsDc: DcKhai[]; dc: DayChuyen | null; lv: Lv; kenh: Kenh[] | null; phong: string; /** dây chuyền nguon 'mail' — null = không đọc được hòm */ mail?: MailBm[] | null };
+export function viecCacDayChuyen({ dsDc, dc, lv, kenh, phong, mail }: DuLieuDc): ViecDc[] {
   const ds: ViecDc[] = [];
   for (const d of dsDc) {
     if (d.nguon === 'sach') for (const g of dc?.nhom ?? []) for (const x of g.dong) { const k = x.viec.tre ? 'tre' : x.viec.ai ?? '';
@@ -213,6 +233,9 @@ export function viecCacDayChuyen({ dsDc, dc, lv, kenh, phong }: { dsDc: DcKhai[]
       lenh: v.qt === 'video-ngan' && v.nen ? `video:${v.nen}` : v.qt === 'do-video' ? 'do-video' : undefined }));
     if (d.nguon.startsWith('kenh:')) for (const r of (kenh ?? []).filter((x) => x.kenh === d.nguon.slice(5) && x.canh_bao))
       ds.push({ key: `k${r.kenh}${r.san_pham}`, dc: d.id, k: 'kenh-keo-khach', ai: 'kenh-keo-khach', chu: r.canh_bao!, href: r.the_id ? hrefThe(r.the_id) : undefined, ten: r.ten, qt: d.qt_chinh ?? null });
+    // thư bảo mật chưa xử (còn "new" trong hòm) → việc của trưởng phòng; thư giả / có người mạo danh lên mức 1 (làm ngay)
+    if (d.nguon === 'mail') for (const m of (mail ?? []).filter((x) => !x.xong))
+      ds.push({ key: `m${m.id}`, dc: d.id, k: 'truong-phong', ai: 'truong-phong', chu: `${m.chu} → ${m.viec}`, muc: m.ket === 'gia' || m.loai.some((l) => l !== 'thanh-toan') ? 1 : 2, nhan: m.mien, ten: m.tieuDe, qt: 'tham-dinh-mail-bao-mat' });
   }
   const tt = (k: string) => (THU_TU.includes(k) ? THU_TU.indexOf(k) : THU_TU.length);
   return ds.sort((a, b) => tt(a.k) - tt(b.k) || (b.qua ?? -99) - (a.qua ?? -99));
@@ -249,16 +272,16 @@ function BangCard({ ds, hom }: { ds: The[]; hom: string }) {
 /** Số trên nhãn tab Dây chuyền: mọi việc chờ người của mọi dây chuyền. */
 export const demCan = (x: Parameters<typeof viecCacDayChuyen>[0]) => viecCacDayChuyen(x).length;
 
-export async function DayChuyenTab({ dsDc, dc, lv, kenh, phong, p }: { dsDc: DcKhai[]; dc: DayChuyen | null; lv: Lv; kenh: Kenh[] | null; phong: string; p: Doc }) {
+export async function DayChuyenTab({ dsDc, dc, lv, kenh, phong, p, mail }: DuLieuDc & { p: Doc }) {
   const the = await theViecMo(p);
   const hom = dc?.hom ?? new Date().toISOString().slice(0, 10);
-  const viec = viecCacDayChuyen({ dsDc, dc, lv, kenh, phong });
+  const viec = viecCacDayChuyen({ dsDc, dc, lv, kenh, phong, mail });
   const tenDc = Object.fromEntries(dsDc.map((d) => [d.id, d.ten]));
   // dây chuyền có số liệu mới hiện (sổ / làn video / dòng kenh_sp); không đọc được nguồn vẫn hiện để thấy lỗi
-  const co = dsDc.filter((d) => (d.nguon === 'sach' ? !!dc : d.nguon === 'video' ? !!lv : d.nguon.startsWith('kenh:') ? kenh === null || kenh.some((r) => r.kenh === d.nguon.slice(5)) : false));
+  const co = dsDc.filter((d) => (d.nguon === 'sach' ? !!dc : d.nguon === 'video' ? !!lv : d.nguon === 'mail' ? mail !== undefined : d.nguon.startsWith('kenh:') ? kenh === null || kenh.some((r) => r.kenh === d.nguon.slice(5)) : false));
   const tre = (id: string) => viec.filter((v) => v.dc === id && v.k === 'tre').length, so = (id: string) => viec.filter((v) => v.dc === id).length;
   const gap = [...co].sort((a, b) => tre(b.id) - tre(a.id) || so(b.id) - so(a.id))[0]?.id;
-  const noiDung = (d: DcKhai) => d.nguon === 'sach' ? <DcSach dc={dc!} phong={phong} /> : d.nguon === 'video' ? <DcVideo lv={lv!} phong={phong} />
+  const noiDung = (d: DcKhai) => d.nguon === 'sach' ? <DcSach dc={dc!} phong={phong} /> : d.nguon === 'video' ? <DcVideo lv={lv!} phong={phong} /> : d.nguon === 'mail' ? <DcMail ds={mail ?? null} />
     : kenh === null ? <p className="cty-bao-loi" data-loi>Không đọc được kênh kéo khách (kenh_sp, DB MOS2).</p>
     : <DcKenh ds={kenh} kenh={d.nguon.slice(5)} nhan={KENH.find(([k]) => k === d.nguon.slice(5))?.[1] ?? d.ten} dc={dc} phong={phong} hom={hom} />;
   const dau = (

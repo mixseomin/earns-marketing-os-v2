@@ -30,7 +30,7 @@ const KyThuatSchema = z.object({
 });
 const DongThoaiSchema = z.object({
   nhan_vat: z.string().describe('Tên CHÍNH XÁC nhân vật nói (từ danh sách anchor); rỗng nếu là lời dẫn'),
-  dien_xuat: z.string().describe('Diễn xuất trong ngoặc như kịch bản phim: hành động/biểu cảm khi nói, vd "nhìn lên, giơ tay", "thì thầm", "cười khẩy"; rỗng nếu không cần'),
+  dien_xuat: z.string().describe('Diễn xuất trong ngoặc như kịch bản phim: hành động/biểu cảm khi nói — viết bằng NGÔN NGỮ PHIM (đi vào model giọng / âm thanh), vd "looking up, raising a hand", "whispering"; rỗng nếu không cần'),
   loi: z.string().describe('Lời nói, đúng giọng nhân vật, có ẩn ý khi hợp'),
 });
 const ShotSchema = CanhSchema.extend({

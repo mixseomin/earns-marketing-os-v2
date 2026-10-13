@@ -1,5 +1,5 @@
 {
- "_": "Quy trình của Phòng An toàn tài khoản. so_hoa: 'co-dinh' = máy chạy, luật nằm trong mã · 'mo-ta' = chưa có máy. chu_tri = MỘT mã chịu trách nhiệm chính, lam = ai/máy làm thật. day_chuyen 'mail' (nguon 'mail' = worker/mail-bao-mat.mjs đọc hòm claude@orit.app).",
+ "_": "Quy trình của Phòng Bảo mật. so_hoa: 'co-dinh' = máy chạy, luật nằm trong mã · 'mo-ta' = chưa có máy. chu_tri = MỘT mã chịu trách nhiệm chính, lam = ai/máy làm thật. day_chuyen 'mail' (nguon 'mail' = worker/mail-bao-mat.mjs đọc hòm claude@orit.app).",
  "phong": "an-toan-tk",
  "day_chuyen": [
   { "id": "mail", "ten": "Mail bảo mật", "don_vi": "1 thư", "nguon": "mail" }

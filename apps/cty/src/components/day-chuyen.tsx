@@ -201,7 +201,7 @@ export function DcKenh({ ds, kenh, nhan, dc, phong, hom }: { ds: Kenh[]; kenh: s
 }
 
 const KET_MAIL: Record<MailBm['ket'], [string, string]> = { gia: ['THƯ GIẢ', ' cty-pill-off'], that: ['thư thật', ' cty-pill-kind'], 'chua-ro': ['chưa rõ', ' cty-pill-off'] };
-/** Dây chuyền MAIL BẢO MẬT (Phòng An toàn tài khoản): mỗi thư một hàng — kết luận của máy + việc phải làm; thư đã xử mờ đi. */
+/** Dây chuyền MAIL BẢO MẬT (Phòng Bảo mật): mỗi thư một hàng — kết luận của máy + việc phải làm; thư đã xử mờ đi. */
 export function DcMail({ ds }: { ds: MailBm[] | null }) {
   if (ds === null) return <p className="cty-bao-loi" data-loi>Không đọc được hòm claude@orit.app (Directus claude_inbox) — xem DIRECTUS_URL / DIRECTUS_TOKEN của mos2-cty.</p>;
   if (!ds.length) return <p className="cty-muted">30 ngày qua không có thư bảo mật nào trong hòm. Thư nghi vấn: chuyển tiếp vào claude@orit.app, máy thẩm định khi mở phòng.</p>;

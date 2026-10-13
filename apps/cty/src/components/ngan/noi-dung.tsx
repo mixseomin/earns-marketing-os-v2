@@ -493,7 +493,7 @@ async function duLieuDc(id: string) {
   const khai = dsDayChuyen(id) as DcKhai[];
   const dsDc: DcKhai[] = khai.length ? khai : dc ? [{ id: 'sach', ten: 'Sách', don_vi: String(p.fm.don_vi_viec ?? ''), nguon: 'sach' }] : [];
   const [lv, kenh] = dsDc.length ? await Promise.all([lanVideoPhong(p, dc?.hom ?? homNay(), phutVN()), dsDc.some((d) => d.nguon.startsWith('kenh:')) ? kenhKeoKhach(p) : Promise.resolve([])]) : [null, []];
-  const mail = dsDc.some((d) => d.nguon === 'mail') ? ((await docMailBaoMat()) as MailBm[] | null) : undefined;   // Phòng An toàn tài khoản: hòm claude@orit.app
+  const mail = dsDc.some((d) => d.nguon === 'mail') ? ((await docMailBaoMat()) as MailBm[] | null) : undefined;   // Phòng Bảo mật: hòm claude@orit.app
   return { p, dsDc, dc, lv, kenh, mail, phong: id };
 }
 

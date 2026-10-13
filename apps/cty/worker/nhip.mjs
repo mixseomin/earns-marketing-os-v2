@@ -9,7 +9,7 @@ import { GOC } from './goc.mjs';
 import { parseFm } from '../scripts/fm.mjs';
 
 export const NHIP = {
-  'mail-bao-mat': async (n) => (await import('./mail-bao-mat.mjs')).nhipBaoMat(n.id, { ten: n.ten, model: n.model }),   // Phòng An toàn tài khoản: thư bảo mật → Telegram + pixel
+  'mail-bao-mat': async (n) => (await import('./mail-bao-mat.mjs')).nhipBaoMat(n.id, { ten: n.ten, model: n.model }),   // Phòng Bảo mật: thư bảo mật → Telegram + pixel
 };
 /** CA LÀM của nhân sự: `ca: 08:00-24:00` (giờ VN) → chỉ làm trong khung đó; không khai = cả ngày. Anh 13/10/2026: Kiên 2 ca 16 tiếng từ 8h. */
 export function trongCa(ca, gio = new Date()) {

@@ -1,4 +1,4 @@
-// THẨM ĐỊNH MAIL BẢO MẬT — Phòng An toàn tài khoản (anh 13/10/2026: "mail từ amazon.in có thật không? thực tế không có contact nào cả").
+// THẨM ĐỊNH MAIL BẢO MẬT — Phòng Bảo mật (anh 13/10/2026: "mail từ amazon.in có thật không? thực tế không có contact nào cả").
 // Thư "xác nhận liên hệ / đăng nhập mới / đổi mật khẩu / mã OTP / thanh toán" là chỗ kẻ gian ra tay theo HAI đường, máy tách hai đường:
 //   (1) THƯ GIẢ: tên người gửi giả nền tảng, link dẫn sang tên miền khác → bắt bằng tên miền THẬT của từng link (gỡ cả link chuyển tiếp ?U=…).
 //   (2) THƯ THẬT, YÊU CẦU GIẢ: kẻ gian gọi CSKH / đăng nhập mạo danh, nền tảng gửi thư thật xin chủ duyệt → link đúng mà KHÔNG được bấm Duyệt
@@ -86,11 +86,11 @@ const XOA_SAU = 60_000;
 const KET_CHU = { gia: '⛔ THƯ GIẢ', that: '⚠️ Thư thật — xem kỹ yêu cầu', 'chua-ro': '❓ Chưa rõ — coi như giả' };
 const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 /** Tin báo: lời của người phụ trách (mô hình viết, có thể rỗng) + kết luận và việc NGUYÊN VĂN của máy (mô hình không được sửa). */
-export const tinBao = (m, ten, loi = '') => `🔐 <b>${esc(ten)} · ${esc(m.mien || m.gui)}</b> — ${KET_CHU[m.ket]}\n${loi ? `${esc(loi)}\n` : ''}<i>${esc(m.tieuDe)}</i>\n${esc(m.chu)}\n<b>Việc:</b> ${esc(m.viec)}\nXử xong thì lưu trữ thư trong hòm, tin tự gỡ.\n<a href="${CTY}">↗ cty · An toàn tài khoản › Mail bảo mật</a>`;   // anh 13/10/2026: tin Telegram nào cũng kết bằng MỘT link nhỏ mở thẳng việc / phòng trên cty
+export const tinBao = (m, ten, loi = '') => `🔐 <b>${esc(ten)} · ${esc(m.mien || m.gui)}</b> — ${KET_CHU[m.ket]}\n${loi ? `${esc(loi)}\n` : ''}<i>${esc(m.tieuDe)}</i>\n${esc(m.chu)}\n<b>Việc:</b> ${esc(m.viec)}\nXử xong thì lưu trữ thư trong hòm, tin tự gỡ.\n<a href="${CTY}">↗ cty · Bảo mật › Mail bảo mật</a>`;   // anh 13/10/2026: tin Telegram nào cũng kết bằng MỘT link nhỏ mở thẳng việc / phòng trên cty
 /** Lời mở của người phụ trách qua proxy công ty (worker/proxy.mjs — ghi tiền, trần chi). Lỗi → '' (tin vẫn đi bằng khuôn). */
 async function loiMo(nguoi, model, m) {
   if (!model) return '';
-  const body = { model, max_tokens: 160, temperature: 0.3, system: 'Bạn là Kiên, trưởng phòng An toàn tài khoản. Viết cho Giám đốc (gọi là "anh") 1–2 câu tiếng Việt ngắn, bình tĩnh: chuyện gì đang xảy ra và câu cần anh trả lời. Không lặp lại danh sách việc, không bịa chi tiết ngoài dữ kiện.',
+  const body = { model, max_tokens: 160, temperature: 0.3, system: 'Bạn là Kiên, trưởng phòng Bảo mật. Viết cho Giám đốc (gọi là "anh") 1–2 câu tiếng Việt ngắn, bình tĩnh: chuyện gì đang xảy ra và câu cần anh trả lời. Không lặp lại danh sách việc, không bịa chi tiết ngoài dữ kiện.',
     messages: [{ role: 'user', content: `Thư: ${m.tieuDe}\nNgười gửi: ${m.gui}\nMáy kết luận: ${m.chu}\nViệc máy đề xuất: ${m.viec}` }] };
   try {
     const r = await fetch(`${process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862'}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': nguoi, 'x-cty-luot': `nhip-${Date.now()}` }, body: JSON.stringify(body), signal: AbortSignal.timeout(30000) });

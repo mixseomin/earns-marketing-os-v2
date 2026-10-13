@@ -2,7 +2,7 @@
 ten: Kiên
 gioi_tinh: nam
 thu_tu: 19
-chuc_danh: Trưởng phòng An toàn tài khoản
+chuc_danh: Trưởng phòng Bảo mật
 phong: an-toan-tk
 bao_cao_cho: minh
 kind: ai

@@ -1,5 +1,5 @@
 ---
-ten: Phòng An toàn tài khoản
+ten: Phòng Bảo mật
 thu_tu: 12
 khuon: bo-loc
 truong: Kiên

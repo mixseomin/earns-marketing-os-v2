@@ -7,7 +7,7 @@ import { execFile } from 'node:child_process';
 import { sql } from 'drizzle-orm';
 import { giayPhat, locNhanh, type Canh } from './kieu';
 import { dongThoai } from './am-thanh';
-import { canPhat, coGianMoc, LOC_GON_GIONG, tocDocTheoLoai } from './khop-giong';
+import { canPhat, coGianMoc, LOC_GON_GIONG, tocDocTheoLoai, SHOT_TOI_THIEU } from './khop-giong';
 import { docKinhThanh, type KinhThanh } from './kieu';
 import { uploadToR2 } from '../r2';
 import { randomUUID } from 'node:crypto';
@@ -58,7 +58,14 @@ export async function khopGiongTap(db: Db, tapId: number, nguoi: string): Promis
   const phatCu = d.ds.map(giayPhat); let doi = 0, thieu = 0;
   const kt = docKinhThanh(((await db.execute(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${d.tap.phim_id}`)) as unknown as Row[])[0]?.kinh_thanh as KinhThanh);
   const toc = tocDocTheoLoai(kt.the_loai);
-  const phatMoi = d.ds.map((c, i) => { const can = canPhat(c, d.nv, (u) => dai.get(u) ?? null, toc); if (can == null) { if (dongThoai(c, d.nv).some((x) => x.loi.trim())) thieu++; return phatCu[i]!; } return Math.max(1, can); });
+  // Shot có câu nói không co dưới SHOT_TOI_THIEU (trừ khi vốn đã ngắn hơn) — hình còn phải diễn.
+  const phatMoi = d.ds.map((c, i) => { const can = canPhat(c, d.nv, (u) => dai.get(u) ?? null, toc); if (can == null) { if (dongThoai(c, d.nv).some((x) => x.loi.trim())) thieu++; return phatCu[i]!; } return Math.max(Math.min(phatCu[i]!, SHOT_TOI_THIEU), can); });
+  // Ghi độ dài đo được vào từng dòng (DongThoai.dai) — máy kiểm tiếng (kiemTieng) đọc ở thanh 🎬 và cổng xuất mà không đo lại.
+  for (const c of d.ds) {
+    if (!c.thoai.some((x) => x.url && dai.get(x.url) != null && x.dai !== dai.get(x.url))) continue;
+    c.thoai = c.thoai.map((x) => (x.url && dai.get(x.url) != null ? { ...x, dai: dai.get(x.url)! } : x));
+    await db.execute(sql`UPDATE xv_canh SET thoai = ${JSON.stringify(c.thoai)}::jsonb WHERE id = ${c.id}`);
+  }
   for (const [i, c] of d.ds.entries()) {
     const p = phatMoi[i]!; if (Math.abs(p - phatCu[i]!) < 0.01) continue;
     await chupTruoc(db, { bang: 'xv_canh', id: c.id, cot: ['phat_s', 'thoi_luong_s', 'chu_man'], moTa: `khớp giây theo giọng (#${c.thu_tu} ${phatCu[i]}s → ${p}s)`, nguoi });

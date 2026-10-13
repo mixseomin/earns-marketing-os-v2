@@ -73,7 +73,9 @@ export type DongThoai = { nhan_vat: string; dien_xuat: string; loi: string; url?
   /** url là bản đã GỌN (cắt lặng đầu/cuối, rút quãng ngắt dài) — hau-ky.ts › gonGiong; không gọn lại lần hai. */
   gon?: boolean;
   /** giọng đã đọc file url ("model|voice") — ghi lúc job giọng xong; bản xuất dùng để bắt lời dẫn lẫn giọng. */
-  giong?: string };
+  giong?: string;
+  /** độ dài file url (giây, đo bằng ffprobe lúc khớp giọng) — máy kiểm tiếng (khop-giong.ts › kiemTieng) đọc, không phải đo lại. */
+  dai?: number };
 /** Ghép dòng thoại thành chuỗi loi_thoai (tương thích chỗ cũ: animatic, tìm người nói). */
 export const ghepThoai = (ds: DongThoai[]) => ds.filter((d) => d.loi.trim()).map((d) => `${d.nhan_vat ? `${d.nhan_vat}${d.dien_xuat ? ` (${d.dien_xuat})` : ''}: ` : ''}"${d.loi.trim()}"`).join('\n');
 /** Một phân cảnh (scene): nhóm shot cùng phan_doan. Cảm xúc -5..5. */
@@ -187,6 +189,12 @@ export const shotLechNgonNgu = (ngonNgu: string | undefined, canh: ShotChu[]): n
  *  model tự vẽ chữ ("white text with black outline overlaid…" → Veo/Seedream in phụ đề giả, 09/10/2026). Claude vẫn đọc bản đầy đủ. */
 export const phongCachHinh = (pc?: string): string =>
   (pc ?? '').split(/(?<=[;.])\s+/).filter((v) => !/\b(text|texts|caption|captions|subtitle|subtitles|overlay|overlaid|logo|font|lettering|typography)\b|chữ|phụ đề|font/i.test(v)).join(' ').replace(/[;,]\s*$/, '').trim();
+/** Phong cách VẼ TAY (sáp màu, bút chì, màu nước, phấn, mực…): model video hiểu thành cảnh "có người đang vẽ" — Fox Tales 13/10/2026: bàn tay
+ *  cầm bút sáp thò vào khung shot 1. Trả câu cấm gắn vào prompt video; phong cách khác trả ''. */
+export const camCongCuVe = (pc?: string): string =>
+  /crayon|pencil|sketch|watercolou?r|chalk|pastel|doodle|scribbl|ink\b|marker|hand-drawn|hand drawn|drawn|paper|sáp|bút chì|màu nước|phấn|vẽ/i.test(pc ?? '')
+    ? 'This is an animated illustration: the drawn characters and scenery themselves move. NO human hands, NO crayons, pencils, brushes or any drawing tools, NO artist and NO paper edges ever appear in the frame; nothing is being drawn on screen.'
+    : '';
 export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: string; shot?: Partial<ShotChu>; anchor?: Pick<NhanVat, 'ten' | 'mo_ta'>[] }): string | null {
   if (!ngonNgu || ngonNgu === 'vi') return null;
   const cho: string[] = [];

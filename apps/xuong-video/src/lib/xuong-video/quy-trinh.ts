@@ -7,6 +7,7 @@ import { thanhPhanCanh, type Canh, type NhanVat, type PhanCanh } from './kieu';
 import type { Beat } from './dien-anh';
 import { dongThoai } from './am-thanh';
 import { chamKichBan } from './cham-kich-ban';
+import { kiemTieng } from './khop-giong';
 import type { Series } from './kieu';
 
 export type Cong = 'keyframe' | 'video' | 'xuat';
@@ -103,6 +104,7 @@ export function quyTrinh(o: { tap: TapQt; phim: PhimQt; canh: ShotQt[]; nhanVat:
     m('shot_list', 'Tiền kỳ', 'Shot list (cỡ cảnh, máy)', theoShot((c) => (c.ky_thuat?.co_canh ? null : 'chưa chọn cỡ cảnh'), sinh), 'keyframe', 'Mỗi shot: cỡ cảnh + chuyển động máy (nhóm Ngôn ngữ điện ảnh).'),
     m('keyframe', 'Sản xuất', 'Storyboard (keyframe đã duyệt)', theoShot((c) => (!c.keyframe_url ? 'chưa có keyframe' : c.trang_thai === 'co_keyframe' || c.trang_thai === 'nhap' ? 'chưa duyệt' : null)), 'video', 'Sinh keyframe, xem từng ảnh, ✓ duyệt (hoặc sinh lại).'),
     m('giong', 'Sản xuất', 'Giọng trước video', coGiong ? theoShot((c) => { const n = dongThoai(c, nhanVat).filter((d) => d.loi.trim() && !d.url).length; return n ? `${n} dòng chưa có giọng` : null; }) : [], 'video', 'Sinh giọng cho lời dẫn/thoại TRƯỚC khi sinh clip; giây phát của shot khớp theo giọng.'),
+    m('tieng', 'Hậu kỳ', 'Tiếng nghe rõ (máy kiểm)', kiemTieng(canh, nhanVat), 'xuat', 'Máy đo từng câu: không bị cắt khi sang shot, không đè nhau, không đọc quá nhanh, shot đủ dài cho hình diễn. Sinh giọng xong máy tự khớp; còn lỗi thì ⏱ khớp giây theo giọng.'),
     m('nhac', 'Hậu kỳ', 'Nhạc nền', tap.nhac_url || Object.keys(tap.nhac_phan_canh ?? {}).length ? [] : ['tập chưa có nhạc nền'], 'xuat', 'Làn 🎵 Nhạc: sinh một bài cả tập hoặc theo phân cảnh; rồi 🎯 khớp nhịp.'),
     m('sfx', 'Hậu kỳ', 'Tiếng hiệu ứng', cat && coSfx * 2 < cat ? [`${coSfx}/${cat} điểm cắt có tiếng hiệu ứng`] : [], null, 'Nhóm Âm thanh của shot (đập, vút, dâng…) hoặc ⚡ Nhịp hành động.'),
     m('chuyen_canh', 'Hậu kỳ', 'Chuyển cảnh', cat && coCc * 3 < cat ? [`${coCc}/${cat} điểm cắt có chuyển cảnh`] : [], null, 'Bấm ⇄ ở điểm nối trên làn Hình.'),

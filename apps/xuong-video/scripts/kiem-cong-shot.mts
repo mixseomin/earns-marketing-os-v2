@@ -6,12 +6,14 @@ import { boiCanhCanh, mapTap, mapCanh, mapNhanVat, kemBienThe, type Row } from '
 import { chanTienKy, chanShot, chanVideo } from '../src/lib/xuong-video/quy-trinh';
 import { chanChuModel, thanhPhanCanh, locNhanh } from '../src/lib/xuong-video/kieu';
 import { dongThoai } from '../src/lib/xuong-video/am-thanh';
+import { kiemTieng } from '../src/lib/xuong-video/khop-giong';
 const db = getDb()!;
 for (const tapId of process.argv.slice(2).map(Number)) {
   const tap = mapTap(((await db.execute(sql`SELECT * FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[])[0]!);
   const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${tap.phim_id} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
   const canh = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh);
-  console.log(`\n== tập ${tapId} (phim ${tap.phim_id}) · ${canh.length} shot`);
+  console.log(`\n== tập ${tapId} · kiểm tiếng: ${kiemTieng(locNhanh(canh, 'A'), nv).join(' | ') || 'sạch'}`);
+  console.log(`== tập ${tapId} (phim ${tap.phim_id}) · ${canh.length} shot`);
   for (const c of canh) {
     const bc = await boiCanhCanh(db, c.id);
     if (!bc) { console.log(`#${c.thu_tu} không đọc được bối cảnh`); continue; }

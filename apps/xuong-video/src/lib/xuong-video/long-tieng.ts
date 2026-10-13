@@ -10,7 +10,7 @@ import { promisify } from 'node:util';
 import { sql } from 'drizzle-orm';
 import { uploadToR2 } from '@/lib/r2';
 import { dichChuoi } from './claude';
-import { chuoiCanDich, apDich, giongDong } from './ban-dich';
+import { chuoiCanDich, ganDich, theoNgonNgu, giongDong } from './ban-dich';
 import { chayXuat } from './xuat-chay';
 import { gonGiong } from './hau-ky';
 import { chayViecAm } from './viec-am';
@@ -68,12 +68,14 @@ export async function xuatLongTiengTap(db: Db, tapId: number, job: number, sang 
     if (!d.ok) return d;
     dich = d.dich;
   }
-  // Đọc từng câu bằng giọng của bản gốc. Khoá file = băm (model, giọng, diễn xuất, câu) → câu đã đọc ở lượt trước dùng lại, 0 ký tự.
+  // Đọc từng câu bằng giọng của bản gốc. Dòng đã có bản dịch còn mới (cùng câu gốc, cùng câu dịch, có file) thì giữ, không đọc lại. Khoá file = băm (model, giọng, diễn xuất, câu) → câu đã đọc ở lượt trước dùng lại, 0 ký tự.
   const giongDich = new Map<string, string>(); let kyTu = 0; const loiGiong: string[] = [];
   for (const c of canh) for (const [i, d] of (c.thoai ?? []).entries()) {
     if (!d.loi.trim()) continue;
     if (khongDich) { if (d.url) giongDich.set(`${c.id}:${i}`, d.url); continue; }
     const text = dich.get(d.loi.trim()) ?? d.loi.trim();
+    const cu = d.dich?.[sang];
+    if (cu?.url && cu.goc === d.loi && cu.loi === text) { giongDich.set(`${c.id}:${i}`, cu.url); continue; }
     const g = giongDong(d, bc.nhanVat, kt) ?? await (async () => { const m = MODEL_GIONG_MAC_DINH(); return { model: m, voice: await giongMacDinh(m) }; })();
     const camXuc = c.cam_xuc;
     const loiDoc = d.dien_xuat && /eleven/.test(g.model) && /v3/.test(g.model) ? `[${d.dien_xuat}] ${text}` : text;
@@ -91,7 +93,19 @@ export async function xuatLongTiengTap(db: Db, tapId: number, job: number, sang 
     giongDich.set(`${c.id}:${i}`, url);
   }
   if (loiGiong.length && !giongDich.size) return { ok: false, loi: `không đọc được câu nào: ${loiGiong[0]}` };
-  const canhDich = apDich(canh, dich, giongDich);
+  // Lưu bản dịch vào từng shot (chu_man_dich + thoai[i].dich) — timeline xem được bản tiếng này (nút EN | 🇻🇳) mà không xuất lại.
+  // Ghi từng dòng bằng jsonb_set (không ghi đè cả mảng thoai: job giọng gốc có thể đang ghi vào dòng khác cùng lúc).
+  const daGan = ganDich(canh, sang, dich, giongDich);
+  if (!khongDich) for (const c of daGan) {
+    const cm = c.chu_man_dich?.[sang];
+    if (cm) await db.execute(sql`UPDATE xv_canh SET chu_man_dich = coalesce(chu_man_dich, '{}'::jsonb) || jsonb_build_object(${sang}::text, ${JSON.stringify(cm)}::jsonb) WHERE id = ${c.id}`);
+    for (const [i, d] of c.thoai.entries()) {
+      const x = d.dich?.[sang]; if (!x) continue;
+      await db.execute(sql`UPDATE xv_canh SET thoai = jsonb_set(thoai, ${`{${i},dich}`}::text[], coalesce(thoai->${i}->'dich', '{}'::jsonb) || jsonb_build_object(${sang}::text, ${JSON.stringify(x)}::jsonb))
+        WHERE id = ${c.id} AND thoai->${i}->>'loi' = ${x.goc}`);
+    }
+  }
+  const canhDich = theoNgonNgu(daGan, sang).canh;
   const kq = await chayXuat({ loai: bc.loai, tiLe: kt.ti_le, canh: canhDich, nhanVat: bc.nhanVat, tap: bc.tap, qc: kt.qc, nhanh: null, choThieuNhac: true });
   if (!kq.ok) return kq;
   const amUrl = await tachTrackTieng(kq.url, `${tapId}-${sang}`);

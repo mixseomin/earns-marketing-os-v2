@@ -13,6 +13,7 @@ import { Chon } from './chon';
 import { Khoa, TabPhim, KqChay, O, Nut, Loi, Menu, MucMenu, mono, goiAction } from './ui';
 import { GiongNhanVat } from './nhan-vat';
 import { Animatic } from './animatic';
+import { theoNgonNgu } from '@/lib/xuong-video/ban-dich';
 import { CanhRow } from './canh';
 import { ChayChon } from './chay-chon';
 import { BangDoiTuong } from './bang-doi-tuong';
@@ -50,6 +51,8 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
   const [moBang, setMoBang] = useState(false);
   // 3c xem dạng timeline (mặc định, kiểu CapCut) hoặc danh sách; nhớ theo trình duyệt.
   const [xem, setXem] = useNho<'timeline' | 'luoi' | 'ds'>('xv-xem-3c', 'timeline', ['timeline', 'luoi', 'ds']);
+  // Tiếng đang xem trên timeline + toàn màn hình: '' = bản gốc, 'vi' = bản lồng tiếng Việt đã lưu trong shot (ban-dich.ts › theoNgonNgu). Nhớ trên URL (?tln=vi).
+  const [tiengXem, setTiengXem] = useNho<'' | 'vi'>('xv-tln', '', ['', 'vi'], 'tln');
   const [chonCanh, setChonCanh] = useState<number | null>(null);
   const [uoc, setUoc] = useState<{ anh1: number; videoTong: number; soCanhDuyet: number; giayDuyet: number } | null>(null);
   const [uocA, setUocA] = useState<Awaited<ReturnType<typeof uocAm>> | null>(null);
@@ -313,17 +316,28 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
           </div>
           {xem === 'timeline' ? (() => {
             const canhNhanh = locNhanh(canh, nhanh);
-            const cc = canhNhanh.find((x) => x.id === chonCanh) ?? canhNhanh[0]!;
+            const cc = canhNhanh.find((x) => x.id === chonCanh) ?? canhNhanh[0]!;   // thẻ shot bên dưới luôn sửa bản GỐC
+            const vi = theoNgonNgu(canhNhanh, 'vi'); const xemVi = tiengXem === 'vi' && kt.ngon_ngu !== 'vi';
             return (
               <>
-                <Timeline canh={canhNhanh} nhanVat={nhanVat} tap={tap} qc={kt.qc} tiLe={kt.ti_le} ngonNgu={kt.ngon_ngu} chon={cc.id} onChon={setChonCanh} onToanManHinh={() => setAnimatic(true)}
+                {kt.ngon_ngu !== 'vi' && (
+                  <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginTop: 8 }}>
+                    <span style={mono}>Tiếng:</span>
+                    <button type="button" className={`xv-btn${!xemVi ? ' chinh' : ''}`} onClick={() => setTiengXem('')}>Gốc</button>
+                    <button type="button" className={`xv-btn${xemVi ? ' chinh' : ''}`} disabled={!vi.coDich} onClick={() => setTiengXem('vi')}
+                      title={vi.coDich ? 'Xem + nghe bản lồng tiếng Việt (chữ màn dịch, giọng Việt của từng nhân vật). Sửa giây/chuyển cảnh vẫn áp vào bản gốc.' : 'Chưa có bản lồng tiếng Việt — bấm 🇻🇳 Lồng tiếng Việt ở tab Xuất'}>🇻🇳 Việt</button>
+                    {!vi.coDich ? <span style={mono}>chưa lồng tiếng — bấm 🇻🇳 Lồng tiếng Việt ở tab Xuất</span>
+                      : xemVi && vi.thieu > 0 && <span style={{ ...mono, color: 'var(--red)' }}>{vi.thieu} câu chưa có giọng Việt (câu mới/đã sửa sau lần lồng tiếng) — im khi xem; bấm lại 🇻🇳 Lồng tiếng Việt</span>}
+                  </div>
+                )}
+                <Timeline canh={xemVi ? vi.canh : canhNhanh} nhanVat={nhanVat} tap={tap} qc={kt.qc} tiLe={kt.ti_le} ngonNgu={xemVi ? 'vi' : kt.ngon_ngu} chon={cc.id} onChon={setChonCanh} onToanManHinh={() => setAnimatic(true)}
                   // Kéo mép = đổi giây PHÁT: ngắn hơn clip là cắt (không tốn tiền); dài hơn clip thì clip phải sinh lại dài hơn.
                   onDoiGiay={(id, g) => void chay(`c${id}`, () => { const c0 = canh.find((x) => x.id === id); return suaCanh(id, { phat_s: g, ...(c0 && g > (c0.thoi_luong_s || 4) ? { thoi_luong_s: Math.ceil(g) } : {}) }); })}
                   onKhopGiong={async () => { const r = await khopGiongTapAction(tap.id); await taiCanh(); await onChanged(); return r.ok ? `⏱ ${r.data.doi} shot đổi giây theo giọng · tổng ${r.data.tong}s${r.data.thieu ? ` · ${r.data.thieu} shot chưa có giọng` : ''}` : `⏱ ${r.loi}`; }}
                   onKhopNhip={async () => { const r = await khopNhipNhac(tap.id); await taiCanh(); await onChanged(); return r.ok ? `🎯 ${r.data.khop}/${r.data.diemCat} điểm cắt trúng phách (${r.data.bpm.join(' / ')} BPM) · ${r.data.doi} shot đổi giây phát` : `🎯 ${r.loi}`; }}
                   onDoiKyThuat={(ds) => void chay('kt', async () => { for (const x of ds) { const r = await suaCanh(x.id, { ky_thuat: x.ky_thuat }); if (!r.ok) return r; } return { ok: true as const }; })}
                   onDoiChuyenCanh={(id, key, giay) => void chay(`c${id}`, () => { const c0 = canh.find((x) => x.id === id); const kt0 = c0?.ky_thuat ?? {}; return suaCanh(id, { ky_thuat: { ...kt0, chuyen_canh: key || undefined, giay_cc: giay === undefined ? kt0.giay_cc : giay ?? undefined } }); })}
-                  sinh={{
+                  sinh={xemVi ? undefined : {
                     giong: (id, tuy) => void chay(`g${id}`, () => sinhGiong(tap.id, [id], tuy)),
                     sfx: (id, tuy) => void chay(`s${id}`, () => sinhAmThanh(tap.id, [id], undefined, tuy)),
                     nhac: (pd, model, moTa) => void chay(pd ? 'nhac' : 'nhac1', () => sinhNhac(tap.id, model, pd, moTa)),
@@ -342,7 +356,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
           )}
         </>
       ))}
-      {animatic && canh && <Animatic canh={locNhanh(canh, nhanh)} lop={tap.lop} qc={kt.qc} tiLe={kt.ti_le} ngonNgu={kt.ngon_ngu} onClose={() => setAnimatic(false)} />}
+      {animatic && canh && <Animatic canh={tiengXem === 'vi' && kt.ngon_ngu !== 'vi' ? theoNgonNgu(locNhanh(canh, nhanh), 'vi').canh : locNhanh(canh, nhanh)} lop={tap.lop} qc={kt.qc} tiLe={kt.ti_le} ngonNgu={tiengXem === 'vi' ? 'vi' : kt.ngon_ngu} onClose={() => setAnimatic(false)} />}
     </div>
   );
 }

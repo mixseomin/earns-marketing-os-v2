@@ -75,7 +75,10 @@ export type DongThoai = { nhan_vat: string; dien_xuat: string; loi: string; url?
   /** giọng đã đọc file url ("model|voice") — ghi lúc job giọng xong; bản xuất dùng để bắt lời dẫn lẫn giọng. */
   giong?: string;
   /** độ dài file url (giây, đo bằng ffprobe lúc khớp giọng) — máy kiểm tiếng (khop-giong.ts › kiemTieng) đọc, không phải đo lại. */
-  dai?: number };
+  dai?: number;
+  /** bản LỒNG TIẾNG của dòng theo ngôn ngữ (long-tieng.ts): goc = câu gốc lúc dịch (lệch câu hiện tại = cũ, không dùng), loi = câu dịch,
+   *  url = file giọng đọc câu dịch bằng giọng của người nói. */
+  dich?: Record<string, { goc: string; loi: string; url?: string | null }> };
 /** Ghép dòng thoại thành chuỗi loi_thoai (tương thích chỗ cũ: animatic, tìm người nói). */
 export const ghepThoai = (ds: DongThoai[]) => ds.filter((d) => d.loi.trim()).map((d) => `${d.nhan_vat ? `${d.nhan_vat}${d.dien_xuat ? ` (${d.dien_xuat})` : ''}: ` : ''}"${d.loi.trim()}"`).join('\n');
 /** Một phân cảnh (scene): nhóm shot cùng phan_doan. Cảm xúc -5..5. */
@@ -330,6 +333,8 @@ export type Canh = {
   phat_s: number | null; chu_man: string; nhanh: string;
   /** kiểu chữ màn riêng của shot (đè kieu_chu của phim). */
   kieu_chu: KieuChu;
+  /** bản dịch chữ màn theo ngôn ngữ (ban-dich.ts › theoNgonNgu); goc lệch chu_man hiện tại = cũ. */
+  chu_man_dich?: Record<string, { goc: string; chu: string }>;
   thoi_luong_s: number; nhan_vat: number[]; bien_the: number[]; prompt_anh: string; prompt_video: string; dang_sinh_anh?: boolean; dang_sinh_am?: boolean; dang_sinh_giong?: boolean; dang_sinh_sfx?: boolean;
   keyframe_url: string | null; keyframe_uv: string[]; video_url: string | null; video_cuoi_url: string | null; nguon_video: Record<string, unknown>; video_phien_ban: { url: string; ban: 'nhap' | 'cuoi'; model?: string; job?: number; luc?: string }[]; trang_thai: TrangThaiCanh; loi: string; chi_phi_cents: number;
 };

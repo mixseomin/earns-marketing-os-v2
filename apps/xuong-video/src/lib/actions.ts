@@ -25,11 +25,10 @@ import { kiemNguoiXemTap, suaTheoNguoiXemTap } from '@/lib/xuong-video/kiem-nguo
 import { xuatLongTiengTap } from '@/lib/xuong-video/long-tieng';
 import { lamSanNho } from '@/lib/xuong-video/anh-nho-may';
 import { chanNguoiXem } from '@/lib/xuong-video/nguoi-xem';
-import { tachCanh, vietKichBan, vietBaiDang, phanTichMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh } from '@/lib/xuong-video/claude';
+import { vietKichBan, vietBaiDang, phanTichMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
-import { ghepThoai, thieuQc, coMau, giayMau, type BaiDang, type MauQc } from '@/lib/xuong-video/kieu';
-import { luuCanhTach } from '@/lib/xuong-video/luu-canh';
+import { ghepThoai, thieuQc, type BaiDang, type MauQc } from '@/lib/xuong-video/kieu';
 import { chupTruoc, ganNhat, hoanTacGanNhat, type MucHoanTac } from '@/lib/xuong-video/hoan-tac';
 import { docPhimDich, uocDichCents, chayDichPhim } from '@/lib/xuong-video/dich-phim';
 import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-video/kieu';
@@ -44,7 +43,8 @@ import type { NguonShot } from '@/lib/xuong-video/phu-thuoc';
 import { sinhGiongShots, MODEL_GIONG_MAC_DINH, type TuyGiong } from '@/lib/xuong-video/sinh-giong';
 import { xongJob as xongJobDb, mapJob, jobDangCho, ghiTienChu } from '@/lib/xuong-video/doc-db';
 export type { TuyGiong };
-import { dsKhuon, taKhuon, ghiKhuonTuCanh, ghiKhuonTuMau, type KhuonShot } from '@/lib/xuong-video/khuon-shot';
+import { dsKhuon, ghiKhuonTuMau, type KhuonShot } from '@/lib/xuong-video/khuon-shot';
+import { tachCanhTapDb } from '@/lib/xuong-video/tach-canh-tap';
 import {
   docKinhThanh, giaAnhCents, giaVideoCents, MO_HINH_ANH, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG, NHOM_BIEN_THE,
   type Phim, type NhanVat, type Tap, type Canh, type Job, type KinhThanh, type LoaiPhim, type LoaiNhanVat, 
@@ -550,21 +550,7 @@ export async function tachCanhTap(tapId: number, soCanh: number, thoiLuongS?: nu
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  const bc = await boiCanhTap(db, tapId);
-  if (!bc) return loi('không thấy tập');
-  const thieu = thieuQc(bc.loai, bc.kt);
-  if (thieu) return loi(thieu);
-  if (!bc.tap.kich_ban.trim()) return loi('tập chưa có kịch bản');
-  // Có QC mẫu → thời lượng = tổng giây mẫu, số shot = số shot mẫu (tachCanh tự ép); không mẫu → theo ô nhập / tập.
-  const kt = docKinhThanh(bc.kt);
-  const mucTieu = coMau(kt.qc) ? giayMau(kt.qc.mau) : thoiLuongS && thoiLuongS > 0 ? Math.round(thoiLuongS) : bc.tap.thoi_luong_s ?? undefined;
-  const kq = await tachCanh({ loai: bc.loai, kinhThanh: bc.kt, nhanVat: bc.nhanVat, kichBan: bc.tap.kich_ban, soCanh, tapTruoc: bc.tapTruoc, thoiLuongS: mucTieu, khuon: bc.loai === 'quang_cao' ? taKhuon(await dsKhuon(db, { toiDa: 60 })) : undefined });
-  if (!kq.ok) return loi(kq.loi);
-  const so = await luuCanhTach(db, { tapId, tenTap: bc.tap.ten, kq, nhanVat: bc.nhanVat, nguoi: (await admin())!.email, thoiLuongS: mucTieu });
-  // Shot vừa tách có hình tả được → vào thư viện khuôn (gỡ tên anchor), không cần ai bấm.
-  if (bc.loai === 'quang_cao') await ghiKhuonTuCanh(db, kq.canh, bc.nhanVat, kt.qc?.ten ?? '', `phim #${bc.tap.phim_id} tập ${bc.tap.so}`, bc.tap.phim_id);
-  await ghiChu(bc.tap.phim_id, `Tách cảnh · tập ${bc.tap.so} (${so} cảnh${coMau(kt.qc) ? ', bám QC mẫu' : ''})`, kq);
-  return { ok: true, data: so };
+  return tachCanhTapDb(db, tapId, soCanh, (await admin())!.email, thoiLuongS);
 }
 
 // ── QC mẫu (anh 09/10/2026): bài đăng kèm theo mẫu + phân tích video mẫu thành xương sống shot ─────────────────

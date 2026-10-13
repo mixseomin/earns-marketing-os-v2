@@ -225,8 +225,8 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
         <button type="button" className={`xv-btn${moBang ? ' chinh' : ''}`} style={{ opacity: moBang ? 1 : 0.8 }} disabled={!canh?.length} title="▦ Đối tượng × shot: shot nào dùng sản phẩm/người/bối cảnh nào; đỏ = thiếu ảnh, vàng = khác màu / nhắc tên chưa gắn. 0đ" onClick={() => setMoBang((x) => !x)}>▦</button>
         {/* Sinh tốn tiền đi qua bảng chọn shot (chay-chon.tsx): thấy trước shot nào chưa chạy được / hệ quả nối khung, thoại — rồi mới bấm. */}
         <button type="button" className={`xv-btn${moChon ? ' chinh' : ''}`} disabled={!canh?.length || banTach}
-          title={`Chọn shot để sinh keyframe hoặc video nháp — ${sanSang.length} shot sẵn sàng sinh keyframe${kemThieu ? `, ${kemThieu} còn thiếu thành phần` : ''}; ${soDuyet} shot đã duyệt chờ video${uoc ? ` (≈ ${tien(uoc.videoTong)})` : ''}`}
-          onClick={() => setMoChon((x) => !x)}>☑ Sinh theo lựa chọn{soDuyet || sanSang.length ? ` · ${sanSang.length} 🖼 · ${soDuyet} 🎬` : ''}</button>
+          title={`Sinh theo lựa chọn: chọn shot để sinh keyframe hoặc video nháp — ${sanSang.length} shot sẵn sàng sinh keyframe${kemThieu ? `, ${kemThieu} còn thiếu thành phần` : ''}; ${soDuyet} shot đã duyệt chờ video${uoc ? ` (≈ ${tien(uoc.videoTong)})` : ''}`}
+          onClick={() => setMoChon((x) => !x)}>☑ Sinh{soDuyet || sanSang.length ? ` · ${sanSang.length} 🖼 · ${soDuyet} 🎬` : ''}</button>
         <button type="button" className="xv-btn" disabled={banTach || ban('them')} onClick={() => void chay('them', async () => { await themCanh(tap.id); })}>+ Cảnh</button>
       </div>
       )}

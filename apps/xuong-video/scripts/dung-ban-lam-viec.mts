@@ -12,6 +12,7 @@ import { taoJob, type Row } from '../src/lib/xuong-video/doc-db';
 import { chayViecAnh } from '../src/lib/xuong-video/viec-anh';
 import { hoanTatAnh } from '../src/lib/xuong-video/hoan-tat';
 import { promptBienThe } from '../src/lib/xuong-video/claude';
+import { boAnhVaoThungRac } from '../src/lib/xuong-video/thung-rac';
 
 const TEN_PHIM = 'Series · Bàn làm việc (stop-motion)';
 const PHONG_CACH = 'Real-world miniature stop-motion film: shot on a real home-office desk with a macro lens at tabletop height, as seen by a 5 cm tall character; shallow depth of field with soft bokeh; real materials and textures (warm wood grain, matte white plastic, brushed aluminium, paper); cozy warm desk-lamp light mixed with cool blue monitor glow; slightly handmade stop-motion feel with tactile detail; vertical 9:16 frame. Clean frames with no text, letters, numbers or logos anywhere';
@@ -103,6 +104,9 @@ async function anhGoc(loai: 'boi_canh' | 'dao_cu', ten: string, mo_ta: string, p
   const job = await taoJob(db, { nhan_vat_id: Number(v.id), nhan: `Ảnh gốc · ${loai === 'boi_canh' ? 'bối cảnh' : 'đồ vật'} ${ten}`, loai: 'anh', provider: 'google', model: KINH_THANH.mo_hinh_anh, request: { prompt, thamChieuUrl: anhThat } });
   const kq = await chayViecAnh({ job, model: KINH_THANH.mo_hinh_anh, prompt, thamChieuUrl: anhThat, tiLe: loai === 'boi_canh' ? '9:16' : '1:1', thuMuc: `anchor/${Number(v.id)}` });
   await hoanTatAnh(kq);
+  // Sinh lại (--lai) thành công → ảnh sinh cũ vào THÙNG RÁC (khôi phục được ở 🗑), kẻo nó nằm thứ hai trong anh_ref và làm tham chiếu cho
+  // biến thể / keyframe (4 cảnh đầu lọt nội dung màn hình gốc, 14/10/2026).
+  if (kq.ok) for (const u of ((v.anh_ref as string[]) ?? []).filter(anhRa)) await boAnhVaoThungRac(db, 'anh_goc', Number(v.id), u, 'claude (script sinh lại)');
   ra.push({ ten, url: kq.ok ? kq.url : null, ...(kq.ok ? {} : { loi: kq.loi }) });
 }
 /** Một biến thể của anchor (xv_bien_the, đúng hệ biến thể studio) — bám 2 ảnh đầu của anchor (ảnh sinh + ảnh thật). */

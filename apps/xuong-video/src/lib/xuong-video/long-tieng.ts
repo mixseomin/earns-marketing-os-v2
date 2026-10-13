@@ -53,7 +53,7 @@ async function tachTrackTieng(mp4: string, ten: string): Promise<string | null> 
   finally { await rm(thu, { recursive: true, force: true }); }
 }
 
-/** khongDich = thử đường dựng 0đ: không gọi Claude, không đọc giọng mới (dùng câu + file giọng gốc). */
+/** khongDich = thử đường dựng 0đ: không gọi Claude, không đọc giọng mới (dùng câu + file giọng gốc); không ghi vào danh sách bản xuất. */
 export async function xuatLongTiengTap(db: Db, tapId: number, job: number, sang = 'vi', khongDich = false): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
   const bc = await boiCanhTap(db, tapId);
   if (!bc) return { ok: false, loi: 'không thấy tập' };
@@ -97,7 +97,8 @@ export async function xuatLongTiengTap(db: Db, tapId: number, job: number, sang 
   const amUrl = await tachTrackTieng(kq.url, `${tapId}-${sang}`);
   const canhBao = [...(loiGiong.length ? [`${loiGiong.length} câu không đọc được (im): ${loiGiong.join(' · ').slice(0, 300)}`] : []), ...(amUrl ? [] : ['không tách được track tiếng M4A']), ...kq.canhBao];
   const ban: BanXuat = { url: kq.url, nhanh: '', long_tieng: sang, ...(amUrl ? { am_url: amUrl } : {}), giay: Math.round(kq.giay * 10) / 10, luc: new Date().toISOString(), job, canh_bao: canhBao };
-  await db.execute(sql`UPDATE xv_tap SET xuat = coalesce(xuat, '[]'::jsonb) || ${JSON.stringify([ban])}::jsonb, updated_at = now() WHERE id = ${tapId}`);
+  // Bản thử 0đ (tiếng gốc) không vào 'Đã xuất' — nó mang nhãn lồng tiếng mà tiếng vẫn là bản gốc, dễ mở nhầm.
+  if (!khongDich) await db.execute(sql`UPDATE xv_tap SET xuat = coalesce(xuat, '[]'::jsonb) || ${JSON.stringify([ban])}::jsonb, updated_at = now() WHERE id = ${tapId}`);
   await xongJob(db, job, { output_url: kq.url });
   if (kyTu) console.log(`[lồng tiếng] tập ${tapId}: đọc mới ${kyTu} ký tự (gói ElevenLabs)`);
   return { ok: true, url: kq.url };

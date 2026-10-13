@@ -33,7 +33,7 @@ export function thieuPhanCanh(phanCanh: Pick<PhanCanh, 'ten'>[], c: Pick<Canh, '
 export function thieuMau(c: Pick<Canh, 'nhan_vat' | 'prompt_anh' | 'hanh_dong'>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai'>[]): string[] {
   const out: string[] = [];
   const gan = nhanVat.filter((v) => c.nhan_vat.includes(v.id));
-  if (!gan.some((v) => v.loai === 'boi_canh')) out.push(nhanVat.some((v) => v.loai === 'boi_canh') ? 'chưa gắn bối cảnh — gắn một anchor Bối cảnh (mục 2) để mọi shot cùng nơi trông như một chỗ' : 'phim chưa có anchor Bối cảnh nào — tả + sinh ảnh mẫu các nơi chốn lặp lại (mục 2) trước khi sinh keyframe');
+  if (!gan.some((v) => v.loai === 'boi_canh')) out.push(nhanVat.some((v) => v.loai === 'boi_canh') ? 'chưa gắn bối cảnh — gắn một anchor Bối cảnh (tab 🎭 Phim) để mọi shot cùng nơi trông như một chỗ' : 'phim chưa có anchor Bối cảnh nào — tả + sinh ảnh mẫu các nơi chốn lặp lại (tab 🎭 Phim) trước khi sinh keyframe');
   const chu = ` ${c.prompt_anh} ${c.hanh_dong} `.toLowerCase();
   for (const v of nhanVat) {
     if (v.loai === 'boi_canh' || v.loai === 'phong_cach' || c.nhan_vat.includes(v.id) || v.ten.trim().length < 3) continue;

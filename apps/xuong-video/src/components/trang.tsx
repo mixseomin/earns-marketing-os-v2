@@ -101,7 +101,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
                 </div>
                 {g.phim.map((p) => (
                   <div key={p.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '6px 12px 8px 28px', opacity: laLuuTru(p) ? 0.55 : 1 }}>
-                    <button type="button" title={p.poster_url ? 'Poster — mở phim' : 'Chưa có poster — mở phim, tab Kịch bản › Poster'} onClick={() => { setTapMo(null); modal.open('phim', p.id); }}
+                    <button type="button" title={p.poster_url ? 'Poster — mở phim' : 'Chưa có poster — mở phim, tab 🎭 Phim › Poster'} onClick={() => { setTapMo(null); modal.open('phim', p.id); }}
                       style={{ all: 'unset', cursor: 'pointer', width: 44, aspectRatio: '2 / 3', flexShrink: 0, borderRadius: 4, border: '1px solid var(--line)', background: p.poster_url ? `center / cover no-repeat url(${p.poster_url}), #111` : 'var(--bg-2)', display: 'grid', placeItems: 'center', fontSize: 16, color: 'var(--fg-4)' }}>{p.poster_url ? '' : '🎬'}</button>
                     <div style={{ display: 'grid', gap: 4, flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
@@ -141,7 +141,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?:
   const tai = useCallback(async () => setD(await docPhim(id)), [id]);
   useEffect(() => { void tai(); }, [tai]);
   // Tab đang mở, nhớ theo phim (đọc ngay từ đầu, chỉ ghi khi bấm — cùng cách với khung thu gọn #1212).
-  const [tab, setTab] = useNho<TabPhim>(`xv-tab-${id}`, 'kich_ban', TAB_PHIM.map((t) => t.key), 'tab');
+  const [tab, setTab] = useNho<TabPhim>(`xv-tab-${id}`, 'phim', TAB_PHIM.map((t) => t.key), 'tab');
   // Job ảnh còn chạy trên máy chủ (kể cả sau F5) → hỏi lại mỗi 4s tới khi xong.
   const conChay = !!d && (d.dangSinh.nhanVat.length > 0 || d.dangSinh.bienThe.length > 0 || d.dangSinh.poster > 0);
   useDinhKy(tai, conChay ? 4000 : 15000);
@@ -153,7 +153,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?:
 
   return (
     <Ngan onClose={onClose} tieuDe={phim.ten} nut={<>
-      {phim.poster_url && <img src={phim.poster_url} alt="" title="Poster (tab Kịch bản › Poster)" style={{ height: 34, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} />}
+      {phim.poster_url && <img src={phim.poster_url} alt="" title="Poster (tab 🎭 Phim › Poster)" style={{ height: 34, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} />}
       <Pill color="var(--fg-3)">{LOAI_PHIM.find((l) => l.key === phim.loai)?.label ?? phim.loai}</Pill>
       <span style={mono} data-ngu-canh={`phim #${phim.id} ${phim.ten}`}>#{phim.id}</span>
       <ThongKe tk={d.thongKe} tongTien={d.tongTien} soAnchor={nhanVat.length} soTap={tap.length} />
@@ -171,24 +171,24 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?:
         {TAB_PHIM.map((t) => <button key={t.key} type="button" className={`xv-btn${tab === t.key ? ' chinh' : ''}`} title={t.mo} onClick={() => setTab(t.key)}>{t.label}</button>)}
       </div>
     }>
-      {tab === 'kich_ban' && <>
+      {tab === 'phim' && <>
         <KinhThanhForm phim={phim} khoa={khoa} onSaved={tai} />
         <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} />
         <PosterPhim phim={phim} nhanVat={nhanVat} dang={d.dangSinh.poster} loiNen={d.loiPoster} onChanged={tai} />
       </>}
 
-      <div className="xv-panel">
-        <h3>{tab === 'kich_ban' ? '3 · Tập: brief → kịch bản → tách cảnh' : TAB_PHIM.find((t) => t.key === tab)!.label.replace(/^\S+\s/, '')}<small>{tab === 'kich_ban' ? (phim.loai === 'phim' ? 'mỗi tập một kịch bản; tập sau đọc tóm tắt tập trước' : 'một tập') : TAB_PHIM.find((t) => t.key === tab)!.mo}</small></h3>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+      {/* Phần theo TẬP. Không tiêu đề mục (tên tab đã nói); hàng chọn tập chỉ hiện khi có thứ để chọn (phim nhiều tập / chưa có tập). */}
+      {tab !== 'phim' && <div className="xv-panel">
+        {(phim.loai === 'phim' || tap.length !== 1) && <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
           {tap.length > 0 && (
             <Seg options={tap.map((t) => ({ value: t.id, label: `${phim.loai === 'phim' ? `Tập ${t.so}` : 'Tập'}${t.ten && t.ten !== phim.ten ? ` · ${t.ten}` : ''} (${t.so_canh})` }))} value={tapId ?? 0} onChange={(v) => tapParam.open('tap', v)} />
           )}
           {(phim.loai === 'phim' || tap.length === 0) && (
             <button type="button" className="xv-btn" onClick={async () => { const r = await taoTap(phim.id, ''); if (r.ok) { await tai(); tapParam.open('tap', r.data); } }}>+ Thêm tập</button>
           )}
-        </div>
+        </div>}
         {tapId != null && <TapView key={tapId} tap={tap.find((t) => t.id === tapId)!} phim={phim} nhanVat={nhanVat} khoa={khoa} onChanged={tai} tab={tab} />}
-      </div>
+      </div>}
       {tab === 'xuat' && <ChiPhiGanDay jobs={d.ganDay} tong={d.tongTien} phimId={phim.id} />}
     </Ngan>
   );
@@ -200,16 +200,19 @@ const MAU_LOAI: Record<string, string> = { chu: 'var(--cyan)', anh: 'var(--amber
 
 const NHAN_LOAI: Record<string, string> = { chu: 'Chữ', anh: 'Ảnh', video: 'Video' };
 
+/** Sổ chi phí gần đây — panel phụ của tab Xuất → gập mặc định (YDNI luật 5), tổng tiền vẫn thấy; mở/gập nhớ trên máy. */
 function ChiPhiGanDay({ jobs, tong, phimId }: { jobs: Job[]; tong: number; phimId: number }) {
+  const [mo, setMo] = useNho<'0' | '1'>('xv-chi-phi-mo', '0', ['0', '1']);
   return (
     <div className="xv-panel" style={{ padding: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: jobs.length ? 6 : 0 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: mo === '1' && jobs.length ? 6 : 0 }}>
+        <button type="button" className="xv-btn" onClick={() => setMo(mo === '1' ? '0' : '1')} title={mo === '1' ? 'Gập' : 'Xem các lần gọi AI gần đây'}>{mo === '1' ? '▴' : '▾'}</button>
         <b style={{ fontSize: 12 }}>Chi phí phim này: {tien(tong)}</b>
-        <span style={mono}>mỗi lần gọi AI ghi một dòng · giá niêm yết</span>
+        <span style={mono}>{jobs.length} lần gọi gần đây · giá niêm yết</span>
         <span style={{ flex: 1 }} />
         <button type="button" className="xv-lienket xv-mono" onClick={() => moNgan({ loai: 'so-chi-phi', phim: phimId })}>xem sổ đầy đủ →</button>
       </div>
-      {jobs.map((j) => (
+      {mo === '1' && jobs.map((j) => (
         <div key={j.id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 11, padding: '2px 0', borderTop: '1px dashed var(--line)' }}>
           <span style={{ ...mono, width: 78 }}>{gioVN(j.created_at)}</span>
           <Pill color={MAU_LOAI[j.loai] ?? 'var(--fg-3)'}>{NHAN_LOAI[j.loai] ?? j.loai}</Pill>

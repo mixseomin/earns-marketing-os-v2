@@ -8,7 +8,7 @@ import { GIONG } from '@/lib/xuong-video/am-thanh';
 import { luuNhanVat, xoaNhanVat, sinhAnhMau, taiAnhLen, datAnhChinh, dsGiongModel, dsGiongCua, chonGiong, ngheThuGiong, xoaAnhGoc, xoaAnhBienThe, goiYAIAnchor, goiYAIBoAnchor, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, doiChieuAnchor } from '@/lib/actions';
 import { LOAI_NHAN_VAT, NHOM_BIEN_THE, nhanNhom, docKinhThanh, giaAnhCents, tien, gioVN, type NhanVat, type BienThe, type KinhThanh, type LoaiNhanVat } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
-import { Khoa, O, Pill, Seg, Nut, Xoa, Loi, AnhNho, DangSinh, mono, goiAction } from './ui';
+import { Khoa, O, Pill, Seg, Nut, Xoa, Loi, AnhNho, DangSinh, Menu, MucMenu, mono, goiAction } from './ui';
 import { NutNghe } from './media';
 
 /** Giọng cố định của một nhân vật (cả bộ phim): chọn model (ElevenLabs tài khoản anh / mọi TTS fal) + giọng, nghe thử. */
@@ -92,12 +92,18 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
                 <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
                   <button type="button" className="xv-btn" onClick={() => setSua(v)}>Sửa</button>
                   <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || (!v.mo_ta.trim() && 'tả đặc tính trước')} title={`Sinh ảnh gốc (${v.loai === 'nhan_vat' ? 'character sheet: nhiều góc + biểu cảm' : 'ảnh tham chiếu'}) từ mô tả (~${tien(giaAnhCents(kt.mo_hinh_anh))}/ảnh, ~20 giây). Bấm nhiều lần = sinh song song nhiều ảnh; mỗi lần thêm đổi góc khác.`} onClick={() => void sinh(v.id, v.anh_ref.length)} gia={giaAnhCents(kt.mo_hinh_anh)}>{v.anh_ref.length ? '✨ Sinh thêm ảnh gốc' : '✨ Sinh ảnh gốc'} · {tien(giaAnhCents(kt.mo_hinh_anh))}</Nut>
-                  <button type="button" className="xv-btn" onClick={() => setSua(v)} title="Thêm ảnh thật: dán Ctrl+V, nút Dán (điện thoại), kéo thả, chọn file, URL">📷 Ảnh thật</button>
-                  <Nut ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || (!v.anh_ref.length && 'chưa có ảnh gốc') || (!v.mo_ta.trim() && 'chưa có mô tả')} ban={ban === v.id} title="Claude NHÌN ảnh gốc so với mô tả: màu, chất liệu, chi tiết, chữ/logo — lệch thì đề xuất mô tả theo ảnh (ảnh sản phẩm có ren mà mô tả ghi không ren → cả kịch bản sai)"
-                    onClick={async () => { setBan(v.id); setLoi((x) => ({ ...x, [v.id]: '' })); const r = await doiChieuAnchor(v.id); setBan(null); if (!r.ok) setLoi((x) => ({ ...x, [v.id]: r.loi })); await onChanged(); }}>{ban === v.id ? '… đang so' : '🔍 Đối chiếu ảnh'}</Nut>
+                  {/* Sản phẩm chưa có ảnh thật thì nút ảnh thật là việc CHÍNH → để ngoài; còn lại ít dùng → sau ⋯ (YDNI). */}
+                  {v.loai === 'san_pham' && !v.anh_ref.length && <button type="button" className="xv-btn" onClick={() => setSua(v)} title="Thêm ảnh thật: dán Ctrl+V, nút Dán (điện thoại), kéo thả, chọn file, URL">📷 Ảnh thật</button>}
                   {v.loai === 'nhan_vat' && <GiongNhanVat v={v} onChanged={onChanged} />}
-                  <button type="button" className="xv-btn" onClick={() => setBtMo(v.id)} title="Biểu cảm, trang phục, tư thế / góc máy, thời điểm… — mỗi biến thể sinh từ ảnh gốc nên giữ đúng danh tính">🎭 Biến thể ({v.bien_the?.length ?? 0})</button>
-                  <Xoa nhan="anchor" onXoa={async () => { await xoaNhanVat(v.id); await onChanged(); }} />
+                  {(v.bien_the?.length ?? 0) > 0 && <button type="button" className="xv-btn" onClick={() => setBtMo(v.id)} title="Biến thể đang có — biểu cảm, trang phục, tư thế">🎭 {v.bien_the!.length}</button>}
+                  <Menu>
+                    <MucMenu onClick={() => setSua(v)}>📷 Ảnh thật — dán / kéo thả / URL</MucMenu>
+                    <MucMenu ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || (!v.anh_ref.length && 'chưa có ảnh gốc') || (!v.mo_ta.trim() && 'chưa có mô tả') || (ban === v.id && 'đang so…')}
+                      onClick={async () => { setBan(v.id); setLoi((x) => ({ ...x, [v.id]: '' })); const r = await doiChieuAnchor(v.id); setBan(null); if (!r.ok) setLoi((x) => ({ ...x, [v.id]: r.loi })); await onChanged(); }}>🔍 Đối chiếu ảnh với mô tả (Claude nhìn ảnh)</MucMenu>
+                    <MucMenu onClick={() => setBtMo(v.id)}>🎭 Biến thể ({v.bien_the?.length ?? 0}) — biểu cảm, trang phục, tư thế</MucMenu>
+                    <Xoa nhan="anchor" onXoa={async () => { await xoaNhanVat(v.id); await onChanged(); }} />
+                  </Menu>
+                  {ban === v.id && <span style={mono}>… đang đối chiếu</span>}
                 </div>
                 {(soDang > 0 || them > 0) && (
                   <div style={{ ...mono, marginTop: 4, display: 'flex', gap: 8, flexWrap: 'wrap' }}>

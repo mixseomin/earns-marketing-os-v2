@@ -19,7 +19,7 @@ import { docKinhThanh, giaChuCents, giayMau, shotLechNgonNgu, tenNgonNgu, type K
 type HoSo = {
   project: string; ten: string; mo_ta: string; kinh_thanh: KinhThanh; /** loại phim — mặc định quang_cao; series hoạt hình = 'phim' (13/10/2026) */ loai?: string;
   nhan_vat: { loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref?: string[]; giong?: string }[];
-  tap: { ten: string; brief: string };
+  tap: { ten: string; brief: string; /** số tập (mặc định 1) — series dựng thẳng tập N */ so?: number };
 };
 const tep = process.argv[2]; const chiTao = !process.argv.includes('--claude');
 if (!tep) { console.error('thiếu đường dẫn hồ sơ json'); process.exit(1); }
@@ -52,7 +52,7 @@ if (tiep) {
     nhanVat.push({ id: Number(r[0]!.id), phim_id: phimId, loai: v.loai, ten: v.ten, mo_ta: v.mo_ta, anh_ref: v.anh_ref ?? [], giong: v.giong ?? '', bien_the: [] } as NhanVat);
     console.log(`  anchor #${r[0]!.id} [${v.loai}] ${v.ten}${v.anh_ref?.length ? ` · ${v.anh_ref.length} ảnh` : ''}`);
   }
-  const t = (await db.execute(sql`INSERT INTO xv_tap (phim_id, so, ten, brief, thoi_luong_s) VALUES (${phimId}, 1, ${hs.tap.ten}, ${hs.tap.brief}, ${thoiLuong}) RETURNING id`)) as unknown as Row[];
+  const t = (await db.execute(sql`INSERT INTO xv_tap (phim_id, so, ten, brief, thoi_luong_s) VALUES (${phimId}, ${hs.tap.so ?? 1}, ${hs.tap.ten}, ${hs.tap.brief}, ${thoiLuong}) RETURNING id`)) as unknown as Row[];
   tapId = Number(t[0]!.id);
   console.log(`  tập #${tapId} · ${hs.tap.ten} · ${thoiLuong}s${mau?.shots?.length ? ` · QC mẫu ${mau.shots.length} shot` : ''}`);
 }

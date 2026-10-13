@@ -1,0 +1,102 @@
+{
+ "project": "studio",
+ "loai": "short",
+ "ten": "Series · Zeus at Work — bút chì (tập 2 thử)",
+ "mo_ta": "Series hoạt hình hài văn phòng: Zeus bị giáng chức xuống làm nhân viên quèn ở một công ty bảo hiểm Manhattan; mỗi tập một quyền năng thần thánh rò ra khi ông nổi nóng, còn sếp Linda bé nhỏ khó tính thật ra là Medusa. Tiếng Anh, toàn cầu.",
+ "kinh_thanh": {
+  "phong_cach": "Hand-drawn graphite pencil sketch style on warm off-white sketchbook paper: confident loose pencil lines, cross-hatching for shadows, soft smudged shading, visible paper grain, almost entirely monochrome grey — the ONLY colors are electric blue for lightning and sparks and soft green for Linda's snakes and blazer; expressive cartoon character design like a storyboard artist's sketchbook; simple suggested backgrounds with few lines; vertical 9:16 frame. Clean frames with no text, letters or logos anywhere.",
+  "ti_le": "9:16",
+  "do_phan_giai": "720p",
+  "mo_hinh_anh": "gemini-nano-banana-2.1",
+  "mo_hinh_video": "fal:fal-ai/veo3.1/lite/image-to-video",
+  "mo_hinh_chu": "claude-opus-5-5",
+  "ngon_ngu": "en",
+  "the_loai": "hai",
+  "logline": "After learning his manager is Medusa, Zeus wants to apologize to the whole office, but his thunder voice shatters every window whenever he gets emotional.",
+  "chu_de": "Even a god has to learn humility — and you can't control everything",
+  "series": {
+   "dong_co": "Zeus, demoted from Olympus to an entry-level job at a Manhattan insurance office, tries to survive one ordinary workday per episode — but one divine power leaks out every time he loses his temper, and his tiny, ruthless manager Linda (secretly Medusa) is always watching.",
+   "khan_gia": "adults 18–34 who like office comedy and Greek mythology (global, English)",
+   "dinh_dang": "YouTube Shorts / TikTok, 45–60s vertical, 3 episodes a week; every 4 episodes compiled into a long video",
+   "tap": [
+    {
+     "so": 1,
+     "ten": "Day One",
+     "logline": "Zeus wants to survive his first day at the office without causing a single 'incident', but his lightning leaks out every time the machines and his manager push him."
+    },
+    {
+     "so": 2,
+     "ten": "Reply All",
+     "logline": "After learning his manager is Medusa, Zeus wants to apologize to the whole office, but his thunder voice shatters every window whenever he gets emotional."
+    },
+    {
+     "so": 3,
+     "ten": "Team Building",
+     "logline": "Zeus wants to win the office trust-fall day to impress Linda, but his old habit of turning into animals keeps catching him mid-fall."
+    },
+    {
+     "so": 4,
+     "ten": "Hera's Lunch Visit",
+     "logline": "Zeus wants to hide his new job from his wife Hera when she drops by with lunch, but every coworker he lies to turns out to be a god in disguise."
+    },
+    {
+     "so": 5,
+     "ten": "Performance Review",
+     "logline": "Zeus wants a perfect performance review, but Linda's stare literally turns his excuses — and his chair — to stone."
+    },
+    {
+     "so": 6,
+     "ten": "Casual Friday",
+     "logline": "Zeus wants to fit in on casual Friday, but the only casual clothes he owns are a golden toga and a crown that won't come off."
+    },
+    {
+     "so": 7,
+     "ten": "The New Intern",
+     "logline": "Zeus wants to train the new intern properly, but the intern is Hermes, who delivers every email before it's even written."
+    },
+    {
+     "so": 8,
+     "ten": "Fire Drill",
+     "logline": "Zeus wants to lead the office fire drill, but the 'fire warden' is Prometheus and he brought real fire."
+    },
+    {
+     "so": 9,
+     "ten": "Breakroom Flood",
+     "logline": "Zeus wants a quiet coffee, but his brother Poseidon visits the breakroom and the water cooler starts a tsunami."
+    },
+    {
+     "so": 10,
+     "ten": "Olympus Calling",
+     "logline": "Zeus finally gets the call to return to Olympus, but leaving means abandoning the office misfits — and Linda — who became his real family."
+    }
+   ]
+  }
+ },
+ "nhan_vat": [
+  {
+   "loai": "nhan_vat",
+   "ten": "Zeus",
+   "mo_ta": "Zeus as a stylized 3D animated character: huge broad-shouldered man in his 60s, enormous fluffy white beard and wild white hair that crackles with tiny blue static sparks, thick white eyebrows, bright storm-blue eyes, big round nose, ill-fitting white office shirt straining at the buttons, short navy tie with a yellow lightning-bolt pattern, grey slacks, a plastic ID badge on a lanyard reading only a photo; proud, dramatic, secretly insecure"
+  },
+  {
+   "loai": "nhan_vat",
+   "ten": "Linda",
+   "mo_ta": "Linda as a stylized 3D animated character: very short, sharp middle-aged office manager, pale olive skin, tight dark-green hair bun, large black cat-eye sunglasses worn indoors, emerald blazer and pencil skirt, red lipstick, clipboard always in hand; icy, unimpressed, terrifyingly calm"
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Open-plan office",
+   "mo_ta": "A dull open-plan insurance office in a Manhattan high-rise: grey fabric cubicles, beige carpet, buzzing fluorescent ceiling panels, a beat-up printer and a coffee machine by the wall, tall windows with a grey city skyline, cubicle 14B with a tiny desk and a too-small swivel chair"
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Linda's office",
+   "mo_ta": "Linda's small glass-walled manager office in the corner of the insurance floor: spotless black desk, a single snake plant, a framed 'Employee of the Month' poster, blinds half closed, cold white light"
+  }
+ ],
+ "tap": {
+  "so": 2,
+  "ten": "Reply All",
+  "brief": "Tập 2 'Zeus at Work' (phong cách bút chì). Hook: sếp là Medusa. Vấn đề: Linda bắt Zeus xin lỗi cả văn phòng vì vụ cúp điện. Leo thang: nói to thì giọng sấm làm nứt kính; gửi email Reply All thì màn hình nổ; hát xin lỗi thì vỡ bình cà phê. Lật ngược: xin lỗi khẽ, thật lòng — không sấm, cả phòng vỗ tay; Linda tháo kính nói 'Apology accepted' và lỡ hoá đá anh thực tập phía sau. Móc: giấy báo 'team building — trust falls' và một chiếc lông vũ mọc trên cổ tay Zeus → tập 3."
+ }
+}

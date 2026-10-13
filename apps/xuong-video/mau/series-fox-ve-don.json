@@ -1,0 +1,107 @@
+{
+ "project": "studio",
+ "loai": "short",
+ "ten": "Series · Fox Tales — vẽ đơn (tập 2 thử)",
+ "mo_ta": "Series hoạt hình gia đình: cáo Felix lém lỉnh thắng mọi mưu, trừ một con vật nhỏ mỗi tập — kẻ thắng bằng bài học của một truyện ngụ ngôn Aesop (truyện công cộng). Tiếng Anh, toàn cầu.",
+ "kinh_thanh": {
+  "phong_cach": "Simple hand-drawn doodle illustration like a modern children's picture book: clean bold black ink outlines, flat soft pastel colors with no gradients and almost no shading, plain warm cream background with only a few simple background elements, cute round character shapes with simple dot eyes and small expressive mouths, lots of empty space, charming and minimal; vertical 9:16 frame. Clean frames with no text, letters or logos anywhere.",
+  "ti_le": "9:16",
+  "do_phan_giai": "720p",
+  "mo_hinh_anh": "gemini-nano-banana-2.1",
+  "mo_hinh_video": "fal:fal-ai/veo3.1/lite/image-to-video",
+  "mo_hinh_chu": "claude-opus-5-5",
+  "ngon_ngu": "en",
+  "the_loai": "hoat_hinh",
+  "logline": "Felix wants the crow's big piece of cheese and tries flattery, but this crow has heard the fable before.",
+  "chu_de": "It's easy to hate what you can't have",
+  "series": {
+   "dong_co": "Felix the fox is the cleverest trickster in the forest and wins every scheme — except against one small animal per episode, who beats him with the moral of a classic Aesop fable.",
+   "khan_gia": "families: kids 5–10 and their parents (global, English); safe, kind, no scary content",
+   "dinh_dang": "YouTube Shorts 45–60s vertical, one fable per episode, moral spoken at the end; long-form compilation of 5 fables every two weeks",
+   "tap": [
+    {
+     "so": 1,
+     "ten": "The Sweetest Grapes",
+     "logline": "Felix wants the perfect purple grapes at the top of the vine, but every clever plan to reach them fails — so he decides they must be sour."
+    },
+    {
+     "so": 2,
+     "ten": "The Crow's Cheese",
+     "logline": "Felix wants the crow's big piece of cheese and tries flattery, but this crow has heard the fable before."
+    },
+    {
+     "so": 3,
+     "ten": "Dinner with the Stork",
+     "logline": "Felix wants to fool the stork with soup on a flat plate, but the stork returns the favor with a tall narrow jar."
+    },
+    {
+     "so": 4,
+     "ten": "The Slow Racer",
+     "logline": "Felix wants to win the forest race against the tortoise, but he is so sure of winning that he stops for a nap."
+    },
+    {
+     "so": 5,
+     "ten": "The Lion and the Mouse",
+     "logline": "Felix wants to trap little Pip for good, but when a lion's net catches Felix, only Pip can save him."
+    },
+    {
+     "so": 6,
+     "ten": "The Boy Who Cried Wolf",
+     "logline": "Felix wants a laugh by faking a wolf alarm at the village, but when a real wolf comes no one believes him."
+    },
+    {
+     "so": 7,
+     "ten": "The Ant and the Grasshopper",
+     "logline": "Felix wants to dance all summer with the grasshopper, but winter comes and only the ants have food."
+    },
+    {
+     "so": 8,
+     "ten": "The Goose and the Golden Egg",
+     "logline": "Felix wants all the golden eggs at once, but greed could end the magic forever."
+    },
+    {
+     "so": 9,
+     "ten": "The North Wind and the Sun",
+     "logline": "Felix bets he can take a traveler's coat by force, but the gentle sun wins the bet."
+    },
+    {
+     "so": 10,
+     "ten": "The Fox Who Lost His Tail",
+     "logline": "Felix loses his tail in a trap and wants every fox to cut theirs too, but his friends see through the trick."
+    }
+   ]
+  }
+ },
+ "nhan_vat": [
+  {
+   "loai": "nhan_vat",
+   "ten": "Felix",
+   "mo_ta": "Felix the fox as a stylized 3D animated character: slim young red fox standing on two legs, bright orange fur with a white chest and white tail tip, oversized bushy tail, big amber eyes, one slightly bent left ear, small green neckerchief; confident, scheming, dramatic, lovable"
+  },
+  {
+   "loai": "nhan_vat",
+   "ten": "Pip",
+   "mo_ta": "Pip the mouse as a stylized 3D animated character: tiny round field mouse with soft light-brown fur, huge pink ears, big shiny black eyes, a tiny blue scarf, quick and cheerful, very small next to Felix"
+  },
+  {
+   "loai": "nhan_vat",
+   "ten": "Crow",
+   "mo_ta": "The crow as a stylized 3D animated character: glossy blue-black feathers, sharp yellow beak, clever squinting eyes, a big wedge of yellow cheese held in its beak"
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Vineyard",
+   "mo_ta": "A sunny countryside vineyard at golden hour: an old wooden trellis with a very tall twisting grapevine, plump glowing purple grapes hanging high at the top, soft grass, wildflowers, a puddle, a bramble bush, a log and a wooden bucket nearby, rolling green hills behind"
+  },
+  {
+   "loai": "nhan_vat",
+   "ten": "Stork",
+   "mo_ta": "The stork as a character: very tall thin white bird with long thin orange legs, a very long pointed orange beak, black wing tips, elegant and polite, always carrying a tall narrow clay jar"
+  }
+ ],
+ "tap": {
+  "so": 2,
+  "ten": "The Crow's Cheese",
+  "brief": "Tập 2 'Fox Tales' (vẽ đơn nét kiểu sách tranh). Hook: miếng phô mai to nhất trên mỏ quạ. Vấn đề: Felix dùng mưu nịnh của truyện Aesop. Leo thang: khen lông, tặng vương miện, dựng sân khấu có đèn đom đóm — quạ vẫn ngậm chặt. Lật ngược: quạ kẹp phô mai bằng chân rồi hát hay tuyệt, phô mai không rơi: 'I know that story, Felix.' Kết: Pip chia bánh quy, bài học 'đừng tin lời nịnh'. Móc: cò mang lọ cao cổ đi ngang, mời Felix ăn tối → tập 3."
+ }
+}

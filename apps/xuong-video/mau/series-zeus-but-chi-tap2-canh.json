@@ -1,0 +1,496 @@
+{
+ "tomTat": "Reply All: Zeus must apologize to the whole office; his thunder voice ruins three tries; a quiet sincere sorry works; Linda accidentally petrifies the intern; a feather sprouts before team building.",
+ "beats": [
+  {
+   "ten": "Hook",
+   "mo_ta": "My boss is Medusa — apologize to everyone",
+   "cam_xuc": -1
+  },
+  {
+   "ten": "Inciting",
+   "mo_ta": "One simple apology",
+   "cam_xuc": 0
+  },
+  {
+   "ten": "Escalation",
+   "mo_ta": "Shout, email, song — each a bigger disaster",
+   "cam_xuc": -3
+  },
+  {
+   "ten": "Twist",
+   "mo_ta": "A quiet sorry works; Linda's gaze petrifies the intern",
+   "cam_xuc": 3
+  },
+  {
+   "ten": "Cliffhanger",
+   "mo_ta": "Team building tomorrow — and a feather sprouts",
+   "cam_xuc": -2
+  }
+ ],
+ "phanCanh": [
+  {
+   "ten": "Previously",
+   "beat": "Hook",
+   "muc_tieu": "Recap the twist and give the order",
+   "xung_dot": "Apologize to everyone or else",
+   "an_y": "Snakes",
+   "nhip": "fast",
+   "cam_xuc_dau": -1,
+   "cam_xuc_cuoi": -1
+  },
+  {
+   "ten": "One apology",
+   "beat": "Inciting",
+   "muc_tieu": "Zeus faces the crowd",
+   "xung_dot": "A god has never said sorry",
+   "an_y": "He straightens the tie",
+   "nhip": "medium",
+   "cam_xuc_dau": 0,
+   "cam_xuc_cuoi": 0
+  },
+  {
+   "ten": "Three tries",
+   "beat": "Escalation",
+   "muc_tieu": "Get the apology out",
+   "xung_dot": "His power ruins every attempt",
+   "an_y": "Glass keeps breaking",
+   "nhip": "fast",
+   "cam_xuc_dau": -1,
+   "cam_xuc_cuoi": -3
+  },
+  {
+   "ten": "No thunder",
+   "beat": "Twist",
+   "muc_tieu": "Be honest, quietly",
+   "xung_dot": "Vulnerability instead of power",
+   "an_y": "The intern becomes a statue",
+   "nhip": "slow",
+   "cam_xuc_dau": 1,
+   "cam_xuc_cuoi": 3
+  },
+  {
+   "ten": "Trust falls",
+   "beat": "Cliffhanger",
+   "muc_tieu": "Hook episode 3",
+   "xung_dot": "A new power is leaking",
+   "an_y": "Swan feather",
+   "nhip": "slow",
+   "cam_xuc_dau": 0,
+   "cam_xuc_cuoi": -2
+  }
+ ],
+ "canh": [
+  {
+   "canh": "Hook · my boss is Medusa",
+   "goc_may": "",
+   "hanh_dong": "The snakes hiss toward the camera, Zeus flinches",
+   "loi_thoai": "Previously: his boss has snakes for hair.",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 2.5,
+   "nhan_vat": [
+    "Linda",
+    "Zeus",
+    "Linda's office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Close-up of Linda's hair: green snakes rising out of her tight bun and hissing toward Zeus, who leans back in shock in the background",
+   "prompt_video": "The snakes hiss toward the camera, Zeus flinches",
+   "phan_doan": "Previously",
+   "cam_xuc": -1,
+   "ky_thuat": {
+    "co_canh": "cu",
+    "goc": "thap",
+    "chuyen_dong": "day_vao",
+    "anh_sang": "tuong_phan",
+    "mau": "lanh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "dap_doa"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "MY BOSS IS MEDUSA",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "Previously: his boss has snakes for hair."
+    }
+   ]
+  },
+  {
+   "canh": "Hook · the order",
+   "goc_may": "",
+   "hanh_dong": "Linda points the pen; Zeus wipes sweat from his brow",
+   "loi_thoai": "You broke the building. Apologize. To everyone.",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Linda",
+    "Zeus",
+    "Linda's office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium two-shot in Linda's glass office: tiny Linda behind her desk pointing a red pen at huge sweating Zeus",
+   "prompt_video": "Linda points the pen; Zeus wipes sweat from his brow",
+   "phan_doan": "Previously",
+   "cam_xuc": -1,
+   "ky_thuat": {
+    "co_canh": "two",
+    "goc": "ngang",
+    "chuyen_dong": "tinh",
+    "anh_sang": "trang",
+    "mau": "lanh",
+    "chuyen_canh": "cat"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "Linda",
+     "dien_xuat": "icy, clipped",
+     "loi": "You broke the building. Apologize. To everyone."
+    }
+   ]
+  },
+  {
+   "canh": "Inciting · the crowd",
+   "goc_may": "",
+   "hanh_dong": "Zeus straightens his lightning tie and takes a deep breath",
+   "loi_thoai": "One simple apology. How hard could it be?",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 4.5,
+   "nhan_vat": [
+    "Zeus",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Wide shot of Zeus standing at the front of the open-plan office facing rows of coworkers as simple sketched silhouettes, clearing his throat",
+   "prompt_video": "Zeus straightens his lightning tie and takes a deep breath",
+   "phan_doan": "One apology",
+   "cam_xuc": 0,
+   "ky_thuat": {
+    "co_canh": "ws",
+    "goc": "ngang",
+    "chuyen_dong": "day_vao",
+    "anh_sang": "sang_deu",
+    "mau": "lanh",
+    "chuyen_canh": "cat"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "One simple apology. How hard could it be?"
+    }
+   ]
+  },
+  {
+   "canh": "Escalation · thunder voice",
+   "goc_may": "",
+   "hanh_dong": "His voice booms, the windows crack in a spiderweb pattern, papers fly",
+   "loi_thoai": "I am... SORRY!",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 4.5,
+   "nhan_vat": [
+    "Zeus",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium shot of Zeus shouting with his mouth wide open, shockwave lines blasting out, the tall office windows behind him cracking",
+   "prompt_video": "His voice booms, the windows crack in a spiderweb pattern, papers fly",
+   "phan_doan": "Three tries",
+   "cam_xuc": -2,
+   "ky_thuat": {
+    "co_canh": "ms",
+    "goc": "thap",
+    "chuyen_dong": "zoom_gat",
+    "anh_sang": "sang_deu",
+    "mau": "tuong_phan_cao",
+    "chuyen_canh": "nhay",
+    "am_thanh": [
+     "sam",
+     "vo_kinh"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "ATTEMPT #1",
+   "thoai": [
+    {
+     "nhan_vat": "Zeus",
+     "dien_xuat": "huge booming thunder voice",
+     "loi": "I am... SORRY!"
+    }
+   ]
+  },
+  {
+   "canh": "Escalation · reply all",
+   "goc_may": "",
+   "hanh_dong": "He hits send; every monitor in the office pops with a blue flash",
+   "loi_thoai": "Plan B: an email. To everyone.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 5,
+   "nhan_vat": [
+    "Zeus",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium close-up of Zeus hunched over a small office keyboard typing with two giant fingers, blue sparks crawling over the computer monitors",
+   "prompt_video": "He hits send; every monitor in the office pops with a blue flash",
+   "phan_doan": "Three tries",
+   "cam_xuc": -2,
+   "ky_thuat": {
+    "co_canh": "mcu",
+    "goc": "ngang",
+    "chuyen_dong": "cam_tay",
+    "anh_sang": "nhap_nhay",
+    "mau": "lanh",
+    "chuyen_canh": "nhay",
+    "am_thanh": [
+     "chop_dien",
+     "dap"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "ATTEMPT #2: REPLY ALL",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "Plan B: an email. To everyone."
+    }
+   ]
+  },
+  {
+   "canh": "Escalation · the song",
+   "goc_may": "",
+   "hanh_dong": "Zeus sings one note; the coffee pot explodes",
+   "loi_thoai": "Plan C: a song.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 4.5,
+   "nhan_vat": [
+    "Zeus",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium shot of Zeus singing softly with his eyes closed and hands on his chest, a glass coffee pot on the counter beside him shattering",
+   "prompt_video": "Zeus sings one note; the coffee pot explodes",
+   "phan_doan": "Three tries",
+   "cam_xuc": -3,
+   "ky_thuat": {
+    "co_canh": "ms",
+    "goc": "ngang",
+    "chuyen_dong": "tinh",
+    "anh_sang": "sang_deu",
+    "mau": "lanh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "vo_kinh"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "ATTEMPT #3",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "Plan C: a song."
+    }
+   ]
+  },
+  {
+   "canh": "Escalation · last chance",
+   "goc_may": "",
+   "hanh_dong": "Linda taps her foot; the snakes hiss in rhythm",
+   "loi_thoai": "Last chance.",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 4,
+   "nhan_vat": [
+    "Linda",
+    "Zeus",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Low-angle shot of tiny Linda standing on a desk with arms crossed, her snakes all hissing, looking down at Zeus",
+   "prompt_video": "Linda taps her foot; the snakes hiss in rhythm",
+   "phan_doan": "Three tries",
+   "cam_xuc": -3,
+   "ky_thuat": {
+    "co_canh": "ms",
+    "goc": "thap",
+    "chuyen_dong": "day_vao",
+    "anh_sang": "tuong_phan",
+    "mau": "lanh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "cuon_len"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "Linda",
+     "dien_xuat": "very quiet, dangerous",
+     "loi": "Last chance."
+    }
+   ]
+  },
+  {
+   "canh": "Twist · quiet sorry",
+   "goc_may": "",
+   "hanh_dong": "Zeus speaks gently; the office silhouettes slowly start to clap",
+   "loi_thoai": "I'm sorry. I'm new at being... small.",
+   "am_thanh": "",
+   "thoi_luong_s": 6,
+   "phat_s": 5.5,
+   "nhan_vat": [
+    "Zeus",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Close-up of Zeus speaking very softly, eyes down, one hand rubbing the back of his neck, no sparks at all for once",
+   "prompt_video": "Zeus speaks gently; the office silhouettes slowly start to clap",
+   "phan_doan": "No thunder",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "co_canh": "cu",
+    "goc": "ngang",
+    "chuyen_dong": "day_vao",
+    "anh_sang": "cua_so",
+    "mau": "am",
+    "chuyen_canh": "cat"
+   },
+   "trang_phuc": "",
+   "chu_man": "NO THUNDER",
+   "thoai": [
+    {
+     "nhan_vat": "Zeus",
+     "dien_xuat": "soft, sincere, vulnerable",
+     "loi": "I'm sorry. I'm new at being... small."
+    }
+   ]
+  },
+  {
+   "canh": "Twist · apology accepted",
+   "goc_may": "",
+   "hanh_dong": "Linda smiles; behind her the intern freezes into stone mid-sip",
+   "loi_thoai": "Apology accepted.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 4.5,
+   "nhan_vat": [
+    "Linda",
+    "Zeus",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium shot of Linda lowering her sunglasses with a small smile at Zeus, while behind her a coworker silhouette has turned into a grey stone statue holding a coffee mug",
+   "prompt_video": "Linda smiles; behind her the intern freezes into stone mid-sip",
+   "phan_doan": "No thunder",
+   "cam_xuc": 3,
+   "ky_thuat": {
+    "co_canh": "ms",
+    "goc": "ngang",
+    "chuyen_dong": "tinh",
+    "anh_sang": "cua_so",
+    "mau": "am",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "dap"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "Linda",
+     "dien_xuat": "warm for the first time, slightly embarrassed",
+     "loi": "Apology accepted."
+    }
+   ]
+  },
+  {
+   "canh": "Cliffhanger · the memo",
+   "goc_may": "",
+   "hanh_dong": "Zeus pulls the memo off the wall and his eyes widen",
+   "loi_thoai": "And tomorrow... team building.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 4.5,
+   "nhan_vat": [
+    "Zeus",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Insert close-up of a paper memo pinned on Zeus's cubicle wall showing a doodle of people falling backwards into each other's arms, Zeus's hand reaching for it",
+   "prompt_video": "Zeus pulls the memo off the wall and his eyes widen",
+   "phan_doan": "Trust falls",
+   "cam_xuc": -1,
+   "ky_thuat": {
+    "co_canh": "insert",
+    "goc": "tren_xuong",
+    "chuyen_dong": "day_vao",
+    "anh_sang": "sang_deu",
+    "mau": "lanh",
+    "chuyen_canh": "cat"
+   },
+   "trang_phuc": "",
+   "chu_man": "TOMORROW: TRUST FALLS",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "And tomorrow... team building."
+    }
+   ]
+  },
+  {
+   "canh": "Cliffhanger · a feather",
+   "goc_may": "",
+   "hanh_dong": "The feather sprouts and twitches; cut to black",
+   "loi_thoai": "Uh-oh.",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Zeus",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Extreme close-up of Zeus's big wrist with a single white swan feather slowly sprouting out of his shirt cuff",
+   "prompt_video": "The feather sprouts and twitches; cut to black",
+   "phan_doan": "Trust falls",
+   "cam_xuc": -2,
+   "ky_thuat": {
+    "co_canh": "ecu",
+    "goc": "ngang",
+    "chuyen_dong": "tinh",
+    "anh_sang": "sang_deu",
+    "mau": "lanh",
+    "chuyen_canh": "toi_den",
+    "am_thanh": [
+     "dap"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "NEXT: TEAM BUILDING",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "Uh-oh."
+    }
+   ]
+  }
+ ]
+}

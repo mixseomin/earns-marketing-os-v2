@@ -3,12 +3,22 @@ name: Deploy MOS v2
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - '**/*.md'
-      - 'wiki/**'
-      - 'decisions/**'
-      - '.gitignore'
-  workflow_dispatch: {}
+    # Hồ sơ phòng/nhân sự của cty (apps/cty/cong-ty/**) là DỮ LIỆU đọc lúc render, không phải tài liệu → vẫn deploy dù là .md.
+    paths:
+      - '**'
+      - '!**/*.md'
+      - 'apps/cty/cong-ty/**'
+      - '!wiki/**'
+      - '!decisions/**'
+      - '!.gitignore'
+  # Chạy tay: chọn ĐÚNG MỘT app (anh chốt 13/10/2026 — chạy tay không được dựng lại + khởi động lại cả repo). 'het' = như cũ.
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'App cần deploy'
+        required: true
+        type: choice
+        options: [cty, web, store, xuong-video, het]
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -33,6 +43,11 @@ jobs:
         id: chon
         run: |
           B="${{ github.event.before }}"
+          A="${{ inputs.app }}"
+          # Chạy tay một app: chỉ dựng app đó, máy chủ chỉ thay + khởi động lại app đó (web chỉ khi chọn web).
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "$A" ] && [ "$A" != "het" ]; then
+            case "$A" in xuong-video) echo "studio=1" ;; *) echo "$A=1" ;; esac >> "$GITHUB_OUTPUT"; cat "$GITHUB_OUTPUT"; exit 0
+          fi
           if [ "${{ github.event_name }}" != "push" ] || [ -z "$B" ] || [ "$B" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$B^{commit}" 2>/dev/null; then
             F="__HET__"
           else
@@ -42,7 +57,9 @@ jobs:
           co() { [ "$F" = "__HET__" ] || echo "$F" | grep -qE "$1"; }
           co '^(apps/store/|packages/(shop|db)/|package-lock\.json)' && echo "store=1" >> "$GITHUB_OUTPUT"
           co '^(apps/xuong-video/|packages/(db|gop-y)/|package-lock\.json)' && echo "studio=1" >> "$GITHUB_OUTPUT"
-          co '^(apps/cty/|packages/(db|gop-y)/|package-lock\.json)' && echo "cty=1" >> "$GITHUB_OUTPUT"
+          # cong-ty/** chỉ là dữ liệu đọc lúc render: máy chủ git pull là đủ, không dựng lại cty.
+          if [ "$F" = "__HET__" ] || echo "$F" | grep -E '^(apps/cty/|packages/(db|gop-y)/|package-lock\.json)' | grep -qv '^apps/cty/cong-ty/'; then echo "cty=1" >> "$GITHUB_OUTPUT"; fi
+          co '^apps/cty/cong-ty/' && echo "cty_du_lieu=1" >> "$GITHUB_OUTPUT"
           # deploy.sh + deploy/ chỉ chạy trên máy chủ, không vào bản build → không kéo build web (38s).
           if [ "$F" = "__HET__" ] || echo "$F" | grep -vqE '^(apps/(store|xuong-video|cty)/|packages/gop-y/|deploy/|deploy\.sh$)'; then echo "web=1" >> "$GITHUB_OUTPUT"; fi
           echo "Tệp đổi:"; echo "$F" | head -40; echo "Build:"; cat "$GITHUB_OUTPUT"
@@ -79,7 +96,7 @@ jobs:
           node scripts/check-client-db.mjs --tu-kiem && node scripts/check-client-db.mjs
       # Công ty AI: hồ sơ phòng/nhân sự + worker tự kiểm trước khi dựng.
       - run: node apps/cty/scripts/tu-kiem.mjs && node apps/cty/scripts/fm.mjs --tu-kiem && node apps/cty/worker/gia.mjs --tu-kiem && node apps/cty/worker/log.mjs --tu-kiem && node apps/cty/worker/proxy.mjs --tu-kiem && node apps/cty/worker/ca.mjs --tu-kiem && node apps/cty/scripts/thu-ngan.mjs && node apps/cty/worker/quy-trinh.mjs --tu-kiem && node apps/cty/worker/cai-tien.mjs --tu-kiem
-        if: steps.chon.outputs.cty == '1'
+        if: steps.chon.outputs.cty == '1' || steps.chon.outputs.cty_du_lieu == '1'
       # Dựng SONG SONG các app được chọn (runner repo công khai: 4 nhân, 16GB) — trước dựng nối đuôi web 41s + store 21s
       # + studio 22s + cty 21s. Mỗi app một tarball <app>.tar.gz; app không dựng lượt này máy chủ giữ nguyên bản đang chạy.
       - name: Build (song song)

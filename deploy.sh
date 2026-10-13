@@ -105,6 +105,7 @@ if [ "${SKIP_BUILD:-0}" = "1" ] && [ -f apps/web/.next.new/BUILD_ID ]; then
   mv apps/web/.next.new apps/web/.next
   rm -rf apps/web/.next.old
   echo "✓ Web build swapped in (prebuilt on runner — no server rebuild)"
+  WEB_RESTART=true
 else
   WEB_CHANGED=false
   if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^apps/web/"; then
@@ -124,6 +125,7 @@ else
     # fail gracefully thay vì SIGKILL. ~3GB đủ (đã verify build lọt). Bỏ khi nâng RAM (CX33 8GB).
     NODE_OPTIONS="--max-old-space-size=3072" npm run build:web
     echo "✓ Web build done"
+    WEB_RESTART=true
   else
     echo "↺ Skip build (no source changes)"
   fi
@@ -260,9 +262,13 @@ if command -v pixel-agents >/dev/null 2>&1; then
   fi
 fi
 
-# 6. Restart systemd unit
-systemctl restart mos2-web
-sleep 1
-systemctl is-active mos2-web && echo "✓ mos2-web active" || (echo "✗ mos2-web failed"; systemctl status mos2-web --no-pager | tail -20; exit 1)
+# 6. Restart mos2-web CHỈ khi web có bản mới / deps đổi (anh chốt 13/10/2026: deploy app con không được kéo mos2 khởi động lại).
+if [ "${WEB_RESTART:-false}" = "true" ] || [ "$DEPS_CHANGED" = "true" ] || ! systemctl is-active --quiet mos2-web; then
+  systemctl restart mos2-web
+  sleep 1
+  systemctl is-active mos2-web && echo "✓ mos2-web active" || (echo "✗ mos2-web failed"; systemctl status mos2-web --no-pager | tail -20; exit 1)
+else
+  echo "↺ mos2-web: không có bản mới, không khởi động lại"
+fi
 
 echo "── deploy complete ──"

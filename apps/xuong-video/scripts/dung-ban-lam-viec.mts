@@ -167,7 +167,7 @@ for (const t of tep) {
   anhThat.push(u);
 }
 if (!anhThat.length) anhThat = (((await q(sql`SELECT anh_ref FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = 'boi_canh' ORDER BY id LIMIT 1`))[0]?.anh_ref as string[]) ?? []).filter((u) => !anhRa(u));
-if (!anhThat.length && dot === 'boi_canh') { console.error('cần đường dẫn ảnh bàn thật (lần đầu)'); process.exit(1); }
+if (!anhThat.length && dot === 'boi_canh' && !lai) { console.error('cần đường dẫn ảnh bàn thật (lần đầu)'); process.exit(1); }
 
 const ra: { ten: string; url: string | null; loi?: string }[] = [];
 /** Sinh một ảnh gốc cho anchor (job gắn nhan_vat_id → hoanTatAnh đưa ảnh lên ĐẦU anh_ref, ảnh thật giữ sau). */
@@ -176,8 +176,10 @@ async function anhGoc(loai: 'boi_canh' | 'dao_cu', ten: string, mo_ta: string, p
   if (!v) v = (await q(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, anh_ref) VALUES (${phimId}, ${loai}, ${ten}, ${mo_ta}, ${JSON.stringify(loai === 'boi_canh' ? anhThat : [])}::jsonb) RETURNING id, anh_ref`))[0]!;
   if (((v.anh_ref as string[]) ?? []).some(anhRa) && !lai) { ra.push({ ten, url: null, loi: 'đã có ảnh — bỏ qua' }); return; }
   await q(sql`UPDATE xv_nhan_vat SET mo_ta = ${mo_ta}, updated_at = now() WHERE id = ${Number(v.id)} AND mo_ta <> ${mo_ta}`);   // mô tả trong script là bản đúng
-  const job = await taoJob(db, { nhan_vat_id: Number(v.id), nhan: `Ảnh gốc · ${loai === 'boi_canh' ? 'bối cảnh' : 'đồ vật'} ${ten}`, loai: 'anh', provider: 'google', model: KINH_THANH.mo_hinh_anh, request: { prompt, thamChieuUrl: anhThat } });
-  const kq = await chayViecAnh({ job, model: KINH_THANH.mo_hinh_anh, prompt, thamChieuUrl: anhThat, tiLe: loai === 'boi_canh' ? '9:16' : '1:1', thuMuc: `anchor/${Number(v.id)}` });
+  // Không có ảnh thật (anh không cho dùng ảnh gốc) → sinh lại bám chính ảnh đã sinh của mục này.
+  const ref = anhThat.length ? anhThat : ((v.anh_ref as string[]) ?? []).filter(anhRa).slice(0, 1);
+  const job = await taoJob(db, { nhan_vat_id: Number(v.id), nhan: `Ảnh gốc · ${loai === 'boi_canh' ? 'bối cảnh' : 'đồ vật'} ${ten}`, loai: 'anh', provider: 'google', model: KINH_THANH.mo_hinh_anh, request: { prompt, thamChieuUrl: ref } });
+  const kq = await chayViecAnh({ job, model: KINH_THANH.mo_hinh_anh, prompt, thamChieuUrl: ref, tiLe: loai === 'boi_canh' ? '9:16' : '1:1', thuMuc: `anchor/${Number(v.id)}` });
   await hoanTatAnh(kq);
   // Sinh lại (--lai) thành công → ảnh sinh cũ vào THÙNG RÁC (khôi phục được ở 🗑), kẻo nó nằm thứ hai trong anh_ref và làm tham chiếu cho
   // biến thể / keyframe (4 cảnh đầu lọt nội dung màn hình gốc, 14/10/2026).

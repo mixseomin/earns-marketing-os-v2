@@ -9,6 +9,7 @@ import { sql } from 'drizzle-orm';
 import { luuVaoKho } from './kho';
 import { getDb } from '@mos2/db';
 import { danhMucFal } from './fal';
+import { jobDangCho } from './doc-db';
 import { giaAnhCents, thuongHieu, type KinhThanh } from './kieu';
 import { chayViecAnh, type ViecAnh, type KqViec } from './viec-anh';
 import { chayViecAm, type ViecAm, type KqViecAm } from './viec-am';
@@ -122,7 +123,7 @@ async function khopSauGiong(canhId: number): Promise<void> {
   if (!t[0]) return;
   const tapId = Number(t[0].tap_id);
   const con = (await db.execute(sql`SELECT 1 FROM xv_job j JOIN xv_canh c ON c.id = j.canh_id WHERE c.tap_id = ${tapId} AND j.loai = 'am' AND j.request->>'dich' = 'thoai'
-    AND j.trang_thai = 'cho' AND j.created_at > now() - interval '10 minutes' LIMIT 1`)) as unknown as Row[];
+    AND ${jobDangCho('j')} LIMIT 1`)) as unknown as Row[];
   if (con.length) return;
   const { khopGiongTap } = await import('./hau-ky');
   const r = await khopGiongTap(db, tapId, 'tự khớp sau khi sinh giọng').catch((e: unknown) => ({ ok: false as const, loi: String(e) }));
@@ -134,7 +135,7 @@ async function khopSauGiong(canhId: number): Promise<void> {
 async function videoSauGiong(canhId: number, sau: { moHinh?: string; ban: 'nhap' | 'cuoi' }): Promise<void> {
   const db = getDb();
   if (!db) return;
-  const con = (await db.execute(sql`SELECT 1 FROM xv_job WHERE canh_id = ${canhId} AND loai = 'am' AND request->>'dich' = 'thoai' AND trang_thai = 'cho' AND created_at > now() - interval '10 minutes' LIMIT 1`)) as unknown as Row[];
+  const con = (await db.execute(sql`SELECT 1 FROM xv_job WHERE canh_id = ${canhId} AND loai = 'am' AND request->>'dich' = 'thoai' AND ${jobDangCho()} LIMIT 1`)) as unknown as Row[];
   if (con.length) return;
   const nhan = (await db.execute(sql`UPDATE xv_job SET request = request - 'sau_video' WHERE canh_id = ${canhId} AND loai = 'am' AND request->'sau_video' IS NOT NULL RETURNING id`)) as unknown as Row[];
   if (!nhan.length) return;

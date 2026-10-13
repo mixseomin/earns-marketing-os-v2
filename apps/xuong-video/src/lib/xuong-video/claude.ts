@@ -72,6 +72,14 @@ function taAnchor(nv: NhanVat[]): string {
   return nv.map((a) => `- [${a.loai}] ${a.ten}: ${a.mo_ta || '(chưa mô tả)'}${a.giong ? ` · giọng: ${a.giong}` : ''}${a.bien_the?.length ? `\n    biến thể: ${a.bien_the.map((b) => `"${a.ten} · ${b.ten}" (${b.nhom}: ${b.mo_ta.slice(0, 80)})`).join('; ')}` : ''}`).join('\n');
 }
 
+/** Lỗi gọi Claude → câu đọc được, MỘT chỗ cho mọi lượt. messages.parse NÉM khi JSON không đọc được — thường vì chạm max_tokens nên câu trả
+ *  lời bị cắt; kiểm stop_reason SAU parse không bao giờ chạy tới (13/10/2026: nút kiểm người xem chỉ báo "Unterminated string"). */
+function loiGoi(e: unknown): string {
+  if (e instanceof Anthropic.APIError) return `Anthropic ${e.status}: ${e.message}`;
+  const m = e instanceof Error ? e.message : String(e);
+  return /Failed to parse structured output|Unterminated string|Unexpected end of JSON/i.test(m) ? 'Claude trả lời bị cắt giữa chừng (chạm trần token), không đọc được — báo con nâng trần' : m;
+}
+
 /** LUẬT KỂ CHUYỆN CHO NGƯỜI XEM LẦN ĐẦU — "skill làm video" của xưởng, nằm trong MỌI lượt viết kịch bản / tách cảnh (heThong).
  *  Rút từ ca Fox Tales tập 2 (13/10/2026: kịch bản 100/100 cấu trúc mà xem không hiểu) + luật dựng chuẩn (Murch: cảm xúc > câu chuyện > nhịp).
  *  Bước kiểm sau đó: nguoi-xem.ts (Claude xem mù, chặn keyframe/xuất khi chưa hiểu). Sửa luật ở đây là sửa cho mọi phim. */
@@ -190,7 +198,7 @@ export async function tachCanh(opts: {
     const beats = p.beats.map((b) => ({ ...b, cam_xuc: kep(b.cam_xuc) }));
     return { ok: true, tomTat: p.tom_tat, canh, beats, phanCanh, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
   } catch (e) {
-    return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
+    return { ok: false, loi: loiGoi(e) };
   }
 }
 
@@ -220,7 +228,7 @@ export async function vietKichBan(opts: {
     const text = r.content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map((b) => b.text).join('\n').trim();
     return text ? { ok: true, kichBan: text, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude không trả chữ' };
   } catch (e) {
-    return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
+    return { ok: false, loi: loiGoi(e) };
   }
 }
 
@@ -325,7 +333,7 @@ async function hoi<T>(schema: z.ZodType<T>, kt: Required<KinhThanh>, system: str
     const p = r.parsed_output as T | null;
     return p ? { ok: true, data: p, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
   } catch (e) {
-    return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
+    return { ok: false, loi: loiGoi(e) };
   }
 }
 
@@ -394,7 +402,7 @@ export async function doiChieuAnchor(a: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta' |
     const p = r.parsed_output as z.infer<typeof DoiChieuSchema> | null;
     return p ? { ok: true, data: p, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
   } catch (e) {
-    return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
+    return { ok: false, loi: loiGoi(e) };
   }
 }
 
@@ -436,7 +444,7 @@ export async function vietBaiDang(opts: { kinhThanh: KinhThanh; kichBan: string;
     const p = r.parsed_output as z.infer<typeof BaiDangSchema> | null;
     return p ? { ok: true, data: p, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
   } catch (e) {
-    return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
+    return { ok: false, loi: loiGoi(e) };
   }
 }
 
@@ -470,7 +478,7 @@ export async function phanTichMau(khung: { giay: number; b64: string }[], tongGi
     const shots: ShotMau[] = p.shots.map((s) => ({ giay: Math.max(0.5, Math.min(8, Math.round(s.giay * 2) / 2)), loai: s.loai, chu_man: s.chu_man.trim(), hinh: s.hinh.trim() }));
     return { ok: true, data: { shots, ghi_chu: p.ghi_chu }, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
   } catch (e) {
-    return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
+    return { ok: false, loi: loiGoi(e) };
   }
 }
 
@@ -495,13 +503,12 @@ Luật:
       output_config: { format: zodOutputFormat(DichChuoiSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
     });
     if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
-    if (r.stop_reason === 'max_tokens') return { ok: false, loi: 'lô dịch dài quá trần token' };
     const p = r.parsed_output as z.infer<typeof DichChuoiSchema> | null;
     if (!p) return { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
     const out = o.ds.map((g, i) => p.ban_dich.find((x) => x.i === i)?.v?.trim() || g);
     return { ok: true, data: out, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
   } catch (e) {
-    return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
+    return { ok: false, loi: loiGoi(e) };
   }
 }
 
@@ -536,7 +543,6 @@ export async function thuNguoiXem(o: { ban: string; nhanVat: string; logline: st
       output_config: { format: zodOutputFormat(NguoiXemSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
     });
     if (r1.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
-    if (r1.stop_reason === 'max_tokens') return { ok: false, loi: 'Claude viết quá dài, hết trần token — báo con nâng trần' };
     const xem = r1.parsed_output as z.infer<typeof NguoiXemSchema> | null;
     if (!xem) return { ok: false, loi: 'Claude trả JSON không đúng khuôn (lượt người xem)' };
     const r2 = await c.messages.parse({
@@ -549,7 +555,7 @@ export async function thuNguoiXem(o: { ban: string; nhanVat: string; logline: st
     if (!doi) return { ok: false, loi: 'Claude trả JSON không đúng khuôn (lượt đối chiếu)' };
     return { ok: true, data: { xem, doi }, model: r1.model, tokens: { in: r1.usage.input_tokens + r2.usage.input_tokens, out: r1.usage.output_tokens + r2.usage.output_tokens } };
   } catch (e) {
-    return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
+    return { ok: false, loi: loiGoi(e) };
   }
 }
 
@@ -586,10 +592,9 @@ export async function suaKichBanTheoNguoiXem(o: { bang: string; anchor: string; 
       output_config: { format: zodOutputFormat(SuaKbSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
     });
     if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
-    if (r.stop_reason === 'max_tokens') return { ok: false, loi: 'Claude viết quá dài, hết trần token' };
     const p = r.parsed_output as z.infer<typeof SuaKbSchema> | null;
     return p ? { ok: true, data: p, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
   } catch (e) {
-    return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
+    return { ok: false, loi: loiGoi(e) };
   }
 }

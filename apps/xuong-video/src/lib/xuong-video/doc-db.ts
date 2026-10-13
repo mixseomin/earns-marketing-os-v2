@@ -3,7 +3,7 @@
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import type { getDb } from '@mos2/db';
-import { docKinhThanh, giaVideoCents, type BienThe, type Canh, type Job, type KinhThanh, type LoaiNhanVat, type LoaiPhim, type NhanVat, type Tap, type TrangThaiCanh } from './kieu';
+import { docKinhThanh, giaChuCents, giaVideoCents, type BienThe, type Canh, type Job, type KinhThanh, type LoaiNhanVat, type LoaiPhim, type NhanVat, type Tap, type TrangThaiCanh } from './kieu';
 import { danhMucFal } from './fal';
 
 export type Db = NonNullable<ReturnType<typeof getDb>>;
@@ -96,11 +96,24 @@ export async function giaVideoSv(model: string, dpg: '720p' | '1080p', giay: num
   return giaVideoCents(model, dpg, giay);
 }
 
+/** Job "đang chạy" = trang_thai 'cho' và chưa quá PHUT_JOB_CHO phút (quá thì coi như chết, cho bấm lại). MỘT luật cho mọi cờ "đang sinh"
+ *  và mọi chặn bấm lại (ảnh, giọng, hiệu ứng, nhạc, poster, giọng-xong-gửi-video) — trước đây chuỗi interval gõ lại ở 10 chỗ. a = bí danh bảng. */
+export const PHUT_JOB_CHO = 10;
+export const jobDangCho = (a = '') => { const p = a ? `${a}.` : ''; return sql.raw(`${p}trang_thai = 'cho' AND ${p}created_at > now() - interval '${PHUT_JOB_CHO} minutes'`); };
+
 /** Shot đang có việc âm thanh chạy (≤10 phút) theo đích ('thoai' | 'sfx') — MỘT luật chặn bấm lại khi đang sinh, khỏi trả tiền hai lần
  *  (13/10/2026: nút 🗣 Sinh giọng vẫn bấm được lúc "đang sinh"). Cùng điều kiện với cờ dang_sinh_giong / dang_sinh_sfx của dsCanh. */
 export async function canhDangSinhAm(db: Db, canhIds: number[], dich: 'thoai' | 'sfx'): Promise<Set<number>> {
   if (!canhIds.length) return new Set();
   const r = (await db.execute(sql`SELECT DISTINCT canh_id FROM xv_job WHERE canh_id = ANY(${mangInt(canhIds)}::int[]) AND loai = 'am' AND request->>'dich' = ${dich}
-    AND trang_thai = 'cho' AND created_at > now() - interval '10 minutes'`)) as unknown as Row[];
+    AND ${jobDangCho()}`)) as unknown as Row[];
   return new Set(r.map((x) => n(x.canh_id)));
+}
+
+/** Ghi sổ một lượt Claude (chữ) theo token thật × giá model — MỘT chỗ cho mọi lượt gọi Claude (gợi ý, dịch, kiểm/sửa theo người xem…). Trả cents. */
+export async function ghiTienChu(db: Db, phimId: number | null, nhan: string, model: string, tk: { in: number; out: number }): Promise<number> {
+  const gia = giaChuCents(model, tk.in, tk.out);
+  await db.execute(sql`INSERT INTO xv_job (phim_id, nhan, loai, provider, model, trang_thai, chi_phi_cents, tokens_in, tokens_out)
+    VALUES (${phimId}, ${nhan}, 'chu', 'anthropic', ${model}, 'xong', ${Math.round(gia * 100) / 100}, ${tk.in}, ${tk.out})`);
+  return gia;
 }

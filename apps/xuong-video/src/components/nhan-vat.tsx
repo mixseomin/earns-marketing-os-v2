@@ -8,7 +8,7 @@ import { GIONG } from '@/lib/xuong-video/am-thanh';
 import { luuNhanVat, xoaNhanVat, sinhAnhMau, taiAnhLen, datAnhChinh, dsGiongModel, dsGiongCua, chonGiong, ngheThuGiong, xoaAnhGoc, xoaAnhBienThe, goiYAIAnchor, goiYAIBoAnchor, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, doiChieuAnchor } from '@/lib/actions';
 import { LOAI_NHAN_VAT, NHOM_BIEN_THE, nhanNhom, docKinhThanh, giaAnhCents, tien, gioVN, type NhanVat, type BienThe, type KinhThanh, type LoaiNhanVat } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
-import { Khoa, O, Pill, Seg, Nut, Xoa, Loi, AnhNho, DangSinh, mono } from './ui';
+import { Khoa, O, Pill, Seg, Nut, Xoa, Loi, AnhNho, DangSinh, mono, goiAction } from './ui';
 import { NutNghe } from './media';
 
 /** Giọng cố định của một nhân vật (cả bộ phim): chọn model (ElevenLabs tài khoản anh / mọi TTS fal) + giọng, nghe thử. */
@@ -152,7 +152,7 @@ export function BienTheDrawer({ a, khoa, kt, dangSinh, loiBt, onClose, onChanged
   const [loi, setLoi] = useState('');
   const chay = async (k: string, fn: () => Promise<{ ok: boolean; loi?: string } | void>) => {
     setBan(k); setLoi('');
-    try { const r = await fn(); if (r && !r.ok) setLoi(r.loi ?? 'lỗi'); } catch (e) { setLoi(`Không gọi được máy chủ (${e instanceof Error ? e.message.slice(0, 80) : 'lỗi mạng'}) — studio vừa cập nhật thì bấm ↻ Tải lại.`); } finally { setBan(null); }
+    setLoi((await goiAction(fn)).loi); setBan(null);
     await onChanged();
   };
   const ds = a.bien_the ?? [];

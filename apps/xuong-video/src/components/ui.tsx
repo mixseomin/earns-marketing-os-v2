@@ -18,6 +18,12 @@ export const TAB_PHIM: { key: TabPhim; label: string; mo: string }[] = [
 ];
 
 export type KqChay = { ok: boolean; loi?: string } | void;
+/** Gọi một server action từ nút: trả { loi: câu lỗi ('' = được), kq }. Ném (mạng rớt / studio vừa cập nhật, action cũ không còn) → câu bảo
+ *  tải lại. MỘT chỗ cho mọi nút — trước đây chép 5 bản (tap, nhan-vat, poster, kiểm người xem ×2), lệch câu chữ dần. */
+export async function goiAction<R extends KqChay>(fn: () => Promise<R>): Promise<{ loi: string; kq: R | null }> {
+  try { const kq = await fn(); return { loi: kq && !kq.ok ? (kq.loi ?? 'lỗi') : '', kq }; }
+  catch (e) { return { loi: `Không gọi được máy chủ (${e instanceof Error ? e.message.slice(0, 80) : 'lỗi mạng'}) — studio vừa cập nhật thì bấm ↻ Tải lại.`, kq: null }; }
+}
 
 // ── Khối giao diện nhỏ của app (không mượn primitive của mos2 — app riêng) ─────────────────────────────────────────
 

@@ -40,11 +40,11 @@ import { khopNhipTap, type KqKhopNhip } from '@/lib/xuong-video/khop-nhip';
 import { khopGiongTap } from '@/lib/xuong-video/hau-ky';
 import type { NguonShot } from '@/lib/xuong-video/phu-thuoc';
 import { sinhGiongShots, MODEL_GIONG_MAC_DINH, type TuyGiong } from '@/lib/xuong-video/sinh-giong';
-import { xongJob as xongJobDb, mapJob } from '@/lib/xuong-video/doc-db';
+import { xongJob as xongJobDb, mapJob, jobDangCho, ghiTienChu } from '@/lib/xuong-video/doc-db';
 export type { TuyGiong };
 import { dsKhuon, taKhuon, ghiKhuonTuCanh, ghiKhuonTuMau, type KhuonShot } from '@/lib/xuong-video/khuon-shot';
 import {
-  docKinhThanh, giaAnhCents, giaVideoCents, giaChuCents, MO_HINH_ANH, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG, NHOM_BIEN_THE,
+  docKinhThanh, giaAnhCents, giaVideoCents, MO_HINH_ANH, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG, NHOM_BIEN_THE,
   type Phim, type NhanVat, type Tap, type Canh, type Job, type KinhThanh, type LoaiPhim, type LoaiNhanVat, 
 } from '@/lib/xuong-video/kieu';
 
@@ -140,7 +140,7 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
     const [bt, ds, gd, tg, la, tkc, tdg, tkj, dp] = await Promise.all([
       db.execute(sql`SELECT b.* FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE v.phim_id = ${id} ORDER BY b.nhom, b.id`),
       db.execute(sql`SELECT j.nhan_vat_id, j.bien_the_id FROM xv_job j JOIN xv_nhan_vat v ON v.id = j.nhan_vat_id
-        WHERE v.phim_id = ${id} AND j.loai = 'anh' AND j.trang_thai = 'cho' AND j.created_at > now() - interval '10 minutes'`),
+        WHERE v.phim_id = ${id} AND j.loai = 'anh' AND ${jobDangCho('j')}`),
       db.execute(sql`SELECT * FROM xv_job WHERE phim_id = ${id} ORDER BY id DESC LIMIT 6`),
       db.execute(sql`SELECT coalesce(sum(chi_phi_cents), 0) AS t FROM xv_job WHERE phim_id = ${id} AND tinh_chi`),
       // Lần sinh ảnh gần nhất của mỗi anchor/biến thể — lỗi thì hiện dưới thẻ (việc chạy nền nên lỗi không trả về nút nữa).
@@ -170,7 +170,7 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
           coalesce(sum(chi_phi_cents) FILTER (WHERE loai NOT IN ('anh', 'video', 'nang_cap')), 0) AS chu
         FROM xv_job WHERE phim_id = ${id} AND trang_thai = 'xong' AND tinh_chi`),
       // poster đang sinh (≤10 phút) + lỗi của lượt poster gần nhất
-      db.execute(sql`SELECT trang_thai, loi, created_at > now() - interval '10 minutes' AS moi FROM xv_job WHERE phim_id = ${id} AND request->>'dich' = 'poster' ORDER BY id DESC LIMIT 5`),
+      db.execute(sql`SELECT trang_thai, loi, (${jobDangCho()}) AS dang FROM xv_job WHERE phim_id = ${id} AND request->>'dich' = 'poster' ORDER BY id DESC LIMIT 5`),
     ]);
     const loiAnh = { nhanVat: {} as Record<number, string>, bienThe: {} as Record<number, string> };
     for (const r of la as unknown as Row[]) {
@@ -189,7 +189,7 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
     return {
       thongKe, phim: mapPhim(p[0]), nhanVat: nvs, tap: (tap as unknown as Row[]).map(mapTap),
       ganDay: (gd as unknown as Row[]).map(mapJob), tongTien: n((tg as unknown as Row[])[0]?.t), loiAnh,
-      dangSinh: { nhanVat: dsr.filter((r) => r.bien_the_id == null).map((r) => n(r.nhan_vat_id)), bienThe: dsr.filter((r) => r.bien_the_id != null).map((r) => n(r.bien_the_id)), poster: (dp as unknown as Row[]).filter((r) => s(r.trang_thai) === 'cho' && r.moi).length },
+      dangSinh: { nhanVat: dsr.filter((r) => r.bien_the_id == null).map((r) => n(r.nhan_vat_id)), bienThe: dsr.filter((r) => r.bien_the_id != null).map((r) => n(r.bien_the_id)), poster: (dp as unknown as Row[]).filter((r) => r.dang === true).length },
       loiPoster: (() => { const r0 = (dp as unknown as Row[])[0]; return r0 && s(r0.trang_thai) === 'loi' ? s(r0.loi) : ''; })(),
     };
   } catch { return null; }
@@ -199,10 +199,10 @@ export async function dsCanh(tapId: number): Promise<Canh[]> {
   const db = getDb();
   if (!db || !(await admin())) return [];
   try {
-    const r = await db.execute(sql`SELECT c.*, EXISTS (SELECT 1 FROM xv_job j WHERE j.canh_id = c.id AND j.loai = 'anh' AND j.trang_thai = 'cho' AND j.created_at > now() - interval '10 minutes') AS dang_sinh_anh,
+    const r = await db.execute(sql`SELECT c.*, EXISTS (SELECT 1 FROM xv_job j WHERE j.canh_id = c.id AND j.loai = 'anh' AND ${jobDangCho('j')}) AS dang_sinh_anh,
       -- Cờ riêng từng loại âm (#1217: sinh giọng mà khối hiệu ứng cũng báo đang sinh).
-      EXISTS (SELECT 1 FROM xv_job j WHERE j.canh_id = c.id AND j.loai = 'am' AND j.request->>'dich' = 'thoai' AND j.trang_thai = 'cho' AND j.created_at > now() - interval '10 minutes') AS dang_sinh_giong,
-      EXISTS (SELECT 1 FROM xv_job j WHERE j.canh_id = c.id AND j.loai = 'am' AND j.request->>'dich' = 'sfx' AND j.trang_thai = 'cho' AND j.created_at > now() - interval '10 minutes') AS dang_sinh_sfx FROM xv_canh c WHERE c.tap_id = ${tapId} ORDER BY c.thu_tu, c.id`);
+      EXISTS (SELECT 1 FROM xv_job j WHERE j.canh_id = c.id AND j.loai = 'am' AND j.request->>'dich' = 'thoai' AND ${jobDangCho('j')}) AS dang_sinh_giong,
+      EXISTS (SELECT 1 FROM xv_job j WHERE j.canh_id = c.id AND j.loai = 'am' AND j.request->>'dich' = 'sfx' AND ${jobDangCho('j')}) AS dang_sinh_sfx FROM xv_canh c WHERE c.tap_id = ${tapId} ORDER BY c.thu_tu, c.id`);
     return (r as unknown as Row[]).map(mapCanh);
   } catch { return []; }
 }
@@ -928,10 +928,7 @@ export async function taiAnhLen(dataUrl: string): Promise<Kq<string>> {
 /** Ghi một lần gọi Claude vào sổ chi phí (token → cents). */
 async function ghiChu(phimId: number | null, nhan: string, r: { ok: boolean } & Partial<DungChu>): Promise<void> {
   if (!r.ok || !r.model || !r.tokens) return;
-  const db = getDb()!;
-  const gia = giaChuCents(r.model, r.tokens.in, r.tokens.out);
-  await db.execute(sql`INSERT INTO xv_job (phim_id, nhan, loai, provider, model, trang_thai, chi_phi_cents, tokens_in, tokens_out)
-    VALUES (${phimId}, ${nhan}, 'chu', 'anthropic', ${r.model}, 'xong', ${Math.round(gia * 100) / 100}, ${r.tokens.in}, ${r.tokens.out})`);
+  await ghiTienChu(getDb()!, phimId, nhan, r.model, r.tokens);
 }
 
 // ── Gợi ý AI cho mọi form (đọc ngữ cảnh cả phim) ──────────────────────────────────────────────────────────────
@@ -1231,7 +1228,7 @@ export async function uocAm(tapId: number): Promise<{ giong: number; soThoai: nu
   const giay = giayNhac(ds);
   const nhac = Object.fromEntries(MO_HINH_AM.filter((m) => m.loai === 'nhac').map((m) => [m.key, giaAm(m.key, giay)]));
   // Nhạc đang sinh: theo phân cảnh nào / cả tập — timeline phủ sọc đúng khối đó (#1205).
-  const dn = db ? ((await db.execute(sql`SELECT request->>'phan_doan' AS pd FROM xv_job WHERE loai = 'am' AND trang_thai = 'cho' AND request->>'dich' = 'nhac' AND request->>'tap_id' = ${String(tapId)} AND created_at > now() - interval '10 minutes'`)) as unknown as Row[]) : [];
+  const dn = db ? ((await db.execute(sql`SELECT request->>'phan_doan' AS pd FROM xv_job WHERE loai = 'am' AND ${jobDangCho()} AND request->>'dich' = 'nhac' AND request->>'tap_id' = ${String(tapId)}`)) as unknown as Row[]) : [];
   return { giong, soThoai, sfx, soSfx, nhac, giay, soPhanCanh: new Set(ds.map((c) => c.phan_doan).filter(Boolean)).size, dangNhac: dn.length,
     dangPhanDoan: dn.map((r) => s(r.pd)).filter(Boolean), dangCaTap: dn.some((r) => !r.pd) };
 }

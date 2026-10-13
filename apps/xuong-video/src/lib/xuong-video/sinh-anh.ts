@@ -8,7 +8,7 @@ import { promptKyThuatAnh } from './dien-anh';
 import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, MO_HINH_ANH, type KinhThanh, type NhanVat } from './kieu';
 import { chanTienKy, chanShot } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
-import { boiCanhCanh, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, type Db, type Row } from './doc-db';
+import { boiCanhCanh, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, jobDangCho, type Db, type Row } from './doc-db';
 
 export type KqSinh<T> = { ok: true; data: T } | { ok: false; loi: string };
 
@@ -93,26 +93,35 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   return { prompt, urlRef, vai };
 }
 
-/** Sinh keyframe: `so` ứng viên (1-3), nối vào keyframe_uv; cảnh chưa có ảnh chọn thì tự chọn ảnh đầu. */
+/** MỌI lý do chặn sinh keyframe của một shot — quy trình cấp tập (brief, khung truyện, phân cảnh, phong cách, người xem hiểu, kịch bản series)
+ *  + cấp shot (phân cảnh, mẫu, cỡ cảnh) + prompt + ngôn ngữ + thành phần. MỘT chỗ cho nút sinh và script kiểm (kiem-cong-shot.mts): trước đây
+ *  script tự lắp lại danh sách cổng, lệch dần với nút. */
+export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>; chan: string[] } | null> {
+  const bc = await boiCanhCanh(db, canhId);
+  if (!bc) return null;
+  const tapQt = mapTap(((await db.execute(sql`SELECT * FROM xv_tap WHERE id = ${bc.canh.tap_id}`)) as unknown as Row[])[0]!);
+  const nvPhim = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${tapQt.phim_id} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
+  const tatCa = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${bc.canh.tap_id} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh);
+  const chan: string[] = [];
+  const qt = [...chanTienKy(tapQt, { phong_cach: bc.kt.phong_cach, laQc: false, logline: bc.kt.logline, series: bc.kt.series }, locNhanh(tatCa, bc.canh.nhanh || 'A'), locNhanh(tatCa, 'A')), ...chanShot(bc.canh, tapQt, nvPhim)];
+  if (qt.length) chan.push(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ')}`);
+  if (!bc.canh.prompt_anh.trim()) chan.push('cảnh chưa có prompt ảnh');
+  const cm = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
+  if (cm) chan.push(cm);
+  const tp = thanhPhanCanh(bc.canh, bc.nhanVat);
+  if (tp.thieu.length) chan.push(`Chưa chuẩn bị đủ thành phần: ${tp.thieu.join('; ')}. Làm ở mục 2 (Tuyến nhân vật) rồi sinh lại.`);
+  return { bc, chan };
+}
+
+/** Sinh keyframe: `so` ứng viên (1-3), nối vào keyframe_uv; cảnh chưa có ảnh chọn thì tự chọn ảnh đầu. Mọi cổng ở lyChanKeyframe. */
 export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: string): Promise<KqSinh<number[]>> {
   const loi = (x: string): KqSinh<number[]> => ({ ok: false, loi: x });
-  const bc = await boiCanhCanh(db, canhId);
-  if (!bc) return loi('không thấy cảnh');
-  // Cổng QUY TRÌNH (quy-trinh.ts): tiền kỳ cấp tập (brief, khung truyện, phân cảnh, phong cách) + cấp shot (phân cảnh, mẫu bối cảnh/đối tượng,
-  // ảnh mẫu, cỡ cảnh) — MỌI đường gọi (nút, bảng chọn, script) đi qua đây nên không ai phải nhớ.
-  const tapR = (await db.execute(sql`SELECT * FROM xv_tap WHERE id = ${bc.canh.tap_id}`)) as unknown as Row[];
-  const tapQt = mapTap(tapR[0]!);
-  const nvPhim = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${tapQt.phim_id} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
-  const dsTap = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${bc.canh.tap_id} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), bc.canh.nhanh || 'A');
-  const qt = [...chanTienKy(tapQt, { phong_cach: bc.kt.phong_cach, laQc: false, logline: bc.kt.logline, series: bc.kt.series }, dsTap), ...chanShot(bc.canh, tapQt, nvPhim)];
-  if (qt.length) return loi(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ')}`);
-  if (!bc.canh.prompt_anh.trim()) return loi('cảnh chưa có prompt ảnh');
+  const g = await lyChanKeyframe(db, canhId);
+  if (!g) return loi('không thấy cảnh');
+  if (g.chan.length) return loi(g.chan.join(' · '));
+  const { bc } = g;
   if (moHinh && (moHinh.startsWith('fal:') || MO_HINH_ANH.some((m) => m.key === moHinh))) bc.kt.mo_hinh_anh = moHinh as typeof bc.kt.mo_hinh_anh;
   await db.execute(sql`UPDATE xv_canh SET loi = '' WHERE id = ${canhId}`);
-  const chan = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
-  if (chan) return loi(chan);
-  const tp = thanhPhanCanh(bc.canh, bc.nhanVat);
-  if (tp.thieu.length) return loi(`Chưa chuẩn bị đủ thành phần: ${tp.thieu.join('; ')}. Làm ở mục 2 (Tuyến nhân vật) rồi sinh lại.`);
   const { prompt, urlRef } = chuanBiKeyframe(bc);
   const jobs: number[] = [];
   for (let i = 0; i < Math.max(1, Math.min(3, so)); i++) {
@@ -132,7 +141,7 @@ export async function sinhPosterPhim(db: Db, phimId: number, yTuong = '', mau: M
   const nv = ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat);
   const phim = { ten: String(p.ten ?? ''), mo_ta: String(p.mo_ta ?? ''), loai: p.loai as 'phim', kinh_thanh: (p.kinh_thanh ?? {}) as KinhThanh };
   if (!nv.some((v) => v.anh_ref.length)) return loi('phim chưa có anchor nào có ảnh mẫu — sinh ảnh mẫu nhân vật ở mục 2 trước, poster cần nó để giữ đúng mặt');
-  const dang = (await db.execute(sql`SELECT 1 FROM xv_job WHERE phim_id = ${phimId} AND request->>'dich' = 'poster' AND trang_thai = 'cho' AND created_at > now() - interval '10 minutes' LIMIT 1`)) as unknown as Row[];
+  const dang = (await db.execute(sql`SELECT 1 FROM xv_job WHERE phim_id = ${phimId} AND request->>'dich' = 'poster' AND ${jobDangCho()} LIMIT 1`)) as unknown as Row[];
   if (dang.length) return loi('đang sinh poster — đợi xong rồi mới sinh thêm');
   const kt = docKinhThanh(phim.kinh_thanh);
   const { prompt, thamChieuUrl } = promptPoster(phim, nv, yTuong, mau);

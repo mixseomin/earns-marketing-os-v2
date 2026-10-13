@@ -5,8 +5,8 @@ import { sql } from 'drizzle-orm';
 import { thuNguoiXem, suaKichBanTheoNguoiXem } from './claude';
 import { chupTruoc } from './hoan-tac';
 import { banNguoiXem, maBan, keHoachSua, DIEM_HIEU_DAT } from './nguoi-xem';
-import { docKinhThanh, giaChuCents, locNhanh, lamTronClip, type ThuNguoiXem } from './kieu';
-import { boiCanhTap, mapCanh, type Db, type Row } from './doc-db';
+import { docKinhThanh, locNhanh, lamTronClip, type ThuNguoiXem } from './kieu';
+import { boiCanhTap, mapCanh, ghiTienChu, type Db, type Row } from './doc-db';
 
 export async function kiemNguoiXemTap(db: Db, tapId: number): Promise<{ ok: true; data: ThuNguoiXem } | { ok: false; loi: string }> {
   const bc = await boiCanhTap(db, tapId);
@@ -28,11 +28,6 @@ export async function kiemNguoiXemTap(db: Db, tapId: number): Promise<{ ok: true
   return { ok: true, data: t };
 }
 
-const ghiTienChu = async (db: Db, phimId: number, nhan: string, model: string, tk: { in: number; out: number }) => {
-  const gia = giaChuCents(model, tk.in, tk.out);
-  await db.execute(sql`INSERT INTO xv_job (phim_id, nhan, loai, provider, model, trang_thai, chi_phi_cents, tokens_in, tokens_out)
-    VALUES (${phimId}, ${nhan}, 'chu', 'anthropic', ${model}, 'xong', ${Math.round(gia * 100) / 100}, ${tk.in}, ${tk.out})`);
-};
 
 /** ✍ Sửa kịch bản theo người xem: Claude sửa đúng các shot bị vấp (+ chèn shot khi cần cho THẤY), máy ghi kèm chụp trước (↶ được).
  *  Câu không đổi giữ giọng cũ; shot đổi hình được đánh dấu cần sinh lại keyframe. Không tự kiểm lại — người bấm kiểm (mỗi bước một lượt tiền). */

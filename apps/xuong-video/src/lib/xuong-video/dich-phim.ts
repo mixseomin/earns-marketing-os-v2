@@ -10,6 +10,7 @@ import type { getDb } from '@mos2/db';
 import { coTiengViet, ghepThoai, giaChuCents, type DongThoai, type KinhThanh } from './kieu';
 import { chupTruoc, type BangHoanTac } from './hoan-tac';
 import { dichChuoi } from './claude';
+import { ghiTienChu } from './doc-db';
 
 type Db = NonNullable<ReturnType<typeof getDb>>;
 type Row = Record<string, unknown>;
@@ -133,9 +134,7 @@ export async function chayDichPhim(db: Db, phimId: number, sang: string, nguoi: 
     const thuatNgu = [...m.entries()].filter(([a]) => a.length <= 60).slice(0, 200);
     const kq = await dichChuoi({ kinhThanh: nd.kt, sang, ds, thuatNgu });
     if (!kq.ok) return { ok: false, loi: `lô ${i + 1}/${lo.length}: ${kq.loi}` };
-    const gia = giaChuCents(kq.model, kq.tokens.in, kq.tokens.out); cents += gia;
-    await db.execute(sql`INSERT INTO xv_job (phim_id, nhan, loai, provider, model, trang_thai, chi_phi_cents, tokens_in, tokens_out)
-      VALUES (${phimId}, ${`Dịch phim sang ${sang} · lô ${i + 1}/${lo.length}`}, 'chu', 'anthropic', ${kq.model}, 'xong', ${Math.round(gia * 100) / 100}, ${kq.tokens.in}, ${kq.tokens.out})`);
+    cents += await ghiTienChu(db, phimId, `Dịch phim sang ${sang} · lô ${i + 1}/${lo.length}`, kq.model, kq.tokens);
     ds.forEach((g, k) => m.set(g, kq.data[k] ?? g));
   }
   const r = await apDungDichPhim(db, nd, sang, m, nguoi);

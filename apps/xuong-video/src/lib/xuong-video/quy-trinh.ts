@@ -52,10 +52,12 @@ const chamTap = (tap: TapQt, phim: PhimQt, canh: Pick<Canh, 'phat_s' | 'thoi_luo
   chamKichBan({ tap: { so: tap.so, beats: tap.beats, phan_canh: tap.phan_canh.map((p) => ({ ten: p.ten, beat: p.beat ?? '' })) }, canh, kt: { logline: phim.logline, series: phim.series } });
 /** `canh` = các shot của tập (theo thứ tự) — có thì chấm cả hook 3 giây đầu. Phim có KINH THÁNH SERIES thì kịch bản chưa đạt (logline, 5 nhịp,
  *  hook) cũng chặn keyframe; phim lẻ chỉ hiện điểm trên thanh 🎬 Quy trình. */
-export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'thu_tu' | 'hanh_dong'>>)[] = []): string[] {
+/** canhA = nhánh hook A của tập — bản người xem được kiểm trên nhánh A (kiem-nguoi-xem.ts), nên cổng phải so đúng nhánh đó, kể cả khi đang
+ *  sinh shot của nhánh B (truyền canh = nhánh B thì mã phiên bản luôn lệch → chặn oan). Mặc định = canh (tập không có nhánh). */
+export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'thu_tu' | 'hanh_dong'>>)[] = [], canhA = canh): string[] {
   const out: string[] = [];
   // Người xem lần đầu phải hiểu câu chuyện trước khi tiêu tiền hình (nguoi-xem.ts) — mọi phim.
-  out.push(...chanNguoiXem(tap.thu_nguoi_xem, canh.map((c, i) => ({ ...c, thu_tu: c.thu_tu ?? i + 1, hanh_dong: c.hanh_dong ?? '' }))));
+  out.push(...chanNguoiXem(tap.thu_nguoi_xem, canhA.map((c, i) => ({ ...c, thu_tu: c.thu_tu ?? i + 1, hanh_dong: c.hanh_dong ?? '' }))));
   if (phim.series?.dong_co?.trim()) out.push(...chamTap(tap, phim, canh).chan);
   if (tap.brief.trim().length < 20) out.push('chưa có brief (mục tiêu, người xem, thông điệp) — viết ở ô Brief của tập');
   const cx = tap.beats.map((b) => b.cam_xuc);
@@ -85,11 +87,11 @@ export function chanVideo(c: ShotQt, nhanVat: NhanVat[]): string[] {
 }
 
 /** Bảng quy trình cả tập — thanh 🎬 trên studio. canh = shot nhánh dựng (thân + hook A). */
-export function quyTrinh(o: { tap: TapQt; phim: PhimQt; canh: ShotQt[]; nhanVat: NhanVat[] }): MucQt[] {
+export function quyTrinh(o: { tap: TapQt; phim: PhimQt; canh: ShotQt[]; nhanVat: NhanVat[]; canhA?: ShotQt[] }): MucQt[] {
   const { tap, phim, canh, nhanVat } = o;
   const sinh = canh.filter(canSinh);
   const theoShot = (f: (c: ShotQt) => string | string[] | null, ds = canh) => ds.flatMap((c) => { const r = f(c); const a = Array.isArray(r) ? r : r ? [r] : []; return a.map((x) => `#${c.thu_tu}: ${x}`); });
-  const tk = chanTienKy(tap, phim, canh);
+  const tk = chanTienKy(tap, phim, canh, o.canhA ?? canh);
   const kb = chamTap(tap, phim, canh);
   const m = (key: string, nhom: NhomQt, ten: string, thieu: string[], cong: Cong | null, lam: string): MucQt => ({ key, nhom, ten, ok: !thieu.length, thieu, cong, lam });
   const coGiong = canh.some((c) => dongThoai(c, nhanVat).some((d) => d.loi.trim()));

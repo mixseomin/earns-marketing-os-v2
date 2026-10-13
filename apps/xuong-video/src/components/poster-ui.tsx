@@ -6,11 +6,14 @@ import { sinhPoster, chonPoster } from '@/lib/actions';
 import { giaAnhCents, tien, type Phim } from '@/lib/xuong-video/kieu';
 import { MO_HINH_POSTER, MAU_POSTER, tenPoster, anchorPoster, type MauPoster } from '@/lib/xuong-video/poster';
 import type { NhanVat } from '@/lib/xuong-video/kieu';
-import { Nut, Loi, mono } from './ui';
+import { Nut, Loi, mono, goiAction } from './ui';
+import { useNho } from './nho';
 
 export function PosterPhim({ phim, nhanVat, dang, loiNen, onChanged }: { phim: Phim; nhanVat: NhanVat[]; dang: number; loiNen: string; onChanged: () => Promise<void> }) {
   const [yTuong, setYTuong] = useState('');
   const [mau, setMau] = useState<MauPoster>('anh_hung');
+  // Panel phụ → gập mặc định (YDNI luật 5); mở/gập nhớ theo phim. Đang sinh hoặc lỗi thì tự mở để thấy.
+  const [moNho, setMo] = useNho<'0' | '1'>(`xv-poster-mo-${phim.id}`, '0', ['0', '1']);
   const [ban, setBan] = useState(false);
   const [loi, setLoi] = useState('');
   const gia = giaAnhCents(MO_HINH_POSTER);
@@ -19,12 +22,20 @@ export function PosterPhim({ phim, nhanVat, dang, loiNen, onChanged }: { phim: P
   const ly = !nv.length && 'chưa có anchor nào có ảnh mẫu — sinh ảnh mẫu nhân vật ở mục 2 trước';
   const lam = async (fn: () => Promise<{ ok: boolean; loi?: string }>) => {
     setBan(true); setLoi('');
-    try { const r = await fn(); if (!r.ok) setLoi(r.loi ?? 'lỗi'); } catch (e) { setLoi(`Không gọi được máy chủ (${e instanceof Error ? e.message.slice(0, 80) : 'lỗi mạng'})`); }
+    setLoi((await goiAction(fn)).loi);
     setBan(false); await onChanged();
   };
+  const mo = moNho === '1' || dang > 0 || !!loi;
+  if (!mo) return (
+    <div className="xv-panel" style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 12px' }}>
+      {phim.poster_url ? <img src={phim.poster_url} alt="" style={{ height: 44, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 4 }} /> : <span style={mono}>🎨</span>}
+      <b style={{ fontSize: 13 }}>Poster</b><span style={mono}>{ds.length ? `${ds.length} bản` : 'chưa có'}</span>
+      <button type="button" className="xv-btn" onClick={() => setMo('1')}>▾ {ds.length ? 'Đổi / sinh thêm' : 'Sinh poster'}</button>
+    </div>
+  );
   return (
     <div className="xv-panel">
-      <h3>Poster<small>dọc 2:3 · tên “{tenPoster(phim)}” là chữ duy nhất · nhân vật theo ảnh mẫu: {nv.map((v) => v.ten).join(', ') || '—'}</small></h3>
+      <h3><button type="button" className="xv-btn" style={{ marginRight: 6 }} onClick={() => setMo('0')} title="Gập">▴</button>Poster<small>dọc 2:3 · tên “{tenPoster(phim)}” là chữ duy nhất · nhân vật theo ảnh mẫu: {nv.map((v) => v.ten).join(', ') || '—'}</small></h3>
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <div style={{ width: 150, aspectRatio: '2 / 3', borderRadius: 8, border: '1px solid var(--line)', background: phim.poster_url ? `center / cover no-repeat url(${phim.poster_url}), #111` : 'var(--bg-2)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
           {!phim.poster_url && <span style={mono}>{dang ? 'đang sinh…' : 'chưa có poster'}</span>}

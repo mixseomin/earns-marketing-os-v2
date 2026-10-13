@@ -10,7 +10,7 @@ import { kiemQc } from '@/lib/xuong-video/kiem-qc';
 import { luuKhuonTap, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, trangThaiXuat, khopNhipNhac, khopGiongTapAction } from '@/lib/actions';
 import { thanhPhanCanh, docKinhThanh, giaAnhCents, giaVideoCents, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, coMau, giayMau, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
-import { Khoa, TabPhim, KqChay, O, Nut, Loi, Menu, MucMenu, mono } from './ui';
+import { Khoa, TabPhim, KqChay, O, Nut, Loi, Menu, MucMenu, mono, goiAction } from './ui';
 import { GiongNhanVat } from './nhan-vat';
 import { Animatic } from './animatic';
 import { CanhRow } from './canh';
@@ -89,8 +89,8 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
    *  nơi người bấm ở shot #7 không nhìn thấy (13/10/2026: bấm Sinh nháp bị chặn mà không thấy gì). */
   const chay = async (ten: string, fn: () => Promise<KqChay>, taiCho = false): Promise<string> => {
     setBanSet((s) => new Set(s).add(ten)); if (!taiCho) setLoi('');
-    let l = '';
-    try { const r = await fn(); if (r && !r.ok) l = r.loi ?? 'lỗi'; } catch (e) { l = `Không gọi được máy chủ (${e instanceof Error ? e.message.slice(0, 80) : 'lỗi mạng'}) — studio vừa cập nhật thì bấm ↻ Tải lại.`; } finally { setBanSet((s) => { const n = new Set(s); n.delete(ten); return n; }); }
+    const { loi: l } = await goiAction(fn);
+    setBanSet((s) => { const n = new Set(s); n.delete(ten); return n; });
     if (!taiCho) setLoi(l);
     await taiCanh(); await onChanged();
     return l;
@@ -123,7 +123,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
     </Menu>
   );
   // 🎬 Quy trình chuẩn ngành (quy-trinh.ts): tiền kỳ → sản xuất → hậu kỳ; mục gác cổng (keyframe/video/xuất) chưa đạt thì máy chủ cũng từ chối.
-  const qtDs = canh?.length ? quyTrinh({ tap, phim: { phong_cach: kt.phong_cach, logo_url: kt.qc?.logo_url, laQc: phim.loai === 'quang_cao', logline: kt.logline, series: kt.series }, canh: locNhanh(canh, nhanh), nhanVat }) : [];
+  const qtDs = canh?.length ? quyTrinh({ tap, phim: { phong_cach: kt.phong_cach, logo_url: kt.qc?.logo_url, laQc: phim.loai === 'quang_cao', logline: kt.logline, series: kt.series }, canh: locNhanh(canh, nhanh), canhA: locNhanh(canh, 'A'), nhanVat }) : [];
   const qtThieu = qtDs.filter((x) => !x.ok);
   const congKe = qtThieu.find((x) => x.cong)?.cong;
   const nutQt = qtDs.length > 0 && (

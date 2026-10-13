@@ -462,7 +462,8 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           </div>
         </main>
         <TayKeo truc="x" onPointerDown={panPhai.keo('x', -1)} onDoubleClick={panPhai.veMacDinh} />
-        <aside style={{ overflowY: 'auto', padding: 8, display: 'grid', gap: 6, alignContent: 'start' }}>
+        {/* minmax(0,1fr): ô lưới không nở theo nội dung dài (thẻ shot) — co theo bề rộng panel và tự xuống dòng. */}
+        <aside style={{ overflowY: 'auto', overflowX: 'hidden', padding: 8, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, alignContent: 'start' }}>
           <div style={{ ...mono, letterSpacing: 0.5 }}>THUỘC TÍNH</div>
           {dsChonLop.length > 1 ? <LopNhieu ds={dsChonLop} onGop={gopChon} onBoNhom={boNhomChon} onXoa={xoaChon} onDong={() => setChonLops([])} />
           : lopChon ? <LopBang l={lopChon} t={t} onDoi={(p) => doiLop(lopChon.id, p)} onDong={() => setChonLop(null)}

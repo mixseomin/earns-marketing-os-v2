@@ -507,7 +507,7 @@ Luật:
 
 // ── THỬ NGƯỜI XEM LẦN ĐẦU (nguoi-xem.ts): lượt 1 MÙ — chỉ bảng shot người xem thấy/nghe; lượt 2 đối chiếu với ý tác giả ─────────
 const NguoiXemSchema = z.object({
-  ke_lai: z.string().describe('Kể lại câu chuyện vừa xem trong 3–5 câu, đúng như một người xem bình thường hiểu — không thêm điều phim không cho thấy'),
+  ke_lai: z.string().describe('Kể lại câu chuyện vừa xem trong 3–5 câu ngắn, đúng như một người xem bình thường hiểu — không thêm điều phim không cho thấy'),
   ai: z.string().describe('Nhân vật chính là ai (theo những gì thấy/nghe)'),
   muon: z.string().describe('Nhân vật chính muốn gì — nếu phim không làm rõ thì ghi "không rõ"'),
   can: z.string().describe('Cái gì cản trở — "không rõ" nếu không rõ'),
@@ -518,7 +518,7 @@ const NguoiXemSchema = z.object({
     shot: z.number().describe('Số shot (#) gây khó hiểu'),
     van_de: z.string().describe('Người xem bị vấp ở đâu: thiếu thông tin gì, câu/hình nào không hiểu, chỗ nào quá nhanh, chỗ nào im mà cần lời/tiếng'),
     sua: z.string().describe('Sửa cụ thể, ngắn: thêm/đổi câu nào (viết luôn câu mới, đúng ngôn ngữ phim), hình nào, kéo dài bao lâu'),
-  })).describe('Mọi chỗ làm người xem vấp, theo thứ tự shot; rỗng nếu không có'),
+  })).describe('Những chỗ làm người xem vấp, theo thứ tự shot, TỐI ĐA 8 mục (gộp các shot cùng lỗi); mỗi trường ≤ 2 câu ngắn; rỗng nếu không có'),
 });
 const DoiChieuYSchema = z.object({
   khop: z.boolean().describe('Người xem có nhận được ĐÚNG câu chuyện + cú lật + kết mà tác giả định không'),
@@ -528,13 +528,15 @@ export async function thuNguoiXem(o: { ban: string; nhanVat: string; logline: st
   const c = client();
   if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
   try {
+    // Trần rộng: tiếng Việt tốn token, 11 shot × chỗ vấp kèm câu sửa vượt 3k → JSON đứt "Unterminated string" (13/10/2026, nút báo lỗi).
     const r1 = await c.messages.parse({
-      model: o.kt.mo_hinh_chu, max_tokens: 3000,
+      model: o.kt.mo_hinh_chu, max_tokens: 12000,
       system: 'Bạn là một người xem BÌNH THƯỜNG, xem video ngắn này lần đầu trên điện thoại. Bạn CHỈ biết đúng những gì có trong bảng shot: THẤY = hình trên màn, CHỮ TRÊN MÀN = chữ đọc được, NGHE = lời nghe được (ai nói). Bạn KHÔNG đọc kịch bản, không biết ý đồ tác giả, và giả sử bạn KHÔNG biết truyện gốc / bối cảnh / nhân vật nào ngoài những gì phim tự cho thấy. Mỗi shot chỉ lướt qua đúng số giây ghi trong ngoặc — chữ dài trong shot ngắn là không kịp đọc. Thành thật: chỗ nào không hiểu thì nói không hiểu. Khi liệt kê chỗ vấp, soát thêm theo luật dưới (mỗi luật bị vi phạm là một chỗ vấp, ghi shot). Trả lời tiếng Việt; câu sửa đề xuất viết đúng ngôn ngữ của phim.\n\n' + LUAT_KE_CHUYEN,
       messages: [{ role: 'user', content: `NHÂN VẬT / BỐI CẢNH XUẤT HIỆN TRÊN MÀN (để biết tên gọi khi nhìn thấy):\n${o.nhanVat || '(không khai)'}\n\nBẢNG SHOT (theo thời gian):\n${o.ban}` }],
       output_config: { format: zodOutputFormat(NguoiXemSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
     });
     if (r1.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
+    if (r1.stop_reason === 'max_tokens') return { ok: false, loi: 'Claude viết quá dài, hết trần token — báo con nâng trần' };
     const xem = r1.parsed_output as z.infer<typeof NguoiXemSchema> | null;
     if (!xem) return { ok: false, loi: 'Claude trả JSON không đúng khuôn (lượt người xem)' };
     const r2 = await c.messages.parse({

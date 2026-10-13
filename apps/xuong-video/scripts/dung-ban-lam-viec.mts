@@ -22,7 +22,7 @@ import { promptBienThe } from '../src/lib/xuong-video/claude';
 import { boAnhVaoThungRac } from '../src/lib/xuong-video/thung-rac';
 
 const TEN_PHIM = 'Series · Tango & Lint (bàn làm việc, stop-motion)';
-const TEN_CU = ['Series · Bàn làm việc (stop-motion)'];   // tên trước 14/10/2026 — tìm phim theo cả tên cũ rồi đổi
+const TEN_CU = ['Series · Bàn làm việc (stop-motion)'];   // tên trước 14/10/2026 — tìm phim theo cả tên cũ rồi đổi (so từng tên: mảng text làm postgres-js báo malformed array)
 const PHONG_CACH = 'Real-world miniature stop-motion film: shot on a real home-office desk with a macro lens at tabletop height, as seen by a 5 cm tall character; shallow depth of field with soft bokeh; real materials and textures (warm wood grain, matte white plastic, brushed aluminium, paper); cozy warm desk-lamp light mixed with cool blue monitor glow; slightly handmade stop-motion feel with tactile detail; vertical 9:16 frame. Clean frames with no text, letters, numbers or logos anywhere';
 const KINH_THANH = {
   phong_cach: PHONG_CACH, ti_le: '9:16', ngon_ngu: 'en', the_loai: 'hoat_hinh', do_phan_giai: '720p',
@@ -151,7 +151,7 @@ const trong = <T extends { ten: string }>(ds: T[]) => (chi ? ds.filter((x) => ch
 async function theoDot<T>(ds: T[], f: (x: T) => Promise<void>, cung = 5) { for (let i = 0; i < ds.length; i += cung) await Promise.all(ds.slice(i, i + cung).map(f)); }
 const anhRa = (u: string) => !u.includes('/ref/');   // ảnh đã sinh (ảnh thật nằm ở xuong-video/ref/)
 
-let phim = (await q(sql`SELECT id FROM xv_phim WHERE ten = ${TEN_PHIM} OR ten = ANY(${TEN_CU}::text[]) ORDER BY id LIMIT 1`))[0];
+let phim = (await q(sql`SELECT id FROM xv_phim WHERE ten = ${TEN_PHIM} OR ten = ${TEN_CU[0]} ORDER BY id LIMIT 1`))[0];
 if (phim) await q(sql`UPDATE xv_phim SET ten = ${TEN_PHIM}, kinh_thanh = kinh_thanh || ${JSON.stringify({ logline: KINH_THANH.logline, series: KINH_THANH.series })}::jsonb, updated_at = now() WHERE id = ${Number(phim.id)} AND ten <> ${TEN_PHIM}`);
 if (!phim) {
   phim = (await q(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh, trang_thai) VALUES ('studio', ${TEN_PHIM}, 'short',

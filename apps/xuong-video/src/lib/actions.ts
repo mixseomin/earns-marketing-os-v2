@@ -13,7 +13,7 @@ import { dayViecAnh, dayViecAm, chayNen } from '@/lib/xuong-video/hoan-tat';
 import { chayXuat, ghiBanXuat, gopAm } from '@/lib/xuong-video/xuat-chay';
 import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiongTheo, timNv, giayNhac } from '@/lib/xuong-video/am-thanh';
 import { kiemTieng } from '@/lib/xuong-video/khop-giong';
-import { locNhanh } from '@/lib/xuong-video/kieu';
+import { locNhanh, type ThuNguoiXem } from '@/lib/xuong-video/kieu';
 import { sinhNhacTap } from '@/lib/xuong-video/sinh-nhac';
 import { dsKho, luuShotVaoKho, dungTaiSan, boKhoiKho, luuKhuonQc, taoTapTuKhuon, apKieuChuThuongHieu } from '@/lib/xuong-video/kho';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, type MoHinhGiong } from '@/lib/xuong-video/giong';
@@ -21,6 +21,8 @@ import { boVaoThungRac, boAnhVaoThungRac, dsRac, khoiPhucRac, type MucRac } from
 import { batDauNangCap, danhMucFal, guiFal, type ModelFal } from '@/lib/xuong-video/fal';
 import { type DungChu } from '@/lib/xuong-video/claude';
 import { docTrangSanPham, doiChieuAnchor as doiChieuAnchorClaude } from '@/lib/xuong-video/claude';
+import { thuNguoiXem } from '@/lib/xuong-video/claude';
+import { banNguoiXem, maBan, chanNguoiXem, DIEM_HIEU_DAT } from '@/lib/xuong-video/nguoi-xem';
 import { tachCanh, vietKichBan, vietBaiDang, phanTichMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
@@ -549,6 +551,30 @@ export async function tachCanhTap(tapId: number, soCanh: number, thoiLuongS?: nu
 
 // ── QC mẫu (anh 09/10/2026): bài đăng kèm theo mẫu + phân tích video mẫu thành xương sống shot ─────────────────
 /** Claude viết văn bản chính · tiêu đề · mô tả · nút cho bài đăng của tập (bám bài mẫu nếu có) → lưu xv_tap.bai_dang. */
+/** 🧑 Thử người xem lần đầu (nguoi-xem.ts): Claude chỉ thấy bảng shot người xem thấy/nghe → kể lại + chấm hiểu + chỗ vấp; rồi đối chiếu
+ *  logline/brief. Lưu kèm mã phiên bản kịch bản; cổng keyframe + xuất đọc kết quả này. TỐN TIỀN (2 lượt Claude, ~2–4 cent) — nút có giá. */
+export async function thuNguoiXemTap(tapId: number): Promise<Kq<ThuNguoiXem>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const bc = await boiCanhTap(db, tapId);
+  if (!bc) return loi('không thấy tập');
+  const canh = locNhanh(await dsCanh(tapId), 'A');
+  if (!canh.length) return loi('tập chưa tách cảnh — chưa có gì để người xem xem');
+  const kt = docKinhThanh(bc.kt);
+  const ban = banNguoiXem(canh);
+  const ids = new Set(canh.flatMap((c) => c.nhan_vat));
+  const nvTa = bc.nhanVat.filter((v) => ids.has(v.id) && v.loai !== 'phong_cach').map((v) => `- ${v.ten}: ${v.mo_ta.slice(0, 160)}`).join('\n');
+  const logline = (kt.series?.dong_co ? kt.series.tap.find((t) => t.so === bc.tap.so)?.logline : '') || kt.logline || '';
+  const kq = await thuNguoiXem({ ban, nhanVat: nvTa, logline, brief: bc.tap.brief, kt });
+  if (!kq.ok) return loi(kq.loi);
+  await ghiChu(bc.tap.phim_id, `Thử người xem lần đầu · tập ${bc.tap.so}`, kq);
+  const { xem, doi } = kq.data;
+  const t: ThuNguoiXem = { ma: maBan(ban), luc: new Date().toISOString(), model: kq.model, ke_lai: xem.ke_lai, hieu: { ai: xem.ai, muon: xem.muon, can: xem.can, lat: xem.lat, ket: xem.ket },
+    diem: Math.max(0, Math.min(10, Math.round(xem.diem))), cho_kho: xem.cho_kho, khop: doi.khop, lech: doi.lech, dat: doi.khop && xem.diem >= DIEM_HIEU_DAT };
+  await db.execute(sql`UPDATE xv_tap SET thu_nguoi_xem = ${JSON.stringify(t)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
+  return { ok: true, data: t };
+}
 export async function vietBaiDangTap(tapId: number): Promise<Kq<BaiDang>> {
   const db = getDb();
   if (!db) return loi('no db');
@@ -645,6 +671,8 @@ export async function xuatTap(tapId: number, nhanh?: string | null): Promise<Kq<
   const dang = (await db.execute(sql`SELECT 1 FROM xv_job WHERE loai = 'xuat' AND trang_thai = 'cho' AND request->>'tap_id' = ${String(tapId)} AND created_at > now() - interval '20 minutes' LIMIT 1`)) as unknown as Row[];
   if (dang.length) return loi('đang có một bản xuất của tập này chạy dở — chờ xong rồi xuất lại');
   // Cổng xuất: máy kiểm tiếng (khop-giong.ts › kiemTieng) — câu bị cắt / đè nhau / đọc quá nhanh thì không ra bản lỗi.
+  const hieu = chanNguoiXem(bc.tap.thu_nguoi_xem, locNhanh(canh, 'A'));
+  if (hieu.length) return loi(`Chưa xuất được — ${hieu[0]}`);
   const tieng = kiemTieng(locNhanh(canh, nhanh || 'A'), bc.nhanVat);
   if (tieng.length) return loi(`Chưa xuất được — tiếng còn lỗi: ${tieng.slice(0, 4).join('; ')}${tieng.length > 4 ? `; +${tieng.length - 4} lỗi nữa` : ''}`);
   const kt = docKinhThanh(bc.kt);

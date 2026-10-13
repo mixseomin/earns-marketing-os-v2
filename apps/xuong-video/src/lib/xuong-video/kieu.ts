@@ -276,7 +276,15 @@ export type Lop = {
   /** mã nhóm trước khi bấm Bỏ nhóm — để "Gộp lại nhóm cũ" trả đúng nhóm (12/10/2026). */
   nhom_cu?: string;
 };
-export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null; xuat: BanXuat[]; bai_dang: BaiDang | null; lop: Lop[] };
+/** Kết quả bước THỬ NGƯỜI XEM LẦN ĐẦU (nguoi-xem.ts): Claude chỉ thấy thứ người xem thấy/nghe, kể lại + chấm hiểu; rồi đối chiếu brief.
+ *  `ma` = mã phiên bản của bản người xem lúc thử — kịch bản đổi thì kết quả hết hiệu lực. */
+export type ThuNguoiXem = {
+  ma: string; luc: string; model: string;
+  ke_lai: string; hieu: { ai: string; muon: string; can: string; lat: string; ket: string };
+  diem: number; cho_kho: { shot: number; van_de: string; sua: string }[];
+  khop: boolean; lech: string; dat: boolean;
+};
+export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null; xuat: BanXuat[]; bai_dang: BaiDang | null; lop: Lop[]; thu_nguoi_xem?: ThuNguoiXem | null };
 /** Một bản xuất MP4 của tập (mỗi nhánh hook một tệp). */
 /** Kho tài sản dùng lại (xv_tai_san): clip/keyframe đạt, nhạc nền, preset giọng, khuôn QC, kiểu chữ thương hiệu. */
 /** Khoá THƯƠNG HIỆU của kho tài sản = tên miền shop của phim QC (qc.link, bỏ www) — project của studio là nhãn chung ('studio'), không phải

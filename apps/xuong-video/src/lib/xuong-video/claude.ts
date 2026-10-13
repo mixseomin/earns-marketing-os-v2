@@ -72,12 +72,25 @@ function taAnchor(nv: NhanVat[]): string {
   return nv.map((a) => `- [${a.loai}] ${a.ten}: ${a.mo_ta || '(chưa mô tả)'}${a.giong ? ` · giọng: ${a.giong}` : ''}${a.bien_the?.length ? `\n    biến thể: ${a.bien_the.map((b) => `"${a.ten} · ${b.ten}" (${b.nhom}: ${b.mo_ta.slice(0, 80)})`).join('; ')}` : ''}`).join('\n');
 }
 
+/** LUẬT KỂ CHUYỆN CHO NGƯỜI XEM LẦN ĐẦU — "skill làm video" của xưởng, nằm trong MỌI lượt viết kịch bản / tách cảnh (heThong).
+ *  Rút từ ca Fox Tales tập 2 (13/10/2026: kịch bản 100/100 cấu trúc mà xem không hiểu) + luật dựng chuẩn (Murch: cảm xúc > câu chuyện > nhịp).
+ *  Bước kiểm sau đó: nguoi-xem.ts (Claude xem mù, chặn keyframe/xuất khi chưa hiểu). Sửa luật ở đây là sửa cho mọi phim. */
+export const LUAT_KE_CHUYEN = `LUẬT KỂ CHUYỆN (người xem xem MỘT lần trên điện thoại, không đọc kịch bản, không biết brief):
+1. Phim tự kể đủ: điều gì cú lật / câu đùa cần người xem biết trước (truyện gốc, luật chơi, lời hứa, kế hoạch) thì phim phải NÓI hoặc CHO THẤY nó trước đó (gài → trả). Không dựa vào kiến thức ngoài phim.
+2. Trong 5 giây đầu người xem phải biết nhân vật chính là ai và MUỐN GÌ — nói bằng lời hoặc thấy rõ bằng hình.
+3. Mỗi bước kế hoạch / mỗi lần thử của nhân vật: một hành động thấy rõ + một câu ngắn nói mục đích; chữ màn ≤ 5 từ và shot có chữ dài ≥ 2 giây.
+4. Khoảnh khắc quan trọng (cú lật, cao trào, câu đùa chính) KHÔNG được câm: phải có lời, tiếng (hát, đổ vỡ…) hoặc chữ — và chi tiết làm nên cú lật phải có shot cho THẤY (cận cảnh nếu nhỏ).
+5. Nhân vật / đạo cụ quan trọng xuất hiện lần đầu phải được giới thiệu (tên hoặc vai trò) — không thả một nhân vật mới vào cảnh kết.
+6. Thoại vừa giây: ~2,5 từ/giây + 0,5 giây thở trước khi cắt; câu dài hơn shot thì tách shot, không nhồi.
+7. Mỗi shot nối shot trước bằng nguyên nhân → kết quả hoặc hướng nhìn (nhân vật nhìn gì thì shot sau cho thấy cái đó); đổi nơi chốn thì có shot toàn cảnh mở.
+8. Kết rõ: người xem nói lại được trong một câu chuyện gì đã xảy ra và bài học / lời hẹn là gì.`;
 const heThong = (loai: LoaiPhim, kt: Required<KinhThanh>) => `Bạn là đạo diễn kiêm storyboard artist cho xưởng video AI. Loại sản phẩm: ${LOAI_PHIM.find((l) => l.key === loai)?.label ?? loai}.
 Phong cách hình ảnh cố định của bộ phim: ${kt.phong_cach || '(chưa đặt, tự chọn một phong cách và giữ nhất quán)'}.
 Khung hình ${kt.ti_le}, mỗi cảnh là MỘT clip video AI dài 4/6/8 giây sinh từ một ảnh keyframe, nên mỗi cảnh chỉ có một hành động chính, một góc máy.
 NGÔN NGỮ PHIM: ${tenNgonNgu(kt.ngon_ngu)}. ${kt.ngon_ngu === 'vi' ? '' : `MỌI chữ khán giả thấy hoặc nghe — lời thoại, lời dẫn, chữ trên màn (chu_man), tên/nhãn trong kịch bản, bài đăng — PHẢI viết bằng ${tenNgonNgu(kt.ngon_ngu)} như người bản ngữ viết quảng cáo; kịch bản cũng viết bằng ${tenNgonNgu(kt.ngon_ngu)}. Chỉ phần ghi chú kỹ thuật nội bộ (nhãn cảnh, góc máy, hành động) mới dùng tiếng Việt. Trả lời thoại/chữ màn bằng tiếng Việt khi phim không phải tiếng Việt = SAI.`}
 ${kt.the_loai ? `Thể loại: ${THE_LOAI.find((t) => t.key === kt.the_loai)?.ten} (${THE_LOAI.find((t) => t.key === kt.the_loai)?.mo_ta}).` : ''}${kt.logline ? `\nLogline: ${kt.logline}` : ''}${kt.chu_de ? `\nChủ đề: ${kt.chu_de}` : ''}
 ${taQc(kt)}
+${LUAT_KE_CHUYEN}
 QUY TẮC ĐỒNG NHẤT: nhân vật, sản phẩm, bối cảnh phải tả bằng đúng đặc tính cố định trong danh sách anchor ở mọi cảnh (cùng màu lông, cùng trang phục, cùng tỉ lệ cơ thể, cùng chất liệu). prompt_anh và prompt_video viết tiếng Anh, tả người/vật theo đặc tính chứ không dùng tên riêng (model ảnh không biết tên). Mỗi prompt tự đứng được một mình, không tham chiếu cảnh khác.`;
 
 /** Thư viện điện ảnh rút gọn cho prompt: kỹ thuật hợp thể loại trước, mỗi dòng "key — tên: dùng khi nào". */
@@ -487,6 +500,52 @@ Luật:
     if (!p) return { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
     const out = o.ds.map((g, i) => p.ban_dich.find((x) => x.i === i)?.v?.trim() || g);
     return { ok: true, data: out, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
+  } catch (e) {
+    return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
+  }
+}
+
+// ── THỬ NGƯỜI XEM LẦN ĐẦU (nguoi-xem.ts): lượt 1 MÙ — chỉ bảng shot người xem thấy/nghe; lượt 2 đối chiếu với ý tác giả ─────────
+const NguoiXemSchema = z.object({
+  ke_lai: z.string().describe('Kể lại câu chuyện vừa xem trong 3–5 câu, đúng như một người xem bình thường hiểu — không thêm điều phim không cho thấy'),
+  ai: z.string().describe('Nhân vật chính là ai (theo những gì thấy/nghe)'),
+  muon: z.string().describe('Nhân vật chính muốn gì — nếu phim không làm rõ thì ghi "không rõ"'),
+  can: z.string().describe('Cái gì cản trở — "không rõ" nếu không rõ'),
+  lat: z.string().describe('Bất ngờ / cú lật là gì và VÌ SAO nó bất ngờ với người xem — "không thấy" nếu không có'),
+  ket: z.string().describe('Kết thúc / bài học / lời hẹn tập sau mà người xem nhận được'),
+  diem: z.number().describe('Mức hiểu câu chuyện 0–10 (10 = hiểu trọn, kể lại được không vấp; 5 = hiểu đại khái nhưng có chỗ không hiểu vì sao)'),
+  cho_kho: z.array(z.object({
+    shot: z.number().describe('Số shot (#) gây khó hiểu'),
+    van_de: z.string().describe('Người xem bị vấp ở đâu: thiếu thông tin gì, câu/hình nào không hiểu, chỗ nào quá nhanh, chỗ nào im mà cần lời/tiếng'),
+    sua: z.string().describe('Sửa cụ thể, ngắn: thêm/đổi câu nào (viết luôn câu mới, đúng ngôn ngữ phim), hình nào, kéo dài bao lâu'),
+  })).describe('Mọi chỗ làm người xem vấp, theo thứ tự shot; rỗng nếu không có'),
+});
+const DoiChieuYSchema = z.object({
+  khop: z.boolean().describe('Người xem có nhận được ĐÚNG câu chuyện + cú lật + kết mà tác giả định không'),
+  lech: z.string().describe('Điều tác giả muốn mà người xem KHÔNG nhận được (1–2 câu); rỗng nếu khớp'),
+});
+export async function thuNguoiXem(o: { ban: string; nhanVat: string; logline: string; brief: string; kt: Required<KinhThanh> }): Promise<GoiYKq<{ xem: z.infer<typeof NguoiXemSchema>; doi: z.infer<typeof DoiChieuYSchema> }>> {
+  const c = client();
+  if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
+  try {
+    const r1 = await c.messages.parse({
+      model: o.kt.mo_hinh_chu, max_tokens: 3000,
+      system: 'Bạn là một người xem BÌNH THƯỜNG, xem video ngắn này lần đầu trên điện thoại. Bạn CHỈ biết đúng những gì có trong bảng shot: THẤY = hình trên màn, CHỮ TRÊN MÀN = chữ đọc được, NGHE = lời nghe được (ai nói). Bạn KHÔNG đọc kịch bản, không biết ý đồ tác giả, và giả sử bạn KHÔNG biết truyện gốc / bối cảnh / nhân vật nào ngoài những gì phim tự cho thấy. Mỗi shot chỉ lướt qua đúng số giây ghi trong ngoặc — chữ dài trong shot ngắn là không kịp đọc. Thành thật: chỗ nào không hiểu thì nói không hiểu. Khi liệt kê chỗ vấp, soát thêm theo luật dưới (mỗi luật bị vi phạm là một chỗ vấp, ghi shot). Trả lời tiếng Việt; câu sửa đề xuất viết đúng ngôn ngữ của phim.\n\n' + LUAT_KE_CHUYEN,
+      messages: [{ role: 'user', content: `NHÂN VẬT / BỐI CẢNH XUẤT HIỆN TRÊN MÀN (để biết tên gọi khi nhìn thấy):\n${o.nhanVat || '(không khai)'}\n\nBẢNG SHOT (theo thời gian):\n${o.ban}` }],
+      output_config: { format: zodOutputFormat(NguoiXemSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
+    });
+    if (r1.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
+    const xem = r1.parsed_output as z.infer<typeof NguoiXemSchema> | null;
+    if (!xem) return { ok: false, loi: 'Claude trả JSON không đúng khuôn (lượt người xem)' };
+    const r2 = await c.messages.parse({
+      model: o.kt.mo_hinh_chu, max_tokens: 800,
+      system: 'Bạn so câu chuyện MỘT NGƯỜI XEM kể lại với ý đồ của tác giả. Chỉ đánh giá người xem có nhận được đúng câu chuyện, cú lật và kết không — không chấm văn.',
+      messages: [{ role: 'user', content: `Ý ĐỒ TÁC GIẢ\nLogline: ${o.logline || '(không có)'}\nBrief: ${o.brief || '(không có)'}\n\nNGƯỜI XEM KỂ LẠI\n${xem.ke_lai}\nCú lật người xem thấy: ${xem.lat}\nKết người xem nhận: ${xem.ket}` }],
+      output_config: { format: zodOutputFormat(DoiChieuYSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
+    });
+    const doi = r2.parsed_output as z.infer<typeof DoiChieuYSchema> | null;
+    if (!doi) return { ok: false, loi: 'Claude trả JSON không đúng khuôn (lượt đối chiếu)' };
+    return { ok: true, data: { xem, doi }, model: r1.model, tokens: { in: r1.usage.input_tokens + r2.usage.input_tokens, out: r1.usage.output_tokens + r2.usage.output_tokens } };
   } catch (e) {
     return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
   }

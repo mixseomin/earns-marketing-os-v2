@@ -22,3 +22,13 @@ Sản phẩm đúng là quan trọng nhất; text của mẫu giữ NGUYÊN VĂN
 4. **Sản phẩm**: biến thể màu của anchor sản phẩm có ảnh thật (`xv_bien_the` nhom 'trang_thai', anh_url) → gán vào shot; mô tả anchor phải chính xác kèm điều CẤM (vd "NOT five-pocket jeans, no coin pocket, no rivets, no fading"). Model ảnh **Nano Banana 2.1** ($0,034) — Seedream ($0,004) ra sai kiểu đồ dù có ảnh + mô tả (A/B 10/10/2026).
 5. **Prompt hình** tả đúng khung mẫu (cỡ cảnh, thứ ở tiền cảnh, bối cảnh); không chữ "caption/text/badge"; `--xem` in prompt + cổng ngôn ngữ trước khi chi; keyframe mới tự được chọn.
 6. **Video** Veo 3.1 Lite từ keyframe đã duyệt; xem dải khung xem sản phẩm có giữ không. **Xuất thử** `--xuat` (0đ) rồi đặt cạnh khung gốc cùng thời điểm để so.
+
+## Chuẩn làm video (chốt 13/10/2026 — "đây là chuẩn bị quan trọng cho mọi video")
+Thứ tự máy ép, không ai phải nhớ:
+1. **Viết kịch bản / tách cảnh** đã kèm `LUAT_KE_CHUYEN` (claude.ts, trong `heThong`): phim tự kể đủ (gài → trả), 5s đầu biết ai muốn gì, khoảnh khắc chính không câm, nhân vật mới phải giới thiệu, ~2,5 từ/giây + 0,5s thở. Sửa "skill làm video" = sửa khối này.
+2. **🧑 Thử người xem lần đầu** (`nguoi-xem.ts` + `claude.ts › thuNguoiXem`, nút trong tab Kịch bản): Claude chỉ thấy THẤY/CHỮ/NGHE từng shot, kể lại, chấm hiểu; lượt 2 so với logline/brief. Đạt = hiểu ≥7/10 + đúng ý. Lưu `xv_tap.thu_nguoi_xem` kèm mã phiên bản kịch bản → sửa chữ/lời/hành động là phải thử lại. **Chặn sinh keyframe + chặn xuất** (`chanTienKy`, `xuatTap`).
+3. **Chấm cấu trúc** (`cham-kich-ban.ts`, series): 5 nhịp, hook = lúc câu/chữ móc tới người xem ≤3s, lật ngược 55–92%.
+4. **Giọng trước video**; giọng về → tự khớp giây shot (`hoanTatAm › khopSauGiong`) + nhân vật chưa có giọng được gán giọng riêng (`giong-rieng.ts`).
+5. **Máy kiểm tiếng** (`khop-giong.ts › kiemTieng`): câu bị cắt khi sang shot, đè nhau, đọc >1,15×, shot có thoại <2s → thanh 🎬 + chặn xuất.
+6. **"Sinh nháp" một lần bấm**: tự duyệt keyframe đang chọn, thiếu giọng thì sinh giọng rồi tự gửi video. Phong cách vẽ tay → negative prompt cấm bàn tay/dụng cụ vẽ.
+Script box (0đ trừ khi ghi): `kiem-cong-shot.mts <tap>` (cổng từng shot + kiểm tiếng) · `khop-giong.mts <tap>` · `sinh-giong-tap.mts` (TỐN TIỀN) · `sinh-anh-phim.mts --phim=N --xuat --thieu-nhac` (bản xem cả phim từ keyframe).

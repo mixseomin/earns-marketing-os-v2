@@ -20,6 +20,7 @@ import { BaiDangKem } from './bai-dang';
 import { DichPhim } from './dich-phim';
 import { useNho } from './nho';
 import { useDinhKy } from './dinh-ky';
+import { NguoiXem } from './nguoi-xem-ui';
 
 export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap; phim: Phim; nhanVat: NhanVat[]; khoa: Khoa; onChanged: () => Promise<void>; tab: TabPhim }) {
   const [kichBan, setKichBan] = useState(tap.kich_ban);
@@ -181,9 +182,10 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
         </div>
       </div>
       <div style={{ ...mono, marginTop: 8, lineHeight: 1.6 }}>
-        Mạch: 3a brief → 3b kịch bản → <b>Tách cảnh</b> → 3c storyboard: <b>Sinh keyframe</b> ({tien(giaAnhCents(kt.mo_hinh_anh))}/ảnh) → chọn + <b>Duyệt</b> → <b>Sinh video</b> ({tien(giaVideoCents(kt.mo_hinh_video, kt.do_phan_giai, 8))}/8s).
+        Mạch: 3a brief → 3b kịch bản → <b>Tách cảnh</b> → <b>🧑 Thử người xem lần đầu</b> → 3c storyboard: <b>Sinh keyframe</b> ({tien(giaAnhCents(kt.mo_hinh_anh))}/ảnh) → chọn + <b>Duyệt</b> → <b>Sinh video</b> ({tien(giaVideoCents(kt.mo_hinh_video, kt.do_phan_giai, 8))}/8s).
         {uoc && uoc.soCanhDuyet > 0 && <span style={{ color: 'var(--amber)' }}> · Đang chờ sinh video: {uoc.soCanhDuyet} cảnh · {uoc.giayDuyet}s ≈ {tien(uoc.videoTong)}</span>}
       </div>
+      {!!canh?.length && <NguoiXem tap={tap} canh={locNhanh(canh, 'A')} moHinhChu={kt.mo_hinh_chu} coAnthropic={khoa.anthropic} onChanged={onChanged} />}
       </>)}
       <Loi>{loi}</Loi>
 

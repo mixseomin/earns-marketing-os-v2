@@ -6,16 +6,17 @@ chuc_danh: Trưởng phòng An toàn tài khoản
 phong: an-toan-tk
 bao_cao_cho: minh
 kind: ai
-model: fal:google/gemini-3.8-flash
+model: fal:z-ai/glm-5.3-flash   # anh chốt 13/10/2026 (đo vai kiểm 97%, ~$0,00006/lần)
 room: bo-loc
 muc_quyet: 1
 approval: AUTO
-heartbeat: mail-bao-mat   # nhịp máy mỗi phút (worker/nhip.mjs, cty-nhip.timer): thư bảo mật → Telegram MINE topic Bảo mật + pixel; 0 tiền mô hình — anh bật 13/10/2026
+heartbeat: mail-bao-mat   # nhịp máy mỗi phút (worker/nhip.mjs, cty-nhip.timer): thư bảo mật → Telegram MINE topic Bảo mật + pixel; glm viết lời báo ~$0,00006/thư mới — anh bật 13/10/2026
+ca: 08:00-24:00   # 2 ca liền 16 tiếng từ 8h sáng giờ VN (anh 13/10/2026); ngoài ca thư chờ tới 8h
 lich: 06:30 hằng ngày + theo cảnh báo
 skills: [dang-nhap-van-tay, marketplace-compliance, profile-locks]
 data: [accounts:*, platform_alerts:*, nhip_dang:*, voice_score:*, lint:*, outreach:tu-choi]
 pay: 
-tran_usd_thang: 15
+tran_usd_thang: 0.5   # trần chi tháng (proxy chặn 429 khi chạm) — anh bật glm 13/10/2026, ước ~$0,01/tháng
 ---
 ## Vai
 

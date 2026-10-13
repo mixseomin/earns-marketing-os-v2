@@ -73,7 +73,7 @@ TREN_BOX
     ;;
   tu-kiem)
     cd "$APP" || exit 1
-    for c in "scripts/tu-kiem.mjs" "scripts/trang-do.mjs --tu-kiem" "scripts/fm.mjs --tu-kiem" "scripts/thu-ngan.mjs" "worker/gia.mjs --tu-kiem" "worker/log.mjs --tu-kiem" "worker/proxy.mjs --tu-kiem" "worker/quy-trinh.mjs --tu-kiem" "worker/ca.mjs --tu-kiem" "worker/cai-tien.mjs --tu-kiem" "worker/nang-luc.mjs --tu-kiem" "scripts/nhan-vat.mjs --tu-kiem" "worker/tinh-cach.mjs --tu-kiem" "worker/luong.mjs --tu-kiem" "worker/kinh-nghiem.mjs --tu-kiem" "worker/do-model.mjs --tu-kiem" "worker/do-van.mjs --tu-kiem" "worker/ho-so.mjs --tu-kiem" "worker/sach.mjs --tu-kiem" "worker/video.mjs --tu-kiem" "worker/lenh-may.mjs --tu-kiem" "worker/vp.mjs --tu-kiem" "worker/mail-bao-mat.mjs --tu-kiem"; do
+    for c in "scripts/tu-kiem.mjs" "scripts/trang-do.mjs --tu-kiem" "scripts/fm.mjs --tu-kiem" "scripts/thu-ngan.mjs" "worker/gia.mjs --tu-kiem" "worker/log.mjs --tu-kiem" "worker/proxy.mjs --tu-kiem" "worker/quy-trinh.mjs --tu-kiem" "worker/ca.mjs --tu-kiem" "worker/cai-tien.mjs --tu-kiem" "worker/nang-luc.mjs --tu-kiem" "scripts/nhan-vat.mjs --tu-kiem" "worker/tinh-cach.mjs --tu-kiem" "worker/luong.mjs --tu-kiem" "worker/kinh-nghiem.mjs --tu-kiem" "worker/do-model.mjs --tu-kiem" "worker/do-van.mjs --tu-kiem" "worker/ho-so.mjs --tu-kiem" "worker/sach.mjs --tu-kiem" "worker/video.mjs --tu-kiem" "worker/lenh-may.mjs --tu-kiem" "worker/vp.mjs --tu-kiem" "worker/mail-bao-mat.mjs --tu-kiem" "worker/nhip.mjs --tu-kiem"; do
       node $c </dev/null 2>&1 | tail -1 | sed 's/^/  /'; [ "${PIPESTATUS[0]}" = 0 ] || { echo "✗ $c"; exit 1; }
     done; echo "✓ tự kiểm đạt"
     ;;

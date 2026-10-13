@@ -1,9 +1,10 @@
 
-:root{--le:14px;--bg:#f2f4f7;--surface:#fff;--ink:#1a2230;--muted:#5b6675;--line:#d8dde4;--accent:#0f6e73;--warn:#b4541a;--warn-bg:#fbf1e9;--soft:#e8f3f3;
-  --body:"Be Vietnam Pro","Segoe UI",system-ui,sans-serif}   /* MỘT họ chữ cho cả app: Be Vietnam Pro, dựng riêng cho dấu tiếng Việt (#1294 làm lại 11/10/2026: anh chê Source Sans; #1299 bỏ IBM Plex); tiêu đề khác bằng độ đậm, số canh cột bằng tabular-nums */
-@media (prefers-color-scheme:dark){:root{--bg:#141a22;--surface:#1c2430;--ink:#e6e9ee;--muted:#9aa5b3;--line:#2d3744;--accent:#4fb3b8;--warn:#e08a4a;--warn-bg:#2a1f16;--soft:#18302f;color-scheme:dark}}
+:root{--le:14px;--bg:#f6f7f9;--surface:#fff;--ink:#1f2328;--muted:#636c76;--line:#e3e6ea;--accent:#2563eb;--warn:#b4541a;--warn-bg:#fbf1e9;--soft:#eef3fe;
+  --body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}   /* chữ VĂN PHÒNG của máy (San Francisco trên Mac/iPhone, Segoe UI trên Windows) như các SaaS văn phòng — không tải phông web (#1353 13/10/2026: anh bỏ Be Vietnam Pro "font Tàu", trước đó #1299 bỏ IBM Plex, #1294 bỏ Source Sans) */
+@media (prefers-color-scheme:dark){:root{--bg:#0f1115;--surface:#171a21;--ink:#e6e8eb;--muted:#9198a1;--line:#2a2f37;--accent:#6b9cf5;--warn:#e08a4a;--warn-bg:#2a1f16;--soft:#16233b;color-scheme:dark}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;font-variant-numeric:tabular-nums}
+html{font-size:14px}   /* gọn kiểu SaaS văn phòng: mọi cỡ rem co theo (#1353) */
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:1rem;line-height:1.5;font-variant-numeric:tabular-nums}
 a{color:inherit}
 .cty-top{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:5}
 .cty-brand{font-weight:600;font-size:1.15rem;text-decoration:none}
@@ -213,7 +214,7 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-bao-mot{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cty-sodo-tab{display:grid;gap:14px}
 .cty-thu-tieu{margin:14px 0 6px;font-size:1rem}
-.cty-luot-dong{display:flex;align-items:center;gap:10px;min-width:0}
+.cty-luot-dong{display:flex;align-items:baseline;gap:10px;min-width:0}   /* chip trạng thái chung chân chữ với tên lượt (center lệch 1,7px với chữ hệ thống, #1353) */
 .cty-luot-dong .cty-luot-viec{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 .cty-luot-gio{font-size:.78rem;color:var(--muted);white-space:nowrap}
 .cty-ds-luot{display:grid;grid-template-columns:minmax(0,1fr)}
@@ -518,3 +519,20 @@ body.nk-dang-keo iframe{pointer-events:none}
 .cty-lich-xong{color:var(--muted)}
 .cty-lich-xong .cty-lich-tua{text-decoration:line-through}
 @media (max-width:640px){.cty-lich-muc{grid-template-columns:3rem 1fr auto}.cty-lich-muc>.cty-lich-ai{grid-column:2}}
+
+/* ── ĐIỆN THOẠI (#1353 13/10/2026 "không thể kéo sang ngang · cấm zoom khi input select") ──
+   Bảng rộng không bắt kéo ngang nữa: mỗi hàng thành một thẻ dọc, nhãn cột đứng trước mỗi ô (data-nhan do components/nhan-cot.tsx chép từ <th>).
+   Hàng tab xuống dòng thay vì trượt ngang mất tab cuối. Ô nhập ≥ 16px trên màn cảm ứng: iOS tự phóng to khi chạm ô chữ < 16px. */
+@media (pointer:coarse){input,select,textarea{font-size:16px!important}}
+@media (max-width:600px){
+  .cty-tabs{flex-wrap:wrap;overflow-x:visible}
+  .cty-cuon,.cty-dn-cuon{overflow-x:visible}
+  .cty-cuon table,.cty-dn-cuon table,.cty-bang-loc{min-width:0!important;width:100%;display:block}
+  .cty-cuon thead,.cty-dn-cuon thead{display:none}
+  .cty-cuon tbody,.cty-dn-cuon tbody{display:block}
+  .cty-cuon tr,.cty-dn-cuon tr{display:block;border:1px solid var(--line);border-radius:6px;padding:6px 10px;margin:0 0 8px;background:var(--surface)}
+  .cty-cuon td,.cty-dn-cuon td{display:grid!important;grid-template-columns:7rem minmax(0,1fr);justify-items:start;align-items:baseline;gap:8px;padding:3px 0!important;border:0!important;text-align:left!important;max-width:none!important;width:auto!important;white-space:normal!important}
+  .cty-cuon td::before,.cty-dn-cuon td::before{content:attr(data-nhan);color:var(--muted);font-size:.82rem}
+  .cty-cuon td:not([data-nhan]),.cty-dn-cuon td:not([data-nhan]){grid-template-columns:minmax(0,1fr)}
+  .cty-cuon td:not([data-nhan])::before,.cty-dn-cuon td:not([data-nhan])::before{display:none}
+}

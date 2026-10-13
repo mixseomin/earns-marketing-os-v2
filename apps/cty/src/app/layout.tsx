@@ -5,6 +5,7 @@ import { NganLinks } from '@/components/ngan/links';
 import { GopY } from '@/components/gop-y';
 import { ChonMuiGio } from '@/components/gio';
 import { ThanhTren } from '@/components/thanh-tren';
+import { NhanCot } from '@/components/nhan-cot';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: { default: 'Công ty', template: '%s · Công ty' }, robots: { index: false, follow: false } };
@@ -13,7 +14,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
   const me = await getCurrentUser();
   return (
     <html lang="vi">
-      <head><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" /></head>
+      <head />
       <body>
         <header className="cty-top">
           <a href="/" className="cty-brand">🏢 Công ty</a>
@@ -26,6 +27,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
         </header>
         <main className="cty-main">{children}</main>
         <NganLinks />
+        <NhanCot />
         {me?.role === 'admin' && <GopY />}
       </body>
     </html>

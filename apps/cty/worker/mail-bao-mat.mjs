@@ -86,7 +86,7 @@ const XOA_SAU = 60_000;
 const KET_CHU = { gia: '⛔ THƯ GIẢ', that: '⚠️ Thư thật — xem kỹ yêu cầu', 'chua-ro': '❓ Chưa rõ — coi như giả' };
 const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 /** Tin báo: lời của người phụ trách (mô hình viết, có thể rỗng) + kết luận và việc NGUYÊN VĂN của máy (mô hình không được sửa). */
-export const tinBao = (m, ten, loi = '') => `🔐 <b>${esc(ten)} · ${esc(m.mien || m.gui)}</b> — ${KET_CHU[m.ket]}\n${loi ? `${esc(loi)}\n` : ''}<i>${esc(m.tieuDe)}</i>\n${esc(m.chu)}\n<b>Việc:</b> ${esc(m.viec)}\n<a href="${CTY}">Mở trên cty</a> · xử xong thì lưu trữ thư trong hòm, tin tự gỡ`;
+export const tinBao = (m, ten, loi = '') => `🔐 <b>${esc(ten)} · ${esc(m.mien || m.gui)}</b> — ${KET_CHU[m.ket]}\n${loi ? `${esc(loi)}\n` : ''}<i>${esc(m.tieuDe)}</i>\n${esc(m.chu)}\n<b>Việc:</b> ${esc(m.viec)}\nXử xong thì lưu trữ thư trong hòm, tin tự gỡ.\n<a href="${CTY}">↗ cty · An toàn tài khoản › Mail bảo mật</a>`;   // anh 13/10/2026: tin Telegram nào cũng kết bằng MỘT link nhỏ mở thẳng việc / phòng trên cty
 /** Lời mở của người phụ trách qua proxy công ty (worker/proxy.mjs — ghi tiền, trần chi). Lỗi → '' (tin vẫn đi bằng khuôn). */
 async function loiMo(nguoi, model, m) {
   if (!model) return '';
@@ -154,7 +154,7 @@ if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && process.argv.includes('--tu
   const b2 = buocTin(s1, [{ ...m1, xong: true }], 1000); a.deepEqual(b2.tha, [7]); a.equal(b2.cho, 0);
   a.deepEqual(buocTin(b2.st, [{ ...m1, xong: true }], 1000 + 30_000).xoa, [], 'thả tim xong chưa đủ 1 phút → chưa xoá');
   const b3 = buocTin(b2.st, [{ ...m1, xong: true }], 1000 + 60_000); a.deepEqual(b3.xoa, [7]); a.deepEqual(b3.st.tin, {});
-  a.match(tinBao(m1, 'Kiên'), /A &lt;b&gt;/, 'tiêu đề thư được thoát HTML');
+  a.match(tinBao(m1, 'Kiên'), /A &lt;b&gt;/, 'tiêu đề thư được thoát HTML'); a.match(tinBao(m1, 'Kiên'), /<a href="https:\/\/cty\.on\.tc\/[^"]+">[^<]+<\/a>$/, 'dòng cuối là link mở thẳng trên cty');
   console.log('✓ mail-bao-mat: 12 ca đạt (tên miền đăng ký, gỡ link chuyển tiếp, người gửi thư chuyển tiếp, thư thật yêu cầu giả, thư giả, tên miền nhái, không đọc được người gửi) + 8 ca nhịp báo (báo một lần, hòm lỗi không đụng, ❤ rồi gỡ sau 1 phút, thoát HTML)');
 }
 if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && !process.argv.includes('--tu-kiem')) {

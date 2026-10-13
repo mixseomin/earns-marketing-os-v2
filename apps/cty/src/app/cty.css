@@ -353,7 +353,9 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
    dính trên khung đó; không đặt chiều cao tay ở đây (bản cũ calc(100dvh - 210px) lệch khung tab 7px ở 1440×900, 12/10/2026). */
 .cty-dn-cuon{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;align-content:start}   /* cột không nở theo bảng: chú thích xuống dòng trong khung */
 .cty-dn thead th{position:sticky;top:0;background:var(--bg);z-index:1}
-.cty-dn th{text-align:left;font-size:.74rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);padding:10px;border-bottom:1px solid var(--line);white-space:nowrap;font-weight:600}
+.cty-dn th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.02em;color:var(--muted);padding:8px 6px;border-bottom:1px solid var(--line);font-weight:600;vertical-align:bottom}   /* tiêu đề xuống dòng: 14 cột (thêm nhịp · tần suất · ca · chi · trần, 14/10/2026) vừa khung phòng, không cắt */
+.cty-dn td{padding-inline:6px;white-space:normal;overflow-wrap:anywhere}.cty-dn td.cty-so{white-space:nowrap}   /* chữ xuống dòng, số giữ một dòng — bảng vừa khung phòng có văn phòng pixel bên phải */
+.cty-dn{width:100%}.cty-dn .cty-pill{white-space:nowrap;letter-spacing:0;padding-inline:.35rem}
 .cty-dn .cty-so{text-align:right}
 .cty-dn-chinh{font-weight:700;color:var(--ink)}
 .cty-dn-dx ul{margin:.2rem 0 .6rem;padding-left:1.1rem;display:grid;gap:4px}
@@ -377,7 +379,7 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-tn-so b{font-size:1.35rem;color:var(--ink);font-variant-numeric:tabular-nums}
 .cty-tn-so .cty-tn-tre,.cty-tn-so .cty-tn-tre b{color:var(--warn)}
 .cty-tn-ds{display:flex;flex-wrap:wrap;gap:4px}
-.cty-tn-nhan{font-size:.74rem;padding:.1rem .45rem;border-radius:999px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;white-space:nowrap}
+.cty-tn-nhan{font-size:.74rem;padding:.1rem .45rem;border-radius:10px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;max-width:100%;overflow-wrap:anywhere}   /* tên quy trình dài xuống dòng trong khung, không tràn (lỗi tràn 14/10/2026) */
 .cty-tn-chu{background:var(--accent);color:var(--surface)}
 .cty-tn-chua{border-style:dashed;opacity:.75}
 .cty-tn-viec{margin:0;padding-left:1.1rem;display:grid;gap:3px;font-size:.8rem}

@@ -21,9 +21,11 @@ const vaiO = (phong: string, id: string) => Object.entries(vaiCuaPhong(phong) as
 
 /** NHỊP của một người (anh 13/10/2026: "phải có tần suất heartbeat, cost hàng tháng — mọi bảng nhân sự"): việc · tần suất · ca, hoặc tắt. */
 export function nhipChu(fm: Record<string, unknown>) {
-  const hb = String(fm.heartbeat ?? 'off'); if (hb === 'off') return { chu: 'tắt', bat: false };
+  const hb = String(fm.heartbeat ?? 'off'); if (hb === 'off') return { chu: 'tắt', bat: false, viec: 'tắt' } as { chu: string; bat: boolean; viec: string; tanSuat?: string; ca?: string };
   const may = hb.split(',').map((v) => v.trim()).filter((v) => v in NHIP);
-  return { chu: may.length ? `${may.join(', ')} · ${TAN_SUAT}${fm.ca ? ` · ca ${String(fm.ca)}` : ' · cả ngày'}` : hb, bat: true };
+  if (!may.length) return { chu: hb, bat: true, viec: hb };
+  const ca = fm.ca ? String(fm.ca) : 'cả ngày';
+  return { chu: `${may.join(', ')} · ${TAN_SUAT} · ca ${ca}`, bat: true, viec: may.join(', '), tanSuat: TAN_SUAT, ca };
 }
 export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS[]; trongPhong?: boolean; tn?: TrachNhiem; phong?: string }) {
   const docs = ds.map((d) => nhanSu(d.id)).filter(Boolean) as Doc[];
@@ -34,7 +36,7 @@ export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS
       <table className="cty-viec cty-dn">
         <thead><tr><th>Người</th>{!trongPhong && <th className="cty-an-hep">Phòng</th>}<th className="cty-an-hep">{trongPhong ? 'Vai ở phòng' : 'Vai chính'}</th><th className="cty-an-hep">Bộ não</th>
           {VAI.map((v) => <th key={v} className="cty-so" title={TEN_VAI[v]}>{COT_VAI[v]}</th>)}
-          <th className="cty-so cty-an-hep" title="Giá 1.000 lời gọi ở vai đang tính của người đó">$/1.000 lời gọi<br />{trongPhong ? 'vai ở phòng' : 'vai chính'}</th><th>Đề xuất</th><th className="cty-an-hep" title="Việc tự làm theo nhịp (worker/nhip.mjs) · tần suất · ca giờ VN">Nhịp</th><th className="cty-so cty-an-hep" title={trongPhong ? 'Tiền mô hình thật tháng này người đó tiêu CHO PHÒNG NÀY (sổ ai_usage) / trần tháng của người đó (mọi phòng cộng lại) — chạm trần thì proxy chặn' : 'Tiền mô hình thật tháng này, mọi phòng (sổ ai_usage) / trần tháng trong hồ sơ — chạm trần thì proxy chặn'}>{trongPhong ? 'Chi ở phòng này' : 'Chi tháng này'}<br />/ trần</th>{tn && <th className="cty-so cty-an-hep" title="Số quy trình chịu trách nhiệm chính · số việc đang mở (kể cả việc máy làm thay)">Phụ trách</th>}</tr></thead>
+          <th className="cty-so cty-an-hep" title="Giá 1.000 lời gọi ở vai đang tính của người đó">$/1.000 lời gọi<br />{trongPhong ? 'vai ở phòng' : 'vai chính'}</th><th>Đề xuất</th><th className="cty-an-hep" title="Việc tự làm theo nhịp (worker/nhip.mjs)">Nhịp</th><th className="cty-an-hep">Tần suất</th><th className="cty-an-hep" title="Giờ làm, giờ VN">Ca</th><th className="cty-so cty-an-hep" title={trongPhong ? 'Tiền mô hình thật tháng này người đó tiêu CHO PHÒNG NÀY (sổ ai_usage) / trần tháng của người đó (mọi phòng cộng lại) — chạm trần thì proxy chặn' : 'Tiền mô hình thật tháng này, mọi phòng (sổ ai_usage) / trần tháng trong hồ sơ — chạm trần thì proxy chặn'}>{trongPhong ? 'Chi ở phòng này' : 'Chi tháng này'}</th><th className="cty-so cty-an-hep" title="Trần chi tháng của người đó (mọi phòng cộng lại) — chạm trần thì proxy chặn">Trần / tháng</th>{tn && <th className="cty-so cty-an-hep" title="Số quy trình chịu trách nhiệm chính · số việc đang mở (kể cả việc máy làm thay)">Phụ trách</th>}</tr></thead>
         <tbody>{ds.map((d) => (
           <tr key={d.id}>
             <td><Nguoi id={d.id} /></td>{!trongPhong && <td className="cty-muted cty-an-hep">{d.phongTen}</td>}<td className="cty-an-hep" title={d.giuVai.join(' · ') || d.chucDanh}>{(phong && vaiO(phong, d.id)) || TEN_VAI[d.vai]}</td>
@@ -43,8 +45,11 @@ export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS
             <td className="cty-so cty-muted cty-an-hep">{d.chiSo[d.vai] ? usd(d.chiSo[d.vai]!.usd_goi) : '—'}</td>
             <td title={[d.deXuat.chu, ...d.deXuat.them].join(' · ')}><span className={`cty-pill${d.deXuat.muc === 'doi' ? ' cty-pill-off' : d.deXuat.muc === 'chua-do' ? ' cty-pill-kind' : ''}`}>{NHAN_MUC[d.deXuat.muc]}</span></td>
             {((fm) => { const n = nhipChu(fm); const c = chi(d.id); const tr = Number(fm.tran_usd_thang || 0); return <>
-              <td className={`cty-nho cty-an-hep${n.bat ? '' : ' cty-muted'}`}>{n.chu}</td>
-              <td className="cty-so cty-an-hep" title={so ? `${so.ds.filter((r) => r.nguoi === d.id).reduce((t, r) => t + r.luot, 0)} lời gọi tháng này` : 'không nối được DB'}>{c === null ? <span className="cty-thu-loi">?</span> : tien(c)}<span className="cty-muted"> / {tr ? tien(tr) : '—'}</span></td></>; })(nhanSu(d.id)?.fm ?? {})}
+              <td className={`cty-nho cty-an-hep${n.bat ? '' : ' cty-muted'}`}>{n.viec}</td>
+              <td className="cty-nho cty-an-hep">{n.tanSuat ?? <span className="cty-muted">—</span>}</td>
+              <td className="cty-nho cty-an-hep">{n.ca ?? <span className="cty-muted">—</span>}</td>
+              <td className="cty-so cty-an-hep" title={so ? `${so.ds.filter((r) => r.nguoi === d.id).reduce((t, r) => t + r.luot, 0)} lời gọi tháng này` : 'không nối được DB'}>{c === null ? <span className="cty-thu-loi">?</span> : tien(c)}</td>
+              <td className="cty-so cty-an-hep cty-muted">{tr ? tien(tr) : '—'}</td></>; })(nhanSu(d.id)?.fm ?? {})}
             {tn && ((x) => <td className="cty-so cty-an-hep" title={`${x.chuTri} quy trình chủ trì · ${x.lam} được giao làm · ${x.viec} việc đang mở${x.tre ? ` (${x.tre} máy trễ)` : ''}`}>
               <b>{x.chuTri}</b> · <b className={x.tre ? 'cty-thu-loi' : ''}>{x.viec}</b></td>)(demTn(tn, d.id, phong))}
           </tr>))}</tbody>

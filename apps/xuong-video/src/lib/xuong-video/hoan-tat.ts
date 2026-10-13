@@ -10,6 +10,7 @@ import { luuVaoKho } from './kho';
 import { getDb } from '@mos2/db';
 import { danhMucFal } from './fal';
 import { jobDangCho } from './doc-db';
+import { lamSanNho } from './anh-nho-may';
 import { giaAnhCents, thuongHieu, type KinhThanh } from './kieu';
 import { chayViecAnh, type ViecAnh, type KqViec } from './viec-anh';
 import { chayViecAm, type ViecAm, type KqViecAm } from './viec-am';
@@ -162,6 +163,8 @@ export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
     if (canh != null) await db.execute(sql`UPDATE xv_canh SET loi = ${kq.loi}, updated_at = now() WHERE id = ${canh}`);
     return true;
   }
+  // Ảnh nhỏ cho timeline / thẻ (anh-nho.ts) làm sẵn ngay — lần mở đầu không phải chờ thu nhỏ. Chạy nền, hỏng thì lúc xem làm lại.
+  void lamSanNho(kq.url);
   if (j.bien_the_id != null) {
     await db.execute(sql`UPDATE xv_bien_the SET anh_url = ${kq.url}, updated_at = now() WHERE id = ${Number(j.bien_the_id)}`);
   } else if (canh != null) {

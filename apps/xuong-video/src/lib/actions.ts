@@ -23,6 +23,7 @@ import { type DungChu } from '@/lib/xuong-video/claude';
 import { docTrangSanPham, doiChieuAnchor as doiChieuAnchorClaude } from '@/lib/xuong-video/claude';
 import { kiemNguoiXemTap, suaTheoNguoiXemTap } from '@/lib/xuong-video/kiem-nguoi-xem';
 import { xuatLongTiengTap } from '@/lib/xuong-video/long-tieng';
+import { lamSanNho } from '@/lib/xuong-video/anh-nho-may';
 import { chanNguoiXem } from '@/lib/xuong-video/nguoi-xem';
 import { tachCanh, vietKichBan, vietBaiDang, phanTichMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
@@ -938,6 +939,7 @@ export async function taiAnhLen(dataUrl: string): Promise<Kq<string>> {
   const buf = Buffer.from(m[2]!, 'base64');
   if (buf.length > 8_000_000) return loi('ảnh quá lớn (>8MB)');
   const url = await uploadToR2(`xuong-video/ref/${randomUUID()}.${duoi(m[1]!)}`, buf, m[1]!);
+  void lamSanNho(url);   // ảnh nhỏ cho thẻ / timeline (anh-nho-may.ts)
   return url ? { ok: true, data: url } : loi('R2 không nhận ảnh (thiếu cấu hình storage?)');
 }
 
@@ -1283,6 +1285,7 @@ export async function layTuLinkSanPham(phimId: number, link: string): Promise<Kq
       const mime = f.headers.get('content-type')?.split(';')[0] || '';
       if (!f.ok || !mime.startsWith('image/')) continue;
       const url = await uploadToR2(`xuong-video/ref/${randomUUID()}.${duoi(mime)}`, Buffer.from(await f.arrayBuffer()), mime);
+      void lamSanNho(url);   // ảnh nhỏ cho thẻ / timeline (anh-nho-may.ts)
       if (url) anhR2.push(url);
     } catch { /* bỏ ảnh lỗi */ }
   }

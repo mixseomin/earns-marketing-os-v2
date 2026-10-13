@@ -204,6 +204,28 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   }, [idx, chay, docThu]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tuaToi = (giay: number) => { setT(Math.max(0, Math.min(tong, giay))); tuaRef.current++; setTua(tuaRef.current); };
+  // Vị trí đầu phát nhớ theo tập (#1345): URL ?tlt= (F5 / chia sẻ link mở đúng chỗ — luật #1255) rồi localStorage (mở lại phim).
+  // Mở lại thì tua tới đó + chọn đúng shot đang đứng; ghi trễ 400ms để lúc đang phát không ghi URL mỗi khung hình.
+  const khoaT = `xv-tlt-${tap.id}`;
+  const daKhoiPhuc = useRef(false);
+  useEffect(() => {
+    if (daKhoiPhuc.current || !canh.length) return;
+    daKhoiPhuc.current = true;
+    // ?tlt=<tapId>:<giây> — ghi kèm id tập để đổi sang tập khác không mang vị trí của tập cũ theo.
+    const [tu, giay] = (new URLSearchParams(window.location.search).get('tlt') ?? '').split(':');
+    const g = Number(Number(tu) === tap.id ? giay : docLT(khoaT) ?? 0);
+    if (!(g > 0)) return;
+    let i = 0; batDau.forEach((b, k) => { if (b <= g) i = k; });
+    onChon(canh[i]!.id); tuaToi(g);
+  }, [canh.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!daKhoiPhuc.current) return;
+    const h = setTimeout(() => {
+      const v = t > 0.05 ? t.toFixed(1) : null; ghiLT(khoaT, v);
+      const u = new URL(window.location.href); if (v) u.searchParams.set('tlt', `${tap.id}:${v}`); else u.searchParams.delete('tlt'); window.history.replaceState(window.history.state, '', u.toString());
+    }, 400);
+    return () => clearTimeout(h);
+  }, [t, khoaT]);
   // Giữ chuột trên thước giây hoặc vạch đỏ rồi kéo = tua liên tục (scrub) như CapCut; đang chạy thì tạm dừng trong lúc kéo.
   const keoDauPhat = (e: PE<HTMLDivElement>, goc: number) => {
     e.preventDefault(); e.stopPropagation();

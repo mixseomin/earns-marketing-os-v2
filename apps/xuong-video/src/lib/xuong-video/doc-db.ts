@@ -55,7 +55,11 @@ export async function boiCanhCanh(db: Db, canhId: number) {
   const nv = canh.nhan_vat.length
     ? await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE id = ANY(${mangInt(canh.nhan_vat)}::int[])`)) as unknown as Row[]).map(mapNhanVat))
     : [];
-  return { canh, kt, nhanVat: nv };
+  // Shot liền trước cùng nhánh — shot đó chọn chuyển cảnh 'lien_may' thì keyframe của nó là tham chiếu nối khung cho shot này (sinh-anh.ts).
+  const t = (await db.execute(sql`SELECT keyframe_url, ky_thuat, thu_tu FROM xv_canh WHERE tap_id = ${canh.tap_id} AND thu_tu < ${canh.thu_tu}
+    AND coalesce(nhanh, '') IN ('', ${canh.nhanh || 'A'}) ORDER BY thu_tu DESC LIMIT 1`)) as unknown as Row[];
+  const truoc = t[0] ? { thu_tu: n(t[0].thu_tu), keyframe_url: t[0].keyframe_url == null ? null : s(t[0].keyframe_url), ky_thuat: (t[0].ky_thuat ?? null) as Canh['ky_thuat'] } : null;
+  return { canh, kt, nhanVat: nv, truoc };
 }
 
 export async function taoJob(db: Db, d: { phim_id?: number; nhan?: string; canh_id?: number; nhan_vat_id?: number; bien_the_id?: number; loai: string; provider: string; model: string; request: unknown; xong?: boolean }): Promise<number> {

@@ -6,6 +6,7 @@ import { luuCanhTach } from './luu-canh';
 import { dsKhuon, taKhuon, ghiKhuonTuCanh } from './khuon-shot';
 import { boiCanhTap, ghiTienChu, type Db } from './doc-db';
 import { docKinhThanh, coMau, giayMau, thieuQc } from './kieu';
+import { soShotToiDa } from './nhip-hinh';
 
 type Kq<T> = { ok: true; data: T } | { ok: false; loi: string };
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
@@ -19,6 +20,9 @@ export async function tachCanhTapDb(db: Db, tapId: number, soCanh: number, nguoi
   // Có QC mẫu → thời lượng = tổng giây mẫu, số shot = số shot mẫu (tachCanh tự ép); không mẫu → theo ô nhập / tập.
   const kt = docKinhThanh(bc.kt);
   const mucTieu = coMau(kt.qc) ? giayMau(kt.qc.mau) : thoiLuongS && thoiLuongS > 0 ? Math.round(thoiLuongS) : bc.tap.thoi_luong_s ?? undefined;
+  // Số shot không vượt mức mỗi shot còn đủ giây đọc (nhip-hinh.ts › soShotToiDa): 20 shot / 48s phim không lời = 2,4s/shot → cắt khi
+  // hành động chưa xong (Tango & Lint tập 1). Bám QC mẫu thì số shot = mẫu, không ép.
+  if (soCanh > 0 && mucTieu && !coMau(kt.qc)) soCanh = Math.min(soCanh, soShotToiDa(mucTieu, { laQc: bc.loai === 'quang_cao', khong_loi: kt.khong_loi }));
   const kq = await tachCanh({ loai: bc.loai, kinhThanh: bc.kt, nhanVat: bc.nhanVat, kichBan: bc.tap.kich_ban, soCanh, tapTruoc: bc.tapTruoc, thoiLuongS: mucTieu, khuon: bc.loai === 'quang_cao' ? taKhuon(await dsKhuon(db, { toiDa: 60 })) : undefined });
   if (!kq.ok) return loi(kq.loi);
   const so = await luuCanhTach(db, { tapId, tenTap: bc.tap.ten, kq, nhanVat: bc.nhanVat, nguoi: nguoi, thoiLuongS: mucTieu });

@@ -270,6 +270,10 @@ export function thieuQc(loai: LoaiPhim, kt: KinhThanh | null | undefined): strin
 export const lamTronClip = (giay: number): 4 | 6 | 8 => (giay <= 4 ? 4 : giay <= 6 ? 6 : 8);
 /** Số giây shot THỰC PHÁT trên timeline / bản dựng: phat_s nếu đã cắt, không thì cả clip. */
 export const giayPhat = (c: Pick<Canh, 'phat_s' | 'thoi_luong_s'>): number => (c.phat_s && c.phat_s > 0 ? c.phat_s : c.thoi_luong_s || 4);
+/** Clip của shot này kết bằng keyframe shot sau? Cả tập bật nối khung (tap.noi_khung), HOẶC riêng shot chọn chuyển cảnh 'lien_may' (shot sau
+ *  tiếp đúng giây cuối, cùng nơi). MỘT luật cho lúc sinh clip (sinh-video.ts), sơ đồ nối/phụ thuộc và tham chiếu keyframe shot sau (sinh-anh.ts). */
+export const noiKhungShot = (tapNoiKhung: boolean, c: { ky_thuat?: { chuyen_canh?: string } | null } | null | undefined): boolean =>
+  tapNoiKhung || c?.ky_thuat?.chuyen_canh === 'lien_may';
 /** Thời lượng mục tiêu mặc định theo loại phim (giây). */
 export const thoiLuongMacDinh = (loai: LoaiPhim): number => (loai === 'quang_cao' ? 30 : loai === 'short' ? 40 : 60);
 /** Các nhánh hook của tập ('' = thân chung không tính). */

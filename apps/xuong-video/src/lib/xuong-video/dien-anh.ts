@@ -135,6 +135,9 @@ export const THU_VIEN: KyThuat[] = [
   k('mau', 'den_trang', 'Đen trắng', 'Hồi ức, nghiêm trang, nghệ thuật.', 'black and white', ['chinh_kich', 'kinh_di', 'tai_lieu']),
   // ── Chuyển cảnh (cách shot này nối sang shot sau)
   k('chuyen_canh', 'cat', 'Cắt thẳng', 'Mặc định, gọn.', '', T),
+  // Liền máy (14/10/2026): shot sau tiếp ĐÚNG khoảnh khắc cuối shot này, cùng nơi, máy cùng phía → clip shot này sinh với khung cuối =
+  // keyframe shot sau (sinh-video.ts › khungCuoiCanh, kieu.ts › noiKhungShot) và keyframe shot sau lấy keyframe shot này làm tham chiếu.
+  k('chuyen_canh', 'lien_may', 'Liền máy (nối khung)', 'Shot sau tiếp đúng giây cuối shot này, cùng nơi — clip kết bằng chính khung mở của shot sau, cắt không giật.', '', T),
   k('chuyen_canh', 'cat_khop', 'Cắt khớp hình (match cut)', 'Hình dáng/chuyển động shot sau khớp shot trước — nối ý, thời gian trôi.', 'end on a strong shape or motion that the next shot will mirror', ['phieu_luu', 'chinh_kich', 'vien_tuong', 'qc_cao_cap', 'hoat_hinh']),
   k('chuyen_canh', 'j_cut', 'J-cut (tiếng đến trước)', 'Âm thanh cảnh sau vang lên trước khi hình đổi — dẫn mượt.', '', ['chinh_kich', 'tinh_cam', 'tai_lieu', 'phieu_luu']),
   k('chuyen_canh', 'l_cut', 'L-cut (tiếng còn kéo dài)', 'Tiếng cảnh trước còn đọng khi hình đã sang — dư âm cảm xúc.', '', ['chinh_kich', 'tinh_cam', 'tai_lieu']),

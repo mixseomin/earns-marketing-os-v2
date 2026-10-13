@@ -86,3 +86,15 @@ console.log('phu-thuoc.test: ok');
   assert.strictEqual(lamSachKyThuat({ giay_cc: 9 }).giay_cc, undefined);
   console.log('phu-thuoc.test: giây chuyển cảnh ok');
 }
+// Liền máy theo shot (14/10/2026): tập tắt nối khung nhưng shot trước chọn chuyển cảnh 'lien_may' → vẫn nối khung riêng cặp đó
+{
+  const LM = { co_canh: 'ms', chuyen_canh: 'lien_may' };
+  const k2 = phuThuocShot('keyframe', shot({ thu_tu: 2 }), [BC], { noiKhung: false, tap: TQ, phim: PQ, truoc: shot({ thu_tu: 1, ky_thuat: LM, video_url: 'v' }) });
+  assert.ok(k2.luu_y.some((x) => x.includes('sinh keyframe shot #1 trước')), k2.luu_y.join('\n'));
+  assert.ok(k2.luu_y.some((x) => x.includes('lấy keyframe này làm khung cuối')), k2.luu_y.join('\n'));
+  const v2 = phuThuocShot('video', shot({ thu_tu: 1, keyframe_url: 'k', trang_thai: 'duyet', ky_thuat: LM }), [], { noiKhung: false, tap: TQ, phim: PQ, ke: shot({ thu_tu: 2 }) });
+  assert.ok(v2.luu_y.some((x) => x.includes('không có khung cuối')), v2.luu_y.join('\n'));
+  const v3 = phuThuocShot('video', shot({ thu_tu: 1, keyframe_url: 'k', trang_thai: 'duyet', ky_thuat: { co_canh: 'ms', chuyen_canh: 'cat' } }), [], { noiKhung: false, tap: TQ, phim: PQ, ke: shot({ thu_tu: 2 }) });
+  assert.ok(!v3.luu_y.some((x) => x.includes('khung cuối')), 'cắt thẳng + tập tắt nối khung → không nối');
+  console.log('phu-thuoc.test: liền máy ok');
+}

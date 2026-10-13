@@ -58,3 +58,20 @@ export function daDangMay<T extends ShotNhip & { id: number }>(ds: T[]): { id: n
   }
   return [...doi].map((i) => ({ id: ds[i]!.id, ky_thuat: kt[i]! }));
 }
+
+/** NHỊP ĐỌC (14/10/2026 — Tango & Lint tập 1: "chuyển cảnh nhanh chưa kịp hiểu gì"): 20 shot trong 48s, mỗi clip 4s bị cắt còn 2–2,5s
+ *  đúng lúc hành động chưa xong. Số giây tối thiểu một shot phải PHÁT để người xem đọc xong hành động: quảng cáo cắt nhanh được (có chữ
+ *  + lời dẫn đỡ), phim truyện cần trọn đầu–giữa–cuối của hành động, phim không lời còn lâu hơn vì không có lời giải thích.
+ *  MỘT luật cho: tách cảnh (claude.ts kẹp phat_s + giới hạn số shot), khớp giây theo giọng (hau-ky.ts không co dưới mức này),
+ *  cổng tiền kỳ (chanTienKy). */
+export const giayDoc = (p: { laQc?: boolean; khong_loi?: boolean }): number => (p.laQc ? 1.5 : p.khong_loi ? 3.5 : 3);
+/** Số shot tối đa cho một thời lượng mà mỗi shot vẫn đủ giây đọc (chừa ~0,5s/shot cho phản ứng). */
+export const soShotToiDa = (giay: number, p: { laQc?: boolean; khong_loi?: boolean }): number => Math.max(1, Math.floor(giay / (giayDoc(p) + (p.laQc ? 0 : 0.5))));
+export const TIEN_TO_NHIP_DOC = 'nhịp đọc: ';
+/** Shot phát ngắn hơn giây đọc tối thiểu — chặn keyframe (quy-trinh.ts › chanTienKy). Quảng cáo không xét (luật QC riêng ở kiem-qc.ts). */
+export function kiemGiayDoc(ds: { thu_tu: number; phat_s: number | null; thoi_luong_s: number }[], p: { laQc?: boolean; khong_loi?: boolean }): string[] {
+  if (p.laQc) return [];
+  const toi = giayDoc(p);
+  const ngan = ds.filter((c) => (c.phat_s && c.phat_s > 0 ? c.phat_s : c.thoi_luong_s || 4) < toi - 0.05);
+  return ngan.length ? [`${TIEN_TO_NHIP_DOC}${ngan.length} shot phát dưới ${toi}s (${ngan.slice(0, 8).map((c) => `#${c.thu_tu} ${c.phat_s ?? c.thoi_luong_s}s`).join(', ')}${ngan.length > 8 ? '…' : ''}) — người xem chưa kịp hiểu đã cắt; gộp/bớt shot hoặc kéo dài`] : [];
+}

@@ -4,7 +4,7 @@
 //   chan  = chưa chạy được (server cũng sẽ từ chối) → ô tick khoá, ghi lý do.
 //   luu_y = chạy được nhưng có hệ quả nên biết trước (nối khung lệch, thoại chưa có giọng, đã có bản sẵn…).
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/phu-thuoc.test.mts
-import { thanhPhanCanh, type Canh, type NhanVat } from './kieu';
+import { thanhPhanCanh, noiKhungShot, type Canh, type NhanVat } from './kieu';
 import { chanTienKy, chanShot, chanVideo, type TapQt, type PhimQt } from './quy-trinh';
 
 export type ViecShot = 'keyframe' | 'video';
@@ -20,11 +20,12 @@ export function phuThuocShot(viec: ViecShot, c: Canh, nhanVat: NhanVat[], o: { t
     chan.push(...chanTienKy(o.tap, o.phim, o.ds), ...chanShot(c, o.tap, nhanVat));
     if (!c.prompt_anh.trim()) chan.push('chưa có prompt ảnh');
     if (c.keyframe_url) luu_y.push('đã có keyframe — ảnh mới vào dải ứng viên, phải chọn mới thay');
-    if (o.noiKhung && o.truoc && (o.truoc.video_url || o.truoc.video_cuoi_url)) luu_y.push(`clip shot #${o.truoc.thu_tu} lấy keyframe này làm khung cuối — đổi keyframe thì clip đó phải sinh lại mới nối liền`);
+    if (o.truoc && noiKhungShot(false, o.truoc) && !o.truoc.keyframe_url) luu_y.push(`shot #${o.truoc.thu_tu} liền máy với shot này — sinh keyframe shot #${o.truoc.thu_tu} trước để ảnh này bám đúng chỗ, đúng tư thế`);
+    if (noiKhungShot(o.noiKhung, o.truoc) && o.truoc && (o.truoc.video_url || o.truoc.video_cuoi_url)) luu_y.push(`clip shot #${o.truoc.thu_tu} lấy keyframe này làm khung cuối — đổi keyframe thì clip đó phải sinh lại mới nối liền`);
   } else {
     if (c.trang_thai === 'dang_sinh') chan.push('đang sinh video');
     chan.push(...chanVideo(c, nhanVat));
-    if (o.noiKhung && o.ke && !o.ke.keyframe_url) luu_y.push(`shot #${o.ke.thu_tu} chưa có keyframe — clip này sẽ không có khung cuối, nối không liền`);
+    if (noiKhungShot(o.noiKhung, c) && o.ke && !o.ke.keyframe_url) luu_y.push(`shot #${o.ke.thu_tu} chưa có keyframe — clip này sẽ không có khung cuối, nối không liền`);
     if (c.video_url || c.video_cuoi_url) luu_y.push('đã có clip — bản mới thêm vào danh sách phiên bản');
   }
   return { chan, luu_y };

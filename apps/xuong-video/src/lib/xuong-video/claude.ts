@@ -6,6 +6,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';   // helper zodOutputFormat của SDK cần zod v4 (zod 3.25 kèm sẵn ở 'zod/v4'); import 'zod' gốc → TypeError 'def'
 import { THU_VIEN, THE_LOAI, CAU_TRUC, giayBeat, hopTheLoai, NHOM_KY_THUAT, type NhomKyThuat } from './dien-anh';
 import type { BienThe, DoiChieu, KinhThanh, LoaiNhanVat, LoaiPhim, NhanVat } from './kieu';
+import { giayDoc } from './nhip-hinh';
 import { docKinhThanh, phongCachHinh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA, LOAI_SHOT_MAU, giayMau, coMau, tenNgonNgu, type BaiDang, type ShotMau } from './kieu';
 
 const CanhSchema = z.object({
@@ -38,7 +39,7 @@ const ShotSchema = CanhSchema.extend({
   thoai: z.array(DongThoaiSchema).describe('Thoại của shot theo dòng kiểu kịch bản phim chuyên nghiệp (mỗi lượt nói một dòng); rỗng nếu shot không có thoại. Trường loi_thoai để rỗng.'),
   cam_xuc: z.number().int().describe(`Cảm xúc KHÁN GIẢ ở CUỐI shot theo thang: ${Object.entries(CAM_XUC_KHAN_GIA).sort((a, b) => Number(a[0]) - Number(b[0])).map(([k, v]) => `${k} ${v}`).join(', ')}`),
   ky_thuat: KyThuatSchema.describe('Ngôn ngữ điện ảnh của shot, chọn từ thư viện cho hợp thể loại + cảm xúc'),
-  phat_s: z.number().describe('Số giây shot THỰC PHÁT trong bản dựng (1.5–8, bước 0.5). Clip sinh 4/6/8s rồi cắt lấy phat_s giây đầu. Quảng cáo: hook, insert, demo 1.5–3s; thoại dài hơn thì 4–6s. Tổng phat_s của cả tập phải bằng thời lượng mục tiêu ±10%.'),
+  phat_s: z.number().describe('Số giây shot THỰC PHÁT trong bản dựng (1.5–8, bước 0.5). Clip sinh 4/6/8s rồi cắt lấy phat_s giây đầu. Quảng cáo: hook, insert, demo 1.5–3s; thoại dài hơn thì 4–6s. Phim truyện ≥ 3s, phim không lời ≥ 3.5s (máy kẹp lên mức này). Tổng phat_s của cả tập phải bằng thời lượng mục tiêu ±10%.'),
   chu_man: z.string().describe('Chữ hiện trên màn trong shot (đúng ngôn ngữ phim, ≤ 8 từ, KHÔNG dấu chấm cuối câu — máy cũng tự bỏ): câu hook, số liệu, tên tính năng, ưu đãi, CTA. Quảng cáo: BẮT BUỘC ở shot hook và shot CTA, nên có ở bằng chứng/ưu đãi; phim/short: rỗng trừ khi cần.'),
 });
 const StoryboardSchema = z.object({
@@ -92,7 +93,9 @@ export const LUAT_KE_CHUYEN = `LUẬT KỂ CHUYỆN (người xem xem MỘT lầ
 6. Thoại vừa giây: ~2,5 từ/giây + 0,5 giây thở trước khi cắt; câu dài hơn shot thì tách shot, không nhồi.
 7. Mỗi shot nối shot trước bằng nguyên nhân → kết quả hoặc hướng nhìn (nhân vật nhìn gì thì shot sau cho thấy cái đó); đổi nơi chốn thì có shot toàn cảnh mở.
 8. Kết rõ: người xem nói lại được trong một câu chuyện gì đã xảy ra và bài học / lời hẹn là gì.
-9. Khung hình phải ĐỘNG: mỗi shot một hành động thân thể lớn nhìn thấy rõ (chạy, nhảy, với, ném, ngã, bay, đuổi, giấu…), không chỉ biểu cảm mặt (nheo mắt, lắc đầu, nín thở); hai shot liền nhau không cùng cỡ cảnh + cùng chuyển động máy; tối đa 40% shot máy đứng yên — còn lại đẩy vào, lùi ra, lia, trượt, cẩu theo ý nghĩa cảnh.`;
+9. Khung hình phải ĐỘNG: mỗi shot một hành động thân thể lớn nhìn thấy rõ (chạy, nhảy, với, ném, ngã, bay, đuổi, giấu…), không chỉ biểu cảm mặt (nheo mắt, lắc đầu, nín thở); hai shot liền nhau không cùng cỡ cảnh + cùng chuyển động máy; tối đa 40% shot máy đứng yên — còn lại đẩy vào, lùi ra, lia, trượt, cẩu theo ý nghĩa cảnh.
+10. NHỊP ĐỌC: mỗi shot MỘT hành động chính, trọn đầu–giữa–cuối trong số giây phát; sau cú bất ngờ / gag giữ mặt phản ứng ≥ 1 giây. Hành động nhiều bước (nhảy → trượt → ngã) tách thành nhiều shot, không nhồi "rồi… rồi…" vào một shot. Phim truyện mỗi shot phát ≥ 3 giây, phim không lời ≥ 3,5 giây (chỉ quảng cáo mới cắt 1,5–3 giây). Shot ngắn hơn mà nhiều việc = người xem chưa hiểu đã cắt.
+11. NỐI TRẠNG THÁI: shot sau BẮT ĐẦU đúng chỗ shot trước để lại — vị trí nhân vật, đồ đang cầm/mất (nửa viên kẹo…), thương tích/biến dạng (bẹp, ướt), ánh sáng, giờ. Giữ hướng màn hình: đang chạy trái→phải thì shot sau vẫn trái→phải. Nhân vật/đồ vật không tự nhiên có mặt hay biến mất: thấy nó tới / rời đi. Không nối được bằng hình thì thiếu một shot cầu nối — thêm shot đó.`;
 /** Phim KHÔNG LỜI (kinh_thanh.khong_loi — Tango & Lint): thoại thay bằng âm hiệu của nhân vật, truyện kể bằng hành động. */
 export const LUAT_KHONG_LOI = `PHIM KHÔNG LỜI (kiểu Larva / Shaun the Sheep): KHÔNG có một câu thoại hay lời dẫn nào bằng ngôn ngữ người. Trường thoại chỉ ghi ÂM HIỆU của nhân vật (tiếng kêu, bập bẹ, cười, thở, tiếng chất liệu của nó — theo dòng "Voice" / tính cách trong tiểu sử), ngắn ≤ 3 từ âm, vd Tango: "Hup!", Lint: "[gasps] pff…". Mọi ý truyện phải hiểu được chỉ bằng hành động + biểu cảm + âm thanh; chữ màn tối đa vài chữ ở đầu tập (tên tập) hoặc không có. Mỗi gag phải đọc được khi tắt tiếng.`;
 const heThong = (loai: LoaiPhim, kt: Required<KinhThanh>) => `Bạn là đạo diễn kiêm storyboard artist cho xưởng video AI. Loại sản phẩm: ${LOAI_PHIM.find((l) => l.key === loai)?.label ?? loai}.
@@ -102,7 +105,7 @@ NGÔN NGỮ PHIM: ${tenNgonNgu(kt.ngon_ngu)}. ${kt.ngon_ngu === 'vi' ? '' : `M�
 ${kt.the_loai ? `Thể loại: ${THE_LOAI.find((t) => t.key === kt.the_loai)?.ten} (${THE_LOAI.find((t) => t.key === kt.the_loai)?.mo_ta}).` : ''}${kt.logline ? `\nLogline: ${kt.logline}` : ''}${kt.chu_de ? `\nChủ đề: ${kt.chu_de}` : ''}
 ${taQc(kt)}
 ${LUAT_KE_CHUYEN}
-${kt.khong_loi ? LUAT_KHONG_LOI + '\n' : ''}QUY TẮC ĐỒNG NHẤT: nhân vật, sản phẩm, bối cảnh phải tả bằng đúng đặc tính cố định trong danh sách anchor ở mọi cảnh (cùng màu lông, cùng trang phục, cùng tỉ lệ cơ thể, cùng chất liệu). prompt_anh và prompt_video viết tiếng Anh, tả người/vật theo đặc tính chứ không dùng tên riêng (model ảnh không biết tên). Mỗi prompt tự đứng được một mình, không tham chiếu cảnh khác.`;
+${kt.khong_loi ? LUAT_KHONG_LOI + '\n' : ''}QUY TẮC ĐỒNG NHẤT: nhân vật, sản phẩm, bối cảnh phải tả bằng đúng đặc tính cố định trong danh sách anchor ở mọi cảnh (cùng màu lông, cùng trang phục, cùng tỉ lệ cơ thể, cùng chất liệu). prompt_anh và prompt_video viết tiếng Anh, tả người/vật theo đặc tính chứ không dùng tên riêng (model ảnh không biết tên). Mỗi prompt tự đứng được một mình (không viết "như shot trước" — model không thấy shot khác) NHƯNG phải tả lại bằng chữ trạng thái nối tiếp từ shot trước (luật 11: vị trí, đồ đang cầm, biến dạng, ánh sáng, hướng di chuyển). Hai shot liền nhau cùng nơi, cùng khoảnh khắc, máy cùng phía (shot sau tiếp đúng giây cuối shot trước) → ky_thuat.chuyen_canh của shot TRƯỚC = 'lien_may': clip shot trước sẽ kết đúng bằng keyframe shot sau, cắt không giật.`;
 
 /** Thư viện điện ảnh rút gọn cho prompt: kỹ thuật hợp thể loại trước, mỗi dòng "key — tên: dùng khi nào". */
 function taThuVien(tl: string): string {
@@ -158,6 +161,7 @@ export async function tachCanh(opts: {
   if (mau) { opts = { ...opts, soCanh: mau.shots.length, thoiLuongS: giayMau(mau) }; }
   // Thời lượng mục tiêu chia cho từng beat (quảng cáo có tỉ lệ sẵn) → Claude biết hook được mấy giây, không tự kéo 24s thành 64s.
   const giayTheoBeat = opts.thoiLuongS && !mau ? giayBeat(opts.loai, opts.thoiLuongS) : null;
+  const toiGiay = giayDoc({ laQc, khong_loi: kt.khong_loi });
   const user = [
     `DANH SÁCH ANCHOR (dùng đúng tên trong trường nhan_vat):\n${taAnchor(opts.nhanVat)}`,
     opts.tapTruoc?.length ? `TÓM TẮT CÁC TẬP TRƯỚC (nối mạch, không kể lại):\n${opts.tapTruoc.map((t, i) => `Tập ${i + 1}: ${t}`).join('\n')}` : '',
@@ -166,7 +170,7 @@ export async function tachCanh(opts: {
     `THƯ VIỆN ĐIỆN ẢNH (chọn key cho từng shot):\n${taThuVien(kt.the_loai)}`,
     opts.khuon ?? '',
     opts.thoiLuongS ? `THỜI LƯỢNG MỤC TIÊU: ${opts.thoiLuongS} giây — tổng phat_s của mọi shot (trừ hook_bien_the) phải trong khoảng ${Math.round(opts.thoiLuongS * 0.9)}–${Math.round(opts.thoiLuongS * 1.1)} giây.` : '',
-    mau ? HUONG_DAN_MAU(mau.shots.length) : opts.soCanh ? `Tổng khoảng ${opts.soCanh} shot.` : laQc ? 'Số shot theo nhịp quảng cáo: phần lớn shot phát 1,5–3 giây.' : 'Số shot vừa đủ kể hết kịch bản, mỗi shot 4-8 giây.',
+    mau ? HUONG_DAN_MAU(mau.shots.length) : opts.soCanh ? `Tổng khoảng ${opts.soCanh} shot${laQc ? '' : `, mỗi shot phát ≥ ${toiGiay} giây (luật 10 — nhịp đọc)`}.` : laQc ? 'Số shot theo nhịp quảng cáo: phần lớn shot phát 1,5–3 giây.' : `Số shot vừa đủ kể hết kịch bản, mỗi shot ${toiGiay}–8 giây.`,
   ].filter(Boolean).join('\n\n');
   try {
     // Mỗi shot ≈ 700–900 token JSON (2 prompt tiếng Anh + kỹ thuật + thoại); 28 shot bám mẫu vượt trần 16k → JSON đứt giữa chừng (09/10/2026).
@@ -188,7 +192,8 @@ export async function tachCanh(opts: {
     try { p = StoryboardSchema.parse(JSON.parse(chu)); } catch (e) { return { ok: false, loi: `Claude trả JSON không đúng khuôn: ${e instanceof Error ? e.message.slice(0, 160) : String(e)}` }; }
     const kep = (v: number) => Math.max(-5, Math.min(5, Math.round(v)));
     // phat_s = giây thực phát (1–8, bước 0,5); clip sinh = làm tròn lên 4/6/8. Claude quên phat_s thì lấy thoi_luong_s.
-    const phat = (x: z.infer<typeof ShotSchema>) => { const g = Number.isFinite(x.phat_s) && x.phat_s > 0 ? x.phat_s : x.thoi_luong_s; return Math.max(1, Math.min(8, Math.round(g * 2) / 2)); };
+    // Phim truyện (không bám mẫu): kẹp lên giây đọc tối thiểu (nhip-hinh.ts › giayDoc) — Claude vẫn hay chia đều thời lượng cho số shot.
+    const phat = (x: z.infer<typeof ShotSchema>) => { const g = Number.isFinite(x.phat_s) && x.phat_s > 0 ? x.phat_s : x.thoi_luong_s; return Math.max(mau ? 1 : toiGiay, Math.min(8, Math.round(g * 2) / 2)); };
     const chuan = (x: z.infer<typeof ShotSchema>, phan_doan: string, nhanh: string): CanhSinh => ({ ...x, phan_doan, nhanh, cam_xuc: kep(x.cam_xuc), phat_s: phat(x), thoi_luong_s: lamTronClip(phat(x)), chu_man: (x.chu_man ?? '').trim() });
     // Hook chính = shot của phân cảnh thuộc beat đầu; có phương án thay thế thì hook chính mang nhánh 'A', phương án 'B', 'C'…
     const beatDau = khung.beats[0]?.ten ?? '';

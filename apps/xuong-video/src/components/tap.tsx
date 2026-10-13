@@ -335,10 +335,11 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
                     nhac: (pd, model, moTa) => void chay(pd ? 'nhac' : 'nhac1', () => sinhNhac(tap.id, model, pd, moTa)),
                     mhNhac, ban: (k) => banTach || ban(k), dangPhanDoan: uocA?.dangPhanDoan ?? [], dangCaTap: uocA?.dangCaTap ?? false,
                   }}
+                  // Thẻ shot đang chọn nằm ở panel THUỘC TÍNH bên phải (bố cục After Effects) — không còn chồng dưới timeline (13/10/2026).
+                  theShot={<div data-ngu-canh={`tập #${tap.id} ${tap.ten} · cảnh đang mở #${cc.thu_tu} (id ${cc.id}) ${cc.canh} · ${cc.trang_thai}`}>
+                    <CanhRow key={cc.id} c={cc} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} />
+                  </div>}
                   onXep={(ids) => { setCanh((ds) => ds && ids.map((id, i) => ({ ...ds.find((x) => x.id === id)!, thu_tu: i + 1 }))); void chay('xep', () => xepCanh(tap.id, ids)); }} />
-                <div data-ngu-canh={`tập #${tap.id} ${tap.ten} · cảnh đang mở #${cc.thu_tu} (id ${cc.id}) ${cc.canh} · ${cc.trang_thai}`}>
-                  <CanhRow key={cc.id} c={cc} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} />
-                </div>
               </>
             );
           })() : xem === 'luoi' ? (

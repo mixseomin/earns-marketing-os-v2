@@ -37,7 +37,8 @@ export type SinhTaiCho = {
   giong: (canhId: number, tuy: TuyGiong) => void; sfx: (canhId: number, tuy: TuyAm) => void; nhac: (phanDoan: string | undefined, model: string, moTa: string) => void;
   mhNhac: string; ban: (k: string) => boolean; dangPhanDoan: string[]; dangCaTap: boolean;
 };
-export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, onDoiChuyenCanh, onDoiKyThuat, onKhopNhip, onKhopGiong }: {
+export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, onDoiChuyenCanh, onDoiKyThuat, onKhopNhip, onKhopGiong, theShot }: {
+  /** thẻ shot đang chọn (CanhRow) — hiện ở panel THUỘC TÍNH khi không chọn lớp nào, như panel Properties của After Effects */ theShot?: ReactNode;
   canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null; qc?: ThongTinQc | null;
   onChon: (id: number) => void; onDoiGiay: (id: number, giay: number) => void;
   /** đổi chuyển cảnh SAU shot id (ky_thuat.chuyen_canh; '' = cắt thẳng) và/hoặc số giây đặt tay (giay: undefined = giữ, null = về mặc định) */ onDoiChuyenCanh?: (id: number, key: string, giay?: number | null) => void; onXep: (ids: number[]) => void; onToanManHinh: () => void; sinh?: SinhTaiCho;
@@ -322,7 +323,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
   const soCu = soNhomCu(lop);
   const chonNhom = dsChonLop.length > 1 && dsChonLop.every((l) => l.nhom && l.nhom === dsChonLop[0]!.nhom);
   const panTrai = useKichThuoc('xv-tl-trai', 200, 140, 440);
-  const panPhai = useKichThuoc('xv-tl-phai', 280, 220, 560);
+  const panPhai = useKichThuoc('xv-tl-phai2', 420, 260, 720);   // rộng hơn: chứa cả thẻ shot (13/10/2026)
   const hangPan = useKichThuoc(`xv-tl-hang-${doc916 ? 'doc' : 'ngang'}`, doc916 ? 524 : 360, 260, 1000);
   const caoXem = hangPan.v - 44, rongXem = Math.round(doc916 ? (caoXem * 9) / 16 : (caoXem * 16) / 9);
   const [dangThaVao, setDangThaVao] = useState<string | null>(null);
@@ -468,7 +469,10 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             onXoa={() => { datLop((ds) => ds.filter((x) => x.id !== lopChon.id)); setChonLop(null); }}
             onNhanBan={() => { const moi = { ...lopChon, id: idLop(), nhom: undefined, x: Math.min(1, lopChon.x + 0.04), y: Math.min(1, lopChon.y + 0.04) }; datLop((ds) => [...ds, moi]); setChonLop(moi.id); }}
             onLenXuong={(d) => datLop((ds) => { const i = ds.findIndex((x) => x.id === lopChon.id); const j = i + d; if (i < 0 || j < 0 || j >= ds.length) return ds; const n = [...ds]; [n[i], n[j]] = [n[j]!, n[i]!]; return n; })} />
-          : <>
+          : theShot ? <>
+            <div style={mono}>Shot đang chọn · bấm một lớp trên khung hình hoặc làn 🧩 để sửa lớp đó</div>
+            {theShot}
+          </> : <>
             <div style={mono}>Bấm một lớp trên khung hình hoặc làn 🧩 để sửa. Đang xem âm thanh của shot #{c?.thu_tu}:</div>
             {c && dongThoai(c, nhanVat).map((d, i) => {
               const v = timNv(nhanVat, tenNoi(d)) ?? null;

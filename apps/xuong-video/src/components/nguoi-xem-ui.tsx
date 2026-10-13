@@ -2,7 +2,7 @@
 // 🧑 Thử người xem lần đầu (nguoi-xem.ts): nút có giá + kết quả — người xem kể lại, 5 câu hiểu, điểm, chỗ vấp theo shot (bấm = mở shot).
 // Bước bắt buộc: chưa đạt / kịch bản đổi sau lần thử → chặn sinh keyframe + xuất.
 import { Fragment, useState } from 'react';
-import { thuNguoiXemTap } from '@/lib/actions';
+import { thuNguoiXemTap, suaTheoNguoiXem } from '@/lib/actions';
 import { giaChuCents, gioVN, tien, type Canh, type Tap } from '@/lib/xuong-video/kieu';
 import { chanNguoiXem, TEN_NUT_NGUOI_XEM } from '@/lib/xuong-video/nguoi-xem';
 import { Nut, Loi, mono } from './ui';
@@ -10,10 +10,22 @@ import { Nut, Loi, mono } from './ui';
 export function NguoiXem({ tap, canh, moHinhChu, coAnthropic, onChanged, onMoShot }: { tap: Tap; canh: Canh[]; moHinhChu: string; coAnthropic: boolean; onChanged: () => Promise<void>; onMoShot?: (thuTu: number) => void }) {
   const [ban, setBan] = useState(false);
   const [loi, setLoi] = useState('');
+  const [banSua, setBanSua] = useState(false);
+  const [daSua, setDaSua] = useState('');
   const t = tap.thu_nguoi_xem;
   const chan = chanNguoiXem(t, canh);
   const cu = !!t && chan.some((x) => x.includes('đã sửa sau lần kiểm'));
-  const gia = giaChuCents(moHinhChu, 5000, 2500);
+  const gia = giaChuCents(moHinhChu, 6000, 3000);
+  const giaSua = giaChuCents(moHinhChu, 8000, 5000);
+  const sua = async () => {
+    setBanSua(true); setLoi(''); setDaSua('');
+    try {
+      const r = await suaTheoNguoiXem(tap.id);
+      if (!r.ok) setLoi(r.loi);
+      else setDaSua(`✓ Đã sửa ${r.data.sua} shot${r.data.them ? `, thêm ${r.data.them} shot` : ''}. ${r.data.ghi_chu} Còn phải: ${[r.data.canGiong && `sinh giọng ${r.data.canGiong} câu`, r.data.canHinh.length && `sinh lại keyframe ${r.data.canHinh.length} shot (đánh dấu đỏ trên shot)`].filter(Boolean).join(' · ') || 'không'} — rồi bấm kiểm lại. Sửa nhầm thì ↶ ở đầu ngăn phim.`);
+    } catch (e) { setLoi(`Không gọi được máy chủ (${e instanceof Error ? e.message.slice(0, 80) : 'lỗi mạng'})`); }
+    setBanSua(false); await onChanged();
+  };
   const lam = async () => { setBan(true); setLoi(''); try { const r = await thuNguoiXemTap(tap.id); if (!r.ok) setLoi(r.loi); } catch (e) { setLoi(`Không gọi được máy chủ (${e instanceof Error ? e.message.slice(0, 80) : 'lỗi mạng'})`); } setBan(false); await onChanged(); };
   const mau = !t ? 'var(--amber)' : cu ? 'var(--amber)' : t.dat ? '#4ade80' : 'var(--red)';
   return (
@@ -23,8 +35,11 @@ export function NguoiXem({ tap, canh, moHinhChu, coAnthropic, onChanged, onMoSho
         <Nut chinh={!t || cu || !t.dat} ly={(!coAnthropic && 'thiếu ANTHROPIC_API_KEY') || (!canh.length && 'tách cảnh trước')} ban={ban} gia={gia} onClick={() => void lam()}>{ban ? '… đang kiểm' : `${TEN_NUT_NGUOI_XEM} · ~${tien(gia)}`}</Nut>
         {t && <b style={{ color: mau }}>{cu ? '⚠ kịch bản đã sửa sau lần kiểm — bấm kiểm lần nữa' : t.dat ? `✓ Hiểu ${t.diem}/10 · đúng ý tác giả` : `✗ Hiểu ${t.diem}/10${t.khop ? '' : ' · lệch ý tác giả'}`}</b>}
         {t && <span style={mono}>{gioVN(t.luc)}</span>}
+        {/* Chưa đạt → sửa ngay tại đây: Claude sửa đúng các shot bị vấp theo các câu gợi ý bên dưới. */}
+        {t && !t.dat && !cu && <Nut chinh ly={!coAnthropic && 'thiếu ANTHROPIC_API_KEY'} ban={banSua} gia={giaSua} title="Claude sửa đúng các shot người xem vấp (lời, chữ màn, hành động, prompt hình; chèn shot nếu cần cho thấy) — giữ phần còn lại; ↶ hoàn tác được" onClick={() => void sua()}>{banSua ? '… đang sửa kịch bản' : `✍ Sửa kịch bản theo góp ý · ~${tien(giaSua)}`}</Nut>}
       </div>
       <Loi>{loi}</Loi>
+      {daSua && <div style={{ fontSize: 12, color: '#4ade80', marginTop: 6 }}>{daSua}</div>}
       {t && (
         <div style={{ display: 'grid', gap: 6, marginTop: 8, fontSize: 12, lineHeight: 1.5, opacity: cu ? 0.6 : 1 }}>
           <div><b>Người xem kể lại:</b> {t.ke_lai}</div>

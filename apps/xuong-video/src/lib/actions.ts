@@ -21,7 +21,7 @@ import { boVaoThungRac, boAnhVaoThungRac, dsRac, khoiPhucRac, type MucRac } from
 import { batDauNangCap, danhMucFal, guiFal, type ModelFal } from '@/lib/xuong-video/fal';
 import { type DungChu } from '@/lib/xuong-video/claude';
 import { docTrangSanPham, doiChieuAnchor as doiChieuAnchorClaude } from '@/lib/xuong-video/claude';
-import { kiemNguoiXemTap } from '@/lib/xuong-video/kiem-nguoi-xem';
+import { kiemNguoiXemTap, suaTheoNguoiXemTap } from '@/lib/xuong-video/kiem-nguoi-xem';
 import { chanNguoiXem } from '@/lib/xuong-video/nguoi-xem';
 import { tachCanh, vietKichBan, vietBaiDang, phanTichMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
@@ -558,6 +558,13 @@ export async function thuNguoiXemTap(tapId: number): Promise<Kq<ThuNguoiXem>> {
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   try { return await kiemNguoiXemTap(db, tapId); } catch (e) { console.error('[kiểm người xem]', e); return loi(`lỗi máy chủ: ${e instanceof Error ? e.message : String(e)}`); }
+}
+/** ✍ Sửa kịch bản theo kết quả kiểm người xem (kiem-nguoi-xem.ts) — TỐN TIỀN (1 lượt Claude), ↶ hoàn tác được. */
+export async function suaTheoNguoiXem(tapId: number): Promise<Kq<{ sua: number; them: number; canGiong: number; canHinh: number[]; ghi_chu: string }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  try { return await suaTheoNguoiXemTap(db, tapId, await ai()); } catch (e) { console.error('[sửa theo người xem]', e); return loi(`lỗi máy chủ: ${e instanceof Error ? e.message : String(e)}`); }
 }
 export async function vietBaiDangTap(tapId: number): Promise<Kq<BaiDang>> {
   const db = getDb();

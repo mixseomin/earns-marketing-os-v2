@@ -2,9 +2,10 @@
 // Phần thuần (bản người xem, mã phiên bản, cổng chặn) ở nguoi-xem.ts; lượt Claude ở claude.ts › thuNguoiXem.
 import 'server-only';
 import { sql } from 'drizzle-orm';
-import { thuNguoiXem } from './claude';
-import { banNguoiXem, maBan, DIEM_HIEU_DAT } from './nguoi-xem';
-import { docKinhThanh, giaChuCents, locNhanh, type ThuNguoiXem } from './kieu';
+import { thuNguoiXem, suaKichBanTheoNguoiXem } from './claude';
+import { chupTruoc } from './hoan-tac';
+import { banNguoiXem, maBan, keHoachSua, DIEM_HIEU_DAT } from './nguoi-xem';
+import { docKinhThanh, giaChuCents, locNhanh, lamTronClip, type ThuNguoiXem } from './kieu';
 import { boiCanhTap, mapCanh, type Db, type Row } from './doc-db';
 
 export async function kiemNguoiXemTap(db: Db, tapId: number): Promise<{ ok: true; data: ThuNguoiXem } | { ok: false; loi: string }> {
@@ -19,12 +20,60 @@ export async function kiemNguoiXemTap(db: Db, tapId: number): Promise<{ ok: true
   const logline = (kt.series?.dong_co ? kt.series.tap.find((t) => t.so === bc.tap.so)?.logline : '') || kt.logline || '';
   const kq = await thuNguoiXem({ ban, nhanVat: nvTa, logline, brief: bc.tap.brief, kt });
   if (!kq.ok) return kq;
-  const gia = giaChuCents(kq.model, kq.tokens.in, kq.tokens.out);
-  await db.execute(sql`INSERT INTO xv_job (phim_id, nhan, loai, provider, model, trang_thai, chi_phi_cents, tokens_in, tokens_out)
-    VALUES (${bc.tap.phim_id}, ${`Kiểm người xem có hiểu không · tập ${bc.tap.so}`}, 'chu', 'anthropic', ${kq.model}, 'xong', ${Math.round(gia * 100) / 100}, ${kq.tokens.in}, ${kq.tokens.out})`);
+  await ghiTienChu(db, bc.tap.phim_id, `Kiểm người xem có hiểu không · tập ${bc.tap.so}`, kq.model, kq.tokens);
   const { xem, doi } = kq.data;
   const t: ThuNguoiXem = { ma: maBan(ban), luc: new Date().toISOString(), model: kq.model, ke_lai: xem.ke_lai, hieu: { ai: xem.ai, muon: xem.muon, can: xem.can, lat: xem.lat, ket: xem.ket },
     diem: Math.max(0, Math.min(10, Math.round(xem.diem))), cho_kho: xem.cho_kho, khop: doi.khop, lech: doi.lech, dat: doi.khop && xem.diem >= DIEM_HIEU_DAT };
   await db.execute(sql`UPDATE xv_tap SET thu_nguoi_xem = ${JSON.stringify(t)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
   return { ok: true, data: t };
+}
+
+const ghiTienChu = async (db: Db, phimId: number, nhan: string, model: string, tk: { in: number; out: number }) => {
+  const gia = giaChuCents(model, tk.in, tk.out);
+  await db.execute(sql`INSERT INTO xv_job (phim_id, nhan, loai, provider, model, trang_thai, chi_phi_cents, tokens_in, tokens_out)
+    VALUES (${phimId}, ${nhan}, 'chu', 'anthropic', ${model}, 'xong', ${Math.round(gia * 100) / 100}, ${tk.in}, ${tk.out})`);
+};
+
+/** ✍ Sửa kịch bản theo người xem: Claude sửa đúng các shot bị vấp (+ chèn shot khi cần cho THẤY), máy ghi kèm chụp trước (↶ được).
+ *  Câu không đổi giữ giọng cũ; shot đổi hình được đánh dấu cần sinh lại keyframe. Không tự kiểm lại — người bấm kiểm (mỗi bước một lượt tiền). */
+export async function suaTheoNguoiXemTap(db: Db, tapId: number, nguoi: string): Promise<{ ok: true; data: { sua: number; them: number; canGiong: number; canHinh: number[]; ghi_chu: string } } | { ok: false; loi: string }> {
+  const bc = await boiCanhTap(db, tapId);
+  if (!bc) return { ok: false, loi: 'không thấy tập' };
+  const t = bc.tap.thu_nguoi_xem;
+  if (!t || (!t.cho_kho.length && !t.lech)) return { ok: false, loi: 'chưa có kết quả kiểm người xem (hoặc không có chỗ vấp) — bấm kiểm trước' };
+  const tatCa = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh);
+  const canh = locNhanh(tatCa, 'A');
+  const kt = docKinhThanh(bc.kt);
+  const ten = (id: number) => bc.nhanVat.find((v) => v.id === id)?.ten ?? '';
+  const bang = canh.map((c) => `#${c.thu_tu} [${c.phan_doan || '—'} · ${c.phat_s ?? c.thoi_luong_s}s · ${c.nhan_vat.map(ten).filter(Boolean).join(', ') || 'không anchor'}]\n  THẤY: ${c.hanh_dong}\n  CHỮ: ${c.chu_man || '—'}\n  LỜI: ${c.thoai.length ? c.thoai.map((d) => `${d.nhan_vat || '(dẫn)'}${d.dien_xuat ? ` (${d.dien_xuat})` : ''}: ${d.loi}`).join(' | ') : '—'}\n  PROMPT ẢNH: ${c.prompt_anh}`).join('\n');
+  const anchor = bc.nhanVat.filter((v) => v.loai !== 'phong_cach').map((v) => `- ${v.ten} (${v.loai}): ${v.mo_ta.slice(0, 140)}`).join('\n');
+  const vap = t.cho_kho.map((x) => `#${x.shot}: ${x.van_de} → gợi ý: ${x.sua}`).join('\n');
+  const kq = await suaKichBanTheoNguoiXem({ bang, anchor, vap, lech: t.khop ? '' : t.lech, brief: bc.tap.brief, kt });
+  if (!kq.ok) return kq;
+  await ghiTienChu(db, bc.tap.phim_id, `Sửa kịch bản theo người xem · tập ${bc.tap.so}`, kq.model, kq.tokens);
+  const kh = keHoachSua(canh, bc.nhanVat, kq.data.sua, kq.data.them);
+  const nhom = await chupTruoc(db, { bang: 'xv_canh', id: kh.capNhat[0]?.id ?? canh[0]!.id, cot: ['thu_tu'], moTa: 'sửa kịch bản theo người xem', nguoi });
+  for (const u of kh.capNhat) {
+    await chupTruoc(db, { bang: 'xv_canh', id: u.id, cot: ['hanh_dong', 'chu_man', 'thoai', 'loi_thoai', 'thoai_url', 'prompt_anh', 'phat_s', 'loi'], moTa: 'sửa theo người xem', nguoi: '', nhom });
+    await db.execute(sql`UPDATE xv_canh SET hanh_dong = ${u.hanh_dong}, chu_man = ${u.chu_man}, thoai = ${JSON.stringify(u.thoai)}::jsonb, loi_thoai = ${u.loi_thoai}, thoai_url = ${u.thoai_url},
+      prompt_anh = ${u.prompt_anh}, prompt_video = ${u.hanh_dong}, phat_s = ${u.phat_s}, thoi_luong_s = GREATEST(thoi_luong_s, ${lamTronClip(u.phat_s)}), loi = ${u.loi}, updated_at = now() WHERE id = ${u.id}`);
+  }
+  // Shot chèn: chép phân cảnh / kỹ thuật / cảm xúc của shot đứng trước (qua cổng shot list), rồi đánh số lại cả tập theo thuTu.
+  const idMoi = new Map<string, number>();
+  for (const [i, m] of kh.chen.entries()) {
+    const tr = tatCa.find((c) => c.id === m.sau_id)!;
+    const r = (await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, hanh_dong, chu_man, thoai, loi_thoai, prompt_anh, prompt_video, phat_s, thoi_luong_s, nhan_vat, ky_thuat, phan_doan, cam_xuc, nhanh)
+      VALUES (${tapId}, ${tr.thu_tu}, ${m.canh}, ${m.hanh_dong}, ${m.chu_man}, ${JSON.stringify(m.thoai)}::jsonb, ${m.loi_thoai}, ${m.prompt_anh}, ${m.hanh_dong}, ${m.phat_s}, ${lamTronClip(m.phat_s)},
+        ${JSON.stringify(m.nhan_vat)}::jsonb, ${JSON.stringify(tr.ky_thuat ?? {})}::jsonb, ${tr.phan_doan}, ${tr.cam_xuc}, ${tr.nhanh}) RETURNING id`)) as unknown as Row[];
+    idMoi.set(`m${i}`, Number(r[0]!.id));
+  }
+  if (kh.chen.length) {
+    const ids = kh.thuTu.map((x) => (typeof x === 'number' ? x : idMoi.get(x)!));
+    const ngoai = tatCa.filter((c) => !ids.includes(c.id)).map((c) => c.id);   // shot nhánh hook khác: giữ sau cùng, đúng thứ tự cũ
+    for (const id of ids) if (typeof id === 'number' && tatCa.some((c) => c.id === id)) await chupTruoc(db, { bang: 'xv_canh', id, cot: ['thu_tu'], moTa: 'đánh số lại', nguoi: '', nhom });
+    for (const [i, id] of [...ids, ...ngoai].entries()) await db.execute(sql`UPDATE xv_canh SET thu_tu = ${i + 1} WHERE id = ${id}`);
+  }
+  const canGiong = [...kh.capNhat.flatMap((u) => u.thoai), ...kh.chen.flatMap((m) => m.thoai)].filter((d) => d.loi.trim() && !d.url).length;
+  const canHinh = [...kh.capNhat.filter((u) => u.loi).map((u) => u.id), ...idMoi.values()];
+  return { ok: true, data: { sua: kh.capNhat.length, them: kh.chen.length, canGiong, canHinh, ghi_chu: kq.data.ghi_chu } };
 }

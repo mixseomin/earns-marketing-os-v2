@@ -552,3 +552,44 @@ export async function thuNguoiXem(o: { ban: string; nhanVat: string; logline: st
     return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
   }
 }
+
+// ── SỬA KỊCH BẢN THEO NGƯỜI XEM: nhận chỗ vấp của bước kiểm → sửa đúng các shot đó (+ chèn shot khi cần cho THẤY), giữ phần còn lại ────
+const DongSua = z.object({ nhan_vat: z.string().describe('Tên nhân vật nói, đúng tên anchor; rỗng = người dẫn ngoài khung'), dien_xuat: z.string().describe('Ghi chú diễn xuất ngắn (tiếng Anh)'), loi: z.string().describe('Lời nói, đúng ngôn ngữ phim') });
+const SuaKbSchema = z.object({
+  sua: z.array(z.object({
+    shot: z.number().describe('Số shot (#) đang có cần sửa'),
+    hanh_dong: z.string().describe('Hành động người xem THẤY trong shot (1 câu, tiếng Anh)'),
+    chu_man: z.string().describe('Chữ trên màn ≤ 5 từ, không dấu chấm cuối; rỗng nếu không cần'),
+    thoai: z.array(DongSua).describe('TOÀN BỘ dòng thoại / lời dẫn của shot sau khi sửa (giữ nguyên dòng không cần đổi)'),
+    prompt_anh: z.string().describe('Prompt ảnh keyframe tiếng Anh sau khi sửa (giữ nguyên nếu hình không đổi)'),
+    doi_hinh: z.boolean().describe('true nếu hình shot phải khác bản cũ (cần sinh lại keyframe)'),
+    phat_s: z.number().describe('Số giây shot phát (≥ 2; đủ đọc hết lời ~2,5 từ/giây + 0,5 giây thở)'),
+  })).describe('Chỉ những shot cần sửa để người xem hiểu'),
+  them: z.array(z.object({
+    sau_shot: z.number().describe('Chèn ngay SAU shot số này (theo số shot hiện tại)'),
+    canh: z.string().describe('Tên shot ngắn (tiếng Anh)'),
+    hanh_dong: z.string(), chu_man: z.string(), thoai: z.array(DongSua),
+    prompt_anh: z.string().describe('Prompt ảnh keyframe tiếng Anh, cùng phong cách phim'),
+    nhan_vat: z.array(z.string()).describe('Tên anchor (nhân vật / bối cảnh / đạo cụ) có trong shot, đúng tên trong danh sách'),
+    phat_s: z.number(),
+  })).describe('Shot mới chỉ khi cần cho người xem THẤY một chi tiết mà shot cũ không có (vd cận cảnh làm nên cú lật); tối đa 3'),
+  ghi_chu: z.string().describe('2–3 câu tiếng Việt: đã sửa gì để người xem hiểu'),
+});
+export async function suaKichBanTheoNguoiXem(o: { bang: string; anchor: string; vap: string; lech: string; brief: string; kt: Required<KinhThanh> }): Promise<GoiYKq<z.infer<typeof SuaKbSchema>>> {
+  const c = client();
+  if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
+  try {
+    const r = await c.messages.parse({
+      model: o.kt.mo_hinh_chu, max_tokens: 16000,
+      system: `Bạn là biên kịch sửa kịch bản phim ngắn sau buổi chiếu thử: người xem chưa hiểu ở các chỗ được báo. Sửa ĐÚNG các chỗ đó cho người xem hiểu, giữ nguyên câu chuyện, nhân vật, phong cách và mọi shot không liên quan. Lời và chữ màn viết bằng ${tenNgonNgu(o.kt.ngon_ngu)}; hanh_dong, prompt_anh tiếng Anh, không chữ/phụ đề trong prompt. Phong cách hình của phim: ${o.kt.phong_cach || '(giữ như prompt cũ)'}.\n\n${LUAT_KE_CHUYEN}`,
+      messages: [{ role: 'user', content: `Ý TÁC GIẢ (brief): ${o.brief || '(không có)'}\n\nNHÂN VẬT / BỐI CẢNH (dùng đúng tên):\n${o.anchor}\n\nKỊCH BẢN HIỆN TẠI (từng shot):\n${o.bang}\n\nNGƯỜI XEM VẤP Ở:\n${o.vap}\n${o.lech ? `\nNGƯỜI XEM HIỂU LỆCH Ý TÁC GIẢ: ${o.lech}` : ''}` }],
+      output_config: { format: zodOutputFormat(SuaKbSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
+    });
+    if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
+    if (r.stop_reason === 'max_tokens') return { ok: false, loi: 'Claude viết quá dài, hết trần token' };
+    const p = r.parsed_output as z.infer<typeof SuaKbSchema> | null;
+    return p ? { ok: true, data: p, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
+  } catch (e) {
+    return { ok: false, loi: e instanceof Anthropic.APIError ? `Anthropic ${e.status}: ${e.message}` : String(e) };
+  }
+}

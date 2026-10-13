@@ -10,7 +10,7 @@ const { chromium } = await import(process.env.PLAYWRIGHT || '/Users/htuan/Me/Ear
 const [base, tok, ...chi] = process.argv.slice(2);
 const DIR = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'cong-ty', 'phong');
 const phongs = fs.readdirSync(DIR).filter((f) => f.endsWith('.md')).map((f) => [f.slice(0, -3), parseFm(fs.readFileSync(path.join(DIR, f), 'utf8')).fm.so_do])
-  .filter(([id, sd]) => sd && (!chi.length || chi.includes(id)));
+  .filter(([id]) => !chi.length || chi.includes(id));   // MỌI phòng: sơ đồ vẽ tay lẫn sơ đồ vẽ từ khuôn (so-do-khuon.tsx) — trước 14/10/2026 bỏ sót khuôn, chữ tràn ô Phòng Bảo mật lọt
 const b = await chromium.launch({ channel: 'chrome' }); let sai = 0;
 const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } }); await ctx.addCookies([{ name: 'mos2-session', value: tok, url: base }]);
 for (const [id] of phongs) {

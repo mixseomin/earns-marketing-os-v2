@@ -31,6 +31,11 @@ export function nhipChu(fm: Record<string, unknown>) {
 }
 /** Lần làm việc gần nhất của từng người: dòng nhật ký mới nhất do chính người đó phát ra (gọi mô hình, gửi tin) — nhịp chạy mà không có
  *  việc thì không ghi nhật ký, nên không tính là "làm". Một lượt đọc cho cả bảng. */
+/** "17 phút trước" — hiện khi rê chuột vào ô làm lần cuối (anh 14/10/2026). Trang tự làm mới 20 giây nên số không đứng yên. */
+export function truoc(iso: string, gio = Date.now()) {
+  const p = Math.max(0, Math.round((gio - Date.parse(iso)) / 60000));
+  return p < 1 ? 'vừa xong' : p < 60 ? `${p} phút trước` : p < 1440 ? `${Math.floor(p / 60)} giờ ${p % 60 ? `${p % 60} phút ` : ''}trước` : `${Math.floor(p / 1440)} ngày trước`;
+}
 function lanCuoi(ids: string[]) {
   const ra: Record<string, string> = {}; const can = new Set(ids);
   for (const e of docLog({ n: 5000 }) as { tu?: string; ts?: string }[]) if (e.tu && can.has(e.tu) && !ra[e.tu] && e.ts) ra[e.tu] = e.ts;
@@ -43,14 +48,14 @@ export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS
   const docs = ds.map((d) => nhanSu(d.id)).filter(Boolean) as Doc[];
   const so = await soChi(docs, trongPhong ? phong : undefined);   // trong phòng: chỉ tiền làm cho phòng này · null = không nối DB → "?" chứ không phải $0
   const chi = (id: string) => so ? so.ds.filter((r) => r.nguoi === id).reduce((t, r) => t + (r.usd ?? 0), 0) : null;
-  const cuoi = lanCuoi(ds.map((d) => d.id)); const nenDoi = ds.filter((d) => d.deXuat.muc === 'doi').length;
+  const cuoi = lanCuoi(ds.map((d) => d.id)); const nenDoi = ds.filter((d) => d.deXuat.muc === 'doi').length; const thang = new Date().getUTCMonth() + 1;   // sổ chi tính date_trunc('month', now()) ở DB (UTC)
   return (
     <div className="cty-dn-cuon">
       <table className="cty-viec cty-dn">
         <thead><tr><th>Người</th>{!trongPhong && <th>Phòng</th>}<th>{trongPhong ? 'Vai ở phòng' : 'Vai chính'}</th><th>Bộ não</th>
           <th title="Việc tự làm theo nhịp (worker/nhip.mjs)">Nhịp</th><th>Tần suất</th><th title="Giờ làm, giờ VN">Ca</th>
           <th title="Lần gần nhất người đó thật sự làm việc (gọi mô hình / gửi tin) — theo nhật ký">Làm lần cuối</th>
-          <th className="cty-so" title={trongPhong ? 'Tiền mô hình thật tháng này người đó tiêu CHO PHÒNG NÀY (sổ ai_usage)' : 'Tiền mô hình thật tháng này, mọi phòng (sổ ai_usage)'}>{trongPhong ? 'Chi ở phòng này' : 'Chi tháng này'}</th>
+          <th className="cty-so" title={`Tiền mô hình thật THÁNG LỊCH ${thang} (từ 01/${thang} tới giờ — cơ sở lương)${trongPhong ? ', chỉ phần làm cho phòng này' : ', mọi phòng'} · sổ ai_usage`}>{trongPhong ? 'Chi ở phòng' : 'Chi'} tháng {thang}<br /><span className="cty-muted">từ 01/{thang}</span></th>
           <th className="cty-so" title="Trần chi tháng của người đó (mọi phòng cộng lại) — chạm trần thì proxy chặn">Trần / tháng</th>
           {tn && !trongPhong && <th className="cty-so" title="Số quy trình chịu trách nhiệm chính · số việc đang mở (kể cả việc máy làm thay)">Phụ trách</th>}</tr></thead>
         <tbody>{ds.map((d) => { const fm = nhanSu(d.id)?.fm ?? {}; const n = nhipChu(fm); const c = chi(d.id); const tr = Number(fm.tran_usd_thang || 0); return (
@@ -60,7 +65,7 @@ export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS
             <td className={`cty-nho${n.bat ? '' : ' cty-muted'}`}>{n.viec}</td>
             <td className="cty-nho">{n.tanSuat ?? <span className="cty-muted">—</span>}</td>
             <td className="cty-nho">{n.ca ?? <span className="cty-muted">—</span>}</td>
-            <td className="cty-nho">{cuoi[d.id] ? <Gio iso={cuoi[d.id]} giay={false} mui={false} /> : <span className="cty-muted">chưa làm</span>}</td>
+            <td className="cty-nho" title={cuoi[d.id] ? truoc(cuoi[d.id]!) : undefined}>{cuoi[d.id] ? <Gio iso={cuoi[d.id]} giay={false} mui={false} /> : <span className="cty-muted">chưa làm</span>}</td>
             <td className="cty-so" title={so ? `${so.ds.filter((r) => r.nguoi === d.id).reduce((t, r) => t + r.luot, 0)} lời gọi tháng này` : 'không nối được DB'}>{c === null ? <span className="cty-thu-loi">?</span> : tien(c)}</td>
             <td className="cty-so cty-muted">{tr ? tien(tr) : '—'}</td>
             {tn && !trongPhong && ((x) => <td className="cty-so" title={`${x.chuTri} quy trình chủ trì · ${x.lam} được giao làm · ${x.viec} việc đang mở${x.tre ? ` (${x.tre} máy trễ)` : ''}`}>

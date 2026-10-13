@@ -6,6 +6,7 @@ import { GopY } from '@/components/gop-y';
 import { ChonMuiGio } from '@/components/gio';
 import { ThanhTren } from '@/components/thanh-tren';
 import { NhanCot } from '@/components/nhan-cot';
+import { LamMoiNen } from '@/components/lam-moi-nen';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: { default: 'Công ty', template: '%s · Công ty' }, robots: { index: false, follow: false } };
@@ -28,6 +29,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
         <main className="cty-main">{children}</main>
         <NganLinks />
         <NhanCot />
+        {me && <LamMoiNen />}
         {me?.role === 'admin' && <GopY />}
       </body>
     </html>

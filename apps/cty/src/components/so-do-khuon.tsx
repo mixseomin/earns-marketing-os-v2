@@ -3,13 +3,19 @@
 import type { Doc } from '@/lib/cong-ty';
 
 const W = 920, H = 300;
-const Box = ({ x, y, w, h, t, s, warn, teal, href }: { x: number; y: number; w: number; h: number; t: string; s?: string; warn?: boolean; teal?: boolean; href?: string }) => (
+/** Dòng phụ của ô: bẻ theo bề rộng ô (≈ 5,8 đơn vị/ký tự cỡ 10), tối đa 2 dòng, quá thì "…" — trước 14/10/2026 cắt cứng 34 ký tự nên chữ lòi khỏi ô hẹp. */
+function dongCon(s: string, w: number) {
+  const toi = Math.max(8, Math.floor((w - 14) / 5.8)); const ra: string[] = [''];
+  for (const tu of s.split(' ')) { const cu = ra[ra.length - 1]!; if (!cu || (cu + ' ' + tu).length <= toi) ra[ra.length - 1] = cu ? `${cu} ${tu}` : tu; else ra.push(tu); }
+  return ra.length > 2 ? [ra[0]!, `${ra[1]!.slice(0, toi - 1)}…`] : ra;
+}
+const Box = ({ x, y, w, h, t, s, warn, teal, href }: { x: number; y: number; w: number; h: number; t: string; s?: string; warn?: boolean; teal?: boolean; href?: string }) => { const dc = s ? dongCon(s, w) : []; const len = (dc.length - 1) * 6; return (   // 2 dòng phụ → cả khối chữ dồn lên 6 để không lòi đáy ô thấp
   <g data-href={href} style={{ cursor: 'pointer' }}>
     <rect x={x} y={y} width={w} height={h} rx={5} fill={warn ? 'var(--warn-bg)' : 'var(--surface)'} stroke={warn ? 'var(--warn)' : teal ? 'var(--accent)' : 'currentColor'} strokeWidth={warn || teal ? 2 : 1.2} />
-    <text x={x + w / 2} y={y + (s ? h / 2 - 3 : h / 2 + 4)} textAnchor="middle" fontSize={12} fontWeight={700} fill={warn ? 'var(--warn)' : teal ? 'var(--accent)' : 'currentColor'}>{t}</text>
-    {s && <text x={x + w / 2} y={y + h / 2 + 13} textAnchor="middle" fontSize={10} fill="var(--muted)">{s.slice(0, 34)}</text>}
+    <text x={x + w / 2} y={y + (s ? h / 2 - 3 - len : h / 2 + 4)} textAnchor="middle" fontSize={12} fontWeight={700} fill={warn ? 'var(--warn)' : teal ? 'var(--accent)' : 'currentColor'}>{t}</text>
+    {dc.map((d, i) => <text key={i} x={x + w / 2} y={y + h / 2 + 12 - len + i * 11} textAnchor="middle" fontSize={10} fill="var(--muted)">{d}</text>)}
   </g>
-);
+); };
 const Ar = ({ d, warn, dash }: { d: string; warn?: boolean; dash?: boolean }) => <path d={d} fill="none" stroke={warn ? 'var(--warn)' : 'currentColor'} strokeWidth={warn ? 2 : 1.2} strokeDasharray={dash ? '3 3' : undefined} markerEnd="url(#ar2)" />;
 
 export function SoDoKhuon({ p, ns }: { p: Doc; ns: Doc[] }) {
@@ -51,13 +57,13 @@ export function SoDoKhuon({ p, ns }: { p: Doc; ns: Doc[] }) {
   else if (khuon === 'bo-loc') body = (<>
     <Box x={30} y={40} w={200} h={160} t="Phát sinh" s="mọi nguồn đổ vào" />
     <Ar d="M230 120 H298" />
-    <Box x={300} y={90} w={180} h={60} t={truong.split(' ')[0] || 'Tiếp nhận'} s="phân loại, không giải quyết" />
-    <Ar d="M480 108 H548" /><Ar d="M480 120 H548 V160" /><Ar d="M480 132 H548 V214" />
+    <Box x={300} y={90} w={180} h={60} t={truong.split(' ')[0] || 'Tiếp nhận'} s="phân loại, không giải quyết" href={((d) => d && `/nhan-su/${d.id}`)(ns.find((d) => String(d.fm.ten) === truong)) || undefined} />
+    <Ar d="M480 108 H508 V64 H548" warn /><Ar d="M480 120 H522 V160 H548" /><Ar d="M480 132 H536 V214 H548" />   {/* mỗi nhánh vào ĐÚNG giữa cạnh trái ô của nó (trước chĩa vào khoảng trống, 14/10/2026) */}
     <Box x={550} y={44} w={180} h={40} t="Gấp" s="ca ngoài giờ ngay" warn />
     <Box x={550} y={140} w={180} h={40} t="Cần bàn" s="chương trình họp" />
     <Box x={550} y={194} w={180} h={40} t="Thường" s="trưởng dự án" />
-    <Box x={760} y={90} w={150} h={60} t="Giám đốc" s={cong} warn />
-    <Ar d="M730 64 H790 V88" warn />
+    <Box x={752} y={84} w={160} h={72} t="Giám đốc" s={cong.split(';')[0]} warn />
+    <Ar d="M730 64 H832 V82" warn />
     <text x={460} y={260} textAnchor="middle" fontSize={10} fill="var(--muted)">{dv}</text>
   </>);
   else if (khuon === 'theo-du-an') body = (<>

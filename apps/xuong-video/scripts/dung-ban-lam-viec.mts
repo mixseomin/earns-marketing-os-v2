@@ -11,6 +11,7 @@ import { uploadToR2 } from '../src/lib/r2';
 import { taoJob, type Row } from '../src/lib/xuong-video/doc-db';
 import { chayViecAnh } from '../src/lib/xuong-video/viec-anh';
 import { hoanTatAnh } from '../src/lib/xuong-video/hoan-tat';
+import { promptBienThe } from '../src/lib/xuong-video/claude';
 
 const TEN_PHIM = 'Series · Bàn làm việc (stop-motion)';
 const PHONG_CACH = 'Real-world miniature stop-motion film: shot on a real home-office desk with a macro lens at tabletop height, as seen by a 5 cm tall character; shallow depth of field with soft bokeh; real materials and textures (warm wood grain, matte white plastic, brushed aluminium, paper); cozy warm desk-lamp light mixed with cool blue monitor glow; slightly handmade stop-motion feel with tactile detail; vertical 9:16 frame. Clean frames with no text, letters, numbers or logos anywhere';
@@ -44,17 +45,35 @@ const BOI_CANH: { ten: string; mo_ta: string }[] = [
 ];
 const NHAC = 'Real desk reference: keep exactly the same objects, materials, colors and lighting as the real desk in the reference photo. Every screen shows ONLY a soft abstract colored glow — no people, no videos, no app windows, no logos, no text. No people, no hands, no characters in the frame';
 
+/** Biến thể thời điểm cho mỗi bối cảnh (bối cảnh vốn đã là đêm / sáng sớm thì bỏ qua). */
+const THOI_DIEM: { ten: string; mo_ta: string }[] = [
+  { ten: 'Ban đêm', mo_ta: 'night time: the room is dark, the desk is lit only by the soft blue glow of the screens and a small warm desk lamp, long soft shadows' },
+  { ten: 'Sáng sớm', mo_ta: 'early morning: screens are off and black, warm golden sunlight streams low across the desk from the side, dust specks float in the light beams' },
+];
+/** Đồ vật trên bàn (theo ảnh thật) → anchor đạo cụ; mỗi món một biến thể góc thấp tầm mắt nhân vật. */
+const DO_VAT: { ten: string; mo_ta: string }[] = [
+  { ten: 'Bàn phím trắng', mo_ta: 'the slim white wireless keyboard with white keys and a silver frame' },
+  { ten: 'Chuột Magic Mouse', mo_ta: 'the smooth white wireless Magic Mouse, a low glossy white dome' },
+  { ten: 'iMac vàng', mo_ta: 'the thin pale-yellow all-in-one iMac with a white bezel on its curved pale-yellow aluminium stand' },
+  { ten: 'Màn hình trái', mo_ta: 'the second monitor with a thin black bezel on a silver aluminium stand with a flat square foot' },
+  { ten: 'Chồng sổ tay', mo_ta: 'a small stack of notebooks with business cards on top' },
+  { ten: 'Đế cắm USB', mo_ta: 'the small silver aluminium USB hub, a flat rounded rectangle with ports on its side' },
+  { ten: 'Thẻ cam', mo_ta: 'a flat orange card / card holder lying on the desk' },
+  { ten: 'Dây cáp trắng', mo_ta: 'the long white power cable of the iMac, with a metal plug end' },
+  { ten: 'Loa cầu đen', mo_ta: 'a small round black fabric smart speaker, like a little dark sphere' },
+  { ten: 'Chồng tạp chí', mo_ta: 'a pile of magazines and books with colorful spines' },
+];
+const GOC_THAP = 'seen from ground level by a 5 cm tall character standing on the desk: the object towers like a giant structure, macro lens, shallow depth of field';
+
 const db = getDb()!;
 const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as Row[];
 const lai = process.argv.includes('--lai');
+const dot = (process.argv.find((x) => x.startsWith('--dot='))?.slice(6) ?? 'boi_canh') as 'boi_canh' | 'bien_the' | 'do_vat';
 const tep = process.argv.slice(2).filter((x) => !x.startsWith('--'));
-if (!tep.length) { console.error('cần đường dẫn ảnh bàn thật'); process.exit(1); }
-const anhThat: string[] = [];
-for (const t of tep) {
-  const u = await uploadToR2(`xuong-video/ref/ban-lam-viec-${randomUUID()}.jpg`, await readFile(t), 'image/jpeg');
-  if (!u) { console.error('R2 không nhận ảnh', t); process.exit(1); }
-  anhThat.push(u);
-}
+/** Chạy tối đa 5 việc sinh cùng lúc (Gemini giới hạn tốc độ). */
+async function theoDot<T>(ds: T[], f: (x: T) => Promise<void>, cung = 5) { for (let i = 0; i < ds.length; i += cung) await Promise.all(ds.slice(i, i + cung).map(f)); }
+const anhRa = (u: string) => !u.includes('/ref/');   // ảnh đã sinh (ảnh thật nằm ở xuong-video/ref/)
+
 let phim = (await q(sql`SELECT id FROM xv_phim WHERE ten = ${TEN_PHIM} LIMIT 1`))[0];
 if (!phim) {
   phim = (await q(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh, trang_thai) VALUES ('studio', ${TEN_PHIM}, 'short',
@@ -62,17 +81,47 @@ if (!phim) {
   await q(sql`INSERT INTO xv_tap (phim_id, so, ten) VALUES (${Number(phim.id)}, 1, '')`);
 }
 const phimId = Number(phim.id);
+// Ảnh thật: tải lên khi có đường dẫn; không thì dùng ảnh thật đã gắn ở bối cảnh đầu (đợt sau không cần đưa lại).
+let anhThat: string[] = [];
+for (const t of tep) {
+  const u = await uploadToR2(`xuong-video/ref/ban-lam-viec-${randomUUID()}.jpg`, await readFile(t), 'image/jpeg');
+  if (!u) { console.error('R2 không nhận ảnh', t); process.exit(1); }
+  anhThat.push(u);
+}
+if (!anhThat.length) anhThat = (((await q(sql`SELECT anh_ref FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = 'boi_canh' ORDER BY id LIMIT 1`))[0]?.anh_ref as string[]) ?? []).filter((u) => !anhRa(u));
+if (!anhThat.length) { console.error('cần đường dẫn ảnh bàn thật (lần đầu)'); process.exit(1); }
+
 const ra: { ten: string; url: string | null; loi?: string }[] = [];
-await Promise.all(BOI_CANH.map(async (b) => {
-  let v = (await q(sql`SELECT id, anh_ref FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = 'boi_canh' AND ten = ${b.ten} LIMIT 1`))[0];
-  if (!v) v = (await q(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, anh_ref) VALUES (${phimId}, 'boi_canh', ${b.ten}, ${b.mo_ta}, ${JSON.stringify(anhThat)}::jsonb) RETURNING id, anh_ref`))[0]!;
-  const daSinh = ((v.anh_ref as string[]) ?? []).some((u) => !u.includes('/ref/'));
-  if (daSinh && !lai) { ra.push({ ten: b.ten, url: null, loi: 'đã có ảnh sinh — bỏ qua' }); return; }
-  const prompt = `Establishing shot of a location for a miniature stop-motion film, no characters. Location: ${b.mo_ta}. ${NHAC}. Visual style: ${PHONG_CACH}.`;
-  const job = await taoJob(db, { nhan_vat_id: Number(v.id), nhan: `Ảnh gốc · bối cảnh ${b.ten}`, loai: 'anh', provider: 'google', model: KINH_THANH.mo_hinh_anh, request: { prompt, thamChieuUrl: anhThat } });
-  const kq = await chayViecAnh({ job, model: KINH_THANH.mo_hinh_anh, prompt, thamChieuUrl: anhThat, tiLe: '9:16', thuMuc: `anchor/${Number(v.id)}` });
-  await hoanTatAnh(kq);   // ảnh mới lên ĐẦU anh_ref của bối cảnh, ảnh thật giữ sau làm tham chiếu
-  ra.push({ ten: b.ten, url: kq.ok ? kq.url : null, ...(kq.ok ? {} : { loi: kq.loi }) });
-}));
-console.log(JSON.stringify({ phimId, ra }));
+/** Sinh một ảnh gốc cho anchor (job gắn nhan_vat_id → hoanTatAnh đưa ảnh lên ĐẦU anh_ref, ảnh thật giữ sau). */
+async function anhGoc(loai: 'boi_canh' | 'dao_cu', ten: string, mo_ta: string, prompt: string) {
+  let v = (await q(sql`SELECT id, anh_ref FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = ${loai} AND ten = ${ten} LIMIT 1`))[0];
+  if (!v) v = (await q(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, anh_ref) VALUES (${phimId}, ${loai}, ${ten}, ${mo_ta}, ${JSON.stringify(anhThat)}::jsonb) RETURNING id, anh_ref`))[0]!;
+  if (((v.anh_ref as string[]) ?? []).some(anhRa) && !lai) { ra.push({ ten, url: null, loi: 'đã có ảnh — bỏ qua' }); return; }
+  const job = await taoJob(db, { nhan_vat_id: Number(v.id), nhan: `Ảnh gốc · ${loai === 'boi_canh' ? 'bối cảnh' : 'đồ vật'} ${ten}`, loai: 'anh', provider: 'google', model: KINH_THANH.mo_hinh_anh, request: { prompt, thamChieuUrl: anhThat } });
+  const kq = await chayViecAnh({ job, model: KINH_THANH.mo_hinh_anh, prompt, thamChieuUrl: anhThat, tiLe: loai === 'boi_canh' ? '9:16' : '1:1', thuMuc: `anchor/${Number(v.id)}` });
+  await hoanTatAnh(kq);
+  ra.push({ ten, url: kq.ok ? kq.url : null, ...(kq.ok ? {} : { loi: kq.loi }) });
+}
+/** Một biến thể của anchor (xv_bien_the, đúng hệ biến thể studio) — bám 2 ảnh đầu của anchor (ảnh sinh + ảnh thật). */
+async function bienThe(loai: 'boi_canh' | 'dao_cu', tenAnchor: string, nhom: string, ten: string, mo_ta: string) {
+  const v = (await q(sql`SELECT id, mo_ta, anh_ref FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = ${loai} AND ten = ${tenAnchor} LIMIT 1`))[0];
+  const anh = ((v?.anh_ref as string[]) ?? []);
+  if (!v || !anh.some(anhRa)) { ra.push({ ten: `${tenAnchor} · ${ten}`, url: null, loi: 'anchor chưa có ảnh gốc — chạy đợt trước' }); return; }
+  let b = (await q(sql`SELECT id, anh_url FROM xv_bien_the WHERE nhan_vat_id = ${Number(v.id)} AND ten = ${ten} LIMIT 1`))[0];
+  if (b?.anh_url && !lai) { ra.push({ ten: `${tenAnchor} · ${ten}`, url: null, loi: 'đã có — bỏ qua' }); return; }
+  if (!b) b = (await q(sql`INSERT INTO xv_bien_the (nhan_vat_id, nhom, ten, mo_ta) VALUES (${Number(v.id)}, ${nhom}, ${ten}, ${mo_ta}) RETURNING id, anh_url`))[0]!;
+  const prompt = `${promptBienThe({ loai, ten: tenAnchor, mo_ta: String(v.mo_ta) }, { nhom, ten, mo_ta }, KINH_THANH)} ${NHAC}.`;
+  const job = await taoJob(db, { nhan_vat_id: Number(v.id), bien_the_id: Number(b.id), nhan: `Biến thể · ${tenAnchor} · ${ten}`, loai: 'anh', provider: 'google', model: KINH_THANH.mo_hinh_anh, request: { prompt } });
+  const kq = await chayViecAnh({ job, model: KINH_THANH.mo_hinh_anh, prompt, thamChieuUrl: anh.slice(0, 2), tiLe: loai === 'boi_canh' ? '9:16' : '1:1', thuMuc: `bien-the/${Number(b.id)}` });
+  await hoanTatAnh(kq);
+  ra.push({ ten: `${tenAnchor} · ${ten}`, url: kq.ok ? kq.url : null, ...(kq.ok ? {} : { loi: kq.loi }) });
+}
+
+if (dot === 'boi_canh') await theoDot(BOI_CANH, (b) => anhGoc('boi_canh', b.ten, b.mo_ta, `Establishing shot of a location for a miniature stop-motion film, no characters. Location: ${b.mo_ta}. ${NHAC}. Visual style: ${PHONG_CACH}.`));
+if (dot === 'bien_the') await theoDot(BOI_CANH.filter((b) => !/ban đêm|sáng sớm/i.test(b.ten)).flatMap((b) => THOI_DIEM.map((t) => ({ b, t }))), ({ b, t }) => bienThe('boi_canh', b.ten, 'thoi_diem', t.ten, t.mo_ta));
+if (dot === 'do_vat') {
+  await theoDot(DO_VAT, (d) => anhGoc('dao_cu', d.ten, d.mo_ta, `Prop reference shot for a miniature stop-motion film: ${d.mo_ta}, photographed in place on the same warm wooden desk as in the reference photo, centered, macro lens, shallow depth of field, no characters. Keep the object's real shape, color and material exactly as in the reference photo. ${NHAC}. Visual style: ${PHONG_CACH}.`));
+  await theoDot(DO_VAT, (d) => bienThe('dao_cu', d.ten, 'goc_may', 'Góc thấp tầm nhân vật', GOC_THAP));
+}
+console.log(JSON.stringify({ phimId, dot, xong: ra.filter((x) => x.url).length, ra }));
 process.exit(0);

@@ -79,6 +79,14 @@ const ai = async () => (await admin())?.email ?? '';
 
 const KHO = 'studio';   // xv_phim.project khi tạo mới. Danh sách hiện MỌI phim (kể cả phim tạo lúc còn nằm trong mos2, project='bra') — app riêng = một kho.
 
+/** Lưu trữ / bỏ lưu trữ một phim (ẩn khỏi danh sách mặc định, không xoá gì). */
+export async function luuTruPhim(id: number, bat: boolean): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  await db.execute(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{luu_tru}', ${JSON.stringify(bat)}::jsonb), updated_at = now() WHERE id = ${id}`);
+  return { ok: true, data: undefined };
+}
 export async function dsPhim(): Promise<Phim[]> {
   const db = getDb();
   if (!db || !(await admin())) return [];
@@ -88,7 +96,12 @@ export async function dsPhim(): Promise<Phim[]> {
         (SELECT count(*) FROM xv_tap t WHERE t.phim_id = p.id) AS so_tap,
         (SELECT count(*) FROM xv_nhan_vat v WHERE v.phim_id = p.id) AS so_nhan_vat,
         (SELECT count(*) FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = p.id) AS so_canh,
-        (SELECT coalesce(sum(j.chi_phi_cents), 0) FROM xv_job j WHERE j.phim_id = p.id AND j.tinh_chi) AS chi_phi_cents
+        (SELECT coalesce(sum(j.chi_phi_cents), 0) FROM xv_job j WHERE j.phim_id = p.id AND j.tinh_chi) AS chi_phi_cents,
+        (SELECT coalesce(json_agg(json_build_object('id', t.id, 'so', t.so, 'ten', t.ten,
+            'so_canh', (SELECT count(*) FROM xv_canh c WHERE c.tap_id = t.id),
+            'so_hinh', (SELECT count(*) FROM xv_canh c WHERE c.tap_id = t.id AND c.keyframe_url IS NOT NULL),
+            'so_clip', (SELECT count(*) FROM xv_canh c WHERE c.tap_id = t.id AND (c.video_url IS NOT NULL OR c.video_cuoi_url IS NOT NULL))) ORDER BY t.so), '[]'::json)
+          FROM xv_tap t WHERE t.phim_id = p.id) AS tap_tom
       FROM xv_phim p ORDER BY p.updated_at DESC`);
     return (r as unknown as Row[]).map(mapPhim);
   } catch { return []; }
@@ -97,6 +110,7 @@ const mapPhim = (r: Row): Phim => ({
   id: n(r.id), project: s(r.project), ten: s(r.ten), loai: s(r.loai) as LoaiPhim, mo_ta: s(r.mo_ta),
   kinh_thanh: (r.kinh_thanh && typeof r.kinh_thanh === 'object' ? r.kinh_thanh : {}) as KinhThanh, trang_thai: s(r.trang_thai),
   so_tap: n(r.so_tap), so_nhan_vat: n(r.so_nhan_vat), so_canh: n(r.so_canh), chi_phi_cents: n(r.chi_phi_cents), updated_at: s(r.updated_at),
+  tap_tom: arr<NonNullable<Phim['tap_tom']>[number]>(r.tap_tom).map((t) => ({ ...t, so_canh: Number(t.so_canh), so_hinh: Number(t.so_hinh), so_clip: Number(t.so_clip) })),
 });
 
 /** dangSinh: job ảnh còn chạy (≤10 phút) — F5 vẫn thấy "đang sinh" vì trạng thái ở sổ job máy chủ, không ở trình duyệt. */

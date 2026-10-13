@@ -7,7 +7,8 @@ import { useModalParam } from '@/lib/use-modal-param';
 import { Ngan } from './ngan';
 import { moNgan } from './ngan-chung';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
-import { dsPhim, docPhim, taoPhim, taoPhimMau, xoaPhim, taoTap, dsMoHinh, dsThungRac, khoiPhuc, docHoanTac, hoanTac, type MoHinhChon, type PhimDayDu } from '@/lib/actions';
+import { nhomPhim, demKieu, laLuuTru, TEN_KIEU, type KieuNhom } from '@/lib/xuong-video/nhom-phim';
+import { dsPhim, luuTruPhim, docPhim, taoPhim, taoPhimMau, xoaPhim, taoTap, dsMoHinh, dsThungRac, khoiPhuc, docHoanTac, hoanTac, type MoHinhChon, type PhimDayDu } from '@/lib/actions';
 import type { MucHoanTac } from '@/lib/xuong-video/hoan-tac';
 import { LOAI_PHIM, docKinhThanh, giaAnhCents, giaVideoCents, tien, gioVN, type Phim, type Job, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Khoa, TabPhim, TAB_PHIM, O, Pill, Seg, Nut, Xoa, Loi, Menu, MucMenu, mono } from './ui';
@@ -29,6 +30,10 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
   const [loiTao, setLoiTao] = useState('');
   const [ban, setBan] = useState(false);
   const modal = useModalParam();
+  const [locKieu, setLocKieu] = useNho<KieuNhom | ''>('xv-loc-kieu', '', ['', 'series', 'quang_cao', 'phim']);
+  const [locTim, setLocTim] = useState('');
+  const [hienLuuTru, setHienLuuTru] = useState(false);
+  const [tapMo, setTapMo] = useState<number | null>(null);   // bấm chip tập → mở ngăn phim đúng tập
   const taiLai = useCallback(async () => setPhim(await dsPhim()), []);
   const [moHinh, setMoHinh] = useState<{ anh: MoHinhChon[]; video: MoHinhChon[] }>({ anh: [], video: [] });
   useEffect(() => { void dsMoHinh().then(setMoHinh); }, []);
@@ -73,23 +78,50 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}><ThungRac phimId={null} onKhoiPhuc={taiLai} /></div>
       {phim.length === 0 ? (
         <div className="xv-panel" style={{ textAlign: 'center', padding: 40 }}><div style={{ fontSize: 28 }}>🎬</div><b>Chưa có phim nào</b><div style={mono}>Tạo một phim ở trên: đặt tên, chọn loại, rồi khai nhân vật/sản phẩm và dán kịch bản.</div></div>
-      ) : (
-        <div className="xv-panel" style={{ padding: 0 }}>
-          <table className="xv-tbl">
-            <thead><tr><th>Phim</th><th>Loại</th><th className="n">Anchor</th><th className="n">Tập</th><th className="n">Cảnh</th><th className="n">Đã tốn</th><th>Trạng thái</th></tr></thead>
-            <tbody>{phim.map((p) => (
-              <tr key={p.id}>
-                <td><button type="button" onClick={() => modal.open('phim', p.id)} style={{ background: 'none', border: 0, color: 'var(--fg-1)', cursor: 'pointer', fontWeight: 600, padding: 0, font: 'inherit' }}>{p.ten}</button></td>
-                <td><Pill color="var(--fg-3)">{LOAI_PHIM.find((l) => l.key === p.loai)?.label ?? p.loai}</Pill></td>
-                <td className="n">{p.so_nhan_vat}</td><td className="n">{p.so_tap}</td><td className="n">{p.so_canh}</td><td className="n">{tien(p.chi_phi_cents)}</td><td>{p.trang_thai}</td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
-      )}
+      ) : (() => {
+        // NHÓM (series / thương hiệu) → PHIM (từng bản) → TẬP, có bộ lọc (nhom-phim.ts).
+        const nhom = nhomPhim(phim, { kieu: locKieu, tim: locTim, luuTru: hienLuuTru });
+        const dem = demKieu(phim); const soLuuTru = phim.filter(laLuuTru).length;
+        return (
+          <div className="xv-panel" style={{ padding: 0 }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', padding: '8px 10px', borderBottom: '1px solid var(--line)' }}>
+              <Seg options={[{ value: '' as const, label: `Tất cả ${dem.series + dem.quang_cao + dem.phim}` }, ...(['series', 'quang_cao', 'phim'] as const).map((k) => ({ value: k, label: `${TEN_KIEU[k]} ${dem[k]}` }))]} value={locKieu} onChange={setLocKieu} />
+              <input className="xv-in" style={{ width: 220 }} value={locTim} onChange={(e) => setLocTim(e.target.value)} placeholder="🔍 tìm phim, series, tập…" />
+              {soLuuTru > 0 && <label style={{ ...mono, display: 'flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={hienLuuTru} onChange={(e) => setHienLuuTru(e.target.checked)} />hiện bản lưu trữ ({soLuuTru})</label>}
+              <span style={{ flex: 1 }} /><span style={mono}>{nhom.length} nhóm · {nhom.reduce((a, g) => a + g.phim.length, 0)} phim</span>
+            </div>
+            {!nhom.length && <div style={{ ...mono, padding: 16 }}>Không có phim khớp bộ lọc.</div>}
+            {nhom.map((g) => (
+              <section key={g.key} style={{ borderBottom: '1px solid var(--line)' }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '10px 12px 4px', background: 'var(--bg-1)' }}>
+                  <b style={{ fontSize: 14 }}>{g.kieu === 'series' ? '📺 ' : g.kieu === 'quang_cao' ? '📣 ' : '🎬 '}{g.ten}</b>
+                  <Pill color="var(--fg-3)">{TEN_KIEU[g.kieu]}</Pill>
+                  <span style={mono}>{g.phim.length} phim · {g.phim.reduce((a, p) => a + p.so_tap, 0)} tập · {tien(g.chi_phi_cents)}</span>
+                </div>
+                {g.phim.map((p) => (
+                  <div key={p.id} style={{ display: 'grid', gap: 4, padding: '6px 12px 8px 28px', opacity: laLuuTru(p) ? 0.55 : 1 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                      <button type="button" onClick={() => { setTapMo(null); modal.open('phim', p.id); }} style={{ background: 'none', border: 0, color: 'var(--fg-1)', cursor: 'pointer', fontWeight: 600, padding: 0, font: 'inherit', textAlign: 'left' }}>{p.ten}</button>
+                      {laLuuTru(p) && <Pill color="var(--fg-4)">lưu trữ</Pill>}
+                      <span style={mono}>{LOAI_PHIM.find((l) => l.key === p.loai)?.label ?? p.loai} · {p.so_nhan_vat} anchor · {p.so_canh} cảnh · {tien(p.chi_phi_cents)}</span>
+                    </div>
+                    {!!p.tap_tom?.length && <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {p.tap_tom.map((t) => (
+                        <button key={t.id} type="button" className="xv-btn" style={{ padding: '2px 8px', fontSize: 11.5 }} title={`Mở tập ${t.so}`} onClick={() => { setTapMo(t.id); modal.open('phim', p.id); }}>
+                          <b>Tập {t.so}</b>{t.ten && t.ten !== p.ten ? ` · ${t.ten}` : ''} <span style={{ color: t.so_canh && t.so_hinh === t.so_canh ? '#4ade80' : 'var(--fg-3)' }}>· {t.so_hinh}/{t.so_canh} hình</span> <span style={{ color: t.so_canh && t.so_clip === t.so_canh ? '#4ade80' : 'var(--fg-3)' }}>· {t.so_clip} clip</span>
+                        </button>
+                      ))}
+                    </div>}
+                  </div>
+                ))}
+              </section>
+            ))}
+          </div>
+        );
+      })()}
 
       {modal.is('phim') && modal.numId != null && (
-        <PhimDrawer id={modal.numId} khoa={khoa} onClose={() => { modal.close(); void taiLai(); }} onXoa={async () => { await xoaPhim(modal.numId!); modal.close(); await taiLai(); }} />
+        <PhimDrawer id={modal.numId} tapDau={tapMo} khoa={khoa} onClose={() => { modal.close(); void taiLai(); }} onXoa={async () => { await xoaPhim(modal.numId!); modal.close(); await taiLai(); }} />
       )}
     </div>
     </MoHinhCtx.Provider>
@@ -98,7 +130,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
 
 // ── Drawer phim ─────────────────────────────────────────────────────────────────────────────────────────────────
 
-function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onClose: () => void; onXoa: () => Promise<void> }) {
+function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?: number | null; khoa: Khoa; onClose: () => void; onXoa: () => Promise<void> }) {
   const [d, setD] = useState<PhimDayDu | null | undefined>(undefined);
   const tapParam = useModalParam('tap');
   const tai = useCallback(async () => setD(await docPhim(id)), [id]);
@@ -112,7 +144,7 @@ function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onCl
   if (d === undefined) return <Ngan onClose={onClose}><span style={mono}>đang tải…</span></Ngan>;
   if (d === null) return <Ngan onClose={onClose}><b>Không thấy phim</b></Ngan>;
   const { phim, nhanVat, tap } = d;
-  const tapId = tapParam.numId && tap.some((t) => t.id === tapParam.numId) ? tapParam.numId : (tap[0]?.id ?? null);
+  const tapId = tapParam.numId && tap.some((t) => t.id === tapParam.numId) ? tapParam.numId : tapDau && tap.some((t) => t.id === tapDau) ? tapDau : (tap[0]?.id ?? null);
 
   return (
     <Ngan onClose={onClose} tieuDe={phim.ten} nut={<>
@@ -125,6 +157,7 @@ function PhimDrawer({ id, khoa, onClose, onXoa }: { id: number; khoa: Khoa; onCl
       <Menu>
         <MucMenu onClick={() => moNgan({ loai: 'thu-vien', tl: docKinhThanh(phim.kinh_thanh).the_loai })}>🎬 Thư viện điện ảnh</MucMenu>
         <MucMenu onClick={() => moNgan({ loai: 'kho' })}>📦 Kho tài sản</MucMenu>
+        <MucMenu onClick={async () => { await luuTruPhim(phim.id, !phim.kinh_thanh?.luu_tru); await tai(); }}>{phim.kinh_thanh?.luu_tru ? '📤 Bỏ lưu trữ (hiện lại trong danh sách)' : '🗄 Lưu trữ (ẩn khỏi danh sách, không xoá)'}</MucMenu>
         <Xoa nhan="cả phim (tập + cảnh)" onXoa={onXoa} />
       </Menu>
     </>} dau={

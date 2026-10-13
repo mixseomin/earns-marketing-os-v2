@@ -195,6 +195,8 @@ export const camCongCuVe = (pc?: string): string =>
   /crayon|pencil|sketch|watercolou?r|chalk|pastel|doodle|scribbl|ink\b|marker|hand-drawn|hand drawn|drawn|paper|sáp|bút chì|màu nước|phấn|vẽ/i.test(pc ?? '')
     ? 'This is an animated illustration: the drawn characters and scenery themselves move. NO human hands, NO crayons, pencils, brushes or any drawing tools, NO artist and NO paper edges ever appear in the frame; nothing is being drawn on screen.'
     : '';
+/** Negative prompt cho model video có ô riêng (Veo / Kling): liệt kê DANH TỪ cần loại, không viết "no …" (hướng dẫn prompt Veo của Google). */
+export const loaiCongCuVe = (pc?: string): string => (camCongCuVe(pc) ? 'human hand, artist hand, fingers, crayon, pencil, brush, marker, drawing tool, paper being drawn on, artist' : '');
 export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: string; shot?: Partial<ShotChu>; anchor?: Pick<NhanVat, 'ten' | 'mo_ta'>[] }): string | null {
   if (!ngonNgu || ngonNgu === 'vi') return null;
   const cho: string[] = [];

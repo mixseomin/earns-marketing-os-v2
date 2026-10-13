@@ -11,7 +11,7 @@ import { dongThoai, promptCamXuc, laLoiDan, dungTiengClip } from './am-thanh';
 import { chanVideo } from './quy-trinh';
 import { chupTruoc } from './hoan-tac';
 import { sinhGiongShots } from './sinh-giong';
-import { camCongCuVe, lamTronClip, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
+import { camCongCuVe, loaiCongCuVe, lamTronClip, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { boiCanhCanh, taoJob, xongJob, mapJob, giaVideoSv, s, type Db, type Row } from './doc-db';
 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
@@ -80,12 +80,12 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   let kq: { ok: true; taskId: string } | { ok: false; loi: string };
   if (laFal) {
     const id = bc.kt.mo_hinh_video.slice(4);
-    kq = await guiFal(id, await dauVaoTheoSchema(id, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, giay: bc.canh.thoi_luong_s || giay, tiLe: bc.kt.ti_le, tieng }));
+    kq = await guiFal(id, await dauVaoTheoSchema(id, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, giay: bc.canh.thoi_luong_s || giay, tiLe: bc.kt.ti_le, tieng, loai: loaiCongCuVe(bc.kt.phong_cach) }));
   } else {
     const anhDau = await taiAnhBase64(bc.canh.keyframe_url);
     if (!anhDau) { await xongJob(db, job, { loi: 'không tải được keyframe' }); return loi('không tải được keyframe'); }
     const anhCuoi = khungCuoi ? await taiAnhBase64(khungCuoi) : null;
-    kq = await batDauVeo({ model: bc.kt.mo_hinh_video, prompt, anhDau, anhCuoi, tiLe: bc.kt.ti_le, doPhanGiai: bc.kt.do_phan_giai, giay });
+    kq = await batDauVeo({ model: bc.kt.mo_hinh_video, prompt, anhDau, anhCuoi, tiLe: bc.kt.ti_le, doPhanGiai: bc.kt.do_phan_giai, giay, loai: loaiCongCuVe(bc.kt.phong_cach) });
   }
   if (!kq.ok) {
     await xongJob(db, job, { loi: kq.loi });

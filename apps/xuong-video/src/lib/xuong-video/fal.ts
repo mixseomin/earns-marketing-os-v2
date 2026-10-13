@@ -142,7 +142,7 @@ async function canAnh(id: string): Promise<boolean | null> {
 const enumCua = (f?: SchemaTruong) => (f?.enum ?? f?.anyOf?.flatMap((a) => a.enum ?? []) ?? []) as unknown[];
 
 /** Đầu vào chung → đúng tên/kiểu trường của endpoint fal, đọc từ OpenAPI. */
-export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?: string | null; anhCuoi?: string | null; anhThamChieu?: string[]; giay?: number; tiLe?: string; tieng?: boolean }): Promise<Record<string, unknown>> {
+export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?: string | null; anhCuoi?: string | null; anhThamChieu?: string[]; giay?: number; tiLe?: string; tieng?: boolean; /** danh từ cần loại (negative prompt) */ loai?: string }): Promise<Record<string, unknown>> {
   const p = await schemaVao(id);
   const co = (k: string) => k in p;
   const o: Record<string, unknown> = { prompt: v.prompt };
@@ -172,6 +172,7 @@ export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?:
   }
   // Tiếng clip chỉ dùng khi shot có người nói trong khung (dungTiengClip) — còn lại tắt hẳn, Veo khỏi bịa giọng/nhạc (10/10/2026).
   if (co('generate_audio')) o.generate_audio = v.tieng ?? true;
+  if (v.loai && co('negative_prompt')) o.negative_prompt = v.loai;
   return o;
 }
 

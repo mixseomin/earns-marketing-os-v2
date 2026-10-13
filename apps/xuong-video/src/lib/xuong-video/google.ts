@@ -89,7 +89,7 @@ type KqVeoBatDau = { ok: true; taskId: string } | { ok: false; loi: string };
 
 /** Bắt đầu sinh video Veo. Trả operation name để poll (`docVeo`). mode: text | start_image (keyframe làm khung đầu). */
 export async function batDauVeo(opts: {
-  model: string; prompt: string; anhDau?: AnhVao | null; anhCuoi?: AnhVao | null; tiLe: TiLe; doPhanGiai: DoPhanGiai; giay: 4 | 6 | 8;
+  model: string; prompt: string; anhDau?: AnhVao | null; anhCuoi?: AnhVao | null; tiLe: TiLe; doPhanGiai: DoPhanGiai; giay: 4 | 6 | 8; loai?: string;
 }): Promise<KqVeoBatDau> {
   const key = khoaGoogle();
   if (!key) return { ok: false, loi: 'Thiếu GOOGLE_API_KEY trên máy chủ' };
@@ -103,6 +103,7 @@ export async function batDauVeo(opts: {
     aspectRatio: opts.tiLe, resolution: opts.doPhanGiai, durationSeconds: giay,   // phải là SỐ (Google báo lỗi nếu gửi chuỗi)
     personGeneration: opts.anhDau ? 'allow_adult' : 'allow_all',
   };
+  if (opts.loai) parameters.negativePrompt = opts.loai;
   const r = await fetch(`${GOC}/models/${opts.model}:predictLongRunning`, {
     method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
     body: JSON.stringify({ instances: [inst], parameters }),

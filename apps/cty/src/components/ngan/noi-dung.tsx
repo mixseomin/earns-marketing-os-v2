@@ -7,6 +7,7 @@ import { tinhCachCua, TINH_CACH } from '../../../worker/tinh-cach.mjs';
 import { soVi, luongVai, bangLuong } from '../../../worker/luong.mjs';
 import { dsBaiHoc, trangThai, NGUONG } from '../../../worker/kinh-nghiem.mjs';
 import { NutBoBaiHoc } from '../nut-bo-bai-hoc';
+import { TruocDay } from '../truoc-day';
 import { soTinhCachCua, dsThuViec } from '../../../worker/cai-tien.mjs';
 import { NutDeCu } from '../nut-de-cu';
 import { KhungVp } from '@/components/khung-vp';
@@ -174,14 +175,14 @@ function ViNhanSu({ vi, lg, tenVai }: { vi: Vi | undefined; lg: Luong | null; te
   );
 }
 
-type BaiHoc = { ma: string; ts: string; khoa: string; noi_dung: string; bang_chung: string; nguon: string[]; lan_ap_dung: number; lan_dat: number; luot_cuoi?: string };
+type BaiHoc = { ma: string; ts: string; khoa: string; noi_dung: string; bang_chung: string; nguon: string[]; lan_ap_dung: number; lan_dat: number; luot_cuoi?: string; day?: { ai: string; luc: string } };
 /** Kinh nghiệm tự lớn (worker/kinh-nghiem.mjs): bài học rút sau lượt có vấp → lên KỸ NĂNG khi dùng mà đạt, PHAI khi dùng mà không đạt. */
 function KinhNghiem({ id, ds, admin }: { id: string; ds: BaiHoc[]; admin: boolean }) {
   if (!ds.length) return <p className="cty-muted">Chưa có bài học nào. Bài học mọc ra sau những lượt có vấp (bị bác, làm lại, không nộp được): người tham gia tự rút một bài kèm bằng chứng, trong ngân sách cải tiến của phòng.</p>;
   const nhom = (tt: string) => ds.filter((b) => trangThai(b) === tt);
   const Dong = ({ b }: { b: BaiHoc }) => (
     <tr>
-      <td className="cty-kn-nd">{b.noi_dung}<div className="cty-muted cty-nho">{b.khoa} · bằng chứng {b.bang_chung} · <Link href={`/nhat-ky?luot=${encodeURIComponent(b.nguon[0] ?? '')}`}>lượt ↗</Link>{b.nguon.length > 1 && ` · gặp lại ${b.nguon.length - 1} lần`}</div></td>
+      <td className="cty-kn-nd">{b.noi_dung}{b.day ? <div className="cty-muted cty-nho">{b.khoa} · được dạy bởi {b.day.ai || 'Giám đốc'} · <TruocDay iso={b.day.luc} /></div> : <div className="cty-muted cty-nho">{b.khoa} · bằng chứng {b.bang_chung} · <Link href={`/nhat-ky?luot=${encodeURIComponent(b.nguon[0] ?? '')}`}>lượt ↗</Link>{b.nguon.length > 1 && ` · gặp lại ${b.nguon.length - 1} lần`}</div>}</td>
       <td className="cty-gm-so" title="đạt / áp dụng">{b.lan_dat}/{b.lan_ap_dung}</td>
       {admin && <td><NutBoBaiHoc nguoi={id} ma={b.ma} /></td>}
     </tr>

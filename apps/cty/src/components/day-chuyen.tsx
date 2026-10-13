@@ -211,7 +211,7 @@ export async function DcMail({ ds: tatCa }: { ds: MailBm[] | null }) {
   const nhomCua = (m: string) => (['nha', 'quen', 'gia'] as const).find((k) => day[k]?.includes(m));
   const dem = <><p className="cty-muted cty-nho">Kiên đã đọc {tatCa.length} thư trong 30 ngày: {ds.length} thư bảo mật, {thuong} thư thường (không có dấu hiệu bảo mật, không cần làm gì).</p>
     <p className="cty-muted cty-nho">Đã dạy Kiên — 🏠 nhà mình: {day.nha?.join(', ') || '—'} · ✅ thật, quen: {day.quen?.join(', ') || '—'} · ⛔ giả: {day.gia?.join(', ') || '—'}. Dạy bằng nút trên từng dòng hoặc dưới tin Telegram.</p>
-    {!!day.lich_su?.length && <details className="cty-dn-do" open><summary>Kiên đã học <span className="cty-muted cty-nho">{day.lich_su.length} lần dạy</span></summary>
+    {!!day.lich_su?.length && <details className="cty-dn-do" open><summary>Đã dạy <span className="cty-muted cty-nho">{day.lich_su.length} lần — mỗi lần thành bài học trong hồ sơ người phụ trách › Kinh nghiệm</span></summary>
       <div className="cty-cuon"><table className="cty-bang-loc cty-bang-viec"><thead><tr><th>Lúc</th><th>Tên miền</th><th>Nhớ là</th><th>Ai dạy</th></tr></thead><tbody>
         {[...day.lich_su].reverse().slice(0, 10).map((x, i) => <tr key={i}><td><TruocDay iso={x.luc} /></td><td>{x.mien}</td><td>{({ nha: '🏠 Nhà mình', quen: '✅ Thật, quen', gia: '⛔ Giả' } as Record<string, string>)[x.nhom] ?? x.nhom}</td><td className="cty-muted">{x.ai || '—'}</td></tr>)}
       </tbody></table></div></details>}</>;

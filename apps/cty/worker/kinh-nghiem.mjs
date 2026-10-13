@@ -56,6 +56,15 @@ export function ghiBaiHoc(id, khoa, nk, kq) {
   luu(id, ds); return { ghi: 'moi', ma };
 }
 
+/** ĐƯỢC DẠY (anh 14/10/2026 "lấy chủ thể là nhân viên đó, họ học được gì mới quan trọng"): điều Giám đốc dạy trực tiếp thành bài học của
+ *  CHÍNH người đó (vd Kiên: "examweight.com = site nhà"). Một chủ đề một bài (khoaBai) — dạy lại thì sửa bài cũ, không đẻ bài mới.
+ *  Bằng chứng = ai dạy, lúc nào (không phải một lượt chạy). */
+export function ghiDuocDay(id, khoa, khoaBai, noi_dung, ai) {
+  const ds = dsBaiHoc(id), ma = `day-${id}-${String(khoaBai).replace(/[^\w.-]/g, '-')}`, luc = new Date().toISOString();
+  const cu = ds.find((b) => b.ma === ma), bai = { ma, ts: luc, khoa, noi_dung: String(noi_dung).slice(0, 220), bang_chung: `${ai || 'Giám đốc'} dạy`, nguon: [], lan_ap_dung: cu?.lan_ap_dung ?? 0, lan_dat: cu?.lan_dat ?? 0, day: { ai, luc } };
+  luu(id, cu ? ds.map((b) => (b.ma === ma ? bai : b)) : [...ds, bai]); return ma;
+}
+
 /** Bỏ một bài học (Giám đốc / Hà thấy bịa hoặc lệch chuẩn). */
 export function boBaiHoc(id, ma) { const ds = dsBaiHoc(id); const con = ds.filter((b) => b.ma !== ma); if (con.length === ds.length) return false; luu(id, con); return true; }
 

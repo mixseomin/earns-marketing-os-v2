@@ -35,7 +35,11 @@ export async function dayMien(nhom, mien, ai = '') {
   const fs = await import('node:fs'); const m = mienGoc(String(mien)); if (!NHOM_DAY[nhom] || !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(m)) throw new Error(`không dạy được "${nhom}" cho "${mien}"`);
   const s = await docDay(); for (const k of Object.keys(NHOM_DAY)) s[k] = (s[k] ?? []).filter((x) => x !== m); s[nhom].push(m);
   (s.lich_su ??= []).push({ luc: new Date().toISOString(), nhom, mien: m, ai }); s.lich_su = s.lich_su.slice(-200);
-  const tam = `${tepDay()}.tam`; fs.writeFileSync(tam, JSON.stringify(s, null, 1)); fs.renameSync(tam, tepDay()); return s;
+  const tam = `${tepDay()}.tam`; fs.writeFileSync(tam, JSON.stringify(s, null, 1)); fs.renameSync(tam, tepDay());
+  // điều được dạy = bài học của CHÍNH người phụ trách (hồ sơ › Kinh nghiệm), không chỉ một dòng trong sổ máy
+  const { dangBat } = await import('./nhip.mjs'); const ng = dangBat().find((n) => n.viec.includes('mail-bao-mat'));
+  if (ng) (await import('./kinh-nghiem.mjs')).ghiDuocDay(ng.id, 'an-toan-tk/tham-dinh-mail-bao-mat', m, `${m} = ${NOM_CHU[nhom]}: ${SAU_DAY[nhom]}`, ai);
+  return s;
 }
 /** Kiên chỉ BÁO thư đến từ lúc được bật — thư cũ hơn coi như anh đã thấy (14/10/2026: lần đầu đọc mọi thư lôi 3 thư tháng 9 ra báo). */
 export const BAT_TU = '2026-10-13T00:00:00Z';

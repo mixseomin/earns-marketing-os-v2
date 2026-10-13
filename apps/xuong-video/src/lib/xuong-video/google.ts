@@ -2,7 +2,7 @@
 // (predictLongRunning → poll operation → tải file). Gọi REST bằng fetch để không thêm dependency; khoá đọc server-side.
 // Tên model Google đổi nhanh → `sinhAnh` thử lần lượt danh sách MO_HINH_ANH khi model được chọn trả 404.
 import 'server-only';
-import { MO_HINH_ANH, type DoPhanGiai, type TiLe } from './kieu';
+import { MO_HINH_ANH, type DoPhanGiai, type TiLe, type TiLeAnh } from './kieu';
 import { sinhAnhOpenAI, khoaOpenAI } from './openai';
 import { sinhAnhFal } from './fal';
 
@@ -30,7 +30,7 @@ export async function taiAnhBase64(url: string): Promise<AnhVao | null> {
 type KqAnh = { ok: true; model: string; mimeType: string; data: Buffer } | { ok: false; loi: string };
 
 /** Gọi đúng MỘT model, không fallback (probe + sinhAnh dùng chung). Model không nhận imageSize thì thử lại không có. */
-export async function sinhAnhMot(opts: { model: string; prompt: string; thamChieu?: AnhVao[]; tiLe: TiLe | '1:1'; kichCo?: '1K' | '2K' }): Promise<KqAnh> {
+export async function sinhAnhMot(opts: { model: string; prompt: string; thamChieu?: AnhVao[]; tiLe: TiLeAnh; kichCo?: '1K' | '2K' }): Promise<KqAnh> {
   const key = khoaGoogle();
   if (!key) return { ok: false, loi: 'Thiếu GOOGLE_API_KEY trên máy chủ' };
   const parts: Array<Record<string, unknown>> = [{ text: opts.prompt }];
@@ -60,7 +60,7 @@ export async function sinhAnhMot(opts: { model: string; prompt: string; thamChie
 }
 
 /** Sinh MỘT ảnh với fallback: model được chọn không tồn tại (404) hoặc không có trong hạng free (quota 0) → thử model kế trong MO_HINH_ANH. */
-export async function sinhAnh(opts: { model: string; prompt: string; thamChieu?: AnhVao[]; thamChieuUrl?: string[]; tiLe: TiLe | '1:1'; kichCo?: '1K' | '2K' }): Promise<KqAnh> {
+export async function sinhAnh(opts: { model: string; prompt: string; thamChieu?: AnhVao[]; thamChieuUrl?: string[]; tiLe: TiLeAnh; kichCo?: '1K' | '2K' }): Promise<KqAnh> {
   if (opts.model.startsWith('fal:')) {
     // fal cần URL ảnh: tham chiếu đã là URL R2 công khai → truyền qua thamChieuUrl (base64 chỉ dùng cho Google/OpenAI).
     return sinhAnhFal(opts.model.slice(4), { prompt: opts.prompt, thamChieu: opts.thamChieuUrl ?? [], tiLe: opts.tiLe });

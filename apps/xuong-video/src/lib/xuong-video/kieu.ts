@@ -31,6 +31,8 @@ export const TRANG_THAI_CANH: Record<TrangThaiCanh, { label: string; color: stri
 };
 
 export type TiLe = '9:16' | '16:9';
+/** Khổ ẢNH: khổ phim + vuông (ảnh mẫu anchor) + 2:3 (poster). */
+export type TiLeAnh = TiLe | '1:1' | '2:3';
 export type DoPhanGiai = '720p' | '1080p';
 
 /** Model ảnh (Gemini API). `gia1k` = cents một ảnh 1K. Thứ tự = thứ tự thử khi model đầu không tồn tại (tên model Google đổi nhanh). */
@@ -205,6 +207,8 @@ export type Phim = {
   so_tap: number; so_nhan_vat: number; so_canh: number; chi_phi_cents: number; updated_at: string;
   /** tóm tắt từng tập cho danh sách phim: số shot · có hình · có clip */
   tap_tom?: { id: number; so: number; ten: string; so_canh: number; so_hinh: number; so_clip: number }[];
+  /** poster đang dùng + mọi bản đã sinh (poster.ts) */
+  poster_url?: string | null; poster_uv?: string[];
 };
 export type BienThe = { id: number; nhan_vat_id: number; nhom: string; ten: string; mo_ta: string; anh_url: string | null };
 /** Claude nhìn ảnh gốc của anchor so với mô tả: lệch chỗ nào (màu, ren, khoá, chữ thương hiệu…) + mô tả viết lại theo ảnh. */

@@ -3,7 +3,7 @@
 // Giá (08/10/2026): gpt-image-1.5 1024² medium ≈ $0,034; gpt-image-1 medium ≈ $0,04. Veo KHÔNG có bản OpenAI (Sora 2 API đã đóng 24/09/2026).
 import 'server-only';
 import type { AnhVao } from './google';
-import type { TiLe } from './kieu';
+import type { TiLeAnh } from './kieu';
 
 export const khoaOpenAI = (): string | null => process.env.OPENAI_API_KEY || null;
 
@@ -12,11 +12,11 @@ export const MO_HINH_ANH_OPENAI = ['gpt-image-1.5', 'gpt-image-1'] as const;
 
 type Kq = { ok: true; model: string; mimeType: string; data: Buffer } | { ok: false; loi: string };
 
-function kichCo(tiLe: TiLe | '1:1'): string {
-  return tiLe === '9:16' ? '1024x1536' : tiLe === '16:9' ? '1536x1024' : '1024x1024';
+function kichCo(tiLe: TiLeAnh): string {
+  return tiLe === '9:16' || tiLe === '2:3' ? '1024x1536' : tiLe === '16:9' ? '1536x1024' : '1024x1024';
 }
 
-export async function sinhAnhOpenAI(opts: { prompt: string; thamChieu?: AnhVao[]; tiLe: TiLe | '1:1'; model?: string }): Promise<Kq> {
+export async function sinhAnhOpenAI(opts: { prompt: string; thamChieu?: AnhVao[]; tiLe: TiLeAnh; model?: string }): Promise<Kq> {
   const key = khoaOpenAI();
   if (!key) return { ok: false, loi: 'Thiếu OPENAI_API_KEY trên máy chủ' };
   const thuTu = opts.model ? [opts.model, ...MO_HINH_ANH_OPENAI.filter((m) => m !== opts.model)] : [...MO_HINH_ANH_OPENAI];

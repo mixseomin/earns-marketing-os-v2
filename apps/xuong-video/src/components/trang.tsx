@@ -16,6 +16,7 @@ import { MoHinhCtx } from './mo-hinh-ui';
 import { KinhThanhForm } from './kinh-thanh';
 import { NhanVatSection } from './nhan-vat';
 import { TapView } from './tap';
+import { PosterPhim } from './poster-ui';
 import { useNho } from './nho';
 import { useDinhKy } from './dinh-ky';
 
@@ -99,7 +100,10 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
                   <span style={mono}>{g.phim.length} phim · {g.phim.reduce((a, p) => a + p.so_tap, 0)} tập · {tien(g.chi_phi_cents)}</span>
                 </div>
                 {g.phim.map((p) => (
-                  <div key={p.id} style={{ display: 'grid', gap: 4, padding: '6px 12px 8px 28px', opacity: laLuuTru(p) ? 0.55 : 1 }}>
+                  <div key={p.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '6px 12px 8px 28px', opacity: laLuuTru(p) ? 0.55 : 1 }}>
+                    <button type="button" title={p.poster_url ? 'Poster — mở phim' : 'Chưa có poster — mở phim, tab Kịch bản › Poster'} onClick={() => { setTapMo(null); modal.open('phim', p.id); }}
+                      style={{ all: 'unset', cursor: 'pointer', width: 44, aspectRatio: '2 / 3', flexShrink: 0, borderRadius: 4, border: '1px solid var(--line)', background: p.poster_url ? `center / cover no-repeat url(${p.poster_url}), #111` : 'var(--bg-2)', display: 'grid', placeItems: 'center', fontSize: 16, color: 'var(--fg-4)' }}>{p.poster_url ? '' : '🎬'}</button>
+                    <div style={{ display: 'grid', gap: 4, flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
                       <button type="button" onClick={() => { setTapMo(null); modal.open('phim', p.id); }} style={{ background: 'none', border: 0, color: 'var(--fg-1)', cursor: 'pointer', fontWeight: 600, padding: 0, font: 'inherit', textAlign: 'left' }}>{p.ten}</button>
                       {laLuuTru(p) && <Pill color="var(--fg-4)">lưu trữ</Pill>}
@@ -112,6 +116,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
                         </button>
                       ))}
                     </div>}
+                    </div>
                   </div>
                 ))}
               </section>
@@ -138,7 +143,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?:
   // Tab đang mở, nhớ theo phim (đọc ngay từ đầu, chỉ ghi khi bấm — cùng cách với khung thu gọn #1212).
   const [tab, setTab] = useNho<TabPhim>(`xv-tab-${id}`, 'kich_ban', TAB_PHIM.map((t) => t.key), 'tab');
   // Job ảnh còn chạy trên máy chủ (kể cả sau F5) → hỏi lại mỗi 4s tới khi xong.
-  const conChay = !!d && (d.dangSinh.nhanVat.length > 0 || d.dangSinh.bienThe.length > 0);
+  const conChay = !!d && (d.dangSinh.nhanVat.length > 0 || d.dangSinh.bienThe.length > 0 || d.dangSinh.poster > 0);
   useDinhKy(tai, conChay ? 4000 : 15000);
 
   if (d === undefined) return <Ngan onClose={onClose}><span style={mono}>đang tải…</span></Ngan>;
@@ -148,6 +153,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?:
 
   return (
     <Ngan onClose={onClose} tieuDe={phim.ten} nut={<>
+      {phim.poster_url && <img src={phim.poster_url} alt="" title="Poster (tab Kịch bản › Poster)" style={{ height: 34, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} />}
       <Pill color="var(--fg-3)">{LOAI_PHIM.find((l) => l.key === phim.loai)?.label ?? phim.loai}</Pill>
       <span style={mono} data-ngu-canh={`phim #${phim.id} ${phim.ten}`}>#{phim.id}</span>
       <ThongKe tk={d.thongKe} tongTien={d.tongTien} soAnchor={nhanVat.length} soTap={tap.length} />
@@ -168,6 +174,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?:
       {tab === 'kich_ban' && <>
         <KinhThanhForm phim={phim} khoa={khoa} onSaved={tai} />
         <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} />
+        <PosterPhim phim={phim} nhanVat={nhanVat} dang={d.dangSinh.poster} loiNen={d.loiPoster} onChanged={tai} />
       </>}
 
       <div className="xv-panel">

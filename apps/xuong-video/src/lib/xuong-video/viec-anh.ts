@@ -3,10 +3,10 @@
 // hàng đợi không nhận). Không đụng DB: kết quả trả về để studio ghi sổ (hoan-tat.ts). Import tương đối, không '@/', để Worker bundle được.
 import { sinhAnh, taiAnhBase64, type AnhVao } from './google';
 import { uploadToR2 } from '../r2';
-import type { TiLe } from './kieu';
+import type { TiLeAnh } from './kieu';
 
 export type ViecAnh = {
-  job: number; model: string; prompt: string; thamChieuUrl: string[]; tiLe: TiLe | '1:1'; kichCo?: '1K' | '2K';
+  job: number; model: string; prompt: string; thamChieuUrl: string[]; tiLe: TiLeAnh; kichCo?: '1K' | '2K';
   /** tiền tố khoá R2 sau 'xuong-video/', vd 'anchor/12' → xuong-video/anchor/12-<uuid>.png */
   thuMuc: string;
   /** chỉ thử đường hàng đợi → Worker: không gọi model, không tốn tiền */

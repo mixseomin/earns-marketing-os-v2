@@ -28,7 +28,7 @@ import { chupTruoc, ganNhat, hoanTacGanNhat, type MucHoanTac } from '@/lib/xuong
 import { docPhimDich, uocDichCents, chayDichPhim } from '@/lib/xuong-video/dich-phim';
 import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-video/kieu';
 import { type Row, n, s, arr, mangInt, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
-import { sinhAnhGoc, sinhKeyframeCanh } from '@/lib/xuong-video/sinh-anh';
+import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim } from '@/lib/xuong-video/sinh-anh';
 import { batDauVideoCanh, kiemVideoTap } from '@/lib/xuong-video/sinh-video';
 import { nguonShot } from '@/lib/xuong-video/nguon-shot';
 import { khopNhipTap, type KqKhopNhip } from '@/lib/xuong-video/khop-nhip';
@@ -111,6 +111,7 @@ const mapPhim = (r: Row): Phim => ({
   kinh_thanh: (r.kinh_thanh && typeof r.kinh_thanh === 'object' ? r.kinh_thanh : {}) as KinhThanh, trang_thai: s(r.trang_thai),
   so_tap: n(r.so_tap), so_nhan_vat: n(r.so_nhan_vat), so_canh: n(r.so_canh), chi_phi_cents: n(r.chi_phi_cents), updated_at: s(r.updated_at),
   tap_tom: arr<NonNullable<Phim['tap_tom']>[number]>(r.tap_tom).map((t) => ({ ...t, so_canh: Number(t.so_canh), so_hinh: Number(t.so_hinh), so_clip: Number(t.so_clip) })),
+  poster_url: r.poster_url ? s(r.poster_url) : null, poster_uv: arr<string>(r.poster_uv),
 });
 
 /** dangSinh: job ảnh còn chạy (≤10 phút) — F5 vẫn thấy "đang sinh" vì trạng thái ở sổ job máy chủ, không ở trình duyệt. */
@@ -119,7 +120,7 @@ export type ThongKePhim = { soCanh: number; giay: number; coKf: number; duyet: n
   /** Chi phí THỰC TẾ nếu không phải sinh lại: chỉ lượt sinh ra thứ đang nằm trong phim (keyframe/clip/giọng/hiệu ứng/nhạc/ảnh anchor đang dùng)
    *  + lượt Claude mới nhất của mỗi việc. Khác tongTien = tiền mất vì sinh lại / bỏ / lỗi. */
   tienDung: number };
-export type PhimDayDu = { thongKe: ThongKePhim; phim: Phim; nhanVat: NhanVat[]; tap: Tap[]; dangSinh: { nhanVat: number[]; bienThe: number[] }; loiAnh: { nhanVat: Record<number, string>; bienThe: Record<number, string> }; ganDay: Job[]; tongTien: number };
+export type PhimDayDu = { thongKe: ThongKePhim; phim: Phim; nhanVat: NhanVat[]; tap: Tap[]; dangSinh: { nhanVat: number[]; bienThe: number[]; poster: number }; loiAnh: { nhanVat: Record<number, string>; bienThe: Record<number, string> }; ganDay: Job[]; tongTien: number; loiPoster: string };
 export async function docPhim(id: number): Promise<PhimDayDu | null> {
   const db = getDb();
   if (!db || !(await admin())) return null;
@@ -131,7 +132,7 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
       db.execute(sql`SELECT t.*, (SELECT count(*) FROM xv_canh c WHERE c.tap_id = t.id) AS so_canh FROM xv_tap t WHERE t.phim_id = ${id} ORDER BY so`),
     ]);
     const nvs = (nv as unknown as Row[]).map(mapNhanVat);
-    const [bt, ds, gd, tg, la, tkc, tdg, tkj] = await Promise.all([
+    const [bt, ds, gd, tg, la, tkc, tdg, tkj, dp] = await Promise.all([
       db.execute(sql`SELECT b.* FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE v.phim_id = ${id} ORDER BY b.nhom, b.id`),
       db.execute(sql`SELECT j.nhan_vat_id, j.bien_the_id FROM xv_job j JOIN xv_nhan_vat v ON v.id = j.nhan_vat_id
         WHERE v.phim_id = ${id} AND j.loai = 'anh' AND j.trang_thai = 'cho' AND j.created_at > now() - interval '10 minutes'`),
@@ -153,7 +154,8 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
             UNION SELECT nhac_url FROM xv_tap WHERE phim_id = ${id}
             UNION SELECT x.value FROM xv_tap t, jsonb_each_text(coalesce(t.nhac_phan_canh, '{}'::jsonb)) x WHERE t.phim_id = ${id}
             UNION SELECT jsonb_array_elements_text(anh_ref) FROM xv_nhan_vat WHERE phim_id = ${id}
-            UNION SELECT b.anh_url FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE v.phim_id = ${id})
+            UNION SELECT b.anh_url FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE v.phim_id = ${id}
+            UNION SELECT poster_url FROM xv_phim WHERE id = ${id})
         SELECT coalesce((SELECT sum(j.chi_phi_cents) FROM xv_job j WHERE j.trang_thai = 'xong' AND j.output_url IN (SELECT u FROM dung WHERE u IS NOT NULL)
             AND (j.phim_id = ${id} OR j.canh_id IN (SELECT id FROM c) OR j.nhan_vat_id IN (SELECT id FROM xv_nhan_vat WHERE phim_id = ${id}))), 0)
           + coalesce((SELECT sum(x.chi_phi_cents) FROM (SELECT DISTINCT ON (regexp_replace(nhan, '[[:space:]]*[(].*[)][[:space:]]*$', '')) chi_phi_cents FROM xv_job
@@ -162,6 +164,8 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
           coalesce(sum(chi_phi_cents) FILTER (WHERE loai IN ('video', 'nang_cap')), 0) AS video,
           coalesce(sum(chi_phi_cents) FILTER (WHERE loai NOT IN ('anh', 'video', 'nang_cap')), 0) AS chu
         FROM xv_job WHERE phim_id = ${id} AND trang_thai = 'xong' AND tinh_chi`),
+      // poster đang sinh (≤10 phút) + lỗi của lượt poster gần nhất
+      db.execute(sql`SELECT trang_thai, loi, created_at > now() - interval '10 minutes' AS moi FROM xv_job WHERE phim_id = ${id} AND request->>'dich' = 'poster' ORDER BY id DESC LIMIT 5`),
     ]);
     const loiAnh = { nhanVat: {} as Record<number, string>, bienThe: {} as Record<number, string> };
     for (const r of la as unknown as Row[]) {
@@ -180,7 +184,8 @@ export async function docPhim(id: number): Promise<PhimDayDu | null> {
     return {
       thongKe, phim: mapPhim(p[0]), nhanVat: nvs, tap: (tap as unknown as Row[]).map(mapTap),
       ganDay: (gd as unknown as Row[]).map(mapJob), tongTien: n((tg as unknown as Row[])[0]?.t), loiAnh,
-      dangSinh: { nhanVat: dsr.filter((r) => r.bien_the_id == null).map((r) => n(r.nhan_vat_id)), bienThe: dsr.filter((r) => r.bien_the_id != null).map((r) => n(r.bien_the_id)) },
+      dangSinh: { nhanVat: dsr.filter((r) => r.bien_the_id == null).map((r) => n(r.nhan_vat_id)), bienThe: dsr.filter((r) => r.bien_the_id != null).map((r) => n(r.bien_the_id)), poster: (dp as unknown as Row[]).filter((r) => s(r.trang_thai) === 'cho' && r.moi).length },
+      loiPoster: (() => { const r0 = (dp as unknown as Row[])[0]; return r0 && s(r0.trang_thai) === 'loi' ? s(r0.loi) : ''; })(),
     };
   } catch { return null; }
 }
@@ -725,6 +730,22 @@ export async function sinhKeyframe(canhId: number, so = 1, moHinh?: string): Pro
   return sinhKeyframeCanh(db, canhId, so, moHinh);
 }
 
+/** Sinh một poster cho phim (lõi sinh-anh.ts › sinhPosterPhim). */
+export async function sinhPoster(phimId: number, yTuong = ''): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  return sinhPosterPhim(db, phimId, yTuong);
+}
+/** Chọn poster đang dùng trong các bản đã sinh (↶ hoàn tác được). */
+export async function chonPoster(phimId: number, url: string): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  await chupTruoc(db, { bang: 'xv_phim', id: phimId, cot: ['poster_url'], moTa: 'chọn poster', nguoi: await ai() });
+  await db.execute(sql`UPDATE xv_phim SET poster_url = ${url}, updated_at = now() WHERE id = ${phimId} AND poster_uv @> ${JSON.stringify([url])}::jsonb`);
+  return { ok: true, data: undefined };
+}
 export async function chonKeyframe(canhId: number, url: string): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');

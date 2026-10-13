@@ -121,7 +121,7 @@ export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
       output_url = ${kq.ok ? kq.url : null}, model = coalesce(${kq.ok ? kq.model : null}, model),
       provider = CASE WHEN ${kq.ok ? kq.model : ''} LIKE 'gpt-%' THEN 'openai' WHEN ${kq.ok ? kq.model : ''} LIKE 'fal:%' THEN 'fal' ELSE provider END,
       chi_phi_cents = ${Math.round(gia * 1000) / 1000}, loi = ${kq.ok ? '' : kq.loi}, updated_at = now()
-    WHERE id = ${kq.job} AND trang_thai = 'cho' RETURNING canh_id, nhan_vat_id, bien_the_id`)) as unknown as Row[];
+    WHERE id = ${kq.job} AND trang_thai = 'cho' RETURNING canh_id, nhan_vat_id, bien_the_id, phim_id, request->>'dich' AS dich`)) as unknown as Row[];
   const j = r[0];
   if (!j) return false;
   const canh = j.canh_id == null ? null : Number(j.canh_id);
@@ -135,6 +135,9 @@ export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
     await db.execute(sql`UPDATE xv_canh SET keyframe_uv = (keyframe_uv || ${JSON.stringify([kq.url])}::jsonb),
       keyframe_url = coalesce(keyframe_url, ${kq.url}), trang_thai = CASE WHEN trang_thai = 'nhap' THEN 'co_keyframe' ELSE trang_thai END,
       chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canh}`);
+  } else if (j.dich === 'poster' && j.phim_id != null) {
+    // poster (sinh-anh.ts › sinhPosterPhim): bản mới lên ĐẦU dải; phim chưa có poster thì bản này thành poster đang dùng
+    await db.execute(sql`UPDATE xv_phim SET poster_uv = (${JSON.stringify([kq.url])}::jsonb || poster_uv), poster_url = coalesce(poster_url, ${kq.url}), updated_at = now() WHERE id = ${Number(j.phim_id)}`);
   } else if (j.nhan_vat_id != null) {
     // ảnh gốc mới lên ĐẦU: thẻ anchor hiện ảnh đầu, nối vào cuối thì trông như bấm không ăn (08/10/2026)
     await db.execute(sql`UPDATE xv_nhan_vat SET anh_ref = (${JSON.stringify([kq.url])}::jsonb || anh_ref), updated_at = now() WHERE id = ${Number(j.nhan_vat_id)}`);

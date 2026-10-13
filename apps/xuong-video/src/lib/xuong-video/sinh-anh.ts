@@ -7,6 +7,7 @@ import { promptCamXuc } from './am-thanh';
 import { promptKyThuatAnh } from './dien-anh';
 import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, MO_HINH_ANH, type KinhThanh, type NhanVat } from './kieu';
 import { chanTienKy, chanShot } from './quy-trinh';
+import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER } from './poster';
 import { boiCanhCanh, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, type Db, type Row } from './doc-db';
 
 export type KqSinh<T> = { ok: true; data: T } | { ok: false; loi: string };
@@ -120,4 +121,22 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
     await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt, thamChieuUrl: urlRef, tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}` });
   }
   return { ok: true, data: jobs };
+}
+
+/** Sinh MỘT poster cho phim (poster.ts): nhân vật chính theo ảnh mẫu anchor, đúng phong cách, tên phim là chữ duy nhất. Kết quả nối vào
+ *  xv_phim.poster_uv; phim chưa có poster thì bản đầu thành poster đang dùng (hoan-tat.ts). */
+export async function sinhPosterPhim(db: Db, phimId: number, yTuong = ''): Promise<KqSinh<number>> {
+  const loi = (x: string): KqSinh<number> => ({ ok: false, loi: x });
+  const p = ((await db.execute(sql`SELECT id, ten, mo_ta, loai, kinh_thanh FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[])[0];
+  if (!p) return loi('không thấy phim');
+  const nv = ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat);
+  const phim = { ten: String(p.ten ?? ''), mo_ta: String(p.mo_ta ?? ''), loai: p.loai as 'phim', kinh_thanh: (p.kinh_thanh ?? {}) as KinhThanh };
+  if (!nv.some((v) => v.anh_ref.length)) return loi('phim chưa có anchor nào có ảnh mẫu — sinh ảnh mẫu nhân vật ở mục 2 trước, poster cần nó để giữ đúng mặt');
+  const kt = docKinhThanh(phim.kinh_thanh);
+  const { prompt, thamChieuUrl } = promptPoster(phim, nv, yTuong);
+  const chan = chanChuModel(kt.ngon_ngu, { phongCach: kt.phong_cach, anchor: nv.filter((v) => v.anh_ref.length) });
+  if (chan) return loi(chan);
+  const job = await taoJob(db, { phim_id: phimId, nhan: `Poster · ${phim.ten}`, loai: 'anh', provider: 'google', model: MO_HINH_POSTER, request: { dich: 'poster', prompt, thamChieu: thamChieuUrl.length, thamChieuUrl } });
+  await dayViecAnh({ job, model: MO_HINH_POSTER, prompt, thamChieuUrl, tiLe: TI_LE_POSTER, thuMuc: `poster/${phimId}` });
+  return { ok: true, data: job };
 }

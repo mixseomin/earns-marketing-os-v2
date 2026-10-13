@@ -8,22 +8,25 @@ import type { Canh } from './kieu';
 const MOC = /^(\s*@\d+(?:[.,]\d+)?s?\s+)?(.*)$/;
 const tachDong = (chu: string) => chu.split('\n').map((d) => { const m = MOC.exec(d)!; return { moc: m[1] ?? '', chu: m[2] ?? '' }; });
 
-type ShotPd = Pick<Canh, 'chu_man' | 'thoai'>;
+type ShotPd = Pick<Canh, 'id' | 'chu_man' | 'thoai'>;
+/** Khoá phụ đề của một câu: url file giọng (hiện đúng lúc đọc) hoặc canh:<id>:<dòng> khi chưa có giọng (hiện suốt shot, xuat.ts). */
+export const khoaPhuDe = (c: Pick<Canh, 'id'>, d: { url?: string | null }, i: number): string => d.url || `canh:${c.id}:${i}`;
 export function chuoiCanDich(canh: ShotPd[]): string[] {
   const s = new Set<string>();
   for (const c of canh) {
     for (const d of tachDong(c.chu_man ?? '')) if (d.chu.trim()) s.add(d.chu.trim());
-    for (const d of c.thoai ?? []) if (d.url && d.loi.trim()) s.add(d.loi.trim());
+    for (const d of c.thoai ?? []) if (d.loi.trim()) s.add(d.loi.trim());
   }
   return [...s];
 }
-/** Áp bản dịch: shot mới có chữ màn tiếng Việt (giữ mốc giây) + bảng phụ đề url file giọng → câu Việt. Câu chưa dịch được giữ nguyên. */
+/** Áp bản dịch: shot mới có chữ màn tiếng Việt (giữ mốc giây) trên nền tối (đọc được trên nền sáng) + bảng phụ đề khoá → câu Việt.
+ *  Câu chưa dịch được giữ nguyên. */
 export function apDich<T extends ShotPd>(canh: T[], dich: Map<string, string>): { canh: T[]; phuDe: Record<string, string> } {
   const phuDe: Record<string, string> = {};
   const moi = canh.map((c) => {
-    for (const d of c.thoai ?? []) if (d.url && d.loi.trim()) phuDe[d.url] = dich.get(d.loi.trim()) ?? d.loi.trim();
+    (c.thoai ?? []).forEach((d, i) => { if (d.loi.trim()) phuDe[khoaPhuDe(c, d, i)] = dich.get(d.loi.trim()) ?? d.loi.trim(); });
     const chu = tachDong(c.chu_man ?? '').map((d) => (d.chu.trim() ? `${d.moc}${dich.get(d.chu.trim()) ?? d.chu}` : `${d.moc}${d.chu}`)).join('\n');
-    return { ...c, chu_man: (c.chu_man ?? '') ? chu : '' };
+    return { ...c, chu_man: (c.chu_man ?? '') ? chu : '', kieu_chu: { ...((c as { kieu_chu?: object }).kieu_chu ?? {}), nen: '#000000' } };
   });
   return { canh: moi, phuDe };
 }

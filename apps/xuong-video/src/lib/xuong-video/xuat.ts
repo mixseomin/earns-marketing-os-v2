@@ -109,7 +109,8 @@ export const gopKieu = (...ds: (KieuChu | undefined | null)[]): typeof KIEU_CHU_
 /** Tệp ASS (libass) cho chữ màn cả bản xuất. Mỗi kiểu chữ khác nhau (phim + shot) là một Style; mỗi câu một Dialogue đặt giữa ngang,
  *  dọc theo y của kiểu hoặc vị trí phim. "**chữ**" = đoạn nhấn: to gấp 1,8, nghiêng, màu nhấn (kiểu "YES!" của QC mẫu).
  *  nen = băng nền đặc sau chữ (BorderStyle 3). */
-/** Phụ đề (bản xem cho người review không đọc được ngôn ngữ phim): đáy khung, trắng viền đen, trên mọi lớp; ngắt dòng theo bề rộng. */
+/** Phụ đề (bản xem cho người review không đọc được ngôn ngữ phim): đáy khung, chữ trắng đậm trên dải nền tối bán trong suốt (đọc được trên
+ *  cả nền giấy sáng — viền mỏng thì không, 13/10/2026), trên mọi lớp; ngắt dòng theo bề rộng. */
 export type CauPhuDe = { tu: number; den: number; chu: string };
 export function tepAss(o: { W: number; H: number; kieu?: KieuChu; viTri: ViTriChu; cau: { tu: number; den: number; dong: string[]; kieu?: KieuChu }[]; lop?: Lop[]; phuDe?: CauPhuDe[] }): string {
   const kieuStyle = new Map<string, { ten: string; k: ReturnType<typeof gopKieu> }>();
@@ -131,13 +132,13 @@ export function tepAss(o: { W: number; H: number; kieu?: KieuChu; viTri: ViTriCh
     const thu = Math.min(...ng.map((x) => x.co));
     return `Dialogue: 100,${gioAss(c.tu)},${gioAss(c.den)},${ten},,0,0,0,,{\\an5\\pos(${Math.round(o.W / 2)},${tamY(dong.length)})${thu < 1 ? `\\fs${Math.floor(fs * thu)}` : ''}${assVaoChu(k.vao, k.ngang)}}${dong.map((d) => to(nhan(d))).join('\\N')}`;
   });
-  const fsPd = Math.round(o.W * 0.042); const fontPd = gopKieu(o.kieu).font;
+  const fsPd = Math.round(o.W * 0.05); const fontPd = gopKieu(o.kieu).font;
   const pd = (o.phuDe ?? []).map((c) => `Dialogue: 200,${gioAss(c.tu)},${gioAss(c.den)},PhuDe,,0,0,0,,{\\an2}${ngatDong(c.chu.replace(/[{}\\]/g, ''), Math.floor((o.W * 0.9) / (fsPd * 0.52))).join('\\N')}`);
   const dong = ['[Script Info]', 'ScriptType: v4.00+', `PlayResX: ${o.W}`, `PlayResY: ${o.H}`, 'ScaledBorderAndShadow: yes', 'WrapStyle: 2', '',
     '[V4+ Styles]', 'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
     ...[...kieuStyle.values()].map(({ ten, k }) => { const fs = Math.round(o.W * k.co); return `Style: ${ten},${k.font},${fs},${mauAss(k.mau)},${mauAss(k.mau)},${mauAss(k.nen || k.vien)},&H80000000&,-1,0,0,0,${k.ngang},100,0,0,${k.nen ? 3 : 1},${k.nen ? Math.round(fs * 0.35) : Math.max(1, Math.round(fs * k.vien_day))},0,5,0,0,0,1`; }),
     ...lp.styles,
-    ...(pd.length ? [`Style: PhuDe,${fontPd},${fsPd},&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,${Math.max(2, Math.round(fsPd * 0.12))},0,2,${Math.round(o.W * 0.05)},${Math.round(o.W * 0.05)},${Math.round(o.H * 0.06)},1`] : []),
+    ...(pd.length ? [`Style: PhuDe,${fontPd},${fsPd},&H00FFFFFF,&H00FFFFFF,&H40000000,&H40000000,-1,0,0,0,100,100,0,0,3,${Math.max(4, Math.round(fsPd * 0.28))},0,2,${Math.round(o.W * 0.05)},${Math.round(o.W * 0.05)},${Math.round(o.H * 0.06)},1`] : []),
     '', '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text', ...lp.events, ...su, ...pd, ''];
   return dong.join('\n');
 }
@@ -272,6 +273,9 @@ export function keHoachXuat(o: {
     const cuoiThat = laVideo ? Math.min(daiClip ?? boDau + canNguon, boDau + canNguon) : 0; const dem = laVideo ? Math.max(0, boDau + canNguon - cuoiThat) : 0;
     const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(cuoiThat)},setpts=PTS-STARTPTS,${toc ? `setpts='(${bieuThucToc(toc)})/TB',` : ''}${khung}${dem > 0.01 ? `,tpad=stop_mode=clone:stop_duration=${so(dem)}` : ''}` : `[${k}:v]${khungTinh(i)},trim=0:${so(dai)},setpts=PTS-STARTPTS${dayMay(dai)}`];
     for (const d of doanChuMan(c.chu_man, phat)) cauMan.push({ tu: t + d.tu, den: t + d.den, dong: d.dong, kieu: c.kieu_chu });
+    // Câu CHƯA có giọng (khoá canh:<id>:<dòng>) vẫn có phụ đề — chia đều giây phát của shot; người review cần đủ câu chuyện.
+    const chuaGiong = (c.thoai ?? []).map((d, j) => ({ d, k: `canh:${c.id}:${j}` })).filter((x) => !x.d.url && o.phuDe?.[x.k]);
+    chuaGiong.forEach((x, j) => cauPhuDe.push({ tu: t + (j * phat) / chuaGiong.length, den: t + ((j + 1) * phat) / chuaGiong.length, chu: `${x.d.nhan_vat.trim() ? `${x.d.nhan_vat.trim()}: ` : ''}${o.phuDe![x.k]}` }));
     if (logoUrl) { const kl = them(logoUrl, ['-loop', '1', '-framerate', '30', '-t', so(dai)]); loc.push(`[${kl}:v]scale=-1:${Math.round(H * 0.06)},format=rgba[lg${i}]`); ve[ve.length - 1] += `[vv${i}];[vv${i}][lg${i}]overlay=W-w-${Math.round(W * 0.03)}:${Math.round(H * 0.03)}:shortest=1`; }
     const dungClip = dungTiengClip(c, o.nhanVat);
     if (c.am_thanh_url && nl.has(c.am_thanh_url)) { const ka = them(c.am_thanh_url); themAm(`[${ka}:a]atrim=0:${so(phat)},asetpts=PTS-STARTPTS,volume=0.8,adelay=${Math.round(t * 1000)}:all=1`); }

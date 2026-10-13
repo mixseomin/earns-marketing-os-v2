@@ -117,6 +117,30 @@ export async function danhMucFal(): Promise<ModelFal[]> {
   return ds.length ? ds : khoDanhMuc?.ds ?? [];
 }
 
+/** MỘT model fal theo id: tìm trong danh mục; KHÔNG có (danh mục fal không liệt kê mọi model — Veo 3.1 Lite không nằm trong 196 model
+ *  image-to-video) thì đọc chuỗi giá từ trang của chính model (pricingInfoOverride nhúng trong HTML), nhớ 6 giờ. Trước đây rơi về giá dự
+ *  phòng: sổ ghi $0,40/clip 4s trong khi fal thu $0,12 (14/10/2026, tập 1 Tango & Lint ghi $8 thay vì $2,40). */
+const khoRieng = new Map<string, { luc: number; m: ModelFal | null }>();
+export async function modelFal(id: string): Promise<ModelFal | null> {
+  const coSan = (await danhMucFal()).find((x) => x.id === id);
+  if (coSan) return coSan;
+  const c = khoRieng.get(id);
+  if (c && Date.now() - c.luc < 6 * 3600_000) return c.m;
+  let m: ModelFal | null = null;
+  try {
+    const r = await fetch(`https://fal.ai/models/${id}/api`, { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(20_000) });
+    const t = await r.text();
+    const k = /pricingInfoOverride\\?":\\?"((?:[^"\\]|\\.)*?)\\?"/.exec(t);
+    if (k) {
+      const gt = k[1]!.replace(/\\\\/g, '\\').replace(/\\"/g, '"').replace(/\\n/g, '\n');
+      const gia = tomGia(gt);
+      m = { id, ten: id, loai: /video/.test(id) ? 'video' : 'anh', giaText: gia.moTa, giaCents: gia.chinh['720p'], donVi: gia.chinh['720p'] != null ? 'giay' : 'khac', gia };
+    }
+  } catch (e) { console.error('[fal] không đọc được giá model', id, e); }
+  khoRieng.set(id, { luc: Date.now(), m });
+  return m;
+}
+
 type SchemaTruong = { type?: string; enum?: unknown[]; default?: unknown; anyOf?: Array<{ type?: string; enum?: unknown[] }>; items?: unknown };
 const khoSchema = new Map<string, Record<string, SchemaTruong>>();
 const khoBatBuoc = new Map<string, string[]>();

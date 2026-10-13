@@ -4,7 +4,7 @@ import 'server-only';
 import { sql } from 'drizzle-orm';
 import type { getDb } from '@mos2/db';
 import { docKinhThanh, giaChuCents, giaVideoCents, type BienThe, type Canh, type Job, type KinhThanh, type LoaiNhanVat, type LoaiPhim, type NhanVat, type Tap, type TrangThaiCanh } from './kieu';
-import { danhMucFal } from './fal';
+import { modelFal } from './fal';
 import type { NguCanhPhim } from './claude';
 
 export type Db = NonNullable<ReturnType<typeof getDb>>;
@@ -90,7 +90,7 @@ export const mapJob = (r: Row): Job => ({
 /** Giá video thật theo model (fal: danh mục động; Google: bảng kieu.ts). */
 export async function giaVideoSv(model: string, dpg: '720p' | '1080p', giay: number, tieng = true): Promise<number> {
   if (model.startsWith('fal:')) {
-    const m = (await danhMucFal()).find((x) => x.id === model.slice(4));
+    const m = await modelFal(model.slice(4));
     const g = (!tieng ? m?.gia.khongTieng?.[dpg] : null) ?? m?.gia.chinh[dpg]; if (g != null) return g * giay;
     const clip = m?.gia.clip[dpg]; if (clip) return clip[1];
   }

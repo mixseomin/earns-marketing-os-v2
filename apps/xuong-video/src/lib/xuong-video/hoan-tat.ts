@@ -8,7 +8,7 @@ import 'server-only';
 import { sql } from 'drizzle-orm';
 import { luuVaoKho } from './kho';
 import { getDb } from '@mos2/db';
-import { danhMucFal } from './fal';
+import { modelFal } from './fal';
 import { jobDangCho } from './doc-db';
 import { lamSanNho } from './anh-nho-may';
 import { giaAnhCents, thuongHieu, type KinhThanh } from './kieu';
@@ -19,7 +19,7 @@ type Row = Record<string, unknown>;
 
 /** Giá ảnh theo danh mục fal (động) nếu là model fal:, không thì bảng tĩnh. */
 export async function giaAnhSv(model: string): Promise<number> {
-  if (model.startsWith('fal:')) { const m = (await danhMucFal()).find((x) => x.id === model.slice(4)); if (m?.giaCents != null) return m.giaCents; return 4; }
+  if (model.startsWith('fal:')) { const m = await modelFal(model.slice(4)); if (m?.giaCents != null) return m.giaCents; return 4; }
   return giaAnhCents(model);
 }
 

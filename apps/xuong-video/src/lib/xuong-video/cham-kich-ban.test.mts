@@ -16,8 +16,12 @@ const series = { dong_co: 'Zeus làm nhân viên văn phòng; mỗi tập một 
 let k = chamKichBan({ tap: { so: 1, beats, phan_canh: pc }, canh, kt: { series } });
 assert.deepStrictEqual(k.chan, [], k.chan.join('|')); assert.strictEqual(k.diem, 100);
 // thiếu lật ngược + hook dài + không logline → 3 mục chặn
-k = chamKichBan({ tap: { so: 2, beats: beats.filter((b) => b.ten !== 'Twist'), phan_canh: pc.filter((p) => p.beat !== 'Twist') }, canh: [shot(5, 'A', 'X'), ...canh.slice(1)], kt: { series } });
-assert.strictEqual(k.chan.length, 3, k.chan.join('|')); assert.ok(k.chan.some((x) => x.includes('Lật ngược')) && k.chan.some((x) => x.includes('5s')) && k.chan.some((x) => x.includes('logline')));
+const noi = (phat: number, dai?: number) => ({ ...shot(phat, 'A'), thoai: [{ nhan_vat: '', dien_xuat: '', loi: 'What if a fox could talk?', ...(dai ? { dai } : {}) }] });
+k = chamKichBan({ tap: { so: 2, beats: beats.filter((b) => b.ten !== 'Twist'), phan_canh: pc.filter((p) => p.beat !== 'Twist') }, canh: [noi(5), ...canh.slice(1)], kt: { series } });
+assert.strictEqual(k.chan.length, 3, k.chan.join('|')); assert.ok(k.chan.some((x) => x.includes('Lật ngược')) && k.chan.some((x) => x.includes('giây 5')) && k.chan.some((x) => x.includes('logline')));
+// hook = lúc câu móc tới người xem: shot đầu 3,2s mà câu đọc xong ở 2,66s → đạt; câu dài 4s → chặn; có chữ màn từ giây 0 → đạt
+const hk = (c0: ReturnType<typeof noi>) => chamKichBan({ tap: { so: 1, beats, phan_canh: pc }, canh: [c0, ...canh.slice(1)], kt: { series } }).muc.find((x) => x.key === 'hook')!.dat;
+assert.strictEqual(hk(noi(3.2, 2.66)), true); assert.strictEqual(hk(noi(4.5, 4)), false); assert.strictEqual(hk({ ...noi(5), chu_man: 'WHAT IF?' }), true);
 // tập 1 còn tập 2 sau mà kết không phải móc → mục móc không đạt (không chặn)
 k = chamKichBan({ tap: { so: 1, beats: [...beats.slice(0, 4), { ten: 'Resolution' }], phan_canh: pc }, canh, kt: { series } });
 assert.ok(k.muc.some((x) => x.key === 'moc' && !x.dat)); assert.deepStrictEqual(k.chan, []);

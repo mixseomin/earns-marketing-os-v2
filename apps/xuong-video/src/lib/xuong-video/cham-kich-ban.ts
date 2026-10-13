@@ -41,7 +41,12 @@ export function chamKichBan(o: VaoKb): { muc: MucKb[]; diem: number; chan: strin
   if (canh.length) {
     const s1 = canh[0]!; const g1 = giayPhat(s1);
     const coChu = !!(s1.chu_man.trim() || s1.loi_thoai.trim() || s1.thoai.some((d) => d.loi.trim()));
-    m.push({ key: 'hook', ten: 'Hook ≤ 3 giây', dat: g1 <= 3 && coChu, ghi: g1 > 3 ? `shot đầu dài ${g1}s — câu/hình móc phải xong trong 3 giây đầu (tách shot đầu ngắn lại)` : !coChu ? 'shot đầu chưa có chữ màn hay lời — 3 giây đầu cần một câu hỏi/hình lạ khiến người ta xem tiếp' : `shot đầu ${g1}s`, cung: true });
+    // Hook = câu/chữ MÓC phải tới người xem trong 3 giây đầu — không phải shot đầu phải ngắn hơn 3s. Chữ màn hiện từ giây 0; câu nói thì
+    // tính lúc câu đầu ĐỌC XONG (độ dài file đã đo, DongThoai.dai). Trước đây đo độ dài shot → khớp giọng chừa 0,5s thở làm shot 1 thành
+    // 3,2s là chặn sinh keyframe cả tập (Fox Tales 13/10/2026), dù câu móc đã đọc xong ở 2,66s.
+    const d1 = s1.thoai.find((d) => d.loi.trim());
+    const moc = s1.chu_man.trim() ? 0 : d1 && typeof d1.dai === 'number' ? (d1.tre ?? 0) + d1.dai : g1;
+    m.push({ key: 'hook', ten: 'Hook ≤ 3 giây', dat: moc <= 3 && coChu, ghi: !coChu ? 'shot đầu chưa có chữ màn hay lời — 3 giây đầu cần một câu hỏi/hình lạ khiến người ta xem tiếp' : moc > 3 ? `câu móc tới người xem ở giây ${Math.round(moc * 10) / 10} — phải trong 3 giây đầu (câu ngắn lại, hoặc thêm chữ màn ở shot đầu)` : s1.chu_man.trim() ? 'chữ màn móc hiện từ giây 0' : `câu móc đọc xong ở giây ${Math.round(moc * 10) / 10}`, cung: true });
     // vị trí lật ngược theo thời gian
     const tong = canh.reduce((a, c) => a + giayPhat(c), 0);
     const pcLat = new Set(tap.phan_canh.filter((p) => nhipCua(p.beat) === 'lat_nguoc').map((p) => p.ten));

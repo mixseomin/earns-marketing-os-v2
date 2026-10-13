@@ -40,7 +40,7 @@ export function SoDoSeries({ phim, tap, nhanVat, onMoTap, onChanged }: { phim: P
     if (r.kq && 'data' in r.kq && typeof r.kq.data === 'number') onMoTap(r.kq.data);
   };
   return (
-    <div style={{ display: 'grid', gap: 10 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>   {/* minmax(0,1fr): ô không nở theo nội dung → lưới thẻ tự xuống dòng */}
       <div className="xv-panel" style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', padding: '8px 12px' }}>
         {phim.poster_url && <img src={anhNho(phim.poster_url, 160)} alt="" style={{ height: 52, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 4 }} />}
         <div style={{ flex: 1, minWidth: 240 }}>
@@ -75,7 +75,8 @@ export function SoDoSeries({ phim, tap, nhanVat, onMoTap, onChanged }: { phim: P
                     </div>
                     <div style={{ display: 'flex', gap: 2 }}>
                       {(b.nhan_vat ?? []).map((ten) => { const v = mat(ten); return v?.anh_ref[0]
-                        ? <img key={ten} src={anhNho(v.anh_ref[0], 160)} alt={ten} title={ten} data-khong-phong-to="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--line)' }} />
+                        // Ảnh nhân vật là character sheet (4 góc nhìn hàng trên) → chỉ lấy hình chính diện ở góc trái trên.
+                        ? <span key={ten} title={ten} style={{ width: 22, height: 22, borderRadius: '50%', border: '1px solid var(--line)', background: `#ddd url(${anhNho(v.anh_ref[0], 320)}) 4% 12% / 420% auto no-repeat`, flexShrink: 0 }} />
                         : <span key={ten} style={{ ...mono, fontSize: 10 }}>{ten}</span>; })}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--fg-2)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{b.logline}</div>

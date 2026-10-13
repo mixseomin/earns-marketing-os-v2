@@ -3,7 +3,7 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
-import { uploadToR2 } from '@/lib/r2';
+import { uploadToR2 } from '../r2';
 import { CO_NHO, type CoNho } from './anh-nho';
 
 const GOC = () => (process.env.R2_PUBLIC_BASE || 'https://img.on.tc').replace(/\/+$/, '');

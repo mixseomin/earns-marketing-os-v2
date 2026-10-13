@@ -83,10 +83,15 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
   useDinhKy(taiCanh, banTach ? null : dangSinhAnh ? 4000 : 8000);
   useDinhKy(async () => { const r = await kiemVideo(tap.id); if (r.vuaXong || r.conChay === 0) await taiCanh(); }, dangSinh ? 10_000 : null, { caKhiAn: true });
 
-  const chay = async (ten: string, fn: () => Promise<KqChay>) => {
-    setBanSet((s) => new Set(s).add(ten)); setLoi('');
-    try { const r = await fn(); if (r && !r.ok) setLoi(r.loi ?? 'lỗi'); } catch (e) { setLoi(`Không gọi được máy chủ (${e instanceof Error ? e.message.slice(0, 80) : 'lỗi mạng'}) — studio vừa cập nhật thì bấm ↻ Tải lại.`); } finally { setBanSet((s) => { const n = new Set(s); n.delete(ten); return n; }); }
+  /** Chạy một thao tác; trả câu lỗi ('' = được). taiCho: người gọi tự hiện lỗi NGAY CHỖ BẤM (thẻ shot) → không đẩy lên dòng lỗi đầu tập,
+   *  nơi người bấm ở shot #7 không nhìn thấy (13/10/2026: bấm Sinh nháp bị chặn mà không thấy gì). */
+  const chay = async (ten: string, fn: () => Promise<KqChay>, taiCho = false): Promise<string> => {
+    setBanSet((s) => new Set(s).add(ten)); if (!taiCho) setLoi('');
+    let l = '';
+    try { const r = await fn(); if (r && !r.ok) l = r.loi ?? 'lỗi'; } catch (e) { l = `Không gọi được máy chủ (${e instanceof Error ? e.message.slice(0, 80) : 'lỗi mạng'}) — studio vừa cập nhật thì bấm ↻ Tải lại.`; } finally { setBanSet((s) => { const n = new Set(s); n.delete(ten); return n; }); }
+    if (!taiCho) setLoi(l);
     await taiCanh(); await onChanged();
+    return l;
   };
   const kbDirty = kichBan !== tap.kich_ban || tenTap !== tap.ten || brief !== tap.brief;
   const soDuyet = (canh ?? []).filter((c) => c.trang_thai === 'duyet').length;

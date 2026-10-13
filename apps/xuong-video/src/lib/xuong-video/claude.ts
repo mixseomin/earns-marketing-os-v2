@@ -570,6 +570,7 @@ const SuaKbSchema = z.object({
     prompt_anh: z.string().describe('Prompt ảnh keyframe tiếng Anh sau khi sửa (giữ nguyên nếu hình không đổi)'),
     doi_hinh: z.boolean().describe('true nếu hình shot phải khác bản cũ (cần sinh lại keyframe)'),
     phat_s: z.number().describe('Số giây shot phát (≥ 2; đủ đọc hết lời ~2,5 từ/giây + 0,5 giây thở)'),
+    nhan_vat: z.array(z.string()).describe('Tên MỌI anchor (nhân vật / bối cảnh / đạo cụ) xuất hiện trong shot sau khi sửa — đúng tên trong danh sách; ai có trong prompt_anh thì phải có ở đây'),
   })).describe('Chỉ những shot cần sửa để người xem hiểu'),
   them: z.array(z.object({
     sau_shot: z.number().describe('Chèn ngay SAU shot số này (theo số shot hiện tại)'),

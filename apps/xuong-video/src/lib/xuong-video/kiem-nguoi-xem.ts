@@ -4,7 +4,7 @@ import 'server-only';
 import { sql } from 'drizzle-orm';
 import { thuNguoiXem, suaKichBanTheoNguoiXem } from './claude';
 import { chupTruoc } from './hoan-tac';
-import { banNguoiXem, maBan, keHoachSua, DIEM_HIEU_DAT } from './nguoi-xem';
+import { banNguoiXem, maKichBan, keHoachSua, DIEM_HIEU_DAT } from './nguoi-xem';
 import { docKinhThanh, locNhanh, lamTronClip, type ThuNguoiXem } from './kieu';
 import { boiCanhTap, mapCanh, ghiTienChu, type Db, type Row } from './doc-db';
 
@@ -22,7 +22,7 @@ export async function kiemNguoiXemTap(db: Db, tapId: number): Promise<{ ok: true
   if (!kq.ok) return kq;
   await ghiTienChu(db, bc.tap.phim_id, `Kiểm người xem có hiểu không · tập ${bc.tap.so}`, kq.model, kq.tokens);
   const { xem, doi } = kq.data;
-  const t: ThuNguoiXem = { ma: maBan(ban), luc: new Date().toISOString(), model: kq.model, ke_lai: xem.ke_lai, hieu: { ai: xem.ai, muon: xem.muon, can: xem.can, lat: xem.lat, ket: xem.ket },
+  const t: ThuNguoiXem = { ma: maKichBan(canh), luc: new Date().toISOString(), model: kq.model, ke_lai: xem.ke_lai, hieu: { ai: xem.ai, muon: xem.muon, can: xem.can, lat: xem.lat, ket: xem.ket },
     diem: Math.max(0, Math.min(10, Math.round(xem.diem))), cho_kho: xem.cho_kho, khop: doi.khop, lech: doi.lech, dat: doi.khop && xem.diem >= DIEM_HIEU_DAT };
   await db.execute(sql`UPDATE xv_tap SET thu_nguoi_xem = ${JSON.stringify(t)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
   return { ok: true, data: t };
@@ -49,9 +49,9 @@ export async function suaTheoNguoiXemTap(db: Db, tapId: number, nguoi: string): 
   const kh = keHoachSua(canh, bc.nhanVat, kq.data.sua, kq.data.them);
   const nhom = await chupTruoc(db, { bang: 'xv_canh', id: kh.capNhat[0]?.id ?? canh[0]!.id, cot: ['thu_tu'], moTa: 'sửa kịch bản theo người xem', nguoi });
   for (const u of kh.capNhat) {
-    await chupTruoc(db, { bang: 'xv_canh', id: u.id, cot: ['hanh_dong', 'chu_man', 'thoai', 'loi_thoai', 'thoai_url', 'prompt_anh', 'phat_s', 'loi'], moTa: 'sửa theo người xem', nguoi: '', nhom });
+    await chupTruoc(db, { bang: 'xv_canh', id: u.id, cot: ['hanh_dong', 'chu_man', 'thoai', 'loi_thoai', 'thoai_url', 'prompt_anh', 'phat_s', 'loi', 'nhan_vat'], moTa: 'sửa theo người xem', nguoi: '', nhom });
     await db.execute(sql`UPDATE xv_canh SET hanh_dong = ${u.hanh_dong}, chu_man = ${u.chu_man}, thoai = ${JSON.stringify(u.thoai)}::jsonb, loi_thoai = ${u.loi_thoai}, thoai_url = ${u.thoai_url},
-      prompt_anh = ${u.prompt_anh}, prompt_video = ${u.hanh_dong}, phat_s = ${u.phat_s}, thoi_luong_s = GREATEST(thoi_luong_s, ${lamTronClip(u.phat_s)}), loi = ${u.loi}, updated_at = now() WHERE id = ${u.id}`);
+      prompt_anh = ${u.prompt_anh}, prompt_video = ${u.hanh_dong}, nhan_vat = ${JSON.stringify(u.nhan_vat)}::jsonb, phat_s = ${u.phat_s}, thoi_luong_s = GREATEST(thoi_luong_s, ${lamTronClip(u.phat_s)}), loi = ${u.loi}, updated_at = now() WHERE id = ${u.id}`);
   }
   // Shot chèn: chép phân cảnh / kỹ thuật / cảm xúc của shot đứng trước (qua cổng shot list), rồi đánh số lại cả tập theo thuTu.
   const idMoi = new Map<string, number>();

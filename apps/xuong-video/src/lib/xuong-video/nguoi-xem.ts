@@ -12,15 +12,20 @@ export type ShotXem = Pick<Canh, 'thu_tu' | 'phat_s' | 'thoi_luong_s' | 'hanh_do
 /** Điểm hiểu tối thiểu (0–10) để qua cổng — cùng với "khớp ý tác giả". */
 export const DIEM_HIEU_DAT = 7;
 
-export function banNguoiXem(canh: ShotXem[]): string {
+/** coGiay = ghi mốc giây từng shot (Claude cần để biết chữ có kịp đọc không). Mã phiên bản (maKichBan) tính KHÔNG có giây: giọng về thì máy tự
+ *  khớp giây shot — tính giây vào mã thì mỗi lượt giọng lại làm hỏng kết quả kiểm dù nội dung không đổi. */
+export function banNguoiXem(canh: ShotXem[], coGiay = true): string {
   let t = 0;
   return canh.map((c) => {
     const g = giayPhat(c); const tu = t; t += g;
     const chu = doanChuMan(c.chu_man ?? '', g).map((d) => d.dong.join(' ')).join(' / ').trim();
     const nghe = (c.thoai?.length ? c.thoai.filter((d) => d.loi.trim()).map((d) => `${d.nhan_vat.trim() || 'Người dẫn (giọng ngoài khung)'}: "${d.loi.trim()}"`) : c.loi_thoai.trim() ? [c.loi_thoai.trim()] : []).join(' · ');
-    return `#${c.thu_tu} [${tu.toFixed(1)}–${t.toFixed(1)}s] THẤY: ${c.hanh_dong.trim() || '(không tả)'} | CHỮ TRÊN MÀN: ${chu || '—'} | NGHE: ${nghe || '(không lời)'}`;
+    return `#${c.thu_tu}${coGiay ? ` [${tu.toFixed(1)}–${t.toFixed(1)}s]` : ''} THẤY: ${c.hanh_dong.trim() || '(không tả)'} | CHỮ TRÊN MÀN: ${chu || '—'} | NGHE: ${nghe || '(không lời)'}`;
   }).join('\n');
 }
+
+/** Mã phiên bản NỘI DUNG kịch bản (chữ / lời / hành động, không giây) — cổng so mã này. */
+export const maKichBan = (canh: ShotXem[]): string => maBan(banNguoiXem(canh, false));
 
 /** Mã ngắn ổn định của bản người xem (djb2) — đủ để biết kịch bản đã đổi sau lần thử. */
 export function maBan(ban: string): string {
@@ -36,14 +41,14 @@ export function chanNguoiXem(t: ThuNguoiXem | null | undefined, canh: ShotXem[])
   if (!canh.length) return [];
   const tien = TIEN_TO_NGUOI_XEM;
   if (!t) return [`${tien}chưa kiểm — bấm ${TEN_NUT_NGUOI_XEM}`];
-  if (t.ma !== maBan(banNguoiXem(canh))) return [`${tien}kịch bản đã sửa sau lần kiểm — bấm ${TEN_NUT_NGUOI_XEM} lần nữa`];
+  if (t.ma !== maKichBan(canh)) return [`${tien}kịch bản đã sửa sau lần kiểm — bấm ${TEN_NUT_NGUOI_XEM} lần nữa`];
   if (t.dat) return [];
   return [`${tien}chưa hiểu (${t.diem}/10${t.khop ? '' : ', lệch ý tác giả'}): ${[t.lech, ...t.cho_kho.slice(0, 3).map((x) => `#${x.shot} ${x.van_de}`)].filter(Boolean).join('; ')}`];
 }
 
 // ── Áp bản sửa của Claude (claude.ts › suaKichBanTheoNguoiXem) vào các shot — thuần, máy chủ chỉ việc ghi (kiem-nguoi-xem.ts) ──
 type DongVao = { nhan_vat: string; dien_xuat: string; loi: string };
-export type SuaShot = { shot: number; hanh_dong: string; chu_man: string; thoai: DongVao[]; prompt_anh: string; doi_hinh: boolean; phat_s: number };
+export type SuaShot = { shot: number; hanh_dong: string; chu_man: string; thoai: DongVao[]; prompt_anh: string; doi_hinh: boolean; phat_s: number; nhan_vat?: string[] };
 export type ShotMoi = { sau_shot: number; canh: string; hanh_dong: string; chu_man: string; thoai: DongVao[]; prompt_anh: string; nhan_vat: string[]; phat_s: number };
 export const LOI_CAN_KEYFRAME = 'Sửa theo người xem: hình đổi — sinh lại keyframe';
 /** Dòng thoại mới: câu nào giữ nguyên chữ + người nói thì giữ file giọng đã có (url, độ dài, giọng) — chỉ câu đổi mới phải đọc lại. */
@@ -54,18 +59,20 @@ export function giuGiong(cu: DongThoai[], moi: DongVao[]): DongThoai[] {
   });
 }
 export type KeHoachSua = {
-  capNhat: { id: number; thu_tu: number; hanh_dong: string; chu_man: string; thoai: DongThoai[]; loi_thoai: string; thoai_url: string | null; prompt_anh: string; phat_s: number; loi: string }[];
+  capNhat: { id: number; thu_tu: number; nhan_vat: number[]; hanh_dong: string; chu_man: string; thoai: DongThoai[]; loi_thoai: string; thoai_url: string | null; prompt_anh: string; phat_s: number; loi: string }[];
   chen: { sau_id: number; canh: string; hanh_dong: string; chu_man: string; thoai: DongThoai[]; loi_thoai: string; prompt_anh: string; nhan_vat: number[]; phat_s: number }[];
   /** thứ tự cuối: id shot cũ hoặc 'm<i>' (shot chèn thứ i) */
   thuTu: (number | string)[];
 };
-export function keHoachSua(canh: Pick<Canh, 'id' | 'thu_tu' | 'thoai'>[], nv: Pick<NhanVat, 'id' | 'ten'>[], sua: SuaShot[], them: ShotMoi[]): KeHoachSua {
+export function keHoachSua(canh: Pick<Canh, 'id' | 'thu_tu' | 'thoai' | 'nhan_vat'>[], nv: Pick<NhanVat, 'id' | 'ten'>[], sua: SuaShot[], them: ShotMoi[]): KeHoachSua {
   const ds = [...canh].sort((a, b) => a.thu_tu - b.thu_tu);
   const capNhat: KeHoachSua['capNhat'] = [];
   for (const x of sua) {
     const c = ds.find((y) => y.thu_tu === x.shot); if (!c) continue;
     const thoai = giuGiong(c.thoai ?? [], x.thoai);
-    capNhat.push({ id: c.id, thu_tu: c.thu_tu, hanh_dong: x.hanh_dong.trim(), chu_man: boChamCuoi(x.chu_man.trim()), thoai, loi_thoai: ghepThoai(thoai), thoai_url: thoai[0]?.url ?? null, prompt_anh: x.prompt_anh.trim(), phat_s: Math.max(2, Math.round(x.phat_s * 10) / 10), loi: x.doi_hinh ? LOI_CAN_KEYFRAME : '' });
+    // Đối tượng có trong shot = cũ ∪ tên Claude ghi (bản sửa thêm Pip vào prompt mà không gắn mẫu → cổng chặn keyframe, 13/10/2026).
+    const nvMoi = [...new Set([...(c.nhan_vat ?? []), ...(x.nhan_vat ?? []).map((t) => nv.find((v) => v.ten.trim().toLowerCase() === t.trim().toLowerCase())?.id).filter((y): y is number => y != null)])];
+    capNhat.push({ id: c.id, thu_tu: c.thu_tu, nhan_vat: nvMoi, hanh_dong: x.hanh_dong.trim(), chu_man: boChamCuoi(x.chu_man.trim()), thoai, loi_thoai: ghepThoai(thoai), thoai_url: thoai[0]?.url ?? null, prompt_anh: x.prompt_anh.trim(), phat_s: Math.max(2, Math.round(x.phat_s * 10) / 10), loi: x.doi_hinh ? LOI_CAN_KEYFRAME : '' });
   }
   const chen: KeHoachSua['chen'] = [];
   const thuTu: KeHoachSua['thuTu'] = [];

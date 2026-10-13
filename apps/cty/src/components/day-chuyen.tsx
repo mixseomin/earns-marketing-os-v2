@@ -11,7 +11,8 @@ import { SAP_TOI, CHANG } from '../../worker/sach.mjs';
 import { hrefSach, hrefThe, hrefVideo } from '@/lib/ngan';
 import { NEN_VIDEO, KHO_CAN, tenSlug } from '../../worker/video.mjs';
 import { LENH_MAY, lenhGanNhat, nguoiLenh } from '../../worker/lenh-may.mjs';
-import { TEN_LOAI, BAT_TU } from '../../worker/mail-bao-mat.mjs';
+import { TEN_LOAI, BAT_TU, docDay } from '../../worker/mail-bao-mat.mjs';
+import { NutDayKien } from './nut-day-kien';
 import { NutChayLai, type LenhHien } from './nut-chay-lai';
 import { giaiMa } from '@/lib/trach-nhiem';
 import { theViecMo, type kenhKeoKhach, type LanVideo } from '@/lib/do-dac';
@@ -202,18 +203,21 @@ export function DcKenh({ ds, kenh, nhan, dc, phong, hom }: { ds: Kenh[]; kenh: s
 
 const KET_MAIL: Record<MailBm['ket'], [string, string]> = { gia: ['THƯ GIẢ', ' cty-pill-off'], that: ['thư thật', ' cty-pill-kind'], 'chua-ro': ['chưa rõ', ' cty-pill-off'], thuong: ['thư thường', ''] };
 /** Dây chuyền MAIL BẢO MẬT (Phòng Bảo mật): mỗi thư một hàng — kết luận của máy + việc phải làm; thư đã xử mờ đi. */
-export function DcMail({ ds: tatCa }: { ds: MailBm[] | null }) {
+export async function DcMail({ ds: tatCa }: { ds: MailBm[] | null }) {
   if (tatCa === null) return <p className="cty-bao-loi" data-loi>Không đọc được hòm claude@orit.app (Directus claude_inbox) — xem DIRECTUS_URL / DIRECTUS_TOKEN của mos2-cty.</p>;
   const ds = tatCa.filter((m) => m.ket !== 'thuong'), thuong = tatCa.length - ds.length;   // Kiên đọc MỌI thư; bảng chỉ liệt kê thư bảo mật
-  const dem = <p className="cty-muted cty-nho">Kiên đã đọc {tatCa.length} thư trong 30 ngày: {ds.length} thư bảo mật, {thuong} thư thường (không có dấu hiệu bảo mật, không cần làm gì).</p>;
+  const day = (await docDay()) as { nha?: string[]; quen?: string[]; gia?: string[] };
+  const nhomCua = (m: string) => (['nha', 'quen', 'gia'] as const).find((k) => day[k]?.includes(m));
+  const dem = <><p className="cty-muted cty-nho">Kiên đã đọc {tatCa.length} thư trong 30 ngày: {ds.length} thư bảo mật, {thuong} thư thường (không có dấu hiệu bảo mật, không cần làm gì).</p>
+    <p className="cty-muted cty-nho">Đã dạy Kiên — 🏠 nhà mình: {day.nha?.join(', ') || '—'} · ✅ thật, quen: {day.quen?.join(', ') || '—'} · ⛔ giả: {day.gia?.join(', ') || '—'}. Dạy bằng nút trên từng dòng hoặc dưới tin Telegram.</p></>;
   if (!ds.length) return <>{dem}<p className="cty-muted">30 ngày qua không có thư bảo mật nào trong hòm. Thư nghi vấn: chuyển tiếp vào claude@orit.app, máy thẩm định khi mở phòng.</p></>;
   return (
-    <>{dem}<div className="cty-cuon"><table className="cty-bang-loc cty-bang-viec"><thead><tr><th>Ngày</th><th>Thư</th><th>Nhà</th><th>Loại</th><th>Kết luận</th><th>Việc phải làm</th><th>Trạng thái</th></tr></thead><tbody>
+    <>{dem}<div className="cty-cuon"><table className="cty-bang-loc cty-bang-viec"><thead><tr><th>Ngày</th><th>Thư</th><th>Nhà</th><th>Loại</th><th>Kết luận</th><th>Việc phải làm</th><th>Trạng thái</th><th>Dạy Kiên</th></tr></thead><tbody>
       {ds.map((m) => <tr key={m.id} className={m.xong ? 'cty-muted' : undefined}>
         <td className="cty-so">{ngay(m.luc.slice(0, 10))}</td><td>{m.tieuDe}<div className="cty-muted cty-nho">{m.gui}</div></td><td className="cty-bang-ai">{m.mien || '—'}</td>
         <td className="cty-bang-ai">{m.loai.map((l) => TEN_LOAI[l] ?? l).join(', ') || '—'}</td>
         <td><span className={`cty-pill${KET_MAIL[m.ket][1]}`}>{KET_MAIL[m.ket][0]}</span><div className="cty-nho">{m.chu}</div></td>
-        <td>{m.viec}</td><td className="cty-bang-ai">{m.xong ? 'đã xử' : <span className="cty-thu-loi">chờ xử</span>}</td></tr>)}
+        <td>{m.viec}</td><td className="cty-bang-ai">{m.xong ? 'đã xử' : <span className="cty-thu-loi">chờ xử</span>}</td><td><NutDayKien mien={m.mien} dang={nhomCua(m.mien)} /></td></tr>)}
     </tbody></table></div></>
   );
 }

@@ -34,16 +34,21 @@ export function thieuPhanCanh(phanCanh: Pick<PhanCanh, 'ten'>[], c: Pick<Canh, '
 /** Luật anh 12/10/2026 (nhắc hai lần): keyframe phải đứng trên MẪU — mỗi shot sinh ảnh gắn ≥1 anchor Bối cảnh, và đối tượng của phim
  *  (người, sản phẩm, đạo cụ) được nhắc tên trong prompt thì phải gắn mẫu, không để model vẽ theo chữ (mỗi shot một khuôn mặt / một căn phòng).
  *  Ảnh mẫu thiếu thì thanhPhanCanh đã chặn. nhanVat = MỌI anchor của phim. MỘT luật cho bảng chọn, máy chủ và script. */
+/** Anchor (không phải bối cảnh) có NHẮC TÊN trong prompt ảnh / hành động mà chưa gắn vào shot — một luật cho cổng (thieuMau) và lúc lưu tách
+ *  cảnh (luu-canh.ts tự gắn): trước đây chỉ gắn anchor Claude tự liệt kê, món nhắc trong prompt bị sót → chặn keyframe (Tango & Lint tập 1). */
+export function mauNhacTen(c: Pick<Canh, 'nhan_vat' | 'prompt_anh' | 'hanh_dong'>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai'>[]): Pick<NhanVat, 'id' | 'ten' | 'loai'>[] {
+  const chu = ` ${c.prompt_anh} ${c.hanh_dong} `.toLowerCase();
+  return nhanVat.filter((v) => {
+    if (v.loai === 'boi_canh' || v.loai === 'phong_cach' || c.nhan_vat.includes(v.id) || v.ten.trim().length < 3) return false;
+    const t = v.ten.trim().toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`(^|[^\\p{L}])${t}([^\\p{L}]|$)`, 'u').test(chu);
+  });
+}
 export function thieuMau(c: Pick<Canh, 'nhan_vat' | 'prompt_anh' | 'hanh_dong'>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai'>[]): string[] {
   const out: string[] = [];
   const gan = nhanVat.filter((v) => c.nhan_vat.includes(v.id));
   if (!gan.some((v) => v.loai === 'boi_canh')) out.push(nhanVat.some((v) => v.loai === 'boi_canh') ? 'chưa gắn bối cảnh — gắn một anchor Bối cảnh (tab 🎭 Phim) để mọi shot cùng nơi trông như một chỗ' : 'phim chưa có anchor Bối cảnh nào — tả + sinh ảnh mẫu các nơi chốn lặp lại (tab 🎭 Phim) trước khi sinh keyframe');
-  const chu = ` ${c.prompt_anh} ${c.hanh_dong} `.toLowerCase();
-  for (const v of nhanVat) {
-    if (v.loai === 'boi_canh' || v.loai === 'phong_cach' || c.nhan_vat.includes(v.id) || v.ten.trim().length < 3) continue;
-    const t = v.ten.trim().toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    if (new RegExp(`(^|[^\\p{L}])${t}([^\\p{L}]|$)`, 'u').test(chu)) out.push(`"${v.ten}" có trong prompt mà chưa gắn mẫu`);
-  }
+  for (const v of mauNhacTen(c, nhanVat)) out.push(`"${v.ten}" có trong prompt mà chưa gắn mẫu`);
   return out;
 }
 

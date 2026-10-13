@@ -7,6 +7,7 @@ import { boVaoThungRac } from './thung-rac';
 import { lamSachKyThuat } from './dien-anh';
 import { ghepThoai, type NhanVat } from './kieu';
 import type { tachCanh } from './claude';
+import { mauNhacTen } from './quy-trinh';
 
 type Db = NonNullable<ReturnType<typeof getDb>>;
 type KqTach = Extract<Awaited<ReturnType<typeof tachCanh>>, { ok: true }>;
@@ -22,7 +23,9 @@ export async function luuCanhTach(db: Db, o: { tapId: number; tenTap: string; kq
   let thuTu = Number(giu[0]?.m ?? 0);
   for (const c of kq.canh) {
     thuTu += 1;
-    const ids = c.nhan_vat.map((t) => tenToId.get(t.trim().toLowerCase())).filter((x): x is number => typeof x === 'number');
+    const ids0 = c.nhan_vat.map((t) => tenToId.get(t.trim().toLowerCase())).filter((x): x is number => typeof x === 'number');
+    // Món có NHẮC TÊN trong prompt mà Claude không liệt kê → gắn luôn (quy-trinh.ts › mauNhacTen), không để cổng keyframe chặn.
+    const ids = [...ids0, ...mauNhacTen({ nhan_vat: ids0, prompt_anh: c.prompt_anh, hanh_dong: c.hanh_dong }, o.nhanVat).map((v) => v.id)];
     const bts = (c.bien_the ?? []).map((t) => btToId.get(t.replace(/\s*[·\-–|]\s*/, ' · ').trim().toLowerCase())).filter((x): x is number => typeof x === 'number');
     const thoai = (c.thoai ?? []).filter((d) => d.loi.trim());
     await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, loi_thoai, thoai, am_thanh, thoi_luong_s, nhan_vat, bien_the, prompt_anh, prompt_video, phan_doan, cam_xuc, ky_thuat, trang_phuc, phat_s, chu_man, nhanh)

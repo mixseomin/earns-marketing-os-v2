@@ -6,6 +6,7 @@ import { useMemo } from 'react';
 import { bangDoiTuong } from '@/lib/xuong-video/phu-thuoc';
 import type { Canh, NhanVat } from '@/lib/xuong-video/kieu';
 import { mono } from './ui';
+import { anhNho } from '@/lib/xuong-video/anh-nho';
 
 const ICON: Record<string, string> = { san_pham: '👖', nhan_vat: '🧍', boi_canh: '🏠', dao_cu: '🧸' };
 
@@ -36,7 +37,7 @@ export function BangDoiTuong({ canh, nhanVat, onChonShot, onDong }: { canh: Canh
               <tr key={nv.id}>
                 <td style={{ position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg-1)', paddingRight: 6, whiteSpace: 'nowrap', fontSize: 11.5 }}>
                   <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>
-                    {nv.anh_ref[0] ? <img src={nv.anh_ref[0]} alt="" style={{ width: 22, height: 22, objectFit: 'cover', borderRadius: 4 }} /> : <span style={{ width: 22, textAlign: 'center' }}>{ICON[nv.loai] ?? '•'}</span>}
+                    {nv.anh_ref[0] ? <img src={anhNho(nv.anh_ref[0], 160)} alt="" style={{ width: 22, height: 22, objectFit: 'cover', borderRadius: 4 }} /> : <span style={{ width: 22, textAlign: 'center' }}>{ICON[nv.loai] ?? '•'}</span>}
                     <span style={{ maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis' }}>{nv.ten}</span>
                   </span>
                 </td>
@@ -47,7 +48,7 @@ export function BangDoiTuong({ canh, nhanVat, onChonShot, onDong }: { canh: Canh
                     ...x.thieu.map((t) => `⛔ ${t}`), x.khac ? '⚠ khác màu/biến thể với đa số shot' : '', x.nhac ? '⚠ mô tả shot nhắc tên mà chưa gắn — model vẽ theo chữ' : ''].filter(Boolean).join('\n');
                   return (
                     <td key={c.id} title={goiY} onClick={() => onChonShot(c.id)} style={{ width: O, height: O, padding: 0, border: vien, borderRadius: 4, cursor: 'pointer', background: x.gan ? 'var(--bg-2)' : 'transparent', textAlign: 'center' }}>
-                      {x.gan && (x.anh ? <img src={x.anh} alt="" style={{ width: O - 4, height: O - 4, objectFit: 'cover', borderRadius: 3, display: 'block', margin: '0 auto' }} /> : <span style={{ fontSize: 10, color: 'var(--red)' }}>?</span>)}
+                      {x.gan && (x.anh ? <img src={anhNho(x.anh, 160)} alt="" style={{ width: O - 4, height: O - 4, objectFit: 'cover', borderRadius: 3, display: 'block', margin: '0 auto' }} /> : <span style={{ fontSize: 10, color: 'var(--red)' }}>?</span>)}
                       {!x.gan && x.nhac && <span style={{ fontSize: 10, color: 'var(--amber)' }}>!</span>}
                     </td>
                   );

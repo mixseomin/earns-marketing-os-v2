@@ -13,11 +13,12 @@ import { Khoa, KqChay, O, Pill, Nut, Loi, AnhNho, DangSinh, mono, Menu, MucMenu,
 import { MoHinhCtx, giaVideoUi, giaAnhUi, luaChonAnh, luaChonVideo } from './mo-hinh-ui';
 import { GiongNhanVat } from './nhan-vat';
 import { NutNghe, ClipNho } from './media';
+import { anhNho } from '@/lib/xuong-video/anh-nho';
 
 /** Keyframe nhỏ dưới video (#1218): có video rồi vẫn xem lại được ảnh gốc của clip (rê để phóng to, kèm ảnh so sánh). */
 export function KfNho({ url, soSanh }: { url: string; soSanh: string }) {
   return (
-    <img src={url} alt="" data-so-sanh={soSanh} title="Keyframe của clip — rê để phóng to"
+    <img src={anhNho(url, 160)} alt="" data-so-sanh={soSanh} title="Keyframe của clip — rê để phóng to"
       style={{ display: 'block', width: 34, height: 34, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)', marginTop: 4 }} />
   );
 }
@@ -114,7 +115,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai }: 
         <div style={{ flexShrink: 0, width: anhKhung.width }}>
           {c.video_cuoi_url ? <div><ClipNho url={c.video_cuoi_url} ten={`#${c.thu_tu} ${c.canh} · bản cuối`} style={anhKhung} /><div style={{ ...mono, color: 'var(--lime)', textAlign: 'center' }}>bản cuối</div>{c.keyframe_url && <KfNho url={c.keyframe_url} soSanh={soSanh} />}</div>
             : c.video_url ? <div><ClipNho url={c.video_url} ten={`#${c.thu_tu} ${c.canh} · nháp`} style={anhKhung} /><div style={{ ...mono, textAlign: 'center' }}>nháp</div>{c.keyframe_url && <KfNho url={c.keyframe_url} soSanh={soSanh} />}</div>
-            : c.keyframe_url ? <div style={{ position: 'relative' }}><img src={c.keyframe_url} alt="" data-so-sanh={soSanh} style={anhKhung} />{buoc === 'dang' && <DangSinh chu="" />}</div>
+            : c.keyframe_url ? <div style={{ position: 'relative' }}><img src={anhNho(c.keyframe_url, 320)} alt="" data-so-sanh={soSanh} style={anhKhung} />{buoc === 'dang' && <DangSinh chu="" />}</div>
             : <div style={{ ...anhKhung, position: 'relative', display: 'grid', placeItems: 'center', color: 'var(--fg-4)', fontSize: 10, overflow: 'hidden' }}>chưa có{buoc === 'dang' && <DangSinh chu={c.dang_sinh_anh ? 'ảnh' : 'video'} />}</div>}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -131,7 +132,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai }: 
               {tp.ds.map(({ nv, bt, anh, thieu }) => (
                 <span key={nv.id} title={thieu.length ? thieu.join('\n') : `${nv.ten}${bt ? ` · ${bt.ten}` : ''} — sẵn sàng`}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 7px 2px 2px', borderRadius: 999, border: `1px solid ${thieu.length ? 'var(--red)' : 'var(--line)'}`, background: 'var(--bg-1)', fontSize: 10.5 }}>
-                  {anh ? <img src={anh} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }} /> : <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg-2)', display: 'grid', placeItems: 'center', color: 'var(--red)' }}>!</span>}
+                  {anh ? <img src={anhNho(anh, 160)} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }} /> : <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg-2)', display: 'grid', placeItems: 'center', color: 'var(--red)' }}>!</span>}
                   <span>{nv.ten}</span>
                   {/* Chọn biến thể ngay trên chip (#1249): ảnh gốc hoặc một biến thể (phòng ngủ sáng / tối…) — mỗi đối tượng tối đa 1. */}
                   {(nv.bien_the ?? []).length > 0 ? (

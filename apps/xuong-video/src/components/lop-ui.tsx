@@ -10,6 +10,7 @@ import { chuyenCanhGiua } from '@/lib/xuong-video/dien-anh';
 import { boChamCuoi } from '@/lib/xuong-video/ngat-dong';
 import { Chon } from './chon';
 import { Menu, MucMenu, Xoa, mono } from './ui';
+import { anhNho } from '@/lib/xuong-video/anh-nho';
 
 const ICON_LOAI: Record<Lop['loai'], string> = { chu: 'T', anh: '🖼', hinh: '◼', hieu_ung: '✦' };
 const fontCss = (f?: string) => (!f || f === 'DejaVu Sans' ? '"DejaVu Sans", system-ui, sans-serif' : `"${f}", "Montserrat", system-ui, sans-serif`);
@@ -246,7 +247,7 @@ export function LopNguyenLieu({ t, anh, onThem }: { t: number; anh: { url: strin
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(44px, 1fr))', gap: 4 }}>
       {anh.map((a) => <button key={a.url} type="button" title={`${a.ten} — bấm để thêm làm lớp ở giây ${t.toFixed(1)}`} onClick={() => onThem([lopMoi('anh', t, { url: a.url, ten: a.ten })])}
-        style={{ padding: 0, border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-2)', cursor: 'copy' }}><img src={a.url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'contain', display: 'block' }} /></button>)}
+        style={{ padding: 0, border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-2)', cursor: 'copy' }}><img src={anhNho(a.url, 160)} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'contain', display: 'block' }} /></button>)}
     </div>
   );
 }

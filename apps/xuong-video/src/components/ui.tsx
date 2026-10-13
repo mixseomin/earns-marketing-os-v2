@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { tien } from '@/lib/xuong-video/kieu';
 import { useViTriNoi } from './vi-tri-noi';
 import { useXacNhanTien } from './xac-nhan-tien';
+import { anhNho, nacNho } from '@/lib/xuong-video/anh-nho';
 
 export type Khoa = { google: boolean; anthropic: boolean; r2: boolean; openai: boolean; fal: boolean };
 
@@ -62,7 +63,7 @@ export function Loi({ children }: { children: ReactNode }) { return children ? <
 export function AnhNho({ url, kich = 40, vien, nhan, title, onClick, onXoa, soSanh }: { url: string; kich?: number; vien?: string; nhan?: string; title?: string; onClick?: () => void; onXoa?: () => void | Promise<void>; soSanh?: string }) {
   return (
     <span className="xv-anh-nho" title={title} style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
-      <img src={url} alt="" onClick={onClick} data-so-sanh={soSanh} style={{ width: kich, height: kich, objectFit: 'cover', borderRadius: 5, display: 'block', cursor: onClick ? 'pointer' : 'default', border: `2px solid ${vien ?? 'transparent'}` }} />
+      <img src={anhNho(url, nacNho(kich))} alt="" onClick={onClick} data-so-sanh={soSanh} style={{ width: kich, height: kich, objectFit: 'cover', borderRadius: 5, display: 'block', cursor: onClick ? 'pointer' : 'default', border: `2px solid ${vien ?? 'transparent'}` }} />
       {nhan && <span style={{ position: 'absolute', left: 3, bottom: 2, fontSize: 8.5, color: '#fff', textShadow: '0 1px 2px #000', pointerEvents: 'none' }}>{nhan}</span>}
       {onXoa && <button type="button" className="xv-x" title="Bỏ ảnh vào thùng rác (khôi phục được)" onClick={(e) => { e.stopPropagation(); if (window.confirm('Bỏ ảnh này vào thùng rác? Khôi phục được ở nút 🗑 Thùng rác.')) void onXoa(); }}>✕</button>}
     </span>

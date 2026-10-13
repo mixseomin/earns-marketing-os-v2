@@ -10,6 +10,7 @@ import { LOAI_NHAN_VAT, NHOM_BIEN_THE, nhanNhom, docKinhThanh, giaAnhCents, tien
 import { Chon } from './chon';
 import { Khoa, O, Pill, Seg, Nut, Xoa, Loi, AnhNho, DangSinh, Menu, MucMenu, mono, goiAction } from './ui';
 import { NutNghe } from './media';
+import { anhNho } from '@/lib/xuong-video/anh-nho';
 
 /** Giọng cố định của một nhân vật (cả bộ phim): chọn model (ElevenLabs tài khoản anh / mọi TTS fal) + giọng, nghe thử. */
 export function GiongNhanVat({ v, onChanged }: { v: NhanVat; onChanged: () => Promise<void> }) {
@@ -82,7 +83,7 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
           <div key={v.id} className="xv-anchor" style={{ flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', gap: 8 }}>
               <div style={{ width: 72, height: 72, flexShrink: 0, position: 'relative', borderRadius: 6, overflow: 'hidden' }}>
-                {v.anh_ref[0] ? <img src={v.anh_ref[0]} alt="" onClick={() => moNgan({ loai: 'xem', url: v.anh_ref[0]!, ten: v.ten })} style={{ width: 72, height: 72, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
+                {v.anh_ref[0] ? <img src={anhNho(v.anh_ref[0], 160)} alt="" onClick={() => moNgan({ loai: 'xem', url: v.anh_ref[0]!, ten: v.ten })} style={{ width: 72, height: 72, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
                   : <div style={{ width: 72, height: 72, background: 'var(--bg-2)', display: 'grid', placeItems: 'center', color: 'var(--fg-4)' }}>?</div>}
                 {soDang > 0 && <DangSinh chu={`${soDang} ảnh`} />}
               </div>
@@ -172,7 +173,7 @@ export function BienTheDrawer({ a, khoa, kt, dangSinh, loiBt, onClose, onChanged
         Khi tách cảnh, Claude tự gán biến thể phù hợp cho từng cảnh; keyframe dùng ảnh biến thể đó làm tham chiếu.
       </div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
-        {a.anh_ref.slice(0, 3).map((u) => <img key={u} src={u} alt="" onClick={() => moNgan({ loai: 'xem', url: u, ten: a.ten })} style={{ height: 80, borderRadius: 6, border: '1px solid var(--line)', cursor: 'zoom-in' }} />)}
+        {a.anh_ref.slice(0, 3).map((u) => <img key={u} src={anhNho(u, 320)} alt="" onClick={() => moNgan({ loai: 'xem', url: u, ten: a.ten })} style={{ height: 80, borderRadius: 6, border: '1px solid var(--line)', cursor: 'zoom-in' }} />)}
         {!a.anh_ref.length && <span className="xv-loi">Chưa có ảnh gốc — đóng lại, bấm "✨ Sinh ảnh gốc" ở thẻ anchor trước.</span>}
         <span style={{ flex: 1 }} />
         <Nut ly={!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY'} ban={!!ban} title="Claude đọc kịch bản các tập → đề xuất các biến thể cảnh nào cũng cần (vd cảnh khóc → biểu cảm buồn; cảnh đêm → bối cảnh ban đêm)" onClick={() => void chay('ai', () => goiYAIBienThe(a.id))}>{ban === 'ai' ? '… AI đang đề xuất' : '✨ AI đề xuất biến thể theo kịch bản'}</Nut>

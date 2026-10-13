@@ -4,6 +4,7 @@
 import { chuManHien, giayPhat, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { dongThoai } from '@/lib/xuong-video/am-thanh';
 import { mono } from './ui';
+import { anhNho } from '@/lib/xuong-video/anh-nho';
 
 const gio = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
@@ -33,7 +34,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo }: { canh: Canh[]; 
                 <div style={{ height: 18, padding: '0 6px', display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', background: i === 0 ? `color-mix(in srgb, ${mau} 18%, transparent)` : undefined }}>
                   {i === 0 ? <><b style={{ color: mau, overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.ten || 'Chưa đặt phân cảnh'}</b>{pc?.beat && <span className="xv-mono" style={{ color: 'var(--fg-3)' }}>{pc.beat}</span>}</> : <span style={{ color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.ten}</span>}
                 </div>
-                <div style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: anh ? `center / cover no-repeat url(${anh}), #111` : 'var(--bg-2)' }}>
+                <div style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: anh ? `center / cover no-repeat url(${anhNho(anh, 320)}), #111` : 'var(--bg-2)' }}>
                   <span className="xv-mono" style={{ position: 'absolute', left: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.65)', color: '#fff' }}>{gio(tc)}</span>
                   <span className="xv-mono" style={{ position: 'absolute', right: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.65)', color: coVid ? '#4ade80' : '#fff' }}>{coVid ? '▶ ' : ''}#{c.thu_tu} · {giayPhat(c)}s</span>
                   {!anh && <span style={{ ...mono, position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>chưa có hình</span>}

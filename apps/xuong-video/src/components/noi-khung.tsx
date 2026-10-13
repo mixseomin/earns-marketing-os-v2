@@ -8,6 +8,7 @@ import { nguonCuaTap } from '@/lib/actions';
 import type { NguonShot } from '@/lib/xuong-video/phu-thuoc';
 import { moNgan } from './ngan-chung';
 import { mono } from './ui';
+import { anhNho } from '@/lib/xuong-video/anh-nho';
 
 type TT = 'ok' | 'doi' | 'mo';
 const MAU: Record<TT, string> = { ok: 'var(--lime)', doi: 'var(--red)', mo: 'var(--fg-3)' };
@@ -38,7 +39,7 @@ export function NoiKhungTap({ tapId }: { tapId: number }) {
   const anh = (url: string | null, tieuDe: string, la: 'anh' | 'clip') => url
     ? (la === 'clip'
       ? <video src={url} muted loop playsInline preload="metadata" onMouseEnter={(e) => void e.currentTarget.play().catch(() => {})} onMouseLeave={(e) => e.currentTarget.pause()} style={{ width: TW, height: TH, objectFit: 'cover', borderRadius: 4, background: '#000', display: 'block' }} />
-      : <img src={url} alt="" title={tieuDe} draggable={false} style={{ width: TW, height: TH, objectFit: 'cover', borderRadius: 4, display: 'block', background: '#000' }} />)
+      : <img src={anhNho(url, 320)} alt="" title={tieuDe} draggable={false} style={{ width: TW, height: TH, objectFit: 'cover', borderRadius: 4, display: 'block', background: '#000' }} />)
     : <div title={tieuDe} style={{ width: TW, height: TH, border: '1px dashed var(--line)', borderRadius: 4, display: 'grid', placeItems: 'center', fontSize: 9, color: 'var(--fg-3)' }}>{la === 'clip' ? 'chưa clip' : 'chưa ảnh'}</div>;
   return (
     <div style={{ display: 'grid', gap: 8 }}>

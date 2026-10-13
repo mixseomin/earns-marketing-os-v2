@@ -2,6 +2,7 @@
 // Rê chuột lên BẤT KỲ ảnh nào trong app → hiện bản to cạnh con trỏ (anh yêu cầu 08/10/2026: không bắt click để xem chi tiết).
 // Gắn một lần ở layout, bắt sự kiện ở document → ảnh thêm sau này tự có, không phải nhớ bọc từng chỗ.
 import { useEffect, useState } from 'react';
+import { anhNho, anhGoc } from '@/lib/xuong-video/anh-nho';
 
 export function PhongToKhiRe() {
   // soSanh: ảnh tham chiếu đi kèm (data-so-sanh='[{"ten","url"}]' trên ảnh keyframe) — hiện thành cột bên cạnh để so (#1215).
@@ -13,8 +14,9 @@ export function PhongToKhiRe() {
       const r = t.getBoundingClientRect();
       if (r.width >= 360) return;   // ảnh đã đủ to thì thôi
       let soSanh: { ten: string; url: string }[] = [];
-      try { soSanh = t.dataset.soSanh ? (JSON.parse(t.dataset.soSanh) as { ten: string; url: string }[]).filter((x) => x.url) : []; } catch { soSanh = []; }
-      setAnh({ src: t.currentSrc || t.src, x: e.clientX, y: e.clientY, soSanh });
+      try { soSanh = t.dataset.soSanh ? (JSON.parse(t.dataset.soSanh) as { ten: string; url: string }[]).filter((x) => x.url).map((x) => ({ ...x, url: anhNho(x.url, 320) })) : []; } catch { soSanh = []; }
+      // Ô đang rê là ảnh nhỏ (anh-nho.ts) → bản phóng to lấy nấc 640 của ảnh gốc, không tải ảnh gốc ~1 MB.
+      setAnh({ src: anhNho(anhGoc(t.currentSrc || t.src), 640), x: e.clientX, y: e.clientY, soSanh });
     };
     const di = (e: MouseEvent) => setAnh((a) => (a ? { ...a, x: e.clientX, y: e.clientY } : a));
     const ra = (e: MouseEvent) => { if (e.target instanceof HTMLImageElement) setAnh(null); };

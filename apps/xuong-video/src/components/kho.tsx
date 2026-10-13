@@ -6,6 +6,7 @@ import { dsTaiSan, dungTaiSanCho, boTaiSan, taoTapTuKhuonQc } from '@/lib/action
 import { LOAI_TAI_SAN, tien, type LoaiTaiSan, type TaiSan } from '@/lib/xuong-video/kieu';
 import { Loi, Nut, mono } from './ui';
 import { moNgan } from './ngan-chung';
+import { anhNho } from '@/lib/xuong-video/anh-nho';
 
 /** Đích dùng tài sản: shot (clip/keyframe) hoặc tập (nhạc). Mã hoá trong URL drawer: "c<id>" / "t<id>". */
 export type DichKho = { canhId?: number; tapId?: number; phimId?: number };
@@ -53,7 +54,7 @@ export function KhoNoiDung({ dich = {} }: { dich?: DichKho }) {
           {loc.map((t) => (
             <div key={t.id} className="xv-canh" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {t.url && t.loai === 'clip' && <video src={t.url} muted loop playsInline preload="metadata" onMouseEnter={(e) => void e.currentTarget.play().catch(() => {})} onMouseLeave={(e) => e.currentTarget.pause()} onClick={() => moNgan({ loai: 'xem', url: t.url!, ten: t.ten })} style={{ width: '100%', aspectRatio: t.so_do.ti_le === '16:9' ? '16 / 9' : '9 / 16', objectFit: 'cover', borderRadius: 6, background: '#000', cursor: 'zoom-in' }} />}
-              {t.url && t.loai === 'anh' && <img src={t.url} alt="" onClick={() => moNgan({ loai: 'xem', url: t.url!, ten: t.ten })} style={{ width: '100%', aspectRatio: t.so_do.ti_le === '16:9' ? '16 / 9' : '9 / 16', objectFit: 'cover', borderRadius: 6, cursor: 'zoom-in' }} />}
+              {t.url && t.loai === 'anh' && <img src={anhNho(t.url, 320)} alt="" onClick={() => moNgan({ loai: 'xem', url: t.url!, ten: t.ten })} style={{ width: '100%', aspectRatio: t.so_do.ti_le === '16:9' ? '16 / 9' : '9 / 16', objectFit: 'cover', borderRadius: 6, cursor: 'zoom-in' }} />}
               {t.url && t.loai === 'nhac' && <audio src={t.url} controls preload="none" style={{ width: '100%' }} />}
               {t.loai === 'giong' && <div style={mono}>🗣 {String(t.du_lieu.voice ?? '')} · {String(t.du_lieu.model ?? '').split('/').pop()}</div>}
               {t.loai === 'kieu_chu' && (() => { const k = (t.du_lieu.kieu_chu ?? {}) as { font?: string; mau?: string; vien?: string; nhan?: string }; return <div style={{ fontFamily: k.font, fontWeight: 900, fontSize: 18, color: k.mau || '#fff', WebkitTextStroke: `1px ${k.vien || '#000'}`, background: 'var(--bg-2)', borderRadius: 6, padding: '6px 8px' }}>PAY 1 GET <span style={{ color: k.nhan || k.mau }}>3</span></div>; })()}

@@ -25,6 +25,7 @@ import { lopMoi, idLop, tenLop, tenNhom, chonLopMoi, nhomCua, gopNhom, boNhom, l
 import { useLop, LopXem, LopCongCu, LopNguyenLieu, LopBang, LopNhieu, KhoiLop, KhungHieuUng } from './lop-ui';
 import { moNgan } from './ngan-chung';
 import { useKichThuoc, TayKeo } from './keo';
+import { anhNho } from '@/lib/xuong-video/anh-nho';
 
 const MAU_NV = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#4ade80', '#fb923c', '#60a5fa'];
 // Cột nhãn track: kéo mép phải để nới (#1240) — nhớ theo trình duyệt.
@@ -450,7 +451,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
             <KhungHieuUng lop={lop} t={t} rong={rongXem} tTrong={tTrong}
               chuyen={idx > 0 && c ? { anh: canh[idx - 1]!.keyframe_url, key: canh[idx - 1]!.ky_thuat?.chuyen_canh, giay: canh[idx - 1]!.ky_thuat?.giay_cc, phatTruoc: dur(canh[idx - 1]!), phatNay: dur(c) } : undefined}>
               {c && (vid ? <video ref={vidRef} key={vid} src={vid} playsInline preload="auto" onLoadedMetadata={(e) => setDaiVid(e.currentTarget.duration || 0)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : c.keyframe_url ? <img src={c.keyframe_url} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb }} />
+                : c.keyframe_url ? <img src={anhNho(c.keyframe_url, 640)} alt="" data-khong-phong-to="" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: kb }} />
                 : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} chưa có hình</div>)}
               <LopXem lop={lop} t={t} rong={rongXem} cao={caoXem} chonIds={chonLops} onChon={bamLop} onDoi={doiLop} dangChay={chay} />
             </KhungHieuUng>
@@ -563,7 +564,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           {khung && <div style={{ position: 'fixed', left: Math.min(khung.x0, khung.x1), top: Math.min(khung.y0, khung.y1), width: Math.abs(khung.x1 - khung.x0), height: Math.abs(khung.y1 - khung.y0), border: '1px solid var(--cyan)', background: 'color-mix(in srgb, var(--cyan) 12%, transparent)', pointerEvents: 'none', zIndex: 50 }} />}
           </div>
           {track('🎬 Hình', 'Mỗi cảnh một clip, dài đúng số giây', canh.map((cc, i) => {
-            const x = batDau[i]! * pps; const w = dur(cc) * pps; const anh = cc.keyframe_url;
+            const x = batDau[i]! * pps; const w = dur(cc) * pps; const anh = anhNho(cc.keyframe_url, 160);
             const dangChon = chon === cc.id; const coVid = !!(cc.video_cuoi_url || cc.video_url);
             return (
               <div key={cc.id} draggable onDragStart={() => setKeo(cc.id)} onDragEnd={() => { setKeo(null); setTha(null); }}

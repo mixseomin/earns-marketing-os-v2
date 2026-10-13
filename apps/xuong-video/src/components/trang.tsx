@@ -19,6 +19,7 @@ import { TapView } from './tap';
 import { PosterPhim } from './poster-ui';
 import { useNho } from './nho';
 import { useDinhKy } from './dinh-ky';
+import { anhNho } from '@/lib/xuong-video/anh-nho';
 
 export function XuongVideoTrang(props: { phimDau: Phim[]; khoa: Khoa }) {
   return <Suspense fallback={<span style={mono}>…</span>}><Ruot {...props} /></Suspense>;
@@ -153,7 +154,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?:
 
   return (
     <Ngan onClose={onClose} tieuDe={phim.ten} nut={<>
-      {phim.poster_url && <img src={phim.poster_url} alt="" title="Poster (tab 🎭 Phim › Poster)" style={{ height: 34, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} />}
+      {phim.poster_url && <img src={anhNho(phim.poster_url, 160)} alt="" title="Poster (tab 🎭 Phim › Poster)" style={{ height: 34, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} />}
       <Pill color="var(--fg-3)">{LOAI_PHIM.find((l) => l.key === phim.loai)?.label ?? phim.loai}</Pill>
       <span style={mono} data-ngu-canh={`phim #${phim.id} ${phim.ten}`}>#{phim.id}</span>
       <ThongKe tk={d.thongKe} tongTien={d.tongTien} soAnchor={nhanVat.length} soTap={tap.length} />
@@ -268,7 +269,7 @@ function ThungRac({ phimId, onKhoiPhuc }: { phimId: number | null; onKhoiPhuc: (
             <div style={{ display: 'grid', gap: 6 }}>
               {ds.map((m) => (
                 <div key={m.id} className="xv-canh" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  {m.anh ? <img src={m.anh} alt="" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 5, flexShrink: 0 }} /> : <div style={{ width: 44, height: 44, borderRadius: 5, background: 'var(--bg-2)', flexShrink: 0 }} />}
+                  {m.anh ? <img src={anhNho(m.anh, 160)} alt="" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 5, flexShrink: 0 }} /> : <div style={{ width: 44, height: 44, borderRadius: 5, background: 'var(--bg-2)', flexShrink: 0 }} />}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.ten}</div>
                     <div style={mono}>{NHAN_RAC[m.loai] ?? m.loai} · bỏ lúc {gioVN(m.xoa_luc)} · {m.nguoi}</div>

@@ -8,6 +8,7 @@ import { MO_HINH_POSTER, MAU_POSTER, tenPoster, anchorPoster, type MauPoster } f
 import type { NhanVat } from '@/lib/xuong-video/kieu';
 import { Nut, Loi, mono, goiAction } from './ui';
 import { useNho } from './nho';
+import { anhNho } from '@/lib/xuong-video/anh-nho';
 
 export function PosterPhim({ phim, nhanVat, dang, loiNen, onChanged }: { phim: Phim; nhanVat: NhanVat[]; dang: number; loiNen: string; onChanged: () => Promise<void> }) {
   const [yTuong, setYTuong] = useState('');
@@ -28,7 +29,7 @@ export function PosterPhim({ phim, nhanVat, dang, loiNen, onChanged }: { phim: P
   const mo = moNho === '1' || dang > 0 || !!loi;
   if (!mo) return (
     <div className="xv-panel" style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 12px' }}>
-      {phim.poster_url ? <img src={phim.poster_url} alt="" style={{ height: 44, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 4 }} /> : <span style={mono}>🎨</span>}
+      {phim.poster_url ? <img src={anhNho(phim.poster_url, 160)} alt="" style={{ height: 44, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 4 }} /> : <span style={mono}>🎨</span>}
       <b style={{ fontSize: 13 }}>Poster</b><span style={mono}>{ds.length ? `${ds.length} bản` : 'chưa có'}</span>
       <button type="button" className="xv-btn" onClick={() => setMo('1')}>▾ {ds.length ? 'Đổi / sinh thêm' : 'Sinh poster'}</button>
     </div>
@@ -37,7 +38,7 @@ export function PosterPhim({ phim, nhanVat, dang, loiNen, onChanged }: { phim: P
     <div className="xv-panel">
       <h3><button type="button" className="xv-btn" style={{ marginRight: 6 }} onClick={() => setMo('0')} title="Gập">▴</button>Poster<small>dọc 2:3 · tên “{tenPoster(phim)}” là chữ duy nhất · nhân vật theo ảnh mẫu: {nv.map((v) => v.ten).join(', ') || '—'}</small></h3>
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <div style={{ width: 150, aspectRatio: '2 / 3', borderRadius: 8, border: '1px solid var(--line)', background: phim.poster_url ? `center / cover no-repeat url(${phim.poster_url}), #111` : 'var(--bg-2)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+        <div style={{ width: 150, aspectRatio: '2 / 3', borderRadius: 8, border: '1px solid var(--line)', background: phim.poster_url ? `center / cover no-repeat url(${anhNho(phim.poster_url, 320)}), #111` : 'var(--bg-2)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
           {!phim.poster_url && <span style={mono}>{dang ? 'đang sinh…' : 'chưa có poster'}</span>}
         </div>
         <div style={{ display: 'grid', gap: 8, flex: 1, minWidth: 240 }}>
@@ -56,7 +57,7 @@ export function PosterPhim({ phim, nhanVat, dang, loiNen, onChanged }: { phim: P
           {ds.length > 0 && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {ds.map((u) => (
-                <img key={u} src={u} alt="" title={u === phim.poster_url ? 'poster đang dùng' : 'bấm để dùng poster này'} onClick={() => u !== phim.poster_url && void lam(() => chonPoster(phim.id, u))}
+                <img key={u} src={anhNho(u, 160)} alt="" title={u === phim.poster_url ? 'poster đang dùng' : 'bấm để dùng poster này'} onClick={() => u !== phim.poster_url && void lam(() => chonPoster(phim.id, u))}
                   style={{ width: 54, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 5, cursor: 'pointer', border: `2px solid ${u === phim.poster_url ? 'var(--cyan)' : 'transparent'}` }} />
               ))}
             </div>

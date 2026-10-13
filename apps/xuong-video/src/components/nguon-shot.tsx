@@ -8,6 +8,7 @@ import { gioVN, tien } from '@/lib/xuong-video/kieu';
 import type { BuocNguon, NguonShot } from '@/lib/xuong-video/phu-thuoc';
 import { moNgan } from './ngan-chung';
 import { mono } from './ui';
+import { anhNho, nacNho } from '@/lib/xuong-video/anh-nho';
 
 type TT = 'ok' | 'doi' | 'cau' | 'mo';
 const KHOA_VT = 'xv-nguon-vi-tri';
@@ -98,7 +99,7 @@ export function NguonShotNoiDung({ canhId }: { canhId: number }) {
     days.push({ tu: 'cauVideo', den: 'cong:lenh', tt: vd.cauLenh ? 'cau' : 'ok' });
   }
   const anh = (url: string | null, w: number, ten: string, soSanh?: { ten: string; url: string }[]) => url
-    ? <img src={url} alt="" data-so-sanh={soSanh?.length ? JSON.stringify(soSanh) : undefined} draggable={false} onDoubleClick={(e) => { e.stopPropagation(); moNgan({ loai: 'xem', url, ten }); }} title="Rê để xem to · nhấp đúp để mở" style={{ width: w, aspectRatio: tl, objectFit: 'cover', borderRadius: 4, display: 'block', background: '#000' }} />
+    ? <img src={anhNho(url, nacNho(w))} alt="" data-so-sanh={soSanh?.length ? JSON.stringify(soSanh) : undefined} draggable={false} onDoubleClick={(e) => { e.stopPropagation(); moNgan({ loai: 'xem', url, ten }); }} title="Rê để xem to · nhấp đúp để mở" style={{ width: w, aspectRatio: tl, objectFit: 'cover', borderRadius: 4, display: 'block', background: '#000' }} />
     : <div style={{ width: w, aspectRatio: tl, border: '1px dashed var(--line)', borderRadius: 4, display: 'grid', placeItems: 'center', fontSize: 10, color: 'var(--fg-3)' }}>không có</div>;
   const cong = (id: string, nhan: string, url: string | null, tt: TT) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginLeft: -12 }}>

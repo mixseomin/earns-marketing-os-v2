@@ -5,16 +5,19 @@
 //   node worker/lenh-may.mjs --tu-kiem
 import fs from 'node:fs';
 import path from 'node:path';
+import { dsQuyTrinh, dsDayChuyen, giaiNguoi } from './quy-trinh.mjs';
+import { GOC } from './goc.mjs';
 
 export const LENH_MAY = {
-  'video:youtube': { may: 'MacBook', ten: 'Đăng video YouTube' },
-  'video:facebook': { may: 'MacBook', ten: 'Đăng video Facebook' },
-  'video:instagram': { may: 'MacBook', ten: 'Đăng video Instagram' },
-  'video:tiktok': { may: 'iMac', ten: 'Đăng video TikTok' },
-  'do-video': { may: 'MacBook', ten: 'Đo lượt xem video' },
-  'gom-kenh': { may: 'MacBook', ten: 'Gom số kênh kéo khách' },
-  // máy SÁCH: nhan-lenh.mjs đánh thức chính việc nền theo lịch (launchctl kickstart) — làm đúng việc lượt theo lịch làm, không hơn. qt = quy trình
-  // của việc trễ → dòng việc máy trễ trong bảng có nút; phi = tiền thật mỗi lần (hiện trong ô xác nhận)
+  // qt = quy trình của lệnh: người CHỦ TRÌ quy trình đó là người phụ trách lệnh (nguoiLenh) — gõ phím trên văn phòng pixel khi máy chạy, tên hiện
+  // cạnh nút (anh 13/10/2026 "mọi thứ liên kết 1-1 với pixel và cty.on.tc"); việc máy trễ cùng qt trong bảng có nút. phi = tiền thật mỗi lần.
+  'video:youtube': { may: 'MacBook', ten: 'Đăng video YouTube', qt: 'video-ngan' },
+  'video:facebook': { may: 'MacBook', ten: 'Đăng video Facebook', qt: 'video-ngan' },
+  'video:instagram': { may: 'MacBook', ten: 'Đăng video Instagram', qt: 'video-ngan' },
+  'video:tiktok': { may: 'iMac', ten: 'Đăng video TikTok', qt: 'video-ngan' },
+  'do-video': { may: 'MacBook', ten: 'Đo lượt xem video', qt: 'do-video' },
+  'gom-kenh': { may: 'MacBook', ten: 'Gom số kênh kéo khách', qt: 'kenh-keo-khach' },
+  // máy SÁCH: nhan-lenh.mjs đánh thức chính việc nền theo lịch (launchctl kickstart) — làm đúng việc lượt theo lịch làm, không hơn
   'sach:sx': { may: 'iMac', ten: 'Dựng sách (cuốn tới hạn)', qt: 'san-xuat' },
   'sach:kdp': { may: 'iMac', ten: 'Máy KDP: tạo nháp + bấm Publish (cuốn đã duyệt, tới ngày)', qt: 'dang-kdp' },
   'sach:etsy': { may: 'iMac', ten: 'Bật bán Etsy (cuốn đã duyệt, tới ngày, ≤ 3/ngày)', qt: 'bat-ban-etsy', phi: 'phí Etsy ~$0,20 mỗi cuốn bật bán' },
@@ -24,6 +27,14 @@ export const CHO_NHAN = 5 * 60_000;      // máy hỏi mỗi phút; quá 5 phút
 const CHAY_TOI_DA = 30 * 60_000;         // nhan-lenh.mjs dừng script sau 25 phút; quá 30 phút vẫn "đang" = máy chết giữa chừng
 const GIU = 7 * 86_400_000;              // tệp lệnh giữ 7 ngày rồi dọn
 const THU = () => path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'may', 'lenh');
+
+/** Người phụ trách lệnh: phòng có dây chuyền khai lệnh này (danh-sach.json day_chuyen[].may) → chủ trì quy trình `qt` → người đang giữ vai.
+ *  { id, phong } · null khi lệnh không có qt / vai chưa ai giữ (tự kiểm chặn cả hai). */
+export function nguoiLenh(lenh) {
+  const qt = LENH_MAY[lenh]?.qt; if (!qt) return null;
+  const q = dsQuyTrinh().find((x) => x.id === qt && x.nguon === 'phong' && dsDayChuyen(x.phong).some((d) => d.may?.includes(lenh)));
+  try { return q?.chu_tri ? { id: giaiNguoi(q.phong, q.chu_tri).nguoi, phong: q.phong } : null; } catch { return null; }
+}
 
 /** Mọi lệnh (mới trước). Tệp hỏng bỏ qua. */
 export function dsLenh(dir = THU()) {
@@ -68,5 +79,7 @@ if (process.argv.includes('--tu-kiem')) {
   fs.writeFileSync(path.join(dir, 'hong.json'), '{hỏng'); a(dsLenh(dir).length === 3, 'tệp hỏng bỏ qua');
   taoLenh('do-video', 'anh', dir, t0 + 8 * 86_400_000); a(!fs.existsSync(f), 'lệnh quá 7 ngày được dọn');
   fs.rmSync(dir, { recursive: true });
-  console.log('✓ lenh-may: 9 ca đạt (lệnh lạ, chống bấm đôi, máy ngủ, chạy chết, tệp hỏng, dọn cũ)');
+  for (const l of Object.keys(LENH_MAY)) { const n = nguoiLenh(l); a(n && fs.existsSync(path.join(GOC, 'cong-ty', 'nhan-su', n.id, 'SOUL.md')), `${l}: không ra người phụ trách (thiếu qt, quy trình không có chủ trì, dây chuyền không khai lệnh, hay vai chưa ai giữ) → không ai lên văn phòng pixel`); }
+  a(nguoiLenh('sach:sx')?.id === 'thao' && nguoiLenh('video:tiktok')?.id === 'phuc' && nguoiLenh('khong-co') === null, 'Dựng sách → Thảo (trưởng phòng), video → Phúc (kênh kéo khách)');
+  console.log(`✓ lenh-may: 11 ca đạt (lệnh lạ, chống bấm đôi, máy ngủ, chạy chết, tệp hỏng, dọn cũ, ${Object.keys(LENH_MAY).length} lệnh đều có người phụ trách)`);
 }

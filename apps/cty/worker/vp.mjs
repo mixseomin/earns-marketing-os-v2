@@ -50,6 +50,18 @@ if (process.argv.includes('--bao')) {   // node worker/vp.mjs --bao tam lam  (th
   console.log(`vp: ${id} ${tt} → ${await vpBao(id, tt)} hook nhận`);
 }
 
+// node worker/vp.mjs --lenh <id>: máy Mac (puzzle-books scripts/nhan-lenh.mjs) gọi qua ssh MỖI LẦN ghi trạng thái một lệnh máy → người phụ trách
+// lệnh (lenh-may.mjs nguoiLenh) gõ phím khi máy chạy, về ghế khi xong, chờ người khi lỗi — cùng lúc nút trên cty đổi trạng thái (anh 13/10/2026).
+if (process.argv.includes('--lenh')) {
+  const { dsLenh, trangLenh, nguoiLenh, LENH_MAY } = await import('./lenh-may.mjs');
+  const id = process.argv[process.argv.indexOf('--lenh') + 1];
+  const x = dsLenh().find((l) => l.id === id); const n = x && nguoiLenh(x.lenh); const h = x && trangLenh(x);
+  const tt = { dang: 'lam', xong: 'xong', loi: 'cho', chet: 'cho' }[h];
+  const l = x && LENH_MAY[x.lenh];
+  console.log(n && tt ? `vp: ${n.id} ${tt} (${x.lenh}) → ${await vpBao(n.id, tt, `${l.ten.split(/[(:]/)[0].trim()} · ${l.may}`)} hook nhận`
+    : `vp: lệnh ${id} không báo (${!x ? 'không có tệp' : !n ? 'không có người phụ trách' : h})`);
+}
+
 if (process.argv[1]?.endsWith('vp.mjs') && process.argv.includes('--tu-kiem')) {
   const { strict: a } = await import('node:assert');
   const ds = vanPhongCacPhong(); a.ok(ds.length >= 1, 'ít nhất một phòng có văn phòng riêng');

@@ -32,6 +32,10 @@ export function dsPhong(): Doc[] {
 }
 export function phong(id: string): Doc | null { return readDoc(path.join(ROOT, 'phong', `${id}.md`), id); }
 
+/** Văn phòng pixel của một phòng: phòng khai `van_phong_cong` (worker/vp.mjs vanPhongCacPhong) → văn phòng riêng, chưa có → văn phòng chung.
+ *  Mọi link "xem trên văn phòng" của cty đi qua đây — người / phòng / lệnh máy trên cty ↔ đúng văn phòng nhân vật đó ngồi. */
+export const hrefVp = (phongId?: string | null) => (phongId && phong(phongId)?.fm.van_phong_cong ? `/vp/${phongId}/` : '/vp/cong-ty/');
+
 export function dsNhanSu(): Doc[] {
   const dir = path.join(ROOT, 'nhan-su');
   return fs.readdirSync(dir).filter((d) => fs.existsSync(path.join(dir, d, 'SOUL.md')))

@@ -12,7 +12,7 @@ import { NutDeCu } from '../nut-de-cu';
 import { KhungVp } from '@/components/khung-vp';
 import Link from 'next/link';
 import { Gio } from '../gio';
-import { nhanSu, heartbeat, phong, dsNhanSu, soDo, docText, cauHinh, dsPhong, KHUON, MUC } from '@/lib/cong-ty';
+import { nhanSu, heartbeat, phong, dsNhanSu, soDo, docText, cauHinh, dsPhong, KHUON, MUC, hrefVp } from '@/lib/cong-ty';
 import { Avatar, hueOf } from '../avatar';
 import { Md } from '../md';
 import { SoDoKhuon } from '../so-do-khuon';
@@ -219,6 +219,7 @@ export async function nganNhanSu(id: string, admin = false): Promise<Ngan> {
         </div>
         <div className="cty-muted cty-nho">
           <span className="cty-nho">{String(f.model)}</span> · báo cáo cho {f.bao_cao_cho ? <Nguoi id={String(f.bao_cao_cho)} /> : 'Giám đốc'}
+          {' · '}<a href={hrefVp(String(f.phong))} target="_blank" rel="noreferrer">xem trên văn phòng pixel ↗</a>
           {f.kind !== 'ai' && <> · {f.kind === 'human' ? 'người' : 'vendor'}</>}
         </div>
       </div>
@@ -336,12 +337,12 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
     : <TabPhong khoa={id} dau={dau} tabs={[...(coDc ? [{ key: 'daychuyen', nhan: 'Dây chuyền', so: dc?.loi ? '!' : demCan({ dsDc, dc, lv, kenh, phong: id }) || '' }] : []), { key: 'sodo', nhan: 'Sơ đồ' }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
         {[...(coDc ? [<DayChuyenTab key="dc" dsDc={dsDc} dc={dc} lv={lv} kenh={kenh} phong={id} p={p} />] : []), <div key="s">{soDoTab}</div>, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
       </TabPhong>;
-  // Văn phòng pixel LIVE cố định bên phải: phòng có văn phòng riêng (van_phong_cong) thì xem đúng phòng đó, chưa có thì văn phòng chung.
-  const vp = p.fm.van_phong_cong ? `/vp/${id}/` : '';   // phòng khai cổng văn phòng riêng (worker/vp.mjs vanPhongCacPhong) → xem đúng phòng đó
+  // Văn phòng pixel LIVE cố định bên phải: phòng có văn phòng riêng thì xem đúng phòng đó, chưa có thì văn phòng chung (hrefVp).
+  const vp = hrefVp(id);
   const hai = (
     <div className="cty-tabkhung cty-phong-hai">
       {than}
-      <KhungVp src={vp || '/vp/cong-ty/'} ghi={vp ? `Văn phòng ${String(p.fm.ten)} · live` : 'Văn phòng chung cả công ty · phòng này chưa có văn phòng riêng'} />
+      <KhungVp src={vp} ghi={vp !== '/vp/cong-ty/' ? `Văn phòng ${String(p.fm.ten)} · live` : 'Văn phòng chung cả công ty · phòng này chưa có văn phòng riêng'} />
     </div>
   );
   return { tieuDe: <>{String(p.fm.ten)} <span className="cty-pill cty-pill-kind">{k?.ten ?? String(p.fm.khuon)}</span></>, than: hai };

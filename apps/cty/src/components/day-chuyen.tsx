@@ -10,12 +10,12 @@ import { Gio } from './gio';
 import { SAP_TOI, CHANG } from '../../worker/sach.mjs';
 import { hrefSach, hrefThe, hrefVideo } from '@/lib/ngan';
 import { NEN_VIDEO, KHO_CAN, tenSlug } from '../../worker/video.mjs';
-import { LENH_MAY, lenhGanNhat } from '../../worker/lenh-may.mjs';
+import { LENH_MAY, lenhGanNhat, nguoiLenh } from '../../worker/lenh-may.mjs';
 import { NutChayLai, type LenhHien } from './nut-chay-lai';
 import { vaiCuaPhong } from '../../worker/quy-trinh.mjs';
 import { theViecMo, type kenhKeoKhach, type LanVideo } from '@/lib/do-dac';
 import { TabPhong } from './tab-phong';
-import type { Doc } from '@/lib/cong-ty';
+import { hrefVp, type Doc } from '@/lib/cong-ty';
 
 export type Viec = { ai: string | null; muc?: number; chu: string; qua?: number | null; tre?: boolean; qt?: string | null };
 export type Dong = { id: string; nen: string; shop?: string | null; dinhDang: string | null; status: string; ngay: string | null; url?: string | null; sku?: string | null; duyet?: string | null; tram: { dat: number; tong: number; ke: string | null } | null; viec: Viec };
@@ -75,10 +75,11 @@ export type DcKhai = { id: string; ten: string; don_vi: string; nguon: string; /
   /** máy của dây chuyền (mã lệnh worker/lenh-may.mjs) — hàng nút "chạy ngay" trên đầu bảng */ may?: string[] };
 type LenhKhai = { may: string; ten: string; qt?: string; phi?: string };
 const LM = LENH_MAY as Record<string, LenhKhai>;
-/** Nút chạy một lệnh máy (đọc lần chạy gần nhất ở máy chủ). */
+/** Nút chạy một lệnh máy (đọc lần chạy gần nhất ở máy chủ) + người phụ trách lệnh và văn phòng pixel nơi người đó gõ phím khi máy chạy. */
 function NutLenh({ lenh, gan, nhan }: { lenh: string; gan: Record<string, LenhHien>; nhan?: string }) {
   const l = LM[lenh]; if (!l) return null;
-  return <NutChayLai lenh={lenh} ten={l.ten} may={l.may} phi={l.phi} truoc={gan[lenh] ?? null} nhan={nhan} />;
+  const n = nguoiLenh(lenh) as { id: string; phong: string } | null;
+  return <NutChayLai lenh={lenh} ten={l.ten} may={l.may} phi={l.phi} truoc={gan[lenh] ?? null} nhan={nhan} ai={n && <Nguoi id={n.id} />} vp={n ? hrefVp(n.phong) : undefined} />;
 }
 /** HÀNG MÁY của một dây chuyền (anh 13/10/2026 "ở đây không điều khiển bắt làm luôn được à"): mỗi máy một nút "chạy ngay", kết quả lần gần nhất ngay dưới. */
 function MayDc({ dc }: { dc: DcKhai }) {

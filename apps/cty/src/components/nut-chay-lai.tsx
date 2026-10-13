@@ -2,16 +2,18 @@
 // Nút "Chạy lại ngay" trên việc máy trễ / lỗi (tab Dây chuyền, ngăn quy trình): xác nhận tại chỗ (NutXacNhan — lệnh này đăng công khai lên tài
 // khoản thật), gửi lệnh vào hàng chờ, rồi NGAY DƯỚI NÚT hiện trạng thái lệnh: chờ máy nhận → đang chạy → xong / lỗi gì (đủ câu máy báo).
 // Trong lúc chờ / chạy thì làm mới trang mỗi 5 giây (useLamMoiKhi) để trạng thái tự đổi, không phải F5.
-import { useState, useTransition } from 'react';
+import { useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { NutXacNhan } from './nut-xac-nhan';
 import { Gio } from './gio';
 import { useLamMoiKhi } from './lam-moi';
 import { guiLenh } from '@/lib/lenh-may';
 
-export type LenhHien = { hien: 'cho' | 'dang' | 'xong' | 'loi' | 'ngu' | 'chet'; luc: string; nhan_luc?: string; xong_luc?: string; ket?: string } | null;
+/** ai = người bấm, 'lich' = lượt theo lịch của máy (puzzle-books nhan-lenh.mjs ghi). */
+export type LenhHien = { hien: 'cho' | 'dang' | 'xong' | 'loi' | 'ngu' | 'chet'; luc: string; nhan_luc?: string; xong_luc?: string; ket?: string; ai?: string } | null;
 
-export function NutChayLai({ lenh, ten, may, truoc, phi, nhan = 'Chạy lại ngay' }: { lenh: string; ten: string; may: string; truoc: LenhHien; phi?: string; nhan?: string }) {
+/** ai = người phụ trách lệnh (Nguoi, mở hồ sơ trong ngăn) · vp = văn phòng pixel người đó ngồi — lúc chờ / đang chạy hiện ngay dưới nút. */
+export function NutChayLai({ lenh, ten, may, truoc, phi, nhan = 'Chạy lại ngay', ai, vp }: { lenh: string; ten: string; may: string; truoc: LenhHien; phi?: string; nhan?: string; ai?: ReactNode; vp?: string }) {
   const router = useRouter(); const [dang, gui] = useTransition();
   const [loi, setLoi] = useState<string | null>(null);
   const cho = truoc && (truoc.hien === 'cho' || truoc.hien === 'dang');
@@ -30,10 +32,11 @@ export function NutChayLai({ lenh, ten, may, truoc, phi, nhan = 'Chạy lại ng
         : truoc && <span className={truoc.hien === 'xong' ? 'cty-bao-ok' : ['loi', 'ngu', 'chet'].includes(truoc.hien) ? 'cty-bao-loi' : 'cty-muted cty-nho'} data-loi={['loi', 'ngu', 'chet'].includes(truoc.hien) ? '' : undefined}>
           {truoc.hien === 'cho' && <>Đã gửi <T iso={truoc.luc} /> — chờ {may} nhận (≤ 1 phút)</>}
           {truoc.hien === 'ngu' && <>Gửi <T iso={truoc.luc} /> mà {may} chưa nhận sau 5 phút — máy đang ngủ / tắt? Bấm lại khi máy thức.</>}
-          {truoc.hien === 'dang' && <>{may} đang chạy (nhận <T iso={truoc.nhan_luc} />)</>}
+          {truoc.hien === 'dang' && (truoc.ai === 'lich' ? <>{may} đang chạy lượt theo lịch (từ <T iso={truoc.nhan_luc} />)</> : <>{may} đang chạy (nhận <T iso={truoc.nhan_luc} />)</>)}
+          {cho && ai && <> · {ai} {truoc.hien === 'dang' ? 'đang làm' : 'phụ trách'}{vp && <> — <a href={vp} target="_blank" rel="noreferrer">xem trên văn phòng pixel ↗</a></>}</>}
           {truoc.hien === 'chet' && <>{may} nhận <T iso={truoc.nhan_luc} /> nhưng không báo về sau 30 phút.</>}
-          {truoc.hien === 'xong' && <>Xong <T iso={truoc.xong_luc} />: {truoc.ket}</>}
-          {truoc.hien === 'loi' && <>Lỗi <T iso={truoc.xong_luc} />: {truoc.ket}</>}
+          {truoc.hien === 'xong' && <>{truoc.ai === 'lich' ? 'Lượt theo lịch xong' : 'Xong'} <T iso={truoc.xong_luc} />: {truoc.ket}</>}
+          {truoc.hien === 'loi' && <>{truoc.ai === 'lich' ? 'Lượt theo lịch lỗi' : 'Lỗi'} <T iso={truoc.xong_luc} />: {truoc.ket}</>}
         </span>}
     </span>
   );

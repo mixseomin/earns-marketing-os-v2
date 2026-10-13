@@ -212,7 +212,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
       {tab === 'storyboard' && moBang && !!canh?.length && <BangDoiTuong canh={canh} nhanVat={nhanVat} onChonShot={setChonCanh} onDong={() => setMoBang(false)} />}
       {tab === 'storyboard' && moChon && !!canh?.length && (
         <ChayChon canh={canh} nhanVat={nhanVat} kt={kt} noiKhung={tap.noi_khung} tap={tap} ban={ban('chon')} onDong={() => setMoChon(false)}
-          onChay={(viec, ids, model) => void chay('chon', async () => { for (const id of ids) { const r = viec === 'keyframe' ? await sinhKeyframe(id, 1, model) : await sinhVideoCanh(id, model); if (!r.ok) return r; } })} />
+          onChay={(viec, ids, model) => void chay('chon', async () => { for (const id of ids) { const r = viec === 'keyframe' ? await sinhKeyframe(id, 1, model) : await sinhVideoCanh(id, model, 'nhap', true); if (!r.ok) return r; } })} />
       )}
       {tab === 'xuat' && (
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>

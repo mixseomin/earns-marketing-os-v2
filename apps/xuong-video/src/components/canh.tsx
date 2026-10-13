@@ -98,9 +98,11 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai }: 
   const giaNangCap = NANG_CAP.giaGiayCents * (c.thoi_luong_s || 8);
   const lyAnh = (!khoa.google && !khoa.openai && !(mhAnh.startsWith('fal:') && khoa.fal) && 'thiếu khoá ảnh') || (!c.prompt_anh.trim() && 'chưa có prompt ảnh (Sửa cảnh → prompt ảnh)') || (tp.thieu.length > 0 && `thiếu: ${tp.thieu.join('; ')}`);
   // Cùng cổng với máy chủ (quy-trinh.ts › chanVideo: keyframe đã duyệt + giọng trước video) → nút tắt kèm lý do thay vì bấm rồi bị chặn.
-  const chanVid = chanVideo(c, nhanVat);
+  // Nút Sinh nháp tự lo phần máy làm được (duyệt keyframe đang chọn, sinh giọng còn thiếu → giọng xong tự gửi video), nên chỉ tắt
+  // vì thứ người phải làm: thiếu khoá, chưa có keyframe, đang sinh giọng dở.
   const thieuGiong = dongThoai(c, nhanVat).some((d) => d.loi.trim() && !d.url);
-  const lyVideo = (mhVideo.startsWith('fal:') ? !khoa.fal && 'thiếu FAL_KEY' : !khoa.google && 'thiếu GOOGLE_API_KEY') || (chanVid.length > 0 && chanVid.join('; '));
+  const chanVid = chanVideo(c, nhanVat).filter((x) => x !== 'chưa duyệt keyframe' && !x.includes('chưa có giọng'));
+  const lyVideo = (mhVideo.startsWith('fal:') ? !khoa.fal && 'thiếu FAL_KEY' : !khoa.google && 'thiếu GOOGLE_API_KEY') || (chanVid.length > 0 && chanVid.join('; ')) || (c.dang_sinh_giong && 'đang sinh giọng — xong sẽ tự gửi video nếu anh đã bấm Sinh nháp');
   const chonAnh = <Chon nho value={mhAnh} onChange={setMhAnh} options={luaChonAnh(dsAnh)} title="Model ảnh cho lần sinh này" minWidth={220} />;
   const chonVideo = <Chon nho value={mhVideo} onChange={setMhVideo} options={luaChonVideo(dsVideo, giay, kt.do_phan_giai)} title="Model video cho lần sinh này" minWidth={240} />;
   // Bước kế của cảnh → MỘT nút chính; còn lại vào menu ⋯ (YDNI).
@@ -209,15 +211,13 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai }: 
               {buoc === 'kf' && <Nut chinh ban={ban(k)} onClick={() => void chay(k, () => duyetCanh(c.id, true))}>✓ Duyệt keyframe</Nut>}
               {buoc === 'dang' && c.dang_sinh_anh && <span style={{ ...mono, color: 'var(--violet)', alignSelf: 'center' }}>đang sinh ảnh…</span>}
             </NhomNut>
-            {(buoc === 'duyet' || buoc === 'nhap' || buoc === 'cuoi' || (buoc === 'dang' && !c.dang_sinh_anh)) && (
+            {(buoc === 'kf' || buoc === 'duyet' || buoc === 'nhap' || buoc === 'cuoi' || (buoc === 'dang' && !c.dang_sinh_anh)) && (
               <NhomNut nhan="🎬 Video">
                 {buoc !== 'dang' && chonVideo}
-                {/* Thiếu giọng → nút sinh giọng đứng NGAY trước nút video (cổng giọng-trước-video), không giấu trong ⋯. */}
-                {buoc !== 'dang' && thieuGiong && <Nut chinh ly={(!khoa.fal && 'thiếu FAL_KEY') || (c.dang_sinh_giong && 'đang sinh giọng — đợi xong')} ban={ban(`g${c.id}`)} title="Đọc lời thoại / lời dẫn của shot này bằng giọng đã chọn ở mục 2 — độ dài shot sẽ khớp theo giọng" onClick={() => void chay(`g${c.id}`, () => sinhGiong(c.tap_id, [c.id]))}>{c.dang_sinh_giong ? '⏳ Đang sinh giọng…' : '🗣 Sinh giọng trước'}</Nut>}
-                {buoc === 'duyet' && <Nut chinh={!thieuGiong} ly={lyVideo} ban={ban(k)} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))} gia={giaVid}>Sinh nháp · {giay}s · {tien(giaVid)}</Nut>}
+                {(buoc === 'duyet' || buoc === 'kf') && <Nut chinh ly={lyVideo} ban={ban(k)} title={[buoc === 'kf' && 'bấm = duyệt keyframe đang chọn', thieuGiong && 'shot còn lời chưa có giọng: sinh giọng trước, giọng xong máy tự gửi video'].filter(Boolean).join(' · ') || undefined} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo, 'nhap', true))} gia={giaVid}>{c.dang_sinh_giong ? '⏳ Đang sinh giọng…' : `${thieuGiong ? '🗣 Giọng + ' : ''}Sinh nháp · ${giay}s · ${tien(giaVid)}`}</Nut>}
                 {buoc !== 'dang' && chanVid.length > 0 && <span style={{ fontSize: 11, color: 'var(--red)', alignSelf: 'center' }}>chưa sinh video được: {chanVid.join('; ')}</span>}
                 {buoc === 'dang' && <span style={{ ...mono, color: 'var(--violet)', alignSelf: 'center' }}>đang sinh video, tự kiểm mỗi 10s…</span>}
-                {(buoc === 'nhap' || buoc === 'cuoi') && <Nut ly={lyVideo} ban={ban(k)} title="Sinh một bản nháp video mới từ keyframe đang chọn; bản cũ vẫn giữ trong danh sách phiên bản" onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))} gia={giaVid}>↻ Nháp mới · {giay}s · {tien(giaVid)}</Nut>}
+                {(buoc === 'nhap' || buoc === 'cuoi') && <Nut ly={lyVideo} ban={ban(k)} title="Sinh một bản nháp video mới từ keyframe đang chọn; bản cũ vẫn giữ trong danh sách phiên bản" onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo, 'nhap', true))} gia={giaVid}>↻ Nháp mới · {giay}s · {tien(giaVid)}</Nut>}
                 {buoc === 'nhap' && <Nut chinh ly={!khoa.fal && 'thiếu FAL_KEY'} ban={ban(k)} title="Nâng cấp CHÍNH clip nháp (Topaz ×2): chuyển động, bố cục, nhân vật y hệt bản nháp" onClick={() => void chay(k, () => nangCapCanh(c.id))} gia={giaNangCap}>⬆ Làm bản cuối · {tien(giaNangCap)}</Nut>}
                 {buoc === 'cuoi' && <a href={linkTai(c.video_cuoi_url!)} download className="xv-btn chinh" style={{ textDecoration: 'none' }}>⬇ Tải bản cuối</a>}
               </NhomNut>
@@ -234,8 +234,8 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai }: 
               {(buoc === 'nhap' || buoc === 'cuoi') && dongThoai(c, nhanVat).some((d) => d.url) && <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} gia={KHOP_MIENG.giaGiayCents * (c.thoi_luong_s || 8)} onClick={() => void chay(k, () => khopMiengCanh(c.id))}>👄 Khớp miệng với giọng đã sinh ({KHOP_MIENG.label}) · {tien(KHOP_MIENG.giaGiayCents * (c.thoi_luong_s || 8))}</MucMenu>}
               {(buoc === 'nhap' || buoc === 'cuoi') && <MucMenu onClick={() => void chay(k, () => lamLaiTuKeyframe(c.id))}>↩ Làm lại từ keyframe (đổi ảnh / duyệt lại — các bản video vẫn giữ trong phiên bản)</MucMenu>}
               {c.trang_thai === 'duyet' && <MucMenu onClick={() => void chay(k, () => duyetCanh(c.id, false))}>↩ Bỏ duyệt keyframe</MucMenu>}
-              {c.trang_thai === 'loi' && buoc !== 'nhap' && buoc !== 'cuoi' && c.keyframe_url && <MucMenu ly={lyVideo} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo))} gia={giaVid}>↻ Sinh lại nháp · {giay}s · {tien(giaVid)}</MucMenu>}
-              {(buoc === 'nhap' || buoc === 'cuoi') && <MucMenu ly={lyVideo} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo, 'cuoi'))} gia={giaVid}>🎬 Bản cuối = sinh lại bằng model đã chọn · {tien(giaVid)} (chuyển động có thể khác nháp)</MucMenu>}
+              {c.trang_thai === 'loi' && buoc !== 'nhap' && buoc !== 'cuoi' && c.keyframe_url && <MucMenu ly={lyVideo} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo, 'nhap', true))} gia={giaVid}>↻ Sinh lại nháp · {giay}s · {tien(giaVid)}</MucMenu>}
+              {(buoc === 'nhap' || buoc === 'cuoi') && <MucMenu ly={lyVideo} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo, 'cuoi', true))} gia={giaVid}>🎬 Bản cuối = sinh lại bằng model đã chọn · {tien(giaVid)} (chuyển động có thể khác nháp)</MucMenu>}
               {buoc === 'cuoi' && <MucMenu ly={!khoa.fal && 'thiếu FAL_KEY'} onClick={() => void chay(k, () => nangCapCanh(c.id))} gia={giaNangCap}>⬆ Nâng cấp lại từ nháp · {tien(giaNangCap)}</MucMenu>}
               {c.video_url && <a data-dong="" href={linkTai(c.video_url)} download className="xv-btn" style={{ textDecoration: 'none' }}>⬇ Tải nháp</a>}
               {(c.keyframe_url || c.video_url) && <MucMenu onClick={() => void chay(k, () => luuShotKho(c.id))}>⭐ Lưu shot vào kho (keyframe + clip đang dùng)</MucMenu>}

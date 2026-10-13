@@ -97,6 +97,7 @@ export async function hoanTatAm(kq: KqViecAm): Promise<boolean> {
         thoai_url = CASE WHEN ${i} = 0 THEN ${kq.url} ELSE thoai_url END, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${Number(j.canh_id)}`);
     } else await db.execute(sql`UPDATE xv_canh SET thoai_url = ${kq.url}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${Number(j.canh_id)}`);
   }
+  if (dich === 'thoai' && j.canh_id != null && rq.sau_video) await videoSauGiong(Number(j.canh_id), rq.sau_video as { moHinh?: string; ban: 'nhap' | 'cuoi' });
   if (dich === 'sfx' && j.canh_id != null) await db.execute(sql`UPDATE xv_canh SET am_thanh_url = ${kq.url}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${Number(j.canh_id)}`);
   if (dich === 'nhac' && rq.tap_id != null) {
     if (rq.phan_doan) await db.execute(sql`UPDATE xv_tap SET nhac_phan_canh = nhac_phan_canh || jsonb_build_object(${String(rq.phan_doan)}::text, ${kq.url}::text), updated_at = now() WHERE id = ${Number(rq.tap_id)}`);
@@ -110,6 +111,20 @@ export async function hoanTatAm(kq: KqViecAm): Promise<boolean> {
   return true;
 }
 export const thuHangDoi = (job = 0) => guiHangDoi({ job, model: '', prompt: '', thamChieuUrl: [], tiLe: '1:1', thuMuc: 'thu', thu: true });
+
+/** Giọng của shot vừa đủ (không còn dòng thiếu, không còn lượt giọng đang chạy) → gửi video mà người bấm "Sinh nháp" đã đặt.
+ *  Nhận việc bằng cách gỡ cờ sau_video khỏi mọi job giọng của shot: hai dòng xong cùng lúc thì chỉ bên gỡ được mới gửi (không trả tiền đôi). */
+async function videoSauGiong(canhId: number, sau: { moHinh?: string; ban: 'nhap' | 'cuoi' }): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  const con = (await db.execute(sql`SELECT 1 FROM xv_job WHERE canh_id = ${canhId} AND loai = 'am' AND request->>'dich' = 'thoai' AND trang_thai = 'cho' AND created_at > now() - interval '10 minutes' LIMIT 1`)) as unknown as Row[];
+  if (con.length) return;
+  const nhan = (await db.execute(sql`UPDATE xv_job SET request = request - 'sau_video' WHERE canh_id = ${canhId} AND loai = 'am' AND request->'sau_video' IS NOT NULL RETURNING id`)) as unknown as Row[];
+  if (!nhan.length) return;
+  const { batDauVideoCanh } = await import('./sinh-video');
+  const r = await batDauVideoCanh(db, canhId, sau.moHinh, sau.ban);
+  if (!r.ok) await db.execute(sql`UPDATE xv_canh SET loi = ${`Giọng xong nhưng chưa gửi được video: ${r.loi}`}, updated_at = now() WHERE id = ${canhId}`);
+}
 
 /** Ghi kết quả một việc ảnh: sổ job + đích (ảnh gốc của anchor / ảnh biến thể / ứng viên keyframe của cảnh).
  *  Chỉ nhận job còn 'cho' → Worker gửi lặp hay hai nơi cùng báo thì lần sau bỏ qua, không cộng tiền hai lần. */

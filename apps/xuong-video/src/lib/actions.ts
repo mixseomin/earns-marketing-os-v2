@@ -799,11 +799,11 @@ export async function uocTien(tapId: number): Promise<{ anh1: number; videoTong:
 /** Bắt đầu sinh video Veo cho một cảnh ĐÃ DUYỆT (keyframe làm khung đầu). Async: trả job id, UI gọi kiemVideo để poll. */
 
 /** Sinh video cho một shot (lõi ở sinh-video.ts — script dùng chung). */
-export async function sinhVideoCanh(canhId: number, moHinh?: string, ban: 'nhap' | 'cuoi' = 'nhap'): Promise<Kq<number>> {
+export async function sinhVideoCanh(canhId: number, moHinh?: string, ban: 'nhap' | 'cuoi' = 'nhap', tuDong = false): Promise<Kq<number>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  return batDauVideoCanh(db, canhId, moHinh, ban);
+  return batDauVideoCanh(db, canhId, moHinh, ban, tuDong);
 }
 /** Sơ đồ nguồn của một shot (lõi ở nguon-shot.ts): đã gửi gì lúc sinh keyframe / clip, so với giờ sẽ gửi — 0đ, chỉ đọc. */
 export async function nguonCuaShot(canhId: number): Promise<NguonShot | null> {

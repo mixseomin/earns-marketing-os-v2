@@ -9,6 +9,8 @@ import { docFal, guiFal, dauVaoTheoSchema } from './fal';
 import { promptKyThuatVideo } from './dien-anh';
 import { dongThoai, promptCamXuc, laLoiDan, dungTiengClip } from './am-thanh';
 import { chanVideo } from './quy-trinh';
+import { chupTruoc } from './hoan-tac';
+import { sinhGiongShots } from './sinh-giong';
 import { lamTronClip, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { boiCanhCanh, taoJob, xongJob, mapJob, giaVideoSv, s, type Db, type Row } from './doc-db';
 
@@ -47,9 +49,20 @@ export async function khungCuoiCanh(db: Db, canhId: number): Promise<string | nu
 }
 
 /** Gửi một shot đi sinh video (nháp hoặc bản cuối) — shot phải đã duyệt keyframe. Trả về id job; kết quả về qua kiemVideoTap. */
-export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, ban: 'nhap' | 'cuoi' = 'nhap'): Promise<Kq<number>> {
-  const bc = await boiCanhCanh(db, canhId);
+/** tuDong (nút "Sinh nháp" một lần bấm, 13/10/2026 — "không lỗi thì chặn"): keyframe đang chọn chưa duyệt → bấm sinh video = duyệt nó;
+ *  còn dòng thoại/lời dẫn chưa có giọng → sinh giọng trước, giọng xong máy tự gửi video (hoanTatAm). Trả data = 0 khi mới xếp giọng. */
+export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, ban: 'nhap' | 'cuoi' = 'nhap', tuDong = false): Promise<Kq<number>> {
+  let bc = await boiCanhCanh(db, canhId);
   if (!bc) return loi('không thấy cảnh');
+  if (tuDong && bc.canh.keyframe_url && (bc.canh.trang_thai === 'co_keyframe' || bc.canh.trang_thai === 'nhap')) {
+    await chupTruoc(db, { bang: 'xv_canh', id: canhId, cot: ['trang_thai', 'loi'], moTa: 'duyệt keyframe (bấm Sinh nháp)', nguoi: 'Sinh nháp' });
+    await db.execute(sql`UPDATE xv_canh SET trang_thai = 'duyet', loi = '', updated_at = now() WHERE id = ${canhId}`);
+    bc = (await boiCanhCanh(db, canhId))!;
+  }
+  if (tuDong && dongThoai(bc.canh, bc.nhanVat).some((d) => d.loi.trim() && !d.url)) {
+    const g = await sinhGiongShots(db, bc.canh.tap_id, [canhId], { chiThieu: true, sauVideo: { moHinh, ban } });
+    return g.ok ? { ok: true, data: 0 } : loi(`Sinh giọng trước video không được: ${g.loi}`);
+  }
   // Cổng sản xuất (quy-trinh.ts): keyframe đã duyệt + GIỌNG TRƯỚC VIDEO.
   const qt = chanVideo(bc.canh, bc.nhanVat);
   if (qt.length || !bc.canh.keyframe_url) return loi(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ') || 'chưa có keyframe'}`);

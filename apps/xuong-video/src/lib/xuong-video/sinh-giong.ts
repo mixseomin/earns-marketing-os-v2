@@ -17,6 +17,8 @@ export async function giongMacDinh(model: string): Promise<string> {
 }
 
 export type TuyGiong = { model?: string; voice?: string; camXuc?: number; chiThieu?: boolean;
+  /** bấm "Sinh nháp" khi shot còn thiếu giọng: giọng xong (đủ mọi dòng) thì máy tự gửi video với model/bản này (hoan-tat.ts › hoanTatAm) */
+  sauVideo?: { moHinh?: string; ban: 'nhap' | 'cuoi' } | null;
   /** giọng cho từng người nói của lượt này (khoá = tên nhân vật, '' = lời dẫn) — chọn trong bảng ＋ (#1203) */
   theoNguoi?: Record<string, { model: string; voice: string }> };
 
@@ -87,7 +89,7 @@ export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], 
         }
         const g = giaGiongTheo(dm, model, text.length);
         const gia = g ?? 0;   // model không công bố giá → sổ ghi 0 và nhãn job ghi "giá chưa rõ" để sổ chi phí không hiểu nhầm là miễn phí
-        const job = await taoJob(db, { nhan: `Giọng · shot #${c.thu_tu} dòng ${i + 1} · ${v?.ten ?? 'lời dẫn'} (${voice})${g == null ? ' · giá chưa rõ' : ''}`, canh_id: c.id, nhan_vat_id: v?.id, loai: 'am', provider: model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: model.startsWith('elevenlabs:') ? model : `fal:${model}`, request: { dich: 'thoai', dong: i, gia, text, voice, giong: `${model}|${voice}` } });
+        const job = await taoJob(db, { nhan: `Giọng · shot #${c.thu_tu} dòng ${i + 1} · ${v?.ten ?? 'lời dẫn'} (${voice})${g == null ? ' · giá chưa rõ' : ''}`, canh_id: c.id, nhan_vat_id: v?.id, loai: 'am', provider: model.startsWith('elevenlabs:') ? 'elevenlabs' : 'fal', model: model.startsWith('elevenlabs:') ? model : `fal:${model}`, request: { dich: 'thoai', dong: i, gia, text, voice, giong: `${model}|${voice}`, ...(tuy.sauVideo ? { sau_video: tuy.sauVideo } : {}) } });
         await dayViecAm({ kieu: 'am', job, model, input: await dauVaoGiongTheoModel(model, { text: d.dien_xuat && /eleven/.test(model) && /v3/.test(model) ? `[${d.dien_xuat}] ${text}` : text, voice, ngonNgu: bc.kt.ngon_ngu ?? 'vi', camXuc: tuy.camXuc ?? (v ? c.cam_xuc : camDan), theLoai: bc.kt.the_loai ?? '' }), thuMuc: `thoai/${c.id}-${i}` });
         so++;
       }

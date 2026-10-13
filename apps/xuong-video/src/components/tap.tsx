@@ -7,8 +7,8 @@ import { moNgan } from './ngan-chung';
 import { MO_HINH_AM } from '@/lib/xuong-video/am-thanh';
 import { quyTrinh } from '@/lib/xuong-video/quy-trinh';
 import { kiemQc } from '@/lib/xuong-video/kiem-qc';
-import { luuKhuonTap, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, xuatPhuDeVi, trangThaiXuat, khopNhipNhac, khopGiongTapAction } from '@/lib/actions';
-import { thanhPhanCanh, docKinhThanh, giaAnhCents, giaVideoCents, giaChuCents, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, coMau, giayMau, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
+import { luuKhuonTap, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, xuatLongTiengVi, trangThaiXuat, khopNhipNhac, khopGiongTapAction } from '@/lib/actions';
+import { thanhPhanCanh, docKinhThanh, giaAnhCents, giaVideoCents, giaChuCents, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, coMau, giayMau, banHien, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, TabPhim, KqChay, O, Nut, Loi, Menu, MucMenu, mono, goiAction } from './ui';
 import { GiongNhanVat } from './nhan-vat';
@@ -56,6 +56,8 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
   const [mhNhac, setMhNhac] = useState('cassetteai/music-generator');
   const [loiUoc, setLoiUoc] = useState('');
   const kt = docKinhThanh(phim.kinh_thanh);
+  const hien = banHien(tap.xuat);
+  const kyTuLoi = locNhanh(canh ?? [], 'A').reduce((a, c) => a + (c.thoai ?? []).reduce((b, d) => b + d.loi.trim().length, 0), 0);
   const thieuSp = thieuQc(phim.loai, kt);
   // Có QC mẫu → tách cảnh bám mẫu: số shot + thời lượng lấy từ mẫu, ô nhập tay khoá lại cho khỏi hiểu nhầm.
   const mauQc = phim.loai === 'quang_cao' && coMau(kt.qc) ? kt.qc.mau! : null;
@@ -231,10 +233,11 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
             onClick={async () => { setLoiXuat(''); const r = await xuatTap(tap.id, nhanh ?? cacNhanh(canh ?? [])[0] ?? null); if (!r.ok) setLoiXuat(r.loi); else setJobXuat(r.data); }}>
             {jobXuat != null ? '… đang dựng bản xuất (30–90s)' : `⬇ Xuất MP4${cacNhanh(canh ?? []).length ? ` · hook ${nhanh ?? cacNhanh(canh ?? [])[0]}` : ''}`}
           </Nut>
-          {/* Người review chỉ biết tiếng Việt: cùng phim, chữ màn dịch + phụ đề Việt ở đáy; không thay bản xuất chính (phu-de.ts). */}
+          {/* Bản lồng tiếng Việt: cùng hình + nhịp, chữ màn dịch, mọi câu đọc lại bằng đúng giọng nhân vật (ban-dich.ts) — vừa để người chỉ
+              biết tiếng Việt xem hộ, vừa là track tiếng Việt gắn vào video gốc trên YouTube. Không thay bản xuất chính. */}
           {kt.ngon_ngu !== 'vi' && <Nut ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || (!(canh ?? []).some((c) => c.video_url || c.video_cuoi_url || c.keyframe_url) && 'chưa có clip/keyframe nào')} ban={jobXuat != null} gia={giaChuCents(kt.mo_hinh_chu, 2500, 2500)}
-            title="Bản để nhờ người chỉ biết tiếng Việt xem hộ: chữ màn dịch sang Việt + phụ đề Việt cho mọi câu nói (tiếng giữ nguyên). Không thay bản xuất chính. Mở bản trong 'Đã xuất' để lấy link gửi qua Zalo/Messenger."
-            onClick={async () => { setLoiXuat(''); const r = await xuatPhuDeVi(tap.id); if (!r.ok) setLoiXuat(r.loi); else setJobXuat(r.data); }}>🇻🇳 Bản phụ đề Việt · ~{tien(giaChuCents(kt.mo_hinh_chu, 2500, 2500))}</Nut>}
+            title={`Lồng tiếng Việt: dịch chữ màn + lời (1 lượt Claude, cùng nội dung thì nhớ bản dịch, 0đ lần sau), đọc lại ~${kyTuLoi} ký tự bằng đúng giọng từng nhân vật (tính vào gói ElevenLabs; câu đã đọc thì dùng lại). Ra MP4 để gửi người xem hộ + track tiếng M4A để gắn vào video gốc trên YouTube. Không thay bản xuất chính.`}
+            onClick={async () => { setLoiXuat(''); const r = await xuatLongTiengVi(tap.id); if (!r.ok) setLoiXuat(r.loi); else setJobXuat(r.data); }}>🇻🇳 Lồng tiếng Việt · ~{tien(giaChuCents(kt.mo_hinh_chu, 2500, 2500))} + {kyTuLoi} ký tự</Nut>}
         </div>
       )}
       {tab === 'xuat' && <Loi>{loiXuat}</Loi>}
@@ -246,18 +249,21 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
         </div>
       )}
       {tab === 'xuat' && phim.loai === 'quang_cao' && <BaiDangKem tap={tap} coAnthropic={khoa.anthropic} thieuSp={thieuSp} onChanged={onChanged} />}
-      {tab === 'xuat' && tap.xuat.length > 0 && (
+      {tab === 'xuat' && hien.ds.length > 0 && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
           <span style={mono}>Đã xuất:</span>
-          {tap.xuat.slice().reverse().slice(0, 6).map((b) => (
-            <button key={b.url} type="button" className="xv-btn" onClick={() => moNgan({ loai: 'xem', url: b.url, ten: `${b.phu_de === 'vi' ? 'Bản phụ đề Việt' : 'Bản xuất'}${b.nhanh ? ` · hook ${b.nhanh}` : ''} · ${b.giay}s` })} title={`${b.giay}s · ${gioVN(b.luc)}${b.canh_bao?.length ? `\nCHƯA ĐẠT:\n${b.canh_bao.join('\n')}` : ''}`} style={b.canh_bao?.length ? { borderColor: 'var(--red)', color: 'var(--red)' } : undefined}>{b.canh_bao?.length ? '⚠' : b.phu_de === 'vi' ? '🇻🇳' : '🎬'} {b.phu_de === 'vi' ? 'phụ đề Việt' : b.nhanh ? `hook ${b.nhanh}` : 'bản'} · {b.giay}s · {gioVN(b.luc, { chiGio: true })}</button>
+          {hien.ds.map((b) => (
+            <span key={b.url} style={{ display: 'inline-flex', gap: 4 }}>
+              <button type="button" className="xv-btn" onClick={() => moNgan({ loai: 'xem', url: b.url, ten: `${b.long_tieng ? `Lồng tiếng ${b.long_tieng}` : 'Bản xuất'}${b.nhanh ? ` · hook ${b.nhanh}` : ''} · ${b.giay}s` })} title={`${b.giay}s · ${gioVN(b.luc)}${b.canh_bao?.length ? `\nCHƯA ĐẠT:\n${b.canh_bao.join('\n')}` : ''}`} style={b.canh_bao?.length ? { borderColor: 'var(--red)', color: 'var(--red)' } : undefined}>{b.canh_bao?.length ? '⚠' : b.long_tieng === 'vi' ? '🇻🇳' : b.long_tieng ? '🌐' : '🎬'} {b.long_tieng ? `lồng tiếng ${b.long_tieng}` : b.nhanh ? `hook ${b.nhanh}` : 'bản'} · {b.giay}s · {gioVN(b.luc, { chiGio: true })}</button>
+              {b.am_url && <a className="xv-btn" href={b.am_url} download title="Track tiếng (M4A) — YouTube Studio › Ngôn ngữ › Thêm âm thanh, gắn vào video gốc">🎧 track</a>}
+            </span>
           ))}
         </div>
       )}
-      {/* Cờ đỏ của bản mới nhất: máy đo sau xuất (khoảng im, lẫn giọng lời dẫn, thiếu nhạc) — không phải nghe lại mới biết. */}
-      {tab === 'xuat' && !!tap.xuat[tap.xuat.length - 1]?.canh_bao?.length && <Loi>{`Bản mới nhất chưa đạt: ${tap.xuat[tap.xuat.length - 1]!.canh_bao!.join(' · ')}`}</Loi>}
-      {tab === 'xuat' && tap.xuat.length > 0 && (
-        <video key={tap.xuat[tap.xuat.length - 1]!.url} src={tap.xuat[tap.xuat.length - 1]!.url} controls preload="metadata" style={{ marginTop: 8, maxHeight: 420, borderRadius: 8, background: '#000', aspectRatio: kt.ti_le === '9:16' ? '9 / 16' : '16 / 9' }} />
+      {/* Cờ đỏ của bản CHÍNH mới nhất: máy đo sau xuất (khoảng im, lẫn giọng lời dẫn, thiếu nhạc) — không phải nghe lại mới biết. */}
+      {tab === 'xuat' && !!hien.chinh?.canh_bao?.length && <Loi>{`Bản mới nhất chưa đạt: ${hien.chinh.canh_bao.join(' · ')}`}</Loi>}
+      {tab === 'xuat' && hien.chinh && (
+        <video key={hien.chinh.url} src={hien.chinh.url} controls preload="metadata" style={{ marginTop: 8, maxHeight: 420, borderRadius: 8, background: '#000', aspectRatio: kt.ti_le === '9:16' ? '9 / 16' : '16 / 9' }} />
       )}
       {tab === 'am_thanh' && (canh === null ? <span style={mono}>…</span> : !canh.length ? <div style={mono}>Chưa có cảnh — tách cảnh ở tab Kịch bản trước.</div> : null)}
       {tab === 'am_thanh' && !!canh?.length && (() => {

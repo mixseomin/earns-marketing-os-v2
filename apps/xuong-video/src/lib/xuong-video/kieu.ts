@@ -129,6 +129,15 @@ export type KieuChu = { font?: string; mau?: string; vien?: string; nhan?: strin
   vao?: '' | 'bat' | 'dap' };
 /** ngang = độ rộng chữ % (ASS ScaleX; <100 = chữ hẹp như font QC mẫu). co = cỡ chữ ASS / bề ngang (ASS tính theo chiều cao dòng → chữ nhỏ hơn cùng số px của drawtext). */
 export const KIEU_CHU_MAC_DINH = { font: 'DejaVu Sans', mau: '#FFFFFF', vien: '#000000', nhan: '', co: 0.062, vien_day: 0.07, ngang: 100, vao: '' as '' | 'bat' | 'dap' };
+/** Gộp kiểu chữ màn: mặc định ← phim ← shot (giá trị rỗng không đè). MỘT hàm cho bản xuất (xuat.ts › tepAss) và ô xem trước (chu-man.tsx).
+ *  Phim CHƯA chọn kiểu chữ → chữ trắng trên băng nền tối: viền mỏng chìm hẳn trên nền giấy sáng của phim vẽ (Fox Tales 13/10/2026,
+ *  "nền chữ trắng không đọc được"). Phim đã chọn kiểu (QC chép từ mẫu) giữ nguyên kiểu của nó. */
+export const NEN_CHU_MAC_DINH = '#000000';
+export function gopKieu(phim?: KieuChu | null, shot?: KieuChu | null): typeof KIEU_CHU_MAC_DINH & { y?: number; nen?: string } {
+  const sach = (d?: KieuChu | null) => Object.fromEntries(Object.entries(d ?? {}).filter(([, v]) => v !== '' && v != null));
+  const p = sach(phim);
+  return Object.assign({}, KIEU_CHU_MAC_DINH, Object.keys(p).length ? {} : { nen: NEN_CHU_MAC_DINH }, p, sach(shot));
+}
 export const VAO_CHU: { key: '' | 'bat' | 'dap'; ten: string }[] = [{ key: '', ten: 'Hiện thẳng' }, { key: 'bat', ten: 'Nảy (pop)' }, { key: 'dap', ten: 'Đập (trailer)' }];
 /** Đoạn ASS mở đầu mỗi câu theo hiệu ứng vào — CÙNG thời lượng với CSS xem trước (xv.css › xv-chu-bat / xv-chu-dap). */
 export function assVaoChu(vao: string | undefined, ngang: number): string {
@@ -301,7 +310,20 @@ export type TaiSan = { id: number; loai: LoaiTaiSan; ten: string; url: string | 
   so_do: Record<string, unknown> & { keyframe_url?: string | null; ti_le?: string; dai?: number }; du_lieu: Record<string, unknown>;
   nguon: { phim_id?: number; tap_id?: number; canh_id?: number; job_id?: number }; chi_phi_cents: number; so_lan_dung: number; created_at: string };
 /** canh_bao = lệch chuẩn máy đo sau xuất (khoảng im, lẫn giọng, thiếu nhạc) — có là bản chưa đạt, studio tô đỏ. */
-export type BanXuat = { url: string; nhanh: string; giay: number; luc: string; job?: number; canh_bao?: string[]; /** 'vi' = bản phụ đề Việt cho người review (review-vi.ts) */ phu_de?: string };
+export type BanXuat = { url: string; nhanh: string; giay: number; luc: string; job?: number; canh_bao?: string[];
+  /** bản LỒNG TIẾNG (long-tieng.ts): ngôn ngữ đích + track tiếng M4A tách sẵn để gắn vào video gốc trên YouTube */
+  long_tieng?: string; am_url?: string;
+  /** bản phụ đề Việt cũ (13/10/2026, đã thay bằng lồng tiếng) — chỉ còn trong dữ liệu, không hiện */
+  phu_de?: string };
+/** Danh sách bản xuất để hiện: bản CHÍNH (mới nhất trước, tối đa 6) + mỗi ngôn ngữ lồng tiếng chỉ bản MỚI NHẤT — bản cũ hơn đã bị thay
+ *  (dữ liệu vẫn giữ). Bản phụ đề cũ không hiện: 13/10/2026 anh mở trúng bản phụ đề dựng trước khi sửa chữ (nằm cạnh bản mới, cùng nhãn). */
+export function banHien(xuat: BanXuat[]): { chinh: BanXuat | null; ds: BanXuat[] } {
+  const moi = xuat.slice().reverse();
+  const chinh = moi.filter((b) => !b.long_tieng && !b.phu_de);
+  const daCo = new Set<string>();
+  const dich = moi.filter((b) => b.long_tieng && !daCo.has(b.long_tieng) && !!daCo.add(b.long_tieng));
+  return { chinh: chinh[0] ?? null, ds: [...dich, ...chinh.slice(0, 6)] };
+}
 export type Canh = {
   id: number; tap_id: number; thu_tu: number; canh: string; goc_may: string; hanh_dong: string; loi_thoai: string; am_thanh: string; thoai_url: string | null; am_thanh_url: string | null; phan_doan: string; cam_xuc: number; ky_thuat: KyThuatShot; thoai: DongThoai[]; trang_phuc: string;
   /** Giây thực phát (cắt từ đầu clip); null = phát cả clip. chu_man = chữ trên màn. nhanh = '' thân chung | 'A'/'B'/'C' biến thể hook. */

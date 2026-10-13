@@ -31,7 +31,7 @@ async function docTap(db: Db, tapId: number) {
 const batDauCua = (phat: number[]) => phat.map((_, i) => phat.slice(0, i).reduce((a, b) => a + b, 0));
 
 /** Gọn một file giọng (LOC_GON_GIONG) → R2 mới; file cũ giữ nguyên. null = không gọn được (giữ url cũ). */
-async function gonGiong(url: string, canhId: number): Promise<string | null> {
+export async function gonGiong(url: string, canhId: number): Promise<string | null> {
   const r = await fetch(url, { signal: AbortSignal.timeout(60_000) }); if (!r.ok) return null;
   const vao = Buffer.from(await r.arrayBuffer());
   const ra = await new Promise<Buffer | null>((ok) => {

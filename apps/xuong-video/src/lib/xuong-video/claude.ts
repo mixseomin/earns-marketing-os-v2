@@ -495,6 +495,7 @@ export async function dichChuoi(o: { kinhThanh: KinhThanh; sang: string; ds: str
       system: `Bạn dịch TOÀN BỘ nội dung một phim quảng cáo sang ${tenNgonNgu(o.sang)}${kt.qc?.thi_truong ? ` (thị trường ${kt.qc.thi_truong})` : ''}. Mỗi chuỗi là một mảnh của phim: chữ trên màn, lời thoại, ghi chú diễn xuất, nhãn shot, góc máy, hành động, mô tả nhân vật/bối cảnh/sản phẩm, prompt cho model ảnh/video, kịch bản, bài đăng.
 Luật:
 - Chữ khán giả thấy/nghe (chữ màn, thoại, bài đăng): như người bản ngữ viết quảng cáo — tự nhiên, ngắn, mạnh; chữ màn ngắn tương đương gốc.
+- Lời thoại sẽ được đọc lại (lồng tiếng) trong đúng thời lượng của câu gốc: độ dài đọc lên tương đương câu gốc, không thêm ý; xưng hô hợp quan hệ nhân vật.
 - Ghi chú kỹ thuật (góc máy, hành động, diễn xuất, mô tả, prompt): tiếng ${tenNgonNgu(o.sang)} rõ ràng, đủ ý, đúng thuật ngữ quay phim.
 - Tên người kiểu "Ông X"/"Bà X" → chỉ "X" (vd "Bà Linda" → "Linda"); tên bối cảnh/đạo cụ dịch thành cụm danh từ ngắn.
 - Giữ nguyên: số, giá, %, tên sản phẩm/thương hiệu, emoji, xuống dòng, markdown, khoá snake_case, URL, phần đã là ${tenNgonNgu(o.sang)}.

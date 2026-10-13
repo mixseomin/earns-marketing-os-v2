@@ -69,7 +69,7 @@ function client(): Anthropic | null {
 
 function taAnchor(nv: NhanVat[]): string {
   if (!nv.length) return '(chưa khai anchor nào — tự đặt tên nhân vật/bối cảnh và tả cố định, dùng cùng một mô tả ở mọi cảnh)';
-  return nv.map((a) => `- [${a.loai}] ${a.ten}: ${a.mo_ta || '(chưa mô tả)'}${a.giong ? ` · giọng: ${a.giong}` : ''}${a.tieu_su?.trim() ? `\n    tiểu sử (tính cách, sức mạnh, điểm yếu, mong muốn — hành động trong cảnh phải đúng với nó): ${a.tieu_su.trim().replace(/\s*\n\s*/g, ' · ')}` : ''}${a.bien_the?.length ? `\n    biến thể: ${a.bien_the.map((b) => `"${a.ten} · ${b.ten}" (${b.nhom}: ${b.mo_ta.slice(0, 80)})`).join('; ')}` : ''}`).join('\n');
+  return nv.map((a) => `- [${a.loai}] ${a.ten}: ${a.mo_ta || '(chưa mô tả)'}${a.giong ? ` · giọng: ${a.giong}` : ''}${a.tieu_su?.trim() ? `\n    tiểu sử (tính cách, sức mạnh, điểm yếu, mong muốn — hành động trong cảnh phải đúng với nó): ${a.tieu_su.trim().replace(/\s*\n\s*/g, ' · ')}` : ''}${a.am_hieu?.length ? `\n    âm hiệu có sẵn (phim không lời — dùng đúng tên này trong dòng thoại): ${a.am_hieu.map((x) => x.ten).join(' · ')}` : ''}${a.bien_the?.length ? `\n    biến thể: ${a.bien_the.map((b) => `"${a.ten} · ${b.ten}" (${b.nhom}: ${b.mo_ta.slice(0, 80)})`).join('; ')}` : ''}`).join('\n');
 }
 
 /** Lỗi gọi Claude → câu đọc được, MỘT chỗ cho mọi lượt. messages.parse NÉM khi JSON không đọc được — thường vì chạm max_tokens nên câu trả
@@ -341,6 +341,24 @@ async function hoi<T>(schema: z.ZodType<T>, kt: Required<KinhThanh>, system: str
 }
 
 const HE_THONG_GOI_Y = 'Bạn là biên kịch kiêm đạo diễn hình ảnh của xưởng video AI. Mọi gợi ý phải KHỚP với ngữ cảnh đã cho (phong cách, tuyến nhân vật, các tập) — không đổi đặc tính đã có, chỉ bổ sung và làm rõ. Trả lời bằng tiếng Việt trừ khi trường yêu cầu tiếng Anh.';
+
+/** MÙA PHIM (series, 14/10/2026 — Tango & Lint): động cơ series, luật thế giới, khuôn tập + bản đồ N tập (phiêu lưu xen nguồn gốc nhân vật,
+ *  gài → trả qua các tập, tập cuối là đỉnh điểm). Đọc trọn ngữ cảnh phim (tiền đề, phong cách, nhân vật + tiểu sử, bối cảnh, đạo cụ). */
+const MuaPhimSchema = z.object({
+  dong_co: z.string().describe('Động cơ series một đoạn (tiếng Việt): mỗi tập cùng kiểu xung đột gì, ai muốn gì, ai cản — để tập nào cũng đúng chất'),
+  luat_the_gioi: z.array(z.string()).describe('5-8 luật của thế giới (tiếng Việt), vd khi nào đồ vật sống, Gã khổng lồ chỉ lộ bàn tay, đèn bàn là mặt trời…'),
+  khuon_tap: z.string().describe('Khuôn một tập (tiếng Việt): các nhịp + số giây, gag mở, gag kết'),
+  tap: z.array(z.object({
+    so: z.number(), ten: z.string().describe('Tên tập tiếng Anh, ngắn, gây tò mò (khán giả thấy)'),
+    logline: z.string().describe('Logline tiếng Anh một câu: ai muốn gì, vướng gì, lật ngược gì'),
+    loai: z.enum(['phieu_luu', 'nguon_goc', 'ket_mua']).describe('phieu_luu = tập phiêu lưu thường; nguon_goc = tập kể nguồn gốc / vết sẹo / bí mật của một nhân vật; ket_mua = tập cuối mùa'),
+    nhan_vat: z.array(z.string()).describe('Tên nhân vật chính của tập (đúng tên anchor)'),
+    boi_canh: z.array(z.string()).describe('Tên bối cảnh / đạo cụ dùng (đúng tên anchor)'),
+    gai_tra: z.string().describe('Gài / trả của tập (tiếng Việt): chi tiết gài cho tập sau hoặc trả cho tập trước'),
+  })),
+});
+export const vietMuaPhim = (nc: NguCanhPhim, soTap: number, yeuCau = '') =>
+  hoi(MuaPhimSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nViết KINH THÁNH MÙA 1 cho series này: động cơ series, luật thế giới, khuôn một tập, và bản đồ ĐÚNG ${soTap} tập. Xen tập phiêu lưu với tập NGUỒN GỐC của từng nhân vật (dựa đúng tiểu sử: nguồn gốc, vết sẹo, bí mật, món yêu/ghét); mỗi tập một xung đột rõ dựa trên món yêu/ghét/nỗi sợ; mỗi bối cảnh / đạo cụ đặc trưng được dùng làm sân chơi; tập cuối là đỉnh điểm của mùa. Mọi gag phải hiểu được khi tắt tiếng.${yeuCau ? `\nYÊU CẦU CỦA ĐẠO DIỄN (bắt buộc): ${yeuCau}` : ''}`);
 
 export const goiYKinhThanh = (nc: NguCanhPhim) =>
   hoi(KinhThanhSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nViết PHONG CÁCH HÌNH ẢNH cố định, TIỀN ĐỀ, THỂ LOẠI, LOGLINE và CHỦ ĐỀ cho bộ phim này. Nếu đã có thì giữ ý, viết rõ và cụ thể hơn (chất liệu, màu, ánh sáng, lens).`);

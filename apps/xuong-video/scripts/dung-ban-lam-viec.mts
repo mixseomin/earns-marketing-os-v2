@@ -11,6 +11,7 @@
 //   --dot=dac_trung đạo cụ đặc trưng (món yêu/ghét) + bàn tay Gã khổng lồ
 //   --dot=logo      khung tên 'Tango & Lint' (model vẽ chữ, ~$0.13)
 //   --dot=am        bộ âm hiệu 3 âm/nhân vật (ElevenLabs SFX) + nhạc chủ đề tango (CassetteAI) · --chi=Tango,nhac
+//   --dot=truyen    (TỐN TIỀN, 2 lượt Claude) kinh thánh mùa 1 + bản đồ tập (--so-tap=10) + kịch bản tập 1
 //   --dot=bo_anh_that  gỡ ảnh gốc của anh khỏi mọi anchor (vào thùng rác) — anh không cho dùng ảnh gốc
 //   --chi=Tên A,Tên B --lai: chỉ sinh lại mấy mục này
 // cd apps/xuong-video && DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/dung-ban-lam-viec.mts <ảnh-bàn.jpg …>
@@ -19,10 +20,10 @@ import { randomUUID } from 'node:crypto';
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { uploadToR2 } from '../src/lib/r2';
-import { taoJob, xongJob, type Row } from '../src/lib/xuong-video/doc-db';
+import { taoJob, xongJob, nguCanhPhimDb, ghiTienChu, type Row } from '../src/lib/xuong-video/doc-db';
+import { vietMuaPhim, vietKichBan, promptBienThe } from '../src/lib/xuong-video/claude';
 import { chayViecAnh } from '../src/lib/xuong-video/viec-anh';
 import { hoanTatAnh } from '../src/lib/xuong-video/hoan-tat';
-import { promptBienThe } from '../src/lib/xuong-video/claude';
 import { boAnhVaoThungRac } from '../src/lib/xuong-video/thung-rac';
 import { chayViecAm } from '../src/lib/xuong-video/viec-am';
 
@@ -231,7 +232,7 @@ const GOC_THAP = 'seen from ground level by a 5 cm tall character standing on th
 const db = getDb()!;
 const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as Row[];
 const lai = process.argv.includes('--lai');
-const dot = (process.argv.find((x) => x.startsWith('--dot='))?.slice(6) ?? 'boi_canh') as 'boi_canh' | 'bien_the' | 'do_vat' | 'bo_anh_that' | 'nhan_vat' | 'dac_trung' | 'logo' | 'am';
+const dot = (process.argv.find((x) => x.startsWith('--dot='))?.slice(6) ?? 'boi_canh') as 'boi_canh' | 'bien_the' | 'do_vat' | 'bo_anh_that' | 'nhan_vat' | 'dac_trung' | 'logo' | 'am' | 'truyen';
 const tep = process.argv.slice(2).filter((x) => !x.startsWith('--'));
 /** --chi=Tên A,Tên B: chỉ sinh lại các bối cảnh / đồ vật này (kèm --lai). */
 const chi = process.argv.find((x) => x.startsWith('--chi='))?.slice(6).split(',').map((x) => x.trim()).filter(Boolean) ?? null;
@@ -383,6 +384,30 @@ if (dot === 'am') {
     await xongJob(db, job, kq.ok ? { output_url: kq.url, chi_phi_cents: gia } : { loi: kq.loi });
     ra.push({ ten: n.ten, url: kq.ok ? kq.url : null, ...(kq.ok ? {} : { loi: kq.loi }) });
   }
+}
+// TRUYỆN (TỐN TIỀN, 2 lượt Claude): kinh thánh mùa 1 (động cơ, luật thế giới, khuôn tập, bản đồ tập) → kịch bản tập 1.
+const YEU_CAU_MUA = 'Phim KHÔNG LỜI, mỗi tập 40-60 giây (Shorts 9:16). Tango biết nhảy tango nhưng KHÔNG BAO GIỜ nhảy trong mùa 1 (chỉ được gợi rất nhẹ, vd chân gõ nhịp rồi tự dừng) — dành cho mùa sau. Tập cuối mùa là NGÀY DỌN BÀN: dòng chữ sau lưng Sticky là lời nhắc của Gã khổng lồ về ngày dọn bàn. Tập 1 phải giới thiệu Tango và Lint gặp nhau và cho thấy ngay món yêu (kẹo gấu) + kẻ thù (Mr. Wipe).';
+if (dot === 'truyen') {
+  const nc = await nguCanhPhimDb(db, phimId);
+  if (!nc) { console.error('không thấy phim'); process.exit(1); }
+  const soTap = Number(process.argv.find((x) => x.startsWith('--so-tap='))?.slice(9) ?? 10);
+  const mua = await vietMuaPhim(nc, soTap, YEU_CAU_MUA);
+  if (!mua.ok) { console.error('viết mùa phim lỗi:', mua.loi); process.exit(1); }
+  await ghiTienChu(db, phimId, 'Kinh thánh mùa 1 + bản đồ tập', mua.model, mua.tokens);
+  const m = mua.data;
+  const tienDe = String((await q(sql`SELECT mo_ta FROM xv_phim WHERE id = ${phimId}`))[0]?.mo_ta ?? '').split('\n\nLUẬT THẾ GIỚI')[0];
+  const moTa = `${tienDe}\n\nLUẬT THẾ GIỚI:\n${m.luat_the_gioi.map((x) => `- ${x}`).join('\n')}\n\nKHUÔN TẬP: ${m.khuon_tap}`;
+  await q(sql`UPDATE xv_phim SET mo_ta = ${moTa}, kinh_thanh = jsonb_set(kinh_thanh, '{series}', coalesce(kinh_thanh->'series', '{}'::jsonb) || ${JSON.stringify({ dong_co: m.dong_co, tap: m.tap })}::jsonb), updated_at = now() WHERE id = ${phimId}`);
+  ra.push({ ten: 'Mùa 1', url: `${m.tap.length} tập` });
+  // Kịch bản tập 1 từ bản đồ (đúng đường nút "Claude viết kịch bản" — vietKichBan đọc kinh thánh series + nhân vật + tiểu sử + âm hiệu).
+  const t1 = m.tap[0]!;
+  const brief = `${t1.ten} — ${t1.logline}\nNhân vật: ${t1.nhan_vat.join(', ')}\nBối cảnh / đạo cụ: ${t1.boi_canh.join(', ')}\nGài / trả: ${t1.gai_tra}`;
+  const nc2 = (await nguCanhPhimDb(db, phimId))!;
+  const kb = await vietKichBan({ loai: nc2.loai, kinhThanh: nc2.kinhThanh, nhanVat: nc2.nhanVat, brief, thoiLuongS: 50 });
+  if (!kb.ok) { console.error('viết kịch bản tập 1 lỗi:', kb.loi); process.exit(1); }
+  await ghiTienChu(db, phimId, 'Viết kịch bản · tập 1', kb.model, kb.tokens);
+  await q(sql`UPDATE xv_tap SET ten = ${t1.ten}, brief = ${brief}, kich_ban = ${kb.kichBan}, thoi_luong_s = 50, updated_at = now() WHERE phim_id = ${phimId} AND so = 1`);
+  console.log(JSON.stringify({ mua: m, kich_ban_tap_1: kb.kichBan }));
 }
 console.log(JSON.stringify({ phimId, dot, xong: ra.filter((x) => x.url).length, ra }));
 process.exit(0);

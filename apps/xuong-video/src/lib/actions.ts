@@ -25,7 +25,7 @@ import { kiemNguoiXemTap, suaTheoNguoiXemTap } from '@/lib/xuong-video/kiem-nguo
 import { xuatLongTiengTap } from '@/lib/xuong-video/long-tieng';
 import { lamSanNho } from '@/lib/xuong-video/anh-nho-may';
 import { chanNguoiXem } from '@/lib/xuong-video/nguoi-xem';
-import { tachCanh, vietKichBan, vietBaiDang, phanTichMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, type NguCanhPhim } from '@/lib/xuong-video/claude';
+import { tachCanh, vietKichBan, vietBaiDang, phanTichMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
 import { ghepThoai, thieuQc, coMau, giayMau, type BaiDang, type MauQc } from '@/lib/xuong-video/kieu';
@@ -33,7 +33,7 @@ import { luuCanhTach } from '@/lib/xuong-video/luu-canh';
 import { chupTruoc, ganNhat, hoanTacGanNhat, type MucHoanTac } from '@/lib/xuong-video/hoan-tac';
 import { docPhimDich, uocDichCents, chayDichPhim } from '@/lib/xuong-video/dich-phim';
 import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-video/kieu';
-import { type Row, n, s, arr, mangInt, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
+import { type Row, n, s, arr, mangInt, nguCanhPhimDb, mapBienThe, mapNhanVat, mapTap, mapCanh, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
 import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim } from '@/lib/xuong-video/sinh-anh';
 import type { MauPoster } from '@/lib/xuong-video/poster';
 import { batDauVideoCanh, kiemVideoTap } from '@/lib/xuong-video/sinh-video';
@@ -444,7 +444,7 @@ export async function goiYAIBienThe(nhanVatId: number): Promise<Kq<number>> {
   if (!(await admin())) return loi('không có quyền');
   const r = (await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE id = ${nhanVatId}`)) as unknown as Row[];
   if (!r[0]) return loi('không thấy anchor');
-  const nc = await nguCanhPhim(db, n(r[0].phim_id));
+  const nc = await nguCanhPhimDb(db, n(r[0].phim_id));
   if (!nc) return loi('không thấy phim');
   const a = nc.nhanVat.find((v) => v.id === nhanVatId)!;
   const nhom = NHOM_BIEN_THE[a.loai] ?? NHOM_BIEN_THE.nhan_vat;
@@ -952,22 +952,12 @@ async function ghiChu(phimId: number | null, nhan: string, r: { ok: boolean } & 
 
 // ── Gợi ý AI cho mọi form (đọc ngữ cảnh cả phim) ──────────────────────────────────────────────────────────────
 
-async function nguCanhPhim(db: NonNullable<ReturnType<typeof getDb>>, phimId: number): Promise<NguCanhPhim | null> {
-  const p = (await db.execute(sql`SELECT * FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[];
-  if (!p[0]) return null;
-  const nv = (await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY loai, id`)) as unknown as Row[];
-  const tap = (await db.execute(sql`SELECT so, ten, tom_tat, kich_ban FROM xv_tap WHERE phim_id = ${phimId} ORDER BY so`)) as unknown as Row[];
-  return {
-    loai: s(p[0].loai) as LoaiPhim, ten: s(p[0].ten), mo_ta: s(p[0].mo_ta), kinhThanh: (p[0].kinh_thanh ?? {}) as KinhThanh, nhanVat: await kemBienThe(db, nv.map(mapNhanVat)),
-    tap: tap.map((t) => ({ so: n(t.so), ten: s(t.ten), tom_tat: s(t.tom_tat), kich_ban: s(t.kich_ban) })),
-  };
-}
 
 export async function goiYAIKinhThanh(phimId: number): Promise<Kq<{ phong_cach: string; mo_ta: string; the_loai?: string; logline?: string; chu_de?: string }>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  const nc = await nguCanhPhim(db, phimId);
+  const nc = await nguCanhPhimDb(db, phimId);
   if (!nc) return loi('không thấy phim');
   const r = await goiYKinhThanh(nc);
   await ghiChu(phimId, 'AI gợi ý kinh thánh', r);
@@ -979,7 +969,7 @@ export async function goiYAIAnchor(phimId: number, a: { loai: LoaiNhanVat; ten: 
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   if (!a.ten.trim()) return loi('đặt tên anchor trước');
-  const nc = await nguCanhPhim(db, phimId);
+  const nc = await nguCanhPhimDb(db, phimId);
   if (!nc) return loi('không thấy phim');
   const r = await goiYAnchor(nc, a);
   await ghiChu(phimId, `AI tả anchor · ${a.ten}`, r);
@@ -1007,7 +997,7 @@ export async function goiYAIBoAnchor(phimId: number): Promise<Kq<number>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  const nc = await nguCanhPhim(db, phimId);
+  const nc = await nguCanhPhimDb(db, phimId);
   if (!nc) return loi('không thấy phim');
   if (!nc.mo_ta.trim() && !nc.tap.some((t) => t.kich_ban.trim())) return loi('viết tiền đề (kinh thánh) hoặc kịch bản trước để AI có gì mà đề xuất');
   const r = await goiYBoAnchor(nc);
@@ -1029,7 +1019,7 @@ export async function goiYAIBrief(tapId: number, thoiLuongS: number): Promise<Kq
   if (!(await admin())) return loi('không có quyền');
   const t = (await db.execute(sql`SELECT phim_id, so FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[];
   if (!t[0]) return loi('không thấy tập');
-  const nc = await nguCanhPhim(db, n(t[0].phim_id));
+  const nc = await nguCanhPhimDb(db, n(t[0].phim_id));
   if (!nc) return loi('không thấy phim');
   const thieu = thieuQc(nc.loai, nc.kinhThanh);
   if (thieu) return loi(thieu);
@@ -1046,7 +1036,7 @@ export async function goiYAICanh(canhId: number, nhap: { canh: string; goc_may: 
   if (!(await admin())) return loi('không có quyền');
   const c = (await db.execute(sql`SELECT c.thu_tu, c.tap_id, t.phim_id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${canhId}`)) as unknown as Row[];
   if (!c[0]) return loi('không thấy cảnh');
-  const nc = await nguCanhPhim(db, n(c[0].phim_id));
+  const nc = await nguCanhPhimDb(db, n(c[0].phim_id));
   if (!nc) return loi('không thấy phim');
   const thuTu = n(c[0].thu_tu);
   const lanCan = (await db.execute(sql`SELECT thu_tu, canh, hanh_dong FROM xv_canh WHERE tap_id = ${n(c[0].tap_id)} AND thu_tu IN (${thuTu - 1}, ${thuTu + 1})`)) as unknown as Row[];

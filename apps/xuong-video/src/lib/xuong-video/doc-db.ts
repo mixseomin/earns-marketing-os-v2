@@ -5,6 +5,7 @@ import { sql } from 'drizzle-orm';
 import type { getDb } from '@mos2/db';
 import { docKinhThanh, giaChuCents, giaVideoCents, type BienThe, type Canh, type Job, type KinhThanh, type LoaiNhanVat, type LoaiPhim, type NhanVat, type Tap, type TrangThaiCanh } from './kieu';
 import { danhMucFal } from './fal';
+import type { NguCanhPhim } from './claude';
 
 export type Db = NonNullable<ReturnType<typeof getDb>>;
 export type Row = Record<string, unknown>;
@@ -116,4 +117,17 @@ export async function ghiTienChu(db: Db, phimId: number | null, nhan: string, mo
   await db.execute(sql`INSERT INTO xv_job (phim_id, nhan, loai, provider, model, trang_thai, chi_phi_cents, tokens_in, tokens_out)
     VALUES (${phimId}, ${nhan}, 'chu', 'anthropic', ${model}, 'xong', ${Math.round(gia * 100) / 100}, ${tk.in}, ${tk.out})`);
   return gia;
+}
+
+/** Ngữ cảnh cả phim cho Claude (tiền đề, kinh thánh, mọi anchor kèm biến thể + tiểu sử + âm hiệu, các tập) — MỘT chỗ cho gợi ý AI
+ *  (actions.ts) và script (viết mùa phim). */
+export async function nguCanhPhimDb(db: Db, phimId: number): Promise<NguCanhPhim | null> {
+  const p = (await db.execute(sql`SELECT * FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[];
+  if (!p[0]) return null;
+  const nv = (await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY loai, id`)) as unknown as Row[];
+  const tap = (await db.execute(sql`SELECT so, ten, tom_tat, kich_ban FROM xv_tap WHERE phim_id = ${phimId} ORDER BY so`)) as unknown as Row[];
+  return {
+    loai: s(p[0].loai) as LoaiPhim, ten: s(p[0].ten), mo_ta: s(p[0].mo_ta), kinhThanh: (p[0].kinh_thanh ?? {}) as KinhThanh, nhanVat: await kemBienThe(db, nv.map(mapNhanVat)),
+    tap: tap.map((t) => ({ so: n(t.so), ten: s(t.ten), tom_tat: s(t.tom_tat), kich_ban: s(t.kich_ban) })),
+  };
 }

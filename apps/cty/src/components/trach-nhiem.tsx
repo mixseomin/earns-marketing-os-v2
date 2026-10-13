@@ -25,10 +25,11 @@ export function KhoiTrachNhiem({ id, tn, phong }: { id: string; tn: TrachNhiem; 
         <span className={tre ? 'cty-tn-tre' : ''}><b>{soViec(viec)}</b>việc đang mở{tre ? <><br />{tre} máy trễ</> : null}</span>
       </div>
       {qt.length > 0 && <div className="cty-tn-ds">{[...chu, ...lam].map((q) => <Nhan key={q.khoa} q={q} />)}</div>}
-      {viec.length > 0 && <ul className="cty-tn-viec">{viec.slice(0, TRAN_VIEC).map((v, i) => (
+      {viec.length > 0 && ((ds) => phong   // YDNI 14/10/2026: trong PHÒNG danh sách việc gập sau một bấm (số đã có ở trên, bảng việc ở tab Dây chuyền); hồ sơ nhân sự mở sẵn
+        ? <details className="cty-tn-gap"><summary>{soViec(viec)} việc đang mở</summary>{ds}</details> : ds)(<ul className="cty-tn-viec">{viec.slice(0, TRAN_VIEC).map((v, i) => (
         <li key={i} title={`${v.chu}${v.ten ? ` — ${v.ten}` : ''}`}>{v.tre ? <span className="cty-pill cty-pill-off">máy trễ</span> : v.mayLam ? <span className="cty-pill cty-pill-kind">máy làm</span> : null}{(v.tre || v.mayLam) && ' '}
           {v.chu}{v.ten && <> · {v.link ? <a href={v.link}>{v.ten}</a> : v.ten}</>}{v.qua != null && v.qua > 0 && <span className="cty-thu-loi"> · quá {v.qua} ngày</span>}</li>))}
-        {viec.length > TRAN_VIEC && <li className="cty-muted">+{viec.length - TRAN_VIEC} việc nữa</li>}</ul>}
+        {viec.length > TRAN_VIEC && <li className="cty-muted">+{viec.length - TRAN_VIEC} việc nữa</li>}</ul>)}
     </div>
   );
 }

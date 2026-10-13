@@ -379,8 +379,8 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-tn-so b{font-size:1.35rem;color:var(--ink);font-variant-numeric:tabular-nums}
 .cty-tn-so .cty-tn-tre,.cty-tn-so .cty-tn-tre b{color:var(--warn)}
 .cty-tn-ds{display:flex;flex-wrap:wrap;gap:4px}
-.cty-tn-nhan{font-size:.74rem;padding:.1rem .45rem;border-radius:10px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;max-width:100%;overflow-wrap:anywhere}   /* tên quy trình dài xuống dòng trong khung, không tràn (lỗi tràn 14/10/2026) */
-.cty-tn-chu{background:var(--accent);color:var(--surface)}
+.cty-tn-nhan{font-size:.74rem;padding:.1rem .45rem;border-radius:10px;border:1px solid var(--line);color:var(--ink);text-decoration:none;max-width:100%;overflow-wrap:anywhere}   /* tên quy trình dài xuống dòng trong khung, không tràn (lỗi tràn 14/10/2026) */
+.cty-tn-chu{font-weight:600;border-color:var(--muted)}   /* YDNI 14/10/2026: nhãn quy trình trung tính, chủ trì phân bằng độ đậm — màu để dành cho tín hiệu (trễ, lỗi) */
 .cty-tn-chua{border-style:dashed;opacity:.75}
 .cty-tn-viec{margin:0;padding-left:1.1rem;display:grid;gap:3px;font-size:.8rem}
 .cty-tn-viec li{overflow-wrap:anywhere}   /* #1327: việc dài xuống dòng đủ chữ, không cắt "…" */
@@ -538,3 +538,6 @@ body.nk-dang-keo iframe{pointer-events:none}
   .cty-cuon td:not([data-nhan]),.cty-dn-cuon td:not([data-nhan]){grid-template-columns:minmax(0,1fr)}
   .cty-cuon td:not([data-nhan])::before,.cty-dn-cuon td:not([data-nhan])::before{display:none}
 }
+.cty-dn-do{margin-top:6px}.cty-dn-do>summary{cursor:pointer;display:flex;gap:8px;align-items:baseline;font-weight:600;padding:4px 0}.cty-dn-do[open]>summary{margin-bottom:4px}
+.cty-tn-gap>summary{cursor:pointer;font-size:.8rem;color:var(--muted)}.cty-tn-gap[open]>summary{margin-bottom:4px}
+.cty-dn-do>summary::before{content:'▸';color:var(--muted)}.cty-dn-do[open]>summary::before{content:'▾'}

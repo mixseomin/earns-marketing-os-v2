@@ -1,6 +1,6 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/nhip-hinh.test.mts
 import assert from 'node:assert';
-import { kiemNhipHinh, daDangMay, kiemGiayDoc, giayDoc, soShotToiDa } from './nhip-hinh';
+import { kiemNhipHinh, daDangMay, kiemGiayDoc, giayDoc, soShotToiDa, kiemDanKhongGian } from './nhip-hinh';
 // Fox tập 2 (13/10/2026): cỡ cảnh + chuyển động máy 14 shot
 const FOX = [['cu', 'day_vao'], ['cu', 'day_vao'], ['ws', 'tinh'], ['ms', 'tinh'], ['two', 'tinh'], ['ms', 'tinh'], ['ws', 'lui_ra'], ['cu', 'day_vao'], ['cu', 'day_vao'], ['ms', 'tinh'], ['cu', 'tinh'], ['two', 'tinh'], ['ws', 'truot_ngang'], ['ws', 'truot_ngang']]
   .map(([co_canh, chuyen_dong], i) => ({ id: 100 + i, thu_tu: i + 1, ky_thuat: { co_canh, chuyen_dong } }));
@@ -27,4 +27,15 @@ assert.strictEqual(kiemGiayDoc(T1, {}).length, 1, 'phim truyện có lời: ngư
 assert.ok(giayDoc({ khong_loi: true }) > giayDoc({}) && giayDoc({}) > giayDoc({ laQc: true }));
 assert.strictEqual(soShotToiDa(48, { khong_loi: true }), 12, '48s không lời → tối đa 12 shot (không phải 20)');
 assert.strictEqual(soShotToiDa(30, { laQc: true }), 20);
+// dẫn không gian: bối cảnh 1 = cả bàn, 2 = rừng cáp, 3 = đế cắm; 9 = nhân vật (không phải bối cảnh)
+const BC = [1, 2, 3];
+const sh = (thu_tu: number, co_canh: string, nv: number[]) => ({ thu_tu, nhan_vat: nv, ky_thuat: { co_canh } });
+const tot = [sh(1, 'ews', [1]), sh(2, 'ms', [1, 9]), sh(3, 'ws', [2, 9]), sh(4, 'cu', [2, 9]), sh(5, 'ms', [1, 9]), sh(6, 'ws', [9]), sh(7, 'mcu', [3, 9])];
+assert.deepStrictEqual(kiemDanKhongGian(tot, BC, {}), [], 'mở toàn cảnh; vào rừng cáp bằng ws; quay lại bàn đã thấy; tới đế cắm sau shot hành trình ws');
+const xau = [sh(1, 'cu', [1, 9]), sh(2, 'mcu', [1, 9]), sh(3, 'ms', [2, 9]), sh(4, 'ws', [2]), sh(5, 'cu', [3, 9])];
+const lx = kiemDanKhongGian(xau, BC, {});
+assert.ok(lx.some((x) => x.includes('mở tập chưa có shot toàn cảnh')), lx.join('\n'));
+assert.ok(lx.some((x) => x.includes('#3') && !x.includes('#5')), 'vào rừng cáp ở #3 bằng ms → lỗi; #5 có #4 ws ngay trước (hành trình) → không lỗi: ' + lx.join('\n'));
+assert.deepStrictEqual(kiemDanKhongGian(xau, BC, { laQc: true }), [], 'quảng cáo không xét');
+assert.deepStrictEqual(kiemDanKhongGian(xau, [], {}).filter((x) => x.includes('nơi mới')), [], 'phim chưa có bối cảnh → không xét nơi mới');
 console.log('nhip-hinh.test: ok');

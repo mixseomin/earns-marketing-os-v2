@@ -17,7 +17,7 @@ export function phuThuocShot(viec: ViecShot, c: Canh, nhanVat: NhanVat[], o: { t
   const chan: string[] = []; const luu_y: string[] = [];
   if (viec === 'keyframe') {
     if (c.dang_sinh_anh) chan.push('đang sinh ảnh');
-    chan.push(...chanTienKy(o.tap, o.phim, o.ds), ...chanShot(c, o.tap, nhanVat));
+    chan.push(...chanTienKy(o.tap, o.phim, o.ds, o.ds, nhanVat.filter((v) => v.loai === 'boi_canh').map((v) => v.id)), ...chanShot(c, o.tap, nhanVat));
     if (!c.prompt_anh.trim()) chan.push('chưa có prompt ảnh');
     if (c.keyframe_url) luu_y.push('đã có keyframe — ảnh mới vào dải ứng viên, phải chọn mới thay');
     if (o.truoc && noiKhungShot(false, o.truoc) && !o.truoc.keyframe_url) luu_y.push(`shot #${o.truoc.thu_tu} liền máy với shot này — sinh keyframe shot #${o.truoc.thu_tu} trước để ảnh này bám đúng chỗ, đúng tư thế`);

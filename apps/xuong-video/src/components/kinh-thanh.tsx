@@ -130,6 +130,9 @@ export function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa;
             </> : null}
           </div>
         </O>
+        <O label="Bản đồ không gian" hint="Các nơi chốn (đúng tên anchor Bối cảnh) nằm đâu, cạnh nhau thế nào, đi từ nơi này sang nơi kia qua đâu — tách cảnh dựng chuỗi dẫn từ toàn cảnh vào đúng chỗ xảy ra và shot hành trình khi đổi nơi (kiểu Larva).">
+          <textarea className="xv-in" rows={4} value={kt.ban_do} onChange={(e) => set('ban_do', e.target.value)} placeholder="vd: Bàn nhìn từ mép trước. Giữa: Keyboard Canyon, bên phải Mouse Landing… Đường: Mouse Landing → White Cable Road → Under the iMac Arch → Cable Jungle" />
+        </O>
         <O label="Khung hình"><Seg options={[{ value: '9:16', label: '9:16 dọc' }, { value: '16:9', label: '16:9 ngang' }]} value={kt.ti_le} onChange={(v) => set('ti_le', v)} /></O>
         <O label="Kiểu phim" hint="Không lời: Claude viết truyện bằng hành động + âm hiệu nhân vật (không thoại). Nhịp stop-motion: bản xuất giữ mỗi hình hai nhịp (12 hình/giây) cho giống quay stop-motion thật.">
           <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginRight: 14, fontSize: 12 }}><input type="checkbox" checked={!!kt.khong_loi} onChange={(e) => set('khong_loi', e.target.checked)} /> Không lời</label>

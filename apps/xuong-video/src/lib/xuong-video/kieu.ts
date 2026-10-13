@@ -107,6 +107,10 @@ export type KinhThanh = {
   nhip_stop_motion?: boolean;
   /** phim KHÔNG LỜI (kiểu Larva): không thoại; nhân vật chỉ phát âm hiệu riêng; truyện kể bằng hành động + âm thanh (claude.ts › heThong) */
   khong_loi?: boolean;
+  /** BẢN ĐỒ KHÔNG GIAN (14/10/2026 — "thiếu đoạn dẫn từ không gian tới nơi xảy ra, như Larva"): các nơi chốn (tên đúng anchor Bối cảnh)
+   *  nằm đâu trong thế giới, cạnh nhau thế nào, đường đi từ nơi này sang nơi kia. Tách cảnh dựa vào đây để dựng chuỗi shot dẫn rộng → hẹp
+   *  và shot hành trình khi đổi nơi (claude.ts › heThong, luật kể chuyện 12). */
+  ban_do?: string;
 };
 /** Một tập trong BẢN ĐỒ series (chưa chắc đã có xv_tap): số thứ tự toàn series, mùa, loại, nhân vật, gài/trả (claude.ts › vietMuaPhim). */
 export type TapBanDo = { so: number; ten: string; logline: string; mua?: number; loai?: 'phieu_luu' | 'nguon_goc' | 'ket_mua'; nhan_vat?: string[]; boi_canh?: string[]; gai_tra?: string };
@@ -239,7 +243,7 @@ export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: strin
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
   phong_cach: '', ti_le: '9:16', do_phan_giai: '720p',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },
-  giong_dan: null, series: null, luu_tru: false, nhip_stop_motion: false, khong_loi: false,
+  giong_dan: null, series: null, luu_tru: false, nhip_stop_motion: false, khong_loi: false, ban_do: '',
 };
 export const docKinhThanh = (kt: KinhThanh | null | undefined): Required<KinhThanh> => ({ ...KINH_THANH_MAC_DINH, ...(kt ?? {}) });
 

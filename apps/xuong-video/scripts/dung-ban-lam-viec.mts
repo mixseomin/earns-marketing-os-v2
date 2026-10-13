@@ -32,6 +32,17 @@ import { chayViecAm } from '../src/lib/xuong-video/viec-am';
 const TEN_PHIM = 'Series · Tango & Lint (bàn làm việc, stop-motion)';
 const TEN_CU = ['Series · Bàn làm việc (stop-motion)'];   // tên trước 14/10/2026 — tìm phim theo cả tên cũ rồi đổi (so từng tên: mảng text làm postgres-js báo malformed array)
 const PHONG_CACH = 'Real-world miniature stop-motion film: shot on a real home-office desk with a macro lens at tabletop height, as seen by a 5 cm tall character; shallow depth of field with soft bokeh; real materials and textures (warm wood grain, matte white plastic, brushed aluminium, paper); cozy warm desk-lamp light mixed with cool blue monitor glow; slightly handmade stop-motion feel with tactile detail; vertical 9:16 frame. Clean frames with no text, letters, numbers or logos anywhere';
+/** BẢN ĐỒ KHÔNG GIAN của bàn (14/10/2026 — chuỗi dẫn kiểu Larva): tên = đúng anchor Bối cảnh; dựng từ mô tả 20 bối cảnh. Ghi vào
+ *  kinh_thanh.ban_do mỗi lần chạy (đợt nào cũng được), sửa tay được ở ô "Bản đồ không gian" của kinh thánh. */
+const BAN_DO = `The world = the Giant's wooden desk, seen from its FRONT EDGE (front = toward the viewer, back = against the wall).
+WHOLE-WORLD SHOTS (open episodes here, then move in): The Desk (wide) from the front edge · Desk Map (top-down) straight down · The Summit (iMac top) looking down over everything · time variants The Desk at Night / The Desk at Dawn.
+FRONT-CENTRE: Keyboard Canyon (inside the white keyboard's keys); Keyboard Cave = the dark gap under the keyboard's raised back edge. Mouse Landing = beside the white mouse, just RIGHT of the keyboard.
+RIGHT-BACK (big iMac): Glowing Screen Wall = foot of the iMac screen looking up; Under the iMac Arch = beneath its curved stand; The Summit = its top edge. White Cable Road = the white iMac cable running from Under the iMac Arch forward across the desk past Mouse Landing.
+LEFT-BACK (second monitor): Monitor Foot Plaza = its flat silver stand foot; Notebook Cliffs = notebooks + cards stacked under/beside that stand; Open Notebook Field = an open notebook lying in front-left; Magazine Cliff = magazines/books at the far LEFT edge.
+BACK, BEHIND THE MONITORS (dark, against the wall): Between the Screens = the narrow glowing corridor between the two monitors, the doorway from the desk into the back; Cable Jungle = the tangle of cables behind both monitors; USB Hub Dock = the silver hub on its orange card inside Cable Jungle; Speaker Planet = the round black speaker behind the LEFT monitor at the edge of Cable Jungle.
+FRONT EDGE: Desk Edge Cliff = the whole front edge, a drop into the dark room.
+ROUTES: Keyboard Canyon → Mouse Landing → along White Cable Road → Under the iMac Arch → Between the Screens → Cable Jungle → USB Hub Dock. Left route: Open Notebook Field → Notebook Cliffs → Monitor Foot Plaza → Speaker Planet → Cable Jungle.
+ESTABLISHING CHAIN EXAMPLE: The Desk (wide) or The Summit → crane down / push in toward the area → the exact spot (e.g. The Desk at Night → push in through Between the Screens → Cable Jungle).`;
 const KINH_THANH = {
   phong_cach: PHONG_CACH, ti_le: '9:16', ngon_ngu: 'en', the_loai: 'hoat_hinh', do_phan_giai: '720p',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_chu: 'claude-opus-5-5', mo_hinh_video: 'fal:fal-ai/veo3.1/lite/image-to-video',
@@ -246,7 +257,7 @@ async function theoDot<T>(ds: T[], f: (x: T) => Promise<void>, cung = 5) { for (
 const anhRa = (u: string) => !u.includes('/ref/');   // ảnh đã sinh (ảnh thật nằm ở xuong-video/ref/)
 
 let phim = (await q(sql`SELECT id FROM xv_phim WHERE ten = ${TEN_PHIM} OR ten = ${TEN_CU[0]} ORDER BY id LIMIT 1`))[0];
-if (phim) await q(sql`UPDATE xv_phim SET ten = ${TEN_PHIM}, kinh_thanh = kinh_thanh || ${JSON.stringify({ logline: KINH_THANH.logline, khong_loi: true, nhip_stop_motion: true, series: { ...KINH_THANH.series, ...((await q(sql`SELECT kinh_thanh->'series' AS s FROM xv_phim WHERE id = ${Number(phim.id)}`))[0]?.s as object ?? {}) } })}::jsonb, updated_at = now() WHERE id = ${Number(phim.id)}`);   // giữ series đã viết (dong_co, tap) nếu có
+if (phim) await q(sql`UPDATE xv_phim SET ten = ${TEN_PHIM}, kinh_thanh = kinh_thanh || ${JSON.stringify({ logline: KINH_THANH.logline, khong_loi: true, nhip_stop_motion: true, ban_do: BAN_DO, series: { ...KINH_THANH.series, ...((await q(sql`SELECT kinh_thanh->'series' AS s FROM xv_phim WHERE id = ${Number(phim.id)}`))[0]?.s as object ?? {}) } })}::jsonb, updated_at = now() WHERE id = ${Number(phim.id)}`);   // giữ series đã viết (dong_co, tap) nếu có
 if (!phim) {
   phim = (await q(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh, trang_thai) VALUES ('studio', ${TEN_PHIM}, 'short',
     'Phim không lời kiểu stop-motion: nhân vật tí hon sống trên bàn làm việc thật, mỗi tập một câu chuyện đủ tình tiết với đồ vật trên bàn.', ${JSON.stringify(KINH_THANH)}::jsonb, 'nhap') RETURNING id`))[0]!;

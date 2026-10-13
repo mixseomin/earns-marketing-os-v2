@@ -68,6 +68,28 @@ export const giayDoc = (p: { laQc?: boolean; khong_loi?: boolean }): number => (
 /** Số shot tối đa cho một thời lượng mà mỗi shot vẫn đủ giây đọc (chừa ~0,5s/shot cho phản ứng). */
 export const soShotToiDa = (giay: number, p: { laQc?: boolean; khong_loi?: boolean }): number => Math.max(1, Math.floor(giay / (giayDoc(p) + (p.laQc ? 0 : 0.5))));
 export const TIEN_TO_NHIP_DOC = 'nhịp đọc: ';
+export const TIEN_TO_DAN_KHONG_GIAN = 'dẫn không gian: ';
+const RONG = new Set(['ews', 'ws']);
+/** DẪN KHÔNG GIAN (14/10/2026 — kiểu Larva): người xem phải biết MÌNH ĐANG Ở ĐÂU trong thế giới trước khi chuyện xảy ra.
+ *  1. Mở tập: một trong 2 shot đầu là toàn cảnh (ews/ws) — dẫn từ cả thế giới vào.
+ *  2. Lần ĐẦU tới một nơi mới (anchor Bối cảnh khác hẳn shot trước, chưa từng xuất hiện trong tập): shot đó hoặc shot liền trước (hành
+ *     trình) phải là toàn cảnh. Quay lại nơi đã thấy thì không cần. Quảng cáo không xét. boiCanh = id các anchor loại Bối cảnh của phim. */
+export function kiemDanKhongGian(ds: { thu_tu: number; nhan_vat?: number[]; ky_thuat?: KyThuatShot | null }[], boiCanh: Iterable<number>, p: { laQc?: boolean }): string[] {
+  if (p.laQc || ds.length < 3) return [];
+  const bc = new Set(boiCanh); const out: string[] = [];
+  const rong = (i: number) => RONG.has(ds[i]?.ky_thuat?.co_canh ?? '');
+  if (!rong(0) && !rong(1)) out.push(`${TIEN_TO_DAN_KHONG_GIAN}mở tập chưa có shot toàn cảnh (2 shot đầu đều gần) — người xem không biết đang ở đâu trong thế giới`);
+  const noi = (i: number) => (ds[i]?.nhan_vat ?? []).filter((x) => bc.has(x)).sort((a, b) => a - b).join(',');
+  const daThay = new Set<string>(); let truoc = '';
+  const lo: number[] = [];
+  ds.forEach((_, i) => {
+    const k = noi(i); if (!k) return;
+    if (truoc && k !== truoc && !daThay.has(k) && !rong(i) && !rong(i - 1)) lo.push(ds[i]!.thu_tu);
+    daThay.add(k); truoc = k;
+  });
+  if (lo.length) out.push(`${TIEN_TO_DAN_KHONG_GIAN}tới nơi mới mà không có shot toàn cảnh / hành trình dẫn vào: ${lo.map((x) => `#${x}`).join(', ')}`);
+  return out;
+}
 /** Shot phát ngắn hơn giây đọc tối thiểu — chặn keyframe (quy-trinh.ts › chanTienKy). Quảng cáo không xét (luật QC riêng ở kiem-qc.ts). */
 export function kiemGiayDoc(ds: { thu_tu: number; phat_s: number | null; thoi_luong_s: number }[], p: { laQc?: boolean; khong_loi?: boolean }): string[] {
   if (p.laQc) return [];

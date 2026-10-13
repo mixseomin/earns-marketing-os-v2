@@ -55,6 +55,7 @@ export function thamDinh({ from, subject = '', html = '' }) {
   const dkim = chuyenTiep ? ' (thư chuyển tiếp mất header gốc nên chưa đọc được chữ ký DKIM — kết luận theo link)' : '';
   if (!mien) return { gui, mien, loai, links, la, ket: 'chua-ro', chu: 'Không đọc được địa chỉ người gửi.', viec: 'Không bấm link nào; chuyển tiếp lại thư dạng tệp đính kèm (.eml) để đọc header.' };
   if (la.length) return { gui, mien, loai, links, la, ket: 'gia', chu: `THƯ GIẢ: mang tên ${mien} nhưng link dẫn sang ${la.slice(0, 3).join(', ')}.`, viec: 'Không bấm link, không nhập gì; xoá thư. Đã lỡ bấm/nhập → đổi mật khẩu ngay trên trang thật (gõ tay địa chỉ) + bật xác minh 2 lớp.' };
+  if (!loai.length) return { gui, mien, loai, links, la, ket: 'thuong', chu: 'Không có dấu hiệu bảo mật (không đòi xác nhận, đăng nhập, mật khẩu, mã, thanh toán; không link lạ).', viec: 'Không cần làm gì.' };   // Kiên đọc MỌI thư (anh 14/10/2026), thư thường chỉ ghi nhận
   if (!NHA.has(nhan(mien))) return { gui, mien, loai, links, la, ket: 'chua-ro', chu: `Tên miền ${mien} không phải nhà anh có tài khoản (worker/mail-bao-mat.mjs NHA) — tên nhái hay gặp.`, viec: 'Coi như giả: không bấm link, không trả lời. Đúng là nhà mới anh dùng thì thêm tên vào NHA.' };
   if (!links.length) return { gui, mien, loai, links, la, ket: 'chua-ro', chu: `Thư mang tên ${mien}, không có link để đối chiếu${dkim}.`, viec: 'Không trả lời thư; kiểm thẳng trên trang thật (gõ tay địa chỉ).' };
   const yeuCau = loai.some((k) => ['xac-nhan-lien-he', 'dang-nhap', 'mat-khau', 'otp'].includes(k));
@@ -63,18 +64,17 @@ export function thamDinh({ from, subject = '', html = '' }) {
       : 'Thư thông báo, không đòi duyệt gì — đọc rồi lưu trữ.' };
 }
 
-// Đọc hòm: thư 30 ngày có dấu hiệu bảo mật (tiêu đề / đoạn đầu) → kết luận. Lỗi đọc trả null (trang hiện lỗi, không giấu thành "không có thư").
-const DAU = ['confirm', 'verif', 'sign-in', 'sign in', 'login', 'log in', 'password', 'security', 'account', 'suspend', 'unusual', 'otp', 'code', 'payment', 'xác nhận', 'đăng nhập', 'mật khẩu', 'bảo mật'];
+// Đọc hòm: MỌI thư 30 ngày → kết luận (thư thường = ket 'thuong'). Lỗi đọc trả null (trang hiện lỗi, không giấu thành "không có thư").
 export async function docMailBaoMat({ ngay = 30, url = process.env.DIRECTUS_URL, token = process.env.DIRECTUS_TOKEN } = {}) {
   if (!url || !token) return null;
   const tu = new Date(Date.now() - ngay * 86_400_000).toISOString();
-  const q = new URLSearchParams({ limit: '60', sort: '-captured_at', fields: 'id,from_addr,from_name,subject,body_html,captured_at,status',
-    filter: JSON.stringify({ _and: [{ captured_at: { _gte: tu } }, { _or: DAU.flatMap((k) => [{ subject: { _icontains: k } }, { snippet: { _icontains: k } }]) }] }) });
+  const q = new URLSearchParams({ limit: '200', sort: '-captured_at', fields: 'id,from_addr,from_name,subject,body_html,captured_at,status',
+    filter: JSON.stringify({ captured_at: { _gte: tu } }) });   // MỌI thư (anh 14/10/2026) — thư thường ra ket 'thuong'
   try {
     const r = await fetch(`${url}/items/claude_inbox?${q}`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000) });
     if (!r.ok) return null;
     return (await r.json()).data.map((m) => ({ id: m.id, luc: m.captured_at, tieuDe: String(m.subject ?? '').replace(/^(fwd?|tr|chuyển tiếp):\s*/i, ''), xong: m.status !== 'new',
-      ...thamDinh({ from: m.from_addr, subject: m.subject, html: m.body_html }) })).filter((m) => m.loai.length || m.la.length);
+      ...thamDinh({ from: m.from_addr, subject: m.subject, html: m.body_html }) }));
   } catch { return null; }
 }
 
@@ -83,7 +83,9 @@ export async function docMailBaoMat({ ngay = 30, url = process.env.DIRECTUS_URL,
 // → thả ❤ rồi 1 phút sau xoá tin; còn thư chờ → người phụ trách "chờ người" trên văn phòng pixel. Câu báo theo khuôn: 0 tiền mô hình.
 const CTY = 'https://cty.on.tc/?dc=mail&ngan=phong%3Aan-toan-tk';
 const XOA_SAU = 60_000;
-const KET_CHU = { gia: '⛔ THƯ GIẢ', that: '⚠️ Thư thật — xem kỹ yêu cầu', 'chua-ro': '❓ Chưa rõ — coi như giả' };
+const KET_CHU = { gia: '⛔ THƯ GIẢ', that: '⚠️ Thư thật — xem kỹ yêu cầu', 'chua-ro': '❓ Chưa rõ — coi như giả', thuong: '✅ Không có dấu hiệu bảo mật' };
+/** Tin "đã đọc" cho thư GỌI TÊN người phụ trách mà không phải thư bảo mật (anh gửi "Kiên check mail" mà không thấy gì, 14/10/2026). */
+export const tinDaDoc = (m, ten) => `📨 <b>${esc(ten)}</b> đã đọc thư <i>${esc(m.tieuDe)}</i> (${esc(m.gui)}) — ${esc(m.chu)} ${esc(m.viec)}\n<a href="${CTY}">↗ cty · Bảo mật › Mail bảo mật</a>`;
 const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 /** Tin báo: lời của người phụ trách (mô hình viết, có thể rỗng) + kết luận và việc NGUYÊN VĂN của máy (mô hình không được sửa). */
 export const tinBao = (m, ten, loi = '') => `🔐 <b>${esc(ten)} · ${esc(m.mien || m.gui)}</b> — ${KET_CHU[m.ket]}\n${loi ? `${esc(loi)}\n` : ''}<i>${esc(m.tieuDe)}</i>\n${esc(m.chu)}\n<b>Việc:</b> ${esc(m.viec)}\nXử xong thì lưu trữ thư trong hòm, tin tự gỡ.\n<a href="${CTY}">↗ cty · Bảo mật › Mail bảo mật</a>`;   // anh 13/10/2026: tin Telegram nào cũng kết bằng MỘT link nhỏ mở thẳng việc / phòng trên cty
@@ -99,16 +101,21 @@ async function loiMo(nguoi, model, m, phong) {
   } catch (e) { console.error(`✗ ${model}: ${e.message}`); return ''; }
 }
 /** Một nhịp, thuần: st = { tin: { mailId: { id, xong? } } }, ds = thư (null = không đọc được → không đụng gì). Trả việc phải làm + st mới. */
-export function buocTin(st, ds, gio) {
-  const tin = { ...(st.tin ?? {}) }, gui = [], tha = [], xoa = [];
-  if (!ds) return { gui, tha, xoa, st };
-  for (const m of ds) if (!m.xong && !tin[m.id]) gui.push(m);
+export function buocTin(st, ds, gio, ten = '') {
+  const tin = { ...(st.tin ?? {}) }, gui = [], tha = [], xoa = [], daDoc = [];
+  if (!ds) return { gui, tha, xoa, daDoc, st };
+  const goi = ten && new RegExp(ten.normalize('NFD').replace(/[\u0300-\u036f]/g, ''), 'i');
+  const da = new Set(st.da ?? []);
+  for (const m of ds) {
+    if (m.ket !== 'thuong') { if (!m.xong && !tin[m.id]) gui.push(m); }
+    else if (goi && !da.has(m.id) && goi.test(String(m.tieuDe).normalize('NFD').replace(/[\u0300-\u036f]/g, ''))) daDoc.push(m);   // thư gọi tên → báo "đã đọc" một lần
+  }
   for (const [mid, t] of Object.entries(tin)) {
     const m = ds.find((x) => x.id === mid);
     if (!t.xong && (!m || m.xong)) { tha.push(t.id); tin[mid] = { ...t, xong: new Date(gio).toISOString() }; }
     else if (t.xong && gio - Date.parse(t.xong) >= XOA_SAU) { xoa.push(t.id); delete tin[mid]; }
   }
-  return { gui, tha, xoa, st: { ...st, tin }, cho: ds.filter((m) => !m.xong).length };
+  return { gui, tha, xoa, daDoc, st: { ...st, tin, da: [...da, ...daDoc.map((m) => m.id)].slice(-300) }, cho: ds.filter((m) => !m.xong && m.ket !== 'thuong').length };
 }
 /** Nhịp thật (box3): đọc hòm → Telegram + pixel. env: DIRECTUS_*, TG_BOT_TOKEN, TG_CHAT (/root/.secrets/mine-tg.env). */
 export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', tep = `${process.env.CTY_DATA_DIR || '/var/lib/cty'}/bao-mat-tg.json` } = {}) {
@@ -117,19 +124,20 @@ export async function nhipBaoMat(nguoi, { ten = nguoi, model = '', phong = '', t
   const tg = async (m, b) => { const j = await (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(15000) })).json(); if (!j.ok) console.error(`✗ telegram ${m}: ${j.description}`); return j; };
   let st = {}; try { st = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* lần đầu */ }
   const ds = await docMailBaoMat(); if (!ds) console.error('✗ không đọc được hòm claude@orit.app');
-  const b = buocTin(st, ds, Date.now()); st = b.st;
-  if (b.gui.length && !st.topic) { const j = await tg('createForumTopic', { name: '🔐 Bảo mật' }); if (j.ok) st.topic = j.result.message_thread_id; }
+  const b = buocTin(st, ds, Date.now(), ten); st = b.st;
+  if ((b.gui.length || b.daDoc.length) && !st.topic) { const j = await tg('createForumTopic', { name: '🔐 Bảo mật' }); if (j.ok) st.topic = j.result.message_thread_id; }
   for (const m of b.gui) {
     await vpBao(nguoi, 'lam', `báo thư ${m.mien}`);
     const j = await tg('sendMessage', { message_thread_id: st.topic, text: tinBao(m, ten, await loiMo(nguoi, model, m, phong)), parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
     if (j.ok) st.tin[m.id] = { id: j.result.message_id }; st.vp = 'lam';
   }
+  for (const m of b.daDoc) await tg('sendMessage', { message_thread_id: st.topic, text: tinDaDoc(m, ten), parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
   for (const id of b.tha) await tg('setMessageReaction', { message_id: id, reaction: [{ type: 'emoji', emoji: '❤' }] });
   for (const id of b.xoa) await tg('deleteMessage', { message_id: id });
   const vp = b.cho ? 'cho' : 'xong';   // người phụ trách: còn thư chờ → "chờ người" trên pixel; hết → về ghế (chỉ báo khi đổi)
   if (ds && st.vp !== vp) { await vpBao(nguoi, vp, `${b.cho} thư bảo mật`); st.vp = vp; }
   fs.writeFileSync(`${tep}.tam`, JSON.stringify(st)); fs.renameSync(`${tep}.tam`, tep);
-  return `${b.gui.length} báo · ${b.tha.length} ❤ · ${b.xoa.length} gỡ · ${b.cho ?? '?'} thư chờ`;
+  return `${ds ? ds.length : '?'} thư đã đọc · ${b.gui.length} báo · ${b.daDoc.length} trả lời · ${b.tha.length} ❤ · ${b.xoa.length} gỡ · ${b.cho ?? '?'} thư chờ`;
 }
 
 if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && process.argv.includes('--tu-kiem')) {
@@ -148,6 +156,10 @@ if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && process.argv.includes('--tu
   a.equal(thamDinh({ from: 'security@paypa1-support.com', html: '<a href="https://paypa1-support.com/login">Confirm</a> unusual sign-in' }).ket, 'chua-ro');   // tên miền nhái, link cùng nhà nhái → không bao giờ "thật"
   a.equal(thamDinh({ from: 'x', html: '' }).ket, 'chua-ro');
   const m1 = { id: 'a', xong: false, mien: 'amazon.in', gui: 'x@amazon.in', ket: 'that', tieuDe: 'A <b>', chu: 'c', viec: 'v' };
+  const th = { id: 't', xong: false, mien: 'gmail.com', gui: 'a@gmail.com', ket: 'thuong', tieuDe: 'Kiên check mail', chu: 'c', viec: 'v' };
+  const bk = buocTin({}, [th, { ...th, id: 'u', tieuDe: 'GSC report' }], 0, 'Kiên'); a.deepEqual(bk.daDoc.map((m) => m.id), ['t'], 'thư gọi tên Kiên (kể cả không dấu) → trả lời; thư thường khác → im'); a.equal(bk.cho, 0);
+  a.equal(buocTin(bk.st, [th], 1, 'Kiên').daDoc.length, 0, 'trả lời một lần');
+  a.equal(thamDinh({ from: 'htuan82@gmail.com', subject: 'Kiên check mail', html: '<p>hi</p>' }).ket, 'thuong');
   const b1 = buocTin({}, [m1], 0); a.deepEqual(b1.gui.map((m) => m.id), ['a']); a.equal(b1.cho, 1);
   const s1 = { tin: { a: { id: 7 } } }; a.equal(buocTin(s1, [m1], 1).gui.length, 0, 'đã báo thì không báo lại');
   a.equal(buocTin(s1, null, 1).st, s1, 'không đọc được hòm → không đụng tin nào');
@@ -161,5 +173,5 @@ if (process.argv[1]?.endsWith('mail-bao-mat.mjs') && !process.argv.includes('--t
   const ds = await docMailBaoMat();
   if (!ds) { console.error('✗ không đọc được hòm (thiếu DIRECTUS_URL / DIRECTUS_TOKEN hoặc Directus lỗi)'); process.exit(1); }
   for (const m of ds) console.log(`${m.luc.slice(0, 16)} ${m.xong ? '✓ đã xử' : '● chờ'} [${m.ket}] ${m.tieuDe}\n   ${m.chu}\n   → ${m.viec}`);
-  console.log(`${ds.length} thư bảo mật 30 ngày qua`);
+  console.log(`${ds.length} thư đã đọc 30 ngày qua · ${ds.filter((m) => m.ket !== 'thuong').length} thư bảo mật`);
 }

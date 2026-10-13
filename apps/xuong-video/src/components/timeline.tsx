@@ -218,6 +218,12 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     let i = 0; batDau.forEach((b, k) => { if (b <= g) i = k; });
     onChon(canh[i]!.id); tuaToi(g);
   }, [canh.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Shot được chọn từ ngoài timeline (lưới kịch bản, bảng đối tượng) → đầu phát nhảy tới đầu shot đó; đã đứng trong shot thì để nguyên.
+  useEffect(() => {
+    const i = canh.findIndex((x) => x.id === chon);
+    if (i < 0) return;
+    if (t < batDau[i]! - 0.01 || t >= batDau[i]! + dur(canh[i]!)) tuaToi(batDau[i]!);
+  }, [chon]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!daKhoiPhuc.current) return;
     const h = setTimeout(() => {

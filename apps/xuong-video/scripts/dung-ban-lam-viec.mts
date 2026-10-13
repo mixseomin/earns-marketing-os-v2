@@ -30,12 +30,12 @@ const BOI_CANH: { ten: string; mo_ta: string }[] = [
   { ten: 'Núi sổ tay', mo_ta: 'The stack of notebooks and business cards under the left monitor stand seen from below like a layered cliff of paper, the silver monitor stand foot rising beside it' },
   { ten: 'Vách màn hình phát sáng', mo_ta: 'At the foot of the big iMac screen looking up: the bright screen is a towering wall of glowing light filling the top of the frame, showing only a soft abstract blue gradient, its light washing over the wooden desk' },
   { ten: 'Vực mép bàn', mo_ta: 'The front edge of the wooden desk seen from the desktop surface: the edge drops away like a cliff into the dim room below, a shelf with books faintly visible far down in the dark' },
-  { ten: 'Đỉnh màn hình iMac', mo_ta: 'On top of the thin iMac like standing on a mountain ridge: looking down over the edge at the whole desk far below — keyboard, mouse, cables and notebooks look tiny; the glow of the screen rises from below the edge' },
+  { ten: 'Đỉnh màn hình iMac', mo_ta: 'Camera placed on the top edge of the thin iMac, level horizon, looking forward and down over the edge at the desk far below — keyboard, mouse, cables and notebooks look tiny like a valley seen from a mountain ridge; the thin aluminium top edge of the iMac fills the bottom of the frame' },
   { ten: 'Sân đế màn hình trái', mo_ta: 'The flat silver foot of the left monitor stand seen at ground level: a wide smooth metal plaza with the stand column rising like a tower, notebooks stacked beside it' },
   { ten: 'Khe giữa hai màn hình', mo_ta: 'The narrow gap between the two monitors seen from the desk: two tall glowing walls of light on the left and right, a dark corridor between them leading to the wall behind' },
   { ten: 'Bến đế cắm', mo_ta: 'Close at ground level beside the silver USB hub resting on its orange card, the white cable plugged into it, like a small silver building on an orange platform' },
   { ten: 'Đường dây cáp trắng', mo_ta: 'The white iMac cable lying across the wooden desk seen from ground level, curving away into the distance like a white road or river across a wooden plain' },
-  { ten: 'Hang dưới bàn phím', mo_ta: 'The thin dark space under the raised back edge of the white keyboard, seen from inside like a low cave, light coming in from the front edge' },
+  { ten: 'Hang dưới bàn phím', mo_ta: 'Camera on the desk surface looking into the narrow dark gap under the raised back edge of the white keyboard: a low wide cave mouth, the keyboard underside as the cave ceiling, warm light glowing at the far end' },
   { ten: 'Vách sách mép trái', mo_ta: 'The pile of magazines and books at the far left edge of the desk seen from below like a tall layered cliff of colorful paper spines' },
   { ten: 'Quả cầu loa đen', mo_ta: 'A small round black smart speaker behind the left monitor seen from ground level like a giant dark planet sitting on the desk, cables around it' },
   { ten: 'Toàn bàn ban đêm', mo_ta: 'The same desk at night: room dark, only the two screens glow dim blue, the keyboard and mouse catch faint cool light, long soft shadows' },
@@ -43,7 +43,7 @@ const BOI_CANH: { ten: string; mo_ta: string }[] = [
   { ten: 'Trang sổ mở', mo_ta: 'An open paper notebook lying on the desk seen from page level: a wide white field of lined paper, the spiral binding rising like a fence, a pen lying across like a fallen log' },
   { ten: 'Bản đồ bàn từ trên xuống', mo_ta: 'Top-down view looking straight down at the whole desk like a map: the keyboard, mouse, two monitor stands, cables, notebooks and hub laid out on the warm wooden surface' },
 ];
-const NHAC = 'Real desk reference: keep exactly the same objects, materials, colors and lighting as the real desk in the reference photo. Every screen shows ONLY a soft abstract colored glow — no people, no videos, no app windows, no logos, no text. No people, no hands, no characters in the frame';
+const NHAC = 'Real desk reference: keep exactly the same objects, materials, colors and lighting as the real desk in the reference photo. IGNORE and REPLACE whatever the screens show in the reference photo: every screen displays ONLY a plain smooth blue-to-purple gradient glow — no people, no performers, no video thumbnails, no web pages, no app windows, no logos, no text. No people, no hands, no characters anywhere in the frame';
 
 /** Biến thể thời điểm cho mỗi bối cảnh (bối cảnh vốn đã là đêm / sáng sớm thì bỏ qua). */
 const THOI_DIEM: { ten: string; mo_ta: string }[] = [
@@ -70,6 +70,9 @@ const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown 
 const lai = process.argv.includes('--lai');
 const dot = (process.argv.find((x) => x.startsWith('--dot='))?.slice(6) ?? 'boi_canh') as 'boi_canh' | 'bien_the' | 'do_vat';
 const tep = process.argv.slice(2).filter((x) => !x.startsWith('--'));
+/** --chi=Tên A,Tên B: chỉ sinh lại các bối cảnh / đồ vật này (kèm --lai). */
+const chi = process.argv.find((x) => x.startsWith('--chi='))?.slice(6).split(',').map((x) => x.trim()).filter(Boolean) ?? null;
+const trong = <T extends { ten: string }>(ds: T[]) => (chi ? ds.filter((x) => chi.includes(x.ten)) : ds);
 /** Chạy tối đa 5 việc sinh cùng lúc (Gemini giới hạn tốc độ). */
 async function theoDot<T>(ds: T[], f: (x: T) => Promise<void>, cung = 5) { for (let i = 0; i < ds.length; i += cung) await Promise.all(ds.slice(i, i + cung).map(f)); }
 const anhRa = (u: string) => !u.includes('/ref/');   // ảnh đã sinh (ảnh thật nằm ở xuong-video/ref/)
@@ -117,11 +120,11 @@ async function bienThe(loai: 'boi_canh' | 'dao_cu', tenAnchor: string, nhom: str
   ra.push({ ten: `${tenAnchor} · ${ten}`, url: kq.ok ? kq.url : null, ...(kq.ok ? {} : { loi: kq.loi }) });
 }
 
-if (dot === 'boi_canh') await theoDot(BOI_CANH, (b) => anhGoc('boi_canh', b.ten, b.mo_ta, `Establishing shot of a location for a miniature stop-motion film, no characters. Location: ${b.mo_ta}. ${NHAC}. Visual style: ${PHONG_CACH}.`));
-if (dot === 'bien_the') await theoDot(BOI_CANH.filter((b) => !/ban đêm|sáng sớm/i.test(b.ten)).flatMap((b) => THOI_DIEM.map((t) => ({ b, t }))), ({ b, t }) => bienThe('boi_canh', b.ten, 'thoi_diem', t.ten, t.mo_ta));
+if (dot === 'boi_canh') await theoDot(trong(BOI_CANH), (b) => anhGoc('boi_canh', b.ten, b.mo_ta, `Establishing shot of a location for a miniature stop-motion film, no characters. Location: ${b.mo_ta}. ${NHAC}. Visual style: ${PHONG_CACH}.`));
+if (dot === 'bien_the') await theoDot(trong(BOI_CANH).filter((b) => !/ban đêm|sáng sớm/i.test(b.ten)).flatMap((b) => THOI_DIEM.map((t) => ({ b, t }))), ({ b, t }) => bienThe('boi_canh', b.ten, 'thoi_diem', t.ten, t.mo_ta));
 if (dot === 'do_vat') {
-  await theoDot(DO_VAT, (d) => anhGoc('dao_cu', d.ten, d.mo_ta, `Prop reference shot for a miniature stop-motion film: ${d.mo_ta}, photographed in place on the same warm wooden desk as in the reference photo, centered, macro lens, shallow depth of field, no characters. Keep the object's real shape, color and material exactly as in the reference photo. ${NHAC}. Visual style: ${PHONG_CACH}.`));
-  await theoDot(DO_VAT, (d) => bienThe('dao_cu', d.ten, 'goc_may', 'Góc thấp tầm nhân vật', GOC_THAP));
+  await theoDot(trong(DO_VAT), (d) => anhGoc('dao_cu', d.ten, d.mo_ta, `Prop reference shot for a miniature stop-motion film: ${d.mo_ta}, photographed in place on the same warm wooden desk as in the reference photo, centered, macro lens, shallow depth of field, no characters. Keep the object's real shape, color and material exactly as in the reference photo. ${NHAC}. Visual style: ${PHONG_CACH}.`));
+  await theoDot(trong(DO_VAT), (d) => bienThe('dao_cu', d.ten, 'goc_may', 'Góc thấp tầm nhân vật', GOC_THAP));
 }
 console.log(JSON.stringify({ phimId, dot, xong: ra.filter((x) => x.url).length, ra }));
 process.exit(0);

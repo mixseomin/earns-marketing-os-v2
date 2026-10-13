@@ -363,17 +363,12 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 /* Tab Dây chuyền (Phòng Sách, components/day-chuyen.tsx): báo cáo + việc cần người cạnh nhau, bảng tựa bên dưới */
 .cty-sach{display:grid;gap:10px;align-content:start}
 .cty-sach h3{margin:0;font-size:.95rem}
-.cty-sach-dau{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:12px}
-.cty-sach-dau section{display:grid;gap:6px;align-content:start;min-width:0}
 .cty-sach-bc{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:.84rem;line-height:1.55;margin:0}
-.cty-sach-can{margin:0;padding-left:1.1rem;display:grid;gap:4px;font-size:.88rem}
-.cty-sach-can li{overflow-wrap:anywhere}   /* #1327: việc dài xuống dòng đủ chữ, không cắt "…" — câu việc không nằm ở chỗ nào khác để đọc */
 .cty-sach a.cty-pill{text-decoration:none}
 .cty-sach-bang .cty-viec-ten{width:50%}
 .cty-sach-viec{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0;width:50%}
 .cty-sach-nen .cty-pill+.cty-pill{margin-left:3px}
 .cty-sach-xa summary{cursor:pointer;font-weight:600;font-size:.95rem}
-@media (max-width:700px){.cty-sach-can li{white-space:normal}}   /* điện thoại không rê chuột được: việc xuống dòng, không cắt */
 /* Trách nhiệm nhân sự (components/trach-nhiem.tsx): 3 ô số · nhãn quy trình (đặc = chủ trì, viền = làm) · việc đang mở một dòng */
 .cty-tn{display:grid;gap:8px;min-width:0}
 .cty-tn-so{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
@@ -385,7 +380,7 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
 .cty-tn-chu{background:var(--accent);color:var(--surface)}
 .cty-tn-chua{border-style:dashed;opacity:.75}
 .cty-tn-viec{margin:0;padding-left:1.1rem;display:grid;gap:3px;font-size:.8rem}
-.cty-tn-viec li{overflow-wrap:anywhere}   /* #1327: như .cty-sach-can li */
+.cty-tn-viec li{overflow-wrap:anywhere}   /* #1327: việc dài xuống dòng đủ chữ, không cắt "…" */
 .cty-tn-luoi{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:10px}
 .cty-tn-nguoi{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:var(--le);display:grid;gap:8px;align-content:start;min-width:0}
 .cty-tn-nguoi>h4{margin:0}
@@ -497,3 +492,11 @@ body.nk-dang-keo iframe{pointer-events:none}
 .cty-bang-loc .cty-so{white-space:nowrap;font-variant-numeric:tabular-nums}
 .cty-bang-loc-nen{white-space:nowrap}
 .cty-bang-loc-nen .cty-nen+.cty-nen{margin-left:3px}
+/* Việc cần người + card plays dạng BẢNG (day-chuyen.tsx DsViec / BangCard): hai bảng xếp dọc, mỗi bảng đủ bề ngang cho 6 cột */
+.cty-dc-dau{display:grid;gap:14px}
+.cty-dc-dau section{display:grid;gap:6px;min-width:0}
+.cty-bang-viec td{vertical-align:middle}
+.cty-bang-viec .cty-bang-ai{white-space:nowrap}
+/* Bảng việc / bảng lọc trên màn hẹp: giữ bề ngang đủ đọc, cuộn ngang trong khung .cty-cuon (trang không cuộn ngang); nhãn loại một dòng */
+.cty-bang-loc{min-width:720px}
+.cty-bang-loc .cty-pill{white-space:nowrap}

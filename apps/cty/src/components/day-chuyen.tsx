@@ -198,10 +198,31 @@ export function viecCacDayChuyen({ dsDc, dc, lv, kenh, phong }: { dsDc: DcKhai[]
   return ds.sort((a, b) => tt(a.k) - tt(b.k) || (b.qua ?? -99) - (a.qua ?? -99));
 }
 /** Danh sách việc (một dạng cho tab Dây chuyền + ngăn quy trình): mức / máy trễ · người · việc · thuộc dây chuyền nào · đối tượng (mở ngăn). */
+// BẢNG chứ không phải đoạn chữ (anh 13/10/2026: "dài, nhiều chữ, khó hình dung, table được không"): mỗi việc một hàng, mỗi thông tin một cột
+// cố định → mắt dò dọc được (ai, quá mấy ngày, thuộc dây chuyền nào) thay vì đọc từng câu.
 export function DsViec({ viec, phong, tenDc }: { viec: ViecDc[]; phong: string; tenDc: Record<string, string> }) {
-  return <ul className="cty-sach-can">{viec.map((v) => (
-    <li key={v.key}><span className={`cty-pill${v.k === 'giam-doc' || v.k === 'tre' ? ' cty-pill-off' : ' cty-pill-kind'}`}>{v.k === 'tre' ? 'máy trễ' : v.muc ? `mức ${v.muc}` : 'việc'}</span>{' '}
-      <Ai ai={v.ai} phong={phong} />: {v.chu}{v.qua != null && v.qua > 0 && <span className="cty-thu-loi"> · quá {v.qua} ngày</span>} · <b>{tenDc[v.dc]}{v.nhan ? ` ${v.nhan}` : ''}</b>{v.ten && <> {v.href ? <a href={v.href}>{v.ten}</a> : v.ten}</>}</li>))}</ul>;
+  return (
+    <div className="cty-cuon"><table className="cty-bang-loc cty-bang-viec"><thead><tr><th>Loại</th><th>Ai</th><th>Việc</th><th>Đối tượng</th><th>Dây chuyền</th><th className="cty-so">Quá</th></tr></thead><tbody>
+      {viec.map((v) => <tr key={v.key}>
+        <td><span className={`cty-pill${v.k === 'giam-doc' || v.k === 'tre' ? ' cty-pill-off' : ' cty-pill-kind'}`}>{v.k === 'tre' ? 'máy trễ' : v.muc ? `mức ${v.muc}` : 'việc'}</span></td>
+        <td className="cty-bang-ai"><Ai ai={v.ai} phong={phong} /></td><td>{v.chu}</td>
+        <td>{v.ten ? (v.href ? <a href={v.href}>{v.ten}</a> : v.ten) : <span className="cty-muted">—</span>}</td>
+        <td className="cty-bang-ai">{tenDc[v.dc]}{v.nhan ? ` · ${v.nhan}` : ''}</td>
+        <td className="cty-so">{v.qua != null && v.qua > 0 ? <span className="cty-thu-loi">{v.qua} ngày</span> : <span className="cty-muted">—</span>}</td></tr>)}
+    </tbody></table></div>
+  );
+}
+type The = NonNullable<Awaited<ReturnType<typeof theViecMo>>>['ds'][number];
+/** Bảng card plays còn mở: số card (mở ngăn card) · trạng thái · việc · loại · dự án · hạn. */
+function BangCard({ ds, hom }: { ds: The[]; hom: string }) {
+  return (
+    <div className="cty-cuon"><table className="cty-bang-loc cty-bang-viec"><thead><tr><th>Card</th><th>Trạng thái</th><th>Việc</th><th>Loại</th><th>Dự án</th><th className="cty-so">Hạn</th></tr></thead><tbody>
+      {ds.map((c) => { const qua = quaNgay(c.han, hom); return <tr key={c.id}>
+        <td className="cty-so"><a href={hrefThe(c.id)}>#{c.id}</a></td><td><span className={`cty-pill${qua ? ' cty-pill-off' : ' cty-pill-kind'}`}>{c.status}</span></td>
+        <td>{c.title}</td><td className="cty-bang-ai">{c.platform_key ?? '—'}</td><td className="cty-bang-ai">{c.project_id}</td>
+        <td className="cty-so">{c.han ? <>{ngay(c.han)}{qua > 0 && <span className="cty-thu-loi"> · quá {qua} ngày</span>}</> : <span className="cty-muted">—</span>}</td></tr>; })}
+    </tbody></table></div>
+  );
 }
 /** Số trên nhãn tab Dây chuyền: mọi việc chờ người của mọi dây chuyền. */
 export const demCan = (x: Parameters<typeof viecCacDayChuyen>[0]) => viecCacDayChuyen(x).length;
@@ -219,7 +240,7 @@ export async function DayChuyenTab({ dsDc, dc, lv, kenh, phong, p }: { dsDc: DcK
     : kenh === null ? <p className="cty-bao-loi" data-loi>Không đọc được kênh kéo khách (kenh_sp, DB MOS2).</p>
     : <DcKenh ds={kenh} kenh={d.nguon.slice(5)} nhan={KENH.find(([k]) => k === d.nguon.slice(5))?.[1] ?? d.ten} dc={dc} phong={phong} hom={hom} />;
   const dau = (
-    <div className="cty-sach-dau">
+    <div className="cty-dc-dau">
       <section>
         <h3>Việc cần người <span className="cty-tab-so">{viec.length}</span></h3>
         {viec.length ? <DsViec viec={viec} phong={phong} tenDc={tenDc} /> : <p className="cty-muted">Không có việc nào chờ người.</p>}
@@ -227,9 +248,7 @@ export async function DayChuyenTab({ dsDc, dc, lv, kenh, phong, p }: { dsDc: DcK
       <section>
         <h3>Card việc trên plays <span className="cty-tab-so">{the ? the.tong : '!'}</span></h3>
         {the === null ? <p className="cty-bao-loi" data-loi>Không đọc được bảng card (DB MOS2) — xem journal mos2-cty.</p>
-          : the.ds.length ? <ul className="cty-sach-can">{the.ds.map((c) => (
-            <li key={c.id} title={`#${c.id} · ${c.project_id} · ${c.status} · ${c.title}`}><span className={`cty-pill${quaNgay(c.han, hom) ? ' cty-pill-off' : ' cty-pill-kind'}`}>{c.status}</span>{' '}
-              <a href={hrefThe(c.id)}>#{c.id}</a> {c.title}{quaNgay(c.han, hom) > 0 && <span className="cty-thu-loi"> · quá hạn {quaNgay(c.han, hom)} ngày</span>}</li>))}</ul>
+          : the.ds.length ? <BangCard ds={the.ds} hom={hom} />
           : <p className="cty-muted">Không có card nào còn mở.</p>}
       </section>
     </div>

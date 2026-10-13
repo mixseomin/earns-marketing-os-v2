@@ -17,7 +17,7 @@ import { dsKhuon, taKhuon, ghiKhuonTuCanh, ghiKhuonTuMau } from '../src/lib/xuon
 import { docKinhThanh, giaChuCents, giayMau, shotLechNgonNgu, tenNgonNgu, type KinhThanh, type LoaiNhanVat, type NhanVat, type MauQc } from '../src/lib/xuong-video/kieu';
 
 type HoSo = {
-  project: string; ten: string; mo_ta: string; kinh_thanh: KinhThanh;
+  project: string; ten: string; mo_ta: string; kinh_thanh: KinhThanh; /** loại phim — mặc định quang_cao; series hoạt hình = 'phim' (13/10/2026) */ loai?: string;
   nhan_vat: { loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref?: string[]; giong?: string }[];
   tap: { ten: string; brief: string };
 };
@@ -44,7 +44,7 @@ if (tiep) {
   if (p[0]?.kinh_thanh) { hs.kinh_thanh = p[0].kinh_thanh as KinhThanh; ({ mau, thoiLuong } = docMau()); }   // kinh thánh THẬT của phim (đã sửa trên studio/SQL), không lấy từ tệp mẫu
   console.log(`chạy tiếp phim #${phimId} · tập #${tapId} · ${nhanVat.length} anchor · ngôn ngữ ${hs.kinh_thanh.ngon_ngu ?? 'vi'}${kichBanCu ? ' · đã có kịch bản' : vietLai ? ' · viết lại kịch bản' : ''}`);
 } else {
-  const p = (await db.execute(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh) VALUES (${hs.project}, ${hs.ten}, 'quang_cao', ${hs.mo_ta}, ${JSON.stringify(hs.kinh_thanh)}::jsonb) RETURNING id`)) as unknown as Row[];
+  const p = (await db.execute(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh) VALUES (${hs.project}, ${hs.ten}, ${hs.loai ?? 'quang_cao'}, ${hs.mo_ta}, ${JSON.stringify(hs.kinh_thanh)}::jsonb) RETURNING id`)) as unknown as Row[];
   phimId = Number(p[0]!.id);
   console.log(`phim #${phimId} · ${hs.ten}`);
   for (const v of hs.nhan_vat) {

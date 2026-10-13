@@ -1,0 +1,478 @@
+{
+ "tomTat": "The Sweetest Grapes: Felix fails to reach the grapes, calls them sour; Pip proves they're sweet; a crow with cheese appears.",
+ "beats": [
+  {
+   "ten": "Hook",
+   "mo_ta": "The perfect grapes, far out of reach",
+   "cam_xuc": 2
+  },
+  {
+   "ten": "Inciting",
+   "mo_ta": "The first jump fails",
+   "cam_xuc": -1
+  },
+  {
+   "ten": "Escalation",
+   "mo_ta": "Plan B tower, Plan C catapult — each worse",
+   "cam_xuc": -3
+  },
+  {
+   "ten": "Twist",
+   "mo_ta": "'Sour anyway' — then Pip finds them sweet",
+   "cam_xuc": 2
+  },
+  {
+   "ten": "Cliffhanger",
+   "mo_ta": "Moral + the crow with cheese",
+   "cam_xuc": 1
+  }
+ ],
+ "phanCanh": [
+  {
+   "ten": "The perfect grapes",
+   "beat": "Hook",
+   "muc_tieu": "Felix sees the grapes and wants them",
+   "xung_dot": "They are impossibly high",
+   "an_y": "The vine never ends",
+   "nhip": "fast",
+   "cam_xuc_dau": 2,
+   "cam_xuc_cuoi": 1
+  },
+  {
+   "ten": "Jump",
+   "beat": "Inciting",
+   "muc_tieu": "Get the grapes the easy way",
+   "xung_dot": "Gravity",
+   "an_y": "The puddle",
+   "nhip": "fast",
+   "cam_xuc_dau": 1,
+   "cam_xuc_cuoi": -1
+  },
+  {
+   "ten": "Plans B and C",
+   "beat": "Escalation",
+   "muc_tieu": "Out-think the vine",
+   "xung_dot": "Each clever plan fails bigger",
+   "an_y": "The grumpy hedgehog",
+   "nhip": "fast",
+   "cam_xuc_dau": -1,
+   "cam_xuc_cuoi": -3
+  },
+  {
+   "ten": "Sour anyway",
+   "beat": "Twist",
+   "muc_tieu": "Save face",
+   "xung_dot": "His excuse is proven wrong by the smallest animal",
+   "an_y": "Pip was watching all along",
+   "nhip": "medium",
+   "cam_xuc_dau": -3,
+   "cam_xuc_cuoi": 2
+  },
+  {
+   "ten": "Moral and tease",
+   "beat": "Cliffhanger",
+   "muc_tieu": "Say the moral, hook episode 2",
+   "xung_dot": "Felix learns nothing — a new target arrives",
+   "an_y": "Cheese",
+   "nhip": "slow",
+   "cam_xuc_dau": 1,
+   "cam_xuc_cuoi": 2
+  }
+ ],
+ "canh": [
+  {
+   "canh": "Hook · the perfect grapes",
+   "goc_may": "",
+   "hanh_dong": "Felix's pupils grow huge as he licks his lips",
+   "loi_thoai": "Felix the fox always gets what he wants.",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 2.5,
+   "nhan_vat": [
+    "Felix",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Extreme close-up of Felix the fox's wide amber eyes reflecting a glowing cluster of purple grapes high above",
+   "prompt_video": "Felix's pupils grow huge as he licks his lips",
+   "phan_doan": "The perfect grapes",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "co_canh": "ecu",
+    "goc": "thap",
+    "chuyen_dong": "day_vao",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "vut"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "THE PERFECT GRAPES",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "Felix the fox always gets what he wants."
+    }
+   ]
+  },
+  {
+   "canh": "Hook · so high",
+   "goc_may": "",
+   "hanh_dong": "The camera tilts up the endless vine to the grapes, then back down to tiny Felix",
+   "loi_thoai": "Almost always.",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 4,
+   "nhan_vat": [
+    "Felix",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Wide shot of the golden-hour vineyard, a very tall grapevine with plump purple grapes far at the top, tiny Felix looking up from the grass below",
+   "prompt_video": "The camera tilts up the endless vine to the grapes, then back down to tiny Felix",
+   "phan_doan": "The perfect grapes",
+   "cam_xuc": 1,
+   "ky_thuat": {
+    "co_canh": "ws",
+    "goc": "thap",
+    "chuyen_dong": "nghieng_len",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "cat"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "Almost always."
+    }
+   ]
+  },
+  {
+   "canh": "Inciting · the jump",
+   "goc_may": "",
+   "hanh_dong": "Felix jumps, misses, and lands with a splash in the puddle",
+   "loi_thoai": "Okay. Warm-up jump.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 4.5,
+   "nhan_vat": [
+    "Felix",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium shot of Felix leaping high toward the grapes, paws stretched out, missing by a mile above a puddle",
+   "prompt_video": "Felix jumps, misses, and lands with a splash in the puddle",
+   "phan_doan": "Jump",
+   "cam_xuc": -1,
+   "ky_thuat": {
+    "co_canh": "ms",
+    "goc": "thap",
+    "chuyen_dong": "theo",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "nhay",
+    "am_thanh": [
+     "vut",
+     "dap"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "Felix",
+     "dien_xuat": "bright, overconfident, a little embarrassed",
+     "loi": "Okay. Warm-up jump."
+    }
+   ]
+  },
+  {
+   "canh": "Escalation · the tower",
+   "goc_may": "",
+   "hanh_dong": "The tower wobbles side to side as Felix stretches up on tiptoe",
+   "loi_thoai": "Plan B.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 5,
+   "nhan_vat": [
+    "Felix",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Wide shot of Felix balancing on a wobbly tower of a wooden bucket, a log and a sleeping hedgehog, reaching up toward the grapes",
+   "prompt_video": "The tower wobbles side to side as Felix stretches up on tiptoe",
+   "phan_doan": "Plans B and C",
+   "cam_xuc": -1,
+   "ky_thuat": {
+    "co_canh": "ws",
+    "goc": "ngang",
+    "chuyen_dong": "cam_tay",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "cuon_len"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "PLAN B",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "Plan B."
+    }
+   ]
+  },
+  {
+   "canh": "Escalation · collapse",
+   "goc_may": "",
+   "hanh_dong": "Everything falls, Felix spits out a leaf while the hedgehog rolls off grumbling",
+   "loi_thoai": "",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 4.5,
+   "nhan_vat": [
+    "Felix",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium shot of the tower collapsing, Felix tumbling into the grass, a grumpy hedgehog rolling away",
+   "prompt_video": "Everything falls, Felix spits out a leaf while the hedgehog rolls off grumbling",
+   "phan_doan": "Plans B and C",
+   "cam_xuc": -2,
+   "ky_thuat": {
+    "co_canh": "ms",
+    "goc": "ngang",
+    "chuyen_dong": "cam_tay",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "nhay",
+    "am_thanh": [
+     "dap"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": []
+  },
+  {
+   "canh": "Escalation · catapult",
+   "goc_may": "",
+   "hanh_dong": "Felix flies straight past the grapes and arcs toward the bramble bush",
+   "loi_thoai": "Plan C.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 5,
+   "nhan_vat": [
+    "Felix",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Low-angle shot of Felix launching himself from a bent-branch catapult, flying high past the grapes in a heroic pose",
+   "prompt_video": "Felix flies straight past the grapes and arcs toward the bramble bush",
+   "phan_doan": "Plans B and C",
+   "cam_xuc": -1,
+   "ky_thuat": {
+    "co_canh": "ws",
+    "goc": "thap",
+    "chuyen_dong": "theo",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "vut"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "PLAN C",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "Plan C."
+    }
+   ]
+  },
+  {
+   "canh": "Escalation · stuck",
+   "goc_may": "",
+   "hanh_dong": "Felix sighs as a single leaf drifts down onto his nose",
+   "loi_thoai": "",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 4,
+   "nhan_vat": [
+    "Felix",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium close-up of Felix stuck upside down in the bramble bush, tail tangled, the grapes dangling just out of reach above him",
+   "prompt_video": "Felix sighs as a single leaf drifts down onto his nose",
+   "phan_doan": "Plans B and C",
+   "cam_xuc": -3,
+   "ky_thuat": {
+    "co_canh": "mcu",
+    "goc": "tren_xuong",
+    "chuyen_dong": "tinh",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "cat"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": []
+  },
+  {
+   "canh": "Twist · sour anyway",
+   "goc_may": "",
+   "hanh_dong": "Felix waves a paw dismissively and struts away",
+   "loi_thoai": "Those grapes are sour anyway.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 5,
+   "nhan_vat": [
+    "Felix",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium shot of Felix brushing off his fur with his nose held high, turning away from the vine with exaggerated pride",
+   "prompt_video": "Felix waves a paw dismissively and struts away",
+   "phan_doan": "Sour anyway",
+   "cam_xuc": -1,
+   "ky_thuat": {
+    "co_canh": "ms",
+    "goc": "ngang",
+    "chuyen_dong": "truot_ngang",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "cat"
+   },
+   "trang_phuc": "",
+   "chu_man": "\"SOUR ANYWAY\"",
+   "thoai": [
+    {
+     "nhan_vat": "Felix",
+     "dien_xuat": "snooty, pretending not to care",
+     "loi": "Those grapes are sour anyway."
+    }
+   ]
+  },
+  {
+   "canh": "Twist · Pip climbs",
+   "goc_may": "",
+   "hanh_dong": "Pip scurries up the vine in seconds and takes a giant happy bite",
+   "loi_thoai": "Mmm! The sweetest grapes all year!",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 5,
+   "nhan_vat": [
+    "Pip",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium close-up of Pip the tiny mouse at the very top of the vine, biting into a huge purple grape, juice splashing, eyes closed in bliss",
+   "prompt_video": "Pip scurries up the vine in seconds and takes a giant happy bite",
+   "phan_doan": "Sour anyway",
+   "cam_xuc": 3,
+   "ky_thuat": {
+    "co_canh": "mcu",
+    "goc": "ngang",
+    "chuyen_dong": "day_vao",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "cat"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "Pip",
+     "dien_xuat": "tiny, squeaky, delighted",
+     "loi": "Mmm! The sweetest grapes all year!"
+    }
+   ]
+  },
+  {
+   "canh": "Ending · the moral",
+   "goc_may": "",
+   "hanh_dong": "Felix's ears slowly droop; he peeks back over his shoulder",
+   "loi_thoai": "It's easy to hate what you can't have.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 5,
+   "nhan_vat": [
+    "Felix",
+    "Pip",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Two-shot: Felix frozen mid-strut in the foreground, ears drooping, Pip happily munching grapes high on the vine behind him",
+   "prompt_video": "Felix's ears slowly droop; he peeks back over his shoulder",
+   "phan_doan": "Moral and tease",
+   "cam_xuc": 1,
+   "ky_thuat": {
+    "co_canh": "two",
+    "goc": "ngang",
+    "chuyen_dong": "lui_ra",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "hoa_tan"
+   },
+   "trang_phuc": "",
+   "chu_man": "IT'S EASY TO HATE WHAT YOU CAN'T HAVE",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "It's easy to hate what you can't have."
+    }
+   ]
+  },
+  {
+   "canh": "Cliffhanger · the crow",
+   "goc_may": "",
+   "hanh_dong": "The crow lands; Felix's grin slowly spreads",
+   "loi_thoai": "Next time...",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 4,
+   "nhan_vat": [
+    "Felix",
+    "Crow",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Low-angle shot of a crow landing on a branch above Felix holding a big wedge of yellow cheese, Felix looking up with narrowed eyes and a sly grin",
+   "prompt_video": "The crow lands; Felix's grin slowly spreads",
+   "phan_doan": "Moral and tease",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "co_canh": "ms",
+    "goc": "thap",
+    "chuyen_dong": "day_vao",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "toi_den",
+    "am_thanh": [
+     "dap"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "NEXT: THE CROW'S CHEESE",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "Next time..."
+    }
+   ]
+  }
+ ]
+}

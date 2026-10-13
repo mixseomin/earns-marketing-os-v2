@@ -1,0 +1,503 @@
+{
+ "tomTat": "Day One: Zeus survives his first office day; his lightning knocks out the building but saves the report; Linda reveals she is Medusa.",
+ "beats": [
+  {
+   "ten": "Hook",
+   "mo_ta": "The king of the gods in cubicle 14B",
+   "cam_xuc": 1
+  },
+  {
+   "ten": "Inciting",
+   "mo_ta": "Linda's rule: one incident and you're out",
+   "cam_xuc": -1
+  },
+  {
+   "ten": "Escalation",
+   "mo_ta": "Printer, coffee, deadline — each zap bigger",
+   "cam_xuc": -3
+  },
+  {
+   "ten": "Twist",
+   "mo_ta": "Blackout — but his light saves the report",
+   "cam_xuc": 2
+  },
+  {
+   "ten": "Cliffhanger",
+   "mo_ta": "Linda is Medusa: 'We need to talk.'",
+   "cam_xuc": -2
+  }
+ ],
+ "phanCanh": [
+  {
+   "ten": "Cubicle 14B",
+   "beat": "Hook",
+   "muc_tieu": "Show the fall: the king of the gods stuck in a tiny cubicle",
+   "xung_dot": "Pride vs. a stapler",
+   "an_y": "His beard already sparks",
+   "nhip": "fast",
+   "cam_xuc_dau": 1,
+   "cam_xuc_cuoi": 1
+  },
+  {
+   "ten": "One incident",
+   "beat": "Inciting",
+   "muc_tieu": "Zeus wants to keep the job; Linda sets the rule",
+   "xung_dot": "One mistake and he's out",
+   "an_y": "Linda never takes off her sunglasses",
+   "nhip": "medium",
+   "cam_xuc_dau": 0,
+   "cam_xuc_cuoi": -1
+  },
+  {
+   "ten": "Nine to eleven",
+   "beat": "Escalation",
+   "muc_tieu": "Survive the morning without an incident",
+   "xung_dot": "Every small annoyance makes the lightning leak bigger",
+   "an_y": "Lights flicker more each time",
+   "nhip": "fast",
+   "cam_xuc_dau": -1,
+   "cam_xuc_cuoi": -3
+  },
+  {
+   "ten": "Lights out",
+   "beat": "Twist",
+   "muc_tieu": "The disaster turns into the save",
+   "xung_dot": "The worst incident possible — yet it works",
+   "an_y": "He glows in the dark",
+   "nhip": "fast",
+   "cam_xuc_dau": -3,
+   "cam_xuc_cuoi": 2
+  },
+  {
+   "ten": "We need to talk",
+   "beat": "Cliffhanger",
+   "muc_tieu": "Hook episode 2",
+   "xung_dot": "Linda saw everything — and she isn't human either",
+   "an_y": "Snakes",
+   "nhip": "slow",
+   "cam_xuc_dau": 2,
+   "cam_xuc_cuoi": -2
+  }
+ ],
+ "canh": [
+  {
+   "canh": "Hook · cubicle 14B",
+   "goc_may": "",
+   "hanh_dong": "Zeus slowly squeezes the stapler; a tiny spark jumps from his beard to it",
+   "loi_thoai": "He used to rule the sky.",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 2.5,
+   "nhan_vat": [
+    "Zeus",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Close-up of Zeus squeezed into the tiny cubicle 14B, glaring at a small red stapler in his giant hand, blue static sparks crackling in his beard",
+   "prompt_video": "Zeus slowly squeezes the stapler; a tiny spark jumps from his beard to it",
+   "phan_doan": "Cubicle 14B",
+   "cam_xuc": 1,
+   "ky_thuat": {
+    "co_canh": "cu",
+    "goc": "thap",
+    "chuyen_dong": "day_vao",
+    "anh_sang": "sang_deu",
+    "mau": "lanh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "chop_dien"
+    ]
+   },
+   "trang_phuc": "white shirt, lightning tie",
+   "chu_man": "KING OF THE GODS\n@1.2 CUBICLE 14B",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "He used to rule the sky."
+    }
+   ]
+  },
+  {
+   "canh": "Hook · too big for the job",
+   "goc_may": "",
+   "hanh_dong": "The tiny chair creaks and sinks under Zeus as he tries to look busy",
+   "loi_thoai": "Now he rules... a stapler.",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 4,
+   "nhan_vat": [
+    "Zeus",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Wide shot of the grey open-plan office, Zeus comically too big for his little swivel chair in cubicle 14B, coworkers as blurred silhouettes",
+   "prompt_video": "The tiny chair creaks and sinks under Zeus as he tries to look busy",
+   "phan_doan": "Cubicle 14B",
+   "cam_xuc": 1,
+   "ky_thuat": {
+    "co_canh": "ws",
+    "goc": "ngang",
+    "chuyen_dong": "lui_ra",
+    "anh_sang": "sang_deu",
+    "mau": "lanh",
+    "chuyen_canh": "cat"
+   },
+   "trang_phuc": "white shirt, lightning tie",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "Now he rules... a stapler."
+    }
+   ]
+  },
+  {
+   "canh": "Inciting · the rule",
+   "goc_may": "",
+   "hanh_dong": "Linda taps the rulebook once with a red pen, Zeus leans away",
+   "loi_thoai": "One incident, Mr. Zeus. One. And you're out.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 5,
+   "nhan_vat": [
+    "Linda",
+    "Zeus",
+    "Linda's office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium two-shot in Linda's glass office: tiny Linda in sunglasses slides a thick rulebook across her desk toward towering Zeus",
+   "prompt_video": "Linda taps the rulebook once with a red pen, Zeus leans away",
+   "phan_doan": "One incident",
+   "cam_xuc": -1,
+   "ky_thuat": {
+    "co_canh": "two",
+    "goc": "thap",
+    "chuyen_dong": "tinh",
+    "anh_sang": "trang",
+    "mau": "lanh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "dap_doa"
+    ]
+   },
+   "trang_phuc": "white shirt, lightning tie",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "Linda",
+     "dien_xuat": "icy, clipped, quiet and terrifying",
+     "loi": "One incident, Mr. Zeus. One. And you're out."
+    }
+   ]
+  },
+  {
+   "canh": "Inciting · define incident",
+   "goc_may": "",
+   "hanh_dong": "Zeus swallows; a spark pops and he pats his beard to hide it",
+   "loi_thoai": "Define... incident.",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 4,
+   "nhan_vat": [
+    "Zeus",
+    "Linda's office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Close-up of Zeus swallowing nervously, a few blue sparks popping in his beard",
+   "prompt_video": "Zeus swallows; a spark pops and he pats his beard to hide it",
+   "phan_doan": "One incident",
+   "cam_xuc": -1,
+   "ky_thuat": {
+    "co_canh": "cu",
+    "goc": "ngang",
+    "chuyen_dong": "day_vao",
+    "anh_sang": "trang",
+    "mau": "lanh",
+    "chuyen_canh": "cat"
+   },
+   "trang_phuc": "white shirt, lightning tie",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "Zeus",
+     "dien_xuat": "booming voice trying to whisper, nervous",
+     "loi": "Define... incident."
+    }
+   ]
+  },
+  {
+   "canh": "Escalation · the printer",
+   "goc_may": "",
+   "hanh_dong": "A small blue zap leaps from his finger, the printer spits out perfect pages, Zeus hides his hand",
+   "loi_thoai": "Nine a.m. The printer.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 4.5,
+   "nhan_vat": [
+    "Zeus",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium shot of Zeus beside a jammed beat-up office printer, poking it with one enormous finger",
+   "prompt_video": "A small blue zap leaps from his finger, the printer spits out perfect pages, Zeus hides his hand",
+   "phan_doan": "Nine to eleven",
+   "cam_xuc": -1,
+   "ky_thuat": {
+    "co_canh": "ms",
+    "goc": "ngang",
+    "chuyen_dong": "cam_tay",
+    "anh_sang": "sang_deu",
+    "mau": "lanh",
+    "chuyen_canh": "nhay",
+    "am_thanh": [
+     "chop_dien"
+    ]
+   },
+   "trang_phuc": "white shirt, lightning tie",
+   "chu_man": "INCIDENT #1",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "Nine a.m. The printer."
+    }
+   ]
+  },
+  {
+   "canh": "Escalation · the coffee",
+   "goc_may": "",
+   "hanh_dong": "A bigger bolt hits the coffee machine, coffee boils over and the ceiling lights flicker",
+   "loi_thoai": "Ten a.m. The coffee.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 5,
+   "nhan_vat": [
+    "Zeus",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium close-up of Zeus at the office coffee machine, holding a tiny paper cup, sparks building in his hair",
+   "prompt_video": "A bigger bolt hits the coffee machine, coffee boils over and the ceiling lights flicker",
+   "phan_doan": "Nine to eleven",
+   "cam_xuc": -2,
+   "ky_thuat": {
+    "co_canh": "mcu",
+    "goc": "ngang",
+    "chuyen_dong": "cam_tay",
+    "anh_sang": "nhap_nhay",
+    "mau": "lanh",
+    "chuyen_canh": "nhay",
+    "am_thanh": [
+     "chop_dien",
+     "vut"
+    ]
+   },
+   "trang_phuc": "white shirt, lightning tie",
+   "chu_man": "INCIDENT #2",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "Ten a.m. The coffee."
+    }
+   ]
+  },
+  {
+   "canh": "Escalation · five minutes",
+   "goc_may": "",
+   "hanh_dong": "Linda says the line; Zeus's white hair slowly stands straight up, crackling louder and louder",
+   "loi_thoai": "The Henderson report. Five minutes. Eleven a.m.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 5,
+   "nhan_vat": [
+    "Linda",
+    "Zeus",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Over-the-shoulder shot from Zeus at his cubicle up to tiny Linda peering over the cubicle wall with her clipboard",
+   "prompt_video": "Linda says the line; Zeus's white hair slowly stands straight up, crackling louder and louder",
+   "phan_doan": "Nine to eleven",
+   "cam_xuc": -3,
+   "ky_thuat": {
+    "co_canh": "ots",
+    "goc": "thap",
+    "chuyen_dong": "day_vao",
+    "anh_sang": "tuong_phan",
+    "mau": "lanh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "cuon_len"
+    ]
+   },
+   "trang_phuc": "white shirt, lightning tie",
+   "chu_man": "INCIDENT #3?",
+   "thoai": [
+    {
+     "nhan_vat": "Linda",
+     "dien_xuat": "flat, impatient",
+     "loi": "The Henderson report. Five minutes."
+    },
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "Eleven a.m."
+    }
+   ]
+  },
+  {
+   "canh": "Twist · blackout",
+   "goc_may": "",
+   "hanh_dong": "The bolt hits the ceiling, the whole office goes black in one flash",
+   "loi_thoai": "The whole building.",
+   "am_thanh": "",
+   "thoi_luong_s": 6,
+   "phat_s": 6,
+   "nhan_vat": [
+    "Zeus",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Wide shot from low angle: a massive lightning bolt bursts from Zeus's head into the ceiling, every fluorescent panel exploding in sparks",
+   "prompt_video": "The bolt hits the ceiling, the whole office goes black in one flash",
+   "phan_doan": "Lights out",
+   "cam_xuc": -3,
+   "ky_thuat": {
+    "co_canh": "ws",
+    "goc": "thap",
+    "chuyen_dong": "zoom_gat",
+    "anh_sang": "nhap_nhay",
+    "mau": "tuong_phan_cao",
+    "chuyen_canh": "loe_trang",
+    "am_thanh": [
+     "sam",
+     "dap"
+    ]
+   },
+   "trang_phuc": "white shirt, lightning tie",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "The whole building."
+    }
+   ]
+  },
+  {
+   "canh": "Twist · the only light",
+   "goc_may": "",
+   "hanh_dong": "Coworkers' silhouettes gather in his light and start to clap as he catches the finished report",
+   "loi_thoai": "And somehow... the report was done.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 5,
+   "nhan_vat": [
+    "Zeus",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "In the dark office, Zeus raises one glowing hand like a lamp, warm blue light on his face, the Henderson report pages floating out of the printer into his hand, silhouettes of coworkers around him",
+   "prompt_video": "Coworkers' silhouettes gather in his light and start to clap as he catches the finished report",
+   "phan_doan": "Lights out",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "co_canh": "ms",
+    "goc": "ngang",
+    "chuyen_dong": "vong",
+    "anh_sang": "toi",
+    "mau": "teal_cam",
+    "chuyen_canh": "cat"
+   },
+   "trang_phuc": "white shirt, lightning tie",
+   "chu_man": "THE REPORT IS DONE",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "And somehow... the report was done."
+    }
+   ]
+  },
+  {
+   "canh": "Cliffhanger · sunglasses",
+   "goc_may": "",
+   "hanh_dong": "Linda lowers her sunglasses; her hair bun loosens into living green snakes",
+   "loi_thoai": "We need to talk.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 4.5,
+   "nhan_vat": [
+    "Linda",
+    "Zeus",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Close-up of tiny Linda in the doorway, lit only by Zeus's blue glow, slowly lowering her black sunglasses, strands of her bun moving on their own",
+   "prompt_video": "Linda lowers her sunglasses; her hair bun loosens into living green snakes",
+   "phan_doan": "We need to talk",
+   "cam_xuc": -2,
+   "ky_thuat": {
+    "co_canh": "cu",
+    "goc": "thap",
+    "chuyen_dong": "day_vao",
+    "anh_sang": "toi",
+    "mau": "xanh_benh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "dap_doa"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "Linda",
+     "dien_xuat": "very calm, a soft hiss under the words",
+     "loi": "We need to talk."
+    }
+   ]
+  },
+  {
+   "canh": "Cliffhanger · next",
+   "goc_may": "",
+   "hanh_dong": "The snake hisses and the frame cuts to black",
+   "loi_thoai": "To be continued.",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Linda",
+    "Open-plan office"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Extreme close-up of a small green snake from Linda's hair hissing toward the camera, Zeus's blue glow reflected in its eyes",
+   "prompt_video": "The snake hisses and the frame cuts to black",
+   "phan_doan": "We need to talk",
+   "cam_xuc": -2,
+   "ky_thuat": {
+    "co_canh": "ecu",
+    "goc": "ngang",
+    "chuyen_dong": "tinh",
+    "anh_sang": "toi",
+    "mau": "xanh_benh",
+    "chuyen_canh": "toi_den",
+    "am_thanh": [
+     "dap"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "NEXT: REPLY ALL",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "To be continued."
+    }
+   ]
+  }
+ ]
+}

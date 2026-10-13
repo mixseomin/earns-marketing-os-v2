@@ -331,13 +331,14 @@ export function keHoachXuat(o: {
   });
   // Lớp hiệu ứng khung (rung, chớp, zoom…) áp lên video + lớp ảnh, DƯỚI chữ/hình/chữ màn — chữ vẫn đọc được khi rung/mờ.
   lop.filter((l) => l.loai === 'hieu_ung' && !NANG(l)).forEach((l, i) => { loc.push(lopHieuUngLoc(l, W, H, nen, `vhu${i}`, i)); nen = `vhu${i}`; });
+  const raHinh = o.nhipStopMotion ? 'vsm' : 'vout';
   const coAss = cauMan.length || lop.some((l) => l.loai === 'chu' || l.loai === 'hinh');
   if (coAss) {
     const ass = tepChu('chu', tepAss({ W, H, kieu: o.qc?.kieu_chu, viTri, cau: cauMan, lop })).replace(/\.txt$/, '.ass');
     tep[tep.length - 1]!.duong = ass;
-    loc.push(`[${nen}]ass=filename='${duongFf(ass)}'${o.fontsDir ? `:fontsdir='${duongFf(o.fontsDir)}'` : ''}[vtruoc]`);
-  } else loc.push(`[${nen}]null[vtruoc]`);
-  loc.push(`[vtruoc]${o.nhipStopMotion ? 'fps=12' : 'null'}[vout]`);
+    loc.push(`[${nen}]ass=filename='${duongFf(ass)}'${o.fontsDir ? `:fontsdir='${duongFf(o.fontsDir)}'` : ''}[${raHinh}]`);
+  } else loc.push(`[${nen}]null[${raHinh}]`);
+  if (o.nhipStopMotion) loc.push(`[${raHinh}]fps=12[vout]`);   // mỗi hình giữ hai nhịp, -r chuẩn phía sau nhân đôi khung
   // Ducking NHẸ (2:1, ngưỡng cao): nhạc chỉ lùi vài dB khi có giọng. Trước đây 6:1 ngưỡng 0,03 → giọng đọc dày làm nhạc bị nén gần như suốt phim,
   // dải trầm tụt -30/-42 LUFS so với -24/-27 của QC mẫu — nghe như mất nền (10/10/2026).
   const tron = (ds2: string[], ten: string) => { if (ds2.length === 1) { loc.push(`${ds2[0]}anull[${ten}]`); return `[${ten}]`; } loc.push(`${ds2.join('')}amix=inputs=${ds2.length}:normalize=0:dropout_transition=0[${ten}]`); return `[${ten}]`; };

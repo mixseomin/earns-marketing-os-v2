@@ -45,6 +45,11 @@ assert.ok(loc.includes("y=(h-"));                      // end card (drawtext) gi
 assert.ok(kh.args.includes('-/filter_complex') && kh.args[kh.args.length - 1] === '/tmp/t/ra.mp4');
 // Thiếu nguyên liệu → shot bị ghi thiếu, không chết.
 const kh2 = keHoachXuat({ loai: 'phim', tiLe: '16:9', canh, nhanVat: nv, tap, nhanh: 'B', nguyenLieu: [nl('https://x/c4f.mp4', 4, false)], font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
+// Nhịp stop-motion: chỉ khi bật mới thêm fps=12 ngay trước [vout]; tắt thì không có lọc thừa
+const smOn = keHoachXuat({ loai: 'phim', tiLe: '16:9', canh, nhanVat: nv, tap, nhanh: 'B', nguyenLieu: [nl('https://x/c4f.mp4', 4, false)], font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4', nhipStopMotion: true });
+const locCua = (k: typeof kh2) => k.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
+const locOn = locCua(smOn);
+assert.ok(/fps=12\[vout\]/.test(locOn) && !/fps=12\[/.test(locCua(kh2)), 'nhịp stop-motion');
 assert.deepStrictEqual(kh2.canhThieu, ['#2 C2', '#3 C3']);
 assert.strictEqual(kh2.giay, 2.5);                                   // phim: không end card
 assert.ok(kh2.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung.includes('anullsrc'));  // không âm → im lặng

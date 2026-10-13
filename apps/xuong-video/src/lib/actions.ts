@@ -29,6 +29,7 @@ import { docPhimDich, uocDichCents, chayDichPhim } from '@/lib/xuong-video/dich-
 import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-video/kieu';
 import { type Row, n, s, arr, mangInt, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
 import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim } from '@/lib/xuong-video/sinh-anh';
+import type { MauPoster } from '@/lib/xuong-video/poster';
 import { batDauVideoCanh, kiemVideoTap } from '@/lib/xuong-video/sinh-video';
 import { nguonShot } from '@/lib/xuong-video/nguon-shot';
 import { khopNhipTap, type KqKhopNhip } from '@/lib/xuong-video/khop-nhip';
@@ -731,11 +732,11 @@ export async function sinhKeyframe(canhId: number, so = 1, moHinh?: string): Pro
 }
 
 /** Sinh một poster cho phim (lõi sinh-anh.ts › sinhPosterPhim). */
-export async function sinhPoster(phimId: number, yTuong = ''): Promise<Kq<number>> {
+export async function sinhPoster(phimId: number, yTuong = '', mau: MauPoster | '' = ''): Promise<Kq<number>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  return sinhPosterPhim(db, phimId, yTuong);
+  return sinhPosterPhim(db, phimId, yTuong, mau);
 }
 /** Chọn poster đang dùng trong các bản đã sinh (↶ hoàn tác được). */
 export async function chonPoster(phimId: number, url: string): Promise<Kq> {
@@ -1081,11 +1082,12 @@ export async function sinhAmThanh(tapId: number, canhIds?: number[], moHinhChu =
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   const ds = (await dsCanh(tapId)).filter((c) => !canhIds || canhIds.includes(c.id));
-  let so = 0;
+  let so = 0, dang = 0;
   for (const c of ds) {
     const clip = tuy.nguon === 'mo_ta' ? null : c.video_cuoi_url || c.video_url;
     const moTa = tuy.moTa?.trim() || [c.am_thanh, promptKyThuatVideo({ am_thanh: c.ky_thuat.am_thanh }).replace(/^Sound:\s*/, '')].filter(Boolean).join('. ');
     if (!clip && !moTa.trim()) continue;
+    if (c.dang_sinh_sfx) { dang++; continue; }   // đang sinh → không gửi lượt thứ hai (canhDangSinhAm cùng điều kiện)
     const giay = tuy.giay || c.thoi_luong_s || 5;
     const model = clip ? (tuy.model && moHinhAm(tuy.model)?.loai === 'sfx_video' ? tuy.model : 'mirelo-ai/sfx-v1/video-to-audio') : (tuy.model && moHinhAm(tuy.model)?.loai === 'sfx_chu' ? tuy.model : moHinhChu);
     const gia = giaAm(model, giay);
@@ -1095,7 +1097,7 @@ export async function sinhAmThanh(tapId: number, canhIds?: number[], moHinhChu =
     await dayViecAm({ kieu: 'am', job, model, input, thuMuc: `sfx/${c.id}` });
     so++;
   }
-  return so ? { ok: true, data: so } : loi('không shot nào có clip hoặc mô tả âm thanh');
+  return so ? { ok: true, data: so } : loi(dang ? 'shot đang sinh hiệu ứng âm thanh — đợi xong, không sinh thêm lượt nữa' : 'không shot nào có clip hoặc mô tả âm thanh');
 }
 
 /** Sinh nhạc nền (lõi ở sinh-nhac.ts). */

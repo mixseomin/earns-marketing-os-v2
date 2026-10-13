@@ -4,12 +4,13 @@
 import { useState } from 'react';
 import { sinhPoster, chonPoster } from '@/lib/actions';
 import { giaAnhCents, tien, type Phim } from '@/lib/xuong-video/kieu';
-import { MO_HINH_POSTER, tenPoster, anchorPoster } from '@/lib/xuong-video/poster';
+import { MO_HINH_POSTER, MAU_POSTER, tenPoster, anchorPoster, type MauPoster } from '@/lib/xuong-video/poster';
 import type { NhanVat } from '@/lib/xuong-video/kieu';
 import { Nut, Loi, mono } from './ui';
 
 export function PosterPhim({ phim, nhanVat, dang, loiNen, onChanged }: { phim: Phim; nhanVat: NhanVat[]; dang: number; loiNen: string; onChanged: () => Promise<void> }) {
   const [yTuong, setYTuong] = useState('');
+  const [mau, setMau] = useState<MauPoster>('anh_hung');
   const [ban, setBan] = useState(false);
   const [loi, setLoi] = useState('');
   const gia = giaAnhCents(MO_HINH_POSTER);
@@ -29,9 +30,14 @@ export function PosterPhim({ phim, nhanVat, dang, loiNen, onChanged }: { phim: P
           {!phim.poster_url && <span style={mono}>{dang ? 'đang sinh…' : 'chưa có poster'}</span>}
         </div>
         <div style={{ display: 'grid', gap: 8, flex: 1, minWidth: 240 }}>
-          <input className="xv-in" value={yTuong} onChange={(e) => setYTuong(e.target.value)} placeholder="Ý tưởng poster (tuỳ chọn) — vd: cáo ngồi trên cành nhìn miếng phô mai, quạ phía sau" />
+          {/* Mẫu bố cục: bấm chọn là đủ để sinh; ô chữ chỉ để thêm ý. */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {MAU_POSTER.map((m) => <button key={m.key} type="button" className={`xv-btn${mau === m.key ? ' chinh' : ''}`} title={m.mo} onClick={() => setMau(m.key)}>{m.nhan}</button>)}
+          </div>
+          <div style={mono}>{MAU_POSTER.find((m) => m.key === mau)?.mo}</div>
+          <input className="xv-in" value={yTuong} onChange={(e) => setYTuong(e.target.value)} placeholder="Thêm ý (không bắt buộc) — vd: quạ ngậm miếng phô mai, cáo nhìn lên" />
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <Nut chinh ly={ly} ban={ban} gia={gia} title="Gemini 3 Pro Image — vẽ chữ tên phim đúng chính tả nhất" onClick={() => void lam(() => sinhPoster(phim.id, yTuong))}>🎨 {ds.length ? 'Sinh thêm poster' : 'Sinh poster'} · {tien(gia)}</Nut>
+            <Nut chinh ly={ly || (dang > 0 && 'đang sinh poster — đợi xong')} ban={ban} gia={gia} title="Gemini 3 Pro Image — vẽ chữ tên phim đúng chính tả nhất" onClick={() => void lam(() => sinhPoster(phim.id, yTuong, mau))}>🎨 {ds.length ? 'Sinh thêm poster' : 'Sinh poster'} · {tien(gia)}</Nut>
             {dang > 0 && <span style={{ ...mono, color: 'var(--violet)' }}>⏳ đang sinh {dang} poster…</span>}
             {ly && <span style={{ fontSize: 11, color: 'var(--red)' }}>{ly}</span>}
           </div>

@@ -5,7 +5,7 @@ import { sql } from 'drizzle-orm';
 import { dayViecAm } from './hoan-tat';
 import { dongThoai, giaGiongTheo, GIONG_MAC_DINH, timNv } from './am-thanh';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, coElevenTrucTiep } from './giong';
-import { boiCanhTap, mapCanh, taoJob, type Db, type Row } from './doc-db';
+import { boiCanhTap, mapCanh, taoJob, canhDangSinhAm, type Db, type Row } from './doc-db';
 import { chanChuModel, coMau, thuongHieu } from './kieu';
 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
@@ -24,8 +24,10 @@ export type TuyGiong = { model?: string; voice?: string; camXuc?: number; chiThi
 export async function sinhGiongShots(db: Db, tapId: number, canhIds?: number[], tuy: TuyGiong = {}): Promise<Kq<number>> {
   const bc = await boiCanhTap(db, tapId);
   if (!bc) return loi('không thấy tập');
-  const ds = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh).filter((c) => (!canhIds || canhIds.includes(c.id)) && dongThoai(c, bc.nhanVat).length > 0);
+  let ds = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh).filter((c) => (!canhIds || canhIds.includes(c.id)) && dongThoai(c, bc.nhanVat).length > 0);
   if (!ds.length) return loi('không có shot nào có lời thoại');
+  const dangGiong = await canhDangSinhAm(db, ds.map((c) => c.id), 'thoai');
+  if (dangGiong.size) { ds = ds.filter((c) => !dangGiong.has(c.id)); if (!ds.length) return loi('shot này đang sinh giọng — đợi xong (tự hiện khi có), không sinh thêm lượt nữa'); }
   for (const c of ds) { const chan = chanChuModel(bc.kt.ngon_ngu, { shot: { thu_tu: c.thu_tu, thoai: c.thoai, loi_thoai: c.loi_thoai } }); if (chan) return loi(chan); }
   const dm = await dsMoHinhGiong();
   // Lời dẫn = MỘT giọng cho cả phim (kt.giong_dan). Chọn giọng lời dẫn ở lượt này (bảng ＋ hoặc model/giọng chung của lượt) = đổi giọng

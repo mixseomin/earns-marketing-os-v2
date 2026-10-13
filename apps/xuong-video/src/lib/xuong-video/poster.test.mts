@@ -12,4 +12,6 @@ const k = promptPoster({ ten: 'Fox Tales (thử)', mo_ta: '', loai: 'phim', kinh
 assert.deepStrictEqual(k.thamChieuUrl, ['a', 'b', 'm', 'v']);
 assert.ok(k.prompt.includes('"Fox Tales"') && !k.prompt.includes('(thử)') && k.prompt.includes('fox on a branch') && k.prompt.includes('ONLY text'));
 assert.ok(!/subtitles/.test(k.prompt), 'phong cách bỏ vế chữ/phụ đề');
+const k2 = promptPoster({ ten: 'X', mo_ta: '', loai: 'phim' }, ds, '', 'doi_dau');
+assert.ok(k2.prompt.includes('Face-off') && !k2.prompt.includes('director'));
 console.log('poster.test: ok');

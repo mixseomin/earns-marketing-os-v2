@@ -95,3 +95,12 @@ export async function giaVideoSv(model: string, dpg: '720p' | '1080p', giay: num
   }
   return giaVideoCents(model, dpg, giay);
 }
+
+/** Shot đang có việc âm thanh chạy (≤10 phút) theo đích ('thoai' | 'sfx') — MỘT luật chặn bấm lại khi đang sinh, khỏi trả tiền hai lần
+ *  (13/10/2026: nút 🗣 Sinh giọng vẫn bấm được lúc "đang sinh"). Cùng điều kiện với cờ dang_sinh_giong / dang_sinh_sfx của dsCanh. */
+export async function canhDangSinhAm(db: Db, canhIds: number[], dich: 'thoai' | 'sfx'): Promise<Set<number>> {
+  if (!canhIds.length) return new Set();
+  const r = (await db.execute(sql`SELECT DISTINCT canh_id FROM xv_job WHERE canh_id = ANY(${canhIds}::int[]) AND loai = 'am' AND request->>'dich' = ${dich}
+    AND trang_thai = 'cho' AND created_at > now() - interval '10 minutes'`)) as unknown as Row[];
+  return new Set(r.map((x) => n(x.canh_id)));
+}

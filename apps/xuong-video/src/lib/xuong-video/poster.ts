@@ -24,7 +24,26 @@ export function anchorPoster(nv: NhanVat[]): NhanVat[] {
   ];
 }
 
-export function promptPoster(p: Pick<Phim, 'ten' | 'mo_ta' | 'loai'> & { kinh_thanh?: KinhThanh | null }, nv: NhanVat[], yTuong = ''): { prompt: string; thamChieuUrl: string[] } {
+/** MẪU BỐ CỤC poster (13/10/2026 — "cho chọn template mẫu, điền một loạt text mất thời gian"): bấm một mẫu là sinh, ô ý tưởng chỉ để thêm. */
+export const MAU_POSTER = [
+  { key: 'anh_hung', nhan: '🦸 Nhân vật chính', mo: 'nhân vật chính ở giữa, góc thấp, nhân vật phụ nhỏ phía sau',
+    prompt: 'Hero composition: the main character large and centered, seen from a slightly low angle, confident pose; supporting characters smaller in the background; title at the top.' },
+  { key: 'doi_dau', nhan: '⚔️ Đối đầu', mo: 'hai nhân vật chính đối mặt, chia đôi khung, căng thẳng',
+    prompt: 'Face-off composition: the two main characters facing each other from opposite sides of the frame, eyes locked, tension between them; title across the middle or bottom.' },
+  { key: 'ca_nhom', nhan: '👥 Cả nhóm', mo: 'mọi nhân vật xếp hàng, nhân vật chính đứng trước',
+    prompt: 'Ensemble lineup: every character together in one group shot, the main character in front and center, each character showing their personality in pose and expression; title at the bottom.' },
+  { key: 'can_mat', nhan: '🔍 Cận mặt', mo: 'mặt nhân vật chính chiếm nửa trên, biểu cảm nói lên câu chuyện',
+    prompt: 'Big close-up: the face of the main character fills the upper half of the poster, an expression that tells the premise; a small scene from the story below; title at the bottom.' },
+  { key: 'khung_canh', nhan: '🏞 Khung cảnh', mo: 'nhân vật nhỏ giữa bối cảnh rộng lớn',
+    prompt: 'Epic scale: the characters small in the lower part of a vast, beautiful setting that dominates the poster; strong sense of place and atmosphere; title in the open sky area.' },
+  { key: 'khoanh_khac', nhan: '😂 Khoảnh khắc', mo: 'một khoảnh khắc hài/kịch tính đúng tiền đề phim, đóng băng',
+    prompt: 'Frozen key moment: one funny or dramatic instant that captures the premise, characters mid-action with exaggerated expressions; title at the top.' },
+  { key: 'toi_gian', nhan: '◻️ Tối giản', mo: 'một hình biểu tượng trên nền phẳng, nhiều khoảng trống',
+    prompt: 'Minimalist poster: one iconic silhouette or symbol from the story on a flat background color with lots of negative space; bold title typography as a key element.' },
+] as const;
+export type MauPoster = (typeof MAU_POSTER)[number]['key'];
+
+export function promptPoster(p: Pick<Phim, 'ten' | 'mo_ta' | 'loai'> & { kinh_thanh?: KinhThanh | null }, nv: NhanVat[], yTuong = '', mau: MauPoster | '' = ''): { prompt: string; thamChieuUrl: string[] } {
   const kt = docKinhThanh(p.kinh_thanh ?? {});
   const ten = tenPoster(p);
   const ds = anchorPoster(nv);
@@ -41,7 +60,8 @@ export function promptPoster(p: Pick<Phim, 'ten' | 'mo_ta' | 'loai'> & { kinh_th
     phongCachHinh(kt.phong_cach) ? `Visual style (must match the film exactly): ${phongCachHinh(kt.phong_cach)}.` : '',
     tienDe ? `What the film is about: ${tienDe}` : '',
     nguoi.length ? `Feature ${nguoi.length > 1 ? 'these characters together, the first one as the hero' : 'this character as the hero'}: ${nguoi.map((v) => `${v.ten} — ${v.mo_ta}`).join(' | ')}. Keep them EXACTLY as in the reference images — do not redesign them.` : '',
-    yTuong.trim() ? `Poster idea from the director: ${yTuong.trim()}` : 'Strong, simple composition with one clear focal point and a mood that sells the premise; leave clean space for the title.',
+    MAU_POSTER.find((m) => m.key === mau)?.prompt ?? '',
+    yTuong.trim() ? `Poster idea from the director: ${yTuong.trim()}` : mau ? '' : 'Strong, simple composition with one clear focal point and a mood that sells the premise; leave clean space for the title.',
     banDo.length ? `Reference images: ${banDo.join('; ')}.` : '',
     `TITLE: render the title "${ten}" as bold, beautifully designed poster typography that fits the style, spelled EXACTLY "${ten}" (every letter and accent).`,
     'The title is the ONLY text in the image: no tagline, no credits block, no names, no dates, no logos, no watermark.',

@@ -1,0 +1,130 @@
+{
+ "_": "Quy trình nghiệp vụ của Phòng Astrolas (pháp nhân Astrolas LLC). Hạn của từng quy trình là card followup (tab Lịch); so_hoa 'co-dinh' = máy chạy, 'mo-ta' = người làm theo mô tả.",
+ "phong": "astrolas",
+ "quy_trinh": [
+  {
+   "id": "lich-han",
+   "ten": "Giữ lịch hạn pháp lý và thuế",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "Mỗi hạn là một card followup (tựa khớp lich_loc); tab Lịch tự đếm ngày còn lại, dải đỏ khi ≤ 30 ngày",
+   "mo_ta": "Thêm hạn bằng followup add, dời bằng followup at, xong bằng followup done. Làm xong mục hằng năm thì hỏi Giám đốc có tạo nhắc năm sau không.",
+   "ma": "~/bin/followup · apps/cty lichPhong()",
+   "chu_tri": "hoe",
+   "lam": [
+    "may",
+    "hoe"
+   ],
+   "khi": "liên tục"
+  },
+  {
+   "id": "thu-northwest",
+   "ten": "Đọc thư Northwest / IRS, lưu giấy tờ",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "Thư mới từ northwestregisteredagent.com hoặc IRS trong htuan82@gmail.com",
+   "mo_ta": "Đăng nhập cổng Northwest (mật khẩu Keychain, mã email qua br otp), tải giấy tờ mới về ~/Me/Certification/Astrolas-LLC/, tóm tắt cho Hoè. Biểu mẫu cần điền thì điền sẵn; bấm gửi là mức 3.",
+   "ma": "br (profile htuan82) · br otp",
+   "chu_tri": "dang",
+   "lam": [
+    "dang"
+   ],
+   "khi": "theo phát sinh"
+  },
+  {
+   "id": "bao-cao-nam",
+   "ten": "Báo cáo năm Wyoming",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "Nhắc 01/09 hằng năm, hạn 01/10; trễ quá 60 ngày bang giải thể",
+   "mo_ta": "Kiểm mục Renewal Filings trên cổng Northwest có tự nộp không; không thì đề xuất thuê Northwest $100 + $63 phí bang (mức 3, Giám đốc duyệt tiền). Lưu biên nhận vào hồ sơ.",
+   "ma": "",
+   "chu_tri": "dang",
+   "lam": [
+    "dang",
+    "giam-doc"
+   ],
+   "khi": "tháng 9 hằng năm"
+  },
+  {
+   "id": "gia-han-dai-ly",
+   "ten": "Gia hạn đại lý đăng ký",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "Nhắc 25/08 hằng năm, tự gia hạn $125 ngày 10/09",
+   "mo_ta": "Kiểm thẻ trên cổng Northwest còn hạn. Thẻ hỏng thì báo Giám đốc tự cập nhật (máy không nhập thông tin thanh toán). Mất đại lý = bang có thể giải thể.",
+   "ma": "",
+   "chu_tri": "dang",
+   "lam": [
+    "dang",
+    "giam-doc"
+   ],
+   "khi": "tháng 8 hằng năm"
+  },
+  {
+   "id": "so-giao-dich",
+   "ten": "Sổ giao dịch của LLC",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "Mỗi giao dịch liên quan LLC: góp vốn, chi hộ bằng thẻ cá nhân, doanh thu Stripe/PayPal/Paddle, rút tiền",
+   "mo_ta": "Ghi đủ ngày, số tiền, bên kia, loại (góp vốn / chi / thu / rút). Năm đầu: phí Northwest $342 trả bằng thẻ cá nhân = góp vốn. Đối chiếu sao kê mỗi tháng khi đã có ngân hàng.",
+   "ma": "",
+   "chu_tri": "hang",
+   "lam": [
+    "hang"
+   ],
+   "khi": "hằng tháng"
+  },
+  {
+   "id": "form-5472",
+   "ten": "Khai Form 5472 + 1120 qua 1040 Abroad",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "Nhắc 15/02 hằng năm, hạn IRS 15/04; trễ phạt $25.000",
+   "mo_ta": "Gom sổ giao dịch năm, thông tin công ty (EIN, ngày lập, bang) và chủ sở hữu gửi 1040 Abroad (~$300). Thuê và trả phí là mức 3. Lưu bản đã nộp vào hồ sơ.",
+   "ma": "",
+   "chu_tri": "hang",
+   "lam": [
+    "hang",
+    "giam-doc"
+   ],
+   "khi": "tháng 2–4 hằng năm"
+  },
+  {
+   "id": "ein-tai-khoan",
+   "ten": "EIN về → ngân hàng, Stripe, PayPal",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "Northwest báo EIN đã về (dự kiến 12/2026)",
+   "mo_ta": "Mở ngân hàng Mỹ đứng tên LLC, rồi tạo tài khoản Stripe MỚI và PayPal Business bằng EIN + Articles + Operating Agreement đã ký. Giữ nguyên Stripe CODECRATE cá nhân. Mọi bước mở tài khoản là mức 3.",
+   "ma": "",
+   "chu_tri": "dang",
+   "lam": [
+    "dang",
+    "giam-doc"
+   ],
+   "khi": "một lần"
+  },
+  {
+   "id": "xac-minh-meta",
+   "ten": "Xác minh doanh nghiệp Meta",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "Đã có Articles of Organization (09/10/2026)",
+   "mo_ta": "Xác minh business portfolio của app Facebook Login (3429084893920729) bằng tên Astrolas LLC + Articles, rồi publish để khách đăng nhập Facebook trên astrolas.com.",
+   "ma": "",
+   "chu_tri": "dang",
+   "lam": [
+    "dang",
+    "giam-doc"
+   ],
+   "khi": "một lần"
+  },
+  {
+   "id": "ky-giay-to",
+   "ten": "Ký giấy tờ công ty",
+   "so_hoa": "mo-ta",
+   "kich_hoat": "Có văn bản cần chữ ký thành viên (Operating Agreement, nghị quyết ngân hàng…)",
+   "mo_ta": "Máy điền sẵn mọi ô chữ, mỗi trang có vùng chữ ký riêng; Giám đốc ký trong Preview và lưu; máy kiểm từng trang có chữ ký đúng chỗ rồi lưu bản SIGNED vào hồ sơ.",
+   "ma": "PyMuPDF (điền + kiểm)",
+   "chu_tri": "giam-doc",
+   "lam": [
+    "may",
+    "giam-doc"
+   ],
+   "khi": "theo phát sinh"
+  }
+ ]
+}

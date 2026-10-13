@@ -29,7 +29,8 @@ import { BangNhanSu } from '../bang-nhan-su';
 import { doiNgu } from '@/lib/doi-ngu';
 import { dayChuyen, linkMos2, homNay, CHANG } from '../../../worker/sach.mjs';
 import { DayChuyenTab, demCan, type DayChuyen, type DcKhai, Ai, Tram, Thanh, KENH, mauNen, TEN_NEN, NHAN_ST, ngay, quaNgay, cungSach, DcSach, DcVideo, DcKenh, LocSach, LocVideo, tenLoc, viecCacDayChuyen, DsViec as DsViecDc } from '../day-chuyen';
-import { kenhKeoKhach, theMot, lanVideoPhong } from '@/lib/do-dac';
+import { kenhKeoKhach, theMot, lanVideoPhong, lichPhong } from '@/lib/do-dac';
+import { LichPhong, demGap } from '../lich-phong';
 import { NEN_VIDEO, phutVN, tenSlug } from '../../../worker/video.mjs';
 import { trachNhiem, demTn, giaiMa } from '@/lib/trach-nhiem';
 import { KhoiTrachNhiem } from '../trach-nhiem';
@@ -298,6 +299,9 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
       <div className="cty-tn-luoi">{ns.map((d) => <section key={d.id} className="cty-tn-nguoi"><h4><Nguoi id={d.id} />{vaiCua[d.id] && <span className="cty-muted cty-nho"> {vaiCua[d.id]}</span>}</h4><KhoiTrachNhiem id={d.id} tn={tn} phong={id} /></section>)}</div>
     </div>
   );
+  // Lịch hạn (hồ sơ phòng khai lich_loc): card followup thật, tab đứng đầu + dải ghim khi có hạn ≤ 30 ngày (liếc thấy, không nằm trong tab)
+  const coLich = !!p.fm.lich_loc; const hom = homNay(); const lich = coLich ? await lichPhong(p) : [];
+  const gapLich = lich ? demGap(lich, hom) : 0;
   const moi = dem?.moi;
   // Cảnh báo phải liếc-thấy, không nằm trong tab (YDNI): lượt gần nhất lỗi / phải làm lại → một dải ghim trên thanh tab.
   const canhBao = moi?.trang_thai === 'lỗi' ? `Lượt gần nhất lỗi: ${moi.loi ?? ''}`
@@ -318,6 +322,8 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
     <>
       <div className="cty-phong-nguoi">{ns.map((d) => <span key={d.id}><Nguoi id={d.id} />{vaiCua[d.id] && <span className="cty-muted cty-nho"> {vaiCua[d.id]}</span>}</span>)}<span className="cty-muted cty-nho">{ns.length} người</span></div>
       {canhBao && <p className="cty-bao-loi cty-bao-mot" data-loi title={canhBao}>{canhBao}</p>}
+      {coLich && (lich === null ? <p className="cty-bao-loi cty-bao-mot" data-loi>Không đọc được lịch hạn (DB MOS2).</p>
+        : gapLich > 0 && <p className="cty-bao-loi cty-bao-mot" data-loi>{gapLich} hạn quá hoặc còn ≤ 30 ngày — xem tab Lịch.</p>)}
       {deCu.map((t) => (
         <div key={t.id} className="cty-de-cu">
           <span>Đề cử <Nguoi id={t.de_cu!.nguoi} /> thay <Nguoi id={t.nguoi_cu} /> giữ vai <b>{(theVai(t.vai) as { ten?: string } | null)?.ten ?? t.vai}</b> — thử việc <Gio iso={t.ts} />:{' '}
@@ -334,8 +340,8 @@ export async function nganPhong(id: string, admin: boolean): Promise<Ngan> {
     ? <TabPhong khoa={id} dau={dau} tabs={[{ key: 'chay', nhan: 'Chạy' }, { key: 'luot', nhan: 'Các lượt', so: dem!.tong }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }, { key: 'sodo', nhan: 'Sơ đồ' }]}>
         {[<PhongThuChay key="c" admin={admin} />, <PhongThuDs key="l" admin={admin} />, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />, <div key="s">{soDoTab}</div>]}
       </TabPhong>
-    : <TabPhong khoa={id} dau={dau} tabs={[...(coDc ? [{ key: 'daychuyen', nhan: 'Dây chuyền', so: dc?.loi ? '!' : demCan({ dsDc, dc, lv, kenh, phong: id }) || '' }] : []), { key: 'sodo', nhan: 'Sơ đồ' }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
-        {[...(coDc ? [<DayChuyenTab key="dc" dsDc={dsDc} dc={dc} lv={lv} kenh={kenh} phong={id} p={p} />] : []), <div key="s">{soDoTab}</div>, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
+    : <TabPhong khoa={id} dau={dau} tabs={[...(coLich ? [{ key: 'lich', nhan: 'Lịch', so: lich === null ? '!' : gapLich || '' }] : []), ...(coDc ? [{ key: 'daychuyen', nhan: 'Dây chuyền', so: dc?.loi ? '!' : demCan({ dsDc, dc, lv, kenh, phong: id }) || '' }] : []), { key: 'sodo', nhan: 'Sơ đồ' }, { key: 'nhansu', nhan: 'Nhân sự', so: ns.length }, { key: 'quytrinh', nhan: 'Quy trình', so: qtTom }, { key: 'dodac', nhan: 'Đồ đạc' }]}>
+        {[...(coLich ? [<LichPhong key="lich" ds={lich} hom={hom} />] : []), ...(coDc ? [<DayChuyenTab key="dc" dsDc={dsDc} dc={dc} lv={lv} kenh={kenh} phong={id} p={p} />] : []), <div key="s">{soDoTab}</div>, <div key="n">{nsTab}</div>, <div key="q">{qtTab}</div>, <DoDac key="d" p={p} ns={ns} />]}
       </TabPhong>;
   // Văn phòng pixel LIVE cố định bên phải: phòng có văn phòng riêng thì xem đúng phòng đó, chưa có thì văn phòng chung (hrefVp).
   const vp = hrefVp(id);

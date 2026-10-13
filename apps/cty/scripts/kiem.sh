@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # KIỂM cty.on.tc bằng MỘT lệnh dựng sẵn — thay cho lệnh kiểm gõ tay mỗi lượt (11/10/2026: một `grep` thiếu tệp đứng đọc stdin
 # 10 phút; bản build chạy ở Mac không lộ lỗi đường dẫn mà box gặp). Mọi lệnh mạng có giới hạn thời gian; không lệnh nào đọc stdin.
-#   kiem.sh box                 # 10 trang trên box3 phải 200, journal không có ENOENT/Error mới, tự kiểm worker trên box
+#   kiem.sh box [url…]          # 10 trang (+ url truyền thêm; KIEM_CO='a|b' = chữ phải có trên url thêm) trên box3 phải 200, journal không có ENOENT/Error mới, tự kiểm worker trên box
 #   kiem.sh may-len             # dựng bản production ở Mac (DB box3 qua đường hầm), proxy trỏ cổng đóng → bấm Chạy = 0 đồng
 #   kiem.sh may-xuong           # dừng bản ở Mac + đường hầm, xoá chuỗi DB tạm
 #   kiem.sh ui [base]           # máy đo viền + chồng ngăn kéo + nút Chạy + sơ đồ đứng yên (mặc định bản ở Mac http://localhost:3871)
@@ -25,14 +25,16 @@ phien() {   # phiên admin còn hạn trên box → $TAM/tok (không in ra)
 
 case "${1:-}" in
   box)
-    "${SSH[@]}" "$BOX" "QPHIEN=$(printf %q "$QPHIEN") bash -s" <<'TREN_BOX'
+    "${SSH[@]}" "$BOX" "QPHIEN=$(printf %q "$QPHIEN") THEM=$(printf %q "${*:2}") CO=$(printf %q "${KIEM_CO:-}") bash -s" <<'TREN_BOX'
 set -uo pipefail
 cd /opt/earns-marketing-os-v2 && echo "commit $(git log --oneline -1 | cut -c1-9) · mos2-cty $(systemctl is-active mos2-cty)"
 U=$(grep ^DATABASE_URL .env.production | cut -d= -f2-)
 T=$(psql "$U" -tAc "$QPHIEN")
 sai=0
-for u in / /quy-trinh /quy-trinh/thu-nghiem/lam-viec /phong/thu-nghiem /phong/sach /nhan-su/tam /nhat-ky /luat /muc-tieu "/?ngan=quy-trinh:thu-nghiem/lam-viec"; do
-  c=$(curl -s -m 15 -o /dev/null -w "%{http_code}" -b "mos2-session=$T" "http://localhost:3860$u" </dev/null); printf "  %-42s %s\n" "$u" "$c"; [ "$c" = 200 ] || sai=$((sai+1))
+for u in / /quy-trinh /quy-trinh/thu-nghiem/lam-viec /phong/thu-nghiem /phong/sach /nhan-su/tam /nhat-ky /luat /muc-tieu "/?ngan=quy-trinh:thu-nghiem/lam-viec" $THEM; do
+  c=$(curl -s -m 15 -o /tmp/cty-kiem.html -w "%{http_code}" -b "mos2-session=$T" "http://localhost:3860$u" </dev/null); printf "  %-42s %s\n" "$u" "$c"; [ "$c" = 200 ] || sai=$((sai+1))
+  # trang truyền thêm + KIEM_CO="chữ1|chữ2": mỗi chữ phải có trong HTML (trang 200 mà rỗng dữ liệu vẫn bị bắt)
+  if [ -n "$CO" ] && [[ " $THEM " == *" $u "* ]]; then IFS='|' read -ra ds <<<"$CO"; for x in "${ds[@]}"; do n=$(grep -o -- "$x" /tmp/cty-kiem.html | wc -l); printf "    %-40s %s\n" "có \"$x\"" "$n"; [ "$n" -gt 0 ] || sai=$((sai+1)); done; fi
 done
 TU=$(systemctl show mos2-cty -p ActiveEnterTimestamp --value)   # chỉ đếm lỗi của bản ĐANG chạy (từ lúc khởi động), không đếm bản trước
 loi=$(journalctl -u mos2-cty --since "$TU" --no-pager 2>/dev/null | grep -cE "ENOENT|⨯" || true)   # Next in lỗi dạng "⨯ [Error: …" — mẫu cũ "⨯ Error" bỏ sót (11/10/2026)

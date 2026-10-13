@@ -109,3 +109,12 @@ export async function soChi(ns: Doc[]) {
 }
 
 export function goiSo(ns: Doc[]) { return [...new Set(ns.flatMap((d) => (Array.isArray(d.fm.data) ? (d.fm.data as string[]) : [])))]; }
+/** Lịch hạn của phòng = card followup của dự án phòng cầm (du_an) có tựa khớp `lich_loc` (regex khai trong hồ sơ phòng).
+ *  Nguồn sự thật là card (followup add/done/at), không chép thành bảng chữ. null = không đọc được DB; [] = phòng không khai lịch. */
+export async function lichPhong(p: Doc) {
+  const duAn = dsFm(p, 'du_an'); const loc = String(p.fm.lich_loc ?? '');
+  if (!duAn.length || !loc) return [];
+  return (await q(sql`SELECT id, status, title, sla_due_at::date::text AS han FROM human_tasks
+    WHERE project_id = ANY(${arr(duAn)}) AND platform_key = 'followup' AND title ~* ${loc} AND status <> ALL(${arr(['dropped', 'rejected', 'cancelled'])})
+    ORDER BY sla_due_at NULLS LAST, id`)) as { id: number; status: string; title: string; han: string | null }[] | null;
+}

@@ -8,6 +8,7 @@ cong_nguoi: mọi khoản phí, ký giấy, nộp tờ khai, thông tin thanh to
 so_do:
 tom_tat: Pháp nhân Astrolas LLC (Wyoming) — giữ công ty hợp lệ, đúng hạn thuế, mở Stripe/PayPal/ngân hàng
 du_an: [astrolas]
+lich_loc: "Astrolas LLC|Northwest"
 trang_thai: đang hoạt động · lịch theo hạn
 ---
 ## Hồ sơ công ty
@@ -22,24 +23,7 @@ trang_thai: đang hoạt động · lịch theo hạn
 | Giấy tờ | `~/Me/Certification/Astrolas-LLC/` trên MacBook: Articles of Organization, Initial Resolutions, Operating Agreement (bản điền sẵn, chờ ký lại) |
 | Cổng | accounts.northwestregisteredagent.com · htuan82@gmail.com · mật khẩu Keychain · mã đăng nhập gửi qua email |
 
-## Lịch việc một lần
-
-| Hạn nhắc | Việc | Nhắc |
-|---|---|---|
-| 14/10/2026 | Xác minh doanh nghiệp Meta bằng Articles → publish đăng nhập Facebook trên astrolas.com | #1176 |
-| 20/10/2026 | Mật khẩu Northwest vào vault, đổi SĐT 2 lớp sang 0988999911 | #1179 |
-| khi có | Ký lại Operating Agreement (3 chữ ký: trang 5, 6, 9) | — |
-| 04/12/2026 | Có EIN → mở ngân hàng Mỹ → tạo Stripe MỚI + PayPal Business đứng tên LLC (giữ nguyên Stripe CODECRATE cá nhân) | #1177 |
-
-## Lịch hằng năm
-
-| Nhắc | Việc | Hạn thật | Trễ thì |
-|---|---|---|---|
-| 15/02 | Form 5472 + pro forma 1120 qua 1040 Abroad (~$300) | 15/04 | phạt $25.000 |
-| 25/08 | Kiểm thẻ trước khi đại lý tự gia hạn $125 | 10/09 | mất đại lý → bang có thể giải thể |
-| 01/09 | Báo cáo năm Wyoming (phí bang tối thiểu $60; thuê Northwest $100 + $63) | 01/10 | trễ quá 60 ngày → bang giải thể |
-
-Năm 2027: nhắc #1178 (5472), #1324 (thẻ), #1323 (báo cáo năm). Làm xong mỗi mục thì hỏi Giám đốc có tạo nhắc năm sau không.
+Lịch hạn nằm ở tab **Lịch** (card followup thật: thêm/dời/đóng bằng `followup add|at|done`, trang tự theo).
 
 Không phải nộp: BOI FinCEN (công ty lập tại Mỹ được miễn từ 03/2025), thuế thu nhập bang (Wyoming không có).
 

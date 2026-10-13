@@ -1,0 +1,485 @@
+{
+ "tomTat": "The Crow's Cheese: Felix tries flattery, a crown and a stage; the crow sings without dropping the cheese — it knows the fable; Pip shares a cracker; the stork invites Felix to dinner.",
+ "beats": [
+  {
+   "ten": "Hook",
+   "mo_ta": "The biggest cheese",
+   "cam_xuc": 1
+  },
+  {
+   "ten": "Inciting",
+   "mo_ta": "The famous flattery trick",
+   "cam_xuc": 0
+  },
+  {
+   "ten": "Escalation",
+   "mo_ta": "Crown, stage — the crow won't budge",
+   "cam_xuc": -2
+  },
+  {
+   "ten": "Twist",
+   "mo_ta": "She sings — the cheese never falls",
+   "cam_xuc": 2
+  },
+  {
+   "ten": "Cliffhanger",
+   "mo_ta": "Moral + the stork's dinner invite",
+   "cam_xuc": 2
+  }
+ ],
+ "phanCanh": [
+  {
+   "ten": "The cheese",
+   "beat": "Hook",
+   "muc_tieu": "Felix spots the prize",
+   "xung_dot": "It's in someone else's beak",
+   "an_y": "He has a 'famous' plan",
+   "nhip": "fast",
+   "cam_xuc_dau": 1,
+   "cam_xuc_cuoi": 1
+  },
+  {
+   "ten": "Plan A",
+   "beat": "Inciting",
+   "muc_tieu": "Flatter the crow into singing",
+   "xung_dot": "The crow is suspicious",
+   "an_y": "Squinting eyes",
+   "nhip": "medium",
+   "cam_xuc_dau": 1,
+   "cam_xuc_cuoi": 0
+  },
+  {
+   "ten": "Plans B and C",
+   "beat": "Escalation",
+   "muc_tieu": "Bigger flattery",
+   "xung_dot": "Each gift fails",
+   "an_y": "The beak finally opens",
+   "nhip": "fast",
+   "cam_xuc_dau": 0,
+   "cam_xuc_cuoi": -2
+  },
+  {
+   "ten": "The fable",
+   "beat": "Twist",
+   "muc_tieu": "The crow turns the fable around",
+   "xung_dot": "Felix's trick is a known story",
+   "an_y": "Cheese in the foot",
+   "nhip": "medium",
+   "cam_xuc_dau": 1,
+   "cam_xuc_cuoi": 2
+  },
+  {
+   "ten": "Moral and tease",
+   "beat": "Cliffhanger",
+   "muc_tieu": "Moral + hook episode 3",
+   "xung_dot": "A polite stork with a tall jar",
+   "an_y": "The jar",
+   "nhip": "slow",
+   "cam_xuc_dau": 1,
+   "cam_xuc_cuoi": 2
+  }
+ ],
+ "canh": [
+  {
+   "canh": "Hook · the biggest cheese",
+   "goc_may": "",
+   "hanh_dong": "The crow tilts its head; the cheese glints",
+   "loi_thoai": "Felix had a plan. A famous one.",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 2.5,
+   "nhan_vat": [
+    "Crow",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Close-up of the crow on a vine branch holding a huge wedge of yellow cheese in its beak",
+   "prompt_video": "The crow tilts its head; the cheese glints",
+   "phan_doan": "The cheese",
+   "cam_xuc": 1,
+   "ky_thuat": {
+    "co_canh": "cu",
+    "goc": "thap",
+    "chuyen_dong": "day_vao",
+    "anh_sang": "sang_deu",
+    "mau": "pastel",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "vut"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "THE BIGGEST CHEESE",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "Felix had a plan. A famous one."
+    }
+   ]
+  },
+  {
+   "canh": "Hook · Felix below",
+   "goc_may": "",
+   "hanh_dong": "Felix rubs his paws together and grins",
+   "loi_thoai": "Ahem.",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Felix",
+    "Crow",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Wide shot of Felix the fox standing under the vine rubbing his paws, the crow with cheese on the branch above",
+   "prompt_video": "Felix rubs his paws together and grins",
+   "phan_doan": "The cheese",
+   "cam_xuc": 1,
+   "ky_thuat": {
+    "co_canh": "ws",
+    "goc": "thap",
+    "chuyen_dong": "tinh",
+    "anh_sang": "sang_deu",
+    "mau": "pastel",
+    "chuyen_canh": "cat"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "Felix",
+     "dien_xuat": "smooth, theatrical",
+     "loi": "Ahem."
+    }
+   ]
+  },
+  {
+   "canh": "Inciting · flattery",
+   "goc_may": "",
+   "hanh_dong": "Felix bows low; the crow only squints at him",
+   "loi_thoai": "Oh beautiful crow! Your feathers shine like the moon!",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 4.5,
+   "nhan_vat": [
+    "Felix",
+    "Crow",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium shot of Felix bowing deeply and dramatically toward the crow, one paw sweeping out",
+   "prompt_video": "Felix bows low; the crow only squints at him",
+   "phan_doan": "Plan A",
+   "cam_xuc": 0,
+   "ky_thuat": {
+    "co_canh": "ms",
+    "goc": "thap",
+    "chuyen_dong": "tinh",
+    "anh_sang": "sang_deu",
+    "mau": "pastel",
+    "chuyen_canh": "cat"
+   },
+   "trang_phuc": "",
+   "chu_man": "PLAN A: FLATTERY",
+   "thoai": [
+    {
+     "nhan_vat": "Felix",
+     "dien_xuat": "over-the-top charming",
+     "loi": "Oh beautiful crow! Your feathers shine like the moon!"
+    }
+   ]
+  },
+  {
+   "canh": "Escalation · sing for me",
+   "goc_may": "",
+   "hanh_dong": "Felix begs; the crow slowly shakes its head",
+   "loi_thoai": "Surely your voice is even lovelier. Sing for me!",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 4.5,
+   "nhan_vat": [
+    "Felix",
+    "Crow",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Two-shot of Felix pleading with clasped paws, the crow holding the cheese tightly with an unimpressed look",
+   "prompt_video": "Felix begs; the crow slowly shakes its head",
+   "phan_doan": "Plans B and C",
+   "cam_xuc": -1,
+   "ky_thuat": {
+    "co_canh": "two",
+    "goc": "ngang",
+    "chuyen_dong": "tinh",
+    "anh_sang": "sang_deu",
+    "mau": "pastel",
+    "chuyen_canh": "cat"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "Felix",
+     "dien_xuat": "pleading, sweet",
+     "loi": "Surely your voice is even lovelier. Sing for me!"
+    }
+   ]
+  },
+  {
+   "canh": "Escalation · a crown",
+   "goc_may": "",
+   "hanh_dong": "The crown slides over the crow's eyes; the crow doesn't move",
+   "loi_thoai": "Plan B.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 5,
+   "nhan_vat": [
+    "Felix",
+    "Crow",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium shot of Felix on tiptoe placing a tiny paper crown on the crow's head",
+   "prompt_video": "The crown slides over the crow's eyes; the crow doesn't move",
+   "phan_doan": "Plans B and C",
+   "cam_xuc": -1,
+   "ky_thuat": {
+    "co_canh": "ms",
+    "goc": "ngang",
+    "chuyen_dong": "tinh",
+    "anh_sang": "sang_deu",
+    "mau": "pastel",
+    "chuyen_canh": "nhay",
+    "am_thanh": [
+     "dap"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "PLAN B: A CROWN",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "Plan B."
+    }
+   ]
+  },
+  {
+   "canh": "Escalation · a stage",
+   "goc_may": "",
+   "hanh_dong": "The firefly spotlight swings onto the crow",
+   "loi_thoai": "The stage is yours!",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 5,
+   "nhan_vat": [
+    "Felix",
+    "Crow",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Wide shot of a tiny stage Felix built under the branch with a leaf curtain and a glowing firefly spotlight, Felix presenting it with open arms",
+   "prompt_video": "The firefly spotlight swings onto the crow",
+   "phan_doan": "Plans B and C",
+   "cam_xuc": -2,
+   "ky_thuat": {
+    "co_canh": "ws",
+    "goc": "ngang",
+    "chuyen_dong": "lui_ra",
+    "anh_sang": "sang_deu",
+    "mau": "pastel",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "vut"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "PLAN C: A STAGE",
+   "thoai": [
+    {
+     "nhan_vat": "Felix",
+     "dien_xuat": "grand, desperate",
+     "loi": "The stage is yours!"
+    }
+   ]
+  },
+  {
+   "canh": "Escalation · beak opens",
+   "goc_may": "",
+   "hanh_dong": "Felix holds his breath as the beak opens",
+   "loi_thoai": "",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 4,
+   "nhan_vat": [
+    "Felix",
+    "Crow",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Close-up of Felix's sparkling hopeful eyes as above him the crow's beak begins to open",
+   "prompt_video": "Felix holds his breath as the beak opens",
+   "phan_doan": "Plans B and C",
+   "cam_xuc": 1,
+   "ky_thuat": {
+    "co_canh": "cu",
+    "goc": "thap",
+    "chuyen_dong": "day_vao",
+    "anh_sang": "sang_deu",
+    "mau": "pastel",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "cuon_len"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": []
+  },
+  {
+   "canh": "Twist · she sings",
+   "goc_may": "",
+   "hanh_dong": "The crow sings; the cheese never falls; Felix's jaw drops",
+   "loi_thoai": "",
+   "am_thanh": "",
+   "thoi_luong_s": 6,
+   "phat_s": 5.5,
+   "nhan_vat": [
+    "Felix",
+    "Crow",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium shot of the crow singing beautifully with music notes around it, the cheese held safely in its foot, Felix below with his jaw dropped",
+   "prompt_video": "The crow sings; the cheese never falls; Felix's jaw drops",
+   "phan_doan": "The fable",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "co_canh": "ms",
+    "goc": "thap",
+    "chuyen_dong": "tinh",
+    "anh_sang": "sang_deu",
+    "mau": "pastel",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "dap"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "THE CHEESE NEVER FELL",
+   "thoai": []
+  },
+  {
+   "canh": "Twist · I know that story",
+   "goc_may": "",
+   "hanh_dong": "The crow winks and takes a bite",
+   "loi_thoai": "I know that story, Felix.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 4.5,
+   "nhan_vat": [
+    "Crow",
+    "Felix",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Close-up of the crow looking down at Felix with a smug wink, taking a bite of its cheese",
+   "prompt_video": "The crow winks and takes a bite",
+   "phan_doan": "The fable",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "co_canh": "cu",
+    "goc": "tren_xuong",
+    "chuyen_dong": "tinh",
+    "anh_sang": "sang_deu",
+    "mau": "pastel",
+    "chuyen_canh": "cat"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "Crow",
+     "dien_xuat": "dry, smug, amused",
+     "loi": "I know that story, Felix."
+    }
+   ]
+  },
+  {
+   "canh": "Ending · the moral",
+   "goc_may": "",
+   "hanh_dong": "Pip hands Felix half a cracker; Felix takes it with a small smile",
+   "loi_thoai": "Never trust a flatterer. And try not to be one.",
+   "am_thanh": "",
+   "thoi_luong_s": 5,
+   "phat_s": 5,
+   "nhan_vat": [
+    "Felix",
+    "Pip",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Two-shot of Felix sitting sulking in the grass while little Pip the mouse offers him half of a cracker",
+   "prompt_video": "Pip hands Felix half a cracker; Felix takes it with a small smile",
+   "phan_doan": "Moral and tease",
+   "cam_xuc": 1,
+   "ky_thuat": {
+    "co_canh": "two",
+    "goc": "ngang",
+    "chuyen_dong": "tinh",
+    "anh_sang": "sang_deu",
+    "mau": "pastel",
+    "chuyen_canh": "hoa_tan"
+   },
+   "trang_phuc": "",
+   "chu_man": "DON'T TRUST FLATTERY",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, witty male documentary-style narrator, dry comic timing, clear and unhurried",
+     "loi": "Never trust a flatterer. And try not to be one."
+    }
+   ]
+  },
+  {
+   "canh": "Cliffhanger · the stork",
+   "goc_may": "",
+   "hanh_dong": "The stork bows politely and walks on; Felix's grin grows",
+   "loi_thoai": "Dinner at my place tomorrow, Felix?",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 4,
+   "nhan_vat": [
+    "Felix",
+    "Stork",
+    "Vineyard"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Wide shot of the tall stork walking past Felix holding a tall narrow clay jar, Felix watching with a sly grin",
+   "prompt_video": "The stork bows politely and walks on; Felix's grin grows",
+   "phan_doan": "Moral and tease",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "co_canh": "ws",
+    "goc": "ngang",
+    "chuyen_dong": "truot_ngang",
+    "anh_sang": "sang_deu",
+    "mau": "pastel",
+    "chuyen_canh": "toi_den",
+    "am_thanh": [
+     "dap"
+    ]
+   },
+   "trang_phuc": "",
+   "chu_man": "NEXT: DINNER WITH THE STORK",
+   "thoai": [
+    {
+     "nhan_vat": "Stork",
+     "dien_xuat": "polite, elegant, a little too sweet",
+     "loi": "Dinner at my place tomorrow, Felix?"
+    }
+   ]
+  }
+ ]
+}

@@ -11,7 +11,7 @@ import path from 'node:path';
 import { uploadToR2, deleteFromR2, r2KeyFromUrl } from '../r2';
 import { khoaNho } from './anh-nho-may';
 import { CO_NHO } from './anh-nho';
-import { bangDung, boSetCuaShot, maKhungXam, mayDayDu, rangBuocTruc, shotSoTruc } from './bo-set-3d';
+import { bangDung, boSetCuaShot, maKhungXam, maPhan, mayDayDu, rangBuocTruc, shotSoTruc } from './bo-set-3d';
 import { locNhanh, type BoSet, type Canh, type KhungXam, type May3d } from './kieu';
 import { kemBienThe, mapCanh, mapNhanVat, type Db, type Row } from './doc-db';
 
@@ -20,15 +20,15 @@ export const mapBoSet = (r: Row): BoSet => ({ id: Number(r.id), project: String(
 
 const KICH_BAN = () => [path.join(process.cwd(), 'scripts/bo-set/dung-set.py'), '/opt/earns-marketing-os-v2/apps/xuong-video/scripts/bo-set/dung-set.py'].find((p) => existsSync(p));
 
-function chayBlender(vao: string, ra: string): Promise<{ ok: boolean; log: string }> {
+function chayBlender(vao: string, ra: string, them: Record<string, string> = {}): Promise<{ ok: boolean; log: string }> {
   return new Promise((res) => {
     const kb = KICH_BAN();
     if (!kb) return res({ ok: false, log: 'không thấy scripts/bo-set/dung-set.py' });
     // Có màn hình ảo Xvfb (box3) → Blender có OpenGL phần mềm → khung xám render bằng Workbench (~1–2 giây) thay Cycles CPU (~25 giây).
     const xvfb = existsSync('/usr/bin/xvfb-run');
     const lenh = ['blender', '-b', '--factory-startup', '-P', kb, '--', vao, ra];
-    const p = xvfb ? spawn('xvfb-run', ['-a', '-s', '-screen 0 1280x1024x24', ...lenh], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, XV_NHANH: '1' } })
-      : spawn(lenh[0]!, lenh.slice(1), { stdio: ['ignore', 'pipe', 'pipe'] });
+    const p = xvfb ? spawn('xvfb-run', ['-a', '-s', '-screen 0 1280x1024x24', ...lenh], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...them, XV_NHANH: '1' } })
+      : spawn(lenh[0]!, lenh.slice(1), { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...them } });
     let log = '';
     p.stdout.on('data', (d) => { log += d; }); p.stderr.on('data', (d) => { log += d; });
     p.on('error', (e) => res({ ok: false, log: `không chạy được blender: ${e.message}` }));
@@ -58,7 +58,7 @@ export async function donRenderCu(db: Db, urls: string[], thu = false): Promise<
 }
 
 /** Dựng khung xám cho các shot của tập (mặc định: shot có may_3d mà khung xám thiếu / cũ). tatCa = dựng lại hết. */
-export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolean; ids?: number[] } = {}): Promise<{ ok: true; data: { dung: number; loi: string[]; don: { xoa: number; giu: number } } } | { ok: false; loi: string }> {
+export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolean; ids?: number[] } = {}): Promise<{ ok: true; data: { dung: number; loi: string[]; don: { xoa: number; giu: number }; ly_do: string[] } } | { ok: false; loi: string }> {
   const t = (await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[];
   if (!t[0]) return { ok: false, loi: 'không thấy tập' };
   const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(t[0].phim_id)} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
@@ -73,12 +73,16 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
   const day = new Map<number, May3d>();
   for (const sid of new Set(ds.map((c) => boSetCuaShot(c, nv)).filter((x): x is number => !!x))) for (const [k, m] of mayDayDu(ds.filter((c) => boSetCuaShot(c, nv) === sid), laDoVat)) day.set(k, m);
   // Gom theo set: một lượt Blender / set (dựng set một lần, render mọi máy).
+  const lyDo: string[] = [];
   const theoSet = new Map<number, (Canh & { may_3d: May3d; goc: May3d; truc: ReturnType<typeof rangBuocTruc> })[]>();
   for (const c of ds) {
     const sid = boSetCuaShot(c, nv); const set = sid ? sets.get(sid) : undefined;
     if (!set || !c.may_3d || (o.ids && !o.ids.includes(c.id))) continue;
     const mDu = day.get(c.id) ?? c.may_3d;
     if (!o.tatCa && c.khung_xam?.ma === maKhungXam(set, mDu, nv)) continue;
+    // Vì sao dựng lại: phần đầu vào nào đổi so với lần dựng trước (lần dựng toàn tập không lý do = dấu hiệu dữ liệu bị ghi lại vô cớ).
+    const cu0 = c.khung_xam?.ma_phan; const moi = maPhan(set, mDu, nv);
+    lyDo.push(`#${c.thu_tu}:${!c.khung_xam ? 'mới' : !cu0 ? 'chưa có mã phần' : Object.keys(moi).filter((k) => cu0[k] !== moi[k as keyof typeof moi]).join('+') || 'tất cả'}`);
     // Máy tự động: bộ giải phải giữ đúng phía trục của shot so trục liền trước (cùng set, không cố ý vượt trục).
     const tr = c.may_3d.qua_truc ? null : shotSoTruc(ds, ds.indexOf(c));
     const truc = tr?.may_3d && boSetCuaShot(tr, nv) === set.id ? rangBuocTruc(tr as { id: number; may_3d: May3d }, c.may_3d, (t) => nv.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase())) : null;
@@ -89,34 +93,46 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     const set = sets.get(sid)!;
     const b = bangDung(set, shots, nv);
     if (!b.ok) { loi.push(`${set.ten}: ${b.loi}`); continue; }
+    // SONG SONG (anh 15/10/2026: "tối ưu rồi mà vẫn lâu"): chia shot cho tối đa 3 Blender chạy cùng lúc (box 4 nhân), thêm 1 Blender nhẹ chỉ vẽ
+    // mặt bằng đủ đường đi cả tập. Mỗi phần một thư mục ra; gộp kết quả. Ràng buộc trục giữa hai phần dùng máy cũ của shot trước (dat_truoc).
     const thu = await mkdtemp(path.join(tmpdir(), 'bo-set-'));
-    await writeFile(path.join(thu, 'vao.json'), JSON.stringify(b.bang));
-    const r = await chayBlender(path.join(thu, 'vao.json'), path.join(thu, 'ra'));
-    if (!r.ok) { loi.push(`${set.ten}: blender lỗi — ${r.log}`); continue; }
-    const kiem = JSON.parse(await readFile(path.join(thu, 'ra', 'kiem.json'), 'utf8')) as Record<string, KhungXam['kiem']>;
+    const soPhan = Math.max(1, Math.min(3, Math.ceil(shots.length / 3)));
+    const phan = Array.from({ length: soPhan }, (_, k) => shots.filter((_s, i) => i % soPhan === k));
+    const chay = async (ds0: typeof shots, ten: string, env: Record<string, string>) => {
+      const bb = bangDung(set, ds0, nv); if (!bb.ok) return { ok: false, log: bb.loi, ra: '' };
+      await writeFile(path.join(thu, `${ten}.json`), JSON.stringify(bb.bang));
+      const r = await chayBlender(path.join(thu, `${ten}.json`), path.join(thu, ten), env); return { ...r, ra: path.join(thu, ten) };
+    };
+    const ketQua = await Promise.all([...phan.map((p, k) => chay(p, `p${k}`, { XV_BO_MAT_BANG: '1' })), chay(shots, 'mb', { XV_CHI_MAT_BANG: '1' })]);
+    const hong = ketQua.find((r) => !r.ok);
+    if (hong) { loi.push(`${set.ten}: blender lỗi — ${hong.log}`); continue; }
+    const gop = async <T,>(tep: string) => Object.assign({}, ...(await Promise.all(ketQua.slice(0, -1).map(async (r) => JSON.parse(await readFile(path.join(r.ra, tep), 'utf8').catch(() => '{}'))))) ) as Record<string, T>;
+    const raCua = new Map<string, string>(); ketQua.slice(0, -1).forEach((r, k) => phan[k]!.forEach((c) => raCua.set(String(c.id), r.ra)));
+    const kiem = await gop<KhungXam['kiem']>('kiem.json');
     // Bộ giải máy đã dời máy tự động cho chủ thể thấy rõ → ghi máy mới vào shot (mã khung xám tính trên máy đã giải).
-    const thay = JSON.parse(await readFile(path.join(thu, 'ra', 'thay.json'), 'utf8').catch(() => '{}')) as Record<string, NonNullable<KhungXam['thay']>>;
-    const di = JSON.parse(await readFile(path.join(thu, 'ra', 'di.json'), 'utf8').catch(() => '{}')) as Record<string, NonNullable<KhungXam['di']>>;
-    const giai = JSON.parse(await readFile(path.join(thu, 'ra', 'giai.json'), 'utf8').catch(() => '{}')) as Record<string, { dat: number[] }>;
+    const thay = await gop<NonNullable<KhungXam['thay']>>('thay.json');
+    const di = await gop<NonNullable<KhungXam['di']>>('di.json');
+    const giai = await gop<{ dat: number[] }>('giai.json');
     // Ghi máy đã giải vào máy KHAI của shot (không ghi đồ để lại — chúng là trạng thái tính ra, không phải khai).
     for (const c of shots) { const g = giai[String(c.id)]; if (g) { c.may_3d = { ...c.may_3d, dat: g.dat }; c.goc = { ...c.goc, dat: g.dat }; await db.execute(sql`UPDATE xv_canh SET may_3d = ${JSON.stringify(c.goc)}::jsonb WHERE id = ${c.id}`); } }
     const luc = new Date().toISOString();
     for (const c of shots) {
       const ma = maKhungXam(set, c.may_3d, nv);
-      const len = async (duoi: string) => uploadToR2(`xuong-video/khung-xam/${c.id}-${ma}-${duoi}.png`, await readFile(path.join(thu, 'ra', `${c.id}-${duoi}.png`)), 'image/png');
+      const ra = raCua.get(String(c.id))!;
+      const len = async (duoi: string) => uploadToR2(`xuong-video/khung-xam/${c.id}-${ma}-${duoi}.png`, await readFile(path.join(ra, `${c.id}-${duoi}.png`)), 'image/png');
       const [xam, sau] = [await len('xam'), await len('sau')];
-      const mau = existsSync(path.join(thu, 'ra', `${c.id}-mau.png`)) ? await len('mau') : null;
-      const mauKet = existsSync(path.join(thu, 'ra', `${c.id}-mau-ket.png`)) ? await len('mau-ket') : null;
+      const mau = existsSync(path.join(ra, `${c.id}-mau.png`)) ? await len('mau') : null;
+      const mauKet = existsSync(path.join(ra, `${c.id}-mau-ket.png`)) ? await len('mau-ket') : null;
       if (!xam || !sau) { loi.push(`#${c.thu_tu}: không đẩy được ảnh lên kho`); continue; }
-      const kx: KhungXam = { ma, xam, sau, ...(mau ? { mau } : {}), ...(mauKet ? { mau_ket: mauKet } : {}), ...(di[String(c.id)] ? { di: di[String(c.id)] } : {}), luc, kiem: kiem[String(c.id)] ?? [], thay: thay[String(c.id)] ?? [] };
+      const kx: KhungXam = { ma, ma_phan: maPhan(set, c.may_3d, nv), xam, sau, ...(mau ? { mau } : {}), ...(mauKet ? { mau_ket: mauKet } : {}), ...(di[String(c.id)] ? { di: di[String(c.id)] } : {}), luc, kiem: kiem[String(c.id)] ?? [], thay: thay[String(c.id)] ?? [] };
       await db.execute(sql`UPDATE xv_canh SET khung_xam = ${JSON.stringify(kx)}::jsonb WHERE id = ${c.id}`);
       if (c.khung_xam) cu.push(c.khung_xam.xam, c.khung_xam.sau, c.khung_xam.mau ?? '', c.khung_xam.mau_ket ?? '');
       dung++;
     }
     const mbCu = set.mat_bang_url;
-    const mb = await uploadToR2(`xuong-video/bo-set/${sid}-mat-bang-${Date.now()}.png`, await readFile(path.join(thu, 'ra', 'mat-bang.png')), 'image/png');
+    const mb = await uploadToR2(`xuong-video/bo-set/${sid}-mat-bang-${Date.now()}.png`, await readFile(path.join(ketQua[ketQua.length - 1]!.ra, 'mat-bang.png')), 'image/png');
     if (mb) { await db.execute(sql`UPDATE xv_bo_set SET mat_bang_url = ${mb}, updated_at = now() WHERE id = ${sid}`); if (mbCu) cu.push(mbCu); }
   }
   const don = await donRenderCu(db, cu);
-  return { ok: true, data: { dung, loi, don } };
+  return { ok: true, data: { dung, loi, don, ly_do: lyDo } };
 }

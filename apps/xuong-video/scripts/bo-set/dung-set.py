@@ -13,6 +13,8 @@ RA = arg[1]
 CHI = set(arg[2].split(',')) if len(arg) > 2 and arg[2] else None
 os.makedirs(RA, exist_ok=True)
 CM = 0.01  # Blender tính mét
+CHI_MB = os.environ.get('XV_CHI_MAT_BANG') == '1'   # chỉ vẽ mặt bằng (lượt song song riêng), bỏ render từng shot
+BO_MB = os.environ.get('XV_BO_MAT_BANG') == '1'     # phần song song: mặt bằng vẽ tí hon cho nhanh (lượt mb vẽ bản đủ)
 NHANH = os.environ.get('XV_NHANH') == '1'   # có OpenGL (Xvfb trên box) → khung xám + mặt bằng bằng Workbench; độ sâu vẫn Cycles 1 mẫu
 
 def may_ve(s, dep):
@@ -147,7 +149,7 @@ def ve_mau(s, sh, ra):
     if not NHANH: return False
     nen = tuple(s.world.node_tree.nodes['Background'].inputs['Color'].default_value); sm = s.world.node_tree.nodes['Background'].inputs['Strength'].default_value
     anh_sang_mau(s, sh, True)
-    s.render.engine = 'BLENDER_EEVEE'; s.eevee.taa_render_samples = 24; s.view_settings.view_transform = 'AgX'
+    s.render.engine = 'BLENDER_EEVEE'; s.eevee.taa_render_samples = 12; s.view_settings.view_transform = 'AgX'
     s.render.filepath = ra; bpy.ops.render.render(write_still=True)
     anh_sang_mau(s, sh, False); s.view_settings.view_transform = 'Standard'
     s.world.node_tree.nodes['Background'].inputs['Color'].default_value = nen; s.world.node_tree.nodes['Background'].inputs['Strength'].default_value = sm
@@ -351,7 +353,7 @@ def vat_chu_the(sh):
 s = dung_set()
 shots = [sh for sh in DL['shot'] if not CHI or sh['ma'] in CHI]
 kiem = {}; giai = {}; thay = {}; di = {}
-for sh in shots:
+for sh in ([] if CHI_MB else shots):
     dat_tuy_chon(set(sh.get('them') or []))
     nv, nv_het = nhan_vat(sh)
     cam = may(s, sh['may'], f"cam {sh['ma']}")
@@ -420,6 +422,7 @@ ban = next(v for v in DL['vat'] if v['ten'] == 'Mặt bàn')
 cd = bpy.data.cameras.new('tren'); cd.type = 'ORTHO'; cd.ortho_scale = max(ban['co'][0], ban['co'][1] * 1200 / 800) * CM * 1.08
 o = bpy.data.objects.new('tren', cd); s.collection.objects.link(o); o.location = (ban['tam'][0] * CM, ban['tam'][1] * CM, 3); s.camera = o
 s.render.resolution_x, s.render.resolution_y = 1200, 800; s.cycles.samples = 8; s.cycles.use_denoising = True; may_ve(s, True)
+if BO_MB: s.render.resolution_x, s.render.resolution_y = 32, 24
 for v in [x for x in bpy.data.objects if x.name.startswith('Tường')]: v.hide_render = True
 s.render.filepath = f"{RA}/mat-bang.png"; bpy.ops.render.render(write_still=True)
 json.dump(kiem, open(f'{RA}/kiem.json', 'w'), ensure_ascii=False, indent=1)

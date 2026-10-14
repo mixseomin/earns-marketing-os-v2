@@ -132,9 +132,9 @@ def giai_may(s, cam, sh, nv):
         for dz in (0, 1.5, 4, 8):
             for dp in (0, 15, -15, 30, -30, 45, -45, 60, -60):
                 a = math.radians(dp); v = Vector((d0.x * math.cos(a) - d0.y * math.sin(a), d0.x * math.sin(a) + d0.y * math.cos(a), d0.z)) * xa
-                dat = g + v + Vector((0, 0, dz)); dat_may(cam, dat, g)
+                vt_may = g + v + Vector((0, 0, dz)); dat_may(cam, vt_may, g)
                 k = kiem_hinh_hoc(s, cam, sh, nv); h = hong(k)
-                if tot is None or h < tot[0]: tot = (h, [round(x, 1) for x in dat], k)
+                if tot is None or h < tot[0]: tot = (h, [round(x, 1) for x in vt_may], k)
                 if h == 0: return tot
     dat_may(cam, tot[1], g); return tot
 
@@ -146,8 +146,8 @@ for sh in shots:
     cam = may(s, sh['may'], f"cam {sh['ma']}")
     k = kiem_hinh_hoc(s, cam, sh, nv)
     if sh.get('giai') and hong(k):
-        _, dat, k = giai_may(s, cam, sh, nv)
-        giai[sh['ma']] = {'dat': dat, 'nhin': sh['may']['nhin']}; sh['may']['dat'] = dat
+        _, may_moi, k = giai_may(s, cam, sh, nv)   # KHÔNG đặt tên `dat` — trùng hàm dat() ở trên, đè mất hàm (lỗi 14/10/2026)
+        giai[sh['ma']] = {'dat': may_moi, 'nhin': sh['may']['nhin']}; sh['may']['dat'] = may_moi
     kiem[sh['ma']] = k
     s.view_layers[0].material_override = None; s.cycles.samples = 24
     s.render.filepath = f"{RA}/{sh['ma']}-xam.png"; bpy.ops.render.render(write_still=True)

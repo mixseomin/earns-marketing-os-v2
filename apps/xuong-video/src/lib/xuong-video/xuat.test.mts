@@ -29,7 +29,10 @@ assert.ok(!kh.args.join(' ').includes('c1b.mp4'));                   // nhánh B
 assert.ok(loc.includes('adelay=0:all=1'));                           // giọng shot 1 ở 0ms
 assert.ok(loc.includes('volume=0.8,adelay=2000:all=1'));             // hiệu ứng shot 3 ở 2000ms
 assert.ok(loc.includes('aloop=loop=-1') && loc.includes('volume=0.35,adelay=2000:all=1'));  // nhạc phân cảnh Demo từ 2s
-assert.ok(loc.includes('asplit=3[gm][gsc0][gsc1];[gsc0]apad[gsc];[gsc1]apad[gscx]') && loc.includes('[gsc]sidechaincompress='));   // nhạc nén theo giọng; dải điều khiển đệm im để nhạc không bị cắt khi giọng hết
+assert.ok(loc.includes('asplit=2[gm][gsc0];[gsc0]apad[gsc]') && loc.includes('[gsc]sidechaincompress=') && !loc.includes('[gscx]'));   // nhạc nén theo giọng; không có hiệu ứng → không tách nhánh [gscx] (phim #35: tách mà không dùng = ffmpeg dừng)
+// BẤT BIẾN: nhãn nào đồ thị sinh ra thì phải có chỗ dùng (trừ đầu ra cuối) — chặn cả lớp lỗi "output unconnected"
+const nhanTreo = (g: string) => { const ra = [...g.matchAll(/\[([a-z0-9_]+)\](?=\s*(;|$))/gim)].map((m) => m[1]!); return ra.filter((x) => !['vout', 'aout'].includes(x) && g.split(`[${x}]`).length < 3); };
+assert.deepStrictEqual(nhanTreo(loc), [], 'có nhãn ffmpeg sinh ra mà không dùng');
 { const i1 = kh.args.filter((a, i) => kh.args[i - 1] === '-i').indexOf('/tmp/t/c1.mp4'); assert.ok(i1 >= 0 && !loc.includes(`[${i1}:a]`)); }   // clip 1 có giọng riêng → không lấy tiếng clip
 assert.ok(!/\[\d+:a\]atrim=0:2\.5/.test(loc));                       // clip 4 không có luồng tiếng → không tham chiếu :a
 assert.ok(!loc.includes('enable=') && !kh.tep.some((x) => /\/pd_/.test(x.duong)));   // không vẽ phụ đề thoại lên hình (#1231)

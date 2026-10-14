@@ -343,13 +343,18 @@ export function keHoachXuat(o: {
   // dải trầm tụt -30/-42 LUFS so với -24/-27 của QC mẫu — nghe như mất nền (10/10/2026).
   const tron = (ds2: string[], ten: string) => { if (ds2.length === 1) { loc.push(`${ds2[0]}anull[${ten}]`); return `[${ten}]`; } loc.push(`${ds2.join('')}amix=inputs=${ds2.length}:normalize=0:dropout_transition=0[${ten}]`); return `[${ten}]`; };
   const tangAm: string[] = [];
+  // Nhánh [gscx] (giọng làm khoá nén tiếng hiệu ứng) CHỈ tách khi có hiệu ứng — tách mà không dùng thì ffmpeg báo "output unconnected" và
+  // không ra bản nào (phim #35 15/10/2026: giọng + nhạc, không SFX).
+  const coSfx = nhanhSfx.length > 0;
   if (nhanhGiong.length && nhanhNhac.length) {
     // apad: sidechaincompress dừng theo luồng NGẮN hơn — không đệm thì nhạc bị cắt khi câu giọng cuối hết (phim #5: tiếng 53,8s / hình 55,5s).
-    loc.push(`${tron(nhanhGiong, 'giong')}asplit=3[gm][gsc0][gsc1];[gsc0]apad[gsc];[gsc1]apad[gscx]`);
+    loc.push(`${tron(nhanhGiong, 'giong')}asplit=${coSfx ? 3 : 2}[gm][gsc0]${coSfx ? '[gsc1]' : ''};[gsc0]apad[gsc]${coSfx ? ';[gsc1]apad[gscx]' : ''}`);
     loc.push(`${tron(nhanhNhac, 'nhac')}[gsc]sidechaincompress=threshold=0.125:ratio=2:attack=30:release=400[nhacnen]`);
     tangAm.push('[gm]', '[nhacnen]');
-  } else if (nhanhGiong.length) { loc.push(`${tron(nhanhGiong, 'giong')}asplit=2[gm][gsc1];[gsc1]apad[gscx]`); tangAm.push('[gm]'); }
-  else tangAm.push(...nhanhNhac);
+  } else if (nhanhGiong.length) {
+    if (coSfx) loc.push(`${tron(nhanhGiong, 'giong')}asplit=2[gm][gsc1];[gsc1]apad[gscx]`); else loc.push(`${tron(nhanhGiong, 'giong')}anull[gm]`);
+    tangAm.push('[gm]');
+  } else tangAm.push(...nhanhNhac);
   // Tiếng hiệu ứng nén MẠNH dưới giọng (3:1, ngưỡng thấp, nhả nhanh): câu đọc luôn rõ, giữa hai câu cú đập vẫn đủ lực.
   if (nhanhSfx.length && nhanhGiong.length) { loc.push(`${tron(nhanhSfx, 'sfx')}[gscx]sidechaincompress=threshold=0.05:ratio=3:attack=5:release=250[sfxnen]`); tangAm.push('[sfxnen]'); }
   else tangAm.push(...nhanhSfx);

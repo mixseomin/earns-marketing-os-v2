@@ -122,6 +122,15 @@ export function lichNguoi(v) {
   }
   return ra.join(' · ') || '—';
 }
+/** Việc còn đang chạy theo lịch: timer có lần kế tiếp · cron luôn · LaunchAgent đã nạp. */
+export const dangChay = (v) => (v.loai === 'timer' ? !!v.tiep : v.loai === 'launchd' ? v.ket !== 'chưa nạp' : true);
+const phutCua = (l) => { const m = String(l).match(/^mỗi (\d+) (giây|phút|giờ|ngày)/); if (m) return Number(m[1]) * { giây: 1 / 60, phút: 1, giờ: 60, ngày: 1440 }[m[2]]; if (l === 'mỗi phút') return 1; if (/^mỗi giờ/.test(l)) return 60; if (l === 'chạy liền') return 0; return 1440; };
+/** NHỊP theo việc máy của một người (anh 14/10/2026 "việc đang chạy thì bật luôn nhân sự đó và set nhịp cho khớp"): số việc · số đang chạy ·
+ *  nhịp dày nhất (chữ lịch của việc chạy dày nhất) · lần chạy gần nhất trong mọi việc. */
+export function nhipMay(id, ds = viecMayCua(id)) {
+  const chay = ds.filter(dangChay); const nhanh = chay.map((v) => lichNguoi(v)).sort((a, b) => phutCua(a) - phutCua(b))[0] ?? '';
+  return { so: ds.length, chay: chay.length, nhanh, cuoi: ds.map((v) => v.cuoi).filter(Boolean).sort().pop() ?? '' };
+}
 /** Lỗi lần chạy cuối? timer: Result khác success; launchd: thoát ≠ 0; cron: không biết. */
 export const hong = (v) => (v.loai === 'timer' ? v.ket && v.ket !== 'success' : v.loai === 'launchd' ? /^thoát/.test(v.ket) : false);
 
@@ -135,12 +144,14 @@ if (process.argv[1]?.endsWith('viec-may.mjs')) {
     a.deepEqual(xep('viec-la-hoac', ng), { phong: 'bao-tri', nguoi: 'tp-bao-tri', chua_gan: true }, 'không khớp → Bảo trì, cờ chưa gắn');
     a.ok(BO_QUA.test('apt-daily-upgrade') && BO_QUA.test('com.google.GoogleUpdater.wake') && !BO_QUA.test('adfond-push'));
     a.ok(hong({ loai: 'timer', ket: 'exit-code' }) && !hong({ loai: 'timer', ket: 'success' }) && hong({ loai: 'launchd', ket: 'thoát 1' }) && !hong({ loai: 'cron', ket: '' }));
-    for (const p of new Set(QUY_TAC.map((q) => q[1]))) a.ok(fs.existsSync(path.join(GOC, 'cong-ty', 'phong', `${p}.md`)), `QUY_TAC trỏ phòng không có: ${p}`);
+    for (const p of new Set(QUY_TAC.map((q) => q[1]))) { a.ok(fs.existsSync(path.join(GOC, 'cong-ty', 'phong', `${p}.md`)), `QUY_TAC trỏ phòng không có: ${p}`); a.ok(nguoiPhong(p), `phòng ${p} chưa có nhân sự — việc máy không có người phụ trách`); }
     const L = (loai, lich) => lichNguoi({ loai, lich });
     a.equal(L('timer', 'OnUnitActiveUSec=1min · OnBootUSec=2min'), 'mỗi 1 phút'); a.equal(L('timer', 'OnCalendar=*-*-* *:00/10:00'), 'mỗi 10 phút');
     a.equal(L('timer', 'OnCalendar=*-*-* 01:00:00'), '08:00 hằng ngày'); a.equal(L('timer', 'OnCalendar=*-*-* 01:00:00 UTC'), '08:00 hằng ngày'); a.equal(L('cron', '30 0 * * *'), '07:30 hằng ngày'); a.equal(L('cron', '*/5 * * * *'), 'mỗi 5 phút');
     a.equal(L('cron', '40 */6 * * *'), 'mỗi 6 giờ'); a.equal(L('cron', '30 9 * * 1'), '16:30 mỗi thứ Hai'); a.equal(L('timer', 'OnCalendar=Mon *-*-* 03:00'), '10:00 thứ Hai'); a.equal(L('timer', 'OnCalendar=*-*-* 02,14:00:00 UTC'), '09:00, 21:00 hằng ngày');
     a.equal(L('timer', 'OnCalendar=Mon..Fri *-*-* 14:00:00'), '21:00 thứ Hai–Sáu'); a.equal(L('timer', 'OnCalendar=*-*-* *:17:00 UTC'), 'mỗi giờ (phút 17)'); a.equal(L('timer', 'OnCalendar=*-10-* 03:00'), '*-10-* 03:00', 'dạng lạ giữ nguyên');
+    const nm = nhipMay('x', [{ loai: 'timer', lich: 'OnCalendar=*-*-* 01:00', tiep: 'a', cuoi: '2026-10-14T01:00:00Z' }, { loai: 'cron', lich: '*/5 * * * *', cuoi: '2026-10-14T05:00:00Z' }, { loai: 'launchd', lich: 'lúc 09:00', ket: 'chưa nạp' }]);
+    a.deepEqual(nm, { so: 3, chay: 2, nhanh: 'mỗi 5 phút', cuoi: '2026-10-14T05:00:00Z' }, 'nhịp = việc chạy dày nhất; LaunchAgent chưa nạp không tính đang chạy');
     a.ok(nguoiPhong('bao-tri') === 'bao' && nguoiPhong('sach') === 'thao', 'người phụ trách = trưởng phòng');
     console.log('✓ viec-may: xếp phòng theo quy tắc, chatwhenbored ≠ adfond, không khớp → Bảo trì (chưa gắn), bỏ việc hệ điều hành, phòng trong quy tắc có thật');
   }

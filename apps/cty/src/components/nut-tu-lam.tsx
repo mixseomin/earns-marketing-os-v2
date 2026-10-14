@@ -9,7 +9,7 @@ export function NutTuLam({ id, bat, admin }: { id: string; bat: boolean; admin: 
   const [cho, chuyen] = useTransition(); const [loi, setLoi] = useState(''); const router = useRouter();
   const nhan = bat ? 'Tự làm đang bật — bấm để tắt' : 'Tự làm đã tắt — bấm để bật';
   // chỉ một chấm, không chữ (anh 14/10/2026): xanh nháy = đang bật, xám = đã tắt; admin bấm vào chấm để đổi
-  if (!admin) return <span className={`cty-den${bat ? ' bat' : ''}`} role="img" aria-label={bat ? 'Tự làm đang bật' : 'Tự làm đã tắt'} title={bat ? 'Tự làm đang bật' : 'Tự làm đã tắt'} />;
+  if (!admin) return <span className={`cty-den${bat ? ' bat' : ''}`} role="img" aria-label={bat ? 'Tự làm đang bật' : 'Tự làm đã tắt'} title={bat ? 'Tự làm đang bật (việc máy chạy theo lịch của máy)' : 'Tự làm đã tắt'} />;
   const doi = () => chuyen(async () => { setLoi(''); const r = await batTatNhip(id, !bat); if (!r.ok) setLoi(r.loi ?? 'Máy chủ từ chối.'); router.refresh(); });
   return (
     <span className="cty-den-o">

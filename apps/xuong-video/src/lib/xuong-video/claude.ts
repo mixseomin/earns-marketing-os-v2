@@ -37,7 +37,16 @@ const DongThoaiSchema = z.object({
   dien_xuat: z.string().describe('Diễn xuất trong ngoặc như kịch bản phim: hành động/biểu cảm khi nói — viết bằng NGÔN NGỮ PHIM (đi vào model giọng / âm thanh), vd "looking up, raising a hand", "whispering"; rỗng nếu không cần'),
   loi: z.string().describe('Lời nói, đúng giọng nhân vật, có ẩn ý khi hợp'),
 });
+const DanDungSchema = z.object({
+  bo_cuc: z.string().describe('Bố cục 3 lớp, TIẾNG ANH: foreground / midground / background, ai bên trái ai bên phải khung (đi vào prompt ảnh)'),
+  mo: z.string().describe('Trạng thái MỞ shot, TIẾNG ANH: vị trí từng nhân vật, đồ đang cầm/mất, biến dạng — phải khớp trạng thái KẾT của shot trước (luật 11)'),
+  ket: z.string().describe('Trạng thái KẾT shot, TIẾNG ANH — shot sau mở đúng từ đây'),
+  huong: z.string().describe('Hướng nhìn + hướng di chuyển trên màn, TIẾNG ANH (screen-left/right) — giữ trục 180° trong phân cảnh'),
+  muc_dich: z.string().describe('Tiếng Việt: khán giả cảm gì từ đầu → cuối shot, shot tồn tại để làm gì (luật 17)'),
+  motif: z.string().describe('Tiếng Việt: motif / cái gài hoặc cái trả có trong khung; rỗng nếu không'),
+});
 const ShotSchema = CanhSchema.extend({
+  dan_dung: DanDungSchema.describe('THẺ SHOT trước keyframe (khuôn shot list của ngành) — điền đủ, máy chặn keyframe khi thiếu'),
   trang_phuc: z.string().describe('Trang phục của người trong shot NẾU khác bộ đồ trong mô tả anchor, ghi rõ và đủ (tiếng Anh hoặc Việt), vd "chỉ mặc áo bra không gọng màu be và quần jean, KHÔNG áo ngoài, lộ vai". Quảng cáo đồ mặc (áo lót, đồ bơi, áo…): shot khoe/demo sản phẩm phải ghi rõ người CHỈ mặc sản phẩm ở phần đó, không áo khoác ngoài. Rỗng nếu giữ bộ đồ mặc định.'),
   thoai: z.array(DongThoaiSchema).describe('Thoại của shot theo dòng kiểu kịch bản phim chuyên nghiệp (mỗi lượt nói một dòng); rỗng nếu shot không có thoại. Trường loi_thoai để rỗng.'),
   cam_xuc: z.number().int().describe(`Cảm xúc KHÁN GIẢ ở CUỐI shot theo thang: ${Object.entries(CAM_XUC_KHAN_GIA).sort((a, b) => Number(a[0]) - Number(b[0])).map(([k, v]) => `${k} ${v}`).join(', ')}`),

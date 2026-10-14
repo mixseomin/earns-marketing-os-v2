@@ -207,11 +207,12 @@ const VIET_RIENG = /[ăâđêôơưĂÂĐÊÔƠƯảãạẻẽẹỉĩịỏõ�
 const TIENG_NGAN_DAU = /(^|[^\p{L}])(?=\p{L}{1,3}(?![\p{L}]))\p{L}*[àáèéìíòóùúýÀÁÈÉÌÍÒÓÙÚÝ]/u;
 export const coTiengViet = (s: string): boolean => VIET_RIENG.test(s) || TIENG_NGAN_DAU.test(s);
 /** Mọi chữ của một shot (nhãn, góc máy, hành động, âm thanh, phân đoạn, trang phục, prompt, chữ màn, thoại kể cả diễn xuất + người nói). */
-type ShotChu = Pick<Canh, 'thu_tu' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'canh' | 'goc_may' | 'hanh_dong' | 'am_thanh' | 'phan_doan' | 'trang_phuc' | 'prompt_anh' | 'prompt_video'>>;
+type ShotChu = Pick<Canh, 'thu_tu' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'canh' | 'goc_may' | 'hanh_dong' | 'am_thanh' | 'phan_doan' | 'trang_phuc' | 'prompt_anh' | 'prompt_video' | 'dan_dung'>>;
 /** Chữ của shot ĐI VÀO MODEL hoặc TỚI KHÁN GIẢ: chữ màn, lời + diễn xuất, prompt ảnh/video, trang phục, mô tả âm thanh; hành động chỉ khi
  *  shot chưa có prompt video (lúc đó hành động thay prompt). Nhãn cảnh, góc máy, phân đoạn là ghi chú nội bộ — luật tách cảnh bảo viết tiếng
  *  Việt — không tính (14/10/2026: tập 1 Tango & Lint bị chặn keyframe vì chính những ghi chú đó). */
 const chuShot = (c: ShotChu): string => [c.chu_man, c.prompt_video?.trim() ? '' : c.hanh_dong, c.am_thanh, c.trang_phuc, c.prompt_anh, c.prompt_video,
+  ...O_DAN_DUNG.filter((o) => o.vaoModel).map((o) => c.dan_dung?.[o.key] ?? ''),
   ...(c.thoai?.length ? c.thoai.flatMap((d) => [d.loi, d.dien_xuat, d.nhan_vat]) : [c.loi_thoai])].filter(Boolean).join(' ');
 /** Những shot còn BẤT KỲ chữ tiếng Việt nào khi phim không phải tiếng Việt (phim 'vi' không kiểm: chữ Anh xen là bình thường). */
 export const shotLechNgonNgu = (ngonNgu: string | undefined, canh: ShotChu[]): number[] =>
@@ -358,6 +359,25 @@ export function banHien(xuat: BanXuat[]): { chinh: BanXuat | null; ds: BanXuat[]
   const dich = moi.filter((b) => b.long_tieng && !daCo.has(b.long_tieng) && !!daCo.add(b.long_tieng));
   return { chinh: chinh[0] ?? null, ds: [...dich, ...chinh.slice(0, 6)] };
 }
+/** THẺ SHOT trước keyframe (14/10/2026 — khuôn shot list / storyboard panel của ngành): những thứ trước đây nhồi chung vào một câu hanh_dong.
+ *  bo_cuc · mo · ket · huong viết tiếng Anh (đi vào prompt ảnh + video: sinh-anh.ts › chuanBiKeyframe, sinh-video.ts › promptVideoCanh);
+ *  muc_dich · motif là ghi chú dựng (không vào model). Cổng: nhip-hinh.ts › kiemTheShot. */
+export type DanDung = {
+  /** bố cục 3 lớp: tiền / trung / hậu cảnh, ai bên trái, ai bên phải */ bo_cuc?: string;
+  /** trạng thái MỞ shot: vị trí, đồ đang cầm, biến dạng — phải khớp trạng thái kết của shot trước */ mo?: string;
+  /** trạng thái KẾT shot */ ket?: string;
+  /** hướng nhìn + hướng di chuyển trên màn (giữ trục 180°) */ huong?: string;
+  /** khán giả cảm gì từ đầu → cuối shot, shot tồn tại để làm gì */ muc_dich?: string;
+  /** motif / cái gài hoặc trả có trong khung */ motif?: string;
+};
+export const O_DAN_DUNG: { key: keyof DanDung; ten: string; mau: string; vaoModel: boolean }[] = [
+  { key: 'bo_cuc', ten: 'Bố cục 3 lớp', mau: 'Foreground: blurred yellow paper corner (left). Mid: Tango, screen-left. Background: the two glowing screens.', vaoModel: true },
+  { key: 'mo', ten: 'Trạng thái mở', mau: 'Tango crouched behind the mouse, empty-handed; gummy upright 3 steps to his right.', vaoModel: true },
+  { key: 'ket', ten: 'Trạng thái kết', mau: 'Tango face-down on the wood; gummy bouncing away toward the screens.', vaoModel: true },
+  { key: 'huong', ten: 'Hướng nhìn · hướng đi', mau: 'Tango looks and moves screen-right; gummy exits frame right.', vaoModel: true },
+  { key: 'muc_dich', ten: 'Mục đích cảm xúc', mau: 'Thèm → hụt hẫng buồn cười; khán giả hiểu Tango muốn gì.', vaoModel: false },
+  { key: 'motif', ten: 'Motif · gài / trả', mau: 'Viên kẹo đỏ (motif); gài: góc giấy vàng nhìn trộm.', vaoModel: false },
+];
 export type Canh = {
   id: number; tap_id: number; thu_tu: number; canh: string; goc_may: string; hanh_dong: string; loi_thoai: string; am_thanh: string; thoai_url: string | null; am_thanh_url: string | null; phan_doan: string; cam_xuc: number; ky_thuat: KyThuatShot; thoai: DongThoai[]; trang_phuc: string;
   /** Giây thực phát (cắt từ đầu clip); null = phát cả clip. chu_man = chữ trên màn. nhanh = '' thân chung | 'A'/'B'/'C' biến thể hook. */
@@ -367,6 +387,7 @@ export type Canh = {
   /** bản dịch chữ màn theo ngôn ngữ (ban-dich.ts › theoNgonNgu); goc lệch chu_man hiện tại = cũ. */
   chu_man_dich?: Record<string, { goc: string; chu: string }>;
   thoi_luong_s: number; nhan_vat: number[]; bien_the: number[]; prompt_anh: string; prompt_video: string; dang_sinh_anh?: boolean; dang_sinh_am?: boolean; dang_sinh_giong?: boolean; dang_sinh_sfx?: boolean;
+  dan_dung?: DanDung;
   keyframe_url: string | null; keyframe_uv: string[]; video_url: string | null; video_cuoi_url: string | null; nguon_video: Record<string, unknown>; video_phien_ban: { url: string; ban: 'nhap' | 'cuoi'; model?: string; job?: number; luc?: string }[]; trang_thai: TrangThaiCanh; loi: string; chi_phi_cents: number;
 };
 export type Job = {

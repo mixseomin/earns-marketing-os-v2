@@ -4,6 +4,7 @@
 // Hành động TRONG khung (nhân vật làm gì) thì luật kể chuyện của Claude lo (claude.ts › LUAT_KE_CHUYEN số 9) + câu "khung hình sống"
 // trong prompt video (sinh-video.ts). Thuần — tự kiểm: nhip-hinh.test.mts
 import type { KyThuatShot } from './dien-anh';
+import { O_DAN_DUNG, type DanDung } from './kieu';
 
 export const TIEN_TO_NHIP_HINH = 'nhịp hình: ';
 /** Tối đa bao nhiêu phần shot được để máy đứng yên (hài cần vài shot đứng yên để đúng nhịp, nhưng không quá nửa phim). */
@@ -70,6 +71,16 @@ export const soShotToiDa = (giay: number, p: { laQc?: boolean; khong_loi?: boole
 export const TIEN_TO_NHIP_DOC = 'nhịp đọc: ';
 export const TIEN_TO_DAN_KHONG_GIAN = 'dẫn không gian: ';
 export const TIEN_TO_VAI_KE = 'vai kể: ';
+export const TIEN_TO_THE_SHOT = 'thẻ shot: ';
+/** THẺ SHOT (kieu.ts › DanDung): phim truyện, mỗi shot phải có đủ bố cục 3 lớp, trạng thái mở/kết, hướng, mục đích cảm xúc trước khi sinh
+ *  keyframe (motif không bắt buộc). Quảng cáo không xét. */
+export function kiemTheShot(ds: { thu_tu: number; dan_dung?: DanDung }[], p: { laQc?: boolean }): string[] {
+  if (p.laQc) return [];
+  const can = O_DAN_DUNG.filter((o) => o.key !== 'motif');
+  const thieu = ds.map((c) => ({ c, t: can.filter((o) => !(c.dan_dung?.[o.key] ?? '').trim()) })).filter((x) => x.t.length);
+  if (!thieu.length) return [];
+  return [`${TIEN_TO_THE_SHOT}${thieu.length} shot thiếu ô thẻ (${thieu.slice(0, 5).map((x) => `#${x.c.thu_tu}: ${x.t.map((o) => o.ten.toLowerCase()).join(', ')}`).join(' · ')}${thieu.length > 5 ? '…' : ''})`];
+}
 /** VAI KỂ (14/10/2026 — "thiếu dẫn thời gian, góc người thứ 3, góc tổng thể, góc tâm trạng…"): một tập phim truyện phải kể bằng nhiều
  *  điểm nhìn, không chỉ chuỗi shot hành động. Đo trên ky_thuat.vai (dien-anh.ts › nhóm 'vai'). Quảng cáo và tập < 6 shot không xét. */
 export function kiemVaiKe(ds: { thu_tu: number; phan_doan?: string; ky_thuat?: KyThuatShot | null }[], p: { laQc?: boolean }): string[] {

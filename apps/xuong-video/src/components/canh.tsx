@@ -6,7 +6,7 @@ import { moNgan, linkTai } from './ngan-chung';
 import { dongThoai, tenNoi, LOI_DAN } from '@/lib/xuong-video/am-thanh';
 import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, chiTietKyThuat, type TheLoai } from '@/lib/xuong-video/dien-anh';
 import { suaCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, sinhVideoCanh, lamLaiTuKeyframe, sinhGiong, sinhAmThanh, xoaKeyframe, goiYAICanh, nangCapCanh, chonPhienBan, khopMiengCanh, luuShotKho } from '@/lib/actions';
-import { chuManHien, LOAI_NHAN_VAT, TRANG_THAI_CANH, doiBienThe, motBienTheMoiDoiTuong, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim } from '@/lib/xuong-video/kieu';
+import { O_DAN_DUNG, chuManHien, LOAI_NHAN_VAT, TRANG_THAI_CANH, doiBienThe, motBienTheMoiDoiTuong, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { chanVideo } from '@/lib/xuong-video/quy-trinh';
 import { Khoa, KqChay, O, Pill, Nut, Loi, AnhNho, DangSinh, mono, Menu, MucMenu, NhomNut } from './ui';
@@ -65,7 +65,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai }: 
   const [loiNut, setLoiNut] = useState('');
   const chay = async (k: string, fn: () => Promise<KqChay>) => { setLoiNut(''); setLoiNut(await chayTap(k, fn, true)); };
   const [mo, setMo] = useState(false);
-  const [tabF, setTabF] = useState<'noi_dung' | 'may' | 'ky_thuat'>('noi_dung');
+  const [tabF, setTabF] = useState<'noi_dung' | 'the' | 'may' | 'ky_thuat'>('noi_dung');
   const [f, setF] = useState<Canh>(c);
   const [ai, setAi] = useState(false);
   const [loiAi, setLoiAi] = useState('');
@@ -252,7 +252,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai }: 
         <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--line)' }}>
           {/* YDNI: 3 tab thay một form dài phải cuộn — nội dung (hay sửa nhất) mặc định; máy/cảm xúc; thời lượng + prompt (ít đụng). Thanh Lưu luôn thấy. */}
           <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
-            {([['noi_dung', 'Nội dung'], ['may', 'Máy · cảm xúc · âm'], ['ky_thuat', 'Thời lượng · prompt']] as const).map(([key, chu]) => <button key={key} type="button" className={`xv-btn${tabF === key ? ' chinh' : ''}`} onClick={() => setTabF(key)}>{chu}</button>)}
+            {([['noi_dung', 'Nội dung'], ['the', 'Thẻ shot'], ['may', 'Máy · cảm xúc · âm'], ['ky_thuat', 'Thời lượng · prompt']] as const).map(([key, chu]) => <button key={key} type="button" className={`xv-btn${tabF === key ? ' chinh' : ''}`} onClick={() => setTabF(key)}>{chu}</button>)}
           </div>
           {tabF === 'noi_dung' && (
             <div className="xv-grid">
@@ -277,6 +277,15 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai }: 
               </div>
               <O span label="Chữ trên màn" hint="≤ 8 từ: hook, số liệu, ưu đãi, CTA"><input className="xv-in" value={f.chu_man} onChange={(e) => setF({ ...f, chu_man: e.target.value })} placeholder="để trống = không có chữ" /></O>
               <O span label="Trang phục" hint="đè bộ đồ trong mô tả nhân vật, giữ mặt/tóc/dáng — vd: chỉ mặc áo bra, KHÔNG áo ngoài"><input className="xv-in" value={f.trang_phuc} onChange={(e) => setF({ ...f, trang_phuc: e.target.value })} placeholder="để trống = mặc như mô tả nhân vật" /></O>
+            </div>
+          )}
+          {tabF === 'the' && (
+            <div className="xv-grid">
+              {O_DAN_DUNG.map((o) => (
+                <O key={o.key} span label={`${o.ten}${o.vaoModel ? ' · tiếng Anh' : ''}`} hint={o.vaoModel ? 'đi vào prompt ảnh + video' : 'ghi chú dựng'}>
+                  <textarea className="xv-ta" rows={2} value={f.dan_dung?.[o.key] ?? ''} placeholder={o.mau} onChange={(e) => setF({ ...f, dan_dung: { ...(f.dan_dung ?? {}), [o.key]: e.target.value } })} style={o.vaoModel ? { fontFamily: 'var(--font-mono)' } : undefined} />
+                </O>
+              ))}
             </div>
           )}
           {tabF === 'may' && (
@@ -317,7 +326,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai }: 
             <Nut ly={!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY'} ban={ai || ban(k)} title="Claude đọc cảnh trước/sau + tuyến nhân vật + phong cách → điền đủ góc máy, hành động, lời thoại, prompt ảnh, prompt video khớp mạch. Chỉ điền vào form, anh xem rồi Lưu cảnh." onClick={() => void aiVietLai()}>{ai ? '… AI đang viết' : '✨ AI viết lại cảnh (khớp cảnh trước/sau)'}</Nut>
             <Loi>{loiAi}</Loi>
             <Nut ly={!dirty && 'chưa sửa'} ban={ban(k)} chinh onClick={() => void chay(k, async () => {
-              await suaCanh(c.id, { canh: f.canh, goc_may: f.goc_may, thoi_luong_s: f.thoi_luong_s, nhan_vat: f.nhan_vat, bien_the: f.bien_the, hanh_dong: f.hanh_dong, loi_thoai: f.loi_thoai, am_thanh: f.am_thanh, prompt_anh: f.prompt_anh, prompt_video: f.prompt_video, phan_doan: f.phan_doan, cam_xuc: f.cam_xuc, ky_thuat: f.ky_thuat, thoai: f.thoai, phat_s: f.phat_s, chu_man: f.chu_man, nhanh: f.nhanh, trang_phuc: f.trang_phuc });
+              await suaCanh(c.id, { canh: f.canh, goc_may: f.goc_may, thoi_luong_s: f.thoi_luong_s, nhan_vat: f.nhan_vat, bien_the: f.bien_the, hanh_dong: f.hanh_dong, loi_thoai: f.loi_thoai, am_thanh: f.am_thanh, prompt_anh: f.prompt_anh, prompt_video: f.prompt_video, phan_doan: f.phan_doan, cam_xuc: f.cam_xuc, ky_thuat: f.ky_thuat, dan_dung: f.dan_dung, thoai: f.thoai, phat_s: f.phat_s, chu_man: f.chu_man, nhanh: f.nhanh, trang_phuc: f.trang_phuc });
               setMo(false);
             })}>Lưu cảnh</Nut>
             <button type="button" className="xv-btn" onClick={() => { setF(c); setMo(false); }}>Huỷ</button>

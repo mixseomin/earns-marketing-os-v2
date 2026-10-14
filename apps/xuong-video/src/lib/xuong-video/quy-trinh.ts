@@ -10,7 +10,7 @@ import { chamKichBan } from './cham-kich-ban';
 import { kiemTieng } from './khop-giong';
 import type { Series, ThuNguoiXem } from './kieu';
 import { chanNguoiXem, TIEN_TO_NGUOI_XEM, TEN_NUT_NGUOI_XEM } from './nguoi-xem';
-import { kiemNhipHinh, kiemGiayDoc, kiemDanKhongGian, kiemVaiKe, TIEN_TO_NHIP_HINH } from './nhip-hinh';
+import { kiemNhipHinh, kiemGiayDoc, kiemDanKhongGian, kiemVaiKe, kiemTheShot, TIEN_TO_NHIP_HINH } from './nhip-hinh';
 
 export type Cong = 'keyframe' | 'video' | 'xuat';
 export type NhomQt = 'Tiền kỳ' | 'Sản xuất' | 'Hậu kỳ';
@@ -64,7 +64,7 @@ const chamTap = (tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' | 'thoi_lu
 /** canhA = nhánh hook A của tập — bản người xem được kiểm trên nhánh A (kiem-nguoi-xem.ts), nên cổng phải so đúng nhánh đó, kể cả khi đang
  *  sinh shot của nhánh B (truyền canh = nhánh B thì mã phiên bản luôn lệch → chặn oan). Mặc định = canh (tập không có nhánh). */
 /** boiCanh = id các anchor Bối cảnh của phim — có thì xét luật dẫn không gian (nhip-hinh.ts › kiemDanKhongGian). */
-export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'thu_tu' | 'hanh_dong' | 'ky_thuat' | 'nhan_vat'>>)[] = [], canhA = canh, boiCanh?: number[]): string[] {
+export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'thu_tu' | 'hanh_dong' | 'ky_thuat' | 'nhan_vat' | 'dan_dung'>>)[] = [], canhA = canh, boiCanh?: number[]): string[] {
   const out: string[] = [];
   // Người xem lần đầu phải hiểu câu chuyện trước khi tiêu tiền hình (nguoi-xem.ts) — mọi phim.
   out.push(...chanNguoiXem(tap.thu_nguoi_xem, canhA.map((c, i) => ({ ...c, thu_tu: c.thu_tu ?? i + 1, hanh_dong: c.hanh_dong ?? '' }))));
@@ -79,6 +79,7 @@ export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' 
   out.push(...kiemNhipHinh(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, ky_thuat: c.ky_thuat }))));
   // Nhịp đọc (nhip-hinh.ts › giayDoc): shot phim truyện phát quá ngắn → người xem chưa hiểu đã cắt.
   out.push(...kiemGiayDoc(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, phat_s: c.phat_s, thoi_luong_s: c.thoi_luong_s })), phim));
+  out.push(...kiemTheShot(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, dan_dung: c.dan_dung })), phim));
   out.push(...kiemVaiKe(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, phan_doan: c.phan_doan, ky_thuat: c.ky_thuat })), phim));
   if (boiCanh?.length) out.push(...kiemDanKhongGian(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, nhan_vat: c.nhan_vat, ky_thuat: c.ky_thuat })), boiCanh, phim));
   return out;

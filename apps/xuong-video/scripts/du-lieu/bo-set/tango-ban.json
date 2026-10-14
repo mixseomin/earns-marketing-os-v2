@@ -1,0 +1,536 @@
+{
+  "ten": "Cái bàn của Gã khổng lồ (Tango & Lint)",
+  "ghi_chu": "Đơn vị cm. Gốc (0,0,0) = giữa MÉP TRƯỚC mặt bàn; x sang phải (nhìn từ phía người ngồi), y vào sâu về phía tường, z lên trên. Đo theo ảnh mẫu The Desk (wide) + Desk Map (top-down): hai màn hình ĐẶT SONG SONG cạnh nhau, cùng quay mặt ra phía người ngồi, hơi chụm vào giữa.",
+  "vat": [
+    {
+      "ten": "Mặt bàn",
+      "hinh": "hop",
+      "tam": [
+        0,
+        35,
+        -3
+      ],
+      "co": [
+        160,
+        70,
+        3
+      ],
+      "mau": "#6b4a2e"
+    },
+    {
+      "ten": "Tường",
+      "hinh": "hop",
+      "tam": [
+        0,
+        73,
+        -3
+      ],
+      "co": [
+        220,
+        2,
+        140
+      ],
+      "mau": "#4a4a55"
+    },
+    {
+      "ten": "Left Monitor",
+      "goc": [
+        -32,
+        50
+      ],
+      "xoay": 8,
+      "phan": [
+        {
+          "hinh": "hop",
+          "tam": [
+            0,
+            3,
+            0
+          ],
+          "co": [
+            20,
+            18,
+            0.6
+          ],
+          "mau": "#c8c8cc"
+        },
+        {
+          "hinh": "hop",
+          "tam": [
+            0,
+            7,
+            0.6
+          ],
+          "co": [
+            6,
+            2,
+            14
+          ],
+          "mau": "#c8c8cc"
+        },
+        {
+          "hinh": "hop",
+          "tam": [
+            0,
+            0,
+            12
+          ],
+          "co": [
+            61,
+            2.5,
+            36
+          ],
+          "mau": "#1d1f24"
+        },
+        {
+          "hinh": "hop",
+          "tam": [
+            0,
+            -1.3,
+            13
+          ],
+          "co": [
+            59,
+            0.2,
+            34
+          ],
+          "mau": "#7c86ff",
+          "sang": 2
+        }
+      ]
+    },
+    {
+      "ten": "Yellow iMac",
+      "goc": [
+        32,
+        50
+      ],
+      "xoay": -8,
+      "phan": [
+        {
+          "hinh": "hop",
+          "tam": [
+            0,
+            3,
+            0
+          ],
+          "co": [
+            15,
+            15,
+            0.5
+          ],
+          "mau": "#e8d48a"
+        },
+        {
+          "hinh": "hop",
+          "tam": [
+            0,
+            5,
+            0.5
+          ],
+          "co": [
+            14,
+            2,
+            11
+          ],
+          "mau": "#e8d48a"
+        },
+        {
+          "hinh": "hop",
+          "tam": [
+            0,
+            0,
+            10
+          ],
+          "co": [
+            55,
+            1.2,
+            46
+          ],
+          "mau": "#f0dc8c"
+        },
+        {
+          "hinh": "hop",
+          "tam": [
+            0,
+            -0.7,
+            21
+          ],
+          "co": [
+            52,
+            0.2,
+            33
+          ],
+          "mau": "#7c86ff",
+          "sang": 2
+        }
+      ]
+    },
+    {
+      "ten": "White Keyboard",
+      "hinh": "hop",
+      "tam": [
+        2,
+        20,
+        0
+      ],
+      "co": [
+        28,
+        11.5,
+        1
+      ],
+      "mau": "#f2f2f2"
+    },
+    {
+      "ten": "Magic Mouse",
+      "hinh": "vom",
+      "tam": [
+        22,
+        19,
+        0
+      ],
+      "co": [
+        6,
+        11,
+        2.2
+      ],
+      "mau": "#fafafa"
+    },
+    {
+      "ten": "Notebook Stack",
+      "hinh": "hop",
+      "tam": [
+        -46,
+        24,
+        0
+      ],
+      "co": [
+        22,
+        30,
+        4
+      ],
+      "mau": "#e8e2d0",
+      "xoay": 5
+    },
+    {
+      "ten": "Orange Card",
+      "hinh": "hop",
+      "tam": [
+        58,
+        52,
+        0
+      ],
+      "co": [
+        9,
+        6,
+        0.3
+      ],
+      "mau": "#e07a2c"
+    },
+    {
+      "ten": "USB Hub",
+      "hinh": "hop",
+      "tam": [
+        58,
+        52,
+        0.3
+      ],
+      "co": [
+        10,
+        4.5,
+        1.3
+      ],
+      "mau": "#b8bcc4"
+    },
+    {
+      "ten": "Black Speaker",
+      "hinh": "cau",
+      "tam": [
+        -60,
+        63,
+        0
+      ],
+      "co": [
+        10,
+        10,
+        10
+      ],
+      "mau": "#222226"
+    },
+    {
+      "ten": "White Cable",
+      "hinh": "day",
+      "diem": [
+        [
+          36,
+          55,
+          0.3
+        ],
+        [
+          46,
+          47,
+          0.3
+        ],
+        [
+          52,
+          49,
+          0.3
+        ],
+        [
+          56,
+          52,
+          0.8
+        ]
+      ],
+      "ban_kinh": 0.3,
+      "mau": "#f4f4f4"
+    },
+    {
+      "ten": "Cable Jungle 1",
+      "hinh": "day",
+      "diem": [
+        [
+          -32,
+          57,
+          0.3
+        ],
+        [
+          -15,
+          64,
+          0.3
+        ],
+        [
+          5,
+          60,
+          0.3
+        ],
+        [
+          25,
+          66,
+          0.3
+        ],
+        [
+          32,
+          56,
+          0.3
+        ]
+      ],
+      "ban_kinh": 0.35,
+      "mau": "#222226"
+    },
+    {
+      "ten": "Cable Jungle 2",
+      "hinh": "day",
+      "diem": [
+        [
+          -50,
+          66,
+          0.3
+        ],
+        [
+          -25,
+          60,
+          0.3
+        ],
+        [
+          0,
+          67,
+          0.3
+        ],
+        [
+          30,
+          61,
+          0.3
+        ],
+        [
+          56,
+          54,
+          0.6
+        ]
+      ],
+      "ban_kinh": 0.3,
+      "mau": "#eeeeee"
+    }
+  ],
+  "nhan_vat_mau": {
+    "Tango": {
+      "hinh": "trung",
+      "co": [
+        2,
+        1.6,
+        2.6
+      ],
+      "mau": "#f08a3c"
+    },
+    "Gummy Bear": {
+      "hinh": "hop",
+      "co": [
+        1.4,
+        0.9,
+        2
+      ],
+      "mau": "#d0202a"
+    },
+    "Sticky (góc giấy)": {
+      "hinh": "hop",
+      "co": [
+        3,
+        3,
+        0.05
+      ],
+      "mau": "#f5e04a"
+    }
+  },
+  "shot": [
+    {
+      "ma": "2.1",
+      "so": 7,
+      "may": {
+        "dat": [
+          25,
+          4,
+          1.4
+        ],
+        "nhin": [
+          24,
+          30,
+          2
+        ],
+        "ong_kinh": 24
+      },
+      "nhan_vat": [
+        {
+          "ten": "Tango",
+          "tam": [
+            19.5,
+            25,
+            0
+          ]
+        },
+        {
+          "ten": "Gummy Bear",
+          "tam": [
+            29,
+            23,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "ma": "2.2",
+      "so": 8,
+      "may": {
+        "dat": [
+          26,
+          9,
+          1.2
+        ],
+        "nhin": [
+          26,
+          23,
+          1.5
+        ],
+        "ong_kinh": 35
+      },
+      "nhan_vat": [
+        {
+          "ten": "Tango",
+          "tam": [
+            23,
+            23,
+            1
+          ]
+        },
+        {
+          "ten": "Gummy Bear",
+          "tam": [
+            29,
+            23,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "ma": "2.3",
+      "so": 9,
+      "may": {
+        "dat": [
+          37,
+          13,
+          1.8
+        ],
+        "nhin": [
+          22,
+          36,
+          2
+        ],
+        "ong_kinh": 35
+      },
+      "nhan_vat": [
+        {
+          "ten": "Tango",
+          "tam": [
+            31,
+            27,
+            0
+          ],
+          "nam": true
+        },
+        {
+          "ten": "Gummy Bear",
+          "tam": [
+            20,
+            38,
+            0.5
+          ]
+        }
+      ]
+    },
+    {
+      "ma": "2.4",
+      "so": 10,
+      "may": {
+        "dat": [
+          -22,
+          14,
+          2.2
+        ],
+        "nhin": [
+          31,
+          25.5,
+          1
+        ],
+        "ong_kinh": 50
+      },
+      "nhan_vat": [
+        {
+          "ten": "Sticky (góc giấy)",
+          "tam": [
+            -14,
+            15.3,
+            0.05
+          ]
+        },
+        {
+          "ten": "Tango",
+          "tam": [
+            31,
+            27,
+            0
+          ],
+          "nam": true
+        },
+        {
+          "ten": "Gummy Bear",
+          "tam": [
+            26,
+            40,
+            0.5
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,147 @@
+# BỘ SET 3D (previs) — 14/10/2026, anh: "cần giải pháp kỹ thuật tuyệt đối về bối cảnh và bố trí đồ đạc".
+# Mỗi keyframe trước đây do mô hình ảnh TỰ VẼ LẠI cả căn phòng từ chữ → màn hình lúc song song lúc quay lưng, nhân vật nhảy trước/sau bàn phím.
+# Ở đây bộ set là DỮ LIỆU (toạ độ cm trong scripts/du-lieu/bo-set/<set>.json): dựng bằng khối hình học, đặt máy ảo theo từng shot,
+# render ra (1) khung xám — bố trí đúng tuyệt đối, (2) bản đồ độ sâu — khung xương cho mô hình ảnh, (3) mặt bằng nhìn từ trên có vị trí máy.
+# Chạy trên box (Blender không giao diện):
+#   blender -b --factory-startup -P apps/xuong-video/scripts/bo-set/dung-set.py -- <set.json> <thư mục ra> [ma shot,...]
+import bpy, json, math, sys, os
+from mathutils import Vector, Euler
+
+arg = sys.argv[sys.argv.index('--') + 1:]
+DL = json.load(open(arg[0], encoding='utf-8'))
+RA = arg[1]
+CHI = set(arg[2].split(',')) if len(arg) > 2 and arg[2] else None
+os.makedirs(RA, exist_ok=True)
+CM = 0.01  # Blender tính mét
+
+def mau(h, sang=0):
+    h = h.lstrip('#'); rgb = tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    k = f'm_{h}_{sang}'
+    if k in bpy.data.materials: return bpy.data.materials[k]
+    m = bpy.data.materials.new(k); m.use_nodes = True
+    b = m.node_tree.nodes['Principled BSDF']
+    b.inputs['Base Color'].default_value = (*[c ** 2.2 for c in rgb], 1)
+    b.inputs['Roughness'].default_value = 0.6
+    if sang:
+        b.inputs['Emission Color'].default_value = (*[c ** 2.2 for c in rgb], 1)
+        b.inputs['Emission Strength'].default_value = sang
+    return m
+
+def dat(o, m, ten):
+    o.name = ten; o.data.materials.clear(); o.data.materials.append(m); return o
+
+def khoi(p, ten, goc=(0, 0), xoay=0):
+    """Một khối: tam = (x, y, z ĐÁY) tương đối với gốc nhóm; co = (rộng x, sâu y, cao z)."""
+    h = p['hinh']; m = mau(p['mau'], p.get('sang', 0))
+    if h == 'day':
+        cv = bpy.data.curves.new(ten, 'CURVE'); cv.dimensions = '3D'; cv.bevel_depth = p['ban_kinh'] * CM; cv.bevel_resolution = 2
+        sp = cv.splines.new('NURBS'); sp.points.add(len(p['diem']) - 1)
+        for i, d in enumerate(p['diem']): sp.points[i].co = (d[0] * CM, d[1] * CM, d[2] * CM, 1)
+        sp.use_endpoint_u = True; sp.order_u = 3
+        o = bpy.data.objects.new(ten, cv); bpy.context.collection.objects.link(o); cv.materials.append(m); return o
+    x, y, z = p['tam']; w, d, c = p['co']
+    a = math.radians(xoay); gx = goc[0] + x * math.cos(a) - y * math.sin(a); gy = goc[1] + x * math.sin(a) + y * math.cos(a)
+    if h == 'hop':
+        bpy.ops.mesh.primitive_cube_add(size=1, location=(gx * CM, gy * CM, (z + c / 2) * CM))
+    elif h in ('cau', 'trung'):
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=0.5, location=(gx * CM, gy * CM, (z + c / 2) * CM))
+    elif h == 'vom':
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=0.5, location=(gx * CM, gy * CM, z * CM))
+        c = c * 2
+    o = bpy.context.object
+    o.scale = (w * CM, d * CM, c * CM)
+    o.rotation_euler = Euler((0, 0, math.radians(xoay + p.get('xoay', 0))))
+    return dat(o, m, ten)
+
+def dung_set():
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    for v in DL['vat']:
+        if 'phan' in v:
+            for i, p in enumerate(v['phan']): khoi(p, f"{v['ten']} {i}", v['goc'], v.get('xoay', 0))
+        else: khoi(v, v['ten'])
+    s = bpy.context.scene
+    w = bpy.data.worlds.new('w'); s.world = w; w.use_nodes = True
+    w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.25, 0.26, 0.3, 1)
+    w.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.8
+    bpy.ops.object.light_add(type='SUN', location=(0, 0, 2)); bpy.context.object.data.energy = 3
+    bpy.context.object.rotation_euler = Euler((math.radians(50), math.radians(-20), math.radians(20)))
+    s.render.engine = 'CYCLES'; s.cycles.device = 'CPU'; s.cycles.samples = 24; s.cycles.use_denoising = False
+    s.render.resolution_x, s.render.resolution_y = 540, 960
+    s.view_settings.view_transform = 'Standard'
+    return s
+
+def nhan_vat(sh):
+    out = []
+    for nv in sh.get('nhan_vat', []):
+        mau_nv = DL['nhan_vat_mau'][nv['ten']]
+        p = {**mau_nv, 'tam': nv['tam']}
+        if nv.get('nam'): p['co'] = [mau_nv['co'][0], mau_nv['co'][2], mau_nv['co'][1]]   # nằm sấp
+        out.append(khoi(p, f"NV {nv['ten']}"))
+    return out
+
+def may(s, m, ten='cam'):
+    cd = bpy.data.cameras.new(ten); cd.lens = m['ong_kinh']; cd.sensor_fit = 'AUTO'; cd.clip_start = 0.002
+    o = bpy.data.objects.new(ten, cd); s.collection.objects.link(o)
+    o.location = Vector(m['dat']) * CM
+    o.rotation_euler = (Vector(m['nhin']) * CM - o.location).to_track_quat('-Z', 'Y').to_euler()
+    s.camera = o; return o
+
+def do_sau(s, gan, xa):
+    """Vật liệu đè: độ sâu theo máy (gần trắng → xa đen) — bản đồ độ sâu cho ControlNet."""
+    m = bpy.data.materials.new('do_sau'); m.use_nodes = True; nt = m.node_tree; nt.nodes.clear()
+    cam = nt.nodes.new('ShaderNodeCameraData'); mr = nt.nodes.new('ShaderNodeMapRange'); em = nt.nodes.new('ShaderNodeEmission'); ra = nt.nodes.new('ShaderNodeOutputMaterial')
+    mr.inputs['From Min'].default_value = gan; mr.inputs['From Max'].default_value = xa; mr.inputs['To Min'].default_value = 1; mr.inputs['To Max'].default_value = 0
+    nt.links.new(cam.outputs['View Distance'], mr.inputs['Value']); nt.links.new(mr.outputs['Result'], em.inputs['Color']); nt.links.new(em.outputs['Emission'], ra.inputs['Surface'])
+    return m
+
+def kiem_hinh_hoc(s, cam, sh, nv_obj):
+    """Kiểm BẰNG SỐ (không bằng mắt): mỗi nhân vật trong khung không, chiếm bao nhiêu % chiều cao khung, bị vật nào che (bắn tia từ máy
+    tới 9 điểm trên thân — che > nửa số điểm = bị che)."""
+    from bpy_extras.object_utils import world_to_camera_view
+    dg = bpy.context.evaluated_depsgraph_get(); out = []
+    for o in nv_obj:
+        bb = [o.matrix_world @ Vector(c) for c in o.bound_box]
+        tam = sum(bb, Vector()) / 8
+        diem = [tam] + [tam.lerp(c, 0.7) for c in bb]
+        che = {}; trong = 0; ys = []
+        for p in diem:
+            v = world_to_camera_view(s, cam, p); ys.append(v.y)
+            if 0 <= v.x <= 1 and 0 <= v.y <= 1 and v.z > 0: trong += 1
+            d = p - cam.location; kc = d.length
+            hit, loc, _, _, ob, _ = s.ray_cast(dg, cam.location, d.normalized(), distance=kc - 0.0005)
+            if hit and ob and ob.name != o.name: che[ob.name] = che.get(ob.name, 0) + 1
+        bi_che = {k: v for k, v in che.items() if v > len(diem) / 2}
+        out.append({'nhan_vat': o.name[3:], 'trong_khung': trong >= len(diem) / 2, 'cao_khung_pt': round((max(ys) - min(ys)) * 100, 1), 'bi_che_boi': sorted(bi_che)})
+    return out
+
+s = dung_set()
+shots = [sh for sh in DL['shot'] if not CHI or sh['ma'] in CHI]
+kiem = {}
+for sh in shots:
+    nv = nhan_vat(sh)
+    cam = may(s, sh['may'], f"cam {sh['ma']}")
+    kiem[sh['ma']] = kiem_hinh_hoc(s, cam, sh, nv)
+    s.view_layers[0].material_override = None; s.cycles.samples = 24
+    s.render.filepath = f"{RA}/{sh['ma']}-xam.png"; bpy.ops.render.render(write_still=True)
+    s.view_layers[0].material_override = do_sau(s, 0.02, 0.9); s.cycles.samples = 4
+    s.render.filepath = f"{RA}/{sh['ma']}-sau.png"; bpy.ops.render.render(write_still=True)
+    s.view_layers[0].material_override = None
+    for o in nv: bpy.data.objects.remove(o, do_unlink=True)
+
+# MẶT BẰNG nhìn thẳng từ trên: bộ set + vị trí máy của từng shot (nón cam chỉ hướng nhìn) — để duyệt bố trí bằng mắt người một lần cho cả cảnh.
+for sh in shots:
+    d = Vector(sh['may']['nhin']) - Vector(sh['may']['dat']); d.z = 0; d.normalize()
+    bpy.ops.mesh.primitive_cone_add(radius1=1.6 * CM, depth=4 * CM, location=(Vector(sh['may']['dat']) * CM) + Vector((0, 0, 0.06)))
+    c = bpy.context.object; c.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler(); dat(c, mau('#ff2d55', 3), f"may {sh['ma']}")
+    for nv in sh.get('nhan_vat', []):
+        mau_nv = DL['nhan_vat_mau'][nv['ten']]; khoi({**mau_nv, 'tam': [nv['tam'][0], nv['tam'][1], 0]}, f"mb {sh['ma']} {nv['ten']}")
+    t = bpy.data.curves.new(f"t{sh['ma']}", 'FONT'); t.body = f"#{sh['so']}"; t.size = 3 * CM
+    to = bpy.data.objects.new(f"t{sh['ma']}", t); s.collection.objects.link(to); to.location = (Vector(sh['may']['dat']) + Vector((1.5, -4, 0.2))) * CM; t.materials.append(mau('#ffffff', 5))
+cd = bpy.data.cameras.new('tren'); cd.type = 'ORTHO'; cd.ortho_scale = 1.75
+o = bpy.data.objects.new('tren', cd); s.collection.objects.link(o); o.location = (0, 0.36, 2); s.camera = o
+s.render.resolution_x, s.render.resolution_y = 1200, 700; s.cycles.samples = 16
+for v in [x for x in bpy.data.objects if x.name.startswith('Tường')]: v.hide_render = True
+s.render.filepath = f"{RA}/mat-bang.png"; bpy.ops.render.render(write_still=True)
+json.dump(kiem, open(f'{RA}/kiem.json', 'w'), ensure_ascii=False, indent=1)
+print('KIEM', json.dumps(kiem, ensure_ascii=False))
+print('XONG', [sh['ma'] for sh in shots])

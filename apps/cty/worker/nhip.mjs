@@ -127,5 +127,5 @@ if (process.argv[1]?.endsWith('nhip.mjs')) {
   // VIỆC MÁY (worker/viec-may.mjs): dò lại timer / cron / LaunchAgent mọi máy mỗi 10 phút để bảng nhân sự thấy việc mới + lần chạy cuối
   const vm = await import('./viec-may.mjs'); let tuoi = Infinity; try { tuoi = Date.now() - fs.statSync(vm.TEP()).mtimeMs; } catch { /* chưa có ảnh */ }
   // admin vừa đổi lịch một việc trên box → áp + dò lại ngay, không đợi lượt 10 phút
-  if (tuoi > 9.5 * 60_000 || vm.choApBox()) try { console.log(`việc máy: ${vm.gom()}`); } catch (e) { console.error(`✗ việc máy: ${e.message}`); }
+  if (tuoi > 9.5 * 60_000 || vm.choApBox() || vm.choGomMac()) try { console.log(`việc máy: ${vm.gom()}`); } catch (e) { console.error(`✗ việc máy: ${e.message}`); }
 }

@@ -98,6 +98,11 @@ export function gom() {
 export function docViecMay() { try { return JSON.parse(fs.readFileSync(TEP(), 'utf8')); } catch { return null; } }
 /** Có ý muốn đổi lịch đang chờ áp trên BOX (bộ chạy nhịp gom ngay, không đợi lượt 10 phút; Mac tự áp lúc đẩy ảnh). */
 export const choApBox = () => { const vm = docViecMay(); const s = docLich(); return Object.entries(s).some(([id, x]) => choAp(x) && ['box3', 'box1'].includes(vm?.ds.find((v) => v.id === id)?.may)); };
+/** Mac vừa đẩy ảnh có kết quả áp lịch mà ảnh chụp chung chưa gộp → gom ngay để ô chỉnh hết "chờ áp". */
+export function choGomMac() {
+  const thu = path.join(DATA(), 'may'); let moc = 0; try { moc = fs.statSync(TEP()).mtimeMs; } catch { return true; }
+  try { return fs.readdirSync(thu).some((f) => /^launchd-.+\.json$/.test(f) && fs.statSync(path.join(thu, f)).mtimeMs > moc && (JSON.parse(fs.readFileSync(path.join(thu, f), 'utf8')).ap ?? []).length > 0); } catch { return false; }
+}
 /** Việc máy một người phụ trách (bảng nhân sự). */
 export const viecMayCua = (id) => (docViecMay()?.ds ?? []).filter((v) => v.nguoi === id);
 // Lịch bằng chữ người đọc, giờ VN (box chạy giờ UTC). Dạng lạ giữ nguyên chữ máy.

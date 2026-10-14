@@ -2,6 +2,7 @@
 //   --canh=73,74                 : id shot (bắt buộc). Mặc định chỉ ƯỚC LƯỢNG (0đ), không chạy gì.
 //   --xem                        : (0đ) in đúng prompt video sẽ gửi cho từng shot + cổng ngôn ngữ — kiểm trước khi tiêu tiền.
 //   --mo-hinh=<key>              : model ảnh cho --keyframe (so A/B, vd gemini-nano-banana-2.1); mặc định theo kinh thánh.
+//   --video --thu                : sinh THỬ video ngoài quy trình (như nút 🧪 Sinh thử), ảnh cuối = keyframe kết nếu có
 //   --keyframe-ket               : sinh keyframe KẾT (khung cuối từ khung màu chỗ kết của 3D) → keyframe_ket, video nhận làm ảnh cuối
 //   --keyframe                   : sinh lại 1 keyframe cho mỗi shot, đợi xong, CHỌN ảnh mới làm keyframe đang dùng (ảnh cũ vẫn trong dải ứng viên,
 //                                  ↶ Hoàn tác được). 09/10/2026: không chọn → video chạy từ keyframe cũ sai quần, mất $0,40.
@@ -114,7 +115,8 @@ if (arg('video')) {
   while ((cho.length || chay.size) && Date.now() - t0 < 50 * 60_000 && soLanCho <= 5 && !dungHan) {
     while (cho.length && chay.size < toiDa && Date.now() >= nghi) {
       const bc = cho.shift()!;
-      const r = await batDauVideoCanh(db, bc.canh.id, moHinhVideo);
+      // --thu: SINH THỬ ngoài quy trình (cùng hàm nút 🧪 Sinh thử) — bỏ cổng duyệt / kiểm khung / animatic; job ghi 🧪 THỬ.
+      const r = await batDauVideoCanh(db, bc.canh.id, moHinhVideo, 'nhap', false, arg('thu'));
       if (r.ok) { chay.set(r.data, bc.canh.thu_tu); jobs.push(r.data); console.log(`  → gửi #${bc.canh.thu_tu}`); }
       else if (/THEO NGÀY/.test(r.loi)) { console.log(`  ✗ dừng: ${r.loi}`); cho.unshift(bc); dungHan = true; break; }
       else if (/rate limit|hạn mức|429/i.test(r.loi)) { cho.unshift(bc); soLanCho++; if (soLanCho > 5) { console.log(`  ✗ dừng: Google vẫn báo hạn mức sau 5 lần đợi — ${r.loi}`); break; } nghi = Date.now() + 60_000; console.log(`  … hạn mức, đợi 60s (#${bc.canh.thu_tu}, lần ${soLanCho})`); }

@@ -59,7 +59,7 @@ export async function chepPhim(db: Db, nguonId: number, o: { ten: string; gt: Re
     // phim
     const ktCu = (d.phim.kinh_thanh ?? {}) as KinhThanh;
     const ktMoi: KinhThanh = { ...dienSau(ktNoiDung(ktCu), gt), luu_tru: false,
-      template: o.laTemplate ? { mo_ta: ktCu.template?.mo_ta ?? '', o: ktCu.template?.o ?? {} } : null,
+      template: o.laTemplate ? { mo_ta: ktCu.template?.mo_ta ?? '', o: ktCu.template?.o ?? {}, thu_tu: ktCu.template?.thu_tu ?? [] } : null,
       tu_template: o.laTemplate ? null : { id: nguonId, ten: s(d.phim.ten), gia_tri: gt, luc: new Date().toISOString() } };
     const phimId = await chen(t, 'xv_phim', { ...d.phim, ten: o.ten, mo_ta: dienSau(s(d.phim.mo_ta), gt), kinh_thanh: ktMoi, poster_url: null, poster_uv: [] });
     // anchor + biến thể: anchor đổi chữ → ảnh biến thể cũ không còn đúng

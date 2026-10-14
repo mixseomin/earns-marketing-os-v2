@@ -21,19 +21,20 @@ function useTemplate(phimId: number) {
 }
 
 /** Kho template ở đầu trang: mỗi template một thẻ — dùng khi nào, số shot, nút Dùng (form điền) / Sửa (mở như phim). */
-export function KhoTemplate({ ds, onMo }: { ds: Phim[]; onMo: (id: number) => void }) {
+export function KhoTemplate({ ds: dsVao, onMo }: { ds: Phim[]; onMo: (id: number) => void }) {
   const [dung, setDung] = useState<Phim | null>(null);
+  const ds = [...dsVao].sort((a, b) => a.id - b.id);   // thứ tự dựng (khung chính trước), không theo lần sửa gần nhất
   return (
     <div className="xv-panel">
       <h3>🧩 Template<small>chọn một khung → điền sản phẩm / nhân vật / câu chuyện → ra phim mới (0đ, chưa sinh gì)</small></h3>
       {ds.length === 0 ? <div style={mono}>Chưa có template. Mở một phim đạt › ⋯ › 🧩 Lưu thành template, rồi gõ {'{{ô}}'} vào chỗ cần đổi.</div> : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
           {ds.map((p) => (
-            <div key={p.id} className="xv-canh" style={{ display: 'grid', gap: 6, alignContent: 'start' }}>
+            <div key={p.id} className="xv-canh" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <b style={{ fontSize: 13 }}>{tenGon(p.ten)}</b>
               <div style={{ fontSize: 12, color: 'var(--fg-2)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={p.kinh_thanh?.template?.mo_ta ?? ''}>{p.kinh_thanh?.template?.mo_ta || p.mo_ta || '—'}</div>
               <div style={mono}>{p.so_canh} shot · {Object.keys(p.kinh_thanh?.template?.o ?? {}).length} ô · #{p.id}</div>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
                 <Nut chinh onClick={() => setDung(p)}>Dùng</Nut>
                 <Nut onClick={() => onMo(p.id)} title="Sửa template như sửa phim: shot, prompt, anchor, nhãn ô">Sửa</Nut>
               </div>
@@ -58,7 +59,7 @@ export function TemplatePanel({ phim, onChanged, onMoPhim }: { phim: Phim; onCha
   const sua = (k: string, x: Partial<OTemplateDs>) => setO((ds) => ds.map((v) => (v.k === k ? { ...v, ...x } : v)));
   const luu = async () => {
     setBan(true); setLoiLuu('');
-    const cfg: CauHinhTemplate = { mo_ta: moTa, o: Object.fromEntries(o.map(({ k, dung: _d, ...v }) => [k, v])) };
+    const cfg: CauHinhTemplate = { mo_ta: moTa, o: Object.fromEntries(o.map(({ k, dung: _d, ...v }) => [k, v])), thu_tu: o.map((v) => v.k) };
     const r = await luuCauHinhTemplate(phim.id, cfg);
     setBan(false);
     if (!r.ok) { setLoiLuu(r.loi); return; }
@@ -108,7 +109,9 @@ function TaoTuTemplate({ templateId, tenTemplate, onClose, onTao }: { templateId
   const dung = (d?.o ?? []).filter((v) => v.dung);
   const [gt, setGt] = useState<Record<string, string> | null>(null);
   useEffect(() => { if (d && !gt) setGt(giaTriMau(d.o.filter((v) => v.dung))); }, [d, gt]);
-  const [ten, setTen] = useState(tenGon(tenTemplate));
+  // tên phim mới tự theo sản phẩm (tới khi người sửa tay) — mặc định trùng tên template là lẫn ngay trong danh sách
+  const [tenTay, setTen] = useState<string | null>(null);
+  const ten = tenTay ?? `${(gt?.san_pham ?? '').trim() || 'Phim mới'} · ${tenGon(tenTemplate).replace(/\s*\(.*\)\s*$/, '')}`;
   const [ban, setBan] = useState(false);
   const [loi, setLoi] = useState('');
   const g = gt ?? {};

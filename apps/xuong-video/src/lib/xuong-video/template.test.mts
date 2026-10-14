@@ -18,4 +18,6 @@ assert.deepStrictEqual(giaTriMau(ds), { san_pham: 'Sculpt Tank' });
 assert.deepStrictEqual(['san_pham_hinh', 'anh_san_pham', 'anh_3', 'nhan_vat_ten', 'giong', 'tinh_huong', 'loi_ich_1', 'review'].map((k) => nhomCuaO(k)), ['san_pham', 'san_pham', 'anh', 'nhan_vat', 'nhan_vat', 'boi_canh', 'cau_chuyen', 'cau_chuyen']);
 assert.strictEqual(nhomCuaO('review', { nhom: 'san_pham' }), 'san_pham');
 assert.deepStrictEqual(theoNhom([{ k: 'review' }, { k: 'san_pham' }]).map((n) => [n.key, n.o.length]), [['san_pham', 1], ['cau_chuyen', 1]]);
+// thứ tự: theo thu_tu, không theo thứ tự khoá object (jsonb xáo khoá)
+assert.deepStrictEqual(dsOTemplate({ o: { link: { ten: 'L' }, san_pham: { ten: 'S' }, uu_dai: { ten: 'U' } }, thu_tu: ['san_pham', 'link'] }, ['link', 'san_pham', 'uu_dai']).map((o) => o.k), ['san_pham', 'link', 'uu_dai']);
 console.log('template.ts: ok');

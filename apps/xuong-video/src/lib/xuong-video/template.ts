@@ -59,10 +59,11 @@ export const theoNhom = <T extends { k: string; nhom?: string }>(ds: T[]) =>
 
 export type OTemplateDs = OTemplate & { k: string; /** ô có xuất hiện trong chữ của template không (khai mà không dùng = thừa) */ dung: boolean };
 
-/** Danh sách ô để hiện form: ô đã khai (theo thứ tự khai) trước, ô gõ trong chữ mà chưa khai sau (nhãn = tên ô). */
+/** Danh sách ô để hiện form: ô đã khai (theo cfg.thu_tu, rồi khoá còn lại) trước, ô gõ trong chữ mà chưa khai sau (nhãn = tên ô). */
 export function dsOTemplate(cfg: CauHinhTemplate | null | undefined, timThay: string[]): OTemplateDs[] {
   const khai = cfg?.o ?? {};
-  const ds: OTemplateDs[] = Object.entries(khai).map(([k, o]) => ({ ...o, k, ten: o.ten || k, dung: timThay.includes(k) }));
+  const thuTu = [...(cfg?.thu_tu ?? []).filter((k) => khai[k]), ...Object.keys(khai).filter((k) => !(cfg?.thu_tu ?? []).includes(k))];
+  const ds: OTemplateDs[] = thuTu.map((k) => ({ ...khai[k]!, k, ten: khai[k]!.ten || k, dung: timThay.includes(k) }));
   for (const k of timThay) if (!khai[k]) ds.push({ k, ten: k.replace(/_/g, ' '), dung: true });
   return ds;
 }

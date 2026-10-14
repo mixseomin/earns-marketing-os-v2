@@ -1,6 +1,6 @@
 // Dựng BỘ TEMPLATE từ tệp dữ liệu (mau/templates.json) — 0đ, không gọi model nào. Mỗi template = một phim (kinh_thanh.template) có anchor + tập +
 // đủ shot (máy, hành động, chữ màn, lời dẫn, prompt ảnh/video) với ô {{x}}; sửa tiếp trên studio như phim thường, tạo phim = 🧩 Tạo phim từ template.
-// Chạy lại an toàn: template đã có (trùng tên, chưa xoá) thì bỏ qua — muốn dựng lại bản mới: --lai=<key>.
+// Chạy lại an toàn: template đã có (trùng tên) thì chỉ cập nhật cấu hình ô (nhãn, gợi ý, thứ tự) — muốn dựng lại bản mới: --lai=<key>.
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
 //     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/dung-template.mts mau/templates.json [--chi=<key>] [--lai=<key>]
 import { readFileSync } from 'node:fs';
@@ -31,10 +31,14 @@ for (const t of tep.templates) {
   const ds = dsOTemplate({ o }, dung);
   const thieuMau = oThieu(ds, giaTriMau(ds));
   if (thieuMau.length) throw new Error(`${t.key}: ô thiếu giá trị mẫu: ${thieuMau.map((x) => x.k).join(', ')}`);
+  const cfg = { mo_ta: t.mo_ta, o, thu_tu: t.o };
   const cu = await q(sql`SELECT id FROM xv_phim WHERE ten = ${t.ten} AND kinh_thanh ? 'template' AND kinh_thanh->'template' <> 'null'::jsonb`);
-  if (cu.length && lai !== t.key) { console.log(`= ${t.key}: đã có #${cu[0]!.id} — bỏ qua`); continue; }
+  if (cu.length && lai !== t.key) {   // đã có → chỉ cập nhật nhãn / gợi ý / thứ tự ô (không đụng shot người đã sửa trên studio)
+    await db.execute(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(kinh_thanh, '{template}', ${JSON.stringify(cfg)}::jsonb), updated_at = now() WHERE id = ${Number(cu[0]!.id)}`);
+    console.log(`= ${t.key}: đã có #${cu[0]!.id} — cập nhật cấu hình ô`); continue;
+  }
   const giay = Math.round(t.shots.reduce((a, s) => a + s.giay, 0));
-  const kt: KinhThanh = { ...t.kinh_thanh, template: { mo_ta: t.mo_ta, o } };
+  const kt: KinhThanh = { ...t.kinh_thanh, template: cfg };
   const phimId = Number((await q(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh) VALUES ('studio', ${t.ten}, 'quang_cao', ${t.mo_ta}, ${JSON.stringify(kt)}::jsonb) RETURNING id`))[0]!.id);
   const idNv: Record<string, number> = {};
   for (const v of t.nhan_vat) idNv[v.key] = Number((await q(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, anh_ref, giong) VALUES (${phimId}, ${v.loai}, ${v.ten}, ${v.mo_ta}, ${JSON.stringify(v.anh_ref ?? [])}::jsonb, ${v.giong ?? ''}) RETURNING id`))[0]!.id);

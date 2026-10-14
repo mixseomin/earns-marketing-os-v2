@@ -1,6 +1,6 @@
 # HEARTBEAT — Bảo
 
-> Trạng thái: **bật một việc** từ 14/10/2026 — `don-nhat-ky` mỗi ngày 03:30 trên MacBook (LaunchAgent `com.htuan.don-nhat-ky` → `~/bin/don-nhat-ky`), không gọi mô hình, $0.
+> Trạng thái: **bật một việc** từ 14/10/2026 — `don-nhat-ky` mỗi ngày 03:30 trên MacBook (LaunchAgent `com.htuan.don-nhat-ky` → `~/bin/don-nhat-ky`), không gọi mô hình, $0. **Bật/tắt**: cột Tự làm trên bảng nhân sự (admin) — tắt thì lượt kế script tự bỏ qua.
 
 Checklist mỗi lượt:
 

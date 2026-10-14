@@ -10,7 +10,7 @@ model: không   # việc của Bảo là script máy, không gọi mô hình —
 room: dung-san-pham
 muc_quyet: 1
 approval: AUTO
-heartbeat: off   # việc chạy trên MacBook (LaunchAgent com.htuan.don-nhat-ky, 03:30 mỗi ngày), KHÔNG phải nhịp box3 — mỗi lượt tự ghi <DATA>/nhip/bao.json ("Làm lần cuối") + sổ sự kiện. Anh bật 14/10/2026
+heartbeat: don-nhat-ky   # việc trên MÁY MAC (worker/nhip.mjs NHIP_MAY): LaunchAgent com.htuan.don-nhat-ky 03:30 mỗi ngày → ~/bin/don-nhat-ky; bật/tắt ở cột Tự làm (admin) — anh 14/10/2026
 lich: 03:30 hằng ngày
 skills: [don-dia]
 data: [may:MacBook, log:bao]

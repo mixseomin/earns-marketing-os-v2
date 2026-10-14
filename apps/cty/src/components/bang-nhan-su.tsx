@@ -6,9 +6,10 @@ import { Nguoi } from './nguoi';
 import { tenModel, pc, VAI, TEN_VAI, COT_VAI, type TK, type Nguoi as NS } from '@/lib/doi-ngu';
 import { demTn, type TrachNhiem } from '@/lib/trach-nhiem';
 import { vaiCuaPhong, theVai } from '../../worker/quy-trinh.mjs';
-import { NHIP, TEN_NHIP, docChinh, lanLam, tanSuat, dauViec } from '../../worker/nhip.mjs';
+import { NHIP, NHIP_MAY, TEN_NHIP, docChinh, lanLam, tanSuat, dauViec } from '../../worker/nhip.mjs';
 import { hrefNhip } from '@/lib/ngan';
 import { ChinhNhip } from './chinh-nhip';
+import { NutTuLam } from './nut-tu-lam';
 import { getCurrentUser } from '@/lib/auth';
 import { mocCuoiCa } from '../../worker/gio-lam.mjs';
 import { nhanSu, type Doc } from '@/lib/cong-ty';
@@ -30,14 +31,15 @@ export function nhipChu(fm0: Record<string, unknown>, id?: string) {
   const c = id ? ((docChinh() as Record<string, Record<string, unknown>>)[id] ?? {}) : {};   // chỉnh của admin đè hồ sơ (worker/nhip.mjs)
   const fm: Record<string, unknown> = { ...fm0, ...(c.ca ? { ca: c.ca } : {}), ...(c.diem_danh !== undefined ? { diem_danh: c.diem_danh } : {}), ...(c.kiem_moi ? { kiem_moi: c.kiem_moi } : {}) };
   type DV = { ma: string; ten: string; lich: string };
-  const hb = String(fm.heartbeat ?? 'off'); if (hb === 'off') return { chu: 'tắt', bat: false, viec: 'tắt', ds: [] } as { chu: string; bat: boolean; viec: string; ds: DV[]; tanSuat?: string; ca?: string; diemDanh?: string; kiemMoi?: number };
-  const may = hb.split(',').map((v) => v.trim()).filter((v) => v in NHIP);
+  const hb = String(fm.heartbeat ?? 'off'); if (hb === 'off') return { chu: 'tắt', bat: false, viec: 'tắt', ds: [] } as { chu: string; bat: boolean; coNut?: boolean; box?: boolean; viec: string; ds: DV[]; tanSuat?: string; ca?: string; diemDanh?: string; kiemMoi?: number };
+  const may = hb.split(',').map((v) => v.trim()).filter((v) => v in NHIP || v in NHIP_MAY);
   if (!may.length) return { chu: hb, bat: true, viec: hb, ds: [] };
+  const tat = c.bat === false;   // admin tắt ở cột Tự làm (nút NutTuLam) — hồ sơ vẫn khai việc, chỉ không chạy
   const ca = fm.ca ? String(fm.ca) : 'cả ngày';
   const ten = may.map((v) => (TEN_NHIP as Record<string, string>)[v] ?? v).join(' · ') + (fm.diem_danh ? ` · điểm danh ${String(fm.diem_danh)} · báo cáo cuối ngày ${mocCuoiCa(fm.ca)}` : '');
   const ts = tanSuat(Number(fm.kiem_moi || 1));
   const ds = dauViec({ viec: may, ca: fm.ca, diemDanh: fm.diem_danh ? String(fm.diem_danh) : '', kiemMoi: Number(fm.kiem_moi || 1) }) as DV[];
-  return { chu: `${ten} · máy kiểm ${ts} · ca ${ca}`, bat: true, viec: ten, ds, tanSuat: ts, ca, diemDanh: String(fm.diem_danh ?? ''), kiemMoi: Number(fm.kiem_moi || 1) };
+  return { chu: tat ? `${ten} · đang tắt` : `${ten} · máy kiểm ${ts} · ca ${ca}`, bat: !tat, coNut: true, box: may.some((v) => v in NHIP), viec: ten, ds, tanSuat: ts, ca, diemDanh: String(fm.diem_danh ?? ''), kiemMoi: Number(fm.kiem_moi || 1) };
 }
 /** Lần làm việc gần nhất của từng người: dòng nhật ký mới nhất do chính người đó phát ra (gọi mô hình, gửi tin) — nhịp chạy mà không có
  *  việc thì không ghi nhật ký, nên không tính là "làm". Một lượt đọc cho cả bảng. */
@@ -71,8 +73,8 @@ export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS
             <td className="cty-nho">{tenModel(d.model)}</td>
             <td className={`cty-nho${n.bat ? '' : ' cty-muted'}`}>{n.ds.length   // đầu việc tách dòng, bấm mở ngăn mô tả + nhật ký (anh 14/10/2026)
               ? <ul className="cty-dn-viec">{n.ds.map((v) => <li key={v.ma}><Link href={hrefNhip(d.id, v.ma)}>{v.ten}</Link> <span className="cty-muted">{v.lich}</span></li>)}</ul>
-              : n.viec}</td>
-            {n.bat && n.ca ? <ChinhNhip id={d.id} ca={n.ca} diemDanh={n.diemDanh ?? ''} kiemMoi={n.kiemMoi ?? 1} admin={admin} />
+              : n.viec}{'coNut' in n && n.coNut && <div><NutTuLam id={d.id} bat={n.bat} admin={admin} /></div>}</td>
+            {n.bat && n.ca && ('box' in n ? n.box : true) ? <ChinhNhip   /* máy kiểm + ca chỉ nghĩa với nhịp box; việc trên Mac có lịch riêng (cột Tự làm) */ id={d.id} ca={n.ca} diemDanh={n.diemDanh ?? ''} kiemMoi={n.kiemMoi ?? 1} admin={admin} />
               : <><td className="cty-nho"><span className="cty-muted">—</span></td><td className="cty-nho"><span className="cty-muted">—</span></td></>}
             <td className="cty-nho" title={cuoi[d.id]?.ket}>{cuoi[d.id] ? <TruocDay iso={cuoi[d.id]!.luc} /> : <span className="cty-muted">chưa làm</span>}</td>
             <td className="cty-so" title={so ? `${so.ds.filter((r) => r.nguoi === d.id).reduce((t, r) => t + r.luot, 0)} lời gọi tháng này` : 'không nối được DB'}>{c === null ? <span className="cty-thu-loi">?</span> : tien(c)}</td>

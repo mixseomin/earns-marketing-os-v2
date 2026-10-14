@@ -2,7 +2,7 @@
 // Tự kiểm hồ sơ công ty: mọi nhân sự có phòng tồn tại, bao_cao_cho tồn tại, so_do trỏ file có thật, heartbeat đợt tham quan
 // phải là off, kind hợp lệ, có HEARTBEAT.md. Chạy trong GHA trước build (như check-canon). Exit 1 khi lệch.
 import fs from 'node:fs';
-const { NHIP } = await import('../worker/nhip.mjs');
+const { NHIP, NHIP_MAY } = await import('../worker/nhip.mjs');
 import path from 'node:path';
 import { parseFm } from './fm.mjs';
 const R = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'cong-ty');
@@ -14,7 +14,7 @@ for (const [id, f] of Object.entries(ns)) {
   if (!phong[f.phong]) loi.push(`${id}: phòng "${f.phong}" không tồn tại`);
   if (f.bao_cao_cho && !ns[f.bao_cao_cho]) loi.push(`${id}: bao_cao_cho "${f.bao_cao_cho}" không tồn tại`);
   // heartbeat được bật khi MỌI việc khai là nhịp máy có trong worker/nhip.mjs NHIP (0 tiền mô hình); nhịp gọi mô hình vẫn khoá trừ phòng thu_nghiem
-  if (f.heartbeat !== 'off' && String(phong[f.phong]?.thu_nghiem) !== 'true' && !String(f.heartbeat).split(',').every((v) => v.trim() in NHIP)) loi.push(`${id}: heartbeat "${f.heartbeat}" không phải nhịp máy trong worker/nhip.mjs NHIP — nhịp gọi mô hình chỉ bật khi anh bảo (đặt off)`);
+  if (f.heartbeat !== 'off' && String(phong[f.phong]?.thu_nghiem) !== 'true' && !String(f.heartbeat).split(',').every((v) => v.trim() in NHIP || v.trim() in NHIP_MAY)) loi.push(`${id}: heartbeat "${f.heartbeat}" không phải nhịp máy trong worker/nhip.mjs NHIP — nhịp gọi mô hình chỉ bật khi anh bảo (đặt off)`);
   if (!['ai', 'human', 'vendor'].includes(f.kind)) loi.push(`${id}: kind lạ "${f.kind}"`);
   if (!['nam', 'nu'].includes(f.gioi_tinh)) loi.push(`${id}: gioi_tinh phải là nam|nu (chọn nhân vật pixel), đang "${f.gioi_tinh}"`);
   if (!fs.existsSync(path.join(R, 'nhan-su', id, 'HEARTBEAT.md'))) loi.push(`${id}: thiếu HEARTBEAT.md`);

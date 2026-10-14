@@ -24,9 +24,14 @@ export function luuChinh(id, x, ai = '') {
   if (!GIO.test(tu ?? '') || !GIO.test(den ?? '') || tu === den) throw new Error(`Ca "${ca}" sai — dạng 06:00-02:00`);
   if (x.diem_danh && !GIO.test(String(x.diem_danh))) throw new Error(`Giờ điểm danh "${x.diem_danh}" sai — dạng 08:00`);
   if (!KIEM_MOI.includes(Number(x.kiem_moi))) throw new Error(`Kiểm mỗi ${x.kiem_moi} phút — chỉ ${KIEM_MOI.join(' / ')}`);
-  const s = docChinh(); s[id] = { ca, diem_danh: String(x.diem_danh ?? ''), kiem_moi: Number(x.kiem_moi), ai, luc: new Date().toISOString() };
-  fs.mkdirSync(DATA(), { recursive: true }); const tam = `${tepChinh()}.tam`; fs.writeFileSync(tam, JSON.stringify(s, null, 1)); fs.renameSync(tam, tepChinh()); return s[id];
+  const s = docChinh(); s[id] = { ...(s[id]?.bat !== undefined ? { bat: s[id].bat } : {}), ca, diem_danh: String(x.diem_danh ?? ''), kiem_moi: Number(x.kiem_moi), ai, luc: new Date().toISOString() };
+  return ghiChinh(s, id);
 }
+function ghiChinh(s, id) { fs.mkdirSync(DATA(), { recursive: true }); const tam = `${tepChinh()}.tam`; fs.writeFileSync(tam, JSON.stringify(s, null, 1)); fs.renameSync(tam, tepChinh()); return s[id]; }
+/** BẬT/TẮT "Tự làm" của một người (anh 14/10/2026 "tao cần bật tắt cái này"): cờ `bat` trong <DATA>/nhip-chinh.json, đè hồ sơ git. Tắt = nhịp
+ *  box bỏ qua người đó, và việc chạy trên máy Mac (NHIP_MAY) tự hỏi cờ này trước mỗi lượt — tắt là không chạy. Có hiệu lực ngay, không deploy. */
+export function datBat(id, bat, ai = '') { const s = docChinh(); s[id] = { ...(s[id] ?? {}), bat: !!bat, ai, luc: new Date().toISOString() }; return ghiChinh(s, id); }
+export const dangTat = (id) => docChinh()[id]?.bat === false;
 // LẦN LÀM GẦN NHẤT của mỗi người (mỗi nhịp chạy = một lần làm: kiểm hòm, gửi tin…) — "Làm lần cuối" trên bảng đọc đây (anh 14/10/2026: Kiên làm
 // từ 6h mà bảng ghi 9 giờ trước vì chỉ đếm lần gọi mô hình).
 const tepLam = (id) => path.join(DATA(), 'nhip', `${id}.json`);
@@ -47,6 +52,10 @@ export function nhatKyNhip(id) {
 /** ĐẦU VIỆC của mỗi nhịp — bảng nhân sự hiện thành danh sách, bấm một việc mở ngăn `nhip:<người>/<mã>` (mô tả + nhật ký).
  *  khop: dòng nhật ký nào thuộc việc này (null = mọi lần chạy); can_diem_danh: chỉ có khi người đó khai giờ điểm danh. */
 export const VIEC_NHIP = {
+  'don-nhat-ky': [
+    { ma: 'don', ten: 'Dọn nhật ký chat cũ', lich: () => '03:30 hằng ngày · MacBook', khop: null,
+      mo_ta: 'Mỗi ngày 03:30 trên MacBook (LaunchAgent com.htuan.don-nhat-ky → ~/bin/don-nhat-ky): xoá nhật ký chat Claude cũ hơn 14 ngày, cũ nhất trước; tổng còn quá 8 GB thì xoá tiếp từ cũ đến mới nhưng không đụng tệp có ghi trong 48 giờ (phiên đang chạy). Mỗi lượt ghi một dòng sổ sự kiện. Tắt ở cột Tự làm thì lượt kế không chạy.' },
+  ],
   'mail-bao-mat': [
     { ma: 'kiem-thu', ten: 'Kiểm thư bảo mật', lich: (n) => tanSuat(n.kiemMoi), khop: null,
       mo_ta: 'Đọc hòm claude@ (thư 30 ngày), thẩm định từng thư: tên miền người gửi so với link thật trong thư, gỡ link chuyển tiếp, đối chiếu sổ "đã dạy". Thư giả / chưa rõ → báo vào chủ đề 🔐 Bảo mật trên Telegram kèm nút dạy; thư đã xử thì ❤ rồi gỡ tin sau 1 phút; thư gọi tên Kiên thì trả lời. Mô hình chỉ được gọi khi có thư cần viết lời báo.' },
@@ -59,7 +68,10 @@ export const VIEC_NHIP = {
 /** Đầu việc của một người đang bật: [{ ma, ten, lich, mo_ta, viec, khop }]. n = { viec[], ca, diemDanh, kiemMoi } (như dangBat). */
 export const dauViec = (n) => n.viec.flatMap((v) => (VIEC_NHIP[v] ?? []).filter((x) => !x.can_diem_danh || n.diemDanh).map((x) => ({ ...x, viec: v, lich: x.lich(n) })));
 /** Tên việc nhịp bằng chữ người đọc (bảng nhân sự hiện cái này, không hiện mã). */
-export const TEN_NHIP = { 'mail-bao-mat': 'Báo khi có thư bảo mật mới (gọi mô hình chỉ lúc có thư)' };
+export const TEN_NHIP = { 'mail-bao-mat': 'Báo khi có thư bảo mật mới (gọi mô hình chỉ lúc có thư)', 'don-nhat-ky': 'Dọn nhật ký chat Claude cũ (MacBook)' };
+/** Việc NHỊP chạy trên MÁY MAC (LaunchAgent), không phải bộ chạy box này: box không gọi, chỉ hiện + giữ cờ bật/tắt; script trên Mac hỏi `dangTat`
+ *  qua ssh trước mỗi lượt và tự ghi nhật ký nhịp (<DATA>/nhip/<người>.json[l]) như ghiLam. */
+export const NHIP_MAY = { 'don-nhat-ky': { may: 'MacBook', script: '~/bin/don-nhat-ky', launchd: 'com.htuan.don-nhat-ky' } };
 export const NHIP = {
   'mail-bao-mat': async (n) => (await import('./mail-bao-mat.mjs')).nhipBaoMat(n.id, { ten: n.ten, model: n.model, phong: n.phong, ca: n.ca, diemDanh: n.diemDanh }),   // Phòng Bảo mật: thư bảo mật → Telegram + pixel
 };
@@ -69,7 +81,7 @@ import { trongCa, mocCuoiCa } from './gio-lam.mjs';
 export function dangBat() {
   const dir = path.join(GOC, 'cong-ty', 'nhan-su');
   return fs.readdirSync(dir).filter((d) => fs.existsSync(path.join(dir, d, 'SOUL.md'))).map((d) => ({ id: d, fm: parseFm(fs.readFileSync(path.join(dir, d, 'SOUL.md'), 'utf8')).fm }))
-    .filter((x) => x.fm.heartbeat && x.fm.heartbeat !== 'off').map((x) => { const c = docChinh()[x.id] ?? {}; return { id: x.id, ten: String(x.fm.ten ?? x.id), model: String(x.fm.model ?? ''), phong: String(x.fm.phong ?? ''),
+    .filter((x) => x.fm.heartbeat && x.fm.heartbeat !== 'off' && !dangTat(x.id)).map((x) => { const c = docChinh()[x.id] ?? {}; return { id: x.id, ten: String(x.fm.ten ?? x.id), model: String(x.fm.model ?? ''), phong: String(x.fm.phong ?? ''),
       ca: c.ca || x.fm.ca, diemDanh: c.diem_danh !== undefined ? c.diem_danh : x.fm.diem_danh, kiemMoi: Number(c.kiem_moi || x.fm.kiem_moi || 1), viec: String(x.fm.heartbeat).split(',').map((v) => v.trim()).filter(Boolean) }; });
 }
 
@@ -80,6 +92,9 @@ if (process.argv[1]?.endsWith('nhip.mjs') && process.argv.includes('--tu-kiem'))
   const dir = fs.mkdtempSync('/tmp/nhip-'); process.env.CTY_DATA_DIR = dir;
   a.throws(() => luuChinh('x', { ca: '25:00-02:00', kiem_moi: 1 })); a.throws(() => luuChinh('x', { ca: '06:00-02:00', kiem_moi: 7 })); a.throws(() => luuChinh('x', { ca: '06:00-02:00', diem_danh: '8h', kiem_moi: 1 }));
   a.equal(luuChinh('kien', { ca: '07:00-01:00', diem_danh: '08:30', kiem_moi: 5 }, 't').kiem_moi, 5);
+  a.equal(datBat('kien', false, 't').bat, false); a.ok(!dangBat().some((n) => n.id === 'kien') && dangTat('kien'), 'admin tắt → bộ chạy bỏ qua');
+  a.equal(luuChinh('kien', { ca: '07:00-01:00', diem_danh: '08:30', kiem_moi: 5 }, 't').bat, false, 'chỉnh ca không được xoá cờ tắt');
+  datBat('kien', true, 't');
   const k = dangBat().find((n) => n.id === 'kien'); a.ok(k.ca === '07:00-01:00' && k.diemDanh === '08:30' && k.kiemMoi === 5, 'chỉnh của admin đè hồ sơ');
   ghiLam('kien', 'điểm danh · 3 thư đã đọc', 'mail-bao-mat'); ghiLam('kien', '4 thư đã đọc', 'mail-bao-mat'); fs.appendFileSync(tepNk('kien'), '{hỏng\n');
   const nk = nhatKyNhip('kien'); a.ok(nk.length === 2 && nk[0].ket === '4 thư đã đọc' && nhatKyNhip('khong-ai').length === 0, 'nhật ký mới trước, dòng hỏng bỏ qua');

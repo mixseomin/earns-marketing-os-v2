@@ -13,6 +13,7 @@ import { trangThaiKhung, khoiCanKiem, giaKiemKhung, tenLoiKhung, TEN_NUT_KHUNG }
 import { kiemKhungTapAction } from '@/lib/actions';
 import { tien } from '@/lib/xuong-video/kieu';
 import { Nut, Loi, goiAction } from './ui';
+import { moNgan } from './ngan-chung';
 import { boSetCuaShot, khoiCua, lienMachTap, loiHinhHoc, vatChanTienCanh } from '@/lib/xuong-video/bo-set-3d';
 
 /** Tên ngắn của một key thư viện (bỏ phần ngành trong ngoặc). */
@@ -30,6 +31,9 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
   // ĐỘ PHÓNG LƯỚI (#1350): bề rộng thẻ 5 nấc, ở URL (?lz=) như độ phóng thước timeline (?tlz=) — F5 / chia sẻ giữ nguyên.
   const [zoom, setZoom] = useState(() => { if (typeof window === 'undefined') return 2; const v = Number(new URLSearchParams(window.location.search).get('lz')); return v >= 1 && v <= 5 ? v : 2; });
   useEffect(() => { const u = new URL(window.location.href); if (zoom === 2) u.searchParams.delete('lz'); else u.searchParams.set('lz', String(zoom)); window.history.replaceState(window.history.state, '', u.toString()); }, [zoom]);
+  // CHỈ XEM (anh 14/10/2026): cả hai · chỉ keyframe · chỉ khung 3D — ở URL (?lh=) như độ phóng, F5 giữ nguyên.
+  const [hien, setHien] = useState<'ca' | 'kf' | '3d'>(() => { if (typeof window === 'undefined') return 'ca'; const v = new URLSearchParams(window.location.search).get('lh'); return v === 'kf' || v === '3d' ? v : 'ca'; });
+  useEffect(() => { const u = new URL(window.location.href); if (hien === 'ca') u.searchParams.delete('lh'); else u.searchParams.set('lh', hien); window.history.replaceState(window.history.state, '', u.toString()); }, [hien]);
   const rongThe = (doc ? [96, 132, 180, 240, 320] : [150, 210, 280, 360, 480])[zoom - 1]!;
   const coAnh = nacNho(rongThe);   // ảnh thu nhỏ theo cỡ thẻ (màn retina ×2) — phóng to không bị nhoè
   const nutZoom = (chu: string, title: string, tat: boolean, d: number) => (
@@ -51,6 +55,8 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <span style={mono}>{canh.length} shot · {gio(tong)} · {khoi.length} khối phân cảnh — bấm một thẻ để xem chi tiết shot</span>
         <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>{nutZoom('🔍−', 'Thu nhỏ thẻ (giữ qua F5)', zoom <= 1, -1)}<span style={{ ...mono, minWidth: 22, textAlign: 'center' }} title="Độ phóng lưới (giữ qua F5)">{zoom}/5</span>{nutZoom('🔍+', 'Phóng to thẻ (giữ qua F5)', zoom >= 5, 1)}</span>
+        <span style={{ display: 'inline-flex', gap: 2 }}>{([['ca', 'Cả hai'], ['kf', 'Keyframe'], ['3d', '3D']] as const).map(([k, t]) => <button key={k} type="button" className={`xv-btn${hien === k ? ' chinh' : ''}`} style={{ padding: '0 8px' }} title={k === 'ca' ? 'Thẻ có cả keyframe lẫn khung 3D' : k === 'kf' ? 'Chỉ xem keyframe' : 'Chỉ xem khung 3D'} onClick={() => setHien(k)}>{t}</button>)}</span>
+        <button type="button" className="xv-btn" title="Mở bộ set 3D của tập: xoay, phóng, nhìn qua máy từng shot, đường đi nhân vật" onClick={() => moNgan({ loai: 'bo-set', tapId: tap.id })}>🧊 Xoay xem 3D</button>
         <span style={mono}>khung: <b style={{ color: '#4ade80' }}>✓ {(demKhung.dat ?? 0) + (demKhung.tay ?? 0)}</b> · <b style={{ color: 'var(--red)' }}>⚠ {demKhung.lech ?? 0}</b> · <b style={{ color: 'var(--amber)' }}>? {demKhung.chua ?? 0}</b></span>
         <Nut chinh={canKiem.length > 0} ly={!canKiem.length && 'mọi khung đã kiểm'} ban={banKhung} gia={giaKhung} title="Máy nhìn keyframe từng khối cảnh (kèm khung cuối cảnh trước) so với thẻ shot và với nhau: chuyển cảnh, bố trí set, trục 180°, nhân vật thừa/thiếu, ánh sáng. Chưa kiểm / lệch → chặn video + animatic." onClick={() => void kiemKhung()}>{banKhung ? '… đang kiểm khung' : `${TEN_NUT_KHUNG} · ${canKiem.length} khối · ~${tien(giaKhung)}`}</Nut>
       </div>
@@ -70,7 +76,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                 <div style={{ height: 18, padding: '0 6px', display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', background: i === 0 ? `color-mix(in srgb, ${mau} 18%, transparent)` : undefined }}>
                   {i === 0 ? <><b style={{ color: mau, overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.ten || 'Chưa đặt phân cảnh'}</b>{pc?.beat && <span className="xv-mono" style={{ color: 'var(--fg-3)' }}>{pc.beat}</span>}</> : <span style={{ color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.ten}</span>}
                 </div>
-                <div style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: anh ? `center / cover no-repeat url(${anhNho(anh, coAnh)}), #111` : 'var(--bg-2)' }}>
+                {hien !== '3d' && <div style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: anh ? `center / cover no-repeat url(${anhNho(anh, coAnh)}), #111` : 'var(--bg-2)' }}>
                   <span className="xv-mono" style={{ position: 'absolute', left: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.65)', color: '#fff' }}>{gio(tc)}</span>
                   <span className="xv-mono" style={{ position: 'absolute', right: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.65)', color: coVid ? '#4ade80' : '#fff' }}>{coVid ? '▶ ' : ''}#{c.thu_tu} · {giayPhat(c)}s</span>
                   {/* Chưa sinh vẫn hiện KHUNG + shot sẽ thấy gì (anh 14/10/2026: "kể cả chưa sinh cũng phải show ra khung để còn biết"). */}
@@ -81,7 +87,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                   {anh && (() => { const tk = trangThaiKhung(c); const kk = c.kiem_khung; const m = { dat: ['✓', '#4ade80'], tay: ['✓ tay', '#4ade80'], lech: ['⚠ lệch', '#f87171'], chua: ['? chưa kiểm', '#fbbf24'], khong: ['', ''] }[tk];
                     return tk !== 'khong' && <span className="xv-mono" title={tk === 'lech' || tk === 'tay' ? kk!.loi.map((l) => `${tenLoiKhung(l.loai)}: ${l.mo_ta}`).join('\n') : tk === 'chua' ? 'Keyframe chưa qua kiểm khung (hoặc đã sinh lại sau lần kiểm)' : 'Máy kiểm khung: khớp'} style={{ position: 'absolute', left: 4, bottom: chu ? 26 : 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.7)', color: m[1] }}>{m[0]}</span>; })()}
                   {chu && <span style={{ position: 'absolute', left: 5, right: 5, bottom: 6, textAlign: 'center', fontSize: 10.5, fontWeight: 800, color: '#facc15', textShadow: '0 1px 3px #000, 0 0 2px #000' }}>{chu}</span>}
-                </div>
+                </div>}
                 {i === 0 && (pc?.noi || pc?.luc) && <div className="xv-mono" style={{ padding: '3px 7px 0', fontSize: 10, color: mau, lineHeight: 1.3 }}>{pc?.noi && <>📍 {pc.noi}</>}{pc?.noi && pc?.luc ? ' · ' : ''}{pc?.luc && <>🕐 {pc.luc}</>}</div>}
                 <div className="xv-mono" style={{ padding: '4px 7px 0', fontSize: 10, lineHeight: 1.35, color: 'var(--fg-2)' }}>
                   {bc.length > 0 && <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={bc.join(', ')}>📍 {bc.join(', ')}</div>}
@@ -92,10 +98,11 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                 {/* KHUNG XÁM 3D (anh 14/10/2026: "shot thuộc khung hình nào trong file 3D thì kẹp ảnh đó dưới chân lưới"): render từ bộ set + máy ảo của
                     shot — đặt ngay dưới keyframe để so bố trí. Shot thuộc set mà chưa đặt máy / chưa dựng thì hiện khung trống ghi rõ thiếu gì. */}
                 {/* Ô 3D có ở MỌI thẻ, cùng cỡ, dính chân thẻ (thẻ là cột flex, dòng chuyển cảnh marginTop:auto) → khung 3D các thẻ thẳng một hàng. */}
-                {boSetCuaShot(c, nhanVat) == null
+                {hien !== 'kf' && (boSetCuaShot(c, nhanVat) == null
                   ? <div className="xv-mono" style={{ aspectRatio: doc ? '9 / 16' : '16 / 9', display: 'grid', placeItems: 'center', padding: 8, fontSize: 10, color: 'var(--fg-4)', borderTop: '1px solid var(--line)', textAlign: 'center' }} title="Shot không gắn bối cảnh nào có bộ set 3D">🧊 ngoài bộ set 3D</div>
                   : c.khung_xam
-                  ? <div style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: `center / cover no-repeat url(${anhNho(c.khung_xam.xam, coAnh)}), #222`, borderTop: '1px solid var(--line)' }}>
+                  ? <div role="button" tabIndex={0} title="Bấm để xoay xem 3D đúng máy của shot này" onClick={(e) => { e.stopPropagation(); moNgan({ loai: 'bo-set', tapId: tap.id, canhId: c.id }); }} onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); e.preventDefault(); moNgan({ loai: 'bo-set', tapId: tap.id, canhId: c.id }); } }}
+                      style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: `center / cover no-repeat url(${anhNho(c.khung_xam.xam, coAnh)}), #222`, borderTop: '1px solid var(--line)', cursor: 'zoom-in' }}>
                       <span className="xv-mono" style={{ position: 'absolute', left: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.7)', color: '#93c5fd' }} title={[...c.khung_xam.kiem.map((k) => `${k.nhan_vat}: ${k.trong_khung ? `${k.cao_khung_pt}% khung` : 'ngoài khung'}${k.bi_che_boi.length ? ` · bị ${k.bi_che_boi.join(', ')} che` : ''}`), '— thấy trong khung —', ...(c.khung_xam.thay ?? []).map((t) => `${t.ten} ${t.pt}%${t.tien ? ' · tiền cảnh' : ''}`), ...(lienMach[c.id] ?? []).map((x) => `⚠ ${x}`)].join('\n')}>🧊 3D{loiHinhHoc(c).length || vatChanTienCanh(c, null).length || lienMach[c.id]?.length ? ' ⚠' : ''}</span>
                       {/* NHÃN TÊN từng khối (khung_xam.thay, đo bằng lưới tia) — khối nào là gì đọc được ngay, không đoán bằng mắt (anh 14/10/2026: khối vàng
                           ở cảnh 6–7 tưởng là tay Gã khổng lồ). Chỉ gắn khi ô cùng tỉ lệ khung dọc của khung xám (cover không cắt) — khổ ngang xem ở tooltip. */}
@@ -103,7 +110,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                         <span key={t.ten} className="xv-mono" style={{ position: 'absolute', left: `${((t.hop[0] + t.hop[2]) / 2) * 100}%`, top: `${((t.hop[1] + t.hop[3]) / 2) * 100}%`, transform: 'translate(-50%, -50%)', fontSize: 8, lineHeight: 1.2, padding: '0 3px', borderRadius: 3, whiteSpace: 'nowrap', pointerEvents: 'none', background: t.tien ? 'rgba(220,38,38,.85)' : 'rgba(0,0,0,.6)', color: '#fff' }}>{t.ten}</span>
                       ))}
                     </div>
-                  : <div className="xv-mono" style={{ aspectRatio: doc ? '9 / 16' : '16 / 9', display: 'grid', placeItems: 'center', padding: 8, fontSize: 10, color: 'var(--amber)', border: '1px dashed var(--line)', textAlign: 'center' }}>🧊 {c.may_3d ? 'chưa dựng khung 3D' : 'chưa đặt máy 3D'}</div>}
+                  : <div className="xv-mono" style={{ aspectRatio: doc ? '9 / 16' : '16 / 9', display: 'grid', placeItems: 'center', padding: 8, fontSize: 10, color: 'var(--amber)', border: '1px dashed var(--line)', textAlign: 'center' }}>🧊 {c.may_3d ? 'chưa dựng khung 3D' : 'chưa đặt máy 3D'}</div>)}
               </button>
             );
           });

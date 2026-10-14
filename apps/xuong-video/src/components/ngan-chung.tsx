@@ -10,8 +10,9 @@ import { SoChiPhi } from './so-chi-phi';
 import { KhoNoiDung, maDich, docDich, type DichKho } from './kho';
 import { NguonShotNoiDung } from './nguon-shot';
 import { NoiKhungTap } from './noi-khung';
+import { BoSetXem } from './bo-set-xem';
 
-export type YeuCauNgan = { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho } | { loai: 'nguon'; canhId: number } | { loai: 'noi-khung'; tapId: number };
+export type YeuCauNgan = { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho } | { loai: 'nguon'; canhId: number } | { loai: 'noi-khung'; tapId: number } | { loai: 'bo-set'; tapId: number; canhId?: number | null };
 const SU_KIEN = 'xv-ngan';
 export function moNgan(y: YeuCauNgan): void { window.dispatchEvent(new CustomEvent<YeuCauNgan>(SU_KIEN, { detail: y })); }
 /** Link tải tệp R2 qua proxy cùng nguồn (Content-Disposition: attachment) — tải về, không mở trang. */
@@ -30,6 +31,8 @@ function Host() {
       // Nguồn shot là lớp CHỒNG (state riêng, như xem tệp): mở từ sơ đồ nối khung thì nằm đè lên, đóng là về đúng sơ đồ đó.
       else if (y.loai === 'nguon') setNguon(y.canhId);
       else if (y.loai === 'noi-khung') ngan.open('noi-khung', y.tapId);
+      // Bộ set 3D: ?ngan=bo-set&nganId=<tập>.<shot> — F5 mở lại đúng tập, đúng shot.
+      else if (y.loai === 'bo-set') ngan.open('bo-set', `${y.tapId}.${y.canhId ?? 0}`);
       else { if (y.loai === 'thu-vien') setTl(y.tl ?? ''); ngan.open(y.loai, y.loai === 'so-chi-phi' ? y.phim ?? null : null); }
     };
     window.addEventListener(SU_KIEN, h); return () => window.removeEventListener(SU_KIEN, h);
@@ -50,6 +53,11 @@ function Host() {
     {ngan.is('noi-khung') && ngan.numId != null && (
       <Ngan onClose={ngan.close} tieuDe="⛓ Nối khung cả tập">
         <NoiKhungTap tapId={ngan.numId} />
+      </Ngan>
+    )}
+    {ngan.is('bo-set') && ngan.id && (
+      <Ngan onClose={ngan.close} tieuDe="🧊 Bộ set 3D">
+        <BoSetXem key={ngan.id} tapId={Number(ngan.id.split('.')[0])} canhId={Number(ngan.id.split('.')[1]) || null} />
       </Ngan>
     )}
     {nguon != null && (

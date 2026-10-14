@@ -32,7 +32,9 @@ import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
 import { ghepThoai, thieuQc, type BaiDang, type MauQc } from '@/lib/xuong-video/kieu';
 import { maAnimatic } from '@/lib/xuong-video/ho-so';
-import type { BanXuat } from '@/lib/xuong-video/kieu';
+import type { BanXuat, BoSet, May3d } from '@/lib/xuong-video/kieu';
+import { boSetCuaShot } from '@/lib/xuong-video/bo-set-3d';
+import { mapBoSet } from '@/lib/xuong-video/bo-set-3d-may';
 import { chupTruoc, ganNhat, hoanTacGanNhat, type MucHoanTac } from '@/lib/xuong-video/hoan-tac';
 import { docPhimDich, uocDichCents, chayDichPhim } from '@/lib/xuong-video/dich-phim';
 import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-video/kieu';
@@ -1373,3 +1375,21 @@ export async function layTuLinkSanPham(phimId: number, link: string): Promise<Kq
   return { ok: true, data: { ten: kq.data.ten, link: link.trim(), diem_noi_bat: kq.data.diem_noi_bat, doi_tuong: kq.data.doi_tuong, uu_dai: kq.data.uu_dai, thi_truong: kq.data.thi_truong, anh: anhR2 } };
 }
 
+
+/** 🧊 Dữ liệu trình xem 3D của một tập (bo-set-xem.tsx): mọi bộ set mà shot của tập đứng trên + khối nhân vật / đạo cụ + máy và chỗ đứng
+ *  từng shot. CÙNG dữ liệu Blender dựng khung xám (bo-set-3d.ts › bangDung) — xoay xem ở trình duyệt khớp đúng ảnh khung xám. */
+export async function boSet3dTap(tapId: number): Promise<Kq<{ sets: BoSet[]; khoi: Record<string, NhanVat['khoi_3d']>; loai: Record<string, string>; shots: { id: number; thu_tu: number; ma: string; canh: string; set_id: number | null; may_3d: May3d | null; xam: string | null }[]; ti_le: string }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const t = (await db.execute(sql`SELECT t.phim_id, p.kinh_thanh FROM xv_tap t JOIN xv_phim p ON p.id = t.phim_id WHERE t.id = ${tapId}`)) as unknown as Row[];
+  if (!t[0]) return loi('không thấy tập');
+  const nv = ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(t[0].phim_id)} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat);
+  const ds = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), 'A');
+  const shots = ds.map((c) => ({ id: c.id, thu_tu: c.thu_tu, ma: c.dan_dung?.ma ?? '', canh: c.canh, set_id: boSetCuaShot(c, nv), may_3d: c.may_3d ?? null, xam: c.khung_xam?.xam ?? null }));
+  const ids = [...new Set(shots.map((s) => s.set_id).filter((x): x is number => !!x))];
+  const sets = ids.length ? ((await db.execute(sql`SELECT * FROM xv_bo_set WHERE id IN (${sql.join(ids.map((i) => sql`${i}`), sql`, `)})`)) as unknown as Row[]).map(mapBoSet) : [];
+  const khoi: Record<string, NhanVat['khoi_3d']> = {}; const loaiNv: Record<string, string> = {};
+  for (const v of nv) if (v.khoi_3d) { khoi[v.ten] = v.khoi_3d; loaiNv[v.ten] = v.loai; }
+  return { ok: true, data: { sets, khoi, loai: loaiNv, shots, ti_le: docKinhThanh(t[0].kinh_thanh as KinhThanh).ti_le } };
+}

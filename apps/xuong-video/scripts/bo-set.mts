@@ -54,6 +54,7 @@ if (gia('nap')) {
 }
 if (process.argv.includes('--dung')) {
   if (!tap) { console.error('--dung cần --tap=<id>'); process.exit(1); }
-  console.log(JSON.stringify(await dungKhungXamTap(db, tap, { tatCa: process.argv.includes('--tat-ca') })));
+  const chi = gia('chi') ? gia('chi').split(',').map(Number) : undefined;   // --chi=<id,…>: chỉ dựng các shot này (thử nhanh)
+  console.log(JSON.stringify(await dungKhungXamTap(db, tap, { tatCa: process.argv.includes('--tat-ca'), ids: chi })));
 }
 process.exit(0);

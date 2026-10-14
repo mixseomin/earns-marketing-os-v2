@@ -34,7 +34,8 @@
         72
       ],
       "mau": "#5a3f28",
-      "en": "desk leg"
+      "en": "desk leg",
+      "chat": "go"
     },
     {
       "ten": "Chân bàn 2",
@@ -51,7 +52,8 @@
         72
       ],
       "mau": "#5a3f28",
-      "en": "desk leg"
+      "en": "desk leg",
+      "chat": "go"
     },
     {
       "ten": "Chân bàn 3",
@@ -68,7 +70,8 @@
         72
       ],
       "mau": "#5a3f28",
-      "en": "desk leg"
+      "en": "desk leg",
+      "chat": "go"
     },
     {
       "ten": "Chân bàn 4",
@@ -85,7 +88,8 @@
         72
       ],
       "mau": "#5a3f28",
-      "en": "desk leg"
+      "en": "desk leg",
+      "chat": "go"
     },
     {
       "ten": "Tường sau",
@@ -258,6 +262,23 @@
       "en": "window frame on the far wall"
     },
     {
+      "ten": "Khung cửa sổ",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        0,
+        -188,
+        25
+      ],
+      "co": [
+        124,
+        4,
+        2
+      ],
+      "mau": "#8a7a66",
+      "en": "window frame on the far wall"
+    },
+    {
       "ten": "Mặt bàn",
       "nen": true,
       "hinh": "hop",
@@ -272,7 +293,8 @@
         3
       ],
       "mau": "#6b4a2e",
-      "en": "wooden desk top"
+      "en": "wooden desk top",
+      "chat": "go"
     },
     {
       "ten": "Cable Jungle 3",
@@ -310,7 +332,8 @@
         ]
       ],
       "ban_kinh": 0.35,
-      "mau": "#1c1c20"
+      "mau": "#1c1c20",
+      "chat": "cao_su"
     },
     {
       "ten": "Cable Jungle 4",
@@ -343,7 +366,8 @@
         ]
       ],
       "ban_kinh": 0.3,
-      "mau": "#e8e8e8"
+      "mau": "#e8e8e8",
+      "chat": "cao_su"
     },
     {
       "ten": "Left Monitor",
@@ -411,7 +435,8 @@
           "sang": 2
         }
       ],
-      "anchor": "Left Monitor"
+      "anchor": "Left Monitor",
+      "chat": "kim_loai"
     },
     {
       "ten": "Yellow iMac",
@@ -479,7 +504,8 @@
           "sang": 2
         }
       ],
-      "anchor": "Yellow iMac"
+      "anchor": "Yellow iMac",
+      "chat": "nhua"
     },
     {
       "ten": "White Keyboard",
@@ -495,7 +521,8 @@
         1
       ],
       "mau": "#f2f2f2",
-      "anchor": "White Keyboard"
+      "anchor": "White Keyboard",
+      "chat": "nhua"
     },
     {
       "ten": "Magic Mouse",
@@ -511,7 +538,8 @@
         2.2
       ],
       "mau": "#fafafa",
-      "anchor": "Magic Mouse"
+      "anchor": "Magic Mouse",
+      "chat": "nhua"
     },
     {
       "ten": "Notebook Stack",
@@ -560,7 +588,8 @@
         1.3
       ],
       "mau": "#b8bcc4",
-      "anchor": "USB Hub"
+      "anchor": "USB Hub",
+      "chat": "kim_loai"
     },
     {
       "ten": "Black Speaker",
@@ -576,7 +605,8 @@
         10
       ],
       "mau": "#222226",
-      "anchor": "Black Speaker"
+      "anchor": "Black Speaker",
+      "chat": "nhua"
     },
     {
       "ten": "White Cable",
@@ -605,7 +635,8 @@
       ],
       "ban_kinh": 0.3,
       "mau": "#f4f4f4",
-      "anchor": "White Cable"
+      "anchor": "White Cable",
+      "chat": "cao_su"
     },
     {
       "ten": "Cable Jungle 1",
@@ -638,7 +669,8 @@
         ]
       ],
       "ban_kinh": 0.35,
-      "mau": "#222226"
+      "mau": "#222226",
+      "chat": "cao_su"
     },
     {
       "ten": "Cable Jungle 2",
@@ -701,7 +733,8 @@
         ]
       ],
       "ban_kinh": 0.3,
-      "mau": "#eeeeee"
+      "mau": "#eeeeee",
+      "chat": "cao_su"
     },
     {
       "ten": "Magazine Pile",
@@ -799,7 +832,8 @@
           "mau": "#e8d9a8",
           "sang": 1
         }
-      ]
+      ],
+      "chat": "kim_loai"
     },
     {
       "ten": "Lamp Switch",
@@ -842,7 +876,8 @@
         ]
       ],
       "ban_kinh": 0.25,
-      "mau": "#2a2a2e"
+      "mau": "#2a2a2e",
+      "chat": "cao_su"
     },
     {
       "ten": "Cable Plug",
@@ -858,7 +893,8 @@
         1.0
       ],
       "mau": "#c9ccd2",
-      "anchor": "White Cable"
+      "anchor": "White Cable",
+      "chat": "kim_loai"
     },
     {
       "ten": "Coffee Mug",
@@ -874,7 +910,8 @@
         9
       ],
       "mau": "#f2f0ea",
-      "anchor": "Coffee Mug"
+      "anchor": "Coffee Mug",
+      "chat": "nhua"
     },
     {
       "ten": "Scissors",
@@ -924,7 +961,8 @@
         5
       ],
       "mau": "#f08a3c",
-      "anchor": "Clay Tub"
+      "anchor": "Clay Tub",
+      "chat": "nhua"
     },
     {
       "ten": "AA Battery",
@@ -1025,7 +1063,8 @@
           "sang": 1,
           "nghieng": -15
         }
-      ]
+      ],
+      "chat": "kim_loai"
     }
   ],
   "vung": {
@@ -1142,19 +1181,21 @@
       "mat": true,
       "phan": [
         {
-          "hinh": "hop",
+          "hinh": "xoan",
           "co": [
-            0.18,
-            0.18,
-            0.9
+            0.7,
+            0.7,
+            1.1
           ],
+          "ban_kinh": 0.09,
+          "vong": 2.5,
           "mau": "#f08a3c",
           "tam": [
             0.1,
             0,
-            2.45
+            2.4
           ],
-          "xoay": 15
+          "chat": "dat_set"
         },
         {
           "hinh": "cau",
@@ -1168,7 +1209,8 @@
             -1.1,
             0,
             0.9
-          ]
+          ],
+          "chat": "dat_set"
         },
         {
           "hinh": "cau",
@@ -1182,9 +1224,11 @@
             1.1,
             0,
             0.9
-          ]
+          ],
+          "chat": "dat_set"
         }
-      ]
+      ],
+      "mo_hinh": "dat_set"
     },
     "Lint": {
       "hinh": "cau",
@@ -1210,7 +1254,8 @@
             0.5
           ]
         }
-      ]
+      ],
+      "mo_hinh": "long"
     },
     "Mr. Wipe": {
       "hinh": "hop",
@@ -1237,7 +1282,8 @@
           ],
           "xoay": 0
         }
-      ]
+      ],
+      "mo_hinh": "vai"
     },
     "Sticky": {
       "hinh": "hop",
@@ -1289,7 +1335,8 @@
             0,
             0,
             1.05
-          ]
+          ],
+          "chat": "keo"
         },
         {
           "hinh": "cau",
@@ -1303,7 +1350,8 @@
             -0.35,
             0,
             1.8
-          ]
+          ],
+          "chat": "keo"
         },
         {
           "hinh": "cau",
@@ -1317,9 +1365,11 @@
             0.35,
             0,
             1.8
-          ]
+          ],
+          "chat": "keo"
         }
-      ]
+      ],
+      "mo_hinh": "keo"
     },
     "Cotton Ball": {
       "hinh": "cau",
@@ -1328,7 +1378,8 @@
         2.6,
         2.4
       ],
-      "mau": "#ffffff"
+      "mau": "#ffffff",
+      "mo_hinh": "bong"
     },
     "Blue Spray Bottle": {
       "hinh": "hop",
@@ -1688,7 +1739,8 @@
           ],
           "huong": -90
         }
-      ]
+      ],
+      "den_ban": true
     },
     "1.2": {
       "dat": [
@@ -1727,7 +1779,8 @@
           "huong": -70,
           "nhay": "tay nhấc khỏi khung rồi với sang bấm công tắc"
         }
-      ]
+      ],
+      "den_ban": true
     },
     "3.1": {
       "dat": [

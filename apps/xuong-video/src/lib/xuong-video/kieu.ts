@@ -301,9 +301,10 @@ export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy 
     nam?: boolean; /** kịch bản CỐ Ý cho vật khác che (vd nấp sau chuột) — kiểm không báo bị che */ an?: boolean }[];
   /** CỐ Ý ĐỨT MẠCH ở cú cắt vào shot này (thời gian trôi / dịch chuyển ngoài khung) — ghi lý do; không ghi thì mọi nhân vật phải mở đúng chỗ
    *  lần cuối thấy nó kết (bo-set-3d.ts › lienMachTap) */ nhay?: string;
-  /** đồ TUỲ CHỌN của bộ set có mặt ở shot này (vd ['MacBook Pro']) — không khai = vắng */ them?: string[] };
+  /** đồ TUỲ CHỌN của bộ set có mặt ở shot này (vd ['MacBook Pro']) — không khai = vắng */ them?: string[];
+  /** đèn bàn BẬT ở khung đầu shot (khung màu: ánh vàng ấm); không khai = tắt, chỉ ánh xanh màn hình */ den_ban?: boolean };
 /** Kết quả dựng khung xám (đầu ra): ma = mã đầu vào (set + máy + vị trí + khối) — đầu vào đổi là hết hiệu lực. */
-export type KhungXam = { ma: string; xam: string; sau: string; luc: string; kiem: { nhan_vat: string; bat_buoc?: boolean; trong_khung: boolean; cao_khung_pt: number; bi_che_boi: string[] }[];
+export type KhungXam = { ma: string; xam: string; sau: string; /** KHUNG MÀU (previs có vật liệu + ánh sáng, EEVEE) — ảnh tham chiếu số 1 của keyframe khi có */ mau?: string; luc: string; kiem: { nhan_vat: string; bat_buoc?: boolean; trong_khung: boolean; cao_khung_pt: number; bi_che_boi: string[] }[];
   /** THẤY GÌ trong khung (dung-set.py › nhin_thay, đo bằng lưới tia): tên vật / nhân vật · % khung · hộp bao [x0,y0,x1,y1] 0..1 gốc trên-trái ·
    *  tien = nằm trước chủ thể (vật chắn tiền cảnh). Lưới gắn nhãn, cổng bắt vật chắn, prompt keyframe gọi tên từng khối. */
   thay?: VatThay[] };

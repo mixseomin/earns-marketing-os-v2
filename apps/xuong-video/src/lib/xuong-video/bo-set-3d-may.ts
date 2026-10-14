@@ -98,10 +98,11 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
       const ma = maKhungXam(set, c.may_3d, nv);
       const len = async (duoi: string) => uploadToR2(`xuong-video/khung-xam/${c.id}-${ma}-${duoi}.png`, await readFile(path.join(thu, 'ra', `${c.id}-${duoi}.png`)), 'image/png');
       const [xam, sau] = [await len('xam'), await len('sau')];
+      const mau = existsSync(path.join(thu, 'ra', `${c.id}-mau.png`)) ? await len('mau') : null;
       if (!xam || !sau) { loi.push(`#${c.thu_tu}: không đẩy được ảnh lên kho`); continue; }
-      const kx: KhungXam = { ma, xam, sau, luc, kiem: kiem[String(c.id)] ?? [], thay: thay[String(c.id)] ?? [] };
+      const kx: KhungXam = { ma, xam, sau, ...(mau ? { mau } : {}), luc, kiem: kiem[String(c.id)] ?? [], thay: thay[String(c.id)] ?? [] };
       await db.execute(sql`UPDATE xv_canh SET khung_xam = ${JSON.stringify(kx)}::jsonb WHERE id = ${c.id}`);
-      if (c.khung_xam) cu.push(c.khung_xam.xam, c.khung_xam.sau);
+      if (c.khung_xam) cu.push(c.khung_xam.xam, c.khung_xam.sau, c.khung_xam.mau ?? '');
       dung++;
     }
     const mbCu = set.mat_bang_url;

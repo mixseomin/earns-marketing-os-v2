@@ -51,6 +51,15 @@ def khoi(p, ten, goc=(0, 0), xoay=0):
         for i, d in enumerate(p['diem']): sp.points[i].co = (d[0] * CM, d[1] * CM, d[2] * CM, 1)
         sp.use_endpoint_u = True; sp.order_u = p.get('bac', 3) + 1 if p.get('bac') else 3
         o = bpy.data.objects.new(ten, cv); bpy.context.collection.objects.link(o); cv.materials.append(m); return o
+    if h == 'xoan':   # sợi tóc xoắn lò xo (Tango): đường xoắn ốc rộng co[0], cao co[2], ống dày ban_kinh
+        x, y, z = p['tam']; w, d, c = p['co']
+        a = math.radians(xoay); gx = goc[0] + x * math.cos(a) - y * math.sin(a); gy = goc[1] + x * math.sin(a) + y * math.cos(a)
+        cv = bpy.data.curves.new(ten, 'CURVE'); cv.dimensions = '3D'; cv.bevel_depth = p.get('ban_kinh', 0.08) * CM; cv.bevel_resolution = 3
+        sp = cv.splines.new('POLY'); n = 48; sp.points.add(n - 1)
+        for i in range(n):
+            t = i / (n - 1); g = t * math.pi * 2 * p.get('vong', 2.5)
+            sp.points[i].co = ((gx + math.cos(g) * w / 2 * (0.4 + 0.6 * t)) * CM, (gy + math.sin(g) * w / 2 * (0.4 + 0.6 * t)) * CM, (z + t * c) * CM, 1)
+        o = bpy.data.objects.new(ten, cv); bpy.context.collection.objects.link(o); cv.materials.append(m); return o
     x, y, z = p['tam']; w, d, c = p['co']
     a = math.radians(xoay); gx = goc[0] + x * math.cos(a) - y * math.sin(a); gy = goc[1] + x * math.sin(a) + y * math.cos(a)
     if h == 'hop':
@@ -65,12 +74,88 @@ def khoi(p, ten, goc=(0, 0), xoay=0):
     o.rotation_euler = Euler((math.radians(p.get('nghieng', 0)), 0, math.radians(xoay + p.get('xoay', 0))))   # nghiêng quanh trục x của khối (nắp laptop) rồi mới xoay
     return dat(o, m, ten)
 
+# ── KHUNG MÀU (previs có màu — anh 14/10/2026: "dùng luôn Blender tạo khung và màu sắc"): vật liệu theo `chat`, nhân vật theo `mo_hinh`,
+# ánh sáng theo kịch bản (đèn bàn bật / chỉ ánh xanh màn hình). Render EEVEE qua Xvfb → ảnh <ma>-mau.png làm ảnh tham chiếu số 1 cho keyframe.
+def chat_lieu(o, chat, hex_):
+    """Gắn vật liệu thật cho một khối: go (gỗ), dat_set (đất sét), long (lông), vai (vải), keo (kẹo dẻo), bong (bông), kim_loai, nhua, cao_su."""
+    if not chat or not hasattr(o.data, 'materials'): return
+    hx = hex_.lstrip('#'); rgb = [(int(hx[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4)]
+    m = bpy.data.materials.new(f'cl_{chat}_{hx}_{o.name}'); m.use_nodes = True; nt = m.node_tree; b = nt.nodes['Principled BSDF']
+    b.inputs['Base Color'].default_value = (*rgb, 1); m.diffuse_color = (*rgb, 1)
+    def gon(scale, manh):
+        nz = nt.nodes.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = scale; bm = nt.nodes.new('ShaderNodeBump'); bm.inputs['Strength'].default_value = manh
+        nt.links.new(nz.outputs['Fac'], bm.inputs['Height']); nt.links.new(bm.outputs['Normal'], b.inputs['Normal'])
+    if chat == 'go':
+        nz = nt.nodes.new('ShaderNodeTexWave'); nz.inputs['Scale'].default_value = 3; nz.inputs['Distortion'].default_value = 6
+        cr = nt.nodes.new('ShaderNodeValToRGB'); cr.color_ramp.elements[0].color = (*[c * 0.55 for c in rgb], 1); cr.color_ramp.elements[1].color = (*[min(1, c * 1.35) for c in rgb], 1)
+        nt.links.new(nz.outputs['Fac'], cr.inputs['Fac']); nt.links.new(cr.outputs['Color'], b.inputs['Base Color']); b.inputs['Roughness'].default_value = 0.42
+    elif chat == 'dat_set': b.inputs['Roughness'].default_value = 0.55; gon(900, 0.25)
+    elif chat == 'long': b.inputs['Roughness'].default_value = 0.95; b.inputs['Sheen Weight'].default_value = 0.8
+    elif chat == 'vai': b.inputs['Roughness'].default_value = 0.85; b.inputs['Sheen Weight'].default_value = 0.5; gon(2500, 0.35)
+    elif chat == 'keo': b.inputs['Roughness'].default_value = 0.12; b.inputs['Subsurface Weight'].default_value = 0.6; b.inputs['Coat Weight'].default_value = 0.6
+    elif chat == 'bong': b.inputs['Roughness'].default_value = 1.0; b.inputs['Subsurface Weight'].default_value = 0.4; gon(1500, 0.6)
+    elif chat == 'kim_loai': b.inputs['Metallic'].default_value = 0.9; b.inputs['Roughness'].default_value = 0.32
+    elif chat == 'nhua': b.inputs['Roughness'].default_value = 0.35
+    elif chat == 'cao_su': b.inputs['Roughness'].default_value = 0.7
+    o.data.materials.clear(); o.data.materials.append(m)
+
+def hoan_thien(o, kieu, w, d, h):
+    """Khối thân nhân vật → hình thật: đất sét gồ nhẹ, cục bông xù, lông (sợi tóc Blender), vải gợn nếp."""
+    if kieu in ('dat_set', 'bong', 'vai', 'long'):
+        sd = o.modifiers.new('min', 'SUBSURF'); sd.levels = sd.render_levels = 2
+    if kieu in ('dat_set', 'bong', 'vai'):
+        tx = bpy.data.textures.new(f'tx_{o.name}', 'CLOUDS'); tx.noise_scale = {'dat_set': 0.006, 'bong': 0.003, 'vai': 0.01}[kieu]
+        dp = o.modifiers.new('go', 'DISPLACE'); dp.texture = tx; dp.texture_coords = 'GLOBAL'; dp.strength = {'dat_set': 0.0008, 'bong': 0.004, 'vai': 0.004}[kieu]
+    if kieu == 'long':
+        o.modifiers.new('long', 'PARTICLE_SYSTEM'); ps = o.particle_systems[0].settings
+        ps.type = 'HAIR'; ps.count = 1800; ps.hair_length = 0.22 * min(w, h) * CM; ps.use_advanced_hair = True; ps.factor_random = 0.6
+        ps.child_type = 'INTERPOLATED'; ps.child_percent = 6; ps.rendered_child_count = 6; ps.roughness_2 = 0.6; ps.root_radius = 0.0003; ps.tip_radius = 0.0001
+
+def anh_sang_mau(s, sh, bat):
+    """Ánh sáng khung màu: đèn bàn vàng ấm khi shot khai den_ban, luôn có ánh xanh từ các màn hình; trời tối. bat=False → dọn đèn."""
+    for o in [x for x in bpy.data.objects if x.name.startswith('L~')]: bpy.data.objects.remove(o, do_unlink=True)
+    for o in bpy.data.objects:
+        if o.type == 'LIGHT': o.hide_render = bat
+    if not bat: return
+    def den(ten, loai, vt, mau_, nl, xoay=(0, 0, 0), co=0.1):
+        ld = bpy.data.lights.new(ten, loai); ld.color = mau_; ld.energy = nl
+        if loai == 'AREA': ld.size = co
+        o = bpy.data.objects.new(ten, ld); s.collection.objects.link(o); o.location = Vector(vt) * CM; o.rotation_euler = Euler(xoay)
+    if sh.get('den_ban'):
+        dd = [o for o in bpy.data.objects if o.name.startswith('Desk Lamp ')]
+        if dd:
+            top = max(dd, key=lambda o: o.matrix_world.translation.z)
+            den('L~den', 'POINT', [top.matrix_world.translation.x / CM, top.matrix_world.translation.y / CM, top.matrix_world.translation.z / CM - 2], (1.0, 0.72, 0.45), 18)
+    for o in bpy.data.objects:   # màn hình = khối phát sáng to → một đèn vuông xanh ngay trước mặt nó
+        mt = o.active_material if hasattr(o, 'active_material') else None
+        if o.type != 'MESH' or not mt or not mt.use_nodes or o.hide_render: continue
+        b = mt.node_tree.nodes.get('Principled BSDF')
+        if not b or b.inputs['Emission Strength'].default_value <= 0 or max(o.dimensions) < 0.1: continue
+        p = o.matrix_world.translation / CM
+        den(f'L~mh{o.name}', 'AREA', [p.x, p.y - 6, p.z], (0.55, 0.7, 1.0), 6 if sh.get('den_ban') else 9, (math.radians(-90), 0, 0), max(o.dimensions) * 0.8)
+    s.world.node_tree.nodes['Background'].inputs['Color'].default_value = (0.012, 0.016, 0.03, 1)
+    s.world.node_tree.nodes['Background'].inputs['Strength'].default_value = 1
+
+def ve_mau(s, sh, ra):
+    """Render khung màu bằng EEVEE (chỉ khi có OpenGL — Xvfb trên box). Trả True nếu có ảnh."""
+    if not NHANH: return False
+    nen = tuple(s.world.node_tree.nodes['Background'].inputs['Color'].default_value); sm = s.world.node_tree.nodes['Background'].inputs['Strength'].default_value
+    anh_sang_mau(s, sh, True)
+    s.render.engine = 'BLENDER_EEVEE'; s.eevee.taa_render_samples = 24; s.view_settings.view_transform = 'AgX'
+    s.render.filepath = ra; bpy.ops.render.render(write_still=True)
+    anh_sang_mau(s, sh, False); s.view_settings.view_transform = 'Standard'
+    s.world.node_tree.nodes['Background'].inputs['Color'].default_value = nen; s.world.node_tree.nodes['Background'].inputs['Strength'].default_value = sm
+    return True
+
 def dung_set():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     for v in DL['vat']:
         if 'phan' in v:
             for i, p in enumerate(v['phan']): khoi(p, f"{v['ten']} {i}", v['goc'], v.get('xoay', 0))
         else: khoi(v, v['ten'])
+    for v in DL['vat']:   # vật liệu thật cho khung màu (Workbench vẫn đọc màu phẳng diffuse_color)
+        if not v.get('chat'): continue
+        for o in [x for x in bpy.data.objects if x.name == v['ten'] or x.name.startswith(v['ten'] + ' ')]: chat_lieu(o, v['chat'], v.get('mau') or (v.get('phan') or [{}])[0].get('mau', '#888888'))
     s = bpy.context.scene
     w = bpy.data.worlds.new('w'); s.world = w; w.use_nodes = True
     w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.25, 0.26, 0.3, 1)
@@ -101,7 +186,8 @@ def nhan_vat(sh):
         w, d, h = mau_nv['co']
         if nv.get('nam'): d, h = h, d   # nằm sấp / bẹp: cao thành sâu
         hg = nv.get('huong', 0)
-        o = khoi({'hinh': mau_nv['hinh'], 'co': [w, d, h], 'mau': mau_nv['mau'], 'tam': [0, 0, Z]}, f"NV {nv['ten']}", (X, Y), hg)
+        o = khoi({'hinh': mau_nv['hinh'], 'co': [w, d, h], 'mau': mau_nv['mau'], 'sang': mau_nv.get('sang', 0), 'tam': [0, 0, Z]}, f"NV {nv['ten']}", (X, Y), hg)
+        if mau_nv.get('mo_hinh'): chat_lieu(o, mau_nv['mo_hinh'], mau_nv['mau']); hoan_thien(o, mau_nv['mo_hinh'], w, d, h)
         than.append(o); tat_ca.append(o)
         phan = [dict(p) for p in mau_nv.get('phan', [])] if not nv.get('nam') else []
         if mau_nv.get('mat'):
@@ -113,7 +199,8 @@ def nhan_vat(sh):
                 phan.append({'hinh': 'cau', 'co': [e * 0.5, e * 0.5, e * 0.5], 'mau': '#111111', 'tam': [sx * ex, ey - e * 0.38, ez + e * 0.25] if not nv.get('nam') else [sx * ex, ey - e * 0.2, ez + e * 0.45]})
         for i, p in enumerate(phan):
             p = {**p, 'tam': [p['tam'][0], p['tam'][1], p['tam'][2] + Z]}
-            tat_ca.append(khoi(p, f"NV {nv['ten']}·{i}", (X, Y), hg))
+            pk = khoi(p, f"NV {nv['ten']}·{i}", (X, Y), hg); tat_ca.append(pk)
+            if p.get('chat'): chat_lieu(pk, p['chat'], p['mau'])
     return than, tat_ca
 
 def may(s, m, ten='cam'):
@@ -270,6 +357,7 @@ for sh in shots:
     thay[sh['ma']] = nhin_thay(s, cam, sh, nv_kiem)
     s.view_layers[0].material_override = None; s.cycles.samples = 10; s.cycles.use_denoising = True; may_ve(s, True)
     s.render.filepath = f"{RA}/{sh['ma']}-xam.png"; bpy.ops.render.render(write_still=True)
+    ve_mau(s, sh, f"{RA}/{sh['ma']}-mau.png")
     may_ve(s, False); s.view_layers[0].material_override = do_sau(s, 0.02, 0.9); s.cycles.samples = 1; s.cycles.use_denoising = False   # độ sâu là phát sáng thuần: 1 mẫu là đủ
     s.render.filepath = f"{RA}/{sh['ma']}-sau.png"; bpy.ops.render.render(write_still=True)
     s.view_layers[0].material_override = None

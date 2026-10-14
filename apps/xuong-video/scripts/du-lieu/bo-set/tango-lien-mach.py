@@ -91,6 +91,19 @@ K['The Giant'] = {'hinh': 'hop', 'co': [8, 10, 3.2], 'mau': '#c99a7a', 'phan': [
     {'hinh': 'hop', 'co': [5, 3, 2.2], 'mau': '#bf8f6e', 'tam': [1.2, -6.2, 0]},
     {'hinh': 'hop', 'co': [1.9, 4.2, 1.7], 'mau': '#c99a7a', 'tam': [4.6, -3.2, 0.4], 'xoay': 30}]}
 
+# KHUNG MÀU: chất liệu nhân vật (mo_hinh) + vật của set (chat) — Blender dựng hình thật bằng code (0đ): đất sét, lông, vải, kẹo, bông.
+K['Tango']['mo_hinh'] = 'dat_set'; K['Tango']['phan'][0] = {'hinh': 'xoan', 'co': [0.7, 0.7, 1.1], 'ban_kinh': 0.09, 'vong': 2.5, 'mau': '#f08a3c', 'tam': [0.1, 0, 2.4], 'chat': 'dat_set'}
+for p_ in K['Tango']['phan'][1:]: p_['chat'] = 'dat_set'
+K['Lint']['mo_hinh'] = 'long'; K['Mr. Wipe']['mo_hinh'] = 'vai'; K['Gummy Bear']['mo_hinh'] = 'keo'
+for p_ in K['Gummy Bear']['phan']: p_['chat'] = 'keo'
+K['Cotton Ball']['mo_hinh'] = 'bong'
+CHAT = {'Mặt bàn': 'go', 'Chân bàn 1': 'go', 'Chân bàn 2': 'go', 'Chân bàn 3': 'go', 'Chân bàn 4': 'go', 'White Keyboard': 'nhua', 'Magic Mouse': 'nhua',
+        'Left Monitor': 'kim_loai', 'Yellow iMac': 'nhua', 'USB Hub': 'kim_loai', 'Cable Plug': 'kim_loai', 'MacBook Pro': 'kim_loai', 'Desk Lamp': 'kim_loai',
+        'White Cable': 'cao_su', 'Cable Jungle 1': 'cao_su', 'Cable Jungle 2': 'cao_su', 'Cable Jungle 3': 'cao_su', 'Cable Jungle 4': 'cao_su', 'Lamp Cord': 'cao_su',
+        'Black Speaker': 'nhua', 'Coffee Mug': 'nhua', 'Clay Tub': 'nhua'}
+for x in S['vat']:
+    if x['ten'] in CHAT: x['chat'] = CHAT[x['ten']]
+
 TANGO, LINT, GUMMY, STICKY, CBALL, WIPE, SPRAY, HAND, CORDY = 'Tango', 'Lint', 'Gummy Bear', 'Sticky', 'Cotton Ball', 'Mr. Wipe', 'Blue Spray Bottle', 'The Giant', 'Cordy'
 GAP = [0, 50]          # khe giữa hai màn hình (Between the Screens)
 SW = [46, 13, 1.4]     # công tắc đèn
@@ -152,6 +165,7 @@ NHAY = {  # cú cắt cố ý cắt thời gian / dịch chuyển ngoài khung
  '8.1': 'phần kết: hai bạn ra mép bàn chào khán giả',
 }
 S['may']['7.3']['phia'] = 90
+for ma in ('1.1', '1.2'): S['may'][ma]['den_ban'] = True   # đèn bàn bật tới cú bấm công tắc ở 1.2
 for ma, ds in VT.items():
     m = S['may'][ma]; m['vi_tri'] = ds
     if ma in NHAY: m['nhay'] = NHAY[ma]

@@ -90,7 +90,7 @@ def chat_lieu(o, chat, hex_):
         cr = nt.nodes.new('ShaderNodeValToRGB'); cr.color_ramp.elements[0].color = (*[c * 0.55 for c in rgb], 1); cr.color_ramp.elements[1].color = (*[min(1, c * 1.35) for c in rgb], 1)
         nt.links.new(nz.outputs['Fac'], cr.inputs['Fac']); nt.links.new(cr.outputs['Color'], b.inputs['Base Color']); b.inputs['Roughness'].default_value = 0.42
     elif chat == 'dat_set': b.inputs['Roughness'].default_value = 0.55; gon(900, 0.25)
-    elif chat == 'long': b.inputs['Roughness'].default_value = 0.95; b.inputs['Sheen Weight'].default_value = 0.8
+    elif chat == 'long': b.inputs['Roughness'].default_value = 0.95; b.inputs['Sheen Weight'].default_value = 1.0; gon(4000, 0.9)
     elif chat == 'vai': b.inputs['Roughness'].default_value = 0.85; b.inputs['Sheen Weight'].default_value = 0.5; gon(2500, 0.35)
     elif chat == 'keo': b.inputs['Roughness'].default_value = 0.12; b.inputs['Subsurface Weight'].default_value = 0.6; b.inputs['Coat Weight'].default_value = 0.6
     elif chat == 'bong': b.inputs['Roughness'].default_value = 1.0; b.inputs['Subsurface Weight'].default_value = 0.4; gon(1500, 0.6)
@@ -106,14 +106,11 @@ def hoan_thien(o, kieu, w, d, h):
     bpy.ops.object.select_all(action='DESELECT'); o.select_set(True); bpy.context.view_layer.objects.active = o
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     if kieu in ('dat_set', 'bong', 'vai', 'long'):
-        sd = o.modifiers.new('min', 'SUBSURF'); sd.levels = sd.render_levels = 2
-    if kieu in ('dat_set', 'bong', 'vai'):
-        tx = bpy.data.textures.new(f'tx_{o.name}', 'CLOUDS'); tx.noise_scale = {'dat_set': 0.006, 'bong': 0.003, 'vai': 0.01}[kieu]
-        dp = o.modifiers.new('go', 'DISPLACE'); dp.texture = tx; dp.texture_coords = 'GLOBAL'; dp.strength = {'dat_set': 0.0008, 'bong': 0.004, 'vai': 0.004}[kieu]
-    if kieu == 'long':
-        o.modifiers.new('long', 'PARTICLE_SYSTEM'); ps = o.particle_systems[0].settings
-        ps.type = 'HAIR'; ps.count = 2500; ps.hair_length = 0.12 * min(w, h) * CM; ps.use_advanced_hair = True; ps.factor_random = 0.5
-        ps.child_type = 'NONE'; ps.roughness_2 = 0.4; ps.root_radius = 0.00006; ps.tip_radius = 0.00002; ps.radius_scale = 1
+        sd = o.modifiers.new('min', 'SUBSURF'); sd.levels = sd.render_levels = 3 if kieu == 'long' else 2
+    if kieu in ('dat_set', 'bong', 'vai', 'long'):
+        tx = bpy.data.textures.new(f'tx_{o.name}', 'CLOUDS'); tx.noise_scale = {'dat_set': 0.006, 'bong': 0.003, 'vai': 0.01, 'long': 0.0012}[kieu]
+        dp = o.modifiers.new('go', 'DISPLACE'); dp.texture = tx; dp.texture_coords = 'GLOBAL'; dp.strength = {'dat_set': 0.0008, 'bong': 0.004, 'vai': 0.004, 'long': 0.0025}[kieu]
+    # Lông (Lint): mặt xù dày + sheen thay cho hệ sợi lông — sợi lông Blender chạy không giao diện ra sợi dài cả khung (thử #23), khó kiểm.
 
 def anh_sang_mau(s, sh, bat):
     """Ánh sáng khung màu: đèn bàn vàng ấm khi shot khai den_ban, luôn có ánh xanh từ các màn hình; trời tối. bat=False → dọn đèn."""

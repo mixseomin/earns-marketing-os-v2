@@ -235,6 +235,11 @@
    "ten": "Ảnh thật end card (URL)",
    "goi_y": "Ảnh sản phẩm đẹp nhất của shop — dùng nguyên, không sinh",
    "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/image-1788564241554.jpg?v=1788564262"
+  },
+  "san_pham_goi": {
+   "ten": "Tên gọi thường của sản phẩm (tiếng Anh)",
+   "goi_y": "Cách người ta gọi khi nói chuyện, kèm màu chính — dùng trong hành động/lời",
+   "mau": "nude tank"
   }
  },
  "templates": [
@@ -244,6 +249,7 @@
    "mo_ta": "Một người thật kể ngôi thứ nhất: tình huống cụ thể → 2 nỗi đau bằng hình → người thân đưa giải pháp → demo một bước → chứng minh ngay trong tình huống → trước/sau → review → trấn an → ưu đãi. Hợp sản phẩm giải quyết một khó chịu hằng ngày. Mẫu: Summet × đóng vali đi cruise.",
    "o": [
     "san_pham",
+    "san_pham_goi",
     "san_pham_hinh",
     "anh_san_pham",
     "link",
@@ -426,7 +432,7 @@
      "giay": 2.5,
      "loai": "giai_phap",
      "goc_may": "Wide shot from the doorway",
-     "hanh_dong": "{{nguoi_2_ten}} stands in the doorway and tosses the folded product onto the bed next to {{nhan_vat_ten}}, grinning",
+     "hanh_dong": "{{nguoi_2_ten}} stands in the doorway and tosses a folded {{san_pham_goi}} onto the bed next to {{nhan_vat_ten}}, grinning",
      "chu_man": "{{nguoi_gioi_thieu}}",
      "loi": "{{nguoi_gioi_thieu}}",
      "nv": [

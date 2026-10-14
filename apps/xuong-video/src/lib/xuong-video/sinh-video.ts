@@ -7,6 +7,8 @@ import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '@/lib/r2';
 import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from './google';
 import { docFal, guiFal, dauVaoTheoSchema } from './fal';
+import { chuoiVideo, guiVideoCong, docVideoCong, giaVideoCong, laHetTien, type BuocNguon, type NguonSinh } from './cong-ai';
+import { baoHetTien } from './bao-het-tien';
 import { promptKyThuatVideo } from './dien-anh';
 import { dongThoai, promptCamXuc, laLoiDan, dungTiengClip } from './am-thanh';
 import { chanVideo } from './quy-trinh';
@@ -61,7 +63,8 @@ export async function khungCuoiCanh(db: Db, canhId: number): Promise<string | nu
  *  còn dòng thoại/lời dẫn chưa có giọng → sinh giọng trước, giọng xong máy tự gửi video (hoanTatAm). Trả data = 0 khi mới xếp giọng. */
 /** thu = SINH THỬ ngoài quy trình (anh 14/10/2026: "phải cho thử ngoài quy trình"): bỏ cổng sản xuất (duyệt keyframe, kiểm khung, animatic,
  *  giọng trước) — vẫn cần keyframe; job ghi rõ 🧪 THỬ. Chỉ admin bấm, tiền tính như thường. */
-export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, ban: 'nhap' | 'cuoi' = 'nhap', tuDong = false, thu = false): Promise<Kq<number>> {
+/** boQuaCong: đi thẳng model đã chọn (Google), không qua chuỗi cổng — dùng khi task cổng vừa treo/hỏng và đang sinh lại. */
+export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, ban: 'nhap' | 'cuoi' = 'nhap', tuDong = false, thu = false, boQuaCong = false): Promise<Kq<number>> {
   let bc = await boiCanhCanh(db, canhId);
   if (!bc) return loi('không thấy cảnh');
   if (!thu && tuDong && bc.canh.keyframe_url && (bc.canh.trang_thai === 'co_keyframe' || bc.canh.trang_thai === 'nhap')) {
@@ -91,6 +94,27 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   const tieng = dungTiengClip(bc.canh, bc.nhanVat);
   const job = await taoJob(db, { nhan: `${thu ? '🧪 THỬ (ngoài quy trình) · ' : ''}Video ${ban === 'cuoi' ? 'BẢN CUỐI' : 'nháp'} · cảnh #${bc.canh.thu_tu} ${bc.canh.canh} · ${giay}s${tieng ? '' : ' · không tiếng'}`, canh_id: canhId, loai: 'video', provider: laFal ? 'fal' : 'google', model: bc.kt.mo_hinh_video, request: { prompt, giay, doPhanGiai: bc.kt.do_phan_giai, tiLe: bc.kt.ti_le, ban, khungDau: bc.canh.keyframe_url, khungCuoi, tieng: laFal ? tieng : true } });
   let kq: { ok: true; taskId: string } | { ok: false; loi: string };
+  // CHUỖI CỔNG (cong-ai.ts): shot dùng Veo → thử Grok qua ShopAIKey trước (rẻ hơn, ~95s); không nhận thì gọi Google như cũ.
+  const thuCong: BuocNguon[] = [];
+  if (!laFal && !boQuaCong) {
+    for (const b of chuoiVideo(bc.kt.mo_hinh_video)) {
+      const g = await guiVideoCong(b.cong, b.model, { prompt, anhDau: bc.canh.keyframe_url, giay: b.giay });
+      if (g.ok) {
+        thuCong.push({ cong: b.cong, model: b.model, ok: true });
+        const nguon: NguonSinh = { cong: b.cong, model: b.model, ...giaVideoCong(b.cong, b.model), thu: thuCong };
+        await db.execute(sql`UPDATE xv_job SET trang_thai = 'chay', task_id = ${g.taskId}, provider = ${b.cong}, model = ${b.model}, nguon = ${JSON.stringify(nguon)}::jsonb,
+          request = request || ${JSON.stringify({ giay: b.giay })}::jsonb, updated_at = now() WHERE id = ${job}`);
+        await db.execute(sql`UPDATE xv_canh SET trang_thai = 'dang_sinh', loi = '', updated_at = now() WHERE id = ${canhId}`);
+        if (thuCong.some((x) => x.het_tien)) void baoHetTien(db, thuCong, `video shot #${bc.canh.thu_tu} · job #${job}`).catch(() => {});
+        return { ok: true, data: job };
+      }
+      thuCong.push({ cong: b.cong, model: b.model, ok: false, loi: g.loi, het_tien: laHetTien(b.cong, g.loi, g.status) });
+    }
+    if (thuCong.length) {
+      await db.execute(sql`UPDATE xv_job SET nguon = ${JSON.stringify({ cong: 'google', model: bc.kt.mo_hinh_video, thu: [...thuCong, { cong: 'google', model: bc.kt.mo_hinh_video, ok: true }] })}::jsonb WHERE id = ${job}`);
+      if (thuCong.some((x) => x.het_tien)) void baoHetTien(db, thuCong, `video shot #${bc.canh.thu_tu} · job #${job}`).catch(() => {});
+    }
+  }
   if (laFal) {
     const id = bc.kt.mo_hinh_video.slice(4);
     kq = await guiFal(id, await dauVaoTheoSchema(id, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, giay: bc.canh.thoi_luong_s || giay, tiLe: bc.kt.ti_le, tieng, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) }));
@@ -119,14 +143,21 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
     // qua vòng này; không thì một clip bị tải/ghi hai lần (phiên bản trùng, tiền cộng đôi).
     const thue = (await db.execute(sql`UPDATE xv_job SET updated_at = now() WHERE id = ${r.id} AND trang_thai = 'chay' AND updated_at < now() - interval '45 seconds' RETURNING id`)) as unknown as Row[];
     if (!thue.length) { conChay++; continue; }
-    const kq = r.provider === 'fal' ? await docFal(r.task_id!) : await docVeo(r.task_id!);
+    const laCong = r.provider === 'shopaikey';
+    const kq = r.provider === 'fal' ? await docFal(r.task_id!) : laCong ? await docVideoCong(r.provider, r.task_id!, r.created_at) : await docVeo(r.task_id!);
     if (!kq.done) { conChay++; continue; }
     if (!kq.ok) {
       await xongJob(db, r.id, { loi: kq.loi });
+      // Task cổng treo / hỏng → sinh lại thẳng qua Google (không qua cổng nữa), shot không đứng chờ.
+      if (laCong && r.canh_id != null) {
+        const rqc = (((await db.execute(sql`SELECT request FROM xv_job WHERE id = ${r.id}`)) as unknown as Row[])[0]?.request ?? {}) as { ban?: 'nhap' | 'cuoi' };
+        const lai = await batDauVideoCanh(db, r.canh_id, undefined, rqc.ban ?? 'nhap', false, false, true);
+        if (lai.ok) { conChay++; continue; }
+      }
       await db.execute(sql`UPDATE xv_canh SET trang_thai = 'loi', loi = ${kq.loi}, updated_at = now() WHERE id = ${r.canh_id}`);
       continue;
     }
-    const buf = r.provider === 'fal' ? await fetch(kq.uri).then((x) => (x.ok ? x.arrayBuffer().then((a) => Buffer.from(a)) : null)).catch(() => null) : await taiVeo(kq.uri);
+    const buf = r.provider === 'fal' || laCong ? await fetch(kq.uri).then((x) => (x.ok ? x.arrayBuffer().then((a) => Buffer.from(a)) : null)).catch(() => null) : await taiVeo(kq.uri);
     const url = buf ? await uploadToR2(`xuong-video/clip/${r.canh_id}-${randomUUID()}.mp4`, buf, 'video/mp4') : null;
     if (!url) {
       await xongJob(db, r.id, { loi: 'tải/lưu video thất bại' });
@@ -135,7 +166,8 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
     }
     const req = (await db.execute(sql`SELECT request, model FROM xv_job WHERE id = ${r.id}`)) as unknown as Row[];
     const rq = (req[0]?.request ?? {}) as { giay?: number; doPhanGiai?: '720p' | '1080p'; ban?: 'nhap' | 'cuoi'; nangCap?: boolean; khopMieng?: boolean; prompt?: string; khungDau?: string; khungCuoi?: string | null; tieng?: boolean };
-    const gia = rq.nangCap ? NANG_CAP.giaGiayCents * (rq.giay ?? 8) : rq.khopMieng ? KHOP_MIENG.giaGiayCents * (rq.giay ?? 8) : await giaVideoSv(s(req[0]?.model), rq.doPhanGiai ?? '720p', rq.giay ?? 8, rq.tieng !== false);
+    const cong = (r.nguon?.cents != null && laCong) ? r.nguon.cents : null;
+    const gia = cong != null ? cong : rq.nangCap ? NANG_CAP.giaGiayCents * (rq.giay ?? 8) : rq.khopMieng ? KHOP_MIENG.giaGiayCents * (rq.giay ?? 8) : await giaVideoSv(s(req[0]?.model), rq.doPhanGiai ?? '720p', rq.giay ?? 8, rq.tieng !== false);
     await xongJob(db, r.id, { output_url: url, chi_phi_cents: gia });
     const pb = JSON.stringify([{ url, ban: rq.ban === 'cuoi' || rq.nangCap ? 'cuoi' : 'nhap', model: s(req[0]?.model), job: r.id, luc: new Date().toISOString() }]);
     await db.execute(sql`UPDATE xv_canh SET video_phien_ban = video_phien_ban || ${pb}::jsonb WHERE id = ${r.canh_id}`);

@@ -111,7 +111,8 @@ export function chanVideo(c: ShotQt, nhanVat: NhanVat[], o?: { hoSo?: TapHoSo; d
   if (!c.keyframe_url) out.push('chưa có keyframe');
   else if (c.trang_thai !== 'duyet' && c.trang_thai !== 'loi' && c.trang_thai !== 'xong') out.push('chưa duyệt keyframe');
   // Máy kiểm khung (khung.ts): keyframe chưa kiểm / lệch bố trí, trục, nhân vật → không cho tiêu tiền video lên một khung sai.
-  if (c.keyframe_url) { const k = chanKhung({ keyframe_url: c.keyframe_url, kiem_khung: c.kiem_khung ?? null }); if (k) out.push(k); }
+  // Quảng cáo KHÔNG xét (anh 15/10/2026: "gỡ cổng kiểm khung cho QC") — luật bố trí set / trục 180° là của phim truyện; QC duyệt keyframe bằng mắt.
+  if (c.keyframe_url && !o?.laQc) { const k = chanKhung({ keyframe_url: c.keyframe_url, kiem_khung: c.kiem_khung ?? null }); if (k) out.push(k); }
   const thieu = dongThoai(c, nhanVat).filter((d) => d.loi.trim() && !d.url);
   if (thieu.length) out.push(`${thieu.length} dòng thoại/lời dẫn chưa có giọng — sinh giọng trước (độ dài shot khớp theo giọng)`);
   return out;

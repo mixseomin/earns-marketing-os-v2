@@ -102,3 +102,50 @@ export function taNguon(n: NguonSinh | null | undefined): string {
 /** Các bước của chuỗi dự phòng: "ckey.vn wowztools/nano-banana-2 ✗ HTTP 502 → ShopAIKey ✓". */
 export const taThu = (n: NguonSinh | null | undefined): string =>
   (n?.thu ?? []).map((b) => `${TEN_CONG[b.cong] ?? b.cong} ${b.model} ${b.ok ? '✓' : `✗ ${b.het_tien ? 'HẾT TIỀN · ' : ''}${(b.loi ?? '').slice(0, 80)}`}`).join(' → ');
+
+// ── VIDEO qua cổng (ShopAIKey) ─────────────────────────────────────────────────────────────────────────────────────────────
+// Đo 15/10/2026: Grok qua ShopAIKey ra clip trong ~95s (grok-video-3-10s 10s = 3.250₫, grok-imagine-video-1.5 6s = 6.500₫), clip 2:3 —
+// bản xuất tự phóng + cắt cho đầy khung (xuat.ts). Veo của ShopAIKey treo hàng đợi >25 phút → KHÔNG đưa vào chuỗi; Google Veo trực tiếp
+// là dự phòng cuối (sinh-video.ts). Task cổng treo quá TREO_PHUT phút chưa chạy → bỏ, sinh lại qua Google.
+export const TREO_PHUT = 12;
+const GIA_VIDEO_VND: Record<string, number> = { 'shopaikey:grok-video-3-10s': 3250, 'shopaikey:grok-imagine-video-1.5': 6500 };
+export const giaVideoCong = (cong: string, model: string): { vnd?: number; cents?: number } => {
+  const vnd = GIA_VIDEO_VND[`${cong}:${model}`];
+  return vnd != null ? { vnd, cents: vndRaCent(vnd) } : {};
+};
+
+/** Chuỗi cổng video cho một shot dùng Veo (Google): Grok qua ShopAIKey trước. Chỉ khi có khoá. */
+export function chuoiVideo(modelGoc: string): { cong: CongKey; model: string; giay: number }[] {
+  if (!/^veo/i.test(modelGoc) || !coCong('shopaikey')) return [];
+  return [{ cong: 'shopaikey', model: 'grok-video-3-10s', giay: 10 }, { cong: 'shopaikey', model: 'grok-imagine-video-1.5', giay: 6 }];
+}
+
+/** Gửi một task video lên cổng: khung đầu = keyframe (URL công khai). Trả task id hoặc lỗi (lỗi gửi = không tính tiền). */
+export async function guiVideoCong(cong: CongKey, model: string, o: { prompt: string; anhDau: string; giay: number }): Promise<{ ok: true; taskId: string } | { ok: false; loi: string; status?: number }> {
+  const k = khoa(cong);
+  if (!k || cong !== 'shopaikey') return { ok: false, loi: `cổng ${cong} chưa có đường video` };
+  try {
+    const r = await fetch('https://api.shopaikey.com/v1/video/generations', {
+      method: 'POST', headers: { authorization: `Bearer ${k}`, 'content-type': 'application/json' }, signal: AbortSignal.timeout(60_000),
+      body: JSON.stringify({ model, prompt: o.prompt, metadata: { images: [o.anhDau], aspect_ratio: '2:3', duration: o.giay, resolution: '720p' } }),
+    });
+    const j = (await r.json().catch(() => ({}))) as { task_id?: string; id?: string; error?: { message?: string }; message?: string };
+    const id = j.task_id || j.id;
+    if (!r.ok || !id) return { ok: false, status: r.status, loi: `HTTP ${r.status}: ${j.error?.message || j.message || 'không nhận task'}`.slice(0, 300) };
+    return { ok: true, taskId: id };
+  } catch (e) { return { ok: false, loi: `không gửi được (${e instanceof Error ? e.name : 'lỗi mạng'})` }; }
+}
+
+/** Hỏi trạng thái task cổng. treo = chưa chạy sau TREO_PHUT phút kể từ lúc gửi (tinh từ `taoLuc`). */
+export async function docVideoCong(cong: string, taskId: string, taoLuc: string): Promise<{ done: false } | { done: true; ok: true; uri: string } | { done: true; ok: false; loi: string; treo?: boolean }> {
+  const k = khoa(cong as CongKey);
+  if (!k) return { done: true, ok: false, loi: `thiếu khoá ${cong}` };
+  const r = await fetch(`https://api.shopaikey.com/v1/video/generations/${encodeURIComponent(taskId)}`, { headers: { authorization: `Bearer ${k}` }, signal: AbortSignal.timeout(30_000) }).catch(() => null);
+  if (!r?.ok) return { done: false };
+  const d = ((await r.json().catch(() => ({}))) as { data?: { status?: string; result_url?: string; fail_reason?: string; start_time?: number } }).data ?? {};
+  const st = String(d.status ?? '').toUpperCase();
+  if (st === 'SUCCESS' && d.result_url) return { done: true, ok: true, uri: d.result_url };
+  if (st === 'FAILURE' || st === 'FAILED') return { done: true, ok: false, loi: `cổng báo hỏng: ${d.fail_reason || 'không rõ'}` };
+  if (!d.start_time && Date.now() - new Date(taoLuc).getTime() > TREO_PHUT * 60_000) return { done: true, ok: false, treo: true, loi: `treo hàng đợi ${TREO_PHUT} phút chưa chạy` };
+  return { done: false };
+}

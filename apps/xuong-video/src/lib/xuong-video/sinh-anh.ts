@@ -202,7 +202,7 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
   if (!g) return loi('không thấy cảnh');
   if (g.chan.length) return loi(g.chan.join(' · '));
   const { bc } = g;
-  if (moHinh && (moHinh.startsWith('fal:') || MO_HINH_ANH.some((m) => m.key === moHinh))) bc.kt.mo_hinh_anh = moHinh as typeof bc.kt.mo_hinh_anh;
+  if (moHinh && (/^(fal|ckey|shopaikey|google):/.test(moHinh) || MO_HINH_ANH.some((m) => m.key === moHinh))) bc.kt.mo_hinh_anh = moHinh as typeof bc.kt.mo_hinh_anh;   // ckey:/shopaikey:/google: = chọn đích danh nguồn (cong-ai.ts)
   await db.execute(sql`UPDATE xv_canh SET loi = '' WHERE id = ${canhId}`);
   const { prompt, urlRef } = chuanBiKeyframe(bc);
   const jobs: number[] = [];

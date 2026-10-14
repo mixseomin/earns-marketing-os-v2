@@ -12,6 +12,7 @@ export const MoHinhCtx = createContext<{ anh: MoHinhChon[]; video: MoHinhChon[] 
 export const giaVideoUi = (ds: MoHinhChon[], key: string, giay: number, dpg: '720p' | '1080p') => {
   const m = ds.find((x) => x.key === key);
   if (m?.gia) { const g = m.gia.chinh[dpg]; if (g != null) return g * giay; const c = m.gia.clip[dpg]; if (c) return c[1]; }
+  if (m?.giaCents != null && m.donVi === 'clip') return m.giaCents;   // cổng bán theo clip (cong-ai.ts), tiền thật
   return m?.giaCents != null && m.donVi === 'giay' ? m.giaCents * giay : giaVideoCents(key, dpg, giay);
 };
 
@@ -35,6 +36,7 @@ export function luaChonVideo(ds: MoHinhChon[], giay: number, dpg: '720p' | '1080
       const uoc = kg ? `\nƯớc tính clip ${giay} giây ở ${dpg}: ${khoangTien(kg, giay)} (thấp = không tiếng, cao = có tiếng; studio bật tiếng nên tính mức cao).` : '';
       return { value: m.key, label: m.label, nhom: m.nhom, phu, title: m.gia.moTa + uoc };
     }
+    if (m.donVi === 'clip' && m.giaCents != null) return { value: m.key, label: m.label, nhom: m.nhom, phu: `${tien(m.giaCents)}/clip`, title: `${tien(m.giaCents)} mỗi clip — tiền thật đã quy đổi (cổng bán theo lượt)` };
     const g = m.donVi === 'giay' && m.giaCents != null ? m.giaCents : giaVideoCents(m.key, dpg, 1);
     return { value: m.key, label: m.label, nhom: m.nhom, phu: `${tien(g * giay)} · ${giay}s`, title: `${tien(g)} mỗi giây ở ${dpg} (bảng giá Google)` };
   });

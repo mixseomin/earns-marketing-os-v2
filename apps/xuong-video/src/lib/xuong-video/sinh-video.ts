@@ -7,7 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '@/lib/r2';
 import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from './google';
 import { docFal, guiFal, dauVaoTheoSchema } from './fal';
-import { chuoiVideo, guiVideoCong, docVideoCong, giaVideoCong, laHetTien, type BuocNguon, type NguonSinh } from './cong-ai';
+import { chuoiVideo, guiVideoCong, docVideoCong, giaVideoCong, laHetTien, tachKhoa, MO_HINH_CONG, type BuocNguon, type NguonSinh } from './cong-ai';
 import { baoHetTien } from './bao-het-tien';
 import { promptKyThuatVideo } from './dien-anh';
 import { dongThoai, promptCamXuc, laLoiDan, dungTiengClip } from './am-thanh';
@@ -84,7 +84,10 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   if ((!thu && qt.length) || !bc.canh.keyframe_url) return loi(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ') || 'chưa có keyframe'}`);
   const chan = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
   if (chan) return loi(chan);
-  if (moHinh && (moHinh.startsWith('fal:') || MO_HINH_VIDEO.some((m) => m.key === moHinh))) bc.kt.mo_hinh_video = moHinh as typeof bc.kt.mo_hinh_video;
+  if (moHinh && (/^(fal|shopaikey|google):/.test(moHinh) || MO_HINH_VIDEO.some((m) => m.key === moHinh))) bc.kt.mo_hinh_video = moHinh as typeof bc.kt.mo_hinh_video;
+  // Khoá model (cong-ai.ts › tachKhoa): 'shopaikey:<model>' = đúng cổng đó (không dự phòng) · 'google:<model>' = Google trực tiếp · trần = tự chọn.
+  const khoaVid = tachKhoa(bc.kt.mo_hinh_video);
+  if (khoaVid.kieu === 'google') { bc.kt.mo_hinh_video = khoaVid.model as typeof bc.kt.mo_hinh_video; boQuaCong = true; }
   const prompt = promptVideoCanh(bc);
   const giay = lamTronClip(bc.canh.thoi_luong_s);
   const laFal = bc.kt.mo_hinh_video.startsWith('fal:');
@@ -96,8 +99,9 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   let kq: { ok: true; taskId: string } | { ok: false; loi: string };
   // CHUỖI CỔNG (cong-ai.ts): shot dùng Veo → thử Grok qua ShopAIKey trước (rẻ hơn, ~95s); không nhận thì gọi Google như cũ.
   const thuCong: BuocNguon[] = [];
+  const chuoi = khoaVid.kieu === 'cong' ? [{ cong: khoaVid.cong, model: khoaVid.model, giay: MO_HINH_CONG.find((m) => m.key === `${khoaVid.cong}:${khoaVid.model}`)?.giay ?? 10 }] : chuoiVideo(bc.kt.mo_hinh_video);
   if (!laFal && !boQuaCong) {
-    for (const b of chuoiVideo(bc.kt.mo_hinh_video)) {
+    for (const b of chuoi) {
       const g = await guiVideoCong(b.cong, b.model, { prompt, anhDau: bc.canh.keyframe_url, giay: b.giay });
       if (g.ok) {
         thuCong.push({ cong: b.cong, model: b.model, ok: true });
@@ -109,6 +113,13 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
         return { ok: true, data: job };
       }
       thuCong.push({ cong: b.cong, model: b.model, ok: false, loi: g.loi, het_tien: laHetTien(b.cong, g.loi, g.status) });
+    }
+    // Chọn đích danh một cổng mà cổng không nhận → báo lỗi, KHÔNG tự sang Google (anh đã chọn nguồn).
+    if (khoaVid.kieu === 'cong') {
+      const l = thuCong[thuCong.length - 1]?.loi ?? 'cổng không nhận';
+      await db.execute(sql`UPDATE xv_job SET nguon = ${JSON.stringify({ cong: khoaVid.cong, model: khoaVid.model, thu: thuCong })}::jsonb WHERE id = ${job}`);
+      await xongJob(db, job, { loi: l });
+      return loi(`${bc.kt.mo_hinh_video}: ${l}`);
     }
     if (thuCong.length) {
       await db.execute(sql`UPDATE xv_job SET nguon = ${JSON.stringify({ cong: 'google', model: bc.kt.mo_hinh_video, thu: [...thuCong, { cong: 'google', model: bc.kt.mo_hinh_video, ok: true }] })}::jsonb WHERE id = ${job}`);

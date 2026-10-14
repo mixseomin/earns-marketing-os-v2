@@ -6,7 +6,7 @@ import { useViTriNoi } from './vi-tri-noi';
 import { useXacNhanTien } from './xac-nhan-tien';
 import { anhNho, nacNho } from '@/lib/xuong-video/anh-nho';
 
-export type Khoa = { google: boolean; anthropic: boolean; r2: boolean; openai: boolean; fal: boolean };
+export type Khoa = { google: boolean; anthropic: boolean; r2: boolean; openai: boolean; fal: boolean; /** cổng giá rẻ (cong-ai.ts) */ ckey?: boolean; shopaikey?: boolean };
 
 /** Drawer phim chia tab (audit 09/10/2026: một cuộn dài 0→1→2→3→timeline không vừa một màn): kịch bản · storyboard & timeline · âm thanh · xuất. */
 export type TabPhim = 'phim' | 'so_do' | 'kich_ban' | 'ho_so' | 'storyboard' | 'am_thanh' | 'xuat';

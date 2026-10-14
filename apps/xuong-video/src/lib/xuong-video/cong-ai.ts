@@ -149,3 +149,37 @@ export async function docVideoCong(cong: string, taskId: string, taoLuc: string)
   if (!d.start_time && Date.now() - new Date(taoLuc).getTime() > TREO_PHUT * 60_000) return { done: true, ok: false, treo: true, loi: `treo hàng đợi ${TREO_PHUT} phút chưa chạy` };
   return { done: false };
 }
+
+// ── CHỌN ĐÍCH DANH NGUỒN (15/10/2026 — anh: "cùng 1 shot có thể tạo từ nhiều model, nhà cung cấp khác nhau") ─────────────────
+// Khoá model trên ô chọn: '<cổng>:<model>' = gọi đúng cổng đó (không dự phòng); 'google:<model>' = Google trực tiếp, bỏ qua chuỗi cổng;
+// model Google trần (vd gemini-nano-banana-2.1, veo-…) = TỰ CHỌN rẻ nhất theo chuỗi (chuoiAnh / chuoiVideo).
+export type MoHinhCong = { key: string; label: string; nhom: string; vnd: number; donVi: 'anh' | 'clip'; giay?: number };
+export const MO_HINH_CONG: MoHinhCong[] = [
+  { key: 'ckey:wowztools/nano-banana-2', label: 'Nano Banana 2 (Gemini 3.1 Flash Image)', nhom: 'ckey.vn', vnd: 110.5, donVi: 'anh' },
+  { key: 'ckey:wowztools/nano-banana-pro', label: 'Nano Banana Pro (Gemini 3 Pro Image)', nhom: 'ckey.vn', vnd: 110.5, donVi: 'anh' },
+  { key: 'shopaikey:gemini-nano-banana-2.1', label: 'Nano Banana 2.1', nhom: 'ShopAIKey', vnd: 683, donVi: 'anh' },
+  { key: 'shopaikey:grok-video-3-10s', label: 'Grok Video 3 · 10s (khung 2:3, xuất tự cắt 9:16)', nhom: 'ShopAIKey', vnd: 3250, donVi: 'clip', giay: 10 },
+  { key: 'shopaikey:grok-imagine-video-1.5', label: 'Grok Imagine Video 1.5 · 6s (khung 2:3)', nhom: 'ShopAIKey', vnd: 6500, donVi: 'clip', giay: 6 },
+];
+export const centsCong = (vnd: number) => vndRaCent(vnd);
+/** Tách khoá model: cổng đích danh / Google trực tiếp / tự chọn. */
+export function tachKhoa(key: string): { kieu: 'cong'; cong: CongKey; model: string } | { kieu: 'google'; model: string } | { kieu: 'tu_chon'; model: string } {
+  const m = /^(ckey|shopaikey|google):(.+)$/.exec(key);
+  if (!m) return { kieu: 'tu_chon', model: key };
+  return m[1] === 'google' ? { kieu: 'google', model: m[2]! } : { kieu: 'cong', cong: m[1] as CongKey, model: m[2]! };
+}
+/** Một cổng đích danh cho ảnh: gọi đúng một lần, kèm nguồn. */
+export async function sinhAnhMotCong(cong: CongKey, model: string, o: { prompt: string; thamChieuUrl: string[]; tiLe: TiLeAnh }): Promise<{ anh: { data: Buffer; mimeType: string } | null; nguon: NguonSinh; loi?: string }> {
+  const t0 = Date.now();
+  const kq = await sinhAnhCong(cong, model, o);
+  const giay = Math.round((Date.now() - t0) / 100) / 10;
+  const vnd = GIA_ANH_VND[`${cong}:${model}`];
+  if (kq.ok) return { anh: kq, nguon: { cong, model, model_that: kq.modelThat, nguoi_ban: cong === 'ckey' ? model.split('/')[0] : undefined, vnd, cents: vnd != null ? vndRaCent(vnd) : undefined, giay, thu: [{ cong, model, ok: true, giay }] } };
+  return { anh: null, loi: kq.loi, nguon: { cong, model, thu: [{ cong, model, ok: false, loi: kq.loi, het_tien: laHetTien(cong, kq.loi, kq.status), giay }] } };
+}
+/** Nhãn NGẮN dưới ảnh/clip: "ckey · nano-banana-2" (model bỏ tiền tố người bán). Đủ chi tiết ở taNguon (rê chuột). */
+export function taNguonNgan(n: NguonSinh | null | undefined, providerCu?: string, modelCu?: string): string {
+  const cong = n?.cong ?? providerCu ?? '';
+  const model = (n?.model ?? modelCu ?? '').replace(/^(ckey|shopaikey|google|fal):/, '').replace(/^[^/]+\//, '');
+  return [TEN_CONG[cong] ?? cong, model].filter(Boolean).join(' · ');
+}

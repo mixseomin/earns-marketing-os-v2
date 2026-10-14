@@ -25,6 +25,13 @@ export function KfNho({ url, soSanh }: { url: string; soSanh: string }) {
 
 /** Kỹ thuật quay của shot GỌN một dòng (#1243): 3 thứ quyết định khung hình + "+N"; rê vào hiện bảng đủ nhóm · tên · mô tả. */
 const NHOM_CHINH = ['Cỡ cảnh', 'Chuyển động máy', 'Ánh sáng'];
+/** Nguồn của MỘT tệp (ảnh/clip) dưới thumbnail: nhãn ngắn "ckey · nano-banana-2", rê chuột thấy đủ cổng · model thật · tiền thật · các bước dự phòng. */
+function NguonTep({ c, url }: { c: Canh; url: string }) {
+  const n = c.nguon_tep?.[url];
+  if (!n) return null;
+  return <div title={n.day} style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{n.ngan}</div>;
+}
+
 function KyThuatGon({ kt, phanDoan }: { kt: Canh['ky_thuat']; phanDoan: string }) {
   const ds = chiTietKyThuat(kt);
   const [mo, setMo] = useState(false);
@@ -97,13 +104,13 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai }: 
   const giaAnh = giaAnhUi(dsAnh, mhAnh);
   const giaVid = giaVideoUi(dsVideo, mhVideo, giay, kt.do_phan_giai);
   const giaNangCap = NANG_CAP.giaGiayCents * (c.thoi_luong_s || 8);
-  const lyAnh = (!khoa.google && !khoa.openai && !(mhAnh.startsWith('fal:') && khoa.fal) && 'thiếu khoá ảnh') || (!c.prompt_anh.trim() && 'chưa có prompt ảnh (Sửa cảnh → prompt ảnh)') || (tp.thieu.length > 0 && `thiếu: ${tp.thieu.join('; ')}`);
+  const lyAnh = (!khoa.google && !khoa.openai && !(mhAnh.startsWith('fal:') && khoa.fal) && !(mhAnh.startsWith('ckey:') && khoa.ckey) && !(mhAnh.startsWith('shopaikey:') && khoa.shopaikey) && !khoa.ckey && !khoa.shopaikey && 'thiếu khoá ảnh') || (!c.prompt_anh.trim() && 'chưa có prompt ảnh (Sửa cảnh → prompt ảnh)') || (tp.thieu.length > 0 && `thiếu: ${tp.thieu.join('; ')}`);
   // Cùng cổng với máy chủ (quy-trinh.ts › chanVideo: keyframe đã duyệt + giọng trước video) → nút tắt kèm lý do thay vì bấm rồi bị chặn.
   // Nút Sinh nháp tự lo phần máy làm được (duyệt keyframe đang chọn, sinh giọng còn thiếu → giọng xong tự gửi video), nên chỉ tắt
   // vì thứ người phải làm: thiếu khoá, chưa có keyframe, đang sinh giọng dở.
   const thieuGiong = dongThoai(c, nhanVat).some((d) => d.loi.trim() && !d.url);
   const chanVid = chanVideo(c, nhanVat).filter((x) => x !== 'chưa duyệt keyframe' && !x.includes('chưa có giọng'));
-  const lyVideo = (mhVideo.startsWith('fal:') ? !khoa.fal && 'thiếu FAL_KEY' : !khoa.google && 'thiếu GOOGLE_API_KEY') || (chanVid.length > 0 && chanVid.join('; ')) || (c.dang_sinh_giong && 'đang sinh giọng — xong sẽ tự gửi video nếu anh đã bấm Sinh nháp');
+  const lyVideo = (mhVideo.startsWith('fal:') ? !khoa.fal && 'thiếu FAL_KEY' : mhVideo.startsWith('shopaikey:') ? !khoa.shopaikey && 'thiếu SHOPAIKEY_API_KEY' : !khoa.google && !khoa.shopaikey && 'thiếu GOOGLE_API_KEY') || (chanVid.length > 0 && chanVid.join('; ')) || (c.dang_sinh_giong && 'đang sinh giọng — xong sẽ tự gửi video nếu anh đã bấm Sinh nháp');
   const chonAnh = <Chon nho value={mhAnh} onChange={setMhAnh} options={luaChonAnh(dsAnh)} title="Model ảnh cho lần sinh này" minWidth={220} />;
   const chonVideo = <Chon nho value={mhVideo} onChange={setMhVideo} options={luaChonVideo(dsVideo, giay, kt.do_phan_giai)} title="Model video cho lần sinh này" minWidth={240} />;
   // Bước kế của cảnh → MỘT nút chính; còn lại vào menu ⋯ (YDNI).
@@ -113,8 +120,8 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai }: 
     <div className="xv-canh">
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
         <div style={{ flexShrink: 0, width: anhKhung.width }}>
-          {c.video_cuoi_url ? <div><ClipNho url={c.video_cuoi_url} ten={`#${c.thu_tu} ${c.canh} · bản cuối`} style={anhKhung} /><div style={{ ...mono, color: 'var(--lime)', textAlign: 'center' }}>bản cuối</div>{c.keyframe_url && <KfNho url={c.keyframe_url} soSanh={soSanh} />}</div>
-            : c.video_url ? <div><ClipNho url={c.video_url} ten={`#${c.thu_tu} ${c.canh} · nháp`} style={anhKhung} /><div style={{ ...mono, textAlign: 'center' }}>nháp</div>{c.keyframe_url && <KfNho url={c.keyframe_url} soSanh={soSanh} />}</div>
+          {c.video_cuoi_url ? <div><ClipNho url={c.video_cuoi_url} ten={`#${c.thu_tu} ${c.canh} · bản cuối`} style={anhKhung} /><div style={{ ...mono, color: 'var(--lime)', textAlign: 'center' }}>bản cuối</div><NguonTep c={c} url={c.video_cuoi_url} />{c.keyframe_url && <KfNho url={c.keyframe_url} soSanh={soSanh} />}</div>
+            : c.video_url ? <div><ClipNho url={c.video_url} ten={`#${c.thu_tu} ${c.canh} · nháp`} style={anhKhung} /><div style={{ ...mono, textAlign: 'center' }}>nháp</div><NguonTep c={c} url={c.video_url} />{c.keyframe_url && <KfNho url={c.keyframe_url} soSanh={soSanh} />}</div>
             : c.keyframe_url ? <div style={{ position: 'relative' }}><img src={anhNho(c.keyframe_url, 320)} alt="" data-so-sanh={soSanh} style={anhKhung} />{buoc === 'dang' && <DangSinh chu="" />}</div>
             : <div style={{ ...anhKhung, position: 'relative', display: 'grid', placeItems: 'center', color: 'var(--fg-4)', fontSize: 10, overflow: 'hidden' }}>chưa có{buoc === 'dang' && <DangSinh chu={c.dang_sinh_anh ? 'ảnh' : 'video'} />}</div>}
         </div>
@@ -180,19 +187,22 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai }: 
           {c.keyframe_uv.length > 0 && (
             <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
               {c.keyframe_uv.map((u) => (
-                <AnhNho key={u} url={u} soSanh={soSanh} vien={u === c.keyframe_url ? 'var(--cyan)' : undefined} title={u === c.keyframe_url ? 'đang chọn' : 'chọn ảnh này làm keyframe'}
-                  onClick={() => void chay(k, async () => { await chonKeyframe(c.id, u); })} onXoa={() => chay(k, () => xoaKeyframe(c.id, u))} />
+                <div key={u} style={{ display: 'grid', gap: 1, justifyItems: 'center', maxWidth: 72 }}>
+                  <AnhNho url={u} soSanh={soSanh} vien={u === c.keyframe_url ? 'var(--cyan)' : undefined} title={`${u === c.keyframe_url ? 'đang chọn' : 'chọn ảnh này làm keyframe'}${c.nguon_tep?.[u] ? `\n${c.nguon_tep[u]!.day}` : ''}`}
+                    onClick={() => void chay(k, async () => { await chonKeyframe(c.id, u); })} onXoa={() => chay(k, () => xoaKeyframe(c.id, u))} />
+                  <NguonTep c={c} url={u} />
+                </div>
               ))}
             </div>
           )}
-          {c.video_phien_ban.length > 1 && (
+          {c.video_phien_ban.length > 0 && (
             <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={mono}>{c.video_phien_ban.length} phiên bản:</span>
               {c.video_phien_ban.map((v, i) => {
                 const dung = v.url === c.video_url || v.url === c.video_cuoi_url;
                 return (
-                  <Menu key={v.url + i} nhan={`${dung ? '● ' : ''}${i + 1} ${v.ban === 'cuoi' ? 'cuối' : 'nháp'}`}>
-                    <div style={{ ...mono, padding: '2px 4px' }}>{v.model}{v.luc ? ` · ${gioVN(v.luc)}` : ''}</div>
+                  <Menu key={v.url + i} nhan={`${dung ? '● ' : ''}${i + 1} ${v.ban === 'cuoi' ? 'cuối' : 'nháp'}${c.nguon_tep?.[v.url] ? ` · ${c.nguon_tep[v.url]!.ngan}` : ''}`}>
+                    <div style={{ ...mono, padding: '2px 4px', whiteSpace: 'pre-line' }}>{c.nguon_tep?.[v.url]?.day ?? v.model}{v.luc ? ` · ${gioVN(v.luc)}` : ''}</div>
                     <MucMenu onClick={() => moNgan({ loai: 'xem', url: v.url, ten: `Cảnh #${c.thu_tu} · phiên bản ${i + 1}` })}>▶ Xem / tải</MucMenu>
                     {v.url !== c.video_url && <MucMenu onClick={() => void chay(i + 'n' + c.id, () => chonPhienBan(c.id, v.url, 'nhap'))}>Dùng làm nháp</MucMenu>}
                     {v.url !== c.video_cuoi_url && <MucMenu onClick={() => void chay(i + 'c' + c.id, () => chonPhienBan(c.id, v.url, 'cuoi'))}>Dùng làm bản cuối</MucMenu>}

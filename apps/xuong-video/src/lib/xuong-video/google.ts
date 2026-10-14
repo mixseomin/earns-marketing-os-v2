@@ -5,7 +5,7 @@ import 'server-only';
 import { MO_HINH_ANH, type DoPhanGiai, type TiLe, type TiLeAnh } from './kieu';
 import { sinhAnhOpenAI, khoaOpenAI } from './openai';
 import { sinhAnhFal } from './fal';
-import { sinhAnhQuaCong, laHetTien, type NguonSinh, type BuocNguon } from './cong-ai';
+import { sinhAnhQuaCong, sinhAnhMotCong, tachKhoa, laHetTien, type NguonSinh, type BuocNguon } from './cong-ai';
 
 const GOC = 'https://generativelanguage.googleapis.com/v1beta';
 
@@ -68,8 +68,15 @@ export async function sinhAnh(opts: { model: string; prompt: string; thamChieu?:
     return sinhAnhFal(opts.model.slice(4), { prompt: opts.prompt, thamChieu: opts.thamChieuUrl ?? [], tiLe: opts.tiLe });
   }
   if (opts.model.startsWith('gpt-image')) return sinhAnhOpenAI({ prompt: opts.prompt, thamChieu: opts.thamChieu, tiLe: opts.tiLe, model: opts.model });
-  // Model ảnh Google (Nano Banana): đi CHUỖI CỔNG rẻ trước (ckey → ShopAIKey), hỏng hết mới gọi Google trực tiếp (cong-ai.ts).
-  const qc = await sinhAnhQuaCong(opts.model, { prompt: opts.prompt, thamChieuUrl: opts.thamChieuUrl ?? [], tiLe: opts.tiLe });
+  // Khoá model (cong-ai.ts › tachKhoa): '<cổng>:<model>' = đúng cổng đó · 'google:<model>' = Google trực tiếp · trần = tự chọn rẻ nhất.
+  const k = tachKhoa(opts.model);
+  if (k.kieu === 'cong') {
+    const m = await sinhAnhMotCong(k.cong, k.model, { prompt: opts.prompt, thamChieuUrl: opts.thamChieuUrl ?? [], tiLe: opts.tiLe });
+    return m.anh ? { ok: true, model: opts.model, mimeType: m.anh.mimeType, data: m.anh.data, nguon: m.nguon } : { ok: false, loi: `${opts.model}: ${m.loi}`, nguon: m.nguon };
+  }
+  if (k.kieu === 'google') opts = { ...opts, model: k.model };
+  // Model ảnh Google (Nano Banana) tự chọn: đi CHUỖI CỔNG rẻ trước (ckey → ShopAIKey), hỏng hết mới gọi Google trực tiếp (cong-ai.ts).
+  const qc = k.kieu === 'google' ? { anh: null, nguon: null, thu: [] as BuocNguon[] } : await sinhAnhQuaCong(opts.model, { prompt: opts.prompt, thamChieuUrl: opts.thamChieuUrl ?? [], tiLe: opts.tiLe });
   if (qc.anh && qc.nguon) return { ok: true, model: `${qc.nguon.cong}:${qc.nguon.model}`, mimeType: qc.anh.mimeType, data: qc.anh.data, nguon: qc.nguon };
   const thu: BuocNguon[] = [...qc.thu];
   const nguonGoogle = (model: string, ok: boolean, loi?: string): NguonSinh => {

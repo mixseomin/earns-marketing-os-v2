@@ -41,6 +41,7 @@ import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-vi
 import { type Row, n, s, arr, mangInt, nguCanhPhimDb, mapBienThe, mapNhanVat, mapTap, mapCanh, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
 import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim } from '@/lib/xuong-video/sinh-anh';
 import { docOTemplate, chepPhim, type KetQuaChep, type ShotKhung } from '@/lib/xuong-video/template-db';
+import { MO_HINH_CONG, coCong, centsCong, chuoiAnh, chuoiVideo, taNguon, taNguonNgan, taThu, type CongKey, type NguonSinh } from '@/lib/xuong-video/cong-ai';
 import { oThieu, type OTemplateDs } from '@/lib/xuong-video/template';
 import type { CauHinhTemplate } from '@/lib/xuong-video/kieu';
 import type { MauPoster } from '@/lib/xuong-video/poster';
@@ -65,18 +66,34 @@ type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
 /** Giá theo danh mục fal (động) nếu là model fal:, không thì bảng tĩnh. */
 
 /** Danh mục model cho ô chọn: Google/OpenAI (cố định) + fal (động, ~100 model) kèm giá. */
-export type MoHinhChon = { key: string; label: string; nhom: string; giaCents: number | null; donVi: 'giay' | 'anh' | 'khac'; giaText?: string; gia?: import('@/lib/xuong-video/gia-fal').GiaTom };
+export type MoHinhChon = { key: string; label: string; nhom: string; giaCents: number | null; donVi: 'giay' | 'anh' | 'clip' | 'khac'; giaText?: string; gia?: import('@/lib/xuong-video/gia-fal').GiaTom };
 export async function dsMoHinh(): Promise<{ anh: MoHinhChon[]; video: MoHinhChon[] }> {
   if (!(await admin())) return { anh: [], video: [] };
   const fal: ModelFal[] = await danhMucFal().catch(() => []);
   const nhomFal = (id: string) => (id.split('/')[0] === 'fal-ai' ? id.split('/')[1] : id.split('/')[0]) ?? 'fal';
+  // Cổng giá rẻ (cong-ai.ts): mỗi cổng một nhóm, giá = tiền THẬT; model Google trần = "tự chọn rẻ nhất" (chuỗi cổng → Google), giá = bậc rẻ nhất
+  // của chuỗi; thêm 'google:<model>' = Google trực tiếp (bỏ qua cổng). 15/10/2026 — anh: "cùng 1 shot có thể tạo từ nhiều model, nhà cung cấp".
+  const cong = MO_HINH_CONG.filter((m) => coCong(m.key.split(':')[0] as CongKey));
+  const congAnh = cong.filter((m) => m.donVi === 'anh'), congVideo = cong.filter((m) => m.donVi === 'clip');
+  const giaChuoiAnh = (k: string) => { const c = chuoiAnh(k)[0]; const m = c && MO_HINH_CONG.find((x) => x.key === `${c.cong}:${c.model}`); return m ? centsCong(m.vnd) : null; };
+  const giaChuoiVideo = (k: string) => { const c = chuoiVideo(k)[0]; const m = c && MO_HINH_CONG.find((x) => x.key === `${c.cong}:${c.model}`); return m ? centsCong(m.vnd) : null; };
   return {
     anh: [
-      ...MO_HINH_ANH.map((m) => ({ key: m.key, label: m.label.split(' (')[0]!, nhom: m.key.startsWith('gpt') ? 'OpenAI' : 'Google', giaCents: m.gia1k, donVi: 'anh' as const })),
+      ...MO_HINH_ANH.flatMap((m) => {
+        const re = !m.key.startsWith('gpt') ? giaChuoiAnh(m.key) : null;
+        const goc = { key: m.key, label: m.label.split(' (')[0]!, nhom: m.key.startsWith('gpt') ? 'OpenAI' : 'Google', giaCents: m.gia1k, donVi: 'anh' as const };
+        return re == null ? [goc] : [{ ...goc, label: `${goc.label} · tự chọn rẻ nhất (ckey → ShopAIKey → Google)`, nhom: 'Tự chọn nguồn', giaCents: re }, { ...goc, key: `google:${m.key}`, nhom: 'Google (trực tiếp)' }];
+      }),
+      ...congAnh.map((m) => ({ key: m.key, label: m.label, nhom: m.nhom, giaCents: centsCong(m.vnd), donVi: 'anh' as const })),
       ...fal.filter((m) => m.loai === 'anh').map((m) => ({ key: `fal:${m.id}`, label: m.ten, nhom: `fal · ${nhomFal(m.id)}`, giaCents: m.giaCents, donVi: m.donVi, giaText: m.giaText, gia: m.gia })),
     ],
     video: [
-      ...MO_HINH_VIDEO.filter((m) => !m.key.startsWith('fal:')).map((m) => ({ key: m.key, label: m.label.split(' (')[0]!, nhom: 'Google', giaCents: m.giaGiay['720p'], donVi: 'giay' as const })),
+      ...MO_HINH_VIDEO.filter((m) => !m.key.startsWith('fal:')).flatMap((m) => {
+        const re = giaChuoiVideo(m.key);
+        const goc = { key: m.key, label: m.label.split(' (')[0]!, nhom: 'Google', giaCents: m.giaGiay['720p'], donVi: 'giay' as const };
+        return re == null ? [goc] : [{ ...goc, label: `${goc.label} · tự chọn rẻ nhất (Grok/ShopAIKey → Google)`, nhom: 'Tự chọn nguồn', giaCents: re, donVi: 'clip' as const }, { ...goc, key: `google:${m.key}`, nhom: 'Google (trực tiếp)' }];
+      }),
+      ...congVideo.map((m) => ({ key: m.key, label: m.label, nhom: m.nhom, giaCents: centsCong(m.vnd), donVi: 'clip' as const })),
       ...fal.filter((m) => m.loai === 'video').map((m) => ({ key: `fal:${m.id}`, label: m.ten, nhom: `fal · ${nhomFal(m.id)}`, giaCents: m.giaCents, donVi: m.donVi, giaText: m.giaText, gia: m.gia })),
     ],
   };
@@ -255,7 +272,21 @@ export async function dsCanh(tapId: number): Promise<Canh[]> {
       -- Cờ riêng từng loại âm (#1217: sinh giọng mà khối hiệu ứng cũng báo đang sinh).
       EXISTS (SELECT 1 FROM xv_job j WHERE j.canh_id = c.id AND j.loai = 'am' AND j.request->>'dich' = 'thoai' AND ${jobDangCho('j')}) AS dang_sinh_giong,
       EXISTS (SELECT 1 FROM xv_job j WHERE j.canh_id = c.id AND j.loai = 'am' AND j.request->>'dich' = 'sfx' AND ${jobDangCho('j')}) AS dang_sinh_sfx FROM xv_canh c WHERE c.tap_id = ${tapId} ORDER BY c.thu_tu, c.id`);
-    return (r as unknown as Row[]).map(mapCanh);
+    const ds = (r as unknown as Row[]).map(mapCanh);
+    // Nguồn từng tệp (15/10/2026 — anh: "cùng 1 shot có thể tạo từ nhiều model, nhà cung cấp"): job nào sinh ra keyframe/clip nào.
+    if (ds.length) {
+      const jobs = (await db.execute(sql`SELECT canh_id, output_url, provider, model, nguon FROM xv_job WHERE canh_id = ANY(${mangInt(ds.map((c) => c.id))}::int[])
+        AND output_url IS NOT NULL AND trang_thai = 'xong' AND loai IN ('anh', 'video')`)) as unknown as Row[];
+      const theoCanh = new Map<number, Record<string, { ngan: string; day: string }>>();
+      for (const j of jobs) {
+        const m = theoCanh.get(n(j.canh_id)) ?? {};
+        const ng = (j.nguon ?? null) as NguonSinh | null;
+        m[s(j.output_url)] = { ngan: taNguonNgan(ng, s(j.provider), s(j.model)), day: [taNguon(ng) || `${s(j.provider)} · ${s(j.model)}`, taThu(ng)].filter(Boolean).join('\n') };
+        theoCanh.set(n(j.canh_id), m);
+      }
+      for (const c of ds) c.nguon_tep = theoCanh.get(c.id) ?? {};
+    }
+    return ds;
   } catch { return []; }
 }
 
@@ -292,7 +323,7 @@ export async function soChiPhi(opts: { phimId?: number; ngay?: number }): Promis
 }
 
 /** Trạng thái khoá: trang báo thiếu gì thay vì để nút Sinh lỗi âm thầm. Chỉ trả có/không, không trả giá trị. */
-export async function trangThaiKhoa(): Promise<{ google: boolean; anthropic: boolean; r2: boolean; openai: boolean; fal: boolean }> {
+export async function trangThaiKhoa(): Promise<{ google: boolean; anthropic: boolean; r2: boolean; openai: boolean; fal: boolean; ckey?: boolean; shopaikey?: boolean }> {
   if (!(await admin())) return { google: false, anthropic: false, r2: false, openai: false, fal: false };
   return {
     fal: !!process.env.FAL_KEY,
@@ -300,6 +331,8 @@ export async function trangThaiKhoa(): Promise<{ google: boolean; anthropic: boo
     google: !!(process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY),
     anthropic: !!process.env.ANTHROPIC_API_KEY,
     r2: !!(process.env.R2_ACCOUNT_ID && process.env.R2_BUCKET),
+    ckey: !!process.env.CKEY_API_KEY,
+    shopaikey: !!process.env.SHOPAIKEY_API_KEY,
   };
 }
 

@@ -172,7 +172,7 @@ export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; on
 export function moTaThay(thay: VatThay[] | undefined): string {
   const ngang = (x: number) => (x < 0.36 ? 'left' : x > 0.64 ? 'right' : 'centre'); const doc = (y: number) => (y < 0.36 ? 'top' : y > 0.64 ? 'bottom' : 'middle');
   const ds = (thay ?? []).filter((t) => t.pt >= 2).map((t) => `${t.ten} (${doc((t.hop[1] + t.hop[3]) / 2)}-${ngang((t.hop[0] + t.hop[2]) / 2)}, ${Math.round(t.pt)}%${t.tien ? ', foreground' : ''})`);
-  return ds.length ? `Blocks in that layout image, by name: ${ds.join('; ')}. Nothing else is in this frame — do not add hands, people or objects that are not in this list.` : '';
+  return ds.length ? `Blocks in that layout image, by name: ${ds.join('; ')}. Nothing else is in this frame — do not add hands, people or objects that are not in this list; the BACKGROUND is exactly what those blocks show (a far room wall stays a plain dim wall — never add monitors, computers or extra cables there).` : '';
 }
 
 // ── LIỀN MẠCH (anh 14/10/2026: "bản 3D phải thể hiện được sự liền mạch về chuyển động, vị trí của mọi nhân vật ở các cảnh") ──────────

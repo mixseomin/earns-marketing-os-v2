@@ -94,7 +94,8 @@ K['The Giant'] = {'hinh': 'hop', 'co': [8, 10, 3.2], 'mau': '#c99a7a', 'phan': [
 # KHUNG MÀU: chất liệu nhân vật (mo_hinh) + vật của set (chat) — Blender dựng hình thật bằng code (0đ): đất sét, lông, vải, kẹo, bông.
 K['Tango']['mo_hinh'] = 'dat_set'; K['Tango']['phan'][0] = {'hinh': 'xoan', 'co': [0.7, 0.7, 1.1], 'ban_kinh': 0.09, 'vong': 2.5, 'mau': '#f08a3c', 'tam': [0.1, 0, 2.4], 'chat': 'dat_set'}
 for p_ in K['Tango']['phan'][1:]: p_['chat'] = 'dat_set'
-K['Lint']['mo_hinh'] = 'long'; K['Mr. Wipe']['mo_hinh'] = 'vai'; K['Gummy Bear']['mo_hinh'] = 'keo'
+K['Lint']['mo_hinh'] = 'long'; K['Mr. Wipe']['mo_hinh'] = 'vai'; K['Mr. Wipe']['phan'] = []   # khối hộp 'nếp góc vải' bị model vẽ thành hộp thiết bị (thử #23 khung màu)
+K['Gummy Bear']['mo_hinh'] = 'keo'
 for p_ in K['Gummy Bear']['phan']: p_['chat'] = 'keo'
 K['Cotton Ball']['mo_hinh'] = 'bong'
 CHAT = {'Mặt bàn': 'go', 'Chân bàn 1': 'go', 'Chân bàn 2': 'go', 'Chân bàn 3': 'go', 'Chân bàn 4': 'go', 'White Keyboard': 'nhua', 'Magic Mouse': 'nhua',

@@ -279,6 +279,23 @@
       "en": "window frame on the far wall"
     },
     {
+      "ten": "Khung cửa sổ",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        0,
+        -188,
+        25
+      ],
+      "co": [
+        124,
+        4,
+        2
+      ],
+      "mau": "#8a7a66",
+      "en": "window frame on the far wall"
+    },
+    {
       "ten": "Mặt bàn",
       "nen": true,
       "hinh": "hop",
@@ -1266,23 +1283,7 @@
       ],
       "mau": "#7f93a6",
       "mat": true,
-      "phan": [
-        {
-          "hinh": "hop",
-          "co": [
-            2.4,
-            1.0,
-            2.4
-          ],
-          "mau": "#6b7f92",
-          "tam": [
-            -2.6,
-            0,
-            -1.2
-          ],
-          "xoay": 0
-        }
-      ],
+      "phan": [],
       "mo_hinh": "vai"
     },
     "Sticky": {

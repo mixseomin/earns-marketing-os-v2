@@ -13,7 +13,7 @@ import { trangThaiKhung, khoiCanKiem, giaKiemKhung, tenLoiKhung, TEN_NUT_KHUNG }
 import { kiemKhungTapAction } from '@/lib/actions';
 import { tien } from '@/lib/xuong-video/kieu';
 import { Nut, Loi, goiAction } from './ui';
-import { boSetCuaShot, loiHinhHoc, vatChanTienCanh } from '@/lib/xuong-video/bo-set-3d';
+import { boSetCuaShot, khoiCua, lienMachTap, loiHinhHoc, vatChanTienCanh } from '@/lib/xuong-video/bo-set-3d';
 
 /** Tên ngắn của một key thư viện (bỏ phần ngành trong ngoặc). */
 const tenKt = (k: string | undefined, n: NhomKyThuat) => (k ? kyThuat(k, n)?.ten.replace(/\s*\(.*\)$/, '') ?? '' : '');
@@ -27,6 +27,9 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
   const demKhung = canh.reduce((a, c) => { const t = trangThaiKhung(c); a[t] = (a[t] ?? 0) + 1; return a; }, {} as Record<string, number>);
   const kiemKhung = async () => { setBanKhung(true); setLoiKhung(''); setLoiKhung((await goiAction(() => kiemKhungTapAction(tap.id))).loi); setBanKhung(false); await onChanged(); };
   const doc = tiLe !== '16:9';
+  // Liền mạch 3D (bo-set-3d.ts › lienMachTap): cùng hàm cổng keyframe dùng — thẻ đứt mạch gắn ⚠ ở ô 3D, tooltip ghi lệch bao nhiêu cm.
+  const lienMach: Record<number, string[]> = {};
+  for (const sid of new Set(canh.map((c) => boSetCuaShot(c, nhanVat)).filter((x): x is number => !!x))) Object.assign(lienMach, lienMachTap(canh.filter((c) => boSetCuaShot(c, nhanVat) === sid), (t) => khoiCua(t, nhanVat)));
   // Khối phân cảnh = các shot liền nhau cùng phan_doan (một phân cảnh có thể quay lại sau, mỗi lần là một khối).
   const khoi: { ten: string; ds: { c: Canh; tu: number }[] }[] = [];
   let t = 0;
@@ -84,7 +87,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                   ? <div className="xv-mono" style={{ aspectRatio: doc ? '9 / 16' : '16 / 9', display: 'grid', placeItems: 'center', padding: 8, fontSize: 10, color: 'var(--fg-4)', borderTop: '1px solid var(--line)', textAlign: 'center' }} title="Shot không gắn bối cảnh nào có bộ set 3D">🧊 ngoài bộ set 3D</div>
                   : c.khung_xam
                   ? <div style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: `center / cover no-repeat url(${anhNho(c.khung_xam.xam, 320)}), #222`, borderTop: '1px solid var(--line)' }}>
-                      <span className="xv-mono" style={{ position: 'absolute', left: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.7)', color: '#93c5fd' }} title={[...c.khung_xam.kiem.map((k) => `${k.nhan_vat}: ${k.trong_khung ? `${k.cao_khung_pt}% khung` : 'ngoài khung'}${k.bi_che_boi.length ? ` · bị ${k.bi_che_boi.join(', ')} che` : ''}`), '— thấy trong khung —', ...(c.khung_xam.thay ?? []).map((t) => `${t.ten} ${t.pt}%${t.tien ? ' · tiền cảnh' : ''}`)].join('\n')}>🧊 3D{loiHinhHoc(c).length || vatChanTienCanh(c, null).length ? ' ⚠' : ''}</span>
+                      <span className="xv-mono" style={{ position: 'absolute', left: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.7)', color: '#93c5fd' }} title={[...c.khung_xam.kiem.map((k) => `${k.nhan_vat}: ${k.trong_khung ? `${k.cao_khung_pt}% khung` : 'ngoài khung'}${k.bi_che_boi.length ? ` · bị ${k.bi_che_boi.join(', ')} che` : ''}`), '— thấy trong khung —', ...(c.khung_xam.thay ?? []).map((t) => `${t.ten} ${t.pt}%${t.tien ? ' · tiền cảnh' : ''}`), ...(lienMach[c.id] ?? []).map((x) => `⚠ ${x}`)].join('\n')}>🧊 3D{loiHinhHoc(c).length || vatChanTienCanh(c, null).length || lienMach[c.id]?.length ? ' ⚠' : ''}</span>
                       {/* NHÃN TÊN từng khối (khung_xam.thay, đo bằng lưới tia) — khối nào là gì đọc được ngay, không đoán bằng mắt (anh 14/10/2026: khối vàng
                           ở cảnh 6–7 tưởng là tay Gã khổng lồ). Chỉ gắn khi ô cùng tỉ lệ khung dọc của khung xám (cover không cắt) — khổ ngang xem ở tooltip. */}
                       {doc && (c.khung_xam.thay ?? []).filter((t) => t.pt >= 4).slice(0, 7).map((t) => (

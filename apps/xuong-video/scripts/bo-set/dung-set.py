@@ -37,7 +37,7 @@ def khoi(p, ten, goc=(0, 0), xoay=0):
         cv = bpy.data.curves.new(ten, 'CURVE'); cv.dimensions = '3D'; cv.bevel_depth = p['ban_kinh'] * CM; cv.bevel_resolution = 2
         sp = cv.splines.new('NURBS'); sp.points.add(len(p['diem']) - 1)
         for i, d in enumerate(p['diem']): sp.points[i].co = (d[0] * CM, d[1] * CM, d[2] * CM, 1)
-        sp.use_endpoint_u = True; sp.order_u = 3
+        sp.use_endpoint_u = True; sp.order_u = p.get('bac', 3) + 1 if p.get('bac') else 3
         o = bpy.data.objects.new(ten, cv); bpy.context.collection.objects.link(o); cv.materials.append(m); return o
     x, y, z = p['tam']; w, d, c = p['co']
     a = math.radians(xoay); gx = goc[0] + x * math.cos(a) - y * math.sin(a); gy = goc[1] + x * math.sin(a) + y * math.cos(a)
@@ -71,13 +71,30 @@ def dung_set():
     return s
 
 def nhan_vat(sh):
-    out = []
+    """Khối nhân vật / đạo cụ của shot ở chỗ MỞ shot (tam), quay theo huong (độ, 0 = mặt nhìn về phía người ngồi −y, 90 = nhìn sang phải +x).
+    Khối có `mat` → gắn hai mắt (lòng trắng + con ngươi) ở mặt trước: khung xám cho thấy nhân vật NHÌN ĐI ĐÂU, không chỉ đứng ở đâu.
+    `phan` = các phần thêm (chân, tay, nắp…) toạ độ tương đối đáy giữa khối, cùng quay theo huong. Trả (thân để kiểm, mọi khối để dọn)."""
+    than, tat_ca = [], []
     for nv in sh.get('nhan_vat', []):
         mau_nv = DL['nhan_vat_mau'][nv['ten']]
-        p = {**mau_nv, 'tam': nv['tam']}
-        if nv.get('nam'): p['co'] = [mau_nv['co'][0], mau_nv['co'][2], mau_nv['co'][1]]   # nằm sấp
-        out.append(khoi(p, f"NV {nv['ten']}"))
-    return out
+        X, Y, Z = nv['tam'][0], nv['tam'][1], (nv['tam'][2] if len(nv['tam']) > 2 else 0)
+        w, d, h = mau_nv['co']
+        if nv.get('nam'): d, h = h, d   # nằm sấp / bẹp: cao thành sâu
+        hg = nv.get('huong', 0)
+        o = khoi({'hinh': mau_nv['hinh'], 'co': [w, d, h], 'mau': mau_nv['mau'], 'tam': [0, 0, Z]}, f"NV {nv['ten']}", (X, Y), hg)
+        than.append(o); tat_ca.append(o)
+        phan = [dict(p) for p in mau_nv.get('phan', [])] if not nv.get('nam') else []
+        if mau_nv.get('mat'):
+            e = max(0.3, 0.26 * min(w, h)); ex = 0.22 * w
+            if nv.get('nam'): ey, ez = -d * 0.25, h - e * 0.3
+            else: ey, ez = -d / 2 + e * 0.15, h * 0.62 - e / 2
+            for sx in (-1, 1):
+                phan.append({'hinh': 'cau', 'co': [e, e, e], 'mau': '#ffffff', 'tam': [sx * ex, ey, ez]})
+                phan.append({'hinh': 'cau', 'co': [e * 0.5, e * 0.5, e * 0.5], 'mau': '#111111', 'tam': [sx * ex, ey - e * 0.38, ez + e * 0.25] if not nv.get('nam') else [sx * ex, ey - e * 0.2, ez + e * 0.45]})
+        for i, p in enumerate(phan):
+            p = {**p, 'tam': [p['tam'][0], p['tam'][1], p['tam'][2] + Z]}
+            tat_ca.append(khoi(p, f"NV {nv['ten']}·{i}", (X, Y), hg))
+    return than, tat_ca
 
 def may(s, m, ten='cam'):
     cd = bpy.data.cameras.new(ten); cd.lens = m['ong_kinh']; cd.sensor_fit = 'AUTO'; cd.clip_start = 0.002
@@ -111,7 +128,7 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
             d = p - cam.location; kc = d.length
             hit, loc, _, _, ob, _ = s.ray_cast(dg, cam.location, d.normalized(), distance=kc - 0.0005)
             nhom = o.name.rsplit(' ', 1)[0] if o.name[-1:].isdigit() else o.name   # phần cùng nhóm (đế–cột–chao đèn) không tính là che
-            if hit and ob and ob.name != o.name and not ob.name.startswith(nhom + ' '): che[ob.name] = che.get(ob.name, 0) + 1
+            if hit and ob and ob.name != o.name and not ob.name.startswith(nhom + ' ') and not ob.name.startswith(o.name + '·'): che[ob.name.split('·')[0]] = che.get(ob.name.split('·')[0], 0) + 1
         vt = world_to_camera_view(s, cam, tam)
         bi_che = sorted(k[3:] if k.startswith('NV ') else k for k, v in che.items() if v > len(diem) / 2)
         ten = o.name[3:] if o.name.startswith('NV ') else next((t for t in bb_ten if o.name == t or o.name.startswith(t + ' ')), o.name)
@@ -123,8 +140,9 @@ NHOM = {v['ten'] for v in DL['vat'] if 'phan' in v}
 NEN = {v['ten'] for v in DL['vat'] if v.get('nen')}   # mặt bàn, tường, kệ: không phải vật chắn
 def ten_vat(o):
     """Tên người đọc của một khối trong cảnh: 'NV Tango' → Tango, 'Desk Lamp 2' → Desk Lamp (phần của nhóm)."""
-    if o.name.startswith('NV '): return o.name[3:]
-    g = o.name.rsplit(' ', 1)[0]
+    n = o.name.split('·')[0]
+    if n.startswith('NV '): return n[3:]
+    g = n.rsplit(' ', 1)[0]
     return g if g in NHOM else o.name
 
 def nhin_thay(s, cam, sh, nv_obj):
@@ -192,7 +210,7 @@ s = dung_set()
 shots = [sh for sh in DL['shot'] if not CHI or sh['ma'] in CHI]
 kiem = {}; giai = {}; thay = {}
 for sh in shots:
-    nv = nhan_vat(sh)
+    nv, nv_het = nhan_vat(sh)
     cam = may(s, sh['may'], f"cam {sh['ma']}")
     nv_kiem = nv + vat_chu_the(sh)
     k = kiem_hinh_hoc(s, cam, sh, nv_kiem)
@@ -206,17 +224,31 @@ for sh in shots:
     s.view_layers[0].material_override = do_sau(s, 0.02, 0.9); s.cycles.samples = 4
     s.render.filepath = f"{RA}/{sh['ma']}-sau.png"; bpy.ops.render.render(write_still=True)
     s.view_layers[0].material_override = None
-    for o in nv: bpy.data.objects.remove(o, do_unlink=True)
+    for o in nv_het: bpy.data.objects.remove(o, do_unlink=True)
 
-# MẶT BẰNG nhìn thẳng từ trên: bộ set + vị trí máy của từng shot (nón cam chỉ hướng nhìn) — để duyệt bố trí bằng mắt người một lần cho cả cảnh.
-for sh in [x for x in shots if x.get('so')]:
+# MẶT BẰNG nhìn thẳng từ trên: bộ set + máy của từng shot (nón đỏ chỉ hướng nhìn) + ĐƯỜNG ĐI của từng nhân vật qua cả tập
+# (anh 14/10/2026: "bản 3D phải thể hiện được sự liền mạch về chuyển động, vị trí của mọi nhân vật"): nối chỗ mở → chỗ kết của từng shot
+# theo thứ tự, mỗi nhân vật một màu, số shot ở chỗ mở. Đường gãy vọt xa = đứt mạch (cổng lienMachTap bắt bằng số; ở đây để mắt người duyệt).
+duong = {}
+for sh in sorted([x for x in shots if x.get('so')], key=lambda x: x['so']):
     d = Vector(sh['may']['nhin']) - Vector(sh['may']['dat']); d.z = 0; d.normalize()
-    bpy.ops.mesh.primitive_cone_add(radius1=1.6 * CM, depth=4 * CM, location=(Vector(sh['may']['dat']) * CM) + Vector((0, 0, 0.06)))
+    bpy.ops.mesh.primitive_cone_add(radius1=1.0 * CM, depth=2.5 * CM, location=(Vector(sh['may']['dat']) * CM) + Vector((0, 0, 0.06)))
     c = bpy.context.object; c.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler(); dat(c, mau('#ff2d55', 3), f"may {sh['ma']}")
     for nv in sh.get('nhan_vat', []):
-        mau_nv = DL['nhan_vat_mau'][nv['ten']]; khoi({**mau_nv, 'tam': [nv['tam'][0], nv['tam'][1], 0]}, f"mb {sh['ma']} {nv['ten']}")
-    t = bpy.data.curves.new(f"t{sh['ma']}", 'FONT'); t.body = f"#{sh['so']}"; t.size = 3 * CM
-    to = bpy.data.objects.new(f"t{sh['ma']}", t); s.collection.objects.link(to); to.location = (Vector(sh['may']['dat']) + Vector((1.5, -4, 0.2))) * CM; t.materials.append(mau('#ffffff', 5))
+        ds = duong.setdefault(nv['ten'], [])
+        for p, nhan in ((nv['tam'], f"{sh['so']}"), (nv.get('den'), None)):
+            if p is None: continue
+            ds.append((p[0], p[1], 0.6 + 0.02 * len(duong)))
+            if nhan:
+                t = bpy.data.curves.new(f"t{sh['ma']}{nv['ten']}", 'FONT'); t.body = nhan; t.size = 1.8 * CM
+                to = bpy.data.objects.new(f"t{sh['ma']}{nv['ten']}", t); s.collection.objects.link(to); to.location = (Vector((p[0], p[1], 1)) + Vector((0.6, 0.6, 0))) * CM
+                t.materials.append(mau(DL['nhan_vat_mau'][nv['ten']]['mau'], 4))
+for ten, ds in duong.items():
+    gon = [ds[0]] + [p for i, p in enumerate(ds[1:]) if (Vector(p) - Vector(ds[i])).length > 0.05]
+    m = DL['nhan_vat_mau'][ten]['mau']
+    for p in gon:
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.5 * CM, location=Vector(p) * CM); dat(bpy.context.object, mau(m, 3), f"dd {ten}")
+    if len(gon) > 1: khoi({'hinh': 'day', 'diem': [list(p) for p in gon], 'ban_kinh': 0.25, 'mau': m, 'sang': 3, 'bac': 1}, f"duong {ten}")
 # Khung mặt bằng tự ôm cả mặt bàn (vật tên 'Mặt bàn'), không gõ tay cỡ.
 ban = next(v for v in DL['vat'] if v['ten'] == 'Mặt bàn')
 cd = bpy.data.cameras.new('tren'); cd.type = 'ORTHO'; cd.ortho_scale = max(ban['co'][0], ban['co'][1] * 1200 / 800) * CM * 1.08

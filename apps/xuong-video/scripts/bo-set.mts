@@ -41,7 +41,7 @@ if (gia('nap')) {
     const dm = m as DatMay & { dat?: number[] };
     if (!dm.dat) {
       const kt = (r[0].ky_thuat ?? {}) as Record<string, string>;
-      const vao = JSON.stringify([dm.vi_tri, dm.phia ?? 0, dm.khung ?? null, kt.co_canh, kt.goc, kt.ong_kinh, dm.vi_tri.map((v) => d.khoi?.[v.ten] ?? null)]);
+      const vao = JSON.stringify([dm.vi_tri, dm.phia ?? 0, dm.khung ?? null, dm.nhay ?? null, kt.co_canh, kt.goc, kt.ong_kinh, dm.vi_tri.map((v) => d.khoi?.[v.ten] ?? null)]);
       // Đầu vào không đổi → giữ máy cũ (có thể đã được bộ giải trong Blender dời) — khỏi dựng + giải lại mỗi lần nạp.
       if ((r[0].may_3d as { tu_dong?: { vao?: string } } | null)?.tu_dong?.vao === vao) { may++; continue; }
       const t = datMayTuDong(dm, kt, (x) => d.khoi?.[x] ?? null);

@@ -117,12 +117,13 @@ const ONG_THEO_CO: Record<string, number> = { ews: 18, ws: 24, ms: 35, mcu: 50, 
 /** Phần chiều cao khung chủ thể chiếm theo cỡ cảnh (ecu > 1 = cắt sát hơn cả thân). */
 const PHAN_KHUNG: Record<string, number> = { ews: 0.06, ws: 0.18, ms: 0.45, mcu: 0.65, cu: 0.9, ecu: 1.6, insert: 1, two: 0.4, ots: 0.5, pov: 0.3 };
 
-export type DatMay = { vi_tri: May3d['vi_tri']; phia?: number; khung?: string[] };
+export type DatMay = { vi_tri: May3d['vi_tri']; phia?: number; khung?: string[]; nhay?: string };
 export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; ong_kinh?: string }, khoi: (ten: string) => { co: number[] } | null): May3d {
   const ong = ONG_MM[kt.ong_kinh ?? ''] ?? ONG_THEO_CO[kt.co_canh ?? ''] ?? 35;
   const ten = o.khung?.length ? o.khung : o.vi_tri.filter((v) => !v.an).slice(0, 2).map((v) => v.ten);
   const chu = o.vi_tri.filter((v) => ten.includes(v.ten));
-  const ds = (chu.length ? chu : o.vi_tri).map((v) => { const c = khoi(v.ten)?.co ?? [2, 2, 2]; const h = v.nam ? c[1]! : c[2]!; return { x: v.tam[0]!, y: v.tam[1]!, z: v.tam[2] ?? 0, h, w: c[0]! }; });
+  // Khung ôm cả chỗ mở lẫn chỗ kết của chủ thể (shot có di chuyển: chủ thể không chạy ra khỏi khung giữa chừng).
+  const ds = (chu.length ? chu : o.vi_tri).flatMap((v) => { const c = khoi(v.ten)?.co ?? [2, 2, 2]; const h = v.nam ? c[1]! : c[2]!; return [v.tam, ...(v.den ? [v.den] : [])].map((p) => ({ x: p[0]!, y: p[1]!, z: p[2] ?? 0, h, w: c[0]! })); });
   const cx = ds.reduce((a, d) => a + d.x, 0) / ds.length, cy = ds.reduce((a, d) => a + d.y, 0) / ds.length;
   const H = Math.max(...ds.map((d) => d.z + d.h)) - Math.min(...ds.map((d) => d.z));
   const W = Math.max(...ds.map((d) => d.x + d.w / 2)) - Math.min(...ds.map((d) => d.x - d.w / 2));
@@ -136,7 +137,7 @@ export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; on
   const ngang = d * Math.cos(Math.abs(e));
   const z = kt.goc === 'sat_dat' ? 0.5 : Math.max(0.4, cz + d * Math.sin(e) + (kt.goc === 'thap' ? -H * 0.3 : 0));
   const r = (x: number) => Math.round(x * 10) / 10;
-  return { dat: [r(cx + ngang * Math.sin(a)), r(cy - ngang * Math.cos(a)), r(z)], nhin: [r(cx), r(cy), r(cz)], ong_kinh: ong, vi_tri: o.vi_tri, ...(o.khung?.length ? { khung: o.khung } : {}), tu_dong: { phia: o.phia ?? 0 } };
+  return { dat: [r(cx + ngang * Math.sin(a)), r(cy - ngang * Math.cos(a)), r(z)], nhin: [r(cx), r(cy), r(cz)], ong_kinh: ong, vi_tri: o.vi_tri, ...(o.khung?.length ? { khung: o.khung } : {}), ...(o.nhay ? { nhay: o.nhay } : {}), tu_dong: { phia: o.phia ?? 0 } };
 }
 
 /** Danh sách khối trong khung xám, gọi tên từng khối cho mô hình ảnh (vị trí trên màn + % khung) — để nó không đoán một khối vàng là bàn tay.
@@ -145,4 +146,31 @@ export function moTaThay(thay: VatThay[] | undefined): string {
   const ngang = (x: number) => (x < 0.36 ? 'left' : x > 0.64 ? 'right' : 'centre'); const doc = (y: number) => (y < 0.36 ? 'top' : y > 0.64 ? 'bottom' : 'middle');
   const ds = (thay ?? []).filter((t) => t.pt >= 2).map((t) => `${t.ten} (${doc((t.hop[1] + t.hop[3]) / 2)}-${ngang((t.hop[0] + t.hop[2]) / 2)}, ${Math.round(t.pt)}%${t.tien ? ', foreground' : ''})`);
   return ds.length ? `Blocks in that layout image, by name: ${ds.join('; ')}. Nothing else is in this frame — do not add hands, people or objects that are not in this list.` : '';
+}
+
+// ── LIỀN MẠCH (anh 14/10/2026: "bản 3D phải thể hiện được sự liền mạch về chuyển động, vị trí của mọi nhân vật ở các cảnh") ──────────
+// Mỗi nhân vật / đạo cụ có chỗ MỞ (tam) và chỗ KẾT (den) trong từng shot. Shot sau mở phải đúng chỗ LẦN CUỐI thấy nó kết — kể cả khi nó vắng
+// vài shot ở giữa (Lint vắng ở 7.2 thì 7.2a vẫn phải đứng chỗ 7.1 kết). Lệch quá ngưỡng = đứt mạch, trừ shot khai `nhay` (thời gian trôi /
+// dịch chuyển ngoài khung, ghi lý do) hoặc món khai `nhay` riêng; món đang được CẦM (`cam`) đi theo người cầm. Hướng mặt cũng thế: đổi hơn 60° qua cú cắt mà không khai = nhân vật quay ngoắt giữa hai khung.
+const NGUONG_CM = (co?: number[]) => Math.max(0.8, 0.45 * Math.max(...(co ?? [2])));
+const gocLech = (a: number, b: number) => Math.abs((((a - b) % 360) + 540) % 360 - 180);
+
+/** Lỗi liền mạch theo từng shot (id → câu). ds = các shot CÙNG bộ set theo thứ tự phát; shot không có may_3d bỏ qua. */
+export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May3d | null }>(ds: T[], khoi: (ten: string) => { co: number[] } | null): Record<number, string[]> {
+  const cuoi = new Map<string, { p: number[]; huong?: number; shot: number }>(); const out: Record<number, string[]> = {};
+  for (const c of ds) {
+    const m = c.may_3d; if (!m) continue;
+    for (const v of m.vi_tri) {
+      const tr = cuoi.get(v.ten);
+      if (v.cam) { cuoi.delete(v.ten); continue; }   // đang cầm: theo người cầm, lần sau thấy không so chỗ cũ
+      if (tr && !m.nhay && !v.nhay) {
+        const d = Math.hypot(v.tam[0]! - tr.p[0]!, v.tam[1]! - tr.p[1]!, (v.tam[2] ?? 0) - (tr.p[2] ?? 0));
+        const r = (p: number[]) => `(${p.map((x) => Math.round(x * 10) / 10).join(', ')})`;
+        if (d > NGUONG_CM(khoi(v.ten)?.co)) (out[c.id] ??= []).push(`${v.ten} đứt mạch: kết #${tr.shot} ở ${r(tr.p)} mà mở shot này ở ${r(v.tam)} — lệch ${Math.round(d * 10) / 10} cm; sửa chỗ đứng / chỗ kết, hoặc khai nhay (lý do) nếu cố ý cắt thời gian`);
+        if (tr.huong != null && v.huong != null && gocLech(tr.huong, v.huong) > 60) (out[c.id] ??= []).push(`${v.ten} quay ngoắt ${Math.round(gocLech(tr.huong, v.huong))}° qua cú cắt (kết #${tr.shot} nhìn ${tr.huong}°, mở shot này ${v.huong}°)`);
+      }
+      cuoi.set(v.ten, { p: v.den ?? v.tam, huong: v.huong_den ?? v.huong, shot: c.thu_tu });
+    }
+  }
+  return out;
 }

@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay } from './bo-set-3d';
+import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -65,4 +65,15 @@ assert.deepEqual(vatChanTienCanh({ may_3d: mm, khung_xam: kxT([chan]), dan_dung:
 assert.deepEqual(vatChanTienCanh({ may_3d: mm, khung_xam: kxT([{ ...chan, pt: 8 }]) }, setIMac), []);
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: { ...kxT([]), thay: undefined } }, nv, setIMac).some((x) => x.includes('đời cũ')));
 assert.ok(moTaThay([chan]).includes('Yellow iMac (top-centre, 30%, foreground)'));
+// Liền mạch: shot sau mở đúng chỗ shot trước kết (den) → qua; lệch 5 cm → đứt mạch; vắng một shot ở giữa vẫn so với lần cuối thấy;
+// khai nhay → không báo; quay ngoắt >60° qua cú cắt → báo.
+const kh = () => ({ co: [2, 1.6, 2.6] });
+const sh = (id: number, vi_tri: { ten: string; tam: number[]; den?: number[]; huong?: number }[], nhay?: string) => ({ id, thu_tu: id, may_3d: { dat: [0, 0, 1], nhin: [0, 1, 0], ong_kinh: 35, vi_tri, ...(nhay ? { nhay } : {}) } });
+assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], den: [10, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [10, 0.3, 0] }])], kh), {});
+assert.ok(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], den: [10, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [15, 0, 0] }])], kh)[2]![0]!.includes('lệch 5 cm'));
+assert.ok(lienMachTap([sh(1, [{ ten: 'Lint', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [5, 0, 0] }]), sh(3, [{ ten: 'Lint', tam: [3, 0, 0] }])], kh)[3]![0]!.includes('kết #1'));
+assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Tango', tam: [40, 0, 0] }], 'thời gian trôi: trượt cáp xuống đế cắm')], kh), {});
+assert.ok(lienMachTap([sh(1, [{ ten: 'Tango', tam: [0, 0, 0], huong: 90 }]), sh(2, [{ ten: 'Tango', tam: [0, 0, 0], huong: -90 }])], kh)[2]![0]!.includes('quay ngoắt 180°'));
+assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Gummy Bear', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Gummy Bear', tam: [3, 0, 1], cam: 'Tango' } as never]), sh(3, [{ ten: 'Gummy Bear', tam: [50, 0, 0] }])], kh), {});
+assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Sticky', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Sticky', tam: [50, 0, 0], nhay: 'lẻn theo ngoài khung' } as never])], kh), {});
 console.log('bo-set-3d.test: ok');

@@ -284,7 +284,13 @@ export type BoSet = { id: number; project: string; phim_id: number | null; ten: 
 /** Máy ảo + chỗ đứng nhân vật của một shot trong bộ set (cm): đầu vào dựng khung xám. nam = nằm sấp. */
 export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy do datMayTuDong tính (phía ° quanh chủ thể) — bộ giải trong Blender được phép xoay / nâng / lùi máy cho chủ thể thấy rõ */ tu_dong?: { phia?: number; /** mã đầu vào lúc tính (chỗ đứng + phía + khung + cỡ/góc/ống) — nạp lại mà khớp thì GIỮ máy bộ giải đã tìm */ vao?: string };
   /** CỐ Ý vượt trục (POV chủ quan, cú lật trục có chủ đích): không kiểm trục shot này; shot sau so với shot thường gần nhất */ qua_truc?: boolean;
-  /** CHỦ THỂ của khung: phải trong khung + không bị che (mặc định: hai vị trí đầu không 'an') */ khung?: string[]; vi_tri: { ten: string; tam: number[]; nam?: boolean; /** kịch bản CỐ Ý cho vật khác che (vd nấp sau chuột) — kiểm không báo bị che */ an?: boolean }[] };
+  /** CHỦ THỂ của khung: phải trong khung + không bị che (mặc định: hai vị trí đầu không 'an') */ khung?: string[]; vi_tri: { ten: string; /** chỗ ở lúc MỞ shot (cm) — khung xám dựng ở đây */ tam: number[]; /** chỗ ở lúc KẾT shot (đi / lăn / bay trong shot); không ghi = đứng yên */ den?: number[];
+    /** hướng mặt lúc mở / kết (độ, 0 = nhìn về phía người ngồi −y, 90 = nhìn sang phải +x) — mắt khối 3D quay theo */ huong?: number; huong_den?: number;
+    /** đang được nhân vật này CẦM (kẹo trong tay Tango): đi theo người cầm, không kiểm chỗ riêng */ cam?: string;
+    /** CỐ Ý xuất hiện ở chỗ khác lần cuối thấy (đi ngoài khung) — ghi lý do; chỉ miễn kiểm cho món này */ nhay?: string;
+    nam?: boolean; /** kịch bản CỐ Ý cho vật khác che (vd nấp sau chuột) — kiểm không báo bị che */ an?: boolean }[];
+  /** CỐ Ý ĐỨT MẠCH ở cú cắt vào shot này (thời gian trôi / dịch chuyển ngoài khung) — ghi lý do; không ghi thì mọi nhân vật phải mở đúng chỗ
+   *  lần cuối thấy nó kết (bo-set-3d.ts › lienMachTap) */ nhay?: string };
 /** Kết quả dựng khung xám (đầu ra): ma = mã đầu vào (set + máy + vị trí + khối) — đầu vào đổi là hết hiệu lực. */
 export type KhungXam = { ma: string; xam: string; sau: string; luc: string; kiem: { nhan_vat: string; bat_buoc?: boolean; trong_khung: boolean; cao_khung_pt: number; bi_che_boi: string[] }[];
   /** THẤY GÌ trong khung (dung-set.py › nhin_thay, đo bằng lưới tia): tên vật / nhân vật · % khung · hộp bao [x0,y0,x1,y1] 0..1 gốc trên-trái ·
@@ -296,7 +302,7 @@ export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: str
   tieu_su?: string;
   /** bộ âm hiệu cố định (phim không lời): âm đặc trưng, vui, sợ… — làm một lần, mọi tập dùng lại */
   am_hieu?: { ten: string; mo_ta: string; url: string }[]; anh_ref: string[]; giong: string; giong_model: string; giong_id: string; giong_mau_url: string | null; doi_chieu?: DoiChieu | null; bien_the?: BienThe[];
-  /** bối cảnh: thuộc bộ set nào + vùng (tâm cm) trong set; nhân vật / đạo cụ: khối đại diện 3D (cỡ cm) */ bo_set_id?: number | null; vung?: { tam: number[]; ban_kinh?: number } | null; khoi_3d?: { hinh: KhoiSet['hinh']; co: number[]; mau: string } | null };
+  /** bối cảnh: thuộc bộ set nào + vùng (tâm cm) trong set; nhân vật / đạo cụ: khối đại diện 3D (cỡ cm) */ bo_set_id?: number | null; vung?: { tam: number[]; ban_kinh?: number } | null; khoi_3d?: { hinh: KhoiSet['hinh']; co: number[]; mau: string; /** có mắt (nhân vật): khung xám vẽ hai mắt chỉ hướng nhìn */ mat?: boolean; /** phần thêm, toạ độ tương đối đáy giữa khối */ phan?: Omit<KhoiSet, 'ten'>[] } | null };
 
 /** Phim quảng cáo mà chưa khai sản phẩm (mục 0) → lý do chặn; MỘT luật cho nút ở trình duyệt lẫn gác ở máy chủ. */
 export function thieuQc(loai: LoaiPhim, kt: KinhThanh | null | undefined): string | false {

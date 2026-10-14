@@ -119,7 +119,15 @@ export type KinhThanh = {
    *  nằm đâu trong thế giới, cạnh nhau thế nào, đường đi từ nơi này sang nơi kia. Tách cảnh dựa vào đây để dựng chuỗi shot dẫn rộng → hẹp
    *  và shot hành trình khi đổi nơi (claude.ts › heThong, luật kể chuyện 12). */
   ban_do?: string;
+  /** TEMPLATE (14/10/2026 — anh: "template phải cho phép edit"): phim này là KHUÔN để nhân ra phim khác. Mọi chữ của phim (kinh thánh, anchor,
+   *  tập, shot: chữ màn, lời, prompt…) được chứa ô {{ten_o}}; "Tạo phim từ template" chép cả phim rồi điền ô (template.ts). Sửa template =
+   *  sửa như phim thường. `o` = nhãn + gợi ý + giá trị mẫu của từng ô (ô nào gõ trong chữ mà chưa khai vẫn hiện, nhãn = tên ô). */
+  template?: CauHinhTemplate | null;
+  /** phim sinh ra từ template nào, với giá trị ô nào (mã gen cho đo đơn về sau) */
+  tu_template?: { id: number; ten: string; gia_tri: Record<string, string>; luc: string } | null;
 };
+export type OTemplate = { ten: string; goi_y?: string; mau?: string; dai?: boolean };
+export type CauHinhTemplate = { mo_ta?: string; o?: Record<string, OTemplate> };
 /** Một tập trong BẢN ĐỒ series (chưa chắc đã có xv_tap): số thứ tự toàn series, mùa, loại, nhân vật, gài/trả (claude.ts › vietMuaPhim). */
 export type TapBanDo = { so: number; ten: string; logline: string; mua?: number; loai?: 'phieu_luu' | 'nguon_goc' | 'ket_mua'; nhan_vat?: string[]; boi_canh?: string[]; gai_tra?: string };
 export type MuaSeries = { so: number; ten: string; dong_co?: string; ghi_chu?: string };
@@ -262,7 +270,7 @@ export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: strin
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
   phong_cach: '', ti_le: '9:16', do_phan_giai: '720p',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },
-  giong_dan: null, series: null, luu_tru: false, nhip_stop_motion: false, khong_loi: false, ban_do: '',
+  giong_dan: null, series: null, luu_tru: false, nhip_stop_motion: false, khong_loi: false, ban_do: '', template: null, tu_template: null,
 };
 export const docKinhThanh = (kt: KinhThanh | null | undefined): Required<KinhThanh> => ({ ...KINH_THANH_MAC_DINH, ...(kt ?? {}) });
 

@@ -8,7 +8,7 @@ import { Ngan } from './ngan';
 import { moNgan } from './ngan-chung';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { nhomPhim, demKieu, laLuuTru, TEN_KIEU, type KieuNhom } from '@/lib/xuong-video/nhom-phim';
-import { dsPhim, luuTruPhim, docPhim, taoPhim, taoPhimMau, xoaPhim, taoTap, dsMoHinh, dsThungRac, khoiPhuc, docHoanTac, hoanTac, type MoHinhChon, type PhimDayDu } from '@/lib/actions';
+import { dsPhim, luuTruPhim, luuThanhTemplate, docPhim, taoPhim, taoPhimMau, xoaPhim, taoTap, dsMoHinh, dsThungRac, khoiPhuc, docHoanTac, hoanTac, type MoHinhChon, type PhimDayDu } from '@/lib/actions';
 import type { MucHoanTac } from '@/lib/xuong-video/hoan-tac';
 import { LOAI_PHIM, docKinhThanh, giaAnhCents, giaVideoCents, tien, gioVN, type Phim, type Job, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Khoa, TabPhim, TAB_PHIM, O, Pill, Seg, Nut, Xoa, Loi, Menu, MucMenu, mono } from './ui';
@@ -21,6 +21,7 @@ import { useNho } from './nho';
 import { useDinhKy } from './dinh-ky';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
 import { SoDoSeries } from './so-do';
+import { TemplatePanel } from './template-ui';
 
 export function XuongVideoTrang(props: { phimDau: Phim[]; khoa: Khoa }) {
   return <Suspense fallback={<span style={mono}>…</span>}><Ruot {...props} /></Suspense>;
@@ -33,7 +34,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
   const [loiTao, setLoiTao] = useState('');
   const [ban, setBan] = useState(false);
   const modal = useModalParam();
-  const [locKieu, setLocKieu] = useNho<KieuNhom | ''>('xv-loc-kieu', '', ['', 'series', 'quang_cao', 'phim']);
+  const [locKieu, setLocKieu] = useNho<KieuNhom | ''>('xv-loc-kieu', '', ['', 'template', 'series', 'quang_cao', 'phim']);
   const [locTim, setLocTim] = useState('');
   const [hienLuuTru, setHienLuuTru] = useState(false);
   const [tapMo, setTapMo] = useState<number | null>(null);   // bấm chip tập → mở ngăn phim đúng tập
@@ -88,7 +89,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
         return (
           <div className="xv-panel" style={{ padding: 0 }}>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', padding: '8px 10px', borderBottom: '1px solid var(--line)' }}>
-              <Seg options={[{ value: '' as const, label: `Tất cả ${dem.series + dem.quang_cao + dem.phim}` }, ...(['series', 'quang_cao', 'phim'] as const).map((k) => ({ value: k, label: `${TEN_KIEU[k]} ${dem[k]}` }))]} value={locKieu} onChange={setLocKieu} />
+              <Seg options={[{ value: '' as const, label: `Tất cả ${dem.template + dem.series + dem.quang_cao + dem.phim}` }, ...(['template', 'series', 'quang_cao', 'phim'] as const).map((k) => ({ value: k, label: `${TEN_KIEU[k]} ${dem[k]}` }))]} value={locKieu} onChange={setLocKieu} />
               <input className="xv-in" style={{ width: 220 }} value={locTim} onChange={(e) => setLocTim(e.target.value)} placeholder="🔍 tìm phim, series, tập…" />
               {soLuuTru > 0 && <label style={{ ...mono, display: 'flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={hienLuuTru} onChange={(e) => setHienLuuTru(e.target.checked)} />hiện bản lưu trữ ({soLuuTru})</label>}
               <span style={{ flex: 1 }} /><span style={mono}>{nhom.length} nhóm · {nhom.reduce((a, g) => a + g.phim.length, 0)} phim</span>
@@ -97,7 +98,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
             {nhom.map((g) => (
               <section key={g.key} style={{ borderBottom: '1px solid var(--line)' }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '10px 12px 4px', background: 'var(--bg-1)' }}>
-                  <b style={{ fontSize: 14 }}>{g.kieu === 'series' ? '📺 ' : g.kieu === 'quang_cao' ? '📣 ' : '🎬 '}{g.ten}</b>
+                  <b style={{ fontSize: 14 }}>{g.kieu === 'template' ? '🧩 ' : g.kieu === 'series' ? '📺 ' : g.kieu === 'quang_cao' ? '📣 ' : '🎬 '}{g.ten}</b>
                   <Pill color="var(--fg-3)">{TEN_KIEU[g.kieu]}</Pill>
                   <span style={mono}>{g.phim.length} phim · {g.phim.reduce((a, p) => a + p.so_tap, 0)} tập · {tien(g.chi_phi_cents)}</span>
                 </div>
@@ -140,6 +141,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
 function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?: number | null; khoa: Khoa; onClose: () => void; onXoa: () => Promise<void> }) {
   const [d, setD] = useState<PhimDayDu | null | undefined>(undefined);
   const tapParam = useModalParam('tap');
+  const modal = useModalParam();
   const tai = useCallback(async () => setD(await docPhim(id)), [id]);
   useEffect(() => { void tai(); }, [tai]);
   // Tab đang mở, nhớ theo phim (đọc ngay từ đầu, chỉ ghi khi bấm — cùng cách với khung thu gọn #1212).
@@ -157,6 +159,8 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?:
     <Ngan onClose={onClose} tieuDe={phim.ten} nut={<>
       {phim.poster_url && <img src={anhNho(phim.poster_url, 160)} alt="" title="Poster (tab 🎭 Phim › Poster)" style={{ height: 34, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} />}
       <Pill color="var(--fg-3)">{LOAI_PHIM.find((l) => l.key === phim.loai)?.label ?? phim.loai}</Pill>
+      {phim.kinh_thanh?.template && <Pill color="var(--violet)">🧩 Template</Pill>}
+      {phim.kinh_thanh?.tu_template && <button type="button" className="xv-lienket xv-mono" title="Phim này tạo từ template — mở template" onClick={() => modal.open('phim', phim.kinh_thanh!.tu_template!.id)}>🧩 từ #{phim.kinh_thanh.tu_template.id}</button>}
       <span style={mono} data-ngu-canh={`phim #${phim.id} ${phim.ten}`}>#{phim.id}</span>
       <ThongKe tk={d.thongKe} tongTien={d.tongTien} soAnchor={nhanVat.length} soTap={tap.length} />
       <HoanTac phimId={phim.id} onDone={tai} />
@@ -165,6 +169,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?:
       <Menu>
         <MucMenu onClick={() => moNgan({ loai: 'thu-vien', tl: docKinhThanh(phim.kinh_thanh).the_loai })}>🎬 Thư viện điện ảnh</MucMenu>
         <MucMenu onClick={() => moNgan({ loai: 'kho' })}>📦 Kho tài sản</MucMenu>
+        {!phim.kinh_thanh?.template && <MucMenu onClick={async () => { const r = await luuThanhTemplate(phim.id, `Template · ${phim.ten}`); if (r.ok) modal.open('phim', r.data); }}>🧩 Lưu thành template (bản sao — phim này giữ nguyên)</MucMenu>}
         <MucMenu onClick={async () => { await luuTruPhim(phim.id, !phim.kinh_thanh?.luu_tru); await tai(); }}>{phim.kinh_thanh?.luu_tru ? '📤 Bỏ lưu trữ (hiện lại trong danh sách)' : '🗄 Lưu trữ (ẩn khỏi danh sách, không xoá)'}</MucMenu>
         <Xoa nhan="cả phim (tập + cảnh)" onXoa={onXoa} />
       </Menu>
@@ -175,6 +180,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?:
     }>
       {tab === 'so_do' && <SoDoSeries phim={phim} tap={tap} nhanVat={nhanVat} onChanged={tai} onMoTap={(id) => { tapParam.open('tap', id); setTab('kich_ban'); }} />}
       {tab === 'phim' && <>
+        {phim.kinh_thanh?.template && <TemplatePanel phim={phim} onChanged={tai} onMoPhim={(pid) => modal.open('phim', pid)} />}
         <KinhThanhForm phim={phim} khoa={khoa} onSaved={tai} />
         <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} />
         <PosterPhim phim={phim} nhanVat={nhanVat} dang={d.dangSinh.poster} loiNen={d.loiPoster} onChanged={tai} />

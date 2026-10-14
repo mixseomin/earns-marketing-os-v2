@@ -38,6 +38,9 @@ import { docPhimDich, uocDichCents, chayDichPhim } from '@/lib/xuong-video/dich-
 import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-video/kieu';
 import { type Row, n, s, arr, mangInt, nguCanhPhimDb, mapBienThe, mapNhanVat, mapTap, mapCanh, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
 import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim } from '@/lib/xuong-video/sinh-anh';
+import { docOTemplate, chepPhim, type KetQuaChep } from '@/lib/xuong-video/template-db';
+import { oThieu, type OTemplateDs } from '@/lib/xuong-video/template';
+import type { CauHinhTemplate } from '@/lib/xuong-video/kieu';
 import type { MauPoster } from '@/lib/xuong-video/poster';
 import { batDauVideoCanh, kiemVideoTap } from '@/lib/xuong-video/sinh-video';
 import { nguonShot } from '@/lib/xuong-video/nguon-shot';
@@ -97,6 +100,47 @@ export async function luuTruPhim(id: number, bat: boolean): Promise<Kq> {
   if (!(await admin())) return loi('không có quyền');
   await db.execute(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{luu_tru}', ${JSON.stringify(bat)}::jsonb), updated_at = now() WHERE id = ${id}`);
   return { ok: true, data: undefined };
+}
+// ── Template (template.ts · template-db.ts) ───────────────────────────────────────────────────────────────────────
+
+/** Ô của một template (dò trong mọi chữ của phim) + cấu hình nhãn/gợi ý. */
+export async function docTemplate(phimId: number): Promise<Kq<{ cfg: CauHinhTemplate | null; o: OTemplateDs[] }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const r = await docOTemplate(db, phimId);
+  return r ? { ok: true, data: r } : loi('không thấy phim');
+}
+/** Sửa nhãn / gợi ý / giá trị mẫu của các ô + mô tả template (có ↶ hoàn tác). */
+export async function luuCauHinhTemplate(phimId: number, cfg: CauHinhTemplate): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  await chupTruoc(db, { bang: 'xv_phim', id: phimId, cot: ['kinh_thanh'], moTa: 'sửa ô template', nguoi: await ai() });
+  await db.execute(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{template}', ${JSON.stringify(cfg)}::jsonb), updated_at = now() WHERE id = ${phimId}`);
+  return { ok: true, data: undefined };
+}
+/** Lưu một phim thành template MỚI (bản sao, phim gốc không bị đụng) — sau đó gõ {{ô}} vào chỗ cần đổi. */
+export async function luuThanhTemplate(phimId: number, ten: string): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  if (!ten.trim()) return loi('thiếu tên template');
+  const r = await chepPhim(db, phimId, { ten: ten.trim(), gt: {}, laTemplate: true });
+  return r ? { ok: true, data: r.phimId } : loi('không thấy phim');
+}
+/** Tạo phim từ template: chép + điền ô. Ô đang dùng mà chưa điền → chặn (phim mới không được còn {{x}}). 0đ. */
+export async function taoPhimTuTemplate(templateId: number, ten: string, gt: Record<string, string>): Promise<Kq<KetQuaChep>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  if (!ten.trim()) return loi('thiếu tên phim');
+  const t = await docOTemplate(db, templateId);
+  if (!t) return loi('không thấy template');
+  const thieu = oThieu(t.o, gt);
+  if (thieu.length) return loi(`chưa điền: ${thieu.map((o) => o.ten).join(', ')}`);
+  const r = await chepPhim(db, templateId, { ten: ten.trim(), gt, laTemplate: false });
+  return r ? { ok: true, data: r } : loi('không thấy template');
 }
 export async function dsPhim(): Promise<Phim[]> {
   const db = getDb();

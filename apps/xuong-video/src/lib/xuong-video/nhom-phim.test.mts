@@ -10,12 +10,14 @@ const ds = [
   p(13, 'Series · Fox Tales — Aesop (vẽ đơn)', 'short', { series: sr('Fox Tales') }),
   p(9, 'Astrolas · Double Retrograde — Maya', 'quang_cao'), p(8, 'Astrolas · Transit story', 'quang_cao'),
   p(5, 'Thỏ và Rùa', 'phim'),
+  p(18, 'Template · UGC kể chuyện', 'quang_cao', { template: { o: {} } }),
 ];
 let g = nhomPhim(ds, {});
-assert.deepStrictEqual(g.map((x) => [x.ten, x.phim.length]), [['Fox Tales', 2], ['Zeus at Work', 1], ['Astrolas', 2], ['Thỏ và Rùa', 1]]);
+assert.deepStrictEqual(g.map((x) => [x.ten, x.phim.length]), [['Fox Tales', 2], ['Zeus at Work', 1], ['Astrolas', 2], ['Thỏ và Rùa', 1], ['Template', 1]]);
 assert.strictEqual(nhomPhim(ds, { luuTru: true })[0]!.phim.length, 3, 'hiện cả bản lưu trữ');
 assert.deepStrictEqual(nhomPhim(ds, { kieu: 'series' }).map((x) => x.ten), ['Fox Tales', 'Zeus at Work']);
 assert.deepStrictEqual(nhomPhim(ds, { tim: 'reply' }).map((x) => x.ten), ['Zeus at Work'], 'tìm theo tên tập');
-assert.deepStrictEqual(demKieu(ds), { series: 3, quang_cao: 2, phim: 1 });
+assert.deepStrictEqual(demKieu(ds), { template: 1, series: 3, quang_cao: 2, phim: 1 });
 assert.strictEqual(tenNhomPhim({ ten: 'Series · Fox Tales — Aesop (x)', kinh_thanh: { series: { dong_co: 'x', khan_gia: '', dinh_dang: '', tap: [] } } as Phim['kinh_thanh'] }), 'Fox Tales');
+assert.deepStrictEqual(nhomPhim(ds, { kieu: 'template' }).map((x) => x.phim[0]!.id), [18], 'template tách nhóm riêng, không lẫn quảng cáo');
 console.log('nhom-phim.test: ok');

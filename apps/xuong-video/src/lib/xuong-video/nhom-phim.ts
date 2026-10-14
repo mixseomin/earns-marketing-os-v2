@@ -2,8 +2,8 @@
 // (từng bản: bút chì, sáp màu, 3D…) → TẬP. Thuần — tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/nhom-phim.test.mts
 import type { Phim } from './kieu';
 
-export type KieuNhom = 'series' | 'quang_cao' | 'phim';
-export const TEN_KIEU: Record<KieuNhom, string> = { series: 'Series', quang_cao: 'Quảng cáo', phim: 'Phim ngắn' };
+export type KieuNhom = 'template' | 'series' | 'quang_cao' | 'phim';
+export const TEN_KIEU: Record<KieuNhom, string> = { template: 'Template', series: 'Series', quang_cao: 'Quảng cáo', phim: 'Phim ngắn' };
 export type NhomPhim = { key: string; ten: string; kieu: KieuNhom; phim: Phim[]; chi_phi_cents: number };
 
 /** Bản lưu trữ: đánh dấu ở kinh thánh (luu_tru) — ẩn mặc định, không xoá. */
@@ -15,7 +15,7 @@ export function tenNhomPhim(p: Pick<Phim, 'ten' | 'kinh_thanh'>): string {
   const i = p.ten.indexOf(' · ');
   return (i > 0 ? p.ten.slice(0, i) : p.ten).trim();
 }
-export const kieuPhim = (p: Pick<Phim, 'loai' | 'kinh_thanh'>): KieuNhom => (p.kinh_thanh?.series?.dong_co?.trim() ? 'series' : p.loai === 'quang_cao' ? 'quang_cao' : 'phim');
+export const kieuPhim = (p: Pick<Phim, 'loai' | 'kinh_thanh'>): KieuNhom => (p.kinh_thanh?.template ? 'template' : p.kinh_thanh?.series?.dong_co?.trim() ? 'series' : p.loai === 'quang_cao' ? 'quang_cao' : 'phim');
 
 /** Lọc + gom: `ds` theo thứ tự mới sửa trước; nhóm xếp theo phim mới nhất của nó. */
 export function nhomPhim(ds: Phim[], loc: { kieu?: KieuNhom | ''; tim?: string; luuTru?: boolean }): NhomPhim[] {
@@ -34,7 +34,7 @@ export function nhomPhim(ds: Phim[], loc: { kieu?: KieuNhom | ''; tim?: string; 
 }
 /** Đếm theo kiểu (cho nhãn bộ lọc) — tính trên bản không lưu trữ trừ khi luuTru. */
 export const demKieu = (ds: Phim[], luuTru = false): Record<KieuNhom, number> => {
-  const d: Record<KieuNhom, number> = { series: 0, quang_cao: 0, phim: 0 };
+  const d: Record<KieuNhom, number> = { template: 0, series: 0, quang_cao: 0, phim: 0 };
   for (const p of ds) if (luuTru || !laLuuTru(p)) d[kieuPhim(p)]++;
   return d;
 };

@@ -1,18 +1,18 @@
 {
   "ten": "Cái bàn của Gã khổng lồ (Tango & Lint)",
-  "ghi_chu": "Đơn vị cm. Gốc (0,0,0) = giữa MÉP TRƯỚC mặt bàn; x sang phải (nhìn từ phía người ngồi), y vào sâu về phía tường, z lên trên. Đo theo ảnh mẫu The Desk (wide) + Desk Map (top-down): hai màn hình ĐẶT SONG SONG cạnh nhau, cùng quay mặt ra phía người ngồi, hơi chụm vào giữa.",
+  "ghi_chu": "Đơn vị cm. Gốc (0,0,0) = giữa MÉP TRƯỚC mặt bàn; x sang phải (nhìn từ phía người ngồi), y vào sâu về phía tường, z lên trên. Đo theo ảnh mẫu The Desk (wide) + Desk Map (top-down): hai màn hình ĐẶT SONG SONG cạnh nhau, cùng quay mặt ra phía người ngồi, hơi chụm vào giữa. Hàng SAU (anh 14/10/2026): hai máy nữa đặt trên kệ nâng phía sau, mặt quay về phía trước — khoảng giữa hai hàng (y≈58–92) là THUNG LŨNG: lưng hàng trước + rừng cáp một bên, hai bức tường màn hình sáng bên kia.",
   "vat": [
     {
       "ten": "Mặt bàn",
       "hinh": "hop",
       "tam": [
         0,
-        35,
+        62,
         -3
       ],
       "co": [
-        160,
-        70,
+        170,
+        124,
         3
       ],
       "mau": "#6b4a2e"
@@ -22,15 +22,235 @@
       "hinh": "hop",
       "tam": [
         0,
-        73,
+        126,
         -3
       ],
       "co": [
-        220,
+        240,
         2,
-        140
+        160
       ],
-      "mau": "#4a4a55"
+      "mau": "#3d3d48"
+    },
+    {
+      "ten": "Kệ nâng sau",
+      "hinh": "hop",
+      "tam": [
+        0,
+        104,
+        0
+      ],
+      "co": [
+        150,
+        26,
+        9
+      ],
+      "mau": "#5a3d26"
+    },
+    {
+      "ten": "Back Monitor",
+      "goc": [
+        -36,
+        102
+      ],
+      "xoay": 7,
+      "phan": [
+        {
+          "hinh": "hop",
+          "tam": [
+            0,
+            4,
+            9
+          ],
+          "co": [
+            22,
+            14,
+            0.6
+          ],
+          "mau": "#2a2a2e"
+        },
+        {
+          "hinh": "hop",
+          "tam": [
+            0,
+            7,
+            9.6
+          ],
+          "co": [
+            5,
+            2,
+            15
+          ],
+          "mau": "#2a2a2e"
+        },
+        {
+          "hinh": "hop",
+          "tam": [
+            0,
+            0,
+            22
+          ],
+          "co": [
+            64,
+            3,
+            38
+          ],
+          "mau": "#141418"
+        },
+        {
+          "hinh": "hop",
+          "tam": [
+            0,
+            -1.6,
+            23
+          ],
+          "co": [
+            62,
+            0.2,
+            36
+          ],
+          "mau": "#5ad1ff",
+          "sang": 2.5
+        }
+      ]
+    },
+    {
+      "ten": "Silver iMac",
+      "goc": [
+        34,
+        102
+      ],
+      "xoay": -7,
+      "phan": [
+        {
+          "hinh": "hop",
+          "tam": [
+            0,
+            3,
+            9
+          ],
+          "co": [
+            15,
+            15,
+            0.5
+          ],
+          "mau": "#c9ccd2"
+        },
+        {
+          "hinh": "hop",
+          "tam": [
+            0,
+            5,
+            9.5
+          ],
+          "co": [
+            14,
+            2,
+            11
+          ],
+          "mau": "#c9ccd2"
+        },
+        {
+          "hinh": "hop",
+          "tam": [
+            0,
+            0,
+            19
+          ],
+          "co": [
+            55,
+            1.2,
+            46
+          ],
+          "mau": "#d8dbe0"
+        },
+        {
+          "hinh": "hop",
+          "tam": [
+            0,
+            -0.7,
+            30
+          ],
+          "co": [
+            52,
+            0.2,
+            33
+          ],
+          "mau": "#c08cff",
+          "sang": 2.5
+        }
+      ]
+    },
+    {
+      "ten": "Cable Jungle 3",
+      "hinh": "day",
+      "diem": [
+        [
+          -40,
+          96,
+          9
+        ],
+        [
+          -38,
+          90,
+          0.3
+        ],
+        [
+          -10,
+          80,
+          0.3
+        ],
+        [
+          15,
+          86,
+          0.3
+        ],
+        [
+          36,
+          92,
+          0.3
+        ],
+        [
+          34,
+          97,
+          9
+        ]
+      ],
+      "ban_kinh": 0.35,
+      "mau": "#1c1c20"
+    },
+    {
+      "ten": "Cable Jungle 4",
+      "hinh": "day",
+      "diem": [
+        [
+          -30,
+          58,
+          0.3
+        ],
+        [
+          -12,
+          72,
+          0.3
+        ],
+        [
+          8,
+          70,
+          0.3
+        ],
+        [
+          22,
+          78,
+          0.3
+        ],
+        [
+          30,
+          96,
+          9
+        ]
+      ],
+      "ban_kinh": 0.3,
+      "mau": "#e8e8e8"
     },
     {
       "ten": "Left Monitor",
@@ -246,8 +466,8 @@
       "ten": "Black Speaker",
       "hinh": "cau",
       "tam": [
-        -60,
-        63,
+        -8,
+        76,
         0
       ],
       "co": [
@@ -531,6 +751,63 @@
           ]
         }
       ]
+    },
+    {
+      "ma": "V1",
+      "so": 0,
+      "ten": "Thung lũng giữa hai hàng — nhìn dọc từ trái",
+      "may": {
+        "dat": [
+          -62,
+          74,
+          2.5
+        ],
+        "nhin": [
+          20,
+          76,
+          6
+        ],
+        "ong_kinh": 20
+      },
+      "nhan_vat": []
+    },
+    {
+      "ma": "V2",
+      "so": 0,
+      "ten": "Thung lũng — từ chân màn hình trước nhìn lên hàng sau",
+      "may": {
+        "dat": [
+          0,
+          60,
+          1.5
+        ],
+        "nhin": [
+          0,
+          100,
+          22
+        ],
+        "ong_kinh": 18
+      },
+      "nhan_vat": []
+    },
+    {
+      "ma": "V3",
+      "so": 0,
+      "ten": "Toàn cảnh bàn từ mép trước",
+      "may": {
+        "dat": [
+          0,
+          -40,
+          35
+        ],
+        "nhin": [
+          0,
+          60,
+          15
+        ],
+        "ong_kinh": 28
+      },
+      "nhan_vat": []
     }
   ]
 }

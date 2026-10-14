@@ -129,7 +129,7 @@ for sh in shots:
     for o in nv: bpy.data.objects.remove(o, do_unlink=True)
 
 # MẶT BẰNG nhìn thẳng từ trên: bộ set + vị trí máy của từng shot (nón cam chỉ hướng nhìn) — để duyệt bố trí bằng mắt người một lần cho cả cảnh.
-for sh in shots:
+for sh in [x for x in shots if x.get('so')]:
     d = Vector(sh['may']['nhin']) - Vector(sh['may']['dat']); d.z = 0; d.normalize()
     bpy.ops.mesh.primitive_cone_add(radius1=1.6 * CM, depth=4 * CM, location=(Vector(sh['may']['dat']) * CM) + Vector((0, 0, 0.06)))
     c = bpy.context.object; c.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler(); dat(c, mau('#ff2d55', 3), f"may {sh['ma']}")
@@ -137,9 +137,11 @@ for sh in shots:
         mau_nv = DL['nhan_vat_mau'][nv['ten']]; khoi({**mau_nv, 'tam': [nv['tam'][0], nv['tam'][1], 0]}, f"mb {sh['ma']} {nv['ten']}")
     t = bpy.data.curves.new(f"t{sh['ma']}", 'FONT'); t.body = f"#{sh['so']}"; t.size = 3 * CM
     to = bpy.data.objects.new(f"t{sh['ma']}", t); s.collection.objects.link(to); to.location = (Vector(sh['may']['dat']) + Vector((1.5, -4, 0.2))) * CM; t.materials.append(mau('#ffffff', 5))
-cd = bpy.data.cameras.new('tren'); cd.type = 'ORTHO'; cd.ortho_scale = 1.75
-o = bpy.data.objects.new('tren', cd); s.collection.objects.link(o); o.location = (0, 0.36, 2); s.camera = o
-s.render.resolution_x, s.render.resolution_y = 1200, 700; s.cycles.samples = 16
+# Khung mặt bằng tự ôm cả mặt bàn (vật tên 'Mặt bàn'), không gõ tay cỡ.
+ban = next(v for v in DL['vat'] if v['ten'] == 'Mặt bàn')
+cd = bpy.data.cameras.new('tren'); cd.type = 'ORTHO'; cd.ortho_scale = max(ban['co'][0], ban['co'][1] * 1200 / 800) * CM * 1.08
+o = bpy.data.objects.new('tren', cd); s.collection.objects.link(o); o.location = (ban['tam'][0] * CM, ban['tam'][1] * CM, 3); s.camera = o
+s.render.resolution_x, s.render.resolution_y = 1200, 800; s.cycles.samples = 16
 for v in [x for x in bpy.data.objects if x.name.startswith('Tường')]: v.hide_render = True
 s.render.filepath = f"{RA}/mat-bang.png"; bpy.ops.render.render(write_still=True)
 json.dump(kiem, open(f'{RA}/kiem.json', 'w'), ensure_ascii=False, indent=1)

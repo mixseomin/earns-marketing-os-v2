@@ -59,7 +59,12 @@ export async function boiCanhCanh(db: Db, canhId: number) {
   const t = (await db.execute(sql`SELECT keyframe_url, ky_thuat, thu_tu FROM xv_canh WHERE tap_id = ${canh.tap_id} AND thu_tu < ${canh.thu_tu}
     AND coalesce(nhanh, '') IN ('', ${canh.nhanh || 'A'}) ORDER BY thu_tu DESC LIMIT 1`)) as unknown as Row[];
   const truoc = t[0] ? { thu_tu: n(t[0].thu_tu), keyframe_url: t[0].keyframe_url == null ? null : s(t[0].keyframe_url), ky_thuat: (t[0].ky_thuat ?? null) as Canh['ky_thuat'] } : null;
-  return { canh, kt, nhanVat: nv, truoc };
+  // Shot MỞ CẢNH (master) của cùng phân cảnh đã có keyframe — tham chiếu bố trí bối cảnh cho các shot sau trong cảnh: đồ vật đứng đâu so với nhau,
+  // nhân vật ở phía nào (Tango & Lint tập 1: #9 → #10 Tango nhảy từ trước bàn phím ra sau bàn phím vì mỗi keyframe tự dựng lại bàn).
+  const m = canh.phan_doan ? (await db.execute(sql`SELECT keyframe_url, thu_tu FROM xv_canh WHERE tap_id = ${canh.tap_id} AND phan_doan = ${canh.phan_doan} AND thu_tu < ${canh.thu_tu}
+    AND keyframe_url IS NOT NULL AND coalesce(nhanh, '') IN ('', ${canh.nhanh || 'A'}) ORDER BY thu_tu LIMIT 1`)) as unknown as Row[] : [];
+  const master = m[0] ? { thu_tu: n(m[0].thu_tu), keyframe_url: s(m[0].keyframe_url) } : null;
+  return { canh, kt, nhanVat: nv, truoc, master };
 }
 
 export async function taoJob(db: Db, d: { phim_id?: number; nhan?: string; canh_id?: number; nhan_vat_id?: number; bien_the_id?: number; loai: string; provider: string; model: string; request: unknown; xong?: boolean }): Promise<number> {

@@ -38,7 +38,7 @@ if (lech.length) { console.error(`tên anchor không có trong phim: ${[...new S
 if (thay) { const cu = ((await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${tapId}`)) as unknown as Row[]).map((r) => Number(r.id)); const { boVaoThungRac } = await import('../src/lib/xuong-video/thung-rac'); console.log('thùng rác:', await boVaoThungRac(db, 'canh', cu, 'nap-canh', `${cu.length} shot cũ (nạp hồ sơ thay toàn bộ)`)); }
 if (chen && !truoc) { console.error('--chen cần --truoc=<thứ tự>'); process.exit(1); }
 /** --cap-nhat: ĐỒNG BỘ nội dung shot đã có (khớp theo phân cảnh + thứ tự trong phân cảnh) từ tệp — thẻ shot, kỹ thuật, hành động, prompt, âm,
- *  giây — GIỮ keyframe/clip; phân cảnh/beats/hồ sơ của tập thay bản đầy đủ. Shot có trong tệp mà chưa có trong tập thì chỉ báo (thêm bằng --chen).
+ *  giây — GIỮ keyframe/clip; phân cảnh/beats/hồ sơ của tập thay bản đầy đủ. Khớp theo mã: shot mới chèn đúng chỗ, shot hồ sơ đã bỏ vào thùng rác.
  *  Mỗi shot đổi đều chụp trước (↶ hoàn tác được). Shot đổi ẢNH ĐẦU (prompt ảnh / bố cục / trạng thái mở / anchor) được liệt kê: keyframe cũ lệch. */
 if (process.argv.includes('--cap-nhat')) {
   const { chupTruoc } = await import('../src/lib/xuong-video/hoan-tac');
@@ -51,7 +51,7 @@ if (process.argv.includes('--cap-nhat')) {
   const theoMa = new Map(cu.filter((r) => (r.dan_dung as Record<string, string> | null)?.ma).map((r) => [(r.dan_dung as Record<string, string>).ma, r]));
   const dungMa = cu.length > 0 && theoMa.size === cu.length;
   const chenMoi: { c: Record<string, unknown>; sauMa: string | null }[] = [];
-  const demPc = new Map<string, number>(); let doi = 0; const chuaCo: string[] = []; const lechAnh: number[] = [];
+  const demPc = new Map<string, number>(); let doi = 0; const chuaCo: string[] = []; const lechAnh: string[] = [];
   const tenId = new Map(nv.map((v) => [v.ten.trim().toLowerCase(), v.id]));
   for (const c of kq.canh as { phan_doan: string; [k: string]: unknown }[]) {
     const i = demPc.get(c.phan_doan) ?? 0; demPc.set(c.phan_doan, i + 1);
@@ -63,7 +63,7 @@ if (process.argv.includes('--cap-nhat')) {
     const { mauNhacTen } = await import('../src/lib/xuong-video/quy-trinh');
     const ids = [...ids0, ...mauNhacTen({ nhan_vat: ids0, prompt_anh: c.prompt_anh as string, hanh_dong: c.hanh_dong as string }, nv).map((v) => v.id)];
     const dd = (c.dan_dung ?? {}) as Record<string, string>; const ddCu = (r.dan_dung ?? {}) as Record<string, string>;
-    if (c.prompt_anh !== r.prompt_anh || dd.bo_cuc !== ddCu.bo_cuc || dd.mo !== ddCu.mo || JSON.stringify([...ids].sort()) !== JSON.stringify([...((r.nhan_vat as number[]) ?? [])].sort())) lechAnh.push(Number(r.thu_tu));
+    if (c.prompt_anh !== r.prompt_anh || dd.bo_cuc !== ddCu.bo_cuc || dd.mo !== ddCu.mo || JSON.stringify([...ids].sort()) !== JSON.stringify([...((r.nhan_vat as number[]) ?? [])].sort())) lechAnh.push(dd.ma || `#${r.thu_tu}`);
     await chupTruoc(db, { bang: 'xv_canh', id: Number(r.id), cot: ['canh', 'goc_may', 'hanh_dong', 'prompt_anh', 'prompt_video', 'am_thanh', 'thoai', 'loi_thoai', 'phat_s', 'ky_thuat', 'dan_dung', 'cam_xuc', 'nhan_vat', 'chu_man'], moTa: 'đồng bộ hồ sơ tiền kỳ', nguoi: 'nap-canh' });
     const thoai = ((c.thoai ?? []) as { loi: string }[]).filter((d) => d.loi.trim());
     await db.execute(sql`UPDATE xv_canh SET canh = ${c.canh as string}, goc_may = ${c.goc_may as string}, hanh_dong = ${c.hanh_dong as string}, prompt_anh = ${c.prompt_anh as string}, prompt_video = ${c.prompt_video as string},
@@ -80,10 +80,28 @@ if (process.argv.includes('--cap-nhat')) {
     await luuCanhTach(db, { chenTruoc: truocTu, tapId, tenTap: String(t[0].ten), kq: { ...kq, canh: [c] } as never, nhanVat: nv, nguoi: 'script nap-canh' });
     daChen.push(`${((c.dan_dung ?? {}) as Record<string, string>).ma} → #${truocTu}`);
   }
+  // Shot có mã trong tập mà hồ sơ đã bỏ (gộp / cắt) → thùng rác (khôi phục được), rồi đánh số lại liền mạch — tập phản chiếu đúng hồ sơ.
+  const daBo: string[] = [];
+  if (dungMa) {
+    const maTep = new Set((canhDu as { dan_dung?: { ma?: string } }[]).map((c) => c.dan_dung?.ma).filter(Boolean));
+    const bo = cu.filter((r) => !maTep.has((r.dan_dung as Record<string, string>).ma));
+    if (bo.length) {
+      const { boVaoThungRac } = await import('../src/lib/xuong-video/thung-rac');
+      await boVaoThungRac(db, 'canh', bo.map((r) => Number(r.id)), 'nap-canh', `${bo.length} shot hồ sơ đã bỏ (${bo.map((r) => (r.dan_dung as Record<string, string>).ma).join(', ')})`);
+      daBo.push(...bo.map((r) => `${(r.dan_dung as Record<string, string>).ma} (#${r.thu_tu})`));
+    }
+    if (bo.length || chenMoi.length) {
+      const ds = (await db.execute(sql`SELECT id, thu_tu FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[];
+      for (const [i, r] of ds.entries()) if (Number(r.thu_tu) !== i + 1) {
+        await chupTruoc(db, { bang: 'xv_canh', id: Number(r.id), cot: ['thu_tu'], moTa: 'đánh số lại sau đồng bộ hồ sơ', nguoi: 'nap-canh' });
+        await db.execute(sql`UPDATE xv_canh SET thu_tu = ${i + 1} WHERE id = ${Number(r.id)}`);
+      }
+    }
+  }
   await chupTruoc(db, { bang: 'xv_tap', id: tapId, cot: ['phan_canh', 'beats', 'ho_so', 'kich_ban'], moTa: 'đồng bộ hồ sơ tiền kỳ', nguoi: 'nap-canh' });
   await db.execute(sql`UPDATE xv_tap SET phan_canh = ${JSON.stringify(kq.phanCanh)}::jsonb, beats = ${JSON.stringify(kq.beats)}::jsonb, ho_so = coalesce(ho_so, '{}'::jsonb) || ${JSON.stringify(kq.hoSo ?? {})}::jsonb, updated_at = now() WHERE id = ${tapId}`);
   if (kbMd) await db.execute(sql`UPDATE xv_tap SET kich_ban = ${readFileSync(kbMd, 'utf8')} WHERE id = ${tapId}`);
-  console.log(JSON.stringify({ dong_bo: doi, da_chen: daChen, chua_co_trong_tap: chuaCo, keyframe_lech_anh_dau: lechAnh }));
+  console.log(JSON.stringify({ dong_bo: doi, da_chen: daChen, da_bo: daBo, chua_co_trong_tap: chuaCo, keyframe_lech_anh_dau: lechAnh }));
   process.exit(0);
 }
 const so = await luuCanhTach(db, { chenTruoc: chen ? truoc : undefined, tapId, tenTap: String(t[0].ten), kq: kq as never, nhanVat: nv, nguoi: 'script nap-canh', thoiLuongS: Math.round(canhDu.reduce((a: number, c: { phat_s: number }) => a + c.phat_s, 0)) });   // cột thoi_luong_s là số nguyên

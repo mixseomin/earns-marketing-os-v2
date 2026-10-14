@@ -330,6 +330,8 @@ async function bienThe(loai: 'boi_canh' | 'dao_cu', tenAnchor: string, nhom: str
   ra.push({ ten: `${tenAnchor} · ${ten}`, url: kq.ok ? kq.url : null, ...(kq.ok ? {} : { loi: kq.loi }) });
 }
 
+/** --chi-tao: chỉ TẠO anchor (mô tả, chưa có ảnh) để shot gắn được + hiện trên lưới/hồ sơ — 0đ; sinh ảnh mẫu là lượt riêng (bỏ cờ). */
+if (dot === 'the_gioi' && process.argv.includes('--chi-tao')) { for (const b of THE_GIOI) { const co = (await q(sql`SELECT id FROM xv_nhan_vat WHERE phim_id = ${phimId} AND loai = 'boi_canh' AND ten = ${b.ten} LIMIT 1`))[0]; if (!co) await q(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, anh_ref) VALUES (${phimId}, 'boi_canh', ${b.ten}, ${b.mo_ta}, '[]'::jsonb)`); ra.push({ ten: b.ten, url: null, loi: co ? 'đã có' : 'đã tạo (chưa ảnh)' }); } console.log(JSON.stringify(ra)); process.exit(0); }
 if (dot === 'the_gioi') await theoDot(trong(THE_GIOI), (b) => anhGoc('boi_canh', b.ten, b.mo_ta, `Opening establishing shot of a miniature stop-motion film, no characters, no people. Location: ${b.mo_ta}. Real-world place photographed with a tilt-shift lens so it looks like a handmade miniature model; macro, shallow depth of field, cozy night lights. No text, letters or numbers anywhere.`));
 if (dot === 'boi_canh') await theoDot(trong(BOI_CANH), (b) => anhGoc('boi_canh', b.ten, b.mo_ta, `Establishing shot of a location for a miniature stop-motion film, no characters. Location: ${b.mo_ta}. ${NHAC}. Visual style: ${PHONG_CACH}.`));
 if (dot === 'bien_the') await theoDot(trong(BOI_CANH).filter((b) => !/ban đêm|sáng sớm/i.test(b.ten)).flatMap((b) => THOI_DIEM.map((t) => ({ b, t }))), ({ b, t }) => bienThe('boi_canh', b.ten, 'thoi_diem', t.ten, t.mo_ta));

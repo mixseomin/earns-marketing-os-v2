@@ -1,0 +1,71 @@
+{
+ "project": "studio",
+ "ten": "QC · Summet Sculpt Tank — góc 'Đóng vali đi cruise' (người thật, 32s, Meta US)",
+ "mo_ta": "Góc rút từ spy.on.tc nhóm #230 (sculpt tank with built-in bra): Tình huống = sắp đi cruise/du lịch, đóng vali × Chân dung = phụ nữ Mỹ 65–80 ghét áo ngực có móc. Bằng chứng: review Trustpilot 'leaving town Friday on a cruise for 2 weeks', 'take on an upcoming trip', 'I am 73… feel like I had a breast lift', 'cannot find bras that work at 83', 'free of back fat'. Kiểm 14/10/2026 trên spy: 0 QC nhắc cruise/du lịch cho tank có bra; góc viêm khớp/móc cài đã có 54 QC (Summet + Avouria) nên tránh. Khung 0đ: chưa gọi Claude, chưa sinh ảnh/video.",
+ "kinh_thanh": {
+  "phong_cach": "Live-action UGC ad, photorealistic real people, shot on iPhone vertical, natural window light, true colors, no cinematic filter, no film grain; American home and cruise ship settings; casual handheld feel; quick cuts ~2.5s per shot",
+  "ti_le": "9:16",
+  "do_phan_giai": "720p",
+  "mo_hinh_anh": "gemini-nano-banana-2.1",
+  "mo_hinh_video": "veo-3.1-lite-generate-preview",
+  "mo_hinh_chu": "claude-opus-5-5",
+  "ngon_ngu": "en",
+  "the_loai": "qc_ugc",
+  "logline": "Carol, 72, is packing for a two-week cruise and dreads a suitcase full of hook bras that dig in by noon; her daughter hands her a tank with a real bra sewn inside, and she packs three tanks instead of six bras.",
+  "chu_de": "Getting dressed should be one step, even on vacation.",
+  "qc": {
+   "ten": "Summet Sculpt Tank with Built-In Bra",
+   "link": "https://getsummet.com/products/sculpt-tank-with-built-in-bra",
+   "diem_noi_bat": "Tank top có áo ngực thật may liền bên trong: không gọng, không móc cài, không thêm lớp, không hằn đường dưới áo; mút tháo rời chọn độ che; dáng ôm định hình làm gọn mà không siết; thân dài, với tay/cúi người không bị tuột lên; mặc riêng như áo hoặc lót trong mọi thứ. Vải 68% nylon + 32% spandex, OEKO-TEX Standard 100, co giãn 4 chiều, giữ form qua nhiều lần giặt; mỏng nhẹ, không xuyên thấu. 11 màu (Nude, Black, White Cream, Light Blue, Peacock Green, Brick Red, Coffee, Gray, Wine Red, Olive, Rosewood), size XS–6XL.",
+   "doi_tuong": "Phụ nữ Mỹ 65–80 tuổi: ghét áo ngực có móc sau lưng, dây cấn vai, hằn mỡ lưng; ngực chảy xệ hoặc size lớn; đi du lịch/cruise với gia đình, muốn gọn nhẹ mà vẫn chỉn chu.",
+   "uu_dai": "$59.99 · Buy 1 Get 1 Free (thấy trong QC Summet 17/09 + nhiều review — KIỂM LẠI trang thanh toán trước khi chốt chữ) · free shipping · 30-day take-it-off test: đổi size/màu hoặc hoàn tiền, không phải gửi trả",
+   "thi_truong": "Mỹ · tiếng Anh",
+   "anh": [
+    "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260724_170440_bc810a3b-4666-4cfc-a4fd-18f57849c2ca.png?v=1785758993",
+    "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/02_sizerun_XS6XL_square_2048_75b0a33f-c2d2-49cb-892b-cc273a83c445.jpg?v=1788916307",
+    "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/image-1788564241554.jpg?v=1788564262",
+    "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260602_103325_21953262-3f56-4db6-9d9c-591a6606719a.png?v=1785758982",
+    "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260602_105933_28f7e452-abb0-4c36-b746-b44e99a07406.png?v=1785758982"
+   ],
+   "vi_tri_chu": "duoi",
+   "mau": {
+    "nguon": "Khung tự dựng từ góc spy #230 (Tình huống × Chân dung) — không clone QC đối thủ",
+    "video_url": "",
+    "chu_bai": "Packing for a 2-week cruise at 72, I was dreading the bras. 🧳\nHooks behind my back. Straps digging in by noon. Six of them taking up half the suitcase.\nMy daughter told me to pack these instead 👇\n✅ A real bra sewn inside, no wires, no hooks\n✅ Pulls on over your head in one step\n✅ Smooths and lifts, no lines under your top\n✅ Stays tucked when you reach and bend\nThree tanks went in. Six bras stayed home.\nSizes XS–6XL · 11 colors · 30-day take-it-off test",
+    "tieu_de": "Pack 3 tanks, not 6 bras",
+    "cta": "Shop now",
+    "ghi_chu": "Người thật, một nhân vật chính (Carol 72) xuyên suốt + con gái xuất hiện một shot. Lời dẫn = giọng Carol kể ngôi thứ nhất. Hook = vali + đống áo ngực (thấy ngay tình huống trong 2s), nỗi đau bằng hình (móc sau lưng, dây cấn), giải pháp đến từ người thân, demo mặc một bước, rồi tàu thật (với tay lan can, ăn tối) để chứng minh trong đúng tình huống, so sánh vali trước/sau, review thật, trấn an size/đổi trả, end card. Sản phẩm xuất hiện từ giây ~10.",
+    "shots": [
+     { "giay": 2.5, "loai": "hook", "chu_man": "Packing for a 2-week cruise at 72…", "hinh": "Bà Carol đứng cạnh vali mở trên giường phòng ngủ, hai tay giơ một mớ 5–6 chiếc áo ngực rối dây, nhíu mày nhìn camera; trung cảnh" },
+     { "giay": 2.5, "loai": "noi_dau", "chu_man": "Every bra I own has hooks in the back", "hinh": "Cận lưng trước gương: tay Carol vòng ra sau loay hoay cài móc, ngón tay run, móc trượt" },
+     { "giay": 2.5, "loai": "noi_dau", "chu_man": "…and they dig in by noon", "hinh": "Cận vai: dây áo ngực hằn đỏ trên vai, Carol kéo dây ra xoa vai, nhăn mặt" },
+     { "giay": 2.5, "loai": "giai_phap", "chu_man": "My daughter said: \"Just pack these.\"", "hinh": "Con gái Jen (45) bước vào cửa phòng, ném chiếc tank màu nude gấp gọn lên giường cạnh vali, cười" },
+     { "giay": 2.5, "loai": "demo", "chu_man": "On over my head. One step. No hooks.", "hinh": "Carol chui chiếc tank qua đầu một lần, kéo xuống, xong; trung cảnh trước gương, mặc quần dài" },
+     { "giay": 2.5, "loai": "tinh_nang", "chu_man": "A real bra sewn inside", "hinh": "Cận tay lật mép trong tank: lớp bra may liền, chỉ vào khe mút tháo rời" },
+     { "giay": 2.5, "loai": "so_sanh", "chu_man": "Lifted, smooth, no lines", "hinh": "Carol xoay nghiêng trước gương, dáng ngực nâng gọn, lưng phẳng không hằn; mỉm cười" },
+     { "giay": 2.5, "loai": "demo", "chu_man": "Reaching, bending… it stays put", "hinh": "Trên boong tàu cruise ngày nắng: Carol với tay cao lên lan can/chụp ảnh biển, gấu tank vẫn nằm yên trong quần" },
+     { "giay": 2.5, "loai": "tinh_nang", "chu_man": "Alone as a top, or under anything", "hinh": "Bữa tối trên tàu: Carol mặc tank màu wine red khoác cardigan mỏng, nâng ly cười với Jen" },
+     { "giay": 2.5, "loai": "so_sanh", "chu_man": "6 bras out. 3 tanks in.", "hinh": "Từ trên xuống vali: tay lấy đống áo ngực ra, đặt 3 tank gấp gọn 3 màu (nude, black, olive) vào" },
+     { "giay": 2.5, "loai": "bang_chung", "chu_man": "\"I feel and look like I have had a breast lift\" (73)", "hinh": "Carol ngồi ghế boong cười, đè ảnh chụp màn hình review khách thật 5 sao (nguyên văn Trustpilot)" },
+     { "giay": 2.5, "loai": "tran_an", "chu_man": "XS–6XL · 11 colors · 30-day take-it-off test", "hinh": "Ảnh thật: dãy size XS–6XL của Summet + huy hiệu 30-day take-it-off test" },
+     { "giay": 2, "loai": "end_card", "chu_man": "Buy 1 Get 1 Free · Shop now", "hinh": "Ảnh thật sản phẩm nhiều màu xếp chồng trên nền sáng + ưu đãi + nút Shop now" }
+    ]
+   }
+  }
+ },
+ "nhan_vat": [
+  { "loai": "san_pham", "ten": "Summet Sculpt Tank with Built-In Bra", "mo_ta": "Women's fitted tank top with a real bra sewn inside: square-ish scoop neckline, medium-width shoulder straps (NOT spaghetti straps, NOT a camisole with lace), smooth matte nylon-spandex knit, no seams or lines on the outside, hip-length hem that tucks in; inner bra layer with removable pads, no underwire, no hooks, no clasps. Main color Nude (warm beige); also Black, Olive, Wine Red. NOT a sports bra, NOT a crop top, NOT ribbed cotton.", "anh_ref": [
+    "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260724_170440_bc810a3b-4666-4cfc-a4fd-18f57849c2ca.png?v=1785758993",
+    "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/image-1788564241554.jpg?v=1788564262",
+    "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260602_103325_21953262-3f56-4db6-9d9c-591a6606719a.png?v=1785758982"
+  ] },
+  { "loai": "nhan_vat", "ten": "Carol", "mo_ta": "American woman, 72, white, shoulder-length wavy silver hair, warm blue eyes, natural wrinkles and laugh lines, average build with a fuller bust, light everyday makeup; wears dark straight trousers or linen pants; friendly, slightly self-deprecating", "giong": "nữ Mỹ 70 tuổi, ấm, chậm rãi, hơi hài hước, như đang kể chuyện với bạn" },
+  { "loai": "nhan_vat", "ten": "Jen", "mo_ta": "Carol's daughter, American woman, 45, white, straight light-brown hair in a low ponytail, casual striped tee and jeans, energetic and teasing" },
+  { "loai": "boi_canh", "ten": "Carol's bedroom", "mo_ta": "Bright American suburban bedroom, white quilt on the bed, open light-blue hard-shell suitcase on the bed, full-length mirror, morning window light" },
+  { "loai": "boi_canh", "ten": "Cruise ship deck", "mo_ta": "Sunny cruise ship deck, white railing, open blue ocean, deck chairs, daytime; and the ship's dining room at night with warm light" }
+ ],
+ "tap": {
+  "ten": "Cruise packing · 13 shot · 32s",
+  "brief": "QC người thật (live-action UGC), US, tiếng Anh, 32s, bám khung 13 shot ở mục 0. Carol (72) kể ngôi thứ nhất bằng lời dẫn, ngắn, ≤ 7 từ/shot, khớp chữ màn. Tình huống xuyên suốt: đóng vali đi cruise 2 tuần → ghét áo ngực móc sau lưng/dây cấn → con gái Jen bảo mang tank Summet → mặc một bước → chứng minh ngay trên tàu (với tay, cúi, ăn tối) → vali 6 bra ra, 3 tank vào. Mọi số liệu chỉ lấy ở mục 0 (XS–6XL, 11 màu, 68% nylon/32% spandex, 30-day take-it-off test); KHÔNG bịa số người mua, KHÔNG nói chữa đau/y tế, KHÔNG nhắc viêm khớp (góc đó đối thủ chạy dày). Câu review dùng nguyên văn khách thật Trustpilot. Ưu đãi Buy 1 Get 1 Free phải kiểm trang thanh toán trước khi xuất."
+ }
+}

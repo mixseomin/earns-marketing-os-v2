@@ -8,3 +8,8 @@ Quy đổi: 26.000₫ ≈ $1. ShopAIKey bán credit $1 = 3.250₫ (nạp 1₫ = 
 | **ShopAIKey** (vault #532) | 2.1: **683₫** (đo thật, ~29s) | Grok Video 3 10s **3.250₫** (94s) · Grok Imagine 1.5 6s **6.500₫** (99s) — ra 2:3, không 9:16 · Veo 3.1 Fast: treo hàng đợi >25 phút | key cần nhóm Veo Normal1/2/HQ cho video; client phải chờ ≥200s (hết giờ vẫn bị trừ) |
 | **APIMaster.ai** (vault #533, Google SSO) | gemini-3.1-flash-image $0,067 ≈ 1.830₫ · Seedream 5 Pro $0,045 ≈ 1.230₫ | Seedance 2.0 Mini $0,0756/s · Kling v3 Omni $0,084/s · Seedance 2.0 $0,151/s (×1.05) — có 9:16 | trả USDT/Epay, không công bố pháp nhân; giá: `apimaster-pricing-2026-10-15.json` (GET /api/pricing) |
 | **ckey.vn** (vault #534) | nano-banana-pro / nano-banana-2 **110,5₫** · gemini-3.1-flash-image **65₫** (người bán trên chợ, ~96% thành công) | **không có** | hộ kinh doanh CKEY (Lào Cai, MST 010201000561); Cloudflare Turnstile chặn trình duyệt tự động; catalog công khai: `ckey-catalog-2026-10-15.json` |
+
+## Đo thật ckey.vn (15/10/2026, key vault #534, base https://api.xah.io/v1, POST /images/generations)
+- `wowztools/nano-banana-pro` (→ gemini-3.0-pro-image) và `wowztools/nano-banana-2` (→ gemini-3.1-flash-image): **6/6 đạt**, 34–44s/ảnh, chạy song song vẫn trả đủ, 768×1376 (9:16), **giữ đúng người từ ảnh tham chiếu** khi gửi `image_urls` + `image`. Ảnh trả ở flow.wowz.cloud/tmp (link tạm → phải chép về R2).
+- `dungcsnd113/gemini-3.1-flash-image`: **2/2 lỗi 502** "upstream AI gateway is unavailable".
+- Không có endpoint billing (`/dashboard/billing/usage` → not_found) → tiền trừ thật xem ở console ckey.

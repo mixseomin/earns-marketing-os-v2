@@ -13,7 +13,7 @@ import { trangThaiKhung, khoiCanKiem, giaKiemKhung, tenLoiKhung, TEN_NUT_KHUNG }
 import { kiemKhungTapAction } from '@/lib/actions';
 import { tien } from '@/lib/xuong-video/kieu';
 import { Nut, Loi, goiAction } from './ui';
-import { boSetCuaShot } from '@/lib/xuong-video/bo-set-3d';
+import { boSetCuaShot, loiHinhHoc } from '@/lib/xuong-video/bo-set-3d';
 
 /** Tên ngắn của một key thư viện (bỏ phần ngành trong ngoặc). */
 const tenKt = (k: string | undefined, n: NhomKyThuat) => (k ? kyThuat(k, n)?.ten.replace(/\s*\(.*\)$/, '') ?? '' : '');
@@ -81,7 +81,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                     shot — đặt ngay dưới keyframe để so bố trí. Shot thuộc set mà chưa đặt máy / chưa dựng thì hiện khung trống ghi rõ thiếu gì. */}
                 {boSetCuaShot(c, nhanVat) != null && (c.khung_xam
                   ? <div style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: `center / cover no-repeat url(${anhNho(c.khung_xam.xam, 320)}), #222`, borderTop: '1px solid var(--line)' }}>
-                      <span className="xv-mono" style={{ position: 'absolute', left: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.7)', color: '#93c5fd' }} title={c.khung_xam.kiem.map((k) => `${k.nhan_vat}: ${k.trong_khung ? `${k.cao_khung_pt}% khung` : 'ngoài khung'}${k.bi_che_boi.length ? ` · bị ${k.bi_che_boi.join(', ')} che` : ''}`).join('\n')}>🧊 3D{c.khung_xam.kiem.some((k) => !k.trong_khung || k.bi_che_boi.length) ? ' ⚠' : ''}</span>
+                      <span className="xv-mono" style={{ position: 'absolute', left: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.7)', color: '#93c5fd' }} title={c.khung_xam.kiem.map((k) => `${k.nhan_vat}: ${k.trong_khung ? `${k.cao_khung_pt}% khung` : 'ngoài khung'}${k.bi_che_boi.length ? ` · bị ${k.bi_che_boi.join(', ')} che` : ''}`).join('\n')}>🧊 3D{loiHinhHoc(c).length ? ' ⚠' : ''}</span>
                     </div>
                   : <div className="xv-mono" style={{ padding: '10px 7px', fontSize: 10, color: 'var(--fg-4)', borderTop: '1px dashed var(--line)', textAlign: 'center' }}>🧊 {c.may_3d ? 'chưa dựng khung 3D' : 'chưa đặt máy 3D'}</div>)}
               </button>

@@ -45,6 +45,9 @@ export function vuotTruc(truoc: May3d, sau: May3d): string | null {
   return p1 && p2 && p1 !== p2 ? `máy sang phía bên kia trục ${a}–${b} so với shot trước (hướng trên màn sẽ đảo)` : null;
 }
 
+/** Nhân vật trong khung xám có lỗi hình học thật (ngoài khung / bị che mà kịch bản không cố ý) — lưới gắn ⚠, cổng chặn. */
+export const loiHinhHoc = (c: Pick<Canh, 'may_3d' | 'khung_xam'>) => (c.khung_xam?.kiem ?? []).filter((k) => !k.trong_khung || (k.bi_che_boi.length > 0 && !c.may_3d?.vi_tri.find((v) => v.ten === k.nhan_vat)?.an));
+
 /** Cổng khung xám của một shot (rỗng = qua). Shot không thuộc set nào → không chặn (ngoại lệ đã khai: không có anchor bối cảnh có set). */
 export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'>[], set: Pick<BoSet, 'id' | 'du_lieu'> | null, truoc?: Pick<Canh, 'nhan_vat' | 'may_3d'> | null): string[] {
   if (!set) return [];
@@ -54,7 +57,7 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'>,
   if (!kx || kx.ma !== maKhungXam(set, c.may_3d, nhanVat)) out.push('chưa dựng khung xám (hoặc set / máy / vị trí đã đổi sau lần dựng) — chạy 🧊 Dựng khung xám');
   else for (const k of kx.kiem) {
     if (!k.trong_khung) out.push(`${k.nhan_vat} nằm ngoài khung`);
-    else if (k.bi_che_boi.length) out.push(`${k.nhan_vat} bị ${k.bi_che_boi.join(', ')} che`);
+    else if (k.bi_che_boi.length && !c.may_3d.vi_tri.find((v) => v.ten === k.nhan_vat)?.an) out.push(`${k.nhan_vat} bị ${k.bi_che_boi.join(', ')} che`);
   }
   if (truoc?.may_3d && boSetCuaShot(truoc, nhanVat) === set.id) { const v = vuotTruc(truoc.may_3d, c.may_3d); if (v) out.push(v); }
   return out;

@@ -500,14 +500,14 @@
           0.3
         ],
         [
-          52,
-          49,
+          51,
+          48,
           0.3
         ],
         [
-          56,
-          52,
-          0.8
+          53.8,
+          49,
+          0.5
         ]
       ],
       "ban_kinh": 0.3,
@@ -677,6 +677,147 @@
           "sang": 1
         }
       ]
+    },
+    {
+      "ten": "Lamp Switch",
+      "hinh": "hop",
+      "tam": [
+        46,
+        13,
+        0
+      ],
+      "co": [
+        4,
+        2.6,
+        1.4
+      ],
+      "mau": "#e9e4da"
+    },
+    {
+      "ten": "Lamp Cord",
+      "hinh": "day",
+      "diem": [
+        [
+          48,
+          13.5,
+          0.3
+        ],
+        [
+          56,
+          18,
+          0.3
+        ],
+        [
+          63,
+          24,
+          0.3
+        ],
+        [
+          66,
+          28,
+          0.3
+        ]
+      ],
+      "ban_kinh": 0.25,
+      "mau": "#2a2a2e"
+    },
+    {
+      "ten": "Cable Plug",
+      "hinh": "hop",
+      "tam": [
+        53.8,
+        50.2,
+        0
+      ],
+      "co": [
+        1.2,
+        2.6,
+        1.0
+      ],
+      "mau": "#c9ccd2",
+      "anchor": "White Cable"
+    },
+    {
+      "ten": "Coffee Mug",
+      "hinh": "cau",
+      "tam": [
+        -62,
+        12,
+        0
+      ],
+      "co": [
+        8,
+        8,
+        9
+      ],
+      "mau": "#f2f0ea",
+      "anchor": "Coffee Mug"
+    },
+    {
+      "ten": "Scissors",
+      "hinh": "hop",
+      "tam": [
+        -36,
+        -1,
+        0
+      ],
+      "co": [
+        16,
+        6,
+        0.8
+      ],
+      "mau": "#9aa0a8",
+      "xoay": 20,
+      "anchor": "Scissors"
+    },
+    {
+      "ten": "Pink Highlighter",
+      "hinh": "hop",
+      "tam": [
+        -46,
+        24,
+        4
+      ],
+      "co": [
+        11,
+        1.6,
+        1.6
+      ],
+      "mau": "#ff5fa2",
+      "xoay": -15,
+      "anchor": "Pink Highlighter"
+    },
+    {
+      "ten": "Clay Tub",
+      "hinh": "cau",
+      "tam": [
+        -22,
+        42,
+        0
+      ],
+      "co": [
+        7,
+        7,
+        5
+      ],
+      "mau": "#f08a3c",
+      "anchor": "Clay Tub"
+    },
+    {
+      "ten": "AA Battery",
+      "hinh": "hop",
+      "tam": [
+        -44,
+        88,
+        0
+      ],
+      "co": [
+        5,
+        1.4,
+        1.4
+      ],
+      "mau": "#2a2a2e",
+      "anchor": "AA Battery"
     }
   ],
   "vung": {
@@ -862,6 +1003,15 @@
         8
       ],
       "mau": "#3b7bd8"
+    },
+    "The Giant": {
+      "hinh": "hop",
+      "co": [
+        8,
+        24,
+        6
+      ],
+      "mau": "#c99a7a"
     }
   },
   "may": {
@@ -1016,16 +1166,20 @@
     },
     "1.1": {
       "dat": [
-        4,
-        -42,
-        24
+        38,
+        -14,
+        13
       ],
       "nhin": [
-        16,
-        26,
-        4
+        36,
+        24,
+        2
       ],
       "ong_kinh": 24,
+      "khung": [
+        "Gummy Bear",
+        "Lamp Switch"
+      ],
       "vi_tri": [
         {
           "ten": "Tango",
@@ -1043,24 +1197,33 @@
             21,
             0
           ]
+        },
+        {
+          "ten": "The Giant",
+          "tam": [
+            31,
+            7,
+            5
+          ]
         }
-      ],
-      "khung": [
-        "Gummy Bear"
       ]
     },
     "1.2": {
       "dat": [
-        74,
-        6,
-        5
+        58,
+        3,
+        3.5
       ],
       "nhin": [
-        50,
-        26,
-        3
+        32,
+        20,
+        2
       ],
-      "ong_kinh": 50,
+      "ong_kinh": 35,
+      "khung": [
+        "Lamp Switch",
+        "Magic Mouse"
+      ],
       "vi_tri": [
         {
           "ten": "Tango",
@@ -1070,6 +1233,14 @@
             0
           ],
           "an": true
+        },
+        {
+          "ten": "The Giant",
+          "tam": [
+            48,
+            1,
+            1.4
+          ]
         }
       ]
     },
@@ -1687,7 +1858,11 @@
           ]
         }
       ],
-      "phia": 80
+      "phia": 80,
+      "khung": [
+        "Tango",
+        "Cable Plug"
+      ]
     },
     "7.2a": {
       "vi_tri": [
@@ -1732,7 +1907,11 @@
           ]
         }
       ],
-      "phia": 70
+      "phia": 70,
+      "khung": [
+        "Tango",
+        "Cable Plug"
+      ]
     },
     "7.4": {
       "vi_tri": [
@@ -1778,7 +1957,11 @@
           ]
         }
       ],
-      "phia": 75
+      "phia": 75,
+      "khung": [
+        "Mr. Wipe",
+        "Cable Plug"
+      ]
     },
     "7.6": {
       "vi_tri": [

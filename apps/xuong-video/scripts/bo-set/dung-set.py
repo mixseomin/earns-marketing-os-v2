@@ -110,10 +110,12 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
             v = world_to_camera_view(s, cam, p); ys.append(v.y)
             d = p - cam.location; kc = d.length
             hit, loc, _, _, ob, _ = s.ray_cast(dg, cam.location, d.normalized(), distance=kc - 0.0005)
-            if hit and ob and ob.name != o.name: che[ob.name] = che.get(ob.name, 0) + 1
+            nhom = o.name.rsplit(' ', 1)[0] if o.name[-1:].isdigit() else o.name   # phần cùng nhóm (đế–cột–chao đèn) không tính là che
+            if hit and ob and ob.name != o.name and not ob.name.startswith(nhom + ' '): che[ob.name] = che.get(ob.name, 0) + 1
         vt = world_to_camera_view(s, cam, tam)
         bi_che = sorted(k[3:] if k.startswith('NV ') else k for k, v in che.items() if v > len(diem) / 2)
-        out.append({'nhan_vat': o.name[3:], 'bat_buoc': o.name[3:] in bb_ten, 'trong_khung': 0 <= vt.x <= 1 and 0 <= vt.y <= 1 and vt.z > 0,
+        ten = o.name[3:] if o.name.startswith('NV ') else next((t for t in bb_ten if o.name == t or o.name.startswith(t + ' ')), o.name)
+        out.append({'nhan_vat': ten, 'bat_buoc': ten in bb_ten, 'trong_khung': 0 <= vt.x <= 1 and 0 <= vt.y <= 1 and vt.z > 0,
                     'cao_khung_pt': round((max(ys) - min(ys)) * 100, 1), 'bi_che_boi': bi_che})
     return out
 
@@ -138,15 +140,27 @@ def giai_may(s, cam, sh, nv):
                 if h == 0: return tot
     dat_may(cam, tot[1], g); return tot
 
+def vat_chu_the(sh):
+    """Đồ vật CỦA BỘ SET được khai là chủ thể khung (vd công tắc đèn ở shot bấm đèn) — kiểm như nhân vật: phải thấy rõ, không bị che.
+    Nhóm nhiều phần ('Desk Lamp 0..3') lấy phần đầu tiên làm đại diện."""
+    ten_nv = {nv['ten'] for nv in sh.get('nhan_vat', [])}
+    out = []
+    for t in sh.get('bat_buoc') or []:
+        if t in ten_nv: continue
+        o = bpy.data.objects.get(t) or next((x for x in bpy.data.objects if x.name.startswith(t + ' ')), None)
+        if o: out.append(o)
+    return out
+
 s = dung_set()
 shots = [sh for sh in DL['shot'] if not CHI or sh['ma'] in CHI]
 kiem = {}; giai = {}
 for sh in shots:
     nv = nhan_vat(sh)
     cam = may(s, sh['may'], f"cam {sh['ma']}")
-    k = kiem_hinh_hoc(s, cam, sh, nv)
+    nv_kiem = nv + vat_chu_the(sh)
+    k = kiem_hinh_hoc(s, cam, sh, nv_kiem)
     if sh.get('giai') and hong(k):
-        _, may_moi, k = giai_may(s, cam, sh, nv)   # KHÔNG đặt tên `dat` — trùng hàm dat() ở trên, đè mất hàm (lỗi 14/10/2026)
+        _, may_moi, k = giai_may(s, cam, sh, nv_kiem)   # KHÔNG đặt tên `dat` — trùng hàm dat() ở trên, đè mất hàm (lỗi 14/10/2026)
         giai[sh['ma']] = {'dat': may_moi, 'nhin': sh['may']['nhin']}; sh['may']['dat'] = may_moi
     kiem[sh['ma']] = k
     s.view_layers[0].material_override = None; s.cycles.samples = 24

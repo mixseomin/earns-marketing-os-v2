@@ -60,11 +60,20 @@ export function shotSoTruc<T extends Pick<Canh, 'may_3d'>>(ds: T[], i: number): 
   return null;
 }
 
+/** KIỂM ĐỦ ĐẠO CỤ: nhân vật / đạo cụ / sản phẩm gắn ở shot mà không có trong bộ set (vật có tên hoặc anchor trùng) và không có chỗ đứng
+ *  trong may_3d → thiếu. Khung xám thiếu món đó thì keyframe tự vẽ theo ý nó (anh 14/10/2026: công tắc đèn có ở #6 mà không có ở #5). */
+export function thieuTrongSet(c: Pick<Canh, 'nhan_vat' | 'may_3d'>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai'>[], set: Pick<BoSet, 'du_lieu'>): string[] {
+  const co = new Set([...set.du_lieu.vat.flatMap((v) => [v.ten, v.anchor ?? '']), ...(c.may_3d?.vi_tri ?? []).map((v) => v.ten)].map((t) => t.trim().toLowerCase()).filter(Boolean));
+  return c.nhan_vat.map((id) => nhanVat.find((v) => v.id === id)).filter((v) => v && ['nhan_vat', 'dao_cu', 'san_pham'].includes(v.loai) && !co.has(v.ten.trim().toLowerCase())).map((v) => v!.ten);
+}
+
 /** Cổng khung xám của một shot (rỗng = qua). Shot không thuộc set nào → không chặn (ngoại lệ đã khai: không có anchor bối cảnh có set). */
 export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'>[], set: Pick<BoSet, 'id' | 'du_lieu'> | null, truoc?: Pick<Canh, 'nhan_vat' | 'may_3d'> | null): string[] {
   if (!set) return [];
   if (!c.may_3d) return ['shot thuộc bộ set 3D mà chưa đặt máy ảo + vị trí nhân vật (may_3d)'];
   const out: string[] = [];
+  const thieu = thieuTrongSet(c, nhanVat, set);
+  if (thieu.length) out.push(`bộ set / chỗ đứng chưa có: ${thieu.join(', ')} — thêm vào bộ set (đồ cố định) hoặc vào chỗ đứng của shot`);
   const kx = c.khung_xam;
   if (!kx || kx.ma !== maKhungXam(set, c.may_3d, nhanVat)) out.push('chưa dựng khung xám (hoặc set / máy / vị trí đã đổi sau lần dựng) — chạy 🧊 Dựng khung xám');
   else for (const k of loiHinhHoc(c)) out.push(!k.trong_khung ? `${k.nhan_vat} (chủ thể) nằm ngoài khung` : `${k.nhan_vat} (chủ thể) bị ${k.bi_che_boi.join(', ')} che`);

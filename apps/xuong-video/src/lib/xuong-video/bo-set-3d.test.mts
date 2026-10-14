@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc } from './bo-set-3d';
+import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -45,4 +45,8 @@ const mPov = { ...m([25, 40, 1]), qua_truc: true };
 assert.ok(!chanKhungXam({ nhan_vat: [1, 2], may_3d: mPov, khung_xam: { ma: maKhungXam(set, mPov, nv), xam: '', sau: '', luc: '', kiem: [] } }, nv, set, { nhan_vat: [1], may_3d: m([25, 4, 1]) }).some((x) => x.includes('trục')));
 const ds3 = [{ id: 1, may_3d: m([25, 4, 1]) }, { id: 2, may_3d: mPov }, { id: 3, may_3d: m([25, 5, 1]) }];
 assert.equal(shotSoTruc(ds3, 2)!.id, 1);
+// Kiểm đủ đạo cụ: Gummy có chỗ đứng → đủ; Remote (đạo cụ gắn shot) không có trong set lẫn chỗ đứng → thiếu.
+const nv2 = [...nv, { id: 5, ten: 'Remote', loai: 'dao_cu' as const, bo_set_id: null, khoi_3d: null }];
+assert.deepEqual(thieuTrongSet({ nhan_vat: [1, 2, 3], may_3d: mm }, nv2, set), []);
+assert.deepEqual(thieuTrongSet({ nhan_vat: [1, 2, 3, 5], may_3d: mm }, nv2, set), ['Remote']);
 console.log('bo-set-3d.test: ok');

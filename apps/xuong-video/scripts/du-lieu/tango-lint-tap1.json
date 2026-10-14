@@ -7,10 +7,22 @@
   "cung": "Thèm (+1) → mất kẹo (−1) → sợ (−2) → có bạn (+3) → bị đe doạ (−2) → thất bại (−4) → có ý (+2) → thoát (+4) → hả hê (+5) → tò mò bất an (móc tập 2).",
   "canh": [
     {
-      "so": 1, "ten": "Đèn tắt", "noi": "The Desk (wide) · The Desk at Night", "luc": "ĐÊM – 23:40, phút cuối Gã khổng lồ còn ở bàn",
-      "doi": "Thế giới của Gã khổng lồ, ấm và an toàn → bóng tối, thế giới đồ vật thức dậy", "xoay": "Bàn tay tắt đèn.",
+      "so": 1,
+      "ten": "Đèn tắt",
+      "noi": "The Desk (wide) · The Desk at Night",
+      "luc": "ĐÊM – 23:40, phút cuối Gã khổng lồ còn ở bàn",
+      "doi": "Thế giới của Gã khổng lồ, ấm và an toàn → bóng tối, thế giới đồ vật thức dậy",
+      "xoay": "Bàn tay tắt đèn.",
       "shot": [
-        { "vai": "thiet_lap", "co": "ews", "giay": 5, "luat": ["dan_khong_gian", "dan_thoi_gian", "anh_sang_cam_xuc"],
+        {
+          "vai": "thiet_lap",
+          "co": "ews",
+          "giay": 5,
+          "luat": [
+            "dan_khong_gian",
+            "dan_thoi_gian",
+            "anh_sang_cam_xuc"
+          ],
           "thay": "Cả cái bàn nhìn từ mép trước dưới đèn bàn vàng ấm, hai màn hình sáng dịu. Bàn tay khổng lồ trong ống tay len xanh đặt một viên kẹo gấu đỏ cạnh con chuột trắng.",
           "bo_cuc": "Foreground: the front edge of the wooden desk. Mid: white keyboard and mouse, a red gummy bear being set down beside the mouse by a huge hand in a blue knitted sleeve entering from the top-right. Background: the two glowing screens, iMac right, second monitor left.",
           "mo": "Warm desk lamp on; the hand descends holding the red gummy bear.",
@@ -18,8 +30,24 @@
           "huong": "The hand enters from top-right and exits top-right.",
           "am": "Đèn vàng ấm. Tiếng ù nhẹ của máy, một nốt pizzicato.",
           "muc_dich": "Bình yên, tò mò: đây là cái bàn của một người khổng lồ, và có một món quà nhỏ.",
-          "motif": "Viên kẹo đỏ lần đầu xuất hiện." },
-        { "vai": "thoi_gian", "co": "cu", "giay": 4, "luat": ["dan_thoi_gian", "anh_sang_cam_xuc", "khoang_lang"],
+          "motif": "Viên kẹo đỏ lần đầu xuất hiện.",
+          "may": {
+            "goc": "ngang",
+            "chuyen_dong": "day_vao",
+            "ong_kinh": "rong",
+            "chuyen_canh": "cat",
+            "mo_ta": "Máy đặt ngang mặt bàn ở mép trước, đẩy rất chậm vào theo bàn tay đặt kẹo — người xem bước vào thế giới cái bàn."
+          }
+        },
+        {
+          "vai": "thoi_gian",
+          "co": "cu",
+          "giay": 4,
+          "luat": [
+            "dan_thoi_gian",
+            "anh_sang_cam_xuc",
+            "khoang_lang"
+          ],
           "thay": "Ngón tay khổng lồ bấm công tắc đèn. Ánh vàng tắt phụt, cả bàn chuyển sang xanh lạnh của màn hình, bóng đổ dài ra. Im lặng.",
           "bo_cuc": "Foreground: the lamp switch and a giant fingertip. Mid: the lamp head glowing warm. Background: the desk falling into blue darkness.",
           "mo": "Lamp on, warm yellow light; the fingertip rests on the switch.",
@@ -27,14 +55,34 @@
           "huong": "The finger presses down; light drains from right to left.",
           "am": "Tiếng TÁCH. Nhạc tắt, chỉ còn tiếng ù rất khẽ.",
           "muc_dich": "Ấm → lạnh: một thế giới khác bắt đầu khi người khổng lồ rời đi.",
-          "motif": "" }
+          "motif": "",
+          "may": {
+            "goc": "thap",
+            "chuyen_dong": "tinh",
+            "ong_kinh": "chan_dung",
+            "chuyen_canh": "cat",
+            "mo_ta": "Đứng yên dưới thấp nhìn lên công tắc: để ánh sáng tắt tự kể, máy không giành sự chú ý."
+          }
+        }
       ]
     },
     {
-      "so": 2, "ten": "Viên kẹo trơn", "noi": "Mouse Landing", "luc": "ĐÊM – vài giây sau",
-      "doi": "Thèm → có kẹo trong tay → mất kẹo", "xoay": "Viên kẹo phụt khỏi vòng tay như xà phòng ướt.",
+      "so": 2,
+      "ten": "Viên kẹo trơn",
+      "noi": "Mouse Landing",
+      "luc": "ĐÊM – vài giây sau",
+      "doi": "Thèm → có kẹo trong tay → mất kẹo",
+      "xoay": "Viên kẹo phụt khỏi vòng tay như xà phòng ướt.",
       "shot": [
-        { "vai": "tong_the", "co": "ws", "giay": 4, "luat": ["muon_gi_5s", "gioi_thieu", "motif"],
+        {
+          "vai": "tong_the",
+          "co": "ws",
+          "giay": 4,
+          "luat": [
+            "muon_gi_5s",
+            "gioi_thieu",
+            "motif"
+          ],
           "thay": "Trong ánh xanh, Tango ló lên sau con chuột trắng, sợi tóc xoăn bật dựng. Viên kẹo đỏ cách vài bước.",
           "bo_cuc": "Foreground: the curve of the white mouse, screen-left. Mid: Tango popping up behind it, screen-left; the red gummy bear three steps away, screen-right. Background: dark wood and the blue-glowing screens.",
           "mo": "Only the top of Tango's curly strand shows above the mouse; the gummy stands upright, glowing red.",
@@ -42,8 +90,24 @@
           "huong": "Tango looks screen-right at the gummy.",
           "am": "Tiếng “boing” sợi tóc. Tango: “Hup! Hup!”",
           "muc_dich": "Giới thiệu nhân vật chính và điều nó MUỐN trong 5 giây đầu tiên có nhân vật.",
-          "motif": "Sợi tóc dựng = thèm, tò mò." },
-        { "vai": "hanh_dong", "co": "two", "giay": 4.5, "luat": ["khop_hanh_dong", "nhip_doc", "gia_tri_doi"],
+          "motif": "Sợi tóc dựng = thèm, tò mò.",
+          "may": {
+            "goc": "sat_dat",
+            "chuyen_dong": "doi_net",
+            "ong_kinh": "probe",
+            "chuyen_canh": "cat",
+            "mo_ta": "Ống probe sát mặt gỗ; nét chuyển từ mép con chuột sang Tango ló lên — dẫn mắt tới nhân vật chính."
+          }
+        },
+        {
+          "vai": "hanh_dong",
+          "co": "two",
+          "giay": 4.5,
+          "luat": [
+            "khop_hanh_dong",
+            "nhip_doc",
+            "gia_tri_doi"
+          ],
           "thay": "Tango nhảy ôm chầm viên kẹo; viên kẹo dẻo phụt khỏi tay như xà phòng ướt, nảy đi. Tango úp mặt xuống gỗ.",
           "bo_cuc": "Mid: Tango screen-left leaping onto the gummy screen-right. Background: the gap between the two glowing screens far behind.",
           "mo": "Tango crouched to jump at the edge of the mouse; gummy upright.",
@@ -51,8 +115,23 @@
           "huong": "Tango moves screen-right; the gummy flies away screen-right and deeper into the frame.",
           "am": "Tiếng squish dẻo, kẹo nảy lộp bộp. Tango: “Mmf!”",
           "muc_dich": "Có được → mất ngay: buồn cười, và khán giả muốn Tango lấy lại.",
-          "motif": "" },
-        { "vai": "nguoi_thu_ba", "co": "ws", "giay": 4, "luat": ["chenh_thong_tin", "noi_trang_thai"],
+          "motif": "",
+          "may": {
+            "goc": "sat_dat",
+            "chuyen_dong": "truot_ngang",
+            "ong_kinh": "rong",
+            "chuyen_canh": "cat",
+            "mo_ta": "Trượt ngang sang phải theo cú nhảy của Tango, giữ cả Tango lẫn viên kẹo trong khung."
+          }
+        },
+        {
+          "vai": "nguoi_thu_ba",
+          "co": "ws",
+          "giay": 4,
+          "luat": [
+            "chenh_thong_tin",
+            "noi_trang_thai"
+          ],
           "thay": "Nhìn từ sau mép bàn phím: một góc giấy vàng mờ ở tiền cảnh khẽ động như đang nhìn trộm. Xa xa, Tango cuộn tròn thành quả bóng cam lăn theo viên kẹo.",
           "bo_cuc": "Foreground: a blurred corner of yellow sticky-note paper peeking from behind the keyboard edge, screen-left. Mid: Tango curling into an orange ball. Background: the red gummy bouncing into the dark gap between the screens.",
           "mo": "Tango face-down on the wood; the yellow corner perfectly still.",
@@ -60,14 +139,33 @@
           "huong": "Tango rolls screen-right and away from camera; the paper corner faces him.",
           "am": "Tiếng lăn rì rì. Một tiếng sột soạt giấy rất khẽ.",
           "muc_dich": "Khán giả biết có kẻ đang nhìn mà Tango không biết: tò mò, hơi bất an.",
-          "motif": "Gài: góc giấy vàng (Sticky) lần đầu." }
+          "motif": "Gài: góc giấy vàng (Sticky) lần đầu.",
+          "may": {
+            "goc": "sat_dat",
+            "chuyen_dong": "tinh",
+            "ong_kinh": "tele",
+            "chuyen_canh": "cat",
+            "mo_ta": "Đứng yên như kẻ rình, ống tele nén từ xa sau mép bàn phím — cảm giác bị theo dõi."
+          }
+        }
       ]
     },
     {
-      "so": 3, "ten": "Hành trình", "noi": "Between the Screens", "luc": "ĐÊM – liền sau",
-      "doi": "Hăng hái → bước vào vùng tối", "xoay": "Ra khỏi khe sáng là bóng tối.",
+      "so": 3,
+      "ten": "Hành trình",
+      "noi": "Between the Screens",
+      "luc": "ĐÊM – liền sau",
+      "doi": "Hăng hái → bước vào vùng tối",
+      "xoay": "Ra khỏi khe sáng là bóng tối.",
       "shot": [
-        { "vai": "hanh_trinh", "co": "ws", "giay": 4.5, "luat": ["dan_khong_gian", "anh_sang_cam_xuc"],
+        {
+          "vai": "hanh_trinh",
+          "co": "ws",
+          "giay": 4.5,
+          "luat": [
+            "dan_khong_gian",
+            "anh_sang_cam_xuc"
+          ],
           "thay": "Quả bóng cam lăn qua hành lang hẹp giữa hai bức tường màn hình sáng xanh, viên kẹo đỏ nảy trước, biến vào bóng tối phía sau.",
           "bo_cuc": "Two tall glowing screen walls left and right framing a narrow corridor. Mid: the orange ball rolling toward camera-far. Background: pitch-dark tangle of cables at the end of the corridor.",
           "mo": "The orange ball enters the corridor; the gummy a little ahead of it.",
@@ -75,14 +173,33 @@
           "huong": "Rolling away from camera, centred, into depth.",
           "am": "Tiếng lăn vang trong hành lang. Nhạc trầm xuống.",
           "muc_dich": "Đi từ chỗ sáng quen thuộc vào chỗ tối chưa biết: hồi hộp.",
-          "motif": "" }
+          "motif": "",
+          "may": {
+            "goc": "sat_dat",
+            "chuyen_dong": "theo",
+            "ong_kinh": "probe",
+            "chuyen_canh": "cat",
+            "mo_ta": "Bám theo sau quả bóng cam luồn qua hành lang giữa hai màn hình — đưa khán giả cùng lăn vào bóng tối."
+          }
+        }
       ]
     },
     {
-      "so": 4, "ten": "Cục bụi biết sợ", "noi": "Cable Jungle", "luc": "ĐÊM – 23:43",
-      "doi": "Hai kẻ lạ sợ nhau → thành bạn", "xoay": "Tango chia đôi viên kẹo thay vì giành.",
+      "so": 4,
+      "ten": "Cục bụi biết sợ",
+      "noi": "Cable Jungle",
+      "luc": "ĐÊM – 23:43",
+      "doi": "Hai kẻ lạ sợ nhau → thành bạn",
+      "xoay": "Tango chia đôi viên kẹo thay vì giành.",
       "shot": [
-        { "vai": "thiet_lap", "co": "ews", "giay": 4, "luat": ["dan_khong_gian", "anh_sang_cam_xuc"],
+        {
+          "vai": "thiet_lap",
+          "co": "ews",
+          "giay": 4,
+          "luat": [
+            "dan_khong_gian",
+            "anh_sang_cam_xuc"
+          ],
           "thay": "Rừng dây cáp đen trắng cao vút trong ánh xanh lạnh rọi từ trên màn hình xuống. Viên kẹo đỏ nằm tựa một sợi cáp. Quả bóng cam lăn tới và bung ra thành Tango.",
           "bo_cuc": "Foreground: dark cable trunks framing both sides. Mid: the red gummy resting against a white cable, screen-right; Tango unrolling, screen-left. Background: the backs of the monitors spilling cold blue light from above.",
           "mo": "The orange ball rolling in from screen-left; the gummy resting against a cable.",
@@ -90,8 +207,23 @@
           "huong": "Tango moves screen-right toward the gummy.",
           "am": "Dây cáp kẽo kẹt. Tiếng ù sâu hơn.",
           "muc_dich": "Một nơi mới, lạ và hơi đáng sợ.",
-          "motif": "" },
-        { "vai": "hanh_dong", "co": "ms", "giay": 4, "luat": ["gioi_thieu", "gia_tri_doi"],
+          "motif": "",
+          "may": {
+            "goc": "thap",
+            "chuyen_dong": "cau",
+            "ong_kinh": "rong",
+            "chuyen_canh": "cat",
+            "mo_ta": "Cẩu lên từ mặt bàn để lộ dần cả rừng cáp cao vút — nơi mới, khổng lồ."
+          }
+        },
+        {
+          "vai": "hanh_dong",
+          "co": "ms",
+          "giay": 4,
+          "luat": [
+            "gioi_thieu",
+            "gia_tri_doi"
+          ],
           "thay": "Tango với tay lấy kẹo; cục bụi xám bên cạnh phồng to gấp ba: Lint, ôm cục bông gòn, sợi chỉ xanh dựng đứng. Tango ngã ngồi.",
           "bo_cuc": "Mid: Tango screen-left reaching; a grey fuzzball beside the gummy, screen-right, ballooning to three times its size. Background: dark cables.",
           "mo": "Tango reaching for the gummy; a small grey fuzzball sits still beside it.",
@@ -99,8 +231,23 @@
           "huong": "Tango faces screen-right; Lint faces screen-left at Tango.",
           "am": "Tiếng “phù” phồng bông. Lint: “[gasps] Pff—!” Nhạc ngưng một nhịp.",
           "muc_dich": "Giật mình: cả hai đều sợ nhau.",
-          "motif": "Sợi chỉ xanh của Lint." },
-        { "vai": "phan_ung", "co": "two", "giay": 4, "luat": ["giu_phan_ung", "khoang_lang"],
+          "motif": "Sợi chỉ xanh của Lint.",
+          "may": {
+            "goc": "ngang",
+            "chuyen_dong": "zoom_gat",
+            "ong_kinh": "chuan",
+            "chuyen_canh": "cat",
+            "mo_ta": "Zoom gắt đúng lúc cục bụi phồng to — cú giật mình kiểu hài."
+          }
+        },
+        {
+          "vai": "phan_ung",
+          "co": "two",
+          "giay": 4,
+          "luat": [
+            "giu_phan_ung",
+            "khoang_lang"
+          ],
           "thay": "Cả hai đứng hình nhìn nhau. Lint run bần bật, sợi tóc Tango rũ xuống. Rồi Lint xẹp lại, cuộn tròn quanh cục bông, chỉ hé mắt nhìn viên kẹo.",
           "bo_cuc": "Tango screen-left, Lint screen-right, the gummy between them on the ground. Background soft dark.",
           "mo": "Lint puffed up huge; Tango sitting, strand straight up.",
@@ -108,8 +255,24 @@
           "huong": "Both looking at each other, then Lint's eyes drift down to the gummy.",
           "am": "Im lặng, chỉ tiếng Lint run khe khẽ.",
           "muc_dich": "Giữ đủ lâu để khán giả thấy: Lint cũng đói và sợ. Thương Lint.",
-          "motif": "Tóc Tango rũ = sợ." },
-        { "vai": "hanh_dong", "co": "two", "giay": 5, "luat": ["gia_tri_doi", "motif", "anh_sang_cam_xuc"],
+          "motif": "Tóc Tango rũ = sợ.",
+          "may": {
+            "goc": "ngang",
+            "chuyen_dong": "tinh",
+            "ong_kinh": "chan_dung",
+            "chuyen_canh": "cat",
+            "mo_ta": "Đứng yên, nền xoá mịn: giữ trên hai khuôn mặt cho khán giả kịp thương Lint."
+          }
+        },
+        {
+          "vai": "hanh_dong",
+          "co": "two",
+          "giay": 5,
+          "luat": [
+            "gia_tri_doi",
+            "motif",
+            "anh_sang_cam_xuc"
+          ],
           "thay": "Tango nhìn viên kẹo, nhìn Lint, kéo giãn viên kẹo đến khi đứt làm đôi, chìa một nửa. Lint duỗi ra, nửa viên kẹo dính vào lông. Sợi chỉ xanh trên đầu Lint sáng lên ấm.",
           "bo_cuc": "Tango screen-left holding the gummy stretched between his hands; Lint screen-right uncurling. A faint warm glow rises from Lint's blue thread.",
           "mo": "Tango holding the whole gummy; Lint curled up.",
@@ -117,14 +280,33 @@
           "huong": "Tango offers screen-right; Lint leans screen-left toward him.",
           "am": "Tiếng kẹo giãn “squeeeak”. Một nốt chuông nhỏ khi sợi chỉ sáng. Lint: “Pff… hee.”",
           "muc_dich": "Điểm xoay của cảnh: sợ → tin. Ấm áp.",
-          "motif": "Kẹo chia đôi = tình bạn." }
+          "motif": "Kẹo chia đôi = tình bạn.",
+          "may": {
+            "goc": "ngang",
+            "chuyen_dong": "day_vao",
+            "ong_kinh": "chan_dung",
+            "chuyen_canh": "cat",
+            "mo_ta": "Đẩy chậm vào khi viên kẹo được chia — cảm xúc dâng theo máy."
+          }
+        }
       ]
     },
     {
-      "so": 5, "ten": "Bóng ma lau chùi", "noi": "Cable Jungle", "luc": "ĐÊM – một phút sau (màn hình trái tối đi một bậc)",
-      "doi": "Có bạn, an toàn → thất bại, sắp mất bạn", "xoay": "Tango lao vào và bị xịt bẹp.",
+      "so": 5,
+      "ten": "Bóng ma lau chùi",
+      "noi": "Cable Jungle",
+      "luc": "ĐÊM – một phút sau (màn hình trái tối đi một bậc)",
+      "doi": "Có bạn, an toàn → thất bại, sắp mất bạn",
+      "xoay": "Tango lao vào và bị xịt bẹp.",
       "shot": [
-        { "vai": "nguoi_thu_ba", "co": "ws", "giay": 4, "luat": ["chenh_thong_tin", "dan_thoi_gian"],
+        {
+          "vai": "nguoi_thu_ba",
+          "co": "ws",
+          "giay": 4,
+          "luat": [
+            "chenh_thong_tin",
+            "dan_thoi_gian"
+          ],
           "thay": "Từ trên cao giữa các sợi cáp, một mép khăn xám mờ ở tiền cảnh nhìn xuống hai bạn nhỏ đang ăn kẹo. Màn hình trái phía sau tối đi một bậc.",
           "bo_cuc": "Foreground: a blurred grey-blue cloth edge hanging from above, screen-right, like someone watching. Mid-far below: Tango and Lint small, eating their halves. Background: the left screen dimming.",
           "mo": "Tango and Lint happily nibbling their halves far below; the left screen bright.",
@@ -132,8 +314,23 @@
           "huong": "High angle looking down; the cloth faces screen-left down at them.",
           "am": "Tiếng ăn nhóp nhép xa xa. Tiếng ù hạ xuống khi màn hình tối.",
           "muc_dich": "Khán giả biết trước có kẻ rình: bất an trong lúc hai bạn còn vui.",
-          "motif": "" },
-        { "vai": "tam_trang", "co": "ms", "giay": 4, "luat": ["khoang_lang", "anh_sang_cam_xuc"],
+          "motif": "",
+          "may": {
+            "goc": "cao",
+            "chuyen_dong": "tinh",
+            "ong_kinh": "tele",
+            "chuyen_canh": "cat",
+            "mo_ta": "Từ trên cao đứng yên sau mép khăn, nhìn xuống hai bạn nhỏ — góc của kẻ săn mồi."
+          }
+        },
+        {
+          "vai": "tam_trang",
+          "co": "ms",
+          "giay": 4,
+          "luat": [
+            "khoang_lang",
+            "anh_sang_cam_xuc"
+          ],
           "thay": "Làn sương lấp lánh rơi rất chậm giữa các sợi cáp trong ánh xanh. Im lặng. Sợi tóc Tango từ từ dựng lên.",
           "bo_cuc": "Foreground: glittering mist drifting down out of focus. Mid: Tango and Lint looking up, screen-centre. Background: dark cables.",
           "mo": "Tango and Lint chewing; first glittering droplets drifting down.",
@@ -141,8 +338,24 @@
           "huong": "Both look up toward screen-top-right.",
           "am": "Gần như im lặng, chỉ tiếng sương rơi li ti.",
           "muc_dich": "Khoảng lặng trước cao trào: đẹp mà đáng sợ.",
-          "motif": "Tóc Tango dựng = cảnh giác." },
-        { "vai": "tong_the", "co": "ws", "giay": 4.5, "luat": ["gioi_thieu", "du_diem_nhin", "truc_180"],
+          "motif": "Tóc Tango dựng = cảnh giác.",
+          "may": {
+            "goc": "thap",
+            "chuyen_dong": "nghieng_len",
+            "ong_kinh": "chuan",
+            "chuyen_canh": "cat",
+            "mo_ta": "Nghiêng máy xuống chậm theo làn sương rơi, dừng trên hai gương mặt ngước lên."
+          }
+        },
+        {
+          "vai": "tong_the",
+          "co": "ws",
+          "giay": 4.5,
+          "luat": [
+            "gioi_thieu",
+            "du_diem_nhin",
+            "truc_180"
+          ],
           "thay": "Mr. Wipe phồng lên như bóng ma phủ trên cả hai, ôm chai xịt xanh. Từng sợi lông của Lint dựng về phía hắn, Lint bị hút lơ lửng lên. Tango đứng chắn.",
           "bo_cuc": "Mr. Wipe looming top-right filling half the frame; Lint floating up toward him, mid-right; Tango on the ground, screen-left, arms spread.",
           "mo": "Mr. Wipe billowing down from top-right; Lint on the ground.",
@@ -150,8 +363,23 @@
           "huong": "Mr. Wipe faces screen-left down; Lint drifts screen-right up.",
           "am": "Vải phần phật. Tĩnh điện lách tách. Mr. Wipe: “Fwsh… hmmph.”",
           "muc_dich": "Ai ở đâu, ai mạnh hơn: kinh hãi.",
-          "motif": "" },
-        { "vai": "hanh_dong", "co": "cu", "giay": 4, "luat": ["khop_hanh_dong", "gia_tri_doi"],
+          "motif": "",
+          "may": {
+            "goc": "sat_dat",
+            "chuyen_dong": "lui_ra",
+            "ong_kinh": "rong",
+            "chuyen_canh": "cat",
+            "mo_ta": "Lùi ra để lộ Mr. Wipe to cỡ nào so với hai bạn nhỏ."
+          }
+        },
+        {
+          "vai": "hanh_dong",
+          "co": "cu",
+          "giay": 4,
+          "luat": [
+            "khop_hanh_dong",
+            "gia_tri_doi"
+          ],
           "thay": "Tango nhảy lao vào Mr. Wipe; một tia xịt PSSHT, Tango rơi bẹp xuống thành vũng đất sét ướt.",
           "bo_cuc": "Tango screen-left leaping up toward screen-right; the spray nozzle entering from screen-right.",
           "mo": "Tango crouched, then leaping screen-right.",
@@ -159,8 +387,24 @@
           "huong": "Tango moves screen-right and up, then drops straight down.",
           "am": "PSSHT, rồi SPLAT. Nhạc rơi một nốt buồn.",
           "muc_dich": "Can đảm → thất bại, đáy cảm xúc.",
-          "motif": "" },
-        { "vai": "phan_ung", "co": "cu", "giay": 4, "luat": ["giu_phan_ung", "gia_tri_doi", "motif"],
+          "motif": "",
+          "may": {
+            "goc": "thap",
+            "chuyen_dong": "cam_tay",
+            "ong_kinh": "rong",
+            "chuyen_canh": "cat",
+            "mo_ta": "Cầm tay rung nhẹ khi Tango lao vào và bị xịt — hỗn loạn."
+          }
+        },
+        {
+          "vai": "phan_ung",
+          "co": "cu",
+          "giay": 4,
+          "luat": [
+            "giu_phan_ung",
+            "gia_tri_doi",
+            "motif"
+          ],
           "thay": "Tango bẹp dí nhìn thân dẹt của mình... sợi tóc bật BOING: Tango có ý.",
           "bo_cuc": "The flat orange puddle filling the lower frame; Tango's eyes and strand centre.",
           "mo": "Tango flat and limp, strand drooping, eyes sad.",
@@ -168,14 +412,33 @@
           "huong": "Tango looks down at himself, then up screen-right toward Lint.",
           "am": "Im lặng một nhịp, rồi “boing”.",
           "muc_dich": "Giữ lâu nỗi buồn, rồi bừng sáng: tuyệt vọng → hy vọng.",
-          "motif": "Tóc dựng = có ý." }
+          "motif": "Tóc dựng = có ý.",
+          "may": {
+            "goc": "cao",
+            "chuyen_dong": "day_vao",
+            "ong_kinh": "chan_dung",
+            "chuyen_canh": "cat",
+            "mo_ta": "Nhìn xuống vũng đất sét (nhỏ bé, thua), rồi đẩy chậm vào đúng lúc sợi tóc bật — khoảnh khắc có ý."
+          }
+        }
       ]
     },
     {
-      "so": 6, "ten": "Xe trượt đất sét", "noi": "Cable Jungle → White Cable Road", "luc": "ĐÊM – liền sau",
-      "doi": "Tuyệt vọng → thoát", "xoay": "Điểm yếu (bẹp nhũn) thành sức mạnh (xe trượt).",
+      "so": 6,
+      "ten": "Xe trượt đất sét",
+      "noi": "Cable Jungle → White Cable Road",
+      "luc": "ĐÊM – liền sau",
+      "doi": "Tuyệt vọng → thoát",
+      "xoay": "Điểm yếu (bẹp nhũn) thành sức mạnh (xe trượt).",
       "shot": [
-        { "vai": "hanh_dong", "co": "ms", "giay": 4.5, "luat": ["gia_tri_doi", "khop_hanh_dong"],
+        {
+          "vai": "hanh_dong",
+          "co": "ms",
+          "giay": 4.5,
+          "luat": [
+            "gia_tri_doi",
+            "khop_hanh_dong"
+          ],
           "thay": "Tango vuốt thân bẹp thành chiếc xe trượt mũi cong, nhảy lên sợi cáp trắng dốc, vươn tay móc kéo Lint xuống lưng.",
           "bo_cuc": "Tango screen-left on the slope of a white cable; Lint floating above screen-right; Mr. Wipe blurred in the background.",
           "mo": "Tango flat on the wood, strand up; Lint floating toward Mr. Wipe.",
@@ -183,8 +446,23 @@
           "huong": "Tango reaches up screen-right, then they face down the cable screen-left.",
           "am": "Tiếng đất sét vuốt. Tango: “Hup!”",
           "muc_dich": "Thông minh và dũng cảm: phấn khích.",
-          "motif": "" },
-        { "vai": "hanh_trinh", "co": "ws", "giay": 4.5, "luat": ["dan_khong_gian", "truc_180"],
+          "motif": "",
+          "may": {
+            "goc": "ngang",
+            "chuyen_dong": "vong",
+            "ong_kinh": "chuan",
+            "chuyen_canh": "cat",
+            "mo_ta": "Quay vòng quanh Tango khi cậu biến thành xe trượt — khoảnh khắc lớn của tập."
+          }
+        },
+        {
+          "vai": "hanh_trinh",
+          "co": "ws",
+          "giay": 4.5,
+          "luat": [
+            "dan_khong_gian",
+            "truc_180"
+          ],
           "thay": "Xe trượt lao vút dọc sợi cáp trắng ra khỏi rừng; phía sau, Mr. Wipe lao theo, vướng hết dây này đến dây khác, tự quấn thành nút.",
           "bo_cuc": "Foreground: the white cable running diagonally. Mid: the sled racing toward screen-left. Background: Mr. Wipe tangling in cables.",
           "mo": "Sled starts down the cable; Mr. Wipe lunges after it.",
@@ -192,14 +470,33 @@
           "huong": "Sled moves screen-left; Mr. Wipe follows screen-left, then stops.",
           "am": "Tiếng trượt vút. Lint: “Pff… wheee!” Dây bật như dây đàn.",
           "muc_dich": "Thoát! Hả hê khi kẻ đuổi tự vướng.",
-          "motif": "" }
+          "motif": "",
+          "may": {
+            "goc": "sat_dat",
+            "chuyen_dong": "truot_ngang",
+            "ong_kinh": "rong",
+            "chuyen_canh": "cat",
+            "mo_ta": "Trượt song song với xe trượt dọc sợi cáp — tốc độ, đồng hành."
+          }
+        }
       ]
     },
     {
-      "so": 7, "ten": "Bến đế cắm", "noi": "USB Hub Dock", "luc": "ĐÊM – 23:48",
-      "doi": "Chiến thắng → hả hê → tò mò bất an", "xoay": "Mr. Wipe bị chính thói sạch sẽ hại; tia điện cho thấy có thứ khác đang thức.",
+      "so": 7,
+      "ten": "Bến đế cắm",
+      "noi": "USB Hub Dock",
+      "luc": "ĐÊM – 23:48",
+      "doi": "Chiến thắng → hả hê → tò mò bất an",
+      "xoay": "Mr. Wipe bị chính thói sạch sẽ hại; tia điện cho thấy có thứ khác đang thức.",
       "shot": [
-        { "vai": "tong_the", "co": "ws", "giay": 4, "luat": ["dan_khong_gian", "du_diem_nhin"],
+        {
+          "vai": "tong_the",
+          "co": "ws",
+          "giay": 4,
+          "luat": [
+            "dan_khong_gian",
+            "du_diem_nhin"
+          ],
           "thay": "Xe trượt dừng trên tấm thẻ cam cạnh cái đế cắm bạc. Tango bung lại hình trứng, Lint lăn ra cười.",
           "bo_cuc": "Mid: the silver USB hub on its orange card, screen-right; the sled skidding in from screen-left. Background: the dark cable jungle edge.",
           "mo": "Sled skidding onto the orange card from screen-left.",
@@ -207,8 +504,23 @@
           "huong": "Moving screen-right, stopping beside the hub.",
           "am": "Tiếng trượt dừng. Lint cười khúc khích.",
           "muc_dich": "Thở phào, vui.",
-          "motif": "Hai nửa kẹo vẫn còn." },
-        { "vai": "hanh_dong", "co": "two", "giay": 4, "luat": ["tu_ke_du", "gia_tri_doi"],
+          "motif": "Hai nửa kẹo vẫn còn.",
+          "may": {
+            "goc": "ngang",
+            "chuyen_dong": "tinh",
+            "ong_kinh": "chuan",
+            "chuyen_canh": "cat",
+            "mo_ta": "Đứng yên ngang tầm: thở phào, cho thấy rõ cả bến đế cắm."
+          }
+        },
+        {
+          "vai": "hanh_dong",
+          "co": "two",
+          "giay": 4,
+          "luat": [
+            "tu_ke_du",
+            "gia_tri_doi"
+          ],
           "thay": "Tango in dấu vân tay đất sét khắp mặt đế cắm sáng bóng, nhại vẻ mặt ghê sợ của Mr. Wipe; Lint ôm bụng cười.",
           "bo_cuc": "Tango screen-left pressing thumbprints on the shiny hub, screen-right; Lint behind watching.",
           "mo": "The hub perfectly clean and shiny.",
@@ -216,8 +528,23 @@
           "huong": "Tango faces screen-right to the hub, then turns to camera.",
           "am": "Tiếng in đất “pap pap”. Lint cười.",
           "muc_dich": "Gài: dấu tay để Mr. Wipe phải chà. Tinh nghịch.",
-          "motif": "" },
-        { "vai": "hanh_dong", "co": "ms", "giay": 4, "luat": ["tu_ke_du", "khop_hanh_dong"],
+          "motif": "",
+          "may": {
+            "goc": "ngang",
+            "chuyen_dong": "lia",
+            "ong_kinh": "chuan",
+            "chuyen_canh": "cat",
+            "mo_ta": "Lia từ mặt Tango sang mặt đế cắm đầy dấu tay — khán giả thấy cái gài."
+          }
+        },
+        {
+          "vai": "hanh_dong",
+          "co": "ms",
+          "giay": 4,
+          "luat": [
+            "tu_ke_du",
+            "khop_hanh_dong"
+          ],
           "thay": "Mr. Wipe tới, còn kéo theo vòng cáp, thấy dấu tay, rùng mình, chà điên cuồng bằng góc khăn ướt sũng.",
           "bo_cuc": "Mr. Wipe swooping in from screen-right onto the hub; Tango and Lint hiding behind the orange card edge, screen-left.",
           "mo": "Mr. Wipe arriving, a cable loop trailing behind.",
@@ -225,8 +552,23 @@
           "huong": "Mr. Wipe moves screen-left onto the hub.",
           "am": "Tiếng chà lẹt xẹt. Mr. Wipe: “Hmmph! Hmmph!”",
           "muc_dich": "Khán giả đoán trước chuyện sắp xảy ra: thích thú.",
-          "motif": "" },
-        { "vai": "chi_tiet", "co": "ecu", "giay": 3.5, "luat": ["tu_ke_du", "khoanh_khac_khong_cam"],
+          "motif": "",
+          "may": {
+            "goc": "thap",
+            "chuyen_dong": "truot_ngang",
+            "ong_kinh": "chuan",
+            "chuyen_canh": "cat_soc",
+            "mo_ta": "Trượt theo Mr. Wipe lao vào đế cắm, góc thấp cho hắn trông hống hách."
+          }
+        },
+        {
+          "vai": "chi_tiet",
+          "co": "ecu",
+          "giay": 3.5,
+          "luat": [
+            "tu_ke_du",
+            "khoanh_khac_khong_cam"
+          ],
           "thay": "Đặc tả: góc khăn ướt quệt vào phích cắm cáp trắng. Tia điện xanh BZZT.",
           "bo_cuc": "The wet cloth corner and the white cable plug filling the frame.",
           "mo": "The dripping corner inches from the plug.",
@@ -234,8 +576,24 @@
           "huong": "The corner moves screen-left into the plug.",
           "am": "BZZT! Nhạc bật lên.",
           "muc_dich": "Trả cái gài: kẻ ám ảnh sạch sẽ bị chính thói đó hại.",
-          "motif": "" },
-        { "vai": "phan_ung", "co": "ws", "giay": 4.5, "luat": ["giu_phan_ung", "dan_khong_gian", "chenh_thong_tin"],
+          "motif": "",
+          "may": {
+            "goc": "ngang",
+            "chuyen_dong": "tinh",
+            "ong_kinh": "macro",
+            "chuyen_canh": "cat_soc",
+            "mo_ta": "Macro đứng yên trên góc khăn và phích cắm; cắt sốc sang shot rộng ngay khi tia điện nổ."
+          }
+        },
+        {
+          "vai": "phan_ung",
+          "co": "ws",
+          "giay": 4.5,
+          "luat": [
+            "giu_phan_ung",
+            "dan_khong_gian",
+            "chenh_thong_tin"
+          ],
           "thay": "Mr. Wipe xù cứng tĩnh điện; Tango và Lint nhìn nhau rồi cười lăn. Máy lùi ra rộng: sâu trong rừng cáp, tia điện nháy thêm một lần, như có thứ gì đang thức. Sợi tóc Tango dựng đứng.",
           "bo_cuc": "Mid: frizzed Mr. Wipe screen-right, Tango and Lint laughing screen-left. Background revealed as the camera pulls back: deep dark cables where a small blue spark flickers.",
           "mo": "Mr. Wipe frizzed stiff; Tango and Lint staring.",
@@ -243,7 +601,15 @@
           "huong": "Tango and Lint turn to look screen-left into the jungle.",
           "am": "Tiếng cười, rồi tiếng “bzzt” nhỏ xa xa. Cắt đen.",
           "muc_dich": "Hả hê → tò mò: móc sang tập 2 Born in a Storm.",
-          "motif": "Gài tập 2: Cordy (dây cáp) lần đầu lộ." }
+          "motif": "Gài tập 2: Cordy (dây cáp) lần đầu lộ.",
+          "may": {
+            "goc": "ngang",
+            "chuyen_dong": "lui_ra",
+            "ong_kinh": "rong",
+            "chuyen_canh": "toi_den",
+            "mo_ta": "Lùi ra rộng để lộ rừng cáp phía sau và tia điện xa — tắt dần về đen."
+          }
+        }
       ]
     }
   ]

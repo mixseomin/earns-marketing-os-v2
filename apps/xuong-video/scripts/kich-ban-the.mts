@@ -5,9 +5,11 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { kyThuat } from '../src/lib/xuong-video/dien-anh';
 import { luatDung, LUAT_DUNG_CANH } from '../src/lib/xuong-video/luat-dung';
-import { giayDoc } from '../src/lib/xuong-video/nhip-hinh';
+import { giayDoc, kiemNhipHinh } from '../src/lib/xuong-video/nhip-hinh';
 
-type Shot = { vai: string; co: string; giay: number; luat: string[]; thay: string; bo_cuc: string; mo: string; ket: string; huong: string; am: string; muc_dich: string; motif: string };
+/** may = dòng MÁY của thẻ (khuôn shot list của ngành): góc, chuyển động, ống kính, chuyển cảnh sang shot sau — mã thư viện; mo_ta = máy làm gì và vì sao. */
+type May = { goc: string; chuyen_dong: string; ong_kinh: string; chuyen_canh: string; mo_ta: string };
+type Shot = { may: May; vai: string; co: string; giay: number; luat: string[]; thay: string; bo_cuc: string; mo: string; ket: string; huong: string; am: string; muc_dich: string; motif: string };
 type Canh = { so: number; ten: string; noi: string; luc: string; doi: string; xoay: string; shot: Shot[] };
 type Kb = { ten: string; tap: number; thoi_gian: string; duong_di: string; motif: string; cung: string; canh: Canh[] };
 
@@ -21,14 +23,19 @@ for (const c of kb.canh) for (const s of c.shot) {
   n++;
   if (!kyThuat(s.vai, 'vai')) loi.push(`shot ${n}: vai "${s.vai}" không có trong thư viện`);
   if (!kyThuat(s.co, 'co_canh')) loi.push(`shot ${n}: cỡ cảnh "${s.co}" không có trong thư viện`);
+  for (const k of ['goc', 'chuyen_dong', 'ong_kinh', 'chuyen_canh'] as const) if (!kyThuat(s.may?.[k], k)) loi.push(`shot ${n}: ${k} "${s.may?.[k]}" không có trong thư viện`);
+  if (!s.may?.mo_ta?.trim()) loi.push(`shot ${n}: thiếu mô tả máy`);
   for (const l of s.luat) if (!luatDung(l)) loi.push(`shot ${n}: luật "${l}" không có trong thư viện`);
   if (s.giay < giayDoc({ khong_loi: true })) loi.push(`shot ${n}: ${s.giay}s dưới nhịp đọc`);
   for (const k of ['bo_cuc', 'mo', 'ket', 'huong', 'muc_dich'] as const) if (!s[k].trim()) loi.push(`shot ${n}: thiếu ${k}`);
 }
+// Nhịp hình cả tập (trùng cỡ cảnh + chuyển động liền nhau, quá nhiều shot máy đứng yên) — cùng cổng với studio.
+loi.push(...kiemNhipHinh(kb.canh.flatMap((c) => c.shot).map((s, i) => ({ thu_tu: i + 1, ky_thuat: { co_canh: s.co, chuyen_dong: s.may?.chuyen_dong } }))));
 if (loi.length) { console.error(loi.join('\n')); process.exit(1); }
 
 const tenVai = (k: string) => kyThuat(k, 'vai')!.ten.replace(/\s*\(.*\)$/, '');
 const tenCo = (k: string) => kyThuat(k, 'co_canh')!.ten.replace(/\s*\(.*\)$/, '');
+const tenKt = (k: string, n: 'goc' | 'chuyen_dong' | 'ong_kinh' | 'chuyen_canh') => kyThuat(k, n)!.ten.replace(/\s*\(.*\)$/, '');
 const tenLuat = (k: string) => luatDung(k)!.ten.replace(/\s*\(.*\)$/, '');
 const tong = kb.canh.flatMap((c) => c.shot).reduce((a, s) => a + s.giay, 0);
 const soShot = kb.canh.reduce((a, c) => a + c.shot.length, 0);
@@ -41,7 +48,8 @@ const md = [
   ...kb.canh.flatMap((c) => [
     '---', `**CẢNH ${c.so} — ${c.ten.toUpperCase()}**`, `**INT. ${c.noi} – ${c.luc}**`, `*Giá trị đổi: ${c.doi}. Điểm xoay: ${c.xoay}*`, '', 'Shot dự kiến:',
     ...c.shot.map((s) => { so++; return [
-      `${so}. vai=${s.vai} · co_canh=${s.co} · ${s.giay}s · luat=${s.luat.join(',')}`,
+      `${so}. vai=${s.vai} · co_canh=${s.co} · goc=${s.may.goc} · chuyen_dong=${s.may.chuyen_dong} · ong_kinh=${s.may.ong_kinh} · chuyen_canh=${s.may.chuyen_canh} · ${s.giay}s · luat=${s.luat.join(',')}`,
+      `   Máy: ${s.may.mo_ta}`,
       `   Thấy: ${s.thay}`, `   bo_cuc: ${s.bo_cuc}`, `   mo: ${s.mo}`, `   ket: ${s.ket}`, `   huong: ${s.huong}`,
       `   Âm/ánh sáng: ${s.am}`, `   muc_dich: ${s.muc_dich}`, ...(s.motif ? [`   motif: ${s.motif}`] : []),
     ].join('\n'); }), '',
@@ -72,6 +80,7 @@ const canhHtml = kb.canh.map((c) => `
           <p class="vai"><b>${e(tenVai(s.vai))}</b> · ${e(tenCo(s.co))}</p>
           <p class="thay">${e(s.thay)}</p>
           <dl class="o">
+            <div class="may"><dt>Máy</dt><dd><b>${e(tenKt(s.may.goc, 'goc'))} · ${e(tenKt(s.may.chuyen_dong, 'chuyen_dong'))} · ${e(tenKt(s.may.ong_kinh, 'ong_kinh'))}</b>${s.may.chuyen_canh !== 'cat' ? ` · sang shot sau: ${e(tenKt(s.may.chuyen_canh, 'chuyen_canh'))}` : ''}<br>${e(s.may.mo_ta)}</dd></div>
             <div><dt>Mở</dt><dd lang="en">${e(s.mo)}</dd></div>
             <div><dt>Kết</dt><dd lang="en">${e(s.ket)}</dd></div>
             <div><dt>Bố cục</dt><dd lang="en">${e(s.bo_cuc)}</dd></div>
@@ -131,6 +140,7 @@ nav.muc a { color: var(--chu-2); text-decoration: none; } nav.muc a:hover, nav.m
 .o dd { margin: 0; overflow-wrap: anywhere; }
 .o dd[lang="en"] { font-family: var(--f-may); font-size: 12.5px; }
 .o .cam dd { font-weight: 600; }
+.o .may dd b { color: var(--xanh); font-weight: 600; }
 .luat { margin: 4px 0 0; display: flex; flex-wrap: wrap; gap: 4px; }
 .luat span { font-size: 11.5px; border: 1px solid var(--vien); border-radius: 999px; padding: 1px 8px; color: var(--chu-2); cursor: help; }
 @media (max-width: 520px) { .the { grid-template-columns: 1fr; } .cot-trai { flex-direction: row; justify-content: flex-start; gap: 10px; border-right: 0; border-bottom: 1px dashed var(--vien); padding: 8px 14px; } .o { grid-template-columns: 1fr; } .o dt { padding-top: 6px; } }
@@ -148,7 +158,7 @@ nav.muc a { color: var(--chu-2); text-decoration: none; } nav.muc a:hover, nav.m
   </header>
   <nav class="muc">${kb.canh.map((c) => `<a href="#canh-${c.so}">${c.so}. ${e(c.ten)}</a>`).join('')}</nav>
   ${canhHtml}
-  <p class="phu" style="margin-top:28px">Rê chuột lên tên luật để đọc nội dung luật. Thư viện: ${LUAT_DUNG_CANH.length} luật dựng cảnh. Mở, Kết, Bố cục, Hướng viết tiếng Anh vì đi thẳng vào prompt ảnh và video.</p>
+  <p class="phu" style="margin-top:28px">Rê chuột lên tên luật để đọc nội dung luật. Thư viện: ${LUAT_DUNG_CANH.length} luật dựng cảnh. Mở, Kết, Bố cục, Hướng viết tiếng Anh vì đi thẳng vào prompt ảnh và video. Dòng Máy: góc · chuyển động · ống kính (mã thư viện) và máy làm gì, vì sao.</p>
 </div>
 `;
 writeFileSync(raHtml, html);

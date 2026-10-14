@@ -1,38 +1,87 @@
 'use client';
-// Ô CHỈNH LỊCH dùng chung cho MỌI việc tự làm (anh 14/10/2026 "cho tao điều chỉnh ở đây nữa — refactor và dùng chung"): nhịp cty (Kiên kiểm thư),
-// giờ chạy việc Mac (Bảo), từng việc máy (timer / cron / LaunchAgent). Một mô hình lịch (worker/lich-chu.mjs), một server action (lib/nhip-chinh
-// chinhLich). Admin: chọn "mỗi N phút/giờ" hoặc "hằng ngày lúc" → nút Lưu → báo ngay dưới ô (lỗi đỏ đủ câu máy chủ). Người khác: chỉ thấy chữ.
-import { useState, useTransition } from 'react';
+// Ô CHỈNH LỊCH dùng chung cho MỌI việc tự làm (anh 14/10/2026: "cho tao điều chỉnh ở đây — refactor và dùng chung", rồi "nhìn chắp vá, không linh
+// hoạt"): trên bảng chỉ là MỘT nhãn đều nhau ghi lịch bằng chữ ("mỗi 6 giờ", "08:15, 14:15 · T2–T6"); bấm nhãn → bảng chỉnh nổi ngay dưới:
+//   Lặp lại   mỗi [N] [phút | giờ]
+//   Theo giờ  các mốc giờ (thêm / bớt) + chọn thứ (không chọn = mỗi ngày)
+// Một mô hình lịch (worker/lich-chu.mjs), một server action (lib/nhip-chinh chinhLich). Lỗi máy chủ (vd cron không diễn được lịch đó) hiện đỏ
+// NGAY trong bảng chỉnh, đủ câu. Người không phải admin: chỉ thấy nhãn.
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { chinhLich } from '@/lib/nhip-chinh';
-import { MOI, chuLich } from '../../worker/lich-chu.mjs';
+import { chuLich, TEN_THU } from '../../worker/lich-chu.mjs';
 
-type Lich = { kieu: 'moi'; phut: number } | { kieu: 'luc'; gio: string };
-export function ChinhLich({ muc, lich, chu, kieu = ['moi', 'luc'], moi = MOI, admin, apSau, trang }: {
-  muc: string; lich: Lich | null; chu: string; kieu?: ('moi' | 'luc')[]; moi?: number[]; admin: boolean;
-  apSau: string;                                        // "áp từ nhịp kế tiếp" / "box áp trong 1 phút" / "Mac áp trong 10 phút"
-  trang?: { cho?: boolean; loi?: string };              // ý muốn trước đó: còn chờ áp / áp lỗi
+export type Lich = { kieu: 'moi'; phut: number } | { kieu: 'luc'; gio: string[]; thu: number[] };
+export function ChinhLich({ muc, lich, chu, kieu = ['moi', 'luc'], motGio = false, admin, apSau, trang }: {
+  muc: string; lich: Lich | null; chu: string;
+  kieu?: ('moi' | 'luc')[];                             // nhịp cty chỉ 'moi'; giờ việc Mac của Bảo chỉ 'luc'
+  motGio?: boolean;                                     // chỉ một giờ mỗi ngày, không chọn thứ
+  admin: boolean;
+  apSau: string;                                        // "áp từ nhịp kế tiếp" / "box3 áp trong 1 phút" / "iMac áp trong 10 phút"
+  trang?: { cho?: boolean; loi?: string };              // ý muốn trước: còn chờ áp / áp lỗi
 }) {
-  const dau: Lich = lich ?? (kieu.includes('moi') ? { kieu: 'moi', phut: moi.includes(60) ? 60 : moi[0]! } : { kieu: 'luc', gio: '03:00' });
-  const [l, setL] = useState<Lich>(dau); const [cham, setCham] = useState(false);
-  const [cho, chuyen] = useTransition(); const [bao, setBao] = useState<{ ok: boolean; chu: string } | null>(null); const router = useRouter();
-  if (!admin) return <span className="cty-muted">{chu}</span>;
-  const doi = (x: Lich) => { setL(x); setCham(true); setBao(null); };
-  const khac = cham && chuLich(l) !== chuLich(lich);
-  const luu = () => chuyen(async () => { const r = await chinhLich(muc, l); setBao(r.ok ? { ok: true, chu: `Đã lưu — ${apSau}` } : { ok: false, chu: r.loi ?? 'Máy chủ từ chối.' }); if (r.ok) setCham(false); router.refresh(); });
+  const [mo, setMo] = useState(false); const nut = useRef<HTMLButtonElement>(null); const dong = useCallback(() => setMo(false), []);
+  const nhan = lich ? chuLich(lich) : chu;
+  const cls = `cty-lich-o${trang?.loi ? ' loi' : trang?.cho ? ' cho' : ''}`;
+  const tieuDe = trang?.loi ? `Áp lỗi: ${trang.loi}` : trang?.cho ? `${nhan} — chờ máy áp` : admin ? `${nhan} — bấm để chỉnh` : nhan;
+  if (!admin) return <span className={cls} title={tieuDe}>{nhan}</span>;
   return (
-    <span className="cty-chinh-lich" title={lich ? undefined : `Lịch hiện tại: ${chu} — đặt lịch mới sẽ thay`}>
-      {/* MỘT ô chọn gộp kiểu + giá trị (gọn trong bảng): "mỗi 5 phút" … "mỗi 12 giờ" · "hằng ngày lúc…" → hiện ô giờ */}
-      {/* lịch đang chạy không đổi được về mô hình (nhiều giờ, theo thứ) → ô chọn hiện đúng chữ lịch đó, không giả vờ là "mỗi 1 giờ" */}
-      {(kieu.includes('moi') || kieu.length > 1) && <select value={!lich && !cham ? '' : l.kieu === 'moi' ? `moi:${l.phut}` : 'luc'} aria-label="Lịch chạy" onChange={(e) => doi(e.target.value === 'luc' ? { kieu: 'luc', gio: l.kieu === 'luc' ? l.gio : '03:00' } : { kieu: 'moi', phut: Number(e.target.value.slice(4)) })}>
-        {!lich && <option value="" disabled>{chu}</option>}
-        {kieu.includes('moi') && moi.map((p) => <option key={p} value={`moi:${p}`}>{chuLich({ kieu: 'moi', phut: p })}</option>)}
-        {kieu.includes('luc') && <option value="luc">ngày lúc…</option>}</select>}
-      {l.kieu === 'luc' && (lich || cham) && <input type="time" value={l.gio} aria-label="Giờ chạy (giờ VN)" onChange={(e) => doi({ kieu: 'luc', gio: e.target.value })} />}
-      {khac && <button type="button" className="cty-btn cty-nho" disabled={cho} onClick={luu}>{cho ? 'Đang lưu…' : 'Lưu'}</button>}
-      {!bao && trang?.cho && <span className="cty-muted">chờ áp</span>}
-      {!bao && trang?.loi && <span className="cty-bao-loi" data-loi="">Áp lỗi: {trang.loi}</span>}
-      {bao && <span className={bao.ok ? 'cty-bao-ok' : 'cty-bao-loi'} data-loi={bao.ok ? undefined : ''}>{bao.chu}</span>}
-    </span>
+    <>
+      <button ref={nut} type="button" className={cls} title={tieuDe} aria-expanded={mo} onClick={() => setMo((x) => !x)}>
+        <span>{nhan}</span>{trang?.cho && <i aria-label="chờ áp" />}
+      </button>
+      {mo && <BangChinh neo={nut.current} muc={muc} lich={lich} kieu={kieu} motGio={motGio} apSau={apSau} loiCu={trang?.loi} dong={dong} />}
+    </>
+  );
+}
+
+function BangChinh({ neo, muc, lich, kieu, motGio, apSau, loiCu, dong }: { neo: HTMLElement | null; muc: string; lich: Lich | null; kieu: ('moi' | 'luc')[]; motGio: boolean; apSau: string; loiCu?: string; dong: () => void }) {
+  const dau: Lich = lich ?? (kieu.includes('moi') ? { kieu: 'moi', phut: 60 } : { kieu: 'luc', gio: ['03:00'], thu: [] });
+  const [kieuDang, setKieu] = useState<'moi' | 'luc'>(dau.kieu);
+  const [so, setSo] = useState(dau.kieu === 'moi' ? (dau.phut % 60 === 0 && dau.phut >= 60 ? dau.phut / 60 : dau.phut) : 1);
+  const [dv, setDv] = useState<'phut' | 'gio'>(dau.kieu === 'moi' && dau.phut % 60 === 0 && dau.phut >= 60 ? 'gio' : 'phut');
+  const [gio, setGio] = useState<string[]>(dau.kieu === 'luc' ? dau.gio : ['08:00']);
+  const [thu, setThu] = useState<number[]>(dau.kieu === 'luc' ? dau.thu : []);
+  const [cho, chuyen] = useTransition(); const [bao, setBao] = useState<{ ok: boolean; chu: string } | null>(null); const router = useRouter();
+  const hop = useRef<HTMLDivElement>(null);
+  const moi: Lich = kieuDang === 'moi' ? { kieu: 'moi', phut: Math.max(1, Math.round(Number(so) || 0)) * (dv === 'gio' ? 60 : 1) } : { kieu: 'luc', gio: [...new Set(gio.filter(Boolean))].sort(), thu: thu.length === 7 ? [] : [...thu].sort() };
+  const khac = chuLich(moi) !== chuLich(lich);
+
+  // neo bảng ngay dưới nhãn (position fixed — ô bảng cắt tràn); Esc / bấm ra ngoài / cuộn trang → đóng
+  const [toaDo, setToaDo] = useState<{ top: number; left: number } | null>(null);
+  useEffect(() => {
+    const r = neo?.getBoundingClientRect(); if (r) setToaDo({ top: Math.min(r.bottom + 4, window.innerHeight - 260), left: Math.min(r.left, window.innerWidth - 300) });
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') dong(); };
+    const ngoai = (e: MouseEvent) => { if (!hop.current?.contains(e.target as Node) && !neo?.contains(e.target as Node)) dong(); };
+    const cuon = (e: Event) => { if (!hop.current?.contains(e.target as Node)) dong(); };
+    document.addEventListener('keydown', esc); document.addEventListener('mousedown', ngoai); window.addEventListener('scroll', cuon, true);
+    return () => { document.removeEventListener('keydown', esc); document.removeEventListener('mousedown', ngoai); window.removeEventListener('scroll', cuon, true); };
+  }, [neo, dong]);
+
+  const luu = () => chuyen(async () => { setBao(null); const r = await chinhLich(muc, moi); if (r.ok) { setBao({ ok: true, chu: `Đã lưu — ${apSau}` }); router.refresh(); } else setBao({ ok: false, chu: r.loi ?? 'Máy chủ từ chối.' }); });
+  return (
+    <div ref={hop} className="cty-lich-bang" role="dialog" aria-label="Chỉnh lịch chạy" style={toaDo ?? { visibility: 'hidden' }}>
+      {kieu.length > 1 && <div className="cty-lich-kieu" role="tablist">
+        <button type="button" role="tab" aria-selected={kieuDang === 'moi'} onClick={() => setKieu('moi')}>Lặp lại</button>
+        <button type="button" role="tab" aria-selected={kieuDang === 'luc'} onClick={() => setKieu('luc')}>Theo giờ</button></div>}
+      {kieuDang === 'moi'
+        ? <div className="cty-lich-dong">mỗi <input type="number" min={1} max={dv === 'gio' ? 24 : 1440} value={so} onChange={(e) => setSo(Number(e.target.value))} aria-label="Bao nhiêu" />
+            <select value={dv} onChange={(e) => setDv(e.target.value as 'phut' | 'gio')} aria-label="Đơn vị"><option value="phut">phút</option><option value="gio">giờ</option></select></div>
+        : <>
+            <div className="cty-lich-gio">{gio.map((g, i) => (
+              <span key={i}><input type="time" value={g} aria-label={`Giờ chạy ${i + 1} (giờ VN)`} onChange={(e) => setGio(gio.map((x, j) => (j === i ? e.target.value : x)))} />
+                {gio.length > 1 && <button type="button" className="cty-lich-bo" aria-label="Bỏ giờ này" onClick={() => setGio(gio.filter((_, j) => j !== i))}>×</button>}</span>))}
+              {!motGio && <button type="button" className="cty-lich-them" onClick={() => setGio([...gio, gio[gio.length - 1] ?? '08:00'])}>+ giờ</button>}</div>
+            {!motGio && <div className="cty-lich-thu" aria-label="Thứ chạy (không chọn = mỗi ngày)">{[1, 2, 3, 4, 5, 6, 7].map((t) => (
+              <button key={t} type="button" aria-pressed={thu.includes(t)} onClick={() => setThu(thu.includes(t) ? thu.filter((x) => x !== t) : [...thu, t])}>{TEN_THU[t]}</button>))}
+              <span className="cty-muted">{thu.length && thu.length < 7 ? '' : 'mỗi ngày'}</span></div>}
+          </>}
+      <div className="cty-lich-xem">{chuLich(moi)} <span className="cty-muted">· giờ VN</span></div>
+      {!bao && loiCu && <div className="cty-bao-loi" data-loi="">Lần áp trước lỗi: {loiCu}</div>}
+      {bao && <div className={bao.ok ? 'cty-bao-ok' : 'cty-bao-loi'} data-loi={bao.ok ? undefined : ''}>{bao.chu}</div>}
+      <div className="cty-lich-nut">
+        <button type="button" className="cty-btn cty-nho" disabled={!khac || cho} onClick={luu}>{cho ? 'Đang lưu…' : 'Lưu'}</button>
+        <button type="button" className="cty-btn cty-nho cty-btn-phu" onClick={dong}>{bao?.ok ? 'Đóng' : 'Huỷ'}</button>
+      </div>
+    </div>
   );
 }

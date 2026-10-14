@@ -9,8 +9,9 @@ import { GOC } from './goc.mjs';
 import { parseFm } from '../scripts/fm.mjs';
 
 /** Timer chạy mỗi phút (apps/cty/deploy/cty-nhip.timer); mỗi người kiểm `kiem_moi` phút một lần (mặc định 1) — admin chỉnh trên bảng nhân sự. */
-export const KIEM_MOI = [1, 5, 15, 30, 60];
-export const tanSuat = (phut) => (Number(phut) > 1 ? `${phut} phút/lần` : '1 lần/phút');
+export const KIEM_MOI = [1, 5, 15, 30, 60];   // gợi ý nhanh trên ô chỉnh; nhập số khác cũng được (1 phút – 24 giờ)
+const hopLeMoi = (p) => Number.isInteger(Number(p)) && Number(p) >= 1 && Number(p) <= 1440;
+export const tanSuat = (phut) => (Number(phut) > 1 ? (Number(phut) % 60 === 0 ? `mỗi ${phut / 60} giờ` : `mỗi ${phut} phút`) : 'mỗi 1 phút');
 export const TAN_SUAT = tanSuat(1);
 // CHỈNH CỦA ADMIN (anh 14/10/2026 "cho phép điều chỉnh bởi admin"): ca · điểm danh · kiểm mấy phút một lần, lưu ở <DATA>/nhip-chinh.json, ĐÈ lên
 // hồ sơ trong git (như sổ bổ nhiệm) — chỉnh trên bảng nhân sự có hiệu lực ở nhịp kế tiếp, không cần deploy.
@@ -23,7 +24,7 @@ export function luuChinh(id, x, ai = '') {
   const ca = String(x.ca ?? ''), [tu, den] = ca.split('-');
   if (!GIO.test(tu ?? '') || !GIO.test(den ?? '') || tu === den) throw new Error(`Ca "${ca}" sai — dạng 06:00-02:00`);
   if (x.diem_danh && !GIO.test(String(x.diem_danh))) throw new Error(`Giờ điểm danh "${x.diem_danh}" sai — dạng 08:00`);
-  if (!KIEM_MOI.includes(Number(x.kiem_moi))) throw new Error(`Kiểm mỗi ${x.kiem_moi} phút — chỉ ${KIEM_MOI.join(' / ')}`);
+  if (!hopLeMoi(x.kiem_moi)) throw new Error(`Kiểm mỗi ${x.kiem_moi} phút — từ 1 phút tới 24 giờ`);
   const s = docChinh(); s[id] = { ...(s[id] ?? {}), ca, diem_danh: String(x.diem_danh ?? ''), kiem_moi: Number(x.kiem_moi), ai, luc: new Date().toISOString() };
   return ghiChinh(s, id);
 }
@@ -37,7 +38,7 @@ export const dangTat = (id) => docChinh()[id]?.bat === false;
 export const GIO_MAC_DINH = '03:30';
 /** Đổi riêng "kiểm mấy phút một lần" (ô chỉnh lịch dùng chung — components/chinh-lich.tsx), giữ nguyên ca / điểm danh. */
 export function datKiemMoi(id, phut, ai = '') {
-  if (!KIEM_MOI.includes(Number(phut))) throw new Error(`Kiểm mỗi ${phut} phút — chỉ ${KIEM_MOI.join(' / ')}`);
+  if (!hopLeMoi(phut)) throw new Error(`Kiểm mỗi ${phut} phút — từ 1 phút tới 24 giờ`);
   const s = docChinh(); s[id] = { ...(s[id] ?? {}), kiem_moi: Number(phut), ai, luc: new Date().toISOString() }; return ghiChinh(s, id);
 }
 export function datGio(id, gio, ai = '') {
@@ -102,16 +103,16 @@ if (process.argv[1]?.endsWith('nhip.mjs') && process.argv.includes('--tu-kiem'))
   a.ok(trongCa('08:00-24:00', g(8)) && trongCa('08:00-24:00', g(23, 59)) && !trongCa('08:00-24:00', g(0)) && !trongCa('08:00-24:00', g(7, 59)));
   a.ok(trongCa('22:00-06:00', g(23)) && trongCa('22:00-06:00', g(5)) && !trongCa('22:00-06:00', g(12)) && trongCa(undefined, g(3)));
   const dir = fs.mkdtempSync('/tmp/nhip-'); process.env.CTY_DATA_DIR = dir;
-  a.throws(() => luuChinh('x', { ca: '25:00-02:00', kiem_moi: 1 })); a.throws(() => luuChinh('x', { ca: '06:00-02:00', kiem_moi: 7 })); a.throws(() => luuChinh('x', { ca: '06:00-02:00', diem_danh: '8h', kiem_moi: 1 }));
+  a.throws(() => luuChinh('x', { ca: '25:00-02:00', kiem_moi: 1 })); a.throws(() => luuChinh('x', { ca: '06:00-02:00', kiem_moi: 0 })); a.throws(() => luuChinh('x', { ca: '06:00-02:00', diem_danh: '8h', kiem_moi: 1 }));
   a.equal(luuChinh('kien', { ca: '07:00-01:00', diem_danh: '08:30', kiem_moi: 5 }, 't').kiem_moi, 5);
   a.equal(datBat('kien', false, 't').bat, false); a.ok(!dangBat().some((n) => n.id === 'kien') && dangTat('kien'), 'admin tắt → bộ chạy bỏ qua');
   a.equal(luuChinh('kien', { ca: '07:00-01:00', diem_danh: '08:30', kiem_moi: 5 }, 't').bat, false, 'chỉnh ca không được xoá cờ tắt');
-  datBat('kien', true, 't'); a.throws(() => datKiemMoi('kien', 7)); a.equal(datKiemMoi('kien', 15, 't').ca, '07:00-01:00', 'đổi tần suất giữ ca'); datKiemMoi('kien', 5, 't');
+  datBat('kien', true, 't'); a.throws(() => datKiemMoi('kien', 2000)); a.equal(datKiemMoi('kien', 15, 't').ca, '07:00-01:00', 'đổi tần suất giữ ca'); datKiemMoi('kien', 5, 't');
   a.throws(() => datGio('bao', '3h')); a.equal(datGio('bao', '04:15', 't').gio, '04:15'); a.equal(luuChinh('bao', { ca: '00:00-24:00', kiem_moi: 1 }).gio, '04:15', 'chỉnh ca không xoá giờ chạy');
   const k = dangBat().find((n) => n.id === 'kien'); a.ok(k.ca === '07:00-01:00' && k.diemDanh === '08:30' && k.kiemMoi === 5, 'chỉnh của admin đè hồ sơ');
   ghiLam('kien', 'điểm danh · 3 thư đã đọc', 'mail-bao-mat'); ghiLam('kien', '4 thư đã đọc', 'mail-bao-mat'); fs.appendFileSync(tepNk('kien'), '{hỏng\n');
   const nk = nhatKyNhip('kien'); a.ok(nk.length === 2 && nk[0].ket === '4 thư đã đọc' && nhatKyNhip('khong-ai').length === 0, 'nhật ký mới trước, dòng hỏng bỏ qua');
-  const dv = dauViec(k); a.deepEqual(dv.map((x) => x.ma), ['kiem-thu', 'diem-danh', 'bao-cao']); a.ok(dv[0].lich === '5 phút/lần' && dv[1].lich === '08:30' && dv[2].lich === '00:55');
+  const dv = dauViec(k); a.deepEqual(dv.map((x) => x.ma), ['kiem-thu', 'diem-danh', 'bao-cao']); a.ok(dv[0].lich === 'mỗi 5 phút' && dv[1].lich === '08:30' && dv[2].lich === '00:55');
   a.ok(nk.filter((e) => dv[1].khop.test(e.ket)).length === 1, 'việc điểm danh chỉ lấy dòng có điểm danh');
   a.deepEqual(dauViec({ ...k, diemDanh: '' }).map((x) => x.ma), ['kiem-thu'], 'không khai điểm danh → không có điểm danh / báo cáo');
   fs.rmSync(dir, { recursive: true });

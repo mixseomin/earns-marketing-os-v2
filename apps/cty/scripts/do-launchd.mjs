@@ -35,8 +35,13 @@ function apLich() {
       const p = JSON.parse(execFileSync('plutil', ['-convert', 'json', '-o', '-', f], { encoding: 'utf8' }));
       if (p.KeepAlive) throw new Error('việc chạy liền (KeepAlive) — không có lịch để đổi');
       for (const k of ['StartInterval', 'StartCalendarInterval']) if (k in p) execFileSync('plutil', ['-remove', k, f]);
-      if (x.kieu === 'moi') execFileSync('plutil', ['-insert', 'StartInterval', '-integer', String(x.phut * 60), f]);
-      else { const [h, m] = x.gio.split(':').map(Number); execFileSync('plutil', ['-insert', 'StartCalendarInterval', '-json', JSON.stringify({ Hour: h, Minute: m }), f]); }
+      // mô hình lịch (worker/lich-chu.mjs): { kieu: 'moi', phut } · { kieu: 'luc', gio: [...], thu: [1..7] } — bản ghi cũ lưu phẳng { kieu, phut | gio: 'HH:MM' }
+      const l = x.lich ?? (x.kieu === 'luc' ? { kieu: 'luc', gio: [x.gio], thu: [] } : { kieu: x.kieu, phut: x.phut });
+      if (l.kieu === 'moi') execFileSync('plutil', ['-insert', 'StartInterval', '-integer', String(l.phut * 60), f]);
+      else {   // mỗi giờ × mỗi thứ một mục (launchd Weekday: 0 = CN, 1 = T2 … 6 = T7); không chọn thứ = mỗi ngày
+        const muc = l.gio.flatMap((g) => { const [h, m] = g.split(':').map(Number); return (l.thu?.length ? l.thu : [null]).map((t) => (t === null ? { Hour: h, Minute: m } : { Hour: h, Minute: m, Weekday: t === 7 ? 0 : t })); });
+        execFileSync('plutil', ['-insert', 'StartCalendarInterval', '-json', JSON.stringify(muc.length === 1 ? muc[0] : muc), f]);
+      }
       let nap = true; try { execFileSync('launchctl', ['print', `gui/${uid}/${nhan}`], { stdio: 'ignore' }); } catch { nap = false; }   // việc đang tắt: sửa lịch, không tự bật
       if (nap) {
         try { execFileSync('launchctl', ['bootout', `gui/${uid}/${nhan}`], { stdio: 'ignore' }); } catch { /* đã ra */ }

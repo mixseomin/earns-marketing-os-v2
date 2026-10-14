@@ -561,4 +561,22 @@ body.nk-dang-keo iframe{pointer-events:none}
 .cty-den-nut{background:none;border:0;padding:4px;margin:-4px;cursor:pointer;line-height:0}.cty-den-nut:disabled{cursor:wait;opacity:.5}
 .cty-den-o{display:inline-flex;align-items:center;gap:6px}
 .cty-chinh-gio{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
-.cty-chinh-lich{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 6px}.cty-chinh-lich>select,.cty-chinh-lich>input{flex:none}.cty-chinh-lich select,.cty-chinh-lich input{width:auto;min-width:0}
+/* LỊCH CHẠY (components/chinh-lich.tsx): nhãn đều nhau, đầy cột, chữ cắt … — bấm mở bảng chỉnh nổi */
+.cty-lich-o{display:flex;align-items:center;gap:6px;width:100%;box-sizing:border-box;padding:2px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit;font-size:.8rem;line-height:1.5;text-align:left;white-space:nowrap;overflow:hidden}
+.cty-lich-o>span{overflow:hidden;text-overflow:ellipsis}
+button.cty-lich-o{cursor:pointer}button.cty-lich-o:hover,button.cty-lich-o[aria-expanded=true]{border-color:var(--accent)}
+.cty-lich-o.cho{border-style:dashed;border-color:var(--warn)}.cty-lich-o.cho>i{flex:none;width:6px;height:6px;border-radius:50%;background:var(--warn);margin-left:auto}
+.cty-lich-o.loi{border-color:var(--bad,#c0392b);color:var(--bad,#c0392b)}
+span.cty-lich-o{border-color:transparent;background:none;padding-inline:0}
+.cty-lich-bang{position:fixed;z-index:200;width:280px;box-sizing:border-box;display:grid;gap:10px;padding:12px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:.85rem}
+.cty-lich-kieu{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.cty-lich-kieu button{font:inherit;padding:5px 0;border:0;background:none;color:var(--muted);cursor:pointer}.cty-lich-kieu button[aria-selected=true]{background:var(--soft);color:var(--accent);font-weight:600}
+.cty-lich-dong{display:flex;align-items:center;gap:8px}.cty-lich-dong input{width:5rem}
+.cty-lich-gio{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.cty-lich-gio>span{display:inline-flex;align-items:center;gap:2px}
+.cty-lich-bo,.cty-lich-them{font:inherit;border:0;background:none;color:var(--muted);cursor:pointer;padding:2px 4px}.cty-lich-them{color:var(--accent)}.cty-lich-bo:hover{color:var(--bad,#c0392b)}
+.cty-lich-thu{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.cty-lich-thu button{font:inherit;font-size:.78rem;min-width:2.1rem;padding:3px 0;border:1px solid var(--line);border-radius:6px;background:none;color:var(--muted);cursor:pointer}
+.cty-lich-thu button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.cty-lich-xem{padding-top:8px;border-top:1px solid var(--line);font-weight:600}
+.cty-lich-nut{display:flex;gap:8px;justify-content:flex-end}
+.cty-btn-phu{background:none!important;color:var(--muted)!important;border-color:var(--line)!important}

@@ -12,6 +12,7 @@ import { execFileSync } from 'node:child_process';
 import { GOC } from './goc.mjs';
 import { parseFm } from '../scripts/fm.mjs';
 import { ghiAp, apBox, docLich, choAp } from './lich-may.mjs';
+import { chuLich, tuSystemd, tuCron, tuLaunchd } from './lich-chu.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 export const TEP = () => path.join(DATA(), 'viec-may.json');
@@ -126,7 +127,11 @@ export const viecMayCua = (id) => (docViecMay()?.ds ?? []).filter((v) => v.nguoi
 const vn = (h, m) => `${String((Number(h) + 7) % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 const doiKy = (x) => { const m = String(x).trim().match(/^(\d+)\s*(min|h|s|d)$/); return m ? `mỗi ${m[1]} ${{ min: 'phút', h: 'giờ', s: 'giây', d: 'ngày' }[m[2]]}` : null; };
 const THU_EN = { Mon: 'thứ Hai', 'Mon..Fri': 'thứ Hai–Sáu', Sun: 'Chủ nhật', Sat: 'thứ Bảy', Tue: 'thứ Ba', Wed: 'thứ Tư', Thu: 'thứ Năm', Fri: 'thứ Sáu' };
-export function lichNguoi(v) {
+/** Lịch của một việc theo MÔ HÌNH chung (worker/lich-chu.mjs) — null khi dạng máy chưa đọc được. */
+export const moHinh = (v) => (v.loai === 'timer' ? tuSystemd(v.lich) : v.loai === 'cron' ? tuCron(v.lich) : v.loai === 'launchd' ? tuLaunchd(v.lich) : null);
+/** Lịch bằng chữ người đọc, giờ VN: từ mô hình; dạng chưa đọc được thì chữ thô (lichTho). */
+export const lichNguoi = (v) => chuLich(moHinh(v)) || lichTho(v);
+function lichTho(v) {
   if (v.loai === 'launchd') return v.lich || '—';
   if (v.loai === 'cron') {
     const [mi, h, dom, mon, dow] = String(v.lich).split(' ');
@@ -157,12 +162,13 @@ export function lichNguoi(v) {
 }
 /** Việc còn đang chạy theo lịch: timer có lần kế tiếp · cron luôn · LaunchAgent đã nạp. */
 export const dangChay = (v) => (v.loai === 'timer' ? !!v.tiep : v.loai === 'launchd' ? v.ket !== 'chưa nạp' : true);
-const phutCua = (l) => { const m = String(l).match(/^mỗi (\d+) (giây|phút|giờ|ngày)/); if (m) return Number(m[1]) * { giây: 1 / 60, phút: 1, giờ: 60, ngày: 1440 }[m[2]]; if (l === 'mỗi phút') return 1; if (/^mỗi giờ/.test(l)) return 60; if (l === 'chạy liền') return 0; return 1440; };
+/** Bao nhiêu phút một lần (để chọn việc chạy dày nhất): mỗi N → N · các giờ trong ngày → 1440 / số giờ (theo thứ thì thưa hơn) · chạy liền / chưa đọc được → không tính. */
+const phutCua = (l) => (!l || l.kieu === 'lien' ? Infinity : l.kieu === 'moi' ? l.phut : (1440 / l.gio.length) * (l.thu.length ? 7 / l.thu.length : 1));
 /** NHỊP theo việc máy của một người (anh 14/10/2026 "việc đang chạy thì bật luôn nhân sự đó và set nhịp cho khớp"): số việc · số đang chạy ·
- *  nhịp dày nhất (chữ lịch của việc chạy dày nhất) · lần chạy gần nhất trong mọi việc. */
-export function nhipMay(id, ds = viecMayCua(id)) {   // việc chạy liền (KeepAlive) không phải nhịp — chỉ tính khi người đó chỉ có loại đó
-  const chay = ds.filter(dangChay); const nhanh = chay.map((v) => lichNguoi(v)).filter((l, _, ds) => l !== 'chạy liền' || ds.every((x) => x === 'chạy liền')).sort((a, b) => phutCua(a) - phutCua(b))[0] ?? '';
-  return { so: ds.length, chay: chay.length, nhanh, cuoi: ds.map((v) => v.cuoi).filter(Boolean).sort().pop() ?? '' };
+ *  nhịp dày nhất (chữ lịch của việc chạy dày nhất) · lần chạy gần nhất trong mọi việc. Việc chạy liền không phải nhịp. */
+export function nhipMay(id, ds = viecMayCua(id)) {
+  const chay = ds.filter(dangChay); const dayNhat = chay.map(moHinh).filter((l) => phutCua(l) < Infinity).sort((a, b) => phutCua(a) - phutCua(b))[0];
+  return { so: ds.length, chay: chay.length, nhanh: dayNhat ? chuLich(dayNhat) : chay.length ? 'chạy liền' : '', cuoi: ds.map((v) => v.cuoi).filter(Boolean).sort().pop() ?? '' };
 }
 /** Lỗi lần chạy cuối? timer: Result khác success; launchd: thoát ≠ 0; cron: không biết. */
 export const hong = (v) => (v.loai === 'timer' ? v.ket && v.ket !== 'success' : v.loai === 'launchd' ? /^thoát/.test(v.ket) : false);
@@ -181,8 +187,8 @@ if (process.argv[1]?.endsWith('viec-may.mjs')) {
     const L = (loai, lich) => lichNguoi({ loai, lich });
     a.equal(L('timer', 'OnUnitActiveUSec=1min · OnBootUSec=2min'), 'mỗi 1 phút'); a.equal(L('timer', 'OnBootUSec=2min · OnUnitActiveUSec=30min · OnActiveUSec=1min'), 'mỗi 30 phút', 'cú hích một lần không phải nhịp'); a.equal(L('timer', 'OnCalendar=*-*-* *:00/10:00'), 'mỗi 10 phút');
     a.equal(L('timer', 'OnCalendar=*-*-* 01:00:00'), '08:00 hằng ngày'); a.equal(L('timer', 'OnCalendar=*-*-* 01:00:00 UTC'), '08:00 hằng ngày'); a.equal(L('cron', '30 0 * * *'), '07:30 hằng ngày'); a.equal(L('cron', '*/5 * * * *'), 'mỗi 5 phút');
-    a.equal(L('cron', '40 */6 * * *'), 'mỗi 6 giờ'); a.equal(L('cron', '30 9 * * 1'), '16:30 mỗi thứ Hai'); a.equal(L('timer', 'OnCalendar=Mon *-*-* 03:00'), '10:00 thứ Hai'); a.equal(L('timer', 'OnCalendar=*-*-* 02,14:00:00 UTC'), '09:00, 21:00 hằng ngày');
-    a.equal(L('timer', 'OnCalendar=Mon..Fri *-*-* 14:00:00'), '21:00 thứ Hai–Sáu'); a.equal(L('timer', 'OnCalendar=*-*-* *:17:00 UTC'), 'mỗi giờ (phút 17)'); a.equal(L('timer', 'OnCalendar=*-10-* 03:00'), '*-10-* 03:00', 'dạng lạ giữ nguyên');
+    a.equal(L('cron', '40 */6 * * *'), 'mỗi 6 giờ'); a.equal(L('cron', '30 9 * * 1'), '16:30 · T2'); a.equal(L('timer', 'OnCalendar=Mon *-*-* 03:00'), '10:00 · T2'); a.equal(L('timer', 'OnCalendar=*-*-* 02,14:00:00 UTC'), '09:00, 21:00 hằng ngày');
+    a.equal(L('timer', 'OnCalendar=Mon..Fri *-*-* 14:00:00'), '21:00 · T2–T6'); a.equal(L('timer', 'OnCalendar=*-*-* *:17:00 UTC'), 'mỗi 1 giờ'); a.equal(L('launchd', 'lúc 08:15, 14:15'), '08:15, 14:15 hằng ngày'); a.equal(L('timer', 'OnCalendar=*-10-* 03:00'), '*-10-* 03:00', 'dạng lạ giữ nguyên');
     const nm = nhipMay('x', [{ loai: 'timer', lich: 'OnCalendar=*-*-* 01:00', tiep: 'a', cuoi: '2026-10-14T01:00:00Z' }, { loai: 'cron', lich: '*/5 * * * *', cuoi: '2026-10-14T05:00:00Z' }, { loai: 'launchd', lich: 'lúc 09:00', ket: 'chưa nạp' }, { loai: 'launchd', lich: 'chạy liền', ket: 'đang chạy' }]);
     a.deepEqual(nm, { so: 4, chay: 3, nhanh: 'mỗi 5 phút', cuoi: '2026-10-14T05:00:00Z' }, 'nhịp = việc chạy dày nhất; LaunchAgent chưa nạp không tính đang chạy');
     a.equal(tenCron('cd /root/steamsolo && /usr/bin/flock -n /tmp/ss-drip.lock ./scripts/drip.sh'), 'steamsolo · drip.sh');

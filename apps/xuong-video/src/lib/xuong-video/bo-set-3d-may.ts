@@ -21,6 +21,9 @@ export const mapBoSet = (r: Row): BoSet => ({ id: Number(r.id), project: String(
 const KICH_BAN = () => [path.join(process.cwd(), 'scripts/bo-set/dung-set.py'), '/opt/earns-marketing-os-v2/apps/xuong-video/scripts/bo-set/dung-set.py'].find((p) => existsSync(p));
 
 function chayBlender(vao: string, ra: string, them: Record<string, string> = {}): Promise<{ ok: boolean; log: string }> {
+  // Box KHÔNG render (anh 15/10/2026: "tắt Blender trên box3, chuyển hết về iMac" — box chỉ có đồ hoạ phần mềm, EEVEE rất chậm). Máy Linux
+  // không bật cờ XV_BLENDER_TAI_CHO=1 thì từ chối, chỉ đường dùng iMac.
+  if (process.platform === 'linux' && process.env.XV_BLENDER_TAI_CHO !== '1') return Promise.resolve({ ok: false, log: 'box không render 3D — chạy trên iMac: apps/xuong-video/scripts/bo-set/chay-imac.sh <tap_id> [--chi=…]' });
   return new Promise((res) => {
     const kb = KICH_BAN();
     if (!kb) return res({ ok: false, log: 'không thấy scripts/bo-set/dung-set.py' });

@@ -22,8 +22,10 @@ export async function kiemNguoiXemTap(db: Db, tapId: number): Promise<{ ok: true
   if (!kq.ok) return kq;
   await ghiTienChu(db, bc.tap.phim_id, `Kiểm người xem có hiểu không · tập ${bc.tap.so}`, kq.model, kq.tokens);
   const { xem, doi } = kq.data;
+  // Đạt hay không tính trên ĐÚNG con số hiện ra (đã làm tròn) — trước đây so điểm thô: 6,6 hiện "7/10, khớp ý" mà vẫn chặn (Tango & Lint tập 1, 14/10/2026).
+  const diem = Math.max(0, Math.min(10, Math.round(xem.diem)));
   const t: ThuNguoiXem = { ma: maKichBan(canh), luc: new Date().toISOString(), model: kq.model, ke_lai: xem.ke_lai, hieu: { ai: xem.ai, muon: xem.muon, can: xem.can, lat: xem.lat, ket: xem.ket },
-    diem: Math.max(0, Math.min(10, Math.round(xem.diem))), cho_kho: xem.cho_kho, khop: doi.khop, lech: doi.lech, dat: doi.khop && xem.diem >= DIEM_HIEU_DAT };
+    diem, cho_kho: xem.cho_kho, khop: doi.khop, lech: doi.lech, dat: doi.khop && diem >= DIEM_HIEU_DAT };
   await db.execute(sql`UPDATE xv_tap SET thu_nguoi_xem = ${JSON.stringify(t)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
   return { ok: true, data: t };
 }

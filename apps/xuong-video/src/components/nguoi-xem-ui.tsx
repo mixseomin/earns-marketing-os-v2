@@ -61,6 +61,17 @@ export function NguoiXem({ tap, canh, moHinhChu, coAnthropic, onChanged, onMoSho
               ))}
             </div>
           )}
+          {(t.cat?.length ?? 0) > 0 && (
+            <div style={{ display: 'grid', gap: 4 }}>
+              <b>Thu nhỏ được ({t.cat!.reduce((a, x) => a + x.bot_s, 0)} giây):</b>
+              {t.cat!.map((x, i) => (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '42px 1fr', gap: 6, padding: '4px 6px', borderRadius: 6, background: 'var(--bg-2)' }}>
+                  {onMoShot ? <button type="button" className="xv-lienket xv-mono" onClick={() => onMoShot(x.shot)} title="Mở shot này">#{x.shot}</button> : <b className="xv-mono">#{x.shot}</b>}
+                  <div><span className="xv-mono">−{x.bot_s}s</span> {x.ly_do}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

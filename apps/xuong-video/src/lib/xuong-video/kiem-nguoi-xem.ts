@@ -5,7 +5,7 @@ import { sql } from 'drizzle-orm';
 import { thuNguoiXem, suaKichBanTheoNguoiXem } from './claude';
 import { chupTruoc } from './hoan-tac';
 import { banNguoiXem, maKichBan, keHoachSua, DIEM_HIEU_DAT } from './nguoi-xem';
-import { docKinhThanh, locNhanh, lamTronClip, type ThuNguoiXem } from './kieu';
+import { docKinhThanh, locNhanh, lamTronClip, giayPhat, type ThuNguoiXem } from './kieu';
 import { boiCanhTap, mapCanh, ghiTienChu, type Db, type Row } from './doc-db';
 
 export async function kiemNguoiXemTap(db: Db, tapId: number): Promise<{ ok: true; data: ThuNguoiXem } | { ok: false; loi: string }> {
@@ -18,14 +18,19 @@ export async function kiemNguoiXemTap(db: Db, tapId: number): Promise<{ ok: true
   const ids = new Set(canh.flatMap((c) => c.nhan_vat));
   const nvTa = bc.nhanVat.filter((v) => ids.has(v.id) && v.loai !== 'phong_cach').map((v) => `- ${v.ten}: ${v.mo_ta.slice(0, 160)}`).join('\n');
   const logline = (kt.series?.dong_co ? kt.series.tap.find((t) => t.so === bc.tap.so)?.logline : '') || kt.logline || '';
-  const kq = await thuNguoiXem({ ban, nhanVat: nvTa, logline, brief: bc.tap.brief, kt });
+  // Độ dài để người xem biết được phép THU NHỎ (không chỉ thêm shot): cảnh intro / thẻ kết của series không tính, đúng như ho-so.ts › doTheoThamChieu.
+  const intro = new Set(bc.tap.phan_canh.filter((p) => p.intro).map((p) => p.ten));
+  const giayTap = Math.round(canh.filter((c) => !intro.has(c.phan_doan)).reduce((a, c) => a + giayPhat(c), 0));
+  const tc = kt.series?.tham_chieu;
+  const doDai = `tập đang dài ${giayTap} giây (không tính intro / thẻ kết)${tc?.do_dai_s ? `, chuẩn series ${tc.do_dai_s} giây theo ${tc.tac_pham}` : ''}.`;
+  const kq = await thuNguoiXem({ ban, nhanVat: nvTa, logline, brief: bc.tap.brief, kt, doDai });
   if (!kq.ok) return kq;
   await ghiTienChu(db, bc.tap.phim_id, `Kiểm người xem có hiểu không · tập ${bc.tap.so}`, kq.model, kq.tokens);
   const { xem, doi } = kq.data;
   // Đạt hay không tính trên ĐÚNG con số hiện ra (đã làm tròn) — trước đây so điểm thô: 6,6 hiện "7/10, khớp ý" mà vẫn chặn (Tango & Lint tập 1, 14/10/2026).
   const diem = Math.max(0, Math.min(10, Math.round(xem.diem)));
   const t: ThuNguoiXem = { ma: maKichBan(canh), luc: new Date().toISOString(), model: kq.model, ke_lai: xem.ke_lai, hieu: { ai: xem.ai, muon: xem.muon, can: xem.can, lat: xem.lat, ket: xem.ket },
-    diem, cho_kho: xem.cho_kho, khop: doi.khop, lech: doi.lech, dat: doi.khop && diem >= DIEM_HIEU_DAT };
+    diem, cho_kho: xem.cho_kho, cat: xem.cat, khop: doi.khop, lech: doi.lech, dat: doi.khop && diem >= DIEM_HIEU_DAT };
   await db.execute(sql`UPDATE xv_tap SET thu_nguoi_xem = ${JSON.stringify(t)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
   return { ok: true, data: t };
 }
@@ -37,14 +42,14 @@ export async function suaTheoNguoiXemTap(db: Db, tapId: number, nguoi: string): 
   const bc = await boiCanhTap(db, tapId);
   if (!bc) return { ok: false, loi: 'không thấy tập' };
   const t = bc.tap.thu_nguoi_xem;
-  if (!t || (!t.cho_kho.length && !t.lech)) return { ok: false, loi: 'chưa có kết quả kiểm người xem (hoặc không có chỗ vấp) — bấm kiểm trước' };
+  if (!t || (!t.cho_kho.length && !t.lech && !t.cat?.length)) return { ok: false, loi: 'chưa có kết quả kiểm người xem (hoặc không có chỗ vấp) — bấm kiểm trước' };
   const tatCa = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh);
   const canh = locNhanh(tatCa, 'A');
   const kt = docKinhThanh(bc.kt);
   const ten = (id: number) => bc.nhanVat.find((v) => v.id === id)?.ten ?? '';
   const bang = canh.map((c) => `#${c.thu_tu} [${c.phan_doan || '—'} · ${c.phat_s ?? c.thoi_luong_s}s · ${c.nhan_vat.map(ten).filter(Boolean).join(', ') || 'không anchor'}]\n  THẤY: ${c.hanh_dong}\n  CHỮ: ${c.chu_man || '—'}\n  LỜI: ${c.thoai.length ? c.thoai.map((d) => `${d.nhan_vat || '(dẫn)'}${d.dien_xuat ? ` (${d.dien_xuat})` : ''}: ${d.loi}`).join(' | ') : '—'}\n  PROMPT ẢNH: ${c.prompt_anh}`).join('\n');
   const anchor = bc.nhanVat.filter((v) => v.loai !== 'phong_cach').map((v) => `- ${v.ten} (${v.loai}): ${v.mo_ta.slice(0, 140)}`).join('\n');
-  const vap = t.cho_kho.map((x) => `#${x.shot}: ${x.van_de} → gợi ý: ${x.sua}`).join('\n');
+  const vap = [...t.cho_kho.map((x) => `#${x.shot}: ${x.van_de} → gợi ý: ${x.sua}`), ...(t.cat ?? []).map((x) => `#${x.shot}: THU NHỎ được ${x.bot_s}s — ${x.ly_do} (rút phat_s hoặc gộp ý vào shot kề)`)].join('\n');
   const kq = await suaKichBanTheoNguoiXem({ bang, anchor, vap, lech: t.khop ? '' : t.lech, brief: bc.tap.brief, kt });
   if (!kq.ok) return kq;
   await ghiTienChu(db, bc.tap.phim_id, `Sửa kịch bản theo người xem · tập ${bc.tap.so}`, kq.model, kq.tokens);

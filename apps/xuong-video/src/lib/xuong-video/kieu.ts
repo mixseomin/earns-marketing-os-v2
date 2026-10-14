@@ -344,6 +344,8 @@ export type ThuNguoiXem = {
   ma: string; luc: string; model: string;
   ke_lai: string; hieu: { ai: string; muon: string; can: string; lat: string; ket: string };
   diem: number; cho_kho: { shot: number; van_de: string; sua: string }[];
+  /** shot rút / gộp / bỏ được mà người xem không mất ý — để tập về độ dài chuẩn series (thiếu ở bản kiểm cũ) */
+  cat?: { shot: number; bot_s: number; ly_do: string }[];
   khop: boolean; lech: string; dat: boolean;
 };
 /** Phần cấp TẬP của hồ sơ tiền kỳ (ho-so.ts): thời gian của cả tập, đường đi trong thế giới, motif, cung cảm xúc, chữ màn mở (tên tập). */

@@ -57,7 +57,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo }: { canh: Canh[]; 
                   {bc.length > 0 && <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={bc.join(', ')}>📍 {bc.join(', ')}</div>}
                   <div>{[tenKt(kt.vai, 'vai'), tenKt(kt.co_canh, 'co_canh'), tenKt(kt.chuyen_dong, 'chuyen_dong')].filter(Boolean).join(' · ') || '—'}</div>
                 </div>
-                <div style={{ padding: '4px 7px 5px', fontSize: 11, lineHeight: 1.35, color: loi ? 'var(--fg-1)' : 'var(--fg-4)' }}>{loi || c.canh || '—'}</div>
+                {loi && <div style={{ padding: '4px 7px 5px', fontSize: 11, lineHeight: 1.35, color: 'var(--fg-1)' }}>{loi}</div>}
                 <div className="xv-mono" style={{ marginTop: 'auto', padding: '3px 7px', fontSize: 10, borderTop: '1px dashed var(--line)', color: cc && cc !== 'cat' ? '#facc15' : 'var(--fg-3)' }} title="Chuyển cảnh sang shot sau">→ {tenKt(cc, 'chuyen_canh') || 'Cắt thẳng'}{cc === 'lien_may' ? ' ⛓' : ''}</div>
               </button>
             );

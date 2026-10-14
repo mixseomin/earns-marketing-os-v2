@@ -23,11 +23,12 @@ export function ChinhLich({ muc, lich, chu, kieu = ['moi', 'luc'], moi = MOI, ad
   return (
     <span className="cty-chinh-lich" title={lich ? undefined : `Lịch hiện tại: ${chu} — đặt lịch mới sẽ thay`}>
       {/* MỘT ô chọn gộp kiểu + giá trị (gọn trong bảng): "mỗi 5 phút" … "mỗi 12 giờ" · "hằng ngày lúc…" → hiện ô giờ */}
-      {(kieu.includes('moi') || kieu.length > 1) && <select value={l.kieu === 'moi' ? `moi:${l.phut}` : 'luc'} aria-label="Lịch chạy" onChange={(e) => doi(e.target.value === 'luc' ? { kieu: 'luc', gio: l.kieu === 'luc' ? l.gio : '03:00' } : { kieu: 'moi', phut: Number(e.target.value.slice(4)) })}>
+      {/* lịch đang chạy không đổi được về mô hình (nhiều giờ, theo thứ) → ô chọn hiện đúng chữ lịch đó, không giả vờ là "mỗi 1 giờ" */}
+      {(kieu.includes('moi') || kieu.length > 1) && <select value={!lich && !cham ? '' : l.kieu === 'moi' ? `moi:${l.phut}` : 'luc'} aria-label="Lịch chạy" onChange={(e) => doi(e.target.value === 'luc' ? { kieu: 'luc', gio: l.kieu === 'luc' ? l.gio : '03:00' } : { kieu: 'moi', phut: Number(e.target.value.slice(4)) })}>
+        {!lich && <option value="" disabled>{chu}</option>}
         {kieu.includes('moi') && moi.map((p) => <option key={p} value={`moi:${p}`}>{chuLich({ kieu: 'moi', phut: p })}</option>)}
         {kieu.includes('luc') && <option value="luc">ngày lúc…</option>}</select>}
-      {l.kieu === 'luc' && <input type="time" value={l.gio} aria-label="Giờ chạy (giờ VN)" onChange={(e) => doi({ kieu: 'luc', gio: e.target.value })} />}
-      {!lich && !cham && <span className="cty-muted">({chu})</span>}
+      {l.kieu === 'luc' && (lich || cham) && <input type="time" value={l.gio} aria-label="Giờ chạy (giờ VN)" onChange={(e) => doi({ kieu: 'luc', gio: e.target.value })} />}
       {khac && <button type="button" className="cty-btn cty-nho" disabled={cho} onClick={luu}>{cho ? 'Đang lưu…' : 'Lưu'}</button>}
       {!bao && trang?.cho && <span className="cty-muted">chờ áp</span>}
       {!bao && trang?.loi && <span className="cty-bao-loi" data-loi="">Áp lỗi: {trang.loi}</span>}

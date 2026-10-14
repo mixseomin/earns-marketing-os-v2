@@ -140,7 +140,9 @@ export function lichNguoi(v) {
     return v.lich;
   }
   const ra = [];
+  const coLap = /OnUnitActiveUSec=|OnCalendar=/.test(String(v.lich));   // OnActiveSec chỉ là cú hích MỘT lần sau khi bật timer (drop-in lich-may) — có mốc lặp thì bỏ
   for (const [, k, x] of String(v.lich).matchAll(/(OnCalendar|OnUnitActiveUSec|OnActiveUSec)=([^·]+)/g)) {
+    if (k === 'OnActiveUSec' && coLap) continue;
     if (k !== 'OnCalendar') { ra.push(doiKy(x) ?? x.trim()); continue; }
     const c = x.trim().replace(/ UTC$/, '');   // box chạy giờ UTC; systemd mới ghi kèm ' UTC'
     const m = c.match(/^(?:([A-Za-z.,]+) )?\*-\*-\* ([\d,*/]+):([\d,/]+)(?::\d+)?$/);
@@ -177,7 +179,7 @@ if (process.argv[1]?.endsWith('viec-may.mjs')) {
     a.ok(hong({ loai: 'timer', ket: 'exit-code' }) && !hong({ loai: 'timer', ket: 'success' }) && hong({ loai: 'launchd', ket: 'thoát 1' }) && !hong({ loai: 'cron', ket: '' }));
     for (const p of new Set(QUY_TAC.map((q) => q[1]))) { a.ok(fs.existsSync(path.join(GOC, 'cong-ty', 'phong', `${p}.md`)), `QUY_TAC trỏ phòng không có: ${p}`); a.ok(nguoiPhong(p), `phòng ${p} chưa có nhân sự — việc máy không có người phụ trách`); }
     const L = (loai, lich) => lichNguoi({ loai, lich });
-    a.equal(L('timer', 'OnUnitActiveUSec=1min · OnBootUSec=2min'), 'mỗi 1 phút'); a.equal(L('timer', 'OnCalendar=*-*-* *:00/10:00'), 'mỗi 10 phút');
+    a.equal(L('timer', 'OnUnitActiveUSec=1min · OnBootUSec=2min'), 'mỗi 1 phút'); a.equal(L('timer', 'OnBootUSec=2min · OnUnitActiveUSec=30min · OnActiveUSec=1min'), 'mỗi 30 phút', 'cú hích một lần không phải nhịp'); a.equal(L('timer', 'OnCalendar=*-*-* *:00/10:00'), 'mỗi 10 phút');
     a.equal(L('timer', 'OnCalendar=*-*-* 01:00:00'), '08:00 hằng ngày'); a.equal(L('timer', 'OnCalendar=*-*-* 01:00:00 UTC'), '08:00 hằng ngày'); a.equal(L('cron', '30 0 * * *'), '07:30 hằng ngày'); a.equal(L('cron', '*/5 * * * *'), 'mỗi 5 phút');
     a.equal(L('cron', '40 */6 * * *'), 'mỗi 6 giờ'); a.equal(L('cron', '30 9 * * 1'), '16:30 mỗi thứ Hai'); a.equal(L('timer', 'OnCalendar=Mon *-*-* 03:00'), '10:00 thứ Hai'); a.equal(L('timer', 'OnCalendar=*-*-* 02,14:00:00 UTC'), '09:00, 21:00 hằng ngày');
     a.equal(L('timer', 'OnCalendar=Mon..Fri *-*-* 14:00:00'), '21:00 thứ Hai–Sáu'); a.equal(L('timer', 'OnCalendar=*-*-* *:17:00 UTC'), 'mỗi giờ (phút 17)'); a.equal(L('timer', 'OnCalendar=*-10-* 03:00'), '*-10-* 03:00', 'dạng lạ giữ nguyên');

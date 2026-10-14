@@ -17,7 +17,7 @@ function doMac() {
     const log = p.StandardOutPath || p.StandardErrorPath; let cuoi = '', dong = [];
     try { cuoi = fs.statSync(log).mtime.toISOString(); dong = execFileSync('tail', ['-n', '6', log], { encoding: 'utf8' }).split('\n').filter(Boolean); } catch { /* chưa có nhật ký */ }
     const l = ls[nhan]; const args = [].concat(p.ProgramArguments ?? p.Program ?? []).join(' ');
-    ds.push({ loai: 'launchd', ma: nhan, ten: args.split('/').pop()?.slice(0, 80) ?? '', lich, cuoi, ket: !l ? 'chưa nạp' : l.pid !== '-' ? 'đang chạy' : l.st === '0' ? 'success' : `thoát ${l.st}`, ma_thoat: l?.st ?? '', log: dong });
+    ds.push({ loai: 'launchd', ma: nhan, ten: (args.split('/').pop() ?? '').split(' · ').pop()?.slice(0, 80) ?? ''   /* tệp bọc ~/viec-nen đặt tên "Phòng · Người · Việc" — cty chỉ cần phần việc */, lich, cuoi, ket: !l ? 'chưa nạp' : l.pid !== '-' ? 'đang chạy' : l.st === '0' ? 'success' : `thoát ${l.st}`, ma_thoat: l?.st ?? '', log: dong });
   }
   return ds;
 }

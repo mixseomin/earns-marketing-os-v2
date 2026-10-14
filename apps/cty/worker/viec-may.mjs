@@ -41,6 +41,11 @@ function nguoiPhong(phong) {
     .filter((x) => x.fm.phong === phong).sort((a, b) => (/^Trưởng/.test(String(b.fm.chuc_danh)) - /^Trưởng/.test(String(a.fm.chuc_danh))) || Number(a.fm.thu_tu ?? 99) - Number(b.fm.thu_tu ?? 99));
   return ds[0]?.id ?? null;
 }
+/** Tên ngắn để người đọc: phòng ("Phòng Sách (KDP…)" → "Sách", Văn phòng Giám đốc → "Văn phòng GĐ") · người (tên trong hồ sơ). Mac dùng cho
+ *  tên hiện ở Cài đặt › Mục đăng nhập ("Sách · Thảo · Sản xuất sách", ~/viec-nen/doi-ten.py). */
+const fmCua = (loai, id) => { try { return parseFm(fs.readFileSync(path.join(GOC, 'cong-ty', loai, loai === 'phong' ? `${id}.md` : `${id}/SOUL.md`), 'utf8')).fm; } catch { return {}; } };
+export const tenPhong = (p) => (p === 'vp-giam-doc' ? 'Văn phòng GĐ' : String(fmCua('phong', p).ten ?? p).replace(/\s*\(.*\)$/, '').replace(/^Phòng /, '').replace(/^./, (c) => c.toUpperCase()));
+export const tenNguoi = (id) => (id ? String(fmCua('nhan-su', id).ten ?? id) : '');
 /** Xếp một việc: { phong, nguoi, chua_gan }. */
 export function xep(ma, nguoiCua = nguoiPhong) {
   const q = QUY_TAC.find(([re]) => re.test(ma));
@@ -74,7 +79,7 @@ const usTuIso = (us) => (us ? new Date(Number(us) / 1000).toISOString() : '');
 /** Gom mọi máy → ảnh chụp. Máy không trả lời: giữ ảnh cũ của máy đó, ghi lỗi (không xoá việc khỏi bảng chỉ vì mạng chập). */
 export function gom() {
   const cu = docViecMay(); const kq = []; const loi = {};
-  const theo = (may, ds) => { for (const v of ds) if (!BO_QUA.test(v.ma)) kq.push({ ...v, may, id: `${may}:${v.ma}`, cuoi: /^\d+$/.test(String(v.cuoi)) ? usTuIso(v.cuoi) : v.cuoi, tiep: v.tiep ? usTuIso(v.tiep) : '', ...xep(v.ma) }); };
+  const theo = (may, ds) => { for (const v of ds) if (!BO_QUA.test(v.ma)) { const x = xep(v.ma); kq.push({ ...v, may, id: `${may}:${v.ma}`, cuoi: /^\d+$/.test(String(v.cuoi)) ? usTuIso(v.cuoi) : v.cuoi, tiep: v.tiep ? usTuIso(v.tiep) : '', ...x, phong_ten: tenPhong(x.phong), nguoi_ten: tenNguoi(x.nguoi) }); } };
   const giuCu = (may, e) => { loi[may] = String(e.message ?? e).slice(0, 200); kq.push(...(cu?.ds ?? []).filter((v) => v.may === may)); };
   try { theo('box3', JSON.parse(execFileSync('python3', ['-c', DO_BOX], { encoding: 'utf8', timeout: 120_000 }))); } catch (e) { giuCu('box3', e); }
   try { theo('box1', JSON.parse(execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', BOX1, 'python3 -'], { input: DO_BOX, encoding: 'utf8', timeout: 120_000 }))); } catch (e) { giuCu('box1', e); }
@@ -152,6 +157,7 @@ if (process.argv[1]?.endsWith('viec-may.mjs')) {
     a.equal(L('timer', 'OnCalendar=Mon..Fri *-*-* 14:00:00'), '21:00 thứ Hai–Sáu'); a.equal(L('timer', 'OnCalendar=*-*-* *:17:00 UTC'), 'mỗi giờ (phút 17)'); a.equal(L('timer', 'OnCalendar=*-10-* 03:00'), '*-10-* 03:00', 'dạng lạ giữ nguyên');
     const nm = nhipMay('x', [{ loai: 'timer', lich: 'OnCalendar=*-*-* 01:00', tiep: 'a', cuoi: '2026-10-14T01:00:00Z' }, { loai: 'cron', lich: '*/5 * * * *', cuoi: '2026-10-14T05:00:00Z' }, { loai: 'launchd', lich: 'lúc 09:00', ket: 'chưa nạp' }]);
     a.deepEqual(nm, { so: 3, chay: 2, nhanh: 'mỗi 5 phút', cuoi: '2026-10-14T05:00:00Z' }, 'nhịp = việc chạy dày nhất; LaunchAgent chưa nạp không tính đang chạy');
+    a.ok(tenPhong('sach') === 'Sách' && tenPhong('vp-giam-doc') === 'Văn phòng GĐ' && tenPhong('nghien-cuu-thi-truong') === 'Nghiên cứu thị trường' && tenNguoi('thao') === 'Thảo');
     a.ok(nguoiPhong('bao-tri') === 'bao' && nguoiPhong('sach') === 'thao', 'người phụ trách = trưởng phòng');
     console.log('✓ viec-may: xếp phòng theo quy tắc, chatwhenbored ≠ adfond, không khớp → Bảo trì (chưa gắn), bỏ việc hệ điều hành, phòng trong quy tắc có thật');
   }

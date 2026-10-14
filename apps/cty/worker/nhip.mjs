@@ -31,14 +31,40 @@ export function luuChinh(id, x, ai = '') {
 // từ 6h mà bảng ghi 9 giờ trước vì chỉ đếm lần gọi mô hình).
 const tepLam = (id) => path.join(DATA(), 'nhip', `${id}.json`);
 export const lanLam = (id) => { try { return JSON.parse(fs.readFileSync(tepLam(id), 'utf8')); } catch { return null; } };
-const ghiLam = (id, ket) => { fs.mkdirSync(path.dirname(tepLam(id)), { recursive: true }); fs.writeFileSync(tepLam(id), JSON.stringify({ luc: new Date().toISOString(), ket })); };
+// NHẬT KÝ từng lần chạy (anh 14/10/2026: "chia thành các đầu việc, bấm vào từng việc xem log thực hiện") — một dòng JSON mỗi nhịp ở nhip/<id>.jsonl.
+const tepNk = (id) => path.join(DATA(), 'nhip', `${id}.jsonl`);
+const GIU_DONG = 20_000;   // ponytail: ~2 tuần nhịp mỗi phút; quá 1,5 lần thì cắt còn GIU_DONG dòng mới nhất
+const ghiLam = (id, ket, viec) => {
+  const dong = { luc: new Date().toISOString(), viec, ket }; fs.mkdirSync(path.dirname(tepLam(id)), { recursive: true });
+  fs.writeFileSync(tepLam(id), JSON.stringify(dong)); fs.appendFileSync(tepNk(id), `${JSON.stringify(dong)}\n`);
+  const ds = fs.readFileSync(tepNk(id), 'utf8').split('\n').filter(Boolean); if (ds.length > GIU_DONG * 1.5) fs.writeFileSync(tepNk(id), `${ds.slice(-GIU_DONG).join('\n')}\n`);
+};
+/** Các lần chạy của một người, mới trước: [{ luc, viec, ket }]. Dòng hỏng bỏ qua. */
+export function nhatKyNhip(id) {
+  let ds = []; try { ds = fs.readFileSync(tepNk(id), 'utf8').split('\n'); } catch { return []; }
+  return ds.map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean).reverse();
+}
+/** ĐẦU VIỆC của mỗi nhịp — bảng nhân sự hiện thành danh sách, bấm một việc mở ngăn `nhip:<người>/<mã>` (mô tả + nhật ký).
+ *  khop: dòng nhật ký nào thuộc việc này (null = mọi lần chạy); can_diem_danh: chỉ có khi người đó khai giờ điểm danh. */
+export const VIEC_NHIP = {
+  'mail-bao-mat': [
+    { ma: 'kiem-thu', ten: 'Kiểm thư bảo mật', lich: (n) => tanSuat(n.kiemMoi), khop: null,
+      mo_ta: 'Đọc hòm claude@ (thư 30 ngày), thẩm định từng thư: tên miền người gửi so với link thật trong thư, gỡ link chuyển tiếp, đối chiếu sổ "đã dạy". Thư giả / chưa rõ → báo vào chủ đề 🔐 Bảo mật trên Telegram kèm nút dạy; thư đã xử thì ❤ rồi gỡ tin sau 1 phút; thư gọi tên Kiên thì trả lời. Mô hình chỉ được gọi khi có thư cần viết lời báo.' },
+    { ma: 'diem-danh', ten: 'Điểm danh đầu ngày', lich: (n) => n.diemDanh, khop: /điểm danh/, can_diem_danh: true,
+      mo_ta: 'Một lần mỗi ngày làm việc, đúng giờ điểm danh: báo lên Telegram "đã vào ca" kèm số thư đang chờ, rồi thả các thư bảo mật đến ngoài giờ đã giữ lại từ tối hôm trước.' },
+    { ma: 'bao-cao', ten: 'Báo cáo cuối ngày', lich: (n) => mocCuoiCa(n.ca), khop: /báo cáo cuối ngày/, can_diem_danh: true,
+      mo_ta: '5 phút trước khi hết ca: tổng kết trong ngày lên Telegram — đã đọc bao nhiêu thư, báo mấy thư, anh dạy gì, còn thư nào chờ.' },
+  ],
+};
+/** Đầu việc của một người đang bật: [{ ma, ten, lich, mo_ta, viec, khop }]. n = { viec[], ca, diemDanh, kiemMoi } (như dangBat). */
+export const dauViec = (n) => n.viec.flatMap((v) => (VIEC_NHIP[v] ?? []).filter((x) => !x.can_diem_danh || n.diemDanh).map((x) => ({ ...x, viec: v, lich: x.lich(n) })));
 /** Tên việc nhịp bằng chữ người đọc (bảng nhân sự hiện cái này, không hiện mã). */
 export const TEN_NHIP = { 'mail-bao-mat': 'Báo khi có thư bảo mật mới (gọi mô hình chỉ lúc có thư)' };
 export const NHIP = {
   'mail-bao-mat': async (n) => (await import('./mail-bao-mat.mjs')).nhipBaoMat(n.id, { ten: n.ten, model: n.model, phong: n.phong, ca: n.ca, diemDanh: n.diemDanh }),   // Phòng Bảo mật: thư bảo mật → Telegram + pixel
 };
 export { trongCa } from './gio-lam.mjs';
-import { trongCa } from './gio-lam.mjs';
+import { trongCa, mocCuoiCa } from './gio-lam.mjs';
 /** Ai đang bật nhịp: [{ id, ten, viec[] }] — heartbeat khác 'off', tách dấu phẩy. */
 export function dangBat() {
   const dir = path.join(GOC, 'cong-ty', 'nhan-su');
@@ -55,14 +81,19 @@ if (process.argv[1]?.endsWith('nhip.mjs') && process.argv.includes('--tu-kiem'))
   a.throws(() => luuChinh('x', { ca: '25:00-02:00', kiem_moi: 1 })); a.throws(() => luuChinh('x', { ca: '06:00-02:00', kiem_moi: 7 })); a.throws(() => luuChinh('x', { ca: '06:00-02:00', diem_danh: '8h', kiem_moi: 1 }));
   a.equal(luuChinh('kien', { ca: '07:00-01:00', diem_danh: '08:30', kiem_moi: 5 }, 't').kiem_moi, 5);
   const k = dangBat().find((n) => n.id === 'kien'); a.ok(k.ca === '07:00-01:00' && k.diemDanh === '08:30' && k.kiemMoi === 5, 'chỉnh của admin đè hồ sơ');
+  ghiLam('kien', 'điểm danh · 3 thư đã đọc', 'mail-bao-mat'); ghiLam('kien', '4 thư đã đọc', 'mail-bao-mat'); fs.appendFileSync(tepNk('kien'), '{hỏng\n');
+  const nk = nhatKyNhip('kien'); a.ok(nk.length === 2 && nk[0].ket === '4 thư đã đọc' && nhatKyNhip('khong-ai').length === 0, 'nhật ký mới trước, dòng hỏng bỏ qua');
+  const dv = dauViec(k); a.deepEqual(dv.map((x) => x.ma), ['kiem-thu', 'diem-danh', 'bao-cao']); a.ok(dv[0].lich === '5 phút/lần' && dv[1].lich === '08:30' && dv[2].lich === '00:55');
+  a.ok(nk.filter((e) => dv[1].khop.test(e.ket)).length === 1, 'việc điểm danh chỉ lấy dòng có điểm danh');
+  a.deepEqual(dauViec({ ...k, diemDanh: '' }).map((x) => x.ma), ['kiem-thu'], 'không khai điểm danh → không có điểm danh / báo cáo');
   fs.rmSync(dir, { recursive: true });
-  console.log('✓ nhip: ca làm theo giờ VN + chỉnh của admin (ca · điểm danh · kiểm mấy phút) đè hồ sơ, sai định dạng bị chặn'); process.exit(0);
+  console.log('✓ nhip: đầu việc + nhật ký từng lần chạy · ca làm theo giờ VN + chỉnh của admin (ca · điểm danh · kiểm mấy phút) đè hồ sơ, sai định dạng bị chặn'); process.exit(0);
 }
 if (process.argv[1]?.endsWith('nhip.mjs')) {
   for (const n of dangBat()) for (const v of n.viec) {
     if (NHIP[v] && !trongCa(n.ca)) { console.log(`${n.id} · ${v}: ngoài ca ${n.ca} — để tới đầu ca`); continue; }
     if (!NHIP[v]) continue;   // heartbeat không phải nhịp máy (vd Phòng thử "khi bấm nút") → không thuộc bộ chạy này
     const truoc = lanLam(n.id); if (truoc && Date.now() - Date.parse(truoc.luc) < n.kiemMoi * 60_000 - 15_000) continue;   // chưa tới lượt kiểm của người này
-    try { const ket = await NHIP[v](n); ghiLam(n.id, ket); console.log(`${n.id} · ${v}: ${ket}`); } catch (e) { console.error(`✗ ${n.id} · ${v}: ${e.message}`); process.exitCode = 1; }
+    try { const ket = await NHIP[v](n); ghiLam(n.id, ket, v); console.log(`${n.id} · ${v}: ${ket}`); } catch (e) { console.error(`✗ ${n.id} · ${v}: ${e.message}`); process.exitCode = 1; }
   }
 }

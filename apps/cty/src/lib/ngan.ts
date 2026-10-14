@@ -1,7 +1,7 @@
 // CHỒNG NGĂN KÉO của cty.on.tc theo chuẩn skill ngan-keo (8 luật). Phần thuần, dùng cả máy chủ lẫn trình duyệt:
 // khoá ngăn `loại:mã`, đọc khoá từ một link nội bộ, đọc/ghi chồng trong URL (`?ngan=nhan-su:tam&ngan=phong:sach`, đúng thứ tự).
 // Tự kiểm: `node scripts/thu-ngan.mjs`.
-export const LOAI_NGAN = ['nhan-su', 'phong', 'nhat-ky', 'luat', 'muc-tieu', 'quy-trinh', 'sach', 'the', 'video', 'day-chuyen'] as const;
+export const LOAI_NGAN = ['nhan-su', 'phong', 'nhat-ky', 'luat', 'muc-tieu', 'quy-trinh', 'sach', 'the', 'video', 'day-chuyen', 'nhip'] as const;
 export type LoaiNgan = (typeof LOAI_NGAN)[number];
 
 export function tachKhoa(k: string): { loai: string; ma: string } {
@@ -24,6 +24,8 @@ export function khoaTuHref(href: string | null | undefined): string | null {
   if (sp) return `${sp[1]}:${decodeURIComponent(sp[2]!)}/${decodeURIComponent(sp[3]!)}`;
   const dch = u.pathname.match(/^\/day-chuyen\/([^/]+)\/([^/]+)(?:\/([^/]+))?\/?$/);
   if (dch) return `day-chuyen:${[dch[1], dch[2], dch[3]].filter(Boolean).map((x) => decodeURIComponent(x!)).join('/')}`;
+  const nh = u.pathname.match(/^\/nhip\/([^/]+)\/([^/]+)\/?$/);
+  if (nh) return `nhip:${decodeURIComponent(nh[1]!)}/${decodeURIComponent(nh[2]!)}`;
   const t = u.pathname.match(/^\/the\/(\d+)\/?$/);
   if (t) return `the:${t[1]}`;
   return null;
@@ -36,6 +38,8 @@ export const hrefSach = (phong: string, id: string | number) => `/sach/${phong}/
 export const hrefVideo = (phong: string, slug: string) => `/video/${phong}/${encodeURIComponent(slug)}`;
 /** Ngăn một dây chuyền của phòng (cả bảng), hoặc một phần đã lọc (`loc`: lich · tram-1…6 · len-san · ban · kho · hom · do) — ô sơ đồ trỏ vào đây. */
 export const hrefDayChuyen = (phong: string, dc: string, loc?: string) => `/day-chuyen/${phong}/${dc}${loc ? `/${loc}` : ''}`;
+/** Ngăn một đầu việc tự làm của nhân sự (worker/nhip.mjs VIEC_NHIP): mô tả + nhật ký từng lần chạy. */
+export const hrefNhip = (nguoi: string, ma: string) => `/nhip/${nguoi}/${ma}`;
 /** Ngăn một card plays (human_tasks.id). */
 export const hrefThe = (id: string | number) => `/the/${id}`;
 

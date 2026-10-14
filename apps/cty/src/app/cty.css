@@ -543,3 +543,6 @@ body.nk-dang-keo iframe{pointer-events:none}
 .cty-dn-do>summary::before{content:'▸';color:var(--muted)}.cty-dn-do[open]>summary::before{content:'▾'}
 .cty-day-kien{display:flex;flex-wrap:wrap;gap:4px}.cty-day-kien .cty-btn{padding:2px 6px}.cty-day-dang{font-weight:700;border-color:var(--ink)}
 .cty-chinh-ca{display:grid;gap:3px;justify-items:start}.cty-chinh-ca input[type=time]{font:inherit;font-size:.8rem;padding:1px 2px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)}.cty-dn select{font:inherit;font-size:.8rem}
+
+.cty-dn-viec{list-style:none;margin:0;padding:0;display:grid;gap:2px}.cty-dn-viec li{white-space:nowrap}
+.cty-nhip-co{font-weight:600}

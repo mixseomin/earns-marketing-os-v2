@@ -12,6 +12,7 @@ import { soTinhCachCua, dsThuViec } from '../../../worker/cai-tien.mjs';
 import { NutDeCu } from '../nut-de-cu';
 import { KhungVp } from '@/components/khung-vp';
 import { docMailBaoMat } from '../../../worker/mail-bao-mat.mjs';
+import { nhatKyNhip } from '../../../worker/nhip.mjs';
 import Link from 'next/link';
 import { Gio } from '../gio';
 import { nhanSu, heartbeat, phong, dsNhanSu, soDo, docText, cauHinh, dsPhong, KHUON, MUC, hrefVp } from '@/lib/cong-ty';
@@ -362,6 +363,33 @@ export function nganNhatKy(ma: string): Ngan {
   return { tieuDe: <>Sổ sự kiện{q.luot ? <span className="cty-muted"> · lượt {q.luot}</span> : null}</>, than: <div className="nk-mot nk-cot-dai"><SoSuKien q={q} /></div> };
 }
 
+/** Ngăn một đầu việc tự làm `nhip:<người>/<việc>` (anh 14/10/2026): việc đó là gì · lịch · nhật ký từng lần chạy (nhip/<id>.jsonl). */
+export function nganNhip(ma: string): Ngan {
+  const [id = '', viec = ''] = ma.split('/'); const d = nhanSu(id);
+  const n = d ? nhipChu(d.fm, id) : null; const v = n?.ds.find((x) => x.ma === viec) as { ten: string; lich: string; mo_ta: string; khop: RegExp | null } | undefined;
+  if (!d || !n || !v) return { tieuDe: ma, than: <Thieu chu={`Không có việc tự làm "${viec}" của "${id}" (heartbeat trong SOUL.md + worker/nhip.mjs VIEC_NHIP).`} /> };
+  const tatCa = nhatKyNhip(id) as { luc: string; ket: string }[];
+  const dauNgay = new Date(Math.floor((Date.now() + 7 * 3600_000) / 86_400_000) * 86_400_000 - 7 * 3600_000).toISOString();   // 0h giờ VN hôm nay
+  // ponytail: việc "mọi lần chạy" (kiểm thư) chạy mỗi phút → nhật ký chỉ liệt kê lần CÓ việc (báo / trả lời / ❤ / gỡ…), lần trống chỉ đếm
+  const coViec = (k: string) => /(^|· )[1-9]\d* (báo|trả lời|❤|gỡ|tin đã nhớ|lần anh dạy)|điểm danh|báo cáo/.test(k);
+  const ds = tatCa.filter((e) => (v.khop ? v.khop.test(e.ket) : coViec(e.ket))).slice(0, 100);
+  const homNay = tatCa.filter((e) => e.luc >= dauNgay && (!v.khop || v.khop.test(e.ket))).length;
+  return {
+    tieuDe: <><Nguoi id={id} anh={false} /> · {v.ten}</>,
+    than: (
+      <div className="nk-mot nk-cot-dai">
+        <p>{v.mo_ta}</p>
+        <p className="cty-nho cty-muted">Lịch: {v.lich} · ca {n.ca} (giờ VN) · hôm nay {homNay} lần{tatCa[0] ? <> · chạy gần nhất <TruocDay iso={tatCa[0].luc} /></> : null}</p>
+        <h3>Nhật ký {v.khop ? '' : <span className="cty-muted cty-nho">(chỉ lần có việc; lần kiểm trống chỉ đếm ở trên)</span>}</h3>
+        {ds.length ? <div className="cty-md cty-cuon"><table className="cty-log">
+          <thead><tr><th>lúc</th><th>kết quả</th></tr></thead>
+          <tbody>{ds.map((e) => <tr key={e.luc}><td className="cty-nho"><Gio iso={e.luc} /></td><td className="cty-log-ct">{e.ket}</td></tr>)}</tbody>
+        </table></div> : <p className="cty-muted">Chưa có lần chạy nào{v.khop ? ' của việc này' : ' có việc'} trong nhật ký.</p>}
+      </div>
+    ),
+  };
+}
+
 export function nganLuat(): Ngan { return { tieuDe: 'Luật chung', than: <div className="nk-mot nk-cot-dai"><Md>{docText('AGENTS.md')}</Md></div> }; }
 
 export function nganMucTieu(): Ngan {
@@ -578,6 +606,7 @@ export async function nganTheoKhoa(khoa: string, admin: boolean): Promise<Ngan> 
   if (loai === 'the') return await nganThe(ma);
   if (loai === 'video') return await nganVideo(ma);
   if (loai === 'day-chuyen') return await nganDayChuyen(ma);
+  if (loai === 'nhip') return nganNhip(ma);
   if (loai === 'quy-trinh') {
     if (!ma) return await nganQuyTrinh();
     const q = (await dsQuyTrinhCacPhong()).find((x) => x.khoa === ma);

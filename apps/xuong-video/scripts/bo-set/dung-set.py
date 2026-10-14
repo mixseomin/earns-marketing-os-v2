@@ -101,6 +101,10 @@ def chat_lieu(o, chat, hex_):
 
 def hoan_thien(o, kieu, w, d, h):
     """Khối thân nhân vật → hình thật: đất sét gồ nhẹ, cục bông xù, lông (sợi tóc Blender), vải gợn nếp."""
+    # Áp tỉ lệ vào lưới TRƯỚC (khối được thu nhỏ bằng scale 0.02 → độ gồ và độ dài lông tính theo đơn vị cục bộ bị sai cả trăm lần: lần thử đầu
+    # lông Lint thành sợi dài cắt ngang khung).
+    bpy.ops.object.select_all(action='DESELECT'); o.select_set(True); bpy.context.view_layer.objects.active = o
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     if kieu in ('dat_set', 'bong', 'vai', 'long'):
         sd = o.modifiers.new('min', 'SUBSURF'); sd.levels = sd.render_levels = 2
     if kieu in ('dat_set', 'bong', 'vai'):
@@ -108,8 +112,8 @@ def hoan_thien(o, kieu, w, d, h):
         dp = o.modifiers.new('go', 'DISPLACE'); dp.texture = tx; dp.texture_coords = 'GLOBAL'; dp.strength = {'dat_set': 0.0008, 'bong': 0.004, 'vai': 0.004}[kieu]
     if kieu == 'long':
         o.modifiers.new('long', 'PARTICLE_SYSTEM'); ps = o.particle_systems[0].settings
-        ps.type = 'HAIR'; ps.count = 1800; ps.hair_length = 0.22 * min(w, h) * CM; ps.use_advanced_hair = True; ps.factor_random = 0.6
-        ps.child_type = 'INTERPOLATED'; ps.child_percent = 6; ps.rendered_child_count = 6; ps.roughness_2 = 0.6; ps.root_radius = 0.0003; ps.tip_radius = 0.0001
+        ps.type = 'HAIR'; ps.count = 2500; ps.hair_length = 0.12 * min(w, h) * CM; ps.use_advanced_hair = True; ps.factor_random = 0.5
+        ps.child_type = 'NONE'; ps.roughness_2 = 0.4; ps.root_radius = 0.00006; ps.tip_radius = 0.00002; ps.radius_scale = 1
 
 def anh_sang_mau(s, sh, bat):
     """Ánh sáng khung màu: đèn bàn vàng ấm khi shot khai den_ban, luôn có ánh xanh từ các màn hình; trời tối. bat=False → dọn đèn."""
@@ -117,24 +121,29 @@ def anh_sang_mau(s, sh, bat):
     for o in bpy.data.objects:
         if o.type == 'LIGHT': o.hide_render = bat
     if not bat: return
-    def den(ten, loai, vt, mau_, nl, xoay=(0, 0, 0), co=0.1):
+    def den(ten, loai, vt, mau_, nl, xoay=(0, 0, 0), co=10):   # vt, co: cm
         ld = bpy.data.lights.new(ten, loai); ld.color = mau_; ld.energy = nl
-        if loai == 'AREA': ld.size = co
+        if loai == 'AREA': ld.size = co * CM
         o = bpy.data.objects.new(ten, ld); s.collection.objects.link(o); o.location = Vector(vt) * CM; o.rotation_euler = Euler(xoay)
     if sh.get('den_ban'):
         dd = [o for o in bpy.data.objects if o.name.startswith('Desk Lamp ')]
         if dd:
             top = max(dd, key=lambda o: o.matrix_world.translation.z)
-            den('L~den', 'POINT', [top.matrix_world.translation.x / CM, top.matrix_world.translation.y / CM, top.matrix_world.translation.z / CM - 2], (1.0, 0.72, 0.45), 18)
+            den('L~den', 'POINT', [top.matrix_world.translation.x / CM, top.matrix_world.translation.y / CM, top.matrix_world.translation.z / CM - 2], (1.0, 0.72, 0.45), 60)
     for o in bpy.data.objects:   # màn hình = khối phát sáng to → một đèn vuông xanh ngay trước mặt nó
         mt = o.active_material if hasattr(o, 'active_material') else None
         if o.type != 'MESH' or not mt or not mt.use_nodes or o.hide_render: continue
         b = mt.node_tree.nodes.get('Principled BSDF')
         if not b or b.inputs['Emission Strength'].default_value <= 0 or max(o.dimensions) < 0.1: continue
         p = o.matrix_world.translation / CM
-        den(f'L~mh{o.name}', 'AREA', [p.x, p.y - 6, p.z], (0.55, 0.7, 1.0), 6 if sh.get('den_ban') else 9, (math.radians(-90), 0, 0), max(o.dimensions) * 0.8)
-    s.world.node_tree.nodes['Background'].inputs['Color'].default_value = (0.012, 0.016, 0.03, 1)
-    s.world.node_tree.nodes['Background'].inputs['Strength'].default_value = 1
+        den(f'L~mh{o.name}', 'AREA', [p.x, p.y - 6, p.z], (0.55, 0.7, 1.0), 25 if sh.get('den_ban') else 40, (math.radians(-90), 0, 0), max(o.dimensions) * 0.8 / CM)
+    # Ánh xanh đêm dịu phủ cả phòng + đèn phụ mềm từ phía máy (đủ đọc hình khối cho model — không phải ánh sáng cuối cùng của phim).
+    s.world.node_tree.nodes['Background'].inputs['Color'].default_value = (0.05, 0.07, 0.12, 1)
+    s.world.node_tree.nodes['Background'].inputs['Strength'].default_value = 1.5
+    cam = s.camera
+    if cam:
+        p = cam.matrix_world.translation / CM
+        den('L~phu', 'AREA', [p.x, p.y, p.z + 12], (0.75, 0.82, 1.0), 4, tuple(cam.rotation_euler), 40)
 
 def ve_mau(s, sh, ra):
     """Render khung màu bằng EEVEE (chỉ khi có OpenGL — Xvfb trên box). Trả True nếu có ảnh."""

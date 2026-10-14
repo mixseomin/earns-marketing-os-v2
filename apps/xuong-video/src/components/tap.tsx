@@ -1,5 +1,6 @@
 'use client';
 // Mục 3 một tập: brief → kịch bản → tách cảnh → storyboard/timeline → âm thanh → xuất.
+import { HoSoTap } from './ho-so';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Timeline } from './timeline';
 import { LuoiKichBan } from './luoi-kich-ban';
@@ -157,6 +158,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
   return (
     <div>
       {/* Thứ tự theo mạch, trái → phải rồi xuống: 3a brief → 3b kịch bản → 3c storyboard. */}
+      {tab === 'ho_so' && <HoSoTap tap={tap} phim={phim} canh={canh ?? []} nhanVat={nhanVat} />}
       {tab === 'kich_ban' && (<>
       {phim.loai === 'phim' && <O label="Tên tập"><input className="xv-in" value={tenTap} onChange={(e) => setTenTap(e.target.value)} placeholder="Cuộc đua bắt đầu" style={{ maxWidth: 420 }} /></O>}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 2fr) minmax(320px, 3fr)', gap: 12, alignItems: 'start' }}>

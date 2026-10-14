@@ -32,6 +32,9 @@ export async function luuCanhTach(db: Db, o: { tapId: number; tenTap: string; kq
       VALUES (${tapId}, ${thuTu}, ${c.canh}, ${c.goc_may}, ${c.hanh_dong}, ${thoai.length ? ghepThoai(thoai) : c.loi_thoai}, ${JSON.stringify(thoai)}::jsonb, ${c.am_thanh}, ${c.thoi_luong_s}, ${JSON.stringify(ids)}::jsonb, ${JSON.stringify(bts)}::jsonb, ${c.prompt_anh}, ${c.prompt_video},
         ${c.phan_doan}, ${c.cam_xuc}, ${JSON.stringify(lamSachKyThuat(c.ky_thuat as unknown as Record<string, unknown>))}::jsonb, ${c.trang_phuc ?? ''}, ${c.phat_s}, ${c.chu_man ?? ''}, ${c.nhanh ?? ''}, ${JSON.stringify(c.dan_dung ?? {})}::jsonb)`);
   }
+  // Phần cấp tập của hồ sơ tiền kỳ (ho-so.ts) — tách cảnh của Claude và tệp nạp đều mang theo.
+  const hoSo = (kq as { hoSo?: unknown }).hoSo;
+  if (hoSo && typeof hoSo === 'object') await db.execute(sql`UPDATE xv_tap SET ho_so = ${JSON.stringify(hoSo)}::jsonb WHERE id = ${tapId}`);
   await db.execute(sql`UPDATE xv_tap SET tom_tat = CASE WHEN tom_tat = '' THEN ${kq.tomTat} ELSE tom_tat END, beats = ${JSON.stringify(kq.beats)}::jsonb,
     phan_canh = ${JSON.stringify(kq.phanCanh)}::jsonb, trang_thai = 'storyboard', updated_at = now() WHERE id = ${tapId}`);
   return kq.canh.length;

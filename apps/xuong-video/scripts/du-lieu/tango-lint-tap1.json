@@ -37,7 +37,18 @@
             "ong_kinh": "rong",
             "chuyen_canh": "cat",
             "mo_ta": "Máy đặt ngang mặt bàn ở mép trước, đẩy rất chậm vào theo bàn tay đặt kẹo — người xem bước vào thế giới cái bàn."
-          }
+          },
+          "anchor": [
+            "The Desk (wide)",
+            "The Giant",
+            "Gummy Bear",
+            "Magic Mouse",
+            "White Keyboard"
+          ],
+          "thay_en": "The whole wooden desk under a warm desk lamp; a huge hand in a blue knitted sleeve sets a glossy red gummy bear upright beside the white mouse and lifts away toward the lamp.",
+          "am_en": "Low computer hum, a soft single pizzicato note, the gentle tap of the gummy on wood.",
+          "thoai": [],
+          "cam_xuc": 1
         },
         {
           "vai": "thoi_gian",
@@ -62,7 +73,15 @@
             "ong_kinh": "chan_dung",
             "chuyen_canh": "cat",
             "mo_ta": "Đứng yên dưới thấp nhìn lên công tắc: để ánh sáng tắt tự kể, máy không giành sự chú ý."
-          }
+          },
+          "anchor": [
+            "The Desk at Night",
+            "The Giant"
+          ],
+          "thay_en": "A giant fingertip clicks the desk lamp switch; the warm yellow light dies and the desk falls into the cold blue glow of the screens, shadows stretching long.",
+          "am_en": "A sharp lamp switch click, then near silence with a faint electrical hum.",
+          "thoai": [],
+          "cam_xuc": 0
         }
       ],
       "kich_ban": [
@@ -96,20 +115,6 @@
         ]
       },
       "boc_tach": {
-        "nhan_vat": [
-          "The Giant"
-        ],
-        "dao_cu": [
-          "Gummy Bear",
-          "Magic Mouse",
-          "White Keyboard",
-          "Yellow iMac",
-          "Left Monitor"
-        ],
-        "boi_canh": [
-          "The Desk (wide)",
-          "The Desk at Night"
-        ],
         "hieu_ung": [
           "Đèn bàn tắt: chuyển ánh sáng ấm → lạnh trong một shot"
         ]
@@ -119,7 +124,8 @@
         "mau": "am",
         "mo_ta": "Mở bằng vàng ấm của đèn bàn (an toàn, có người), kết bằng xanh lạnh của màn hình (đêm, thế giới khác)."
       },
-      "nhac": "pizzicato"
+      "nhac": "pizzicato",
+      "beat": "Hook 3 giây"
     },
     {
       "so": 2,
@@ -152,7 +158,23 @@
             "ong_kinh": "probe",
             "chuyen_canh": "cat",
             "mo_ta": "Ống probe sát mặt gỗ; nét chuyển từ mép con chuột sang Tango ló lên — dẫn mắt tới nhân vật chính."
-          }
+          },
+          "anchor": [
+            "Mouse Landing",
+            "Tango",
+            "Gummy Bear",
+            "Magic Mouse"
+          ],
+          "thay_en": "In the blue dark, the orange clay creature pops up from behind the white mouse, his curly strand springing straight up, eyes locked on the red gummy bear a few steps away.",
+          "am_en": "A springy boing, small eager clay squeaks.",
+          "thoai": [
+            {
+              "nhan_vat": "Tango",
+              "dien_xuat": "eager, bouncing, arms reaching",
+              "loi": "Hup! Hup!"
+            }
+          ],
+          "cam_xuc": 2
         },
         {
           "vai": "hanh_dong",
@@ -177,7 +199,22 @@
             "ong_kinh": "rong",
             "chuyen_canh": "cat",
             "mo_ta": "Trượt ngang sang phải theo cú nhảy của Tango, giữ cả Tango lẫn viên kẹo trong khung."
-          }
+          },
+          "anchor": [
+            "Mouse Landing",
+            "Tango",
+            "Gummy Bear"
+          ],
+          "thay_en": "The orange clay creature leaps and hugs the red gummy bear; it squirts out of his arms like wet soap and bounces away toward the gap between the screens, and he lands face-first on the wood.",
+          "am_en": "A wet squish, rubbery bounces, a soft clay thud.",
+          "thoai": [
+            {
+              "nhan_vat": "Tango",
+              "dien_xuat": "face pressed into the desk",
+              "loi": "Mmf!"
+            }
+          ],
+          "cam_xuc": 1
         },
         {
           "vai": "nguoi_thu_ba",
@@ -201,7 +238,18 @@
             "ong_kinh": "tele",
             "chuyen_canh": "cat",
             "mo_ta": "Đứng yên như kẻ rình, ống tele nén từ xa sau mép bàn phím — cảm giác bị theo dõi."
-          }
+          },
+          "anchor": [
+            "Mouse Landing",
+            "Tango",
+            "Sticky",
+            "White Keyboard",
+            "Gummy Bear"
+          ],
+          "thay_en": "Seen from behind the keyboard edge past a blurred corner of yellow paper, the orange clay creature curls into a ball and rolls after the bouncing gummy; the paper corner twitches as if watching.",
+          "am_en": "A soft rolling rumble on wood, a faint paper rustle.",
+          "thoai": [],
+          "cam_xuc": 1
         }
       ],
       "kich_ban": [
@@ -249,18 +297,6 @@
         ]
       },
       "boc_tach": {
-        "nhan_vat": [
-          "Tango",
-          "Sticky"
-        ],
-        "dao_cu": [
-          "Gummy Bear",
-          "Magic Mouse",
-          "White Keyboard"
-        ],
-        "boi_canh": [
-          "Mouse Landing"
-        ],
         "hieu_ung": [
           "Kẹo dẻo phụt khỏi tay (biến dạng dẻo)",
           "Tango cuộn thành quả bóng"
@@ -271,7 +307,8 @@
         "mau": "lanh",
         "mo_ta": "Xanh lạnh của màn hình; điểm nóng duy nhất là viên kẹo đỏ và thân cam của Tango — mắt khán giả bị kéo về hai thứ đó."
       },
-      "nhac": "pizzicato"
+      "nhac": "pizzicato",
+      "beat": "Vấn đề"
     },
     {
       "so": 3,
@@ -303,7 +340,16 @@
             "ong_kinh": "probe",
             "chuyen_canh": "cat",
             "mo_ta": "Bám theo sau quả bóng cam luồn qua hành lang giữa hai màn hình — đưa khán giả cùng lăn vào bóng tối."
-          }
+          },
+          "anchor": [
+            "Between the Screens",
+            "Tango",
+            "Gummy Bear"
+          ],
+          "thay_en": "An orange clay ball rolls down the narrow corridor between two tall glowing screens, the red gummy bouncing ahead and vanishing into the darkness beyond.",
+          "am_en": "Rolling echoing between the screens, a low drone creeping in.",
+          "thoai": [],
+          "cam_xuc": -1
         }
       ],
       "kich_ban": [
@@ -328,17 +374,6 @@
         ]
       },
       "boc_tach": {
-        "nhan_vat": [
-          "Tango"
-        ],
-        "dao_cu": [
-          "Gummy Bear",
-          "Yellow iMac",
-          "Left Monitor"
-        ],
-        "boi_canh": [
-          "Between the Screens"
-        ],
         "hieu_ung": []
       },
       "mau": {
@@ -346,7 +381,8 @@
         "mau": "lanh",
         "mo_ta": "Ngược sáng giữa hai tường màn hình, cuối hành lang tối đen — đi vào cái chưa biết."
       },
-      "nhac": "drone"
+      "nhac": "drone",
+      "beat": "Vấn đề"
     },
     {
       "so": 4,
@@ -378,7 +414,17 @@
             "ong_kinh": "rong",
             "chuyen_canh": "cat",
             "mo_ta": "Cẩu lên từ mặt bàn để lộ dần cả rừng cáp cao vút — nơi mới, khổng lồ."
-          }
+          },
+          "anchor": [
+            "Cable Jungle",
+            "Tango",
+            "Gummy Bear",
+            "White Cable"
+          ],
+          "thay_en": "A towering jungle of black and white cables in cold blue light; the red gummy rests against a white cable as the orange ball rolls in and unrolls into the clay creature.",
+          "am_en": "Creaking cables, a deep hum.",
+          "thoai": [],
+          "cam_xuc": -1
         },
         {
           "vai": "hanh_dong",
@@ -402,7 +448,24 @@
             "ong_kinh": "chuan",
             "chuyen_canh": "cat",
             "mo_ta": "Zoom gắt đúng lúc cục bụi phồng to — cú giật mình kiểu hài."
-          }
+          },
+          "anchor": [
+            "Cable Jungle",
+            "Tango",
+            "Lint",
+            "Gummy Bear",
+            "Cotton Ball"
+          ],
+          "thay_en": "The orange clay creature reaches for the gummy and the grey fuzzball beside it balloons to three times its size, a grey dust bunny clutching a white cotton ball; the orange creature falls on his bottom.",
+          "am_en": "A fluffy whoomp of puffing up, a startled squeak.",
+          "thoai": [
+            {
+              "nhan_vat": "Lint",
+              "dien_xuat": "puffing up huge, trembling",
+              "loi": "[gasps] Pff—!"
+            }
+          ],
+          "cam_xuc": -2
         },
         {
           "vai": "phan_ung",
@@ -426,7 +489,18 @@
             "ong_kinh": "chan_dung",
             "chuyen_canh": "cat",
             "mo_ta": "Đứng yên, nền xoá mịn: giữ trên hai khuôn mặt cho khán giả kịp thương Lint."
-          }
+          },
+          "anchor": [
+            "Cable Jungle",
+            "Tango",
+            "Lint",
+            "Cotton Ball",
+            "Gummy Bear"
+          ],
+          "thay_en": "The two creatures freeze and stare at each other; the dust bunny deflates and curls around his cotton ball, peeking at the gummy, while the orange creature's strand droops.",
+          "am_en": "Silence, a tiny trembling rustle of fluff.",
+          "thoai": [],
+          "cam_xuc": -2
         },
         {
           "vai": "hanh_dong",
@@ -451,7 +525,29 @@
             "ong_kinh": "chan_dung",
             "chuyen_canh": "cat",
             "mo_ta": "Đẩy chậm vào khi viên kẹo được chia — cảm xúc dâng theo máy."
-          }
+          },
+          "anchor": [
+            "Cable Jungle",
+            "Tango",
+            "Lint",
+            "Gummy Bear",
+            "Cotton Ball"
+          ],
+          "thay_en": "The orange clay creature stretches the gummy until it tears in two and offers half; the dust bunny uncurls, the half sticks to his fuzz, and the blue thread on his head glows warm.",
+          "am_en": "A stretchy rubber squeak, a tiny bell chime as the thread glows.",
+          "thoai": [
+            {
+              "nhan_vat": "Lint",
+              "dien_xuat": "shy, wiggling",
+              "loi": "Pff… hee."
+            },
+            {
+              "nhan_vat": "Tango",
+              "dien_xuat": "grinning, patting his head",
+              "loi": "Hup."
+            }
+          ],
+          "cam_xuc": 3
         }
       ],
       "kich_ban": [
@@ -505,18 +601,6 @@
         ]
       },
       "boc_tach": {
-        "nhan_vat": [
-          "Tango",
-          "Lint"
-        ],
-        "dao_cu": [
-          "Gummy Bear",
-          "Cotton Ball",
-          "White Cable"
-        ],
-        "boi_canh": [
-          "Cable Jungle"
-        ],
         "hieu_ung": [
           "Lint phồng to gấp ba",
           "Kẹo kéo giãn đứt đôi",
@@ -528,7 +612,8 @@
         "mau": "lanh",
         "mo_ta": "Tối nhiều bóng, xanh lạnh; cuối cảnh có một đốm ấm duy nhất từ sợi chỉ của Lint — tình bạn là nguồn sáng ấm đầu tiên kể từ khi đèn tắt."
       },
-      "nhac": "pizzicato"
+      "nhac": "pizzicato",
+      "beat": "Leo thang"
     },
     {
       "so": 5,
@@ -560,7 +645,18 @@
             "ong_kinh": "tele",
             "chuyen_canh": "cat",
             "mo_ta": "Từ trên cao đứng yên sau mép khăn, nhìn xuống hai bạn nhỏ — góc của kẻ săn mồi."
-          }
+          },
+          "anchor": [
+            "Cable Jungle",
+            "Mr. Wipe",
+            "Tango",
+            "Lint",
+            "Left Monitor"
+          ],
+          "thay_en": "From high among the cables, past a blurred grey-blue cloth edge, two tiny friends nibble their halves far below while the screen behind them dims one step.",
+          "am_en": "Distant nibbling, the hum dropping lower as the screen dims.",
+          "thoai": [],
+          "cam_xuc": 1
         },
         {
           "vai": "tam_trang",
@@ -584,7 +680,16 @@
             "ong_kinh": "chuan",
             "chuyen_canh": "cat",
             "mo_ta": "Nghiêng máy xuống chậm theo làn sương rơi, dừng trên hai gương mặt ngước lên."
-          }
+          },
+          "anchor": [
+            "Cable Jungle",
+            "Tango",
+            "Lint"
+          ],
+          "thay_en": "Glittering mist drifts down very slowly between the cables in blue light; in the silence the two friends look up and the orange creature's strand slowly rises.",
+          "am_en": "Almost silent, a faint glittering hiss of falling mist.",
+          "thoai": [],
+          "cam_xuc": -1
         },
         {
           "vai": "tong_the",
@@ -609,7 +714,25 @@
             "ong_kinh": "rong",
             "chuyen_canh": "cat",
             "mo_ta": "Lùi ra để lộ Mr. Wipe to cỡ nào so với hai bạn nhỏ."
-          }
+          },
+          "anchor": [
+            "Cable Jungle",
+            "Mr. Wipe",
+            "Lint",
+            "Tango",
+            "Blue Spray Bottle",
+            "Cotton Ball"
+          ],
+          "thay_en": "A grey-blue microfiber cloth with button eyes billows down like a ghost hugging a blue spray bottle; static pulls the dust bunny floating up toward it while the orange creature spreads his arms below.",
+          "am_en": "Fabric flapping, crackling static.",
+          "thoai": [
+            {
+              "nhan_vat": "Mr. Wipe",
+              "dien_xuat": "looming, sniffing the bottle nozzle",
+              "loi": "Fwsh… hmmph."
+            }
+          ],
+          "cam_xuc": -3
         },
         {
           "vai": "hanh_dong",
@@ -633,7 +756,23 @@
             "ong_kinh": "rong",
             "chuyen_canh": "cat",
             "mo_ta": "Cầm tay rung nhẹ khi Tango lao vào và bị xịt — hỗn loạn."
-          }
+          },
+          "anchor": [
+            "Cable Jungle",
+            "Tango",
+            "Mr. Wipe",
+            "Blue Spray Bottle"
+          ],
+          "thay_en": "The orange clay creature leaps at the cloth; one spray hits him mid-air and he drops and splats flat into a soggy orange puddle, googly eyes sliding sideways.",
+          "am_en": "A sharp pssht spray, a wet splat, a sad low note.",
+          "thoai": [
+            {
+              "nhan_vat": "Tango",
+              "dien_xuat": "melting, weak",
+              "loi": "Hup… blub."
+            }
+          ],
+          "cam_xuc": -4
         },
         {
           "vai": "phan_ung",
@@ -658,7 +797,15 @@
             "ong_kinh": "chan_dung",
             "chuyen_canh": "cat",
             "mo_ta": "Nhìn xuống vũng đất sét (nhỏ bé, thua), rồi đẩy chậm vào đúng lúc sợi tóc bật — khoảnh khắc có ý."
-          }
+          },
+          "anchor": [
+            "Cable Jungle",
+            "Tango"
+          ],
+          "thay_en": "The flattened orange puddle looks down at his own flat body, then his curly strand springs straight up with an idea.",
+          "am_en": "A beat of silence, then a bright boing.",
+          "thoai": [],
+          "cam_xuc": -2
         }
       ],
       "kich_ban": [
@@ -705,20 +852,6 @@
         ]
       },
       "boc_tach": {
-        "nhan_vat": [
-          "Mr. Wipe",
-          "Tango",
-          "Lint"
-        ],
-        "dao_cu": [
-          "Blue Spray Bottle",
-          "Cotton Ball",
-          "Gummy Bear",
-          "Left Monitor"
-        ],
-        "boi_canh": [
-          "Cable Jungle"
-        ],
         "hieu_ung": [
           "Màn hình trái tối đi một bậc",
           "Sương xịt lấp lánh",
@@ -731,7 +864,8 @@
         "mau": "xanh_benh",
         "mo_ta": "Tối hơn một bậc khi màn hình nghỉ; Mr. Wipe được rọi từ dưới lên cho ra bóng ma; màu xanh bệnh — mối đe doạ."
       },
-      "nhac": "drone"
+      "nhac": "drone",
+      "beat": "Leo thang"
     },
     {
       "so": 6,
@@ -763,7 +897,23 @@
             "ong_kinh": "chuan",
             "chuyen_canh": "cat",
             "mo_ta": "Quay vòng quanh Tango khi cậu biến thành xe trượt — khoảnh khắc lớn của tập."
-          }
+          },
+          "anchor": [
+            "Cable Jungle",
+            "Tango",
+            "Lint",
+            "White Cable"
+          ],
+          "thay_en": "The orange clay creature smooths his flat body into a sled with a curled front, hops onto a slanted white cable and hooks the floating dust bunny down onto his back.",
+          "am_en": "Clay smoothing squelches, a determined squeak.",
+          "thoai": [
+            {
+              "nhan_vat": "Tango",
+              "dien_xuat": "springing into sled shape",
+              "loi": "Hup!"
+            }
+          ],
+          "cam_xuc": 2
         },
         {
           "vai": "hanh_trinh",
@@ -787,7 +937,24 @@
             "ong_kinh": "rong",
             "chuyen_canh": "cat",
             "mo_ta": "Trượt song song với xe trượt dọc sợi cáp — tốc độ, đồng hành."
-          }
+          },
+          "anchor": [
+            "White Cable Road",
+            "Tango",
+            "Lint",
+            "Mr. Wipe",
+            "White Cable"
+          ],
+          "thay_en": "The clay sled races down the white cable out of the cable jungle with the dust bunny on its back while the cloth behind snags on cable after cable and knots itself up.",
+          "am_en": "A fast whoosh, cables twanging like guitar strings.",
+          "thoai": [
+            {
+              "nhan_vat": "Lint",
+              "dien_xuat": "holding tight, then delighted",
+              "loi": "Pff… wheee!"
+            }
+          ],
+          "cam_xuc": 4
         }
       ],
       "kich_ban": [
@@ -825,19 +992,6 @@
         ]
       },
       "boc_tach": {
-        "nhan_vat": [
-          "Tango",
-          "Lint",
-          "Mr. Wipe"
-        ],
-        "dao_cu": [
-          "White Cable",
-          "Cotton Ball"
-        ],
-        "boi_canh": [
-          "Cable Jungle",
-          "White Cable Road"
-        ],
         "hieu_ung": [
           "Tango biến hình thành xe trượt",
           "Mr. Wipe tự quấn vào dây cáp"
@@ -848,7 +1002,8 @@
         "mau": "teal_cam",
         "mo_ta": "Đèn viền làm nổi xe trượt cam trên nền xanh — teal–cam, năng lượng thoát."
       },
-      "nhac": "pizzicato"
+      "nhac": "pizzicato",
+      "beat": "Lật ngược"
     },
     {
       "so": 7,
@@ -880,7 +1035,18 @@
             "ong_kinh": "chuan",
             "chuyen_canh": "cat",
             "mo_ta": "Đứng yên ngang tầm: thở phào, cho thấy rõ cả bến đế cắm."
-          }
+          },
+          "anchor": [
+            "USB Hub Dock",
+            "Tango",
+            "Lint",
+            "USB Hub",
+            "Orange Card"
+          ],
+          "thay_en": "The sled skids onto an orange card beside a silver USB hub; the orange creature pops back into his egg shape and the dust bunny tumbles off laughing.",
+          "am_en": "A skidding stop, giggling.",
+          "thoai": [],
+          "cam_xuc": 4
         },
         {
           "vai": "hanh_dong",
@@ -904,7 +1070,17 @@
             "ong_kinh": "chuan",
             "chuyen_canh": "cat",
             "mo_ta": "Lia từ mặt Tango sang mặt đế cắm đầy dấu tay — khán giả thấy cái gài."
-          }
+          },
+          "anchor": [
+            "USB Hub Dock",
+            "Tango",
+            "Lint",
+            "USB Hub"
+          ],
+          "thay_en": "The orange clay creature presses clay thumbprints all over the shiny hub, pulling a disgusted face to mimic the cloth, while the dust bunny holds his belly laughing.",
+          "am_en": "Soft clay pap-pap presses, laughter.",
+          "thoai": [],
+          "cam_xuc": 4
         },
         {
           "vai": "hanh_dong",
@@ -928,7 +1104,24 @@
             "ong_kinh": "chuan",
             "chuyen_canh": "cat_soc",
             "mo_ta": "Trượt theo Mr. Wipe lao vào đế cắm, góc thấp cho hắn trông hống hách."
-          }
+          },
+          "anchor": [
+            "USB Hub Dock",
+            "Mr. Wipe",
+            "USB Hub",
+            "Tango",
+            "Lint"
+          ],
+          "thay_en": "The cloth swoops onto the hub trailing a cable loop, sees the prints, shudders and scrubs furiously with his dripping corner toward the plug of the white cable.",
+          "am_en": "Furious scrubbing squeaks.",
+          "thoai": [
+            {
+              "nhan_vat": "Mr. Wipe",
+              "dien_xuat": "scrubbing furiously",
+              "loi": "Hmmph! Hmmph!"
+            }
+          ],
+          "cam_xuc": 3
         },
         {
           "vai": "chi_tiet",
@@ -952,7 +1145,17 @@
             "ong_kinh": "macro",
             "chuyen_canh": "cat_soc",
             "mo_ta": "Macro đứng yên trên góc khăn và phích cắm; cắt sốc sang shot rộng ngay khi tia điện nổ."
-          }
+          },
+          "anchor": [
+            "USB Hub Dock",
+            "Mr. Wipe",
+            "White Cable",
+            "USB Hub"
+          ],
+          "thay_en": "Extreme close-up: the dripping cloth corner slaps onto the white cable plug and a bright blue spark bursts.",
+          "am_en": "A loud electric bzzt.",
+          "thoai": [],
+          "cam_xuc": 5
         },
         {
           "vai": "phan_ung",
@@ -977,7 +1180,24 @@
             "ong_kinh": "rong",
             "chuyen_canh": "toi_den",
             "mo_ta": "Lùi ra rộng để lộ rừng cáp phía sau và tia điện xa — tắt dần về đen."
-          }
+          },
+          "anchor": [
+            "USB Hub Dock",
+            "Mr. Wipe",
+            "Tango",
+            "Lint",
+            "Cordy"
+          ],
+          "thay_en": "The cloth frizzes stiff with static while the two friends burst out laughing; the camera pulls back and deep in the dark cables a small blue spark flickers once more, the orange creature's strand shooting up.",
+          "am_en": "Laughter, then a small distant bzzt, fade to silence.",
+          "thoai": [
+            {
+              "nhan_vat": "Tango",
+              "dien_xuat": "turning, antenna up",
+              "loi": "Hup?"
+            }
+          ],
+          "cam_xuc": 2
         }
       ],
       "kich_ban": [
@@ -1023,22 +1243,6 @@
         ]
       },
       "boc_tach": {
-        "nhan_vat": [
-          "Tango",
-          "Lint",
-          "Mr. Wipe",
-          "Cordy"
-        ],
-        "dao_cu": [
-          "USB Hub",
-          "Orange Card",
-          "White Cable",
-          "Blue Spray Bottle"
-        ],
-        "boi_canh": [
-          "USB Hub Dock",
-          "Cable Jungle"
-        ],
         "hieu_ung": [
           "Dấu vân tay đất sét",
           "Tia điện xanh BZZT",
@@ -1051,7 +1255,8 @@
         "mau": "teal_cam",
         "mo_ta": "Ấm hơn ở bến đế cắm (an toàn, vui); tia điện xanh gắt tạo tương phản; kết lại tối xanh với đốm sáng xa — bất an."
       },
-      "nhac": "pizzicato"
+      "nhac": "pizzicato",
+      "beat": "Kết / móc"
     }
   ],
   "anchor_phim": {
@@ -1106,5 +1311,8 @@
       "Speaker Planet",
       "Desk Map (top-down)"
     ]
-  }
+  },
+  "chu_man_mo": "The Gummy Thief",
+  "phim": "Tango & Lint",
+  "khong_loi": true
 }

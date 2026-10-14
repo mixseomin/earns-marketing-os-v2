@@ -56,6 +56,7 @@ const ShotSchema = CanhSchema.extend({
 });
 const StoryboardSchema = z.object({
   tom_tat: z.string().describe('Tóm tắt nội dung tập này trong 2-3 câu, tiếng Việt, để tập sau nối mạch'),
+  ho_so: z.object({ thoi_gian: z.string().describe('Thời gian của cả tập và ánh sáng nói giờ thế nào, tiếng Việt'), duong_di: z.string().describe('Đường đi qua các nơi chốn (tên anchor Bối cảnh, theo bản đồ không gian)'), motif: z.string().describe('Các motif của tập và nghĩa của chúng'), cung: z.string().describe('Cung cảm xúc cả tập, vd "Thèm (+1) → mất (−1) → … → móc"') }).describe('Phần cấp TẬP của hồ sơ tiền kỳ chuẩn studio (ho-so.ts)'),
   beats: z.array(z.object({ ten: z.string(), mo_ta: z.string().describe('Beat này xảy ra gì trong tập, 1 câu tiếng Việt'), cam_xuc: z.number().int().describe('-5..5') })).describe('Cấu trúc beat của tập theo khung đã cho'),
   phan_canh: z.array(z.object({
     ten: z.string().describe('Tên phân cảnh ngắn, tiếng Việt, duy nhất trong tập'),
@@ -65,6 +66,18 @@ const StoryboardSchema = z.object({
     an_y: z.string().describe('Ẩn ý dưới lời thoại (điều nhân vật cảm mà không nói), rỗng nếu không có'),
     nhip: z.string().describe('cham | vua | nhanh'),
     cam_xuc_dau: z.number().int().describe('-5..5'), cam_xuc_cuoi: z.number().int().describe('-5..5, phải KHÁC đầu: phân cảnh nào cũng đổi giá trị'),
+    // Hồ sơ tiền kỳ chuẩn studio (kieu.ts › PhanCanh): phần đạo diễn + sản xuất + color script + nhạc của cảnh.
+    noi: z.string().describe('Nơi — đúng tên anchor Bối cảnh chính của cảnh'),
+    luc: z.string().describe('Thời điểm cụ thể, tiếng Việt, vd "ĐÊM – 23:40, ngay sau khi đèn tắt" (luật 13)'),
+    gia_tri_doi: z.string().describe('Tiếng Việt: trạng thái đầu → cuối của nhân vật, vd "có bạn, an toàn → thất bại, sắp mất bạn" (luật 17)'),
+    diem_xoay: z.string().describe('Tiếng Việt: khoảnh khắc kết quả ngược với điều nhân vật chờ'),
+    nhip_hd: z.array(z.string()).describe('Các nhịp hành động → phản ứng của cảnh, tiếng Việt, mỗi nhịp một câu'),
+    hieu_ung: z.array(z.string()).describe('Hiệu ứng cần dựng (biến hình, ánh sáng đổi, tia điện…), tiếng Việt; rỗng nếu không'),
+    anh_sang: enumNhom('anh_sang').describe('Ánh sáng chủ đạo của cảnh (color script, luật 20)'),
+    mau: enumNhom('mau').describe('Màu chủ đạo của cảnh (color script)'),
+    mau_mo_ta: z.string().describe('Tiếng Việt: ánh sáng + màu đổi thế nào trong cảnh và vì sao (theo cung cảm xúc)'),
+    nhac: enumNhom('nhac').describe('Nhạc của cảnh'),
+    kich_ban: z.array(z.object({ loai: z.string().describe('hd = hành động | am = âm | nv = nhân vật nói/âm hiệu | chuyen = chuyển cảnh'), chu: z.string().describe('chữ của dòng hd/am/chuyen (tiếng Việt); rỗng với nv'), ten: z.string().describe('nv: tên nhân vật; rỗng nếu không'), dien: z.string().describe('nv: diễn xuất; rỗng nếu không'), loi: z.string().describe('nv: lời / âm hiệu; rỗng nếu không') })).describe('Đoạn KỊCH BẢN (screenplay) của cảnh — chỉ truyện, KHÔNG máy'),
     shots: z.array(ShotSchema).describe('Các shot của phân cảnh, theo thứ tự'),
   })),
   hook_bien_the: z.array(z.object({
@@ -151,7 +164,7 @@ const HUONG_DAN_MAU = (so: number) => `BÁM QC MẪU 1:1 (bắt buộc, máy ch�
 export async function tachCanh(opts: {
   loai: LoaiPhim; kinhThanh: KinhThanh; nhanVat: NhanVat[]; kichBan: string; soCanh?: number; tapTruoc?: string[]; thoiLuongS?: number;
   /** Đoạn THƯ VIỆN KHUÔN SHOT (khuon-shot.taKhuon) — hình đã dùng ở QC trước để Claude dùng lại. */ khuon?: string;
-}): Promise<{ ok: true; tomTat: string; canh: CanhSinh[]; beats: { ten: string; mo_ta: string; cam_xuc: number }[]; phanCanh: PhanCanhSinh[]; model: string; tokens: { in: number; out: number } } | { ok: false; loi: string }> {
+}): Promise<{ ok: true; tomTat: string; hoSo?: { thoi_gian: string; duong_di: string; motif: string; cung: string }; canh: CanhSinh[]; beats: { ten: string; mo_ta: string; cam_xuc: number }[]; phanCanh: PhanCanhSinh[]; model: string; tokens: { in: number; out: number } } | { ok: false; loi: string }> {
   const c = client();
   if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
   const kt = docKinhThanh(opts.kinhThanh);
@@ -206,7 +219,7 @@ export async function tachCanh(opts: {
     if (pcHook) bienThe.forEach((h, i) => { const nhanh = String.fromCharCode(66 + i); canh.push(...h.shots.map((x) => chuan(x, `${pcHook.ten} · ${h.ten}`, nhanh))); });
     const phanCanh: PhanCanhSinh[] = p.phan_canh.map(({ shots: _s, ...pc }) => ({ ...pc, cam_xuc_dau: kep(pc.cam_xuc_dau), cam_xuc_cuoi: kep(pc.cam_xuc_cuoi) }));
     const beats = p.beats.map((b) => ({ ...b, cam_xuc: kep(b.cam_xuc) }));
-    return { ok: true, tomTat: p.tom_tat, canh, beats, phanCanh, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
+    return { ok: true, tomTat: p.tom_tat, hoSo: p.ho_so, canh, beats, phanCanh, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } };
   } catch (e) {
     return { ok: false, loi: loiGoi(e) };
   }

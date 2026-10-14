@@ -9,13 +9,14 @@ import { anhNho, nacNho } from '@/lib/xuong-video/anh-nho';
 export type Khoa = { google: boolean; anthropic: boolean; r2: boolean; openai: boolean; fal: boolean };
 
 /** Drawer phim chia tab (audit 09/10/2026: một cuộn dài 0→1→2→3→timeline không vừa một màn): kịch bản · storyboard & timeline · âm thanh · xuất. */
-export type TabPhim = 'phim' | 'so_do' | 'kich_ban' | 'storyboard' | 'am_thanh' | 'xuat';
+export type TabPhim = 'phim' | 'so_do' | 'kich_ban' | 'ho_so' | 'storyboard' | 'am_thanh' | 'xuat';
 
 export const TAB_PHIM: { key: TabPhim; label: string; mo: string }[] = [
   // Phim (cả bộ, ít đổi) tách khỏi Kịch bản (từng tập, làm hằng ngày) — 13/10/2026: một tab chồng 5 khối dài 1,5 màn hình.
   { key: 'phim', label: '🎭 Phim', mo: 'Cả bộ phim: mục 0 sản phẩm · 1 kinh thánh · 2 nhân vật / sản phẩm / bối cảnh · poster' },
   { key: 'so_do', label: '🗺 Sơ đồ', mo: 'Cả bộ phim → từng mùa → từng tập: loại tập, nhân vật, gài/trả, tập đang ở khâu nào; bấm để mở hoặc tạo tập từ bản đồ' },
   { key: 'kich_ban', label: '📝 Kịch bản', mo: 'Tập này: 3a brief · 3b kịch bản → tách cảnh · kiểm người xem có hiểu không' },
+  { key: 'ho_so', label: '📋 Hồ sơ', mo: 'Hồ sơ tiền kỳ chuẩn studio, 7 tài liệu: kịch bản · phân tích cảnh · bóc tách · shot list · bảng liên tục · color script · âm thanh' },
   { key: 'storyboard', label: '🎞 Storyboard', mo: 'Keyframe → duyệt → video, kéo thả, cắt giây phát, chữ màn, bộ kiểm' },
   { key: 'am_thanh', label: '🔊 Âm thanh', mo: 'Giọng nhân vật, hiệu ứng, nhạc theo phân cảnh' },
   { key: 'xuat', label: '⬇ Xuất', mo: 'Bộ kiểm đạt chưa · dựng MP4 theo nhánh hook · chi phí' },

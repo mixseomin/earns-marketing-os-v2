@@ -82,7 +82,13 @@ export type DongThoai = { nhan_vat: string; dien_xuat: string; loi: string; url?
 /** Ghép dòng thoại thành chuỗi loi_thoai (tương thích chỗ cũ: animatic, tìm người nói). */
 export const ghepThoai = (ds: DongThoai[]) => ds.filter((d) => d.loi.trim()).map((d) => `${d.nhan_vat ? `${d.nhan_vat}${d.dien_xuat ? ` (${d.dien_xuat})` : ''}: ` : ''}"${d.loi.trim()}"`).join('\n');
 /** Một phân cảnh (scene): nhóm shot cùng phan_doan. Cảm xúc -5..5. */
-export type PhanCanh = { ten: string; beat: string; muc_tieu: string; xung_dot: string; an_y: string; nhip: string; cam_xuc_dau: number; cam_xuc_cuoi: number };
+/** Phân cảnh = một CẢNH của hồ sơ tiền kỳ chuẩn studio (14/10/2026, anh chốt từ Tango & Lint tập 1): ngoài mục tiêu/xung đột, mỗi cảnh mang
+ *  phần của đạo diễn (giá trị đổi, điểm xoay, nhịp hành động–phản ứng), sản xuất (hiệu ứng — nhân vật/đạo cụ/bối cảnh rút từ anchor của shot),
+ *  color script (ánh sáng + màu, mã thư viện) và nhạc. Bảy tài liệu của tab Hồ sơ đọc từ đây + shot (ho-so.ts). */
+export type PhanCanh = { ten: string; beat: string; muc_tieu: string; xung_dot: string; an_y: string; nhip: string; cam_xuc_dau: number; cam_xuc_cuoi: number;
+  noi?: string; luc?: string; gia_tri_doi?: string; diem_xoay?: string; nhip_hd?: string[]; hieu_ung?: string[]; anh_sang?: string; mau?: string; mau_mo_ta?: string; nhac?: string;
+  /** đoạn kịch bản (screenplay) của cảnh: hành động / âm / thoại / chuyển cảnh */ kich_ban?: DongKichBan[] };
+export type DongKichBan = { loai: 'hd' | 'am' | 'chuyen'; chu: string } | { loai: 'nv'; ten: string; dien: string; loi: string };
 export type KinhThanh = {
   phong_cach?: string;          // "3D hoạt hình kiểu Pixar, màu ấm, ánh sáng mềm" — nối vào đầu mọi prompt ảnh/video
   ti_le?: TiLe;
@@ -328,7 +334,9 @@ export type ThuNguoiXem = {
   diem: number; cho_kho: { shot: number; van_de: string; sua: string }[];
   khop: boolean; lech: string; dat: boolean;
 };
-export type Tap = { id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null; xuat: BanXuat[]; bai_dang: BaiDang | null; lop: Lop[]; thu_nguoi_xem?: ThuNguoiXem | null };
+/** Phần cấp TẬP của hồ sơ tiền kỳ (ho-so.ts): thời gian của cả tập, đường đi trong thế giới, motif, cung cảm xúc, chữ màn mở (tên tập). */
+export type TapHoSo = { thoi_gian?: string; duong_di?: string; motif?: string; cung?: string };
+export type Tap = { ho_so?: TapHoSo; id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null; xuat: BanXuat[]; bai_dang: BaiDang | null; lop: Lop[]; thu_nguoi_xem?: ThuNguoiXem | null };
 /** Một bản xuất MP4 của tập (mỗi nhánh hook một tệp). */
 /** Kho tài sản dùng lại (xv_tai_san): clip/keyframe đạt, nhạc nền, preset giọng, khuôn QC, kiểu chữ thương hiệu. */
 /** Khoá THƯƠNG HIỆU của kho tài sản = tên miền shop của phim QC (qc.link, bỏ www) — project của studio là nhãn chung ('studio'), không phải

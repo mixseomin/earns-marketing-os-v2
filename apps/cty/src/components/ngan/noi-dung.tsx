@@ -13,6 +13,7 @@ import { NutDeCu } from '../nut-de-cu';
 import { KhungVp } from '@/components/khung-vp';
 import { docMailBaoMat } from '../../../worker/mail-bao-mat.mjs';
 import { nhatKyNhip } from '../../../worker/nhip.mjs';
+import { viecMayCua, docViecMay, hong, lichNguoi } from '../../../worker/viec-may.mjs';
 import Link from 'next/link';
 import { Gio } from '../gio';
 import { nhanSu, heartbeat, phong, dsNhanSu, soDo, docText, cauHinh, dsPhong, KHUON, MUC, hrefVp } from '@/lib/cong-ty';
@@ -366,6 +367,7 @@ export function nganNhatKy(ma: string): Ngan {
 /** Ngăn một đầu việc tự làm `nhip:<người>/<việc>` (anh 14/10/2026): việc đó là gì · lịch · nhật ký từng lần chạy (nhip/<id>.jsonl). */
 export function nganNhip(ma: string): Ngan {
   const [id = '', viec = ''] = ma.split('/'); const d = nhanSu(id);
+  if (d && viec === 'may') return nganViecMay(id);
   const n = d ? nhipChu(d.fm, id) : null; const v = n?.ds.find((x) => x.ma === viec) as { ten: string; lich: string; mo_ta: string; khop: RegExp | null } | undefined;
   if (!d || !n || !v) return { tieuDe: ma, than: <Thieu chu={`Không có việc tự làm "${viec}" của "${id}" (heartbeat trong SOUL.md + worker/nhip.mjs VIEC_NHIP).`} /> };
   const tatCa = nhatKyNhip(id) as { luc: string; ket: string }[];
@@ -385,6 +387,35 @@ export function nganNhip(ma: string): Ngan {
           <thead><tr><th>lúc</th><th>kết quả</th></tr></thead>
           <tbody>{ds.map((e) => <tr key={e.luc}><td className="cty-nho"><Gio iso={e.luc} /></td><td className="cty-log-ct">{e.ket}</td></tr>)}</tbody>
         </table></div> : <p className="cty-muted">Chưa có lần chạy nào{v.khop ? ' của việc này' : ' có việc'} trong nhật ký.</p>}
+      </div>
+    ),
+  };
+}
+
+type VM = { id: string; may: string; loai: string; ma: string; ten: string; lich: string; cuoi: string; tiep?: string; ket: string; ma_thoat?: string; log: string[]; phong: string; chua_gan: boolean };
+/** Ngăn "việc máy" của một người (worker/viec-may.mjs): mọi timer / cron / LaunchAgent người đó phụ trách — chạy ở đâu, lịch, lần cuối, kết quả, nhật ký. */
+function nganViecMay(id: string): Ngan {
+  const anh = docViecMay() as { luc: string; loi: Record<string, string> } | null; const ds = (viecMayCua(id) as VM[]).sort((a, b) => Number(hong(b)) - Number(hong(a)) || a.may.localeCompare(b.may) || a.ma.localeCompare(b.ma));
+  const LOAI: Record<string, string> = { timer: 'timer', cron: 'cron', launchd: 'LaunchAgent' };
+  return {
+    tieuDe: <><Nguoi id={id} anh={false} /> · việc máy <span className="cty-tab-so">{ds.length}</span></>,
+    than: (
+      <div className="nk-mot nk-cot-dai">
+        <p className="cty-nho cty-muted">Việc chạy tự động trên box và Mac mà người này phụ trách, máy tự dò mỗi 10 phút{anh ? <> (lần dò gần nhất <TruocDay iso={anh.luc} />)</> : null}. Việc mới tự hiện; việc chưa khớp phòng nào về Phòng Bảo trì, đánh dấu &quot;chưa xếp phòng&quot;.</p>
+        {anh && Object.keys(anh.loi ?? {}).length > 0 && <p className="cty-bao-loi" data-loi="">Không dò được: {Object.entries(anh.loi).map(([k, v]) => `${k} (${v})`).join(' · ')} — đang hiện ảnh cũ của máy đó.</p>}
+        {ds.length ? <div className="cty-md cty-cuon"><table className="cty-log">
+          <thead><tr><th>việc</th><th>máy</th><th>lịch</th><th>lần cuối</th><th>kết quả</th></tr></thead>
+          <tbody>{ds.map((v) => (
+            <tr key={v.id}>
+              <td className="cty-log-ct"><details><summary><b>{v.ten || v.ma.split('/').pop()}</b>{v.chua_gan && <span className="cty-thu-loi"> · chưa xếp phòng</span>}</summary>
+                <div className="cty-nho cty-muted"><code>{v.ma}</code> · {LOAI[v.loai] ?? v.loai}</div>
+                {v.log?.length ? <pre className="cty-nho">{v.log.join('\n')}</pre> : <div className="cty-nho cty-muted">{v.loai === 'cron' ? 'cron không giữ nhật ký riêng — xem tệp log trong lệnh' : 'chưa có nhật ký'}</div>}</details></td>
+              <td className="cty-nho">{v.may}</td>
+              <td className="cty-nho">{lichNguoi(v)}</td>
+              <td className="cty-nho">{v.cuoi ? <TruocDay iso={v.cuoi} /> : <span className="cty-muted">—</span>}</td>
+              <td className="cty-nho">{hong(v) ? <span className="cty-thu-loi">{v.ket}{v.ma_thoat ? ` (mã ${v.ma_thoat})` : ''}</span> : v.ket === 'success' ? 'xong' : v.ket || '—'}</td>
+            </tr>))}</tbody>
+        </table></div> : <p className="cty-muted">Người này chưa phụ trách việc máy nào.</p>}
       </div>
     ),
   };

@@ -119,4 +119,7 @@ if (process.argv[1]?.endsWith('nhip.mjs')) {
     const truoc = lanLam(n.id); if (truoc && Date.now() - Date.parse(truoc.luc) < n.kiemMoi * 60_000 - 15_000) continue;   // chưa tới lượt kiểm của người này
     try { const ket = await NHIP[v](n); ghiLam(n.id, ket, v); console.log(`${n.id} · ${v}: ${ket}`); } catch (e) { console.error(`✗ ${n.id} · ${v}: ${e.message}`); process.exitCode = 1; }
   }
+  // VIỆC MÁY (worker/viec-may.mjs): dò lại timer / cron / LaunchAgent mọi máy mỗi 10 phút để bảng nhân sự thấy việc mới + lần chạy cuối
+  const vm = await import('./viec-may.mjs'); let tuoi = Infinity; try { tuoi = Date.now() - fs.statSync(vm.TEP()).mtimeMs; } catch { /* chưa có ảnh */ }
+  if (tuoi > 9.5 * 60_000) try { console.log(`việc máy: ${vm.gom()}`); } catch (e) { console.error(`✗ việc máy: ${e.message}`); }
 }

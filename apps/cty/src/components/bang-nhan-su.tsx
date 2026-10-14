@@ -8,6 +8,7 @@ import { demTn, type TrachNhiem } from '@/lib/trach-nhiem';
 import { vaiCuaPhong, theVai } from '../../worker/quy-trinh.mjs';
 import { NHIP, NHIP_MAY, TEN_NHIP, docChinh, lanLam, tanSuat, dauViec } from '../../worker/nhip.mjs';
 import { hrefNhip } from '@/lib/ngan';
+import { viecMayCua, hong } from '../../worker/viec-may.mjs';
 import { ChinhNhip, ChinhGio } from './chinh-nhip';
 import { NutTuLam } from './nut-tu-lam';
 import { getCurrentUser } from '@/lib/auth';
@@ -73,7 +74,8 @@ export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS
             <td className="cty-nho">{tenModel(d.model)}</td>
             <td className={`cty-nho${n.bat ? '' : ' cty-muted'}`}>{n.ds.length   // đầu việc tách dòng, bấm mở ngăn mô tả + nhật ký (anh 14/10/2026)
               ? <ul className="cty-dn-viec">{n.ds.map((v) => <li key={v.ma}><Link href={hrefNhip(d.id, v.ma)}>{v.ten}</Link> {v.gio ? <ChinhGio id={d.id} gio={v.gio} chu={v.lich} admin={admin} /> : <span className="cty-muted">{v.lich}</span>}</li>)}</ul>
-              : n.viec}</td>
+              : n.viec}{((vm) => vm.length > 0 && <div><Link href={hrefNhip(d.id, 'may')} title="Timer / cron / LaunchAgent chạy trên box và Mac mà người này phụ trách">{vm.length} việc máy</Link>
+                {vm.some(hong) && <span className="cty-thu-loi"> · {vm.filter(hong).length} lỗi</span>}{vm.some((v) => v.chua_gan) && <span className="cty-thu-loi"> · {vm.filter((v) => v.chua_gan).length} chưa xếp phòng</span>}</div>)(viecMayCua(d.id) as { chua_gan?: boolean }[])}</td>
             {n.bat && n.ca && ('box' in n ? n.box : true) ? <ChinhNhip   /* máy kiểm + ca chỉ nghĩa với nhịp box; việc trên Mac có lịch riêng (cột Tự làm) */ id={d.id} ca={n.ca} diemDanh={n.diemDanh ?? ''} kiemMoi={n.kiemMoi ?? 1} admin={admin} />
               : <><td className="cty-nho"><span className="cty-muted">—</span></td><td className="cty-nho"><span className="cty-muted">—</span></td></>}
             <td className="cty-nho" title={cuoi[d.id]?.ket}>{cuoi[d.id] ? <TruocDay iso={cuoi[d.id]!.luc} /> : <span className="cty-muted">chưa làm</span>}</td>

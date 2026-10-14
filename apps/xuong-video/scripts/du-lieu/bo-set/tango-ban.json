@@ -3,6 +3,214 @@
   "ghi_chu": "Đơn vị cm. Gốc (0,0,0) = giữa MÉP TRƯỚC mặt bàn; x sang phải (nhìn từ phía người ngồi), y vào sâu về phía tường, z lên trên. Đo theo ảnh mẫu The Desk (wide) + Desk Map (top-down): hai màn hình ĐẶT SONG SONG cạnh nhau, cùng quay mặt ra phía người ngồi, hơi chụm vào giữa. Hàng SAU (anh 14/10/2026): hai máy nữa đặt trên kệ nâng phía sau, mặt quay về phía trước — khoảng giữa hai hàng (y≈58–92) là THUNG LŨNG: lưng hàng trước + rừng cáp một bên, hai bức tường màn hình sáng bên kia. Tệp nạp bằng scripts/bo-set.mts: vat → xv_bo_set; vung → anchor bối cảnh (bo_set_id + tâm vùng); khoi → khối 3D của nhân vật / đạo cụ; may → máy ảo của shot theo mã hồ sơ (dan_dung.ma).",
   "vat": [
     {
+      "ten": "Sàn phòng",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        0,
+        62,
+        -76
+      ],
+      "co": [
+        500,
+        500,
+        1
+      ],
+      "mau": "#4a3b30"
+    },
+    {
+      "ten": "Chân bàn 1",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        -80,
+        6,
+        -75
+      ],
+      "co": [
+        5,
+        5,
+        72
+      ],
+      "mau": "#5a3f28"
+    },
+    {
+      "ten": "Chân bàn 2",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        80,
+        6,
+        -75
+      ],
+      "co": [
+        5,
+        5,
+        72
+      ],
+      "mau": "#5a3f28"
+    },
+    {
+      "ten": "Chân bàn 3",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        -80,
+        118,
+        -75
+      ],
+      "co": [
+        5,
+        5,
+        72
+      ],
+      "mau": "#5a3f28"
+    },
+    {
+      "ten": "Chân bàn 4",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        80,
+        118,
+        -75
+      ],
+      "co": [
+        5,
+        5,
+        72
+      ],
+      "mau": "#5a3f28"
+    },
+    {
+      "ten": "Tường sau",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        0,
+        312,
+        -75
+      ],
+      "co": [
+        500,
+        2,
+        270
+      ],
+      "mau": "#3a3c46"
+    },
+    {
+      "ten": "Tường trái",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        -250,
+        62,
+        -75
+      ],
+      "co": [
+        2,
+        500,
+        270
+      ],
+      "mau": "#3a3c46"
+    },
+    {
+      "ten": "Tường phải",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        250,
+        62,
+        -75
+      ],
+      "co": [
+        2,
+        500,
+        270
+      ],
+      "mau": "#3a3c46"
+    },
+    {
+      "ten": "Tường trước 1",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        -155,
+        -188,
+        -75
+      ],
+      "co": [
+        190,
+        2,
+        270
+      ],
+      "mau": "#3a3c46"
+    },
+    {
+      "ten": "Tường trước 2",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        155,
+        -188,
+        -75
+      ],
+      "co": [
+        190,
+        2,
+        270
+      ],
+      "mau": "#3a3c46"
+    },
+    {
+      "ten": "Tường trước 3",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        0,
+        -188,
+        -75
+      ],
+      "co": [
+        120,
+        2,
+        100
+      ],
+      "mau": "#3a3c46"
+    },
+    {
+      "ten": "Tường trước 4",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        0,
+        -188,
+        125
+      ],
+      "co": [
+        120,
+        2,
+        70
+      ],
+      "mau": "#3a3c46"
+    },
+    {
+      "ten": "Khung cửa sổ",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        0,
+        -188,
+        25
+      ],
+      "co": [
+        124,
+        4,
+        2
+      ],
+      "mau": "#8a7a66"
+    },
+    {
       "ten": "Mặt bàn",
       "nen": true,
       "hinh": "hop",
@@ -17,22 +225,6 @@
         3
       ],
       "mau": "#6b4a2e"
-    },
-    {
-      "ten": "Tường",
-      "nen": true,
-      "hinh": "hop",
-      "tam": [
-        0,
-        126,
-        -3
-      ],
-      "co": [
-        240,
-        2,
-        160
-      ],
-      "mau": "#3d3d48"
     },
     {
       "ten": "Cable Jungle 3",

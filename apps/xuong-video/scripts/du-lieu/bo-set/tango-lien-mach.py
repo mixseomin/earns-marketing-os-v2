@@ -33,6 +33,26 @@ vat('Cable Jungle 4')['diem'] = [[-30, 58, 0.3], [-12, 76, 0.3], [4, 79, 0.3], [
 # thay bằng MỘT MacBook Pro mở nắp ở giữa phía sau, màn hình quay ra trước. MacBook là đồ TUỲ CHỌN (tuy_chon): mặc định vắng, shot nào có
 # thì khai may_3d.them = ['MacBook Pro'] — "lúc đặt, lúc không có".
 S['vat'] = [x for x in S['vat'] if x['ten'] not in ('Back Monitor', 'Silver iMac', 'Kệ nâng sau')]
+# BÀN ĐẶT GIỮA PHÒNG (anh 14/10/2026: "thực tế bàn đó đặt giữa phòng chứ không sát tường"): bỏ bức tường sát lưng bàn; dựng sàn (mặt bàn cao
+# 75 cm), bốn chân bàn, bốn bức tường xa (phòng 5 × 5 m, bàn ở giữa), tường trước có ô cửa sổ tầng ba — đúng cú bay qua cửa sổ vào bàn ở 0.4.
+S['vat'] = [x for x in S['vat'] if not x['ten'].startswith('Tường') and not x['ten'].startswith('Sàn') and not x['ten'].startswith('Chân bàn')]
+BAN_T = [0, 62]   # tâm mặt bàn (x, y); mặt bàn 170 × 124
+PHONG = [{'ten': 'Sàn phòng', 'nen': True, 'hinh': 'hop', 'tam': [0, 62, -76], 'co': [500, 500, 1], 'mau': '#4a3b30'}]
+for i, (dx, dy) in enumerate([(-80, -56), (80, -56), (-80, 56), (80, 56)]):
+    PHONG.append({'ten': f'Chân bàn {i + 1}', 'nen': True, 'hinh': 'hop', 'tam': [BAN_T[0] + dx, BAN_T[1] + dy, -75], 'co': [5, 5, 72], 'mau': '#5a3f28'})
+PHONG += [
+    {'ten': 'Tường sau', 'nen': True, 'hinh': 'hop', 'tam': [0, 312, -75], 'co': [500, 2, 270], 'mau': '#3a3c46'},
+    {'ten': 'Tường trái', 'nen': True, 'hinh': 'hop', 'tam': [-250, 62, -75], 'co': [2, 500, 270], 'mau': '#3a3c46'},
+    {'ten': 'Tường phải', 'nen': True, 'hinh': 'hop', 'tam': [250, 62, -75], 'co': [2, 500, 270], 'mau': '#3a3c46'},
+    # Tường trước (phía người ngồi) có ô cửa sổ 120 × 100 cm, bậu cách sàn 100 cm, thẳng trước bàn: ghép bốn mảng quanh lỗ cửa.
+    {'ten': 'Tường trước 1', 'nen': True, 'hinh': 'hop', 'tam': [-155, -188, -75], 'co': [190, 2, 270], 'mau': '#3a3c46'},
+    {'ten': 'Tường trước 2', 'nen': True, 'hinh': 'hop', 'tam': [155, -188, -75], 'co': [190, 2, 270], 'mau': '#3a3c46'},
+    {'ten': 'Tường trước 3', 'nen': True, 'hinh': 'hop', 'tam': [0, -188, -75], 'co': [120, 2, 100], 'mau': '#3a3c46'},
+    {'ten': 'Tường trước 4', 'nen': True, 'hinh': 'hop', 'tam': [0, -188, 125], 'co': [120, 2, 70], 'mau': '#3a3c46'},
+    {'ten': 'Khung cửa sổ', 'nen': True, 'hinh': 'hop', 'tam': [0, -188, 25], 'co': [124, 4, 2], 'mau': '#8a7a66'},
+]
+S['vat'] = PHONG + S['vat']
+vat('Mặt bàn')['nen'] = True
 vat('Cable Jungle 3')['diem'] = [[-40, 96, 0.3], [-38, 90, 0.3], [-10, 80, 0.3], [15, 86, 0.3], [36, 92, 0.3], [34, 97, 0.3]]
 # Nắp nghiêng ra sau 15°: bản lề ở mép sau thân máy (y = +11, z = 1.5); tâm nắp = bản lề + 10·(0, sin15°, cos15°); khối ghi z ĐÁY = tâm − nửa cao.
 S['vat'] = [x for x in S['vat'] if x['ten'] != 'MacBook Pro'] + [{'ten': 'MacBook Pro', 'tuy_chon': True, 'anchor': 'MacBook Pro', 'goc': [0, 100], 'xoay': 0, 'phan': [

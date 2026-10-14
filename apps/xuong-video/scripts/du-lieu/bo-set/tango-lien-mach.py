@@ -161,6 +161,23 @@ VT = {
  '7.8': [v(TANGO, T7N, ve=KEO7), v(LINT, L7N, ve=KEO7), v(CORDY, [47, 57.6, 0.6], ve=T7N)],
  '8.1': [v(TANGO, [-2, 3, 0], ve=CAM), v(LINT, [2, 3, 0], ve=CAM)],
 }
+# ĐỒ ĐANG CẦM phải đi theo người cầm qua mọi shot người đó có mặt (cổng lienMachTap › đồ đang cầm; nối thử #22→#24: bình xịt biến mất ở 5.5):
+# nửa kẹo trong tay Tango từ 4.7 tới khi đặt lên thẻ ở 7.1; bình xịt trong tay Mr. Wipe từ 5.2 tới hết cảnh 6; cục bông Lint ôm từ 6.2, đặt xuống ở 7.1.
+def cam_theo(ma, mon, nguoi, lech, an=True):
+    ds = VT[ma]; ng = next(x for x in ds if x['ten'] == nguoi)
+    if any(x['ten'] == mon for x in ds): return
+    p = [ng['tam'][0] + lech[0], ng['tam'][1] + lech[1], (ng['tam'][2] if len(ng['tam']) > 2 else 0) + lech[2]]
+    o = v(mon, p, cam=nguoi)
+    if an: o['an'] = True
+    ds.append(o)
+for ma in ('5.1', '5.3', '5.4', '5.5', '5.6', '5.7', '6.1', '6.2', '6.3'): cam_theo(ma, GUMMY, TANGO, [0.7, -0.5, 0.8])
+for ma in ('5.5', '6.1', '6.2', '6.3'): cam_theo(ma, SPRAY, WIPE, [1.5, 0, -1], an=(ma != '5.5'))
+cam_theo('6.3', CBALL, LINT, [0.4, 0.3, 0.4])
+VT['7.1'].append(v(CBALL, [55.8, 51.8, 1.2], [58.9, 53.3, 0.3], cam=LINT))   # Lint đặt cục bông xuống thẻ cạnh mình
+# 5.7 mở đúng hướng 5.6 kết (ngửa về máy), rồi mới ngước nhìn Lint.
+for x in VT['5.7']:
+    if x['ten'] == TANGO: x['huong'] = nhin(x['tam'], [3.7, 68.4]); x['huong_den'] = nhin(x['tam'], [7.5, 72.5])
+
 NHAY = {  # cú cắt cố ý cắt thời gian / dịch chuyển ngoài khung
  '3.1': 'cắt thời gian: lăn một quãng ngoài khung tới khe giữa hai màn hình',
  '4.1': 'cắt thời gian: hết khe màn hình, lăn vào rừng cáp',

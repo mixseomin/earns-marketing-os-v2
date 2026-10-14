@@ -218,8 +218,20 @@ const gocLech = (a: number, b: number) => Math.abs((((a - b) % 360) + 540) % 360
 /** Lỗi liền mạch theo từng shot (id → câu). ds = các shot CÙNG bộ set theo thứ tự phát; shot không có may_3d bỏ qua. */
 export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May3d | null }>(ds: T[], khoi: (ten: string) => { co: number[] } | null): Record<number, string[]> {
   const cuoi = new Map<string, { p: number[]; huong?: number; shot: number }>(); const out: Record<number, string[]> = {};
+  // ĐỒ ĐANG CẦM (nối thử #22→#24 tập 19: bình xịt trong tay Mr. Wipe ở 5.4 và 5.6 mà 5.5 không có): người cầm còn trong shot thì món đồ phải còn —
+  // tới khi nó xuất hiện KHÔNG còn cầm (đặt xuống), hoặc người cầm khai nhảy / shot khai nhảy.
+  const camBoi = new Map<string, { nguoi: string; shot: number }>();
   for (const c of ds) {
     const m = c.may_3d; if (!m) continue;
+    const co = new Set(m.vi_tri.map((v) => v.ten));
+    if (m.nhay) camBoi.clear();
+    for (const [mon, x] of camBoi) {
+      const ng = m.vi_tri.find((v) => v.ten === x.nguoi);
+      if (ng?.nhay) { camBoi.delete(mon); continue; }
+      if (ng && !co.has(mon)) (out[c.id] ??= []).push(`${x.nguoi} đang cầm ${mon} (từ #${x.shot}) mà shot này vắng nó — thêm ${mon} vào chỗ đứng (cam: '${x.nguoi}', an nếu ngoài khung) hoặc cho đặt xuống ở shot trước`);
+    }
+    // cam + den = cầm rồi ĐẶT XUỐNG trong shot (hai nửa kẹo đặt lên thẻ ở 7.1) → hết theo dõi.
+    for (const v of m.vi_tri) { if (v.cam && !v.den) camBoi.set(v.ten, { nguoi: v.cam, shot: c.thu_tu }); else camBoi.delete(v.ten); }
     for (const v of m.vi_tri) {
       const tr = cuoi.get(v.ten);
       if (v.cam) { cuoi.delete(v.ten); continue; }   // đang cầm: theo người cầm, lần sau thấy không so chỗ cũ

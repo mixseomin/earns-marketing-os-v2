@@ -398,6 +398,40 @@
       "en": "window frame on the far wall"
     },
     {
+      "ten": "Khung cửa sổ",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        0,
+        -188,
+        25
+      ],
+      "co": [
+        124,
+        4,
+        2
+      ],
+      "mau": "#8a7a66",
+      "en": "window frame on the far wall"
+    },
+    {
+      "ten": "Khung cửa sổ",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        0,
+        -188,
+        25
+      ],
+      "co": [
+        124,
+        4,
+        2
+      ],
+      "mau": "#8a7a66",
+      "en": "window frame on the far wall"
+    },
+    {
       "ten": "Mặt bàn",
       "nen": true,
       "hinh": "hop",
@@ -2250,6 +2284,16 @@
             0
           ],
           "huong": -75
+        },
+        {
+          "ten": "Gummy Bear",
+          "tam": [
+            3.7,
+            70.0,
+            0.8
+          ],
+          "cam": "Tango",
+          "an": true
         }
       ],
       "qua_truc": true
@@ -2325,6 +2369,16 @@
           ],
           "cam": "Mr. Wipe",
           "an": true
+        },
+        {
+          "ten": "Gummy Bear",
+          "tam": [
+            3.7,
+            70.0,
+            0.8
+          ],
+          "cam": "Tango",
+          "an": true
         }
       ],
       "phia": 0,
@@ -2381,6 +2435,16 @@
             5
           ],
           "cam": "Mr. Wipe"
+        },
+        {
+          "ten": "Gummy Bear",
+          "tam": [
+            3.7,
+            70.0,
+            0.8
+          ],
+          "cam": "Tango",
+          "an": true
         }
       ],
       "khung": [
@@ -2450,6 +2514,25 @@
             73.5,
             0
           ]
+        },
+        {
+          "ten": "Gummy Bear",
+          "tam": [
+            4.7,
+            69.0,
+            0.8
+          ],
+          "cam": "Tango",
+          "an": true
+        },
+        {
+          "ten": "Blue Spray Bottle",
+          "tam": [
+            9.5,
+            74,
+            3
+          ],
+          "cam": "Mr. Wipe"
         }
       ],
       "phia": 0,
@@ -2494,6 +2577,16 @@
           ],
           "huong": -36,
           "an": true
+        },
+        {
+          "ten": "Gummy Bear",
+          "tam": [
+            7.1000000000000005,
+            70.7,
+            0.8
+          ],
+          "cam": "Tango",
+          "an": true
         }
       ],
       "phia": 0,
@@ -2510,8 +2603,19 @@
             70.5,
             0
           ],
-          "huong": 143,
-          "nam": true
+          "huong": -48,
+          "nam": true,
+          "huong_den": 143
+        },
+        {
+          "ten": "Gummy Bear",
+          "tam": [
+            6.7,
+            70.0,
+            0.8
+          ],
+          "cam": "Tango",
+          "an": true
         }
       ],
       "phia": -40
@@ -2551,6 +2655,26 @@
             6
           ],
           "huong": -18
+        },
+        {
+          "ten": "Gummy Bear",
+          "tam": [
+            6.7,
+            70.0,
+            0.8
+          ],
+          "cam": "Tango",
+          "an": true
+        },
+        {
+          "ten": "Blue Spray Bottle",
+          "tam": [
+            10.0,
+            74.5,
+            5
+          ],
+          "cam": "Mr. Wipe",
+          "an": true
         }
       ],
       "phia": 0,
@@ -2613,6 +2737,26 @@
             3.6
           ],
           "cam": "Lint"
+        },
+        {
+          "ten": "Gummy Bear",
+          "tam": [
+            6.7,
+            70.0,
+            0.8
+          ],
+          "cam": "Tango",
+          "an": true
+        },
+        {
+          "ten": "Blue Spray Bottle",
+          "tam": [
+            10.0,
+            74.5,
+            5
+          ],
+          "cam": "Mr. Wipe",
+          "an": true
         }
       ],
       "phia": 0,
@@ -2666,6 +2810,36 @@
           ],
           "huong": -29,
           "huong_den": 0
+        },
+        {
+          "ten": "Gummy Bear",
+          "tam": [
+            7.7,
+            68.1,
+            3.0999999999999996
+          ],
+          "cam": "Tango",
+          "an": true
+        },
+        {
+          "ten": "Blue Spray Bottle",
+          "tam": [
+            11.5,
+            74,
+            6
+          ],
+          "cam": "Mr. Wipe",
+          "an": true
+        },
+        {
+          "ten": "Cotton Ball",
+          "tam": [
+            7.4,
+            69.2,
+            3.6999999999999997
+          ],
+          "cam": "Lint",
+          "an": true
         }
       ],
       "phia": 60,
@@ -2729,6 +2903,20 @@
           ],
           "an": true,
           "nhay": "lẻn theo hai bạn ngoài khung từ cảnh 2, nấp dưới mép thẻ cam"
+        },
+        {
+          "ten": "Cotton Ball",
+          "tam": [
+            55.8,
+            51.8,
+            1.2
+          ],
+          "den": [
+            58.9,
+            53.3,
+            0.3
+          ],
+          "cam": "Lint"
         }
       ],
       "phia": 70,

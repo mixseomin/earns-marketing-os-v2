@@ -23,7 +23,7 @@ export function nhomPhim(ds: Phim[], loc: { kieu?: KieuNhom | ''; tim?: string; 
   const out = new Map<string, NhomPhim>();
   for (const p of ds) {
     if (!loc.luuTru && laLuuTru(p)) continue;
-    const kieu = kieuPhim(p); if (loc.kieu && kieu !== loc.kieu) continue;
+    const kieu = kieuPhim(p); if (loc.kieu ? kieu !== loc.kieu : kieu === 'template') continue;   // template có kho riêng ở đầu trang — "Tất cả" không lẫn template
     const ten = tenNhomPhim(p);
     if (tim && ![p.ten, ten, ...(p.tap_tom ?? []).map((t) => t.ten)].some((x) => x.toLowerCase().includes(tim))) continue;
     const key = `${kieu}:${ten.toLowerCase()}`;

@@ -13,7 +13,7 @@ const ds = [
   p(18, 'Template · UGC kể chuyện', 'quang_cao', { template: { o: {} } }),
 ];
 let g = nhomPhim(ds, {});
-assert.deepStrictEqual(g.map((x) => [x.ten, x.phim.length]), [['Fox Tales', 2], ['Zeus at Work', 1], ['Astrolas', 2], ['Thỏ và Rùa', 1], ['Template', 1]]);
+assert.deepStrictEqual(g.map((x) => [x.ten, x.phim.length]), [['Fox Tales', 2], ['Zeus at Work', 1], ['Astrolas', 2], ['Thỏ và Rùa', 1]]);
 assert.strictEqual(nhomPhim(ds, { luuTru: true })[0]!.phim.length, 3, 'hiện cả bản lưu trữ');
 assert.deepStrictEqual(nhomPhim(ds, { kieu: 'series' }).map((x) => x.ten), ['Fox Tales', 'Zeus at Work']);
 assert.deepStrictEqual(nhomPhim(ds, { tim: 'reply' }).map((x) => x.ten), ['Zeus at Work'], 'tìm theo tên tập');

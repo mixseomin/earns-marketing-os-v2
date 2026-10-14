@@ -21,7 +21,7 @@ import { useNho } from './nho';
 import { useDinhKy } from './dinh-ky';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
 import { SoDoSeries } from './so-do';
-import { TemplatePanel } from './template-ui';
+import { TemplatePanel, KhoTemplate } from './template-ui';
 
 export function XuongVideoTrang(props: { phimDau: Phim[]; khoa: Khoa }) {
   return <Suspense fallback={<span style={mono}>…</span>}><Ruot {...props} /></Suspense>;
@@ -63,6 +63,8 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
         <div className="xv-stat"><div className="l">Giá mặc định</div><div className="v" style={{ fontSize: 14 }}>{tien(giaAnhCents('gemini-nano-banana-2.1'))} / ảnh · {tien(giaVideoCents('veo-3.1-lite-generate-preview', '720p', 8))} / 8s</div><div className="s">Nano Banana 2.1 · Veo 3.1 Lite 720p</div></div>
       </div>
 
+      <KhoTemplate ds={phim.filter((p) => p.kinh_thanh?.template && !laLuuTru(p))} onMo={(id) => { setTapMo(null); modal.open('phim', id); }} />
+
       <div className="xv-panel">
         <h3>Tạo phim / bộ mới<small>short · phim nhiều tập · creative quảng cáo</small></h3>
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -89,7 +91,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
         return (
           <div className="xv-panel" style={{ padding: 0 }}>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', padding: '8px 10px', borderBottom: '1px solid var(--line)' }}>
-              <Seg options={[{ value: '' as const, label: `Tất cả ${dem.template + dem.series + dem.quang_cao + dem.phim}` }, ...(['template', 'series', 'quang_cao', 'phim'] as const).map((k) => ({ value: k, label: `${TEN_KIEU[k]} ${dem[k]}` }))]} value={locKieu} onChange={setLocKieu} />
+              <Seg options={[{ value: '' as const, label: `Tất cả ${dem.series + dem.quang_cao + dem.phim}` }, ...(['template', 'series', 'quang_cao', 'phim'] as const).map((k) => ({ value: k, label: `${TEN_KIEU[k]} ${dem[k]}` }))]} value={locKieu} onChange={setLocKieu} />
               <input className="xv-in" style={{ width: 220 }} value={locTim} onChange={(e) => setLocTim(e.target.value)} placeholder="🔍 tìm phim, series, tập…" />
               {soLuuTru > 0 && <label style={{ ...mono, display: 'flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={hienLuuTru} onChange={(e) => setHienLuuTru(e.target.checked)} />hiện bản lưu trữ ({soLuuTru})</label>}
               <span style={{ flex: 1 }} /><span style={mono}>{nhom.length} nhóm · {nhom.reduce((a, g) => a + g.phim.length, 0)} phim</span>

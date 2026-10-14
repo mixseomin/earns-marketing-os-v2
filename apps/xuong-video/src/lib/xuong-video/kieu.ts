@@ -126,7 +126,8 @@ export type KinhThanh = {
   /** phim sinh ra từ template nào, với giá trị ô nào (mã gen cho đo đơn về sau) */
   tu_template?: { id: number; ten: string; gia_tri: Record<string, string>; luc: string } | null;
 };
-export type OTemplate = { ten: string; goi_y?: string; mau?: string; dai?: boolean };
+/** nhom: nhóm trong form điền (template.ts › NHOM_O) — thiếu thì máy đoán theo tên ô */
+export type OTemplate = { ten: string; goi_y?: string; mau?: string; dai?: boolean; nhom?: string };
 export type CauHinhTemplate = { mo_ta?: string; o?: Record<string, OTemplate> };
 /** Một tập trong BẢN ĐỒ series (chưa chắc đã có xv_tap): số thứ tự toàn series, mùa, loại, nhân vật, gài/trả (claude.ts › vietMuaPhim). */
 export type TapBanDo = { so: number; ten: string; logline: string; mua?: number; loai?: 'phieu_luu' | 'nguon_goc' | 'ket_mua'; nhan_vat?: string[]; boi_canh?: string[]; gai_tra?: string };

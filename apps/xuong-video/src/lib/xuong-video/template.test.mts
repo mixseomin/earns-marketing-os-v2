@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { timO, dienChu, dienSau, dsOTemplate, oThieu, giaTriMau } from './template';
+import { timO, dienChu, dienSau, dsOTemplate, oThieu, giaTriMau, nhomCuaO, theoNhom } from './template';
 
 // dò ô: sâu, không trùng, theo thứ tự gặp, không phân biệt hoa thường
 assert.deepStrictEqual(timO({ a: 'Hi {{nhan_vat}} {{ San_Pham }}', b: ['{{nhan_vat}}', { c: '{{goc}}' }], d: 3 }), ['nhan_vat', 'san_pham', 'goc']);
@@ -14,4 +14,8 @@ const ds = dsOTemplate({ o: { san_pham: { ten: 'Sản phẩm', mau: 'Sculpt Tank
 assert.deepStrictEqual(ds.map((o) => [o.k, o.dung]), [['san_pham', true], ['thua', false], ['nhan_vat', true]]);
 assert.deepStrictEqual(oThieu(ds, { san_pham: 'x' }).map((o) => o.k), ['nhan_vat']);
 assert.deepStrictEqual(giaTriMau(ds), { san_pham: 'Sculpt Tank' });
+// nhóm: đoán theo tên, khai tay thắng
+assert.deepStrictEqual(['san_pham_hinh', 'anh_san_pham', 'anh_3', 'nhan_vat_ten', 'giong', 'tinh_huong', 'loi_ich_1', 'review'].map((k) => nhomCuaO(k)), ['san_pham', 'san_pham', 'anh', 'nhan_vat', 'nhan_vat', 'boi_canh', 'cau_chuyen', 'cau_chuyen']);
+assert.strictEqual(nhomCuaO('review', { nhom: 'san_pham' }), 'san_pham');
+assert.deepStrictEqual(theoNhom([{ k: 'review' }, { k: 'san_pham' }]).map((n) => [n.key, n.o.length]), [['san_pham', 1], ['cau_chuyen', 1]]);
 console.log('template.ts: ok');

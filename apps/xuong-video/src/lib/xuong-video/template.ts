@@ -35,6 +35,28 @@ export function dienSau<T>(x: T, gt: Record<string, string>): T {
   return x;
 }
 
+/** Nhóm ô trong form điền (anh 14/10/2026: "tổ chức template cho dễ dùng") — người điền đi từ trên xuống, nhóm Sản phẩm mở sẵn. */
+export const NHOM_O = [
+  { key: 'san_pham', ten: '🛍 Sản phẩm & ưu đãi' },
+  { key: 'nhan_vat', ten: '👤 Nhân vật & đối tượng' },
+  { key: 'boi_canh', ten: '🏠 Bối cảnh & tình huống' },
+  { key: 'cau_chuyen', ten: '💬 Câu chuyện (chữ màn + hình)' },
+  { key: 'anh', ten: '🖼 Ảnh dùng nguyên' },
+] as const;
+export type NhomO = (typeof NHOM_O)[number]['key'];
+/** Nhóm của một ô: khai tay (o.nhom) trước, không thì đoán theo tên ô. */
+export function nhomCuaO(k: string, o?: Pick<OTemplate, 'nhom'>): NhomO {
+  if (o?.nhom && NHOM_O.some((n) => n.key === o.nhom)) return o.nhom as NhomO;
+  if (/^anh_\d+$/.test(k)) return 'anh';
+  if (/^(san_pham|anh_san_pham|link|diem_noi_bat|uu_dai|dam_bao|gia)/.test(k)) return 'san_pham';
+  if (/^(nhan_vat|giong|doi_tuong)/.test(k)) return 'nhan_vat';
+  if (/^(boi_canh|tinh_huong)/.test(k)) return 'boi_canh';
+  return 'cau_chuyen';
+}
+/** Ô theo nhóm (giữ thứ tự trong nhóm), bỏ nhóm rỗng. */
+export const theoNhom = <T extends { k: string; nhom?: string }>(ds: T[]) =>
+  NHOM_O.map((n) => ({ ...n, o: ds.filter((o) => nhomCuaO(o.k, o) === n.key) })).filter((n) => n.o.length);
+
 export type OTemplateDs = OTemplate & { k: string; /** ô có xuất hiện trong chữ của template không (khai mà không dùng = thừa) */ dung: boolean };
 
 /** Danh sách ô để hiện form: ô đã khai (theo thứ tự khai) trước, ô gõ trong chữ mà chưa khai sau (nhãn = tên ô). */

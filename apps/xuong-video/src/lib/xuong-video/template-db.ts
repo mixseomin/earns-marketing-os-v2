@@ -10,7 +10,7 @@ import type { CauHinhTemplate, KinhThanh } from './kieu';
 
 const BO = new Set(['id', 'created_at', 'updated_at']);
 /** cột media của shot: còn đúng khi nội dung shot (chữ, prompt, anchor) không đổi */
-const MEDIA_CANH: Record<string, unknown> = { keyframe_url: null, keyframe_uv: [], video_url: null, video_cuoi_url: null, video_phien_ban: [], nguon_video: {}, thoai_url: null, am_thanh_url: null, kiem_khung: null, chu_man_dich: null };
+const MEDIA_CANH: Record<string, unknown> = { keyframe_url: null, keyframe_uv: [], video_url: null, video_cuoi_url: null, video_phien_ban: [], nguon_video: {}, thoai_url: null, am_thanh_url: null, kiem_khung: null, chu_man_dich: {} };
 const MEDIA_NV = new Set(['doi_chieu']);
 
 const q = async (db: Db, s_: ReturnType<typeof sql>) => (await db.execute(s_)) as unknown as Row[];

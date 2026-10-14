@@ -4,6 +4,7 @@
 import { sinhAnh, taiAnhBase64, type AnhVao } from './google';
 import { uploadToR2 } from '../r2';
 import type { TiLeAnh } from './kieu';
+import type { NguonSinh } from './cong-ai';
 
 export type ViecAnh = {
   job: number; model: string; prompt: string; thamChieuUrl: string[]; tiLe: TiLeAnh; kichCo?: '1K' | '2K';
@@ -12,7 +13,7 @@ export type ViecAnh = {
   /** chỉ thử đường hàng đợi → Worker: không gọi model, không tốn tiền */
   thu?: boolean;
 };
-export type KqViec = { job: number; ok: true; url: string; model: string } | { job: number; ok: false; loi: string };
+export type KqViec = { job: number; ok: true; url: string; model: string; nguon?: NguonSinh } | { job: number; ok: false; loi: string; nguon?: NguonSinh };
 
 const duoi = (mime: string) => (mime.split('/')[1] || 'png').replace('jpeg', 'jpg');
 
@@ -20,10 +21,10 @@ export async function chayViecAnh(v: ViecAnh): Promise<KqViec> {
   try {
     const thamChieu = (await Promise.all(v.thamChieuUrl.map(taiAnhBase64))).filter((x): x is AnhVao => !!x);
     const kq = await sinhAnh({ model: v.model, prompt: v.prompt, thamChieu, thamChieuUrl: v.thamChieuUrl, tiLe: v.tiLe, kichCo: v.kichCo ?? '1K' });
-    if (!kq.ok) return { job: v.job, ok: false, loi: kq.loi };
+    if (!kq.ok) return { job: v.job, ok: false, loi: kq.loi, nguon: kq.nguon };
     const url = await uploadToR2(`xuong-video/${v.thuMuc}-${crypto.randomUUID()}.${duoi(kq.mimeType)}`, kq.data, kq.mimeType);
     if (!url) return { job: v.job, ok: false, loi: 'R2 không nhận ảnh' };
-    return { job: v.job, ok: true, url, model: kq.model };
+    return { job: v.job, ok: true, url, model: kq.model, nguon: kq.nguon };
   } catch (e) {
     return { job: v.job, ok: false, loi: `lỗi khi chạy: ${e instanceof Error ? e.message : String(e)}` };
   }

@@ -5,6 +5,7 @@ import 'server-only';
 import { MO_HINH_ANH, type DoPhanGiai, type TiLe, type TiLeAnh } from './kieu';
 import { sinhAnhOpenAI, khoaOpenAI } from './openai';
 import { sinhAnhFal } from './fal';
+import { sinhAnhQuaCong, laHetTien, type NguonSinh, type BuocNguon } from './cong-ai';
 
 const GOC = 'https://generativelanguage.googleapis.com/v1beta';
 
@@ -27,7 +28,8 @@ export async function taiAnhBase64(url: string): Promise<AnhVao | null> {
   } catch { return null; }
 }
 
-type KqAnh = { ok: true; model: string; mimeType: string; data: Buffer } | { ok: false; loi: string };
+/** nguon: ảnh ra từ cổng nào, model thật, tiền thật, các bước đã thử (cong-ai.ts) — có khi đi qua chuỗi cổng / Google trực tiếp. */
+type KqAnh = { ok: true; model: string; mimeType: string; data: Buffer; nguon?: NguonSinh } | { ok: false; loi: string; nguon?: NguonSinh };
 
 /** Gọi đúng MỘT model, không fallback (probe + sinhAnh dùng chung). Model không nhận imageSize thì thử lại không có. */
 export async function sinhAnhMot(opts: { model: string; prompt: string; thamChieu?: AnhVao[]; tiLe: TiLeAnh; kichCo?: '1K' | '2K' }): Promise<KqAnh> {
@@ -66,15 +68,25 @@ export async function sinhAnh(opts: { model: string; prompt: string; thamChieu?:
     return sinhAnhFal(opts.model.slice(4), { prompt: opts.prompt, thamChieu: opts.thamChieuUrl ?? [], tiLe: opts.tiLe });
   }
   if (opts.model.startsWith('gpt-image')) return sinhAnhOpenAI({ prompt: opts.prompt, thamChieu: opts.thamChieu, tiLe: opts.tiLe, model: opts.model });
+  // Model ảnh Google (Nano Banana): đi CHUỖI CỔNG rẻ trước (ckey → ShopAIKey), hỏng hết mới gọi Google trực tiếp (cong-ai.ts).
+  const qc = await sinhAnhQuaCong(opts.model, { prompt: opts.prompt, thamChieuUrl: opts.thamChieuUrl ?? [], tiLe: opts.tiLe });
+  if (qc.anh && qc.nguon) return { ok: true, model: `${qc.nguon.cong}:${qc.nguon.model}`, mimeType: qc.anh.mimeType, data: qc.anh.data, nguon: qc.nguon };
+  const thu: BuocNguon[] = [...qc.thu];
+  const nguonGoogle = (model: string, ok: boolean, loi?: string): NguonSinh => {
+    thu.push({ cong: 'google', model, ok, ...(loi ? { loi: loi.slice(0, 300), het_tien: laHetTien('google', loi) } : {}) });
+    return { cong: 'google', model, thu };
+  };
   const thuTu = [opts.model, ...MO_HINH_ANH.map((m) => m.key).filter((k) => k !== opts.model && !k.startsWith('gpt-image'))];
-  let loiCuoi = '';
+  let loiCuoi = qc.thu.length ? `${qc.thu.map((b) => `${b.cong}:${b.model}: ${b.loi}`).join(' → ')} → ` : '';
+  let nguon: NguonSinh | undefined;
   for (const model of thuTu) {
     const kq = await sinhAnhMot({ ...opts, model });
-    if (kq.ok) return kq;
-    loiCuoi = `${model}: ${kq.loi}`;
+    if (kq.ok) return { ...kq, nguon: nguonGoogle(model, true) };
+    nguon = nguonGoogle(model, false, kq.loi);
+    loiCuoi = `${loiCuoi}${model}: ${kq.loi}`;
     // Chưa billing = cả project bị chặn, thử model Google khác cũng vô ích → nhảy thẳng sang OpenAI.
     if (/chưa gắn Cloud Billing/.test(kq.loi)) break;
-    if (!/NOT_FOUND|404|không tồn tại|rate limit/i.test(kq.loi)) return { ok: false, loi: loiCuoi };
+    if (!/NOT_FOUND|404|không tồn tại|rate limit/i.test(kq.loi)) return { ok: false, loi: loiCuoi, nguon };
   }
   // Google hết đường (chưa billing → quota 0, hoặc đổi tên model) → OpenAI gpt-image nếu có khoá. Keyframe vẫn ra, Veo vẫn chờ billing Google.
   if (khoaOpenAI()) {
@@ -82,7 +94,7 @@ export async function sinhAnh(opts: { model: string; prompt: string; thamChieu?:
     if (kq.ok) return kq;
     loiCuoi = `${loiCuoi} → ${kq.loi}`;
   }
-  return { ok: false, loi: loiCuoi || 'không model ảnh nào chạy được' };
+  return { ok: false, loi: loiCuoi || 'không model ảnh nào chạy được', nguon };
 }
 
 type KqVeoBatDau = { ok: true; taskId: string } | { ok: false; loi: string };

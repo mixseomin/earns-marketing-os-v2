@@ -6,9 +6,10 @@ import { boiCanhCanh, n, s, type Db, type Row } from './doc-db';
 import { chuanBiKeyframe } from './sinh-anh';
 import { promptVideoCanh, khungCuoiCanh } from './sinh-video';
 import { khacCauLenh, type BuocNguon, type NguonShot } from './phu-thuoc';
+import { taNguon, type NguonSinh } from './cong-ai';
 
 const rq = (r: Row) => (r.request && typeof r.request === 'object' ? (r.request as Record<string, unknown>) : {});
-const buoc = (r: Row): BuocNguon => ({ job: n(r.id), model: s(r.model), luc: s(r.created_at), chi_phi_cents: n(r.chi_phi_cents), nhan: s(r.nhan), prompt: s(rq(r).prompt), doi: [], cauLenh: null });
+const buoc = (r: Row): BuocNguon => ({ job: n(r.id), model: s(r.model), nguon: taNguon(r.nguon as NguonSinh | null) || undefined, luc: s(r.created_at), chi_phi_cents: n(r.chi_phi_cents), nhan: s(r.nhan), prompt: s(rq(r).prompt), doi: [], cauLenh: null });
 const cung = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
 
 export async function nguonShot(db: Db, canhId: number): Promise<NguonShot | null> {

@@ -35,7 +35,7 @@ function ChiTiet({ b, tieuDe }: { b: BuocNguon; tieuDe: string }) {
   return (
     <div style={{ display: 'grid', gap: 5 }}>
       <b style={{ fontSize: 12 }}>{tieuDe}</b>
-      <div style={mono}>{b.model.replace(/^fal:/, '')} · {tien(b.chi_phi_cents)} · {gioVN(b.luc)} · job #{b.job}</div>
+      <div style={mono}>{b.nguon || b.model.replace(/^fal:/, '')} · {tien(b.chi_phi_cents)} · {gioVN(b.luc)} · job #{b.job}</div>
       {b.doi.map((x) => <div key={x} style={{ fontSize: 11.5, color: 'var(--red)' }}>⚠ {x}</div>)}
       {b.cauLenh && <div style={{ display: 'grid', gap: 3 }}>
         <div style={{ fontSize: 11.5, color: 'var(--amber)' }}>Câu lệnh giờ khác lúc sinh: +{b.cauLenh.them.length} câu · −{b.cauLenh.bot.length} câu</div>

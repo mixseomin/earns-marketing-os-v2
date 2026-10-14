@@ -470,6 +470,7 @@ export type Job = {
   id: number; canh_id: number | null; nhan_vat_id: number | null; loai: string; provider: string; model: string;
   trang_thai: string; task_id: string | null; output_url: string | null; chi_phi_cents: number; loi: string; created_at: string;
   phim_id?: number | null; nhan?: string; tokens_in?: number; tokens_out?: number; phim_ten?: string;
+  /** nguồn lượt sinh: cổng · model thật · tiền thật · chuỗi dự phòng (cong-ai.ts) */ nguon?: import('./cong-ai').NguonSinh | null;
 };
 
 /** Giá Claude (USD / 1M token in/out, docs Anthropic 09/2026) → cents. */

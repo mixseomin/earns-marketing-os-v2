@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { soChiPhi, dsPhim } from '@/lib/actions';
 import { tien, gioVN, type Phim } from '@/lib/xuong-video/kieu';
+import { taNguon, taThu } from '@/lib/xuong-video/cong-ai';
 import { moNgan } from './ngan-chung';
 
 const LOAI: Record<string, string> = { chu: 'Chữ (Claude)', anh: 'Ảnh', video: 'Video', am: 'Âm thanh', xuat: 'Bản xuất' };
@@ -38,7 +39,7 @@ export function SoChiPhi({ phimDau }: { phimDau?: number }) {
                 <td className="xv-mono" style={{ whiteSpace: 'nowrap' }}>{gioVN(j.created_at, { giay: true })}</td>
                 <td>{j.phim_id ? <button type="button" className="xv-lienket" onClick={() => router.push(`/?m=phim&mId=${j.phim_id}`)}>{j.phim_ten || `#${j.phim_id}`}</button> : '—'}</td>
                 <td title={LOAI[j.loai] ?? j.loai}>{j.nhan || LOAI[j.loai] || j.loai}</td>
-                <td className="xv-mono" title={j.tokens_in || j.tokens_out ? `token ${j.tokens_in} / ${j.tokens_out}` : undefined}>{j.model}</td>
+                <td className="xv-mono" title={j.nguon ? taThu(j.nguon) : j.tokens_in || j.tokens_out ? `token ${j.tokens_in} / ${j.tokens_out}` : undefined}>{j.nguon ? taNguon(j.nguon) : j.model}</td>
                 <td>{j.loi ? <span className="xv-loi" title={j.loi}>lỗi: {j.loi.slice(0, 60)}</span> : j.output_url ? <button type="button" className="xv-lienket" onClick={() => moNgan({ loai: 'xem', url: j.output_url!, ten: j.nhan })}>{/\.(mp4|webm|mov)$/i.test(j.output_url) ? '▶ xem' : /\.(mp3|wav|m4a)$/i.test(j.output_url) ? '♪ nghe' : '🖼 xem'}</button> : j.trang_thai === 'xong' ? '✓' : <span className="xv-mono">đang chạy</span>}</td>
                 <td className="n"><b>{tien(j.chi_phi_cents)}</b></td>
               </tr>

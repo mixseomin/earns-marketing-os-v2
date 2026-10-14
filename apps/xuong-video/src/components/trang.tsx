@@ -22,6 +22,7 @@ import { useDinhKy } from './dinh-ky';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
 import { SoDoSeries } from './so-do';
 import { TemplatePanel, KhoTemplate } from './template-ui';
+import { taNguon, taThu } from '@/lib/xuong-video/cong-ai';
 
 export function XuongVideoTrang(props: { phimDau: Phim[]; khoa: Khoa }) {
   return <Suspense fallback={<span style={mono}>…</span>}><Ruot {...props} /></Suspense>;
@@ -228,7 +229,7 @@ function ChiPhiGanDay({ jobs, tong, phimId }: { jobs: Job[]; tong: number; phimI
           <span style={{ ...mono, width: 78 }}>{gioVN(j.created_at)}</span>
           <Pill color={MAU_LOAI[j.loai] ?? 'var(--fg-3)'}>{NHAN_LOAI[j.loai] ?? j.loai}</Pill>
           <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={j.loi || j.nhan}>{j.nhan || j.model}{j.loi ? <span style={{ color: 'var(--red)' }}> · lỗi</span> : null}</span>
-          <span style={mono}>{j.model}</span>
+          <span style={mono} title={j.nguon ? taThu(j.nguon) : undefined}>{j.nguon ? taNguon(j.nguon) : j.model}</span>
           <b style={{ fontFamily: 'var(--font-mono)', width: 56, textAlign: 'right', color: j.trang_thai === 'cho' || j.trang_thai === 'chay' ? 'var(--violet)' : undefined }}>{j.trang_thai === 'cho' || j.trang_thai === 'chay' ? 'đang…' : tien(j.chi_phi_cents)}</b>
         </div>
       ))}

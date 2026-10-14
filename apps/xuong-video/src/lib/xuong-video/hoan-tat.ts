@@ -14,6 +14,7 @@ import { lamSanNho } from './anh-nho-may';
 import { giaAnhCents, thuongHieu, type KinhThanh } from './kieu';
 import { chayViecAnh, type ViecAnh, type KqViec } from './viec-anh';
 import { chayViecAm, type ViecAm, type KqViecAm } from './viec-am';
+import { baoHetTien } from './bao-het-tien';
 
 type Row = Record<string, unknown>;
 
@@ -150,14 +151,19 @@ async function videoSauGiong(canhId: number, sau: { moHinh?: string; ban: 'nhap'
 export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
   const db = getDb();
   if (!db || !kq.job) return false;
-  const gia = kq.ok ? await giaAnhSv(kq.model) : 0;
+  // Ảnh đi qua cổng (cong-ai.ts) → giá THẬT của cổng (VNĐ quy cent) + nhà cung cấp = cổng; còn lại theo bảng giá model như cũ.
+  const n0 = kq.nguon;
+  const gia = kq.ok ? (n0?.cents != null ? n0.cents : await giaAnhSv(kq.model)) : 0;
+  const prov = n0?.cong && n0.cong !== 'google' ? n0.cong : null;
   const r = (await db.execute(sql`UPDATE xv_job SET trang_thai = ${kq.ok ? 'xong' : 'loi'},
       output_url = ${kq.ok ? kq.url : null}, model = coalesce(${kq.ok ? kq.model : null}, model),
-      provider = CASE WHEN ${kq.ok ? kq.model : ''} LIKE 'gpt-%' THEN 'openai' WHEN ${kq.ok ? kq.model : ''} LIKE 'fal:%' THEN 'fal' ELSE provider END,
-      chi_phi_cents = ${Math.round(gia * 1000) / 1000}, loi = ${kq.ok ? '' : kq.loi}, updated_at = now()
-    WHERE id = ${kq.job} AND trang_thai = 'cho' RETURNING canh_id, nhan_vat_id, bien_the_id, phim_id, request->>'dich' AS dich`)) as unknown as Row[];
+      provider = CASE WHEN ${prov ?? ''} <> '' THEN ${prov ?? ''} WHEN ${kq.ok ? kq.model : ''} LIKE 'gpt-%' THEN 'openai' WHEN ${kq.ok ? kq.model : ''} LIKE 'fal:%' THEN 'fal' ELSE provider END,
+      chi_phi_cents = ${Math.round(gia * 1000) / 1000}, loi = ${kq.ok ? '' : kq.loi}, nguon = ${n0 ? JSON.stringify(n0) : null}::jsonb, updated_at = now()
+    WHERE id = ${kq.job} AND trang_thai = 'cho' RETURNING canh_id, nhan_vat_id, bien_the_id, phim_id, nhan, request->>'dich' AS dich`)) as unknown as Row[];
   const j = r[0];
   if (!j) return false;
+  // Một cổng trong chuỗi hỏng vì HẾT TIỀN → báo Telegram để nạp (studio đã tự sang cổng kế). Không chặn việc ghi sổ.
+  if (n0?.thu.some((b) => b.het_tien)) void baoHetTien(db, n0.thu, `job #${kq.job} · ${String(j.nhan ?? '')}`).catch((e) => console.log('[bao-het-tien]', String(e)));
   const canh = j.canh_id == null ? null : Number(j.canh_id);
   if (!kq.ok) {
     if (canh != null) await db.execute(sql`UPDATE xv_canh SET loi = ${kq.loi}, updated_at = now() WHERE id = ${canh}`);

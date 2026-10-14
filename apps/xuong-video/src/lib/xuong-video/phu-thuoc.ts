@@ -34,7 +34,7 @@ export function phuThuocShot(viec: ViecShot, c: Canh, nhanVat: NhanVat[], o: { t
 /** Sơ đồ nguồn của một shot (11/10/2026, ý thứ hai lấy từ MuseFlow): thứ ĐÃ gửi lúc sinh keyframe / clip đang dùng, so với thứ GIỜ sẽ gửi.
  *  doi = cờ "nguồn đã đổi sau khi sinh" → bản đang dùng không còn khớp kịch bản/tham chiếu hiện tại. */
 /** doi = cờ đỏ (đổi cấu trúc: keyframe khác, khung cuối, ảnh tham chiếu); cauLenh = câu thêm/bớt so với giờ sẽ gửi (vàng, để đọc). */
-export type BuocNguon = { job: number; model: string; luc: string; chi_phi_cents: number; nhan: string; prompt: string; doi: string[]; cauLenh: { them: string[]; bot: string[] } | null };
+export type BuocNguon = { job: number; model: string; /** nguồn thật (cổng, model thật, tiền thật) — cong-ai.ts */ nguon?: string; luc: string; chi_phi_cents: number; nhan: string; prompt: string; doi: string[]; cauLenh: { them: string[]; bot: string[] } | null };
 export type NguonShot = {
   id: number; thu_tu: number; canh: string; ti_le: string; keyframe_url: string | null; video_url: string | null;
   thamChieu: { url: string; nhan: string }[];

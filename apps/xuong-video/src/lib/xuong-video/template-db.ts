@@ -39,12 +39,16 @@ async function docCaPhim(db: Db, phimId: number) {
 const ktNoiDung = (kt: KinhThanh) => { const { template: _t, tu_template: _u, ...con } = kt ?? {}; return con; };
 
 /** Ô của template: dò trong mọi chữ của phim + nhãn đã khai. */
-export async function docOTemplate(db: Db, phimId: number): Promise<{ cfg: CauHinhTemplate | null; o: OTemplateDs[] } | null> {
+export type ShotKhung = { loai: string; giay: number; chu: string };
+/** Ô + cấu trúc video (Hook → Nỗi đau → … → CTA: loại shot, giây, chữ màn của tập đầu) của template. */
+export async function docOTemplate(db: Db, phimId: number): Promise<{ cfg: CauHinhTemplate | null; o: OTemplateDs[]; khung: ShotKhung[] } | null> {
   const d = await docCaPhim(db, phimId);
   if (!d) return null;
   const kt = (d.phim.kinh_thanh ?? {}) as KinhThanh;
   const thay = timO([ktNoiDung(kt), d.phim.mo_ta, d.nv, d.bt, d.tap, d.canh]);
-  return { cfg: kt.template ?? null, o: dsOTemplate(kt.template, thay) };
+  const tap1 = d.tap[0];
+  const khung = tap1 ? d.canh.filter((c) => n(c.tap_id) === n(tap1.id) && (c.nhanh == null || c.nhanh === '' || c.nhanh === 'A')).map((c) => ({ loai: s(c.phan_doan), giay: Number(c.phat_s ?? c.thoi_luong_s ?? 0), chu: s(c.chu_man) })) : [];
+  return { cfg: kt.template ?? null, o: dsOTemplate(kt.template, thay), khung };
 }
 
 export type KetQuaChep = { phimId: number; soShot: number; giuMedia: number; nhapLai: number };

@@ -156,6 +156,8 @@ export const LOAI_SHOT_MAU: { key: LoaiShotMau; ten: string; mo: string }[] = [
   { key: 'so_sanh', ten: 'So sánh', mo: 'trước/sau, hơn hàng thường' }, { key: 'bang_chung', ten: 'Bằng chứng', mo: 'người thật, bình luận, số liệu' }, { key: 'tran_an', ten: 'Trấn an', mo: 'đổi trả, size, bảo hành' },
   { key: 'cta', ten: 'CTA', mo: 'kêu gọi hành động' }, { key: 'end_card', ten: 'End card', mo: 'màn cuối: sản phẩm + ưu đãi + nút' }, { key: 'khac', ten: 'Khác', mo: '' },
 ];
+/** Tên hiện của một phân cảnh: QC dùng mã loại shot (hook, noi_dau, cta…) làm phan_doan → hiện "Hook", "Nỗi đau", "CTA"; phim truyện đặt tên riêng thì giữ nguyên. */
+export const tenPhanDoan = (k: string): string => LOAI_SHOT_MAU.find((l) => l.key === k)?.ten ?? k;
 export type ShotMau = { giay: number; loai: LoaiShotMau; chu_man: string; hinh: string };
 export type MauQc = { nguon: string; video_url: string; chu_bai: string; tieu_de: string; cta: string; ghi_chu: string; shots: ShotMau[] };
 export const MAU_TRONG: MauQc = { nguon: '', video_url: '', chu_bai: '', tieu_de: '', cta: '', ghi_chu: '', shots: [] };

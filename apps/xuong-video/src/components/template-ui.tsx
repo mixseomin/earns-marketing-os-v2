@@ -7,9 +7,10 @@ import { Ngan } from './ngan';
 import { O, Nut, Loi, Pill, mono } from './ui';
 import { docTemplate, luuCauHinhTemplate, taoPhimTuTemplate } from '@/lib/actions';
 import { giaTriMau, oThieu, theoNhom, nhomCuaO, NHOM_O, type OTemplateDs } from '@/lib/xuong-video/template';
-import type { CauHinhTemplate, Phim } from '@/lib/xuong-video/kieu';
+import { tenPhanDoan, type CauHinhTemplate, type Phim } from '@/lib/xuong-video/kieu';
+import type { ShotKhung } from '@/lib/xuong-video/template-db';
 
-type DuLieu = { cfg: CauHinhTemplate | null; o: OTemplateDs[] };
+type DuLieu = { cfg: CauHinhTemplate | null; o: OTemplateDs[]; khung: ShotKhung[] };
 const tenGon = (ten: string) => ten.replace(/^template\s*·\s*/i, '');
 
 function useTemplate(phimId: number) {
@@ -19,6 +20,40 @@ function useTemplate(phimId: number) {
   useEffect(() => { void nap(); }, [nap]);
   return { d, loi, nap };
 }
+
+/** Màu theo nhịp: mở (hook/ưu đãi) · vấn đề · giải quyết · chứng minh · chốt — cùng một nhìn cho thẻ, form, panel. */
+const MAU_LOAI: Record<string, string> = { hook: '#f472b6', uu_dai: '#f472b6', noi_dau: '#f87171', giai_phap: '#4ade80', demo: '#4ade80', tinh_nang: '#4ade80', so_sanh: '#4ade80', bang_chung: '#60a5fa', tran_an: '#60a5fa', cta: '#fbbf24', end_card: '#fbbf24' };
+/** DẢI CẤU TRÚC của video: các khối liền nhau cùng loại shot gộp một chip (Hook 2.5s → Nỗi đau ×2 5s → … → CTA), rê chuột thấy chữ màn từng shot.
+ *  chiTiet = mỗi khối kèm chữ màn ngay dưới (form điền) — anh 14/10/2026: "sao không thấy các phần cụ thể Hook, CTA, Pain". */
+export function DaiKhung({ khung, chiTiet }: { khung: ShotKhung[]; chiTiet?: boolean }) {
+  const khoi: { loai: string; ds: ShotKhung[] }[] = [];
+  for (const k of khung) { const l = khoi[khoi.length - 1]; if (l && l.loai === k.loai) l.ds.push(k); else khoi.push({ loai: k.loai, ds: [k] }); }
+  if (!khoi.length) return null;
+  const tong = khung.reduce((a, k) => a + k.giay, 0);
+  return (
+    <div style={{ display: 'grid', gap: 4 }}>
+      <div style={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden' }} title={`${khung.length} shot · ${Math.round(tong)}s`}>
+        {khoi.map((k, i) => <span key={i} style={{ flex: k.ds.reduce((a, x) => a + x.giay, 0) || 1, background: MAU_LOAI[k.loai] ?? '#64748b', borderRight: '1px solid var(--bg-1)' }} />)}
+      </div>
+      <div style={{ display: chiTiet ? 'grid' : 'flex', gap: chiTiet ? 4 : 3, flexWrap: 'wrap', fontSize: 11 }}>
+        {khoi.map((k, i) => {
+          const giay = Math.round(k.ds.reduce((a, x) => a + x.giay, 0) * 10) / 10; const mau = MAU_LOAI[k.loai] ?? '#64748b';
+          return chiTiet ? (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: 6, alignItems: 'baseline' }}>
+              <b style={{ color: mau }}>{tenPhanDoan(k.loai)}{k.ds.length > 1 ? ` ×${k.ds.length}` : ''} <span style={mono}>{giay}s</span></b>
+              <span style={{ color: 'var(--fg-2)' }}>{k.ds.map((x) => x.chu.replace(/\n/g, ' / ')).filter(Boolean).join('  ·  ') || '—'}</span>
+            </div>
+          ) : (
+            <span key={i} title={k.ds.map((x) => x.chu.replace(/\n/g, ' / ')).filter(Boolean).join('\n')} style={{ color: mau, whiteSpace: 'nowrap' }}>{i > 0 && <span style={{ color: 'var(--fg-4)' }}>→ </span>}{tenPhanDoan(k.loai)}{k.ds.length > 1 ? ` ×${k.ds.length}` : ''}</span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Dải cấu trúc của một thẻ trong kho (tự nạp). */
+function KhungThe({ id }: { id: number }) { const { d } = useTemplate(id); return d ? <DaiKhung khung={d.khung} /> : <span style={mono}>…</span>; }
 
 /** Kho template ở đầu trang: mỗi template một thẻ — dùng khi nào, số shot, nút Dùng (form điền) / Sửa (mở như phim). */
 export function KhoTemplate({ ds: dsVao, onMo }: { ds: Phim[]; onMo: (id: number) => void }) {
@@ -33,6 +68,7 @@ export function KhoTemplate({ ds: dsVao, onMo }: { ds: Phim[]; onMo: (id: number
             <div key={p.id} className="xv-canh" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <b style={{ fontSize: 13 }}>{tenGon(p.ten)}</b>
               <div style={{ fontSize: 12, color: 'var(--fg-2)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={p.kinh_thanh?.template?.mo_ta ?? ''}>{p.kinh_thanh?.template?.mo_ta || p.mo_ta || '—'}</div>
+              <KhungThe id={p.id} />
               <div style={mono}>{p.so_canh} shot · {Object.keys(p.kinh_thanh?.template?.o ?? {}).length} ô · #{p.id}</div>
               <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
                 <Nut chinh onClick={() => setDung(p)}>Dùng</Nut>
@@ -70,6 +106,7 @@ export function TemplatePanel({ phim, onChanged, onMoPhim }: { phim: Phim; onCha
     <div className="xv-panel">
       <h3>🧩 Template<small>sửa phim này như phim thường — chỗ nào đổi theo sản phẩm / góc / chân dung thì gõ <code>{'{{ten_o}}'}</code> (kinh thánh, anchor, brief, chữ màn, lời, prompt…)</small></h3>
       <Loi>{loi}</Loi>
+      {d && <div style={{ margin: '4px 0 10px' }}><b style={{ fontSize: 12 }}>Cấu trúc video</b> <span style={mono}>— sửa shot ở tab Kịch bản / Storyboard</span><DaiKhung khung={d.khung} chiTiet /></div>}
       <O label="Dùng khi nào (hiện trên thẻ ở kho template)"><textarea className="xv-in" rows={2} value={moTa} onChange={(e) => setMoTa(e.target.value)} placeholder="UGC kể chuyện tình huống — hợp sản phẩm giải quyết một nỗi khó chịu hằng ngày…" /></O>
       {!d ? <span style={mono}>…</span> : o.length === 0 ? <div style={mono}>Chưa có ô nào — gõ {'{{san_pham}}'}, {'{{nhan_vat_ten}}'}… vào chữ của phim rồi mở lại tab này.</div> : (
         <div style={{ display: 'grid', gap: 4, marginTop: 6 }}>
@@ -127,6 +164,7 @@ function TaoTuTemplate({ templateId, tenTemplate, onClose, onTao }: { templateId
     <Ngan nho onClose={onClose} tieuDe={`🧩 ${tenGon(tenTemplate)}`} nut={<Nut chinh ban={ban} ly={(!ten.trim() && 'nhập tên phim') || (thieu.length > 0 && `chưa điền: ${thieu.map((x) => x.ten).join(', ')}`)} onClick={() => void lam()}>Tạo phim (0đ)</Nut>}>
       <div style={{ ...mono, marginBottom: 8 }}>Điền từ trên xuống — giá trị mẫu đã có sẵn, sửa chỗ cần đổi. Chép cả template rồi điền ô; shot không chứa ô nào giữ nguyên hình/clip, shot có ô về nháp để sinh lại.</div>
       <Loi>{loiDoc}</Loi>
+      {d && <details open style={{ marginBottom: 8 }}><summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>🎬 Cấu trúc video <span style={mono}>· {d.khung.length} shot · {Math.round(d.khung.reduce((a, k) => a + k.giay, 0))}s — chữ màn mẫu, ô {'{{…}}'} sẽ thay bằng giá trị anh điền</span></summary><div style={{ marginTop: 6 }}><DaiKhung khung={d.khung} chiTiet /></div></details>}
       <O label="Tên phim mới"><input className="xv-in" value={ten} onChange={(e) => setTen(e.target.value)} /></O>
       {!d || !gt ? <span style={mono}>…</span> : theoNhom(dung).map((nh, i) => {
         const trong = nh.o.filter((v) => !(g[v.k] ?? '').trim()).length;

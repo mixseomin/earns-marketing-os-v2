@@ -40,7 +40,7 @@ import { docPhimDich, uocDichCents, chayDichPhim } from '@/lib/xuong-video/dich-
 import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-video/kieu';
 import { type Row, n, s, arr, mangInt, nguCanhPhimDb, mapBienThe, mapNhanVat, mapTap, mapCanh, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
 import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim } from '@/lib/xuong-video/sinh-anh';
-import { docOTemplate, chepPhim, type KetQuaChep } from '@/lib/xuong-video/template-db';
+import { docOTemplate, chepPhim, type KetQuaChep, type ShotKhung } from '@/lib/xuong-video/template-db';
 import { oThieu, type OTemplateDs } from '@/lib/xuong-video/template';
 import type { CauHinhTemplate } from '@/lib/xuong-video/kieu';
 import type { MauPoster } from '@/lib/xuong-video/poster';
@@ -106,7 +106,7 @@ export async function luuTruPhim(id: number, bat: boolean): Promise<Kq> {
 // ── Template (template.ts · template-db.ts) ───────────────────────────────────────────────────────────────────────
 
 /** Ô của một template (dò trong mọi chữ của phim) + cấu hình nhãn/gợi ý. */
-export async function docTemplate(phimId: number): Promise<Kq<{ cfg: CauHinhTemplate | null; o: OTemplateDs[] }>> {
+export async function docTemplate(phimId: number): Promise<Kq<{ cfg: CauHinhTemplate | null; o: OTemplateDs[]; khung: ShotKhung[] }>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');

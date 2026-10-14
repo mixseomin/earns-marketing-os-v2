@@ -995,7 +995,8 @@
     "loi_ich_3",
     "loi_ich_3_hinh",
     "loi_ich_4",
-    "loi_ich_4_hinh"
+    "loi_ich_4_hinh",
+    "noi_dau_ngan"
    ],
    "kinh_thanh": {
     "phong_cach": "Live-action product demo ad, photorealistic, vertical, close hands-on shots on a clean tabletop and in a real home, bright soft light, crisp detail",
@@ -1065,18 +1066,17 @@
     },
     {
      "giay": 2,
-     "loai": "giai_phap",
-     "goc_may": "Tabletop overhead",
-     "hanh_dong": "Product placed on the table",
-     "chu_man": "Meet {{san_pham}}",
-     "loi": "Meet this.",
+     "loai": "noi_dau",
+     "goc_may": "Close-up",
+     "hanh_dong": "An ordinary uncomfortable alternative is tossed aside",
+     "chu_man": "No more {{noi_dau_ngan}}",
+     "loi": "No more {{noi_dau_ngan}}.",
      "nv": [
-      "sp",
       "bc"
      ],
-     "prompt_anh": "Overhead: {{san_pham_hinh}} placed on a clean light tabletop",
-     "prompt_video": "Product drops onto the table, slight bounce",
-     "co": "ws"
+     "prompt_anh": "Close-up: hands tossing an ordinary uncomfortable generic alternative aside onto a tabletop, {{boi_canh}}",
+     "prompt_video": "The ordinary item is tossed aside, quick motion",
+     "co": "cu"
     },
     {
      "giay": 2.5,

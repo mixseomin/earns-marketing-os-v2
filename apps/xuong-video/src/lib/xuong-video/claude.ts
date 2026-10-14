@@ -466,7 +466,7 @@ const KiemKhungSchema = z.object({
     })).describe('Rỗng nếu khung đúng'),
   })).describe('MỌI shot được đưa, đúng thứ tự'),
 });
-export async function kiemKhungCanh(o: { canh: string; banDo: string; phongCach: string; truoc?: { so: number; the: string; b64: string } | null; shot: { so: number; the: string; b64: string }[]; kt: Required<KinhThanh> }): Promise<GoiYKq<z.infer<typeof KiemKhungSchema>>> {
+export async function kiemKhungCanh(o: { canh: string; banDo: string; phongCach: string; truoc?: { so: number; the: string; b64: string } | null; shot: { so: number; the: string; b64: string; xam?: string | null }[]; kt: Required<KinhThanh> }): Promise<GoiYKq<z.infer<typeof KiemKhungSchema>>> {
   const c = client();
   if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
   try {
@@ -487,7 +487,8 @@ Không chấm đẹp xấu, không bắt lỗi nhỏ không ai thấy khi xem. M
       messages: [{ role: 'user', content: [
         { type: 'text' as const, text: `CẢNH: ${o.canh}` },
         ...(o.truoc ? [{ type: 'text' as const, text: `── KHUNG CUỐI CẢNH TRƯỚC (shot #${o.truoc.so}, chỉ để so cú chuyển sang shot đầu cảnh này — không chấm)\n${o.truoc.the}` }, { type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/jpeg' as const, data: o.truoc.b64 } }] : []),
-        ...o.shot.flatMap((x) => [{ type: 'text' as const, text: `── SHOT #${x.so}\n${x.the}` }, { type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/jpeg' as const, data: x.b64 } }]),
+        ...o.shot.flatMap((x) => [{ type: 'text' as const, text: `── SHOT #${x.so}\n${x.the}` }, { type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/jpeg' as const, data: x.b64 } },
+          ...(x.xam ? [{ type: 'text' as const, text: `↳ KHUNG XÁM 3D của shot #${x.so} (bố trí ĐÚNG từ bộ set thật, cùng máy): so vị trí mọi đồ vật / nhân vật trong keyframe trên với khối tương ứng ở đây — lệch chỗ, lệch trước/sau, thiếu, thừa là lỗi bo_tri / vi_tri.` }, { type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/jpeg' as const, data: x.xam } }] : [])]),
         { type: 'text' as const, text: 'Kiểm từng shot theo thứ tự, so với thẻ của nó và với các khung khác của cảnh.' },
       ] }],
       output_config: { format: zodOutputFormat(KiemKhungSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },

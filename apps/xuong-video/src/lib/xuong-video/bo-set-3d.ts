@@ -27,7 +27,8 @@ export function bangDung(set: Pick<BoSet, 'du_lieu'>, shots: { id: number; thu_t
   const mau: Record<string, unknown> = {}; const thieu = new Set<string>();
   for (const s of shots) for (const v of s.may_3d.vi_tri) { const k = khoiCua(v.ten, nhanVat); if (k) mau[v.ten] = k; else thieu.add(v.ten); }
   if (thieu.size) return { ok: false, loi: `chưa khai khối 3D cho: ${[...thieu].join(', ')} — ghi khoi_3d (hình + cỡ cm) cho anchor đó` };
-  return { ok: true, bang: { vat: set.du_lieu.vat, nhan_vat_mau: mau, shot: shots.map((s) => ({ ma: String(s.id), so: s.thu_tu, may: { dat: s.may_3d.dat, nhin: s.may_3d.nhin, ong_kinh: s.may_3d.ong_kinh }, nhan_vat: s.may_3d.vi_tri })) } };
+  return { ok: true, bang: { vat: set.du_lieu.vat, nhan_vat_mau: mau, shot: shots.map((s) => ({ ma: String(s.id), so: s.thu_tu, may: { dat: s.may_3d.dat, nhin: s.may_3d.nhin, ong_kinh: s.may_3d.ong_kinh }, nhan_vat: s.may_3d.vi_tri,
+    bat_buoc: chuThe(s.may_3d), giai: !!s.may_3d.tu_dong })) } };
 }
 
 /** Phía của máy so với TRỤC HÀNH ĐỘNG (đường nối hai nhân vật đầu tiên có mặt ở cả hai shot, nhìn từ trên): +1 / -1, 0 = không xác định. */
@@ -47,8 +48,11 @@ export function vuotTruc(truoc: May3d, sau: May3d): string | null {
   return p1 && p2 && p1 !== p2 ? `máy sang phía bên kia trục ${a}–${b} so với shot trước (hướng trên màn sẽ đảo)` : null;
 }
 
+/** Chủ thể của khung (phải thấy rõ): khai ở may_3d.khung, mặc định hai vị trí đầu không cố ý che. */
+export const chuThe = (m: Pick<May3d, 'khung' | 'vi_tri'>): string[] => m.khung?.length ? m.khung : m.vi_tri.filter((v) => !v.an).slice(0, 2).map((v) => v.ten);
+
 /** Nhân vật trong khung xám có lỗi hình học thật (ngoài khung / bị che mà kịch bản không cố ý) — lưới gắn ⚠, cổng chặn. */
-export const loiHinhHoc = (c: Pick<Canh, 'may_3d' | 'khung_xam'>) => (c.khung_xam?.kiem ?? []).filter((k) => !k.trong_khung || (k.bi_che_boi.length > 0 && !c.may_3d?.vi_tri.find((v) => v.ten === k.nhan_vat)?.an));
+export const loiHinhHoc = (c: Pick<Canh, 'may_3d' | 'khung_xam'>) => { const ct = c.may_3d ? chuThe(c.may_3d) : []; return (c.khung_xam?.kiem ?? []).filter((k) => (k.bat_buoc ?? ct.includes(k.nhan_vat)) && (!k.trong_khung || k.bi_che_boi.length > 0)); };
 
 /** Cổng khung xám của một shot (rỗng = qua). Shot không thuộc set nào → không chặn (ngoại lệ đã khai: không có anchor bối cảnh có set). */
 export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'>[], set: Pick<BoSet, 'id' | 'du_lieu'> | null, truoc?: Pick<Canh, 'nhan_vat' | 'may_3d'> | null): string[] {
@@ -57,10 +61,7 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'>,
   const out: string[] = [];
   const kx = c.khung_xam;
   if (!kx || kx.ma !== maKhungXam(set, c.may_3d, nhanVat)) out.push('chưa dựng khung xám (hoặc set / máy / vị trí đã đổi sau lần dựng) — chạy 🧊 Dựng khung xám');
-  else for (const k of kx.kiem) {
-    if (!k.trong_khung) out.push(`${k.nhan_vat} nằm ngoài khung`);
-    else if (k.bi_che_boi.length && !c.may_3d.vi_tri.find((v) => v.ten === k.nhan_vat)?.an) out.push(`${k.nhan_vat} bị ${k.bi_che_boi.join(', ')} che`);
-  }
+  else for (const k of loiHinhHoc(c)) out.push(!k.trong_khung ? `${k.nhan_vat} (chủ thể) nằm ngoài khung` : `${k.nhan_vat} (chủ thể) bị ${k.bi_che_boi.join(', ')} che`);
   if (truoc?.may_3d && boSetCuaShot(truoc, nhanVat) === set.id) { const v = vuotTruc(truoc.may_3d, c.may_3d); if (v) out.push(v); }
   return out;
 }
@@ -93,5 +94,5 @@ export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; on
   const ngang = d * Math.cos(Math.abs(e));
   const z = kt.goc === 'sat_dat' ? 0.5 : Math.max(0.4, cz + d * Math.sin(e) + (kt.goc === 'thap' ? -H * 0.3 : 0));
   const r = (x: number) => Math.round(x * 10) / 10;
-  return { dat: [r(cx + ngang * Math.sin(a)), r(cy - ngang * Math.cos(a)), r(z)], nhin: [r(cx), r(cy), r(cz)], ong_kinh: ong, vi_tri: o.vi_tri };
+  return { dat: [r(cx + ngang * Math.sin(a)), r(cy - ngang * Math.cos(a)), r(z)], nhin: [r(cx), r(cy), r(cz)], ong_kinh: ong, vi_tri: o.vi_tri, ...(o.khung?.length ? { khung: o.khung } : {}), tu_dong: { phia: o.phia ?? 0 } };
 }

@@ -39,7 +39,7 @@ if (gia('nap')) {
     if (!r[0]) { thieu.push(`shot ${ma}`); continue; }
     // Không ghi máy → ĐẶT MÁY TỰ ĐỘNG từ chỗ đứng + phía + cỡ cảnh / góc / ống kính của thẻ shot.
     const dm = m as DatMay & { dat?: number[] };
-    if (!dm.dat) { const kt = (r[0].ky_thuat ?? {}) as Record<string, string>; Object.assign(m as object, { ...datMayTuDong(dm, kt, (t) => d.khoi?.[t] ?? null), tu_dong: { phia: dm.phia ?? 0, khung: dm.khung } }); delete (m as Record<string, unknown>).phia; delete (m as Record<string, unknown>).khung; }
+    if (!dm.dat) { const kt = (r[0].ky_thuat ?? {}) as Record<string, string>; Object.assign(m as object, datMayTuDong(dm, kt, (t) => d.khoi?.[t] ?? null)); delete (m as Record<string, unknown>).phia; }
     await chupTruoc(db, { bang: 'xv_canh', id: Number(r[0].id), cot: ['may_3d'], moTa: 'nạp máy ảo 3D', nguoi: 'bo-set' });
     await db.execute(sql`UPDATE xv_canh SET may_3d = ${JSON.stringify(m)}::jsonb WHERE id = ${Number(r[0].id)}`); may++;
   }

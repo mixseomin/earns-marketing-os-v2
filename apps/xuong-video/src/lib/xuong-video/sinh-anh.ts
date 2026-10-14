@@ -8,6 +8,8 @@ import { promptKyThuatAnh } from './dien-anh';
 import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type KinhThanh, type NhanVat } from './kieu';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
+import { boSetCuaShot, chanKhungXam } from './bo-set-3d';
+import { mapBoSet } from './bo-set-3d-may';
 import { boiCanhCanh, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, jobDangCho, type Db, type Row } from './doc-db';
 
 export type KqSinh<T> = { ok: true; data: T } | { ok: false; loi: string };
@@ -89,6 +91,12 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // sinh ra là jeans chung chung vì ảnh sản phẩm nằm sau ảnh người, không được gọi tên, còn chữ mô tả "light blue, cúc đồng" lấn ảnh).
   const { urlRef, banDoRef, vai } = xepThamChieu(bc.nhanVat, btCanh, shotNhieuMau(`${bc.canh.prompt_anh} ${bc.canh.trang_phuc}`));
   const ghiChuBt = bc.nhanVat.map((v) => { const b = btCanh(v); return b ? `${v.ten} in this shot: ${b.mo_ta || b.ten}.` : ''; }).filter(Boolean).join(' ');
+  // KHUNG XÁM 3D (bo-set-3d.ts): render từ bộ set thật + máy ảo của shot — bố trí lấy từ DỮ LIỆU, không để model tự nghĩ (anh 14/10/2026:
+  // "dựng bối cảnh bằng 3D để scale và làm đúng mọi bộ phim thay vì dựa vào AI bừa bãi"). Đứng ngay sau ảnh mẫu, trước mọi tham chiếu nối khung.
+  const kx = bc.canh.khung_xam?.xam && urlRef.length < 10 ? bc.canh.khung_xam.xam : null;
+  if (kx) { urlRef.push(kx); vai.push({ url: kx, nhan: '🧊 khung xám 3D (bố trí)' }); }
+  const soKx = urlRef.length;
+  const kxChu = kx ? `Image ${soKx} = a grey-box 3D LAYOUT render from THIS shot's exact camera on the real set: every object (screens, stands, keyboard, mouse, cables, props) and every character must sit EXACTLY where its block is — same position, size, overlap, perspective, horizon and framing. It shows layout only: colours, materials and lighting come from the style and the other reference images, never grey blocks.` : '';
   // LIỀN MÁY: shot trước chọn chuyển cảnh 'lien_may' → clip của nó kết bằng ảnh này, nên ảnh này phải là giây kế tiếp của chính khung đó
   // (cùng nơi, cùng phía máy, vị trí + đồ vật + trạng thái nối tiếp) — keyframe shot trước làm ảnh tham chiếu cuối (Tango & Lint tập 1: 0/20
   // clip nối khung, shot sau không thấy liên quan shot trước).
@@ -110,7 +118,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   const dd = bc.canh.dan_dung ?? {};
   const theChu = [dd.bo_cuc?.trim() && `Composition (foreground / midground / background): ${dd.bo_cuc.trim()}`, dd.mo?.trim() && `This frame is the START of the shot: ${dd.mo.trim()}`, dd.huong?.trim() && `Eyelines and screen direction: ${dd.huong.trim()}`].filter(Boolean).map((x) => `${x}.`).join(' ');
   // Cấm tay người / dụng cụ vẽ lạc khung — CÙNG luật với prompt video (kieu.ts › camCongCuVe); trước đây chỉ video có, keyframe thì không.
-  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), bc.nhanVat, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
+  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), bc.nhanVat, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), kxChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
   return { prompt, urlRef, vai };
 }
 
@@ -126,6 +134,14 @@ export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonN
   const chan: string[] = [];
   const qt = [...chanTienKy(tapQt, phimQt(String(((await db.execute(sql`SELECT loai FROM xv_phim WHERE id = ${tapQt.phim_id}`)) as unknown as Row[])[0]?.loai ?? 'phim'), bc.kt), locNhanh(tatCa, bc.canh.nhanh || 'A'), locNhanh(tatCa, 'A'), nvPhim.filter((v) => v.loai === 'boi_canh').map((v) => v.id)), ...chanShot(bc.canh, tapQt, nvPhim)];
   if (qt.length) chan.push(`Shot #${bc.canh.thu_tu} chưa qua quy trình: ${qt.join('; ')}`);
+  // Bộ set 3D: shot thuộc set phải có máy ảo + khung xám đúng mã + qua kiểm hình học (trong khung, không bị che, không vượt trục).
+  const sid = boSetCuaShot(bc.canh, nvPhim);
+  if (sid) {
+    const r = (await db.execute(sql`SELECT * FROM xv_bo_set WHERE id = ${sid}`)) as unknown as Row[];
+    const ds = locNhanh(tatCa, bc.canh.nhanh || 'A'); const i = ds.findIndex((c) => c.id === bc.canh.id);
+    const k = chanKhungXam(bc.canh, nvPhim, r[0] ? mapBoSet(r[0]) : null, i > 0 ? ds[i - 1] : null);
+    if (k.length) chan.push(`Bộ set 3D: ${k.join('; ')}`);
+  }
   if (!bc.canh.prompt_anh.trim()) chan.push('cảnh chưa có prompt ảnh');
   const cm = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
   if (cm) chan.push(cm);

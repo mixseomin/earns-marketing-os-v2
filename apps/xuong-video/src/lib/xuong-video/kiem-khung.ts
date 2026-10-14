@@ -27,7 +27,9 @@ export async function kiemKhungTap(db: Db, tapId: number, o: { tatCa?: boolean; 
     const i0 = ds.indexOf(k[0]!); const tr = i0 > 0 ? ds[i0 - 1]! : null;
     const truoc = tr?.keyframe_url ? { so: tr.thu_tu, b64: await anh(tr), the: theShot(tr, ten, null) } : null;
     const shot = [];
-    for (const c of k) { const j = ds.indexOf(c); shot.push({ so: c.thu_tu, b64: await anh(c), the: theShot(c, ten, j > 0 ? ds[j - 1]! : null) }); }
+    // Khung xám gốc là PNG — chỉ gửi bản nhỏ JPEG (damBaoNho) cho đúng media_type; không làm được bản nhỏ thì bỏ ảnh xám, không gửi sai loại.
+    const xam = async (c: Canh) => { const u = c.khung_xam?.xam ? await damBaoNho(c.khung_xam.xam, 640) : null; if (!u) return null; const r = await fetch(u); return r.ok ? Buffer.from(await r.arrayBuffer()).toString('base64') : null; };
+    for (const c of k) { const j = ds.indexOf(c); shot.push({ so: c.thu_tu, b64: await anh(c), xam: await xam(c), the: theShot(c, ten, j > 0 ? ds[j - 1]! : null) }); }
     const canh = [k[0]!.phan_doan, pc?.noi && `nơi: ${pc.noi}`, pc?.luc && `lúc: ${pc.luc}`, pc?.anh_sang && `ánh sáng: ${kyThuat(pc.anh_sang, 'anh_sang')?.ten ?? pc.anh_sang}`, pc?.mau_mo_ta && `màu: ${pc.mau_mo_ta}`].filter(Boolean).join(' · ');
     const kq = await kiemKhungCanh({ canh, banDo: kt.ban_do ?? '', phongCach: kt.phong_cach, truoc, shot, kt });
     if (!kq.ok) return kq;

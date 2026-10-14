@@ -43,5 +43,5 @@ export function khoiCanKiem<T extends Pick<Canh, 'id' | 'phan_doan' | 'keyframe_
 }
 
 /** Token ước cho một khối n khung (+1 khung cảnh trước; ảnh 640×1138 ≈ 1k token + thẻ ≈ 300) — nút hiện giá trước khi bấm. */
-export const tokenKhoi = (n: number) => ({ in: 3500 + n * 1400, out: 300 + n * 180 });
+export const tokenKhoi = (n: number) => ({ in: 3500 + n * 2500, out: 300 + n * 180 });   // mỗi khung + khung xám 3D của nó
 export const giaKiemKhung = (model: string, khoi: number[]): number => khoi.reduce((a, n) => { const t = tokenKhoi(n); return a + giaChuCents(model, t.in, t.out); }, 0);

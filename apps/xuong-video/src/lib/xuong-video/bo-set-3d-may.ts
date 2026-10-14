@@ -59,6 +59,9 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     const r = await chayBlender(path.join(thu, 'vao.json'), path.join(thu, 'ra'));
     if (!r.ok) { loi.push(`${set.ten}: blender lỗi — ${r.log}`); continue; }
     const kiem = JSON.parse(await readFile(path.join(thu, 'ra', 'kiem.json'), 'utf8')) as Record<string, KhungXam['kiem']>;
+    // Bộ giải máy đã dời máy tự động cho chủ thể thấy rõ → ghi máy mới vào shot (mã khung xám tính trên máy đã giải).
+    const giai = JSON.parse(await readFile(path.join(thu, 'ra', 'giai.json'), 'utf8').catch(() => '{}')) as Record<string, { dat: number[] }>;
+    for (const c of shots) { const g = giai[String(c.id)]; if (g) { c.may_3d = { ...c.may_3d, dat: g.dat }; await db.execute(sql`UPDATE xv_canh SET may_3d = ${JSON.stringify(c.may_3d)}::jsonb WHERE id = ${c.id}`); } }
     const luc = new Date().toISOString();
     for (const c of shots) {
       const ma = maKhungXam(set, c.may_3d, nv);

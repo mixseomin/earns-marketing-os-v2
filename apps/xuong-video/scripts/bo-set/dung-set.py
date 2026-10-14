@@ -95,32 +95,60 @@ def do_sau(s, gan, xa):
     return m
 
 def kiem_hinh_hoc(s, cam, sh, nv_obj):
-    """Kiểm BẰNG SỐ (không bằng mắt): mỗi nhân vật trong khung không, chiếm bao nhiêu % chiều cao khung, bị vật nào che (bắn tia từ máy
-    tới 9 điểm trên thân — che > nửa số điểm = bị che)."""
+    """Kiểm BẰNG SỐ (không bằng mắt): mỗi nhân vật — TÂM có trong khung không, chiếm bao nhiêu % chiều cao khung, bị vật nào che (bắn tia
+    từ máy tới 9 điểm trên thân — che > nửa số điểm = bị che). bat_buoc = chủ thể của khung (shot khai) — chỉ chúng mới là lỗi khi hỏng."""
     from bpy_extras.object_utils import world_to_camera_view
+    bpy.context.view_layer.update()
     dg = bpy.context.evaluated_depsgraph_get(); out = []
+    bb_ten = set(sh.get('bat_buoc') or [])
     for o in nv_obj:
         bb = [o.matrix_world @ Vector(c) for c in o.bound_box]
         tam = sum(bb, Vector()) / 8
         diem = [tam] + [tam.lerp(c, 0.7) for c in bb]
-        che = {}; trong = 0; ys = []
+        che = {}; ys = []
         for p in diem:
             v = world_to_camera_view(s, cam, p); ys.append(v.y)
-            if 0 <= v.x <= 1 and 0 <= v.y <= 1 and v.z > 0: trong += 1
             d = p - cam.location; kc = d.length
             hit, loc, _, _, ob, _ = s.ray_cast(dg, cam.location, d.normalized(), distance=kc - 0.0005)
             if hit and ob and ob.name != o.name: che[ob.name] = che.get(ob.name, 0) + 1
-        bi_che = {k: v for k, v in che.items() if v > len(diem) / 2}
-        out.append({'nhan_vat': o.name[3:], 'trong_khung': trong >= len(diem) / 2, 'cao_khung_pt': round((max(ys) - min(ys)) * 100, 1), 'bi_che_boi': sorted(bi_che)})
+        vt = world_to_camera_view(s, cam, tam)
+        bi_che = sorted(k[3:] if k.startswith('NV ') else k for k, v in che.items() if v > len(diem) / 2)
+        out.append({'nhan_vat': o.name[3:], 'bat_buoc': o.name[3:] in bb_ten, 'trong_khung': 0 <= vt.x <= 1 and 0 <= vt.y <= 1 and vt.z > 0,
+                    'cao_khung_pt': round((max(ys) - min(ys)) * 100, 1), 'bi_che_boi': bi_che})
     return out
+
+def hong(k): return sum(1 for x in k if x['bat_buoc'] and (not x['trong_khung'] or x['bi_che_boi']))
+
+def dat_may(cam, dat, nhin):
+    cam.location = Vector(dat) * CM
+    cam.rotation_euler = (Vector(nhin) * CM - cam.location).to_track_quat('-Z', 'Y').to_euler()
+
+def giai_may(s, cam, sh, nv):
+    """BỘ GIẢI MÁY: máy tự động mà chủ thể bị che / ra ngoài → thử xoay quanh chủ thể (±15…60°), nâng máy, lùi xa — lấy phương án đầu tiên
+    mọi chủ thể đều thấy rõ (ít đổi nhất trước). Không có phương án sạch → giữ phương án ít lỗi nhất, kiểm vẫn báo."""
+    g = Vector(sh['may']['nhin']); d0 = Vector(sh['may']['dat']) - g
+    tot = None
+    for xa in (1.0, 1.3, 1.7):
+        for dz in (0, 1.5, 4, 8):
+            for dp in (0, 15, -15, 30, -30, 45, -45, 60, -60):
+                a = math.radians(dp); v = Vector((d0.x * math.cos(a) - d0.y * math.sin(a), d0.x * math.sin(a) + d0.y * math.cos(a), d0.z)) * xa
+                dat = g + v + Vector((0, 0, dz)); dat_may(cam, dat, g)
+                k = kiem_hinh_hoc(s, cam, sh, nv); h = hong(k)
+                if tot is None or h < tot[0]: tot = (h, [round(x, 1) for x in dat], k)
+                if h == 0: return tot
+    dat_may(cam, tot[1], g); return tot
 
 s = dung_set()
 shots = [sh for sh in DL['shot'] if not CHI or sh['ma'] in CHI]
-kiem = {}
+kiem = {}; giai = {}
 for sh in shots:
     nv = nhan_vat(sh)
     cam = may(s, sh['may'], f"cam {sh['ma']}")
-    kiem[sh['ma']] = kiem_hinh_hoc(s, cam, sh, nv)
+    k = kiem_hinh_hoc(s, cam, sh, nv)
+    if sh.get('giai') and hong(k):
+        _, dat, k = giai_may(s, cam, sh, nv)
+        giai[sh['ma']] = {'dat': dat, 'nhin': sh['may']['nhin']}; sh['may']['dat'] = dat
+    kiem[sh['ma']] = k
     s.view_layers[0].material_override = None; s.cycles.samples = 24
     s.render.filepath = f"{RA}/{sh['ma']}-xam.png"; bpy.ops.render.render(write_still=True)
     s.view_layers[0].material_override = do_sau(s, 0.02, 0.9); s.cycles.samples = 4
@@ -145,5 +173,6 @@ s.render.resolution_x, s.render.resolution_y = 1200, 800; s.cycles.samples = 16
 for v in [x for x in bpy.data.objects if x.name.startswith('Tường')]: v.hide_render = True
 s.render.filepath = f"{RA}/mat-bang.png"; bpy.ops.render.render(write_still=True)
 json.dump(kiem, open(f'{RA}/kiem.json', 'w'), ensure_ascii=False, indent=1)
+json.dump(giai, open(f'{RA}/giai.json', 'w'), ensure_ascii=False, indent=1)
 print('KIEM', json.dumps(kiem, ensure_ascii=False))
 print('XONG', [sh['ma'] for sh in shots])

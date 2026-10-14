@@ -282,9 +282,10 @@ export type KhoiSet = { ten: string; hinh: 'hop' | 'cau' | 'trung' | 'vom' | 'da
 export type VatSet = (KhoiSet | { ten: string; goc: number[]; xoay?: number; phan: Omit<KhoiSet, 'ten'>[] }) & { anchor?: string };
 export type BoSet = { id: number; project: string; phim_id: number | null; ten: string; mo_ta: string; du_lieu: { vat: VatSet[]; ghi_chu?: string }; mat_bang_url: string | null; trang_thai: string };
 /** Máy ảo + chỗ đứng nhân vật của một shot trong bộ set (cm): đầu vào dựng khung xám. nam = nằm sấp. */
-export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy do datMayTuDong tính (phía ° quanh chủ thể, ai giữ khung) — sửa chỗ đứng là tính lại */ tu_dong?: { phia?: number; khung?: string[] }; vi_tri: { ten: string; tam: number[]; nam?: boolean; /** kịch bản CỐ Ý cho vật khác che (vd nấp sau chuột) — kiểm không báo bị che */ an?: boolean }[] };
+export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy do datMayTuDong tính (phía ° quanh chủ thể) — bộ giải trong Blender được phép xoay / nâng / lùi máy cho chủ thể thấy rõ */ tu_dong?: { phia?: number };
+  /** CHỦ THỂ của khung: phải trong khung + không bị che (mặc định: hai vị trí đầu không 'an') */ khung?: string[]; vi_tri: { ten: string; tam: number[]; nam?: boolean; /** kịch bản CỐ Ý cho vật khác che (vd nấp sau chuột) — kiểm không báo bị che */ an?: boolean }[] };
 /** Kết quả dựng khung xám (đầu ra): ma = mã đầu vào (set + máy + vị trí + khối) — đầu vào đổi là hết hiệu lực. */
-export type KhungXam = { ma: string; xam: string; sau: string; luc: string; kiem: { nhan_vat: string; trong_khung: boolean; cao_khung_pt: number; bi_che_boi: string[] }[] };
+export type KhungXam = { ma: string; xam: string; sau: string; luc: string; kiem: { nhan_vat: string; bat_buoc?: boolean; trong_khung: boolean; cao_khung_pt: number; bi_che_boi: string[] }[] };
 export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string;
   /** tiểu sử (nhân vật): nguồn gốc, tính cách, sức mạnh, điểm yếu, mong muốn, nỗi sợ, quan hệ, bí mật — chỉ vào ngữ cảnh viết kịch bản, không vào prompt hình */
   tieu_su?: string;

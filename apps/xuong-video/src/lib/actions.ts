@@ -932,6 +932,13 @@ export async function sinhVideoCanh(canhId: number, moHinh?: string, ban: 'nhap'
   if (!(await admin())) return loi('không có quyền');
   return batDauVideoCanh(db, canhId, moHinh, ban, tuDong);
 }
+/** 🧪 Sinh THỬ video ngoài quy trình (bỏ cổng duyệt / kiểm khung / animatic) — admin bấm, job ghi là bản thử. */
+export async function sinhVideoThu(canhId: number, moHinh?: string): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  return batDauVideoCanh(db, canhId, moHinh, 'nhap', false, true);
+}
 /** Sơ đồ nguồn của một shot (lõi ở nguon-shot.ts): đã gửi gì lúc sinh keyframe / clip, so với giờ sẽ gửi — 0đ, chỉ đọc. */
 export async function nguonCuaShot(canhId: number): Promise<NguonShot | null> {
   const db = getDb();

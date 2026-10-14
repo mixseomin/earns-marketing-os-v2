@@ -5,7 +5,7 @@ import { useViTriNoi } from './vi-tri-noi';
 import { moNgan, linkTai } from './ngan-chung';
 import { dongThoai, tenNoi, LOI_DAN } from '@/lib/xuong-video/am-thanh';
 import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, chiTietKyThuat, type TheLoai } from '@/lib/xuong-video/dien-anh';
-import { suaCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, sinhVideoCanh, lamLaiTuKeyframe, sinhGiong, sinhAmThanh, xoaKeyframe, goiYAICanh, nangCapCanh, chonPhienBan, khopMiengCanh, luuShotKho } from '@/lib/actions';
+import { suaCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, sinhVideoCanh, sinhVideoThu, lamLaiTuKeyframe, sinhGiong, sinhAmThanh, xoaKeyframe, goiYAICanh, nangCapCanh, chonPhienBan, khopMiengCanh, luuShotKho } from '@/lib/actions';
 import { O_DAN_DUNG, chuManHien, LOAI_NHAN_VAT, TRANG_THAI_CANH, doiBienThe, motBienTheMoiDoiTuong, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { chanVideo } from '@/lib/xuong-video/quy-trinh';
@@ -217,6 +217,8 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai }: 
                 {buoc !== 'dang' && chonVideo}
                 {(buoc === 'duyet' || buoc === 'kf') && <Nut chinh ly={lyVideo} ban={ban(k)} title={[buoc === 'kf' && 'bấm = duyệt keyframe đang chọn', thieuGiong && 'shot còn lời chưa có giọng: sinh giọng trước, giọng xong máy tự gửi video'].filter(Boolean).join(' · ') || undefined} onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo, 'nhap', true))} gia={giaVid}>{c.dang_sinh_giong ? '⏳ Đang sinh giọng…' : `${thieuGiong ? '🗣 Giọng + ' : ''}Sinh nháp · ${giay}s · ${tien(giaVid)}`}</Nut>}
                 {buoc !== 'dang' && chanVid.length > 0 && <span style={{ fontSize: 11, color: 'var(--red)', alignSelf: 'center' }}>chưa sinh video được: {chanVid.join('; ')}</span>}
+                {/* SINH THỬ ngoài quy trình (anh 14/10/2026): thử một shot không phải đi hết cổng — có keyframe là bấm được; job ghi 🧪 THỬ. Có keyframe kết thì làm ảnh cuối. */}
+                {buoc !== 'dang' && chanVid.length > 0 && c.keyframe_url && <Nut ly={mhVideo.startsWith('fal:') ? !khoa.fal && 'thiếu FAL_KEY' : !khoa.google && 'thiếu GOOGLE_API_KEY'} ban={ban(k)} title={`Sinh thử video ngoài quy trình (bỏ cổng duyệt / kiểm khung / animatic) — ảnh đầu = keyframe đang chọn${c.keyframe_ket ? ', ảnh cuối = keyframe kết (chuyển động theo 3D)' : ''}. Ghi vào sổ là bản THỬ.`} onClick={() => void chay(k, () => sinhVideoThu(c.id, mhVideo))} gia={giaVid}>🧪 Sinh thử · {giay}s · {tien(giaVid)}</Nut>}
                 {buoc === 'dang' && <span style={{ ...mono, color: 'var(--violet)', alignSelf: 'center' }}>đang sinh video, tự kiểm mỗi 10s…</span>}
                 {(buoc === 'nhap' || buoc === 'cuoi') && <Nut ly={lyVideo} ban={ban(k)} title="Sinh một bản nháp video mới từ keyframe đang chọn; bản cũ vẫn giữ trong danh sách phiên bản" onClick={() => void chay(k, () => sinhVideoCanh(c.id, mhVideo, 'nhap', true))} gia={giaVid}>↻ Nháp mới · {giay}s · {tien(giaVid)}</Nut>}
                 {buoc === 'nhap' && <Nut chinh ly={!khoa.fal && 'thiếu FAL_KEY'} ban={ban(k)} title="Nâng cấp CHÍNH clip nháp (Topaz ×2): chuyển động, bố cục, nhân vật y hệt bản nháp" onClick={() => void chay(k, () => nangCapCanh(c.id))} gia={giaNangCap}>⬆ Làm bản cuối · {tien(giaNangCap)}</Nut>}

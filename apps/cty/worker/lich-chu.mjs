@@ -58,6 +58,7 @@ export function tuSystemd(lich) {
     const c = c0.trim().replace(/ UTC$/, ''); let m;
     if ((m = c.match(/^\*-\*-\* \*:0?0\/(\d+)(:00)?$/))) return { kieu: 'moi', phut: Number(m[1]) };
     if (/^\*-\*-\* \*:\d+(:00)?$/.test(c) || c === 'hourly') return { kieu: 'moi', phut: 60 };
+    if ((m = c.match(/^\*-\*-\* \*:([\d,]+)(:00)?$/))) { const p = m[1].split(',').map(Number); const b = 60 / p.length; if (p.every((x, i) => i === 0 || x - p[i - 1] === b)) return { kieu: 'moi', phut: b }; }   // *:02,17,32,47 = mỗi 15 phút
     if ((m = c.match(/^\*-\*-\* (?:\*|0?0)\/(\d+):\d+(:00)?$/))) return { kieu: 'moi', phut: Number(m[1]) * 60 };
     if (c === 'daily') { moc.push({ gio: '07:00', thu: [] }); continue; }
     if (!(m = c.match(/^(?:([A-Za-z.,]+) )?\*-\*-\* ([\d,]+):(\d+)(?::\d+)?$/))) return null;

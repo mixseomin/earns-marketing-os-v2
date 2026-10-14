@@ -8,7 +8,7 @@ a.equal(chuLich({ kieu: 'luc', gio: ['08:15', '14:15'], thu: [] }), '08:15, 14:1
 a.deepEqual(sach({ kieu: 'luc', gio: ['14:15', '08:15', '08:15'], thu: [1, 2, 3, 4, 5, 6, 7] }), { kieu: 'luc', gio: ['08:15', '14:15'], thu: [] }, 'sắp giờ, bỏ trùng, đủ 7 thứ = mỗi ngày');
 a.throws(() => sach({ kieu: 'moi', phut: 0 })); a.throws(() => sach({ kieu: 'luc', gio: [] })); a.throws(() => sach({ kieu: 'luc', gio: ['8h'] }));
 a.deepEqual(tuSystemd('OnBootUSec=2min · OnUnitActiveUSec=30min · OnActiveUSec=1min'), { kieu: 'moi', phut: 30 });
-a.deepEqual(tuSystemd('OnCalendar=*-*-* *:00/10:00'), { kieu: 'moi', phut: 10 }); a.deepEqual(tuSystemd('OnCalendar=*-*-* *:17:00 UTC'), { kieu: 'moi', phut: 60 });
+a.deepEqual(tuSystemd('OnCalendar=*-*-* *:00/10:00'), { kieu: 'moi', phut: 10 }); a.deepEqual(tuSystemd('OnCalendar=*-*-* *:02,17,32,47:00'), { kieu: 'moi', phut: 15 }); a.deepEqual(tuSystemd('OnCalendar=*-*-* *:17:00 UTC'), { kieu: 'moi', phut: 60 });
 a.deepEqual(tuSystemd('OnCalendar=*-*-* 02,14:00:00 UTC'), { kieu: 'luc', gio: ['09:00', '21:00'], thu: [] });
 a.deepEqual(tuSystemd('OnCalendar=Mon..Fri *-*-* 14:00:00'), { kieu: 'luc', gio: ['21:00'], thu: [1, 2, 3, 4, 5] });
 a.deepEqual(tuSystemd('OnCalendar=Sun *-*-* 18:00:00 UTC'), { kieu: 'luc', gio: ['01:00'], thu: [1] }, '18:00 UTC CN = 01:00 VN T2');

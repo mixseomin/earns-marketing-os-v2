@@ -3,7 +3,8 @@
 //                                              khoi → khối 3D nhân vật / đạo cụ, may (theo mã shot) → xv_canh.may_3d của tập
 //   --dung --tap=<id> [--tat-ca]               dựng khung xám (Blender) cho shot có may_3d mà khung xám thiếu / cũ
 // cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/bo-set.mts …
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { chupTruoc } from '../src/lib/xuong-video/hoan-tac';
@@ -55,6 +56,15 @@ if (gia('nap')) {
 if (process.argv.includes('--dung')) {
   if (!tap) { console.error('--dung cần --tap=<id>'); process.exit(1); }
   const chi = gia('chi') ? gia('chi').split(',').map(Number) : undefined;   // --chi=<id,…>: chỉ dựng các shot này (thử nhanh)
-  console.log(JSON.stringify(await dungKhungXamTap(db, tap, { tatCa: process.argv.includes('--tat-ca'), ids: chi })));
+  // --xuat=<thư mục>: chỉ chuẩn bị đầu vào cho máy ngoài render (iMac) + ghi danh sách shot vào viec.json; --nhap=<thư mục>: nhận kết quả máy ngoài.
+  const xuat = gia('xuat'), nhap = gia('nhap');
+  if (nhap) {
+    const v = JSON.parse(readFileSync(path.join(nhap, 'viec.json'), 'utf8')) as { ids: number[] };
+    console.log(JSON.stringify(await dungKhungXamTap(db, tap, { tatCa: true, ids: v.ids, che: 'nhap', thuMuc: nhap })));
+  } else {
+    const kq = await dungKhungXamTap(db, tap, { tatCa: process.argv.includes('--tat-ca'), ids: chi, ...(xuat ? { che: 'xuat' as const, thuMuc: xuat } : {}) });
+    if (xuat && kq.ok) writeFileSync(path.join(xuat, 'viec.json'), JSON.stringify({ ids: kq.data.ids }));
+    console.log(JSON.stringify(kq));
+  }
 }
 process.exit(0);

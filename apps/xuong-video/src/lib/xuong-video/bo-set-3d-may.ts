@@ -4,7 +4,7 @@
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -58,7 +58,9 @@ export async function donRenderCu(db: Db, urls: string[], thu = false): Promise<
 }
 
 /** Dựng khung xám cho các shot của tập (mặc định: shot có may_3d mà khung xám thiếu / cũ). tatCa = dựng lại hết. */
-export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolean; ids?: number[] } = {}): Promise<{ ok: true; data: { dung: number; loi: string[]; don: { xoa: number; giu: number }; ly_do: string[] } } | { ok: false; loi: string }> {
+/** che = 'xuat': chỉ chuẩn bị đầu vào Blender vào thuMuc rồi dừng (máy ngoài — iMac — render); 'nhap': không render, đọc kết quả máy ngoài đã đặt
+ *  vào thuMuc rồi đẩy kho + ghi DB như thường. Khoá / DB không rời box: iMac chỉ làm thợ render (scripts/bo-set/chay-imac.sh). */
+export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolean; ids?: number[]; che?: 'xuat' | 'nhap'; thuMuc?: string } = {}): Promise<{ ok: true; data: { dung: number; loi: string[]; don: { xoa: number; giu: number }; ly_do: string[]; ids: number[] } } | { ok: false; loi: string }> {
   const t = (await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[];
   if (!t[0]) return { ok: false, loi: 'không thấy tập' };
   const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(t[0].phim_id)} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
@@ -95,15 +97,19 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     if (!b.ok) { loi.push(`${set.ten}: ${b.loi}`); continue; }
     // SONG SONG (anh 15/10/2026: "tối ưu rồi mà vẫn lâu"): chia shot cho tối đa 3 Blender chạy cùng lúc (box 4 nhân), thêm 1 Blender nhẹ chỉ vẽ
     // mặt bằng đủ đường đi cả tập. Mỗi phần một thư mục ra; gộp kết quả. Ràng buộc trục giữa hai phần dùng máy cũ của shot trước (dat_truoc).
-    const thu = await mkdtemp(path.join(tmpdir(), 'bo-set-'));
+    const thu = o.thuMuc ? path.join(o.thuMuc, String(sid)) : await mkdtemp(path.join(tmpdir(), 'bo-set-'));
+    if (o.thuMuc) await mkdir(thu, { recursive: true });
     const soPhan = Math.max(1, Math.min(3, Math.ceil(shots.length / 3)));
     const phan = Array.from({ length: soPhan }, (_, k) => shots.filter((_s, i) => i % soPhan === k));
     const chay = async (ds0: typeof shots, ten: string, env: Record<string, string>) => {
       const bb = bangDung(set, ds0, nv); if (!bb.ok) return { ok: false, log: bb.loi, ra: '' };
-      await writeFile(path.join(thu, `${ten}.json`), JSON.stringify(bb.bang));
+      if (o.che !== 'nhap') await writeFile(path.join(thu, `${ten}.json`), JSON.stringify(bb.bang));
+      if (o.che === 'xuat') return { ok: true, log: '', ra: path.join(thu, ten) };
+      if (o.che === 'nhap') return { ok: existsSync(path.join(thu, ten, ten === 'mb' ? 'mat-bang.png' : 'kiem.json')), log: `máy ngoài chưa trả kết quả ${ten}`, ra: path.join(thu, ten) };
       const r = await chayBlender(path.join(thu, `${ten}.json`), path.join(thu, ten), env); return { ...r, ra: path.join(thu, ten) };
     };
     const ketQua = await Promise.all([...phan.map((p, k) => chay(p, `p${k}`, { XV_BO_MAT_BANG: '1' })), chay(shots, 'mb', { XV_CHI_MAT_BANG: '1' })]);
+    if (o.che === 'xuat') { dung += shots.length; continue; }   // máy ngoài render, lượt 'nhap' ghi kết quả
     const hong = ketQua.find((r) => !r.ok);
     if (hong) { loi.push(`${set.ten}: blender lỗi — ${hong.log}`); continue; }
     const gop = async <T,>(tep: string) => Object.assign({}, ...(await Promise.all(ketQua.slice(0, -1).map(async (r) => JSON.parse(await readFile(path.join(r.ra, tep), 'utf8').catch(() => '{}'))))) ) as Record<string, T>;
@@ -133,6 +139,6 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     const mb = await uploadToR2(`xuong-video/bo-set/${sid}-mat-bang-${Date.now()}.png`, await readFile(path.join(ketQua[ketQua.length - 1]!.ra, 'mat-bang.png')), 'image/png');
     if (mb) { await db.execute(sql`UPDATE xv_bo_set SET mat_bang_url = ${mb}, updated_at = now() WHERE id = ${sid}`); if (mbCu) cu.push(mbCu); }
   }
-  const don = await donRenderCu(db, cu);
-  return { ok: true, data: { dung, loi, don, ly_do: lyDo } };
+  const don = o.che === 'xuat' ? { xoa: 0, giu: 0 } : await donRenderCu(db, cu);
+  return { ok: true, data: { dung, loi, don, ly_do: lyDo, ids: [...theoSet.values()].flat().map((c) => c.id) } };
 }

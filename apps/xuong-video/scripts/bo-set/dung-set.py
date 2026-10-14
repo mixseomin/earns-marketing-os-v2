@@ -249,7 +249,10 @@ for sh in sorted([x for x in shots if x.get('so')], key=lambda x: x['so']):
     bpy.ops.mesh.primitive_cone_add(radius1=1.0 * CM, depth=2.5 * CM, location=(Vector(sh['may']['dat']) * CM) + Vector((0, 0, 0.06)))
     c = bpy.context.object; c.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler(); dat(c, mau('#ff2d55', 3), f"may {sh['ma']}")
     for nv in sh.get('nhan_vat', []):
-        ds = duong.setdefault(nv['ten'], [])
+        dd = duong.setdefault(nv['ten'], [[]])
+        # Khai nhảy (cắt thời gian / đi ngoài khung) hoặc đang được cầm → NGẮT nét: không vẽ một đường giả xuyên bàn giữa hai chỗ.
+        if (sh.get('nhay') or nv.get('nhay') or nv.get('cam')) and dd[-1]: dd.append([])
+        ds = dd[-1]
         for p, nhan in ((nv['tam'], f"{sh['so']}"), (nv.get('den'), None)):
             if p is None: continue
             ds.append((p[0], p[1], 0.6 + 0.02 * len(duong)))
@@ -257,12 +260,13 @@ for sh in sorted([x for x in shots if x.get('so')], key=lambda x: x['so']):
                 t = bpy.data.curves.new(f"t{sh['ma']}{nv['ten']}", 'FONT'); t.body = nhan; t.size = 1.8 * CM
                 to = bpy.data.objects.new(f"t{sh['ma']}{nv['ten']}", t); s.collection.objects.link(to); to.location = (Vector((p[0], p[1], 1)) + Vector((0.6, 0.6, 0))) * CM
                 t.materials.append(mau(DL['nhan_vat_mau'][nv['ten']]['mau'], 4))
-for ten, ds in duong.items():
-    gon = [ds[0]] + [p for i, p in enumerate(ds[1:]) if (Vector(p) - Vector(ds[i])).length > 0.05]
+for ten, doan in duong.items():
     m = DL['nhan_vat_mau'][ten]['mau']
-    for p in gon:
-        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.5 * CM, location=Vector(p) * CM); dat(bpy.context.object, mau(m, 3), f"dd {ten}")
-    if len(gon) > 1: khoi({'hinh': 'day', 'diem': [list(p) for p in gon], 'ban_kinh': 0.25, 'mau': m, 'sang': 3, 'bac': 1}, f"duong {ten}")
+    for k, ds in enumerate(x for x in doan if x):
+        gon = [ds[0]] + [p for i, p in enumerate(ds[1:]) if (Vector(p) - Vector(ds[i])).length > 0.05]
+        for p in gon:
+            bpy.ops.mesh.primitive_uv_sphere_add(radius=0.5 * CM, location=Vector(p) * CM); dat(bpy.context.object, mau(m, 3), f"dd {ten}")
+        if len(gon) > 1: khoi({'hinh': 'day', 'diem': [list(p) for p in gon], 'ban_kinh': 0.25, 'mau': m, 'sang': 3, 'bac': 1}, f"duong {ten} {k}")
 # Khung mặt bằng tự ôm cả mặt bàn (vật tên 'Mặt bàn'), không gõ tay cỡ.
 ban = next(v for v in DL['vat'] if v['ten'] == 'Mặt bàn')
 cd = bpy.data.cameras.new('tren'); cd.type = 'ORTHO'; cd.ortho_scale = max(ban['co'][0], ban['co'][1] * 1200 / 800) * CM * 1.08

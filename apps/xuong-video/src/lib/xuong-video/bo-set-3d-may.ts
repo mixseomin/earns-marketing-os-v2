@@ -15,6 +15,11 @@ import { bangDung, boSetCuaShot, maKhungXam, maPhan, mayDayDu, rangBuocTruc, sho
 import { locNhanh, type BoSet, type Canh, type KhungXam, type May3d } from './kieu';
 import { kemBienThe, mapCanh, mapNhanVat, type Db, type Row } from './doc-db';
 
+/** Chạy fn cho từng phần tử, tối đa n việc cùng lúc. */
+async function theoLo<T>(ds: T[], n: number, fn: (x: T) => Promise<void>): Promise<void> {
+  let i = 0; await Promise.all(Array.from({ length: Math.min(n, ds.length) }, async () => { while (i < ds.length) await fn(ds[i++]!); }));
+}
+
 export const mapBoSet = (r: Row): BoSet => ({ id: Number(r.id), project: String(r.project), phim_id: r.phim_id == null ? null : Number(r.phim_id), ten: String(r.ten), mo_ta: String(r.mo_ta ?? ''),
   du_lieu: (r.du_lieu ?? { vat: [] }) as BoSet['du_lieu'], mat_bang_url: r.mat_bang_url == null ? null : String(r.mat_bang_url), trang_thai: String(r.trang_thai) });
 
@@ -50,13 +55,13 @@ export async function donRenderCu(db: Db, urls: string[], thu = false): Promise<
       UNION ALL SELECT coalesce(mat_bang_url, '') FROM xv_bo_set`)) as unknown as Row[]).map((r) => String(r.t)).join('\n');
   const goc = (process.env.R2_PUBLIC_BASE || 'https://img.on.tc').replace(/\/+$/, '');
   let xoa = 0, giu = 0;
-  for (const u of [...new Set(urls.filter(Boolean))]) {
+  await theoLo([...new Set(urls.filter(Boolean))], 8, async (u) => {   // 8 ảnh một lúc
     const nho = CO_NHO.map((w) => khoaNho(u, w));
-    if ([u, ...nho.map((k) => `${goc}/${k}`)].some((d) => ref.includes(d))) { giu++; continue; }
-    const k = r2KeyFromUrl(u); if (!k) { giu++; continue; }
-    if (thu) { xoa++; continue; }   // chạy thử: chỉ đếm
+    if ([u, ...nho.map((k) => `${goc}/${k}`)].some((d) => ref.includes(d))) { giu++; return; }
+    const k = r2KeyFromUrl(u); if (!k) { giu++; return; }
+    if (thu) { xoa++; return; }   // chạy thử: chỉ đếm
     if (await deleteFromR2(k)) { xoa++; await Promise.all(nho.map((kn) => deleteFromR2(kn))); }
-  }
+  });
   return { xoa, giu };
 }
 
@@ -125,19 +130,18 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     // Ghi máy đã giải vào máy KHAI của shot (không ghi đồ để lại — chúng là trạng thái tính ra, không phải khai).
     for (const c of shots) { const g = giai[String(c.id)]; if (g) { c.may_3d = { ...c.may_3d, dat: g.dat }; c.goc = { ...c.goc, dat: g.dat }; await db.execute(sql`UPDATE xv_canh SET may_3d = ${JSON.stringify(c.goc)}::jsonb WHERE id = ${c.id}`); } }
     const luc = new Date().toISOString();
-    for (const c of shots) {
+    // Đẩy kho SONG SONG 8 shot một lúc, 4 ảnh mỗi shot cùng lúc (trước đây lần lượt ~140 ảnh → nhiều phút chỉ vì độ trễ mạng mỗi lần gọi).
+    await theoLo(shots, 8, async (c) => {
       const ma = maKhungXam(set, c.may_3d, nv);
       const ra = raCua.get(String(c.id))!;
       const len = async (duoi: string) => uploadToR2(`xuong-video/khung-xam/${c.id}-${ma}-${duoi}.png`, await readFile(path.join(ra, `${c.id}-${duoi}.png`)), 'image/png');
-      const [xam, sau] = [await len('xam'), await len('sau')];
-      const mau = existsSync(path.join(ra, `${c.id}-mau.png`)) ? await len('mau') : null;
-      const mauKet = existsSync(path.join(ra, `${c.id}-mau-ket.png`)) ? await len('mau-ket') : null;
-      if (!xam || !sau) { loi.push(`#${c.thu_tu}: không đẩy được ảnh lên kho`); continue; }
+      const [xam, sau, mau, mauKet] = await Promise.all([len('xam'), len('sau'), existsSync(path.join(ra, `${c.id}-mau.png`)) ? len('mau') : null, existsSync(path.join(ra, `${c.id}-mau-ket.png`)) ? len('mau-ket') : null]);
+      if (!xam || !sau) { loi.push(`#${c.thu_tu}: không đẩy được ảnh lên kho`); return; }
       const kx: KhungXam = { ma, ma_phan: maPhan(set, c.may_3d, nv), xam, sau, ...(mau ? { mau } : {}), ...(mauKet ? { mau_ket: mauKet } : {}), ...(di[String(c.id)] ? { di: di[String(c.id)] } : {}), luc, kiem: kiem[String(c.id)] ?? [], thay: thay[String(c.id)] ?? [] };
       await db.execute(sql`UPDATE xv_canh SET khung_xam = ${JSON.stringify(kx)}::jsonb WHERE id = ${c.id}`);
       if (c.khung_xam) cu.push(c.khung_xam.xam, c.khung_xam.sau, c.khung_xam.mau ?? '', c.khung_xam.mau_ket ?? '');
       dung++;
-    }
+    });
     const mbCu = set.mat_bang_url;
     const mb = await uploadToR2(`xuong-video/bo-set/${sid}-mat-bang-${Date.now()}.png`, await readFile(path.join(ketQua[ketQua.length - 1]!.ra, 'mat-bang.png')), 'image/png');
     if (mb) { await db.execute(sql`UPDATE xv_bo_set SET mat_bang_url = ${mb}, updated_at = now() WHERE id = ${sid}`); if (mbCu) cu.push(mbCu); }

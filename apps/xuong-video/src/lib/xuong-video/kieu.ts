@@ -232,13 +232,19 @@ export const phongCachHinh = (pc?: string): string =>
 /** Phong cách VẼ TAY (sáp màu, bút chì, màu nước, phấn, mực…): model video hiểu thành cảnh "có người đang vẽ" — Fox Tales 13/10/2026: bàn tay
  *  cầm bút sáp thò vào khung shot 1. Trả câu cấm gắn vào prompt video; phong cách khác trả ''. */
 /** coTay = shot có nhân vật LÀ bàn tay người (anchor tả "human hand", vd Gã khổng lồ của Tango & Lint) → không cấm bàn tay. */
+/** STOP-MOTION / miniature thật (Tango & Lint 14/10/2026: keyframe #23 có bàn tay người thò vào; phong cách có chữ "paper" nên trước đây
+ *  rơi nhầm vào nhánh tranh vẽ → câu cấm "NO table or desk" giết luôn cái bàn là thế giới của phim). Lỗi kinh điển của stop-motion là tay
+ *  người làm hoạt hình lọt khung → chỉ cấm tay/người, không cấm đạo cụ hay mặt bàn. Kiểm TRƯỚC nhánh tranh vẽ. */
+const laStopMotion = (pc?: string) => /stop[- ]?motion|claymation|miniature|puppet|tí hon|đất sét/i.test(pc ?? '');
 export const camCongCuVe = (pc?: string, coTay = false): string =>
-  !coTay && /crayon|pencil|sketch|watercolou?r|chalk|pastel|doodle|scribbl|ink\b|marker|hand-drawn|hand drawn|drawn|paper|sáp|bút chì|màu nước|phấn|vẽ/i.test(pc ?? '')
+  !coTay && laStopMotion(pc)
+    ? 'NO human hands, fingers, arms or people anywhere in the frame — no animator\'s hand reaching in; only the puppet characters and the set.'
+    : !coTay && /crayon|pencil|sketch|watercolou?r|chalk|pastel|doodle|scribbl|ink\b|marker|hand-drawn|hand drawn|drawn|paper|sáp|bút chì|màu nước|phấn|vẽ/i.test(pc ?? '')
     ? 'This is an animated illustration: the drawn characters and scenery themselves move. NO human hands, NO crayons, pencils, brushes, scissors, glue or any drawing / crafting tools, NO artist, NO table or desk and NO border of a sheet of paper ever appear in the frame (the frame IS the illustration, not a photo of it); nothing is being drawn or cut on screen.'
     : '';
 /** Negative prompt cho model video có ô riêng (Veo / Kling): liệt kê DANH TỪ cần loại, không viết "no …" (hướng dẫn prompt Veo của Google). */
 export const laTayNguoi = (nv: { mo_ta: string }[]): boolean => nv.some((v) => /\bhuman hand\b/i.test(v.mo_ta));
-export const loaiCongCuVe = (pc?: string, coTay = false): string => (camCongCuVe(pc, coTay) ? 'human hand, artist hand, fingers, crayon, pencil, brush, marker, scissors, glue, drawing tool, paper being drawn on, artist' : '');
+export const loaiCongCuVe = (pc?: string, coTay = false): string => (coTay ? '' : laStopMotion(pc) ? 'human hand, fingers, arm, person, animator hand' : camCongCuVe(pc, coTay) ? 'human hand, artist hand, fingers, crayon, pencil, brush, marker, scissors, glue, drawing tool, paper being drawn on, artist' : '');
 export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: string; shot?: Partial<ShotChu>; anchor?: Pick<NhanVat, 'ten' | 'mo_ta'>[] }): string | null {
   if (!ngonNgu || ngonNgu === 'vi') return null;
   const cho: string[] = [];

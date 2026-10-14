@@ -28,5 +28,9 @@ console.log('khop-giong.test: ok');
 import { camCongCuVe, laTayNguoi } from './kieu';
 assert.ok(camCongCuVe('naive wax crayon drawing on paper').includes('NO human hands'));
 assert.strictEqual(camCongCuVe('cinematic 3D Pixar look'), '');
+// stop-motion có chữ "paper" (Tango & Lint): cấm tay người, KHÔNG được cấm mặt bàn/đạo cụ như nhánh tranh vẽ
+const sm = camCongCuVe('Real-world miniature stop-motion film on a desk; real materials (wood, plastic, paper)');
+assert.ok(sm.includes('NO human hands') && !sm.includes('table or desk'), sm);
+assert.strictEqual(camCongCuVe('miniature stop-motion, paper', true), '', 'shot có Gã khổng lồ (bàn tay) → không cấm');
 assert.strictEqual(camCongCuVe('naive wax crayon drawing on paper', true), '', 'shot có nhân vật là bàn tay người → không cấm bàn tay');
 assert.ok(laTayNguoi([{ mo_ta: 'The Giant: a huge human hand in a blue knitted sweater sleeve' }]) && !laTayNguoi([{ mo_ta: 'orange clay blob' }]));

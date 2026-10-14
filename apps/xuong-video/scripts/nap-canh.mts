@@ -52,7 +52,10 @@ if (process.argv.includes('--cap-nhat')) {
     const i = demPc.get(c.phan_doan) ?? 0; demPc.set(c.phan_doan, i + 1);
     const r = theoPc.get(c.phan_doan)?.[i];
     if (!r) { chuaCo.push(`${c.phan_doan} #${i + 1}`); continue; }
-    const ids = (c.nhan_vat as string[]).map((t) => tenId.get(t.trim().toLowerCase())).filter((x): x is number => typeof x === 'number');
+    const ids0 = (c.nhan_vat as string[]).map((t) => tenId.get(t.trim().toLowerCase())).filter((x): x is number => typeof x === 'number');
+    // Cùng luật lưu tách cảnh (luu-canh.ts): món có nhắc tên trong prompt / hành động mà tệp không liệt kê thì gắn luôn.
+    const { mauNhacTen } = await import('../src/lib/xuong-video/quy-trinh');
+    const ids = [...ids0, ...mauNhacTen({ nhan_vat: ids0, prompt_anh: c.prompt_anh as string, hanh_dong: c.hanh_dong as string }, nv).map((v) => v.id)];
     const dd = (c.dan_dung ?? {}) as Record<string, string>; const ddCu = (r.dan_dung ?? {}) as Record<string, string>;
     if (c.prompt_anh !== r.prompt_anh || dd.bo_cuc !== ddCu.bo_cuc || dd.mo !== ddCu.mo || JSON.stringify([...ids].sort()) !== JSON.stringify([...((r.nhan_vat as number[]) ?? [])].sort())) lechAnh.push(Number(r.thu_tu));
     await chupTruoc(db, { bang: 'xv_canh', id: Number(r.id), cot: ['canh', 'goc_may', 'hanh_dong', 'prompt_anh', 'prompt_video', 'am_thanh', 'thoai', 'loi_thoai', 'phat_s', 'ky_thuat', 'dan_dung', 'cam_xuc', 'nhan_vat', 'chu_man'], moTa: 'đồng bộ hồ sơ tiền kỳ', nguoi: 'nap-canh' });

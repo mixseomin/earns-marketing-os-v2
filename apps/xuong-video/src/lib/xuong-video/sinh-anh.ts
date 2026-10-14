@@ -68,8 +68,10 @@ export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: 
   return { urlRef, banDoRef: dong.length ? `Reference images: ${dong.join(' ')}` : '', vai };
 }
 
-/** Sinh "ảnh mẫu" cho anchor từ mô tả (character sheet). Ảnh thêm vào anh_ref; các cảnh sau dùng nó làm tham chiếu. */
-export async function sinhAnhGoc(db: Db, nhanVatId: number): Promise<KqSinh<number>> {
+/** Sinh "ảnh mẫu" cho anchor từ mô tả (character sheet). Ảnh thêm vào anh_ref; các cảnh sau dùng nó làm tham chiếu.
+ *  so = số ảnh một lượt (#1351, anh 13/10/2026: "mỗi lần sinh cần thêm vài góc khác chứ không chỉ một góc chính"): ảnh thứ k lấy góc thứ
+ *  (đã có + k) trong claude.ts › GOC_THEM — lần đầu = ảnh chính + các góc phụ, lần sau = các góc chưa có. Trả job đầu tiên. */
+export async function sinhAnhGoc(db: Db, nhanVatId: number, so = 1): Promise<KqSinh<number>> {
   const loi = (x: string): KqSinh<number> => ({ ok: false, loi: x });
   const r = (await db.execute(sql`SELECT v.*, p.kinh_thanh AS kt FROM xv_nhan_vat v JOIN xv_phim p ON p.id = v.phim_id WHERE v.id = ${nhanVatId}`)) as unknown as Row[];
   if (!r[0]) return loi('không thấy anchor');
@@ -78,9 +80,14 @@ export async function sinhAnhGoc(db: Db, nhanVatId: number): Promise<KqSinh<numb
   const kt = docKinhThanh(r[0].kt as KinhThanh);
   const chan = chanChuModel(kt.ngon_ngu, { phongCach: kt.phong_cach, anchor: [nv] });
   if (chan) return loi(chan);
-  const job = await taoJob(db, { nhan: `Ảnh gốc · ${nv.ten}`, nhan_vat_id: nhanVatId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { prompt: promptAnhMau(nv, kt, nv.anh_ref.length) } });
-  await dayViecAnh({ job, model: kt.mo_hinh_anh, prompt: promptAnhMau(nv, kt, nv.anh_ref.length), thamChieuUrl: nv.anh_ref.slice(0, 3), tiLe: nv.loai === 'boi_canh' ? kt.ti_le : '1:1', thuMuc: `anchor/${nhanVatId}` });
-  return { ok: true, data: job };
+  let dau = 0;
+  for (let k = 0; k < Math.max(1, Math.min(6, so)); k++) {
+    const prompt = promptAnhMau(nv, kt, nv.anh_ref.length + k);
+    const job = await taoJob(db, { nhan: `Ảnh gốc · ${nv.ten}${so > 1 ? ` · góc ${k + 1}/${so}` : ''}`, nhan_vat_id: nhanVatId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { prompt } });
+    await dayViecAnh({ job, model: kt.mo_hinh_anh, prompt, thamChieuUrl: nv.anh_ref.slice(0, 3), tiLe: nv.loai === 'boi_canh' ? kt.ti_le : '1:1', thuMuc: `anchor/${nhanVatId}` });
+    dau ||= job;
+  }
+  return { ok: true, data: dau };
 }
 
 /** Câu lệnh + ảnh tham chiếu sẽ gửi cho keyframe của một shot — MỘT chỗ cho lúc sinh thật và sơ đồ nguồn (so "đã gửi" với "giờ sẽ gửi"). */

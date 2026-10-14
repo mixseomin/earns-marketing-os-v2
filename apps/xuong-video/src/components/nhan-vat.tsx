@@ -12,6 +12,9 @@ import { Khoa, O, Pill, Seg, Nut, Xoa, Loi, AnhNho, DangSinh, Menu, MucMenu, mon
 import { NutNghe } from './media';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
 
+/** Số góc một lượt sinh ảnh gốc anchor (#1351): ảnh chính + góc phụ ngay từ đầu, không phải bấm lần lượt từng góc. */
+const BO_GOC = 3;
+
 /** Giọng cố định của một nhân vật (cả bộ phim): chọn model (ElevenLabs tài khoản anh / mọi TTS fal) + giọng, nghe thử. */
 export function GiongNhanVat({ v, onChanged }: { v: NhanVat; onChanged: () => Promise<void> }) {
   const [mo, setMo] = useState(false);
@@ -58,10 +61,10 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
   // Bấm là đẩy vào hàng đợi nền rồi trả ngay → bấm liên tục nhiều anchor được; trạng thái "đang sinh" đọc từ máy chủ.
   // gui[id] = số ảnh gốc lúc bấm lần đầu của mạch này → nút hiện "đang gửi" ngay khi bấm, xong thì báo đã thêm mấy ảnh.
   const [gui, setGui] = useState<Record<number, { goc: number; cho: number }>>({});
-  const sinh = async (id: number, soAnh: number) => {
+  const sinh = async (id: number, soAnh: number, so = BO_GOC) => {
     setLoi((x) => ({ ...x, [id]: '' }));
     setGui((g) => ({ ...g, [id]: { goc: g[id]?.goc ?? soAnh, cho: (g[id]?.cho ?? 0) + 1 } }));
-    const r = await sinhAnhMau(id);
+    const r = await sinhAnhMau(id, so);
     setGui((g) => (g[id] ? { ...g, [id]: { ...g[id], cho: g[id].cho - 1 } } : g));
     if (!r.ok) setLoi((x) => ({ ...x, [id]: r.loi }));
     await onChanged();
@@ -92,7 +95,8 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
                 <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 2, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={v.mo_ta}>{v.mo_ta || <em style={{ color: 'var(--fg-4)' }}>chưa mô tả</em>}</div>
                 <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
                   <button type="button" className="xv-btn" onClick={() => setSua(v)}>Sửa</button>
-                  <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || (!v.mo_ta.trim() && 'tả đặc tính trước')} title={`Sinh ảnh gốc (${v.loai === 'nhan_vat' ? 'character sheet: nhiều góc + biểu cảm' : 'ảnh tham chiếu'}) từ mô tả (~${tien(giaAnhCents(kt.mo_hinh_anh))}/ảnh, ~20 giây). Bấm nhiều lần = sinh song song nhiều ảnh; mỗi lần thêm đổi góc khác.`} onClick={() => void sinh(v.id, v.anh_ref.length)} gia={giaAnhCents(kt.mo_hinh_anh)}>{v.anh_ref.length ? '✨ Sinh thêm ảnh gốc' : '✨ Sinh ảnh gốc'} · {tien(giaAnhCents(kt.mo_hinh_anh))}</Nut>
+                  <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || (!v.mo_ta.trim() && 'tả đặc tính trước')} title={`Một lượt = ${BO_GOC} ảnh, mỗi ảnh một GÓC khác (${v.anh_ref.length ? 'các góc chưa có' : 'ảnh chính + góc phụ'}: ${v.loai === 'nhan_vat' ? 'dáng toàn thân, biểu cảm, ¾, lưng/cạnh' : v.loai === 'boi_canh' ? 'ngược hướng, sát đất, trên cao, chi tiết' : 'nghiêng 45°, cận chất liệu, từ trên, mặt sau'}) — ~${tien(giaAnhCents(kt.mo_hinh_anh))}/ảnh, chạy song song ~20 giây.`} onClick={() => void sinh(v.id, v.anh_ref.length)} gia={BO_GOC * giaAnhCents(kt.mo_hinh_anh)}>{v.anh_ref.length ? `✨ Sinh thêm ${BO_GOC} góc` : `✨ Sinh ảnh gốc + góc phụ (${BO_GOC})`} · {tien(BO_GOC * giaAnhCents(kt.mo_hinh_anh))}</Nut>
+                  <Nut ly={(!khoa.google && !khoa.openai && 'thiếu khoá ảnh') || (!v.mo_ta.trim() && 'tả đặc tính trước')} title="Chỉ sinh thêm MỘT góc kế tiếp" onClick={() => void sinh(v.id, v.anh_ref.length, 1)} gia={giaAnhCents(kt.mo_hinh_anh)}>+1 góc</Nut>
                   {/* Sản phẩm chưa có ảnh thật thì nút ảnh thật là việc CHÍNH → để ngoài; còn lại ít dùng → sau ⋯ (YDNI). */}
                   {v.loai === 'san_pham' && !v.anh_ref.length && <button type="button" className="xv-btn" onClick={() => setSua(v)} title="Thêm ảnh thật: dán Ctrl+V, nút Dán (điện thoại), kéo thả, chọn file, URL">📷 Ảnh thật</button>}
                   {v.loai === 'nhan_vat' && <GiongNhanVat v={v} onChanged={onChanged} />}

@@ -4,6 +4,7 @@ import { HoSoTap } from './ho-so';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Timeline } from './timeline';
 import { LuoiKichBan } from './luoi-kich-ban';
+import { Ngan } from './ngan';
 import { moNgan } from './ngan-chung';
 import { MO_HINH_AM } from '@/lib/xuong-video/am-thanh';
 import { quyTrinh, phimQt } from '@/lib/xuong-video/quy-trinh';
@@ -55,6 +56,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
   // Tiếng đang xem trên timeline + toàn màn hình: '' = bản gốc, 'vi' = bản lồng tiếng Việt đã lưu trong shot (ban-dich.ts › theoNgonNgu). Nhớ trên URL (?tln=vi).
   const [tiengXem, setTiengXem] = useNho<'' | 'vi'>('xv-tln', '', ['', 'vi'], 'tln');
   const [chonCanh, setChonCanh] = useState<number | null>(null);
+  const [xemShot, setXemShot] = useState<number | null>(null);   // shot mở chi tiết từ lưới (ngăn kéo)
   const [uoc, setUoc] = useState<{ anh1: number; videoTong: number; soCanhDuyet: number; giayDuyet: number } | null>(null);
   const [uocA, setUocA] = useState<Awaited<ReturnType<typeof uocAm>> | null>(null);
   const [mhNhac, setMhNhac] = useState('cassetteai/music-generator');
@@ -348,12 +350,23 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
               </>
             );
           })() : xem === 'luoi' ? (
-            <LuoiKichBan canh={locNhanh(canh, nhanh)} nhanVat={nhanVat} tap={tap} tiLe={kt.ti_le} moHinhChu={kt.mo_hinh_chu} onChanged={async () => { await taiCanh(); await onChanged(); }} onMo={(id) => { setChonCanh(id); setXem('timeline'); }} />
+            <LuoiKichBan canh={locNhanh(canh, nhanh)} nhanVat={nhanVat} tap={tap} tiLe={kt.ti_le} moHinhChu={kt.mo_hinh_chu} onChanged={async () => { await taiCanh(); await onChanged(); }} onMo={(id) => setXemShot(id)} />
           ) : (
             <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>{canh.map((c) => <CanhRow key={c.id} c={c} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} />)}</div>
           )}
         </>
       ))}
+      {/* Bấm thẻ lưới = mở CHI TIẾT shot trong ngăn kéo (#1357), không đổi màn; muốn tới đúng chỗ trên timeline thì bấm link ở đầu ngăn. */}
+      {xemShot != null && canh && (() => {
+        const c = canh.find((x) => x.id === xemShot);
+        if (!c) return null;
+        return (
+          <Ngan onClose={() => setXemShot(null)} tieuDe={`Shot #${c.thu_tu} · ${c.canh}`}
+            nut={<button type="button" className="xv-btn" title="Đóng ngăn, chuyển sang Timeline và đặt con trỏ ở đầu shot này" onClick={() => { setXemShot(null); setChonCanh(c.id); setXem('timeline'); }}>⏱ Mở trên timeline</button>}>
+            <CanhRow key={c.id} c={c} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} />
+          </Ngan>
+        );
+      })()}
       {animatic && canh && <Animatic canh={xemVi && vi ? vi.canh : locNhanh(canh, nhanh)} lop={tap.lop} qc={kt.qc} tiLe={kt.ti_le} ngonNgu={xemVi ? 'vi' : kt.ngon_ngu} onClose={() => setAnimatic(false)} />}
     </div>
   );

@@ -798,11 +798,11 @@ export async function xoaCanh(id: number): Promise<Kq> {
 
 
 /** Ảnh gốc cho anchor (lõi ở sinh-anh.ts — script dùng chung). */
-export async function sinhAnhMau(nhanVatId: number): Promise<Kq<number>> {
+export async function sinhAnhMau(nhanVatId: number, so = 1): Promise<Kq<number>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  return sinhAnhGoc(db, nhanVatId);
+  return sinhAnhGoc(db, nhanVatId, so);
 }
 /** Keyframe cho một shot (lõi ở sinh-anh.ts — script dùng chung). */
 export async function sinhKeyframe(canhId: number, so = 1, moHinh?: string): Promise<Kq<number[]>> {

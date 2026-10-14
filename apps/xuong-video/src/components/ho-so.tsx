@@ -1,6 +1,7 @@
 'use client';
 // Tab 📋 Hồ sơ của một tập (14/10/2026 — khuôn tiền kỳ chuẩn studio): các tài liệu của ngành dựng từ dữ liệu tập + shot bằng ĐÚNG bộ dựng của
 // trang duyệt (lib/xuong-video/ho-so.ts › hoSoHtml), đặt trong iframe để style của hồ sơ không lẫn với studio. Nút Duyệt animatic = cổng video.
+import { moNgan } from './ngan-chung';
 import { useMemo, useState } from 'react';
 import { hoSoHtml, maAnimatic, type HoSoVao } from '@/lib/xuong-video/ho-so';
 import { docKinhThanh, type Canh, type NhanVat, type Phim, type Tap } from '@/lib/xuong-video/kieu';
@@ -25,7 +26,7 @@ export function HoSoTap({ tap, phim, canh, nhanVat, onChanged }: { tap: Tap; phi
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8, fontSize: 12.5 }}>
         <b>Animatic:</b>
         <span className="xv-mono">{an ? (khop ? `đã duyệt ${an.luc.slice(0, 10)} — cổng video mở` : 'keyframe/giây đã đổi sau khi duyệt — duyệt lại') : duKf ? 'chưa duyệt — ⬇ Xuất (dựng bằng keyframe), xem nhịp, rồi duyệt' : 'chưa đủ keyframe'}</span>
-        {an && <a className="xv-btn" href={an.url} target="_blank" rel="noopener noreferrer">▶ Xem animatic đã duyệt</a>}
+        {an && <button type="button" className="xv-btn" onClick={() => moNgan({ loai: 'xem', url: an.url, ten: 'Animatic đã duyệt' })}>▶ Xem animatic đã duyệt</button>}
         <button type="button" className="xv-btn chinh" disabled={dang || !duKf || khop} title="Lấy bản xuất mới nhất của tập làm animatic, ghi mã keyframe + giây hiện tại — cổng sinh video mở" onClick={async () => { setDang(true); setLoi(''); const r = await duyetAnimatic(tap.id); setDang(false); if (!r.ok) setLoi(r.loi); else await onChanged?.(); }}>{dang ? '…' : '✓ Duyệt animatic (bản xuất mới nhất)'}</button>
         {loi && <span style={{ color: 'var(--red)' }}>{loi}</span>}
       </div>

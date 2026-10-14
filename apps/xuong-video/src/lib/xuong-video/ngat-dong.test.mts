@@ -42,7 +42,11 @@ console.log('ngat-dong.test: ok');
 // CỤM CHỮ (15/10/2026): ≤ N từ mỗi khung, cụm đều nhau, từ chức năng không đứng cuối cụm, dấu dính chữ trước
 import { chiaCum as cc } from './ngat-dong';
 import { doanHien } from './kieu';
-assert.deepStrictEqual(cc('Every bra I own has hooks in the back', 3), ['Every bra I own', 'has hooks', 'in the back']);   // 'I' đơn dính chữ trước, 'in' không đứng cuối cụm
+assert.deepStrictEqual(cc('Every bra I own has hooks in the back', 3), ['Every bra I own', 'has hooks', 'in the back']);   // 'I' dính chữ trước, 'in' không đứng cuối cụm
+assert.deepStrictEqual(cc('6 bras out. 3 tanks in.', 3), ['6 bras out.', '3 tanks in.']);   // ranh giới câu
+assert.deepStrictEqual(cc('On over my head. One step. No hooks', 3), ['On over', 'my head.', 'One step.', 'No hooks']);
+assert.deepStrictEqual(cc('Reaching, bending… it stays put', 3), ['Reaching, bending…', 'it stays put']);
+assert.deepStrictEqual(cc('XS–6XL · 11 colors · 30-day take-it-off test', 3), ['XS–6XL · 11 colors', '30-day take-it-off test']);
 assert.deepStrictEqual(cc('Packing for a 2-week cruise at 72…', 3), ['Packing for', 'a 2-week cruise', 'at 72…']);
 assert.deepStrictEqual(cc('Lifted, smooth, no lines', 3), ['Lifted, smooth', 'no lines']);
 assert.deepStrictEqual(cc('A real bra sewn inside', 4), ['A real bra', 'sewn inside']);

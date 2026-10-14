@@ -64,6 +64,12 @@ export const timNv = <T extends Pick<NhanVat, 'ten'>>(nv: T[], ten: string): T |
  *  giữa các shot. Shot có hiệu ứng riêng (am_thanh_url) cũng tắt. MỘT luật cho timeline, bản xuất và lúc gửi sinh video (generate_audio). */
 export const dungTiengClip = (c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url' | 'am_thanh_url'>, nv: NhanVat[]): boolean =>
   !c.am_thanh_url && dongThoai(c, nv).some((d) => !!d.nhan_vat.trim() && !laLoiDan(d.dien_xuat) && !d.url);
+/** Tiếng clip có PHÁT trong bản xuất / xem trước không: ngoài ca nhân vật nói chưa có giọng riêng (dungTiengClip), shot KHÔNG CÓ LỜI NÀO
+ *  (không thoại, không lời dẫn) cũng giữ tiếng gốc — tiếng cười, tiếng động thật là khoảnh khắc của shot (15/10/2026: shot 10 phim #35
+ *  "tiếng cười hơi bé" — thực ra bị bỏ hẳn). Shot có lời dẫn vẫn tắt tiếng clip: clip AI hay tự chèn tiếng nói lạ ("Ouch!", "Ugh"). Chỉ quyết
+ *  PHÁT; việc có SINH tiếng khi tạo clip vẫn theo dungTiengClip (không tốn thêm). */
+export const phatTiengClip = (c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url' | 'am_thanh_url'>, nv: NhanVat[]): boolean =>
+  dungTiengClip(c, nv) || (!c.am_thanh_url && !dongThoai(c, nv).some((d) => d.loi.trim()));
 /** Giọng mặc định khi nhân vật chưa chọn giọng cố định (model fal; máy chủ có khoá ElevenLabs riêng thì đổi sang ElevenLabs trực tiếp). */
 export const GIONG_MAC_DINH = { model: 'fal-ai/elevenlabs/tts/eleven-v3', voice: 'George' };
 /** Giá (cents) một câu đọc theo model giọng — MỘT luật cho nút, bảng ＋ và sổ chi phí. null = model không công bố giá

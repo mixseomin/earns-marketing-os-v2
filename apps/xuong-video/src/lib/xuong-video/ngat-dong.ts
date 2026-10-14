@@ -71,22 +71,29 @@ export const emCss = (font: string): number => EM_CSS[font] ?? EM_CSS['DejaVu Sa
 /** Bỏ dấu chấm cuối câu của chữ trên hình (giữ "…", "?", "!" và chấm giữa câu/tên miền). */
 export const boChamCuoi = (s: string): string => s.replace(/(?<![.\s])\.\s*$/u, '').replace(/\s+$/u, '');
 
-/** CỤM CHỮ (15/10/2026 — anh: "chữ hơi bé và dài quá, mỗi khuôn chỉ show vài từ hợp lý"): cắt một câu thành các cụm ≤ toiDa từ để hiện LẦN LƯỢT
- *  (kiểu phụ đề TikTok/Reels): số cụm ít nhất, cụm dài đều nhau, không để từ chức năng (the, a, my…) đứng cuối cụm, dấu/ký hiệu dính chữ trước
- *  (cumChu). Câu có **nhấn** giữ nguyên. Trả các cụm theo thứ tự. */
-export function chiaCum(cau: string, toiDa: number): string[] {
-  if (!toiDa || toiDa < 1 || /\*\*/.test(cau)) return [cau];
-  const tu = cumChu(cau);
-  if (tu.length <= toiDa) return [cau];
+/** CỤM CHỮ (15/10/2026 — anh: "chữ hơi bé và dài quá, mỗi khuôn chỉ show vài từ hợp lý"): cắt câu thành các cụm ≤ toiDa từ hiện LẦN LƯỢT
+ *  (kiểu phụ đề TikTok/Reels). Thứ tự: (1) cắt theo CÂU trước — . ! ? … ; : là ranh giới, hai câu không chung một khung ("6 bras out. 3" sai);
+ *  (2) trong một câu, số cụm ít nhất, dài đều nhau, từ chức năng (the, a, my, it…) không đứng cuối cụm; ký hiệu đứng riêng (· — &) dính chữ
+ *  trước; chữ "I" dính chữ trước. Dấu phẩy / chấm phẩy / · treo cuối cụm bỏ. Câu có **nhấn** giữ nguyên. */
+const CUOI_CUM_KHONG = new Set([...DINH_SAU, 'it', 'with', 'from', 'that', 'this', 'so', 'but', 'i', 'you', 'we', 'she', 'he', 'they', 'have', 'has', 'had', 'be', 'like']);
+function chiaMotCau(cau: string, toiDa: number): string[] {
+  const tu: string[] = [];
+  for (const w of cau.trim().split(/\s+/).filter(Boolean)) {
+    if (tu.length && (/^[·•—–&|+=→]+$/u.test(w) || w === 'I')) tu[tu.length - 1] += ` ${w}`; else tu.push(w);
+  }
+  if (tu.length <= toiDa) return tu.length ? [tu.join(' ')] : [];
   const so = Math.ceil(tu.length / toiDa);
   const co = Array.from({ length: so }, (_, i) => Math.floor(tu.length / so) + (i < tu.length % so ? 1 : 0));
-  // dịch ranh giới: từ chức năng ở cuối cụm → đẩy sang cụm sau (nếu cụm sau còn chỗ)
   for (let i = 0; i < so - 1; i++) {
     const cuoi = co.slice(0, i + 1).reduce((a, b) => a + b, 0) - 1;
-    if (DINH_SAU.has(tu[cuoi]!.toLowerCase()) && co[i]! > 1 && co[i + 1]! < toiDa) { co[i]!--; co[i + 1]!++; }
+    if (CUOI_CUM_KHONG.has(tu[cuoi]!.toLowerCase().replace(/[^a-z]/g, '')) && co[i]! > 1 && co[i + 1]! < toiDa) { co[i]!--; co[i + 1]!++; }
   }
   const out: string[] = []; let k = 0;
-  // dấu phẩy / chấm phẩy ở CUỐI cụm bỏ (khung sau là câu nối tiếp, không cần dấu ngắt treo lơ lửng)
-  for (const n of co) { out.push(tu.slice(k, k + n).join(' ').replace(/[,;]$/u, '')); k += n; }
+  for (const n of co) { out.push(tu.slice(k, k + n).join(' ')); k += n; }
   return out;
+}
+export function chiaCum(cau: string, toiDa: number): string[] {
+  if (!toiDa || toiDa < 1 || /\*\*/.test(cau)) return [cau];
+  const out = cau.split(/(?<=[.!?…;:])\s+/u).flatMap((c) => chiaMotCau(c, toiDa)).map((c) => c.replace(/\s*[,;·•]$/u, ''));
+  return out.length ? out : [cau];
 }

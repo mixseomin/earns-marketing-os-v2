@@ -187,8 +187,9 @@ console.log('xuat.test: mẫu ok');
   const k = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh: ds as never, nhanVat: nv, tap: { nhac_url: 'https://x/n.mp3', nhac_phan_canh: {} }, qc: qcV, nguyenLieu: nlA, font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
   const l = k.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
   const idx = (u: string) => k.args.filter((a, i) => k.args[i - 1] === '-i').indexOf(`/tmp/t/${u}`);
-  // Tiếng clip: shot không thoại (im) và shot lời dẫn → không lấy; shot có Lan nói mà chưa có giọng → lấy tiếng clip c4.
-  assert.ok(!new RegExp(`\\[${idx('c1.mp4')}:a\\]`).test(l), 'clip không thoại không được phát tiếng Veo');
+  // Tiếng clip (am-thanh.ts › phatTiengClip, 15/10/2026): shot lời dẫn → không lấy (clip AI tự chèn tiếng nói lạ); shot KHÔNG LỜI (im) → lấy tiếng
+  // gốc (cười, tiếng động thật); shot có Lan nói mà chưa có giọng → lấy tiếng clip c4. c1 dùng chung cho 2 shot lời dẫn + shot im → đúng 1 lần.
+  assert.strictEqual((l.match(new RegExp(`\\[${idx('c1.mp4')}:a\\]atrim`, 'g')) ?? []).length, 1, 'chỉ shot không lời phát tiếng clip, shot lời dẫn thì không');
   assert.ok(new RegExp(`\\[${idx('c4.mp4')}:a\\]atrim`).test(l), 'shot nhân vật nói (chưa có giọng) dùng tiếng clip');
   // Một tốc độ chung: câu 1 dài 2,4s, câu 2 vào ở 2s → cần 2,4/1,95 = 1,231× → CẢ HAI câu cùng ×1,231.
   assert.strictEqual((l.match(/atempo=1\.231,/g) ?? []).length, 2, l);

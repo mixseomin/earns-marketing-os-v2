@@ -14,7 +14,7 @@ import { keHoachToc, bieuThucToc } from './toc-do';
 import { ngatDong, dongChuMan, boChamCuoi } from './ngat-dong';
 import { lichSfx, LUFS_GIONG, LUFS_NHAC_DUOI_GIONG, LUFS_CLIP_DUOI_GIONG } from './sfx';
 export { doanChuMan, chuManHien } from './kieu';
-import { giayGiuKet, dongThoai, dungTiengClip, lichGiong } from './am-thanh';
+import { giayGiuKet, dongThoai, phatTiengClip, lichGiong } from './am-thanh';
 
 /** Một tệp nguyên liệu đã tải về + đo: dai = giây (âm/video), coAm = clip có luồng tiếng, lufs = độ to tích hợp (tệp chỉ có tiếng). */
 export type NguyenLieu = { url: string; duong: string; dai: number | null; coAm: boolean; fps?: number | null; lufs?: number | null;
@@ -262,7 +262,7 @@ export function keHoachXuat(o: {
     const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(cuoiThat)},setpts=PTS-STARTPTS,${toc ? `setpts='(${bieuThucToc(toc)})/TB',` : ''}${khung}${dem > 0.01 ? `,tpad=stop_mode=clone:stop_duration=${so(dem)}` : ''}` : `[${k}:v]${khungTinh(i)},trim=0:${so(dai)},setpts=PTS-STARTPTS${dayMay(dai)}`];
     for (const d of doanHien(c.chu_man, phat, gopKieu(o.qc?.kieu_chu, c.kieu_chu).tu)) cauMan.push({ tu: t + d.tu, den: t + d.den, dong: d.dong, kieu: c.kieu_chu });
     if (logoUrl) { const kl = them(logoUrl, ['-loop', '1', '-framerate', '30', '-t', so(dai)]); loc.push(`[${kl}:v]scale=-1:${Math.round(H * 0.06)},format=rgba[lg${i}]`); ve[ve.length - 1] += `[vv${i}];[vv${i}][lg${i}]overlay=W-w-${Math.round(W * 0.03)}:${Math.round(H * 0.03)}:shortest=1`; }
-    const dungClip = dungTiengClip(c, o.nhanVat);
+    const dungClip = phatTiengClip(c, o.nhanVat);
     if (c.am_thanh_url && nl.has(c.am_thanh_url)) { const ka = them(c.am_thanh_url); themAm(`[${ka}:a]atrim=0:${so(phat)},asetpts=PTS-STARTPTS,volume=0.8,adelay=${Math.round(t * 1000)}:all=1`); }
     amShot.push({ am: c.ky_thuat?.am_thanh, tu: t, phat });
     // Tiếng clip đặt THEO GIỌNG (đo được) — clip ghi nhỏ không còn lọt thỏm dưới nhạc; chưa đo → giữ mức gốc.

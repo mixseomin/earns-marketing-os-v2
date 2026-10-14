@@ -16,7 +16,7 @@ import { lichSfx, urlSfx, amLuongXem, LUFS_GIONG, LUFS_NHAC_DUOI_GIONG, DU_XEM }
 import { doLufsAm } from '@/lib/actions';
 import { keHoachToc, nguonTai } from '@/lib/xuong-video/toc-do';
 import { NutChuyenCanh } from './chuyen-canh-ui';
-import { dongThoai, dungTiengClip, tenNoi, cungTen, timNv, lichGiong, giayGiuKet } from '@/lib/xuong-video/am-thanh';
+import { dongThoai, phatTiengClip, tenNoi, cungTen, timNv, lichGiong, giayGiuKet } from '@/lib/xuong-video/am-thanh';
 import { BangSinh, type YeuCauBang } from './bang-sinh';
 import type { TuyGiong, TuyAm } from '@/lib/actions';
 import { mono, Menu } from './ui';
@@ -183,9 +183,9 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
     dongBo(el, (t - giongNay.tu) * giongNay.nhanh, true);
   }, [khoaGiong, chay, tua]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    // Tiếng sẵn của clip chỉ phát khi shot có người nói trong khung chưa có giọng riêng (dungTiengClip — cùng luật bản xuất); còn lại tắt,
-    // Veo tự bịa giọng/tiếng ồn ở shot không thoại. Nút "tiếng clip" bật lại cho mọi shot khi cần nghe thử.
-    const tatClip = !c || !dungTiengClip(c, nhanVat);
+    // Tiếng sẵn của clip phát theo CÙNG luật bản xuất (am-thanh.ts › phatTiengClip): người nói chưa có giọng riêng, hoặc shot không có lời nào
+    // (tiếng cười, tiếng động thật). Shot có lời dẫn thì tắt — clip AI hay tự chèn tiếng nói lạ. Nút "tiếng clip" bật lại khi cần nghe thử.
+    const tatClip = !c || !phatTiengClip(c, nhanVat);
     if (vidRef.current) vidRef.current.muted = tat.clip === undefined ? tatClip : !!tat.clip;
     if (thoaiRef.current && giongNay) thoaiRef.current.volume = amLuongXem(lufs[giongNay.url], LUFS_GIONG, 0.6);
     if (nhacRef.current && tap.nhac_url) nhacRef.current.volume = amLuongXem(lufs[tap.nhac_url], LUFS_GIONG - LUFS_NHAC_DUOI_GIONG, 0.2);

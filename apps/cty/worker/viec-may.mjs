@@ -79,9 +79,11 @@ export function gom() {
   try { theo('box3', JSON.parse(execFileSync('python3', ['-c', DO_BOX], { encoding: 'utf8', timeout: 120_000 }))); } catch (e) { giuCu('box3', e); }
   try { theo('box1', JSON.parse(execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', BOX1, 'python3 -'], { input: DO_BOX, encoding: 'utf8', timeout: 120_000 }))); } catch (e) { giuCu('box1', e); }
   const thu = path.join(DATA(), 'may');
+  const mac = {};   // mỗi máy một ảnh, mới nhất thắng (tên tệp theo đối số máy của nhan-lenh, tên máy thật nằm trong ảnh)
   for (const f of (fs.existsSync(thu) ? fs.readdirSync(thu) : []).filter((f) => /^launchd-.+\.json$/.test(f))) {
-    try { const x = JSON.parse(fs.readFileSync(path.join(thu, f), 'utf8')); theo(x.may, x.ds); } catch (e) { loi[f] = String(e.message); }
+    try { const x = JSON.parse(fs.readFileSync(path.join(thu, f), 'utf8')); if (!mac[x.may] || x.luc > mac[x.may].luc) mac[x.may] = x; } catch (e) { loi[f] = String(e.message); }
   }
+  for (const x of Object.values(mac)) theo(x.may, x.ds);
   const anh = { luc: new Date().toISOString(), loi, ds: kq };
   fs.mkdirSync(DATA(), { recursive: true }); fs.writeFileSync(`${TEP()}.tam`, JSON.stringify(anh)); fs.renameSync(`${TEP()}.tam`, TEP());
   return `${kq.length} việc máy · ${kq.filter((v) => v.chua_gan).length} chưa gắn phòng${Object.keys(loi).length ? ` · lỗi: ${Object.keys(loi).join(', ')}` : ''}`;
@@ -92,6 +94,7 @@ export const viecMayCua = (id) => (docViecMay()?.ds ?? []).filter((v) => v.nguoi
 // Lịch bằng chữ người đọc, giờ VN (box chạy giờ UTC). Dạng lạ giữ nguyên chữ máy.
 const vn = (h, m) => `${String((Number(h) + 7) % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 const doiKy = (x) => { const m = String(x).trim().match(/^(\d+)\s*(min|h|s|d)$/); return m ? `mỗi ${m[1]} ${{ min: 'phút', h: 'giờ', s: 'giây', d: 'ngày' }[m[2]]}` : null; };
+const THU_EN = { Mon: 'thứ Hai', 'Mon..Fri': 'thứ Hai–Sáu', Sun: 'Chủ nhật', Sat: 'thứ Bảy', Tue: 'thứ Ba', Wed: 'thứ Tư', Thu: 'thứ Năm', Fri: 'thứ Sáu' };
 export function lichNguoi(v) {
   if (v.loai === 'launchd') return v.lich || '—';
   if (v.loai === 'cron') {
@@ -108,11 +111,13 @@ export function lichNguoi(v) {
   const ra = [];
   for (const [, k, x] of String(v.lich).matchAll(/(OnCalendar|OnUnitActiveUSec|OnActiveUSec)=([^·]+)/g)) {
     if (k !== 'OnCalendar') { ra.push(doiKy(x) ?? x.trim()); continue; }
-    const c = x.trim(); let m;
-    if ((m = c.match(/^\*-\*-\* \*:00\/(\d+)(:00)?$/))) ra.push(`mỗi ${m[1]} phút`);
-    else if ((m = c.match(/^\*-\*-\* \*:([\d,]+)(:00)?$/))) ra.push(`mỗi giờ (phút ${m[1]})`);
-    else if ((m = c.match(/^\*-\*-\* (\d+):(\d+)(:\d+)?$/))) ra.push(`${vn(m[1], m[2])} hằng ngày`);
-    else if ((m = c.match(/^\*-\*-\* (\d+)\/(\d+):(\d+)(:\d+)?$/))) ra.push(`mỗi ${m[2]} giờ`);
+    const c = x.trim().replace(/ UTC$/, '');   // box chạy giờ UTC; systemd mới ghi kèm ' UTC'
+    const m = c.match(/^(?:([A-Za-z.,]+) )?\*-\*-\* ([\d,*/]+):([\d,/]+)(?::\d+)?$/);
+    if (!m) { ra.push(c); continue; }
+    const [, dow, h, mi] = m; const sau = dow ? ` ${THU_EN[dow] ?? dow}` : ' hằng ngày';
+    if (h === '*') ra.push(/^0*0\/(\d+)$/.test(mi) ? `mỗi ${mi.split('/')[1]} phút` : `mỗi giờ (phút ${mi})`);
+    else if (/^\d+\/\d+$/.test(h)) ra.push(`mỗi ${h.split('/')[1]} giờ`);
+    else if (/^[\d,]+$/.test(h) && /^\d+$/.test(mi)) ra.push(`${h.split(',').map((x) => vn(x, mi)).join(', ')}${sau}`);
     else ra.push(c);
   }
   return ra.join(' · ') || '—';
@@ -133,8 +138,9 @@ if (process.argv[1]?.endsWith('viec-may.mjs')) {
     for (const p of new Set(QUY_TAC.map((q) => q[1]))) a.ok(fs.existsSync(path.join(GOC, 'cong-ty', 'phong', `${p}.md`)), `QUY_TAC trỏ phòng không có: ${p}`);
     const L = (loai, lich) => lichNguoi({ loai, lich });
     a.equal(L('timer', 'OnUnitActiveUSec=1min · OnBootUSec=2min'), 'mỗi 1 phút'); a.equal(L('timer', 'OnCalendar=*-*-* *:00/10:00'), 'mỗi 10 phút');
-    a.equal(L('timer', 'OnCalendar=*-*-* 01:00:00'), '08:00 hằng ngày'); a.equal(L('cron', '30 0 * * *'), '07:30 hằng ngày'); a.equal(L('cron', '*/5 * * * *'), 'mỗi 5 phút');
-    a.equal(L('cron', '40 */6 * * *'), 'mỗi 6 giờ'); a.equal(L('cron', '30 9 * * 1'), '16:30 mỗi thứ Hai'); a.equal(L('timer', 'OnCalendar=Mon *-*-* 03:00'), 'Mon *-*-* 03:00', 'dạng lạ giữ nguyên');
+    a.equal(L('timer', 'OnCalendar=*-*-* 01:00:00'), '08:00 hằng ngày'); a.equal(L('timer', 'OnCalendar=*-*-* 01:00:00 UTC'), '08:00 hằng ngày'); a.equal(L('cron', '30 0 * * *'), '07:30 hằng ngày'); a.equal(L('cron', '*/5 * * * *'), 'mỗi 5 phút');
+    a.equal(L('cron', '40 */6 * * *'), 'mỗi 6 giờ'); a.equal(L('cron', '30 9 * * 1'), '16:30 mỗi thứ Hai'); a.equal(L('timer', 'OnCalendar=Mon *-*-* 03:00'), '10:00 thứ Hai'); a.equal(L('timer', 'OnCalendar=*-*-* 02,14:00:00 UTC'), '09:00, 21:00 hằng ngày');
+    a.equal(L('timer', 'OnCalendar=Mon..Fri *-*-* 14:00:00'), '21:00 thứ Hai–Sáu'); a.equal(L('timer', 'OnCalendar=*-*-* *:17:00 UTC'), 'mỗi giờ (phút 17)'); a.equal(L('timer', 'OnCalendar=*-10-* 03:00'), '*-10-* 03:00', 'dạng lạ giữ nguyên');
     a.ok(nguoiPhong('bao-tri') === 'bao' && nguoiPhong('sach') === 'thao', 'người phụ trách = trưởng phòng');
     console.log('✓ viec-may: xếp phòng theo quy tắc, chatwhenbored ≠ adfond, không khớp → Bảo trì (chưa gắn), bỏ việc hệ điều hành, phòng trong quy tắc có thật');
   }

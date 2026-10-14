@@ -20,6 +20,7 @@ assert.ok(bangDung(set, [{ id: 9, thu_tu: 1, may_3d: m([25, 4, 1]) }], nv).ok);
 // Trục Tango–Gummy chạy theo x tại y=25: máy ở y=4 (trước trục) rồi y=40 (sau trục) = vượt trục; cùng phía thì không.
 assert.ok(vuotTruc(m([25, 4, 1]), m([25, 40, 1])));
 assert.equal(vuotTruc(m([25, 4, 1]), m([10, 10, 1])), null);
+assert.equal(vuotTruc(m([25, 4, 1]), m([25, 40, 1]), (t) => t === 'Tango'), null);   // Gummy là đồ vật → không làm đầu trục, không báo
 // Cổng
 assert.deepEqual(chanKhungXam({ nhan_vat: [4], may_3d: null, khung_xam: null }, nv, null), []);
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: null, khung_xam: null }, nv, set)[0]!.includes('chưa đặt máy'));

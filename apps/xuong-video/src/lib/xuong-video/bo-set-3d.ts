@@ -39,9 +39,10 @@ function phia(m: May3d, a: string, b: string): number {
   return Math.abs(cross) < 1e-6 ? 0 : Math.sign(cross);
 }
 
-/** Vượt trục 180° giữa hai shot liền nhau CÙNG set: máy đổi phía trục nối hai nhân vật chung mà cú chuyển không khai là cố ý. */
-export function vuotTruc(truoc: May3d, sau: May3d): string | null {
-  const chung = sau.vi_tri.map((v) => v.ten).filter((t) => truoc.vi_tri.some((v) => v.ten === t));
+/** Vượt trục 180° giữa hai shot liền nhau CÙNG set: máy đổi phía trục nối hai NHÂN VẬT chung mà cú chuyển không khai là cố ý.
+ *  Trục chỉ dựng giữa nhân vật (người nhìn nhau / đi về nhau) — đồ vật không làm đầu trục (5.3: "trục Lint–bình xịt" là báo sai). */
+export function vuotTruc(truoc: May3d, sau: May3d, laNhanVat: (ten: string) => boolean = () => true): string | null {
+  const chung = sau.vi_tri.map((v) => v.ten).filter((t) => laNhanVat(t) && truoc.vi_tri.some((v) => v.ten === t));
   if (chung.length < 2) return null;
   const [a, b] = [chung[0]!, chung[1]!];
   const p1 = phia(truoc, a, b); const p2 = phia(sau, a, b);
@@ -77,7 +78,7 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'>,
   const kx = c.khung_xam;
   if (!kx || kx.ma !== maKhungXam(set, c.may_3d, nhanVat)) out.push('chưa dựng khung xám (hoặc set / máy / vị trí đã đổi sau lần dựng) — chạy 🧊 Dựng khung xám');
   else for (const k of loiHinhHoc(c)) out.push(!k.trong_khung ? `${k.nhan_vat} (chủ thể) nằm ngoài khung` : `${k.nhan_vat} (chủ thể) bị ${k.bi_che_boi.join(', ')} che`);
-  if (!c.may_3d.qua_truc && truoc?.may_3d && boSetCuaShot(truoc, nhanVat) === set.id) { const v = vuotTruc(truoc.may_3d, c.may_3d); if (v) out.push(v); }
+  if (!c.may_3d.qua_truc && truoc?.may_3d && boSetCuaShot(truoc, nhanVat) === set.id) { const v = vuotTruc(truoc.may_3d, c.may_3d, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase())); if (v) out.push(v); }
   return out;
 }
 

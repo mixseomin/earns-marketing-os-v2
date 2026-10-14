@@ -1,0 +1,667 @@
+{
+ "_": "SỔ VIỆC NỀN của hai máy Mac — nguồn DUY NHẤT (anh 14/10/2026: 'App Background về 1 file duy nhất rồi đọc từ cty'). Mỗi máy chỉ một LaunchAgent tc.on.cty.dieu-phoi ('Cty - điều phối việc nền', apps/cty/may/dieu-phoi.mjs); nó đọc tệp này từ box3 mỗi 5 phút (git push là đổi lịch) rồi tự chạy từng việc. CẤM đặt plist mới vào ~/Library/LaunchAgents: thêm việc = thêm một dòng ở đây + nhãn vào `lich` của quy trình phòng (người chịu trách nhiệm, chi phí) — tu-kiem cty chặn việc thiếu người. Khoá: nhan '<iMac|MacBook>:<nhãn>' · ten (tên hiện trong Activity Monitor) · chay (lệnh, phần đầu đường dẫn tuyệt đối) · thu_muc · moi_truong · nhat_ky / nhat_ky_loi (không ghi = bỏ) · hen: luc ['HH:MM' giờ máy] | moi_giay N | luon (dịch vụ) | tay (chỉ chạy khi gọi: node ~/viec-nen/dieu-phoi.mjs goi <nhãn>) · uu_tien_thap · tat (tạm tắt).",
+ "viec": [
+  {
+   "nhan": "iMac:actions.runner.mixseomin-adfond.tuans-imac-adfond",
+   "ten": "Adfond - máy chạy GitHub Actions",
+   "chay": [
+    "/Users/htuan/actions-runner-adfond/runsvc.sh"
+   ],
+   "thu_muc": "/Users/htuan/actions-runner-adfond",
+   "moi_truong": {
+    "ACTIONS_RUNNER_SVC": "1"
+   },
+   "nhat_ky": "/Users/htuan/Library/Logs/actions.runner.mixseomin-adfond.tuans-imac-adfond/stdout.log",
+   "nhat_ky_loi": "/Users/htuan/Library/Logs/actions.runner.mixseomin-adfond.tuans-imac-adfond/stderr.log",
+   "hen": {
+    "luon": true
+   }
+  },
+  {
+   "nhan": "iMac:com.adfond.ab-chup",
+   "ten": "Adfond - tự chụp ảnh mẫu A-B",
+   "chay": [
+    "/bin/sh",
+    "-c",
+    "cd /Users/htuan/Me/GitHub/adfond && node --experimental-strip-types --no-warnings scripts/ab-chup-tu.mjs"
+   ],
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/Users/htuan/bin"
+   },
+   "nhat_ky": "/Users/htuan/adfond-logs/ab-chup.log",
+   "hen": {
+    "luc": [
+     "03:40"
+    ]
+   }
+  },
+  {
+   "nhan": "iMac:com.adfond.goc-kiem",
+   "ten": "Adfond - kiểm QC gốc đối thủ",
+   "chay": [
+    "/bin/sh",
+    "/Users/htuan/Me/GitHub/adfond/scripts/meta-ads/goc-kiem.sh"
+   ],
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/Users/htuan/bin"
+   },
+   "nhat_ky": "/Users/htuan/adfond-logs/goc-kiem.log",
+   "hen": {
+    "luc": [
+     "09:15"
+    ]
+   }
+  },
+  {
+   "nhan": "iMac:com.astrolas.backup-pull",
+   "ten": "Astrolas - kéo bản sao lưu",
+   "chay": [
+    "/bin/bash",
+    "-c",
+    "$HOME/Backups/astrolas/pull.sh"
+   ],
+   "nhat_ky_loi": "/tmp/astrolas-backup-pull.err",
+   "hen": {
+    "luc": [
+     "04:30"
+    ]
+   }
+  },
+  {
+   "nhan": "iMac:com.claude.dotsync",
+   "ten": "Claude - đồng bộ cấu hình",
+   "chay": [
+    "/bin/bash",
+    "/Users/htuan/claude-sync/sync.sh"
+   ],
+   "nhat_ky": "/Users/htuan/claude-sync/launchd.out",
+   "nhat_ky_loi": "/Users/htuan/claude-sync/launchd.err",
+   "hen": {
+    "moi_giay": 900
+   }
+  },
+  {
+   "nhan": "iMac:com.earns.adsense-site-check",
+   "ten": "AdSense - kiểm trạng thái site",
+   "chay": [
+    "/Users/htuan/bin/adsense-site-check"
+   ],
+   "nhat_ky_loi": "/Users/htuan/.cache/adsense-site-check.err.log",
+   "hen": {
+    "luc": [
+     "09:17"
+    ]
+   }
+  },
+  {
+   "nhan": "iMac:com.earns.awin-join",
+   "ten": "Awin - xin vào chương trình",
+   "chay": [
+    "/Users/htuan/bin/plays/awin.join-programs.sh",
+    "50"
+   ],
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/awin-join.out.log",
+   "nhat_ky_loi": "/Users/htuan/.cache/awin-join.err.log",
+   "hen": {
+    "luc": [
+     "11:30",
+     "15:00",
+     "19:00"
+    ]
+   }
+  },
+  {
+   "nhan": "iMac:com.earns.browsers-refresh",
+   "ten": "Trình duyệt - giữ ấm đăng nhập",
+   "chay": [
+    "/Users/htuan/bin/browsers-refresh",
+    "--idle",
+    "5"
+   ],
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/browsers-refresh.out.log",
+   "nhat_ky_loi": "/Users/htuan/.cache/browsers-refresh.err.log",
+   "hen": {
+    "luc": [
+     "10:30"
+    ]
+   }
+  },
+  {
+   "nhan": "iMac:com.earns.fb-giu-am",
+   "ten": "Facebook - giữ ấm tài khoản",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/Me/Earns/courseforge-demo/fb-giu-am.mjs"
+   ],
+   "thu_muc": "/Users/htuan/Me/Earns/courseforge-demo",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/fb-giu-am.log",
+   "hen": {
+    "luc": [
+     "11:15"
+    ]
+   }
+  },
+  {
+   "nhan": "iMac:com.earns.followup-nhac",
+   "ten": "Nhắc việc để sau",
+   "chay": [
+    "/Users/htuan/bin/followup-nhac"
+   ],
+   "nhat_ky_loi": "/Users/htuan/.cache/followup-nhac.err.log",
+   "hen": {
+    "luc": [
+     "08:47"
+    ]
+   }
+  },
+  {
+   "nhan": "iMac:com.earns.gumroad-views",
+   "ten": "Gumroad - lấy lượt xem",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/gumroad-views/gumroad-views.mjs",
+    "--days",
+    "7"
+   ],
+   "thu_muc": "/Users/htuan/gumroad-views",
+   "moi_truong": {
+    "GMAIL_SSH": "nguyens-macbook-pro",
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/gumroad-views.log",
+   "hen": {
+    "luc": [
+     "08:15",
+     "14:15",
+     "20:15"
+    ]
+   }
+  },
+  {
+   "nhan": "iMac:com.earns.mt5hb",
+   "ten": "MT5 - báo còn sống",
+   "chay": [
+    "/bin/bash",
+    "-c",
+    "pgrep -f terminal64.exe >/dev/null 2>&1 && /usr/bin/curl -s \"https://fxnewsapi.on.tc/hb?h=imac\" >/dev/null 2>&1"
+   ],
+   "hen": {
+    "moi_giay": 300
+   }
+  },
+  {
+   "nhan": "iMac:com.earns.puzzle-dang",
+   "ten": "Puzzle - bật bán Etsy",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/puzzle-books/scripts/may-chay.mjs",
+    "dang"
+   ],
+   "thu_muc": "/Users/htuan/puzzle-books",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "PW_CHANNEL": "chrome",
+    "PW_PATH": "/Users/htuan/gumroad-views/node_modules/playwright/index.mjs",
+    "SANPHAM": "/Users/htuan/puzzle-books/.cong-cu/sanpham"
+   },
+   "nhat_ky": "/Users/htuan/.cache/puzzle-may.log",
+   "hen": {
+    "luc": [
+     "08:30"
+    ]
+   }
+  },
+  {
+   "nhan": "iMac:com.earns.puzzle-kdp",
+   "ten": "Puzzle - đăng KDP",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/puzzle-books/scripts/dang-kdp.mjs"
+   ],
+   "thu_muc": "/Users/htuan/puzzle-books",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "PW_CHANNEL": "chrome",
+    "PW_PATH": "/Users/htuan/gumroad-views/node_modules/playwright/index.mjs",
+    "SANPHAM": "/Users/htuan/puzzle-books/.cong-cu/sanpham"
+   },
+   "nhat_ky": "/Users/htuan/.cache/puzzle-may.log",
+   "hen": {
+    "moi_giay": 7200
+   }
+  },
+  {
+   "nhan": "iMac:com.earns.puzzle-nhan-lenh",
+   "ten": "Puzzle - nhận lệnh cty",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/puzzle-books/scripts/nhan-lenh.mjs",
+    "imac"
+   ],
+   "thu_muc": "/Users/htuan/puzzle-books",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "PW_PATH": "/Users/htuan/gumroad-views/node_modules/playwright/index.mjs",
+    "SANPHAM": "/Users/htuan/puzzle-books/.cong-cu/sanpham",
+    "PW_CHANNEL": "chrome"
+   },
+   "nhat_ky": "/Users/htuan/.cache/puzzle-nhan-lenh.log",
+   "hen": {
+    "moi_giay": 60
+   }
+  },
+  {
+   "nhan": "iMac:com.earns.puzzle-short",
+   "ten": "Puzzle - đăng short TikTok",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/puzzle-books/scripts/dang-short.mjs",
+    "tiktok"
+   ],
+   "thu_muc": "/Users/htuan/puzzle-books",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "PW_CHANNEL": "chrome",
+    "PW_PATH": "/Users/htuan/gumroad-views/node_modules/playwright/index.mjs",
+    "SANPHAM": "/Users/htuan/puzzle-books/.cong-cu/sanpham"
+   },
+   "nhat_ky": "/Users/htuan/.cache/puzzle-may.log",
+   "hen": {
+    "luc": [
+     "20:00",
+     "21:00",
+     "22:00",
+     "23:00"
+    ]
+   }
+  },
+  {
+   "nhan": "iMac:com.earns.puzzle-shorts",
+   "ten": "Puzzle - dựng video shorts",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/puzzle-books/scripts/shorts.mjs"
+   ],
+   "thu_muc": "/Users/htuan/puzzle-books",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin",
+    "PW_PATH": "/Users/htuan/gumroad-views/node_modules/playwright/index.mjs"
+   },
+   "nhat_ky": "/Users/htuan/.cache/puzzle-shorts.log",
+   "hen": {
+    "tay": true
+   },
+   "ghi_chu": "Chỉ chạy khi gọi: puzzle-books deploy-shorts.sh → dieu-phoi.mjs goi com.earns.puzzle-shorts <đối số shorts.mjs>"
+  },
+  {
+   "nhan": "iMac:com.earns.puzzle-sx",
+   "ten": "Puzzle - sản xuất sách",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/puzzle-books/scripts/may-chay.mjs",
+    "sx"
+   ],
+   "thu_muc": "/Users/htuan/puzzle-books",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "PW_CHANNEL": "chrome",
+    "PW_PATH": "/Users/htuan/gumroad-views/node_modules/playwright/index.mjs",
+    "SANPHAM": "/Users/htuan/puzzle-books/.cong-cu/sanpham"
+   },
+   "nhat_ky": "/Users/htuan/.cache/puzzle-may.log",
+   "hen": {
+    "luc": [
+     "02:00"
+    ]
+   }
+  },
+  {
+   "nhan": "iMac:com.htuan.mt5proxyipsync",
+   "ten": "MT5 - sửa IP proxy",
+   "chay": [
+    "/bin/bash",
+    "/Users/htuan/bin/mt5-proxy-ipsync.sh"
+   ],
+   "nhat_ky_loi": "/Users/htuan/bin/mt5-proxy-ipsync.err",
+   "hen": {
+    "moi_giay": 120
+   }
+  },
+  {
+   "nhan": "iMac:com.htuan.mt5socks",
+   "ten": "MT5 - đường hầm proxy",
+   "chay": [
+    "/bin/bash",
+    "/Users/htuan/bin/mt5-socks-tunnel.sh"
+   ],
+   "nhat_ky": "/Users/htuan/bin/mt5-socks.log",
+   "hen": {
+    "luon": true
+   }
+  },
+  {
+   "nhan": "iMac:com.htuan.mt5watchdog",
+   "ten": "MT5 - canh treo và mở lại",
+   "chay": [
+    "/bin/bash",
+    "/Users/htuan/bin/mt5-watchdog.sh"
+   ],
+   "nhat_ky_loi": "/Users/htuan/bin/mt5-watchdog.err",
+   "hen": {
+    "moi_giay": 60
+   }
+  },
+  {
+   "nhan": "iMac:tc.on.spy.cao",
+   "ten": "Spy QC - cào quảng cáo",
+   "chay": [
+    "/bin/bash",
+    "/Users/htuan/Me/GitHub/spy-on-tc/scripts/cao.sh"
+   ],
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/htuan/bin"
+   },
+   "nhat_ky": "/Users/htuan/Me/GitHub/spy-on-tc/logs/cao-launchd.log",
+   "hen": {
+    "moi_giay": 900
+   }
+  },
+  {
+   "nhan": "iMac:tc.on.spy.doi-thu",
+   "ten": "Spy QC - hàng đợi đối thủ",
+   "chay": [
+    "/bin/bash",
+    "/Users/htuan/Me/GitHub/spy-on-tc/scripts/doi-thu-hang-doi.sh"
+   ],
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/htuan/bin"
+   },
+   "nhat_ky": "/Users/htuan/Me/GitHub/spy-on-tc/logs/doi-thu-launchd.log",
+   "hen": {
+    "moi_giay": 300
+   }
+  },
+  {
+   "nhan": "MacBook:com.adfond.goc-kiem",
+   "ten": "Adfond - kiểm QC gốc đối thủ",
+   "chay": [
+    "/bin/sh",
+    "/Users/htuan/Me/Earns/adfond/scripts/meta-ads/goc-kiem.sh"
+   ],
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/tmp/adfond-goc-kiem.log",
+   "hen": {
+    "luc": [
+     "09:15"
+    ]
+   }
+  },
+  {
+   "nhan": "MacBook:com.astrolas.chatqueue",
+   "ten": "Astrolas - hàng đợi chat",
+   "chay": [
+    "/opt/homebrew/bin/php",
+    "artisan",
+    "queue:work",
+    "database",
+    "--queue=chat",
+    "--tries=1",
+    "--timeout=300",
+    "--sleep=1"
+   ],
+   "thu_muc": "/Users/htuan/Documents/GitHub/Astrolas.com",
+   "nhat_ky": "/Users/htuan/Library/Logs/astrolas-chatqueue.log",
+   "nhat_ky_loi": "/Users/htuan/Library/Logs/astrolas-chatqueue-error.log",
+   "hen": {
+    "luon": true
+   }
+  },
+  {
+   "nhan": "MacBook:com.astrolas.devserver",
+   "ten": "Astrolas - máy chủ dev",
+   "chay": [
+    "/opt/homebrew/bin/php",
+    "-d",
+    "error_reporting=0",
+    "-d",
+    "display_errors=Off",
+    "artisan",
+    "serve",
+    "--port=8888"
+   ],
+   "thu_muc": "/Users/htuan/Documents/GitHub/Astrolas.com",
+   "nhat_ky": "/Users/htuan/Library/Logs/astrolas-devserver.log",
+   "nhat_ky_loi": "/Users/htuan/Library/Logs/astrolas-devserver-error.log",
+   "hen": {
+    "luon": true
+   }
+  },
+  {
+   "nhan": "MacBook:com.claude.dotsync",
+   "ten": "Claude - đồng bộ cấu hình",
+   "chay": [
+    "/bin/bash",
+    "/Users/htuan/claude-sync/sync.sh"
+   ],
+   "nhat_ky": "/Users/htuan/claude-sync/launchd.out",
+   "nhat_ky_loi": "/Users/htuan/claude-sync/launchd.err",
+   "hen": {
+    "moi_giay": 900
+   }
+  },
+  {
+   "nhan": "MacBook:com.claude.fbwarmup.segun",
+   "ten": "Facebook - làm ấm tài khoản segun",
+   "chay": [
+    "/bin/bash",
+    "/Users/htuan/claude-warmup/warmup-segun.sh"
+   ],
+   "nhat_ky": "/Users/htuan/claude-warmup/launchd.out.log",
+   "nhat_ky_loi": "/Users/htuan/claude-warmup/launchd.err.log",
+   "hen": {
+    "luc": [
+     "09:00",
+     "13:00",
+     "19:00"
+    ]
+   }
+  },
+  {
+   "nhan": "MacBook:com.earns.adfond.keo-so-cj-adpia-moi-sang",
+   "ten": "Adfond - kéo số CJ Adpia buổi sáng",
+   "chay": [
+    "/bin/bash",
+    "-c",
+    "BR_GIU_PHIEN=1 $HOME/bin/br play run cj.dang-nhap-lai; /Users/htuan/Me/Earns/adfond/scripts/mang-ngay.sh; rc=$?; $HOME/bin/br close /Users/htuan/Me/Earns/courseforge-demo/.capture-profile-ytaff-mikerey; exit $rc"
+   ],
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/com.earns.adfond.keo-so-cj-adpia-moi-sang.out.log",
+   "nhat_ky_loi": "/Users/htuan/.cache/com.earns.adfond.keo-so-cj-adpia-moi-sang.err.log",
+   "hen": {
+    "luc": [
+     "09:15"
+    ]
+   }
+  },
+  {
+   "nhan": "MacBook:com.earns.amazon-pull",
+   "ten": "Amazon - kéo số liệu",
+   "chay": [
+    "/bin/bash",
+    "-lc",
+    "cd /Users/htuan/Me/Earns/earns-strategy && /usr/local/bin/node resources/stats/amazon-pull.mjs || /opt/homebrew/bin/node resources/stats/amazon-pull.mjs"
+   ],
+   "nhat_ky": "/tmp/amazon-pull.log",
+   "hen": {
+    "luc": [
+     "09:40"
+    ]
+   }
+  },
+  {
+   "nhan": "MacBook:com.earns.box3-tunnel",
+   "ten": "Box3 - đường hầm ssh",
+   "chay": [
+    "/usr/bin/ssh",
+    "-N",
+    "-D",
+    "1081",
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "ServerAliveInterval=30",
+    "-o",
+    "ServerAliveCountMax=3",
+    "-o",
+    "ExitOnForwardFailure=yes",
+    "-o",
+    "StrictHostKeyChecking=accept-new",
+    "root@167.233.241.16"
+   ],
+   "nhat_ky": "/Users/htuan/.cache/box3-tunnel.out.log",
+   "nhat_ky_loi": "/Users/htuan/.cache/box3-tunnel.err.log",
+   "hen": {
+    "luon": true
+   }
+  },
+  {
+   "nhan": "MacBook:com.earns.fb-giu-am",
+   "ten": "Facebook - giữ ấm tài khoản",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/Me/Earns/courseforge-demo/fb-giu-am.mjs"
+   ],
+   "thu_muc": "/Users/htuan/Me/Earns/courseforge-demo",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/fb-giu-am.log",
+   "hen": {
+    "luc": [
+     "11:15"
+    ]
+   }
+  },
+  {
+   "nhan": "MacBook:com.earns.pinterest-doc-so",
+   "ten": "Pinterest - đọc số ghim",
+   "chay": [
+    "/bin/bash",
+    "-lc",
+    "/Users/htuan/bin/br open /Users/htuan/Me/Earns/courseforge-demo/.capture-profile-militarycalc >/dev/null; /Users/htuan/bin/br play run pinterest.doc-so-ghim"
+   ],
+   "moi_truong": {
+    "BR_PROFILE": "/Users/htuan/Me/Earns/courseforge-demo/.capture-profile-militarycalc",
+    "BR_SESSION": "pinterest-doc-so",
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/tmp/pinterest-doc-so.log",
+   "hen": {
+    "luc": [
+     "09:20"
+    ]
+   }
+  },
+  {
+   "nhan": "MacBook:com.earns.puzzle-gumroad",
+   "ten": "Puzzle - đăng Gumroad",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "scripts/dang-gumroad.mjs"
+   ],
+   "thu_muc": "/Users/htuan/Me/Earns/puzzle-books",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/puzzle-gumroad.log",
+   "hen": {
+    "luc": [
+     "09:00"
+    ]
+   }
+  },
+  {
+   "nhan": "MacBook:com.earns.puzzle-nhan-lenh",
+   "ten": "Puzzle - nhận lệnh cty",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/Me/Earns/puzzle-books/scripts/nhan-lenh.mjs",
+    "macbook"
+   ],
+   "thu_muc": "/Users/htuan/Me/Earns/puzzle-books",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/puzzle-nhan-lenh.log",
+   "hen": {
+    "moi_giay": 60
+   }
+  },
+  {
+   "nhan": "MacBook:com.earns.puzzle-short-yt",
+   "ten": "Puzzle - đăng short YouTube FB IG",
+   "chay": [
+    "/bin/bash",
+    "-c",
+    "rsync -a --exclude 'da-dang-*' tuans-imac:/Users/htuan/puzzle-books/out/shorts/ out/shorts/; /opt/homebrew/bin/node scripts/dang-short.mjs youtube; /opt/homebrew/bin/node scripts/dang-short.mjs facebook; /opt/homebrew/bin/node scripts/dang-short.mjs instagram; /opt/homebrew/bin/node scripts/so-short.mjs"
+   ],
+   "thu_muc": "/Users/htuan/Me/Earns/puzzle-books",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/puzzle-short-yt.log",
+   "hen": {
+    "luc": [
+     "20:05",
+     "21:05",
+     "22:05",
+     "23:05"
+    ]
+   }
+  },
+  {
+   "nhan": "MacBook:com.earns.sao-luu-claude",
+   "ten": "Claude - sao lưu phiên",
+   "chay": [
+    "/Users/htuan/bin/sao-luu-claude"
+   ],
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/tmp/sao-luu-claude.log",
+   "hen": {
+    "luc": [
+     "03:15"
+    ]
+   }
+  },
+  {
+   "nhan": "MacBook:com.htuan.don-nhat-ky",
+   "ten": "Bảo trì - dọn nhật ký chat",
+   "chay": [
+    "/usr/bin/python3",
+    "/Users/htuan/bin/don-nhat-ky"
+   ],
+   "nhat_ky": "/Users/htuan/Library/Logs/don-nhat-ky.out",
+   "hen": {
+    "luc": [
+     "03:30"
+    ]
+   },
+   "uu_tien_thap": true
+  }
+ ]
+}

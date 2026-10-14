@@ -1,0 +1,58 @@
+{
+ "_": "Quy trình máy chạy của Phòng dựng sản phẩm. Việc nền nằm ở cong-ty/viec-nen.json (bộ điều phối mỗi máy Mac chạy); lich = nhãn việc nền, chu_tri = người chịu trách nhiệm + chi phí.",
+ "phong": "dung-san-pham",
+ "quy_trinh": [
+  {
+   "id": "astrolas-sao-luu",
+   "ten": "Kéo bản sao lưu Astrolas",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac 04:30 mỗi ngày — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Kéo bản sao lưu site Astrolas về iMac.",
+   "ma": "~/Backups/astrolas/pull.sh",
+   "chu_tri": "quan",
+   "lam": [
+    "may"
+   ],
+   "khi": "04:30 mỗi ngày",
+   "lich": [
+    "iMac:com.astrolas.backup-pull"
+   ],
+   "chi_phi": "0"
+  },
+  {
+   "id": "astrolas-dev",
+   "ten": "Máy dev Astrolas (MacBook)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "MacBook thường trực — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "artisan serve cổng 8888 + hàng đợi chat cho bản dev Astrolas.",
+   "ma": "Astrolas.com artisan serve · queue:work",
+   "chu_tri": "quan",
+   "lam": [
+    "may"
+   ],
+   "khi": "thường trực",
+   "lich": [
+    "MacBook:com.astrolas.devserver",
+    "MacBook:com.astrolas.chatqueue"
+   ],
+   "chi_phi": "0"
+  },
+  {
+   "id": "adsense-kiem",
+   "ten": "Kiểm trạng thái AdSense các site",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac 09:17 mỗi ngày — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Đọc trạng thái duyệt AdSense của từng site công cụ.",
+   "ma": "~/bin (kiểm AdSense)",
+   "chu_tri": "dung",
+   "lam": [
+    "may"
+   ],
+   "khi": "09:17 mỗi ngày",
+   "lich": [
+    "iMac:com.earns.adsense-site-check"
+   ],
+   "chi_phi": "0"
+  }
+ ]
+}

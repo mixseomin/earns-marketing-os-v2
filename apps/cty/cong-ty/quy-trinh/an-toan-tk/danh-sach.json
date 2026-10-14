@@ -2,7 +2,12 @@
  "_": "Quy trình của Phòng Bảo mật. so_hoa: 'co-dinh' = máy chạy, luật nằm trong mã · 'mo-ta' = chưa có máy. chu_tri = MỘT mã chịu trách nhiệm chính, lam = ai/máy làm thật. day_chuyen 'mail' (nguon 'mail' = worker/mail-bao-mat.mjs đọc hòm claude@orit.app).",
  "phong": "an-toan-tk",
  "day_chuyen": [
-  { "id": "mail", "ten": "Mail bảo mật", "don_vi": "1 thư", "nguon": "mail" }
+  {
+   "id": "mail",
+   "ten": "Mail bảo mật",
+   "don_vi": "1 thư",
+   "nguon": "mail"
+  }
  ],
  "quy_trinh": [
   {
@@ -13,9 +18,32 @@
    "mo_ta": "Máy đọc người gửi thật (thư chuyển tiếp: khối From của thư gốc) → tên miền THẬT của từng link (gỡ cả link chuyển tiếp ?U=) → so với nhà người gửi + danh sách nhà anh có tài khoản. Link sang tên miền khác = THƯ GIẢ: không bấm, xoá. Link đúng nhà = thư thật, nhưng thư đòi duyệt (xác nhận liên hệ, đăng nhập, OTP) mà anh không tự làm = có người mạo danh: KHÔNG bấm Approve, đổi mật khẩu + bật 2 lớp bằng cách gõ tay địa chỉ trang. Kiên chốt với anh câu 'anh có tự làm không', xử xong thì lưu trữ thư trong hòm (hết là việc cần người).",
    "ma": "apps/cty/worker/mail-bao-mat.mjs (thamDinh, docMailBaoMat)",
    "chu_tri": "truong-phong",
-   "lam": ["may", "truong-phong"],
+   "lam": [
+    "may",
+    "truong-phong"
+   ],
    "khi": "Có thư bảo mật mới trong hòm",
-   "day_chuyen": "mail"
+   "day_chuyen": "mail",
+   "lich": []
+  },
+  {
+   "id": "giu-am-tai-khoan",
+   "ten": "Giữ ấm tài khoản Facebook",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac + MacBook 11:15 mỗi ngày · MacBook segun 09:00 · 13:00 · 19:00 — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Mở profile tài khoản Facebook, lướt nhẹ để tài khoản không bị coi là bỏ hoang.",
+   "ma": "courseforge-demo fb-giu-am.mjs · ~/claude-warmup/warmup-segun.sh",
+   "chu_tri": "kien",
+   "lam": [
+    "may"
+   ],
+   "khi": "11:15 mỗi ngày + segun 3 lần/ngày",
+   "lich": [
+    "iMac:com.earns.fb-giu-am",
+    "MacBook:com.earns.fb-giu-am",
+    "MacBook:com.claude.fbwarmup.segun"
+   ],
+   "chi_phi": "0"
   }
  ]
 }

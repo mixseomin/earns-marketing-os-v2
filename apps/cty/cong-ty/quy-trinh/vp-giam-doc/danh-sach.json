@@ -1,0 +1,23 @@
+{
+ "_": "Quy trình máy chạy của Văn phòng Giám đốc. Việc nền nằm ở cong-ty/viec-nen.json (bộ điều phối mỗi máy Mac chạy); lich = nhãn việc nền, chu_tri = người chịu trách nhiệm + chi phí.",
+ "phong": "vp-giam-doc",
+ "quy_trinh": [
+  {
+   "id": "nhac-followup",
+   "ten": "Nhắc việc để sau",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac 08:47 mỗi ngày — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Nhắc anh các mục followup tới hạn.",
+   "ma": "~/bin (nhắc followup)",
+   "chu_tri": "minh",
+   "lam": [
+    "may"
+   ],
+   "khi": "08:47 mỗi ngày",
+   "lich": [
+    "iMac:com.earns.followup-nhac"
+   ],
+   "chi_phi": "0"
+  }
+ ]
+}

@@ -1,0 +1,40 @@
+{
+ "_": "Quy trình máy chạy của Phòng nghiên cứu thị trường. Việc nền nằm ở cong-ty/viec-nen.json (bộ điều phối mỗi máy Mac chạy); lich = nhãn việc nền, chu_tri = người chịu trách nhiệm + chi phí.",
+ "phong": "nghien-cuu-thi-truong",
+ "quy_trinh": [
+  {
+   "id": "cao-qc-spy",
+   "ten": "Cào quảng cáo cho spy.on.tc",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac mỗi 15 phút — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Cào thư viện quảng cáo Meta theo từ khoá đã thêm trên spy.on.tc.",
+   "ma": "spy-on-tc scripts/cao.sh",
+   "chu_tri": "mai",
+   "lam": [
+    "may"
+   ],
+   "khi": "mỗi 15 phút",
+   "lich": [
+    "iMac:tc.on.spy.cao"
+   ],
+   "chi_phi": "0"
+  },
+  {
+   "id": "doi-thu-spy",
+   "ten": "Hàng đợi đối thủ spy.on.tc",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac mỗi 5 phút — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Xử hàng đợi trang đối thủ cần cào trên spy.on.tc.",
+   "ma": "spy-on-tc scripts/doi-thu-hang-doi.sh",
+   "chu_tri": "mai",
+   "lam": [
+    "may"
+   ],
+   "khi": "mỗi 5 phút",
+   "lich": [
+    "iMac:tc.on.spy.doi-thu"
+   ],
+   "chi_phi": "0"
+  }
+ ]
+}

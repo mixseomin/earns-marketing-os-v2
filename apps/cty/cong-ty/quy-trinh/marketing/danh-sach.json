@@ -1,0 +1,23 @@
+{
+ "_": "Quy trình máy chạy của Phòng Marketing. Việc nền nằm ở cong-ty/viec-nen.json (bộ điều phối mỗi máy Mac chạy); lich = nhãn việc nền, chu_tri = người chịu trách nhiệm + chi phí.",
+ "phong": "marketing",
+ "quy_trinh": [
+  {
+   "id": "xin-awin",
+   "ten": "Xin vào chương trình Awin",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac 11:30 · 15:00 · 19:00 mỗi ngày — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Playbook xin vào tối đa 50 chương trình Awin mỗi lượt.",
+   "ma": "~/bin/plays/awin.join-programs.sh 50",
+   "chu_tri": "khoa",
+   "lam": [
+    "may"
+   ],
+   "khi": "3 lần mỗi ngày",
+   "lich": [
+    "iMac:com.earns.awin-join"
+   ],
+   "chi_phi": "0"
+  }
+ ]
+}

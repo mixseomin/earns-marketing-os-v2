@@ -1,5 +1,5 @@
 {
- "_": "Quy trình nghiệp vụ của Phòng Sách. Máy thật nằm ở repo puzzle-books (LaunchAgent do deploy-may.sh cài trên iMac + MacBook); phòng đọc kết quả từ sổ sản phẩm MOS2 (tab Dây chuyền, worker/sach.mjs). so_hoa như các phòng khác: 'co-dinh' = máy chạy, luật nằm trong mã · 'mo-ta' = chưa có máy. chu_tri = MỘT mã chịu trách nhiệm chính (vai của phòng · mã người · giam-doc), lam = ai/máy làm thật — tab Trách nhiệm của nhân sự đọc hai khoá này. day_chuyen = các dây chuyền của phòng (tab Dây chuyền chọn từng cái; nguon = bộ đọc số liệu: 'sach' worker/sach.mjs · 'video' worker/video.mjs · 'kenh:<kênh>' bảng kenh_sp); mỗi quy trình ghi day_chuyen nó thuộc (không ghi = việc chung của phòng) — tab Quy trình nhóm theo đó. lich = việc nền THẬT của quy trình ('<máy>:<nhãn LaunchAgent / unit systemd>'; [] = chạy tay hoặc chạy trong lượt của quy trình khác — ghi rõ trong kich_hoat). Mỗi việc nền thuộc ĐÚNG MỘT quy trình → một người chủ trì chịu trách nhiệm + chi phí (anh 13/10/2026: mọi cron, tự động phải gắn một nhân sự cụ thể); tu-kiem cty chặn việc nền không ra người, puzzle-books deploy-may.sh chặn việc nền chưa khai. chi_phi = tiền thật mỗi lượt/tháng ('chưa đo' khi chưa có số).",
+ "_": "Quy trình nghiệp vụ của Phòng Sách. Máy thật nằm ở repo puzzle-books, lịch chạy ở cong-ty/viec-nen.json (bộ điều phối việc nền trên iMac + MacBook); phòng đọc kết quả từ sổ sản phẩm MOS2 (tab Dây chuyền, worker/sach.mjs). so_hoa như các phòng khác: 'co-dinh' = máy chạy, luật nằm trong mã · 'mo-ta' = chưa có máy. chu_tri = MỘT mã chịu trách nhiệm chính (vai của phòng · mã người · giam-doc), lam = ai/máy làm thật — tab Trách nhiệm của nhân sự đọc hai khoá này. day_chuyen = các dây chuyền của phòng (tab Dây chuyền chọn từng cái; nguon = bộ đọc số liệu: 'sach' worker/sach.mjs · 'video' worker/video.mjs · 'kenh:<kênh>' bảng kenh_sp); mỗi quy trình ghi day_chuyen nó thuộc (không ghi = việc chung của phòng) — tab Quy trình nhóm theo đó. lich = việc nền THẬT của quy trình ('<máy>:<nhãn việc nền trong cong-ty/viec-nen.json / unit systemd>'; [] = chạy tay hoặc chạy trong lượt của quy trình khác — ghi rõ trong kich_hoat). Mỗi việc nền thuộc ĐÚNG MỘT quy trình → một người chủ trì chịu trách nhiệm + chi phí (anh 13/10/2026: mọi cron, tự động phải gắn một nhân sự cụ thể); tu-kiem cty chặn việc nền không ra người, puzzle-books kiem-lich.mjs chặn việc nền chưa khai. chi_phi = tiền thật mỗi lượt/tháng ('chưa đo' khi chưa có số).",
  "phong": "sach",
  "day_chuyen": [
   {
@@ -110,7 +110,7 @@
    "so_hoa": "co-dinh",
    "kich_hoat": "iMac 2 giờ/lần: cuốn đã duyệt + tới ngày → máy tạo nháp rồi TỰ bấm Publish (anh chốt 12/10/2026; trước đó Publish là chữ ký của Giám đốc)",
    "mo_ta": "Máy điền đủ 3 trang (tựa, ruột, bìa, giá), lưu nháp, ghi mã tựa vào sổ; nháp đủ 3 trang → kiểm giá trên trang đúng giá khai → bấm Publish, đọc lại Bookshelf → sổ in_review. Bước 3: bìa cứng cho tựa bìa mềm đã nộp (quy trình KDP bìa cứng). Chặn khi chưa duyệt, chưa tới ngày, hết suất 2 tựa/định dạng/tuần, trần 2 lượt/ngày/cuốn.",
-   "ma": "puzzle-books scripts/dang-kdp.mjs (iMac, LaunchAgent com.earns.puzzle-kdp) → kdp.mjs / kdp-hc.mjs (playbook br kdp-paperback / kdp-hardcover)",
+   "ma": "puzzle-books scripts/dang-kdp.mjs (iMac, việc nền com.earns.puzzle-kdp) → kdp.mjs / kdp-hc.mjs (playbook br kdp-paperback / kdp-hardcover)",
    "chu_tri": "truong-phong",
    "lam": [
     "may"
@@ -142,7 +142,7 @@
    "id": "dung-video",
    "ten": "Dựng video ngắn",
    "so_hoa": "co-dinh",
-   "kich_hoat": "Chạy khi cần trên iMac (deploy-shorts.sh nạp LaunchAgent com.earns.puzzle-shorts, chạy một lần lúc nạp) — chưa có lịch",
+   "kich_hoat": "Chạy khi cần trên iMac (deploy-shorts.sh gọi bộ điều phối: dieu-phoi.mjs goi com.earns.puzzle-shorts) — chưa có lịch",
    "mo_ta": "Mỗi ô chữ tặng trên pickjot.com/printables → một video dọc \"Only ONE is spelled right\" ~12 giây (chụp từng khung, đẩy vào ffmpeg) + tiêu đề / mô tả trong manifest.json. MacBook kéo kho về trước lượt 20:05.",
    "ma": "puzzle-books scripts/shorts.mjs --kieu an (iMac, out/shorts/)",
    "chu_tri": "kenh-keo-khach",
@@ -244,7 +244,7 @@
    "id": "do-ghim",
    "ten": "Đo ghim Pinterest",
    "so_hoa": "co-dinh",
-   "kich_hoat": "MacBook 09:20 mỗi ngày (LaunchAgent com.earns.pinterest-doc-so): playbook đọc trang analytics ghim (khung 30 ngày)",
+   "kich_hoat": "MacBook 09:20 mỗi ngày (việc nền com.earns.pinterest-doc-so): playbook đọc trang analytics ghim (khung 30 ngày)",
    "mo_ta": "Ghép ghim → sách theo tiêu đề, gửi số vào MOS2 kenh_so_ngay.",
    "ma": "~/bin/plays/pinterest.doc-so-ghim.sh → puzzle-books scripts/pin-so.mjs",
    "chu_tri": "kenh-keo-khach",
@@ -445,6 +445,23 @@
    "khi": "khi cần",
    "day_chuyen": "video",
    "lich": [],
+   "chi_phi": "0"
+  },
+  {
+   "id": "do-gumroad",
+   "ten": "Đo lượt xem Gumroad",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac 08:15 · 14:15 · 20:15 mỗi ngày — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Lấy lượt xem 7 ngày của các sản phẩm Gumroad về sổ.",
+   "ma": "~/gumroad-views/gumroad-views.mjs --days 7",
+   "chu_tri": "kenh-keo-khach",
+   "lam": [
+    "may"
+   ],
+   "khi": "3 lần mỗi ngày",
+   "lich": [
+    "iMac:com.earns.gumroad-views"
+   ],
    "chi_phi": "0"
   }
  ]

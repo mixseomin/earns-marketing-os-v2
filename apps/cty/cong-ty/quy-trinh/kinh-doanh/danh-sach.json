@@ -1,0 +1,23 @@
+{
+ "_": "Quy trình máy chạy của Phòng Kinh doanh. Việc nền nằm ở cong-ty/viec-nen.json (bộ điều phối mỗi máy Mac chạy); lich = nhãn việc nền, chu_tri = người chịu trách nhiệm + chi phí.",
+ "phong": "kinh-doanh",
+ "quy_trinh": [
+  {
+   "id": "amazon-hoa-hong",
+   "ten": "Kéo hoa hồng Amazon Associates",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "MacBook 09:40 mỗi ngày — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Kéo hoa hồng Amazon Associates về product_stats.",
+   "ma": "earns-strategy resources/stats/amazon-pull.mjs",
+   "chu_tri": "son",
+   "lam": [
+    "may"
+   ],
+   "khi": "09:40 mỗi ngày",
+   "lich": [
+    "MacBook:com.earns.amazon-pull"
+   ],
+   "chi_phi": "0"
+  }
+ ]
+}

@@ -73,5 +73,13 @@ for (const q of dsQuyTrinh().filter((x) => x.nguon === 'phong')) {
     nenCua[l] = q.khoa;
   }
 }
+// SỔ VIỆC NỀN hai máy Mac (anh 14/10/2026: một bộ điều phối mỗi máy, đọc từ cty) ↔ `lich` của quy trình: việc trong sổ phải có người; lich máy Mac
+// phải có trong sổ (trừ chính bộ điều phối) — khai mà sổ không có = cty hứa một việc không chạy.
+const { kiemSo, NHAN_DIEU_PHOI } = await import('../may/dieu-phoi.mjs');
+const so = JSON.parse(fs.readFileSync(path.join(R, 'viec-nen.json'), 'utf8'));
+for (const l of kiemSo(so)) loi.push(`viec-nen.json: ${l}`);
+const trongSo = new Set((so.viec ?? []).map((v) => v.nhan));
+for (const k of trongSo) if (!nenCua[k]) loi.push(`viec-nen.json: ${k} chưa thuộc quy trình nào — thêm vào "lich" của quy trình phòng (người chịu trách nhiệm + chi phí)`);
+for (const [l, qt] of Object.entries(nenCua)) if (/^(iMac|MacBook):/.test(l) && !trongSo.has(l) && !l.endsWith(`:${NHAN_DIEU_PHOI}`)) loi.push(`${qt}: lich ${l} không có trong cong-ty/viec-nen.json`);
 if (loi.length) { console.error('✗ tu-kiem cty:\n  ' + loi.join('\n  ')); process.exit(1); }
 console.log(`✓ tu-kiem cty: ${Object.keys(ns).length} nhân sự, ${Object.keys(phong).length} phòng, hồ sơ nhất quán`);

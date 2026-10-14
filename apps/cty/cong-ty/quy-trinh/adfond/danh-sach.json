@@ -1,0 +1,75 @@
+{
+ "_": "Quy trình máy chạy của Phòng AdFond. Việc nền nằm ở cong-ty/viec-nen.json (bộ điều phối mỗi máy Mac chạy); lich = nhãn việc nền, chu_tri = người chịu trách nhiệm + chi phí.",
+ "phong": "adfond",
+ "quy_trinh": [
+  {
+   "id": "ab-chup",
+   "ten": "Tự chụp ảnh mẫu A/B",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac 03:40 mỗi ngày — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Chụp ảnh các mẫu A/B đang chạy để so sánh.",
+   "ma": "adfond scripts/ab-chup-tu.mjs",
+   "chu_tri": "lan",
+   "lam": [
+    "may"
+   ],
+   "khi": "03:40 mỗi ngày",
+   "lich": [
+    "iMac:com.adfond.ab-chup"
+   ],
+   "chi_phi": "chưa đo"
+  },
+  {
+   "id": "goc-kiem",
+   "ten": "Kiểm QC gốc đối thủ",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac + MacBook 09:15 mỗi ngày — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Kiểm lại quảng cáo gốc của đối thủ trong thư viện Meta.",
+   "ma": "adfond scripts/meta-ads/goc-kiem.sh",
+   "chu_tri": "lan",
+   "lam": [
+    "may"
+   ],
+   "khi": "09:15 mỗi ngày",
+   "lich": [
+    "iMac:com.adfond.goc-kiem",
+    "MacBook:com.adfond.goc-kiem"
+   ],
+   "chi_phi": "chưa đo"
+  },
+  {
+   "id": "keo-so-cj-adpia",
+   "ten": "Kéo số CJ + Adpia buổi sáng",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "MacBook 09:15 mỗi ngày — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Đăng nhập lại CJ bằng playbook rồi kéo số mạng affiliate về sổ.",
+   "ma": "adfond scripts/mang-ngay.sh",
+   "chu_tri": "lan",
+   "lam": [
+    "may"
+   ],
+   "khi": "09:15 mỗi ngày",
+   "lich": [
+    "MacBook:com.earns.adfond.keo-so-cj-adpia-moi-sang"
+   ],
+   "chi_phi": "0"
+  },
+  {
+   "id": "may-chay-gha",
+   "ten": "Máy chạy GitHub Actions",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac thường trực — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Self-hosted runner cho repo adfond.",
+   "ma": "~/actions-runner-adfond/runsvc.sh",
+   "chu_tri": "lan",
+   "lam": [
+    "may"
+   ],
+   "khi": "thường trực",
+   "lich": [
+    "iMac:actions.runner.mixseomin-adfond.tuans-imac-adfond"
+   ],
+   "chi_phi": "0"
+  }
+ ]
+}

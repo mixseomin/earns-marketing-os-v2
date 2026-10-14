@@ -1,0 +1,130 @@
+{
+ "_": "Quy trình máy chạy của Phòng Bảo trì (hạ tầng hai máy Mac). Việc nền nằm ở cong-ty/viec-nen.json (bộ điều phối mỗi máy Mac chạy); lich = nhãn việc nền, chu_tri = người chịu trách nhiệm + chi phí.",
+ "phong": "bao-tri",
+ "quy_trinh": [
+  {
+   "id": "dieu-phoi-viec-nen",
+   "ten": "Điều phối việc nền hai máy Mac",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac + MacBook thường trực: LaunchAgent DUY NHẤT của mỗi máy (tc.on.cty.dieu-phoi, \"Cty - điều phối việc nền\")",
+   "mo_ta": "Đọc cong-ty/viec-nen.json từ box3 mỗi 5 phút, chạy từng việc đúng hẹn, mỗi tiến trình mang tên việc; plist cũ của việc đã vào sổ thì tự gỡ.",
+   "ma": "apps/cty/may/dieu-phoi.mjs · cài: apps/cty/may/cai.sh",
+   "chu_tri": "bao",
+   "lam": [
+    "may"
+   ],
+   "khi": "thường trực",
+   "lich": [
+    "iMac:tc.on.cty.dieu-phoi",
+    "MacBook:tc.on.cty.dieu-phoi"
+   ],
+   "chi_phi": "0"
+  },
+  {
+   "id": "dong-bo-cau-hinh",
+   "ten": "Đồng bộ cấu hình Claude",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac + MacBook mỗi 15 phút — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Đồng bộ repo dotclaude giữa hai máy.",
+   "ma": "~/claude-sync/sync.sh",
+   "chu_tri": "bao",
+   "lam": [
+    "may"
+   ],
+   "khi": "mỗi 15 phút",
+   "lich": [
+    "iMac:com.claude.dotsync",
+    "MacBook:com.claude.dotsync"
+   ],
+   "chi_phi": "0"
+  },
+  {
+   "id": "sao-luu-phien",
+   "ten": "Sao lưu phiên Claude",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "MacBook 03:15 mỗi ngày — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Sao lưu nhật ký phiên Claude.",
+   "ma": "~/bin (sao lưu phiên)",
+   "chu_tri": "bao",
+   "lam": [
+    "may"
+   ],
+   "khi": "03:15 mỗi ngày",
+   "lich": [
+    "MacBook:com.earns.sao-luu-claude"
+   ],
+   "chi_phi": "0"
+  },
+  {
+   "id": "don-nhat-ky",
+   "ten": "Dọn nhật ký chat MacBook",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "MacBook 03:30 mỗi ngày, ưu tiên thấp — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Dọn nhật ký chat Claude cũ trên MacBook, ghi sổ sự kiện tu=bao.",
+   "ma": "~/bin (dọn nhật ký)",
+   "chu_tri": "bao",
+   "lam": [
+    "may"
+   ],
+   "khi": "03:30 mỗi ngày",
+   "lich": [
+    "MacBook:com.htuan.don-nhat-ky"
+   ],
+   "chi_phi": "0"
+  },
+  {
+   "id": "giu-am-trinh-duyet",
+   "ten": "Giữ ấm đăng nhập trình duyệt",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac 10:30 mỗi ngày — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Mở lần lượt các profile trình duyệt rảnh để phiên đăng nhập không hết hạn.",
+   "ma": "~/bin (giữ ấm trình duyệt) --idle 5",
+   "chu_tri": "bao",
+   "lam": [
+    "may"
+   ],
+   "khi": "10:30 mỗi ngày",
+   "lich": [
+    "iMac:com.earns.browsers-refresh"
+   ],
+   "chi_phi": "0"
+  },
+  {
+   "id": "duong-ham-box3",
+   "ten": "Đường hầm ssh box3",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "MacBook thường trực — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "SOCKS cổng 1081 qua box3.",
+   "ma": "ssh -N -D 1081 root@box3",
+   "chu_tri": "bao",
+   "lam": [
+    "may"
+   ],
+   "khi": "thường trực",
+   "lich": [
+    "MacBook:com.earns.box3-tunnel"
+   ],
+   "chi_phi": "0"
+  },
+  {
+   "id": "may-mt5",
+   "ten": "Máy MT5 (iMac)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "iMac: đường hầm proxy thường trực · canh treo mỗi phút · sửa IP proxy mỗi 2 phút · báo còn sống mỗi 5 phút — bộ điều phối việc nền (cong-ty/viec-nen.json)",
+   "mo_ta": "Giữ MT5 chạy: đường hầm SOCKS, mở lại khi treo, cập nhật IP proxy, nhịp báo còn sống.",
+   "ma": "~/bin/mt5-*.sh",
+   "chu_tri": "bao",
+   "lam": [
+    "may"
+   ],
+   "khi": "thường trực + mỗi 1–5 phút",
+   "lich": [
+    "iMac:com.htuan.mt5socks",
+    "iMac:com.htuan.mt5watchdog",
+    "iMac:com.htuan.mt5proxyipsync",
+    "iMac:com.earns.mt5hb"
+   ],
+   "chi_phi": "0"
+  }
+ ]
+}

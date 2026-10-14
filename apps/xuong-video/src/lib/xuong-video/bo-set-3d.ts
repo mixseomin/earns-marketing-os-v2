@@ -4,10 +4,12 @@
 // và cổng (chanKhungXam). Tự kiểm: bo-set-3d.test.mts
 import type { BoSet, Canh, May3d, NhanVat } from './kieu';
 
-/** Bộ set của shot = bộ set của anchor bối cảnh gắn ở shot (anchor đầu tiên có set). null = shot không dựng 3D (vd Trái Đất, Hà Nội trên cao). */
+/** Bộ set của shot = bộ set CHUNG của mọi anchor bối cảnh gắn ở shot. null = shot không dựng 3D: không có bối cảnh thuộc set (Trái Đất,
+ *  Hà Nội trên cao) hoặc shot đi XUYÊN hai thế giới (bay qua ô cửa sổ vào bàn: một bối cảnh có set, một không) — khung đầu nằm ngoài set. */
 export function boSetCuaShot(c: Pick<Canh, 'nhan_vat'>, nhanVat: Pick<NhanVat, 'id' | 'loai' | 'bo_set_id'>[]): number | null {
-  for (const id of c.nhan_vat) { const v = nhanVat.find((x) => x.id === id); if (v?.loai === 'boi_canh' && v.bo_set_id) return v.bo_set_id; }
-  return null;
+  const bc = c.nhan_vat.map((id) => nhanVat.find((x) => x.id === id)).filter((v) => v?.loai === 'boi_canh');
+  const sets = new Set(bc.map((v) => v!.bo_set_id ?? null));
+  return sets.size === 1 ? [...sets][0]! : null;
 }
 
 /** Khối đại diện của một tên nhân vật / đạo cụ trong may_3d.vi_tri (khớp tên anchor, không phân biệt hoa thường). */
@@ -61,4 +63,35 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'>,
   }
   if (truoc?.may_3d && boSetCuaShot(truoc, nhanVat) === set.id) { const v = vuotTruc(truoc.may_3d, c.may_3d); if (v) out.push(v); }
   return out;
+}
+
+// ── ĐẶT MÁY TỰ ĐỘNG (anh 14/10/2026: "nhiều shot không có 3D thì làm sao đồng bộ được?") ───────────────────────────────────────
+// Từ chỗ đứng nhân vật (cm) + CỠ CẢNH / GÓC / ỐNG KÍNH đã có trong thẻ shot → máy ảo: khoảng cách để chủ thể chiếm đúng phần khung của
+// cỡ cảnh (khung dọc 9:16, cảm biến 36 mm theo chiều dọc như dung-set.py), độ cao theo góc, phía máy = góc phương vị quanh chủ thể
+// (0° = từ phía người ngồi nhìn vào, +90° = từ bên phải). Mọi shot mới chỉ cần chỗ đứng + phía; máy tự ra, kiểm hình học tự chạy.
+const ONG_MM: Record<string, number> = { probe: 16, rong: 24, chuan: 40, chan_dung: 85, tele: 135, macro: 60, anamorphic: 40 };
+const ONG_THEO_CO: Record<string, number> = { ews: 18, ws: 24, ms: 35, mcu: 50, cu: 60, ecu: 60, insert: 60, two: 35, ots: 40, pov: 24 };
+/** Phần chiều cao khung chủ thể chiếm theo cỡ cảnh (ecu > 1 = cắt sát hơn cả thân). */
+const PHAN_KHUNG: Record<string, number> = { ews: 0.06, ws: 0.18, ms: 0.45, mcu: 0.65, cu: 0.9, ecu: 1.6, insert: 1, two: 0.4, ots: 0.5, pov: 0.3 };
+
+export type DatMay = { vi_tri: May3d['vi_tri']; phia?: number; khung?: string[] };
+export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; ong_kinh?: string }, khoi: (ten: string) => { co: number[] } | null): May3d {
+  const ong = ONG_MM[kt.ong_kinh ?? ''] ?? ONG_THEO_CO[kt.co_canh ?? ''] ?? 35;
+  const ten = o.khung?.length ? o.khung : o.vi_tri.filter((v) => !v.an).slice(0, 2).map((v) => v.ten);
+  const chu = o.vi_tri.filter((v) => ten.includes(v.ten));
+  const ds = (chu.length ? chu : o.vi_tri).map((v) => { const c = khoi(v.ten)?.co ?? [2, 2, 2]; const h = v.nam ? c[1]! : c[2]!; return { x: v.tam[0]!, y: v.tam[1]!, z: v.tam[2] ?? 0, h, w: c[0]! }; });
+  const cx = ds.reduce((a, d) => a + d.x, 0) / ds.length, cy = ds.reduce((a, d) => a + d.y, 0) / ds.length;
+  const H = Math.max(...ds.map((d) => d.z + d.h)) - Math.min(...ds.map((d) => d.z));
+  const W = Math.max(...ds.map((d) => d.x + d.w / 2)) - Math.min(...ds.map((d) => d.x - d.w / 2));
+  const cz = Math.min(...ds.map((d) => d.z)) + H * 0.5;
+  const tanV = 18 / ong, tanH = (18 * 9 / 16) / ong;   // nửa khung dọc / ngang trên tiêu cự
+  const f = PHAN_KHUNG[kt.co_canh ?? ''] ?? 0.4;
+  const d = Math.max(0.6, Math.max(H / (f * 2 * tanV), kt.co_canh === 'ecu' ? 0 : W / (0.85 * 2 * tanH)));
+  const a = ((o.phia ?? 0) * Math.PI) / 180;
+  const ngoc = { sat_dat: -1, thap: -12, ngang: 0, cao: 35, tren_xuong: 85, nghieng: 0, selfie: 0 }[kt.goc ?? 'ngang'] ?? 0;
+  const e = (ngoc * Math.PI) / 180;
+  const ngang = d * Math.cos(Math.abs(e));
+  const z = kt.goc === 'sat_dat' ? 0.5 : Math.max(0.4, cz + d * Math.sin(e) + (kt.goc === 'thap' ? -H * 0.3 : 0));
+  const r = (x: number) => Math.round(x * 10) / 10;
+  return { dat: [r(cx + ngang * Math.sin(a)), r(cy - ngang * Math.cos(a)), r(z)], nhin: [r(cx), r(cy), r(cz)], ong_kinh: ong, vi_tri: o.vi_tri };
 }

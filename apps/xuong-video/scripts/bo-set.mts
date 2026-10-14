@@ -8,6 +8,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { chupTruoc } from '../src/lib/xuong-video/hoan-tac';
 import { dungKhungXamTap } from '../src/lib/xuong-video/bo-set-3d-may';
+import { datMayTuDong, type DatMay } from '../src/lib/xuong-video/bo-set-3d';
 import type { Row } from '../src/lib/xuong-video/doc-db';
 
 const db = getDb()!; const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split('=').slice(1).join('=') ?? '';
@@ -34,8 +35,11 @@ if (gia('nap')) {
     await db.execute(sql`UPDATE xv_nhan_vat SET khoi_3d = ${JSON.stringify(k)}::jsonb WHERE id = ${Number(id)}`); khoi++;
   }
   if (tap) for (const [ma, m] of Object.entries(d.may ?? {})) {
-    const r = (await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${tap} AND dan_dung->>'ma' = ${ma}`)) as unknown as Row[];
+    const r = (await db.execute(sql`SELECT id, ky_thuat FROM xv_canh WHERE tap_id = ${tap} AND dan_dung->>'ma' = ${ma}`)) as unknown as Row[];
     if (!r[0]) { thieu.push(`shot ${ma}`); continue; }
+    // Không ghi máy → ĐẶT MÁY TỰ ĐỘNG từ chỗ đứng + phía + cỡ cảnh / góc / ống kính của thẻ shot.
+    const dm = m as DatMay & { dat?: number[] };
+    if (!dm.dat) { const kt = (r[0].ky_thuat ?? {}) as Record<string, string>; Object.assign(m as object, { ...datMayTuDong(dm, kt, (t) => d.khoi?.[t] ?? null), tu_dong: { phia: dm.phia ?? 0, khung: dm.khung } }); delete (m as Record<string, unknown>).phia; delete (m as Record<string, unknown>).khung; }
     await chupTruoc(db, { bang: 'xv_canh', id: Number(r[0].id), cot: ['may_3d'], moTa: 'nạp máy ảo 3D', nguoi: 'bo-set' });
     await db.execute(sql`UPDATE xv_canh SET may_3d = ${JSON.stringify(m)}::jsonb WHERE id = ${Number(r[0].id)}`); may++;
   }

@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam } from './bo-set-3d';
+import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -12,6 +12,7 @@ const m = (dat: number[]) => ({ dat, nhin: [24, 30, 2], ong_kinh: 24, vi_tri: [{
 
 assert.equal(boSetCuaShot({ nhan_vat: [2, 1] }, nv), 7);
 assert.equal(boSetCuaShot({ nhan_vat: [4] }, nv), null);                       // Trái Đất: không dựng 3D, không chặn
+assert.equal(boSetCuaShot({ nhan_vat: [4, 1] }, nv), null);                    // bay xuyên hai thế giới (cửa sổ → bàn): khung đầu ngoài set
 assert.equal(maKhungXam(set, m([25, 4, 1]), nv), maKhungXam(set, m([25, 4, 1]), nv));
 assert.notEqual(maKhungXam(set, m([25, 4, 1]), nv), maKhungXam(set, m([25, 5, 1]), nv));   // máy dời 1 cm → phải dựng lại
 assert.ok(!bangDung(set, [{ id: 9, thu_tu: 1, may_3d: { ...m([0, 0, 1]), vi_tri: [{ ten: 'Lint', tam: [0, 0, 0] }] } }], nv).ok);   // thiếu khối → lỗi, không đoán
@@ -30,4 +31,13 @@ assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kx([{ nhan_vat
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kx([]) }, nv, set, { nhan_vat: [1], may_3d: m([25, 40, 1]) }).some((x) => x.includes('trục')));
 const mAn = { ...mm, vi_tri: [{ ten: 'Tango', tam: [20, 25, 0], an: true }, { ten: 'Gummy Bear', tam: [30, 25, 0] }] };
 assert.deepEqual(chanKhungXam({ nhan_vat: [1, 2], may_3d: mAn, khung_xam: { ma: maKhungXam(set, mAn, nv), xam: '', sau: '', luc: '', kiem: [{ nhan_vat: 'Tango', trong_khung: true, cao_khung_pt: 6, bi_che_boi: ['Magic Mouse'] }] } }, nv, set), []);   // cố ý nấp sau chuột → không báo
+// Đặt máy tự động: cận gần hơn toàn; phía 0° = máy ở trước (y nhỏ hơn); phía 90° = máy ở bên phải (x lớn hơn); sát đất thì máy thấp.
+const k = (t: string) => (t === 'Tango' ? { co: [2, 1.6, 2.6] } : null);
+const vt = [{ ten: 'Tango', tam: [0, 50, 0] }];
+const cu = datMayTuDong({ vi_tri: vt }, { co_canh: 'cu', goc: 'ngang' }, k), ws = datMayTuDong({ vi_tri: vt }, { co_canh: 'ws', goc: 'ngang' }, k);
+const kc = (m: { dat: number[]; nhin: number[] }) => Math.hypot(m.dat[0]! - m.nhin[0]!, m.dat[1]! - m.nhin[1]!);
+assert.ok(kc(cu) < kc(ws));
+assert.ok(cu.dat[1]! < 50);
+assert.ok(datMayTuDong({ vi_tri: vt, phia: 90 }, { co_canh: 'ms' }, k).dat[0]! > 0);
+assert.equal(datMayTuDong({ vi_tri: vt }, { co_canh: 'ws', goc: 'sat_dat' }, k).dat[2], 0.5);
 console.log('bo-set-3d.test: ok');

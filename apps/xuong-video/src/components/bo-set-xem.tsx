@@ -137,7 +137,8 @@ export function BoSetXem({ tapId, canhId }: { tapId: number; canhId?: number | n
     }
     // Nón máy của mọi shot (bấm để chọn)
     const non: THREE.Mesh[] = [];
-    if (moiMay) for (const s of shots.filter((x) => x.set_id === set.id)) {
+    // Nhìn qua máy shot thì ẩn nón máy (nón của shot khác lọt vào khung như một vật lạ).
+    if (moiMay && !(quaMay && shot)) for (const s of shots.filter((x) => x.set_id === set.id)) {
       const m = s.may_3d!; const o = new THREE.Mesh(new THREE.ConeGeometry(0.9, 2.4, 12), chat(s.id === chon ? '#facc15' : '#ff2d55', 2));
       o.position.copy(V(m.dat)); o.lookAt(V(m.nhin)); o.rotateX(-Math.PI / 2); o.userData.id = s.id; canh.add(o); non.push(o);
       if (coNhan) { const l = nhan(`#${s.thu_tu}`, s.id === chon ? 'rgba(202,138,4,.9)' : 'rgba(0,0,0,.5)'); l.position.copy(V(m.dat)).add(new THREE.Vector3(0, 1.6, 0)); canh.add(l); }

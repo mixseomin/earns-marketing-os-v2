@@ -485,7 +485,7 @@
             "noi_trang_thai"
           ],
           "thay": "Nhìn từ sau mép bàn phím: máy lấy nét vào một góc giấy vàng ở tiền cảnh — nó khẽ cong lên, sột soạt như đang nhìn trộm. Rồi nét chuyển ra xa: Tango cuộn tròn thành quả bóng cam lăn theo viên kẹo.",
-          "bo_cuc": "Foreground: a plain corner of yellow sticky-note paper peeking from behind the keyboard edge, screen-left, IN SHARP FOCUS. Background: Tango, small and soft-focused, face-down on the wood; the red gummy bouncing toward the dark gap between the screens.",
+          "bo_cuc": "Foreground: a plain blank corner of yellow sticky-note paper (just paper: no eyes, no face, no character) peeking from behind the keyboard edge, screen-left, IN SHARP FOCUS. Background: Tango, small and soft-focused, face-down on the wood; the red gummy bouncing toward the dark gap between the screens.",
           "mo": "The yellow paper corner sharp in the foreground, curling up slightly as if peeking; Tango small and blurred in the distance, face-down on the wood.",
           "ket": "Focus racked to the distance: Tango rolled into an orange ball rolling away; the yellow corner, now blurred, leaning to watch him go.",
           "huong": "Tango rolls screen-right and away from camera; the paper corner faces him.",
@@ -502,7 +502,6 @@
           "anchor": [
             "Mouse Landing",
             "Tango",
-            "Sticky",
             "White Keyboard",
             "Gummy Bear"
           ],

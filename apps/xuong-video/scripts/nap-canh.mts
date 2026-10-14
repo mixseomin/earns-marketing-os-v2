@@ -46,12 +46,18 @@ if (process.argv.includes('--cap-nhat')) {
   const { ghepThoai } = await import('../src/lib/xuong-video/kieu');
   const cu = ((await db.execute(sql`SELECT id, phan_doan, thu_tu, prompt_anh, nhan_vat, dan_dung FROM xv_canh WHERE tap_id = ${tapId} AND coalesce(nhanh, '') IN ('', 'A') ORDER BY thu_tu`)) as unknown as Row[]);
   const theoPc = new Map<string, Row[]>(); for (const r of cu) theoPc.set(String(r.phan_doan), [...(theoPc.get(String(r.phan_doan)) ?? []), r]);
+  // Khớp theo MÃ shot (dan_dung.ma) khi mọi shot trong tập đã có mã: shot mới (mã chưa có) CHÈN ngay sau shot đứng trước nó trong tệp, dời các
+  // shot sau — chèn giữa cảnh không làm lệch. Chưa đủ mã (lần đầu) thì khớp theo phân cảnh + thứ tự như cũ (và ghi mã vào luôn).
+  const theoMa = new Map(cu.filter((r) => (r.dan_dung as Record<string, string> | null)?.ma).map((r) => [(r.dan_dung as Record<string, string>).ma, r]));
+  const dungMa = cu.length > 0 && theoMa.size === cu.length;
+  const chenMoi: { c: Record<string, unknown>; sauMa: string | null }[] = [];
   const demPc = new Map<string, number>(); let doi = 0; const chuaCo: string[] = []; const lechAnh: number[] = [];
   const tenId = new Map(nv.map((v) => [v.ten.trim().toLowerCase(), v.id]));
   for (const c of kq.canh as { phan_doan: string; [k: string]: unknown }[]) {
     const i = demPc.get(c.phan_doan) ?? 0; demPc.set(c.phan_doan, i + 1);
-    const r = theoPc.get(c.phan_doan)?.[i];
-    if (!r) { chuaCo.push(`${c.phan_doan} #${i + 1}`); continue; }
+    const maC = ((c.dan_dung ?? {}) as Record<string, string>).ma;
+    const r = dungMa ? (maC ? theoMa.get(maC) : undefined) : theoPc.get(c.phan_doan)?.[i];
+    if (!r) { if (dungMa && maC) { const ds = kq.canh as { dan_dung?: { ma?: string } }[]; const k = ds.indexOf(c as never); chenMoi.push({ c, sauMa: k > 0 ? ds[k - 1]?.dan_dung?.ma ?? null : null }); } else chuaCo.push(`${c.phan_doan} #${i + 1}`); continue; }
     const ids0 = (c.nhan_vat as string[]).map((t) => tenId.get(t.trim().toLowerCase())).filter((x): x is number => typeof x === 'number');
     // Cùng luật lưu tách cảnh (luu-canh.ts): món có nhắc tên trong prompt / hành động mà tệp không liệt kê thì gắn luôn.
     const { mauNhacTen } = await import('../src/lib/xuong-video/quy-trinh');
@@ -66,10 +72,18 @@ if (process.argv.includes('--cap-nhat')) {
       nhan_vat = ${JSON.stringify(ids)}::jsonb, chu_man = ${(c.chu_man as string) ?? ''}, updated_at = now() WHERE id = ${Number(r.id)}`);
     doi++;
   }
+  // Chèn shot mới theo mã: lần lượt, mỗi lần đọc lại thứ tự của shot đứng trước (các lần chèn trước đã dời thứ tự).
+  const daChen: string[] = [];
+  for (const { c, sauMa } of chenMoi) {
+    const tr = sauMa ? ((await db.execute(sql`SELECT thu_tu FROM xv_canh WHERE tap_id = ${tapId} AND dan_dung->>'ma' = ${sauMa} LIMIT 1`)) as unknown as Row[])[0] : null;
+    const truocTu = tr ? Number(tr.thu_tu) + 1 : 1;
+    await luuCanhTach(db, { chenTruoc: truocTu, tapId, tenTap: String(t[0].ten), kq: { ...kq, canh: [c] } as never, nhanVat: nv, nguoi: 'script nap-canh' });
+    daChen.push(`${((c.dan_dung ?? {}) as Record<string, string>).ma} → #${truocTu}`);
+  }
   await chupTruoc(db, { bang: 'xv_tap', id: tapId, cot: ['phan_canh', 'beats', 'ho_so', 'kich_ban'], moTa: 'đồng bộ hồ sơ tiền kỳ', nguoi: 'nap-canh' });
   await db.execute(sql`UPDATE xv_tap SET phan_canh = ${JSON.stringify(kq.phanCanh)}::jsonb, beats = ${JSON.stringify(kq.beats)}::jsonb, ho_so = coalesce(ho_so, '{}'::jsonb) || ${JSON.stringify(kq.hoSo ?? {})}::jsonb, updated_at = now() WHERE id = ${tapId}`);
   if (kbMd) await db.execute(sql`UPDATE xv_tap SET kich_ban = ${readFileSync(kbMd, 'utf8')} WHERE id = ${tapId}`);
-  console.log(JSON.stringify({ dong_bo: doi, chua_co_trong_tap: chuaCo, keyframe_lech_anh_dau: lechAnh }));
+  console.log(JSON.stringify({ dong_bo: doi, da_chen: daChen, chua_co_trong_tap: chuaCo, keyframe_lech_anh_dau: lechAnh }));
   process.exit(0);
 }
 const so = await luuCanhTach(db, { chenTruoc: chen ? truoc : undefined, tapId, tenTap: String(t[0].ten), kq: kq as never, nhanVat: nv, nguoi: 'script nap-canh', thoiLuongS: Math.round(canhDu.reduce((a: number, c: { phat_s: number }) => a + c.phat_s, 0)) });   // cột thoi_luong_s là số nguyên

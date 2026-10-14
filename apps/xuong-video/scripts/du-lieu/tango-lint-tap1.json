@@ -46,7 +46,8 @@
           "thoai": [],
           "cam_xuc": 0,
           "dien": "No characters; the camera itself performs: a smooth accelerating dive, easing into the final framing.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "0.1"
         },
         {
           "vai": "hanh_trinh",
@@ -79,7 +80,8 @@
           "thoai": [],
           "cam_xuc": 0,
           "dien": "No characters; motorbike light trails stream like a living river.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "0.2"
         },
         {
           "vai": "hanh_trinh",
@@ -113,7 +115,8 @@
           "thoai": [],
           "cam_xuc": 0,
           "dien": "No characters; the camera banks and weaves between cables with a playful swoop, easing out at the window.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "0.3"
         },
         {
           "vai": "thiet_lap",
@@ -148,7 +151,8 @@
           "thoai": [],
           "cam_xuc": 0,
           "dien": "No characters; the camera glides through the window and settles with a gentle ease-out on the desk.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "0.4"
         }
       ],
       "kich_ban": [
@@ -242,7 +246,8 @@
           "thoai": [],
           "cam_xuc": 1,
           "dien": "The hand moves slowly and gently (a giant's weight); Tango peeks up in two tiny pops, eyes locking on the candy, a little lick of the lips.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "1.1"
         },
         {
           "vai": "thoi_gian",
@@ -279,7 +284,8 @@
           "thoai": [],
           "cam_xuc": 0,
           "dien": "The finger presses with a slight squash of the switch; a one-beat hold in darkness, then two eyes pop open with a bounce and blink twice, comically.",
-          "nhan": "TÁCH công tắc — im một nhịp — tiếng \"blink blink\" nhỏ đúng hai lần chớp mắt."
+          "nhan": "TÁCH công tắc — im một nhịp — tiếng \"blink blink\" nhỏ đúng hai lần chớp mắt.",
+          "ma": "1.2"
         }
       ],
       "kich_ban": [
@@ -383,7 +389,8 @@
           ],
           "cam_xuc": 2,
           "dien": "Anticipation: Tango's strand twitches first. Action: he pops up with a stretch, eyes going huge. Reaction: a wiggle of excitement, tiny hops in place.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "2.1"
         },
         {
           "vai": "hanh_dong",
@@ -424,7 +431,8 @@
           ],
           "cam_xuc": 1,
           "dien": "Anticipation: Tango crouches low and wiggles his bottom. Action: a big stretched leap, arms wide. Follow-through: he squeezes the candy, it squashes and shoots out of his grip.",
-          "nhan": "Giây ~2,5: kẹo phụt khỏi tay — tiếng \"bloop\" đúng khung; nhạc pizzicato ngắt."
+          "nhan": "Giây ~2,5: kẹo phụt khỏi tay — tiếng \"bloop\" đúng khung; nhạc pizzicato ngắt.",
+          "ma": "2.2"
         },
         {
           "vai": "phan_ung",
@@ -465,7 +473,8 @@
           ],
           "cam_xuc": 0,
           "dien": "Tango lands face-first with a big squash, holds frozen one beat, then peels his face up (stretch) and his eyes track the bouncing candy.",
-          "nhan": "Đúng khung mặt chạm gỗ — \"bịch\" đất sét; giữ im một nhịp rồi tiếng kẹo nảy xa dần."
+          "nhan": "Đúng khung mặt chạm gỗ — \"bịch\" đất sét; giữ im một nhịp rồi tiếng kẹo nảy xa dần.",
+          "ma": "2.3"
         },
         {
           "vai": "nguoi_thu_ba",
@@ -502,7 +511,8 @@
           "thoai": [],
           "cam_xuc": 1,
           "dien": "Tango curls into a ball with a quick squash and rolls off fast; the paper corner leans slowly to follow him, then freezes.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "2.4"
         }
       ],
       "kich_ban": [
@@ -613,7 +623,8 @@
           "thoai": [],
           "cam_xuc": -1,
           "dien": "The ball accelerates with stretch, hits the stand with a big squash and recoil, spins dizzily in a small circle (eyes spinning), then shakes it off and zooms on.",
-          "nhan": "Đúng khung quả bóng chạm chân màn hình — \"bonk\" kim loại; một tiếng \"tưng\" chóng mặt."
+          "nhan": "Đúng khung quả bóng chạm chân màn hình — \"bonk\" kim loại; một tiếng \"tưng\" chóng mặt.",
+          "ma": "3.1"
         }
       ],
       "kich_ban": [
@@ -699,7 +710,8 @@
           "thoai": [],
           "cam_xuc": -1,
           "dien": "Tango unrolls with a springy stretch, shakes off dizziness (eyes spinning a beat), then spots the candy and leans toward it.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "4.1"
         },
         {
           "vai": "hanh_dong",
@@ -735,7 +747,8 @@
           "thoai": [],
           "cam_xuc": -1,
           "dien": "Exaggerated tiptoe: Tango lifts each foot high, tongue out in concentration; the fuzzball gives one tiny twitch.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "4.2"
         },
         {
           "vai": "hanh_dong",
@@ -777,7 +790,8 @@
           ],
           "cam_xuc": -2,
           "dien": "Anticipation: a tiny inhale squash of the fuzzball. Action: it balloons to triple size in one frame-snap. Reaction: Tango's whole body jolts up, strand straight, then he falls on his bottom (squash).",
-          "nhan": "Đúng khung Lint phồng — \"whoomp\" bông; nhạc dừng phắt một nhịp; Tango ngã — \"bịch\"."
+          "nhan": "Đúng khung Lint phồng — \"whoomp\" bông; nhạc dừng phắt một nhịp; Tango ngã — \"bịch\".",
+          "ma": "4.3"
         },
         {
           "vai": "phan_ung",
@@ -813,7 +827,8 @@
           "thoai": [],
           "cam_xuc": -2,
           "dien": "Both hold frozen in a long comic stare, eyes darting; Lint vibrates with fear while Tango's strand slowly droops.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "4.4"
         },
         {
           "vai": "chi_tiet",
@@ -849,7 +864,8 @@
           "thoai": [],
           "cam_xuc": -1,
           "dien": "Lint deflates with a slow sad squash and curls up; one big eye slides open to peek at the candy; his tummy jiggles with the rumble.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "4.5"
         },
         {
           "vai": "chi_tiet",
@@ -884,7 +900,8 @@
           "thoai": [],
           "cam_xuc": 1,
           "dien": "Two clay hands pull: the candy stretches thin and long (stretch), trembles, then snaps apart with a recoil.",
-          "nhan": "Đúng khung kẹo đứt — \"pưng\"; một nốt chuông ấm vang ngay sau."
+          "nhan": "Đúng khung kẹo đứt — \"pưng\"; một nốt chuông ấm vang ngay sau.",
+          "ma": "4.6"
         },
         {
           "vai": "phan_ung",
@@ -933,7 +950,8 @@
           ],
           "cam_xuc": 3,
           "dien": "Tango offers the half with an exaggerated bow; Lint uncurls in a slow bloom, hesitates, grabs it; both break into big grins and a little wiggle.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "4.7"
         }
       ],
       "kich_ban": [
@@ -1061,7 +1079,8 @@
           "thoai": [],
           "cam_xuc": 1,
           "dien": "Below, the two friends hug their halves and rock happily; the cloth edge in the foreground slowly curls inward like a claw.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "5.1"
         },
         {
           "vai": "hanh_dong",
@@ -1104,7 +1123,8 @@
           ],
           "cam_xuc": -2,
           "dien": "Mr. Wipe spots the speck and recoils in disgust (big stretch back), shudders head to tip, then scrubs frantically (blur of fabric); he slowly turns his eyes down — a sinister beat of stillness.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "5.2"
         },
         {
           "vai": "tam_trang",
@@ -1139,7 +1159,8 @@
           "thoai": [],
           "cam_xuc": -1,
           "dien": "Mist drifts in slow motion; Tango's strand rises in three little jerks; both heads tilt up together.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "5.3"
         },
         {
           "vai": "tong_the",
@@ -1183,7 +1204,8 @@
           ],
           "cam_xuc": -2,
           "dien": "Mr. Wipe billows down with ghostly overlapping fabric waves; Tango steps in front with a heroic stretch, arms spread, knees shaking.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "5.4"
         },
         {
           "vai": "hanh_dong",
@@ -1226,7 +1248,8 @@
           ],
           "cam_xuc": -3,
           "dien": "Mr. Wipe spins faster and faster (smear), sparks crackle; Lint's fibres stand up one by one before he lifts off; Tango digs in his heels, stretching long like taffy.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "5.5"
         },
         {
           "vai": "hanh_dong",
@@ -1268,7 +1291,8 @@
           ],
           "cam_xuc": -4,
           "dien": "Anticipation: Tango coils down. Action: a huge stretched leap. Hit: the spray stops him mid-air for one frozen beat, then he drops and splats flat (big squash), eyes sliding sideways.",
-          "nhan": "Đúng khung tia xịt trúng — \"PSSHT\", khựng một nhịp im lặng, rồi \"SPLAT\"."
+          "nhan": "Đúng khung tia xịt trúng — \"PSSHT\", khựng một nhịp im lặng, rồi \"SPLAT\".",
+          "ma": "5.6"
         },
         {
           "vai": "phan_ung",
@@ -1303,7 +1327,8 @@
           "thoai": [],
           "cam_xuc": -2,
           "dien": "Tango lies limp and sad for a held beat; his eyes look down at his flat body; then his strand springs up with a boing and his eyes go wide.",
-          "nhan": "Im lặng dài, rồi \"boing\" sợi tóc đúng khung bật — nhạc bật lên nhanh."
+          "nhan": "Im lặng dài, rồi \"boing\" sợi tóc đúng khung bật — nhạc bật lên nhanh.",
+          "ma": "5.7"
         }
       ],
       "kich_ban": [
@@ -1436,7 +1461,8 @@
           ],
           "cam_xuc": 2,
           "dien": "Tango smooths himself with fast confident strokes, ending in a proud flourish pose as a sled.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "6.1"
         },
         {
           "vai": "tong_the",
@@ -1473,7 +1499,8 @@
           "thoai": [],
           "cam_xuc": 3,
           "dien": "The sled hops with a squash on landing; a clay arm stretches impossibly long, hooks Lint and snaps back (rubber-band recoil).",
-          "nhan": ""
+          "nhan": "",
+          "ma": "6.2"
         },
         {
           "vai": "hanh_trinh",
@@ -1516,7 +1543,8 @@
           ],
           "cam_xuc": 4,
           "dien": "The sled leans into the speed; Lint's fur streams back; behind, Mr. Wipe tangles in a comic spin and jerks to a stop.",
-          "nhan": "Khi Mr. Wipe giật dừng trong đám dây — dây bật \"twang\" như dây đàn."
+          "nhan": "Khi Mr. Wipe giật dừng trong đám dây — dây bật \"twang\" như dây đàn.",
+          "ma": "6.3"
         }
       ],
       "kich_ban": [
@@ -1625,7 +1653,8 @@
           "thoai": [],
           "cam_xuc": 4,
           "dien": "The sled skids, overshoots and wobbles to a stop; Tango pops back into an egg with a springy bounce; Lint rolls off giggling.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "7.1"
         },
         {
           "vai": "chi_tiet",
@@ -1661,7 +1690,8 @@
           "thoai": [],
           "cam_xuc": 4,
           "dien": "Tango's eyes slide from the plug to the hub and back; a slow sly grin spreads; he rubs his clay hands together.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "7.2"
         },
         {
           "vai": "hanh_dong",
@@ -1697,7 +1727,8 @@
           "thoai": [],
           "cam_xuc": 4,
           "dien": "Tango stamps prints with a little rhythm, pulls an exaggerated disgusted face (Mr. Wipe impression), and Lint doubles over laughing.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "7.3"
         },
         {
           "vai": "hanh_dong",
@@ -1740,7 +1771,8 @@
           ],
           "cam_xuc": 3,
           "dien": "Mr. Wipe swoops in, freezes mid-air at the sight of the prints (stretch of shock), shudders, then scrubs in a frantic blur, his wet corner flicking water.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "7.4"
         },
         {
           "vai": "chi_tiet",
@@ -1776,7 +1808,8 @@
           "thoai": [],
           "cam_xuc": 5,
           "dien": "The wet corner slaps onto the plug: one frame of stillness, then the spark bursts and the cloth stiffens instantly.",
-          "nhan": "Đúng khung khăn chạm phích — \"BZZT\" lớn; nhạc tắt."
+          "nhan": "Đúng khung khăn chạm phích — \"BZZT\" lớn; nhạc tắt.",
+          "ma": "7.5"
         },
         {
           "vai": "phan_ung",
@@ -1818,7 +1851,8 @@
           ],
           "cam_xuc": 5,
           "dien": "Mr. Wipe stands frizzed stiff like a scarecrow, twitching; Tango and Lint look at each other, hold one beat, then collapse laughing, rolling.",
-          "nhan": "Khựng một nhịp sau khi xù, rồi tiếng cười bùng; câu nhạc chủ đề chốt ngắn (cú thắng)."
+          "nhan": "Khựng một nhịp sau khi xù, rồi tiếng cười bùng; câu nhạc chủ đề chốt ngắn (cú thắng).",
+          "ma": "7.6"
         },
         {
           "vai": "chi_tiet",
@@ -1855,7 +1889,8 @@
           "thoai": [],
           "cam_xuc": 3,
           "dien": "The note sneaks in slow, careful little steps, folds over the halves with a neat crease, and tiptoes away in exaggerated sneaky silence.",
-          "nhan": "Tiếng giấy sột soạt rón rén, nhạc lén lút pizzicato một nhịp."
+          "nhan": "Tiếng giấy sột soạt rón rén, nhạc lén lút pizzicato một nhịp.",
+          "ma": "7.7"
         },
         {
           "vai": "phan_ung",
@@ -1902,7 +1937,8 @@
           ],
           "cam_xuc": 1,
           "dien": "Tango turns, still laughing, then freezes; a slow double-take at the empty card; his strand shoots straight up; Lint's jaw drops.",
-          "nhan": "Đúng khung Tango quay lại thấy trống — một nốt \"đờ\" trầm; sợi tóc \"boing\"."
+          "nhan": "Đúng khung Tango quay lại thấy trống — một nốt \"đờ\" trầm; sợi tóc \"boing\".",
+          "ma": "7.8"
         },
         {
           "vai": "thiet_lap",
@@ -1939,7 +1975,8 @@
           "thoai": [],
           "cam_xuc": 2,
           "dien": "Tango and Lint turn their heads slowly toward the jungle in unison; deep inside, the spark crawls and two tiny dots blink once.",
-          "nhan": ""
+          "nhan": "",
+          "ma": "7.9"
         }
       ],
       "kich_ban": [
@@ -2095,7 +2132,8 @@
           ],
           "cam_xuc": 4,
           "dien": "Tango waves with his whole body bouncing; Lint waves a tiny fuzzy paw, then both freeze in a happy pose.",
-          "nhan": "Nốt cuối của câu nhạc chủ đề rơi đúng khung hai đứa đứng hình."
+          "nhan": "Nốt cuối của câu nhạc chủ đề rơi đúng khung hai đứa đứng hình.",
+          "ma": "8.1"
         }
       ],
       "kich_ban": [

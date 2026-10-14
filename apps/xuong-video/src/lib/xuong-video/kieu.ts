@@ -393,6 +393,7 @@ export type DanDung = {
   /** motif / cái gài hoặc trả có trong khung */ motif?: string;
   /** DIỄN XUẤT HOẠT HÌNH (tiếng Anh, vào prompt video): lấy đà → hành động → theo đà / phản ứng, nén–giãn, khựng — chất Larva */ dien?: string;
   /** ĐIỂM NHẤN âm–hình của gag: khung nào, tiếng gì đập đúng lúc nào (shot có cú bùng của gag bắt buộc có) */ nhan?: string;
+  /** mã shot CỐ ĐỊNH trong hồ sơ viết tay (vd "4.6a") — đồng bộ hồ sơ ↔ studio khớp theo mã này, chèn shot giữa cảnh không làm lệch shot sau */ ma?: string;
 };
 export const O_DAN_DUNG: { key: keyof DanDung; ten: string; mau: string; vaoModel: boolean }[] = [
   { key: 'bo_cuc', ten: 'Bố cục 3 lớp', mau: 'Foreground: blurred yellow paper corner (left). Mid: Tango, screen-left. Background: the two glowing screens.', vaoModel: true },

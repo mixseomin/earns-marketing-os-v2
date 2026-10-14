@@ -9,7 +9,7 @@ import { hoSoHtml, hoSoKichBan, kiemHoSo, type HoSoVao } from '../src/lib/xuong-
 import { lamTronClip, type PhanCanh, type DongKichBan, type Series } from '../src/lib/xuong-video/kieu';
 
 type May = { goc: string; chuyen_dong: string; ong_kinh: string; chuyen_canh: string; mo_ta: string };
-type Shot = { may: May; vai: string; co: string; giay: number; luat: string[]; thay: string; thay_en: string; am_en: string; bo_cuc: string; mo: string; ket: string; huong: string; muc_dich: string; motif: string; dien: string; nhan: string;
+type Shot = { may: May; vai: string; co: string; giay: number; luat: string[]; thay: string; thay_en: string; am_en: string; bo_cuc: string; mo: string; ket: string; huong: string; ma?: string; muc_dich: string; motif: string; dien: string; nhan: string;
   anchor: string[]; thoai: { nhan_vat: string; dien_xuat: string; loi: string }[]; cam_xuc: number };
 type Canh = { so: number; ten: string; beat: string; noi: string; luc: string; doi: string; xoay: string; shot: Shot[]; kich_ban: DongKichBan[];
   intro?: boolean; gag?: { ten: string; gai: string; bung: string; o_shot: number }[]; dao_dien: { muc_tieu: string; xung_dot: string; nhip: string[] }; boc_tach: { hieu_ung: string[] }; mau: { anh_sang: string; mau: string; mo_ta: string }; nhac: string };
@@ -35,7 +35,7 @@ const shots = kb.canh.flatMap((c) => c.shot.map((s) => {
     loi_thoai: '', thoai: s.thoai, phat_s: s.giay, thoi_luong_s: lamTronClip(s.giay), cam_xuc: s.cam_xuc, nhanh: '', trang_phuc: '', bien_the: [] as string[],
     chu_man: so === 1 ? kb.chu_man_mo ?? '' : '', nhan_vat_ten: s.anchor, nhan_vat: s.anchor.map((t) => idCua.get(t) ?? 0),
     ky_thuat: { vai: s.vai, co_canh: s.co, goc: s.may.goc, chuyen_dong: s.may.chuyen_dong, ong_kinh: s.may.ong_kinh, chuyen_canh: s.may.chuyen_canh, anh_sang: c.mau.anh_sang, mau: c.mau.mau, nhac: c.nhac, luat: s.luat },
-    dan_dung: { bo_cuc: s.bo_cuc, mo: s.mo, ket: s.ket, huong: s.huong, muc_dich: s.muc_dich, motif: s.motif, dien: s.dien, nhan: s.nhan },
+    dan_dung: { ma: s.ma, bo_cuc: s.bo_cuc, mo: s.mo, ket: s.ket, huong: s.huong, muc_dich: s.muc_dich, motif: s.motif, dien: s.dien, nhan: s.nhan },
   };
 }));
 const hs: HoSoVao = { series: kb.series, phim: kb.phim, ten: kb.ten, so: kb.tap, khong_loi: kb.khong_loi, ho_so: { thoi_gian: kb.thoi_gian, duong_di: kb.duong_di, motif: kb.motif, cung: kb.cung }, phan_canh: phanCanh, canh: shots, nhanVat: anchor.map((a) => ({ id: idCua.get(a.ten)!, ten: a.ten, loai: a.loai })) };

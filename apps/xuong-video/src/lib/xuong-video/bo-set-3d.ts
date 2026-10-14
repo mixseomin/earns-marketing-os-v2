@@ -97,6 +97,9 @@ const tenGoi = (ten: string, set: Pick<BoSet, 'du_lieu'>) => {
   return [ten, goc, v?.anchor ?? '', cuoi.length >= 4 ? cuoi : ''].filter(Boolean);
 };
 
+/** KHỐI LẤP KHUNG: một khối (không phải mặt nền) chiếm ≥ 85% khung — máy dí sát / nằm trong vật, khung xám thành một mảng màu vô nghĩa. */
+export const khoiLapKhung = (c: Pick<Canh, 'khung_xam'>, set: Pick<BoSet, 'du_lieu'> | null) => { const nen = new Set((set?.du_lieu.vat ?? []).filter((v) => v.nen).map((v) => v.ten)); return (c.khung_xam?.thay ?? []).filter((t) => t.pt >= 85 && !nen.has(t.ten)); };
+
 /** Vật của set mà chữ tả khung có nhắc (cố ý có trong khung) — bộ giải máy trong Blender không né những vật này. */
 export const vatDuocNhac = (c: Partial<Pick<Canh, 'prompt_anh' | 'dan_dung'>>, set: Pick<BoSet, 'du_lieu'>): string[] => { const chu = chuKhung(c); return set.du_lieu.vat.map((v) => v.ten).filter((t) => tenGoi(t, set).some((g) => nhac(g, chu))); };
 
@@ -121,6 +124,7 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> 
   else if (!kx.thay) out.push('khung xám đời cũ chưa đo "thấy gì trong khung" — chạy 🧊 Dựng khung xám lại');
   else {
     for (const k of loiHinhHoc(c)) out.push(!k.trong_khung ? `${k.nhan_vat} (chủ thể) nằm ngoài khung` : `${k.nhan_vat} (chủ thể) bị ${k.bi_che_boi.join(', ')} che`);
+    for (const t of khoiLapKhung(c, set)) out.push(`${t.ten} lấp ${t.pt}% khung — máy dí sát hoặc lọt trong vật: lùi máy / đổi cỡ cảnh`);
     for (const v of vatChanTienCanh(c, set)) out.push(`${v.ten} chắn tiền cảnh ${v.pt}% khung mà bố cục không nhắc — máy đang đặt sau đồ đạc: dời máy (phía / dat) hoặc ghi nó vào bố cục nếu cố ý`);
   }
   if (!c.may_3d.qua_truc && truoc?.may_3d && boSetCuaShot(truoc, nhanVat) === set.id) { const v = vuotTruc(truoc.may_3d, c.may_3d, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase())); if (v) out.push(v); }
@@ -134,7 +138,8 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> 
 const ONG_MM: Record<string, number> = { probe: 16, rong: 24, chuan: 40, chan_dung: 85, tele: 135, macro: 60, anamorphic: 40 };
 const ONG_THEO_CO: Record<string, number> = { ews: 18, ws: 24, ms: 35, mcu: 50, cu: 60, ecu: 60, insert: 60, two: 35, ots: 40, pov: 24 };
 /** Phần chiều cao khung chủ thể chiếm theo cỡ cảnh (ecu > 1 = cắt sát hơn cả thân). */
-const PHAN_KHUNG: Record<string, number> = { ews: 0.06, ws: 0.18, ms: 0.45, mcu: 0.65, cu: 0.9, ecu: 1.6, insert: 1, two: 0.4, ots: 0.5, pov: 0.3 };
+// ecu 0.6 / cu 0.75 / insert 0.7: trước đây ecu 1.6 (chủ thể to hơn khung) → với vật nhỏ (kẹo 2 cm) máy cách 1 cm, khung xám là một mảng đỏ (4.6 tập 19).
+const PHAN_KHUNG: Record<string, number> = { ews: 0.06, ws: 0.18, ms: 0.45, mcu: 0.6, cu: 0.75, ecu: 0.6, insert: 0.7, two: 0.4, ots: 0.5, pov: 0.3 };
 
 export type DatMay = { vi_tri: May3d['vi_tri']; phia?: number; khung?: string[]; nhay?: string };
 export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; ong_kinh?: string }, khoi: (ten: string) => { co: number[] } | null): May3d {
@@ -149,7 +154,8 @@ export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; on
   const cz = Math.min(...ds.map((d) => d.z)) + H * 0.5;
   const tanV = 18 / ong, tanH = (18 * 9 / 16) / ong;   // nửa khung dọc / ngang trên tiêu cự
   const f = PHAN_KHUNG[kt.co_canh ?? ''] ?? 0.4;
-  const d = Math.max(0.6, Math.max(H / (f * 2 * tanV), kt.co_canh === 'ecu' ? 0 : W / (0.85 * 2 * tanH)));
+  // Máy luôn đứng NGOÀI khối chủ thể: tối thiểu một cỡ chủ thể + 1 cm tính từ tâm.
+  const d = Math.max(Math.max(H, W) + 1, H / (f * 2 * tanV), W / (0.85 * 2 * tanH));
   const a = ((o.phia ?? 0) * Math.PI) / 180;
   const ngoc = { sat_dat: -1, thap: -12, ngang: 0, cao: 35, tren_xuong: 85, nghieng: 0, selfie: 0 }[kt.goc ?? 'ngang'] ?? 0;
   const e = (ngoc * Math.PI) / 180;

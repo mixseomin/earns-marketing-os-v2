@@ -1,0 +1,31 @@
+import assert from 'node:assert';
+import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam } from './bo-set-3d';
+
+const nv = [
+  { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
+  { id: 2, ten: 'Tango', loai: 'nhan_vat' as const, bo_set_id: null, khoi_3d: { hinh: 'trung' as const, co: [2, 1.6, 2.6], mau: '#f08a3c' } },
+  { id: 3, ten: 'Gummy Bear', loai: 'dao_cu' as const, bo_set_id: null, khoi_3d: { hinh: 'hop' as const, co: [1.4, 0.9, 2], mau: '#d0202a' } },
+  { id: 4, ten: 'Earth at Night', loai: 'boi_canh' as const, bo_set_id: null, khoi_3d: null },
+];
+const set = { id: 7, du_lieu: { vat: [{ ten: 'Mặt bàn', hinh: 'hop' as const, tam: [0, 35, -3], co: [160, 70, 3], mau: '#6b4a2e' }] } };
+const m = (dat: number[]) => ({ dat, nhin: [24, 30, 2], ong_kinh: 24, vi_tri: [{ ten: 'Tango', tam: [20, 25, 0] }, { ten: 'Gummy Bear', tam: [30, 25, 0] }] });
+
+assert.equal(boSetCuaShot({ nhan_vat: [2, 1] }, nv), 7);
+assert.equal(boSetCuaShot({ nhan_vat: [4] }, nv), null);                       // Trái Đất: không dựng 3D, không chặn
+assert.equal(maKhungXam(set, m([25, 4, 1]), nv), maKhungXam(set, m([25, 4, 1]), nv));
+assert.notEqual(maKhungXam(set, m([25, 4, 1]), nv), maKhungXam(set, m([25, 5, 1]), nv));   // máy dời 1 cm → phải dựng lại
+assert.ok(!bangDung(set, [{ id: 9, thu_tu: 1, may_3d: { ...m([0, 0, 1]), vi_tri: [{ ten: 'Lint', tam: [0, 0, 0] }] } }], nv).ok);   // thiếu khối → lỗi, không đoán
+assert.ok(bangDung(set, [{ id: 9, thu_tu: 1, may_3d: m([25, 4, 1]) }], nv).ok);
+// Trục Tango–Gummy chạy theo x tại y=25: máy ở y=4 (trước trục) rồi y=40 (sau trục) = vượt trục; cùng phía thì không.
+assert.ok(vuotTruc(m([25, 4, 1]), m([25, 40, 1])));
+assert.equal(vuotTruc(m([25, 4, 1]), m([10, 10, 1])), null);
+// Cổng
+assert.deepEqual(chanKhungXam({ nhan_vat: [4], may_3d: null, khung_xam: null }, nv, null), []);
+assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: null, khung_xam: null }, nv, set)[0]!.includes('chưa đặt máy'));
+const mm = m([25, 4, 1]);
+assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: null }, nv, set)[0]!.includes('chưa dựng'));
+const kx = (kiem: { nhan_vat: string; trong_khung: boolean; cao_khung_pt: number; bi_che_boi: string[] }[]) => ({ ma: maKhungXam(set, mm, nv), xam: '', sau: '', luc: '', kiem });
+assert.deepEqual(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kx([{ nhan_vat: 'Tango', trong_khung: true, cao_khung_pt: 6, bi_che_boi: [] }]) }, nv, set), []);
+assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kx([{ nhan_vat: 'Tango', trong_khung: true, cao_khung_pt: 6, bi_che_boi: ['White Keyboard'] }]) }, nv, set)[0]!.includes('White Keyboard che'));
+assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kx([]) }, nv, set, { nhan_vat: [1], may_3d: m([25, 40, 1]) }).some((x) => x.includes('trục')));
+console.log('bo-set-3d.test: ok');

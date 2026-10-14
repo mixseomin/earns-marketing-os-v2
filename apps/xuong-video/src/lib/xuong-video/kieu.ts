@@ -277,11 +277,20 @@ export type Phim = {
 export type BienThe = { id: number; nhan_vat_id: number; nhom: string; ten: string; mo_ta: string; anh_url: string | null };
 /** Claude nhìn ảnh gốc của anchor so với mô tả: lệch chỗ nào (màu, ren, khoá, chữ thương hiệu…) + mô tả viết lại theo ảnh. */
 export type DoiChieu = { khop: boolean; lech: string[]; mo_ta_de_xuat: string; luc: string };
+/** BỘ SET 3D (bo-set-3d.ts): bối cảnh là DỮ LIỆU toạ độ cm — gốc giữa mép trước, x phải, y vào sâu, z lên. Một set dùng cho nhiều phim của dự án. */
+export type KhoiSet = { ten: string; hinh: 'hop' | 'cau' | 'trung' | 'vom' | 'day'; tam?: number[]; co?: number[]; mau: string; xoay?: number; sang?: number; diem?: number[][]; ban_kinh?: number };
+export type VatSet = (KhoiSet | { ten: string; goc: number[]; xoay?: number; phan: Omit<KhoiSet, 'ten'>[] }) & { anchor?: string };
+export type BoSet = { id: number; project: string; phim_id: number | null; ten: string; mo_ta: string; du_lieu: { vat: VatSet[]; ghi_chu?: string }; mat_bang_url: string | null; trang_thai: string };
+/** Máy ảo + chỗ đứng nhân vật của một shot trong bộ set (cm): đầu vào dựng khung xám. nam = nằm sấp. */
+export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; vi_tri: { ten: string; tam: number[]; nam?: boolean }[] };
+/** Kết quả dựng khung xám (đầu ra): ma = mã đầu vào (set + máy + vị trí + khối) — đầu vào đổi là hết hiệu lực. */
+export type KhungXam = { ma: string; xam: string; sau: string; luc: string; kiem: { nhan_vat: string; trong_khung: boolean; cao_khung_pt: number; bi_che_boi: string[] }[] };
 export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string;
   /** tiểu sử (nhân vật): nguồn gốc, tính cách, sức mạnh, điểm yếu, mong muốn, nỗi sợ, quan hệ, bí mật — chỉ vào ngữ cảnh viết kịch bản, không vào prompt hình */
   tieu_su?: string;
   /** bộ âm hiệu cố định (phim không lời): âm đặc trưng, vui, sợ… — làm một lần, mọi tập dùng lại */
-  am_hieu?: { ten: string; mo_ta: string; url: string }[]; anh_ref: string[]; giong: string; giong_model: string; giong_id: string; giong_mau_url: string | null; doi_chieu?: DoiChieu | null; bien_the?: BienThe[] };
+  am_hieu?: { ten: string; mo_ta: string; url: string }[]; anh_ref: string[]; giong: string; giong_model: string; giong_id: string; giong_mau_url: string | null; doi_chieu?: DoiChieu | null; bien_the?: BienThe[];
+  /** bối cảnh: thuộc bộ set nào + vùng (tâm cm) trong set; nhân vật / đạo cụ: khối đại diện 3D (cỡ cm) */ bo_set_id?: number | null; vung?: { tam: number[]; ban_kinh?: number } | null; khoi_3d?: { hinh: KhoiSet['hinh']; co: number[]; mau: string } | null };
 
 /** Phim quảng cáo mà chưa khai sản phẩm (mục 0) → lý do chặn; MỘT luật cho nút ở trình duyệt lẫn gác ở máy chủ. */
 export function thieuQc(loai: LoaiPhim, kt: KinhThanh | null | undefined): string | false {
@@ -422,6 +431,8 @@ export type Canh = {
   thoi_luong_s: number; nhan_vat: number[]; bien_the: number[]; prompt_anh: string; prompt_video: string; dang_sinh_anh?: boolean; dang_sinh_am?: boolean; dang_sinh_giong?: boolean; dang_sinh_sfx?: boolean;
   dan_dung?: DanDung;
   kiem_khung?: KiemKhung | null;
+  may_3d?: May3d | null;
+  khung_xam?: KhungXam | null;
   keyframe_url: string | null; keyframe_uv: string[]; video_url: string | null; video_cuoi_url: string | null; nguon_video: Record<string, unknown>; video_phien_ban: { url: string; ban: 'nhap' | 'cuoi'; model?: string; job?: number; luc?: string }[]; trang_thai: TrangThaiCanh; loi: string; chi_phi_cents: number;
 };
 export type Job = {

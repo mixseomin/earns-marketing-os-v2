@@ -1,221 +1,1561 @@
 {
  "o_chung": {
-  "san_pham": { "ten": "Tên sản phẩm", "goi_y": "Tên ngắn, như trên trang bán", "mau": "Summet Sculpt Tank" },
-  "san_pham_hinh": { "ten": "Hình dạng sản phẩm (tiếng Anh, chính xác)", "goi_y": "Tả đúng như ảnh thật: kiểu, màu chính, chất liệu + điều CẤM nhầm (NOT …)", "dai": true, "mau": "Women's fitted tank top with a real bra sewn inside: scoop neckline, medium-width shoulder straps, smooth matte nylon-spandex knit, hip-length hem; inner bra layer with removable pads, no underwire, no hooks. Main color nude beige. NOT a sports bra, NOT a crop top, NOT lace." },
-  "anh_san_pham": { "ten": "Ảnh sản phẩm thật", "goi_y": "Mỗi dòng một URL ảnh (trang sản phẩm) — làm tham chiếu cho anchor sản phẩm", "dai": true, "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260724_170440_bc810a3b-4666-4cfc-a4fd-18f57849c2ca.png?v=1785758993\nhttps://cdn.shopify.com/s/files/1/0601/1040/5729/files/image-1788564241554.jpg?v=1788564262\nhttps://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260602_103325_21953262-3f56-4db6-9d9c-591a6606719a.png?v=1785758982" },
-  "link": { "ten": "Link trang bán", "mau": "https://getsummet.com/products/sculpt-tank-with-built-in-bra" },
-  "diem_noi_bat": { "ten": "Điểm nổi bật", "goi_y": "Tính năng + lợi ích thật, AI mọi bước dựa vào đây", "dai": true, "mau": "Real bra sewn inside, no wires, no hooks; pulls on over the head in one step; smooths and lifts without squeezing; long hem stays tucked when reaching or bending; wear alone or under anything; 68% nylon 32% spandex; XS–6XL, 11 colors; 30-day take-it-off test." },
-  "doi_tuong": { "ten": "Đối tượng (chân dung)", "dai": true, "mau": "Phụ nữ Mỹ 65–80 tuổi ghét áo ngực có móc sau lưng, dây cấn vai; muốn gọn nhẹ mà vẫn chỉn chu." },
-  "uu_dai": { "ten": "Ưu đãi (tiếng Anh, ngắn)", "mau": "Buy 1 Get 1 Free" },
-  "dam_bao": { "ten": "Trấn an (size, đổi trả…)", "mau": "XS–6XL · 11 colors · 30-day take-it-off test" },
-  "nhan_vat_ten": { "ten": "Tên nhân vật chính", "mau": "Carol" },
-  "nhan_vat_hinh": { "ten": "Ngoại hình nhân vật (tiếng Anh)", "goi_y": "Tuổi, sắc tộc, tóc, dáng, trang phục thường ngày", "dai": true, "mau": "American woman, 72, white, shoulder-length wavy silver hair, warm blue eyes, natural wrinkles, average build with a fuller bust, light everyday makeup, dark straight trousers" },
-  "giong": { "ten": "Giọng lời dẫn", "mau": "nữ Mỹ 70 tuổi, ấm, chậm rãi, hơi hài hước" },
-  "tinh_huong": { "ten": "Tình huống (chữ màn mở đầu, tiếng Anh)", "mau": "Packing for a 2-week cruise at 72" },
-  "boi_canh": { "ten": "Bối cảnh chính (tiếng Anh)", "dai": true, "mau": "bright American suburban bedroom, white quilt on the bed, open light-blue suitcase on the bed, full-length mirror, morning window light" },
-  "boi_canh_2": { "ten": "Bối cảnh lúc dùng thật (tiếng Anh)", "goi_y": "Nơi chứng minh sản phẩm trong đúng tình huống", "dai": true, "mau": "sunny cruise ship deck with white railing and open blue ocean" },
-  "noi_dau": { "ten": "Nỗi đau (chữ màn, tiếng Anh)", "mau": "Every bra I own has hooks in the back" },
-  "noi_dau_hinh": { "ten": "Nỗi đau thấy bằng hình (tiếng Anh)", "dai": true, "mau": "reaching behind her back in front of the mirror, fingers fumbling with tiny bra hooks that keep slipping" },
-  "noi_dau_2": { "ten": "Nỗi đau thứ hai (chữ màn)", "mau": "…and they dig in by noon" },
-  "noi_dau_2_hinh": { "ten": "Nỗi đau thứ hai thấy bằng hình", "dai": true, "mau": "bra strap leaving a red mark on her shoulder; she pulls the strap away and rubs the shoulder, wincing" },
-  "nguoi_gioi_thieu": { "ten": "Ai đưa giải pháp (chữ màn)", "mau": "My daughter said: \"Just pack these.\"" },
-  "demo": { "ten": "Demo dùng một bước (chữ màn)", "mau": "On over my head. One step. No hooks." },
-  "demo_hinh": { "ten": "Demo thấy bằng hình", "dai": true, "mau": "pulls the tank on over her head in one motion, tugs the hem down, done" },
-  "loi_ich_1": { "ten": "Lợi ích 1 (chữ màn)", "mau": "A real bra sewn inside" },
-  "loi_ich_1_hinh": { "ten": "Lợi ích 1 thấy bằng hình", "dai": true, "mau": "close-up of hands folding back the inner edge of the tank to show the sewn-in bra layer and the removable pad pocket" },
-  "loi_ich_2": { "ten": "Lợi ích 2 (chữ màn)", "mau": "Lifted, smooth, no lines" },
-  "loi_ich_2_hinh": { "ten": "Lợi ích 2 thấy bằng hình", "dai": true, "mau": "turns sideways in the mirror showing a smooth lifted silhouette and a flat back with no strap lines" },
-  "loi_ich_3": { "ten": "Lợi ích 3 (chữ màn)", "mau": "Reaching, bending… it stays put" },
-  "loi_ich_3_hinh": { "ten": "Lợi ích 3 thấy bằng hình", "dai": true, "mau": "reaches high to the railing to take a photo of the sea, the hem stays tucked into her trousers" },
-  "loi_ich_4": { "ten": "Lợi ích 4 (chữ màn)", "mau": "Alone as a top, or under anything" },
-  "loi_ich_4_hinh": { "ten": "Lợi ích 4 thấy bằng hình", "dai": true, "mau": "at dinner wearing the tank in wine red under a light cardigan, raising a glass and laughing" },
-  "truoc_sau": { "ten": "Trước → sau (chữ màn)", "mau": "6 bras out. 3 tanks in." },
-  "truoc_sau_hinh": { "ten": "Trước → sau thấy bằng hình", "dai": true, "mau": "top-down view of the suitcase: hands lift a tangle of bras out and lay three neatly folded tanks (nude, black, olive) in" },
-  "review": { "ten": "Câu review thật (nguyên văn)", "mau": "\"I feel and look like I have had a breast lift\" (73)" },
-  "anh_1": { "ten": "Ảnh 1 (URL)", "goi_y": "Ảnh thật dùng nguyên làm hình shot (không sinh)", "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260724_170440_bc810a3b-4666-4cfc-a4fd-18f57849c2ca.png?v=1785758993" },
-  "anh_2": { "ten": "Ảnh 2 (URL)", "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260602_103325_21953262-3f56-4db6-9d9c-591a6606719a.png?v=1785758982" },
-  "anh_3": { "ten": "Ảnh 3 (URL)", "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260602_105933_28f7e452-abb0-4c36-b746-b44e99a07406.png?v=1785758982" },
-  "anh_4": { "ten": "Ảnh 4 (URL)", "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/02_sizerun_XS6XL_square_2048_75b0a33f-c2d2-49cb-892b-cc273a83c445.jpg?v=1788916307" },
-  "anh_5": { "ten": "Ảnh 5 — end card (URL)", "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/image-1788564241554.jpg?v=1788564262" }
+  "san_pham": {
+   "ten": "Tên sản phẩm",
+   "goi_y": "Tên ngắn, như trên trang bán",
+   "mau": "Summet Sculpt Tank"
+  },
+  "san_pham_hinh": {
+   "ten": "Hình dạng sản phẩm (tiếng Anh, chính xác)",
+   "goi_y": "Tả đúng như ảnh thật: kiểu, màu chính, chất liệu + điều CẤM nhầm (NOT …)",
+   "dai": true,
+   "mau": "Women's fitted tank top with a real bra sewn inside: scoop neckline, medium-width shoulder straps, smooth matte nylon-spandex knit, hip-length hem; inner bra layer with removable pads, no underwire, no hooks. Main color nude beige. NOT a sports bra, NOT a crop top, NOT lace."
+  },
+  "anh_san_pham": {
+   "ten": "Ảnh sản phẩm thật",
+   "goi_y": "Mỗi dòng một URL ảnh (trang sản phẩm) — làm tham chiếu cho anchor sản phẩm",
+   "dai": true,
+   "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260724_170440_bc810a3b-4666-4cfc-a4fd-18f57849c2ca.png?v=1785758993\nhttps://cdn.shopify.com/s/files/1/0601/1040/5729/files/image-1788564241554.jpg?v=1788564262\nhttps://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260602_103325_21953262-3f56-4db6-9d9c-591a6606719a.png?v=1785758982"
+  },
+  "link": {
+   "ten": "Link trang bán",
+   "mau": "https://getsummet.com/products/sculpt-tank-with-built-in-bra"
+  },
+  "diem_noi_bat": {
+   "ten": "Điểm nổi bật",
+   "goi_y": "Tính năng + lợi ích thật, AI mọi bước dựa vào đây",
+   "dai": true,
+   "mau": "Real bra sewn inside, no wires, no hooks; pulls on over the head in one step; smooths and lifts without squeezing; long hem stays tucked when reaching or bending; wear alone or under anything; 68% nylon 32% spandex; XS–6XL, 11 colors; 30-day take-it-off test."
+  },
+  "doi_tuong": {
+   "ten": "Đối tượng (chân dung)",
+   "dai": true,
+   "mau": "Phụ nữ Mỹ 65–80 tuổi ghét áo ngực có móc sau lưng, dây cấn vai; muốn gọn nhẹ mà vẫn chỉn chu."
+  },
+  "uu_dai": {
+   "ten": "Ưu đãi (tiếng Anh, ngắn)",
+   "mau": "Buy 1 Get 1 Free"
+  },
+  "dam_bao": {
+   "ten": "Trấn an (size, đổi trả…)",
+   "mau": "XS–6XL · 11 colors · 30-day take-it-off test"
+  },
+  "nhan_vat_ten": {
+   "ten": "Tên nhân vật chính",
+   "mau": "Carol"
+  },
+  "nhan_vat_hinh": {
+   "ten": "Ngoại hình nhân vật (tiếng Anh)",
+   "goi_y": "Tuổi, sắc tộc, tóc, dáng, trang phục thường ngày",
+   "dai": true,
+   "mau": "American woman, 72, white, shoulder-length wavy silver hair, warm blue eyes, natural wrinkles, average build with a fuller bust, light everyday makeup, dark straight trousers"
+  },
+  "giong": {
+   "ten": "Giọng lời dẫn",
+   "mau": "nữ Mỹ 70 tuổi, ấm, chậm rãi, hơi hài hước"
+  },
+  "tinh_huong": {
+   "ten": "Tình huống (chữ màn mở đầu, tiếng Anh)",
+   "mau": "Packing for a 2-week cruise at 72"
+  },
+  "boi_canh": {
+   "ten": "Bối cảnh chính (tiếng Anh)",
+   "dai": true,
+   "mau": "bright American suburban bedroom, white quilt on the bed, open light-blue suitcase on the bed, full-length mirror, morning window light"
+  },
+  "boi_canh_2": {
+   "ten": "Bối cảnh lúc dùng thật (tiếng Anh)",
+   "goi_y": "Nơi chứng minh sản phẩm trong đúng tình huống",
+   "dai": true,
+   "mau": "sunny cruise ship deck with white railing and open blue ocean"
+  },
+  "noi_dau": {
+   "ten": "Nỗi đau (chữ màn, tiếng Anh)",
+   "mau": "Every bra I own has hooks in the back"
+  },
+  "noi_dau_hinh": {
+   "ten": "Nỗi đau thấy bằng hình (tiếng Anh)",
+   "dai": true,
+   "mau": "reaching behind her back in front of the mirror, fingers fumbling with tiny bra hooks that keep slipping"
+  },
+  "noi_dau_2": {
+   "ten": "Nỗi đau thứ hai (chữ màn)",
+   "mau": "…and they dig in by noon"
+  },
+  "noi_dau_2_hinh": {
+   "ten": "Nỗi đau thứ hai thấy bằng hình",
+   "dai": true,
+   "mau": "bra strap leaving a red mark on her shoulder; she pulls the strap away and rubs the shoulder, wincing"
+  },
+  "nguoi_gioi_thieu": {
+   "ten": "Ai đưa giải pháp (chữ màn)",
+   "mau": "My daughter said: \"Just pack these.\""
+  },
+  "demo": {
+   "ten": "Demo dùng một bước (chữ màn)",
+   "mau": "On over my head. One step. No hooks."
+  },
+  "demo_hinh": {
+   "ten": "Demo thấy bằng hình",
+   "dai": true,
+   "mau": "pulls the tank on over her head in one motion, tugs the hem down, done"
+  },
+  "loi_ich_1": {
+   "ten": "Lợi ích 1 (chữ màn)",
+   "mau": "A real bra sewn inside"
+  },
+  "loi_ich_1_hinh": {
+   "ten": "Lợi ích 1 thấy bằng hình",
+   "dai": true,
+   "mau": "close-up of hands folding back the inner edge of the tank to show the sewn-in bra layer and the removable pad pocket"
+  },
+  "loi_ich_2": {
+   "ten": "Lợi ích 2 (chữ màn)",
+   "mau": "Lifted, smooth, no lines"
+  },
+  "loi_ich_2_hinh": {
+   "ten": "Lợi ích 2 thấy bằng hình",
+   "dai": true,
+   "mau": "turns sideways in the mirror showing a smooth lifted silhouette and a flat back with no strap lines"
+  },
+  "loi_ich_3": {
+   "ten": "Lợi ích 3 (chữ màn)",
+   "mau": "Reaching, bending… it stays put"
+  },
+  "loi_ich_3_hinh": {
+   "ten": "Lợi ích 3 thấy bằng hình",
+   "dai": true,
+   "mau": "reaches high to the railing to take a photo of the sea, the hem stays tucked into her trousers"
+  },
+  "loi_ich_4": {
+   "ten": "Lợi ích 4 (chữ màn)",
+   "mau": "Alone as a top, or under anything"
+  },
+  "loi_ich_4_hinh": {
+   "ten": "Lợi ích 4 thấy bằng hình",
+   "dai": true,
+   "mau": "at dinner wearing the tank in wine red under a light cardigan, raising a glass and laughing"
+  },
+  "truoc_sau": {
+   "ten": "Trước → sau (chữ màn)",
+   "mau": "6 bras out. 3 tanks in."
+  },
+  "truoc_sau_hinh": {
+   "ten": "Trước → sau thấy bằng hình",
+   "dai": true,
+   "mau": "top-down view of the suitcase: hands lift a tangle of bras out and lay three neatly folded tanks (nude, black, olive) in"
+  },
+  "review": {
+   "ten": "Câu review thật (nguyên văn)",
+   "mau": "\"I feel and look like I have had a breast lift\" (73)"
+  },
+  "anh_1": {
+   "ten": "Ảnh 1 (URL)",
+   "goi_y": "Ảnh thật dùng nguyên làm hình shot (không sinh)",
+   "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260724_170440_bc810a3b-4666-4cfc-a4fd-18f57849c2ca.png?v=1785758993"
+  },
+  "anh_2": {
+   "ten": "Ảnh 2 (URL)",
+   "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260602_103325_21953262-3f56-4db6-9d9c-591a6606719a.png?v=1785758982"
+  },
+  "anh_3": {
+   "ten": "Ảnh 3 (URL)",
+   "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260602_105933_28f7e452-abb0-4c36-b746-b44e99a07406.png?v=1785758982"
+  },
+  "anh_4": {
+   "ten": "Ảnh 4 (URL)",
+   "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/02_sizerun_XS6XL_square_2048_75b0a33f-c2d2-49cb-892b-cc273a83c445.jpg?v=1788916307"
+  },
+  "anh_5": {
+   "ten": "Ảnh 5 — end card (URL)",
+   "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/image-1788564241554.jpg?v=1788564262"
+  },
+  "noi_dau_ngan": {
+   "ten": "Nỗi đau rút gọn (chữ màn, tiếng Anh)",
+   "goi_y": "3–5 chữ: thứ người xem ghét ở hàng thường",
+   "mau": "hooks, wires & digging straps"
+  }
  },
  "templates": [
   {
    "key": "ugc_tinh_huong",
    "ten": "Template · UGC kể chuyện tình huống (người thật, 12 shot, 30s)",
    "mo_ta": "Một người thật kể ngôi thứ nhất: tình huống cụ thể → 2 nỗi đau bằng hình → người thân đưa giải pháp → demo một bước → chứng minh ngay trong tình huống → trước/sau → review → trấn an → ưu đãi. Hợp sản phẩm giải quyết một khó chịu hằng ngày. Mẫu: Summet × đóng vali đi cruise.",
-   "o": ["san_pham", "san_pham_hinh", "anh_san_pham", "link", "diem_noi_bat", "doi_tuong", "uu_dai", "dam_bao", "nhan_vat_ten", "nhan_vat_hinh", "giong", "tinh_huong", "boi_canh", "boi_canh_2", "noi_dau", "noi_dau_hinh", "noi_dau_2", "noi_dau_2_hinh", "nguoi_gioi_thieu", "demo", "demo_hinh", "loi_ich_1", "loi_ich_1_hinh", "loi_ich_2", "loi_ich_2_hinh", "loi_ich_3", "loi_ich_3_hinh", "truoc_sau", "truoc_sau_hinh", "review"],
+   "o": [
+    "san_pham",
+    "san_pham_hinh",
+    "anh_san_pham",
+    "link",
+    "diem_noi_bat",
+    "doi_tuong",
+    "uu_dai",
+    "dam_bao",
+    "nhan_vat_ten",
+    "nhan_vat_hinh",
+    "giong",
+    "tinh_huong",
+    "boi_canh",
+    "boi_canh_2",
+    "noi_dau",
+    "noi_dau_hinh",
+    "noi_dau_2",
+    "noi_dau_2_hinh",
+    "nguoi_gioi_thieu",
+    "demo",
+    "demo_hinh",
+    "loi_ich_1",
+    "loi_ich_1_hinh",
+    "loi_ich_2",
+    "loi_ich_2_hinh",
+    "loi_ich_3",
+    "loi_ich_3_hinh",
+    "truoc_sau",
+    "truoc_sau_hinh",
+    "review"
+   ],
    "kinh_thanh": {
     "phong_cach": "Live-action UGC ad, photorealistic real people, shot on iPhone vertical, natural light, true colors, no cinematic filter; casual handheld feel; quick cuts ~2.5s per shot",
-    "ti_le": "9:16", "do_phan_giai": "720p", "mo_hinh_anh": "gemini-nano-banana-2.1", "mo_hinh_video": "veo-3.1-lite-generate-preview", "mo_hinh_chu": "claude-opus-5-5",
-    "ngon_ngu": "en", "the_loai": "qc_ugc",
+    "ti_le": "9:16",
+    "do_phan_giai": "720p",
+    "mo_hinh_anh": "gemini-nano-banana-2.1",
+    "mo_hinh_video": "veo-3.1-lite-generate-preview",
+    "mo_hinh_chu": "claude-opus-5-5",
+    "ngon_ngu": "en",
+    "the_loai": "qc_ugc",
     "logline": "{{nhan_vat_ten}}: {{tinh_huong}} — {{noi_dau}} — until {{san_pham}}.",
-    "qc": { "ten": "{{san_pham}}", "link": "{{link}}", "diem_noi_bat": "{{diem_noi_bat}}", "doi_tuong": "{{doi_tuong}}", "uu_dai": "{{uu_dai}}", "thi_truong": "Mỹ · tiếng Anh", "anh": ["{{anh_san_pham}}"], "vi_tri_chu": "duoi" }
+    "qc": {
+     "ten": "{{san_pham}}",
+     "link": "{{link}}",
+     "diem_noi_bat": "{{diem_noi_bat}}",
+     "doi_tuong": "{{doi_tuong}}",
+     "uu_dai": "{{uu_dai}}",
+     "thi_truong": "Mỹ · tiếng Anh",
+     "anh": [
+      "{{anh_san_pham}}"
+     ],
+     "vi_tri_chu": "duoi"
+    }
    },
    "nhan_vat": [
-    { "key": "sp", "loai": "san_pham", "ten": "{{san_pham}}", "mo_ta": "{{san_pham_hinh}}", "anh_ref": ["{{anh_san_pham}}"] },
-    { "key": "nv", "loai": "nhan_vat", "ten": "{{nhan_vat_ten}}", "mo_ta": "{{nhan_vat_hinh}}", "giong": "{{giong}}" },
-    { "key": "bc", "loai": "boi_canh", "ten": "Home", "mo_ta": "{{boi_canh}}" },
-    { "key": "bc2", "loai": "boi_canh", "ten": "Real use", "mo_ta": "{{boi_canh_2}}" }
+    {
+     "key": "sp",
+     "loai": "san_pham",
+     "ten": "{{san_pham}}",
+     "mo_ta": "{{san_pham_hinh}}",
+     "anh_ref": [
+      "{{anh_san_pham}}"
+     ]
+    },
+    {
+     "key": "nv",
+     "loai": "nhan_vat",
+     "ten": "{{nhan_vat_ten}}",
+     "mo_ta": "{{nhan_vat_hinh}}",
+     "giong": "{{giong}}"
+    },
+    {
+     "key": "bc",
+     "loai": "boi_canh",
+     "ten": "Home",
+     "mo_ta": "{{boi_canh}}"
+    },
+    {
+     "key": "bc2",
+     "loai": "boi_canh",
+     "ten": "Real use",
+     "mo_ta": "{{boi_canh_2}}"
+    }
    ],
-   "tap": { "ten": "UGC tình huống · 12 shot", "brief": "{{nhan_vat_ten}} kể ngôi thứ nhất bằng lời dẫn ngắn, khớp chữ màn. Tình huống: {{tinh_huong}}. Sản phẩm: {{san_pham}}. Ưu đãi: {{uu_dai}}." },
+   "tap": {
+    "ten": "UGC tình huống · 12 shot",
+    "brief": "{{nhan_vat_ten}} kể ngôi thứ nhất bằng lời dẫn ngắn, khớp chữ màn. Tình huống: {{tinh_huong}}. Sản phẩm: {{san_pham}}. Ưu đãi: {{uu_dai}}."
+   },
    "shots": [
-    { "giay": 2.5, "loai": "hook", "goc_may": "Medium shot, eye level, handheld", "hanh_dong": "{{nhan_vat_ten}} looks at camera with a tired frown, holding up the problem", "chu_man": "{{tinh_huong}}…", "loi": "{{tinh_huong}}…", "dien_xuat": "wry, tired", "nv": ["nv", "bc"], "prompt_anh": "{{nhan_vat_hinh}}, standing in {{boi_canh}}, looking at the camera with a tired frown, vertical phone photo, natural light", "prompt_video": "She sighs and lifts her hands in mild frustration, handheld phone camera, slight push-in" },
-    { "giay": 2.5, "loai": "noi_dau", "goc_may": "Close-up, over the shoulder in the mirror", "hanh_dong": "{{noi_dau_hinh}}", "chu_man": "{{noi_dau}}", "loi": "{{noi_dau}}", "nv": ["nv", "bc"], "prompt_anh": "Close-up in a mirror: {{nhan_vat_hinh}}, {{noi_dau_hinh}}, {{boi_canh}}", "prompt_video": "Fingers keep fumbling, a small frustrated shake of the head" },
-    { "giay": 2.5, "loai": "noi_dau", "goc_may": "Close-up", "hanh_dong": "{{noi_dau_2_hinh}}", "chu_man": "{{noi_dau_2}}", "loi": "{{noi_dau_2}}", "nv": ["nv"], "prompt_anh": "Close-up: {{nhan_vat_hinh}}, {{noi_dau_2_hinh}}, soft window light", "prompt_video": "She winces and rubs the spot, camera holds steady" },
-    { "giay": 2.5, "loai": "giai_phap", "goc_may": "Wide shot from the doorway", "hanh_dong": "Someone tosses the folded product onto the bed next to {{nhan_vat_ten}}", "chu_man": "{{nguoi_gioi_thieu}}", "loi": "{{nguoi_gioi_thieu}}", "nv": ["sp", "nv", "bc"], "prompt_anh": "{{boi_canh}}, {{nhan_vat_hinh}} sitting on the bed, a folded {{san_pham_hinh}} landing on the quilt beside her", "prompt_video": "The folded product drops onto the bed, she picks it up curiously, camera tilts down to it" },
-    { "giay": 2.5, "loai": "demo", "goc_may": "Medium shot in front of the mirror", "hanh_dong": "{{demo_hinh}}", "chu_man": "{{demo}}", "loi": "{{demo}}", "nv": ["sp", "nv", "bc"], "prompt_anh": "{{nhan_vat_hinh}} in front of a mirror wearing {{san_pham_hinh}}, {{boi_canh}}", "prompt_video": "{{demo_hinh}}, natural speed, handheld" },
-    { "giay": 2.5, "loai": "tinh_nang", "goc_may": "Macro close-up of the product", "hanh_dong": "{{loi_ich_1_hinh}}", "chu_man": "{{loi_ich_1}}", "loi": "{{loi_ich_1}}", "nv": ["sp"], "prompt_anh": "Macro close-up: {{loi_ich_1_hinh}}; product: {{san_pham_hinh}}", "prompt_video": "Hands slowly reveal the detail, shallow depth of field" },
-    { "giay": 2.5, "loai": "so_sanh", "goc_may": "Medium shot, side angle in the mirror", "hanh_dong": "{{loi_ich_2_hinh}}", "chu_man": "{{loi_ich_2}}", "loi": "{{loi_ich_2}}", "nv": ["sp", "nv", "bc"], "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, {{loi_ich_2_hinh}}, {{boi_canh}}", "prompt_video": "She turns slowly and smiles at her reflection" },
-    { "giay": 2.5, "loai": "demo", "goc_may": "Medium wide, low angle", "hanh_dong": "{{loi_ich_3_hinh}}", "chu_man": "{{loi_ich_3}}", "loi": "{{loi_ich_3}}", "nv": ["sp", "nv", "bc2"], "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, {{loi_ich_3_hinh}}, {{boi_canh_2}}, bright daylight", "prompt_video": "{{loi_ich_3_hinh}}, breeze, handheld follow" },
-    { "giay": 2.5, "loai": "so_sanh", "goc_may": "Top-down", "hanh_dong": "{{truoc_sau_hinh}}", "chu_man": "{{truoc_sau}}", "loi": "{{truoc_sau}}", "nv": ["sp", "bc"], "prompt_anh": "Top-down phone photo: {{truoc_sau_hinh}}; product: {{san_pham_hinh}}", "prompt_video": "Hands swap the items quickly, top-down static camera" },
-    { "giay": 2.5, "loai": "bang_chung", "goc_may": "Medium close-up", "hanh_dong": "{{nhan_vat_ten}} relaxed and smiling, wearing the product", "chu_man": "{{review}}", "nv": ["sp", "nv", "bc2"], "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, relaxed and smiling, {{boi_canh_2}}", "prompt_video": "She laughs softly and leans back, gentle handheld" },
-    { "giay": 2.5, "loai": "tran_an", "goc_may": "Product flat lay", "hanh_dong": "The product in several colors laid out neatly", "chu_man": "{{dam_bao}}", "nv": ["sp"], "prompt_anh": "Flat lay of {{san_pham_hinh}} in several colors on a light background, soft daylight", "prompt_video": "Slow overhead push-in" },
-    { "giay": 2, "loai": "end_card", "goc_may": "Product hero", "hanh_dong": "Product hero shot with offer", "chu_man": "{{uu_dai}} · Shop now", "loi": "{{uu_dai}}. Shop now.", "nv": ["sp"], "prompt_anh": "Clean hero photo of {{san_pham_hinh}} on a light background, room for text", "prompt_video": "Subtle slow zoom" }
+    {
+     "giay": 2.5,
+     "loai": "hook",
+     "goc_may": "Medium shot, eye level, handheld",
+     "hanh_dong": "{{nhan_vat_ten}} looks at camera with a tired frown, holding up the problem",
+     "chu_man": "{{tinh_huong}}…",
+     "loi": "{{tinh_huong}}…",
+     "dien_xuat": "wry, tired",
+     "nv": [
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}}, standing in {{boi_canh}}, looking at the camera with a tired frown, vertical phone photo, natural light",
+     "prompt_video": "She sighs and lifts her hands in mild frustration, handheld phone camera, slight push-in",
+     "co": "ms"
+    },
+    {
+     "giay": 2.5,
+     "loai": "noi_dau",
+     "goc_may": "Close-up, over the shoulder in the mirror",
+     "hanh_dong": "{{noi_dau_hinh}}",
+     "chu_man": "{{noi_dau}}",
+     "loi": "{{noi_dau}}",
+     "nv": [
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "Close-up in a mirror: {{nhan_vat_hinh}}, {{noi_dau_hinh}}, {{boi_canh}}",
+     "prompt_video": "Fingers keep fumbling, a small frustrated shake of the head",
+     "co": "cu"
+    },
+    {
+     "giay": 2.5,
+     "loai": "noi_dau",
+     "goc_may": "Close-up",
+     "hanh_dong": "{{noi_dau_2_hinh}}",
+     "chu_man": "{{noi_dau_2}}",
+     "loi": "{{noi_dau_2}}",
+     "nv": [
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "Close-up: {{nhan_vat_hinh}}, {{noi_dau_2_hinh}}, soft window light",
+     "prompt_video": "She winces and rubs the spot, camera holds steady",
+     "co": "ecu"
+    },
+    {
+     "giay": 2.5,
+     "loai": "giai_phap",
+     "goc_may": "Wide shot from the doorway",
+     "hanh_dong": "Someone tosses the folded product onto the bed next to {{nhan_vat_ten}}",
+     "chu_man": "{{nguoi_gioi_thieu}}",
+     "loi": "{{nguoi_gioi_thieu}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{boi_canh}}, {{nhan_vat_hinh}} sitting on the bed, a folded {{san_pham_hinh}} landing on the quilt beside her",
+     "prompt_video": "The folded product drops onto the bed, she picks it up curiously, camera tilts down to it",
+     "co": "ws"
+    },
+    {
+     "giay": 2.5,
+     "loai": "demo",
+     "goc_may": "Medium shot in front of the mirror",
+     "hanh_dong": "{{demo_hinh}}",
+     "chu_man": "{{demo}}",
+     "loi": "{{demo}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} in front of a mirror wearing {{san_pham_hinh}}, {{boi_canh}}",
+     "prompt_video": "{{demo_hinh}}, natural speed, handheld",
+     "co": "ms"
+    },
+    {
+     "giay": 2.5,
+     "loai": "tinh_nang",
+     "goc_may": "Macro close-up of the product",
+     "hanh_dong": "{{loi_ich_1_hinh}}",
+     "chu_man": "{{loi_ich_1}}",
+     "loi": "{{loi_ich_1}}",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Macro close-up: {{loi_ich_1_hinh}}; product: {{san_pham_hinh}}",
+     "prompt_video": "Hands slowly reveal the detail, shallow depth of field",
+     "co": "ecu"
+    },
+    {
+     "giay": 2.5,
+     "loai": "so_sanh",
+     "goc_may": "Medium shot, side angle in the mirror",
+     "hanh_dong": "{{loi_ich_2_hinh}}",
+     "chu_man": "{{loi_ich_2}}",
+     "loi": "{{loi_ich_2}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, {{loi_ich_2_hinh}}, {{boi_canh}}",
+     "prompt_video": "She turns slowly and smiles at her reflection",
+     "co": "mcu"
+    },
+    {
+     "giay": 2.5,
+     "loai": "demo",
+     "goc_may": "Medium wide, low angle",
+     "hanh_dong": "{{loi_ich_3_hinh}}",
+     "chu_man": "{{loi_ich_3}}",
+     "loi": "{{loi_ich_3}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc2"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, {{loi_ich_3_hinh}}, {{boi_canh_2}}, bright daylight",
+     "prompt_video": "{{loi_ich_3_hinh}}, breeze, handheld follow",
+     "co": "ws"
+    },
+    {
+     "giay": 2.5,
+     "loai": "so_sanh",
+     "goc_may": "Top-down",
+     "hanh_dong": "{{truoc_sau_hinh}}",
+     "chu_man": "{{truoc_sau}}",
+     "loi": "{{truoc_sau}}",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Top-down phone photo: {{truoc_sau_hinh}}; product: {{san_pham_hinh}}",
+     "prompt_video": "Hands swap the items quickly, top-down static camera",
+     "co": "ms"
+    },
+    {
+     "giay": 2.5,
+     "loai": "bang_chung",
+     "goc_may": "Medium close-up",
+     "hanh_dong": "{{nhan_vat_ten}} relaxed and smiling, wearing the product",
+     "chu_man": "{{review}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc2"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, relaxed and smiling, {{boi_canh_2}}",
+     "prompt_video": "She laughs softly and leans back, gentle handheld",
+     "co": "mcu"
+    },
+    {
+     "giay": 2.5,
+     "loai": "tran_an",
+     "goc_may": "Product flat lay",
+     "hanh_dong": "The product in several colors laid out neatly",
+     "chu_man": "{{dam_bao}}",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Flat lay of {{san_pham_hinh}} in several colors on a light background, soft daylight",
+     "prompt_video": "Slow overhead push-in",
+     "co": "cu"
+    },
+    {
+     "giay": 2,
+     "loai": "end_card",
+     "goc_may": "Product hero",
+     "hanh_dong": "Product hero shot with offer",
+     "chu_man": "{{uu_dai}} · Shop now",
+     "loi": "{{uu_dai}}. Shop now.",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Clean hero photo of {{san_pham_hinh}} on a light background, room for text",
+     "prompt_video": "Subtle slow zoom",
+     "co": "cu"
+    }
    ]
   },
   {
    "key": "uu_dai_mo_dau",
    "ten": "Template · Ưu đãi mở đầu (người thật, 14 shot, 28s)",
    "mo_ta": "Công thức QC bán tốt kiểu Jett Husband: mở bằng ƯU ĐÃI (không mở bằng nỗi đau), giá trong 6 giây đầu, bằng chứng xã hội sớm, thân là chuỗi tính năng mỗi shot một ý thấy bằng hình, chốt 'perfect for…' + end card. Cắt nhanh 2s/shot, chữ đè mọi shot.",
-   "o": ["san_pham", "san_pham_hinh", "anh_san_pham", "link", "diem_noi_bat", "doi_tuong", "uu_dai", "dam_bao", "nhan_vat_hinh", "giong", "boi_canh", "loi_ich_1", "loi_ich_1_hinh", "loi_ich_2", "loi_ich_2_hinh", "loi_ich_3", "loi_ich_3_hinh", "loi_ich_4", "loi_ich_4_hinh", "review", "demo_hinh"],
+   "o": [
+    "san_pham",
+    "san_pham_hinh",
+    "anh_san_pham",
+    "link",
+    "diem_noi_bat",
+    "doi_tuong",
+    "uu_dai",
+    "dam_bao",
+    "nhan_vat_hinh",
+    "giong",
+    "boi_canh",
+    "loi_ich_1",
+    "loi_ich_1_hinh",
+    "loi_ich_2",
+    "loi_ich_2_hinh",
+    "loi_ich_3",
+    "loi_ich_3_hinh",
+    "loi_ich_4",
+    "loi_ich_4_hinh",
+    "review",
+    "demo_hinh",
+    "noi_dau_ngan"
+   ],
    "kinh_thanh": {
     "phong_cach": "Live-action UGC ad, photorealistic real people, vertical phone video, bright natural indoor light, true colors; fast cuts 2s per shot; bold white caption with black outline on every shot",
-    "ti_le": "9:16", "do_phan_giai": "720p", "mo_hinh_anh": "gemini-nano-banana-2.1", "mo_hinh_video": "veo-3.1-lite-generate-preview", "mo_hinh_chu": "claude-opus-5-5",
-    "ngon_ngu": "en", "the_loai": "qc_ugc",
-    "qc": { "ten": "{{san_pham}}", "link": "{{link}}", "diem_noi_bat": "{{diem_noi_bat}}", "doi_tuong": "{{doi_tuong}}", "uu_dai": "{{uu_dai}}", "thi_truong": "Mỹ · tiếng Anh", "anh": ["{{anh_san_pham}}"], "vi_tri_chu": "duoi" }
+    "ti_le": "9:16",
+    "do_phan_giai": "720p",
+    "mo_hinh_anh": "gemini-nano-banana-2.1",
+    "mo_hinh_video": "veo-3.1-lite-generate-preview",
+    "mo_hinh_chu": "claude-opus-5-5",
+    "ngon_ngu": "en",
+    "the_loai": "qc_ugc",
+    "qc": {
+     "ten": "{{san_pham}}",
+     "link": "{{link}}",
+     "diem_noi_bat": "{{diem_noi_bat}}",
+     "doi_tuong": "{{doi_tuong}}",
+     "uu_dai": "{{uu_dai}}",
+     "thi_truong": "Mỹ · tiếng Anh",
+     "anh": [
+      "{{anh_san_pham}}"
+     ],
+     "vi_tri_chu": "duoi"
+    }
    },
    "nhan_vat": [
-    { "key": "sp", "loai": "san_pham", "ten": "{{san_pham}}", "mo_ta": "{{san_pham_hinh}}", "anh_ref": ["{{anh_san_pham}}"] },
-    { "key": "nv", "loai": "nhan_vat", "ten": "Model", "mo_ta": "{{nhan_vat_hinh}}", "giong": "{{giong}}" },
-    { "key": "bc", "loai": "boi_canh", "ten": "Home", "mo_ta": "{{boi_canh}}" }
+    {
+     "key": "sp",
+     "loai": "san_pham",
+     "ten": "{{san_pham}}",
+     "mo_ta": "{{san_pham_hinh}}",
+     "anh_ref": [
+      "{{anh_san_pham}}"
+     ]
+    },
+    {
+     "key": "nv",
+     "loai": "nhan_vat",
+     "ten": "Model",
+     "mo_ta": "{{nhan_vat_hinh}}",
+     "giong": "{{giong}}"
+    },
+    {
+     "key": "bc",
+     "loai": "boi_canh",
+     "ten": "Home",
+     "mo_ta": "{{boi_canh}}"
+    }
    ],
-   "tap": { "ten": "Ưu đãi mở đầu · 14 shot", "brief": "Mở bằng ưu đãi {{uu_dai}} cho {{san_pham}}; giá/ưu đãi trong 6s đầu; mỗi shot thân một lợi ích thấy bằng hình; lời dẫn ≤ 5 từ/shot." },
+   "tap": {
+    "ten": "Ưu đãi mở đầu · 14 shot",
+    "brief": "Mở bằng ưu đãi {{uu_dai}} cho {{san_pham}}; giá/ưu đãi trong 6s đầu; mỗi shot thân một lợi ích thấy bằng hình; lời dẫn ≤ 5 từ/shot."
+   },
    "shots": [
-    { "giay": 2, "loai": "hook", "goc_may": "Medium shot", "hanh_dong": "Model holds the product up to the camera with excitement", "chu_man": "{{uu_dai}}?!", "loi": "{{uu_dai}}?", "dien_xuat": "excited", "nv": ["sp", "nv", "bc"], "prompt_anh": "{{nhan_vat_hinh}} holding up {{san_pham_hinh}} toward the camera, excited, {{boi_canh}}", "prompt_video": "She lifts the product closer to camera with a big smile" },
-    { "giay": 2, "loai": "uu_dai", "goc_may": "Close-up of two products", "hanh_dong": "Two products side by side held in hands", "chu_man": "{{uu_dai}}", "loi": "Yes, really.", "nv": ["sp"], "prompt_anh": "Two {{san_pham_hinh}} held side by side by hands, bright room", "prompt_video": "Hands present both items, quick shake" },
-    { "giay": 2, "loai": "giai_phap", "goc_may": "Medium shot", "hanh_dong": "Model wearing/using the product, turning to camera", "chu_man": "This viral {{san_pham}}", "loi": "This viral one", "nv": ["sp", "nv", "bc"], "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, {{boi_canh}}", "prompt_video": "She turns to camera confidently" },
-    { "giay": 2, "loai": "uu_dai", "goc_may": "Detail shot", "hanh_dong": "Close detail of the product", "chu_man": "is on massive sale", "nv": ["sp"], "prompt_anh": "Detail close-up of {{san_pham_hinh}}", "prompt_video": "Slow slide across the detail" },
-    { "giay": 2, "loai": "bang_chung", "goc_may": "Medium shot", "hanh_dong": "Model smiling, nodding", "chu_man": "{{review}}", "nv": ["sp", "nv", "bc"], "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, smiling and nodding, {{boi_canh}}", "prompt_video": "She nods and smiles at camera" },
-    { "giay": 2, "loai": "tinh_nang", "goc_may": "Close-up", "hanh_dong": "{{loi_ich_1_hinh}}", "chu_man": "{{loi_ich_1}}", "loi": "{{loi_ich_1}}", "nv": ["sp"], "prompt_anh": "Close-up: {{loi_ich_1_hinh}}; product: {{san_pham_hinh}}", "prompt_video": "{{loi_ich_1_hinh}}" },
-    { "giay": 2, "loai": "tinh_nang", "goc_may": "Medium shot", "hanh_dong": "{{loi_ich_2_hinh}}", "chu_man": "{{loi_ich_2}}", "loi": "{{loi_ich_2}}", "nv": ["sp", "nv", "bc"], "prompt_anh": "{{nhan_vat_hinh}}, {{loi_ich_2_hinh}}, product: {{san_pham_hinh}}, {{boi_canh}}", "prompt_video": "{{loi_ich_2_hinh}}" },
-    { "giay": 2, "loai": "demo", "goc_may": "Medium shot", "hanh_dong": "{{demo_hinh}}", "chu_man": "Watch this", "nv": ["sp", "nv", "bc"], "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{boi_canh}}", "prompt_video": "{{demo_hinh}}" },
-    { "giay": 2, "loai": "tinh_nang", "goc_may": "Medium wide", "hanh_dong": "{{loi_ich_3_hinh}}", "chu_man": "{{loi_ich_3}}", "loi": "{{loi_ich_3}}", "nv": ["sp", "nv", "bc"], "prompt_anh": "{{nhan_vat_hinh}}, {{loi_ich_3_hinh}}, product: {{san_pham_hinh}}, {{boi_canh}}", "prompt_video": "{{loi_ich_3_hinh}}" },
-    { "giay": 2, "loai": "tinh_nang", "goc_may": "Medium shot", "hanh_dong": "{{loi_ich_4_hinh}}", "chu_man": "{{loi_ich_4}}", "loi": "{{loi_ich_4}}", "nv": ["sp", "nv"], "prompt_anh": "{{nhan_vat_hinh}}, {{loi_ich_4_hinh}}, product: {{san_pham_hinh}}", "prompt_video": "{{loi_ich_4_hinh}}" },
-    { "giay": 2, "loai": "so_sanh", "goc_may": "Split frame", "hanh_dong": "Ordinary alternative on the left vs the product on the right", "chu_man": "Better than the usual ones", "nv": ["sp"], "prompt_anh": "Side-by-side comparison: a generic ordinary alternative on the left, {{san_pham_hinh}} on the right, clean light background", "prompt_video": "Camera slides from left to right" },
-    { "giay": 2, "loai": "tran_an", "goc_may": "Flat lay", "hanh_dong": "Product in several colors", "chu_man": "{{dam_bao}}", "nv": ["sp"], "prompt_anh": "Flat lay of {{san_pham_hinh}} in several colors, soft daylight", "prompt_video": "Slow overhead push-in" },
-    { "giay": 2, "loai": "cta", "goc_may": "Medium shot", "hanh_dong": "Model points down toward the button", "chu_man": "You won't see this price again", "loi": "Grab yours now.", "nv": ["sp", "nv", "bc"], "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, pointing down, {{boi_canh}}", "prompt_video": "She points down with a smile" },
-    { "giay": 2, "loai": "end_card", "goc_may": "Product hero", "hanh_dong": "Hero shot with offer", "chu_man": "{{uu_dai}} · Shop now", "nv": ["sp"], "prompt_anh": "Clean hero photo of {{san_pham_hinh}}, light background, room for text", "prompt_video": "Subtle slow zoom" }
+    {
+     "giay": 2,
+     "loai": "hook",
+     "goc_may": "Medium shot",
+     "hanh_dong": "Model holds the product up to the camera with excitement",
+     "chu_man": "{{uu_dai}}?!",
+     "loi": "{{uu_dai}}?",
+     "dien_xuat": "excited",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} holding up {{san_pham_hinh}} toward the camera, excited, {{boi_canh}}",
+     "prompt_video": "She lifts the product closer to camera with a big smile",
+     "co": "ms"
+    },
+    {
+     "giay": 2,
+     "loai": "uu_dai",
+     "goc_may": "Close-up of two products",
+     "hanh_dong": "Two products side by side held in hands",
+     "chu_man": "{{uu_dai}}",
+     "loi": "Yes, really.",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Two {{san_pham_hinh}} held side by side by hands, bright room",
+     "prompt_video": "Hands present both items, quick shake",
+     "co": "cu"
+    },
+    {
+     "giay": 2,
+     "loai": "giai_phap",
+     "goc_may": "Medium shot",
+     "hanh_dong": "Model wearing/using the product, turning to camera",
+     "chu_man": "This viral {{san_pham}}",
+     "loi": "This viral one",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, {{boi_canh}}",
+     "prompt_video": "She turns to camera confidently",
+     "co": "ms"
+    },
+    {
+     "giay": 2,
+     "loai": "uu_dai",
+     "goc_may": "Detail shot",
+     "hanh_dong": "Close detail of the product",
+     "chu_man": "is on massive sale",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Detail close-up of {{san_pham_hinh}}",
+     "prompt_video": "Slow slide across the detail",
+     "co": "ecu"
+    },
+    {
+     "giay": 2,
+     "loai": "bang_chung",
+     "goc_may": "Medium shot",
+     "hanh_dong": "Model smiling, nodding",
+     "chu_man": "{{review}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, smiling and nodding, {{boi_canh}}",
+     "prompt_video": "She nods and smiles at camera",
+     "co": "mcu"
+    },
+    {
+     "giay": 2,
+     "loai": "tinh_nang",
+     "goc_may": "Close-up",
+     "hanh_dong": "{{loi_ich_1_hinh}}",
+     "chu_man": "{{loi_ich_1}}",
+     "loi": "{{loi_ich_1}}",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Close-up: {{loi_ich_1_hinh}}; product: {{san_pham_hinh}}",
+     "prompt_video": "{{loi_ich_1_hinh}}",
+     "co": "cu"
+    },
+    {
+     "giay": 2,
+     "loai": "tinh_nang",
+     "goc_may": "Medium shot",
+     "hanh_dong": "{{loi_ich_2_hinh}}",
+     "chu_man": "{{loi_ich_2}}",
+     "loi": "{{loi_ich_2}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}}, {{loi_ich_2_hinh}}, product: {{san_pham_hinh}}, {{boi_canh}}",
+     "prompt_video": "{{loi_ich_2_hinh}}",
+     "co": "ms"
+    },
+    {
+     "giay": 2,
+     "loai": "demo",
+     "goc_may": "Medium shot",
+     "hanh_dong": "{{demo_hinh}}",
+     "chu_man": "Watch this",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{boi_canh}}",
+     "prompt_video": "{{demo_hinh}}",
+     "co": "ms"
+    },
+    {
+     "giay": 2,
+     "loai": "tinh_nang",
+     "goc_may": "Medium wide",
+     "hanh_dong": "{{loi_ich_3_hinh}}",
+     "chu_man": "{{loi_ich_3}}",
+     "loi": "{{loi_ich_3}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}}, {{loi_ich_3_hinh}}, product: {{san_pham_hinh}}, {{boi_canh}}",
+     "prompt_video": "{{loi_ich_3_hinh}}",
+     "co": "ws"
+    },
+    {
+     "giay": 2,
+     "loai": "tinh_nang",
+     "goc_may": "Medium shot",
+     "hanh_dong": "{{loi_ich_4_hinh}}",
+     "chu_man": "{{loi_ich_4}}",
+     "loi": "{{loi_ich_4}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}}, {{loi_ich_4_hinh}}, product: {{san_pham_hinh}}",
+     "prompt_video": "{{loi_ich_4_hinh}}",
+     "co": "mcu"
+    },
+    {
+     "giay": 2,
+     "loai": "noi_dau",
+     "goc_may": "Close-up",
+     "hanh_dong": "An ordinary uncomfortable alternative is tossed aside onto the bed",
+     "chu_man": "No more {{noi_dau_ngan}}",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Close-up: hands tossing an ordinary uncomfortable generic alternative aside onto a bed, {{boi_canh}}",
+     "prompt_video": "The ordinary item is tossed aside, quick motion",
+     "co": "cu",
+     "loi": "No more {{noi_dau_ngan}}."
+    },
+    {
+     "giay": 2,
+     "loai": "tran_an",
+     "goc_may": "Flat lay",
+     "hanh_dong": "Product in several colors",
+     "chu_man": "{{dam_bao}}",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Flat lay of {{san_pham_hinh}} in several colors, soft daylight",
+     "prompt_video": "Slow overhead push-in",
+     "co": "ms"
+    },
+    {
+     "giay": 2,
+     "loai": "cta",
+     "goc_may": "Medium shot",
+     "hanh_dong": "Model points down toward the button",
+     "chu_man": "You won't see this price again",
+     "loi": "Grab yours now.",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, pointing down, {{boi_canh}}",
+     "prompt_video": "She points down with a smile",
+     "co": "ms"
+    },
+    {
+     "giay": 2,
+     "loai": "end_card",
+     "goc_may": "Product hero",
+     "hanh_dong": "Hero shot with offer",
+     "chu_man": "{{uu_dai}} · Shop now",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Clean hero photo of {{san_pham_hinh}}, light background, room for text",
+     "prompt_video": "Subtle slow zoom",
+     "co": "cu"
+    }
    ]
   },
   {
    "key": "truoc_sau",
    "ten": "Template · Trước / Sau (người thật, 9 shot, 22s)",
    "mo_ta": "Một nhân vật: TRƯỚC (vấn đề thấy rõ bằng hình) → khoảnh khắc đổi (sản phẩm vào khung) → SAU (cùng góc máy, cùng bối cảnh, khác hẳn) → lợi ích → ưu đãi. Hợp sản phẩm có kết quả nhìn thấy được (dáng, gọn, sạch, sáng…).",
-   "o": ["san_pham", "san_pham_hinh", "anh_san_pham", "link", "diem_noi_bat", "doi_tuong", "uu_dai", "dam_bao", "nhan_vat_ten", "nhan_vat_hinh", "giong", "boi_canh", "noi_dau", "noi_dau_hinh", "demo_hinh", "loi_ich_1", "loi_ich_1_hinh", "loi_ich_2", "loi_ich_2_hinh", "review"],
+   "o": [
+    "san_pham",
+    "san_pham_hinh",
+    "anh_san_pham",
+    "link",
+    "diem_noi_bat",
+    "doi_tuong",
+    "uu_dai",
+    "dam_bao",
+    "nhan_vat_ten",
+    "nhan_vat_hinh",
+    "giong",
+    "boi_canh",
+    "noi_dau",
+    "noi_dau_hinh",
+    "demo_hinh",
+    "loi_ich_1",
+    "loi_ich_1_hinh",
+    "loi_ich_2",
+    "loi_ich_2_hinh",
+    "review"
+   ],
    "kinh_thanh": {
     "phong_cach": "Live-action UGC ad, photorealistic, vertical phone video, same mirror angle for before and after, natural light, true colors",
-    "ti_le": "9:16", "do_phan_giai": "720p", "mo_hinh_anh": "gemini-nano-banana-2.1", "mo_hinh_video": "veo-3.1-lite-generate-preview", "mo_hinh_chu": "claude-opus-5-5",
-    "ngon_ngu": "en", "the_loai": "qc_ugc",
-    "qc": { "ten": "{{san_pham}}", "link": "{{link}}", "diem_noi_bat": "{{diem_noi_bat}}", "doi_tuong": "{{doi_tuong}}", "uu_dai": "{{uu_dai}}", "thi_truong": "Mỹ · tiếng Anh", "anh": ["{{anh_san_pham}}"], "vi_tri_chu": "duoi" }
+    "ti_le": "9:16",
+    "do_phan_giai": "720p",
+    "mo_hinh_anh": "gemini-nano-banana-2.1",
+    "mo_hinh_video": "veo-3.1-lite-generate-preview",
+    "mo_hinh_chu": "claude-opus-5-5",
+    "ngon_ngu": "en",
+    "the_loai": "qc_ugc",
+    "qc": {
+     "ten": "{{san_pham}}",
+     "link": "{{link}}",
+     "diem_noi_bat": "{{diem_noi_bat}}",
+     "doi_tuong": "{{doi_tuong}}",
+     "uu_dai": "{{uu_dai}}",
+     "thi_truong": "Mỹ · tiếng Anh",
+     "anh": [
+      "{{anh_san_pham}}"
+     ],
+     "vi_tri_chu": "duoi"
+    }
    },
    "nhan_vat": [
-    { "key": "sp", "loai": "san_pham", "ten": "{{san_pham}}", "mo_ta": "{{san_pham_hinh}}", "anh_ref": ["{{anh_san_pham}}"] },
-    { "key": "nv", "loai": "nhan_vat", "ten": "{{nhan_vat_ten}}", "mo_ta": "{{nhan_vat_hinh}}", "giong": "{{giong}}" },
-    { "key": "bc", "loai": "boi_canh", "ten": "Mirror spot", "mo_ta": "{{boi_canh}}" }
+    {
+     "key": "sp",
+     "loai": "san_pham",
+     "ten": "{{san_pham}}",
+     "mo_ta": "{{san_pham_hinh}}",
+     "anh_ref": [
+      "{{anh_san_pham}}"
+     ]
+    },
+    {
+     "key": "nv",
+     "loai": "nhan_vat",
+     "ten": "{{nhan_vat_ten}}",
+     "mo_ta": "{{nhan_vat_hinh}}",
+     "giong": "{{giong}}"
+    },
+    {
+     "key": "bc",
+     "loai": "boi_canh",
+     "ten": "Mirror spot",
+     "mo_ta": "{{boi_canh}}"
+    }
    ],
-   "tap": { "ten": "Trước / Sau · 9 shot", "brief": "TRƯỚC và SAU cùng góc máy, cùng bối cảnh. {{nhan_vat_ten}} nói ngắn. Sản phẩm {{san_pham}}, ưu đãi {{uu_dai}}." },
+   "tap": {
+    "ten": "Trước / Sau · 9 shot",
+    "brief": "TRƯỚC và SAU cùng góc máy, cùng bối cảnh. {{nhan_vat_ten}} nói ngắn. Sản phẩm {{san_pham}}, ưu đãi {{uu_dai}}."
+   },
    "shots": [
-    { "giay": 2.5, "loai": "hook", "goc_may": "Medium shot in the mirror, fixed angle A", "hanh_dong": "BEFORE: {{noi_dau_hinh}}", "chu_man": "BEFORE", "loi": "{{noi_dau}}", "dien_xuat": "honest, a bit embarrassed", "nv": ["nv", "bc"], "prompt_anh": "Mirror selfie angle: {{nhan_vat_hinh}}, {{noi_dau_hinh}}, {{boi_canh}}", "prompt_video": "She shifts uncomfortably, fixed camera" },
-    { "giay": 2.5, "loai": "noi_dau", "goc_may": "Close-up", "hanh_dong": "The problem up close", "chu_man": "{{noi_dau}}", "nv": ["nv"], "prompt_anh": "Close-up showing the problem: {{noi_dau_hinh}}", "prompt_video": "Slow push-in on the problem" },
-    { "giay": 2, "loai": "giai_phap", "goc_may": "Close-up of hands", "hanh_dong": "Hands unwrap the product", "chu_man": "Then I tried {{san_pham}}", "loi": "Then I tried this.", "nv": ["sp"], "prompt_anh": "Hands holding {{san_pham_hinh}} fresh out of the package", "prompt_video": "Hands unfold the product" },
-    { "giay": 2.5, "loai": "demo", "goc_may": "Medium shot", "hanh_dong": "{{demo_hinh}}", "chu_man": "One step", "nv": ["sp", "nv", "bc"], "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{boi_canh}}", "prompt_video": "{{demo_hinh}}" },
-    { "giay": 2.5, "loai": "so_sanh", "goc_may": "SAME fixed angle A as shot 1", "hanh_dong": "AFTER: same pose as shot 1, now confident with the product", "chu_man": "AFTER", "loi": "Wow.", "dien_xuat": "surprised, happy", "nv": ["sp", "nv", "bc"], "prompt_anh": "Same mirror selfie angle: {{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, confident and happy, {{boi_canh}}", "prompt_video": "She straightens up and smiles, fixed camera" },
-    { "giay": 2.5, "loai": "tinh_nang", "goc_may": "Close-up", "hanh_dong": "{{loi_ich_1_hinh}}", "chu_man": "{{loi_ich_1}}", "loi": "{{loi_ich_1}}", "nv": ["sp"], "prompt_anh": "Close-up: {{loi_ich_1_hinh}}; product: {{san_pham_hinh}}", "prompt_video": "{{loi_ich_1_hinh}}" },
-    { "giay": 2.5, "loai": "tinh_nang", "goc_may": "Medium shot, side angle", "hanh_dong": "{{loi_ich_2_hinh}}", "chu_man": "{{loi_ich_2}}", "loi": "{{loi_ich_2}}", "nv": ["sp", "nv", "bc"], "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, {{loi_ich_2_hinh}}, {{boi_canh}}", "prompt_video": "She turns slowly" },
-    { "giay": 2.5, "loai": "bang_chung", "goc_may": "Medium close-up", "hanh_dong": "Smiling at camera", "chu_man": "{{review}}", "nv": ["sp", "nv"], "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, warm smile at camera", "prompt_video": "Small happy laugh" },
-    { "giay": 2, "loai": "end_card", "goc_may": "Product hero", "hanh_dong": "Hero shot with offer", "chu_man": "{{uu_dai}} · {{dam_bao}}", "loi": "{{uu_dai}}.", "nv": ["sp"], "prompt_anh": "Clean hero photo of {{san_pham_hinh}}, light background, room for text", "prompt_video": "Subtle slow zoom" }
+    {
+     "giay": 2.5,
+     "loai": "hook",
+     "goc_may": "Medium shot in the mirror, fixed angle A",
+     "hanh_dong": "BEFORE: {{noi_dau_hinh}}",
+     "chu_man": "BEFORE",
+     "loi": "{{noi_dau}}",
+     "dien_xuat": "honest, a bit embarrassed",
+     "nv": [
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "Mirror selfie angle: {{nhan_vat_hinh}}, {{noi_dau_hinh}}, {{boi_canh}}",
+     "prompt_video": "She shifts uncomfortably, fixed camera",
+     "co": "ms"
+    },
+    {
+     "giay": 2.5,
+     "loai": "noi_dau",
+     "goc_may": "Close-up",
+     "hanh_dong": "The problem up close",
+     "chu_man": "{{noi_dau}}",
+     "nv": [
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "Close-up showing the problem: {{noi_dau_hinh}}",
+     "prompt_video": "Slow push-in on the problem",
+     "co": "cu"
+    },
+    {
+     "giay": 2,
+     "loai": "giai_phap",
+     "goc_may": "Close-up of hands",
+     "hanh_dong": "Hands unwrap the product",
+     "chu_man": "Then I tried {{san_pham}}",
+     "loi": "Then I tried this.",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Hands holding {{san_pham_hinh}} fresh out of the package",
+     "prompt_video": "Hands unfold the product",
+     "co": "ecu"
+    },
+    {
+     "giay": 2.5,
+     "loai": "demo",
+     "goc_may": "Medium shot",
+     "hanh_dong": "{{demo_hinh}}",
+     "chu_man": "One step",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{boi_canh}}",
+     "prompt_video": "{{demo_hinh}}",
+     "co": "ms"
+    },
+    {
+     "giay": 2.5,
+     "loai": "so_sanh",
+     "goc_may": "SAME fixed angle A as shot 1",
+     "hanh_dong": "AFTER: same pose as shot 1, now confident with the product",
+     "chu_man": "AFTER",
+     "loi": "Wow.",
+     "dien_xuat": "surprised, happy",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "Same mirror selfie angle: {{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, confident and happy, {{boi_canh}}",
+     "prompt_video": "She straightens up and smiles, fixed camera",
+     "co": "ms"
+    },
+    {
+     "giay": 2.5,
+     "loai": "tinh_nang",
+     "goc_may": "Close-up",
+     "hanh_dong": "{{loi_ich_1_hinh}}",
+     "chu_man": "{{loi_ich_1}}",
+     "loi": "{{loi_ich_1}}",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Close-up: {{loi_ich_1_hinh}}; product: {{san_pham_hinh}}",
+     "prompt_video": "{{loi_ich_1_hinh}}",
+     "co": "ecu"
+    },
+    {
+     "giay": 2.5,
+     "loai": "tinh_nang",
+     "goc_may": "Medium shot, side angle",
+     "hanh_dong": "{{loi_ich_2_hinh}}",
+     "chu_man": "{{loi_ich_2}}",
+     "loi": "{{loi_ich_2}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, {{loi_ich_2_hinh}}, {{boi_canh}}",
+     "prompt_video": "She turns slowly",
+     "co": "mcu"
+    },
+    {
+     "giay": 2.5,
+     "loai": "bang_chung",
+     "goc_may": "Medium close-up",
+     "hanh_dong": "Smiling at camera",
+     "chu_man": "{{review}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, warm smile at camera",
+     "prompt_video": "Small happy laugh",
+     "co": "mcu"
+    },
+    {
+     "giay": 2,
+     "loai": "end_card",
+     "goc_may": "Product hero",
+     "hanh_dong": "Hero shot with offer",
+     "chu_man": "{{uu_dai}} · {{dam_bao}}",
+     "loi": "{{uu_dai}}.",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Clean hero photo of {{san_pham_hinh}}, light background, room for text",
+     "prompt_video": "Subtle slow zoom",
+     "co": "cu"
+    }
    ]
   },
   {
    "key": "demo_tinh_nang",
    "ten": "Template · Demo tính năng (cận tay + người, 10 shot, 22s)",
    "mo_ta": "Mở bằng một câu hỏi chạm nỗi đau, rồi chuỗi DEMO: mỗi shot một tính năng làm thật trước máy (kéo, gập, nhúng, so…). Người xuất hiện ít, sản phẩm là nhân vật chính. Hợp sản phẩm có tính năng cơ học/vật liệu đáng xem.",
-   "o": ["san_pham", "san_pham_hinh", "anh_san_pham", "link", "diem_noi_bat", "doi_tuong", "uu_dai", "dam_bao", "nhan_vat_hinh", "giong", "boi_canh", "noi_dau", "demo", "demo_hinh", "loi_ich_1", "loi_ich_1_hinh", "loi_ich_2", "loi_ich_2_hinh", "loi_ich_3", "loi_ich_3_hinh", "loi_ich_4", "loi_ich_4_hinh"],
+   "o": [
+    "san_pham",
+    "san_pham_hinh",
+    "anh_san_pham",
+    "link",
+    "diem_noi_bat",
+    "doi_tuong",
+    "uu_dai",
+    "dam_bao",
+    "nhan_vat_hinh",
+    "giong",
+    "boi_canh",
+    "noi_dau",
+    "demo",
+    "demo_hinh",
+    "loi_ich_1",
+    "loi_ich_1_hinh",
+    "loi_ich_2",
+    "loi_ich_2_hinh",
+    "loi_ich_3",
+    "loi_ich_3_hinh",
+    "loi_ich_4",
+    "loi_ich_4_hinh"
+   ],
    "kinh_thanh": {
     "phong_cach": "Live-action product demo ad, photorealistic, vertical, close hands-on shots on a clean tabletop and in a real home, bright soft light, crisp detail",
-    "ti_le": "9:16", "do_phan_giai": "720p", "mo_hinh_anh": "gemini-nano-banana-2.1", "mo_hinh_video": "veo-3.1-lite-generate-preview", "mo_hinh_chu": "claude-opus-5-5",
-    "ngon_ngu": "en", "the_loai": "qc_ugc",
-    "qc": { "ten": "{{san_pham}}", "link": "{{link}}", "diem_noi_bat": "{{diem_noi_bat}}", "doi_tuong": "{{doi_tuong}}", "uu_dai": "{{uu_dai}}", "thi_truong": "Mỹ · tiếng Anh", "anh": ["{{anh_san_pham}}"], "vi_tri_chu": "duoi" }
+    "ti_le": "9:16",
+    "do_phan_giai": "720p",
+    "mo_hinh_anh": "gemini-nano-banana-2.1",
+    "mo_hinh_video": "veo-3.1-lite-generate-preview",
+    "mo_hinh_chu": "claude-opus-5-5",
+    "ngon_ngu": "en",
+    "the_loai": "qc_ugc",
+    "qc": {
+     "ten": "{{san_pham}}",
+     "link": "{{link}}",
+     "diem_noi_bat": "{{diem_noi_bat}}",
+     "doi_tuong": "{{doi_tuong}}",
+     "uu_dai": "{{uu_dai}}",
+     "thi_truong": "Mỹ · tiếng Anh",
+     "anh": [
+      "{{anh_san_pham}}"
+     ],
+     "vi_tri_chu": "duoi"
+    }
    },
    "nhan_vat": [
-    { "key": "sp", "loai": "san_pham", "ten": "{{san_pham}}", "mo_ta": "{{san_pham_hinh}}", "anh_ref": ["{{anh_san_pham}}"] },
-    { "key": "nv", "loai": "nhan_vat", "ten": "Presenter", "mo_ta": "{{nhan_vat_hinh}}", "giong": "{{giong}}" },
-    { "key": "bc", "loai": "boi_canh", "ten": "Home", "mo_ta": "{{boi_canh}}" }
+    {
+     "key": "sp",
+     "loai": "san_pham",
+     "ten": "{{san_pham}}",
+     "mo_ta": "{{san_pham_hinh}}",
+     "anh_ref": [
+      "{{anh_san_pham}}"
+     ]
+    },
+    {
+     "key": "nv",
+     "loai": "nhan_vat",
+     "ten": "Presenter",
+     "mo_ta": "{{nhan_vat_hinh}}",
+     "giong": "{{giong}}"
+    },
+    {
+     "key": "bc",
+     "loai": "boi_canh",
+     "ten": "Home",
+     "mo_ta": "{{boi_canh}}"
+    }
    ],
-   "tap": { "ten": "Demo tính năng · 10 shot", "brief": "Câu hỏi mở chạm '{{noi_dau}}', rồi mỗi shot một demo thật của {{san_pham}}. Lời dẫn ngắn, ưu đãi {{uu_dai}}." },
+   "tap": {
+    "ten": "Demo tính năng · 10 shot",
+    "brief": "Câu hỏi mở chạm '{{noi_dau}}', rồi mỗi shot một demo thật của {{san_pham}}. Lời dẫn ngắn, ưu đãi {{uu_dai}}."
+   },
    "shots": [
-    { "giay": 2.5, "loai": "hook", "goc_may": "Close-up, product in hand toward camera", "hanh_dong": "Hand thrusts the product toward the lens", "chu_man": "Tired of this? {{noi_dau}}", "loi": "Still dealing with this?", "nv": ["sp"], "prompt_anh": "Hand holding {{san_pham_hinh}} close to the lens, {{boi_canh}} blurred behind", "prompt_video": "Hand pushes the product toward the lens quickly" },
-    { "giay": 2, "loai": "giai_phap", "goc_may": "Tabletop overhead", "hanh_dong": "Product placed on the table", "chu_man": "Meet {{san_pham}}", "loi": "Meet this.", "nv": ["sp"], "prompt_anh": "Overhead: {{san_pham_hinh}} placed on a clean light tabletop", "prompt_video": "Product drops onto the table, slight bounce" },
-    { "giay": 2.5, "loai": "demo", "goc_may": "Close-up of hands", "hanh_dong": "{{loi_ich_1_hinh}}", "chu_man": "{{loi_ich_1}}", "loi": "{{loi_ich_1}}", "nv": ["sp"], "prompt_anh": "Close-up hands: {{loi_ich_1_hinh}}; product: {{san_pham_hinh}}", "prompt_video": "{{loi_ich_1_hinh}}, real speed" },
-    { "giay": 2.5, "loai": "demo", "goc_may": "Close-up of hands", "hanh_dong": "{{loi_ich_2_hinh}}", "chu_man": "{{loi_ich_2}}", "loi": "{{loi_ich_2}}", "nv": ["sp"], "prompt_anh": "Close-up hands: {{loi_ich_2_hinh}}; product: {{san_pham_hinh}}", "prompt_video": "{{loi_ich_2_hinh}}, real speed" },
-    { "giay": 2.5, "loai": "demo", "goc_may": "Medium shot", "hanh_dong": "{{demo_hinh}}", "chu_man": "{{demo}}", "loi": "{{demo}}", "nv": ["sp", "nv", "bc"], "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{boi_canh}}", "prompt_video": "{{demo_hinh}}" },
-    { "giay": 2.5, "loai": "demo", "goc_may": "Medium wide", "hanh_dong": "{{loi_ich_3_hinh}}", "chu_man": "{{loi_ich_3}}", "loi": "{{loi_ich_3}}", "nv": ["sp", "nv", "bc"], "prompt_anh": "{{nhan_vat_hinh}}, {{loi_ich_3_hinh}}, product: {{san_pham_hinh}}, {{boi_canh}}", "prompt_video": "{{loi_ich_3_hinh}}" },
-    { "giay": 2.5, "loai": "tinh_nang", "goc_may": "Medium shot", "hanh_dong": "{{loi_ich_4_hinh}}", "chu_man": "{{loi_ich_4}}", "loi": "{{loi_ich_4}}", "nv": ["sp", "nv"], "prompt_anh": "{{nhan_vat_hinh}}, {{loi_ich_4_hinh}}, product: {{san_pham_hinh}}", "prompt_video": "{{loi_ich_4_hinh}}" },
-    { "giay": 2, "loai": "so_sanh", "goc_may": "Split frame", "hanh_dong": "Ordinary alternative vs the product doing the same test", "chu_man": "Regular one vs {{san_pham}}", "nv": ["sp"], "prompt_anh": "Side-by-side test on a tabletop: an ordinary generic alternative on the left, {{san_pham_hinh}} on the right", "prompt_video": "Both are tested at the same time, the right one clearly wins" },
-    { "giay": 2, "loai": "tran_an", "goc_may": "Flat lay", "hanh_dong": "Product in several colors", "chu_man": "{{dam_bao}}", "nv": ["sp"], "prompt_anh": "Flat lay of {{san_pham_hinh}} in several colors", "prompt_video": "Slow overhead push-in" },
-    { "giay": 2, "loai": "end_card", "goc_may": "Product hero", "hanh_dong": "Hero shot with offer", "chu_man": "{{uu_dai}} · Shop now", "loi": "{{uu_dai}}. Shop now.", "nv": ["sp"], "prompt_anh": "Clean hero photo of {{san_pham_hinh}}, room for text", "prompt_video": "Subtle slow zoom" }
+    {
+     "giay": 2.5,
+     "loai": "hook",
+     "goc_may": "Close-up, product in hand toward camera",
+     "hanh_dong": "Hand thrusts the product toward the lens",
+     "chu_man": "Tired of this? {{noi_dau}}",
+     "loi": "Still dealing with this?",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Hand holding {{san_pham_hinh}} close to the lens, {{boi_canh}} blurred behind",
+     "prompt_video": "Hand pushes the product toward the lens quickly",
+     "co": "cu"
+    },
+    {
+     "giay": 2,
+     "loai": "giai_phap",
+     "goc_may": "Tabletop overhead",
+     "hanh_dong": "Product placed on the table",
+     "chu_man": "Meet {{san_pham}}",
+     "loi": "Meet this.",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Overhead: {{san_pham_hinh}} placed on a clean light tabletop",
+     "prompt_video": "Product drops onto the table, slight bounce",
+     "co": "ws"
+    },
+    {
+     "giay": 2.5,
+     "loai": "demo",
+     "goc_may": "Close-up of hands",
+     "hanh_dong": "{{loi_ich_1_hinh}}",
+     "chu_man": "{{loi_ich_1}}",
+     "loi": "{{loi_ich_1}}",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Close-up hands: {{loi_ich_1_hinh}}; product: {{san_pham_hinh}}",
+     "prompt_video": "{{loi_ich_1_hinh}}, real speed",
+     "co": "ecu"
+    },
+    {
+     "giay": 2.5,
+     "loai": "demo",
+     "goc_may": "Close-up of hands",
+     "hanh_dong": "{{loi_ich_2_hinh}}",
+     "chu_man": "{{loi_ich_2}}",
+     "loi": "{{loi_ich_2}}",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Close-up hands: {{loi_ich_2_hinh}}; product: {{san_pham_hinh}}",
+     "prompt_video": "{{loi_ich_2_hinh}}, real speed",
+     "co": "ecu"
+    },
+    {
+     "giay": 2.5,
+     "loai": "demo",
+     "goc_may": "Medium shot",
+     "hanh_dong": "{{demo_hinh}}",
+     "chu_man": "{{demo}}",
+     "loi": "{{demo}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{boi_canh}}",
+     "prompt_video": "{{demo_hinh}}",
+     "co": "ms"
+    },
+    {
+     "giay": 2.5,
+     "loai": "demo",
+     "goc_may": "Medium wide",
+     "hanh_dong": "{{loi_ich_3_hinh}}",
+     "chu_man": "{{loi_ich_3}}",
+     "loi": "{{loi_ich_3}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}}, {{loi_ich_3_hinh}}, product: {{san_pham_hinh}}, {{boi_canh}}",
+     "prompt_video": "{{loi_ich_3_hinh}}",
+     "co": "ws"
+    },
+    {
+     "giay": 2.5,
+     "loai": "tinh_nang",
+     "goc_may": "Medium shot",
+     "hanh_dong": "{{loi_ich_4_hinh}}",
+     "chu_man": "{{loi_ich_4}}",
+     "loi": "{{loi_ich_4}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}}, {{loi_ich_4_hinh}}, product: {{san_pham_hinh}}",
+     "prompt_video": "{{loi_ich_4_hinh}}",
+     "co": "mcu"
+    },
+    {
+     "giay": 2,
+     "loai": "so_sanh",
+     "goc_may": "Split frame",
+     "hanh_dong": "Ordinary alternative vs the product doing the same test",
+     "chu_man": "Regular one vs {{san_pham}}",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Side-by-side test on a tabletop: an ordinary generic alternative on the left, {{san_pham_hinh}} on the right",
+     "prompt_video": "Both are tested at the same time, the right one clearly wins",
+     "co": "ms"
+    },
+    {
+     "giay": 2,
+     "loai": "tran_an",
+     "goc_may": "Flat lay",
+     "hanh_dong": "Product in several colors",
+     "chu_man": "{{dam_bao}}",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Flat lay of {{san_pham_hinh}} in several colors",
+     "prompt_video": "Slow overhead push-in",
+     "co": "cu"
+    },
+    {
+     "giay": 2,
+     "loai": "end_card",
+     "goc_may": "Product hero",
+     "hanh_dong": "Hero shot with offer",
+     "chu_man": "{{uu_dai}} · Shop now",
+     "loi": "{{uu_dai}}. Shop now.",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Clean hero photo of {{san_pham_hinh}}, room for text",
+     "prompt_video": "Subtle slow zoom",
+     "co": "cu"
+    }
    ]
   },
   {
    "key": "review_noi_thang",
    "ten": "Template · Review nói thẳng camera (người thật, 8 shot, 24s)",
    "mo_ta": "Talking-head: một khách thật cầm điện thoại nói thẳng vào camera (thoại trên hình, không lời dẫn), xen 3 shot cận sản phẩm. Câu mở = phản đối thường gặp ('I didn't believe…'). Hợp mọi sản phẩm cần niềm tin.",
-   "o": ["san_pham", "san_pham_hinh", "anh_san_pham", "link", "diem_noi_bat", "doi_tuong", "uu_dai", "dam_bao", "nhan_vat_ten", "nhan_vat_hinh", "giong", "boi_canh", "noi_dau", "loi_ich_1", "loi_ich_1_hinh", "loi_ich_2", "loi_ich_2_hinh", "demo_hinh"],
+   "o": [
+    "san_pham",
+    "san_pham_hinh",
+    "anh_san_pham",
+    "link",
+    "diem_noi_bat",
+    "doi_tuong",
+    "uu_dai",
+    "dam_bao",
+    "nhan_vat_ten",
+    "nhan_vat_hinh",
+    "giong",
+    "boi_canh",
+    "noi_dau",
+    "loi_ich_1",
+    "loi_ich_1_hinh",
+    "loi_ich_2",
+    "loi_ich_2_hinh",
+    "demo_hinh"
+   ],
    "kinh_thanh": {
     "phong_cach": "Live-action selfie testimonial, photorealistic real person talking to a front phone camera at arm's length, natural home light, authentic and unpolished, vertical",
-    "ti_le": "9:16", "do_phan_giai": "720p", "mo_hinh_anh": "gemini-nano-banana-2.1", "mo_hinh_video": "veo-3.1-lite-generate-preview", "mo_hinh_chu": "claude-opus-5-5",
-    "ngon_ngu": "en", "the_loai": "qc_ugc",
-    "qc": { "ten": "{{san_pham}}", "link": "{{link}}", "diem_noi_bat": "{{diem_noi_bat}}", "doi_tuong": "{{doi_tuong}}", "uu_dai": "{{uu_dai}}", "thi_truong": "Mỹ · tiếng Anh", "anh": ["{{anh_san_pham}}"], "vi_tri_chu": "duoi" }
+    "ti_le": "9:16",
+    "do_phan_giai": "720p",
+    "mo_hinh_anh": "gemini-nano-banana-2.1",
+    "mo_hinh_video": "veo-3.1-lite-generate-preview",
+    "mo_hinh_chu": "claude-opus-5-5",
+    "ngon_ngu": "en",
+    "the_loai": "qc_ugc",
+    "qc": {
+     "ten": "{{san_pham}}",
+     "link": "{{link}}",
+     "diem_noi_bat": "{{diem_noi_bat}}",
+     "doi_tuong": "{{doi_tuong}}",
+     "uu_dai": "{{uu_dai}}",
+     "thi_truong": "Mỹ · tiếng Anh",
+     "anh": [
+      "{{anh_san_pham}}"
+     ],
+     "vi_tri_chu": "duoi"
+    }
    },
    "nhan_vat": [
-    { "key": "sp", "loai": "san_pham", "ten": "{{san_pham}}", "mo_ta": "{{san_pham_hinh}}", "anh_ref": ["{{anh_san_pham}}"] },
-    { "key": "nv", "loai": "nhan_vat", "ten": "{{nhan_vat_ten}}", "mo_ta": "{{nhan_vat_hinh}}", "giong": "{{giong}}" },
-    { "key": "bc", "loai": "boi_canh", "ten": "Home", "mo_ta": "{{boi_canh}}" }
+    {
+     "key": "sp",
+     "loai": "san_pham",
+     "ten": "{{san_pham}}",
+     "mo_ta": "{{san_pham_hinh}}",
+     "anh_ref": [
+      "{{anh_san_pham}}"
+     ]
+    },
+    {
+     "key": "nv",
+     "loai": "nhan_vat",
+     "ten": "{{nhan_vat_ten}}",
+     "mo_ta": "{{nhan_vat_hinh}}",
+     "giong": "{{giong}}"
+    },
+    {
+     "key": "bc",
+     "loai": "boi_canh",
+     "ten": "Home",
+     "mo_ta": "{{boi_canh}}"
+    }
    ],
-   "tap": { "ten": "Review nói thẳng · 8 shot", "brief": "{{nhan_vat_ten}} nói thẳng vào camera selfie (thoại có hình), thật, không bóng bẩy. Sản phẩm {{san_pham}}; ưu đãi {{uu_dai}}." },
+   "tap": {
+    "ten": "Review nói thẳng · 8 shot",
+    "brief": "{{nhan_vat_ten}} nói thẳng vào camera selfie (thoại có hình), thật, không bóng bẩy. Sản phẩm {{san_pham}}; ưu đãi {{uu_dai}}."
+   },
    "shots": [
-    { "giay": 3, "loai": "hook", "goc_may": "Selfie close-up, front camera at arm's length", "hanh_dong": "{{nhan_vat_ten}} talks straight to camera, skeptical expression", "chu_man": "I didn't believe this would work", "loi": "Okay, I honestly didn't believe this would work.", "noi": "{{nhan_vat_ten}}", "dien_xuat": "skeptical, candid", "nv": ["nv", "bc"], "prompt_anh": "Selfie close-up: {{nhan_vat_hinh}} talking to the front camera at arm's length, {{boi_canh}}", "prompt_video": "She talks to the camera naturally, small head movements, handheld selfie" },
-    { "giay": 3, "loai": "noi_dau", "goc_may": "Selfie close-up", "hanh_dong": "She describes the old problem", "chu_man": "{{noi_dau}}", "loi": "{{noi_dau}}", "noi": "{{nhan_vat_ten}}", "dien_xuat": "frustrated", "nv": ["nv", "bc"], "prompt_anh": "Selfie close-up: {{nhan_vat_hinh}} rolling her eyes slightly, {{boi_canh}}", "prompt_video": "She explains with a frustrated gesture, handheld selfie" },
-    { "giay": 3, "loai": "giai_phap", "goc_may": "Selfie medium, product held up", "hanh_dong": "She holds the product up to the camera", "chu_man": "Then I found {{san_pham}}", "loi": "Then my friend sent me this.", "noi": "{{nhan_vat_ten}}", "nv": ["sp", "nv", "bc"], "prompt_anh": "Selfie: {{nhan_vat_hinh}} holding up {{san_pham_hinh}} to the camera, {{boi_canh}}", "prompt_video": "She lifts the product into frame and turns it" },
-    { "giay": 3, "loai": "tinh_nang", "goc_may": "Close-up B-roll", "hanh_dong": "{{loi_ich_1_hinh}}", "chu_man": "{{loi_ich_1}}", "loi": "{{loi_ich_1}}.", "noi": "{{nhan_vat_ten}}", "nv": ["sp"], "prompt_anh": "Close-up: {{loi_ich_1_hinh}}; product: {{san_pham_hinh}}", "prompt_video": "{{loi_ich_1_hinh}}" },
-    { "giay": 3, "loai": "demo", "goc_may": "Medium B-roll", "hanh_dong": "{{demo_hinh}}", "chu_man": "{{loi_ich_2}}", "loi": "{{loi_ich_2}}.", "noi": "{{nhan_vat_ten}}", "nv": ["sp", "nv", "bc"], "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{loi_ich_2_hinh}}, {{boi_canh}}", "prompt_video": "{{demo_hinh}}" },
-    { "giay": 3, "loai": "bang_chung", "goc_may": "Selfie close-up", "hanh_dong": "She smiles, genuinely happy", "chu_man": "I'm never going back", "loi": "Honestly? I'm never going back.", "noi": "{{nhan_vat_ten}}", "dien_xuat": "warm, convinced", "nv": ["sp", "nv", "bc"], "prompt_anh": "Selfie close-up: {{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, genuine smile, {{boi_canh}}", "prompt_video": "She smiles and shakes her head in disbelief" },
-    { "giay": 3, "loai": "tran_an", "goc_may": "Selfie medium", "hanh_dong": "She points at the screen", "chu_man": "{{dam_bao}}", "loi": "And if it doesn't work for you, they make it right.", "noi": "{{nhan_vat_ten}}", "nv": ["nv", "bc"], "prompt_anh": "Selfie: {{nhan_vat_hinh}} pointing at the camera, {{boi_canh}}", "prompt_video": "She points at the camera, friendly" },
-    { "giay": 3, "loai": "end_card", "goc_may": "Product hero", "hanh_dong": "Hero shot with offer", "chu_man": "{{uu_dai}} · Shop now", "nv": ["sp"], "prompt_anh": "Clean hero photo of {{san_pham_hinh}}, room for text", "prompt_video": "Subtle slow zoom" }
+    {
+     "giay": 3,
+     "loai": "hook",
+     "goc_may": "Selfie close-up, front camera at arm's length",
+     "hanh_dong": "{{nhan_vat_ten}} talks straight to camera, skeptical expression",
+     "chu_man": "I didn't believe this would work",
+     "loi": "Okay, I honestly didn't believe this would work.",
+     "noi": "{{nhan_vat_ten}}",
+     "dien_xuat": "skeptical, candid",
+     "nv": [
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "Selfie close-up: {{nhan_vat_hinh}} talking to the front camera at arm's length, {{boi_canh}}",
+     "prompt_video": "She talks to the camera naturally, small head movements, handheld selfie",
+     "co": "mcu"
+    },
+    {
+     "giay": 3,
+     "loai": "noi_dau",
+     "goc_may": "Selfie close-up",
+     "hanh_dong": "She describes the old problem",
+     "chu_man": "{{noi_dau}}",
+     "loi": "{{noi_dau}}",
+     "noi": "{{nhan_vat_ten}}",
+     "dien_xuat": "frustrated",
+     "nv": [
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "Selfie close-up: {{nhan_vat_hinh}} rolling her eyes slightly, {{boi_canh}}",
+     "prompt_video": "She explains with a frustrated gesture, handheld selfie",
+     "co": "mcu"
+    },
+    {
+     "giay": 3,
+     "loai": "giai_phap",
+     "goc_may": "Selfie medium, product held up",
+     "hanh_dong": "She holds the product up to the camera",
+     "chu_man": "Then I found {{san_pham}}",
+     "loi": "Then my friend sent me this.",
+     "noi": "{{nhan_vat_ten}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "Selfie: {{nhan_vat_hinh}} holding up {{san_pham_hinh}} to the camera, {{boi_canh}}",
+     "prompt_video": "She lifts the product into frame and turns it",
+     "co": "ms"
+    },
+    {
+     "giay": 3,
+     "loai": "tinh_nang",
+     "goc_may": "Close-up B-roll",
+     "hanh_dong": "{{loi_ich_1_hinh}}",
+     "chu_man": "{{loi_ich_1}}",
+     "loi": "{{loi_ich_1}}.",
+     "noi": "{{nhan_vat_ten}}",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Close-up: {{loi_ich_1_hinh}}; product: {{san_pham_hinh}}",
+     "prompt_video": "{{loi_ich_1_hinh}}",
+     "co": "ecu"
+    },
+    {
+     "giay": 3,
+     "loai": "demo",
+     "goc_may": "Medium B-roll",
+     "hanh_dong": "{{demo_hinh}}",
+     "chu_man": "{{loi_ich_2}}",
+     "loi": "{{loi_ich_2}}.",
+     "noi": "{{nhan_vat_ten}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{loi_ich_2_hinh}}, {{boi_canh}}",
+     "prompt_video": "{{demo_hinh}}",
+     "co": "ms"
+    },
+    {
+     "giay": 3,
+     "loai": "bang_chung",
+     "goc_may": "Selfie close-up",
+     "hanh_dong": "She smiles, genuinely happy",
+     "chu_man": "I'm never going back",
+     "loi": "Honestly? I'm never going back.",
+     "noi": "{{nhan_vat_ten}}",
+     "dien_xuat": "warm, convinced",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "Selfie close-up: {{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, genuine smile, {{boi_canh}}",
+     "prompt_video": "She smiles and shakes her head in disbelief",
+     "co": "mcu"
+    },
+    {
+     "giay": 3,
+     "loai": "tran_an",
+     "goc_may": "Selfie medium",
+     "hanh_dong": "She points at the screen",
+     "chu_man": "{{dam_bao}}",
+     "loi": "And if it doesn't work for you, they make it right.",
+     "noi": "{{nhan_vat_ten}}",
+     "nv": [
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "Selfie: {{nhan_vat_hinh}} pointing at the camera, {{boi_canh}}",
+     "prompt_video": "She points at the camera, friendly",
+     "co": "ms"
+    },
+    {
+     "giay": 3,
+     "loai": "end_card",
+     "goc_may": "Product hero",
+     "hanh_dong": "Hero shot with offer",
+     "chu_man": "{{uu_dai}} · Shop now",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Clean hero photo of {{san_pham_hinh}}, room for text",
+     "prompt_video": "Subtle slow zoom",
+     "co": "cu"
+    }
    ]
   },
   {
    "key": "slideshow_anh",
    "ten": "Template · Slideshow ảnh thật (0 video AI, 6 shot, 15s)",
    "mo_ta": "Rẻ nhất, nhanh nhất: dùng NGUYÊN ảnh thật của sản phẩm làm hình từng shot (không sinh ảnh/video), chữ màn + lời dẫn + nhạc. Xuất được ngay sau khi điền ô và sinh giọng. Hợp để test góc/hook nhanh trước khi làm bản người thật.",
-   "o": ["san_pham", "san_pham_hinh", "anh_san_pham", "link", "diem_noi_bat", "doi_tuong", "uu_dai", "dam_bao", "giong", "noi_dau", "loi_ich_1", "loi_ich_2", "review", "anh_1", "anh_2", "anh_3", "anh_4", "anh_5"],
+   "o": [
+    "san_pham",
+    "san_pham_hinh",
+    "anh_san_pham",
+    "link",
+    "diem_noi_bat",
+    "doi_tuong",
+    "uu_dai",
+    "dam_bao",
+    "giong",
+    "noi_dau",
+    "loi_ich_1",
+    "loi_ich_2",
+    "review",
+    "anh_1",
+    "anh_2",
+    "anh_3",
+    "anh_4",
+    "anh_5"
+   ],
    "kinh_thanh": {
     "phong_cach": "Product photo slideshow, real product photos only, gentle Ken Burns motion, bold captions",
-    "ti_le": "9:16", "do_phan_giai": "720p", "mo_hinh_anh": "gemini-nano-banana-2.1", "mo_hinh_video": "veo-3.1-lite-generate-preview", "mo_hinh_chu": "claude-opus-5-5",
-    "ngon_ngu": "en", "the_loai": "qc_ugc",
-    "qc": { "ten": "{{san_pham}}", "link": "{{link}}", "diem_noi_bat": "{{diem_noi_bat}}", "doi_tuong": "{{doi_tuong}}", "uu_dai": "{{uu_dai}}", "thi_truong": "Mỹ · tiếng Anh", "anh": ["{{anh_san_pham}}"], "vi_tri_chu": "giua" }
+    "ti_le": "9:16",
+    "do_phan_giai": "720p",
+    "mo_hinh_anh": "gemini-nano-banana-2.1",
+    "mo_hinh_video": "veo-3.1-lite-generate-preview",
+    "mo_hinh_chu": "claude-opus-5-5",
+    "ngon_ngu": "en",
+    "the_loai": "qc_ugc",
+    "qc": {
+     "ten": "{{san_pham}}",
+     "link": "{{link}}",
+     "diem_noi_bat": "{{diem_noi_bat}}",
+     "doi_tuong": "{{doi_tuong}}",
+     "uu_dai": "{{uu_dai}}",
+     "thi_truong": "Mỹ · tiếng Anh",
+     "anh": [
+      "{{anh_san_pham}}"
+     ],
+     "vi_tri_chu": "giua"
+    }
    },
    "nhan_vat": [
-    { "key": "sp", "loai": "san_pham", "ten": "{{san_pham}}", "mo_ta": "{{san_pham_hinh}}", "anh_ref": ["{{anh_san_pham}}"], "giong": "{{giong}}" }
+    {
+     "key": "sp",
+     "loai": "san_pham",
+     "ten": "{{san_pham}}",
+     "mo_ta": "{{san_pham_hinh}}",
+     "anh_ref": [
+      "{{anh_san_pham}}"
+     ],
+     "giong": "{{giong}}"
+    }
    ],
-   "tap": { "ten": "Slideshow ảnh · 6 shot", "brief": "Ảnh thật của {{san_pham}}, chữ màn to, lời dẫn ngắn. Ưu đãi {{uu_dai}}." },
+   "tap": {
+    "ten": "Slideshow ảnh · 6 shot",
+    "brief": "Ảnh thật của {{san_pham}}, chữ màn to, lời dẫn ngắn. Ưu đãi {{uu_dai}}."
+   },
    "shots": [
-    { "giay": 2.5, "loai": "hook", "goc_may": "Real photo, slow zoom in", "hanh_dong": "Real product photo", "chu_man": "{{noi_dau}}?", "loi": "{{noi_dau}}?", "nv": ["sp"], "keyframe": "{{anh_1}}" },
-    { "giay": 2.5, "loai": "giai_phap", "goc_may": "Real photo, slow pan", "hanh_dong": "Real product photo", "chu_man": "Meet {{san_pham}}", "loi": "Meet {{san_pham}}.", "nv": ["sp"], "keyframe": "{{anh_2}}" },
-    { "giay": 2.5, "loai": "tinh_nang", "goc_may": "Real photo, slow zoom out", "hanh_dong": "Real product photo", "chu_man": "{{loi_ich_1}}", "loi": "{{loi_ich_1}}.", "nv": ["sp"], "keyframe": "{{anh_3}}" },
-    { "giay": 2.5, "loai": "tinh_nang", "goc_may": "Real photo, slow pan", "hanh_dong": "Real product photo", "chu_man": "{{loi_ich_2}}", "loi": "{{loi_ich_2}}.", "nv": ["sp"], "keyframe": "{{anh_4}}" },
-    { "giay": 2.5, "loai": "bang_chung", "goc_may": "Real photo, slow zoom in", "hanh_dong": "Real product photo", "chu_man": "{{review}}", "nv": ["sp"], "keyframe": "{{anh_2}}" },
-    { "giay": 2.5, "loai": "end_card", "goc_may": "Real photo, static", "hanh_dong": "Real product photo with offer", "chu_man": "{{uu_dai}} · {{dam_bao}}", "loi": "{{uu_dai}}. Shop now.", "nv": ["sp"], "keyframe": "{{anh_5}}" }
+    {
+     "giay": 2.5,
+     "loai": "hook",
+     "goc_may": "Real photo, slow zoom in",
+     "hanh_dong": "Real product photo",
+     "chu_man": "{{noi_dau}}?",
+     "loi": "{{noi_dau}}?",
+     "nv": [
+      "sp"
+     ],
+     "keyframe": "{{anh_1}}",
+     "co": "cu",
+     "may": "day_vao"
+    },
+    {
+     "giay": 2.5,
+     "loai": "giai_phap",
+     "goc_may": "Real photo, slow pan",
+     "hanh_dong": "Real product photo",
+     "chu_man": "Meet {{san_pham}}",
+     "loi": "Meet {{san_pham}}.",
+     "nv": [
+      "sp"
+     ],
+     "keyframe": "{{anh_2}}",
+     "co": "ms",
+     "may": "truot_ngang"
+    },
+    {
+     "giay": 2.5,
+     "loai": "tinh_nang",
+     "goc_may": "Real photo, slow zoom out",
+     "hanh_dong": "Real product photo",
+     "chu_man": "{{loi_ich_1}}",
+     "loi": "{{loi_ich_1}}.",
+     "nv": [
+      "sp"
+     ],
+     "keyframe": "{{anh_3}}",
+     "co": "cu",
+     "may": "lui_ra"
+    },
+    {
+     "giay": 2.5,
+     "loai": "tinh_nang",
+     "goc_may": "Real photo, slow pan",
+     "hanh_dong": "Real product photo",
+     "chu_man": "{{loi_ich_2}}",
+     "loi": "{{loi_ich_2}}.",
+     "nv": [
+      "sp"
+     ],
+     "keyframe": "{{anh_4}}",
+     "co": "ms",
+     "may": "truot_ngang"
+    },
+    {
+     "giay": 2.5,
+     "loai": "bang_chung",
+     "goc_may": "Real photo, slow zoom in",
+     "hanh_dong": "Real product photo",
+     "chu_man": "{{review}}",
+     "nv": [
+      "sp"
+     ],
+     "keyframe": "{{anh_2}}",
+     "co": "cu",
+     "may": "day_vao"
+    },
+    {
+     "giay": 2.5,
+     "loai": "end_card",
+     "goc_may": "Real photo, static",
+     "hanh_dong": "Real product photo with offer",
+     "chu_man": "{{uu_dai}} · {{dam_bao}}",
+     "loi": "{{uu_dai}}. Shop now.",
+     "nv": [
+      "sp"
+     ],
+     "keyframe": "{{anh_5}}",
+     "co": "ms",
+     "may": "tinh"
+    }
    ]
   }
  ]

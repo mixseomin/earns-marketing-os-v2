@@ -2,7 +2,8 @@
 // "template phải cho phép edit"). Template = một PHIM thường (kinh_thanh.template), sửa bằng toàn bộ studio; chỗ nào cần đổi theo sản phẩm /
 // góc / chân dung thì gõ ô {{ten_o}}. Tạo phim từ template = chép phim + điền ô (template-db.ts). Thuần — tự kiểm:
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/template.test.mts
-import type { CauHinhTemplate, OTemplate } from './kieu';
+import { CAM_XUC_THEO_LOAI, LOAI_SHOT_MAU, type CauHinhTemplate, type OTemplate, type LoaiShotMau, type PhanCanh } from './kieu';
+import type { Beat } from './dien-anh';
 
 const RE_O = /\{\{\s*([a-z0-9_]+)\s*\}\}/gi;
 
@@ -70,6 +71,29 @@ export function dsOTemplate(cfg: CauHinhTemplate | null | undefined, timThay: st
 
 /** Ô đang dùng mà chưa có giá trị → chặn tạo phim (phim mới không được còn {{x}}). */
 export const oThieu = (ds: OTemplateDs[], gt: Record<string, string>): OTemplateDs[] => ds.filter((o) => o.dung && !coGiaTri(gt, o.k));
+
+/** KHUNG TRUYỆN + PHÂN CẢNH của một QC suy từ loại shot (cổng tiền kỳ đòi ≥3 beat có âm có dương + mỗi shot thuộc một phân cảnh — 14/10/2026
+ *  phim #34 tạo từ template bị chặn keyframe vì template chỉ có shot). Phân cảnh = mỗi loại shot một cảnh (tên = phan_doan của shot). */
+const BEAT_THEO_LOAI: Record<LoaiShotMau, [string, string]> = {
+  hook: ['Mở', 'giữ tay người xem trong 2–3 giây đầu'], uu_dai: ['Mở', 'ưu đãi đập vào mắt'], noi_dau: ['Vấn đề', 'nỗi khó chịu người xem nhận ra mình'],
+  giai_phap: ['Giải quyết', 'sản phẩm xuất hiện và làm được việc'], demo: ['Giải quyết', 'sản phẩm xuất hiện và làm được việc'], tinh_nang: ['Giải quyết', 'sản phẩm xuất hiện và làm được việc'],
+  so_sanh: ['Giải quyết', 'sản phẩm xuất hiện và làm được việc'], bang_chung: ['Chứng minh', 'người thật, review, trấn an'], tran_an: ['Chứng minh', 'người thật, review, trấn an'],
+  cta: ['Chốt', 'ưu đãi + kêu gọi mua'], end_card: ['Chốt', 'ưu đãi + kêu gọi mua'], khac: ['Giải quyết', ''],
+};
+const CAM_BEAT: Record<string, number> = { 'Mở': 1, 'Vấn đề': -2, 'Giải quyết': 3, 'Chứng minh': 3, 'Chốt': 5 };
+export function khungTuShot(shots: { loai: LoaiShotMau }[]): { beats: Beat[]; phan_canh: PhanCanh[] } {
+  const beats: Beat[] = []; const phan_canh: PhanCanh[] = [];
+  for (const [i, s] of shots.entries()) {
+    // ưu đãi ở cuối phim là chốt, ở đầu là mở
+    const [ten, mo] = s.loai === 'uu_dai' && i > shots.length / 2 ? BEAT_THEO_LOAI.cta : BEAT_THEO_LOAI[s.loai] ?? BEAT_THEO_LOAI.khac;
+    if (!beats.some((b) => b.ten === ten)) beats.push({ ten, mo_ta: mo, cam_xuc: CAM_BEAT[ten] ?? 0 });
+    if (!phan_canh.some((p) => p.ten === s.loai)) {
+      const cx = CAM_XUC_THEO_LOAI[s.loai] ?? 0;
+      phan_canh.push({ ten: s.loai, beat: ten, muc_tieu: LOAI_SHOT_MAU.find((l) => l.key === s.loai)?.mo ?? '', xung_dot: '', an_y: '', nhip: 'nhanh', cam_xuc_dau: cx, cam_xuc_cuoi: cx });
+    }
+  }
+  return { beats, phan_canh };
+}
 
 /** Giá trị ban đầu của form = giá trị mẫu của từng ô (template tự điền được ngay để thử). */
 export const giaTriMau = (ds: OTemplateDs[]): Record<string, string> => Object.fromEntries(ds.filter((o) => o.mau).map((o) => [o.k, o.mau!]));

@@ -69,11 +69,11 @@ export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS
           {tn && !trongPhong && <th className="cty-so" title="Số quy trình chịu trách nhiệm chính · số việc đang mở (kể cả việc máy làm thay)">Phụ trách</th>}</tr></thead>
         <tbody>{ds.map((d) => { const fm = nhanSu(d.id)?.fm ?? {}; const n = nhipChu(fm, d.id); const c = chi(d.id); const tr = Number(fm.tran_usd_thang || 0); return (
           <tr key={d.id}>
-            <td><Nguoi id={d.id} /></td>{!trongPhong && <td className="cty-muted">{d.phongTen}</td>}<td title={d.giuVai.join(' · ') || d.chucDanh}>{(phong && vaiO(phong, d.id)) || TEN_VAI[d.vai]}</td>
+            <td><span className="cty-den-o"><Nguoi id={d.id} />{'coNut' in n && n.coNut && <NutTuLam id={d.id} bat={n.bat} admin={admin} />}</span></td>{!trongPhong && <td className="cty-muted">{d.phongTen}</td>}<td title={d.giuVai.join(' · ') || d.chucDanh}>{(phong && vaiO(phong, d.id)) || TEN_VAI[d.vai]}</td>
             <td className="cty-nho">{tenModel(d.model)}</td>
             <td className={`cty-nho${n.bat ? '' : ' cty-muted'}`}>{n.ds.length   // đầu việc tách dòng, bấm mở ngăn mô tả + nhật ký (anh 14/10/2026)
               ? <ul className="cty-dn-viec">{n.ds.map((v) => <li key={v.ma}><Link href={hrefNhip(d.id, v.ma)}>{v.ten}</Link> <span className="cty-muted">{v.lich}</span></li>)}</ul>
-              : n.viec}{'coNut' in n && n.coNut && <div><NutTuLam id={d.id} bat={n.bat} admin={admin} /></div>}</td>
+              : n.viec}</td>
             {n.bat && n.ca && ('box' in n ? n.box : true) ? <ChinhNhip   /* máy kiểm + ca chỉ nghĩa với nhịp box; việc trên Mac có lịch riêng (cột Tự làm) */ id={d.id} ca={n.ca} diemDanh={n.diemDanh ?? ''} kiemMoi={n.kiemMoi ?? 1} admin={admin} />
               : <><td className="cty-nho"><span className="cty-muted">—</span></td><td className="cty-nho"><span className="cty-muted">—</span></td></>}
             <td className="cty-nho" title={cuoi[d.id]?.ket}>{cuoi[d.id] ? <TruocDay iso={cuoi[d.id]!.luc} /> : <span className="cty-muted">chưa làm</span>}</td>

@@ -2,6 +2,14 @@
 // Không chữ giải thích; mọi thứ bấm vào là ra hồ sơ. Kích thước tính theo dữ liệu nên thêm phòng/người không phải sửa gì.
 import type { Doc } from '@/lib/cong-ty';
 import { anhNhanSu, hueOf } from './avatar';
+import { nhipChu } from './bang-nhan-su';
+
+/** Chấm Tự làm NGAY SAU TÊN (anh 14/10/2026 "con nào đang bật/tắt thì show ở đây", "để ngay bên cạnh tên"): tspan nối tiếp chữ tên nên tự đứng sát tên,
+ *  không phải đo chữ. ● xanh nháy = đang bật · ○ xám = admin tắt · không có việc tự làm thì không chấm. */
+function Den({ d }: { d: Doc }) {
+  const n = nhipChu(d.fm, d.id); if (!('coNut' in n && n.coNut)) return null;
+  return <tspan dx={5} className={`cty-den-chu${n.bat ? ' bat' : ''}`}>{n.bat ? '●' : '○'}<title>{n.bat ? `Tự làm: đang bật — ${n.viec}` : 'Tự làm: đã tắt'}</title></tspan>;
+}
 
 const CW = 168, GAP = 10, PER_ROW = 6, HEAD = 34, ROW = 32, PAD = 8, AV = 22;
 const tenNgan = (s: string) => s.replace(/\s*\(.*\)$/, '').replace(/^Phòng /, '');
@@ -36,7 +44,7 @@ export function SoDoToChuc({ phong, ns, vpId = 'vp-giam-doc' }: { phong: Doc[]; 
           <line x1={vpX(i)} y1={yVP - 10} x2={vpX(i)} y2={yVP} stroke="currentColor" />
           <rect x={vpX(i) - 66} y={yVP} width={132} height={58} rx={6} fill="var(--surface)" stroke="var(--line)" />
           <image className="cty-av" href={anhNhanSu(d.id, hueOf(vpId))} x={vpX(i) - 58} y={yVP + 9} width={40} height={40} />
-          <text x={vpX(i) - 12} y={yVP + 24} fontSize={13} fontWeight={700} fill="currentColor">{String(d.fm.ten)}</text>
+          <text x={vpX(i) - 12} y={yVP + 24} fontSize={13} fontWeight={700} fill="currentColor">{String(d.fm.ten)}<Den d={d} /></text>
           <text x={vpX(i) - 12} y={yVP + 40} fontSize={10} fill="var(--muted)">{tenNgan(String(d.fm.chuc_danh)).slice(0, 18)}</text>
         </a>
       ))}
@@ -67,7 +75,7 @@ export function SoDoToChuc({ phong, ns, vpId = 'vp-giam-doc' }: { phong: Doc[]; 
               {nguoi.map((d, k) => (
                 <a key={d.id} href={`/nhan-su/${d.id}`}>
                   <image className="cty-av" href={anhNhanSu(d.id, hue)} x={x + 10} y={top + HEAD + PAD + k * ROW + 4} width={AV} height={AV} />
-                  <text x={x + 40} y={top + HEAD + PAD + k * ROW + 15} fontSize={12} fontWeight={600} fill="currentColor">{String(d.fm.ten)}</text>
+                  <text x={x + 40} y={top + HEAD + PAD + k * ROW + 15} fontSize={12} fontWeight={600} fill="currentColor">{String(d.fm.ten)}<Den d={d} /></text>
                   <text x={x + 40} y={top + HEAD + PAD + k * ROW + 26} fontSize={9} fill="var(--muted)">{tenNgan(String(d.fm.chuc_danh)).slice(0, 26)}</text>
                 </a>
               ))}

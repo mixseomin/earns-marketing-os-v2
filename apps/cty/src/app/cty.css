@@ -546,3 +546,12 @@ body.nk-dang-keo iframe{pointer-events:none}
 
 .cty-dn-viec{list-style:none;margin:0;padding:0;display:grid;gap:2px}.cty-dn-viec li{white-space:nowrap}
 .cty-nhip-co{font-weight:600}
+
+/* chấm Tự làm: xanh nháy = đang bật, xám rỗng = đã tắt (bảng nhân sự + sơ đồ tổ chức; svg circle dùng fill) */
+.cty-den{display:inline-block;width:10px;height:10px;border-radius:50%;border:2px solid var(--muted);background:transparent;fill:transparent;stroke:var(--muted);stroke-width:1.5;vertical-align:middle}
+.cty-den.bat{border-color:var(--ok,#2f9e5b);background:var(--ok,#2f9e5b);fill:var(--ok,#2f9e5b);stroke:var(--surface);animation:cty-nhay 1.4s ease-in-out infinite}
+@keyframes cty-nhay{50%{opacity:.3}}
+.cty-den-chu{fill:var(--muted);font-size:10px}.cty-den-chu.bat{fill:var(--ok,#2f9e5b);animation:cty-nhay 1.4s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.cty-den.bat,.cty-den-chu.bat{animation:none}}
+.cty-den-nut{background:none;border:0;padding:4px;margin:-4px;cursor:pointer;line-height:0}.cty-den-nut:disabled{cursor:wait;opacity:.5}
+.cty-den-o{display:inline-flex;align-items:center;gap:6px}

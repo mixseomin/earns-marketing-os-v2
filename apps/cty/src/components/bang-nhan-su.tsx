@@ -8,8 +8,8 @@ import { demTn, type TrachNhiem } from '@/lib/trach-nhiem';
 import { vaiCuaPhong, theVai } from '../../worker/quy-trinh.mjs';
 import { NHIP, NHIP_MAY, TEN_NHIP, docChinh, lanLam, tanSuat, dauViec } from '../../worker/nhip.mjs';
 import { hrefNhip } from '@/lib/ngan';
-import { viecMayCua, hong, nhipMay, lichNguoi, tenViec, moHinh, dangChay } from '../../worker/viec-may.mjs';
-import { ChinhNhip } from './chinh-nhip';
+import { viecMayCua, hong, nhipMay, lichNguoi, tenViec, moHinh, dangChay, henAp } from '../../worker/viec-may.mjs';
+import { ChinhCa } from './chinh-ca';
 import { ChinhLich, type Lich } from './chinh-lich';
 import { docLich, choAp, lichCua, KHONG_TAT } from '../../worker/lich-may.mjs';
 import { NutTuLam } from './nut-tu-lam';
@@ -56,7 +56,7 @@ export function LichViec({ v, admin }: { v: ViecMay; admin: boolean }) {
   const goc = moHinh(v) as Lich | { kieu: 'lien' } | null; const x = (docLich() as Record<string, { luc: string; ap?: { ok: boolean; loi: string } }>)[v.id];
   if (goc?.kieu === 'lien') return <span className="cty-lich-o" title="Việc chạy liền (KeepAlive) — không có lịch">chạy liền</span>;
   const cho = choAp(x); const lich = cho ? (lichCua(x) as Lich) : (goc as Lich | null);
-  return <ChinhLich muc={`may:${v.id}`} lich={lich} chu={lichNguoi(v) as string} admin={admin} apSau={v.may.startsWith('box') ? `${v.may} áp trong 1 phút` : `${v.may} áp trong 10 phút`} trang={{ cho, loi: !cho && x?.ap && !x.ap.ok ? x.ap.loi : undefined }} />;
+  return <ChinhLich muc={`may:${v.id}`} lich={lich} chu={lichNguoi(v) as string} admin={admin} apSau={henAp(v.may) as string} trang={{ cho, loi: !cho && x?.ap && !x.ap.ok ? x.ap.loi : undefined }} />;
 }
 /** Tên một việc máy kèm chấm bật/tắt riêng của việc đó (bảng nhân sự + ngăn việc máy). */
 export function TenViecMay({ v, admin, href }: { v: ViecMay; admin: boolean; href: string }) {
@@ -86,7 +86,7 @@ export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS
     <div className="cty-dn-cuon">
       <table className="cty-viec cty-dn">
         <thead><tr><th>Người</th>{!trongPhong && <th>Phòng</th>}<th>{trongPhong ? 'Vai ở phòng' : 'Vai chính'}</th><th>Bộ não</th>
-          <th title="Việc người đó tự làm, không cần ai nhắc (worker/nhip.mjs)">Tự làm</th><th title="Máy kiểm có việc chưa bao lâu một lần — KHÔNG phải số lần gọi mô hình; mô hình chỉ chạy khi có việc thật">Máy kiểm</th><th title="Giờ làm, giờ VN">Ca</th>
+          <th title="Việc người đó tự làm, không cần ai nhắc (worker/nhip.mjs)">Tự làm</th><th title="Nhịp cty: máy kiểm có việc chưa bao lâu một lần (KHÔNG phải số lần gọi mô hình). Người có việc máy: nhịp của việc chạy dày nhất — chỉnh từng việc ở cột Tự làm">Máy kiểm</th><th title="Giờ làm, giờ VN">Ca</th>
           <th title="Lần gần nhất người đó thật sự làm việc (gọi mô hình / gửi tin) — theo nhật ký">Làm lần cuối</th>
           <th className="cty-so" title={`Tiền mô hình thật THÁNG LỊCH ${thang} (từ 01/${thang} tới giờ — cơ sở lương)${trongPhong ? ', chỉ phần làm cho phòng này' : ', mọi phòng'} · sổ ai_usage`}>{trongPhong ? 'Chi ở phòng' : 'Chi'} tháng {thang}<br /><span className="cty-muted">từ 01/{thang}</span></th>
           <th className="cty-so" title="Trần chi tháng của người đó (mọi phòng cộng lại) — chạm trần thì proxy chặn">Trần / tháng</th>
@@ -102,7 +102,7 @@ export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS
                 <Link href={hrefNhip(d.id, 'may')} title="Timer / cron / LaunchAgent chạy trên box và Mac mà người này phụ trách">{vm.length > 4 && !n.ds.length ? `tất cả ${vm.length} việc máy` : `${vm.length} việc máy`}</Link>
                 {vm.some(hong) && <span className="cty-thu-loi"> · {vm.filter(hong).length} lỗi</span>}{vm.some((v) => v.chua_gan) && <span className="cty-thu-loi"> · {vm.filter((v) => v.chua_gan).length} chưa xếp phòng</span>}</div>)(viecMayCua(d.id) as ViecMay[])}</td>
             {n.bat && n.ca && ('box' in n ? n.box : true) ? <><td className="cty-nho"><ChinhLich muc={`nhip:${d.id}`} lich={{ kieu: 'moi', phut: n.kiemMoi ?? 1 }} chu={n.tanSuat ?? ''} kieu={['moi']} admin={admin} apSau="áp từ nhịp kế tiếp" /></td>
-              <ChinhNhip   /* máy kiểm + ca chỉ nghĩa với nhịp box; việc trên Mac có lịch riêng (cột Tự làm) */ id={d.id} ca={n.ca} diemDanh={n.diemDanh ?? ''} kiemMoi={n.kiemMoi ?? 1} admin={admin} /></>
+              <ChinhCa   /* máy kiểm + ca chỉ nghĩa với nhịp box; việc trên Mac có lịch riêng (cột Tự làm) */ id={d.id} ca={n.ca} diemDanh={n.diemDanh ?? ''} admin={admin} /></>
               : n.nhipMay ? <><td className="cty-nho" title="Nhịp của việc máy chạy dày nhất người này phụ trách — chỉnh lịch từng việc ở cột Tự làm">{n.nhipMay}<div className="cty-muted">việc dày nhất</div></td><td className="cty-nho cty-muted" title="Việc máy chạy theo lịch riêng của máy, không theo ca">theo lịch máy</td></>
               : <><td className="cty-nho"><span className="cty-muted">—</span></td><td className="cty-nho"><span className="cty-muted">—</span></td></>}
             <td className="cty-nho" title={cuoi[d.id]?.ket}>{cuoi[d.id] ? <TruocDay iso={cuoi[d.id]!.luc} /> : <span className="cty-muted">chưa làm</span>}</td>

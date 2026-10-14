@@ -7,11 +7,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { GOC } from './goc.mjs';
 import { parseFm } from '../scripts/fm.mjs';
+import { chuLich } from './lich-chu.mjs';
 
 /** Timer chạy mỗi phút (apps/cty/deploy/cty-nhip.timer); mỗi người kiểm `kiem_moi` phút một lần (mặc định 1) — admin chỉnh trên bảng nhân sự. */
 export const KIEM_MOI = [1, 5, 15, 30, 60];   // gợi ý nhanh trên ô chỉnh; nhập số khác cũng được (1 phút – 24 giờ)
 const hopLeMoi = (p) => Number.isInteger(Number(p)) && Number(p) >= 1 && Number(p) <= 1440;
-export const tanSuat = (phut) => (Number(phut) > 1 ? (Number(phut) % 60 === 0 ? `mỗi ${phut / 60} giờ` : `mỗi ${phut} phút`) : 'mỗi 1 phút');
+export const tanSuat = (phut) => chuLich({ kieu: 'moi', phut: Number(phut) || 1 });   // chữ lịch chỉ một luật: lich-chu.mjs
 export const TAN_SUAT = tanSuat(1);
 // CHỈNH CỦA ADMIN (anh 14/10/2026 "cho phép điều chỉnh bởi admin"): ca · điểm danh · kiểm mấy phút một lần, lưu ở <DATA>/nhip-chinh.json, ĐÈ lên
 // hồ sơ trong git (như sổ bổ nhiệm) — chỉnh trên bảng nhân sự có hiệu lực ở nhịp kế tiếp, không cần deploy.
@@ -19,13 +20,13 @@ const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const tepChinh = () => path.join(DATA(), 'nhip-chinh.json');
 export const docChinh = () => { try { return JSON.parse(fs.readFileSync(tepChinh(), 'utf8')); } catch { return {}; } };
 const GIO = /^([01]\d|2[0-4]):[0-5]\d$/;
-/** Lưu chỉnh của một người: { ca: 'HH:MM-HH:MM', diem_danh: 'HH:MM' | '', kiem_moi: số trong KIEM_MOI }. Sai định dạng → ném lỗi (không lưu bừa). */
+/** Lưu chỉnh của một người: { ca: 'HH:MM-HH:MM', diem_danh: 'HH:MM' | '', kiem_moi?: phút (bỏ trống = giữ nguyên) }. Sai định dạng → ném lỗi (không lưu bừa). */
 export function luuChinh(id, x, ai = '') {
   const ca = String(x.ca ?? ''), [tu, den] = ca.split('-');
   if (!GIO.test(tu ?? '') || !GIO.test(den ?? '') || tu === den) throw new Error(`Ca "${ca}" sai — dạng 06:00-02:00`);
   if (x.diem_danh && !GIO.test(String(x.diem_danh))) throw new Error(`Giờ điểm danh "${x.diem_danh}" sai — dạng 08:00`);
-  if (!hopLeMoi(x.kiem_moi)) throw new Error(`Kiểm mỗi ${x.kiem_moi} phút — từ 1 phút tới 24 giờ`);
-  const s = docChinh(); s[id] = { ...(s[id] ?? {}), ca, diem_danh: String(x.diem_danh ?? ''), kiem_moi: Number(x.kiem_moi), ai, luc: new Date().toISOString() };
+  if (x.kiem_moi !== undefined && !hopLeMoi(x.kiem_moi)) throw new Error(`Kiểm mỗi ${x.kiem_moi} phút — từ 1 phút tới 24 giờ`);
+  const s = docChinh(); s[id] = { ...(s[id] ?? {}), ca, diem_danh: String(x.diem_danh ?? ''), ...(x.kiem_moi !== undefined ? { kiem_moi: Number(x.kiem_moi) } : {}), ai, luc: new Date().toISOString() };
   return ghiChinh(s, id);
 }
 function ghiChinh(s, id) { fs.mkdirSync(DATA(), { recursive: true }); const tam = `${tepChinh()}.tam`; fs.writeFileSync(tam, JSON.stringify(s, null, 1)); fs.renameSync(tam, tepChinh()); return s[id]; }

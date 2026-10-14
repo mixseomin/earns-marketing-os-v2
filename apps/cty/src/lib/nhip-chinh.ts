@@ -6,7 +6,7 @@ import { luuChinh, datBat, datGio, datKiemMoi } from '../../worker/nhip.mjs';
 import { datLichMay, datBatMay, sach, KHONG_TAT } from '../../worker/lich-may.mjs';
 import { docViecMay, viecMayCua, dangChay } from '../../worker/viec-may.mjs';
 
-export async function chinhNhip(id: string, x: { ca: string; diem_danh: string; kiem_moi: number }): Promise<{ ok: boolean; loi?: string }> {
+export async function chinhNhip(id: string, x: { ca: string; diem_danh: string; kiem_moi?: number }): Promise<{ ok: boolean; loi?: string }> {
   const me = await getCurrentUser();
   if (!me) return { ok: false, loi: 'Phiên đăng nhập đã hết — tải lại trang.' };
   if (me.role !== 'admin') return { ok: false, loi: 'Chỉ admin được chỉnh nhịp.' };

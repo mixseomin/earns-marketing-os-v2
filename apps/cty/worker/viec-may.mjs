@@ -12,6 +12,10 @@ import { execFileSync } from 'node:child_process';
 import { GOC } from './goc.mjs';
 import { parseFm } from '../scripts/fm.mjs';
 import { ghiAp, apBox, docLich, choAp } from './lich-may.mjs';
+import { NHIP_MAY } from './nhip.mjs';
+// LaunchAgent của việc NHỊP chạy trên Mac (nhip.mjs NHIP_MAY, vd Bảo dọn nhật ký): đã là đầu việc có giờ chỉnh riêng ở cột Tự làm — không hiện lần hai
+// như việc máy (sửa lịch "mỗi 10 phút" ở đó là phá cơ chế máy hỏi giờ).
+const NHIP_LAUNCHD = new Set(Object.values(NHIP_MAY).map((x) => x.launchd));
 import { chuLich, tuSystemd, tuCron, tuLaunchd } from './lich-chu.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
@@ -89,7 +93,7 @@ const usTuIso = (us) => (us ? new Date(Number(us) / 1000).toISOString() : '');
 export function gom() {
   const cu = docViecMay(); const kq = []; const loi = {};
   try { apBox(cu); } catch (e) { loi.ap = String(e.message); }   // áp lịch admin đặt cho box TRƯỚC khi dò → ảnh mới đã là lịch mới
-  const theo = (may, ds) => { for (const v of ds) if (!BO_QUA.test(v.ma)) { const x = xep(v.ma); kq.push({ ...v, may, id: `${may}:${v.ma}`, cuoi: /^\d+$/.test(String(v.cuoi)) ? usTuIso(v.cuoi) : v.cuoi, tiep: v.tiep ? usTuIso(v.tiep) : '', ...x, phong_ten: tenPhong(x.phong), nguoi_ten: tenNguoi(x.nguoi) }); } };
+  const theo = (may, ds) => { for (const v of ds) if (!BO_QUA.test(v.ma) && !NHIP_LAUNCHD.has(v.ma)) { const x = xep(v.ma); kq.push({ ...v, may, id: `${may}:${v.ma}`, cuoi: /^\d+$/.test(String(v.cuoi)) ? usTuIso(v.cuoi) : v.cuoi, tiep: v.tiep ? usTuIso(v.tiep) : '', ...x, phong_ten: tenPhong(x.phong), nguoi_ten: tenNguoi(x.nguoi) }); } };
   const giuCu = (may, e) => { loi[may] = String(e.message ?? e).slice(0, 200); kq.push(...(cu?.ds ?? []).filter((v) => v.may === may)); };
   try { theo('box3', JSON.parse(execFileSync('python3', ['-c', DO_BOX], { encoding: 'utf8', timeout: 120_000 }))); } catch (e) { giuCu('box3', e); }
   try { theo('box1', JSON.parse(execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', BOX1, 'python3 -'], { input: DO_BOX, encoding: 'utf8', timeout: 120_000 }))); } catch (e) { giuCu('box1', e); }
@@ -99,11 +103,18 @@ export function gom() {
     try { const x = JSON.parse(fs.readFileSync(path.join(thu, f), 'utf8')); if (!mac[x.may] || x.luc > mac[x.may].luc) mac[x.may] = x; } catch (e) { loi[f] = String(e.message); }
   }
   for (const x of Object.values(mac)) { theo(x.may, x.ds); for (const a of x.ap ?? []) ghiAp(a.id, a.luc, a.ok, a.loi ?? ''); }   // Mac tự áp lịch admin đặt, báo kết quả trong ảnh
-  const anh = { luc: new Date().toISOString(), loi, ds: kq };
+  const mayLuc = { box3: loi.box3 ? cu?.may_luc?.box3 : new Date().toISOString(), box1: loi.box1 ? cu?.may_luc?.box1 : new Date().toISOString(), ...Object.fromEntries(Object.values(mac).map((x) => [x.may, x.luc])) };
+  const anh = { luc: new Date().toISOString(), loi, may_luc: mayLuc, ds: kq };
   fs.mkdirSync(DATA(), { recursive: true }); fs.writeFileSync(`${TEP()}.tam`, JSON.stringify(anh)); fs.renameSync(`${TEP()}.tam`, TEP());
   return `${kq.length} việc máy · ${kq.filter((v) => v.chua_gan).length} chưa gắn phòng${Object.keys(loi).length ? ` · lỗi: ${Object.keys(loi).join(', ')}` : ''}`;
 }
 export function docViecMay() { try { return JSON.parse(fs.readFileSync(TEP(), 'utf8')); } catch { return null; } }
+/** Chữ hẹn áp cho ô chỉnh (lịch / bật-tắt): máy báo về trong 30 phút qua → hẹn thời gian thật; im lâu hơn → nói thẳng lệnh sẽ nằm chờ. */
+export function henAp(may) {
+  const luc = docViecMay()?.may_luc?.[may]; const phut = luc ? Math.round((Date.now() - Date.parse(luc)) / 60_000) : Infinity;
+  if (phut > 30) return `⚠ ${may} chưa báo về ${Number.isFinite(phut) ? `từ ${phut} phút trước` : 'lần nào'} — lệnh nằm chờ tới khi ${may} nhận`;
+  return may.startsWith('box') ? `${may} áp trong 1 phút` : `${may} áp trong 10 phút`;
+}
 /** Có ý muốn đổi lịch đang chờ áp trên BOX (bộ chạy nhịp gom ngay, không đợi lượt 10 phút; Mac tự áp lúc đẩy ảnh). */
 export const choApBox = () => { const vm = docViecMay(); const s = docLich(); return Object.entries(s).some(([id, x]) => choAp(x) && ['box3', 'box1'].includes(vm?.ds.find((v) => v.id === id)?.may)); };
 /** Mac vừa đẩy ảnh có kết quả áp lịch mà ảnh chụp chung chưa gộp → gom ngay để ô chỉnh hết "chờ áp". */
@@ -131,42 +142,12 @@ export const tenViec = (v) => v.ten || (v.loai === 'cron' ? tenCron(v.ma) : Stri
 /** Việc máy một người phụ trách (bảng nhân sự). */
 export const viecMayCua = (id) => (docViecMay()?.ds ?? []).filter((v) => v.nguoi === id);
 // Lịch bằng chữ người đọc, giờ VN (box chạy giờ UTC). Dạng lạ giữ nguyên chữ máy.
-const vn = (h, m) => `${String((Number(h) + 7) % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-const doiKy = (x) => { const m = String(x).trim().match(/^(\d+)\s*(min|h|s|d)$/); return m ? `mỗi ${m[1]} ${{ min: 'phút', h: 'giờ', s: 'giây', d: 'ngày' }[m[2]]}` : null; };
-const THU_EN = { Mon: 'thứ Hai', 'Mon..Fri': 'thứ Hai–Sáu', Sun: 'Chủ nhật', Sat: 'thứ Bảy', Tue: 'thứ Ba', Wed: 'thứ Tư', Thu: 'thứ Năm', Fri: 'thứ Sáu' };
 /** Lịch của một việc theo MÔ HÌNH chung (worker/lich-chu.mjs) — null khi dạng máy chưa đọc được. */
 export const moHinh = (v) => (v.loai === 'timer' ? tuSystemd(v.lich) : v.loai === 'cron' ? tuCron(v.lich) : v.loai === 'launchd' ? tuLaunchd(v.lich) : null);
 /** Lịch bằng chữ người đọc, giờ VN: từ mô hình; dạng chưa đọc được thì chữ thô (lichTho). */
 export const lichNguoi = (v) => chuLich(moHinh(v)) || lichTho(v);
-function lichTho(v) {
-  if (v.loai === 'launchd') return v.lich || '—';
-  if (v.loai === 'cron') {
-    const [mi, h, dom, mon, dow] = String(v.lich).split(' ');
-    const thu = dow !== '*' ? ` thứ ${dow === '1' ? 'Hai' : dow}` : '';
-    if (/^\*\/\d+$/.test(mi) && h === '*') return `mỗi ${mi.slice(2)} phút`;
-    if (mi === '*' && h === '*') return 'mỗi phút';
-    if (/^\d+$/.test(mi) && h === '*') return `mỗi giờ (phút ${mi})`;
-    if (/^\d+$/.test(mi) && /^(\*|\d+-\d+)\/\d+$/.test(h)) return `mỗi ${h.split('/')[1]} giờ`;
-    if (/^[\d,]+$/.test(mi) && h === '*') return `mỗi giờ (phút ${mi})`;
-    if (/^\d+$/.test(mi) && /^\d+$/.test(h) && dom === '*' && mon === '*') return `${vn(h, mi)} ${thu ? `mỗi${thu}` : 'hằng ngày'}`;
-    return v.lich;
-  }
-  const ra = [];
-  const coLap = /OnUnitActiveUSec=|OnCalendar=/.test(String(v.lich));   // OnActiveSec chỉ là cú hích MỘT lần sau khi bật timer (drop-in lich-may) — có mốc lặp thì bỏ
-  for (const [, k, x] of String(v.lich).matchAll(/(OnCalendar|OnUnitActiveUSec|OnActiveUSec)=([^·]+)/g)) {
-    if (k === 'OnActiveUSec' && coLap) continue;
-    if (k !== 'OnCalendar') { ra.push(doiKy(x) ?? x.trim()); continue; }
-    const c = x.trim().replace(/ UTC$/, '');   // box chạy giờ UTC; systemd mới ghi kèm ' UTC'
-    const m = c.match(/^(?:([A-Za-z.,]+) )?\*-\*-\* ([\d,*/]+):([\d,/]+)(?::\d+)?$/);
-    if (!m) { ra.push(c); continue; }
-    const [, dow, h, mi] = m; const sau = dow ? ` ${THU_EN[dow] ?? dow}` : ' hằng ngày';
-    if (h === '*') ra.push(/^0*0\/(\d+)$/.test(mi) ? `mỗi ${mi.split('/')[1]} phút` : `mỗi giờ (phút ${mi})`);
-    else if (/^\d+\/\d+$/.test(h)) ra.push(`mỗi ${h.split('/')[1]} giờ`);
-    else if (/^[\d,]+$/.test(h) && /^\d+$/.test(mi)) ra.push(`${h.split(',').map((x) => vn(x, mi)).join(', ')}${sau}`);
-    else ra.push(c);
-  }
-  return ra.join(' · ') || '—';
-}
+/** Dạng máy chưa đọc được về mô hình (vd ngày cố định trong tháng): chữ gốc của máy, bỏ tên khoá systemd. Luật đọc lịch chỉ nằm ở lich-chu.mjs. */
+const lichTho = (v) => String(v.lich || '—').replace(/(OnCalendar|OnUnitActiveUSec|OnBootUSec|OnActiveUSec)=/g, '').replace(/ UTC/g, ' (UTC)');
 /** Việc còn đang chạy theo lịch: timer có lần kế tiếp · cron luôn · LaunchAgent đã nạp. */
 export const dangChay = (v) => (v.ket === 'tắt' ? false : v.loai === 'timer' ? !!v.tiep : v.loai === 'launchd' ? v.ket !== 'chưa nạp' : true);
 /** Bao nhiêu phút một lần (để chọn việc chạy dày nhất): mỗi N → N · các giờ trong ngày → 1440 / số giờ (theo thứ thì thưa hơn) · chạy liền / chưa đọc được → không tính. */

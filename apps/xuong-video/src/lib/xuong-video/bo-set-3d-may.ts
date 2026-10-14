@@ -9,7 +9,7 @@ import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { uploadToR2 } from '../r2';
-import { bangDung, boSetCuaShot, maKhungXam } from './bo-set-3d';
+import { bangDung, boSetCuaShot, maKhungXam, rangBuocTruc, shotSoTruc } from './bo-set-3d';
 import { locNhanh, type BoSet, type Canh, type KhungXam, type May3d } from './kieu';
 import { kemBienThe, mapCanh, mapNhanVat, type Db, type Row } from './doc-db';
 
@@ -42,12 +42,15 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     if (r[0]) sets.set(id, mapBoSet(r[0]));
   }
   // Gom theo set: một lượt Blender / set (dựng set một lần, render mọi máy).
-  const theoSet = new Map<number, (Canh & { may_3d: May3d })[]>();
+  const theoSet = new Map<number, (Canh & { may_3d: May3d; truc: ReturnType<typeof rangBuocTruc> })[]>();
   for (const c of ds) {
     const sid = boSetCuaShot(c, nv); const set = sid ? sets.get(sid) : undefined;
     if (!set || !c.may_3d || (o.ids && !o.ids.includes(c.id))) continue;
     if (!o.tatCa && c.khung_xam?.ma === maKhungXam(set, c.may_3d, nv)) continue;
-    theoSet.set(set.id, [...(theoSet.get(set.id) ?? []), c as Canh & { may_3d: May3d }]);
+    // Máy tự động: bộ giải phải giữ đúng phía trục của shot so trục liền trước (cùng set, không cố ý vượt trục).
+    const tr = c.may_3d.qua_truc ? null : shotSoTruc(ds, ds.indexOf(c));
+    const truc = tr?.may_3d && boSetCuaShot(tr, nv) === set.id ? rangBuocTruc(tr.may_3d, c.may_3d, (t) => nv.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase())) : null;
+    theoSet.set(set.id, [...(theoSet.get(set.id) ?? []), { ...(c as Canh & { may_3d: May3d }), truc }]);
   }
   let dung = 0; const loi: string[] = [];
   for (const [sid, shots] of theoSet) {

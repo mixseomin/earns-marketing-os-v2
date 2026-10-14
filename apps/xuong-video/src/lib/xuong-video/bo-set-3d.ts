@@ -23,12 +23,12 @@ export function maKhungXam(set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat
 }
 
 /** Bảng đầu vào cho dung-set.py: vật của set + khối nhân vật + các shot (ma = id shot). Thiếu khối của một tên → lỗi (không đoán cỡ). */
-export function bangDung(set: Pick<BoSet, 'du_lieu'>, shots: ({ id: number; thu_tu: number; may_3d: May3d } & Partial<Pick<Canh, 'prompt_anh' | 'dan_dung'>>)[], nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]): { ok: true; bang: unknown } | { ok: false; loi: string } {
+export function bangDung(set: Pick<BoSet, 'du_lieu'>, shots: ({ id: number; thu_tu: number; may_3d: May3d; truc?: ReturnType<typeof rangBuocTruc> } & Partial<Pick<Canh, 'prompt_anh' | 'dan_dung'>>)[], nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]): { ok: true; bang: unknown } | { ok: false; loi: string } {
   const mau: Record<string, unknown> = {}; const thieu = new Set<string>();
   for (const s of shots) for (const v of s.may_3d.vi_tri) { const k = khoiCua(v.ten, nhanVat); if (k) mau[v.ten] = k; else thieu.add(v.ten); }
   if (thieu.size) return { ok: false, loi: `chưa khai khối 3D cho: ${[...thieu].join(', ')} — ghi khoi_3d (hình + cỡ cm) cho anchor đó` };
   return { ok: true, bang: { vat: set.du_lieu.vat, nhan_vat_mau: mau, shot: shots.map((s) => ({ ma: String(s.id), so: s.thu_tu, may: { dat: s.may_3d.dat, nhin: s.may_3d.nhin, ong_kinh: s.may_3d.ong_kinh }, nhan_vat: s.may_3d.vi_tri,
-    bat_buoc: chuThe(s.may_3d), giai: !!s.may_3d.tu_dong, nhac: vatDuocNhac(s, set) })) } };
+    bat_buoc: chuThe(s.may_3d), giai: !!s.may_3d.tu_dong, nhac: vatDuocNhac(s, set), truc: s.truc ?? null })) } };
 }
 
 /** Phía của máy so với TRỤC HÀNH ĐỘNG (đường nối hai nhân vật đầu tiên có mặt ở cả hai shot, nhìn từ trên): +1 / -1, 0 = không xác định. */
@@ -47,6 +47,16 @@ export function vuotTruc(truoc: May3d, sau: May3d, laNhanVat: (ten: string) => b
   const [a, b] = [chung[0]!, chung[1]!];
   const p1 = phia(truoc, a, b); const p2 = phia(sau, a, b);
   return p1 && p2 && p1 !== p2 ? `máy sang phía bên kia trục ${a}–${b} so với shot trước (hướng trên màn sẽ đảo)` : null;
+}
+
+/** RÀNG BUỘC TRỤC cho bộ giải máy: trục nối hai nhân vật chung với shot so trục + phía máy của shot đó (cùng luật vuotTruc). Bộ giải trong
+ *  Blender loại mọi phương án máy nằm phía bên kia (5.4 tập 19: bộ giải xoay máy ra sau trục Tango–Lint vì không biết shot trước đứng đâu). */
+export function rangBuocTruc(truoc: May3d, sau: May3d, laNhanVat: (ten: string) => boolean): { a: number[]; b: number[]; dau: number } | null {
+  const chung = sau.vi_tri.map((v) => v.ten).filter((t) => laNhanVat(t) && truoc.vi_tri.some((v) => v.ten === t));
+  if (chung.length < 2) return null;
+  const dau = phia(truoc, chung[0]!, chung[1]!);
+  const pa = sau.vi_tri.find((v) => v.ten === chung[0])!.tam; const pb = sau.vi_tri.find((v) => v.ten === chung[1])!.tam;
+  return dau ? { a: pa.slice(0, 2), b: pb.slice(0, 2), dau } : null;
 }
 
 /** Chủ thể của khung (phải thấy rõ): khai ở may_3d.khung, mặc định hai vị trí đầu không cố ý che. */

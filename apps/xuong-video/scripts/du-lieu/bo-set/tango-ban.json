@@ -1545,11 +1545,11 @@
         {
           "ten": "The Giant",
           "tam": [
-            57.3,
-            10.4,
+            57.5,
+            14.4,
             1.5
           ],
-          "huong": -90,
+          "huong": -70,
           "nhay": "tay nhấc khỏi khung rồi với sang bấm công tắc"
         }
       ]
@@ -2171,7 +2171,17 @@
           "nam": true
         }
       ],
-      "phia": 0
+      "dat": [
+        0.5,
+        64.5,
+        3
+      ],
+      "nhin": [
+        6,
+        70.5,
+        0.6
+      ],
+      "ong_kinh": 50
     },
     "6.1": {
       "vi_tri": [

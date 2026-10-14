@@ -177,6 +177,13 @@ def nhin_thay(s, cam, sh, nv_obj, C=27, R=48):
 
 def hong(k): return sum(1 for x in k if x['bat_buoc'] and (not x['trong_khung'] or x['bi_che_boi']))
 
+def sai_truc(sh, p):
+    """1 = máy ở phía bên kia trục hành động so với shot so trục (sh['truc'] từ bo-set-3d.ts › rangBuocTruc), 0 = đúng phía / không có trục."""
+    t = sh.get('truc')
+    if not t: return 0
+    a, b = t['a'], t['b']; c = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])
+    return 1 if c and (1 if c > 0 else -1) != t['dau'] else 0
+
 def chan_la(s, cam, sh, nv):
     """Số vật chắn tiền cảnh ≥ 12% khung mà chữ tả khung không nhắc (sh['nhac'], bo-set-3d.ts › vatDuocNhac) — cùng luật cổng vatChanTienCanh."""
     nhac = set(sh.get('nhac') or [])
@@ -187,16 +194,16 @@ def dat_may(cam, dat, nhin):
     cam.rotation_euler = (Vector(nhin) * CM - cam.location).to_track_quat('-Z', 'Y').to_euler()
 
 def giai_may(s, cam, sh, nv):
-    """BỘ GIẢI MÁY: máy tự động mà chủ thể bị che / ra ngoài, hoặc có vật chắn tiền cảnh chữ không nhắc, → thử xoay quanh chủ thể (±15…60°), nâng máy, lùi xa — lấy phương án đầu tiên
+    """BỘ GIẢI MÁY: máy tự động mà chủ thể bị che / ra ngoài, nằm sai phía trục, hoặc có vật chắn tiền cảnh chữ không nhắc, → thử xoay quanh chủ thể (±15…60°), nâng máy, lùi xa — lấy phương án đầu tiên
     mọi chủ thể đều thấy rõ (ít đổi nhất trước). Không có phương án sạch → giữ phương án ít lỗi nhất, kiểm vẫn báo."""
     g = Vector(sh['may']['nhin']); d0 = Vector(sh['may']['dat']) - g
     tot = None
     for xa in (1.0, 1.3, 1.7):
         for dz in (0, 1.5, 4, 8):
-            for dp in (0, 15, -15, 30, -30, 45, -45, 60, -60):
+            for dp in (0, 15, -15, 30, -30, 45, -45, 60, -60, 90, -90, 120, -120, 150, -150, 180):   # tới 180° để máy đang sai phía trục quay về được
                 a = math.radians(dp); v = Vector((d0.x * math.cos(a) - d0.y * math.sin(a), d0.x * math.sin(a) + d0.y * math.cos(a), d0.z)) * xa
                 vt_may = g + v + Vector((0, 0, dz)); dat_may(cam, vt_may, g)
-                k = kiem_hinh_hoc(s, cam, sh, nv); h = hong(k) * 100
+                k = kiem_hinh_hoc(s, cam, sh, nv); h = hong(k) * 100 + sai_truc(sh, vt_may) * 100
                 if h == 0: h = chan_la(s, cam, sh, nv)   # chủ thể sạch rồi mới tính vật chắn lạ (đắt hơn)
                 if tot is None or h < tot[0]: tot = (h, [round(x, 1) for x in vt_may], k)
                 if h == 0: return tot
@@ -221,7 +228,7 @@ for sh in shots:
     cam = may(s, sh['may'], f"cam {sh['ma']}")
     nv_kiem = nv + vat_chu_the(sh)
     k = kiem_hinh_hoc(s, cam, sh, nv_kiem)
-    if sh.get('giai') and (hong(k) or chan_la(s, cam, sh, nv_kiem)):
+    if sh.get('giai') and (hong(k) or sai_truc(sh, sh['may']['dat']) or chan_la(s, cam, sh, nv_kiem)):
         _, may_moi, k = giai_may(s, cam, sh, nv_kiem)   # KHÔNG đặt tên `dat` — trùng hàm dat() ở trên, đè mất hàm (lỗi 14/10/2026)
         giai[sh['ma']] = {'dat': may_moi, 'nhin': sh['may']['nhin']}; sh['may']['dat'] = may_moi
     kiem[sh['ma']] = k

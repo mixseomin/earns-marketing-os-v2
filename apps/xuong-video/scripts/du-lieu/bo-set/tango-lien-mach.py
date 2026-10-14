@@ -68,7 +68,7 @@ PLUG = [54.3, 52.6, 0.8]
 VT = {
  # Tay với từ BÊN PHẢI (ngón trỏ chỉ −x, huong −90): đầu ngón chạm đỉnh kẹo / đỉnh công tắc, cẳng tay nằm sau công tắc nhìn từ máy — không che chủ thể.
  '1.1': [v(TANGO, NEP, ve=G0, an=True), v(GUMMY, G0), v(HAND, [40.3, 20.4, 2.0], [46, 24, 12], ve=-90)],
- '1.2': [v(TANGO, NEP, ve=G0, an=True), v(HAND, [57.3, 10.4, 1.5], ve=-90, nhay='tay nhấc khỏi khung rồi với sang bấm công tắc')],
+ '1.2': [v(TANGO, NEP, ve=G0, an=True), v(HAND, [57.5, 14.4, 1.5], ve=-70, nhay='tay nhấc khỏi khung rồi với sang bấm công tắc')],
  '2.1': [v(TANGO, NEP, [22.5, 23.8, 1.0], ve=G0, ve_den=G0, an=True), v(GUMMY, G0)],
  '2.2': [v(TANGO, [22.5, 23.8, 1.0], [30.3, 26.6, 0.6], ve=G0), v(GUMMY, G0, [35, 27, 1.5])],
  '2.3': [v(TANGO, [30.5, 26.8, 0], ve=[35, 27], ve_den=GAP, nam=True), v(GUMMY, [35, 27, 1.5], [26, 33, 0.5])],
@@ -118,6 +118,8 @@ for ma, ds in VT.items():
     else: m.pop('nhay', None)
 # Máy giữ nguyên tay (dat): nhìn theo chỗ mới của chủ thể.
 S['may']['2.3']['nhin'] = [32, 29, 1.2]
+# 5.7 cận vũng đất sét: máy tự động rơi đúng chỗ cáp trượt dốc qua trước mặt → đặt tay từ trước-trái, thấp, cáp nằm ngoài đường ngắm.
+S['may']['5.7'].update(dat=[0.5, 64.5, 3], nhin=[6, 70.5, 0.6], ong_kinh=50); S['may']['5.7'].pop('phia', None); S['may']['5.7'].pop('tu_dong', None)
 S['may']['1.2']['khung'] = ['Lamp Switch', 'Magic Mouse']
 json.dump(S, open(P, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
 print('ghi', len(VT), 'shot')

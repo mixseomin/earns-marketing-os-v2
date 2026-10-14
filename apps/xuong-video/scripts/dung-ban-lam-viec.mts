@@ -51,19 +51,19 @@ const KINH_THANH = {
   khong_loi: true, nhip_stop_motion: true,
   series: {
     // Chuẩn đo tập (ho-so.ts › kiemHoSo) — số liệu Larva viết theo trí nhớ 14/10/2026, cần đo lại bằng 2–3 tập thật.
-    tham_chieu: { tac_pham: 'Larva (TUBA Entertainment, Hàn Quốc) — mùa 1', do_dai_s: 90, gag_moi_phut: 3, rut_ra: [
+    tham_chieu: { tac_pham: 'Larva (TUBA Entertainment, Hàn Quốc) — mùa 1', do_dai_s: 120, gag_moi_phut: 3, rut_ra: [
       'Mỗi tập một tình huống nhỏ, nhiều gag nối nhau, kết bằng một cú chốt.',
       'Không lời: nhân vật nói bằng âm hiệu; mọi ý hiểu bằng hành động và biểu cảm cường điệu.',
       'Diễn xuất hoạt hình đậm: lấy đà, phản ứng cường điệu, nén–giãn, khựng một nhịp trước cú ngã.',
       'Âm thanh nhấn đúng khung từng gag; nhạc ngắt hoặc bật theo cú bùng.',
       'Thế giới thật thu nhỏ: mở từ thành phố rồi vào tận chỗ nhân vật sống.',
       'Cặp nhân vật đối lập tính cách tạo xung đột trong mọi tình huống.',
-      'Số liệu (90 giây/tập, ~3 gag/phút) theo trí nhớ — đo lại bằng tập thật.' ] },
+      'Larva ~90 giây/tập (theo trí nhớ, đo lại bằng tập thật); Tango & Lint chốt ~120 giây/tập (anh chốt 14/10/2026); ~3 gag/phút.' ] },
     khuon: { intro: 'Chuỗi mở ~15 giây dùng chung: Trái Đất về đêm → Hà Nội (Hồ Gươm) → phố cổ dây điện → ô cửa sổ tầng ba → bay vào cái bàn; làm một lần, tập nào cũng mở bằng nó (cắt ngắn được).',
       the_tua: 'Tên tập hiện trên shot Trái Đất, chữ tròn kiểu đất sét, ~2 giây.',
       the_ket: 'Thẻ kết ~3,5 giây: Tango và Lint vẫy tay ở mép bàn dưới đèn, chữ "Tango & Lint", nhạc chủ đề chốt.',
       nhac_chu_de: 'Câu tango 4 nhịp (bandoneon + pizzicato): mở intro, chốt thẻ kết, lặp ngắn ở mỗi cú thắng.' },
-    ten: 'Tango & Lint', dong_co: '', khan_gia: 'mọi lứa tuổi, toàn cầu — phim không lời', dinh_dang: 'Shorts 9:16, 40–60 giây/tập, hài hành động không lời kiểu Larva', tap: [] },
+    ten: 'Tango & Lint', dong_co: '', khan_gia: 'mọi lứa tuổi, toàn cầu — phim không lời', dinh_dang: 'Shorts 9:16, ~120 giây/tập, hài hành động không lời kiểu Larva', tap: [] },
 };
 /** DÀN NHÂN VẬT (anh chốt 14/10/2026). mo_ta = đặc tính NHÌN THẤY (vào prompt hình); tieu_su = kiểu Marvel (nguồn gốc, sức mạnh, điểm yếu…)
  *  cho Claude viết kịch bản + làm nền tập phim về chính nhân vật; phuong_an = ảnh thử (scripts/thu-nhan-vat.mts) làm tham chiếu tạo hình. */

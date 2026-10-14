@@ -253,10 +253,10 @@
             "anh_sang_cam_xuc",
             "khoang_lang"
           ],
-          "thay": "Ngón tay khổng lồ bấm công tắc đèn. Ánh vàng tắt phụt, cả bàn chuyển sang xanh lạnh của màn hình, bóng đổ dài ra. Im lặng.",
-          "bo_cuc": "Foreground: the lamp switch and a giant fingertip. Mid: the lamp head glowing warm. Background: the desk falling into blue darkness.",
+          "thay": "Ngón tay khổng lồ bấm công tắc đèn. Ánh vàng tắt phụt, cả bàn chìm vào xanh lạnh. Trong bóng tối sau con chuột, đôi mắt tròn của Tango mở to, chớp chớp nhìn viên kẹo.",
+          "bo_cuc": "Foreground: the lamp switch and a giant fingertip. Mid: the lamp head. Background: behind the white mouse, two round googly eyes glowing in the dark.",
           "mo": "Lamp on, warm yellow light; the fingertip rests on the switch.",
-          "ket": "Lamp off; only the cold blue glow of the screens remains, long shadows across the wood.",
+          "ket": "Lamp off, cold blue glow only; behind the mouse two big googly eyes blink, fixed on the gummy.",
           "huong": "The finger presses down; light drains from right to left.",
           "am": "Tiếng TÁCH. Nhạc tắt, chỉ còn tiếng ù rất khẽ.",
           "muc_dich": "Ấm → lạnh: một thế giới khác bắt đầu khi người khổng lồ rời đi.",
@@ -270,14 +270,16 @@
           },
           "anchor": [
             "The Desk at Night",
-            "The Giant"
+            "The Giant",
+            "Tango",
+            "Magic Mouse"
           ],
-          "thay_en": "A giant fingertip clicks the desk lamp switch; the warm yellow light dies and the desk falls into the cold blue glow of the screens, shadows stretching long.",
+          "thay_en": "A giant fingertip clicks the desk lamp off; the desk falls into cold blue darkness and, behind the white mouse, two big round googly eyes pop open and blink at the candy.",
           "am_en": "A sharp lamp switch click, then near silence with a faint electrical hum.",
           "thoai": [],
           "cam_xuc": 0,
-          "dien": "The finger presses with a slight squash of the switch; a one-beat hold in darkness before the blue settles.",
-          "nhan": ""
+          "dien": "The finger presses with a slight squash of the switch; a one-beat hold in darkness, then two eyes pop open with a bounce and blink twice, comically.",
+          "nhan": "TÁCH công tắc — im một nhịp — tiếng \"blink blink\" nhỏ đúng hai lần chớp mắt."
         }
       ],
       "kich_ban": [
@@ -291,7 +293,7 @@
         },
         {
           "loai": "hd",
-          "chu": "Bàn tay vươn lên đèn. TÁCH. Ánh vàng tắt. Cả cái bàn chìm vào ánh xanh lạnh của hai màn hình. Bóng đổ dài ra."
+          "chu": "Bàn tay vươn lên đèn. TÁCH. Ánh vàng tắt. Cả cái bàn chìm vào ánh xanh lạnh của hai màn hình. Sau con chuột, đôi mắt tròn của Tango mở to, chớp chớp nhìn viên kẹo."
         },
         {
           "loai": "am",
@@ -322,7 +324,14 @@
       },
       "nhac": "pizzicato",
       "beat": "Hook 3 giây",
-      "gag": [],
+      "gag": [
+        {
+          "ten": "Đôi mắt trong bóng tối",
+          "gai": "Đèn tắt, cả bàn tối om",
+          "bung": "Đôi mắt Tango mở to chớp chớp nhìn viên kẹo",
+          "o_shot": 2
+        }
+      ],
       "intro": false
     },
     {
@@ -579,10 +588,10 @@
             "dan_khong_gian",
             "anh_sang_cam_xuc"
           ],
-          "thay": "Quả bóng cam lăn qua hành lang hẹp giữa hai bức tường màn hình sáng xanh, viên kẹo đỏ nảy trước, biến vào bóng tối phía sau.",
+          "thay": "Quả bóng cam lăn vèo qua hành lang giữa hai màn hình, đập \"bonk\" vào chân màn hình, nảy ngược lại, lảo đảo một vòng rồi lăn tiếp vào bóng tối theo viên kẹo.",
           "bo_cuc": "Two tall glowing screen walls left and right framing a narrow corridor. Mid: the orange ball rolling toward camera-far. Background: pitch-dark tangle of cables at the end of the corridor.",
           "mo": "The orange ball enters the corridor; the gummy a little ahead of it.",
-          "ket": "The gummy disappears into the dark; the ball reaches the dark edge.",
+          "ket": "The orange ball, a little wobbly, rolling on into the dark after the gummy.",
           "huong": "Rolling away from camera, centred, into depth.",
           "am": "Tiếng lăn vang trong hành lang. Nhạc trầm xuống.",
           "muc_dich": "Đi từ chỗ sáng quen thuộc vào chỗ tối chưa biết: hồi hộp.",
@@ -599,18 +608,18 @@
             "Tango",
             "Gummy Bear"
           ],
-          "thay_en": "An orange clay ball rolls down the narrow corridor between two tall glowing screens, the red gummy bouncing ahead and vanishing into the darkness beyond.",
+          "thay_en": "The orange clay ball zooms down the corridor between the two screens, bonks into a monitor stand, bounces back dizzy, wobbles in a circle, then rolls on into the dark after the gummy.",
           "am_en": "Rolling echoing between the screens, a low drone creeping in.",
           "thoai": [],
           "cam_xuc": -1,
-          "dien": "Rolling ball bounces slightly on each bump; the candy bounces ahead in smaller and smaller arcs.",
-          "nhan": ""
+          "dien": "The ball accelerates with stretch, hits the stand with a big squash and recoil, spins dizzily in a small circle (eyes spinning), then shakes it off and zooms on.",
+          "nhan": "Đúng khung quả bóng chạm chân màn hình — \"bonk\" kim loại; một tiếng \"tưng\" chóng mặt."
         }
       ],
       "kich_ban": [
         {
           "loai": "hd",
-          "chu": "Hành lang hẹp giữa hai màn hình sáng như hai bức tường ánh sáng. Quả bóng cam lăn qua. Viên kẹo đỏ nảy phía trước rồi biến vào bóng tối phía sau."
+          "chu": "Hành lang hẹp giữa hai màn hình sáng. Quả bóng cam lăn vèo qua — BONK — đập vào chân màn hình, nảy ngược, lảo đảo một vòng, rồi lăn tiếp vào bóng tối theo viên kẹo."
         },
         {
           "loai": "am",
@@ -638,7 +647,14 @@
       },
       "nhac": "drone",
       "beat": "Vấn đề",
-      "gag": [],
+      "gag": [
+        {
+          "ten": "Bonk chân màn hình",
+          "gai": "Quả bóng lăn quá nhanh",
+          "bung": "Đập \"bonk\", nảy ngược, lảo đảo",
+          "o_shot": 1
+        }
+      ],
       "intro": false
     },
     {
@@ -2173,7 +2189,7 @@
   "series": {
     "tham_chieu": {
       "tac_pham": "Larva (TUBA Entertainment, Hàn Quốc) — mùa 1",
-      "do_dai_s": 90,
+      "do_dai_s": 120,
       "gag_moi_phut": 3,
       "rut_ra": [
         "Mỗi tập một tình huống nhỏ, nhiều gag nối nhau, kết bằng một cú chốt.",
@@ -2182,7 +2198,7 @@
         "Âm thanh nhấn đúng khung từng gag; nhạc ngắt hoặc bật theo cú bùng.",
         "Thế giới thật thu nhỏ: mở từ thành phố rồi vào tận chỗ nhân vật sống.",
         "Cặp nhân vật đối lập tính cách tạo xung đột trong mọi tình huống.",
-        "Số liệu (90 giây/tập, ~3 gag/phút) theo trí nhớ — đo lại bằng tập thật."
+        "Larva ~90 giây/tập (theo trí nhớ, đo lại bằng tập thật); Tango & Lint chốt ~120 giây/tập (anh chốt 14/10/2026); ~3 gag/phút."
       ]
     },
     "khuon": {

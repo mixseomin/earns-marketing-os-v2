@@ -32,7 +32,8 @@ export function SoDoToChuc({ phong, ns, vpId = 'vp-giam-doc' }: { phong: Doc[]; 
       <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="currentColor" /></marker></defs>
       {/* Giám đốc */}
       <g>
-        <rect x={W / 2 - 80} y={yGD} width={160} height={44} rx={6} fill="var(--warn-bg)" stroke="var(--warn)" strokeWidth={2} />
+        {/* #1355: hộp rộng theo dòng phụ (34 ký tự cỡ 10.5 ≈ 200px) — 160 cũ làm chữ lòi ra ngoài viền */}
+        <rect x={W / 2 - 120} y={yGD} width={240} height={44} rx={6} fill="var(--warn-bg)" stroke="var(--warn)" strokeWidth={2} />
         <text x={W / 2} y={yGD + 20} textAnchor="middle" fontSize={14} fontWeight={700} fill="var(--warn)">Giám đốc</text>
         <text x={W / 2} y={yGD + 36} textAnchor="middle" fontSize={10.5} fill="var(--muted)">1 tin sáng · ký ≤ 3 quyết định/ngày</text>
       </g>

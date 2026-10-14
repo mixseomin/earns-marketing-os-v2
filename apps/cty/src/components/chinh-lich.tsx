@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { chinhLich } from '@/lib/nhip-chinh';
+import { useBamNgoai } from './bam-ngoai';
 import { chuLich, TEN_THU } from '../../worker/lich-chu.mjs';
 
 export type Lich = { kieu: 'moi'; phut: number } | { kieu: 'luc'; gio: string[]; thu: number[] };
@@ -46,16 +47,10 @@ function BangChinh({ neo, muc, lich, kieu, motGio, apSau, loiCu, dong }: { neo: 
   const moi: Lich = kieuDang === 'moi' ? { kieu: 'moi', phut: Math.max(1, Math.round(Number(so) || 0)) * (dv === 'gio' ? 60 : 1) } : { kieu: 'luc', gio: [...new Set(gio.filter(Boolean))].sort(), thu: thu.length === 7 ? [] : [...thu].sort() };
   const khac = chuLich(moi) !== chuLich(lich);
 
-  // neo bảng ngay dưới nhãn (position fixed — ô bảng cắt tràn); Esc / bấm ra ngoài / cuộn trang → đóng
+  // neo bảng ngay dưới nhãn (position fixed — ô bảng cắt tràn); Esc / bấm ra ngoài / bấm vào khung nhúng / cuộn trang → đóng (bam-ngoai.ts)
   const [toaDo, setToaDo] = useState<{ top: number; left: number } | null>(null);
-  useEffect(() => {
-    const r = neo?.getBoundingClientRect(); if (r) setToaDo({ top: Math.min(r.bottom + 4, window.innerHeight - 260), left: Math.min(r.left, window.innerWidth - 300) });
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') dong(); };
-    const ngoai = (e: MouseEvent) => { if (!hop.current?.contains(e.target as Node) && !neo?.contains(e.target as Node)) dong(); };
-    const cuon = (e: Event) => { if (!hop.current?.contains(e.target as Node)) dong(); };
-    document.addEventListener('keydown', esc); document.addEventListener('mousedown', ngoai); window.addEventListener('scroll', cuon, true);
-    return () => { document.removeEventListener('keydown', esc); document.removeEventListener('mousedown', ngoai); window.removeEventListener('scroll', cuon, true); };
-  }, [neo, dong]);
+  useEffect(() => { const r = neo?.getBoundingClientRect(); if (r) setToaDo({ top: Math.min(r.bottom + 4, window.innerHeight - 260), left: Math.min(r.left, window.innerWidth - 300) }); }, [neo]);
+  const neoRef = useRef(neo); neoRef.current = neo; useBamNgoai(true, [hop, neoRef], dong, { cuon: true });
 
   const luu = () => chuyen(async () => { setBao(null); const r = await chinhLich(muc, moi); if (r.ok) { setBao({ ok: true, chu: `Đã lưu — ${apSau}` }); router.refresh(); } else setBao({ ok: false, chu: r.loi ?? 'Máy chủ từ chối.' }); });
   return (

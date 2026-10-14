@@ -8,7 +8,7 @@ import { promptKyThuatAnh } from './dien-anh';
 import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type KinhThanh, type NhanVat } from './kieu';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
-import { boSetCuaShot, chanKhungXam, khoiCua, lienMachTap, moTaThay, shotSoTruc } from './bo-set-3d';
+import { boSetCuaShot, chanKhungXam, khoiCua, lienMachTap, mayDayDu, moTaThay, shotSoTruc } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { boiCanhCanh, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, jobDangCho, type Db, type Row } from './doc-db';
 
@@ -178,7 +178,10 @@ export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonN
   if (sid) {
     const r = (await db.execute(sql`SELECT * FROM xv_bo_set WHERE id = ${sid}`)) as unknown as Row[];
     const ds = locNhanh(tatCa, bc.canh.nhanh || 'A'); const i = ds.findIndex((c) => c.id === bc.canh.id);
-    const k = chanKhungXam(bc.canh, nvPhim, r[0] ? mapBoSet(r[0]) : null, i > 0 ? shotSoTruc(ds, i) : null);
+    // Mã khung xám tính trên máy ĐẦY ĐỦ (có đồ để lại) — cùng cách bo-set-3d-may.ts dựng.
+    const laDoVat = (t: string) => nvPhim.some((x) => (x.loai === 'dao_cu' || x.loai === 'san_pham') && x.ten.trim().toLowerCase() === t.trim().toLowerCase());
+    const mDu = mayDayDu(ds.filter((c) => boSetCuaShot(c, nvPhim) === sid), laDoVat).get(bc.canh.id) ?? bc.canh.may_3d;
+    const k = chanKhungXam({ ...bc.canh, may_3d: mDu }, nvPhim, r[0] ? mapBoSet(r[0]) : null, i > 0 ? shotSoTruc(ds, i) : null);
     // Liền mạch: mọi nhân vật mở shot này đúng chỗ lần cuối thấy nó kết (cùng set, theo thứ tự phát).
     const lm = lienMachTap(ds.filter((c) => boSetCuaShot(c, nvPhim) === sid), (t) => khoiCua(t, nvPhim))[bc.canh.id] ?? [];
     k.push(...lm);

@@ -11,7 +11,7 @@ import path from 'node:path';
 import { uploadToR2, deleteFromR2, r2KeyFromUrl } from '../r2';
 import { khoaNho } from './anh-nho-may';
 import { CO_NHO } from './anh-nho';
-import { bangDung, boSetCuaShot, maKhungXam, rangBuocTruc, shotSoTruc } from './bo-set-3d';
+import { bangDung, boSetCuaShot, maKhungXam, mayDayDu, rangBuocTruc, shotSoTruc } from './bo-set-3d';
 import { locNhanh, type BoSet, type Canh, type KhungXam, type May3d } from './kieu';
 import { kemBienThe, mapCanh, mapNhanVat, type Db, type Row } from './doc-db';
 
@@ -68,16 +68,21 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     const r = (await db.execute(sql`SELECT * FROM xv_bo_set WHERE id = ${id}`)) as unknown as Row[];
     if (r[0]) sets.set(id, mapBoSet(r[0]));
   }
+  // Đồ để lại (mayDayDu): máy + chỗ đứng ĐẦY ĐỦ của từng shot = khai của shot + đạo cụ còn nằm lại từ các shot trước cùng set.
+  const laDoVat = (t: string) => nv.some((x) => (x.loai === 'dao_cu' || x.loai === 'san_pham') && x.ten.trim().toLowerCase() === t.trim().toLowerCase());
+  const day = new Map<number, May3d>();
+  for (const sid of new Set(ds.map((c) => boSetCuaShot(c, nv)).filter((x): x is number => !!x))) for (const [k, m] of mayDayDu(ds.filter((c) => boSetCuaShot(c, nv) === sid), laDoVat)) day.set(k, m);
   // Gom theo set: một lượt Blender / set (dựng set một lần, render mọi máy).
-  const theoSet = new Map<number, (Canh & { may_3d: May3d; truc: ReturnType<typeof rangBuocTruc> })[]>();
+  const theoSet = new Map<number, (Canh & { may_3d: May3d; goc: May3d; truc: ReturnType<typeof rangBuocTruc> })[]>();
   for (const c of ds) {
     const sid = boSetCuaShot(c, nv); const set = sid ? sets.get(sid) : undefined;
     if (!set || !c.may_3d || (o.ids && !o.ids.includes(c.id))) continue;
-    if (!o.tatCa && c.khung_xam?.ma === maKhungXam(set, c.may_3d, nv)) continue;
+    const mDu = day.get(c.id) ?? c.may_3d;
+    if (!o.tatCa && c.khung_xam?.ma === maKhungXam(set, mDu, nv)) continue;
     // Máy tự động: bộ giải phải giữ đúng phía trục của shot so trục liền trước (cùng set, không cố ý vượt trục).
     const tr = c.may_3d.qua_truc ? null : shotSoTruc(ds, ds.indexOf(c));
     const truc = tr?.may_3d && boSetCuaShot(tr, nv) === set.id ? rangBuocTruc(tr as { id: number; may_3d: May3d }, c.may_3d, (t) => nv.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase())) : null;
-    theoSet.set(set.id, [...(theoSet.get(set.id) ?? []), { ...(c as Canh & { may_3d: May3d }), truc }]);
+    theoSet.set(set.id, [...(theoSet.get(set.id) ?? []), { ...(c as Canh & { may_3d: May3d }), may_3d: mDu, goc: c.may_3d, truc }]);
   }
   let dung = 0; const loi: string[] = []; const cu: string[] = [];
   for (const [sid, shots] of theoSet) {
@@ -93,7 +98,8 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     const thay = JSON.parse(await readFile(path.join(thu, 'ra', 'thay.json'), 'utf8').catch(() => '{}')) as Record<string, NonNullable<KhungXam['thay']>>;
     const di = JSON.parse(await readFile(path.join(thu, 'ra', 'di.json'), 'utf8').catch(() => '{}')) as Record<string, NonNullable<KhungXam['di']>>;
     const giai = JSON.parse(await readFile(path.join(thu, 'ra', 'giai.json'), 'utf8').catch(() => '{}')) as Record<string, { dat: number[] }>;
-    for (const c of shots) { const g = giai[String(c.id)]; if (g) { c.may_3d = { ...c.may_3d, dat: g.dat }; await db.execute(sql`UPDATE xv_canh SET may_3d = ${JSON.stringify(c.may_3d)}::jsonb WHERE id = ${c.id}`); } }
+    // Ghi máy đã giải vào máy KHAI của shot (không ghi đồ để lại — chúng là trạng thái tính ra, không phải khai).
+    for (const c of shots) { const g = giai[String(c.id)]; if (g) { c.may_3d = { ...c.may_3d, dat: g.dat }; c.goc = { ...c.goc, dat: g.dat }; await db.execute(sql`UPDATE xv_canh SET may_3d = ${JSON.stringify(c.goc)}::jsonb WHERE id = ${c.id}`); } }
     const luc = new Date().toISOString();
     for (const c of shots) {
       const ma = maKhungXam(set, c.may_3d, nv);

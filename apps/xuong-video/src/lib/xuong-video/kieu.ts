@@ -299,6 +299,8 @@ export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy 
   /** CHỦ THỂ của khung: phải trong khung + không bị che (mặc định: hai vị trí đầu không 'an') */ khung?: string[]; vi_tri: { ten: string; /** chỗ ở lúc MỞ shot (cm) — khung xám dựng ở đây */ tam: number[]; /** chỗ ở lúc KẾT shot (đi / lăn / bay trong shot); không ghi = đứng yên */ den?: number[];
     /** hướng mặt lúc mở / kết (độ, 0 = nhìn về phía người ngồi −y, 90 = nhìn sang phải +x) — mắt khối 3D quay theo */ huong?: number; huong_den?: number;
     /** đang được nhân vật này CẦM (kẹo trong tay Tango): đi theo người cầm, không kiểm chỗ riêng */ cam?: string;
+    /** món RỜI KHỎI bộ set sau shot này (bị lấy đi / mang ra ngoài) — không còn tự đặt lại ở các shot sau */ het?: boolean;
+    /** (máy tự thêm) đạo cụ ĐỂ LẠI từ shot trước, đặt đúng chỗ cuối cùng nó được thấy — bo-set-3d.ts › mayDayDu */ de_lai?: boolean;
     /** CỐ Ý xuất hiện ở chỗ khác lần cuối thấy (đi ngoài khung) — ghi lý do; chỉ miễn kiểm cho món này */ nhay?: string;
     nam?: boolean; /** dáng lúc KẾT (bẹp / nằm) khác lúc mở — khung màu kết vẽ theo */ nam_den?: boolean; /** kịch bản CỐ Ý cho vật khác che (vd nấp sau chuột) — kiểm không báo bị che */ an?: boolean }[];
   /** CỐ Ý ĐỨT MẠCH ở cú cắt vào shot này (thời gian trôi / dịch chuyển ngoài khung) — ghi lý do; không ghi thì mọi nhân vật phải mở đúng chỗ

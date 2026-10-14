@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, BAN_DUNG, moTaChuyenDong } from './bo-set-3d';
+import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, BAN_DUNG, moTaChuyenDong, mayDayDu } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -103,4 +103,9 @@ const sp = (id: number, vt: { ten: string; tam: number[]; cam?: string }[]) => s
 assert.ok(lienMachTap([sp(1, [{ ten: 'Mr. Wipe', tam: [0, 0, 5] }, { ten: 'Spray', tam: [0, 0, 4], cam: 'Mr. Wipe' }]), sp(2, [{ ten: 'Mr. Wipe', tam: [0, 0, 5] }])], kh)[2]![0]!.includes('đang cầm Spray'));
 assert.deepEqual(lienMachTap([sp(1, [{ ten: 'Mr. Wipe', tam: [0, 0, 5] }, { ten: 'Spray', tam: [0, 0, 4], cam: 'Mr. Wipe' }]), sp(2, [{ ten: 'Mr. Wipe', tam: [0, 0, 5] }, { ten: 'Spray', tam: [0, 0, 4], cam: 'Mr. Wipe' }])], kh), {});
 assert.deepEqual(lienMachTap([sp(1, [{ ten: 'Mr. Wipe', tam: [0, 0, 5] }, { ten: 'Spray', tam: [0, 0, 4], cam: 'Mr. Wipe' }]), sp(2, [{ ten: 'Mr. Wipe', tam: [0, 0, 5] }, { ten: 'Spray', tam: [3, 0, 0] }]), sp(3, [{ ten: 'Mr. Wipe', tam: [0, 0, 5] }])], kh), {});
+// Đồ để lại: cục bông đặt xuống ở #1 → #2 (không khai) tự có ở chỗ cuối; #3 khai het → #4 không còn; đang cầm thì không để lại.
+const dl = mayDayDu([sh(1, [{ ten: 'Lint', tam: [0, 0, 0] }, { ten: 'Bông', tam: [1, 0, 0], den: [2, 0, 0] }]), sh(2, [{ ten: 'Lint', tam: [0, 0, 0] }]), sh(3, [{ ten: 'Bông', tam: [2, 0, 0], het: true } as never]), sh(4, [{ ten: 'Lint', tam: [0, 0, 0] }])], (t) => t === 'Bông');
+assert.deepEqual(dl.get(2)!.vi_tri.find((v) => v.ten === 'Bông')?.tam, [2, 0, 0]);
+assert.equal(dl.get(4)!.vi_tri.some((v) => v.ten === 'Bông'), false);
+assert.equal(mayDayDu([sh(1, [{ ten: 'Bông', tam: [1, 0, 0], cam: 'Lint' } as never]), sh(2, [{ ten: 'Lint', tam: [0, 0, 0] }])], (t) => t === 'Bông').get(2)!.vi_tri.length, 1);
 console.log('bo-set-3d.test: ok');

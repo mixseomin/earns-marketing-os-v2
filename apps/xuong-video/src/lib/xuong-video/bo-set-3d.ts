@@ -208,6 +208,26 @@ export function moTaThay(thay: VatThay[] | undefined): string {
   return ds.length ? `Blocks in that layout image, by name: ${ds.join('; ')}. Nothing else is in this frame — do not add hands, people or objects that are not in this list; the BACKGROUND is exactly what those blocks show (a far room wall stays a plain dim wall — never add monitors, computers or extra cables there).` : '';
 }
 
+// ── ĐỒ ĐỂ LẠI (anh 15/10/2026: "đồ ở các cảnh liên quan trước và sau phải chú ý để không bị mất hình") ──────────────────────────────────
+// Bộ set có TRẠNG THÁI theo thời gian: đạo cụ / sản phẩm đặt xuống ở shot trước nằm nguyên chỗ cuối cùng nó được thấy trong mọi shot sau cùng
+// set — tự thêm vào chỗ đứng của shot (an, de_lai) cho tới khi nó được khai lại (đổi chỗ), được cầm lên (cam), hoặc rời bộ set (het).
+// Khung 3D / khung màu / keyframe vì thế luôn có món đó nếu máy nhìn thấy chỗ nó nằm — không phải nhớ khai lại từng shot.
+export function mayDayDu<T extends { id: number; may_3d?: May3d | null }>(ds: T[], laDoVat: (ten: string) => boolean): Map<number, May3d> {
+  const con = new Map<string, { tam: number[]; huong?: number; nam?: boolean }>(); const out = new Map<number, May3d>();
+  for (const c of ds) {
+    const m = c.may_3d; if (!m) continue;
+    const co = new Set(m.vi_tri.map((v) => v.ten));
+    const deLai = [...con].filter(([t]) => !co.has(t)).map(([ten, x]) => ({ ten, tam: x.tam, ...(x.huong != null ? { huong: x.huong } : {}), ...(x.nam ? { nam: true } : {}), an: true, de_lai: true }));
+    out.set(c.id, deLai.length ? { ...m, vi_tri: [...m.vi_tri, ...deLai] } : m);
+    for (const v of m.vi_tri) {
+      if (!laDoVat(v.ten)) continue;
+      if (v.het || (v.cam && !v.den)) con.delete(v.ten);   // rời bộ set / đang được cầm đi theo người
+      else con.set(v.ten, { tam: v.den ?? v.tam, huong: v.huong_den ?? v.huong, nam: v.nam_den ?? v.nam });
+    }
+  }
+  return out;
+}
+
 // ── LIỀN MẠCH (anh 14/10/2026: "bản 3D phải thể hiện được sự liền mạch về chuyển động, vị trí của mọi nhân vật ở các cảnh") ──────────
 // Mỗi nhân vật / đạo cụ có chỗ MỞ (tam) và chỗ KẾT (den) trong từng shot. Shot sau mở phải đúng chỗ LẦN CUỐI thấy nó kết — kể cả khi nó vắng
 // vài shot ở giữa (Lint vắng ở 7.2 thì 7.2a vẫn phải đứng chỗ 7.1 kết). Lệch quá ngưỡng = đứt mạch, trừ shot khai `nhay` (thời gian trôi /

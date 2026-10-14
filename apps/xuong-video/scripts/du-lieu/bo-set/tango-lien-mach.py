@@ -156,7 +156,8 @@ VT = {
          v(TANGO, T7N, ve=[57, 55.6], nhay='chạy nấp sau mép thẻ khi thấy Mr. Wipe tới'), v(LINT, L7N, ve=[57, 55.6], nhay='chạy nấp sau mép thẻ khi thấy Mr. Wipe tới')],
  '7.5': [v(WIPE, [56.6, 55.2, 1.8], [55, 54.2, 1.2], ve=PLUG)],
  '7.6': [v(TANGO, T7N, ve=[55.5, 55], ve_den=L7N), v(LINT, L7N, ve=[55.5, 55], ve_den=T7N), v(WIPE, [55.5, 55, 2], ve=CAM, an=True)],
- '7.7': [v(GUMMY, KEO7, [59, 45.5, 0]), v(STICKY, ST7, [59, 45.5, 0.05]), v(TANGO, T7N, ve=L7N, an=True), v(LINT, L7N, ve=T7N, an=True)],
+ # 7.7: tờ note trùm hai nửa kẹo rồi lẩn ra khỏi khung — cả hai RỜI bộ set (het), không tự đặt lại ở 7.7a / 7.8.
+ '7.7': [v(GUMMY, KEO7, [59, 45.5, 0], het=True), v(STICKY, ST7, [59, 45.5, 0.05], het=True), v(TANGO, T7N, ve=L7N, an=True), v(LINT, L7N, ve=T7N, an=True)],
  '7.7a': [v(TANGO, T7N, ve=L7N, ve_den=KEO7), v(LINT, L7N, ve=T7N, ve_den=KEO7)],
  '7.8': [v(TANGO, T7N, ve=KEO7), v(LINT, L7N, ve=KEO7), v(CORDY, [47, 57.6, 0.6], ve=T7N)],
  '8.1': [v(TANGO, [-2, 3, 0], ve=CAM), v(LINT, [2, 3, 0], ve=CAM)],

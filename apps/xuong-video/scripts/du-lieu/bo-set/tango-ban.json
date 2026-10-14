@@ -313,6 +313,23 @@
       "en": "window frame on the far wall"
     },
     {
+      "ten": "Khung cửa sổ",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        0,
+        -188,
+        25
+      ],
+      "co": [
+        124,
+        4,
+        2
+      ],
+      "mau": "#8a7a66",
+      "en": "window frame on the far wall"
+    },
+    {
       "ten": "Mặt bàn",
       "nen": true,
       "hinh": "hop",
@@ -2719,13 +2736,13 @@
         "Cable Plug"
       ],
       "dat": [
-        63,
+        49,
         44,
         2.5
       ],
       "nhin": [
-        56.5,
-        53.5,
+        56,
+        53,
         1.2
       ],
       "ong_kinh": 35

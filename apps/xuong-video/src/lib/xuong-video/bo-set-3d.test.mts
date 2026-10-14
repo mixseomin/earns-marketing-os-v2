@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, BAN_DUNG, moTaChuyenDong, mayDayDu } from './bo-set-3d';
+import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -92,7 +92,8 @@ assert.ok(Math.hypot(ecu.dat[0]! - ecu.nhin[0]!, ecu.dat[1]! - ecu.nhin[1]!) >= 
 // Bố cục nhắc vật của set mà khung 3D không thấy → chặn; thấy rồi → qua.
 const setHub = { id: 7, du_lieu: { vat: [...set.du_lieu.vat, { ten: 'USB Hub', hinh: 'hop' as const, tam: [0, 0, 0], co: [1, 1, 1], mau: '#ccc' }] } };
 const kxH = (thay: { ten: string; pt: number; hop: [number, number, number, number]; tien: boolean }[]) => ({ ma: maKhungXam(setHub, mm, nv), xam: '', sau: '', luc: '', kiem: [], thay });
-assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxH([]), dan_dung: { bo_cuc: 'Tango pressing his hand onto the USB hub.' } }, nv, setHub).some((x) => x.includes('nhắc USB Hub')));
+assert.deepEqual(nhacMaKhongThay({ may_3d: mm, khung_xam: kxH([]), dan_dung: { bo_cuc: 'Tango pressing his hand onto the USB hub.' } }, setHub), ['USB Hub']);   // gợi ý cho bộ giải máy
+assert.ok(!chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxH([]), dan_dung: { bo_cuc: 'Tango pressing his hand onto the USB hub.' } }, nv, setHub).some((x) => x.includes('nhắc')));   // không chặn (dò chữ báo nhầm)
 assert.ok(!chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxH([{ ten: 'USB Hub', pt: 6, hop: [0, 0, 1, 1], tien: false }]), dan_dung: { bo_cuc: 'Tango pressing his hand onto the USB hub.' } }, nv, setHub).some((x) => x.includes('nhắc USB Hub')));
 // Câu chuyển động từ số đo 3D: món dịch đủ xa thì tả hướng + chỗ đầu/cuối; món đứng yên ghi 'stay in place'.
 const cd = moTaChuyenDong([{ ten: 'Lint', tu: [0.5, 0.7], den: [0.55, 0.4] }, { ten: 'Cotton Ball', tu: [0.8, 0.7], den: [0.8, 0.7] }]);

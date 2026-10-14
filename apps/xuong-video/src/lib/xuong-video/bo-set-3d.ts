@@ -136,7 +136,8 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> 
   else {
     for (const k of loiHinhHoc(c)) out.push(!k.trong_khung ? `${k.nhan_vat} (chủ thể) nằm ngoài khung` : `${k.nhan_vat} (chủ thể) bị ${k.bi_che_boi.join(', ')} che`);
     out.push(...chuTheQuaTo(c));
-    for (const t of nhacMaKhongThay(c, set)) out.push(`bố cục nhắc ${t} mà khung 3D không thấy — xoay / dời máy cho nó vào khung, hoặc bỏ khỏi chữ tả nếu không cần`);
+    // 'Bố cục nhắc mà khung không thấy' (dò tên trong chữ) KHÔNG chặn nữa — báo nhầm (chữ 'cable' khớp mọi sợi cáp); bộ giải máy vẫn dùng nó làm
+    // gợi ý. Vật BẮT BUỘC thấy khai thẳng ở may_3d.khung (đồ của set cũng được) → kiểm như chủ thể (anh 15/10/2026: 3D là nguồn, không dò chữ).
     for (const t of khoiLapKhung(c, set)) out.push(`${t.ten} lấp ${t.pt}% khung — máy dí sát hoặc lọt trong vật: lùi máy / đổi cỡ cảnh`);
     for (const v of vatChanTienCanh(c, set)) out.push(`${v.ten} chắn tiền cảnh ${v.pt}% khung mà bố cục không nhắc — máy đang đặt sau đồ đạc: dời máy (phía / dat) hoặc ghi nó vào bố cục nếu cố ý`);
   }

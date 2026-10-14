@@ -52,6 +52,12 @@ PHONG += [
     {'ten': 'Khung cửa sổ', 'nen': True, 'hinh': 'hop', 'tam': [0, -188, 25], 'co': [124, 4, 2], 'mau': '#8a7a66'},
 ]
 S['vat'] = PHONG + S['vat']
+# Tên tiếng Anh gửi mô hình ảnh (danh sách khối trong prompt keyframe): tên tiếng Việt như 'Tường phải' model không hiểu là bức tường.
+for x in S['vat']:
+    if x['ten'].startswith('Tường') or x['ten'] == 'Khung cửa sổ': x['en'] = 'far plain room wall' if x['ten'] != 'Khung cửa sổ' else 'window frame on the far wall'
+    elif x['ten'] == 'Sàn phòng': x['en'] = 'room floor far below the desk'
+    elif x['ten'].startswith('Chân bàn'): x['en'] = 'desk leg'
+    elif x['ten'] == 'Mặt bàn': x['en'] = 'wooden desk top'
 vat('Mặt bàn')['nen'] = True
 vat('Cable Jungle 3')['diem'] = [[-40, 96, 0.3], [-38, 90, 0.3], [-10, 80, 0.3], [15, 86, 0.3], [36, 92, 0.3], [34, 97, 0.3]]
 # Nắp nghiêng ra sau 15°: bản lề ở mép sau thân máy (y = +11, z = 1.5); tâm nắp = bản lề + 10·(0, sin15°, cos15°); khối ghi z ĐÁY = tâm − nửa cao.

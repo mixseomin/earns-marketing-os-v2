@@ -16,7 +16,8 @@
         500,
         1
       ],
-      "mau": "#4a3b30"
+      "mau": "#4a3b30",
+      "en": "room floor far below the desk"
     },
     {
       "ten": "Chân bàn 1",
@@ -32,7 +33,8 @@
         5,
         72
       ],
-      "mau": "#5a3f28"
+      "mau": "#5a3f28",
+      "en": "desk leg"
     },
     {
       "ten": "Chân bàn 2",
@@ -48,7 +50,8 @@
         5,
         72
       ],
-      "mau": "#5a3f28"
+      "mau": "#5a3f28",
+      "en": "desk leg"
     },
     {
       "ten": "Chân bàn 3",
@@ -64,7 +67,8 @@
         5,
         72
       ],
-      "mau": "#5a3f28"
+      "mau": "#5a3f28",
+      "en": "desk leg"
     },
     {
       "ten": "Chân bàn 4",
@@ -80,7 +84,8 @@
         5,
         72
       ],
-      "mau": "#5a3f28"
+      "mau": "#5a3f28",
+      "en": "desk leg"
     },
     {
       "ten": "Tường sau",
@@ -96,7 +101,8 @@
         2,
         270
       ],
-      "mau": "#3a3c46"
+      "mau": "#3a3c46",
+      "en": "far plain room wall"
     },
     {
       "ten": "Tường trái",
@@ -112,7 +118,8 @@
         500,
         270
       ],
-      "mau": "#3a3c46"
+      "mau": "#3a3c46",
+      "en": "far plain room wall"
     },
     {
       "ten": "Tường phải",
@@ -128,7 +135,8 @@
         500,
         270
       ],
-      "mau": "#3a3c46"
+      "mau": "#3a3c46",
+      "en": "far plain room wall"
     },
     {
       "ten": "Tường trước 1",
@@ -144,7 +152,8 @@
         2,
         270
       ],
-      "mau": "#3a3c46"
+      "mau": "#3a3c46",
+      "en": "far plain room wall"
     },
     {
       "ten": "Tường trước 2",
@@ -160,7 +169,8 @@
         2,
         270
       ],
-      "mau": "#3a3c46"
+      "mau": "#3a3c46",
+      "en": "far plain room wall"
     },
     {
       "ten": "Tường trước 3",
@@ -176,7 +186,8 @@
         2,
         100
       ],
-      "mau": "#3a3c46"
+      "mau": "#3a3c46",
+      "en": "far plain room wall"
     },
     {
       "ten": "Tường trước 4",
@@ -192,7 +203,8 @@
         2,
         70
       ],
-      "mau": "#3a3c46"
+      "mau": "#3a3c46",
+      "en": "far plain room wall"
     },
     {
       "ten": "Khung cửa sổ",
@@ -208,7 +220,25 @@
         4,
         2
       ],
-      "mau": "#8a7a66"
+      "mau": "#8a7a66",
+      "en": "window frame on the far wall"
+    },
+    {
+      "ten": "Khung cửa sổ",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        0,
+        -188,
+        25
+      ],
+      "co": [
+        124,
+        4,
+        2
+      ],
+      "mau": "#8a7a66",
+      "en": "window frame on the far wall"
     },
     {
       "ten": "Mặt bàn",
@@ -224,7 +254,8 @@
         124,
         3
       ],
-      "mau": "#6b4a2e"
+      "mau": "#6b4a2e",
+      "en": "wooden desk top"
     },
     {
       "ten": "Cable Jungle 3",

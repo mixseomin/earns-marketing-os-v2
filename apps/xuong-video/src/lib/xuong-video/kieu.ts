@@ -289,7 +289,7 @@ export type BienThe = { id: number; nhan_vat_id: number; nhom: string; ten: stri
 export type DoiChieu = { khop: boolean; lech: string[]; mo_ta_de_xuat: string; luc: string };
 /** BỘ SET 3D (bo-set-3d.ts): bối cảnh là DỮ LIỆU toạ độ cm — gốc giữa mép trước, x phải, y vào sâu, z lên. Một set dùng cho nhiều phim của dự án. */
 export type KhoiSet = { ten: string; hinh: 'hop' | 'cau' | 'trung' | 'vom' | 'day'; tam?: number[]; co?: number[]; mau: string; xoay?: number; /** nghiêng quanh trục x của khối (độ, nắp laptop) */ nghieng?: number; sang?: number; diem?: number[][]; ban_kinh?: number };
-export type VatSet = (KhoiSet | { ten: string; goc: number[]; xoay?: number; phan: Omit<KhoiSet, 'ten'>[] }) & { anchor?: string; /** mặt nền (mặt bàn, tường, kệ): ở đâu cũng có, không tính là vật chắn tiền cảnh */ nen?: boolean; /** đồ TUỲ CHỌN (laptop lúc có lúc không): chỉ có ở shot khai may_3d.them */ tuy_chon?: boolean };
+export type VatSet = (KhoiSet | { ten: string; goc: number[]; xoay?: number; phan: Omit<KhoiSet, 'ten'>[] }) & { anchor?: string; /** mặt nền (mặt bàn, tường, kệ): ở đâu cũng có, không tính là vật chắn tiền cảnh */ nen?: boolean; /** đồ TUỲ CHỌN (laptop lúc có lúc không): chỉ có ở shot khai may_3d.them */ tuy_chon?: boolean; /** tên tiếng Anh gửi mô hình ảnh (tên tiếng Việt như 'Mặt bàn') */ en?: string };
 export type BoSet = { id: number; project: string; phim_id: number | null; ten: string; mo_ta: string; du_lieu: { vat: VatSet[]; ghi_chu?: string }; mat_bang_url: string | null; trang_thai: string };
 /** Máy ảo + chỗ đứng nhân vật của một shot trong bộ set (cm): đầu vào dựng khung xám. nam = nằm sấp. */
 export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy do datMayTuDong tính (phía ° quanh chủ thể) — bộ giải trong Blender được phép xoay / nâng / lùi máy cho chủ thể thấy rõ */ tu_dong?: { phia?: number; /** mã đầu vào lúc tính (chỗ đứng + phía + khung + cỡ/góc/ống) — nạp lại mà khớp thì GIỮ máy bộ giải đã tìm */ vao?: string };
@@ -307,7 +307,7 @@ export type KhungXam = { ma: string; xam: string; sau: string; luc: string; kiem
   /** THẤY GÌ trong khung (dung-set.py › nhin_thay, đo bằng lưới tia): tên vật / nhân vật · % khung · hộp bao [x0,y0,x1,y1] 0..1 gốc trên-trái ·
    *  tien = nằm trước chủ thể (vật chắn tiền cảnh). Lưới gắn nhãn, cổng bắt vật chắn, prompt keyframe gọi tên từng khối. */
   thay?: VatThay[] };
-export type VatThay = { ten: string; pt: number; hop: [number, number, number, number]; tien: boolean };
+export type VatThay = { ten: string; /** tên tiếng Anh cho prompt (vat.en) — mô hình ảnh không hiểu 'Mặt bàn', 'Tường phải' */ en?: string; pt: number; hop: [number, number, number, number]; tien: boolean };
 export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string;
   /** tiểu sử (nhân vật): nguồn gốc, tính cách, sức mạnh, điểm yếu, mong muốn, nỗi sợ, quan hệ, bí mật — chỉ vào ngữ cảnh viết kịch bản, không vào prompt hình */
   tieu_su?: string;

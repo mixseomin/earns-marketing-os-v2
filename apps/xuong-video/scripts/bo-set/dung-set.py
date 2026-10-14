@@ -157,7 +157,8 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
     return out
 
 NHOM = {v['ten'] for v in DL['vat'] if 'phan' in v}
-NEN = {v['ten'] for v in DL['vat'] if v.get('nen')}   # mặt bàn, tường, kệ: không phải vật chắn
+NEN = {v['ten'] for v in DL['vat'] if v.get('nen')}
+EN = {v['ten']: v['en'] for v in DL['vat'] if v.get('en')}   # tên tiếng Anh cho prompt keyframe   # mặt bàn, tường, kệ: không phải vật chắn
 def ten_vat(o):
     """Tên người đọc của một khối trong cảnh: 'NV Tango' → Tango, 'Desk Lamp 2' → Desk Lamp (phần của nhóm)."""
     n = o.name.split('·')[0]
@@ -190,7 +191,7 @@ def nhin_thay(s, cam, sh, nv_obj, C=27, R=48):
     for t, x in dem.items():
         pt = round(x['n'] * 100 / (C * R), 1)
         if pt < 0.5: continue
-        out.append({'ten': t, 'pt': pt, 'hop': [round(x['u0'] - 0.5 / C, 3), round(x['v0'] - 0.5 / R, 3), round(x['u1'] + 0.5 / C, 3), round(x['v1'] + 0.5 / R, 3)],
+        out.append({'ten': t, 'en': EN.get(t, t), 'pt': pt, 'hop': [round(x['u0'] - 0.5 / C, 3), round(x['v0'] - 0.5 / R, 3), round(x['u1'] + 0.5 / C, 3), round(x['v1'] + 0.5 / R, 3)],
                     # mặt nhìn từ trên xuống (≥ 80% tia trúng mặt ngửa: thẻ cam hai bạn đứng lên, sổ mở) là MẶT NỀN, không phải vật chắn
                     'tien': t not in bb_ten and t not in NEN and x['gan'] < kc_chu * 0.8 and x['mat'] < 0.8 * x['n']})
     return sorted(out, key=lambda x: -x['pt'])

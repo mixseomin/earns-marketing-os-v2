@@ -46,7 +46,7 @@ export function ghepPromptAnh(prompt: string, phongCach: string, nv: NhanVat[], 
 /** nhieuMau: shot cần thấy nhiều màu của sản phẩm (vd hai móc treo hai màu) → đưa tới 3 ảnh; còn lại CHỈ ảnh màu chính, kẻo model trộn màu
  *  (09/10/2026: đưa 3 ảnh xanh nhạt/đen/xanh vừa → shot 1 ra quần xanh đậm, rồi xanh nhạt bạc). */
 export const shotNhieuMau = (prompt: string): boolean => /\b(two|three|both|several|multiple|each)\b.{0,40}\b(pairs?|colou?rs?)\b|\b(black|dark blue|navy|gray|grey|brown|medium blue)\b|colou?rs/i.test(prompt);
-export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: string | null } | undefined = () => undefined, nhieuMau = true): { urlRef: string[]; banDoRef: string; vai: { url: string; nhan: string }[] } {
+export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: string | null } | undefined = () => undefined, nhieuMau = true, truoc = 0): { urlRef: string[]; banDoRef: string; vai: { url: string; nhan: string }[] } {
   const vai: { url: string; nhan: string }[] = [];
   const thuTu = [...nv.filter((v) => v.loai === 'san_pham'), ...nv.filter((v) => v.loai === 'nhan_vat'), ...nv.filter((v) => v.loai !== 'san_pham' && v.loai !== 'nhan_vat')];
   const urlRef: string[] = []; const dong: string[] = [];
@@ -54,10 +54,10 @@ export function xepThamChieu(nv: NhanVat[], btCanh: (v: NhanVat) => { anh_url?: 
     const b = btCanh(v);
     // Sản phẩm: shot chọn biến thể màu có ảnh thật (vd 'Medium Blue') → ảnh đó là màu chính; không thì ảnh đầu của anchor.
     const anh = v.loai === 'san_pham' ? (b?.anh_url ? [b.anh_url, ...(nhieuMau ? v.anh_ref.filter((u) => u !== b.anh_url).slice(0, 2) : [])] : v.anh_ref.slice(0, nhieuMau ? 3 : 1)) : [...(b?.anh_url ? [b.anh_url] : []), ...v.anh_ref.slice(0, b?.anh_url ? 1 : 2)];
-    const con = Math.max(0, 10 - urlRef.length);
+    const con = Math.max(0, 10 - truoc - urlRef.length);
     const lay = anh.slice(0, con);
     if (!lay.length) continue;
-    const tu = urlRef.length + 1; urlRef.push(...lay); const den = urlRef.length;
+    const tu = truoc + urlRef.length + 1; urlRef.push(...lay); const den = truoc + urlRef.length;   // truoc = số ảnh đứng trước (khung xám là ảnh 1)
     const bt = b?.anh_url ? (v.bien_the ?? []).find((x) => x.anh_url === b.anh_url) : undefined;
     lay.forEach((u, i) => vai.push({ url: u, nhan: `${v.loai === 'san_pham' ? '👖 sản phẩm' : v.loai === 'nhan_vat' ? '🧍 người' : v.loai === 'boi_canh' ? '🏠 bối cảnh' : '🧸 đạo cụ'} · ${v.ten}${u === b?.anh_url ? ` · ${bt?.ten ?? 'biến thể'}` : ''}${v.loai === 'san_pham' && i === 0 ? ' · màu chính' : ''}` }));
     const so = tu === den ? `image ${tu}` : `images ${tu}–${den}`;
@@ -100,14 +100,16 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // mẫu 'Cable Jungle' có màn hình phía sau → keyframe vẽ thêm chân iMac + màn hình nơi 3D là bức tường xa). Chất liệu/ánh sáng vẫn theo phong cách phim.
   const coKx = !!bc.canh.khung_xam?.xam;
   const nvRef = coKx ? bc.nhanVat.filter((v) => v.loai !== 'boi_canh') : bc.nhanVat;
-  const { urlRef, banDoRef, vai } = xepThamChieu(nvRef, btCanh, shotNhieuMau(`${bc.canh.prompt_anh} ${bc.canh.trang_phuc}`));
+  // Khung xám là ẢNH SỐ 1 (thử #23: đứng thứ 8/9 sau bảy ảnh mẫu thì model coi nhẹ bố trí).
+  const kx = coKx ? bc.canh.khung_xam!.xam : null;
+  const tc = xepThamChieu(nvRef, btCanh, shotNhieuMau(`${bc.canh.prompt_anh} ${bc.canh.trang_phuc}`), kx ? 1 : 0);
+  const urlRef = [...(kx ? [kx] : []), ...tc.urlRef]; const banDoRef = tc.banDoRef;
+  const vai = [...(kx ? [{ url: kx, nhan: '🧊 khung xám 3D (bố trí)' }] : []), ...tc.vai];
   const ghiChuBt = bc.nhanVat.map((v) => { const b = btCanh(v); return b ? `${v.ten} in this shot: ${b.mo_ta || b.ten}.` : ''; }).filter(Boolean).join(' ');
   // KHUNG XÁM 3D (bo-set-3d.ts): render từ bộ set thật + máy ảo của shot — bố trí lấy từ DỮ LIỆU, không để model tự nghĩ (anh 14/10/2026:
   // "dựng bối cảnh bằng 3D để scale và làm đúng mọi bộ phim thay vì dựa vào AI bừa bãi"). Đứng ngay sau ảnh mẫu, trước mọi tham chiếu nối khung.
-  const kx = bc.canh.khung_xam?.xam && urlRef.length < 10 ? bc.canh.khung_xam.xam : null;
-  if (kx) { urlRef.push(kx); vai.push({ url: kx, nhan: '🧊 khung xám 3D (bố trí)' }); }
-  const soKx = urlRef.length;
-  const kxChu = kx ? `Image ${soKx} = a grey-box 3D LAYOUT render from THIS shot's exact camera on the real set: every object (screens, stands, keyboard, mouse, cables, props) and every character must sit EXACTLY where its block is — same position, size, overlap, perspective, horizon and framing. It shows layout only: colours, materials and lighting come from the style and the other reference images, never grey blocks. ${moTaThay(bc.canh.khung_xam?.thay)}` : '';
+  const soKx = 1;
+  const kxChu = kx ? `Image ${soKx} = a grey-box 3D LAYOUT render from THIS shot's exact camera on the real set: every object and every character must sit EXACTLY where its block is, and NOTHING that is not a block may appear — same position, size, overlap, perspective, horizon and framing. It shows layout only: colours, materials and lighting come from the style and the other reference images, never grey blocks. ${moTaThay(bc.canh.khung_xam?.thay)}` : '';
   // LIỀN MÁY: shot trước chọn chuyển cảnh 'lien_may' → clip của nó kết bằng ảnh này, nên ảnh này phải là giây kế tiếp của chính khung đó
   // (cùng nơi, cùng phía máy, vị trí + đồ vật + trạng thái nối tiếp) — keyframe shot trước làm ảnh tham chiếu cuối (Tango & Lint tập 1: 0/20
   // clip nối khung, shot sau không thấy liên quan shot trước).
@@ -122,7 +124,8 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   if (msUrl) { urlRef.push(msUrl); vai.push({ url: msUrl, nhan: `🗺 bố trí cảnh (shot mở cảnh #${ms!.thu_tu})` }); }
   const soMs = urlRef.length;
   // CẮT TRONG CẢNH: khung shot liền trước mang TRẠNG THÁI qua cú cắt (ai cầm gì, bẹp hay tròn, đứng đâu) — chuyển cảnh là chỗ hay hỏng nhất.
-  const trUrl = !noi && tr?.keyframe_url && tr.phan_doan === bc.canh.phan_doan && tr.keyframe_url !== ms?.keyframe_url && urlRef.length < 9 ? tr.keyframe_url : null;
+  // Có khung xám: chỗ đứng + trạng thái mở đã nằm trong 3D + thẻ shot; keyframe shot trước (có thể dựng trên 3D cũ) chỉ kéo lệch hậu cảnh (thử #23).
+  const trUrl = !kx && !noi && tr?.keyframe_url && tr.phan_doan === bc.canh.phan_doan && tr.keyframe_url !== ms?.keyframe_url && urlRef.length < 9 ? tr.keyframe_url : null;
   if (trUrl) { urlRef.push(trUrl); vai.push({ url: trUrl, nhan: `✂ trạng thái shot trước #${tr!.thu_tu}` }); }
   const trChu = trUrl ? `Image ${urlRef.length} = the shot just before this cut, same scene: carry over every character's and object's STATE and place in the set (what they hold, their shape, where they stand) unless the action above changes it; stay on the same side of the action. Do NOT copy its framing.` : '';
   const msChu = msUrl ? `Image ${soMs} = the opening shot of this same scene, on the same physical set: keep the SET LAYOUT identical — where every object stands relative to the others (and what is in front of / behind what), and which side of those objects each character is on, consistent with the action. Do NOT copy its framing: the camera position, angle and shot size come from the composition described above, but the camera stays on the same side of the action as in that shot.` : '';

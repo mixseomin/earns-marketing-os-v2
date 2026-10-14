@@ -4,5 +4,5 @@ import { locCot, COT_CHO_PHEP } from './hoan-tac';
 assert.deepEqual(locCot('xv_canh', ['chu_man', 'id; DROP TABLE x', 'thoai', 'chu_man']), ['chu_man', 'thoai']);
 assert.deepEqual(locCot('xv_phim', ['kinh_thanh', 'updated_at']), ['kinh_thanh']);
 assert.deepEqual(locCot('xv_bien_the', []), []);
-for (const cs of Object.values(COT_CHO_PHEP)) for (const c of cs) assert.match(c, /^[a-z_]+$/, c);
+for (const cs of Object.values(COT_CHO_PHEP)) for (const c of cs) assert.match(c, /^[a-z][a-z0-9_]*$/, c);   // tên cột SQL hợp lệ (có số: may_3d)
 console.log('hoan-tac.test: ok');

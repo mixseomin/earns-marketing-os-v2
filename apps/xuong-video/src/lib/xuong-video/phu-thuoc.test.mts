@@ -4,7 +4,9 @@ import { phuThuocShot } from './phu-thuoc';
 import type { Canh, NhanVat } from './kieu';
 
 const shot = (p: Partial<Canh>): Canh => ({ id: 1, tap_id: 1, thu_tu: 1, canh: '', prompt_anh: 'a man', prompt_video: '', bien_the: [], thoai: [], loi_thoai: '', thoai_url: null,
-  keyframe_url: null, keyframe_uv: [], video_url: null, video_cuoi_url: null, trang_thai: 'nhap', phan_doan: 'S1', ky_thuat: { co_canh: 'ms' }, ...p, nhan_vat: [50, ...((p.nhan_vat as number[] | undefined) ?? [])] } as unknown as Canh);
+  keyframe_url: null, keyframe_uv: [], video_url: null, video_cuoi_url: null, trang_thai: 'nhap', phan_doan: 'S1', ky_thuat: { co_canh: 'ms' },
+  kiem_khung: { url: 'k', dat: true, loi: [], luc: '', model: '' },   // keyframe mẫu 'k' mặc định đã qua 🔍 Kiểm khung — bài riêng thử chưa kiểm
+  ...p, nhan_vat: [50, ...((p.nhan_vat as number[] | undefined) ?? [])] } as unknown as Canh);
 const PC = [{ ten: 'S1' }];
 const TQ = { brief: 'Một brief đủ dài để qua cổng tiền kỳ', beats: [{ ten: 'a', cam_xuc: -2 }, { ten: 'b', cam_xuc: 1 }, { ten: 'c', cam_xuc: 3 }], phan_canh: PC, nhac_url: null, nhac_phan_canh: {} };
 const PQ = { phong_cach: 'cinematic night city, teal and orange, anamorphic', laQc: false };
@@ -21,7 +23,10 @@ assert.ok(!phuThuocShot('keyframe', shot({ thu_tu: 2 }), [BC], { noiKhung: false
 
 // video: chưa có keyframe / chưa duyệt / thoại chưa có giọng → chặn (giọng trước video); shot sau chưa keyframe khi nối khung → lưu ý.
 assert.deepStrictEqual(phuThuocShot('video', shot({}), [], { noiKhung: false, tap: TQ, phim: PQ }).chan, ['chưa có keyframe']);
+// keyframe chưa duyệt + chưa qua 🔍 Kiểm khung (máy nhìn khung) → hai lý do chặn; đã kiểm đạt cho đúng url thì chỉ còn chưa duyệt.
+assert.deepStrictEqual(phuThuocShot('video', shot({ keyframe_url: 'k', kiem_khung: null }), [], { noiKhung: false, tap: TQ, phim: PQ }).chan.map((x) => x.split(' ')[0]), ['chưa', 'keyframe']);
 assert.deepStrictEqual(phuThuocShot('video', shot({ keyframe_url: 'k' }), [], { noiKhung: false, tap: TQ, phim: PQ }).chan, ['chưa duyệt keyframe']);
+assert.ok(phuThuocShot('video', shot({ keyframe_url: 'k2' }), [], { noiKhung: false, tap: TQ, phim: PQ }).chan.some((x) => x.includes('Kiểm khung')));   // sinh lại keyframe → kết quả kiểm cũ hết hiệu lực
 const v = phuThuocShot('video', shot({ keyframe_url: 'k', trang_thai: 'duyet', thoai: [{ nhan_vat: '', dien_xuat: '', loi: 'hi' }] }), [], { noiKhung: true, tap: TQ, phim: PQ, ke: shot({ thu_tu: 2 }) });
 assert.ok(v.chan.length === 1 && v.chan[0]!.includes('chưa có giọng'), v.chan.join('|'));
 assert.ok(v.luu_y.some((x) => x.includes('shot #2 chưa có keyframe')), v.luu_y.join('|'));

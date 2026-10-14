@@ -188,7 +188,7 @@ def nhan_vat(sh, ket=False):
     than, tat_ca = [], []
     for nv in sh.get('nhan_vat', []):
         mau_nv = DL['nhan_vat_mau'][nv['ten']]
-        if ket: nv = {**nv, 'tam': nv.get('den') or nv['tam'], 'huong': nv.get('huong_den', nv.get('huong', 0))}   # khung KẾT: chỗ + hướng lúc kết
+        if ket: nv = {**nv, 'tam': nv.get('den') or nv['tam'], 'huong': nv.get('huong_den', nv.get('huong', 0)), 'nam': nv.get('nam_den', nv.get('nam'))}   # khung KẾT: chỗ + hướng + dáng (bẹp) lúc kết
         X, Y, Z = nv['tam'][0], nv['tam'][1], (nv['tam'][2] if len(nv['tam']) > 2 else 0)
         w, d, h = mau_nv['co']
         if nv.get('nam'): d, h = h, d   # nằm sấp / bẹp: cao thành sâu

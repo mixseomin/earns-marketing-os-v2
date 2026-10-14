@@ -84,9 +84,14 @@ assert.ok(thieuTrongSet({ nhan_vat: [1, 2], may_3d: mm, dan_dung: { bo_cuc: 'Bac
 assert.deepEqual(thieuTrongSet({ nhan_vat: [1, 2], may_3d: { ...mm, them: ['MacBook Pro'] }, dan_dung: { bo_cuc: 'Background: the open MacBook Pro.' } }, nv, setLap), []);
 // Sửa scripts/bo-set/dung-set.py thì phải tăng BAN_DUNG (khung xám cũ tự hết hiệu lực) rồi ghi lại băm ở đây.
 const bam = createHash('sha1').update(readFileSync(new URL('../../../scripts/bo-set/dung-set.py', import.meta.url))).digest('hex').slice(0, 12);
-assert.deepEqual([BAN_DUNG, bam], [4, '38bbb56264eb'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+assert.deepEqual([BAN_DUNG, bam], [5, 'bf6b64b64bea'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));
 assert.ok(Math.hypot(ecu.dat[0]! - ecu.nhin[0]!, ecu.dat[1]! - ecu.nhin[1]!) >= 3);
+// Bố cục nhắc vật của set mà khung 3D không thấy → chặn; thấy rồi → qua.
+const setHub = { id: 7, du_lieu: { vat: [...set.du_lieu.vat, { ten: 'USB Hub', hinh: 'hop' as const, tam: [0, 0, 0], co: [1, 1, 1], mau: '#ccc' }] } };
+const kxH = (thay: { ten: string; pt: number; hop: [number, number, number, number]; tien: boolean }[]) => ({ ma: maKhungXam(setHub, mm, nv), xam: '', sau: '', luc: '', kiem: [], thay });
+assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxH([]), dan_dung: { bo_cuc: 'Tango pressing his hand onto the USB hub.' } }, nv, setHub).some((x) => x.includes('nhắc USB Hub')));
+assert.ok(!chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxH([{ ten: 'USB Hub', pt: 6, hop: [0, 0, 1, 1], tien: false }]), dan_dung: { bo_cuc: 'Tango pressing his hand onto the USB hub.' } }, nv, setHub).some((x) => x.includes('nhắc USB Hub')));
 console.log('bo-set-3d.test: ok');

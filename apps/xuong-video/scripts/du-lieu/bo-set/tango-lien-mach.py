@@ -135,7 +135,8 @@ VT = {
          v(STICKY, ST7, an=True, nhay='lẻn theo hai bạn ngoài khung từ cảnh 2, nấp dưới mép thẻ cam')],
  '7.2': [v(TANGO, T7, ve=PLUG)],
  '7.2a': [v(TANGO, T7, ve=PLUG, ve_den=[36, 62]), v(LINT, L7, ve=T7)],
- '7.3': [v(TANGO, T7, [55.8, 53.4, 0.3], ve=[50, 60], ve_den=CAM), v(LINT, L7, ve=T7, ve_den=[55.8, 53.4])],
+ # 7.3: Tango quay sang đế cắm (cú cắt từ ánh nhìn về rừng cáp ở 7.2a) — khai nhảy hướng; máy ngang bên phải: Tango trái khung, đế cắm phải khung.
+ '7.3': [v(TANGO, T7, [55.8, 53.4, 0.3], ve=[60, 56.5], ve_den=CAM, nhay='quay từ rừng cáp sang đế cắm qua cú cắt'), v(LINT, L7, ve=T7, ve_den=[55.8, 53.4])],
  '7.4': [v(WIPE, [58, 61, 5], [57, 55.6, 2.6], ve=[55.8, 54.3], nhay='gỡ khỏi rừng cáp, bay tới đế cắm ngoài khung'),
          v(TANGO, T7N, ve=[57, 55.6], nhay='chạy nấp sau mép thẻ khi thấy Mr. Wipe tới'), v(LINT, L7N, ve=[57, 55.6], nhay='chạy nấp sau mép thẻ khi thấy Mr. Wipe tới')],
  '7.5': [v(WIPE, [56.6, 55.2, 1.8], [55, 54.2, 1.2], ve=PLUG)],
@@ -150,6 +151,7 @@ NHAY = {  # cú cắt cố ý cắt thời gian / dịch chuyển ngoài khung
  '4.1': 'cắt thời gian: hết khe màn hình, lăn vào rừng cáp',
  '8.1': 'phần kết: hai bạn ra mép bàn chào khán giả',
 }
+S['may']['7.3']['phia'] = 90
 for ma, ds in VT.items():
     m = S['may'][ma]; m['vi_tri'] = ds
     if ma in NHAY: m['nhay'] = NHAY[ma]

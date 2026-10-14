@@ -211,6 +211,13 @@ def sai_truc(sh, p):
     c = _phia(t['a'], t['b'], p)
     return 1 if dau and c and c != dau else 0
 
+def thieu_nhac(s, cam, sh, nv):
+    """Số vật chữ tả khung nhắc (sh['nhac']) mà khung không thấy (< 1%) — cùng luật cổng nhacMaKhongThay; bộ giải xoay máy cho chúng vào khung."""
+    nhac = [t for t in (sh.get('nhac') or []) if t not in NEN and (t not in TUY_CHON or t in (sh.get('them') or []))]
+    if not nhac: return 0
+    co = {t['ten'] for t in nhin_thay(s, cam, sh, nv, 14, 24) if t['pt'] >= 1}
+    return sum(1 for t in nhac if t not in co)
+
 def chan_la(s, cam, sh, nv):
     """Số vật chắn tiền cảnh ≥ 12% khung mà chữ tả khung không nhắc (sh['nhac'], bo-set-3d.ts › vatDuocNhac) — cùng luật cổng vatChanTienCanh."""
     nhac = set(sh.get('nhac') or [])
@@ -231,7 +238,7 @@ def giai_may(s, cam, sh, nv):
                 a = math.radians(dp); v = Vector((d0.x * math.cos(a) - d0.y * math.sin(a), d0.x * math.sin(a) + d0.y * math.cos(a), d0.z)) * xa
                 vt_may = g + v + Vector((0, 0, dz)); dat_may(cam, vt_may, g)
                 k = kiem_hinh_hoc(s, cam, sh, nv); h = hong(k) * 100 + sai_truc(sh, vt_may) * 100
-                if h == 0: h = chan_la(s, cam, sh, nv)   # chủ thể sạch rồi mới tính vật chắn lạ (đắt hơn)
+                if h == 0: h = chan_la(s, cam, sh, nv) + thieu_nhac(s, cam, sh, nv) * 10   # chủ thể sạch rồi mới tính vật chắn lạ + vật được nhắc mà không thấy (đắt hơn)
                 if tot is None or h < tot[0]: tot = (h, [round(x, 1) for x in vt_may], k)
                 if h == 0: return tot
     dat_may(cam, tot[1], g); return tot
@@ -256,7 +263,7 @@ for sh in shots:
     cam = may(s, sh['may'], f"cam {sh['ma']}")
     nv_kiem = nv + vat_chu_the(sh)
     k = kiem_hinh_hoc(s, cam, sh, nv_kiem)
-    if sh.get('giai') and (hong(k) or sai_truc(sh, sh['may']['dat']) or chan_la(s, cam, sh, nv_kiem)):
+    if sh.get('giai') and (hong(k) or sai_truc(sh, sh['may']['dat']) or chan_la(s, cam, sh, nv_kiem) or thieu_nhac(s, cam, sh, nv_kiem)):
         _, may_moi, k = giai_may(s, cam, sh, nv_kiem)   # KHÔNG đặt tên `dat` — trùng hàm dat() ở trên, đè mất hàm (lỗi 14/10/2026)
         giai[sh['ma']] = {'dat': may_moi, 'nhin': sh['may']['nhin']}; sh['may']['dat'] = may_moi
     kiem[sh['ma']] = k; DA_GIAI[sh['ma']] = list(sh['may']['dat'])

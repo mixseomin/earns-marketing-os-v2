@@ -241,6 +241,23 @@
       "en": "window frame on the far wall"
     },
     {
+      "ten": "Khung cửa sổ",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        0,
+        -188,
+        25
+      ],
+      "co": [
+        124,
+        4,
+        2
+      ],
+      "mau": "#8a7a66",
+      "en": "window frame on the far wall"
+    },
+    {
       "ten": "Mặt bàn",
       "nen": true,
       "hinh": "hop",
@@ -2611,8 +2628,9 @@
             53.4,
             0.3
           ],
-          "huong": -146,
-          "huong_den": -31
+          "huong": 144,
+          "huong_den": -31,
+          "nhay": "quay từ rừng cáp sang đế cắm qua cú cắt"
         },
         {
           "ten": "Lint",
@@ -2625,7 +2643,7 @@
           "huong_den": -119
         }
       ],
-      "phia": 70,
+      "phia": 90,
       "khung": [
         "Tango",
         "Cable Plug"

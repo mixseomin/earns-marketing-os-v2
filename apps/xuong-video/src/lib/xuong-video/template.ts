@@ -48,9 +48,9 @@ export type NhomO = (typeof NHOM_O)[number]['key'];
 /** Nhóm của một ô: khai tay (o.nhom) trước, không thì đoán theo tên ô. */
 export function nhomCuaO(k: string, o?: Pick<OTemplate, 'nhom'>): NhomO {
   if (o?.nhom && NHOM_O.some((n) => n.key === o.nhom)) return o.nhom as NhomO;
-  if (/^anh_\d+$/.test(k)) return 'anh';
-  if (/^(san_pham|anh_san_pham|link|diem_noi_bat|uu_dai|dam_bao|gia)/.test(k)) return 'san_pham';
-  if (/^(nhan_vat|giong|doi_tuong)/.test(k)) return 'nhan_vat';
+  if (/^anh_(\d+|tran_an|end_card)$/.test(k)) return 'anh';
+  if (/^(san_pham|anh_san_pham|link|diem_noi_bat|uu_dai|dam_bao|gia|mau_)/.test(k)) return 'san_pham';
+  if (/^(nhan_vat|nguoi_|giong|doi_tuong)/.test(k)) return 'nhan_vat';
   if (/^(boi_canh|tinh_huong)/.test(k)) return 'boi_canh';
   return 'cau_chuyen';
 }

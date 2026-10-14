@@ -174,6 +174,67 @@
    "ten": "Nỗi đau rút gọn (chữ màn, tiếng Anh)",
    "goi_y": "3–5 chữ: thứ người xem ghét ở hàng thường",
    "mau": "hooks, wires & digging straps"
+  },
+  "nguoi_2_ten": {
+   "ten": "Người thứ hai (đưa giải pháp)",
+   "goi_y": "Người thân/bạn đưa sản phẩm cho nhân vật chính",
+   "mau": "Jen"
+  },
+  "nguoi_2_hinh": {
+   "ten": "Ngoại hình người thứ hai (tiếng Anh)",
+   "dai": true,
+   "mau": "Carol's daughter, American woman, 45, white, straight light-brown hair in a low ponytail, casual navy-and-white striped tee and blue jeans, energetic and teasing smile"
+  },
+  "giong_2": {
+   "ten": "Giọng người thứ hai",
+   "mau": "nữ Mỹ 45 tuổi, nhanh, trêu mẹ"
+  },
+  "mau_chinh": {
+   "ten": "Màu chính của sản phẩm",
+   "goi_y": "Màu mặc trong các shot nhân vật dùng sản phẩm",
+   "mau": "Nude"
+  },
+  "mau_chinh_hinh": {
+   "ten": "Màu chính (tiếng Anh)",
+   "mau": "warm nude beige color"
+  },
+  "mau_chinh_anh": {
+   "ten": "Ảnh thật màu chính (URL)",
+   "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260602_102446_84486d9a-089a-46e8-aeaa-e5f6e2072133.png?v=1785758998"
+  },
+  "mau_2": {
+   "ten": "Màu thứ 2",
+   "mau": "Black"
+  },
+  "mau_2_hinh": {
+   "ten": "Màu thứ 2 (tiếng Anh)",
+   "mau": "black color"
+  },
+  "mau_2_anh": {
+   "ten": "Ảnh thật màu thứ 2 (URL)",
+   "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260602_101129_6f2b0e00-0bf0-44ec-be65-eda7b1ffffb3.png?v=1785758992"
+  },
+  "mau_3": {
+   "ten": "Màu thứ 3",
+   "mau": "Olive"
+  },
+  "mau_3_hinh": {
+   "ten": "Màu thứ 3 (tiếng Anh)",
+   "mau": "olive green color"
+  },
+  "mau_3_anh": {
+   "ten": "Ảnh thật màu thứ 3 (URL)",
+   "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/hf_20260602_100728_3d560217-89a9-40a7-88ab-96cd9097f8c4.png?v=1785758998"
+  },
+  "anh_tran_an": {
+   "ten": "Ảnh thật shot trấn an (URL)",
+   "goi_y": "Bảng size / bảo đảm đổi trả của shop — dùng nguyên, không sinh",
+   "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/02_sizerun_XS6XL_square_2048_75b0a33f-c2d2-49cb-892b-cc273a83c445.jpg?v=1788916307"
+  },
+  "anh_end_card": {
+   "ten": "Ảnh thật end card (URL)",
+   "goi_y": "Ảnh sản phẩm đẹp nhất của shop — dùng nguyên, không sinh",
+   "mau": "https://cdn.shopify.com/s/files/1/0601/1040/5729/files/image-1788564241554.jpg?v=1788564262"
   }
  },
  "templates": [
@@ -211,7 +272,21 @@
     "loi_ich_3_hinh",
     "truoc_sau",
     "truoc_sau_hinh",
-    "review"
+    "review",
+    "nguoi_2_ten",
+    "nguoi_2_hinh",
+    "giong_2",
+    "mau_chinh",
+    "mau_chinh_hinh",
+    "mau_chinh_anh",
+    "mau_2",
+    "mau_2_hinh",
+    "mau_2_anh",
+    "mau_3",
+    "mau_3_hinh",
+    "mau_3_anh",
+    "anh_tran_an",
+    "anh_end_card"
    ],
    "kinh_thanh": {
     "phong_cach": "Live-action UGC ad, photorealistic real people, shot on iPhone vertical, natural light, true colors, no cinematic filter; casual handheld feel; quick cuts ~2.5s per shot",
@@ -244,6 +319,29 @@
      "mo_ta": "{{san_pham_hinh}}",
      "anh_ref": [
       "{{anh_san_pham}}"
+     ],
+     "bien_the": [
+      {
+       "key": "m1",
+       "nhom": "trang_thai",
+       "ten": "{{mau_chinh}}",
+       "mo_ta": "{{mau_chinh_hinh}}",
+       "anh_url": "{{mau_chinh_anh}}"
+      },
+      {
+       "key": "m2",
+       "nhom": "trang_thai",
+       "ten": "{{mau_2}}",
+       "mo_ta": "{{mau_2_hinh}}",
+       "anh_url": "{{mau_2_anh}}"
+      },
+      {
+       "key": "m3",
+       "nhom": "trang_thai",
+       "ten": "{{mau_3}}",
+       "mo_ta": "{{mau_3_hinh}}",
+       "anh_url": "{{mau_3_anh}}"
+      }
      ]
     },
     {
@@ -264,6 +362,13 @@
      "loai": "boi_canh",
      "ten": "Real use",
      "mo_ta": "{{boi_canh_2}}"
+    },
+    {
+     "key": "nv2",
+     "loai": "nhan_vat",
+     "ten": "{{nguoi_2_ten}}",
+     "mo_ta": "{{nguoi_2_hinh}}",
+     "giong": "{{giong_2}}"
     }
    ],
    "tap": {
@@ -321,17 +426,21 @@
      "giay": 2.5,
      "loai": "giai_phap",
      "goc_may": "Wide shot from the doorway",
-     "hanh_dong": "Someone tosses the folded product onto the bed next to {{nhan_vat_ten}}",
+     "hanh_dong": "{{nguoi_2_ten}} stands in the doorway and tosses the folded product onto the bed next to {{nhan_vat_ten}}, grinning",
      "chu_man": "{{nguoi_gioi_thieu}}",
      "loi": "{{nguoi_gioi_thieu}}",
      "nv": [
       "sp",
       "nv",
+      "nv2",
       "bc"
      ],
-     "prompt_anh": "{{boi_canh}}, {{nhan_vat_hinh}} sitting on the bed, a folded {{san_pham_hinh}} landing on the quilt beside her",
-     "prompt_video": "The folded product drops onto the bed, she picks it up curiously, camera tilts down to it",
-     "co": "ws"
+     "prompt_anh": "{{boi_canh}}. {{nhan_vat_hinh}}, sitting on the bed looking up; {{nguoi_2_hinh}}, standing in the doorway grinning, having just tossed a neatly folded {{san_pham_hinh}} in {{mau_chinh_hinh}} onto the quilt beside her. Vertical phone photo, natural light",
+     "prompt_video": "{{nguoi_2_ten}} tosses the folded product onto the bed, {{nhan_vat_ten}} picks it up and raises an eyebrow, handheld phone camera",
+     "co": "ws",
+     "bt": [
+      "m1"
+     ]
     },
     {
      "giay": 2.5,
@@ -347,7 +456,10 @@
      ],
      "prompt_anh": "{{nhan_vat_hinh}} in front of a mirror wearing {{san_pham_hinh}}, {{boi_canh}}",
      "prompt_video": "{{demo_hinh}}, natural speed, handheld",
-     "co": "ms"
+     "co": "ms",
+     "bt": [
+      "m1"
+     ]
     },
     {
      "giay": 2.5,
@@ -362,7 +474,10 @@
      ],
      "prompt_anh": "Macro close-up: {{loi_ich_1_hinh}}; product: {{san_pham_hinh}}",
      "prompt_video": "Hands slowly reveal the detail, shallow depth of field",
-     "co": "ecu"
+     "co": "ecu",
+     "bt": [
+      "m1"
+     ]
     },
     {
      "giay": 2.5,
@@ -378,7 +493,10 @@
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, {{loi_ich_2_hinh}}, {{boi_canh}}",
      "prompt_video": "She turns slowly and smiles at her reflection",
-     "co": "mcu"
+     "co": "mcu",
+     "bt": [
+      "m1"
+     ]
     },
     {
      "giay": 2.5,
@@ -394,7 +512,10 @@
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, {{loi_ich_3_hinh}}, {{boi_canh_2}}, bright daylight",
      "prompt_video": "{{loi_ich_3_hinh}}, breeze, handheld follow",
-     "co": "ws"
+     "co": "ws",
+     "bt": [
+      "m1"
+     ]
     },
     {
      "giay": 2.5,
@@ -409,7 +530,12 @@
      ],
      "prompt_anh": "Top-down phone photo: {{truoc_sau_hinh}}; product: {{san_pham_hinh}}",
      "prompt_video": "Hands swap the items quickly, top-down static camera",
-     "co": "ms"
+     "co": "ms",
+     "bt": [
+      "m1",
+      "m2",
+      "m3"
+     ]
     },
     {
      "giay": 2.5,
@@ -424,36 +550,39 @@
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, relaxed and smiling, {{boi_canh_2}}",
      "prompt_video": "She laughs softly and leans back, gentle handheld",
-     "co": "mcu"
+     "co": "mcu",
+     "bt": [
+      "m1"
+     ]
     },
     {
      "giay": 2.5,
      "loai": "tran_an",
-     "goc_may": "Product flat lay",
+     "goc_may": "Still real shop photo",
      "hanh_dong": "The product in several colors laid out neatly",
      "chu_man": "{{dam_bao}}",
      "nv": [
-      "sp",
-      "bc"
+      "sp"
      ],
-     "prompt_anh": "Flat lay of {{san_pham_hinh}} in several colors on a light background, soft daylight",
-     "prompt_video": "Slow overhead push-in",
-     "co": "cu"
+     "prompt_anh": "",
+     "prompt_video": "Slow push-in on the still photo",
+     "co": "cu",
+     "keyframe": "{{anh_tran_an}}"
     },
     {
      "giay": 2,
      "loai": "end_card",
-     "goc_may": "Product hero",
+     "goc_may": "Still real shop photo",
      "hanh_dong": "Product hero shot with offer",
      "chu_man": "{{uu_dai}} · Shop now",
      "loi": "{{uu_dai}}. Shop now.",
      "nv": [
-      "sp",
-      "bc"
+      "sp"
      ],
-     "prompt_anh": "Clean hero photo of {{san_pham_hinh}} on a light background, room for text",
-     "prompt_video": "Subtle slow zoom",
-     "co": "cu"
+     "prompt_anh": "",
+     "prompt_video": "Subtle slow zoom on the still photo",
+     "co": "cu",
+     "keyframe": "{{anh_end_card}}"
     }
    ]
   },

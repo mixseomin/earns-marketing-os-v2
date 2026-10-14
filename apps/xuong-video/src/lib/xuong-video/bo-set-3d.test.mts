@@ -84,5 +84,5 @@ assert.ok(thieuTrongSet({ nhan_vat: [1, 2], may_3d: mm, dan_dung: { bo_cuc: 'Bac
 assert.deepEqual(thieuTrongSet({ nhan_vat: [1, 2], may_3d: { ...mm, them: ['MacBook Pro'] }, dan_dung: { bo_cuc: 'Background: the open MacBook Pro.' } }, nv, setLap), []);
 // Sửa scripts/bo-set/dung-set.py thì phải tăng BAN_DUNG (khung xám cũ tự hết hiệu lực) rồi ghi lại băm ở đây.
 const bam = createHash('sha1').update(readFileSync(new URL('../../../scripts/bo-set/dung-set.py', import.meta.url))).digest('hex').slice(0, 12);
-assert.deepEqual([BAN_DUNG, bam], [2, 'd26ce46db48b'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+assert.deepEqual([BAN_DUNG, bam], [3, 'bd1609f7fe2e'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 console.log('bo-set-3d.test: ok');

@@ -13,6 +13,17 @@ RA = arg[1]
 CHI = set(arg[2].split(',')) if len(arg) > 2 and arg[2] else None
 os.makedirs(RA, exist_ok=True)
 CM = 0.01  # Blender tính mét
+NHANH = os.environ.get('XV_NHANH') == '1'   # có OpenGL (Xvfb trên box) → khung xám + mặt bằng bằng Workbench; độ sâu vẫn Cycles 1 mẫu
+
+def may_ve(s, dep):
+    """Engine cho một lần render: dep = khung xám / mặt bằng (Workbench nếu có OpenGL), không dep = độ sâu (Cycles phát sáng thuần)."""
+    if dep and NHANH:
+        s.render.engine = 'BLENDER_WORKBENCH'; d = s.display.shading
+        d.light = 'STUDIO'; d.color_type = 'MATERIAL'; d.show_shadows = True; d.show_cavity = True; d.cavity_type = 'WORLD'
+        s.display.shading.studio_light = 'Default'; s.view_settings.view_transform = 'Standard'
+    else:
+        s.render.engine = 'CYCLES'
+
 
 def mau(h, sang=0):
     h = h.lstrip('#'); rgb = tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
@@ -21,6 +32,7 @@ def mau(h, sang=0):
     m = bpy.data.materials.new(k); m.use_nodes = True
     b = m.node_tree.nodes['Principled BSDF']
     b.inputs['Base Color'].default_value = (*[c ** 2.2 for c in rgb], 1)
+    m.diffuse_color = (*[c ** 2.2 for c in rgb], 1)   # màu Workbench đọc ở đây (không đọc nút)
     b.inputs['Roughness'].default_value = 0.6
     if sang:
         b.inputs['Emission Color'].default_value = (*[c ** 2.2 for c in rgb], 1)
@@ -248,9 +260,9 @@ for sh in shots:
         giai[sh['ma']] = {'dat': may_moi, 'nhin': sh['may']['nhin']}; sh['may']['dat'] = may_moi
     kiem[sh['ma']] = k; DA_GIAI[sh['ma']] = list(sh['may']['dat'])
     thay[sh['ma']] = nhin_thay(s, cam, sh, nv_kiem)
-    s.view_layers[0].material_override = None; s.cycles.samples = 10; s.cycles.use_denoising = True
+    s.view_layers[0].material_override = None; s.cycles.samples = 10; s.cycles.use_denoising = True; may_ve(s, True)
     s.render.filepath = f"{RA}/{sh['ma']}-xam.png"; bpy.ops.render.render(write_still=True)
-    s.view_layers[0].material_override = do_sau(s, 0.02, 0.9); s.cycles.samples = 1; s.cycles.use_denoising = False   # độ sâu là phát sáng thuần: 1 mẫu là đủ
+    may_ve(s, False); s.view_layers[0].material_override = do_sau(s, 0.02, 0.9); s.cycles.samples = 1; s.cycles.use_denoising = False   # độ sâu là phát sáng thuần: 1 mẫu là đủ
     s.render.filepath = f"{RA}/{sh['ma']}-sau.png"; bpy.ops.render.render(write_still=True)
     s.view_layers[0].material_override = None
     for o in nv_het: bpy.data.objects.remove(o, do_unlink=True)
@@ -287,7 +299,7 @@ for ten, doan in duong.items():
 ban = next(v for v in DL['vat'] if v['ten'] == 'Mặt bàn')
 cd = bpy.data.cameras.new('tren'); cd.type = 'ORTHO'; cd.ortho_scale = max(ban['co'][0], ban['co'][1] * 1200 / 800) * CM * 1.08
 o = bpy.data.objects.new('tren', cd); s.collection.objects.link(o); o.location = (ban['tam'][0] * CM, ban['tam'][1] * CM, 3); s.camera = o
-s.render.resolution_x, s.render.resolution_y = 1200, 800; s.cycles.samples = 8; s.cycles.use_denoising = True
+s.render.resolution_x, s.render.resolution_y = 1200, 800; s.cycles.samples = 8; s.cycles.use_denoising = True; may_ve(s, True)
 for v in [x for x in bpy.data.objects if x.name.startswith('Tường')]: v.hide_render = True
 s.render.filepath = f"{RA}/mat-bang.png"; bpy.ops.render.render(write_still=True)
 json.dump(kiem, open(f'{RA}/kiem.json', 'w'), ensure_ascii=False, indent=1)

@@ -24,7 +24,11 @@ function chayBlender(vao: string, ra: string): Promise<{ ok: boolean; log: strin
   return new Promise((res) => {
     const kb = KICH_BAN();
     if (!kb) return res({ ok: false, log: 'không thấy scripts/bo-set/dung-set.py' });
-    const p = spawn('blender', ['-b', '--factory-startup', '-P', kb, '--', vao, ra], { stdio: ['ignore', 'pipe', 'pipe'] });
+    // Có màn hình ảo Xvfb (box3) → Blender có OpenGL phần mềm → khung xám render bằng Workbench (~1–2 giây) thay Cycles CPU (~25 giây).
+    const xvfb = existsSync('/usr/bin/xvfb-run');
+    const lenh = ['blender', '-b', '--factory-startup', '-P', kb, '--', vao, ra];
+    const p = xvfb ? spawn('xvfb-run', ['-a', '-s', '-screen 0 1280x1024x24', ...lenh], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, XV_NHANH: '1' } })
+      : spawn(lenh[0]!, lenh.slice(1), { stdio: ['ignore', 'pipe', 'pipe'] });
     let log = '';
     p.stdout.on('data', (d) => { log += d; }); p.stderr.on('data', (d) => { log += d; });
     p.on('error', (e) => res({ ok: false, log: `không chạy được blender: ${e.message}` }));
@@ -36,21 +40,19 @@ function chayBlender(vao: string, ra: string): Promise<{ ok: boolean; log: strin
  *  từ dữ liệu (cùng mã → cùng ảnh), nên bản bị thay thì xoá khỏi R2 cùng các ảnh nhỏ của nó — TRỪ khi còn được nhắc ở đâu đó: lệnh sinh
  *  keyframe đã gửi nó đi (xv_job.request — bằng chứng "đã gửi gì"), một bản chụp hoàn tác (xv_hoan_tac), hoặc vẫn đang dùng. */
 export async function donRenderCu(db: Db, urls: string[], thu = false): Promise<{ xoa: number; giu: number }> {
+  // Đọc MỘT lần mọi chỗ có thể nhắc tới ảnh (trước đây mỗi ảnh một truy vấn quét cả bảng job → 369 ảnh chạy hàng chục phút).
+  const ref = ((await db.execute(sql`SELECT request::text AS t FROM xv_job WHERE request IS NOT NULL
+      UNION ALL SELECT truoc::text FROM xv_hoan_tac
+      UNION ALL SELECT khung_xam::text FROM xv_canh WHERE khung_xam IS NOT NULL
+      UNION ALL SELECT coalesce(mat_bang_url, '') FROM xv_bo_set`)) as unknown as Row[]).map((r) => String(r.t)).join('\n');
+  const goc = (process.env.R2_PUBLIC_BASE || 'https://img.on.tc').replace(/\/+$/, '');
   let xoa = 0, giu = 0;
   for (const u of [...new Set(urls.filter(Boolean))]) {
-    const goc = (process.env.R2_PUBLIC_BASE || 'https://img.on.tc').replace(/\/+$/, '');
     const nho = CO_NHO.map((w) => khoaNho(u, w));
-    const dau = [u, ...nho.map((k) => `${goc}/${k}`)];
-    const dung = (await db.execute(sql`SELECT 1 FROM (
-        SELECT request::text AS t FROM xv_job WHERE request IS NOT NULL
-        UNION ALL SELECT truoc::text FROM xv_hoan_tac
-        UNION ALL SELECT khung_xam::text FROM xv_canh WHERE khung_xam IS NOT NULL
-        UNION ALL SELECT coalesce(mat_bang_url, '') FROM xv_bo_set) x
-      WHERE ${sql.join(dau.map((d) => sql`position(${d} in x.t) > 0`), sql` OR `)} LIMIT 1`)) as unknown as Row[];
-    if (dung.length) { giu++; continue; }
+    if ([u, ...nho.map((k) => `${goc}/${k}`)].some((d) => ref.includes(d))) { giu++; continue; }
     const k = r2KeyFromUrl(u); if (!k) { giu++; continue; }
     if (thu) { xoa++; continue; }   // chạy thử: chỉ đếm
-    if (await deleteFromR2(k)) { xoa++; for (const kn of nho) await deleteFromR2(kn); }
+    if (await deleteFromR2(k)) { xoa++; await Promise.all(nho.map((kn) => deleteFromR2(kn))); }
   }
   return { xoa, giu };
 }

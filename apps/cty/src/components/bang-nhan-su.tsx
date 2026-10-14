@@ -11,6 +11,7 @@ import { hrefNhip } from '@/lib/ngan';
 import { viecMayCua, hong, nhipMay, lichNguoi, tenViec, moHinh, dangChay, henAp } from '../../worker/viec-may.mjs';
 import { ChinhCa } from './chinh-ca';
 import { ChinhLich, type Lich } from './chinh-lich';
+import { MoRong } from './mo-rong';
 import { docLich, choAp, lichCua, KHONG_TAT } from '../../worker/lich-may.mjs';
 import { NutTuLam } from './nut-tu-lam';
 import { getCurrentUser } from '@/lib/auth';
@@ -59,10 +60,10 @@ export function LichViec({ v, admin }: { v: ViecMay; admin: boolean }) {
   return <ChinhLich muc={`may:${v.id}`} lich={lich} chu={lichNguoi(v) as string} admin={admin} apSau={henAp(v.may) as string} trang={{ cho, loi: !cho && x?.ap && !x.ap.ok ? x.ap.loi : undefined }} />;
 }
 /** Tên một việc máy kèm chấm bật/tắt riêng của việc đó (bảng nhân sự + ngăn việc máy). */
-export function TenViecMay({ v, admin, href }: { v: ViecMay; admin: boolean; href: string }) {
+export function TenViecMay({ v, admin, href }: { v: ViecMay; admin: boolean; href?: string }) {
   const x = (docLich() as Record<string, { luc: string; bat?: boolean; ap?: { luc: string } }>)[v.id]; const cho = choAp(x) && x!.bat !== undefined;
   return <span className="cty-ten-viec"><NutTuLam muc={`viec:${v.id}`} bat={cho ? !!x!.bat : (dangChay(v) as boolean)} cho={cho} admin={admin} khoa={(KHONG_TAT as Record<string, string>)[v.id]} />
-    <Link href={href} title={`${tenViec(v)} — ${v.ma}`}>{tenViec(v)}</Link></span>;
+    {href ? <Link href={href} title={`${tenViec(v)} — ${v.ma}`}>{tenViec(v)}</Link> : <b title={v.ma}>{tenViec(v)}</b>}</span>;   // trong ngăn việc máy: không link về chính ngăn đó
 }
 /** Lần làm việc gần nhất của từng người: dòng nhật ký mới nhất do chính người đó phát ra (gọi mô hình, gửi tin) — nhịp chạy mà không có
  *  việc thì không ghi nhật ký, nên không tính là "làm". Một lượt đọc cho cả bảng. */
@@ -96,11 +97,18 @@ export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS
             <td><span className="cty-den-o"><Nguoi id={d.id} />{'coNut' in n && n.coNut && <NutTuLam muc={n.chiXem ? `nguoi:${d.id}` : `nhip:${d.id}`} bat={n.bat} admin={admin}
               hoi={n.chiXem ? `Tắt ${n.soChay} việc máy đang chạy của ${String(fm.ten ?? d.id)}?` : undefined} />}</span></td>{!trongPhong && <td className="cty-muted">{d.phongTen}</td>}<td title={d.giuVai.join(' · ') || d.chucDanh}>{(phong && vaiO(phong, d.id)) || TEN_VAI[d.vai]}</td>
             <td className="cty-nho">{tenModel(d.model)}</td>
-            <td className={`cty-nho cty-dn-tulam${n.bat ? '' : ' cty-muted'}`}>{n.ds.length   // đầu việc tách dòng, bấm mở ngăn mô tả + nhật ký (anh 14/10/2026)
-              ? <ul className="cty-dn-viec">{n.ds.map((v) => <li key={v.ma}><Link href={hrefNhip(d.id, v.ma)} title={v.ten}>{v.ten}</Link>{v.gio ? <ChinhLich muc={`gio:${d.id}`} lich={{ kieu: 'luc', gio: [v.gio], thu: [] }} chu={v.lich} kieu={['luc']} motGio admin={admin} apSau="MacBook áp trong 10 phút" /> : <span className="cty-lich-o" title={v.lich}>{v.lich}</span>}<span /></li>)}</ul>
-              : n.viec}{((vm) => vm.length > 0 && <div>{!n.ds.length && <ul className="cty-dn-viec">{vm.slice(0, 4).map((v) => <li key={v.id}><TenViecMay v={v} admin={admin} href={hrefNhip(d.id, 'may')} /><LichViec v={v} admin={admin} /><span className="cty-muted">{v.may}</span></li>)}</ul>}
-                <Link href={hrefNhip(d.id, 'may')} title="Timer / cron / LaunchAgent chạy trên box và Mac mà người này phụ trách">{vm.length > 4 && !n.ds.length ? `tất cả ${vm.length} việc máy` : `${vm.length} việc máy`}</Link>
-                {vm.some(hong) && <span className="cty-thu-loi"> · {vm.filter(hong).length} lỗi</span>}{vm.some((v) => v.chua_gan) && <span className="cty-thu-loi"> · {vm.filter((v) => v.chua_gan).length} chưa xếp phòng</span>}</div>)(viecMayCua(d.id) as ViecMay[])}</td>
+            <td className={`cty-nho cty-dn-tulam${n.bat ? '' : ' cty-muted'}`}>{((vm) => {
+              // ĐẦU VIỆC (anh 14/10/2026): việc nhịp cty (chấm = nhịp của người đó) rồi việc máy (chấm riêng từng việc); 4 dòng đầu luôn hiện, còn lại
+              // mở tại chỗ (#1362) — cùng một lưới nên thẳng cột. Không có đầu việc nào → chữ trạng thái (tắt / khi bấm nút).
+              const nhip = n.ds.map((v) => <li key={v.ma}><span className="cty-ten-viec"><NutTuLam muc={`nhip:${d.id}`} bat={n.bat} admin={admin} /><Link href={hrefNhip(d.id, v.ma)} title={v.ten}>{v.ten}</Link></span>
+                {v.gio ? <ChinhLich muc={`gio:${d.id}`} lich={{ kieu: 'luc', gio: [v.gio], thu: [] }} chu={v.lich} kieu={['luc']} motGio admin={admin} apSau={henAp('MacBook') as string} /> : <span className="cty-lich-o" title={v.lich}>{v.lich}</span>}<span /></li>);
+              const may = vm.map((v) => <li key={v.id}><TenViecMay v={v} admin={admin} href={hrefNhip(d.id, 'may')} /><LichViec v={v} admin={admin} /><span className="cty-muted">{v.may}</span></li>);
+              const tat = [...nhip, ...may]; if (!tat.length) return n.viec;
+              const dau = Math.max(nhip.length, Math.min(4, tat.length));
+              return <>{n.chiXem && <div className="cty-muted">{n.viec}</div>}
+                <MoRong dau={tat.slice(0, dau)} them={tat.slice(dau)} so={tat.length - dau} chiTiet={hrefNhip(d.id, vm.length ? 'may' : n.ds[0]!.ma)}
+                  ghiChu={<>{vm.some(hong) && <span className="cty-thu-loi"> · {vm.filter(hong).length} lỗi</span>}{vm.some((v) => v.chua_gan) && <span className="cty-thu-loi"> · {vm.filter((v) => v.chua_gan).length} chưa xếp phòng</span>}</>} /></>;
+            })(viecMayCua(d.id) as ViecMay[])}</td>
             {n.bat && n.ca && ('box' in n ? n.box : true) ? <><td className="cty-nho"><ChinhLich muc={`nhip:${d.id}`} lich={{ kieu: 'moi', phut: n.kiemMoi ?? 1 }} chu={n.tanSuat ?? ''} kieu={['moi']} admin={admin} apSau="áp từ nhịp kế tiếp" /></td>
               <ChinhCa   /* máy kiểm + ca chỉ nghĩa với nhịp box; việc trên Mac có lịch riêng (cột Tự làm) */ id={d.id} ca={n.ca} diemDanh={n.diemDanh ?? ''} admin={admin} /></>
               : n.nhipMay ? <><td className="cty-nho" title="Nhịp của việc máy chạy dày nhất người này phụ trách — chỉnh lịch từng việc ở cột Tự làm">{n.nhipMay}<div className="cty-muted">việc dày nhất</div></td><td className="cty-nho cty-muted" title="Việc máy chạy theo lịch riêng của máy, không theo ca">theo lịch máy</td></>

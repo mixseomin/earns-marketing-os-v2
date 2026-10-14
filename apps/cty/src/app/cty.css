@@ -353,6 +353,7 @@ body:has(.cty-main > .cty-tabkhung){height:100dvh;display:flex;flex-direction:co
    dính trên khung đó; không đặt chiều cao tay ở đây (bản cũ calc(100dvh - 210px) lệch khung tab 7px ở 1440×900, 12/10/2026). */
 .cty-dn-cuon{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;align-content:start}   /* cột không nở theo bảng: chú thích xuống dòng trong khung */
 .cty-dn thead th{position:sticky;top:0;background:var(--bg);z-index:1}
+.cty-tabnoi .cty-dn thead th{top:calc(-1 * var(--le))}.cty-tabkhung-trong > .cty-tabnoi .cty-dn thead th{top:0}   /* #1360: khung cuộn có lề trên --le → đầu bảng dính sát mép khung, không chừa khe cho dòng lọt lên */
 .cty-dn th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.02em;color:var(--muted);padding:8px 6px;border-bottom:1px solid var(--line);font-weight:600;vertical-align:bottom}   /* tiêu đề xuống dòng: 14 cột (thêm nhịp · tần suất · ca · chi · trần, 14/10/2026) vừa khung phòng, không cắt */
 .cty-dn td{padding-inline:6px;white-space:normal;overflow-wrap:anywhere}.cty-dn td.cty-so{white-space:nowrap}   /* chữ xuống dòng, số giữ một dòng — bảng vừa khung phòng có văn phòng pixel bên phải */
 .cty-dn{width:100%}.cty-dn .cty-pill{white-space:nowrap;letter-spacing:0;padding-inline:.35rem}
@@ -580,5 +581,6 @@ span.cty-lich-o{border-color:transparent;background:none;padding-inline:0}
 .cty-lich-xem{padding-top:8px;border-top:1px solid var(--line);font-weight:600}
 .cty-lich-nut{display:flex;gap:8px;justify-content:flex-end}
 .cty-btn-phu{background:none!important;color:var(--muted)!important;border-color:var(--line)!important}
-.cty-ten-viec{display:flex;align-items:center;gap:6px;min-width:0}.cty-ten-viec>a{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cty-ten-viec{display:inline-flex;max-width:100%;align-items:center;gap:6px;min-width:0}.cty-ten-viec>a{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cty-den.cho{outline:1.5px dashed var(--warn);outline-offset:2px}
+.cty-mo-rong{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;margin-top:3px}.cty-mo-rong-nut{font:inherit;border:0;background:none;padding:0;color:var(--accent);cursor:pointer}

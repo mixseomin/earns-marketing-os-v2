@@ -24,7 +24,8 @@ for j in "$L"/*/*.json; do
 done
 wait
 t2=$(date +%s)
-rsync -a "$L/" "$BOX:$D/"
+# Chỉ đẩy KẾT QUẢ về box (ảnh JPEG + số đo json), không đẩy lại đầu vào / log.
+rsync -az --include="*/" --include="*/p*/***" --include="*/mb/***" --exclude="*" "$L/" "$BOX:$D/"
 ssh "$BOX" "$CHAY --dung --tap=$TAP --nhap=$D" | tail -1 | cut -c1-300
 echo "chuẩn bị+kéo: $((t1-t0))s · render iMac: $((t2-t1))s · đẩy+nhận: $(( $(date +%s)-t2 ))s"
 mv "$L" "$HOME/.Trash/" 2>/dev/null || true

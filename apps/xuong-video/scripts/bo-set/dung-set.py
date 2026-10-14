@@ -150,7 +150,10 @@ def ve_mau(s, sh, ra):
     nen = tuple(s.world.node_tree.nodes['Background'].inputs['Color'].default_value); sm = s.world.node_tree.nodes['Background'].inputs['Strength'].default_value
     anh_sang_mau(s, sh, True)
     s.render.engine = 'BLENDER_EEVEE'; s.eevee.taa_render_samples = 12; s.view_settings.view_transform = 'AgX'
+    # JPEG 88: nhẹ 5–8 lần PNG, đủ nét cho mô hình ảnh (anh 15/10/2026: "đẩy nhiều ảnh thì phải nén")
+    fm = s.render.image_settings; fm.file_format = 'JPEG'; fm.quality = 88; fm.color_mode = 'RGB'
     s.render.filepath = ra; bpy.ops.render.render(write_still=True)
+    fm.file_format = 'PNG'; fm.color_mode = 'RGBA'
     anh_sang_mau(s, sh, False); s.view_settings.view_transform = 'Standard'
     s.world.node_tree.nodes['Background'].inputs['Color'].default_value = nen; s.world.node_tree.nodes['Background'].inputs['Strength'].default_value = sm
     return True
@@ -364,12 +367,11 @@ for sh in ([] if CHI_MB else shots):
         giai[sh['ma']] = {'dat': may_moi, 'nhin': sh['may']['nhin']}; sh['may']['dat'] = may_moi
     kiem[sh['ma']] = k; DA_GIAI[sh['ma']] = list(sh['may']['dat'])
     thay[sh['ma']] = nhin_thay(s, cam, sh, nv_kiem)
-    s.view_layers[0].material_override = None; s.cycles.samples = 10; s.cycles.use_denoising = True; may_ve(s, True)
-    s.render.filepath = f"{RA}/{sh['ma']}-xam.png"; bpy.ops.render.render(write_still=True)
-    ve_mau(s, sh, f"{RA}/{sh['ma']}-mau.png")
-    may_ve(s, False); s.view_layers[0].material_override = do_sau(s, 0.02, 0.9); s.cycles.samples = 1; s.cycles.use_denoising = False   # độ sâu là phát sáng thuần: 1 mẫu là đủ
-    s.render.filepath = f"{RA}/{sh['ma']}-sau.png"; bpy.ops.render.render(write_still=True)
-    s.view_layers[0].material_override = None
+    # ẢNH RA (anh 15/10/2026: "render 30+ shot sao ra 140 ảnh?"): chỉ KHUNG MÀU (JPEG) — ảnh số 1 của keyframe. Khung xám chỉ render khi máy không
+    # có OpenGL (không làm được khung màu); bản đồ độ sâu bỏ hẳn (thử Flux depth đã loại). Cổng 3D kiểm bằng số đo tia, không cần ảnh.
+    if not ve_mau(s, sh, f"{RA}/{sh['ma']}-mau.jpg"):
+        s.view_layers[0].material_override = None; s.cycles.samples = 10; s.cycles.use_denoising = True; may_ve(s, True)
+        s.render.filepath = f"{RA}/{sh['ma']}-xam.png"; bpy.ops.render.render(write_still=True)
     # CHUYỂN ĐỘNG: chiếu chỗ mở / chỗ kết của từng món lên khung (0..1, gốc trên-trái) → studio viết câu chuyển động cho video từ số này;
     # shot có món di chuyển / quay thì render thêm khung màu ở chỗ KẾT → keyframe kết → video nhận ảnh đầu + ảnh cuối.
     from bpy_extras.object_utils import world_to_camera_view
@@ -385,7 +387,7 @@ for sh in ([] if CHI_MB else shots):
         nk, nk_het = nhan_vat(sh, ket=True)
         den_ = chieu(nk)
         di[sh['ma']] = [{'ten': t, 'tu': tu[t], 'den': den_.get(t, tu[t])} for t in tu]
-        ve_mau(s, sh, f"{RA}/{sh['ma']}-mau-ket.png")
+        ve_mau(s, sh, f"{RA}/{sh['ma']}-mau-ket.jpg")
         for o in nk_het: bpy.data.objects.remove(o, do_unlink=True)
     else: di[sh['ma']] = [{'ten': t, 'tu': tu[t], 'den': tu[t]} for t in tu]
 

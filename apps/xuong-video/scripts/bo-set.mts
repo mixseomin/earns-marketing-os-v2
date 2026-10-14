@@ -8,7 +8,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { chupTruoc } from '../src/lib/xuong-video/hoan-tac';
 import { dungKhungXamTap } from '../src/lib/xuong-video/bo-set-3d-may';
-import { datMayTuDong, type DatMay } from '../src/lib/xuong-video/bo-set-3d';
+import { datMayTuDong, type DatMay, BAN_MAY } from '../src/lib/xuong-video/bo-set-3d';
 import type { Row } from '../src/lib/xuong-video/doc-db';
 
 const db = getDb()!; const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split('=').slice(1).join('=') ?? '';
@@ -41,7 +41,7 @@ if (gia('nap')) {
     const dm = m as DatMay & { dat?: number[] };
     if (!dm.dat) {
       const kt = (r[0].ky_thuat ?? {}) as Record<string, string>;
-      const vao = JSON.stringify([dm.vi_tri, dm.phia ?? 0, dm.khung ?? null, dm.nhay ?? null, kt.co_canh, kt.goc, kt.ong_kinh, dm.vi_tri.map((v) => d.khoi?.[v.ten] ?? null)]);
+      const vao = JSON.stringify([BAN_MAY, dm.vi_tri, dm.phia ?? 0, dm.khung ?? null, dm.nhay ?? null, kt.co_canh, kt.goc, kt.ong_kinh, dm.vi_tri.map((v) => d.khoi?.[v.ten] ?? null)]);
       // Đầu vào không đổi → giữ máy cũ (có thể đã được bộ giải trong Blender dời) — khỏi dựng + giải lại mỗi lần nạp.
       if ((r[0].may_3d as { tu_dong?: { vao?: string } } | null)?.tu_dong?.vao === vao) { may++; continue; }
       const t = datMayTuDong(dm, kt, (x) => d.khoi?.[x] ?? null);

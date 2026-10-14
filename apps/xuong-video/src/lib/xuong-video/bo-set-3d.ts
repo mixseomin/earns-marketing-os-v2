@@ -141,6 +141,8 @@ const ONG_THEO_CO: Record<string, number> = { ews: 18, ws: 24, ms: 35, mcu: 50, 
 // ecu 0.6 / cu 0.75 / insert 0.7: trước đây ecu 1.6 (chủ thể to hơn khung) → với vật nhỏ (kẹo 2 cm) máy cách 1 cm, khung xám là một mảng đỏ (4.6 tập 19).
 const PHAN_KHUNG: Record<string, number> = { ews: 0.06, ws: 0.18, ms: 0.45, mcu: 0.6, cu: 0.75, ecu: 0.6, insert: 0.7, two: 0.4, ots: 0.5, pov: 0.3 };
 
+/** PHIÊN BẢN ĐẶT MÁY TỰ ĐỘNG: nằm trong khoá giữ máy đã giải (scripts/bo-set.mts) — đổi công thức dưới đây thì tăng số này, mọi máy tự động tính lại. */
+export const BAN_MAY = 2;
 export type DatMay = { vi_tri: May3d['vi_tri']; phia?: number; khung?: string[]; nhay?: string };
 export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; ong_kinh?: string }, khoi: (ten: string) => { co: number[] } | null): May3d {
   const ong = ONG_MM[kt.ong_kinh ?? ''] ?? ONG_THEO_CO[kt.co_canh ?? ''] ?? 35;

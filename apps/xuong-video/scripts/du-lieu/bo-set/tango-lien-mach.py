@@ -169,8 +169,8 @@ NHAY = {  # cú cắt cố ý cắt thời gian / dịch chuyển ngoài khung
 S['may']['7.3'].pop('phia', None); S['may']['7.3'].update(dat=[49, 44, 2.5], nhin=[56, 53, 1.2], ong_kinh=35)   # trước-trái: phích trái, Tango phải, đế cắm sau lưng Tango (bố cục viết theo địa lý 3D)
 for ma in ('1.1', '1.2'): S['may'][ma]['den_ban'] = True
 # 5.4 cùng phía rừng cáp với 5.3 / 5.5 (bên trái, nhìn sang +x), toàn cảnh, cao hơn để thấy Mr. Wipe sà xuống — trước đây bộ giải đặt tận góc sau-trái 50 cm.
-for k in ('dat', 'nhin', 'ong_kinh', 'tu_dong'): S['may']['5.4'].pop(k, None)
-S['may']['5.4']['phia'] = -80   # máy tự động từ bên trái (như 5.3 / 5.5); bộ giải né cáp / loa che   # đèn bàn bật tới cú bấm công tắc ở 1.2
+# 5.4 đặt tay: trước-trái, cao 12 cm nhìn xuống (qua trên loa + cáp trượt), cùng phía trục Tango–Lint với 5.3 — bộ giải tự động đẩy ra góc sau 60 cm.
+S['may']['5.4'].pop('phia', None); S['may']['5.4'].update(dat=[-14, 66, 12], nhin=[6, 72, 3], ong_kinh=24)   # đèn bàn bật tới cú bấm công tắc ở 1.2
 for ma, ds in VT.items():
     m = S['may'][ma]; m['vi_tri'] = ds
     if ma in NHAY: m['nhay'] = NHAY[ma]

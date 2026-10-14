@@ -364,6 +364,23 @@
       "en": "window frame on the far wall"
     },
     {
+      "ten": "Khung cửa sổ",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        0,
+        -188,
+        25
+      ],
+      "co": [
+        124,
+        4,
+        2
+      ],
+      "mau": "#8a7a66",
+      "en": "window frame on the far wall"
+    },
+    {
       "ten": "Mặt bàn",
       "nen": true,
       "hinh": "hop",
@@ -2353,7 +2370,17 @@
         "Tango",
         "Mr. Wipe"
       ],
-      "phia": -80
+      "dat": [
+        -14,
+        66,
+        12
+      ],
+      "nhin": [
+        6,
+        72,
+        3
+      ],
+      "ong_kinh": 24
     },
     "5.5": {
       "vi_tri": [

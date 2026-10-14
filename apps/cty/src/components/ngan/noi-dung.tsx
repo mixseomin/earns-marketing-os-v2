@@ -222,7 +222,7 @@ export async function nganNhanSu(id: string, admin = false): Promise<Ngan> {
         </div>
         <div className="cty-muted cty-nho">
           <span className="cty-nho">{String(f.model)}</span> · báo cáo cho {f.bao_cao_cho ? <Nguoi id={String(f.bao_cao_cho)} /> : 'Giám đốc'}
-          {' · '}nhịp: {nhipChu(f).chu}{f.tran_usd_thang ? ` · trần $${String(f.tran_usd_thang)}/tháng` : ''}
+          {' · '}nhịp: {nhipChu(f, id).chu}{f.tran_usd_thang ? ` · trần $${String(f.tran_usd_thang)}/tháng` : ''}
           {' · '}<a href={hrefVp(String(f.phong))} target="_blank" rel="noreferrer">xem trên văn phòng pixel ↗</a>
           {f.kind !== 'ai' && <> · {f.kind === 'human' ? 'người' : 'vendor'}</>}
         </div>

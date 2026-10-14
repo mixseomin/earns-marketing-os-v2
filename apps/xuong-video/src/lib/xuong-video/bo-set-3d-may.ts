@@ -60,6 +60,7 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     if (!r.ok) { loi.push(`${set.ten}: blender lỗi — ${r.log}`); continue; }
     const kiem = JSON.parse(await readFile(path.join(thu, 'ra', 'kiem.json'), 'utf8')) as Record<string, KhungXam['kiem']>;
     // Bộ giải máy đã dời máy tự động cho chủ thể thấy rõ → ghi máy mới vào shot (mã khung xám tính trên máy đã giải).
+    const thay = JSON.parse(await readFile(path.join(thu, 'ra', 'thay.json'), 'utf8').catch(() => '{}')) as Record<string, NonNullable<KhungXam['thay']>>;
     const giai = JSON.parse(await readFile(path.join(thu, 'ra', 'giai.json'), 'utf8').catch(() => '{}')) as Record<string, { dat: number[] }>;
     for (const c of shots) { const g = giai[String(c.id)]; if (g) { c.may_3d = { ...c.may_3d, dat: g.dat }; await db.execute(sql`UPDATE xv_canh SET may_3d = ${JSON.stringify(c.may_3d)}::jsonb WHERE id = ${c.id}`); } }
     const luc = new Date().toISOString();
@@ -68,7 +69,7 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
       const len = async (duoi: string) => uploadToR2(`xuong-video/khung-xam/${c.id}-${ma}-${duoi}.png`, await readFile(path.join(thu, 'ra', `${c.id}-${duoi}.png`)), 'image/png');
       const [xam, sau] = [await len('xam'), await len('sau')];
       if (!xam || !sau) { loi.push(`#${c.thu_tu}: không đẩy được ảnh lên kho`); continue; }
-      const kx: KhungXam = { ma, xam, sau, luc, kiem: kiem[String(c.id)] ?? [] };
+      const kx: KhungXam = { ma, xam, sau, luc, kiem: kiem[String(c.id)] ?? [], thay: thay[String(c.id)] ?? [] };
       await db.execute(sql`UPDATE xv_canh SET khung_xam = ${JSON.stringify(kx)}::jsonb WHERE id = ${c.id}`);
       dung++;
     }

@@ -119,6 +119,43 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
                     'cao_khung_pt': round((max(ys) - min(ys)) * 100, 1), 'bi_che_boi': bi_che})
     return out
 
+NHOM = {v['ten'] for v in DL['vat'] if 'phan' in v}
+NEN = {v['ten'] for v in DL['vat'] if v.get('nen')}   # mặt bàn, tường, kệ: không phải vật chắn
+def ten_vat(o):
+    """Tên người đọc của một khối trong cảnh: 'NV Tango' → Tango, 'Desk Lamp 2' → Desk Lamp (phần của nhóm)."""
+    if o.name.startswith('NV '): return o.name[3:]
+    g = o.name.rsplit(' ', 1)[0]
+    return g if g in NHOM else o.name
+
+def nhin_thay(s, cam, sh, nv_obj):
+    """THẤY GÌ TRONG KHUNG — bằng số, không bằng mắt (anh 14/10/2026: khối vàng ở cảnh 6–7 trông như tay Gã khổng lồ mà không ai biết là gì).
+    Bắn lưới 27×48 tia qua khung máy: mỗi vật chiếm bao nhiêu % khung, hộp bao (0..1, gốc trên-trái), và có nằm TRƯỚC chủ thể không
+    (tien = gần máy hơn chủ thể gần nhất — vật chắn tiền cảnh). Ghi vào khung xám để lưới gắn nhãn, cổng bắt vật chắn, prompt keyframe gọi tên từng khối."""
+    bpy.context.view_layer.update(); dg = bpy.context.evaluated_depsgraph_get()
+    fr = [cam.matrix_world @ v for v in cam.data.view_frame(scene=s)]   # trên-phải, dưới-phải, dưới-trái, trên-trái
+    tr, br, bl, tl = fr
+    bb_ten = set(sh.get('bat_buoc') or [])
+    chu = [o for o in nv_obj if ten_vat(o) in bb_ten] or nv_obj
+    kc_chu = min(((sum((o.matrix_world @ Vector(c) for c in o.bound_box), Vector()) / 8) - cam.location).length for o in chu) if chu else 1e9
+    C, R = 27, 48; dem = {}
+    for j in range(R):
+        for i in range(C):
+            u, v = (i + 0.5) / C, (j + 0.5) / R
+            p = tl + (tr - tl) * u + (bl - tl) * v
+            d = (p - cam.location).normalized()
+            hit, loc, _, _, ob, _ = s.ray_cast(dg, cam.location, d)
+            if not hit or not ob: continue
+            t = ten_vat(ob); x = dem.setdefault(t, {'n': 0, 'u0': 1, 'v0': 1, 'u1': 0, 'v1': 0, 'gan': 1e9})
+            x['n'] += 1; x['u0'] = min(x['u0'], u); x['v0'] = min(x['v0'], v); x['u1'] = max(x['u1'], u); x['v1'] = max(x['v1'], v)
+            x['gan'] = min(x['gan'], (loc - cam.location).length)
+    out = []
+    for t, x in dem.items():
+        pt = round(x['n'] * 100 / (C * R), 1)
+        if pt < 0.5: continue
+        out.append({'ten': t, 'pt': pt, 'hop': [round(x['u0'] - 0.5 / C, 3), round(x['v0'] - 0.5 / R, 3), round(x['u1'] + 0.5 / C, 3), round(x['v1'] + 0.5 / R, 3)],
+                    'tien': t not in bb_ten and t not in NEN and x['gan'] < kc_chu * 0.8})
+    return sorted(out, key=lambda x: -x['pt'])
+
 def hong(k): return sum(1 for x in k if x['bat_buoc'] and (not x['trong_khung'] or x['bi_che_boi']))
 
 def dat_may(cam, dat, nhin):
@@ -153,7 +190,7 @@ def vat_chu_the(sh):
 
 s = dung_set()
 shots = [sh for sh in DL['shot'] if not CHI or sh['ma'] in CHI]
-kiem = {}; giai = {}
+kiem = {}; giai = {}; thay = {}
 for sh in shots:
     nv = nhan_vat(sh)
     cam = may(s, sh['may'], f"cam {sh['ma']}")
@@ -163,6 +200,7 @@ for sh in shots:
         _, may_moi, k = giai_may(s, cam, sh, nv_kiem)   # KHÔNG đặt tên `dat` — trùng hàm dat() ở trên, đè mất hàm (lỗi 14/10/2026)
         giai[sh['ma']] = {'dat': may_moi, 'nhin': sh['may']['nhin']}; sh['may']['dat'] = may_moi
     kiem[sh['ma']] = k
+    thay[sh['ma']] = nhin_thay(s, cam, sh, nv_kiem)
     s.view_layers[0].material_override = None; s.cycles.samples = 24
     s.render.filepath = f"{RA}/{sh['ma']}-xam.png"; bpy.ops.render.render(write_still=True)
     s.view_layers[0].material_override = do_sau(s, 0.02, 0.9); s.cycles.samples = 4
@@ -188,5 +226,6 @@ for v in [x for x in bpy.data.objects if x.name.startswith('Tường')]: v.hide_
 s.render.filepath = f"{RA}/mat-bang.png"; bpy.ops.render.render(write_still=True)
 json.dump(kiem, open(f'{RA}/kiem.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(giai, open(f'{RA}/giai.json', 'w'), ensure_ascii=False, indent=1)
+json.dump(thay, open(f'{RA}/thay.json', 'w'), ensure_ascii=False, indent=1)
 print('KIEM', json.dumps(kiem, ensure_ascii=False))
 print('XONG', [sh['ma'] for sh in shots])

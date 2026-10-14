@@ -4,6 +4,7 @@
   "vat": [
     {
       "ten": "Mặt bàn",
+      "nen": true,
       "hinh": "hop",
       "tam": [
         0,
@@ -19,6 +20,7 @@
     },
     {
       "ten": "Tường",
+      "nen": true,
       "hinh": "hop",
       "tam": [
         0,
@@ -34,6 +36,7 @@
     },
     {
       "ten": "Kệ nâng sau",
+      "nen": true,
       "hinh": "hop",
       "tam": [
         0,

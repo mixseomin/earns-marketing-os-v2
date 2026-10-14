@@ -8,7 +8,7 @@ import { promptKyThuatAnh } from './dien-anh';
 import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type KinhThanh, type NhanVat } from './kieu';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
-import { boSetCuaShot, chanKhungXam, shotSoTruc } from './bo-set-3d';
+import { boSetCuaShot, chanKhungXam, moTaThay, shotSoTruc } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { boiCanhCanh, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, jobDangCho, type Db, type Row } from './doc-db';
 
@@ -96,7 +96,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   const kx = bc.canh.khung_xam?.xam && urlRef.length < 10 ? bc.canh.khung_xam.xam : null;
   if (kx) { urlRef.push(kx); vai.push({ url: kx, nhan: '🧊 khung xám 3D (bố trí)' }); }
   const soKx = urlRef.length;
-  const kxChu = kx ? `Image ${soKx} = a grey-box 3D LAYOUT render from THIS shot's exact camera on the real set: every object (screens, stands, keyboard, mouse, cables, props) and every character must sit EXACTLY where its block is — same position, size, overlap, perspective, horizon and framing. It shows layout only: colours, materials and lighting come from the style and the other reference images, never grey blocks.` : '';
+  const kxChu = kx ? `Image ${soKx} = a grey-box 3D LAYOUT render from THIS shot's exact camera on the real set: every object (screens, stands, keyboard, mouse, cables, props) and every character must sit EXACTLY where its block is — same position, size, overlap, perspective, horizon and framing. It shows layout only: colours, materials and lighting come from the style and the other reference images, never grey blocks. ${moTaThay(bc.canh.khung_xam?.thay)}` : '';
   // LIỀN MÁY: shot trước chọn chuyển cảnh 'lien_may' → clip của nó kết bằng ảnh này, nên ảnh này phải là giây kế tiếp của chính khung đó
   // (cùng nơi, cùng phía máy, vị trí + đồ vật + trạng thái nối tiếp) — keyframe shot trước làm ảnh tham chiếu cuối (Tango & Lint tập 1: 0/20
   // clip nối khung, shot sau không thấy liên quan shot trước).

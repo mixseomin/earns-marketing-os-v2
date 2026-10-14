@@ -2,7 +2,7 @@
 // máy ảo của từng shot (xv_canh.may_3d) render ra khung xám + bản đồ độ sâu (scripts/bo-set/dung-set.py, Blender trên box) làm khung xương
 // cho keyframe. Ở đây: shot thuộc set nào, mã đầu vào (đổi là phải dựng lại), bảng đầu vào cho Blender, kiểm trục 180° bằng hình học,
 // và cổng (chanKhungXam). Tự kiểm: bo-set-3d.test.mts
-import type { BoSet, Canh, May3d, NhanVat } from './kieu';
+import type { BoSet, Canh, May3d, NhanVat, VatThay } from './kieu';
 
 /** Bộ set của shot = bộ set CHUNG của mọi anchor bối cảnh gắn ở shot. null = shot không dựng 3D: không có bối cảnh thuộc set (Trái Đất,
  *  Hà Nội trên cao) hoặc shot đi XUYÊN hai thế giới (bay qua ô cửa sổ vào bàn: một bối cảnh có set, một không) — khung đầu nằm ngoài set. */
@@ -61,15 +61,37 @@ export function shotSoTruc<T extends Pick<Canh, 'may_3d'>>(ds: T[], i: number): 
   return null;
 }
 
-/** KIỂM ĐỦ ĐẠO CỤ: nhân vật / đạo cụ / sản phẩm gắn ở shot mà không có trong bộ set (vật có tên hoặc anchor trùng) và không có chỗ đứng
- *  trong may_3d → thiếu. Khung xám thiếu món đó thì keyframe tự vẽ theo ý nó (anh 14/10/2026: công tắc đèn có ở #6 mà không có ở #5). */
-export function thieuTrongSet(c: Pick<Canh, 'nhan_vat' | 'may_3d'>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai'>[], set: Pick<BoSet, 'du_lieu'>): string[] {
+/** Chữ tả THỨ CÓ TRONG KHUNG của shot: prompt ảnh + bố cục 3 lớp + trạng thái mở / kết (không lấy "thấy" — nó kể cả thứ ngoài khung). */
+export const chuKhung = (c: Partial<Pick<Canh, 'prompt_anh' | 'dan_dung'>>) => [c.prompt_anh, c.dan_dung?.bo_cuc, c.dan_dung?.mo, c.dan_dung?.ket].filter(Boolean).join(' \n ').toLowerCase();
+const nhac = (ten: string, chu: string) => { const t = ten.trim().toLowerCase(); return t.length >= 3 && new RegExp(`(^|[^\\p{L}])${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^\\p{L}]|$)`, 'u').test(chu); };
+
+/** KIỂM ĐỦ ĐẠO CỤ: nhân vật / đạo cụ / sản phẩm GẮN ở shot hoặc NHẮC TÊN trong chữ tả khung (bố cục, mở, kết, prompt ảnh) mà không có trong
+ *  bộ set (vật có tên hoặc anchor trùng) và không có chỗ đứng trong may_3d → thiếu. Khung xám thiếu món đó thì keyframe tự vẽ nó ở chỗ tuỳ ý
+ *  (anh 14/10/2026: công tắc đèn có ở #6 mà không có ở #5; "bản 3D phải có vị trí các thành phần, đạo cụ, nhân vật xong mới được sinh keyframe"). */
+export function thieuTrongSet(c: Pick<Canh, 'nhan_vat' | 'may_3d'> & Partial<Pick<Canh, 'prompt_anh' | 'dan_dung'>>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai'>[], set: Pick<BoSet, 'du_lieu'>): string[] {
   const co = new Set([...set.du_lieu.vat.flatMap((v) => [v.ten, v.anchor ?? '']), ...(c.may_3d?.vi_tri ?? []).map((v) => v.ten)].map((t) => t.trim().toLowerCase()).filter(Boolean));
-  return c.nhan_vat.map((id) => nhanVat.find((v) => v.id === id)).filter((v) => v && ['nhan_vat', 'dao_cu', 'san_pham'].includes(v.loai) && !co.has(v.ten.trim().toLowerCase())).map((v) => v!.ten);
+  const chu = chuKhung(c);
+  return nhanVat.filter((v) => ['nhan_vat', 'dao_cu', 'san_pham'].includes(v.loai) && (c.nhan_vat.includes(v.id) || nhac(v.ten, chu)) && !co.has(v.ten.trim().toLowerCase())).map((v) => v.ten);
+}
+
+/** Tên gọi được của một vật set trong chữ: tên, tên bỏ số đuôi ("Cable Jungle 2" → "Cable Jungle"), anchor, từ cuối ≥ 4 chữ ("Yellow iMac" → "imac"). */
+const tenGoi = (ten: string, set: Pick<BoSet, 'du_lieu'>) => {
+  const v = set.du_lieu.vat.find((x) => x.ten === ten); const goc = ten.replace(/\s+\d+$/, '');
+  const cuoi = goc.split(/\s+/).pop() ?? '';
+  return [ten, goc, v?.anchor ?? '', cuoi.length >= 4 ? cuoi : ''].filter(Boolean);
+};
+
+/** VẬT CHẮN TIỀN CẢNH: vật của set nằm GIỮA máy và chủ thể, chiếm ≥ 12% khung, mà chữ tả khung không hề nhắc — máy đặt sau / xuyên đồ đạc,
+ *  khung xám ra một mảng khối vô nghĩa (anh 14/10/2026: "cảnh 6 và 7 tay khổng lồ ở vị trí lung tung" — thật ra là lưng iMac vàng chắn máy).
+ *  Mặt nền (nen: mặt bàn, tường, kệ) không tính. Dữ liệu từ khung_xam.thay (dung-set.py › nhin_thay). */
+export function vatChanTienCanh(c: Pick<Canh, 'may_3d' | 'khung_xam'> & Partial<Pick<Canh, 'prompt_anh' | 'dan_dung'>>, set: Pick<BoSet, 'du_lieu'> | null): VatThay[] {
+  const ct = c.may_3d ? chuThe(c.may_3d) : []; const chu = chuKhung(c);
+  const nen = new Set((set?.du_lieu.vat ?? []).filter((v) => v.nen).map((v) => v.ten));
+  return (c.khung_xam?.thay ?? []).filter((t) => t.tien && t.pt >= 12 && !nen.has(t.ten) && !ct.includes(t.ten) && !(set ? tenGoi(t.ten, set) : [t.ten]).some((g) => nhac(g, chu)));
 }
 
 /** Cổng khung xám của một shot (rỗng = qua). Shot không thuộc set nào → không chặn (ngoại lệ đã khai: không có anchor bối cảnh có set). */
-export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'>[], set: Pick<BoSet, 'id' | 'du_lieu'> | null, truoc?: Pick<Canh, 'nhan_vat' | 'may_3d'> | null): string[] {
+export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> & Partial<Pick<Canh, 'prompt_anh' | 'dan_dung'>>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'>[], set: Pick<BoSet, 'id' | 'du_lieu'> | null, truoc?: Pick<Canh, 'nhan_vat' | 'may_3d'> | null): string[] {
   if (!set) return [];
   if (!c.may_3d) return ['shot thuộc bộ set 3D mà chưa đặt máy ảo + vị trí nhân vật (may_3d)'];
   const out: string[] = [];
@@ -77,7 +99,11 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'>,
   if (thieu.length) out.push(`bộ set / chỗ đứng chưa có: ${thieu.join(', ')} — thêm vào bộ set (đồ cố định) hoặc vào chỗ đứng của shot`);
   const kx = c.khung_xam;
   if (!kx || kx.ma !== maKhungXam(set, c.may_3d, nhanVat)) out.push('chưa dựng khung xám (hoặc set / máy / vị trí đã đổi sau lần dựng) — chạy 🧊 Dựng khung xám');
-  else for (const k of loiHinhHoc(c)) out.push(!k.trong_khung ? `${k.nhan_vat} (chủ thể) nằm ngoài khung` : `${k.nhan_vat} (chủ thể) bị ${k.bi_che_boi.join(', ')} che`);
+  else if (!kx.thay) out.push('khung xám đời cũ chưa đo "thấy gì trong khung" — chạy 🧊 Dựng khung xám lại');
+  else {
+    for (const k of loiHinhHoc(c)) out.push(!k.trong_khung ? `${k.nhan_vat} (chủ thể) nằm ngoài khung` : `${k.nhan_vat} (chủ thể) bị ${k.bi_che_boi.join(', ')} che`);
+    for (const v of vatChanTienCanh(c, set)) out.push(`${v.ten} chắn tiền cảnh ${v.pt}% khung mà bố cục không nhắc — máy đang đặt sau đồ đạc: dời máy (phía / dat) hoặc ghi nó vào bố cục nếu cố ý`);
+  }
   if (!c.may_3d.qua_truc && truoc?.may_3d && boSetCuaShot(truoc, nhanVat) === set.id) { const v = vuotTruc(truoc.may_3d, c.may_3d, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase())); if (v) out.push(v); }
   return out;
 }
@@ -111,4 +137,12 @@ export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; on
   const z = kt.goc === 'sat_dat' ? 0.5 : Math.max(0.4, cz + d * Math.sin(e) + (kt.goc === 'thap' ? -H * 0.3 : 0));
   const r = (x: number) => Math.round(x * 10) / 10;
   return { dat: [r(cx + ngang * Math.sin(a)), r(cy - ngang * Math.cos(a)), r(z)], nhin: [r(cx), r(cy), r(cz)], ong_kinh: ong, vi_tri: o.vi_tri, ...(o.khung?.length ? { khung: o.khung } : {}), tu_dong: { phia: o.phia ?? 0 } };
+}
+
+/** Danh sách khối trong khung xám, gọi tên từng khối cho mô hình ảnh (vị trí trên màn + % khung) — để nó không đoán một khối vàng là bàn tay.
+ *  Bỏ khối < 2% khung. Chỉ những thứ này có trong khung: không thêm tay / người / vật không có tên ở đây. */
+export function moTaThay(thay: VatThay[] | undefined): string {
+  const ngang = (x: number) => (x < 0.36 ? 'left' : x > 0.64 ? 'right' : 'centre'); const doc = (y: number) => (y < 0.36 ? 'top' : y > 0.64 ? 'bottom' : 'middle');
+  const ds = (thay ?? []).filter((t) => t.pt >= 2).map((t) => `${t.ten} (${doc((t.hop[1] + t.hop[3]) / 2)}-${ngang((t.hop[0] + t.hop[2]) / 2)}, ${Math.round(t.pt)}%${t.tien ? ', foreground' : ''})`);
+  return ds.length ? `Blocks in that layout image, by name: ${ds.join('; ')}. Nothing else is in this frame — do not add hands, people or objects that are not in this list.` : '';
 }

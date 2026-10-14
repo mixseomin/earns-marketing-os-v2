@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet } from './bo-set-3d';
+import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -26,7 +26,7 @@ assert.deepEqual(chanKhungXam({ nhan_vat: [4], may_3d: null, khung_xam: null }, 
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: null, khung_xam: null }, nv, set)[0]!.includes('chưa đặt máy'));
 const mm = m([25, 4, 1]);
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: null }, nv, set)[0]!.includes('chưa dựng'));
-const kx = (kiem: { nhan_vat: string; trong_khung: boolean; cao_khung_pt: number; bi_che_boi: string[] }[]) => ({ ma: maKhungXam(set, mm, nv), xam: '', sau: '', luc: '', kiem });
+const kx = (kiem: { nhan_vat: string; trong_khung: boolean; cao_khung_pt: number; bi_che_boi: string[] }[]) => ({ ma: maKhungXam(set, mm, nv), xam: '', sau: '', luc: '', kiem, thay: [] });
 assert.deepEqual(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kx([{ nhan_vat: 'Tango', trong_khung: true, cao_khung_pt: 6, bi_che_boi: [] }]) }, nv, set), []);
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kx([{ nhan_vat: 'Tango', trong_khung: true, cao_khung_pt: 6, bi_che_boi: ['White Keyboard'] }]) }, nv, set)[0]!.includes('White Keyboard che'));
 // Trục chỉ giữa NHÂN VẬT: Tango–Gummy (đồ vật) không dựng trục; coi Gummy là nhân vật thì vượt trục bị bắt.
@@ -34,7 +34,7 @@ assert.ok(!chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kx([]) }, nv,
 const nvHaiNguoi = nv.map((v) => (v.ten === 'Gummy Bear' ? { ...v, loai: 'nhan_vat' as const } : v));
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kx([]) }, nvHaiNguoi, set, { nhan_vat: [1], may_3d: m([25, 40, 1]) }).some((x) => x.includes('trục')));
 const mAn = { ...mm, vi_tri: [{ ten: 'Tango', tam: [20, 25, 0], an: true }, { ten: 'Gummy Bear', tam: [30, 25, 0] }] };
-assert.deepEqual(chanKhungXam({ nhan_vat: [1, 2], may_3d: mAn, khung_xam: { ma: maKhungXam(set, mAn, nv), xam: '', sau: '', luc: '', kiem: [{ nhan_vat: 'Tango', trong_khung: true, cao_khung_pt: 6, bi_che_boi: ['Magic Mouse'] }] } }, nv, set), []);   // cố ý nấp sau chuột → không báo
+assert.deepEqual(chanKhungXam({ nhan_vat: [1, 2], may_3d: mAn, khung_xam: { ma: maKhungXam(set, mAn, nv), xam: '', sau: '', luc: '', kiem: [{ nhan_vat: 'Tango', trong_khung: true, cao_khung_pt: 6, bi_che_boi: ['Magic Mouse'] }], thay: [] } }, nv, set), []);   // cố ý nấp sau chuột → không báo
 // Đặt máy tự động: cận gần hơn toàn; phía 0° = máy ở trước (y nhỏ hơn); phía 90° = máy ở bên phải (x lớn hơn); sát đất thì máy thấp.
 const k = (t: string) => (t === 'Tango' ? { co: [2, 1.6, 2.6] } : null);
 const vt = [{ ten: 'Tango', tam: [0, 50, 0] }];
@@ -53,4 +53,16 @@ assert.equal(shotSoTruc(ds3, 2)!.id, 1);
 const nv2 = [...nv, { id: 5, ten: 'Remote', loai: 'dao_cu' as const, bo_set_id: null, khoi_3d: null }];
 assert.deepEqual(thieuTrongSet({ nhan_vat: [1, 2, 3], may_3d: mm }, nv2, set), []);
 assert.deepEqual(thieuTrongSet({ nhan_vat: [1, 2, 3, 5], may_3d: mm }, nv2, set), ['Remote']);
+// Nhắc tên trong chữ tả khung (bố cục) mà 3D chưa đặt → thiếu, kể cả khi chưa gắn anchor; nhắc ở "thấy" (ngoài khung) thì không tính.
+assert.deepEqual(thieuTrongSet({ nhan_vat: [1, 2], may_3d: mm, dan_dung: { bo_cuc: 'Mid: Tango. Background: the Remote, blurred.' } }, nv2, set), ['Remote']);
+assert.deepEqual(thieuTrongSet({ nhan_vat: [1, 2], may_3d: mm, dan_dung: { thay: 'Tango nghĩ tới cái Remote.' } as never }, nv2, set), []);
+// Vật chắn tiền cảnh: iMac chắn 30% khung trước chủ thể, bố cục không nhắc → chặn; bố cục có nhắc "iMac" → cố ý, qua; mặt nền / dưới 12% → không tính.
+const setIMac = { id: 7, du_lieu: { vat: [...set.du_lieu.vat, { ten: 'Yellow iMac', goc: [0, 0], phan: [] }] } };
+const kxT = (thay: { ten: string; pt: number; hop: [number, number, number, number]; tien: boolean }[]) => ({ ma: maKhungXam(setIMac, mm, nv), xam: '', sau: '', luc: '', kiem: [], thay });
+const chan = { ten: 'Yellow iMac', pt: 30, hop: [0, 0, 1, 0.3] as [number, number, number, number], tien: true };
+assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([chan]) }, nv, setIMac).some((x) => x.includes('Yellow iMac chắn tiền cảnh')));
+assert.deepEqual(vatChanTienCanh({ may_3d: mm, khung_xam: kxT([chan]), dan_dung: { bo_cuc: 'Foreground: the yellow iMac stand, blurred.' } }, setIMac), []);
+assert.deepEqual(vatChanTienCanh({ may_3d: mm, khung_xam: kxT([{ ...chan, pt: 8 }]) }, setIMac), []);
+assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: { ...kxT([]), thay: undefined } }, nv, setIMac).some((x) => x.includes('đời cũ')));
+assert.ok(moTaThay([chan]).includes('Yellow iMac (top-centre, 30%, foreground)'));
 console.log('bo-set-3d.test: ok');

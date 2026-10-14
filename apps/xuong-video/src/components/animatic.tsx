@@ -57,7 +57,7 @@ export function Animatic({ canh, tiLe, ngonNgu, onClose, qc, lop = [] }: { canh:
         <div style={{ position: 'absolute', left: 0, right: 0, top: 0, padding: '8px 12px', background: 'linear-gradient(rgba(0,0,0,.6), transparent)', color: '#fff', fontSize: 12 }}>
           #{c.thu_tu} {c.canh} · {giayPhat(c)}s · {vid ? (c.video_cuoi_url ? 'bản cuối' : 'nháp') : 'keyframe'}
         </div>
-        {c.chu_man && <ChuManXem chu={c.chu_man} giay={t / 1000} rong={rongK} qc={qc} kieu={c.kieu_chu} />}
+        {c.chu_man && <ChuManXem chu={c.chu_man} giay={t / 1000} rong={rongK} qc={qc} kieu={c.kieu_chu} phat={giayPhat(c)} />}
       </div>
       {/* Trên hình CHỈ có chữ màn (thứ bản xuất vẽ thật); lời thoại ghi bên ngoài khung, chỉ lời — không tên, không diễn xuất (#1229, #1231). */}
       <div style={{ width: doc916 ? 'calc(78vh * 9 / 16)' : 'min(92vw, 1200px)', minHeight: 20, textAlign: 'center', color: 'var(--fg-2)', fontSize: 13 }}>{c.thoai.length ? c.thoai.map((d) => d.loi).join(' ') : c.loi_thoai.replace(/^[^:"“]*:\s*/gm, '').replace(/["“”]/g, '')}</div>

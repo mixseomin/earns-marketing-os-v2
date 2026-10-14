@@ -43,8 +43,9 @@ async function doTep(duong: string): Promise<{ dai: number | null; coAm: boolean
     const v = (j.streams ?? []).find((s) => s.codec_type === 'video')?.r_frame_rate?.split('/').map(Number);
     const fps = v && v[0] && v[1] ? Math.round((v[0] / v[1]) * 100) / 100 : null;
     const dai = Number(j.format?.duration); const coAm = (j.streams ?? []).some((s) => s.codec_type === 'audio');
-    // Tệp chỉ có tiếng (giọng, hiệu ứng, nhạc) → đo độ to; clip video thì không cần (tiếng clip đã có luật riêng).
-    const lufs = coAm && !v ? await doLufs(duong) : null;
+    // Mọi tệp có tiếng đều đo độ to — cả clip video (15/10/2026: tiếng cười của clip Grok vào bản xuất ở mức gốc, nhỏ hẳn so với giọng
+    // đọc; bản xuất đặt tiếng clip theo giọng như nhạc/hiệu ứng, xuat.ts › LUFS_CLIP_DUOI_GIONG).
+    const lufs = coAm ? await doLufs(duong) : null;
     const daiOk = Number.isFinite(dai) && dai > 0 ? dai : null;
     const catDuoi = coAm && !v && (daiOk ?? 0) > 10 ? await doCatDuoi(duong, daiOk) : null;   // chỉ tệp dài (nhạc), câu giọng không cần
     return { dai: daiOk, coAm, fps, lufs, catDuoi };

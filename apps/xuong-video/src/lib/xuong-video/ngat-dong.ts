@@ -70,3 +70,23 @@ export function dongChuMan(chu: string, W: number, k: Parameters<typeof doDong>[
 export const emCss = (font: string): number => EM_CSS[font] ?? EM_CSS['DejaVu Sans'] ?? 1;
 /** Bỏ dấu chấm cuối câu của chữ trên hình (giữ "…", "?", "!" và chấm giữa câu/tên miền). */
 export const boChamCuoi = (s: string): string => s.replace(/(?<![.\s])\.\s*$/u, '').replace(/\s+$/u, '');
+
+/** CỤM CHỮ (15/10/2026 — anh: "chữ hơi bé và dài quá, mỗi khuôn chỉ show vài từ hợp lý"): cắt một câu thành các cụm ≤ toiDa từ để hiện LẦN LƯỢT
+ *  (kiểu phụ đề TikTok/Reels): số cụm ít nhất, cụm dài đều nhau, không để từ chức năng (the, a, my…) đứng cuối cụm, dấu/ký hiệu dính chữ trước
+ *  (cumChu). Câu có **nhấn** giữ nguyên. Trả các cụm theo thứ tự. */
+export function chiaCum(cau: string, toiDa: number): string[] {
+  if (!toiDa || toiDa < 1 || /\*\*/.test(cau)) return [cau];
+  const tu = cumChu(cau);
+  if (tu.length <= toiDa) return [cau];
+  const so = Math.ceil(tu.length / toiDa);
+  const co = Array.from({ length: so }, (_, i) => Math.floor(tu.length / so) + (i < tu.length % so ? 1 : 0));
+  // dịch ranh giới: từ chức năng ở cuối cụm → đẩy sang cụm sau (nếu cụm sau còn chỗ)
+  for (let i = 0; i < so - 1; i++) {
+    const cuoi = co.slice(0, i + 1).reduce((a, b) => a + b, 0) - 1;
+    if (DINH_SAU.has(tu[cuoi]!.toLowerCase()) && co[i]! > 1 && co[i + 1]! < toiDa) { co[i]!--; co[i + 1]!++; }
+  }
+  const out: string[] = []; let k = 0;
+  // dấu phẩy / chấm phẩy ở CUỐI cụm bỏ (khung sau là câu nối tiếp, không cần dấu ngắt treo lơ lửng)
+  for (const n of co) { out.push(tu.slice(k, k + n).join(' ').replace(/[,;]$/u, '')); k += n; }
+  return out;
+}

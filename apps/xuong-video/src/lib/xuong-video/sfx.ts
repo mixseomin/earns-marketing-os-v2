@@ -10,6 +10,8 @@ export type NeoSfx = 'dau' | 'cuoi' | 'ca';
 export const LUFS_GIONG = -16;
 /** Nhạc nền nằm dưới giọng bao nhiêu dB (bản xuất đặt theo độ to đo được của bài). */
 export const LUFS_NHAC_DUOI_GIONG = 10;
+/** Tiếng gốc của clip (cười, nói, tiếng động khi shot không có lời đọc) nằm dưới giọng bao nhiêu dB — gần ngang giọng: đó là khoảnh khắc chính. */
+export const LUFS_CLIP_DUOI_GIONG = 2;
 /** Âm lượng phát thử trên timeline (0–1) cho một tệp đo được `lufs`, muốn nghe ở mức `muc` LUFS như bản xuất — chừa DU_XEM dB vì
  *  trình duyệt không khuếch đại quá 1. 12/10/2026: timeline phát nhạc nguyên to (-13,7) còn giọng gốc -18,5 → nhạc át giọng ~5 dB,
  *  trong khi bản xuất giọng trên nhạc 10 dB. Chưa đo được → `macDinh`. */

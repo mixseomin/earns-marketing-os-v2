@@ -1,5 +1,5 @@
 import type { TheLoai, KyThuatShot, Beat } from './dien-anh';
-import { boChamCuoi } from './ngat-dong';
+import { boChamCuoi, chiaCum } from './ngat-dong';
 // Xưởng video AI — kiểu dữ liệu + bảng model/giá. File THƯỜNG (không 'use server'), client lẫn server import được.
 // Giá: ai.google.dev/gemini-api/docs/pricing đọc 08/10/2026 (Veo 3.1 Lite 720p $0,05/giây; Nano Banana 2.1 1K $0,0336/ảnh).
 // Sora 2 API của OpenAI đã đóng 24/09/2026 → video chỉ còn Google; chữ dùng Claude.
@@ -171,14 +171,16 @@ export type KieuChu = { font?: string; mau?: string; vien?: string; nhan?: strin
   /** y = tâm dọc của khối chữ theo tỉ lệ chiều cao (0–1), đè vi_tri_chu; nen = màu băng nền sau chữ (kiểu nhãn "Every senior loves these!"). */
   y?: number; nen?: string;
   /** hiệu ứng vào của MỖI câu chữ màn: 'bat' = nảy lên (pop) · 'dap' = lao vào từ to + mờ rồi đập về cỡ thật (trailer). Trống = hiện thẳng. */
-  vao?: '' | 'bat' | 'dap' };
+  vao?: '' | 'bat' | 'dap';
+  /** tối đa bao nhiêu TỪ mỗi khung chữ: câu dài tự cắt thành cụm hiện lần lượt trong shot (ngat-dong.ts › chiaCum). Trống/0 = cả câu một lượt. */
+  tu?: number };
 /** ngang = độ rộng chữ % (ASS ScaleX; <100 = chữ hẹp như font QC mẫu). co = cỡ chữ ASS / bề ngang (ASS tính theo chiều cao dòng → chữ nhỏ hơn cùng số px của drawtext). */
 export const KIEU_CHU_MAC_DINH = { font: 'DejaVu Sans', mau: '#FFFFFF', vien: '#000000', nhan: '', co: 0.062, vien_day: 0.07, ngang: 100, vao: '' as '' | 'bat' | 'dap' };
 /** Gộp kiểu chữ màn: mặc định ← phim ← shot (giá trị rỗng không đè). MỘT hàm cho bản xuất (xuat.ts › tepAss) và ô xem trước (chu-man.tsx).
  *  Phim CHƯA chọn kiểu chữ → chữ trắng trên băng nền tối: viền mỏng chìm hẳn trên nền giấy sáng của phim vẽ (Fox Tales 13/10/2026,
  *  "nền chữ trắng không đọc được"). Phim đã chọn kiểu (QC chép từ mẫu) giữ nguyên kiểu của nó. */
 export const NEN_CHU_MAC_DINH = '#000000';
-export function gopKieu(phim?: KieuChu | null, shot?: KieuChu | null): typeof KIEU_CHU_MAC_DINH & { y?: number; nen?: string } {
+export function gopKieu(phim?: KieuChu | null, shot?: KieuChu | null): typeof KIEU_CHU_MAC_DINH & { y?: number; nen?: string; tu?: number } {
   const sach = (d?: KieuChu | null) => Object.fromEntries(Object.entries(d ?? {}).filter(([, v]) => v !== '' && v != null));
   const p = sach(phim);
   return Object.assign({}, KIEU_CHU_MAC_DINH, Object.keys(p).length ? {} : { nen: NEN_CHU_MAC_DINH }, p, sach(shot));
@@ -559,6 +561,20 @@ export function doanChuMan(chu: string, phat: number): { tu: number; den: number
   }
   for (let i = 0; i < out.length - 1; i++) out[i]!.den = out[i + 1]!.tu;
   return out.filter((d) => d.den > d.tu && d.dong.length);
+}
+/** Đoạn chữ HIỆN THẬT trên khung: doanChuMan + cắt cụm ≤ toiDaTu từ (kiểu chữ › tu), thời gian chia theo độ dài cụm. MỘT hàm cho bản xuất
+ *  (xuat.ts) và ô xem trước (chu-man.tsx) — xem trên trang đúng nhịp chữ của MP4. */
+export function doanHien(chu: string, phat: number, toiDaTu?: number): { tu: number; den: number; dong: string[] }[] {
+  const doan = doanChuMan(chu, phat);
+  if (!toiDaTu) return doan;
+  const out: { tu: number; den: number; dong: string[] }[] = [];
+  for (const d of doan) {
+    const cum = chiaCum(d.dong.join(' '), toiDaTu);
+    if (cum.length === 1) { out.push(d); continue; }
+    const tong = cum.reduce((a, c) => a + c.length + 4, 0); let t = d.tu;
+    cum.forEach((c, i) => { const den = i === cum.length - 1 ? d.den : Math.round((t + ((d.den - d.tu) * (c.length + 4)) / tong) * 1000) / 1000; out.push({ tu: t, den, dong: [c] }); t = den; });
+  }
+  return out;
 }
 /** Chữ màn hiện trên timeline/thẻ shot: chỉ câu cuối (câu đã "lộ hết"), bỏ cú pháp "@giây". */
 export const chuManHien = (chu: string): string => { const d = doanChuMan(chu, 999); return d.length ? d[d.length - 1]!.dong.join(' ') : chu.trim(); };

@@ -455,7 +455,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                 : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#666', fontSize: 12 }}>#{c.thu_tu} chưa có hình</div>)}
               <LopXem lop={lop} t={t} rong={rongXem} cao={caoXem} chonIds={chonLops} onChon={bamLop} onDoi={doiLop} dangChay={chay} />
             </KhungHieuUng>
-            {c?.chu_man && !anChuMan && <ChuManXem chu={c.chu_man} giay={tTrong} rong={rongXem} qc={qc} kieu={c.kieu_chu} />}
+            {c?.chu_man && !anChuMan && <ChuManXem chu={c.chu_man} giay={tTrong} rong={rongXem} qc={qc} kieu={c.kieu_chu} phat={giayPhat(c)} />}
             {giongNay && <audio ref={thoaiRef} key={khoaGiong} src={giongNay.url} preload="auto" />}
             {c?.am_thanh_url && <audio ref={sfxRef} key={c.am_thanh_url} src={c.am_thanh_url} preload="auto" />}
             {tap.nhac_url && <audio ref={nhacRef} src={tap.nhac_url} preload="auto" />}

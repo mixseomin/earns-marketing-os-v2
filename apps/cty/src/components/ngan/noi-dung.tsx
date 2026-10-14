@@ -29,7 +29,7 @@ import { DoDac } from '../do-dac';
 import { SoSuKien } from '../so-su-kien';
 import { Nguoi } from '../nguoi';
 import { tachKhoa, hrefThe, hrefSach, hrefDayChuyen } from '@/lib/ngan';
-import { BangNhanSu, nhipChu, LichViec } from '../bang-nhan-su';
+import { BangNhanSu, nhipChu, LichViec, TenViecMay } from '../bang-nhan-su';
 import { doiNgu } from '@/lib/doi-ngu';
 import { dayChuyen, linkMos2, homNay, CHANG } from '../../../worker/sach.mjs';
 import { DayChuyenTab, demCan, type DayChuyen, type DcKhai, Ai, Tram, Thanh, KENH, mauNen, TEN_NEN, NHAN_ST, ngay, quaNgay, cungSach, DcSach, DcVideo, DcKenh, DcMail, type MailBm, LocSach, LocVideo, tenLoc, viecCacDayChuyen, DsViec as DsViecDc } from '../day-chuyen';
@@ -407,7 +407,7 @@ function nganViecMay(id: string, admin: boolean): Ngan {
           <thead><tr><th>việc</th><th>máy</th><th>lịch</th><th>lần cuối</th><th>kết quả</th></tr></thead>
           <tbody>{ds.map((v) => (
             <tr key={v.id}>
-              <td className="cty-log-ct"><details><summary><b>{tenViec(v)}</b>{v.chua_gan && <span className="cty-thu-loi"> · chưa xếp phòng</span>}</summary>
+              <td className="cty-log-ct"><details><summary><TenViecMay v={v} admin={admin} href={`/nhip/${id}/may`} />{v.chua_gan && <span className="cty-thu-loi"> · chưa xếp phòng</span>}</summary>
                 <div className="cty-nho cty-muted"><code>{v.ma}</code> · {LOAI[v.loai] ?? v.loai}</div>
                 {v.log?.length ? <pre className="cty-nho">{v.log.join('\n')}</pre> : <div className="cty-nho cty-muted">{v.loai === 'cron' ? 'cron không giữ nhật ký riêng — xem tệp log trong lệnh' : 'chưa có nhật ký'}</div>}</details></td>
               <td className="cty-nho">{v.may}</td>

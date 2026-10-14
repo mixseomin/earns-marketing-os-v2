@@ -33,20 +33,23 @@ function apLich() {
     const nhan = id.slice(MAY.length + 1), f = path.join(os.homedir(), 'Library', 'LaunchAgents', `${nhan}.plist`);
     try {
       const p = JSON.parse(execFileSync('plutil', ['-convert', 'json', '-o', '-', f], { encoding: 'utf8' }));
-      if (p.KeepAlive) throw new Error('việc chạy liền (KeepAlive) — không có lịch để đổi');
-      for (const k of ['StartInterval', 'StartCalendarInterval']) if (k in p) execFileSync('plutil', ['-remove', k, f]);
       // mô hình lịch (worker/lich-chu.mjs): { kieu: 'moi', phut } · { kieu: 'luc', gio: [...], thu: [1..7] } — bản ghi cũ lưu phẳng { kieu, phut | gio: 'HH:MM' }
-      const l = x.lich ?? (x.kieu === 'luc' ? { kieu: 'luc', gio: [x.gio], thu: [] } : { kieu: x.kieu, phut: x.phut });
-      if (l.kieu === 'moi') execFileSync('plutil', ['-insert', 'StartInterval', '-integer', String(l.phut * 60), f]);
-      else {   // mỗi giờ × mỗi thứ một mục (launchd Weekday: 0 = CN, 1 = T2 … 6 = T7); không chọn thứ = mỗi ngày
-        const muc = l.gio.flatMap((g) => { const [h, m] = g.split(':').map(Number); return (l.thu?.length ? l.thu : [null]).map((t) => (t === null ? { Hour: h, Minute: m } : { Hour: h, Minute: m, Weekday: t === 7 ? 0 : t })); });
-        execFileSync('plutil', ['-insert', 'StartCalendarInterval', '-json', JSON.stringify(muc.length === 1 ? muc[0] : muc), f]);
+      const l = x.lich ?? (x.kieu === 'luc' ? { kieu: 'luc', gio: [x.gio], thu: [] } : x.kieu === 'moi' ? { kieu: 'moi', phut: x.phut } : null);
+      if (l) {
+        if (p.KeepAlive) throw new Error('việc chạy liền (KeepAlive) — không có lịch để đổi');
+        for (const k of ['StartInterval', 'StartCalendarInterval']) if (k in p) execFileSync('plutil', ['-remove', k, f]);
+        if (l.kieu === 'moi') execFileSync('plutil', ['-insert', 'StartInterval', '-integer', String(l.phut * 60), f]);
+        else {   // mỗi giờ × mỗi thứ một mục (launchd Weekday: 0 = CN, 1 = T2 … 6 = T7); không chọn thứ = mỗi ngày
+          const muc = l.gio.flatMap((g) => { const [h, m] = g.split(':').map(Number); return (l.thu?.length ? l.thu : [null]).map((t) => (t === null ? { Hour: h, Minute: m } : { Hour: h, Minute: m, Weekday: t === 7 ? 0 : t })); });
+          execFileSync('plutil', ['-insert', 'StartCalendarInterval', '-json', JSON.stringify(muc.length === 1 ? muc[0] : muc), f]);
+        }
       }
-      let nap = true; try { execFileSync('launchctl', ['print', `gui/${uid}/${nhan}`], { stdio: 'ignore' }); } catch { nap = false; }   // việc đang tắt: sửa lịch, không tự bật
-      if (nap) {
-        try { execFileSync('launchctl', ['bootout', `gui/${uid}/${nhan}`], { stdio: 'ignore' }); } catch { /* đã ra */ }
+      let nap = true; try { execFileSync('launchctl', ['print', `gui/${uid}/${nhan}`], { stdio: 'ignore' }); } catch { nap = false; }
+      const muonNap = x.bat === undefined ? nap : x.bat;   // bật/tắt admin đặt (lich-may datBatMay); chỉ đổi lịch thì giữ trạng thái đang có
+      if (nap) try { execFileSync('launchctl', ['bootout', `gui/${uid}/${nhan}`], { stdio: 'ignore' }); } catch { /* đã ra */ }
+      if (muonNap) {
         let ok = false; for (let i = 0; i < 20 && !ok; i++) { try { execFileSync('launchctl', ['bootstrap', `gui/${uid}`, f], { stdio: 'ignore' }); ok = true; } catch { execFileSync('sleep', ['0.5']); } }
-        if (!ok) throw new Error('đã sửa lịch nhưng nạp lại việc không được (launchctl bootstrap) — việc đang TẮT');
+        if (!ok) throw new Error('nạp lại việc không được (launchctl bootstrap) — việc đang TẮT');
       }
       ra.push({ id, luc: x.luc, ok: true });
     } catch (e) { ra.push({ id, luc: x.luc, ok: false, loi: String(e.message).slice(0, 300) }); }

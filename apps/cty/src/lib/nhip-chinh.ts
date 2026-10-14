@@ -3,8 +3,8 @@
 // (worker/nhip.mjs luuChinh), có hiệu lực ở nhịp kế tiếp — không sửa git, không cần deploy.
 import { getCurrentUser } from './auth';
 import { luuChinh, datBat, datGio, datKiemMoi } from '../../worker/nhip.mjs';
-import { datLichMay, sach } from '../../worker/lich-may.mjs';
-import { docViecMay } from '../../worker/viec-may.mjs';
+import { datLichMay, datBatMay, sach, KHONG_TAT } from '../../worker/lich-may.mjs';
+import { docViecMay, viecMayCua, dangChay } from '../../worker/viec-may.mjs';
 
 export async function chinhNhip(id: string, x: { ca: string; diem_danh: string; kiem_moi: number }): Promise<{ ok: boolean; loi?: string }> {
   const me = await getCurrentUser();
@@ -39,5 +39,22 @@ export async function chinhLich(muc: string, lich: Lich): Promise<{ ok: boolean;
       datLichMay(ma, l, ai, v.loai);
     } else throw new Error(`Không biết việc "${muc}".`);
     return { ok: true };
+  } catch (e) { return { ok: false, loi: (e as Error).message }; }
+}
+
+/** Bật / tắt việc máy (anh 14/10/2026 "trên page đó không set tắt bật được"). muc: `viec:<máy>:<mã>` một việc · `nguoi:<id>` mọi việc máy người đó
+ *  phụ trách (tắt: những việc đang chạy, trừ đường nhận lệnh — KHONG_TAT; bật: những việc đang tắt). Áp: box ~1 phút, Mac ~10 phút. Chỉ admin. */
+export async function batTatMay(muc: string, bat: boolean): Promise<{ ok: boolean; loi?: string; so?: number }> {
+  const me = await getCurrentUser();
+  if (!me) return { ok: false, loi: 'Phiên đăng nhập đã hết — tải lại trang.' };
+  if (me.role !== 'admin') return { ok: false, loi: 'Chỉ admin được bật/tắt.' };
+  const ai = String(me.email ?? me.id); const i = muc.indexOf(':'); const loai = muc.slice(0, i), ma = muc.slice(i + 1);
+  try {
+    if (loai === 'viec') { datBatMay(ma, bat, ai); return { ok: true, so: 1 }; }
+    if (loai === 'nguoi') {
+      const ds = (viecMayCua(ma) as { id: string; ket: string }[]).filter((v) => (bat ? !dangChay(v) : dangChay(v) && !(KHONG_TAT as Record<string, string>)[v.id]));
+      for (const v of ds) datBatMay(v.id, bat, ai); return { ok: true, so: ds.length };
+    }
+    throw new Error(`Không biết "${muc}".`);
   } catch (e) { return { ok: false, loi: (e as Error).message }; }
 }

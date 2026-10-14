@@ -65,16 +65,23 @@ for t in json.loads(r('systemctl','list-timers','--all','-o','json') or '[]'):
   svc=t['activates']; p=dict(l.split('=',1) for l in r('systemctl','show',svc,'-p','Description,Result,ExecMainStatus').splitlines() if '=' in l)
   lich=' · '.join(m.group(1)+'='+m.group(2).strip() for m in re.finditer(r'(OnCalendar|OnUnitActiveUSec|OnBootUSec|OnActiveUSec)=([^;]+)', r('systemctl','show',t['unit'],'-p','TimersCalendar,TimersMonotonic')))
   out.append(dict(loai='timer',ma=svc[:-8] if svc.endswith('.service') else svc,ten=p.get('Description',''),lich=lich,cuoi=t.get('last') or 0,tiep=t.get('next') or 0,ket=p.get('Result',''),ma_thoat=p.get('ExecMainStatus',''),log=r('journalctl','-u',svc,'-n','6','-o','short-iso','--no-pager').splitlines()[-6:]))
+import glob
+for f in glob.glob('/etc/systemd/system/*.timer.d/cty-tat.conf'):   # timer admin tắt (disable --now): list-timers không còn liệt kê → vẫn hiện để bật lại
+  u=f.split('/')[-2][:-2]; svc=u[:-6]+'.service'
+  if any(x['ma']==u[:-6] for x in out): continue
+  p=dict(l.split('=',1) for l in r('systemctl','show',svc,'-p','Description').splitlines() if '=' in l)
+  lich=' · '.join(m.group(1)+'='+m.group(2).strip() for m in re.finditer(r'(OnCalendar|OnUnitActiveUSec|OnBootUSec|OnActiveUSec)=([^;]+)', r('systemctl','show',u,'-p','TimersCalendar,TimersMonotonic')))
+  out.append(dict(loai='timer',ma=u[:-6],ten=p.get('Description',''),lich=lich,cuoi=0,tiep=0,ket='tắt',ma_thoat='',log=[]))
 cmd={}
 for l in r('journalctl','-u','cron','--since','-26h','-o','short-iso','--no-pager').splitlines():
   m=re.match(r'(\S+) .*CMD \((.*)\)$',l)
   if m: cmd[m.group(2)]=m.group(1)
 for l in r('crontab','-l').splitlines():
-  l=l.strip()
+  tat=l.startswith('#cty-tat '); l=(l[9:] if tat else l).strip()   # "#cty-tat " = admin tắt việc này (lich-may batCrontab)
   if not l or l.startswith('#') or '=' in l.split()[0]: continue
   f=l.split(None,5)
   if len(f)<6: continue
-  c=f[5].split(' #')[0].strip(); out.append(dict(loai='cron',ma=c,ten='',lich=' '.join(f[:5]),cuoi=cmd.get(c,''),log=[]))
+  c=f[5].split(' #')[0].strip(); out.append(dict(loai='cron',ma=c,ten='',lich=' '.join(f[:5]),cuoi=cmd.get(c,''),ket='tắt' if tat else '',log=[]))
 print(json.dumps(out))
 `;
 const usTuIso = (us) => (us ? new Date(Number(us) / 1000).toISOString() : '');
@@ -161,7 +168,7 @@ function lichTho(v) {
   return ra.join(' · ') || '—';
 }
 /** Việc còn đang chạy theo lịch: timer có lần kế tiếp · cron luôn · LaunchAgent đã nạp. */
-export const dangChay = (v) => (v.loai === 'timer' ? !!v.tiep : v.loai === 'launchd' ? v.ket !== 'chưa nạp' : true);
+export const dangChay = (v) => (v.ket === 'tắt' ? false : v.loai === 'timer' ? !!v.tiep : v.loai === 'launchd' ? v.ket !== 'chưa nạp' : true);
 /** Bao nhiêu phút một lần (để chọn việc chạy dày nhất): mỗi N → N · các giờ trong ngày → 1440 / số giờ (theo thứ thì thưa hơn) · chạy liền / chưa đọc được → không tính. */
 const phutCua = (l) => (!l || l.kieu === 'lien' ? Infinity : l.kieu === 'moi' ? l.phut : (1440 / l.gio.length) * (l.thu.length ? 7 / l.thu.length : 1));
 /** NHỊP theo việc máy của một người (anh 14/10/2026 "việc đang chạy thì bật luôn nhân sự đó và set nhịp cho khớp"): số việc · số đang chạy ·

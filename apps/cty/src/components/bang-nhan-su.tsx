@@ -8,10 +8,10 @@ import { demTn, type TrachNhiem } from '@/lib/trach-nhiem';
 import { vaiCuaPhong, theVai } from '../../worker/quy-trinh.mjs';
 import { NHIP, NHIP_MAY, TEN_NHIP, docChinh, lanLam, tanSuat, dauViec } from '../../worker/nhip.mjs';
 import { hrefNhip } from '@/lib/ngan';
-import { viecMayCua, hong, nhipMay, lichNguoi, tenViec, moHinh } from '../../worker/viec-may.mjs';
+import { viecMayCua, hong, nhipMay, lichNguoi, tenViec, moHinh, dangChay } from '../../worker/viec-may.mjs';
 import { ChinhNhip } from './chinh-nhip';
 import { ChinhLich, type Lich } from './chinh-lich';
-import { docLich, choAp, lichCua } from '../../worker/lich-may.mjs';
+import { docLich, choAp, lichCua, KHONG_TAT } from '../../worker/lich-may.mjs';
 import { NutTuLam } from './nut-tu-lam';
 import { getCurrentUser } from '@/lib/auth';
 import { mocCuoiCa } from '../../worker/gio-lam.mjs';
@@ -34,13 +34,15 @@ export function nhipChu(fm0: Record<string, unknown>, id?: string) {
   const c = id ? ((docChinh() as Record<string, Record<string, unknown>>)[id] ?? {}) : {};   // chỉnh của admin đè hồ sơ (worker/nhip.mjs)
   const fm: Record<string, unknown> = { ...fm0, ...(c.ca ? { ca: c.ca } : {}), ...(c.diem_danh !== undefined ? { diem_danh: c.diem_danh } : {}), ...(c.kiem_moi ? { kiem_moi: c.kiem_moi } : {}) };
   type DV = { ma: string; ten: string; lich: string; gio?: string };
-  type Nhip = { chu: string; bat: boolean; coNut?: boolean; chiXem?: boolean; box?: boolean; viec: string; ds: DV[]; tanSuat?: string; ca?: string; diemDanh?: string; kiemMoi?: number; nhipMay?: string };
+  type Nhip = { chu: string; bat: boolean; coNut?: boolean; chiXem?: boolean; soChay?: number; box?: boolean; viec: string; ds: DV[]; tanSuat?: string; ca?: string; diemDanh?: string; kiemMoi?: number; nhipMay?: string };
   // không có nhịp cty mà có VIỆC MÁY đang chạy (timer/cron/LaunchAgent, worker/viec-may.mjs) → người đó đang làm: bật, nhịp = việc chạy dày nhất
   const nm = id ? nhipMay(id) as { so: number; chay: number; nhanh: string } : { so: 0, chay: 0, nhanh: '' };
-  const theoMay = (): Nhip => ({ chu: `${nm.chay} việc máy đang chạy · nhịp ${nm.nhanh}`, bat: true, coNut: true, chiXem: true, viec: `${nm.chay} việc máy đang chạy`, ds: [], nhipMay: nm.nhanh });
-  const hb = String(fm.heartbeat ?? 'off'); if (hb === 'off') return (nm.chay ? theoMay() : { chu: 'tắt', bat: false, viec: 'tắt', ds: [] }) as Nhip;
+  // chấm của người chỉ có việc máy = bật/tắt MỌI việc máy người đó (nút muc nguoi:<id>); tắt hết vẫn giữ chấm xám để bật lại
+  const theoMay = (): Nhip => ({ chu: nm.chay ? `${nm.chay}/${nm.so} việc máy đang chạy · nhịp ${nm.nhanh}` : `${nm.so} việc máy đều đang tắt`, bat: nm.chay > 0, coNut: true, chiXem: true, soChay: nm.chay,
+    viec: nm.chay ? `${nm.chay}/${nm.so} việc máy đang chạy` : `${nm.so} việc máy đều đang tắt`, ds: [], nhipMay: nm.chay ? nm.nhanh : undefined });
+  const hb = String(fm.heartbeat ?? 'off'); if (hb === 'off') return (nm.so ? theoMay() : { chu: 'tắt', bat: false, viec: 'tắt', ds: [] }) as Nhip;
   const may = hb.split(',').map((v) => v.trim()).filter((v) => v in NHIP || v in NHIP_MAY);
-  if (!may.length) return (nm.chay ? theoMay() : { chu: hb, bat: true, viec: hb, ds: [] }) as Nhip;
+  if (!may.length) return (nm.so ? theoMay() : { chu: hb, bat: true, viec: hb, ds: [] }) as Nhip;
   const tat = c.bat === false;   // admin tắt ở cột Tự làm (nút NutTuLam) — hồ sơ vẫn khai việc, chỉ không chạy
   const ca = fm.ca ? String(fm.ca) : 'cả ngày';
   const ten = may.map((v) => (TEN_NHIP as Record<string, string>)[v] ?? v).join(' · ') + (fm.diem_danh ? ` · điểm danh ${String(fm.diem_danh)} · báo cáo cuối ngày ${mocCuoiCa(fm.ca)}` : '');
@@ -48,13 +50,19 @@ export function nhipChu(fm0: Record<string, unknown>, id?: string) {
   const ds = dauViec({ viec: may, ca: fm.ca, diemDanh: fm.diem_danh ? String(fm.diem_danh) : '', kiemMoi: Number(fm.kiem_moi || 1), gio: c.gio ? String(c.gio) : '' }) as DV[];
   return { chu: tat ? `${ten} · đang tắt` : `${ten} · máy kiểm ${ts} · ca ${ca}`, bat: !tat, coNut: true, box: may.some((v) => v in NHIP), viec: ten, ds, nhipMay: nm.chay ? nm.nhanh : undefined, tanSuat: ts, ca, diemDanh: String(fm.diem_danh ?? ''), kiemMoi: Number(fm.kiem_moi || 1) };
 }
-type ViecMay = { id: string; ma: string; ten: string; may: string; loai: string; lich: string; chua_gan?: boolean };
+type ViecMay = { id: string; ma: string; ten: string; may: string; loai: string; lich: string; ket?: string; tiep?: string; chua_gan?: boolean };
 /** Lịch một việc máy, chỉnh tại chỗ (ô dùng chung ChinhLich): ý muốn còn chờ áp thì hiện ý muốn đó + "chờ áp"; áp lỗi thì đỏ. Chạy liền → chỉ chữ. */
 export function LichViec({ v, admin }: { v: ViecMay; admin: boolean }) {
   const goc = moHinh(v) as Lich | { kieu: 'lien' } | null; const x = (docLich() as Record<string, { luc: string; ap?: { ok: boolean; loi: string } }>)[v.id];
   if (goc?.kieu === 'lien') return <span className="cty-lich-o" title="Việc chạy liền (KeepAlive) — không có lịch">chạy liền</span>;
   const cho = choAp(x); const lich = cho ? (lichCua(x) as Lich) : (goc as Lich | null);
   return <ChinhLich muc={`may:${v.id}`} lich={lich} chu={lichNguoi(v) as string} admin={admin} apSau={v.may.startsWith('box') ? `${v.may} áp trong 1 phút` : `${v.may} áp trong 10 phút`} trang={{ cho, loi: !cho && x?.ap && !x.ap.ok ? x.ap.loi : undefined }} />;
+}
+/** Tên một việc máy kèm chấm bật/tắt riêng của việc đó (bảng nhân sự + ngăn việc máy). */
+export function TenViecMay({ v, admin, href }: { v: ViecMay; admin: boolean; href: string }) {
+  const x = (docLich() as Record<string, { luc: string; bat?: boolean; ap?: { luc: string } }>)[v.id]; const cho = choAp(x) && x!.bat !== undefined;
+  return <span className="cty-ten-viec"><NutTuLam muc={`viec:${v.id}`} bat={cho ? !!x!.bat : (dangChay(v) as boolean)} cho={cho} admin={admin} khoa={(KHONG_TAT as Record<string, string>)[v.id]} />
+    <Link href={href} title={`${tenViec(v)} — ${v.ma}`}>{tenViec(v)}</Link></span>;
 }
 /** Lần làm việc gần nhất của từng người: dòng nhật ký mới nhất do chính người đó phát ra (gọi mô hình, gửi tin) — nhịp chạy mà không có
  *  việc thì không ghi nhật ký, nên không tính là "làm". Một lượt đọc cho cả bảng. */
@@ -85,11 +93,12 @@ export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS
           {tn && !trongPhong && <th className="cty-so" title="Số quy trình chịu trách nhiệm chính · số việc đang mở (kể cả việc máy làm thay)">Phụ trách</th>}</tr></thead>
         <tbody>{ds.map((d) => { const fm = nhanSu(d.id)?.fm ?? {}; const n = nhipChu(fm, d.id); const c = chi(d.id); const tr = Number(fm.tran_usd_thang || 0); return (
           <tr key={d.id}>
-            <td><span className="cty-den-o"><Nguoi id={d.id} />{'coNut' in n && n.coNut && <NutTuLam id={d.id} bat={n.bat} admin={admin && !n.chiXem} />}</span></td>{!trongPhong && <td className="cty-muted">{d.phongTen}</td>}<td title={d.giuVai.join(' · ') || d.chucDanh}>{(phong && vaiO(phong, d.id)) || TEN_VAI[d.vai]}</td>
+            <td><span className="cty-den-o"><Nguoi id={d.id} />{'coNut' in n && n.coNut && <NutTuLam muc={n.chiXem ? `nguoi:${d.id}` : `nhip:${d.id}`} bat={n.bat} admin={admin}
+              hoi={n.chiXem ? `Tắt ${n.soChay} việc máy đang chạy của ${String(fm.ten ?? d.id)}?` : undefined} />}</span></td>{!trongPhong && <td className="cty-muted">{d.phongTen}</td>}<td title={d.giuVai.join(' · ') || d.chucDanh}>{(phong && vaiO(phong, d.id)) || TEN_VAI[d.vai]}</td>
             <td className="cty-nho">{tenModel(d.model)}</td>
             <td className={`cty-nho cty-dn-tulam${n.bat ? '' : ' cty-muted'}`}>{n.ds.length   // đầu việc tách dòng, bấm mở ngăn mô tả + nhật ký (anh 14/10/2026)
               ? <ul className="cty-dn-viec">{n.ds.map((v) => <li key={v.ma}><Link href={hrefNhip(d.id, v.ma)} title={v.ten}>{v.ten}</Link>{v.gio ? <ChinhLich muc={`gio:${d.id}`} lich={{ kieu: 'luc', gio: [v.gio], thu: [] }} chu={v.lich} kieu={['luc']} motGio admin={admin} apSau="MacBook áp trong 10 phút" /> : <span className="cty-lich-o" title={v.lich}>{v.lich}</span>}<span /></li>)}</ul>
-              : n.viec}{((vm) => vm.length > 0 && <div>{!n.ds.length && <ul className="cty-dn-viec">{vm.slice(0, 4).map((v) => <li key={v.id}><Link href={hrefNhip(d.id, 'may')} title={`${tenViec(v)} — ${v.ma}`}>{tenViec(v)}</Link><LichViec v={v} admin={admin} /><span className="cty-muted">{v.may}</span></li>)}</ul>}
+              : n.viec}{((vm) => vm.length > 0 && <div>{!n.ds.length && <ul className="cty-dn-viec">{vm.slice(0, 4).map((v) => <li key={v.id}><TenViecMay v={v} admin={admin} href={hrefNhip(d.id, 'may')} /><LichViec v={v} admin={admin} /><span className="cty-muted">{v.may}</span></li>)}</ul>}
                 <Link href={hrefNhip(d.id, 'may')} title="Timer / cron / LaunchAgent chạy trên box và Mac mà người này phụ trách">{vm.length > 4 && !n.ds.length ? `tất cả ${vm.length} việc máy` : `${vm.length} việc máy`}</Link>
                 {vm.some(hong) && <span className="cty-thu-loi"> · {vm.filter(hong).length} lỗi</span>}{vm.some((v) => v.chua_gan) && <span className="cty-thu-loi"> · {vm.filter((v) => v.chua_gan).length} chưa xếp phòng</span>}</div>)(viecMayCua(d.id) as ViecMay[])}</td>
             {n.bat && n.ca && ('box' in n ? n.box : true) ? <><td className="cty-nho"><ChinhLich muc={`nhip:${d.id}`} lich={{ kieu: 'moi', phut: n.kiemMoi ?? 1 }} chu={n.tanSuat ?? ''} kieu={['moi']} admin={admin} apSau="áp từ nhịp kế tiếp" /></td>

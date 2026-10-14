@@ -1,19 +1,32 @@
 'use client';
-// Nút BẬT/TẮT cột "Tự làm" (anh 14/10/2026 "tao cần bật tắt cái này"): admin bấm → lưu cờ ở sổ dữ liệu (worker/nhip.mjs datBat), có hiệu lực
-// ngay — nhịp box bỏ qua người bị tắt, việc chạy trên Mac hỏi cờ trước mỗi lượt. Lỗi hiện đỏ ngay dưới nút. Không phải admin: chỉ thấy chữ.
+// CHẤM BẬT/TẮT dùng chung (anh 14/10/2026 "tao cần bật tắt cái này", "đổi chữ sang icon xanh nháy", "sao trên page đó không set tắt bật được"):
+// ● xanh nháy = đang bật · ○ xám = đã tắt · viền cam đứt = đã bấm, máy chưa áp. Admin bấm chấm để đổi; việc lớn (tắt mọi việc máy của một người)
+// hỏi lại ngay cạnh chấm trước khi làm. Ba loại muc: `nhip:<người>` nhịp cty (worker/nhip.mjs datBat) · `nguoi:<người>` mọi việc máy người đó ·
+// `viec:<máy>:<mã>` một việc máy (worker/lich-may.mjs datBatMay). Lỗi hiện đỏ ngay cạnh chấm. Không phải admin: chỉ thấy chấm.
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { batTatNhip } from '@/lib/nhip-chinh';
+import { batTatNhip, batTatMay } from '@/lib/nhip-chinh';
 
-export function NutTuLam({ id, bat, admin }: { id: string; bat: boolean; admin: boolean }) {
-  const [cho, chuyen] = useTransition(); const [loi, setLoi] = useState(''); const router = useRouter();
-  const nhan = bat ? 'Tự làm đang bật — bấm để tắt' : 'Tự làm đã tắt — bấm để bật';
-  // chỉ một chấm, không chữ (anh 14/10/2026): xanh nháy = đang bật, xám = đã tắt; admin bấm vào chấm để đổi
-  if (!admin) return <span className={`cty-den${bat ? ' bat' : ''}`} role="img" aria-label={bat ? 'Tự làm đang bật' : 'Tự làm đã tắt'} title={bat ? 'Tự làm đang bật (việc máy chạy theo lịch của máy)' : 'Tự làm đã tắt'} />;
-  const doi = () => chuyen(async () => { setLoi(''); const r = await batTatNhip(id, !bat); if (!r.ok) setLoi(r.loi ?? 'Máy chủ từ chối.'); router.refresh(); });
+export function NutTuLam({ muc, bat, admin, cho: choAp = false, hoi, khoa }: {
+  muc: string; bat: boolean; admin: boolean;
+  cho?: boolean;                                        // đã bấm, máy chưa áp
+  hoi?: string;                                         // câu hỏi lại trước khi TẮT (vd "Tắt 34 việc máy của Lan?")
+  khoa?: string;                                        // không cho tắt từ bảng, kèm lý do (đường nhận lệnh)
+}) {
+  const [dang, chuyen] = useTransition(); const [loi, setLoi] = useState(''); const [xacNhan, setXacNhan] = useState(false); const router = useRouter();
+  const trang = `${bat ? 'đang bật' : 'đã tắt'}${choAp ? ' — chờ máy áp' : ''}`;
+  const cham = <span className={`cty-den${bat ? ' bat' : ''}${choAp ? ' cho' : ''}`} />;
+  if (!admin || (khoa && bat)) return <span role="img" aria-label={trang} title={khoa ? `${trang} — ${khoa}` : trang}>{cham}</span>;
+  const lam = () => chuyen(async () => {
+    setLoi(''); setXacNhan(false); const [loai, ...con] = muc.split(':'); const ma = con.join(':');
+    const r = loai === 'nhip' ? await batTatNhip(ma, !bat) : await batTatMay(muc, !bat);
+    if (!r.ok) setLoi(r.loi ?? 'Máy chủ từ chối.'); router.refresh();
+  });
   return (
     <span className="cty-den-o">
-      <button type="button" role="switch" aria-checked={bat} aria-label={nhan} title={nhan} className="cty-den-nut" disabled={cho} onClick={doi}><span className={`cty-den${bat ? ' bat' : ''}`} /></button>
+      <button type="button" role="switch" aria-checked={bat} aria-label={`${trang} — bấm để ${bat ? 'tắt' : 'bật'}`} title={`${trang} — bấm để ${bat ? 'tắt' : 'bật'}`} className="cty-den-nut" disabled={dang}
+        onClick={() => (bat && hoi ? setXacNhan(true) : lam())}>{cham}</button>
+      {xacNhan && <span className="cty-den-hoi" role="alertdialog">{hoi} <button type="button" className="cty-btn cty-nho cty-btn-nguy" onClick={lam}>Tắt</button><button type="button" className="cty-btn cty-nho cty-btn-phu" onClick={() => setXacNhan(false)}>Huỷ</button></span>}
       {loi && <span className="cty-bao-loi" data-loi="">{loi}</span>}
     </span>
   );

@@ -66,8 +66,9 @@ T7N, L7N = [51.6, 50.4, 0], [51.2, 52.2, 0]   # chỗ hai đứa nấp ở mép 
 PLUG = [54.3, 52.6, 0.8]
 
 VT = {
- '1.1': [v(TANGO, NEP, ve=G0, an=True), v(GUMMY, G0), v(HAND, [33.9, 13.2, 2.5], [37, 6, 12], ve=G0)],
- '1.2': [v(TANGO, NEP, ve=G0, an=True), v(HAND, [43.5, 1, 1.5], ve=180, nhay='tay nhấc khỏi khung rồi với sang bấm công tắc')],
+ # Tay với từ BÊN PHẢI (ngón trỏ chỉ −x, huong −90): đầu ngón chạm đỉnh kẹo / đỉnh công tắc, cẳng tay nằm sau công tắc nhìn từ máy — không che chủ thể.
+ '1.1': [v(TANGO, NEP, ve=G0, an=True), v(GUMMY, G0), v(HAND, [40.3, 20.4, 2.0], [46, 24, 12], ve=-90)],
+ '1.2': [v(TANGO, NEP, ve=G0, an=True), v(HAND, [57.3, 10.4, 1.5], ve=-90, nhay='tay nhấc khỏi khung rồi với sang bấm công tắc')],
  '2.1': [v(TANGO, NEP, [22.5, 23.8, 1.0], ve=G0, ve_den=G0, an=True), v(GUMMY, G0)],
  '2.2': [v(TANGO, [22.5, 23.8, 1.0], [30.3, 26.6, 0.6], ve=G0), v(GUMMY, G0, [35, 27, 1.5])],
  '2.3': [v(TANGO, [30.5, 26.8, 0], ve=[35, 27], ve_den=GAP, nam=True), v(GUMMY, [35, 27, 1.5], [26, 33, 0.5])],
@@ -87,7 +88,7 @@ VT = {
  '5.5': [v(LINT, [7, 71.6, 0], [7.5, 72.5, 4.5], ve=[8.5, 74.5]), v(TANGO, [4, 69.5, 0], [6.4, 71.2, 0], ve=[7, 72]), v(WIPE, [8, 74, 4], [8.5, 74.5, 6], ve=[7, 72]), v(CBALL, C4)],
  '5.6': [v(TANGO, [6.4, 71.2, 0], [6, 70.5, 0], ve=[9, 73]), v(SPRAY, [9, 73, 4], cam=WIPE), v(WIPE, [8.5, 74.5, 6], ve=[6, 71], an=True)],
  '5.7': [v(TANGO, [6, 70.5, 0], ve=[7.5, 72.5], nam=True)],
- '6.1': [v(TANGO, [6, 70.5, 0], ve=[7.5, 72.5], ve_den=[6, 69], nam=True), v(LINT, [7.5, 72.5, 4.5], [8, 73, 5], ve=[8.5, 74.5])],
+ '6.1': [v(TANGO, [6, 70.5, 0], ve=[7.5, 72.5], ve_den=[6, 69], nam=True), v(LINT, [7.5, 72.5, 4.5], [8, 73, 5], ve=[8.5, 74.5]), v(WIPE, [8.5, 74.5, 6], ve=[8, 73])],
  '6.2': [v(TANGO, [6, 70.5, 0], [7, 68.6, 2.3], ve=[6, 69], ve_den=[20, 64]), v(LINT, [8, 73, 5], [7, 68.9, 3.3], ve=[8.5, 74.5], ve_den=[20, 64]),
          v(WIPE, [8.5, 74.5, 6], [10, 74, 7], ve=[8, 73], ve_den=[7, 68.9]), v(CBALL, [7.4, 69.2, 3.6], cam=LINT)],
  '6.3': [v(TANGO, [7, 68.6, 2.3], [55.4, 50.9, 0.3], ve=[20, 64], ve_den=[60, 50]), v(LINT, [7, 68.9, 3.3], [55.6, 51.6, 0.6], ve=[20, 64]),

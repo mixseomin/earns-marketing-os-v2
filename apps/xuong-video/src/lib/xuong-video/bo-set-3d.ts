@@ -23,12 +23,12 @@ export function maKhungXam(set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat
 }
 
 /** Bảng đầu vào cho dung-set.py: vật của set + khối nhân vật + các shot (ma = id shot). Thiếu khối của một tên → lỗi (không đoán cỡ). */
-export function bangDung(set: Pick<BoSet, 'du_lieu'>, shots: { id: number; thu_tu: number; may_3d: May3d }[], nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]): { ok: true; bang: unknown } | { ok: false; loi: string } {
+export function bangDung(set: Pick<BoSet, 'du_lieu'>, shots: ({ id: number; thu_tu: number; may_3d: May3d } & Partial<Pick<Canh, 'prompt_anh' | 'dan_dung'>>)[], nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]): { ok: true; bang: unknown } | { ok: false; loi: string } {
   const mau: Record<string, unknown> = {}; const thieu = new Set<string>();
   for (const s of shots) for (const v of s.may_3d.vi_tri) { const k = khoiCua(v.ten, nhanVat); if (k) mau[v.ten] = k; else thieu.add(v.ten); }
   if (thieu.size) return { ok: false, loi: `chưa khai khối 3D cho: ${[...thieu].join(', ')} — ghi khoi_3d (hình + cỡ cm) cho anchor đó` };
   return { ok: true, bang: { vat: set.du_lieu.vat, nhan_vat_mau: mau, shot: shots.map((s) => ({ ma: String(s.id), so: s.thu_tu, may: { dat: s.may_3d.dat, nhin: s.may_3d.nhin, ong_kinh: s.may_3d.ong_kinh }, nhan_vat: s.may_3d.vi_tri,
-    bat_buoc: chuThe(s.may_3d), giai: !!s.may_3d.tu_dong })) } };
+    bat_buoc: chuThe(s.may_3d), giai: !!s.may_3d.tu_dong, nhac: vatDuocNhac(s, set) })) } };
 }
 
 /** Phía của máy so với TRỤC HÀNH ĐỘNG (đường nối hai nhân vật đầu tiên có mặt ở cả hai shot, nhìn từ trên): +1 / -1, 0 = không xác định. */
@@ -80,6 +80,9 @@ const tenGoi = (ten: string, set: Pick<BoSet, 'du_lieu'>) => {
   const cuoi = goc.split(/\s+/).pop() ?? '';
   return [ten, goc, v?.anchor ?? '', cuoi.length >= 4 ? cuoi : ''].filter(Boolean);
 };
+
+/** Vật của set mà chữ tả khung có nhắc (cố ý có trong khung) — bộ giải máy trong Blender không né những vật này. */
+export const vatDuocNhac = (c: Partial<Pick<Canh, 'prompt_anh' | 'dan_dung'>>, set: Pick<BoSet, 'du_lieu'>): string[] => { const chu = chuKhung(c); return set.du_lieu.vat.map((v) => v.ten).filter((t) => tenGoi(t, set).some((g) => nhac(g, chu))); };
 
 /** VẬT CHẮN TIỀN CẢNH: vật của set nằm GIỮA máy và chủ thể, chiếm ≥ 12% khung, mà chữ tả khung không hề nhắc — máy đặt sau / xuyên đồ đạc,
  *  khung xám ra một mảng khối vô nghĩa (anh 14/10/2026: "cảnh 6 và 7 tay khổng lồ ở vị trí lung tung" — thật ra là lưng iMac vàng chắn máy).

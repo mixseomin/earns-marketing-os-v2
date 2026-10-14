@@ -145,7 +145,7 @@ def ten_vat(o):
     g = n.rsplit(' ', 1)[0]
     return g if g in NHOM else o.name
 
-def nhin_thay(s, cam, sh, nv_obj):
+def nhin_thay(s, cam, sh, nv_obj, C=27, R=48):
     """THẤY GÌ TRONG KHUNG — bằng số, không bằng mắt (anh 14/10/2026: khối vàng ở cảnh 6–7 trông như tay Gã khổng lồ mà không ai biết là gì).
     Bắn lưới 27×48 tia qua khung máy: mỗi vật chiếm bao nhiêu % khung, hộp bao (0..1, gốc trên-trái), và có nằm TRƯỚC chủ thể không
     (tien = gần máy hơn chủ thể gần nhất — vật chắn tiền cảnh). Ghi vào khung xám để lưới gắn nhãn, cổng bắt vật chắn, prompt keyframe gọi tên từng khối."""
@@ -155,33 +155,39 @@ def nhin_thay(s, cam, sh, nv_obj):
     bb_ten = set(sh.get('bat_buoc') or [])
     chu = [o for o in nv_obj if ten_vat(o) in bb_ten] or nv_obj
     kc_chu = min(((sum((o.matrix_world @ Vector(c) for c in o.bound_box), Vector()) / 8) - cam.location).length for o in chu) if chu else 1e9
-    C, R = 27, 48; dem = {}
+    dem = {}
     for j in range(R):
         for i in range(C):
             u, v = (i + 0.5) / C, (j + 0.5) / R
             p = tl + (tr - tl) * u + (bl - tl) * v
             d = (p - cam.location).normalized()
-            hit, loc, _, _, ob, _ = s.ray_cast(dg, cam.location, d)
+            hit, loc, nor, _, ob, _ = s.ray_cast(dg, cam.location, d)
             if not hit or not ob: continue
-            t = ten_vat(ob); x = dem.setdefault(t, {'n': 0, 'u0': 1, 'v0': 1, 'u1': 0, 'v1': 0, 'gan': 1e9})
-            x['n'] += 1; x['u0'] = min(x['u0'], u); x['v0'] = min(x['v0'], v); x['u1'] = max(x['u1'], u); x['v1'] = max(x['v1'], v)
+            t = ten_vat(ob); x = dem.setdefault(t, {'n': 0, 'u0': 1, 'v0': 1, 'u1': 0, 'v1': 0, 'gan': 1e9, 'mat': 0})
+            x['n'] += 1; x['mat'] += nor.z > 0.75; x['u0'] = min(x['u0'], u); x['v0'] = min(x['v0'], v); x['u1'] = max(x['u1'], u); x['v1'] = max(x['v1'], v)
             x['gan'] = min(x['gan'], (loc - cam.location).length)
     out = []
     for t, x in dem.items():
         pt = round(x['n'] * 100 / (C * R), 1)
         if pt < 0.5: continue
         out.append({'ten': t, 'pt': pt, 'hop': [round(x['u0'] - 0.5 / C, 3), round(x['v0'] - 0.5 / R, 3), round(x['u1'] + 0.5 / C, 3), round(x['v1'] + 0.5 / R, 3)],
-                    'tien': t not in bb_ten and t not in NEN and x['gan'] < kc_chu * 0.8})
+                    # mặt nhìn từ trên xuống (≥ 80% tia trúng mặt ngửa: thẻ cam hai bạn đứng lên, sổ mở) là MẶT NỀN, không phải vật chắn
+                    'tien': t not in bb_ten and t not in NEN and x['gan'] < kc_chu * 0.8 and x['mat'] < 0.8 * x['n']})
     return sorted(out, key=lambda x: -x['pt'])
 
 def hong(k): return sum(1 for x in k if x['bat_buoc'] and (not x['trong_khung'] or x['bi_che_boi']))
+
+def chan_la(s, cam, sh, nv):
+    """Số vật chắn tiền cảnh ≥ 12% khung mà chữ tả khung không nhắc (sh['nhac'], bo-set-3d.ts › vatDuocNhac) — cùng luật cổng vatChanTienCanh."""
+    nhac = set(sh.get('nhac') or [])
+    return sum(1 for t in nhin_thay(s, cam, sh, nv, 14, 24) if t['tien'] and t['pt'] >= 12 and t['ten'] not in nhac)
 
 def dat_may(cam, dat, nhin):
     cam.location = Vector(dat) * CM
     cam.rotation_euler = (Vector(nhin) * CM - cam.location).to_track_quat('-Z', 'Y').to_euler()
 
 def giai_may(s, cam, sh, nv):
-    """BỘ GIẢI MÁY: máy tự động mà chủ thể bị che / ra ngoài → thử xoay quanh chủ thể (±15…60°), nâng máy, lùi xa — lấy phương án đầu tiên
+    """BỘ GIẢI MÁY: máy tự động mà chủ thể bị che / ra ngoài, hoặc có vật chắn tiền cảnh chữ không nhắc, → thử xoay quanh chủ thể (±15…60°), nâng máy, lùi xa — lấy phương án đầu tiên
     mọi chủ thể đều thấy rõ (ít đổi nhất trước). Không có phương án sạch → giữ phương án ít lỗi nhất, kiểm vẫn báo."""
     g = Vector(sh['may']['nhin']); d0 = Vector(sh['may']['dat']) - g
     tot = None
@@ -190,7 +196,8 @@ def giai_may(s, cam, sh, nv):
             for dp in (0, 15, -15, 30, -30, 45, -45, 60, -60):
                 a = math.radians(dp); v = Vector((d0.x * math.cos(a) - d0.y * math.sin(a), d0.x * math.sin(a) + d0.y * math.cos(a), d0.z)) * xa
                 vt_may = g + v + Vector((0, 0, dz)); dat_may(cam, vt_may, g)
-                k = kiem_hinh_hoc(s, cam, sh, nv); h = hong(k)
+                k = kiem_hinh_hoc(s, cam, sh, nv); h = hong(k) * 100
+                if h == 0: h = chan_la(s, cam, sh, nv)   # chủ thể sạch rồi mới tính vật chắn lạ (đắt hơn)
                 if tot is None or h < tot[0]: tot = (h, [round(x, 1) for x in vt_may], k)
                 if h == 0: return tot
     dat_may(cam, tot[1], g); return tot
@@ -214,7 +221,7 @@ for sh in shots:
     cam = may(s, sh['may'], f"cam {sh['ma']}")
     nv_kiem = nv + vat_chu_the(sh)
     k = kiem_hinh_hoc(s, cam, sh, nv_kiem)
-    if sh.get('giai') and hong(k):
+    if sh.get('giai') and (hong(k) or chan_la(s, cam, sh, nv_kiem)):
         _, may_moi, k = giai_may(s, cam, sh, nv_kiem)   # KHÔNG đặt tên `dat` — trùng hàm dat() ở trên, đè mất hàm (lỗi 14/10/2026)
         giai[sh['ma']] = {'dat': may_moi, 'nhin': sh['may']['nhin']}; sh['may']['dat'] = may_moi
     kiem[sh['ma']] = k

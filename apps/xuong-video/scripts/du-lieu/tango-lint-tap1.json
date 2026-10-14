@@ -9,7 +9,7 @@
     {
       "so": 1,
       "ten": "Đèn tắt",
-      "noi": "The Desk (wide) · The Desk at Night",
+      "noi": "The Desk",
       "luc": "ĐÊM – 23:40, phút cuối Gã khổng lồ còn ở bàn",
       "doi": "Thế giới của Gã khổng lồ, ấm và an toàn → bóng tối, thế giới đồ vật thức dậy",
       "xoay": "Bàn tay tắt đèn.",
@@ -64,7 +64,62 @@
             "mo_ta": "Đứng yên dưới thấp nhìn lên công tắc: để ánh sáng tắt tự kể, máy không giành sự chú ý."
           }
         }
-      ]
+      ],
+      "kich_ban": [
+        {
+          "loai": "hd",
+          "chu": "Cái bàn gỗ của Gã khổng lồ, nhìn từ mép trước. Đèn bàn vàng ấm. Hai màn hình sáng dịu. Bàn phím trắng, con chuột trắng."
+        },
+        {
+          "loai": "hd",
+          "chu": "Một bàn tay khổng lồ trong ống tay áo len xanh, một sợi len lỏng lủng lẳng ở cổ tay, hạ xuống và đặt một viên kẹo gấu đỏ bóng cạnh con chuột. Viên kẹo đứng thẳng."
+        },
+        {
+          "loai": "hd",
+          "chu": "Bàn tay vươn lên đèn. TÁCH. Ánh vàng tắt. Cả cái bàn chìm vào ánh xanh lạnh của hai màn hình. Bóng đổ dài ra."
+        },
+        {
+          "loai": "am",
+          "chu": "Tiếng ù rất khẽ của máy tính. Rồi im."
+        },
+        {
+          "loai": "chuyen",
+          "chu": "CẮT SANG:"
+        }
+      ],
+      "dao_dien": {
+        "muc_tieu": "Gã khổng lồ kết thúc ngày làm việc; khán giả được giới thiệu thế giới.",
+        "xung_dot": "Chưa có — đây là thế giới bình thường trước biến cố.",
+        "nhip": [
+          "Bàn tay đặt viên kẹo → viên kẹo đứng giữa bàn (món quà).",
+          "Bàn tay tắt đèn → thế giới chuyển sang đêm."
+        ]
+      },
+      "boc_tach": {
+        "nhan_vat": [
+          "The Giant"
+        ],
+        "dao_cu": [
+          "Gummy Bear",
+          "Magic Mouse",
+          "White Keyboard",
+          "Yellow iMac",
+          "Left Monitor"
+        ],
+        "boi_canh": [
+          "The Desk (wide)",
+          "The Desk at Night"
+        ],
+        "hieu_ung": [
+          "Đèn bàn tắt: chuyển ánh sáng ấm → lạnh trong một shot"
+        ]
+      },
+      "mau": {
+        "anh_sang": "cua_so",
+        "mau": "am",
+        "mo_ta": "Mở bằng vàng ấm của đèn bàn (an toàn, có người), kết bằng xanh lạnh của màn hình (đêm, thế giới khác)."
+      },
+      "nhac": "pizzicato"
     },
     {
       "so": 2,
@@ -148,7 +203,75 @@
             "mo_ta": "Đứng yên như kẻ rình, ống tele nén từ xa sau mép bàn phím — cảm giác bị theo dõi."
           }
         }
-      ]
+      ],
+      "kich_ban": [
+        {
+          "loai": "hd",
+          "chu": "Trong ánh xanh, một sợi tóc xoăn màu cam nhô lên sau con chuột. TANGO — cục đất sét cam hình quả trứng, mắt lồi — ló lên. Sợi tóc bật dựng thẳng."
+        },
+        {
+          "loai": "nv",
+          "ten": "TANGO",
+          "dien": "(nhún nhảy, hai tay với)",
+          "loi": "Hup! Hup!"
+        },
+        {
+          "loai": "hd",
+          "chu": "Tango nhảy ôm chầm viên kẹo. Viên kẹo dẻo phụt khỏi tay như xà phòng ướt, nảy lộp bộp về phía khe tối giữa hai màn hình. Tango úp mặt xuống gỗ."
+        },
+        {
+          "loai": "nv",
+          "ten": "TANGO",
+          "dien": "(mặt dán xuống bàn)",
+          "loi": "Mmf!"
+        },
+        {
+          "loai": "hd",
+          "chu": "Sau mép bàn phím, một góc giấy vàng khẽ động, như đang nhìn. Tango không thấy. Cậu cuộn tròn thành quả bóng cam và lăn theo viên kẹo."
+        },
+        {
+          "loai": "am",
+          "chu": "Tiếng lăn rì rì trên gỗ. Tiếng giấy sột soạt rất khẽ."
+        },
+        {
+          "loai": "chuyen",
+          "chu": "CẮT SANG:"
+        }
+      ],
+      "dao_dien": {
+        "muc_tieu": "Tango muốn viên kẹo.",
+        "xung_dot": "Viên kẹo trơn tuột, chạy mất vào vùng tối.",
+        "nhip": [
+          "Tango thấy kẹo → thèm (tóc dựng).",
+          "Tango ôm kẹo → kẹo phụt khỏi tay (điểm xoay).",
+          "Tango úp mặt → không bỏ cuộc, lăn theo.",
+          "Góc giấy vàng nhìn trộm → khán giả biết có kẻ thứ ba."
+        ]
+      },
+      "boc_tach": {
+        "nhan_vat": [
+          "Tango",
+          "Sticky"
+        ],
+        "dao_cu": [
+          "Gummy Bear",
+          "Magic Mouse",
+          "White Keyboard"
+        ],
+        "boi_canh": [
+          "Mouse Landing"
+        ],
+        "hieu_ung": [
+          "Kẹo dẻo phụt khỏi tay (biến dạng dẻo)",
+          "Tango cuộn thành quả bóng"
+        ]
+      },
+      "mau": {
+        "anh_sang": "gio_xanh",
+        "mau": "lanh",
+        "mo_ta": "Xanh lạnh của màn hình; điểm nóng duy nhất là viên kẹo đỏ và thân cam của Tango — mắt khán giả bị kéo về hai thứ đó."
+      },
+      "nhac": "pizzicato"
     },
     {
       "so": 3,
@@ -182,7 +305,48 @@
             "mo_ta": "Bám theo sau quả bóng cam luồn qua hành lang giữa hai màn hình — đưa khán giả cùng lăn vào bóng tối."
           }
         }
-      ]
+      ],
+      "kich_ban": [
+        {
+          "loai": "hd",
+          "chu": "Hành lang hẹp giữa hai màn hình sáng như hai bức tường ánh sáng. Quả bóng cam lăn qua. Viên kẹo đỏ nảy phía trước rồi biến vào bóng tối phía sau."
+        },
+        {
+          "loai": "am",
+          "chu": "Tiếng lăn vang trong hành lang. Nhạc trầm xuống."
+        },
+        {
+          "loai": "chuyen",
+          "chu": "CẮT SANG:"
+        }
+      ],
+      "dao_dien": {
+        "muc_tieu": "Tango đuổi theo viên kẹo.",
+        "xung_dot": "Phía trước là bóng tối chưa biết.",
+        "nhip": [
+          "Từ chỗ sáng quen → vào chỗ tối lạ."
+        ]
+      },
+      "boc_tach": {
+        "nhan_vat": [
+          "Tango"
+        ],
+        "dao_cu": [
+          "Gummy Bear",
+          "Yellow iMac",
+          "Left Monitor"
+        ],
+        "boi_canh": [
+          "Between the Screens"
+        ],
+        "hieu_ung": []
+      },
+      "mau": {
+        "anh_sang": "nguoc",
+        "mau": "lanh",
+        "mo_ta": "Ngược sáng giữa hai tường màn hình, cuối hành lang tối đen — đi vào cái chưa biết."
+      },
+      "nhac": "drone"
     },
     {
       "so": 4,
@@ -289,7 +453,82 @@
             "mo_ta": "Đẩy chậm vào khi viên kẹo được chia — cảm xúc dâng theo máy."
           }
         }
-      ]
+      ],
+      "kich_ban": [
+        {
+          "loai": "hd",
+          "chu": "Rừng dây cáp đen trắng cao vút sau màn hình, ánh xanh lạnh rọi từ trên xuống. Viên kẹo đỏ nằm tựa một sợi cáp trắng. Quả bóng cam lăn tới và bung ra thành Tango."
+        },
+        {
+          "loai": "hd",
+          "chu": "Tango với tay. Cục bụi xám cạnh viên kẹo phồng to gấp ba. LINT — chú thỏ bụi lông xám, sợi chỉ xanh trên đầu — ôm chặt một cục bông gòn trắng. Tango ngã ngồi."
+        },
+        {
+          "loai": "nv",
+          "ten": "LINT",
+          "dien": "(phồng to, run)",
+          "loi": "[hít hơi] Pff—!"
+        },
+        {
+          "loai": "hd",
+          "chu": "Cả hai đứng hình nhìn nhau. Lint xẹp lại, cuộn tròn quanh cục bông, chỉ hé mắt nhìn viên kẹo. Sợi tóc Tango rũ xuống."
+        },
+        {
+          "loai": "hd",
+          "chu": "Tango nhìn viên kẹo, nhìn Lint. Cậu kéo giãn viên kẹo đến khi đứt làm đôi, chìa một nửa. Lint duỗi ra; nửa viên kẹo dính vào lông. Sợi chỉ xanh trên đầu Lint sáng lên ấm áp."
+        },
+        {
+          "loai": "nv",
+          "ten": "LINT",
+          "dien": "(ngượng, lắc lư)",
+          "loi": "Pff… hee."
+        },
+        {
+          "loai": "nv",
+          "ten": "TANGO",
+          "dien": "(cười, vỗ đầu Lint)",
+          "loi": "Hup."
+        },
+        {
+          "loai": "chuyen",
+          "chu": "CẮT SANG:"
+        }
+      ],
+      "dao_dien": {
+        "muc_tieu": "Tango lấy lại viên kẹo; Lint giữ mình an toàn.",
+        "xung_dot": "Hai kẻ lạ sợ nhau, cùng muốn một viên kẹo.",
+        "nhip": [
+          "Tango với kẹo → Lint phồng doạ.",
+          "Cả hai sợ → đứng hình (giữ phản ứng).",
+          "Lint xẹp, nhìn kẹo → Tango hiểu Lint cũng đói.",
+          "Tango chia đôi kẹo (điểm xoay) → Lint tin, sợi chỉ sáng."
+        ]
+      },
+      "boc_tach": {
+        "nhan_vat": [
+          "Tango",
+          "Lint"
+        ],
+        "dao_cu": [
+          "Gummy Bear",
+          "Cotton Ball",
+          "White Cable"
+        ],
+        "boi_canh": [
+          "Cable Jungle"
+        ],
+        "hieu_ung": [
+          "Lint phồng to gấp ba",
+          "Kẹo kéo giãn đứt đôi",
+          "Sợi chỉ xanh phát sáng ấm"
+        ]
+      },
+      "mau": {
+        "anh_sang": "toi",
+        "mau": "lanh",
+        "mo_ta": "Tối nhiều bóng, xanh lạnh; cuối cảnh có một đốm ấm duy nhất từ sợi chỉ của Lint — tình bạn là nguồn sáng ấm đầu tiên kể từ khi đèn tắt."
+      },
+      "nhac": "pizzicato"
     },
     {
       "so": 5,
@@ -421,12 +660,83 @@
             "mo_ta": "Nhìn xuống vũng đất sét (nhỏ bé, thua), rồi đẩy chậm vào đúng lúc sợi tóc bật — khoảnh khắc có ý."
           }
         }
-      ]
+      ],
+      "kich_ban": [
+        {
+          "loai": "hd",
+          "chu": "Từ trên cao giữa các sợi cáp, một mép khăn xám lơ lửng nhìn xuống hai bạn nhỏ đang ăn kẹo. Màn hình bên trái tối đi một bậc. Rừng cáp tối hơn."
+        },
+        {
+          "loai": "hd",
+          "chu": "Một làn sương lấp lánh rơi rất chậm. Im lặng. Sợi tóc Tango từ từ dựng lên. Cả hai ngước nhìn."
+        },
+        {
+          "loai": "hd",
+          "chu": "MR. WIPE — tấm khăn lau xám xanh, mắt cúc hẹp, một vết cà phê tròn ở góc, ôm chai xịt xanh — phồng lên như bóng ma. Từng sợi lông của Lint dựng về phía hắn. Lint bị hút lơ lửng lên. Tango dang tay đứng chắn."
+        },
+        {
+          "loai": "nv",
+          "ten": "MR. WIPE",
+          "dien": "(ngửi vòi chai xịt)",
+          "loi": "Fwsh… hmmph."
+        },
+        {
+          "loai": "hd",
+          "chu": "Tango nhảy lao vào hắn. PSSHT. Tango rơi xuống, bẹp dí thành vũng đất sét ướt, hai mắt trượt sang một bên."
+        },
+        {
+          "loai": "hd",
+          "chu": "Im một nhịp. Tango nhìn thân dẹt của mình. Sợi tóc bật BOING."
+        },
+        {
+          "loai": "chuyen",
+          "chu": "CẮT SANG:"
+        }
+      ],
+      "dao_dien": {
+        "muc_tieu": "Mr. Wipe muốn lau sạch Lint; Tango muốn giữ bạn.",
+        "xung_dot": "Mr. Wipe mạnh hơn: tĩnh điện kéo Lint, chai xịt làm Tango nhũn.",
+        "nhip": [
+          "Kẻ rình nhìn xuống → khán giả biết trước (chênh lệch thông tin).",
+          "Sương rơi, im lặng → khoảng lặng trước cao trào.",
+          "Mr. Wipe lộ diện, hút Lint → Tango đứng chắn.",
+          "Tango lao vào → bị xịt bẹp (điểm xoay: đáy).",
+          "Tango nhìn thân dẹt → có ý."
+        ]
+      },
+      "boc_tach": {
+        "nhan_vat": [
+          "Mr. Wipe",
+          "Tango",
+          "Lint"
+        ],
+        "dao_cu": [
+          "Blue Spray Bottle",
+          "Cotton Ball",
+          "Gummy Bear",
+          "Left Monitor"
+        ],
+        "boi_canh": [
+          "Cable Jungle"
+        ],
+        "hieu_ung": [
+          "Màn hình trái tối đi một bậc",
+          "Sương xịt lấp lánh",
+          "Tĩnh điện kéo Lint bay",
+          "Tango bẹp thành vũng"
+        ]
+      },
+      "mau": {
+        "anh_sang": "duoi_len",
+        "mau": "xanh_benh",
+        "mo_ta": "Tối hơn một bậc khi màn hình nghỉ; Mr. Wipe được rọi từ dưới lên cho ra bóng ma; màu xanh bệnh — mối đe doạ."
+      },
+      "nhac": "drone"
     },
     {
       "so": 6,
       "ten": "Xe trượt đất sét",
-      "noi": "Cable Jungle → White Cable Road",
+      "noi": "Cable Jungle / White Cable Road",
       "luc": "ĐÊM – liền sau",
       "doi": "Tuyệt vọng → thoát",
       "xoay": "Điểm yếu (bẹp nhũn) thành sức mạnh (xe trượt).",
@@ -479,7 +789,66 @@
             "mo_ta": "Trượt song song với xe trượt dọc sợi cáp — tốc độ, đồng hành."
           }
         }
-      ]
+      ],
+      "kich_ban": [
+        {
+          "loai": "hd",
+          "chu": "Tango vuốt thân bẹp thành một chiếc xe trượt mũi cong. Cậu nhảy lên sợi cáp trắng dốc, vươn tay móc Lint xuống lưng."
+        },
+        {
+          "loai": "nv",
+          "ten": "TANGO",
+          "dien": "",
+          "loi": "Hup!"
+        },
+        {
+          "loai": "hd",
+          "chu": "Hai đứa lao vút dọc sợi cáp ra khỏi rừng. Phía sau, Mr. Wipe lao theo, vướng dây này rồi dây khác, tự quấn thành một nút và treo lủng lẳng."
+        },
+        {
+          "loai": "nv",
+          "ten": "LINT",
+          "dien": "(bám chặt, rồi thích thú)",
+          "loi": "Pff… wheee!"
+        },
+        {
+          "loai": "chuyen",
+          "chu": "CẮT SANG:"
+        }
+      ],
+      "dao_dien": {
+        "muc_tieu": "Tango cứu Lint.",
+        "xung_dot": "Mr. Wipe đuổi theo.",
+        "nhip": [
+          "Điểm yếu thành sức mạnh: thân bẹp → xe trượt (điểm xoay).",
+          "Trượt thoát → kẻ đuổi tự vướng."
+        ]
+      },
+      "boc_tach": {
+        "nhan_vat": [
+          "Tango",
+          "Lint",
+          "Mr. Wipe"
+        ],
+        "dao_cu": [
+          "White Cable",
+          "Cotton Ball"
+        ],
+        "boi_canh": [
+          "Cable Jungle",
+          "White Cable Road"
+        ],
+        "hieu_ung": [
+          "Tango biến hình thành xe trượt",
+          "Mr. Wipe tự quấn vào dây cáp"
+        ]
+      },
+      "mau": {
+        "anh_sang": "vien",
+        "mau": "teal_cam",
+        "mo_ta": "Đèn viền làm nổi xe trượt cam trên nền xanh — teal–cam, năng lượng thoát."
+      },
+      "nhac": "pizzicato"
     },
     {
       "so": 7,
@@ -610,7 +979,132 @@
             "mo_ta": "Lùi ra rộng để lộ rừng cáp phía sau và tia điện xa — tắt dần về đen."
           }
         }
-      ]
+      ],
+      "kich_ban": [
+        {
+          "loai": "hd",
+          "chu": "Xe trượt dừng trên tấm thẻ cam cạnh cái đế cắm USB bạc. Tango bung lại hình quả trứng. Lint lăn ra cười."
+        },
+        {
+          "loai": "hd",
+          "chu": "Tango in dấu vân tay đất sét khắp mặt đế cắm sáng bóng, nhại vẻ mặt ghê sợ của Mr. Wipe. Lint ôm bụng cười."
+        },
+        {
+          "loai": "hd",
+          "chu": "Mr. Wipe tới, còn kéo theo một vòng dây cáp. Hắn thấy dấu tay, rùng mình, chà điên cuồng bằng góc khăn ướt sũng. Góc khăn quệt vào phích cắm của sợi cáp trắng."
+        },
+        {
+          "loai": "am",
+          "chu": "BZZT! Một tia điện xanh."
+        },
+        {
+          "loai": "hd",
+          "chu": "Mr. Wipe xù cứng vì tĩnh điện. Tango và Lint nhìn nhau rồi cười lăn. Sâu trong rừng cáp phía sau, một tia điện nhỏ nháy thêm một lần, như có thứ gì đang thức. Sợi tóc Tango dựng đứng. Hai đứa quay lại nhìn."
+        },
+        {
+          "loai": "nv",
+          "ten": "MR. WIPE",
+          "dien": "(chà lẹt xẹt)",
+          "loi": "Hmmph! Hmmph!"
+        },
+        {
+          "loai": "chuyen",
+          "chu": "TẮT DẦN VỀ ĐEN."
+        }
+      ],
+      "dao_dien": {
+        "muc_tieu": "Tango ăn mừng và trêu kẻ thù.",
+        "xung_dot": "Mr. Wipe quay lại.",
+        "nhip": [
+          "Thoát → thở phào.",
+          "Tango in dấu tay (gài).",
+          "Mr. Wipe chà → bị điện giật (trả: bị chính thói sạch sẽ hại).",
+          "Tia điện xa → có thứ khác đang thức (móc tập 2)."
+        ]
+      },
+      "boc_tach": {
+        "nhan_vat": [
+          "Tango",
+          "Lint",
+          "Mr. Wipe",
+          "Cordy"
+        ],
+        "dao_cu": [
+          "USB Hub",
+          "Orange Card",
+          "White Cable",
+          "Blue Spray Bottle"
+        ],
+        "boi_canh": [
+          "USB Hub Dock",
+          "Cable Jungle"
+        ],
+        "hieu_ung": [
+          "Dấu vân tay đất sét",
+          "Tia điện xanh BZZT",
+          "Mr. Wipe xù tĩnh điện",
+          "Tia điện xa nháy (Cordy)"
+        ]
+      },
+      "mau": {
+        "anh_sang": "tuong_phan",
+        "mau": "teal_cam",
+        "mo_ta": "Ấm hơn ở bến đế cắm (an toàn, vui); tia điện xanh gắt tạo tương phản; kết lại tối xanh với đốm sáng xa — bất an."
+      },
+      "nhac": "pizzicato"
     }
-  ]
+  ],
+  "anchor_phim": {
+    "nhan_vat": [
+      "Tango",
+      "Cordy",
+      "Clicky",
+      "Lint",
+      "Mr. Wipe",
+      "Sticky",
+      "The Giant"
+    ],
+    "dao_cu": [
+      "White Keyboard",
+      "Notebook Stack",
+      "Magic Mouse",
+      "Yellow iMac",
+      "Left Monitor",
+      "Black Speaker",
+      "USB Hub",
+      "White Cable",
+      "Orange Card",
+      "Magazine Pile",
+      "Gummy Bear",
+      "Pink Highlighter",
+      "Blue Spray Bottle",
+      "Cotton Ball",
+      "AA Battery",
+      "Clay Tub",
+      "Scissors",
+      "Coffee Mug"
+    ],
+    "boi_canh": [
+      "The Desk (wide)",
+      "Cable Jungle",
+      "Keyboard Canyon",
+      "Mouse Landing",
+      "Under the iMac Arch",
+      "The Summit (iMac top)",
+      "Notebook Cliffs",
+      "Glowing Screen Wall",
+      "Desk Edge Cliff",
+      "Monitor Foot Plaza",
+      "Keyboard Cave",
+      "USB Hub Dock",
+      "Between the Screens",
+      "White Cable Road",
+      "Magazine Cliff",
+      "The Desk at Night",
+      "Open Notebook Field",
+      "The Desk at Dawn",
+      "Speaker Planet",
+      "Desk Map (top-down)"
+    ]
+  }
 }

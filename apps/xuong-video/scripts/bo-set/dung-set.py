@@ -181,13 +181,14 @@ def dat_tuy_chon(co):
         if t in TUY_CHON: o.hide_viewport = o.hide_render = t not in co
     bpy.context.view_layer.update()
 
-def nhan_vat(sh):
+def nhan_vat(sh, ket=False):
     """Khối nhân vật / đạo cụ của shot ở chỗ MỞ shot (tam), quay theo huong (độ, 0 = mặt nhìn về phía người ngồi −y, 90 = nhìn sang phải +x).
     Khối có `mat` → gắn hai mắt (lòng trắng + con ngươi) ở mặt trước: khung xám cho thấy nhân vật NHÌN ĐI ĐÂU, không chỉ đứng ở đâu.
     `phan` = các phần thêm (chân, tay, nắp…) toạ độ tương đối đáy giữa khối, cùng quay theo huong. Trả (thân để kiểm, mọi khối để dọn)."""
     than, tat_ca = [], []
     for nv in sh.get('nhan_vat', []):
         mau_nv = DL['nhan_vat_mau'][nv['ten']]
+        if ket: nv = {**nv, 'tam': nv.get('den') or nv['tam'], 'huong': nv.get('huong_den', nv.get('huong', 0))}   # khung KẾT: chỗ + hướng lúc kết
         X, Y, Z = nv['tam'][0], nv['tam'][1], (nv['tam'][2] if len(nv['tam']) > 2 else 0)
         w, d, h = mau_nv['co']
         if nv.get('nam'): d, h = h, d   # nằm sấp / bẹp: cao thành sâu
@@ -349,7 +350,7 @@ def vat_chu_the(sh):
 
 s = dung_set()
 shots = [sh for sh in DL['shot'] if not CHI or sh['ma'] in CHI]
-kiem = {}; giai = {}; thay = {}
+kiem = {}; giai = {}; thay = {}; di = {}
 for sh in shots:
     dat_tuy_chon(set(sh.get('them') or []))
     nv, nv_het = nhan_vat(sh)
@@ -367,7 +368,24 @@ for sh in shots:
     may_ve(s, False); s.view_layers[0].material_override = do_sau(s, 0.02, 0.9); s.cycles.samples = 1; s.cycles.use_denoising = False   # độ sâu là phát sáng thuần: 1 mẫu là đủ
     s.render.filepath = f"{RA}/{sh['ma']}-sau.png"; bpy.ops.render.render(write_still=True)
     s.view_layers[0].material_override = None
+    # CHUYỂN ĐỘNG: chiếu chỗ mở / chỗ kết của từng món lên khung (0..1, gốc trên-trái) → studio viết câu chuyển động cho video từ số này;
+    # shot có món di chuyển / quay thì render thêm khung màu ở chỗ KẾT → keyframe kết → video nhận ảnh đầu + ảnh cuối.
+    from bpy_extras.object_utils import world_to_camera_view
+    def chieu(objs):
+        bpy.context.view_layer.update(); out = {}
+        for o in objs:
+            c = sum((o.matrix_world @ Vector(b) for b in o.bound_box), Vector()) / 8; v = world_to_camera_view(s, cam, c)
+            out[ten_vat(o)] = [round(v.x, 3), round(1 - v.y, 3)]
+        return out
+    tu = chieu(nv)
     for o in nv_het: bpy.data.objects.remove(o, do_unlink=True)
+    if any(x.get('den') or x.get('huong_den') is not None for x in sh.get('nhan_vat', [])):
+        nk, nk_het = nhan_vat(sh, ket=True)
+        den_ = chieu(nk)
+        di[sh['ma']] = [{'ten': t, 'tu': tu[t], 'den': den_.get(t, tu[t])} for t in tu]
+        ve_mau(s, sh, f"{RA}/{sh['ma']}-mau-ket.png")
+        for o in nk_het: bpy.data.objects.remove(o, do_unlink=True)
+    else: di[sh['ma']] = [{'ten': t, 'tu': tu[t], 'den': tu[t]} for t in tu]
 
 dat_tuy_chon({t for sh in shots for t in (sh.get('them') or [])})   # mặt bằng: đồ tuỳ chọn hiện khi có shot dùng nó
 # MẶT BẰNG nhìn thẳng từ trên: bộ set + máy của từng shot (nón đỏ chỉ hướng nhìn) + ĐƯỜNG ĐI của từng nhân vật qua cả tập
@@ -407,5 +425,6 @@ s.render.filepath = f"{RA}/mat-bang.png"; bpy.ops.render.render(write_still=True
 json.dump(kiem, open(f'{RA}/kiem.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(giai, open(f'{RA}/giai.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(thay, open(f'{RA}/thay.json', 'w'), ensure_ascii=False, indent=1)
+json.dump(di, open(f'{RA}/di.json', 'w'), ensure_ascii=False, indent=1)
 print('KIEM', json.dumps(kiem, ensure_ascii=False))
 print('XONG', [sh['ma'] for sh in shots])

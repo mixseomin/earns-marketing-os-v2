@@ -2,7 +2,7 @@
 // máy ảo của từng shot (xv_canh.may_3d) render ra khung xám + bản đồ độ sâu (scripts/bo-set/dung-set.py, Blender trên box) làm khung xương
 // cho keyframe. Ở đây: shot thuộc set nào, mã đầu vào (đổi là phải dựng lại), bảng đầu vào cho Blender, kiểm trục 180° bằng hình học,
 // và cổng (chanKhungXam). Tự kiểm: bo-set-3d.test.mts
-import type { BoSet, Canh, May3d, NhanVat, VatThay } from './kieu';
+import type { BoSet, Canh, KhungXam, May3d, NhanVat, VatThay } from './kieu';
 
 /** Bộ set của shot = bộ set CHUNG của mọi anchor bối cảnh gắn ở shot. null = shot không dựng 3D: không có bối cảnh thuộc set (Trái Đất,
  *  Hà Nội trên cao) hoặc shot đi XUYÊN hai thế giới (bay qua ô cửa sổ vào bàn: một bối cảnh có set, một không) — khung đầu nằm ngoài set. */
@@ -17,7 +17,7 @@ export const khoiCua = (ten: string, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 8;
+export const BAN_DUNG = 9;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 export function maKhungXam(set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]): string {
   const s = JSON.stringify([BAN_DUNG, set.id, set.du_lieu.vat, m, m.vi_tri.map((v) => khoiCua(v.ten, nhanVat))]);
@@ -178,6 +178,19 @@ export function datMayTuDong(o: DatMay, kt: { co_canh?: string; goc?: string; on
   const z = kt.goc === 'sat_dat' ? 0.5 : Math.max(0.4, cz + d * Math.sin(e) + (kt.goc === 'thap' ? -H * 0.3 : 0));
   const r = (x: number) => Math.round(x * 10) / 10;
   return { dat: [r(cx + ngang * Math.sin(a)), r(cy - ngang * Math.cos(a)), r(z)], nhin: [r(cx), r(cy), r(cz)], ong_kinh: ong, vi_tri: o.vi_tri, ...(o.khung?.length ? { khung: o.khung } : {}), ...(o.nhay ? { nhay: o.nhay } : {}), tu_dong: { phia: o.phia ?? 0 } };
+}
+
+/** CÂU CHUYỂN ĐỘNG cho video, viết từ số đo 3D (khung_xam.di): ai đi từ đâu tới đâu trên màn — cùng nguồn với khung màu nên không mâu thuẫn hình.
+ *  Món dịch < 4% khung coi như đứng yên. tenEn: tên tiếng Anh (khối nhân vật giữ tên riêng). */
+export function moTaChuyenDong(di: KhungXam['di'] | undefined): string {
+  const o = (u: number[]) => `${u[1]! < 0.36 ? 'upper' : u[1]! > 0.64 ? 'lower' : 'middle'} ${u[0]! < 0.36 ? 'left' : u[0]! > 0.64 ? 'right' : 'centre'}`;
+  const ds = (di ?? []).filter((d) => Math.hypot(d.den[0]! - d.tu[0]!, d.den[1]! - d.tu[1]!) >= 0.04).map((d) => {
+    const dx = d.den[0]! - d.tu[0]!, dy = d.den[1]! - d.tu[1]!;
+    const huong = [Math.abs(dx) > 0.03 ? (dx > 0 ? 'screen-right' : 'screen-left') : '', Math.abs(dy) > 0.03 ? (dy < 0 ? 'upward' : 'downward') : ''].filter(Boolean).join(' and ');
+    return `${d.ten} moves ${huong} from the ${o(d.tu)} of the frame to the ${o(d.den)}`;
+  });
+  const yen = (di ?? []).filter((d) => Math.hypot(d.den[0]! - d.tu[0]!, d.den[1]! - d.tu[1]!) < 0.04).map((d) => d.ten);
+  return ds.length ? `Blocking (from the 3D layout — follow it exactly): ${ds.join('; ')}.${yen.length ? ` ${yen.join(', ')} stay${yen.length === 1 ? 's' : ''} in place.` : ''} The last frame shows where everyone ends up.` : '';
 }
 
 /** Danh sách khối trong khung xám, gọi tên từng khối cho mô hình ảnh (vị trí trên màn + % khung) — để nó không đoán một khối vàng là bàn tay.

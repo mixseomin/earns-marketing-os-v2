@@ -1,5 +1,6 @@
 // Lõi sinh video cho một shot + nhận kết quả (Veo qua Google hoặc model fal) — tách khỏi actions.ts để script trên box
 // (scripts/sinh-shot.mts) và server action (sinhVideoCanh / kiemVideo) dùng CÙNG một đường; actions chỉ kiểm quyền rồi gọi vào đây.
+import { moTaChuyenDong } from './bo-set-3d';
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
@@ -40,13 +41,16 @@ export function promptVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     trongKhung.length ? `On-camera dialogue (${tenNgonNgu(bc.kt.ngon_ngu)}, natural lip-sync, no subtitles): ${trongKhung.map((d) => `${d.nhan_vat} says "${d.loi.trim()}"`).join('; ')}.` : '',
     dong.some(laVO) ? `Off-screen voice-over (${tenNgonNgu(bc.kt.ngon_ngu)}, nobody in frame moves their lips for it): ${dong.filter(laVO).map((d) => `"${d.loi.trim()}"`).join(' ')}` : '',
   ].filter(Boolean).join(' ');
-  return [phongCachHinh(bc.kt.phong_cach) ? `Visual style: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}.` : '', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), boThoaiTrongPrompt(bc.canh.prompt_video.trim() || bc.canh.hanh_dong), theVideo(bc.canh.dan_dung), coMau(bc.kt.qc) ? '' : KHUNG_SONG, thoaiVeo, giuKhung, bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', promptKyThuatVideo(bc.canh.ky_thuat), promptCamXuc(bc.canh, bc.nhanVat, 'video'),
+  return [phongCachHinh(bc.kt.phong_cach) ? `Visual style: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}.` : '', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), boThoaiTrongPrompt(bc.canh.prompt_video.trim() || bc.canh.hanh_dong), theVideo(bc.canh.dan_dung), moTaChuyenDong(bc.canh.khung_xam?.di), coMau(bc.kt.qc) ? '' : KHUNG_SONG, thoaiVeo, giuKhung, bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', promptKyThuatVideo(bc.canh.ky_thuat), promptCamXuc(bc.canh, bc.nhanVat, 'video'),
     coGiong ? `IMPORTANT: the audio track must contain NO spoken words or voice — only ambient sound; a separate voice recording is added later. ${trongKhung.length ? `${[...new Set(trongKhung.map((d) => d.nhan_vat))].join(' and ')} mouth their lines with natural lip movement in silence.` : 'The lines are an off-screen voice-over: nobody in frame talks or moves their lips as if speaking.'}` : ''].filter(Boolean).join(' ');
 }
 
 /** Nối cảnh: khung cuối = keyframe cảnh kế (cùng tập) khi tập bật noi_khung → các clip ghép liền mạch, bản cuối khớp bố cục bản nháp.
  *  Một chỗ cho lúc sinh thật và sơ đồ nguồn. */
 export async function khungCuoiCanh(db: Db, canhId: number): Promise<string | null> {
+  // Keyframe KẾT của chính shot (sinh từ khung màu chỗ kết của bản 3D) thắng mọi nguồn khác: video phải đi đúng từ chỗ mở tới chỗ kết.
+  const kk = (await db.execute(sql`SELECT keyframe_ket FROM xv_canh WHERE id = ${canhId}`)) as unknown as Row[];
+  if (kk[0]?.keyframe_ket) return s(kk[0].keyframe_ket);
   const ke = (await db.execute(sql`SELECT c2.keyframe_url, t.noi_khung, c.ky_thuat FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id
     LEFT JOIN LATERAL (SELECT keyframe_url FROM xv_canh x WHERE x.tap_id = c.tap_id AND x.thu_tu > c.thu_tu ORDER BY x.thu_tu LIMIT 1) c2 ON true WHERE c.id = ${canhId}`)) as unknown as Row[];
   return ke[0] && noiKhungShot(ke[0].noi_khung === true, { ky_thuat: ke[0].ky_thuat as { chuyen_canh?: string } | null }) && ke[0].keyframe_url ? s(ke[0].keyframe_url) : null;

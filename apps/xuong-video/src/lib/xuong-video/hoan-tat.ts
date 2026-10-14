@@ -167,6 +167,9 @@ export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
   void lamSanNho(kq.url);
   if (j.bien_the_id != null) {
     await db.execute(sql`UPDATE xv_bien_the SET anh_url = ${kq.url}, updated_at = now() WHERE id = ${Number(j.bien_the_id)}`);
+  } else if (canh != null && j.dich === 'keyframe_ket') {
+    // keyframe KẾT (sinh-anh.ts › sinhKeyframeKetCanh): khung cuối của shot — video nhận làm ảnh cuối
+    await db.execute(sql`UPDATE xv_canh SET keyframe_ket = ${kq.url}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canh}`);
   } else if (canh != null) {
     await db.execute(sql`UPDATE xv_canh SET keyframe_uv = (keyframe_uv || ${JSON.stringify([kq.url])}::jsonb),
       keyframe_url = coalesce(keyframe_url, ${kq.url}), trang_thai = CASE WHEN trang_thai = 'nhap' THEN 'co_keyframe' ELSE trang_thai END,

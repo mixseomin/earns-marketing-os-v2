@@ -304,7 +304,9 @@ export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy 
   /** đồ TUỲ CHỌN của bộ set có mặt ở shot này (vd ['MacBook Pro']) — không khai = vắng */ them?: string[];
   /** đèn bàn BẬT ở khung đầu shot (khung màu: ánh vàng ấm); không khai = tắt, chỉ ánh xanh màn hình */ den_ban?: boolean };
 /** Kết quả dựng khung xám (đầu ra): ma = mã đầu vào (set + máy + vị trí + khối) — đầu vào đổi là hết hiệu lực. */
-export type KhungXam = { ma: string; xam: string; sau: string; /** KHUNG MÀU (previs có vật liệu + ánh sáng, EEVEE) — ảnh tham chiếu số 1 của keyframe khi có */ mau?: string; luc: string; kiem: { nhan_vat: string; bat_buoc?: boolean; trong_khung: boolean; cao_khung_pt: number; bi_che_boi: string[] }[];
+export type KhungXam = { ma: string; xam: string; sau: string; /** KHUNG MÀU (previs có vật liệu + ánh sáng, EEVEE) — ảnh tham chiếu số 1 của keyframe khi có */ mau?: string;
+  /** khung màu ở chỗ KẾT (shot có di chuyển / quay) — ảnh số 1 của keyframe kết */ mau_ket?: string;
+  /** chuyển động trên màn: chỗ mở → chỗ kết của từng món (0..1, gốc trên-trái) — câu chuyển động cho video sinh từ đây */ di?: { ten: string; tu: number[]; den: number[] }[]; luc: string; kiem: { nhan_vat: string; bat_buoc?: boolean; trong_khung: boolean; cao_khung_pt: number; bi_che_boi: string[] }[];
   /** THẤY GÌ trong khung (dung-set.py › nhin_thay, đo bằng lưới tia): tên vật / nhân vật · % khung · hộp bao [x0,y0,x1,y1] 0..1 gốc trên-trái ·
    *  tien = nằm trước chủ thể (vật chắn tiền cảnh). Lưới gắn nhãn, cổng bắt vật chắn, prompt keyframe gọi tên từng khối. */
   thay?: VatThay[] };
@@ -457,7 +459,8 @@ export type Canh = {
   kiem_khung?: KiemKhung | null;
   may_3d?: May3d | null;
   khung_xam?: KhungXam | null;
-  keyframe_url: string | null; keyframe_uv: string[]; video_url: string | null; video_cuoi_url: string | null; nguon_video: Record<string, unknown>; video_phien_ban: { url: string; ban: 'nhap' | 'cuoi'; model?: string; job?: number; luc?: string }[]; trang_thai: TrangThaiCanh; loi: string; chi_phi_cents: number;
+  keyframe_url: string | null; keyframe_uv: string[];
+  /** keyframe KẾT (khung cuối, sinh từ khung màu chỗ kết) — video nhận làm ảnh cuối */ keyframe_ket?: string | null; video_url: string | null; video_cuoi_url: string | null; nguon_video: Record<string, unknown>; video_phien_ban: { url: string; ban: 'nhap' | 'cuoi'; model?: string; job?: number; luc?: string }[]; trang_thai: TrangThaiCanh; loi: string; chi_phi_cents: number;
 };
 export type Job = {
   id: number; canh_id: number | null; nhan_vat_id: number | null; loai: string; provider: string; model: string;

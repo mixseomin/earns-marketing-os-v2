@@ -2,6 +2,7 @@
 //   --canh=73,74                 : id shot (bắt buộc). Mặc định chỉ ƯỚC LƯỢNG (0đ), không chạy gì.
 //   --xem                        : (0đ) in đúng prompt video sẽ gửi cho từng shot + cổng ngôn ngữ — kiểm trước khi tiêu tiền.
 //   --mo-hinh=<key>              : model ảnh cho --keyframe (so A/B, vd gemini-nano-banana-2.1); mặc định theo kinh thánh.
+//   --keyframe-ket               : sinh keyframe KẾT (khung cuối từ khung màu chỗ kết của 3D) → keyframe_ket, video nhận làm ảnh cuối
 //   --keyframe                   : sinh lại 1 keyframe cho mỗi shot, đợi xong, CHỌN ảnh mới làm keyframe đang dùng (ảnh cũ vẫn trong dải ứng viên,
 //                                  ↶ Hoàn tác được). 09/10/2026: không chọn → video chạy từ keyframe cũ sai quần, mất $0,40.
 //   --chon=<url>                 : (0đ) chọn một ảnh trong dải ứng viên làm keyframe đang dùng (chỉ khi --canh có MỘT shot).
@@ -17,7 +18,7 @@
 //     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/sinh-shot.mts --canh=73,74 --keyframe
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { sinhKeyframeCanh } from '../src/lib/xuong-video/sinh-anh';
+import { sinhKeyframeCanh, sinhKeyframeKetCanh } from '../src/lib/xuong-video/sinh-anh';
 import { batDauVideoCanh, kiemVideoTap, promptVideoCanh } from '../src/lib/xuong-video/sinh-video';
 import { sinhGiongShots, MODEL_GIONG_MAC_DINH } from '../src/lib/xuong-video/sinh-giong';
 import { khopGiongTap } from '../src/lib/xuong-video/hau-ky';
@@ -69,7 +70,7 @@ if (arg('xem')) {
   }
 process.exit(0);
 }
-if (!arg('keyframe') && !arg('duyet') && !arg('video') && !arg('giong') && !arg('xuat') && !urlChon) { console.log('(chỉ ước lượng — thêm MỘT cờ --keyframe / --duyet / --video / --giong để chạy)'); process.exit(0); }
+if (!arg('keyframe') && !arg('keyframe-ket') && !arg('duyet') && !arg('video') && !arg('giong') && !arg('xuat') && !urlChon) { console.log('(chỉ ước lượng — thêm MỘT cờ --keyframe / --duyet / --video / --giong để chạy)'); process.exit(0); }
 
 if (arg('keyframe')) {
   const jobs: number[] = [];
@@ -83,6 +84,17 @@ if (arg('keyframe')) {
     if (r.trang_thai === 'xong' && r.output_url) await chonKf(Number(r.canh_id), String(r.output_url));
     console.log(`  #${r.thu_tu} ${r.trang_thai} ${r.output_url ?? r.loi} · ${tien(Number(r.chi_phi_cents))}${r.output_url ? ' · ĐÃ CHỌN làm keyframe (cần --duyet lại trước --video)' : ''}`);
   }
+}
+// --keyframe-ket: sinh KEYFRAME KẾT (khung cuối, từ khung màu chỗ kết của bản 3D) → xv_canh.keyframe_ket; video nhận làm ảnh cuối.
+if (arg('keyframe-ket')) {
+  const jobs: number[] = [];
+  for (const bc of bcs) { const r = await sinhKeyframeKetCanh(db, bc.canh.id); if (r.ok) jobs.push(r.data); else console.log(`  ✗ #${bc.canh.thu_tu}: ${r.loi}`); }
+  for (let i = 0; i < 120 && jobs.length; i++) {
+    const r = await q(sql`SELECT count(*) FILTER (WHERE trang_thai = 'cho') AS cho FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[])`);
+    if (Number(r[0]?.cho) === 0) break; await doi(5000);
+  }
+  const kq = jobs.length ? await q(sql`SELECT j.trang_thai, j.output_url, j.loi, j.chi_phi_cents, c.thu_tu FROM xv_job j JOIN xv_canh c ON c.id = j.canh_id WHERE j.id = ANY(${`{${jobs.join(',')}}`}::int[]) ORDER BY c.thu_tu`) : [];
+  for (const r of kq) console.log(`  #${r.thu_tu} KẾT ${r.trang_thai} ${r.output_url ?? r.loi} · ${tien(Number(r.chi_phi_cents))}`);
 }
 if (urlChon) {
   if (bcs.length !== 1) { console.error('--chon chỉ dùng với MỘT shot'); process.exit(1); }

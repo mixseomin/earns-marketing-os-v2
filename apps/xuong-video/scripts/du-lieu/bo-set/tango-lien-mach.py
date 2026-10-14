@@ -165,7 +165,8 @@ NHAY = {  # cú cắt cố ý cắt thời gian / dịch chuyển ngoài khung
  '4.1': 'cắt thời gian: hết khe màn hình, lăn vào rừng cáp',
  '8.1': 'phần kết: hai bạn ra mép bàn chào khán giả',
 }
-S['may']['7.3']['phia'] = 90
+# 7.3 máy đặt tay (bộ giải tự động rơi vào góc sau gáy Tango khi cố đưa đế cắm vào khung): trước-phải, thấp — Tango trái, đế cắm phải, phích giữa.
+S['may']['7.3'].pop('phia', None); S['may']['7.3'].update(dat=[63, 44, 2.5], nhin=[56.5, 53.5, 1.2], ong_kinh=35)
 for ma in ('1.1', '1.2'): S['may'][ma]['den_ban'] = True   # đèn bàn bật tới cú bấm công tắc ở 1.2
 for ma, ds in VT.items():
     m = S['may'][ma]; m['vi_tri'] = ds

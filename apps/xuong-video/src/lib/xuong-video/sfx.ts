@@ -30,6 +30,11 @@ export const SFX: Record<string, Sfx> = {
   vo_kinh: { dai: 1.2, neo: 'dau', lech: 0, duoi: 10, lufs: -14.2 },
   chop_dien: { dai: 0.8, neo: 'dau', lech: 0, duoi: 12, lufs: -16.3 },
   sam: { dai: 3.2, neo: 'dau', lech: 0, duoi: 9, lufs: -16.9 },
+  // Bộ điểm nhấn QC (15/10/2026, diem-nhan.ts): ngắn, sáng, nằm dưới giọng — nhấn mà không át lời.
+  pop: { dai: 0.5, neo: 'dau', lech: 0.05, duoi: 12, lufs: -15.3 },
+  ding: { dai: 1.2, neo: 'dau', lech: 0.15, duoi: 13, lufs: -9 },
+  ka_ching: { dai: 1.3, neo: 'dau', lech: 0.05, duoi: 10, lufs: -8.3 },
+  chup: { dai: 0.5, neo: 'dau', lech: 0.3, duoi: 12, lufs: -18.2 },
 };
 /** Độ lợi (dB) áp lên tệp để tiếng nằm đúng `duoi` dB dưới giọng. */
 export const dbSfx = (x: Sfx): number => Math.round((LUFS_GIONG - x.duoi - x.lufs) * 10) / 10;

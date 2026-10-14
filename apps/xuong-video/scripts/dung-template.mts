@@ -12,6 +12,7 @@ import { getDb } from '@mos2/db';
 import { ghepThoai, CAM_XUC_THEO_LOAI, type KinhThanh, type LoaiNhanVat, type LoaiShotMau, type OTemplate, type DongThoai } from '../src/lib/xuong-video/kieu';
 import { timO, dsOTemplate, oThieu, giaTriMau, khungTuShot } from '../src/lib/xuong-video/template';
 import { daDangMay } from '../src/lib/xuong-video/nhip-hinh';
+import { diemNhan } from '../src/lib/xuong-video/diem-nhan';
 import type { KyThuatShot } from '../src/lib/xuong-video/dien-anh';
 
 type Shot = { giay: number; loai: LoaiShotMau; canh?: string; goc_may: string; hanh_dong: string; chu_man: string; loi?: string; noi?: string; dien_xuat?: string;
@@ -62,6 +63,8 @@ process.exit(0);
 async function ghiShot(phimId: number, t: Tpl, capNhat: boolean) {
   const giay = Math.round(t.shots.reduce((a, s) => a + s.giay, 0));
   const { beats, phan_canh } = khungTuShot(t.shots);
+  // ✨ điểm nhấn (diem-nhan.ts): hiệu ứng hình (lớp của tập) + tiếng ở mỗi điểm cắt theo loại shot
+  const nhan = diemNhan(t.shots.map((s) => ({ loai: s.loai, phat: s.giay })));
   // anchor + biến thể: dựng mới, hoặc (capNhat) khớp theo thứ tự trong tệp = thứ tự id, ghi đè chữ, thiếu thì thêm
   const idNv: Record<string, number> = {}; const idBt: Record<string, number> = {};
   const nvCu = capNhat ? await q(sql`SELECT id FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`) : [];
@@ -82,9 +85,10 @@ async function ghiShot(phimId: number, t: Tpl, capNhat: boolean) {
     tapId = Number((await q(sql`SELECT id FROM xv_tap WHERE phim_id = ${phimId} ORDER BY so LIMIT 1`))[0]!.id);
     const so = Number((await q(sql`SELECT count(*) n FROM xv_canh WHERE tap_id = ${tapId}`))[0]!.n);
     if (so !== t.shots.length) throw new Error(`${t.key}: template có ${so} shot, tệp có ${t.shots.length} — không đồng bộ được, dựng lại bằng --lai`);
-    await db.execute(sql`UPDATE xv_tap SET ten = ${t.tap.ten}, brief = ${t.tap.brief}, thoi_luong_s = ${giay}, beats = ${JSON.stringify(beats)}::jsonb, phan_canh = ${JSON.stringify(phan_canh)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
-  } else tapId = Number((await q(sql`INSERT INTO xv_tap (phim_id, so, ten, brief, thoi_luong_s, beats, phan_canh) VALUES (${phimId}, 1, ${t.tap.ten}, ${t.tap.brief}, ${giay}, ${JSON.stringify(beats)}::jsonb, ${JSON.stringify(phan_canh)}::jsonb) RETURNING id`))[0]!.id);
-  const kt = kyThuat(t.shots);
+    await db.execute(sql`UPDATE xv_tap SET ten = ${t.tap.ten}, brief = ${t.tap.brief}, thoi_luong_s = ${giay}, beats = ${JSON.stringify(beats)}::jsonb, phan_canh = ${JSON.stringify(phan_canh)}::jsonb, lop = ${JSON.stringify(nhan.lop)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
+    await db.execute(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(kinh_thanh, '{qc,kieu_chu}', ${JSON.stringify(t.kinh_thanh.qc?.kieu_chu ?? {})}::jsonb), updated_at = now() WHERE id = ${phimId}`);
+  } else tapId = Number((await q(sql`INSERT INTO xv_tap (phim_id, so, ten, brief, thoi_luong_s, beats, phan_canh, lop) VALUES (${phimId}, 1, ${t.tap.ten}, ${t.tap.brief}, ${giay}, ${JSON.stringify(beats)}::jsonb, ${JSON.stringify(phan_canh)}::jsonb, ${JSON.stringify(nhan.lop)}::jsonb) RETURNING id`))[0]!.id);
+  const kt = kyThuat(t.shots).map((k, i) => ({ ...k, am_thanh: nhan.am[i] }));
   for (const [i, s] of t.shots.entries()) {
     const thoai: DongThoai[] = s.loi ? [{ nhan_vat: s.noi ?? '', dien_xuat: s.dien_xuat ?? '', loi: s.loi, url: null, tre: 0.2 }] : [];
     const nv = (s.nv ?? []).map((k) => { if (!idNv[k]) throw new Error(`${t.key} shot ${i + 1}: anchor ${k} không có`); return idNv[k]!; });

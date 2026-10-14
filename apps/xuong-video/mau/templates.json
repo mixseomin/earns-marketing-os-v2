@@ -290,9 +290,7 @@
     "mau_2_anh",
     "mau_3",
     "mau_3_hinh",
-    "mau_3_anh",
-    "anh_tran_an",
-    "anh_end_card"
+    "mau_3_anh"
    ],
    "kinh_thanh": {
     "phong_cach": "Live-action UGC ad, photorealistic real people, shot on iPhone vertical, natural light, true colors, no cinematic filter; casual handheld feel; quick cuts ~2.5s per shot",
@@ -314,7 +312,16 @@
      "anh": [
       "{{anh_san_pham}}"
      ],
-     "vi_tri_chu": "duoi"
+     "vi_tri_chu": "duoi",
+     "kieu_chu": {
+      "font": "Montserrat ExtraBold",
+      "mau": "#FFFFFF",
+      "vien": "#000000",
+      "vien_day": 0.1,
+      "co": 0.052,
+      "y": 0.76,
+      "vao": "bat"
+     }
     }
    },
    "nhan_vat": [
@@ -564,31 +571,40 @@
     {
      "giay": 2.5,
      "loai": "tran_an",
-     "goc_may": "Still real shop photo",
-     "hanh_dong": "The product in several colors laid out neatly",
+     "goc_may": "Overhead flat lay",
+     "hanh_dong": "Three folded tanks in three colors laid out neatly in a row",
      "chu_man": "{{dam_bao}}",
      "nv": [
-      "sp"
+      "sp",
+      "bc"
      ],
-     "prompt_anh": "",
-     "prompt_video": "Slow push-in on the still photo",
+     "prompt_anh": "Overhead flat lay: three neatly folded {{san_pham_hinh}} in {{mau_chinh_hinh}}, {{mau_2_hinh}} and {{mau_3_hinh}} side by side on a clean light linen bed cover, soft daylight, vertical 9:16, empty space in the lower third for text, no text, no labels",
+     "prompt_video": "Slow overhead push-in, a hand smooths the fabric of the middle tank",
      "co": "cu",
-     "keyframe": "{{anh_tran_an}}"
+     "bt": [
+      "m1",
+      "m2",
+      "m3"
+     ]
     },
     {
      "giay": 2,
      "loai": "end_card",
-     "goc_may": "Still real shop photo",
-     "hanh_dong": "Product hero shot with offer",
+     "goc_may": "Medium shot, hero",
+     "hanh_dong": "{{nhan_vat_ten}} wearing the product, smiling confidently at camera",
      "chu_man": "{{uu_dai}} · Shop now",
      "loi": "{{uu_dai}}. Shop now.",
      "nv": [
-      "sp"
+      "sp",
+      "nv",
+      "bc2"
      ],
-     "prompt_anh": "",
-     "prompt_video": "Subtle slow zoom on the still photo",
+     "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}} in {{mau_chinh_hinh}}, standing tall and smiling confidently at the camera on {{boi_canh_2}}, warm golden hour light, vertical 9:16 hero shot, empty space in the lower third for text, no text",
+     "prompt_video": "She smiles and gives a small confident nod, gentle breeze, slow push-in",
      "co": "cu",
-     "keyframe": "{{anh_end_card}}"
+     "bt": [
+      "m1"
+     ]
     }
    ]
   },
@@ -639,7 +655,16 @@
      "anh": [
       "{{anh_san_pham}}"
      ],
-     "vi_tri_chu": "duoi"
+     "vi_tri_chu": "duoi",
+     "kieu_chu": {
+      "font": "Montserrat ExtraBold",
+      "mau": "#FFFFFF",
+      "vien": "#000000",
+      "vien_day": 0.1,
+      "co": 0.052,
+      "y": 0.76,
+      "vao": "bat"
+     }
     }
    },
    "nhan_vat": [
@@ -932,7 +957,16 @@
      "anh": [
       "{{anh_san_pham}}"
      ],
-     "vi_tri_chu": "duoi"
+     "vi_tri_chu": "duoi",
+     "kieu_chu": {
+      "font": "Montserrat ExtraBold",
+      "mau": "#FFFFFF",
+      "vien": "#000000",
+      "vien_day": 0.1,
+      "co": 0.052,
+      "y": 0.76,
+      "vao": "bat"
+     }
     }
    },
    "nhan_vat": [
@@ -1152,7 +1186,16 @@
      "anh": [
       "{{anh_san_pham}}"
      ],
-     "vi_tri_chu": "duoi"
+     "vi_tri_chu": "duoi",
+     "kieu_chu": {
+      "font": "Montserrat ExtraBold",
+      "mau": "#FFFFFF",
+      "vien": "#000000",
+      "vien_day": 0.1,
+      "co": 0.052,
+      "y": 0.76,
+      "vao": "bat"
+     }
     }
    },
    "nhan_vat": [
@@ -1379,7 +1422,16 @@
      "anh": [
       "{{anh_san_pham}}"
      ],
-     "vi_tri_chu": "duoi"
+     "vi_tri_chu": "duoi",
+     "kieu_chu": {
+      "font": "Montserrat ExtraBold",
+      "mau": "#FFFFFF",
+      "vien": "#000000",
+      "vien_day": 0.1,
+      "co": 0.052,
+      "y": 0.76,
+      "vao": "bat"
+     }
     }
    },
    "nhan_vat": [
@@ -1588,7 +1640,16 @@
      "anh": [
       "{{anh_san_pham}}"
      ],
-     "vi_tri_chu": "giua"
+     "vi_tri_chu": "giua",
+     "kieu_chu": {
+      "font": "Montserrat ExtraBold",
+      "mau": "#FFFFFF",
+      "vien": "#000000",
+      "vien_day": 0.1,
+      "co": 0.052,
+      "y": 0.76,
+      "vao": "bat"
+     }
     }
    },
    "nhan_vat": [

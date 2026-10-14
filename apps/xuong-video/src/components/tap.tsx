@@ -9,7 +9,7 @@ import { moNgan } from './ngan-chung';
 import { MO_HINH_AM } from '@/lib/xuong-video/am-thanh';
 import { quyTrinh, phimQt } from '@/lib/xuong-video/quy-trinh';
 import { kiemQc } from '@/lib/xuong-video/kiem-qc';
-import { luuKhuonTap, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, xuatLongTiengVi, daDangMayTap, trangThaiXuat, khopNhipNhac, khopGiongTapAction } from '@/lib/actions';
+import { luuKhuonTap, apDiemNhan, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, xuatLongTiengVi, daDangMayTap, trangThaiXuat, khopNhipNhac, khopGiongTapAction } from '@/lib/actions';
 import { thanhPhanCanh, docKinhThanh, giaChuCents, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, coMau, giayMau, banHien, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, TabPhim, KqChay, O, Nut, Loi, Menu, MucMenu, mono, goiAction } from './ui';
@@ -260,6 +260,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
             onClick={async () => { setLoiXuat(''); const r = await xuatLongTiengVi(tap.id); if (!r.ok) setLoiXuat(r.loi); else setJobXuat(r.data); }}>🇻🇳 Lồng tiếng Việt · ~{tien(giaChuCents(kt.mo_hinh_chu, 2500, 2500))} + {kyTuLoi} ký tự</Nut>}
           {/* Kho tài sản (ít dùng) → sau ⋯: cả tập thành khuôn QC dùng lại; tạo tập mới từ khuôn đã lưu. */}
           <Menu>
+            <MucMenu onClick={() => void chay('nhan', () => apDiemNhan(tap.id))}>✨ Điểm nhấn tự động — mỗi điểm cắt một hiệu ứng hình + tiếng theo loại shot (hook zoom + pop, nỗi đau rung + đập, CTA zoom + ka-ching…) · 0đ</MucMenu>
             <MucMenu onClick={() => void chay('khuon', () => luuKhuonTap(tap.id))}>🧩 Lưu tập làm khuôn QC — giây từng shot, chữ màn + lời, góc máy, prompt, kiểu chữ, bài đăng</MucMenu>
             <MucMenu onClick={() => moNgan({ loai: 'kho', dich: { phimId: tap.phim_id } })}>🧩 Tạo tập từ khuôn trong kho (chưa có hình/giọng)</MucMenu>
           </Menu>

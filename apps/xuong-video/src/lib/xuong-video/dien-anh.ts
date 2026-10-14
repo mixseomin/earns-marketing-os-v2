@@ -193,6 +193,10 @@ export const THU_VIEN: KyThuat[] = [
   k('am_thanh', 'tim_dap', 'Nhịp tim', 'Tiếng tim đập to dần — hồi hộp.', 'heartbeat getting louder', ['kinh_di', 'hanh_dong', 'chinh_kich']),
   k('am_thanh', 'im_lang', 'Im lặng đột ngột', 'Cắt hết âm — trước cú doạ hay khoảnh khắc lớn.', 'sudden silence', ['kinh_di', 'chinh_kich', 'hanh_dong']),
   k('am_thanh', 'dap_doa', 'Âm doạ (sting)', 'Một tiếng đánh mạnh lúc doạ.', 'sharp horror sting', ['kinh_di']),
+  k('am_thanh', 'pop', 'Pop (bật ra)', 'Tiếng nảy ngắn khi chữ / sản phẩm bật ra.', 'short playful pop sound', ['qc_ugc', 'qc_cao_cap', 'hai', 'hoat_hinh']),
+  k('am_thanh', 'ding', 'Ding (chuông)', 'Chuông nhỏ — lợi ích, "đúng rồi".', 'bright small bell ding', ['qc_ugc', 'qc_cao_cap', 'hai', 'hoat_hinh']),
+  k('am_thanh', 'ka_ching', 'Ka-ching (tính tiền)', 'Máy tính tiền — ưu đãi, giá, CTA.', 'cash register ka-ching', ['qc_ugc', 'qc_cao_cap']),
+  k('am_thanh', 'chup', 'Chụp ảnh', 'Tiếng màn trập — khoảnh khắc, khoe kết quả.', 'camera shutter click', ['qc_ugc', 'qc_cao_cap', 'tai_lieu']),
   k('am_thanh', 'cuon_len', 'Âm cuộn lên (riser)', 'Âm dâng dần dẫn vào cao trào hay tiết lộ.', 'rising whoosh riser', ['hanh_dong', 'vien_tuong', 'qc_cao_cap', 'qc_ugc', 'kinh_di']),
   k('am_thanh', 'vut', 'Vút (whoosh)', 'Đi kèm chuyển động nhanh, chuyển cảnh.', 'whoosh swoosh', ['hanh_dong', 'hai', 'qc_ugc', 'qc_cao_cap']),
   // Có tiếng THẬT trong bản xuất (public/sfx, bảng sfx.ts): vut, dap_doa, cuon_len, tim_dap, mua + bốn tiếng dưới — đặt vào đầu shot (điểm cắt).

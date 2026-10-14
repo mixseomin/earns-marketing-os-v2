@@ -13,7 +13,7 @@ import { dayViecAnh, dayViecAm, chayNen } from '@/lib/xuong-video/hoan-tat';
 import { chayXuat, ghiBanXuat, gopAm } from '@/lib/xuong-video/xuat-chay';
 import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiongTheo, timNv, giayNhac } from '@/lib/xuong-video/am-thanh';
 import { kiemTieng } from '@/lib/xuong-video/khop-giong';
-import { locNhanh, type ThuNguoiXem, type KiemKhung } from '@/lib/xuong-video/kieu';
+import { locNhanh, giayPhat, type ThuNguoiXem, type KiemKhung } from '@/lib/xuong-video/kieu';
 import { sinhNhacTap } from '@/lib/xuong-video/sinh-nhac';
 import { dsKho, luuShotVaoKho, dungTaiSan, boKhoiKho, luuKhuonQc, taoTapTuKhuon, apKieuChuThuongHieu } from '@/lib/xuong-video/kho';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, type MoHinhGiong } from '@/lib/xuong-video/giong';
@@ -41,6 +41,7 @@ import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-vi
 import { type Row, n, s, arr, mangInt, nguCanhPhimDb, mapBienThe, mapNhanVat, mapTap, mapCanh, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
 import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim } from '@/lib/xuong-video/sinh-anh';
 import { docOTemplate, chepPhim, type KetQuaChep, type ShotKhung } from '@/lib/xuong-video/template-db';
+import { diemNhan } from '@/lib/xuong-video/diem-nhan';
 import { MO_HINH_CONG, coCong, centsCong, chuoiAnh, chuoiVideo, taNguon, taNguonNgan, taThu, type CongKey, type NguonSinh } from '@/lib/xuong-video/cong-ai';
 import { oThieu, type OTemplateDs } from '@/lib/xuong-video/template';
 import type { CauHinhTemplate } from '@/lib/xuong-video/kieu';
@@ -1328,6 +1329,26 @@ export async function dungTaiSanCho(id: number, dich: { canhId?: number; tapId?:
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   return dungTaiSan(db, id, dich, await ai());
+}
+/** ✨ Điểm nhấn tự động (diem-nhan.ts): mỗi loại shot một hiệu ứng hình + tiếng ở điểm cắt (nhánh A). 0đ, có ↶ hoàn tác.
+ *  Chạy lại = thay đúng phần điểm nhấn; lớp và tiếng người đặt tay giữ nguyên. */
+export async function apDiemNhan(tapId: number): Promise<Kq<{ lop: number; tieng: number }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const nguoi = await ai();
+  const t = (await db.execute(sql`SELECT lop FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[];
+  if (!t[0]) return loi('không thấy tập');
+  const ds = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), 'A');
+  if (!ds.length) return loi('tập chưa có shot');
+  const kq = diemNhan(ds.map((c) => ({ loai: c.phan_doan, phat: giayPhat(c), am: c.ky_thuat?.am_thanh ?? [] })), (t[0].lop ?? []) as Lop[]);
+  const nhom = await chupTruoc(db, { bang: 'xv_tap', id: tapId, cot: ['lop'], moTa: '✨ điểm nhấn tự động', nguoi });
+  await db.execute(sql`UPDATE xv_tap SET lop = ${JSON.stringify(kq.lop)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
+  for (const [i, c] of ds.entries()) {
+    await chupTruoc(db, { bang: 'xv_canh', id: c.id, cot: ['ky_thuat'], moTa: '✨ điểm nhấn tự động', nguoi: '', nhom });
+    await db.execute(sql`UPDATE xv_canh SET ky_thuat = ${JSON.stringify({ ...(c.ky_thuat ?? {}), am_thanh: kq.am[i] })}::jsonb, updated_at = now() WHERE id = ${c.id}`);
+  }
+  return { ok: true, data: { lop: kq.lop.filter((l) => l.loai === 'hieu_ung').length, tieng: kq.am.flat().length } };
 }
 /** Lưu cả tập làm khuôn QC trong kho. */
 export async function luuKhuonTap(tapId: number): Promise<Kq<number>> {

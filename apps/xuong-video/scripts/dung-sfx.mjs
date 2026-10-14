@@ -1,7 +1,7 @@
 // Dựng bộ TIẾNG HIỆU ỨNG (12/10/2026) bằng ffmpeg tổng hợp — 0đ, không bản quyền, chạy lại ra y nguyên.
 // Tệp ra: public/sfx/<key>.mp3 — key trùng key nhóm "Âm thanh" của thư viện kỹ thuật (dien-anh.ts) và bảng SFX (src/lib/xuong-video/sfx.ts):
 // bản xuất trộn từ thư mục này, timeline xem trước phát /sfx/<key>.mp3. Sửa tiếng = sửa công thức ở đây rồi chạy lại:
-//   node apps/xuong-video/scripts/dung-sfx.mjs
+//   node apps/xuong-video/scripts/dung-sfx.mjs [key …]   (nêu key = chỉ dựng tiếng đó — tiếng dùng nhiễu ngẫu nhiên (mua, sam…) dựng lại là ra tệp khác)
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -30,8 +30,18 @@ const TIENG = {
   chop_dien: { src: `aevalsrc='0.5*sgn(sin(2*PI*(90+40*sin(2*PI*23*t))*t))*exp(-4.5*t)+0.4*(random(0)*2-1)*exp(-9*t)':s=${SR}:d=0.8`, loc: 'highpass=f=120,lowpass=f=5000,volume=0.9' },
   // Sấm: nhiễu nâu trầm, lên trong 0,08s, ngân 3s.
   sam: { src: `anoisesrc=c=brown:r=${SR}:a=0.9:d=3.2`, loc: "lowpass=f=320,volume='min(1,t/0.08)*exp(-1.2*t)*3':eval=frame" },
+  // ── Bộ điểm nhấn QC (15/10/2026 — anh: "thêm hiệu ứng tạo điểm nhấn, hiệu ứng kèm âm thanh"; diem-nhan.ts gắn theo loại shot) ──
+  // Pop: bong bóng nảy — sin trượt 300→900 Hz rất ngắn, chữ/sản phẩm bật ra.
+  pop: { src: `aevalsrc='0.9*sin(2*PI*(300*t+600/(2*0.09)*t*t))*exp(-38*t)*(1-exp(-900*t))':s=${SR}:d=0.5`, loc: 'highpass=f=200,lowpass=f=5000' },   // d 0,5s (đuôi im): tiếng <0,4s thì LUFS không đo được
+  // Ding: chuông nhỏ 1568 Hz + bội âm, ngân 1,2s — lợi ích, "đúng rồi".
+  ding: { src: `aevalsrc='(0.55*sin(2*PI*1568*t)+0.25*sin(2*PI*3136*t)+0.12*sin(2*PI*4704*t))*exp(-3.6*t)*(1-exp(-600*t))':s=${SR}:d=1.2`, loc: 'aecho=0.6:0.4:35:0.25' },
+  // Ka-ching: tiếng máy tính tiền — "ka" (nhiễu click) rồi hai chuông 2093/2637 Hz, đồng xu leng keng — ưu đãi, CTA.
+  ka_ching: { src: `aevalsrc='0.6*(random(0)*2-1)*exp(-60*t)+(0.4*sin(2*PI*2093*max(0,t-0.08))+0.35*sin(2*PI*2637*max(0,t-0.08)))*exp(-3*max(0,t-0.08))*gte(t,0.08)+0.12*sin(2*PI*5274*t)*exp(-6*max(0,t-0.2))*gte(t,0.2)':s=${SR}:d=1.3`, loc: 'highpass=f=300,aecho=0.5:0.3:25:0.2' },
+  // Chụp ảnh: màn trập — hai tiếng "tách" nhiễu ngắn cách 0,06s.
+  chup: { src: `aevalsrc='(random(0)*2-1)*(exp(-90*t)+0.8*exp(-90*max(0,t-0.06))*gte(t,0.06))':s=${SR}:d=0.5`, loc: 'highpass=f=1200,lowpass=f=9000' },
 };
-for (const [k, x] of Object.entries(TIENG)) {
+const CHI = process.argv.slice(2);
+for (const [k, x] of Object.entries(TIENG).filter(([k]) => !CHI.length || CHI.includes(k))) {
   const ra = join(RA, `${k}.mp3`); const tam = join(RA, `.${k}.wav`);
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', x.src, '-af', `${x.loc},aformat=channel_layouts=stereo`, '-ar', String(SR), tam]);
   // Chuẩn hoá đỉnh về -3 dB: mọi tiếng cùng mốc, mức trộn trong bản xuất (sfx.ts › db) mới so được với nhau.

@@ -118,8 +118,9 @@ for ma, ds in VT.items():
     else: m.pop('nhay', None)
 # Máy giữ nguyên tay (dat): nhìn theo chỗ mới của chủ thể.
 S['may']['2.3']['nhin'] = [32, 29, 1.2]
-# 5.7 cận vũng đất sét: máy tự động rơi đúng chỗ cáp trượt dốc qua trước mặt → đặt tay từ trước-trái, thấp, cáp nằm ngoài đường ngắm.
-S['may']['5.7'].update(dat=[0.5, 64.5, 3], nhin=[6, 70.5, 0.6], ong_kinh=50); S['may']['5.7'].pop('phia', None); S['may']['5.7'].pop('tu_dong', None)
+# 5.7 cận vũng đất sét: cáp trượt dốc qua ngay trước mặt Tango — máy tự động đứng từ trước-trái.
+for k in ('dat', 'nhin', 'ong_kinh'): S['may']['5.7'].pop(k, None)
+S['may']['5.7']['phia'] = -40   # máy tự động từ trước-trái; bộ giải né cáp trượt (xoay tới 180°)
 S['may']['1.2']['khung'] = ['Lamp Switch', 'Magic Mouse']
 json.dump(S, open(P, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
 print('ghi', len(VT), 'shot')

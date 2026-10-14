@@ -177,12 +177,18 @@ def nhin_thay(s, cam, sh, nv_obj, C=27, R=48):
 
 def hong(k): return sum(1 for x in k if x['bat_buoc'] and (not x['trong_khung'] or x['bi_che_boi']))
 
+DA_GIAI = {}   # ma shot → máy đã chốt trong lượt này (shot đi theo thứ tự phát)
+def _phia(a, b, p):
+    c = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])
+    return 0 if abs(c) < 1e-6 else (1 if c > 0 else -1)
+
 def sai_truc(sh, p):
-    """1 = máy ở phía bên kia trục hành động so với shot so trục (sh['truc'] từ bo-set-3d.ts › rangBuocTruc), 0 = đúng phía / không có trục."""
+    """1 = máy ở phía bên kia trục hành động so với shot so trục — phía của shot đó tính bằng máy ĐÃ GIẢI trong lượt (DA_GIAI), không phải máy cũ."""
     t = sh.get('truc')
     if not t: return 0
-    a, b = t['a'], t['b']; c = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])
-    return 1 if c and (1 if c > 0 else -1) != t['dau'] else 0
+    dau = _phia(t['ta'], t['tb'], DA_GIAI.get(t['truoc'], t['dat_truoc']))
+    c = _phia(t['a'], t['b'], p)
+    return 1 if dau and c and c != dau else 0
 
 def chan_la(s, cam, sh, nv):
     """Số vật chắn tiền cảnh ≥ 12% khung mà chữ tả khung không nhắc (sh['nhac'], bo-set-3d.ts › vatDuocNhac) — cùng luật cổng vatChanTienCanh."""
@@ -231,7 +237,7 @@ for sh in shots:
     if sh.get('giai') and (hong(k) or sai_truc(sh, sh['may']['dat']) or chan_la(s, cam, sh, nv_kiem)):
         _, may_moi, k = giai_may(s, cam, sh, nv_kiem)   # KHÔNG đặt tên `dat` — trùng hàm dat() ở trên, đè mất hàm (lỗi 14/10/2026)
         giai[sh['ma']] = {'dat': may_moi, 'nhin': sh['may']['nhin']}; sh['may']['dat'] = may_moi
-    kiem[sh['ma']] = k
+    kiem[sh['ma']] = k; DA_GIAI[sh['ma']] = list(sh['may']['dat'])
     thay[sh['ma']] = nhin_thay(s, cam, sh, nv_kiem)
     s.view_layers[0].material_override = None; s.cycles.samples = 24
     s.render.filepath = f"{RA}/{sh['ma']}-xam.png"; bpy.ops.render.render(write_still=True)

@@ -49,7 +49,7 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     if (!o.tatCa && c.khung_xam?.ma === maKhungXam(set, c.may_3d, nv)) continue;
     // Máy tự động: bộ giải phải giữ đúng phía trục của shot so trục liền trước (cùng set, không cố ý vượt trục).
     const tr = c.may_3d.qua_truc ? null : shotSoTruc(ds, ds.indexOf(c));
-    const truc = tr?.may_3d && boSetCuaShot(tr, nv) === set.id ? rangBuocTruc(tr.may_3d, c.may_3d, (t) => nv.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase())) : null;
+    const truc = tr?.may_3d && boSetCuaShot(tr, nv) === set.id ? rangBuocTruc(tr as { id: number; may_3d: May3d }, c.may_3d, (t) => nv.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase())) : null;
     theoSet.set(set.id, [...(theoSet.get(set.id) ?? []), { ...(c as Canh & { may_3d: May3d }), truc }]);
   }
   let dung = 0; const loi: string[] = [];

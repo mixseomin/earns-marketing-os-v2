@@ -49,14 +49,14 @@ export function vuotTruc(truoc: May3d, sau: May3d, laNhanVat: (ten: string) => b
   return p1 && p2 && p1 !== p2 ? `máy sang phía bên kia trục ${a}–${b} so với shot trước (hướng trên màn sẽ đảo)` : null;
 }
 
-/** RÀNG BUỘC TRỤC cho bộ giải máy: trục nối hai nhân vật chung với shot so trục + phía máy của shot đó (cùng luật vuotTruc). Bộ giải trong
- *  Blender loại mọi phương án máy nằm phía bên kia (5.4 tập 19: bộ giải xoay máy ra sau trục Tango–Lint vì không biết shot trước đứng đâu). */
-export function rangBuocTruc(truoc: May3d, sau: May3d, laNhanVat: (ten: string) => boolean): { a: number[]; b: number[]; dau: number } | null {
-  const chung = sau.vi_tri.map((v) => v.ten).filter((t) => laNhanVat(t) && truoc.vi_tri.some((v) => v.ten === t));
+/** RÀNG BUỘC TRỤC cho bộ giải máy: trục nối hai nhân vật chung với shot so trục, phía máy tính TRONG Blender từ máy của shot đó ĐÃ GIẢI ở
+ *  cùng lượt (truoc = id shot đó; dat_truoc dự phòng khi shot đó không nằm trong lượt). Trước đây phía lấy từ máy cũ trong DB → máy shot trước
+ *  vừa được giải lại thì shot sau bám theo phía cũ đã sai (5.4 → 5.5 tập 19). Bộ giải loại mọi phương án máy nằm phía bên kia. */
+export function rangBuocTruc(truoc: { id: number; may_3d: May3d }, sau: May3d, laNhanVat: (ten: string) => boolean): { a: number[]; b: number[]; ta: number[]; tb: number[]; truoc: string; dat_truoc: number[] } | null {
+  const chung = sau.vi_tri.map((v) => v.ten).filter((t) => laNhanVat(t) && truoc.may_3d.vi_tri.some((v) => v.ten === t));
   if (chung.length < 2) return null;
-  const dau = phia(truoc, chung[0]!, chung[1]!);
-  const pa = sau.vi_tri.find((v) => v.ten === chung[0])!.tam; const pb = sau.vi_tri.find((v) => v.ten === chung[1])!.tam;
-  return dau ? { a: pa.slice(0, 2), b: pb.slice(0, 2), dau } : null;
+  const o = (m: May3d, t: string) => m.vi_tri.find((v) => v.ten === t)!.tam.slice(0, 2);
+  return { a: o(sau, chung[0]!), b: o(sau, chung[1]!), ta: o(truoc.may_3d, chung[0]!), tb: o(truoc.may_3d, chung[1]!), truoc: String(truoc.id), dat_truoc: truoc.may_3d.dat };
 }
 
 /** Chủ thể của khung (phải thấy rõ): khai ở may_3d.khung, mặc định hai vị trí đầu không cố ý che. */

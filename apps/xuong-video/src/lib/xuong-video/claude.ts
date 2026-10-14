@@ -453,6 +453,53 @@ export async function doiChieuAnchor(a: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta' |
   }
 }
 
+// ── KIỂM KHUNG (khung.ts / kiem-khung.ts): máy NHÌN mọi keyframe của một cảnh, so với thẻ shot + với nhau ─────────────────────
+// 14/10/2026: #9 → #10 Tango nhảy từ trước bàn phím ra sau bàn phím, góc giấy "trơn" có mắt — anh phải soi bằng mắt mới thấy. Bước này thay mắt.
+const KiemKhungSchema = z.object({
+  bo_tri: z.string().describe('Bố trí bộ set của cảnh theo các khung (1–2 câu): đồ vật nào ở đâu, trước/sau cái gì, máy thường đứng phía nào'),
+  shot: z.array(z.object({
+    shot: z.number().describe('Số shot (#) đúng như nhãn ảnh'),
+    loi: z.array(z.object({
+      loai: z.enum(['chuyen_canh', 'bo_tri', 'vi_tri', 'vuot_truc', 'thieu', 'thua', 'trang_thai', 'anh_sang', 'nhan_dang']),
+      mo_ta: z.string().describe('Lỗi NHÌN THẤY trong ảnh, cụ thể, tiếng Việt (vd "Tango ở sau bàn phím, các khung trước Tango ở trước bàn phím cạnh chuột")'),
+      sua: z.string().describe('Câu bố cục / trạng thái mở viết lại (tiếng Anh) để lần sinh sau đúng'),
+    })).describe('Rỗng nếu khung đúng'),
+  })).describe('MỌI shot được đưa, đúng thứ tự'),
+});
+export async function kiemKhungCanh(o: { canh: string; banDo: string; phongCach: string; truoc?: { so: number; the: string; b64: string } | null; shot: { so: number; the: string; b64: string }[]; kt: Required<KinhThanh> }): Promise<GoiYKq<z.infer<typeof KiemKhungSchema>>> {
+  const c = client();
+  if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
+  try {
+    const r = await c.messages.parse({
+      model: o.kt.mo_hinh_chu, max_tokens: 6000,
+      system: `Bạn là script supervisor (thư ký trường quay) kiểm tính liên tục cho phim ${o.phongCach ? `phong cách: ${o.phongCach}` : 'hoạt hình'}. Ảnh là keyframe (khung ĐẦU) của từng shot trong CÙNG một cảnh, theo thứ tự dựng. Mỗi ảnh kèm THẺ SHOT: bố cục, trạng thái mở, hướng nhìn, ai/cái gì có mặt.
+Soi từng khung, chỉ báo lỗi NHÌN THẤY được. CHUYỂN CẢNH là chỗ hay hỏng nhất — soi KỸ NHẤT từng cặp khung liền nhau (kể cả từ khung cuối của cảnh trước, nếu có) theo kiểu chuyển ghi trên thẻ:
+- chuyen_canh: cú chuyển từ khung trước sang khung này không nối. Liền máy = phải là giây kế tiếp của cùng khoảnh khắc (cùng chỗ, cùng phía máy, mọi thứ y nguyên). Cắt trong cùng cảnh = cùng bộ set, cùng phía trục, nhân vật mang theo trạng thái (đang cầm gì, bẹp hay tròn, đứng đâu) trừ khi thẻ nói khác. Sang cảnh mới / hoà tan = hướng ra–vào khung khớp nhau (ra mép phải thì vào từ mép trái), trạng thái mang sang khớp hành động. Khung cuối của cảnh trước chỉ để so cú chuyển — KHÔNG báo lỗi cho nó.
+- bo_tri: đồ vật trong bộ set đổi chỗ, đổi trước/sau, đổi số lượng so với các khung khác của cảnh (máy đổi góc là bình thường; set thì phải đứng yên như stop-motion thật).
+- vi_tri: nhân vật ở sai phía / sai chỗ trong set so với khung trước và hành động (vd khung trước ở trước vật X, khung sau ở sau vật X mà không có hành động di chuyển).
+- vuot_truc: máy sang phía bên kia trục hành động, hướng màn hình của nhân vật / chuyển động đảo so với khung trước mà thẻ không yêu cầu.
+- thieu: nhân vật / đạo cụ thẻ shot ghi có mặt mà không thấy.
+- thua: thứ thẻ không có — nhân vật nhân đôi, tay/ngón tay người (trừ khi thẻ có), MẶT/MẮT trên vật thẻ bảo là trơn, chữ/logo lạ.
+- trang_thai: khung không phải trạng thái MỞ của thẻ (vd thẻ mở là "đang nằm úp" mà ảnh đứng thẳng).
+- anh_sang: ánh sáng / giờ không nối với cảnh (vd cảnh đã tắt đèn mà khung sáng đèn vàng ấm).
+- nhan_dang: nhân vật / đạo cụ khác hẳn tạo hình ở các khung khác.
+Không chấm đẹp xấu, không bắt lỗi nhỏ không ai thấy khi xem. Một khung đúng thì loi rỗng.${o.banDo ? `\n\nBẢN ĐỒ KHÔNG GIAN của phim:\n${o.banDo}` : ''}`,
+      messages: [{ role: 'user', content: [
+        { type: 'text' as const, text: `CẢNH: ${o.canh}` },
+        ...(o.truoc ? [{ type: 'text' as const, text: `── KHUNG CUỐI CẢNH TRƯỚC (shot #${o.truoc.so}, chỉ để so cú chuyển sang shot đầu cảnh này — không chấm)\n${o.truoc.the}` }, { type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/jpeg' as const, data: o.truoc.b64 } }] : []),
+        ...o.shot.flatMap((x) => [{ type: 'text' as const, text: `── SHOT #${x.so}\n${x.the}` }, { type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/jpeg' as const, data: x.b64 } }]),
+        { type: 'text' as const, text: 'Kiểm từng shot theo thứ tự, so với thẻ của nó và với các khung khác của cảnh.' },
+      ] }],
+      output_config: { format: zodOutputFormat(KiemKhungSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
+    });
+    if (r.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };
+    const p = r.parsed_output as z.infer<typeof KiemKhungSchema> | null;
+    return p ? { ok: true, data: p, model: r.model, tokens: { in: r.usage.input_tokens, out: r.usage.output_tokens } } : { ok: false, loi: 'Claude trả JSON không đúng khuôn' };
+  } catch (e) {
+    return { ok: false, loi: loiGoi(e) };
+  }
+}
+
 // ── Đọc trang sản phẩm → thông tin quảng cáo (#1201) ──────────────────────────────────────────────────────────
 const QcSchema = z.object({
   ten: z.string().describe('Tên sản phẩm/dịch vụ ngắn gọn'),

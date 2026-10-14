@@ -8,13 +8,23 @@ import { dongThoai } from '@/lib/xuong-video/am-thanh';
 import { mono } from './ui';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
 import { kyThuat, type NhomKyThuat } from '@/lib/xuong-video/dien-anh';
+import { useState } from 'react';
+import { trangThaiKhung, khoiCanKiem, giaKiemKhung, tenLoiKhung, TEN_NUT_KHUNG } from '@/lib/xuong-video/khung';
+import { kiemKhungTapAction } from '@/lib/actions';
+import { tien } from '@/lib/xuong-video/kieu';
+import { Nut, Loi, goiAction } from './ui';
 
 /** Tên ngắn của một key thư viện (bỏ phần ngành trong ngoặc). */
 const tenKt = (k: string | undefined, n: NhomKyThuat) => (k ? kyThuat(k, n)?.ten.replace(/\s*\(.*\)$/, '') ?? '' : '');
 
 const gio = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
-export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo }: { canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'phan_canh'>; tiLe?: string; onMo: (id: number) => void }) {
+export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChanged }: { canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'phan_canh'>; tiLe?: string; onMo: (id: number) => void; moHinhChu: string; onChanged: () => Promise<void> }) {
+  // 🔍 Kiểm khung (khung.ts): máy nhìn keyframe từng khối cảnh + cú chuyển từ cảnh trước — chưa kiểm / lệch thì video + animatic bị chặn.
+  const [banKhung, setBanKhung] = useState(false); const [loiKhung, setLoiKhung] = useState('');
+  const canKiem = khoiCanKiem(canh); const giaKhung = giaKiemKhung(moHinhChu, canKiem.map((k) => k.length));
+  const demKhung = canh.reduce((a, c) => { const t = trangThaiKhung(c); a[t] = (a[t] ?? 0) + 1; return a; }, {} as Record<string, number>);
+  const kiemKhung = async () => { setBanKhung(true); setLoiKhung(''); setLoiKhung((await goiAction(() => kiemKhungTapAction(tap.id))).loi); setBanKhung(false); await onChanged(); };
   const doc = tiLe !== '16:9';
   // Khối phân cảnh = các shot liền nhau cùng phan_doan (một phân cảnh có thể quay lại sau, mỗi lần là một khối).
   const khoi: { ten: string; ds: { c: Canh; tu: number }[] }[] = [];
@@ -26,7 +36,12 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo }: { canh: Canh[]; 
   const MAU = ['#22d3ee', '#f472b6', '#a78bfa', '#facc15', '#4ade80', '#fb923c', '#60a5fa', '#f87171'];
   return (
     <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
-      <div style={mono}>{canh.length} shot · {gio(tong)} · {khoi.length} khối phân cảnh — bấm một thẻ để mở shot đó trên timeline</div>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={mono}>{canh.length} shot · {gio(tong)} · {khoi.length} khối phân cảnh — bấm một thẻ để mở shot đó trên timeline</span>
+        <span style={mono}>khung: <b style={{ color: '#4ade80' }}>✓ {(demKhung.dat ?? 0) + (demKhung.tay ?? 0)}</b> · <b style={{ color: 'var(--red)' }}>⚠ {demKhung.lech ?? 0}</b> · <b style={{ color: 'var(--amber)' }}>? {demKhung.chua ?? 0}</b></span>
+        <Nut chinh={canKiem.length > 0} ly={!canKiem.length && 'mọi khung đã kiểm'} ban={banKhung} gia={giaKhung} title="Máy nhìn keyframe từng khối cảnh (kèm khung cuối cảnh trước) so với thẻ shot và với nhau: chuyển cảnh, bố trí set, trục 180°, nhân vật thừa/thiếu, ánh sáng. Chưa kiểm / lệch → chặn video + animatic." onClick={() => void kiemKhung()}>{banKhung ? '… đang kiểm khung' : `${TEN_NUT_KHUNG} · ${canKiem.length} khối · ~${tien(giaKhung)}`}</Nut>
+      </div>
+      <Loi>{loiKhung}</Loi>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${doc ? 132 : 210}px, 1fr))`, gap: 8 }}>
         {khoi.flatMap((k, ki) => {
           const pc = tap.phan_canh?.find((x) => x.ten === k.ten); const mau = MAU[ki % MAU.length]!;
@@ -38,7 +53,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo }: { canh: Canh[]; 
             const bc = nhanVat.filter((v) => v.loai === 'boi_canh' && c.nhan_vat.includes(v.id)).map((v) => v.ten);
             return (
               <button key={c.id} type="button" onClick={() => onMo(c.id)} title={[`#${c.thu_tu} ${c.canh}`, c.hanh_dong, `Phân cảnh: ${k.ten}${pc?.beat ? ` (${pc.beat})` : ''}`, pc?.muc_tieu].filter(Boolean).join('\n')}
-                style={{ all: 'unset', cursor: 'pointer', display: 'grid', alignContent: 'start', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--line)', borderTop: `3px solid ${mau}`, background: 'var(--bg-1)' }}>
+                style={{ all: 'unset', cursor: 'pointer', display: 'grid', alignContent: 'start', borderRadius: 8, overflow: 'hidden', border: trangThaiKhung(c) === 'lech' ? '2px solid #f87171' : '1px solid var(--line)', borderTop: `3px solid ${mau}`, background: 'var(--bg-1)' }}>
                 <div style={{ height: 18, padding: '0 6px', display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', background: i === 0 ? `color-mix(in srgb, ${mau} 18%, transparent)` : undefined }}>
                   {i === 0 ? <><b style={{ color: mau, overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.ten || 'Chưa đặt phân cảnh'}</b>{pc?.beat && <span className="xv-mono" style={{ color: 'var(--fg-3)' }}>{pc.beat}</span>}</> : <span style={{ color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.ten}</span>}
                 </div>
@@ -50,6 +65,8 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo }: { canh: Canh[]; 
                     <span className="xv-mono" style={{ fontSize: 9.5, color: 'var(--fg-4)' }}>CHƯA SINH HÌNH</span>
                     <span style={{ display: '-webkit-box', WebkitLineClamp: doc ? 9 : 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.hanh_dong || c.prompt_anh || c.canh}</span>
                   </span>}
+                  {anh && (() => { const tk = trangThaiKhung(c); const kk = c.kiem_khung; const m = { dat: ['✓', '#4ade80'], tay: ['✓ tay', '#4ade80'], lech: ['⚠ lệch', '#f87171'], chua: ['? chưa kiểm', '#fbbf24'], khong: ['', ''] }[tk];
+                    return tk !== 'khong' && <span className="xv-mono" title={tk === 'lech' || tk === 'tay' ? kk!.loi.map((l) => `${tenLoiKhung(l.loai)}: ${l.mo_ta}`).join('\n') : tk === 'chua' ? 'Keyframe chưa qua kiểm khung (hoặc đã sinh lại sau lần kiểm)' : 'Máy kiểm khung: khớp'} style={{ position: 'absolute', left: 4, bottom: chu ? 26 : 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.7)', color: m[1] }}>{m[0]}</span>; })()}
                   {chu && <span style={{ position: 'absolute', left: 5, right: 5, bottom: 6, textAlign: 'center', fontSize: 10.5, fontWeight: 800, color: '#facc15', textShadow: '0 1px 3px #000, 0 0 2px #000' }}>{chu}</span>}
                 </div>
                 {i === 0 && (pc?.noi || pc?.luc) && <div className="xv-mono" style={{ padding: '3px 7px 0', fontSize: 10, color: mau, lineHeight: 1.3 }}>{pc?.noi && <>📍 {pc.noi}</>}{pc?.noi && pc?.luc ? ' · ' : ''}{pc?.luc && <>🕐 {pc.luc}</>}</div>}

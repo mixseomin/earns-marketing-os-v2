@@ -340,6 +340,8 @@ export type Lop = {
 };
 /** Kết quả bước THỬ NGƯỜI XEM LẦN ĐẦU (nguoi-xem.ts): Claude chỉ thấy thứ người xem thấy/nghe, kể lại + chấm hiểu; rồi đối chiếu brief.
  *  `ma` = mã phiên bản của bản người xem lúc thử — kịch bản đổi thì kết quả hết hiệu lực. */
+/** Kết quả 🔍 Kiểm khung của MỘT keyframe (khung.ts / kiem-khung.ts): url = keyframe đã kiểm (đổi là hết hiệu lực); duyet_tay = người nhận khung dù máy báo lệch. */
+export type KiemKhung = { url: string; dat: boolean; loi: { loai: string; mo_ta: string; sua: string }[]; luc: string; model: string; duyet_tay?: string };
 export type ThuNguoiXem = {
   ma: string; luc: string; model: string;
   ke_lai: string; hieu: { ai: string; muon: string; can: string; lat: string; ket: string };
@@ -419,6 +421,7 @@ export type Canh = {
   chu_man_dich?: Record<string, { goc: string; chu: string }>;
   thoi_luong_s: number; nhan_vat: number[]; bien_the: number[]; prompt_anh: string; prompt_video: string; dang_sinh_anh?: boolean; dang_sinh_am?: boolean; dang_sinh_giong?: boolean; dang_sinh_sfx?: boolean;
   dan_dung?: DanDung;
+  kiem_khung?: KiemKhung | null;
   keyframe_url: string | null; keyframe_uv: string[]; video_url: string | null; video_cuoi_url: string | null; nguon_video: Record<string, unknown>; video_phien_ban: { url: string; ban: 'nhap' | 'cuoi'; model?: string; job?: number; luc?: string }[]; trang_thai: TrangThaiCanh; loi: string; chi_phi_cents: number;
 };
 export type Job = {

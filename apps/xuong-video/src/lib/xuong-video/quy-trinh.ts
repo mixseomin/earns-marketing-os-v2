@@ -3,6 +3,7 @@
 // bước nào gác cổng đó mà chưa đạt thì máy chủ từ chối (sinhKeyframeCanh, batDauVideoCanh) và thanh 🎬 Quy trình trên studio chỉ đúng
 // chỗ thiếu + cách làm. Thêm một chuẩn mới = thêm MỘT mục ở đây, không vá từng nút. Khác kiem-qc.ts: bên đó chấm NỘI DUNG quảng cáo
 // (hook, CTA, bằng chứng), bên này chấm QUY TRÌNH sản xuất. Thuần — tự kiểm: quy-trinh.test.mts.
+import { chanKhung } from './khung';
 import { maAnimatic } from './ho-so';
 import { thanhPhanCanh, type Canh, type NhanVat, type PhanCanh, type KinhThanh } from './kieu';
 import type { Beat } from './dien-anh';
@@ -21,7 +22,7 @@ export type PhimQt = { phong_cach?: string; ti_le?: string; logo_url?: string; l
 /** PhimQt từ kinh thánh — MỘT chỗ dựng (thanh 🎬, bảng chọn shot, cổng keyframe máy chủ); trước đây 4 chỗ tự dựng, bảng chọn shot ghi cứng laQc: false. */
 export const phimQt = (loai: string, kt: Pick<KinhThanh, 'phong_cach' | 'logline' | 'series' | 'khong_loi' | 'qc'>): PhimQt =>
   ({ phong_cach: kt.phong_cach, logo_url: kt.qc?.logo_url, laQc: loai === 'quang_cao', logline: kt.logline, series: kt.series, khong_loi: kt.khong_loi });
-type ShotQt = Pick<Canh, 'id' | 'thu_tu' | 'phat_s' | 'thoi_luong_s' | 'thoai_url' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'hanh_dong' | 'phan_doan' | 'keyframe_url' | 'trang_thai' | 'ky_thuat' | 'thoai' | 'loi_thoai' | 'chu_man'>;
+type ShotQt = Pick<Canh, 'id' | 'thu_tu' | 'phat_s' | 'thoi_luong_s' | 'thoai_url' | 'nhan_vat' | 'bien_the' | 'prompt_anh' | 'hanh_dong' | 'phan_doan' | 'keyframe_url' | 'trang_thai' | 'ky_thuat' | 'thoai' | 'loi_thoai' | 'chu_man'> & Partial<Pick<Canh, 'kiem_khung'>>;
 
 /** Luật anh 12/10/2026: MỌI video phải có PHÂN CẢNH cụ thể (mục tiêu · xung đột · cảm xúc đầu→cuối) trước khi sinh keyframe —
  *  shot nào không thuộc một phân cảnh đã khai (phan_doan khớp tên trong tap.phan_canh) thì chưa được sinh. MỘT luật cho bảng chọn,
@@ -107,6 +108,8 @@ export function chanVideo(c: ShotQt, nhanVat: NhanVat[], o?: { hoSo?: TapHoSo; d
   if (o) out.push(...chanAnimatic(o.hoSo, o.ds, o.laQc));
   if (!c.keyframe_url) out.push('chưa có keyframe');
   else if (c.trang_thai !== 'duyet' && c.trang_thai !== 'loi' && c.trang_thai !== 'xong') out.push('chưa duyệt keyframe');
+  // Máy kiểm khung (khung.ts): keyframe chưa kiểm / lệch bố trí, trục, nhân vật → không cho tiêu tiền video lên một khung sai.
+  if (c.keyframe_url) { const k = chanKhung({ keyframe_url: c.keyframe_url, kiem_khung: c.kiem_khung ?? null }); if (k) out.push(k); }
   const thieu = dongThoai(c, nhanVat).filter((d) => d.loi.trim() && !d.url);
   if (thieu.length) out.push(`${thieu.length} dòng thoại/lời dẫn chưa có giọng — sinh giọng trước (độ dài shot khớp theo giọng)`);
   return out;

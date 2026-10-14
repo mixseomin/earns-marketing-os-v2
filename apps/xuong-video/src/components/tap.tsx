@@ -348,7 +348,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
               </>
             );
           })() : xem === 'luoi' ? (
-            <LuoiKichBan canh={locNhanh(canh, nhanh)} nhanVat={nhanVat} tap={tap} tiLe={kt.ti_le} onMo={(id) => { setChonCanh(id); setXem('timeline'); }} />
+            <LuoiKichBan canh={locNhanh(canh, nhanh)} nhanVat={nhanVat} tap={tap} tiLe={kt.ti_le} moHinhChu={kt.mo_hinh_chu} onChanged={async () => { await taiCanh(); await onChanged(); }} onMo={(id) => { setChonCanh(id); setXem('timeline'); }} />
           ) : (
             <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>{canh.map((c) => <CanhRow key={c.id} c={c} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} />)}</div>
           )}

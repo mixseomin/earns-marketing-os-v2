@@ -23,7 +23,7 @@ export const mapTap = (r: Row): Tap => ({ ho_so: (r.ho_so && typeof r.ho_so === 
 
 export const mapCanh = (r: Row): Canh => ({
   id: n(r.id), tap_id: n(r.tap_id), thu_tu: n(r.thu_tu), canh: s(r.canh), goc_may: s(r.goc_may), hanh_dong: s(r.hanh_dong), loi_thoai: s(r.loi_thoai), am_thanh: s(r.am_thanh), thoai_url: r.thoai_url == null ? null : s(r.thoai_url), am_thanh_url: r.am_thanh_url == null ? null : s(r.am_thanh_url), phan_doan: s(r.phan_doan), cam_xuc: n(r.cam_xuc), thoai: arr<Canh['thoai'][number]>(r.thoai), trang_phuc: s(r.trang_phuc),
-  ky_thuat: (r.ky_thuat && typeof r.ky_thuat === 'object' ? r.ky_thuat : {}) as Canh['ky_thuat'], dan_dung: (r.dan_dung && typeof r.dan_dung === 'object' ? r.dan_dung : {}) as Canh['dan_dung'],
+  ky_thuat: (r.ky_thuat && typeof r.ky_thuat === 'object' ? r.ky_thuat : {}) as Canh['ky_thuat'], dan_dung: (r.dan_dung && typeof r.dan_dung === 'object' ? r.dan_dung : {}) as Canh['dan_dung'], kiem_khung: (r.kiem_khung ?? null) as Canh['kiem_khung'],
   phat_s: r.phat_s == null ? null : Number(r.phat_s), chu_man: s(r.chu_man), nhanh: s(r.nhanh), kieu_chu: (r.kieu_chu && typeof r.kieu_chu === 'object' ? r.kieu_chu : {}) as Canh['kieu_chu'], chu_man_dich: (r.chu_man_dich && typeof r.chu_man_dich === 'object' ? r.chu_man_dich : {}) as Canh['chu_man_dich'],
   thoi_luong_s: n(r.thoi_luong_s), nhan_vat: arr<number>(r.nhan_vat).map(Number), bien_the: arr<number>(r.bien_the).map(Number), dang_sinh_anh: r.dang_sinh_anh === true, dang_sinh_giong: r.dang_sinh_giong === true, dang_sinh_sfx: r.dang_sinh_sfx === true, dang_sinh_am: r.dang_sinh_giong === true || r.dang_sinh_sfx === true, prompt_anh: s(r.prompt_anh), prompt_video: s(r.prompt_video),
   keyframe_url: r.keyframe_url == null ? null : s(r.keyframe_url), keyframe_uv: arr<string>(r.keyframe_uv), video_url: r.video_url == null ? null : s(r.video_url), video_cuoi_url: r.video_cuoi_url == null ? null : s(r.video_cuoi_url), nguon_video: (r.nguon_video && typeof r.nguon_video === 'object' ? r.nguon_video : {}) as Record<string, unknown>, video_phien_ban: arr<Canh['video_phien_ban'][number]>(r.video_phien_ban),
@@ -56,9 +56,9 @@ export async function boiCanhCanh(db: Db, canhId: number) {
     ? await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE id = ANY(${mangInt(canh.nhan_vat)}::int[])`)) as unknown as Row[]).map(mapNhanVat))
     : [];
   // Shot liền trước cùng nhánh — shot đó chọn chuyển cảnh 'lien_may' thì keyframe của nó là tham chiếu nối khung cho shot này (sinh-anh.ts).
-  const t = (await db.execute(sql`SELECT keyframe_url, ky_thuat, thu_tu FROM xv_canh WHERE tap_id = ${canh.tap_id} AND thu_tu < ${canh.thu_tu}
+  const t = (await db.execute(sql`SELECT keyframe_url, ky_thuat, thu_tu, phan_doan FROM xv_canh WHERE tap_id = ${canh.tap_id} AND thu_tu < ${canh.thu_tu}
     AND coalesce(nhanh, '') IN ('', ${canh.nhanh || 'A'}) ORDER BY thu_tu DESC LIMIT 1`)) as unknown as Row[];
-  const truoc = t[0] ? { thu_tu: n(t[0].thu_tu), keyframe_url: t[0].keyframe_url == null ? null : s(t[0].keyframe_url), ky_thuat: (t[0].ky_thuat ?? null) as Canh['ky_thuat'] } : null;
+  const truoc = t[0] ? { thu_tu: n(t[0].thu_tu), phan_doan: s(t[0].phan_doan), keyframe_url: t[0].keyframe_url == null ? null : s(t[0].keyframe_url), ky_thuat: (t[0].ky_thuat ?? null) as Canh['ky_thuat'] } : null;
   // Shot MỞ CẢNH (master) của cùng phân cảnh đã có keyframe — tham chiếu bố trí bối cảnh cho các shot sau trong cảnh: đồ vật đứng đâu so với nhau,
   // nhân vật ở phía nào (Tango & Lint tập 1: #9 → #10 Tango nhảy từ trước bàn phím ra sau bàn phím vì mỗi keyframe tự dựng lại bàn).
   const m = canh.phan_doan ? (await db.execute(sql`SELECT keyframe_url, thu_tu FROM xv_canh WHERE tap_id = ${canh.tap_id} AND phan_doan = ${canh.phan_doan} AND thu_tu < ${canh.thu_tu}

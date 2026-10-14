@@ -13,7 +13,7 @@ import { dayViecAnh, dayViecAm, chayNen } from '@/lib/xuong-video/hoan-tat';
 import { chayXuat, ghiBanXuat, gopAm } from '@/lib/xuong-video/xuat-chay';
 import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiongTheo, timNv, giayNhac } from '@/lib/xuong-video/am-thanh';
 import { kiemTieng } from '@/lib/xuong-video/khop-giong';
-import { locNhanh, type ThuNguoiXem } from '@/lib/xuong-video/kieu';
+import { locNhanh, type ThuNguoiXem, type KiemKhung } from '@/lib/xuong-video/kieu';
 import { sinhNhacTap } from '@/lib/xuong-video/sinh-nhac';
 import { dsKho, luuShotVaoKho, dungTaiSan, boKhoiKho, luuKhuonQc, taoTapTuKhuon, apKieuChuThuongHieu } from '@/lib/xuong-video/kho';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, type MoHinhGiong } from '@/lib/xuong-video/giong';
@@ -22,6 +22,8 @@ import { batDauNangCap, danhMucFal, guiFal, type ModelFal } from '@/lib/xuong-vi
 import { type DungChu } from '@/lib/xuong-video/claude';
 import { docTrangSanPham, doiChieuAnchor as doiChieuAnchorClaude } from '@/lib/xuong-video/claude';
 import { kiemNguoiXemTap, suaTheoNguoiXemTap } from '@/lib/xuong-video/kiem-nguoi-xem';
+import { kiemKhungTap, duyetKhungTay } from '@/lib/xuong-video/kiem-khung';
+import { chanKhung, TEN_NUT_KHUNG } from '@/lib/xuong-video/khung';
 import { xuatLongTiengTap } from '@/lib/xuong-video/long-tieng';
 import { lamSanNho } from '@/lib/xuong-video/anh-nho-may';
 import { chanNguoiXem } from '@/lib/xuong-video/nguoi-xem';
@@ -559,6 +561,20 @@ export async function tachCanhTap(tapId: number, soCanh: number, thoiLuongS?: nu
 /** Claude viết văn bản chính · tiêu đề · mô tả · nút cho bài đăng của tập (bám bài mẫu nếu có) → lưu xv_tap.bai_dang. */
 /** 🧑 Thử người xem lần đầu (nguoi-xem.ts): Claude chỉ thấy bảng shot người xem thấy/nghe → kể lại + chấm hiểu + chỗ vấp; rồi đối chiếu
  *  logline/brief. Lưu kèm mã phiên bản kịch bản; cổng keyframe + xuất đọc kết quả này. TỐN TIỀN (2 lượt Claude, ~2–4 cent) — nút có giá. */
+/** 🔍 Kiểm khung cả tập (kiem-khung.ts) — TỐN TIỀN: 1 lượt Claude nhìn ảnh / khối cảnh có keyframe chưa kiểm. */
+export async function kiemKhungTapAction(tapId: number): Promise<Kq<{ khoi: number; shot: number; lech: number; cents: number }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  try { const r = await kiemKhungTap(db, tapId); return r.ok ? { ok: true, data: { ...r.data, lech: r.data.lech.length } } : r; } catch (e) { console.error('[kiểm khung]', e); return loi(`lỗi máy chủ: ${e instanceof Error ? e.message : String(e)}`); }
+}
+/** Người nhận một khung máy báo lệch (máy báo sai) — 0đ. */
+export async function duyetKhungTayAction(canhId: number): Promise<Kq<true>> {
+  const db = getDb(); const me = await admin();
+  if (!db || !me) return loi('không có quyền');
+  const r = await duyetKhungTay(db, canhId, me.email);
+  return r.ok ? { ok: true, data: true } : r;
+}
 export async function thuNguoiXemTap(tapId: number): Promise<Kq<ThuNguoiXem>> {
   const db = getDb();
   if (!db) return loi('no db');
@@ -667,8 +683,10 @@ export async function duyetAnimatic(tapId: number): Promise<Kq<string>> {
   const xuat = ((t[0].xuat ?? []) as BanXuat[]).filter((x) => !x.long_tieng);
   const moi = xuat[xuat.length - 1];
   if (!moi) return { ok: false, loi: 'tập chưa có bản xuất — bấm ⬇ Xuất (shot chưa có clip sẽ dựng bằng keyframe) rồi xem và duyệt' };
-  const ds = ((await db.execute(sql`SELECT thu_tu, nhanh, keyframe_url, phat_s, thoi_luong_s FROM xv_canh WHERE tap_id = ${tapId}`)) as unknown as Row[]).map((r) => ({ thu_tu: Number(r.thu_tu), nhanh: String(r.nhanh ?? ''), keyframe_url: (r.keyframe_url as string | null) ?? null, phat_s: r.phat_s == null ? null : Number(r.phat_s), thoi_luong_s: Number(r.thoi_luong_s) }));
+  const ds = ((await db.execute(sql`SELECT thu_tu, nhanh, keyframe_url, phat_s, thoi_luong_s, kiem_khung FROM xv_canh WHERE tap_id = ${tapId}`)) as unknown as Row[]).map((r) => ({ thu_tu: Number(r.thu_tu), nhanh: String(r.nhanh ?? ''), keyframe_url: (r.keyframe_url as string | null) ?? null, phat_s: r.phat_s == null ? null : Number(r.phat_s), thoi_luong_s: Number(r.thoi_luong_s), kiem_khung: (r.kiem_khung ?? null) as KiemKhung | null }));
   if (ds.some((c) => (!c.nhanh || c.nhanh === 'A') && !c.keyframe_url)) return { ok: false, loi: 'còn shot chưa có keyframe — animatic phải đủ hình' };
+  const khungSai = ds.filter((c) => (!c.nhanh || c.nhanh === 'A') && chanKhung(c));
+  if (khungSai.length) return { ok: false, loi: `${khungSai.length} keyframe chưa qua ${TEN_NUT_KHUNG} hoặc lệch (shot ${khungSai.map((c) => `#${c.thu_tu}`).join(', ')}) — kiểm khung ở tab Lưới, sinh lại khung lệch` };
   await chupTruoc(db, { bang: 'xv_tap', id: tapId, cot: ['ho_so'], moTa: 'duyệt animatic', nguoi: me.email });
   const animatic = { url: moi.url, ma: maAnimatic(ds), luc: new Date().toISOString() };
   await db.execute(sql`UPDATE xv_tap SET ho_so = coalesce(ho_so, '{}'::jsonb) || ${JSON.stringify({ animatic })}::jsonb, updated_at = now() WHERE id = ${tapId}`);

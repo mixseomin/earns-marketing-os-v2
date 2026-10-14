@@ -100,12 +100,17 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   const ms = bc.master;
   const msUrl = ms?.keyframe_url && ms.keyframe_url !== noi && urlRef.length < 10 ? ms.keyframe_url : null;
   if (msUrl) { urlRef.push(msUrl); vai.push({ url: msUrl, nhan: `🗺 bố trí cảnh (shot mở cảnh #${ms!.thu_tu})` }); }
-  const msChu = msUrl ? `Image ${urlRef.length} = the opening shot of this same scene, on the same physical set: keep the SET LAYOUT identical — where every object stands relative to the others (and what is in front of / behind what), and which side of those objects each character is on, consistent with the action. Do NOT copy its framing: the camera position, angle and shot size come from the composition described above, but the camera stays on the same side of the action as in that shot.` : '';
+  const soMs = urlRef.length;
+  // CẮT TRONG CẢNH: khung shot liền trước mang TRẠNG THÁI qua cú cắt (ai cầm gì, bẹp hay tròn, đứng đâu) — chuyển cảnh là chỗ hay hỏng nhất.
+  const trUrl = !noi && tr?.keyframe_url && tr.phan_doan === bc.canh.phan_doan && tr.keyframe_url !== ms?.keyframe_url && urlRef.length < 9 ? tr.keyframe_url : null;
+  if (trUrl) { urlRef.push(trUrl); vai.push({ url: trUrl, nhan: `✂ trạng thái shot trước #${tr!.thu_tu}` }); }
+  const trChu = trUrl ? `Image ${urlRef.length} = the shot just before this cut, same scene: carry over every character's and object's STATE and place in the set (what they hold, their shape, where they stand) unless the action above changes it; stay on the same side of the action. Do NOT copy its framing.` : '';
+  const msChu = msUrl ? `Image ${soMs} = the opening shot of this same scene, on the same physical set: keep the SET LAYOUT identical — where every object stands relative to the others (and what is in front of / behind what), and which side of those objects each character is on, consistent with the action. Do NOT copy its framing: the camera position, angle and shot size come from the composition described above, but the camera stays on the same side of the action as in that shot.` : '';
   // Thẻ shot: bố cục 3 lớp + trạng thái MỞ + hướng — keyframe là khung đầu của shot.
   const dd = bc.canh.dan_dung ?? {};
   const theChu = [dd.bo_cuc?.trim() && `Composition (foreground / midground / background): ${dd.bo_cuc.trim()}`, dd.mo?.trim() && `This frame is the START of the shot: ${dd.mo.trim()}`, dd.huong?.trim() && `Eyelines and screen direction: ${dd.huong.trim()}`].filter(Boolean).map((x) => `${x}.`).join(' ');
   // Cấm tay người / dụng cụ vẽ lạc khung — CÙNG luật với prompt video (kieu.ts › camCongCuVe); trước đây chỉ video có, keyframe thì không.
-  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), bc.nhanVat, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), theChu, banDoRef, noiChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
+  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), bc.nhanVat, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
   return { prompt, urlRef, vai };
 }
 

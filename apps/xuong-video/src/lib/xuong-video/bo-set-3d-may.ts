@@ -8,7 +8,9 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { uploadToR2 } from '../r2';
+import { uploadToR2, deleteFromR2, r2KeyFromUrl } from '../r2';
+import { khoaNho } from './anh-nho-may';
+import { CO_NHO } from './anh-nho';
 import { bangDung, boSetCuaShot, maKhungXam, rangBuocTruc, shotSoTruc } from './bo-set-3d';
 import { locNhanh, type BoSet, type Canh, type KhungXam, type May3d } from './kieu';
 import { kemBienThe, mapCanh, mapNhanVat, type Db, type Row } from './doc-db';
@@ -30,8 +32,31 @@ function chayBlender(vao: string, ra: string): Promise<{ ok: boolean; log: strin
   });
 }
 
+/** DỌN ẢNH RENDER CŨ (anh 14/10/2026: "khi chụp thì các ảnh cũ có tự dọn không?"). Ảnh khung xám / độ sâu / mặt bằng là bản DỰNG LẠI ĐƯỢC
+ *  từ dữ liệu (cùng mã → cùng ảnh), nên bản bị thay thì xoá khỏi R2 cùng các ảnh nhỏ của nó — TRỪ khi còn được nhắc ở đâu đó: lệnh sinh
+ *  keyframe đã gửi nó đi (xv_job.request — bằng chứng "đã gửi gì"), một bản chụp hoàn tác (xv_hoan_tac), hoặc vẫn đang dùng. */
+export async function donRenderCu(db: Db, urls: string[], thu = false): Promise<{ xoa: number; giu: number }> {
+  let xoa = 0, giu = 0;
+  for (const u of [...new Set(urls.filter(Boolean))]) {
+    const goc = (process.env.R2_PUBLIC_BASE || 'https://img.on.tc').replace(/\/+$/, '');
+    const nho = CO_NHO.map((w) => khoaNho(u, w));
+    const dau = [u, ...nho.map((k) => `${goc}/${k}`)];
+    const dung = (await db.execute(sql`SELECT 1 FROM (
+        SELECT request::text AS t FROM xv_job WHERE request IS NOT NULL
+        UNION ALL SELECT truoc::text FROM xv_hoan_tac
+        UNION ALL SELECT khung_xam::text FROM xv_canh WHERE khung_xam IS NOT NULL
+        UNION ALL SELECT coalesce(mat_bang_url, '') FROM xv_bo_set) x
+      WHERE ${sql.join(dau.map((d) => sql`position(${d} in x.t) > 0`), sql` OR `)} LIMIT 1`)) as unknown as Row[];
+    if (dung.length) { giu++; continue; }
+    const k = r2KeyFromUrl(u); if (!k) { giu++; continue; }
+    if (thu) { xoa++; continue; }   // chạy thử: chỉ đếm
+    if (await deleteFromR2(k)) { xoa++; for (const kn of nho) await deleteFromR2(kn); }
+  }
+  return { xoa, giu };
+}
+
 /** Dựng khung xám cho các shot của tập (mặc định: shot có may_3d mà khung xám thiếu / cũ). tatCa = dựng lại hết. */
-export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolean; ids?: number[] } = {}): Promise<{ ok: true; data: { dung: number; loi: string[] } } | { ok: false; loi: string }> {
+export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolean; ids?: number[] } = {}): Promise<{ ok: true; data: { dung: number; loi: string[]; don: { xoa: number; giu: number } } } | { ok: false; loi: string }> {
   const t = (await db.execute(sql`SELECT phim_id FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[];
   if (!t[0]) return { ok: false, loi: 'không thấy tập' };
   const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(t[0].phim_id)} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
@@ -52,7 +77,7 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     const truc = tr?.may_3d && boSetCuaShot(tr, nv) === set.id ? rangBuocTruc(tr as { id: number; may_3d: May3d }, c.may_3d, (t) => nv.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase())) : null;
     theoSet.set(set.id, [...(theoSet.get(set.id) ?? []), { ...(c as Canh & { may_3d: May3d }), truc }]);
   }
-  let dung = 0; const loi: string[] = [];
+  let dung = 0; const loi: string[] = []; const cu: string[] = [];
   for (const [sid, shots] of theoSet) {
     const set = sets.get(sid)!;
     const b = bangDung(set, shots, nv);
@@ -74,10 +99,13 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
       if (!xam || !sau) { loi.push(`#${c.thu_tu}: không đẩy được ảnh lên kho`); continue; }
       const kx: KhungXam = { ma, xam, sau, luc, kiem: kiem[String(c.id)] ?? [], thay: thay[String(c.id)] ?? [] };
       await db.execute(sql`UPDATE xv_canh SET khung_xam = ${JSON.stringify(kx)}::jsonb WHERE id = ${c.id}`);
+      if (c.khung_xam) cu.push(c.khung_xam.xam, c.khung_xam.sau);
       dung++;
     }
+    const mbCu = set.mat_bang_url;
     const mb = await uploadToR2(`xuong-video/bo-set/${sid}-mat-bang-${Date.now()}.png`, await readFile(path.join(thu, 'ra', 'mat-bang.png')), 'image/png');
-    if (mb) await db.execute(sql`UPDATE xv_bo_set SET mat_bang_url = ${mb}, updated_at = now() WHERE id = ${sid}`);
+    if (mb) { await db.execute(sql`UPDATE xv_bo_set SET mat_bang_url = ${mb}, updated_at = now() WHERE id = ${sid}`); if (mbCu) cu.push(mbCu); }
   }
-  return { ok: true, data: { dung, loi } };
+  const don = await donRenderCu(db, cu);
+  return { ok: true, data: { dung, loi, don } };
 }

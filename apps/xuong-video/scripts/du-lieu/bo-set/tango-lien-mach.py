@@ -28,7 +28,19 @@ vat('White Cable')['diem'] = [[36, 55, 0.3], [46, 47, 0.3], [51, 48, 0.3], [54.3
 # Cáp trắng để trượt: vắt qua nóc loa đen (-8,76), dốc xuống ngay chỗ hai bạn (6,70), chạy ra khỏi rừng cáp tới cạnh đế cắm.
 vat('Cable Jungle 2')['diem'] = [[-50, 66, 0.3], [-25, 64, 0.3], [-14, 73, 6], [-8, 76, 10.4], [-1, 72, 5.5], [6, 69, 2.4], [12, 66.5, 0.8], [20, 64, 0.3], [30, 61, 0.3], [46, 57.5, 0.3], [54, 56, 0.5]]
 # Cáp trắng thứ hai lùi ra sau (trước đây chạy xuyên chỗ Tango đứng ở cảnh 4–6, lẫn với cáp trượt).
-vat('Cable Jungle 4')['diem'] = [[-30, 58, 0.3], [-12, 76, 0.3], [4, 79, 0.3], [22, 80, 0.3], [30, 96, 9]]
+vat('Cable Jungle 4')['diem'] = [[-30, 58, 0.3], [-12, 76, 0.3], [4, 79, 0.3], [22, 80, 0.3], [30, 96, 0.3]]
+# Hàng máy phía sau (Back Monitor, Silver iMac trên kệ nâng) úp mặt màn hình vào lưng hai máy phía trước (anh 14/10/2026) → bỏ cả hai + kệ;
+# thay bằng MỘT MacBook Pro mở nắp ở giữa phía sau, màn hình quay ra trước. MacBook là đồ TUỲ CHỌN (tuy_chon): mặc định vắng, shot nào có
+# thì khai may_3d.them = ['MacBook Pro'] — "lúc đặt, lúc không có".
+S['vat'] = [x for x in S['vat'] if x['ten'] not in ('Back Monitor', 'Silver iMac', 'Kệ nâng sau')]
+vat('Cable Jungle 3')['diem'] = [[-40, 96, 0.3], [-38, 90, 0.3], [-10, 80, 0.3], [15, 86, 0.3], [36, 92, 0.3], [34, 97, 0.3]]
+# Nắp nghiêng ra sau 15°: bản lề ở mép sau thân máy (y = +11, z = 1.5); tâm nắp = bản lề + 10·(0, sin15°, cos15°); khối ghi z ĐÁY = tâm − nửa cao.
+S['vat'] = [x for x in S['vat'] if x['ten'] != 'MacBook Pro'] + [{'ten': 'MacBook Pro', 'tuy_chon': True, 'anchor': 'MacBook Pro', 'goc': [0, 100], 'xoay': 0, 'phan': [
+    {'hinh': 'hop', 'tam': [0, 0, 0], 'co': [31, 22, 1.5], 'mau': '#c7c9ce'},
+    {'hinh': 'hop', 'tam': [0, -2, 1.5], 'co': [26, 10, 0.1], 'mau': '#2a2a2e'},
+    {'hinh': 'hop', 'tam': [0, -8, 1.5], 'co': [11, 6.5, 0.05], 'mau': '#b8bac0'},
+    {'hinh': 'hop', 'tam': [0, 13.59, 1.16], 'co': [31, 0.6, 20], 'mau': '#c7c9ce', 'nghieng': -15},
+    {'hinh': 'hop', 'tam': [0, 13.2, 2.51], 'co': [28.5, 0.2, 17.5], 'mau': '#5b7fb8', 'sang': 1, 'nghieng': -15}]}]
 
 # ── KHỐI CHI TIẾT: nhân vật có mắt (khung xám cho thấy nhìn đi đâu), đạo cụ có hình (kẹo hình gấu, bình xịt có vòi, bàn tay có ngón).
 K = S['khoi']

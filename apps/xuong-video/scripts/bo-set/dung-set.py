@@ -50,7 +50,7 @@ def khoi(p, ten, goc=(0, 0), xoay=0):
         c = c * 2
     o = bpy.context.object
     o.scale = (w * CM, d * CM, c * CM)
-    o.rotation_euler = Euler((0, 0, math.radians(xoay + p.get('xoay', 0))))
+    o.rotation_euler = Euler((math.radians(p.get('nghieng', 0)), 0, math.radians(xoay + p.get('xoay', 0))))   # nghiêng quanh trục x của khối (nắp laptop) rồi mới xoay
     return dat(o, m, ten)
 
 def dung_set():
@@ -65,10 +65,18 @@ def dung_set():
     w.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.8
     bpy.ops.object.light_add(type='SUN', location=(0, 0, 2)); bpy.context.object.data.energy = 3
     bpy.context.object.rotation_euler = Euler((math.radians(50), math.radians(-20), math.radians(20)))
-    s.render.engine = 'CYCLES'; s.cycles.device = 'CPU'; s.cycles.samples = 24; s.cycles.use_denoising = False
+    s.render.engine = 'CYCLES'; s.cycles.device = 'CPU'; s.cycles.samples = 10; s.cycles.use_denoising = True   # khung xám là khối phẳng màu: 10 mẫu + khử nhiễu ≈ 24 mẫu thô, nhanh ~2,5×
     s.render.resolution_x, s.render.resolution_y = 540, 960
     s.view_settings.view_transform = 'Standard'
     return s
+
+TUY_CHON = {v['ten'] for v in DL['vat'] if v.get('tuy_chon')}
+def dat_tuy_chon(co):
+    """Đồ TUỲ CHỌN (laptop lúc có lúc không): chỉ hiện ở shot khai may_3d.them; ẩn cả render lẫn tia kiểm (hide_viewport → ra khỏi depsgraph)."""
+    for o in bpy.data.objects:
+        t = o.name.rsplit(' ', 1)[0] if o.name.rsplit(' ', 1)[0] in TUY_CHON else o.name
+        if t in TUY_CHON: o.hide_viewport = o.hide_render = t not in co
+    bpy.context.view_layer.update()
 
 def nhan_vat(sh):
     """Khối nhân vật / đạo cụ của shot ở chỗ MỞ shot (tam), quay theo huong (độ, 0 = mặt nhìn về phía người ngồi −y, 90 = nhìn sang phải +x).
@@ -230,6 +238,7 @@ s = dung_set()
 shots = [sh for sh in DL['shot'] if not CHI or sh['ma'] in CHI]
 kiem = {}; giai = {}; thay = {}
 for sh in shots:
+    dat_tuy_chon(set(sh.get('them') or []))
     nv, nv_het = nhan_vat(sh)
     cam = may(s, sh['may'], f"cam {sh['ma']}")
     nv_kiem = nv + vat_chu_the(sh)
@@ -239,13 +248,14 @@ for sh in shots:
         giai[sh['ma']] = {'dat': may_moi, 'nhin': sh['may']['nhin']}; sh['may']['dat'] = may_moi
     kiem[sh['ma']] = k; DA_GIAI[sh['ma']] = list(sh['may']['dat'])
     thay[sh['ma']] = nhin_thay(s, cam, sh, nv_kiem)
-    s.view_layers[0].material_override = None; s.cycles.samples = 24
+    s.view_layers[0].material_override = None; s.cycles.samples = 10; s.cycles.use_denoising = True
     s.render.filepath = f"{RA}/{sh['ma']}-xam.png"; bpy.ops.render.render(write_still=True)
-    s.view_layers[0].material_override = do_sau(s, 0.02, 0.9); s.cycles.samples = 4
+    s.view_layers[0].material_override = do_sau(s, 0.02, 0.9); s.cycles.samples = 1; s.cycles.use_denoising = False   # độ sâu là phát sáng thuần: 1 mẫu là đủ
     s.render.filepath = f"{RA}/{sh['ma']}-sau.png"; bpy.ops.render.render(write_still=True)
     s.view_layers[0].material_override = None
     for o in nv_het: bpy.data.objects.remove(o, do_unlink=True)
 
+dat_tuy_chon({t for sh in shots for t in (sh.get('them') or [])})   # mặt bằng: đồ tuỳ chọn hiện khi có shot dùng nó
 # MẶT BẰNG nhìn thẳng từ trên: bộ set + máy của từng shot (nón đỏ chỉ hướng nhìn) + ĐƯỜNG ĐI của từng nhân vật qua cả tập
 # (anh 14/10/2026: "bản 3D phải thể hiện được sự liền mạch về chuyển động, vị trí của mọi nhân vật"): nối chỗ mở → chỗ kết của từng shot
 # theo thứ tự, mỗi nhân vật một màu, số shot ở chỗ mở. Đường gãy vọt xa = đứt mạch (cổng lienMachTap bắt bằng số; ở đây để mắt người duyệt).
@@ -277,7 +287,7 @@ for ten, doan in duong.items():
 ban = next(v for v in DL['vat'] if v['ten'] == 'Mặt bàn')
 cd = bpy.data.cameras.new('tren'); cd.type = 'ORTHO'; cd.ortho_scale = max(ban['co'][0], ban['co'][1] * 1200 / 800) * CM * 1.08
 o = bpy.data.objects.new('tren', cd); s.collection.objects.link(o); o.location = (ban['tam'][0] * CM, ban['tam'][1] * CM, 3); s.camera = o
-s.render.resolution_x, s.render.resolution_y = 1200, 800; s.cycles.samples = 16
+s.render.resolution_x, s.render.resolution_y = 1200, 800; s.cycles.samples = 8; s.cycles.use_denoising = True
 for v in [x for x in bpy.data.objects if x.name.startswith('Tường')]: v.hide_render = True
 s.render.filepath = f"{RA}/mat-bang.png"; bpy.ops.render.render(write_still=True)
 json.dump(kiem, open(f'{RA}/kiem.json', 'w'), ensure_ascii=False, indent=1)

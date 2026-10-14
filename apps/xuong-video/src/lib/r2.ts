@@ -48,6 +48,34 @@ export async function deleteFromR2(key: string): Promise<boolean> {
   } catch { return false; }
 }
 
+/** Liệt kê object theo tiền tố (ListObjectsV2, SigV4 GET, tự lật trang) — cho script dọn ảnh render cũ. */
+export async function listR2(prefix: string): Promise<{ key: string; size: number }[]> {
+  if (!r2Enabled()) return [];
+  const acct = process.env.R2_ACCOUNT_ID!; const ak = process.env.R2_ACCESS_KEY_ID!; const sk = process.env.R2_SECRET_ACCESS_KEY!; const bucket = process.env.R2_BUCKET!;
+  const host = `${acct}.r2.cloudflarestorage.com`; const region = 'auto'; const service = 's3';
+  const enc = (x: string) => encodeURIComponent(x).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+  const out: { key: string; size: number }[] = []; let token = '';
+  for (let lan = 0; lan < 200; lan++) {
+    const q: [string, string][] = [['list-type', '2'], ['prefix', prefix], ...(token ? [['continuation-token', token] as [string, string]] : [])];
+    const qs = q.sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => `${enc(k)}=${enc(v)}`).join('&');
+    const now = new Date(); const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, ''); const dateStamp = amzDate.slice(0, 8);
+    const payloadHash = sha256hex('');
+    const canonicalHeaders = `host:${host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`; const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+    const canonicalRequest = `GET\n/${bucket}\n${qs}\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
+    const scope = `${dateStamp}/${region}/${service}/aws4_request`;
+    const stringToSign = `AWS4-HMAC-SHA256\n${amzDate}\n${scope}\n${sha256hex(canonicalRequest)}`;
+    const kSigning = hmac(hmac(hmac(hmac(`AWS4${sk}`, dateStamp), region), service), 'aws4_request');
+    const signature = createHmac('sha256', kSigning).update(stringToSign).digest('hex');
+    const res = await fetch(`https://${host}/${bucket}?${qs}`, { headers: { 'x-amz-content-sha256': payloadHash, 'x-amz-date': amzDate, Authorization: `AWS4-HMAC-SHA256 Credential=${ak}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}` } });
+    if (!res.ok) throw new Error(`R2 list ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const xml = await res.text();
+    for (const m of xml.matchAll(/<Contents>[\s\S]*?<Key>([^<]+)<\/Key>[\s\S]*?<Size>(\d+)<\/Size>[\s\S]*?<\/Contents>/g)) out.push({ key: m[1]!.replace(/&amp;/g, '&'), size: Number(m[2]) });
+    token = /<IsTruncated>true<\/IsTruncated>/.test(xml) ? (xml.match(/<NextContinuationToken>([^<]+)<\/NextContinuationToken>/)?.[1] ?? '') : '';
+    if (!token) break;
+  }
+  return out;
+}
+
 export function r2KeyFromUrl(url: string): string | null {
   const pub = (process.env.R2_PUBLIC_BASE || '').replace(/\/+$/, '');
   if (!pub || !url.startsWith(pub + '/')) return null;

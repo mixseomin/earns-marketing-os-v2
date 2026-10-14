@@ -41,7 +41,8 @@ function khoi(p: Phan, goc: number[] = [0, 0], xoay = 0, mo = 1): THREE.Object3D
   else if (p.hinh === 'vom') { g = new THREE.SphereGeometry(0.5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2); cy = z; sy = c * 2; }
   else g = new THREE.SphereGeometry(0.5, 32, 16);
   const o = new THREE.Mesh(g, m);
-  o.position.copy(V([gx, gy, cy])); o.scale.set(w, sy, dd); o.rotation.y = ((xoay + (p.xoay ?? 0)) * Math.PI) / 180;
+  // Nghiêng quanh trục x của khối TRƯỚC rồi mới xoay quanh trục đứng (như Blender Euler XYZ) → thứ tự 'YXZ' của three.
+  o.position.copy(V([gx, gy, cy])); o.scale.set(w, sy, dd); o.rotation.order = 'YXZ'; o.rotation.y = ((xoay + (p.xoay ?? 0)) * Math.PI) / 180; o.rotation.x = ((p.nghieng ?? 0) * Math.PI) / 180;
   return o;
 }
 
@@ -105,13 +106,17 @@ export function BoSetXem({ tapId, canhId }: { tapId: number; canhId?: number | n
     const dk = new OrbitControls(may, r.domElement); dk.enableDamping = true;
 
     // Bộ set
+    // Đồ tuỳ chọn (laptop): có ở shot đang chọn khi shot khai them; xem toàn set thì hiện mờ.
+    const them = new Set(shot?.may_3d?.them ?? []);
     for (const v of set.du_lieu.vat) {
+      if (v.tuy_chon && shot && !them.has(v.ten)) continue;
+      const mo = v.tuy_chon && !shot ? 0.35 : 1;
       const g = new THREE.Group();
-      if ('phan' in v) for (const p of v.phan) g.add(khoi(p as Phan, v.goc, v.xoay ?? 0));
-      else g.add(khoi(v as Phan));
+      if ('phan' in v) for (const p of v.phan) g.add(khoi(p as Phan, v.goc, v.xoay ?? 0, mo));
+      else g.add(khoi(v as Phan, undefined, 0, mo));
       canh.add(g);
       if (coNhan && !v.nen) {
-        const hop = new THREE.Box3().setFromObject(g); const l = nhan(v.ten); l.position.set((hop.min.x + hop.max.x) / 2, hop.max.y + 0.6, (hop.min.z + hop.max.z) / 2); canh.add(l);
+        const hop = new THREE.Box3().setFromObject(g); const l = nhan(v.tuy_chon ? `${v.ten} (tuỳ chọn)` : v.ten); l.position.set((hop.min.x + hop.max.x) / 2, hop.max.y + 0.6, (hop.min.z + hop.max.z) / 2); canh.add(l);
       }
     }
     const kh = (t: string) => dl.khoi[t] as (Khoi & { mat?: boolean; phan?: Phan[] }) | undefined;

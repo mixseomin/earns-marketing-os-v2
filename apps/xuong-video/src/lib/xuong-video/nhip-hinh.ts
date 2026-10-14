@@ -4,7 +4,7 @@
 // Hành động TRONG khung (nhân vật làm gì) thì luật kể chuyện của Claude lo (claude.ts › LUAT_KE_CHUYEN số 9) + câu "khung hình sống"
 // trong prompt video (sinh-video.ts). Thuần — tự kiểm: nhip-hinh.test.mts
 import type { KyThuatShot } from './dien-anh';
-import { O_DAN_DUNG, type DanDung } from './kieu';
+import { O_DAN_DUNG_BAT_BUOC, type DanDung } from './kieu';
 
 export const TIEN_TO_NHIP_HINH = 'nhịp hình: ';
 /** Tối đa bao nhiêu phần shot được để máy đứng yên (hài cần vài shot đứng yên để đúng nhịp, nhưng không quá nửa phim). */
@@ -76,7 +76,7 @@ export const TIEN_TO_THE_SHOT = 'thẻ shot: ';
  *  keyframe (motif không bắt buộc). Quảng cáo không xét. */
 export function kiemTheShot(ds: { thu_tu: number; dan_dung?: DanDung }[], p: { laQc?: boolean }): string[] {
   if (p.laQc) return [];
-  const can = O_DAN_DUNG.filter((o) => o.key !== 'motif');
+  const can = O_DAN_DUNG_BAT_BUOC;
   const thieu = ds.map((c) => ({ c, t: can.filter((o) => !(c.dan_dung?.[o.key] ?? '').trim()) })).filter((x) => x.t.length);
   if (!thieu.length) return [];
   return [`${TIEN_TO_THE_SHOT}${thieu.length} shot thiếu ô thẻ (${thieu.slice(0, 5).map((x) => `#${x.c.thu_tu}: ${x.t.map((o) => o.ten.toLowerCase()).join(', ')}`).join(' · ')}${thieu.length > 5 ? '…' : ''})`];

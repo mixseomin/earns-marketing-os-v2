@@ -86,6 +86,8 @@ export const ghepThoai = (ds: DongThoai[]) => ds.filter((d) => d.loi.trim()).map
  *  phần của đạo diễn (giá trị đổi, điểm xoay, nhịp hành động–phản ứng), sản xuất (hiệu ứng — nhân vật/đạo cụ/bối cảnh rút từ anchor của shot),
  *  color script (ánh sáng + màu, mã thư viện) và nhạc. Bảy tài liệu của tab Hồ sơ đọc từ đây + shot (ho-so.ts). */
 export type PhanCanh = { ten: string; beat: string; muc_tieu: string; xung_dot: string; an_y: string; nhip: string; cam_xuc_dau: number; cam_xuc_cuoi: number;
+  /** gag của cảnh: gài → bùng, o_shot = shot thứ mấy TRONG cảnh có cú bùng (1-based) */ gag?: { ten: string; gai: string; bung: string; o_shot: number }[];
+  /** cảnh mở series (chuỗi từ thế giới ngoài) — không tính vào độ dài chuẩn của tập */ intro?: boolean;
   noi?: string; luc?: string; gia_tri_doi?: string; diem_xoay?: string; nhip_hd?: string[]; hieu_ung?: string[]; anh_sang?: string; mau?: string; mau_mo_ta?: string; nhac?: string;
   /** đoạn kịch bản (screenplay) của cảnh: hành động / âm / thoại / chuyển cảnh */ kich_ban?: DongKichBan[] };
 export type DongKichBan = { loai: 'hd' | 'am' | 'chuyen'; chu: string } | { loai: 'nv'; ten: string; dien: string; loi: string };
@@ -121,7 +123,11 @@ export type KinhThanh = {
 /** Một tập trong BẢN ĐỒ series (chưa chắc đã có xv_tap): số thứ tự toàn series, mùa, loại, nhân vật, gài/trả (claude.ts › vietMuaPhim). */
 export type TapBanDo = { so: number; ten: string; logline: string; mua?: number; loai?: 'phieu_luu' | 'nguon_goc' | 'ket_mua'; nhan_vat?: string[]; boi_canh?: string[]; gai_tra?: string };
 export type MuaSeries = { so: number; ten: string; dong_co?: string; ghi_chu?: string };
-export type Series = { /** tên series — gom các bản (bút chì, sáp màu…) trên danh sách phim */ ten?: string; dong_co: string; khan_gia: string; dinh_dang: string; tap: TapBanDo[];
+/** THAM CHIẾU của series (14/10/2026 — anh: "trước khi sinh key phải có hết"): tác phẩm mẫu + chuẩn đo được rút ra từ nó; hồ sơ tập đo theo đây. */
+export type ThamChieuSeries = { tac_pham: string; do_dai_s: number; gag_moi_phut: number; rut_ra: string[] };
+/** KHUÔN NHẬN DIỆN series: intro dùng chung, thẻ tựa, thẻ kết, câu nhạc chủ đề — tập nào cũng mang. */
+export type KhuonSeries = { intro: string; the_tua: string; the_ket: string; nhac_chu_de: string };
+export type Series = { tham_chieu?: ThamChieuSeries; khuon?: KhuonSeries; /** tên series — gom các bản (bút chì, sáp màu…) trên danh sách phim */ ten?: string; dong_co: string; khan_gia: string; dinh_dang: string; tap: TapBanDo[];
   /** các mùa (sơ đồ series): tên + động cơ riêng; tập thuộc mùa theo TapBanDo.mua (thiếu = mùa 1) */ mua?: MuaSeries[] };
 /** Sơ đồ series: mỗi mùa kèm các tập của nó (tập không ghi mùa = mùa 1). Mùa khai mà chưa có tập vẫn hiện (đang lên ý). */
 export function muaSeries(s: Series | null | undefined): (MuaSeries & { tap: TapBanDo[] })[] {
@@ -341,7 +347,9 @@ export type ThuNguoiXem = {
   khop: boolean; lech: string; dat: boolean;
 };
 /** Phần cấp TẬP của hồ sơ tiền kỳ (ho-so.ts): thời gian của cả tập, đường đi trong thế giới, motif, cung cảm xúc, chữ màn mở (tên tập). */
-export type TapHoSo = { thoi_gian?: string; duong_di?: string; motif?: string; cung?: string };
+export type TapHoSo = { thoi_gian?: string; duong_di?: string; motif?: string; cung?: string;
+  /** animatic đã duyệt: keyframe ghép đúng số giây + âm (bản xuất từ keyframe); ma = mã keyframe + giây lúc duyệt — đổi là phải duyệt lại */
+  animatic?: { url: string; ma: string; luc: string } | null };
 export type Tap = { ho_so?: TapHoSo; id: number; phim_id: number; so: number; ten: string; brief: string; noi_khung: boolean; nhac_url: string | null; nhac_mo_ta: string; nhac_phan_canh: Record<string, string>; beats: Beat[]; phan_canh: PhanCanh[]; kich_ban: string; tom_tat: string; trang_thai: string; video_url: string | null; so_canh: number; thoi_luong_s: number | null; xuat: BanXuat[]; bai_dang: BaiDang | null; lop: Lop[]; thu_nguoi_xem?: ThuNguoiXem | null };
 /** Một bản xuất MP4 của tập (mỗi nhánh hook một tệp). */
 /** Kho tài sản dùng lại (xv_tai_san): clip/keyframe đạt, nhạc nền, preset giọng, khuôn QC, kiểu chữ thương hiệu. */
@@ -383,6 +391,8 @@ export type DanDung = {
   /** hướng nhìn + hướng di chuyển trên màn (giữ trục 180°) */ huong?: string;
   /** khán giả cảm gì từ đầu → cuối shot, shot tồn tại để làm gì */ muc_dich?: string;
   /** motif / cái gài hoặc trả có trong khung */ motif?: string;
+  /** DIỄN XUẤT HOẠT HÌNH (tiếng Anh, vào prompt video): lấy đà → hành động → theo đà / phản ứng, nén–giãn, khựng — chất Larva */ dien?: string;
+  /** ĐIỂM NHẤN âm–hình của gag: khung nào, tiếng gì đập đúng lúc nào (shot có cú bùng của gag bắt buộc có) */ nhan?: string;
 };
 export const O_DAN_DUNG: { key: keyof DanDung; ten: string; mau: string; vaoModel: boolean }[] = [
   { key: 'bo_cuc', ten: 'Bố cục 3 lớp', mau: 'Foreground: blurred yellow paper corner (left). Mid: Tango, screen-left. Background: the two glowing screens.', vaoModel: true },
@@ -391,7 +401,11 @@ export const O_DAN_DUNG: { key: keyof DanDung; ten: string; mau: string; vaoMode
   { key: 'huong', ten: 'Hướng nhìn · hướng đi', mau: 'Tango looks and moves screen-right; gummy exits frame right.', vaoModel: true },
   { key: 'muc_dich', ten: 'Mục đích cảm xúc', mau: 'Thèm → hụt hẫng buồn cười; khán giả hiểu Tango muốn gì.', vaoModel: false },
   { key: 'motif', ten: 'Motif · gài / trả', mau: 'Viên kẹo đỏ (motif); gài: góc giấy vàng nhìn trộm.', vaoModel: false },
+  { key: 'dien', ten: 'Diễn xuất hoạt hình', mau: 'Anticipation: Tango crouches and wiggles. Action: leaps, arms wide. Reaction: freezes mid-air a beat, then drops face-first (squash), strand boings.', vaoModel: true },
+  { key: 'nhan', ten: 'Điểm nhấn âm–hình', mau: 'Giây 2,8: kẹo phụt khỏi tay — tiếng "bloop" đúng khung; nhạc ngắt 1 nhịp trước cú ngã.', vaoModel: false },
 ];
+/** Ô thẻ shot BẮT BUỘC trước keyframe (motif + điểm nhấn tuỳ shot — điểm nhấn bắt buộc ở shot có cú bùng của gag, ho-so.ts › kiemHoSo). */
+export const O_DAN_DUNG_BAT_BUOC = O_DAN_DUNG.filter((o) => o.key !== 'motif' && o.key !== 'nhan');
 export type Canh = {
   id: number; tap_id: number; thu_tu: number; canh: string; goc_may: string; hanh_dong: string; loi_thoai: string; am_thanh: string; thoai_url: string | null; am_thanh_url: string | null; phan_doan: string; cam_xuc: number; ky_thuat: KyThuatShot; thoai: DongThoai[]; trang_phuc: string;
   /** Giây thực phát (cắt từ đầu clip); null = phát cả clip. chu_man = chữ trên màn. nhanh = '' thân chung | 'A'/'B'/'C' biến thể hook. */

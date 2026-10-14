@@ -44,6 +44,8 @@ const DanDungSchema = z.object({
   huong: z.string().describe('Hướng nhìn + hướng di chuyển trên màn, TIẾNG ANH (screen-left/right) — giữ trục 180° trong phân cảnh'),
   muc_dich: z.string().describe('Tiếng Việt: khán giả cảm gì từ đầu → cuối shot, shot tồn tại để làm gì (luật 17)'),
   motif: z.string().describe('Tiếng Việt: motif / cái gài hoặc cái trả có trong khung; rỗng nếu không'),
+  dien: z.string().describe('DIỄN XUẤT HOẠT HÌNH, TIẾNG ANH (vào prompt video): lấy đà (anticipation) → hành động → theo đà / phản ứng, nén–giãn (squash & stretch), khựng giữ phản ứng — cụ thể từng nhịp'),
+  nhan: z.string().describe('Tiếng Việt: ĐIỂM NHẤN âm–hình nếu shot có cú bùng của gag (giây nào, tiếng gì đập đúng lúc nào, nhạc ngắt ở đâu); rỗng nếu không'),
 });
 const ShotSchema = CanhSchema.extend({
   dan_dung: DanDungSchema.describe('THẺ SHOT trước keyframe (khuôn shot list của ngành) — điền đủ, máy chặn keyframe khi thiếu'),
@@ -67,6 +69,8 @@ const StoryboardSchema = z.object({
     nhip: z.string().describe('cham | vua | nhanh'),
     cam_xuc_dau: z.number().int().describe('-5..5'), cam_xuc_cuoi: z.number().int().describe('-5..5, phải KHÁC đầu: phân cảnh nào cũng đổi giá trị'),
     // Hồ sơ tiền kỳ chuẩn studio (kieu.ts › PhanCanh): phần đạo diễn + sản xuất + color script + nhạc của cảnh.
+    intro: z.boolean().describe('true nếu là cảnh mở series từ thế giới ngoài (luật 12) — không tính vào độ dài chuẩn, không cần gag'),
+    gag: z.array(z.object({ ten: z.string(), gai: z.string().describe('gài: khán giả thấy gì trước'), bung: z.string().describe('bùng: cú bất ngờ / cú ngã'), o_shot: z.number().int().describe('shot thứ mấy TRONG cảnh có cú bùng (1-based); shot đó phải ghi dan_dung.nhan') })).describe('Các gag của cảnh (phim hài/không lời bắt buộc ≥1, trừ cảnh intro), đủ mật độ theo THAM CHIẾU'),
     noi: z.string().describe('Nơi — đúng tên anchor Bối cảnh chính của cảnh'),
     luc: z.string().describe('Thời điểm cụ thể, tiếng Việt, vd "ĐÊM – 23:40, ngay sau khi đèn tắt" (luật 13)'),
     gia_tri_doi: z.string().describe('Tiếng Việt: trạng thái đầu → cuối của nhân vật, vd "có bạn, an toàn → thất bại, sắp mất bạn" (luật 17)'),
@@ -180,6 +184,8 @@ export async function tachCanh(opts: {
     `DANH SÁCH ANCHOR (dùng đúng tên trong trường nhan_vat):\n${taAnchor(opts.nhanVat)}`,
     opts.tapTruoc?.length ? `TÓM TẮT CÁC TẬP TRƯỚC (nối mạch, không kể lại):\n${opts.tapTruoc.map((t, i) => `Tập ${i + 1}: ${t}`).join('\n')}` : '',
     `KỊCH BẢN:\n${opts.kichBan.trim()}`,
+    kt.series?.tham_chieu ? `THAM CHIẾU CỦA SERIES (tập phải đạt chuẩn này — máy đo lại): ${kt.series.tham_chieu.tac_pham}; độ dài ${kt.series.tham_chieu.do_dai_s}s/tập (không tính cảnh intro, ±25%); ${kt.series.tham_chieu.gag_moi_phut} gag/phút. Rút ra: ${kt.series.tham_chieu.rut_ra.join(' · ')}` : '',
+    kt.series?.khuon ? `KHUÔN NHẬN DIỆN SERIES: intro ${kt.series.khuon.intro} · thẻ tựa ${kt.series.khuon.the_tua} · thẻ kết ${kt.series.khuon.the_ket} · nhạc chủ đề ${kt.series.khuon.nhac_chu_de}` : '',
     /Shot dự kiến/i.test(opts.kichBan) ? 'Kịch bản đã chia "Shot dự kiến" cho từng cảnh: tách ĐÚNG các shot đó theo thứ tự: vai → ky_thuat.vai, co_canh/goc/chuyen_dong/ong_kinh/chuyen_canh → ky_thuat cùng tên, luat → ky_thuat.luat, số giây → phat_s, bo_cuc/mo/ket/huong/muc_dich/motif → dan_dung, dòng Máy → goc_may; chỉ thêm shot khi luật bắt buộc.' : '',
     `KHUNG BEAT (${khung.ten}):\n${khung.beats.map((b, i) => `- ${b.ten}: ${b.mo_ta}${giayTheoBeat ? ` → giây ${giayTheoBeat[i]!.tu}–${giayTheoBeat[i]!.den}` : ''}`).join('\n')}`,
     `THƯ VIỆN ĐIỆN ẢNH (chọn key cho từng shot):\n${taThuVien(kt.the_loai)}`,

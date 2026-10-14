@@ -29,6 +29,8 @@ import { vietKichBan, vietBaiDang, phanTichMau, promptBienThe, goiYBienThe, goiY
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
 import { ghepThoai, thieuQc, type BaiDang, type MauQc } from '@/lib/xuong-video/kieu';
+import { maAnimatic } from '@/lib/xuong-video/ho-so';
+import type { BanXuat } from '@/lib/xuong-video/kieu';
 import { chupTruoc, ganNhat, hoanTacGanNhat, type MucHoanTac } from '@/lib/xuong-video/hoan-tac';
 import { docPhimDich, uocDichCents, chayDichPhim } from '@/lib/xuong-video/dich-phim';
 import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-video/kieu';
@@ -655,6 +657,23 @@ export async function phanTichVideoMau(phimId: number): Promise<Kq<MauQc>> {
 
 // ── Bản xuất (review 09/10/2026): MP4 hoàn chỉnh của tập theo nhánh hook — thứ gửi Meta/TikTok ──────────────────
 /** Dựng bản xuất ở nền (ffmpeg trên máy chủ). Trả job id; UI hỏi trangThaiXuat tới khi xong rồi tải lại tập. Không tốn tiền model. */
+/** DUYỆT ANIMATIC (quy-trinh.ts › chanAnimatic): lấy bản xuất mới nhất của tập (dựng từ keyframe khi chưa có clip) làm animatic, ghi mã keyframe
+ *  + giây hiện tại vào hồ sơ tập. Có bản ghi này cổng sinh video mới mở; keyframe/giây đổi sau đó là phải duyệt lại. 0đ. */
+export async function duyetAnimatic(tapId: number): Promise<Kq<string>> {
+  const db = getDb(); const me = await admin();
+  if (!db || !me) return { ok: false, loi: 'không có quyền' };
+  const t = (await db.execute(sql`SELECT xuat, ho_so FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[];
+  if (!t[0]) return { ok: false, loi: 'không thấy tập' };
+  const xuat = ((t[0].xuat ?? []) as BanXuat[]).filter((x) => !x.long_tieng);
+  const moi = xuat[xuat.length - 1];
+  if (!moi) return { ok: false, loi: 'tập chưa có bản xuất — bấm ⬇ Xuất (shot chưa có clip sẽ dựng bằng keyframe) rồi xem và duyệt' };
+  const ds = ((await db.execute(sql`SELECT thu_tu, nhanh, keyframe_url, phat_s, thoi_luong_s FROM xv_canh WHERE tap_id = ${tapId}`)) as unknown as Row[]).map((r) => ({ thu_tu: Number(r.thu_tu), nhanh: String(r.nhanh ?? ''), keyframe_url: (r.keyframe_url as string | null) ?? null, phat_s: r.phat_s == null ? null : Number(r.phat_s), thoi_luong_s: Number(r.thoi_luong_s) }));
+  if (ds.some((c) => (!c.nhanh || c.nhanh === 'A') && !c.keyframe_url)) return { ok: false, loi: 'còn shot chưa có keyframe — animatic phải đủ hình' };
+  await chupTruoc(db, { bang: 'xv_tap', id: tapId, cot: ['ho_so'], moTa: 'duyệt animatic', nguoi: me.email });
+  const animatic = { url: moi.url, ma: maAnimatic(ds), luc: new Date().toISOString() };
+  await db.execute(sql`UPDATE xv_tap SET ho_so = coalesce(ho_so, '{}'::jsonb) || ${JSON.stringify({ animatic })}::jsonb, updated_at = now() WHERE id = ${tapId}`);
+  return { ok: true, data: moi.url };
+}
 export async function xuatTap(tapId: number, nhanh?: string | null): Promise<Kq<number>> {
   const db = getDb();
   if (!db) return loi('no db');

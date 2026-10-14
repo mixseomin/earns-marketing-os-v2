@@ -13,16 +13,26 @@
 import { kyThuat, type NhomKyThuat, type KyThuatShot } from './dien-anh';
 import { luatDung, LUAT_DUNG_CANH } from './luat-dung';
 import { giayDoc, kiemNhipHinh, kiemVaiKe, kiemTheShot } from './nhip-hinh';
-import type { DanDung, DongThoai, PhanCanh, TapHoSo } from './kieu';
+import type { DanDung, DongThoai, PhanCanh, Series, TapHoSo } from './kieu';
+import { maBan } from './nguoi-xem';
 
 export type ShotHoSo = { thu_tu: number; phan_doan: string; nhanh?: string; hanh_dong: string; goc_may: string; am_thanh: string; phat_s: number | null; thoi_luong_s: number;
   ky_thuat: KyThuatShot; dan_dung?: DanDung; nhan_vat: number[]; thoai: Pick<DongThoai, 'nhan_vat' | 'dien_xuat' | 'loi'>[]; chu_man?: string };
-export type HoSoVao = { phim: string; ten: string; so: number; khong_loi?: boolean; ho_so: TapHoSo; phan_canh: PhanCanh[]; canh: ShotHoSo[]; nhanVat: { id: number; ten: string; loai: string }[] };
+export type HoSoVao = { series?: Series | null; phim: string; ten: string; so: number; khong_loi?: boolean; ho_so: TapHoSo; phan_canh: PhanCanh[]; canh: ShotHoSo[]; nhanVat: { id: number; ten: string; loai: string }[] };
 
 const giay = (s: ShotHoSo) => (s.phat_s && s.phat_s > 0 ? s.phat_s : s.thoi_luong_s || 4);
 const tenKt = (k: string | undefined, n: NhomKyThuat) => (k ? kyThuat(k, n)?.ten.replace(/\s*\(.*\)$/, '') ?? k : '—');
 const tenLuat = (k: string) => luatDung(k)?.ten.replace(/\s*\(.*\)$/, '') ?? k;
 /** Shot của nhánh dựng (thân chung + hook A), theo thứ tự. */
+/** Mã ANIMATIC: keyframe + giây phát của nhánh dựng theo thứ tự — duyệt animatic ghi mã này; keyframe hay giây đổi là phải duyệt lại. */
+export const maAnimatic = (ds: { thu_tu: number; nhanh?: string; keyframe_url?: string | null; phat_s: number | null; thoi_luong_s: number }[]): string =>
+  maBan(ds.filter((c) => !c.nhanh || c.nhanh === 'A').sort((a, b) => a.thu_tu - b.thu_tu).map((c) => `${c.keyframe_url ?? '-'}@${giay(c as ShotHoSo)}`).join('|'));
+/** Đo tập theo THAM CHIẾU của series: độ dài (không tính cảnh intro) + số gag/phút. */
+export function doTheoThamChieu(v: HoSoVao): { giay: number; gag: number; gagPhut: number } {
+  const giayTap = v.phan_canh.filter((p) => !p.intro).flatMap((p) => cuaCanh(v, p)).reduce((a, s) => a + giay(s), 0);
+  const gag = v.phan_canh.reduce((a, p) => a + (p.gag?.length ?? 0), 0);
+  return { giay: giayTap, gag, gagPhut: giayTap ? Math.round((gag / (giayTap / 60)) * 10) / 10 : 0 };
+}
 const shotDung = (v: HoSoVao) => v.canh.filter((c) => !c.nhanh || c.nhanh === 'A').sort((a, b) => a.thu_tu - b.thu_tu);
 const cuaCanh = (v: HoSoVao, pc: PhanCanh) => shotDung(v).filter((s) => s.phan_doan === pc.ten);
 
@@ -55,6 +65,23 @@ export function kiemHoSo(v: HoSoVao): string[] {
     if (v.khong_loi && giay(s) < giayDoc({ khong_loi: true }) - 0.05) loi.push(`${o}: ${giay(s)}s dưới nhịp đọc`);
     void i;
   });
+  // Chuẩn series: tham chiếu + khuôn nhận diện phải khai; tập đo theo tham chiếu (độ dài ±25%, mật độ gag ≥ 75% chuẩn).
+  const tc = v.series?.tham_chieu; const kh = v.series?.khuon;
+  if (v.series) {
+    if (!tc?.tac_pham?.trim() || !tc.do_dai_s || !tc.gag_moi_phut || !tc.rut_ra?.length) loi.push('series chưa khai THAM CHIẾU (tác phẩm mẫu, độ dài chuẩn, gag/phút, điều rút ra) — mục Kinh thánh series');
+    if (!kh?.intro?.trim() || !kh.the_tua?.trim() || !kh.the_ket?.trim() || !kh.nhac_chu_de?.trim()) loi.push('series chưa khai KHUÔN NHẬN DIỆN (intro dùng chung, thẻ tựa, thẻ kết, câu nhạc chủ đề)');
+    if (tc?.do_dai_s) {
+      const d = doTheoThamChieu(v);
+      if (d.giay > tc.do_dai_s * 1.25 || d.giay < tc.do_dai_s * 0.75) loi.push(`tập dài ${Math.round(d.giay)}s (không tính intro) — chuẩn ${tc.do_dai_s}s theo ${tc.tac_pham} (±25%)`);
+      if (tc.gag_moi_phut && d.gagPhut < tc.gag_moi_phut * 0.75) loi.push(`mật độ gag ${d.gagPhut}/phút — chuẩn ${tc.gag_moi_phut}/phút theo ${tc.tac_pham}`);
+    }
+  }
+  for (const pc of v.phan_canh) {
+    if (pc.intro) continue;
+    if (!pc.gag?.length && v.khong_loi) loi.push(`cảnh "${pc.ten}": chưa có gag (gài → bùng) — phim không lời kể bằng gag`);
+    const ss = cuaCanh(v, pc);
+    for (const g of pc.gag ?? []) { const s = ss[g.o_shot - 1]; if (!s) loi.push(`cảnh "${pc.ten}": gag "${g.ten}" trỏ shot thứ ${g.o_shot} không có`); else if (!(s.dan_dung?.nhan ?? '').trim()) loi.push(`shot #${s.thu_tu}: có cú bùng của gag "${g.ten}" mà chưa ghi điểm nhấn âm–hình`); }
+  }
   const p = { laQc: false, khong_loi: v.khong_loi };
   loi.push(...kiemTheShot(ds, p), ...kiemVaiKe(ds, p), ...kiemNhipHinh(ds));
   return loi;
@@ -85,7 +112,8 @@ export function hoSoHtml(v: HoSoVao): string {
   const tabDd = v.phan_canh.map((pc, i) => `<section class="khoi"><h3>Cảnh ${i + 1} · ${e(pc.ten)} <span class="phu">${e(pc.beat)}</span></h3><dl class="cap">
     <div><dt>Mục tiêu</dt><dd>${e(pc.muc_tieu)}</dd></div><div><dt>Xung đột</dt><dd>${e(pc.xung_dot)}</dd></div>
     <div><dt>Giá trị đổi</dt><dd>${e(pc.gia_tri_doi ?? '')} <span class="phu">(${pc.cam_xuc_dau} → ${pc.cam_xuc_cuoi})</span></dd></div><div><dt>Điểm xoay</dt><dd>${e(pc.diem_xoay ?? '')}</dd></div></dl>
-    <p class="nhan-nho">Nhịp (hành động → phản ứng)</p><ol class="nhip">${(pc.nhip_hd ?? []).map((n) => `<li>${e(n)}</li>`).join('')}</ol></section>`).join('');
+    <p class="nhan-nho">Nhịp (hành động → phản ứng)</p><ol class="nhip">${(pc.nhip_hd ?? []).map((n) => `<li>${e(n)}</li>`).join('')}</ol>
+    ${pc.gag?.length ? `<p class="nhan-nho">Gag (gài → bùng)</p><ul class="nhip">${pc.gag.map((g) => { const s = cuaCanh(v, pc)[g.o_shot - 1]; return `<li><b>${e(g.ten)}</b>: ${e(g.gai)} → <b>${e(g.bung)}</b> <span class="phu">(bùng ở shot #${s?.thu_tu ?? '?'})</span></li>`; }).join('')}</ul>` : pc.intro ? '<p class="phu">Cảnh mở series — không có gag.</p>' : ''}</section>`).join('');
   const tabBt = `<div class="cuon"><table class="bang"><thead><tr><th>Cảnh</th><th>Bối cảnh</th><th>Nhân vật</th><th>Đạo cụ</th><th>Hiệu ứng</th><th>Shot</th><th>Giây</th></tr></thead><tbody>${v.phan_canh.map((pc, i) => { const b = bocTach(v, pc); const ss = cuaCanh(v, pc); return `<tr>
     <td><b>${i + 1}</b> ${e(pc.ten)}<br><span class="phu">${e(pc.luc ?? '')}</span></td><td>${the(b.boi_canh, 'bc')}</td><td>${the(b.nhan_vat, 'nv')}</td><td>${the(b.dao_cu, 'dc')}</td>
     <td>${b.hieu_ung.length ? `<ul class="gon">${b.hieu_ung.map((h) => `<li>${e(h)}</li>`).join('')}</ul>` : '<span class="trong">—</span>'}</td><td class="so">${ss.length}</td><td class="so">${ss.reduce((a, s) => a + giay(s), 0)}</td></tr>`; }).join('')}</tbody></table></div>
@@ -96,13 +124,21 @@ export function hoSoHtml(v: HoSoVao): string {
     <td class="rong">${e(s.hanh_dong)}</td><td class="rong">${e(s.goc_may)}</td><td>${e(tenKt(k.chuyen_canh, 'chuyen_canh'))}</td>
     <td>${(k.luat ?? []).map((l) => `<span class="the luat" title="${e(luatDung(l)?.luat ?? '')}">${e(tenLuat(l))}</span>`).join('')}</td></tr>`; }).join('')}</tbody></table></div>`;
   const tabLt = `<p class="phu">Trạng thái kết của shot trước phải khớp trạng thái mở của shot sau. Bốn cột đầu viết tiếng Anh vì đi thẳng vào prompt ảnh và video.</p>
-    <div class="cuon"><table class="bang lt"><thead><tr><th>#</th><th>Trạng thái mở</th><th>Trạng thái kết</th><th>Hướng nhìn · hướng đi</th><th>Bố cục (tiền / trung / hậu)</th><th>Cảm xúc</th><th>Motif · gài</th></tr></thead><tbody>${ds.map((s) => { const d = s.dan_dung ?? {}; return `<tr><td class="so"><b>${s.thu_tu}</b></td><td lang="en">${e(d.mo ?? '')}</td><td lang="en">${e(d.ket ?? '')}</td><td lang="en">${e(d.huong ?? '')}</td><td lang="en">${e(d.bo_cuc ?? '')}</td><td>${e(d.muc_dich ?? '')}</td><td>${e(d.motif || '—')}</td></tr>`; }).join('')}</tbody></table></div>`;
+    <div class="cuon"><table class="bang lt"><thead><tr><th>#</th><th>Trạng thái mở</th><th>Trạng thái kết</th><th>Hướng nhìn · hướng đi</th><th>Bố cục (tiền / trung / hậu)</th><th>Diễn xuất hoạt hình</th><th>Cảm xúc</th><th>Motif · gài</th></tr></thead><tbody>${ds.map((s) => { const d = s.dan_dung ?? {}; return `<tr><td class="so"><b>${s.thu_tu}</b></td><td lang="en">${e(d.mo ?? '')}</td><td lang="en">${e(d.ket ?? '')}</td><td lang="en">${e(d.huong ?? '')}</td><td lang="en">${e(d.bo_cuc ?? '')}</td><td lang="en">${e(d.dien ?? '')}</td><td>${e(d.muc_dich ?? '')}</td><td>${e(d.motif || '—')}</td></tr>`; }).join('')}</tbody></table></div>`;
   const tabMau = `${v.ho_so.cung ? `<p class="phu">${e(v.ho_so.cung)}</p>` : ''}<div class="dai-mau">${v.phan_canh.map((pc, i) => `<div class="o-mau"><div class="vet" style="background:${MAU_DAI[pc.mau ?? ''] ?? '#777'}"></div><p class="tieu"><b>${i + 1}. ${e(pc.ten)}</b></p><p class="phu">${e(tenKt(pc.anh_sang, 'anh_sang'))} · ${e(tenKt(pc.mau, 'mau'))}</p><p>${e(pc.mau_mo_ta ?? '')}</p></div>`).join('')}</div>`;
-  const tabAm = `<div class="cuon"><table class="bang"><thead><tr><th>#</th><th>Mốc</th><th>Âm thanh</th><th>Âm hiệu / lời</th><th>Nhạc của cảnh</th></tr></thead><tbody>${v.phan_canh.map((pc) => cuaCanh(v, pc).map((s, j, arr) => { const [a, b] = moc.get(s)!; return `<tr><td class="so"><b>${s.thu_tu}</b></td><td class="so">${a.toFixed(1)}–${b.toFixed(1)}</td><td lang="en">${e(s.am_thanh)}</td><td>${s.thoai.length ? s.thoai.map((d) => `<b>${e(d.nhan_vat)}</b>${d.dien_xuat ? ` <span class="phu">(${e(d.dien_xuat)})</span>` : ''} ${e(d.loi)}`).join('<br>') : '<span class="trong">—</span>'}</td>${j === 0 ? `<td rowspan="${arr.length}">${e(tenKt(pc.nhac, 'nhac'))}<br><span class="phu">${e(pc.ten)}</span></td>` : ''}</tr>`; }).join('')).join('')}</tbody></table></div>`;
+  const tabAm = `<div class="cuon"><table class="bang"><thead><tr><th>#</th><th>Mốc</th><th>Âm thanh</th><th>Điểm nhấn âm–hình</th><th>Âm hiệu / lời</th><th>Nhạc của cảnh</th></tr></thead><tbody>${v.phan_canh.map((pc) => cuaCanh(v, pc).map((s, j, arr) => { const [a, b] = moc.get(s)!; return `<tr><td class="so"><b>${s.thu_tu}</b></td><td class="so">${a.toFixed(1)}–${b.toFixed(1)}</td><td lang="en">${e(s.am_thanh)}</td><td>${e(s.dan_dung?.nhan || '—')}</td><td>${s.thoai.length ? s.thoai.map((d) => `<b>${e(d.nhan_vat)}</b>${d.dien_xuat ? ` <span class="phu">(${e(d.dien_xuat)})</span>` : ''} ${e(d.loi)}`).join('<br>') : '<span class="trong">—</span>'}</td>${j === 0 ? `<td rowspan="${arr.length}">${e(tenKt(pc.nhac, 'nhac'))}<br><span class="phu">${e(pc.ten)}</span></td>` : ''}</tr>`; }).join('')).join('')}</tbody></table></div>`;
   void nvTen;
+  // Tài liệu 0 — chuẩn series: tham chiếu + khuôn nhận diện + tập này đo theo tham chiếu + animatic.
+  const tc = v.series?.tham_chieu; const kh = v.series?.khuon; const d0 = doTheoThamChieu(v);
+  const tabChuan = `<section class="khoi"><h3>Tham chiếu${tc ? ` · ${e(tc.tac_pham)}` : ''}</h3>${tc ? `<dl class="cap">
+    <div><dt>Độ dài chuẩn</dt><dd>${tc.do_dai_s}s / tập — tập này ${Math.round(d0.giay)}s (không tính intro)</dd></div>
+    <div><dt>Mật độ gag</dt><dd>${tc.gag_moi_phut}/phút — tập này ${d0.gag} gag, ${d0.gagPhut}/phút</dd></div></dl>
+    <p class="nhan-nho">Rút ra từ tham chiếu</p><ul class="nhip">${tc.rut_ra.map((x) => `<li>${e(x)}</li>`).join('')}</ul>` : '<p class="phu">Chưa khai tham chiếu.</p>'}</section>
+    <section class="khoi"><h3>Khuôn nhận diện series</h3>${kh ? `<dl class="cap"><div><dt>Intro dùng chung</dt><dd>${e(kh.intro)}</dd></div><div><dt>Thẻ tựa</dt><dd>${e(kh.the_tua)}</dd></div><div><dt>Thẻ kết</dt><dd>${e(kh.the_ket)}</dd></div><div><dt>Câu nhạc chủ đề</dt><dd>${e(kh.nhac_chu_de)}</dd></div></dl>` : '<p class="phu">Chưa khai khuôn.</p>'}</section>
+    <section class="khoi"><h3>Animatic</h3><p>${v.ho_so.animatic ? `Đã duyệt ${e(v.ho_so.animatic.luc.slice(0, 10))} — <a href="${e(v.ho_so.animatic.url)}" target="_blank" rel="noopener">xem bản animatic</a>` : 'Chưa duyệt. Sau khi đủ keyframe: xuất bản dựng từ keyframe (đúng số giây + âm), xem nhịp cả phim, duyệt — rồi mới mở cổng sinh video.'}</p></section>`;
 
-  const TAB = [['kich-ban', 'Kịch bản', 'Biên kịch · chỉ có truyện, không ghi máy'], ['dao-dien', 'Phân tích cảnh', 'Đạo diễn · mỗi cảnh đổi giá trị qua một điểm xoay'], ['boc-tach', 'Bóc tách', 'Sản xuất · mọi thứ cần dựng, ref đúng anchor'], ['shot-list', 'Shot list', 'Đạo diễn + quay phim · máy cho từng shot'], ['lien-tuc', 'Bảng liên tục', 'Thư ký trường quay · nối shot với shot'], ['mau', 'Color script', 'Ánh sáng + màu theo cung cảm xúc'], ['am', 'Âm thanh', 'Âm thanh · cue sheet']] as const;
-  const NOI: Record<string, string> = { 'kich-ban': `<div class="sp"><p class="sp-tieu">${e(v.ten.toUpperCase())}</p><p class="sp-phu">${e(v.phim)} — Tập ${v.so}</p>${tabKb}<p class="sp-chuyen">HẾT</p></div>`, 'dao-dien': tabDd, 'boc-tach': tabBt, 'shot-list': tabSl, 'lien-tuc': tabLt, mau: tabMau, am: tabAm };
+  const TAB = [['chuan', 'Chuẩn series', 'Tham chiếu · khuôn nhận diện · đo tập theo chuẩn · animatic'], ['kich-ban', 'Kịch bản', 'Biên kịch · chỉ có truyện, không ghi máy'], ['dao-dien', 'Phân tích cảnh', 'Đạo diễn · mỗi cảnh đổi giá trị qua một điểm xoay'], ['boc-tach', 'Bóc tách', 'Sản xuất · mọi thứ cần dựng, ref đúng anchor'], ['shot-list', 'Shot list', 'Đạo diễn + quay phim · máy cho từng shot'], ['lien-tuc', 'Bảng liên tục', 'Thư ký trường quay · nối shot với shot'], ['mau', 'Color script', 'Ánh sáng + màu theo cung cảm xúc'], ['am', 'Âm thanh', 'Âm thanh · cue sheet']] as const;
+  const NOI: Record<string, string> = { chuan: tabChuan, 'kich-ban': `<div class="sp"><p class="sp-tieu">${e(v.ten.toUpperCase())}</p><p class="sp-phu">${e(v.phim)} — Tập ${v.so}</p>${tabKb}<p class="sp-chuyen">HẾT</p></div>`, 'dao-dien': tabDd, 'boc-tach': tabBt, 'shot-list': tabSl, 'lien-tuc': tabLt, mau: tabMau, am: tabAm };
   const loi = kiemHoSo(v);
   return `<title>${e(v.ten)} · Tập ${v.so}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

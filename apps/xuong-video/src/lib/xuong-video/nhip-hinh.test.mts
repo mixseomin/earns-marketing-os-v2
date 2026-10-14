@@ -48,7 +48,7 @@ assert.deepStrictEqual(kiemVaiKe(du, {}), [], kiemVaiKe(du, {}).join('\n'));
 assert.ok(kiemVaiKe([...du.slice(0, 6), { thu_tu: 7, phan_doan: 'B', ky_thuat: {} }], {})[0]!.includes('1 shot chưa chọn vai kể (#7)'));
 assert.deepStrictEqual(kiemVaiKe(toanHd, { laQc: true }), []);
 // thẻ shot: thiếu ô bắt buộc → chặn, motif không bắt buộc, quảng cáo không xét
-const du_the = { bo_cuc: 'a', mo: 'b', ket: 'c', huong: 'd', muc_dich: 'e' };
+const du_the = { bo_cuc: 'a', mo: 'b', ket: 'c', huong: 'd', muc_dich: 'e', dien: 'f' };
 assert.deepStrictEqual(kiemTheShot([{ thu_tu: 1, dan_dung: du_the }], {}), []);
 const lt = kiemTheShot([{ thu_tu: 1, dan_dung: { ...du_the, ket: ' ' } }, { thu_tu: 2 }], {});
 assert.ok(lt[0]!.includes('2 shot thiếu ô thẻ') && lt[0]!.includes('#1: trạng thái kết') && lt[0]!.includes('#2: bố cục 3 lớp'), lt.join('\n'));

@@ -3,19 +3,20 @@
 // bước nào gác cổng đó mà chưa đạt thì máy chủ từ chối (sinhKeyframeCanh, batDauVideoCanh) và thanh 🎬 Quy trình trên studio chỉ đúng
 // chỗ thiếu + cách làm. Thêm một chuẩn mới = thêm MỘT mục ở đây, không vá từng nút. Khác kiem-qc.ts: bên đó chấm NỘI DUNG quảng cáo
 // (hook, CTA, bằng chứng), bên này chấm QUY TRÌNH sản xuất. Thuần — tự kiểm: quy-trinh.test.mts.
+import { maAnimatic } from './ho-so';
 import { thanhPhanCanh, type Canh, type NhanVat, type PhanCanh, type KinhThanh } from './kieu';
 import type { Beat } from './dien-anh';
 import { dongThoai } from './am-thanh';
 import { chamKichBan } from './cham-kich-ban';
 import { kiemTieng } from './khop-giong';
-import type { Series, ThuNguoiXem } from './kieu';
+import type { Series, TapHoSo, ThuNguoiXem } from './kieu';
 import { chanNguoiXem, TIEN_TO_NGUOI_XEM, TEN_NUT_NGUOI_XEM } from './nguoi-xem';
 import { kiemNhipHinh, kiemGiayDoc, kiemDanKhongGian, kiemVaiKe, kiemTheShot, TIEN_TO_NHIP_HINH } from './nhip-hinh';
 
 export type Cong = 'keyframe' | 'video' | 'xuat';
 export type NhomQt = 'Tiền kỳ' | 'Sản xuất' | 'Hậu kỳ';
 export type MucQt = { key: string; nhom: NhomQt; ten: string; ok: boolean; thieu: string[]; cong: Cong | null; lam: string };
-export type TapQt = { so?: number; brief: string; thu_nguoi_xem?: ThuNguoiXem | null; beats: Pick<Beat, 'ten' | 'cam_xuc'>[]; phan_canh: (Pick<PhanCanh, 'ten'> & Partial<Pick<PhanCanh, 'beat'>>)[]; nhac_url: string | null; nhac_phan_canh: Record<string, string> };
+export type TapQt = { ho_so?: TapHoSo; so?: number; brief: string; thu_nguoi_xem?: ThuNguoiXem | null; beats: Pick<Beat, 'ten' | 'cam_xuc'>[]; phan_canh: (Pick<PhanCanh, 'ten'> & Partial<Pick<PhanCanh, 'beat'>>)[]; nhac_url: string | null; nhac_phan_canh: Record<string, string> };
 export type PhimQt = { phong_cach?: string; ti_le?: string; logo_url?: string; laQc: boolean; logline?: string; series?: Series | null; khong_loi?: boolean };
 /** PhimQt từ kinh thánh — MỘT chỗ dựng (thanh 🎬, bảng chọn shot, cổng keyframe máy chủ); trước đây 4 chỗ tự dựng, bảng chọn shot ghi cứng laQc: false. */
 export const phimQt = (loai: string, kt: Pick<KinhThanh, 'phong_cach' | 'logline' | 'series' | 'khong_loi' | 'qc'>): PhimQt =>
@@ -94,8 +95,16 @@ export function chanShot(c: ShotQt, tap: TapQt, nhanVatPhim: NhanVat[]): string[
   return out;
 }
 /** Cổng sản xuất cho VIDEO: keyframe duyệt + GIỌNG TRƯỚC VIDEO (Veo tự đọc thoại lơ lớ, in phụ đề giả — mất $0,40 ngày 09/10/2026). */
-export function chanVideo(c: ShotQt, nhanVat: NhanVat[]): string[] {
+/** ANIMATIC (14/10/2026 — bước ngành bắt buộc giữa storyboard và quay): phim truyện phải duyệt bản dựng từ keyframe (đúng số giây + âm)
+ *  trước khi tốn tiền video; keyframe hay giây đổi sau khi duyệt (mã khác) là phải duyệt lại. Quảng cáo không xét. */
+export function chanAnimatic(hoSo: TapHoSo | undefined, ds: Parameters<typeof maAnimatic>[0], laQc: boolean): string[] {
+  if (laQc || !ds.length) return [];
+  if (!hoSo?.animatic) return ['animatic chưa duyệt — xuất bản dựng từ keyframe (đúng số giây + âm), xem nhịp cả phim rồi bấm Duyệt animatic ở tab 📋 Hồ sơ'];
+  return hoSo.animatic.ma === maAnimatic(ds) ? [] : ['keyframe / giây phát đã đổi sau khi duyệt animatic — xuất và duyệt lại animatic'];
+}
+export function chanVideo(c: ShotQt, nhanVat: NhanVat[], o?: { hoSo?: TapHoSo; ds: Parameters<typeof maAnimatic>[0]; laQc: boolean }): string[] {
   const out: string[] = [];
+  if (o) out.push(...chanAnimatic(o.hoSo, o.ds, o.laQc));
   if (!c.keyframe_url) out.push('chưa có keyframe');
   else if (c.trang_thai !== 'duyet' && c.trang_thai !== 'loi' && c.trang_thai !== 'xong') out.push('chưa duyệt keyframe');
   const thieu = dongThoai(c, nhanVat).filter((d) => d.loi.trim() && !d.url);

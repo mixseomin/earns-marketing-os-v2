@@ -10,6 +10,7 @@ import { getDb } from '@mos2/db';
 import { chupTruoc } from '../src/lib/xuong-video/hoan-tac';
 import { dungKhungXamTap } from '../src/lib/xuong-video/bo-set-3d-may';
 import { datMayTuDong, type DatMay, BAN_MAY } from '../src/lib/xuong-video/bo-set-3d';
+import type { May3d } from '../src/lib/xuong-video/kieu';
 import type { Row } from '../src/lib/xuong-video/doc-db';
 
 const db = getDb()!; const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split('=').slice(1).join('=') ?? '';
@@ -46,7 +47,17 @@ if (gia('nap')) {
       // không vào DB khi chỗ đứng giữ nguyên (5.2 / 7.5 tập 19).
       const vao = JSON.stringify([BAN_MAY, dm, kt.co_canh, kt.goc, kt.ong_kinh, dm.vi_tri.map((v) => d.khoi?.[v.ten] ?? null)]);
       // Đầu vào không đổi → giữ máy cũ (có thể đã được bộ giải trong Blender dời) — khỏi dựng + giải lại mỗi lần nạp.
-      if ((r[0].may_3d as { tu_dong?: { vao?: string } } | null)?.tu_dong?.vao === vao) { may++; continue; }
+      const cu = r[0].may_3d as (May3d & { tu_dong?: { vao?: string } }) | null;
+      if (cu?.tu_dong?.vao === vao) { may++; continue; }
+      // Khoá ĐỜI CŨ (chỉ chỗ đứng / phía / khung / nhảy + cỡ cảnh) còn khớp → máy vẫn đúng: GIỮ máy đã giải, chỉ chép các khai mới (qua_truc, them,
+      // den_ban…) và đổi sang khoá mới — không tính lại máy (tính lại = góc lệch khỏi keyframe đã sinh).
+      const vaoCu = JSON.stringify([BAN_MAY, dm.vi_tri, dm.phia ?? 0, dm.khung ?? null, dm.nhay ?? null, kt.co_canh, kt.goc, kt.ong_kinh, dm.vi_tri.map((v) => d.khoi?.[v.ten] ?? null)]);
+      if (cu?.tu_dong?.vao === vaoCu) {
+        const { phia: _p, ...khai } = dm as DatMay & Record<string, unknown>;
+        const moi = { ...cu, ...khai, dat: cu.dat, nhin: cu.nhin, ong_kinh: cu.ong_kinh, tu_dong: { ...cu.tu_dong, vao } };
+        await chupTruoc(db, { bang: 'xv_canh', id: Number(r[0].id), cot: ['may_3d'], moTa: 'nạp khai mới (giữ máy)', nguoi: 'bo-set' });
+        await db.execute(sql`UPDATE xv_canh SET may_3d = ${JSON.stringify(moi)}::jsonb WHERE id = ${Number(r[0].id)}`); may++; continue;
+      }
       const t = datMayTuDong(dm, kt, (x) => d.khoi?.[x] ?? null);
       Object.assign(m as object, { ...t, tu_dong: { ...t.tu_dong, vao } }); delete (m as Record<string, unknown>).phia;
     }

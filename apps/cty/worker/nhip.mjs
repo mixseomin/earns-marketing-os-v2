@@ -24,7 +24,7 @@ export function luuChinh(id, x, ai = '') {
   if (!GIO.test(tu ?? '') || !GIO.test(den ?? '') || tu === den) throw new Error(`Ca "${ca}" sai — dạng 06:00-02:00`);
   if (x.diem_danh && !GIO.test(String(x.diem_danh))) throw new Error(`Giờ điểm danh "${x.diem_danh}" sai — dạng 08:00`);
   if (!KIEM_MOI.includes(Number(x.kiem_moi))) throw new Error(`Kiểm mỗi ${x.kiem_moi} phút — chỉ ${KIEM_MOI.join(' / ')}`);
-  const s = docChinh(); s[id] = { ...(s[id]?.bat !== undefined ? { bat: s[id].bat } : {}), ca, diem_danh: String(x.diem_danh ?? ''), kiem_moi: Number(x.kiem_moi), ai, luc: new Date().toISOString() };
+  const s = docChinh(); s[id] = { ...(s[id] ?? {}), ca, diem_danh: String(x.diem_danh ?? ''), kiem_moi: Number(x.kiem_moi), ai, luc: new Date().toISOString() };
   return ghiChinh(s, id);
 }
 function ghiChinh(s, id) { fs.mkdirSync(DATA(), { recursive: true }); const tam = `${tepChinh()}.tam`; fs.writeFileSync(tam, JSON.stringify(s, null, 1)); fs.renameSync(tam, tepChinh()); return s[id]; }
@@ -32,6 +32,13 @@ function ghiChinh(s, id) { fs.mkdirSync(DATA(), { recursive: true }); const tam 
  *  box bỏ qua người đó, và việc chạy trên máy Mac (NHIP_MAY) tự hỏi cờ này trước mỗi lượt — tắt là không chạy. Có hiệu lực ngay, không deploy. */
 export function datBat(id, bat, ai = '') { const s = docChinh(); s[id] = { ...(s[id] ?? {}), bat: !!bat, ai, luc: new Date().toISOString() }; return ghiChinh(s, id); }
 export const dangTat = (id) => docChinh()[id]?.bat === false;
+/** GIỜ CHẠY của việc chạy một lần mỗi ngày trên máy Mac (anh 14/10/2026 "cần cho điều chỉnh" — Bảo 03:30): cờ `gio` trong nhip-chinh.json. Script
+ *  trên Mac (LaunchAgent mỗi 10 phút) hỏi giờ này, quá giờ mà hôm nay chưa chạy thì chạy. */
+export const GIO_MAC_DINH = '03:30';
+export function datGio(id, gio, ai = '') {
+  if (!GIO.test(String(gio)) || gio === '24:00') throw new Error(`Giờ "${gio}" sai — dạng 03:30`);
+  const s = docChinh(); s[id] = { ...(s[id] ?? {}), gio: String(gio), ai, luc: new Date().toISOString() }; return ghiChinh(s, id);
+}
 // LẦN LÀM GẦN NHẤT của mỗi người (mỗi nhịp chạy = một lần làm: kiểm hòm, gửi tin…) — "Làm lần cuối" trên bảng đọc đây (anh 14/10/2026: Kiên làm
 // từ 6h mà bảng ghi 9 giờ trước vì chỉ đếm lần gọi mô hình).
 const tepLam = (id) => path.join(DATA(), 'nhip', `${id}.json`);
@@ -53,8 +60,8 @@ export function nhatKyNhip(id) {
  *  khop: dòng nhật ký nào thuộc việc này (null = mọi lần chạy); can_diem_danh: chỉ có khi người đó khai giờ điểm danh. */
 export const VIEC_NHIP = {
   'don-nhat-ky': [
-    { ma: 'don', ten: 'Dọn nhật ký chat cũ', lich: () => '03:30 hằng ngày · MacBook', khop: null,
-      mo_ta: 'Mỗi ngày 03:30 trên MacBook (LaunchAgent com.htuan.don-nhat-ky → ~/bin/don-nhat-ky): xoá nhật ký chat Claude cũ hơn 14 ngày, cũ nhất trước; tổng còn quá 8 GB thì xoá tiếp từ cũ đến mới nhưng không đụng tệp có ghi trong 48 giờ (phiên đang chạy). Mỗi lượt ghi một dòng sổ sự kiện. Tắt ở cột Tự làm thì lượt kế không chạy.' },
+    { ma: 'don', ten: 'Dọn nhật ký chat cũ', lich: (n) => `${n.gio || GIO_MAC_DINH} hằng ngày · MacBook`, gio: (n) => n.gio || GIO_MAC_DINH, khop: null,
+      mo_ta: 'Mỗi ngày một lần, đúng giờ admin đặt ở cột Tự làm (mặc định 03:30), trên MacBook (LaunchAgent com.htuan.don-nhat-ky hỏi mỗi 10 phút → ~/bin/don-nhat-ky; Mac ngủ thì chạy lúc thức): xoá nhật ký chat Claude cũ hơn 14 ngày, cũ nhất trước; tổng còn quá 8 GB thì xoá tiếp từ cũ đến mới nhưng không đụng tệp có ghi trong 48 giờ (phiên đang chạy). Mỗi lượt ghi một dòng sổ sự kiện. Tắt ở cột Tự làm thì lượt kế không chạy.' },
   ],
   'mail-bao-mat': [
     { ma: 'kiem-thu', ten: 'Kiểm thư bảo mật', lich: (n) => tanSuat(n.kiemMoi), khop: null,
@@ -66,7 +73,7 @@ export const VIEC_NHIP = {
   ],
 };
 /** Đầu việc của một người đang bật: [{ ma, ten, lich, mo_ta, viec, khop }]. n = { viec[], ca, diemDanh, kiemMoi } (như dangBat). */
-export const dauViec = (n) => n.viec.flatMap((v) => (VIEC_NHIP[v] ?? []).filter((x) => !x.can_diem_danh || n.diemDanh).map((x) => ({ ...x, viec: v, lich: x.lich(n) })));
+export const dauViec = (n) => n.viec.flatMap((v) => (VIEC_NHIP[v] ?? []).filter((x) => !x.can_diem_danh || n.diemDanh).map((x) => ({ ...x, viec: v, lich: x.lich(n), gio: x.gio?.(n) })));
 /** Tên việc nhịp bằng chữ người đọc (bảng nhân sự hiện cái này, không hiện mã). */
 export const TEN_NHIP = { 'mail-bao-mat': 'Báo khi có thư bảo mật mới (gọi mô hình chỉ lúc có thư)', 'don-nhat-ky': 'Dọn nhật ký chat Claude cũ (MacBook)' };
 /** Việc NHỊP chạy trên MÁY MAC (LaunchAgent), không phải bộ chạy box này: box không gọi, chỉ hiện + giữ cờ bật/tắt; script trên Mac hỏi `dangTat`
@@ -95,6 +102,7 @@ if (process.argv[1]?.endsWith('nhip.mjs') && process.argv.includes('--tu-kiem'))
   a.equal(datBat('kien', false, 't').bat, false); a.ok(!dangBat().some((n) => n.id === 'kien') && dangTat('kien'), 'admin tắt → bộ chạy bỏ qua');
   a.equal(luuChinh('kien', { ca: '07:00-01:00', diem_danh: '08:30', kiem_moi: 5 }, 't').bat, false, 'chỉnh ca không được xoá cờ tắt');
   datBat('kien', true, 't');
+  a.throws(() => datGio('bao', '3h')); a.equal(datGio('bao', '04:15', 't').gio, '04:15'); a.equal(luuChinh('bao', { ca: '00:00-24:00', kiem_moi: 1 }).gio, '04:15', 'chỉnh ca không xoá giờ chạy');
   const k = dangBat().find((n) => n.id === 'kien'); a.ok(k.ca === '07:00-01:00' && k.diemDanh === '08:30' && k.kiemMoi === 5, 'chỉnh của admin đè hồ sơ');
   ghiLam('kien', 'điểm danh · 3 thư đã đọc', 'mail-bao-mat'); ghiLam('kien', '4 thư đã đọc', 'mail-bao-mat'); fs.appendFileSync(tepNk('kien'), '{hỏng\n');
   const nk = nhatKyNhip('kien'); a.ok(nk.length === 2 && nk[0].ket === '4 thư đã đọc' && nhatKyNhip('khong-ai').length === 0, 'nhật ký mới trước, dòng hỏng bỏ qua');

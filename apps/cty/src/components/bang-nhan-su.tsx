@@ -8,7 +8,7 @@ import { demTn, type TrachNhiem } from '@/lib/trach-nhiem';
 import { vaiCuaPhong, theVai } from '../../worker/quy-trinh.mjs';
 import { NHIP, NHIP_MAY, TEN_NHIP, docChinh, lanLam, tanSuat, dauViec } from '../../worker/nhip.mjs';
 import { hrefNhip } from '@/lib/ngan';
-import { ChinhNhip } from './chinh-nhip';
+import { ChinhNhip, ChinhGio } from './chinh-nhip';
 import { NutTuLam } from './nut-tu-lam';
 import { getCurrentUser } from '@/lib/auth';
 import { mocCuoiCa } from '../../worker/gio-lam.mjs';
@@ -30,7 +30,7 @@ const vaiO = (phong: string, id: string) => Object.entries(vaiCuaPhong(phong) as
 export function nhipChu(fm0: Record<string, unknown>, id?: string) {
   const c = id ? ((docChinh() as Record<string, Record<string, unknown>>)[id] ?? {}) : {};   // chỉnh của admin đè hồ sơ (worker/nhip.mjs)
   const fm: Record<string, unknown> = { ...fm0, ...(c.ca ? { ca: c.ca } : {}), ...(c.diem_danh !== undefined ? { diem_danh: c.diem_danh } : {}), ...(c.kiem_moi ? { kiem_moi: c.kiem_moi } : {}) };
-  type DV = { ma: string; ten: string; lich: string };
+  type DV = { ma: string; ten: string; lich: string; gio?: string };
   const hb = String(fm.heartbeat ?? 'off'); if (hb === 'off') return { chu: 'tắt', bat: false, viec: 'tắt', ds: [] } as { chu: string; bat: boolean; coNut?: boolean; box?: boolean; viec: string; ds: DV[]; tanSuat?: string; ca?: string; diemDanh?: string; kiemMoi?: number };
   const may = hb.split(',').map((v) => v.trim()).filter((v) => v in NHIP || v in NHIP_MAY);
   if (!may.length) return { chu: hb, bat: true, viec: hb, ds: [] };
@@ -38,7 +38,7 @@ export function nhipChu(fm0: Record<string, unknown>, id?: string) {
   const ca = fm.ca ? String(fm.ca) : 'cả ngày';
   const ten = may.map((v) => (TEN_NHIP as Record<string, string>)[v] ?? v).join(' · ') + (fm.diem_danh ? ` · điểm danh ${String(fm.diem_danh)} · báo cáo cuối ngày ${mocCuoiCa(fm.ca)}` : '');
   const ts = tanSuat(Number(fm.kiem_moi || 1));
-  const ds = dauViec({ viec: may, ca: fm.ca, diemDanh: fm.diem_danh ? String(fm.diem_danh) : '', kiemMoi: Number(fm.kiem_moi || 1) }) as DV[];
+  const ds = dauViec({ viec: may, ca: fm.ca, diemDanh: fm.diem_danh ? String(fm.diem_danh) : '', kiemMoi: Number(fm.kiem_moi || 1), gio: c.gio ? String(c.gio) : '' }) as DV[];
   return { chu: tat ? `${ten} · đang tắt` : `${ten} · máy kiểm ${ts} · ca ${ca}`, bat: !tat, coNut: true, box: may.some((v) => v in NHIP), viec: ten, ds, tanSuat: ts, ca, diemDanh: String(fm.diem_danh ?? ''), kiemMoi: Number(fm.kiem_moi || 1) };
 }
 /** Lần làm việc gần nhất của từng người: dòng nhật ký mới nhất do chính người đó phát ra (gọi mô hình, gửi tin) — nhịp chạy mà không có
@@ -72,7 +72,7 @@ export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS
             <td><span className="cty-den-o"><Nguoi id={d.id} />{'coNut' in n && n.coNut && <NutTuLam id={d.id} bat={n.bat} admin={admin} />}</span></td>{!trongPhong && <td className="cty-muted">{d.phongTen}</td>}<td title={d.giuVai.join(' · ') || d.chucDanh}>{(phong && vaiO(phong, d.id)) || TEN_VAI[d.vai]}</td>
             <td className="cty-nho">{tenModel(d.model)}</td>
             <td className={`cty-nho${n.bat ? '' : ' cty-muted'}`}>{n.ds.length   // đầu việc tách dòng, bấm mở ngăn mô tả + nhật ký (anh 14/10/2026)
-              ? <ul className="cty-dn-viec">{n.ds.map((v) => <li key={v.ma}><Link href={hrefNhip(d.id, v.ma)}>{v.ten}</Link> <span className="cty-muted">{v.lich}</span></li>)}</ul>
+              ? <ul className="cty-dn-viec">{n.ds.map((v) => <li key={v.ma}><Link href={hrefNhip(d.id, v.ma)}>{v.ten}</Link> {v.gio ? <ChinhGio id={d.id} gio={v.gio} chu={v.lich} admin={admin} /> : <span className="cty-muted">{v.lich}</span>}</li>)}</ul>
               : n.viec}</td>
             {n.bat && n.ca && ('box' in n ? n.box : true) ? <ChinhNhip   /* máy kiểm + ca chỉ nghĩa với nhịp box; việc trên Mac có lịch riêng (cột Tự làm) */ id={d.id} ca={n.ca} diemDanh={n.diemDanh ?? ''} kiemMoi={n.kiemMoi ?? 1} admin={admin} />
               : <><td className="cty-nho"><span className="cty-muted">—</span></td><td className="cty-nho"><span className="cty-muted">—</span></td></>}

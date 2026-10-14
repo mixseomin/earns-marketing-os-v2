@@ -22,4 +22,31 @@ function doMac() {
   return ds;
 }
 
-console.log(JSON.stringify({ may: os.hostname().startsWith('Tuans-iMac') ? 'iMac' : 'MacBook', luc: new Date().toISOString(), ds: doMac() }));
+// ÁP LỊCH admin đặt trên cty (worker/lich-may.mjs, <DATA>/lich-chinh.json) cho LaunchAgent của máy này, TRƯỚC khi chụp ảnh → ảnh đã là lịch mới.
+// Ý muốn: { kieu: 'moi', phut } → StartInterval · { kieu: 'luc', gio } → StartCalendarInterval (giờ máy = giờ VN). Việc chạy liền không có lịch.
+const MAY = os.hostname().startsWith('Tuans-iMac') ? 'iMac' : 'MacBook';
+function apLich() {
+  let s = {}; try { s = JSON.parse(execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', 'root@167.233.241.16', 'cat /var/lib/cty/lich-chinh.json 2>/dev/null || echo {}'], { encoding: 'utf8', timeout: 40_000 })); } catch { return []; }
+  const ra = []; const uid = process.getuid();
+  for (const [id, x] of Object.entries(s)) {
+    if (!id.startsWith(`${MAY}:`) || (x.ap && x.ap.luc >= x.luc)) continue;
+    const nhan = id.slice(MAY.length + 1), f = path.join(os.homedir(), 'Library', 'LaunchAgents', `${nhan}.plist`);
+    try {
+      const p = JSON.parse(execFileSync('plutil', ['-convert', 'json', '-o', '-', f], { encoding: 'utf8' }));
+      if (p.KeepAlive) throw new Error('việc chạy liền (KeepAlive) — không có lịch để đổi');
+      for (const k of ['StartInterval', 'StartCalendarInterval']) if (k in p) execFileSync('plutil', ['-remove', k, f]);
+      if (x.kieu === 'moi') execFileSync('plutil', ['-insert', 'StartInterval', '-integer', String(x.phut * 60), f]);
+      else { const [h, m] = x.gio.split(':').map(Number); execFileSync('plutil', ['-insert', 'StartCalendarInterval', '-json', JSON.stringify({ Hour: h, Minute: m }), f]); }
+      let nap = true; try { execFileSync('launchctl', ['print', `gui/${uid}/${nhan}`], { stdio: 'ignore' }); } catch { nap = false; }   // việc đang tắt: sửa lịch, không tự bật
+      if (nap) {
+        try { execFileSync('launchctl', ['bootout', `gui/${uid}/${nhan}`], { stdio: 'ignore' }); } catch { /* đã ra */ }
+        let ok = false; for (let i = 0; i < 20 && !ok; i++) { try { execFileSync('launchctl', ['bootstrap', `gui/${uid}`, f], { stdio: 'ignore' }); ok = true; } catch { execFileSync('sleep', ['0.5']); } }
+        if (!ok) throw new Error('đã sửa lịch nhưng nạp lại việc không được (launchctl bootstrap) — việc đang TẮT');
+      }
+      ra.push({ id, luc: x.luc, ok: true });
+    } catch (e) { ra.push({ id, luc: x.luc, ok: false, loi: String(e.message).slice(0, 300) }); }
+  }
+  return ra;
+}
+const ap = apLich();
+console.log(JSON.stringify({ may: MAY, luc: new Date().toISOString(), ap, ds: doMac() }));

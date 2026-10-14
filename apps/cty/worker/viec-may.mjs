@@ -11,6 +11,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { GOC } from './goc.mjs';
 import { parseFm } from '../scripts/fm.mjs';
+import { ghiAp, apBox, docLich, choAp } from './lich-may.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 export const TEP = () => path.join(DATA(), 'viec-may.json');
@@ -79,6 +80,7 @@ const usTuIso = (us) => (us ? new Date(Number(us) / 1000).toISOString() : '');
 /** Gom mọi máy → ảnh chụp. Máy không trả lời: giữ ảnh cũ của máy đó, ghi lỗi (không xoá việc khỏi bảng chỉ vì mạng chập). */
 export function gom() {
   const cu = docViecMay(); const kq = []; const loi = {};
+  try { apBox(cu); } catch (e) { loi.ap = String(e.message); }   // áp lịch admin đặt cho box TRƯỚC khi dò → ảnh mới đã là lịch mới
   const theo = (may, ds) => { for (const v of ds) if (!BO_QUA.test(v.ma)) { const x = xep(v.ma); kq.push({ ...v, may, id: `${may}:${v.ma}`, cuoi: /^\d+$/.test(String(v.cuoi)) ? usTuIso(v.cuoi) : v.cuoi, tiep: v.tiep ? usTuIso(v.tiep) : '', ...x, phong_ten: tenPhong(x.phong), nguoi_ten: tenNguoi(x.nguoi) }); } };
   const giuCu = (may, e) => { loi[may] = String(e.message ?? e).slice(0, 200); kq.push(...(cu?.ds ?? []).filter((v) => v.may === may)); };
   try { theo('box3', JSON.parse(execFileSync('python3', ['-c', DO_BOX], { encoding: 'utf8', timeout: 120_000 }))); } catch (e) { giuCu('box3', e); }
@@ -88,12 +90,14 @@ export function gom() {
   for (const f of (fs.existsSync(thu) ? fs.readdirSync(thu) : []).filter((f) => /^launchd-.+\.json$/.test(f))) {
     try { const x = JSON.parse(fs.readFileSync(path.join(thu, f), 'utf8')); if (!mac[x.may] || x.luc > mac[x.may].luc) mac[x.may] = x; } catch (e) { loi[f] = String(e.message); }
   }
-  for (const x of Object.values(mac)) theo(x.may, x.ds);
+  for (const x of Object.values(mac)) { theo(x.may, x.ds); for (const a of x.ap ?? []) ghiAp(a.id, a.luc, a.ok, a.loi ?? ''); }   // Mac tự áp lịch admin đặt, báo kết quả trong ảnh
   const anh = { luc: new Date().toISOString(), loi, ds: kq };
   fs.mkdirSync(DATA(), { recursive: true }); fs.writeFileSync(`${TEP()}.tam`, JSON.stringify(anh)); fs.renameSync(`${TEP()}.tam`, TEP());
   return `${kq.length} việc máy · ${kq.filter((v) => v.chua_gan).length} chưa gắn phòng${Object.keys(loi).length ? ` · lỗi: ${Object.keys(loi).join(', ')}` : ''}`;
 }
 export function docViecMay() { try { return JSON.parse(fs.readFileSync(TEP(), 'utf8')); } catch { return null; } }
+/** Có ý muốn đổi lịch đang chờ áp trên BOX (bộ chạy nhịp gom ngay, không đợi lượt 10 phút; Mac tự áp lúc đẩy ảnh). */
+export const choApBox = () => { const vm = docViecMay(); const s = docLich(); return Object.entries(s).some(([id, x]) => choAp(x) && ['box3', 'box1'].includes(vm?.ds.find((v) => v.id === id)?.may)); };
 /** Việc máy một người phụ trách (bảng nhân sự). */
 export const viecMayCua = (id) => (docViecMay()?.ds ?? []).filter((v) => v.nguoi === id);
 // Lịch bằng chữ người đọc, giờ VN (box chạy giờ UTC). Dạng lạ giữ nguyên chữ máy.
@@ -132,8 +136,8 @@ export const dangChay = (v) => (v.loai === 'timer' ? !!v.tiep : v.loai === 'laun
 const phutCua = (l) => { const m = String(l).match(/^mỗi (\d+) (giây|phút|giờ|ngày)/); if (m) return Number(m[1]) * { giây: 1 / 60, phút: 1, giờ: 60, ngày: 1440 }[m[2]]; if (l === 'mỗi phút') return 1; if (/^mỗi giờ/.test(l)) return 60; if (l === 'chạy liền') return 0; return 1440; };
 /** NHỊP theo việc máy của một người (anh 14/10/2026 "việc đang chạy thì bật luôn nhân sự đó và set nhịp cho khớp"): số việc · số đang chạy ·
  *  nhịp dày nhất (chữ lịch của việc chạy dày nhất) · lần chạy gần nhất trong mọi việc. */
-export function nhipMay(id, ds = viecMayCua(id)) {
-  const chay = ds.filter(dangChay); const nhanh = chay.map((v) => lichNguoi(v)).sort((a, b) => phutCua(a) - phutCua(b))[0] ?? '';
+export function nhipMay(id, ds = viecMayCua(id)) {   // việc chạy liền (KeepAlive) không phải nhịp — chỉ tính khi người đó chỉ có loại đó
+  const chay = ds.filter(dangChay); const nhanh = chay.map((v) => lichNguoi(v)).filter((l, _, ds) => l !== 'chạy liền' || ds.every((x) => x === 'chạy liền')).sort((a, b) => phutCua(a) - phutCua(b))[0] ?? '';
   return { so: ds.length, chay: chay.length, nhanh, cuoi: ds.map((v) => v.cuoi).filter(Boolean).sort().pop() ?? '' };
 }
 /** Lỗi lần chạy cuối? timer: Result khác success; launchd: thoát ≠ 0; cron: không biết. */
@@ -155,8 +159,8 @@ if (process.argv[1]?.endsWith('viec-may.mjs')) {
     a.equal(L('timer', 'OnCalendar=*-*-* 01:00:00'), '08:00 hằng ngày'); a.equal(L('timer', 'OnCalendar=*-*-* 01:00:00 UTC'), '08:00 hằng ngày'); a.equal(L('cron', '30 0 * * *'), '07:30 hằng ngày'); a.equal(L('cron', '*/5 * * * *'), 'mỗi 5 phút');
     a.equal(L('cron', '40 */6 * * *'), 'mỗi 6 giờ'); a.equal(L('cron', '30 9 * * 1'), '16:30 mỗi thứ Hai'); a.equal(L('timer', 'OnCalendar=Mon *-*-* 03:00'), '10:00 thứ Hai'); a.equal(L('timer', 'OnCalendar=*-*-* 02,14:00:00 UTC'), '09:00, 21:00 hằng ngày');
     a.equal(L('timer', 'OnCalendar=Mon..Fri *-*-* 14:00:00'), '21:00 thứ Hai–Sáu'); a.equal(L('timer', 'OnCalendar=*-*-* *:17:00 UTC'), 'mỗi giờ (phút 17)'); a.equal(L('timer', 'OnCalendar=*-10-* 03:00'), '*-10-* 03:00', 'dạng lạ giữ nguyên');
-    const nm = nhipMay('x', [{ loai: 'timer', lich: 'OnCalendar=*-*-* 01:00', tiep: 'a', cuoi: '2026-10-14T01:00:00Z' }, { loai: 'cron', lich: '*/5 * * * *', cuoi: '2026-10-14T05:00:00Z' }, { loai: 'launchd', lich: 'lúc 09:00', ket: 'chưa nạp' }]);
-    a.deepEqual(nm, { so: 3, chay: 2, nhanh: 'mỗi 5 phút', cuoi: '2026-10-14T05:00:00Z' }, 'nhịp = việc chạy dày nhất; LaunchAgent chưa nạp không tính đang chạy');
+    const nm = nhipMay('x', [{ loai: 'timer', lich: 'OnCalendar=*-*-* 01:00', tiep: 'a', cuoi: '2026-10-14T01:00:00Z' }, { loai: 'cron', lich: '*/5 * * * *', cuoi: '2026-10-14T05:00:00Z' }, { loai: 'launchd', lich: 'lúc 09:00', ket: 'chưa nạp' }, { loai: 'launchd', lich: 'chạy liền', ket: 'đang chạy' }]);
+    a.deepEqual(nm, { so: 4, chay: 3, nhanh: 'mỗi 5 phút', cuoi: '2026-10-14T05:00:00Z' }, 'nhịp = việc chạy dày nhất; LaunchAgent chưa nạp không tính đang chạy');
     a.ok(tenPhong('sach') === 'Sách' && tenPhong('vp-giam-doc') === 'Văn phòng GĐ' && tenPhong('nghien-cuu-thi-truong') === 'Nghiên cứu thị trường' && tenNguoi('thao') === 'Thảo');
     a.ok(nguoiPhong('bao-tri') === 'bao' && nguoiPhong('sach') === 'thao', 'người phụ trách = trưởng phòng');
     console.log('✓ viec-may: xếp phòng theo quy tắc, chatwhenbored ≠ adfond, không khớp → Bảo trì (chưa gắn), bỏ việc hệ điều hành, phòng trong quy tắc có thật');

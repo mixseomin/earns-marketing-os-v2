@@ -35,6 +35,11 @@ export const dangTat = (id) => docChinh()[id]?.bat === false;
 /** GIỜ CHẠY của việc chạy một lần mỗi ngày trên máy Mac (anh 14/10/2026 "cần cho điều chỉnh" — Bảo 03:30): cờ `gio` trong nhip-chinh.json. Script
  *  trên Mac (LaunchAgent mỗi 10 phút) hỏi giờ này, quá giờ mà hôm nay chưa chạy thì chạy. */
 export const GIO_MAC_DINH = '03:30';
+/** Đổi riêng "kiểm mấy phút một lần" (ô chỉnh lịch dùng chung — components/chinh-lich.tsx), giữ nguyên ca / điểm danh. */
+export function datKiemMoi(id, phut, ai = '') {
+  if (!KIEM_MOI.includes(Number(phut))) throw new Error(`Kiểm mỗi ${phut} phút — chỉ ${KIEM_MOI.join(' / ')}`);
+  const s = docChinh(); s[id] = { ...(s[id] ?? {}), kiem_moi: Number(phut), ai, luc: new Date().toISOString() }; return ghiChinh(s, id);
+}
 export function datGio(id, gio, ai = '') {
   if (!GIO.test(String(gio)) || gio === '24:00') throw new Error(`Giờ "${gio}" sai — dạng 03:30`);
   const s = docChinh(); s[id] = { ...(s[id] ?? {}), gio: String(gio), ai, luc: new Date().toISOString() }; return ghiChinh(s, id);
@@ -101,7 +106,7 @@ if (process.argv[1]?.endsWith('nhip.mjs') && process.argv.includes('--tu-kiem'))
   a.equal(luuChinh('kien', { ca: '07:00-01:00', diem_danh: '08:30', kiem_moi: 5 }, 't').kiem_moi, 5);
   a.equal(datBat('kien', false, 't').bat, false); a.ok(!dangBat().some((n) => n.id === 'kien') && dangTat('kien'), 'admin tắt → bộ chạy bỏ qua');
   a.equal(luuChinh('kien', { ca: '07:00-01:00', diem_danh: '08:30', kiem_moi: 5 }, 't').bat, false, 'chỉnh ca không được xoá cờ tắt');
-  datBat('kien', true, 't');
+  datBat('kien', true, 't'); a.throws(() => datKiemMoi('kien', 7)); a.equal(datKiemMoi('kien', 15, 't').ca, '07:00-01:00', 'đổi tần suất giữ ca'); datKiemMoi('kien', 5, 't');
   a.throws(() => datGio('bao', '3h')); a.equal(datGio('bao', '04:15', 't').gio, '04:15'); a.equal(luuChinh('bao', { ca: '00:00-24:00', kiem_moi: 1 }).gio, '04:15', 'chỉnh ca không xoá giờ chạy');
   const k = dangBat().find((n) => n.id === 'kien'); a.ok(k.ca === '07:00-01:00' && k.diemDanh === '08:30' && k.kiemMoi === 5, 'chỉnh của admin đè hồ sơ');
   ghiLam('kien', 'điểm danh · 3 thư đã đọc', 'mail-bao-mat'); ghiLam('kien', '4 thư đã đọc', 'mail-bao-mat'); fs.appendFileSync(tepNk('kien'), '{hỏng\n');
@@ -121,5 +126,6 @@ if (process.argv[1]?.endsWith('nhip.mjs')) {
   }
   // VIỆC MÁY (worker/viec-may.mjs): dò lại timer / cron / LaunchAgent mọi máy mỗi 10 phút để bảng nhân sự thấy việc mới + lần chạy cuối
   const vm = await import('./viec-may.mjs'); let tuoi = Infinity; try { tuoi = Date.now() - fs.statSync(vm.TEP()).mtimeMs; } catch { /* chưa có ảnh */ }
-  if (tuoi > 9.5 * 60_000) try { console.log(`việc máy: ${vm.gom()}`); } catch (e) { console.error(`✗ việc máy: ${e.message}`); }
+  // admin vừa đổi lịch một việc trên box → áp + dò lại ngay, không đợi lượt 10 phút
+  if (tuoi > 9.5 * 60_000 || vm.choApBox()) try { console.log(`việc máy: ${vm.gom()}`); } catch (e) { console.error(`✗ việc máy: ${e.message}`); }
 }

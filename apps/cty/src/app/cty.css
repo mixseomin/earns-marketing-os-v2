@@ -556,3 +556,4 @@ body.nk-dang-keo iframe{pointer-events:none}
 .cty-den-nut{background:none;border:0;padding:4px;margin:-4px;cursor:pointer;line-height:0}.cty-den-nut:disabled{cursor:wait;opacity:.5}
 .cty-den-o{display:inline-flex;align-items:center;gap:6px}
 .cty-chinh-gio{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+.cty-chinh-lich{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 6px}.cty-chinh-lich select,.cty-chinh-lich input{width:auto;min-width:0}

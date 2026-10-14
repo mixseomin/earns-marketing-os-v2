@@ -29,7 +29,10 @@ assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: null }, nv, se
 const kx = (kiem: { nhan_vat: string; trong_khung: boolean; cao_khung_pt: number; bi_che_boi: string[] }[]) => ({ ma: maKhungXam(set, mm, nv), xam: '', sau: '', luc: '', kiem });
 assert.deepEqual(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kx([{ nhan_vat: 'Tango', trong_khung: true, cao_khung_pt: 6, bi_che_boi: [] }]) }, nv, set), []);
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kx([{ nhan_vat: 'Tango', trong_khung: true, cao_khung_pt: 6, bi_che_boi: ['White Keyboard'] }]) }, nv, set)[0]!.includes('White Keyboard che'));
-assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kx([]) }, nv, set, { nhan_vat: [1], may_3d: m([25, 40, 1]) }).some((x) => x.includes('trục')));
+// Trục chỉ giữa NHÂN VẬT: Tango–Gummy (đồ vật) không dựng trục; coi Gummy là nhân vật thì vượt trục bị bắt.
+assert.ok(!chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kx([]) }, nv, set, { nhan_vat: [1], may_3d: m([25, 40, 1]) }).some((x) => x.includes('trục')));
+const nvHaiNguoi = nv.map((v) => (v.ten === 'Gummy Bear' ? { ...v, loai: 'nhan_vat' as const } : v));
+assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kx([]) }, nvHaiNguoi, set, { nhan_vat: [1], may_3d: m([25, 40, 1]) }).some((x) => x.includes('trục')));
 const mAn = { ...mm, vi_tri: [{ ten: 'Tango', tam: [20, 25, 0], an: true }, { ten: 'Gummy Bear', tam: [30, 25, 0] }] };
 assert.deepEqual(chanKhungXam({ nhan_vat: [1, 2], may_3d: mAn, khung_xam: { ma: maKhungXam(set, mAn, nv), xam: '', sau: '', luc: '', kiem: [{ nhan_vat: 'Tango', trong_khung: true, cao_khung_pt: 6, bi_che_boi: ['Magic Mouse'] }] } }, nv, set), []);   // cố ý nấp sau chuột → không báo
 // Đặt máy tự động: cận gần hơn toàn; phía 0° = máy ở trước (y nhỏ hơn); phía 90° = máy ở bên phải (x lớn hơn); sát đất thì máy thấp.

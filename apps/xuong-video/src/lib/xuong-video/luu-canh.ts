@@ -12,15 +12,23 @@ import { mauNhacTen } from './quy-trinh';
 type Db = NonNullable<ReturnType<typeof getDb>>;
 type KqTach = Extract<Awaited<ReturnType<typeof tachCanh>>, { ok: true }>;
 
-export async function luuCanhTach(db: Db, o: { tapId: number; tenTap: string; kq: KqTach; nhanVat: NhanVat[]; nguoi: string; thoiLuongS?: number | null }): Promise<number> {
+/** chenTruoc = CHÈN các shot của kq vào trước shot thứ tự này, dời các shot từ đó trở đi — giữ nguyên mọi shot đã có (keyframe, clip); không có
+ *  = như ✂ Tách cảnh (shot nháp cũ vào thùng rác, shot mới nối cuối). Phân cảnh / beats / hồ sơ của tập luôn thay bằng bản ĐẦY ĐỦ trong kq. */
+export async function luuCanhTach(db: Db, o: { tapId: number; tenTap: string; kq: KqTach; nhanVat: NhanVat[]; nguoi: string; thoiLuongS?: number | null; chenTruoc?: number }): Promise<number> {
   const { tapId, kq } = o;
   if (o.thoiLuongS) await db.execute(sql`UPDATE xv_tap SET thoi_luong_s = ${o.thoiLuongS} WHERE id = ${tapId}`);
   const tenToId = new Map(o.nhanVat.map((v) => [v.ten.trim().toLowerCase(), v.id]));
   const btToId = new Map(o.nhanVat.flatMap((v) => (v.bien_the ?? []).map((b) => [`${v.ten} · ${b.ten}`.trim().toLowerCase(), b.id] as [string, number])));
-  const nhapCu = (await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${tapId} AND trang_thai = 'nhap'`)) as unknown as { id: unknown }[];
-  await boVaoThungRac(db, 'canh', nhapCu.map((x) => Number(x.id)), o.nguoi, `${nhapCu.length} cảnh nháp cũ (tách lại cảnh · ${o.tenTap})`);
-  const giu = (await db.execute(sql`SELECT coalesce(max(thu_tu), 0) AS m FROM xv_canh WHERE tap_id = ${tapId}`)) as unknown as { m: unknown }[];
-  let thuTu = Number(giu[0]?.m ?? 0);
+  let thuTu: number;
+  if (o.chenTruoc) {
+    await db.execute(sql`UPDATE xv_canh SET thu_tu = thu_tu + ${kq.canh.length} WHERE tap_id = ${tapId} AND thu_tu >= ${o.chenTruoc}`);
+    thuTu = o.chenTruoc - 1;
+  } else {
+    const nhapCu = (await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${tapId} AND trang_thai = 'nhap'`)) as unknown as { id: unknown }[];
+    await boVaoThungRac(db, 'canh', nhapCu.map((x) => Number(x.id)), o.nguoi, `${nhapCu.length} cảnh nháp cũ (tách lại cảnh · ${o.tenTap})`);
+    const giu = (await db.execute(sql`SELECT coalesce(max(thu_tu), 0) AS m FROM xv_canh WHERE tap_id = ${tapId}`)) as unknown as { m: unknown }[];
+    thuTu = Number(giu[0]?.m ?? 0);
+  }
   for (const c of kq.canh) {
     thuTu += 1;
     const ids0 = c.nhan_vat.map((t) => tenToId.get(t.trim().toLowerCase())).filter((x): x is number => typeof x === 'number');

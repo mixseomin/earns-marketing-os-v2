@@ -15,6 +15,9 @@ const gia = (k: string) => (process.argv.find((a) => a.startsWith(`--${k}=`)) ??
 const tapId = Number(gia('tap')); const tep = gia('tep');
 /** --thay: thay TOÀN BỘ shot của tập (kể cả shot đã có keyframe/clip) — shot cũ vào thùng rác, khôi phục được. Không có cờ: như ✂ Tách cảnh (chỉ thay shot nháp). */
 const thay = process.argv.includes('--thay');
+/** --chen=<tên phân cảnh>[,<tên>…] --truoc=<thứ tự>: CHỈ chèn shot của các phân cảnh đó vào trước shot thứ tự <truoc>, giữ nguyên mọi shot đã có
+ *  (keyframe, clip); phân cảnh / beats / hồ sơ của tập vẫn lấy bản đầy đủ trong tệp. Dùng khi thêm cảnh vào tập đã sinh hình. */
+const chen = gia('chen') ? gia('chen').split(',').map((x) => x.trim()) : null; const truoc = Number(gia('truoc') || 0);
 if (!tapId || !tep) { console.error('thiếu --tap=<id> --tep=<json>'); process.exit(1); }
 const db = getDb(); if (!db) { console.error('không có DATABASE_URL'); process.exit(1); }
 const tho = JSON.parse(readFileSync(tep, 'utf8'));
@@ -30,7 +33,10 @@ const nv = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat
 const lech = kq.canh.flatMap((c: { nhan_vat: string[] }) => c.nhan_vat.filter((x) => !nv.some((v) => v.ten.trim().toLowerCase() === x.trim().toLowerCase())));
 if (lech.length) { console.error(`tên anchor không có trong phim: ${[...new Set(lech)].join(', ')}`); process.exit(1); }
 if (thay) { const cu = ((await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${tapId}`)) as unknown as Row[]).map((r) => Number(r.id)); const { boVaoThungRac } = await import('../src/lib/xuong-video/thung-rac'); console.log('thùng rác:', await boVaoThungRac(db, 'canh', cu, 'nap-canh', `${cu.length} shot cũ (nạp hồ sơ thay toàn bộ)`)); }
-const so = await luuCanhTach(db, { tapId, tenTap: String(t[0].ten), kq: kq as never, nhanVat: nv, nguoi: 'script nap-canh', thoiLuongS: Math.round(kq.canh.reduce((a: number, c: { phat_s: number }) => a + c.phat_s, 0)) });   // cột thoi_luong_s là số nguyên
+if (chen && !truoc) { console.error('--chen cần --truoc=<thứ tự>'); process.exit(1); }
+const canhDu = kq.canh;   // thời lượng tập tính trên ĐỦ shot của tệp, kể cả khi chỉ chèn một phần
+if (chen) kq.canh = kq.canh.filter((c: { phan_doan: string }) => chen.includes(c.phan_doan));
+const so = await luuCanhTach(db, { chenTruoc: chen ? truoc : undefined, tapId, tenTap: String(t[0].ten), kq: kq as never, nhanVat: nv, nguoi: 'script nap-canh', thoiLuongS: Math.round(canhDu.reduce((a: number, c: { phat_s: number }) => a + c.phat_s, 0)) });   // cột thoi_luong_s là số nguyên
 if (kbMd) { const { chupTruoc } = await import('../src/lib/xuong-video/hoan-tac'); await chupTruoc(db, { bang: 'xv_tap', id: tapId, cot: ['kich_ban', 'ho_so'], moTa: 'nạp hồ sơ tiền kỳ', nguoi: 'nap-canh' }); await db.execute(sql`UPDATE xv_tap SET kich_ban = ${readFileSync(kbMd, 'utf8')} WHERE id = ${tapId}`); }
 console.log(`đã nạp ${so} shot vào tập #${tapId}`);
 process.exit(0);

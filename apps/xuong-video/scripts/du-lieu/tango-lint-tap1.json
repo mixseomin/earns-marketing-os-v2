@@ -2,10 +2,192 @@
   "ten": "The Gummy Thief",
   "tap": 1,
   "thoi_gian": "Một đêm liền mạch, 23:40 → khoảng 23:50. Ánh sáng là đồng hồ: đèn bàn vàng ấm (Gã khổng lồ còn ngồi) → tắt, chỉ còn ánh xanh lạnh của hai màn hình (thế giới đồ vật thức dậy) → giữa tập màn hình trái tự tối đi một bậc (chế độ nghỉ: thời gian đang trôi, rừng cáp tối hơn, nguy hiểm hơn).",
-  "duong_di": "Mouse Landing → Between the Screens → Cable Jungle → trượt dọc sợi cáp trắng → USB Hub Dock (mép rừng cáp).",
+  "duong_di": "Trái Đất → Việt Nam → Hà Nội (Hồ Gươm) → phố cổ → ô cửa sổ tầng ba → Mouse Landing → Between the Screens → Cable Jungle → trượt dọc sợi cáp trắng → USB Hub Dock (mép rừng cáp).",
   "motif": "Viên kẹo gấu đỏ (thèm → chia đôi = tình bạn) · sợi tóc xoăn của Tango (dựng = tò mò/có ý, rũ = sợ) · sợi chỉ xanh trên đầu Lint (sáng ấm khi tin nhau). · góc giấy vàng (Sticky): nhìn trộm ở đầu, cuỗm kẹo ở cuối — kẻ trộm của tựa phim.",
   "cung": "Thèm (+1) → mất kẹo (−1) → sợ (−2) → có bạn (+3) → bị đe doạ (−2) → thất bại (−4) → có ý (+2) → thoát (+4) → hả hê (+5) → tò mò bất an (móc tập 2).",
   "canh": [
+    {
+      "so": 0,
+      "ten": "Mở đầu: Từ Trái Đất tới cái bàn",
+      "beat": "Hook 3 giây",
+      "noi": "Earth at Night / Hanoi / The Giant's Window",
+      "luc": "ĐÊM – 23:40, Hà Nội về khuya",
+      "doi": "Cả hành tinh → một ô cửa sổ sáng đèn ở Hà Nội",
+      "xoay": "Máy bay xuyên qua ô cửa sổ: từ thế giới thật bước vào thế giới tí hon.",
+      "shot": [
+        {
+          "vai": "thiet_lap",
+          "co": "ews",
+          "giay": 4,
+          "luat": [
+            "dan_khong_gian",
+            "dan_thoi_gian"
+          ],
+          "thay": "Trái Đất về đêm nhìn từ vũ trụ. Những dải đèn thành phố lấp lánh; máy lao xuống dải đất hình chữ S sáng đèn dọc bờ biển Đông. Tựa phim hiện lên.",
+          "bo_cuc": "Centre: the night side of the globe over Southeast Asia; the glittering S-shaped coastline of Vietnam along the dark sea; thin blue atmosphere glow at the top edge.",
+          "mo": "The whole curve of Earth at night over Southeast Asia, Vietnam a thin line of lights.",
+          "ket": "Pushed in close: the S-shaped coastline of Vietnam glowing, the lights of Hanoi in the north brightest.",
+          "huong": "Camera moves straight down toward Vietnam, then toward its north.",
+          "am": "Gió vũ trụ rất khẽ; nốt bandoneon đầu tiên của nhạc chủ đề tango.",
+          "muc_dich": "Kỳ vĩ, tò mò: câu chuyện ở một nơi có thật — Việt Nam.",
+          "motif": "Mở series: từ thế giới vào.",
+          "may": {
+            "goc": "tren_xuong",
+            "chuyen_dong": "day_vao",
+            "ong_kinh": "rong",
+            "chuyen_canh": "hoa_tan",
+            "mo_ta": "Từ vũ trụ đẩy thẳng xuống dải chữ S sáng đèn — người xem biết ngay: chuyện này ở Việt Nam."
+          },
+          "anchor": [
+            "Earth at Night"
+          ],
+          "thay_en": "Planet Earth at night from space; the camera pushes down toward the glittering S-shaped coastline of Vietnam, the lights of Hanoi in the north shining brightest.",
+          "am_en": "A soft hush of space wind, the first note of a playful tango bandoneon.",
+          "thoai": [],
+          "cam_xuc": 0
+        },
+        {
+          "vai": "hanh_trinh",
+          "co": "ews",
+          "giay": 3.5,
+          "luat": [
+            "dan_khong_gian",
+            "dan_thoi_gian"
+          ],
+          "thay": "Hà Nội về đêm từ trên cao, trông như mô hình tí hon: Hồ Gươm sáng đèn, Tháp Rùa giữa hồ, cầu Thê Húc đỏ, dòng đèn xe máy chảy quanh hồ như sông ánh sáng.",
+          "bo_cuc": "Centre: Hoan Kiem Lake with the small lit Turtle Tower; the red Huc Bridge; rings of motorbike light trails around the lake; old-quarter rooftops toward the top of frame.",
+          "mo": "High above Hanoi at night, Hoan Kiem Lake in the centre.",
+          "ket": "Descended toward the dense old-quarter rooftops north of the lake.",
+          "huong": "Camera glides down and toward the top of frame (north, the old quarter).",
+          "am": "Tiếng còi xe xa xa, phố về khuya.",
+          "muc_dich": "Thân quen, ấm: đây là Hà Nội.",
+          "motif": "Đèn xe kéo vệt = thời gian về khuya.",
+          "may": {
+            "goc": "tren_xuong",
+            "chuyen_dong": "hyperlapse",
+            "ong_kinh": "rong",
+            "chuyen_canh": "hoa_tan",
+            "mo_ta": "Lướt xuống Hà Nội trong khi dòng đèn xe máy quanh hồ kéo thành vệt sáng — thành phố sống, đã khuya."
+          },
+          "anchor": [
+            "Hanoi at Night"
+          ],
+          "thay_en": "Hanoi at night from high above with a tilt-shift miniature look: Hoan Kiem Lake glowing, the small Turtle Tower, the red Huc Bridge, motorbike headlights streaming around the lake as the camera glides down toward the old-quarter rooftops.",
+          "am_en": "Distant motorbike horns, a city winding down for the night.",
+          "thoai": [],
+          "cam_xuc": 0
+        },
+        {
+          "vai": "hanh_trinh",
+          "co": "ws",
+          "giay": 3.5,
+          "luat": [
+            "dan_khong_gian",
+            "motif",
+            "khop_hanh_dong"
+          ],
+          "thay": "Một con phố cổ Hà Nội về đêm: nhà ống hẹp, ban công trồng cây, búi dây điện đen chằng chịt như mạng nhện. Máy luồn qua búi dây điện, bay tới một ô cửa sổ tầng ba còn sáng đèn vàng.",
+          "bo_cuc": "Foreground: a dense tangle of black power cables rushing past. Mid: narrow tube houses with small balconies. Background: one third-floor window glowing warm yellow.",
+          "mo": "Low over the old-quarter street, cables ahead.",
+          "ket": "Close to the glowing third-floor window, the cables behind.",
+          "huong": "Camera flies forward and up toward the window (centre-right).",
+          "am": "Gió vút qua dây điện, tiếng rè rè của dây điện.",
+          "muc_dich": "Hồi hộp, tò mò: ô cửa sổ nào đây?",
+          "motif": "Búi dây điện = rừng dây cáp.",
+          "may": {
+            "goc": "thap",
+            "chuyen_dong": "fpv",
+            "ong_kinh": "rong",
+            "chuyen_canh": "lien_may",
+            "mo_ta": "Bay FPV luồn qua búi dây điện phố cổ — dây điện ngoài phố là anh em của rừng dây cáp trong phim — tới một ô cửa sổ sáng đèn."
+          },
+          "anchor": [
+            "Hanoi Old Quarter Street"
+          ],
+          "thay_en": "A narrow Hanoi old-quarter street at night with a tilt-shift miniature look; the camera flies FPV through a giant tangle of black power cables toward one third-floor window glowing warm yellow.",
+          "am_en": "Wind whooshing past cables, a faint electric buzz.",
+          "thoai": [],
+          "cam_xuc": 0
+        },
+        {
+          "vai": "thiet_lap",
+          "co": "ws",
+          "giay": 4,
+          "luat": [
+            "dan_khong_gian",
+            "khop_hanh_dong",
+            "anh_sang_cam_xuc"
+          ],
+          "thay": "Máy bay xuyên qua ô cửa sổ tầng ba vào căn phòng nhỏ: cái bàn gỗ dưới đèn bàn vàng ấm, hai màn hình sáng dịu.",
+          "bo_cuc": "Foreground: the window frame and a potted plant rushing past. Mid: the warm room. Background: the wooden desk under a desk lamp, two glowing screens.",
+          "mo": "Outside the third-floor window, warm light inside, cables behind.",
+          "ket": "Inside the room: the whole wooden desk under the warm lamp seen from its front edge — the opening frame of the next shot.",
+          "huong": "Camera flies straight through the window toward the desk.",
+          "am": "Tiếng phố nhỏ dần sau lưng; tiếng ù của máy tính.",
+          "muc_dich": "Từ thành phố vào tới đúng chỗ: cái bàn, nơi câu chuyện sống.",
+          "motif": "",
+          "may": {
+            "goc": "ngang",
+            "chuyen_dong": "xuyen_vat",
+            "ong_kinh": "rong",
+            "chuyen_canh": "lien_may",
+            "mo_ta": "Bay xuyên qua ô cửa sổ vào căn phòng, dừng đúng khung mở của shot cái bàn — liền máy, không cắt."
+          },
+          "anchor": [
+            "The Giant's Window",
+            "The Desk (wide)"
+          ],
+          "thay_en": "The camera flies through a glowing third-floor window of a Hanoi tube house into a small room and settles on a wooden desk under a warm desk lamp with two glowing screens.",
+          "am_en": "Street noise fading behind, the soft hum of a computer.",
+          "thoai": [],
+          "cam_xuc": 0
+        }
+      ],
+      "kich_ban": [
+        {
+          "loai": "hd",
+          "chu": "Trái Đất về đêm, nhìn từ vũ trụ. Những dải đèn thành phố lấp lánh. Dải đất hình chữ S sáng đèn dọc bờ biển Đông."
+        },
+        {
+          "loai": "hd",
+          "chu": "Hà Nội về khuya, từ trên cao. Hồ Gươm, Tháp Rùa, cầu Thê Húc. Dòng đèn xe máy chảy quanh hồ."
+        },
+        {
+          "loai": "hd",
+          "chu": "Một con phố cổ. Nhà ống, ban công trồng cây, búi dây điện chằng chịt. Một ô cửa sổ tầng ba còn sáng đèn vàng."
+        },
+        {
+          "loai": "hd",
+          "chu": "Qua ô cửa sổ: một căn phòng nhỏ, một cái bàn gỗ dưới đèn bàn."
+        },
+        {
+          "loai": "chuyen",
+          "chu": "LIỀN MÁY:"
+        }
+      ],
+      "dao_dien": {
+        "muc_tieu": "Đặt câu chuyện vào một nơi có thật: Việt Nam, Hà Nội, một căn phòng.",
+        "xung_dot": "Chưa có — đây là chuỗi thiết lập (kiểu Larva).",
+        "nhip": [
+          "Hành tinh → Việt Nam.",
+          "Việt Nam → Hà Nội, Hồ Gươm.",
+          "Phố cổ, búi dây điện → một ô cửa sổ sáng đèn.",
+          "Bay xuyên cửa sổ → cái bàn."
+        ]
+      },
+      "boc_tach": {
+        "hieu_ung": [
+          "Tilt-shift biến thành phố thật thành mô hình tí hon",
+          "Bay xuyên cửa sổ nối liền máy vào shot cái bàn"
+        ]
+      },
+      "mau": {
+        "anh_sang": "gio_xanh",
+        "mau": "teal_cam",
+        "mo_ta": "Đêm xanh thẫm của vũ trụ và thành phố, điểm xuyết đèn vàng cam; càng vào gần càng ấm — tới ô cửa sổ là vàng ấm của đèn bàn."
+      },
+      "nhac": "pizzicato"
+    },
     {
       "so": 1,
       "ten": "Đèn tắt",
@@ -1750,7 +1932,11 @@
       "Open Notebook Field",
       "The Desk at Dawn",
       "Speaker Planet",
-      "Desk Map (top-down)"
+      "Desk Map (top-down)",
+      "Earth at Night",
+      "Hanoi at Night",
+      "Hanoi Old Quarter Street",
+      "The Giant's Window"
     ]
   },
   "chu_man_mo": "The Gummy Thief",

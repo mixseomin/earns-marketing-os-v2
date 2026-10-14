@@ -35,6 +35,7 @@ const PHONG_CACH = 'Real-world miniature stop-motion film: shot on a real home-o
 /** BẢN ĐỒ KHÔNG GIAN của bàn (14/10/2026 — chuỗi dẫn kiểu Larva): tên = đúng anchor Bối cảnh; dựng từ mô tả 20 bối cảnh. Ghi vào
  *  kinh_thanh.ban_do mỗi lần chạy (đợt nào cũng được), sửa tay được ở ô "Bản đồ không gian" của kinh thánh. */
 const BAN_DO = `The world = the Giant's wooden desk, seen from its FRONT EDGE (front = toward the viewer, back = against the wall).
+OUTER WORLD (series / episode openers, Larva-style zoom-in from the real world): Earth at Night → Hanoi at Night (Hoan Kiem Lake) → Hanoi Old Quarter Street (tangled power cables) → The Giant's Window (3rd floor, lamp on) → fly through the window → The Desk (wide).
 WHOLE-WORLD SHOTS (open episodes here, then move in): The Desk (wide) from the front edge · Desk Map (top-down) straight down · The Summit (iMac top) looking down over everything · time variants The Desk at Night / The Desk at Dawn.
 FRONT-CENTRE: Keyboard Canyon (inside the white keyboard's keys); Keyboard Cave = the dark gap under the keyboard's raised back edge. Mouse Landing = beside the white mouse, just RIGHT of the keyboard.
 RIGHT-BACK (big iMac): Glowing Screen Wall = foot of the iMac screen looking up; Under the iMac Arch = beneath its curved stand; The Summit = its top edge. White Cable Road = the white iMac cable running from Under the iMac Arch forward across the desk past Mouse Landing.
@@ -140,6 +141,15 @@ Quirk: she doodles everyone's mood on her body before they even show it.
 Secret: the message on her back is a reminder the Giant wrote — about the day the desk will be cleared.` },
 ];
 /** Bối cảnh: tên (hiện trong studio) + mô tả tiếng Anh (vào prompt). Mỗi cái là một "sân chơi" cho gag. */
+/** THẾ GIỚI BÊN NGOÀI (14/10/2026 — anh: "các film như Larva có cảnh từ thế giới rồi zoom tận nơi diễn ra câu chuyện; zoom đến một nơi ở VN"):
+ *  chuỗi mở series/tập đi từ hành tinh → Việt Nam → Hà Nội → phố cổ → ô cửa sổ → cái bàn. Thành phố thật quay kiểu tilt-shift cho trông như
+ *  mô hình tí hon (hợp chất stop-motion). Hà Nội vì búi dây điện phố cổ là anh em với rừng dây cáp của phim. --dot=the_gioi (TỐN TIỀN). */
+const THE_GIOI: { ten: string; mo_ta: string }[] = [
+  { ten: 'Earth at Night', mo_ta: 'Planet Earth at night seen from space: the curve of the globe over Southeast Asia, glittering city lights tracing the S-shaped coastline of Vietnam along the dark East Sea, thin blue atmosphere glow on the horizon' },
+  { ten: 'Hanoi at Night', mo_ta: 'Hanoi at night from high above with a tilt-shift miniature look: Hoan Kiem Lake glowing in the city centre, the small red-lit Turtle Tower on its islet, the red Huc Bridge, rivers of motorbike headlights flowing around the lake, dense old-quarter rooftops' },
+  { ten: 'Hanoi Old Quarter Street', mo_ta: 'A narrow Hanoi old-quarter street at night with a tilt-shift miniature look: tall thin tube houses with small balconies and potted plants, tiled roofs, glowing shop signs without readable text, a famous dense tangle of black electric cables strung between poles like a giant spider web, a few parked motorbikes' },
+  { ten: "The Giant's Window", mo_ta: "A third-floor window of a narrow Hanoi tube house at night seen from outside through tangled electric cables: warm desk-lamp light inside, the silhouette of a wooden desk with two glowing computer screens visible through the open window, a potted plant on the small balcony" },
+];
 const BOI_CANH: { ten: string; mo_ta: string }[] = [
   { ten: 'The Desk (wide)', mo_ta: 'The whole desk seen from the front edge at tabletop height: the yellow-silver iMac on its stand on the right, the second monitor on its silver stand on the left, the white keyboard and white mouse on the warm wooden desktop, notebooks under the left monitor; the two screens glow softly' },
   { ten: 'Keyboard Canyon', mo_ta: 'Down inside the white wireless keyboard: rows of white keys rise like a tiny white city or canyon, low angle looking along the gaps between key rows, soft monitor glow reflecting on the key tops' },
@@ -247,7 +257,7 @@ const GOC_THAP = 'seen from ground level by a 5 cm tall character standing on th
 const db = getDb()!;
 const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as Row[];
 const lai = process.argv.includes('--lai');
-const dot = (process.argv.find((x) => x.startsWith('--dot='))?.slice(6) ?? 'boi_canh') as 'boi_canh' | 'bien_the' | 'do_vat' | 'bo_anh_that' | 'nhan_vat' | 'dac_trung' | 'logo' | 'am' | 'truyen' | 'mua' | 'doi_ten';
+const dot = (process.argv.find((x) => x.startsWith('--dot='))?.slice(6) ?? 'boi_canh') as 'boi_canh' | 'bien_the' | 'do_vat' | 'bo_anh_that' | 'nhan_vat' | 'dac_trung' | 'logo' | 'am' | 'truyen' | 'mua' | 'doi_ten' | 'the_gioi';
 const tep = process.argv.slice(2).filter((x) => !x.startsWith('--'));
 /** --chi=Tên A,Tên B: chỉ sinh lại các bối cảnh / đồ vật này (kèm --lai). */
 const chi = process.argv.find((x) => x.startsWith('--chi='))?.slice(6).split(',').map((x) => x.trim()).filter(Boolean) ?? null;
@@ -306,6 +316,7 @@ async function bienThe(loai: 'boi_canh' | 'dao_cu', tenAnchor: string, nhom: str
   ra.push({ ten: `${tenAnchor} · ${ten}`, url: kq.ok ? kq.url : null, ...(kq.ok ? {} : { loi: kq.loi }) });
 }
 
+if (dot === 'the_gioi') await theoDot(trong(THE_GIOI), (b) => anhGoc('boi_canh', b.ten, b.mo_ta, `Opening establishing shot of a miniature stop-motion film, no characters, no people. Location: ${b.mo_ta}. Real-world place photographed with a tilt-shift lens so it looks like a handmade miniature model; macro, shallow depth of field, cozy night lights. No text, letters or numbers anywhere.`));
 if (dot === 'boi_canh') await theoDot(trong(BOI_CANH), (b) => anhGoc('boi_canh', b.ten, b.mo_ta, `Establishing shot of a location for a miniature stop-motion film, no characters. Location: ${b.mo_ta}. ${NHAC}. Visual style: ${PHONG_CACH}.`));
 if (dot === 'bien_the') await theoDot(trong(BOI_CANH).filter((b) => !/ban đêm|sáng sớm/i.test(b.ten)).flatMap((b) => THOI_DIEM.map((t) => ({ b, t }))), ({ b, t }) => bienThe('boi_canh', b.ten, 'thoi_diem', t.ten, t.mo_ta));
 // Anh 14/10/2026: ảnh gốc anh gửi KHÔNG dùng làm ảnh của anchor (màn hình trong ảnh có người thật). Gỡ khỏi mọi anchor → thùng rác 🗑.

@@ -8,7 +8,7 @@ import { demTn, type TrachNhiem } from '@/lib/trach-nhiem';
 import { vaiCuaPhong, theVai } from '../../worker/quy-trinh.mjs';
 import { NHIP, NHIP_MAY, TEN_NHIP, docChinh, lanLam, tanSuat, dauViec } from '../../worker/nhip.mjs';
 import { hrefNhip } from '@/lib/ngan';
-import { viecMayCua, hong, nhipMay, lichNguoi } from '../../worker/viec-may.mjs';
+import { viecMayCua, hong, nhipMay, lichNguoi, tenViec } from '../../worker/viec-may.mjs';
 import { ChinhNhip } from './chinh-nhip';
 import { ChinhLich } from './chinh-lich';
 import { docLich, choAp, tuChu } from '../../worker/lich-may.mjs';
@@ -88,9 +88,9 @@ export async function BangNhanSu({ ds, trongPhong = false, tn, phong }: { ds: NS
           <tr key={d.id}>
             <td><span className="cty-den-o"><Nguoi id={d.id} />{'coNut' in n && n.coNut && <NutTuLam id={d.id} bat={n.bat} admin={admin && !n.chiXem} />}</span></td>{!trongPhong && <td className="cty-muted">{d.phongTen}</td>}<td title={d.giuVai.join(' · ') || d.chucDanh}>{(phong && vaiO(phong, d.id)) || TEN_VAI[d.vai]}</td>
             <td className="cty-nho">{tenModel(d.model)}</td>
-            <td className={`cty-nho${n.bat ? '' : ' cty-muted'}`}>{n.ds.length   // đầu việc tách dòng, bấm mở ngăn mô tả + nhật ký (anh 14/10/2026)
-              ? <ul className="cty-dn-viec">{n.ds.map((v) => <li key={v.ma}><Link href={hrefNhip(d.id, v.ma)}>{v.ten}</Link> {v.gio ? <ChinhLich muc={`gio:${d.id}`} lich={{ kieu: 'luc', gio: v.gio }} chu={v.lich} kieu={['luc']} admin={admin} apSau="MacBook áp trong 10 phút" /> : <span className="cty-muted">{v.lich}</span>}</li>)}</ul>
-              : n.viec}{((vm) => vm.length > 0 && <div>{!n.ds.length && <ul className="cty-dn-viec">{vm.slice(0, 4).map((v) => <li key={v.id}><Link href={hrefNhip(d.id, 'may')}>{v.ten || v.ma.split('/').pop()}</Link> <LichViec v={v} admin={admin} /> <span className="cty-muted">{v.may}</span></li>)}</ul>}
+            <td className={`cty-nho cty-dn-tulam${n.bat ? '' : ' cty-muted'}`}>{n.ds.length   // đầu việc tách dòng, bấm mở ngăn mô tả + nhật ký (anh 14/10/2026)
+              ? <ul className="cty-dn-viec">{n.ds.map((v) => <li key={v.ma}><Link href={hrefNhip(d.id, v.ma)} title={v.ten}>{v.ten}</Link>{v.gio ? <ChinhLich muc={`gio:${d.id}`} lich={{ kieu: 'luc', gio: v.gio }} chu={v.lich} kieu={['luc']} admin={admin} apSau="MacBook áp trong 10 phút" /> : <span className="cty-muted">{v.lich}</span>}<span /></li>)}</ul>
+              : n.viec}{((vm) => vm.length > 0 && <div>{!n.ds.length && <ul className="cty-dn-viec">{vm.slice(0, 4).map((v) => <li key={v.id}><Link href={hrefNhip(d.id, 'may')} title={`${tenViec(v)} — ${v.ma}`}>{tenViec(v)}</Link><LichViec v={v} admin={admin} /><span className="cty-muted">{v.may}</span></li>)}</ul>}
                 <Link href={hrefNhip(d.id, 'may')} title="Timer / cron / LaunchAgent chạy trên box và Mac mà người này phụ trách">{vm.length > 4 && !n.ds.length ? `tất cả ${vm.length} việc máy` : `${vm.length} việc máy`}</Link>
                 {vm.some(hong) && <span className="cty-thu-loi"> · {vm.filter(hong).length} lỗi</span>}{vm.some((v) => v.chua_gan) && <span className="cty-thu-loi"> · {vm.filter((v) => v.chua_gan).length} chưa xếp phòng</span>}</div>)(viecMayCua(d.id) as ViecMay[])}</td>
             {n.bat && n.ca && ('box' in n ? n.box : true) ? <><td className="cty-nho"><ChinhLich muc={`nhip:${d.id}`} lich={{ kieu: 'moi', phut: n.kiemMoi ?? 1 }} chu={n.tanSuat ?? ''} kieu={['moi']} moi={KIEM_MOI} admin={admin} apSau="áp từ nhịp kế tiếp" /></td>

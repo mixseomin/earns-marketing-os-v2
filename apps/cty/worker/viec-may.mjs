@@ -103,6 +103,23 @@ export function choGomMac() {
   const thu = path.join(DATA(), 'may'); let moc = 0; try { moc = fs.statSync(TEP()).mtimeMs; } catch { return true; }
   try { return fs.readdirSync(thu).some((f) => /^launchd-.+\.json$/.test(f) && fs.statSync(path.join(thu, f)).mtimeMs > moc && (JSON.parse(fs.readFileSync(path.join(thu, f), 'utf8')).ap ?? []).length > 0); } catch { return false; }
 }
+/** Tên người đọc của một việc: timer / LaunchAgent có mô tả sẵn; cron chỉ có lệnh → "<dự án> · <tệp chạy>" (bỏ đường log, chuyển hướng, flock).
+ *  vd "cd /root/steamsolo && flock -n /tmp/x.lock ./scripts/drip.sh" → "steamsolo · drip.sh". */
+export function tenCron(cmd) {
+  const s = String(cmd).replace(/\s*\d?>>?\s*\S+/g, ' ').replace(/2>&1/g, ' ');   // bỏ ">> /var/log/x.log", "2>&1"
+  const m = [...s.matchAll(/(\S*?)([\w.-]+\.(?:sh|mjs|js|py|php|ts|sql))\b/g)].pop();   // tệp chạy cuối cùng trong lệnh (đường dẫn + tên)
+  const tep = m?.[2]; const daTu = (x) => (String(x ?? '').match(/\/(?:opt|root|var\/www)\/([\w-][\w.-]*)/) ?? [])[1];
+  const da = daTu(m?.[1]) ?? daTu(s.match(/\bcd\s+(\S+)/)?.[1]);   // dự án = thư mục của tệp chạy, không có thì thư mục `cd` vào
+  const lenh = tep ?? (s.match(/\bcurl\b[^|;&]*?([\w-]+\/[\w-]+)(?:\s|$)/)?.[1]) ?? (/\bwp cron\b/.test(s) ? 'wp cron' : null)
+    ?? ((x) => x && `pm2 restart ${x[1]}`)(s.match(/\bpm2 restart (\S+)/)) ?? ((x) => x && `SQL ${x[1]} ${x[2]}`)(s.match(/\b(UPDATE|INSERT INTO|DELETE FROM)\s+(\w+)/i))
+    ?? s.trim().split(/\s+/)[0]?.split('/').pop();
+  // cùng tệp chạy nhiều dòng (bidvertiser hôm nay / hôm qua, trafficfactory theo mạng) → kèm cờ + biến môi trường để phân biệt
+  const them = [...s.matchAll(/\b[A-Z][A-Z_]+=([\w-]+)/g)].map((x) => x[1]).concat([...(tep ? s.slice(s.indexOf(tep)) : '').matchAll(/\s(--[\w-]+)/g)].map((x) => x[1]));
+  const ten = [da && !String(lenh).startsWith(da) ? (BI_DANH[da] ?? da) : '', lenh].filter(Boolean).join(' · ');
+  return (them.length ? `${ten} (${them.join(' ')})` : ten).slice(0, 70);
+}
+const BI_DANH = { 'earns-marketing-os-v2': 'mos2', 'earns-marketing-os': 'mos1', 'militarymarkdown.com': 'militarymarkdown' };
+export const tenViec = (v) => v.ten || (v.loai === 'cron' ? tenCron(v.ma) : String(v.ma).split('/').pop());
 /** Việc máy một người phụ trách (bảng nhân sự). */
 export const viecMayCua = (id) => (docViecMay()?.ds ?? []).filter((v) => v.nguoi === id);
 // Lịch bằng chữ người đọc, giờ VN (box chạy giờ UTC). Dạng lạ giữ nguyên chữ máy.
@@ -166,6 +183,13 @@ if (process.argv[1]?.endsWith('viec-may.mjs')) {
     a.equal(L('timer', 'OnCalendar=Mon..Fri *-*-* 14:00:00'), '21:00 thứ Hai–Sáu'); a.equal(L('timer', 'OnCalendar=*-*-* *:17:00 UTC'), 'mỗi giờ (phút 17)'); a.equal(L('timer', 'OnCalendar=*-10-* 03:00'), '*-10-* 03:00', 'dạng lạ giữ nguyên');
     const nm = nhipMay('x', [{ loai: 'timer', lich: 'OnCalendar=*-*-* 01:00', tiep: 'a', cuoi: '2026-10-14T01:00:00Z' }, { loai: 'cron', lich: '*/5 * * * *', cuoi: '2026-10-14T05:00:00Z' }, { loai: 'launchd', lich: 'lúc 09:00', ket: 'chưa nạp' }, { loai: 'launchd', lich: 'chạy liền', ket: 'đang chạy' }]);
     a.deepEqual(nm, { so: 4, chay: 3, nhanh: 'mỗi 5 phút', cuoi: '2026-10-14T05:00:00Z' }, 'nhịp = việc chạy dày nhất; LaunchAgent chưa nạp không tính đang chạy');
+    a.equal(tenCron('cd /root/steamsolo && /usr/bin/flock -n /tmp/ss-drip.lock ./scripts/drip.sh'), 'steamsolo · drip.sh');
+    a.equal(tenCron('python3 /opt/chatwhenbored/lander/live.py --day >> /var/log/cwb-lander.log 2>&1'), 'chatwhenbored · live.py (--day)');
+    a.equal(tenCron('/usr/bin/psql "$(cat /root/.mos2_dburl)" -f /opt/forward/refresh_mt5_summary.sql >> /var/log/refresh_mt5.log 2>&1'), 'forward · refresh_mt5_summary.sql');
+    a.equal(tenCron('cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && EXADS_MANG=exoclick node scripts/phu/trafficfactory.mjs --hom-qua >> /var/log/mos2-phu.log 2>&1'), 'mos2 · trafficfactory.mjs (exoclick --hom-qua)');
+    a.equal(tenCron('/usr/bin/pm2 restart cities-v2 cities-v2-b >> /var/log/pm2.log 2>&1'), 'pm2 restart cities-v2');
+    a.equal(tenCron(`/usr/bin/psql "$(cat /root/.mos2_dburl)" -c "UPDATE strategy_trades SET raw=1" >/dev/null 2>&1`), 'SQL UPDATE strategy_trades');
+    a.equal(tenCron('/usr/bin/curl -s -X POST http://localhost:3001/betting/settle >> /var/log/betting-settle.log 2>&1'), 'betting/settle');
     a.ok(tenPhong('sach') === 'Sách' && tenPhong('vp-giam-doc') === 'Văn phòng GĐ' && tenPhong('nghien-cuu-thi-truong') === 'Nghiên cứu thị trường' && tenNguoi('thao') === 'Thảo');
     a.ok(nguoiPhong('bao-tri') === 'bao' && nguoiPhong('sach') === 'thao', 'người phụ trách = trưởng phòng');
     console.log('✓ viec-may: xếp phòng theo quy tắc, chatwhenbored ≠ adfond, không khớp → Bảo trì (chưa gắn), bỏ việc hệ điều hành, phòng trong quy tắc có thật');

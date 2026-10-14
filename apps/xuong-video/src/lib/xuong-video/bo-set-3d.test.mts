@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong } from './bo-set-3d';
+import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -40,4 +40,9 @@ assert.ok(kc(cu) < kc(ws));
 assert.ok(cu.dat[1]! < 50);
 assert.ok(datMayTuDong({ vi_tri: vt, phia: 90 }, { co_canh: 'ms' }, k).dat[0]! > 0);
 assert.equal(datMayTuDong({ vi_tri: vt }, { co_canh: 'ws', goc: 'sat_dat' }, k).dat[2], 0.5);
+// Cố ý vượt trục (POV): shot đó không bị chặn; shot sau so với shot thường gần nhất, bỏ qua POV.
+const mPov = { ...m([25, 40, 1]), qua_truc: true };
+assert.ok(!chanKhungXam({ nhan_vat: [1, 2], may_3d: mPov, khung_xam: { ma: maKhungXam(set, mPov, nv), xam: '', sau: '', luc: '', kiem: [] } }, nv, set, { nhan_vat: [1], may_3d: m([25, 4, 1]) }).some((x) => x.includes('trục')));
+const ds3 = [{ id: 1, may_3d: m([25, 4, 1]) }, { id: 2, may_3d: mPov }, { id: 3, may_3d: m([25, 5, 1]) }];
+assert.equal(shotSoTruc(ds3, 2)!.id, 1);
 console.log('bo-set-3d.test: ok');

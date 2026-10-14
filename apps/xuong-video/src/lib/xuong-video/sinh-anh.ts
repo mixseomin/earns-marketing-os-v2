@@ -8,7 +8,7 @@ import { promptKyThuatAnh } from './dien-anh';
 import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type KinhThanh, type NhanVat } from './kieu';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
-import { boSetCuaShot, chanKhungXam } from './bo-set-3d';
+import { boSetCuaShot, chanKhungXam, shotSoTruc } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { boiCanhCanh, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, jobDangCho, type Db, type Row } from './doc-db';
 
@@ -139,7 +139,7 @@ export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonN
   if (sid) {
     const r = (await db.execute(sql`SELECT * FROM xv_bo_set WHERE id = ${sid}`)) as unknown as Row[];
     const ds = locNhanh(tatCa, bc.canh.nhanh || 'A'); const i = ds.findIndex((c) => c.id === bc.canh.id);
-    const k = chanKhungXam(bc.canh, nvPhim, r[0] ? mapBoSet(r[0]) : null, i > 0 ? ds[i - 1] : null);
+    const k = chanKhungXam(bc.canh, nvPhim, r[0] ? mapBoSet(r[0]) : null, i > 0 ? shotSoTruc(ds, i) : null);
     if (k.length) chan.push(`Bộ set 3D: ${k.join('; ')}`);
   }
   if (!bc.canh.prompt_anh.trim()) chan.push('cảnh chưa có prompt ảnh');

@@ -35,11 +35,18 @@ if (gia('nap')) {
     await db.execute(sql`UPDATE xv_nhan_vat SET khoi_3d = ${JSON.stringify(k)}::jsonb WHERE id = ${Number(id)}`); khoi++;
   }
   if (tap) for (const [ma, m] of Object.entries(d.may ?? {})) {
-    const r = (await db.execute(sql`SELECT id, ky_thuat FROM xv_canh WHERE tap_id = ${tap} AND dan_dung->>'ma' = ${ma}`)) as unknown as Row[];
+    const r = (await db.execute(sql`SELECT id, ky_thuat, may_3d FROM xv_canh WHERE tap_id = ${tap} AND dan_dung->>'ma' = ${ma}`)) as unknown as Row[];
     if (!r[0]) { thieu.push(`shot ${ma}`); continue; }
     // Không ghi máy → ĐẶT MÁY TỰ ĐỘNG từ chỗ đứng + phía + cỡ cảnh / góc / ống kính của thẻ shot.
     const dm = m as DatMay & { dat?: number[] };
-    if (!dm.dat) { const kt = (r[0].ky_thuat ?? {}) as Record<string, string>; Object.assign(m as object, datMayTuDong(dm, kt, (t) => d.khoi?.[t] ?? null)); delete (m as Record<string, unknown>).phia; }
+    if (!dm.dat) {
+      const kt = (r[0].ky_thuat ?? {}) as Record<string, string>;
+      const vao = JSON.stringify([dm.vi_tri, dm.phia ?? 0, dm.khung ?? null, kt.co_canh, kt.goc, kt.ong_kinh, dm.vi_tri.map((v) => d.khoi?.[v.ten] ?? null)]);
+      // Đầu vào không đổi → giữ máy cũ (có thể đã được bộ giải trong Blender dời) — khỏi dựng + giải lại mỗi lần nạp.
+      if ((r[0].may_3d as { tu_dong?: { vao?: string } } | null)?.tu_dong?.vao === vao) { may++; continue; }
+      const t = datMayTuDong(dm, kt, (x) => d.khoi?.[x] ?? null);
+      Object.assign(m as object, { ...t, tu_dong: { ...t.tu_dong, vao } }); delete (m as Record<string, unknown>).phia;
+    }
     await chupTruoc(db, { bang: 'xv_canh', id: Number(r[0].id), cot: ['may_3d'], moTa: 'nạp máy ảo 3D', nguoi: 'bo-set' });
     await db.execute(sql`UPDATE xv_canh SET may_3d = ${JSON.stringify(m)}::jsonb WHERE id = ${Number(r[0].id)}`); may++;
   }

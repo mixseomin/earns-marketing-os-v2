@@ -189,7 +189,7 @@
    ]
   ],
   "review": [
-   "\"Better than I hoped.\" (71)",
+   "\"Better than I hoped.\"",
    [
     {
      "loai": "loi_khach",
@@ -202,13 +202,22 @@
    ]
   ],
   "dam_bao": [
-   "XS–6XL · 11 colors · 30-day take-it-off test",
+   "XS–6XL · Try it 30 days",
    [
     {
      "loai": "trang_ban",
      "nguon": "getsummet.com",
      "trich": "XS–6XL, 11 colors; 30-day take-it-off test",
      "link": "https://getsummet.com/products/sculpt-tank-with-built-in-bra"
+    },
+    {
+     "loai": "qc_thang",
+     "nguon": "qc_meta",
+     "trich": "Buy 1, Get 1 Free · 60-day risk-free.",
+     "ma": "1676529273457882",
+     "link": "https://www.facebook.com/ads/library/?id=1676529273457882",
+     "ghi": "VionB · x11 · 108 ngày",
+     "ky_thuat": "CTA: gỡ rủi ro bằng con số"
     }
    ]
   ],
@@ -229,6 +238,17 @@
      "link": "https://www.facebook.com/ads/library/?id=1676529273457882",
      "ghi": "VionB · x11 · 108 ngày",
      "ky_thuat": "CTA: offer cụ thể + gỡ rủi ro"
+    }
+   ]
+  ],
+  "san_pham": [
+   "Summet Sculpt Tank",
+   [
+    {
+     "loai": "trang_ban",
+     "nguon": "getsummet.com",
+     "trich": "Sculpt Tank with Built-In Bra",
+     "link": "https://getsummet.com/products/sculpt-tank-with-built-in-bra"
     }
    ]
   ]

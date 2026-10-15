@@ -593,8 +593,8 @@
      "loai": "end_card",
      "goc_may": "Medium shot, hero",
      "hanh_dong": "{{nhan_vat_ten}} wearing the product, smiling confidently at camera",
-     "chu_man": "{{uu_dai}} · Shop now",
-     "loi": "{{uu_dai}}. Shop now.",
+     "chu_man": "{{san_pham}} · {{uu_dai}}",
+     "loi": "{{san_pham}}. {{uu_dai}}.",
      "nv": [
       "sp",
       "nv",

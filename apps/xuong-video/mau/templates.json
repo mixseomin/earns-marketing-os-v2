@@ -716,7 +716,9 @@
      "to": "https://img.on.tc/xuong-video/mau-qc/895402959657367-to.jpg",
      "mo_ta": "\"Sorry in advance if this is too personal…\" — kể chuyện riêng, rồi demo bằng tay từng chi tiết, chốt giá thật."
     }
-   ]
+   ],
+   "dong": "ugc",
+   "khuon": "ke_chuyen"
   },
   {
    "key": "uu_dai_mo_dau",
@@ -1110,7 +1112,9 @@
      "to": "https://img.on.tc/xuong-video/mau-qc/1366036454891224-to.jpg",
      "mo_ta": "Thẻ ưu đãi nền màu \"LABOR DAY SPECIALS — buy 1 + FREE Mystery Gift\" chen giữa video thử đồ."
     }
-   ]
+   ],
+   "dong": "ugc",
+   "khuon": "uu_dai"
   },
   {
    "key": "truoc_sau",
@@ -1395,7 +1399,9 @@
      "to": "https://img.on.tc/xuong-video/mau-qc/849788781469870-to.jpg",
      "mo_ta": "Đeo sản phẩm ngay trước máy: bụng trước → eo gọn sau, một góc máy cố định."
     }
-   ]
+   ],
+   "dong": "ugc",
+   "khuon": "so_sanh"
   },
   {
    "key": "demo_tinh_nang",
@@ -1679,7 +1685,9 @@
      "to": "https://img.on.tc/xuong-video/mau-qc/1009323701925376-to.jpg",
      "mo_ta": "Demo chất liệu + nguồn gốc (alpaca Peru), cận tay, mỗi khung một ý chữ to."
     }
-   ]
+   ],
+   "dong": "ugc",
+   "khuon": "demo"
   },
   {
    "key": "review_noi_thang",
@@ -2028,7 +2036,9 @@
      "to": "https://img.on.tc/xuong-video/mau-qc/1033869859098293-to.jpg",
      "mo_ta": "Creator ngồi bàn nói thẳng camera, sản phẩm bày trước mặt, chốt logo."
     }
-   ]
+   ],
+   "dong": "ugc",
+   "khuon": "review"
   },
   {
    "key": "slideshow_anh",
@@ -2197,7 +2207,9 @@
      "anh": "https://img.on.tc/xuong-video/mau-qc/1833982184649739.jpg",
      "mo_ta": "QC ẢNH: 3 ảnh sản phẩm thật ghép dọc + chữ cực ngắn \"numb feet? burning feet? bamboo.\" — không cần video."
     }
-   ]
+   ],
+   "dong": "anh_that",
+   "khuon": "slideshow"
   },
   {
    "key": "tinh_nang_mo_dau",
@@ -2475,7 +2487,9 @@
      "to": "https://img.on.tc/xuong-video/mau-qc/2304768537000589-to.jpg",
      "mo_ta": "Khung đầu: cầm sản phẩm cạnh người, mặc vào ngay, đặc tính thấy liền."
     }
-   ]
+   ],
+   "dong": "ugc",
+   "khuon": "demo"
   },
   {
    "key": "ngan_15s",
@@ -2672,7 +2686,9 @@
      "to": "https://img.on.tc/xuong-video/mau-qc/2304768537000589-to.jpg",
      "mo_ta": "6,4 giây: sản phẩm → mặc vào → dáng sau, không shot đệm; nhân bản 31 lần."
     }
-   ]
+   ],
+   "dong": "ugc",
+   "khuon": "ngan"
   },
   {
    "key": "pov_thu_do",
@@ -2882,7 +2898,9 @@
      "to": "https://img.on.tc/xuong-video/mau-qc/1510628000358604-to.jpg",
      "mo_ta": "Chữ \"POV: You just bought a car\" trên ô màu suốt đoạn đầu, diễn ngắn kiểu creator, phụ đề từng cụm."
     }
-   ]
+   ],
+   "dong": "ugc",
+   "khuon": "pov"
   },
   {
    "key": "haul_mau",
@@ -3123,7 +3141,9 @@
      "to": "https://img.on.tc/xuong-video/mau-qc/871007045318782-to.jpg",
      "mo_ta": "Nhiều người thử nhiều màu, chữ \"comes in 5 colors\" cố định."
     }
-   ]
+   ],
+   "dong": "ugc",
+   "khuon": "haul"
   },
   {
    "key": "tra_loi_binh_luan",
@@ -3343,7 +3363,9 @@
      "to": "https://img.on.tc/xuong-video/mau-qc/1366036454891224-to.jpg",
      "mo_ta": "Ảnh chụp bình luận thật (\"How do you know what size to get?\") hiện lên → trả lời bằng bảng size thật + người thử; chạy 321 ngày."
     }
-   ]
+   ],
+   "dong": "ugc",
+   "khuon": "phan_hoi"
   },
   {
    "key": "re_vs_xin",
@@ -3586,7 +3608,9 @@
      "to": "https://img.on.tc/xuong-video/mau-qc/1033869859098293-to.jpg",
      "mo_ta": "\"Most supplements are made for gym bros\" — gọi tên loại thường sai người, sản phẩm làm cho đúng người."
     }
-   ]
+   ],
+   "dong": "ugc",
+   "khuon": "so_sanh"
   }
  ]
 }

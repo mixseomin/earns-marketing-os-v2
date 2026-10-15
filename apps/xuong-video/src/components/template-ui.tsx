@@ -7,7 +7,7 @@ import { Ngan } from './ngan';
 import { O, Nut, Loi, Pill, mono } from './ui';
 import { docTemplate, luuCauHinhTemplate, taoPhimTuTemplate } from '@/lib/actions';
 import { giaTriMau, oThieu, theoNhom, nhomCuaO, NHOM_O, type OTemplateDs } from '@/lib/xuong-video/template';
-import { tenPhanDoan, type CauHinhTemplate, type Phim } from '@/lib/xuong-video/kieu';
+import { tenPhanDoan, DONG_TEMPLATE, type CauHinhTemplate, type Phim } from '@/lib/xuong-video/kieu';
 import type { ShotKhung } from '@/lib/xuong-video/template-db';
 
 type DuLieu = { cfg: CauHinhTemplate | null; o: OTemplateDs[]; khung: ShotKhung[]; phimDung: { id: number; ten: string; luu_tru: boolean }[] };
@@ -89,27 +89,57 @@ function MauVaPhimDung({ d, onMoPhimChong }: { d: DuLieu; onMoPhimChong: (id: nu
 }
 
 /** Kho template ở đầu trang: mỗi template một thẻ — dùng khi nào, số shot, nút Dùng (form điền) / Sửa (mở như phim). */
+/** Kho template xếp DÒNG → KHUÔN (kieu.ts › DONG_TEMPLATE): mỗi dòng một khối, trong dòng từng khuôn một hàng; khuôn chưa có template vẫn hiện
+ *  một ô mờ "chưa có" — nhìn là biết kho còn thiếu khuôn nào. Template tự lưu (chưa gán dòng/khuôn) gom ở cuối. */
 export function KhoTemplate({ ds: dsVao, onMo }: { ds: Phim[]; onMo: (id: number) => void }) {
   const [dung, setDung] = useState<Phim | null>(null);
   const ds = [...dsVao].sort((a, b) => a.id - b.id);   // thứ tự dựng (khung chính trước), không theo lần sửa gần nhất
+  const cua = (dong: string, khuon: string) => ds.filter((p) => p.kinh_thanh?.template?.dong === dong && p.kinh_thanh?.template?.khuon === khuon);
+  const chuaXep = ds.filter((p) => !DONG_TEMPLATE.some((d) => d.key === p.kinh_thanh?.template?.dong && d.khuon.some((k) => k.key === p.kinh_thanh?.template?.khuon)));
+  const the = (p: Phim) => (
+    <div key={p.id} className="xv-canh" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <b style={{ fontSize: 13 }}>{tenGon(p.ten)}</b>
+      <div style={{ fontSize: 12, color: 'var(--fg-2)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={p.kinh_thanh?.template?.mo_ta ?? ''}>{p.kinh_thanh?.template?.mo_ta || p.mo_ta || '—'}</div>
+      <KhungThe id={p.id} />
+      <div style={mono}>{p.so_canh} shot · {Object.keys(p.kinh_thanh?.template?.o ?? {}).length} ô · #{p.id}</div>
+      <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
+        <Nut chinh onClick={() => setDung(p)}>Dùng</Nut>
+        <Nut onClick={() => onMo(p.id)} title="Sửa template như sửa phim: shot, prompt, anchor, nhãn ô">Sửa</Nut>
+      </div>
+    </div>
+  );
+  const luoi = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 } as const;
   return (
     <div className="xv-panel">
-      <h3>🧩 Template<small>chọn một khung → điền sản phẩm / nhân vật / câu chuyện → ra phim mới (0đ, chưa sinh gì)</small></h3>
-      {ds.length === 0 ? <div style={mono}>Chưa có template. Mở một phim đạt › ⋯ › 🧩 Lưu thành template, rồi gõ {'{{ô}}'} vào chỗ cần đổi.</div> : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
-          {ds.map((p) => (
-            <div key={p.id} className="xv-canh" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <b style={{ fontSize: 13 }}>{tenGon(p.ten)}</b>
-              <div style={{ fontSize: 12, color: 'var(--fg-2)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={p.kinh_thanh?.template?.mo_ta ?? ''}>{p.kinh_thanh?.template?.mo_ta || p.mo_ta || '—'}</div>
-              <KhungThe id={p.id} />
-              <div style={mono}>{p.so_canh} shot · {Object.keys(p.kinh_thanh?.template?.o ?? {}).length} ô · #{p.id}</div>
-              <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
-                <Nut chinh onClick={() => setDung(p)}>Dùng</Nut>
-                <Nut onClick={() => onMo(p.id)} title="Sửa template như sửa phim: shot, prompt, anchor, nhãn ô">Sửa</Nut>
-              </div>
+      <h3>🧩 Template<small>chọn dòng → khuôn → một khung, điền sản phẩm / nhân vật / câu chuyện → ra phim mới (0đ, chưa sinh gì)</small></h3>
+      {ds.length === 0 && <div style={mono}>Chưa có template. Mở một phim đạt › ⋯ › 🧩 Lưu thành template, rồi gõ {'{{ô}}'} vào chỗ cần đổi.</div>}
+      {DONG_TEMPLATE.map((d) => {
+        const so = ds.filter((p) => p.kinh_thanh?.template?.dong === d.key).length;
+        return (
+          <section key={d.key} style={{ marginTop: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+              <b style={{ fontSize: 14 }}>{d.ten}</b>
+              <span style={mono}>{so} template · {d.khuon.filter((k) => cua(d.key, k.key).length).length}/{d.khuon.length} khuôn</span>
             </div>
-          ))}
-        </div>
+            <div style={{ fontSize: 12, color: 'var(--fg-3)', margin: '2px 0 6px' }}>{d.mo_ta}</div>
+            {d.khuon.map((k) => {
+              const t = cua(d.key, k.key);
+              return (
+                <div key={k.key} style={{ margin: '6px 0 8px' }}>
+                  <div style={{ ...mono, marginBottom: 4 }}>{k.ten}{t.length ? ` · ${t.length}` : ''}</div>
+                  {t.length ? <div style={luoi}>{t.map(the)}</div>
+                    : <div style={{ ...mono, padding: '6px 10px', border: '1px dashed var(--line)', borderRadius: 6, opacity: 0.6 }}>chưa có template cho khuôn này</div>}
+                </div>
+              );
+            })}
+          </section>
+        );
+      })}
+      {chuaXep.length > 0 && (
+        <section style={{ marginTop: 10 }}>
+          <b style={{ fontSize: 14 }}>Chưa xếp dòng</b> <span style={mono}>template tự lưu — gán dòng + khuôn trong mau/templates.json hoặc cấu hình template</span>
+          <div style={{ ...luoi, marginTop: 6 }}>{chuaXep.map(the)}</div>
+        </section>
       )}
       {dung && <TaoTuTemplate templateId={dung.id} tenTemplate={dung.ten} onClose={() => setDung(null)} onTao={(id) => { setDung(null); onMo(id); }} />}
     </div>

@@ -132,7 +132,22 @@ export type OTemplate = { ten: string; goi_y?: string; mau?: string; dai?: boole
 /** MẪU QC THẮNG của template (anh 15/10/2026: "template phải ghi đầy đủ nguồn tham khảo để coi như ví dụ, đính kèm video thực tế"):
  *  QC thật trong kho spy (ma = library_id) — video / ảnh đã lưu lên R2 (scripts/luu-mau-qc.mts), mo_ta = học gì từ nó. */
 export type MauQcTemplate = { ma: string; page: string; x: number; ngay: number; link: string; mo_ta: string; video?: string | null; anh?: string | null; to?: string | null; giay?: number };
-export type CauHinhTemplate = { mo_ta?: string; o?: Record<string, OTemplate>; thu_tu?: string[]; mau_qc?: MauQcTemplate[] };
+/** DÒNG → KHUÔN → template (anh 15/10/2026: "kiểu thương hiệu có nhiều template — bố trí lại danh sách" · "kể cả UGC cũng có nhiều khuôn").
+ *  Kho xếp theo dòng, trong dòng theo khuôn; khuôn chưa có template vẫn hiện (biết còn thiếu gì). */
+export const DONG_TEMPLATE = [
+  { key: 'ugc', ten: '📱 UGC — người thật quay điện thoại', mo_ta: 'Như khách thật: cầm máy, ánh sáng nhà, nói thẳng camera. Hợp sản phẩm cần lòng tin.', khuon: [
+    { key: 'ke_chuyen', ten: 'Kể chuyện tình huống' }, { key: 'review', ten: 'Review / nói thẳng camera' }, { key: 'demo', ten: 'Demo / tính năng' },
+    { key: 'so_sanh', ten: 'So sánh / trước – sau' }, { key: 'uu_dai', ten: 'Ưu đãi mở đầu' }, { key: 'pov', ten: 'POV / thử đồ' },
+    { key: 'haul', ten: 'Haul / mở hộp' }, { key: 'phan_hoi', ten: 'Trả lời bình luận' }, { key: 'ngan', ten: 'Nhịp nhanh ≤ 15s' },
+  ] },
+  { key: 'thuong_hieu', ten: '✨ Thương hiệu — studio, ghép nền, đồ hoạ', mo_ta: 'Hình sạch có chủ đích: sản phẩm / người mẫu trên nền studio, ghép nền, chữ đồ hoạ, cắt theo nhịp nhạc. Hợp sản phẩm cần thấy đẹp, nhiều màu, nhiều nơi dùng.', khuon: [
+    { key: 'doi_nen', ten: 'Một dáng, mọi nơi (ghép nền)' }, { key: 'studio', ten: 'Sản phẩm studio + chú thích tính năng' }, { key: 'lookbook', ten: 'Lookbook nhiều màu' },
+    { key: 'chu_dong', ten: 'Chữ động (kinetic type)' }, { key: 'chia_doi', ten: 'Chia đôi trước / sau đồ hoạ' }, { key: 'mo_hop', ten: 'Mở hộp tối giản' },
+  ] },
+  { key: 'anh_that', ten: '🖼 Ảnh thật — không video AI', mo_ta: 'Dựng từ ảnh thật của shop, rẻ và nhanh nhất.', khuon: [{ key: 'slideshow', ten: 'Slideshow ảnh thật' }] },
+] as const;
+export type DongTemplate = (typeof DONG_TEMPLATE)[number]['key'];
+export type CauHinhTemplate = { mo_ta?: string; o?: Record<string, OTemplate>; thu_tu?: string[]; mau_qc?: MauQcTemplate[]; dong?: DongTemplate; khuon?: string };
 /** Một tập trong BẢN ĐỒ series (chưa chắc đã có xv_tap): số thứ tự toàn series, mùa, loại, nhân vật, gài/trả (claude.ts › vietMuaPhim). */
 export type TapBanDo = { so: number; ten: string; logline: string; mua?: number; loai?: 'phieu_luu' | 'nguon_goc' | 'ket_mua'; nhan_vat?: string[]; boi_canh?: string[]; gai_tra?: string };
 export type MuaSeries = { so: number; ten: string; dong_co?: string; ghi_chu?: string };

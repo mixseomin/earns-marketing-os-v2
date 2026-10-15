@@ -164,6 +164,7 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> 
   // GÓC MÁY 3D phải khớp góc máy khai ở thẻ shot (15/10/2026: 7.1a khai ngang tầm mà bộ giải đẩy máy lên cao 59° — keyframe bỏ qua khung 3D,
   // vẽ ngang tầm theo chữ, mất luôn cú quay đầu). Lệch → đặt tay máy hoặc đổi góc khai cho đúng điều muốn quay.
   { const g = gocMayLech(c.may_3d, c.ky_thuat?.goc); if (g) out.push(g); }
+  out.push(...matQuayDi(c, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t)));
   // NỐI HƯỚNG MÁY: hai shot liền nhau CÙNG cảnh mà hướng nhìn của máy lệch > 100° → hậu cảnh + cỡ đổi hẳn, cắt như sang nơi khác (5.4 → 5.5
   // tập 19: một máy nhìn về iMac từ góc sau, một máy nhìn rừng cáp từ bên trái). Cố ý (POV, lật trục) thì khai qua_truc.
   if (!c.may_3d.qua_truc && truoc?.may_3d && c.phan_doan && truoc.phan_doan === c.phan_doan && boSetCuaShot(truoc, nhanVat) === set.id) {
@@ -315,6 +316,45 @@ export const choVatSet = (set: Pick<BoSet, 'du_lieu'> | null | undefined) => (te
   const v = set?.du_lieu.vat.find((x) => x.ten === ten || x.anchor === ten); if (!v) return null;
   return 'tam' in v && v.tam ? v.tam : 'goc' in v && v.goc ? v.goc : null;
 };
+// ── HƯỚNG NHÂN VẬT SO VỚI MÁY (15/10/2026 #38 tập 19: 3D thấy LƯNG Tango — hai bạn quay về Mr. Wipe, máy đặt sau lưng — mà prompt không nói hướng,
+// model vẽ mặt nhìn thẳng máy theo ảnh mẫu; 3D và keyframe lệch hẳn bố cục). Số 3D → chữ cho prompt + cổng chặn shot phản ứng / cận thấy lưng.
+type ViTri = May3d['vi_tri'][number];
+/** Nhân vật lệch bao nhiêu độ khỏi hướng nhìn thẳng máy (0 = nhìn máy, 180 = quay lưng) + chữ tả cho model hình. */
+export function huongVoiMay(m: Pick<May3d, 'dat' | 'nhin'>, v: ViTri, ket = false): { lech: number; chu: string } | null {
+  const h = ket ? v.huong_den ?? v.huong : v.huong; if (h == null) return null;
+  const p = ket ? v.den ?? v.tam : v.tam; const lech = gocLech(h, huongToi(p, m.dat));
+  const fx = m.nhin[0]! - m.dat[0]!, fy = m.nhin[1]! - m.dat[1]!; const r = Math.sin((h * Math.PI) / 180) * fy + Math.cos((h * Math.PI) / 180) * fx;
+  const ben = r >= 0 ? 'screen-right' : 'screen-left';
+  const chu = lech <= 35 ? 'facing the camera' : lech <= 70 ? `three-quarter view, turned toward ${ben}` : lech <= 110 ? `in profile, facing ${ben}` : lech <= 150 ? `three-quarter from behind, facing away toward ${ben}` : 'back to the camera (we see the back of the head, not the face)';
+  return { lech: Math.round(lech), chu };
+}
+/** Shot PHẢN ỨNG mà máy không thấy ít nhất 3/4 mặt chủ thể (lệch > 80°), hoặc cỡ cận thấy lưng (> 110°) — cả lúc mở lẫn lúc kết. Cảm xúc nằm trên mặt. */
+export function matQuayDi(c: { may_3d?: May3d | null; ky_thuat?: Canh['ky_thuat'] | null }, laNhanVat: (ten: string) => boolean): string[] {
+  const m = c.may_3d; const kt = c.ky_thuat; if (!m || !kt || kt.vai === 'chu_quan') return [];
+  if (kt.vai !== 'phan_ung' && !['cu', 'ecu', 'mcu'].includes(kt.co_canh ?? '')) return [];
+  return chuThe(m).filter(laNhanVat).flatMap((t) => {
+    const v = m.vi_tri.find((x) => x.ten === t && !x.an); if (!v) return [];
+    const a = huongVoiMay(m, v), b = huongVoiMay(m, v, true); const ng = kt.vai === 'phan_ung' ? 80 : 110;   // phản ứng: thấy ít nhất 3/4 mặt
+    return a && a.lech > ng && (!b || b.lech > ng) ? [`máy không thấy mặt ${t} (lệch ${a.lech}° khỏi hướng nhìn máy) ở shot ${kt.vai === 'phan_ung' ? 'phản ứng' : `cỡ ${kt.co_canh}`} — đặt máy phía trước mặt ${t} (cảm xúc nằm trên mặt)`] : [];
+  });
+}
+
+// ── NHỊP DẪN của phân cảnh (15/10/2026, anh: "shot 11 đến 15 nhìn có sự dẫn dắt và liền mạch hơn hẳn"): #11–#15 máy nhìn cùng một hướng (90°/90°/90°/85°),
+// cảnh 7 nhảy 145° → 136° → −10° → 129° → 52°… — hậu cảnh đổi mỗi cú cắt, người xem phải định vị lại. Mỗi phân cảnh có HƯỚNG MÁY CHỦ (hướng gom được
+// nhiều shot nhất trong ±45°); shot thường lệch quá → chặn. Shot qua trục (POV, chèn) được miễn nhưng không đứng liền nhau.
+export const NHIP_DAN = 45;
+export function nhipDan<T extends { id: number; thu_tu: number; phan_doan?: string; may_3d?: May3d | null }>(ds: T[]): Record<number, string[]> {
+  const out: Record<number, string[]> = {}; const hg = (m: May3d) => (Math.atan2(m.nhin[1]! - m.dat[1]!, m.nhin[0]! - m.dat[0]!) * 180) / Math.PI;
+  for (const pd of new Set(ds.map((c) => c.phan_doan ?? ''))) {
+    const cua = ds.filter((c) => (c.phan_doan ?? '') === pd && c.may_3d).sort((a, b) => a.thu_tu - b.thu_tu);
+    const thuong = cua.filter((c) => !c.may_3d!.qua_truc); if (thuong.length < 3) continue;
+    const chu = thuong.map((c) => hg(c.may_3d!)).map((h, _, a) => ({ h, n: a.filter((x) => gocLech(x, h) <= NHIP_DAN).length })).sort((a, b) => b.n - a.n)[0]!.h;
+    for (const c of thuong) { const l = gocLech(hg(c.may_3d!), chu); if (l > NHIP_DAN) (out[c.id] ??= []).push(`máy lệch ${Math.round(l)}° khỏi hướng máy chủ của cảnh (${Math.round(chu)}°) — hậu cảnh đổi, mất dẫn dắt: đưa máy về trong ±${NHIP_DAN}°, hoặc khai qua_truc nếu là POV / chèn`); }
+    for (let i = 1; i < cua.length; i++) if (cua[i]!.may_3d!.qua_truc && cua[i - 1]!.may_3d!.qua_truc) (out[cua[i]!.id] ??= []).push(`hai shot qua trục liền nhau (#${cua[i - 1]!.thu_tu} → #${cua[i]!.thu_tu}) — người xem mất hướng: chen một shot ở hướng máy chủ, hoặc đưa shot này về hướng chủ`);
+  }
+  return out;
+}
+
 export function chuoiChuY<T extends { id: number; thu_tu: number; phan_doan?: string; may_3d?: May3d | null }>(ds: T[], choVat: (ten: string) => number[] | null): Record<number, string[]> {
   const out: Record<number, string[]> = {}; const daLam = new Set<string>();
   const cho = (m: May3d, ten: string) => { const v = m.vi_tri.find((x) => x.ten === ten); return v ? v.den ?? v.tam : null; };
@@ -349,7 +389,7 @@ export function loiMachTap<T extends { id: number; thu_tu: number; phan_doan?: s
   const out: Record<number, string[]> = {};
   for (const sid of new Set(ds.map((c) => boSetCuaShot(c, nhanVat)).filter((x): x is number => !!x))) {
     const cua = ds.filter((c) => boSetCuaShot(c, nhanVat) === sid);
-    for (const r of [lienMachTap(cua, (t) => khoiCua(t, nhanVat)), chuoiChuY(cua, choVatSet(sets.find((x) => x.id === sid)))]) for (const [k, v] of Object.entries(r)) (out[Number(k)] ??= []).push(...v);
+    for (const r of [lienMachTap(cua, (t) => khoiCua(t, nhanVat)), chuoiChuY(cua, choVatSet(sets.find((x) => x.id === sid))), nhipDan(cua)]) for (const [k, v] of Object.entries(r)) (out[Number(k)] ??= []).push(...v);
   }
   return out;
 }

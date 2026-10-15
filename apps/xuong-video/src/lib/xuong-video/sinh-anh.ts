@@ -8,7 +8,7 @@ import { promptKyThuatAnh } from './dien-anh';
 import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type KinhThanh, type NhanVat } from './kieu';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
-import { boSetCuaShot, chanKhungXam, loiMachTap, moTaThay, PT_THAY, shotSoTruc, trangThaiVat } from './bo-set-3d';
+import { boSetCuaShot, chanKhungXam, huongVoiMay, loiMachTap, moTaThay, PT_THAY, shotSoTruc, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { boiCanhCanh, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, jobDangCho, type Db, type Row } from './doc-db';
 
@@ -173,7 +173,12 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // của shot đang ở trạng thái khác ảnh mẫu thì nói thẳng, đè lên ảnh mẫu — lấy từ 3D đầy đủ (kể cả đồ để lại), không dò chữ.
   const trangChu = ((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? []).filter((v) => bc.nhanVat.some((n) => n.ten === v.ten)).map((v) => { const t = trangThaiVat(v, ket); return t ? `${v.ten}: ${t}` : ''; }).filter(Boolean);
   const trangCau = trangChu.length ? `OBJECT STATE in this frame (overrides the reference photos): ${trangChu.join('; ')}.` : '';
-  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), kxChu, trangCau, anhSang, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
+  // HƯỚNG NHÂN VẬT so với máy, từ số 3D (15/10/2026 #38: 3D thấy Tango nghiêng hẳn, keyframe vẽ mặt nhìn thẳng máy theo ảnh mẫu — prompt không nói hướng).
+  const mHuong = bc.mayDu ?? bc.canh.may_3d; const trongKhung = new Set((bc.canh.khung_xam?.thay ?? []).filter((t) => t.pt >= PT_THAY).map((t) => t.ten));
+  const huongChu = kx && mHuong ? mHuong.vi_tri.filter((v) => !v.an && trongKhung.has(v.ten) && bc.nhanVat.some((n) => n.ten === v.ten && n.loai === 'nhan_vat'))
+    .map((v) => { const h = huongVoiMay(mHuong, v, ket); return h ? `${v.ten}: ${h.chu}` : ''; }).filter(Boolean) : [];
+  const huongCau = huongChu.length ? `CHARACTER FACING in this frame, exactly as Image 1 shows (overrides the pose in the reference sheets): ${huongChu.join('; ')}.` : '';
+  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), kxChu, trangCau, huongCau, anhSang, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
   return { prompt, urlRef, vai };
 }
 

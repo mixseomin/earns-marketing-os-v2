@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, gocMayLech, gocNgang } from './bo-set-3d';
+import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -152,4 +152,19 @@ assert.equal(chuTheQuaNho({ khung_xam: kxNho(3.3, [0.778, 0.333, 1, 0.583]), ky_
 assert.equal(chuTheQuaNho({ khung_xam: kxNho(9, [0.8, 0.3, 1, 0.6]), ky_thuat: { co_canh: 'cu' } as never }).length, 0);   // chạm mép mà đủ lớn → qua
 assert.equal(chuTheQuaNho({ khung_xam: kxNho(9, [0.2, 0.3, 0.5, 0.6]), ky_thuat: { co_canh: 'cu' } as never }).length, 0);
 assert.equal(chuTheQuaNho({ khung_xam: kxNho(1, [0.8, 0.3, 1, 0.4]), ky_thuat: { co_canh: 'ws' } as never }).length, 0);
+// hướng nhân vật so với máy: máy ở −y nhìn +y; huong 0 = nhìn về −y = nhìn máy; 180 = quay lưng; 90 = nhìn +x = phải màn hình
+const mT = { dat: [0, -10, 1], nhin: [0, 0, 1] };
+assert.equal(huongVoiMay(mT, { ten: 'T', tam: [0, 0, 0], huong: 0 })!.chu, 'facing the camera');
+assert.ok(huongVoiMay(mT, { ten: 'T', tam: [0, 0, 0], huong: 180 })!.chu.startsWith('back to the camera'));
+assert.equal(huongVoiMay(mT, { ten: 'T', tam: [0, 0, 0], huong: 90 })!.chu, 'in profile, facing screen-right');
+assert.equal(huongVoiMay(mT, { ten: 'T', tam: [0, 0, 0], huong: -90 })!.chu, 'in profile, facing screen-left');
+// shot phản ứng thấy nghiêng (98°, như #38) → chặn; thấy 3/4 mặt → qua; cỡ rộng không phản ứng → không đo
+const laNv = (t: string) => t === 'T';
+assert.equal(matQuayDi({ may_3d: { ...mT, ong_kinh: 50, khung: ['T'], vi_tri: [{ ten: 'T', tam: [0, 0, 0], huong: 98 }] }, ky_thuat: { vai: 'phan_ung', co_canh: 'two' } as never }, laNv).length, 1);
+assert.equal(matQuayDi({ may_3d: { ...mT, ong_kinh: 50, khung: ['T'], vi_tri: [{ ten: 'T', tam: [0, 0, 0], huong: 50 }] }, ky_thuat: { vai: 'phan_ung', co_canh: 'two' } as never }, laNv).length, 0);
+assert.equal(matQuayDi({ may_3d: { ...mT, ong_kinh: 50, khung: ['T'], vi_tri: [{ ten: 'T', tam: [0, 0, 0], huong: 180 }] }, ky_thuat: { vai: 'hanh_dong', co_canh: 'ws' } as never }, laNv).length, 0);
+// nhịp dẫn: 4 shot cùng hướng + 1 lệch 90° → chặn đúng shot lệch; hai shot qua trục liền nhau → chặn shot sau
+const shN = (id: number, deg: number, qt = false) => ({ id, thu_tu: id, phan_doan: 'A', may_3d: { dat: [0, 0, 1], nhin: [Math.cos((deg * Math.PI) / 180), Math.sin((deg * Math.PI) / 180), 1], ong_kinh: 35, vi_tri: [], ...(qt ? { qua_truc: true } : {}) } });
+const nd = nhipDan([shN(1, 90), shN(2, 95), shN(3, 0), shN(4, 85), shN(5, 100), shN(6, 270, true), shN(7, 200, true)]);
+assert.deepEqual(Object.keys(nd).map(Number).sort(), [3, 7], JSON.stringify(nd));
 console.log('bo-set-3d.test: ok');

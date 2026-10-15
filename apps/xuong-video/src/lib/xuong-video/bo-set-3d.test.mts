@@ -167,4 +167,6 @@ assert.equal(matQuayDi({ may_3d: { ...mT, ong_kinh: 50, khung: ['T'], vi_tri: [{
 const shN = (id: number, deg: number, qt = false) => ({ id, thu_tu: id, phan_doan: 'A', may_3d: { dat: [0, 0, 1], nhin: [Math.cos((deg * Math.PI) / 180), Math.sin((deg * Math.PI) / 180), 1], ong_kinh: 35, vi_tri: [], ...(qt ? { qua_truc: true } : {}) } });
 const nd = nhipDan([shN(1, 90), shN(2, 95), shN(3, 0), shN(4, 85), shN(5, 100), shN(6, 270, true), shN(7, 200, true)]);
 assert.deepEqual(Object.keys(nd).map(Number).sort(), [3, 7], JSON.stringify(nd));
+// shot thiết lập góc riêng (như #12) không bị chặn
+assert.equal(nhipDan([shN(1, 90), shN(2, 95), { ...shN(3, 0), ky_thuat: { vai: 'thiet_lap' } }, shN(4, 85)])[3], undefined);
 console.log('bo-set-3d.test: ok');

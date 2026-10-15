@@ -343,11 +343,13 @@ export function matQuayDi(c: { may_3d?: May3d | null; ky_thuat?: Canh['ky_thuat'
 // cảnh 7 nhảy 145° → 136° → −10° → 129° → 52°… — hậu cảnh đổi mỗi cú cắt, người xem phải định vị lại. Mỗi phân cảnh có HƯỚNG MÁY CHỦ (hướng gom được
 // nhiều shot nhất trong ±45°); shot thường lệch quá → chặn. Shot qua trục (POV, chèn) được miễn nhưng không đứng liền nhau.
 export const NHIP_DAN = 45;
-export function nhipDan<T extends { id: number; thu_tu: number; phan_doan?: string; may_3d?: May3d | null }>(ds: T[]): Record<number, string[]> {
+/** Vai kể có GÓC RIÊNG (không tính vào hướng máy chủ): shot thiết lập mở cảnh (#12 trong chuỗi #11–#15 anh khen), người thứ ba rình, góc nhìn nhân vật. */
+const VAI_GOC_RIENG = new Set(['thiet_lap', 'nguoi_thu_ba', 'chu_quan']);
+export function nhipDan<T extends { id: number; thu_tu: number; phan_doan?: string; may_3d?: May3d | null; ky_thuat?: { vai?: string } | null }>(ds: T[]): Record<number, string[]> {
   const out: Record<number, string[]> = {}; const hg = (m: May3d) => (Math.atan2(m.nhin[1]! - m.dat[1]!, m.nhin[0]! - m.dat[0]!) * 180) / Math.PI;
   for (const pd of new Set(ds.map((c) => c.phan_doan ?? ''))) {
     const cua = ds.filter((c) => (c.phan_doan ?? '') === pd && c.may_3d).sort((a, b) => a.thu_tu - b.thu_tu);
-    const thuong = cua.filter((c) => !c.may_3d!.qua_truc); if (thuong.length < 3) continue;
+    const thuong = cua.filter((c) => !c.may_3d!.qua_truc && !VAI_GOC_RIENG.has(c.ky_thuat?.vai ?? '')); if (thuong.length < 3) continue;
     const chu = thuong.map((c) => hg(c.may_3d!)).map((h, _, a) => ({ h, n: a.filter((x) => gocLech(x, h) <= NHIP_DAN).length })).sort((a, b) => b.n - a.n)[0]!.h;
     for (const c of thuong) { const l = gocLech(hg(c.may_3d!), chu); if (l > NHIP_DAN) (out[c.id] ??= []).push(`máy lệch ${Math.round(l)}° khỏi hướng máy chủ của cảnh (${Math.round(chu)}°) — hậu cảnh đổi, mất dẫn dắt: đưa máy về trong ±${NHIP_DAN}°, hoặc khai qua_truc nếu là POV / chèn`); }
     for (let i = 1; i < cua.length; i++) if (cua[i]!.may_3d!.qua_truc && cua[i - 1]!.may_3d!.qua_truc) (out[cua[i]!.id] ??= []).push(`hai shot qua trục liền nhau (#${cua[i - 1]!.thu_tu} → #${cua[i]!.thu_tu}) — người xem mất hướng: chen một shot ở hướng máy chủ, hoặc đưa shot này về hướng chủ`);
@@ -385,7 +387,7 @@ export function chuoiChuY<T extends { id: number; thu_tu: number; phan_doan?: st
 
 /** Lỗi MẠCH của cả tập theo từng bộ set: liền mạch chỗ đứng / đồ đang cầm (lienMachTap) + chuỗi chú ý nhìn → thấy → làm (chuoiChuY).
  *  MỘT chỗ cho cổng keyframe (sinh-anh.ts › lyChanKeyframe) và dấu ⚠ trên lưới (luoi-kich-ban.tsx). ds = shot nhánh dựng theo thứ tự phát. */
-export function loiMachTap<T extends { id: number; thu_tu: number; phan_doan?: string; nhan_vat: number[]; may_3d?: May3d | null }>(ds: T[], nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'>[], sets: Pick<BoSet, 'id' | 'du_lieu'>[]): Record<number, string[]> {
+export function loiMachTap<T extends { id: number; thu_tu: number; phan_doan?: string; nhan_vat: number[]; may_3d?: May3d | null; ky_thuat?: { vai?: string } | null }>(ds: T[], nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'>[], sets: Pick<BoSet, 'id' | 'du_lieu'>[]): Record<number, string[]> {
   const out: Record<number, string[]> = {};
   for (const sid of new Set(ds.map((c) => boSetCuaShot(c, nhanVat)).filter((x): x is number => !!x))) {
     const cua = ds.filter((c) => boSetCuaShot(c, nhanVat) === sid);

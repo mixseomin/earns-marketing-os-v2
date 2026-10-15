@@ -2,7 +2,7 @@
 // Xưởng video AI (studio.on.tc) — một màn: danh sách phim → drawer phim (kinh thánh · tuyến nhân vật · tập · storyboard từng tập).
 // Storyboard = bảng cảnh: mỗi dòng một cảnh (xương sống dữ liệu); keyframe sinh → chọn → duyệt → video. Canvas node + timeline (G2/G3)
 // là hai cách nhìn khác của cùng bảng này, không có dữ liệu riêng.
-import { Suspense, useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Suspense, useCallback, useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
 import { useModalParam } from '@/lib/use-modal-param';
 import { Ngan } from './ngan';
 import { moNgan } from './ngan-chung';
@@ -61,7 +61,8 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
   // Giờ MỘT MÀN: đầu ghim (tab Phim | Template · bộ lọc · chỉ số một dòng · ＋ Tạo mới gập sẵn), nội dung cuộn TRONG khung bên dưới.
   const [khoTab, setKhoTab] = useNho<'phim' | 'sanpham' | 'template'>('xv-kho-tab', 'phim', ['phim', 'sanpham', 'template'], 'kho');
   // Ngăn một sản phẩm (kho creative): khoá sản phẩm trong URL (?sp=) → F5 / chia sẻ mở lại đúng sản phẩm.
-  const [spMo, setSpMoState] = useState<string | null>(() => (typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('sp')));
+  const [spMo, setSpMoState] = useState<string | null>(null);
+  useLayoutEffect(() => { const k = new URLSearchParams(window.location.search).get('sp'); if (k) setSpMoState(k); }, []);   // sau hydrate, như nho.ts
   const setSpMo = (k: string | null) => { setSpMoState(k); const u = new URL(window.location.href); if (k) u.searchParams.set('sp', k); else { u.searchParams.delete('sp'); u.searchParams.delete('sptab'); } window.history.replaceState(window.history.state, '', u.toString()); };
   const [moTao, setMoTao] = useState(false);
   const moPhim = (id: number) => { setTapMo(null); modal.open('phim', id); };

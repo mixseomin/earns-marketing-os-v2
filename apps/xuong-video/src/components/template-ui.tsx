@@ -2,7 +2,7 @@
 // TEMPLATE trên studio (template.ts · template-db.ts): template là một phim — sửa kinh thánh / anchor / shot như thường, chỗ cần đổi gõ {{ô}}.
 // Tổ chức cho dễ dùng (anh 14/10/2026): KHO TEMPLATE ở đầu trang (thẻ: dùng khi nào · số shot · Dùng / Sửa) → bấm Dùng là ra form điền
 // chia nhóm (Sản phẩm mở sẵn) → Tạo phim 0đ. Sửa template = mở như phim; panel đầu tab 🎭 Phim giữ nhãn / gợi ý / giá trị mẫu của ô.
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import { Ngan } from './ngan';
 import { O, Nut, Loi, Pill, mono } from './ui';
 import { docTemplate, luuCauHinhTemplate, taoPhimTuTemplate } from '@/lib/actions';
@@ -96,42 +96,47 @@ export function KhoTemplate({ ds: dsVao, onMo }: { ds: Phim[]; onMo: (id: number
   const ds = [...dsVao].sort((a, b) => a.id - b.id);   // thứ tự dựng (khung chính trước), không theo lần sửa gần nhất
   const cua = (dong: string, khuon: string) => ds.filter((p) => p.kinh_thanh?.template?.dong === dong && p.kinh_thanh?.template?.khuon === khuon);
   const chuaXep = ds.filter((p) => !DONG_TEMPLATE.some((d) => d.key === p.kinh_thanh?.template?.dong && d.khuon.some((k) => k.key === p.kinh_thanh?.template?.khuon)));
-  const the = (p: Phim) => (
-    <div key={p.id} className="xv-canh" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+  // #1393 "Template dài quá": trước mỗi khuôn một mục riêng (tiêu đề + lưới một thẻ + ô gạch "chưa có template") → 17 khuôn = một trang dài
+  // 6.000px. Giờ mỗi DÒNG một lưới thẻ (khuôn ghi trên thẻ), khuôn còn trống gom thành một dòng chip; dòng gập/mở được, dòng chưa có template gập sẵn.
+  const [gap, setGap] = useState<Record<string, boolean>>({});
+  const the = (p: Phim, khuon?: string) => (
+    <div key={p.id} className="xv-canh" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {khuon && <div className="xv-mono" style={{ fontSize: 10, color: 'var(--fg-3)' }}>{khuon}</div>}
       <b style={{ fontSize: 13 }}>{tenGon(p.ten)}</b>
-      <div style={{ fontSize: 12, color: 'var(--fg-2)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={p.kinh_thanh?.template?.mo_ta ?? ''}>{p.kinh_thanh?.template?.mo_ta || p.mo_ta || '—'}</div>
+      <div style={{ fontSize: 12, color: 'var(--fg-2)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={p.kinh_thanh?.template?.mo_ta ?? ''}>{p.kinh_thanh?.template?.mo_ta || p.mo_ta || '—'}</div>
       <KhungThe id={p.id} />
-      <div style={mono}>{p.so_canh} shot · {Object.keys(p.kinh_thanh?.template?.o ?? {}).length} ô · #{p.id}</div>
-      <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 'auto' }}>
         <Nut chinh onClick={() => setDung(p)}>Dùng</Nut>
         <Nut onClick={() => onMo(p.id)} title="Sửa template như sửa phim: shot, prompt, anchor, nhãn ô">Sửa</Nut>
+        <span style={{ ...mono, marginLeft: 'auto' }}>{p.so_canh} shot · {Object.keys(p.kinh_thanh?.template?.o ?? {}).length} ô · #{p.id}</span>
       </div>
     </div>
   );
-  const luoi = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 } as const;
+  const luoi = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 } as const;
+  const chip = (co: boolean): CSSProperties => ({ ...mono, fontSize: 10.5, padding: '1px 7px', borderRadius: 999, border: `1px solid ${co ? 'var(--cyan)' : 'var(--line)'}`, color: co ? 'var(--fg-1)' : 'var(--fg-4)', borderStyle: co ? 'solid' : 'dashed' });
   return (
     <div className="xv-panel">
       <h3>🧩 Template<small>chọn dòng → khuôn → một khung, điền sản phẩm / nhân vật / câu chuyện → ra phim mới (0đ, chưa sinh gì)</small></h3>
       {ds.length === 0 && <div style={mono}>Chưa có template. Mở một phim đạt › ⋯ › 🧩 Lưu thành template, rồi gõ {'{{ô}}'} vào chỗ cần đổi.</div>}
       {DONG_TEMPLATE.map((d) => {
-        const so = ds.filter((p) => p.kinh_thanh?.template?.dong === d.key).length;
+        const cuaDong = ds.filter((p) => p.kinh_thanh?.template?.dong === d.key);
+        const coKhuon = d.khuon.filter((k) => cua(d.key, k.key).length);
+        const mo = gap[d.key] ?? cuaDong.length > 0;
         return (
           <section key={d.key} style={{ marginTop: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-              <b style={{ fontSize: 14 }}>{d.ten}</b>
-              <span style={mono}>{so} template · {d.khuon.filter((k) => cua(d.key, k.key).length).length}/{d.khuon.length} khuôn</span>
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--fg-3)', margin: '2px 0 6px' }}>{d.mo_ta}</div>
-            {d.khuon.map((k) => {
-              const t = cua(d.key, k.key);
-              return (
-                <div key={k.key} style={{ margin: '6px 0 8px' }}>
-                  <div style={{ ...mono, marginBottom: 4 }}>{k.ten}{t.length ? ` · ${t.length}` : ''}</div>
-                  {t.length ? <div style={luoi}>{t.map(the)}</div>
-                    : <div style={{ ...mono, padding: '6px 10px', border: '1px dashed var(--line)', borderRadius: 6, opacity: 0.6 }}>chưa có template cho khuôn này</div>}
+            <button type="button" onClick={() => setGap((g) => ({ ...g, [d.key]: !mo }))} style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', background: 'none', border: 0, padding: 0, color: 'inherit', cursor: 'pointer', textAlign: 'left' }} title={mo ? 'Gập dòng này' : 'Mở dòng này'}>
+              <b style={{ fontSize: 14 }}>{mo ? '▾' : '▸'} {d.ten}</b>
+              <span style={mono}>{cuaDong.length} template · {coKhuon.length}/{d.khuon.length} khuôn</span>
+              <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>{d.mo_ta}</span>
+            </button>
+            {mo && (
+              <>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, margin: '6px 0 8px' }} title="Khuôn của dòng: viền liền = đã có template, gạch = chưa có">
+                  {d.khuon.map((k) => { const n = cua(d.key, k.key).length; return <span key={k.key} style={chip(n > 0)}>{k.ten}{n ? ` · ${n}` : ''}</span>; })}
                 </div>
-              );
-            })}
+                {cuaDong.length > 0 && <div style={luoi}>{d.khuon.flatMap((k) => cua(d.key, k.key).map((p) => the(p, k.ten)))}</div>}
+              </>
+            )}
           </section>
         );
       })}

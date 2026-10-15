@@ -2243,6 +2243,189 @@
      "loi": "{{san_pham}}. {{uu_dai}}."
     }
    ]
+  },
+  {
+   "key": "ngan_15s",
+   "ten": "Template · Ngắn 15s (người thật, 6 shot, 14,5s)",
+   "mo_ta": "Bản ngắn cho Reels/Stories: mỗi shot một ý, không shot đệm. Vấn đề thấy ngay → sản phẩm + đặc tính → dùng một bước → một ví dụ đời thật → lời khách → tên sản phẩm + ưu đãi. QC ngắn vẫn thắng lâu: Shapshe x31 (6 giây, 71 ngày) chỉ ưu đãi + sản phẩm; Huggea x17 mỗi khung một ý, chữ ngắn.",
+   "o": [
+    "san_pham",
+    "san_pham_hinh",
+    "anh_san_pham",
+    "link",
+    "diem_noi_bat",
+    "doi_tuong",
+    "uu_dai",
+    "dam_bao",
+    "nhan_vat_ten",
+    "nhan_vat_hinh",
+    "giong",
+    "boi_canh",
+    "noi_dau",
+    "noi_dau_hinh",
+    "dac_tinh",
+    "dac_tinh_hinh",
+    "demo",
+    "demo_hinh",
+    "vi_du_1",
+    "vi_du_1_hinh",
+    "review"
+   ],
+   "kinh_thanh": {
+    "phong_cach": "Live-action UGC short ad, photorealistic, vertical phone video, fast cuts, every shot shows one clear thing, bright natural light",
+    "ti_le": "9:16",
+    "do_phan_giai": "720p",
+    "mo_hinh_anh": "gemini-nano-banana-2.1",
+    "mo_hinh_video": "veo-3.1-lite-generate-preview",
+    "mo_hinh_chu": "claude-opus-5-5",
+    "ngon_ngu": "en",
+    "the_loai": "qc_ugc",
+    "qc": {
+     "ten": "{{san_pham}}",
+     "link": "{{link}}",
+     "diem_noi_bat": "{{diem_noi_bat}}",
+     "doi_tuong": "{{doi_tuong}}",
+     "uu_dai": "{{uu_dai}}",
+     "thi_truong": "Mỹ · tiếng Anh",
+     "anh": [
+      "{{anh_san_pham}}"
+     ],
+     "vi_tri_chu": "duoi",
+     "kieu_chu": {
+      "font": "Montserrat ExtraBold",
+      "mau": "#FFFFFF",
+      "vien": "#000000",
+      "vien_day": 0.1,
+      "co": 0.075,
+      "y": 0.76,
+      "vao": "bat",
+      "tu": 3
+     }
+    }
+   },
+   "nhan_vat": [
+    {
+     "key": "sp",
+     "loai": "san_pham",
+     "ten": "{{san_pham}}",
+     "mo_ta": "{{san_pham_hinh}}",
+     "anh_ref": [
+      "{{anh_san_pham}}"
+     ]
+    },
+    {
+     "key": "nv",
+     "loai": "nhan_vat",
+     "ten": "{{nhan_vat_ten}}",
+     "mo_ta": "{{nhan_vat_hinh}}",
+     "giong": "{{giong}}"
+    },
+    {
+     "key": "bc",
+     "loai": "boi_canh",
+     "ten": "Home",
+     "mo_ta": "{{boi_canh}}"
+    }
+   ],
+   "tap": {
+    "ten": "Ngắn 15s · 6 shot",
+    "brief": "15 giây: {{noi_dau}} → {{san_pham}} ({{dac_tinh}}) → dùng một bước → một ví dụ đời thật → lời khách → {{uu_dai}}."
+   },
+   "shots": [
+    {
+     "giay": 2.5,
+     "loai": "hook",
+     "goc_may": "Medium close-up",
+     "hanh_dong": "{{noi_dau_hinh}}",
+     "chu_man": "{{noi_dau}}",
+     "nv": [
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}}, {{noi_dau_hinh}}; the problem is clearly visible in the first frame, {{boi_canh}}",
+     "prompt_video": "{{noi_dau_hinh}}, quick, real speed",
+     "co": "mcu",
+     "loi": "{{noi_dau}}"
+    },
+    {
+     "giay": 2.5,
+     "loai": "giai_phap",
+     "goc_may": "Extreme close-up, product feature fills the frame",
+     "hanh_dong": "{{dac_tinh_hinh}}",
+     "chu_man": "{{dac_tinh}}",
+     "nv": [
+      "sp",
+      "bc"
+     ],
+     "prompt_anh": "Extreme close-up, the key feature is clearly visible: {{dac_tinh_hinh}}; product: {{san_pham_hinh}}; {{boi_canh}} softly blurred behind",
+     "prompt_video": "{{dac_tinh_hinh}}, quick and clear",
+     "co": "ecu",
+     "loi": "{{dac_tinh}}"
+    },
+    {
+     "giay": 2.5,
+     "loai": "demo",
+     "goc_may": "Medium shot",
+     "hanh_dong": "{{demo_hinh}}",
+     "chu_man": "{{demo}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{boi_canh}}",
+     "prompt_video": "{{demo_hinh}}",
+     "co": "ms",
+     "loi": "{{demo}}"
+    },
+    {
+     "giay": 2.5,
+     "loai": "demo",
+     "goc_may": "Medium shot, real moment",
+     "hanh_dong": "{{vi_du_1_hinh}}",
+     "chu_man": "{{vi_du_1}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}: {{vi_du_1_hinh}}, {{boi_canh}}",
+     "prompt_video": "{{vi_du_1_hinh}}",
+     "co": "ms",
+     "loi": "{{vi_du_1}}"
+    },
+    {
+     "giay": 2,
+     "loai": "bang_chung",
+     "goc_may": "Medium close-up",
+     "hanh_dong": "Smiling at camera",
+     "chu_man": "{{review}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, warm smile at camera, {{boi_canh}}",
+     "prompt_video": "Small happy laugh",
+     "co": "mcu"
+    },
+    {
+     "giay": 2.5,
+     "loai": "end_card",
+     "goc_may": "Medium shot, hero",
+     "hanh_dong": "{{nhan_vat_ten}} wearing the product, smiling confidently at camera",
+     "chu_man": "{{san_pham}} · {{uu_dai}}",
+     "nv": [
+      "sp",
+      "nv",
+      "bc"
+     ],
+     "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
+     "prompt_video": "She smiles and gives a small confident nod, slow push-in",
+     "co": "ms",
+     "loi": "{{san_pham}}. {{uu_dai}}."
+    }
+   ]
   }
  ]
 }

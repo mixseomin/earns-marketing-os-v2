@@ -45,6 +45,11 @@ export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
                 <div key={x.key} className="xv-canh" title={x.prompt ? `prompt: ${x.prompt}` : undefined}>
                   <b style={{ fontSize: 12 }}>{x.ten}</b> <span className="xv-mono">{x.key}</span>
                   <div style={{ fontSize: 11.5, color: 'var(--fg-2)', marginTop: 2 }}>{x.mo_ta}</div>
+                  {x.nganh && <details style={{ marginTop: 4 }}><summary className="xv-mono" style={{ cursor: 'pointer' }}>📘 Ngành mô tả · {x.nganh.ten_nganh}</summary>
+                    <dl style={{ fontSize: 11.5, color: 'var(--fg-2)', margin: '4px 0 0', display: 'grid', gap: 3 }}>
+                      {([['Mở → kết', x.nganh.dau_cuoi], ['Thực hiện', x.nganh.thuc_hien], ['Khi nào dùng', x.nganh.dong_co], ['Khán giả cảm', x.nganh.cam_xuc], ['Tránh', x.nganh.tranh], ['Nguồn', x.nganh.nguon]] as const).map(([t, v]) => <div key={t}><b>{t}:</b> {v}</div>)}
+                      {x.may_di && <div className="xv-mono">máy 3D: {x.may_di.kieu}{x.may_di.ti_le ? ` · chủ thể ×${x.may_di.ti_le}` : ''}{x.may_di.goc ? ` · ${x.may_di.goc}°` : ''} · {x.may_di.toc}</div>}
+                    </dl></details>}
                 </div>
               ))}
             </div>

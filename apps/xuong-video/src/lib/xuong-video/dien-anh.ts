@@ -3,11 +3,14 @@
 // Claude chọn kỹ thuật cho từng shot TỪ thư viện này (theo thể loại của phim); `prompt` (tiếng Anh) được ghép vào prompt ảnh/video
 // nên ảnh + clip ra đúng cỡ cảnh, ánh sáng, chuyển động. File thuần dữ liệu — client lẫn server import được.
 import { luatDung } from './luat-dung';
+import { NGANH, type NganhKyThuat, type MayDi } from './dien-anh-nganh';
+export type { NganhKyThuat, MayDi } from './dien-anh-nganh';
 
 export type TheLoai = 'hoat_hinh' | 'phieu_luu' | 'kinh_di' | 'hanh_dong' | 'tinh_cam' | 'hai' | 'chinh_kich' | 'vien_tuong' | 'tai_lieu' | 'qc_ugc' | 'qc_cao_cap';
-export type NhomKyThuat = 'vai' | 'co_canh' | 'goc' | 'chuyen_dong' | 'toc_do' | 'ong_kinh' | 'anh_sang' | 'mau' | 'chuyen_canh' | 'am_thanh' | 'nhac';
+export type NhomKyThuat = 'vai' | 'co_canh' | 'goc' | 'chuyen_dong' | 'dien_xuat' | 'toc_do' | 'ong_kinh' | 'anh_sang' | 'mau' | 'chuyen_canh' | 'am_thanh' | 'nhac';
 /** xfade/nhom_cc/giay_cc: riêng nhóm chuyển cảnh — kiểu ffmpeg xfade mà BẢN XUẤT dựng thật giữa shot này và shot sau, nhóm kiểu CapCut, độ dài (giây). */
-export type KyThuat = { key: string; nhom: NhomKyThuat; ten: string; mo_ta: string; prompt: string; the_loai: TheLoai[] | 'tat_ca'; xfade?: string; nhom_cc?: NhomChuyenCanh; giay_cc?: number };
+/** nganh = mô tả ngành đầy đủ (khung mở → kết, cách làm, động cơ, tác động, lỗi hay gặp, nguồn) và may_di = phần số cho máy 3D — dien-anh-nganh.ts. */
+export type KyThuat = { key: string; nhom: NhomKyThuat; ten: string; mo_ta: string; prompt: string; the_loai: TheLoai[] | 'tat_ca'; xfade?: string; nhom_cc?: NhomChuyenCanh; giay_cc?: number; nganh?: NganhKyThuat; may_di?: MayDi };
 export type NhomChuyenCanh = 'cat' | 'co_ban' | 'truot' | 'quet' | 'hinh' | 'dong';
 /** Nhóm hiệu ứng chuyển cảnh (kiểu CapCut) — để chọn theo nhóm. 'cat' = cắt thẳng/kỹ thuật dựng không có hiệu ứng hình. */
 export const NHOM_CHUYEN_CANH: { key: NhomChuyenCanh; ten: string }[] = [
@@ -33,7 +36,7 @@ export const THE_LOAI: { key: TheLoai; ten: string; mo_ta: string }[] = [
 ];
 
 export const NHOM_KY_THUAT: { key: NhomKyThuat; ten: string; icon: string }[] = [
-  { key: 'vai', ten: 'Vai kể / điểm nhìn', icon: '👁' }, { key: 'co_canh', ten: 'Cỡ cảnh', icon: '🔲' }, { key: 'goc', ten: 'Góc máy', icon: '📐' }, { key: 'chuyen_dong', ten: 'Chuyển động máy', icon: '🎥' }, { key: 'toc_do', ten: 'Tốc độ (dựng)', icon: '⏩' },
+  { key: 'vai', ten: 'Vai kể / điểm nhìn', icon: '👁' }, { key: 'co_canh', ten: 'Cỡ cảnh', icon: '🔲' }, { key: 'goc', ten: 'Góc máy', icon: '📐' }, { key: 'chuyen_dong', ten: 'Chuyển động máy', icon: '🎥' }, { key: 'dien_xuat', ten: 'Diễn xuất cảm xúc', icon: '🎭' }, { key: 'toc_do', ten: 'Tốc độ (dựng)', icon: '⏩' },
   { key: 'ong_kinh', ten: 'Ống kính', icon: '🔭' }, { key: 'anh_sang', ten: 'Ánh sáng', icon: '💡' }, { key: 'mau', ten: 'Màu', icon: '🎨' },
   { key: 'chuyen_canh', ten: 'Chuyển cảnh', icon: '✂' }, { key: 'am_thanh', ten: 'Âm thanh', icon: '🔊' }, { key: 'nhac', ten: 'Nhạc', icon: '🎵' },
 ];
@@ -54,7 +57,7 @@ export function chuyenCanhGiua(key: string | undefined, phatTruoc: number, phatS
   return d >= 0.1 ? { kt, xfade: kt.xfade, d, muon } : null;
 }
 
-export const THU_VIEN: KyThuat[] = [
+const THU_VIEN_GOC: KyThuat[] = [
   // ── Vai kể / điểm nhìn (14/10/2026 — "shot thiếu góc người thứ 3, góc tổng thể, góc tâm trạng, dẫn thời gian"): shot này kể bằng mắt
   // AI và để làm gì trong cảnh. Cỡ cảnh nói khung rộng/hẹp; vai nói chức năng. Cổng tiền kỳ đòi đủ vai (nhip-hinh.ts › kiemVaiKe).
   k('vai', 'thiet_lap', 'Thiết lập (nơi + thời điểm)', 'Cho thấy ĐANG Ở ĐÂU và LÚC NÀO trước khi chuyện xảy ra: cả nơi chốn + giờ trong ngày qua ánh sáng.', 'establishing shot that shows where and when: the whole place and the time of day told by its light', T),
@@ -100,6 +103,23 @@ export const THU_VIEN: KyThuat[] = [
   k('chuyen_dong', 'quat', 'Quất nhanh (whip pan)', 'Lia cực nhanh nhòe hình — nhịp hài hoặc chuyển cảnh năng lượng.', 'fast whip pan with motion blur', ['hai', 'hanh_dong', 'qc_ugc']),
   k('chuyen_dong', 'doi_net', 'Đổi nét (rack focus)', 'Chuyển nét từ vật này sang vật kia — dẫn mắt, tiết lộ.', 'rack focus shifting from foreground to background', ['kinh_di', 'chinh_kich', 'tinh_cam', 'qc_cao_cap']),
   k('chuyen_dong', 'zoom_gat', 'Zoom gắt (crash zoom)', 'Zoom vào cực nhanh — sốc, hài, nhấn mạnh.', 'sudden crash zoom', ['hai', 'kinh_di', 'qc_ugc']),
+  k('chuyen_dong', 'zoom_cham', 'Zoom chậm (slow zoom)', 'Máy đứng yên, tiêu cự đổi chậm — như có người đang quan sát từ xa; áp lực dồn dần.', 'very slow optical zoom in from a fixed camera position, perspective unchanged, observational', ['chinh_kich', 'kinh_di', 'tai_lieu']),
+  k('chuyen_dong', 'cau_xuong', 'Cẩu xuống (crane down)', 'Máy hạ từ trên cao xuống đúng tầm mắt nhân vật — dẫn khán giả từ nơi chốn vào người.', 'crane shot descending from high above down to the character\'s eye level', ['phieu_luu', 'hoat_hinh', 'chinh_kich', 'qc_cao_cap']),
+  k('chuyen_dong', 'dan_truoc', 'Dẫn trước (leading shot)', 'Máy lùi trước mặt nhân vật đang đi tới — thấy nét mặt suốt hành trình.', 'leading shot: the camera tracks backwards in front of the character walking toward it, face always readable', ['phieu_luu', 'hoat_hinh', 'chinh_kich', 'hanh_dong']),
+  // ── Diễn xuất cảm xúc (15/10/2026 — "mắt nhân vật rưng rưng… lưu vào thư viện"): nhịp diễn của shot — đi vào prompt video; mô tả ngành ở dien-anh-nganh.ts.
+  k('dien_xuat', 'mat_rung_rung', 'Mắt rưng rưng', 'Mí dưới đầy nước, mắt long lanh, cố kìm rồi một giọt lăn — mất mát, được tha thứ.', 'eyes slowly welling up with tears, glistening, the character fights them back, then a single tear rolls down', ['tinh_cam', 'chinh_kich', 'hoat_hinh']),
+  k('dien_xuat', 'moi_run', 'Môi run, cằm run', 'Cố không khóc: môi mím, cằm run nhẹ, hít một hơi run.', 'chin quivering and lower lip trembling as the character tries not to cry', ['tinh_cam', 'chinh_kich', 'hoat_hinh']),
+  k('dien_xuat', 'nuot_khan', 'Nuốt khan', 'Thấy nguy, nuốt "ực" thấy rõ, người co lại.', 'a big visible nervous gulp, the body shrinking slightly', T),
+  k('dien_xuat', 'nin_tho', 'Khựng, nín thở', 'Đang cử động thì đứng hình một nhịp rồi mới phản ứng.', 'freezes completely for a beat, holding breath, only the eyes move', T),
+  k('dien_xuat', 'nhin_lai_hai_lan', 'Nhìn lại hai lần (double take)', 'Liếc qua như không có gì, quay đi, rồi quay phắt lại mắt mở to.', 'classic double take: a casual glance away, then a sharp snap back with wide eyes', ['hai', 'hoat_hinh', 'qc_ugc']),
+  k('dien_xuat', 'take_cuong_dieu', 'Bật ngửa cường điệu (cartoon take)', 'Nén người rồi bung cường điệu, mắt lồi, giữ một nhịp.', 'cartoon take: a quick squash of anticipation, then an exaggerated stretch with bulging eyes, held for a beat before settling', ['hai', 'hoat_hinh']),
+  k('dien_xuat', 'chop_mat_cham', 'Chớp mắt chậm (deadpan)', 'Nhìn thẳng, nhắm mở mắt thật chậm, mặt không đổi — "thật hả?".', 'a slow deadpan blink, face otherwise unchanged', ['hai', 'hoat_hinh', 'qc_ugc']),
+  k('dien_xuat', 'liec_mat', 'Liếc mắt', 'Đầu yên, chỉ mắt đảo sang mục tiêu — toan tính, nghi ngờ, mở chuỗi nhìn → thấy → làm.', 'eyes dart sideways toward the target while the head stays still', T),
+  k('dien_xuat', 'nhan_ra', 'Nhận ra', 'Ánh mắt dừng lại, đồng tử mở, hít nhẹ — ý nghĩ hiện trên mắt trước khi mặt đổi.', 'a realization beat: the gaze stops, pupils widen, a small intake of breath, then the expression changes', T),
+  k('dien_xuat', 'cuoi_qua_nuoc_mat', 'Cười qua nước mắt', 'Mắt còn ướt mà khoé môi nhích lên — nghẹn ngào mà ấm.', 'a small smile breaking through tears', ['tinh_cam', 'chinh_kich', 'hoat_hinh']),
+  k('dien_xuat', 'rung_minh', 'Rùng mình ghê sợ', 'Sóng rùng mình chạy từ đầu xuống chân, nhăn mũi, lùi lại.', 'a full-body disgusted shudder rippling from top to bottom, nose wrinkled', ['hai', 'hoat_hinh']),
+  k('dien_xuat', 'xiu_vai', 'Xìu xuống', 'Thở ra, người xẹp xuống, đầu cúi, tóc rũ theo — thất vọng.', 'deflates with a sigh, body sagging and head drooping, hair drooping with it', T),
+  k('dien_xuat', 'cuoi_ranh_manh', 'Cười ranh mãnh', 'Mắt hẹp lại, nhếch mép, xoa hai tay — vừa nảy ra kế.', 'eyes narrow into a sly one-sided grin, rubbing hands together', ['hai', 'hoat_hinh']),
   // Máy hiện đại (12/10/2026) — kiểu trailer/TikTok hành động; prompt viết theo cách Veo hiểu được trong một clip 4–8s.
   k('chuyen_dong', 'fpv', 'Drone FPV lao', 'Drone FPV bổ nhào, luồn sát qua khe hẹp tốc độ cao — mở cảnh hành động, cảm giác bay.', 'FPV drone shot diving fast and weaving through tight gaps at high speed, banking turns, kinetic', ['hanh_dong', 'phieu_luu', 'vien_tuong', 'qc_cao_cap']),
   k('chuyen_dong', 'dolly_zoom', 'Dolly zoom (vertigo)', 'Máy lùi trong khi zoom vào — nhân vật đứng yên, hậu cảnh giãn ra: khoảnh khắc choáng, nhận ra sự thật.', 'dolly zoom vertigo effect, subject stays the same size while the background stretches and warps', ['hanh_dong', 'kinh_di', 'chinh_kich', 'vien_tuong']),
@@ -219,6 +239,8 @@ export const THU_VIEN: KyThuat[] = [
   k('nhac', 'khong', 'Không nhạc', 'Để thoại/âm thật tự nói.', '', T),
 ];
 
+/** Thư viện đầy đủ: mỗi kỹ thuật kèm mô tả ngành + phần số máy (nếu có) từ dien-anh-nganh.ts. */
+export const THU_VIEN: KyThuat[] = THU_VIEN_GOC.map((x) => { const n = NGANH[`${x.nhom}.${x.key}`]; return n ? { ...x, nganh: n.nganh, ...(n.may_di ? { may_di: n.may_di } : {}) } : x; });
 export const kyThuat = (key: string | undefined, nhom?: NhomKyThuat) => (key ? THU_VIEN.find((x) => x.key === key && (!nhom || x.nhom === nhom)) : undefined);
 export const hopTheLoai = (x: KyThuat, tl: TheLoai | undefined) => x.the_loai === 'tat_ca' || !tl || x.the_loai.includes(tl);
 /** Kỹ thuật của một nhóm, cái hợp thể loại đứng trước. */
@@ -233,10 +255,11 @@ export function promptKyThuatAnh(kt: KyThuatShot | undefined): string {
 export function promptKyThuatVideo(kt: KyThuatShot | undefined): string {
   if (!kt) return '';
   const may = kyThuat(kt.chuyen_dong, 'chuyen_dong')?.prompt;
+  const dien = kyThuat(kt.dien_xuat, 'dien_xuat')?.prompt;
   const ket = kyThuat(kt.chuyen_canh, 'chuyen_canh')?.prompt;
   const am = (kt.am_thanh ?? []).map((x) => kyThuat(x, 'am_thanh')?.prompt).filter(Boolean);
   const nhac = kyThuat(kt.nhac, 'nhac')?.prompt;
-  return [may && `Camera: ${may}.`, ket && `${ket}.`, am.length ? `Sound: ${am.join(', ')}.` : '', nhac ? `Music: ${nhac}.` : ''].filter(Boolean).join(' ');
+  return [may && `Camera: ${may}.`, dien && `Performance: ${dien}.`, ket && `${ket}.`, am.length ? `Sound: ${am.join(', ')}.` : '', nhac ? `Music: ${nhac}.` : ''].filter(Boolean).join(' ');
 }
 /** Nhãn tiếng Việt ngắn của các kỹ thuật đã chọn — hiện trên thẻ shot / timeline. */
 /** Kỹ thuật đã chọn của một shot, đủ nhóm + mô tả — nguồn cho nhãn ngắn (thẻ shot, bảng ＋) và hover chi tiết. */

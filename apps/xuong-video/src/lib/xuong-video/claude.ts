@@ -29,6 +29,7 @@ const KyThuatSchema = z.object({
   luat: z.array(z.string()).describe(`Mã LUẬT DỰNG CẢNH (thư viện) mà shot này thực hiện — 1-3 mã, vd shot mở = ["dan_khong_gian","dan_thoi_gian"], shot phản ứng = ["du_diem_nhin"]. Một mã trong: ${LUAT_DUNG_CANH.map((l) => l.key).join(', ')}`),
   vai: enumNhom('vai').describe('VAI KỂ của shot — kể bằng mắt ai, để làm gì (luật 13–14). Một key trong: thiet_lap, thoi_gian, tong_the, hanh_trinh, hanh_dong, nguoi_thu_ba, chu_quan, phan_ung, chi_tiet, tam_trang'),
   co_canh: enumNhom('co_canh'), goc: enumNhom('goc'), chuyen_dong: enumNhom('chuyen_dong'), ong_kinh: enumNhom('ong_kinh'),
+  dien_xuat: enumNhom('dien_xuat').describe(`NHỊP DIỄN cảm xúc chính của shot (mắt rưng rưng, nhìn lại hai lần, nhận ra…) — rỗng nếu shot không có nhịp diễn cảm xúc. Một key trong: ${THU_VIEN.filter((x) => x.nhom === 'dien_xuat').map((x) => x.key).join(', ')}`),
   anh_sang: enumNhom('anh_sang'), mau: enumNhom('mau'), chuyen_canh: enumNhom('chuyen_canh'),
   am_thanh: z.array(enumNhom('am_thanh')).describe('1-2 lớp âm thanh hiện trường của shot'), nhac: enumNhom('nhac'),
 });

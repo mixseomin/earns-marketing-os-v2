@@ -40,3 +40,5 @@ assert.deepStrictEqual(oMaTran(ds, 24736, { dong: 'ugc', khuon: 'so_sanh' }), [5
 assert.deepStrictEqual(oMaTran(ds, 24736, { dong: 'ngoai', khuon: '' }), [5]);
 assert.ok(COT_KHUON.length >= 17 && new Set(COT_KHUON.map((k) => `${k.dong}.${k.khuon}`)).size === COT_KHUON.length, 'cột khuôn không trùng');
 console.log('kho-creative.test: ok');
+assert.strictEqual(new Set(COT_KHUON.map((k) => k.ngan)).size, COT_KHUON.length, `viết tắt cột khuôn trùng: ${COT_KHUON.map((k) => k.ngan).join(' ')}`);
+console.log('kho-creative.test: viết tắt không trùng ok', COT_KHUON.map((k) => k.ngan).join(' '));

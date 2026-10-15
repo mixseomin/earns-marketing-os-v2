@@ -128,11 +128,11 @@ function BangCreative({ d, goc, locGoc, setLocGoc, chon, setChon, onMoPhim, onSo
                   return (
                     <tr key={`${g.ten}-${c.id}`} style={{ background: chon.includes(c.id) ? 'color-mix(in srgb, var(--cyan) 8%, transparent)' : undefined }}>
                       <td style={o}><input type="checkbox" checked={chon.includes(c.id)} onChange={() => doi(c.id)} aria-label={`chọn #${c.id}`} /></td>
-                      <td style={o}>
-                        <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <td style={{ ...o, minWidth: 260 }}>
+                        <span style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0 }}>
                           <span style={{ width: 22, height: 32, flexShrink: 0, borderRadius: 3, border: '1px solid var(--line)', background: c.anh ? `center / cover no-repeat url(${anhNho(c.anh, 160)}), #111` : 'var(--bg-2)' }} />
-                          <button type="button" onClick={() => onMoPhim(c.id)} title={`#${c.id} · ${c.so_shot} shot${c.xuat ? ' · đã xuất' : ''}`} style={{ all: 'unset', cursor: 'pointer', fontWeight: 700 }}>{c.ten.replace(/^[^·]*·\s*/, '')}</button>
-                          {c.sua_sau_xuat && <span style={{ ...mono, color: 'var(--red)', border: '1px solid var(--red)', borderRadius: 4, padding: '0 4px' }} title="Có shot sửa sau lần xuất gần nhất — bản xuất đang dùng đã cũ">sửa sau xuất</span>}
+                          <button type="button" onClick={() => onMoPhim(c.id)} title={`#${c.id} · ${c.ten} · ${c.so_shot} shot${c.xuat ? ' · đã xuất' : ''}`} style={{ all: 'unset', cursor: 'pointer', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 300 }}>{c.ten.replace(/^[^·]*·\s*/, '')}</button>
+                          {c.sua_sau_xuat && <span style={{ ...mono, color: 'var(--red)', border: '1px solid var(--red)', borderRadius: 4, padding: '0 4px', whiteSpace: 'nowrap' }} title="Có shot sửa sau lần xuất gần nhất — bản xuất đang dùng đã cũ">sửa sau xuất</span>}
                         </span>
                       </td>
                       <td style={o}>{chinh ? <ChipGoc g={chinh} on={() => setLocGoc(chinh.id)} /> : <span style={mono}>chưa gắn</span>}{phu.length > 0 && <span style={{ ...mono, marginLeft: 4 }} title={phu.map((x) => `${loaiGocSpy(x.loai).ic} ${x.ten}`).join('\n')}>+{phu.length}</span>}</td>
@@ -183,7 +183,9 @@ function BanDo({ d, goc, onMoPhim, onMoGoc }: { d: KhoSanPham; goc: (GocSpy & { 
         </tbody>
       </table>
       {mo && (() => {
-        const ds = goc.filter((g) => g.loai === mo);
+        // Góc ĐÃ có creative lên đầu (không thì góc dùng nhiều nhất có thể rơi khỏi 12 dòng đầu), rồi theo lượt nhắc.
+        const coCr = (id: number) => d.creative.some((c) => c.goc.some((x) => x.id === id));
+        const ds = goc.filter((g) => g.loai === mo).sort((a, b) => Number(coCr(b.id)) - Number(coCr(a.id)) || b.so_nhac - a.so_nhac);
         const hien = het ? ds : ds.slice(0, 12);
         const cotK = COT_KHUON.filter((k) => k.dong !== 'ngoai' || d.creative.some((x) => dongCua(x) === 'ngoai'));
         return (

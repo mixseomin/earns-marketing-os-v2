@@ -98,13 +98,19 @@ export function banDo(cr: Pick<CreativeKho, 'id' | 'goc' | 'tpl'>[]): Record<str
   return o;
 }
 /** Khuôn (cột ma trận) theo thứ tự DONG_TEMPLATE, cộng cột "ngoài template". */
-export const COT_KHUON: { dong: string; khuon: string; ten: string; ngan: string }[] = [
-  ...DONG_TEMPLATE.flatMap((d) => d.khuon.map((k) => ({ dong: d.key, khuon: k.key, ten: k.ten, ngan: vietTat(k.ten) }))),
-  { dong: 'ngoai', khuon: '', ten: 'Ngoài template', ngan: 'NT' },
-];
-function vietTat(ten: string): string {
-  const w = ten.replace(/[^\p{L}\s]/gu, ' ').split(/\s+/).filter(Boolean);
-  return ((w[0]?.[0] ?? '') + (w[1]?.[0] ?? w[0]?.[1] ?? '')).toUpperCase();
+export const COT_KHUON: { dong: string; khuon: string; ten: string; ngan: string }[] = vietTatKhongTrung([
+  ...DONG_TEMPLATE.flatMap((d) => d.khuon.map((k) => ({ dong: d.key, khuon: k.key, ten: k.ten }))),
+  { dong: 'ngoai', khuon: '', ten: 'Ngoài template' },
+]);
+/** Viết tắt 2 chữ cho tiêu đề cột ma trận, KHÔNG trùng nhau (Chữ động / Chia đôi từng cùng ra "CĐ"): trùng thì lấy chữ kế tiếp của từ thứ hai. */
+function vietTatKhongTrung<T extends { ten: string }>(ds: T[]): (T & { ngan: string })[] {
+  const dung = new Set<string>();
+  return ds.map((k) => {
+    const w = k.ten.replace(/[^\p{L}\s]/gu, ' ').split(/\s+/).filter(Boolean);
+    const dau = (w[0]?.[0] ?? '').toUpperCase(); const sau = (w.slice(1).join('') || w[0]?.slice(1) || 'X').toUpperCase();
+    let ngan = dau + sau[0]; for (let i = 1; dung.has(ngan) && i < sau.length; i++) ngan = dau + sau[i];
+    dung.add(ngan); return { ...k, ngan };
+  });
 }
 /** Creative ở ô (góc × khuôn). */
 export const oMaTran = (cr: Pick<CreativeKho, 'id' | 'goc' | 'tpl'>[], gocId: number, cot: { dong: string; khuon: string }) =>

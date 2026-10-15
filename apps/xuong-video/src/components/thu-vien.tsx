@@ -42,7 +42,7 @@ export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
         if (!ds.length) return null;
         return (
           <details key={n.key} className="xv-det xv-panel" open={n.key === 'vai'}>
-            <summary>{n.icon} {n.ten} <small>{ds.length}</small></summary>
+            <summary title={`${ds.length} kỹ thuật`}>{n.icon} {n.ten}</summary>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 6, marginTop: 8 }}>
               {ds.map((x) => (
                 <div key={x.key} className="xv-canh" title={x.prompt ? `prompt: ${x.prompt}` : undefined}>

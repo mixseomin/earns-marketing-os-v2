@@ -78,7 +78,7 @@ function MauVaPhimDung({ d, onMoPhimChong }: { d: DuLieu; onMoPhimChong: (id: nu
           ))}
         </div>
       )}
-      <b style={{ fontSize: 12 }}>🎬 Phim đang dùng template này <span style={mono}>({d.phimDung.length})</span></b>
+      <b style={{ fontSize: 12 }} title={`${d.phimDung.length} phim`}>🎬 Phim đang dùng template này</b>
       {!d.phimDung.length ? <span style={mono}>chưa có phim nào — bấm "Tạo phim từ template"</span> : (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {d.phimDung.map((p) => <button key={p.id} type="button" className="xv-lienket xv-mono" style={{ opacity: p.luu_tru ? 0.5 : 1, textDecoration: p.luu_tru ? 'line-through' : undefined }} onClick={() => onMoPhimChong(p.id)} title={p.luu_tru ? 'đã lưu trữ · mở ở ngăn chồng' : 'mở phim ở ngăn chồng lên trên'}>#{p.id} {p.ten}</button>)}
@@ -123,15 +123,15 @@ export function KhoTemplate({ ds: dsVao, onMo }: { ds: Phim[]; onMo: (id: number
         const mo = gap[d.key] ?? cuaDong.length > 0;
         return (
           <section key={d.key} style={{ marginTop: 10 }}>
-            <button type="button" onClick={() => setGap((g) => ({ ...g, [d.key]: !mo }))} style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', background: 'none', border: 0, padding: 0, color: 'inherit', cursor: 'pointer', textAlign: 'left' }} title={mo ? 'Gập dòng này' : 'Mở dòng này'}>
+            <button type="button" onClick={() => setGap((g) => ({ ...g, [d.key]: !mo }))} style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', background: 'none', border: 0, padding: 0, color: 'inherit', cursor: 'pointer', textAlign: 'left' }} title={`${cuaDong.length} template · ${coKhuon.length}/${d.khuon.length} khuôn · bấm để ${mo ? 'gập' : 'mở'}`}>
               <b style={{ fontSize: 14 }}>{mo ? '▾' : '▸'} {d.ten}</b>
-              <span style={mono}>{cuaDong.length} template · {coKhuon.length}/{d.khuon.length} khuôn</span>
+              
               <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>{d.mo_ta}</span>
             </button>
             {mo && (
               <>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, margin: '6px 0 8px' }} title="Khuôn của dòng: viền liền = đã có template, gạch = chưa có">
-                  {d.khuon.map((k) => { const n = cua(d.key, k.key).length; return <Pill key={k.key} color={n ? 'var(--cyan)' : 'var(--fg-3)'} nhat={!n}>{k.ten}{n ? ` · ${n}` : ''}</Pill>; })}
+                  {d.khuon.map((k) => { const n = cua(d.key, k.key).length; return <Pill key={k.key} color={n ? 'var(--cyan)' : 'var(--fg-3)'} nhat={!n} title={n ? `${n} template` : 'chưa có template'}>{k.ten}</Pill>; })}
                 </div>
                 {cuaDong.length > 0 && <div style={luoi}>{d.khuon.flatMap((k) => cua(d.key, k.key).map((p) => the(p, k.ten)))}</div>}
               </>

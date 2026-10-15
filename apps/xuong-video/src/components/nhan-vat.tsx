@@ -191,7 +191,7 @@ export function BienTheDrawer({ a, khoa, kt, dangSinh, loiBt, onClose, onChanged
         const nh = ds.filter((b) => b.nhom === g.key);
         return (
           <div key={g.key} className="xv-panel" style={{ padding: 10 }}>
-            <h3 style={{ marginBottom: 6 }}>{g.label}<small>{nh.length}</small></h3>
+            <h3 style={{ marginBottom: 6 }} title={`${nh.length} mục`}>{g.label}</h3>
             {nh.length === 0 && <div style={mono}>chưa có</div>}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
               {nh.map((b) => <BienTheThe key={b.id} b={b} ly={lyAnh} dang={dangSinh.includes(b.id)} loiAnh={dangSinh.includes(b.id) ? '' : loiBt[b.id]} ban={ban === `x${b.id}`} chay={chay} />)}

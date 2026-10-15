@@ -68,11 +68,11 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
       {thieu.length > 0 && <div className="xv-banner">Máy chủ thiếu: {thieu.join(' · ')} — đặt trong .env.production rồi restart mos2-studio. Trang vẫn soạn được, nút sinh sẽ báo lỗi tới khi có khoá.</div>}
       <div className="xv-panel" style={{ padding: '8px 10px', marginBottom: 8, display: 'grid', gap: 6, flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Seg options={[{ value: 'phim' as const, label: `🎬 Phim ${dem.series + dem.quang_cao + dem.phim}` }, { value: 'template' as const, label: `🧩 Template ${dem.template}` }]} value={khoTab} onChange={setKhoTab} />
+          <Seg options={[{ value: 'phim' as const, label: '🎬 Phim', title: `${dem.series + dem.quang_cao + dem.phim} phim / bộ` }, { value: 'template' as const, label: '🧩 Template', title: `${dem.template} template` }]} value={khoTab} onChange={setKhoTab} />
           {khoTab === 'phim' && <>
-            <Seg options={[{ value: '' as const, label: 'Tất cả' }, ...(['series', 'quang_cao', 'phim'] as const).map((k) => ({ value: k, label: `${TEN_KIEU[k]} ${dem[k]}` }))]} value={locKieu} onChange={setLocKieu} />
+            <Seg options={[{ value: '' as const, label: 'Tất cả' }, ...(['series', 'quang_cao', 'phim'] as const).map((k) => ({ value: k, label: TEN_KIEU[k], title: `${dem[k]} ${TEN_KIEU[k].toLowerCase()}` }))]} value={locKieu} onChange={setLocKieu} />
             <input className="xv-in" style={{ width: 200 }} value={locTim} onChange={(e) => setLocTim(e.target.value)} placeholder="🔍 tìm phim, series, tập…" />
-            {soLuuTru > 0 && <label style={{ ...mono, display: 'flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={hienLuuTru} onChange={(e) => setHienLuuTru(e.target.checked)} />lưu trữ ({soLuuTru})</label>}
+            {soLuuTru > 0 && <label title={`${soLuuTru} bản lưu trữ`} style={{ ...mono, display: 'flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={hienLuuTru} onChange={(e) => setHienLuuTru(e.target.checked)} />lưu trữ</label>}
           </>}
           <span style={{ flex: 1 }} />
           <span style={mono} title="Đã tốn = ảnh + video theo giá niêm yết · giá mặc định Nano Banana 2.1 / Veo 3.1 Lite 720p">{phim.length} phim/bộ · {phim.reduce((a, p) => a + p.so_canh, 0)} cảnh · đã tốn {tien(tongTien)} · {tien(giaAnhCents('gemini-nano-banana-2.1'))}/ảnh · {tien(giaVideoCents('veo-3.1-lite-generate-preview', '720p', 8))}/8s</span>
@@ -141,7 +141,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
                 <section key={g.key}>
                   <div style={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', gap: 8, alignItems: 'baseline', padding: '5px 10px', background: 'var(--bg-2)', borderBottom: '1px solid var(--line)' }}>
                     <b style={{ fontSize: 12.5 }}>{bieuTuong(g.kieu)} {g.ten}</b>
-                    <span style={mono}>{TEN_KIEU[g.kieu]} · {g.kieu === 'quang_cao' ? `${g.phim.length} video · ${g.phim.reduce((a, p) => a + (p.so_anh_qc ?? 0), 0)} ảnh QC` : `${g.phim.length} phim · ${g.phim.reduce((a, p) => a + p.so_tap, 0)} tập`} · {tien(g.chi_phi_cents)}</span>
+                    <span style={mono} title={`${g.kieu === 'quang_cao' ? `${g.phim.length} video · ${g.phim.reduce((a, p) => a + (p.so_anh_qc ?? 0), 0)} ảnh QC` : `${g.phim.length} phim · ${g.phim.reduce((a, p) => a + p.so_tap, 0)} tập`} · ${tien(g.chi_phi_cents)}`}>{TEN_KIEU[g.kieu]}</span>
                   </div>
                   {g.phim.map((p) => dong(p))}
                 </section>
@@ -229,7 +229,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
       {tab !== 'phim' && tab !== 'so_do' && <div className="xv-panel">
         {(phim.loai === 'phim' || tap.length !== 1) && <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
           {tap.length > 0 && (
-            <Seg options={tap.map((t) => ({ value: t.id, label: `${phim.loai === 'phim' ? `Tập ${t.so}` : 'Tập'}${t.ten && t.ten !== phim.ten ? ` · ${t.ten}` : ''} (${t.so_canh})` }))} value={tapId ?? 0} onChange={(v) => tapParam.open('tap', v)} />
+            <Seg options={tap.map((t) => ({ value: t.id, label: `${phim.loai === 'phim' ? `Tập ${t.so}` : 'Tập'}${t.ten && t.ten !== phim.ten ? ` · ${t.ten}` : ''}`, title: `${t.so_canh} cảnh` }))} value={tapId ?? 0} onChange={(v) => tapParam.open('tap', v)} />
           )}
           {(phim.loai === 'phim' || tap.length === 0) && (
             <button type="button" className="xv-btn" onClick={async () => { const r = await taoTap(phim.id, ''); if (r.ok) { await tai(); tapParam.open('tap', r.data); } }}>+ Thêm tập</button>

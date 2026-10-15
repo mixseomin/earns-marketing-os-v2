@@ -131,8 +131,10 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
         );
       })()}
 
+      {/* key = mã phim: mở phim KHÁC trong cùng ngăn (🧩 từ #…, phim đang dùng template) phải dựng lại cả ngăn — giữ component cũ thì form tự lưu
+          của phim trước ghi đè sang phim mới (15/10/2026: kinh thánh #36 đè lên template #24). */}
       {modal.is('phim') && modal.numId != null && (
-        <PhimDrawer id={modal.numId} tapDau={tapMo} khoa={khoa} onClose={() => { modal.close(); void taiLai(); }} onXoa={async () => { await xoaPhim(modal.numId!); modal.close(); await taiLai(); }} />
+        <PhimDrawer key={modal.numId} id={modal.numId} tapDau={tapMo} khoa={khoa} onClose={() => { modal.close(); void taiLai(); }} onXoa={async () => { await xoaPhim(modal.numId!); modal.close(); await taiLai(); }} />
       )}
     </div>
     </MoHinhCtx.Provider>

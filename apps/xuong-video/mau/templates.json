@@ -570,7 +570,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}}, standing in {{boi_canh}}, looking at the camera with a tired frown, vertical phone photo, natural light",
-     "prompt_video": "She sighs and lifts her hands in mild frustration, handheld phone camera, slight push-in",
+     "prompt_video": "The person sighs and lifts their hands in mild frustration, handheld phone camera, slight push-in",
      "co": "ms"
     },
     {
@@ -600,7 +600,7 @@
       "bc"
      ],
      "prompt_anh": "Close-up: {{nhan_vat_hinh}}, {{noi_dau_2_hinh}}, soft window light",
-     "prompt_video": "She winces and rubs the spot, camera holds steady",
+     "prompt_video": "The person winces and rubs the spot, camera holds steady",
      "co": "ecu"
     },
     {
@@ -616,7 +616,7 @@
       "nv2",
       "bc"
      ],
-     "prompt_anh": "{{boi_canh}}. {{nhan_vat_hinh}}, sitting on the bed looking up; {{nguoi_2_hinh}}, standing in the doorway grinning, having just tossed a neatly folded {{san_pham_hinh}} in {{mau_chinh_hinh}} onto the quilt beside her. Vertical phone photo, natural light",
+     "prompt_anh": "{{boi_canh}}. {{nhan_vat_hinh}}, sitting on the bed looking up; {{nguoi_2_hinh}}, standing in the doorway grinning, having just tossed a neatly folded {{san_pham_hinh}} in {{mau_chinh_hinh}} onto the quilt beside them. Vertical phone photo, natural light",
      "prompt_video": "{{nguoi_2_ten}} tosses the folded product onto the bed, {{nhan_vat_ten}} picks it up and raises an eyebrow, handheld phone camera",
      "co": "ws",
      "bt": [
@@ -673,7 +673,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, {{loi_ich_2_hinh}}, {{boi_canh}}",
-     "prompt_video": "She turns slowly and smiles at her reflection",
+     "prompt_video": "The person turns slowly and smiles at their reflection",
      "co": "mcu",
      "bt": [
       "m1"
@@ -730,7 +730,7 @@
       "bc2"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, relaxed and smiling, {{boi_canh_2}}",
-     "prompt_video": "She laughs softly and leans back, gentle handheld",
+     "prompt_video": "The person laughs softly and leans back, gentle handheld",
      "co": "mcu",
      "bt": [
       "m1"
@@ -768,7 +768,7 @@
       "bc2"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}} in {{mau_chinh_hinh}}, standing tall and smiling confidently at the camera on {{boi_canh_2}}, warm golden hour light, vertical 9:16 hero shot, empty space in the lower third for text, no text",
-     "prompt_video": "She smiles and gives a small confident nod, gentle breeze, slow push-in",
+     "prompt_video": "The person smiles and gives a small confident nod, gentle breeze, slow push-in",
      "co": "cu",
      "bt": [
       "m1"
@@ -907,7 +907,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} holding up {{san_pham_hinh}} toward the camera, excited, {{boi_canh}}",
-     "prompt_video": "She lifts the product closer to camera with a big smile",
+     "prompt_video": "The person lifts the product closer to camera with a big smile",
      "co": "ms"
     },
     {
@@ -937,7 +937,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, {{boi_canh}}",
-     "prompt_video": "She turns to camera confidently",
+     "prompt_video": "The person turns to camera confidently",
      "co": "ms",
      "tk": [
       {
@@ -998,7 +998,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, smiling and nodding, {{boi_canh}}",
-     "prompt_video": "She nods and smiles at camera",
+     "prompt_video": "The person nods and smiles at camera",
      "co": "mcu"
     },
     {
@@ -1137,7 +1137,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, pointing down, {{boi_canh}}",
-     "prompt_video": "She points down with a smile",
+     "prompt_video": "The person points down with a smile",
      "co": "ms",
      "tk": [
       {
@@ -1302,8 +1302,8 @@
       "nv",
       "bc"
      ],
-     "prompt_anh": "Medium close-up mirror shot, three-quarter back view so her back and side fill the frame: {{nhan_vat_hinh}}, {{noi_dau_hinh}}; the problem is clearly visible on the fabric, {{boi_canh}}",
-     "prompt_video": "She shifts uncomfortably, fixed camera",
+     "prompt_anh": "Medium close-up mirror shot, three-quarter back view so their back and side fill the frame: {{nhan_vat_hinh}}, {{noi_dau_hinh}}; the problem is clearly visible on the fabric, {{boi_canh}}",
+     "prompt_video": "The person shifts uncomfortably, fixed camera",
      "co": "mcu"
     },
     {
@@ -1331,7 +1331,7 @@
       "sp",
       "bc"
      ],
-     "prompt_anh": "Hands hold the product up by its shoulder straps, hanging fully unfolded so its whole hip-length body shows, outer fabric facing the camera (the inside lining is not shown): {{san_pham_hinh}}",
+     "prompt_anh": "Hands shake out {{san_pham_hinh}} and hold it up in front of the mirror so its full shape shows, front facing the camera, the product clearly recognizable",
      "prompt_video": "Hands unfold the product",
      "co": "ecu",
      "tk": [
@@ -1392,7 +1392,7 @@
       "bc"
      ],
      "prompt_anh": "Same mirror selfie angle: {{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, confident and happy, {{boi_canh}}",
-     "prompt_video": "She straightens up and smiles, fixed camera",
+     "prompt_video": "The person straightens up and smiles, fixed camera",
      "co": "ms"
     },
     {
@@ -1423,7 +1423,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, {{loi_ich_2_hinh}}, {{boi_canh}}",
-     "prompt_video": "She turns slowly",
+     "prompt_video": "The person turns slowly",
      "co": "mcu"
     },
     {
@@ -1454,7 +1454,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, soft morning light, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
-     "prompt_video": "She smiles and gives a small confident nod, slow push-in",
+     "prompt_video": "The person smiles and gives a small confident nod, slow push-in",
      "co": "ms"
     }
    ],
@@ -1872,7 +1872,7 @@
       "bc"
      ],
      "prompt_anh": "Selfie close-up: {{nhan_vat_hinh}} talking to the front camera at arm's length, {{boi_canh}}",
-     "prompt_video": "She talks to the camera naturally, small head movements, handheld selfie",
+     "prompt_video": "The person talks to the camera naturally, small head movements, handheld selfie",
      "co": "mcu",
      "tk": [
       {
@@ -1909,7 +1909,7 @@
      "giay": 3,
      "loai": "noi_dau",
      "goc_may": "Selfie close-up",
-     "hanh_dong": "She describes the old problem",
+     "hanh_dong": "The person describes the old problem",
      "chu_man": "{{noi_dau}}",
      "loi": "{{noi_dau}}",
      "noi": "{{nhan_vat_ten}}",
@@ -1918,15 +1918,15 @@
       "nv",
       "bc"
      ],
-     "prompt_anh": "Selfie close-up: {{nhan_vat_hinh}} rolling her eyes slightly, {{boi_canh}}",
-     "prompt_video": "She explains with a frustrated gesture, handheld selfie",
+     "prompt_anh": "Selfie close-up: {{nhan_vat_hinh}} rolling their eyes slightly, {{boi_canh}}",
+     "prompt_video": "The person explains with a frustrated gesture, handheld selfie",
      "co": "mcu"
     },
     {
      "giay": 3,
      "loai": "giai_phap",
      "goc_may": "Selfie medium, product held up",
-     "hanh_dong": "She holds the product up to the camera",
+     "hanh_dong": "The person holds the product up to the camera",
      "chu_man": "Then I found {{san_pham}}",
      "loi": "Then my friend sent me this.",
      "noi": "{{nhan_vat_ten}}",
@@ -1936,7 +1936,7 @@
       "bc"
      ],
      "prompt_anh": "Selfie: {{nhan_vat_hinh}} holding up {{san_pham_hinh}} to the camera, {{boi_canh}}",
-     "prompt_video": "She lifts the product into frame and turns it",
+     "prompt_video": "The person lifts the product into frame and turns it",
      "co": "ms",
      "tk": [
       {
@@ -1992,7 +1992,7 @@
      "giay": 3,
      "loai": "bang_chung",
      "goc_may": "Selfie close-up",
-     "hanh_dong": "She smiles, genuinely happy",
+     "hanh_dong": "The person smiles, genuinely happy",
      "chu_man": "I'm never going back",
      "loi": "Honestly? I'm never going back.",
      "noi": "{{nhan_vat_ten}}",
@@ -2003,7 +2003,7 @@
       "bc"
      ],
      "prompt_anh": "Selfie close-up: {{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, genuine smile, {{boi_canh}}",
-     "prompt_video": "She smiles and shakes her head in disbelief",
+     "prompt_video": "The person smiles and shakes their head in disbelief",
      "co": "mcu",
      "tk": [
       {
@@ -2040,7 +2040,7 @@
      "giay": 3,
      "loai": "tran_an",
      "goc_may": "Selfie medium",
-     "hanh_dong": "She points at the screen",
+     "hanh_dong": "The person points at the screen",
      "chu_man": "{{dam_bao}}",
      "loi": "And if it doesn't work for you, they make it right.",
      "noi": "{{nhan_vat_ten}}",
@@ -2049,7 +2049,7 @@
       "bc"
      ],
      "prompt_anh": "Selfie: {{nhan_vat_hinh}} pointing at the camera, {{boi_canh}}",
-     "prompt_video": "She points at the camera, friendly",
+     "prompt_video": "The person points at the camera, friendly",
      "co": "ms",
      "tk": [
       {
@@ -2529,7 +2529,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing or carrying {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
-     "prompt_video": "She smiles and gives a small confident nod, slow push-in",
+     "prompt_video": "The person smiles and gives a small confident nod, slow push-in",
      "co": "ms",
      "loi": "{{san_pham}}. {{uu_dai}}."
     }
@@ -2752,7 +2752,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
-     "prompt_video": "She smiles and gives a small confident nod, slow push-in",
+     "prompt_video": "The person smiles and gives a small confident nod, slow push-in",
      "co": "ms",
      "loi": "{{san_pham}}. {{uu_dai}}."
     }
@@ -2874,8 +2874,8 @@
       "nv",
       "bc"
      ],
-     "prompt_anh": "Phone selfie in the mirror: {{nhan_vat_hinh}} holding up {{san_pham_hinh}} next to her face, excited expression, {{boi_canh}}",
-     "prompt_video": "She lifts the product toward the mirror, excited, handheld phone",
+     "prompt_anh": "Phone selfie in the mirror: {{nhan_vat_hinh}} holding up {{san_pham_hinh}} next to their face, excited expression, {{boi_canh}}",
+     "prompt_video": "The person lifts the product toward the mirror, excited, handheld phone",
      "co": "ms"
     },
     {
@@ -2934,7 +2934,7 @@
       "bc"
      ],
      "prompt_anh": "Phone selfie in the mirror, side angle: {{nhan_vat_hinh}} wearing {{san_pham_hinh}}, {{loi_ich_2_hinh}}, {{boi_canh}}",
-     "prompt_video": "She turns slowly in the mirror",
+     "prompt_video": "The person turns slowly in the mirror",
      "co": "mcu"
     },
     {
@@ -2964,7 +2964,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
-     "prompt_video": "She smiles and gives a small confident nod, slow push-in",
+     "prompt_video": "The person smiles and gives a small confident nod, slow push-in",
      "co": "ms",
      "loi": "{{san_pham}}. {{uu_dai}}."
     }
@@ -3118,7 +3118,7 @@
       "bc"
      ],
      "prompt_anh": "Phone selfie in the mirror: {{nhan_vat_hinh}} wearing {{san_pham_hinh}} in {{mau_chinh_hinh}}, {{boi_canh}}",
-     "prompt_video": "She does a quick turn in the mirror",
+     "prompt_video": "The person does a quick turn in the mirror",
      "co": "ms",
      "loi": "{{mau_chinh}}"
     },
@@ -3134,7 +3134,7 @@
       "bc"
      ],
      "prompt_anh": "Phone selfie in the mirror: {{nhan_vat_hinh}} wearing {{san_pham_hinh}} in {{mau_2_hinh}} (not the main color), {{boi_canh}}",
-     "prompt_video": "She does a quick turn in the mirror",
+     "prompt_video": "The person does a quick turn in the mirror",
      "co": "ms",
      "loi": "{{mau_2}}"
     },
@@ -3150,7 +3150,7 @@
       "bc"
      ],
      "prompt_anh": "Phone selfie in the mirror: {{nhan_vat_hinh}} wearing {{san_pham_hinh}} in {{mau_3_hinh}} (not the main color), {{boi_canh}}",
-     "prompt_video": "She does a quick turn in the mirror",
+     "prompt_video": "The person does a quick turn in the mirror",
      "co": "ms",
      "loi": "{{mau_3}}"
     },
@@ -3195,7 +3195,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
-     "prompt_video": "She smiles and gives a small confident nod, slow push-in",
+     "prompt_video": "The person smiles and gives a small confident nod, slow push-in",
      "co": "ms",
      "loi": "{{san_pham}}. {{uu_dai}}."
     }
@@ -3322,14 +3322,14 @@
      "giay": 2.5,
      "loai": "hook",
      "goc_may": "Medium close-up, phone at arm's length",
-     "hanh_dong": "{{nhan_vat_ten}} reads a comment on her phone, then looks at camera",
+     "hanh_dong": "{{nhan_vat_ten}} reads a comment on their phone, then looks at camera",
      "chu_man": "{{binh_luan}}",
      "nv": [
       "nv",
       "bc"
      ],
-     "prompt_anh": "Phone selfie at arm's length: {{nhan_vat_hinh}} wearing {{san_pham_hinh}}, looking up from her phone at the camera with a knowing half-smile, {{boi_canh}}, empty upper third for a comment bubble",
-     "prompt_video": "She glances at her phone, then looks straight at the camera",
+     "prompt_anh": "Phone selfie at arm's length: {{nhan_vat_hinh}} wearing {{san_pham_hinh}}, looking up from their phone at the camera with a knowing half-smile, {{boi_canh}}, empty upper third for a comment bubble",
+     "prompt_video": "The person glances at their phone, then looks straight at the camera",
      "co": "mcu",
      "loi": "{{tra_loi}}",
      "kieu": {
@@ -3429,7 +3429,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
-     "prompt_video": "She smiles and gives a small confident nod, slow push-in",
+     "prompt_video": "The person smiles and gives a small confident nod, slow push-in",
      "co": "ms",
      "loi": "{{san_pham}}. {{uu_dai}}."
     }
@@ -3662,7 +3662,7 @@
       "bc"
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
-     "prompt_video": "She smiles and gives a small confident nod, slow push-in",
+     "prompt_video": "The person smiles and gives a small confident nod, slow push-in",
      "co": "ms",
      "loi": "{{san_pham}}. {{uu_dai}}."
     }

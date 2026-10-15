@@ -55,6 +55,10 @@ for (const t of tep.templates) {
   if (!t.mau_qc?.length || t.mau_qc.some((m) => !m.ma || !(m.video || m.anh) || !m.mo_ta)) throw new Error(`${t.key}: thiếu mẫu QC thắng (mau_qc: ma + video/ảnh + mo_ta) — chạy scripts/luu-mau-qc.mts <library_id>`);
   const ghiCung = anchorGhiCung(t.nhan_vat);
   if (ghiCung.length) throw new Error(`${t.key}: ${ghiCung.join('; ')}`);
+  // Template trung tính: người mẫu có thể nam hay nữ, sản phẩm có thể quần hay áo — chữ gắn giới / gắn kiểu áo làm phim nam ra người nữ (16/10/2026:
+  // 12 template viết sẵn 'She…', truoc_sau shot 3 tả 'shoulder straps … lining' → phim JettJeans #52–#55 mang prompt nữ / áo).
+  const ganGioi = t.shots.flatMap((s, i) => [s.prompt_anh, s.hanh_dong, s.prompt_video].filter((x): x is string => !!x).flatMap((x) => [...x.matchAll(/\b(she|her|hers|herself|he|him|his|himself)\b|shoulder straps?|hip-length|lining/gi)].map((m) => `shot ${i + 1}: "${m[0]}"`)));
+  if (ganGioi.length) throw new Error(`${t.key}: chữ gắn giới / gắn kiểu sản phẩm trong shot (dùng 'the person' / 'their' / ô {{…}}): ${ganGioi.join(', ')}`);
   const dongCua = DONG_TEMPLATE.find((x) => x.key === t.dong);
   if (!dongCua || !dongCua.khuon.some((k) => k.key === t.khuon)) throw new Error(`${t.key}: thiếu / sai dòng + khuôn (kieu.ts › DONG_TEMPLATE) — kho template xếp theo dòng → khuôn`);
   const cfg = { mo_ta: t.mo_ta, o, thu_tu: t.o, mau_qc: t.mau_qc, dong: t.dong, khuon: t.khuon };

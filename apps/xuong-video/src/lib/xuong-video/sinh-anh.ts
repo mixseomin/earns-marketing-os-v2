@@ -209,8 +209,25 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   const huongChu = kx && mHuong ? mHuong.vi_tri.filter((v) => !v.an && trongKhung.has(v.ten) && bc.nhanVat.some((n) => n.ten === v.ten && n.loai === 'nhan_vat'))
     .map((v) => { const h = huongVoiMay(mHuong, v, ket); return h ? `${v.ten}: ${h.chu}` : ''; }).filter(Boolean) : [];
   const huongCau = huongChu.length ? `CHARACTER FACING in this frame, exactly as Image 1 shows (overrides the pose in the reference sheets): ${huongChu.join('; ')}.` : '';
-  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), kxChu, trangCau, huongCau, tiLeCau, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
+  // CỠ NHÂN VẬT TRONG KHUNG bằng SỐ (15/10/2026, kiểm khung tập 19: #9 / #30 3D là cận mặt Tango mà keyframe vẽ cỡ trung — prompt chỉ bảo
+  // "theo bố cục ảnh 1", không nói chủ thể to bao nhiêu): chiều cao + vùng đo trên chính khung 3D (khung_xam.kiem / thay). Chỉ khung MỞ.
+  const framingCau = khungChu(bc.canh.khung_xam, nvKhung, ket);
+  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), kxChu, trangCau, huongCau, framingCau, tiLeCau, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
   return { prompt, urlRef, vai };
+}
+
+const vungEn = (x: number, y: number) => `${y < 0.36 ? 'upper' : y > 0.64 ? 'lower' : 'middle'} ${x < 0.36 ? 'left' : x > 0.64 ? 'right' : 'centre'}`;
+/** Câu FRAMING: "Tango about 85% of the frame height, middle centre (extreme close-up: …)". Thuần — kiểm ở sinh-anh.test. */
+export function khungChu(kx: Canh['khung_xam'] | null | undefined, ten: string[], ket = false): string {
+  if (ket || !kx?.kiem?.length || !ten.length) return '';
+  const ds = ten.map((t) => {
+    const k = kx.kiem!.find((x) => x.nhan_vat === t && x.trong_khung); const th = (kx.thay ?? []).find((x) => x.ten === t);
+    if (!k || !th) return '';
+    const cao = Math.round(k.cao_khung_pt / 5) * 5; const vt = vungEn((th.hop[0] + th.hop[2]) / 2, (th.hop[1] + th.hop[3]) / 2);
+    return cao >= 80 ? `${t} fills the frame (about ${Math.min(cao, 150)}% of the frame height — an extreme close-up, the frame edges crop the body), ${vt}`
+      : `${t} is about ${Math.max(cao, 5)}% of the frame height, ${vt}`;
+  }).filter(Boolean);
+  return ds.length ? `FRAMING measured on Image 1 — keep the same subject size and position, do NOT zoom out or in: ${ds.join('; ')}.` : '';
 }
 
 /** MỘT CẢNH MỘT MODEL ẢNH (luật mot_model_canh): keyframe của shot sinh bằng model khác với đa số keyframe cùng cảnh → không tiêu tiền video lên

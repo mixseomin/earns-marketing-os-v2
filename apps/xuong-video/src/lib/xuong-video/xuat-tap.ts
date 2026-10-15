@@ -7,7 +7,8 @@ import { chayXuat, ghiBanXuat } from './xuat-chay';
 import { kiemTieng } from './khop-giong';
 import { chanNguoiXem } from './nguoi-xem';
 import { docKinhThanh, locNhanh, type Canh } from './kieu';
-import { boiCanhTap, taoJob, xongJob, type Db, type Row } from './doc-db';
+import { boiCanhTap, taoJob, xongJob, mapCanh, type Db, type Row } from './doc-db';
+import { khopGiongTap } from './hau-ky';
 
 /** Kiểm cổng + tạo job; trả `chay` (promise dựng + ghi) để server action đẩy chạy nền, script thì đợi. */
 export async function batDauXuatTap(db: Db, tapId: number, canh: Canh[], nhanh?: string | null): Promise<{ ok: true; job: number; chay: () => Promise<{ loi?: string }> } | { ok: false; loi: string }> {
@@ -19,7 +20,16 @@ export async function batDauXuatTap(db: Db, tapId: number, canh: Canh[], nhanh?:
   // Cổng xuất: máy kiểm tiếng (khop-giong.ts › kiemTieng) — câu bị cắt / đè nhau / đọc quá nhanh thì không ra bản lỗi.
   const hieu = chanNguoiXem(bc.tap.thu_nguoi_xem, locNhanh(canh, 'A'));
   if (hieu.length) return { ok: false, loi: `Chưa xuất được — ${hieu[0]}` };
-  const tieng = kiemTieng(locNhanh(canh, nhanh || 'A'), bc.nhanVat);
+  let tieng = kiemTieng(locNhanh(canh, nhanh || 'A'), bc.nhanVat);
+  // Giây shot đổi SAU lượt tự khớp lúc sinh giọng (điền lại từ template, sửa giây tay, đổi clip) → câu dẫn tràn sang shot sau. Trước 15/10/2026
+  // cổng chỉ bảo "bấm ⏱ khớp giây theo giọng" và chờ người bấm; giờ tự khớp (0đ, có chụp trước để ↶ Hoàn tác) rồi đo lại, còn lỗi mới chặn.
+  if (tieng.length) {
+    const k = await khopGiongTap(db, tapId, 'tự khớp lúc xuất');
+    if (k.ok) {
+      canh = ((await db.execute(sql`SELECT c.* FROM xv_canh c WHERE c.tap_id = ${tapId} ORDER BY c.thu_tu, c.id`)) as unknown as Row[]).map(mapCanh);
+      tieng = kiemTieng(locNhanh(canh, nhanh || 'A'), bc.nhanVat);
+    }
+  }
   if (tieng.length) return { ok: false, loi: `Chưa xuất được — tiếng còn lỗi: ${tieng.slice(0, 4).join('; ')}${tieng.length > 4 ? `; +${tieng.length - 4} lỗi nữa` : ''}` };
   const kt = docKinhThanh(bc.kt);
   const job = await taoJob(db, { phim_id: bc.tap.phim_id, nhan: `Xuất bản · tập ${bc.tap.so}${nhanh ? ` · hook ${nhanh}` : ''}`, loai: 'xuat', provider: 'ffmpeg', model: 'ffmpeg', request: { tap_id: tapId, nhanh: nhanh ?? '' } });

@@ -111,15 +111,14 @@ K['Lint']['phan'] = [
     {'hinh': 'hop', 'co': [0.08, 0.08, 0.75], 'mau': '#2f7fe8', 'tam': [0.12, 0.1, 1.82], 'nghieng': -14},   # túm chỉ xanh dựng trên đỉnh (dấu nhận diện)
     {'hinh': 'trung', 'co': [0.32, 0.32, 0.42], 'mau': '#5f5f66', 'tam': [-0.42, -0.25, -0.18]},   # hai chân lông nhỏ
     {'hinh': 'trung', 'co': [0.32, 0.32, 0.42], 'mau': '#5f5f66', 'tam': [0.42, -0.25, -0.18]}]
-# Mr. Wipe = khăn lau trùm như con ma: thân nón rủ loe đáy, đầu tròn, mép tưa (gợn nhỏ quanh đáy), hai mắt trên đầu (không dùng `mat`: mắt tự gắn
+# Mr. Wipe = khăn lau trùm như con ma: thân nón rủ loe đáy, đầu tròn, hai mắt trên đầu (không dùng `mat`: mắt tự gắn
 # lên mặt cầu đầu, không lơ lửng trước thân nón).
 K['Mr. Wipe'].update({'hinh': 'non', 'co': [6.6, 3.8, 5.4], 'dinh': 0.5, 'mat': False})
 _mw = '#7f93a6'
 K['Mr. Wipe']['phan'] = [{'hinh': 'cau', 'co': [3.6, 3.1, 3.2], 'mau': _mw, 'tam': [0, 0, 3.6], 'chat': 'vai'},
     {'hinh': 'cau', 'co': [0.75, 0.4, 0.75], 'mau': '#f4f4f4', 'tam': [-0.66, -1.36, 5.4]}, {'hinh': 'cau', 'co': [0.75, 0.4, 0.75], 'mau': '#f4f4f4', 'tam': [0.66, -1.36, 5.4]},
-    {'hinh': 'cau', 'co': [0.36, 0.2, 0.36], 'mau': '#111111', 'tam': [-0.64, -1.54, 5.52]}, {'hinh': 'cau', 'co': [0.36, 0.2, 0.36], 'mau': '#111111', 'tam': [0.64, -1.54, 5.52]}] + [
-    {'hinh': 'cau', 'co': [1.4, 0.55, 0.45], 'mau': _mw, 'tam': [2.3 * math.cos(math.radians(g)), 1.3 * math.sin(math.radians(g)), -0.15], 'xoay': g + 90, 'chat': 'vai'}
-    for g in range(0, 360, 30)]   # mép khăn gợn sóng: gợn sát vành đáy nón (không văng ra như bàn chân)
+    {'hinh': 'cau', 'co': [0.36, 0.2, 0.36], 'mau': '#111111', 'tam': [-0.64, -1.54, 5.52]}, {'hinh': 'cau', 'co': [0.36, 0.2, 0.36], 'mau': '#111111', 'tam': [0.64, -1.54, 5.52]}]
+# (Vòng gợn mép khăn đã thử: thân nón bo tròn đáy khi làm mịn → vòng gợn tách ra lơ lửng dưới khăn như hào quang. Mép tưa để chất liệu vải lo.)
 # Kẹo dẻo hình GẤU: thân, đầu, hai tai, hai tay, hai chân (trước đây chồng ba quả cầu → model vẽ người tuyết đỏ).
 K['Gummy Bear'].update({'hinh': 'trung', 'co': [0.9, 0.65, 0.75]})
 K['Gummy Bear']['phan'] = [{'hinh': 'cau', 'co': [0.75, 0.6, 0.62], 'mau': '#d0202a', 'tam': [0, 0, 0.62], 'chat': 'keo'},

@@ -118,7 +118,7 @@ function BangCreative({ d, goc, locGoc, setLocGoc, chon, setChon, onMoPhim, onSo
       <div style={{ overflow: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
         {/* Cột cố định (table-layout fixed): bảng vừa bề ngang ngăn, chữ dài cắt + hover, không đẩy CTA / sản xuất ra ngoài. */}
         <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 1100, fontSize: 12, tableLayout: 'fixed' }}>
-          <colgroup><col style={{ width: 30 }} /><col style={{ width: '24%' }} /><col style={{ width: '20%' }} /><col style={{ width: 150 }} /><col /><col style={{ width: '13%' }} /><col style={{ width: 52 }} /><col style={{ width: 150 }} /></colgroup>
+          <colgroup><col style={{ width: 30 }} /><col style={{ width: '22%' }} /><col style={{ width: '17%' }} /><col style={{ width: 150 }} /><col /><col style={{ width: '12%' }} /><col style={{ width: 46 }} /><col style={{ width: 205 }} /></colgroup>
           <thead><tr><th style={th} /><th style={th}>Creative</th><th style={th}>Góc</th><th style={th}>Khuôn</th><th style={th}>Hook</th><th style={th}>CTA</th><th style={th} title="Ngôn ngữ">NN</th><th style={th}>Sản xuất</th></tr></thead>
           <tbody>
             {nhom.map((g) => (

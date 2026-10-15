@@ -35,3 +35,12 @@ console.log('cong-ai.ts: ok');
   console.log('cong-ai.test: người bán ckey ok'); }
 
 assert.strictEqual(TOI_DA_REF.ckey, 3, 'ckey nhận tối đa 3 ảnh tham chiếu (đo 15/10/2026)');
+
+// ShopAIKey hết tiền trá hình (403 "Model not found" khi khoá chạm trần): đọc số dư → câu hết tiền, laHetTien bắt được.
+{
+  const { loiHetTienShopaikey, laHetTien: ht } = await import('./cong-ai');
+  const l = loiHetTienShopaikey(20, 1982);
+  assert.ok(l && ht('shopaikey', l), 'còn $0,18 < một lượt → hết tiền');
+  assert.equal(loiHetTienShopaikey(20, 500), null, 'còn $15 → không phải hết tiền, giữ lỗi gốc');
+  assert.equal(loiHetTienShopaikey(undefined, 1982), null, 'không đọc được số dư → giữ lỗi gốc');
+}

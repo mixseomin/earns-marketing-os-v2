@@ -103,6 +103,23 @@ const vuaDat = (): Set<string> => new Set([...datCkey].filter(([, luc]) => Date.
 const ghiCkey = (id: string, ok: boolean) => { if (ok) { hongCkey.delete(id); datCkey.set(id, Date.now()); return; } const h = hongCkey.get(id); hongCkey.set(id, { lan: (h?.lan ?? 0) + 1, luc: Date.now() }); };
 const dangNghi = (): Set<string> => new Set([...hongCkey].filter(([, h]) => h.lan >= HONG_LIEN && Date.now() - h.luc < NGHI_PHUT * 60_000).map(([id]) => id));
 
+/** ShopAIKey HẾT TIỀN TRÁ HÌNH (15/10/2026): khoá có trần (hard_limit $20) dùng tới $19,82 → mọi lượt trả "HTTP 403: Model not found or invalid",
+ *  không phải câu hết tiền → laHetTien không bắt, không hiện báo nạp, 97 ảnh lặng lẽ rơi sang Google 874₫ thay 683₫ suốt 11 giờ. Cổng từ chối (4xx)
+ *  thì đọc số dư của khoá (billing kiểu OpenAI: trần $ + đã dùng cent); còn dưới một lượt → đổi lỗi thành câu hết tiền rõ ràng. Thuần phần quyết định. */
+export function loiHetTienShopaikey(tranUsd: number | undefined, daDungCent: number | undefined, toiThieuUsd = 0.5): string | null {
+  if (tranUsd == null || daDungCent == null || !Number.isFinite(tranUsd) || !Number.isFinite(daDungCent)) return null;
+  const con = tranUsd - daDungCent / 100;
+  return con < toiThieuUsd ? `hết tiền: khoá ShopAIKey đã dùng $${(daDungCent / 100).toFixed(2)} / trần $${tranUsd} (còn $${Math.max(0, con).toFixed(2)}) — nạp thêm vào key` : null;
+}
+async function hetTienShopaikey(k: string, status: number): Promise<string | null> {
+  if (status < 400 || status >= 500) return null;
+  try {
+    const h = { authorization: `Bearer ${k}` };
+    const [a, b] = await Promise.all(['subscription', 'usage'].map((x) => fetch(`https://api.shopaikey.com/v1/dashboard/billing/${x}`, { headers: h, signal: AbortSignal.timeout(15_000) }).then((r) => r.json()).catch(() => ({}))));
+    return loiHetTienShopaikey((a as { hard_limit_usd?: number }).hard_limit_usd, (b as { total_usage?: number }).total_usage);
+  } catch { return null; }
+}
+
 /** Gọi MỘT cổng sinh ảnh. Ảnh tham chiếu đi bằng URL công khai (R2). Hết giờ chờ: ShopAIKey vẫn trừ tiền → chờ đủ lâu (240s). */
 export async function sinhAnhCong(cong: CongKey, model: string, o: { prompt: string; thamChieuUrl: string[]; tiLe: TiLeAnh }): Promise<KqAnhCong> {
   const k = khoa(cong);
@@ -121,7 +138,10 @@ export async function sinhAnhCong(cong: CongKey, model: string, o: { prompt: str
     r = await fetch(url as string, { method: 'POST', headers: { authorization: `Bearer ${k}`, 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(cho as number) });
   } catch (e) { return { ok: false, loi: `không nhận được trả lời (${e instanceof Error ? e.name : 'lỗi mạng'})` }; }
   const j = (await r.json().catch(() => ({}))) as { data?: { url?: string; b64_json?: string }[]; model?: string; error?: { message?: string } | string; message?: string };
-  if (!r.ok) return { ok: false, status: r.status, loi: `HTTP ${r.status}: ${(typeof j.error === 'string' ? j.error : j.error?.message) || j.message || 'lỗi'}`.slice(0, 300) };
+  if (!r.ok) {
+    const het = cong === 'shopaikey' ? await hetTienShopaikey(k, r.status) : null;
+    return { ok: false, status: het ? 402 : r.status, loi: het ?? `HTTP ${r.status}: ${(typeof j.error === 'string' ? j.error : j.error?.message) || j.message || 'lỗi'}`.slice(0, 300) };
+  }
   const d = j.data?.[0];
   if (d?.b64_json) return { ok: true, data: Buffer.from(d.b64_json, 'base64'), mimeType: 'image/png', modelThat: j.model };
   if (d?.url) { const t = await taiVe(d.url); return t ? { ok: true, ...t, modelThat: j.model } : { ok: false, loi: 'không tải được ảnh cổng trả về' }; }
@@ -204,7 +224,10 @@ export async function guiVideoCong(cong: CongKey, model: string, o: { prompt: st
     });
     const j = (await r.json().catch(() => ({}))) as { task_id?: string; id?: string; error?: { message?: string }; message?: string };
     const id = j.task_id || j.id;
-    if (!r.ok || !id) return { ok: false, status: r.status, loi: `HTTP ${r.status}: ${j.error?.message || j.message || 'không nhận task'}`.slice(0, 300) };
+    if (!r.ok || !id) {
+      const het = await hetTienShopaikey(k, r.status);
+      return { ok: false, status: het ? 402 : r.status, loi: het ?? `HTTP ${r.status}: ${j.error?.message || j.message || 'không nhận task'}`.slice(0, 300) };
+    }
     return { ok: true, taskId: id };
   } catch (e) { return { ok: false, loi: `không gửi được (${e instanceof Error ? e.name : 'lỗi mạng'})` }; }
 }

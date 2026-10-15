@@ -69,6 +69,13 @@ export function kiemQc(opts: { loai: LoaiPhim; canh: ShotKiem[]; nhanVat: Pick<N
   // 5. CTA: shot cuối có chữ màn, và nhắc tới ưu đãi/hành động.
   const cuoi = ds[ds.length - 1]!;
   out.push({ key: 'cta', ok: !!cuoi.chu_man.trim(), chu: 'CTA có chữ màn', chiTiet: cuoi.chu_man.trim() ? undefined : 'Shot cuối phải có chữ: ưu đãi + hành động (mua ngay / xem size / bấm link)' });
+  // Tên sản phẩm trên màn kết (15/10/2026 phim #36: end card "Buy 1 Get 1 Free · XS–6XL…" không có tên — người xem tới cuối không biết mua gì;
+  // trước đó chỉ lượt kiểm người xem bằng Claude mới bắt được). Bản xuất tự gắn end card (có tên) khi shot cuối không phải cta/end_card → bỏ qua.
+  const ten = opts.qc?.ten?.trim();
+  if (ten && opts.loai === 'quang_cao' && (coMau(opts.qc) || ['cta', 'end_card'].includes(cuoi.phan_doan ?? '') || !opts.qc?.uu_dai?.trim())) {
+    const coTen = cuoi.chu_man.toLowerCase().includes(ten.toLowerCase());
+    out.push({ key: 'ten_cuoi', ok: coTen, chu: 'Màn kết có tên sản phẩm', chiTiet: coTen ? undefined : `Chữ màn shot cuối thiếu “${ten}” — người xem tới cuối không biết mua gì` });
+  }
   // 6. Trấn an trước CTA: một trong 3 shot cuối nhắc đổi trả / size / bảo hành / miễn phí ship (chữ màn hoặc thoại).
   const tranAn = /đổi|trả|hoàn|size|bảo hành|ship|miễn phí|return|exchange|refund|guarantee|free shipping|risk/i;
   const coTranAn = ds.slice(-3).some((c) => tranAn.test(`${c.chu_man} ${loiCua(c)}`));

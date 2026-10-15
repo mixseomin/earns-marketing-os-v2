@@ -6,6 +6,7 @@ import { sql } from 'drizzle-orm';
 import { chayXuat, ghiBanXuat } from './xuat-chay';
 import { kiemTieng } from './khop-giong';
 import { chanNguoiXem } from './nguoi-xem';
+import { kiemQc } from './kiem-qc';
 import { docKinhThanh, locNhanh, type Canh } from './kieu';
 import { boiCanhTap, taoJob, xongJob, mapCanh, type Db, type Row } from './doc-db';
 import { khopGiongTap } from './hau-ky';
@@ -32,6 +33,9 @@ export async function batDauXuatTap(db: Db, tapId: number, canh: Canh[], nhanh?:
   }
   if (tieng.length) return { ok: false, loi: `Chưa xuất được — tiếng còn lỗi: ${tieng.slice(0, 4).join('; ')}${tieng.length > 4 ? `; +${tieng.length - 4} lỗi nữa` : ''}` };
   const kt = docKinhThanh(bc.kt);
+  // Luật QC máy chặn được (kiem-qc.ts) — chỉ những luật sai là ra bản hỏng, không phải gu: màn kết thiếu tên sản phẩm.
+  const qcSai = kiemQc({ loai: bc.loai, canh: locNhanh(canh, nhanh || 'A'), nhanVat: bc.nhanVat, qc: kt.qc, nhanh }).filter((x) => !x.ok && ['ten_cuoi'].includes(x.key));
+  if (qcSai.length) return { ok: false, loi: `Chưa xuất được — ${qcSai.map((x) => x.chiTiet ?? x.chu).join('; ')}` };
   const job = await taoJob(db, { phim_id: bc.tap.phim_id, nhan: `Xuất bản · tập ${bc.tap.so}${nhanh ? ` · hook ${nhanh}` : ''}`, loai: 'xuat', provider: 'ffmpeg', model: 'ffmpeg', request: { tap_id: tapId, nhanh: nhanh ?? '' } });
   return { ok: true, job, chay: async () => {
     const kq = await chayXuat({ loai: bc.loai, tiLe: kt.ti_le, nhipStopMotion: kt.nhip_stop_motion, canh, nhanVat: bc.nhanVat, tap: bc.tap, qc: kt.qc, nhanh });

@@ -137,3 +137,10 @@ console.log('kiem-qc.test: mẫu ok');
   assert.ok(coTiengViet('Giảm giá hôm nay') && coTiengViet('Đi chơi') && coTiengViet('người'));
   console.log('kiem-qc.test: dò tiếng Việt ok');
 }
+{ // Màn kết có tên sản phẩm (phim #36 15/10/2026): shot cuối cta không tên → trượt; có tên → đạt; shot cuối không phải cta + có ưu đãi → bản xuất tự gắn end card, không xét.
+  const ket = (chu: string, pd = 'cta') => kiemQc({ loai: 'quang_cao', canh: [...dat.slice(0, 4), shot({ thu_tu: 5, phat_s: 3, chu_man: chu, phan_doan: pd })], nhanVat: [...nv], qc });
+  assert.strictEqual(ok(ket('Buy 1 Get 1 Free · XS–6XL'), 'ten_cuoi'), false);
+  assert.strictEqual(ok(ket('BRA · Buy 1 Get 1 Free'), 'ten_cuoi'), true);
+  assert.ok(!ket('Buy 1 Get 1 Free', '').some((x) => x.key === 'ten_cuoi'));
+  console.log('kiem-qc.test: tên sản phẩm màn kết ok');
+}

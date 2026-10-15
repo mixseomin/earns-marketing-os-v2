@@ -30,7 +30,6 @@ for (const tapId of process.argv.slice(2).map(Number)) {
     const gi = dongThoai(c, nv).filter((d) => d.loi.trim());
     console.log(`#${c.thu_tu} M=${diemM[c.id]?.tong ?? '—'} [${c.trang_thai}] kf:${c.keyframe_url ? 'có' : '—'} giọng:${gi.filter((d) => d.url).length}/${gi.length} | keyframe: ${g.chan.length ? 'CHẶN ' + g.chan.join(' ; ') : 'qua'} | video: ${vid.length ? 'CHẶN ' + vid.join(' ; ') : 'qua'}${canhBao[c.id]?.length ? ` | ⚐ ${canhBao[c.id]!.join(' ; ')}` : ''}`);
   }
-}
   console.log(`Murch · cả tập ${tbM.tap} · ${Object.entries(tbM.canh).map(([k, v]) => `${k}: ${v}`).join(' · ')}`);
 }
 process.exit(0);

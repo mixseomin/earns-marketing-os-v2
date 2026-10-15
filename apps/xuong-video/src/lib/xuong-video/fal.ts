@@ -224,6 +224,12 @@ export async function sinhAnhFal(id0: string, v: { prompt: string; thamChieu: st
     id = thay;
   }
   const input = await dauVaoTheoSchema(id, { prompt: v.prompt, anhThamChieu: v.thamChieu, tiLe: v.tiLe });
+  return chayAnhFal(id, input);
+}
+
+/** Gửi một việc ẢNH lên fal với đầu vào dựng sẵn rồi chờ tới xong (≤ 3 phút) — dùng chung cho sinhAnhFal và bước độ sâu của keyframe hai bước
+ *  (control_image_url không nằm trong khuôn chung của dauVaoTheoSchema). */
+export async function chayAnhFal(id: string, input: Record<string, unknown>): Promise<{ ok: true; model: string; mimeType: string; data: Buffer } | { ok: false; loi: string }> {
   const g = await guiFal(id, input);
   if (!g.ok) return g;
   const t = JSON.parse(g.taskId) as { s: string; r: string };

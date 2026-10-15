@@ -12,7 +12,9 @@ import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './po
 import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
 import { boSetCuaShot, catMep, chanKhungXam, huongVoiMay, loiMachTap, moTaThay, PT_THAY, shotSoTruc, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
-import { boiCanhCanh, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, jobDangCho, type Db, type Row } from './doc-db';
+import { boiCanhCanh, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, xongJob, jobDangCho, type Db, type Row } from './doc-db';
+import { chayAnhFal, modelFal } from './fal';
+import { uploadToR2 } from '../r2';
 
 export type KqSinh<T> = { ok: true; data: T } | { ok: false; loi: string };
 
@@ -124,7 +126,8 @@ export async function sinhKeyframeKetCanh(db: Db, canhId: number): Promise<KqSin
 }
 
 /** Câu lệnh + ảnh tham chiếu sẽ gửi cho keyframe của một shot — MỘT chỗ cho lúc sinh thật và sơ đồ nguồn (so "đã gửi" với "giờ sẽ gửi"). */
-export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, ket = false): { prompt: string; urlRef: string[]; vai: { url: string; nhan: string }[] } {
+export type HaiBuoc = { sau: string; prompt1: string; prompt2: string; ref2: string[] };
+export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, ket = false): { prompt: string; urlRef: string[]; vai: { url: string; nhan: string }[]; haiBuoc?: HaiBuoc } {
   // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.
   const btCanh = (v: NhanVat) => (v.bien_the ?? []).find((b) => bc.canh.bien_the.includes(b.id));
   // Sản phẩm đứng ĐẦU danh sách tham chiếu (3 ảnh), rồi người/bối cảnh — và prompt nói rõ ảnh số mấy là gì, ảnh thắng chữ (#1256: quần
@@ -246,6 +249,21 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       `Photo look: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}. Keep Image 1's light direction and colours.`,
       camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), KHONG_CHU, promptCamXuc(bc.canh, bc.nhanVat, 'anh'),
     ].filter(Boolean).join(' ');
+    // HAI BƯỚC (anh 15–16/10/2026, #35: chỉ model điều khiển bằng ĐỘ SÂU giữ đúng góc máy 3D; nhân dạng phải nhờ một lượt sửa có ảnh mẫu):
+    // bước 1 = FLUX depth từ bản đồ độ sâu 3D + chữ (không nhận ảnh mẫu) → ảnh thật đúng hình học; bước 2 = sửa nhân dạng trên chính ảnh đó.
+    const sau = bc.canh.khung_xam?.sau;
+    if (sau && !ket && bc.kt.keyframe_hai_buoc !== false) {
+      const trong = nvRef.filter((v) => v.loai !== 'boi_canh');
+      const dsChu = moTaThay(bc.canh.khung_xam?.thay, goiVat).replace('Blocks in that layout image, by name:', 'In this frame:').replace('This list and Image 1 are the ONLY authority', 'This list is the ONLY authority');
+      const prompt1 = ['A real photograph of a miniature stop-motion set.', mayCau, dsChu, huongCau, framingCau, ngoaiCau, trangCau,
+        trong.length ? `What each one looks like: ${trong.map((v) => `${v.ten}: ${moTaNgan(v.mo_ta)}`).join(' | ')}.` : '',
+        `Photo look: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}.`, anhSang, camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), KHONG_CHU, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
+      const ref2: string[] = [kxMau]; const nhanDang: string[] = [];
+      for (const v of trong) { const u = btCanh(v)?.anh_url ?? v.anh_ref[0]; if (!u || ref2.length >= 5) { nhanDang.push(`${v.ten}: ${moTaNgan(v.mo_ta)}`); continue; } ref2.push(u); nhanDang.push(`${v.ten} — exactly like Image ${ref2.length + 1}: ${moTaNgan(v.mo_ta)}`); }
+      const prompt2 = [`EDIT Image 1 (a photograph of this exact frame). Change ONLY how each character and prop LOOKS so it matches its reference image: ${nhanDang.join(' | ')}. Keep EVERYTHING else exactly as Image 1: the camera, framing and horizon, every position, size and outline, the background, the light and the colours. Image 2 is the 3D layout of this same frame: each character keeps the facing it shows there.`,
+        huongCau, 'Do not add, remove, move, rotate or resize anything.', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), KHONG_CHU, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
+      return { prompt: pS, urlRef: ref, vai: vaiS, haiBuoc: { sau, prompt1, prompt2, ref2 } };
+    }
     return { prompt: pS, urlRef: ref, vai: vaiS };
   }
   // THỨ TỰ: khối 3D (bố trí, góc máy, cỡ, hướng mặt, ngoài khung) đứng ĐẦU prompt — đứng sau phong cách + mô tả nhân vật thì bị loãng (#35).
@@ -337,14 +355,40 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
   const { bc } = g;
   if (moHinh && (/^(fal|ckey|shopaikey|google):/.test(moHinh) || MO_HINH_ANH.some((m) => m.key === moHinh))) bc.kt.mo_hinh_anh = moHinh as typeof bc.kt.mo_hinh_anh;   // ckey:/shopaikey:/google: = chọn đích danh nguồn (cong-ai.ts)
   await db.execute(sql`UPDATE xv_canh SET loi = '' WHERE id = ${canhId}`);
-  const { prompt, urlRef } = chuanBiKeyframe(bc);
+  const { prompt, urlRef, haiBuoc } = chuanBiKeyframe(bc);
   const jobs: number[] = [];
+  // Chọn đích danh model khác (so A/B) → đi đường một bước như cũ; mặc định có độ sâu 3D → hai bước.
+  if (haiBuoc && !moHinh) {
+    for (let i = 0; i < Math.max(1, Math.min(3, so)); i++) {
+      const b1 = await buocDoSau(db, canhId, bc.canh.thu_tu, haiBuoc, bc.kt.ti_le);
+      if (!b1.ok) return loi(`bước 1 (độ sâu): ${b1.loi}`);
+      const thamChieuUrl = [b1.url, ...haiBuoc.ref2];
+      const job = await taoJob(db, { nhan: `Keyframe (bước 2 · nhân dạng) · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt: haiBuoc.prompt2, thamChieu: thamChieuUrl.length, thamChieuUrl, buoc1: b1.url } });
+      jobs.push(job);
+      await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt: haiBuoc.prompt2, thamChieuUrl, tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}` });
+    }
+    return { ok: true, data: jobs };
+  }
   for (let i = 0; i < Math.max(1, Math.min(3, so)); i++) {
     const job = await taoJob(db, { nhan: `Keyframe · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt, thamChieu: urlRef.length, thamChieuUrl: urlRef } });
     jobs.push(job);
     await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt, thamChieuUrl: urlRef, tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}` });
   }
   return { ok: true, data: jobs };
+}
+
+/** BƯỚC 1 của keyframe hai bước: FLUX depth (fal) từ bản đồ độ sâu 3D + chữ → ảnh thật đúng góc máy / bố cục. Chạy tại chỗ (10–30s), có job
+ *  riêng trên sổ (tiền theo bảng giá fal, không đọc được thì 5 ¢ — giá công bố $0,05/MP). Ảnh lên kho để bước 2 dùng làm ảnh gốc. */
+export const MO_HINH_DO_SAU = 'fal-ai/flux-pro/v1/depth';
+async function buocDoSau(db: Db, canhId: number, thuTu: number, h: HaiBuoc, tiLe: string): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
+  const job = await taoJob(db, { nhan: `Keyframe (bước 1 · độ sâu) · cảnh #${thuTu}`, canh_id: canhId, loai: 'anh', provider: 'fal', model: `fal:${MO_HINH_DO_SAU}`, request: { dich: 'keyframe_buoc1', prompt: h.prompt1, control: h.sau } });
+  const doc = tiLe !== '16:9';
+  const kq = await chayAnhFal(MO_HINH_DO_SAU, { prompt: h.prompt1, control_image_url: h.sau, image_size: doc ? { width: 768, height: 1365 } : { width: 1365, height: 768 }, num_images: 1, output_format: 'jpeg', safety_tolerance: '5' });
+  if (!kq.ok) { await xongJob(db, job, { loi: kq.loi }); return kq; }
+  const url = await uploadToR2(`xuong-video/keyframe/${canhId}/buoc1-${Date.now()}.jpg`, kq.data, kq.mimeType);
+  if (!url) { await xongJob(db, job, { loi: 'không đẩy được ảnh bước 1 lên kho' }); return { ok: false, loi: 'không đẩy được ảnh bước 1 lên kho' }; }
+  await xongJob(db, job, { output_url: url, chi_phi_cents: (await modelFal(MO_HINH_DO_SAU))?.giaCents ?? 5 });
+  return { ok: true, url };
 }
 
 /** Sinh MỘT poster cho phim (poster.ts): nhân vật chính theo ảnh mẫu anchor, đúng phong cách, tên phim là chữ duy nhất. Kết quả nối vào

@@ -290,6 +290,18 @@ def do_sau(s, gan, xa):
     nt.links.new(cam.outputs['View Distance'], mr.inputs['Value']); nt.links.new(mr.outputs['Result'], em.inputs['Color']); nt.links.new(em.outputs['Emission'], ra.inputs['Surface'])
     return m
 
+def ve_sau(s, sh, cam, ra):
+    """Bản đồ ĐỘ SÂU của khung MỞ (gần trắng → xa đen), cùng máy + ống kính: bước 1 của keyframe hai bước — model sinh ảnh điều khiển bằng độ
+    sâu (FLUX depth) bị khoá theo hình học 3D (anh 15/10/2026: ba model ảnh dựa trên ảnh tham chiếu đều tự dựng lại góc máy #35)."""
+    d = (Vector(sh['may']['nhin']) - Vector(sh['may']['dat'])).length * CM
+    eng, smp, dn = s.render.engine, s.cycles.samples, s.cycles.use_denoising
+    s.view_layers[0].material_override = do_sau(s, d * 0.4, d * 3.0)
+    s.render.engine = 'CYCLES'; s.cycles.samples = 1; s.cycles.use_denoising = False; s.view_settings.view_transform = 'Standard'
+    fm = s.render.image_settings; fm.file_format = 'PNG'; fm.color_mode = 'BW'
+    s.render.filepath = ra; bpy.ops.render.render(write_still=True)
+    s.view_layers[0].material_override = None; fm.color_mode = 'RGBA'
+    s.render.engine, s.cycles.samples, s.cycles.use_denoising = eng, smp, dn
+
 def kiem_hinh_hoc(s, cam, sh, nv_obj):
     """Kiểm BẰNG SỐ (không bằng mắt): mỗi nhân vật — TÂM có trong khung không, chiếm bao nhiêu % chiều cao khung, bị vật nào che (bắn tia
     từ máy tới 9 điểm trên thân — che > nửa số điểm = bị che). bat_buoc = chủ thể của khung (shot khai) — chỉ chúng mới là lỗi khi hỏng."""
@@ -540,6 +552,29 @@ def bang_ti_le(s, ra):
     s.render.filepath = f'{ra}/bang-ti-le.png'; bpy.ops.render.render(write_still=True)
     print('XONG bang ti le', [(t, round(z, 1)) for t, _, z in vt])
 
+def ve_do_sau(s, ra):
+    """BẢN ĐỒ ĐỘ SÂU từng shot (anh 15/10/2026: keyframe phải tuân thủ tuyệt đối góc máy 3D — model ảnh dựa trên ảnh tham chiếu tự dựng lại cảnh):
+    gần trắng → xa đen, đúng máy + ống kính của shot, cho model sinh ảnh điều khiển bằng độ sâu (FLUX depth) — hình học bị khoá theo 3D.
+    Khoảng sâu theo chính shot: gần = 40% khoảng cách tới điểm nhìn, xa = 3 lần. Ra <ra>/<ma>-sau.png."""
+    for v in [x for x in bpy.data.objects if x.name.startswith('Tường')]: v.hide_render = False
+    for sh in DL['shot']:
+        dat_tuy_chon(set(sh.get('them') or []))
+        _, het = nhan_vat(sh)
+        cam = may(s, sh['may'], f"sau {sh['ma']}")
+        d = (Vector(sh['may']['nhin']) - Vector(sh['may']['dat'])).length * CM
+        s.view_layers[0].material_override = do_sau(s, d * 0.4, d * 3.0)
+        s.render.engine = 'CYCLES'; s.cycles.samples = 1; s.cycles.use_denoising = False
+        s.render.resolution_x, s.render.resolution_y = 768, 1365
+        s.view_settings.view_transform = 'Standard'
+        fm = s.render.image_settings; fm.file_format = 'PNG'; fm.color_mode = 'BW'
+        s.render.filepath = f"{ra}/{sh['ma']}-sau.png"; bpy.ops.render.render(write_still=True)
+        s.view_layers[0].material_override = None; fm.color_mode = 'RGBA'
+        for o in het: bpy.data.objects.remove(o, do_unlink=True)
+        bpy.data.objects.remove(cam, do_unlink=True)
+    print('XONG do sau', len(DL['shot']))
+
+if os.environ.get('XV_DO_SAU'):   # đường riêng: chỉ render bản đồ độ sâu từng shot
+    ve_do_sau(s, RA); sys.exit(0)
 if os.environ.get('XV_BANG_TI_LE'):   # đường riêng: chỉ render bảng tỉ lệ nhân vật
     bang_ti_le(s, RA); sys.exit(0)
 if os.environ.get('XV_TOAN_CANH'):   # đường riêng: chỉ render toàn cảnh từng cảnh (đầu vào = tệp json danh sách cảnh)
@@ -558,7 +593,8 @@ for sh in ([] if CHI_MB else shots):
     thay[sh['ma']] = nhin_thay(s, cam, sh, nv_kiem)
     # ẢNH RA (anh 15/10/2026: "render 30+ shot sao ra 140 ảnh?"): chỉ KHUNG MÀU (JPEG) — ảnh số 1 của keyframe. Khung xám chỉ render khi máy không
     # có OpenGL (không làm được khung màu); bản đồ độ sâu bỏ hẳn (thử Flux depth đã loại). Cổng 3D kiểm bằng số đo tia, không cần ảnh.
-    if not ve_mau(s, sh, f"{RA}/{sh['ma']}-mau.jpg"):
+    if ve_mau(s, sh, f"{RA}/{sh['ma']}-mau.jpg"): ve_sau(s, sh, cam, f"{RA}/{sh['ma']}-sau.png")   # độ sâu cho keyframe hai bước (FLUX depth)
+    else:
         s.view_layers[0].material_override = None; s.cycles.samples = 10; s.cycles.use_denoising = True; may_ve(s, True)
         s.render.filepath = f"{RA}/{sh['ma']}-xam.png"; bpy.ops.render.render(write_still=True)
     # CHUYỂN ĐỘNG: chiếu chỗ mở / chỗ kết của từng món lên khung (0..1, gốc trên-trái) → studio viết câu chuyển động cho video từ số này;

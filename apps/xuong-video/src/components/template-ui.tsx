@@ -2,7 +2,7 @@
 // TEMPLATE trên studio (template.ts · template-db.ts): template là một phim — sửa kinh thánh / anchor / shot như thường, chỗ cần đổi gõ {{ô}}.
 // Tổ chức cho dễ dùng (anh 14/10/2026): KHO TEMPLATE ở đầu trang (thẻ: dùng khi nào · số shot · Dùng / Sửa) → bấm Dùng là ra form điền
 // chia nhóm (Sản phẩm mở sẵn) → Tạo phim 0đ. Sửa template = mở như phim; panel đầu tab 🎭 Phim giữ nhãn / gợi ý / giá trị mẫu của ô.
-import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Ngan } from './ngan';
 import { O, Nut, Loi, Pill, mono } from './ui';
 import { docTemplate, luuCauHinhTemplate, taoPhimTuTemplate } from '@/lib/actions';
@@ -113,7 +113,6 @@ export function KhoTemplate({ ds: dsVao, onMo }: { ds: Phim[]; onMo: (id: number
     </div>
   );
   const luoi = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 } as const;
-  const chip = (co: boolean): CSSProperties => ({ ...mono, fontSize: 10.5, padding: '1px 7px', borderRadius: 999, border: `1px solid ${co ? 'var(--cyan)' : 'var(--line)'}`, color: co ? 'var(--fg-1)' : 'var(--fg-4)', borderStyle: co ? 'solid' : 'dashed' });
   return (
     <div className="xv-panel">
       <h3>🧩 Template<small>chọn dòng → khuôn → một khung, điền sản phẩm / nhân vật / câu chuyện → ra phim mới (0đ, chưa sinh gì)</small></h3>
@@ -132,7 +131,7 @@ export function KhoTemplate({ ds: dsVao, onMo }: { ds: Phim[]; onMo: (id: number
             {mo && (
               <>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, margin: '6px 0 8px' }} title="Khuôn của dòng: viền liền = đã có template, gạch = chưa có">
-                  {d.khuon.map((k) => { const n = cua(d.key, k.key).length; return <span key={k.key} style={chip(n > 0)}>{k.ten}{n ? ` · ${n}` : ''}</span>; })}
+                  {d.khuon.map((k) => { const n = cua(d.key, k.key).length; return <Pill key={k.key} color={n ? 'var(--cyan)' : 'var(--fg-3)'} nhat={!n}>{k.ten}{n ? ` · ${n}` : ''}</Pill>; })}
                 </div>
                 {cuaDong.length > 0 && <div style={luoi}>{d.khuon.flatMap((k) => cua(d.key, k.key).map((p) => the(p, k.ten)))}</div>}
               </>

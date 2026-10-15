@@ -169,21 +169,12 @@ export function KyThuatTheoNhom({ kt }: { kt: KyThuatShot | undefined }) {
 
 /** MỘT nhãn kỹ thuật đã áp: rê chuột hiện thẻ mô tả (tên · nhóm · mô tả · tên ngành · mở → kết · khi nào dùng), bấm mở ngăn chi tiết đủ.
  *  Thẻ nổi neo theo nhãn bằng useViTriNoi (fixed, kẹp khung nhìn, thiếu chỗ thì lật lên) — không bị ngăn / lưới cắt. */
-/** Tắt tạm `title` của các phần tử CHA khi thẻ nổi đang mở: thẻ shot lưới là một <button title="…"> bọc nhãn, rê vào nhãn thì sau ~1s tooltip mặc định
- *  của trình duyệt (title của cha) hiện đè lên thẻ nổi (#1392). Trả hàm khôi phục. Một luật cho mọi lớp nổi rê chuột trong app. */
-export function tamTatTitleCha(el: HTMLElement | null): () => void {
-  const ds: [HTMLElement, string][] = [];
-  for (let p = el?.parentElement ?? null; p; p = p.parentElement) { const t = p.getAttribute('title'); if (t != null) { ds.push([p, t]); p.removeAttribute('title'); } }
-  return () => { for (const [p, t] of ds) if (!p.hasAttribute('title')) p.setAttribute('title', t); };
-}
-
 function NhanKyThuat({ m, nho }: { m: MucKyThuat; nho?: boolean }) {
   const ref = useRef<HTMLButtonElement>(null);
   const [mo, setMo] = useState(false);
   // Chữ thẻ nổi theo cỡ nhãn (#1392 "chữ quá to"): nhãn nhỏ 9.5px trên thẻ lưới mà thẻ nổi 12–14px thì to gấp rưỡi mọi thứ quanh nó.
   const co = nho ? { rong: 280, chu: 11, ten: 12.5, phu: 10, nho: 9.5 } : { rong: 340, chu: 12, ten: 14, phu: 11.5, nho: 10 };
-  const viTri = useViTriNoi(ref, mo, { rong: co.rong, caoToiDa: 360 });
-  useEffect(() => { if (!mo) return; return tamTatTitleCha(ref.current); }, [mo]);
+  const viTri = useViTriNoi(ref, mo, { rong: co.rong, caoToiDa: 360 });   // hook tự tắt title của thẻ cha khi mở (#1392)
   const [nhom, key] = [m.ma.slice(0, m.ma.indexOf('.')), m.ma.slice(m.ma.indexOf('.') + 1)];
   const x = nhom === 'luat' ? undefined : kyThuat(key, nhom as NhomKyThuat);
   return (<>

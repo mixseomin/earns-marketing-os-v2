@@ -56,6 +56,19 @@ export function phuTheoCanh(t: ThuNguoiXem | null | undefined, canh: ShotXem[]):
   });
 }
 
+/** Kết luận MỘT chỗ cho nhãn (bảng người xem, thanh 🎬): đạt hay chưa, đạt theo cả tập hay nhờ kiểm riêng từng cảnh, khoảng điểm.
+ *  Trước đây UI tự suy từ t.dat (vỏ bản cả tập) → phim #51 đạt nhờ 5 cảnh kiểm riêng mà nhãn ghi "✗ Hiểu 0/10 · lệch ý tác giả" (15/10/2026). */
+export function tomTatNguoiXem(t: ThuNguoiXem | null | undefined, canh: ShotXem[]): { dat: boolean; theoCanh: boolean; soCanh: number; diem: [number, number] | null; cu: boolean } {
+  if (!t) return { dat: false, theoCanh: false, soCanh: 0, diem: null, cu: false };
+  const chan = chanNguoiXem(t, canh);
+  const cu = chan.some((x) => x.includes('đã sửa sau lần kiểm'));
+  if (t.ma === maKichBan(canh)) return { dat: t.dat, theoCanh: false, soCanh: 0, diem: [t.diem, t.diem], cu };
+  const phu = phuTheoCanh(t, canh);
+  const theoCanh = !chan.length && phu.length > 0 && phu.every((x) => x.phu);
+  const ds = phu.map((x) => t.canh?.[x.ten]?.diem).filter((d): d is number => typeof d === 'number');
+  return { dat: theoCanh, theoCanh, soCanh: phu.length, diem: theoCanh && ds.length ? [Math.min(...ds), Math.max(...ds)] : null, cu };
+}
+
 export function chanNguoiXem(t: ThuNguoiXem | null | undefined, canh: ShotXem[]): string[] {
   if (!canh.length) return [];
   const tien = TIEN_TO_NGUOI_XEM;

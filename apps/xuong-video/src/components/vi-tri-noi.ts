@@ -6,8 +6,17 @@
 import { useLayoutEffect, useState, type CSSProperties, type RefObject } from 'react';
 
 export type DiemNeo = { x: number; y: number };
+/** Tắt tạm `title` của các phần tử CHA khi lớp nổi đang mở: thẻ shot lưới là một <button title="…"> bọc nhãn, rê vào nhãn thì sau ~1s tooltip
+ *  mặc định của trình duyệt (title của cha) hiện đè lên lớp nổi (#1392). Trả hàm khôi phục. Nằm trong hook để MỌI lớp nổi neo vào nút
+ *  (nhãn kỹ thuật, điểm Murch, kiểm khung, ô chọn, menu ⋯) cùng được, không vá từng cái. */
+export function tamTatTitleCha(el: HTMLElement | null): () => void {
+  const ds: [HTMLElement, string][] = [];
+  for (let p = el?.parentElement ?? null; p; p = p.parentElement) { const t = p.getAttribute('title'); if (t != null) { ds.push([p, t]); p.removeAttribute('title'); } }
+  return () => { for (const [p, t] of ds) if (!p.hasAttribute('title')) p.setAttribute('title', t); };
+}
 export function useViTriNoi(neo: RefObject<HTMLElement | null> | DiemNeo, mo: boolean, o: { rong: number; canPhai?: boolean; caoToiDa?: number }): CSSProperties {
   const [st, setSt] = useState<CSSProperties>({ position: 'fixed', visibility: 'hidden' });
+  useLayoutEffect(() => { if (!mo || !('current' in neo)) return; return tamTatTitleCha(neo.current); }, [mo, 'current' in neo ? neo : null]); // eslint-disable-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     if (!mo) return;
     const tinh = () => {

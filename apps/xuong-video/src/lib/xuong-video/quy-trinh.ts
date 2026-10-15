@@ -11,7 +11,7 @@ import { dongThoai } from './am-thanh';
 import { chamKichBan } from './cham-kich-ban';
 import { kiemTieng } from './khop-giong';
 import type { Series, TapHoSo, ThuNguoiXem } from './kieu';
-import { chanNguoiXem, TIEN_TO_NGUOI_XEM, TEN_NUT_NGUOI_XEM } from './nguoi-xem';
+import { chanNguoiXem, tomTatNguoiXem, TIEN_TO_NGUOI_XEM, TEN_NUT_NGUOI_XEM, type ShotXem } from './nguoi-xem';
 import { chanThamKhao, TIEN_TO_THAM_KHAO } from './tham-khao';
 import { kiemNhipHinh, kiemGiayDoc, kiemDanKhongGian, kiemVaiKe, kiemTheShot, kiemNutDong, kiemKetTap, TIEN_TO_NHIP_HINH, TIEN_TO_DUNG_TRUYEN } from './nhip-hinh';
 
@@ -132,6 +132,13 @@ export function chanVideo(c: ShotQt, nhanVat: NhanVat[], o?: { hoSo?: TapHoSo; d
   return out;
 }
 
+/** Tên mục người xem trên thanh 🎬 — cùng kết luận với bảng người xem (nguoi-xem.ts › tomTatNguoiXem): điểm cả tập, hay n cảnh kiểm riêng + khoảng điểm. */
+function tenNguoiXem(tap: TapQt, phim: PhimQt, canh: ShotXem[]): string {
+  const k = tomTatNguoiXem(tap.thu_nguoi_xem, canh);
+  if (k.theoCanh) return `Người xem hiểu · ${k.soCanh} cảnh kiểm riêng${k.diem ? ` ${k.diem[0]}–${k.diem[1]}/10` : ''}`;
+  if (tap.thu_nguoi_xem?.ma && k.diem) return `Người xem hiểu ${k.diem[0]}/10`;
+  return phim.laQc ? 'Người xem hiểu QC' : 'Người xem hiểu phim';
+}
 /** Bảng quy trình cả tập — thanh 🎬 trên studio. canh = shot nhánh dựng (thân + hook A). */
 export function quyTrinh(o: { tap: TapQt; phim: PhimQt; canh: ShotQt[]; nhanVat: NhanVat[]; canhA?: ShotQt[] }): MucQt[] {
   const { tap, phim, canh, nhanVat } = o;
@@ -148,7 +155,7 @@ export function quyTrinh(o: { tap: TapQt; phim: PhimQt; canh: ShotQt[]; nhanVat:
     m('brief', 'Tiền kỳ', 'Brief', tk.filter((x) => x.startsWith('chưa có brief')), 'keyframe', 'Ô Brief của tập: mục tiêu, người xem, thông điệp chính.'),
     m('truyen', 'Tiền kỳ', 'Khung truyện (beat)', tk.filter((x) => x.includes('khung truyện')), 'keyframe', '✂ Tách cảnh (hoặc nạp kèm beats): mở – xung đột – cao trào – giải quyết.'),
     m('kich_ban', 'Tiền kỳ', `Kịch bản ${kb.diem}/100`, kb.muc.filter((x) => !x.dat).map((x) => `${x.ten}: ${x.ghi}`), phim.series?.dong_co?.trim() ? 'keyframe' : null, 'Logline một câu · hook ≤ 3s · đủ 5 nhịp (hook → vấn đề → leo thang → lật ngược → kết/móc) · lật ngược ở 55–92% phim · series: kết bằng móc.'),
-    m('nguoi_xem', 'Tiền kỳ', tap.thu_nguoi_xem && tap.thu_nguoi_xem.ma ? `Người xem hiểu ${tap.thu_nguoi_xem.diem}/10` : (phim.laQc ? 'Người xem hiểu QC' : 'Người xem hiểu phim'), tk.filter((x) => x.startsWith(TIEN_TO_NGUOI_XEM)), 'keyframe', `${TEN_NUT_NGUOI_XEM}` + (phim.laQc
+    m('nguoi_xem', 'Tiền kỳ', tenNguoiXem(tap, phim, (o.canhA ?? canh).map((c, i) => ({ ...c, thu_tu: c.thu_tu ?? i + 1, hanh_dong: c.hanh_dong ?? '' }))), tk.filter((x) => x.startsWith(TIEN_TO_NGUOI_XEM)), 'keyframe', `${TEN_NUT_NGUOI_XEM}` + (phim.laQc
       ? ': Claude đóng vai người lướt thuộc đúng đối tượng QC, chỉ thấy chữ/lời/hình từng shot — chấm dừng lướt, nhận ra sản phẩm, lợi ích, ưu đãi; phải ≥7/10 và đúng ý QC.'
       : ': Claude chỉ thấy chữ/lời/hình của từng shot, kể lại câu chuyện; phải hiểu ≥7/10 và đúng ý tác giả.')),
     ...(phim.laQc ? [m('tham_khao', 'Tiền kỳ', 'Tham khảo câu chữ', tk.filter((x) => x.startsWith(TIEN_TO_THAM_KHAO)).map((x) => x.slice(TIEN_TO_THAM_KHAO.length)), 'keyframe', 'Mỗi câu chữ màn / lời có nguồn: lời khách thật hoặc QC đang thắng (skill viet-qc-truc-dien). Xem ở panel shot › THAM KHẢO CÂU CHỮ.')] : []),

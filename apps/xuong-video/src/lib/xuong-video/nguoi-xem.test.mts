@@ -55,4 +55,17 @@ console.log('nguoi-xem.test: ok');
   if (chanNguoiXem({ ...ca, canh: { B: { ...rieng, dat: false, diem: 4 } } }, moi).length !== 1) throw new Error('kiểm riêng B chưa đạt → chặn');
   if (!phuTheoCanh(ca, moi).find((x) => x.ten === 'C')!.phu) throw new Error('C đánh số lại vẫn được phủ');
   console.log('nguoi-xem.test: theo cảnh ok');
+  // tomTatNguoiXem — một kết luận cho nhãn: vỏ bản cả tập (ma '', dat false, 0/10) + mọi cảnh kiểm riêng đạt → đạt theo cảnh, khoảng điểm thật (#51)
+  const { tomTatNguoiXem } = await import('./nguoi-xem');
+  const mc = maTheoCanh(goc);
+  const r = (ten: string, diem: number, dat = true) => ({ ...ca, ma: mc[ten]!, ma_canh: undefined, diem, dat });
+  const vo = { ...ca, ma: '', ma_canh: undefined, dat: false, diem: 0, canh: { A: r('A', 8), B: r('B', 9), C: r('C', 8) } };
+  const k1 = tomTatNguoiXem(vo, goc);
+  if (!k1.dat || !k1.theoCanh || k1.soCanh !== 3 || JSON.stringify(k1.diem) !== '[8,9]') throw new Error(`đạt theo cảnh: ${JSON.stringify(k1)}`);
+  const k2 = tomTatNguoiXem({ ...vo, canh: { ...vo.canh, B: r('B', 4, false) } }, goc);
+  if (k2.dat || k2.theoCanh) throw new Error(`một cảnh chưa đạt → chưa đạt: ${JSON.stringify(k2)}`);
+  const k3 = tomTatNguoiXem(ca, goc);
+  if (!k3.dat || k3.theoCanh || JSON.stringify(k3.diem) !== '[8,8]') throw new Error(`bản cả tập khớp mã → điểm cả tập: ${JSON.stringify(k3)}`);
+  if (tomTatNguoiXem(null, goc).dat) throw new Error('chưa kiểm → chưa đạt');
+  console.log('nguoi-xem.test: tóm tắt nhãn ok');
 }

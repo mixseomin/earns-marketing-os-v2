@@ -37,7 +37,8 @@ export function O({ label, hint, children, span }: { label?: ReactNode; hint?: R
   return <div className="xv-field" style={span ? { gridColumn: '1 / -1' } : undefined}>{label && <label className="xv-lbl" title={typeof label === 'string' ? label : undefined}>{label}</label>}{children}{hint && <div className="xv-hint">{hint}</div>}</div>;
 }
 
-export function Pill({ color, children }: { color: string; children: ReactNode }) { return <span className="xv-pill" style={{ color }}>{children}</span>; }
+/** nhat = trạng thái "chưa có / trống": viền gạch, chữ mờ (kho template: khuôn chưa có template) — một tham số, không đẻ chip thứ hai. */
+export function Pill({ color, nhat, children, title }: { color: string; nhat?: boolean; children: ReactNode; title?: string }) { return <span className="xv-pill" title={title} style={{ color, ...(nhat ? { borderStyle: 'dashed', opacity: 0.55 } : {}) }}>{children}</span>; }
 
 export function Seg<T extends string | number>({ options, value, onChange }: { options: { value: T; label: string; title?: string }[]; value: T; onChange: (v: T) => void }) {
   return <span className="xv-seg">{options.map((o) => <button key={String(o.value)} type="button" title={o.title} className={o.value === value ? 'on' : ''} onClick={() => onChange(o.value)}>{o.label}</button>)}</span>;

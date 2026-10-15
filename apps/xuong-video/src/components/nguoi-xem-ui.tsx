@@ -4,7 +4,7 @@
 import { Fragment, useState } from 'react';
 import { thuNguoiXemTap, thuNguoiXemCanh, suaTheoNguoiXem } from '@/lib/actions';
 import { giaChuCents, gioVN, tien, type Canh, type Tap } from '@/lib/xuong-video/kieu';
-import { chanNguoiXem, phuTheoCanh, TEN_NUT_NGUOI_XEM, TEN_NUT_NGUOI_XEM_CANH } from '@/lib/xuong-video/nguoi-xem';
+import { chanNguoiXem, phuTheoCanh, tomTatNguoiXem, TEN_NUT_NGUOI_XEM, TEN_NUT_NGUOI_XEM_CANH } from '@/lib/xuong-video/nguoi-xem';
 import { Nut, Loi, mono, goiAction } from './ui';
 
 export function NguoiXem({ tap, canh, moHinhChu, coAnthropic, onChanged, onMoShot }: { tap: Tap; canh: Canh[]; moHinhChu: string; coAnthropic: boolean; onChanged: () => Promise<void>; onMoShot?: (thuTu: number) => void }) {
@@ -33,18 +33,16 @@ export function NguoiXem({ tap, canh, moHinhChu, coAnthropic, onChanged, onMoSho
   const giaCanh = (ten: string) => Math.max(1, Math.round(gia * Math.max(0.25, canh.filter((c) => c.phan_doan === ten).length / Math.max(1, canh.length))));
   const lamCanh = async (ten: string) => { setBanCanh(ten); setLoi(''); setLoi((await goiAction(() => thuNguoiXemCanh(tap.id, ten))).loi); setBanCanh(''); await onChanged(); };
   const lam = async () => { setBan(true); setLoi(''); setLoi((await goiAction(() => thuNguoiXemTap(tap.id))).loi); setBan(false); await onChanged(); };
-  // Đạt NHỜ KIỂM RIÊNG TỪNG CẢNH: bản cả tập chỉ là vỏ (ma trống, dat false, 0/10) nhưng cổng chanNguoiXem đã qua vì mọi cảnh được phủ —
-  // nhãn phải nói đúng điều đó, không hiện "✗ Hiểu 0/10 · lệch ý tác giả" (phim #51, 15/10/2026).
-  const datTheoCanh = !!t && !t.dat && !cu && !chan.length && phu.length > 0 && phu.every((x) => x.phu);
-  const diemCanh = datTheoCanh ? phu.map((x) => t!.canh?.[x.ten]?.diem).filter((d): d is number => typeof d === 'number') : [];
-  const dat = !!t && (t.dat || datTheoCanh);
+  // Kết luận đạt / theo cảnh / khoảng điểm lấy từ MỘT chỗ (nguoi-xem.ts › tomTatNguoiXem) — cùng luật với cổng, không suy lại từ t.dat (#51).
+  const kq = tomTatNguoiXem(t, canh);
+  const dat = kq.dat;
   const mau = !t ? 'var(--amber)' : cu ? 'var(--amber)' : dat ? '#4ade80' : 'var(--red)';
   return (
     <div className="xv-panel" style={{ marginTop: 10, borderLeft: `3px solid ${mau}` }}>
       <h3>🧑 Người xem có hiểu phim không<small>bắt buộc trước keyframe + xuất · Claude chỉ thấy chữ / lời / hình từng shot (không đọc brief), kể lại câu chuyện rồi so với ý tác giả</small></h3>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <Nut chinh={!t || cu || !t.dat} ly={(!coAnthropic && 'thiếu ANTHROPIC_API_KEY') || (!canh.length && 'tách cảnh trước')} ban={ban} gia={gia} onClick={() => void lam()}>{ban ? '… đang kiểm' : `${TEN_NUT_NGUOI_XEM} · ~${tien(gia)}`}</Nut>
-        {t && <b style={{ color: mau }}>{cu ? '⚠ kịch bản đã sửa sau lần kiểm — bấm kiểm lần nữa' : t.dat ? `✓ Hiểu ${t.diem}/10 · đúng ý tác giả` : datTheoCanh ? `✓ ${phu.length}/${phu.length} cảnh đạt (kiểm riêng từng cảnh${diemCanh.length ? ` · ${Math.min(...diemCanh)}–${Math.max(...diemCanh)}/10` : ''})` : `✗ Hiểu ${t.diem}/10${t.khop ? '' : ' · lệch ý tác giả'}`}</b>}
+        {t && <b style={{ color: mau }}>{cu ? '⚠ kịch bản đã sửa sau lần kiểm — bấm kiểm lần nữa' : t.dat ? `✓ Hiểu ${t.diem}/10 · đúng ý tác giả` : kq.theoCanh ? `✓ ${kq.soCanh}/${kq.soCanh} cảnh đạt (kiểm riêng từng cảnh${kq.diem ? ` · ${kq.diem[0]}–${kq.diem[1]}/10` : ''})` : `✗ Hiểu ${t.diem}/10${t.khop ? '' : ' · lệch ý tác giả'}`}</b>}
         {t && <span style={mono}>{gioVN(t.luc)}</span>}
         {/* Chưa đạt → sửa ngay tại đây: Claude sửa đúng các shot bị vấp theo các câu gợi ý bên dưới. */}
         {t && !dat && !cu && <Nut chinh ly={!coAnthropic && 'thiếu ANTHROPIC_API_KEY'} ban={banSua} gia={giaSua} title="Claude sửa đúng các shot người xem vấp (lời, chữ màn, hành động, prompt hình; chèn shot nếu cần cho thấy) — giữ phần còn lại; ↶ trả lại phần sửa, shot thêm bỏ bằng 🗑" onClick={() => void sua()}>{banSua ? '… đang sửa kịch bản' : `✍ Sửa kịch bản theo góp ý · ~${tien(giaSua)}`}</Nut>}

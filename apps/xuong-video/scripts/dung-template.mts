@@ -9,7 +9,7 @@
 import { readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { ghepThoai, CAM_XUC_THEO_LOAI, type KinhThanh, type LoaiNhanVat, type LoaiShotMau, type OTemplate, type DongThoai } from '../src/lib/xuong-video/kieu';
+import { ghepThoai, CAM_XUC_THEO_LOAI, type KieuChu, type KinhThanh, type LoaiNhanVat, type LoaiShotMau, type OTemplate, type DongThoai } from '../src/lib/xuong-video/kieu';
 import { timO, dsOTemplate, oThieu, giaTriMau, khungTuShot } from '../src/lib/xuong-video/template';
 import { daDangMay } from '../src/lib/xuong-video/nhip-hinh';
 import { diemNhan } from '../src/lib/xuong-video/diem-nhan';
@@ -21,6 +21,7 @@ import { CTA_MAC_DINH, laShotCta } from '../src/lib/xuong-video/cta';
 
 type Shot = { giay: number; loai: LoaiShotMau; canh?: string; goc_may: string; hanh_dong: string; chu_man: string; loi?: string; noi?: string; dien_xuat?: string;
   prompt_anh?: string; prompt_video?: string; nv?: string[]; /** biến thể (màu…) của anchor gắn vào shot — key trong nhan_vat[].bien_the */ bt?: string[]; keyframe?: string; /** cỡ cảnh (ecu|cu|mcu|ms|two|ws|ews) */ co: string; /** chuyển động máy — trống thì máy chọn */ may?: string;
+  /** kiểu chữ RIÊNG của shot (vd ô bình luận: nền trắng, nguyên câu) — trống: shot CTA lấy kiểu thư viện CTA, shot khác theo phim */ kieu?: KieuChu;
   /** nguồn tham khảo của câu cố định (không phải ô) — BẮT BUỘC, thiếu thì dừng (tham-khao.ts) */ tk?: ThamKhaoCau[] };
 type Tpl = { key: string; ten: string; mo_ta: string; o: string[]; kinh_thanh: KinhThanh; nhan_vat: { key: string; loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref?: string[]; giong?: string; bien_the?: { key: string; nhom: string; ten: string; mo_ta: string; anh_url?: string }[] }[];
   tap: { ten: string; brief: string }; shots: Shot[] };
@@ -105,11 +106,11 @@ async function ghiShot(phimId: number, t: Tpl, capNhat: boolean) {
     const v = { canh: s.canh ?? `Shot ${i + 1} · ${s.loai}`, kf: s.keyframe ?? null, tt: s.keyframe ? 'co_keyframe' : 'nhap' };
     if (capNhat) await db.execute(sql`UPDATE xv_canh SET canh = ${v.canh}, goc_may = ${s.goc_may}, hanh_dong = ${s.hanh_dong}, loi_thoai = ${ghepThoai(thoai)}, thoai = ${JSON.stringify(thoai)}::jsonb,
         thoi_luong_s = ${Math.max(2, Math.ceil(s.giay))}, phat_s = ${s.giay}, nhan_vat = ${JSON.stringify(nv)}::jsonb, bien_the = ${JSON.stringify(bt)}::jsonb, prompt_anh = ${s.prompt_anh ?? ''}, prompt_video = ${s.prompt_video ?? ''},
-        phan_doan = ${s.loai}, cam_xuc = ${CAM_XUC_THEO_LOAI[s.loai] ?? 0}, ky_thuat = ${JSON.stringify(kt[i])}::jsonb, chu_man = ${s.chu_man}, kieu_chu = ${JSON.stringify(laShotCta(s.loai) ? CTA_MAC_DINH.kieu : {})}::jsonb, tham_khao = ${JSON.stringify(s.tk ?? [])}::jsonb, keyframe_url = ${v.kf}, keyframe_uv = ${JSON.stringify(v.kf ? [v.kf] : [])}::jsonb, trang_thai = ${v.tt}, updated_at = now()
+        phan_doan = ${s.loai}, cam_xuc = ${CAM_XUC_THEO_LOAI[s.loai] ?? 0}, ky_thuat = ${JSON.stringify(kt[i])}::jsonb, chu_man = ${s.chu_man}, kieu_chu = ${JSON.stringify(s.kieu ?? (laShotCta(s.loai) ? CTA_MAC_DINH.kieu : {}))}::jsonb, tham_khao = ${JSON.stringify(s.tk ?? [])}::jsonb, keyframe_url = ${v.kf}, keyframe_uv = ${JSON.stringify(v.kf ? [v.kf] : [])}::jsonb, trang_thai = ${v.tt}, updated_at = now()
       WHERE tap_id = ${tapId} AND thu_tu = ${i + 1}`);
     else await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, goc_may, hanh_dong, loi_thoai, thoai, am_thanh, thoi_luong_s, phat_s, nhan_vat, bien_the, prompt_anh, prompt_video, phan_doan, cam_xuc, ky_thuat, trang_phuc, chu_man, kieu_chu, tham_khao, keyframe_url, keyframe_uv, trang_thai)
       VALUES (${tapId}, ${i + 1}, ${v.canh}, ${s.goc_may}, ${s.hanh_dong}, ${ghepThoai(thoai)}, ${JSON.stringify(thoai)}::jsonb, '', ${Math.max(2, Math.ceil(s.giay))}, ${s.giay},
-        ${JSON.stringify(nv)}::jsonb, ${JSON.stringify(bt)}::jsonb, ${s.prompt_anh ?? ''}, ${s.prompt_video ?? ''}, ${s.loai}, ${CAM_XUC_THEO_LOAI[s.loai] ?? 0}, ${JSON.stringify(kt[i])}::jsonb, '', ${s.chu_man}, ${JSON.stringify(laShotCta(s.loai) ? CTA_MAC_DINH.kieu : {})}::jsonb, ${JSON.stringify(s.tk ?? [])}::jsonb,
+        ${JSON.stringify(nv)}::jsonb, ${JSON.stringify(bt)}::jsonb, ${s.prompt_anh ?? ''}, ${s.prompt_video ?? ''}, ${s.loai}, ${CAM_XUC_THEO_LOAI[s.loai] ?? 0}, ${JSON.stringify(kt[i])}::jsonb, '', ${s.chu_man}, ${JSON.stringify(s.kieu ?? (laShotCta(s.loai) ? CTA_MAC_DINH.kieu : {}))}::jsonb, ${JSON.stringify(s.tk ?? [])}::jsonb,
         ${v.kf}, ${JSON.stringify(v.kf ? [v.kf] : [])}::jsonb, ${v.tt})`);
   }
 }

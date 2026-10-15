@@ -15,7 +15,8 @@ import { tien } from '@/lib/xuong-video/kieu';
 import { Nut, Loi, goiAction } from './ui';
 import { moNgan } from './ngan-chung';
 import { KyThuatApDung } from './thu-vien';
-import { boSetCuaShot, khoiLapKhung, loiMachTap, loiHinhHoc, vatChanTienCanh, canhBaoMachTap } from '@/lib/xuong-video/bo-set-3d';
+import { boSetCuaShot, loiMachTap, canhBaoMachTap } from '@/lib/xuong-video/bo-set-3d';
+import { NhanKhung3D } from './kiem-khung-noi';
 
 /** Tên ngắn của một key thư viện (bỏ phần ngành trong ngoặc). */
 const tenKt = (k: string | undefined, n: NhomKyThuat) => (k ? kyThuat(k, n)?.ten.replace(/\s*\(.*\)$/, '') ?? '' : '');
@@ -123,7 +124,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                   : c.khung_xam
                   ? <div role="button" tabIndex={0} title="Bấm để xoay xem 3D đúng máy của shot này" onClick={(e) => { e.stopPropagation(); moNgan({ loai: 'bo-set', tapId: tap.id, canhId: c.id }); }} onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); e.preventDefault(); moNgan({ loai: 'bo-set', tapId: tap.id, canhId: c.id }); } }}
                       style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: `center / cover no-repeat url(${anhNho(c.khung_xam.mau ?? c.khung_xam.xam, coAnh)}), #222`, borderTop: '1px solid var(--line)', cursor: 'zoom-in' }}>
-                      <span className="xv-mono" style={{ position: 'absolute', left: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.7)', color: '#93c5fd' }} title={[...c.khung_xam.kiem.map((k) => `${k.nhan_vat}: ${k.trong_khung ? `${k.cao_khung_pt}% khung` : 'ngoài khung'}${k.bi_che_boi.length ? ` · bị ${k.bi_che_boi.join(', ')} che` : ''}`), '— thấy trong khung —', ...(c.khung_xam.thay ?? []).map((t) => `${t.ten} ${t.pt}%${t.tien ? ' · tiền cảnh' : ''}`), ...(lienMach[c.id] ?? []).map((x) => `⚠ ${x}`), ...(canhBao[c.id] ?? []).map((x) => `⚐ cảnh báo: ${x}`)].join('\n')}>🧊 3D{loiHinhHoc(c).length || vatChanTienCanh(c, null).length || khoiLapKhung(c, null).length || lienMach[c.id]?.length ? ' ⚠' : canhBao[c.id]?.length ? <span style={{ color: 'var(--amber)' }}> ⚐</span> : ''}</span>
+                      <NhanKhung3D c={c} loi={lienMach[c.id] ?? []} canhBao={canhBao[c.id] ?? []} />
                       {/* NHÃN TÊN từng khối (khung_xam.thay, đo bằng lưới tia) — khối nào là gì đọc được ngay, không đoán bằng mắt (anh 14/10/2026: khối vàng
                           ở cảnh 6–7 tưởng là tay Gã khổng lồ). Chỉ gắn khi ô cùng tỉ lệ khung dọc của khung xám (cover không cắt) — khổ ngang xem ở tooltip. */}
                       {doc && (c.khung_xam.thay ?? []).filter((t) => t.pt >= 4).slice(0, 7).map((t) => (

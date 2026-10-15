@@ -180,8 +180,10 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> 
 // Từ chỗ đứng nhân vật (cm) + CỠ CẢNH / GÓC / ỐNG KÍNH đã có trong thẻ shot → máy ảo: khoảng cách để chủ thể chiếm đúng phần khung của
 // cỡ cảnh (khung dọc 9:16, cảm biến 36 mm theo chiều dọc như dung-set.py), độ cao theo góc, phía máy = góc phương vị quanh chủ thể
 // (0° = từ phía người ngồi nhìn vào, +90° = từ bên phải). Mọi shot mới chỉ cần chỗ đứng + phía; máy tự ra, kiểm hình học tự chạy.
-const ONG_MM: Record<string, number> = { probe: 16, rong: 24, chuan: 40, chan_dung: 85, tele: 135, macro: 60, anamorphic: 40 };
-const ONG_THEO_CO: Record<string, number> = { ews: 18, ws: 24, ms: 35, mcu: 50, cu: 60, ecu: 60, insert: 60, two: 35, ots: 40, pov: 24 };
+// BỘ ỐNG KÍNH (luật bo_ong_kinh, 15/10/2026): máy tự động chỉ dùng 3 tiêu cự — 24 rộng · 35 trung · 60 cận — để một cảnh không quá 3 tiêu cự
+// (trước: 18/24/35/40/50/60 theo cỡ → cảnh 7 có 6 tiêu cự, phối cảnh đổi từng shot). Khoảng cách máy tự tính theo cỡ cảnh nên cỡ vẫn đúng.
+const ONG_MM: Record<string, number> = { probe: 16, rong: 24, chuan: 35, chan_dung: 85, tele: 135, macro: 60, anamorphic: 35 };
+const ONG_THEO_CO: Record<string, number> = { ews: 24, ws: 24, ms: 35, mcu: 60, cu: 60, ecu: 60, insert: 60, two: 35, ots: 35, pov: 24 };
 /** Phần chiều cao khung chủ thể chiếm theo cỡ cảnh (ecu > 1 = cắt sát hơn cả thân). */
 // ecu 0.6 / cu 0.75 / insert 0.7: trước đây ecu 1.6 (chủ thể to hơn khung) → với vật nhỏ (kẹo 2 cm) máy cách 1 cm, khung xám là một mảng đỏ (4.6 tập 19).
 const PHAN_KHUNG: Record<string, number> = { ews: 0.06, ws: 0.18, ms: 0.45, mcu: 0.6, cu: 0.75, ecu: 0.6, insert: 0.7, two: 0.4, ots: 0.5, pov: 0.3 };
@@ -318,6 +320,8 @@ const BAC_CO: Record<string, number> = { ews: 0, ws: 1, two: 2, ms: 2, pov: 2, o
 const trucMay = (m: Pick<May3d, 'dat' | 'nhin'>) => { const fx = m.nhin[0]! - m.dat[0]!, fy = m.nhin[1]! - m.dat[1]!; const l = Math.hypot(fx, fy) || 1; return { f: [fx / l, fy / l], r: [fy / l, -fx / l] }; };
 const tamThay = (c: ShotMach, ten: string) => { const t = c.khung_xam?.thay?.find((x) => x.ten === ten); return t && t.pt >= PT_THAY ? { x: (t.hop[0] + t.hop[2]) / 2, y: (t.hop[1] + t.hop[3]) / 2, t } : null; };
 const khoiCanh = <T extends ShotMach>(ds: T[]): T[][] => { const out: T[][] = []; for (const c of [...ds].sort((a, b) => a.thu_tu - b.thu_tu)) { const l = out[out.length - 1]; if (l && (l[0]!.phan_doan ?? '') === (c.phan_doan ?? '')) l.push(c); else out.push([c]); } return out; };
+/** Vùng khung bằng chữ (trái trên, giữa, phải dưới…) cho câu cảnh báo — không bắt người đọc dịch phần trăm. */
+const vungKhung = (x: number, y: number) => `${y < 0.36 ? 'phía trên' : y > 0.64 ? 'phía dưới' : 'giữa'}${x < 0.36 ? ' bên trái' : x > 0.64 ? ' bên phải' : x >= 0.36 && y >= 0.36 && y <= 0.64 ? ' khung' : ''}`.trim();
 const ben = (chu: string) => (chu.includes('screen-right') ? 'phải' : chu.includes('screen-left') ? 'trái' : null);
 
 /** CHẶN — Shot TỔNG THỂ đo trên 3D (luật du_diem_nhin): cảnh ≥ 3 shot có ≥ 2 nhân vật cùng lúc thì phải có một shot mọi nhân vật đó cùng lọt khung
@@ -329,7 +333,7 @@ export function thieuTongThe<T extends ShotMach>(ds: T[], laNhanVat: (ten: strin
     const nv = (c: T) => c.may_3d!.vi_tri.filter((v) => !v.an && laNhanVat(v.ten)).map((v) => v.ten);
     const max = Math.max(...co.map((c) => nv(c).length)); if (max < 2) continue;
     // "Thấy" ở shot tổng thể = lọt khung + không bị che (khung_xam.kiem) — nhân vật xa, nhỏ vẫn là thấy (toàn cảnh); thay chỉ là dự phòng.
-    const thayRo = (c: T, t: string) => { const k = c.khung_xam?.kiem?.find((x) => x.nhan_vat === t); return k ? k.trong_khung && !k.bi_che_boi.length : !!tamThay(c, t); };
+    const thayRo = (c: T, t: string) => { const k = c.khung_xam?.kiem?.find((x) => x.nhan_vat === t); const cam = (o: string) => c.may_3d!.vi_tri.find((v) => v.ten === o)?.cam === t; return k ? k.trong_khung && k.bi_che_boi.every(cam) : !!tamThay(c, t); };   // đồ đang cầm che chính mình không tính
     const ung = co.filter((c) => nv(c).length === max);
     if (ung.some((c) => nv(c).every((t) => thayRo(c, t)))) continue;
     const c = ung[0]!; const thieu = nv(c).filter((t) => !thayRo(c, t));
@@ -389,11 +393,12 @@ export function canhBaoMachTap<T extends ShotMach>(ds: T[], laNhanVat: (ten: str
       if (s && chuThe(ma)[0] === s && pa && pb && !ma.qua_truc && !mb.qua_truc) {
         const g = (m: May3d, p: number[]) => (Math.atan2(m.dat[1]! - p[1]!, m.dat[0]! - p[0]!) * 180) / Math.PI;
         const lech = gocLech(g(ma, pa), g(mb, pb)); const ca = BAC_CO[a.ky_thuat?.co_canh ?? ''], cb = BAC_CO[b.ky_thuat?.co_canh ?? ''];
-        if (lech < 30 && ca != null && cb != null && Math.abs(ca - cb) < 2) them(b.id, `luật 30°: cùng chủ thể ${s} với #${a.thu_tu} mà góc máy chỉ đổi ${Math.round(lech)}° và cỡ ${a.ky_thuat?.co_canh} → ${b.ky_thuat?.co_canh} (< 2 bậc) — jump cut: đổi góc ≥ 30° hoặc cỡ ≥ 2 bậc`);
+        if (lech < 30 && ca != null && cb != null && Math.abs(ca - cb) < 2) them(b.id, `luật 30°: gần như cùng góc máy với #${a.thu_tu} (chỉ xoay ${Math.round(lech)}°) và cỡ cảnh gần nhau (${a.ky_thuat?.co_canh} → ${b.ky_thuat?.co_canh}) — cắt sẽ giật như nhảy hình — xoay máy ít nhất 30° quanh ${s}, hoặc đổi cỡ cảnh hai bậc`);
       }
       // eye trace: tâm chủ thể chính shot trước ↔ shot này lệch > nửa khung
       const sa = chuThe(ma)[0]; const ta = sa ? tamThay(a, sa) : null; const tb = s ? tamThay(b, s) : null;
-      if (ta && tb && Math.hypot(ta.x - tb.x, ta.y - tb.y) > 0.5) them(b.id, `eye trace: mắt khán giả đang ở ${sa} (${Math.round(ta.x * 100)}%, ${Math.round(ta.y * 100)}%) cuối #${a.thu_tu}, shot này ${s} ở (${Math.round(tb.x * 100)}%, ${Math.round(tb.y * 100)}%) — mắt phải nhảy qua màn: dời máy / đổi bố cục cho gần chỗ cũ`);
+      const gocRieng = VAI_GOC_RIENG.has(a.ky_thuat?.vai ?? '') || VAI_GOC_RIENG.has(b.ky_thuat?.vai ?? '');   // người thứ ba / POV / thiết lập: bố cục có chủ ý khác
+      if (!gocRieng && ta && tb && Math.hypot(ta.x - tb.x, ta.y - tb.y) > 0.5) them(b.id, `eye trace: cuối #${a.thu_tu} mắt khán giả đang ở ${sa} (${vungKhung(ta.x, ta.y)}), mở shot này ${s} lại ở ${vungKhung(tb.x, tb.y)} — mắt phải nhảy qua màn mỗi cú cắt — dời bố cục cho ${s} về gần ${vungKhung(ta.x, ta.y)}`);
     }
     // khoảng nhìn + headroom (shot thường, không POV)
     for (const c of co) {
@@ -401,21 +406,25 @@ export function canhBaoMachTap<T extends ShotMach>(ds: T[], laNhanVat: (ten: str
       for (const t of chuThe(m).filter(laNhanVat)) {
         const v = m.vi_tri.find((x) => x.ten === t && !x.an); const tt = tamThay(c, t); if (!v || !tt || tt.t.pt < 3) continue;
         const h = huongVoiMay(m, v); const b = h ? ben(h.chu) : null;
-        if (b === 'phải' && tt.x > 0.6) them(c.id, `khoảng nhìn: ${t} nhìn sang phải mà đứng ở ${Math.round(tt.x * 100)}% bề ngang — dí mép trước mặt; dời máy cho ${t} về 1/3 trái`);
-        if (b === 'trái' && tt.x < 0.4) them(c.id, `khoảng nhìn: ${t} nhìn sang trái mà đứng ở ${Math.round(tt.x * 100)}% bề ngang — dí mép trước mặt; dời máy cho ${t} về 1/3 phải`);
-        if (['cu', 'mcu', 'ms'].includes(c.ky_thuat?.co_canh ?? '') && tt.t.hop[1] > 0.3) them(c.id, `headroom: đỉnh ${t} ở ${Math.round(tt.t.hop[1] * 100)}% từ mép trên ở cỡ ${c.ky_thuat?.co_canh} — thừa khoảng trên đầu: hạ khung / nhìn thấp hơn`);
+        if (b === 'phải' && tt.x > 0.6) them(c.id, `khoảng nhìn: ${t} nhìn sang phải mà đứng sát mép phải — trước mặt không còn chỗ, khung ngột ngạt — dời máy cho ${t} về phần ba bên trái khung`);
+        if (b === 'trái' && tt.x < 0.4) them(c.id, `khoảng nhìn: ${t} nhìn sang trái mà đứng sát mép trái — trước mặt không còn chỗ, khung ngột ngạt — dời máy cho ${t} về phần ba bên phải khung`);
+        // headroom chỉ ở máy NGANG tầm; góc cao / thấp đặt đầu nhân vật lệch khỏi mép trên là bản chất của góc. Không báo khi phần trên khung đã có
+        // chủ thể / nhân vật khác (Mr. Wipe lơ lửng trên hai bạn), khi ai đó bay lên trong shot (Lint bị hút lên), hay nhân vật đang bẹp.
+        const coTren = (c.khung_xam?.thay ?? []).some((x) => x.pt >= PT_THAY && x.hop[1] <= 0.3 && (laNhanVat(x.ten) || chuThe(m).includes(x.ten)));
+        const bayLen = m.vi_tri.some((x) => laNhanVat(x.ten) && x.den && (x.den[2] ?? 0) > (x.tam[2] ?? 0) + 1);
+        if (c.ky_thuat?.goc === 'ngang' && !v.nam && !coTren && !bayLen && ['cu', 'mcu', 'ms'].includes(c.ky_thuat?.co_canh ?? '') && tt.t.hop[1] > 0.3) them(c.id, `headroom: trên đầu ${t} trống gần nửa khung ở cỡ ${c.ky_thuat?.co_canh} — thừa khoảng trên đầu, nhân vật như bị đẩy xuống đáy — hạ khung xuống (nhìn thấp hơn) hoặc kéo máy lại gần`);
       }
     }
     // chiều cao máy: các shot "ngang" trong cảnh quanh trung vị ± 4 cm
     const ngang = co.filter((c) => c.ky_thuat?.goc === 'ngang' && !VAI_GOC_RIENG.has(c.ky_thuat?.vai ?? ''));
     if (ngang.length >= 3) {
       const z = ngang.map((c) => c.may_3d!.dat[2] ?? 0).sort((p, q) => p - q); const tv = z[Math.floor(z.length / 2)]!;
-      for (const c of ngang) { const d = (c.may_3d!.dat[2] ?? 0) - tv; if (Math.abs(d) > 4) them(c.id, `chiều cao máy: ${Math.round((c.may_3d!.dat[2] ?? 0) * 10) / 10} cm trong khi các shot ngang tầm của cảnh ở ~${Math.round(tv * 10) / 10} cm — khán giả đổi tầm nhìn vô cớ`); }
+      for (const c of ngang) { const d = (c.may_3d!.dat[2] ?? 0) - tv; if (Math.abs(d) > 4) them(c.id, `chiều cao máy: máy đặt cao ${Math.round((c.may_3d!.dat[2] ?? 0) * 10) / 10} cm, các shot ngang tầm khác trong cảnh ở khoảng ${Math.round(tv * 10) / 10} cm — khán giả đổi tầm nhìn mà không có lý do — đưa máy về cùng tầm`); }
     }
     // bộ ống kính: > 3 tiêu cự trong cảnh → nhắc shot dùng tiêu cự hiếm nhất
     const thuong = co.filter((c) => !VAI_GOC_RIENG.has(c.ky_thuat?.vai ?? '') && !c.may_3d!.qua_truc);
     const dem = new Map<number, number>(); for (const c of thuong) dem.set(c.may_3d!.ong_kinh, (dem.get(c.may_3d!.ong_kinh) ?? 0) + 1);
-    if (dem.size > 3) { const it = Math.min(...dem.values()); for (const c of thuong) if (dem.get(c.may_3d!.ong_kinh) === it) them(c.id, `bộ ống kính: cảnh dùng ${dem.size} tiêu cự (${[...dem.keys()].sort((p, q) => p - q).join(' / ')} mm) — DP giữ 2–3; shot này ${c.may_3d!.ong_kinh} mm hiếm nhất, đổi về một tiêu cự đã dùng`); }
+    if (dem.size > 3) { const it = Math.min(...dem.values()); for (const c of thuong) if (dem.get(c.may_3d!.ong_kinh) === it) them(c.id, `bộ ống kính: cảnh này dùng tới ${dem.size} tiêu cự (${[...dem.keys()].sort((p, q) => p - q).join(' / ')} mm), ngành giữ 2–3 — phối cảnh đổi từng shot, cùng cái bàn lúc sâu lúc dẹt — đổi ${c.may_3d!.ong_kinh} mm của shot này về một tiêu cự đã dùng nhiều`); }
   }
   return out;
 }

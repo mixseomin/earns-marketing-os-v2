@@ -46,6 +46,13 @@ export function Seg<T extends string | number>({ options, value, onChange }: { o
 
 /** Nút bị gate: `ly` có chữ = khoá + hiện lý do khi rê chuột (không im lặng vô hiệu). */
 /** gia (cents): lượt sinh trên ngưỡng ($0.5) phải bấm lại lần hai ngay tại nút (#1214). */
+/** Link RA NGOÀI app (spy.on.tc, trang bán, nguồn tham khảo…): mở tab mới, không mang referrer. Luật "không mở tab mới" (khong-tab-moi.mjs) là cho
+ *  điều hướng TRONG studio (dùng ngăn); ra app khác mà thay trang đang làm thì mất ngăn đang mở (anh 15/10/2026: "link sang spy phải mở tab mới").
+ *  Mọi link ngoài đi qua đây — máy kiểm (khong-tab-moi.mjs) chỉ cho mở tab mới ở đúng dòng đánh dấu LinkNgoai bên dưới. */
+export function LinkNgoai({ href, title, className, style, children }: { href: string; title?: string; className?: string; style?: CSSProperties; children: ReactNode }) {
+  return <a href={href} target="_blank" rel="noopener noreferrer" title={title} className={className} style={style}>{children}</a>;   // LinkNgoai
+}
+
 export function Nut({ ly, ban, chinh, nguy, title, onClick, children, gia }: { ly?: string | false | null; ban?: boolean; chinh?: boolean; nguy?: boolean; title?: string; onClick: () => void; children: ReactNode; gia?: number }) {
   const why = ly ? String(ly) : '';
   const xn = useXacNhanTien(gia);

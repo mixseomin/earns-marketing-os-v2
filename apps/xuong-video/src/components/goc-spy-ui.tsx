@@ -5,7 +5,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { dsSpSpy, dsGocSpy, luuGocSpy, type SpSpy } from '@/lib/actions';
 import { LOAI_GOC_SPY, linkGocSpy, linkSpSpy, loaiGocSpy, xepGocSpy, type GocSpy } from '@/lib/xuong-video/goc-spy';
 import type { Phim } from '@/lib/xuong-video/kieu';
-import { Nut, Loi, mono, goiAction } from './ui';
+import { Nut, Loi, LinkNgoai, mono, goiAction } from './ui';
 import { Chon } from './chon';
 
 const chip: CSSProperties = { display: 'inline-flex', gap: 4, alignItems: 'baseline', padding: '1px 8px', borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', fontSize: 11.5, textDecoration: 'none', maxWidth: 360 };
@@ -21,13 +21,13 @@ export function ChipGocSpy({ ds, gon, toiDa }: { ds: GocSpy[]; gon?: boolean; to
       {hien.map((g) => {
         const l = loaiGocSpy(g.loai);
         return (
-          <a key={g.id} href={linkGocSpy(g)} style={chip} title={`${l.ten}: ${g.ten}${g.mo_ta ? ` — ${g.mo_ta}` : ''}\nBấm để mở góc này trên spy.on.tc (bằng chứng: bài, bình luận, QC đối thủ)`}>
+          <LinkNgoai key={g.id} href={linkGocSpy(g)} style={chip} title={`${l.ten}: ${g.ten}${g.mo_ta ? ` — ${g.mo_ta}` : ''}\nBấm để mở góc này trên spy.on.tc ở tab mới (bằng chứng: bài, bình luận, QC đối thủ)`}>
             <span>{l.ic}</span>{!gon && <span style={{ color: 'var(--fg-3)' }}>{l.ten}</span>}
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.ten}</span>
-          </a>
+          </LinkNgoai>
         );
       })}
-      {conLai.length > 0 && <a href={linkGocSpy(conLai[0]!)} style={{ ...chip, color: 'var(--fg-3)' }} title={`${conLai.length} góc nữa:\n${conLai.map((g) => `${loaiGocSpy(g.loai).ic} ${loaiGocSpy(g.loai).ten}: ${g.ten}`).join('\n')}\nBấm để mở trên spy.on.tc`}>+{conLai.length}</a>}
+      {conLai.length > 0 && <LinkNgoai href={linkGocSpy(conLai[0]!)} style={{ ...chip, color: 'var(--fg-3)' }} title={`${conLai.length} góc nữa:\n${conLai.map((g) => `${loaiGocSpy(g.loai).ic} ${loaiGocSpy(g.loai).ten}: ${g.ten}`).join('\n')}\nBấm để mở trên spy.on.tc ở tab mới`}>+{conLai.length}</LinkNgoai>}
     </div>
   );
 }
@@ -71,7 +71,7 @@ export function GocSpyPanel({ phim, onChanged }: { phim: Phim; onChanged: () => 
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
         <Chon value={sp ? String(sp) : ''} onChange={(v) => setSp(Number(v))} placeholder="Nhóm sản phẩm trên spy…" minWidth={260}
           options={dsSp.map((x) => ({ value: String(x.id), label: x.ten, phu: `#${x.id}` }))} />
-        {sp > 0 && <a href={linkSpSpy(sp)} className="xv-lienket xv-mono" title="Mở nhóm này trên spy.on.tc">mở “{tenSp(sp)}” trên spy ↗</a>}
+        {sp > 0 && <LinkNgoai href={linkSpSpy(sp)} className="xv-lienket xv-mono" title="Mở nhóm này trên spy.on.tc ở tab mới">mở “{tenSp(sp)}” trên spy ↗</LinkNgoai>}
         {sp > 0 && <Chon multi values={[...thuSp]} onValues={datGocSp} placeholder={goc.length ? `Tick góc (${goc.length})…` : 'đang tải góc…'} minWidth={320}
           options={LOAI_GOC_SPY.flatMap((l) => goc.filter((g) => g.loai === l.key).map((g) => ({ value: String(g.id), label: g.ten, nhom: `${l.ic} ${l.ten}`, phu: `${g.so_nhac} người`, title: g.mo_ta })))} />}
       </div>

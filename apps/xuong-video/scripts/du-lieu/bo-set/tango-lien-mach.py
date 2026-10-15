@@ -292,10 +292,12 @@ for ma, m in SUA.items():
 # ôm đủ bề ngang cụm. #8 / #13 kéo hết mức vẫn ~15% (nhân vật chạy 8–11 cm trong shot) → hồ sơ khai lại ws cho khớp 3D.
 KHOP_CO = {
  '4.2': {'dat': [3.0, 53.9, 1.9], 'nhin': [2.7, 70.8, 1.1], 'ong_kinh': 35},     # #13 (ws)
- '4.3': {'dat': [0.1, 66.2, 1.2], 'nhin': [4.3, 70.8, 0.9], 'ong_kinh': 24},     # #14 ms: Tango 9% → 21%
- '5.3': {'dat': [0.0, 62.4, 1.7], 'nhin': [5.0, 71.0, 1.1], 'ong_kinh': 40},     # #21 ms: 17% → 29%
- '7.4': {'dat': [62.7, 29.2, 9.3], 'nhin': [57.5, 58.3, 7.8], 'ong_kinh': 40},   # #35 ms: Mr. Wipe 20% → 30%
- '7.6b': {'dat': [63.7, 52.1, 3.4], 'nhin': [54.1, 50.8, 1.1], 'ong_kinh': 35},  # #40 ms: 15% → 25%
+ '4.3': {'dat': [0.8, 67.0, 1.2], 'nhin': [4.3, 70.8, 0.4], 'ong_kinh': 24},     # #14 ms: Tango 9% → 25% (Blender đo)
+ '5.3': {'dat': [0.0, 62.4, 1.7], 'nhin': [4.3, 71.4, 1.1], 'ong_kinh': 40},     # #21 ms: 17% → 25% (ống 40 — cảnh 5 giữ 24 / 40 / 60); nhìn lệch trái cho Tango sang gần chỗ mắt dừng cuối #20 (Mr. Wipe trên-phải)
+ '7.4': {'dat': [65.5, 49, 1.2], 'nhin': [59.0, 59.6, 6.0], 'ong_kinh': 40},    # #35 ms góc THẤP: máy sát mặt bàn phía đông ngước lên Mr. Wipe (17% → 42%); máy cũ 26 cm phía nam đứng sau chân iMac (chắn 19% tiền cảnh)
+ '7.6b': {'dat': [60.8, 51.7, 2.7], 'nhin': [54.1, 50.8, 1.1], 'ong_kinh': 35},  # #40 ms: Tango 15% → 21%
+ # #42 eye trace: cuối #41 mắt ở kẹo (trên-phải) → nhìn lệch trái cho hai bạn sang phải khung, thẻ trống vẫn tiền cảnh
+ '7.7a': {'dat': [61, 47.5, 4.0], 'nhin': [54.0, 50.3, 0.5], 'ong_kinh': 35},
 }
 for ma, m in KHOP_CO.items():
     S['may'][ma].pop('phia', None); S['may'][ma].update(m)

@@ -308,6 +308,8 @@ export type Phim = {
   tap_tom?: { id: number; so: number; ten: string; so_canh: number; so_hinh: number; so_clip: number }[];
   /** ảnh QC (anh-qc.ts) chưa ẩn: số thẻ + bản đang dùng của thẻ đã sinh — danh sách phim hiện cạnh video của cùng sản phẩm */
   so_anh_qc?: number; anh_qc_tom?: { id: number; url: string; ti_le: string }[];
+  /** góc bán spy.on.tc phim QC này khai thác (goc-spy.ts, cột riêng — form kinh thánh không ghi đè được) */
+  goc_spy?: import('./goc-spy').GocSpy[];
   /** poster đang dùng + mọi bản đã sinh (poster.ts) */
   poster_url?: string | null; poster_uv?: string[];
 };

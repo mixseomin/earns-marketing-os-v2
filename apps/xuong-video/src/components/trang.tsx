@@ -18,6 +18,7 @@ import { NhanVatSection } from './nhan-vat';
 import { TapView } from './tap';
 import { PosterPhim } from './poster-ui';
 import { AnhQcPhim } from './anh-qc-ui';
+import { ChipGocSpy, GocSpyPanel } from './goc-spy-ui';
 import { useNho } from './nho';
 import { useDinhKy } from './dinh-ky';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
@@ -117,6 +118,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
                       {laLuuTru(p) && <Pill color="var(--fg-4)">lưu trữ</Pill>}
                       <span style={mono}>{LOAI_PHIM.find((l) => l.key === p.loai)?.label ?? p.loai} · {p.so_nhan_vat} anchor · {p.so_canh} cảnh · {tien(p.chi_phi_cents)}</span>
                     </div>
+                    {!!p.goc_spy?.length && <ChipGocSpy ds={p.goc_spy} gon />}
                     {!!p.so_anh_qc && <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
                       <span style={mono}>🖼 {p.so_anh_qc} ảnh QC</span>
                       {(p.anh_qc_tom ?? []).map((a) => <img key={a.id} src={anhNho(a.url, 160)} alt="" title="Ảnh QC — mở phim, tab 🎭 Phim › Ảnh QC" onClick={() => { setTapMo(null); modal.open('phim', p.id); }}
@@ -205,6 +207,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
       {tab === 'so_do' && <SoDoSeries phim={phim} tap={tap} nhanVat={nhanVat} onChanged={tai} onMoTap={(id) => { tapParam.open('tap', id); setTab('kich_ban'); }} />}
       {tab === 'phim' && <>
         {phim.kinh_thanh?.template && <TemplatePanel phim={phim} onChanged={tai} onMoPhim={(pid) => modal.open('phim', pid)} onMoPhimChong={(pid) => chong.open('phim', pid)} />}
+        {phim.loai === 'quang_cao' && !phim.kinh_thanh?.template && <GocSpyPanel phim={phim} onChanged={tai} />}
         <KinhThanhForm phim={phim} khoa={khoa} onSaved={tai} />
         <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} />
         <PosterPhim phim={phim} nhanVat={nhanVat} dang={d.dangSinh.poster} loiNen={d.loiPoster} onChanged={tai} />

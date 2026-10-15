@@ -41,6 +41,7 @@ import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-vi
 import { type Row, n, s, arr, mangInt, nguCanhPhimDb, mapBienThe, mapNhanVat, mapTap, mapCanh, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
 import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim, sinhAnhQcDb } from '@/lib/xuong-video/sinh-anh';
 import { khuonAnhQc, MO_HINH_ANH_QC, TI_LE_ANH_QC, type AnhQc } from '@/lib/xuong-video/anh-qc';
+import { docGocSpy, xepGocSpy, type GocSpy } from '@/lib/xuong-video/goc-spy';
 import { docOTemplate, chepPhim, type KetQuaChep, type ShotKhung } from '@/lib/xuong-video/template-db';
 import { diemNhan } from '@/lib/xuong-video/diem-nhan';
 import { MO_HINH_CONG, coCong, centsCong, chuoiAnh, chuoiVideo, taNguon, taNguonNgan, taThu, type CongKey, type NguonSinh } from '@/lib/xuong-video/cong-ai';
@@ -197,6 +198,7 @@ const mapPhim = (r: Row): Phim => ({
   tap_tom: arr<NonNullable<Phim['tap_tom']>[number]>(r.tap_tom).map((t) => ({ ...t, so_canh: Number(t.so_canh), so_hinh: Number(t.so_hinh), so_clip: Number(t.so_clip) })),
   poster_url: r.poster_url ? s(r.poster_url) : null, poster_uv: arr<string>(r.poster_uv),
   so_anh_qc: n(r.so_anh_qc), anh_qc_tom: arr<NonNullable<Phim['anh_qc_tom']>[number]>(r.anh_qc_tom),
+  goc_spy: docGocSpy(r.goc_spy),
 });
 
 /** dangSinh: job ảnh còn chạy (≤10 phút) — F5 vẫn thấy "đang sinh" vì trạng thái ở sổ job máy chủ, không ở trình duyệt. */
@@ -922,6 +924,41 @@ export async function chonPoster(phimId: number, url: string): Promise<Kq> {
   await db.execute(sql`UPDATE xv_phim SET poster_url = ${url}, updated_at = now() WHERE id = ${phimId} AND poster_uv @> ${JSON.stringify([url])}::jsonb`);
   return { ok: true, data: undefined };
 }
+// ── Góc bán từ spy.on.tc (goc-spy.ts): spy chạy cùng box, đọc thẳng API nội bộ của nó ─────────────────────────────────
+const SPY_API = process.env.SPY_API_URL || 'http://127.0.0.1:3850';
+async function docSpy<T>(duong: string): Promise<Kq<T>> {
+  try {
+    const r = await fetch(`${SPY_API}${duong}`, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return loi(`spy trả ${r.status}`);
+    return { ok: true, data: (await r.json()) as T };
+  } catch (e) { return loi(`không gọi được spy (${e instanceof Error ? e.message.slice(0, 60) : 'lỗi'})`); }
+}
+export type SpSpy = { id: number; ten: string };
+/** Nhóm sản phẩm trên spy (để chọn nơi lấy góc). */
+export async function dsSpSpy(): Promise<Kq<SpSpy[]>> {
+  if (!(await admin())) return loi('không có quyền');
+  const r = await docSpy<{ id: number; ten: string }[]>('/api/goc/sp');
+  return r.ok ? { ok: true, data: r.data.map((x) => ({ id: Number(x.id), ten: String(x.ten ?? '') })) } : r;
+}
+/** Góc AI của một nhóm sản phẩm spy (chân dung · nỗi đau · mong muốn · tình huống · phản đối), nhiều người nhắc trước. */
+export async function dsGocSpy(sp: number): Promise<Kq<(GocSpy & { so_nhac: number })[]>> {
+  if (!(await admin())) return loi('không có quyền');
+  const r = await docSpy<{ id: number; loai: string; ten: string; mo_ta?: string; so_nhac?: number }[]>(`/api/goc?sp=${sp}`);
+  if (!r.ok) return r;
+  return { ok: true, data: r.data.filter((g) => String(g.loai).startsWith('ai_')).map((g) => ({ id: Number(g.id), sp, loai: g.loai, ten: g.ten, mo_ta: g.mo_ta ?? '', so_nhac: Number(g.so_nhac ?? 0) }))
+    .sort((a, b) => b.so_nhac - a.so_nhac) };
+}
+/** Ghi danh sách góc spy của phim (↶ hoàn tác được). */
+export async function luuGocSpy(phimId: number, ds: GocSpy[]): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const sach = xepGocSpy(docGocSpy(ds)).map((g) => ({ id: g.id, sp: g.sp, loai: g.loai, ten: g.ten, ...(g.mo_ta ? { mo_ta: g.mo_ta.slice(0, 400) } : {}) }));
+  await chupTruoc(db, { bang: 'xv_phim', id: phimId, cot: ['goc_spy'], moTa: 'sửa góc spy', nguoi: await ai() });
+  await db.execute(sql`UPDATE xv_phim SET goc_spy = ${JSON.stringify(sach)}::jsonb, updated_at = now() WHERE id = ${phimId}`);
+  return { ok: true, data: undefined };
+}
+
 // ── Ảnh QC (anh-qc.ts): ảnh creative tĩnh chép bố cục ảnh QC đang thắng ─────────────────────────────────────────────
 const mapAnhQc = (r: Row): AnhQc => ({ id: n(r.id), phim_id: n(r.phim_id), khuon: s(r.khuon), ten: s(r.ten), mau_url: s(r.mau_url), chu: s(r.chu), y_tuong: s(r.y_tuong),
   ti_le: (s(r.ti_le) || '4:5') as AnhQc['ti_le'], mo_hinh: s(r.mo_hinh) || MO_HINH_ANH_QC, url: r.url ? s(r.url) : null, uv: arr<string>(r.uv), an: r.an === true });

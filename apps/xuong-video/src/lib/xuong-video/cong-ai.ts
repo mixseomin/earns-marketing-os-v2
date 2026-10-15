@@ -61,18 +61,39 @@ async function taiVe(url: string): Promise<{ data: Buffer; mimeType: string } | 
 /** ckey.vn là CHỢ: người bán tự đặt / đổi tên model. 15/10/2026 wowztools đổi `nano-banana-2` → `Nano-Banana-2` → mọi lượt báo 404 "model is not
  *  available" / 400 suốt 30 giờ (246 lượt hỏng, ảnh rơi hết sang Google 874₫ thay 110₫). Tra tên THẬT trong danh mục /v1/models (nhớ 1 giờ),
  *  khớp không phân biệt hoa thường; người bán gỡ hẳn → báo rõ, không gọi. Danh mục không đọc được → gọi bằng tên đã cấu hình như cũ. */
-let khoCkey: { luc: number; ten: Map<string, string> } | null = null;
+let khoCkey: { luc: number; ten: Map<string, string>; gia: Map<string, number> } | null = null;
+async function napCkey(k: string): Promise<void> {
+  if (khoCkey && Date.now() - khoCkey.luc < 3600_000) return;
+  try {
+    const r = await fetch('https://api.xah.io/v1/models', { headers: { authorization: `Bearer ${k}` }, signal: AbortSignal.timeout(20_000) });
+    const j = (await r.json()) as { data?: { id?: string; pricing?: { per_request?: number } }[] };
+    if (r.ok && j.data?.length) {
+      const ds = j.data.filter((m) => m.id);
+      khoCkey = { luc: Date.now(), ten: new Map(ds.map((m) => [m.id!.toLowerCase(), m.id!])), gia: new Map(ds.filter((m) => typeof m.pricing?.per_request === 'number').map((m) => [m.id!, m.pricing!.per_request!])) };
+    }
+  } catch { /* giữ danh mục cũ / gọi bằng tên cấu hình */ }
+}
 export async function tenThatCkey(model: string, k: string): Promise<string | null> {
-  if (!khoCkey || Date.now() - khoCkey.luc > 3600_000) {
-    try {
-      const r = await fetch('https://api.xah.io/v1/models', { headers: { authorization: `Bearer ${k}` }, signal: AbortSignal.timeout(20_000) });
-      const j = (await r.json()) as { data?: { id?: string }[] };
-      if (r.ok && j.data?.length) khoCkey = { luc: Date.now(), ten: new Map(j.data.filter((m) => m.id).map((m) => [m.id!.toLowerCase(), m.id!])) };
-    } catch { /* giữ danh mục cũ / gọi bằng tên cấu hình */ }
-  }
+  await napCkey(k);
   if (!khoCkey) return model;
   return khoCkey.ten.get(model.toLowerCase()) ?? null;
 }
+
+/** NGƯỜI BÁN CKEY CÙNG MODEL dự phòng cho nhau (anh 15/10/2026: "ckey có nhiều nhà cung cấp, fallback trong số họ với nhau"). Thuần.
+ *  Chỉ lấy ĐÚNG dòng Nano Banana (2 / gemini-3.1-flash-image trước, Pro sau) — model khác (Qwen, Seedream, gpt-image, bản Lite) ra hình khác
+ *  hẳn, không phải dự phòng. Chỉ người bán rẻ hơn tranVnd (cổng kế: ShopAIKey 683₫ / Google 874₫). Người bán đang "nghỉ" (hỏng liên tiếp) bỏ qua. */
+export const RE_NANO_CKEY = /^[^/]+\/(nano-banana-2|gemini-3\.1-flash-image|nano-banana-pro)$/i;
+export function chonNguoiBanCkey(danhMuc: { id: string; vnd: number }[], nghi: Set<string>, tranVnd = 683): { model: string; vnd: number }[] {
+  const hang = (id: string) => (/pro$/i.test(id) ? 1 : 0);
+  return danhMuc.filter((m) => RE_NANO_CKEY.test(m.id) && m.vnd < tranVnd && !nghi.has(m.id))
+    .sort((a, b) => hang(a.id) - hang(b.id) || a.vnd - b.vnd).map((m) => ({ model: m.id, vnd: m.vnd }));
+}
+/** Cầu dao từng người bán (trong bộ nhớ tiến trình): hỏng HONG_LIEN lần liền → nghỉ NGHI_PHUT phút; một lần đạt là mở lại. Tránh mỗi ảnh
+ *  phải chờ lại người bán đang chết (ngày 15/10 wowztools hỏng 246 lượt liền). */
+const HONG_LIEN = 2, NGHI_PHUT = 20;
+const hongCkey = new Map<string, { lan: number; luc: number }>();
+const ghiCkey = (id: string, ok: boolean) => { if (ok) { hongCkey.delete(id); return; } const h = hongCkey.get(id); hongCkey.set(id, { lan: (h?.lan ?? 0) + 1, luc: Date.now() }); };
+const dangNghi = (): Set<string> => new Set([...hongCkey].filter(([, h]) => h.lan >= HONG_LIEN && Date.now() - h.luc < NGHI_PHUT * 60_000).map(([id]) => id));
 
 /** Gọi MỘT cổng sinh ảnh. Ảnh tham chiếu đi bằng URL công khai (R2). Hết giờ chờ: ShopAIKey vẫn trừ tiền → chờ đủ lâu (240s). */
 export async function sinhAnhCong(cong: CongKey, model: string, o: { prompt: string; thamChieuUrl: string[]; tiLe: TiLeAnh }): Promise<KqAnhCong> {
@@ -102,12 +123,29 @@ export async function sinhAnhCong(cong: CongKey, model: string, o: { prompt: str
 /** Thử lần lượt chuỗi cổng; trả ảnh + nguồn, hoặc null + các bước đã hỏng (sinhAnh nối tiếp sang Google). */
 export async function sinhAnhQuaCong(modelGoogle: string, o: { prompt: string; thamChieuUrl: string[]; tiLe: TiLeAnh }): Promise<{ anh: { data: Buffer; mimeType: string } | null; nguon: NguonSinh | null; thu: BuocNguon[] }> {
   const thu: BuocNguon[] = [];
-  for (const b of chuoiAnh(modelGoogle)) {
+  const tinh = chuoiAnh(modelGoogle);
+  // Ckey: thay các dòng cấu hình tĩnh bằng MỌI người bán Nano Banana đang có trong danh mục (rẻ → đắt, bỏ người đang nghỉ); không đọc được
+  // danh mục thì giữ chuỗi tĩnh. Giá ghi sổ lấy đúng giá danh mục của người bán đã chạy.
+  const giaDong: Record<string, number> = {};
+  let chuoi = tinh;
+  const kc = khoa('ckey');
+  if (kc && tinh.some((x) => x.cong === 'ckey')) {
+    await napCkey(kc);
+    if (khoCkey) {
+      const ban = chonNguoiBanCkey([...khoCkey.gia].map(([id, vnd]) => ({ id, vnd })), dangNghi());
+      for (const b of ban) giaDong[`ckey:${b.model}`] = b.vnd;
+      chuoi = [...ban.map((b) => ({ cong: 'ckey' as const, model: b.model })), ...tinh.filter((x) => x.cong !== 'ckey')];
+    }
+  }
+  for (const b of chuoi) {
     const t0 = Date.now();
-    const kq = await sinhAnhCong(b.cong, b.model, o);
+    let kq = await sinhAnhCong(b.cong, b.model, o);
+    // Người bán trả model KHÁC (ảnh ra không phải Nano Banana) → coi như hỏng, sang người kế.
+    if (kq.ok && b.cong === 'ckey' && kq.modelThat && !/flash-image|pro-image|banana|gemini/i.test(kq.modelThat)) kq = { ok: false, loi: `người bán trả model khác (${kq.modelThat})` };
+    if (b.cong === 'ckey') ghiCkey(b.model, kq.ok);
     const giay = Math.round((Date.now() - t0) / 100) / 10;
     if (kq.ok) {
-      const vnd = GIA_ANH_VND[`${b.cong}:${b.model}`];
+      const vnd = giaDong[`${b.cong}:${b.model}`] ?? GIA_ANH_VND[`${b.cong}:${b.model}`];
       thu.push({ cong: b.cong, model: b.model, ok: true, giay });
       return { anh: kq, thu, nguon: { cong: b.cong, model: b.model, model_that: kq.modelThat, nguoi_ban: b.cong === 'ckey' ? b.model.split('/')[0] : undefined, vnd, cents: vnd != null ? vndRaCent(vnd) : undefined, giay, thu } };
     }

@@ -32,7 +32,7 @@ export function laHetTien(cong: string, loi: string, status?: number): boolean {
 
 /** Bảng giá cổng (VNĐ thật / ảnh) — đo + đối chiếu console 15/10/2026. */
 const GIA_ANH_VND: Record<string, number> = {
-  'ckey:wowztools/nano-banana-2': 110.5, 'ckey:wowztools/nano-banana-pro': 110.5,
+  'ckey:wowztools/nano-banana-2': 110.5, 'ckey:wowztools/nano-banana-pro': 110.5, 'ckey:danielnguyenkarate/nano-banana-2': 480,
   'shopaikey:gemini-nano-banana-2.1': 683,
 };
 
@@ -42,6 +42,9 @@ export function chuoiAnh(modelGoogle: string): { cong: CongKey; model: string }[
   const ds: { cong: CongKey; model: string }[] = [
     { cong: 'ckey', model: 'wowztools/nano-banana-2' },        // → gemini-3.1-flash-image, 6/6 đạt 34–44s (15/10/2026)
     { cong: 'ckey', model: 'wowztools/nano-banana-pro' },      // → gemini-3.0-pro-image, cùng giá
+    // Người bán THỨ HAI trên chợ ckey (danh mục 15/10/2026, 480₫ — vẫn rẻ hơn ShopAIKey 683₫ / Google 874₫): wowztools đổi tên / gỡ model thì
+    // ảnh chưa phải rơi thẳng sang cổng đắt (30 giờ ngày 15/10 rơi hết sang Google).
+    { cong: 'ckey', model: 'danielnguyenkarate/nano-banana-2' },
     { cong: 'shopaikey', model: 'gemini-nano-banana-2.1' },    // 683₫, ~29s
   ];
   return ds.filter((x) => coCong(x.cong));
@@ -55,10 +58,31 @@ async function taiVe(url: string): Promise<{ data: Buffer; mimeType: string } | 
   return { data: Buffer.from(await r.arrayBuffer()), mimeType: r.headers.get('content-type')?.split(';')[0] || 'image/png' };
 }
 
+/** ckey.vn là CHỢ: người bán tự đặt / đổi tên model. 15/10/2026 wowztools đổi `nano-banana-2` → `Nano-Banana-2` → mọi lượt báo 404 "model is not
+ *  available" / 400 suốt 30 giờ (246 lượt hỏng, ảnh rơi hết sang Google 874₫ thay 110₫). Tra tên THẬT trong danh mục /v1/models (nhớ 1 giờ),
+ *  khớp không phân biệt hoa thường; người bán gỡ hẳn → báo rõ, không gọi. Danh mục không đọc được → gọi bằng tên đã cấu hình như cũ. */
+let khoCkey: { luc: number; ten: Map<string, string> } | null = null;
+export async function tenThatCkey(model: string, k: string): Promise<string | null> {
+  if (!khoCkey || Date.now() - khoCkey.luc > 3600_000) {
+    try {
+      const r = await fetch('https://api.xah.io/v1/models', { headers: { authorization: `Bearer ${k}` }, signal: AbortSignal.timeout(20_000) });
+      const j = (await r.json()) as { data?: { id?: string }[] };
+      if (r.ok && j.data?.length) khoCkey = { luc: Date.now(), ten: new Map(j.data.filter((m) => m.id).map((m) => [m.id!.toLowerCase(), m.id!])) };
+    } catch { /* giữ danh mục cũ / gọi bằng tên cấu hình */ }
+  }
+  if (!khoCkey) return model;
+  return khoCkey.ten.get(model.toLowerCase()) ?? null;
+}
+
 /** Gọi MỘT cổng sinh ảnh. Ảnh tham chiếu đi bằng URL công khai (R2). Hết giờ chờ: ShopAIKey vẫn trừ tiền → chờ đủ lâu (240s). */
 export async function sinhAnhCong(cong: CongKey, model: string, o: { prompt: string; thamChieuUrl: string[]; tiLe: TiLeAnh }): Promise<KqAnhCong> {
   const k = khoa(cong);
   if (!k) return { ok: false, loi: `thiếu khoá ${cong}` };
+  if (cong === 'ckey') {
+    const that = await tenThatCkey(model, k);
+    if (!that) return { ok: false, loi: `ckey: người bán đã gỡ model ${model} khỏi chợ (không có trong danh mục) — chọn người bán khác` };
+    model = that;
+  }
   const ref = o.thamChieuUrl.slice(0, 5);
   const [url, body, cho] = cong === 'ckey'
     ? ['https://api.xah.io/v1/images/generations', { model, prompt: o.prompt, size: o.tiLe, aspect_ratio: o.tiLe, n: 1, image_urls: ref, image: ref }, 180_000]

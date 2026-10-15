@@ -21,9 +21,11 @@ export const BAN_DUNG = 12;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
-export const maPhan = (set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]) => ({ ban: String(BAN_DUNG), set: bam([set.id, set.du_lieu.vat]), may: bam(m), khoi: bam(m.vi_tri.map((v) => khoiCua(v.ten, nhanVat))) });
+/** Phần máy ĐI VÀO HÌNH: bỏ các khai chỉ cổng kể chuyện đọc (lam) — khai thêm "Tango chạm phích" không làm khung đã dựng thành cũ. */
+const hinhMay = (m: May3d): May3d => (m.vi_tri.some((v) => v.lam || v.lam_o) ? { ...m, vi_tri: m.vi_tri.map(({ lam: _l, lam_o: _o, ...v }) => v) } : m);
+export const maPhan = (set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]) => ({ ban: String(BAN_DUNG), set: bam([set.id, set.du_lieu.vat]), may: bam(hinhMay(m)), khoi: bam(m.vi_tri.map((v) => khoiCua(v.ten, nhanVat))) });
 export function maKhungXam(set: Pick<BoSet, 'id' | 'du_lieu'>, m: May3d, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]): string {
-  const s = JSON.stringify([BAN_DUNG, set.id, set.du_lieu.vat, m, m.vi_tri.map((v) => khoiCua(v.ten, nhanVat))]);
+  const s = JSON.stringify([BAN_DUNG, set.id, set.du_lieu.vat, hinhMay(m), m.vi_tri.map((v) => khoiCua(v.ten, nhanVat))]);
   let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
   return h.toString(36);
 }
@@ -267,6 +269,58 @@ export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May
       }
       cuoi.set(v.ten, { p: v.den ?? v.tam, huong: v.huong_den ?? v.huong, shot: c.thu_tu });
     }
+  }
+  return out;
+}
+
+// ── CHUỖI CHÚ Ý (anh 15/10/2026: "con T muốn làm gì nó chỉ tay vào cái sạc thì chưa có đoạn dẫn từ mắt nó đến cái sạc") ──────────────────
+// Ngành gọi là eyeline match / POV cut: mỗi lần nhân vật TÁC ĐỘNG lên một món đồ (vi_tri.lam) phải đủ ba nhịp NHÌN → THẤY → LÀM. Đo bằng SỐ 3D,
+// không dò chữ: trong 2 shot liền trước (cùng phân cảnh) phải có (1) shot nhân vật đó quay mặt về món đồ — hướng mặt lúc kết lệch hướng tới món
+// ≤ GOC_NHIN, và (2) shot lấy món đó làm CHỦ THỂ khung (may_3d.khung) — khán giả thấy cái nhân vật thấy. Lần đầu tác động lên món đó trong cảnh
+// mới xét; làm tiếp trên cùng món thì không phải dẫn lại.
+export const GOC_NHIN = 35;
+/** Hướng mặt (độ, cùng quy ước huong: 0 = về −y, 90 = về +x) từ điểm `tu` tới điểm `toi`. */
+export const huongToi = (tu: number[], toi: number[]): number => (Math.atan2(toi[0]! - tu[0]!, -(toi[1]! - tu[1]!)) * 180) / Math.PI;
+/** Chỗ của một vật CỐ ĐỊNH trong set (khối: tam, cụm: goc) — chỗ để cổng chuỗi chú ý đo hướng nhìn khi món đó không nằm trong chỗ đứng. */
+export const choVatSet = (set: Pick<BoSet, 'du_lieu'> | null | undefined) => (ten: string): number[] | null => {
+  const v = set?.du_lieu.vat.find((x) => x.ten === ten || x.anchor === ten); if (!v) return null;
+  return 'tam' in v && v.tam ? v.tam : 'goc' in v && v.goc ? v.goc : null;
+};
+export function chuoiChuY<T extends { id: number; thu_tu: number; phan_doan?: string; may_3d?: May3d | null }>(ds: T[], choVat: (ten: string) => number[] | null): Record<number, string[]> {
+  const out: Record<number, string[]> = {}; const daLam = new Set<string>();
+  const cho = (m: May3d, ten: string) => { const v = m.vi_tri.find((x) => x.ten === ten); return v ? v.den ?? v.tam : null; };
+  ds.forEach((c, i) => {
+    const m = c.may_3d; if (!m) return;
+    for (const v of m.vi_tri) {
+      if (!v.lam) continue;
+      const k = `${c.phan_doan ?? ''}|${v.ten}|${v.lam}`; if (daLam.has(k)) continue; daLam.add(k);
+      const truoc = ds.slice(Math.max(0, i - 2), i).filter((p) => p.may_3d && (p.phan_doan ?? '') === (c.phan_doan ?? ''));
+      const toi = (p: T) => v.lam_o ?? cho(p.may_3d!, v.lam!) ?? cho(m, v.lam!) ?? choVat(v.lam!);
+      // Cú nhìn khán giả THẤY được: nhân vật là chủ thể khung của shot đó, hướng mặt lúc mở hoặc lúc kết trỏ về món đồ.
+      let lechMin = Infinity; let khuat = false;
+      for (const p of truoc) {
+        const a = p.may_3d!.vi_tri.find((x) => x.ten === v.ten); const t = toi(p); if (!a || !t) continue;
+        const lech = Math.min(...[[a.tam, a.huong], [a.den ?? a.tam, a.huong_den ?? a.huong]].filter((x): x is [number[], number] => x[1] != null).map(([o, h]) => gocLech(h, huongToi(o, t))), Infinity);
+        if (lech <= GOC_NHIN && !chuThe(p.may_3d!).includes(v.ten)) { khuat = true; continue; }
+        lechMin = Math.min(lechMin, lech);
+      }
+      const thay = truoc.some((p) => (p.may_3d!.khung ?? []).includes(v.lam!));
+      const nhinLoi = lechMin <= GOC_NHIN ? '' : khuat ? `NHÌN (${v.ten} có quay về ${v.lam} nhưng không phải chủ thể khung — khán giả không thấy cú nhìn)`
+        : lechMin === Infinity ? `NHÌN (2 shot trước không có ${v.ten} quay mặt về ${v.lam} — khai huong / huong_den)` : `NHÌN (${v.ten} gần nhất vẫn lệch ${Math.round(lechMin)}° khỏi ${v.lam}, cần ≤ ${GOC_NHIN}°)`;
+      const thieu = [nhinLoi, !thay && `THẤY (2 shot trước không có khung lấy ${v.lam} làm chủ thể — thêm cận ${v.lam} theo mắt ${v.ten})`].filter(Boolean);
+      if (thieu.length) (out[c.id] ??= []).push(`chuỗi chú ý: ${v.ten} tác động ${v.lam} mà thiếu ${thieu.join(' + ')}`);
+    }
+  });
+  return out;
+}
+
+/** Lỗi MẠCH của cả tập theo từng bộ set: liền mạch chỗ đứng / đồ đang cầm (lienMachTap) + chuỗi chú ý nhìn → thấy → làm (chuoiChuY).
+ *  MỘT chỗ cho cổng keyframe (sinh-anh.ts › lyChanKeyframe) và dấu ⚠ trên lưới (luoi-kich-ban.tsx). ds = shot nhánh dựng theo thứ tự phát. */
+export function loiMachTap<T extends { id: number; thu_tu: number; phan_doan?: string; nhan_vat: number[]; may_3d?: May3d | null }>(ds: T[], nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'>[], sets: Pick<BoSet, 'id' | 'du_lieu'>[]): Record<number, string[]> {
+  const out: Record<number, string[]> = {};
+  for (const sid of new Set(ds.map((c) => boSetCuaShot(c, nhanVat)).filter((x): x is number => !!x))) {
+    const cua = ds.filter((c) => boSetCuaShot(c, nhanVat) === sid);
+    for (const r of [lienMachTap(cua, (t) => khoiCua(t, nhanVat)), chuoiChuY(cua, choVatSet(sets.find((x) => x.id === sid)))]) for (const [k, v] of Object.entries(r)) (out[Number(k)] ??= []).push(...v);
   }
   return out;
 }

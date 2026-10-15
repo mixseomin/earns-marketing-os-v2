@@ -3,18 +3,18 @@
 // nháp / keyframe), mốc giờ trong phim, chữ màn, lời đọc — xếp theo phân cảnh (tên · beat · mục tiêu). Bấm thẻ = mở shot đó trên timeline.
 // 14/10/2026 (anh: "lưới không nhìn thấy key chuyển cảnh, location, time"): đầu khối cảnh hiện NƠI + THỜI ĐIỂM; mỗi thẻ hiện bối cảnh của shot,
 // vai kể · cỡ cảnh · chuyển động máy, và chuyển cảnh sang shot sau (liền máy / hoà tan tô màu) — dữ liệu hồ sơ tiền kỳ phải có chỗ hiện.
-import { chuManHien, giayPhat, tenPhanDoan, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
+import { chuManHien, giayPhat, tenPhanDoan, type BoSet, type Canh, type NhanVat, type Tap } from '@/lib/xuong-video/kieu';
 import { dongThoai } from '@/lib/xuong-video/am-thanh';
 import { mono } from './ui';
 import { anhNho, nacNho } from '@/lib/xuong-video/anh-nho';
 import { kyThuat, type NhomKyThuat } from '@/lib/xuong-video/dien-anh';
 import { useEffect, useState } from 'react';
 import { trangThaiKhung, khoiCanKiem, giaKiemKhung, tenLoiKhung, TEN_NUT_KHUNG } from '@/lib/xuong-video/khung';
-import { kiemKhungTapAction } from '@/lib/actions';
+import { kiemKhungTapAction, boSetCuaTap } from '@/lib/actions';
 import { tien } from '@/lib/xuong-video/kieu';
 import { Nut, Loi, goiAction } from './ui';
 import { moNgan } from './ngan-chung';
-import { boSetCuaShot, khoiCua, khoiLapKhung, lienMachTap, loiHinhHoc, vatChanTienCanh } from '@/lib/xuong-video/bo-set-3d';
+import { boSetCuaShot, khoiLapKhung, loiMachTap, loiHinhHoc, vatChanTienCanh } from '@/lib/xuong-video/bo-set-3d';
 
 /** Tên ngắn của một key thư viện (bỏ phần ngành trong ngoặc). */
 const tenKt = (k: string | undefined, n: NhomKyThuat) => (k ? kyThuat(k, n)?.ten.replace(/\s*\(.*\)$/, '') ?? '' : '');
@@ -39,9 +39,10 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
   const nutZoom = (chu: string, title: string, tat: boolean, d: number) => (
     <button type="button" title={title} disabled={tat} onClick={() => setZoom((z) => Math.min(5, Math.max(1, z + d)))} style={{ fontSize: 11, lineHeight: '16px', padding: '0 4px', borderRadius: 3, border: '1px solid var(--line)', background: tat ? 'none' : 'var(--bg-2)', color: tat ? 'var(--fg-4)' : 'var(--fg-2)', cursor: tat ? 'default' : 'pointer', opacity: tat ? 0.6 : 1 }}>{chu}</button>
   );
-  // Liền mạch 3D (bo-set-3d.ts › lienMachTap): cùng hàm cổng keyframe dùng — thẻ đứt mạch gắn ⚠ ở ô 3D, tooltip ghi lệch bao nhiêu cm.
-  const lienMach: Record<number, string[]> = {};
-  for (const sid of new Set(canh.map((c) => boSetCuaShot(c, nhanVat)).filter((x): x is number => !!x))) Object.assign(lienMach, lienMachTap(canh.filter((c) => boSetCuaShot(c, nhanVat) === sid), (t) => khoiCua(t, nhanVat)));
+  // Mạch 3D (bo-set-3d.ts › loiMachTap): CÙNG hàm cổng keyframe dùng — đứt mạch chỗ đứng / thiếu chuỗi chú ý gắn ⚠ ở ô 3D, tooltip ghi lý do.
+  const [sets, setSets] = useState<Pick<BoSet, 'id' | 'du_lieu'>[]>([]);
+  useEffect(() => { void boSetCuaTap(tap.id).then((r) => { if (r.ok) setSets(r.data); }); }, [tap.id]);
+  const lienMach = loiMachTap(canh, nhanVat, sets);
   // Khối phân cảnh = các shot liền nhau cùng phan_doan (một phân cảnh có thể quay lại sau, mỗi lần là một khối).
   const khoi: { ten: string; ds: { c: Canh; tu: number }[] }[] = [];
   let t = 0;

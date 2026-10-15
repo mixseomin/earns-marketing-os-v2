@@ -4,7 +4,7 @@
 // Hành động TRONG khung (nhân vật làm gì) thì luật kể chuyện của Claude lo (claude.ts › LUAT_KE_CHUYEN số 9) + câu "khung hình sống"
 // trong prompt video (sinh-video.ts). Thuần — tự kiểm: nhip-hinh.test.mts
 import type { KyThuatShot } from './dien-anh';
-import { O_DAN_DUNG_BAT_BUOC, type DanDung } from './kieu';
+import { O_DAN_DUNG_BAT_BUOC, type DanDung, type PhanCanh } from './kieu';
 
 export const TIEN_TO_NHIP_HINH = 'nhịp hình: ';
 /** Tối đa bao nhiêu phần shot được để máy đứng yên (hài cần vài shot đứng yên để đúng nhịp, nhưng không quá nửa phim). */
@@ -125,4 +125,51 @@ export function kiemGiayDoc(ds: { thu_tu: number; phat_s: number | null; thoi_lu
   const toi = giayDoc(p);
   const ngan = ds.filter((c) => (c.phat_s && c.phat_s > 0 ? c.phat_s : c.thoi_luong_s || 4) < toi - 0.05);
   return ngan.length ? [`${TIEN_TO_NHIP_DOC}${ngan.length} shot phát dưới ${toi}s (${ngan.slice(0, 8).map((c) => `#${c.thu_tu} ${c.phat_s ?? c.thoi_luong_s}s`).join(', ')}${ngan.length > 8 ? '…' : ''}) — người xem chưa kịp hiểu đã cắt; gộp/bớt shot hoặc kéo dài`] : [];
+}
+
+// ── DỰNG TRUYỆN (anh 15/10/2026 xem nối cảnh 7: "như có 2 câu chuyện nhỏ bên trong mà thiếu đoạn chia chuyện; đoạn kết chưa nổi rõ") ─────────
+// Hai luật ngành đo được trên thẻ shot (vai kể · luật · giây) + gag của phân cảnh — không dò chữ:
+//   NÚT ĐÓNG (button): một cảnh chứa ≥2 mạch truyện nhỏ thì mạch trước khép bằng một shot phản ứng / khoảng lặng đủ dài NGAY sau cú bùng cuối của nó,
+//     rồi mạch sau mở lại bằng một shot nhắc mục tiêu / mối đe doạ (motif hoặc chênh lệch thông tin) trước cú bùng của mạch sau.
+//   KẾT BA NHỊP (payoff → hold → button/hook): cảnh cuối tập có cú bùng cuối → shot GIỮ phản ứng ≥ 3s → (tập chưa phải tập cuối của series) shot
+//     cuối là MÓC (chênh lệch thông tin: khán giả thấy điều nhân vật chưa biết) — mỗi nhịp một shot riêng, đúng thứ tự.
+export const TIEN_TO_DUNG_TRUYEN = 'dựng truyện: ';
+export const GIAY_NUT_DONG = 2.5;
+export const GIAY_GIU_KET = 3;
+type ShotTruyen = { thu_tu: number; phan_doan?: string; phat_s: number | null; thoi_luong_s: number; ky_thuat?: Pick<KyThuatShot, 'vai' | 'luat'> | null };
+const giayCua = (c: ShotTruyen) => (c.phat_s && c.phat_s > 0 ? c.phat_s : c.thoi_luong_s || 4);
+const laGiu = (c: ShotTruyen | undefined, giay: number) => !!c && ['phan_ung', 'tam_trang'].includes(c.ky_thuat?.vai ?? '') && giayCua(c) >= giay - 0.05 && (c.ky_thuat?.luat ?? []).some((l) => l === 'giu_phan_ung' || l === 'khoang_lang');
+const laNhac = (c: ShotTruyen | undefined) => !!c && (c.ky_thuat?.luat ?? []).some((l) => l === 'motif' || l === 'chenh_thong_tin');
+type PcTruyen = Pick<PhanCanh, 'ten' | 'intro' | 'gag'>;
+export function kiemNutDong(pcs: PcTruyen[], ds: ShotTruyen[], p: { laQc?: boolean }): string[] {
+  if (p.laQc) return [];
+  const out: string[] = [];
+  for (const pc of pcs) {
+    const gag = [...(pc.gag ?? [])].sort((a, b) => a.o_shot - b.o_shot); if (pc.intro || gag.length < 2) continue;
+    const ss = ds.filter((c) => c.phan_doan === pc.ten);
+    if (gag.some((g) => !(g.mach ?? '').trim())) { out.push(`${TIEN_TO_DUNG_TRUYEN}cảnh "${pc.ten}" có ${gag.length} gag mà chưa khai mạch (gag.mach: A, B…) — máy không biết đâu là chỗ chia chuyện`); continue; }
+    for (let i = 1; i < gag.length; i++) {
+      const a = gag[i - 1]!, b = gag[i]!; if (a.mach === b.mach) continue;
+      const nut = ss[a.o_shot];   // shot NGAY sau cú bùng cuối của mạch trước (o_shot 1-based)
+      if (!laGiu(nut, GIAY_NUT_DONG) || a.o_shot >= b.o_shot - 1) { out.push(`${TIEN_TO_DUNG_TRUYEN}cảnh "${pc.ten}": mạch ${a.mach} ("${a.ten}") khép mà không có NÚT ĐÓNG — ngay sau shot bùng #${ss[a.o_shot - 1]?.thu_tu ?? '?'} cần một shot phản ứng / tâm trạng ≥ ${GIAY_NUT_DONG}s (luật giữ phản ứng / khoảng lặng) trước khi mạch ${b.mach} bắt đầu`); continue; }
+      if (!ss.slice(a.o_shot + 1, b.o_shot - 1).some(laNhac)) out.push(`${TIEN_TO_DUNG_TRUYEN}cảnh "${pc.ten}": mạch ${b.mach} ("${b.ten}") không được MỞ LẠI — sau nút đóng #${nut!.thu_tu}, trước cú bùng #${ss[b.o_shot - 1]?.thu_tu ?? '?'} cần một shot nhắc mục tiêu / mối đe doạ (luật motif hoặc chênh lệch thông tin)`);
+    }
+  }
+  return out;
+}
+/** coMoc = tập chưa phải tập cuối của series (phải móc sang tập sau). */
+export function kiemKetTap(pcs: PcTruyen[], ds: ShotTruyen[], p: { laQc?: boolean; coMoc?: boolean }): string[] {
+  if (p.laQc || ds.length < 6) return [];
+  const pc = [...pcs].reverse().find((x) => !x.intro && ds.some((c) => c.phan_doan === x.ten)); if (!pc) return [];
+  const ss = ds.filter((c) => c.phan_doan === pc.ten); const cuoi = ss.length - 1;
+  const bung = Math.max(-1, ...(pc.gag ?? []).map((g) => g.o_shot - 1));
+  const giu = ss.findIndex((c, i) => i > bung && laGiu(c, GIAY_GIU_KET) && (!p.coMoc || i < cuoi));
+  const out: string[] = []; const o = `${TIEN_TO_DUNG_TRUYEN}kết tập (cảnh "${pc.ten}")`;
+  if (giu < 0) out.push(`${o}: sau cú bùng cuối${bung >= 0 ? ` #${ss[bung]!.thu_tu}` : ''} chưa có shot GIỮ phản ứng ≥ ${GIAY_GIU_KET}s (vai phản ứng / tâm trạng, luật giữ phản ứng / khoảng lặng)${p.coMoc ? ' đứng trước shot móc' : ''} — khán giả chưa kịp cảm cái kết`);
+  if (p.coMoc) {
+    const s = ss[cuoi]!;
+    if (!(s.ky_thuat?.luat ?? []).includes('chenh_thong_tin') || ['phan_ung', 'hanh_dong'].includes(s.ky_thuat?.vai ?? '')) out.push(`${o}: shot cuối #${s.thu_tu} chưa phải MÓC — tập còn tập sau thì shot cuối là một nhịp riêng cho khán giả thấy điều nhân vật chưa biết (luật chênh lệch thông tin; vai thiết lập / người thứ ba / chi tiết / tâm trạng)`);
+    else if (cuoi === bung) out.push(`${o}: cú bùng cuối và cú móc dồn vào cùng shot #${s.thu_tu} — tách: bùng → giữ → móc`);
+  }
+  return out;
 }

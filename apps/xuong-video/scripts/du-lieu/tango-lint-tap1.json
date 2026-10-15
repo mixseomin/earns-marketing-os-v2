@@ -1027,13 +1027,15 @@
           "ten": "Cục bụi phồng",
           "gai": "Tango rón rén, cục bụi khẽ động",
           "bung": "Lint phồng gấp ba, Tango ngã ngồi",
-          "o_shot": 3
+          "o_shot": 3,
+          "mach": "A"
         },
         {
           "ten": "Kéo kẹo đứt đôi",
           "gai": "Lint đói nhìn kẹo",
           "bung": "Kẹo giãn rồi đứt \"pưng\" — chia làm đôi",
-          "o_shot": 6
+          "o_shot": 6,
+          "mach": "A"
         }
       ],
       "intro": false
@@ -1406,13 +1408,15 @@
           "ten": "Lao vào bị xịt bẹp",
           "gai": "Tango anh hùng lao lên",
           "bung": "Xịt một phát, rơi bẹp thành vũng",
-          "o_shot": 6
+          "o_shot": 6,
+          "mach": "A"
         },
         {
           "ten": "Thân bẹp có ý",
           "gai": "Tango nằm bẹp buồn",
           "bung": "Sợi tóc boing — có ý",
-          "o_shot": 7
+          "o_shot": 7,
+          "mach": "A"
         }
       ],
       "intro": false
@@ -1660,9 +1664,84 @@
           "ma": "7.1"
         },
         {
+          "ma": "7.1a",
+          "vai": "phan_ung",
+          "co": "mcu",
+          "giay": 3.5,
+          "luat": [
+            "nhan_qua_huong_nhin",
+            "tu_ke_du"
+          ],
+          "thay": "Tango đang vỗ vỗ nửa viên kẹo thì khựng lại: có tiếng rì rì khe khẽ. Cậu ngẩng lên, mắt đảo theo tiếng, quay đầu về phía phích cắm cáp trắng nằm sát đế cắm.",
+          "bo_cuc": "Mid: Tango on the orange card, patting his red gummy half, then turning his head screen-left toward an off-screen hum. Background: the silver hub edge, soft.",
+          "mo": "Tango on the orange card patting his red gummy half.",
+          "ket": "Tango's head turned screen-left, eyes narrowed and fixed on something off-screen (the plug), curly strand pointing the same way.",
+          "huong": "Tango turns his head from screen-right (the gummy) to screen-left (the plug).",
+          "am": "Tiếng rì rì điện khe khẽ; nhạc lặng đi một nhịp.",
+          "muc_dich": "Dẫn mắt: khán giả nhìn theo Tango về phía phích cắm.",
+          "motif": "",
+          "may": {
+            "goc": "ngang",
+            "chuyen_dong": "day_vao",
+            "ong_kinh": "chuan",
+            "chuyen_canh": "cat",
+            "mo_ta": "Đẩy chậm vào mặt Tango đúng lúc cậu quay đầu theo tiếng rì rì — dẫn mắt khán giả theo ánh nhìn của cậu."
+          },
+          "anchor": [
+            "USB Hub Dock",
+            "Tango",
+            "Gummy Bear",
+            "Orange Card"
+          ],
+          "thay_en": "The orange clay creature, patting his red gummy half on the orange card, freezes at a faint electric hum, lifts his head and turns to stare off-screen toward the white cable plug beside the hub.",
+          "am_en": "A faint electric hum; the music drops away for a beat.",
+          "thoai": [],
+          "cam_xuc": 3,
+          "dien": "Pat-pat on the gummy; freeze mid-pat; one eye squints; the curly strand twitches toward the sound; a slow, curious head turn.",
+          "nhan": ""
+        },
+        {
+          "ma": "7.1b",
+          "vai": "chu_quan",
+          "co": "ecu",
+          "giay": 3.5,
+          "luat": [
+            "nhan_qua_huong_nhin",
+            "tu_ke_du",
+            "motif"
+          ],
+          "thay": "Theo mắt Tango: đầu phích cắm cáp trắng nằm sát đế cắm bạc, một tia sáng xanh li ti chớp ở mũi phích, tiếng rì rì to dần.",
+          "bo_cuc": "Point of view from Tango's eye height: the white cable plug lying on the orange card fills the centre, its metal tip catching the light; the silver hub's shiny edge soft behind it.",
+          "mo": "The white cable plug lying on the orange card beside the silver hub, seen from a tiny creature's eye height.",
+          "ket": "A tiny blue spark flickering at the plug's metal tip.",
+          "huong": "Static point of view; the spark flickers at the plug tip.",
+          "am": "Rì rì to dần, một tiếng tách li ti.",
+          "muc_dich": "Khán giả thấy đúng cái Tango thấy: phích cắm có điện, lấp lánh — gây tò mò.",
+          "motif": "Phích cắm có điện (gài cho cú điện giật).",
+          "may": {
+            "goc": "ngang",
+            "chuyen_dong": "day_vao",
+            "ong_kinh": "macro",
+            "chuyen_canh": "cat",
+            "mo_ta": "Góc nhìn chủ quan của Tango, đẩy rất chậm vào mũi phích đúng lúc tia sáng chớp."
+          },
+          "anchor": [
+            "USB Hub Dock",
+            "White Cable",
+            "USB Hub",
+            "Orange Card"
+          ],
+          "thay_en": "Point of view from a tiny creature's eye height: the white cable plug lying beside the silver hub; a tiny blue spark flickers at its metal tip with a soft hum.",
+          "am_en": "The hum swells; a tiny crackle.",
+          "thoai": [],
+          "cam_xuc": 3,
+          "dien": "Nothing moves but the spark: two quick flickers, then a steady faint glow.",
+          "nhan": ""
+        },
+        {
           "vai": "chi_tiet",
           "co": "cu",
-          "giay": 4,
+          "giay": 3.5,
           "luat": [
             "tu_ke_du",
             "chenh_thong_tin"
@@ -1712,20 +1791,20 @@
             "nhan_qua_huong_nhin",
             "giu_phan_ung"
           ],
-          "thay": "Tango nhìn ngón tay, nhìn mặt đế cắm sáng bóng, rồi nhìn về phía rừng cáp nơi Mr. Wipe sẽ tới — xoa hai tay, cười ranh mãnh.",
+          "thay": "Tango nhìn ngón tay, nhìn về phía rừng cáp nơi Mr. Wipe sẽ tới, rồi nhìn mặt đế cắm sáng bóng sát phích — xoa hai tay, cười ranh mãnh.",
           "bo_cuc": "Mid: Tango, screen-left, beside the shiny hub; Lint behind him. Background: the dark cable jungle edge, screen-right.",
           "mo": "Tango looking at his zapped finger.",
-          "ket": "Tango rubbing his clay hands together with a sly grin, looking toward the cable jungle.",
-          "huong": "Tango looks down at his finger, at the hub, then screen-right toward the jungle.",
+          "ket": "Tango rubbing his clay hands together with a sly grin, eyes on the shiny hub face next to the plug.",
+          "huong": "Tango looks down at his finger, screen-right toward the jungle, then at the shiny hub.",
           "am": "Một nốt pizzicato ranh mãnh.",
-          "muc_dich": "Kế hoạch đọc được: phích có điện + mặt sạch bóng = bẫy cho kẻ ghét bẩn.",
+          "muc_dich": "Kế hoạch đọc được: phích có điện + mặt đế cắm sạch bóng + Mr. Wipe ghét bẩn = bẫy.",
           "motif": "",
           "may": {
             "goc": "ngang",
             "chuyen_dong": "lia",
             "ong_kinh": "chuan",
             "chuyen_canh": "cat",
-            "mo_ta": "Lia theo ánh mắt Tango: ngón tay bị giật → mặt đế cắm sáng bóng → phía Mr. Wipe — kế hoạch hiện ra."
+            "mo_ta": "Lia theo ánh mắt Tango: ngón tay bị giật → phía rừng cáp (Mr. Wipe) → mặt đế cắm sáng bóng — kế hoạch hiện ra."
           },
           "anchor": [
             "USB Hub Dock",
@@ -1733,7 +1812,7 @@
             "USB Hub",
             "Lint"
           ],
-          "thay_en": "The orange creature looks at his zapped finger, at the shiny hub, then toward the cable jungle, and rubs his clay hands together with a sly grin.",
+          "thay_en": "The orange creature looks at his zapped finger, toward the cable jungle, then at the shiny hub face beside the plug, and rubs his clay hands together with a sly grin.",
           "am_en": "A sly little pizzicato motif.",
           "thoai": [],
           "cam_xuc": 4,
@@ -1823,9 +1902,46 @@
           "ma": "7.4"
         },
         {
+          "ma": "7.4a",
+          "vai": "chu_quan",
+          "co": "cu",
+          "giay": 3.5,
+          "luat": [
+            "nhan_qua_huong_nhin",
+            "tu_ke_du",
+            "chenh_thong_tin"
+          ],
+          "thay": "Theo mắt Mr. Wipe từ trên cao: dấu tay đất sét cam nhem nhuốc trên mặt đế cắm bạc, ngay sát đầu phích cắm. Một giọt nước từ trên rơi tõm xuống cạnh dấu tay, sát phích.",
+          "bo_cuc": "Top-down point of view (Mr. Wipe's view): messy orange clay handprints on the shiny silver hub, the white cable plug right next to them.",
+          "mo": "Top-down view: messy orange clay handprints on the shiny silver hub right next to the white cable plug.",
+          "ket": "A water drop falling from above splashes beside the handprints, a hair from the plug.",
+          "huong": "Static top-down point of view; a drop falls toward the handprints.",
+          "am": "Một giọt nước rơi \"tõm\". Mr. Wipe rít khẽ.",
+          "muc_dich": "Khán giả thấy cái Mr. Wipe thấy — vết bẩn nằm sát phích có điện, còn khăn thì ướt sũng: đoán trước tai hoạ.",
+          "motif": "",
+          "may": {
+            "goc": "tren_xuong",
+            "chuyen_dong": "day_vao",
+            "ong_kinh": "chuan",
+            "chuyen_canh": "cat",
+            "mo_ta": "Góc nhìn chủ quan của Mr. Wipe từ trên xuống, đẩy vào dấu tay sát phích — giọt nước rơi báo trước cú điện giật."
+          },
+          "anchor": [
+            "USB Hub Dock",
+            "USB Hub",
+            "White Cable"
+          ],
+          "thay_en": "Top-down point of view of the cleaning cloth: messy orange clay handprints on the shiny silver hub right beside the white cable plug; a water drop falls from above and splashes next to the prints.",
+          "am_en": "A single water drip, a disgusted hiss.",
+          "thoai": [],
+          "cam_xuc": 4,
+          "dien": "The view trembles slightly with disgust above the prints; one fat drop falls and splashes near the plug.",
+          "nhan": ""
+        },
+        {
           "vai": "chi_tiet",
           "co": "ecu",
-          "giay": 4,
+          "giay": 3.5,
           "luat": [
             "tu_ke_du",
             "khoanh_khac_khong_cam"
@@ -1862,7 +1978,7 @@
         {
           "vai": "phan_ung",
           "co": "two",
-          "giay": 4,
+          "giay": 3.5,
           "luat": [
             "giu_phan_ung",
             "tu_ke_du"
@@ -1901,6 +2017,90 @@
           "dien": "Mr. Wipe stands frizzed stiff like a scarecrow, twitching; Tango and Lint look at each other, hold one beat, then collapse laughing, rolling.",
           "nhan": "Khựng một nhịp sau khi xù, rồi tiếng cười bùng; câu nhạc chủ đề chốt ngắn (cú thắng).",
           "ma": "7.6"
+        },
+        {
+          "ma": "7.6a",
+          "vai": "phan_ung",
+          "co": "ws",
+          "giay": 3.5,
+          "luat": [
+            "giu_phan_ung",
+            "nhan_qua_huong_nhin",
+            "tu_ke_du"
+          ],
+          "thay": "Mr. Wipe, còn xù cứng và bốc khói, lảo đảo bay lủi về rừng cáp. Tango và Lint nhìn theo, rồi quay sang nhau đập tay \"bốp\" — ưỡn ngực đắc thắng về phía máy.",
+          "bo_cuc": "Mid: Tango and Lint at the left edge of the orange card, high-fiving. Background: the frizzed, smoking cloth wobbling away into the dark cable jungle, small.",
+          "mo": "Tango and Lint at the edge of the orange card, watching the frizzed, smoking cloth wobble away.",
+          "ket": "Tango and Lint after a high-five, chests puffed out, proud grins toward camera; the cloth gone.",
+          "huong": "Mr. Wipe exits into the jungle; Tango and Lint turn to each other, then to camera.",
+          "am": "Tiếng vải sột soạt xa dần; \"bốp\" đập tay; câu nhạc chủ đề chốt rồi lặng một nhịp.",
+          "muc_dich": "Nút đóng chuyện bẫy: kẻ thù tháo chạy, hai bạn ăn mừng — một nhịp thở trước chuyện mới.",
+          "motif": "",
+          "may": {
+            "goc": "ngang",
+            "chuyen_dong": "truot_ngang",
+            "ong_kinh": "rong",
+            "chuyen_canh": "cat",
+            "mo_ta": "Trượt nhẹ theo Mr. Wipe lủi đi rồi dừng trên hai bạn đập tay — giữ một nhịp khép chuyện bẫy."
+          },
+          "anchor": [
+            "USB Hub Dock",
+            "Tango",
+            "Lint",
+            "Mr. Wipe",
+            "Orange Card"
+          ],
+          "thay_en": "The frizzed, smoking cloth wobbles away into the cable jungle; the two friends watch him go, slap a high-five and puff out their chests proudly toward camera.",
+          "am_en": "A fading cloth flutter, a crisp high-five slap, a short triumphant musical sting, then quiet.",
+          "thoai": [],
+          "cam_xuc": 5,
+          "dien": "Mr. Wipe drifts off crooked like a burnt kite, a puff of smoke trailing; Tango and Lint glance at each other, slap a high-five, then hold a proud chest-out pose for a beat.",
+          "nhan": "Đúng khung đập tay — \"bốp\" + câu nhạc chủ đề chốt; sau đó lặng một nhịp."
+        },
+        {
+          "ma": "7.6b",
+          "vai": "hanh_dong",
+          "co": "ms",
+          "giay": 3.5,
+          "luat": [
+            "motif",
+            "tu_ke_du",
+            "chenh_thong_tin"
+          ],
+          "thay": "Bụng Tango sôi \"ọt\". Cậu xoa bụng, liếm môi, liếc qua vai về hai nửa viên kẹo đỏ nằm chờ trên tấm thẻ, giơ tay chỉ: kẹo! Lint chộp tay cậu kéo xoay một vòng nhảy mừng — hai đứa quay lưng lại phía kẹo.",
+          "bo_cuc": "Mid: Tango and Lint at the left edge of the orange card, screen-left. Background screen-right: the two red gummy halves waiting on the card, small but readable.",
+          "mo": "Tango rubbing his belly and glancing over his shoulder at the two red gummy halves waiting on the orange card; Lint beside him.",
+          "ket": "Lint spinning Tango in a little victory dance, both facing each other with their backs to the gummy halves.",
+          "huong": "Tango glances screen-right at the gummy halves, then Lint spins him around; they end facing each other, backs to the candy.",
+          "am": "\"Ọt\" — bụng sôi; Lint cười khúc khích; nhạc nhảy mừng pizzicato.",
+          "muc_dich": "Mở lại chuyện kẹo: nhắc khán giả phần thưởng ngay trước khi nó bị lấy — và hai bạn quay lưng lại với nó.",
+          "motif": "Kẹo đỏ — phần thưởng nhắc lại.",
+          "may": {
+            "goc": "ngang",
+            "chuyen_dong": "lia",
+            "ong_kinh": "chuan",
+            "chuyen_canh": "cat",
+            "mo_ta": "Lia theo ánh mắt Tango từ mặt cậu sang hai nửa kẹo trên thẻ, rồi về lại khi Lint kéo cậu xoay vòng."
+          },
+          "anchor": [
+            "USB Hub Dock",
+            "Tango",
+            "Lint",
+            "Gummy Bear",
+            "Orange Card"
+          ],
+          "thay_en": "The orange creature's belly rumbles; he licks his lips and points over his shoulder at the two red gummy halves waiting on the orange card, but the dust bunny grabs his hand and spins him into a little victory dance, their backs to the candy.",
+          "am_en": "A comic belly rumble, giggles, a bouncy pizzicato dance tune.",
+          "thoai": [
+            {
+              "nhan_vat": "Tango",
+              "dien_xuat": "hungry, pointing at the candy",
+              "loi": "Mmm!"
+            }
+          ],
+          "cam_xuc": 4,
+          "dien": "Belly gurgle → hand on belly → lick lips → point at the candy; Lint grabs his hand and spins him; Tango laughs and dances along, forgetting the candy.",
+          "nhan": ""
         },
         {
           "vai": "chi_tiet",
@@ -1990,6 +2190,45 @@
           "ma": "7.7a"
         },
         {
+          "ma": "7.7b",
+          "vai": "phan_ung",
+          "co": "mcu",
+          "giay": 3.5,
+          "luat": [
+            "giu_phan_ung",
+            "khoang_lang",
+            "tu_ke_du",
+            "motif"
+          ],
+          "thay": "Im lặng. Tango cúi xuống mép tấm thẻ trống, nhón lên một mẩu giấy vàng nhỏ xé rách còn dính vệt đỏ của kẹo, giơ lên ngang mắt, nhíu mắt nhìn; Lint ghé sát nhìn cùng, chớp chớp mắt.",
+          "bo_cuc": "Close: Tango, screen-left, holding up a tiny torn scrap of yellow paper with a red candy smear at eye level; Lint leaning in beside him. Foreground: the empty orange card edge.",
+          "mo": "Tango bending over the edge of the empty orange card, pinching a tiny torn scrap of yellow paper.",
+          "ket": "Tango holding the tiny yellow scrap up at eye level, squinting at it; Lint leaning in close, blinking.",
+          "huong": "Tango lifts the scrap from the card up to his eyes; Lint leans in toward it.",
+          "am": "Lặng hẳn — chỉ tiếng giấy sột soạt khẽ. Một nốt bass trầm như câu hỏi.",
+          "muc_dich": "Giữ cái hẫng cho khán giả kịp cảm, rồi trao manh mối: kẻ lấy kẹo để lại dấu vết — giấy vàng.",
+          "motif": "Giấy vàng + vệt kẹo đỏ (manh mối).",
+          "may": {
+            "goc": "ngang",
+            "chuyen_dong": "day_vao",
+            "ong_kinh": "chan_dung",
+            "chuyen_canh": "cat",
+            "mo_ta": "Đẩy chậm vào hai khuôn mặt và mẩu giấy vàng — giữ lâu trong im lặng, khán giả kịp nối mẩu giấy với kẻ trộm."
+          },
+          "anchor": [
+            "USB Hub Dock",
+            "Tango",
+            "Lint",
+            "Orange Card"
+          ],
+          "thay_en": "Silence. The orange creature bends over the edge of the empty orange card and pinches up a tiny torn scrap of yellow paper smeared with red candy; he lifts it to eye level and squints at it while the dust bunny leans in close, blinking.",
+          "am_en": "Near silence, a faint paper rustle, one low questioning bass note.",
+          "thoai": [],
+          "cam_xuc": -1,
+          "dien": "Slow: shoulders slump, a long stare; then he notices the scrap, pinches it up delicately, raises it, squints one eye; Lint leans in and blinks twice.",
+          "nhan": "Đúng khung Tango giơ mẩu giấy lên ngang mắt — một nốt bass trầm hỏi, ngoài ra im lặng."
+        },
+        {
           "vai": "thiet_lap",
           "co": "ws",
           "giay": 4,
@@ -2036,7 +2275,15 @@
         },
         {
           "loai": "hd",
-          "chu": "Phích cắm của sợi cáp trắng nằm sát đế cắm. Tango tò mò chạm ngón tay vào — TÁCH — bị giật, vẩy tay xuýt xoa. Cậu nhìn ngón tay, nhìn mặt đế cắm sáng bóng, nhìn về phía rừng cáp, rồi xoa hai tay, cười ranh mãnh."
+          "chu": "Tango đang vỗ vỗ nửa viên kẹo thì khựng lại — tiếng rì rì khe khẽ. Cậu quay đầu theo tiếng."
+        },
+        {
+          "loai": "hd",
+          "chu": "Đầu phích cắm của sợi cáp trắng nằm sát đế cắm. Một tia sáng xanh li ti chớp ở mũi phích."
+        },
+        {
+          "loai": "hd",
+          "chu": "Tango tò mò chạm ngón tay vào — TÁCH — bị giật, vẩy tay xuýt xoa. Cậu nhìn ngón tay, nhìn về phía rừng cáp, rồi nhìn mặt đế cắm sáng bóng, xoa hai tay, cười ranh mãnh."
         },
         {
           "loai": "hd",
@@ -2051,6 +2298,10 @@
           "ten": "MR. WIPE",
           "dien": "rùng mình ghê sợ",
           "loi": "Hmmph!"
+        },
+        {
+          "loai": "hd",
+          "chu": "Từ trên cao: dấu tay cam nhem nhuốc ngay sát đầu phích. Một giọt nước rơi tõm xuống cạnh đó."
         },
         {
           "loai": "hd",
@@ -2072,6 +2323,20 @@
         },
         {
           "loai": "hd",
+          "chu": "Mr. Wipe bốc khói, lảo đảo lủi về rừng cáp. Hai đứa đập tay \"bốp\", ưỡn ngực đắc thắng."
+        },
+        {
+          "loai": "hd",
+          "chu": "Bụng Tango sôi. Cậu liếm môi, chỉ về hai nửa viên kẹo trên thẻ — nhưng Lint kéo cậu xoay vòng nhảy mừng, quay lưng lại phía kẹo."
+        },
+        {
+          "loai": "nv",
+          "ten": "TANGO",
+          "dien": "thèm, chỉ tay",
+          "loi": "Mmm!"
+        },
+        {
+          "loai": "hd",
           "chu": "Sau lưng hai đứa, tờ giấy note vàng trườn ra từ dưới tấm thẻ cam, gập lại trùm lên hai nửa viên kẹo, rồi lẩn đi."
         },
         {
@@ -2086,6 +2351,10 @@
         },
         {
           "loai": "hd",
+          "chu": "Im lặng. Tango nhón lên một mẩu giấy vàng xé rách còn dính vệt kẹo đỏ, giơ lên ngang mắt. Lint ghé sát nhìn."
+        },
+        {
+          "loai": "hd",
           "chu": "Máy lùi ra. Trên một sợi cáp gần đó, một tia điện xanh bò dọc như vật sống. Hai chấm sáng xanh mở ra, chớp hai lần, nhìn về phía hai bạn."
         },
         {
@@ -2097,12 +2366,14 @@
         "muc_tieu": "Tango ăn mừng và trêu kẻ thù.",
         "xung_dot": "Mr. Wipe quay lại.",
         "nhip": [
-          "Thoát → thở phào.",
-          "Tango liếc phích cắm sát đế cắm → khán giả đoán kế hoạch.",
-          "Tango in dấu tay (gài thói ghét bẩn).",
-          "Mr. Wipe chà → bị điện giật (trả: chính thói sạch sẽ hại hắn).",
-          "Hai đứa cười → giấy vàng cuỗm kẹo (trả cái gài + tựa phim).",
-          "Tia điện xa → có thứ khác đang thức (móc tập 2)."
+          "Thoát → thở phào, đặt kẹo lên thẻ.",
+          "Tiếng rì rì → Tango NHÌN → khán giả THẤY phích lấp lánh → Tango chạm, bị giật (nhìn → thấy → làm).",
+          "Tango nảy ý: nhìn rừng cáp (Mr. Wipe) → nhìn mặt đế cắm sáng bóng → in dấu tay (gài thói ghét bẩn).",
+          "Mr. Wipe tới → nhìn thấy dấu tay sát phích (góc nhìn của hắn) → chà → bị điện giật (trả: chính thói sạch sẽ hại hắn).",
+          "Mr. Wipe lủi đi, hai bạn đập tay — NÚT ĐÓNG chuyện bẫy.",
+          "Bụng sôi, nhớ kẹo, nhưng mải nhảy mừng quay lưng → giấy vàng cuỗm kẹo (khán giả thấy, hai bạn không).",
+          "Quay lại: trống trơn → GIỮ lặng → mẩu giấy vàng: manh mối kẻ trộm.",
+          "Lùi rộng: tia điện mở mắt nhìn hai bạn — MÓC tập 2."
         ]
       },
       "boc_tach": {
@@ -2124,21 +2395,24 @@
       "gag": [
         {
           "ten": "Bẫy dấu tay",
-          "gai": "Phích cắm sát đế cắm + dấu tay đất sét",
+          "gai": "Phích cắm có điện (Tango bị giật) + dấu tay đất sét sát phích",
           "bung": "Mr. Wipe chà khăn ướt vào phích — điện giật",
-          "o_shot": 6
+          "o_shot": 9,
+          "mach": "A"
         },
         {
           "ten": "Hả hê",
           "gai": "Mr. Wipe xù cứng",
           "bung": "Hai đứa cười lăn",
-          "o_shot": 7
+          "o_shot": 10,
+          "mach": "A"
         },
         {
           "ten": "Kẻ trộm thật",
-          "gai": "Hai đứa đang cười, kẹo trên thẻ",
+          "gai": "Góc giấy vàng dưới thẻ (7.1) + kẹo nhắc lại khi hai đứa quay lưng nhảy mừng",
           "bung": "Giấy vàng cuỗm kẹo; Tango quay lại thấy trống",
-          "o_shot": 9
+          "o_shot": 14,
+          "mach": "B"
         }
       ],
       "intro": false

@@ -116,6 +116,8 @@ T4, L4, C4, K4 = [3, 70.5, 0], [8, 72, 0], [10, 73.5, 0], [6, 72, 0]
 T7, L7, KEO7, ST7 = [56, 51, 0.3], [57.6, 52.4, 0.3], [59.5, 49.8, 0.3], [60.6, 48.4, 0.05]
 T7N, L7N = [51.6, 50.4, 0], [51.2, 52.2, 0]   # chỗ hai đứa nấp ở mép trái thẻ khi Mr. Wipe tới
 PLUG = [54.3, 52.6, 0.8]
+DAU_TAY = [55.8, 54.3, 0.8]   # chỗ in dấu tay: mặt trước đế cắm, ngay sau đầu phích
+MAU_GIAY = [53, 50.5, 0.3]    # mẩu giấy vàng rách kẹt ở mép trái thẻ cam (manh mối kẻ trộm)
 
 VT = {
  # Tay với từ BÊN PHẢI (ngón trỏ chỉ −x, huong −90): đầu ngón chạm đỉnh kẹo / đỉnh công tắc, cẳng tay nằm sau công tắc nhìn từ máy — không che chủ thể.
@@ -146,20 +148,31 @@ VT = {
          v(WIPE, [8.5, 74.5, 6], [10, 74, 7], ve=[8, 73], ve_den=[7, 68.9]), v(CBALL, [7.4, 69.2, 3.6], cam=LINT)],
  '6.3': [v(TANGO, [7, 68.6, 2.3], [55.4, 50.9, 0.3], ve=[20, 64], ve_den=[60, 50]), v(LINT, [7, 68.9, 3.3], [55.6, 51.6, 0.6], ve=[20, 64]),
          v(WIPE, [10, 74, 7], [20, 67, 3], ve=[7, 68.6], ve_den=[20, 64])],
- '7.1': [v(TANGO, [55.4, 50.9, 0.3], T7, ve=[60, 50], ve_den=PLUG), v(LINT, [55.6, 51.6, 0.6], L7, ve=KEO7, ve_den=T7), v(GUMMY, [56.6, 50.6, 1.0], KEO7, cam=TANGO),
+ # 7.1 → 7.1a → 7.1b → 7.2: chuỗi chú ý NHÌN → THẤY → LÀM (bo-set-3d.ts › chuoiChuY). Tango đặt kẹo xong vẫn nhìn kẹo; tiếng rì rì làm cậu quay đầu
+ # về phích (7.1a, mặt Tango là chủ thể); 7.1b là góc nhìn của Tango vào phích; 7.2 mới chạm.
+ '7.1': [v(TANGO, [55.4, 50.9, 0.3], T7, ve=[60, 50], ve_den=KEO7), v(LINT, [55.6, 51.6, 0.6], L7, ve=KEO7, ve_den=T7), v(GUMMY, [56.6, 50.6, 1.0], KEO7, cam=TANGO),
          v(STICKY, ST7, an=True, nhay='lẻn theo hai bạn ngoài khung từ cảnh 2, nấp dưới mép thẻ cam')],
- '7.2': [v(TANGO, T7, ve=PLUG)],
- '7.2a': [v(TANGO, T7, ve=PLUG, ve_den=[36, 62]), v(LINT, L7, ve=T7)],
- # 7.3: Tango quay sang đế cắm (cú cắt từ ánh nhìn về rừng cáp ở 7.2a) — khai nhảy hướng; máy ngang bên phải: Tango trái khung, đế cắm phải khung.
- '7.3': [v(TANGO, T7, [55.8, 53.4, 0.3], ve=[60, 56.5], ve_den=CAM, nhay='quay từ rừng cáp sang đế cắm qua cú cắt'), v(LINT, L7, ve=T7, ve_den=[55.8, 53.4])],
- '7.4': [v(WIPE, [58, 61, 5], [57, 55.6, 2.6], ve=[55.8, 54.3], nhay='gỡ khỏi rừng cáp, bay tới đế cắm ngoài khung'),
+ '7.1a': [v(TANGO, T7, ve=KEO7, ve_den=PLUG), v(LINT, L7, ve=T7)],
+ '7.1b': [],   # góc nhìn từ mắt Tango: máy đứng trong đầu Tango → không dựng Tango; Lint ngoài khung
+ '7.2': [v(TANGO, T7, ve=PLUG, lam='Cable Plug')],
+ # 7.2a: ngón tay → rừng cáp (Mr. Wipe sẽ tới) → KẾT trên mặt đế cắm chỗ sẽ in dấu tay; khung lấy đế cắm làm chủ thể (khán giả thấy cái Tango nhìn).
+ '7.2a': [v(TANGO, T7, ve=PLUG, ve_den=DAU_TAY), v(LINT, L7, ve=T7)],
+ '7.3': [v(TANGO, T7, [55.8, 53.4, 0.3], ve=DAU_TAY, ve_den=CAM, lam='USB Hub', lam_o=DAU_TAY), v(LINT, L7, ve=T7, ve_den=[55.8, 53.4])],
+ '7.4': [v(WIPE, [58, 61, 5], [57, 55.6, 2.6], ve=[55.8, 54.3], ve_den=DAU_TAY, nhay='gỡ khỏi rừng cáp, bay tới đế cắm ngoài khung'),
          v(TANGO, T7N, ve=[57, 55.6], nhay='chạy nấp sau mép thẻ khi thấy Mr. Wipe tới'), v(LINT, L7N, ve=[57, 55.6], nhay='chạy nấp sau mép thẻ khi thấy Mr. Wipe tới')],
- '7.5': [v(WIPE, [56.6, 55.2, 1.8], [55, 54.2, 1.2], ve=PLUG)],
+ '7.4a': [],   # góc nhìn từ trên của Mr. Wipe (máy trong khối khăn) — không dựng Mr. Wipe; hai bạn nấp ngoài khung
+ '7.5': [v(WIPE, [56.6, 55.2, 1.8], [55, 54.2, 1.2], ve=PLUG, lam='USB Hub', lam_o=DAU_TAY)],
  '7.6': [v(TANGO, T7N, ve=[55.5, 55], ve_den=L7N), v(LINT, L7N, ve=[55.5, 55], ve_den=T7N), v(WIPE, [55.5, 55, 2], ve=CAM, an=True)],
+ # 7.6a NÚT ĐÓNG chuyện bẫy: Mr. Wipe lủi về rừng cáp, hai bạn đập tay rồi ưỡn ngực về phía máy.
+ '7.6a': [v(TANGO, T7N, ve=L7N, ve_den=CAM), v(LINT, L7N, ve=T7N, ve_den=CAM), v(WIPE, [55.5, 55, 2], [42, 62, 7], ve=CAM, ve_den=[30, 66])],
+ # 7.6b mở lại chuyện kẹo: Tango (đang hướng máy) liếc kẹo rồi bị Lint kéo xoay, KẾT mặt đối mặt — quay lưng lại phía kẹo.
+ '7.6b': [v(TANGO, T7N, ve=CAM, ve_den=L7N), v(LINT, L7N, ve=CAM, ve_den=T7N)],
  # 7.7: tờ note trùm hai nửa kẹo rồi lẩn ra khỏi khung — cả hai RỜI bộ set (het), không tự đặt lại ở 7.7a / 7.8.
  '7.7': [v(GUMMY, KEO7, [59, 45.5, 0], het=True), v(STICKY, ST7, [59, 45.5, 0.05], het=True), v(TANGO, T7N, ve=L7N, an=True), v(LINT, L7N, ve=T7N, an=True)],
  '7.7a': [v(TANGO, T7N, ve=L7N, ve_den=KEO7), v(LINT, L7N, ve=T7N, ve_den=KEO7)],
- '7.8': [v(TANGO, T7N, ve=KEO7), v(LINT, L7N, ve=KEO7), v(CORDY, [47, 57.6, 0.6], ve=T7N)],
+ # 7.7b GIỮ + manh mối: Tango nhón mẩu giấy vàng ở mép thẻ (khán giả vừa thấy thẻ trống ở 7.7a), giơ lên mắt; Lint ghé sát.
+ '7.7b': [v(TANGO, T7N, ve=KEO7, ve_den=60, lam='Orange Card', lam_o=MAU_GIAY), v(LINT, L7N, [51.6, 51.8, 0], ve=KEO7, ve_den=[52.3, 50.6])],
+ '7.8': [v(TANGO, T7N, ve=KEO7), v(LINT, [51.6, 51.8, 0], ve=KEO7), v(CORDY, [47, 57.6, 0.6], ve=T7N)],
  '8.1': [v(TANGO, [-2, 3, 0], ve=CAM), v(LINT, [2, 3, 0], ve=CAM)],
 }
 # ĐỒ ĐANG CẦM phải đi theo người cầm qua mọi shot người đó có mặt (cổng lienMachTap › đồ đang cầm; nối thử #22→#24: bình xịt biến mất ở 5.5):
@@ -192,6 +205,19 @@ for ma in ('5.2', '7.5'): S['may'][ma]['qua_truc'] = True
 # 5.4 cùng phía rừng cáp với 5.3 / 5.5 (bên trái, nhìn sang +x), toàn cảnh, cao hơn để thấy Mr. Wipe sà xuống — trước đây bộ giải đặt tận góc sau-trái 50 cm.
 # 5.4 đặt tay: trước-trái, cao 12 cm nhìn xuống (qua trên loa + cáp trượt), cùng phía trục Tango–Lint với 5.3 — bộ giải tự động đẩy ra góc sau 60 cm.
 S['may']['5.4'].pop('phia', None); S['may']['5.4'].update(dat=[-14, 66, 12], nhin=[6, 72, 3], ong_kinh=24)   # đèn bàn bật tới cú bấm công tắc ở 1.2
+# Máy các shot thêm cho chuỗi chú ý / nút đóng / kết (15/10/2026). Góc nhìn chủ quan (POV) đặt tay ở mắt nhân vật + qua_truc.
+MOI = {
+ '7.1a': {'phia': -10, 'khung': [TANGO]},
+ '7.1b': {'dat': [56.4, 50.6, 2.2], 'nhin': [54.3, 52.6, 0.5], 'ong_kinh': 35, 'khung': ['Cable Plug'], 'qua_truc': True},
+ '7.4a': {'dat': [57.2, 55.8, 5.2], 'nhin': [55.8, 54.4, 1.3], 'ong_kinh': 35, 'khung': ['USB Hub', 'Cable Plug'], 'qua_truc': True},
+ '7.6a': {'phia': 40, 'khung': [TANGO, LINT]},
+ '7.6b': {'phia': 70, 'khung': [TANGO, LINT]},
+ '7.7b': {'phia': 70, 'khung': [TANGO, LINT]},
+}
+for ma, m in MOI.items(): S['may'].setdefault(ma, {}).update(m)
+S['may']['7.2a']['khung'] = [TANGO, 'USB Hub']          # Tango nhìn mặt đế cắm → khung cho thấy mặt đế cắm
+S['may']['7.4']['khung'] = [WIPE, TANGO]
+S['may']['7.7a']['khung'] = [TANGO, LINT, 'Orange Card']  # thẻ trống là thứ hai bạn (và khán giả) nhìn
 for ma, ds in VT.items():
     m = S['may'][ma]; m['vi_tri'] = ds
     if ma in NHAY: m['nhay'] = NHAY[ma]

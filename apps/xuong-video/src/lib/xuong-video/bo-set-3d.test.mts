@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay } from './bo-set-3d';
+import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -109,4 +109,24 @@ const dl = mayDayDu([sh(1, [{ ten: 'Lint', tam: [0, 0, 0] }, { ten: 'Bông', tam
 assert.deepEqual(dl.get(2)!.vi_tri.find((v) => v.ten === 'Bông')?.tam, [2, 0, 0]);
 assert.equal(dl.get(4)!.vi_tri.some((v) => v.ten === 'Bông'), false);
 assert.equal(mayDayDu([sh(1, [{ ten: 'Bông', tam: [1, 0, 0], cam: 'Lint' } as never]), sh(2, [{ ten: 'Lint', tam: [0, 0, 0] }])], (t) => t === 'Bông').get(2)!.vi_tri.length, 1);
+// CHUỖI CHÚ Ý: Tango ở (50,50) chạm phích ở (54,50) — hướng tới phích = 90° (về +x)
+assert.equal(Math.round(huongToi([0, 0], [1, 0])), 90); assert.equal(Math.round(huongToi([0, 0], [0, -1])), 0);
+const cy = (id: number, vi_tri: Record<string, unknown>[], khung?: string[], pd = '7') => ({ id, thu_tu: id, phan_doan: pd, may_3d: { dat: [0, 0, 1], nhin: [0, 1, 0], ong_kinh: 35, vi_tri, ...(khung ? { khung } : {}) } as never });
+const phich = choVatSet({ du_lieu: { vat: [{ ten: 'Cable Plug', tam: [54, 50, 0], mau: '#fff', hinh: 'hop' } as never] } });
+assert.deepEqual(phich('Cable Plug'), [54, 50, 0]);
+// đủ: nhìn (huong_den 90) → thấy (khung Cable Plug) → làm
+assert.deepEqual(chuoiChuY([cy(1, [{ ten: 'Tango', tam: [50, 50, 0], huong: 0, huong_den: 90 }], ['Tango']), cy(2, [{ ten: 'Tango', tam: [50, 50, 0] }], ['Cable Plug']), cy(3, [{ ten: 'Tango', tam: [50, 50, 0], lam: 'Cable Plug' }])], phich), {});
+// thiếu cả nhìn lẫn thấy (cắt thẳng sang làm) → đỏ, nêu cả hai
+const cy1 = chuoiChuY([cy(1, [{ ten: 'Tango', tam: [50, 50, 0], huong: 0 }]), cy(2, [{ ten: 'Tango', tam: [50, 50, 0], lam: 'Cable Plug' }])], phich)[2]![0]!;
+assert.ok(cy1.includes('NHÌN') && cy1.includes('lệch 90°') && cy1.includes('THẤY'), cy1);
+// nhìn ở cảnh KHÁC không tính; làm lần hai trên cùng món không phải dẫn lại
+assert.ok(chuoiChuY([cy(1, [{ ten: 'Tango', tam: [50, 50, 0], huong: 90 }], ['Cable Plug'], '6'), cy(2, [{ ten: 'Tango', tam: [50, 50, 0], lam: 'Cable Plug' }])], phich)[2]);
+assert.deepEqual(chuoiChuY([cy(1, [{ ten: 'Tango', tam: [50, 50, 0], huong: 90 }], ['Tango', 'Cable Plug']), cy(2, [{ ten: 'Tango', tam: [50, 50, 0], lam: 'Cable Plug' }]), cy(3, [{ ten: 'Tango', tam: [50, 50, 0], lam: 'Cable Plug' }])], phich), {});
+// nhìn đúng hướng nhưng nhân vật không phải chủ thể khung (khán giả không thấy cú nhìn) → đỏ
+assert.ok(chuoiChuY([cy(1, [{ ten: 'Tango', tam: [50, 50, 0], huong: 90 }], ['Cable Plug']), cy(2, [{ ten: 'Tango', tam: [50, 50, 0], lam: 'Cable Plug' }])], phich)[2]![0]!.includes('không phải chủ thể'));
+// điểm tác động lam_o: nhìn về góc trái đế cắm (48,50) thay vì tâm phích (54,50)
+assert.deepEqual(chuoiChuY([cy(1, [{ ten: 'Tango', tam: [50, 50, 0], huong: -90 }], ['Tango', 'Cable Plug']), cy(2, [{ ten: 'Tango', tam: [50, 50, 0], lam: 'Cable Plug', lam_o: [48, 50, 0] }])], phich), {});
+// lam không vào mã khung (khai kể chuyện không làm khung đã dựng thành cũ)
+const setM = { id: 1, du_lieu: { vat: [] } }; const mLam = (lam?: string) => ({ dat: [0, 0, 1], nhin: [0, 1, 0], ong_kinh: 35, vi_tri: [{ ten: 'Tango', tam: [0, 0, 0], ...(lam ? { lam } : {}) }] });
+assert.equal(maKhungXam(setM, mLam("Cable Plug"), []), maKhungXam(setM, mLam(), [])); assert.equal(maPhan(setM, mLam("X"), []).may, maPhan(setM, mLam(), []).may);
 console.log('bo-set-3d.test: ok');

@@ -1,6 +1,6 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/nhip-hinh.test.mts
 import assert from 'node:assert';
-import { kiemNhipHinh, daDangMay, kiemGiayDoc, giayDoc, soShotToiDa, kiemDanKhongGian, kiemVaiKe, kiemTheShot } from './nhip-hinh';
+import { kiemNhipHinh, daDangMay, kiemGiayDoc, giayDoc, soShotToiDa, kiemDanKhongGian, kiemVaiKe, kiemTheShot, kiemNutDong, kiemKetTap } from './nhip-hinh';
 // Fox tập 2 (13/10/2026): cỡ cảnh + chuyển động máy 14 shot
 const FOX = [['cu', 'day_vao'], ['cu', 'day_vao'], ['ws', 'tinh'], ['ms', 'tinh'], ['two', 'tinh'], ['ms', 'tinh'], ['ws', 'lui_ra'], ['cu', 'day_vao'], ['cu', 'day_vao'], ['ms', 'tinh'], ['cu', 'tinh'], ['two', 'tinh'], ['ws', 'truot_ngang'], ['ws', 'truot_ngang']]
   .map(([co_canh, chuyen_dong], i) => ({ id: 100 + i, thu_tu: i + 1, ky_thuat: { co_canh, chuyen_dong } }));
@@ -53,4 +53,27 @@ assert.deepStrictEqual(kiemTheShot([{ thu_tu: 1, dan_dung: du_the }], {}), []);
 const lt = kiemTheShot([{ thu_tu: 1, dan_dung: { ...du_the, ket: ' ' } }, { thu_tu: 2 }], {});
 assert.ok(lt[0]!.includes('2 shot thiếu ô thẻ') && lt[0]!.includes('#1: trạng thái kết') && lt[0]!.includes('#2: bố cục 3 lớp'), lt.join('\n'));
 assert.deepStrictEqual(kiemTheShot([{ thu_tu: 2 }], { laQc: true }), []);
+// DỰNG TRUYỆN — cảnh 7 bản cũ (Tango & Lint tập 19): mạch A bẫy Mr. Wipe bùng ở shot 6–7, mạch B kẻ trộm bùng ở 9, không nút đóng
+const s7 = (vai: string, luat: string[], giay = 4) => ({ phan_doan: 'Bến', phat_s: giay, thoi_luong_s: 4, ky_thuat: { vai, luat } });
+const cu7 = [s7('tong_the', []), s7('chi_tiet', []), s7('phan_ung', []), s7('hanh_dong', []), s7('hanh_dong', []), s7('chi_tiet', []), s7('phan_ung', ['giu_phan_ung']), s7('chi_tiet', ['motif', 'chenh_thong_tin']), s7('phan_ung', ['giu_phan_ung', 'khoang_lang'], 3.5), s7('thiet_lap', ['chenh_thong_tin'])].map((c, i) => ({ ...c, thu_tu: 30 + i }));
+const gag7 = [{ ten: 'Bẫy', gai: '', bung: '', o_shot: 6, mach: 'A' }, { ten: 'Hả hê', gai: '', bung: '', o_shot: 7, mach: 'A' }, { ten: 'Trộm', gai: '', bung: '', o_shot: 9, mach: 'B' }];
+const nd = kiemNutDong([{ ten: 'Bến', gag: gag7 }], cu7, {});
+assert.ok(nd.length === 1 && nd[0]!.includes('NÚT ĐÓNG') && nd[0]!.includes('#36'), nd.join('\n'));
+assert.ok(kiemNutDong([{ ten: 'Bến', gag: gag7.map(({ mach: _m, ...g }) => g) }], cu7, {})[0]!.includes('chưa khai mạch'));
+// bản mới: chèn nút đóng (phản ứng 3,5s giữ) sau shot bùng 7 + shot mở lại (motif) → qua
+const moi7 = [...cu7.slice(0, 7), { ...s7('phan_ung', ['giu_phan_ung'], 3.5), thu_tu: 99 }, { ...s7('chi_tiet', ['motif']), thu_tu: 98 }, ...cu7.slice(7)];
+const gagMoi = [gag7[0]!, gag7[1]!, { ...gag7[2]!, o_shot: 11 }];
+assert.deepStrictEqual(kiemNutDong([{ ten: 'Bến', gag: gagMoi }], moi7, {}), []);
+// nút đóng quá ngắn (2s) → đỏ; nút có mà không mở lại mạch B → đỏ
+assert.ok(kiemNutDong([{ ten: 'Bến', gag: gagMoi }], moi7.map((c) => (c.thu_tu === 99 ? { ...c, phat_s: 2 } : c)), {})[0]!.includes('NÚT ĐÓNG'));
+assert.ok(kiemNutDong([{ ten: 'Bến', gag: gagMoi }], moi7.map((c) => ({ ...c, ky_thuat: { ...c.ky_thuat, luat: c.ky_thuat.luat.filter((l) => l !== 'motif' && l !== 'chenh_thong_tin') } })), {})[0]!.includes('MỞ LẠI'));
+// kết: bản cũ — bùng #38 (o_shot 9) rồi móc ngay #39, giữ nằm trong shot bùng → đỏ (thiếu giữ)
+const kt = kiemKetTap([{ ten: 'Bến', gag: gag7 }], cu7, { coMoc: true });
+assert.ok(kt.some((x) => x.includes('GIỮ')), kt.join('\n'));
+// thêm shot giữ 3,5s sau bùng, trước móc → qua
+const ket = [...cu7.slice(0, 9), { ...s7('tam_trang', ['khoang_lang'], 3.5), thu_tu: 97 }, cu7[9]!];
+assert.deepStrictEqual(kiemKetTap([{ ten: 'Bến', gag: gag7 }], ket, { coMoc: true }), []);
+// shot cuối không phải móc (phản ứng) → đỏ; phim lẻ không đòi móc
+assert.ok(kiemKetTap([{ ten: 'Bến', gag: gag7 }], [...ket.slice(0, 10), { ...s7('phan_ung', ['chenh_thong_tin']), thu_tu: 96 }], { coMoc: true }).some((x) => x.includes('MÓC')));
+assert.deepStrictEqual(kiemKetTap([{ ten: 'Bến', gag: gag7 }], ket.slice(0, 10), {}), []);
 console.log('nhip-hinh.test: ok');

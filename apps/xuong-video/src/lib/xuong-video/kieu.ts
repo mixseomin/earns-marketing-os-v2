@@ -86,7 +86,7 @@ export const ghepThoai = (ds: DongThoai[]) => ds.filter((d) => d.loi.trim()).map
  *  phần của đạo diễn (giá trị đổi, điểm xoay, nhịp hành động–phản ứng), sản xuất (hiệu ứng — nhân vật/đạo cụ/bối cảnh rút từ anchor của shot),
  *  color script (ánh sáng + màu, mã thư viện) và nhạc. Bảy tài liệu của tab Hồ sơ đọc từ đây + shot (ho-so.ts). */
 export type PhanCanh = { ten: string; beat: string; muc_tieu: string; xung_dot: string; an_y: string; nhip: string; cam_xuc_dau: number; cam_xuc_cuoi: number;
-  /** gag của cảnh: gài → bùng, o_shot = shot thứ mấy TRONG cảnh có cú bùng (1-based) */ gag?: { ten: string; gai: string; bung: string; o_shot: number }[];
+  /** gag của cảnh: gài → bùng, o_shot = shot thứ mấy TRONG cảnh có cú bùng (1-based) */ gag?: { ten: string; gai: string; bung: string; o_shot: number; /** MẠCH truyện nhỏ của gag trong cảnh (A, B…) — cảnh có ≥2 gag phải khai; đổi mạch thì cần NÚT ĐÓNG (nhip-hinh.ts › kiemNutDong) */ mach?: string }[];
   /** cảnh mở series (chuỗi từ thế giới ngoài) — không tính vào độ dài chuẩn của tập */ intro?: boolean;
   noi?: string; luc?: string; gia_tri_doi?: string; diem_xoay?: string; nhip_hd?: string[]; hieu_ung?: string[]; anh_sang?: string; mau?: string; mau_mo_ta?: string; nhac?: string;
   /** đoạn kịch bản (screenplay) của cảnh: hành động / âm / thoại / chuyển cảnh */ kich_ban?: DongKichBan[] };
@@ -304,6 +304,9 @@ export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy 
     /** món RỜI KHỎI bộ set sau shot này (bị lấy đi / mang ra ngoài) — không còn tự đặt lại ở các shot sau */ het?: boolean;
     /** (máy tự thêm) đạo cụ ĐỂ LẠI từ shot trước, đặt đúng chỗ cuối cùng nó được thấy — bo-set-3d.ts › mayDayDu */ de_lai?: boolean;
     /** CỐ Ý xuất hiện ở chỗ khác lần cuối thấy (đi ngoài khung) — ghi lý do; chỉ miễn kiểm cho món này */ nhay?: string;
+    /** nhân vật này TÁC ĐỘNG lên món nào trong shot (chạm, ấn, chà, cầm lên) — tên vật của set hoặc chỗ đứng khác. Cổng chuỗi chú ý
+     *  (bo-set-3d.ts › chuoiChuY): trước đó phải có shot nó NHÌN món đó + shot cho THẤY món đó */ lam?: string;
+    /** ĐIỂM tác động trên món đó (cm) khi món lớn (dấu tay ở góc trước đế cắm, không phải tâm đế cắm) — cổng đo hướng nhìn tới điểm này */ lam_o?: number[];
     nam?: boolean; /** dáng lúc KẾT (bẹp / nằm) khác lúc mở — khung màu kết vẽ theo */ nam_den?: boolean; /** kịch bản CỐ Ý cho vật khác che (vd nấp sau chuột) — kiểm không báo bị che */ an?: boolean }[];
   /** CỐ Ý ĐỨT MẠCH ở cú cắt vào shot này (thời gian trôi / dịch chuyển ngoài khung) — ghi lý do; không ghi thì mọi nhân vật phải mở đúng chỗ
    *  lần cuối thấy nó kết (bo-set-3d.ts › lienMachTap) */ nhay?: string;

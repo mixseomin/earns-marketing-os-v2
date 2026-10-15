@@ -4,7 +4,7 @@
 // chỗ thiếu + cách làm. Thêm một chuẩn mới = thêm MỘT mục ở đây, không vá từng nút. Khác kiem-qc.ts: bên đó chấm NỘI DUNG quảng cáo
 // (hook, CTA, bằng chứng), bên này chấm QUY TRÌNH sản xuất. Thuần — tự kiểm: quy-trinh.test.mts.
 import { chanKhung } from './khung';
-import { maAnimatic } from './ho-so';
+import { maAnimatic, conTapSau } from './ho-so';
 import { thanhPhanCanh, type Canh, type NhanVat, type PhanCanh, type KinhThanh } from './kieu';
 import type { Beat } from './dien-anh';
 import { dongThoai } from './am-thanh';
@@ -12,12 +12,12 @@ import { chamKichBan } from './cham-kich-ban';
 import { kiemTieng } from './khop-giong';
 import type { Series, TapHoSo, ThuNguoiXem } from './kieu';
 import { chanNguoiXem, TIEN_TO_NGUOI_XEM, TEN_NUT_NGUOI_XEM } from './nguoi-xem';
-import { kiemNhipHinh, kiemGiayDoc, kiemDanKhongGian, kiemVaiKe, kiemTheShot, TIEN_TO_NHIP_HINH } from './nhip-hinh';
+import { kiemNhipHinh, kiemGiayDoc, kiemDanKhongGian, kiemVaiKe, kiemTheShot, kiemNutDong, kiemKetTap, TIEN_TO_NHIP_HINH, TIEN_TO_DUNG_TRUYEN } from './nhip-hinh';
 
 export type Cong = 'keyframe' | 'video' | 'xuat';
 export type NhomQt = 'Tiền kỳ' | 'Sản xuất' | 'Hậu kỳ';
 export type MucQt = { key: string; nhom: NhomQt; ten: string; ok: boolean; thieu: string[]; cong: Cong | null; lam: string };
-export type TapQt = { ho_so?: TapHoSo; so?: number; brief: string; thu_nguoi_xem?: ThuNguoiXem | null; beats: Pick<Beat, 'ten' | 'cam_xuc'>[]; phan_canh: (Pick<PhanCanh, 'ten'> & Partial<Pick<PhanCanh, 'beat'>>)[]; nhac_url: string | null; nhac_phan_canh: Record<string, string> };
+export type TapQt = { ho_so?: TapHoSo; so?: number; brief: string; thu_nguoi_xem?: ThuNguoiXem | null; beats: Pick<Beat, 'ten' | 'cam_xuc'>[]; phan_canh: (Pick<PhanCanh, 'ten'> & Partial<Pick<PhanCanh, 'beat' | 'intro' | 'gag'>>)[]; nhac_url: string | null; nhac_phan_canh: Record<string, string> };
 export type PhimQt = { phong_cach?: string; ti_le?: string; logo_url?: string; laQc: boolean; logline?: string; series?: Series | null; khong_loi?: boolean };
 /** PhimQt từ kinh thánh — MỘT chỗ dựng (thanh 🎬, bảng chọn shot, cổng keyframe máy chủ); trước đây 4 chỗ tự dựng, bảng chọn shot ghi cứng laQc: false. */
 export const phimQt = (loai: string, kt: Pick<KinhThanh, 'phong_cach' | 'logline' | 'series' | 'khong_loi' | 'qc'>): PhimQt =>
@@ -85,6 +85,9 @@ export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' 
   out.push(...kiemGiayDoc(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, phat_s: c.phat_s, thoi_luong_s: c.thoi_luong_s })), phim));
   out.push(...kiemTheShot(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, dan_dung: c.dan_dung })), phim));
   out.push(...kiemVaiKe(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, phan_doan: c.phan_doan, ky_thuat: c.ky_thuat })), phim));
+  // Dựng truyện (nhip-hinh.ts): nút đóng giữa hai mạch truyện trong một cảnh + kết tập ba nhịp (bùng → giữ → móc).
+  const dsTruyen = canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, phan_doan: c.phan_doan, phat_s: c.phat_s, thoi_luong_s: c.thoi_luong_s, ky_thuat: c.ky_thuat }));
+  out.push(...kiemNutDong(tap.phan_canh, dsTruyen, phim), ...kiemKetTap(tap.phan_canh, dsTruyen, { laQc: phim.laQc, coMoc: conTapSau(phim.series, tap.so) }));
   if (boiCanh?.length) out.push(...kiemDanKhongGian(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, nhan_vat: c.nhan_vat, ky_thuat: c.ky_thuat })), boiCanh, phim));
   return out;
 }
@@ -135,7 +138,7 @@ export function quyTrinh(o: { tap: TapQt; phim: PhimQt; canh: ShotQt[]; nhanVat:
     m('truyen', 'Tiền kỳ', 'Khung truyện (beat)', tk.filter((x) => x.includes('khung truyện')), 'keyframe', '✂ Tách cảnh (hoặc nạp kèm beats): mở – xung đột – cao trào – giải quyết.'),
     m('kich_ban', 'Tiền kỳ', `Kịch bản ${kb.diem}/100`, kb.muc.filter((x) => !x.dat).map((x) => `${x.ten}: ${x.ghi}`), phim.series?.dong_co?.trim() ? 'keyframe' : null, 'Logline một câu · hook ≤ 3s · đủ 5 nhịp (hook → vấn đề → leo thang → lật ngược → kết/móc) · lật ngược ở 55–92% phim · series: kết bằng móc.'),
     m('nguoi_xem', 'Tiền kỳ', tap.thu_nguoi_xem && tap.thu_nguoi_xem.ma ? `Người xem hiểu ${tap.thu_nguoi_xem.diem}/10` : 'Người xem hiểu phim', tk.filter((x) => x.startsWith(TIEN_TO_NGUOI_XEM)), 'keyframe', `${TEN_NUT_NGUOI_XEM}` + ': Claude chỉ thấy chữ/lời/hình của từng shot, kể lại câu chuyện; phải hiểu ≥7/10 và đúng ý tác giả.'),
-    m('phan_canh', 'Tiền kỳ', 'Phân cảnh', [...tk.filter((x) => x.includes('phân cảnh')), ...theoShot((c) => thieuPhanCanh(tap.phan_canh, c))].filter((x, i, a) => a.indexOf(x) === i), 'keyframe', 'Mỗi phân cảnh: mục tiêu nhân vật, xung đột, cảm xúc đổi đầu→cuối; mỗi shot thuộc một phân cảnh.'),
+    m('phan_canh', 'Tiền kỳ', 'Phân cảnh', [...tk.filter((x) => x.includes('phân cảnh') || x.startsWith(TIEN_TO_DUNG_TRUYEN)), ...theoShot((c) => thieuPhanCanh(tap.phan_canh, c))].filter((x, i, a) => a.indexOf(x) === i), 'keyframe', 'Mỗi phân cảnh: mục tiêu nhân vật, xung đột, cảm xúc đổi đầu→cuối; mỗi shot thuộc một phân cảnh.'),
     m('phong_cach', 'Tiền kỳ', 'Phong cách hình', tk.filter((x) => x.includes('phong cách')), 'keyframe', 'Mục 1 Kinh thánh: ánh sáng, bảng màu, chất liệu, ống kính chủ đạo.'),
     m('mau_doi_tuong', 'Tiền kỳ', 'Mẫu nhân vật / sản phẩm', [...nhanVat.filter((v) => v.loai !== 'boi_canh' && v.loai !== 'phong_cach' && (!v.mo_ta.trim() || !v.anh_ref.length)).map((v) => `${v.ten}: ${!v.mo_ta.trim() ? 'chưa tả' : 'chưa có ảnh mẫu'}`), ...theoShot((c) => thieuMau(c, nhanVat).filter((x) => x.includes('có trong prompt')), sinh)], 'keyframe', 'Mục 2: tả đặc tính cố định + sinh ảnh mẫu; shot nhắc tên thì gắn mẫu.'),
     m('mau_boi_canh', 'Tiền kỳ', 'Mẫu bối cảnh', [...nhanVat.filter((v) => v.loai === 'boi_canh' && !v.anh_ref.length).map((v) => `${v.ten}: chưa có ảnh mẫu`), ...theoShot((c) => thieuMau(c, nhanVat).filter((x) => !x.includes('có trong prompt')), sinh)], 'keyframe', 'Mục 2: mỗi nơi chốn lặp lại một anchor Bối cảnh có ảnh mẫu; gắn vào shot.'),

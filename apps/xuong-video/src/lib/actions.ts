@@ -1444,6 +1444,14 @@ export async function layTuLinkSanPham(phimId: number, link: string): Promise<Kq
 }
 
 
+/** Bộ set các shot của tập đứng trên (chỉ vật) — lưới kịch bản cần chỗ vật cố định để đo chuỗi chú ý (bo-set-3d.ts › loiMachTap). */
+export async function boSetCuaTap(tapId: number): Promise<Kq<Pick<BoSet, 'id' | 'du_lieu'>[]>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const r = (await db.execute(sql`SELECT DISTINCT b.id, b.du_lieu FROM xv_bo_set b JOIN xv_nhan_vat v ON v.bo_set_id = b.id JOIN xv_tap t ON t.phim_id = v.phim_id WHERE t.id = ${tapId}`)) as unknown as Row[];
+  return { ok: true, data: r.map((x) => ({ id: Number(x.id), du_lieu: x.du_lieu as BoSet['du_lieu'] })) };
+}
 /** 🧊 Dữ liệu trình xem 3D của một tập (bo-set-xem.tsx): mọi bộ set mà shot của tập đứng trên + khối nhân vật / đạo cụ + máy và chỗ đứng
  *  từng shot. CÙNG dữ liệu Blender dựng khung xám (bo-set-3d.ts › bangDung) — xoay xem ở trình duyệt khớp đúng ảnh khung xám. */
 export async function boSet3dTap(tapId: number): Promise<Kq<{ sets: BoSet[]; khoi: Record<string, NhanVat['khoi_3d']>; loai: Record<string, string>; shots: { id: number; thu_tu: number; ma: string; canh: string; set_id: number | null; may_3d: May3d | null; xam: string | null }[]; ti_le: string }>> {

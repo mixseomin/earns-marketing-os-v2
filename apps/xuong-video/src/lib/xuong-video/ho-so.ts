@@ -12,7 +12,7 @@
 // theo phim, nhịp đọc + nhịp hình + vai kể + thẻ shot bằng đúng cổng studio. Thuần (client lẫn server import được).
 import { kyThuat, type NhomKyThuat, type KyThuatShot } from './dien-anh';
 import { luatDung, LUAT_DUNG_CANH } from './luat-dung';
-import { giayDoc, kiemNhipHinh, kiemVaiKe, kiemTheShot } from './nhip-hinh';
+import { giayDoc, kiemNhipHinh, kiemVaiKe, kiemTheShot, kiemNutDong, kiemKetTap } from './nhip-hinh';
 import type { DanDung, DongThoai, PhanCanh, Series, TapHoSo } from './kieu';
 import { maBan } from './nguoi-xem';
 
@@ -43,6 +43,8 @@ export function bocTach(v: HoSoVao, pc: PhanCanh): { boi_canh: string[]; nhan_va
   return { boi_canh: theo(['boi_canh']), nhan_vat: theo(['nhan_vat']), dao_cu: theo(['dao_cu', 'san_pham']), hieu_ung: pc.hieu_ung ?? [] };
 }
 
+/** Series còn tập sau tập `so` → kết tập phải móc. */
+export const conTapSau = (series: Series | null | undefined, so?: number): boolean => !!series?.dong_co?.trim() && (series.tap ?? []).some((x) => (x.so ?? 0) > (so ?? 0));
 /** Cổng hồ sơ: thiếu tài liệu nào, mã nào lệch thư viện, shot nào lạc cảnh. Rỗng = đủ chuẩn studio. */
 export function kiemHoSo(v: HoSoVao): string[] {
   const loi: string[] = []; const ds = shotDung(v);
@@ -84,6 +86,8 @@ export function kiemHoSo(v: HoSoVao): string[] {
   }
   const p = { laQc: false, khong_loi: v.khong_loi };
   loi.push(...kiemTheShot(ds, p), ...kiemVaiKe(ds, p), ...kiemNhipHinh(ds));
+  // Dựng truyện: nút đóng giữa hai mạch trong một cảnh + kết ba nhịp (bùng → giữ → móc).
+  loi.push(...kiemNutDong(v.phan_canh, ds, p), ...kiemKetTap(v.phan_canh, ds, { ...p, coMoc: conTapSau(v.series, v.so) }));
   return loi;
 }
 

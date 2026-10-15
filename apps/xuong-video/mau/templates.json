@@ -3818,6 +3818,12 @@
      "ten": "{{nhan_vat_ten}}",
      "mo_ta": "{{nhan_vat_hinh}}",
      "giong": "{{giong}}"
+    },
+    {
+     "key": "studio",
+     "loai": "boi_canh",
+     "ten": "Studio",
+     "mo_ta": "seamless warm off-white studio sweep (paper backdrop curving into the floor, no horizon line, no props), soft diffused daylight-balanced light from the upper left, faint soft shadow under objects, clean and minimal"
     }
    ],
    "tap": {
@@ -3852,7 +3858,8 @@
      "chu_man": "{{hook}}",
      "nv": [
       "sp_gap",
-      "sp"
+      "sp",
+      "studio"
      ],
      "co": "ecu",
      "loi": "{{hook}}",
@@ -3868,7 +3875,8 @@
      "nv": [],
      "co": "ws",
      "prompt_anh": "Background plate for compositing: {{noi_1}}; NO people at all, the center of the frame left clear for a person to be added later, eye-level camera, shallow depth of field, natural light, cinematic editorial color grade, vertical 9:16, no text",
-     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people"
+     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people",
+     "nen_ghep": true
     },
     {
      "giay": 0.8,
@@ -3879,7 +3887,8 @@
      "nv": [],
      "co": "ws",
      "prompt_anh": "Background plate for compositing: {{noi_2}}; NO people at all, the center of the frame left clear for a person to be added later, eye-level camera, shallow depth of field, natural light, cinematic editorial color grade, vertical 9:16, no text",
-     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people"
+     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people",
+     "nen_ghep": true
     },
     {
      "giay": 0.8,
@@ -3890,7 +3899,8 @@
      "nv": [],
      "co": "ws",
      "prompt_anh": "Background plate for compositing: {{noi_3}}; NO people at all, the center of the frame left clear for a person to be added later, eye-level camera, shallow depth of field, natural light, cinematic editorial color grade, vertical 9:16, no text",
-     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people"
+     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people",
+     "nen_ghep": true
     },
     {
      "giay": 0.8,
@@ -3901,7 +3911,8 @@
      "nv": [],
      "co": "ws",
      "prompt_anh": "Background plate for compositing: {{noi_4}}; NO people at all, the center of the frame left clear for a person to be added later, eye-level camera, shallow depth of field, natural light, cinematic editorial color grade, vertical 9:16, no text",
-     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people"
+     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people",
+     "nen_ghep": true
     },
     {
      "giay": 0.8,
@@ -3912,7 +3923,8 @@
      "nv": [],
      "co": "ws",
      "prompt_anh": "Background plate for compositing: {{noi_5}}; NO people at all, the center of the frame left clear for a person to be added later, eye-level camera, shallow depth of field, natural light, cinematic editorial color grade, vertical 9:16, no text",
-     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people"
+     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people",
+     "nen_ghep": true
     },
     {
      "giay": 0.8,
@@ -3923,7 +3935,8 @@
      "nv": [],
      "co": "ws",
      "prompt_anh": "Background plate for compositing: {{noi_6}}; NO people at all, the center of the frame left clear for a person to be added later, eye-level camera, shallow depth of field, natural light, cinematic editorial color grade, vertical 9:16, no text",
-     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people"
+     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people",
+     "nen_ghep": true
     },
     {
      "giay": 0.8,
@@ -3934,7 +3947,8 @@
      "nv": [],
      "co": "ws",
      "prompt_anh": "Background plate for compositing: {{noi_7}}; NO people at all, the center of the frame left clear for a person to be added later, eye-level camera, shallow depth of field, natural light, cinematic editorial color grade, vertical 9:16, no text",
-     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people"
+     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people",
+     "nen_ghep": true
     },
     {
      "giay": 2.5,
@@ -3944,7 +3958,8 @@
      "chu_man": "{{lat}}",
      "nv": [
       "sp_gap",
-      "sp"
+      "sp",
+      "studio"
      ],
      "co": "cu",
      "loi": "{{lat}}",
@@ -3958,7 +3973,8 @@
      "hanh_dong": "Product in every color, flat lay",
      "chu_man": "{{dam_bao}}",
      "nv": [
-      "sp"
+      "sp",
+      "studio"
      ],
      "co": "cu",
      "prompt_anh": "Overhead flat lay on a seamless warm off-white backdrop: the product in every available color laid out in a neat grid, soft studio light, vertical 9:16, no text",
@@ -3972,7 +3988,8 @@
      "chu_man": "{{san_pham}} · {{uu_dai}}",
      "nv": [
       "sp",
-      "sp_gap"
+      "sp_gap",
+      "studio"
      ],
      "co": "ms",
      "loi": "{{san_pham}}. {{uu_dai}}.",

@@ -21,6 +21,7 @@ import { CTA_MAC_DINH, laShotCta } from '../src/lib/xuong-video/cta';
 
 type Shot = { giay: number; loai: LoaiShotMau; canh?: string; goc_may: string; hanh_dong: string; chu_man: string; loi?: string; noi?: string; dien_xuat?: string;
   prompt_anh?: string; prompt_video?: string; nv?: string[]; /** biến thể (màu…) của anchor gắn vào shot — key trong nhan_vat[].bien_the */ bt?: string[]; keyframe?: string; /** cỡ cảnh (ecu|cu|mcu|ms|two|ws|ews) */ co: string; /** chuyển động máy — trống thì máy chọn */ may?: string;
+  /** shot NỀN GHÉP (khuôn đổi nền): ảnh nền không người, nơi hiện một lần → ky_thuat.nen_ghep, cổng mẫu không đòi anchor Bối cảnh */ nen_ghep?: boolean;
   /** kiểu chữ RIÊNG của shot (vd ô bình luận: nền trắng, nguyên câu) — trống: shot CTA lấy kiểu thư viện CTA, shot khác theo phim */ kieu?: KieuChu;
   /** nguồn tham khảo của câu cố định (không phải ô) — BẮT BUỘC, thiếu thì dừng (tham-khao.ts) */ tk?: ThamKhaoCau[] };
 type Tpl = { key: string; ten: string; mo_ta: string; dong?: DongTemplate; khuon?: string; mau_qc?: MauQcTemplate[]; o: string[]; kinh_thanh: KinhThanh; nhan_vat: { key: string; loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref?: string[]; giong?: string; bien_the?: { key: string; nhom: string; ten: string; mo_ta: string; anh_url?: string }[] }[];
@@ -35,7 +36,7 @@ const q = async (s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown 
 const chi = gia('chi'), lai = gia('lai'), dongBo = gia('dong-bo');
 /** Kỹ thuật máy cả tập: cỡ cảnh theo tệp + chuyển động máy đa dạng (đúng luật nhịp hình). */
 const kyThuat = (shots: Shot[]): KyThuatShot[] => {
-  const ds = shots.map((s, i) => ({ id: i, thu_tu: i + 1, ky_thuat: { co_canh: s.co, ...(s.may ? { chuyen_dong: s.may } : {}) } as KyThuatShot }));
+  const ds = shots.map((s, i) => ({ id: i, thu_tu: i + 1, ky_thuat: { co_canh: s.co, ...(s.may ? { chuyen_dong: s.may } : {}), ...(s.nen_ghep ? { nen_ghep: true } : {}) } as KyThuatShot }));
   for (const d of daDangMay(ds)) ds[d.id]!.ky_thuat = d.ky_thuat;
   return ds.map((d) => d.ky_thuat);
 };

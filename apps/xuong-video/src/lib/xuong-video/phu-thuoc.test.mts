@@ -51,6 +51,9 @@ assert.ok(!phuThuocShot('video', shot({ keyframe_url: 'k', trang_thai: 'duyet', 
   assert.deepStrictEqual(thieuMau({ nhan_vat: [50], prompt_anh: "Maya's hand on a phone", hanh_dong: '' }, [maya, BC]), ['"Maya" có trong prompt mà chưa gắn mẫu']);
   assert.deepStrictEqual(thieuMau({ nhan_vat: [50, 7], prompt_anh: 'Maya runs', hanh_dong: '' }, [maya, BC]), []);
   assert.deepStrictEqual(thieuMau({ nhan_vat: [50], prompt_anh: 'mayans ruins', hanh_dong: '' }, [maya, BC]), [], 'không khớp nửa từ');
+  // shot nền ghép (khuôn đổi nền): nơi hiện một lần, keyframe là mẫu → không đòi anchor Bối cảnh; nhắc tên người vẫn phải gắn mẫu
+  assert.deepStrictEqual(thieuMau({ nhan_vat: [], prompt_anh: 'Background plate: bus stop, NO people', hanh_dong: '', ky_thuat: { nen_ghep: true } }, [maya]), []);
+  assert.deepStrictEqual(thieuMau({ nhan_vat: [], prompt_anh: 'Maya at a bus stop', hanh_dong: '', ky_thuat: { nen_ghep: true } }, [maya]), ['"Maya" có trong prompt mà chưa gắn mẫu']);
   assert.ok(phuThuocShot('keyframe', shot({ nhan_vat: [] }), [maya, BC], { noiKhung: false, tap: TQ, phim: PQ }).chan.length === 0, 'shot mặc định có bối cảnh 50');
 }
 // quy trình (luật 12/10/2026): cổng tiền kỳ cấp tập + shot list

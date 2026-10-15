@@ -19,7 +19,9 @@ export const NHOM_CHUYEN_CANH: { key: NhomChuyenCanh; ten: string }[] = [
 /** Kỹ thuật đã chọn cho một shot (mỗi nhóm một key; âm thanh có thể nhiều). */
 /** giay_cc: số giây chuyển cảnh đặt tay cho điểm nối SAU shot này (#1297) — trống = mặc định của kiểu. */
 /** luat = mã luật dựng cảnh (luat-dung.ts) shot này thực hiện — shot ref tới thư viện. */
-export type KyThuatShot = Partial<Record<Exclude<NhomKyThuat, 'am_thanh'>, string>> & { am_thanh?: string[]; giay_cc?: number; luat?: string[] };
+/** nen_ghep = shot NỀN GHÉP của khuôn đổi nền (mot_dang_moi_noi): ảnh nền không người, nơi chốn xuất hiện MỘT lần, người cắt nền phủ lên —
+ *  keyframe của shot chính là mẫu nơi đó nên không cần anchor Bối cảnh (quy-trinh.ts › thieuMau); nơi lặp lại vẫn phải có anchor. */
+export type KyThuatShot = Partial<Record<Exclude<NhomKyThuat, 'am_thanh'>, string>> & { am_thanh?: string[]; giay_cc?: number; luat?: string[]; nen_ghep?: boolean };
 
 export const THE_LOAI: { key: TheLoai; ten: string; mo_ta: string }[] = [
   { key: 'hoat_hinh', ten: 'Hoạt hình gia đình', mo_ta: 'Ấm áp, màu tươi, máy mềm, cảm xúc rõ ràng' },

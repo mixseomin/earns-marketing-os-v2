@@ -2,6 +2,7 @@
 // script trên box (dung-phim-mau, sinh-anh-phim) dùng thẳng. Trước nằm trong actions.ts ('use server') nên script không import được.
 import 'server-only';
 import { sql } from 'drizzle-orm';
+import { chotTien, LOAI_JOB_TON_TIEN } from './chot-tien';
 import type { getDb } from '@mos2/db';
 import { docKinhThanh, giaChuCents, giaVideoCents, type BienThe, type Canh, type Job, type KinhThanh, type LoaiNhanVat, type LoaiPhim, type May3d, type NhanVat, type Tap, type TrangThaiCanh } from './kieu';
 import { modelFal } from './fal';
@@ -93,6 +94,7 @@ export async function boiCanhCanh(db: Db, canhId: number) {
 export async function taoJob(db: Db, d: { phim_id?: number; nhan?: string; canh_id?: number; nhan_vat_id?: number; bien_the_id?: number; loai: string; provider: string; model: string; request: unknown; xong?: boolean }): Promise<number> {
   // phim_id tính trước bằng truy vấn riêng: nhét cùng một tham số số vào subquery của INSERT làm postgres-js đoán kiểu
   // text cho nó rồi ném ERR_INVALID_ARG_TYPE (sinh keyframe hỏng hẳn 08/10/2026).
+  if (LOAI_JOB_TON_TIEN.has(d.loai)) chotTien(`job ${d.loai} · ${d.model}`);   // script thiếu duyệt → dừng trước khi ghi job (chot-tien.ts)
   let phimId: number | null = d.phim_id ?? null;
   if (phimId == null && d.canh_id != null) {
     const q = (await db.execute(sql`SELECT t.phim_id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${d.canh_id}`)) as unknown as Row[];

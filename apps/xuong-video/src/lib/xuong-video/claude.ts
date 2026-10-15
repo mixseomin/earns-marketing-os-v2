@@ -2,6 +2,7 @@
 // Nhân vật/bối cảnh của bộ phim (anchor) được đưa vào prompt để mọi cảnh, mọi tập tả cùng một người, cùng bộ đồ, cùng bối cảnh.
 import 'server-only';
 import Anthropic from '@anthropic-ai/sdk';
+import { chotTien } from './chot-tien';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';   // helper zodOutputFormat của SDK cần zod v4 (zod 3.25 kèm sẵn ở 'zod/v4'); import 'zod' gốc → TypeError 'def'
 import { THU_VIEN, THE_LOAI, CAU_TRUC, giayBeat, hopTheLoai, NHOM_KY_THUAT, type NhomKyThuat } from './dien-anh';
@@ -95,6 +96,7 @@ export type PhanCanhSinh = Omit<z.infer<typeof StoryboardSchema>['phan_canh'][nu
 
 function client(): Anthropic | null {
   if (!process.env.ANTHROPIC_API_KEY) return null;
+  chotTien('gọi Claude');   // script thiếu duyệt → dừng (chot-tien.ts)
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 }
 

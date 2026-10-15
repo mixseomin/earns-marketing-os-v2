@@ -9,6 +9,10 @@ import { kiemNguoiXemTap, kiemNguoiXemCanh, dauVaoNguoiXemCanh } from '../src/li
 import { heNguoiXem, vaoNguoiXem, NguoiXemSchema, NguoiXemQcSchema, DoiChieuYSchema } from '../src/lib/xuong-video/claude';
 const gia = (k: string) => (process.argv.find((a) => a.startsWith(`--${k}=`)) ?? '').slice(k.length + 3);
 const tap = Number(process.argv[2]); const canh = gia('canh'); const tu = gia('tu-cham');
+// CHỐT TIỀN (16/10/2026: `kiem-nguoi-xem.mts 57 --in` — thiếu --canh nên cờ 0đ bị bỏ qua, chạy luôn lượt API $0.07 không ai duyệt).
+// Cờ 0đ (--in / --tu-cham) mà thiếu --canh → DỪNG, không rơi xuống nhánh tốn tiền. Nhánh tốn tiền chỉ chạy khi có DUYET_SINH_1_LAN=1.
+if ((process.argv.includes('--in') || tu) && !canh) { console.error('--in / --tu-cham cần --canh=<phân cảnh> (0đ chỉ có theo từng cảnh) — không chạy lượt API'); process.exit(1); }
+if (!tu && !process.argv.includes('--in') && process.env.DUYET_SINH_1_LAN !== '1') { console.error('Lượt kiểm người xem bằng API TỐN TIỀN (~$0.07 cả tập) — chỉ chạy với DUYET_SINH_1_LAN=1 sau khi anh duyệt. Tự chấm 0đ: --canh=<cảnh> --in rồi --tu-cham=<tệp>.'); process.exit(1); }
 if (canh && process.argv.includes('--in')) {
   const v = await dauVaoNguoiXemCanh(getDb()!, tap, canh);
   if (!v.ok) { console.error(v.loi); process.exit(1); }

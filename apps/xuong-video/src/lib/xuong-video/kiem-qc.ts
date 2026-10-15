@@ -2,7 +2,7 @@
 // (review phim bra 09/10/2026: hook 6s toàn lời, không chữ màn, không bằng chứng, 64s cho brief 24s — không máy nào kêu).
 // Mỗi luật là một thứ ads thật đo được: 85% xem tắt tiếng → chữ màn; 3 giây đầu quyết định giữ tay; sản phẩm phải thấy sớm;
 // số liệu chỉ được lấy từ mục sản phẩm; CTA phải có chữ. File thuần, tự kiểm bằng kiem-qc.test.mts.
-import type { Canh, LoaiPhim, NhanVat, ThongTinQc } from './kieu';
+import type { Canh, LoaiPhim, Lop, NhanVat, ThongTinQc } from './kieu';
 import { lechCamXuc, giayPhat, locNhanh, coMau, giayMau, shotLechNgonNgu, tenNgonNgu } from './kieu';
 
 export type MucKiem = { key: string; ok: boolean; chu: string; chiTiet?: string };
@@ -15,7 +15,9 @@ const coSo = (s: string) => /\d|★|⭐|%/.test(s);
 export const TU_MOI_GIAY = 2.8;
 
 /** Kiểm một bản dựng (thân + một nhánh hook). Phim/short chỉ kiểm độ dài; quảng cáo kiểm đủ bộ. */
-export function kiemQc(opts: { loai: LoaiPhim; canh: ShotKiem[]; nhanVat: Pick<NhanVat, 'id' | 'loai'>[]; qc?: ThongTinQc | null; mucTieuS?: number | null; nhanh?: string | null; ngonNgu?: string }): MucKiem[] {
+export function kiemQc(opts: { loai: LoaiPhim; canh: ShotKiem[]; nhanVat: Pick<NhanVat, 'id' | 'loai'>[]; qc?: ThongTinQc | null; mucTieuS?: number | null; nhanh?: string | null; ngonNgu?: string;
+  /** lớp phủ của tập: lớp ảnh mang_sp (người cắt nền cầm sản phẩm) phủ lên shot nào thì shot đó tính là có sản phẩm. */
+  lop?: Pick<Lop, 'loai' | 'url' | 'tu' | 'den' | 'mang_sp' | 'an'>[] }): MucKiem[] {
   const ds = locNhanh(opts.canh, opts.nhanh).slice().sort((a, b) => a.thu_tu - b.thu_tu);
   const out: MucKiem[] = [];
   if (!ds.length) return out;
@@ -49,7 +51,11 @@ export function kiemQc(opts: { loai: LoaiPhim; canh: ShotKiem[]; nhanVat: Pick<N
       chiTiet: than.length !== m.shots.length ? `Mẫu có ${m.shots.length} shot, bản này ${than.length} — tách lại theo mẫu hoặc thêm/bớt shot` : lechGiay > 0.1 ? `Tổng giây lệch ${Math.round(lechGiay * 100)}% so với mẫu — kéo mép clip cho khớp` : undefined });
   }
   const spIds = new Set(opts.nhanVat.filter((v) => v.loai === 'san_pham').map((v) => v.id));
-  const coSp = (c: ShotKiem) => c.nhan_vat.some((id) => spIds.has(id));
+  // Giây bắt đầu từng shot → shot nào nằm dưới lớp phủ mang sản phẩm (khuôn đổi nền: sản phẩm trên tay người cắt nền, không phải anchor của shot).
+  const moc = new Map<ShotKiem, number>(); { let tt = 0; for (const c of ds) { moc.set(c, tt); tt += giayPhat(c); } }
+  const phuSp = (opts.lop ?? []).filter((l) => l.loai === 'anh' && l.mang_sp && !l.an);
+  const duoiPhu = (c: ShotKiem) => { const a = moc.get(c) ?? 0; const b = a + giayPhat(c); return phuSp.some((l) => l.tu < b - 0.05 && l.den > a + 0.05); };
+  const coSp = (c: ShotKiem) => c.nhan_vat.some((id) => spIds.has(id)) || duoiPhu(c);
   // 1. Hook: shot đầu ≤ 3 giây phát, có chữ trên màn.
   const dau = ds[0]!;
   out.push({ key: 'hook', ok: giayPhat(dau) <= 3 && !!dau.chu_man.trim(), chu: 'Hook ≤ 3s + chữ màn', chiTiet: giayPhat(dau) > 3 ? `Shot đầu phát ${giayPhat(dau)}s — cắt còn ≤ 3s` : !dau.chu_man.trim() ? 'Shot đầu chưa có chữ trên màn (85% xem tắt tiếng)' : undefined });

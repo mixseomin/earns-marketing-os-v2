@@ -404,6 +404,8 @@ export type Lop = {
   nhom?: string;
   /** mã nhóm trước khi bấm Bỏ nhóm — để "Gộp lại nhóm cũ" trả đúng nhóm (12/10/2026). */
   nhom_cu?: string;
+  /** lớp phủ ảnh CÓ SẢN PHẨM trong hình (người cắt nền cầm sản phẩm, khuôn "Một dáng, mọi nơi") — bộ kiểm QC đếm shot nằm dưới lớp này là có sản phẩm. */
+  mang_sp?: boolean;
 };
 /** Kết quả bước THỬ NGƯỜI XEM LẦN ĐẦU (nguoi-xem.ts): Claude chỉ thấy thứ người xem thấy/nghe, kể lại + chấm hiểu; rồi đối chiếu brief.
  *  `ma` = mã phiên bản của bản người xem lúc thử — kịch bản đổi thì kết quả hết hiệu lực. */

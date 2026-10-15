@@ -144,3 +144,11 @@ console.log('kiem-qc.test: mẫu ok');
   assert.ok(!ket('Buy 1 Get 1 Free', '').some((x) => x.key === 'ten_cuoi'));
   console.log('kiem-qc.test: tên sản phẩm màn kết ok');
 }
+
+{ // Lớp phủ mang sản phẩm (khuôn "Một dáng, mọi nơi"): shot nền không có anchor sản phẩm nhưng nằm dưới lớp người cắt nền cầm sản phẩm → tính là có.
+  const nen = [2, 3, 4, 5, 6, 7].map((i) => shot({ thu_tu: i, phat_s: 0.8, nhan_vat: [], chu_man: `Stop ${i}` }));
+  const ds = [shot({ thu_tu: 1, phat_s: 2, chu_man: 'Hook' }), ...nen, shot({ thu_tu: 8, phat_s: 2, chu_man: 'Flip' }), shot({ thu_tu: 9, phat_s: 2, chu_man: 'Returns 45 days', phan_doan: 'tran_an' }), shot({ thu_tu: 10, phat_s: 2, chu_man: 'Bra · Sale', phan_doan: 'end_card' })];
+  const khong = kiemQc({ loai: 'quang_cao', canh: ds, nhanVat: [...nv], qc });
+  const co = kiemQc({ loai: 'quang_cao', canh: ds, nhanVat: [...nv], qc, lop: [{ loai: 'anh', url: 'https://x/p.png', tu: 2, den: 6.8, mang_sp: true }] });
+  assert.strictEqual(ok(khong, 'sp_23'), false); assert.strictEqual(ok(co, 'sp_23'), true);
+  console.log('kiem-qc.test: lớp phủ mang sản phẩm ok'); }

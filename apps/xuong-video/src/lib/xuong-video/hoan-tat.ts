@@ -15,6 +15,7 @@ import { giaAnhCents, thuongHieu, type KinhThanh } from './kieu';
 import { chayViecAnh, type ViecAnh, type KqViec } from './viec-anh';
 import { chayViecAm, type ViecAm, type KqViecAm } from './viec-am';
 import { baoHetTien } from './bao-het-tien';
+import { catNen, ganCatNenVaoLop } from './cat-nen';
 
 type Row = Record<string, unknown>;
 
@@ -183,6 +184,12 @@ export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
   } else if (j.dich === 'poster' && j.phim_id != null) {
     // poster (sinh-anh.ts › sinhPosterPhim): bản mới lên ĐẦU dải; phim chưa có poster thì bản này thành poster đang dùng
     await db.execute(sql`UPDATE xv_phim SET poster_uv = (${JSON.stringify([kq.url])}::jsonb || poster_uv), poster_url = coalesce(poster_url, ${kq.url}), updated_at = now() WHERE id = ${Number(j.phim_id)}`);
+  } else if (j.dich === 'cat_nen' && j.nhan_vat_id != null && j.phim_id != null) {
+    // ảnh người nền xanh (sinh-anh.ts › sinhAnhCatNen) → tách nền → PNG vào lớp phủ ID_LOP_CAT_NEN của tập (cat-nen.ts). Không vào anh_ref
+    // (nền xanh làm tham chiếu keyframe sẽ lẫn màu). Ảnh gốc giữ ở output_url của job để soát.
+    const png = await catNen(kq.url, `cat-nen/${Number(j.nhan_vat_id)}`);
+    if (png) { const n = await ganCatNenVaoLop(db, Number(j.phim_id), png); await db.execute(sql`UPDATE xv_job SET loi = ${n ? '' : 'tách nền xong nhưng tập không có lớp phủ cat-nen (template không mang lớp này)'} WHERE id = ${kq.job}`); }
+    else await db.execute(sql`UPDATE xv_job SET loi = 'tách nền hỏng (ffmpeg) — ảnh nền xanh giữ ở output_url' WHERE id = ${kq.job}`);
   } else if (j.nhan_vat_id != null) {
     // ảnh gốc mới lên ĐẦU: thẻ anchor hiện ảnh đầu, nối vào cuối thì trông như bấm không ăn (08/10/2026)
     await db.execute(sql`UPDATE xv_nhan_vat SET anh_ref = (${JSON.stringify([kq.url])}::jsonb || anh_ref), updated_at = now() WHERE id = ${Number(j.nhan_vat_id)}`);

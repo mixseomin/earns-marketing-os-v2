@@ -323,6 +323,90 @@
    "goi_y": "Khung chia đôi hoặc cùng động tác trên hai món.",
    "mau": "split frame: hands stretch a generic cheap tank and the product the same way; the cheap one stays stretched out, the product snaps back smooth",
    "dai": true
+  },
+  "san_pham_gap_hinh": {
+   "ten": "Sản phẩm ở trạng thái GẤP / thu gọn (mô tả hình, tiếng Anh) — sản phẩm không gấp được thì ghi lại đúng mô tả sản phẩm",
+   "mau": "folded into a small upright black faux-leather pouch with a vertical gold bar and a gold carabiner keyring, clipped to a key ring"
+  },
+  "anh_san_pham_gap": {
+   "ten": "Ảnh thật sản phẩm lúc gấp / thu gọn (mỗi dòng một link)",
+   "mau": "https://img.on.tc/xuong-video/sp/mini-keychain-tote/tui-gap-den.jpg"
+  },
+  "dang": {
+   "ten": "Dáng đứng CỐ ĐỊNH của người suốt chuỗi đổi nền (tiếng Anh): tư thế, tay cầm sản phẩm thế nào",
+   "mau": "standing relaxed facing camera, weight on one leg, right hand lifted to chest height holding her key ring with the small folded pouch clipped on, left hand in coat pocket, soft confident half-smile"
+  },
+  "hook": {
+   "ten": "Hook mở (chữ màn + lời, ≤ 8 từ, tiếng Anh)",
+   "mau": "That's not a keychain."
+  },
+  "hook_hinh": {
+   "ten": "Hình hook trong studio (tiếng Anh): sản phẩm cho thấy đặc tính ngay khung đầu",
+   "mau": "the small black pouch hangs from a key ring; fingers pull it open and a full-size black nylon tote unfolds out of it"
+  },
+  "lat": {
+   "ten": "Câu LẬT cuối chuỗi (chữ màn + lời, ≤ 8 từ, tiếng Anh): sản phẩm làm được việc",
+   "mau": "Unclip. Unfold. Full tote."
+  },
+  "lat_hinh": {
+   "ten": "Hình câu lật trong studio (tiếng Anh)",
+   "mau": "the folded pouch opens into the full black tote, now filled with groceries — a baguette, leafy greens, a carton of oat milk"
+  },
+  "noi_1": {
+   "ten": "Nơi 1 — nền sẽ đổi tới (mô tả cảnh KHÔNG NGƯỜI, tiếng Anh)",
+   "mau": "city bus stop shelter at 7:40 am, glass panel, route sign, morning light"
+  },
+  "noi_1_chu": {
+   "ten": "Nhãn nơi 1 trên màn (≤ 4 từ, kiểu caption, tiếng Anh)",
+   "mau": "7:40 · Bus stop"
+  },
+  "noi_2": {
+   "ten": "Nơi 2 — nền sẽ đổi tới (mô tả cảnh KHÔNG NGƯỜI, tiếng Anh)",
+   "mau": "crowded subway car interior at rush hour, metal poles, grey seats, fluorescent light"
+  },
+  "noi_2_chu": {
+   "ten": "Nhãn nơi 2 trên màn (≤ 4 từ, kiểu caption, tiếng Anh)",
+   "mau": "8:05 · Train"
+  },
+  "noi_3": {
+   "ten": "Nơi 3 — nền sẽ đổi tới (mô tả cảnh KHÔNG NGƯỜI, tiếng Anh)",
+   "mau": "downtown zebra crossing between office towers, yellow taxis, morning haze"
+  },
+  "noi_3_chu": {
+   "ten": "Nhãn nơi 3 trên màn (≤ 4 từ, kiểu caption, tiếng Anh)",
+   "mau": "8:30 · Crosswalk"
+  },
+  "noi_4": {
+   "ten": "Nơi 4 — nền sẽ đổi tới (mô tả cảnh KHÔNG NGƯỜI, tiếng Anh)",
+   "mau": "third-wave coffee shop counter, espresso machine, pastry case, warm wood"
+  },
+  "noi_4_chu": {
+   "ten": "Nhãn nơi 4 trên màn (≤ 4 từ, kiểu caption, tiếng Anh)",
+   "mau": "8:45 · Coffee"
+  },
+  "noi_5": {
+   "ten": "Nơi 5 — nền sẽ đổi tới (mô tả cảnh KHÔNG NGƯỜI, tiếng Anh)",
+   "mau": "open-plan office desk by a window, laptop, monitor, small plant"
+  },
+  "noi_5_chu": {
+   "ten": "Nhãn nơi 5 trên màn (≤ 4 từ, kiểu caption, tiếng Anh)",
+   "mau": "9:00 · Desk"
+  },
+  "noi_6": {
+   "ten": "Nơi 6 — nền sẽ đổi tới (mô tả cảnh KHÔNG NGƯỜI, tiếng Anh)",
+   "mau": "gym locker room, grey lockers, wooden bench"
+  },
+  "noi_6_chu": {
+   "ten": "Nhãn nơi 6 trên màn (≤ 4 từ, kiểu caption, tiếng Anh)",
+   "mau": "6:10 · Gym"
+  },
+  "noi_7": {
+   "ten": "Nơi 7 — nền sẽ đổi tới (mô tả cảnh KHÔNG NGƯỜI, tiếng Anh)",
+   "mau": "supermarket self-checkout aisle, screens, produce bags, bright lights"
+  },
+  "noi_7_chu": {
+   "ten": "Nhãn nơi 7 trên màn (≤ 4 từ, kiểu caption, tiếng Anh)",
+   "mau": "7:30 · Groceries"
   }
  },
  "templates": [
@@ -3611,6 +3695,266 @@
    ],
    "dong": "ugc",
    "khuon": "so_sanh"
+  },
+  {
+   "key": "mot_dang_moi_noi",
+   "dong": "thuong_hieu",
+   "khuon": "doi_nen",
+   "ten": "Template · Một dáng, mọi nơi (thương hiệu, ghép nền, 11 shot, 14,6s)",
+   "mo_ta": "Dòng THƯƠNG HIỆU: hình sạch có chủ đích. Mở bằng cận sản phẩm trong studio, rồi MỘT người đứng cố định một dáng (ảnh cắt nền, lớp phủ) trong khi nền nhảy qua 7 nơi trong ngày của đúng chân dung khách (0,8s/nơi, nhãn caption từng nơi kiểu Peak Design), lật ở studio (sản phẩm làm được việc), màu sắc, end card. Khuôn học từ QC thắng Peak Design City Line (x15: một chiếc túi qua nhịp một ngày trong thành phố, caption nhỏ từng nơi) và Sandqvist GRID Tote (x13: người mẫu đứng một chỗ demo túi, hình sạch, không lời). Nền là ảnh tĩnh không người (rẻ, không cần clip); người cắt nền sinh MỘT lần (scripts/cat-nen.mts).",
+   "mau_qc": [],
+   "o": [
+    "san_pham",
+    "san_pham_hinh",
+    "anh_san_pham",
+    "san_pham_gap_hinh",
+    "anh_san_pham_gap",
+    "link",
+    "diem_noi_bat",
+    "doi_tuong",
+    "uu_dai",
+    "dam_bao",
+    "nhan_vat_ten",
+    "nhan_vat_hinh",
+    "giong",
+    "dang",
+    "hook",
+    "hook_hinh",
+    "noi_1",
+    "noi_2",
+    "noi_3",
+    "noi_4",
+    "noi_5",
+    "noi_6",
+    "noi_7",
+    "noi_1_chu",
+    "noi_2_chu",
+    "noi_3_chu",
+    "noi_4_chu",
+    "noi_5_chu",
+    "noi_6_chu",
+    "noi_7_chu",
+    "lat",
+    "lat_hinh"
+   ],
+   "kinh_thanh": {
+    "phong_cach": "Brand editorial ad: clean studio product shots on a seamless warm off-white backdrop with soft diffused light; city background plates WITHOUT people, eye level, shallow depth of field, cinematic editorial color grade; graphic captions; cut on music beats",
+    "ti_le": "9:16",
+    "do_phan_giai": "720p",
+    "mo_hinh_anh": "gemini-nano-banana-2.1",
+    "mo_hinh_video": "veo-3.1-lite-generate-preview",
+    "mo_hinh_chu": "claude-opus-5-5",
+    "ngon_ngu": "en",
+    "the_loai": "qc_ugc",
+    "qc": {
+     "ten": "{{san_pham}}",
+     "link": "{{link}}",
+     "diem_noi_bat": "{{diem_noi_bat}}",
+     "doi_tuong": "{{doi_tuong}}",
+     "uu_dai": "{{uu_dai}}",
+     "thi_truong": "Mỹ · tiếng Anh",
+     "anh": [
+      "{{anh_san_pham}}"
+     ],
+     "vi_tri_chu": "duoi",
+     "kieu_chu": {
+      "font": "Montserrat ExtraBold",
+      "mau": "#FFFFFF",
+      "nen": "#111111",
+      "co": 0.052,
+      "y": 0.86,
+      "vao": "",
+      "tu": 0
+     }
+    }
+   },
+   "nhan_vat": [
+    {
+     "key": "sp",
+     "loai": "san_pham",
+     "ten": "{{san_pham}}",
+     "mo_ta": "{{san_pham_hinh}}",
+     "anh_ref": [
+      "{{anh_san_pham}}"
+     ]
+    },
+    {
+     "key": "sp_gap",
+     "loai": "san_pham",
+     "ten": "{{san_pham}} (folded)",
+     "mo_ta": "{{san_pham_gap_hinh}}",
+     "anh_ref": [
+      "{{anh_san_pham_gap}}"
+     ]
+    },
+    {
+     "key": "nv",
+     "loai": "nhan_vat",
+     "ten": "{{nhan_vat_ten}}",
+     "mo_ta": "{{nhan_vat_hinh}}",
+     "giong": "{{giong}}"
+    }
+   ],
+   "tap": {
+    "ten": "Một dáng, mọi nơi · 11 shot",
+    "brief": "Một người đứng MỘT dáng cố định ({{dang}}) trong khi nền đổi qua 7 nơi trong ngày của {{doi_tuong}}; {{san_pham}} luôn trên tay. Mở: {{hook}}. Lật: {{lat}}. Ưu đãi {{uu_dai}}.",
+    "lop": [
+     {
+      "id": "cat-nen",
+      "loai": "anh",
+      "ten": "Người cắt nền — tự điền sau scripts/cat-nen.mts",
+      "tu": 2,
+      "den": 7.6,
+      "x": 0.5,
+      "y": 0.5,
+      "w": 1,
+      "h": 0,
+      "xoay": 0,
+      "mo": 1,
+      "vao": "khong",
+      "ra": "khong",
+      "url": "",
+      "mang_sp": true
+     }
+    ]
+   },
+   "shots": [
+    {
+     "giay": 2,
+     "loai": "hook",
+     "goc_may": "Macro, studio, product fills the frame",
+     "hanh_dong": "{{hook_hinh}}",
+     "chu_man": "{{hook}}",
+     "nv": [
+      "sp_gap",
+      "sp"
+     ],
+     "co": "ecu",
+     "loi": "{{hook}}",
+     "prompt_anh": "Clean brand studio shot on a seamless warm off-white backdrop, soft diffused light, product centered: {{hook_hinh}}; vertical 9:16, no people, no text",
+     "prompt_video": "{{hook_hinh}}, slow and precise, studio, camera locked off"
+    },
+    {
+     "giay": 0.8,
+     "loai": "demo",
+     "goc_may": "Eye-level wide, locked off",
+     "hanh_dong": "Background plate: {{noi_1}}",
+     "chu_man": "{{noi_1_chu}}",
+     "nv": [],
+     "co": "ws",
+     "prompt_anh": "Background plate for compositing: {{noi_1}}; NO people at all, the center of the frame left clear for a person to be added later, eye-level camera, shallow depth of field, natural light, cinematic editorial color grade, vertical 9:16, no text",
+     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people"
+    },
+    {
+     "giay": 0.8,
+     "loai": "demo",
+     "goc_may": "Eye-level wide, locked off",
+     "hanh_dong": "Background plate: {{noi_2}}",
+     "chu_man": "{{noi_2_chu}}",
+     "nv": [],
+     "co": "ws",
+     "prompt_anh": "Background plate for compositing: {{noi_2}}; NO people at all, the center of the frame left clear for a person to be added later, eye-level camera, shallow depth of field, natural light, cinematic editorial color grade, vertical 9:16, no text",
+     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people"
+    },
+    {
+     "giay": 0.8,
+     "loai": "demo",
+     "goc_may": "Eye-level wide, locked off",
+     "hanh_dong": "Background plate: {{noi_3}}",
+     "chu_man": "{{noi_3_chu}}",
+     "nv": [],
+     "co": "ws",
+     "prompt_anh": "Background plate for compositing: {{noi_3}}; NO people at all, the center of the frame left clear for a person to be added later, eye-level camera, shallow depth of field, natural light, cinematic editorial color grade, vertical 9:16, no text",
+     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people"
+    },
+    {
+     "giay": 0.8,
+     "loai": "demo",
+     "goc_may": "Eye-level wide, locked off",
+     "hanh_dong": "Background plate: {{noi_4}}",
+     "chu_man": "{{noi_4_chu}}",
+     "nv": [],
+     "co": "ws",
+     "prompt_anh": "Background plate for compositing: {{noi_4}}; NO people at all, the center of the frame left clear for a person to be added later, eye-level camera, shallow depth of field, natural light, cinematic editorial color grade, vertical 9:16, no text",
+     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people"
+    },
+    {
+     "giay": 0.8,
+     "loai": "demo",
+     "goc_may": "Eye-level wide, locked off",
+     "hanh_dong": "Background plate: {{noi_5}}",
+     "chu_man": "{{noi_5_chu}}",
+     "nv": [],
+     "co": "ws",
+     "prompt_anh": "Background plate for compositing: {{noi_5}}; NO people at all, the center of the frame left clear for a person to be added later, eye-level camera, shallow depth of field, natural light, cinematic editorial color grade, vertical 9:16, no text",
+     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people"
+    },
+    {
+     "giay": 0.8,
+     "loai": "demo",
+     "goc_may": "Eye-level wide, locked off",
+     "hanh_dong": "Background plate: {{noi_6}}",
+     "chu_man": "{{noi_6_chu}}",
+     "nv": [],
+     "co": "ws",
+     "prompt_anh": "Background plate for compositing: {{noi_6}}; NO people at all, the center of the frame left clear for a person to be added later, eye-level camera, shallow depth of field, natural light, cinematic editorial color grade, vertical 9:16, no text",
+     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people"
+    },
+    {
+     "giay": 0.8,
+     "loai": "demo",
+     "goc_may": "Eye-level wide, locked off",
+     "hanh_dong": "Background plate: {{noi_7}}",
+     "chu_man": "{{noi_7_chu}}",
+     "nv": [],
+     "co": "ws",
+     "prompt_anh": "Background plate for compositing: {{noi_7}}; NO people at all, the center of the frame left clear for a person to be added later, eye-level camera, shallow depth of field, natural light, cinematic editorial color grade, vertical 9:16, no text",
+     "prompt_video": "Subtle ambient motion only (light, distant blurred movement), camera locked off, no people"
+    },
+    {
+     "giay": 2.5,
+     "loai": "tinh_nang",
+     "goc_may": "Close-up, studio",
+     "hanh_dong": "{{lat_hinh}}",
+     "chu_man": "{{lat}}",
+     "nv": [
+      "sp_gap",
+      "sp"
+     ],
+     "co": "cu",
+     "loi": "{{lat}}",
+     "prompt_anh": "Clean brand studio shot on a seamless warm off-white backdrop: {{lat_hinh}}; vertical 9:16, no people, no text",
+     "prompt_video": "{{lat_hinh}}, real speed, studio"
+    },
+    {
+     "giay": 2,
+     "loai": "tran_an",
+     "goc_may": "Overhead flat lay",
+     "hanh_dong": "Product in every color, flat lay",
+     "chu_man": "{{dam_bao}}",
+     "nv": [
+      "sp"
+     ],
+     "co": "cu",
+     "prompt_anh": "Overhead flat lay on a seamless warm off-white backdrop: the product in every available color laid out in a neat grid, soft studio light, vertical 9:16, no text",
+     "prompt_video": "Slow overhead push-in"
+    },
+    {
+     "giay": 2.5,
+     "loai": "end_card",
+     "goc_may": "Hero, studio",
+     "hanh_dong": "Hero product shot",
+     "chu_man": "{{san_pham}} · {{uu_dai}}",
+     "nv": [
+      "sp",
+      "sp_gap"
+     ],
+     "co": "ms",
+     "loi": "{{san_pham}}. {{uu_dai}}.",
+     "prompt_anh": "Brand hero shot on a seamless warm off-white backdrop: {{san_pham_hinh}} standing open with {{san_pham_gap_hinh}} beside it, soft studio light, empty lower third for text, vertical 9:16, no text, no people",
+     "prompt_video": "Very slow push-in, studio, nothing moves"
+    }
+   ]
   }
  ]
 }

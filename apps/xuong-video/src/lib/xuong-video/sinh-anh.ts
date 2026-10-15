@@ -3,6 +3,7 @@ import 'server-only';
 import { sql } from 'drizzle-orm';
 import { dayViecAnh } from './hoan-tat';
 import { promptAnhMau } from './claude';
+import { promptCatNen } from './cat-nen';
 import { promptCamXuc } from './am-thanh';
 import { promptKyThuatAnh } from './dien-anh';
 import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type Canh, type KinhThanh, type NhanVat } from './kieu';
@@ -88,6 +89,25 @@ export async function sinhAnhGoc(db: Db, nhanVatId: number, so = 1): Promise<KqS
     dau ||= job;
   }
   return { ok: true, data: dau };
+}
+
+/** Ảnh NGƯỜI NỀN XANH để tách nền (cat-nen.ts): một dáng cố định `dang`, cầm sản phẩm của phim; tham chiếu = ảnh người + ảnh đầu của mỗi
+ *  anchor sản phẩm. Xong → hoan-tat.ts nhận dich 'cat_nen': chromakey → PNG → điền vào lớp phủ ID_LOP_CAT_NEN của tập. TỐN TIỀN (1 ảnh). */
+export async function sinhAnhCatNen(db: Db, nhanVatId: number, dang: string): Promise<KqSinh<number>> {
+  const loi = (x: string): KqSinh<number> => ({ ok: false, loi: x });
+  const r = (await db.execute(sql`SELECT v.*, p.kinh_thanh AS kt FROM xv_nhan_vat v JOIN xv_phim p ON p.id = v.phim_id WHERE v.id = ${nhanVatId}`)) as unknown as Row[];
+  if (!r[0]) return loi('không thấy anchor');
+  const nv = mapNhanVat(r[0]);
+  if (nv.loai !== 'nhan_vat') return loi('chỉ tách nền NHÂN VẬT');
+  if (!nv.anh_ref.length) return loi(`${nv.ten} chưa có ảnh mẫu — sinh ảnh gốc trước để giữ đúng mặt`);
+  if (!dang.trim()) return loi('thiếu mô tả dáng đứng (ô "dang" của template)');
+  const kt = docKinhThanh(r[0].kt as KinhThanh);
+  const sp = ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${nv.phim_id} AND loai = 'san_pham' ORDER BY id`)) as unknown as Row[]).map(mapNhanVat).filter((v) => v.anh_ref.length).slice(0, 2);
+  const refNguoi = nv.anh_ref.slice(0, 2); const refSp = sp.map((v) => v.anh_ref[0]!);
+  const prompt = promptCatNen(nv, dang, sp, refNguoi.length, refSp.length);
+  const job = await taoJob(db, { phim_id: nv.phim_id, nhan: `Ảnh tách nền · ${nv.ten}`, nhan_vat_id: nhanVatId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { prompt, dich: 'cat_nen', dang, thamChieuUrl: [...refNguoi, ...refSp] } });
+  await dayViecAnh({ job, model: kt.mo_hinh_anh, prompt, thamChieuUrl: [...refNguoi, ...refSp], tiLe: kt.ti_le, thuMuc: `cat-nen/${nhanVatId}` });
+  return { ok: true, data: job };
 }
 
 /** Sinh KEYFRAME KẾT cho một shot (khung cuối, từ khung màu chỗ kết của bản 3D) — cần keyframe mở + khung màu kết. Lưu vào xv_canh.keyframe_ket. */

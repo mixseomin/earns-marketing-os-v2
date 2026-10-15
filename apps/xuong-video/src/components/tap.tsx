@@ -119,7 +119,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
     </span>
   );
   // Bộ kiểm "đạt chưa" (0đ, tức thì) gọn thành MỘT nút trên thanh (#1311 YDNI): số mục chưa đạt; bấm mở danh sách — mục hỏng trước, kèm cách sửa.
-  const qcDs = canh?.length ? kiemQc({ loai: phim.loai, canh, nhanVat, qc: kt.qc, mucTieuS: tap.thoi_luong_s ?? thoiLuong, nhanh, ngonNgu: kt.ngon_ngu }) : [];
+  const qcDs = canh?.length ? kiemQc({ loai: phim.loai, canh, nhanVat, qc: kt.qc, mucTieuS: tap.thoi_luong_s ?? thoiLuong, nhanh, ngonNgu: kt.ngon_ngu, lop: tap.lop }) : [];
   const qcHong = qcDs.filter((x) => !x.ok);
   const nutQc = qcDs.length > 0 && (
     <Menu nhan={qcHong.length ? `⚠ ${qcHong.length} mục chưa đạt ▾` : '✓ đạt bộ kiểm ▾'}>

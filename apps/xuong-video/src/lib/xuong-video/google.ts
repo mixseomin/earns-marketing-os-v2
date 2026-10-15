@@ -170,10 +170,11 @@ function docLoi(j: Record<string, unknown>, status: number): string {
   // script thử lại vô ích 30 phút (10/10/2026) — đọc quotaId/quotaMetric trong error.details và nói đúng loại, kèm nguyên văn ngắn.
   if (status === 429) {
     const ct = JSON.stringify((j.error as { details?: unknown } | undefined)?.details ?? '');
-    // "You exceeded your current quota, please check your plan and billing details" = hạn mức/tiền của PROJECT (gói, trần chi, hạn mức ngày),
-    // KHÔNG phải nhịp theo phút: báo "đợi 1 phút" làm shot 1 phim 36 bị gửi lại 13 lần liền 11:39–12:02 ngày 15/10/2026.
+    // "You exceeded your current quota, please check your plan and billing details" = hết SỐ LƯỢT/NGÀY của model trên project (không có trần
+    // chi nào): đo 15/10/2026 Veo 3.1 Lite qua Google chạy đúng 10 lượt rồi lượt 11 dính — ảnh Nano Banana cùng khoá vẫn chạy (hạn mức riêng).
+    // Báo "đợi 1 phút" cũ làm shot 1 phim 36 bị gửi lại 13 lần liền 11:39–12:02.
     const quota = (ct.match(/"quotaId":"([^"]+)"/) ?? [])[1] ?? '';
-    if (/current quota|billing/i.test(m)) return `Google: project của GOOGLE_API_KEY hết hạn mức / hết tiền cho model này${quota ? ` (${quota})` : ''} — không thử lại; kiểm gói + trần chi ở aistudio.google.com/usage hoặc chọn nguồn khác.`;
+    if (/current quota|billing/i.test(m)) return `Google: hết số lượt/ngày của model này trên project (Veo ~10 lượt/ngày)${quota ? ` (${quota})` : ''} — Google mở lại lúc 0h giờ Mỹ Thái Bình Dương (14:00–15:00 giờ VN); không thử lại trước đó, chọn nguồn khác nếu cần ngay.`;
     const theoNgay = /PerDay|per_day|PerProjectPerDay|daily/i.test(ct + m);
     return theoNgay ? `Google: HẾT HẠN MỨC THEO NGÀY${quota ? ` (${quota})` : ''} — thử lại sau mốc reset ngày của Google hoặc xin nâng hạn mức; không thử lại ngay.`
       : `Google báo vượt hạn mức gọi (rate limit${quota ? `: ${quota}` : ''}) — đợi 1 phút rồi bấm lại. ${m.slice(0, 120)}`;

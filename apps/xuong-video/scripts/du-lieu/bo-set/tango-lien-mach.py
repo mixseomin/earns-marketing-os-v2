@@ -207,7 +207,7 @@ NHAY = {  # cú cắt cố ý cắt thời gian / dịch chuyển ngoài khung
  '8.1': 'phần kết: hai bạn ra mép bàn chào khán giả',
 }
 # 7.3 máy đặt tay (bộ giải tự động rơi vào góc sau gáy Tango khi cố đưa đế cắm vào khung).
-S['may']['7.3'].pop('phia', None); S['may']['7.3'].update(dat=[58.5, 45, 7], nhin=[56.6, 54.5, 0.8], ong_kinh=28)   # #34 về hướng máy chủ (đông nam): trước đây trước-trái lệch 92°   # trước-trái: phích trái, Tango phải, đế cắm sau lưng Tango (bố cục viết theo địa lý 3D)
+S['may']['7.3'].pop('phia', None); S['may']['7.3'].update(dat=[58.5, 45, 7], nhin=[56.6, 54.5, 0.8], ong_kinh=28, khung=[TANGO, 'USB Hub'])   # chủ thể: tay Tango trên mặt đế cắm (phích lúc mở bị Tango đi ngang che là đúng)   # #34 về hướng máy chủ (đông nam): trước đây trước-trái lệch 92°   # trước-trái: phích trái, Tango phải, đế cắm sau lưng Tango (bố cục viết theo địa lý 3D)
 for ma in ('1.1', '1.2'): S['may'][ma]['den_ban'] = True
 # Cú cắt chèn CÓ CHỦ Ý đổi hẳn hướng máy: 5.2 cắt lên Mr. Wipe trên cao, 7.5 cận cực sát góc khăn chạm phích — không đặt trục / hướng cho shot sau.
 S['may']['5.2']['qua_truc'] = True
@@ -226,16 +226,16 @@ MOI = {
   # 7.2a đặt tay: trên cao bên phải (cùng hướng 7.2), nhìn qua đầu Lint xuống mặt đế cắm — bộ giải tự động né Lint bằng cách vượt trục; máy phía trước thì iMac vàng chắn.
  # 7.2 ĐẶT TAY (#32): góc ngược (−10°) đúng riêng shot nhưng chen giữa hai shot hướng 136° / 129° — hai cú quay máy ~140° liền nhau, mất dẫn dắt
  # (anh 15/10/2026 so với #11–#15). Về hướng máy chủ cảnh: từ phía máy chủ phích nằm ngay sau Tango → máy QUA VAI TỪ TRÊN CAO (8 cm), phích hiện trên-trái vai Tango; kết Tango quay về máy vẩy tay.
- '7.2': {'dat': [57.4, 48.2, 6.5], 'nhin': [54.4, 52.5, 0.6], 'ong_kinh': 35, 'khung': [TANGO, 'Cable Plug']},
+ '7.2': {'dat': [57.4, 48.2, 9.5], 'nhin': [54.4, 52.5, 0.6], 'ong_kinh': 35, 'khung': [TANGO, 'Cable Plug']},
  # 7.6 (#38) phản ứng: máy đông, sau lưng Mr. Wipe (tiền cảnh phải) nhìn về mặt hai bạn — trước đây bộ giải đặt máy đông nam, thấy Tango nghiêng hẳn.
  '7.6': {'dat': [61.5, 52.5, 5.0], 'nhin': [51.0, 51.2, 1.3], 'ong_kinh': 35, 'khung': [TANGO, LINT]},
- '7.2a': {'dat': [62, 46.5, 6], 'nhin': [56.3, 52, 1.2], 'ong_kinh': 35},   # #33: hạ từ 14 cm (Tango 1%) xuống 6 cm
+ '7.2a': {'dat': [63.5, 44, 6.5], 'nhin': [57.6, 54, 1.0], 'ong_kinh': 28},   # #33: hạ từ 14 cm (Tango 1%) xuống 6 cm
  '7.6a': {'phia': 30, 'khung': [TANGO, LINT]},         # hai bạn đập tay đọc rõ; Mr. Wipe lủi đi ở hậu cảnh
  # 7.6b máy sau-trên hai nửa kẹo: kẹo tiền cảnh dưới khung, hai bạn ở giữa nhìn về kẹo (về máy).
  '7.6b': {'dat': [64, 48.5, 3.5], 'nhin': [55, 51, 1.2], 'ong_kinh': 35, 'khung': [TANGO, LINT, GUMMY]},
  '7.7b': {'dat': [63.5, 47.1, 1.3], 'nhin': [51.5, 51.5, 1.3], 'ong_kinh': 70, 'khung': [TANGO, LINT]},   # #43: máy cũ (bộ giải, ống 85) cắt Lint ở mép → ống 70 cho hai bạn trọn khung
  # #37 khăn quệt vào phích: bộ giải đặt máy cách 29 cm (phích 1.9%) → trước-trái 7 cm như keyframe đã có: Mr. Wipe giữa khung, phích tiền cảnh phải.
- '7.5': {'dat': [60.5, 47.0, 4.5], 'nhin': [55.4, 54.0, 1.6], 'ong_kinh': 40},   # #37 về hướng máy chủ (đông nam), không qua trục
+ '7.5': {'dat': [60.5, 47.0, 4.5], 'nhin': [55.4, 54.0, 2.4], 'ong_kinh': 35},   # #37 về hướng máy chủ (đông nam), không qua trục
 
 }
 # Thẻ cam = VÍ DA cam có tấm thẻ xanh nhạt trong ô cửa sổ — đúng ảnh mẫu anchor (khối cam trơn làm keyframe vẽ lúc thẻ nhựa phẳng lúc ví da).

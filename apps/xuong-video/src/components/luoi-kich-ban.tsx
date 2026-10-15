@@ -95,7 +95,8 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                 {hien !== '3d' && <div style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: anh ? `center / cover no-repeat url(${anhNho(anh, coAnh)}), #111` : 'var(--bg-2)' }}>
                   <span className="xv-mono" style={{ position: 'absolute', left: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.65)', color: '#fff' }}>{gio(tc)}</span>
                   <span className="xv-mono" style={{ position: 'absolute', right: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.65)', color: coVid ? '#4ade80' : '#fff' }}>{coVid ? '▶ ' : ''}#{c.thu_tu} · {giayPhat(c)}s</span>
-                  {vuaSinh(c) && <span className="xv-mono" style={{ position: 'absolute', right: 4, top: 22, fontSize: 9.5, padding: '1px 4px', borderRadius: 4, background: '#16a34a', color: '#fff' }}>✨ mới · {truoc(vuaSinh(c)!)}</span>}
+                  {/* Nhãn gọn một dòng, font thường (#1388) — giờ sinh cụ thể nằm ở tooltip của thẻ. */}
+                  {vuaSinh(c) && <span title={`sinh ${truoc(vuaSinh(c)!)}`} style={{ position: 'absolute', right: 4, top: 22, fontSize: 9, lineHeight: 1.3, fontWeight: 600, whiteSpace: 'nowrap', padding: '0 4px', borderRadius: 3, background: '#16a34a', color: '#fff' }}>✨ mới</span>}
                   {/* Chưa sinh vẫn hiện KHUNG + shot sẽ thấy gì (anh 14/10/2026: "kể cả chưa sinh cũng phải show ra khung để còn biết"). */}
                   {!anh && <span style={{ position: 'absolute', inset: 0, padding: '22px 7px 7px', display: 'flex', flexDirection: 'column', gap: 4, border: '1px dashed var(--line)', borderRadius: 4, fontSize: 10.5, lineHeight: 1.35, color: 'var(--fg-2)', overflow: 'hidden' }}>
                     <span className="xv-mono" style={{ fontSize: 9.5, color: 'var(--fg-4)' }}>CHƯA SINH HÌNH</span>

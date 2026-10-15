@@ -63,8 +63,8 @@ export function NguoiXem({ tap, canh, moHinhChu, coAnthropic, onChanged, onMoSho
       <Loi>{loi}</Loi>
       {daSua && <div style={{ fontSize: 12, color: '#4ade80', marginTop: 6 }}>{daSua}</div>}
       {/* Đã đạt → chỉ một dòng kết quả, bài kể lại gập sau ▾ (YDNI luật 5); chưa đạt thì luôn bày ra để sửa. */}
-      {t && t.dat && !cu && <button type="button" className="xv-lienket xv-mono" style={{ marginTop: 4 }} onClick={() => setXemChiTiet(!xemChiTiet)}>{xemChiTiet ? '▴ gập' : '▾ xem người xem kể lại'}</button>}
-      {t && (!t.dat || cu || xemChiTiet) && (
+      {t && dat && !cu && <button type="button" className="xv-lienket xv-mono" style={{ marginTop: 4 }} onClick={() => setXemChiTiet(!xemChiTiet)}>{xemChiTiet ? '▴ gập' : '▾ xem người xem kể lại'}</button>}
+      {t && (!dat || cu || xemChiTiet) && (
         <div style={{ display: 'grid', gap: 6, marginTop: 8, fontSize: 12, lineHeight: 1.5, opacity: cu ? 0.6 : 1 }}>
           <div><b>Người xem kể lại:</b> {t.ke_lai}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '2px 10px' }}>

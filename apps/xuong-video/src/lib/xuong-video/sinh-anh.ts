@@ -200,9 +200,11 @@ export async function tronModelCanh(db: Db, c: Pick<Canh, 'id' | 'tap_id' | 'pha
   const r = (await db.execute(sql`SELECT c.id, c.thu_tu, j.model FROM xv_canh c JOIN xv_job j ON j.output_url = c.keyframe_url AND j.loai = 'anh'
     WHERE c.tap_id = ${c.tap_id} AND c.phan_doan = ${c.phan_doan} AND c.keyframe_url IS NOT NULL`)) as unknown as Row[];
   const cua = r.find((x) => Number(x.id) === c.id); if (!cua || r.length < 2) return null;
-  const dem = new Map<string, number>(); for (const x of r) dem.set(String(x.model), (dem.get(String(x.model)) ?? 0) + 1);
+  // Cùng model qua cổng khác (ckey / ShopAIKey / Google — chuỗi dự phòng của xưởng) là MỘT tay vẽ: bỏ tiền tố cổng trước khi so.
+  const goc = (m: unknown) => String(m).replace(/^(shopaikey|ckey|google):/, '');
+  const dem = new Map<string, number>(); for (const x of r) dem.set(goc(x.model), (dem.get(goc(x.model)) ?? 0) + 1);
   const [daSo, so] = [...dem].sort((a, b) => b[1] - a[1])[0]!;
-  return String(cua.model) !== daSo && so >= 2 ? `keyframe sinh bằng ${String(cua.model)} trong khi cảnh "${c.phan_doan}" dùng ${daSo} (${so}/${r.length} shot) — một cảnh một model: sinh lại keyframe bằng ${daSo}` : null;
+  return goc(cua.model) !== daSo && so >= 2 ? `keyframe sinh bằng ${goc(cua.model)} trong khi cảnh "${c.phan_doan}" dùng ${daSo} (${so}/${r.length} shot) — một cảnh một model: sinh lại keyframe bằng ${daSo}` : null;
 }
 
 /** MỌI lý do chặn sinh keyframe của một shot — quy trình cấp tập (brief, khung truyện, phân cảnh, phong cách, người xem hiểu, kịch bản series)

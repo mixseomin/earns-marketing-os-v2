@@ -2417,7 +2417,7 @@
       "sp",
       "bc"
      ],
-     "prompt_anh": "Flat lay of {{san_pham_hinh}} in several colors on a bed, {{boi_canh}}, vertical 9:16, no text",
+     "prompt_anh": "Flat lay of {{san_pham_hinh}} in several colors, neatly arranged on a clean surface in {{boi_canh}}, vertical 9:16, no text",
      "prompt_video": "Slow overhead push-in",
      "co": "cu"
     },
@@ -2425,14 +2425,14 @@
      "giay": 2,
      "loai": "end_card",
      "goc_may": "Medium shot, hero",
-     "hanh_dong": "{{nhan_vat_ten}} wearing the product, smiling confidently at camera",
+     "hanh_dong": "{{nhan_vat_ten}} with the product, smiling confidently at camera",
      "chu_man": "{{san_pham}} · {{uu_dai}}",
      "nv": [
       "sp",
       "nv",
       "bc"
      ],
-     "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
+     "prompt_anh": "{{nhan_vat_hinh}} wearing or carrying {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
      "prompt_video": "She smiles and gives a small confident nod, slow push-in",
      "co": "ms",
      "loi": "{{san_pham}}. {{uu_dai}}."

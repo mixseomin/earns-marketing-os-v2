@@ -211,10 +211,11 @@ MOI = {
  '7.1a': {'phia': 70, 'khung': [TANGO, 'Cable Plug']},
  '7.1b': {'dat': [56.4, 50.6, 2.2], 'nhin': [54.3, 52.6, 0.5], 'ong_kinh': 35, 'khung': ['Cable Plug'], 'qua_truc': True},
  '7.4a': {'dat': [57.2, 52.4, 9], 'nhin': [57.2, 55, 0.8], 'ong_kinh': 24, 'khung': ['USB Hub', 'Cable Plug'], 'qua_truc': True},
- # 7.2a đặt tay: trên cao trước-phải, nhìn qua đầu Lint xuống mặt đế cắm — bộ giải tự động né Lint bằng cách vượt trục (7.3 thành lật trục).
- '7.2a': {'dat': [64, 46, 7], 'nhin': [57, 53.5, 1], 'ong_kinh': 35},
- '7.6a': {'phia': 40, 'khung': [TANGO, LINT, WIPE]},   # toàn: thấy Mr. Wipe lủi về rừng cáp
- '7.6b': {'phia': 70, 'khung': [TANGO, LINT, GUMMY]},  # máy sau hai nửa kẹo: kẹo tiền cảnh, hai bạn giữa
+  # 7.2a đặt tay: trên cao phía trước, nhìn qua đầu Lint xuống mặt đế cắm — Tango dưới khung, đế cắm trên khung (bộ giải tự động né Lint bằng cách vượt trục).
+ '7.2a': {'dat': [56.5, 43, 12], 'nhin': [57, 54, 0.6], 'ong_kinh': 35},
+ '7.6a': {'phia': 30, 'khung': [TANGO, LINT]},         # hai bạn đập tay đọc rõ; Mr. Wipe lủi đi ở hậu cảnh
+ # 7.6b máy sau-trên hai nửa kẹo: kẹo tiền cảnh dưới khung, hai bạn ở giữa nhìn về kẹo (về máy).
+ '7.6b': {'dat': [64, 48.5, 3.5], 'nhin': [55, 51, 1.2], 'ong_kinh': 35, 'khung': [TANGO, LINT, GUMMY]},
  '7.7b': {'phia': 70, 'khung': [TANGO, LINT]},
 }
 for ma, m in MOI.items():
@@ -233,5 +234,7 @@ S['may']['2.3']['nhin'] = [32, 29, 1.2]
 for k in ('dat', 'nhin', 'ong_kinh'): S['may']['5.7'].pop(k, None)
 S['may']['5.7']['phia'] = -40   # máy tự động từ trước-trái; bộ giải né cáp trượt (xoay tới 180°)
 S['may']['1.2']['khung'] = ['Lamp Switch', 'Magic Mouse']
+# 5.3 GHIM máy đã giải lúc sinh keyframe: bỏ 15 khung cửa sổ trùng làm bộ giải tìm chỗ khác ([-4.8, 61.3]) → 5.4 thành lật trục và keyframe 5.3 lệch 3D.
+S['may']['5.3'].pop('phia', None); S['may']['5.3'].update(dat=[-8.9, 71.1, 0.4], nhin=[5, 71.1, 1.3], ong_kinh=40)
 json.dump(S, open(P, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
 print('ghi', len(VT), 'shot')

@@ -1792,7 +1792,7 @@
             "giu_phan_ung"
           ],
           "thay": "Tango nhìn ngón tay, nhìn về phía rừng cáp nơi Mr. Wipe sẽ tới, rồi nhìn mặt đế cắm sáng bóng sát phích — xoa hai tay, cười ranh mãnh.",
-          "bo_cuc": "Mid: Tango, screen-left, beside the shiny hub; Lint behind him. Background: the dark cable jungle edge, screen-right.",
+          "bo_cuc": "High angle from the front: Tango at the bottom of frame on the orange card, Lint beside him; the shiny silver hub face right ahead of Tango at the top of frame, the white cable plug beside it.",
           "mo": "Tango looking at his zapped finger.",
           "ket": "Tango rubbing his clay hands together with a sly grin, eyes on the shiny hub face next to the plug.",
           "huong": "Tango looks down at his finger, screen-right toward the jungle, then at the shiny hub.",
@@ -1800,7 +1800,7 @@
           "muc_dich": "Kế hoạch đọc được: phích có điện + mặt đế cắm sạch bóng + Mr. Wipe ghét bẩn = bẫy.",
           "motif": "",
           "may": {
-            "goc": "ngang",
+            "goc": "cao",
             "chuyen_dong": "lia",
             "ong_kinh": "chuan",
             "chuyen_canh": "cat",
@@ -2021,7 +2021,7 @@
         {
           "ma": "7.6a",
           "vai": "phan_ung",
-          "co": "ws",
+          "co": "two",
           "giay": 3.5,
           "luat": [
             "giu_phan_ung",
@@ -2029,7 +2029,7 @@
             "tu_ke_du"
           ],
           "thay": "Mr. Wipe, còn xù cứng và bốc khói, lảo đảo bay lủi về rừng cáp. Tango và Lint nhìn theo, rồi quay sang nhau đập tay \"bốp\" — ưỡn ngực đắc thắng về phía máy.",
-          "bo_cuc": "Mid: Tango and Lint at the left edge of the orange card, high-fiving. Background: the frizzed, smoking cloth wobbling away into the dark cable jungle, small.",
+          "bo_cuc": "Two-shot: Tango and Lint at the left edge of the orange card, high-fiving. Background: the frizzed, smoking cloth wobbling away into the dark cable jungle, small.",
           "mo": "Tango and Lint at the edge of the orange card, watching the frizzed, smoking cloth wobble away.",
           "ket": "Tango and Lint after a high-five, chests puffed out, proud grins toward camera; the cloth gone.",
           "huong": "Mr. Wipe exits into the jungle; Tango and Lint turn to each other, then to camera.",
@@ -2039,9 +2039,9 @@
           "may": {
             "goc": "ngang",
             "chuyen_dong": "truot_ngang",
-            "ong_kinh": "rong",
+            "ong_kinh": "chuan",
             "chuyen_canh": "cat",
-            "mo_ta": "Trượt nhẹ theo Mr. Wipe lủi đi rồi dừng trên hai bạn đập tay — giữ một nhịp khép chuyện bẫy."
+            "mo_ta": "Trượt nhẹ trên hai bạn khi Mr. Wipe lủi đi ở hậu cảnh, dừng đúng cú đập tay — giữ một nhịp khép chuyện bẫy."
           },
           "anchor": [
             "USB Hub Dock",
@@ -2076,7 +2076,7 @@
           "muc_dich": "Mở lại chuyện kẹo: nhắc khán giả phần thưởng ngay trước khi nó bị lấy — và hai bạn quay lưng lại với nó.",
           "motif": "Kẹo đỏ — phần thưởng nhắc lại.",
           "may": {
-            "goc": "ngang",
+            "goc": "cao",
             "chuyen_dong": "lia",
             "ong_kinh": "chuan",
             "chuyen_canh": "cat",

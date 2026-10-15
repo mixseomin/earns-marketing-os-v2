@@ -27,7 +27,7 @@ export async function ganCtaTuDong(db: Db, phimId: number): Promise<KieuCta | nu
   if (!p || s(p.loai) !== 'quang_cao') return null;
   const dem: Record<string, number> = {};
   for (const r of (await db.execute(sql`SELECT kinh_thanh->'qc'->>'cta' AS cta FROM xv_phim WHERE id <> ${phimId} AND loai = 'quang_cao'
-      AND kinh_thanh->'qc'->>'ten' = ${s(p.ten)} AND kinh_thanh->'template' IS NULL AND coalesce((kinh_thanh->>'luu_tru')::boolean, false) = false`)) as unknown as Row[]) {
+      AND kinh_thanh->'qc'->>'ten' = ${s(p.ten)} AND jsonb_typeof(kinh_thanh->'template') IS DISTINCT FROM 'object' AND coalesce((kinh_thanh->>'luu_tru')::boolean, false) = false`)) as unknown as Row[]) {
     if (r.cta) dem[s(r.cta)] = (dem[s(r.cta)] ?? 0) + 1;
   }
   const cta = chonCta(dem);

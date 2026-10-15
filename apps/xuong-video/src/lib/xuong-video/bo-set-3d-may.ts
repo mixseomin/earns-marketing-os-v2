@@ -84,7 +84,7 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
   for (const sid of new Set(ds.map((c) => boSetCuaShot(c, nv)).filter((x): x is number => !!x))) for (const [k, m] of mayDayDu(ds.filter((c) => boSetCuaShot(c, nv) === sid), laDoVat)) day.set(k, m);
   // Gom theo set: một lượt Blender / set (dựng set một lần, render mọi máy).
   const lyDo: string[] = [];
-  const theoSet = new Map<number, (Canh & { may_3d: May3d; goc: May3d; truc: ReturnType<typeof rangBuocTruc> })[]>();
+  const theoSet = new Map<number, (Canh & { may_3d: May3d; goc: May3d; truc: ReturnType<typeof rangBuocTruc>; khoa_may: boolean })[]>();
   for (const c of ds) {
     const sid = boSetCuaShot(c, nv); const set = sid ? sets.get(sid) : undefined;
     if (!set || !c.may_3d || (o.ids && !o.ids.includes(c.id))) continue;
@@ -96,7 +96,10 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     // Máy tự động: bộ giải phải giữ đúng phía trục của shot so trục liền trước (cùng set, không cố ý vượt trục).
     const tr = c.may_3d.qua_truc ? null : shotSoTruc(ds, ds.indexOf(c));
     const truc = tr?.may_3d && boSetCuaShot(tr, nv) === set.id ? rangBuocTruc(tr as { id: number; may_3d: May3d }, c.may_3d, (t) => nv.some((x) => x.loai === 'nhan_vat' && x.ten.trim().toLowerCase() === t.trim().toLowerCase())) : null;
-    theoSet.set(set.id, [...(theoSet.get(set.id) ?? []), { ...(c as Canh & { may_3d: May3d }), may_3d: mDu, goc: c.may_3d, truc }]);
+    // KHOÁ MÁY (15/10/2026: dựng lại cả tập vì đổi bộ set → bộ giải dời máy 5.3 / 5.6 đã sinh keyframe → 3D lệch ảnh đã duyệt, lật trục dây chuyền):
+    // shot đã có keyframe mà máy + chỗ đứng của CHÍNH nó không đổi thì bộ giải không được dời máy. Shot tự đổi máy thì keyframe đằng nào cũng sinh lại.
+    const khoa_may = !!c.keyframe_url && !!cu0 && cu0.may === moi.may;
+    theoSet.set(set.id, [...(theoSet.get(set.id) ?? []), { ...(c as Canh & { may_3d: May3d }), may_3d: mDu, goc: c.may_3d, truc, khoa_may }]);
   }
   let dung = 0; const loi: string[] = []; const cu: string[] = [];
   for (const [sid, shots] of theoSet) {

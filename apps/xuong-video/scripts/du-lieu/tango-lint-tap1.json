@@ -1184,7 +1184,7 @@
           "muc_dich": "Ai ở đâu, ai mạnh hơn: kinh hãi, và Tango dũng cảm.",
           "motif": "",
           "may": {
-            "goc": "thap",
+            "goc": "cao",
             "chuyen_dong": "day_vao",
             "ong_kinh": "rong",
             "chuyen_canh": "cat",
@@ -1673,7 +1673,7 @@
             "tu_ke_du"
           ],
           "thay": "Tango đang vỗ vỗ nửa viên kẹo thì khựng lại: có tiếng rì rì khe khẽ. Cậu ngẩng lên, mắt đảo theo tiếng, quay đầu về phía phích cắm cáp trắng nằm sát đế cắm.",
-          "bo_cuc": "Eye-level medium close-up from the front-right: Tango on the orange card holder fills the frame, his gummy half beside him; behind him on the left the white cable plug glints beside the silver hub.",
+          "bo_cuc": "Eye-level medium close-up from the front: Tango on the orange card holder fills the frame, his gummy half beside him; just behind him on the left the white cable plug glints beside the silver hub.",
           "mo": "Tango on the orange card holder, facing camera, patting his half of the red gummy bear (the candy was broken in two).",
           "ket": "Tango turned three-quarters away from camera, head turned toward the white cable plug glinting beside the silver hub on the left; his gummy half beside him.",
           "huong": "Tango turns his head from screen-right (the gummy) to screen-left (the plug).",
@@ -1755,7 +1755,7 @@
           "muc_dich": "Gài cơ chế bẫy: phích cắm có điện, chạm vào là giật.",
           "motif": "Phích cắm có điện (gài cho cú điện giật).",
           "may": {
-            "goc": "sat_dat",
+            "goc": "ngang",
             "chuyen_dong": "doi_net",
             "ong_kinh": "macro",
             "chuyen_canh": "cat",
@@ -2076,7 +2076,7 @@
           "muc_dich": "Mở lại chuyện kẹo: nhắc khán giả phần thưởng ngay trước khi nó bị lấy — và hai bạn quay lưng lại với nó.",
           "motif": "Kẹo đỏ — phần thưởng nhắc lại.",
           "may": {
-            "goc": "cao",
+            "goc": "ngang",
             "chuyen_dong": "lia",
             "ong_kinh": "chuan",
             "chuyen_canh": "cat",

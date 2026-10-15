@@ -1747,7 +1747,7 @@
             "chenh_thong_tin"
           ],
           "thay": "Tango đứng trên ví da cam, tò mò chạm ngón tay đất sét vào phích cắm của sợi cáp trắng nằm ngay trên ví — TÁCH — một tia điện nhỏ giật ngón tay; Tango vẩy tay xuýt xoa.",
-          "bo_cuc": "Reverse angle on Tango from just behind the plug: Foreground: the white cable plug lying on the orange leather card holder, screen-left. Mid: Tango standing on the card holder, facing camera, reaching a clay finger toward the plug.",
+          "bo_cuc": "Reverse angle on Tango from beside the plug: Foreground: the white cable plug lying on the orange leather card holder, screen-left. Mid: Tango standing on the card holder, facing camera, reaching a clay finger toward the plug, screen-right. Background: Lint watching from just behind the plug.",
           "mo": "Tango, standing on the orange card holder, reaching one clay finger toward the white cable plug lying on it.",
           "ket": "Tango shaking his zapped finger, a tiny wisp of smoke from the fingertip.",
           "huong": "Tango faces camera and reaches screen-left to the plug, then pulls back screen-right.",
@@ -1765,7 +1765,8 @@
             "USB Hub Dock",
             "White Cable",
             "Orange Card",
-            "Tango"
+            "Tango",
+            "Lint"
           ],
           "thay_en": "Facing camera, the orange clay creature curiously touches the plug of the white cable lying on the orange card holder; a tiny spark zaps his fingertip and he shakes his hand.",
           "am_en": "A small electric snap and a startled squeak.",

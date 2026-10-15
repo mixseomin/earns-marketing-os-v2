@@ -154,7 +154,7 @@ VT = {
          v(STICKY, ST7, an=True, nhay='lẻn theo hai bạn ngoài khung từ cảnh 2, nấp dưới mép thẻ cam')],
  '7.1a': [v(TANGO, T7, ve=KEO7, ve_den=PLUG), v(LINT, L7, ve=T7)],
  '7.1b': [],   # góc nhìn từ mắt Tango: máy đứng trong đầu Tango → không dựng Tango; Lint ngoài khung
- '7.2': [v(TANGO, T7, ve=PLUG, lam='Cable Plug')],
+ '7.2': [v(TANGO, T7, ve=PLUG, lam='Cable Plug'), v(LINT, L7, ve=T7)],   # Lint vẫn đứng cạnh (7.1a / 7.2a có Lint) — góc ngược thấy Lint sau phích
  # 7.2a: ngón tay → rừng cáp (Mr. Wipe sẽ tới) → KẾT trên mặt đế cắm chỗ sẽ in dấu tay; khung lấy đế cắm làm chủ thể (khán giả thấy cái Tango nhìn).
  '7.2a': [v(TANGO, T7, ve=PLUG, ve_den=DAU_TAY), v(LINT, L7, ve=T7)],
  '7.3': [v(TANGO, T7, [55.8, 53.4, 0.3], ve=DAU_TAY, ve_den=CAM, lam='USB Hub', lam_o=DAU_TAY), v(LINT, L7, ve=T7, ve_den=[55.8, 53.4])],
@@ -224,8 +224,8 @@ MOI = {
   # 7.2a đặt tay: trên cao bên phải (cùng hướng 7.2), nhìn qua đầu Lint xuống mặt đế cắm — bộ giải tự động né Lint bằng cách vượt trục; máy phía trước thì iMac vàng chắn.
  # 7.2 ĐẶT TAY — GÓC NGƯỢC của 7.1b (15/10/2026 #32: bộ giải đặt máy sau lưng Tango, Tango che phích — phích 3% ở mép phải, keyframe vẽ cảnh khác;
  # máy tây-nam thì đứng đè lên cáp trắng): 7.1b là mắt Tango nhìn phích → 7.2 máy sau phích nhìn ngược về Tango (cặp POV → góc ngược, qua_truc).
- # Phích tiền cảnh trái, Tango trung cảnh quay mặt về máy với tay ra; ống 50 để Lint (sau-trái) ra ngoài khung.
- '7.2': {'dat': [50.5, 54.5, 1.4], 'nhin': [55.8, 51.0, 0.8], 'ong_kinh': 50, 'khung': [TANGO, 'Cable Plug'], 'qua_truc': True},
+ # Máy phía tây ngang tầm: phích tiền cảnh trái (cách máy 6 cm), Tango phải (8 cm) mặt lệch máy 30°, Lint sau phích. Ống 50 hẹp → phích che kín Tango.
+ '7.2': {'dat': [46.5, 53.4, 1.1], 'nhin': [55.1, 51.9, 1.2], 'ong_kinh': 35, 'khung': [TANGO, 'Cable Plug'], 'qua_truc': True},
  '7.2a': {'dat': [66, 44, 14], 'nhin': [57.5, 54.5, 0.6], 'ong_kinh': 24},
  '7.6a': {'phia': 30, 'khung': [TANGO, LINT]},         # hai bạn đập tay đọc rõ; Mr. Wipe lủi đi ở hậu cảnh
  # 7.6b máy sau-trên hai nửa kẹo: kẹo tiền cảnh dưới khung, hai bạn ở giữa nhìn về kẹo (về máy).

@@ -43,6 +43,7 @@ import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim, sinhAnhQcDb } from '@/lib
 import { khuonAnhQc, MO_HINH_ANH_QC, TI_LE_ANH_QC, type AnhQc } from '@/lib/xuong-video/anh-qc';
 import { docGocSpy, xepGocSpy, nhomCuaGoc, type GocSpy } from '@/lib/xuong-video/goc-spy';
 import { sanPhamPhim } from '@/lib/xuong-video/nhom-phim';
+import { dongCreative, gomThanhPhan, type AnchorKho, type CreativeKho, type DongCreative, type ShotKho, type ThanhPhan } from '@/lib/xuong-video/kho-creative';
 import { docOTemplate, chepPhim, type KetQuaChep, type ShotKhung } from '@/lib/xuong-video/template-db';
 import { diemNhan } from '@/lib/xuong-video/diem-nhan';
 import { MO_HINH_CONG, coCong, centsCong, chuoiAnh, chuoiVideo, taNguon, taNguonNgan, taThu, type CongKey, type NguonSinh } from '@/lib/xuong-video/cong-ai';
@@ -1597,4 +1598,45 @@ export async function boSet3dTap(tapId: number): Promise<Kq<{ sets: BoSet[]; kho
   const khoi: Record<string, NhanVat['khoi_3d']> = {}; const loaiNv: Record<string, string> = {};
   for (const v of nv) if (v.khoi_3d) { khoi[v.ten] = v.khoi_3d; loaiNv[v.ten] = v.loai; }
   return { ok: true, data: { sets, khoi, loai: loaiNv, shots, ti_le: docKinhThanh(t[0].kinh_thanh as KinhThanh).ti_le } };
+}
+
+// ── KHO CREATIVE THEO SẢN PHẨM (kho-creative.ts) ─────────────────────────────────────────────────────────────────────────────────
+export type KhoSanPham = { sp: { key: string; ten: string; link: string; spy: number | null }; creative: DongCreative[]; thanh_phan: ThanhPhan[] };
+/** Mọi creative QC của MỘT sản phẩm (khoá = nhom-phim.ts › sanPhamPhim) + thành phần gom từ shot / anchor. Chỉ đọc, 0đ. */
+export async function docKhoSanPham(key: string): Promise<Kq<KhoSanPham>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const phim = ((await db.execute(sql`SELECT p.id, p.ten, p.loai, p.kinh_thanh, p.goc_spy, p.poster_url, p.updated_at,
+      (SELECT c.keyframe_url FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = p.id AND c.keyframe_url IS NOT NULL ORDER BY c.updated_at DESC LIMIT 1) AS anh_kf
+    FROM xv_phim p WHERE p.loai = 'quang_cao' ORDER BY p.updated_at DESC`)) as unknown as Row[])
+    .filter((r) => { const kt = (r.kinh_thanh ?? {}) as KinhThanh; return !kt.luu_tru && sanPhamPhim({ loai: 'quang_cao', kinh_thanh: kt })?.key === key; });
+  if (!phim.length) return loi('không có creative nào của sản phẩm này');
+  const ids = phim.map((r) => n(r.id));
+  const tplIds = [...new Set(phim.map((r) => Number(((r.kinh_thanh ?? {}) as KinhThanh).tu_template?.id)).filter(Number.isFinite))];
+  const [tpl, shot, nv, tap] = await Promise.all([
+    tplIds.length ? db.execute(sql`SELECT id, ten, kinh_thanh->'template' AS cfg FROM xv_phim WHERE id = ANY(${mangInt(tplIds)}::int[])`) : Promise.resolve([]),
+    db.execute(sql`SELECT t.phim_id, c.thu_tu, c.phan_doan, c.chu_man, c.thoai, c.loi_thoai, c.hanh_dong, c.updated_at,
+        (c.keyframe_url IS NOT NULL) AS co_hinh, (c.video_url IS NOT NULL OR c.video_cuoi_url IS NOT NULL) AS co_clip
+      FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = ANY(${mangInt(ids)}::int[]) AND coalesce(c.nhanh, '') IN ('', 'A') ORDER BY t.phim_id, t.so, c.thu_tu`),
+    db.execute(sql`SELECT phim_id, loai, ten, mo_ta, jsonb_array_length(coalesce(anh_ref, '[]'::jsonb)) AS so_anh, coalesce(giong, '') AS giong FROM xv_nhan_vat WHERE phim_id = ANY(${mangInt(ids)}::int[]) ORDER BY id`),
+    db.execute(sql`SELECT phim_id, xuat FROM xv_tap WHERE phim_id = ANY(${mangInt(ids)}::int[])`),
+  ]);
+  const khuon = new Map((tpl as unknown as Row[]).map((r) => { const c = (r.cfg ?? {}) as { dong?: string; khuon?: string }; return [n(r.id), { id: n(r.id), dong: c.dong ?? '', khuon: c.khuon ?? '', ten: s(r.ten) }]; }));
+  const xuat = new Map<number, { url: string; luc: string }>();
+  for (const r of tap as unknown as Row[]) for (const x of arr<BanXuat>(r.xuat)) { const cu = xuat.get(n(r.phim_id)); if (x.url && (!cu || x.luc > cu.luc)) xuat.set(n(r.phim_id), { url: x.url, luc: x.luc }); }
+  const shots: ShotKho[] = (shot as unknown as Row[]).map((r) => {
+    const th = arr<{ loi?: string; url?: string | null }>(r.thoai).filter((d) => (d.loi ?? '').trim());
+    return { phim_id: n(r.phim_id), thu_tu: n(r.thu_tu), phan_doan: s(r.phan_doan), chu_man: s(r.chu_man), loi: th.map((d) => d.loi).join(' ') || s(r.loi_thoai), hanh_dong: s(r.hanh_dong),
+      co_hinh: r.co_hinh === true, co_clip: r.co_clip === true, can_giong: th.length > 0, co_giong: th.length > 0 && th.every((d) => !!d.url), sua_luc: new Date(s(r.updated_at)).toISOString() };
+  });
+  const anchors: AnchorKho[] = (nv as unknown as Row[]).map((r) => ({ phim_id: n(r.phim_id), loai: s(r.loai), ten: s(r.ten), mo_ta: s(r.mo_ta), so_anh: n(r.so_anh), giong: s(r.giong) }));
+  const cr: CreativeKho[] = phim.map((r) => {
+    const kt = (r.kinh_thanh ?? {}) as KinhThanh;
+    return { id: n(r.id), ten: s(r.ten), sua_luc: new Date(s(r.updated_at)).toISOString(), anh: (r.poster_url ? s(r.poster_url) : null) || (r.anh_kf ? s(r.anh_kf) : null),
+      goc: docGocSpy(r.goc_spy), ngon_ngu: kt.ngon_ngu ?? 'vi', phong_cach: kt.phong_cach ?? '', tpl: khuon.get(Number(kt.tu_template?.id)) ?? null, xuat: xuat.get(n(r.id)) ?? null };
+  });
+  const kt0 = (phim[0]!.kinh_thanh ?? {}) as KinhThanh;
+  const spy = cr.flatMap((c) => nhomCuaGoc(c.goc))[0] ?? null;
+  return { ok: true, data: { sp: { key, ten: kt0.qc?.ten?.trim() || key, link: kt0.qc?.link?.trim() ?? '', spy }, creative: cr.map((c) => dongCreative(c, shots)), thanh_phan: gomThanhPhan(shots, anchors, cr) } };
 }

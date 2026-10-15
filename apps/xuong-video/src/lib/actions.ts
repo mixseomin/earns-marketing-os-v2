@@ -287,6 +287,14 @@ export async function dsCanh(tapId: number): Promise<Canh[]> {
         theoCanh.set(n(j.canh_id), m);
       }
       for (const c of ds) c.nguon_tep = theoCanh.get(c.id) ?? {};
+      // Video ĐANG chạy ở đâu (anh 15/10/2026: "vì có fallback nên lúc bấm sinh phải show model, ncc đang áp dụng") — job video mới nhất còn chạy.
+      const dang = (await db.execute(sql`SELECT DISTINCT ON (canh_id) canh_id, provider, model, nguon FROM xv_job WHERE canh_id = ANY(${mangInt(ds.map((c) => c.id))}::int[])
+        AND loai = 'video' AND trang_thai IN ('cho', 'chay') ORDER BY canh_id, id DESC`)) as unknown as Row[];
+      for (const j of dang) {
+        const c = ds.find((x) => x.id === n(j.canh_id)); if (!c) continue;
+        const ng = (j.nguon ?? null) as NguonSinh | null;
+        c.video_dang = { ngan: taNguonNgan(ng, s(j.provider), s(j.model)), day: [taNguon(ng) || `${s(j.provider)} · ${s(j.model)}`, taThu(ng)].filter(Boolean).join('\n') };
+      }
     }
     return ds;
   } catch { return []; }

@@ -479,6 +479,8 @@ export type Canh = {
   khung_xam?: KhungXam | null;
   /** nguồn của TỪNG tệp (keyframe ứng viên, clip nháp/cuối): url → nhãn ngắn + đủ (cổng · model · model thật · tiền thật) — actions.ts › dsCanh */
   nguon_tep?: Record<string, { ngan: string; day: string }>;
+  /** job video đang chạy của shot: cổng · model đang áp dụng (ngan) + các bước dự phòng đã thử (day) */
+  video_dang?: { ngan: string; day: string };
   /** nguồn tham khảo của từng câu chữ màn / lời (tham-khao.ts) — QC bắt buộc */ tham_khao?: import('./tham-khao').ThamKhaoCau[];
   keyframe_url: string | null; keyframe_uv: string[];
   /** keyframe KẾT (khung cuối, sinh từ khung màu chỗ kết) — video nhận làm ảnh cuối */ keyframe_ket?: string | null; video_url: string | null; video_cuoi_url: string | null; nguon_video: Record<string, unknown>; video_phien_ban: { url: string; ban: 'nhap' | 'cuoi'; model?: string; job?: number; luc?: string }[]; trang_thai: TrangThaiCanh; loi: string; chi_phi_cents: number;

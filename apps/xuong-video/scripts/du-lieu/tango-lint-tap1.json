@@ -1791,13 +1791,13 @@
             "nhan_qua_huong_nhin",
             "giu_phan_ung"
           ],
-          "thay": "Tango nhìn ngón tay, nhìn về phía rừng cáp nơi Mr. Wipe sẽ tới, rồi nhìn mặt đế cắm sáng bóng sát phích — xoa hai tay, cười ranh mãnh.",
+          "thay": "Tango nhìn ngón tay bị giật. Từ rừng cáp xa xa vọng lại tiếng vải phần phật quen thuộc — Tango liếc về phía đó, rồi nhìn mặt đế cắm sáng bóng sát phích, xoa hai tay, cười ranh mãnh.",
           "bo_cuc": "High angle from the right: Tango on the orange card, Lint beside him; the shiny silver hub face right ahead of Tango, the white cable plug beside it.",
           "mo": "Tango looking at his zapped finger.",
           "ket": "Tango rubbing his clay hands together with a sly grin, eyes on the shiny hub face next to the plug.",
           "huong": "Tango looks down at his finger, screen-right toward the jungle, then at the shiny hub.",
-          "am": "Một nốt pizzicato ranh mãnh.",
-          "muc_dich": "Kế hoạch đọc được: phích có điện + mặt đế cắm sạch bóng + Mr. Wipe ghét bẩn = bẫy.",
+          "am": "Tiếng vải phần phật xa xa từ rừng cáp (Mr. Wipe đang tới); rồi một nốt pizzicato ranh mãnh.",
+          "muc_dich": "Kế hoạch đọc được: phích có điện + Mr. Wipe đang tới (tiếng vải) + mặt đế cắm sạch bóng = bẫy cho kẻ ghét bẩn.",
           "motif": "",
           "may": {
             "goc": "cao",
@@ -1812,8 +1812,8 @@
             "USB Hub",
             "Lint"
           ],
-          "thay_en": "The orange creature looks at his zapped finger, toward the cable jungle, then at the shiny hub face beside the plug, and rubs his clay hands together with a sly grin.",
-          "am_en": "A sly little pizzicato motif.",
+          "thay_en": "The orange creature looks at his zapped finger; a familiar cloth flutter echoes from the cable jungle, he glances toward it, then at the shiny hub face beside the plug, and rubs his clay hands together with a sly grin.",
+          "am_en": "A distant cloth flutter from the cable jungle, then a sly little pizzicato motif.",
           "thoai": [],
           "cam_xuc": 4,
           "dien": "A slow eye shift from finger to hub to jungle; one eyebrow-like squash of the eye; then a wide sly grin and quick hand-rubbing.",
@@ -2028,9 +2028,9 @@
             "nhan_qua_huong_nhin",
             "tu_ke_du"
           ],
-          "thay": "Mr. Wipe, còn xù cứng và bốc khói, lảo đảo bay lủi về rừng cáp. Tango và Lint nhìn theo, rồi quay sang nhau đập tay \"bốp\" — ưỡn ngực đắc thắng về phía máy.",
+          "thay": "Mr. Wipe xù cứng, bốc khói, lảo đảo bay lủi về rừng cáp. Tango và Lint đập tay \"bốp\".",
           "bo_cuc": "Two-shot: Tango and Lint at the left edge of the orange card, high-fiving. Background: the frizzed, smoking cloth wobbling away into the dark cable jungle, small.",
-          "mo": "Tango and Lint at the edge of the orange card, watching the frizzed, smoking cloth wobble away.",
+          "mo": "Tango and Lint at the edge of the orange card; behind them the frizzed, smoking cloth wobbling away.",
           "ket": "Tango and Lint after a high-five, chests puffed out, proud grins toward camera; the cloth gone.",
           "huong": "Mr. Wipe exits into the jungle; Tango and Lint turn to each other, then to camera.",
           "am": "Tiếng vải sột soạt xa dần; \"bốp\" đập tay; câu nhạc chủ đề chốt rồi lặng một nhịp.",
@@ -2050,11 +2050,11 @@
             "Mr. Wipe",
             "Orange Card"
           ],
-          "thay_en": "The frizzed, smoking cloth wobbles away into the cable jungle; the two friends watch him go, slap a high-five and puff out their chests proudly toward camera.",
+          "thay_en": "The frizzed, smoking cloth wobbles away into the cable jungle while the two friends slap a crisp high-five.",
           "am_en": "A fading cloth flutter, a crisp high-five slap, a short triumphant musical sting, then quiet.",
           "thoai": [],
           "cam_xuc": 5,
-          "dien": "Mr. Wipe drifts off crooked like a burnt kite, a puff of smoke trailing; Tango and Lint glance at each other, slap a high-five, then hold a proud chest-out pose for a beat.",
+          "dien": "Mr. Wipe drifts off crooked like a burnt kite trailing smoke; Tango and Lint slap a high-five and hold the proud pose for a beat.",
           "nhan": "Đúng khung đập tay — \"bốp\" + câu nhạc chủ đề chốt; sau đó lặng một nhịp."
         },
         {
@@ -2067,9 +2067,9 @@
             "tu_ke_du",
             "chenh_thong_tin"
           ],
-          "thay": "Bụng Tango sôi \"ọt\". Cậu xoa bụng, liếm môi, nhìn về hai nửa viên kẹo đỏ nằm chờ trên tấm thẻ, giơ tay chỉ: kẹo! Lint chộp tay cậu kéo xoay một vòng nhảy mừng — hai đứa quay đi, bỏ quên kẹo.",
+          "thay": "Bụng Tango sôi \"ọt\" — cậu chỉ về hai nửa viên kẹo đỏ nằm chờ trên tấm thẻ. Lint kéo cậu xoay vòng nhảy mừng, hai đứa quay đi khỏi kẹo.",
           "bo_cuc": "Foreground: the two red gummy halves waiting on the orange card, slightly soft. Mid: Tango and Lint at the far edge of the card, facing camera.",
-          "mo": "Foreground: the two red gummy halves on the orange card. Behind them, Tango rubs his belly and looks hungrily toward the candy; Lint beside him.",
+          "mo": "Foreground: the two red gummy halves on the orange card. Behind them, Tango pointing at the candy, belly rumbling; Lint beside him.",
           "ket": "Foreground: the gummy halves untouched. Behind them, Lint spinning Tango in a little victory dance, both facing each other, away from the candy.",
           "huong": "Tango looks toward the candy (toward camera), then Lint spins him; they end facing each other, away from the candy.",
           "am": "\"Ọt\" — bụng sôi; Lint cười khúc khích; nhạc nhảy mừng pizzicato.",
@@ -2089,7 +2089,7 @@
             "Gummy Bear",
             "Orange Card"
           ],
-          "thay_en": "The orange creature's belly rumbles; he licks his lips and points at the two red gummy halves waiting in the foreground on the orange card, but the dust bunny grabs his hand and spins him into a little victory dance, turning away from the candy.",
+          "thay_en": "The orange creature's belly rumbles and he points at the two red gummy halves waiting in the foreground, but the dust bunny spins him into a little victory dance and they turn away from the candy.",
           "am_en": "A comic belly rumble, giggles, a bouncy pizzicato dance tune.",
           "thoai": [
             {
@@ -2099,7 +2099,7 @@
             }
           ],
           "cam_xuc": 4,
-          "dien": "Belly gurgle → hand on belly → lick lips → point at the candy; Lint grabs his hand and spins him; Tango laughs and dances along, forgetting the candy.",
+          "dien": "Belly gurgle → point at the candy; Lint grabs his hand and spins him; they dance away, the candy forgotten.",
           "nhan": ""
         },
         {

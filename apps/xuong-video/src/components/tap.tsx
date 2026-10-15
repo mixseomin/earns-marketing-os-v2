@@ -330,7 +330,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
             const cc = canhNhanh.find((x) => x.id === chonCanh) ?? canhNhanh[0]!;   // thẻ shot bên dưới luôn sửa bản GỐC
             return (
               <>
-                <Timeline canh={xemVi && vi ? vi.canh : canhNhanh} nhanVat={nhanVat} tap={tap} qc={kt.qc} tiLe={kt.ti_le} ngonNgu={xemVi ? 'vi' : kt.ngon_ngu} chon={cc.id} onChon={setChonCanh} onToanManHinh={() => setAnimatic(true)}
+                <Timeline canh={xemVi && vi ? vi.canh : canhNhanh} nhanVat={nhanVat} tap={tap} qc={kt.qc} laQc={phim.loai === 'quang_cao'} tiLe={kt.ti_le} ngonNgu={xemVi ? 'vi' : kt.ngon_ngu} chon={cc.id} onChon={setChonCanh} onToanManHinh={() => setAnimatic(true)}
                   // Kéo mép = đổi giây PHÁT: ngắn hơn clip là cắt (không tốn tiền); dài hơn clip thì clip phải sinh lại dài hơn.
                   onDoiGiay={(id, g) => void chay(`c${id}`, () => { const c0 = canh.find((x) => x.id === id); return suaCanh(id, { phat_s: g, ...(c0 && g > (c0.thoi_luong_s || 4) ? { thoi_luong_s: Math.ceil(g) } : {}) }); })}
                   onKhopGiong={async () => { const r = await khopGiongTapAction(tap.id); await taiCanh(); await onChanged(); return r.ok ? `⏱ ${r.data.doi} shot đổi giây theo giọng · tổng ${r.data.tong}s${r.data.thieu ? ` · ${r.data.thieu} shot chưa có giọng` : ''}` : `⏱ ${r.loi}`; }}
@@ -364,7 +364,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
         return (
           <Ngan onClose={() => setXemShot(null)} tieuDe={`Shot #${c.thu_tu} · ${c.canh}`}
             nut={<button type="button" className="xv-btn" title="Đóng ngăn, chuyển sang Timeline và đặt con trỏ ở đầu shot này" onClick={() => { setXemShot(null); setChonCanh(c.id); setXem('timeline'); }}>⏱ Mở trên timeline</button>}>
-            <CanhRow key={c.id} c={c} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} />
+            <CanhRow key={c.id} c={c} nhanVat={nhanVat} kt={kt} khoa={khoa} phimLoai={phim.loai} ban={(k) => banTach || ban(k)} chay={chay} chiTiet />
           </Ngan>
         );
       })()}

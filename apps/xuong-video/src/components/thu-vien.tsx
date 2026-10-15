@@ -1,12 +1,13 @@
 'use client';
 // Thư viện ngôn ngữ điện ảnh (#1195) — nội dung dùng chung cho drawer 🎬 (mở từ đầu trang / form shot) và trang /thu-vien.
 // Lọc theo thể loại tại chỗ (state), không điều hướng.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useViTriNoi } from './vi-tri-noi';
 import { dsKhuonShot } from '@/lib/actions';
 import { moNgan } from './ngan-chung';
 import { LOAI_SHOT_MAU } from '@/lib/xuong-video/kieu';
 import type { KhuonShot } from '@/lib/xuong-video/khuon-shot';
-import { THE_LOAI, NHOM_KY_THUAT, THU_VIEN, CAU_TRUC, hopTheLoai, kyThuat, chiTietKyThuat, type TheLoai, type KyThuat, type KyThuatShot, type NhomKyThuat } from '@/lib/xuong-video/dien-anh';
+import { THE_LOAI, NHOM_KY_THUAT, THU_VIEN, CAU_TRUC, hopTheLoai, kyThuat, chiTietKyThuat, type TheLoai, type KyThuat, type KyThuatShot, type NhomKyThuat, type MucKyThuat } from '@/lib/xuong-video/dien-anh';
 import { LUAT_DUNG_CANH, luatDung } from '@/lib/xuong-video/luat-dung';
 
 export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
@@ -136,12 +137,7 @@ export function KyThuatApDung({ kt, nhom, nho }: { kt: KyThuatShot | undefined; 
   if (!ds.length) return null;
   return (
     <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: nho ? 2 : 4 }}>
-      {ds.map((m) => (
-        <button key={m.ma} type="button" className="xv-mono" title={`${m.nhom}: ${m.mo_ta}\nBấm xem chi tiết`} onClick={(e) => { e.stopPropagation(); moNgan({ loai: 'ky-thuat', ma: m.ma }); }}
-          style={{ fontSize: nho ? 9.5 : 10.5, lineHeight: nho ? '14px' : '16px', padding: nho ? '0 4px' : '0 6px', border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {m.icon} {m.ten.replace(/\s*\(.*\)$/, '')}
-        </button>
-      ))}
+      {ds.map((m) => <NhanKyThuat key={m.ma} m={m} nho={nho} />)}
     </span>
   );
 }
@@ -159,15 +155,40 @@ export function KyThuatTheoNhom({ kt }: { kt: KyThuatShot | undefined }) {
         <div key={ten} style={{ display: 'grid', gap: 2 }}>
           <div className="xv-mono" style={{ fontSize: 9.5, color: 'var(--fg-3)' }}>{icon} {ten}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-            {ds.filter((m) => m.nhom === ten).map((m) => (
-              <button key={m.ma} type="button" className="xv-mono" title={`${m.mo_ta}\nBấm xem chi tiết`} onClick={(e) => { e.stopPropagation(); moNgan({ loai: 'ky-thuat', ma: m.ma }); }}
-                style={{ fontSize: 10.5, lineHeight: '16px', padding: '0 6px', border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' }}>
-                {m.ten.replace(/\s*\(.*\)$/, '')}
-              </button>
-            ))}
+            {ds.filter((m) => m.nhom === ten).map((m) => <NhanKyThuat key={m.ma} m={m} />)}
           </div>
         </div>
       ))}
     </div>
   );
+}
+
+/** MỘT nhãn kỹ thuật đã áp: rê chuột hiện thẻ mô tả (tên · nhóm · mô tả · tên ngành · mở → kết · khi nào dùng), bấm mở ngăn chi tiết đủ.
+ *  Thẻ nổi neo theo nhãn bằng useViTriNoi (fixed, kẹp khung nhìn, thiếu chỗ thì lật lên) — không bị ngăn / lưới cắt. */
+function NhanKyThuat({ m, nho }: { m: MucKyThuat; nho?: boolean }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const [mo, setMo] = useState(false);
+  const viTri = useViTriNoi(ref, mo, { rong: 340, caoToiDa: 360 });
+  const [nhom, key] = [m.ma.slice(0, m.ma.indexOf('.')), m.ma.slice(m.ma.indexOf('.') + 1)];
+  const x = nhom === 'luat' ? undefined : kyThuat(key, nhom as NhomKyThuat);
+  return (<>
+    <button ref={ref} type="button" className="xv-mono" onMouseEnter={() => setMo(true)} onMouseLeave={() => setMo(false)} onFocus={() => setMo(true)} onBlur={() => setMo(false)}
+      onClick={(e) => { e.stopPropagation(); setMo(false); moNgan({ loai: 'ky-thuat', ma: m.ma }); }}
+      style={{ fontSize: nho ? 9.5 : 10.5, lineHeight: nho ? '14px' : '16px', padding: nho ? '0 4px' : '0 6px', border: `1px solid ${mo ? 'var(--cyan)' : 'var(--line)'}`, borderRadius: 4, background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' }}>
+      {nho && `${m.icon} `}{m.ten.replace(/\s*\(.*\)$/, '')}
+    </button>
+    {mo && (
+      <div role="tooltip" style={{ ...viTri, pointerEvents: 'none', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: '10px 12px', display: 'grid', gap: 6, fontSize: 12, lineHeight: 1.45 }}>
+        <div className="xv-mono" style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: 0.3 }}>{m.icon} {m.nhom}</div>
+        <b style={{ fontSize: 14, color: 'var(--fg-1)' }}>{m.ten}</b>
+        <div style={{ color: 'var(--fg-2)' }}>{m.mo_ta}</div>
+        {x?.nganh && <>
+          <div className="xv-mono" style={{ color: 'var(--cyan)', fontSize: 10.5 }}>📘 {x.nganh.ten_nganh}</div>
+          <div style={{ color: 'var(--fg-2)', fontSize: 11.5 }}><b style={{ color: 'var(--fg-1)' }}>Mở → kết:</b> {x.nganh.dau_cuoi}</div>
+          <div style={{ color: 'var(--fg-2)', fontSize: 11.5 }}><b style={{ color: 'var(--fg-1)' }}>Khi nào dùng:</b> {x.nganh.dong_co}</div>
+        </>}
+        <div className="xv-mono" style={{ fontSize: 10, color: 'var(--fg-4)', borderTop: '1px dashed var(--line)', paddingTop: 5 }}>Bấm để xem đủ: cách làm · khán giả cảm · tránh · nguồn</div>
+      </div>
+    )}
+  </>);
 }

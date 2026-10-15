@@ -5,6 +5,7 @@ import { moNgan, linkTai } from './ngan-chung';
 import { dongThoai, tenNoi, LOI_DAN } from '@/lib/xuong-video/am-thanh';
 import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, type TheLoai } from '@/lib/xuong-video/dien-anh';
 import { KyThuatTheoNhom } from './thu-vien';
+import { BoSetXem } from './bo-set-xem';
 import { suaCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, sinhVideoCanh, sinhVideoThu, lamLaiTuKeyframe, sinhGiong, sinhAmThanh, xoaKeyframe, goiYAICanh, nangCapCanh, chonPhienBan, khopMiengCanh, luuShotKho } from '@/lib/actions';
 import { O_DAN_DUNG, chuManHien, tenPhanDoan, LOAI_NHAN_VAT, TRANG_THAI_CANH, doiBienThe, motBienTheMoiDoiTuong, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
@@ -50,7 +51,8 @@ export function TrangPhucShot({ c, onLuu }: { c: Canh; onLuu: (t: string) => voi
   );
 }
 
-export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai }: { c: Canh; nhanVat: NhanVat[]; kt: Required<KinhThanh>; khoa: Khoa; phimLoai: LoaiPhim; ban: (k: string) => boolean; chay: (ten: string, fn: () => Promise<KqChay>, taiCho?: boolean) => Promise<string> }) {
+/** chiTiet: đang nằm trong ngăn chi tiết shot — cột trái rộng hơn, khung 3D nhúng bộ xem xoay được (#1365). */
+export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, chiTiet }: { c: Canh; nhanVat: NhanVat[]; kt: Required<KinhThanh>; khoa: Khoa; phimLoai: LoaiPhim; ban: (k: string) => boolean; chay: (ten: string, fn: () => Promise<KqChay>, taiCho?: boolean) => Promise<string>; chiTiet?: boolean }) {
   // Lỗi của MỌI nút trong thẻ shot hiện ngay trên hàng nút của chính shot đó (không phải đầu tập).
   const [loiNut, setLoiNut] = useState('');
   const chay = async (k: string, fn: () => Promise<KqChay>) => { setLoiNut(''); setLoiNut(await chayTap(k, fn, true)); };
@@ -102,11 +104,19 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai }: 
   return (
     <div className="xv-canh">
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-        <div style={{ flexShrink: 0, width: Math.max(Number(anhKhung.width), 180), display: 'grid', justifyItems: 'center', alignContent: 'start' }}>
+        <div style={{ flexShrink: 0, width: Math.max(Number(anhKhung.width), chiTiet ? 260 : 180), display: 'grid', justifyItems: 'center', alignContent: 'start' }}>
           {c.video_cuoi_url ? <div><ClipNho url={c.video_cuoi_url} ten={`#${c.thu_tu} ${c.canh} · bản cuối`} style={anhKhung} /><div style={{ ...mono, color: 'var(--lime)', textAlign: 'center' }}>bản cuối</div><NguonTep c={c} url={c.video_cuoi_url} />{c.keyframe_url && <KfNho url={c.keyframe_url} soSanh={soSanh} />}</div>
             : c.video_url ? <div><ClipNho url={c.video_url} ten={`#${c.thu_tu} ${c.canh} · nháp`} style={anhKhung} /><div style={{ ...mono, textAlign: 'center' }}>nháp</div><NguonTep c={c} url={c.video_url} />{c.keyframe_url && <KfNho url={c.keyframe_url} soSanh={soSanh} />}</div>
             : c.keyframe_url ? <div style={{ position: 'relative' }}><img src={anhNho(c.keyframe_url, 320)} alt="" data-so-sanh={soSanh} style={anhKhung} />{buoc === 'dang' && <DangSinh chu="" />}</div>
             : <div style={{ ...anhKhung, position: 'relative', display: 'grid', placeItems: 'center', color: 'var(--fg-4)', fontSize: 10, overflow: 'hidden' }}>chưa có{buoc === 'dang' && <DangSinh chu={c.dang_sinh_anh ? 'ảnh' : 'video'} />}</div>}
+          {/* KHUNG 3D của shot (#1365): ảnh khung màu / xám từ bộ set — bấm mở bộ xem đúng máy shot; trong ngăn chi tiết thì xoay được tại chỗ. */}
+          {c.may_3d && (chiTiet
+            ? <div style={{ justifySelf: 'stretch', marginTop: 6 }}><div style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase', marginBottom: 2 }}>🧊 Bản 3D</div><BoSetXem tapId={c.tap_id} canhId={c.id} gon /></div>
+            : (c.khung_xam?.mau || c.khung_xam?.xam) && <button type="button" title="Khung 3D của shot (Blender) — bấm để xoay xem đúng máy shot" onClick={() => moNgan({ loai: 'bo-set', tapId: c.tap_id, canhId: c.id })}
+                style={{ justifySelf: 'stretch', marginTop: 6, padding: 0, border: 'none', background: 'none', cursor: 'pointer', display: 'grid', gap: 2, justifyItems: 'center' }}>
+                <span style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase', justifySelf: 'start' }}>🧊 Bản 3D</span>
+                <img src={anhNho(c.khung_xam.mau || c.khung_xam.xam, 320)} alt="" style={{ ...anhKhung, objectFit: 'contain', background: '#000' }} />
+              </button>)}
           <div style={{ justifySelf: 'stretch' }}><KyThuatTheoNhom kt={c.ky_thuat} /></div>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>

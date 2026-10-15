@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { boSet3dTap } from '@/lib/actions';
+import { moNgan } from './ngan-chung';
 import type { BoSet, KhoiSet, May3d, NhanVat } from '@/lib/xuong-video/kieu';
 import { goiAction, Loi, mono } from './ui';
 
@@ -73,7 +74,8 @@ const nhan = (chu: string, mau = 'rgba(0,0,0,.65)') => {
   return new CSS2DObject(el);
 };
 
-export function BoSetXem({ tapId, canhId }: { tapId: number; canhId?: number | null }) {
+/** gon: bản nhúng trong ngăn chi tiết shot (#1365) — chỉ khung 3D nhìn qua máy shot, xoay / phóng được, không thanh công cụ; nút ⤢ mở bản đầy đủ. */
+export function BoSetXem({ tapId, canhId, gon }: { tapId: number; canhId?: number | null; gon?: boolean }) {
   const [dl, setDl] = useState<DuLieu | null>(null);
   const [loi, setLoi] = useState('');
   const [chon, setChon] = useState<number | null>(canhId ?? null);
@@ -194,6 +196,18 @@ export function BoSetXem({ tapId, canhId }: { tapId: number; canhId?: number | n
   if (!dl) return <div style={mono}>… đang tải bộ set</div>;
   if (!set) return <div style={mono}>Tập này chưa có shot nào thuộc bộ set 3D.</div>;
   const iShot = shot ? shots.indexOf(shot) : -1;
+  if (gon) return (
+    <div style={{ display: 'grid', gap: 3 }}>
+      <div ref={khung} style={{ position: 'relative', width: '100%', aspectRatio: quaMay && shot ? (doc ? '9 / 16' : '16 / 9') : '1 / 1', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--line)', cursor: 'grab' }} />
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ ...mono, fontSize: 9.5 }}>kéo xoay · cuộn phóng</span>
+        <span style={{ display: 'flex', gap: 3 }}>
+          {nut(quaMay, '👁', 'Nhìn qua máy shot / nhìn tự do', () => setQuaMay(!quaMay))}
+          <button type="button" className="xv-btn" title="Mở bộ xem 3D đầy đủ (đường đi, mọi máy, nhãn)" onClick={() => moNgan({ loai: 'bo-set', tapId, canhId: chon })}>⤢</button>
+        </span>
+      </div>
+    </div>
+  );
   return (
     <div style={{ display: 'grid', gap: 8 }}>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>

@@ -59,7 +59,7 @@ export async function boiCanhCanh(db: Db, canhId: number) {
   // ĐẠO CỤ THẤY TRONG KHUNG 3D mà shot không gắn anchor (đồ để lại từ shot trước — kẹo nằm trên thẻ ở 7.4a tập 19): kèm luôn để keyframe có
   // ảnh mẫu + mô tả của nó, không vẽ theo đoán. Chỉ đạo cụ / sản phẩm cùng phim, chiếm ≥ 2% khung.
   const thayThem = (canh.khung_xam?.thay ?? []).filter((t) => t.pt >= 2 && !nv.some((v) => v.ten === t.ten)).map((t) => t.ten);
-  if (thayThem.length) nv.push(...await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(r[0].p_id)} AND loai IN ('dao_cu', 'san_pham') AND ten = ANY(${thayThem}::text[])`)) as unknown as Row[]).map(mapNhanVat)));
+  if (thayThem.length) nv.push(...await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(r[0].p_id)} AND loai IN ('dao_cu', 'san_pham') AND ten IN (${sql.join(thayThem.map((t) => sql`${t}`), sql`, `)})`)) as unknown as Row[]).map(mapNhanVat)));
   // Shot liền trước cùng nhánh — shot đó chọn chuyển cảnh 'lien_may' thì keyframe của nó là tham chiếu nối khung cho shot này (sinh-anh.ts).
   const t = (await db.execute(sql`SELECT keyframe_url, ky_thuat, thu_tu, phan_doan FROM xv_canh WHERE tap_id = ${canh.tap_id} AND thu_tu < ${canh.thu_tu}
     AND coalesce(nhanh, '') IN ('', ${canh.nhanh || 'A'}) ORDER BY thu_tu DESC LIMIT 1`)) as unknown as Row[];

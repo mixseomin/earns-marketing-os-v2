@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { chonNguoiBanCkey, laHetTien, chuoiAnh, taNguon, taThu, tachKhoa, taNguonNgan } from './cong-ai';
+import { TOI_DA_REF, chonNguoiBanCkey, laHetTien, chuoiAnh, taNguon, taThu, tachKhoa, taNguonNgan } from './cong-ai';
 
 // hết tiền: đúng câu lỗi thật của từng cổng (Google 14/10/2026), không nhầm lỗi máy chủ
 assert.strictEqual(laHetTien('google', 'gemini-nano-banana-2.1: RESOURCE_EXHAUSTED: Your prepayment credits are depleted.'), true);
@@ -33,3 +33,5 @@ console.log('cong-ai.ts: ok');
   assert.deepStrictEqual(chonNguoiBanCkey(dm, new Set(['wowztools/Nano-Banana-2', 'dungcsnd113/gemini-3.1-flash-image'])).map((x) => x.model)[0], 'danielnguyenkarate/nano-banana-2');
   assert.strictEqual(chonNguoiBanCkey(dm, new Set(), 683, new Set(['wowztools/Nano-Banana-2']))[0]!.model, 'wowztools/Nano-Banana-2', 'người vừa đạt lên đầu');
   console.log('cong-ai.test: người bán ckey ok'); }
+
+assert.strictEqual(TOI_DA_REF.ckey, 3, 'ckey nhận tối đa 3 ảnh tham chiếu (đo 15/10/2026)');

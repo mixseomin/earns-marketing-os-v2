@@ -79,6 +79,10 @@ export async function tenThatCkey(model: string, k: string): Promise<string | nu
   return khoCkey.ten.get(model.toLowerCase()) ?? null;
 }
 
+/** Số ảnh tham chiếu tối đa từng cổng nhận. ckey (đo 15/10/2026, wowztools Nano-Banana-2): 3 ảnh đạt, 4–5 ảnh "upstream AI gateway rejected the
+ *  request" trong 0,4s — keyframe phim #49 (7 ảnh) cả 9 shot rơi sang Google 874₫; trước đó follow-up #1379 "ckey 400 khi nhiều ảnh". */
+export const TOI_DA_REF: Partial<Record<CongKey, number>> = { ckey: 3 };
+
 /** NGƯỜI BÁN CKEY CÙNG MODEL dự phòng cho nhau (anh 15/10/2026: "ckey có nhiều nhà cung cấp, fallback trong số họ với nhau"). Thuần.
  *  Chỉ lấy ĐÚNG dòng Nano Banana (2 / gemini-3.1-flash-image trước, Pro sau) — model khác (Qwen, Seedream, gpt-image, bản Lite) ra hình khác
  *  hẳn, không phải dự phòng. Chỉ người bán rẻ hơn tranVnd (cổng kế: ShopAIKey 683₫ / Google 874₫). Người bán đang "nghỉ" (hỏng liên tiếp) bỏ qua. */
@@ -142,6 +146,9 @@ export async function sinhAnhQuaCong(modelGoogle: string, o: { prompt: string; t
     }
   }
   for (const b of chuoi) {
+    // Cổng nhận ít ảnh tham chiếu hơn shot cần → BỎ QUA, không cắt bớt: prompt có bản đồ "ảnh N là gì" (xepThamChieu), cắt ảnh là bản đồ sai, ảnh ra sai.
+    const toiDa = TOI_DA_REF[b.cong];
+    if (toiDa != null && o.thamChieuUrl.length > toiDa) { thu.push({ cong: b.cong, model: b.model, ok: false, loi: `cổng nhận tối đa ${toiDa} ảnh tham chiếu, shot có ${o.thamChieuUrl.length} — bỏ qua`, giay: 0 }); continue; }
     const t0 = Date.now();
     let kq = await sinhAnhCong(b.cong, b.model, o);
     // Người bán trả model KHÁC (ảnh ra không phải Nano Banana) → coi như hỏng, sang người kế.

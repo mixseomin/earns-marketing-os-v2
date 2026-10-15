@@ -37,6 +37,8 @@ export interface ModalParam {
   numId: number | null;
   /** Mở modal: set ?<key>=m (+ ?<key>Id=mid nếu có). */
   open: (m: string, mid?: string | number | null) => void;
+  /** Đường dẫn mở modal ở TAB MỚI (<a target="_blank">) — mở phim khác từ trong một ngăn thì không thay ngăn đang xem (anh 15/10/2026). */
+  href: (m: string, mid?: string | number | null) => string;
   /** Đóng modal hiện tại: xoá cả ?<key>= và ?<key>Id=. */
   close: () => void;
   /** modal.is('habitat-edit') → true nếu ?<key>=habitat-edit. */
@@ -103,7 +105,12 @@ export function useModalParam(key = 'm'): ModalParam {
 
   const open = useCallback((m: string, mid?: string | number | null) => write(m, mid), [write]);
   const close = useCallback(() => write(null), [write]);
+  const href = useCallback((m: string, mid?: string | number | null) => {
+    const q = new URLSearchParams({ [key]: m });
+    if (mid != null && mid !== '') q.set(idKey, String(mid));
+    return `${pathname}?${q}`;
+  }, [pathname, key, idKey]);
   const is = useCallback((m: string) => value === m, [value]);
 
-  return { value, id, numId, open, close, is };
+  return { value, id, numId, open, href, close, is };
 }

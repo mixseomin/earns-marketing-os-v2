@@ -28,7 +28,8 @@ export function KfNho({ url, soSanh }: { url: string; soSanh: string }) {
 function NguonTep({ c, url }: { c: Canh; url: string }) {
   const n = c.nguon_tep?.[url];
   if (!n) return null;
-  return <div title={n.day} style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{n.ngan}</div>;
+  // width 0 + minWidth 100%: dòng nowrap không góp bề rộng cho khối cha (khối co theo clip, chữ cắt …) — trước đây khối căn giữa rộng theo chữ, tràn sang cột phải (#1368).
+  return <div title={n.day} style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: 0, minWidth: '100%' }}>{n.ngan}</div>;
 }
 
 /** Phân cảnh của shot (kỹ thuật đã áp nằm ở chân cột ảnh — KyThuatTheoNhom). */

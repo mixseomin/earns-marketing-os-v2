@@ -7,11 +7,11 @@ import { useModalParam } from '@/lib/use-modal-param';
 import { Ngan } from './ngan';
 import { moNgan } from './ngan-chung';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
-import { nhomPhim, demKieu, laLuuTru, TEN_KIEU, type KieuNhom } from '@/lib/xuong-video/nhom-phim';
+import { nhomPhim, demKieu, laLuuTru, anhDaiDien, TEN_KIEU, type KieuNhom } from '@/lib/xuong-video/nhom-phim';
 import { dsPhim, luuTruPhim, luuThanhTemplate, docPhim, taoPhim, taoPhimMau, xoaPhim, taoTap, dsMoHinh, dsThungRac, khoiPhuc, docHoanTac, hoanTac, type MoHinhChon, type PhimDayDu } from '@/lib/actions';
 import type { MucHoanTac } from '@/lib/xuong-video/hoan-tac';
 import { LOAI_PHIM, docKinhThanh, giaAnhCents, giaVideoCents, tien, gioVN, type Phim, type Job, type LoaiPhim } from '@/lib/xuong-video/kieu';
-import { Khoa, TabPhim, TAB_PHIM, O, Pill, Seg, Nut, Xoa, Loi, Menu, MucMenu, mono } from './ui';
+import { Khoa, TabPhim, TAB_PHIM, Pill, Seg, Nut, Xoa, Loi, Menu, MucMenu, mono } from './ui';
 import { MoHinhCtx } from './mo-hinh-ui';
 import { KinhThanhForm } from './kinh-thanh';
 import { NhanVatSection } from './nhan-vat';
@@ -38,7 +38,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
   const [ban, setBan] = useState(false);
   const modal = useModalParam();
   const chong = useModalParam(KHOA_CHONG.m);
-  const [locKieu, setLocKieu] = useNho<KieuNhom | ''>('xv-loc-kieu', '', ['', 'template', 'series', 'quang_cao', 'phim']);
+  const [locKieu, setLocKieu] = useNho<KieuNhom | ''>('xv-loc-kieu', '', ['', 'series', 'quang_cao', 'phim']);   // template có tab riêng, không còn là bộ lọc
   const [locTim, setLocTim] = useState('');
   const [hienLuuTru, setHienLuuTru] = useState(false);
   const [tapMo, setTapMo] = useState<number | null>(null);   // bấm chip tập → mở ngăn phim đúng tập
@@ -55,90 +55,95 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
   };
   const thieu = [!khoa.anthropic && 'ANTHROPIC_API_KEY (viết/tách kịch bản)', !khoa.google && 'GOOGLE_API_KEY (ảnh + video Veo)', !khoa.openai && 'OPENAI_API_KEY (ảnh dự phòng gpt-image)', !khoa.r2 && 'R2 (kho ảnh/video)'].filter(Boolean) as string[];
   const tongTien = phim.reduce((a, p) => a + p.chi_phi_cents, 0);
+  const dem = demKieu(phim); const soLuuTru = phim.filter(laLuuTru).length;
+  // YDNI trang chủ (anh 15/10/2026: "YDNI lại trang home"): trước là 4 khối chồng dọc (chỉ số · kho template · tạo mới · danh sách) dài ~4.300px.
+  // Giờ MỘT MÀN: đầu ghim (tab Phim | Template · bộ lọc · chỉ số một dòng · ＋ Tạo mới gập sẵn), nội dung cuộn TRONG khung bên dưới.
+  const [khoTab, setKhoTab] = useNho<'phim' | 'template'>('xv-kho-tab', 'phim', ['phim', 'template'], 'kho');
+  const [moTao, setMoTao] = useState(false);
+  const moPhim = (id: number) => { setTapMo(null); modal.open('phim', id); };
 
   return (
     <MoHinhCtx.Provider value={moHinh}>
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 110px)', minHeight: 420 }}>
       {thieu.length > 0 && <div className="xv-banner">Máy chủ thiếu: {thieu.join(' · ')} — đặt trong .env.production rồi restart mos2-studio. Trang vẫn soạn được, nút sinh sẽ báo lỗi tới khi có khoá.</div>}
-      <div className="xv-stats">
-        <div className="xv-stat"><div className="l">Phim / bộ</div><div className="v">{phim.length}</div></div>
-        <div className="xv-stat"><div className="l">Cảnh</div><div className="v">{phim.reduce((a, p) => a + p.so_canh, 0)}</div></div>
-        <div className="xv-stat"><div className="l">Đã tốn</div><div className="v">{tien(tongTien)}</div><div className="s">ảnh + video, theo giá niêm yết</div></div>
-        <div className="xv-stat"><div className="l">Giá mặc định</div><div className="v" style={{ fontSize: 14 }}>{tien(giaAnhCents('gemini-nano-banana-2.1'))} / ảnh · {tien(giaVideoCents('veo-3.1-lite-generate-preview', '720p', 8))} / 8s</div><div className="s">Nano Banana 2.1 · Veo 3.1 Lite 720p</div></div>
+      <div className="xv-panel" style={{ padding: '8px 10px', marginBottom: 8, display: 'grid', gap: 6, flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Seg options={[{ value: 'phim' as const, label: `🎬 Phim ${dem.series + dem.quang_cao + dem.phim}` }, { value: 'template' as const, label: `🧩 Template ${dem.template}` }]} value={khoTab} onChange={setKhoTab} />
+          {khoTab === 'phim' && <>
+            <Seg options={[{ value: '' as const, label: 'Tất cả' }, ...(['series', 'quang_cao', 'phim'] as const).map((k) => ({ value: k, label: `${TEN_KIEU[k]} ${dem[k]}` }))]} value={locKieu} onChange={setLocKieu} />
+            <input className="xv-in" style={{ width: 200 }} value={locTim} onChange={(e) => setLocTim(e.target.value)} placeholder="🔍 tìm phim, series, tập…" />
+            {soLuuTru > 0 && <label style={{ ...mono, display: 'flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={hienLuuTru} onChange={(e) => setHienLuuTru(e.target.checked)} />lưu trữ ({soLuuTru})</label>}
+          </>}
+          <span style={{ flex: 1 }} />
+          <span style={mono} title="Đã tốn = ảnh + video theo giá niêm yết · giá mặc định Nano Banana 2.1 / Veo 3.1 Lite 720p">{phim.length} phim/bộ · {phim.reduce((a, p) => a + p.so_canh, 0)} cảnh · đã tốn {tien(tongTien)} · {tien(giaAnhCents('gemini-nano-banana-2.1'))}/ảnh · {tien(giaVideoCents('veo-3.1-lite-generate-preview', '720p', 8))}/8s</span>
+          <ThungRac phimId={null} onKhoiPhuc={taiLai} />
+          <Nut chinh={!moTao} onClick={() => setMoTao(!moTao)} title="Tạo phim / bộ mới: short · phim nhiều tập · creative quảng cáo">{moTao ? '✕ Đóng' : '＋ Tạo mới'}</Nut>
+        </div>
+        {(moTao || phim.length === 0) && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', paddingTop: 6, borderTop: '1px dashed var(--line)' }}>
+            <input className="xv-in" style={{ minWidth: 260 }} value={ten} onChange={(e) => setTen(e.target.value)} placeholder="Tên: Thỏ và Rùa · Quảng cáo áo bra X…" onKeyDown={(e) => { if (e.key === 'Enter') void tao(); }} autoFocus />
+            <Seg options={LOAI_PHIM.map((l) => ({ value: l.key, label: l.label, title: l.mo_ta }))} value={loai} onChange={setLoai} />
+            <Nut ly={!ten.trim() && 'nhập tên trước'} ban={ban} chinh onClick={() => void tao()}>+ Tạo</Nut>
+            <span style={mono} title="Kinh thánh + nhân vật + kịch bản tập 1 + storyboard tách sẵn bằng Claude, mất ~30s">hoặc từ mẫu:</span>
+            {MAU_PHIM.map((m) => (
+              <Nut key={m.key} ban={ban} title={m.mo_ta} onClick={async () => { setBan(true); setLoiTao(''); const r = await taoPhimMau(m.key); setBan(false); if (!r.ok) { setLoiTao(r.loi); return; } await taiLai(); modal.open('phim', r.data); }}>{ban ? '… đang tạo + tách cảnh' : `📄 ${m.nhan}`}</Nut>
+            ))}
+            <Loi>{loiTao}</Loi>
+          </div>
+        )}
       </div>
 
-      <KhoTemplate ds={phim.filter((p) => p.kinh_thanh?.template && !laLuuTru(p))} onMo={(id) => { setTapMo(null); modal.open('phim', id); }} />
-
-      <div className="xv-panel">
-        <h3>Tạo phim / bộ mới<small>short · phim nhiều tập · creative quảng cáo</small></h3>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <O label="Tên"><input className="xv-in" style={{ minWidth: 280 }} value={ten} onChange={(e) => setTen(e.target.value)} placeholder="Thỏ và Rùa · Quảng cáo áo bra X…" onKeyDown={(e) => { if (e.key === 'Enter') void tao(); }} /></O>
-          <O label="Loại"><Seg options={LOAI_PHIM.map((l) => ({ value: l.key, label: l.label, title: l.mo_ta }))} value={loai} onChange={setLoai} /></O>
-          <div className="xv-field"><Nut ly={!ten.trim() && 'nhập tên trước'} ban={ban} chinh onClick={() => void tao()}>+ Tạo</Nut></div>
-        </div>
-        <Loi>{loiTao}</Loi>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--line)' }}>
-          <span style={mono}>Hoặc tạo từ mẫu có sẵn (kinh thánh + nhân vật + kịch bản tập 1 + storyboard tách sẵn bằng Claude, mất ~30s):</span>
-          {MAU_PHIM.map((m) => (
-            <Nut key={m.key} ban={ban} title={m.mo_ta} onClick={async () => { setBan(true); setLoiTao(''); const r = await taoPhimMau(m.key); setBan(false); if (!r.ok) { setLoiTao(r.loi); return; } await taiLai(); modal.open('phim', r.data); }}>{ban ? '… đang tạo + tách cảnh' : `📄 Mẫu ${m.nhan}`}</Nut>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}><ThungRac phimId={null} onKhoiPhuc={taiLai} /></div>
-      {phim.length === 0 ? (
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+      {khoTab === 'template' ? (
+        <KhoTemplate ds={phim.filter((p) => p.kinh_thanh?.template && !laLuuTru(p))} onMo={moPhim} />
+      ) : phim.length === 0 ? (
         <div className="xv-panel" style={{ textAlign: 'center', padding: 40 }}><div style={{ fontSize: 28 }}>🎬</div><b>Chưa có phim nào</b><div style={mono}>Tạo một phim ở trên: đặt tên, chọn loại, rồi khai nhân vật/sản phẩm và dán kịch bản.</div></div>
       ) : (() => {
-        // NHÓM (series / thương hiệu) → PHIM (từng bản) → TẬP, có bộ lọc (nhom-phim.ts).
+        // NHÓM (series / sản phẩm / thương hiệu) → PHIM → TẬP (nhom-phim.ts). Gọn (anh 15/10/2026 "chia nhóm gọn lại"): mỗi phim MỘT dòng
+        // (ảnh đại diện · tên · số liệu · chip tập · ảnh QC); nhóm chỉ một phim thì không có đầu nhóm riêng; đầu nhóm dính khi cuộn.
         const nhom = nhomPhim(phim, { kieu: locKieu, tim: locTim, luuTru: hienLuuTru });
-        const dem = demKieu(phim); const soLuuTru = phim.filter(laLuuTru).length;
-        return (
-          <div className="xv-panel" style={{ padding: 0 }}>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', padding: '8px 10px', borderBottom: '1px solid var(--line)' }}>
-              <Seg options={[{ value: '' as const, label: `Tất cả ${dem.series + dem.quang_cao + dem.phim}` }, ...(['template', 'series', 'quang_cao', 'phim'] as const).map((k) => ({ value: k, label: `${TEN_KIEU[k]} ${dem[k]}` }))]} value={locKieu} onChange={setLocKieu} />
-              <input className="xv-in" style={{ width: 220 }} value={locTim} onChange={(e) => setLocTim(e.target.value)} placeholder="🔍 tìm phim, series, tập…" />
-              {soLuuTru > 0 && <label style={{ ...mono, display: 'flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={hienLuuTru} onChange={(e) => setHienLuuTru(e.target.checked)} />hiện bản lưu trữ ({soLuuTru})</label>}
-              <span style={{ flex: 1 }} /><span style={mono}>{nhom.length} nhóm · {nhom.reduce((a, g) => a + g.phim.length, 0)} phim</span>
+        const bieuTuong = (k: KieuNhom) => (k === 'template' ? '🧩' : k === 'series' ? '📺' : k === 'quang_cao' ? '📣' : '🎬');
+        const dong = (p: Phim, dau?: ReactNode) => {
+          const anh = anhDaiDien(p);
+          return (
+            <div key={p.id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', padding: dau ? '4px 10px' : '4px 10px 4px 26px', borderBottom: '1px solid var(--line)', opacity: laLuuTru(p) ? 0.55 : 1 }}>
+              {dau}
+              <button type="button" title={p.poster_url ? 'Poster — mở phim' : anh ? 'Keyframe gần nhất (chưa có poster) — mở phim' : 'Chưa có hình — mở phim'} onClick={() => moPhim(p.id)}
+                style={{ all: 'unset', cursor: 'pointer', width: 26, height: 38, flexShrink: 0, borderRadius: 3, border: '1px solid var(--line)', background: anh ? `center / cover no-repeat url(${anhNho(anh, 160)}), #111` : 'var(--bg-2)', display: 'grid', placeItems: 'center', fontSize: 12, color: 'var(--fg-4)' }}>{anh ? '' : '🎬'}</button>
+              <button type="button" onClick={() => moPhim(p.id)} style={{ background: 'none', border: 0, color: 'var(--fg-1)', cursor: 'pointer', fontWeight: 600, padding: 0, font: 'inherit', textAlign: 'left' }}>{p.ten}</button>
+              {laLuuTru(p) && <Pill color="var(--fg-4)">lưu trữ</Pill>}
+              <span style={mono}>{LOAI_PHIM.find((l) => l.key === p.loai)?.label ?? p.loai} · {p.so_nhan_vat} anchor · {p.so_canh} cảnh · {tien(p.chi_phi_cents)}</span>
+              {!!p.goc_spy?.length && <ChipGocSpy ds={p.goc_spy} gon />}
+              {(p.tap_tom ?? []).map((t) => (
+                <button key={t.id} type="button" className="xv-btn" style={{ padding: '1px 7px', fontSize: 11 }} title={`Mở tập ${t.so}${t.ten && t.ten !== p.ten ? ` · ${t.ten}` : ''}`} onClick={() => { setTapMo(t.id); modal.open('phim', p.id); }}>
+                  <b>T{t.so}</b> <span style={{ color: t.so_canh && t.so_hinh === t.so_canh ? '#4ade80' : 'var(--fg-3)' }}>{t.so_hinh}/{t.so_canh} hình</span> <span style={{ color: t.so_canh && t.so_clip === t.so_canh ? '#4ade80' : 'var(--fg-3)' }}>· {t.so_clip} clip</span>
+                </button>
+              ))}
+              {!!p.so_anh_qc && <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }} title={`${p.so_anh_qc} ảnh QC — mở phim, tab 🎭 Phim › Ảnh QC`}>
+                {(p.anh_qc_tom ?? []).slice(0, 6).map((a) => <img key={a.id} src={anhNho(a.url, 160)} alt="" onClick={() => moPhim(p.id)} style={{ height: 30, aspectRatio: a.ti_le.replace(':', ' / '), objectFit: 'cover', borderRadius: 3, cursor: 'pointer', border: '1px solid var(--line)' }} />)}
+                {(p.anh_qc_tom?.length ?? 0) > 6 && <span style={mono}>+{(p.anh_qc_tom?.length ?? 0) - 6}</span>}
+              </span>}
             </div>
+          );
+        };
+        return (
+          <div className="xv-panel" style={{ padding: 0, marginBottom: 0 }}>
             {!nhom.length && <div style={{ ...mono, padding: 16 }}>Không có phim khớp bộ lọc.</div>}
-            {nhom.map((g) => (
-              <section key={g.key} style={{ borderBottom: '1px solid var(--line)' }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '10px 12px 4px', background: 'var(--bg-1)' }}>
-                  <b style={{ fontSize: 14 }}>{g.kieu === 'template' ? '🧩 ' : g.kieu === 'series' ? '📺 ' : g.kieu === 'quang_cao' ? '📣 ' : '🎬 '}{g.ten}</b>
-                  <Pill color="var(--fg-3)">{TEN_KIEU[g.kieu]}</Pill>
-                  <span style={mono}>{g.kieu === 'quang_cao' ? `${g.phim.length} video · ${g.phim.reduce((a, p) => a + (p.so_anh_qc ?? 0), 0)} ảnh QC` : `${g.phim.length} phim · ${g.phim.reduce((a, p) => a + p.so_tap, 0)} tập`} · {tien(g.chi_phi_cents)}</span>
-                </div>
-                {g.phim.map((p) => (
-                  <div key={p.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '6px 12px 8px 28px', opacity: laLuuTru(p) ? 0.55 : 1 }}>
-                    <button type="button" title={p.poster_url ? 'Poster — mở phim' : 'Chưa có poster — mở phim, tab 🎭 Phim › Poster'} onClick={() => { setTapMo(null); modal.open('phim', p.id); }}
-                      style={{ all: 'unset', cursor: 'pointer', width: 44, aspectRatio: '2 / 3', flexShrink: 0, borderRadius: 4, border: '1px solid var(--line)', background: p.poster_url ? `center / cover no-repeat url(${p.poster_url}), #111` : 'var(--bg-2)', display: 'grid', placeItems: 'center', fontSize: 16, color: 'var(--fg-4)' }}>{p.poster_url ? '' : '🎬'}</button>
-                    <div style={{ display: 'grid', gap: 4, flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                      <button type="button" onClick={() => { setTapMo(null); modal.open('phim', p.id); }} style={{ background: 'none', border: 0, color: 'var(--fg-1)', cursor: 'pointer', fontWeight: 600, padding: 0, font: 'inherit', textAlign: 'left' }}>{p.ten}</button>
-                      {laLuuTru(p) && <Pill color="var(--fg-4)">lưu trữ</Pill>}
-                      <span style={mono}>{LOAI_PHIM.find((l) => l.key === p.loai)?.label ?? p.loai} · {p.so_nhan_vat} anchor · {p.so_canh} cảnh · {tien(p.chi_phi_cents)}</span>
-                    </div>
-                    {!!p.goc_spy?.length && <ChipGocSpy ds={p.goc_spy} gon />}
-                    {!!p.so_anh_qc && <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <span style={mono}>🖼 {p.so_anh_qc} ảnh QC</span>
-                      {(p.anh_qc_tom ?? []).map((a) => <img key={a.id} src={anhNho(a.url, 160)} alt="" title="Ảnh QC — mở phim, tab 🎭 Phim › Ảnh QC" onClick={() => { setTapMo(null); modal.open('phim', p.id); }}
-                        style={{ height: 52, aspectRatio: a.ti_le.replace(':', ' / '), objectFit: 'cover', borderRadius: 4, cursor: 'pointer', border: '1px solid var(--line)' }} />)}
-                    </div>}
-                    {!!p.tap_tom?.length && <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {p.tap_tom.map((t) => (
-                        <button key={t.id} type="button" className="xv-btn" style={{ padding: '2px 8px', fontSize: 11.5 }} title={`Mở tập ${t.so}`} onClick={() => { setTapMo(t.id); modal.open('phim', p.id); }}>
-                          <b>Tập {t.so}</b>{t.ten && t.ten !== p.ten ? ` · ${t.ten}` : ''} <span style={{ color: t.so_canh && t.so_hinh === t.so_canh ? '#4ade80' : 'var(--fg-3)' }}>· {t.so_hinh}/{t.so_canh} hình</span> <span style={{ color: t.so_canh && t.so_clip === t.so_canh ? '#4ade80' : 'var(--fg-3)' }}>· {t.so_clip} clip</span>
-                        </button>
-                      ))}
-                    </div>}
-                    </div>
+            {nhom.map((g) => g.phim.length === 1
+              ? dong(g.phim[0]!, <span style={{ fontSize: 12, width: 16, textAlign: 'center' }} title={TEN_KIEU[g.kieu]}>{bieuTuong(g.kieu)}</span>)
+              : (
+                <section key={g.key}>
+                  <div style={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', gap: 8, alignItems: 'baseline', padding: '5px 10px', background: 'var(--bg-2)', borderBottom: '1px solid var(--line)' }}>
+                    <b style={{ fontSize: 12.5 }}>{bieuTuong(g.kieu)} {g.ten}</b>
+                    <span style={mono}>{TEN_KIEU[g.kieu]} · {g.kieu === 'quang_cao' ? `${g.phim.length} video · ${g.phim.reduce((a, p) => a + (p.so_anh_qc ?? 0), 0)} ảnh QC` : `${g.phim.length} phim · ${g.phim.reduce((a, p) => a + p.so_tap, 0)} tập`} · {tien(g.chi_phi_cents)}</span>
                   </div>
-                ))}
-              </section>
-            ))}
+                  {g.phim.map((p) => dong(p))}
+                </section>
+              ))}
           </div>
         );
       })()}
+      </div>
 
       {/* key = mã phim: mở phim KHÁC trong cùng ngăn (🧩 từ #…, phim đang dùng template) phải dựng lại cả ngăn — giữ component cũ thì form tự lưu
           của phim trước ghi đè sang phim mới (15/10/2026: kinh thánh #36 đè lên template #24). */}

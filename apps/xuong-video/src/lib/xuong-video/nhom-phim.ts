@@ -7,6 +7,8 @@ export type KieuNhom = 'template' | 'series' | 'quang_cao' | 'phim';
 export const TEN_KIEU: Record<KieuNhom, string> = { template: 'Template', series: 'Series', quang_cao: 'Quảng cáo', phim: 'Phim ngắn' };
 export type NhomPhim = { key: string; ten: string; kieu: KieuNhom; phim: Phim[]; chi_phi_cents: number };
 
+/** Ảnh đại diện của phim trên danh sách (anh 15/10/2026: "chưa sinh poster thì dùng ảnh gần nhất"): poster → keyframe mới nhất → ảnh QC đầu. */
+export const anhDaiDien = (p: Pick<Phim, 'poster_url' | 'anh_dai_dien' | 'anh_qc_tom'>): string | null => p.poster_url || p.anh_dai_dien || p.anh_qc_tom?.[0]?.url || null;
 /** Bản lưu trữ: đánh dấu ở kinh thánh (luu_tru) — ẩn mặc định, không xoá. */
 export const laLuuTru = (p: Pick<Phim, 'kinh_thanh'>): boolean => !!p.kinh_thanh?.luu_tru;
 /** Tên nhóm: series → tên series; còn lại → phần trước " · " của tên phim (thương hiệu: "Astrolas", "Mẫu QC"), không có thì cả tên. */

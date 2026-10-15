@@ -184,6 +184,7 @@ export async function dsPhim(): Promise<Phim[]> {
             'so_hinh', (SELECT count(*) FROM xv_canh c WHERE c.tap_id = t.id AND c.keyframe_url IS NOT NULL),
             'so_clip', (SELECT count(*) FROM xv_canh c WHERE c.tap_id = t.id AND (c.video_url IS NOT NULL OR c.video_cuoi_url IS NOT NULL))) ORDER BY t.so), '[]'::json)
           FROM xv_tap t WHERE t.phim_id = p.id) AS tap_tom,
+        (SELECT c.keyframe_url FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = p.id AND c.keyframe_url IS NOT NULL ORDER BY c.updated_at DESC, c.id DESC LIMIT 1) AS anh_dai_dien,
         (SELECT count(*) FROM xv_anh_qc a WHERE a.phim_id = p.id AND NOT a.an) AS so_anh_qc,
         (SELECT coalesce(json_agg(json_build_object('id', a.id, 'url', a.url, 'ti_le', a.ti_le) ORDER BY a.id), '[]'::json)
           FROM xv_anh_qc a WHERE a.phim_id = p.id AND NOT a.an AND a.url IS NOT NULL) AS anh_qc_tom
@@ -197,6 +198,7 @@ const mapPhim = (r: Row): Phim => ({
   so_tap: n(r.so_tap), so_nhan_vat: n(r.so_nhan_vat), so_canh: n(r.so_canh), chi_phi_cents: n(r.chi_phi_cents), updated_at: s(r.updated_at),
   tap_tom: arr<NonNullable<Phim['tap_tom']>[number]>(r.tap_tom).map((t) => ({ ...t, so_canh: Number(t.so_canh), so_hinh: Number(t.so_hinh), so_clip: Number(t.so_clip) })),
   poster_url: r.poster_url ? s(r.poster_url) : null, poster_uv: arr<string>(r.poster_uv),
+  anh_dai_dien: r.anh_dai_dien ? s(r.anh_dai_dien) : null,
   so_anh_qc: n(r.so_anh_qc), anh_qc_tom: arr<NonNullable<Phim['anh_qc_tom']>[number]>(r.anh_qc_tom),
   goc_spy: docGocSpy(r.goc_spy),
 });

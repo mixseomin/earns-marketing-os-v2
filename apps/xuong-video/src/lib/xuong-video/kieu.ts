@@ -306,6 +306,8 @@ export type Phim = {
   so_tap: number; so_nhan_vat: number; so_canh: number; chi_phi_cents: number; updated_at: string;
   /** tóm tắt từng tập cho danh sách phim: số shot · có hình · có clip */
   tap_tom?: { id: number; so: number; ten: string; so_canh: number; so_hinh: number; so_clip: number }[];
+  /** keyframe sửa gần nhất của phim — ảnh đại diện trên danh sách khi chưa có poster (nhom-phim.ts › anhDaiDien) */
+  anh_dai_dien?: string | null;
   /** ảnh QC (anh-qc.ts) chưa ẩn: số thẻ + bản đang dùng của thẻ đã sinh — danh sách phim hiện cạnh video của cùng sản phẩm */
   so_anh_qc?: number; anh_qc_tom?: { id: number; url: string; ti_le: string }[];
   /** góc bán spy.on.tc phim QC này khai thác (goc-spy.ts, cột riêng — form kinh thánh không ghi đè được) */

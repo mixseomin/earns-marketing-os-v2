@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { DONG_TEMPLATE, type DongTemplate, type Lop, ghepThoai, CAM_XUC_THEO_LOAI, type KieuChu, type KinhThanh, type MauQcTemplate, type LoaiNhanVat, type LoaiShotMau, type OTemplate, type DongThoai } from '../src/lib/xuong-video/kieu';
-import { timO, dsOTemplate, oThieu, giaTriMau, khungTuShot } from '../src/lib/xuong-video/template';
+import { timO, dsOTemplate, oThieu, giaTriMau, khungTuShot, anchorGhiCung } from '../src/lib/xuong-video/template';
 import { daDangMay } from '../src/lib/xuong-video/nhip-hinh';
 import { diemNhan } from '../src/lib/xuong-video/diem-nhan';
 import type { KyThuatShot } from '../src/lib/xuong-video/dien-anh';
@@ -53,6 +53,8 @@ for (const t of tep.templates) {
   if (thieuMau.length) throw new Error(`${t.key}: ô thiếu giá trị mẫu: ${thieuMau.map((x) => x.k).join(', ')}`);
   // Template phải có MẪU QC THẮNG kèm video / ảnh thật (anh 15/10/2026) — thiếu thì không dựng.
   if (!t.mau_qc?.length || t.mau_qc.some((m) => !m.ma || !(m.video || m.anh) || !m.mo_ta)) throw new Error(`${t.key}: thiếu mẫu QC thắng (mau_qc: ma + video/ảnh + mo_ta) — chạy scripts/luu-mau-qc.mts <library_id>`);
+  const ghiCung = anchorGhiCung(t.nhan_vat);
+  if (ghiCung.length) throw new Error(`${t.key}: ${ghiCung.join('; ')}`);
   const dongCua = DONG_TEMPLATE.find((x) => x.key === t.dong);
   if (!dongCua || !dongCua.khuon.some((k) => k.key === t.khuon)) throw new Error(`${t.key}: thiếu / sai dòng + khuôn (kieu.ts › DONG_TEMPLATE) — kho template xếp theo dòng → khuôn`);
   const cfg = { mo_ta: t.mo_ta, o, thu_tu: t.o, mau_qc: t.mau_qc, dong: t.dong, khuon: t.khuon };

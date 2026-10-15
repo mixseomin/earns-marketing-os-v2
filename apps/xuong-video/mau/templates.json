@@ -740,7 +740,7 @@
      "giay": 2.5,
      "loai": "tran_an",
      "goc_may": "Overhead flat lay",
-     "hanh_dong": "Three folded tanks in three colors laid out neatly in a row",
+     "hanh_dong": "Three folded {{san_pham}} in three colors laid out neatly in a row",
      "chu_man": "{{dam_bao}}",
      "nv": [
       "sp",

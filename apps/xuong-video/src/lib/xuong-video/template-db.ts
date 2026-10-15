@@ -5,7 +5,7 @@
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import { type Db, type Row, n, s } from './doc-db';
-import { timO, dienSau, dsOTemplate, type OTemplateDs } from './template';
+import { timO, dienSau, dsOTemplate, anchorGhiCung, type OTemplateDs } from './template';
 import { ghepThoai, type CauHinhTemplate, type DongThoai, type KinhThanh } from './kieu';
 import { thamKhaoSauDien, type NguonThamKhao, type ThamKhaoCau } from './tham-khao';
 import { ganCtaTuDong } from './cta-db';
@@ -55,11 +55,17 @@ export async function docOTemplate(db: Db, phimId: number): Promise<{ cfg: CauHi
 
 export type KetQuaChep = { phimId: number; soShot: number; giuMedia: number; nhapLai: number };
 
+
 /** Chép cả phim. laTemplate=true: bản sao là template (giữ nhãn ô). Ngược lại: điền `gt` vào mọi ô, gắn tu_template = nguồn. */
 /** tk = nguồn tham khảo theo ô (tham-khao.ts): câu chữ của shot dùng ô nào thì mang nguồn của ô đó; câu cố định của template giữ nguồn của nó. */
 export async function chepPhim(db: Db, nguonId: number, o: { ten: string; gt: Record<string, string>; laTemplate: boolean; tk?: Record<string, NguonThamKhao[]> }): Promise<KetQuaChep | null> {
   const d = await docCaPhim(db, nguonId);
   if (!d) return null;
+  // Tạo phim TỪ template: anchor sản phẩm ghi cứng = phim mới mang sản phẩm của nguồn → dừng, không chép (lỗi nói rõ để sửa template).
+  if (!o.laTemplate && (d.phim.kinh_thanh as KinhThanh | null)?.template) {
+    const loi = anchorGhiCung(d.nv as { loai: unknown; ten: unknown; anh_ref?: unknown }[]);
+    if (loi.length) throw new Error(`template #${nguonId} hỏng: ${loi.join('; ')} — sửa anchor của template (tab 🎭 Phim) rồi tạo lại`);
+  }
   const gt = o.gt;
   const kq = await db.transaction(async (tx) => {
     const t = tx as unknown as Db;

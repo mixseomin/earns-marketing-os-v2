@@ -167,8 +167,11 @@ export async function taoPhimTuTemplate(templateId: number, ten: string, gt: Rec
   if (!t) return loi('không thấy template');
   const thieu = oThieu(t.o, gt);
   if (thieu.length) return loi(`chưa điền: ${thieu.map((o) => o.ten).join(', ')}`);
-  const r = await chepPhim(db, templateId, { ten: ten.trim(), gt, laTemplate: false });
-  return r ? { ok: true, data: r } : loi('không thấy template');
+  // chepPhim ném lỗi có chữ khi template hỏng (anchor sản phẩm ghi cứng) — đưa nguyên câu đó ra nút, không để thành lỗi máy chủ chung.
+  try {
+    const r = await chepPhim(db, templateId, { ten: ten.trim(), gt, laTemplate: false });
+    return r ? { ok: true, data: r } : loi('không thấy template');
+  } catch (e) { return loi(e instanceof Error ? e.message : String(e)); }
 }
 export async function dsPhim(): Promise<Phim[]> {
   const db = getDb();

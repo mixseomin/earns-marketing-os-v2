@@ -97,3 +97,16 @@ export function khungTuShot(shots: { loai: LoaiShotMau }[]): { beats: Beat[]; ph
 
 /** Giá trị ban đầu của form = giá trị mẫu của từng ô (template tự điền được ngay để thử). */
 export const giaTriMau = (ds: OTemplateDs[]): Record<string, string> => Object.fromEntries(ds.filter((o) => o.mau).map((o) => [o.k, o.mau!]));
+
+/** Anchor SẢN PHẨM của template mà tên / ảnh mẫu bị GHI CỨNG (không phải ô {{…}}): phim tạo ra mang sản phẩm của template nguồn.
+ *  16/10/2026: template #24 (Trước/Sau) bị autosave đè từ phim #36 → anchor "Summet Sculpt Tank" + 9 ảnh áo; phim JettJeans #54 tạo từ nó
+ *  mang ảnh áo làm mẫu quần. Thuần — template-db.ts › chepPhim chặn, dung-template.mts kiểm tệp nguồn. Trả danh sách lỗi, rỗng = sạch. */
+export function anchorGhiCung(nv: { loai: unknown; ten: unknown; anh_ref?: unknown }[]): string[] {
+  return nv.filter((v) => v.loai === 'san_pham').flatMap((v) => {
+    const ten = String(v.ten ?? ''); const anh = (Array.isArray(v.anh_ref) ? v.anh_ref : []) as string[];
+    const loi: string[] = [];
+    if (!ten.includes('{{')) loi.push(`anchor sản phẩm "${ten}" ghi cứng tên (phải là ô {{san_pham}})`);
+    if (anh.some((u) => !String(u).includes('{{'))) loi.push(`anchor sản phẩm "${ten}" ghi cứng ${anh.filter((u) => !String(u).includes('{{')).length} ảnh mẫu (phải là ô {{anh_san_pham}})`);
+    return loi;
+  });
+}

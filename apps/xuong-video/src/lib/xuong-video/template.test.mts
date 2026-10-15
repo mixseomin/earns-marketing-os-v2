@@ -26,3 +26,11 @@ const k = khungTuShot([{ loai: 'hook' }, { loai: 'noi_dau' }, { loai: 'noi_dau' 
 assert.deepStrictEqual(k.beats.map((b) => [b.ten, b.cam_xuc]), [['Mở', 1], ['Vấn đề', -2], ['Giải quyết', 3], ['Chứng minh', 3], ['Chốt', 5]]);
 assert.deepStrictEqual(k.phan_canh.map((p) => [p.ten, p.beat]), [['hook', 'Mở'], ['noi_dau', 'Vấn đề'], ['demo', 'Giải quyết'], ['bang_chung', 'Chứng minh'], ['uu_dai', 'Chốt']]);
 console.log('template.ts: ok');
+// anchor sản phẩm ghi cứng (16/10/2026: template #24 mang "Summet Sculpt Tank" + ảnh áo → phim JettJeans #54 nhận ảnh áo)
+{
+  const { anchorGhiCung } = await import('./template');
+  if (anchorGhiCung([{ loai: 'san_pham', ten: '{{san_pham}}', anh_ref: ['{{anh_san_pham}}'] }, { loai: 'nhan_vat', ten: 'Maya', anh_ref: ['https://x/a.png'] }]).length) throw new Error('template sạch mà bị báo');
+  const l = anchorGhiCung([{ loai: 'san_pham', ten: 'Summet Sculpt Tank', anh_ref: ['https://cdn.shopify.com/a.png', '{{anh_san_pham}}'] }]);
+  if (l.length !== 2 || !l[0]!.includes('Summet') || !l[1]!.includes('1 ảnh')) throw new Error(`ghi cứng phải báo tên + ảnh: ${JSON.stringify(l)}`);
+  console.log('template.test: anchor ghi cứng ok');
+}

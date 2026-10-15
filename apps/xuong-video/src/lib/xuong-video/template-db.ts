@@ -142,7 +142,7 @@ export async function dienLaiChu(db: Db, phimId: number, o: { gt: Record<string,
         const thoaiCu = (c.thoai as { loi?: string; url?: string | null }[]) ?? [];
         const thoai = (dienSau(thoaiT, gt) as { loi?: string; url?: string | null }[]).map((x, j) => {
           const cu = thoaiCu[j];
-          if (cu && cu.loi === x.loi) return { ...x, url: cu.url ?? null };
+          if (cu && cu.loi === x.loi) return { ...x, ...cu };   // giữ NGUYÊN câu cũ (file giọng + giọng đã đọc + độ dài) — trước chỉ giữ url, mất nhãn giọng
           if (x.loi?.trim()) canGiong++;
           return { ...x, url: null };
         });

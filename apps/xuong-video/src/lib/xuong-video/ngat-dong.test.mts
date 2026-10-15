@@ -58,3 +58,7 @@ assert.strictEqual(dh.length, 3); assert.strictEqual(dh[0]!.tu, 0); assert.stric
 assert.ok(dh.every((d, i) => i === 0 || d.tu === dh[i - 1]!.den));
 assert.deepStrictEqual(doanHien('Một câu', 2), [{ tu: 0, den: 2, dong: ['Một câu'] }]);
 console.log('ngat-dong.test (cụm chữ): ok');
+// nhãn ngăn bằng "·": mỗi nhãn một khung, nhãn ngắn giữ nguyên (end card CTA)
+assert.deepStrictEqual(cc('Summet Sculpt Tank · Buy 1 Get 1 Free', 3), ['Summet Sculpt Tank', 'Buy 1 Get 1 Free']);
+assert.deepStrictEqual(cc('Buy 1 Get 1 Free · XS–6XL · 30-day take-it-off test', 3), ['Buy 1 Get 1 Free', 'XS–6XL', '30-day take-it-off test']);
+console.log('ngat-dong.test (nhãn ·): ok');

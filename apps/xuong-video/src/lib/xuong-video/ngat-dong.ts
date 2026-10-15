@@ -94,6 +94,21 @@ function chiaMotCau(cau: string, toiDa: number): string[] {
 }
 export function chiaCum(cau: string, toiDa: number): string[] {
   if (!toiDa || toiDa < 1 || /\*\*/.test(cau)) return [cau];
-  const out = cau.split(/(?<=[.!?…;:])\s+/u).flatMap((c) => chiaMotCau(c, toiDa)).map((c) => c.replace(/\s*[,;·•]$/u, ''));
+  // "·" / "•" / "|" ngăn các NHÃN (tên · ưu đãi · size): mỗi nhãn một khung; nhãn ngắn (≤ toiDa + 2 từ, vd "Buy 1 Get 1 Free") giữ nguyên —
+  // trước đây chặt thành "Buy 1 Get" / "1 Free" ở end card (anh 15/10/2026). Câu thường không có dấu ngăn vẫn theo luật toiDa.
+  const out = cau.split(/(?<=[.!?…;:])\s+/u).flatMap((c) => {
+    const nhan = c.split(/\s+[·•|]\s+/u);
+    if (nhan.length < 2) return chiaMotCau(c, toiDa);
+    const ra: string[] = []; let gom: string[] = []; let soTu = 0;   // gộp nhãn ngắn liền nhau tới toiDa từ ("XS–6XL · 11 colors")
+    const day = () => { if (gom.length) ra.push(gom.join(' · ')); gom = []; soTu = 0; };
+    for (const x of nhan.map((v) => v.trim()).filter(Boolean)) {
+      const n = x.split(/\s+/u).length;
+      if (n > toiDa + 2) { day(); ra.push(...chiaMotCau(x, toiDa)); continue; }
+      if (soTu && soTu + n > toiDa) day();
+      gom.push(x); soTu += n;
+    }
+    day();
+    return ra;
+  }).map((c) => c.replace(/\s*[,;·•]$/u, ''));
   return out.length ? out : [cau];
 }

@@ -394,7 +394,7 @@
         },
         {
           "vai": "hanh_dong",
-          "co": "two",
+          "co": "ws",
           "giay": 4,
           "luat": [
             "khop_hanh_dong",
@@ -715,7 +715,7 @@
         },
         {
           "vai": "hanh_dong",
-          "co": "ms",
+          "co": "ws",
           "giay": 3.5,
           "luat": [
             "chenh_thong_tin",

@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import type { May3d } from './kieu';
-import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
+import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, coCanhLech, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -85,7 +85,7 @@ assert.ok(thieuTrongSet({ nhan_vat: [1, 2], may_3d: mm, dan_dung: { bo_cuc: 'Bac
 assert.deepEqual(thieuTrongSet({ nhan_vat: [1, 2], may_3d: { ...mm, them: ['MacBook Pro'] }, dan_dung: { bo_cuc: 'Background: the open MacBook Pro.' } }, nv, setLap), []);
 // Sửa scripts/bo-set/dung-set.py thì phải tăng BAN_DUNG (khung xám cũ tự hết hiệu lực) rồi ghi lại băm ở đây.
 const bam = createHash('sha1').update(readFileSync(new URL('../../../scripts/bo-set/dung-set.py', import.meta.url))).digest('hex').slice(0, 12);
-assert.deepEqual([BAN_DUNG, bam], [13, '6b66f3fa5779'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+assert.deepEqual([BAN_DUNG, bam], [14, '5723e22f3bcf'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));
@@ -212,3 +212,13 @@ assert.ok(cb[2]?.some((x) => x.startsWith('luật 30°')) && cb[2]?.some((x) => 
 assert.ok(cb[3]?.some((x) => x.startsWith('chiều cao máy')), JSON.stringify(cb[3]));
 assert.ok(Object.values(cb).flat().some((x) => x.startsWith('bộ ống kính')), JSON.stringify(cb));
 console.log('bo-set-3d.test: ok');
+
+// Cỡ cảnh khớp 3D: đo nhân vật chính (cao nhất), nhân vật phụ nhỏ không tính; đạo cụ không tính.
+{
+  const kx = (ds: [string, number][]) => ({ kiem: ds.map(([t, cao]) => ({ nhan_vat: t, bat_buoc: true, trong_khung: true, cao_khung_pt: cao, bi_che_boi: [] })) }) as never;
+  const nv = (t: string) => t === 'Tango' || t === 'Lint';
+  assert.equal(coCanhLech({ khung_xam: kx([['Tango', 10.7], ['Gummy Bear', 40]]), ky_thuat: { co_canh: 'two' } as never }, nv).length, 1);   // #8: kẹo to không cứu được Tango bé
+  assert.equal(coCanhLech({ khung_xam: kx([['Tango', 35.1], ['Lint', 21.3]]), ky_thuat: { co_canh: 'mcu' } as never }, nv).length, 0);       // #23: Lint xa hơn là dàn cảnh chiều sâu
+  assert.equal(coCanhLech({ khung_xam: kx([['Tango', 9.4], ['Lint', 8]]), ky_thuat: { co_canh: 'ms' } as never }, nv).length, 1);
+  assert.equal(coCanhLech({ khung_xam: kx([['Tango', 5]]), ky_thuat: { co_canh: 'ws' } as never }, nv).length, 0);                         // toàn cảnh: nhỏ là đúng
+}

@@ -17,7 +17,7 @@ export const khoiCua = (ten: string, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 13;
+export const BAN_DUNG = 14;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
@@ -89,6 +89,18 @@ export const chuTheQuaNho = (c: Pick<Canh, 'khung_xam'> & Partial<Pick<Canh, 'ky
     return t && t.pt < 5 ? [`${k.nhan_vat} (chủ thể) chỉ chiếm ${Math.round(t.pt * 10) / 10}% khung ở cỡ ${c.ky_thuat?.co_canh ?? '?'} — dời máy cho nó nằm rõ trong khung (không bị nhân vật che, không ở quá xa)`] : [];
   });
 };
+/** CỠ CẢNH KHỚP 3D (15/10/2026, tờ toàn cảnh tập 19): thẻ khai cỡ trung (ms / two / mcu) mà nhân vật chính trong khung 3D chỉ cao 9–15% khung
+ *  (#8 two 10,7%, #13 ms 11%, #14 ms 9,4%) — thực chất là toàn cảnh; keyframe sinh theo chữ "medium shot" vẽ to gấp ba 3D (3D ↔ frame lệch bố cục).
+ *  Đo NHÂN VẬT CHÍNH (cao nhất trong số nhân vật chủ thể): nhân vật phụ đứng xa hơn là dàn cảnh theo chiều sâu, không phải lỗi. Sàn theo khung dọc,
+ *  nhân vật nặn cao ~2–3 cm: ms ≥ 20%, two ≥ 15%, mcu ≥ 30%. Không đạt → kéo máy lại (giữ hướng máy) hoặc khai cỡ cảnh đúng cái 3D cho thấy. */
+export const SAN_CO: Record<string, number> = { ms: 20, two: 15, mcu: 30 };
+export const coCanhLech = (c: Pick<Canh, 'khung_xam'> & Partial<Pick<Canh, 'ky_thuat'>>, laNhanVat: (ten: string) => boolean): string[] => {
+  const co = c.ky_thuat?.co_canh ?? ''; const san = SAN_CO[co]; if (!san) return [];
+  const nv = (c.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.trong_khung && laNhanVat(k.nhan_vat));
+  if (!nv.length) return [];
+  const chinh = nv.reduce((a, b) => (b.cao_khung_pt > a.cao_khung_pt ? b : a));
+  return chinh.cao_khung_pt < san ? [`cỡ cảnh: thẻ khai ${co} mà ${chinh.nhan_vat} (nhân vật chính) chỉ cao ${chinh.cao_khung_pt}% khung 3D (cần ≥ ${san}%) — keyframe sẽ vẽ to hơn 3D — kéo máy lại gần (giữ hướng), hoặc khai cỡ cảnh rộng hơn cho đúng 3D`] : [];
+};
 export const chuTheQuaTo = (c: Pick<Canh, 'khung_xam'> & Partial<Pick<Canh, 'ky_thuat'>>, set?: Pick<BoSet, 'du_lieu'> | null): string[] => ['cu', 'ecu', 'insert', 'mcu'].includes(c.ky_thuat?.co_canh ?? '') ? [] : (c.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.cao_khung_pt > 70 && !vatDet(set).has(k.nhan_vat)).map((k) => `${k.nhan_vat} cao ${k.cao_khung_pt}% khung ở cỡ ${c.ky_thuat?.co_canh ?? '?'} — máy dí sát: lùi máy / đặt tay`);
 
 /** Shot để so trục với shot thứ i: shot liền trước GẦN NHẤT không cố ý vượt trục (POV / lật trục có chủ đích không đặt trục mới). */
@@ -156,6 +168,7 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> 
     for (const k of loiHinhHoc(c)) out.push(!k.trong_khung ? `${k.nhan_vat} (chủ thể) nằm ngoài khung` : `${k.nhan_vat} (chủ thể) bị ${k.bi_che_boi.join(', ')} che`);
     out.push(...chuTheQuaTo(c, set));
     out.push(...chuTheQuaNho(c));
+    out.push(...coCanhLech(c, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t)));
     // 'Bố cục nhắc mà khung không thấy' (dò tên trong chữ) KHÔNG chặn nữa — báo nhầm (chữ 'cable' khớp mọi sợi cáp); bộ giải máy vẫn dùng nó làm
     // gợi ý. Vật BẮT BUỘC thấy khai thẳng ở may_3d.khung (đồ của set cũng được) → kiểm như chủ thể (anh 15/10/2026: 3D là nguồn, không dò chữ).
     for (const t of khoiLapKhung(c, set)) out.push(`${t.ten} lấp ${t.pt}% khung — máy dí sát hoặc lọt trong vật: lùi máy / đổi cỡ cảnh`);

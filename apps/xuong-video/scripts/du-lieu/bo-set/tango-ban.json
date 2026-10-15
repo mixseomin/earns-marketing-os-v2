@@ -1501,16 +1501,16 @@
     },
     "2.2": {
       "dat": [
-        26,
-        9,
-        1.2
+        31,
+        14,
+        3.5
       ],
       "nhin": [
         26,
-        23,
-        1.5
+        24.5,
+        1.0
       ],
-      "ong_kinh": 35,
+      "ong_kinh": 24,
       "vi_tri": [
         {
           "ten": "Tango",
@@ -1589,16 +1589,16 @@
     },
     "2.4": {
       "dat": [
-        8,
-        8,
-        6
+        12,
+        9,
+        5.5
       ],
       "nhin": [
-        31,
-        26,
-        0.8
+        28,
+        30,
+        0.5
       ],
-      "ong_kinh": 35,
+      "ong_kinh": 24,
       "khung": [
         "Sticky",
         "Tango"
@@ -1849,11 +1849,21 @@
           "huong": -90
         }
       ],
-      "phia": 1,
       "khung": [
         "Tango",
         "Gummy Bear"
-      ]
+      ],
+      "dat": [
+        3.0,
+        53.9,
+        1.9
+      ],
+      "nhin": [
+        2.7,
+        70.8,
+        1.1
+      ],
+      "ong_kinh": 35
     },
     "4.3": {
       "vi_tri": [
@@ -1895,14 +1905,14 @@
         "Lint"
       ],
       "dat": [
-        -2.2,
-        63.1,
-        1.0
+        0.1,
+        66.2,
+        1.2
       ],
       "nhin": [
-        5.5,
-        71.5,
-        1.0
+        4.3,
+        70.8,
+        0.9
       ],
       "ong_kinh": 24
     },
@@ -2243,7 +2253,17 @@
         "Tango",
         "Lint"
       ],
-      "phia": 0
+      "dat": [
+        0.0,
+        62.4,
+        1.7
+      ],
+      "nhin": [
+        5.0,
+        71.0,
+        1.1
+      ],
+      "ong_kinh": 40
     },
     "5.4": {
       "vi_tri": [
@@ -2997,10 +3017,20 @@
           "nhay": "chạy nấp sau mép thẻ khi thấy Mr. Wipe tới"
         }
       ],
-      "phia": 70,
       "khung": [
         "Mr. Wipe"
-      ]
+      ],
+      "dat": [
+        62.7,
+        29.2,
+        9.3
+      ],
+      "nhin": [
+        57.5,
+        58.3,
+        7.8
+      ],
+      "ong_kinh": 40
     },
     "7.5": {
       "vi_tri": [
@@ -3052,7 +3082,7 @@
             0
           ],
           "huong": 140,
-          "huong_den": -167
+          "huong_den": 125
         },
         {
           "ten": "Lint",
@@ -3062,7 +3092,7 @@
             0
           ],
           "huong": 123,
-          "huong_den": 13
+          "huong_den": 45
         },
         {
           "ten": "Mr. Wipe",
@@ -3130,7 +3160,7 @@
             50.4,
             0
           ],
-          "huong": -167,
+          "huong": 125,
           "an": true
         },
         {
@@ -3140,14 +3170,24 @@
             52.2,
             0
           ],
-          "huong": 13,
+          "huong": 45,
           "an": true
         }
       ],
-      "phia": 70,
       "khung": [
         "Gummy Bear"
-      ]
+      ],
+      "dat": [
+        62.5,
+        46.5,
+        1.2
+      ],
+      "nhin": [
+        59.8,
+        48.8,
+        0.3
+      ],
+      "ong_kinh": 60
     },
     "7.7a": {
       "vi_tri": [
@@ -3158,7 +3198,7 @@
             50.4,
             0
           ],
-          "huong": -167,
+          "huong": 125,
           "huong_den": 86
         },
         {
@@ -3168,16 +3208,26 @@
             52.2,
             0
           ],
-          "huong": 13,
+          "huong": 45,
           "huong_den": 74
         }
       ],
-      "phia": 70,
       "khung": [
         "Tango",
         "Lint",
         "Orange Card"
-      ]
+      ],
+      "dat": [
+        61,
+        47.5,
+        4.0
+      ],
+      "nhin": [
+        54.5,
+        51.2,
+        0.5
+      ],
+      "ong_kinh": 35
     },
     "7.8": {
       "vi_tri": [
@@ -3315,7 +3365,6 @@
       "vi_tri": []
     },
     "7.6a": {
-      "phia": 30,
       "khung": [
         "Tango",
         "Lint"
@@ -3328,7 +3377,7 @@
             50.4,
             0
           ],
-          "huong": -167,
+          "huong": 125,
           "huong_den": 60
         },
         {
@@ -3338,7 +3387,7 @@
             52.2,
             0
           ],
-          "huong": 13,
+          "huong": 45,
           "huong_den": 60
         },
         {
@@ -3358,7 +3407,18 @@
           "trang": "frizzed STIFF by static electricity: every fibre standing on end, cloth rigid and puffed up, not limp",
           "trang_den": "frizzed STIFF by static electricity: every fibre standing on end, cloth rigid and puffed up, not limp, trailing a wisp of smoke"
         }
-      ]
+      ],
+      "dat": [
+        57.8,
+        47.1,
+        2.0
+      ],
+      "nhin": [
+        51.4,
+        51.3,
+        1.0
+      ],
+      "ong_kinh": 40
     },
     "7.6b": {
       "khung": [
@@ -3375,7 +3435,7 @@
             0
           ],
           "huong": 86,
-          "huong_den": -167
+          "huong_den": 125
         },
         {
           "ten": "Lint",
@@ -3385,18 +3445,18 @@
             0
           ],
           "huong": 60,
-          "huong_den": 13
+          "huong_den": 45
         }
       ],
       "dat": [
-        64.5,
-        52.3,
-        3.5
+        63.7,
+        52.1,
+        3.4
       ],
       "nhin": [
-        55,
-        51,
-        1.2
+        54.1,
+        50.8,
+        1.1
       ],
       "ong_kinh": 35
     },

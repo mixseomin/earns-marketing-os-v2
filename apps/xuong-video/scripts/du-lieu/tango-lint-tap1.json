@@ -1747,19 +1747,19 @@
             "chenh_thong_tin"
           ],
           "thay": "Tango đứng trên ví da cam, tò mò chạm ngón tay đất sét vào phích cắm của sợi cáp trắng nằm ngay trên ví — TÁCH — một tia điện nhỏ giật ngón tay; Tango vẩy tay xuýt xoa.",
-          "bo_cuc": "Reverse angle on Tango from beside the plug: Foreground: the white cable plug lying on the orange leather card holder, screen-left. Mid: Tango standing on the card holder, facing camera, reaching a clay finger toward the plug, screen-right. Background: Lint watching from just behind the plug.",
+          "bo_cuc": "High over-the-shoulder from behind-right of Tango: Tango in the foreground-bottom standing on the orange leather card holder, reaching a clay finger toward the white cable plug that lies on the card holder just beyond him, screen-left; the plug and his finger clearly readable.",
           "mo": "Tango, standing on the orange card holder, reaching one clay finger toward the white cable plug lying on it.",
           "ket": "Tango shaking his zapped finger, a tiny wisp of smoke from the fingertip.",
-          "huong": "Tango faces camera and reaches screen-left to the plug, then pulls back screen-right.",
+          "huong": "Tango reaches screen-left toward the plug, then jerks back and turns toward the camera, shaking his finger.",
           "am": "Tiếng “tách” điện nhỏ, Tango “ui!”.",
           "muc_dich": "Gài cơ chế bẫy: phích cắm có điện, chạm vào là giật.",
           "motif": "Phích cắm có điện (gài cho cú điện giật).",
           "may": {
-            "goc": "ngang",
+            "goc": "cao",
             "chuyen_dong": "doi_net",
             "ong_kinh": "macro",
             "chuyen_canh": "cat",
-            "mo_ta": "Góc ngược của 7.1b (POV): máy sau phích nhìn về Tango — nét từ phích sang ngón tay Tango đúng lúc bị giật."
+            "mo_ta": "Máy qua vai từ trên cao, sau-phải Tango (cùng phía máy chủ cảnh): thấy ngón tay chạm phích; Tango giật lùi quay về máy."
           },
           "anchor": [
             "USB Hub Dock",
@@ -1985,10 +1985,10 @@
             "tu_ke_du"
           ],
           "thay": "Mr. Wipe xù cứng vì tĩnh điện; Tango và Lint nhìn nhau rồi cười lăn.",
-          "bo_cuc": "Foreground: frizzed Mr. Wipe out of focus, screen-right. Mid: Tango and Lint laughing, screen-left.",
+          "bo_cuc": "Tango and Lint side by side on the orange card holder, facing camera, staring screen-right at Mr. Wipe just off-screen; then they look at each other and burst out laughing.",
           "mo": "Mr. Wipe frizzed stiff; Tango and Lint staring.",
           "ket": "Tango and Lint rolling with laughter.",
-          "huong": "They look screen-right at Mr. Wipe, then at each other.",
+          "huong": "They look screen-right at Mr. Wipe (off-screen), then at each other.",
           "am": "Tiếng cười khúc khích.",
           "muc_dich": "Hả hê: kẻ ám ảnh sạch sẽ bị chính thói đó hại.",
           "motif": "",

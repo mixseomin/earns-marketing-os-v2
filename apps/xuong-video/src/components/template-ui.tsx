@@ -60,7 +60,7 @@ function KhungThe({ id }: { id: number }) {
 }
 
 /** 🏆 MẪU QC THẮNG template học theo (video thật lưu R2, phát ngay) + 🎬 PHIM đang dùng template — anh 15/10/2026. */
-function MauVaPhimDung({ d, hrefPhim }: { d: DuLieu; hrefPhim: (id: number) => string }) {
+function MauVaPhimDung({ d, onMoPhimChong }: { d: DuLieu; onMoPhimChong: (id: number) => void }) {
   const mau = d.cfg?.mau_qc ?? [];
   return (
     <div style={{ display: 'grid', gap: 8, margin: '4px 0 10px' }}>
@@ -81,7 +81,7 @@ function MauVaPhimDung({ d, hrefPhim }: { d: DuLieu; hrefPhim: (id: number) => s
       <b style={{ fontSize: 12 }}>🎬 Phim đang dùng template này <span style={mono}>({d.phimDung.length})</span></b>
       {!d.phimDung.length ? <span style={mono}>chưa có phim nào — bấm "Tạo phim từ template"</span> : (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {d.phimDung.map((p) => <a key={p.id} className="xv-lienket xv-mono" style={{ opacity: p.luu_tru ? 0.5 : 1, textDecoration: p.luu_tru ? 'line-through' : undefined }} href={hrefPhim(p.id)} target="_blank" data-ly-do="tab-moi-anh-duyet" rel="noreferrer" title={p.luu_tru ? 'đã lưu trữ · mở ở tab mới' : 'mở phim ở tab mới'}>#{p.id} {p.ten}</a>)}
+          {d.phimDung.map((p) => <button key={p.id} type="button" className="xv-lienket xv-mono" style={{ opacity: p.luu_tru ? 0.5 : 1, textDecoration: p.luu_tru ? 'line-through' : undefined }} onClick={() => onMoPhimChong(p.id)} title={p.luu_tru ? 'đã lưu trữ · mở ở ngăn chồng' : 'mở phim ở ngăn chồng lên trên'}>#{p.id} {p.ten}</button>)}
         </div>
       )}
     </div>
@@ -117,7 +117,7 @@ export function KhoTemplate({ ds: dsVao, onMo }: { ds: Phim[]; onMo: (id: number
 }
 
 /** Panel đầu tab 🎭 Phim của template: nhãn / gợi ý / giá trị mẫu của từng ô (theo nhóm) + nút tạo phim. */
-export function TemplatePanel({ phim, onChanged, onMoPhim, hrefPhim }: { phim: Phim; onChanged: () => Promise<void>; onMoPhim: (id: number) => void; hrefPhim: (id: number) => string }) {
+export function TemplatePanel({ phim, onChanged, onMoPhim, onMoPhimChong }: { phim: Phim; onChanged: () => Promise<void>; onMoPhim: (id: number) => void; onMoPhimChong: (id: number) => void }) {
   const { d, loi, nap } = useTemplate(phim.id);
   const [o, setO] = useState<OTemplateDs[]>([]);
   const [moTa, setMoTa] = useState('');
@@ -140,7 +140,7 @@ export function TemplatePanel({ phim, onChanged, onMoPhim, hrefPhim }: { phim: P
       <h3>🧩 Template<small>sửa phim này như phim thường — chỗ nào đổi theo sản phẩm / góc / chân dung thì gõ <code>{'{{ten_o}}'}</code> (kinh thánh, anchor, brief, chữ màn, lời, prompt…)</small></h3>
       <Loi>{loi}</Loi>
       {d && <div style={{ margin: '4px 0 10px' }}><b style={{ fontSize: 12 }}>Cấu trúc video</b> <span style={mono}>— sửa shot ở tab Kịch bản / Storyboard</span><DaiKhung khung={d.khung} chiTiet /></div>}
-      {d && <MauVaPhimDung d={d} hrefPhim={hrefPhim} />}
+      {d && <MauVaPhimDung d={d} onMoPhimChong={onMoPhimChong} />}
       <O label="Dùng khi nào (hiện trên thẻ ở kho template)"><textarea className="xv-in" rows={2} value={moTa} onChange={(e) => setMoTa(e.target.value)} placeholder="UGC kể chuyện tình huống — hợp sản phẩm giải quyết một nỗi khó chịu hằng ngày…" /></O>
       {!d ? <span style={mono}>…</span> : o.length === 0 ? <div style={mono}>Chưa có ô nào — gõ {'{{san_pham}}'}, {'{{nhan_vat_ten}}'}… vào chữ của phim rồi mở lại tab này.</div> : (
         <div style={{ display: 'grid', gap: 4, marginTop: 6 }}>

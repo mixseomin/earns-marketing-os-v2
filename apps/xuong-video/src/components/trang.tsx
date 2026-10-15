@@ -35,6 +35,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
   const [loiTao, setLoiTao] = useState('');
   const [ban, setBan] = useState(false);
   const modal = useModalParam();
+  const chong = useModalParam(KHOA_CHONG.m);
   const [locKieu, setLocKieu] = useNho<KieuNhom | ''>('xv-loc-kieu', '', ['', 'template', 'series', 'quang_cao', 'phim']);
   const [locTim, setLocTim] = useState('');
   const [hienLuuTru, setHienLuuTru] = useState(false);
@@ -136,6 +137,11 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
       {modal.is('phim') && modal.numId != null && (
         <PhimDrawer key={modal.numId} id={modal.numId} tapDau={tapMo} khoa={khoa} onClose={() => { modal.close(); void taiLai(); }} onXoa={async () => { await xoaPhim(modal.numId!); modal.close(); await taiLai(); }} />
       )}
+      {/* NGĂN CHỒNG (anh 15/10/2026: "mở template vào drawer" — không thay phim đang xem, không mở tab mới): phim thứ hai mở từ trong ngăn phim
+          (🧩 từ #…, phim đang dùng template) nằm đè lên, đóng là về đúng phim cũ. Khoá URL riêng (m2 / tap2 / tab2) → F5 mở lại cả hai lớp. */}
+      {chong.is('phim') && chong.numId != null && modal.is('phim') && (
+        <PhimDrawer key={`c${chong.numId}`} id={chong.numId} khoa={khoa} khoaUrl={KHOA_CHONG} onClose={() => { chong.close(); void taiLai(); }} onXoa={async () => { await xoaPhim(chong.numId!); chong.close(); await taiLai(); }} />
+      )}
     </div>
     </MoHinhCtx.Provider>
   );
@@ -143,14 +149,21 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
 
 // ── Drawer phim ─────────────────────────────────────────────────────────────────────────────────────────────────
 
-function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?: number | null; khoa: Khoa; onClose: () => void; onXoa: () => Promise<void> }) {
+/** Khoá URL của một lớp ngăn phim: lớp chính m/tap/tab; lớp chồng m2/tap2/tab2 (hai lớp không giành tham số của nhau). */
+type KhoaUrl = { m: string; tap: string; tab: string };
+const KHOA_CHINH: KhoaUrl = { m: 'm', tap: 'tap', tab: 'tab' };
+const KHOA_CHONG: KhoaUrl = { m: 'm2', tap: 'tap2', tab: 'tab2' };
+
+function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: { id: number; tapDau?: number | null; khoa: Khoa; onClose: () => void; onXoa: () => Promise<void>; khoaUrl?: KhoaUrl }) {
   const [d, setD] = useState<PhimDayDu | null | undefined>(undefined);
-  const tapParam = useModalParam('tap');
-  const modal = useModalParam();
+  const tapParam = useModalParam(khoaUrl.tap);
+  const modal = useModalParam(khoaUrl.m);
+  /** Mở phim KHÁC từ trong ngăn này → lớp chồng (không thay phim đang xem). */
+  const chong = useModalParam(KHOA_CHONG.m);
   const tai = useCallback(async () => setD(await docPhim(id)), [id]);
   useEffect(() => { void tai(); }, [tai]);
   // Tab đang mở, nhớ theo phim (đọc ngay từ đầu, chỉ ghi khi bấm — cùng cách với khung thu gọn #1212).
-  const [tab, setTab] = useNho<TabPhim>(`xv-tab-${id}`, 'phim', TAB_PHIM.map((t) => t.key), 'tab');
+  const [tab, setTab] = useNho<TabPhim>(`xv-tab-${id}`, 'phim', TAB_PHIM.map((t) => t.key), khoaUrl.tab);
   // Job ảnh còn chạy trên máy chủ (kể cả sau F5) → hỏi lại mỗi 4s tới khi xong.
   const conChay = !!d && (d.dangSinh.nhanVat.length > 0 || d.dangSinh.bienThe.length > 0 || d.dangSinh.poster > 0);
   useDinhKy(tai, conChay ? 4000 : 15000);
@@ -165,7 +178,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?:
       {phim.poster_url && <img src={anhNho(phim.poster_url, 160)} alt="" title="Poster (tab 🎭 Phim › Poster)" style={{ height: 34, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} />}
       <Pill color="var(--fg-3)">{LOAI_PHIM.find((l) => l.key === phim.loai)?.label ?? phim.loai}</Pill>
       {phim.kinh_thanh?.template && <Pill color="var(--violet)">🧩 Template</Pill>}
-      {phim.kinh_thanh?.tu_template && <a className="xv-lienket xv-mono" href={modal.href('phim', phim.kinh_thanh.tu_template.id)} target="_blank" data-ly-do="tab-moi-anh-duyet" rel="noreferrer" title="Phim này tạo từ template — mở template ở tab mới">🧩 từ #{phim.kinh_thanh.tu_template.id}</a>}
+      {phim.kinh_thanh?.tu_template && <button type="button" className="xv-lienket xv-mono" title="Phim này tạo từ template — mở template ở ngăn chồng lên trên" onClick={() => chong.open('phim', phim.kinh_thanh!.tu_template!.id)}>🧩 từ #{phim.kinh_thanh.tu_template.id}</button>}
       <span style={mono} data-ngu-canh={`phim #${phim.id} ${phim.ten}`}>#{phim.id}</span>
       <ThongKe tk={d.thongKe} tongTien={d.tongTien} soAnchor={nhanVat.length} soTap={tap.length} />
       <HoanTac phimId={phim.id} onDone={tai} />
@@ -185,7 +198,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?:
     }>
       {tab === 'so_do' && <SoDoSeries phim={phim} tap={tap} nhanVat={nhanVat} onChanged={tai} onMoTap={(id) => { tapParam.open('tap', id); setTab('kich_ban'); }} />}
       {tab === 'phim' && <>
-        {phim.kinh_thanh?.template && <TemplatePanel phim={phim} onChanged={tai} onMoPhim={(pid) => modal.open('phim', pid)} hrefPhim={(pid) => modal.href('phim', pid)} />}
+        {phim.kinh_thanh?.template && <TemplatePanel phim={phim} onChanged={tai} onMoPhim={(pid) => modal.open('phim', pid)} onMoPhimChong={(pid) => chong.open('phim', pid)} />}
         <KinhThanhForm phim={phim} khoa={khoa} onSaved={tai} />
         <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} />
         <PosterPhim phim={phim} nhanVat={nhanVat} dang={d.dangSinh.poster} loiNen={d.loiPoster} onChanged={tai} />

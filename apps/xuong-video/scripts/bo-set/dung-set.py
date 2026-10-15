@@ -15,7 +15,29 @@ os.makedirs(RA, exist_ok=True)
 CM = 0.01  # Blender tính mét
 CHI_MB = os.environ.get('XV_CHI_MAT_BANG') == '1'   # chỉ vẽ mặt bằng (lượt song song riêng), bỏ render từng shot
 BO_MB = os.environ.get('XV_BO_MAT_BANG') == '1'     # phần song song: mặt bằng vẽ tí hon cho nhanh (lượt mb vẽ bản đủ)
-NHANH = os.environ.get('XV_NHANH') == '1'   # có OpenGL (Xvfb trên box) → khung xám + mặt bằng bằng Workbench; độ sâu vẫn Cycles 1 mẫu
+NHANH = os.environ.get('XV_NHANH') == '1'
+MESH_THAT = os.environ.get('XV_MESH_THAT') == '1'   # nhân vật = mesh thật (mesh/dung-nhan-vat.py) + khung màu render Cycles → chính ảnh render là keyframe
+if MESH_THAT:
+    import importlib.util as _iu
+    _sp = _iu.spec_from_file_location('dung_nhan_vat', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mesh', 'dung-nhan-vat.py'))
+    dnv = _iu.module_from_spec(_sp); _sp.loader.exec_module(dnv)
+KHO_MESH = {}
+def mesh_that(ten):
+    """Mesh thật của nhân vật, dựng MỘT lần (mô phỏng vải ~15 s) rồi nhân bản cho từng shot; không có hàm dựng → None (rơi về khối tạm)."""
+    if not MESH_THAT: return None
+    if ten not in KHO_MESH:
+        objs = dnv.nhan_vat_mesh(ten)
+        if objs:
+            for o in objs: o.hide_render = o.hide_viewport = True
+        KHO_MESH[ten] = objs
+    goc = KHO_MESH[ten]
+    if not goc: return None
+    out = []
+    for i, g in enumerate(goc):
+        o = g.copy(); o.data = g.data.copy() if g.data else None; bpy.context.collection.objects.link(o); o.hide_render = o.hide_viewport = False
+        o.name = f'NV {ten}' if i == 0 else f'NV {ten}·{i}'; out.append(o)
+    return out
+   # có OpenGL (Xvfb trên box) → khung xám + mặt bằng bằng Workbench; độ sâu vẫn Cycles 1 mẫu
 
 def may_ve(s, dep):
     """Engine cho một lần render: dep = khung xám / mặt bằng (Workbench nếu có OpenGL), không dep = độ sâu (Cycles phát sáng thuần)."""
@@ -175,13 +197,23 @@ def anh_sang_mau(s, sh, bat):
     if cam:
         p = cam.matrix_world.translation / CM
         den('L~phu', 'AREA', [p.x, p.y, p.z + 12], (0.75, 0.82, 1.0), 4, tuple(cam.rotation_euler), 40)
+        if MESH_THAT: den('L~phu2', 'AREA', [p.x, p.y, p.z + 4], (0.85, 0.88, 1.0), 2.5, tuple(cam.rotation_euler), 30)   # Cycles tối hơn EEVEE: thêm fill từ phía máy (như đèn phụ trên set thật) cho mặt nhân vật không chìm
 
 def ve_mau(s, sh, ra):
     """Render khung màu bằng EEVEE (chỉ khi có OpenGL — Xvfb trên box). Trả True nếu có ảnh."""
     if not NHANH: return False
     nen = tuple(s.world.node_tree.nodes['Background'].inputs['Color'].default_value); sm = s.world.node_tree.nodes['Background'].inputs['Strength'].default_value
     anh_sang_mau(s, sh, True)
-    s.render.engine = 'BLENDER_EEVEE'; s.eevee.taa_render_samples = 12; s.view_settings.view_transform = 'AgX'
+    if MESH_THAT:   # render = keyframe: Cycles GPU, khử nhiễu, DOF macro
+        s.render.engine = 'CYCLES'; s.cycles.samples = 64; s.cycles.use_denoising = True
+        try:
+            p_ = bpy.context.preferences.addons['cycles'].preferences; p_.compute_device_type = 'METAL'; p_.get_devices()
+            for d_ in p_.devices: d_.use = True
+            s.cycles.device = 'GPU'
+        except Exception as e: print('GPU?', e)
+        cam_ = s.camera; cam_.data.dof.use_dof = True; cam_.data.dof.focus_distance = (Vector(sh['may']['nhin']) * CM - cam_.matrix_world.translation).length; cam_.data.dof.aperture_fstop = 8
+    else: s.render.engine = 'BLENDER_EEVEE'; s.eevee.taa_render_samples = 12
+    s.view_settings.view_transform = 'AgX'
     # JPEG 88: nhẹ 5–8 lần PNG, đủ nét cho mô hình ảnh (anh 15/10/2026: "đẩy nhiều ảnh thì phải nén")
     fm = s.render.image_settings; fm.file_format = 'JPEG'; fm.quality = 88; fm.color_mode = 'RGB'
     s.render.filepath = ra; bpy.ops.render.render(write_still=True)
@@ -244,6 +276,14 @@ def nhan_vat(sh, ket=False):
                 if mau_nv.get('mo_hinh'): chat_lieu(o, mau_nv['mo_hinh'], mau_nv['mau'])
                 than.append(o); tat_ca.append(o)
             continue
+        mt = mesh_that(nv['ten'])
+        if mt:   # MESH THẬT: đặt vào chỗ (X, Y, Z) quay theo hướng; nằm thì xoay cả người như khối tạm
+            from mathutils import Matrix
+            M = Matrix.Translation(Vector((X, Y, Z)) * CM) @ Matrix.Rotation(math.radians(hg), 4, 'Z')
+            for o in mt: o.matrix_world = M @ o.matrix_world
+            bpy.context.view_layer.update()
+            if nv.get('nam'): nam_xuong(mt, X, Y, Z, hg, d, h)
+            than.append(mt[0]); tat_ca.extend(mt); continue
         o = khoi({'hinh': mau_nv['hinh'], 'co': [w, d, h], 'mau': mau_nv['mau'], 'sang': mau_nv.get('sang', 0), 'tam': [0, 0, Z], 'dinh': mau_nv.get('dinh', 0.4)}, f"NV {nv['ten']}", (X, Y), hg)
         if mau_nv.get('mo_hinh'): chat_lieu(o, mau_nv['mo_hinh'], mau_nv['mau']); hoan_thien(o, mau_nv['mo_hinh'], w, d, h)
         than.append(o); tat_ca.append(o)

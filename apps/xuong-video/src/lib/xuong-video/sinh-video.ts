@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '@/lib/r2';
 import { batDauVeo, docVeo, taiVeo, taiAnhBase64 } from './google';
-import { docFal, guiFal, dauVaoTheoSchema } from './fal';
+import { docFal, guiFal, dauVaoTheoSchema, khoaFal } from './fal';
 import { chuoiVideo, guiVideoCong, docVideoCong, giaVideoCong, laHetTien, tachKhoa, MO_HINH_CONG, type BuocNguon, type NguonSinh } from './cong-ai';
 import { baoHetTien } from './bao-het-tien';
 import { promptKyThuatVideo } from './dien-anh';
@@ -57,6 +57,13 @@ export async function khungCuoiCanh(db: Db, canhId: number): Promise<string | nu
     LEFT JOIN LATERAL (SELECT keyframe_url FROM xv_canh x WHERE x.tap_id = c.tap_id AND x.thu_tu > c.thu_tu ORDER BY x.thu_tu LIMIT 1) c2 ON true WHERE c.id = ${canhId}`)) as unknown as Row[];
   return ke[0] && noiKhungShot(ke[0].noi_khung === true, { ky_thuat: ke[0].ky_thuat as { chuyen_canh?: string } | null }) && ke[0].keyframe_url ? s(ke[0].keyframe_url) : null;
 }
+
+/** Veo trên Google → cùng model trên fal (dự phòng khi Google hết lượt/ngày). Id đã kiểm tồn tại trên fal.ai/models 15/10/2026. */
+const VEO_SANG_FAL: Record<string, string> = {
+  'veo-3.1-lite-generate-preview': 'fal-ai/veo3.1/lite/image-to-video',
+  'veo-3.1-fast-generate-preview': 'fal-ai/veo3.1/fast/image-to-video',
+  'veo-3.1-generate-preview': 'fal-ai/veo3.1/image-to-video',
+};
 
 /** Gửi một shot đi sinh video (nháp hoặc bản cuối) — shot phải đã duyệt keyframe. Trả về id job; kết quả về qua kiemVideoTap. */
 /** tuDong (nút "Sinh nháp" một lần bấm, 13/10/2026 — "không lỗi thì chặn"): keyframe đang chọn chưa duyệt → bấm sinh video = duyệt nó;
@@ -134,6 +141,16 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
     if (!anhDau) { await xongJob(db, job, { loi: 'không tải được keyframe' }); return loi('không tải được keyframe'); }
     const anhCuoi = khungCuoi ? await taiAnhBase64(khungCuoi) : null;
     kq = await batDauVeo({ model: bc.kt.mo_hinh_video, prompt, anhDau, anhCuoi, tiLe: bc.kt.ti_le, doPhanGiai: bc.kt.do_phan_giai, giay, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) });
+    // DỰ PHÒNG CUỐI = cùng Veo qua fal (anh 15/10/2026 "fallback đi, phần video phải vậy mới thông"): Google trực tiếp chỉ ~10 lượt/ngày/model
+    // ở Tier 1 → lượt 11 trở đi dính 429 cả ngày. Không áp khi anh chọn đích danh 'google:<model>' (đã chọn nguồn thì báo lỗi, không tự đổi).
+    const falId = VEO_SANG_FAL[bc.kt.mo_hinh_video];
+    if (!kq.ok && khoaVid.kieu !== 'google' && falId && khoaFal()) {
+      const loiGoogle = kq.loi;
+      const f = await guiFal(falId, await dauVaoTheoSchema(falId, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, giay: bc.canh.thoi_luong_s || giay, tiLe: bc.kt.ti_le, tieng, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) }));
+      const thu: BuocNguon[] = [...thuCong, { cong: 'google', model: bc.kt.mo_hinh_video, ok: false, loi: loiGoogle }, { cong: 'fal', model: falId, ok: f.ok, ...(f.ok ? {} : { loi: f.loi }) }];
+      await db.execute(sql`UPDATE xv_job SET provider = 'fal', model = ${`fal:${falId}`}, nguon = ${JSON.stringify({ cong: 'fal', model: falId, thu })}::jsonb WHERE id = ${job}`);
+      kq = f.ok ? f : { ok: false, loi: `Google: ${loiGoogle} · fal: ${f.loi}` };
+    }
   }
   if (!kq.ok) {
     await xongJob(db, job, { loi: kq.loi });

@@ -83,7 +83,9 @@ export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' 
   if (tap.brief.trim().length < 20) out.push('chưa có brief (mục tiêu, người xem, thông điệp) — viết ở ô Brief của tập');
   const cx = tap.beats.map((b) => b.cam_xuc);
   if (tap.beats.length < 3) out.push('chưa có khung truyện (≥3 beat: mở – xung đột – giải quyết)');
-  else if (!(Math.min(...cx) < 0 && Math.max(...cx) > 0)) out.push('khung truyện phẳng — phải có beat âm (vấn đề/cao trào) và beat dương (giải quyết)');
+  // Beat âm + dương là luật KỂ CHUYỆN của phim truyện. QC thắng mở bằng tính năng / ưu đãi (VionB, Huggea) không có nhịp âm — QC chấm theo tiêu chí QC
+  // (kiem-qc.ts + người xem bản QC), như cổng kiểm khung đã gỡ cho QC. 15/10/2026: 7/12 template QC (Tính năng mở đầu, 15s, POV, Haul…) bị chặn oan ở đây.
+  else if (!phim.laQc && !(Math.min(...cx) < 0 && Math.max(...cx) > 0)) out.push('khung truyện phẳng — phải có beat âm (vấn đề/cao trào) và beat dương (giải quyết)');
   if (!tap.phan_canh.length) out.push('chưa có phân cảnh (mục tiêu · xung đột · cảm xúc đầu→cuối)');
   if ((phim.phong_cach ?? '').trim().length < 30) out.push('chưa chốt phong cách hình (style frame: ánh sáng, màu, chất liệu) — mục 1 Kinh thánh');
   // Nhịp hình (nhip-hinh.ts): shot liền nhau trùng cỡ cảnh + chuyển động máy, quá nhiều shot máy đứng yên — sửa 0đ bằng 🎥 trong thanh 🎬.

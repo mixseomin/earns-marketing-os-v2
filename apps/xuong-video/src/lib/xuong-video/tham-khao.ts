@@ -6,7 +6,8 @@
 import { dienChu, timO } from './template';
 
 export type NguonThamKhao = {
-  loai: 'loi_khach' | 'qc_thang';
+  /** trang_ban = thông tin thật của sản phẩm trên trang bán (ưu đãi, size, tính năng) */
+  loai: 'loi_khach' | 'qc_thang' | 'trang_ban';
   /** reddit · amazon · trustpilot · qc_meta… */ nguon: string;
   /** trích NGUYÊN VĂN câu/đoạn đã học */ trich: string;
   link?: string;

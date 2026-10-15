@@ -995,6 +995,7 @@
     "giong",
     "boi_canh",
     "noi_dau",
+    "noi_dau_2",
     "noi_dau_hinh",
     "demo",
     "demo_hinh",
@@ -1087,7 +1088,7 @@
      "loai": "noi_dau",
      "goc_may": "Close-up",
      "hanh_dong": "The problem up close",
-     "chu_man": "{{noi_dau}}",
+     "chu_man": "{{noi_dau_2}}",
      "nv": [
       "nv",
       "bc"
@@ -1113,6 +1114,20 @@
      "tk": [
       {
        "cau": "Then I tried this.",
+       "nguon": [
+        {
+         "loai": "qc_thang",
+         "nguon": "qc_meta",
+         "trich": "Then I tried UroControl — and little by little, my confidence came back.",
+         "ma": "26513767751636928",
+         "link": "https://www.facebook.com/ads/library/?id=26513767751636928",
+         "ghi": "Lovy · x33 · 172 ngày",
+         "ky_thuat": "gọi tên thứ đã thất bại → bước ngoặt"
+        }
+       ]
+      },
+      {
+       "cau": "Then I tried {{san_pham}}",
        "nguon": [
         {
          "loai": "qc_thang",

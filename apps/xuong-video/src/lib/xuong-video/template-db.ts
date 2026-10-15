@@ -6,7 +6,7 @@ import 'server-only';
 import { sql } from 'drizzle-orm';
 import { type Db, type Row, n, s } from './doc-db';
 import { timO, dienSau, dsOTemplate, type OTemplateDs } from './template';
-import type { CauHinhTemplate, KinhThanh } from './kieu';
+import { ghepThoai, type CauHinhTemplate, type DongThoai, type KinhThanh } from './kieu';
 import { thamKhaoSauDien, type NguonThamKhao, type ThamKhaoCau } from './tham-khao';
 
 const BO = new Set(['id', 'created_at', 'updated_at']);
@@ -109,5 +109,46 @@ export async function chepPhim(db: Db, nguonId: number, o: { ten: string; gt: Re
         trang_thai: doi ? (media.keyframe_url ? 'co_keyframe' : 'nhap') : c.trang_thai });
     }
     return { phimId, soShot: d.canh.length, giuMedia, nhapLai };
+  });
+}
+
+/** ĐIỀN LẠI CHỮ từ template (anh 15/10/2026: câu chữ QC phải viết lại theo nguồn tham khảo): phim đã tạo từ template nhận giá trị ô mới + nguồn
+ *  theo ô → mỗi shot lấy lại chữ màn + lời từ shot template cùng vị trí (tập theo thứ tự, shot theo thu_tu + nhánh), gắn tham_khao.
+ *  CHỈ chữ: keyframe / clip giữ nguyên; câu lời đổi thì bỏ file giọng câu đó (phải sinh giọng lại). Trả số shot đổi + số câu cần giọng mới. */
+export async function dienLaiChu(db: Db, phimId: number, o: { gt: Record<string, string>; tk: Record<string, NguonThamKhao[]> }): Promise<{ shot: number; canGiong: number; lech: string[] } | null> {
+  const phim = (await q(db, sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`))[0];
+  const kt = (phim?.kinh_thanh ?? {}) as KinhThanh;
+  if (!kt.tu_template?.id) return null;
+  const tpl = await docCaPhim(db, kt.tu_template.id);
+  if (!tpl) return null;
+  const gt = { ...kt.tu_template.gia_tri, ...o.gt };
+  const tk = { ...(kt.tu_template.tham_khao ?? {}), ...o.tk };
+  const tapP = await q(db, sql`SELECT id FROM xv_tap WHERE phim_id = ${phimId} ORDER BY so, id`);
+  let shot = 0, canGiong = 0; const lech: string[] = [];
+  return db.transaction(async (tx) => {
+    const t = tx as unknown as Db;
+    for (const [i, tp] of tapP.entries()) {
+      const tt = tpl.tap[i];
+      if (!tt) { lech.push(`tập ${i + 1}: template không có`); continue; }
+      const nguon = tpl.canh.filter((c) => n(c.tap_id) === n(tt.id));
+      for (const c of await q(t, sql`SELECT id, thu_tu, nhanh, thoai FROM xv_canh WHERE tap_id = ${n(tp.id)} ORDER BY thu_tu, id`)) {
+        const m = nguon.find((x) => n(x.thu_tu) === n(c.thu_tu) && s(x.nhanh) === s(c.nhanh));
+        if (!m) { lech.push(`shot #${n(c.thu_tu)}: template không có`); continue; }
+        const thoaiT = (m.thoai as { loi?: string }[]) ?? [];
+        const thoaiCu = (c.thoai as { loi?: string; url?: string | null }[]) ?? [];
+        const thoai = (dienSau(thoaiT, gt) as { loi?: string; url?: string | null }[]).map((x, j) => {
+          const cu = thoaiCu[j];
+          if (cu && cu.loi === x.loi) return { ...x, url: cu.url ?? null };
+          if (x.loi?.trim()) canGiong++;
+          return { ...x, url: null };
+        });
+        const tham_khao = thamKhaoSauDien({ chu_man: s(m.chu_man), thoai: thoaiT, tham_khao: (m.tham_khao as ThamKhaoCau[]) ?? [] }, gt, tk);
+        await t.execute(sql`UPDATE xv_canh SET chu_man = ${dienSau(s(m.chu_man), gt)}, thoai = ${JSON.stringify(thoai)}::jsonb,
+          loi_thoai = ${ghepThoai(thoai as DongThoai[])}, tham_khao = ${JSON.stringify(tham_khao)}::jsonb, updated_at = now() WHERE id = ${n(c.id)}`);
+        shot++;
+      }
+    }
+    await t.execute(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(jsonb_set(kinh_thanh, '{tu_template,gia_tri}', ${JSON.stringify(gt)}::jsonb), '{tu_template,tham_khao}', ${JSON.stringify(tk)}::jsonb), updated_at = now() WHERE id = ${phimId}`);
+    return { shot, canGiong, lech };
   });
 }

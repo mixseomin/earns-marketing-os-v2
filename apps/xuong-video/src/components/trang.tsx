@@ -114,7 +114,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
               {/* Cột phải: dòng tên + số liệu + tập + ảnh QC; chân dung / góc spy (nếu có) xuống dòng riêng, thụt vào dưới tên (anh 15/10/2026). */}
               <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 3 }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', minHeight: 38 }}>
-              <button type="button" onClick={() => moPhim(p.id)} style={{ background: 'none', border: 0, color: 'var(--fg-1)', cursor: 'pointer', fontWeight: 600, padding: 0, font: 'inherit', textAlign: 'left' }}>{p.ten}</button>
+              <button type="button" onClick={() => moPhim(p.id)} style={{ background: 'none', border: 0, color: 'var(--fg-1)', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 700, fontSize: 14.5, textAlign: 'left' }}>{p.ten}</button>
               {laLuuTru(p) && <Pill color="var(--fg-4)">lưu trữ</Pill>}
               <span style={mono}>{LOAI_PHIM.find((l) => l.key === p.loai)?.label ?? p.loai} · {p.so_nhan_vat} anchor · {p.so_canh} cảnh · {tien(p.chi_phi_cents)}</span>
               {(p.tap_tom ?? []).map((t) => (

@@ -179,6 +179,12 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   const trUrl = !kx && !noi && tr?.keyframe_url && tr.phan_doan === bc.canh.phan_doan && tr.keyframe_url !== ms?.keyframe_url && urlRef.length < 9 ? tr.keyframe_url : null;
   if (trUrl) { urlRef.push(trUrl); vai.push({ url: trUrl, nhan: `✂ trạng thái shot trước #${tr!.thu_tu}` }); }
   const trChu = trUrl ? `Image ${urlRef.length} = the shot just before this cut, same scene: carry over every character's and object's STATE and place in the set (what they hold, their shape, where they stand) unless the action above changes it; stay on the same side of the action. Do NOT copy its framing.` : '';
+  // BẢNG TỈ LỆ (character lineup, luật ti_le_nhan_vat — anh 15/10/2026: "chưa thấy bảng vẽ tỷ lệ giữa các đối tượng"): mỗi nhân vật một tấm mẫu
+  // riêng chụp ở cỡ khác nhau, câu SCALE chỉ là chữ → gửi kèm ảnh cả dàn đứng cạnh nhau đúng cm khi khung có ≥ 2 nhân vật / đạo cụ.
+  const soMon = nvRef.filter((v) => v.loai !== 'boi_canh').length;
+  const btlUrl = !ket && kx && bc.kt.bang_ti_le && soMon >= 2 && urlRef.length < 10 ? bc.kt.bang_ti_le : null;
+  if (btlUrl) { urlRef.push(btlUrl); vai.push({ url: btlUrl, nhan: '📏 bảng tỉ lệ dàn nhân vật' }); }
+  const btlChu = btlUrl ? `Image ${urlRef.length} = SIZE CHART of the cast (straight front view, ruler lines every 1 cm, true height written under each): it is NOT a scene and NOT a pose — use it only for every character's and prop's true size relative to the others; the shapes there are stand-ins, each look comes from its reference images.` : '';
   // KHUNG CHUẨN MÀU của cảnh (hero frame / color script, luật khung_chuan_mau): shot có 3D thì bố trí lấy từ Image 1, nhưng TÔNG MÀU / phơi sáng / màu
   // đèn lấy từ keyframe mở cảnh đã có — mỗi keyframe một tông (#32 có màn hình xanh sau lưng trong khi 3D là tường tối) là lỗi khán giả thấy ngay.
   const mauUrl = kx && !ket && ms?.keyframe_url && ms.keyframe_url !== noi && urlRef.length < 10 ? ms.keyframe_url : null;
@@ -212,7 +218,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // CỠ NHÂN VẬT TRONG KHUNG bằng SỐ (15/10/2026, kiểm khung tập 19: #9 / #30 3D là cận mặt Tango mà keyframe vẽ cỡ trung — prompt chỉ bảo
   // "theo bố cục ảnh 1", không nói chủ thể to bao nhiêu): chiều cao + vùng đo trên chính khung 3D (khung_xam.kiem / thay). Chỉ khung MỞ.
   const framingCau = khungChu(bc.canh.khung_xam, nvKhung, ket);
-  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), kxChu, trangCau, huongCau, framingCau, tiLeCau, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
+  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), kxChu, trangCau, huongCau, framingCau, tiLeCau, btlChu, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
   return { prompt, urlRef, vai };
 }
 

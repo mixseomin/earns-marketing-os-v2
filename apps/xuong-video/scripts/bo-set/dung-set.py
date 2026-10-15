@@ -71,6 +71,8 @@ def khoi(p, ten, goc=(0, 0), xoay=0):
     elif h == 'vom':
         bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=0.5, location=(gx * CM, gy * CM, z * CM))
         c = c * 2
+    elif h == 'non':   # nón cụt (thân khăn rủ Mr. Wipe): đáy rộng co[0]×co[1], đỉnh = đáy × dinh, cao co[2]
+        bpy.ops.mesh.primitive_cone_add(vertices=40, radius1=0.5, radius2=0.5 * p.get('dinh', 0.4), depth=1, location=(gx * CM, gy * CM, (z + c / 2) * CM))
     o = bpy.context.object
     o.scale = (w * CM, d * CM, c * CM)
     o.rotation_euler = Euler((math.radians(p.get('nghieng', 0)), 0, math.radians(xoay + p.get('xoay', 0))))   # nghiêng quanh trục x của khối (nắp laptop) rồi mới xoay
@@ -198,7 +200,6 @@ def nhan_vat(sh, ket=False):
         if ket: nv = {**nv, 'tam': nv.get('den') or nv['tam'], 'huong': nv.get('huong_den', nv.get('huong', 0)), 'nam': nv.get('nam_den', nv.get('nam'))}   # khung KẾT: chỗ + hướng + dáng (bẹp) lúc kết
         X, Y, Z = nv['tam'][0], nv['tam'][1], (nv['tam'][2] if len(nv['tam']) > 2 else 0)
         w, d, h = mau_nv['co']
-        if nv.get('nam'): d, h = h, d   # nằm sấp / bẹp: cao thành sâu
         hg = nv.get('huong', 0)
         # ĐÃ CHIA (vi_tri.chia = số mảnh, kẹo bẻ đôi ở cảnh 4): dựng TỪNG MẢNH cạnh nhau (đang cầm thì chỉ mảnh của người cầm) + ghi trạng thái
         # cho nhãn keyframe — trước đây 3D dựng con gấu nguyên nên keyframe vẽ kẹo nguyên dù chữ ghi "half" (7.1a / 7.4a tập 19, 15/10/2026).
@@ -208,26 +209,41 @@ def nhan_vat(sh, ket=False):
             TRANG[nv['ten']] = f"split into {n} pieces; only ONE piece here (the holder's share)" if so == 1 else f"split into {n} separate pieces lying side by side, NOT a whole one"
             for i in range(so):
                 off = (i - (so - 1) / 2) * w * 0.75
-                o = khoi({'hinh': mau_nv['hinh'], 'co': [w * 0.55, d, h * 0.85], 'mau': mau_nv['mau'], 'tam': [off, 0, Z]}, f"NV {nv['ten']}·manh{i}", (X, Y), hg)
+                dm, hm = (h, d) if nv.get('nam') else (d, h)   # mảnh nằm: cao thành sâu
+                o = khoi({'hinh': mau_nv['hinh'], 'co': [w * 0.55, dm, hm * 0.85], 'mau': mau_nv['mau'], 'tam': [off, 0, Z]}, f"NV {nv['ten']}·manh{i}", (X, Y), hg)
                 if mau_nv.get('mo_hinh'): chat_lieu(o, mau_nv['mo_hinh'], mau_nv['mau'])
                 than.append(o); tat_ca.append(o)
             continue
-        o = khoi({'hinh': mau_nv['hinh'], 'co': [w, d, h], 'mau': mau_nv['mau'], 'sang': mau_nv.get('sang', 0), 'tam': [0, 0, Z]}, f"NV {nv['ten']}", (X, Y), hg)
+        o = khoi({'hinh': mau_nv['hinh'], 'co': [w, d, h], 'mau': mau_nv['mau'], 'sang': mau_nv.get('sang', 0), 'tam': [0, 0, Z], 'dinh': mau_nv.get('dinh', 0.4)}, f"NV {nv['ten']}", (X, Y), hg)
         if mau_nv.get('mo_hinh'): chat_lieu(o, mau_nv['mo_hinh'], mau_nv['mau']); hoan_thien(o, mau_nv['mo_hinh'], w, d, h)
         than.append(o); tat_ca.append(o)
-        phan = [dict(p) for p in mau_nv.get('phan', [])] if not nv.get('nam') else []
+        # NẰM (bẹp / ngã): dựng người ĐỨNG đủ tay, chân, tóc, mắt rồi xoay cả người ngửa ra sau quanh trục ngang của nó (mặt hướng lên).
+        # Trước 15/10/2026 nằm = đổi cao thành sâu + BỎ mọi phần → còn quả trứng trơn có hai mắt, model ảnh không nhận ra là Tango nằm (#14 tập 19).
+        dau = len(tat_ca) - 1
+        phan = [dict(p) for p in mau_nv.get('phan', [])]
         if mau_nv.get('mat'):
             e = max(0.3, 0.26 * min(w, h)); ex = 0.22 * w
-            if nv.get('nam'): ey, ez = -d * 0.25, h - e * 0.3
-            else: ey, ez = -d / 2 + e * 0.15, h * 0.62 - e / 2
+            ey, ez = -d / 2 + e * 0.15, h * 0.62 - e / 2
             for sx in (-1, 1):
                 phan.append({'hinh': 'cau', 'co': [e, e, e], 'mau': '#ffffff', 'tam': [sx * ex, ey, ez]})
-                phan.append({'hinh': 'cau', 'co': [e * 0.5, e * 0.5, e * 0.5], 'mau': '#111111', 'tam': [sx * ex, ey - e * 0.38, ez + e * 0.25] if not nv.get('nam') else [sx * ex, ey - e * 0.2, ez + e * 0.45]})
+                phan.append({'hinh': 'cau', 'co': [e * 0.5, e * 0.5, e * 0.5], 'mau': '#111111', 'tam': [sx * ex, ey - e * 0.38, ez + e * 0.25]})
         for i, p in enumerate(phan):
             p = {**p, 'tam': [p['tam'][0], p['tam'][1], p['tam'][2] + Z]}
             pk = khoi(p, f"NV {nv['ten']}·{i}", (X, Y), hg); tat_ca.append(pk)
             if p.get('chat'): chat_lieu(pk, p['chat'], p['mau'])
+        if nv.get('nam'): nam_xuong(tat_ca[dau:], X, Y, Z, hg, d, h)
     return than, tat_ca
+
+def nam_xuong(objs, X, Y, Z, hg, d, h):
+    """Xoay một người đang đứng (đáy giữa ở X, Y, Z; quay theo hg) ngửa ra sau 90° quanh trục ngang của chính nó: mặt trước lên trời, đỉnh đầu
+    về phía sau; thân nằm giữa đúng chỗ X, Y, đáy nằm trên mặt Z (dày bằng chiều sâu d)."""
+    from mathutils import Matrix
+    bpy.context.view_layer.update()
+    a = math.radians(hg); u = Vector((math.cos(a), math.sin(a), 0)); truoc = Vector((math.sin(a), -math.cos(a), 0))
+    P = Vector((X, Y, Z)) * CM
+    M = Matrix.Translation(P + Vector((0, 0, d / 2 * CM)) + truoc * (h / 2 * CM)) @ Matrix.Rotation(math.radians(-90), 4, u) @ Matrix.Translation(-P)
+    for o in objs: o.matrix_world = M @ o.matrix_world
+    bpy.context.view_layer.update()
 
 def may(s, m, ten='cam'):
     cd = bpy.data.cameras.new(ten); cd.lens = m['ong_kinh']; cd.sensor_fit = 'AUTO'; cd.clip_start = 0.002
@@ -454,6 +470,46 @@ def toan_canh(s, canh_ds, ra):
 
 s = dung_set()
 shots = [sh for sh in DL['shot'] if not CHI or sh['ma'] in CHI]
+def bang_ti_le(s, ra):
+    """BẢNG TỈ LỆ (character lineup — anh 15/10/2026: "chưa thấy bảng vẽ tỷ lệ giữa các đối tượng"): mọi nhân vật / đạo cụ của tập đứng cạnh nhau,
+    đúng cỡ cm, nhìn thẳng từ trước bằng máy TRỰC GIAO (không méo phối cảnh), thước vạch từng cm phía sau + tên dưới chân. Ảnh này đi kèm
+    keyframe làm ảnh tham chiếu cỡ — trước đây tỉ lệ chỉ là một câu chữ trong prompt. Ra <ra>/bang-ti-le.png."""
+    for o in list(bpy.data.objects):
+        if o.type in ('MESH', 'CURVE', 'FONT'): bpy.data.objects.remove(o, do_unlink=True)
+    ten = sorted(DL['nhan_vat_mau'], key=lambda t: -DL['nhan_vat_mau'][t]['co'][2])
+    # Dựng từng món ở gốc, đo hộp THẬT (tay khổng lồ, tóc, tai vượt cỡ khai) rồi mới xếp hàng — xếp theo cỡ khai thì món này đè món kia.
+    from mathutils import Matrix
+    x = 0.0; vt = []; cao = 0.0
+    for t in ten:
+        _, os_ = nhan_vat({'nhan_vat': [{'ten': t, 'tam': [0, 0, 0], 'huong': 0}]}); bpy.context.view_layer.update()
+        ds = [o.matrix_world @ Vector(b) for o in os_ for b in o.bound_box]
+        x0, x1 = min(p.x for p in ds) / CM, max(p.x for p in ds) / CM; zmax = max(p.z for p in ds) / CM
+        dx = x - x0
+        for o in os_: o.matrix_world = Matrix.Translation(Vector((dx * CM, 0, 0))) @ o.matrix_world
+        vt.append((t, x + (x1 - x0) / 2, zmax)); x += (x1 - x0) + 1.4; cao = max(cao, zmax)
+    rong = x - 1.4; cao += 1.5
+    for t, cx, zmax in vt:   # tên + chiều cao THẬT (gồm tóc, tai, đầu khăn)
+        tx = bpy.data.curves.new('t', 'FONT'); tx.body = f'{t}\n{zmax:.1f} cm'; tx.size = 0.55 * CM; tx.align_x = 'CENTER'
+        to = bpy.data.objects.new(f'ten {t}', tx); s.collection.objects.link(to); to.location = Vector((cx, -2, -1.2)) * CM; to.rotation_euler = (math.radians(90), 0, 0)
+        tx.materials.append(mau('#111111'))
+    for k in range(0, int(cao) + 1):   # thước: vạch ngang mỗi cm sau lưng hàng nhân vật, số cm ở mép trái
+        khoi({'hinh': 'hop', 'co': [rong + 3, 0.02, 0.03 if k % 5 else 0.06], 'mau': '#9aa3ad' if k % 5 else '#4b5563', 'tam': [rong / 2, 3, k]}, f'vach {k}')
+        tx = bpy.data.curves.new('so', 'FONT'); tx.body = f'{k}'; tx.size = 0.4 * CM; tx.align_x = 'RIGHT'
+        to = bpy.data.objects.new(f'so {k}', tx); s.collection.objects.link(to); to.location = Vector((-1.8, 2.9, k - 0.15)) * CM; to.rotation_euler = (math.radians(90), 0, 0)
+        tx.materials.append(mau('#4b5563'))
+    khoi({'hinh': 'hop', 'co': [rong + 6, 0.1, cao + 4], 'mau': '#ece8df', 'tam': [rong / 2, 3.2, -2.5]}, 'nen sau')
+    khoi({'hinh': 'hop', 'co': [rong + 6, 8, 0.1], 'mau': '#d8d2c4', 'tam': [rong / 2, 0, -0.1]}, 'nen duoi')
+    bw, bh = rong + 5, cao + 3.2   # khung ôm vừa hàng + thước + tên (không chừa mảng trống)
+    cd = bpy.data.cameras.new('lt'); cd.type = 'ORTHO'; cd.ortho_scale = max(bw, bh) * CM
+    oc = bpy.data.objects.new('lt', cd); s.collection.objects.link(oc); oc.location = Vector((rong / 2 - 0.6, -40, cao / 2 - 1.0)) * CM; oc.rotation_euler = (math.radians(90), 0, 0); s.camera = oc
+    s.render.resolution_x, s.render.resolution_y = 1800, max(400, int(1800 * bh / bw))
+    s.world.node_tree.nodes['Background'].inputs['Color'].default_value = (0.9, 0.88, 0.84, 1)
+    may_ve(s, True); s.display.shading.show_shadows = False
+    s.render.filepath = f'{ra}/bang-ti-le.png'; bpy.ops.render.render(write_still=True)
+    print('XONG bang ti le', [(t, round(z, 1)) for t, _, z in vt])
+
+if os.environ.get('XV_BANG_TI_LE'):   # đường riêng: chỉ render bảng tỉ lệ nhân vật
+    bang_ti_le(s, RA); sys.exit(0)
 if os.environ.get('XV_TOAN_CANH'):   # đường riêng: chỉ render toàn cảnh từng cảnh (đầu vào = tệp json danh sách cảnh)
     toan_canh(s, json.load(open(os.environ['XV_TOAN_CANH'], encoding='utf-8')), RA); sys.exit(0)
 kiem = {}; giai = {}; thay = {}; di = {}

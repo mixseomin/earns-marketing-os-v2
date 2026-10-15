@@ -98,6 +98,44 @@ K['Lint']['mo_hinh'] = 'long'; K['Mr. Wipe']['mo_hinh'] = 'vai'; K['Mr. Wipe']['
 K['Gummy Bear']['mo_hinh'] = 'keo'
 for p_ in K['Gummy Bear']['phan']: p_['chat'] = 'keo'
 K['Cotton Ball']['mo_hinh'] = 'bong'
+# ── KHỐI NHẬN RA ĐƯỢC DÁNG (15/10/2026, anh: "các khối mô hình nhân vật đang sơ sài nên AI ảnh và video dễ làm sai tư thế, nhận dạng, kích thước"):
+# dựng theo ảnh mẫu từng nhân vật — silhouette phải đọc ra là ai ngay trên khung màu (Mr. Wipe trước đây là tấm hộp → #35 vẽ sai; Gummy là chồng
+# quả cầu; Lint lẫn cục bông). Toạ độ phần tương đối ĐÁY GIỮA thân, quay theo hướng nhân vật; nằm thì cả người xoay theo (dung-set.py › nam_xuong).
+DS = 'dat_set'
+K['Tango']['phan'] = [K['Tango']['phan'][0],   # tóc xoắn lò xo
+    {'hinh': 'trung', 'co': [0.45, 0.45, 0.95], 'mau': '#f08a3c', 'tam': [-1.02, -0.05, 0.5], 'chat': DS},   # hai tay ngắn buông hai bên
+    {'hinh': 'trung', 'co': [0.45, 0.45, 0.95], 'mau': '#f08a3c', 'tam': [1.02, -0.05, 0.5], 'chat': DS},
+    {'hinh': 'trung', 'co': [0.62, 0.85, 0.34], 'mau': '#e07c30', 'tam': [-0.42, -0.25, -0.06], 'chat': DS},   # hai bàn chân tròn chìa ra trước
+    {'hinh': 'trung', 'co': [0.62, 0.85, 0.34], 'mau': '#e07c30', 'tam': [0.42, -0.25, -0.06], 'chat': DS}]
+K['Lint']['phan'] = [
+    {'hinh': 'hop', 'co': [0.08, 0.08, 0.75], 'mau': '#2f7fe8', 'tam': [0.12, 0.1, 1.82], 'nghieng': -14},   # túm chỉ xanh dựng trên đỉnh (dấu nhận diện)
+    {'hinh': 'trung', 'co': [0.32, 0.32, 0.42], 'mau': '#5f5f66', 'tam': [-0.42, -0.25, -0.18]},   # hai chân lông nhỏ
+    {'hinh': 'trung', 'co': [0.32, 0.32, 0.42], 'mau': '#5f5f66', 'tam': [0.42, -0.25, -0.18]}]
+# Mr. Wipe = khăn lau trùm như con ma: thân nón rủ loe đáy, đầu tròn, mép tưa (gợn nhỏ quanh đáy), hai mắt trên đầu (không dùng `mat`: mắt tự gắn
+# lên mặt cầu đầu, không lơ lửng trước thân nón).
+K['Mr. Wipe'].update({'hinh': 'non', 'co': [6.6, 3.8, 5.4], 'dinh': 0.5, 'mat': False})
+_mw = '#7f93a6'
+K['Mr. Wipe']['phan'] = [{'hinh': 'cau', 'co': [3.6, 3.1, 3.2], 'mau': _mw, 'tam': [0, 0, 3.6], 'chat': 'vai'},
+    {'hinh': 'cau', 'co': [0.75, 0.4, 0.75], 'mau': '#f4f4f4', 'tam': [-0.66, -1.36, 5.4]}, {'hinh': 'cau', 'co': [0.75, 0.4, 0.75], 'mau': '#f4f4f4', 'tam': [0.66, -1.36, 5.4]},
+    {'hinh': 'cau', 'co': [0.36, 0.2, 0.36], 'mau': '#111111', 'tam': [-0.64, -1.54, 5.52]}, {'hinh': 'cau', 'co': [0.36, 0.2, 0.36], 'mau': '#111111', 'tam': [0.64, -1.54, 5.52]}] + [
+    {'hinh': 'cau', 'co': [1.4, 0.55, 0.45], 'mau': _mw, 'tam': [2.3 * math.cos(math.radians(g)), 1.3 * math.sin(math.radians(g)), -0.15], 'xoay': g + 90, 'chat': 'vai'}
+    for g in range(0, 360, 30)]   # mép khăn gợn sóng: gợn sát vành đáy nón (không văng ra như bàn chân)
+# Kẹo dẻo hình GẤU: thân, đầu, hai tai, hai tay, hai chân (trước đây chồng ba quả cầu → model vẽ người tuyết đỏ).
+K['Gummy Bear'].update({'hinh': 'trung', 'co': [0.9, 0.65, 0.75]})
+K['Gummy Bear']['phan'] = [{'hinh': 'cau', 'co': [0.75, 0.6, 0.62], 'mau': '#d0202a', 'tam': [0, 0, 0.62], 'chat': 'keo'},
+    {'hinh': 'cau', 'co': [0.26, 0.2, 0.26], 'mau': '#d0202a', 'tam': [-0.27, 0, 1.12], 'chat': 'keo'}, {'hinh': 'cau', 'co': [0.26, 0.2, 0.26], 'mau': '#d0202a', 'tam': [0.27, 0, 1.12], 'chat': 'keo'},
+    {'hinh': 'trung', 'co': [0.24, 0.24, 0.42], 'mau': '#d0202a', 'tam': [-0.48, -0.05, 0.25], 'chat': 'keo'}, {'hinh': 'trung', 'co': [0.24, 0.24, 0.42], 'mau': '#d0202a', 'tam': [0.48, -0.05, 0.25], 'chat': 'keo'},
+    {'hinh': 'trung', 'co': [0.3, 0.36, 0.28], 'mau': '#d0202a', 'tam': [-0.24, -0.12, -0.04], 'chat': 'keo'}, {'hinh': 'trung', 'co': [0.3, 0.36, 0.28], 'mau': '#d0202a', 'tam': [0.24, -0.12, -0.04], 'chat': 'keo'}]
+# Cục bông: lổn nhổn nhiều cụm, KHÔNG mắt, trắng ngà — khác Lint (xám, mắt, túm chỉ xanh).
+K['Cotton Ball']['mau'] = '#f3efe4'
+K['Cotton Ball']['phan'] = [{'hinh': 'cau', 'co': [1.5, 1.3, 1.2], 'mau': '#f3efe4', 'tam': t, 'chat': 'bong'} for t in ([-0.85, 0.2, 0.45], [0.85, -0.3, 0.6], [0.15, 0.55, 1.2], [-0.2, -0.6, 1.0])]
+# Cordy = đầu phích cáp trắng có mặt (ảnh mẫu), dây cuộn bên dưới; trước đây quả cầu xanh phát sáng 1 cm.
+K['Cordy'] = {'hinh': 'hop', 'co': [0.75, 0.45, 1.05], 'mau': '#f2f2f2', 'mat': True, 'phan': [
+    {'hinh': 'hop', 'co': [0.77, 0.47, 0.22], 'mau': '#1a1a1a', 'tam': [0, 0, -0.02]},
+    {'hinh': 'hop', 'co': [0.42, 0.16, 0.5], 'mau': '#c9c9c9', 'tam': [0, 0, 1.05], 'chat': 'kim_loai'},
+    {'hinh': 'trung', 'co': [1.3, 1.3, 0.25], 'mau': '#f2f2f2', 'tam': [0, 0.3, -0.25]}]}
+# Sticky: tờ note vàng có góc gấp vểnh (dấu nhận diện khi nằm dẹt trên bàn).
+K['Sticky']['phan'] = [{'hinh': 'hop', 'co': [1.1, 1.1, 0.05], 'mau': '#f6d04d', 'tam': [1.05, 1.05, 0.25], 'xoay': 45, 'nghieng': 35}]
 CHAT = {'Mặt bàn': 'go', 'Chân bàn 1': 'go', 'Chân bàn 2': 'go', 'Chân bàn 3': 'go', 'Chân bàn 4': 'go', 'White Keyboard': 'nhua', 'Magic Mouse': 'nhua',
         'Left Monitor': 'kim_loai', 'Yellow iMac': 'nhua', 'USB Hub': 'kim_loai', 'Cable Plug': 'kim_loai', 'MacBook Pro': 'kim_loai', 'Desk Lamp': 'kim_loai',
         'White Cable': 'cao_su', 'Cable Jungle 1': 'cao_su', 'Cable Jungle 2': 'cao_su', 'Cable Jungle 3': 'cao_su', 'Cable Jungle 4': 'cao_su', 'Lamp Cord': 'cao_su',

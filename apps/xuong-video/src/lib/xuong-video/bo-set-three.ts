@@ -5,7 +5,7 @@ import type { BoSet, KhoiSet, May3d, NhanVat } from './kieu';
 
 export type Khoi = NonNullable<NhanVat['khoi_3d']>;
 export type Phan = Omit<KhoiSet, 'ten'> & { ten?: string; bac?: number };
-export type KhoiNv = Khoi & { mat?: boolean; phan?: Phan[]; sang?: number };
+export type KhoiNv = Khoi & { mat?: boolean; phan?: Phan[]; sang?: number; dinh?: number };
 
 export const V = (p: number[]) => new THREE.Vector3(p[0] ?? 0, p[2] ?? 0, -(p[1] ?? 0));
 const vatLieu = new Map<string, THREE.Material>();
@@ -30,6 +30,7 @@ export function khoi(p: Phan, goc: number[] = [0, 0], xoay = 0, mo = 1): THREE.O
   let g: THREE.BufferGeometry; let cy = z + c / 2; let sy = c;
   if (p.hinh === 'hop') g = new THREE.BoxGeometry(1, 1, 1);
   else if (p.hinh === 'vom') { g = new THREE.SphereGeometry(0.5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2); cy = z; sy = c * 2; }
+  else if (p.hinh === 'non') g = new THREE.CylinderGeometry(0.5 * (p.dinh ?? 0.4), 0.5, 1, 40);   // nón cụt: thân khăn rủ Mr. Wipe
   else g = new THREE.SphereGeometry(0.5, 32, 16);
   const o = new THREE.Mesh(g, m);
   // Nghiêng quanh trục x của khối TRƯỚC rồi mới xoay quanh trục đứng (như Blender Euler XYZ) → thứ tự 'YXZ' của three.
@@ -37,24 +38,25 @@ export function khoi(p: Phan, goc: number[] = [0, 0], xoay = 0, mo = 1): THREE.O
   return o;
 }
 
-/** Nhân vật / đạo cụ ở một chỗ — cùng luật dung-set.py › nhan_vat: quay theo huong, có mắt nếu khối khai `mat`, nằm thì cao thành sâu. */
+/** Nhân vật / đạo cụ ở một chỗ — cùng luật dung-set.py › nhan_vat: quay theo huong, có mắt nếu khối khai `mat`. NẰM = dựng người đứng đủ tay /
+ *  chân / tóc rồi ngửa ra sau 90° quanh trục ngang của nó (dung-set.py › nam_xuong) — không còn cắt bỏ các phần. */
 export function nhanVat(k: KhoiNv, vt: { tam: number[]; huong?: number; nam?: boolean }, mo = 1): THREE.Group {
-  const g = new THREE.Group();
   const [X, Y, Z] = [vt.tam[0]!, vt.tam[1]!, vt.tam[2] ?? 0];
-  let [w, d, h] = k.co as [number, number, number];
-  if (vt.nam) [d, h] = [h, d];
-  const hg = vt.huong ?? 0;
-  g.add(khoi({ hinh: k.hinh, co: [w, d, h], mau: k.mau, sang: k.sang, tam: [0, 0, Z] }, [X, Y], hg, mo));
-  const phan: Phan[] = vt.nam ? [] : [...(k.phan ?? [])];
+  const [w, d, h] = k.co as [number, number, number];
+  const trong = new THREE.Group();   // người đứng, đáy giữa ở gốc, mặt nhìn −y dữ liệu
+  trong.add(khoi({ hinh: k.hinh, co: [w, d, h], mau: k.mau, sang: k.sang, dinh: k.dinh, tam: [0, 0, 0] }, [0, 0], 0, mo));
+  const phan: Phan[] = [...(k.phan ?? [])];
   if (k.mat) {
-    const e = Math.max(0.3, 0.26 * Math.min(w, h)); const ex = 0.22 * w;
-    const [ey, ez] = vt.nam ? [-d * 0.25, h - e * 0.3] : [-d / 2 + e * 0.15, h * 0.62 - e / 2];
+    const e = Math.max(0.3, 0.26 * Math.min(w, h)); const ex = 0.22 * w; const [ey, ez] = [-d / 2 + e * 0.15, h * 0.62 - e / 2];
     for (const sx of [-1, 1]) {
       phan.push({ hinh: 'cau', co: [e, e, e], mau: '#ffffff', tam: [sx * ex, ey, ez] });
-      phan.push({ hinh: 'cau', co: [e * 0.5, e * 0.5, e * 0.5], mau: '#111111', tam: vt.nam ? [sx * ex, ey - e * 0.2, ez + e * 0.45] : [sx * ex, ey - e * 0.38, ez + e * 0.25] });
+      phan.push({ hinh: 'cau', co: [e * 0.5, e * 0.5, e * 0.5], mau: '#111111', tam: [sx * ex, ey - e * 0.38, ez + e * 0.25] });
     }
   }
-  for (const p of phan) g.add(khoi({ ...p, tam: [p.tam![0]!, p.tam![1]!, p.tam![2]! + Z] }, [X, Y], hg, mo));
+  for (const p of phan) trong.add(khoi(p, [0, 0], 0, mo));
+  if (vt.nam) { trong.rotation.x = -Math.PI / 2; trong.position.set(0, d / 2, h / 2); }   // mặt trước (+z three) ngửa lên, thân nằm giữa chỗ đứng
+  const g = new THREE.Group(); g.add(trong);
+  g.position.copy(V([X, Y, Z])); g.rotation.y = ((vt.huong ?? 0) * Math.PI) / 180;
   return g;
 }
 

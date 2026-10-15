@@ -98,6 +98,8 @@ export type KinhThanh = {
   mo_hinh_anh?: MoHinhAnh;
   mo_hinh_video?: MoHinhVideo;
   mo_hinh_chu?: MoHinhChu;
+  /** URL BẢNG TỈ LỆ dàn nhân vật (render 3D trực giao, thước cm — scripts/bo-set/bang-ti-le.sh): gửi kèm keyframe có ≥ 2 nhân vật / đạo cụ */
+  bang_ti_le?: string;
   ngon_ngu?: string;            // ngôn ngữ lời thoại/phụ đề: 'vi' | 'en'
   the_loai?: TheLoai | '';      // thể loại → thư viện điện ảnh gợi ý kỹ thuật hợp (kinh dị ≠ hài ≠ QC UGC)
   logline?: string;             // một câu: ai, muốn gì, cản trở gì
@@ -295,7 +297,7 @@ export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: strin
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
   phong_cach: '', ti_le: '9:16', do_phan_giai: '720p',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },
-  giong_dan: null, series: null, luu_tru: false, nhip_stop_motion: false, khong_loi: false, ban_do: '', template: null, tu_template: null,
+  giong_dan: null, series: null, luu_tru: false, nhip_stop_motion: false, khong_loi: false, ban_do: '', template: null, tu_template: null, bang_ti_le: '',
 };
 export const docKinhThanh = (kt: KinhThanh | null | undefined): Required<KinhThanh> => ({ ...KINH_THANH_MAC_DINH, ...(kt ?? {}) });
 
@@ -311,7 +313,7 @@ export type BienThe = { id: number; nhan_vat_id: number; nhom: string; ten: stri
 /** Claude nhìn ảnh gốc của anchor so với mô tả: lệch chỗ nào (màu, ren, khoá, chữ thương hiệu…) + mô tả viết lại theo ảnh. */
 export type DoiChieu = { khop: boolean; lech: string[]; mo_ta_de_xuat: string; luc: string };
 /** BỘ SET 3D (bo-set-3d.ts): bối cảnh là DỮ LIỆU toạ độ cm — gốc giữa mép trước, x phải, y vào sâu, z lên. Một set dùng cho nhiều phim của dự án. */
-export type KhoiSet = { ten: string; hinh: 'hop' | 'cau' | 'trung' | 'vom' | 'day'; tam?: number[]; co?: number[]; mau: string; xoay?: number; /** nghiêng quanh trục x của khối (độ, nắp laptop) */ nghieng?: number; sang?: number; diem?: number[][]; ban_kinh?: number };
+export type KhoiSet = { ten: string; hinh: 'hop' | 'cau' | 'trung' | 'vom' | 'day' | 'non'; /** nón cụt: đỉnh = đáy × dinh (0..1) */ dinh?: number; tam?: number[]; co?: number[]; mau: string; xoay?: number; /** nghiêng quanh trục x của khối (độ, nắp laptop) */ nghieng?: number; sang?: number; diem?: number[][]; ban_kinh?: number };
 export type VatSet = (KhoiSet | { ten: string; goc: number[]; xoay?: number; phan: Omit<KhoiSet, 'ten'>[] }) & { anchor?: string; /** mặt nền (mặt bàn, tường, kệ): ở đâu cũng có, không tính là vật chắn tiền cảnh */ nen?: boolean; /** đồ TUỲ CHỌN (laptop lúc có lúc không): chỉ có ở shot khai may_3d.them */ tuy_chon?: boolean; /** tên tiếng Anh gửi mô hình ảnh (tên tiếng Việt như 'Mặt bàn') */ en?: string };
 export type BoSet = { id: number; project: string; phim_id: number | null; ten: string; mo_ta: string; du_lieu: { vat: VatSet[]; ghi_chu?: string }; mat_bang_url: string | null; trang_thai: string };
 /** Máy ảo + chỗ đứng nhân vật của một shot trong bộ set (cm): đầu vào dựng khung xám. nam = nằm sấp. */

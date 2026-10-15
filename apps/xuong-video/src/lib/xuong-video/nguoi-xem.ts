@@ -8,19 +8,19 @@
 import { boChamCuoi } from './ngat-dong';
 import { doanChuMan, ghepThoai, giayPhat, type Canh, type DongThoai, type NhanVat, type ThuNguoiXem } from './kieu';
 
-export type ShotXem = Pick<Canh, 'thu_tu' | 'phat_s' | 'thoi_luong_s' | 'hanh_dong' | 'chu_man' | 'thoai' | 'loi_thoai'>;
+export type ShotXem = Pick<Canh, 'thu_tu' | 'phat_s' | 'thoi_luong_s' | 'hanh_dong' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'phan_doan'>>;
 /** Điểm hiểu tối thiểu (0–10) để qua cổng — cùng với "khớp ý tác giả". */
 export const DIEM_HIEU_DAT = 7;
 
 /** coGiay = ghi mốc giây từng shot (Claude cần để biết chữ có kịp đọc không). Mã phiên bản (maKichBan) tính KHÔNG có giây: giọng về thì máy tự
  *  khớp giây shot — tính giây vào mã thì mỗi lượt giọng lại làm hỏng kết quả kiểm dù nội dung không đổi. */
-export function banNguoiXem(canh: ShotXem[], coGiay = true): string {
+export function banNguoiXem(canh: ShotXem[], coGiay = true, coSo = true): string {
   let t = 0;
   return canh.map((c) => {
     const g = giayPhat(c); const tu = t; t += g;
     const chu = doanChuMan(c.chu_man ?? '', g).map((d) => d.dong.join(' ')).join(' / ').trim();
     const nghe = (c.thoai?.length ? c.thoai.filter((d) => d.loi.trim()).map((d) => `${d.nhan_vat.trim() || 'Người dẫn (giọng ngoài khung)'}: "${d.loi.trim()}"`) : c.loi_thoai.trim() ? [c.loi_thoai.trim()] : []).join(' · ');
-    return `#${c.thu_tu}${coGiay ? ` [${tu.toFixed(1)}–${t.toFixed(1)}s]` : ''} THẤY: ${c.hanh_dong.trim() || '(không tả)'} | CHỮ TRÊN MÀN: ${chu || '—'} | NGHE: ${nghe || '(không lời)'}`;
+    return `${coSo ? `#${c.thu_tu}` : '•'}${coGiay ? ` [${tu.toFixed(1)}–${t.toFixed(1)}s]` : ''} THẤY: ${c.hanh_dong.trim() || '(không tả)'} | CHỮ TRÊN MÀN: ${chu || '—'} | NGHE: ${nghe || '(không lời)'}`;
   }).join('\n');
 }
 
@@ -37,11 +37,37 @@ export function maBan(ban: string): string {
 export const TIEN_TO_NGUOI_XEM = 'người xem: ';
 export const TEN_NUT_NGUOI_XEM = '🧑 Kiểm người xem có hiểu không';
 
+/** Mã nội dung TỪNG CẢNH (phan_doan → mã) — không số shot, không giây: chèn shot ở cảnh 7 làm đánh số lại cảnh 8 cũng không làm cảnh 8 mất hiệu lực. */
+export function maTheoCanh(canh: ShotXem[]): Record<string, string> {
+  const nhom = new Map<string, ShotXem[]>();
+  for (const c of canh) { const k = c.phan_doan ?? ''; nhom.set(k, [...(nhom.get(k) ?? []), c]); }
+  return Object.fromEntries([...nhom].map(([k, ds]) => [k, maBan(banNguoiXem(ds, false, false))]));
+}
+export const TEN_NUT_NGUOI_XEM_CANH = '🧑 Kiểm riêng cảnh';
+
+/** Cảnh nào đang ĐƯỢC PHỦ (qua cổng): lần kiểm cả tập đã đạt và cảnh đó chưa đổi, hoặc lần kiểm riêng cảnh đó đạt với đúng nội dung hiện tại. */
+export function phuTheoCanh(t: ThuNguoiXem | null | undefined, canh: ShotXem[]): { ten: string; phu: boolean; ly_do: string }[] {
+  const ma = maTheoCanh(canh);
+  return Object.keys(ma).map((ten) => {
+    const rieng = t?.canh?.[ten];
+    if (rieng && rieng.ma === ma[ten]) return { ten, phu: rieng.dat, ly_do: rieng.dat ? 'kiểm riêng cảnh: đạt' : `kiểm riêng cảnh: chưa hiểu (${rieng.diem}/10) ${[rieng.lech, ...rieng.cho_kho.slice(0, 2).map((x) => `#${x.shot} ${x.van_de}`)].filter(Boolean).join('; ')}` };
+    if (t?.dat && t.ma_canh?.[ten] === ma[ten]) return { ten, phu: true, ly_do: 'kiểm cả tập: đạt, cảnh chưa đổi' };
+    return { ten, phu: false, ly_do: !t ? 'chưa kiểm' : t.ma_canh ? 'cảnh đã sửa sau lần kiểm' : 'bản kiểm cũ chưa có mã từng cảnh' };
+  });
+}
+
 export function chanNguoiXem(t: ThuNguoiXem | null | undefined, canh: ShotXem[]): string[] {
   if (!canh.length) return [];
   const tien = TIEN_TO_NGUOI_XEM;
   if (!t) return [`${tien}chưa kiểm — bấm ${TEN_NUT_NGUOI_XEM}`];
-  if (t.ma !== maKichBan(canh)) return [`${tien}kịch bản đã sửa sau lần kiểm — bấm ${TEN_NUT_NGUOI_XEM} lần nữa`];
+  if (t.ma !== maKichBan(canh)) {
+    // Cả tập đã đổi từ lần kiểm: vẫn qua nếu MỌI cảnh đều được phủ (cảnh không đổi theo lần kiểm cả tập, cảnh đã sửa thì kiểm riêng cảnh đó).
+    const ds = phuTheoCanh(t, canh);
+    if (canh.some((c) => c.phan_doan != null) && ds.every((x) => x.phu)) return [];
+    const thieu = ds.filter((x) => !x.phu);
+    if (canh.some((c) => c.phan_doan != null) && t.ma_canh) return thieu.map((x) => `${tien}cảnh “${x.ten}”: ${x.ly_do} — bấm ${TEN_NUT_NGUOI_XEM_CANH}`);
+    return [`${tien}kịch bản đã sửa sau lần kiểm — bấm ${TEN_NUT_NGUOI_XEM} lần nữa`];
+  }
   if (t.dat) return [];
   return [`${tien}chưa hiểu (${t.diem}/10${t.khop ? '' : ', lệch ý tác giả'}): ${[t.lech, ...t.cho_kho.slice(0, 3).map((x) => `#${x.shot} ${x.van_de}`)].filter(Boolean).join('; ')}`];
 }

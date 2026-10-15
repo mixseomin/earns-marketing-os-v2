@@ -2,9 +2,9 @@
 // 🧑 Thử người xem lần đầu (nguoi-xem.ts): nút có giá + kết quả — người xem kể lại, 5 câu hiểu, điểm, chỗ vấp theo shot (bấm = mở shot).
 // Bước bắt buộc: chưa đạt / kịch bản đổi sau lần thử → chặn sinh keyframe + xuất.
 import { Fragment, useState } from 'react';
-import { thuNguoiXemTap, suaTheoNguoiXem } from '@/lib/actions';
+import { thuNguoiXemTap, thuNguoiXemCanh, suaTheoNguoiXem } from '@/lib/actions';
 import { giaChuCents, gioVN, tien, type Canh, type Tap } from '@/lib/xuong-video/kieu';
-import { chanNguoiXem, TEN_NUT_NGUOI_XEM } from '@/lib/xuong-video/nguoi-xem';
+import { chanNguoiXem, phuTheoCanh, TEN_NUT_NGUOI_XEM, TEN_NUT_NGUOI_XEM_CANH } from '@/lib/xuong-video/nguoi-xem';
 import { Nut, Loi, mono, goiAction } from './ui';
 
 export function NguoiXem({ tap, canh, moHinhChu, coAnthropic, onChanged, onMoShot }: { tap: Tap; canh: Canh[]; moHinhChu: string; coAnthropic: boolean; onChanged: () => Promise<void>; onMoShot?: (thuTu: number) => void }) {
@@ -27,6 +27,11 @@ export function NguoiXem({ tap, canh, moHinhChu, coAnthropic, onChanged, onMoSho
     }
     setBanSua(false); await onChanged();
   };
+  // KIỂM RIÊNG TỪNG CẢNH (anh 15/10/2026: "tách theo từng cảnh cho rẻ"): cảnh nào chưa được phủ thì có nút kiểm riêng, giá theo số shot của cảnh.
+  const phu = t ? phuTheoCanh(t, canh) : [];
+  const [banCanh, setBanCanh] = useState('');
+  const giaCanh = (ten: string) => Math.max(1, Math.round(gia * Math.max(0.25, canh.filter((c) => c.phan_doan === ten).length / Math.max(1, canh.length))));
+  const lamCanh = async (ten: string) => { setBanCanh(ten); setLoi(''); setLoi((await goiAction(() => thuNguoiXemCanh(tap.id, ten))).loi); setBanCanh(''); await onChanged(); };
   const lam = async () => { setBan(true); setLoi(''); setLoi((await goiAction(() => thuNguoiXemTap(tap.id))).loi); setBan(false); await onChanged(); };
   const mau = !t ? 'var(--amber)' : cu ? 'var(--amber)' : t.dat ? '#4ade80' : 'var(--red)';
   return (
@@ -39,6 +44,17 @@ export function NguoiXem({ tap, canh, moHinhChu, coAnthropic, onChanged, onMoSho
         {/* Chưa đạt → sửa ngay tại đây: Claude sửa đúng các shot bị vấp theo các câu gợi ý bên dưới. */}
         {t && !t.dat && !cu && <Nut chinh ly={!coAnthropic && 'thiếu ANTHROPIC_API_KEY'} ban={banSua} gia={giaSua} title="Claude sửa đúng các shot người xem vấp (lời, chữ màn, hành động, prompt hình; chèn shot nếu cần cho thấy) — giữ phần còn lại; ↶ trả lại phần sửa, shot thêm bỏ bằng 🗑" onClick={() => void sua()}>{banSua ? '… đang sửa kịch bản' : `✍ Sửa kịch bản theo góp ý · ~${tien(giaSua)}`}</Nut>}
       </div>
+      {cu && phu.some((x) => !x.phu) && (
+        <div style={{ display: 'grid', gap: 4, marginTop: 6 }}>
+          <span style={{ fontSize: 12 }}>Chỉ cần kiểm lại các cảnh đã sửa — cảnh khác vẫn tính theo lần kiểm trước:</span>
+          {phu.filter((x) => !x.phu).map((x) => (
+            <div key={x.ten} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 12 }}>
+              <Nut ly={!coAnthropic && 'thiếu ANTHROPIC_API_KEY'} ban={banCanh === x.ten} gia={giaCanh(x.ten)} title="Người xem chỉ xem cảnh này (kèm câu chuyện trước đó họ đã kể) — rẻ hơn kiểm cả tập" onClick={() => void lamCanh(x.ten)}>{banCanh === x.ten ? '… đang kiểm' : `${TEN_NUT_NGUOI_XEM_CANH} “${x.ten}” · ~${tien(giaCanh(x.ten))}`}</Nut>
+              <span style={{ color: 'var(--fg-3)' }}>{x.ly_do}</span>
+            </div>
+          ))}
+        </div>
+      )}
       <Loi>{loi}</Loi>
       {daSua && <div style={{ fontSize: 12, color: '#4ade80', marginTop: 6 }}>{daSua}</div>}
       {/* Đã đạt → chỉ một dòng kết quả, bài kể lại gập sau ▾ (YDNI luật 5); chưa đạt thì luôn bày ra để sửa. */}

@@ -1,6 +1,6 @@
 // Tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/nguoi-xem.test.mts
 import assert from 'node:assert';
-import { banNguoiXem, maBan, maKichBan, chanNguoiXem } from './nguoi-xem';
+import { banNguoiXem, maBan, maKichBan, chanNguoiXem, maTheoCanh, phuTheoCanh } from './nguoi-xem';
 import type { ThuNguoiXem } from './kieu';
 const sh = (thu_tu: number, hanh_dong: string, chu_man: string, thoai: { nhan_vat: string; loi: string }[]) => ({ thu_tu, phan_doan: '', phat_s: 2, thoi_luong_s: 4, hanh_dong, chu_man, loi_thoai: '', thoai: thoai.map((d) => ({ ...d, dien_xuat: 'NỘI BỘ' })) });
 const ds = [sh(1, 'The crow holds the cheese', 'THE BIGGEST CHEESE', [{ nhan_vat: '', loi: 'Felix had a plan.' }]), sh(2, 'Felix grins', '', [{ nhan_vat: 'Felix', loi: 'Ahem.' }])];
@@ -37,3 +37,18 @@ const nx = (r: string[]) => r.filter((x) => x.startsWith('người xem'));
 assert.deepStrictEqual(nx(chanTienKy(TQ2, PQ2, B, A)), [], 'nhánh B + so với A → qua');
 assert.ok(nx(chanTienKy(TQ2, PQ2, B))[0]?.includes('đã sửa'), 'không truyền nhánh A → so nhầm với B (đúng lỗi cũ) — kiểm đỏ được');
 console.log('nguoi-xem.test: ok');
+
+// Kiểm theo cảnh: sửa cảnh B sau lần kiểm cả tập → chỉ B bị chặn; kiểm riêng B đạt → qua; chèn shot ở B làm đánh số lại C → C vẫn được phủ.
+{
+  const sh = (thu_tu: number, phan_doan: string, hanh_dong: string) => ({ thu_tu, phan_doan, hanh_dong, phat_s: 3, thoi_luong_s: 3, chu_man: '', thoai: [], loi_thoai: '' });
+  const goc = [sh(1, 'A', 'a1'), sh(2, 'B', 'b1'), sh(3, 'C', 'c1')];
+  const ca = { ma: maKichBan(goc), ma_canh: maTheoCanh(goc), luc: '', model: '', ke_lai: '', hieu: { ai: '', muon: '', can: '', lat: '', ket: '' }, diem: 8, cho_kho: [], khop: true, lech: '', dat: true };
+  const moi = [sh(1, 'A', 'a1'), sh(2, 'B', 'b1 sửa'), sh(3, 'B', 'b2 mới'), sh(4, 'C', 'c1')];
+  const chan = chanNguoiXem(ca, moi);
+  if (chan.length !== 1 || !chan[0]!.includes('“B”')) throw new Error(`chỉ cảnh B bị chặn: ${JSON.stringify(chan)}`);
+  const rieng = { ...ca, ma: maTheoCanh(moi).B!, ma_canh: undefined };
+  if (chanNguoiXem({ ...ca, canh: { B: rieng } }, moi).length) throw new Error('kiểm riêng B đạt → qua');
+  if (chanNguoiXem({ ...ca, canh: { B: { ...rieng, dat: false, diem: 4 } } }, moi).length !== 1) throw new Error('kiểm riêng B chưa đạt → chặn');
+  if (!phuTheoCanh(ca, moi).find((x) => x.ten === 'C')!.phu) throw new Error('C đánh số lại vẫn được phủ');
+  console.log('nguoi-xem.test: theo cảnh ok');
+}

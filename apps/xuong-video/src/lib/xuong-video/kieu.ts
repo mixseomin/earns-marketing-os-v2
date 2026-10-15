@@ -390,6 +390,10 @@ export type ThuNguoiXem = {
   /** shot rút / gộp / bỏ được mà người xem không mất ý — để tập về độ dài chuẩn series (thiếu ở bản kiểm cũ) */
   cat?: { shot: number; bot_s: number; ly_do: string }[];
   khop: boolean; lech: string; dat: boolean;
+  /** mã nội dung TỪNG CẢNH lúc kiểm (nguoi-xem.ts › maTheoCanh) — sửa một cảnh chỉ làm cảnh đó mất hiệu lực, cảnh khác vẫn được tính là đã qua */
+  ma_canh?: Record<string, string>;
+  /** kết quả KIỂM RIÊNG từng cảnh (phan_doan → kết quả; ma = mã cảnh đó) — rẻ hơn kiểm cả tập khi chỉ sửa một cảnh */
+  canh?: Record<string, ThuNguoiXem>;
 };
 /** Phần cấp TẬP của hồ sơ tiền kỳ (ho-so.ts): thời gian của cả tập, đường đi trong thế giới, motif, cung cảm xúc, chữ màn mở (tên tập). */
 export type TapHoSo = { thoi_gian?: string; duong_di?: string; motif?: string; cung?: string;

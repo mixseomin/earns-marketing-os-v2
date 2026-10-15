@@ -87,7 +87,7 @@
   ],
   "loi_ich_1_hinh": "close-up of hands stuffing the black nylon tote back into its small faux-leather pouch and clipping the gold carabiner onto a key ring",
   "demo": [
-   "Lunch. Gym clothes. Extra layer. All in.",
+   "After work? Gym clothes, extra layer. All in.",
    [
     {
      "loai": "loi_khach",
@@ -105,7 +105,7 @@
     }
    ]
   ],
-  "demo_hinh": "Maya drops a lunch box, folded gym clothes and a sweater into the open black tote on the entryway bench, then lifts it onto her shoulder",
+  "demo_hinh": "After work on the subway ride home, Maya unclips the small black pouch from her keys, shakes the black tote open and drops in her gym clothes and a sweater",
   "vi_du_1": [
    "Leave with your keys. Not a backpack.",
    [
@@ -142,7 +142,7 @@
   ],
   "vi_du_2_hinh": "Maya stands relaxed in the crowded subway car holding the pole, only the small black pouch clipped to her keys at her hip, while a man with a huge backpack behind her bumps other riders",
   "vi_du_3": [
-   "Grocery stop after work? Unclip. Fill. Done.",
+   "Grocery stop on the way home? Still room.",
    [
     {
      "loai": "loi_khach",
@@ -176,5 +176,5 @@
    ]
   ]
  },
- "ghi": "Ảnh túi gấp gọn + ảnh dùng thực tế lấy từ trang đối thủ bán cùng sản phẩm (mindsparkl, warmsoftnook — tìm qua SpyPro 15/10/2026), ảnh 4 màu từ chirpmall; tất cả lưu R2 img.on.tc/xuong-video/sp/mini-keychain-tote/. Phim #49 tách sản phẩm thành 2 anchor: #229 'Mini Keychain Tote (open)' (mo-den, mo-4-mau, mo-den-deo-vai; biến thể Olive green / Burgundy / Chocolate) và #233 'Mini Keychain Tote (folded)' (tui-gap-den, tui-gap-cam-khoa, gap-thanh-tui; biến thể Chocolate). Shot 1,2,8 = cả hai; 3,6 = open; 4,5,7 = folded; 9 = cả hai. Chạy dienLaiHinh sẽ đặt lại nhan_vat theo template (mất anchor folded) — gán lại sau khi chạy."
+ "ghi": "Ảnh túi gấp gọn + ảnh dùng thực tế lấy từ trang đối thủ bán cùng sản phẩm (mindsparkl, warmsoftnook — tìm qua SpyPro 15/10/2026), ảnh 4 màu từ chirpmall; tất cả lưu R2 img.on.tc/xuong-video/sp/mini-keychain-tote/. Phim #49 tách sản phẩm thành 2 anchor: #229 'Mini Keychain Tote (open)' (mo-den, mo-4-mau, mo-den-deo-vai; biến thể Olive green / Burgundy / Chocolate) và #233 'Mini Keychain Tote (folded)' (tui-gap-den, tui-gap-cam-khoa, gap-thanh-tui; biến thể Chocolate). Shot 1,2,8 = cả hai; 3,6 = open; 4,5,7 = folded; 9 = cả hai. Chạy dienLaiHinh sẽ đặt lại nhan_vat theo template (mất anchor folded) — gán lại sau khi chạy. · Tự chấm người xem 15/10: shot 3 (bỏ đồ vào túi buổi sáng) mâu thuẫn shot 4 (ra khỏi nhà chỉ cầm khoá) → đổi shot 3 thành sau giờ làm trên tàu và xếp thứ tự 1,2,4,5,3,6,7,8,9 (thu_tu mới 1–9)."
 }

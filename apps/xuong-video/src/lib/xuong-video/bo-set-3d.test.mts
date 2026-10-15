@@ -146,10 +146,10 @@ assert.equal(gocMayLech({ dat: [0, 0, 1], nhin: [0, 5, 1] }, 'tren_xuong')!.incl
 // nhãn khối: gọi bằng mô tả anchor + trạng thái
 const lb = moTaThay([{ ten: 'Orange Card', en: 'Orange Card', pt: 30, hop: [0.1, 0.6, 0.9, 0.9], tien: false }, { ten: 'Gummy Bear', pt: 5, hop: [0.4, 0.4, 0.5, 0.5], tien: false, trang: 'split into 2 separate pieces' }], (t) => (t === 'Orange Card' ? 'an orange leather card holder' : undefined));
 assert.ok(lb.includes('an orange leather card holder (bottom') && lb.includes('Gummy Bear [split into 2 separate pieces]'), lb);
-// chủ thể cú cận chỉ là một mẩu / bị mép cắt (#32 tập 19: phích 3.3% ở mép phải) → chặn; cỡ rộng không đo; chủ thể rõ giữa khung → qua
+// chủ thể cú cận chỉ là một mẩu (#32 tập 19: phích 3.3%) → chặn; cỡ rộng không đo; đủ lớn (kể cả chạm mép) → qua
 const kxNho = (pt: number, hop: number[]) => ({ kiem: [{ nhan_vat: 'Cable Plug', bat_buoc: true, trong_khung: true, bi_che_boi: [], cao_khung_pt: 20 }], thay: [{ ten: 'Cable Plug', pt, hop, tien: false }] }) as never;
 assert.equal(chuTheQuaNho({ khung_xam: kxNho(3.3, [0.778, 0.333, 1, 0.583]), ky_thuat: { co_canh: 'cu' } as never }).length, 1);
-assert.ok(chuTheQuaNho({ khung_xam: kxNho(9, [0.8, 0.3, 1, 0.6]), ky_thuat: { co_canh: 'cu' } as never })[0]!.includes('mép'));
+assert.equal(chuTheQuaNho({ khung_xam: kxNho(9, [0.8, 0.3, 1, 0.6]), ky_thuat: { co_canh: 'cu' } as never }).length, 0);   // chạm mép mà đủ lớn → qua
 assert.equal(chuTheQuaNho({ khung_xam: kxNho(9, [0.2, 0.3, 0.5, 0.6]), ky_thuat: { co_canh: 'cu' } as never }).length, 0);
 assert.equal(chuTheQuaNho({ khung_xam: kxNho(1, [0.8, 0.3, 1, 0.4]), ky_thuat: { co_canh: 'ws' } as never }).length, 0);
 console.log('bo-set-3d.test: ok');

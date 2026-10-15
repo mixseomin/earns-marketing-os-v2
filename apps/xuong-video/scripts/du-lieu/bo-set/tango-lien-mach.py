@@ -220,7 +220,7 @@ MOI = {
  # quay đi về phía phích đang chớp ở hậu cảnh trái.
  '7.1a': {'dat': [61, 47.5, 1.8], 'nhin': [55.8, 51.2, 1.3], 'ong_kinh': 50, 'khung': [TANGO]},   # đông nam ngang tầm: mặt Tango nhìn kẹo, kẹo tiền cảnh, Lint bên cạnh; kết Tango quay lưng về phía phích (phích do 7.1b cho thấy)
  '7.1b': {'dat': [56.4, 50.6, 2.2], 'nhin': [54.3, 52.6, 0.5], 'ong_kinh': 35, 'khung': ['Cable Plug'], 'qua_truc': True},
- '7.4a': {'dat': [57.2, 52.4, 9], 'nhin': [57.2, 55, 0.8], 'ong_kinh': 24, 'khung': ['USB Hub', 'Cable Plug'], 'qua_truc': True},
+ '7.4a': {'dat': [56.4, 51.0, 7.0], 'nhin': [57.0, 55.0, 0.8], 'ong_kinh': 20, 'khung': ['USB Hub', 'Cable Plug'], 'qua_truc': True},   # #36: thấp + ống rộng — phích 6% (trước 3.9%), tâm đế cắm trong khung
   # 7.2a đặt tay: trên cao bên phải (cùng hướng 7.2), nhìn qua đầu Lint xuống mặt đế cắm — bộ giải tự động né Lint bằng cách vượt trục; máy phía trước thì iMac vàng chắn.
  # 7.2 ĐẶT TAY — GÓC NGƯỢC của 7.1b (15/10/2026 #32: bộ giải đặt máy sau lưng Tango, Tango che phích — phích 3% ở mép phải, keyframe vẽ cảnh khác;
  # máy tây-nam thì đứng đè lên cáp trắng): 7.1b là mắt Tango nhìn phích → 7.2 máy sau phích nhìn ngược về Tango (cặp POV → góc ngược, qua_truc).
@@ -230,7 +230,10 @@ MOI = {
  '7.6a': {'phia': 30, 'khung': [TANGO, LINT]},         # hai bạn đập tay đọc rõ; Mr. Wipe lủi đi ở hậu cảnh
  # 7.6b máy sau-trên hai nửa kẹo: kẹo tiền cảnh dưới khung, hai bạn ở giữa nhìn về kẹo (về máy).
  '7.6b': {'dat': [64, 48.5, 3.5], 'nhin': [55, 51, 1.2], 'ong_kinh': 35, 'khung': [TANGO, LINT, GUMMY]},
- '7.7b': {'phia': 70, 'khung': [TANGO, LINT]},
+ '7.7b': {'dat': [63.5, 47.1, 1.3], 'nhin': [51.5, 51.5, 1.3], 'ong_kinh': 70, 'khung': [TANGO, LINT]},   # #43: máy cũ (bộ giải, ống 85) cắt Lint ở mép → ống 70 cho hai bạn trọn khung
+ # #37 khăn quệt vào phích: bộ giải đặt máy cách 29 cm (phích 1.9%) → trước-trái 7 cm như keyframe đã có: Mr. Wipe giữa khung, phích tiền cảnh phải.
+ '7.5': {'dat': [50.6, 46.0, 5.0], 'nhin': [55.6, 54.4, 1.9], 'ong_kinh': 40},
+
 }
 # Thẻ cam = VÍ DA cam có tấm thẻ xanh nhạt trong ô cửa sổ — đúng ảnh mẫu anchor (khối cam trơn làm keyframe vẽ lúc thẻ nhựa phẳng lúc ví da).
 vat('Orange Card').update(chat='cao_su', en='orange leather card holder with a pale blue card showing in its window')

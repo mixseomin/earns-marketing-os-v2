@@ -3,7 +3,7 @@
 //                                              khoi → khối 3D nhân vật / đạo cụ, may (theo mã shot) → xv_canh.may_3d của tập
 //   --dung --tap=<id> [--tat-ca]               dựng khung xám (Blender) cho shot có may_3d mà khung xám thiếu / cũ
 // cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/bo-set.mts …
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
@@ -79,7 +79,8 @@ if (process.argv.includes('--dung')) {
     console.log(JSON.stringify(await dungKhungXamTap(db, tap, { tatCa: true, ids: v.ids, che: 'nhap', thuMuc: nhap })));
   } else {
     const kq = await dungKhungXamTap(db, tap, { tatCa: process.argv.includes('--tat-ca'), ids: chi, ...(xuat ? { che: 'xuat' as const, thuMuc: xuat } : {}) });
-    if (xuat && kq.ok) writeFileSync(path.join(xuat, 'viec.json'), JSON.stringify({ ids: kq.data.ids }));
+    // Không shot nào cần dựng thì dungKhungXamTap không tạo thư mục — tạo ở đây để viec.json rỗng vẫn ghi được (chay-imac.sh báo 'không có shot nào cần dựng').
+    if (xuat && kq.ok) { mkdirSync(xuat, { recursive: true }); writeFileSync(path.join(xuat, 'viec.json'), JSON.stringify({ ids: kq.data.ids })); }
     console.log(JSON.stringify(kq));
   }
 }

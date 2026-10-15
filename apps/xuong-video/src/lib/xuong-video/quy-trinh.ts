@@ -49,11 +49,15 @@ export function mauNhacTen(c: Pick<Canh, 'nhan_vat' | 'prompt_anh'>, nhanVat: Pi
     return new RegExp(`(^|[^\\p{L}])${t}([^\\p{L}]|$)`, 'u').test(chu);
   });
 }
-export function thieuMau(c: Pick<Canh, 'nhan_vat' | 'prompt_anh' | 'hanh_dong'>, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai'>[]): string[] {
+/** MÔ TẢ NƯỚC ĐÔI (15/10/2026: 'a flat orange card / card holder' → keyframe lúc thẻ nhựa phẳng lúc ví da): anchor phải tả MỘT kiểu. Trả đoạn nước
+ *  đôi ("A / B") hoặc null. */
+export const moTaNuocDoi = (mo: string | undefined): string | null => (mo ?? '').match(/[\p{L}-]+(?: [\p{L}-]+)? \/ [\p{L}-]+(?: [\p{L}-]+)?/u)?.[0] ?? null;
+export function thieuMau(c: Pick<Canh, 'nhan_vat' | 'prompt_anh' | 'hanh_dong'>, nhanVat: (Pick<NhanVat, 'id' | 'ten' | 'loai'> & Partial<Pick<NhanVat, 'mo_ta'>>)[]): string[] {
   const out: string[] = [];
   const gan = nhanVat.filter((v) => c.nhan_vat.includes(v.id));
   if (!gan.some((v) => v.loai === 'boi_canh')) out.push(nhanVat.some((v) => v.loai === 'boi_canh') ? 'chưa gắn bối cảnh — gắn một anchor Bối cảnh (tab 🎭 Phim) để mọi shot cùng nơi trông như một chỗ' : 'phim chưa có anchor Bối cảnh nào — tả + sinh ảnh mẫu các nơi chốn lặp lại (tab 🎭 Phim) trước khi sinh keyframe');
   for (const v of mauNhacTen(c, nhanVat)) out.push(`"${v.ten}" có trong prompt mà chưa gắn mẫu`);
+  for (const v of gan) { const x = moTaNuocDoi(v.mo_ta); if (x) out.push(`mô tả "${v.ten}" nước đôi ("${x}") — chọn MỘT kiểu khớp ảnh mẫu, không thì keyframe vẽ lúc kiểu này lúc kiểu kia`); }
   return out;
 }
 

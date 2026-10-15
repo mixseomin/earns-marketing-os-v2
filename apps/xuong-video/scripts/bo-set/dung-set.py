@@ -191,13 +191,27 @@ def nhan_vat(sh, ket=False):
     Khối có `mat` → gắn hai mắt (lòng trắng + con ngươi) ở mặt trước: khung xám cho thấy nhân vật NHÌN ĐI ĐÂU, không chỉ đứng ở đâu.
     `phan` = các phần thêm (chân, tay, nắp…) toạ độ tương đối đáy giữa khối, cùng quay theo huong. Trả (thân để kiểm, mọi khối để dọn)."""
     than, tat_ca = [], []
+    TRANG.clear()
     for nv in sh.get('nhan_vat', []):
         mau_nv = DL['nhan_vat_mau'][nv['ten']]
+        cam_luc_nay = nv.get('cam') and not (ket and nv.get('den'))   # cam + den = đặt xuống trong shot: khung kết không còn cầm
         if ket: nv = {**nv, 'tam': nv.get('den') or nv['tam'], 'huong': nv.get('huong_den', nv.get('huong', 0)), 'nam': nv.get('nam_den', nv.get('nam'))}   # khung KẾT: chỗ + hướng + dáng (bẹp) lúc kết
         X, Y, Z = nv['tam'][0], nv['tam'][1], (nv['tam'][2] if len(nv['tam']) > 2 else 0)
         w, d, h = mau_nv['co']
         if nv.get('nam'): d, h = h, d   # nằm sấp / bẹp: cao thành sâu
         hg = nv.get('huong', 0)
+        # ĐÃ CHIA (vi_tri.chia = số mảnh, kẹo bẻ đôi ở cảnh 4): dựng TỪNG MẢNH cạnh nhau (đang cầm thì chỉ mảnh của người cầm) + ghi trạng thái
+        # cho nhãn keyframe — trước đây 3D dựng con gấu nguyên nên keyframe vẽ kẹo nguyên dù chữ ghi "half" (7.1a / 7.4a tập 19, 15/10/2026).
+        n = int(nv.get('chia') or 1)
+        if n > 1:
+            so = 1 if cam_luc_nay else n
+            TRANG[nv['ten']] = f"split into {n} pieces; only ONE piece here (the holder's share)" if so == 1 else f"split into {n} separate pieces lying side by side, NOT a whole one"
+            for i in range(so):
+                off = (i - (so - 1) / 2) * w * 0.75
+                o = khoi({'hinh': mau_nv['hinh'], 'co': [w * 0.55, d, h * 0.85], 'mau': mau_nv['mau'], 'tam': [off, 0, Z]}, f"NV {nv['ten']}·manh{i}", (X, Y), hg)
+                if mau_nv.get('mo_hinh'): chat_lieu(o, mau_nv['mo_hinh'], mau_nv['mau'])
+                than.append(o); tat_ca.append(o)
+            continue
         o = khoi({'hinh': mau_nv['hinh'], 'co': [w, d, h], 'mau': mau_nv['mau'], 'sang': mau_nv.get('sang', 0), 'tam': [0, 0, Z]}, f"NV {nv['ten']}", (X, Y), hg)
         if mau_nv.get('mo_hinh'): chat_lieu(o, mau_nv['mo_hinh'], mau_nv['mau']); hoan_thien(o, mau_nv['mo_hinh'], w, d, h)
         than.append(o); tat_ca.append(o)
@@ -258,6 +272,7 @@ def kiem_hinh_hoc(s, cam, sh, nv_obj):
 NHOM = {v['ten'] for v in DL['vat'] if 'phan' in v}
 NEN = {v['ten'] for v in DL['vat'] if v.get('nen')}
 EN = {v['ten']: v['en'] for v in DL['vat'] if v.get('en')}   # tên tiếng Anh cho prompt keyframe   # mặt bàn, tường, kệ: không phải vật chắn
+TRANG = {}   # tên → trạng thái đang dựng của shot hiện tại (đã chia mảnh…) — nhin_thay ghi vào 'trang' cho nhãn keyframe
 def ten_vat(o):
     """Tên người đọc của một khối trong cảnh: 'NV Tango' → Tango, 'Desk Lamp 2' → Desk Lamp (phần của nhóm)."""
     n = o.name.split('·')[0]
@@ -290,7 +305,7 @@ def nhin_thay(s, cam, sh, nv_obj, C=27, R=48):
     for t, x in dem.items():
         pt = round(x['n'] * 100 / (C * R), 1)
         if pt < 0.5: continue
-        out.append({'ten': t, 'en': EN.get(t, t), 'pt': pt, 'hop': [round(x['u0'] - 0.5 / C, 3), round(x['v0'] - 0.5 / R, 3), round(x['u1'] + 0.5 / C, 3), round(x['v1'] + 0.5 / R, 3)],
+        out.append({'ten': t, 'en': EN.get(t, t), **({'trang': TRANG[t]} if t in TRANG else {}), 'pt': pt, 'hop': [round(x['u0'] - 0.5 / C, 3), round(x['v0'] - 0.5 / R, 3), round(x['u1'] + 0.5 / C, 3), round(x['v1'] + 0.5 / R, 3)],
                     # mặt nhìn từ trên xuống (≥ 80% tia trúng mặt ngửa: thẻ cam hai bạn đứng lên, sổ mở) là MẶT NỀN, không phải vật chắn
                     'tien': t not in bb_ten and t not in NEN and x['gan'] < kc_chu * 0.8 and x['mat'] < 0.8 * x['n']})
     return sorted(out, key=lambda x: -x['pt'])

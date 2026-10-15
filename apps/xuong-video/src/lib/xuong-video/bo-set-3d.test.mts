@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo } from './bo-set-3d';
+import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, gocMayLech, gocNgang } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -84,7 +84,7 @@ assert.ok(thieuTrongSet({ nhan_vat: [1, 2], may_3d: mm, dan_dung: { bo_cuc: 'Bac
 assert.deepEqual(thieuTrongSet({ nhan_vat: [1, 2], may_3d: { ...mm, them: ['MacBook Pro'] }, dan_dung: { bo_cuc: 'Background: the open MacBook Pro.' } }, nv, setLap), []);
 // Sửa scripts/bo-set/dung-set.py thì phải tăng BAN_DUNG (khung xám cũ tự hết hiệu lực) rồi ghi lại băm ở đây.
 const bam = createHash('sha1').update(readFileSync(new URL('../../../scripts/bo-set/dung-set.py', import.meta.url))).digest('hex').slice(0, 12);
-assert.deepEqual([BAN_DUNG, bam], [12, 'cbf19e57783a'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
+assert.deepEqual([BAN_DUNG, bam], [13, '6b66f3fa5779'], 'dung-set.py đã đổi: tăng BAN_DUNG trong bo-set-3d.ts rồi cập nhật [số, băm] ở dòng này');
 // Khối lấp khung (máy dí sát kẹo ở 4.6): ≥ 85% khung → chặn; máy tự động đứng ngoài khối chủ thể kể cả cận cực sát.
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([{ ten: 'Gummy Bear', pt: 98.6, hop: [0, 0, 1, 1], tien: false }]) }, nv, setIMac).some((x) => x.includes('lấp 98.6%')));
 const ecu = datMayTuDong({ vi_tri: [{ ten: 'Gummy Bear', tam: [0, 50, 0] }], khung: ['Gummy Bear'] }, { co_canh: 'ecu' }, () => ({ co: [1.4, 0.9, 2] }));
@@ -133,4 +133,17 @@ assert.deepEqual(chuTheQuaTo(kxTo('Orange Card'), setThe), []); assert.equal(chu
 // lam không vào mã khung (khai kể chuyện không làm khung đã dựng thành cũ)
 const setM = { id: 1, du_lieu: { vat: [] } }; const mLam = (lam?: string) => ({ dat: [0, 0, 1], nhin: [0, 1, 0], ong_kinh: 35, vi_tri: [{ ten: 'Tango', tam: [0, 0, 0], ...(lam ? { lam } : {}) }] });
 assert.equal(maKhungXam(setM, mLam("Cable Plug"), []), maKhungXam(setM, mLam(), [])); assert.equal(maPhan(setM, mLam("X"), []).may, maPhan(setM, mLam(), []).may);
+// TRẠNG THÁI VẬT: kẹo đã chia 2 ở #2 thì #3 nguyên lại → đỏ; giữ chia → sạch; mayDayDu mang chia theo món để lại
+assert.ok(lienMachTap([sh(1, [{ ten: 'Gummy Bear', tam: [0, 0, 0] }]), sh(2, [{ ten: 'Gummy Bear', tam: [0, 0, 0], chia: 2 } as never]), sh(3, [{ ten: 'Gummy Bear', tam: [0, 0, 0] }])], kh)[3]![0]!.includes('đã chia 2 mảnh'));
+assert.deepEqual(lienMachTap([sh(1, [{ ten: 'Gummy Bear', tam: [0, 0, 0], chia: 2 } as never]), sh(2, [{ ten: 'Gummy Bear', tam: [0, 0, 0], chia: 2 } as never])], kh), {});
+assert.equal(mayDayDu([sh(1, [{ ten: 'Gummy Bear', tam: [1, 0, 0], chia: 2 } as never]), sh(2, [{ ten: 'Lint', tam: [0, 0, 0] }])], (t) => t === 'Gummy Bear').get(2)!.vi_tri.find((v) => v.ten === 'Gummy Bear')!.chia, 2);
+// GÓC MÁY 3D ↔ góc khai: 7.1a cũ (máy cao 59°, khai ngang) đỏ; máy ngang tầm sạch; POV nhìn xuống đồ dưới chân (31°) vẫn là ngang
+assert.equal(gocNgang({ dat: [60.5, 49.4, 9.6], nhin: [56, 51, 1.6] }), 59);
+assert.ok(gocMayLech({ dat: [60.5, 49.4, 9.6], nhin: [56, 51, 1.6] }, 'ngang')!.includes('ngẩng 59°'));
+assert.equal(gocMayLech({ dat: [59.9, 46.4, 1.8], nhin: [55.6, 51.6, 1.4] }, 'ngang'), null);
+assert.equal(gocMayLech({ dat: [56.4, 50.6, 2.2], nhin: [54.3, 52.6, 0.5] }, 'ngang'), null);
+assert.equal(gocMayLech({ dat: [0, 0, 1], nhin: [0, 5, 1] }, 'tren_xuong')!.includes('tren_xuong'), true);
+// nhãn khối: gọi bằng mô tả anchor + trạng thái
+const lb = moTaThay([{ ten: 'Orange Card', en: 'Orange Card', pt: 30, hop: [0.1, 0.6, 0.9, 0.9], tien: false }, { ten: 'Gummy Bear', pt: 5, hop: [0.4, 0.4, 0.5, 0.5], tien: false, trang: 'split into 2 separate pieces' }], (t) => (t === 'Orange Card' ? 'an orange leather card holder' : undefined));
+assert.ok(lb.includes('an orange leather card holder (bottom') && lb.includes('Gummy Bear [split into 2 separate pieces]'), lb);
 console.log('bo-set-3d.test: ok');

@@ -521,7 +521,9 @@
         0.3
       ],
       "mau": "#e07a2c",
-      "anchor": "Orange Card"
+      "anchor": "Orange Card",
+      "chat": "cao_su",
+      "en": "orange leather card holder with a pale blue card showing in its window"
     },
     {
       "ten": "USB Hub",
@@ -1014,6 +1016,23 @@
         }
       ],
       "chat": "kim_loai"
+    },
+    {
+      "ten": "Card Window",
+      "nen": true,
+      "hinh": "hop",
+      "tam": [
+        57.4,
+        50.8,
+        0.3
+      ],
+      "co": [
+        6.4,
+        3.6,
+        0.04
+      ],
+      "mau": "#a9c8e6",
+      "en": "pale blue card in the card holder window"
     }
   ],
   "vung": {
@@ -2022,7 +2041,8 @@
             71,
             0.5
           ],
-          "cam": "Tango"
+          "cam": "Tango",
+          "chia": 2
         }
       ],
       "phia": 0,
@@ -2089,7 +2109,8 @@
             0.8
           ],
           "cam": "Tango",
-          "an": true
+          "an": true,
+          "chia": 2
         }
       ],
       "qua_truc": true
@@ -2175,7 +2196,8 @@
             0.8
           ],
           "cam": "Tango",
-          "an": true
+          "an": true,
+          "chia": 2
         }
       ],
       "khung": [
@@ -2241,7 +2263,8 @@
             0.8
           ],
           "cam": "Tango",
-          "an": true
+          "an": true,
+          "chia": 2
         }
       ],
       "khung": [
@@ -2320,7 +2343,8 @@
             0.8
           ],
           "cam": "Tango",
-          "an": true
+          "an": true,
+          "chia": 2
         },
         {
           "ten": "Blue Spray Bottle",
@@ -2383,7 +2407,8 @@
             0.8
           ],
           "cam": "Tango",
-          "an": true
+          "an": true,
+          "chia": 2
         }
       ],
       "phia": 0,
@@ -2412,7 +2437,8 @@
             0.8
           ],
           "cam": "Tango",
-          "an": true
+          "an": true,
+          "chia": 2
         }
       ],
       "phia": -40
@@ -2461,7 +2487,8 @@
             0.8
           ],
           "cam": "Tango",
-          "an": true
+          "an": true,
+          "chia": 2
         },
         {
           "ten": "Blue Spray Bottle",
@@ -2543,7 +2570,8 @@
             0.8
           ],
           "cam": "Tango",
-          "an": true
+          "an": true,
+          "chia": 2
         },
         {
           "ten": "Blue Spray Bottle",
@@ -2616,7 +2644,8 @@
             3.0999999999999996
           ],
           "cam": "Tango",
-          "an": true
+          "an": true,
+          "chia": 2
         },
         {
           "ten": "Blue Spray Bottle",
@@ -2689,7 +2718,8 @@
             49.8,
             0.3
           ],
-          "cam": "Tango"
+          "cam": "Tango",
+          "chia": 2
         },
         {
           "ten": "Sticky",
@@ -2957,7 +2987,8 @@
             45.5,
             0
           ],
-          "het": true
+          "het": true,
+          "chia": 2
         },
         {
           "ten": "Sticky",
@@ -3091,7 +3122,6 @@
       "nhay": "phần kết: hai bạn ra mép bàn chào khán giả"
     },
     "7.1a": {
-      "phia": 70,
       "khung": [
         "Tango",
         "Cable Plug"
@@ -3116,7 +3146,18 @@
           ],
           "huong": -49
         }
-      ]
+      ],
+      "dat": [
+        59.9,
+        46.4,
+        1.8
+      ],
+      "nhin": [
+        55.6,
+        51.6,
+        1.4
+      ],
+      "ong_kinh": 50
     },
     "7.1b": {
       "dat": [

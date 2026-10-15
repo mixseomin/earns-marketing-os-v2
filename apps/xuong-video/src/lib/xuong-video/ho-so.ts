@@ -45,6 +45,8 @@ export function bocTach(v: HoSoVao, pc: PhanCanh): { boi_canh: string[]; nhan_va
 
 /** Series còn tập sau tập `so` → kết tập phải móc. */
 export const conTapSau = (series: Series | null | undefined, so?: number): boolean => !!series?.dong_co?.trim() && (series.tap ?? []).some((x) => (x.so ?? 0) > (so ?? 0));
+/** Khung kết viết THỜI GIAN 'sau khi' (after a high-five, sau khi đập tay, After …) — không bắt 'after the gummy' (đuổi theo). */
+export const KET_SAU_KHI = /^\W*after\b|\bafter an? \b|\bsau khi\b/i;
 /** Cổng hồ sơ: thiếu tài liệu nào, mã nào lệch thư viện, shot nào lạc cảnh. Rỗng = đủ chuẩn studio. */
 export function kiemHoSo(v: HoSoVao): string[] {
   const loi: string[] = []; const ds = shotDung(v);
@@ -65,6 +67,8 @@ export function kiemHoSo(v: HoSoVao): string[] {
     for (const l of s.ky_thuat?.luat ?? []) if (!luatDung(l)) loi.push(`${o}: luật "${l}" không có trong thư viện`);
     if (!s.goc_may.trim()) loi.push(`${o}: thiếu mô tả máy (máy làm gì, vì sao)`);
     if (v.khong_loi && giay(s) < giayDoc({ khong_loi: true }) - 0.05) loi.push(`${o}: ${giay(s)}s dưới nhịp đọc`);
+    // KHUNG KẾT chụp ĐỈNH hành động, không chụp 'sau khi' (15/10/2026: 7.6a 'after a high-five' → keyframe không có cú đập tay, video cũng không).
+    if (KET_SAU_KHI.test(s.dan_dung?.ket ?? '')) loi.push(`${o}: trạng thái kết viết "after / sau khi" — khung kết phải chụp đúng khoảnh khắc đỉnh (tay đang chạm, đang rơi), không phải lúc đã xong`);
     void i;
   });
   // Chuẩn series: tham chiếu + khuôn nhận diện phải khai; tập đo theo tham chiếu (độ dài ±25%, mật độ gag ≥ 75% chuẩn).

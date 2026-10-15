@@ -123,8 +123,11 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   const ghiChuBt = bc.nhanVat.map((v) => { const b = btCanh(v); return b ? `${v.ten} in this shot: ${b.mo_ta || b.ten}.` : ''; }).filter(Boolean).join(' ');
   // KHUNG XÁM 3D (bo-set-3d.ts): render từ bộ set thật + máy ảo của shot — bố trí lấy từ DỮ LIỆU, không để model tự nghĩ (anh 14/10/2026:
   // "dựng bối cảnh bằng 3D để scale và làm đúng mọi bộ phim thay vì dựa vào AI bừa bãi"). Đứng ngay sau ảnh mẫu, trước mọi tham chiếu nối khung.
+  // Nhãn khối trong khung 3D gọi ĐẠO CỤ / SẢN PHẨM bằng chính mô tả anchor (15/10/2026: nhãn trơn 'Orange Card' + mô tả nước đôi → keyframe lúc thẻ
+  // nhựa phẳng lúc ví da). Một nguồn với ảnh mẫu của anchor; nhân vật giữ tên (ngoại hình đi theo ảnh mẫu riêng).
+  const goiVat = (ten: string) => { const v = bc.nhanVat.find((x) => x.ten === ten && (x.loai === 'dao_cu' || x.loai === 'san_pham')); return v?.mo_ta.trim() ? moTaNgan(v.mo_ta) : undefined; };
   const soKx = 1;
-  const kxChu = kx ? (kxMau ? `Image ${soKx} = a COLOUR 3D PREVIS render of THIS exact frame from the real set: camera, framing, horizon, every object's and character's position, size and overlap, the lighting direction and colours are all correct — re-create it as the real photographed miniature, keeping everything exactly where it is; materials get real detail, and each character's exact look comes from its reference images (the previs shapes are only stand-ins).` : `Image ${soKx} = a grey-box 3D LAYOUT render from THIS shot's exact camera on the real set: every object and every character must sit EXACTLY where its block is, and NOTHING that is not a block may appear — same position, size, overlap, perspective, horizon and framing. It shows layout only: colours, materials and lighting come from the style and the other reference images, never grey blocks.`) + ` ${ket ? 'Image 1 shows where everything is at the END of the shot.' : moTaThay(bc.canh.khung_xam?.thay)}` : '';
+  const kxChu = kx ? (kxMau ? `Image ${soKx} = a COLOUR 3D PREVIS render of THIS exact frame from the real set: camera, framing, horizon, every object's and character's position, size and overlap, the lighting direction and colours are all correct — re-create it as the real photographed miniature, keeping everything exactly where it is; materials get real detail, and each character's exact look comes from its reference images (the previs shapes are only stand-ins).` : `Image ${soKx} = a grey-box 3D LAYOUT render from THIS shot's exact camera on the real set: every object and every character must sit EXACTLY where its block is, and NOTHING that is not a block may appear — same position, size, overlap, perspective, horizon and framing. It shows layout only: colours, materials and lighting come from the style and the other reference images, never grey blocks.`) + ` ${ket ? 'Image 1 shows where everything is at the END of the shot.' : moTaThay(bc.canh.khung_xam?.thay, goiVat)}` : '';
   // LIỀN MÁY: shot trước chọn chuyển cảnh 'lien_may' → clip của nó kết bằng ảnh này, nên ảnh này phải là giây kế tiếp của chính khung đó
   // (cùng nơi, cùng phía máy, vị trí + đồ vật + trạng thái nối tiếp) — keyframe shot trước làm ảnh tham chiếu cuối (Tango & Lint tập 1: 0/20
   // clip nối khung, shot sau không thấy liên quan shot trước).
@@ -232,3 +235,6 @@ export async function sinhPosterPhim(db: Db, phimId: number, yTuong = '', mau: M
   await dayViecAnh({ job, model: MO_HINH_POSTER, prompt, thamChieuUrl, tiLe: TI_LE_POSTER, thuMuc: `poster/${phimId}` });
   return { ok: true, data: job };
 }
+
+/** Mô tả anchor gọn cho nhãn khối: bỏ phần sau ' — ' (vai trò trong truyện), cắt ở câu đầu, ≤ 140 ký tự. */
+export const moTaNgan = (mo: string): string => { const a = mo.split(' — ')[0]!.split(/(?<=\.)\s/)[0]!.trim().replace(/\.$/, ''); return a.length > 140 ? `${a.slice(0, 137)}…` : a; };

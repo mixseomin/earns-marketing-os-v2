@@ -188,6 +188,14 @@ for ma in ('5.1', '5.3', '5.4', '5.5', '5.6', '5.7', '6.1', '6.2', '6.3'): cam_t
 for ma in ('5.5', '6.1', '6.2', '6.3'): cam_theo(ma, SPRAY, WIPE, [1.5, 0, -1], an=(ma != '5.5'))
 cam_theo('6.3', CBALL, LINT, [0.4, 0.3, 0.4])
 VT['7.1'].append(v(CBALL, [55.8, 51.8, 1.2], [58.9, 53.3, 0.3], cam=LINT))   # Lint đặt cục bông xuống thẻ cạnh mình
+# KẸO ĐÃ BẺ ĐÔI ở 4.6 (kéo giãn tới đứt): từ 4.7 mọi lần kẹo xuất hiện là 2 mảnh — đang cầm thì Blender chỉ dựng mảnh của người cầm, đặt xuống
+# (7.1 → thẻ cam) thì dựng hai mảnh cạnh nhau. Cổng lienMachTap chặn shot nào lỡ để kẹo nguyên lại.
+def sau_46(ma):
+    a, b = ma.split('.', 1); return int(a) > 4 or (int(a) == 4 and b not in ('1', '2', '3', '5', '5a', '6'))
+for ma, ds in VT.items():
+    if not sau_46(ma): continue
+    for x in ds:
+        if x['ten'] == GUMMY: x['chia'] = 2
 # 5.7 mở đúng hướng 5.6 kết (ngửa về máy), rồi mới ngước nhìn Lint.
 for x in VT['5.7']:
     if x['ten'] == TANGO: x['huong'] = nhin(x['tam'], [3.7, 68.4]); x['huong_den'] = nhin(x['tam'], [7.5, 72.5])
@@ -208,7 +216,9 @@ S['may']['5.4'].pop('phia', None); S['may']['5.4'].update(dat=[-14, 66, 12], nhi
 # Máy các shot thêm cho chuỗi chú ý / nút đóng / kết (15/10/2026). Góc nhìn chủ quan (POV) đặt tay ở mắt nhân vật + qua_truc.
 MOI = {
  # 7.1a qua vai: máy trước-phải (cùng phía 7.1) — Tango mở nhìn kẹo về phía máy, quay đầu về phích đang chớp ở hậu cảnh trái (khán giả thấy cú nhìn + cái được nhìn).
- '7.1a': {'phia': 70, 'khung': [TANGO, 'Cable Plug']},
+ # 7.1a ĐẶT TAY ngang tầm trước-phải (bộ giải tự động đẩy máy lên cao 59° → keyframe bỏ khung 3D, mất cú quay đầu): mở thấy mặt Tango, kết thấy cậu
+ # quay đi về phía phích đang chớp ở hậu cảnh trái.
+ '7.1a': {'dat': [59.9, 46.4, 1.8], 'nhin': [55.6, 51.6, 1.4], 'ong_kinh': 50, 'khung': [TANGO, 'Cable Plug']},
  '7.1b': {'dat': [56.4, 50.6, 2.2], 'nhin': [54.3, 52.6, 0.5], 'ong_kinh': 35, 'khung': ['Cable Plug'], 'qua_truc': True},
  '7.4a': {'dat': [57.2, 52.4, 9], 'nhin': [57.2, 55, 0.8], 'ong_kinh': 24, 'khung': ['USB Hub', 'Cable Plug'], 'qua_truc': True},
   # 7.2a đặt tay: trên cao bên phải (cùng hướng 7.2), nhìn qua đầu Lint xuống mặt đế cắm — bộ giải tự động né Lint bằng cách vượt trục; máy phía trước thì iMac vàng chắn.
@@ -218,6 +228,9 @@ MOI = {
  '7.6b': {'dat': [64, 48.5, 3.5], 'nhin': [55, 51, 1.2], 'ong_kinh': 35, 'khung': [TANGO, LINT, GUMMY]},
  '7.7b': {'phia': 70, 'khung': [TANGO, LINT]},
 }
+# Thẻ cam = VÍ DA cam có tấm thẻ xanh nhạt trong ô cửa sổ — đúng ảnh mẫu anchor (khối cam trơn làm keyframe vẽ lúc thẻ nhựa phẳng lúc ví da).
+vat('Orange Card').update(chat='cao_su', en='orange leather card holder with a pale blue card showing in its window')
+S['vat'] = [x for x in S['vat'] if x['ten'] != 'Card Window'] + [{'ten': 'Card Window', 'nen': True, 'hinh': 'hop', 'tam': [57.4, 50.8, 0.3], 'co': [6.4, 3.6, 0.04], 'mau': '#a9c8e6', 'en': 'pale blue card in the card holder window'}]
 for ma, m in MOI.items():
     if 'dat' in m: S['may'].setdefault(ma, {}).pop('phia', None)
     S['may'].setdefault(ma, {}).update(m)

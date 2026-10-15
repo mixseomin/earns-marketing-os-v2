@@ -17,7 +17,7 @@ export const khoiCua = (ten: string, nhanVat: Pick<NhanVat, 'ten' | 'khoi_3d'>[]
 
 /** PHIÊN BẢN CÁCH DỰNG (scripts/bo-set/dung-set.py): nằm trong mã khung xám → đổi script dựng thì mọi khung tự thành cũ và lượt dựng thường
  *  tự làm lại, không phải ép dựng cả tập (--tat-ca). bo-set-3d.test.mts băm dung-set.py: sửa script mà quên tăng số này là test đỏ. */
-export const BAN_DUNG = 12;
+export const BAN_DUNG = 13;
 /** Mã đầu vào của khung xám: cách dựng + set (dữ liệu) + máy + vị trí + khối nhân vật — khác mã là khung xám cũ hết hiệu lực. */
 const bam = (x: unknown) => { const s = JSON.stringify(x); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); };
 /** Mã từng PHẦN đầu vào của khung xám — lưu kèm khung (khung_xam.ma_phan) để biết lần sau vì sao phải dựng lại (bộ set / máy / khối / cách dựng). */
@@ -149,6 +149,9 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> 
     for (const t of khoiLapKhung(c, set)) out.push(`${t.ten} lấp ${t.pt}% khung — máy dí sát hoặc lọt trong vật: lùi máy / đổi cỡ cảnh`);
     for (const v of vatChanTienCanh(c, set)) out.push(`${v.ten} chắn tiền cảnh ${v.pt}% khung mà bố cục không nhắc — máy đang đặt sau đồ đạc: dời máy (phía / dat) hoặc ghi nó vào bố cục nếu cố ý`);
   }
+  // GÓC MÁY 3D phải khớp góc máy khai ở thẻ shot (15/10/2026: 7.1a khai ngang tầm mà bộ giải đẩy máy lên cao 59° — keyframe bỏ qua khung 3D,
+  // vẽ ngang tầm theo chữ, mất luôn cú quay đầu). Lệch → đặt tay máy hoặc đổi góc khai cho đúng điều muốn quay.
+  { const g = gocMayLech(c.may_3d, c.ky_thuat?.goc); if (g) out.push(g); }
   // NỐI HƯỚNG MÁY: hai shot liền nhau CÙNG cảnh mà hướng nhìn của máy lệch > 100° → hậu cảnh + cỡ đổi hẳn, cắt như sang nơi khác (5.4 → 5.5
   // tập 19: một máy nhìn về iMac từ góc sau, một máy nhìn rừng cáp từ bên trái). Cố ý (POV, lật trục) thì khai qua_truc.
   if (!c.may_3d.qua_truc && truoc?.may_3d && c.phan_doan && truoc.phan_doan === c.phan_doan && boSetCuaShot(truoc, nhanVat) === set.id) {
@@ -211,9 +214,11 @@ export function moTaChuyenDong(di: KhungXam['di'] | undefined): string {
 
 /** Danh sách khối trong khung xám, gọi tên từng khối cho mô hình ảnh (vị trí trên màn + % khung) — để nó không đoán một khối vàng là bàn tay.
  *  Bỏ khối < 2% khung. Chỉ những thứ này có trong khung: không thêm tay / người / vật không có tên ở đây. */
-export function moTaThay(thay: VatThay[] | undefined): string {
+/** enCua(ten): cách gọi vật cho model ảnh — mô tả anchor (sinh-anh.ts) thắng tên trơn của set ('Orange Card' → ví da cam có thẻ xanh, đúng ảnh mẫu);
+ *  trang = trạng thái lúc dựng (đã chia mảnh). */
+export function moTaThay(thay: VatThay[] | undefined, enCua?: (ten: string) => string | undefined): string {
   const ngang = (x: number) => (x < 0.36 ? 'left' : x > 0.64 ? 'right' : 'centre'); const doc = (y: number) => (y < 0.36 ? 'top' : y > 0.64 ? 'bottom' : 'middle');
-  const ds = (thay ?? []).filter((t) => t.pt >= 2).map((t) => `${t.en ?? t.ten} (${doc((t.hop[1] + t.hop[3]) / 2)}-${ngang((t.hop[0] + t.hop[2]) / 2)}, ${Math.round(t.pt)}%${t.tien ? ', foreground' : ''})`);
+  const ds = (thay ?? []).filter((t) => t.pt >= 2).map((t) => `${enCua?.(t.ten) ?? t.en ?? t.ten}${t.trang ? ` [${t.trang}]` : ''} (${doc((t.hop[1] + t.hop[3]) / 2)}-${ngang((t.hop[0] + t.hop[2]) / 2)}, ${Math.round(t.pt)}%${t.tien ? ', foreground' : ''})`);
   return ds.length ? `Blocks in that layout image, by name: ${ds.join('; ')}. Nothing else is in this frame — do not add hands, people or objects that are not in this list; the BACKGROUND is exactly what those blocks show (a far room wall stays a plain dim wall — never add monitors, computers or extra cables there).` : '';
 }
 
@@ -222,16 +227,16 @@ export function moTaThay(thay: VatThay[] | undefined): string {
 // set — tự thêm vào chỗ đứng của shot (an, de_lai) cho tới khi nó được khai lại (đổi chỗ), được cầm lên (cam), hoặc rời bộ set (het).
 // Khung 3D / khung màu / keyframe vì thế luôn có món đó nếu máy nhìn thấy chỗ nó nằm — không phải nhớ khai lại từng shot.
 export function mayDayDu<T extends { id: number; may_3d?: May3d | null }>(ds: T[], laDoVat: (ten: string) => boolean): Map<number, May3d> {
-  const con = new Map<string, { tam: number[]; huong?: number; nam?: boolean }>(); const out = new Map<number, May3d>();
+  const con = new Map<string, { tam: number[]; huong?: number; nam?: boolean; chia?: number }>(); const out = new Map<number, May3d>();
   for (const c of ds) {
     const m = c.may_3d; if (!m) continue;
     const co = new Set(m.vi_tri.map((v) => v.ten));
-    const deLai = [...con].filter(([t]) => !co.has(t)).map(([ten, x]) => ({ ten, tam: x.tam, ...(x.huong != null ? { huong: x.huong } : {}), ...(x.nam ? { nam: true } : {}), an: true, de_lai: true }));
+    const deLai = [...con].filter(([t]) => !co.has(t)).map(([ten, x]) => ({ ten, tam: x.tam, ...(x.huong != null ? { huong: x.huong } : {}), ...(x.nam ? { nam: true } : {}), ...(x.chia ? { chia: x.chia } : {}), an: true, de_lai: true }));
     out.set(c.id, deLai.length ? { ...m, vi_tri: [...m.vi_tri, ...deLai] } : m);
     for (const v of m.vi_tri) {
       if (!laDoVat(v.ten)) continue;
       if (v.het || (v.cam && !v.den)) con.delete(v.ten);   // rời bộ set / đang được cầm đi theo người
-      else con.set(v.ten, { tam: v.den ?? v.tam, huong: v.huong_den ?? v.huong, nam: v.nam_den ?? v.nam });
+      else con.set(v.ten, { tam: v.den ?? v.tam, huong: v.huong_den ?? v.huong, nam: v.nam_den ?? v.nam, ...(v.chia ? { chia: v.chia } : {}) });
     }
   }
   return out;
@@ -250,6 +255,9 @@ export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May
   // ĐỒ ĐANG CẦM (nối thử #22→#24 tập 19: bình xịt trong tay Mr. Wipe ở 5.4 và 5.6 mà 5.5 không có): người cầm còn trong shot thì món đồ phải còn —
   // tới khi nó xuất hiện KHÔNG còn cầm (đặt xuống), hoặc người cầm khai nhảy / shot khai nhảy.
   const camBoi = new Map<string, { nguoi: string; shot: number }>();
+  // TRẠNG THÁI VẬT (15/10/2026: kẹo đã bẻ đôi ở cảnh 4 mà 7.1a / 7.4a dựng con gấu nguyên): một món đã chia mảnh thì mọi lần xuất hiện sau phải
+  // khai chia ≥ số mảnh đó — vật không tự lành.
+  const daChia = new Map<string, { n: number; shot: number }>();
   for (const c of ds) {
     const m = c.may_3d; if (!m) continue;
     const co = new Set(m.vi_tri.map((v) => v.ten));
@@ -262,6 +270,9 @@ export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May
     // cam + den = cầm rồi ĐẶT XUỐNG trong shot (hai nửa kẹo đặt lên thẻ ở 7.1) → hết theo dõi.
     for (const v of m.vi_tri) { if (v.cam && !v.den) camBoi.set(v.ten, { nguoi: v.cam, shot: c.thu_tu }); else camBoi.delete(v.ten); }
     for (const v of m.vi_tri) {
+      const ch = daChia.get(v.ten);
+      if (ch && (v.chia ?? 1) < ch.n) (out[c.id] ??= []).push(`${v.ten} đã chia ${ch.n} mảnh từ #${ch.shot} mà shot này ${v.chia ? `chỉ ${v.chia}` : 'nguyên'} — khai chia: ${ch.n} (vật không tự lành)`);
+      if ((v.chia ?? 1) > (ch?.n ?? 1)) daChia.set(v.ten, { n: v.chia!, shot: c.thu_tu });
       const tr = cuoi.get(v.ten);
       if (v.cam) { cuoi.delete(v.ten); continue; }   // đang cầm: theo người cầm, lần sau thấy không so chỗ cũ
       if (tr && !m.nhay && !v.nhay) {
@@ -326,4 +337,13 @@ export function loiMachTap<T extends { id: number; thu_tu: number; phan_doan?: s
     for (const r of [lienMachTap(cua, (t) => khoiCua(t, nhanVat)), chuoiChuY(cua, choVatSet(sets.find((x) => x.id === sid)))]) for (const [k, v] of Object.entries(r)) (out[Number(k)] ??= []).push(...v);
   }
   return out;
+}
+
+/** Góc ngẩng (độ, + = máy cao nhìn xuống) hợp với từng góc máy khai — rộng tay vì nhân vật tí hon nhìn đồ dưới chân vẫn là "ngang tầm". */
+export const GOC_NGANG: Record<string, [number, number]> = { sat_dat: [-90, 15], thap: [-90, 8], ngang: [-20, 35], cao: [15, 75], tren_xuong: [50, 90] };
+export const gocNgang = (m: Pick<May3d, 'dat' | 'nhin'>): number => { const dx = m.nhin[0]! - m.dat[0]!, dy = m.nhin[1]! - m.dat[1]!, dz = (m.dat[2] ?? 0) - (m.nhin[2] ?? 0); return Math.round((Math.atan2(dz, Math.hypot(dx, dy)) * 180) / Math.PI); };
+export function gocMayLech(m: Pick<May3d, 'dat' | 'nhin'>, goc: string | undefined): string | null {
+  const k = goc ? GOC_NGANG[goc] : undefined; if (!k) return null;
+  const e = gocNgang(m);
+  return e < k[0] || e > k[1] ? `máy 3D ngẩng ${e}° mà thẻ shot khai góc "${goc}" (${k[0]}…${k[1]}°) — keyframe sẽ vẽ theo chữ, bỏ khung 3D: đặt tay máy (dat/nhin) hoặc đổi góc khai` : null;
 }

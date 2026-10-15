@@ -307,6 +307,8 @@ export type May3d = { dat: number[]; nhin: number[]; ong_kinh: number; /** máy 
     /** CỐ Ý xuất hiện ở chỗ khác lần cuối thấy (đi ngoài khung) — ghi lý do; chỉ miễn kiểm cho món này */ nhay?: string;
     /** nhân vật này TÁC ĐỘNG lên món nào trong shot (chạm, ấn, chà, cầm lên) — tên vật của set hoặc chỗ đứng khác. Cổng chuỗi chú ý
      *  (bo-set-3d.ts › chuoiChuY): trước đó phải có shot nó NHÌN món đó + shot cho THẤY món đó */ lam?: string;
+    /** món đã bị CHIA thành bấy nhiêu mảnh (kẹo bẻ đôi = 2): Blender dựng từng mảnh, đang cầm thì chỉ mảnh của người cầm; một khi đã chia thì
+     *  shot sau không được nguyên lại (bo-set-3d.ts › lienMachTap) — và tự mang theo khi món bị để lại (mayDayDu) */ chia?: number;
     /** ĐIỂM tác động trên món đó (cm) khi món lớn (dấu tay ở góc trước đế cắm, không phải tâm đế cắm) — cổng đo hướng nhìn tới điểm này */ lam_o?: number[];
     nam?: boolean; /** dáng lúc KẾT (bẹp / nằm) khác lúc mở — khung màu kết vẽ theo */ nam_den?: boolean; /** kịch bản CỐ Ý cho vật khác che (vd nấp sau chuột) — kiểm không báo bị che */ an?: boolean }[];
   /** CỐ Ý ĐỨT MẠCH ở cú cắt vào shot này (thời gian trôi / dịch chuyển ngoài khung) — ghi lý do; không ghi thì mọi nhân vật phải mở đúng chỗ
@@ -320,7 +322,7 @@ export type KhungXam = { ma: string; /** mã từng phần đầu vào (ban / se
   /** THẤY GÌ trong khung (dung-set.py › nhin_thay, đo bằng lưới tia): tên vật / nhân vật · % khung · hộp bao [x0,y0,x1,y1] 0..1 gốc trên-trái ·
    *  tien = nằm trước chủ thể (vật chắn tiền cảnh). Lưới gắn nhãn, cổng bắt vật chắn, prompt keyframe gọi tên từng khối. */
   thay?: VatThay[] };
-export type VatThay = { ten: string; /** tên tiếng Anh cho prompt (vat.en) — mô hình ảnh không hiểu 'Mặt bàn', 'Tường phải' */ en?: string; pt: number; hop: [number, number, number, number]; tien: boolean };
+export type VatThay = { ten: string; /** tên tiếng Anh cho prompt (vat.en) — mô hình ảnh không hiểu 'Mặt bàn', 'Tường phải' */ en?: string; /** trạng thái lúc dựng (đã chia mảnh…) — nhãn keyframe nói rõ, không để model vẽ theo ảnh mẫu nguyên vẹn */ trang?: string; pt: number; hop: [number, number, number, number]; tien: boolean };
 export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string;
   /** tiểu sử (nhân vật): nguồn gốc, tính cách, sức mạnh, điểm yếu, mong muốn, nỗi sợ, quan hệ, bí mật — chỉ vào ngữ cảnh viết kịch bản, không vào prompt hình */
   tieu_su?: string;

@@ -76,4 +76,10 @@ assert.deepStrictEqual(kiemKetTap([{ ten: 'Bến', gag: gag7 }], ket, { coMoc: t
 // shot cuối không phải móc (phản ứng) → đỏ; phim lẻ không đòi móc
 assert.ok(kiemKetTap([{ ten: 'Bến', gag: gag7 }], [...ket.slice(0, 10), { ...s7('phan_ung', ['chenh_thong_tin']), thu_tu: 96 }], { coMoc: true }).some((x) => x.includes('MÓC')));
 assert.deepStrictEqual(kiemKetTap([{ ten: 'Bến', gag: gag7 }], ket.slice(0, 10), {}), []);
+// mô tả anchor nước đôi + khung kết 'sau khi' (15/10/2026)
+const { moTaNuocDoi } = await import('./quy-trinh');
+const { KET_SAU_KHI } = await import('./ho-so');
+assert.equal(moTaNuocDoi('a flat orange card / card holder lying on the desk'), 'orange card / card holder');
+assert.equal(moTaNuocDoi('an orange leather card holder with a pale blue card in its window'), null);
+assert.ok(KET_SAU_KHI.test('Tango and Lint after a high-five') && KET_SAU_KHI.test('sau khi đập tay') && !KET_SAU_KHI.test('rolling on into the dark after the gummy'));
 console.log('nhip-hinh.test: ok');

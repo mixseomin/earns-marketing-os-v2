@@ -1,6 +1,6 @@
 // Tự kiểm bộ dựng lệnh ffmpeg của bản xuất. Chạy: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/xuat.test.mts
 import assert from 'node:assert';
-import { keHoachXuat, urlCanXuat, ngatDong, doanChuMan, tepAss, chuManHien, kiemGiongLoiDan, khoangIm, duoiNhac, tiengLa } from './xuat';
+import { keHoachXuat, urlCanXuat, ngatDong, doanChuMan, tepAss, chuManHien, kiemGiongLoiDan, khoangIm, duoiNhac, tiengLa, hinhDung } from './xuat';
 import { lichGiong, phatTiengClip } from './am-thanh';
 import type { Canh, NhanVat } from './kieu';
 
@@ -208,6 +208,8 @@ console.log('xuat.test: mẫu ok');
   const mdLa = Array.from({ length: 16 }, (_, i) => i * 0.5).map((t) => `frame:0 pts:0 pts_time:${t}\nlavfi.r128.M=${t === 3 || t === 3.5 ? '-10.0' : t === 1 ? '-9.0' : '-18.0'}`).join('\n');
   const lichLa = { co: [[0.9, 1.6]] as [number, number][], shot: [{ thu_tu: 1, tu: 0, den: 2.5 }, { thu_tu: 2, tu: 2.5, den: 5 }, { thu_tu: 3, tu: 5, den: 8 }] };
   assert.deepStrictEqual(tiengLa(mdLa, lichLa, 8), [{ tu: 3, den: 4, hon: 8, shot: [2] }]);
+  // Hình đứng (freezedetect): một đoạn có đầu có cuối + một đoạn đứng tới hết tệp (phim #36 khung cuối giữ đứng 3s).
+  assert.deepStrictEqual(hinhDung('[freezedetect] lavfi.freezedetect.freeze_start: 4.04\n[freezedetect] lavfi.freezedetect.freeze_duration: 1.2\n[freezedetect] lavfi.freezedetect.freeze_end: 5.24\n[freezedetect] lavfi.freezedetect.freeze_start: 22.96', 26), [[4, 5.2], [23, 26]]);
   // Mức nhạc theo độ to đo được: bài -14 LUFS → -16 − 10 − (−14) = −12 dB; ducking nhẹ 2:1 (nhạc không bị nén suốt phim).
   const kL = keHoachXuat({ loai: 'quang_cao', tiLe: '9:16', canh: ds as never, nhanVat: nv, tap: { nhac_url: 'https://x/n.mp3', nhac_phan_canh: {} }, qc: qcV, nguyenLieu: nlA.map((x) => (x.url === 'https://x/n.mp3' ? { ...x, lufs: -14 } : x)), font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
   const lL = kL.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;

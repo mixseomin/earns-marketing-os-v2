@@ -52,6 +52,19 @@ export function khoangIm(metadata: string, giay: number): [number, number][] {
  *  (trung vị các ô trống như vậy) quá NGUONG_TIENG_LA dB. Phim #36 15/10/2026: shot 8 tiếng gốc clip (nhạc riêng model video tự sinh) to hơn
  *  nền 6–9 dB, shot 5 tiếng đập +7 dB — phải người nghe mới biết; bản đã sửa nền phẳng ±1 dB. Bỏ 0,5s đầu và 1s cuối (nhạc fade). */
 export const NGUONG_TIENG_LA = 5;
+/** Đọc stderr của ffmpeg freezedetect → các đoạn hình đứng [từ, đến] (giây, làm tròn 0,1). Đoạn đứng tới hết tệp (không có freeze_end) → đến = giay. */
+export function hinhDung(stderr: string, giay: number): [number, number][] {
+  const out: [number, number][] = []; let tu: number | null = null;
+  const r1 = (x: number) => Math.round(x * 10) / 10;
+  for (const dong of stderr.split('\n')) {
+    const a = dong.match(/freeze_start:\s*([\d.]+)/); if (a) { tu = Number(a[1]); continue; }
+    const b = dong.match(/freeze_end:\s*([\d.]+)/); if (b && tu != null) { out.push([r1(tu), r1(Number(b[1]))]); tu = null; }
+  }
+  if (tu != null && giay - tu >= 1) out.push([r1(tu), r1(giay)]);
+  return out;
+}
+/** Clip ngắn hơn giây phát được phát chậm tối đa bấy nhiêu lần trước khi phải giữ khung cuối (1,6×: chuyển động AI vẫn trông tự nhiên). */
+export const GIAN_TOI_DA = 1.6;
 export function tiengLa(metadata: string, lich: LichTieng, giay: number): { tu: number; den: number; hon: number; shot: number[] }[] {
   const o = docM05(metadata);
   const coTieng = (k: number) => lich.co.some(([a, b]) => k < b + 0.3 && k + 0.5 > a - 0.3);
@@ -284,10 +297,17 @@ export function keHoachXuat(o: {
     const toc = laVideo ? keHoachToc(c.ky_thuat?.toc_do, phat, dai, daiClip != null ? daiClip - boDau : 8) : null;
     const canNguon = toc ? toc.canVao : dai;
     const cuoiThat = laVideo ? Math.min(daiClip ?? boDau + canNguon, boDau + canNguon) : 0; const dem = laVideo ? Math.max(0, boDau + canNguon - cuoiThat) : 0;
-    const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(cuoiThat)},setpts=PTS-STARTPTS,${toc ? `setpts='(${bieuThucToc(toc)})/TB',` : ''}${khung}${dem > 0.01 ? `,tpad=stop_mode=clone:stop_duration=${so(dem)}` : ''}` : `[${k}:v]${khungTinh(i)},trim=0:${so(dai)},setpts=PTS-STARTPTS${dayMay(dai)}`];
+    const dungClip = phatTiengClip(c, o.nhanVat);
+    // CLIP NGẮN HƠN GIÂY PHÁT (giữ hình kết sau câu cuối, khớp giây theo giọng kéo dài shot): trước đây đứng hẳn khung cuối (tpad clone) — anh
+    // 15/10/2026 phim #36: "khung cuối tự dưng bị dừng hẳn lại". Giờ: (1) phát CHẬM clip tới GIAN_TOI_DA× cho phủ phần thiếu — hình vẫn chuyển
+    // động; (2) còn thiếu nữa mới giữ khung cuối, và khi đó cả shot đẩy máy chậm (dayMay) để khung đứng không chết. Shot đang phát tiếng gốc
+    // của clip thì không làm chậm (tiếng sẽ lệch hình).
+    const conLai = cuoiThat - boDau;
+    const gian = laVideo && !toc && !dungClip && dem > 0.01 && conLai > 0.3 ? Math.min(GIAN_TOI_DA, (conLai + dem) / conLai) : 1;
+    const demCon = laVideo ? Math.max(0, dem - conLai * (gian - 1)) : 0;
+    const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(cuoiThat)},setpts=PTS-STARTPTS,${gian > 1.001 ? `setpts=${so(gian)}*PTS,` : ''}${toc ? `setpts='(${bieuThucToc(toc)})/TB',` : ''}${khung}${demCon > 0.01 ? `,tpad=stop_mode=clone:stop_duration=${so(demCon)}${dayMay(dai)}` : ''}` : `[${k}:v]${khungTinh(i)},trim=0:${so(dai)},setpts=PTS-STARTPTS${dayMay(dai)}`];
     for (const d of doanHien(c.chu_man, phat, gopKieu(o.qc?.kieu_chu, c.kieu_chu).tu)) cauMan.push({ tu: t + d.tu, den: t + d.den, dong: d.dong, kieu: c.kieu_chu });
     if (logoUrl) { const kl = them(logoUrl, ['-loop', '1', '-framerate', '30', '-t', so(dai)]); loc.push(`[${kl}:v]scale=-1:${Math.round(H * 0.06)},format=rgba[lg${i}]`); ve[ve.length - 1] += `[vv${i}];[vv${i}][lg${i}]overlay=W-w-${Math.round(W * 0.03)}:${Math.round(H * 0.03)}:shortest=1`; }
-    const dungClip = phatTiengClip(c, o.nhanVat);
     if (c.am_thanh_url && nl.has(c.am_thanh_url)) { const ka = them(c.am_thanh_url); themAm(`[${ka}:a]atrim=0:${so(phat)},asetpts=PTS-STARTPTS,volume=0.8,adelay=${Math.round(t * 1000)}:all=1`); }
     amShot.push({ am: c.ky_thuat?.am_thanh, tu: t, phat });
     lich.shot.push({ thu_tu: c.thu_tu, tu: t, den: t + phat });

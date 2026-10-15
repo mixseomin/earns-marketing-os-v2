@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { promisify } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '@/lib/r2';
-import { keHoachXuat, urlCanXuat, khoangIm, tiengLa, duoiNhac, NGUONG_IM_LUFS, type NguyenLieu, type LichTieng } from './xuat';
+import { keHoachXuat, urlCanXuat, khoangIm, tiengLa, hinhDung, duoiNhac, NGUONG_IM_LUFS, type NguyenLieu, type LichTieng } from './xuat';
 import { sql } from 'drizzle-orm';
 import type { Canh, LoaiPhim, Lop, NhanVat, PhanCanh, Tap, ThongTinQc } from './kieu';
 import type { Db } from './doc-db';
@@ -87,6 +87,15 @@ async function doKhoangIm(duong: string, giay: number, thuMuc: string, lich?: Li
   } catch (e) { console.error('[xuất] đo khoảng im hỏng', e); return null; }
 }
 
+/** Đo bản vừa xuất: các đoạn HÌNH ĐỨNG ≥1s (freezedetect) — khung cuối giữ đứng, clip AI tự khựng (anh 15/10/2026 phim #36: "khung cuối tự dưng
+ *  bị dừng hẳn lại"). Trả [từ, đến] giây; null = không đo được. */
+async function doHinhDung(duong: string, giay: number): Promise<[number, number][] | null> {
+  try {
+    const { stderr } = await run('ffmpeg', ['-hide_banner', '-nostats', '-i', duong, '-an', '-vf', 'freezedetect=n=0.002:d=1', '-f', 'null', '-'], { timeout: 180_000, maxBuffer: 16 << 20 });
+    return hinhDung(stderr, giay);
+  } catch (e) { console.error('[xuất] đo hình đứng hỏng', e); return null; }
+}
+
 /** Thư mục font chữ màn — MỘT chỗ cho cả bản xuất (libass) lẫn trang xem trước (@font-face /fonts/…): apps/xuong-video/public/fonts (Montserrat, Playfair Display — đều OFL). */
 const SFX_DIR = [`${process.cwd()}/public/sfx`, `${process.cwd()}/apps/xuong-video/public/sfx`, '/opt/earns-marketing-os-v2/apps/xuong-video/public/sfx'].find((d) => existsSync(d));
 const FONTS_DIR = [`${process.cwd()}/public/fonts`, `${process.cwd()}/apps/xuong-video/public/fonts`, '/opt/earns-marketing-os-v2/apps/xuong-video/public/fonts'].find((d) => existsSync(d));
@@ -125,9 +134,11 @@ export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; nhipStopMotion
       return { ok: false, loi: `ffmpeg: ${(err.stderr?.trim() ? err.stderr : err.message || String(e)).trim().split('\n').slice(-3).join(' · ').slice(0, 400)}` };
     }
     const doDo = await doKhoangIm(ra, kh.giay, thuMuc, kh.lich); const im = doDo?.im ?? null;
+    const dung = await doHinhDung(ra, kh.giay);
     const ngan = await tiengNganHon(ra);
     const vi = (x: number) => (Math.round(x * 10) / 10).toString().replace('.', ',');
     const canhBao = [...kh.canhBao, ...(ngan != null && ngan > 0.3 ? [`tiếng ngắn hơn hình ${vi(ngan)}s — cuối phim câm`] : []), ...(im == null ? ['không đo được độ to bản xuất'] : im.length ? [`nền đứt (dưới ${NGUONG_IM_LUFS} LUFS) ở ${im.map(([a, b]) => `${vi(a)}–${vi(b)}s`).join(' · ')}`] : []),
+      ...(dung ?? []).map(([a, b]) => `hình đứng ${vi(a)}–${vi(b)}s (${vi(b - a)}s không chuyển động) — clip ngắn hơn giây phát hoặc clip tự khựng`),
       ...(doDo?.la ?? []).map((x) => `tiếng lạ ngoài kịch bản ${vi(x.tu)}–${vi(x.den)}s${x.shot.length ? ` (shot #${x.shot.join(', #')})` : ''}: to hơn nền ${x.hon} dB mà không có giọng / hiệu ứng nào — nghe lại tiếng gốc clip hoặc nhạc`)];
     const buf = await readFile(ra);
     const url = await uploadToR2(`xuong-video/xuat/${o.tap.id}-${o.nhanh || 'thân'}-${randomUUID()}.mp4`, buf, 'video/mp4');

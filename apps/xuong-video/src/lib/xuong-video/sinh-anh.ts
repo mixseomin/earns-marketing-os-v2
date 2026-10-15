@@ -260,7 +260,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       const mon = trong.map((v) => {
         const t = thayDs.find((x) => (bc.anchorCua?.[x.ten] ?? x.ten) === v.ten); const hg = mGoc?.vi_tri.find((x) => x.ten === v.ten);
         const h = hg && v.loai === 'nhan_vat' ? huongVoiMay(mGoc!, hg, ket)?.chu : undefined;
-        return `${moTaNgan(v.mo_ta)}${h ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
+        return `${moTaVua(v.mo_ta)}${h ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
       });
       const nen = thayDs.filter((x) => !bc.nhanVat.some((v) => v.ten === (bc.anchorCua?.[x.ten] ?? x.ten)) && x.pt >= PT_THAY).map((x) => goiVat(x.ten) ?? x.en ?? x.ten);
       const g = mGoc ? Math.round((Math.atan2((mGoc.nhin[2] ?? 0) - (mGoc.dat[2] ?? 0), Math.hypot(mGoc.nhin[0]! - mGoc.dat[0]!, mGoc.nhin[1]! - mGoc.dat[1]!)) * 180) / Math.PI) : 0;
@@ -446,4 +446,7 @@ export async function sinhAnhQcDb(db: Db, anhQcId: number): Promise<KqSinh<numbe
 }
 
 /** Mô tả anchor gọn cho nhãn khối: bỏ phần sau ' — ' (vai trò trong truyện), cắt ở câu đầu, ≤ 140 ký tự. */
+/** Mô tả vừa đủ cho prompt chỉ có chữ (bước 1 độ sâu): câu đầu đầy đủ tới ~320 ký tự, cắt ở ranh giới từ — moTaNgan cắt 140 ký tự làm mất
+ *  đúng chi tiết nhận dạng ("two n…" mất mắt nút áo + vết ố cà phê của Mr. Wipe). */
+export const moTaVua = (mo: string, toiDa = 320): string => { const a = mo.split(' — ')[0]!.trim().replace(/\.$/, ''); return a.length <= toiDa ? a : a.slice(0, a.lastIndexOf(' ', toiDa)).replace(/[,;:]$/, ''); };
 export const moTaNgan = (mo: string): string => { const a = mo.split(' — ')[0]!.split(/(?<=\.)\s/)[0]!.trim().replace(/\.$/, ''); return a.length > 140 ? `${a.slice(0, 137)}…` : a; };

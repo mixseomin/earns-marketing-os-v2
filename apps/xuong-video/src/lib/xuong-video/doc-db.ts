@@ -5,7 +5,7 @@ import { sql } from 'drizzle-orm';
 import type { getDb } from '@mos2/db';
 import { docKinhThanh, giaChuCents, giaVideoCents, type BienThe, type Canh, type Job, type KinhThanh, type LoaiNhanVat, type LoaiPhim, type May3d, type NhanVat, type Tap, type TrangThaiCanh } from './kieu';
 import { modelFal } from './fal';
-import { boSetCuaShot, laDoVatPhim, mayDayDu } from './bo-set-3d';
+import { boSetCuaShot, laDoVatPhim, mayDayDu, PT_THAY } from './bo-set-3d';
 import type { NguCanhPhim } from './claude';
 
 export type Db = NonNullable<ReturnType<typeof getDb>>;
@@ -67,8 +67,8 @@ export async function boiCanhCanh(db: Db, canhId: number) {
   const ptAnchor = new Map<string, number>();
   for (const t of canh.khung_xam?.thay ?? []) { const a = anchorCua[t.ten] ?? t.ten; ptAnchor.set(a, (ptAnchor.get(a) ?? 0) + t.pt); }
   // ĐẠO CỤ THẤY TRONG KHUNG 3D mà shot không gắn anchor (đồ để lại từ shot trước — kẹo nằm trên thẻ ở 7.4a tập 19): kèm luôn để keyframe có
-  // ảnh mẫu + mô tả của nó, không vẽ theo đoán. Chỉ đạo cụ / sản phẩm cùng phim, chiếm ≥ 2% khung (tính cả các phần của nó).
-  const thayThem = [...ptAnchor].filter(([a, pt]) => pt >= 2 && !nv.some((v) => v.ten === a)).map(([a]) => a);
+  // ảnh mẫu + mô tả của nó, không vẽ theo đoán. Chỉ đạo cụ / sản phẩm cùng phim, chiếm ≥ PT_THAY% khung (tính cả các phần của nó).
+  const thayThem = [...ptAnchor].filter(([a, pt]) => pt >= PT_THAY && !nv.some((v) => v.ten === a)).map(([a]) => a);
   if (thayThem.length) nv.push(...await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(r[0].p_id)} AND loai IN ('dao_cu', 'san_pham') AND ten IN (${sql.join(thayThem.map((t) => sql`${t}`), sql`, `)})`)) as unknown as Row[]).map(mapNhanVat)));
   // Shot liền trước cùng nhánh — shot đó chọn chuyển cảnh 'lien_may' thì keyframe của nó là tham chiếu nối khung cho shot này (sinh-anh.ts).
   const t = (await db.execute(sql`SELECT keyframe_url, ky_thuat, thu_tu, phan_doan FROM xv_canh WHERE tap_id = ${canh.tap_id} AND thu_tu < ${canh.thu_tu}

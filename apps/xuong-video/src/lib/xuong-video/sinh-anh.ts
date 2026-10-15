@@ -8,7 +8,7 @@ import { promptKyThuatAnh } from './dien-anh';
 import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type KinhThanh, type NhanVat } from './kieu';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
-import { boSetCuaShot, chanKhungXam, loiMachTap, moTaThay, shotSoTruc, trangThaiVat } from './bo-set-3d';
+import { boSetCuaShot, chanKhungXam, loiMachTap, moTaThay, PT_THAY, shotSoTruc, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { boiCanhCanh, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, jobDangCho, type Db, type Row } from './doc-db';
 
@@ -114,7 +114,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // Đạo cụ / sản phẩm KHÔNG có trong khung 3D (kể cả các phần của nó) thì không gửi ảnh mẫu + chữ tả: ảnh mẫu là lời mời vẽ (15/10/2026 shot #32
   // tập 19: ảnh mẫu USB Hub đi kèm dù hub nằm ngoài khung → keyframe đặt Tango đứng trên hub). Trạng thái vật vẫn nói ở câu OBJECT STATE.
   // Chỉ khung MỞ: khung kết chưa đo "thấy gì" riêng.
-  const ngoaiKhung = (v: NhanVat) => !ket && !!bc.ptAnchor && (v.loai === 'dao_cu' || v.loai === 'san_pham') && (bc.ptAnchor.get(v.ten) ?? 0) < 0.5;
+  const ngoaiKhung = (v: NhanVat) => !ket && !!bc.ptAnchor && (v.loai === 'dao_cu' || v.loai === 'san_pham') && (bc.ptAnchor.get(v.ten) ?? 0) < PT_THAY;
   const nvRef = coKx ? bc.nhanVat.filter((v) => v.loai !== 'boi_canh' && !ngoaiKhung(v)) : bc.nhanVat;
   // Khung xám là ẢNH SỐ 1 (thử #23: đứng thứ 8/9 sau bảy ảnh mẫu thì model coi nhẹ bố trí).
   // Có khung MÀU (vật liệu + ánh sáng theo kịch bản) thì nó là ảnh số 1 — gần ảnh thật hơn khung xám, model ít phải đoán khối nào là gì.

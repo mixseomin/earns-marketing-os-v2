@@ -230,9 +230,12 @@ export function moTaChuyenDong(di: KhungXam['di'] | undefined): string {
  *  Bỏ khối < 2% khung. Chỉ những thứ này có trong khung: không thêm tay / người / vật không có tên ở đây. */
 /** enCua(ten): cách gọi vật cho model ảnh — mô tả anchor (sinh-anh.ts) thắng tên trơn của set ('Orange Card' → ví da cam có thẻ xanh, đúng ảnh mẫu);
  *  trang = trạng thái lúc dựng (đã chia mảnh). */
+/** NGƯỠNG "THẤY TRONG KHUNG 3D" (% diện tích) — MỘT số cho nhãn khối, đạo cụ tự kèm ảnh mẫu, và lọc ảnh mẫu đạo cụ ngoài khung (doc-db / sinh-anh).
+ *  15/10/2026 #32 tập 19: nhãn lấy ≥ 2% còn câu sau ghi "Nothing else is in this frame" → Lint 1.7% đứng sau phích bị coi như không có. */
+export const PT_THAY = 1;
 export function moTaThay(thay: VatThay[] | undefined, enCua?: (ten: string) => string | undefined): string {
   const ngang = (x: number) => (x < 0.36 ? 'left' : x > 0.64 ? 'right' : 'centre'); const doc = (y: number) => (y < 0.36 ? 'top' : y > 0.64 ? 'bottom' : 'middle');
-  const ds = (thay ?? []).filter((t) => t.pt >= 2).map((t) => `${enCua?.(t.ten) ?? t.en ?? t.ten}${t.trang ? ` [${t.trang}]` : ''} (${doc((t.hop[1] + t.hop[3]) / 2)}-${ngang((t.hop[0] + t.hop[2]) / 2)}, ${Math.round(t.pt)}%${t.tien ? ', foreground' : ''})`);
+  const ds = (thay ?? []).filter((t) => t.pt >= PT_THAY).map((t) => `${enCua?.(t.ten) ?? t.en ?? t.ten}${t.trang ? ` [${t.trang}]` : ''} (${doc((t.hop[1] + t.hop[3]) / 2)}-${ngang((t.hop[0] + t.hop[2]) / 2)}, ${Math.round(t.pt)}%${t.tien ? ', foreground' : ''})`);
   return ds.length ? `Blocks in that layout image, by name: ${ds.join('; ')}. Nothing else is in this frame — do not add hands, people or objects that are not in this list; the BACKGROUND is exactly what those blocks show (a far room wall stays a plain dim wall — never add monitors, computers or extra cables there).` : '';
 }
 

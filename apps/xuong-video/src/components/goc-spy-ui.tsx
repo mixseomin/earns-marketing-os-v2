@@ -10,11 +10,15 @@ import { Chon } from './chon';
 
 const chip: CSSProperties = { display: 'inline-flex', gap: 4, alignItems: 'baseline', padding: '1px 8px', borderRadius: 999, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', fontSize: 11.5, textDecoration: 'none', maxWidth: 360 };
 
-export function ChipGocSpy({ ds, gon }: { ds: GocSpy[]; gon?: boolean }) {
+/** toiDa = số chip hiện trên dòng danh sách (YDNI mục 10: 4–6 chip góc làm mỗi phim thành hai dòng); phần còn lại gom thành "+n" có title liệt kê. */
+export function ChipGocSpy({ ds, gon, toiDa }: { ds: GocSpy[]; gon?: boolean; toiDa?: number }) {
   if (!ds.length) return null;
+  const xep = xepGocSpy(ds);
+  const hien = toiDa && xep.length > toiDa ? xep.slice(0, toiDa) : xep;
+  const conLai = xep.slice(hien.length);
   return (
     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-      {xepGocSpy(ds).map((g) => {
+      {hien.map((g) => {
         const l = loaiGocSpy(g.loai);
         return (
           <a key={g.id} href={linkGocSpy(g)} style={chip} title={`${l.ten}: ${g.ten}${g.mo_ta ? ` — ${g.mo_ta}` : ''}\nBấm để mở góc này trên spy.on.tc (bằng chứng: bài, bình luận, QC đối thủ)`}>
@@ -23,6 +27,7 @@ export function ChipGocSpy({ ds, gon }: { ds: GocSpy[]; gon?: boolean }) {
           </a>
         );
       })}
+      {conLai.length > 0 && <a href={linkGocSpy(conLai[0]!)} style={{ ...chip, color: 'var(--fg-3)' }} title={`${conLai.length} góc nữa:\n${conLai.map((g) => `${loaiGocSpy(g.loai).ic} ${loaiGocSpy(g.loai).ten}: ${g.ten}`).join('\n')}\nBấm để mở trên spy.on.tc`}>+{conLai.length}</a>}
     </div>
   );
 }

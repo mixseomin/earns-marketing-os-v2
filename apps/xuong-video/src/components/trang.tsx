@@ -64,7 +64,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
 
   return (
     <MoHinhCtx.Provider value={moHinh}>
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 110px)', minHeight: 420 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 110px)' }}>
       {thieu.length > 0 && <div className="xv-banner">Máy chủ thiếu: {thieu.join(' · ')} — đặt trong .env.production rồi restart mos2-studio. Trang vẫn soạn được, nút sinh sẽ báo lỗi tới khi có khoá.</div>}
       <div className="xv-panel" style={{ padding: '8px 10px', marginBottom: 8, display: 'grid', gap: 6, flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -106,14 +106,17 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
         const dong = (p: Phim, dau?: ReactNode) => {
           const anh = anhDaiDien(p);
           return (
-            <div key={p.id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', padding: dau ? '4px 10px' : '4px 10px 4px 26px', borderBottom: '1px solid var(--line)', opacity: laLuuTru(p) ? 0.55 : 1 }}>
-              {dau}
+            // Ba cột cố định (anh 15/10/2026 "ảnh đại diện một cột độc lập"): biểu tượng kiểu (16px, trống ở dòng trong nhóm) · ảnh đại diện (26px) · nội dung
+            <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '16px 26px 1fr', columnGap: 8, alignItems: 'start', padding: '4px 10px', borderBottom: '1px solid var(--line)', opacity: laLuuTru(p) ? 0.55 : 1 }}>
+              {dau ?? <span />}
               <button type="button" title={p.poster_url ? 'Poster — mở phim' : anh ? 'Keyframe gần nhất (chưa có poster) — mở phim' : 'Chưa có hình — mở phim'} onClick={() => moPhim(p.id)}
                 style={{ all: 'unset', cursor: 'pointer', width: 26, height: 38, flexShrink: 0, borderRadius: 3, border: '1px solid var(--line)', background: anh ? `center / cover no-repeat url(${anhNho(anh, 160)}), #111` : 'var(--bg-2)', display: 'grid', placeItems: 'center', fontSize: 12, color: 'var(--fg-4)' }}>{anh ? '' : '🎬'}</button>
+              {/* Cột phải: dòng tên + số liệu + tập + ảnh QC; chân dung / góc spy (nếu có) xuống dòng riêng, thụt vào dưới tên (anh 15/10/2026). */}
+              <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 3 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', minHeight: 38 }}>
               <button type="button" onClick={() => moPhim(p.id)} style={{ background: 'none', border: 0, color: 'var(--fg-1)', cursor: 'pointer', fontWeight: 600, padding: 0, font: 'inherit', textAlign: 'left' }}>{p.ten}</button>
               {laLuuTru(p) && <Pill color="var(--fg-4)">lưu trữ</Pill>}
               <span style={mono}>{LOAI_PHIM.find((l) => l.key === p.loai)?.label ?? p.loai} · {p.so_nhan_vat} anchor · {p.so_canh} cảnh · {tien(p.chi_phi_cents)}</span>
-              {!!p.goc_spy?.length && <ChipGocSpy ds={p.goc_spy} gon />}
               {(p.tap_tom ?? []).map((t) => (
                 <button key={t.id} type="button" className="xv-btn" style={{ padding: '1px 7px', fontSize: 11 }} title={`Mở tập ${t.so}${t.ten && t.ten !== p.ten ? ` · ${t.ten}` : ''}`} onClick={() => { setTapMo(t.id); modal.open('phim', p.id); }}>
                   <b>T{t.so}</b> <span style={{ color: t.so_canh && t.so_hinh === t.so_canh ? '#4ade80' : 'var(--fg-3)' }}>{t.so_hinh}/{t.so_canh} hình</span> <span style={{ color: t.so_canh && t.so_clip === t.so_canh ? '#4ade80' : 'var(--fg-3)' }}>· {t.so_clip} clip</span>
@@ -123,6 +126,9 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
                 {(p.anh_qc_tom ?? []).slice(0, 6).map((a) => <img key={a.id} src={anhNho(a.url, 160)} alt="" onClick={() => moPhim(p.id)} style={{ height: 30, aspectRatio: a.ti_le.replace(':', ' / '), objectFit: 'cover', borderRadius: 3, cursor: 'pointer', border: '1px solid var(--line)' }} />)}
                 {(p.anh_qc_tom?.length ?? 0) > 6 && <span style={mono}>+{(p.anh_qc_tom?.length ?? 0) - 6}</span>}
               </span>}
+              </div>
+              {!!p.goc_spy?.length && <div style={{ paddingLeft: 6 }}><ChipGocSpy ds={p.goc_spy} gon toiDa={4} /></div>}
+              </div>
             </div>
           );
         };

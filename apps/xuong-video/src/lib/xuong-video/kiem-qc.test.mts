@@ -152,3 +152,10 @@ console.log('kiem-qc.test: mẫu ok');
   const co = kiemQc({ loai: 'quang_cao', canh: ds, nhanVat: [...nv], qc, lop: [{ loai: 'anh', url: 'https://x/p.png', tu: 2, den: 6.8, mang_sp: true }] });
   assert.strictEqual(ok(khong, 'sp_23'), false); assert.strictEqual(ok(co, 'sp_23'), true);
   console.log('kiem-qc.test: lớp phủ mang sản phẩm ok'); }
+
+{ // Giờ trong ngày trên nhãn cảnh không bị coi là số bịa; số thật lạ (3000) vẫn bị bắt.
+  const gio = kiemQc({ loai: 'quang_cao', canh: [...dat.slice(0, 2), shot({ thu_tu: 3, phat_s: 1, chu_man: '7:40 · Bus stop' }), shot({ thu_tu: 4, phat_s: 1, chu_man: '6:10 pm · Gym' }), ...dat.slice(2)], nhanVat: [...nv], qc });
+  assert.strictEqual(ok(gio, 'bang_chung'), true, gio.find((x) => x.key === 'bang_chung')!.chu);
+  const bia = kiemQc({ loai: 'quang_cao', canh: [...dat.slice(0, 2), shot({ thu_tu: 3, phat_s: 1, chu_man: '3000 sold' }), ...dat.slice(2)], nhanVat: [...nv], qc });
+  assert.strictEqual(ok(bia, 'bang_chung'), false);
+  console.log('kiem-qc.test: giờ trong ngày ok'); }

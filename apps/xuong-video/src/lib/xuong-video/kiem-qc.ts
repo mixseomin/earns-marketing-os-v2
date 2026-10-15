@@ -70,7 +70,9 @@ export function kiemQc(opts: { loai: LoaiPhim; canh: ShotKiem[]; nhanVat: Pick<N
   const chuBc = ds.map((c) => `${c.chu_man} ${loiCua(c)}`).filter(coSo);
   const nguon = `${opts.qc?.diem_noi_bat ?? ''} ${opts.qc?.uu_dai ?? ''} ${opts.qc?.doi_tuong ?? ''}`;
   const soTrongNguon = new Set((nguon.match(/\d[\d.,]*/g) ?? []).map((x) => x.replace(/[.,]/g, '')));
-  const soBia = ds.flatMap((c) => (`${c.chu_man} ${loiCua(c)}`.match(/\d[\d.,]*/g) ?? []).map((x) => x.replace(/[.,]/g, ''))).filter((x) => x.length >= 2 && !soTrongNguon.has(x));
+  // Giờ trong ngày (7:40, 6:10 pm) là nhãn thời điểm của cảnh, không phải số liệu sản phẩm — bỏ trước khi dò (khuôn "Một dáng, mọi nơi" 15/10/2026).
+  const boGio = (t: string) => t.replace(/\b\d{1,2}:\d{2}(\s?[ap]m)?\b/gi, ' ');
+  const soBia = ds.flatMap((c) => (boGio(`${c.chu_man} ${loiCua(c)}`).match(/\d[\d.,]*/g) ?? []).map((x) => x.replace(/[.,]/g, ''))).filter((x) => x.length >= 2 && !soTrongNguon.has(x));
   out.push({ key: 'bang_chung', ok: chuBc.length > 0 && soBia.length === 0, chu: chuBc.length ? (soBia.length ? `Số không có trong mục 0: ${[...new Set(soBia)].slice(0, 4).join(', ')}` : 'Bằng chứng có số thật') : 'Chưa có bằng chứng bằng số', chiTiet: soBia.length ? 'Số liệu trong chữ màn/thoại phải lấy từ mục 0 (đánh giá, số khách, giá) — máy không tìm thấy các số này ở đó' : chuBc.length ? undefined : 'Thêm một shot/chữ màn nêu số đánh giá, số khách, chính sách đổi trả… (lấy từ mục 0)' });
   // 5. CTA: shot cuối có chữ màn, và nhắc tới ưu đãi/hành động.
   const cuoi = ds[ds.length - 1]!;

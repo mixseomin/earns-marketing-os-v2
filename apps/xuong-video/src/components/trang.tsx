@@ -17,6 +17,7 @@ import { KinhThanhForm } from './kinh-thanh';
 import { NhanVatSection } from './nhan-vat';
 import { TapView } from './tap';
 import { PosterPhim } from './poster-ui';
+import { AnhQcPhim } from './anh-qc-ui';
 import { useNho } from './nho';
 import { useDinhKy } from './dinh-ky';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
@@ -202,6 +203,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
         <KinhThanhForm phim={phim} khoa={khoa} onSaved={tai} />
         <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} />
         <PosterPhim phim={phim} nhanVat={nhanVat} dang={d.dangSinh.poster} loiNen={d.loiPoster} onChanged={tai} />
+        {phim.loai === 'quang_cao' && <AnhQcPhim phim={phim} nhanVat={nhanVat} />}
       </>}
 
       {/* Phần theo TẬP. Không tiêu đề mục (tên tab đã nói); hàng chọn tập chỉ hiện khi có thứ để chọn (phim nhiều tập / chưa có tập). */}

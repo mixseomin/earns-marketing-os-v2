@@ -8,13 +8,14 @@ import type { getDb } from '@mos2/db';
 
 type Db = NonNullable<ReturnType<typeof getDb>>;
 type Row = Record<string, unknown>;
-export type BangHoanTac = 'xv_phim' | 'xv_tap' | 'xv_canh' | 'xv_nhan_vat' | 'xv_bien_the';
+export type BangHoanTac = 'xv_phim' | 'xv_tap' | 'xv_canh' | 'xv_nhan_vat' | 'xv_bien_the' | 'xv_anh_qc';
 export const COT_CHO_PHEP: Record<BangHoanTac, readonly string[]> = {
   xv_phim: ['ten', 'loai', 'mo_ta', 'kinh_thanh', 'trang_thai', 'poster_url'],
   xv_tap: ['ten', 'brief', 'kich_ban', 'tom_tat', 'so', 'noi_khung', 'nhac_url', 'nhac_mo_ta', 'lop', 'thoi_luong_s', 'bai_dang', 'beats', 'phan_canh', 'nhac_phan_canh', 'ho_so'],
   xv_canh: ['canh', 'goc_may', 'hanh_dong', 'loi_thoai', 'am_thanh', 'thoi_luong_s', 'nhan_vat', 'bien_the', 'prompt_anh', 'prompt_video', 'thu_tu', 'phan_doan', 'cam_xuc', 'ky_thuat', 'thoai', 'thoai_url', 'trang_phuc', 'phat_s', 'chu_man', 'nhanh', 'kieu_chu', 'keyframe_url', 'keyframe_uv', 'keyframe_ket', 'trang_thai', 'loi', 'video_url', 'video_cuoi_url', 'dan_dung', 'kiem_khung', 'may_3d', 'khung_xam'],
   xv_nhan_vat: ['ten', 'mo_ta', 'anh_ref', 'giong', 'giong_model', 'giong_id', 'giong_mau_url', 'bo_set_id', 'vung', 'khoi_3d'],
   xv_bien_the: ['nhom', 'ten', 'mo_ta'],
+  xv_anh_qc: ['chu', 'y_tuong', 'ti_le', 'mo_hinh', 'ten', 'an', 'url'],
 };
 /** Lọc danh sách cột về đúng sổ cho phép của bảng (cột lạ bỏ, không ném). */
 export const locCot = (bang: BangHoanTac, cot: readonly string[]): string[] => [...new Set(cot)].filter((c) => COT_CHO_PHEP[bang].includes(c));
@@ -26,6 +27,7 @@ async function phimCua(db: Db, bang: BangHoanTac, id: number): Promise<number | 
     : bang === 'xv_tap' ? sql`SELECT phim_id AS p FROM xv_tap WHERE id = ${id}`
     : bang === 'xv_canh' ? sql`SELECT t.phim_id AS p FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${id}`
     : bang === 'xv_nhan_vat' ? sql`SELECT phim_id AS p FROM xv_nhan_vat WHERE id = ${id}`
+    : bang === 'xv_anh_qc' ? sql`SELECT phim_id AS p FROM xv_anh_qc WHERE id = ${id}`
     : sql`SELECT v.phim_id AS p FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE b.id = ${id}`;
   const r = await rows(db, q);
   return r[0]?.p == null ? null : Number(r[0].p);

@@ -39,7 +39,8 @@ import { apCtaPhim } from '@/lib/xuong-video/cta-db';
 import { docPhimDich, uocDichCents, chayDichPhim } from '@/lib/xuong-video/dich-phim';
 import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-video/kieu';
 import { type Row, n, s, arr, mangInt, nguCanhPhimDb, mapBienThe, mapNhanVat, mapTap, mapCanh, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
-import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim } from '@/lib/xuong-video/sinh-anh';
+import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim, sinhAnhQcDb } from '@/lib/xuong-video/sinh-anh';
+import { khuonAnhQc, MO_HINH_ANH_QC, TI_LE_ANH_QC, type AnhQc } from '@/lib/xuong-video/anh-qc';
 import { docOTemplate, chepPhim, type KetQuaChep, type ShotKhung } from '@/lib/xuong-video/template-db';
 import { diemNhan } from '@/lib/xuong-video/diem-nhan';
 import { MO_HINH_CONG, coCong, centsCong, chuoiAnh, chuoiVideo, taNguon, taNguonNgan, taThu, type CongKey, type NguonSinh } from '@/lib/xuong-video/cong-ai';
@@ -915,6 +916,64 @@ export async function chonPoster(phimId: number, url: string): Promise<Kq> {
   if (!(await admin())) return loi('không có quyền');
   await chupTruoc(db, { bang: 'xv_phim', id: phimId, cot: ['poster_url'], moTa: 'chọn poster', nguoi: await ai() });
   await db.execute(sql`UPDATE xv_phim SET poster_url = ${url}, updated_at = now() WHERE id = ${phimId} AND poster_uv @> ${JSON.stringify([url])}::jsonb`);
+  return { ok: true, data: undefined };
+}
+// ── Ảnh QC (anh-qc.ts): ảnh creative tĩnh chép bố cục ảnh QC đang thắng ─────────────────────────────────────────────
+const mapAnhQc = (r: Row): AnhQc => ({ id: n(r.id), phim_id: n(r.phim_id), khuon: s(r.khuon), ten: s(r.ten), mau_url: s(r.mau_url), chu: s(r.chu), y_tuong: s(r.y_tuong),
+  ti_le: (s(r.ti_le) || '4:5') as AnhQc['ti_le'], mo_hinh: s(r.mo_hinh) || MO_HINH_ANH_QC, url: r.url ? s(r.url) : null, uv: arr<string>(r.uv), an: r.an === true });
+export type DsAnhQc = { ds: AnhQc[]; dang: number[]; loi: Record<number, string> };
+/** Ảnh QC của phim (kể cả ảnh đã ẩn — giao diện tự lọc) + ảnh nào đang sinh + lỗi lượt gần nhất của từng ảnh. */
+export async function dsAnhQc(phimId: number): Promise<Kq<DsAnhQc>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const [r, j] = await Promise.all([
+    db.execute(sql`SELECT * FROM xv_anh_qc WHERE phim_id = ${phimId} ORDER BY id`),
+    db.execute(sql`SELECT DISTINCT ON ((request->>'anh_qc_id')::int) (request->>'anh_qc_id')::int AS a, trang_thai, loi, (${jobDangCho()}) AS dang
+      FROM xv_job WHERE phim_id = ${phimId} AND request->>'dich' = 'anh_qc' ORDER BY (request->>'anh_qc_id')::int, id DESC`),
+  ]);
+  const jr = j as unknown as Row[];
+  return { ok: true, data: { ds: (r as unknown as Row[]).map(mapAnhQc), dang: jr.filter((x) => x.dang === true).map((x) => n(x.a)),
+    loi: Object.fromEntries(jr.filter((x) => s(x.trang_thai) === 'loi').map((x) => [n(x.a), s(x.loi)])) } };
+}
+/** Thêm một ảnh QC: từ khuôn có sẵn (ảnh mẫu + chữ) hoặc từ một ảnh QC mẫu tự dán (chữ trống = giữ nguyên văn chữ của mẫu). 0đ. */
+export async function themAnhQc(phimId: number, nguon: { khuon: string } | { mau_url: string }): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const k = 'khuon' in nguon ? khuonAnhQc(nguon.khuon) : null;
+  if ('khuon' in nguon && !k) return loi('không có khuôn này');
+  const d = k ? { khuon: k.key, ten: k.ten, mau_url: k.mau_url, chu: k.chu.join('\n') } : { khuon: '', ten: 'Ảnh mẫu riêng', mau_url: 'mau_url' in nguon ? nguon.mau_url : '', chu: '' };
+  if (!d.mau_url) return loi('thiếu ảnh mẫu');
+  const r = (await db.execute(sql`INSERT INTO xv_anh_qc (phim_id, khuon, ten, mau_url, chu) VALUES (${phimId}, ${d.khuon}, ${d.ten}, ${d.mau_url}, ${d.chu}) RETURNING id`)) as unknown as Row[];
+  return { ok: true, data: n(r[0]?.id) };
+}
+/** Sửa chữ / ý thêm / khổ / model / tên / ẩn của một ảnh QC (↶ hoàn tác được). */
+export async function suaAnhQc(id: number, p: Partial<Pick<AnhQc, 'chu' | 'y_tuong' | 'ti_le' | 'mo_hinh' | 'ten' | 'an'>>): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  if (p.ti_le && !TI_LE_ANH_QC.some((t) => t.value === p.ti_le)) return loi('khổ không hợp lệ');
+  if (p.mo_hinh && !MO_HINH_ANH.some((m) => m.key === p.mo_hinh)) return loi('model không có trong danh mục');
+  await chupTruoc(db, { bang: 'xv_anh_qc', id, cot: ['chu', 'y_tuong', 'ti_le', 'mo_hinh', 'ten', 'an'], moTa: p.an != null ? (p.an ? 'ẩn ảnh QC' : 'hiện ảnh QC') : 'sửa ảnh QC', nguoi: await ai() });
+  await db.execute(sql`UPDATE xv_anh_qc SET chu = coalesce(${p.chu ?? null}, chu), y_tuong = coalesce(${p.y_tuong ?? null}, y_tuong), ti_le = coalesce(${p.ti_le ?? null}, ti_le),
+    mo_hinh = coalesce(${p.mo_hinh ?? null}, mo_hinh), ten = coalesce(${p.ten ?? null}, ten), an = coalesce(${p.an ?? null}::boolean, an), updated_at = now() WHERE id = ${id}`);
+  return { ok: true, data: undefined };
+}
+/** Sinh một bản cho ảnh QC — TỐN TIỀN (giá trên nút, chỉ chạy khi anh bấm). */
+export async function sinhAnhQc(id: number): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  return sinhAnhQcDb(db, id);
+}
+/** Chọn bản đang dùng trong các bản đã sinh của ảnh QC (↶ hoàn tác được). */
+export async function chonAnhQc(id: number, url: string): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  await chupTruoc(db, { bang: 'xv_anh_qc', id, cot: ['url'], moTa: 'chọn bản ảnh QC', nguoi: await ai() });
+  await db.execute(sql`UPDATE xv_anh_qc SET url = ${url}, updated_at = now() WHERE id = ${id} AND uv @> ${JSON.stringify([url])}::jsonb`);
   return { ok: true, data: undefined };
 }
 export async function chonKeyframe(canhId: number, url: string): Promise<Kq> {

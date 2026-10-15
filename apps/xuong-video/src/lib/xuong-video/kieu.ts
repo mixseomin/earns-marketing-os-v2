@@ -31,8 +31,8 @@ export const TRANG_THAI_CANH: Record<TrangThaiCanh, { label: string; color: stri
 };
 
 export type TiLe = '9:16' | '16:9';
-/** Khổ ẢNH: khổ phim + vuông (ảnh mẫu anchor) + 2:3 (poster). */
-export type TiLeAnh = TiLe | '1:1' | '2:3';
+/** Khổ ẢNH: khổ phim + vuông (ảnh mẫu anchor) + 2:3 (poster) + 4:5 (ảnh QC feed Meta — anh-qc.ts). */
+export type TiLeAnh = TiLe | '1:1' | '2:3' | '4:5';
 export type DoPhanGiai = '720p' | '1080p';
 
 /** Model ảnh (Gemini API). `gia1k` = cents một ảnh 1K. Thứ tự = thứ tự thử khi model đầu không tồn tại (tên model Google đổi nhanh). */

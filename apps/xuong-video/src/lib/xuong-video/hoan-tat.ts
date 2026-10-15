@@ -160,7 +160,7 @@ export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
       output_url = ${kq.ok ? kq.url : null}, model = coalesce(${kq.ok ? kq.model : null}, model),
       provider = CASE WHEN ${prov ?? ''} <> '' THEN ${prov ?? ''} WHEN ${kq.ok ? kq.model : ''} LIKE 'gpt-%' THEN 'openai' WHEN ${kq.ok ? kq.model : ''} LIKE 'fal:%' THEN 'fal' ELSE provider END,
       chi_phi_cents = ${Math.round(gia * 1000) / 1000}, loi = ${kq.ok ? '' : kq.loi}, nguon = ${n0 ? JSON.stringify(n0) : null}::jsonb, updated_at = now()
-    WHERE id = ${kq.job} AND trang_thai = 'cho' RETURNING canh_id, nhan_vat_id, bien_the_id, phim_id, nhan, request->>'dich' AS dich`)) as unknown as Row[];
+    WHERE id = ${kq.job} AND trang_thai = 'cho' RETURNING canh_id, nhan_vat_id, bien_the_id, phim_id, nhan, request->>'dich' AS dich, request->>'anh_qc_id' AS anh_qc_id`)) as unknown as Row[];
   const j = r[0];
   if (!j) return false;
   // Một cổng trong chuỗi hỏng vì HẾT TIỀN → báo Telegram để nạp (studio đã tự sang cổng kế). Không chặn việc ghi sổ.
@@ -184,6 +184,9 @@ export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
   } else if (j.dich === 'poster' && j.phim_id != null) {
     // poster (sinh-anh.ts › sinhPosterPhim): bản mới lên ĐẦU dải; phim chưa có poster thì bản này thành poster đang dùng
     await db.execute(sql`UPDATE xv_phim SET poster_uv = (${JSON.stringify([kq.url])}::jsonb || poster_uv), poster_url = coalesce(poster_url, ${kq.url}), updated_at = now() WHERE id = ${Number(j.phim_id)}`);
+  } else if (j.dich === 'anh_qc' && j.anh_qc_id != null) {
+    // ảnh QC (sinh-anh.ts › sinhAnhQcDb): bản mới lên ĐẦU dải; ảnh chưa có bản đang dùng thì bản này thành bản đang dùng
+    await db.execute(sql`UPDATE xv_anh_qc SET uv = (${JSON.stringify([kq.url])}::jsonb || uv), url = coalesce(url, ${kq.url}), updated_at = now() WHERE id = ${Number(j.anh_qc_id)}`);
   } else if (j.dich === 'cat_nen' && j.nhan_vat_id != null && j.phim_id != null) {
     // ảnh người nền xanh (sinh-anh.ts › sinhAnhCatNen) → tách nền → PNG vào lớp phủ ID_LOP_CAT_NEN của tập (cat-nen.ts). Không vào anh_ref
     // (nền xanh làm tham chiếu keyframe sẽ lẫn màu). Ảnh gốc giữ ở output_url của job để soát.

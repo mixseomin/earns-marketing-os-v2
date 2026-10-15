@@ -9,6 +9,7 @@ import { promptKyThuatAnh } from './dien-anh';
 import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type Canh, type KinhThanh, type NhanVat } from './kieu';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
+import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
 import { boSetCuaShot, chanKhungXam, huongVoiMay, loiMachTap, moTaThay, PT_THAY, shotSoTruc, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { boiCanhCanh, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, jobDangCho, type Db, type Row } from './doc-db';
@@ -319,6 +320,30 @@ export async function sinhPosterPhim(db: Db, phimId: number, yTuong = '', mau: M
   if (chan) return loi(chan);
   const job = await taoJob(db, { phim_id: phimId, nhan: `Poster · ${phim.ten}`, loai: 'anh', provider: 'google', model: MO_HINH_POSTER, request: { dich: 'poster', mau, prompt, thamChieu: thamChieuUrl.length, thamChieuUrl } });
   await dayViecAnh({ job, model: MO_HINH_POSTER, prompt, thamChieuUrl, tiLe: TI_LE_POSTER, thuMuc: `poster/${phimId}` });
+  return { ok: true, data: job };
+}
+
+/** Sinh MỘT bản cho một ảnh QC (anh-qc.ts): chép bố cục ảnh mẫu, sản phẩm theo ảnh thật của anchor, chữ đúng `chu`. Kết quả lên đầu
+ *  xv_anh_qc.uv; ảnh chưa có bản đang dùng thì bản đầu thành bản đang dùng (hoan-tat.ts). Model = cột mo_hinh của dòng. */
+export async function sinhAnhQcDb(db: Db, anhQcId: number): Promise<KqSinh<number>> {
+  const loi = (x: string): KqSinh<number> => ({ ok: false, loi: x });
+  const a = ((await db.execute(sql`SELECT a.*, p.kinh_thanh, p.ten AS ten_phim FROM xv_anh_qc a JOIN xv_phim p ON p.id = a.phim_id WHERE a.id = ${anhQcId}`)) as unknown as Row[])[0];
+  if (!a) return loi('không thấy ảnh QC');
+  const phimId = Number(a.phim_id);
+  const nv = ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat);
+  const sp = sanPhamAnhQc(nv);
+  if (!sp.length) return loi('phim chưa có anchor SẢN PHẨM có ảnh — ảnh QC cần ảnh thật của sản phẩm để không vẽ sai món (mục 2)');
+  if (!String(a.mau_url ?? '') && !String(a.chu ?? '').trim()) return loi('chưa có ảnh mẫu lẫn chữ — chọn một khuôn hoặc dán ảnh QC mẫu');
+  const chan = chanChuModel('en', { anchor: sp.map((x) => x.v) });
+  if (chan) return loi(chan);
+  const dang = (await db.execute(sql`SELECT 1 FROM xv_job WHERE request->>'dich' = 'anh_qc' AND (request->>'anh_qc_id')::int = ${anhQcId} AND ${jobDangCho()} LIMIT 1`)) as unknown as Row[];
+  if (dang.length) return loi('ảnh này đang sinh — đợi xong rồi mới sinh thêm');
+  const qc = docKinhThanh((a.kinh_thanh ?? {}) as KinhThanh).qc;
+  const dong = { mau_url: String(a.mau_url ?? ''), chu: String(a.chu ?? ''), y_tuong: String(a.y_tuong ?? ''), ti_le: String(a.ti_le || '4:5') as AnhQc['ti_le'] };
+  const { prompt, thamChieuUrl } = promptAnhQc(dong, { tenSp: qc.ten || String(a.ten_phim ?? ''), logoUrl: qc.logo_url || undefined, nv });
+  const model = String(a.mo_hinh || MO_HINH_ANH[0].key);
+  const job = await taoJob(db, { phim_id: phimId, nhan: `Ảnh QC · ${String(a.ten || a.khuon || `#${anhQcId}`)}`, loai: 'anh', provider: 'google', model, request: { dich: 'anh_qc', anh_qc_id: anhQcId, prompt, thamChieu: thamChieuUrl.length, thamChieuUrl } });
+  await dayViecAnh({ job, model, prompt, thamChieuUrl, tiLe: dong.ti_le, thuMuc: `anh-qc/${phimId}` });
   return { ok: true, data: job };
 }
 

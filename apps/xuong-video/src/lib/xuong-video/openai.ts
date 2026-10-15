@@ -13,7 +13,7 @@ export const MO_HINH_ANH_OPENAI = ['gpt-image-1.5', 'gpt-image-1'] as const;
 type Kq = { ok: true; model: string; mimeType: string; data: Buffer } | { ok: false; loi: string };
 
 function kichCo(tiLe: TiLeAnh): string {
-  return tiLe === '9:16' || tiLe === '2:3' ? '1024x1536' : tiLe === '16:9' ? '1536x1024' : '1024x1024';
+  return tiLe === '9:16' || tiLe === '2:3' || tiLe === '4:5' ? '1024x1536' : tiLe === '16:9' ? '1536x1024' : '1024x1024';
 }
 
 export async function sinhAnhOpenAI(opts: { prompt: string; thamChieu?: AnhVao[]; tiLe: TiLeAnh; model?: string }): Promise<Kq> {

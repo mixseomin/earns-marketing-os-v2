@@ -3702,7 +3702,32 @@
    "khuon": "doi_nen",
    "ten": "Template · Một dáng, mọi nơi (thương hiệu, ghép nền, 11 shot, 14,6s)",
    "mo_ta": "Dòng THƯƠNG HIỆU: hình sạch có chủ đích. Mở bằng cận sản phẩm trong studio, rồi MỘT người đứng cố định một dáng (ảnh cắt nền, lớp phủ) trong khi nền nhảy qua 7 nơi trong ngày của đúng chân dung khách (0,8s/nơi, nhãn caption từng nơi kiểu Peak Design), lật ở studio (sản phẩm làm được việc), màu sắc, end card. Khuôn học từ QC thắng Peak Design City Line (x15: một chiếc túi qua nhịp một ngày trong thành phố, caption nhỏ từng nơi) và Sandqvist GRID Tote (x13: người mẫu đứng một chỗ demo túi, hình sạch, không lời). Nền là ảnh tĩnh không người (rẻ, không cần clip); người cắt nền sinh MỘT lần (scripts/cat-nen.mts).",
-   "mau_qc": [],
+   "mau_qc": [
+    {
+     "ma": "1698388234560905",
+     "page": "Peak Design",
+     "x": 15,
+     "ngay": 30,
+     "link": "https://www.facebook.com/ads/library/?id=1698388234560905",
+     "giay": 30.1,
+     "video": "https://img.on.tc/xuong-video/mau-qc/1698388234560905.mp4",
+     "anh": "https://img.on.tc/xuong-video/mau-qc/1698388234560905.jpg",
+     "to": "https://img.on.tc/xuong-video/mau-qc/1698388234560905-to.jpg",
+     "mo_ta": "Một chiếc túi qua nhịp một ngày trong thành phố: tàu điện, hiệu sách, chợ hoa, phố đông — mỗi cảnh một caption nhỏ trong ngoặc ([Train passing by]), khung ảnh-trong-ảnh, không lời dẫn, cắt theo nhạc. Học: chuỗi NƠI CHỐN thay cho lời kể, nhãn nơi/thời điểm từng cảnh, hình sạch kiểu editorial."
+    },
+    {
+     "ma": "1564818368030865",
+     "page": "Sandqvist",
+     "x": 13,
+     "ngay": 30,
+     "link": "https://www.facebook.com/ads/library/?id=1564818368030865",
+     "giay": 21.8,
+     "video": "https://img.on.tc/xuong-video/mau-qc/1564818368030865.mp4",
+     "anh": "https://img.on.tc/xuong-video/mau-qc/1564818368030865.jpg",
+     "to": "https://img.on.tc/xuong-video/mau-qc/1564818368030865-to.jpg",
+     "mo_ta": "Người mẫu đứng MỘT chỗ trước tường phố, máy cố định, demo túi (mở rộng, đeo vai, xách tay) không lời; chữ: 'Made for whatever the day brings.' Học: một người một dáng, máy khoá, sản phẩm là thứ duy nhất chuyển động."
+    }
+   ],
    "o": [
     "san_pham",
     "san_pham_hinh",

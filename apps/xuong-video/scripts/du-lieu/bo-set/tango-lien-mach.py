@@ -124,9 +124,8 @@ _da, _len = '#d9a582', '#2f4f8f'
 K['The Giant'] = {'hinh': 'trung', 'co': [7.6, 9.0, 2.8], 'mau': _da, 'phan': [
     {'hinh': 'trung', 'co': [6.4, 15, 5.0], 'mau': _da, 'tam': [0.3, 11.5, 0.1]},                       # cẳng tay
     {'hinh': 'trung', 'co': [8.6, 13, 7.0], 'mau': _len, 'tam': [0.4, 21.5, -0.6], 'chat': 'vai'},      # tay áo len
-    {'hinh': 'trung', 'co': [1.7, 3.0, 1.6], 'mau': _da, 'tam': [-2.5, -5.3, 0.55]},                    # ngón trỏ: đốt gốc
-    {'hinh': 'trung', 'co': [1.55, 2.7, 1.45], 'mau': _da, 'tam': [-2.6, -7.7, 0.5]},                   #           đốt giữa
-    {'hinh': 'trung', 'co': [1.45, 2.4, 1.35], 'mau': _da, 'tam': [-2.7, -9.8, 0.45]},                  #           đốt đầu
+    {'hinh': 'trung', 'co': [1.65, 7.0, 1.55], 'mau': _da, 'tam': [-2.55, -7.2, 0.5]},                  # ngón trỏ duỗi: một khối liền (ba đốt rời trông như xúc xích)
+    {'hinh': 'trung', 'co': [1.9, 2.2, 1.9], 'mau': _da, 'tam': [-2.45, -4.4, 0.45]},                   # khớp gốc ngón trỏ
     {'hinh': 'trung', 'co': [1.7, 2.6, 2.0], 'mau': _da, 'tam': [-0.6, -4.9, 0.1]},                     # ngón giữa co
     {'hinh': 'trung', 'co': [1.6, 2.4, 1.9], 'mau': _da, 'tam': [1.1, -4.6, 0.1]},                      # ngón áp út co
     {'hinh': 'trung', 'co': [1.4, 2.1, 1.7], 'mau': _da, 'tam': [2.7, -4.0, 0.2]},                      # ngón út co

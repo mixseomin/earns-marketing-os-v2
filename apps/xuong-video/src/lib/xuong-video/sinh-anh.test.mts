@@ -57,3 +57,10 @@ console.log('sinh-anh.test: ok');
   assert.equal(khungChu(kx, ['Tango'], true), '', 'khung KẾT: số đo là của khung mở → không nói');
   assert.equal(khungChu(null, ['Tango']), '');
 }
+
+// Dải vật bị mép cắt tràn ngang khung KHÔNG phải cận cảnh (#35: đế cắm ló 10% ở đáy bị gọi "fills the frame").
+{
+  const { khungChu } = await import('./sinh-anh');
+  const c = khungChu({ thay: [{ ten: 'USB Hub', pt: 9, hop: [0, 0.9, 1, 1] }] } as never, ['USB Hub']);
+  assert.ok(!/close-up/.test(c) && /cut off by the bottom edge — only a 10% strip/.test(c), c);
+}

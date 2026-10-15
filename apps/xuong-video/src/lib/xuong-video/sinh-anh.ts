@@ -240,7 +240,8 @@ export function khungChu(kx: Canh['khung_xam'] | null | undefined, ten: string[]
     const w = th.hop[2] - th.hop[0], h = th.hop[3] - th.hop[1]; const vt = vungEn((th.hop[0] + th.hop[2]) / 2, (th.hop[1] + th.hop[3]) / 2);
     const co = `spans about ${tron(w)}% of the frame width and ${tron(h)}% of its height, ${vt}`;
     const cat = catMep(th.hop);
-    return w >= 0.85 || h >= 0.85 ? `${t} ${co} — a close-up: ${t} fills the frame and the frame edges crop the body${cat}` : `${t} ${co}${cat}`;
+    // Cận = cao ≥ 85% khung hoặc chiếm > nửa diện tích (#9 Tango nằm tràn ngang cao 45%: w·h ≈ 0,36 → không; dải đế cắm tràn ngang cao 10% → không).
+    return h >= 0.85 || w * h >= 0.5 ? `${t} ${co} — a close-up: ${t} fills the frame and the frame edges crop the body${cat}` : `${t} ${co}${cat}`;
   }).filter(Boolean);
   return ds.length ? `FRAMING measured on Image 1 — keep the same subject size and position, do NOT zoom out or in: ${ds.join('; ')}.` : '';
 }

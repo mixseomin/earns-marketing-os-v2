@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan } from './bo-set-3d';
+import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -126,6 +126,10 @@ assert.deepEqual(chuoiChuY([cy(1, [{ ten: 'Tango', tam: [50, 50, 0], huong: 90 }
 assert.ok(chuoiChuY([cy(1, [{ ten: 'Tango', tam: [50, 50, 0], huong: 90 }], ['Cable Plug']), cy(2, [{ ten: 'Tango', tam: [50, 50, 0], lam: 'Cable Plug' }])], phich)[2]![0]!.includes('không phải chủ thể'));
 // điểm tác động lam_o: nhìn về góc trái đế cắm (48,50) thay vì tâm phích (54,50)
 assert.deepEqual(chuoiChuY([cy(1, [{ ten: 'Tango', tam: [50, 50, 0], huong: -90 }], ['Tango', 'Cable Plug']), cy(2, [{ ten: 'Tango', tam: [50, 50, 0], lam: 'Cable Plug', lam_o: [48, 50, 0] }])], phich), {});
+// chủ thể quá to: thẻ dẹt (cao 0,3 cm) phủ tiền cảnh ở cỡ two không tính; nhân vật cao 260% vẫn đỏ
+const kxTo = (ten: string) => ({ ky_thuat: { co_canh: 'two' }, khung_xam: { kiem: [{ nhan_vat: ten, bat_buoc: true, trong_khung: true, cao_khung_pt: 260, bi_che_boi: [] }] } as never });
+const setThe = { du_lieu: { vat: [{ ten: 'Orange Card', tam: [0, 0, 0], co: [9, 6, 0.3], mau: '#f80', hinh: 'hop' } as never] } };
+assert.deepEqual(chuTheQuaTo(kxTo('Orange Card'), setThe), []); assert.equal(chuTheQuaTo(kxTo('Tango'), setThe).length, 1); assert.equal(chuTheQuaTo(kxTo('Orange Card')).length, 1);
 // lam không vào mã khung (khai kể chuyện không làm khung đã dựng thành cũ)
 const setM = { id: 1, du_lieu: { vat: [] } }; const mLam = (lam?: string) => ({ dat: [0, 0, 1], nhin: [0, 1, 0], ong_kinh: 35, vi_tri: [{ ten: 'Tango', tam: [0, 0, 0], ...(lam ? { lam } : {}) }] });
 assert.equal(maKhungXam(setM, mLam("Cable Plug"), []), maKhungXam(setM, mLam(), [])); assert.equal(maPhan(setM, mLam("X"), []).may, maPhan(setM, mLam(), []).may);

@@ -2763,11 +2763,21 @@
           "huong": -49
         }
       ],
-      "phia": 70,
       "khung": [
         "Tango",
         "USB Hub"
-      ]
+      ],
+      "dat": [
+        64,
+        46,
+        7
+      ],
+      "nhin": [
+        57,
+        53.5,
+        1
+      ],
+      "ong_kinh": 35
     },
     "7.3": {
       "vi_tri": [
@@ -3081,9 +3091,10 @@
       "nhay": "phần kết: hai bạn ra mép bàn chào khán giả"
     },
     "7.1a": {
-      "phia": -10,
+      "phia": 70,
       "khung": [
-        "Tango"
+        "Tango",
+        "Cable Plug"
       ],
       "vi_tri": [
         {
@@ -3128,15 +3139,15 @@
     "7.4a": {
       "dat": [
         57.2,
-        55.8,
-        5.2
+        52.4,
+        9
       ],
       "nhin": [
-        55.8,
-        54.4,
-        1.3
+        57.2,
+        55,
+        0.8
       ],
-      "ong_kinh": 35,
+      "ong_kinh": 24,
       "khung": [
         "USB Hub",
         "Cable Plug"
@@ -3148,7 +3159,8 @@
       "phia": 40,
       "khung": [
         "Tango",
-        "Lint"
+        "Lint",
+        "Mr. Wipe"
       ],
       "vi_tri": [
         {
@@ -3159,7 +3171,7 @@
             0
           ],
           "huong": -167,
-          "huong_den": -30
+          "huong_den": 60
         },
         {
           "ten": "Lint",
@@ -3169,7 +3181,7 @@
             0
           ],
           "huong": 13,
-          "huong_den": -29
+          "huong_den": 60
         },
         {
           "ten": "Mr. Wipe",
@@ -3192,7 +3204,8 @@
       "phia": 70,
       "khung": [
         "Tango",
-        "Lint"
+        "Lint",
+        "Gummy Bear"
       ],
       "vi_tri": [
         {
@@ -3202,7 +3215,7 @@
             50.4,
             0
           ],
-          "huong": -30,
+          "huong": 86,
           "huong_den": -167
         },
         {
@@ -3212,7 +3225,7 @@
             52.2,
             0
           ],
-          "huong": -29,
+          "huong": 60,
           "huong_den": 13
         }
       ]

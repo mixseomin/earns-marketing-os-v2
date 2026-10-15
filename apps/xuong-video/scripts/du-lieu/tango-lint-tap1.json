@@ -1673,7 +1673,7 @@
             "tu_ke_du"
           ],
           "thay": "Tango đang vỗ vỗ nửa viên kẹo thì khựng lại: có tiếng rì rì khe khẽ. Cậu ngẩng lên, mắt đảo theo tiếng, quay đầu về phía phích cắm cáp trắng nằm sát đế cắm.",
-          "bo_cuc": "Mid: Tango on the orange card, patting his red gummy half, then turning his head screen-left toward an off-screen hum. Background: the silver hub edge, soft.",
+          "bo_cuc": "Mid: Tango on the orange card patting his red gummy half, facing camera; he turns his head away toward the white cable plug glinting in the background, screen-left, beside the silver hub.",
           "mo": "Tango on the orange card patting his red gummy half.",
           "ket": "Tango's head turned screen-left, eyes narrowed and fixed on something off-screen (the plug), curly strand pointing the same way.",
           "huong": "Tango turns his head from screen-right (the gummy) to screen-left (the plug).",
@@ -1711,7 +1711,7 @@
             "motif"
           ],
           "thay": "Theo mắt Tango: đầu phích cắm cáp trắng nằm sát đế cắm bạc, một tia sáng xanh li ti chớp ở mũi phích, tiếng rì rì to dần.",
-          "bo_cuc": "Point of view from Tango's eye height: the white cable plug lying on the orange card fills the centre, its metal tip catching the light; the silver hub's shiny edge soft behind it.",
+          "bo_cuc": "Point of view at a tiny creature's eye height: the white cable plug lying on the orange card fills the centre, its metal tip catching the light; the silver hub's shiny edge soft behind it.",
           "mo": "The white cable plug lying on the orange card beside the silver hub, seen from a tiny creature's eye height.",
           "ket": "A tiny blue spark flickering at the plug's metal tip.",
           "huong": "Static point of view; the spark flickers at the plug tip.",
@@ -1912,7 +1912,7 @@
             "chenh_thong_tin"
           ],
           "thay": "Theo mắt Mr. Wipe từ trên cao: dấu tay đất sét cam nhem nhuốc trên mặt đế cắm bạc, ngay sát đầu phích cắm. Một giọt nước từ trên rơi tõm xuống cạnh dấu tay, sát phích.",
-          "bo_cuc": "Top-down point of view (Mr. Wipe's view): messy orange clay handprints on the shiny silver hub, the white cable plug right next to them.",
+          "bo_cuc": "Top-down point of view from above: messy orange clay handprints on the shiny silver hub, the white cable plug right next to them on the orange card.",
           "mo": "Top-down view: messy orange clay handprints on the shiny silver hub right next to the white cable plug.",
           "ket": "A water drop falling from above splashes beside the handprints, a hair from the plug.",
           "huong": "Static top-down point of view; a drop falls toward the handprints.",
@@ -2067,11 +2067,11 @@
             "tu_ke_du",
             "chenh_thong_tin"
           ],
-          "thay": "Bụng Tango sôi \"ọt\". Cậu xoa bụng, liếm môi, liếc qua vai về hai nửa viên kẹo đỏ nằm chờ trên tấm thẻ, giơ tay chỉ: kẹo! Lint chộp tay cậu kéo xoay một vòng nhảy mừng — hai đứa quay lưng lại phía kẹo.",
-          "bo_cuc": "Mid: Tango and Lint at the left edge of the orange card, screen-left. Background screen-right: the two red gummy halves waiting on the card, small but readable.",
-          "mo": "Tango rubbing his belly and glancing over his shoulder at the two red gummy halves waiting on the orange card; Lint beside him.",
-          "ket": "Lint spinning Tango in a little victory dance, both facing each other with their backs to the gummy halves.",
-          "huong": "Tango glances screen-right at the gummy halves, then Lint spins him around; they end facing each other, backs to the candy.",
+          "thay": "Bụng Tango sôi \"ọt\". Cậu xoa bụng, liếm môi, nhìn về hai nửa viên kẹo đỏ nằm chờ trên tấm thẻ, giơ tay chỉ: kẹo! Lint chộp tay cậu kéo xoay một vòng nhảy mừng — hai đứa quay đi, bỏ quên kẹo.",
+          "bo_cuc": "Foreground: the two red gummy halves waiting on the orange card, slightly soft. Mid: Tango and Lint at the far edge of the card, facing camera.",
+          "mo": "Foreground: the two red gummy halves on the orange card. Behind them, Tango rubs his belly and looks hungrily toward the candy; Lint beside him.",
+          "ket": "Foreground: the gummy halves untouched. Behind them, Lint spinning Tango in a little victory dance, both facing each other, away from the candy.",
+          "huong": "Tango looks toward the candy (toward camera), then Lint spins him; they end facing each other, away from the candy.",
           "am": "\"Ọt\" — bụng sôi; Lint cười khúc khích; nhạc nhảy mừng pizzicato.",
           "muc_dich": "Mở lại chuyện kẹo: nhắc khán giả phần thưởng ngay trước khi nó bị lấy — và hai bạn quay lưng lại với nó.",
           "motif": "Kẹo đỏ — phần thưởng nhắc lại.",
@@ -2080,7 +2080,7 @@
             "chuyen_dong": "lia",
             "ong_kinh": "chuan",
             "chuyen_canh": "cat",
-            "mo_ta": "Lia theo ánh mắt Tango từ mặt cậu sang hai nửa kẹo trên thẻ, rồi về lại khi Lint kéo cậu xoay vòng."
+            "mo_ta": "Máy đặt sau hai nửa kẹo: kẹo ở tiền cảnh, Tango nhìn thẳng về kẹo (về phía máy), rồi Lint kéo cậu xoay đi — kẹo nằm lại một mình trong khung."
           },
           "anchor": [
             "USB Hub Dock",
@@ -2089,7 +2089,7 @@
             "Gummy Bear",
             "Orange Card"
           ],
-          "thay_en": "The orange creature's belly rumbles; he licks his lips and points over his shoulder at the two red gummy halves waiting on the orange card, but the dust bunny grabs his hand and spins him into a little victory dance, their backs to the candy.",
+          "thay_en": "The orange creature's belly rumbles; he licks his lips and points at the two red gummy halves waiting in the foreground on the orange card, but the dust bunny grabs his hand and spins him into a little victory dance, turning away from the candy.",
           "am_en": "A comic belly rumble, giggles, a bouncy pizzicato dance tune.",
           "thoai": [
             {

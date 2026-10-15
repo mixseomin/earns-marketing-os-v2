@@ -18,6 +18,7 @@ import { giayGiuKet, dongThoai, phatTiengClip, lichGiong } from './am-thanh';
 
 /** Một tệp nguyên liệu đã tải về + đo: dai = giây (âm/video), coAm = clip có luồng tiếng, lufs = độ to tích hợp (tệp chỉ có tiếng). */
 export type NguyenLieu = { url: string; duong: string; dai: number | null; coAm: boolean; fps?: number | null; lufs?: number | null;
+  /** độ sáng trung bình (Y 0–255, signalstats YAVG) của clip — cân màu theo cảnh (canMauCanh) */ yavg?: number | null;
   /** giây CẮT ĐUÔI bài nhạc (đoạn kết nhỏ dần + im, đo bằng duoiNhac) — null = đuôi không tụt */ catDuoi?: number | null };
 export type TepChu = { duong: string; noiDung: string };
 /** loi = không dựng được (args rỗng) và vì sao; canhBao = dựng được nhưng lệch chuẩn (lẫn giọng lời dẫn, bản nháp thiếu nhạc…). */
@@ -174,6 +175,19 @@ const so = (x: number) => (Math.round(x * 1000) / 1000).toString();
 /** Đường dẫn trong filter ffmpeg: thoát ':' '\' và dấu nháy. */
 const duongFf = (p: string) => p.replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'");
 
+/** Độ lệch sáng cần bù cho từng shot (eq=brightness, −1…1) để mọi clip trong một phân cảnh về trung vị độ sáng của cảnh; chỉ shot lệch ≥ 4/255,
+ *  kẹp ±0,08 (kéo quá tay làm bệt). Thuần: nhận hàm đo yavg của shot (null = không phải clip / chưa đo). */
+export function canMauCanh<T extends { id: number; phan_doan: string }>(ds: T[], yavg: (c: T) => number | null): Map<number, number> {
+  const out = new Map<number, number>(); const theoCanh = new Map<string, { c: T; y: number }[]>();
+  for (const c of ds) { const y = yavg(c); if (y == null || !Number.isFinite(y)) continue; (theoCanh.get(c.phan_doan) ?? theoCanh.set(c.phan_doan, []).get(c.phan_doan)!).push({ c, y }); }
+  for (const ds2 of theoCanh.values()) {
+    if (ds2.length < 2) continue;
+    const ys = ds2.map((x) => x.y).sort((a, b) => a - b); const tv = ys.length % 2 ? ys[(ys.length - 1) / 2]! : (ys[ys.length / 2 - 1]! + ys[ys.length / 2]!) / 2;   // trung vị (chẵn: giữa hai clip, không nghiêng về một clip)
+    for (const { c, y } of ds2) { const d = tv - y; if (Math.abs(d) >= 4) out.set(c.id, Math.round(Math.max(-0.08, Math.min(0.08, d / 255)) * 1000) / 1000); }
+  }
+  return out;
+}
+
 export function keHoachXuat(o: {
   loai: LoaiPhim; tiLe: string; canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'nhac_url' | 'nhac_phan_canh'> & { lop?: Lop[]; phan_canh?: Pick<PhanCanh, 'ten' | 'beat'>[] }; qc?: ThongTinQc | null;
   nhanh?: string | null; nguyenLieu: NguyenLieu[]; font: string; thuMuc: string; ra: string;
@@ -237,6 +251,9 @@ export function keHoachXuat(o: {
 
   const loc: string[] = [];
   const nhanhVideo: string[] = [];
+  // CÂN MÀU THEO CẢNH (shot matching, luật can_mau_hau_ky): clip AI mỗi lần sinh một phơi sáng — kéo độ sáng trung bình mỗi clip về trung vị
+  // của cảnh (eq=brightness, kẹp ±0,08), lệch < 4/255 thì để nguyên. Bước đầu của colorist, trước khi áp look.
+  const mauCanh = canMauCanh(ds, (c) => { const u = c.video_cuoi_url || c.video_url; return u ? nl.get(u)?.yavg ?? null : null; });
   // Ba lớp tiếng trộn riêng: giọng (điều khiển nén nhạc), nhạc (nhỏ lại khi có giọng), còn lại (hiệu ứng, tiếng clip có người nói).
   const nhanhGiong: string[] = [];
   const nhanhNhac: string[] = [];
@@ -305,7 +322,7 @@ export function keHoachXuat(o: {
     const conLai = cuoiThat - boDau;
     const gian = laVideo && !toc && !dungClip && dem > 0.01 && conLai > 0.3 ? Math.min(GIAN_TOI_DA, (conLai + dem) / conLai) : 1;
     const demCon = laVideo ? Math.max(0, dem - conLai * (gian - 1)) : 0;
-    const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(cuoiThat)},setpts=PTS-STARTPTS,${gian > 1.001 ? `setpts=${so(gian)}*PTS,` : ''}${toc ? `setpts='(${bieuThucToc(toc)})/TB',` : ''}${khung}${demCon > 0.01 ? `,tpad=stop_mode=clone:stop_duration=${so(demCon)}${dayMay(dai)}` : ''}` : `[${k}:v]${khungTinh(i)},trim=0:${so(dai)},setpts=PTS-STARTPTS${dayMay(dai)}`];
+    const ve: string[] = [laVideo ? `[${k}:v]trim=${so(boDau)}:${so(cuoiThat)},setpts=PTS-STARTPTS,${gian > 1.001 ? `setpts=${so(gian)}*PTS,` : ''}${toc ? `setpts='(${bieuThucToc(toc)})/TB',` : ''}${khung}${mauCanh.get(c.id) ? `,eq=brightness=${so(mauCanh.get(c.id)!)}` : ''}${demCon > 0.01 ? `,tpad=stop_mode=clone:stop_duration=${so(demCon)}${dayMay(dai)}` : ''}` : `[${k}:v]${khungTinh(i)},trim=0:${so(dai)},setpts=PTS-STARTPTS${dayMay(dai)}`];
     for (const d of doanHien(c.chu_man, phat, gopKieu(o.qc?.kieu_chu, c.kieu_chu).tu)) cauMan.push({ tu: t + d.tu, den: t + d.den, dong: d.dong, kieu: c.kieu_chu });
     if (logoUrl) { const kl = them(logoUrl, ['-loop', '1', '-framerate', '30', '-t', so(dai)]); loc.push(`[${kl}:v]scale=-1:${Math.round(H * 0.06)},format=rgba[lg${i}]`); ve[ve.length - 1] += `[vv${i}];[vv${i}][lg${i}]overlay=W-w-${Math.round(W * 0.03)}:${Math.round(H * 0.03)}:shortest=1`; }
     if (c.am_thanh_url && nl.has(c.am_thanh_url)) { const ka = them(c.am_thanh_url); themAm(`[${ka}:a]atrim=0:${so(phat)},asetpts=PTS-STARTPTS,volume=0.8,adelay=${Math.round(t * 1000)}:all=1`); }

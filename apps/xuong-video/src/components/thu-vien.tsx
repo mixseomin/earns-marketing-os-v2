@@ -9,6 +9,7 @@ import { LOAI_SHOT_MAU } from '@/lib/xuong-video/kieu';
 import type { KhuonShot } from '@/lib/xuong-video/khuon-shot';
 import { THE_LOAI, NHOM_KY_THUAT, THU_VIEN, CAU_TRUC, hopTheLoai, kyThuat, chiTietKyThuat, type TheLoai, type KyThuat, type KyThuatShot, type NhomKyThuat, type MucKyThuat } from '@/lib/xuong-video/dien-anh';
 import { LUAT_DUNG_CANH, luatDung } from '@/lib/xuong-video/luat-dung';
+import type { NganhKyThuat } from '@/lib/xuong-video/dien-anh-nganh';
 
 export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
   const [tl, setTl] = useState<TheLoai | ''>(tlDau as TheLoai | '');
@@ -30,7 +31,8 @@ export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
             <div key={l.key} className="xv-canh">
               <b style={{ fontSize: 12 }}>{i + 1}. {l.ten}</b> <span className="xv-mono">{l.key}</span>
               <div style={{ fontSize: 11.5, color: 'var(--fg-2)', marginTop: 2 }}>{l.luat}</div>
-              <div className="xv-mono" style={{ marginTop: 2 }}>máy kiểm: {l.may}</div>
+              <div className="xv-mono" style={{ marginTop: 2 }}>máy kiểm: {l.may}{l.xem === false ? ' · luật của thợ (không vào người xem ảo)' : ''}</div>
+              {l.nganh && <details style={{ marginTop: 4 }}><summary className="xv-mono" style={{ cursor: 'pointer' }}>📘 Ngành mô tả · {l.nganh.ten_nganh}</summary><MoTaNganh n={l.nganh} /></details>}
             </div>
           ))}
         </div>
@@ -96,12 +98,13 @@ function KhuonShotKhoi() {
 }
 
 /** Mô tả ngành của một kỹ thuật (khung mở → kết, cách làm, khi nào dùng, tác động, tránh, nguồn + phần số máy 3D) — MỘT chỗ dựng cho thẻ thư viện và ngăn chi tiết. */
-function MoTaNganh({ x }: { x: KyThuat }) {
-  if (!x.nganh) return null;
+/** Mô tả ngành của một kỹ thuật (x) hoặc một luật dựng cảnh (n) — cùng một bảng. */
+function MoTaNganh({ x, n }: { x?: KyThuat; n?: NganhKyThuat }) {
+  const g = n ?? x?.nganh; if (!g) return null;
   return (
     <dl style={{ fontSize: 11.5, color: 'var(--fg-2)', margin: '4px 0 0', display: 'grid', gap: 3 }}>
-      {([['Mở → kết', x.nganh.dau_cuoi], ['Thực hiện', x.nganh.thuc_hien], ['Khi nào dùng', x.nganh.dong_co], ['Khán giả cảm', x.nganh.cam_xuc], ['Tránh', x.nganh.tranh], ['Nguồn', x.nganh.nguon]] as const).map(([t, v]) => <div key={t}><b>{t}:</b> {v}</div>)}
-      {x.may_di && <div className="xv-mono">máy 3D: {x.may_di.kieu}{x.may_di.ti_le ? ` · chủ thể ×${x.may_di.ti_le}` : ''}{x.may_di.goc ? ` · ${x.may_di.goc}°` : ''} · {x.may_di.toc}</div>}
+      {([['Mở → kết', g.dau_cuoi], ['Thực hiện', g.thuc_hien], ['Khi nào dùng', g.dong_co], ['Khán giả cảm', g.cam_xuc], ['Tránh', g.tranh], ['Nguồn', g.nguon]] as const).map(([t, v]) => <div key={t}><b>{t}:</b> {v}</div>)}
+      {x?.may_di && <div className="xv-mono">máy 3D: {x.may_di.kieu}{x.may_di.ti_le ? ` · chủ thể ×${x.may_di.ti_le}` : ''}{x.may_di.goc ? ` · ${x.may_di.goc}°` : ''} · {x.may_di.toc}</div>}
     </dl>
   );
 }
@@ -115,7 +118,8 @@ export function ChiTietKyThuatNgan({ ma }: { ma: string }) {
     if (!l) return <div className="xv-mono">Không còn luật “{key}” trong thư viện.</div>;
     return (<div style={{ display: 'grid', gap: 6, fontSize: 12.5 }}>
       <div className="xv-mono">📐 Luật dựng cảnh · {l.key}</div><b style={{ fontSize: 15 }}>{l.ten}</b>
-      <div style={{ color: 'var(--fg-2)' }}>{l.luat}</div><div className="xv-mono">máy kiểm: {l.may}</div>{nut}
+      <div style={{ color: 'var(--fg-2)' }}>{l.luat}</div><div className="xv-mono">máy kiểm: {l.may}</div>
+      {l.nganh && <><div className="xv-mono" style={{ marginTop: 4 }}>📘 Ngành gọi: {l.nganh.ten_nganh}</div><MoTaNganh n={l.nganh} /></>}{nut}
     </div>);
   }
   const x = kyThuat(key, nhom as NhomKyThuat); const n = NHOM_KY_THUAT.find((g) => g.key === nhom);

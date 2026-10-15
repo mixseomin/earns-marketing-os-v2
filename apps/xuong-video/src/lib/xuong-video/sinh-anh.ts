@@ -5,7 +5,7 @@ import { dayViecAnh } from './hoan-tat';
 import { promptAnhMau } from './claude';
 import { promptCamXuc } from './am-thanh';
 import { promptKyThuatAnh } from './dien-anh';
-import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type KinhThanh, type NhanVat } from './kieu';
+import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type Canh, type KinhThanh, type NhanVat } from './kieu';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
 import { boSetCuaShot, chanKhungXam, huongVoiMay, loiMachTap, moTaThay, PT_THAY, shotSoTruc, trangThaiVat } from './bo-set-3d';
@@ -159,6 +159,11 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   const trUrl = !kx && !noi && tr?.keyframe_url && tr.phan_doan === bc.canh.phan_doan && tr.keyframe_url !== ms?.keyframe_url && urlRef.length < 9 ? tr.keyframe_url : null;
   if (trUrl) { urlRef.push(trUrl); vai.push({ url: trUrl, nhan: `✂ trạng thái shot trước #${tr!.thu_tu}` }); }
   const trChu = trUrl ? `Image ${urlRef.length} = the shot just before this cut, same scene: carry over every character's and object's STATE and place in the set (what they hold, their shape, where they stand) unless the action above changes it; stay on the same side of the action. Do NOT copy its framing.` : '';
+  // KHUNG CHUẨN MÀU của cảnh (hero frame / color script, luật khung_chuan_mau): shot có 3D thì bố trí lấy từ Image 1, nhưng TÔNG MÀU / phơi sáng / màu
+  // đèn lấy từ keyframe mở cảnh đã có — mỗi keyframe một tông (#32 có màn hình xanh sau lưng trong khi 3D là tường tối) là lỗi khán giả thấy ngay.
+  const mauUrl = kx && !ket && ms?.keyframe_url && ms.keyframe_url !== noi && urlRef.length < 10 ? ms.keyframe_url : null;
+  if (mauUrl) { urlRef.push(mauUrl); vai.push({ url: mauUrl, nhan: `🎨 khung chuẩn màu (shot mở cảnh #${ms!.thu_tu})` }); }
+  const mauChu = mauUrl ? `Image ${urlRef.length} = the COLOUR & LIGHT reference of this scene (its opening frame): match its colour grade, white balance, exposure, contrast and the colour of the light exactly. Do NOT copy its layout, camera angle, framing or background — those come from Image 1 only.` : '';
   const msChu = msUrl ? `Image ${soMs} = the opening shot of this same scene, on the same physical set: keep the SET LAYOUT identical — where every object stands relative to the others (and what is in front of / behind what), and which side of those objects each character is on, consistent with the action. Do NOT copy its framing: the camera position, angle and shot size come from the composition described above, but the camera stays on the same side of the action as in that shot.` : '';
   // Thẻ shot: bố cục 3 lớp + trạng thái MỞ + hướng — keyframe là khung đầu của shot.
   const dd = bc.canh.dan_dung ?? {};
@@ -172,14 +177,32 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // TRẠNG THÁI VẬT (15/10/2026: kẹo đã bẻ đôi nằm ngoài khung 3D của 7.1a → không có nhãn → keyframe vẽ con gấu nguyên theo ảnh mẫu): mọi anchor
   // của shot đang ở trạng thái khác ảnh mẫu thì nói thẳng, đè lên ảnh mẫu — lấy từ 3D đầy đủ (kể cả đồ để lại), không dò chữ.
   const trangChu = ((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? []).filter((v) => bc.nhanVat.some((n) => n.ten === v.ten)).map((v) => { const t = trangThaiVat(v, ket); return t ? `${v.ten}: ${t}` : ''; }).filter(Boolean);
-  const trangCau = trangChu.length ? `OBJECT STATE in this frame (overrides the reference photos): ${trangChu.join('; ')}.` : '';
+  const trangCau = trangChu.length ? `STATE in this frame (overrides the reference photos): ${trangChu.join('; ')}.` : '';
+  // TỈ LỆ NHÂN VẬT (lineup / size chart, luật ti_le_nhan_vat): mỗi nhân vật một tấm mẫu riêng nên model đoán tỉ lệ; 3D đã đúng — nói bằng số so với
+  // nhân vật đầu tiên trong khung (chiều cao khối khoi_3d).
+  const caoCua = (ten: string) => bc.nhanVat.find((n) => n.ten === ten && n.loai === 'nhan_vat')?.khoi_3d?.co?.[2];
+  const nvKhung = kx ? ((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? []).filter((v) => !v.an && caoCua(v.ten) && (bc.canh.khung_xam?.thay ?? []).some((t) => t.ten === v.ten && t.pt >= PT_THAY)).map((v) => v.ten) : [];
+  const goc0 = nvKhung[0]; const h0 = goc0 ? caoCua(goc0)! : 0;
+  const tiLeCau = nvKhung.length >= 2 && h0 > 0 ? `SCALE (relative heights, exactly as Image 1 shows): ${nvKhung.slice(1).map((t) => `${t} is ${Math.round((caoCua(t)! / h0) * 10) / 10}× the height of ${goc0}`).join('; ')}.` : '';
   // HƯỚNG NHÂN VẬT so với máy, từ số 3D (15/10/2026 #38: 3D thấy Tango nghiêng hẳn, keyframe vẽ mặt nhìn thẳng máy theo ảnh mẫu — prompt không nói hướng).
   const mHuong = bc.mayDu ?? bc.canh.may_3d; const trongKhung = new Set((bc.canh.khung_xam?.thay ?? []).filter((t) => t.pt >= PT_THAY).map((t) => t.ten));
   const huongChu = kx && mHuong ? mHuong.vi_tri.filter((v) => !v.an && trongKhung.has(v.ten) && bc.nhanVat.some((n) => n.ten === v.ten && n.loai === 'nhan_vat'))
     .map((v) => { const h = huongVoiMay(mHuong, v, ket); return h ? `${v.ten}: ${h.chu}` : ''; }).filter(Boolean) : [];
   const huongCau = huongChu.length ? `CHARACTER FACING in this frame, exactly as Image 1 shows (overrides the pose in the reference sheets): ${huongChu.join('; ')}.` : '';
-  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), kxChu, trangCau, huongCau, anhSang, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
+  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), kxChu, trangCau, huongCau, tiLeCau, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
   return { prompt, urlRef, vai };
+}
+
+/** MỘT CẢNH MỘT MODEL ẢNH (luật mot_model_canh): keyframe của shot sinh bằng model khác với đa số keyframe cùng cảnh → không tiêu tiền video lên
+ *  khung lệch "tay vẽ"; sinh lại keyframe bằng model của cảnh trước. Model lấy từ job đã sinh ra đúng tệp keyframe (xv_job.output_url). */
+export async function tronModelCanh(db: Db, c: Pick<Canh, 'id' | 'tap_id' | 'phan_doan' | 'keyframe_url'>): Promise<string | null> {
+  if (!c.keyframe_url || !c.phan_doan) return null;
+  const r = (await db.execute(sql`SELECT c.id, c.thu_tu, j.model FROM xv_canh c JOIN xv_job j ON j.output_url = c.keyframe_url AND j.loai = 'anh'
+    WHERE c.tap_id = ${c.tap_id} AND c.phan_doan = ${c.phan_doan} AND c.keyframe_url IS NOT NULL`)) as unknown as Row[];
+  const cua = r.find((x) => Number(x.id) === c.id); if (!cua || r.length < 2) return null;
+  const dem = new Map<string, number>(); for (const x of r) dem.set(String(x.model), (dem.get(String(x.model)) ?? 0) + 1);
+  const [daSo, so] = [...dem].sort((a, b) => b[1] - a[1])[0]!;
+  return String(cua.model) !== daSo && so >= 2 ? `keyframe sinh bằng ${String(cua.model)} trong khi cảnh "${c.phan_doan}" dùng ${daSo} (${so}/${r.length} shot) — một cảnh một model: sinh lại keyframe bằng ${daSo}` : null;
 }
 
 /** MỌI lý do chặn sinh keyframe của một shot — quy trình cấp tập (brief, khung truyện, phân cảnh, phong cách, người xem hiểu, kịch bản series)

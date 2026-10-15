@@ -1,6 +1,6 @@
 // Tự kiểm bộ dựng lệnh ffmpeg của bản xuất. Chạy: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/xuat.test.mts
 import assert from 'node:assert';
-import { keHoachXuat, urlCanXuat, ngatDong, doanChuMan, tepAss, chuManHien, kiemGiongLoiDan, khoangIm, duoiNhac, tiengLa, hinhDung } from './xuat';
+import { keHoachXuat, canMauCanh, urlCanXuat, ngatDong, doanChuMan, tepAss, chuManHien, kiemGiongLoiDan, khoangIm, duoiNhac, tiengLa, hinhDung } from './xuat';
 import { lichGiong, phatTiengClip } from './am-thanh';
 import type { Canh, NhanVat } from './kieu';
 
@@ -312,3 +312,13 @@ console.log('xuat.test: mẫu ok');
   assert.ok(!/\[vcat\]split/.test(lz) && /\[vcat\]eq=brightness/.test(lz), 'chớp vẫn trên cả phim, zoom không');
   console.log('xuat.test: hiệu ứng nặng theo đoạn ok');
 }
+// cân màu theo cảnh: hai clip cùng cảnh lệch 40/255 → shot tối được +, shot sáng −, kẹp 0,08; lệch < 4 không bù; cảnh một clip không bù
+{
+  const cm = canMauCanh([{ id: 1, phan_doan: 'X' }, { id: 2, phan_doan: 'X' }, { id: 3, phan_doan: 'X' }, { id: 4, phan_doan: 'Y' }], (c) => ({ 1: 100, 2: 140, 3: 102 } as Record<number, number>)[c.id] ?? null);
+  assert.equal(cm.get(2), -0.08); assert.equal(cm.get(1), undefined); assert.equal(cm.get(4), undefined);
+  const kh3 = keHoachXuat({ loai: 'phim', tiLe: '16:9', canh: [shot({ thu_tu: 1, phat_s: 2, video_url: 'https://x/a.mp4', phan_doan: 'S' }), shot({ thu_tu: 2, phat_s: 2, video_url: 'https://x/b.mp4', phan_doan: 'S' })], nhanVat: nv, tap: { nhac_url: '', nhac_phan_canh: {} },
+    nguyenLieu: [{ ...nl('https://x/a.mp4', 4, false), yavg: 90 }, { ...nl('https://x/b.mp4', 4, false), yavg: 130 }], font: '/f', thuMuc: '/tmp/t', ra: '/tmp/t/ra.mp4' });
+  const loc3 = kh3.tep.find((x) => x.duong.endsWith('/loc.txt'))!.noiDung;
+  assert.ok(loc3.includes('eq=brightness=0.078') && loc3.includes('eq=brightness=-0.078'), loc3);   // trung vị 110: a +20/255, b −20/255
+}
+console.log('xuat.test: ok (cân màu)');

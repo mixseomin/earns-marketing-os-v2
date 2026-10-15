@@ -36,7 +36,16 @@ async function doCatDuoi(duong: string, dai: number | null): Promise<number | nu
   } catch (e) { console.error('[xuất] đo đuôi nhạc hỏng — nhạc lặp nguyên bài', duong, e); return null; }
 }
 
-async function doTep(duong: string): Promise<{ dai: number | null; coAm: boolean; fps: number | null; lufs?: number | null; catDuoi?: number | null }> {
+/** Độ sáng trung bình (Y 0–255) của một clip — 2 khung/giây qua signalstats, lấy trung bình YAVG. Cân màu theo cảnh (xuat.ts › canMauCanh). */
+export async function doYavg(duong: string): Promise<number | null> {
+  try {
+    const { stdout } = await run('ffmpeg', ['-v', 'error', '-i', duong, '-vf', 'fps=2,signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-', '-f', 'null', '-'], { timeout: 60_000, maxBuffer: 8 << 20 });
+    const ys = [...stdout.matchAll(/YAVG=([\d.]+)/g)].map((m) => Number(m[1])).filter(Number.isFinite);
+    return ys.length ? Math.round((ys.reduce((a, b) => a + b, 0) / ys.length) * 10) / 10 : null;
+  } catch (e) { console.error('[xuất] đo độ sáng hỏng — clip này không cân màu', duong, e); return null; }
+}
+
+async function doTep(duong: string): Promise<{ dai: number | null; coAm: boolean; fps: number | null; lufs?: number | null; catDuoi?: number | null; yavg?: number | null }> {
   try {
     const { stdout } = await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type,r_frame_rate', '-of', 'json', duong], { timeout: 30_000 });
     const j = JSON.parse(stdout) as { format?: { duration?: string }; streams?: { codec_type?: string; r_frame_rate?: string }[] };
@@ -48,7 +57,8 @@ async function doTep(duong: string): Promise<{ dai: number | null; coAm: boolean
     const lufs = coAm ? await doLufs(duong) : null;
     const daiOk = Number.isFinite(dai) && dai > 0 ? dai : null;
     const catDuoi = coAm && !v && (daiOk ?? 0) > 10 ? await doCatDuoi(duong, daiOk) : null;   // chỉ tệp dài (nhạc), câu giọng không cần
-    return { dai: daiOk, coAm, fps, lufs, catDuoi };
+    const yavg = v ? await doYavg(duong) : null;   // clip video: độ sáng trung bình để cân màu theo cảnh
+    return { dai: daiOk, coAm, fps, lufs, catDuoi, yavg };
   } catch { return { dai: null, coAm: false, fps: null }; }
 }
 

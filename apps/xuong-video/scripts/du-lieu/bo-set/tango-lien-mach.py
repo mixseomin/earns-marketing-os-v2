@@ -117,6 +117,8 @@ T7, L7, KEO7, ST7 = [56, 51, 0.3], [57.6, 52.4, 0.3], [59.5, 49.8, 0.3], [60.6, 
 T7N, L7N = [51.6, 50.4, 0], [51.2, 52.2, 0]   # chỗ hai đứa nấp ở mép trái thẻ khi Mr. Wipe tới
 PLUG = [54.3, 52.6, 0.8]
 DAU_TAY = [55.8, 54.3, 0.8]
+# SỔ TRẠNG THÁI (script supervisor): trạng thái cơ thể khai từng shot (trang / trang_den), cổng lienMachTap chặn shot quên — trạng thái không tự đổi qua cú cắt.
+XU = 'frizzed STIFF by static electricity: every fibre standing on end, cloth rigid and puffed up, not limp'
 MAY7 = [62, 46.5]   # chỗ máy chủ cảnh 7 (đông nam): Tango quay về đây ở khung kết #32 / mở #33 — mặt thấy ở shot phản ứng, hai shot nối hướng   # chỗ in dấu tay: mặt trước đế cắm, ngay sau đầu phích
 MAU_GIAY = [53, 50.5, 0.3]    # mẩu giấy vàng rách kẹt ở mép trái thẻ cam (manh mối kẻ trộm)
 
@@ -162,10 +164,10 @@ VT = {
  '7.4': [v(WIPE, [58, 61, 5], [57, 55.6, 2.6], ve=[55.8, 54.3], ve_den=DAU_TAY, nhay='gỡ khỏi rừng cáp, bay tới đế cắm ngoài khung'),
          v(TANGO, T7N, ve=[57, 55.6], nhay='chạy nấp sau mép thẻ khi thấy Mr. Wipe tới'), v(LINT, L7N, ve=[57, 55.6], nhay='chạy nấp sau mép thẻ khi thấy Mr. Wipe tới')],
  '7.4a': [],   # góc nhìn từ trên của Mr. Wipe (máy trong khối khăn) — không dựng Mr. Wipe; hai bạn nấp ngoài khung
- '7.5': [v(WIPE, [56.6, 55.2, 1.8], [55, 54.2, 1.2], ve=PLUG, lam='USB Hub', lam_o=DAU_TAY)],
- '7.6': [v(TANGO, T7N, ve=[55.5, 55], ve_den=L7N), v(LINT, L7N, ve=[55.5, 55], ve_den=T7N), v(WIPE, [55.5, 55, 2], ve=T7N, an=True)],   # Mr. Wipe ngoài khung phải — máy phía trước mặt hai bạn (phản ứng thấy mặt)
+ '7.5': [v(WIPE, [56.6, 55.2, 1.8], [55, 54.2, 1.2], ve=PLUG, lam='USB Hub', lam_o=DAU_TAY, trang_den=XU)],   # kết: tia điện → xù cứng (sổ trạng thái)
+ '7.6': [v(TANGO, T7N, ve=[55.5, 55], ve_den=L7N), v(LINT, L7N, ve=[55.5, 55], ve_den=T7N), v(WIPE, [55.5, 55, 2], ve=T7N, an=True, trang=XU)],   # Mr. Wipe ngoài khung phải — máy phía trước mặt hai bạn (phản ứng thấy mặt)
  # 7.6a NÚT ĐÓNG chuyện bẫy: Mr. Wipe lủi về rừng cáp, hai bạn đập tay rồi ưỡn ngực về phía máy.
- '7.6a': [v(TANGO, T7N, ve=L7N, ve_den=60), v(LINT, L7N, ve=T7N, ve_den=60), v(WIPE, [55.5, 55, 2], [42, 62, 7], ve=CAM, ve_den=[30, 66])],
+ '7.6a': [v(TANGO, T7N, ve=L7N, ve_den=60), v(LINT, L7N, ve=T7N, ve_den=60), v(WIPE, [55.5, 55, 2], [42, 62, 7], ve=CAM, ve_den=[30, 66], trang=XU, trang_den=XU + ', trailing a wisp of smoke')],
  # 7.6b mở lại chuyện kẹo: Tango nhìn thẳng về kẹo (máy đứng sau kẹo) rồi bị Lint kéo xoay, KẾT mặt đối mặt — quay đi khỏi kẹo.
  '7.6b': [v(TANGO, T7N, ve=KEO7, ve_den=L7N), v(LINT, L7N, ve=60, ve_den=T7N)],
  # 7.7: tờ note trùm hai nửa kẹo rồi lẩn ra khỏi khung — cả hai RỜI bộ set (het), không tự đặt lại ở 7.7a / 7.8.

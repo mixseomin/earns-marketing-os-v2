@@ -1,7 +1,8 @@
 import assert from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan } from './bo-set-3d';
+import type { May3d } from './kieu';
+import { boSetCuaShot, maKhungXam, bangDung, vuotTruc, chanKhungXam, datMayTuDong, shotSoTruc, thieuTrongSet, vatChanTienCanh, moTaThay, lienMachTap, BAN_DUNG, moTaChuyenDong, mayDayDu, nhacMaKhongThay, chuoiChuY, huongToi, choVatSet, maPhan, chuTheQuaTo, chuTheQuaNho, gocMayLech, gocNgang, huongVoiMay, matQuayDi, nhipDan, thieuTongThe, huongDiChuyen, doiMat, canhBaoMachTap, trangThaiVat } from './bo-set-3d';
 
 const nv = [
   { id: 1, ten: 'Mouse Landing', loai: 'boi_canh' as const, bo_set_id: 7, khoi_3d: null },
@@ -169,4 +170,43 @@ const nd = nhipDan([shN(1, 90), shN(2, 95), shN(3, 0), shN(4, 85), shN(5, 100), 
 assert.deepEqual(Object.keys(nd).map(Number).sort(), [3, 7], JSON.stringify(nd));
 // shot thiết lập góc riêng (như #12) không bị chặn
 assert.equal(nhipDan([shN(1, 90), shN(2, 95), { ...shN(3, 0), ky_thuat: { vai: 'thiet_lap' } }, shN(4, 85)])[3], undefined);
+// ── nhất quán · liên tục (15/10/2026) ──
+const laNv2 = (t: string) => ['T', 'L'].includes(t);
+const thay = (...ds: [string, number, number[]][]) => ({ thay: ds.map(([ten, pt, hop]) => ({ ten, pt, hop, tien: false })), kiem: [] }) as never;
+const mD = (deg: number, z = 1.5, vi_tri: May3d['vi_tri'] = [], k: Partial<May3d> = {}): May3d => ({ dat: [0, 0, z], nhin: [Math.cos((deg * Math.PI) / 180), Math.sin((deg * Math.PI) / 180), 1], ong_kinh: 35, vi_tri, ...k });
+// trạng thái nhân vật vào prompt + nối qua cú cắt
+assert.equal(trangThaiVat({ ten: 'W', tam: [0, 0, 0], trang: 'frizzed stiff' }), 'frizzed stiff');
+assert.equal(trangThaiVat({ ten: 'W', tam: [0, 0, 0], trang_den: 'frizzed stiff' }, true), 'frizzed stiff');
+const lmT = lienMachTap([{ id: 1, thu_tu: 1, may_3d: mD(90, 1.5, [{ ten: 'W', tam: [5, 5, 0], trang_den: 'frizzed stiff' }]) }, { id: 2, thu_tu: 2, may_3d: mD(90, 1.5, [{ ten: 'W', tam: [5, 5, 0] }]) }], () => null);
+assert.ok(lmT[2]?.[0]?.includes('frizzed stiff'), JSON.stringify(lmT));
+assert.equal(lienMachTap([{ id: 1, thu_tu: 1, may_3d: mD(90, 1.5, [{ ten: 'W', tam: [5, 5, 0], trang_den: 'frizzed stiff' }]) }, { id: 2, thu_tu: 2, may_3d: mD(90, 1.5, [{ ten: 'W', tam: [5, 5, 0], trang: 'frizzed stiff' }]) }], () => null)[2], undefined);
+// shot tổng thể: cảnh 3 shot, 2 nhân vật, không shot nào thấy cả hai → chặn shot đông người; có một shot thấy đủ → qua
+const tt = (thayL: boolean) => [
+  { id: 1, thu_tu: 1, phan_doan: 'A', may_3d: mD(90, 1.5, [{ ten: 'T', tam: [0, 5, 0] }, { ten: 'L', tam: [3, 5, 0] }]), khung_xam: thay(['T', 20, [0.2, 0.2, 0.5, 0.8]], ...(thayL ? [['L', 10, [0.6, 0.3, 0.8, 0.7]] as [string, number, number[]]] : [])) },
+  { id: 2, thu_tu: 2, phan_doan: 'A', may_3d: mD(90, 1.5, [{ ten: 'T', tam: [0, 5, 0] }]), khung_xam: thay(['T', 30, [0.2, 0.2, 0.7, 0.8]]) },
+  { id: 3, thu_tu: 3, phan_doan: 'A', may_3d: mD(90, 1.5, [{ ten: 'L', tam: [3, 5, 0] }]), khung_xam: thay(['L', 30, [0.2, 0.2, 0.7, 0.8]]) }];
+assert.ok(thieuTongThe(tt(false), laNv2)[1]?.[0]?.includes('TỔNG THỂ'));
+assert.equal(Object.keys(thieuTongThe(tt(true), laNv2)).length, 0);
+// hướng di chuyển: máy nhìn +y, phải màn = +x; đi +x rồi shot sau đi −x → chặn; có cú trung lập (đi thẳng vào máy) giữa → qua
+const di = (id: number, tu: number[], den: number[], qt = false) => ({ id, thu_tu: id, phan_doan: 'A', may_3d: mD(90, 1.5, [{ ten: 'T', tam: tu, den }], qt ? { qua_truc: true } : {}) });
+assert.ok(huongDiChuyen([di(1, [0, 5, 0], [4, 5, 0]), di(2, [4, 5, 0], [0, 5, 0])], laNv2)[2]?.[0]?.includes('đảo'));
+assert.equal(Object.keys(huongDiChuyen([di(1, [0, 5, 0], [4, 5, 0]), di(2, [4, 8, 0], [4, 3, 0]), di(3, [4, 3, 0], [0, 3, 0])], laNv2)).length, 0);
+assert.equal(Object.keys(huongDiChuyen([di(1, [0, 5, 0], [4, 5, 0]), di(2, [4, 5, 0], [0, 5, 0], true)], laNv2)).length, 0);
+// đối mặt: T (trái) và L (phải) quay vào nhau; shot 1 chủ thể T nhìn sang phải màn, shot 2 chủ thể L phải nhìn sang trái — máy cùng phía → đúng; L khai huong sai (cũng sang phải) → chặn
+const dm = (hL: number) => [
+  { id: 1, thu_tu: 1, phan_doan: 'A', may_3d: mD(90, 1.5, [{ ten: 'T', tam: [0, 5, 0], huong: 90 }, { ten: 'L', tam: [4, 5, 0], huong: hL }], { khung: ['T'] }) },
+  { id: 2, thu_tu: 2, phan_doan: 'A', may_3d: mD(90, 1.5, [{ ten: 'T', tam: [0, 5, 0], huong: 90 }, { ten: 'L', tam: [4, 5, 0], huong: hL }], { khung: ['L'] }) }];
+assert.equal(Object.keys(doiMat(dm(-90), laNv2)).length, 0);
+// L nhìn +x (90) trong khi T ở −x → không phải cú đối mặt (lệch 180°) → không đo; để bắt khai sai cần hướng lệch ≤ 45° — mô phỏng: L nhìn 60° (vẫn "về" T? không: T ở −90). Kiểm bằng máy đổi phía: máy ở +y nhìn −y (phải màn = −x)
+const dm2 = [dm(-90)[0]!, { ...dm(-90)[1]!, may_3d: { ...dm(-90)[1]!.may_3d, dat: [2, 10, 1.5], nhin: [2, 0, 1] } }];
+assert.ok(doiMat(dm2, laNv2)[2]?.[0]?.includes('cùng hướng'), JSON.stringify(doiMat(dm2, laNv2)));
+// cảnh báo: luật 30° (cùng chủ thể, góc đổi 10°, cỡ ms → mcu) + eye trace (tâm nhảy) + headroom + ống kính
+const cb = canhBaoMachTap([
+  { id: 1, thu_tu: 1, phan_doan: 'A', ky_thuat: { co_canh: 'ms', goc: 'ngang' }, may_3d: mD(90, 1.5, [{ ten: 'T', tam: [0, 10, 0] }], { khung: ['T'], ong_kinh: 24 }), khung_xam: thay(['T', 20, [0, 0.1, 0.3, 0.6]]) },
+  { id: 2, thu_tu: 2, phan_doan: 'A', ky_thuat: { co_canh: 'mcu', goc: 'ngang' }, may_3d: { ...mD(80, 1.5, [{ ten: 'T', tam: [0, 10, 0] }], { khung: ['T'] }), ong_kinh: 35 }, khung_xam: thay(['T', 30, [0.7, 0.4, 1, 0.9]]) },
+  { id: 3, thu_tu: 3, phan_doan: 'A', ky_thuat: { co_canh: 'cu', goc: 'ngang' }, may_3d: mD(90, 9, [{ ten: 'T', tam: [0, 10, 0] }], { khung: ['T'], ong_kinh: 50 }), khung_xam: thay(['T', 30, [0.3, 0.1, 0.7, 0.9]]) },
+  { id: 4, thu_tu: 4, phan_doan: 'A', ky_thuat: { co_canh: 'cu', goc: 'ngang' }, may_3d: mD(90, 1.5, [{ ten: 'T', tam: [0, 10, 0] }], { khung: ['T'], ong_kinh: 85 }), khung_xam: thay(['T', 30, [0.3, 0.1, 0.7, 0.9]]) }], laNv2);
+assert.ok(cb[2]?.some((x) => x.startsWith('luật 30°')) && cb[2]?.some((x) => x.startsWith('eye trace')) && cb[2]?.some((x) => x.startsWith('headroom')), JSON.stringify(cb[2]));
+assert.ok(cb[3]?.some((x) => x.startsWith('chiều cao máy')), JSON.stringify(cb[3]));
+assert.ok(Object.values(cb).flat().some((x) => x.startsWith('bộ ống kính')), JSON.stringify(cb));
 console.log('bo-set-3d.test: ok');

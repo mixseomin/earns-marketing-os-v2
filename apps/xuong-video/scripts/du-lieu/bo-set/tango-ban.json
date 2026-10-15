@@ -3013,7 +3013,8 @@
             55.8,
             54.3,
             0.8
-          ]
+          ],
+          "trang_den": "frizzed STIFF by static electricity: every fibre standing on end, cloth rigid and puffed up, not limp"
         }
       ],
       "khung": [
@@ -3062,7 +3063,8 @@
             2
           ],
           "huong": -40,
-          "an": true
+          "an": true,
+          "trang": "frizzed STIFF by static electricity: every fibre standing on end, cloth rigid and puffed up, not limp"
         }
       ],
       "khung": [
@@ -3343,7 +3345,9 @@
             7
           ],
           "huong": -30,
-          "huong_den": -108
+          "huong_den": -108,
+          "trang": "frizzed STIFF by static electricity: every fibre standing on end, cloth rigid and puffed up, not limp",
+          "trang_den": "frizzed STIFF by static electricity: every fibre standing on end, cloth rigid and puffed up, not limp, trailing a wisp of smoke"
         }
       ]
     },

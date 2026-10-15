@@ -274,9 +274,17 @@ export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May
   // TRẠNG THÁI VẬT (15/10/2026: kẹo đã bẻ đôi ở cảnh 4 mà 7.1a / 7.4a dựng con gấu nguyên): một món đã chia mảnh thì mọi lần xuất hiện sau phải
   // khai chia ≥ số mảnh đó — vật không tự lành.
   const daChia = new Map<string, { n: number; shot: number }>();
+  // SỔ TRẠNG THÁI (script supervisor, 15/10/2026): trạng thái cơ thể / bề mặt (trang) shot trước ĐỂ LẠI phải là trạng thái shot sau MỞ — xù lông
+  // không tự phẳng, bẹp không tự tròn; chỉ đổi trong shot (trang_den) hoặc khi khai nhay.
+  const trangCuoi = new Map<string, { t: string; shot: number }>();
   for (const c of ds) {
     const m = c.may_3d; if (!m) continue;
     const co = new Set(m.vi_tri.map((v) => v.ten));
+    for (const v of m.vi_tri) {
+      const tr = trangCuoi.get(v.ten); const mo = (v.trang ?? '').trim();
+      if (tr && !m.nhay && !v.nhay && mo !== tr.t) (out[c.id] ??= []).push(`${v.ten} kết #${tr.shot} ở trạng thái "${tr.t || 'bình thường'}" mà mở shot này ${mo ? `"${mo}"` : 'không khai trang (bình thường)'} — khai trang: '${tr.t}' (trạng thái không tự đổi qua cú cắt), hoặc trang_den ở shot trước / nhay nếu cố ý`);
+      trangCuoi.set(v.ten, { t: (v.trang_den ?? v.trang ?? '').trim(), shot: c.thu_tu });
+    }
     if (m.nhay) camBoi.clear();
     for (const [mon, x] of camBoi) {
       const ng = m.vi_tri.find((v) => v.ten === x.nguoi);
@@ -299,6 +307,111 @@ export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May
       }
       cuoi.set(v.ten, { p: v.den ?? v.tam, huong: v.huong_den ?? v.huong, shot: c.thu_tu });
     }
+  }
+  return out;
+}
+
+// ── NHẤT QUÁN · LIÊN TỤC (15/10/2026, luat-dung.ts › luật của thợ). Hai mức theo Murch: CHẶN (loiMachTap) và CẢNH BÁO (canhBaoMachTap).
+type ShotMach = { id: number; thu_tu: number; phan_doan?: string; may_3d?: May3d | null; ky_thuat?: { vai?: string; co_canh?: string; goc?: string } | null; khung_xam?: Canh['khung_xam'] | null };
+const BAC_CO: Record<string, number> = { ews: 0, ws: 1, two: 2, ms: 2, pov: 2, ots: 3, mcu: 3, cu: 4, insert: 4, ecu: 5 };
+/** Véc-tơ ngang (phải màn) và sâu (vào màn) của máy trên mặt bàn. */
+const trucMay = (m: Pick<May3d, 'dat' | 'nhin'>) => { const fx = m.nhin[0]! - m.dat[0]!, fy = m.nhin[1]! - m.dat[1]!; const l = Math.hypot(fx, fy) || 1; return { f: [fx / l, fy / l], r: [fy / l, -fx / l] }; };
+const tamThay = (c: ShotMach, ten: string) => { const t = c.khung_xam?.thay?.find((x) => x.ten === ten); return t && t.pt >= PT_THAY ? { x: (t.hop[0] + t.hop[2]) / 2, y: (t.hop[1] + t.hop[3]) / 2, t } : null; };
+const khoiCanh = <T extends ShotMach>(ds: T[]): T[][] => { const out: T[][] = []; for (const c of [...ds].sort((a, b) => a.thu_tu - b.thu_tu)) { const l = out[out.length - 1]; if (l && (l[0]!.phan_doan ?? '') === (c.phan_doan ?? '')) l.push(c); else out.push([c]); } return out; };
+const ben = (chu: string) => (chu.includes('screen-right') ? 'phải' : chu.includes('screen-left') ? 'trái' : null);
+
+/** CHẶN — Shot TỔNG THỂ đo trên 3D (luật du_diem_nhin): cảnh ≥ 3 shot có ≥ 2 nhân vật cùng lúc thì phải có một shot mọi nhân vật đó cùng lọt khung
+ *  (thấy ≥ PT_THAY). Gắn vào shot đông người nhất mà vẫn thiếu — chỗ đáng lẽ là master. */
+export function thieuTongThe<T extends ShotMach>(ds: T[], laNhanVat: (ten: string) => boolean): Record<number, string[]> {
+  const out: Record<number, string[]> = {};
+  for (const k of khoiCanh(ds)) {
+    const co = k.filter((c) => c.may_3d && c.khung_xam?.thay); if (co.length < 3) continue;
+    const nv = (c: T) => c.may_3d!.vi_tri.filter((v) => !v.an && laNhanVat(v.ten)).map((v) => v.ten);
+    const max = Math.max(...co.map((c) => nv(c).length)); if (max < 2) continue;
+    const ung = co.filter((c) => nv(c).length === max);
+    if (ung.some((c) => nv(c).every((t) => tamThay(c, t)))) continue;
+    const c = ung[0]!; const thieu = nv(c).filter((t) => !tamThay(c, t));
+    (out[c.id] ??= []).push(`cảnh "${c.phan_doan}" chưa có shot TỔNG THỂ thấy đủ ${nv(c).join(' + ')} — shot này có đủ người mà ${thieu.join(', ')} ngoài khung / bị che: lùi máy cho đủ, hoặc chọn shot khác làm tổng thể`);
+  }
+  return out;
+}
+/** CHẶN — Hướng DI CHUYỂN trên màn (screen direction): nhân vật đi trong shot (den) thì hướng trái/phải màn giữ nguyên trong cảnh; đổi chỉ sau cú
+ *  TRUNG LẬP (đi thẳng vào / ra máy: ngang < nửa sâu, hoặc < 1 cm) hoặc shot khai qua_truc. */
+export function huongDiChuyen<T extends ShotMach>(ds: T[], laNhanVat: (ten: string) => boolean): Record<number, string[]> {
+  const out: Record<number, string[]> = {};
+  for (const k of khoiCanh(ds)) {
+    const cuoi = new Map<string, { ben: 'trái' | 'phải'; shot: number }>();
+    for (const c of k) {
+      const m = c.may_3d; if (!m) continue;
+      const { f, r } = trucMay(m);
+      for (const v of m.vi_tri) {
+        if (!v.den || !laNhanVat(v.ten) || v.cam) continue;
+        const dx = v.den[0]! - v.tam[0]!, dy = v.den[1]! - v.tam[1]!;
+        const ngang = dx * r[0]! + dy * r[1]!, sau = dx * f[0]! + dy * f[1]!;
+        if (Math.abs(ngang) < 1 || Math.abs(ngang) < Math.abs(sau) / 2) { cuoi.delete(v.ten); continue; }   // cú trung lập: đặt lại hướng
+        const b: 'trái' | 'phải' = ngang > 0 ? 'phải' : 'trái'; const tr = cuoi.get(v.ten);
+        if (tr && tr.ben !== b && !m.qua_truc) (out[c.id] ??= []).push(`${v.ten} đi sang ${b} màn mà ở #${tr.shot} đang đi sang ${tr.ben} — hướng trên màn đảo như quay ngược về: dời máy cùng phía, hoặc chen một cú trung lập (đi thẳng vào / ra máy), hoặc khai qua_truc nếu cố ý`);
+        cuoi.set(v.ten, { ben: b, shot: c.thu_tu });
+      }
+    }
+  }
+  return out;
+}
+/** CHẶN — ĐỐI MẶT (eyeline match shot / reverse shot): hai shot liền nhau cùng cảnh, X là chủ thể shot trước nhìn sang một bên màn, Y là chủ thể
+ *  shot này; X và Y đang quay mặt vào nhau trong 3D → ánh nhìn của Y phải sang bên NGƯỢC lại. Cùng bên = hai người như nhìn cùng một hướng. */
+export function doiMat<T extends ShotMach>(ds: T[], laNhanVat: (ten: string) => boolean): Record<number, string[]> {
+  const out: Record<number, string[]> = {};
+  for (const k of khoiCanh(ds)) for (let i = 1; i < k.length; i++) {
+    const a = k[i - 1]!, b = k[i]!; if (!a.may_3d || !b.may_3d) continue;
+    const x = chuThe(a.may_3d).filter(laNhanVat)[0]; const y = chuThe(b.may_3d).filter(laNhanVat)[0]; if (!x || !y || x === y) continue;
+    const vx = b.may_3d.vi_tri.find((v) => v.ten === x && !v.an), vy = b.may_3d.vi_tri.find((v) => v.ten === y && !v.an); const vxa = a.may_3d.vi_tri.find((v) => v.ten === x && !v.an);
+    if (!vx || !vy || !vxa || vx.huong == null || vy.huong == null) continue;
+    if (gocLech(vx.huong, huongToi(vx.tam, vy.tam)) > 45 || gocLech(vy.huong, huongToi(vy.tam, vx.tam)) > 45) continue;   // không phải cú đối mặt
+    const hx = huongVoiMay(a.may_3d, vxa), hy = huongVoiMay(b.may_3d, vy); if (!hx || !hy) continue;
+    const bx = ben(hx.chu), by = ben(hy.chu);
+    if (bx && by && bx === by) (out[b.id] ??= []).push(`cú đối mặt: #${a.thu_tu} ${x} nhìn sang ${bx} màn, shot này ${y} cũng nhìn sang ${by} — hai người như nhìn cùng hướng, ánh nhìn không gặp nhau qua cú cắt: kiểm huong của ${y} / phía máy`);
+  }
+  return out;
+}
+/** CẢNH BÁO (Murch: liên tục không gian xếp cuối) — luật 30°, eye trace, khoảng nhìn + headroom, chiều cao máy, bộ ống kính. Gắn ⚠ vàng, không chặn. */
+export function canhBaoMachTap<T extends ShotMach>(ds: T[], laNhanVat: (ten: string) => boolean): Record<number, string[]> {
+  const out: Record<number, string[]> = {}; const them = (id: number, s: string) => (out[id] ??= []).push(s);
+  for (const k of khoiCanh(ds)) {
+    const co = k.filter((c) => c.may_3d);
+    for (let i = 1; i < co.length; i++) {
+      const a = co[i - 1]!, b = co[i]!; const ma = a.may_3d!, mb = b.may_3d!;
+      // luật 30° / 2 bậc: cùng chủ thể chính, góc máy quanh nó đổi < 30° và cỡ đổi < 2 bậc
+      const s = chuThe(mb)[0]; const pa = ma.vi_tri.find((v) => v.ten === s)?.tam, pb = mb.vi_tri.find((v) => v.ten === s)?.tam;
+      if (s && chuThe(ma)[0] === s && pa && pb && !ma.qua_truc && !mb.qua_truc) {
+        const g = (m: May3d, p: number[]) => (Math.atan2(m.dat[1]! - p[1]!, m.dat[0]! - p[0]!) * 180) / Math.PI;
+        const lech = gocLech(g(ma, pa), g(mb, pb)); const ca = BAC_CO[a.ky_thuat?.co_canh ?? ''], cb = BAC_CO[b.ky_thuat?.co_canh ?? ''];
+        if (lech < 30 && ca != null && cb != null && Math.abs(ca - cb) < 2) them(b.id, `luật 30°: cùng chủ thể ${s} với #${a.thu_tu} mà góc máy chỉ đổi ${Math.round(lech)}° và cỡ ${a.ky_thuat?.co_canh} → ${b.ky_thuat?.co_canh} (< 2 bậc) — jump cut: đổi góc ≥ 30° hoặc cỡ ≥ 2 bậc`);
+      }
+      // eye trace: tâm chủ thể chính shot trước ↔ shot này lệch > nửa khung
+      const sa = chuThe(ma)[0]; const ta = sa ? tamThay(a, sa) : null; const tb = s ? tamThay(b, s) : null;
+      if (ta && tb && Math.hypot(ta.x - tb.x, ta.y - tb.y) > 0.5) them(b.id, `eye trace: mắt khán giả đang ở ${sa} (${Math.round(ta.x * 100)}%, ${Math.round(ta.y * 100)}%) cuối #${a.thu_tu}, shot này ${s} ở (${Math.round(tb.x * 100)}%, ${Math.round(tb.y * 100)}%) — mắt phải nhảy qua màn: dời máy / đổi bố cục cho gần chỗ cũ`);
+    }
+    // khoảng nhìn + headroom (shot thường, không POV)
+    for (const c of co) {
+      const m = c.may_3d!; if (c.ky_thuat?.vai === 'chu_quan') continue;
+      for (const t of chuThe(m).filter(laNhanVat)) {
+        const v = m.vi_tri.find((x) => x.ten === t && !x.an); const tt = tamThay(c, t); if (!v || !tt || tt.t.pt < 3) continue;
+        const h = huongVoiMay(m, v); const b = h ? ben(h.chu) : null;
+        if (b === 'phải' && tt.x > 0.6) them(c.id, `khoảng nhìn: ${t} nhìn sang phải mà đứng ở ${Math.round(tt.x * 100)}% bề ngang — dí mép trước mặt; dời máy cho ${t} về 1/3 trái`);
+        if (b === 'trái' && tt.x < 0.4) them(c.id, `khoảng nhìn: ${t} nhìn sang trái mà đứng ở ${Math.round(tt.x * 100)}% bề ngang — dí mép trước mặt; dời máy cho ${t} về 1/3 phải`);
+        if (['cu', 'mcu', 'ms'].includes(c.ky_thuat?.co_canh ?? '') && tt.t.hop[1] > 0.3) them(c.id, `headroom: đỉnh ${t} ở ${Math.round(tt.t.hop[1] * 100)}% từ mép trên ở cỡ ${c.ky_thuat?.co_canh} — thừa khoảng trên đầu: hạ khung / nhìn thấp hơn`);
+      }
+    }
+    // chiều cao máy: các shot "ngang" trong cảnh quanh trung vị ± 4 cm
+    const ngang = co.filter((c) => c.ky_thuat?.goc === 'ngang' && !VAI_GOC_RIENG.has(c.ky_thuat?.vai ?? ''));
+    if (ngang.length >= 3) {
+      const z = ngang.map((c) => c.may_3d!.dat[2] ?? 0).sort((p, q) => p - q); const tv = z[Math.floor(z.length / 2)]!;
+      for (const c of ngang) { const d = (c.may_3d!.dat[2] ?? 0) - tv; if (Math.abs(d) > 4) them(c.id, `chiều cao máy: ${Math.round((c.may_3d!.dat[2] ?? 0) * 10) / 10} cm trong khi các shot ngang tầm của cảnh ở ~${Math.round(tv * 10) / 10} cm — khán giả đổi tầm nhìn vô cớ`); }
+    }
+    // bộ ống kính: > 3 tiêu cự trong cảnh → nhắc shot dùng tiêu cự hiếm nhất
+    const thuong = co.filter((c) => !VAI_GOC_RIENG.has(c.ky_thuat?.vai ?? '') && !c.may_3d!.qua_truc);
+    const dem = new Map<number, number>(); for (const c of thuong) dem.set(c.may_3d!.ong_kinh, (dem.get(c.may_3d!.ong_kinh) ?? 0) + 1);
+    if (dem.size > 3) { const it = Math.min(...dem.values()); for (const c of thuong) if (dem.get(c.may_3d!.ong_kinh) === it) them(c.id, `bộ ống kính: cảnh dùng ${dem.size} tiêu cự (${[...dem.keys()].sort((p, q) => p - q).join(' / ')} mm) — DP giữ 2–3; shot này ${c.may_3d!.ong_kinh} mm hiếm nhất, đổi về một tiêu cự đã dùng`); }
   }
   return out;
 }
@@ -388,11 +501,12 @@ export function chuoiChuY<T extends { id: number; thu_tu: number; phan_doan?: st
 
 /** Lỗi MẠCH của cả tập theo từng bộ set: liền mạch chỗ đứng / đồ đang cầm (lienMachTap) + chuỗi chú ý nhìn → thấy → làm (chuoiChuY).
  *  MỘT chỗ cho cổng keyframe (sinh-anh.ts › lyChanKeyframe) và dấu ⚠ trên lưới (luoi-kich-ban.tsx). ds = shot nhánh dựng theo thứ tự phát. */
-export function loiMachTap<T extends { id: number; thu_tu: number; phan_doan?: string; nhan_vat: number[]; may_3d?: May3d | null; ky_thuat?: { vai?: string } | null }>(ds: T[], nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'>[], sets: Pick<BoSet, 'id' | 'du_lieu'>[]): Record<number, string[]> {
+export function loiMachTap<T extends ShotMach & { nhan_vat: number[] }>(ds: T[], nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai' | 'bo_set_id' | 'khoi_3d'>[], sets: Pick<BoSet, 'id' | 'du_lieu'>[]): Record<number, string[]> {
   const out: Record<number, string[]> = {};
   for (const sid of new Set(ds.map((c) => boSetCuaShot(c, nhanVat)).filter((x): x is number => !!x))) {
     const cua = ds.filter((c) => boSetCuaShot(c, nhanVat) === sid);
-    for (const r of [lienMachTap(cua, (t) => khoiCua(t, nhanVat)), chuoiChuY(cua, choVatSet(sets.find((x) => x.id === sid))), nhipDan(cua)]) for (const [k, v] of Object.entries(r)) (out[Number(k)] ??= []).push(...v);
+    const laNv = (t: string) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t);
+    for (const r of [lienMachTap(cua, (t) => khoiCua(t, nhanVat)), chuoiChuY(cua, choVatSet(sets.find((x) => x.id === sid))), nhipDan(cua), thieuTongThe(cua, laNv), huongDiChuyen(cua, laNv), doiMat(cua, laNv)]) for (const [k, v] of Object.entries(r)) (out[Number(k)] ??= []).push(...v);
   }
   return out;
 }
@@ -409,9 +523,12 @@ export function gocMayLech(m: Pick<May3d, 'dat' | 'nhin'>, goc: string | undefin
 /** TRẠNG THÁI một vật trong shot cho prompt keyframe (MỘT chữ với nhãn Blender — scripts/bo-set/dung-set.py › TRANG): đã chia mảnh, đang cầm
  *  thì chỉ mảnh của người cầm. ket = khung kết (cam + den = đã đặt xuống). null = nguyên vẹn. */
 export function trangThaiVat(v: May3d['vi_tri'][number], ket = false): string | null {
-  const n = v.chia ?? 1; if (n <= 1) return null;
-  const cam = !!v.cam && !(ket && v.den);
-  return cam ? `split into ${n} pieces; only ONE piece here (the holder's share)` : `split into ${n} separate pieces lying side by side, NOT a whole one`;
+  const ds: string[] = [];
+  // Sổ trạng thái (script supervisor): nhân vật / vật khai trang (mở) · trang_den (kết) — bẹp, ướt, xù lông, bốc khói… đè lên ảnh mẫu.
+  const t = (ket ? v.trang_den ?? v.trang : v.trang)?.trim(); if (t) ds.push(t);
+  const n = v.chia ?? 1;
+  if (n > 1) { const cam = !!v.cam && !(ket && v.den); ds.push(cam ? `split into ${n} pieces; only ONE piece here (the holder's share)` : `split into ${n} separate pieces lying side by side, NOT a whole one`); }
+  return ds.length ? ds.join('; ') : null;
 }
 /** Tên này là ĐỒ VẬT (đạo cụ / sản phẩm) của phim — đồ thì nằm lại chỗ cuối cùng (mayDayDu); nhân vật thì không. MỘT luật cho dựng 3D và prompt. */
 export const laDoVatPhim = (nv: Pick<NhanVat, 'ten' | 'loai'>[]) => (t: string) => nv.some((x) => (x.loai === 'dao_cu' || x.loai === 'san_pham') && x.ten.trim().toLowerCase() === t.trim().toLowerCase());

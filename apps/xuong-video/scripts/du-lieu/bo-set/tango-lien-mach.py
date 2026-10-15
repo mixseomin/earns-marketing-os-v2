@@ -209,7 +209,7 @@ NHAY = {  # cú cắt cố ý cắt thời gian / dịch chuyển ngoài khung
  '8.1': 'phần kết: hai bạn ra mép bàn chào khán giả',
 }
 # 7.3 máy đặt tay (bộ giải tự động rơi vào góc sau gáy Tango khi cố đưa đế cắm vào khung).
-S['may']['7.3'].pop('phia', None); S['may']['7.3'].update(dat=[66, 50, 7], nhin=[56.8, 54.4, 0.8], ong_kinh=35, khung=[TANGO, 'USB Hub'])   # #34: máy phía đông, xoay 55° quanh Tango so với #33 (luật 30°), nhìn 155°   # chủ thể: tay Tango trên mặt đế cắm (phích lúc mở bị Tango đi ngang che là đúng)   # #34 về hướng máy chủ (đông nam): trước đây trước-trái lệch 92°   # trước-trái: phích trái, Tango phải, đế cắm sau lưng Tango (bố cục viết theo địa lý 3D)
+S['may']['7.3'].pop('phia', None); S['may']['7.3'].update(dat=[70, 51, 7], nhin=[58, 53.7, 0.8], ong_kinh=35, khung=[TANGO, 'USB Hub'])   # #34: máy phía đông, xoay 55° quanh Tango so với #33 (luật 30°), nhìn 155°   # chủ thể: tay Tango trên mặt đế cắm (phích lúc mở bị Tango đi ngang che là đúng)   # #34 về hướng máy chủ (đông nam): trước đây trước-trái lệch 92°   # trước-trái: phích trái, Tango phải, đế cắm sau lưng Tango (bố cục viết theo địa lý 3D)
 for ma in ('1.1', '1.2'): S['may'][ma]['den_ban'] = True
 # Cú cắt chèn CÓ CHỦ Ý đổi hẳn hướng máy: 5.2 cắt lên Mr. Wipe trên cao, 7.5 cận cực sát góc khăn chạm phích — không đặt trục / hướng cho shot sau.
 S['may']['5.2']['qua_truc'] = True
@@ -234,8 +234,8 @@ MOI = {
  '7.2a': {'dat': [63.5, 44, 6.5], 'nhin': [57.6, 54, 1.0], 'ong_kinh': 35},   # cảnh 7: bộ ống 35 / 40 / 60   # #33: hạ từ 14 cm (Tango 1%) xuống 6 cm
  '7.6a': {'phia': 30, 'khung': [TANGO, LINT]},         # hai bạn đập tay đọc rõ; Mr. Wipe lủi đi ở hậu cảnh
  # 7.6b máy sau-trên hai nửa kẹo: kẹo tiền cảnh dưới khung, hai bạn ở giữa nhìn về kẹo (về máy).
- '7.6b': {'dat': [64.1, 51.5, 3.5], 'nhin': [55, 51, 1.2], 'ong_kinh': 35, 'khung': [TANGO, LINT, GUMMY]},   # #40: máy phía đông, xoay ~30° quanh Tango so với #39 (luật 30°); kẹo tiền cảnh trái
- '7.7b': {'dat': [57.2, 48.9, 1.9], 'nhin': [51.6, 50.4, 1.3], 'ong_kinh': 60, 'khung': [TANGO]},   # #43: CẬN Tango nhón mẩu giấy (two → cu = 2 bậc so với #42), máy hơi cao cho đầu sát mép trên   # #43: máy cũ (bộ giải, ống 85) cắt Lint ở mép → ống 70 cho hai bạn trọn khung
+ '7.6b': {'dat': [64.5, 52.3, 3.5], 'nhin': [55, 51, 1.2], 'ong_kinh': 35, 'khung': [TANGO, LINT, GUMMY]},   # #40: máy phía đông, xoay ~30° quanh Tango so với #39 (luật 30°); kẹo tiền cảnh trái
+ '7.7b': {'dat': [57.2, 48.9, 3.4], 'nhin': [51.6, 50.4, 1.1], 'ong_kinh': 60, 'khung': [TANGO]},   # máy cao hơn cáp trắng (cáp không chắn tiền cảnh)   # #43: CẬN Tango nhón mẩu giấy (two → cu = 2 bậc so với #42), máy hơi cao cho đầu sát mép trên   # #43: máy cũ (bộ giải, ống 85) cắt Lint ở mép → ống 70 cho hai bạn trọn khung
  # #37 khăn quệt vào phích: bộ giải đặt máy cách 29 cm (phích 1.9%) → trước-trái 7 cm như keyframe đã có: Mr. Wipe giữa khung, phích tiền cảnh phải.
  '7.5': {'dat': [60.5, 47.0, 4.5], 'nhin': [55.4, 54.0, 2.4], 'ong_kinh': 35},   # #37 về hướng máy chủ (đông nam), không qua trục
 
@@ -255,7 +255,7 @@ for ma, ds in VT.items():
     else: m.pop('nhay', None)
 # Máy giữ nguyên tay (dat): nhìn theo chỗ mới của chủ thể.
 S['may']['2.3'].update(dat=[41.7, 15.1, 1.8], nhin=[32, 29, 1.2])
-S['may']['4.3']['phia'] = -35   # #14: xoay 35° so với #13 (luật 30°)   # #9: xoay 35° quanh Tango so với #8 (luật 30°), nhìn 125° (máy chủ cảnh 92°)
+S['may']['4.3'].pop('phia', None); S['may']['4.3'].update(dat=[-9.2, 55.9, 1.0], nhin=[5.5, 71.5, 1.0], ong_kinh=35, khung=[TANGO, LINT])   # #14 ĐẶT TAY: bộ giải cứ kéo máy về gần #13 (lệch 25°) — sau-trái 40° quanh Tango, cùng phía trục, Lint phải màn   # #14: xoay 35° so với #13 (luật 30°)   # #9: xoay 35° quanh Tango so với #8 (luật 30°), nhìn 125° (máy chủ cảnh 92°)
 # 5.7 cận vũng đất sét: cáp trượt dốc qua ngay trước mặt Tango — máy tự động đứng từ trước-trái.
 for k in ('dat', 'nhin', 'ong_kinh'): S['may']['5.7'].pop(k, None)
 S['may']['5.7']['phia'] = -40   # máy tự động từ trước-trái; bộ giải né cáp trượt (xoay tới 180°)
@@ -266,7 +266,7 @@ S['may']['5.3']['phia'] = 0
 
 # SỬA 10 SHOT CẢNH 1–6 THEO CỔNG (15/10/2026: cỡ cận quá nhỏ, phản ứng thấy lưng, lật trục, lệch hướng máy chủ) — máy đặt tay, bỏ qua_truc #20.
 # #18 (4.7): hai bạn 'cheat to camera' ~30° (ve=75 / -45) như diễn viên thật — quay thẳng vào nhau thì máy chỉ thấy nghiêng.
-SUA = {"1.2": {"dat": [40, 4, 1.5], "nhin": [52, 18, 1.2], "ong_kinh": 28, "khung": ["Lamp Switch"]}, "4.5a": {"dat": [8.8, 63.6, 1.4], "nhin": [3, 70.5, 1.3], "ong_kinh": 60, "khung": ["Tango"]}, "4.7": {"dat": [5.5, 61.5, 1.8], "nhin": [5.5, 71.2, 1.0], "ong_kinh": 35, "khung": ["Tango", "Lint"]}, "5.2": {"dat": [12.4, 70.5, 14.5], "nhin": [20, 81, 10], "ong_kinh": 40, "khung": ["Mr. Wipe"]}, "5.4": {"dat": [6.5, 50.8, 14], "nhin": [6, 72, 3], "ong_kinh": 24, "khung": ["Tango", "Mr. Wipe"]}, "5.5": {"dat": [3.7, 62.3, 3.3], "nhin": [6, 71, 2.5], "ong_kinh": 40, "khung": ["Lint", "Tango"]}, "5.6": {"dat": [5.5, 66.5, 0.5], "nhin": [6.3, 71, 1.3], "ong_kinh": 24, "khung": ["Tango"]}, "5.7": {"dat": [0.1, 65.2, 6], "nhin": [6, 70.5, 0.4], "ong_kinh": 60}, "6.3": {"dat": [22.1, 55.5, 0.5], "nhin": [12.5, 66.5, 2.5], "ong_kinh": 24, "khung": ["Tango", "Lint"]}}
+SUA = {"1.2": {"dat": [40, 4, 1.5], "nhin": [52, 18, 1.2], "ong_kinh": 28, "khung": ["Lamp Switch"]}, "4.5a": {"dat": [8.8, 63.6, 1.4], "nhin": [3, 70.5, 1.3], "ong_kinh": 60, "khung": ["Tango"]}, "4.7": {"dat": [5.5, 61.5, 1.8], "nhin": [5.5, 71.2, 1.0], "ong_kinh": 35, "khung": ["Tango", "Lint"]}, "5.2": {"dat": [12.4, 70.5, 14.5], "nhin": [20, 81, 10], "ong_kinh": 40, "khung": ["Mr. Wipe"]}, "5.4": {"dat": [-14.3, 60.5, 14], "nhin": [6, 72, 3], "ong_kinh": 24, "khung": ["Tango", "Mr. Wipe"]}, "5.5": {"dat": [3.7, 62.3, 3.3], "nhin": [6, 71, 2.5], "ong_kinh": 40, "khung": ["Lint", "Tango"]}, "5.6": {"dat": [5.5, 66.5, 0.5], "nhin": [6.3, 71, 1.3], "ong_kinh": 24, "khung": ["Tango"]}, "5.7": {"dat": [0.1, 65.2, 6], "nhin": [6, 70.5, 0.4], "ong_kinh": 60}, "6.3": {"dat": [22.1, 55.5, 0.5], "nhin": [12.5, 66.5, 2.5], "ong_kinh": 24, "khung": ["Tango", "Lint"]}}
 for ma, m in SUA.items():
     S['may'][ma].pop('phia', None); S['may'][ma].pop('qua_truc', None); S['may'][ma].update(m)
 json.dump(S, open(P, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)

@@ -1746,11 +1746,11 @@
             "tu_ke_du",
             "chenh_thong_tin"
           ],
-          "thay": "Tango tò mò chạm ngón tay đất sét vào phích cắm của sợi cáp trắng nằm sát đế cắm — TÁCH — một tia điện nhỏ giật ngón tay; Tango vẩy tay xuýt xoa.",
-          "bo_cuc": "Foreground: the white cable plug lying right beside the silver hub. Mid: Tango reaching a clay finger to it, screen-right.",
-          "mo": "Tango reaching one clay finger toward the white cable plug beside the hub.",
+          "thay": "Tango đứng trên ví da cam, tò mò chạm ngón tay đất sét vào phích cắm của sợi cáp trắng nằm ngay trên ví — TÁCH — một tia điện nhỏ giật ngón tay; Tango vẩy tay xuýt xoa.",
+          "bo_cuc": "Reverse angle on Tango from just behind the plug: Foreground: the white cable plug lying on the orange leather card holder, screen-left. Mid: Tango standing on the card holder, facing camera, reaching a clay finger toward the plug.",
+          "mo": "Tango, standing on the orange card holder, reaching one clay finger toward the white cable plug lying on it.",
           "ket": "Tango shaking his zapped finger, a tiny wisp of smoke from the fingertip.",
-          "huong": "Tango reaches screen-left to the plug, then pulls back screen-right.",
+          "huong": "Tango faces camera and reaches screen-left to the plug, then pulls back screen-right.",
           "am": "Tiếng “tách” điện nhỏ, Tango “ui!”.",
           "muc_dich": "Gài cơ chế bẫy: phích cắm có điện, chạm vào là giật.",
           "motif": "Phích cắm có điện (gài cho cú điện giật).",
@@ -1759,15 +1759,15 @@
             "chuyen_dong": "doi_net",
             "ong_kinh": "macro",
             "chuyen_canh": "cat",
-            "mo_ta": "Nét từ phích cắm sang ngón tay Tango đúng lúc bị giật."
+            "mo_ta": "Góc ngược của 7.1b (POV): máy sau phích nhìn về Tango — nét từ phích sang ngón tay Tango đúng lúc bị giật."
           },
           "anchor": [
             "USB Hub Dock",
             "White Cable",
-            "USB Hub",
+            "Orange Card",
             "Tango"
           ],
-          "thay_en": "The orange clay creature curiously touches the plug of the white cable lying beside the silver hub; a tiny spark zaps his fingertip and he shakes his hand.",
+          "thay_en": "Facing camera, the orange clay creature curiously touches the plug of the white cable lying on the orange card holder; a tiny spark zaps his fingertip and he shakes his hand.",
           "am_en": "A small electric snap and a startled squeak.",
           "thoai": [
             {

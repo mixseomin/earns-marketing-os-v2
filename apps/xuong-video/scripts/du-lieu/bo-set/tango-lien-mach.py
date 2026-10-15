@@ -222,9 +222,10 @@ MOI = {
  '7.1b': {'dat': [56.4, 50.6, 2.2], 'nhin': [54.3, 52.6, 0.5], 'ong_kinh': 35, 'khung': ['Cable Plug'], 'qua_truc': True},
  '7.4a': {'dat': [57.2, 52.4, 9], 'nhin': [57.2, 55, 0.8], 'ong_kinh': 24, 'khung': ['USB Hub', 'Cable Plug'], 'qua_truc': True},
   # 7.2a đặt tay: trên cao bên phải (cùng hướng 7.2), nhìn qua đầu Lint xuống mặt đế cắm — bộ giải tự động né Lint bằng cách vượt trục; máy phía trước thì iMac vàng chắn.
- # 7.2 ĐẶT TAY tây-nam ngang tầm (15/10/2026 #32: bộ giải đặt máy sau lưng Tango, Tango che phích — phích 3% ở mép phải, keyframe vẽ cảnh khác):
- # phích tiền cảnh trái, Tango trung cảnh phải nghiêng 3/4 với tay sang trái; hướng máy lệch < 100° so với 7.1b / 7.2a (không cắt như sang nơi khác).
- '7.2': {'dat': [50.5, 47.5, 1.5], 'nhin': [55.2, 51.7, 0.8], 'ong_kinh': 35, 'khung': [TANGO, 'Cable Plug']},
+ # 7.2 ĐẶT TAY — GÓC NGƯỢC của 7.1b (15/10/2026 #32: bộ giải đặt máy sau lưng Tango, Tango che phích — phích 3% ở mép phải, keyframe vẽ cảnh khác;
+ # máy tây-nam thì đứng đè lên cáp trắng): 7.1b là mắt Tango nhìn phích → 7.2 máy sau phích nhìn ngược về Tango (cặp POV → góc ngược, qua_truc).
+ # Phích tiền cảnh trái, Tango trung cảnh quay mặt về máy với tay ra; ống 50 để Lint (sau-trái) ra ngoài khung.
+ '7.2': {'dat': [50.5, 54.5, 1.4], 'nhin': [55.8, 51.0, 0.8], 'ong_kinh': 50, 'khung': [TANGO, 'Cable Plug'], 'qua_truc': True},
  '7.2a': {'dat': [66, 44, 14], 'nhin': [57.5, 54.5, 0.6], 'ong_kinh': 24},
  '7.6a': {'phia': 30, 'khung': [TANGO, LINT]},         # hai bạn đập tay đọc rõ; Mr. Wipe lủi đi ở hậu cảnh
  # 7.6b máy sau-trên hai nửa kẹo: kẹo tiền cảnh dưới khung, hai bạn ở giữa nhìn về kẹo (về máy).

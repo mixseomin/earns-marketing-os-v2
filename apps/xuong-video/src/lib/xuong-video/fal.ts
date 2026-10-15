@@ -166,10 +166,20 @@ async function canAnh(id: string): Promise<boolean | null> {
 const enumCua = (f?: SchemaTruong) => (f?.enum ?? f?.anyOf?.flatMap((a) => a.enum ?? []) ?? []) as unknown[];
 
 /** Đầu vào chung → đúng tên/kiểu trường của endpoint fal, đọc từ OpenAPI. */
+/** Cắt chữ về ≤ toiDa ký tự ở ranh giới câu (không có giới hạn → giữ nguyên). Thuần. */
+export function catCau(chu: string, toiDa?: number): string {
+  if (!toiDa || chu.length <= toiDa) return chu;
+  const cat = chu.slice(0, toiDa); const i = Math.max(cat.lastIndexOf('. '), cat.lastIndexOf('.\n'));
+  return (i > toiDa * 0.5 ? cat.slice(0, i + 1) : cat.slice(0, cat.lastIndexOf(' '))).trim();
+}
+
 export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?: string | null; anhCuoi?: string | null; anhThamChieu?: string[]; giay?: number; tiLe?: string; tieng?: boolean; /** danh từ cần loại (negative prompt) */ loai?: string }): Promise<Record<string, unknown>> {
   const p = await schemaVao(id);
   const co = (k: string) => k in p;
-  const o: Record<string, unknown> = { prompt: v.prompt };
+  // Độ dài prompt theo GIỚI HẠN CỦA CHÍNH MODEL (schema maxLength): Kling 2.1 Pro nhận ≤ 2500 ký tự → 422 (#23, 16/10/2026). Cắt ở ranh giới câu
+  // — các câu giữ ảnh / cấm chữ / hành động đứng đầu prompt nên phần mất là đuôi (kỹ thuật máy, cảm xúc).
+  const toiDa = (p.prompt as { maxLength?: number } | undefined)?.maxLength;
+  const o: Record<string, unknown> = { prompt: catCau(v.prompt, toiDa) };
   const truongDau = ['start_image_url', 'image_url', 'first_frame_url', 'first_image_url', 'image'].find(co);
   const truongCuoi = ['end_image_url', 'tail_image_url', 'last_frame_url', 'end_frame_url', 'last_image_url'].find(co);
   if (v.anhDau && truongDau) o[truongDau] = v.anhDau;

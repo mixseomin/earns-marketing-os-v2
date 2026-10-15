@@ -88,7 +88,7 @@ function NacSx({ c }: { c: DongCreative }) {
 }
 const ChipGoc = ({ g, on }: { g: GocSpy; on?: () => void }) => (
   <button type="button" onClick={on} title={`${loaiGocSpy(g.loai).ten}: ${g.ten} · bấm để lọc theo góc này`}
-    style={{ all: 'unset', cursor: 'pointer', fontSize: 11, padding: '0 6px', borderRadius: 4, border: '1px solid var(--cyan)', color: 'var(--cyan)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', verticalAlign: 'middle' }}>{loaiGocSpy(g.loai).ic} {g.ten}</button>
+    style={{ all: 'unset', cursor: 'pointer', fontSize: 11, padding: '0 6px', borderRadius: 4, border: '1px solid var(--cyan)', color: 'var(--cyan)', maxWidth: 'calc(100% - 30px)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', verticalAlign: 'middle' }}>{loaiGocSpy(g.loai).ic} {g.ten}</button>
 );
 
 type Gom = 'khong' | 'loai' | 'khuon';
@@ -116,8 +116,10 @@ function BangCreative({ d, goc, locGoc, setLocGoc, chon, setChon, onMoPhim, onSo
         {gocLoc && <Pill color="var(--cyan)" title="Bỏ lọc góc"><button type="button" onClick={() => setLocGoc(null)} style={{ all: 'unset', cursor: 'pointer' }}>{loaiGocSpy(gocLoc.loai).ic} {gocLoc.ten} ✕</button></Pill>}
       </div>
       <div style={{ overflow: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
-        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 980, fontSize: 12 }}>
-          <thead><tr><th style={{ ...th, width: 24 }} /><th style={th}>Creative</th><th style={th}>Góc</th><th style={th}>Khuôn</th><th style={th}>Hook</th><th style={th}>CTA</th><th style={th}>Ngôn ngữ</th><th style={th}>Sản xuất</th></tr></thead>
+        {/* Cột cố định (table-layout fixed): bảng vừa bề ngang ngăn, chữ dài cắt + hover, không đẩy CTA / sản xuất ra ngoài. */}
+        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 1100, fontSize: 12, tableLayout: 'fixed' }}>
+          <colgroup><col style={{ width: 30 }} /><col style={{ width: '24%' }} /><col style={{ width: '20%' }} /><col style={{ width: 150 }} /><col /><col style={{ width: '13%' }} /><col style={{ width: 52 }} /><col style={{ width: 150 }} /></colgroup>
+          <thead><tr><th style={th} /><th style={th}>Creative</th><th style={th}>Góc</th><th style={th}>Khuôn</th><th style={th}>Hook</th><th style={th}>CTA</th><th style={th} title="Ngôn ngữ">NN</th><th style={th}>Sản xuất</th></tr></thead>
           <tbody>
             {nhom.map((g) => (
               <Fragment key={g.ten || 'tat_ca'}>
@@ -128,17 +130,17 @@ function BangCreative({ d, goc, locGoc, setLocGoc, chon, setChon, onMoPhim, onSo
                   return (
                     <tr key={`${g.ten}-${c.id}`} style={{ background: chon.includes(c.id) ? 'color-mix(in srgb, var(--cyan) 8%, transparent)' : undefined }}>
                       <td style={o}><input type="checkbox" checked={chon.includes(c.id)} onChange={() => doi(c.id)} aria-label={`chọn #${c.id}`} /></td>
-                      <td style={{ ...o, minWidth: 260 }}>
+                      <td style={{ ...o, overflow: 'hidden' }}>
                         <span style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0 }}>
                           <span style={{ width: 22, height: 32, flexShrink: 0, borderRadius: 3, border: '1px solid var(--line)', background: c.anh ? `center / cover no-repeat url(${anhNho(c.anh, 160)}), #111` : 'var(--bg-2)' }} />
-                          <button type="button" onClick={() => onMoPhim(c.id)} title={`#${c.id} · ${c.ten} · ${c.so_shot} shot${c.xuat ? ' · đã xuất' : ''}`} style={{ all: 'unset', cursor: 'pointer', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 300 }}>{c.ten.replace(/^[^·]*·\s*/, '')}</button>
+                          <button type="button" onClick={() => onMoPhim(c.id)} title={`#${c.id} · ${c.ten} · ${c.so_shot} shot${c.xuat ? ' · đã xuất' : ''}`} style={{ all: 'unset', cursor: 'pointer', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{c.ten.replace(/^[^·]*·\s*/, '')}</button>
                           {c.sua_sau_xuat && <span style={{ ...mono, color: 'var(--red)', border: '1px solid var(--red)', borderRadius: 4, padding: '0 4px', whiteSpace: 'nowrap' }} title="Có shot sửa sau lần xuất gần nhất — bản xuất đang dùng đã cũ">sửa sau xuất</span>}
                         </span>
                       </td>
-                      <td style={o}>{chinh ? <ChipGoc g={chinh} on={() => setLocGoc(chinh.id)} /> : <span style={mono}>chưa gắn</span>}{phu.length > 0 && <span style={{ ...mono, marginLeft: 4 }} title={phu.map((x) => `${loaiGocSpy(x.loai).ic} ${x.ten}`).join('\n')}>+{phu.length}</span>}</td>
-                      <td style={o}><Pill color="var(--fg-2)" title={c.tpl ? `template #${c.tpl.id}` : 'không tạo từ template'}>{tenKhuon(c)}</Pill></td>
-                      <td style={{ ...o, maxWidth: 220 }}><span title={c.hook} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.hook || '—'}</span></td>
-                      <td style={{ ...o, maxWidth: 180 }}><span title={c.cta} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.cta || '—'}</span></td>
+                      <td style={{ ...o, whiteSpace: 'nowrap', overflow: 'hidden' }}>{chinh ? <ChipGoc g={chinh} on={() => setLocGoc(chinh.id)} /> : <span style={mono}>chưa gắn</span>}{phu.length > 0 && <span style={{ ...mono, marginLeft: 4 }} title={phu.map((x) => `${loaiGocSpy(x.loai).ic} ${x.ten}`).join('\n')}>+{phu.length}</span>}</td>
+                      <td style={{ ...o, overflow: 'hidden', whiteSpace: 'nowrap' }}><Pill color="var(--fg-2)" title={`${tenKhuon(c)}${c.tpl ? ` · template #${c.tpl.id}` : ' · không tạo từ template'}`}>{tenKhuon(c)}</Pill></td>
+                      <td style={o}><span title={c.hook} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.hook || '—'}</span></td>
+                      <td style={o}><span title={c.cta} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.cta || '—'}</span></td>
                       <td style={o}><Pill color="var(--cyan)" title="ngôn ngữ của lời / chữ màn (kinh thánh)">{c.ngon_ngu.toUpperCase()}</Pill></td>
                       <td style={o}><NacSx c={c} /></td>
                     </tr>

@@ -1070,7 +1070,7 @@
     {
      "giay": 2.5,
      "loai": "hook",
-     "goc_may": "Medium shot in the mirror, fixed angle A",
+     "goc_may": "Medium close-up in the mirror, three-quarter back view, fixed angle A",
      "hanh_dong": "BEFORE: {{noi_dau_hinh}}",
      "chu_man": "{{noi_dau}}",
      "loi": "{{noi_dau}}",
@@ -1079,9 +1079,9 @@
       "nv",
       "bc"
      ],
-     "prompt_anh": "Mirror selfie angle: {{nhan_vat_hinh}}, {{noi_dau_hinh}}, {{boi_canh}}",
+     "prompt_anh": "Medium close-up mirror shot, three-quarter back view so her back and side fill the frame: {{nhan_vat_hinh}}, {{noi_dau_hinh}}; the problem is clearly visible on the fabric, {{boi_canh}}",
      "prompt_video": "She shifts uncomfortably, fixed camera",
-     "co": "ms"
+     "co": "mcu"
     },
     {
      "giay": 2.5,
@@ -1221,17 +1221,18 @@
     {
      "giay": 2,
      "loai": "end_card",
-     "goc_may": "Product hero",
+     "goc_may": "Medium shot, hero",
      "hanh_dong": "Hero shot with offer",
      "chu_man": "{{uu_dai}} · {{dam_bao}}",
      "loi": "{{uu_dai}}.",
      "nv": [
       "sp",
+      "nv",
       "bc"
      ],
-     "prompt_anh": "Clean hero photo of {{san_pham_hinh}}, light background, room for text",
-     "prompt_video": "Subtle slow zoom",
-     "co": "cu"
+     "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, standing tall and smiling confidently at the camera in {{boi_canh}}, soft morning light, vertical 9:16 hero shot, empty space in the lower third for text, no text, no other people",
+     "prompt_video": "She smiles and gives a small confident nod, slow push-in",
+     "co": "ms"
     }
    ]
   },

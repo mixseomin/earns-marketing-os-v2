@@ -156,3 +156,28 @@ export async function dienLaiChu(db: Db, phimId: number, o: { gt: Record<string,
     return { shot, canGiong, lech };
   });
 }
+
+/** ĐIỀN LẠI HÌNH từ template cho vài shot (sửa template trước rồi áp xuống phim): góc máy + prompt ảnh/video + nhân vật trong khung + kỹ thuật
+ *  (cỡ cảnh, máy) lấy từ shot template cùng vị trí, điền ô của phim. KHÔNG đụng chữ / lời / hành động (giữ kết quả kiểm người xem), keyframe cũ
+ *  giữ trong dải ứng viên — sinh keyframe lại là bước riêng. Anchor template ↔ anchor phim ghép theo thứ tự tạo (chepPhim chép theo thứ tự id). */
+export async function dienLaiHinh(db: Db, phimId: number, thuTu: number[]): Promise<number> {
+  const kt = ((await q(db, sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`))[0]?.kinh_thanh ?? {}) as KinhThanh;
+  if (!kt.tu_template?.id) return 0;
+  const tpl = await docCaPhim(db, kt.tu_template.id);
+  if (!tpl) return 0;
+  const nvP = await q(db, sql`SELECT id FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`);
+  const doiNv = new Map(tpl.nv.map((v, i) => [n(v.id), nvP[i] ? n(nvP[i]!.id) : null]));
+  const tap1 = tpl.tap[0]; const tapP = (await q(db, sql`SELECT id FROM xv_tap WHERE phim_id = ${phimId} ORDER BY so, id`))[0];
+  if (!tap1 || !tapP) return 0;
+  let sua = 0;
+  for (const so of thuTu) {
+    const m = tpl.canh.find((c) => n(c.tap_id) === n(tap1.id) && n(c.thu_tu) === so && !s(c.nhanh));
+    if (!m) continue;
+    const g = dienSau({ goc_may: s(m.goc_may), prompt_anh: s(m.prompt_anh), prompt_video: s(m.prompt_video) }, kt.tu_template.gia_tri);
+    const nv = ((m.nhan_vat as number[]) ?? []).map((x) => doiNv.get(Number(x))).filter((x) => x != null);
+    await db.execute(sql`UPDATE xv_canh SET goc_may = ${g.goc_may}, prompt_anh = ${g.prompt_anh}, prompt_video = ${g.prompt_video}, nhan_vat = ${JSON.stringify(nv)}::jsonb,
+      ky_thuat = ${JSON.stringify(m.ky_thuat ?? {})}::jsonb, updated_at = now() WHERE tap_id = ${n(tapP.id)} AND thu_tu = ${so} AND coalesce(nhanh, '') = ''`);
+    sua++;
+  }
+  return sua;
+}

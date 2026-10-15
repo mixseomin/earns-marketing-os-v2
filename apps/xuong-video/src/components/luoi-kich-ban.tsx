@@ -14,6 +14,7 @@ import { kiemKhungTapAction, boSetCuaTap } from '@/lib/actions';
 import { tien } from '@/lib/xuong-video/kieu';
 import { Nut, Loi, goiAction } from './ui';
 import { moNgan } from './ngan-chung';
+import { KyThuatApDung } from './thu-vien';
 import { boSetCuaShot, khoiLapKhung, loiMachTap, loiHinhHoc, vatChanTienCanh } from '@/lib/xuong-video/bo-set-3d';
 
 /** Tên ngắn của một key thư viện (bỏ phần ngành trong ngoặc). */
@@ -92,10 +93,10 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                 {i === 0 && (pc?.noi || pc?.luc) && <div className="xv-mono" style={{ padding: '3px 7px 0', fontSize: 10, color: mau, lineHeight: 1.3 }}>{pc?.noi && <>📍 {pc.noi}</>}{pc?.noi && pc?.luc ? ' · ' : ''}{pc?.luc && <>🕐 {pc.luc}</>}</div>}
                 <div className="xv-mono" style={{ padding: '4px 7px 0', fontSize: 10, lineHeight: 1.35, color: 'var(--fg-2)' }}>
                   {bc.length > 0 && <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={bc.join(', ')}>📍 {bc.join(', ')}</div>}
-                  <div>{[tenKt(kt.vai, 'vai'), tenKt(kt.co_canh, 'co_canh'), tenKt(kt.chuyen_dong, 'chuyen_dong')].filter(Boolean).join(' · ') || '—'}</div>
+                  <div style={{ marginTop: 2 }}><KyThuatApDung kt={kt} nhom={['vai', 'co_canh', 'chuyen_dong', 'dien_xuat']} nho /></div>
                 </div>
                 {loi && <div style={{ padding: '4px 7px 5px', fontSize: 11, lineHeight: 1.35, color: 'var(--fg-1)' }}>{loi}</div>}
-                <div className="xv-mono" style={{ marginTop: 'auto', padding: '3px 7px', fontSize: 10, borderTop: '1px dashed var(--line)', color: cc && cc !== 'cat' ? '#facc15' : 'var(--fg-3)' }} title="Chuyển cảnh sang shot sau">→ {tenKt(cc, 'chuyen_canh') || 'Cắt thẳng'}{cc === 'lien_may' ? ' ⛓' : ''}</div>
+                <div className="xv-mono" style={{ marginTop: 'auto', padding: '3px 7px', fontSize: 10, borderTop: '1px dashed var(--line)', color: cc && cc !== 'cat' ? '#facc15' : 'var(--fg-3)' }} title="Chuyển cảnh sang shot sau — bấm xem chi tiết" role={cc ? 'button' : undefined} onClick={cc ? (e) => { e.stopPropagation(); moNgan({ loai: 'ky-thuat', ma: `chuyen_canh.${cc}` }); } : undefined}>→ {tenKt(cc, 'chuyen_canh') || 'Cắt thẳng'}{cc === 'lien_may' ? ' ⛓' : ''}</div>
                 {/* KHUNG XÁM 3D (anh 14/10/2026: "shot thuộc khung hình nào trong file 3D thì kẹp ảnh đó dưới chân lưới"): render từ bộ set + máy ảo của
                     shot — đặt ngay dưới keyframe để so bố trí. Shot thuộc set mà chưa đặt máy / chưa dựng thì hiện khung trống ghi rõ thiếu gì. */}
                 {/* Ô 3D có ở MỌI thẻ, cùng cỡ, dính chân thẻ (thẻ là cột flex, dòng chuyển cảnh marginTop:auto) → khung 3D các thẻ thẳng một hàng. */}

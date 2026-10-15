@@ -263,15 +263,16 @@ export function promptKyThuatVideo(kt: KyThuatShot | undefined): string {
 }
 /** Nhãn tiếng Việt ngắn của các kỹ thuật đã chọn — hiện trên thẻ shot / timeline. */
 /** Kỹ thuật đã chọn của một shot, đủ nhóm + mô tả — nguồn cho nhãn ngắn (thẻ shot, bảng ＋) và hover chi tiết. */
-export type MucKyThuat = { nhom: string; icon: string; ten: string; mo_ta: string };
+/** ma = '<nhóm>.<key>' (luật dựng cảnh: 'luat.<key>') — khoá mở ngăn chi tiết (thu-vien.tsx › ChiTietKyThuatNgan). */
+export type MucKyThuat = { ma: string; nhom: string; icon: string; ten: string; mo_ta: string };
 export function chiTietKyThuat(kt: KyThuatShot | undefined): MucKyThuat[] {
   if (!kt) return [];
   const out: MucKyThuat[] = [];
   for (const n of NHOM_KY_THUAT) {
     const keys = n.key === 'am_thanh' ? kt.am_thanh ?? [] : [kt[n.key as Exclude<NhomKyThuat, 'am_thanh'>]];
-    for (const k of keys) { const x = kyThuat(k, n.key); if (x) out.push({ nhom: n.ten, icon: n.icon, ten: x.ten, mo_ta: x.mo_ta }); }
+    for (const k of keys) { const x = kyThuat(k, n.key); if (x) out.push({ ma: `${n.key}.${x.key}`, nhom: n.ten, icon: n.icon, ten: x.ten, mo_ta: x.mo_ta }); }
   }
-  for (const k of kt.luat ?? []) { const l = luatDung(k); if (l) out.push({ nhom: 'Luật dựng cảnh', icon: '📐', ten: l.ten, mo_ta: l.luat }); }
+  for (const k of kt.luat ?? []) { const l = luatDung(k); if (l) out.push({ ma: `luat.${l.key}`, nhom: 'Luật dựng cảnh', icon: '📐', ten: l.ten, mo_ta: l.luat }); }
   return out;
 }
 export const nhanKyThuat = (kt: KyThuatShot | undefined): string[] => chiTietKyThuat(kt).map((m) => `${m.icon} ${m.ten}`);

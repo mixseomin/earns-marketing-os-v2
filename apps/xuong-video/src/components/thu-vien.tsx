@@ -6,8 +6,8 @@ import { dsKhuonShot } from '@/lib/actions';
 import { moNgan } from './ngan-chung';
 import { LOAI_SHOT_MAU } from '@/lib/xuong-video/kieu';
 import type { KhuonShot } from '@/lib/xuong-video/khuon-shot';
-import { THE_LOAI, NHOM_KY_THUAT, THU_VIEN, CAU_TRUC, hopTheLoai, type TheLoai } from '@/lib/xuong-video/dien-anh';
-import { LUAT_DUNG_CANH } from '@/lib/xuong-video/luat-dung';
+import { THE_LOAI, NHOM_KY_THUAT, THU_VIEN, CAU_TRUC, hopTheLoai, kyThuat, chiTietKyThuat, type TheLoai, type KyThuat, type KyThuatShot, type NhomKyThuat } from '@/lib/xuong-video/dien-anh';
+import { LUAT_DUNG_CANH, luatDung } from '@/lib/xuong-video/luat-dung';
 
 export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
   const [tl, setTl] = useState<TheLoai | ''>(tlDau as TheLoai | '');
@@ -45,11 +45,7 @@ export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
                 <div key={x.key} className="xv-canh" title={x.prompt ? `prompt: ${x.prompt}` : undefined}>
                   <b style={{ fontSize: 12 }}>{x.ten}</b> <span className="xv-mono">{x.key}</span>
                   <div style={{ fontSize: 11.5, color: 'var(--fg-2)', marginTop: 2 }}>{x.mo_ta}</div>
-                  {x.nganh && <details style={{ marginTop: 4 }}><summary className="xv-mono" style={{ cursor: 'pointer' }}>📘 Ngành mô tả · {x.nganh.ten_nganh}</summary>
-                    <dl style={{ fontSize: 11.5, color: 'var(--fg-2)', margin: '4px 0 0', display: 'grid', gap: 3 }}>
-                      {([['Mở → kết', x.nganh.dau_cuoi], ['Thực hiện', x.nganh.thuc_hien], ['Khi nào dùng', x.nganh.dong_co], ['Khán giả cảm', x.nganh.cam_xuc], ['Tránh', x.nganh.tranh], ['Nguồn', x.nganh.nguon]] as const).map(([t, v]) => <div key={t}><b>{t}:</b> {v}</div>)}
-                      {x.may_di && <div className="xv-mono">máy 3D: {x.may_di.kieu}{x.may_di.ti_le ? ` · chủ thể ×${x.may_di.ti_le}` : ''}{x.may_di.goc ? ` · ${x.may_di.goc}°` : ''} · {x.may_di.toc}</div>}
-                    </dl></details>}
+                  {x.nganh && <details style={{ marginTop: 4 }}><summary className="xv-mono" style={{ cursor: 'pointer' }}>📘 Ngành mô tả · {x.nganh.ten_nganh}</summary><MoTaNganh x={x} /></details>}
                 </div>
               ))}
             </div>
@@ -95,5 +91,57 @@ function KhuonShotKhoi() {
         ))}
       </div>
     </details>
+  );
+}
+
+/** Mô tả ngành của một kỹ thuật (khung mở → kết, cách làm, khi nào dùng, tác động, tránh, nguồn + phần số máy 3D) — MỘT chỗ dựng cho thẻ thư viện và ngăn chi tiết. */
+function MoTaNganh({ x }: { x: KyThuat }) {
+  if (!x.nganh) return null;
+  return (
+    <dl style={{ fontSize: 11.5, color: 'var(--fg-2)', margin: '4px 0 0', display: 'grid', gap: 3 }}>
+      {([['Mở → kết', x.nganh.dau_cuoi], ['Thực hiện', x.nganh.thuc_hien], ['Khi nào dùng', x.nganh.dong_co], ['Khán giả cảm', x.nganh.cam_xuc], ['Tránh', x.nganh.tranh], ['Nguồn', x.nganh.nguon]] as const).map(([t, v]) => <div key={t}><b>{t}:</b> {v}</div>)}
+      {x.may_di && <div className="xv-mono">máy 3D: {x.may_di.kieu}{x.may_di.ti_le ? ` · chủ thể ×${x.may_di.ti_le}` : ''}{x.may_di.goc ? ` · ${x.may_di.goc}°` : ''} · {x.may_di.toc}</div>}
+    </dl>
+  );
+}
+
+/** Ngăn chi tiết MỘT kỹ thuật / luật đã áp cho shot — mở bằng moNgan({ loai: 'ky-thuat', ma: '<nhóm>.<key>' | 'luat.<key>' }). */
+export function ChiTietKyThuatNgan({ ma }: { ma: string }) {
+  const [nhom, key] = [ma.slice(0, ma.indexOf('.')), ma.slice(ma.indexOf('.') + 1)];
+  const nut = <div style={{ marginTop: 12 }}><button type="button" className="xv-btn" onClick={() => moNgan({ loai: 'thu-vien' })}>🎬 Mở cả thư viện điện ảnh</button></div>;
+  if (nhom === 'luat') {
+    const l = luatDung(key);
+    if (!l) return <div className="xv-mono">Không còn luật “{key}” trong thư viện.</div>;
+    return (<div style={{ display: 'grid', gap: 6, fontSize: 12.5 }}>
+      <div className="xv-mono">📐 Luật dựng cảnh · {l.key}</div><b style={{ fontSize: 15 }}>{l.ten}</b>
+      <div style={{ color: 'var(--fg-2)' }}>{l.luat}</div><div className="xv-mono">máy kiểm: {l.may}</div>{nut}
+    </div>);
+  }
+  const x = kyThuat(key, nhom as NhomKyThuat); const n = NHOM_KY_THUAT.find((g) => g.key === nhom);
+  if (!x) return <div className="xv-mono">Không còn kỹ thuật “{ma}” trong thư viện.</div>;
+  return (<div style={{ display: 'grid', gap: 6, fontSize: 12.5 }}>
+    <div className="xv-mono">{n?.icon} {n?.ten} · {x.key}</div><b style={{ fontSize: 15 }}>{x.ten}</b>
+    <div style={{ color: 'var(--fg-2)' }}>{x.mo_ta}</div>
+    {x.nganh ? <><div className="xv-mono" style={{ marginTop: 4 }}>📘 Ngành gọi: {x.nganh.ten_nganh}</div><MoTaNganh x={x} /></> : <div className="xv-mono">Chưa có mô tả ngành chi tiết cho kỹ thuật này.</div>}
+    {x.prompt && <div className="xv-mono" style={{ marginTop: 4 }}>prompt gửi model: {x.prompt}</div>}
+    <div className="xv-mono">hợp thể loại: {x.the_loai === 'tat_ca' ? 'mọi thể loại' : x.the_loai.map((t) => THE_LOAI.find((y) => y.key === t)?.ten ?? t).join(', ')}</div>
+    {nut}
+  </div>);
+}
+
+/** Kỹ thuật + luật ĐÃ ÁP cho một shot: mỗi cái một nhãn, bấm mở ngăn chi tiết (anh 15/10/2026: "những gì áp dụng từ thư viện điện ảnh thì show ở đây,
+ *  bấm vào sẽ có thông tin chi tiết"). MỘT thành phần cho hàng shot (canh.tsx) và thẻ lưới (luoi-kich-ban.tsx). nhom = chỉ hiện các nhóm này. */
+export function KyThuatApDung({ kt, nhom, nho }: { kt: KyThuatShot | undefined; nhom?: string[]; nho?: boolean }) {
+  const ds = chiTietKyThuat(kt).filter((m) => !nhom || nhom.includes(m.ma.slice(0, m.ma.indexOf('.'))));
+  if (!ds.length) return null;
+  return (
+    <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: nho ? 2 : 4 }}>
+      {ds.map((m) => (
+        <button key={m.ma} type="button" className="xv-mono" title={`${m.nhom}: ${m.mo_ta}\nBấm xem chi tiết`} onClick={(e) => { e.stopPropagation(); moNgan({ loai: 'ky-thuat', ma: m.ma }); }}
+          style={{ fontSize: nho ? 9.5 : 10.5, lineHeight: nho ? '14px' : '16px', padding: nho ? '0 4px' : '0 6px', border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-2)', color: 'var(--fg-2)', cursor: 'pointer', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {m.icon} {m.ten.replace(/\s*\(.*\)$/, '')}
+        </button>
+      ))}
+    </span>
   );
 }

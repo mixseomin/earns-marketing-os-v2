@@ -1,10 +1,10 @@
 'use client';
 // Một shot trên storyboard: thẻ cảnh, keyframe/clip, form sửa 3 tab.
-import { Fragment, useContext, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { useViTriNoi } from './vi-tri-noi';
+import { useContext, useEffect, useState, type CSSProperties } from 'react';
 import { moNgan, linkTai } from './ngan-chung';
 import { dongThoai, tenNoi, LOI_DAN } from '@/lib/xuong-video/am-thanh';
 import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, chiTietKyThuat, type TheLoai } from '@/lib/xuong-video/dien-anh';
+import { KyThuatApDung } from './thu-vien';
 import { suaCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, sinhVideoCanh, sinhVideoThu, lamLaiTuKeyframe, sinhGiong, sinhAmThanh, xoaKeyframe, goiYAICanh, nangCapCanh, chonPhienBan, khopMiengCanh, luuShotKho } from '@/lib/actions';
 import { O_DAN_DUNG, chuManHien, tenPhanDoan, LOAI_NHAN_VAT, TRANG_THAI_CANH, doiBienThe, motBienTheMoiDoiTuong, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
@@ -23,8 +23,6 @@ export function KfNho({ url, soSanh }: { url: string; soSanh: string }) {
   );
 }
 
-/** Kỹ thuật quay của shot GỌN một dòng (#1243): 3 thứ quyết định khung hình + "+N"; rê vào hiện bảng đủ nhóm · tên · mô tả. */
-const NHOM_CHINH = ['Cỡ cảnh', 'Chuyển động máy', 'Ánh sáng'];
 /** Nguồn của MỘT tệp (ảnh/clip) dưới thumbnail: nhãn ngắn "ckey · nano-banana-2", rê chuột thấy đủ cổng · model thật · tiền thật · các bước dự phòng. */
 function NguonTep({ c, url }: { c: Canh; url: string }) {
   const n = c.nguon_tep?.[url];
@@ -32,23 +30,13 @@ function NguonTep({ c, url }: { c: Canh; url: string }) {
   return <div title={n.day} style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{n.ngan}</div>;
 }
 
+/** Kỹ thuật + luật đã áp cho shot (thư viện điện ảnh): mỗi cái một nhãn, bấm mở ngăn chi tiết có mô tả ngành (anh 15/10/2026; thay bản rê-mới-thấy #1243). */
 function KyThuatGon({ kt, phanDoan }: { kt: Canh['ky_thuat']; phanDoan: string }) {
-  const ds = chiTietKyThuat(kt);
-  const [mo, setMo] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const viTri = useViTriNoi(ref, mo, { rong: 380, caoToiDa: 420 });
-  if (!ds.length && !phanDoan) return null;
-  const chinh = ds.filter((m) => NHOM_CHINH.includes(m.nhom));
-  const conLai = ds.length - chinh.length;
+  if (!chiTietKyThuat(kt).length && !phanDoan) return null;
   return (
-    <div ref={ref} onMouseEnter={() => setMo(true)} onMouseLeave={() => setMo(false)} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginTop: 4, maxWidth: '100%', ...mono, cursor: 'help' }}>
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 4, maxWidth: '100%', ...mono }}>
       {phanDoan && <span style={{ color: 'var(--violet)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>🎬 {tenPhanDoan(phanDoan)}</span>}
-      {ds.length > 0 && <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>🎥 {chinh.map((m) => m.ten).join(' · ') || ds[0]!.ten}{conLai > 0 && <span style={{ color: 'var(--fg-4)' }}> +{conLai}</span>}</span>}
-      {mo && ds.length > 0 && (
-        <div style={{ ...viTri, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.5)', padding: 8, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 10px', fontSize: 11, cursor: 'default' }}>
-          {ds.map((m, i) => <Fragment key={i}><span style={{ ...mono, whiteSpace: 'nowrap' }}>{m.icon} {m.nhom}</span><span><b style={{ color: 'var(--fg-1)' }}>{m.ten}</b>{m.mo_ta && <span style={{ color: 'var(--fg-3)' }}> — {m.mo_ta}</span>}</span></Fragment>)}
-        </div>
-      )}
+      <KyThuatApDung kt={kt} />
     </div>
   );
 }

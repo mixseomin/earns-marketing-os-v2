@@ -5,14 +5,14 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useModalParam } from '@/lib/use-modal-param';
 import { Ngan } from './ngan';
-import { ThuVienNoiDung } from './thu-vien';
+import { ThuVienNoiDung, ChiTietKyThuatNgan } from './thu-vien';
 import { SoChiPhi } from './so-chi-phi';
 import { KhoNoiDung, maDich, docDich, type DichKho } from './kho';
 import { NguonShotNoiDung } from './nguon-shot';
 import { NoiKhungTap } from './noi-khung';
 import { BoSetXem } from './bo-set-xem';
 
-export type YeuCauNgan = { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho } | { loai: 'nguon'; canhId: number } | { loai: 'noi-khung'; tapId: number } | { loai: 'bo-set'; tapId: number; canhId?: number | null };
+export type YeuCauNgan = { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho } | { loai: 'nguon'; canhId: number } | { loai: 'noi-khung'; tapId: number } | { loai: 'bo-set'; tapId: number; canhId?: number | null } | { loai: 'ky-thuat'; ma: string };
 const SU_KIEN = 'xv-ngan';
 export function moNgan(y: YeuCauNgan): void { window.dispatchEvent(new CustomEvent<YeuCauNgan>(SU_KIEN, { detail: y })); }
 /** Link tải tệp R2 qua proxy cùng nguồn (Content-Disposition: attachment) — tải về, không mở trang. */
@@ -23,6 +23,7 @@ function Host() {
   const [tl, setTl] = useState('');
   const [xem, setXem] = useState<{ url: string; ten?: string } | null>(null);
   const [nguon, setNguon] = useState<number | null>(null);
+  const [kyThuat, setKyThuat] = useState<string | null>(null);
   useEffect(() => {
     const h = (e: Event) => {
       const y = (e as CustomEvent<YeuCauNgan>).detail;
@@ -30,6 +31,8 @@ function Host() {
       else if (y.loai === 'kho') ngan.open('kho', maDich(y.dich ?? {}) || null);
       // Nguồn shot là lớp CHỒNG (state riêng, như xem tệp): mở từ sơ đồ nối khung thì nằm đè lên, đóng là về đúng sơ đồ đó.
       else if (y.loai === 'nguon') setNguon(y.canhId);
+      // Chi tiết một kỹ thuật đã áp cho shot: lớp CHỒNG (như nguồn shot) — mở từ thẻ shot / lưới / ngăn shot, đóng là về đúng chỗ cũ.
+      else if (y.loai === 'ky-thuat') setKyThuat(y.ma);
       else if (y.loai === 'noi-khung') ngan.open('noi-khung', y.tapId);
       // Bộ set 3D: ?ngan=bo-set&nganId=<tập>.<shot> — F5 mở lại đúng tập, đúng shot.
       else if (y.loai === 'bo-set') ngan.open('bo-set', `${y.tapId}.${y.canhId ?? 0}`);
@@ -58,6 +61,11 @@ function Host() {
     {ngan.is('bo-set') && ngan.id && (
       <Ngan onClose={ngan.close} tieuDe="🧊 Bộ set 3D">
         <BoSetXem key={ngan.id} tapId={Number(ngan.id.split('.')[0])} canhId={Number(ngan.id.split('.')[1]) || null} />
+      </Ngan>
+    )}
+    {kyThuat && (
+      <Ngan nho onClose={() => setKyThuat(null)} tieuDe="🎬 Kỹ thuật điện ảnh">
+        <ChiTietKyThuatNgan key={kyThuat} ma={kyThuat} />
       </Ngan>
     )}
     {nguon != null && (

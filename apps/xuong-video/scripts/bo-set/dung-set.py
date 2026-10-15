@@ -27,6 +27,7 @@ def mesh_that(ten):
     if not MESH_THAT: return None
     if ten not in KHO_MESH:
         objs = dnv.nhan_vat_mesh(ten)
+        bpy.context.view_layer.update()   # chi tiết đặt cỡ bằng .scale chưa có ma trận mới → nhân bản + dời theo ma trận cũ = khối 1 m (đầu bóp bình xịt 55 cm)
         if objs:
             for o in objs: o.hide_render = o.hide_viewport = True
         KHO_MESH[ten] = objs
@@ -589,6 +590,18 @@ def bang_ti_le(s, ra):
     s.render.resolution_x, s.render.resolution_y = 1800, max(400, int(1800 * bh / bw))
     s.world.node_tree.nodes['Background'].inputs['Color'].default_value = (0.9, 0.88, 0.84, 1)
     may_ve(s, True); s.display.shading.show_shadows = False
+    if MESH_THAT:   # mesh thật: Cycles + hai đèn vuông trước mặt hàng (soát ngoại hình đúng như sẽ vào keyframe)
+        s.render.engine = 'CYCLES'; s.cycles.samples = 48; s.cycles.use_denoising = True
+        try:
+            p_ = bpy.context.preferences.addons['cycles'].preferences; p_.compute_device_type = 'METAL'; p_.get_devices()
+            for d_ in p_.devices: d_.use = True
+            s.cycles.device = 'GPU'
+        except Exception as e: print('GPU?', e)
+        s.world.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.25
+        for k_, (dx, e_) in enumerate(((-0.3, 1.6), (0.6, 0.7))):
+            ld = bpy.data.lights.new(f'lt{k_}', 'AREA'); ld.energy = e_; ld.size = 0.3
+            lo = bpy.data.objects.new(f'lt{k_}', ld); s.collection.objects.link(lo); lo.location = Vector((rong / 2 + dx * rong, -30, cao + 10)) * CM
+            lo.rotation_euler = (Vector((rong / 2, 0, cao / 2)) * CM - lo.location).to_track_quat('-Z', 'Y').to_euler()
     s.render.filepath = f'{ra}/bang-ti-le.png'; bpy.ops.render.render(write_still=True)
     print('XONG bang ti le', [(t, round(z, 1)) for t, _, z in vt])
 

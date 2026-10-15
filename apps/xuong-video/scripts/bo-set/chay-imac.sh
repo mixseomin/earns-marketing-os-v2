@@ -19,7 +19,7 @@ ls "$L"/*/*.json >/dev/null 2>&1 || { echo "không có shot nào cần dựng"; 
 for j in "$L"/*/*.json; do
   ten=$(basename "$j" .json); ra="$(dirname "$j")/$ten"
   if [ "$ten" = mb ]; then e="XV_CHI_MAT_BANG=1"; else e="XV_BO_MAT_BANG=1"; fi
-  ( env XV_NHANH=1 $e "$BLENDER" -b --factory-startup -P "$KB" -- "$j" "$ra" > "$ra.log" 2>&1; grep -q XONG "$ra.log" || { echo "✗ $ten:"; tail -5 "$ra.log"; } ) &
+  ( env XV_NHANH=1 XV_MESH_THAT=1 $e "$BLENDER" -b --factory-startup -P "$KB" -- "$j" "$ra" > "$ra.log" 2>&1; grep -q XONG "$ra.log" || { echo "✗ $ten:"; tail -5 "$ra.log"; } ) &
   while [ "$(jobs -r | wc -l)" -ge 2 ]; do sleep 1; done
 done
 wait

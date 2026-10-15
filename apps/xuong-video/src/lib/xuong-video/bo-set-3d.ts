@@ -328,14 +328,15 @@ export function huongVoiMay(m: Pick<May3d, 'dat' | 'nhin'>, v: ViTri, ket = fals
   const chu = lech <= 35 ? 'facing the camera' : lech <= 70 ? `three-quarter view, turned toward ${ben}` : lech <= 110 ? `in profile, facing ${ben}` : lech <= 150 ? `three-quarter from behind, facing away toward ${ben}` : 'back to the camera (we see the back of the head, not the face)';
   return { lech: Math.round(lech), chu };
 }
-/** Shot PHẢN ỨNG mà máy không thấy ít nhất 3/4 mặt chủ thể (lệch > 80°), hoặc cỡ cận thấy lưng (> 110°) — cả lúc mở lẫn lúc kết. Cảm xúc nằm trên mặt. */
+/** Shot PHẢN ỨNG mà máy không thấy ít nhất 3/4 mặt chủ thể (lệch > 80°) cả lúc mở lẫn lúc kết — cảm xúc nằm trên mặt. Shot hành động thấy lưng là bình thường
+ *  (Lint bị hút lên về phía Mr. Wipe, #23), nên không đo. Hai nhân vật quay vào nhau: 'cheat to camera' (xoay cả hai ~30° về máy, như diễn viên thật). */
 export function matQuayDi(c: { may_3d?: May3d | null; ky_thuat?: Canh['ky_thuat'] | null }, laNhanVat: (ten: string) => boolean): string[] {
   const m = c.may_3d; const kt = c.ky_thuat; if (!m || !kt || kt.vai === 'chu_quan') return [];
-  if (kt.vai !== 'phan_ung' && !['cu', 'ecu', 'mcu'].includes(kt.co_canh ?? '')) return [];
+  if (kt.vai !== 'phan_ung') return [];
   return chuThe(m).filter(laNhanVat).flatMap((t) => {
     const v = m.vi_tri.find((x) => x.ten === t && !x.an); if (!v) return [];
-    const a = huongVoiMay(m, v), b = huongVoiMay(m, v, true); const ng = kt.vai === 'phan_ung' ? 80 : 110;   // phản ứng: thấy ít nhất 3/4 mặt
-    return a && a.lech > ng && (!b || b.lech > ng) ? [`máy không thấy mặt ${t} (lệch ${a.lech}° khỏi hướng nhìn máy) ở shot ${kt.vai === 'phan_ung' ? 'phản ứng' : `cỡ ${kt.co_canh}`} — đặt máy phía trước mặt ${t} (cảm xúc nằm trên mặt)`] : [];
+    const a = huongVoiMay(m, v), b = huongVoiMay(m, v, true); const ng = 80;   // thấy ít nhất 3/4 mặt
+    return a && a.lech > ng && (!b || b.lech > ng) ? [`máy không thấy mặt ${t} (lệch ${a.lech}° khỏi hướng nhìn máy) ở shot phản ứng — đặt máy phía trước mặt ${t}, hoặc xoay nhân vật về máy (cheat to camera)`] : [];
   });
 }
 

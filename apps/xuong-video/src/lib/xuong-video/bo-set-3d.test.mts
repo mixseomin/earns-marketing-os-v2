@@ -162,7 +162,7 @@ assert.equal(huongVoiMay(mT, { ten: 'T', tam: [0, 0, 0], huong: -90 })!.chu, 'in
 const laNv = (t: string) => t === 'T';
 assert.equal(matQuayDi({ may_3d: { ...mT, ong_kinh: 50, khung: ['T'], vi_tri: [{ ten: 'T', tam: [0, 0, 0], huong: 98 }] }, ky_thuat: { vai: 'phan_ung', co_canh: 'two' } as never }, laNv).length, 1);
 assert.equal(matQuayDi({ may_3d: { ...mT, ong_kinh: 50, khung: ['T'], vi_tri: [{ ten: 'T', tam: [0, 0, 0], huong: 50 }] }, ky_thuat: { vai: 'phan_ung', co_canh: 'two' } as never }, laNv).length, 0);
-assert.equal(matQuayDi({ may_3d: { ...mT, ong_kinh: 50, khung: ['T'], vi_tri: [{ ten: 'T', tam: [0, 0, 0], huong: 180 }] }, ky_thuat: { vai: 'hanh_dong', co_canh: 'ws' } as never }, laNv).length, 0);
+assert.equal(matQuayDi({ may_3d: { ...mT, ong_kinh: 50, khung: ['T'], vi_tri: [{ ten: 'T', tam: [0, 0, 0], huong: 180 }] }, ky_thuat: { vai: 'hanh_dong', co_canh: 'mcu' } as never }, laNv).length, 0);   // hành động thấy lưng: không đo
 // nhịp dẫn: 4 shot cùng hướng + 1 lệch 90° → chặn đúng shot lệch; hai shot qua trục liền nhau → chặn shot sau
 const shN = (id: number, deg: number, qt = false) => ({ id, thu_tu: id, phan_doan: 'A', may_3d: { dat: [0, 0, 1], nhin: [Math.cos((deg * Math.PI) / 180), Math.sin((deg * Math.PI) / 180), 1], ong_kinh: 35, vi_tri: [], ...(qt ? { qua_truc: true } : {}) } });
 const nd = nhipDan([shN(1, 90), shN(2, 95), shN(3, 0), shN(4, 85), shN(5, 100), shN(6, 270, true), shN(7, 200, true)]);

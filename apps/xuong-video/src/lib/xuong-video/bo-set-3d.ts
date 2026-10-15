@@ -328,30 +328,34 @@ export function thieuTongThe<T extends ShotMach>(ds: T[], laNhanVat: (ten: strin
     const co = k.filter((c) => c.may_3d && c.khung_xam?.thay); if (co.length < 3) continue;
     const nv = (c: T) => c.may_3d!.vi_tri.filter((v) => !v.an && laNhanVat(v.ten)).map((v) => v.ten);
     const max = Math.max(...co.map((c) => nv(c).length)); if (max < 2) continue;
+    // "Thấy" ở shot tổng thể = lọt khung + không bị che (khung_xam.kiem) — nhân vật xa, nhỏ vẫn là thấy (toàn cảnh); thay chỉ là dự phòng.
+    const thayRo = (c: T, t: string) => { const k = c.khung_xam?.kiem?.find((x) => x.nhan_vat === t); return k ? k.trong_khung && !k.bi_che_boi.length : !!tamThay(c, t); };
     const ung = co.filter((c) => nv(c).length === max);
-    if (ung.some((c) => nv(c).every((t) => tamThay(c, t)))) continue;
-    const c = ung[0]!; const thieu = nv(c).filter((t) => !tamThay(c, t));
+    if (ung.some((c) => nv(c).every((t) => thayRo(c, t)))) continue;
+    const c = ung[0]!; const thieu = nv(c).filter((t) => !thayRo(c, t));
     (out[c.id] ??= []).push(`cảnh "${c.phan_doan}" chưa có shot TỔNG THỂ thấy đủ ${nv(c).join(' + ')} — shot này có đủ người mà ${thieu.join(', ')} ngoài khung / bị che: lùi máy cho đủ, hoặc chọn shot khác làm tổng thể`);
   }
   return out;
 }
 /** CHẶN — Hướng DI CHUYỂN trên màn (screen direction): nhân vật đi trong shot (den) thì hướng trái/phải màn giữ nguyên trong cảnh; đổi chỉ sau cú
- *  TRUNG LẬP (đi thẳng vào / ra máy: ngang < nửa sâu, hoặc < 1 cm) hoặc shot khai qua_truc. */
+ *  TRUNG LẬP (đi thẳng vào / ra máy: ngang < nửa sâu, hoặc < 1 cm) hoặc shot khai qua_truc. Chỉ bắt khi hướng NGOÀI ĐỜI còn như cũ mà màn đảo. */
 export function huongDiChuyen<T extends ShotMach>(ds: T[], laNhanVat: (ten: string) => boolean): Record<number, string[]> {
   const out: Record<number, string[]> = {};
   for (const k of khoiCanh(ds)) {
-    const cuoi = new Map<string, { ben: 'trái' | 'phải'; shot: number }>();
+    const cuoi = new Map<string, { ben: 'trái' | 'phải'; goc: number; shot: number }>();
     for (const c of k) {
-      const m = c.may_3d; if (!m) continue;
+      const m = c.may_3d; if (!m || VAI_GOC_RIENG.has(c.ky_thuat?.vai ?? '')) continue;   // thiết lập / người thứ ba / POV: góc riêng, không nối hướng
       const { f, r } = trucMay(m);
       for (const v of m.vi_tri) {
         if (!v.den || !laNhanVat(v.ten) || v.cam) continue;
         const dx = v.den[0]! - v.tam[0]!, dy = v.den[1]! - v.tam[1]!;
         const ngang = dx * r[0]! + dy * r[1]!, sau = dx * f[0]! + dy * f[1]!;
         if (Math.abs(ngang) < 1 || Math.abs(ngang) < Math.abs(sau) / 2) { cuoi.delete(v.ten); continue; }   // cú trung lập: đặt lại hướng
-        const b: 'trái' | 'phải' = ngang > 0 ? 'phải' : 'trái'; const tr = cuoi.get(v.ten);
-        if (tr && tr.ben !== b && !m.qua_truc) (out[c.id] ??= []).push(`${v.ten} đi sang ${b} màn mà ở #${tr.shot} đang đi sang ${tr.ben} — hướng trên màn đảo như quay ngược về: dời máy cùng phía, hoặc chen một cú trung lập (đi thẳng vào / ra máy), hoặc khai qua_truc nếu cố ý`);
-        cuoi.set(v.ten, { ben: b, shot: c.thu_tu });
+        const b: 'trái' | 'phải' = ngang > 0 ? 'phải' : 'trái'; const goc = (Math.atan2(dy, dx) * 180) / Math.PI; const tr = cuoi.get(v.ten);
+        // Chỉ chặn khi ngoài đời vẫn đi CÙNG hướng (lệch < 60°) mà trên màn đảo bên — tức máy đã sang phía bên kia trục chuyển động.
+        // Nhân vật tự quay lại trong truyện (lùi, bỏ chạy ngược) thì hướng đời đổi theo, không phải lỗi.
+        if (tr && tr.ben !== b && gocLech(tr.goc, goc) < 60 && !m.qua_truc) (out[c.id] ??= []).push(`${v.ten} vẫn đi cùng hướng ngoài đời như #${tr.shot} mà trên màn đảo (sang ${tr.ben} → sang ${b}) — máy đã sang phía bên kia trục chuyển động: dời máy cùng phía, hoặc chen một cú trung lập (đi thẳng vào / ra máy), hoặc khai qua_truc nếu cố ý`);
+        cuoi.set(v.ten, { ben: b, goc, shot: c.thu_tu });
       }
     }
   }

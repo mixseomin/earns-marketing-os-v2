@@ -187,11 +187,13 @@ const tt = (thayL: boolean) => [
   { id: 3, thu_tu: 3, phan_doan: 'A', may_3d: mD(90, 1.5, [{ ten: 'L', tam: [3, 5, 0] }]), khung_xam: thay(['L', 30, [0.2, 0.2, 0.7, 0.8]]) }];
 assert.ok(thieuTongThe(tt(false), laNv2)[1]?.[0]?.includes('TỔNG THỂ'));
 assert.equal(Object.keys(thieuTongThe(tt(true), laNv2)).length, 0);
-// hướng di chuyển: máy nhìn +y, phải màn = +x; đi +x rồi shot sau đi −x → chặn; có cú trung lập (đi thẳng vào máy) giữa → qua
-const di = (id: number, tu: number[], den: number[], qt = false) => ({ id, thu_tu: id, phan_doan: 'A', may_3d: mD(90, 1.5, [{ ten: 'T', tam: tu, den }], qt ? { qua_truc: true } : {}) });
-assert.ok(huongDiChuyen([di(1, [0, 5, 0], [4, 5, 0]), di(2, [4, 5, 0], [0, 5, 0])], laNv2)[2]?.[0]?.includes('đảo'));
-assert.equal(Object.keys(huongDiChuyen([di(1, [0, 5, 0], [4, 5, 0]), di(2, [4, 8, 0], [4, 3, 0]), di(3, [4, 3, 0], [0, 3, 0])], laNv2)).length, 0);
-assert.equal(Object.keys(huongDiChuyen([di(1, [0, 5, 0], [4, 5, 0]), di(2, [4, 5, 0], [0, 5, 0], true)], laNv2)).length, 0);
+// hướng di chuyển: đi +x ở cả hai shot, máy shot 2 quay sang phía bên kia (nhìn −y) → trên màn đảo → chặn; nhân vật tự quay lại (−x) → không;
+// cú trung lập giữa → qua; khai qua_truc → qua
+const di = (id: number, tu: number[], den: number[], deg = 90, qt = false) => ({ id, thu_tu: id, phan_doan: 'A', may_3d: mD(deg, 1.5, [{ ten: 'T', tam: tu, den }], qt ? { qua_truc: true } : {}) });
+assert.ok(huongDiChuyen([di(1, [0, 5, 0], [4, 5, 0]), di(2, [4, 5, 0], [8, 5, 0], 270)], laNv2)[2]?.[0]?.includes('đảo'));
+assert.equal(Object.keys(huongDiChuyen([di(1, [0, 5, 0], [4, 5, 0]), di(2, [4, 5, 0], [0, 5, 0])], laNv2)).length, 0);
+assert.equal(Object.keys(huongDiChuyen([di(1, [0, 5, 0], [4, 5, 0]), di(2, [4, 8, 0], [4, 3, 0]), di(3, [4, 3, 0], [8, 3, 0], 270)], laNv2)).length, 0);
+assert.equal(Object.keys(huongDiChuyen([di(1, [0, 5, 0], [4, 5, 0]), di(2, [4, 5, 0], [8, 5, 0], 270, true)], laNv2)).length, 0);
 // đối mặt: T (trái) và L (phải) quay vào nhau; shot 1 chủ thể T nhìn sang phải màn, shot 2 chủ thể L phải nhìn sang trái — máy cùng phía → đúng; L khai huong sai (cũng sang phải) → chặn
 const dm = (hL: number) => [
   { id: 1, thu_tu: 1, phan_doan: 'A', may_3d: mD(90, 1.5, [{ ten: 'T', tam: [0, 5, 0], huong: 90 }, { ten: 'L', tam: [4, 5, 0], huong: hL }], { khung: ['T'] }) },

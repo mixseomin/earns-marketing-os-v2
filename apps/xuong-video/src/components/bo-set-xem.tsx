@@ -10,63 +10,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { boSet3dTap } from '@/lib/actions';
 import { moNgan } from './ngan-chung';
-import type { BoSet, KhoiSet, May3d, NhanVat } from '@/lib/xuong-video/kieu';
+import type { BoSet, May3d } from '@/lib/xuong-video/kieu';
+import { V, chat, dungCanhShot, fovMay, huyCanh, type KhoiNv } from '@/lib/xuong-video/bo-set-three';
 import { goiAction, Loi, mono } from './ui';
 
 type DuLieu = Extract<Awaited<ReturnType<typeof boSet3dTap>>, { ok: true }>['data'];
-type Khoi = NonNullable<NhanVat['khoi_3d']>;
-type Phan = Omit<KhoiSet, 'ten'> & { ten?: string; bac?: number };
-
-const V = (p: number[]) => new THREE.Vector3(p[0] ?? 0, p[2] ?? 0, -(p[1] ?? 0));
-const vatLieu = new Map<string, THREE.Material>();
-function chat(mau: string, sang = 0, mo = 1): THREE.Material {
-  const k = `${mau}|${sang}|${mo}`;
-  if (!vatLieu.has(k)) vatLieu.set(k, new THREE.MeshStandardMaterial({ color: mau, roughness: 0.6, emissive: sang ? mau : '#000000', emissiveIntensity: sang ? Math.min(1, sang / 3) : 0, transparent: mo < 1, opacity: mo, depthWrite: mo >= 1 }));
-  return vatLieu.get(k)!;
-}
-
-/** Một khối — cùng luật dung-set.py › khoi: tam = (x, y, z ĐÁY) tương đối gốc nhóm (quay theo xoay°), co = (rộng x, sâu y, cao z). */
-function khoi(p: Phan, goc: number[] = [0, 0], xoay = 0, mo = 1): THREE.Object3D {
-  const m = chat(p.mau, p.sang ?? 0, mo);
-  if (p.hinh === 'day') {
-    const d = (p.diem ?? []).map(V);
-    const duong = p.bac === 1 ? new THREE.CurvePath<THREE.Vector3>() : new THREE.CatmullRomCurve3(d);
-    if (duong instanceof THREE.CurvePath) for (let i = 1; i < d.length; i++) duong.add(new THREE.LineCurve3(d[i - 1]!, d[i]!));
-    return new THREE.Mesh(new THREE.TubeGeometry(duong as THREE.Curve<THREE.Vector3>, Math.max(16, d.length * 12), p.ban_kinh ?? 0.3, 8, false), m);
-  }
-  const [x, y, z] = [p.tam?.[0] ?? 0, p.tam?.[1] ?? 0, p.tam?.[2] ?? 0]; const [w, dd, c] = [p.co?.[0] ?? 1, p.co?.[1] ?? 1, p.co?.[2] ?? 1];
-  const a = (xoay * Math.PI) / 180;
-  const gx = goc[0]! + x * Math.cos(a) - y * Math.sin(a), gy = goc[1]! + x * Math.sin(a) + y * Math.cos(a);
-  let g: THREE.BufferGeometry; let cy = z + c / 2; let sy = c;
-  if (p.hinh === 'hop') g = new THREE.BoxGeometry(1, 1, 1);
-  else if (p.hinh === 'vom') { g = new THREE.SphereGeometry(0.5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2); cy = z; sy = c * 2; }
-  else g = new THREE.SphereGeometry(0.5, 32, 16);
-  const o = new THREE.Mesh(g, m);
-  // Nghiêng quanh trục x của khối TRƯỚC rồi mới xoay quanh trục đứng (như Blender Euler XYZ) → thứ tự 'YXZ' của three.
-  o.position.copy(V([gx, gy, cy])); o.scale.set(w, sy, dd); o.rotation.order = 'YXZ'; o.rotation.y = ((xoay + (p.xoay ?? 0)) * Math.PI) / 180; o.rotation.x = ((p.nghieng ?? 0) * Math.PI) / 180;
-  return o;
-}
-
-/** Nhân vật / đạo cụ ở một chỗ — cùng luật dung-set.py › nhan_vat: quay theo huong, có mắt nếu khối khai `mat`, nằm thì cao thành sâu. */
-function nhanVat(k: Khoi & { mat?: boolean; phan?: Phan[]; sang?: number }, vt: { tam: number[]; huong?: number; nam?: boolean }, mo = 1): THREE.Group {
-  const g = new THREE.Group();
-  const [X, Y, Z] = [vt.tam[0]!, vt.tam[1]!, vt.tam[2] ?? 0];
-  let [w, d, h] = k.co as [number, number, number];
-  if (vt.nam) [d, h] = [h, d];
-  const hg = vt.huong ?? 0;
-  g.add(khoi({ hinh: k.hinh, co: [w, d, h], mau: k.mau, sang: k.sang, tam: [0, 0, Z] }, [X, Y], hg, mo));
-  const phan: Phan[] = vt.nam ? [] : [...(k.phan ?? [])];
-  if (k.mat) {
-    const e = Math.max(0.3, 0.26 * Math.min(w, h)); const ex = 0.22 * w;
-    const [ey, ez] = vt.nam ? [-d * 0.25, h - e * 0.3] : [-d / 2 + e * 0.15, h * 0.62 - e / 2];
-    for (const sx of [-1, 1]) {
-      phan.push({ hinh: 'cau', co: [e, e, e], mau: '#ffffff', tam: [sx * ex, ey, ez] });
-      phan.push({ hinh: 'cau', co: [e * 0.5, e * 0.5, e * 0.5], mau: '#111111', tam: vt.nam ? [sx * ex, ey - e * 0.2, ez + e * 0.45] : [sx * ex, ey - e * 0.38, ez + e * 0.25] });
-    }
-  }
-  for (const p of phan) g.add(khoi({ ...p, tam: [p.tam![0]!, p.tam![1]!, p.tam![2]! + Z] }, [X, Y], hg, mo));
-  return g;
-}
 
 const nhan = (chu: string, mau = 'rgba(0,0,0,.65)') => {
   const el = document.createElement('span');
@@ -101,37 +49,13 @@ export function BoSetXem({ tapId, canhId, gon }: { tapId: number; canhId?: numbe
     const r = new THREE.WebGLRenderer({ antialias: true }); r.setPixelRatio(Math.min(2, window.devicePixelRatio));
     const nhanR = new CSS2DRenderer(); nhanR.domElement.style.cssText = 'position:absolute;inset:0;pointer-events:none';
     el.append(r.domElement, nhanR.domElement);
-    const canh = new THREE.Scene(); canh.background = new THREE.Color('#3a3b44');
-    canh.add(new THREE.HemisphereLight('#ffffff', '#5a4a3a', 1.6));
-    const den = new THREE.DirectionalLight('#ffffff', 1.4); den.position.set(60, 120, 80); canh.add(den);
     const may = new THREE.PerspectiveCamera(40, 1, 0.1, 3000);
     const dk = new OrbitControls(may, r.domElement); dk.enableDamping = true;
-
-    // Bộ set
-    // Đồ tuỳ chọn (laptop): có ở shot đang chọn khi shot khai them; xem toàn set thì hiện mờ.
-    const them = new Set(shot?.may_3d?.them ?? []);
-    for (const v of set.du_lieu.vat) {
-      if (v.tuy_chon && shot && !them.has(v.ten)) continue;
-      const mo = v.tuy_chon && !shot ? 0.35 : 1;
-      const g = new THREE.Group();
-      if ('phan' in v) for (const p of v.phan) g.add(khoi(p as Phan, v.goc, v.xoay ?? 0, mo));
-      else g.add(khoi(v as Phan, undefined, 0, mo));
-      canh.add(g);
-      if (coNhan && !v.nen) {
-        const hop = new THREE.Box3().setFromObject(g); const l = nhan(v.tuy_chon ? `${v.ten} (tuỳ chọn)` : v.ten); l.position.set((hop.min.x + hop.max.x) / 2, hop.max.y + 0.6, (hop.min.z + hop.max.z) / 2); canh.add(l);
-      }
-    }
-    const kh = (t: string) => dl.khoi[t] as (Khoi & { mat?: boolean; phan?: Phan[] }) | undefined;
-    // Shot đang chọn: chỗ MỞ đặc + chỗ KẾT mờ + vạch nối
-    if (shot?.may_3d) for (const v of shot.may_3d.vi_tri) {
-      const k = kh(v.ten); if (!k) continue;
-      canh.add(nhanVat(k, v));
-      if (coNhan) { const l = nhan(v.ten, 'rgba(220,38,38,.85)'); l.position.copy(V([v.tam[0]!, v.tam[1]!, (v.tam[2] ?? 0) + (k.co[2] ?? 2) + 1])); canh.add(l); }
-      if (v.den) {
-        canh.add(nhanVat(k, { tam: v.den, huong: v.huong_den ?? v.huong, nam: v.nam }, 0.35));
-        canh.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([V([v.tam[0]!, v.tam[1]!, (v.tam[2] ?? 0) + 0.3]), V([v.den[0]!, v.den[1]!, (v.den[2] ?? 0) + 0.3])]), new THREE.LineBasicMaterial({ color: k.mau })));
-      }
-    }
+    const kh = (t: string) => dl.khoi[t] as KhoiNv | undefined;
+    // Bộ set + shot đang chọn (chỗ MỞ đặc, chỗ KẾT mờ) — cùng bộ dựng với ô 3D trên lưới (bo-set-three.ts).
+    const nhanCho: CSS2DObject[] = [];
+    const canh = dungCanhShot(set, kh, shot?.may_3d ?? null, coNhan ? (chu, mau, vt) => { const l = nhan(chu, mau); l.position.copy(vt); nhanCho.push(l); } : undefined);
+    for (const l of nhanCho) canh.add(l);
     // Đường đi cả tập (cùng luật ngắt nét với mặt bằng)
     if (duongDi) {
       const doan = new Map<string, number[][][]>();
@@ -166,7 +90,7 @@ export function BoSetXem({ tapId, canhId, gon }: { tapId: number; canhId?: numbe
         const s = shots.find((x) => x.id === c)?.may_3d as May3d | undefined;
         if (qm && s) {
           // Cùng ống kính với Blender (cảm biến 36 mm theo chiều dài hơn của khung).
-          may.fov = (2 * Math.atan((doc ? 18 : 18 * 9 / 16) / s.ong_kinh) * 180) / Math.PI;
+          may.fov = fovMay(s.ong_kinh, doc);
           may.position.copy(V(s.dat)); dk.target.copy(V(s.nhin));
         } else {
           may.fov = 40;
@@ -186,7 +110,7 @@ export function BoSetXem({ tapId, canhId, gon }: { tapId: number; canhId?: numbe
       goc.current = { khoa, vt: may.position.clone(), dich: dk.target.clone() };
       cancelAnimationFrame(raf); ro.disconnect(); dk.dispose();
       r.domElement.removeEventListener('pointerdown', xuong); r.domElement.removeEventListener('pointerup', len);
-      canh.traverse((o) => { if (o instanceof THREE.Mesh) o.geometry.dispose(); });
+      huyCanh(canh);
       r.dispose(); el.replaceChildren(); banh.current = null;
     };
   }, [dl, set, shot, chon, quaMay, duongDi, coNhan, moiMay, shots, doc]);

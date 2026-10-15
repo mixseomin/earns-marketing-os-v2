@@ -18,6 +18,7 @@ import { KyThuatApDung } from './thu-vien';
 import { boSetCuaShot, loiMachTap, canhBaoMachTap } from '@/lib/xuong-video/bo-set-3d';
 import { NhanKhung3D } from './kiem-khung-noi';
 import { ChipMurch } from './diem-murch-noi';
+import { Khung3DSong } from './khung-3d-song';
 import { diemMurchTap, diemMurchCanh } from '@/lib/xuong-video/diem-murch';
 
 /** Tên ngắn của một key thư viện (bỏ phần ngành trong ngoặc). */
@@ -125,17 +126,16 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                 {/* Ô 3D có ở MỌI thẻ, cùng cỡ, dính chân thẻ (thẻ là cột flex, dòng chuyển cảnh marginTop:auto) → khung 3D các thẻ thẳng một hàng. */}
                 {hien !== 'kf' && (boSetCuaShot(c, nhanVat) == null
                   ? <div className="xv-mono" style={{ aspectRatio: doc ? '9 / 16' : '16 / 9', display: 'grid', placeItems: 'center', padding: 8, fontSize: 10, color: 'var(--fg-4)', borderTop: '1px solid var(--line)', textAlign: 'center' }} title="Shot không gắn bối cảnh nào có bộ set 3D">🧊 ngoài bộ set 3D</div>
-                  : c.khung_xam
-                  ? <div role="button" tabIndex={0} title="Bấm để xoay xem 3D đúng máy của shot này" onClick={(e) => { e.stopPropagation(); moNgan({ loai: 'bo-set', tapId: tap.id, canhId: c.id }); }} onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); e.preventDefault(); moNgan({ loai: 'bo-set', tapId: tap.id, canhId: c.id }); } }}
-                      style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: `center / cover no-repeat url(${anhNho(c.khung_xam.mau ?? c.khung_xam.xam, coAnh)}), #222`, borderTop: '1px solid var(--line)', cursor: 'zoom-in' }}>
-                      <NhanKhung3D c={c} loi={lienMach[c.id] ?? []} canhBao={canhBao[c.id] ?? []} /><ChipMurch d={diemM[c.id]} canh={tbM.canh[c.phan_doan]} tap={tbM.tap} soShot={c.thu_tu} />
-                      {/* NHÃN TÊN từng khối (khung_xam.thay, đo bằng lưới tia) — khối nào là gì đọc được ngay, không đoán bằng mắt (anh 14/10/2026: khối vàng
-                          ở cảnh 6–7 tưởng là tay Gã khổng lồ). Chỉ gắn khi ô cùng tỉ lệ khung dọc của khung xám (cover không cắt) — khổ ngang xem ở tooltip. */}
-                      {doc && (c.khung_xam.thay ?? []).filter((t) => t.pt >= 4).slice(0, 7).map((t) => (
+                  : c.may_3d
+                  ? <Khung3DSong tapId={tap.id} setId={boSetCuaShot(c, nhanVat)!} may={c.may_3d} doc={doc} onMo={() => moNgan({ loai: 'bo-set', tapId: tap.id, canhId: c.id })}
+                      nhanKhoi={doc && (c.khung_xam?.thay ?? []).filter((t) => t.pt >= 4).slice(0, 7).map((t) => (
                         <span key={t.ten} className="xv-mono" style={{ position: 'absolute', left: `${((t.hop[0] + t.hop[2]) / 2) * 100}%`, top: `${((t.hop[1] + t.hop[3]) / 2) * 100}%`, transform: 'translate(-50%, -50%)', fontSize: 8, lineHeight: 1.2, padding: '0 3px', borderRadius: 3, whiteSpace: 'nowrap', pointerEvents: 'none', background: t.tien ? 'rgba(220,38,38,.85)' : 'rgba(0,0,0,.6)', color: '#fff' }}>{t.ten}</span>
-                      ))}
-                    </div>
-                  : <div className="xv-mono" style={{ aspectRatio: doc ? '9 / 16' : '16 / 9', display: 'grid', placeItems: 'center', padding: 8, fontSize: 10, color: 'var(--amber)', border: '1px dashed var(--line)', textAlign: 'center' }}>🧊 {c.may_3d ? 'chưa dựng khung 3D' : 'chưa đặt máy 3D'}</div>)}
+                      ))}>
+                      {/* Ô vẽ SỐNG từ bộ set + may_3d hiện tại (khung-3d-song.tsx) — không còn ảnh render cũ. Nhãn khối: khung_xam.thay đo bằng lưới tia
+                          (anh 14/10/2026: khối vàng ở cảnh 6–7 tưởng là tay Gã khổng lồ), chỉ gắn ở khung dọc và khi chưa xoay. */}
+                      <NhanKhung3D c={c} loi={lienMach[c.id] ?? []} canhBao={canhBao[c.id] ?? []} /><ChipMurch d={diemM[c.id]} canh={tbM.canh[c.phan_doan]} tap={tbM.tap} soShot={c.thu_tu} />
+                    </Khung3DSong>
+                  : <div className="xv-mono" style={{ aspectRatio: doc ? '9 / 16' : '16 / 9', display: 'grid', placeItems: 'center', padding: 8, fontSize: 10, color: 'var(--amber)', border: '1px dashed var(--line)', textAlign: 'center' }}>🧊 chưa đặt máy 3D</div>)}
               </button>
             );
           });

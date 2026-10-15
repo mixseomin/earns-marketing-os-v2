@@ -8,6 +8,7 @@ import { type Db, type Row, n, s } from './doc-db';
 import { timO, dienSau, dsOTemplate, type OTemplateDs } from './template';
 import { ghepThoai, type CauHinhTemplate, type DongThoai, type KinhThanh } from './kieu';
 import { thamKhaoSauDien, type NguonThamKhao, type ThamKhaoCau } from './tham-khao';
+import { ganCtaTuDong } from './cta-db';
 
 const BO = new Set(['id', 'created_at', 'updated_at']);
 /** cột media của shot: còn đúng khi nội dung shot (chữ, prompt, anchor) không đổi */
@@ -60,7 +61,7 @@ export async function chepPhim(db: Db, nguonId: number, o: { ten: string; gt: Re
   const d = await docCaPhim(db, nguonId);
   if (!d) return null;
   const gt = o.gt;
-  return db.transaction(async (tx) => {
+  const kq = await db.transaction(async (tx) => {
     const t = tx as unknown as Db;
     // phim
     const ktCu = (d.phim.kinh_thanh ?? {}) as KinhThanh;
@@ -110,11 +111,14 @@ export async function chepPhim(db: Db, nguonId: number, o: { ten: string; gt: Re
     }
     return { phimId, soShot: d.canh.length, giuMedia, nhapLai };
   });
+  // QC mới: kiểu CTA ít dùng nhất cho cùng sản phẩm (thư viện CTA, cta-db.ts) → các video không trùng CTA
+  if (!o.laTemplate) await ganCtaTuDong(db, kq.phimId);
+  return kq;
 }
 
 /** ĐIỀN LẠI CHỮ từ template (anh 15/10/2026: câu chữ QC phải viết lại theo nguồn tham khảo): phim đã tạo từ template nhận giá trị ô mới + nguồn
  *  theo ô → mỗi shot lấy lại chữ màn + lời từ shot template cùng vị trí (tập theo thứ tự, shot theo thu_tu + nhánh), gắn tham_khao.
- *  CHỈ chữ: keyframe / clip giữ nguyên; câu lời đổi thì bỏ file giọng câu đó (phải sinh giọng lại). Trả số shot đổi + số câu cần giọng mới. */
+ *  CHỈ chữ (kiểu chữ CTA của phim giữ nguyên — cta-db.ts): keyframe / clip giữ nguyên; câu lời đổi thì bỏ file giọng câu đó (phải sinh giọng lại). Trả số shot đổi + số câu cần giọng mới. */
 export async function dienLaiChu(db: Db, phimId: number, o: { gt: Record<string, string>; tk: Record<string, NguonThamKhao[]> }): Promise<{ shot: number; canGiong: number; lech: string[] } | null> {
   const phim = (await q(db, sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`))[0];
   const kt = (phim?.kinh_thanh ?? {}) as KinhThanh;

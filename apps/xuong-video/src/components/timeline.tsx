@@ -25,7 +25,10 @@ import { lopMoi, idLop, tenLop, tenNhom, chonLopMoi, nhomCua, gopNhom, boNhom, l
 import { useLop, LopXem, LopCongCu, LopNguyenLieu, LopBang, LopNhieu, KhoiLop, KhungHieuUng } from './lop-ui';
 import { moNgan } from './ngan-chung';
 import { useKichThuoc, TayKeo } from './keo';
-import { anhNho } from '@/lib/xuong-video/anh-nho';import { ThamKhaoShot } from './tham-khao-ui';
+import { anhNho } from '@/lib/xuong-video/anh-nho';
+import { ThamKhaoShot } from './tham-khao-ui';
+import { ChonCta } from './cta-ui';
+import { laShotCta } from '@/lib/xuong-video/cta';
 
 
 const MAU_NV = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#4ade80', '#fb923c', '#60a5fa'];
@@ -39,9 +42,9 @@ export type SinhTaiCho = {
   giong: (canhId: number, tuy: TuyGiong) => void; sfx: (canhId: number, tuy: TuyAm) => void; nhac: (phanDoan: string | undefined, model: string, moTa: string) => void;
   mhNhac: string; ban: (k: string) => boolean; dangPhanDoan: string[]; dangCaTap: boolean;
 };
-export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, laQc, onDoiChuyenCanh, onDoiKyThuat, onKhopNhip, onKhopGiong, theShot }: {
+export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, laQc, onDoiCta, onDoiChuyenCanh, onDoiKyThuat, onKhopNhip, onKhopGiong, theShot }: {
   /** thẻ shot đang chọn (CanhRow) — hiện ở panel THUỘC TÍNH khi không chọn lớp nào, như panel Properties của After Effects */ theShot?: ReactNode;
-  canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null; qc?: ThongTinQc | null; /** phim quảng cáo → câu chữ thiếu nguồn tham khảo hiện đỏ */ laQc?: boolean;
+  canh: Canh[]; nhanVat: NhanVat[]; tap: Tap; tiLe: string; ngonNgu: string; chon: number | null; qc?: ThongTinQc | null; /** phim quảng cáo → câu chữ thiếu nguồn tham khảo hiện đỏ */ laQc?: boolean; /** đổi kiểu CTA của phim (thư viện CTA) */ onDoiCta?: (key: string) => void;
   onChon: (id: number) => void; onDoiGiay: (id: number, giay: number) => void;
   /** đổi chuyển cảnh SAU shot id (ky_thuat.chuyen_canh; '' = cắt thẳng) và/hoặc số giây đặt tay (giay: undefined = giữ, null = về mặc định) */ onDoiChuyenCanh?: (id: number, key: string, giay?: number | null) => void; onXep: (ids: number[]) => void; onToanManHinh: () => void; sinh?: SinhTaiCho;
   /** khớp điểm cắt vào phách nhạc nền — trả câu báo */ onKhopNhip?: () => Promise<string>;
@@ -442,6 +445,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           <LopNguyenLieu t={t} anh={anhSan} onThem={themLop} />
           {c && <button type="button" className="xv-lienket xv-mono" style={{ textAlign: 'left' }} onClick={() => moNgan({ loai: 'kho', dich: { canhId: c.id } })}>📦 Kho tài sản → clip / keyframe cho shot này</button>}
           {c && (c.keyframe_url || c.video_url) && <button type="button" className="xv-lienket xv-mono" style={{ textAlign: 'left' }} onClick={() => moNgan({ loai: 'nguon', canhId: c.id })}>🔗 Nguồn của shot này</button>}
+          {c && laQc && onDoiCta && laShotCta(c.phan_doan) && <ChonCta hienTai={qc?.cta} onDoi={onDoiCta} />}
           {c && <ThamKhaoShot c={c} laQc={!!laQc} />}
         </aside>
         <TayKeo truc="x" onPointerDown={panTrai.keo('x')} onDoubleClick={panTrai.veMacDinh} />

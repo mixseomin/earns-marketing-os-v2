@@ -1,0 +1,140 @@
+{
+ "mo_ta": "Thư viện kiểu chữ CTA / ưu đãi / end card cho QC. Mỗi kiểu học từ một QC đang thắng (spy). Phim mới tự lấy kiểu ít dùng nhất cho cùng sản phẩm; đổi trên panel shot.",
+ "ds": [
+  {
+   "key": "vang_dap",
+   "ten": "Băng vàng đập",
+   "mo_ta": "Ô nền vàng đặc, chữ đen to, đập vào — ưu đãi khác hẳn phụ đề thường.",
+   "kieu": {
+    "nen": "#FFD400",
+    "mau": "#111111",
+    "co": 0.085,
+    "vao": "dap"
+   },
+   "nguon": [
+    {
+     "loai": "qc_thang",
+     "nguon": "qc_meta",
+     "trich": "end card \"buy 1 + get a FREE! Mystery Gift\": chữ ưu đãi nằm trong khung nổi riêng, tách khỏi phụ đề",
+     "ma": "1366036454891224",
+     "link": "https://www.facebook.com/ads/library/?id=1366036454891224",
+     "ghi": "Sculpt Touch Active · x9 · 321 ngày",
+     "ky_thuat": "ưu đãi trong khung màu"
+    }
+   ]
+  },
+  {
+   "key": "do_free",
+   "ten": "Đỏ FREE",
+   "mo_ta": "Ô nền đỏ, chữ trắng, đập — kiểu nhãn \"FREE!\".",
+   "kieu": {
+    "nen": "#E11D2E",
+    "mau": "#FFFFFF",
+    "co": 0.09,
+    "vao": "dap"
+   },
+   "nguon": [
+    {
+     "loai": "qc_thang",
+     "nguon": "qc_meta",
+     "trich": "nhãn \"FREE!\" chữ trắng trên khung đỏ ở thẻ ưu đãi Labor Day",
+     "ma": "1366036454891224",
+     "link": "https://www.facebook.com/ads/library/?id=1366036454891224",
+     "ghi": "Sculpt Touch Active · x9 · 321 ngày",
+     "ky_thuat": "nhãn đỏ cho chữ miễn phí"
+    }
+   ]
+  },
+  {
+   "key": "hong_the",
+   "ten": "Thẻ hồng serif",
+   "mo_ta": "Ô nền hồng, chữ đen serif đậm, nảy — kiểu thẻ khuyến mãi mùa.",
+   "kieu": {
+    "nen": "#F9A8D4",
+    "mau": "#111111",
+    "co": 0.08,
+    "vao": "bat",
+    "font": "Playfair Display Black"
+   },
+   "nguon": [
+    {
+     "loai": "qc_thang",
+     "nguon": "qc_meta",
+     "trich": "thẻ \"LABOR DAY SPECIALS\": nền hồng phủ kín, chữ đen serif đậm",
+     "ma": "1366036454891224",
+     "link": "https://www.facebook.com/ads/library/?id=1366036454891224",
+     "ghi": "Sculpt Touch Active · x9 · 321 ngày",
+     "ky_thuat": "thẻ ưu đãi nền màu"
+    }
+   ]
+  },
+  {
+   "key": "ngoc_pill",
+   "ten": "Viên ngọc chữ trắng",
+   "mo_ta": "Ô nền xanh ngọc, chữ trắng, nảy — kiểu pill nhãn.",
+   "kieu": {
+    "nen": "#14B8A6",
+    "mau": "#FFFFFF",
+    "co": 0.078,
+    "vao": "bat"
+   },
+   "nguon": [
+    {
+     "loai": "qc_thang",
+     "nguon": "qc_meta",
+     "trich": "chữ trắng trên ô nền xanh ngọc (\"zero worries / nothing gets wet\"), end card nền màu thương hiệu",
+     "ma": "1361632812598559",
+     "link": "https://www.facebook.com/ads/library/?id=1361632812598559",
+     "ghi": "Huggea · x17 · 87 ngày",
+     "ky_thuat": "chữ trong ô màu thương hiệu"
+    }
+   ]
+  },
+  {
+   "key": "trang_vien_to",
+   "ten": "Trắng viền đen to",
+   "mo_ta": "Không nền, chữ trắng to viền đen dày, đập — kiểu dòng ưu đãi của creator.",
+   "kieu": {
+    "mau": "#FFFFFF",
+    "vien": "#000000",
+    "vien_day": 0.14,
+    "co": 0.095,
+    "vao": "dap"
+   },
+   "nguon": [
+    {
+     "loai": "qc_thang",
+     "nguon": "qc_meta",
+     "trich": "dòng chốt \"Try the tanks TODAY for ONLY $10 each Sale ends SOON!\" chữ trắng to viền đen, tách khỏi phụ đề nhỏ",
+     "ma": "1057153196767774",
+     "link": "https://www.facebook.com/ads/library/?id=1057153196767774",
+     "ghi": "Shaperluv · x7 · 75 ngày",
+     "ky_thuat": "dòng ưu đãi to riêng"
+    }
+   ]
+  },
+  {
+   "key": "cam_sang",
+   "ten": "Cam sáng",
+   "mo_ta": "Không nền, chữ cam sáng viền nâu đậm, đập.",
+   "kieu": {
+    "mau": "#FF9A1F",
+    "vien": "#2A1200",
+    "vien_day": 0.12,
+    "co": 0.09,
+    "vao": "dap"
+   },
+   "nguon": [
+    {
+     "loai": "qc_thang",
+     "nguon": "qc_meta",
+     "trich": "chữ \"DON'T\" màu cam phát sáng mở video — màu nóng nổi trên nền tối",
+     "ma": "1366036454891224",
+     "link": "https://www.facebook.com/ads/library/?id=1366036454891224",
+     "ghi": "Sculpt Touch Active · x9 · 321 ngày",
+     "ky_thuat": "màu chữ nóng"
+    }
+   ]
+  }
+ ]
+}

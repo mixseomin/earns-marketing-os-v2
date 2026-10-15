@@ -9,7 +9,7 @@ import { moNgan } from './ngan-chung';
 import { MO_HINH_AM } from '@/lib/xuong-video/am-thanh';
 import { quyTrinh, phimQt } from '@/lib/xuong-video/quy-trinh';
 import { kiemQc } from '@/lib/xuong-video/kiem-qc';
-import { luuKhuonTap, apDiemNhan, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, xuatLongTiengVi, daDangMayTap, trangThaiXuat, khopNhipNhac, khopGiongTapAction } from '@/lib/actions';
+import { luuKhuonTap, apDiemNhan, dsCanh, suaTap, vietKichBanTap, tachCanhTap, suaCanh, themCanh, sinhKeyframe, uocTien, sinhVideoCanh, kiemVideo, xepCanh, sinhGiong, sinhAmThanh, sinhNhac, uocAm, goiYAIBrief, xuatTap, xuatLongTiengVi, daDangMayTap, trangThaiXuat, khopNhipNhac, khopGiongTapAction, doiCta } from '@/lib/actions';
 import { thanhPhanCanh, docKinhThanh, giaChuCents, tien, thieuQc, giayPhat, cacNhanh, locNhanh, thoiLuongMacDinh, gioVN, coMau, giayMau, banHien, type Phim, type NhanVat, type Tap, type Canh } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, TabPhim, KqChay, O, Nut, Loi, Menu, MucMenu, mono, goiAction } from './ui';
@@ -330,7 +330,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
             const cc = canhNhanh.find((x) => x.id === chonCanh) ?? canhNhanh[0]!;   // thẻ shot bên dưới luôn sửa bản GỐC
             return (
               <>
-                <Timeline canh={xemVi && vi ? vi.canh : canhNhanh} nhanVat={nhanVat} tap={tap} qc={kt.qc} laQc={phim.loai === 'quang_cao'} tiLe={kt.ti_le} ngonNgu={xemVi ? 'vi' : kt.ngon_ngu} chon={cc.id} onChon={setChonCanh} onToanManHinh={() => setAnimatic(true)}
+                <Timeline canh={xemVi && vi ? vi.canh : canhNhanh} nhanVat={nhanVat} tap={tap} qc={kt.qc} laQc={phim.loai === 'quang_cao'} onDoiCta={(key) => void chay('cta', () => doiCta(phim.id, key))} tiLe={kt.ti_le} ngonNgu={xemVi ? 'vi' : kt.ngon_ngu} chon={cc.id} onChon={setChonCanh} onToanManHinh={() => setAnimatic(true)}
                   // Kéo mép = đổi giây PHÁT: ngắn hơn clip là cắt (không tốn tiền); dài hơn clip thì clip phải sinh lại dài hơn.
                   onDoiGiay={(id, g) => void chay(`c${id}`, () => { const c0 = canh.find((x) => x.id === id); return suaCanh(id, { phat_s: g, ...(c0 && g > (c0.thoi_luong_s || 4) ? { thoi_luong_s: Math.ceil(g) } : {}) }); })}
                   onKhopGiong={async () => { const r = await khopGiongTapAction(tap.id); await taiCanh(); await onChanged(); return r.ok ? `⏱ ${r.data.doi} shot đổi giây theo giọng · tổng ${r.data.tong}s${r.data.thieu ? ` · ${r.data.thieu} shot chưa có giọng` : ''}` : `⏱ ${r.loi}`; }}

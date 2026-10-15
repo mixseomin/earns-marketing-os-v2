@@ -36,6 +36,7 @@ import type { BanXuat, BoSet, May3d } from '@/lib/xuong-video/kieu';
 import { boSetCuaShot } from '@/lib/xuong-video/bo-set-3d';
 import { mapBoSet } from '@/lib/xuong-video/bo-set-3d-may';
 import { chupTruoc, ganNhat, hoanTacGanNhat, type MucHoanTac } from '@/lib/xuong-video/hoan-tac';
+import { apCtaPhim } from '@/lib/xuong-video/cta-db';
 import { docPhimDich, uocDichCents, chayDichPhim } from '@/lib/xuong-video/dich-phim';
 import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-video/kieu';
 import { type Row, n, s, arr, mangInt, nguCanhPhimDb, mapBienThe, mapNhanVat, mapTap, mapCanh, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
@@ -1356,6 +1357,14 @@ export async function apDiemNhan(tapId: number): Promise<Kq<{ lop: number; tieng
     await db.execute(sql`UPDATE xv_canh SET ky_thuat = ${JSON.stringify({ ...(c.ky_thuat ?? {}), am_thanh: kq.am[i] })}::jsonb, updated_at = now() WHERE id = ${c.id}`);
   }
   return { ok: true, data: { lop: kq.lop.filter((l) => l.loai === 'hieu_ung').length, tieng: kq.am.flat().length } };
+}
+/** 🎯 Đổi kiểu CTA của phim (thư viện CTA, mau/cta.json): mọi shot ưu đãi / CTA / end card nhận kiểu chữ mới. 0đ, có ↶ hoàn tác. */
+export async function doiCta(phimId: number, key: string): Promise<Kq<{ shot: number }>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const r = await apCtaPhim(db, phimId, key, await ai());
+  return r ? { ok: true, data: { shot: r.shot } } : loi('không có kiểu CTA này');
 }
 /** Lưu cả tập làm khuôn QC trong kho. */
 export async function luuKhuonTap(tapId: number): Promise<Kq<number>> {

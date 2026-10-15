@@ -198,6 +198,7 @@ export type ThongTinQc = {
   ten: string; link: string; diem_noi_bat: string; doi_tuong: string; uu_dai: string; thi_truong: string; anh: string[];
   /** QC mẫu làm khuôn (tuỳ chọn). logo_url = logo chèn góc trên phải khi xuất. vi_tri_chu = chỗ đặt chữ màn. */
   mau?: MauQc; logo_url?: string; vi_tri_chu?: ViTriChu; kieu_chu?: KieuChu;
+  /** kiểu CTA đang dùng (thư viện CTA — cta.ts, mau/cta.json) */ cta?: string;
 };
 export const QC_TRONG: ThongTinQc = { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] };
 /** Bài đăng đi kèm video trên Meta/TikTok (văn bản chính · tiêu đề · mô tả · nút) — Claude viết theo QC mẫu, lưu ở tập. */

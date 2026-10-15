@@ -22,11 +22,12 @@ export const ID_LOP_CAT_NEN = 'cat-nen';
 
 /** Prompt ảnh người nền xanh: một dáng cố định, cầm sản phẩm, nền xanh phẳng không bóng. Thuần. */
 export function promptCatNen(nv: Pick<NhanVat, 'ten' | 'mo_ta'>, dang: string, sp: Pick<NhanVat, 'ten' | 'mo_ta'>[], soRefNguoi: number, soRefSp: number): string {
-  const refNguoi = soRefNguoi ? `Reference image${soRefNguoi > 1 ? `s 1–${soRefNguoi}` : ' 1'} show the person — keep the SAME face, hair, age, skin and body type. ` : '';
-  const refSp = soRefSp ? `Reference image${soRefSp > 1 ? `s ${soRefNguoi + 1}–${soRefNguoi + soRefSp}` : ` ${soRefNguoi + 1}`} show the product — copy it EXACTLY, never a generic version. ` : '';
+  const refNguoi = soRefNguoi ? `Reference image${soRefNguoi > 1 ? `s 1–${soRefNguoi} show` : ' 1 shows'} the person — keep the SAME face, hair, age, skin and body type. ` : '';
+  const refSp = soRefSp ? `Reference image${soRefSp > 1 ? `s ${soRefNguoi + 1}–${soRefNguoi + soRefSp} show` : ` ${soRefNguoi + 1} shows`} the product — copy it EXACTLY, never a generic version. ` : '';
+  // Dáng quyết định cầm gì (ô "dang"); danh sách sản phẩm chỉ để nhận diện — kẻo model nhét cả túi mở lẫn hộp gấp vào tay (15/10/2026).
   return [
-    `Full-body studio photo for green-screen compositing, vertical 9:16. ${nv.ten}: ${nv.mo_ta}. Pose: ${dang}.`,
-    sp.length ? `Product in hand: ${sp.map((s) => `${s.ten} — ${s.mo_ta}`).join(' | ')}.` : '',
+    `Full-body studio photo for green-screen compositing, vertical 9:16. ${nv.ten}: ${nv.mo_ta}. Pose: ${dang}. She holds exactly what the pose describes and nothing else.`,
+    sp.length ? `Product identity for reference (only the item named in the pose appears): ${sp.map((s) => `${s.ten} — ${s.mo_ta}`).join(' | ')}.` : '',
     refNguoi + refSp,
     `Background: completely flat, uniform pure chroma green ${MAU_XANH_NEN} filling the entire frame edge to edge; no floor line, no horizon, no shadow cast on the background, no green light spill on the person.`,
     'Even soft frontal studio lighting, sharp focus, feet fully visible with a small margin below, person centered and about 85% of frame height, facing the camera, natural relaxed expression.',

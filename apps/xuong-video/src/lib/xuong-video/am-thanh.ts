@@ -67,9 +67,11 @@ export const dungTiengClip = (c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' |
 /** Tiếng clip có PHÁT trong bản xuất / xem trước không: ngoài ca nhân vật nói chưa có giọng riêng (dungTiengClip), shot KHÔNG CÓ LỜI NÀO
  *  (không thoại, không lời dẫn) cũng giữ tiếng gốc — tiếng cười, tiếng động thật là khoảnh khắc của shot (15/10/2026: shot 10 phim #35
  *  "tiếng cười hơi bé" — thực ra bị bỏ hẳn). Shot có lời dẫn vẫn tắt tiếng clip: clip AI hay tự chèn tiếng nói lạ ("Ouch!", "Ugh"). Chỉ quyết
- *  PHÁT; việc có SINH tiếng khi tạo clip vẫn theo dungTiengClip (không tốn thêm). */
-export const phatTiengClip = (c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url' | 'am_thanh_url'>, nv: NhanVat[]): boolean =>
-  dungTiengClip(c, nv) || (!c.am_thanh_url && !dongThoai(c, nv).some((d) => d.loi.trim()));
+ *  PHÁT; việc có SINH tiếng khi tạo clip vẫn theo dungTiengClip (không tốn thêm).
+ *  Shot không lời chỉ giữ tiếng clip khi kịch bản GHI tiếng thật cần nghe ở ô "Âm thanh" (c.am_thanh, vd "tiếng cười cả nhóm"): 15/10/2026 phim #36
+ *  bật mặc định thì shot 4/5 ra tiếng đập "hụp" Veo tự bịa, shot 8 ra cả bài nhạc riêng của Veo chồng lên nhạc nền, mức chỉ dưới giọng 2 dB. */
+export const phatTiengClip = (c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url' | 'am_thanh_url'> & Partial<Pick<Canh, 'am_thanh'>>, nv: NhanVat[]): boolean =>
+  dungTiengClip(c, nv) || (!c.am_thanh_url && !!c.am_thanh?.trim() && !dongThoai(c, nv).some((d) => d.loi.trim()));
 /** Giọng mặc định khi nhân vật chưa chọn giọng cố định (model fal; máy chủ có khoá ElevenLabs riêng thì đổi sang ElevenLabs trực tiếp). */
 export const GIONG_MAC_DINH = { model: 'fal-ai/elevenlabs/tts/eleven-v3', voice: 'George' };
 /** Giá (cents) một câu đọc theo model giọng — MỘT luật cho nút, bảng ＋ và sổ chi phí. null = model không công bố giá

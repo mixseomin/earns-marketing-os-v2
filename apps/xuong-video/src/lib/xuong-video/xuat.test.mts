@@ -1,7 +1,7 @@
 // Tự kiểm bộ dựng lệnh ffmpeg của bản xuất. Chạy: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/xuat.test.mts
 import assert from 'node:assert';
 import { keHoachXuat, urlCanXuat, ngatDong, doanChuMan, tepAss, chuManHien, kiemGiongLoiDan, khoangIm, duoiNhac } from './xuat';
-import { lichGiong } from './am-thanh';
+import { lichGiong, phatTiengClip } from './am-thanh';
 import type { Canh, NhanVat } from './kieu';
 
 const nv = [{ id: 1, ten: 'Lan', loai: 'nhan_vat' }, { id: 2, ten: 'Bra', loai: 'san_pham' }] as unknown as NhanVat[];
@@ -174,7 +174,7 @@ console.log('xuat.test: mẫu ok');
 {
   const L = (url: string, dai: number, lufs?: number) => ({ ...nl(url, dai), lufs });
   const dan = (thu_tu: number, url: string, tre: number, giong = 'el|Sarah') => ({ ...canh[0]!, thu_tu, phat_s: 2, nhanh: '', video_url: 'https://x/c1.mp4', chu_man: '', thoai: [{ nhan_vat: '', dien_xuat: '', loi: 'x', url, tre, giong }] });
-  const im = { ...canh[0]!, thu_tu: 3, phat_s: 2, nhanh: '', video_url: 'https://x/c1.mp4', chu_man: '', thoai: [] };
+  const im = { ...canh[0]!, thu_tu: 3, phat_s: 2, nhanh: '', video_url: 'https://x/c1.mp4', chu_man: '', thoai: [], am_thanh: 'tiếng cười cả nhóm' };
   const noi = { ...canh[0]!, thu_tu: 4, phat_s: 2, nhanh: '', video_url: 'https://x/c4.mp4', chu_man: '', thoai: [{ nhan_vat: 'Lan', dien_xuat: '', loi: 'Veo tự nói câu này' }] };
   const nlA = [nl('https://x/c1.mp4', 4), nl('https://x/c4.mp4', 4), L('https://x/d1.mp3', 2.4, -22), L('https://x/d2.mp3', 1, -10), nl('https://x/n.mp3', 30)];
   const ds = [dan(1, 'https://x/d1.mp3', 0), dan(2, 'https://x/d2.mp3', 0), im, noi];
@@ -191,6 +191,8 @@ console.log('xuat.test: mẫu ok');
   // gốc (cười, tiếng động thật); shot có Lan nói mà chưa có giọng → lấy tiếng clip c4. c1 dùng chung cho 2 shot lời dẫn + shot im → đúng 1 lần.
   assert.strictEqual((l.match(new RegExp(`\\[${idx('c1.mp4')}:a\\]atrim`, 'g')) ?? []).length, 1, 'chỉ shot không lời phát tiếng clip, shot lời dẫn thì không');
   assert.ok(new RegExp(`\\[${idx('c4.mp4')}:a\\]atrim`).test(l), 'shot nhân vật nói (chưa có giọng) dùng tiếng clip');
+  // Shot không lời mà ô "Âm thanh" trống → tắt tiếng clip (Veo tự bịa tiếng đập / nhạc riêng — phim #36 15/10/2026).
+  assert.ok(!phatTiengClip({ ...im, am_thanh: '' } as never, nv) && phatTiengClip(im as never, nv));
   // Một tốc độ chung: câu 1 dài 2,4s, câu 2 vào ở 2s → cần 2,4/1,95 = 1,231× → CẢ HAI câu cùng ×1,231.
   assert.strictEqual((l.match(/atempo=1\.231,/g) ?? []).length, 2, l);
   // Mức to: -22 → +6 dB, -10 → -6 dB.

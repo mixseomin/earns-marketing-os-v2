@@ -267,7 +267,8 @@ export function keHoachXuat(o: {
     amShot.push({ am: c.ky_thuat?.am_thanh, tu: t, phat });
     // Tiếng clip đặt THEO GIỌNG (đo được) — clip ghi nhỏ không còn lọt thỏm dưới nhạc; chưa đo → giữ mức gốc.
     const lnClip = nl.get(nguon)?.lufs; const mucClip = lnClip != null && Number.isFinite(lnClip) && lnClip > -70 ? `,volume=${so(Math.max(-10, Math.min(18, LUFS_GIONG - LUFS_CLIP_DUOI_GIONG - lnClip)))}dB` : '';
-    if (laVideo && dungClip && !toc && nl.get(nguon)?.coAm) themAm(`[${k}:a]atrim=${so(boDau)}:${so(boDau + phat)},asetpts=PTS-STARTPTS${mucClip},adelay=${Math.round(t * 1000)}:all=1`);
+    // Fade 40/60 ms hai đầu: tiếng clip bật/tắt cắt ngang ở điểm cắt nghe như tiếng "bụp".
+    if (laVideo && dungClip && !toc && nl.get(nguon)?.coAm) themAm(`[${k}:a]atrim=${so(boDau)}:${so(boDau + phat)},asetpts=PTS-STARTPTS${mucClip},afade=t=in:d=0.04,afade=t=out:st=${so(Math.max(0, phat - 0.06))}:d=0.06,adelay=${Math.round(t * 1000)}:all=1`);
     const nangDoan = lopNang.filter((l) => l.tu < t + dai && l.den > t);
     if (!nangDoan.length) loc.push(`${ve.join(',')},settb=AVTB[v${i}]`);
     else {

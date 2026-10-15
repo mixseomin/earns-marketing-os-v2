@@ -50,10 +50,10 @@ console.log('sinh-anh.test: ok');
 {
   const { khungChu } = await import('./sinh-anh');
   const kx = { kiem: [{ nhan_vat: 'Tango', trong_khung: true, cao_khung_pt: 118, bi_che_boi: [] }, { nhan_vat: 'Lint', trong_khung: true, cao_khung_pt: 22, bi_che_boi: [] }],
-    thay: [{ ten: 'Tango', pt: 60, hop: [0.2, 0.1, 0.8, 0.9] }, { ten: 'Lint', pt: 4, hop: [0.7, 0.5, 0.9, 0.7] }] } as never;
+    thay: [{ ten: 'Tango', pt: 60, hop: [0.2, 0.05, 0.8, 0.95] }, { ten: 'Lint', pt: 4, hop: [0.7, 0.5, 0.9, 0.7] }] } as never;
   const c = khungChu(kx, ['Tango', 'Lint']);
-  assert.ok(/Tango fills the frame \(about 120%.*middle centre/.test(c), c);
-  assert.ok(/Lint is about 20% of the frame height, middle right/.test(c), c);
+  assert.ok(/Tango spans about 60% of the frame width and 90% of its height, middle centre — a close-up/.test(c), c);
+  assert.ok(/Lint spans about 20% of the frame width and 20% of its height, middle right;?/.test(c) && !/Lint[^;]*close-up/.test(c), c);
   assert.equal(khungChu(kx, ['Tango'], true), '', 'khung KẾT: số đo là của khung mở → không nói');
   assert.equal(khungChu(null, ['Tango']), '');
 }

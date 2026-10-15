@@ -217,15 +217,16 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
 }
 
 const vungEn = (x: number, y: number) => `${y < 0.36 ? 'upper' : y > 0.64 ? 'lower' : 'middle'} ${x < 0.36 ? 'left' : x > 0.64 ? 'right' : 'centre'}`;
-/** Câu FRAMING: "Tango about 85% of the frame height, middle centre (extreme close-up: …)". Thuần — kiểm ở sinh-anh.test. */
+/** Câu FRAMING: bề ngang + chiều cao PHẦN THẤY của từng nhân vật trên khung 3D (hộp thay, 0..1) + vùng. Đo cả hai chiều: nhân vật nằm bẹp
+ *  (#9 tập 19) thấp mà tràn ngang khung — chỉ đo chiều cao thì câu nói "30%" trong khi 3D là cận mặt. Thuần — kiểm ở sinh-anh.test. */
 export function khungChu(kx: Canh['khung_xam'] | null | undefined, ten: string[], ket = false): string {
-  if (ket || !kx?.kiem?.length || !ten.length) return '';
+  if (ket || !kx?.thay?.length || !ten.length) return '';
+  const tron = (x: number) => Math.max(5, Math.round(x * 20) * 5);
   const ds = ten.map((t) => {
-    const k = kx.kiem!.find((x) => x.nhan_vat === t && x.trong_khung); const th = (kx.thay ?? []).find((x) => x.ten === t);
-    if (!k || !th) return '';
-    const cao = Math.round(k.cao_khung_pt / 5) * 5; const vt = vungEn((th.hop[0] + th.hop[2]) / 2, (th.hop[1] + th.hop[3]) / 2);
-    return cao >= 80 ? `${t} fills the frame (about ${Math.min(cao, 150)}% of the frame height — an extreme close-up, the frame edges crop the body), ${vt}`
-      : `${t} is about ${Math.max(cao, 5)}% of the frame height, ${vt}`;
+    const th = (kx.thay ?? []).find((x) => x.ten === t); if (!th) return '';
+    const w = th.hop[2] - th.hop[0], h = th.hop[3] - th.hop[1]; const vt = vungEn((th.hop[0] + th.hop[2]) / 2, (th.hop[1] + th.hop[3]) / 2);
+    const co = `spans about ${tron(w)}% of the frame width and ${tron(h)}% of its height, ${vt}`;
+    return w >= 0.85 || h >= 0.85 ? `${t} ${co} — a close-up: ${t} fills the frame and the frame edges crop the body` : `${t} ${co}`;
   }).filter(Boolean);
   return ds.length ? `FRAMING measured on Image 1 — keep the same subject size and position, do NOT zoom out or in: ${ds.join('; ')}.` : '';
 }

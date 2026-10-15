@@ -41,7 +41,8 @@ import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-vi
 import { type Row, n, s, arr, mangInt, nguCanhPhimDb, mapBienThe, mapNhanVat, mapTap, mapCanh, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
 import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim, sinhAnhQcDb } from '@/lib/xuong-video/sinh-anh';
 import { khuonAnhQc, MO_HINH_ANH_QC, TI_LE_ANH_QC, type AnhQc } from '@/lib/xuong-video/anh-qc';
-import { docGocSpy, xepGocSpy, type GocSpy } from '@/lib/xuong-video/goc-spy';
+import { docGocSpy, xepGocSpy, nhomCuaGoc, type GocSpy } from '@/lib/xuong-video/goc-spy';
+import { sanPhamPhim } from '@/lib/xuong-video/nhom-phim';
 import { docOTemplate, chepPhim, type KetQuaChep, type ShotKhung } from '@/lib/xuong-video/template-db';
 import { diemNhan } from '@/lib/xuong-video/diem-nhan';
 import { MO_HINH_CONG, coCong, centsCong, chuoiAnh, chuoiVideo, taNguon, taNguonNgan, taThu, type CongKey, type NguonSinh } from '@/lib/xuong-video/cong-ai';
@@ -950,12 +951,25 @@ export async function dsGocSpy(sp: number): Promise<Kq<(GocSpy & { so_nhac: numb
   return { ok: true, data: r.data.filter((g) => String(g.loai).startsWith('ai_')).map((g) => ({ id: Number(g.id), sp, loai: g.loai, ten: g.ten, mo_ta: g.mo_ta ?? '', so_nhac: Number(g.so_nhac ?? 0) }))
     .sort((a, b) => b.so_nhac - a.so_nhac) };
 }
+/** Nhóm spy nên dùng cho phim: nhóm đang gắn ở phim, không có thì nhóm đã gắn cho phim QC khác CÙNG sản phẩm (nhom-phim.ts › sanPhamPhim). */
+export async function spGoiYSpy(phimId: number): Promise<Kq<number | null>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const ds = ((await db.execute(sql`SELECT id, loai, kinh_thanh, goc_spy FROM xv_phim WHERE loai = 'quang_cao' AND jsonb_array_length(goc_spy) > 0 OR id = ${phimId}`)) as unknown as Row[])
+    .map((r) => ({ id: n(r.id), sp: sanPhamPhim({ loai: s(r.loai) as LoaiPhim, kinh_thanh: (r.kinh_thanh ?? {}) as KinhThanh })?.key ?? null, nhom: nhomCuaGoc(docGocSpy(r.goc_spy)) }));
+  const ban = ds.find((x) => x.id === phimId);
+  if (ban?.nhom.length) return { ok: true, data: ban.nhom[0]! };
+  const cung = ban?.sp ? ds.find((x) => x.id !== phimId && x.sp === ban.sp && x.nhom.length) : null;
+  return { ok: true, data: cung?.nhom[0] ?? null };
+}
 /** Ghi danh sách góc spy của phim (↶ hoàn tác được). */
 export async function luuGocSpy(phimId: number, ds: GocSpy[]): Promise<Kq> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   const sach = xepGocSpy(docGocSpy(ds)).map((g) => ({ id: g.id, sp: g.sp, loai: g.loai, ten: g.ten, ...(g.mo_ta ? { mo_ta: g.mo_ta.slice(0, 400) } : {}) }));
+  if (nhomCuaGoc(sach).length > 1) return loi('góc của một video phải cùng MỘT nhóm sản phẩm spy (đúng sản phẩm đang bán) — bỏ các góc của nhóm khác');
   await chupTruoc(db, { bang: 'xv_phim', id: phimId, cot: ['goc_spy'], moTa: 'sửa góc spy', nguoi: await ai() });
   await db.execute(sql`UPDATE xv_phim SET goc_spy = ${JSON.stringify(sach)}::jsonb, updated_at = now() WHERE id = ${phimId}`);
   return { ok: true, data: undefined };

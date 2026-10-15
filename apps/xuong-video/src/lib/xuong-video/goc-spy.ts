@@ -1,6 +1,8 @@
 // GÓC BÁN TỪ SPY (15/10/2026 — anh: "mỗi video QC dùng góc nào, chân dung… từ spy thì show ra, có link mở sang đúng góc đó bên spy").
 // Mỗi phim QC mang danh sách góc spy.on.tc nó khai thác (cột xv_phim.goc_spy, migration 0259). Spy chạy cùng box (127.0.0.1:3850), studio
 // đọc thẳng API của nó (actions.ts › dsSpSpy / dsGocSpy) — không chép dữ liệu, chỉ giữ id + tên + loại để hiện chip và dựng link.
+// MỘT phim = MỘT nhóm sản phẩm spy (anh 15/10/2026: "phải dùng góc của sản phẩm này chứ không phải quần jean thông thường" — lần đầu
+// trộn góc nhóm #311 jeans thường vào video của quần co giãn #325). luuGocSpy chặn trộn; panel gợi ý nhóm đã gắn cho cùng sản phẩm.
 // Thuần — tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/goc-spy.test.mts
 
 export type GocSpy = { id: number; sp: number; loai: string; ten: string; mo_ta?: string };
@@ -32,3 +34,6 @@ export function docGocSpy(v: unknown): GocSpy[] {
   return xepGocSpy(v.filter((x): x is GocSpy => !!x && typeof x === 'object' && Number.isFinite(Number((x as GocSpy).id)) && Number.isFinite(Number((x as GocSpy).sp)) && typeof (x as GocSpy).ten === 'string')
     .map((x) => ({ id: Number(x.id), sp: Number(x.sp), loai: String(x.loai ?? ''), ten: x.ten, ...(x.mo_ta ? { mo_ta: String(x.mo_ta) } : {}) })));
 }
+
+/** Các nhóm spy trong danh sách — hợp lệ khi ≤ 1 nhóm. */
+export const nhomCuaGoc = (ds: Pick<GocSpy, 'sp'>[]): number[] => [...new Set(ds.map((g) => g.sp))];

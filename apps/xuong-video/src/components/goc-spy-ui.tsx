@@ -2,7 +2,7 @@
 // GÓC SPY của phim QC (goc-spy.ts): chip "👤 Chân dung · …", "😣 Nỗi đau · …" — bấm là sang spy.on.tc mở đúng ngăn bằng chứng của góc đó.
 // ChipGocSpy dùng ở danh sách phim + đầu tab Phim; GocSpyPanel (tab 🎭 Phim) chọn góc thẳng từ kho spy (đọc API spy cùng box).
 import { useEffect, useState, type CSSProperties } from 'react';
-import { dsSpSpy, dsGocSpy, luuGocSpy, type SpSpy } from '@/lib/actions';
+import { dsSpSpy, dsGocSpy, luuGocSpy, spGoiYSpy, type SpSpy } from '@/lib/actions';
 import { LOAI_GOC_SPY, linkGocSpy, linkSpSpy, loaiGocSpy, xepGocSpy, type GocSpy } from '@/lib/xuong-video/goc-spy';
 import type { Phim } from '@/lib/xuong-video/kieu';
 import { Nut, Loi, LinkNgoai, mono, goiAction } from './ui';
@@ -43,6 +43,8 @@ export function GocSpyPanel({ phim, onChanged }: { phim: Phim; onChanged: () => 
   const [ban, setBan] = useState(false);
   useEffect(() => { if (!sua) setChon(phim.goc_spy ?? []); }, [phim.goc_spy, sua]);
   useEffect(() => { if (!sua || dsSp.length) return; void dsSpSpy().then((r) => (r.ok ? setDsSp(r.data) : setLoi(r.loi))); }, [sua, dsSp.length]);
+  // chưa gắn gì → gợi ý nhóm đã dùng cho video khác cùng sản phẩm (một sản phẩm = một nhóm spy)
+  useEffect(() => { if (!sua || sp) return; void spGoiYSpy(phim.id).then((r) => { if (r.ok && r.data) setSp(r.data); }); }, [sua, sp, phim.id]);
   useEffect(() => { if (!sua || !sp) return; setGoc([]); void dsGocSpy(sp).then((r) => (r.ok ? setGoc(r.data) : setLoi(r.loi))); }, [sua, sp]);
 
   const luu = async () => {
@@ -54,7 +56,7 @@ export function GocSpyPanel({ phim, onChanged }: { phim: Phim; onChanged: () => 
   const thuSp = new Set(chon.filter((g) => g.sp === sp).map((g) => String(g.id)));
   const datGocSp = (ids: string[]) => {
     const moi = goc.filter((g) => ids.includes(String(g.id))).map(({ so_nhac: _n, ...g }) => g);
-    setChon(xepGocSpy([...chon.filter((g) => g.sp !== sp), ...moi]));
+    setChon(xepGocSpy(moi));   // một video = một nhóm spy: góc nhóm khác bỏ khi chọn ở nhóm này
   };
   const tenSp = (id: number) => dsSp.find((x) => x.id === id)?.ten ?? `#${id}`;
 
@@ -67,9 +69,9 @@ export function GocSpyPanel({ phim, onChanged }: { phim: Phim; onChanged: () => 
   );
   return (
     <div className="xv-panel">
-      <h3>🎯 Góc từ spy<small>chọn nhóm sản phẩm trên spy → tick các góc video này khai thác; chip bấm được sang đúng góc bên spy</small></h3>
+      <h3>🎯 Góc từ spy<small>MỘT nhóm spy đúng sản phẩm đang bán (đổi nhóm là bỏ góc nhóm cũ) → tick các góc video này khai thác; chip bấm sang đúng góc bên spy</small></h3>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
-        <Chon value={sp ? String(sp) : ''} onChange={(v) => setSp(Number(v))} placeholder="Nhóm sản phẩm trên spy…" minWidth={260}
+        <Chon value={sp ? String(sp) : ''} onChange={(v) => { setSp(Number(v)); setChon(chon.filter((g) => g.sp === Number(v))); }} placeholder="Nhóm sản phẩm trên spy…" minWidth={260}
           options={dsSp.map((x) => ({ value: String(x.id), label: x.ten, phu: `#${x.id}` }))} />
         {sp > 0 && <LinkNgoai href={linkSpSpy(sp)} className="xv-lienket xv-mono" title="Mở nhóm này trên spy.on.tc ở tab mới">mở “{tenSp(sp)}” trên spy ↗</LinkNgoai>}
         {sp > 0 && <Chon multi values={[...thuSp]} onValues={datGocSp} placeholder={goc.length ? `Tick góc (${goc.length})…` : 'đang tải góc…'} minWidth={320}
@@ -78,7 +80,7 @@ export function GocSpyPanel({ phim, onChanged }: { phim: Phim; onChanged: () => 
       <div style={{ display: 'grid', gap: 4, marginBottom: 8 }}>
         {xepGocSpy(chon).map((g) => (
           <div key={g.id} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <ChipGocSpy ds={[g]} /><span style={mono}>{g.sp !== sp ? `nhóm ${tenSp(g.sp)}` : ''}</span>
+            <ChipGocSpy ds={[g]} />
             <button type="button" className="xv-btn" style={{ padding: '0 6px' }} title="Bỏ góc này" onClick={() => setChon(chon.filter((x) => x.id !== g.id))}>✕</button>
           </div>
         ))}

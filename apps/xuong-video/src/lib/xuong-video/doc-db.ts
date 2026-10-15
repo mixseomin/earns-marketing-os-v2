@@ -125,7 +125,7 @@ export const mapJob = (r: Row): Job => ({
 export async function giaVideoSv(model: string, dpg: '720p' | '1080p', giay: number, tieng = true): Promise<number> {
   if (model.startsWith('fal:')) {
     const m = await modelFal(model.slice(4));
-    const g = (!tieng ? m?.gia.khongTieng?.[dpg] : null) ?? m?.gia.chinh[dpg]; if (g != null) return g * giay;
+    const g = (!tieng ? m?.gia.khongTieng?.[dpg] : null) ?? m?.gia.chinh[dpg]; if (g != null) return g * Math.max(giay, m?.gia.giayToiThieu ?? 0);   // tính tối thiểu (Pikaframes 5 s)
     const clip = m?.gia.clip[dpg]; if (clip) return clip[1];
   }
   return giaVideoCents(model, dpg, giay);

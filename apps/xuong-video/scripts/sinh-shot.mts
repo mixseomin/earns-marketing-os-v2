@@ -116,14 +116,15 @@ if (arg('video')) {
     while (cho.length && chay.size < toiDa && Date.now() >= nghi) {
       const bc = cho.shift()!;
       // --thu: SINH THỬ ngoài quy trình (cùng hàm nút 🧪 Sinh thử) — bỏ cổng duyệt / kiểm khung / animatic; job ghi 🧪 THỬ.
-      const r = await batDauVideoCanh(db, bc.canh.id, moHinhVideo, 'nhap', false, arg('thu'));
+      // Lỗi bất ngờ khi gửi một shot không giết cả vòng (đã gửi thì job vẫn được theo dõi tiếp).
+      const r = await batDauVideoCanh(db, bc.canh.id, moHinhVideo, 'nhap', false, arg('thu')).catch((e: unknown) => ({ ok: false as const, loi: `lỗi khi gửi: ${e instanceof Error ? e.message : String(e)}` }));
       if (r.ok) { chay.set(r.data, bc.canh.thu_tu); jobs.push(r.data); console.log(`  → gửi #${bc.canh.thu_tu}`); }
       else if (/THEO NGÀY/.test(r.loi)) { console.log(`  ✗ dừng: ${r.loi}`); cho.unshift(bc); dungHan = true; break; }
       else if (/rate limit|hạn mức|429/i.test(r.loi)) { cho.unshift(bc); soLanCho++; if (soLanCho > 5) { console.log(`  ✗ dừng: Google vẫn báo hạn mức sau 5 lần đợi — ${r.loi}`); break; } nghi = Date.now() + 60_000; console.log(`  … hạn mức, đợi 60s (#${bc.canh.thu_tu}, lần ${soLanCho})`); }
       else console.log(`  ✗ #${bc.canh.thu_tu}: ${r.loi}`);
     }
     await doi(10000);
-    await kiemVideoTap(db, tapId);
+    await kiemVideoTap(db, tapId).catch((e: unknown) => console.log(`  ! lượt kiểm lỗi (sẽ hỏi lại): ${e instanceof Error ? e.message : String(e)}`));
     if (chay.size) {
       const xong = await q(sql`SELECT id, trang_thai, output_url, loi FROM xv_job WHERE id = ANY(${`{${[...chay.keys()].join(',')}}`}::int[]) AND trang_thai <> 'chay'`);
       for (const r of xong) { console.log(`  #${chay.get(Number(r.id))} ${r.trang_thai} ${r.output_url ?? r.loi}`); chay.delete(Number(r.id)); }

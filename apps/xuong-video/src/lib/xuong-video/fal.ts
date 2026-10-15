@@ -48,11 +48,13 @@ export async function docFal(taskId: string): Promise<{ done: false } | { done: 
   let t: { s: string; r: string };
   try { t = JSON.parse(taskId); } catch { return { done: true, ok: false, loi: 'task fal hỏng' }; }
   const h = { Authorization: `Key ${key}` };
-  const st = await fetch(t.s, { headers: h });
+  const st = await fetch(t.s, { headers: h, signal: AbortSignal.timeout(30_000) }).catch(() => null);
+  if (!st) return { done: false };   // mạng chập khi hỏi → coi như chưa xong, vòng sau hỏi lại
   const sj = (await st.json().catch(() => ({}))) as { status?: string };
   if (!st.ok && st.status !== 202) return { done: true, ok: false, loi: docLoiFal(sj as Record<string, unknown>, st.status) };
   if (sj.status !== 'COMPLETED') return { done: false };
-  const rr = await fetch(t.r, { headers: h });
+  const rr = await fetch(t.r, { headers: h, signal: AbortSignal.timeout(30_000) }).catch(() => null);
+  if (!rr) return { done: false };
   const rj = (await rr.json().catch(() => ({}))) as { video?: { url?: string } } & Record<string, unknown>;
   if (!rr.ok) return { done: true, ok: false, loi: docLoiFal(rj, rr.status) };
   return rj.video?.url ? { done: true, ok: true, uri: rj.video.url } : { done: true, ok: false, loi: 'fal xong nhưng không có video' };
@@ -134,7 +136,7 @@ export async function modelFal(id: string): Promise<ModelFal | null> {
     if (k) {
       const gt = k[1]!.replace(/\\\\/g, '\\').replace(/\\"/g, '"').replace(/\\n/g, '\n');
       const gia = tomGia(gt);
-      m = { id, ten: id, loai: /video/.test(id) ? 'video' : 'anh', giaText: gia.moTa, giaCents: gia.chinh['720p'], donVi: gia.chinh['720p'] != null ? 'giay' : 'khac', gia };
+      m = { id, ten: id, loai: /video|pikaframes|frames-to/.test(id) ? 'video' : 'anh', giaText: gia.moTa, giaCents: gia.chinh['720p'], donVi: gia.chinh['720p'] != null ? 'giay' : 'khac', gia };
     }
   } catch (e) { console.error('[fal] không đọc được giá model', id, e); }
   khoRieng.set(id, { luc: Date.now(), m });
@@ -223,7 +225,10 @@ export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?:
 export async function guiFal(id: string, input: Record<string, unknown>): Promise<{ ok: true; taskId: string } | { ok: false; loi: string }> {
   const key = khoaFal();
   if (!key) return { ok: false, loi: 'Thiếu FAL_KEY trên máy chủ' };
-  const r = await fetch(`${QUEUE}/${id}`, { method: 'POST', headers: { Authorization: `Key ${key}`, 'content-type': 'application/json' }, body: JSON.stringify(input) });
+  // Lỗi MẠNG (đứt kết nối) không được văng ra: lần gửi Pikaframes #23 (16/10/2026) đổ cả script sinh-shot ở đây. Lỗi gửi = chưa tính tiền.
+  let r: Response;
+  try { r = await fetch(`${QUEUE}/${id}`, { method: 'POST', headers: { Authorization: `Key ${key}`, 'content-type': 'application/json' }, body: JSON.stringify(input), signal: AbortSignal.timeout(60_000) }); }
+  catch (e) { return { ok: false, loi: `không gửi được tới fal (${e instanceof Error ? e.name : 'lỗi mạng'}) — thử lại` }; }
   const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
   if (!r.ok) return { ok: false, loi: docLoiFal(j, r.status) };
   if (typeof j.status_url !== 'string' || typeof j.response_url !== 'string') return { ok: false, loi: 'fal không trả status_url/response_url' };

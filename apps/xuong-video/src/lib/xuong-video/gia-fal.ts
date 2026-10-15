@@ -7,6 +7,8 @@
 export type MucGia = { cents: number; kieu: 'giay' | 'clip' | 'anh'; res: string | null; tieng: boolean | null; giay: number | null };
 export type Khoang = [number, number];
 export type GiaTom = {
+  /** Số giây tính tiền tối thiểu ("minimum of 5 billable seconds") — null = không có. */
+  giayToiThieu?: number | null;
   /** Khoảng giá MỖI GIÂY theo độ phân giải phim (null = model không công bố giá theo giây). */
   giay: Record<'720p' | '1080p', Khoang | null>;
   /** Khoảng giá MỖI CLIP khi model chỉ công bố giá theo clip. */
@@ -48,6 +50,9 @@ export function phanTichGia(raw: string): MucGia[] {
       const dau = m.index, cuoi = m.index + m[0].length;
       const sau = c.slice(cuoi, cuoi + 45).toLowerCase();
       const truoc = c.slice(Math.max(0, dau - 80), dau).toLowerCase();
+      // "…with a minimum of 5 billable seconds - $0.20 for 720p" (Pikaframes): con số sau chữ minimum là TỔNG tối thiểu, không phải giá/giây — trước đây
+      // câu có "per second" nên $0.20 bị đọc thành $0.20/giây (clip 4 s ghi $0,80 thay $0,20). Số giây tối thiểu đọc riêng (giayToiThieu).
+      if (/minimum[^;]{0,120}$/.test(truoc)) continue;
       let kieu: MucGia['kieu'] | null = null; let giay: number | null = null;
       const clipSau = sau.match(/^[^$]{0,20}per\s+(\d+)[ -]?(?:s\b|sec|second)/);
       const clipTruoc = truoc.match(/(?:for|each)\s+(?:a\s+)?(?:\d{3,4}p\s+)?(\d+)\s*(?:s\b|-?\s?second)[^$]{0,40}$/);
@@ -99,13 +104,14 @@ function theoRes(ds: MucGia[], res: '720p' | '1080p'): MucGia[] {
 const usd = (c: number) => `$${(c / 100).toFixed(c < 10 ? 3 : 2)}`;
 
 export function tomGia(raw: string): GiaTom {
+  const mt = raw.match(/minimum of (\d+)\s*(?:billable )?seconds?/i);
   const ds = phanTichGia(raw);
   const giay = ds.filter((x) => x.kieu === 'giay');
   // Clip có số giây → quy ra giá/giây để so được với model tính theo giây.
   const clipGiay = ds.filter((x) => x.kieu === 'clip' && x.giay).map((x) => ({ ...x, kieu: 'giay' as const, cents: x.cents / x.giay! }));
   const clipCo = ds.filter((x) => x.kieu === 'clip' && !x.giay);
   const nguonGiay = giay.length ? giay : clipGiay;
-  const out: GiaTom = { giay: { '720p': null, '1080p': null }, clip: { '720p': null, '1080p': null }, chinh: { '720p': null, '1080p': null }, khongTieng: { '720p': null, '1080p': null }, anh: khoang(ds.filter((x) => x.kieu === 'anh').map((x) => x.cents)), moTa: '' };
+  const out: GiaTom = { giayToiThieu: mt ? Number(mt[1]) : null, giay: { '720p': null, '1080p': null }, clip: { '720p': null, '1080p': null }, chinh: { '720p': null, '1080p': null }, khongTieng: { '720p': null, '1080p': null }, anh: khoang(ds.filter((x) => x.kieu === 'anh').map((x) => x.cents)), moTa: '' };
   for (const r of ['720p', '1080p'] as const) {
     if (nguonGiay.length) {
       const m = theoRes(nguonGiay, r);

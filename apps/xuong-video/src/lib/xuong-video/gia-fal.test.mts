@@ -45,3 +45,10 @@ if (f) {
   for (const m of ds.slice(0, 12)) { const t = tomGia(m.pricingInfoOverride ?? ''); console.log(' ', m.id, JSON.stringify(t.giay['720p']), JSON.stringify(t.clip['720p']), 'chinh', t.chinh['720p']); }
 }
 console.log('gia-fal: mọi bài tự kiểm qua');
+
+// Pikaframes: "$0.04 per second … minimum of 5 billable seconds - $0.20 for 720p" → $0,04/giây + tối thiểu 5 s (trước đây đọc $0,20/giây).
+{
+  const { tomGia: tg } = await import('./gia-fal');
+  const g = tg('Your request will cost $0.04 per second for 720p or $0.06 per second for 1080p, with a minimum of 5 billable seconds - $0.20 for 720p and $0.30 for 1080p.');
+  assert.equal(g.chinh['720p'], 4); assert.equal(g.chinh['1080p'], 6); assert.equal(g.giayToiThieu, 5);
+}

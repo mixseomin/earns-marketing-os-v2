@@ -6,10 +6,11 @@ import { Fragment, useEffect, useMemo, useState, type CSSProperties, type ReactN
 import { Ngan } from './ngan';
 import { Seg, Pill, LinkNgoai, Nut, Loi, mono } from './ui';
 import { useNho } from './nho';
-import { docKhoSanPham, dsGocSpy, type KhoSanPham } from '@/lib/actions';
+import { docKhoSanPham, dsGocSpy, docCumGoc, dsLo, themLo, boLo, giaTriSanPham, taoPhimTuLo, type KhoSanPham, type LoSinh } from '@/lib/actions';
+import { TaoTuTemplate } from './template-ui';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
 import { LOAI_GOC_SPY, loaiGocSpy, linkGocSpy, linkSpSpy, type GocSpy } from '@/lib/xuong-video/goc-spy';
-import { COT_DONG, COT_KHUON, LOAI_THANH_PHAN, banDo, dongCua, oMaTran, type DongCreative, type ThanhPhan } from '@/lib/xuong-video/kho-creative';
+import { COT_DONG, COT_KHUON, LOAI_THANH_PHAN, banDo, dongCua, oMaTran, cumCua, type CumGoc, type DongCreative, type ThanhPhan } from '@/lib/xuong-video/kho-creative';
 import { nhomPhim, anhDaiDien } from '@/lib/xuong-video/nhom-phim';
 import { DONG_TEMPLATE, type Phim } from '@/lib/xuong-video/kieu';
 
@@ -52,8 +53,12 @@ export function NganSanPham({ spKey, onClose, onMoPhim, onMoTemplate }: { spKey:
   const [chon, setChon] = useState<number[]>([]);
   const [soSanh, setSoSanh] = useState(false);
   const [locGoc, setLocGoc] = useState<number | null>(null);
-  useEffect(() => { void docKhoSanPham(spKey).then((r) => (r.ok ? setD(r.data) : setLoi(r.loi))); }, [spKey]);
-  useEffect(() => { if (d?.sp.spy) void dsGocSpy(d.sp.spy).then((r) => r.ok && setGoc(r.data)); }, [d?.sp.spy]);
+  const [lo, setLo] = useState<LoSinh[]>([]);
+  const [cum, setCum] = useState<{ cum: CumGoc[]; nguon: string } | null>(null);
+  const taiLo = async () => { const r = await dsLo(spKey); if (r.ok) setLo(r.data); };
+  const taiKho = async () => { const r = await docKhoSanPham(spKey); if (r.ok) setD(r.data); else setLoi(r.loi); };
+  useEffect(() => { void taiKho(); void taiLo(); }, [spKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (d?.sp.spy) { void dsGocSpy(d.sp.spy).then((r) => r.ok && setGoc(r.data)); void docCumGoc(d.sp.spy).then((r) => r.ok && setCum(r.data)); } }, [d?.sp.spy]);
   const moGoc = (id: number) => { setLocGoc(id); setTab('creative'); };
   if (loi) return <Ngan onClose={onClose}><Loi>{loi}</Loi></Ngan>;
   if (!d) return <Ngan onClose={onClose}><span style={mono}>đang tải…</span></Ngan>;
@@ -62,11 +67,11 @@ export function NganSanPham({ spKey, onClose, onMoPhim, onMoTemplate }: { spKey:
       {d.sp.spy && <LinkNgoai href={linkSpSpy(d.sp.spy)} className="xv-lienket xv-mono" title="Mở nhóm góc của sản phẩm trên spy.on.tc (tab mới)">góc trên spy ↗</LinkNgoai>}
       {d.sp.link && <LinkNgoai href={d.sp.link} className="xv-lienket xv-mono" title={d.sp.link}>trang bán ↗</LinkNgoai>}
     </>} dau={<Seg options={TAB_SP} value={tab} onChange={setTab} />}>
-      {tab === 'creative' && <BangCreative d={d} goc={goc} locGoc={locGoc} setLocGoc={setLocGoc} chon={chon} setChon={setChon} onMoPhim={onMoPhim} onSoSanh={() => setSoSanh(true)} />}
-      {tab === 'ban_do' && <BanDo d={d} goc={goc} onMoPhim={onMoPhim} onMoGoc={moGoc} />}
-      {tab === 'goc' && <CayGoc d={d} goc={goc} onMoPhim={onMoPhim} onMoGoc={moGoc} />}
+      {tab === 'creative' && <BangCreative d={d} goc={goc} cum={cum?.cum ?? []} locGoc={locGoc} setLocGoc={setLocGoc} chon={chon} setChon={setChon} onMoPhim={onMoPhim} onSoSanh={() => setSoSanh(true)} />}
+      {tab === 'ban_do' && <BanDo d={d} goc={goc} lo={lo} spKey={spKey} onLo={taiLo} onMoPhim={onMoPhim} onMoGoc={moGoc} />}
+      {tab === 'goc' && <CayGoc d={d} goc={goc} cum={cum} onMoPhim={onMoPhim} onMoGoc={moGoc} />}
       {tab === 'thanh_phan' && <ThuVienThanhPhan tp={d.thanh_phan} onMoPhim={onMoPhim} />}
-      {tab === 'lo' && <Trong tieu="Chưa có lô sinh" chu="Lô sinh = tạo nhiều creative một lượt từ một ô góc × khuôn. Hiện tạo từng phim từ template." nut={<Nut onClick={onMoTemplate}>🧩 Mở Template</Nut>} />}
+      {tab === 'lo' && <LoSinhTab spKey={spKey} lo={lo} onDoi={async () => { await taiLo(); await taiKho(); }} onMoPhim={onMoPhim} onMoBanDo={() => setTab('ban_do')} onMoTemplate={onMoTemplate} />}
       {tab === 'ket_qua' && <Trong tieu="Chưa có số liệu quảng cáo" chu="Studio chưa nhận chi / đơn của quảng cáo đang chạy, nên chưa biết creative, góc hay thành phần nào thắng." />}
       {soSanh && <SoSanh ds={d.creative.filter((c) => chon.includes(c.id))} tp={d.thanh_phan} onClose={() => setSoSanh(false)} onMoPhim={onMoPhim} />}
     </Ngan>
@@ -91,9 +96,9 @@ const ChipGoc = ({ g, on }: { g: GocSpy; on?: () => void }) => (
     style={{ all: 'unset', cursor: 'pointer', fontSize: 11, padding: '0 6px', borderRadius: 4, border: '1px solid var(--cyan)', color: 'var(--cyan)', maxWidth: 'calc(100% - 30px)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', verticalAlign: 'middle' }}>{loaiGocSpy(g.loai).ic} {g.ten}</button>
 );
 
-type Gom = 'khong' | 'loai' | 'khuon';
-function BangCreative({ d, goc, locGoc, setLocGoc, chon, setChon, onMoPhim, onSoSanh }: { d: KhoSanPham; goc: GocSpy[]; locGoc: number | null; setLocGoc: (x: number | null) => void; chon: number[]; setChon: (x: number[]) => void; onMoPhim: (id: number) => void; onSoSanh: () => void }) {
-  const [gom, setGom] = useNho<Gom>('xv-sp-gom', 'loai', ['khong', 'loai', 'khuon']);
+type Gom = 'khong' | 'loai' | 'cum' | 'khuon';
+function BangCreative({ d, goc, cum, locGoc, setLocGoc, chon, setChon, onMoPhim, onSoSanh }: { d: KhoSanPham; goc: GocSpy[]; cum: CumGoc[]; locGoc: number | null; setLocGoc: (x: number | null) => void; chon: number[]; setChon: (x: number[]) => void; onMoPhim: (id: number) => void; onSoSanh: () => void }) {
+  const [gom, setGom] = useNho<Gom>('xv-sp-gom', 'loai', ['khong', 'loai', 'cum', 'khuon']);
   const [xep, setXep] = useNho<'moi' | 'gan_xong'>('xv-sp-xep', 'moi', ['moi', 'gan_xong']);
   const [tim, setTim] = useState('');
   const ds = useMemo(() => {
@@ -104,13 +109,14 @@ function BangCreative({ d, goc, locGoc, setLocGoc, chon, setChon, onMoPhim, onSo
   }, [d.creative, locGoc, tim, xep]);
   const nhom: { ten: string; ds: DongCreative[] }[] = gom === 'khong' ? [{ ten: '', ds }]
     : gom === 'khuon' ? [...new Set(ds.map(tenKhuon))].map((k) => ({ ten: k, ds: ds.filter((c) => tenKhuon(c) === k) }))
+    : gom === 'cum' ? [...cum.map((c) => c.ten), 'Chưa vào cụm'].map((t) => ({ ten: `🧩 ${t}`, ds: ds.filter((c) => c.goc.some((g) => (cumCua(g.id, cum) ?? 'Chưa vào cụm') === t)) })).filter((x) => x.ds.length)
     : LOAI_GOC_SPY.map((l) => ({ ten: `${l.ic} ${l.ten}`, ds: ds.filter((c) => c.goc.some((g) => g.loai === l.key)) })).filter((x) => x.ds.length);
   const gocLoc = locGoc != null ? (goc.find((g) => g.id === locGoc) ?? d.creative.flatMap((c) => c.goc).find((g) => g.id === locGoc)) : null;
   const doi = (id: number) => setChon(chon.includes(id) ? chon.filter((x) => x !== id) : [...chon, id]);
   return (
     <div style={{ display: 'grid', gap: 8 }}>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={mono}>Gom</span><Seg options={[{ value: 'loai' as Gom, label: 'Loại góc' }, { value: 'khuon' as Gom, label: 'Khuôn' }, { value: 'khong' as Gom, label: 'Không' }]} value={gom} onChange={setGom} />
+        <span style={mono}>Gom</span><Seg options={[{ value: 'loai' as Gom, label: 'Loại góc' }, ...(cum.length ? [{ value: 'cum' as Gom, label: 'Cụm người mua' }] : []), { value: 'khuon' as Gom, label: 'Khuôn' }, { value: 'khong' as Gom, label: 'Không' }]} value={gom} onChange={setGom} />
         <span style={mono}>Xếp</span><Seg options={[{ value: 'moi' as const, label: 'Mới sửa' }, { value: 'gan_xong' as const, label: 'Sắp xong' }]} value={xep} onChange={setXep} />
         <input className="xv-in" style={{ width: 200 }} value={tim} onChange={(e) => setTim(e.target.value)} placeholder="🔍 tên, hook, CTA, góc…" />
         {gocLoc && <Pill color="var(--cyan)" title="Bỏ lọc góc"><button type="button" onClick={() => setLocGoc(null)} style={{ all: 'unset', cursor: 'pointer' }}>{loaiGocSpy(gocLoc.loai).ic} {gocLoc.ten} ✕</button></Pill>}
@@ -163,8 +169,12 @@ function BangCreative({ d, goc, locGoc, setLocGoc, chon, setChon, onMoPhim, onSo
   );
 }
 
-function BanDo({ d, goc, onMoPhim, onMoGoc }: { d: KhoSanPham; goc: (GocSpy & { so_nhac: number })[]; onMoPhim: (id: number) => void; onMoGoc: (id: number) => void }) {
+function BanDo({ d, goc, lo, spKey, onLo, onMoPhim, onMoGoc }: { d: KhoSanPham; goc: (GocSpy & { so_nhac: number })[]; lo: LoSinh[]; spKey: string; onLo: () => Promise<void>; onMoPhim: (id: number) => void; onMoGoc: (id: number) => void }) {
   const bd = banDo(d.creative);
+  const [bao, setBao] = useState('');
+  const trongLo = (gid: number, k: { dong: string; khuon: string }) => lo.some((l) => l.trang_thai === 'cho' && l.dong === k.dong && l.khuon === k.khuon && l.goc.some((g) => g.id === gid));
+  // Ô trống → thêm vào lô sinh (0đ, chỉ là kế hoạch); tạo phim ở tab Lô sinh.
+  const them = async (g: GocSpy, k: { dong: string; khuon: string; ten: string }) => { const r = await themLo(spKey, g, k.dong, k.khuon); setBao(r.ok ? `Đã thêm vào lô: ${g.ten} × ${k.ten}` : r.loi); if (r.ok) await onLo(); };
   const [mo, setMo] = useState<string | null>(null);
   const [het, setHet] = useState(false);
   const cot = COT_DONG.filter((c) => c.key !== 'ngoai' || d.creative.some((x) => dongCua(x) === 'ngoai'));
@@ -199,15 +209,17 @@ function BanDo({ d, goc, onMoPhim, onMoGoc }: { d: KhoSanPham; goc: (GocSpy & { 
                 {hien.map((g) => (
                   <tr key={g.id}>
                     <td style={{ ...o, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`${g.so_nhac} lượt nhắc${g.mo_ta ? ` · ${g.mo_ta}` : ''}`}><button type="button" onClick={() => onMoGoc(g.id)} style={{ all: 'unset', cursor: 'pointer' }}>{g.ten}</button></td>
-                    {cotK.map((k) => { const ids = oMaTran(d.creative, g.id, k); return (
+                    {cotK.map((k) => { const ids = oMaTran(d.creative, g.id, k); const cho = !ids.length && trongLo(g.id, k); const themDuoc = !ids.length && !cho && k.dong !== 'ngoai'; return (
                       <td key={`${k.dong}.${k.khuon}`} style={{ ...o, textAlign: 'center', padding: 2, borderLeft: k === cotK.find((x) => x.dong === k.dong) ? '1px solid var(--fg-4)' : undefined }}>
-                        <button type="button" disabled={!ids.length} onClick={() => ids[0] && onMoPhim(ids[0])} title={ids.length ? ids.map((x) => `#${x}`).join(' ') : `${g.ten} × ${k.ten}: trống`}
-                          style={{ all: 'unset', cursor: ids.length ? 'pointer' : 'default', display: 'inline-block', width: 12, height: 12, borderRadius: 2, border: '1px solid var(--line)', background: ids.length ? '#4ade80' : 'transparent' }} />
+                        <button type="button" disabled={!ids.length && !themDuoc} onClick={() => (ids[0] ? onMoPhim(ids[0]) : themDuoc && void them(g, k))}
+                          title={ids.length ? ids.map((x) => `#${x}`).join(' ') : cho ? `${g.ten} × ${k.ten}: trong lô sinh, chờ tạo phim` : themDuoc ? `${g.ten} × ${k.ten}: trống · bấm để thêm vào lô sinh` : 'trống'}
+                          style={{ all: 'unset', cursor: ids.length || themDuoc ? 'pointer' : 'default', display: 'inline-block', width: 12, height: 12, borderRadius: 2, border: `1px solid ${cho ? 'var(--amber)' : 'var(--line)'}`, background: ids.length ? '#4ade80' : cho ? 'color-mix(in srgb, var(--amber) 45%, transparent)' : 'transparent' }} />
                       </td>); })}
                   </tr>
                 ))}
               </tbody>
             </table>}
+            <div style={{ ...mono, padding: '6px 8px' }}>Ô xanh = đã có creative (bấm mở) · ô vàng = trong lô sinh · ô trống bấm để thêm vào lô sinh{bao && <b style={{ marginLeft: 8, color: 'var(--fg-1)' }}>{bao}</b>}</div>
             {ds.length > 12 && <button type="button" className="xv-lienket xv-mono" style={{ margin: 8 }} onClick={() => setHet(!het)} title={`${ds.length} góc`}>{het ? '▴ chỉ góc nhiều lượt nhắc' : '▾ hiện hết góc'}</button>}
           </div>
         );
@@ -216,14 +228,38 @@ function BanDo({ d, goc, onMoPhim, onMoGoc }: { d: KhoSanPham; goc: (GocSpy & { 
   );
 }
 
-function CayGoc({ d, goc, onMoPhim, onMoGoc }: { d: KhoSanPham; goc: (GocSpy & { so_nhac: number })[]; onMoPhim: (id: number) => void; onMoGoc: (id: number) => void }) {
+function CayGoc({ d, goc, cum, onMoPhim, onMoGoc }: { d: KhoSanPham; goc: (GocSpy & { so_nhac: number })[]; cum: { cum: CumGoc[]; nguon: string } | null; onMoPhim: (id: number) => void; onMoGoc: (id: number) => void }) {
   const [het, setHet] = useState(false);
+  const [cheDo, setCheDo] = useNho<'loai' | 'cum'>('xv-sp-cay', 'loai', ['loai', 'cum']);
   const ds = goc.length ? goc : d.creative.flatMap((c) => c.goc.map((g) => ({ ...g, so_nhac: 0 })));
   const theo = (id: number) => d.creative.filter((c) => c.goc.some((g) => g.id === id));
   return (
     <div style={{ display: 'grid', gap: 4, fontSize: 12.5 }}>
-      <button type="button" className="xv-lienket xv-mono" style={{ justifySelf: 'start' }} onClick={() => setHet(!het)}>{het ? '▴ chỉ góc đã có creative' : '▾ hiện cả góc chưa có creative'}</button>
-      {LOAI_GOC_SPY.map((l) => {
+      <span style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <Seg options={[{ value: 'loai' as const, label: 'Theo loại góc' }, { value: 'cum' as const, label: 'Theo cụm người mua', title: cum ? cum.nguon : 'chưa gom cụm cho nhóm spy này' }]} value={cheDo} onChange={setCheDo} />
+        <button type="button" className="xv-lienket xv-mono" onClick={() => setHet(!het)}>{het ? '▴ chỉ góc đã có creative' : '▾ hiện cả góc chưa có creative'}</button>
+      </span>
+      {cheDo === 'cum' && (!cum ? <span style={mono}>Nhóm spy này chưa gom cụm người mua (scripts/cum-goc.mts ghi cụm sau khi đọc tên + nhãn review của từng góc).</span>
+        : [...cum.cum, { ten: 'Chưa vào cụm', mo_ta: '', goc: ds.map((g) => g.id).filter((id) => !cumCua(id, cum.cum)) }].map((c) => {
+          const gl = [...new Map(ds.filter((g) => c.goc.includes(g.id)).map((g) => [g.id, g])).values()];
+          const co = gl.filter((g) => d.creative.some((x) => x.goc.some((y) => y.id === g.id)));
+          if (!gl.length) return null;
+          return (
+            <details key={c.ten} open={co.length > 0 || het}>
+              <summary style={{ cursor: 'pointer', fontWeight: 700 }} title={`${gl.length} góc · ${gl.reduce((a, g) => a + g.so_nhac, 0)} lượt nhắc${c.mo_ta ? ` · ${c.mo_ta}` : ''}`}>🧩 {c.ten}{!co.length && <span style={{ ...mono, marginLeft: 8, color: 'var(--amber)' }}>chưa có creative</span>}</summary>
+              <div style={{ paddingLeft: 10, borderLeft: '1px solid var(--line)', display: 'grid', gap: 3, margin: '4px 0 6px 12px' }}>
+                {(het ? gl : gl.filter((g) => d.creative.some((x) => x.goc.some((y) => y.id === g.id))).concat(co.length ? [] : gl.slice(0, 3))).map((g) => { const cr = d.creative.filter((x) => x.goc.some((y) => y.id === g.id)); return (
+                  <div key={g.id} style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', color: cr.length ? undefined : 'var(--fg-4)' }}>
+                    <span title={loaiGocSpy(g.loai).ten}>{loaiGocSpy(g.loai).ic}</span>
+                    <button type="button" onClick={() => onMoGoc(g.id)} title={`${g.so_nhac} lượt nhắc · bấm để lọc bảng creative`} style={{ all: 'unset', cursor: 'pointer' }}>{g.ten}</button>
+                    <LinkNgoai href={linkGocSpy(g)} className="xv-lienket xv-mono" title="Bằng chứng của góc trên spy (tab mới)">spy ↗</LinkNgoai>
+                    {cr.map((x) => <button key={x.id} type="button" className="xv-lienket xv-mono" onClick={() => onMoPhim(x.id)} title={x.ten}>#{x.id}</button>)}
+                  </div>); })}
+              </div>
+            </details>
+          );
+        }))}
+      {cheDo === 'loai' && LOAI_GOC_SPY.map((l) => {
         const gl = [...new Map(ds.filter((g) => g.loai === l.key).map((g) => [g.id, g])).values()];
         const co = gl.filter((g) => theo(g.id).length);
         return (
@@ -294,5 +330,54 @@ function SoSanh({ ds, tp, onClose, onMoPhim }: { ds: DongCreative[]; tp: ThanhPh
         </table>
       </div>
     </Ngan>
+  );
+}
+
+/** Tab Lô sinh: các ô góc × khuôn đã chọn ở ma trận (Bản đồ) → tạo phim từ template (0đ, chưa sinh gì), ô sản phẩm điền sẵn từ creative cùng
+ *  sản phẩm, góc của ô gắn vào phim mới. Bỏ = đổi trạng thái (không xoá dòng). */
+function LoSinhTab({ spKey, lo, onDoi, onMoPhim, onMoBanDo, onMoTemplate }: { spKey: string; lo: LoSinh[]; onDoi: () => Promise<void>; onMoPhim: (id: number) => void; onMoBanDo: () => void; onMoTemplate: () => void }) {
+  const [tao, setTao] = useState<LoSinh | null>(null);
+  const [gtDau, setGtDau] = useState<Record<string, string>>({});
+  const [hienBo, setHienBo] = useState(false);
+  useEffect(() => { void giaTriSanPham(spKey).then((r) => r.ok && setGtDau(r.data)); }, [spKey]);
+  const ds = lo.filter((l) => hienBo || l.trang_thai !== 'bo');
+  const kh = (l: LoSinh) => DONG_TEMPLATE.find((d) => d.key === l.dong)?.khuon.find((k) => k.key === l.khuon)?.ten ?? l.khuon;
+  if (!lo.length) return <Trong tieu="Lô sinh trống" chu="Mở tab Bản đồ, bấm một loại góc để mở ma trận góc × khuôn, rồi bấm ô trống để đưa ô đó vào lô. Mỗi dòng lô tạo thành một phim từ template (0đ)." nut={<span style={{ display: 'flex', gap: 6 }}><Nut chinh onClick={onMoBanDo}>Mở Bản đồ</Nut><Nut onClick={onMoTemplate}>🧩 Template</Nut></span>} />;
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span style={mono}>Mỗi dòng = một ô góc × khuôn chờ thành phim. Tạo phim là chép template + điền ô (0đ), chưa sinh hình / giọng.</span>
+        {lo.some((l) => l.trang_thai === 'bo') && <label style={{ ...mono, display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={hienBo} onChange={(e) => setHienBo(e.target.checked)} />hiện dòng đã bỏ</label>}
+      </span>
+      <div style={{ overflow: 'auto', border: '1px solid var(--line)', borderRadius: 8 }}>
+        <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>
+          <thead><tr><th style={th}>Góc</th><th style={th}>Khuôn</th><th style={th}>Template</th><th style={th}>Trạng thái</th><th style={th} /></tr></thead>
+          <tbody>
+            {ds.map((l) => (
+              <tr key={l.id} style={{ opacity: l.trang_thai === 'bo' ? 0.5 : 1 }}>
+                <td style={o}>{l.goc.map((g) => <span key={g.id} title={loaiGocSpy(g.loai).ten}>{loaiGocSpy(g.loai).ic} {g.ten}</span>)}</td>
+                <td style={o}><Pill color="var(--fg-2)">{kh(l)}</Pill></td>
+                <td style={{ ...o, ...mono }} title={l.template_ten}>{l.template_id ? `#${l.template_id}` : '—'}</td>
+                <td style={o} title={new Date(l.luc).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}>
+                  {l.trang_thai === 'da_tao' && l.phim_id ? <button type="button" className="xv-lienket xv-mono" onClick={() => onMoPhim(l.phim_id!)}>đã tạo #{l.phim_id}</button> : <span style={mono}>{l.trang_thai === 'bo' ? 'đã bỏ' : 'chờ tạo'}</span>}
+                </td>
+                <td style={{ ...o, whiteSpace: 'nowrap' }}>
+                  {l.trang_thai === 'cho' && <span style={{ display: 'inline-flex', gap: 6 }}>
+                    <Nut chinh onClick={() => setTao(l)}>Tạo phim</Nut>
+                    <Nut onClick={async () => { await boLo(l.id); await onDoi(); }}>Bỏ</Nut>
+                  </span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {tao && tao.template_id && (
+        <TaoTuTemplate templateId={tao.template_id} tenTemplate={tao.template_ten} gtDau={gtDau} onClose={() => setTao(null)}
+          taoBang={(ten, gt) => taoPhimTuLo(tao.id, ten, gt)}
+          dauNgan={<div style={{ ...mono, marginBottom: 8, color: 'var(--fg-1)' }}>Lô sinh · góc {tao.goc.map((g) => `${loaiGocSpy(g.loai).ic} ${g.ten}`).join(', ')} · ô sản phẩm đã điền sẵn từ creative cùng sản phẩm; câu chuyện viết theo góc này.</div>}
+          onTao={async (id) => { setTao(null); await onDoi(); onMoPhim(id); }} />
+      )}
+    </div>
   );
 }

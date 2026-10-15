@@ -1,0 +1,22 @@
+{
+  "sp": 325,
+  "nguon": "Claude gom trong phiên 16/10/2026 — đọc tên + nhãn review (trường nhan) của 104 góc spy nhóm 325, gom góc nói cùng một ý của cùng một người mua; không gọi API",
+  "cum": [
+    { "ten": "Thân dưới đầy đặn", "mo_ta": "đùi, hông, mông to — sợ chật đùi / hông, khó mặc quần thường", "goc": [24712, 24725, 24724, 24729, 24763, 24809, 24788, 24782, 24771] },
+    { "ten": "Ngoại cỡ", "mo_ta": "size đại / plus size, địa phương thiếu size lớn", "goc": [24717, 24764, 24759, 24790, 24802] },
+    { "ten": "Bụng · cạp · đũng", "mo_ta": "bụng nhô, cạp lỏng / thấp / cấn, muốn cạp cao, đũng sâu", "goc": [24757, 24727, 24760, 24803, 24775, 24758, 24777, 24793] },
+    { "ten": "Eo nhỏ", "mo_ta": "eo nhỏ phải bóp eo, eo và hông lệch size", "goc": [24739, 24787, 24805, 24814] },
+    { "ten": "Size · mua online", "mo_ta": "sợ chọn sai size, size không đồng nhất, mua nhầm, cân nặng dao động", "goc": [24716, 24748, 24741, 24751, 24780, 24779, 24796, 24798, 24795, 24756] },
+    { "ten": "Chiều cao · khổ người", "mo_ta": "người cao cần quần dài, chân dài, người thấp / nhỏ con, sửa độ dài", "goc": [24720, 24738, 24737, 24765, 24811, 24785, 24766] },
+    { "ten": "Mềm · co giãn · cử động", "mo_ta": "cần mềm co giãn, ngại cứng / bó, vận động, tập luyện, mặc thường ngày", "goc": [24723, 24736, 24740, 24770, 24755, 24813, 24791, 24783, 24753, 24767, 24747] },
+    { "ten": "Chất vải · độ bền", "mo_ta": "sợ bai dão, vải rẻ, rách đũng, co rút, phai màu, cần bền cho việc nặng", "goc": [24719, 24728, 24735, 24752, 24746, 24750, 24778, 24773, 24721, 24797, 24799] },
+    { "ten": "Denim truyền thống", "mo_ta": "chỉ thích 100% cotton / selvedge, chê không phải jeans thật", "goc": [24715, 24804, 24786] },
+    { "ten": "Dáng ống quần", "mo_ta": "ống suông, loe, bootcut, baggy, ngại quần rộng, bỏ skinny sang classic", "goc": [24731, 24792, 24815, 24749, 24761, 24781, 24784, 24774, 24807] },
+    { "ten": "Giá · cách mua", "mo_ta": "giá cao, ngân sách thấp, mua second-hand / tại cửa hàng, nghi shop, quà tặng", "goc": [24714, 24733, 24722, 24800, 24742, 24776, 24745] },
+    { "ten": "Mẫu mã · màu · hết hàng", "mo_ta": "ít mẫu, sợ ngừng sản xuất, thiếu màu, săn hàng hiếm", "goc": [24713, 24726, 24789, 24812, 24810, 24801] },
+    { "ten": "Đi làm · trông chỉn chu", "mo_ta": "văn phòng, công sở, sự kiện, muốn trẻ trung tự tin", "goc": [24734, 24743, 24762, 24808, 24732] },
+    { "ten": "Bản dạng · phong cách giới", "mo_ta": "queer / butch / chuyển giới, crossdresser, nữ mặc quần nam, phong cách trung tính", "goc": [24730, 24768, 24769, 24806] },
+    { "ten": "Giai đoạn đời sống", "mo_ta": "sinh viên, mẹ bỉm, người lớn tuổi khó tính, người mới đổi môi trường sống", "goc": [24744, 24754, 24772, 24794] },
+    { "ten": "Túi tiện dụng", "mo_ta": "cần túi sâu", "goc": [24718] }
+  ]
+}

@@ -115,3 +115,23 @@ function vietTatKhongTrung<T extends { ten: string }>(ds: T[]): (T & { ngan: str
 /** Creative ở ô (góc × khuôn). */
 export const oMaTran = (cr: Pick<CreativeKho, 'id' | 'goc' | 'tpl'>[], gocId: number, cot: { dong: string; khuon: string }) =>
   cr.filter((c) => c.goc.some((g) => g.id === gocId) && dongCua(c) === cot.dong && (c.tpl?.khuon ?? '') === cot.khuon).map((c) => c.id);
+
+// ── CỤM NGƯỜI MUA (xv_cum_goc) ─────────────────────────────────────────────────────────────────────────────────────────────────
+/** Một cụm = các góc spy nói cùng một ý của cùng một người mua. Gom bằng đọc hiểu (Claude trong phiên / người), lưu qua scripts/cum-goc.mts. */
+export type CumGoc = { ten: string; mo_ta: string; goc: number[] };
+/** Lỗi của bộ cụm so với danh sách góc thật của nhóm spy: góc lạ, góc ở hai cụm, cụm rỗng / thiếu tên. Rỗng = hợp lệ. */
+export function kiemCum(cum: CumGoc[], gocThat: number[]): string[] {
+  const co = new Set(gocThat); const thay = new Map<number, string>(); const loi: string[] = [];
+  for (const c of cum) {
+    if (!c.ten?.trim()) loi.push('cụm thiếu tên');
+    if (!c.goc?.length) loi.push(`cụm "${c.ten}" rỗng`);
+    for (const g of c.goc ?? []) {
+      if (!co.has(g)) loi.push(`cụm "${c.ten}": góc ${g} không thuộc nhóm spy này`);
+      if (thay.has(g)) loi.push(`góc ${g} nằm ở hai cụm "${thay.get(g)}" và "${c.ten}"`);
+      thay.set(g, c.ten);
+    }
+  }
+  return loi;
+}
+/** Tên cụm của một góc (null = chưa vào cụm). */
+export const cumCua = (gocId: number, cum: CumGoc[]): string | null => cum.find((c) => c.goc.includes(gocId))?.ten ?? null;

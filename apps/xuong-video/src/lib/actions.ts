@@ -43,11 +43,11 @@ import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim, sinhAnhQcDb } from '@/lib
 import { khuonAnhQc, MO_HINH_ANH_QC, TI_LE_ANH_QC, type AnhQc } from '@/lib/xuong-video/anh-qc';
 import { docGocSpy, xepGocSpy, nhomCuaGoc, type GocSpy } from '@/lib/xuong-video/goc-spy';
 import { sanPhamPhim } from '@/lib/xuong-video/nhom-phim';
-import { dongCreative, gomThanhPhan, type AnchorKho, type CreativeKho, type DongCreative, type ShotKho, type ThanhPhan } from '@/lib/xuong-video/kho-creative';
+import { dongCreative, gomThanhPhan, type AnchorKho, type CreativeKho, type CumGoc, type DongCreative, type ShotKho, type ThanhPhan } from '@/lib/xuong-video/kho-creative';
 import { docOTemplate, chepPhim, type KetQuaChep, type ShotKhung } from '@/lib/xuong-video/template-db';
 import { diemNhan } from '@/lib/xuong-video/diem-nhan';
 import { MO_HINH_CONG, coCong, centsCong, chuoiAnh, chuoiVideo, taNguon, taNguonNgan, taThu, type CongKey, type NguonSinh } from '@/lib/xuong-video/cong-ai';
-import { oThieu, type OTemplateDs } from '@/lib/xuong-video/template';
+import { oThieu, nhomCuaO, type OTemplateDs } from '@/lib/xuong-video/template';
 import type { CauHinhTemplate } from '@/lib/xuong-video/kieu';
 import type { MauPoster } from '@/lib/xuong-video/poster';
 import { batDauVideoCanh, kiemVideoTap } from '@/lib/xuong-video/sinh-video';
@@ -65,7 +65,7 @@ import {
   type Phim, type NhanVat, type Tap, type Canh, type Job, type KinhThanh, type LoaiPhim, type LoaiNhanVat, 
 } from '@/lib/xuong-video/kieu';
 
-type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
+export type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
 /** Mảng số → literal mảng Postgres dạng chuỗi ('{1,2}'). Truyền mảng JS thẳng vào sql`` thì postgres-js gửi phần tử số thô
  *  và ném ERR_INVALID_ARG_TYPE ("Received type number (4)") — sinh keyframe hỏng 08/10/2026. */
 /** Giá theo danh mục fal (động) nếu là model fal:, không thì bảng tĩnh. */
@@ -1639,4 +1639,72 @@ export async function docKhoSanPham(key: string): Promise<Kq<KhoSanPham>> {
   const kt0 = (phim[0]!.kinh_thanh ?? {}) as KinhThanh;
   const spy = cr.flatMap((c) => nhomCuaGoc(c.goc))[0] ?? null;
   return { ok: true, data: { sp: { key, ten: kt0.qc?.ten?.trim() || key, link: kt0.qc?.link?.trim() ?? '', spy }, creative: cr.map((c) => dongCreative(c, shots)), thanh_phan: gomThanhPhan(shots, anchors, cr) } };
+}
+
+/** Cụm người mua của nhóm spy (xv_cum_goc) — null = chưa gom. */
+export async function docCumGoc(sp: number): Promise<Kq<{ cum: CumGoc[]; nguon: string } | null>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const r = ((await db.execute(sql`SELECT cum, nguon FROM xv_cum_goc WHERE sp = ${sp}`)) as unknown as Row[])[0];
+  return { ok: true, data: r ? { cum: arr<CumGoc>(r.cum), nguon: s(r.nguon) } : null };
+}
+
+// ── LÔ SINH (xv_lo): kế hoạch creative một ô góc × khuôn → tạo phim từ template (0đ) ──────────────────────────────────────────
+export type LoSinh = { id: number; goc: GocSpy[]; dong: string; khuon: string; template_id: number | null; template_ten: string; phim_id: number | null; trang_thai: 'cho' | 'da_tao' | 'bo'; luc: string };
+export async function dsLo(spKey: string): Promise<Kq<LoSinh[]>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const r = (await db.execute(sql`SELECT l.*, p.ten AS tpl_ten FROM xv_lo l LEFT JOIN xv_phim p ON p.id = l.template_id WHERE l.sp_key = ${spKey} ORDER BY l.id DESC`)) as unknown as Row[];
+  return { ok: true, data: r.map((x) => ({ id: n(x.id), goc: docGocSpy(x.goc), dong: s(x.dong), khuon: s(x.khuon), template_id: x.template_id == null ? null : n(x.template_id), template_ten: s(x.tpl_ten),
+    phim_id: x.phim_id == null ? null : n(x.phim_id), trang_thai: (s(x.trang_thai) || 'cho') as LoSinh['trang_thai'], luc: new Date(s(x.created_at)).toISOString() })) };
+}
+/** Thêm một ô (góc × khuôn) vào lô. Khuôn phải có template (lấy template đầu tiên của khuôn); ô đang chờ trùng thì không thêm lần hai. */
+export async function themLo(spKey: string, goc: GocSpy, dong: string, khuon: string): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const g = docGocSpy([goc])[0];
+  if (!g) return loi('góc không hợp lệ');
+  const tpl = ((await db.execute(sql`SELECT id FROM xv_phim WHERE kinh_thanh->'template'->>'dong' = ${dong} AND kinh_thanh->'template'->>'khuon' = ${khuon}
+    AND coalesce((kinh_thanh->>'luu_tru')::boolean, false) = false ORDER BY id LIMIT 1`)) as unknown as Row[])[0];
+  if (!tpl) return loi('khuôn này chưa có template — dựng template trước (tab 🧩 Template)');
+  const trung = ((await db.execute(sql`SELECT id FROM xv_lo WHERE sp_key = ${spKey} AND dong = ${dong} AND khuon = ${khuon} AND trang_thai = 'cho' AND goc @> ${JSON.stringify([{ id: g.id }])}::jsonb`)) as unknown as Row[])[0];
+  if (trung) return { ok: true, data: n(trung.id) };
+  const r = (await db.execute(sql`INSERT INTO xv_lo (sp_key, goc, dong, khuon, template_id) VALUES (${spKey}, ${JSON.stringify([g])}::jsonb, ${dong}, ${khuon}, ${n(tpl.id)}) RETURNING id`)) as unknown as Row[];
+  return { ok: true, data: n(r[0]!.id) };
+}
+/** Bỏ một dòng lô (đổi trạng thái, KHÔNG xoá dòng). */
+export async function boLo(id: number): Promise<Kq> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  await db.execute(sql`UPDATE xv_lo SET trang_thai = 'bo' WHERE id = ${id} AND trang_thai = 'cho'`);
+  return { ok: true, data: undefined };
+}
+/** Giá trị ô SẢN PHẨM đã điền ở các creative cùng sản phẩm (tu_template.gia_tri, nhóm ô san_pham) — điền sẵn form tạo phim từ lô. */
+export async function giaTriSanPham(spKey: string): Promise<Kq<Record<string, string>>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const ds = ((await db.execute(sql`SELECT loai, kinh_thanh FROM xv_phim WHERE loai = 'quang_cao' AND kinh_thanh->'tu_template' IS NOT NULL ORDER BY updated_at`)) as unknown as Row[])
+    .filter((r) => sanPhamPhim({ loai: 'quang_cao', kinh_thanh: (r.kinh_thanh ?? {}) as KinhThanh })?.key === spKey);
+  const gt: Record<string, string> = {};
+  for (const r of ds) for (const [k, v] of Object.entries(((r.kinh_thanh ?? {}) as KinhThanh).tu_template?.gia_tri ?? {})) if (nhomCuaO(k) === 'san_pham' && String(v ?? '').trim()) gt[k] = String(v);
+  return { ok: true, data: gt };
+}
+/** Tạo phim từ một dòng lô: chép template + điền ô (như nút 🧩) rồi gắn góc của ô và nối dòng lô với phim. */
+export async function taoPhimTuLo(loId: number, ten: string, gt: Record<string, string>): Promise<Kq<KetQuaChep>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const l = ((await db.execute(sql`SELECT * FROM xv_lo WHERE id = ${loId}`)) as unknown as Row[])[0];
+  if (!l || s(l.trang_thai) !== 'cho' || l.template_id == null) return loi('dòng lô không còn chờ tạo');
+  const r = await taoPhimTuTemplate(n(l.template_id), ten, gt);
+  if (!r.ok) return r;
+  const g = docGocSpy(l.goc);
+  await db.execute(sql`UPDATE xv_phim SET goc_spy = ${JSON.stringify(g)}::jsonb, updated_at = now() WHERE id = ${r.data.phimId}`);
+  await db.execute(sql`UPDATE xv_lo SET phim_id = ${r.data.phimId}, trang_thai = 'da_tao' WHERE id = ${loId}`);
+  return r;
 }

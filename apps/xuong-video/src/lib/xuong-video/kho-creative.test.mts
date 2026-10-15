@@ -42,3 +42,11 @@ assert.ok(COT_KHUON.length >= 17 && new Set(COT_KHUON.map((k) => `${k.dong}.${k.
 console.log('kho-creative.test: ok');
 assert.strictEqual(new Set(COT_KHUON.map((k) => k.ngan)).size, COT_KHUON.length, `viết tắt cột khuôn trùng: ${COT_KHUON.map((k) => k.ngan).join(' ')}`);
 console.log('kho-creative.test: viết tắt không trùng ok', COT_KHUON.map((k) => k.ngan).join(' '));
+{
+  const { kiemCum, cumCua } = await import('./kho-creative');
+  assert.deepStrictEqual(kiemCum([{ ten: 'A', mo_ta: '', goc: [1, 2] }, { ten: 'B', mo_ta: '', goc: [3] }], [1, 2, 3]), []);
+  const l = kiemCum([{ ten: 'A', mo_ta: '', goc: [1, 9] }, { ten: 'B', mo_ta: '', goc: [1] }, { ten: '', mo_ta: '', goc: [] }], [1, 2]);
+  assert.ok(l.some((x) => x.includes('9 không thuộc')) && l.some((x) => x.includes('hai cụm')) && l.some((x) => x.includes('thiếu tên')) && l.some((x) => x.includes('rỗng')), JSON.stringify(l));
+  assert.strictEqual(cumCua(3, [{ ten: 'B', mo_ta: '', goc: [3] }]), 'B'); assert.strictEqual(cumCua(4, []), null);
+  console.log('kho-creative.test: cụm ok');
+}

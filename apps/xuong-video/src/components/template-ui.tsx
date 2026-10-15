@@ -2,13 +2,14 @@
 // TEMPLATE trên studio (template.ts · template-db.ts): template là một phim — sửa kinh thánh / anchor / shot như thường, chỗ cần đổi gõ {{ô}}.
 // Tổ chức cho dễ dùng (anh 14/10/2026): KHO TEMPLATE ở đầu trang (thẻ: dùng khi nào · số shot · Dùng / Sửa) → bấm Dùng là ra form điền
 // chia nhóm (Sản phẩm mở sẵn) → Tạo phim 0đ. Sửa template = mở như phim; panel đầu tab 🎭 Phim giữ nhãn / gợi ý / giá trị mẫu của ô.
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Ngan } from './ngan';
 import { O, Nut, Loi, Pill, mono } from './ui';
 import { docTemplate, luuCauHinhTemplate, taoPhimTuTemplate } from '@/lib/actions';
 import { giaTriMau, oThieu, theoNhom, nhomCuaO, NHOM_O, type OTemplateDs } from '@/lib/xuong-video/template';
 import { tenPhanDoan, DONG_TEMPLATE, type CauHinhTemplate, type Phim } from '@/lib/xuong-video/kieu';
-import type { ShotKhung } from '@/lib/xuong-video/template-db';
+import type { ShotKhung, KetQuaChep } from '@/lib/xuong-video/template-db';
+import type { Kq } from '@/lib/actions';
 
 type DuLieu = { cfg: CauHinhTemplate | null; o: OTemplateDs[]; khung: ShotKhung[]; phimDung: { id: number; ten: string; luu_tru: boolean }[] };
 const tenGon = (ten: string) => ten.replace(/^template\s*·\s*/i, '');
@@ -209,11 +210,12 @@ export function TemplatePanel({ phim, onChanged, onMoPhim, onMoPhimChong }: { ph
 }
 
 /** Ngăn điền ô → phim mới: chia nhóm, nhóm đầu mở sẵn, nhóm còn ô trống tự mở; giá trị đầu = giá trị mẫu. */
-function TaoTuTemplate({ templateId, tenTemplate, onClose, onTao }: { templateId: number; tenTemplate: string; onClose: () => void; onTao: (id: number) => void }) {
+/** gtDau = giá trị điền sẵn (lô sinh: ô sản phẩm lấy từ creative cùng sản phẩm); taoBang = cách tạo khác nút 🧩 thường (lô sinh: tạo + gắn góc + nối dòng lô). */
+export function TaoTuTemplate({ templateId, tenTemplate, onClose, onTao, gtDau, taoBang, dauNgan }: { templateId: number; tenTemplate: string; onClose: () => void; onTao: (id: number) => void; gtDau?: Record<string, string>; taoBang?: (ten: string, gt: Record<string, string>) => Promise<Kq<KetQuaChep>>; dauNgan?: ReactNode }) {
   const { d, loi: loiDoc } = useTemplate(templateId);
   const dung = (d?.o ?? []).filter((v) => v.dung);
   const [gt, setGt] = useState<Record<string, string> | null>(null);
-  useEffect(() => { if (d && !gt) setGt(giaTriMau(d.o.filter((v) => v.dung))); }, [d, gt]);
+  useEffect(() => { if (d && !gt) { const dungO = d.o.filter((v) => v.dung); setGt({ ...giaTriMau(dungO), ...Object.fromEntries(Object.entries(gtDau ?? {}).filter(([k, v]) => v.trim() && dungO.some((o) => o.k === k))) }); } }, [d, gt, gtDau]);
   // tên phim mới tự theo sản phẩm (tới khi người sửa tay) — mặc định trùng tên template là lẫn ngay trong danh sách
   const [tenTay, setTen] = useState<string | null>(null);
   const ten = tenTay ?? `${(gt?.san_pham ?? '').trim() || 'Phim mới'} · ${tenGon(tenTemplate).replace(/\s*\(.*\)\s*$/, '')}`;
@@ -223,13 +225,14 @@ function TaoTuTemplate({ templateId, tenTemplate, onClose, onTao }: { templateId
   const thieu = oThieu(dung, g);
   const lam = async () => {
     setBan(true); setLoi('');
-    const r = await taoPhimTuTemplate(templateId, ten, g);
+    const r = await (taoBang ?? ((t: string, x: Record<string, string>) => taoPhimTuTemplate(templateId, t, x)))(ten, g);
     setBan(false);
     if (!r.ok) { setLoi(r.loi); return; }
     onTao(r.data.phimId);
   };
   return (
     <Ngan nho onClose={onClose} tieuDe={`🧩 ${tenGon(tenTemplate)}`} nut={<Nut chinh ban={ban} ly={(!ten.trim() && 'nhập tên phim') || (thieu.length > 0 && `chưa điền: ${thieu.map((x) => x.ten).join(', ')}`)} onClick={() => void lam()}>Tạo phim (0đ)</Nut>}>
+      {dauNgan}
       <div style={{ ...mono, marginBottom: 8 }}>Điền từ trên xuống — giá trị mẫu đã có sẵn, sửa chỗ cần đổi. Chép cả template rồi điền ô; shot không chứa ô nào giữ nguyên hình/clip, shot có ô về nháp để sinh lại.</div>
       <Loi>{loiDoc}</Loi>
       {d && <details open style={{ marginBottom: 8 }}><summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>🎬 Cấu trúc video <span style={mono}>· {d.khung.length} shot · {Math.round(d.khung.reduce((a, k) => a + k.giay, 0))}s — chữ màn mẫu, ô {'{{…}}'} sẽ thay bằng giá trị anh điền</span></summary><div style={{ marginTop: 6 }}><DaiKhung khung={d.khung} chiTiet /></div></details>}

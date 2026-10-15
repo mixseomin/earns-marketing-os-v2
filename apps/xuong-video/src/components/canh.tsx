@@ -3,8 +3,8 @@
 import { useContext, useEffect, useState, type CSSProperties } from 'react';
 import { moNgan, linkTai } from './ngan-chung';
 import { dongThoai, tenNoi, LOI_DAN } from '@/lib/xuong-video/am-thanh';
-import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, chiTietKyThuat, type TheLoai } from '@/lib/xuong-video/dien-anh';
-import { KyThuatApDung } from './thu-vien';
+import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, type TheLoai } from '@/lib/xuong-video/dien-anh';
+import { KyThuatTheoNhom } from './thu-vien';
 import { suaCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, sinhVideoCanh, sinhVideoThu, lamLaiTuKeyframe, sinhGiong, sinhAmThanh, xoaKeyframe, goiYAICanh, nangCapCanh, chonPhienBan, khopMiengCanh, luuShotKho } from '@/lib/actions';
 import { O_DAN_DUNG, chuManHien, tenPhanDoan, LOAI_NHAN_VAT, TRANG_THAI_CANH, doiBienThe, motBienTheMoiDoiTuong, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
@@ -30,15 +30,10 @@ function NguonTep({ c, url }: { c: Canh; url: string }) {
   return <div title={n.day} style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{n.ngan}</div>;
 }
 
-/** Kỹ thuật + luật đã áp cho shot (thư viện điện ảnh): mỗi cái một nhãn, bấm mở ngăn chi tiết có mô tả ngành (anh 15/10/2026; thay bản rê-mới-thấy #1243). */
-function KyThuatGon({ kt, phanDoan }: { kt: Canh['ky_thuat']; phanDoan: string }) {
-  if (!chiTietKyThuat(kt).length && !phanDoan) return null;
-  return (
-    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 4, maxWidth: '100%', ...mono }}>
-      {phanDoan && <span style={{ color: 'var(--violet)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>🎬 {tenPhanDoan(phanDoan)}</span>}
-      <KyThuatApDung kt={kt} />
-    </div>
-  );
+/** Phân cảnh của shot (kỹ thuật đã áp nằm ở chân cột ảnh — KyThuatTheoNhom). */
+function KyThuatGon({ phanDoan }: { phanDoan: string }) {
+  if (!phanDoan) return null;
+  return <div style={{ marginTop: 4, ...mono, color: 'var(--violet)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>🎬 {tenPhanDoan(phanDoan)}</div>;
 }
 
 /** Trang phục của người trong shot — sửa ngay trên thẻ (Enter/blur là lưu). Trống = mặc như mô tả nhân vật. */
@@ -107,11 +102,12 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai }: 
   return (
     <div className="xv-canh">
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-        <div style={{ flexShrink: 0, width: anhKhung.width }}>
+        <div style={{ flexShrink: 0, width: Math.max(Number(anhKhung.width), 180), display: 'grid', justifyItems: 'center', alignContent: 'start' }}>
           {c.video_cuoi_url ? <div><ClipNho url={c.video_cuoi_url} ten={`#${c.thu_tu} ${c.canh} · bản cuối`} style={anhKhung} /><div style={{ ...mono, color: 'var(--lime)', textAlign: 'center' }}>bản cuối</div><NguonTep c={c} url={c.video_cuoi_url} />{c.keyframe_url && <KfNho url={c.keyframe_url} soSanh={soSanh} />}</div>
             : c.video_url ? <div><ClipNho url={c.video_url} ten={`#${c.thu_tu} ${c.canh} · nháp`} style={anhKhung} /><div style={{ ...mono, textAlign: 'center' }}>nháp</div><NguonTep c={c} url={c.video_url} />{c.keyframe_url && <KfNho url={c.keyframe_url} soSanh={soSanh} />}</div>
             : c.keyframe_url ? <div style={{ position: 'relative' }}><img src={anhNho(c.keyframe_url, 320)} alt="" data-so-sanh={soSanh} style={anhKhung} />{buoc === 'dang' && <DangSinh chu="" />}</div>
             : <div style={{ ...anhKhung, position: 'relative', display: 'grid', placeItems: 'center', color: 'var(--fg-4)', fontSize: 10, overflow: 'hidden' }}>chưa có{buoc === 'dang' && <DangSinh chu={c.dang_sinh_anh ? 'ảnh' : 'video'} />}</div>}
+          <div style={{ justifySelf: 'stretch' }}><KyThuatTheoNhom kt={c.ky_thuat} /></div>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -161,7 +157,7 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai }: 
               ))}
             </div>
           )}
-          <KyThuatGon kt={c.ky_thuat} phanDoan={c.phan_doan} />
+          <KyThuatGon phanDoan={c.phan_doan} />
           {/* Giọng đã nằm ở từng dòng thoại phía trên; ở đây chỉ còn file giọng gộp cũ (không gán được dòng nào) + hiệu ứng. */}
           {((c.thoai_url && !dongThoai(c, nhanVat).some((d) => d.url)) || c.am_thanh_url || c.dang_sinh_am) && (
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>

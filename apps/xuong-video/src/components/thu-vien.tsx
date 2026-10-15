@@ -145,3 +145,29 @@ export function KyThuatApDung({ kt, nhom, nho }: { kt: KyThuatShot | undefined; 
     </span>
   );
 }
+
+/** Kỹ thuật + luật đã áp CHIA THEO NHÓM, có tên nhóm (anh 15/10/2026: "phải ghi tên, chia nhóm rõ ràng ở dưới chân cột bên trái") — chân cột ảnh của
+ *  thẻ shot. Cùng dữ liệu chiTietKyThuat với KyThuatApDung; mỗi nhãn bấm mở ngăn chi tiết. */
+export function KyThuatTheoNhom({ kt }: { kt: KyThuatShot | undefined }) {
+  const ds = chiTietKyThuat(kt);
+  if (!ds.length) return null;
+  const nhom = [...new Map(ds.map((m) => [m.nhom, m.icon])).entries()];
+  return (
+    <div style={{ display: 'grid', gap: 5, marginTop: 6, paddingTop: 6, borderTop: '1px dashed var(--line)' }}>
+      <div className="xv-mono" style={{ fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: 0.3 }}>🎬 Thư viện điện ảnh đã áp</div>
+      {nhom.map(([ten, icon]) => (
+        <div key={ten} style={{ display: 'grid', gap: 2 }}>
+          <div className="xv-mono" style={{ fontSize: 9.5, color: 'var(--fg-3)' }}>{icon} {ten}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+            {ds.filter((m) => m.nhom === ten).map((m) => (
+              <button key={m.ma} type="button" className="xv-mono" title={`${m.mo_ta}\nBấm xem chi tiết`} onClick={(e) => { e.stopPropagation(); moNgan({ loai: 'ky-thuat', ma: m.ma }); }}
+                style={{ fontSize: 10.5, lineHeight: '16px', padding: '0 6px', border: '1px solid var(--line)', borderRadius: 4, background: 'var(--bg-2)', color: 'var(--fg-1)', cursor: 'pointer', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' }}>
+                {m.ten.replace(/\s*\(.*\)$/, '')}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

@@ -67,7 +67,7 @@ assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: kxT([chan]) },
 assert.deepEqual(vatChanTienCanh({ may_3d: mm, khung_xam: kxT([chan]), dan_dung: { bo_cuc: 'Foreground: the yellow iMac stand, blurred.' } }, setIMac), []);
 assert.deepEqual(vatChanTienCanh({ may_3d: mm, khung_xam: kxT([{ ...chan, pt: 8 }]) }, setIMac), []);
 assert.ok(chanKhungXam({ nhan_vat: [1, 2], may_3d: mm, khung_xam: { ...kxT([]), thay: undefined } }, nv, setIMac).some((x) => x.includes('đời cũ')));
-assert.ok(moTaThay([chan]).includes('Yellow iMac (top-centre, 30%, foreground)'));
+assert.ok(moTaThay([chan]).includes('Yellow iMac (top-centre, 30%, foreground, cut off by the top edge — only a 30% strip shows)'));
 // Liền mạch: shot sau mở đúng chỗ shot trước kết (den) → qua; lệch 5 cm → đứt mạch; vắng một shot ở giữa vẫn so với lần cuối thấy;
 // khai nhay → không báo; quay ngoắt >60° qua cú cắt → báo.
 const kh = () => ({ co: [2, 1.6, 2.6] });

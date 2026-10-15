@@ -1007,7 +1007,7 @@
      "loai": "end_card",
      "goc_may": "Product hero",
      "hanh_dong": "Hero shot with offer",
-     "chu_man": "{{uu_dai}} · Shop now",
+     "chu_man": "{{san_pham}} · {{uu_dai}}",
      "nv": [
       "sp",
       "bc"
@@ -1264,8 +1264,8 @@
      "loai": "end_card",
      "goc_may": "Medium shot, hero",
      "hanh_dong": "Hero shot with offer",
-     "chu_man": "{{uu_dai}} · {{dam_bao}}",
-     "loi": "{{uu_dai}}.",
+     "chu_man": "{{san_pham}} · {{uu_dai}}",
+     "loi": "{{san_pham}}. {{uu_dai}}.",
      "nv": [
       "sp",
       "nv",
@@ -1523,8 +1523,8 @@
      "loai": "end_card",
      "goc_may": "Product hero",
      "hanh_dong": "Hero shot with offer",
-     "chu_man": "{{uu_dai}} · Shop now",
-     "loi": "{{uu_dai}}. Shop now.",
+     "chu_man": "{{san_pham}} · {{uu_dai}}",
+     "loi": "{{san_pham}}. {{uu_dai}}.",
      "nv": [
       "sp",
       "bc"
@@ -1835,7 +1835,7 @@
      "loai": "end_card",
      "goc_may": "Product hero",
      "hanh_dong": "Hero shot with offer",
-     "chu_man": "{{uu_dai}} · Shop now",
+     "chu_man": "{{san_pham}} · {{uu_dai}}",
      "nv": [
       "sp",
       "bc"
@@ -1993,8 +1993,8 @@
      "loai": "end_card",
      "goc_may": "Real photo, static",
      "hanh_dong": "Real product photo with offer",
-     "chu_man": "{{uu_dai}} · {{dam_bao}}",
-     "loi": "{{uu_dai}}. Shop now.",
+     "chu_man": "{{san_pham}} · {{uu_dai}}",
+     "loi": "{{san_pham}}. {{uu_dai}}.",
      "nv": [
       "sp"
      ],

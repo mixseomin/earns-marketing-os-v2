@@ -98,6 +98,8 @@ async function ghiShot(phimId: number, t: Tpl, capNhat: boolean) {
     const thoai: DongThoai[] = s.loi ? [{ nhan_vat: s.noi ?? '', dien_xuat: s.dien_xuat ?? '', loi: s.loi, url: null, tre: 0.2 }] : [];
     const nv = (s.nv ?? []).map((k) => { if (!idNv[k]) throw new Error(`${t.key} shot ${i + 1}: anchor ${k} không có`); return idNv[k]!; });
     const bt = (s.bt ?? []).map((k) => { if (!idBt[k]) throw new Error(`${t.key} shot ${i + 1}: biến thể ${k} không có`); return idBt[k]!; });
+    // End card phải mang tên sản phẩm: thiếu thì người xem QC không biết tìm mua gì (#35 bị chấm lệch ý QC vì đúng lỗi này, 15/10/2026).
+    if (s.loai === 'end_card' && !timO(s.chu_man).includes('san_pham')) throw new Error(`${t.key} shot ${i + 1}: end card chưa có ô {{san_pham}} trong chữ màn`);
     const thieu = cauThieuNguon({ chu_man: s.chu_man, thoai, tham_khao: s.tk });
     if (thieu.length) throw new Error(`${t.key} shot ${i + 1}: câu cố định chưa có nguồn tham khảo (tk) — ${thieu.map((x) => `“${x}”`).join(', ')}; đổi thành ô hoặc gắn lời khách / QC thắng`);
     const v = { canh: s.canh ?? `Shot ${i + 1} · ${s.loai}`, kf: s.keyframe ?? null, tt: s.keyframe ? 'co_keyframe' : 'nhap' };

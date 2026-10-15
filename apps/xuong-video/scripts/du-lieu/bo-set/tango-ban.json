@@ -1032,7 +1032,8 @@
         0.04
       ],
       "mau": "#a9c8e6",
-      "en": "pale blue card in the card holder window"
+      "en": "pale blue card in the card holder window",
+      "anchor": "Orange Card"
     }
   ],
   "vung": {
@@ -2765,11 +2766,21 @@
           "lam": "Cable Plug"
         }
       ],
-      "phia": 80,
       "khung": [
         "Tango",
         "Cable Plug"
-      ]
+      ],
+      "dat": [
+        50.5,
+        47.5,
+        1.5
+      ],
+      "nhin": [
+        55.2,
+        51.7,
+        0.8
+      ],
+      "ong_kinh": 35
     },
     "7.2a": {
       "vi_tri": [

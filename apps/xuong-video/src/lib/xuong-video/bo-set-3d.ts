@@ -78,6 +78,19 @@ export const loiHinhHoc = (c: Pick<Canh, 'may_3d' | 'khung_xam'>) => { const ct 
 /** Vật DẸT của set (thẻ, giấy, tấm lót — cao ≤ 0,5 cm): là mặt nhân vật đứng lên, máy tầm thấp thấy nó phủ tiền cảnh là đúng ý (7.7a tập 19: thẻ
  *  trống phía trước hai bạn) — không tính "chủ thể quá to"; vật có bề dày vẫn tính. */
 const vatDet = (set: Pick<BoSet, 'du_lieu'> | null | undefined) => new Set((set?.du_lieu.vat ?? []).filter((v) => 'co' in v && v.co && (v.co[2] ?? 1) <= 0.5).map((v) => v.ten));
+/** Vật BẮT BUỘC thấy (may_3d.khung) mà chỉ là một mẩu: quá nhỏ so với cỡ cảnh, hoặc vật nhỏ bị mép trái/phải khung cắt (15/10/2026 shot #32 tập 19:
+ *  phích cắm là chủ thể cú cận — "Foreground: the plug" — mà Tango đứng che, phích còn 3% ở mép phải; cổng chỉ hỏi "có trong khung" nên lọt,
+ *  keyframe vẽ cảnh khác hẳn). Chỉ cỡ CẬN (cu/ecu/insert/mcu) — cú cận tồn tại để cho thấy chủ thể: mỗi chủ thể ≥ 5% diện tích khung, chủ thể < 15% không
+ *  chạm mép trái/phải. Cỡ rộng (ws/ms/two) không đo: nhân vật 5 cm trong toàn cảnh nhỏ là đúng ý, nhân vật đi vào từ mép cũng vậy. */
+export const chuTheQuaNho = (c: Pick<Canh, 'khung_xam'> & Partial<Pick<Canh, 'ky_thuat'>>): string[] => {
+  if (!['cu', 'ecu', 'insert', 'mcu'].includes(c.ky_thuat?.co_canh ?? '')) return [];
+  const thay = new Map((c.khung_xam?.thay ?? []).map((t) => [t.ten, t]));
+  return (c.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.trong_khung).flatMap((k) => {
+    const t = thay.get(k.nhan_vat); if (!t) return [];
+    const nho = t.pt < 5; const mep = t.pt < 15 && (t.hop[0]! <= 0.005 || t.hop[2]! >= 0.995);
+    return nho || mep ? [`${k.nhan_vat} (chủ thể) ${[nho && `chỉ chiếm ${Math.round(t.pt * 10) / 10}% khung ở cỡ ${c.ky_thuat?.co_canh ?? '?'}`, mep && 'bị mép khung cắt'].filter(Boolean).join(', ')} — dời máy cho nó nằm rõ trong khung (không bị nhân vật / mép che)`] : [];
+  });
+};
 export const chuTheQuaTo = (c: Pick<Canh, 'khung_xam'> & Partial<Pick<Canh, 'ky_thuat'>>, set?: Pick<BoSet, 'du_lieu'> | null): string[] => ['cu', 'ecu', 'insert', 'mcu'].includes(c.ky_thuat?.co_canh ?? '') ? [] : (c.khung_xam?.kiem ?? []).filter((k) => k.bat_buoc && k.cao_khung_pt > 70 && !vatDet(set).has(k.nhan_vat)).map((k) => `${k.nhan_vat} cao ${k.cao_khung_pt}% khung ở cỡ ${c.ky_thuat?.co_canh ?? '?'} — máy dí sát: lùi máy / đặt tay`);
 
 /** Shot để so trục với shot thứ i: shot liền trước GẦN NHẤT không cố ý vượt trục (POV / lật trục có chủ đích không đặt trục mới). */
@@ -144,6 +157,7 @@ export function chanKhungXam(c: Pick<Canh, 'nhan_vat' | 'may_3d' | 'khung_xam'> 
   else {
     for (const k of loiHinhHoc(c)) out.push(!k.trong_khung ? `${k.nhan_vat} (chủ thể) nằm ngoài khung` : `${k.nhan_vat} (chủ thể) bị ${k.bi_che_boi.join(', ')} che`);
     out.push(...chuTheQuaTo(c, set));
+    out.push(...chuTheQuaNho(c));
     // 'Bố cục nhắc mà khung không thấy' (dò tên trong chữ) KHÔNG chặn nữa — báo nhầm (chữ 'cable' khớp mọi sợi cáp); bộ giải máy vẫn dùng nó làm
     // gợi ý. Vật BẮT BUỘC thấy khai thẳng ở may_3d.khung (đồ của set cũng được) → kiểm như chủ thể (anh 15/10/2026: 3D là nguồn, không dò chữ).
     for (const t of khoiLapKhung(c, set)) out.push(`${t.ten} lấp ${t.pt}% khung — máy dí sát hoặc lọt trong vật: lùi máy / đổi cỡ cảnh`);

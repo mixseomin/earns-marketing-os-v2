@@ -111,7 +111,11 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // Shot có KHUNG XÁM 3D: bố trí + hậu cảnh lấy từ 3D, nên KHÔNG gửi ảnh mẫu bối cảnh lẫn chữ tả bối cảnh (thử #23 tập 19, 14/10/2026: ảnh
   // mẫu 'Cable Jungle' có màn hình phía sau → keyframe vẽ thêm chân iMac + màn hình nơi 3D là bức tường xa). Chất liệu/ánh sáng vẫn theo phong cách phim.
   const coKx = !!bc.canh.khung_xam?.xam;
-  const nvRef = coKx ? bc.nhanVat.filter((v) => v.loai !== 'boi_canh') : bc.nhanVat;
+  // Đạo cụ / sản phẩm KHÔNG có trong khung 3D (kể cả các phần của nó) thì không gửi ảnh mẫu + chữ tả: ảnh mẫu là lời mời vẽ (15/10/2026 shot #32
+  // tập 19: ảnh mẫu USB Hub đi kèm dù hub nằm ngoài khung → keyframe đặt Tango đứng trên hub). Trạng thái vật vẫn nói ở câu OBJECT STATE.
+  // Chỉ khung MỞ: khung kết chưa đo "thấy gì" riêng.
+  const ngoaiKhung = (v: NhanVat) => !ket && !!bc.ptAnchor && (v.loai === 'dao_cu' || v.loai === 'san_pham') && (bc.ptAnchor.get(v.ten) ?? 0) < 0.5;
+  const nvRef = coKx ? bc.nhanVat.filter((v) => v.loai !== 'boi_canh' && !ngoaiKhung(v)) : bc.nhanVat;
   // Khung xám là ẢNH SỐ 1 (thử #23: đứng thứ 8/9 sau bảy ảnh mẫu thì model coi nhẹ bố trí).
   // Có khung MÀU (vật liệu + ánh sáng theo kịch bản) thì nó là ảnh số 1 — gần ảnh thật hơn khung xám, model ít phải đoán khối nào là gì.
   // ket = keyframe KẾT: ảnh số 1 là khung màu ở chỗ kết (khung_xam.mau_ket).
@@ -125,7 +129,12 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // "dựng bối cảnh bằng 3D để scale và làm đúng mọi bộ phim thay vì dựa vào AI bừa bãi"). Đứng ngay sau ảnh mẫu, trước mọi tham chiếu nối khung.
   // Nhãn khối trong khung 3D gọi ĐẠO CỤ / SẢN PHẨM bằng chính mô tả anchor (15/10/2026: nhãn trơn 'Orange Card' + mô tả nước đôi → keyframe lúc thẻ
   // nhựa phẳng lúc ví da). Một nguồn với ảnh mẫu của anchor; nhân vật giữ tên (ngoại hình đi theo ảnh mẫu riêng).
-  const goiVat = (ten: string) => { const v = bc.nhanVat.find((x) => x.ten === ten && (x.loai === 'dao_cu' || x.loai === 'san_pham')); return v?.mo_ta.trim() ? moTaNgan(v.mo_ta) : undefined; };
+  // Vật trong set là MỘT PHẦN của anchor (Card Window → Orange Card): gọi "<phần>, part of <mô tả anchor>" — model biết mảng xanh là thẻ trong ví da.
+  const goiVat = (ten: string) => {
+    const a = bc.anchorCua?.[ten] ?? ten; const v = bc.nhanVat.find((x) => x.ten === a && (x.loai === 'dao_cu' || x.loai === 'san_pham'));
+    if (!v?.mo_ta.trim()) return undefined;
+    return a === ten ? moTaNgan(v.mo_ta) : `${bc.canh.khung_xam?.thay?.find((t) => t.ten === ten)?.en ?? ten}, part of ${moTaNgan(v.mo_ta)}`;
+  };
   const soKx = 1;
   const kxChu = kx ? (kxMau ? `Image ${soKx} = a COLOUR 3D PREVIS render of THIS exact frame from the real set: camera, framing, horizon, every object's and character's position, size and overlap, the lighting direction and colours are all correct — re-create it as the real photographed miniature, keeping everything exactly where it is; materials get real detail, and each character's exact look comes from its reference images (the previs shapes are only stand-ins).` : `Image ${soKx} = a grey-box 3D LAYOUT render from THIS shot's exact camera on the real set: every object and every character must sit EXACTLY where its block is, and NOTHING that is not a block may appear — same position, size, overlap, perspective, horizon and framing. It shows layout only: colours, materials and lighting come from the style and the other reference images, never grey blocks.`) + ` ${ket ? 'Image 1 shows where everything is at the END of the shot.' : moTaThay(bc.canh.khung_xam?.thay, goiVat)}` : '';
   // LIỀN MÁY: shot trước chọn chuyển cảnh 'lien_may' → clip của nó kết bằng ảnh này, nên ảnh này phải là giây kế tiếp của chính khung đó

@@ -57,9 +57,18 @@ export async function boiCanhCanh(db: Db, canhId: number) {
   const nv: NhanVat[] = canh.nhan_vat.length
     ? await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE id = ANY(${mangInt(canh.nhan_vat)}::int[])`)) as unknown as Row[]).map(mapNhanVat))
     : [];
+  // BỘ SET của shot (nếu có 3D): vật trong set khai anchor = nó là MỘT PHẦN của anchor đó (Card Window → Orange Card, Cable Plug → White Cable).
+  const nvPhim = canh.may_3d ? ((await db.execute(sql`SELECT id, ten, loai, bo_set_id FROM xv_nhan_vat WHERE phim_id = ${Number(r[0].p_id)}`)) as unknown as Row[]).map((x) => ({ id: n(x.id), ten: s(x.ten), loai: s(x.loai) as LoaiNhanVat, bo_set_id: x.bo_set_id == null ? null : n(x.bo_set_id) })) : [];
+  const sid = canh.may_3d ? boSetCuaShot(canh, nvPhim) : null;
+  const vatSet = sid ? ((((await db.execute(sql`SELECT du_lieu->'vat' AS vat FROM xv_bo_set WHERE id = ${sid}`)) as unknown as Row[])[0]?.vat ?? []) as { ten: string; anchor?: string }[]) : [];
+  const anchorCua: Record<string, string> = Object.fromEntries(vatSet.filter((v) => v.anchor && v.anchor !== v.ten).map((v) => [v.ten, v.anchor!]));
+  // PHẦN TRĂM KHUNG 3D theo ANCHOR (cộng các phần của nó): 15/10/2026 shot #32 tập 19 — cửa sổ thẻ chiếm 34% khung, ví da cam (anchor) 0.7% vì
+  // Tango đứng trên → ví không kèm ảnh mẫu, keyframe vẽ mặt xám bất kỳ.
+  const ptAnchor = new Map<string, number>();
+  for (const t of canh.khung_xam?.thay ?? []) { const a = anchorCua[t.ten] ?? t.ten; ptAnchor.set(a, (ptAnchor.get(a) ?? 0) + t.pt); }
   // ĐẠO CỤ THẤY TRONG KHUNG 3D mà shot không gắn anchor (đồ để lại từ shot trước — kẹo nằm trên thẻ ở 7.4a tập 19): kèm luôn để keyframe có
-  // ảnh mẫu + mô tả của nó, không vẽ theo đoán. Chỉ đạo cụ / sản phẩm cùng phim, chiếm ≥ 2% khung.
-  const thayThem = (canh.khung_xam?.thay ?? []).filter((t) => t.pt >= 2 && !nv.some((v) => v.ten === t.ten)).map((t) => t.ten);
+  // ảnh mẫu + mô tả của nó, không vẽ theo đoán. Chỉ đạo cụ / sản phẩm cùng phim, chiếm ≥ 2% khung (tính cả các phần của nó).
+  const thayThem = [...ptAnchor].filter(([a, pt]) => pt >= 2 && !nv.some((v) => v.ten === a)).map(([a]) => a);
   if (thayThem.length) nv.push(...await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(r[0].p_id)} AND loai IN ('dao_cu', 'san_pham') AND ten IN (${sql.join(thayThem.map((t) => sql`${t}`), sql`, `)})`)) as unknown as Row[]).map(mapNhanVat)));
   // Shot liền trước cùng nhánh — shot đó chọn chuyển cảnh 'lien_may' thì keyframe của nó là tham chiếu nối khung cho shot này (sinh-anh.ts).
   const t = (await db.execute(sql`SELECT keyframe_url, ky_thuat, thu_tu, phan_doan FROM xv_canh WHERE tap_id = ${canh.tap_id} AND thu_tu < ${canh.thu_tu}
@@ -73,16 +82,12 @@ export async function boiCanhCanh(db: Db, canhId: number) {
   // MÁY ĐẦY ĐỦ của shot (khai + đồ để lại từ các shot trước cùng bộ set — bo-set-3d.ts › mayDayDu): MỘT nguồn cho mọi đường dựng prompt keyframe
   // (mở, kết, sơ đồ nguồn) lẫn cổng chặn — trạng thái vật (đã chia mảnh) nằm ở đây kể cả khi món đó ngoài khung.
   let mayDu: May3d | null = canh.may_3d ?? null;
-  if (canh.may_3d) {
-    const nvPhim = ((await db.execute(sql`SELECT id, ten, loai, bo_set_id FROM xv_nhan_vat WHERE phim_id = ${Number(r[0].p_id)}`)) as unknown as Row[]).map((x) => ({ id: n(x.id), ten: s(x.ten), loai: s(x.loai) as LoaiNhanVat, bo_set_id: x.bo_set_id == null ? null : n(x.bo_set_id) }));
-    const sid = boSetCuaShot(canh, nvPhim);
-    if (sid) {
-      const ds = ((await db.execute(sql`SELECT id, thu_tu, nhan_vat, may_3d FROM xv_canh WHERE tap_id = ${canh.tap_id} AND may_3d IS NOT NULL AND coalesce(nhanh, '') IN ('', ${canh.nhanh || 'A'}) ORDER BY thu_tu, id`)) as unknown as Row[])
-        .map((x) => ({ id: n(x.id), thu_tu: n(x.thu_tu), nhan_vat: (x.nhan_vat as number[]) ?? [], may_3d: x.may_3d as May3d })).filter((c) => boSetCuaShot(c, nvPhim) === sid);
-      mayDu = mayDayDu(ds, laDoVatPhim(nvPhim)).get(canh.id) ?? mayDu;
-    }
+  if (sid) {
+    const ds = ((await db.execute(sql`SELECT id, thu_tu, nhan_vat, may_3d FROM xv_canh WHERE tap_id = ${canh.tap_id} AND may_3d IS NOT NULL AND coalesce(nhanh, '') IN ('', ${canh.nhanh || 'A'}) ORDER BY thu_tu, id`)) as unknown as Row[])
+      .map((x) => ({ id: n(x.id), thu_tu: n(x.thu_tu), nhan_vat: (x.nhan_vat as number[]) ?? [], may_3d: x.may_3d as May3d })).filter((c) => boSetCuaShot(c, nvPhim) === sid);
+    mayDu = mayDayDu(ds, laDoVatPhim(nvPhim)).get(canh.id) ?? mayDu;
   }
-  return { canh, kt, nhanVat: nv, truoc, master, mayDu };
+  return { canh, kt, nhanVat: nv, truoc, master, mayDu, anchorCua, ptAnchor: canh.khung_xam?.thay ? ptAnchor : null };
 }
 
 export async function taoJob(db: Db, d: { phim_id?: number; nhan?: string; canh_id?: number; nhan_vat_id?: number; bien_the_id?: number; loai: string; provider: string; model: string; request: unknown; xong?: boolean }): Promise<number> {

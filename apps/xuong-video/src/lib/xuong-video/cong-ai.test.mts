@@ -31,4 +31,5 @@ console.log('cong-ai.ts: ok');
     { id: 'wowztools/Nano-Banana-2-Lite', vnd: 110.5 }, { id: 'phuocanh421994/Qwen_Image_3.0_Pro', vnd: 120 }, { id: 'danielnguyenkarate/nano-banana-2', vnd: 480 }, { id: 'danielnguyenkarate/nano-banana-pro', vnd: 960 }];
   assert.deepStrictEqual(chonNguoiBanCkey(dm, new Set()).map((x) => x.model), ['dungcsnd113/gemini-3.1-flash-image', 'wowztools/Nano-Banana-2', 'danielnguyenkarate/nano-banana-2', 'wowztools/nano-banana-pro']);
   assert.deepStrictEqual(chonNguoiBanCkey(dm, new Set(['wowztools/Nano-Banana-2', 'dungcsnd113/gemini-3.1-flash-image'])).map((x) => x.model)[0], 'danielnguyenkarate/nano-banana-2');
+  assert.strictEqual(chonNguoiBanCkey(dm, new Set(), 683, new Set(['wowztools/Nano-Banana-2']))[0]!.model, 'wowztools/Nano-Banana-2', 'người vừa đạt lên đầu');
   console.log('cong-ai.test: người bán ckey ok'); }

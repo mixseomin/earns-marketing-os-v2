@@ -83,8 +83,10 @@ export async function tenThatCkey(model: string, k: string): Promise<string | nu
  *  Chỉ lấy ĐÚNG dòng Nano Banana (2 / gemini-3.1-flash-image trước, Pro sau) — model khác (Qwen, Seedream, gpt-image, bản Lite) ra hình khác
  *  hẳn, không phải dự phòng. Chỉ người bán rẻ hơn tranVnd (cổng kế: ShopAIKey 683₫ / Google 874₫). Người bán đang "nghỉ" (hỏng liên tiếp) bỏ qua. */
 export const RE_NANO_CKEY = /^[^/]+\/(nano-banana-2|gemini-3\.1-flash-image|nano-banana-pro)$/i;
-export function chonNguoiBanCkey(danhMuc: { id: string; vnd: number }[], nghi: Set<string>, tranVnd = 683): { model: string; vnd: number }[] {
-  const hang = (id: string) => (/pro$/i.test(id) ? 1 : 0);
+/** uuTien = người bán vừa chạy ĐẠT gần đây → đứng đầu (thử 15/10/2026: người rẻ nhất 65₫ và người 480₫ đều chết, chỉ wowztools sống — xếp thuần
+ *  theo giá thì mỗi ảnh phải chờ người chết trước). */
+export function chonNguoiBanCkey(danhMuc: { id: string; vnd: number }[], nghi: Set<string>, tranVnd = 683, uuTien: Set<string> = new Set()): { model: string; vnd: number }[] {
+  const hang = (id: string) => (uuTien.has(id) ? 0 : 2) + (/pro$/i.test(id) ? 1 : 0);
   return danhMuc.filter((m) => RE_NANO_CKEY.test(m.id) && m.vnd < tranVnd && !nghi.has(m.id))
     .sort((a, b) => hang(a.id) - hang(b.id) || a.vnd - b.vnd).map((m) => ({ model: m.id, vnd: m.vnd }));
 }
@@ -92,7 +94,9 @@ export function chonNguoiBanCkey(danhMuc: { id: string; vnd: number }[], nghi: S
  *  phải chờ lại người bán đang chết (ngày 15/10 wowztools hỏng 246 lượt liền). */
 const HONG_LIEN = 2, NGHI_PHUT = 20;
 const hongCkey = new Map<string, { lan: number; luc: number }>();
-const ghiCkey = (id: string, ok: boolean) => { if (ok) { hongCkey.delete(id); return; } const h = hongCkey.get(id); hongCkey.set(id, { lan: (h?.lan ?? 0) + 1, luc: Date.now() }); };
+const datCkey = new Map<string, number>();
+const vuaDat = (): Set<string> => new Set([...datCkey].filter(([, luc]) => Date.now() - luc < 2 * 3600_000).map(([id]) => id));
+const ghiCkey = (id: string, ok: boolean) => { if (ok) { hongCkey.delete(id); datCkey.set(id, Date.now()); return; } const h = hongCkey.get(id); hongCkey.set(id, { lan: (h?.lan ?? 0) + 1, luc: Date.now() }); };
 const dangNghi = (): Set<string> => new Set([...hongCkey].filter(([, h]) => h.lan >= HONG_LIEN && Date.now() - h.luc < NGHI_PHUT * 60_000).map(([id]) => id));
 
 /** Gọi MỘT cổng sinh ảnh. Ảnh tham chiếu đi bằng URL công khai (R2). Hết giờ chờ: ShopAIKey vẫn trừ tiền → chờ đủ lâu (240s). */
@@ -132,7 +136,7 @@ export async function sinhAnhQuaCong(modelGoogle: string, o: { prompt: string; t
   if (kc && tinh.some((x) => x.cong === 'ckey')) {
     await napCkey(kc);
     if (khoCkey) {
-      const ban = chonNguoiBanCkey([...khoCkey.gia].map(([id, vnd]) => ({ id, vnd })), dangNghi());
+      const ban = chonNguoiBanCkey([...khoCkey.gia].map(([id, vnd]) => ({ id, vnd })), dangNghi(), undefined, vuaDat());
       for (const b of ban) giaDong[`ckey:${b.model}`] = b.vnd;
       chuoi = [...ban.map((b) => ({ cong: 'ckey' as const, model: b.model })), ...tinh.filter((x) => x.cong !== 'ckey')];
     }

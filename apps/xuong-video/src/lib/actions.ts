@@ -10,9 +10,9 @@ import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { uploadToR2 } from '@/lib/r2';
 import { dayViecAnh, dayViecAm, chayNen } from '@/lib/xuong-video/hoan-tat';
-import { chayXuat, ghiBanXuat, gopAm } from '@/lib/xuong-video/xuat-chay';
+import { gopAm } from '@/lib/xuong-video/xuat-chay';
+import { batDauXuatTap } from '@/lib/xuong-video/xuat-tap';
 import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiongTheo, timNv, giayNhac } from '@/lib/xuong-video/am-thanh';
-import { kiemTieng } from '@/lib/xuong-video/khop-giong';
 import { locNhanh, giayPhat, type ThuNguoiXem, type KiemKhung } from '@/lib/xuong-video/kieu';
 import { sinhNhacTap } from '@/lib/xuong-video/sinh-nhac';
 import { dsKho, luuShotVaoKho, dungTaiSan, boKhoiKho, luuKhuonQc, taoTapTuKhuon, apKieuChuThuongHieu } from '@/lib/xuong-video/kho';
@@ -26,7 +26,6 @@ import { kiemKhungTap, duyetKhungTay } from '@/lib/xuong-video/kiem-khung';
 import { chanKhung, TEN_NUT_KHUNG } from '@/lib/xuong-video/khung';
 import { xuatLongTiengTap } from '@/lib/xuong-video/long-tieng';
 import { lamSanNho } from '@/lib/xuong-video/anh-nho-may';
-import { chanNguoiXem } from '@/lib/xuong-video/nguoi-xem';
 import { vietKichBan, vietBaiDang, phanTichMau, promptBienThe, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh } from '@/lib/xuong-video/claude';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
@@ -797,25 +796,10 @@ export async function xuatTap(tapId: number, nhanh?: string | null): Promise<Kq<
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  const bc = await boiCanhTap(db, tapId);
-  if (!bc) return loi('không thấy tập');
-  const canh = await dsCanh(tapId);
-  if (!canh.length) return loi('tập chưa có cảnh');
-  const dang = (await db.execute(sql`SELECT 1 FROM xv_job WHERE loai = 'xuat' AND trang_thai = 'cho' AND request->>'tap_id' = ${String(tapId)} AND created_at > now() - interval '20 minutes' LIMIT 1`)) as unknown as Row[];
-  if (dang.length) return loi('đang có một bản xuất của tập này chạy dở — chờ xong rồi xuất lại');
-  // Cổng xuất: máy kiểm tiếng (khop-giong.ts › kiemTieng) — câu bị cắt / đè nhau / đọc quá nhanh thì không ra bản lỗi.
-  const hieu = chanNguoiXem(bc.tap.thu_nguoi_xem, locNhanh(canh, 'A'));
-  if (hieu.length) return loi(`Chưa xuất được — ${hieu[0]}`);
-  const tieng = kiemTieng(locNhanh(canh, nhanh || 'A'), bc.nhanVat);
-  if (tieng.length) return loi(`Chưa xuất được — tiếng còn lỗi: ${tieng.slice(0, 4).join('; ')}${tieng.length > 4 ? `; +${tieng.length - 4} lỗi nữa` : ''}`);
-  const kt = docKinhThanh(bc.kt);
-  const job = await taoJob(db, { phim_id: bc.tap.phim_id, nhan: `Xuất bản · tập ${bc.tap.so}${nhanh ? ` · hook ${nhanh}` : ''}`, loai: 'xuat', provider: 'ffmpeg', model: 'ffmpeg', request: { tap_id: tapId, nhanh: nhanh ?? '' } });
-  chayNen(async () => {
-    const kq = await chayXuat({ loai: bc.loai, tiLe: kt.ti_le, nhipStopMotion: kt.nhip_stop_motion, canh, nhanVat: bc.nhanVat, tap: bc.tap, qc: kt.qc, nhanh });
-    if (!kq.ok) { await xongJob(job, { loi: kq.loi }); return; }
-    await ghiBanXuat(db, { tapId, job, nhanh: nhanh ?? '', kq });
-  });
-  return { ok: true, data: job };
+  const r = await batDauXuatTap(db, tapId, await dsCanh(tapId), nhanh);
+  if (!r.ok) return loi(r.loi);
+  chayNen(async () => { await r.chay(); });
+  return { ok: true, data: r.job };
 }
 /** Trạng thái một job xuất: đang chạy / xong (url) / lỗi. */
 /** 🇻🇳 Bản lồng tiếng Việt (long-tieng.ts) — chạy nền như ⬇ Xuất, trả job để nút hỏi tiến độ. Vừa để người chỉ biết tiếng Việt xem hộ,

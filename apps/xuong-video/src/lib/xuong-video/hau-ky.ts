@@ -7,7 +7,7 @@ import { execFile } from 'node:child_process';
 import { sql } from 'drizzle-orm';
 import { giayPhat, locNhanh, cacNhanh, type Canh } from './kieu';
 import { dongThoai } from './am-thanh';
-import { canPhat, coGianMoc, LOC_GON_GIONG, tocDocTheoLoai, SHOT_TOI_THIEU } from './khop-giong';
+import { canPhat, coGianMoc, LOC_GON_GIONG, SHOT_TOI_THIEU } from './khop-giong';
 import { docKinhThanh, type KinhThanh } from './kieu';
 import { uploadToR2 } from '../r2';
 import { randomUUID } from 'node:crypto';
@@ -60,11 +60,10 @@ export async function khopGiongTap(db: Db, tapId: number, nguoi: string): Promis
   const p0 = ((await db.execute(sql`SELECT kinh_thanh, loai FROM xv_phim WHERE id = ${d.tap.phim_id}`)) as unknown as Row[])[0];
   const kt = docKinhThanh(p0?.kinh_thanh as KinhThanh);
   const san = Math.max(SHOT_TOI_THIEU, giayDoc({ laQc: p0?.loai === 'quang_cao', khong_loi: kt.khong_loi }));
-  const toc = tocDocTheoLoai(kt.the_loai);
   // Shot có câu nói không co dưới sàn (trừ khi vốn đã ngắn hơn) — hình còn phải diễn: sàn = giây đọc của loại phim (nhip-hinh.ts › giayDoc).
   // Phim KHÔNG LỜI: âm hiệu (nửa giây "Hup!") không quyết định nhịp — chỉ kéo dài cho đủ tiếng, không bao giờ co hình theo nó
   // (Tango & Lint tập 1: co theo âm hiệu → shot 2s, người xem chưa hiểu đã cắt).
-  const phatMoi = d.ds.map((c, i) => { const can = canPhat(c, d.nv, (u) => dai.get(u) ?? null, toc); if (can == null) { if (dongThoai(c, d.nv).some((x) => x.loi.trim())) thieu++; return phatCu[i]!; } return kt.khong_loi ? Math.max(phatCu[i]!, can) : Math.max(Math.min(phatCu[i]!, san), can); });
+  const phatMoi = d.ds.map((c, i) => { const can = canPhat(c, d.nv, (u) => dai.get(u) ?? null); if (can == null) { if (dongThoai(c, d.nv).some((x) => x.loi.trim())) thieu++; return phatCu[i]!; } return kt.khong_loi ? Math.max(phatCu[i]!, can) : Math.max(Math.min(phatCu[i]!, san), can); });
   // Ghi độ dài đo được vào từng dòng (DongThoai.dai) — máy kiểm tiếng (kiemTieng) đọc ở thanh 🎬 và cổng xuất mà không đo lại.
   for (const c of d.ds) {
     if (!c.thoai.some((x) => x.url && dai.get(x.url) != null && x.dai !== dai.get(x.url))) continue;

@@ -14,9 +14,11 @@ export const TOC_DOC = 1;
 export const HOI_SAU_CAU = 0.5;
 /** Shot có câu nói không co ngắn hơn mức này (giây) — "Ahem" 0,5s không được kéo shot hành động xuống 1,2s. */
 export const SHOT_TOI_THIEU = 2;
-/** Nhịp đọc theo thể loại phim: hành động dồn dập hơn (vẫn dưới NHANH_TOI_DA 1,35 của bản xuất). */
-export const tocDocTheoLoai = (theLoai?: string): number => (theLoai === 'hanh_dong' ? 1.2 : theLoai === 'hai' || theLoai === 'qc_ugc' ? 1.15 : TOC_DOC);
-export function canPhat(c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url'>, nv: NhanVat[], dai: (url: string) => number | null, toc = TOC_DOC): number | null {
+// Bỏ tocDocTheoLoai (hành động 1,2× / hài + qc_ugc 1,15×) 15/10/2026: cùng lỗi Fox Tales — shot cắt như thể giọng đọc nhanh, nhưng lịch phát
+// (lichGiong) chỉ tăng tốc khi hai câu đè nhau, nên giọng vẫn phát 1× và chạm mép cắt; cổng xuất (kiemTieng) chặn mà máy khớp báo "đã vừa"
+// (phim #36 shot 1: giọng 2,56s + trễ 0,2 trong shot 3s). Giây khớp tính ĐÚNG tốc phát → hai luật luôn cùng kết luận (khop-giong.test).
+export function canPhat(c: Pick<Canh, 'thoai' | 'loi_thoai' | 'nhan_vat' | 'thoai_url'>, nv: NhanVat[], dai: (url: string) => number | null): number | null {
+  const toc = TOC_DOC;
   let t = 0, co = false;
   for (const d of dongThoai(c, nv)) {
     if (!d.url) continue; const g = dai(d.url); if (g == null) return null;

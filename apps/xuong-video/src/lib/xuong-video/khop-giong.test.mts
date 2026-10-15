@@ -13,7 +13,10 @@ assert.strictEqual(canPhat(c([{ nhan_vat: '', dien_xuat: '', loi: 'x' }]), [], d
 assert.strictEqual(canPhat(c([{ nhan_vat: '', dien_xuat: '', loi: 'x', url: 'zz' }]), [], dai), null, 'không đo được');
 assert.strictEqual(coGianMoc('ONE NIGHT LEFT.\n@1.2 SIGN ANYWAY?', 1.5), 'ONE NIGHT LEFT.\n@1.8 SIGN ANYWAY?');
 assert.strictEqual(coGianMoc('Check\n@1,4 free\n@2.4s astrolas.com', 2), 'Check\n@2.8 free\n@4.8 astrolas.com');
-assert.strictEqual(canPhat(c([{ nhan_vat: '', dien_xuat: '', loi: 'x', url: 'a' }]), [], dai, 1.2), 2.4, 'phim hành động đọc 1,2×: 2,2/1,2 + 0,5 = 2,33 → 2,4');
+// Máy khớp và cổng xuất phải cùng kết luận (phim #36 shot 1, 15/10/2026): giọng 2,56s trễ 0,2 → khớp ra 3,3s → kiemTieng sạch.
+{ const d36 = [{ nhan_vat: '', dien_xuat: '', loi: 'Your top isn\'t the problem.', url: 'g', tre: 0.2, dai: 2.56 }];
+  const p = canPhat(c(d36), [], () => 2.56)!; assert.strictEqual(p, 3.3);
+  assert.deepStrictEqual(kiemTieng([{ thu_tu: 1, phat_s: p, thoi_luong_s: 4, thoai: d36, loi_thoai: '', nhan_vat: [], hanh_dong: 'x' }, { thu_tu: 2, phat_s: 2.5, thoi_luong_s: 3, thoai: [], loi_thoai: '', nhan_vat: [], hanh_dong: 'x' }] as never, []), []); }
 // MÁY KIỂM TIẾNG — ca Fox Tales 13/10/2026: lời dẫn 2,66s trong shot 2,5s, Felix "Ahem" 1,04s trong shot 1,2s
 const FELIX = { id: 1, phim_id: 1, loai: 'nhan_vat', ten: 'Felix', mo_ta: '', anh_ref: [], giong: '', giong_model: '', giong_id: '', giong_mau_url: null } as never;
 const sh = (thu_tu: number, phat_s: number, thoai: Canh['thoai']) => ({ thu_tu, phat_s, thoi_luong_s: 4, thoai, loi_thoai: '', nhan_vat: [], hanh_dong: 'x' });

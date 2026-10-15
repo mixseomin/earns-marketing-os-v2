@@ -347,3 +347,13 @@ export function gocMayLech(m: Pick<May3d, 'dat' | 'nhin'>, goc: string | undefin
   const e = gocNgang(m);
   return e < k[0] || e > k[1] ? `máy 3D ngẩng ${e}° mà thẻ shot khai góc "${goc}" (${k[0]}…${k[1]}°) — keyframe sẽ vẽ theo chữ, bỏ khung 3D: đặt tay máy (dat/nhin) hoặc đổi góc khai` : null;
 }
+
+/** TRẠNG THÁI một vật trong shot cho prompt keyframe (MỘT chữ với nhãn Blender — scripts/bo-set/dung-set.py › TRANG): đã chia mảnh, đang cầm
+ *  thì chỉ mảnh của người cầm. ket = khung kết (cam + den = đã đặt xuống). null = nguyên vẹn. */
+export function trangThaiVat(v: May3d['vi_tri'][number], ket = false): string | null {
+  const n = v.chia ?? 1; if (n <= 1) return null;
+  const cam = !!v.cam && !(ket && v.den);
+  return cam ? `split into ${n} pieces; only ONE piece here (the holder's share)` : `split into ${n} separate pieces lying side by side, NOT a whole one`;
+}
+/** Tên này là ĐỒ VẬT (đạo cụ / sản phẩm) của phim — đồ thì nằm lại chỗ cuối cùng (mayDayDu); nhân vật thì không. MỘT luật cho dựng 3D và prompt. */
+export const laDoVatPhim = (nv: Pick<NhanVat, 'ten' | 'loai'>[]) => (t: string) => nv.some((x) => (x.loai === 'dao_cu' || x.loai === 'san_pham') && x.ten.trim().toLowerCase() === t.trim().toLowerCase());

@@ -3,8 +3,9 @@
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import type { getDb } from '@mos2/db';
-import { docKinhThanh, giaChuCents, giaVideoCents, type BienThe, type Canh, type Job, type KinhThanh, type LoaiNhanVat, type LoaiPhim, type NhanVat, type Tap, type TrangThaiCanh } from './kieu';
+import { docKinhThanh, giaChuCents, giaVideoCents, type BienThe, type Canh, type Job, type KinhThanh, type LoaiNhanVat, type LoaiPhim, type May3d, type NhanVat, type Tap, type TrangThaiCanh } from './kieu';
 import { modelFal } from './fal';
+import { boSetCuaShot, laDoVatPhim, mayDayDu } from './bo-set-3d';
 import type { NguCanhPhim } from './claude';
 
 export type Db = NonNullable<ReturnType<typeof getDb>>;
@@ -69,7 +70,19 @@ export async function boiCanhCanh(db: Db, canhId: number) {
   const m = canh.phan_doan ? (await db.execute(sql`SELECT keyframe_url, thu_tu FROM xv_canh WHERE tap_id = ${canh.tap_id} AND phan_doan = ${canh.phan_doan} AND thu_tu < ${canh.thu_tu}
     AND keyframe_url IS NOT NULL AND coalesce(nhanh, '') IN ('', ${canh.nhanh || 'A'}) ORDER BY thu_tu LIMIT 1`)) as unknown as Row[] : [];
   const master = m[0] ? { thu_tu: n(m[0].thu_tu), keyframe_url: s(m[0].keyframe_url) } : null;
-  return { canh, kt, nhanVat: nv, truoc, master };
+  // MÁY ĐẦY ĐỦ của shot (khai + đồ để lại từ các shot trước cùng bộ set — bo-set-3d.ts › mayDayDu): MỘT nguồn cho mọi đường dựng prompt keyframe
+  // (mở, kết, sơ đồ nguồn) lẫn cổng chặn — trạng thái vật (đã chia mảnh) nằm ở đây kể cả khi món đó ngoài khung.
+  let mayDu: May3d | null = canh.may_3d ?? null;
+  if (canh.may_3d) {
+    const nvPhim = ((await db.execute(sql`SELECT id, ten, loai, bo_set_id FROM xv_nhan_vat WHERE phim_id = ${Number(r[0].p_id)}`)) as unknown as Row[]).map((x) => ({ id: n(x.id), ten: s(x.ten), loai: s(x.loai) as LoaiNhanVat, bo_set_id: x.bo_set_id == null ? null : n(x.bo_set_id) }));
+    const sid = boSetCuaShot(canh, nvPhim);
+    if (sid) {
+      const ds = ((await db.execute(sql`SELECT id, thu_tu, nhan_vat, may_3d FROM xv_canh WHERE tap_id = ${canh.tap_id} AND may_3d IS NOT NULL AND coalesce(nhanh, '') IN ('', ${canh.nhanh || 'A'}) ORDER BY thu_tu, id`)) as unknown as Row[])
+        .map((x) => ({ id: n(x.id), thu_tu: n(x.thu_tu), nhan_vat: (x.nhan_vat as number[]) ?? [], may_3d: x.may_3d as May3d })).filter((c) => boSetCuaShot(c, nvPhim) === sid);
+      mayDu = mayDayDu(ds, laDoVatPhim(nvPhim)).get(canh.id) ?? mayDu;
+    }
+  }
+  return { canh, kt, nhanVat: nv, truoc, master, mayDu };
 }
 
 export async function taoJob(db: Db, d: { phim_id?: number; nhan?: string; canh_id?: number; nhan_vat_id?: number; bien_the_id?: number; loai: string; provider: string; model: string; request: unknown; xong?: boolean }): Promise<number> {

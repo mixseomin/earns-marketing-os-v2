@@ -11,7 +11,7 @@ import path from 'node:path';
 import { uploadToR2, deleteFromR2, r2KeyFromUrl } from '../r2';
 import { khoaNho } from './anh-nho-may';
 import { CO_NHO } from './anh-nho';
-import { bangDung, boSetCuaShot, maKhungXam, maPhan, mayDayDu, rangBuocTruc, shotSoTruc } from './bo-set-3d';
+import { bangDung, boSetCuaShot, laDoVatPhim, maKhungXam, maPhan, mayDayDu, rangBuocTruc, shotSoTruc } from './bo-set-3d';
 import { locNhanh, type BoSet, type Canh, type KhungXam, type May3d } from './kieu';
 import { kemBienThe, mapCanh, mapNhanVat, type Db, type Row } from './doc-db';
 
@@ -79,7 +79,7 @@ export async function dungKhungXamTap(db: Db, tapId: number, o: { tatCa?: boolea
     if (r[0]) sets.set(id, mapBoSet(r[0]));
   }
   // Đồ để lại (mayDayDu): máy + chỗ đứng ĐẦY ĐỦ của từng shot = khai của shot + đạo cụ còn nằm lại từ các shot trước cùng set.
-  const laDoVat = (t: string) => nv.some((x) => (x.loai === 'dao_cu' || x.loai === 'san_pham') && x.ten.trim().toLowerCase() === t.trim().toLowerCase());
+  const laDoVat = laDoVatPhim(nv);
   const day = new Map<number, May3d>();
   for (const sid of new Set(ds.map((c) => boSetCuaShot(c, nv)).filter((x): x is number => !!x))) for (const [k, m] of mayDayDu(ds.filter((c) => boSetCuaShot(c, nv) === sid), laDoVat)) day.set(k, m);
   // Gom theo set: một lượt Blender / set (dựng set một lần, render mọi máy).

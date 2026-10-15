@@ -8,7 +8,7 @@ import { promptKyThuatAnh } from './dien-anh';
 import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type KinhThanh, type NhanVat } from './kieu';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
-import { boSetCuaShot, chanKhungXam, loiMachTap, mayDayDu, moTaThay, shotSoTruc } from './bo-set-3d';
+import { boSetCuaShot, chanKhungXam, loiMachTap, moTaThay, shotSoTruc, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { boiCanhCanh, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, jobDangCho, type Db, type Row } from './doc-db';
 
@@ -160,7 +160,11 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   const anhSang = kx ? (bc.canh.may_3d?.den_ban
     ? 'Scene lighting, identical in every shot of this scene: the warm desk lamp is ON (soft golden light from the lamp side) mixed with a faint cool glow from the screens; the room beyond the desk falls off to dark; same exposure and colour grade as the rest of the scene.'
     : 'Scene lighting, identical in every shot of this scene: night, the desk lamp is OFF — only the cool blue glow of the screens lights the desk, with deep soft shadows; the room beyond the desk is dark (no bokeh, no extra lamps); same exposure and colour grade in every shot.') : '';
-  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), kxChu, anhSang, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
+  // TRẠNG THÁI VẬT (15/10/2026: kẹo đã bẻ đôi nằm ngoài khung 3D của 7.1a → không có nhãn → keyframe vẽ con gấu nguyên theo ảnh mẫu): mọi anchor
+  // của shot đang ở trạng thái khác ảnh mẫu thì nói thẳng, đè lên ảnh mẫu — lấy từ 3D đầy đủ (kể cả đồ để lại), không dò chữ.
+  const trangChu = ((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? []).filter((v) => bc.nhanVat.some((n) => n.ten === v.ten)).map((v) => { const t = trangThaiVat(v, ket); return t ? `${v.ten}: ${t}` : ''; }).filter(Boolean);
+  const trangCau = trangChu.length ? `OBJECT STATE in this frame (overrides the reference photos): ${trangChu.join('; ')}.` : '';
+  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), kxChu, trangCau, anhSang, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
   return { prompt, urlRef, vai };
 }
 
@@ -182,8 +186,7 @@ export async function lyChanKeyframe(db: Db, canhId: number): Promise<{ bc: NonN
     const r = (await db.execute(sql`SELECT * FROM xv_bo_set WHERE id = ${sid}`)) as unknown as Row[];
     const ds = locNhanh(tatCa, bc.canh.nhanh || 'A'); const i = ds.findIndex((c) => c.id === bc.canh.id);
     // Mã khung xám tính trên máy ĐẦY ĐỦ (có đồ để lại) — cùng cách bo-set-3d-may.ts dựng.
-    const laDoVat = (t: string) => nvPhim.some((x) => (x.loai === 'dao_cu' || x.loai === 'san_pham') && x.ten.trim().toLowerCase() === t.trim().toLowerCase());
-    const mDu = mayDayDu(ds.filter((c) => boSetCuaShot(c, nvPhim) === sid), laDoVat).get(bc.canh.id) ?? bc.canh.may_3d;
+    const mDu = bc.mayDu ?? bc.canh.may_3d;   // máy đầy đủ (có đồ để lại) — doc-db.ts › boiCanhCanh, cùng nguồn với prompt
     const k = chanKhungXam({ ...bc.canh, may_3d: mDu }, nvPhim, r[0] ? mapBoSet(r[0]) : null, i > 0 ? shotSoTruc(ds, i) : null);
     // Mạch: mọi nhân vật mở shot này đúng chỗ lần cuối thấy nó kết + chuỗi chú ý nhìn → thấy → làm (cùng hàm dấu ⚠ trên lưới).
     k.push(...(loiMachTap(ds, nvPhim, r[0] ? [mapBoSet(r[0])] : [])[bc.canh.id] ?? []));

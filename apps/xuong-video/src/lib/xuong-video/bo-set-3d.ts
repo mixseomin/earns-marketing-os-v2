@@ -338,7 +338,7 @@ export function lienMachTap<T extends { id: number; thu_tu: number; may_3d?: May
 }
 
 // ── NHẤT QUÁN · LIÊN TỤC (15/10/2026, luat-dung.ts › luật của thợ). Hai mức theo Murch: CHẶN (loiMachTap) và CẢNH BÁO (canhBaoMachTap).
-type ShotMach = { id: number; thu_tu: number; phan_doan?: string; may_3d?: May3d | null; ky_thuat?: { vai?: string; co_canh?: string; goc?: string } | null; khung_xam?: Canh['khung_xam'] | null };
+type ShotMach = { id: number; thu_tu: number; phan_doan?: string; may_3d?: May3d | null; ky_thuat?: { vai?: string; co_canh?: string; goc?: string } | null; khung_xam?: Canh['khung_xam'] | null; prompt_video?: string; hanh_dong?: string; dan_dung?: { bo_cuc?: string } | null };
 const BAC_CO: Record<string, number> = { ews: 0, ws: 1, two: 2, ms: 2, pov: 2, ots: 3, mcu: 3, cu: 4, insert: 4, ecu: 5 };
 /** Véc-tơ ngang (phải màn) và sâu (vào màn) của máy trên mặt bàn. */
 const trucMay = (m: Pick<May3d, 'dat' | 'nhin'>) => { const fx = m.nhin[0]! - m.dat[0]!, fy = m.nhin[1]! - m.dat[1]!; const l = Math.hypot(fx, fy) || 1; return { f: [fx / l, fy / l], r: [fy / l, -fx / l] }; };
@@ -449,6 +449,15 @@ export function canhBaoMachTap<T extends ShotMach>(ds: T[], laNhanVat: (ten: str
     const thuong = co.filter((c) => !VAI_GOC_RIENG.has(c.ky_thuat?.vai ?? '') && !c.may_3d!.qua_truc);
     const dem = new Map<number, number>(); for (const c of thuong) dem.set(c.may_3d!.ong_kinh, (dem.get(c.may_3d!.ong_kinh) ?? 0) + 1);
     if (dem.size > 3) { const it = Math.min(...dem.values()); for (const c of thuong) if (dem.get(c.may_3d!.ong_kinh) === it) them(c.id, `bộ ống kính: cảnh này dùng tới ${dem.size} tiêu cự (${[...dem.keys()].sort((p, q) => p - q).join(' / ')} mm), ngành giữ 2–3 — phối cảnh đổi từng shot, cùng cái bàn lúc sâu lúc dẹt — đổi ${c.may_3d!.ong_kinh} mm của shot này về một tiêu cự đã dùng nhiều`); }
+    // CHỮ LỆCH 3D (anh 15/10/2026: "bắt sinh ảnh, video phải tuân thủ tuyệt đối cái gì 3D đặt vào"): chữ của shot (prompt video, hành động, bố cục)
+    // gọi tên nhân vật / đạo cụ của shot mà khung 3D không thấy và không đi vào khung → video vẽ thêm (#35: "Tango and Lint hiding behind the card").
+    for (const c of co) {
+      const chu = [c.prompt_video, c.hanh_dong, c.dan_dung?.bo_cuc].filter(Boolean).join(' ').toLowerCase(); if (!chu || c.ky_thuat?.vai === 'chu_quan') continue;
+      const thay = new Set((c.khung_xam?.thay ?? []).filter((t) => t.pt >= PT_THAY).map((t) => t.ten));
+      const vao = new Set((c.khung_xam?.di ?? []).filter((d) => d.den.every((x) => x >= 0 && x <= 1)).map((d) => d.ten));
+      const lech = [...new Set(c.may_3d!.vi_tri.map((v) => v.ten))].filter((t) => !thay.has(t) && !vao.has(t) && new RegExp(`\\b${t.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(chu));
+      if (lech.length) them(c.id, `chữ lệch 3D: chữ của shot nhắc ${lech.join(', ')} mà khung 3D không thấy — ảnh / video sẽ vẽ thêm thứ 3D không có — sửa chữ thẻ shot cho khớp 3D, hoặc dời máy cho thấy`);
+    }
   }
   return out;
 }

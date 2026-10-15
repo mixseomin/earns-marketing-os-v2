@@ -100,6 +100,8 @@ export type KinhThanh = {
   mo_hinh_chu?: MoHinhChu;
   /** URL BẢNG TỈ LỆ dàn nhân vật (render 3D trực giao, thước cm — scripts/bo-set/bang-ti-le.sh): gửi kèm keyframe có ≥ 2 nhân vật / đạo cụ */
   bang_ti_le?: string;
+  /** Keyframe SỬA TỪ ẢNH 3D (img2img / restyle): ảnh màu 3D là ảnh gốc, model chỉ vẽ lại bề mặt — mặc định bật khi shot có khung màu 3D */
+  keyframe_sua_3d?: boolean;
   ngon_ngu?: string;            // ngôn ngữ lời thoại/phụ đề: 'vi' | 'en'
   the_loai?: TheLoai | '';      // thể loại → thư viện điện ảnh gợi ý kỹ thuật hợp (kinh dị ≠ hài ≠ QC UGC)
   logline?: string;             // một câu: ai, muốn gì, cản trở gì
@@ -297,7 +299,7 @@ export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: strin
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
   phong_cach: '', ti_le: '9:16', do_phan_giai: '720p',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },
-  giong_dan: null, series: null, luu_tru: false, nhip_stop_motion: false, khong_loi: false, ban_do: '', template: null, tu_template: null, bang_ti_le: '',
+  giong_dan: null, series: null, luu_tru: false, nhip_stop_motion: false, khong_loi: false, ban_do: '', template: null, tu_template: null, bang_ti_le: '', keyframe_sua_3d: true,
 };
 export const docKinhThanh = (kt: KinhThanh | null | undefined): Required<KinhThanh> => ({ ...KINH_THANH_MAC_DINH, ...(kt ?? {}) });
 

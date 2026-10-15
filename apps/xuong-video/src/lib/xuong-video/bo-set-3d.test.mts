@@ -231,3 +231,15 @@ console.log('bo-set-3d.test: ok');
   const c = mt([{ ten: 'USB Hub', pt: 8.6, hop: [0, 0.9, 1, 1], tien: true } as never]);
   assert.match(c, /cut off by the bottom edge/); assert.match(c, /OFF-SCREEN at this instant/);
 }
+
+// Chữ lệch 3D: chữ shot nhắc nhân vật mà khung không thấy → ⚐; nhân vật đi VÀO khung (di.den trong khung) → không báo.
+{
+  const { canhBaoMachTap: cb } = await import('./bo-set-3d');
+  const m = { dat: [0, -10, 2], nhin: [0, 0, 1], ong_kinh: 35, vi_tri: [{ ten: 'Mr. Wipe', tam: [0, 0, 3] }, { ten: 'Tango', tam: [9, 9, 0], an: true }, { ten: 'Lint', tam: [9, 8, 0], an: true }] } as never;
+  const kx = (di: unknown[]) => ({ thay: [{ ten: 'Mr. Wipe', pt: 24, hop: [0.2, 0.2, 0.8, 0.7] }], di }) as never;
+  const s = (di: unknown[]) => [{ id: 1, thu_tu: 35, phan_doan: 'x', may_3d: m, khung_xam: kx(di), hanh_dong: 'Mr. Wipe swoops in; Tango and Lint hide behind the card.' }];
+  const a = cb(s([]), () => true)[1] ?? [];
+  assert.ok(a.some((x) => x.includes('chữ lệch 3D') && x.includes('Tango') && x.includes('Lint') && !x.includes('Mr. Wipe')), JSON.stringify(a));
+  const b = cb(s([{ ten: 'Tango', tu: [1.3, 0.5], den: [0.6, 0.5] }, { ten: 'Lint', tu: [1.3, 0.5], den: [0.7, 0.5] }]), () => true)[1] ?? [];
+  assert.ok(!b.some((x) => x.includes('chữ lệch 3D')), 'đi vào khung → không báo');
+}

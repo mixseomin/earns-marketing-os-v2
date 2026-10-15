@@ -1108,7 +1108,7 @@
       "sp",
       "bc"
      ],
-     "prompt_anh": "Hands holding {{san_pham_hinh}} fresh out of the package",
+     "prompt_anh": "Hands holding the product folded, fresh out of the package, OUTER fabric facing the camera (the inside lining is not shown): {{san_pham_hinh}}",
      "prompt_video": "Hands unfold the product",
      "co": "ecu",
      "tk": [

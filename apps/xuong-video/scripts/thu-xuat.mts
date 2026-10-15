@@ -1,6 +1,7 @@
 // Thử bản xuất với DỮ LIỆU THẬT của một tập, không qua server action, không lên R2 — dùng khi sửa xuat.ts để xem khung hình thật (ffmpeg -ss … tile).
 // Chạy trên box3 (nơi có DB + ffmpeg): cd /opt/earns-marketing-os-v2 && TAP=5 NHANH= node_modules/.bin/tsx apps/xuong-video/scripts/thu-xuat.mts
-import { keHoachXuat, urlCanXuat } from '../src/lib/xuong-video/xuat';
+import { keHoachXuat, urlCanXuat, tiengLa } from '../src/lib/xuong-video/xuat';
+import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { writeFileSync, existsSync, mkdirSync } from 'node:fs';
 const TAP = Number(process.env.TAP || 5); const NHANH = process.env.NHANH || null;
@@ -18,4 +19,9 @@ const nguyenLieu = urls.map((url, i) => { const duong = `${dir}/${i}.${(url.spli
 const kh = keHoachXuat({ loai: tap.loai, tiLe: kt.ti_le || '9:16', canh, nhanVat, tap, qc: kt.qc, nhanh: NHANH, nguyenLieu, font: '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', thuMuc: dir, ra: `${dir}/ra.mp4` });
 for (const t of kh.tep) writeFileSync(t.duong, t.noiDung);
 console.log('giây', kh.giay, 'thiếu hình:', kh.canhThieu.join(', ') || 'không');
-const t0 = Date.now(); execFileSync('ffmpeg', kh.args, { stdio: 'inherit' }); console.log('ffmpeg xong', ((Date.now() - t0) / 1000).toFixed(1), 's →', `${dir}/ra.mp4`);
+// BO_DUNG=1 → không dựng lại, chỉ đo; DO=<tệp> → đo tiếng lạ trên tệp đó (vd bản xuất cũ) theo lịch tiếng của kế hoạch hiện tại.
+if (!process.env.BO_DUNG) { const t0 = Date.now(); execFileSync('ffmpeg', kh.args, { stdio: 'inherit' }); console.log('ffmpeg xong', ((Date.now() - t0) / 1000).toFixed(1), 's →', `${dir}/ra.mp4`); }
+const tepDo = process.env.DO || `${dir}/ra.mp4`;
+execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', tepDo, '-vn', '-af', `ebur128=metadata=1,ametadata=print:key=lavfi.r128.M:file=${dir}/m128.txt`, '-f', 'null', '-']);
+const la = kh.lich ? tiengLa(readFileSync(`${dir}/m128.txt`, 'utf8'), kh.lich, kh.giay) : [];
+console.log('tiếng lạ', tepDo, la.length ? JSON.stringify(la) : 'không');

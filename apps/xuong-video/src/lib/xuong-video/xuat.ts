@@ -21,7 +21,9 @@ export type NguyenLieu = { url: string; duong: string; dai: number | null; coAm:
   /** giây CẮT ĐUÔI bài nhạc (đoạn kết nhỏ dần + im, đo bằng duoiNhac) — null = đuôi không tụt */ catDuoi?: number | null };
 export type TepChu = { duong: string; noiDung: string };
 /** loi = không dựng được (args rỗng) và vì sao; canhBao = dựng được nhưng lệch chuẩn (lẫn giọng lời dẫn, bản nháp thiếu nhạc…). */
-export type KeHoachXuat = { args: string[]; tep: TepChu[]; giay: number; canhThieu: string[]; canhBao: string[]; loi?: string };
+/** lich = chỗ nào kịch bản CÓ tiếng (giọng, hiệu ứng, tiếng clip có chủ ý) + mốc từng shot — để đo sau xuất (tiengLa) tìm tiếng không ai viết. */
+export type LichTieng = { co: [number, number][]; shot: { thu_tu: number; tu: number; den: number }[] };
+export type KeHoachXuat = { args: string[]; tep: TepChu[]; giay: number; canhThieu: string[]; canhBao: string[]; loi?: string; lich?: LichTieng };
 
 /** Đọc chuỗi ebur128 độ to tức thời (ametadata lavfi.r128.M) → to NHẤT mỗi ô 0,5s. Một bộ đọc cho khoangIm và duoiNhac. */
 function docM05(metadata: string): Map<number, number> {
@@ -43,6 +45,27 @@ export function khoangIm(metadata: string, giay: number): [number, number][] {
   const im = [...o.entries()].filter(([k, v]) => k >= 0.5 && k + 0.5 <= giay - 0.5 && v < NGUONG_IM_LUFS).map(([k]) => k).sort((x, y) => x - y);
   const out: [number, number][] = [];
   for (const k of im) { const l = out[out.length - 1]; if (l && Math.abs(l[1] - k) < 1e-6) l[1] = k + 0.5; else out.push([k, k + 0.5]); }
+  return out;
+}
+
+/** Đo sau xuất: TIẾNG LẠ = ô 0,5s không có giọng / hiệu ứng / tiếng clip có chủ ý nào trong kịch bản (lich.co, nới 0,3s) mà to hơn nền
+ *  (trung vị các ô trống như vậy) quá NGUONG_TIENG_LA dB. Phim #36 15/10/2026: shot 8 tiếng gốc clip (nhạc riêng model video tự sinh) to hơn
+ *  nền 6–9 dB, shot 5 tiếng đập +7 dB — phải người nghe mới biết; bản đã sửa nền phẳng ±1 dB. Bỏ 0,5s đầu và 1s cuối (nhạc fade). */
+export const NGUONG_TIENG_LA = 5;
+export function tiengLa(metadata: string, lich: LichTieng, giay: number): { tu: number; den: number; hon: number; shot: number[] }[] {
+  const o = docM05(metadata);
+  const coTieng = (k: number) => lich.co.some(([a, b]) => k < b + 0.3 && k + 0.5 > a - 0.3);
+  const nen = [...o.entries()].filter(([k, v]) => k >= 0.5 && k + 0.5 <= giay - 1 && !coTieng(k) && v > -70).sort((x, y) => x[0] - y[0]);
+  if (nen.length < 4) return [];
+  const sx = nen.map(([, v]) => v).sort((x, y) => x - y); const tv = sx[Math.floor(sx.length / 2)]!;
+  const out: { tu: number; den: number; hon: number; shot: number[] }[] = [];
+  for (const [k, v] of nen) {
+    if (v <= tv + NGUONG_TIENG_LA) continue;
+    const l = out[out.length - 1];
+    if (l && Math.abs(l.den - k) < 1e-6) { l.den = k + 0.5; l.hon = Math.max(l.hon, Math.round(v - tv)); }
+    else out.push({ tu: k, den: k + 0.5, hon: Math.round(v - tv), shot: [] });
+  }
+  for (const x of out) x.shot = lich.shot.filter((s) => s.tu < x.den && s.den > x.tu).map((s) => s.thu_tu);
   return out;
 }
 
@@ -207,6 +230,7 @@ export function keHoachXuat(o: {
   const nhanhAm: string[] = [];
   const canhThieu: string[] = [];
   let t = 0; let soAm = 0;
+  const lich: LichTieng = { co: [], shot: [] };
   const cauMan: { tu: number; den: number; dong: string[]; kieu?: KieuChu }[] = [];
   const themAm = (bieuThuc: string, lop: string[] = nhanhAm) => { const nhan = `a${soAm++}`; loc.push(`${bieuThuc},aformat=sample_rates=48000:channel_layouts=stereo[${nhan}]`); lop.push(`[${nhan}]`); };
   /** Đưa câu giọng về LUFS_GIONG theo độ to đã đo (±15 dB) — không đo được thì để nguyên. */
@@ -226,6 +250,7 @@ export function keHoachXuat(o: {
   for (const g of lichG) {
     if (!nl.has(g.url)) continue;
     const ka = them(g.url);
+    lich.co.push([g.tu, g.tu + (g.cat ?? (g.dai ?? nl.get(g.url)?.dai ?? 2) / g.nhanh)]);
     themAm(`[${ka}:a]${chuanGiong(g.url)}${g.nhanh > 1.001 ? `atempo=${so(g.nhanh)},` : ''}${g.cat != null ? `atrim=0:${so(g.cat)},` : ''}asetpts=PTS-STARTPTS,adelay=${Math.round(g.tu * 1000)}:all=1`, nhanhGiong);
   }
   // Chuyển cảnh (ky_thuat.chuyen_canh có xfade, dien-anh.ts): shot trước MƯỢN ĐUÔI d giây (clip còn dư, thiếu thì giữ khung cuối), shot sau vẫn
@@ -265,6 +290,9 @@ export function keHoachXuat(o: {
     const dungClip = phatTiengClip(c, o.nhanVat);
     if (c.am_thanh_url && nl.has(c.am_thanh_url)) { const ka = them(c.am_thanh_url); themAm(`[${ka}:a]atrim=0:${so(phat)},asetpts=PTS-STARTPTS,volume=0.8,adelay=${Math.round(t * 1000)}:all=1`); }
     amShot.push({ am: c.ky_thuat?.am_thanh, tu: t, phat });
+    lich.shot.push({ thu_tu: c.thu_tu, tu: t, den: t + phat });
+    if (c.am_thanh_url) lich.co.push([t, t + phat]);
+    if (laVideo && dungClip && !toc && nl.get(nguon)?.coAm) lich.co.push([t, t + phat]);
     // Tiếng clip đặt THEO GIỌNG (đo được) — clip ghi nhỏ không còn lọt thỏm dưới nhạc; chưa đo → giữ mức gốc.
     const lnClip = nl.get(nguon)?.lufs; const mucClip = lnClip != null && Number.isFinite(lnClip) && lnClip > -70 ? `,volume=${so(Math.max(-10, Math.min(18, LUFS_GIONG - LUFS_CLIP_DUOI_GIONG - lnClip)))}dB` : '';
     // Fade 40/60 ms hai đầu: tiếng clip bật/tắt cắt ngang ở điểm cắt nghe như tiếng "bụp".
@@ -282,6 +310,7 @@ export function keHoachXuat(o: {
   // (nhanhSfx → sidechain bên dưới) — 12/10/2026 phim #9 tiếng đập/vút đầu shot đè mất câu đọc.
   const nhanhSfx: string[] = [];
   if (o.sfxDir) for (const m of lichSfx(amShot)) {
+    lich.co.push([m.tu, m.tu + m.dai]);
     const k = themTep(`${o.sfxDir}/${m.key}.mp3`);
     themAm(`[${k}:a]${m.lap ? 'aloop=loop=-1:size=2147483647,' : ''}atrim=${so(m.bo)}:${so(m.bo + m.dai)},asetpts=PTS-STARTPTS,${m.lap ? `afade=t=in:d=0.15,afade=t=out:st=${so(Math.max(0, m.dai - 0.25))}:d=0.25,` : ''}volume=${m.db}dB,adelay=${Math.round(m.tu * 1000)}:all=1`, nhanhSfx);
   }
@@ -367,5 +396,5 @@ export function keHoachXuat(o: {
   const kichBan = tepChu('loc', loc.join(';\n'));
   const args = ['-y', '-hide_banner', '-loglevel', 'error', ...dauVao, '-/filter_complex', kichBan, '-map', '[vout]', '-map', '[aout]',
     '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-r', so(fpsRa), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', '-t', so(giay), o.ra];
-  return { args, tep, giay, canhThieu, canhBao };
+  return { args, tep, giay, canhThieu, canhBao, lich };
 }

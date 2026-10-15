@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { promisify } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { uploadToR2 } from '@/lib/r2';
-import { keHoachXuat, urlCanXuat, khoangIm, duoiNhac, NGUONG_IM_LUFS, type NguyenLieu } from './xuat';
+import { keHoachXuat, urlCanXuat, khoangIm, tiengLa, duoiNhac, NGUONG_IM_LUFS, type NguyenLieu, type LichTieng } from './xuat';
 import { sql } from 'drizzle-orm';
 import type { Canh, LoaiPhim, Lop, NhanVat, PhanCanh, Tap, ThongTinQc } from './kieu';
 import type { Db } from './doc-db';
@@ -77,12 +77,13 @@ async function tiengNganHon(duong: string): Promise<number | null> {
   } catch (e) { console.error('[xuất] đo độ dài tiếng/hình hỏng', duong, e); return null; }
 }
 
-/** Đo bản vừa xuất: các đoạn ≥0,5s im/đứt nền. */
-async function doKhoangIm(duong: string, giay: number, thuMuc: string): Promise<[number, number][] | null> {
+/** Đo bản vừa xuất (một lượt ebur128): các đoạn ≥0,5s im/đứt nền + tiếng lạ không có trong kịch bản (tiengLa). */
+async function doKhoangIm(duong: string, giay: number, thuMuc: string, lich?: LichTieng): Promise<{ im: [number, number][]; la: ReturnType<typeof tiengLa> } | null> {
   const tep = `${thuMuc}/m128.txt`;
   try {
     await run('ffmpeg', ['-hide_banner', '-nostats', '-i', duong, '-vn', '-af', `ebur128=metadata=1,ametadata=print:key=lavfi.r128.M:file=${tep}`, '-f', 'null', '-'], { timeout: 120_000, maxBuffer: 8 << 20 });
-    return khoangIm(await readFile(tep, 'utf8'), giay);
+    const md = await readFile(tep, 'utf8');
+    return { im: khoangIm(md, giay), la: lich ? tiengLa(md, lich, giay) : [] };
   } catch (e) { console.error('[xuất] đo khoảng im hỏng', e); return null; }
 }
 
@@ -123,10 +124,11 @@ export async function chayXuat(o: { loai: LoaiPhim; tiLe: string; nhipStopMotion
       if (err.killed || err.signal) return { ok: false, loi: `ffmpeg quá 15 phút, đã dừng (${err.signal ?? 'timeout'}) — dựng quá nặng (nhiều lớp hiệu ứng/phân giải cao?)` };
       return { ok: false, loi: `ffmpeg: ${(err.stderr?.trim() ? err.stderr : err.message || String(e)).trim().split('\n').slice(-3).join(' · ').slice(0, 400)}` };
     }
-    const im = await doKhoangIm(ra, kh.giay, thuMuc);
+    const doDo = await doKhoangIm(ra, kh.giay, thuMuc, kh.lich); const im = doDo?.im ?? null;
     const ngan = await tiengNganHon(ra);
     const vi = (x: number) => (Math.round(x * 10) / 10).toString().replace('.', ',');
-    const canhBao = [...kh.canhBao, ...(ngan != null && ngan > 0.3 ? [`tiếng ngắn hơn hình ${vi(ngan)}s — cuối phim câm`] : []), ...(im == null ? ['không đo được độ to bản xuất'] : im.length ? [`nền đứt (dưới ${NGUONG_IM_LUFS} LUFS) ở ${im.map(([a, b]) => `${vi(a)}–${vi(b)}s`).join(' · ')}`] : [])];
+    const canhBao = [...kh.canhBao, ...(ngan != null && ngan > 0.3 ? [`tiếng ngắn hơn hình ${vi(ngan)}s — cuối phim câm`] : []), ...(im == null ? ['không đo được độ to bản xuất'] : im.length ? [`nền đứt (dưới ${NGUONG_IM_LUFS} LUFS) ở ${im.map(([a, b]) => `${vi(a)}–${vi(b)}s`).join(' · ')}`] : []),
+      ...(doDo?.la ?? []).map((x) => `tiếng lạ ngoài kịch bản ${vi(x.tu)}–${vi(x.den)}s${x.shot.length ? ` (shot #${x.shot.join(', #')})` : ''}: to hơn nền ${x.hon} dB mà không có giọng / hiệu ứng nào — nghe lại tiếng gốc clip hoặc nhạc`)];
     const buf = await readFile(ra);
     const url = await uploadToR2(`xuong-video/xuat/${o.tap.id}-${o.nhanh || 'thân'}-${randomUUID()}.mp4`, buf, 'video/mp4');
     if (!url) return { ok: false, loi: 'không tải được bản xuất lên R2 (thiếu cấu hình R2)' };

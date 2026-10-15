@@ -114,17 +114,16 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
               {/* Cột phải: dòng tên + số liệu + tập + ảnh QC; chân dung / góc spy (nếu có) xuống dòng riêng, thụt vào dưới tên (anh 15/10/2026). */}
               <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 3 }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', minHeight: 38 }}>
-              <button type="button" onClick={() => moPhim(p.id)} style={{ background: 'none', border: 0, color: 'var(--fg-1)', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 700, fontSize: 14.5, textAlign: 'left' }}>{p.ten}</button>
+              <button type="button" onClick={() => moPhim(p.id)} title={`${LOAI_PHIM.find((l) => l.key === p.loai)?.label ?? p.loai} · ${p.so_nhan_vat} anchor · ${p.so_canh} cảnh · đã tốn ${tien(p.chi_phi_cents)}`} style={{ background: 'none', border: 0, color: 'var(--fg-1)', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 700, fontSize: 14.5, textAlign: 'left' }}>{p.ten}</button>
               {laLuuTru(p) && <Pill color="var(--fg-4)">lưu trữ</Pill>}
-              <span style={mono}>{LOAI_PHIM.find((l) => l.key === p.loai)?.label ?? p.loai} · {p.so_nhan_vat} anchor · {p.so_canh} cảnh · {tien(p.chi_phi_cents)}</span>
               {(p.tap_tom ?? []).map((t) => (
-                <button key={t.id} type="button" className="xv-btn" style={{ padding: '1px 7px', fontSize: 11 }} title={`Mở tập ${t.so}${t.ten && t.ten !== p.ten ? ` · ${t.ten}` : ''}`} onClick={() => { setTapMo(t.id); modal.open('phim', p.id); }}>
-                  <b>T{t.so}</b> <span style={{ color: t.so_canh && t.so_hinh === t.so_canh ? '#4ade80' : 'var(--fg-3)' }}>{t.so_hinh}/{t.so_canh} hình</span> <span style={{ color: t.so_canh && t.so_clip === t.so_canh ? '#4ade80' : 'var(--fg-3)' }}>· {t.so_clip} clip</span>
+                <button key={t.id} type="button" className="xv-btn" style={{ padding: '1px 7px', fontSize: 11 }} title={`Mở tập ${t.so}${t.ten && t.ten !== p.ten ? ` · ${t.ten}` : ''} · ${t.so_hinh}/${t.so_canh} hình · ${t.so_clip}/${t.so_canh} clip`} onClick={() => { setTapMo(t.id); modal.open('phim', p.id); }}>
+                  {/* Tiến độ bằng HÌNH, số ở hover (YDNI luật 3): thanh trên = keyframe, thanh dưới = clip; đủ thì xanh. */}
+                  <b>T{t.so}</b> <span style={{ display: 'inline-grid', gap: 2, width: 34, verticalAlign: 'middle', marginLeft: 4 }}>{[t.so_hinh, t.so_clip].map((x, i) => <span key={i} style={{ height: 3, borderRadius: 2, background: `linear-gradient(90deg, ${t.so_canh && x >= t.so_canh ? '#4ade80' : 'var(--cyan)'} ${t.so_canh ? Math.round((100 * x) / t.so_canh) : 0}%, var(--line) 0)` }} />)}</span>
                 </button>
               ))}
               {!!p.so_anh_qc && <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }} title={`${p.so_anh_qc} ảnh QC — mở phim, tab 🎭 Phim › Ảnh QC`}>
                 {(p.anh_qc_tom ?? []).slice(0, 6).map((a) => <img key={a.id} src={anhNho(a.url, 160)} alt="" onClick={() => moPhim(p.id)} style={{ height: 30, aspectRatio: a.ti_le.replace(':', ' / '), objectFit: 'cover', borderRadius: 3, cursor: 'pointer', border: '1px solid var(--line)' }} />)}
-                {(p.anh_qc_tom?.length ?? 0) > 6 && <span style={mono}>+{(p.anh_qc_tom?.length ?? 0) - 6}</span>}
               </span>}
               </div>
               {!!p.goc_spy?.length && <div style={{ paddingLeft: 6 }}><ChipGocSpy ds={p.goc_spy} gon toiDa={4} /></div>}

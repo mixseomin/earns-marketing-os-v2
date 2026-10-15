@@ -204,7 +204,7 @@ for ma in ('1.1', '1.2'): S['may'][ma]['den_ban'] = True
 for ma in ('5.2', '7.5'): S['may'][ma]['qua_truc'] = True
 # 5.4 cùng phía rừng cáp với 5.3 / 5.5 (bên trái, nhìn sang +x), toàn cảnh, cao hơn để thấy Mr. Wipe sà xuống — trước đây bộ giải đặt tận góc sau-trái 50 cm.
 # 5.4 đặt tay: trước-trái, cao 12 cm nhìn xuống (qua trên loa + cáp trượt), cùng phía trục Tango–Lint với 5.3 — bộ giải tự động đẩy ra góc sau 60 cm.
-S['may']['5.4'].pop('phia', None); S['may']['5.4'].update(dat=[-14, 64, 12], nhin=[6, 72, 3], ong_kinh=24)   # y 66 → 64: đứng rõ một phía trục Tango–Lint với 5.3 (66 nằm sát lằn trục, bộ giải 5.3 đổi chút là lật)   # đèn bàn bật tới cú bấm công tắc ở 1.2
+S['may']['5.4'].pop('phia', None); S['may']['5.4'].update(dat=[-14, 66, 12], nhin=[6, 72, 3], ong_kinh=24)   # đèn bàn bật tới cú bấm công tắc ở 1.2
 # Máy các shot thêm cho chuỗi chú ý / nút đóng / kết (15/10/2026). Góc nhìn chủ quan (POV) đặt tay ở mắt nhân vật + qua_truc.
 MOI = {
  # 7.1a qua vai: máy trước-phải (cùng phía 7.1) — Tango mở nhìn kẹo về phía máy, quay đầu về phích đang chớp ở hậu cảnh trái (khán giả thấy cú nhìn + cái được nhìn).
@@ -212,7 +212,7 @@ MOI = {
  '7.1b': {'dat': [56.4, 50.6, 2.2], 'nhin': [54.3, 52.6, 0.5], 'ong_kinh': 35, 'khung': ['Cable Plug'], 'qua_truc': True},
  '7.4a': {'dat': [57.2, 52.4, 9], 'nhin': [57.2, 55, 0.8], 'ong_kinh': 24, 'khung': ['USB Hub', 'Cable Plug'], 'qua_truc': True},
   # 7.2a đặt tay: trên cao bên phải (cùng hướng 7.2), nhìn qua đầu Lint xuống mặt đế cắm — bộ giải tự động né Lint bằng cách vượt trục; máy phía trước thì iMac vàng chắn.
- '7.2a': {'dat': [63, 48, 12], 'nhin': [56.5, 54, 0.6], 'ong_kinh': 35},
+ '7.2a': {'dat': [66, 44, 14], 'nhin': [57.5, 54.5, 0.6], 'ong_kinh': 24},
  '7.6a': {'phia': 30, 'khung': [TANGO, LINT]},         # hai bạn đập tay đọc rõ; Mr. Wipe lủi đi ở hậu cảnh
  # 7.6b máy sau-trên hai nửa kẹo: kẹo tiền cảnh dưới khung, hai bạn ở giữa nhìn về kẹo (về máy).
  '7.6b': {'dat': [64, 48.5, 3.5], 'nhin': [55, 51, 1.2], 'ong_kinh': 35, 'khung': [TANGO, LINT, GUMMY]},
@@ -234,5 +234,8 @@ S['may']['2.3']['nhin'] = [32, 29, 1.2]
 for k in ('dat', 'nhin', 'ong_kinh'): S['may']['5.7'].pop(k, None)
 S['may']['5.7']['phia'] = -40   # máy tự động từ trước-trái; bộ giải né cáp trượt (xoay tới 180°)
 S['may']['1.2']['khung'] = ['Lamp Switch', 'Magic Mouse']
+# 5.3 máy TỰ ĐỘNG (bộ giải) như lúc sinh keyframe. Tệp này đọc–ghi chính tango-ban.json: bỏ một dòng ghim KHÔNG gỡ được máy đã ghi — phải xoá tường minh.
+for k in ('dat', 'nhin', 'ong_kinh'): S['may']['5.3'].pop(k, None)
+S['may']['5.3']['phia'] = 0
 json.dump(S, open(P, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
 print('ghi', len(VT), 'shot')

@@ -254,10 +254,20 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     const sau = bc.canh.khung_xam?.sau;
     if (sau && !ket && bc.kt.keyframe_hai_buoc !== false) {
       const trong = nvRef.filter((v) => v.loai !== 'boi_canh');
-      const dsChu = moTaThay(bc.canh.khung_xam?.thay, goiVat).replace('Blocks in that layout image, by name:', 'In this frame:').replace('This list and Image 1 are the ONLY authority', 'This list is the ONLY authority');
-      const prompt1 = ['A real photograph of a miniature stop-motion set.', mayCau, dsChu, huongCau, framingCau, ngoaiCau, trangCau,
-        trong.length ? `What each one looks like: ${trong.map((v) => `${v.ten}: ${moTaNgan(v.mo_ta)}`).join(' | ')}.` : '',
-        `Photo look: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}.`, anhSang, camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), KHONG_CHU, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
+      // Prompt bước 1 NGẮN, mô tả tự nhiên (FLUX đọc giới hạn chữ: khối luật dài của Nano Banana bị cắt mất phần nhân vật, con số "40 mm, 1.2 cm"
+      // bị vẽ thành chữ "480" — #35, 16/10/2026). Hình học đã nằm trong bản đồ độ sâu; chữ chỉ nói CÁI GÌ, trông ra sao, quay hướng nào, ánh sáng.
+      const thayDs = bc.canh.khung_xam?.thay ?? [];
+      const mon = trong.map((v) => {
+        const t = thayDs.find((x) => (bc.anchorCua?.[x.ten] ?? x.ten) === v.ten); const hg = mGoc?.vi_tri.find((x) => x.ten === v.ten);
+        const h = hg && v.loai === 'nhan_vat' ? huongVoiMay(mGoc!, hg, ket)?.chu : undefined;
+        return `${moTaNgan(v.mo_ta)}${h ? `, ${h}` : ''}${t ? catMep(t.hop).replace(/^, cut off by/, ', only partly in frame, cut off by') : ''}`;
+      });
+      const nen = thayDs.filter((x) => !bc.nhanVat.some((v) => v.ten === (bc.anchorCua?.[x.ten] ?? x.ten)) && x.pt >= PT_THAY).map((x) => goiVat(x.ten) ?? x.en ?? x.ten);
+      const g = mGoc ? Math.round((Math.atan2((mGoc.nhin[2] ?? 0) - (mGoc.dat[2] ?? 0), Math.hypot(mGoc.nhin[0]! - mGoc.dat[0]!, mGoc.nhin[1]! - mGoc.dat[1]!)) * 180) / Math.PI) : 0;
+      const gocChu = g >= 8 ? 'low-angle shot from just above the desk, looking up' : g <= -8 ? 'high-angle shot looking down onto the desk' : 'eye-level shot at the height of the tiny characters';
+      const prompt1 = [`Macro photograph of a real miniature stop-motion set, ${gocChu}.`, mon.length ? `${mon.join('. ')}.` : '', nen.length ? `Background: ${nen.join(', ')}.` : '',
+        bc.canh.may_3d?.den_ban ? 'Warm desk-lamp light mixed with cool blue screen glow.' : 'Night: only cool blue screen glow, deep soft shadows, dark room.',
+        'Real materials, shallow depth of field, tactile handmade stop-motion feel. No text, no letters, no numbers, no people, no hands.'].filter(Boolean).join(' ');
       const ref2: string[] = [kxMau]; const nhanDang: string[] = [];
       for (const v of trong) { const u = btCanh(v)?.anh_url ?? v.anh_ref[0]; if (!u || ref2.length >= 5) { nhanDang.push(`${v.ten}: ${moTaNgan(v.mo_ta)}`); continue; } ref2.push(u); nhanDang.push(`${v.ten} — exactly like Image ${ref2.length + 1}: ${moTaNgan(v.mo_ta)}`); }
       const prompt2 = [`EDIT Image 1 (a photograph of this exact frame). Change ONLY how each character and prop LOOKS so it matches its reference image: ${nhanDang.join(' | ')}. Keep EVERYTHING else exactly as Image 1: the camera, framing and horizon, every position, size and outline, the background, the light and the colours. Image 2 is the 3D layout of this same frame: each character keeps the facing it shows there.`,

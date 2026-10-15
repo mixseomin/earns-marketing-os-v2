@@ -259,7 +259,7 @@
             "khoang_lang"
           ],
           "thay": "Ngón tay khổng lồ bấm công tắc đèn. Ánh vàng tắt phụt, cả bàn chìm vào xanh lạnh. Trong bóng tối sau con chuột, đôi mắt tròn của Tango mở to, chớp chớp nhìn viên kẹo.",
-          "bo_cuc": "Foreground: the lamp switch and a giant fingertip. Mid: the lamp head. Background: behind the white mouse, two round googly eyes glowing in the dark.",
+          "bo_cuc": "Foreground: the lamp switch and a giant fingertip pressing it. Mid: the desk lamp beyond, its light going out.",
           "mo": "Lamp on, warm yellow light; the fingertip rests on the switch.",
           "ket": "Lamp off, cold blue glow only; behind the mouse two big googly eyes blink, fixed on the gummy.",
           "huong": "The finger presses down; light drains from right to left.",
@@ -752,7 +752,7 @@
         },
         {
           "vai": "hanh_dong",
-          "co": "mcu",
+          "co": "ms",
           "giay": 4.5,
           "luat": [
             "gia_tri_doi",
@@ -1176,7 +1176,7 @@
             "truc_180"
           ],
           "thay": "Mr. Wipe sà xuống như bóng ma, ôm chai xịt xanh, phủ bóng lên cả hai. Tango bước lên đứng chắn trước Lint.",
-          "bo_cuc": "Mr. Wipe looming top-left; Lint behind Tango, mid-left; Tango in front, screen-right, arms spread.",
+          "bo_cuc": "Mr. Wipe looming top-right; Lint behind Tango, mid-right; Tango in front, screen-left, arms spread.",
           "mo": "Mr. Wipe billowing down from top-left; Tango and Lint looking up.",
           "ket": "Mr. Wipe hovering over them; Tango standing in front of Lint, arms spread wide.",
           "huong": "Mr. Wipe faces screen-right down; Tango faces screen-left up at him.",
@@ -1264,7 +1264,7 @@
             "gia_tri_doi"
           ],
           "thay": "Tango nhảy lao vào Mr. Wipe; một tia xịt PSSHT, Tango rơi bẹp xuống thành vũng đất sét ướt.",
-          "bo_cuc": "Tango screen-left leaping up toward screen-right; the spray nozzle entering from screen-right.",
+          "bo_cuc": "Foreground: a slanted cable of the cable jungle, out of focus. Tango screen-left leaping up toward screen-right; the spray nozzle entering from screen-right.",
           "mo": "Tango crouched, then leaping screen-right.",
           "ket": "Tango splatted flat on the wood, a soggy orange puddle, googly eyes slid sideways.",
           "huong": "Tango moves screen-right and up, then drops straight down.",
@@ -1517,10 +1517,10 @@
             "truc_180"
           ],
           "thay": "Xe trượt chở Lint lao vút dọc sợi cáp trắng ra khỏi rừng cáp; phía sau, Mr. Wipe lao theo rồi vướng vào đám dây.",
-          "bo_cuc": "Foreground: the white cable running diagonally. Mid: the sled racing toward screen-left. Background: Mr. Wipe snagged in cables.",
+          "bo_cuc": "Foreground: the white cable running diagonally away. Mid: the sled racing away along it, screen-right. Background: Mr. Wipe lunging after it, then snagged in cables.",
           "mo": "The sled starting down the cable; Mr. Wipe lunging after it.",
           "ket": "The sled shooting out of the jungle; Mr. Wipe stuck in the cables behind.",
-          "huong": "Sled moves screen-left; Mr. Wipe follows screen-left then stops.",
+          "huong": "The sled races away screen-right; Mr. Wipe falls behind.",
           "am": "Tiếng trượt vút, dây bật như dây đàn.",
           "muc_dich": "Thoát!",
           "motif": "",

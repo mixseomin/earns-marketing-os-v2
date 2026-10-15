@@ -135,7 +135,7 @@ VT = {
  '4.5': [v(LINT, L4, ve=K4), v(CBALL, C4), v(GUMMY, K4)],
  '4.5a': [v(TANGO, T4, ve=L4), v(GUMMY, [4, 70.6, 0.8], cam=TANGO), v(LINT, L4, ve=T4)],
  '4.6': [v(GUMMY, [4, 70.8, 0.8], cam=TANGO), v(TANGO, T4, ve=L4, an=True), v(LINT, L4, ve=T4, an=True)],
- '4.7': [v(TANGO, T4, ve=L4), v(LINT, L4, [7, 71.6, 0], ve=T4), v(CBALL, C4), v(GUMMY, [5, 71, 0.5], cam=TANGO)],
+ '4.7': [v(TANGO, T4, ve=75), v(LINT, L4, [7, 71.6, 0], ve=-45), v(CBALL, C4), v(GUMMY, [5, 71, 0.5], cam=TANGO)],
  '5.1': [v(WIPE, [24.5, 84, 11], [22, 82, 10.5], ve=[5, 71], an=True), v(TANGO, T4, ve=[7, 71.6]), v(LINT, [7, 71.6, 0], ve=T4)],
  '5.2': [v(WIPE, [22, 82, 10.5], [14, 78, 9], ve=[7, 71.6]), v(LINT, [7, 71.6, 0], ve=T4), v(SPRAY, [23.5, 80.5, 8.5], cam=WIPE)],
  '5.3': [v(TANGO, T4, ve=[7, 71.6], ve_den=[14, 78]), v(LINT, [7, 71.6, 0], ve=T4, ve_den=[14, 78]), v(SPRAY, [11, 77, 13], cam=WIPE, an=True)],
@@ -260,5 +260,11 @@ S['may']['1.2']['khung'] = ['Lamp Switch', 'Magic Mouse']
 # 5.3 máy TỰ ĐỘNG (bộ giải) như lúc sinh keyframe. Tệp này đọc–ghi chính tango-ban.json: bỏ một dòng ghim KHÔNG gỡ được máy đã ghi — phải xoá tường minh.
 for k in ('dat', 'nhin', 'ong_kinh'): S['may']['5.3'].pop(k, None)
 S['may']['5.3']['phia'] = 0
+
+# SỬA 10 SHOT CẢNH 1–6 THEO CỔNG (15/10/2026: cỡ cận quá nhỏ, phản ứng thấy lưng, lật trục, lệch hướng máy chủ) — máy đặt tay, bỏ qua_truc #20.
+# #18 (4.7): hai bạn 'cheat to camera' ~30° (ve=75 / -45) như diễn viên thật — quay thẳng vào nhau thì máy chỉ thấy nghiêng.
+SUA = {"1.2": {"dat": [40, 4, 1.5], "nhin": [52, 18, 1.2], "ong_kinh": 28, "khung": ["Lamp Switch"]}, "4.5a": {"dat": [8.8, 63.6, 1.4], "nhin": [3, 70.5, 1.3], "ong_kinh": 50, "khung": ["Tango"]}, "4.7": {"dat": [5.5, 61.5, 1.8], "nhin": [5.5, 71.2, 1.0], "ong_kinh": 35, "khung": ["Tango", "Lint"]}, "5.2": {"dat": [12.4, 70.5, 14.5], "nhin": [20, 81, 10], "ong_kinh": 35, "khung": ["Mr. Wipe"]}, "5.4": {"dat": [-6, 56, 14], "nhin": [6, 72, 3], "ong_kinh": 24, "khung": ["Tango", "Mr. Wipe"]}, "5.5": {"dat": [3.7, 62.3, 3.3], "nhin": [6, 71, 2.5], "ong_kinh": 40, "khung": ["Lint", "Tango"]}, "5.6": {"dat": [5.5, 66.5, 0.5], "nhin": [6.3, 71, 1.3], "ong_kinh": 24, "khung": ["Tango"]}, "5.7": {"dat": [0.1, 65.2, 6], "nhin": [6, 70.5, 0.4], "ong_kinh": 50}, "6.3": {"dat": [7.3, 48.6, 0.5], "nhin": [12, 66, 2.5], "ong_kinh": 24, "khung": ["Tango", "Lint"]}}
+for ma, m in SUA.items():
+    S['may'][ma].pop('phia', None); S['may'][ma].pop('qua_truc', None); S['may'][ma].update(m)
 json.dump(S, open(P, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
 print('ghi', len(VT), 'shot')

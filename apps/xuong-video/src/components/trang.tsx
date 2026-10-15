@@ -105,7 +105,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
                 <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '10px 12px 4px', background: 'var(--bg-1)' }}>
                   <b style={{ fontSize: 14 }}>{g.kieu === 'template' ? '🧩 ' : g.kieu === 'series' ? '📺 ' : g.kieu === 'quang_cao' ? '📣 ' : '🎬 '}{g.ten}</b>
                   <Pill color="var(--fg-3)">{TEN_KIEU[g.kieu]}</Pill>
-                  <span style={mono}>{g.phim.length} phim · {g.phim.reduce((a, p) => a + p.so_tap, 0)} tập · {tien(g.chi_phi_cents)}</span>
+                  <span style={mono}>{g.kieu === 'quang_cao' ? `${g.phim.length} video · ${g.phim.reduce((a, p) => a + (p.so_anh_qc ?? 0), 0)} ảnh QC` : `${g.phim.length} phim · ${g.phim.reduce((a, p) => a + p.so_tap, 0)} tập`} · {tien(g.chi_phi_cents)}</span>
                 </div>
                 {g.phim.map((p) => (
                   <div key={p.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '6px 12px 8px 28px', opacity: laLuuTru(p) ? 0.55 : 1 }}>
@@ -117,6 +117,11 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
                       {laLuuTru(p) && <Pill color="var(--fg-4)">lưu trữ</Pill>}
                       <span style={mono}>{LOAI_PHIM.find((l) => l.key === p.loai)?.label ?? p.loai} · {p.so_nhan_vat} anchor · {p.so_canh} cảnh · {tien(p.chi_phi_cents)}</span>
                     </div>
+                    {!!p.so_anh_qc && <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={mono}>🖼 {p.so_anh_qc} ảnh QC</span>
+                      {(p.anh_qc_tom ?? []).map((a) => <img key={a.id} src={anhNho(a.url, 160)} alt="" title="Ảnh QC — mở phim, tab 🎭 Phim › Ảnh QC" onClick={() => { setTapMo(null); modal.open('phim', p.id); }}
+                        style={{ height: 52, aspectRatio: a.ti_le.replace(':', ' / '), objectFit: 'cover', borderRadius: 4, cursor: 'pointer', border: '1px solid var(--line)' }} />)}
+                    </div>}
                     {!!p.tap_tom?.length && <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {p.tap_tom.map((t) => (
                         <button key={t.id} type="button" className="xv-btn" style={{ padding: '2px 8px', fontSize: 11.5 }} title={`Mở tập ${t.so}`} onClick={() => { setTapMo(t.id); modal.open('phim', p.id); }}>

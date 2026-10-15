@@ -10,7 +10,7 @@ import { giaTriMau, oThieu, theoNhom, nhomCuaO, NHOM_O, type OTemplateDs } from 
 import { tenPhanDoan, type CauHinhTemplate, type Phim } from '@/lib/xuong-video/kieu';
 import type { ShotKhung } from '@/lib/xuong-video/template-db';
 
-type DuLieu = { cfg: CauHinhTemplate | null; o: OTemplateDs[]; khung: ShotKhung[] };
+type DuLieu = { cfg: CauHinhTemplate | null; o: OTemplateDs[]; khung: ShotKhung[]; phimDung: { id: number; ten: string; luu_tru: boolean }[] };
 const tenGon = (ten: string) => ten.replace(/^template\s*·\s*/i, '');
 
 function useTemplate(phimId: number) {
@@ -53,7 +53,40 @@ export function DaiKhung({ khung, chiTiet }: { khung: ShotKhung[]; chiTiet?: boo
 }
 
 /** Dải cấu trúc của một thẻ trong kho (tự nạp). */
-function KhungThe({ id }: { id: number }) { const { d } = useTemplate(id); return d ? <DaiKhung khung={d.khung} /> : <span style={mono}>…</span>; }
+function KhungThe({ id }: { id: number }) {
+  const { d } = useTemplate(id);
+  if (!d) return <span style={mono}>…</span>;
+  return <><DaiKhung khung={d.khung} /><span style={mono}>🏆 {d.cfg?.mau_qc?.length ?? 0} mẫu QC thắng · 🎬 {d.phimDung.filter((p) => !p.luu_tru).length} phim đang dùng</span></>;
+}
+
+/** 🏆 MẪU QC THẮNG template học theo (video thật lưu R2, phát ngay) + 🎬 PHIM đang dùng template — anh 15/10/2026. */
+function MauVaPhimDung({ d, onMoPhim }: { d: DuLieu; onMoPhim: (id: number) => void }) {
+  const mau = d.cfg?.mau_qc ?? [];
+  return (
+    <div style={{ display: 'grid', gap: 8, margin: '4px 0 10px' }}>
+      <b style={{ fontSize: 12 }}>🏆 Mẫu QC thắng <span style={mono}>— QC thật template này học theo (kho spy · nhân bản x · ngày chạy)</span></b>
+      {!mau.length ? <div style={{ ...mono, color: 'var(--red)' }}>Chưa có mẫu — template phải có ít nhất một QC thắng kèm video (scripts/luu-mau-qc.mts).</div> : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 8 }}>
+          {mau.map((m) => (
+            <div key={m.ma} style={{ display: 'grid', gap: 4, alignContent: 'start' }}>
+              {m.video ? <video src={m.video} poster={m.anh ?? undefined} controls preload="none" playsInline style={{ width: '100%', aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 6, background: '#000' }} />
+                : m.anh ? <img src={m.anh} alt="" style={{ width: '100%', borderRadius: 6 }} /> : null}
+              <span style={{ fontSize: 12 }}><b>{m.page}</b> <span style={mono}>x{m.x} · {m.ngay} ngày{m.giay ? ` · ${m.giay}s` : ''}</span></span>
+              <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{m.mo_ta}</span>
+              <a className="xv-lienket xv-mono" href={`https://href.li/?${m.link}`} target="_blank" rel="noreferrer">Thư viện QC #{m.ma}</a>
+            </div>
+          ))}
+        </div>
+      )}
+      <b style={{ fontSize: 12 }}>🎬 Phim đang dùng template này <span style={mono}>({d.phimDung.length})</span></b>
+      {!d.phimDung.length ? <span style={mono}>chưa có phim nào — bấm "Tạo phim từ template"</span> : (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {d.phimDung.map((p) => <button key={p.id} type="button" className="xv-lienket xv-mono" style={{ opacity: p.luu_tru ? 0.5 : 1, textDecoration: p.luu_tru ? 'line-through' : undefined }} onClick={() => onMoPhim(p.id)} title={p.luu_tru ? 'đã lưu trữ' : 'mở phim'}>#{p.id} {p.ten}</button>)}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** Kho template ở đầu trang: mỗi template một thẻ — dùng khi nào, số shot, nút Dùng (form điền) / Sửa (mở như phim). */
 export function KhoTemplate({ ds: dsVao, onMo }: { ds: Phim[]; onMo: (id: number) => void }) {
@@ -107,6 +140,7 @@ export function TemplatePanel({ phim, onChanged, onMoPhim }: { phim: Phim; onCha
       <h3>🧩 Template<small>sửa phim này như phim thường — chỗ nào đổi theo sản phẩm / góc / chân dung thì gõ <code>{'{{ten_o}}'}</code> (kinh thánh, anchor, brief, chữ màn, lời, prompt…)</small></h3>
       <Loi>{loi}</Loi>
       {d && <div style={{ margin: '4px 0 10px' }}><b style={{ fontSize: 12 }}>Cấu trúc video</b> <span style={mono}>— sửa shot ở tab Kịch bản / Storyboard</span><DaiKhung khung={d.khung} chiTiet /></div>}
+      {d && <MauVaPhimDung d={d} onMoPhim={onMoPhim} />}
       <O label="Dùng khi nào (hiện trên thẻ ở kho template)"><textarea className="xv-in" rows={2} value={moTa} onChange={(e) => setMoTa(e.target.value)} placeholder="UGC kể chuyện tình huống — hợp sản phẩm giải quyết một nỗi khó chịu hằng ngày…" /></O>
       {!d ? <span style={mono}>…</span> : o.length === 0 ? <div style={mono}>Chưa có ô nào — gõ {'{{san_pham}}'}, {'{{nhan_vat_ten}}'}… vào chữ của phim rồi mở lại tab này.</div> : (
         <div style={{ display: 'grid', gap: 4, marginTop: 6 }}>

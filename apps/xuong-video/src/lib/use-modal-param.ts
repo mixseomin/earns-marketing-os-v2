@@ -43,6 +43,8 @@ export interface ModalParam {
   is: (m: string) => boolean;
 }
 
+const SU_KIEN = 'xv-modal-param';
+
 export function useModalParam(key = 'm'): ModalParam {
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -63,6 +65,16 @@ export function useModalParam(key = 'm'): ModalParam {
     setId(sp.get(idKey));
   }, [sp, key, idKey]);
 
+  useEffect(() => {
+    const nghe = (e: Event) => {
+      if ((e as CustomEvent<string>).detail !== key) return;
+      const q = new URLSearchParams(window.location.search);
+      setValue(q.get(key)); setId(q.get(idKey));
+    };
+    window.addEventListener(SU_KIEN, nghe);
+    return () => window.removeEventListener(SU_KIEN, nghe);
+  }, [key, idKey]);
+
   const numId = id != null && id !== '' && !Number.isNaN(Number(id)) ? Number(id) : null;
 
   const write = useCallback(
@@ -82,6 +94,9 @@ export function useModalParam(key = 'm'): ModalParam {
       const qs = next.toString();
       // Giữ window.history.state (Next App Router lưu state điều hướng ở đó — ghi {} là phá back/forward).
       window.history.replaceState(window.history.state, '', qs ? `${pathname}?${qs}` : pathname);
+      // Báo MỌI bản hook cùng khoá (replaceState không phát tín hiệu): trước đây nút trong ngăn gọi open() chỉ đổi state của chính nó —
+      // bản ở cấp trang (chỗ quyết định mở gì) không biết → bấm "🧩 từ #24" trong ngăn phim không ra gì (15/10/2026).
+      window.dispatchEvent(new CustomEvent(SU_KIEN, { detail: key }));
     },
     [pathname, key, idKey],
   );

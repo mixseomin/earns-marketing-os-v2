@@ -125,12 +125,16 @@ export async function luuTruPhim(id: number, bat: boolean): Promise<Kq> {
 // ── Template (template.ts · template-db.ts) ───────────────────────────────────────────────────────────────────────
 
 /** Ô của một template (dò trong mọi chữ của phim) + cấu hình nhãn/gợi ý. */
-export async function docTemplate(phimId: number): Promise<Kq<{ cfg: CauHinhTemplate | null; o: OTemplateDs[]; khung: ShotKhung[] }>> {
+export async function docTemplate(phimId: number): Promise<Kq<{ cfg: CauHinhTemplate | null; o: OTemplateDs[]; khung: ShotKhung[]; phimDung: { id: number; ten: string; luu_tru: boolean }[] }>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   const r = await docOTemplate(db, phimId);
-  return r ? { ok: true, data: r } : loi('không thấy phim');
+  if (!r) return loi('không thấy phim');
+  // Phim đang dùng template này (tạo từ nó) — mới nhất trước; phim đã lưu trữ vẫn hiện, gạch mờ.
+  const dung = (await db.execute(sql`SELECT id, ten, coalesce((kinh_thanh->>'luu_tru')::boolean, false) AS luu_tru FROM xv_phim
+    WHERE kinh_thanh->'tu_template'->>'id' = ${String(phimId)} ORDER BY id DESC`)) as unknown as Row[];
+  return { ok: true, data: { ...r, phimDung: dung.map((x) => ({ id: Number(x.id), ten: String(x.ten), luu_tru: !!x.luu_tru })) } };
 }
 /** Sửa nhãn / gợi ý / giá trị mẫu của các ô + mô tả template (có ↶ hoàn tác). */
 export async function luuCauHinhTemplate(phimId: number, cfg: CauHinhTemplate): Promise<Kq> {
@@ -138,7 +142,8 @@ export async function luuCauHinhTemplate(phimId: number, cfg: CauHinhTemplate): 
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   await chupTruoc(db, { bang: 'xv_phim', id: phimId, cot: ['kinh_thanh'], moTa: 'sửa ô template', nguoi: await ai() });
-  await db.execute(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{template}', ${JSON.stringify(cfg)}::jsonb), updated_at = now() WHERE id = ${phimId}`);
+  // GỘP vào cấu hình cũ — trước đây ghi đè cả khối: lưu nhãn ô trên panel là mất mẫu QC thắng (mau_qc) do script dựng ghi.
+  await db.execute(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(coalesce(kinh_thanh, '{}'::jsonb), '{template}', coalesce(kinh_thanh->'template', '{}'::jsonb) || ${JSON.stringify(cfg)}::jsonb), updated_at = now() WHERE id = ${phimId}`);
   return { ok: true, data: undefined };
 }
 /** Lưu một phim thành template MỚI (bản sao, phim gốc không bị đụng) — sau đó gõ {{ô}} vào chỗ cần đổi. */

@@ -129,7 +129,10 @@ export type KinhThanh = {
 /** nhom: nhóm trong form điền (template.ts › NHOM_O) — thiếu thì máy đoán theo tên ô */
 export type OTemplate = { ten: string; goi_y?: string; mau?: string; dai?: boolean; nhom?: string };
 /** thu_tu: thứ tự ô trong form — MẢNG vì jsonb không giữ thứ tự khoá của object (o đọc ra bị xáo theo độ dài tên khoá) */
-export type CauHinhTemplate = { mo_ta?: string; o?: Record<string, OTemplate>; thu_tu?: string[] };
+/** MẪU QC THẮNG của template (anh 15/10/2026: "template phải ghi đầy đủ nguồn tham khảo để coi như ví dụ, đính kèm video thực tế"):
+ *  QC thật trong kho spy (ma = library_id) — video / ảnh đã lưu lên R2 (scripts/luu-mau-qc.mts), mo_ta = học gì từ nó. */
+export type MauQcTemplate = { ma: string; page: string; x: number; ngay: number; link: string; mo_ta: string; video?: string | null; anh?: string | null; to?: string | null; giay?: number };
+export type CauHinhTemplate = { mo_ta?: string; o?: Record<string, OTemplate>; thu_tu?: string[]; mau_qc?: MauQcTemplate[] };
 /** Một tập trong BẢN ĐỒ series (chưa chắc đã có xv_tap): số thứ tự toàn series, mùa, loại, nhân vật, gài/trả (claude.ts › vietMuaPhim). */
 export type TapBanDo = { so: number; ten: string; logline: string; mua?: number; loai?: 'phieu_luu' | 'nguon_goc' | 'ket_mua'; nhan_vat?: string[]; boi_canh?: string[]; gai_tra?: string };
 export type MuaSeries = { so: number; ten: string; dong_co?: string; ghi_chu?: string };

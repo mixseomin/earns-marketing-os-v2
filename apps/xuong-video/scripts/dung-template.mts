@@ -9,7 +9,7 @@
 import { readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { ghepThoai, CAM_XUC_THEO_LOAI, type KieuChu, type KinhThanh, type LoaiNhanVat, type LoaiShotMau, type OTemplate, type DongThoai } from '../src/lib/xuong-video/kieu';
+import { ghepThoai, CAM_XUC_THEO_LOAI, type KieuChu, type KinhThanh, type MauQcTemplate, type LoaiNhanVat, type LoaiShotMau, type OTemplate, type DongThoai } from '../src/lib/xuong-video/kieu';
 import { timO, dsOTemplate, oThieu, giaTriMau, khungTuShot } from '../src/lib/xuong-video/template';
 import { daDangMay } from '../src/lib/xuong-video/nhip-hinh';
 import { diemNhan } from '../src/lib/xuong-video/diem-nhan';
@@ -23,7 +23,7 @@ type Shot = { giay: number; loai: LoaiShotMau; canh?: string; goc_may: string; h
   prompt_anh?: string; prompt_video?: string; nv?: string[]; /** biến thể (màu…) của anchor gắn vào shot — key trong nhan_vat[].bien_the */ bt?: string[]; keyframe?: string; /** cỡ cảnh (ecu|cu|mcu|ms|two|ws|ews) */ co: string; /** chuyển động máy — trống thì máy chọn */ may?: string;
   /** kiểu chữ RIÊNG của shot (vd ô bình luận: nền trắng, nguyên câu) — trống: shot CTA lấy kiểu thư viện CTA, shot khác theo phim */ kieu?: KieuChu;
   /** nguồn tham khảo của câu cố định (không phải ô) — BẮT BUỘC, thiếu thì dừng (tham-khao.ts) */ tk?: ThamKhaoCau[] };
-type Tpl = { key: string; ten: string; mo_ta: string; o: string[]; kinh_thanh: KinhThanh; nhan_vat: { key: string; loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref?: string[]; giong?: string; bien_the?: { key: string; nhom: string; ten: string; mo_ta: string; anh_url?: string }[] }[];
+type Tpl = { key: string; ten: string; mo_ta: string; mau_qc?: MauQcTemplate[]; o: string[]; kinh_thanh: KinhThanh; nhan_vat: { key: string; loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref?: string[]; giong?: string; bien_the?: { key: string; nhom: string; ten: string; mo_ta: string; anh_url?: string }[] }[];
   tap: { ten: string; brief: string }; shots: Shot[] };
 type Tep = { o_chung: Record<string, OTemplate>; templates: Tpl[] };
 
@@ -49,7 +49,9 @@ for (const t of tep.templates) {
   const ds = dsOTemplate({ o }, dung);
   const thieuMau = oThieu(ds, giaTriMau(ds));
   if (thieuMau.length) throw new Error(`${t.key}: ô thiếu giá trị mẫu: ${thieuMau.map((x) => x.k).join(', ')}`);
-  const cfg = { mo_ta: t.mo_ta, o, thu_tu: t.o };
+  // Template phải có MẪU QC THẮNG kèm video / ảnh thật (anh 15/10/2026) — thiếu thì không dựng.
+  if (!t.mau_qc?.length || t.mau_qc.some((m) => !m.ma || !(m.video || m.anh) || !m.mo_ta)) throw new Error(`${t.key}: thiếu mẫu QC thắng (mau_qc: ma + video/ảnh + mo_ta) — chạy scripts/luu-mau-qc.mts <library_id>`);
+  const cfg = { mo_ta: t.mo_ta, o, thu_tu: t.o, mau_qc: t.mau_qc };
   const cu = await q(sql`SELECT id FROM xv_phim WHERE ten = ${t.ten} AND kinh_thanh ? 'template' AND kinh_thanh->'template' <> 'null'::jsonb`);
   if (cu.length && lai !== t.key) {   // đã có → chỉ cập nhật nhãn / gợi ý / thứ tự ô (không đụng shot người đã sửa trên studio)
     const pid = Number(cu[0]!.id);

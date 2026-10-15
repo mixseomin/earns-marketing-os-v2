@@ -113,12 +113,31 @@ K['Lint']['phan'] = [
     {'hinh': 'trung', 'co': [0.32, 0.32, 0.42], 'mau': '#5f5f66', 'tam': [0.42, -0.25, -0.18]}]
 # Mr. Wipe = khăn lau trùm như con ma: thân nón rủ loe đáy, đầu tròn, hai mắt trên đầu (không dùng `mat`: mắt tự gắn
 # lên mặt cầu đầu, không lơ lửng trước thân nón).
-K['Mr. Wipe'].update({'hinh': 'non', 'co': [6.6, 3.8, 5.4], 'dinh': 0.5, 'mat': False})
-_mw = '#7f93a6'
-K['Mr. Wipe']['phan'] = [{'hinh': 'cau', 'co': [3.6, 3.1, 3.2], 'mau': _mw, 'tam': [0, 0, 3.6], 'chat': 'vai'},
-    {'hinh': 'cau', 'co': [0.75, 0.4, 0.75], 'mau': '#f4f4f4', 'tam': [-0.66, -1.36, 5.4]}, {'hinh': 'cau', 'co': [0.75, 0.4, 0.75], 'mau': '#f4f4f4', 'tam': [0.66, -1.36, 5.4]},
-    {'hinh': 'cau', 'co': [0.36, 0.2, 0.36], 'mau': '#111111', 'tam': [-0.64, -1.54, 5.52]}, {'hinh': 'cau', 'co': [0.36, 0.2, 0.36], 'mau': '#111111', 'tam': [0.64, -1.54, 5.52]}]
-# (Vòng gợn mép khăn đã thử: thân nón bo tròn đáy khi làm mịn → vòng gợn tách ra lơ lửng dưới khăn như hào quang. Mép tưa để chất liệu vải lo.)
+K['Mr. Wipe'].update({'hinh': 'khan', 'co': [6.6, 3.8, 6.8], 'mat': False})   # tấm khăn rủ dựng bằng lưới riêng (dung-set.py › khan_diem): đầu tròn, loe, 4 góc thõng
+K['Mr. Wipe'].pop('dinh', None)
+K['Mr. Wipe']['phan'] = [   # hai mắt nút áo trên mặt trước phần đầu (t = 0,2 → cao 5,4 cm, mặt trước lùi 1,57 cm)
+    {'hinh': 'cau', 'co': [0.75, 0.4, 0.75], 'mau': '#f4f4f4', 'tam': [-0.62, -1.45, 5.07]}, {'hinh': 'cau', 'co': [0.75, 0.4, 0.75], 'mau': '#f4f4f4', 'tam': [0.62, -1.45, 5.07]},
+    {'hinh': 'cau', 'co': [0.36, 0.2, 0.36], 'mau': '#111111', 'tam': [-0.6, -1.64, 5.2]}, {'hinh': 'cau', 'co': [0.36, 0.2, 0.36], 'mau': '#111111', 'tam': [0.6, -1.64, 5.2]}]
+# Bàn tay Gã khổng lồ = bàn tay người thật (keyframe #5 / #6: tay người, tay áo len xanh): lòng bàn tay dẹt, ngón trỏ duỗi 3 đốt chỉ về −y,
+# ba ngón co dưới lòng, ngón cái chếch, cẳng tay + tay áo len. Trước đây 5 khối hộp → khung màu đọc ra "mấy viên gạch hồng".
+_da, _len = '#d9a582', '#2f4f8f'
+K['The Giant'] = {'hinh': 'trung', 'co': [7.6, 9.0, 2.8], 'mau': _da, 'phan': [
+    {'hinh': 'trung', 'co': [6.4, 15, 5.0], 'mau': _da, 'tam': [0.3, 11.5, 0.1]},                       # cẳng tay
+    {'hinh': 'trung', 'co': [8.6, 13, 7.0], 'mau': _len, 'tam': [0.4, 21.5, -0.6], 'chat': 'vai'},      # tay áo len
+    {'hinh': 'trung', 'co': [1.7, 3.0, 1.6], 'mau': _da, 'tam': [-2.5, -5.3, 0.55]},                    # ngón trỏ: đốt gốc
+    {'hinh': 'trung', 'co': [1.55, 2.7, 1.45], 'mau': _da, 'tam': [-2.6, -7.7, 0.5]},                   #           đốt giữa
+    {'hinh': 'trung', 'co': [1.45, 2.4, 1.35], 'mau': _da, 'tam': [-2.7, -9.8, 0.45]},                  #           đốt đầu
+    {'hinh': 'trung', 'co': [1.7, 2.6, 2.0], 'mau': _da, 'tam': [-0.6, -4.9, 0.1]},                     # ngón giữa co
+    {'hinh': 'trung', 'co': [1.6, 2.4, 1.9], 'mau': _da, 'tam': [1.1, -4.6, 0.1]},                      # ngón áp út co
+    {'hinh': 'trung', 'co': [1.4, 2.1, 1.7], 'mau': _da, 'tam': [2.7, -4.0, 0.2]},                      # ngón út co
+    {'hinh': 'trung', 'co': [1.8, 4.2, 1.7], 'mau': _da, 'tam': [4.3, -2.0, 0.6], 'xoay': 35}]}         # ngón cái
+# Bình xịt: chai tròn hơi thon, vai + cổ, đầu bóp trắng có vòi chĩa −y, cò bóp (ảnh mẫu: chai xanh trong, đầu bóp trắng).
+K['Blue Spray Bottle'] = {'hinh': 'non', 'co': [3.0, 3.0, 4.4], 'dinh': 0.9, 'mau': '#3b7bd8', 'phan': [
+    {'hinh': 'cau', 'co': [2.7, 2.7, 1.2], 'mau': '#3b7bd8', 'tam': [0, 0, 3.8]},                       # vai chai
+    {'hinh': 'non', 'co': [1.2, 1.2, 0.9], 'dinh': 0.9, 'mau': '#f2f2f2', 'tam': [0, 0, 4.7]},          # cổ / nắp vặn
+    {'hinh': 'hop', 'co': [1.3, 2.9, 1.2], 'mau': '#f2f2f2', 'tam': [0, -0.55, 5.5]},                   # đầu bóp
+    {'hinh': 'non', 'co': [0.55, 0.55, 0.7], 'dinh': 0.6, 'mau': '#f2f2f2', 'tam': [0, -2.05, 5.75], 'nghieng': 90},   # vòi phun
+    {'hinh': 'hop', 'co': [0.45, 0.55, 1.6], 'mau': '#f2f2f2', 'tam': [0, -1.55, 4.15], 'nghieng': 12}]}               # cò bóp
 # Kẹo dẻo hình GẤU: thân, đầu, hai tai, hai tay, hai chân (trước đây chồng ba quả cầu → model vẽ người tuyết đỏ).
 K['Gummy Bear'].update({'hinh': 'trung', 'co': [0.9, 0.65, 0.75]})
 K['Gummy Bear']['phan'] = [{'hinh': 'cau', 'co': [0.75, 0.6, 0.62], 'mau': '#d0202a', 'tam': [0, 0, 0.62], 'chat': 'keo'},

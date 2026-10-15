@@ -15,6 +15,26 @@ export function chat(mau: string, sang = 0, mo = 1): THREE.Material {
   return vatLieu.get(k)!;
 }
 
+/** Lưới tấm khăn rủ (Mr. Wipe) — CÙNG công thức dung-set.py › khan_diem, đổi sang toạ độ three (lên = y, sâu dữ liệu = −z), tâm ở giữa khối. */
+const khoKhan = new Map<number, THREE.BufferGeometry>();
+export function khanHinh(wd: number, NT = 56, NV = 26): THREE.BufferGeometry {
+  const khoa = Math.round(wd * 100); const co = khoKhan.get(khoa); if (co) return co.clone();
+  const p: number[] = []; const ix: number[] = [];
+  for (let j = 0; j <= NV; j++) {
+    const t = j / NV;
+    const f = t < 0.32 ? Math.sqrt(Math.max(0, 1 - (1 - t / 0.32) ** 2)) * 0.56 : 0.56 + 0.44 * ((t - 0.32) / 0.68) ** 1.5;
+    const k = wd + (1 - wd) * t;
+    for (let i = 0; i < NT; i++) {
+      const g = (2 * Math.PI * i) / NT; let z = 1 - t;
+      if (t > 0.62) { const q = ((t - 0.62) / 0.38) ** 2; z -= q * (0.13 * Math.abs(Math.cos(2 * g)) ** 4 + 0.025 * Math.sin(11 * g)); }
+      p.push(0.5 * f * Math.cos(g), Math.max(0, z) - 0.5, -0.5 * f * k * Math.sin(g));
+    }
+  }
+  for (let j = 0; j < NV; j++) for (let i = 0; i < NT; i++) { const a = j * NT + i, b = j * NT + ((i + 1) % NT); ix.push(a, b + NT, b, a, a + NT, b + NT); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.setIndex(ix); g.computeVertexNormals();
+  khoKhan.set(khoa, g); return g.clone();
+}
+
 /** Một khối — cùng luật dung-set.py › khoi: tam = (x, y, z ĐÁY) tương đối gốc nhóm (quay theo xoay°), co = (rộng x, sâu y, cao z). */
 export function khoi(p: Phan, goc: number[] = [0, 0], xoay = 0, mo = 1): THREE.Object3D {
   const m = chat(p.mau, p.sang ?? 0, mo);
@@ -30,6 +50,7 @@ export function khoi(p: Phan, goc: number[] = [0, 0], xoay = 0, mo = 1): THREE.O
   let g: THREE.BufferGeometry; let cy = z + c / 2; let sy = c;
   if (p.hinh === 'hop') g = new THREE.BoxGeometry(1, 1, 1);
   else if (p.hinh === 'vom') { g = new THREE.SphereGeometry(0.5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2); cy = z; sy = c * 2; }
+  else if (p.hinh === 'khan') { g = khanHinh(w / (dd || 1)); }   // tấm khăn rủ: đơn vị tâm ở giữa khối như hộp
   else if (p.hinh === 'non') g = new THREE.CylinderGeometry(0.5 * (p.dinh ?? 0.4), 0.5, 1, 40);   // nón cụt: thân khăn rủ Mr. Wipe
   else g = new THREE.SphereGeometry(0.5, 32, 16);
   const o = new THREE.Mesh(g, m);

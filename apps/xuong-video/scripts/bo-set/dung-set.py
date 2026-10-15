@@ -44,6 +44,28 @@ def mau(h, sang=0):
 def dat(o, m, ten):
     o.name = ten; o.data.materials.clear(); o.data.materials.append(m); return o
 
+def khan_diem(wd, NT=56, NV=26):
+    """Lưới tấm khăn rủ, toạ độ ĐƠN VỊ (x, y ∈ ±0.5, z 0..1 từ đáy): t = 0 đỉnh → 1 mép. Bán kính: vòm đầu tới t = 0,32 rồi loe dần ra mép.
+    Mặt cắt tròn ở đầu (theo bề ngang) và dẹt dần về đáy (tỉ lệ sâu/ngang thật); mép gợn sóng nhỏ + 4 góc khăn vuông thõng thấp hơn.
+    CÙNG công thức với bo-set-three.ts › khanHinh."""
+    ds, mat = [], []
+    for j in range(NV + 1):
+        t = j / NV
+        f = math.sqrt(max(0.0, 1 - (1 - t / 0.32) ** 2)) * 0.56 if t < 0.32 else 0.56 + 0.44 * ((t - 0.32) / 0.68) ** 1.5
+        k = wd + (1 - wd) * t   # sâu = ngang ở đầu (tròn) → đúng tỉ lệ ở đáy
+        for i in range(NT):
+            g = 2 * math.pi * i / NT
+            z = 1 - t
+            if t > 0.62:
+                q = ((t - 0.62) / 0.38) ** 2
+                z -= q * (0.13 * abs(math.cos(2 * g)) ** 4 + 0.025 * math.sin(11 * g))
+            ds.append((0.5 * f * math.cos(g), 0.5 * f * k * math.sin(g), max(0.0, z)))
+    for j in range(NV):
+        for i in range(NT):
+            a, b = j * NT + i, j * NT + (i + 1) % NT
+            mat.append((a, b, b + NT, a + NT))
+    return ds, mat
+
 def khoi(p, ten, goc=(0, 0), xoay=0):
     """Một khối: tam = (x, y, z ĐÁY) tương đối với gốc nhóm; co = (rộng x, sâu y, cao z)."""
     h = p['hinh']; m = mau(p['mau'], p.get('sang', 0))
@@ -71,6 +93,14 @@ def khoi(p, ten, goc=(0, 0), xoay=0):
     elif h == 'vom':
         bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=0.5, location=(gx * CM, gy * CM, z * CM))
         c = c * 2
+    elif h == 'khan':   # tấm khăn rủ (Mr. Wipe): mặt vải quanh trục, đỉnh tròn ôm đầu, loe dần, đáy gợn + 4 góc thõng — xem khan_diem()
+        me = bpy.data.meshes.new(f'khan {ten}'); ds, mat = khan_diem(w / d if d else 1)
+        me.from_pydata(ds, [], mat); me.update()
+        o = bpy.data.objects.new(ten, me); bpy.context.collection.objects.link(o)
+        o.location = (gx * CM, gy * CM, z * CM); o.scale = (w * CM, d * CM, c * CM)
+        o.rotation_euler = Euler((math.radians(p.get('nghieng', 0)), 0, math.radians(xoay + p.get('xoay', 0))))
+        for f in me.polygons: f.use_smooth = True
+        return dat(o, m, ten)
     elif h == 'non':   # nón cụt (thân khăn rủ Mr. Wipe): đáy rộng co[0]×co[1], đỉnh = đáy × dinh, cao co[2]
         bpy.ops.mesh.primitive_cone_add(vertices=40, radius1=0.5, radius2=0.5 * p.get('dinh', 0.4), depth=1, location=(gx * CM, gy * CM, (z + c / 2) * CM))
     o = bpy.context.object
@@ -481,7 +511,9 @@ def bang_ti_le(s, ra):
     from mathutils import Matrix
     x = 0.0; vt = []; cao = 0.0
     for t in ten:
-        _, os_ = nhan_vat({'nhan_vat': [{'ten': t, 'tam': [0, 0, 0], 'huong': 0}]}); bpy.context.view_layer.update()
+        # Món có hướng chỉ (bàn tay, ngón trỏ chĩa −y) quay ngang 90° cho thấy dáng; nhân vật vẫn nhìn thẳng máy (thấy mặt).
+        hg = 90 if not DL['nhan_vat_mau'][t].get('mat') and t in ('The Giant',) else 0
+        _, os_ = nhan_vat({'nhan_vat': [{'ten': t, 'tam': [0, 0, 0], 'huong': hg}]}); bpy.context.view_layer.update()
         ds = [o.matrix_world @ Vector(b) for o in os_ for b in o.bound_box]
         x0, x1 = min(p.x for p in ds) / CM, max(p.x for p in ds) / CM; zmax = max(p.z for p in ds) / CM
         dx = x - x0

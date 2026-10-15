@@ -218,7 +218,7 @@ MOI = {
  # 7.1a qua vai: máy trước-phải (cùng phía 7.1) — Tango mở nhìn kẹo về phía máy, quay đầu về phích đang chớp ở hậu cảnh trái (khán giả thấy cú nhìn + cái được nhìn).
  # 7.1a ĐẶT TAY ngang tầm trước-phải (bộ giải tự động đẩy máy lên cao 59° → keyframe bỏ khung 3D, mất cú quay đầu): mở thấy mặt Tango, kết thấy cậu
  # quay đi về phía phích đang chớp ở hậu cảnh trái.
- '7.1a': {'dat': [61.9, 52.0, 1.8], 'nhin': [55.5, 51.4, 1.3], 'ong_kinh': 50, 'khung': [TANGO, 'Cable Plug']},   # phía đông: mở thấy mặt Tango nhìn kẹo (hai mảnh ở tiền cảnh), kết cậu quay lưng về máy nhìn phích ngay sau mình (qua vai)
+ '7.1a': {'dat': [61, 47.5, 1.8], 'nhin': [55.8, 51.2, 1.3], 'ong_kinh': 50, 'khung': [TANGO]},   # đông nam ngang tầm: mặt Tango nhìn kẹo, kẹo tiền cảnh, Lint bên cạnh; kết Tango quay lưng về phía phích (phích do 7.1b cho thấy)
  '7.1b': {'dat': [56.4, 50.6, 2.2], 'nhin': [54.3, 52.6, 0.5], 'ong_kinh': 35, 'khung': ['Cable Plug'], 'qua_truc': True},
  '7.4a': {'dat': [57.2, 52.4, 9], 'nhin': [57.2, 55, 0.8], 'ong_kinh': 24, 'khung': ['USB Hub', 'Cable Plug'], 'qua_truc': True},
   # 7.2a đặt tay: trên cao bên phải (cùng hướng 7.2), nhìn qua đầu Lint xuống mặt đế cắm — bộ giải tự động né Lint bằng cách vượt trục; máy phía trước thì iMac vàng chắn.

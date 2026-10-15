@@ -59,6 +59,10 @@ for (const t of tep.templates) {
   // 12 template viết sẵn 'She…', truoc_sau shot 3 tả 'shoulder straps … lining' → phim JettJeans #52–#55 mang prompt nữ / áo).
   const ganGioi = t.shots.flatMap((s, i) => [s.prompt_anh, s.hanh_dong, s.prompt_video].filter((x): x is string => !!x).flatMap((x) => [...x.matchAll(/\b(she|her|hers|herself|he|him|his|himself)\b|shoulder straps?|hip-length|lining/gi)].map((m) => `shot ${i + 1}: "${m[0]}"`)));
   if (ganGioi.length) throw new Error(`${t.key}: chữ gắn giới / gắn kiểu sản phẩm trong shot (dùng 'the person' / 'their' / ô {{…}}): ${ganGioi.join(', ')}`);
+  // Hành động phải tới được khung hình: ô *_hinh trong hanh_dong mà prompt_anh không có → keyframe không bao giờ thấy hành động
+  // (16/10/2026: truoc_sau shot 4 {{demo_hinh}} chỉ nằm ở hanh_dong → JettJeans #54 vẽ selfie đứng thay vì ngồi buộc giày).
+  const lotHanhDong = t.shots.flatMap((s, i) => (s.prompt_anh && !s.keyframe ? [...(s.hanh_dong ?? '').matchAll(/\{\{(\w+_hinh)\}\}/g)].map((m) => m[1]!).filter((k) => !s.prompt_anh!.includes(`{{${k}}}`)).map((k) => `shot ${i + 1}: {{${k}}}`) : []));
+  if (lotHanhDong.length) throw new Error(`${t.key}: ô hành động không có trong prompt hình (keyframe không thấy hành động): ${lotHanhDong.join(', ')}`);
   const dongCua = DONG_TEMPLATE.find((x) => x.key === t.dong);
   if (!dongCua || !dongCua.khuon.some((k) => k.key === t.khuon)) throw new Error(`${t.key}: thiếu / sai dòng + khuôn (kieu.ts › DONG_TEMPLATE) — kho template xếp theo dòng → khuôn`);
   const cfg = { mo_ta: t.mo_ta, o, thu_tu: t.o, mau_qc: t.mau_qc, dong: t.dong, khuon: t.khuon };

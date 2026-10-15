@@ -54,7 +54,7 @@ assert.ok(!phuThuocShot('video', shot({ keyframe_url: 'k', trang_thai: 'duyet', 
   // shot nền ghép (khuôn đổi nền): nơi hiện một lần, keyframe là mẫu → không đòi anchor Bối cảnh; nhắc tên người vẫn phải gắn mẫu
   assert.deepStrictEqual(thieuMau({ nhan_vat: [], prompt_anh: 'Background plate: bus stop, NO people', hanh_dong: '', ky_thuat: { nen_ghep: true } }, [maya]), []);
   assert.deepStrictEqual(thieuMau({ nhan_vat: [], prompt_anh: 'Maya at a bus stop', hanh_dong: '', ky_thuat: { nen_ghep: true } }, [maya]), ['"Maya" có trong prompt mà chưa gắn mẫu']);
-  assert.ok(phuThuocShot('keyframe', shot({ nhan_vat: [] }), [maya, BC], { noiKhung: false, tap: TQ, phim: PQ }).chan.length === 0, 'shot mặc định có bối cảnh 50');
+  assert.ok(phuThuocShot('keyframe', shot({ nhan_vat: [], prompt_anh: 'a quiet room' }), [maya, BC], { noiKhung: false, tap: TQ, phim: PQ }).chan.length === 0, 'shot không người, có bối cảnh 50 → qua (prompt có người mà không gắn Maya thì cổng shot-có-người chặn — bài riêng bên dưới)');
 }
 // quy trình (luật 12/10/2026): cổng tiền kỳ cấp tập + shot list
 {
@@ -105,4 +105,22 @@ console.log('phu-thuoc.test: ok');
   const v3 = phuThuocShot('video', shot({ thu_tu: 1, keyframe_url: 'k', trang_thai: 'duyet', ky_thuat: { co_canh: 'ms', chuyen_canh: 'cat' } }), [], { noiKhung: false, tap: TQ, phim: PQ, ke: shot({ thu_tu: 2 }) });
   assert.ok(!v3.luu_y.some((x) => x.includes('khung cuối')), 'cắt thẳng + tập tắt nối khung → không nối');
   console.log('phu-thuoc.test: liền máy ok');
+}
+// shot có người mà chưa gắn mẫu người (JettJeans #54 shot 3 / 6, 16/10/2026)
+{
+  const { thieuMau } = await import('./phu-thuoc');
+  const mike = { id: 250, ten: 'Mike', loai: 'nhan_vat' } as NhanVat; const sp = { id: 249, ten: 'JettJeans', loai: 'san_pham' } as NhanVat;
+  const bc = { id: 251, ten: 'Mirror spot', loai: 'boi_canh' } as NhanVat;
+  assert.ok(thieuMau({ nhan_vat: [249, 251], prompt_anh: 'Close-up: he squats down to pick up a box', hanh_dong: '' }, [mike, sp, bc]).some((x) => x.includes('chưa gắn mẫu người')));
+  assert.ok(!thieuMau({ nhan_vat: [249, 250, 251], prompt_anh: 'Close-up: he squats down', hanh_dong: '' }, [mike, sp, bc]).some((x) => x.includes('mẫu người')), 'đã gắn Mike → qua');
+  assert.ok(!thieuMau({ nhan_vat: [249, 251], prompt_anh: 'Overhead flat lay of folded pants', hanh_dong: '' }, [mike, sp, bc]).some((x) => x.includes('mẫu người')), 'không có người → qua');
+  assert.ok(!thieuMau({ nhan_vat: [249, 251], prompt_anh: 'his hands hold it', hanh_dong: '' }, [sp, bc]).some((x) => x.includes('mẫu người')), 'phim không có anchor người → không xét');
+  console.log('phu-thuoc.test: shot có người ok');
+}
+{
+  const { coNguoi } = await import('./quy-trinh');
+  assert.ok(!coNguoi('Background plate: bus stop, NO people at all, center left empty'), 'phủ định → không có người');
+  assert.ok(!coNguoi('empty street without a person'));
+  assert.ok(coNguoi('he squats down') && coNguoi('Hands shake out the pants'), 'có người');
+  console.log('phu-thuoc.test: phủ định người ok');
 }

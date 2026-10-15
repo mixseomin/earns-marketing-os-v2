@@ -635,7 +635,7 @@
       "nv",
       "bc"
      ],
-     "prompt_anh": "{{nhan_vat_hinh}} in front of a mirror wearing {{san_pham_hinh}}, {{boi_canh}}",
+     "prompt_anh": "{{nhan_vat_hinh}} in front of a mirror wearing {{san_pham_hinh}}, {{demo_hinh}}, {{boi_canh}}",
      "prompt_video": "{{demo_hinh}}, natural speed, handheld",
      "co": "ms",
      "bt": [
@@ -1043,7 +1043,7 @@
       "nv",
       "bc"
      ],
-     "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{boi_canh}}",
+     "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{demo_hinh}}, {{boi_canh}}",
      "prompt_video": "{{demo_hinh}}",
      "co": "ms",
      "tk": [
@@ -1324,11 +1324,12 @@
      "giay": 2,
      "loai": "giai_phap",
      "goc_may": "Close-up of hands",
-     "hanh_dong": "Hands unwrap the product",
+     "hanh_dong": "Hands shake out the product and hold it up in front of the mirror",
      "chu_man": "Then I tried {{san_pham}}",
      "loi": "Then I tried this.",
      "nv": [
       "sp",
+      "nv",
       "bc"
      ],
      "prompt_anh": "Hands shake out {{san_pham_hinh}} and hold it up in front of the mirror so its full shape shows, front facing the camera, the product clearly recognizable",
@@ -1376,7 +1377,7 @@
       "nv",
       "bc"
      ],
-     "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{boi_canh}}",
+     "prompt_anh": "{{nhan_vat_hinh}} wearing {{san_pham_hinh}}, {{demo_hinh}}, {{boi_canh}}",
      "prompt_video": "{{demo_hinh}}",
      "co": "ms"
     },
@@ -1404,9 +1405,10 @@
      "loi": "{{loi_ich_1}}",
      "nv": [
       "sp",
+      "nv",
       "bc"
      ],
-     "prompt_anh": "Close-up: {{loi_ich_1_hinh}}; product: {{san_pham_hinh}}",
+     "prompt_anh": "Close-up: {{nhan_vat_hinh}}, {{loi_ich_1_hinh}}; product: {{san_pham_hinh}}",
      "prompt_video": "{{loi_ich_1_hinh}}",
      "co": "ecu"
     },
@@ -1664,7 +1666,7 @@
       "nv",
       "bc"
      ],
-     "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{boi_canh}}",
+     "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{demo_hinh}}, {{boi_canh}}",
      "prompt_video": "{{demo_hinh}}",
      "co": "ms"
     },
@@ -1984,7 +1986,7 @@
       "nv",
       "bc"
      ],
-     "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{loi_ich_2_hinh}}, {{boi_canh}}",
+     "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{demo_hinh}}, {{loi_ich_2_hinh}}, {{boi_canh}}",
      "prompt_video": "{{demo_hinh}}",
      "co": "ms"
     },
@@ -2435,7 +2437,7 @@
       "nv",
       "bc"
      ],
-     "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{boi_canh}}",
+     "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{demo_hinh}}, {{boi_canh}}",
      "prompt_video": "{{demo_hinh}}",
      "co": "ms",
      "loi": "{{demo}}"
@@ -2704,7 +2706,7 @@
       "nv",
       "bc"
      ],
-     "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{boi_canh}}",
+     "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{demo_hinh}}, {{boi_canh}}",
      "prompt_video": "{{demo_hinh}}",
      "co": "ms",
      "loi": "{{demo}}"

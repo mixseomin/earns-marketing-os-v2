@@ -52,6 +52,10 @@ export function mauNhacTen(c: Pick<Canh, 'nhan_vat' | 'prompt_anh'>, nhanVat: Pi
 /** MÔ TẢ NƯỚC ĐÔI (15/10/2026: 'a flat orange card / card holder' → keyframe lúc thẻ nhựa phẳng lúc ví da): anchor phải tả MỘT kiểu. Trả đoạn nước
  *  đôi ("A / B") hoặc null. */
 export const moTaNuocDoi = (mo: string | undefined): string | null => (mo ?? '').match(/[\p{L}-]+(?: [\p{L}-]+)? \/ [\p{L}-]+(?: [\p{L}-]+)?/u)?.[0] ?? null;
+/** Chữ trong prompt ảnh cho thấy shot có người (đại từ / người / tay). */
+export const CO_NGUOI = /\b(he|she|his|her|him|man|woman|person|people|hands?)\b/i;
+/** Có người trong prompt — bỏ cụm PHỦ ĐỊNH trước ('NO people at all', 'without a person': ảnh nền ghép của khuôn đổi nền). */
+export const coNguoi = (prompt: string): boolean => CO_NGUOI.test(prompt.replace(/\b(no|without|empty of|free of)\s+(\w+\s+)?(people|person|humans?|man|woman|one)\b/gi, ' '));
 export function thieuMau(c: Pick<Canh, 'nhan_vat' | 'prompt_anh' | 'hanh_dong'> & Partial<Pick<Canh, 'ky_thuat'>>, nhanVat: (Pick<NhanVat, 'id' | 'ten' | 'loai'> & Partial<Pick<NhanVat, 'mo_ta'>>)[]): string[] {
   const out: string[] = [];
   const gan = nhanVat.filter((v) => c.nhan_vat.includes(v.id));
@@ -59,6 +63,9 @@ export function thieuMau(c: Pick<Canh, 'nhan_vat' | 'prompt_anh' | 'hanh_dong'> 
   // (15/10/2026: 7 shot nền của "Một dáng, mọi nơi" bị chặn "phim chưa có anchor Bối cảnh" dù mỗi nơi chỉ hiện 0,8s một lần).
   if (!c.ky_thuat?.nen_ghep && !gan.some((v) => v.loai === 'boi_canh')) out.push(nhanVat.some((v) => v.loai === 'boi_canh') ? 'chưa gắn bối cảnh — gắn một anchor Bối cảnh (tab 🎭 Phim) để mọi shot cùng nơi trông như một chỗ' : 'phim chưa có anchor Bối cảnh nào — tả + sinh ảnh mẫu các nơi chốn lặp lại (tab 🎭 Phim) trước khi sinh keyframe');
   for (const v of mauNhacTen(c, nhanVat)) out.push(`"${v.ten}" có trong prompt mà chưa gắn mẫu`);
+  // Shot CÓ NGƯỜI mà không gắn mẫu người nào → model vẽ người lạ (16/10/2026: JettJeans #54 shot 3 / 6 tả 'he squats…', 'hands…' không nhắc tên Mike
+  // nên cổng nhắc tên không bắt, keyframe ra một người đàn ông trẻ tóc đen). Chỉ xét khi phim có anchor người.
+  if (nhanVat.some((v) => v.loai === 'nhan_vat') && !gan.some((v) => v.loai === 'nhan_vat') && !c.ky_thuat?.nen_ghep && !mauNhacTen(c, nhanVat).some((v) => v.loai === 'nhan_vat') && coNguoi(c.prompt_anh)) out.push('shot có người (he / she / hands / man…) mà chưa gắn mẫu người — gắn nhân vật để keyframe không vẽ ra người lạ');
   for (const v of gan) { const x = moTaNuocDoi(v.mo_ta); if (x) out.push(`mô tả "${v.ten}" nước đôi ("${x}") — chọn MỘT kiểu khớp ảnh mẫu, không thì keyframe vẽ lúc kiểu này lúc kiểu kia`); }
   return out;
 }

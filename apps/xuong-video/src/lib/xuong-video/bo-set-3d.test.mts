@@ -222,3 +222,12 @@ console.log('bo-set-3d.test: ok');
   assert.equal(coCanhLech({ khung_xam: kx([['Tango', 9.4], ['Lint', 8]]), ky_thuat: { co_canh: 'ms' } as never }, nv).length, 1);
   assert.equal(coCanhLech({ khung_xam: kx([['Tango', 5]]), ky_thuat: { co_canh: 'ws' } as never }, nv).length, 0);                         // toàn cảnh: nhỏ là đúng
 }
+
+// 3D là nguồn duy nhất: vật chạm mép ghi rõ chỉ ló bao nhiêu; danh sách nói chữ ngoài danh sách = ngoài khung (#35: đế cắm ló dải 10% bị vẽ cả cái).
+{
+  const { catMep, moTaThay: mt } = await import('./bo-set-3d');
+  assert.match(catMep([0, 0.9, 1, 1]), /bottom edge — only a 10% strip/);
+  assert.equal(catMep([0.2, 0.2, 0.8, 0.8]), '');
+  const c = mt([{ ten: 'USB Hub', pt: 8.6, hop: [0, 0.9, 1, 1], tien: true } as never]);
+  assert.match(c, /cut off by the bottom edge/); assert.match(c, /OFF-SCREEN at this instant/);
+}

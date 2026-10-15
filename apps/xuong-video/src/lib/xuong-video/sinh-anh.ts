@@ -10,7 +10,7 @@ import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noi
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
 import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
-import { boSetCuaShot, chanKhungXam, huongVoiMay, loiMachTap, moTaThay, PT_THAY, shotSoTruc, trangThaiVat } from './bo-set-3d';
+import { boSetCuaShot, catMep, chanKhungXam, huongVoiMay, loiMachTap, moTaThay, PT_THAY, shotSoTruc, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { boiCanhCanh, mapNhanVat, mapTap, mapCanh, kemBienThe, taoJob, jobDangCho, type Db, type Row } from './doc-db';
 
@@ -135,7 +135,8 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // Đạo cụ / sản phẩm KHÔNG có trong khung 3D (kể cả các phần của nó) thì không gửi ảnh mẫu + chữ tả: ảnh mẫu là lời mời vẽ (15/10/2026 shot #32
   // tập 19: ảnh mẫu USB Hub đi kèm dù hub nằm ngoài khung → keyframe đặt Tango đứng trên hub). Trạng thái vật vẫn nói ở câu OBJECT STATE.
   // Chỉ khung MỞ: khung kết chưa đo "thấy gì" riêng.
-  const ngoaiKhung = (v: NhanVat) => !ket && !!bc.ptAnchor && (v.loai === 'dao_cu' || v.loai === 'san_pham') && (bc.ptAnchor.get(v.ten) ?? 0) < PT_THAY;
+  // Nhân vật ngoài khung cũng không gửi ảnh mẫu (15/10/2026 #35: gửi 4 ảnh mẫu Tango + Lint khi cả hai nằm ngoài khung — mời model vẽ thêm).
+  const ngoaiKhung = (v: NhanVat) => !ket && !!bc.ptAnchor && v.loai !== 'boi_canh' && (bc.ptAnchor.get(v.ten) ?? 0) < PT_THAY;
   const nvRef = coKx ? bc.nhanVat.filter((v) => v.loai !== 'boi_canh' && !ngoaiKhung(v)) : bc.nhanVat;
   // Khung xám là ẢNH SỐ 1 (thử #23: đứng thứ 8/9 sau bảy ảnh mẫu thì model coi nhẹ bố trí).
   // Có khung MÀU (vật liệu + ánh sáng theo kịch bản) thì nó là ảnh số 1 — gần ảnh thật hơn khung xám, model ít phải đoán khối nào là gì.
@@ -218,8 +219,13 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   const huongCau = huongChu.length ? `CHARACTER FACING in this frame, exactly as Image 1 shows (overrides the pose in the reference sheets): ${huongChu.join('; ')}.` : '';
   // CỠ NHÂN VẬT TRONG KHUNG bằng SỐ (15/10/2026, kiểm khung tập 19: #9 / #30 3D là cận mặt Tango mà keyframe vẽ cỡ trung — prompt chỉ bảo
   // "theo bố cục ảnh 1", không nói chủ thể to bao nhiêu): chiều cao + vùng đo trên chính khung 3D (khung_xam.kiem / thay). Chỉ khung MỞ.
-  const framingCau = khungChu(bc.canh.khung_xam, nvKhung, ket);
-  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), kxChu, trangCau, huongCau, framingCau, tiLeCau, btlChu, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
+  const trongKhungAnchor = bc.nhanVat.filter((v) => v.loai !== 'boi_canh' && !ngoaiKhung(v)).map((v) => v.ten);
+  const framingCau = khungChu(bc.canh.khung_xam, kx ? trongKhungAnchor : nvKhung, ket);
+  // NGOÀI KHUNG gọi đích danh: anchor của shot (nhân vật / đạo cụ) mà 3D không thấy — chữ thẻ shot hay nhắc tới chúng ("Tango and Lint hiding
+  // behind the orange card") nên phải nói thẳng là không vẽ.
+  const ngoaiTen = kx && !ket ? bc.nhanVat.filter((v) => ngoaiKhung(v)).map((v) => v.ten) : [];
+  const ngoaiCau = ngoaiTen.length ? `OFF-SCREEN in this frame (part of the story, NOT visible right now): ${ngoaiTen.join(', ')} — do not draw them, their shadow or any part of them, even where the description mentions them.` : '';
+  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), kxChu, trangCau, huongCau, framingCau, ngoaiCau, tiLeCau, btlChu, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
   return { prompt, urlRef, vai };
 }
 
@@ -233,7 +239,8 @@ export function khungChu(kx: Canh['khung_xam'] | null | undefined, ten: string[]
     const th = (kx.thay ?? []).find((x) => x.ten === t); if (!th) return '';
     const w = th.hop[2] - th.hop[0], h = th.hop[3] - th.hop[1]; const vt = vungEn((th.hop[0] + th.hop[2]) / 2, (th.hop[1] + th.hop[3]) / 2);
     const co = `spans about ${tron(w)}% of the frame width and ${tron(h)}% of its height, ${vt}`;
-    return w >= 0.85 || h >= 0.85 ? `${t} ${co} — a close-up: ${t} fills the frame and the frame edges crop the body` : `${t} ${co}`;
+    const cat = catMep(th.hop);
+    return w >= 0.85 || h >= 0.85 ? `${t} ${co} — a close-up: ${t} fills the frame and the frame edges crop the body${cat}` : `${t} ${co}${cat}`;
   }).filter(Boolean);
   return ds.length ? `FRAMING measured on Image 1 — keep the same subject size and position, do NOT zoom out or in: ${ds.join('; ')}.` : '';
 }

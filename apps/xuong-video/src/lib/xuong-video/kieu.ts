@@ -124,7 +124,7 @@ export type KinhThanh = {
    *  sửa như phim thường. `o` = nhãn + gợi ý + giá trị mẫu của từng ô (ô nào gõ trong chữ mà chưa khai vẫn hiện, nhãn = tên ô). */
   template?: CauHinhTemplate | null;
   /** phim sinh ra từ template nào, với giá trị ô nào (mã gen cho đo đơn về sau) */
-  tu_template?: { id: number; ten: string; gia_tri: Record<string, string>; luc: string } | null;
+  tu_template?: { id: number; ten: string; gia_tri: Record<string, string>; /** nguồn tham khảo theo ô (tham-khao.ts) */ tham_khao?: Record<string, import('./tham-khao').NguonThamKhao[]>; luc: string } | null;
 };
 /** nhom: nhóm trong form điền (template.ts › NHOM_O) — thiếu thì máy đoán theo tên ô */
 export type OTemplate = { ten: string; goi_y?: string; mau?: string; dai?: boolean; nhom?: string };
@@ -476,6 +476,7 @@ export type Canh = {
   khung_xam?: KhungXam | null;
   /** nguồn của TỪNG tệp (keyframe ứng viên, clip nháp/cuối): url → nhãn ngắn + đủ (cổng · model · model thật · tiền thật) — actions.ts › dsCanh */
   nguon_tep?: Record<string, { ngan: string; day: string }>;
+  /** nguồn tham khảo của từng câu chữ màn / lời (tham-khao.ts) — QC bắt buộc */ tham_khao?: import('./tham-khao').ThamKhaoCau[];
   keyframe_url: string | null; keyframe_uv: string[];
   /** keyframe KẾT (khung cuối, sinh từ khung màu chỗ kết) — video nhận làm ảnh cuối */ keyframe_ket?: string | null; video_url: string | null; video_cuoi_url: string | null; nguon_video: Record<string, unknown>; video_phien_ban: { url: string; ban: 'nhap' | 'cuoi'; model?: string; job?: number; luc?: string }[]; trang_thai: TrangThaiCanh; loi: string; chi_phi_cents: number;
 };

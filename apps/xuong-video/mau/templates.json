@@ -721,7 +721,6 @@
      "goc_may": "Close-up of two products",
      "hanh_dong": "Two products side by side held in hands",
      "chu_man": "{{uu_dai}}",
-     "loi": "Yes, really.",
      "nv": [
       "sp",
       "bc"
@@ -744,7 +743,23 @@
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, {{boi_canh}}",
      "prompt_video": "She turns to camera confidently",
-     "co": "ms"
+     "co": "ms",
+     "tk": [
+      {
+       "cau": "This viral one",
+       "nguon": [
+        {
+         "loai": "qc_thang",
+         "nguon": "qc_meta",
+         "trich": "There's a reason this set went viral three times and sold out three times.",
+         "ma": "1537479500916449",
+         "link": "https://www.facebook.com/ads/library/?id=1537479500916449",
+         "ghi": "Pure Frequencies · x5 · 64 ngày",
+         "ky_thuat": "lý do thật (đã viral)"
+        }
+       ]
+      }
+     ]
     },
     {
      "giay": 2,
@@ -758,7 +773,23 @@
      ],
      "prompt_anh": "Detail close-up of {{san_pham_hinh}}",
      "prompt_video": "Slow slide across the detail",
-     "co": "ecu"
+     "co": "ecu",
+     "tk": [
+      {
+       "cau": "is on massive sale",
+       "nguon": [
+        {
+         "loai": "qc_thang",
+         "nguon": "qc_meta",
+         "trich": "Biggest Sale Of The Year!!",
+         "ma": "809449715465819",
+         "link": "https://www.facebook.com/ads/library/?id=809449715465819",
+         "ghi": "Akka Superbiotics · x14 · 111 ngày",
+         "ky_thuat": "lý do làm ngay"
+        }
+       ]
+      }
+     ]
     },
     {
      "giay": 2,
@@ -819,7 +850,23 @@
      ],
      "prompt_anh": "{{nhan_vat_hinh}} with {{san_pham_hinh}}, {{boi_canh}}",
      "prompt_video": "{{demo_hinh}}",
-     "co": "ms"
+     "co": "ms",
+     "tk": [
+      {
+       "cau": "Watch this",
+       "nguon": [
+        {
+         "loai": "qc_thang",
+         "nguon": "qc_meta",
+         "trich": "Watch this. It might save your sofa.",
+         "ma": "1684233392815494",
+         "link": "https://www.facebook.com/ads/library/?id=1684233392815494",
+         "ghi": "Lady N USA · x10 · 135 ngày",
+         "ky_thuat": "câu cụt có nhịp"
+        }
+       ]
+      }
+     ]
     },
     {
      "giay": 2,
@@ -887,7 +934,7 @@
      "loai": "cta",
      "goc_may": "Medium shot",
      "hanh_dong": "Model points down toward the button",
-     "chu_man": "You won't see this price again",
+     "chu_man": "{{dam_bao}}",
      "loi": "Grab yours now.",
      "nv": [
       "sp",
@@ -896,7 +943,23 @@
      ],
      "prompt_anh": "{{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, pointing down, {{boi_canh}}",
      "prompt_video": "She points down with a smile",
-     "co": "ms"
+     "co": "ms",
+     "tk": [
+      {
+       "cau": "Grab yours now.",
+       "nguon": [
+        {
+         "loai": "qc_thang",
+         "nguon": "qc_meta",
+         "trich": "📦30-day Hassle-free returns 🔥Grab yours now! 🔥",
+         "ma": "3836019193205973",
+         "link": "https://www.facebook.com/ads/library/?id=3836019193205973",
+         "ghi": "Shapsheofficial · x8 · 117 ngày",
+         "ky_thuat": "CTA: bước nhỏ"
+        }
+       ]
+      }
+     ]
     },
     {
      "giay": 2,
@@ -933,7 +996,9 @@
     "boi_canh",
     "noi_dau",
     "noi_dau_hinh",
+    "demo",
     "demo_hinh",
+    "truoc_sau",
     "loi_ich_1",
     "loi_ich_1_hinh",
     "loi_ich_2",
@@ -1006,7 +1071,7 @@
      "loai": "hook",
      "goc_may": "Medium shot in the mirror, fixed angle A",
      "hanh_dong": "BEFORE: {{noi_dau_hinh}}",
-     "chu_man": "BEFORE",
+     "chu_man": "{{noi_dau}}",
      "loi": "{{noi_dau}}",
      "dien_xuat": "honest, a bit embarrassed",
      "nv": [
@@ -1044,14 +1109,30 @@
      ],
      "prompt_anh": "Hands holding {{san_pham_hinh}} fresh out of the package",
      "prompt_video": "Hands unfold the product",
-     "co": "ecu"
+     "co": "ecu",
+     "tk": [
+      {
+       "cau": "Then I tried this.",
+       "nguon": [
+        {
+         "loai": "qc_thang",
+         "nguon": "qc_meta",
+         "trich": "Then I tried UroControl — and little by little, my confidence came back.",
+         "ma": "26513767751636928",
+         "link": "https://www.facebook.com/ads/library/?id=26513767751636928",
+         "ghi": "Lovy · x33 · 172 ngày",
+         "ky_thuat": "gọi tên thứ đã thất bại → bước ngoặt"
+        }
+       ]
+      }
+     ]
     },
     {
      "giay": 2.5,
      "loai": "demo",
      "goc_may": "Medium shot",
      "hanh_dong": "{{demo_hinh}}",
-     "chu_man": "One step",
+     "chu_man": "{{demo}}",
      "nv": [
       "sp",
       "nv",
@@ -1066,9 +1147,7 @@
      "loai": "so_sanh",
      "goc_may": "SAME fixed angle A as shot 1",
      "hanh_dong": "AFTER: same pose as shot 1, now confident with the product",
-     "chu_man": "AFTER",
-     "loi": "Wow.",
-     "dien_xuat": "surprised, happy",
+     "chu_man": "{{truoc_sau}}",
      "nv": [
       "sp",
       "nv",
@@ -1244,7 +1323,23 @@
      ],
      "prompt_anh": "Hand holding {{san_pham_hinh}} close to the lens, {{boi_canh}} blurred behind",
      "prompt_video": "Hand pushes the product toward the lens quickly",
-     "co": "cu"
+     "co": "cu",
+     "tk": [
+      {
+       "cau": "Still dealing with this?",
+       "nguon": [
+        {
+         "loai": "qc_thang",
+         "nguon": "qc_meta",
+         "trich": "Still dealing with noisy, uncomfortable diaper covers?",
+         "ma": "986294977316516",
+         "link": "https://www.facebook.com/ads/library/?id=986294977316516",
+         "ghi": "Carerspk · x5 · 139 ngày",
+         "ky_thuat": "lọc đúng người ở câu đầu"
+        }
+       ]
+      }
+     ]
     },
     {
      "giay": 2,
@@ -1483,7 +1578,37 @@
      ],
      "prompt_anh": "Selfie close-up: {{nhan_vat_hinh}} talking to the front camera at arm's length, {{boi_canh}}",
      "prompt_video": "She talks to the camera naturally, small head movements, handheld selfie",
-     "co": "mcu"
+     "co": "mcu",
+     "tk": [
+      {
+       "cau": "I didn't believe this would work",
+       "nguon": [
+        {
+         "loai": "qc_thang",
+         "nguon": "qc_meta",
+         "trich": "I honestly didn't believe anything could quiet my tinnitus.",
+         "ma": "1311050043902660",
+         "link": "https://www.facebook.com/ads/library/?id=1311050043902660",
+         "ghi": "Dr. David Rennard · x6 · 128 ngày",
+         "ky_thuat": "phản đối thường gặp → lật"
+        }
+       ]
+      },
+      {
+       "cau": "Okay, I honestly didn't believe this would work.",
+       "nguon": [
+        {
+         "loai": "qc_thang",
+         "nguon": "qc_meta",
+         "trich": "I honestly didn't believe anything could quiet my tinnitus.",
+         "ma": "1311050043902660",
+         "link": "https://www.facebook.com/ads/library/?id=1311050043902660",
+         "ghi": "Dr. David Rennard · x6 · 128 ngày",
+         "ky_thuat": "phản đối thường gặp → lật"
+        }
+       ]
+      }
+     ]
     },
     {
      "giay": 3,
@@ -1517,7 +1642,23 @@
      ],
      "prompt_anh": "Selfie: {{nhan_vat_hinh}} holding up {{san_pham_hinh}} to the camera, {{boi_canh}}",
      "prompt_video": "She lifts the product into frame and turns it",
-     "co": "ms"
+     "co": "ms",
+     "tk": [
+      {
+       "cau": "Then my friend sent me this.",
+       "nguon": [
+        {
+         "loai": "qc_thang",
+         "nguon": "qc_meta",
+         "trich": "I was skeptical when my personal trainer first recommended these, but I am officially a convert.",
+         "ma": "1660095501769404",
+         "link": "https://www.facebook.com/ads/library/?id=1660095501769404",
+         "ghi": "Ionix Labs · x5 · 150 ngày",
+         "ky_thuat": "người giới thiệu"
+        }
+       ]
+      }
+     ]
     },
     {
      "giay": 3,
@@ -1568,7 +1709,37 @@
      ],
      "prompt_anh": "Selfie close-up: {{nhan_vat_hinh}} wearing/using {{san_pham_hinh}}, genuine smile, {{boi_canh}}",
      "prompt_video": "She smiles and shakes her head in disbelief",
-     "co": "mcu"
+     "co": "mcu",
+     "tk": [
+      {
+       "cau": "I'm never going back",
+       "nguon": [
+        {
+         "loai": "qc_thang",
+         "nguon": "qc_meta",
+         "trich": "We're never going back",
+         "ma": "1758381068824403",
+         "link": "https://www.facebook.com/ads/library/?id=1758381068824403",
+         "ghi": "Mary-Reagan's Top Picks · x17 · 62 ngày",
+         "ky_thuat": "câu cụt có nhịp"
+        }
+       ]
+      },
+      {
+       "cau": "Honestly? I'm never going back.",
+       "nguon": [
+        {
+         "loai": "qc_thang",
+         "nguon": "qc_meta",
+         "trich": "We're never going back",
+         "ma": "1758381068824403",
+         "link": "https://www.facebook.com/ads/library/?id=1758381068824403",
+         "ghi": "Mary-Reagan's Top Picks · x17 · 62 ngày",
+         "ky_thuat": "câu cụt có nhịp"
+        }
+       ]
+      }
+     ]
     },
     {
      "giay": 3,
@@ -1584,7 +1755,23 @@
      ],
      "prompt_anh": "Selfie: {{nhan_vat_hinh}} pointing at the camera, {{boi_canh}}",
      "prompt_video": "She points at the camera, friendly",
-     "co": "ms"
+     "co": "ms",
+     "tk": [
+      {
+       "cau": "And if it doesn't work for you, they make it right.",
+       "nguon": [
+        {
+         "loai": "qc_thang",
+         "nguon": "qc_meta",
+         "trich": "If you don't see visible results, you'll get your money back. That's our 60-day promise.",
+         "ma": "2389183508248956",
+         "link": "https://www.facebook.com/ads/library/?id=2389183508248956",
+         "ghi": "Frøya Organics · x5 · 184 ngày",
+         "ky_thuat": "CTA: gỡ rủi ro"
+        }
+       ]
+      }
+     ]
     },
     {
      "giay": 3,

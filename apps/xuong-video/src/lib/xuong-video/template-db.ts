@@ -7,6 +7,7 @@ import { sql } from 'drizzle-orm';
 import { type Db, type Row, n, s } from './doc-db';
 import { timO, dienSau, dsOTemplate, type OTemplateDs } from './template';
 import type { CauHinhTemplate, KinhThanh } from './kieu';
+import { thamKhaoSauDien, type NguonThamKhao, type ThamKhaoCau } from './tham-khao';
 
 const BO = new Set(['id', 'created_at', 'updated_at']);
 /** cột media của shot: còn đúng khi nội dung shot (chữ, prompt, anchor) không đổi */
@@ -54,7 +55,8 @@ export async function docOTemplate(db: Db, phimId: number): Promise<{ cfg: CauHi
 export type KetQuaChep = { phimId: number; soShot: number; giuMedia: number; nhapLai: number };
 
 /** Chép cả phim. laTemplate=true: bản sao là template (giữ nhãn ô). Ngược lại: điền `gt` vào mọi ô, gắn tu_template = nguồn. */
-export async function chepPhim(db: Db, nguonId: number, o: { ten: string; gt: Record<string, string>; laTemplate: boolean }): Promise<KetQuaChep | null> {
+/** tk = nguồn tham khảo theo ô (tham-khao.ts): câu chữ của shot dùng ô nào thì mang nguồn của ô đó; câu cố định của template giữ nguồn của nó. */
+export async function chepPhim(db: Db, nguonId: number, o: { ten: string; gt: Record<string, string>; laTemplate: boolean; tk?: Record<string, NguonThamKhao[]> }): Promise<KetQuaChep | null> {
   const d = await docCaPhim(db, nguonId);
   if (!d) return null;
   const gt = o.gt;
@@ -64,7 +66,7 @@ export async function chepPhim(db: Db, nguonId: number, o: { ten: string; gt: Re
     const ktCu = (d.phim.kinh_thanh ?? {}) as KinhThanh;
     const ktMoi: KinhThanh = { ...dienSau(ktNoiDung(ktCu), gt), luu_tru: false,
       template: o.laTemplate ? { mo_ta: ktCu.template?.mo_ta ?? '', o: ktCu.template?.o ?? {}, thu_tu: ktCu.template?.thu_tu ?? [] } : null,
-      tu_template: o.laTemplate ? null : { id: nguonId, ten: s(d.phim.ten), gia_tri: gt, luc: new Date().toISOString() } };
+      tu_template: o.laTemplate ? null : { id: nguonId, ten: s(d.phim.ten), gia_tri: gt, ...(o.tk ? { tham_khao: o.tk } : {}), luc: new Date().toISOString() } };
     const phimId = await chen(t, 'xv_phim', { ...d.phim, ten: o.ten, mo_ta: dienSau(s(d.phim.mo_ta), gt), kinh_thanh: ktMoi, poster_url: null, poster_uv: [] });
     // anchor + biến thể: anchor đổi chữ → ảnh biến thể cũ không còn đúng
     const doiNv = new Map<number, number>(); const nvDoi = new Set<number>(); const doiBt = new Map<number, number>(); const btDoi = new Set<number>();
@@ -100,7 +102,8 @@ export async function chepPhim(db: Db, nguonId: number, o: { ten: string; gt: Re
       const thoaiCu = (c.thoai as { loi?: string; url?: string | null }[]) ?? [];
       const thoai = ((noiDungMoi.thoai as { loi?: string; url?: string | null }[]) ?? []).map((x, i) => (x.loi === thoaiCu[i]?.loi ? x : { ...x, url: null }));
       if (doi) nhapLai++; else giuMedia++;
-      await chen(t, 'xv_canh', { ...noiDungMoi, ...media, thoai, tap_id: doiTap.get(n(c.tap_id)), chi_phi_cents: 0, loi: '',
+      const tham_khao = o.laTemplate ? (c.tham_khao ?? []) : thamKhaoSauDien({ chu_man: s(c.chu_man), thoai: (c.thoai as { loi?: string }[]) ?? [], tham_khao: (c.tham_khao as ThamKhaoCau[]) ?? [] }, gt, o.tk);
+      await chen(t, 'xv_canh', { ...noiDungMoi, ...media, thoai, tham_khao, tap_id: doiTap.get(n(c.tap_id)), chi_phi_cents: 0, loi: '',
         nhan_vat: ((c.nhan_vat as number[]) ?? []).map((x) => doiNv.get(Number(x))).filter((x) => x != null),
         bien_the: ((c.bien_the as number[]) ?? []).map((x) => doiBt.get(Number(x))).filter((x) => x != null),
         trang_thai: doi ? (media.keyframe_url ? 'co_keyframe' : 'nhap') : c.trang_thai });

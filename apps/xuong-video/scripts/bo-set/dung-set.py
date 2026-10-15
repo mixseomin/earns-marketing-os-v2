@@ -368,8 +368,94 @@ def vat_chu_the(sh):
         if o: out.append(o)
     return out
 
+DA_DAT = []   # ô chữ đã đặt trên sơ đồ (cm): nhãn mới chồng lên thì dời xuống tới chỗ trống
+def nhan_chu(s, chu, vt, mau_hex, co=1.6, nen=None):
+    """Chữ nằm phẳng (sơ đồ nhìn từ trên), căn giữa tại vt (cm), tự né nhãn đã đặt; nen = màu tấm nền sau chữ cho dễ đọc."""
+    t = bpy.data.curves.new('nh', 'FONT'); t.body = chu; t.size = co * CM; t.align_x = 'CENTER'; t.align_y = 'CENTER'
+    o = bpy.data.objects.new(f'nh {chu}', t); s.collection.objects.link(o); o.location = Vector(vt) * CM
+    t.materials.append(mau(mau_hex, 4))
+    bpy.context.view_layer.update(); w = o.dimensions.x / CM + co * 0.5; h = co * 1.25
+    trung = lambda x, y: any(abs(x - a) < (w + b) / 2 + 0.1 and abs(y - c) < (h + d) / 2 + 0.1 for a, c, b, d in DA_DAT)
+    x, y = vt[0], vt[1]
+    if trung(x, y):   # thử dời dần ra bốn phía, lấy chỗ trống gần nhất
+        thu = [(vt[0] + dx * w * r * 0.55, vt[1] + dy * h * r * 0.95) for r in range(1, 9) for dx, dy in ((0, -1), (0, 1), (1, 0), (-1, 0), (1, -1), (-1, -1), (1, 1), (-1, 1))]
+        x, y = next((q for q in thu if not trung(*q)), (x, y))
+    DA_DAT.append((x, y, w, h)); vt = (x, y, vt[2]); o.location = Vector(vt) * CM
+    if nen:
+        khoi({'hinh': 'hop', 'co': [w, h, 0.05], 'mau': nen, 'tam': [vt[0], vt[1], vt[2] - 0.1]}, f'nen {chu}')
+    return o
+
+def toan_canh(s, canh_ds, ra):
+    """SƠ ĐỒ MÁY từng cảnh (anh 15/10/2026: "chụp toàn cảnh 3D các cảnh xem đã chuẩn và dễ hiểu chưa") — dạng overhead camera plot của ngành:
+    nhìn thẳng từ trên, phóng vào vùng diễn của cảnh; nhân vật đặc ở chỗ xuất hiện đầu tiên + tên; đường đi trong cảnh (chấm + #N khi đổi chỗ);
+    máy từng shot = nón vàng chỉ hướng + tia tới điểm nhìn + nhãn #N đặt SAU lưng máy. Cỡ nón / chữ theo cỡ vùng (cảnh nhỏ vẫn đọc được).
+    canh_ds = [{'ten': …, 'so': [số shot…]}]. Ra <ra>/toan-canh-<k>.png."""
+    for v in [x for x in bpy.data.objects if x.name.startswith('Tường')]: v.hide_render = True
+    s.display.shading.show_shadows = False
+    goc_obj = set(bpy.data.objects)
+    for k, cn in enumerate(canh_ds):
+        ds = sorted([sh for sh in DL['shot'] if sh.get('so') in cn['so']], key=lambda x: x['so'])
+        if not ds: continue
+        dat_tuy_chon({t for sh in ds for t in (sh.get('them') or [])})
+        DA_DAT.clear()
+        # Khung ôm VÙNG DIỄN (chỗ đứng nhân vật + điểm máy nhìn) rộng gấp đôi; máy đặt xa hơn thì vẽ ở mép khung kèm "xa N cm".
+        diem = [Vector(sh['may']['nhin']) for sh in ds]
+        diem += [Vector((p[0], p[1], p[2] if len(p) > 2 else 0)) for sh in ds for nv in sh.get('nhan_vat', []) for p in (nv['tam'], nv.get('den')) if p]
+        lo = Vector((min(p.x for p in diem), min(p.y for p in diem), 0)); hi = Vector((max(p.x for p in diem), max(p.y for p in diem), max([p.z for p in diem] + [sh['may']['dat'][2] for sh in ds])))
+        tam = (lo + hi) / 2; rong = max(18.0, (hi.x - lo.x), (hi.y - lo.y) * 1.6) * 2.0; u = rong / 60   # đơn vị cỡ nón / chữ
+        nx, ny = rong / 2 * 0.86, rong / 1.6 / 2 * 0.78   # nửa khung dùng được (chừa mép cho nhãn)
+        cd = bpy.data.cameras.new('tc'); cd.type = 'ORTHO'; cd.ortho_scale = rong * CM; cd.clip_start = 0.01; cd.clip_end = 20
+        oc = bpy.data.objects.new('tc', cd); s.collection.objects.link(oc); oc.location = (tam.x * CM, tam.y * CM, 5); s.camera = oc
+        # Đồ treo cao hơn mọi máy của cảnh (chao đèn…) che sơ đồ → ẩn.
+        an = [o for o in bpy.data.objects if o.type in ('MESH', 'CURVE') and o.visible_get() and min((o.matrix_world @ Vector(b)).z for b in o.bound_box) / CM > hi.z + 2]
+        for o in an: o.hide_render = True
+        cao = hi.z + 3   # chữ / nón nằm trên mọi thứ
+        dau = {}
+        for sh in ds:
+            for nv in sh.get('nhan_vat', []): dau.setdefault(nv['ten'], nv)
+        nhan_vat({'nhan_vat': list(dau.values())})
+        duong = {}; truoc = {}
+        for sh in ds:
+            for nv in sh.get('nhan_vat', []):
+                dd = duong.setdefault(nv['ten'], [[]])
+                if (sh.get('nhay') or nv.get('nhay') or nv.get('cam')) and dd[-1]: dd.append([])
+                for p in (nv['tam'], nv.get('den')):
+                    if p: dd[-1].append((p[0], p[1], cao - 1))
+                q = tuple(round(x, 1) for x in nv['tam'][:2])
+                if truoc.get(nv['ten']) != q and len(truoc.get(nv['ten'], ())) :
+                    nhan_chu(s, f"{sh['so']}", (nv['tam'][0] + 1.6 * u, nv['tam'][1] - 1.2 * u, cao), DL['nhan_vat_mau'][nv['ten']]['mau'], 1.6 * u)
+                truoc[nv['ten']] = tuple(round(x, 1) for x in (nv.get('den') or nv['tam'])[:2])
+        for ten, doan in duong.items():
+            m = DL['nhan_vat_mau'][ten]['mau']
+            for j, dd in enumerate(x for x in doan if x):
+                gon = [dd[0]] + [p for i, p in enumerate(dd[1:]) if (Vector(p) - Vector(dd[i])).length > 0.05]
+                for p in gon[1:]:
+                    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.35 * u * CM, location=Vector(p) * CM); dat(bpy.context.object, mau(m, 3), f"dd {ten}")
+                if len(gon) > 1: khoi({'hinh': 'day', 'diem': [list(p) for p in gon], 'ban_kinh': 0.15 * u, 'mau': m, 'sang': 3, 'bac': 1}, f"duong {ten} {j}")
+        for t, nv in dau.items():
+            nhan_chu(s, t, (nv['tam'][0], nv['tam'][1] + DL['nhan_vat_mau'][t]['co'][1] / 2 + 1.6 * u, cao + 0.2), '#ffffff', 1.5 * u, nen='#111111')
+        for sh in ds:
+            m = sh['may']; d = Vector(m['nhin']) - Vector(m['dat']); d.z = 0; d.normalize()
+            p0 = Vector((m['dat'][0], m['dat'][1], cao)); p1 = Vector((m['nhin'][0], m['nhin'][1], cao - 0.5))
+            v = p0 - Vector((tam.x, tam.y, cao)); k0 = max(abs(v.x) / nx, abs(v.y) / ny); xa = ''
+            if k0 > 1: xa = f" xa {round((Vector(m['dat'][:2]) - Vector(m['nhin'][:2])).length)} cm"; p0 = Vector((tam.x, tam.y, cao)) + v / k0
+            khoi({'hinh': 'day', 'diem': [list(p0), list(p1)], 'ban_kinh': 0.08 * u, 'mau': '#facc15', 'sang': 2, 'bac': 1}, f"tia {sh['ma']}")
+            bpy.ops.mesh.primitive_cone_add(radius1=0.9 * u * CM, depth=2.0 * u * CM, location=p0 * CM)
+            dat(bpy.context.object, mau('#facc15', 3), f"non {sh['ma']}").rotation_euler = d.to_track_quat('-Z', 'Y').to_euler()
+            sau = p0 - d * 2.6 * u if not xa else p0 + (Vector((tam.x, tam.y, cao)) - p0).normalized() * 3.2 * u   # máy ở mép: nhãn vào phía trong
+            nhan_chu(s, f"#{sh['so']}{xa}", (sau.x, sau.y, cao + 0.4), '#facc15', 1.7 * u, nen='#000000')
+        for o in bpy.data.objects:   # lớp chú thích (nón, tia, đường đi, chữ) vẽ đè lên đồ đạc: tấm thẻ nghiêng không che được số máy
+            if o not in goc_obj and not o.name.startswith('NV '): o.show_in_front = True
+        s.render.resolution_x, s.render.resolution_y = 1600, 1000; may_ve(s, True); s.display.shading.show_shadows = False
+        s.render.filepath = f"{ra}/toan-canh-{k}.png"; bpy.ops.render.render(write_still=True)
+        for o in [x for x in bpy.data.objects if x not in goc_obj]: bpy.data.objects.remove(o, do_unlink=True)
+        for o in an: o.hide_render = False
+    print('XONG toan canh', len(canh_ds))
+
 s = dung_set()
 shots = [sh for sh in DL['shot'] if not CHI or sh['ma'] in CHI]
+if os.environ.get('XV_TOAN_CANH'):   # đường riêng: chỉ render toàn cảnh từng cảnh (đầu vào = tệp json danh sách cảnh)
+    toan_canh(s, json.load(open(os.environ['XV_TOAN_CANH'], encoding='utf-8')), RA); sys.exit(0)
 kiem = {}; giai = {}; thay = {}; di = {}
 for sh in ([] if CHI_MB else shots):
     dat_tuy_chon(set(sh.get('them') or []))

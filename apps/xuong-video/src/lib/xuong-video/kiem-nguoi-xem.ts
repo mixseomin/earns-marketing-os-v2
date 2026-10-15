@@ -2,7 +2,9 @@
 // Phần thuần (bản người xem, mã phiên bản, cổng chặn) ở nguoi-xem.ts; lượt Claude ở claude.ts › thuNguoiXem.
 import 'server-only';
 import { sql } from 'drizzle-orm';
-import { thuNguoiXem, suaKichBanTheoNguoiXem } from './claude';
+import { thuNguoiXem, suaKichBanTheoNguoiXem, type NguoiXemSchema } from './claude';
+import type { z } from 'zod/v4';
+type ThuNguoiXemTho = z.infer<typeof NguoiXemSchema>;
 import { chupTruoc } from './hoan-tac';
 import { banNguoiXem, maKichBan, maTheoCanh, keHoachSua, DIEM_HIEU_DAT } from './nguoi-xem';
 import { docKinhThanh, locNhanh, lamTronClip, giayPhat, type ThuNguoiXem } from './kieu';
@@ -39,12 +41,12 @@ export async function kiemNguoiXemTap(db: Db, tapId: number): Promise<{ ok: true
 /** 🧑 KIỂM RIÊNG MỘT CẢNH (anh 15/10/2026: "tách theo từng cảnh cho rẻ"): người xem chỉ xem các shot của cảnh đó, kèm câu chuyện TRƯỚC đó do chính
  *  người xem kể lại ở lần kiểm cả tập (nếu có); đối chiếu với ý đồ của RIÊNG cảnh (mục tiêu / xung đột / ẩn ý / gag). Kết quả lưu vào
  *  thu_nguoi_xem.canh[phan_doan] — cổng (nguoi-xem.ts › phuTheoCanh) tính cảnh đó là đã qua khi đạt với đúng nội dung hiện tại. */
-export async function kiemNguoiXemCanh(db: Db, tapId: number, phanDoan: string): Promise<{ ok: true; data: ThuNguoiXem } | { ok: false; loi: string }> {
+export async function dauVaoNguoiXemCanh(db: Db, tapId: number, phanDoan: string) {
   const bc = await boiCanhTap(db, tapId);
-  if (!bc) return { ok: false, loi: 'không thấy tập' };
+  if (!bc) return { ok: false as const, loi: 'không thấy tập' };
   const tatCa = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh), 'A');
   const canh = tatCa.filter((c) => c.phan_doan === phanDoan);
-  if (!canh.length) return { ok: false, loi: `tập không có cảnh “${phanDoan}”` };
+  if (!canh.length) return { ok: false as const, loi: `tập không có cảnh “${phanDoan}”` };
   const kt = docKinhThanh(bc.kt);
   const pc = bc.tap.phan_canh.find((p) => p.ten === phanDoan);
   const truoc = (bc.tap.thu_nguoi_xem as ThuNguoiXem | null)?.ke_lai;
@@ -52,12 +54,25 @@ export async function kiemNguoiXemCanh(db: Db, tapId: number, phanDoan: string):
   const ids = new Set(canh.flatMap((c) => c.nhan_vat));
   const nvTa = bc.nhanVat.filter((v) => ids.has(v.id) && v.loai !== 'phong_cach').map((v) => `- ${v.ten}: ${v.mo_ta.slice(0, 160)}`).join('\n');
   const yDo = pc ? `Cảnh “${pc.ten}” (${pc.beat}). Mục tiêu: ${pc.muc_tieu}. Xung đột: ${pc.xung_dot}. Ẩn ý: ${pc.an_y}.${pc.gag?.length ? ` Gag: ${pc.gag.map((g) => `${g.ten} — gài: ${g.gai}; bùng: ${g.bung}`).join(' | ')}.` : ''}` : `Cảnh “${phanDoan}”.`;
-  const kq = await thuNguoiXem({ ban, nhanVat: nvTa, logline: yDo, brief: 'Chỉ đánh giá RIÊNG cảnh này: người xem có theo được ai muốn gì, chuyện gì xảy ra, cú bùng và kết cảnh không.', kt, doDai: `cảnh dài ${Math.round(canh.reduce((a, c) => a + giayPhat(c), 0))} giây.` });
-  if (!kq.ok) return kq;
-  await ghiTienChu(db, bc.tap.phim_id, `Kiểm người xem riêng cảnh “${phanDoan}” · tập ${bc.tap.so}`, kq.model, kq.tokens);
-  const { xem, doi } = kq.data;
+  const brief = 'Chỉ đánh giá RIÊNG cảnh này: người xem có theo được ai muốn gì, chuyện gì xảy ra, cú bùng và kết cảnh không.';
+  return { ok: true as const, bc, canh, kt, ban, nvTa, yDo, brief, doDai: `cảnh dài ${Math.round(canh.reduce((a, c) => a + giayPhat(c), 0))} giây.` };
+}
+/** tuCham: kết quả người xem do NGƯỜI KHÁC chấm trên đúng đầu vào dauVaoNguoiXemCanh (anh 15/10/2026: "lúc này cổng kiểm thì mày làm đi" — Claude
+ *  trong phiên chat tự chấm, 0đ) — ghi cùng chỗ, cùng mã, model = tên người chấm; không gọi API, không ghi tiền. */
+export async function kiemNguoiXemCanh(db: Db, tapId: number, phanDoan: string, tuCham?: { xem: ThuNguoiXemTho; doi: { khop: boolean; lech: string }; nguoi: string }): Promise<{ ok: true; data: ThuNguoiXem } | { ok: false; loi: string }> {
+  const v = await dauVaoNguoiXemCanh(db, tapId, phanDoan);
+  if (!v.ok) return v;
+  const { bc, canh, kt } = v;
+  let xem: ThuNguoiXemTho, doi: { khop: boolean; lech: string }, model: string;
+  if (tuCham) ({ xem, doi } = tuCham), (model = tuCham.nguoi);
+  else {
+    const kq = await thuNguoiXem({ ban: v.ban, nhanVat: v.nvTa, logline: v.yDo, brief: v.brief, kt, doDai: v.doDai });
+    if (!kq.ok) return kq;
+    await ghiTienChu(db, bc.tap.phim_id, `Kiểm người xem riêng cảnh “${phanDoan}” · tập ${bc.tap.so}`, kq.model, kq.tokens);
+    ({ xem, doi } = kq.data); model = kq.model;
+  }
   const diem = Math.max(0, Math.min(10, Math.round(xem.diem)));
-  const t: ThuNguoiXem = { ma: maTheoCanh(canh)[phanDoan]!, luc: new Date().toISOString(), model: kq.model, ke_lai: xem.ke_lai, hieu: { ai: xem.ai, muon: xem.muon, can: xem.can, lat: xem.lat, ket: xem.ket },
+  const t: ThuNguoiXem = { ma: maTheoCanh(canh)[phanDoan]!, luc: new Date().toISOString(), model, ke_lai: xem.ke_lai, hieu: { ai: xem.ai, muon: xem.muon, can: xem.can, lat: xem.lat, ket: xem.ket },
     diem, cho_kho: xem.cho_kho, cat: xem.cat, khop: doi.khop, lech: doi.lech, dat: doi.khop && diem >= DIEM_HIEU_DAT };
   // Ghi vào thu_nguoi_xem.canh[phan_doan]; tập chưa từng kiểm cả tập thì tạo khung rỗng (ma rỗng = cả tập chưa kiểm, cổng chỉ tính theo cảnh).
   const r0 = (await db.execute(sql`SELECT thu_nguoi_xem FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[];

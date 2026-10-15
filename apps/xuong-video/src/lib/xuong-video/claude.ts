@@ -609,7 +609,7 @@ Luật:
 }
 
 // ── THỬ NGƯỜI XEM LẦN ĐẦU (nguoi-xem.ts): lượt 1 MÙ — chỉ bảng shot người xem thấy/nghe; lượt 2 đối chiếu với ý tác giả ─────────
-const NguoiXemSchema = z.object({
+export const NguoiXemSchema = z.object({
   ke_lai: z.string().describe('Kể lại câu chuyện vừa xem trong 3–5 câu ngắn, đúng như một người xem bình thường hiểu — không thêm điều phim không cho thấy'),
   ai: z.string().describe('Nhân vật chính là ai (theo những gì thấy/nghe)'),
   muon: z.string().describe('Nhân vật chính muốn gì — nếu phim không làm rõ thì ghi "không rõ"'),
@@ -628,12 +628,16 @@ const NguoiXemSchema = z.object({
     ly_do: z.string().describe('Vì sao bớt mà người xem không mất ý: lặp thông tin shot nào, gộp với shot nào, rút còn bao nhiêu giây (1 câu)'),
   })).describe('Chỗ THU NHỎ: shot thừa, lặp ý, giữ lâu hơn cần, gộp được với shot kề — để tập về độ dài chuẩn; rỗng nếu tập không dài'),
 });
-const DoiChieuYSchema = z.object({
+export const DoiChieuYSchema = z.object({
   khop: z.boolean().describe('Người xem có nhận được ĐÚNG câu chuyện + cú lật + kết mà tác giả định không'),
   lech: z.string().describe('Điều tác giả muốn mà người xem KHÔNG nhận được (1–2 câu); rỗng nếu khớp'),
 });
 /** Người xem ảo của phim KHÔNG LỜI: không lời là chủ ý — đánh giá câu chuyện qua hình + âm, góp ý bằng hành động chứ không bằng chữ. */
 const XEM_KHONG_LOI = 'PHIM NÀY KHÔNG LỜI (chủ ý, kiểu Larva / Shaun the Sheep): nhân vật chỉ phát âm hiệu (tiếng kêu, bập bẹ), không có câu nói, gần như không có chữ màn. Đừng coi việc không có lời là lỗi. Câu sửa đề xuất TUYỆT ĐỐI không được là "thêm câu nói / thêm chữ màn / thêm lời dẫn" — chỉ đề xuất bằng hành động, biểu cảm, góc máy (cận vào chi tiết), tách shot, âm thanh (tiếng động, nhạc) hoặc nhịp.';
+/** Lời dặn + đầu vào của lượt NGƯỜI XEM — MỘT nguồn cho lượt gọi Claude và cho người tự chấm (scripts/kiem-nguoi-xem.mts --in): ai chấm cũng
+ *  nhận đúng cùng một chữ. */
+export const heNguoiXem = (kt: Pick<KinhThanh, 'khong_loi'>, doDai?: string): string => 'Bạn là một người xem BÌNH THƯỜNG, xem video ngắn này lần đầu trên điện thoại. Bạn CHỈ biết đúng những gì có trong bảng shot: THẤY = hình trên màn, CHỮ TRÊN MÀN = chữ đọc được, NGHE = lời nghe được (ai nói). Bạn KHÔNG đọc kịch bản, không biết ý đồ tác giả, và giả sử bạn KHÔNG biết truyện gốc / bối cảnh / nhân vật nào ngoài những gì phim tự cho thấy. Mỗi shot chỉ lướt qua đúng số giây ghi trong ngoặc — chữ dài trong shot ngắn là không kịp đọc. Thành thật: chỗ nào không hiểu thì nói không hiểu. Khi liệt kê chỗ vấp, soát thêm theo luật dưới (mỗi luật bị vi phạm là một chỗ vấp, ghi shot). Trả lời tiếng Việt; câu sửa đề xuất viết đúng ngôn ngữ của phim.\n\n' + LUAT_KE_CHUYEN + (kt.khong_loi ? `\n\n${XEM_KHONG_LOI}` : '') + (doDai ? `\n\nĐỘ DÀI: ${doDai} Góp ý không chỉ được THÊM: mỗi chỗ đề xuất tách / chèn shot làm tập dài ra thì phải tìm chỗ bớt tương ứng; liệt kê ở "cat" mọi shot rút / gộp / bỏ được mà người xem không mất ý (lặp thông tin, giữ quá lâu, hai shot nói cùng một điều). Một chỗ vấp sửa được bằng cách GỘP / BỎ shot rối thì đề xuất thế, đừng tách thêm.` : '');
+export const vaoNguoiXem = (o: { ban: string; nhanVat: string }): string => `NHÂN VẬT / BỐI CẢNH XUẤT HIỆN TRÊN MÀN (để biết tên gọi khi nhìn thấy):\n${o.nhanVat || '(không khai)'}\n\nBẢNG SHOT (theo thời gian):\n${o.ban}`;
 export async function thuNguoiXem(o: { ban: string; nhanVat: string; logline: string; brief: string; kt: Required<KinhThanh>; doDai?: string }): Promise<GoiYKq<{ xem: z.infer<typeof NguoiXemSchema>; doi: z.infer<typeof DoiChieuYSchema> }>> {
   const c = client();
   if (!c) return { ok: false, loi: 'Thiếu ANTHROPIC_API_KEY trên máy chủ' };
@@ -641,8 +645,8 @@ export async function thuNguoiXem(o: { ban: string; nhanVat: string; logline: st
     // Trần rộng: tiếng Việt tốn token, 11 shot × chỗ vấp kèm câu sửa vượt 3k → JSON đứt "Unterminated string" (13/10/2026, nút báo lỗi).
     const r1 = await c.messages.parse({
       model: o.kt.mo_hinh_chu, max_tokens: 12000,
-      system: 'Bạn là một người xem BÌNH THƯỜNG, xem video ngắn này lần đầu trên điện thoại. Bạn CHỈ biết đúng những gì có trong bảng shot: THẤY = hình trên màn, CHỮ TRÊN MÀN = chữ đọc được, NGHE = lời nghe được (ai nói). Bạn KHÔNG đọc kịch bản, không biết ý đồ tác giả, và giả sử bạn KHÔNG biết truyện gốc / bối cảnh / nhân vật nào ngoài những gì phim tự cho thấy. Mỗi shot chỉ lướt qua đúng số giây ghi trong ngoặc — chữ dài trong shot ngắn là không kịp đọc. Thành thật: chỗ nào không hiểu thì nói không hiểu. Khi liệt kê chỗ vấp, soát thêm theo luật dưới (mỗi luật bị vi phạm là một chỗ vấp, ghi shot). Trả lời tiếng Việt; câu sửa đề xuất viết đúng ngôn ngữ của phim.\n\n' + LUAT_KE_CHUYEN + (o.kt.khong_loi ? `\n\n${XEM_KHONG_LOI}` : '') + (o.doDai ? `\n\nĐỘ DÀI: ${o.doDai} Góp ý không chỉ được THÊM: mỗi chỗ đề xuất tách / chèn shot làm tập dài ra thì phải tìm chỗ bớt tương ứng; liệt kê ở "cat" mọi shot rút / gộp / bỏ được mà người xem không mất ý (lặp thông tin, giữ quá lâu, hai shot nói cùng một điều). Một chỗ vấp sửa được bằng cách GỘP / BỎ shot rối thì đề xuất thế, đừng tách thêm.` : ''),
-      messages: [{ role: 'user', content: `NHÂN VẬT / BỐI CẢNH XUẤT HIỆN TRÊN MÀN (để biết tên gọi khi nhìn thấy):\n${o.nhanVat || '(không khai)'}\n\nBẢNG SHOT (theo thời gian):\n${o.ban}` }],
+      system: heNguoiXem(o.kt, o.doDai),
+      messages: [{ role: 'user', content: vaoNguoiXem(o) }],
       output_config: { format: zodOutputFormat(NguoiXemSchema as unknown as Parameters<typeof zodOutputFormat>[0]) },
     });
     if (r1.stop_reason === 'refusal') return { ok: false, loi: 'Claude từ chối yêu cầu này' };

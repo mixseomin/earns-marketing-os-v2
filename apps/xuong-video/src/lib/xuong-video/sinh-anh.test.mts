@@ -64,3 +64,12 @@ console.log('sinh-anh.test: ok');
   const c = khungChu({ thay: [{ ten: 'USB Hub', pt: 9, hop: [0, 0.9, 1, 1] }] } as never, ['USB Hub']);
   assert.ok(!/close-up/.test(c) && /cut off by the bottom edge — only a 10% strip/.test(c), c);
 }
+
+// Câu CAMERA từ máy 3D (#35: máy 1,2 cm ngước lên Mr. Wipe mà keyframe vẽ ngang tầm).
+{
+  const { gocMayChu } = await import('./sinh-anh');
+  const c = gocMayChu({ dat: [65.5, 49, 1.2], nhin: [59, 59.6, 6.0], ong_kinh: 40 }, { ten: 'Mr. Wipe', giuaZ: 5.5 });
+  assert.ok(/tilted UP 2\d° — a LOW-ANGLE shot/.test(c) && /1\.2 cm above the desk, below the middle of Mr\. Wipe/.test(c) && /seeing its underside/.test(c), c);
+  assert.match(gocMayChu({ dat: [0, 0, 10], nhin: [0, 10, 0], ong_kinh: 35 }, null), /tilted DOWN 45° — a HIGH-ANGLE/);
+  assert.match(gocMayChu({ dat: [0, 0, 1.3], nhin: [0, 10, 1.3], ong_kinh: 35 }, { ten: 'Tango', giuaZ: 1.3 }), /EYE-LEVEL/);
+}

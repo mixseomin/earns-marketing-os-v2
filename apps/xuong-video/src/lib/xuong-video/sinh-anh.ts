@@ -6,7 +6,7 @@ import { promptAnhMau } from './claude';
 import { promptCatNen } from './cat-nen';
 import { promptCamXuc } from './am-thanh';
 import { promptKyThuatAnh } from './dien-anh';
-import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type Canh, type KinhThanh, type NhanVat } from './kieu';
+import { docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type Canh, type KinhThanh, type May3d, type NhanVat } from './kieu';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
 import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
@@ -225,8 +225,25 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // behind the orange card") nên phải nói thẳng là không vẽ.
   const ngoaiTen = kx && !ket ? bc.nhanVat.filter((v) => ngoaiKhung(v)).map((v) => v.ten) : [];
   const ngoaiCau = ngoaiTen.length ? `OFF-SCREEN in this frame (part of the story, NOT visible right now): ${ngoaiTen.join(', ')} — do not draw them, their shadow or any part of them, even where the description mentions them.` : '';
-  const prompt = [ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), kxChu, trangCau, huongCau, framingCau, ngoaiCau, tiLeCau, btlChu, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
+  // GÓC MÁY bằng SỐ từ máy 3D (anh 15/10/2026, #35: 3D sát mặt bàn ngước lên Mr. Wipe, keyframe vẽ ngang tầm — prompt chỉ có cụm chung "low-angle").
+  const mGoc = bc.mayDu ?? bc.canh.may_3d;
+  const chinh = mGoc ? mGoc.vi_tri.find((v) => trongKhungAnchor.includes(v.ten) && bc.nhanVat.some((n) => n.ten === v.ten && n.loai === 'nhan_vat')) ?? mGoc.vi_tri.find((v) => trongKhungAnchor.includes(v.ten)) : undefined;
+  const mayCau = kx && mGoc ? gocMayChu(mGoc, chinh ? { ten: chinh.ten, giuaZ: (chinh.tam[2] ?? 0) + (bc.nhanVat.find((n) => n.ten === chinh.ten)?.khoi_3d?.co?.[2] ?? 0) / 2 } : null) : '';
+  // THỨ TỰ: khối 3D (bố trí, góc máy, cỡ, hướng mặt, ngoài khung) đứng ĐẦU prompt — đứng sau phong cách + mô tả nhân vật thì bị loãng (#35).
+  const prompt = [kxChu, mayCau, framingCau, huongCau, ngoaiCau, trangCau, ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), tiLeCau, btlChu, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh')].filter(Boolean).join(' ');
   return { prompt, urlRef, vai };
+}
+
+/** Câu CAMERA từ máy 3D: cao bao nhiêu cm trên mặt bàn và so với giữa chủ thể, ngước / chúc bao nhiêu độ, ống kính, và HỆ QUẢ thấy gì
+ *  (ngước: thấy mặt dưới, nền là phần phía trên — không thấy mặt bàn; chúc: thấy mặt bàn quanh chủ thể). Thuần — kiểm ở sinh-anh.test. */
+export function gocMayChu(m: Pick<May3d, 'dat' | 'nhin' | 'ong_kinh'>, chu: { ten: string; giuaZ: number } | null): string {
+  const [dx, dy, dz] = [m.nhin[0]! - m.dat[0]!, m.nhin[1]! - m.dat[1]!, (m.nhin[2] ?? 0) - (m.dat[2] ?? 0)];
+  const doc = Math.round((Math.atan2(dz, Math.hypot(dx, dy)) * 180) / Math.PI); const cao = Math.round((m.dat[2] ?? 0) * 10) / 10;
+  const so = chu ? (cao < chu.giuaZ - 0.5 ? `below the middle of ${chu.ten} (which is ${Math.round(chu.giuaZ * 10) / 10} cm up)` : cao > chu.giuaZ + 0.5 ? `above ${chu.ten} (whose middle is ${Math.round(chu.giuaZ * 10) / 10} cm up)` : `level with ${chu.ten}`) : '';
+  const dau = `CAMERA, exactly as the 3D set places it (do NOT change it): ${m.ong_kinh} mm lens, the lens ${cao} cm above the desk${so ? `, ${so}` : ''}, `;
+  if (doc >= 8) return `${dau}tilted UP ${doc}° — a LOW-ANGLE shot: we look up at ${chu?.ten ?? 'the subject'}${doc >= 15 ? ', seeing its underside' : ''}; the desk top is barely visible (only at the very bottom edge if at all); behind the subject is what is ABOVE and beyond the desk. Not eye-level, not from above.`;
+  if (doc <= -8) return `${dau}tilted DOWN ${-doc}° — a HIGH-ANGLE shot: we look down on ${chu?.ten ?? 'the subject'} and see the desk surface around and behind it. Not eye-level, not from below.`;
+  return `${dau}level (${doc}°) — an EYE-LEVEL shot at ${chu?.ten ?? 'the subject'}'s height: the horizon of the desk runs across the frame; not from above, not from below.`;
 }
 
 const vungEn = (x: number, y: number) => `${y < 0.36 ? 'upper' : y > 0.64 ? 'lower' : 'middle'} ${x < 0.36 ? 'left' : x > 0.64 ? 'right' : 'centre'}`;

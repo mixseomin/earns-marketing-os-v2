@@ -81,7 +81,7 @@ function MauVaPhimDung({ d, hrefPhim }: { d: DuLieu; hrefPhim: (id: number) => s
       <b style={{ fontSize: 12 }}>🎬 Phim đang dùng template này <span style={mono}>({d.phimDung.length})</span></b>
       {!d.phimDung.length ? <span style={mono}>chưa có phim nào — bấm "Tạo phim từ template"</span> : (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {d.phimDung.map((p) => <a key={p.id} className="xv-lienket xv-mono" style={{ opacity: p.luu_tru ? 0.5 : 1, textDecoration: p.luu_tru ? 'line-through' : undefined }} href={hrefPhim(p.id)} target="_blank" rel="noreferrer" title={p.luu_tru ? 'đã lưu trữ · mở ở tab mới' : 'mở phim ở tab mới'}>#{p.id} {p.ten}</a>)}
+          {d.phimDung.map((p) => <a key={p.id} className="xv-lienket xv-mono" style={{ opacity: p.luu_tru ? 0.5 : 1, textDecoration: p.luu_tru ? 'line-through' : undefined }} href={hrefPhim(p.id)} target="_blank" data-ly-do="tab-moi-anh-duyet" rel="noreferrer" title={p.luu_tru ? 'đã lưu trữ · mở ở tab mới' : 'mở phim ở tab mới'}>#{p.id} {p.ten}</a>)}
         </div>
       )}
     </div>

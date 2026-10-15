@@ -37,7 +37,7 @@ export interface ModalParam {
   numId: number | null;
   /** Mở modal: set ?<key>=m (+ ?<key>Id=mid nếu có). */
   open: (m: string, mid?: string | number | null) => void;
-  /** Đường dẫn mở modal ở TAB MỚI (<a target="_blank">) — mở phim khác từ trong một ngăn thì không thay ngăn đang xem (anh 15/10/2026). */
+  /** Đường dẫn mở modal ở TAB MỚI (thẻ a mở tab mới) — mở phim khác từ trong một ngăn thì không thay ngăn đang xem (anh 15/10/2026). */
   href: (m: string, mid?: string | number | null) => string;
   /** Đóng modal hiện tại: xoá cả ?<key>= và ?<key>Id=. */
   close: () => void;

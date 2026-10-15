@@ -165,7 +165,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa }: { id: number; tapDau?:
       {phim.poster_url && <img src={anhNho(phim.poster_url, 160)} alt="" title="Poster (tab 🎭 Phim › Poster)" style={{ height: 34, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} />}
       <Pill color="var(--fg-3)">{LOAI_PHIM.find((l) => l.key === phim.loai)?.label ?? phim.loai}</Pill>
       {phim.kinh_thanh?.template && <Pill color="var(--violet)">🧩 Template</Pill>}
-      {phim.kinh_thanh?.tu_template && <a className="xv-lienket xv-mono" href={modal.href('phim', phim.kinh_thanh.tu_template.id)} target="_blank" rel="noreferrer" title="Phim này tạo từ template — mở template ở tab mới">🧩 từ #{phim.kinh_thanh.tu_template.id}</a>}
+      {phim.kinh_thanh?.tu_template && <a className="xv-lienket xv-mono" href={modal.href('phim', phim.kinh_thanh.tu_template.id)} target="_blank" data-ly-do="tab-moi-anh-duyet" rel="noreferrer" title="Phim này tạo từ template — mở template ở tab mới">🧩 từ #{phim.kinh_thanh.tu_template.id}</a>}
       <span style={mono} data-ngu-canh={`phim #${phim.id} ${phim.ten}`}>#{phim.id}</span>
       <ThongKe tk={d.thongKe} tongTien={d.tongTien} soAnchor={nhanVat.length} soTap={tap.length} />
       <HoanTac phimId={phim.id} onDone={tai} />

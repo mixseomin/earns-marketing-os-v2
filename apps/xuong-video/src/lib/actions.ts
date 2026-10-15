@@ -277,7 +277,11 @@ export async function dsCanh(tapId: number): Promise<Canh[]> {
     const r = await db.execute(sql`SELECT c.*, EXISTS (SELECT 1 FROM xv_job j WHERE j.canh_id = c.id AND j.loai = 'anh' AND ${jobDangCho('j')}) AS dang_sinh_anh,
       -- Cờ riêng từng loại âm (#1217: sinh giọng mà khối hiệu ứng cũng báo đang sinh).
       EXISTS (SELECT 1 FROM xv_job j WHERE j.canh_id = c.id AND j.loai = 'am' AND j.request->>'dich' = 'thoai' AND ${jobDangCho('j')}) AS dang_sinh_giong,
-      EXISTS (SELECT 1 FROM xv_job j WHERE j.canh_id = c.id AND j.loai = 'am' AND j.request->>'dich' = 'sfx' AND ${jobDangCho('j')}) AS dang_sinh_sfx FROM xv_canh c WHERE c.tap_id = ${tapId} ORDER BY c.thu_tu, c.id`);
+      EXISTS (SELECT 1 FROM xv_job j WHERE j.canh_id = c.id AND j.loai = 'am' AND j.request->>'dich' = 'sfx' AND ${jobDangCho('j')}) AS dang_sinh_sfx,
+      -- Lúc sinh xong keyframe / clip đang dùng (#1384: rê vào thẻ lưới thấy "sinh 12 phút trước", shot vừa sinh được tô sáng).
+      (SELECT max(j.updated_at) FROM xv_job j WHERE j.canh_id = c.id AND j.loai = 'anh' AND j.trang_thai = 'xong' AND j.output_url = c.keyframe_url) AS keyframe_luc,
+      (SELECT max(j.updated_at) FROM xv_job j WHERE j.canh_id = c.id AND j.loai = 'video' AND j.trang_thai = 'xong' AND j.output_url IN (c.video_url, c.video_cuoi_url)) AS video_luc
+      FROM xv_canh c WHERE c.tap_id = ${tapId} ORDER BY c.thu_tu, c.id`);
     const ds = (r as unknown as Row[]).map(mapCanh);
     // Nguồn từng tệp (15/10/2026 — anh: "cùng 1 shot có thể tạo từ nhiều model, nhà cung cấp"): job nào sinh ra keyframe/clip nào.
     if (ds.length) {

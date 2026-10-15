@@ -22,6 +22,19 @@ const tenKt = (k: string | undefined, n: NhomKyThuat) => (k ? kyThuat(k, n)?.ten
 
 const gio = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
+/** "12 phút trước · 13:05 15/10" — giờ máy người xem (studio dùng ở VN = GMT+7). */
+const truoc = (iso: string): string => {
+  const d = new Date(iso); const p = Math.max(0, Math.round((Date.now() - d.getTime()) / 60000));
+  const cach = p < 1 ? 'vừa xong' : p < 60 ? `${p} phút trước` : p < 48 * 60 ? `${Math.round(p / 60)} giờ trước` : `${Math.round(p / 1440)} ngày trước`;
+  return `${cach} · ${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} ${d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}`;
+};
+/** Shot vừa sinh (keyframe hoặc clip xong trong VUA_SINH_PHUT phút) → tô viền xanh + nhãn ✨ mới (#1384). Trả mốc mới nhất. */
+const VUA_SINH_PHUT = 30;
+const vuaSinh = (c: { keyframe_luc?: string | null; video_luc?: string | null }): string | null => {
+  const m = [c.keyframe_luc, c.video_luc].filter((x): x is string => !!x).sort().pop();
+  return m && Date.now() - new Date(m).getTime() < VUA_SINH_PHUT * 60000 ? m : null;
+};
+
 export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChanged }: { canh: Canh[]; nhanVat: NhanVat[]; tap: Pick<Tap, 'id' | 'phan_canh'>; tiLe?: string; onMo: (id: number) => void; moHinhChu: string; onChanged: () => Promise<void> }) {
   // 🔍 Kiểm khung (khung.ts): máy nhìn keyframe từng khối cảnh + cú chuyển từ cảnh trước — chưa kiểm / lệch thì video + animatic bị chặn.
   const [banKhung, setBanKhung] = useState(false); const [loiKhung, setLoiKhung] = useState('');
@@ -73,14 +86,16 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
             const kt = c.ky_thuat ?? {}; const cc = kt.chuyen_canh;
             const bc = nhanVat.filter((v) => v.loai === 'boi_canh' && c.nhan_vat.includes(v.id)).map((v) => v.ten);
             return (
-              <button key={c.id} type="button" onClick={() => onMo(c.id)} title={[`#${c.thu_tu} ${c.canh}`, c.hanh_dong, `Phân cảnh: ${tenPhanDoan(k.ten)}${pc?.beat ? ` (${pc.beat})` : ''}`, pc?.muc_tieu].filter(Boolean).join('\n')}
-                style={{ all: 'unset', cursor: 'pointer', display: 'flex', flexDirection: 'column', borderRadius: 8, overflow: 'hidden', border: trangThaiKhung(c) === 'lech' ? '2px solid #f87171' : '1px solid var(--line)', borderTop: `3px solid ${mau}`, background: 'var(--bg-1)' }}>
+              <button key={c.id} type="button" onClick={() => onMo(c.id)} title={[`#${c.thu_tu} ${c.canh}`, c.hanh_dong, `Phân cảnh: ${tenPhanDoan(k.ten)}${pc?.beat ? ` (${pc.beat})` : ''}`, pc?.muc_tieu,
+                  c.keyframe_luc && `🖼 keyframe sinh ${truoc(c.keyframe_luc)}`, c.video_luc && `🎬 clip sinh ${truoc(c.video_luc)}`].filter(Boolean).join('\n')}
+                style={{ all: 'unset', cursor: 'pointer', display: 'flex', flexDirection: 'column', borderRadius: 8, overflow: 'hidden', border: trangThaiKhung(c) === 'lech' ? '2px solid #f87171' : vuaSinh(c) ? '2px solid #4ade80' : '1px solid var(--line)', borderTop: `3px solid ${mau}`, background: 'var(--bg-1)', boxShadow: vuaSinh(c) ? '0 0 0 3px rgba(74,222,128,.25)' : undefined }}>
                 <div style={{ height: 18, padding: '0 6px', display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', background: i === 0 ? `color-mix(in srgb, ${mau} 18%, transparent)` : undefined }}>
                   {i === 0 ? <><b style={{ color: mau, overflow: 'hidden', textOverflow: 'ellipsis' }}>{tenPhanDoan(k.ten) || 'Chưa đặt phân cảnh'}</b>{pc?.beat && <span className="xv-mono" style={{ color: 'var(--fg-3)' }}>{pc.beat}</span>}</> : <span style={{ color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tenPhanDoan(k.ten)}</span>}
                 </div>
                 {hien !== '3d' && <div style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: anh ? `center / cover no-repeat url(${anhNho(anh, coAnh)}), #111` : 'var(--bg-2)' }}>
                   <span className="xv-mono" style={{ position: 'absolute', left: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.65)', color: '#fff' }}>{gio(tc)}</span>
                   <span className="xv-mono" style={{ position: 'absolute', right: 4, top: 4, fontSize: 10, padding: '1px 4px', borderRadius: 4, background: 'rgba(0,0,0,.65)', color: coVid ? '#4ade80' : '#fff' }}>{coVid ? '▶ ' : ''}#{c.thu_tu} · {giayPhat(c)}s</span>
+                  {vuaSinh(c) && <span className="xv-mono" style={{ position: 'absolute', right: 4, top: 22, fontSize: 9.5, padding: '1px 4px', borderRadius: 4, background: '#16a34a', color: '#fff' }}>✨ mới · {truoc(vuaSinh(c)!)}</span>}
                   {/* Chưa sinh vẫn hiện KHUNG + shot sẽ thấy gì (anh 14/10/2026: "kể cả chưa sinh cũng phải show ra khung để còn biết"). */}
                   {!anh && <span style={{ position: 'absolute', inset: 0, padding: '22px 7px 7px', display: 'flex', flexDirection: 'column', gap: 4, border: '1px dashed var(--line)', borderRadius: 4, fontSize: 10.5, lineHeight: 1.35, color: 'var(--fg-2)', overflow: 'hidden' }}>
                     <span className="xv-mono" style={{ fontSize: 9.5, color: 'var(--fg-4)' }}>CHƯA SINH HÌNH</span>

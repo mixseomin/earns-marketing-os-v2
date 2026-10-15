@@ -475,7 +475,7 @@ export type Canh = {
   kieu_chu: KieuChu;
   /** bản dịch chữ màn theo ngôn ngữ (ban-dich.ts › theoNgonNgu); goc lệch chu_man hiện tại = cũ. */
   chu_man_dich?: Record<string, { goc: string; chu: string }>;
-  thoi_luong_s: number; nhan_vat: number[]; bien_the: number[]; prompt_anh: string; prompt_video: string; dang_sinh_anh?: boolean; dang_sinh_am?: boolean; dang_sinh_giong?: boolean; dang_sinh_sfx?: boolean;
+  thoi_luong_s: number; nhan_vat: number[]; bien_the: number[]; prompt_anh: string; prompt_video: string; dang_sinh_anh?: boolean; dang_sinh_am?: boolean; /** ISO lúc sinh xong keyframe / clip đang dùng (dsCanh, #1384) */ keyframe_luc?: string | null; video_luc?: string | null; dang_sinh_giong?: boolean; dang_sinh_sfx?: boolean;
   dan_dung?: DanDung;
   kiem_khung?: KiemKhung | null;
   may_3d?: May3d | null;

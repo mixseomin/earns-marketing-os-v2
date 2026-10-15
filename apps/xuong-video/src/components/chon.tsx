@@ -6,10 +6,13 @@ import { useViTriNoi } from './vi-tri-noi';
 import { mono } from './ui';
 
 
-export type LuaChon = { value: string; label: string; nhom?: string; phu?: string; title?: string };
-export function Chon({ value, onChange, options, multi, values, onValues, placeholder, minWidth = 180, title, nho, xacNhanBo }: {
+/** ngan = tên gọn hiện trên ô khi đã chọn (tên đầy đủ + giá chỉ hiện lúc mở danh sách — #1383 "gọn lại, bấm vào mới hiện ra"). */
+export type LuaChon = { value: string; label: string; nhom?: string; phu?: string; title?: string; ngan?: string };
+export function Chon({ value, onChange, options, multi, values, onValues, placeholder, minWidth = 180, title, nho, xacNhanBo, nut }: {
   value?: string; onChange?: (v: string) => void; options: LuaChon[]; multi?: boolean; values?: string[]; onValues?: (v: string[]) => void;
   placeholder?: string; minWidth?: number; title?: string; nho?: boolean;
+  /** Ô mở bằng một NÚT biểu tượng (vd "＋") thay vì ô hiện danh sách đã chọn — khi mục đã chọn đã hiện ở chỗ khác (chip đối tượng, #1382). */
+  nut?: React.ReactNode;
   /** multi: bỏ tick một mục phải bấm HAI nhịp (lần 1 cảnh báo tại chỗ, lần 2 trong 4s mới bỏ) — bỏ đối tượng khỏi shot (#1274). */
   xacNhanBo?: boolean;
 }) {
@@ -28,14 +31,15 @@ export function Chon({ value, onChange, options, multi, values, onValues, placeh
   const chon = multi ? options.filter((o) => values?.includes(o.value)) : options.filter((o) => o.value === value);
   const loc = options.filter((o) => !q || `${o.label} ${o.nhom ?? ''} ${o.phu ?? ''}`.toLowerCase().includes(q.toLowerCase()));
   const nhom = [...new Set(loc.map((o) => o.nhom ?? ''))];
-  const nhan = chon.length ? (multi ? chon.map((o) => o.label).join(', ') : chon[0]!.label) : (placeholder ?? 'Chọn…');
+  const nhan = chon.length ? (multi ? chon.map((o) => o.ngan ?? o.label).join(', ') : chon[0]!.ngan ?? chon[0]!.label) : (placeholder ?? 'Chọn…');
   return (
-    <span ref={ref} style={{ position: 'relative', display: 'inline-block', minWidth: nho ? undefined : `min(${minWidth}px, 100%)`, maxWidth: '100%' }} title={title}>
-      <button type="button" className="xv-in" onClick={() => setMo(!mo)} style={{ textAlign: 'left', cursor: 'pointer', display: 'flex', gap: 6, alignItems: 'center', minWidth: 0, overflow: 'hidden', padding: nho ? '3px 8px' : undefined, fontSize: nho ? 11 : undefined }}>
+    <span ref={ref} style={{ position: 'relative', display: 'inline-block', minWidth: nho || nut != null ? undefined : `min(${minWidth}px, 100%)`, maxWidth: '100%' }} title={title}>
+      {nut != null ? <button type="button" className="xv-btn" onClick={() => setMo(!mo)} style={{ padding: '1px 8px', fontSize: 12, opacity: mo ? 1 : 0.75 }}>{nut}</button>
+      : <button type="button" className="xv-in" onClick={() => setMo(!mo)} style={{ textAlign: 'left', cursor: 'pointer', display: 'flex', gap: 6, alignItems: 'center', minWidth: 0, overflow: 'hidden', padding: nho ? '3px 8px' : undefined, fontSize: nho ? 11 : undefined }}>
         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nhan}</span>
-        {!multi && chon[0]?.phu && <span style={{ ...mono, color: 'var(--amber)', whiteSpace: 'nowrap' }}>{chon[0].phu}</span>}
+        {!multi && chon[0]?.phu && !chon[0].ngan && <span style={{ ...mono, color: 'var(--amber)', whiteSpace: 'nowrap' }}>{chon[0].phu}</span>}
         <span style={{ color: 'var(--fg-3)' }}>▾</span>
-      </button>
+      </button>}
       {mo && (
         <div style={{ ...viTri, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.5)' }}>
           <input autoFocus className="xv-in" placeholder={`Tìm trong ${options.length}…`} value={q} onChange={(e) => setQ(e.target.value)} style={{ border: 0, borderBottom: '1px solid var(--line)', borderRadius: '8px 8px 0 0' }}

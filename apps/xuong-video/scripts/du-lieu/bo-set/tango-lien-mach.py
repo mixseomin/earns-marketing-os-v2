@@ -254,8 +254,9 @@ for ma, ds in VT.items():
     if ma in NHAY: m['nhay'] = NHAY[ma]
     else: m.pop('nhay', None)
 # Máy giữ nguyên tay (dat): nhìn theo chỗ mới của chủ thể.
-S['may']['2.3'].update(dat=[41.7, 15.1, 1.8], nhin=[32, 29, 1.2])
-S['may']['4.3'].pop('phia', None); S['may']['4.3'].update(dat=[-9.2, 55.9, 1.0], nhin=[5.5, 71.5, 1.0], ong_kinh=35, khung=[TANGO, LINT])   # #14 ĐẶT TAY: bộ giải cứ kéo máy về gần #13 (lệch 25°) — sau-trái 40° quanh Tango, cùng phía trục, Lint phải màn   # #14: xoay 35° so với #13 (luật 30°)   # #9: xoay 35° quanh Tango so với #8 (luật 30°), nhìn 125° (máy chủ cảnh 92°)
+S['may']['2.3'].update(dat=[33.1, 23.1, 1.2], nhin=[30.8, 27.3, 0.9], ong_kinh=35)   # #9 CẬN mặt Tango đập xuống gỗ (two → cu = 2 bậc so với #8), 4,5 cm   # 8 cm, Tango ~1/3 khung (cỡ trung)
+S['may']['4.2']['phia'] = 1   # #13: giải lại để nhận tiêu cự 35 của bộ ống mới (cảnh 4 = 24 / 35 / 60); máy đổi không đáng kể
+S['may']['4.3'].pop('phia', None); S['may']['4.3'].update(dat=[-2.2, 63.1, 1.0], nhin=[5.5, 71.5, 1.0], ong_kinh=24, khung=[TANGO, LINT])   # #14 ĐẶT TAY: bộ giải cứ kéo máy về gần #13 (lệch 25°) — sau-trái 40° quanh Tango, cùng phía trục, Lint phải màn   # #14: xoay 35° so với #13 (luật 30°)   # #9: xoay 35° quanh Tango so với #8 (luật 30°), nhìn 125° (máy chủ cảnh 92°)
 # 5.7 cận vũng đất sét: cáp trượt dốc qua ngay trước mặt Tango — máy tự động đứng từ trước-trái.
 for k in ('dat', 'nhin', 'ong_kinh'): S['may']['5.7'].pop(k, None)
 S['may']['5.7']['phia'] = -40   # máy tự động từ trước-trái; bộ giải né cáp trượt (xoay tới 180°)

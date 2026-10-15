@@ -17,6 +17,8 @@ import { moNgan } from './ngan-chung';
 import { KyThuatApDung } from './thu-vien';
 import { boSetCuaShot, loiMachTap, canhBaoMachTap } from '@/lib/xuong-video/bo-set-3d';
 import { NhanKhung3D } from './kiem-khung-noi';
+import { ChipMurch } from './diem-murch-noi';
+import { diemMurchTap, diemMurchCanh } from '@/lib/xuong-video/diem-murch';
 
 /** Tên ngắn của một key thư viện (bỏ phần ngành trong ngoặc). */
 const tenKt = (k: string | undefined, n: NhomKyThuat) => (k ? kyThuat(k, n)?.ten.replace(/\s*\(.*\)$/, '') ?? '' : '');
@@ -60,6 +62,8 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
   const lienMach = loiMachTap(canh, nhanVat, sets);
   // Cảnh báo (luật 30°, eye trace, khoảng nhìn, chiều cao máy, ống kính — Murch xếp cuối): ⚠ vàng, không chặn tiền.
   const canhBao = canhBaoMachTap(canh, (t) => nhanVat.some((x) => x.loai === 'nhan_vat' && x.ten === t));
+  // Điểm Murch từng shot (diem-murch.ts): so shot trong tập, chip góc phải ô 3D, thẻ nổi sáu tiêu chí.
+  const diemM = diemMurchTap(canh, nhanVat, sets, { phanCanh: tap.phan_canh ?? [] }); const tbM = diemMurchCanh(canh, diemM);
   // Khối phân cảnh = các shot liền nhau cùng phan_doan (một phân cảnh có thể quay lại sau, mỗi lần là một khối).
   const khoi: { ten: string; ds: { c: Canh; tu: number }[] }[] = [];
   let t = 0;
@@ -124,7 +128,7 @@ export function LuoiKichBan({ canh, nhanVat, tap, tiLe, onMo, moHinhChu, onChang
                   : c.khung_xam
                   ? <div role="button" tabIndex={0} title="Bấm để xoay xem 3D đúng máy của shot này" onClick={(e) => { e.stopPropagation(); moNgan({ loai: 'bo-set', tapId: tap.id, canhId: c.id }); }} onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); e.preventDefault(); moNgan({ loai: 'bo-set', tapId: tap.id, canhId: c.id }); } }}
                       style={{ position: 'relative', aspectRatio: doc ? '9 / 16' : '16 / 9', background: `center / cover no-repeat url(${anhNho(c.khung_xam.mau ?? c.khung_xam.xam, coAnh)}), #222`, borderTop: '1px solid var(--line)', cursor: 'zoom-in' }}>
-                      <NhanKhung3D c={c} loi={lienMach[c.id] ?? []} canhBao={canhBao[c.id] ?? []} />
+                      <NhanKhung3D c={c} loi={lienMach[c.id] ?? []} canhBao={canhBao[c.id] ?? []} /><ChipMurch d={diemM[c.id]} canh={tbM.canh[c.phan_doan]} tap={tbM.tap} soShot={c.thu_tu} />
                       {/* NHÃN TÊN từng khối (khung_xam.thay, đo bằng lưới tia) — khối nào là gì đọc được ngay, không đoán bằng mắt (anh 14/10/2026: khối vàng
                           ở cảnh 6–7 tưởng là tay Gã khổng lồ). Chỉ gắn khi ô cùng tỉ lệ khung dọc của khung xám (cover không cắt) — khổ ngang xem ở tooltip. */}
                       {doc && (c.khung_xam.thay ?? []).filter((t) => t.pt >= 4).slice(0, 7).map((t) => (

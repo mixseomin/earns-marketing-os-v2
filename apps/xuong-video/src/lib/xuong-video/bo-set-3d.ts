@@ -471,7 +471,7 @@ export function matQuayDi(c: { may_3d?: May3d | null; ky_thuat?: Canh['ky_thuat'
 // nhiều shot nhất trong ±45°); shot thường lệch quá → chặn. Shot qua trục (POV, chèn) được miễn nhưng không đứng liền nhau.
 export const NHIP_DAN = 45;
 /** Vai kể có GÓC RIÊNG (không tính vào hướng máy chủ): shot thiết lập mở cảnh (#12 trong chuỗi #11–#15 anh khen), người thứ ba rình, góc nhìn nhân vật. */
-const VAI_GOC_RIENG = new Set(['thiet_lap', 'nguoi_thu_ba', 'chu_quan']);
+export const VAI_GOC_RIENG = new Set(['thiet_lap', 'nguoi_thu_ba', 'chu_quan']);
 export function nhipDan<T extends { id: number; thu_tu: number; phan_doan?: string; may_3d?: May3d | null; ky_thuat?: { vai?: string } | null }>(ds: T[]): Record<number, string[]> {
   const out: Record<number, string[]> = {}; const hg = (m: May3d) => (Math.atan2(m.nhin[1]! - m.dat[1]!, m.nhin[0]! - m.dat[0]!) * 180) / Math.PI;
   for (const pd of new Set(ds.map((c) => c.phan_doan ?? ''))) {

@@ -436,14 +436,14 @@
         },
         {
           "vai": "phan_ung",
-          "co": "ms",
+          "co": "cu",
           "giay": 3.5,
           "luat": [
             "giu_phan_ung",
             "nhan_qua_huong_nhin"
           ],
           "thay": "Tango úp mặt xuống gỗ, ngẩng lên nhìn theo viên kẹo nảy lộp bộp về phía khe giữa hai màn hình.",
-          "bo_cuc": "Mid: Tango face-down on the wood, screen-left, just right of the white mouse. Background: the gummy bouncing away screen-left and deeper, toward the dark gap between the two screens.",
+          "bo_cuc": "Close-up, low on the wood: Tango face-down, strand bent, eyes squeezed shut, screen-left; the white mouse soft at the edge. Background: the gummy bouncing away, screen-left and deeper, toward the dark gap between the two screens.",
           "mo": "Tango landing face-first on the wood.",
           "ket": "Tango lifting his face, eyes following the gummy bouncing away screen-left into depth, toward the gap between the two screens.",
           "huong": "Tango looks screen-right at the gummy, then follows it screen-left into depth; the gummy exits toward the gap between the two screens.",

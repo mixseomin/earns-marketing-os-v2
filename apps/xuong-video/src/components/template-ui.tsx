@@ -143,7 +143,7 @@ export function KhoTemplate({ ds: dsVao, onMo }: { ds: Phim[]; onMo: (id: number
       {chuaXep.length > 0 && (
         <section style={{ marginTop: 10 }}>
           <b style={{ fontSize: 14 }}>Chưa xếp dòng</b> <span style={mono}>template tự lưu — gán dòng + khuôn trong mau/templates.json hoặc cấu hình template</span>
-          <div style={{ ...luoi, marginTop: 6 }}>{chuaXep.map(the)}</div>
+          <div style={{ ...luoi, marginTop: 6 }}>{chuaXep.map((p) => the(p))}</div>
         </section>
       )}
       {dung && <TaoTuTemplate templateId={dung.id} tenTemplate={dung.ten} onClose={() => setDung(null)} onTao={(id) => { setDung(null); onMo(id); }} />}

@@ -35,7 +35,6 @@ vat('Cable Jungle 4')['diem'] = [[-30, 58, 0.3], [-12, 76, 0.3], [4, 79, 0.3], [
 S['vat'] = [x for x in S['vat'] if x['ten'] not in ('Back Monitor', 'Silver iMac', 'Kệ nâng sau')]
 # BÀN ĐẶT GIỮA PHÒNG (anh 14/10/2026: "thực tế bàn đó đặt giữa phòng chứ không sát tường"): bỏ bức tường sát lưng bàn; dựng sàn (mặt bàn cao
 # 75 cm), bốn chân bàn, bốn bức tường xa (phòng 5 × 5 m, bàn ở giữa), tường trước có ô cửa sổ tầng ba — đúng cú bay qua cửa sổ vào bàn ở 0.4.
-S['vat'] = [x for x in S['vat'] if not x['ten'].startswith('Tường') and not x['ten'].startswith('Sàn') and not x['ten'].startswith('Chân bàn')]
 BAN_T = [0, 62]   # tâm mặt bàn (x, y); mặt bàn 170 × 124
 PHONG = [{'ten': 'Sàn phòng', 'nen': True, 'hinh': 'hop', 'tam': [0, 62, -76], 'co': [500, 500, 1], 'mau': '#4a3b30'}]
 for i, (dx, dy) in enumerate([(-80, -56), (80, -56), (-80, 56), (80, 56)]):
@@ -51,7 +50,8 @@ PHONG += [
     {'ten': 'Tường trước 4', 'nen': True, 'hinh': 'hop', 'tam': [0, -188, 125], 'co': [120, 2, 70], 'mau': '#3a3c46'},
     {'ten': 'Khung cửa sổ', 'nen': True, 'hinh': 'hop', 'tam': [0, -188, 25], 'co': [124, 4, 2], 'mau': '#8a7a66'},
 ]
-S['vat'] = PHONG + S['vat']
+# Gỡ ĐÚNG mọi món phòng này tự thêm ở lần chạy trước rồi mới thêm lại — chạy lại bao nhiêu lần cũng ra một bộ (trước đây sót 'Khung cửa sổ': 16 khung chồng nhau).
+S['vat'] = PHONG + [x for x in S['vat'] if x['ten'] not in {p['ten'] for p in PHONG}]
 # Tên tiếng Anh gửi mô hình ảnh (danh sách khối trong prompt keyframe): tên tiếng Việt như 'Tường phải' model không hiểu là bức tường.
 for x in S['vat']:
     if x['ten'].startswith('Tường') or x['ten'] == 'Khung cửa sổ': x['en'] = 'far plain room wall' if x['ten'] != 'Khung cửa sổ' else 'window frame on the far wall'

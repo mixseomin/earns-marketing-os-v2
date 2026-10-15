@@ -17,6 +17,9 @@ const db = getDb()!; const gia = (k: string) => process.argv.find((a) => a.start
 const tap = Number(gia('tap')) || null;
 if (gia('nap')) {
   const d = JSON.parse(readFileSync(gia('nap'), 'utf8'));
+  // Tên vật phải DUY NHẤT: cổng chuỗi chú ý / khung chủ thể tra vật theo tên — trùng tên là tra nhầm (15/10/2026: bộ dựng sót, 16 'Khung cửa sổ').
+  const trung = (d.vat as { ten: string }[]).map((v) => v.ten).filter((t, i, a) => a.indexOf(t) !== i);
+  if (trung.length) { console.error(`bộ set trùng tên vật: ${[...new Set(trung)].join(', ')} — sửa bộ dựng rồi nạp lại`); process.exit(1); }
   const phim = Number(gia('phim'));
   const project = String(((await db.execute(sql`SELECT project FROM xv_phim WHERE id = ${phim}`)) as unknown as Row[])[0]?.project ?? 'studio');
   const co = (await db.execute(sql`SELECT id FROM xv_bo_set WHERE project = ${project} AND ten = ${d.ten}`)) as unknown as Row[];

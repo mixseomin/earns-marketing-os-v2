@@ -148,7 +148,9 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   }
   if (laFal) {
     const id = bc.kt.mo_hinh_video.slice(4);
-    kq = await guiFal(id, await dauVaoTheoSchema(id, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, giay: bc.canh.thoi_luong_s || giay, tiLe: bc.kt.ti_le, tieng, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) }));
+    // Khung giữa chỉ khi keyframe là ảnh render 3D (cùng nguồn với khung giữa — keyframe AI không khớp khung giữa render).
+    const khungGiua = bc.canh.khung_xam?.mau_giua && bc.canh.keyframe_url === bc.canh.khung_xam.mau ? [bc.canh.khung_xam.mau_giua] : [];
+    kq = await guiFal(id, await dauVaoTheoSchema(id, { prompt, anhDau: bc.canh.keyframe_url, anhCuoi: khungCuoi, khungGiua, giay: bc.canh.thoi_luong_s || giay, tiLe: bc.kt.ti_le, tieng, loai: loaiCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)) }));
   } else {
     const anhDau = await taiAnhBase64(bc.canh.keyframe_url);
     if (!anhDau) { await xongJob(db, job, { loi: 'không tải được keyframe' }); return loi('không tải được keyframe'); }

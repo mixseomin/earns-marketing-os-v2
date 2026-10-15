@@ -173,7 +173,7 @@ export function catCau(chu: string, toiDa?: number): string {
   return (i > toiDa * 0.5 ? cat.slice(0, i + 1) : cat.slice(0, cat.lastIndexOf(' '))).trim();
 }
 
-export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?: string | null; anhCuoi?: string | null; anhThamChieu?: string[]; giay?: number; tiLe?: string; tieng?: boolean; /** danh từ cần loại (negative prompt) */ loai?: string }): Promise<Record<string, unknown>> {
+export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?: string | null; anhCuoi?: string | null; /** khung khoá giữa (model nhiều khung: Pikaframes) */ khungGiua?: string[]; anhThamChieu?: string[]; giay?: number; tiLe?: string; tieng?: boolean; /** danh từ cần loại (negative prompt) */ loai?: string }): Promise<Record<string, unknown>> {
   const p = await schemaVao(id);
   const co = (k: string) => k in p;
   // Độ dài prompt theo GIỚI HẠN CỦA CHÍNH MODEL (schema maxLength): Kling 2.1 Pro nhận ≤ 2500 ký tự → 422 (#23, 16/10/2026). Cắt ở ranh giới câu
@@ -182,6 +182,15 @@ export async function dauVaoTheoSchema(id: string, v: { prompt: string; anhDau?:
   const o: Record<string, unknown> = { prompt: catCau(v.prompt, toiDa) };
   const truongDau = ['start_image_url', 'image_url', 'first_frame_url', 'first_image_url', 'image'].find(co);
   const truongCuoi = ['end_image_url', 'tail_image_url', 'last_frame_url', 'end_frame_url', 'last_image_url'].find(co);
+  // NHIỀU KHUNG KHOÁ (Pikaframes: image_urls 2–5 + transitions): đầu → các khung giữa → cuối, chia đều số giây shot cho từng đoạn (≥ 1 s mỗi đoạn).
+  const khung = [v.anhDau, ...(v.khungGiua ?? []), v.anhCuoi].filter((x): x is string => !!x);
+  if (co('transitions') && co('image_urls') && khung.length >= 2) {
+    const n = khung.length - 1; const tong = Math.max(n, Math.round(v.giay ?? 5)); const d = Array.from({ length: n }, (_, i) => Math.floor(tong / n) + (i < tong % n ? 1 : 0));
+    o.image_urls = khung.slice(0, 5); o.transitions = d.slice(0, Math.min(5, khung.length) - 1).map((x) => ({ duration: x }));
+    if (co('resolution')) o.resolution = '720p';
+    if (v.loai && co('negative_prompt')) o.negative_prompt = v.loai;
+    return o;
+  }
   if (v.anhDau && truongDau) o[truongDau] = v.anhDau;
   if (v.anhCuoi && truongCuoi) o[truongCuoi] = v.anhCuoi;
   const ds = v.anhThamChieu?.filter(Boolean) ?? [];

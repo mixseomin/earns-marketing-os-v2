@@ -260,7 +260,11 @@ def nhan_vat(sh, ket=False):
     for nv in sh.get('nhan_vat', []):
         mau_nv = DL['nhan_vat_mau'][nv['ten']]
         cam_luc_nay = nv.get('cam') and not (ket and nv.get('den'))   # cam + den = đặt xuống trong shot: khung kết không còn cầm
-        if ket: nv = {**nv, 'tam': nv.get('den') or nv['tam'], 'huong': nv.get('huong_den', nv.get('huong', 0)), 'nam': nv.get('nam_den', nv.get('nam'))}   # khung KẾT: chỗ + hướng + dáng (bẹp) lúc kết
+        if ket is True: nv = {**nv, 'tam': nv.get('den') or nv['tam'], 'huong': nv.get('huong_den', nv.get('huong', 0)), 'nam': nv.get('nam_den', nv.get('nam'))}   # khung KẾT: chỗ + hướng + dáng (bẹp) lúc kết
+        elif ket:   # khung GIỮA (ket = t, 0 < t < 1): nội suy chỗ + hướng giữa mở và kết — khung khoá giữa cho video nhiều khung (Pikaframes)
+            t_ = float(ket); a_ = nv['tam']; b_ = nv.get('den') or a_
+            h0 = nv.get('huong', 0); h1 = nv.get('huong_den', h0); dh = ((h1 - h0 + 180) % 360) - 180
+            nv = {**nv, 'tam': [a_[k] + (b_[k] - a_[k]) * t_ for k in range(len(a_))] + ([] if len(a_) == len(b_) else []), 'huong': h0 + dh * t_, 'nam': nv.get('nam_den', nv.get('nam')) if t_ >= 0.5 else nv.get('nam')}
         X, Y, Z = nv['tam'][0], nv['tam'][1], (nv['tam'][2] if len(nv['tam']) > 2 else 0)
         w, d, h = mau_nv['co']
         hg = nv.get('huong', 0)
@@ -667,6 +671,9 @@ for sh in ([] if CHI_MB else shots):
         di[sh['ma']] = [{'ten': t, 'tu': tu[t], 'den': den_.get(t, tu[t])} for t in tu]
         ve_mau(s, sh, f"{RA}/{sh['ma']}-mau-ket.jpg")
         for o in nk_het: bpy.data.objects.remove(o, do_unlink=True)
+        if MESH_THAT:   # khung GIỮA (t = 0,5): khung khoá thứ ba cho video nhiều khung — giữ dây cáp / mặt nhân vật khỏi trôi giữa clip (#23)
+            ng_, ng_het = nhan_vat(sh, ket=0.5); ve_mau(s, sh, f"{RA}/{sh['ma']}-mau-giua.jpg")
+            for o in ng_het: bpy.data.objects.remove(o, do_unlink=True)
     else: di[sh['ma']] = [{'ten': t, 'tu': tu[t], 'den': tu[t]} for t in tu]
 
 dat_tuy_chon({t for sh in shots for t in (sh.get('them') or [])})   # mặt bằng: đồ tuỳ chọn hiện khi có shot dùng nó

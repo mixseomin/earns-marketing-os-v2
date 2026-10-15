@@ -576,6 +576,26 @@
    }
   },
   {
+   "nhan": "MacBook:com.earns.pinterest-nap-ghim",
+   "ten": "Pinterest - nạp ghim hẹn",
+   "chay": [
+    "/bin/bash",
+    "-lc",
+    "/Users/htuan/bin/br open /Users/htuan/Me/Earns/courseforge-demo/.capture-profile-militarycalc >/dev/null; /Users/htuan/bin/br play run pinterest.nap-ghim-hen"
+   ],
+   "moi_truong": {
+    "BR_PROFILE": "/Users/htuan/Me/Earns/courseforge-demo/.capture-profile-militarycalc",
+    "BR_SESSION": "pinterest-nap-ghim",
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/tmp/pinterest-nap-ghim.log",
+   "hen": {
+    "luc": [
+     "09:45"
+    ]
+   }
+  },
+  {
    "nhan": "MacBook:com.earns.puzzle-gumroad",
    "ten": "Puzzle - đăng Gumroad",
    "chay": [

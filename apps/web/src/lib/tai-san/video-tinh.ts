@@ -59,10 +59,11 @@ export const doi = (n: NenTong) => (n.xem7 == null || n.truoc7 == null || n.truo
 export const soCu = (ngay: string | null, hom: string) => !!ngay && ngay < lui(hom, 2);
 
 /** Pinterest: số Pinterest tự tính trên cửa sổ 30 NGÀY (analytics overview), không phải cộng dồn → không trừ ra 7 ngày được, giữ nguyên khung 30 ngày. */
-export type PinTong = { hien30: number; click30: number; tuongTac30: number; soGhim: number; ngay: string };
+/** soGhimCoHien = số ghim trong bảng Top Pins (ghim CÓ lượt hiện 30 ngày) — KHÔNG phải số ghim đã đăng (15/10/2026: "4 ghim" bị đọc thành chỉ đăng 4) */
+export type PinTong = { hien30: number; click30: number; tuongTac30: number; soGhimCoHien: number; ngay: string };
 export function tinhPin(so: Record<string, { ngay: string; hien: number; tuongTac: number; click: number; soMuc: number }>): PinTong | null {
   const ds = Object.entries(so).filter(([k]) => k.startsWith('pinterest|')).map(([, v]) => v);
   if (!ds.length) return null;
   return { hien30: ds.reduce((t, v) => t + v.hien, 0), click30: ds.reduce((t, v) => t + v.click, 0), tuongTac30: ds.reduce((t, v) => t + v.tuongTac, 0),
-    soGhim: ds.reduce((t, v) => t + v.soMuc, 0), ngay: ds.map((v) => v.ngay).sort().pop()! };
+    soGhimCoHien: ds.reduce((t, v) => t + v.soMuc, 0), ngay: ds.map((v) => v.ngay).sort().pop()! };
 }

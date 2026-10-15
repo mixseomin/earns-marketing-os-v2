@@ -21,5 +21,5 @@ import { doi, tinhVideo, type DongSo, type VideoSo, soCu, tinhPin } from './vide
   a.equal(soCu('2026-10-09', '2026-10-12'), true); a.equal(soCu('2026-10-10', '2026-10-12'), false); a.equal(soCu(null, '2026-10-12'), false);
   // Pinterest: cộng mọi sách, chỉ khoá pinterest|…, ngày = mới nhất; không có dòng = null
   const so = { 'pinterest|p:a': { ngay: '2026-10-12', hien: 12, tuongTac: 1, click: 2, soMuc: 4 }, 'pinterest|p:b': { ngay: '2026-10-07', hien: 3, tuongTac: 0, click: 0, soMuc: 1 }, 'youtube|p:a': { ngay: '2026-10-12', hien: 999, tuongTac: 0, click: 0, soMuc: 9 } };
-  a.deepEqual(tinhPin(so), { hien30: 15, click30: 2, tuongTac30: 1, soGhim: 5, ngay: '2026-10-12' }); a.equal(tinhPin({}), null);
+  a.deepEqual(tinhPin(so), { hien30: 15, click30: 2, tuongTac30: 1, soGhimCoHien: 5, ngay: '2026-10-12' }); a.equal(tinhPin({}), null);
   console.log('video-tinh: 15/15 ok');

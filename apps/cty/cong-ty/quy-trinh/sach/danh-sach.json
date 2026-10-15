@@ -228,16 +228,18 @@
    "id": "ghim-pinterest",
    "ten": "Ghim Pinterest",
    "so_hoa": "co-dinh",
-   "kich_hoat": "Chạy tay: dựng ghim sau khi có ảnh; đưa lên hàng hẹn khi Pinterest còn chỗ (tối đa 100 ghim hẹn)",
-   "mo_ta": "Mỗi cuốn ~100 ảnh ghim tải lên Directus + CSV Bulk create; hàng đợi chung lấy đúng số chỗ trống theo thứ tự ưu tiên, dời giờ hẹn đã qua. Tài khoản Pinterest #503.",
-   "ma": "puzzle-books scripts/pins.mjs <tên> → scripts/pin-hang.mjs <số chỗ trống> → ~/bin/plays/pinterest.nap-ghim-hen.sh",
+   "kich_hoat": "MacBook 09:45 mỗi ngày (sau lượt đọc số 09:20): đọc số ghim hẹn trên Pinterest, lấp đúng số chỗ trống tới trần 100",
+   "mo_ta": "Hàng ghim chung của MỌI cuốn có out/<tên>/pinterest.csv, lấy xen kẽ từng cuốn (cuốn theo mùa trước); giờ hẹn đã qua dời sang giờ trống. Sổ chỉ ghi đã lên SAU khi Pinterest báo Upload successful (tải hỏng thì đợt đó tự quay lại). Cuốn mới: khai book.pin trong themes/<tên>.json rồi chạy pins.mjs (tải ảnh ghim lên Directus) — chưa có máy làm bước này. Tài khoản Pinterest #503.",
+   "ma": "MacBook viec-nen pinterest-nap-ghim → ~/bin/plays/pinterest.nap-ghim-hen.sh → puzzle-books scripts/pin-hang.mjs <chỗ trống> / --xac-nhan · cuốn mới: scripts/pins.mjs <tên>",
    "chu_tri": "kenh-keo-khach",
    "lam": [
     "may"
    ],
-   "khi": "chạy tay",
+   "khi": "09:45 mỗi ngày",
    "day_chuyen": "ghim",
-   "lich": [],
+   "lich": [
+    "MacBook:com.earns.pinterest-nap-ghim"
+   ],
    "chi_phi": "0"
   },
   {

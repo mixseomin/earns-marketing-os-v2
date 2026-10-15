@@ -17,7 +17,7 @@ export function TaiSanVideo({ nen, video, tenSp, pin, hom }: { nen: NenTong[]; v
   type DongNen = { key: string; nhan: string; ky: string; xem: number | null; doi: number | null; muc: string; vao: number | null; vaoNhan: string; tong: number | null; ngay: string | null };
   const dongNen: DongNen[] = [
     ...nen.map((n) => ({ key: n.kenh, nhan: n.nhan, ky: '7 ngày', xem: n.xem7, doi: doi(n), muc: n.soVideo ? `${n.soVideo} video` : '–', vao: n.vaoShop7, vaoNhan: 'vào shop', tong: n.soVideo ? n.tong : null, ngay: n.ngay })),
-    pin ? { key: 'pinterest', nhan: 'Pinterest', ky: '30 ngày', xem: pin.hien30, doi: null, muc: `${pin.soGhim} ghim`, vao: pin.click30, vaoNhan: 'click ra', tong: null, ngay: pin.ngay }
+    pin ? { key: 'pinterest', nhan: 'Pinterest', ky: '30 ngày', xem: pin.hien30, doi: null, muc: `${pin.soGhimCoHien} ghim có lượt hiện`, vao: pin.click30, vaoNhan: 'click ra', tong: null, ngay: pin.ngay }
         : { key: 'pinterest', nhan: 'Pinterest', ky: '30 ngày', xem: null, doi: null, muc: '–', vao: null, vaoNhan: 'click ra', tong: null, ngay: null },
   ];
   const cotNen: DataColumn<DongNen>[] = [
